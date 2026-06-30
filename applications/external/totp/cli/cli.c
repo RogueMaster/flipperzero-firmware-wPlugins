@@ -21,6 +21,12 @@
 #include "cli_plugin_interface.h"
 #include "../app_api_interface.h"
 
+#if !(__has_include(<toolbox/cli/cli_registry.h>))
+#define cli_registry_add_command    cli_add_command
+#define cli_registry_delete_command cli_delete_command
+#define CliRegistry                 Cli
+#endif
+
 struct TotpCliContext {
     PluginState* plugin_state;
     CompositeApiResolver* plugin_api_resolver;
@@ -37,7 +43,7 @@ static void run_external_cli_plugin_handler(
     const char* handler_name,
     TotpCliContext* cli_context,
     FuriString* args,
-    Cli* cli) {
+    PipeSide* pipe) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     FlipperApplication* plugin_app = flipper_application_alloc(
         storage, composite_api_resolver_get(cli_context->plugin_api_resolver));
@@ -81,14 +87,14 @@ static void run_external_cli_plugin_handler(
 
         const CliPlugin* plugin = app_descriptor->entry_point;
 
-        plugin->handle(cli_context->plugin_state, args, cli);
+        plugin->handle(cli_context->plugin_state, args, pipe);
     } while(false);
     flipper_application_free(plugin_app);
 
     furi_record_close(RECORD_STORAGE);
 }
 
-static void totp_cli_handler(Cli* cli, FuriString* args, void* context) {
+static void totp_cli_handler(PipeSide* pipe, FuriString* args, void* context) {
     TotpCliContext* cli_context = context;
 
     FuriString* cmd = furi_string_alloc();
@@ -145,14 +151,14 @@ static void totp_cli_handler(Cli* cli, FuriString* args, void* context) {
     }
 
     if(external_plugin_name != NULL) {
-        run_external_cli_plugin_handler(external_plugin_name, cli_context, args, cli);
+        run_external_cli_plugin_handler(external_plugin_name, cli_context, args, pipe);
     }
 
     furi_string_free(cmd);
 }
 
 TotpCliContext* totp_cli_register_command_handler(PluginState* plugin_state) {
-    Cli* cli = furi_record_open(RECORD_CLI);
+    CliRegistry* cli = furi_record_open(RECORD_CLI);
     TotpCliContext* context = malloc(sizeof(TotpCliContext));
     furi_check(context != NULL);
     context->plugin_state = plugin_state;
@@ -161,15 +167,15 @@ TotpCliContext* totp_cli_register_command_handler(PluginState* plugin_state) {
     composite_api_resolver_add(context->plugin_api_resolver, firmware_api_interface);
     composite_api_resolver_add(context->plugin_api_resolver, application_api_interface);
 
-    cli_add_command(
+    cli_registry_add_command(
         cli, TOTP_CLI_COMMAND_NAME, CliCommandFlagParallelSafe, totp_cli_handler, context);
     furi_record_close(RECORD_CLI);
     return context;
 }
 
 void totp_cli_unregister_command_handler(TotpCliContext* context) {
-    Cli* cli = furi_record_open(RECORD_CLI);
-    cli_delete_command(cli, TOTP_CLI_COMMAND_NAME);
+    CliRegistry* cli = furi_record_open(RECORD_CLI);
+    cli_registry_delete_command(cli, TOTP_CLI_COMMAND_NAME);
 
     composite_api_resolver_free(context->plugin_api_resolver);
 

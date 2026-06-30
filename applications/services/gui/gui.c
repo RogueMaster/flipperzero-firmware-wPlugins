@@ -1,10 +1,9 @@
 #include "gui_i.h"
 #include <assets_icons.h>
-#include <furi.h>
-#include <furi_hal.h>
-#include <furi_hal_rtc.h>
-//#include <storage/storage.h>
-//#include <storage/storage_i.h>
+
+#include <storage/storage.h>
+#include <storage/storage_i.h>
+#include <cfw/cfw.h>
 
 #define TAG "GuiSrv"
 
@@ -22,10 +21,10 @@ ViewPort* gui_view_port_find_enabled(ViewPortArray_t array) {
     return NULL;
 }
 
-uint8_t gui_get_count_of_enabled_view_port_in_layer(Gui* gui, GuiLayer layer) {
+size_t gui_active_view_port_count(Gui* gui, GuiLayer layer) {
     furi_assert(gui);
     furi_check(layer < GuiLayerMAX);
-    uint8_t ret = 0;
+    size_t ret = 0;
 
     gui_lock(gui);
     ViewPortArray_it_t it;
@@ -57,6 +56,16 @@ void gui_input_events_callback(const void* value, void* ctx) {
     furi_thread_flags_set(gui->thread_id, GUI_THREAD_FLAG_INPUT);
 }
 
+void gui_ascii_events_callback(const void* value, void* ctx) {
+    furi_assert(value);
+    furi_assert(ctx);
+
+    Gui* gui = ctx;
+
+    furi_message_queue_put(gui->ascii_queue, value, FuriWaitForever);
+    furi_thread_flags_set(gui->thread_id, GUI_THREAD_FLAG_ASCII);
+}
+
 // Only Fullscreen supports vertical display for now
 static bool gui_redraw_fs(Gui* gui) {
     canvas_set_orientation(gui->canvas, CanvasOrientationHorizontal);
@@ -71,17 +80,10 @@ static bool gui_redraw_fs(Gui* gui) {
 }
 
 static void gui_redraw_status_bar(Gui* gui, bool need_attention) {
-    //We dont want to draw the status bar if its hidden.
-    if(gui->hide_statusbar_count > 0) {
-        return;
-    }
-
+    if(gui->hide_statusbar_count > 0) return;
     ViewPortArray_it_t it;
     uint8_t left_used = 0;
     uint8_t right_used = 0;
-    uint8_t left_slim_used = 0;
-    uint8_t right_slim_used = 0;
-    uint8_t top_used = 0;
     uint8_t width;
 
     if(furi_hal_rtc_is_flag_set(FuriHalRtcFlagHandOrient)) {
@@ -91,81 +93,27 @@ static void gui_redraw_status_bar(Gui* gui, bool need_attention) {
     }
 
     canvas_frame_set(
-        gui->canvas,
-        GUI_STATUS_BAR_X,
-        GUI_STATUS_BAR_Y,
-        GUI_STATUS_BAR_WIDTH,
-        GUI_STATUS_BAR_HEIGHT);
+        gui->canvas, GUI_STATUS_BAR_X, GUI_STATUS_BAR_Y, GUI_DISPLAY_WIDTH, GUI_STATUS_BAR_HEIGHT);
 
     /* for support black theme - paint white area and
      * draw icon with transparent white color
      */
-    //canvas_set_color(gui->canvas, ColorWhite);
-    //canvas_draw_box(gui->canvas, 1, 1, 9, 7);
-    //canvas_draw_box(gui->canvas, 7, 3, 58, 6);
-    //canvas_draw_box(gui->canvas, 61, 1, 32, 7);
-    //canvas_draw_box(gui->canvas, 89, 3, 38, 6);
-    //canvas_set_color(gui->canvas, ColorBlack);
-    //canvas_set_bitmap_mode(gui->canvas, 1);
-    //canvas_draw_icon(gui->canvas, 0, 0, &I_Background_128x11);
-    //canvas_set_bitmap_mode(gui->canvas, 0);
-
-    // Top bar
-    ViewPortArray_it(it, gui->layers[GuiLayerStatusBarTop]);
-    while(!ViewPortArray_end_p(it) && top_used <= GUI_STATUS_BAR_WIDTH) {
-        ViewPort* view_port = *ViewPortArray_ref(it);
-        if(view_port_is_enabled(view_port)) {
-            width = view_port_get_width(view_port);
-            if(!width) width = GUI_DISPLAY_WIDTH;
-            // Prepare work area background
-            canvas_frame_set(
-                gui->canvas,
-                GUI_STATUS_BAR_X,
-                GUI_STATUS_BAR_Y,
-                GUI_STATUS_BAR_WIDTH,
-                GUI_STATUS_BAR_HEIGHT);
-            canvas_set_color(gui->canvas, ColorWhite);
-            canvas_draw_box(gui->canvas, 1, 1, 9, 7);
-            canvas_draw_box(gui->canvas, 7, 3, 58, 6);
-            canvas_draw_box(gui->canvas, 61, 1, 32, 7);
-            canvas_draw_box(gui->canvas, 89, 3, 38, 6);
-            canvas_set_color(gui->canvas, ColorBlack);
-            // ViewPort draw
-            canvas_frame_set(
-                gui->canvas, GUI_STATUS_BAR_X, GUI_STATUS_BAR_Y, width, GUI_STATUS_BAR_HEIGHT);
-            view_port_draw(view_port, gui->canvas);
-        }
-        ViewPortArray_next(it);
+    if(cfw_settings.bar_background) {
+        canvas_set_color(gui->canvas, ColorWhite);
+        canvas_draw_box(gui->canvas, 1, 1, 9, 7);
+        canvas_draw_box(gui->canvas, 7, 3, 58, 6);
+        canvas_draw_box(gui->canvas, 61, 1, 32, 7);
+        canvas_draw_box(gui->canvas, 89, 3, 38, 6);
+        canvas_set_color(gui->canvas, ColorBlack);
+        canvas_set_bitmap_mode(gui->canvas, 1);
+        canvas_draw_icon(gui->canvas, 0, 0, &I_Background_128x11);
+    } else {
+        canvas_set_color(gui->canvas, ColorBlack);
     }
+    canvas_set_bitmap_mode(gui->canvas, 0);
 
-    // Right side - Slim
-    uint8_t x = GUI_DISPLAY_WIDTH;
-    ViewPortArray_it(it, gui->layers[GuiLayerStatusBarRightSlim]);
-    while(!ViewPortArray_end_p(it) && right_slim_used < GUI_STATUS_BAR_WIDTH) {
-        ViewPort* view_port = *ViewPortArray_ref(it);
-        if(view_port_is_enabled(view_port)) {
-            width = view_port_get_width(view_port);
-            if(!width) width = 8;
-            // Recalculate next position
-            right_slim_used += (width + 2);
-            x -= (width + 2);
-            // Prepare work area background
-            canvas_frame_set(
-                gui->canvas, x, GUI_STATUS_BAR_Y, width + 2, GUI_STATUS_BAR_WORKAREA_HEIGHT + 3);
-            canvas_set_color(gui->canvas, ColorWhite);
-            canvas_draw_box(
-                gui->canvas, 0, 0, canvas_width(gui->canvas), canvas_height(gui->canvas));
-            canvas_set_color(gui->canvas, ColorBlack);
-            // ViewPort draw
-            canvas_frame_set(
-                gui->canvas, x + 1, GUI_STATUS_BAR_Y + 1, width, GUI_STATUS_BAR_WORKAREA_HEIGHT);
-            view_port_draw(view_port, gui->canvas);
-        }
-        ViewPortArray_next(it);
-    }
-
-    // Right side - Stock
-    x = GUI_DISPLAY_WIDTH - 1;
+    // Right side
+    uint8_t x = GUI_DISPLAY_WIDTH - 1;
     ViewPortArray_it(it, gui->layers[GuiLayerStatusBarRight]);
     while(!ViewPortArray_end_p(it) && right_used < GUI_STATUS_BAR_WIDTH) {
         ViewPort* view_port = *ViewPortArray_ref(it);
@@ -182,77 +130,87 @@ static void gui_redraw_status_bar(Gui* gui, bool need_attention) {
                 GUI_STATUS_BAR_Y + 1,
                 width + 2,
                 GUI_STATUS_BAR_WORKAREA_HEIGHT + 2);
-            canvas_set_color(gui->canvas, ColorWhite);
-            canvas_draw_box(
-                gui->canvas, 0, 0, canvas_width(gui->canvas), canvas_height(gui->canvas));
+            // Hide battery background
+            if(cfw_settings.bar_borders) {
+                canvas_set_color(gui->canvas, ColorWhite);
+                canvas_draw_box(
+                    gui->canvas, -1, 0, canvas_width(gui->canvas) + 1, canvas_height(gui->canvas));
+            }
             canvas_set_color(gui->canvas, ColorBlack);
             // ViewPort draw
             canvas_frame_set(
-                gui->canvas, x, GUI_STATUS_BAR_Y + 2, width, GUI_STATUS_BAR_WORKAREA_HEIGHT);
+                gui->canvas,
+                x - cfw_settings.bar_borders,
+                GUI_STATUS_BAR_Y + 2,
+                width,
+                GUI_STATUS_BAR_WORKAREA_HEIGHT);
             view_port_draw(view_port, gui->canvas);
         }
         ViewPortArray_next(it);
     }
-
     // Draw frame around icons on the right
     if(right_used) {
         canvas_frame_set(
             gui->canvas,
-            GUI_DISPLAY_WIDTH - 3 - right_used,
+            GUI_DISPLAY_WIDTH - 4 - right_used,
             GUI_STATUS_BAR_Y,
-            right_used + 3,
+            right_used + 4,
             GUI_STATUS_BAR_HEIGHT);
-        canvas_set_color(gui->canvas, ColorBlack);
-        canvas_draw_rframe(
-            gui->canvas, 0, 0, canvas_width(gui->canvas), canvas_height(gui->canvas), 1);
-        canvas_draw_line(
-            gui->canvas,
-            canvas_width(gui->canvas) - 2,
-            1,
-            canvas_width(gui->canvas) - 2,
-            canvas_height(gui->canvas) - 2);
-        canvas_draw_line(
-            gui->canvas,
-            1,
-            canvas_height(gui->canvas) - 2,
-            canvas_width(gui->canvas) - 2,
-            canvas_height(gui->canvas) - 2);
-    }
-
-    // Left side - Slim
-    x = 0;
-    ViewPortArray_it(it, gui->layers[GuiLayerStatusBarLeftSlim]);
-    while(!ViewPortArray_end_p(it) && (right_slim_used + left_slim_used) < GUI_STATUS_BAR_WIDTH) {
-        ViewPort* view_port = *ViewPortArray_ref(it);
-        if(view_port_is_enabled(view_port)) {
-            width = view_port_get_width(view_port);
-            if(!width) width = 8;
-            // Prepare work area background
-            canvas_frame_set(
-                gui->canvas, x, GUI_STATUS_BAR_Y, width + 2, GUI_STATUS_BAR_WORKAREA_HEIGHT + 3);
-            canvas_set_color(gui->canvas, ColorWhite);
-            canvas_draw_box(
-                gui->canvas, 0, 0, canvas_width(gui->canvas), canvas_height(gui->canvas));
+        // Disable battery border
+        if(cfw_settings.bar_borders) {
             canvas_set_color(gui->canvas, ColorBlack);
-            // ViewPort draw
-            canvas_frame_set(
-                gui->canvas, x + 1, GUI_STATUS_BAR_Y + 1, width, GUI_STATUS_BAR_WORKAREA_HEIGHT);
-            view_port_draw(view_port, gui->canvas);
-            // Recalculate next position
-            left_slim_used += (width + 2);
-            x += (width + 2);
+            canvas_draw_rframe(
+                gui->canvas, 0, 0, canvas_width(gui->canvas), canvas_height(gui->canvas), 1);
+            canvas_draw_line(
+                gui->canvas,
+                canvas_width(gui->canvas) - 2,
+                1,
+                canvas_width(gui->canvas) - 2,
+                canvas_height(gui->canvas) - 2);
+            canvas_draw_line(
+                gui->canvas,
+                1,
+                canvas_height(gui->canvas) - 2,
+                canvas_width(gui->canvas) - 2,
+                canvas_height(gui->canvas) - 2);
         }
-        ViewPortArray_next(it);
     }
 
-    //Left side - Stock
-    x = 2;
-    ViewPortArray_it(it, gui->layers[GuiLayerStatusBarLeft]);
-    while(!ViewPortArray_end_p(it) && (right_used + left_used) < GUI_STATUS_BAR_WIDTH) {
-        ViewPort* view_port = *ViewPortArray_ref(it);
-        if(view_port_is_enabled(view_port)) {
-            width = view_port_get_width(view_port);
-            if(!width) width = 8;
+    // Left side
+    if(cfw_settings.status_icons) {
+        x = 2;
+        ViewPortArray_it(it, gui->layers[GuiLayerStatusBarLeft]);
+        while(!ViewPortArray_end_p(it) && (right_used + left_used) < GUI_STATUS_BAR_WIDTH) {
+            ViewPort* view_port = *ViewPortArray_ref(it);
+            if(view_port_is_enabled(view_port)) {
+                width = view_port_get_width(view_port);
+                if(!width) width = 8;
+                // Prepare work area background
+                canvas_frame_set(
+                    gui->canvas,
+                    x - 1,
+                    GUI_STATUS_BAR_Y + 1,
+                    width + 2,
+                    GUI_STATUS_BAR_WORKAREA_HEIGHT + 2);
+                if(cfw_settings.bar_borders) {
+                    canvas_set_color(gui->canvas, ColorWhite);
+                    canvas_draw_box(
+                        gui->canvas, 0, 0, canvas_width(gui->canvas), canvas_height(gui->canvas));
+                }
+                canvas_set_color(gui->canvas, ColorBlack);
+                // ViewPort draw
+                canvas_frame_set(
+                    gui->canvas, x, GUI_STATUS_BAR_Y + 2, width, GUI_STATUS_BAR_WORKAREA_HEIGHT);
+                view_port_draw(view_port, gui->canvas);
+                // Recalculate next position
+                left_used += (width + 2);
+                x += (width + 2);
+            }
+            ViewPortArray_next(it);
+        }
+        // Extra notification
+        if(need_attention) {
+            width = icon_get_width(&I_Hidden_window_9x8);
             // Prepare work area background
             canvas_frame_set(
                 gui->canvas,
@@ -260,60 +218,40 @@ static void gui_redraw_status_bar(Gui* gui, bool need_attention) {
                 GUI_STATUS_BAR_Y + 1,
                 width + 2,
                 GUI_STATUS_BAR_WORKAREA_HEIGHT + 2);
-            canvas_set_color(gui->canvas, ColorWhite);
-            canvas_draw_box(
-                gui->canvas, 0, 0, canvas_width(gui->canvas), canvas_height(gui->canvas));
+            if(cfw_settings.bar_borders) {
+                canvas_set_color(gui->canvas, ColorWhite);
+                canvas_draw_box(
+                    gui->canvas, 0, 0, canvas_width(gui->canvas), canvas_height(gui->canvas));
+            }
             canvas_set_color(gui->canvas, ColorBlack);
-            // ViewPort draw
+            // Draw Icon
             canvas_frame_set(
                 gui->canvas, x, GUI_STATUS_BAR_Y + 2, width, GUI_STATUS_BAR_WORKAREA_HEIGHT);
-            view_port_draw(view_port, gui->canvas);
+            canvas_draw_icon(gui->canvas, 0, 0, &I_Hidden_window_9x8);
             // Recalculate next position
             left_used += (width + 2);
             x += (width + 2);
         }
-        ViewPortArray_next(it);
-    }
-
-    // Draw frame around icons on the left
-    if(left_used) {
-        canvas_frame_set(gui->canvas, 0, 0, left_used + 3, GUI_STATUS_BAR_HEIGHT);
-        canvas_draw_rframe(
-            gui->canvas, 0, 0, canvas_width(gui->canvas), canvas_height(gui->canvas), 1);
-        canvas_draw_line(
-            gui->canvas,
-            canvas_width(gui->canvas) - 2,
-            1,
-            canvas_width(gui->canvas) - 2,
-            canvas_height(gui->canvas) - 2);
-        canvas_draw_line(
-            gui->canvas,
-            1,
-            canvas_height(gui->canvas) - 2,
-            canvas_width(gui->canvas) - 2,
-            canvas_height(gui->canvas) - 2);
-    }
-
-    // Extra notification
-    if(need_attention) {
-        width = icon_get_width(&I_Hidden_window_9x8);
-        // Prepare work area background
-        canvas_frame_set(
-            gui->canvas,
-            x - 1,
-            GUI_STATUS_BAR_Y + 1,
-            width + 2,
-            GUI_STATUS_BAR_WORKAREA_HEIGHT + 2);
-        canvas_set_color(gui->canvas, ColorWhite);
-        canvas_draw_box(gui->canvas, 0, 0, canvas_width(gui->canvas), canvas_height(gui->canvas));
-        canvas_set_color(gui->canvas, ColorBlack);
-        // Draw Icon
-        canvas_frame_set(
-            gui->canvas, x, GUI_STATUS_BAR_Y + 2, width, GUI_STATUS_BAR_WORKAREA_HEIGHT);
-        canvas_draw_icon(gui->canvas, 0, 0, &I_Hidden_window_9x8);
-        // Recalculate next position
-        left_used += (width + 2);
-        x += (width + 2);
+        // Draw frame around icons on the left
+        if(left_used) {
+            canvas_frame_set(gui->canvas, 0, 0, left_used + 3, GUI_STATUS_BAR_HEIGHT);
+            if(cfw_settings.bar_borders) {
+                canvas_draw_rframe(
+                    gui->canvas, 0, 0, canvas_width(gui->canvas), canvas_height(gui->canvas), 1);
+                canvas_draw_line(
+                    gui->canvas,
+                    canvas_width(gui->canvas) - 2,
+                    1,
+                    canvas_width(gui->canvas) - 2,
+                    canvas_height(gui->canvas) - 2);
+                canvas_draw_line(
+                    gui->canvas,
+                    1,
+                    canvas_height(gui->canvas) - 2,
+                    canvas_width(gui->canvas) - 2,
+                    canvas_height(gui->canvas) - 2);
+            }
+        }
     }
 }
 
@@ -349,12 +287,14 @@ static void gui_redraw(Gui* gui) {
 
         canvas_reset(gui->canvas);
 
-        if(gui->lockdown) {
+        if(gui_is_lockdown(gui)) {
             gui_redraw_desktop(gui);
             bool need_attention =
                 (gui_view_port_find_enabled(gui->layers[GuiLayerWindow]) != 0 ||
                  gui_view_port_find_enabled(gui->layers[GuiLayerFullscreen]) != 0);
-            gui_redraw_status_bar(gui, need_attention);
+            if(cfw_settings.lockscreen_statusbar) {
+                gui_redraw_status_bar(gui, need_attention);
+            }
         } else {
             if(!gui_redraw_fs(gui)) {
                 if(!gui_redraw_window(gui)) {
@@ -399,7 +339,7 @@ static void gui_input(Gui* gui, InputEvent* input_event) {
 
         ViewPort* view_port = NULL;
 
-        if(gui->lockdown) {
+        if(gui_is_lockdown(gui)) {
             view_port = gui_view_port_find_enabled(gui->layers[GuiLayerDesktop]);
         } else {
             view_port = gui_view_port_find_enabled(gui->layers[GuiLayerFullscreen]);
@@ -409,25 +349,6 @@ static void gui_input(Gui* gui, InputEvent* input_event) {
 
         if(!(gui->ongoing_input & ~key_bit) && input_event->type == InputTypePress) {
             gui->ongoing_input_view_port = view_port;
-        }
-
-        if(furi_hal_rtc_is_flag_set(FuriHalRtcFlagHandOrient)) {
-            switch(input_event->key) {
-            case InputKeyUp:
-                input_event->key = InputKeyDown;
-                break;
-            case InputKeyDown:
-                input_event->key = InputKeyUp;
-                break;
-            case InputKeyLeft:
-                input_event->key = InputKeyRight;
-                break;
-            case InputKeyRight:
-                input_event->key = InputKeyLeft;
-                break;
-            default:
-                break;
-            }
         }
 
         if(view_port && view_port == gui->ongoing_input_view_port) {
@@ -451,6 +372,35 @@ static void gui_input(Gui* gui, InputEvent* input_event) {
                 input_get_key_name(input_event->key),
                 input_get_type_name(input_event->type),
                 (void*)input_event->sequence);
+        }
+    } while(false);
+
+    gui_unlock(gui);
+}
+
+static void gui_ascii(Gui* gui, AsciiEvent* ascii_event) {
+    furi_assert(gui);
+    furi_assert(ascii_event);
+
+    gui_lock(gui);
+
+    do {
+        if(gui->direct_draw) {
+            break;
+        }
+
+        ViewPort* view_port = NULL;
+
+        if(gui_is_lockdown(gui)) {
+            view_port = gui_view_port_find_enabled(gui->layers[GuiLayerDesktop]);
+        } else {
+            view_port = gui_view_port_find_enabled(gui->layers[GuiLayerFullscreen]);
+            if(!view_port) view_port = gui_view_port_find_enabled(gui->layers[GuiLayerWindow]);
+            if(!view_port) view_port = gui_view_port_find_enabled(gui->layers[GuiLayerDesktop]);
+        }
+
+        if(view_port) {
+            view_port_ascii(view_port, ascii_event);
         }
     } while(false);
 
@@ -629,6 +579,23 @@ void gui_set_lockdown(Gui* gui, bool lockdown) {
     gui_update(gui);
 }
 
+void gui_set_lockdown_inhibit(Gui* gui, bool inhibit) {
+    furi_check(gui);
+
+    gui_lock(gui);
+    gui->lockdown_inhibit = inhibit;
+    gui_unlock(gui);
+
+    // Request redraw
+    gui_update(gui);
+}
+
+bool gui_is_lockdown(const Gui* gui) {
+    furi_check(gui);
+
+    return gui->lockdown && !gui->lockdown_inhibit;
+}
+
 Canvas* gui_direct_draw_acquire(Gui* gui) {
     furi_check(gui);
 
@@ -636,12 +603,7 @@ Canvas* gui_direct_draw_acquire(Gui* gui) {
     gui->direct_draw = true;
     gui_unlock(gui);
 
-    if(furi_hal_rtc_is_flag_set(FuriHalRtcFlagHandOrient)) {
-        canvas_set_orientation(gui->canvas, CanvasOrientationHorizontalFlip);
-    } else {
-        canvas_set_orientation(gui->canvas, CanvasOrientationHorizontal);
-    }
-
+    canvas_set_orientation(gui->canvas, CanvasOrientationHorizontal);
     canvas_frame_set(gui->canvas, 0, 0, GUI_DISPLAY_WIDTH, GUI_DISPLAY_HEIGHT);
     canvas_reset(gui->canvas);
     canvas_commit(gui->canvas);
@@ -680,14 +642,15 @@ Gui* gui_alloc(void) {
     // Input
     gui->input_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
     gui->input_events = furi_record_open(RECORD_INPUT_EVENTS);
+    gui->ascii_queue = furi_message_queue_alloc(8, sizeof(AsciiEvent));
+    gui->ascii_events = furi_record_open(RECORD_ASCII_EVENTS);
 
     furi_pubsub_subscribe(gui->input_events, gui_input_events_callback, gui);
+    furi_pubsub_subscribe(gui->ascii_events, gui_ascii_events_callback, gui);
 
-    /*
     Storage* storage = furi_record_open(RECORD_STORAGE);
     gui_add_view_port(gui, storage->sd_gui.view_port, GuiLayerStatusBarLeft);
     furi_record_close(RECORD_STORAGE);
-	*/
 
     return gui;
 }
@@ -707,6 +670,14 @@ int32_t gui_srv(void* p) {
             InputEvent input_event;
             while(furi_message_queue_get(gui->input_queue, &input_event, 0) == FuriStatusOk) {
                 gui_input(gui, &input_event);
+            }
+        }
+        // Process and dispatch ascii
+        if(flags & GUI_THREAD_FLAG_ASCII) {
+            // Process till queue become empty
+            AsciiEvent ascii_event;
+            while(furi_message_queue_get(gui->ascii_queue, &ascii_event, 0) == FuriStatusOk) {
+                gui_ascii(gui, &ascii_event);
             }
         }
         // Process and dispatch draw call

@@ -1,16 +1,23 @@
 #include "input.h"
 
+#include "input_settings.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <furi.h>
-#include <cli/cli.h>
 #include <furi_hal_gpio.h>
+#include <furi_hal_vibro.h>
+#include <toolbox/cli/cli_command.h>
+#include <cli/cli_main_commands.h>
+#include <toolbox/pipe.h>
 
 #define INPUT_DEBOUNCE_TICKS_HALF (INPUT_DEBOUNCE_TICKS / 2)
 #define INPUT_PRESS_TICKS         150
 #define INPUT_LONG_PRESS_COUNTS   2
 #define INPUT_THREAD_FLAG_ISR     0x00000001
+
+#define TAG "Input"
 
 /** Input pin state */
 typedef struct {
@@ -23,9 +30,6 @@ typedef struct {
     volatile uint8_t press_counter;
     volatile uint32_t counter;
 } InputPinState;
-
-/** Input CLI command handler */
-void input_cli_wrapper(Cli* cli, FuriString* args, void* context);
 
 // #define INPUT_DEBUG
 
@@ -79,23 +83,23 @@ const char* input_get_type_name(InputType type) {
     }
 }
 
-#include <cli/cli_i.h>
-
 int32_t input_srv(void* p) {
     UNUSED(p);
 
     const FuriThreadId thread_id = furi_thread_get_current_id();
     FuriPubSub* event_pubsub = furi_pubsub_alloc();
+    FuriPubSub* ascii_pubsub = furi_pubsub_alloc();
     uint32_t counter = 1;
     furi_record_create(RECORD_INPUT_EVENTS, event_pubsub);
+    furi_record_create(RECORD_ASCII_EVENTS, ascii_pubsub);
+
+    //define object input_settings, take memory load (or init) settings and create record for access to settings structure from outside
+    InputSettings* settings = malloc(sizeof(InputSettings));
+    input_settings_load(settings);
+    furi_record_create(RECORD_INPUT_SETTINGS, settings);
 
 #ifdef INPUT_DEBUG
     furi_hal_gpio_init_simple(&gpio_ext_pa4, GpioModeOutputPushPull);
-#endif
-
-#ifdef SRV_CLI
-    Cli* cli = furi_record_open(RECORD_CLI);
-    cli_add_command(cli, "input", CliCommandFlagParallelSafe, input_cli_wrapper, event_pubsub);
 #endif
 
     InputPinState pin_states[input_pins_count];
@@ -151,6 +155,15 @@ int32_t input_srv(void* p) {
                 // Send Press/Release event
                 event.type = pin_states[i].state ? InputTypePress : InputTypeRelease;
                 furi_pubsub_publish(event_pubsub, &event);
+                // vibro signal if user setup vibro touch level in Settings-Input.
+                if(settings->vibro_touch_level &&
+                   ((1 << event.type) & settings->vibro_touch_trigger_mask)) {
+                    //delay 1 ticks for compatibility with rgb_backlight_mod
+                    furi_delay_tick(1);
+                    furi_hal_vibro_on(true);
+                    furi_delay_tick(settings->vibro_touch_level);
+                    furi_hal_vibro_on(false);
+                }
             }
         }
 

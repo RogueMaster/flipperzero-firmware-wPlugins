@@ -14,6 +14,7 @@
 DICT_DEF2(ViewDict, uint32_t, M_DEFAULT_OPLIST, View*, M_PTR_OPLIST) // NOLINT
 
 struct ViewDispatcher {
+    bool is_event_loop_owned;
     FuriEventLoop* event_loop;
     FuriMessageQueue* input_queue;
     FuriMessageQueue* event_queue;
@@ -32,6 +33,8 @@ struct ViewDispatcher {
     ViewDispatcherTickEventCallback tick_event_callback;
     uint32_t tick_period;
     void* event_context;
+
+    FuriMessageQueue* ascii_queue;
 };
 
 /** ViewPort Draw Callback */
@@ -40,8 +43,14 @@ void view_dispatcher_draw_callback(Canvas* canvas, void* context);
 /** ViewPort Input Callback */
 void view_dispatcher_input_callback(InputEvent* event, void* context);
 
+/** ViewPort Ascii Callback */
+bool view_dispatcher_ascii_callback(AsciiEvent* event, void* context);
+
 /** Input handler */
 void view_dispatcher_handle_input(ViewDispatcher* view_dispatcher, InputEvent* event);
+
+/** Ascii handler */
+void view_dispatcher_handle_ascii(ViewDispatcher* view_dispatcher, AsciiEvent* event);
 
 /** Tick handler */
 void view_dispatcher_handle_tick_event(void* context);
@@ -56,7 +65,10 @@ void view_dispatcher_set_current_view(ViewDispatcher* view_dispatcher, View* vie
 void view_dispatcher_update(View* view, void* context);
 
 /** ViewDispatcher run event loop event callback */
-bool view_dispatcher_run_event_callback(FuriMessageQueue* queue, void* context);
+void view_dispatcher_run_event_callback(FuriEventLoopObject* object, void* context);
 
 /** ViewDispatcher run event loop input callback */
-bool view_dispatcher_run_input_callback(FuriMessageQueue* queue, void* context);
+void view_dispatcher_run_input_callback(FuriEventLoopObject* object, void* context);
+
+/** ViewDispatcher run event loop ascii callback */
+void view_dispatcher_run_ascii_callback(FuriEventLoopObject* object, void* context);

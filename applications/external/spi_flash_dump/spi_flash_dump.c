@@ -1,10 +1,13 @@
+/* spi_flash_dump.c — Main application, UI views, and entry point for SPI Flash Dump.
+ * Provides wiring guide, chip detection, read progress, verify progress,
+ * hex preview, and settings views.  Delegates SPI I/O to spi_worker. */
+
 #include "spi_flash_dump.h"
 #include "spi_worker.h"
 #include "hex_viewer.h"
 
 #include <stdio.h>
 #include <datetime/datetime.h>
-#include <toolbox/crc32_calc.h>
 
 /* ================================================================== */
 /*  Helper – SPI speed enum → clock delay in microseconds             */
@@ -82,9 +85,9 @@ static void read_progress_draw_cb(Canvas* canvas, void* model_ptr) {
     canvas_set_font(canvas, FontSecondary);
 
     /* Progress bar */
-    uint32_t pct = m->total ? (m->bytes_done * 100 / m->total) : 0;
+    uint32_t pct = m->total ? (uint32_t)((uint64_t)m->bytes_done * 100 / m->total) : 0;
     canvas_draw_rframe(canvas, 4, 16, 120, 12, 2);
-    uint32_t fill = m->total ? (m->bytes_done * 116 / m->total) : 0;
+    uint32_t fill = m->total ? (uint32_t)((uint64_t)m->bytes_done * 116 / m->total) : 0;
     if(fill > 116) fill = 116;
     canvas_draw_rbox(canvas, 6, 18, (uint8_t)fill, 8, 1);
 
@@ -186,11 +189,11 @@ static void verify_progress_draw_cb(Canvas* canvas, void* model_ptr) {
 
     /* Progress bar */
     canvas_draw_rframe(canvas, 4, 16, 120, 12, 2);
-    uint32_t fill = m->total ? (m->bytes_done * 116 / m->total) : 0;
+    uint32_t fill = m->total ? (uint32_t)((uint64_t)m->bytes_done * 116 / m->total) : 0;
     if(fill > 116) fill = 116;
     canvas_draw_rbox(canvas, 6, 18, (uint8_t)fill, 8, 1);
 
-    uint32_t pct = m->total ? (m->bytes_done * 100 / m->total) : 0;
+    uint32_t pct = m->total ? (uint32_t)((uint64_t)m->bytes_done * 100 / m->total) : 0;
     char tmp[48];
     snprintf(tmp, sizeof(tmp), "%lu%%", (unsigned long)pct);
     canvas_draw_str_aligned(canvas, 64, 19, AlignCenter, AlignTop, tmp);
@@ -351,6 +354,9 @@ static bool app_custom_event_cb(void* ctx, uint32_t event) {
     }
 }
 
+/* Tracks which view opened Settings so Back returns to the right place. */
+static SpiFlashDumpView settings_return_view = SpiFlashDumpViewWiringGuide;
+
 /* ================================================================== */
 /*  Scene: Wiring Guide                                               */
 /* ================================================================== */
@@ -474,6 +480,7 @@ static bool wiring_guide_input_cb(InputEvent* event, void* ctx) {
     }
 
     if(event->key == InputKeyRight && event->type == InputTypeShort) {
+        settings_return_view = SpiFlashDumpViewWiringGuide;
         view_dispatcher_switch_to_view(app->view_dispatcher, SpiFlashDumpViewSettings);
         return true;
     }
@@ -550,6 +557,7 @@ static bool chip_info_input_cb(InputEvent* event, void* ctx) {
     }
 
     if(event->key == InputKeyRight && event->type == InputTypeShort) {
+        settings_return_view = SpiFlashDumpViewChipInfo;
         view_dispatcher_switch_to_view(app->view_dispatcher, SpiFlashDumpViewSettings);
         return true;
     }
@@ -611,7 +619,7 @@ static void settings_enter_cb(void* ctx, uint32_t index) {
 
 static uint32_t settings_back_cb(void* ctx) {
     UNUSED(ctx);
-    return SpiFlashDumpViewWiringGuide;
+    return settings_return_view;
 }
 
 /* ================================================================== */
@@ -630,21 +638,11 @@ static void worker_poll_timer_cb(void* ctx) {
         if(app->worker_state == SpiWorkerStateReading) {
             app->worker_state = result ? SpiWorkerStateDone : SpiWorkerStateError;
 
-            /* Calculate CRC32 of the dumped file on the main thread, now that
-               the worker has finished and the file handle is fully closed. */
-            uint32_t crc32 = 0;
-            bool crc32_valid = false;
-            if(result) {
-                Storage* storage = furi_record_open(RECORD_STORAGE);
-                File* crc_file = storage_file_alloc(storage);
-                if(storage_file_open(crc_file, app->dump_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
-                    crc32 = crc32_calc_file(crc_file, NULL, NULL);
-                    crc32_valid = true;
-                    storage_file_close(crc_file);
-                }
-                storage_file_free(crc_file);
-                furi_record_close(RECORD_STORAGE);
-            }
+            /* CRC32 was computed in the worker thread after the read finished,
+               so we just retrieve it here instead of blocking the timer daemon
+               with a full file re-read. */
+            uint32_t crc32 = spi_worker_get_crc32(app->worker);
+            bool crc32_valid = spi_worker_has_crc32(app->worker);
 
             with_view_model(
                 app->read_progress_view,
@@ -724,7 +722,6 @@ static SpiFlashDumpApp* spi_flash_dump_app_alloc(void) {
 
     /* ViewDispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     /* view_dispatcher queue enabled by default in SDK 1.4+ */
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, app_navigation_cb);
@@ -787,7 +784,11 @@ static SpiFlashDumpApp* spi_flash_dump_app_alloc(void) {
 }
 
 static void spi_flash_dump_app_free(SpiFlashDumpApp* app) {
-    /* GPIO cleanup */
+    /* Worker must be stopped before GPIO deinit to avoid bit-banging
+     * analog-mode pins if a read/verify operation is still in flight. */
+    spi_worker_free(app->worker);
+
+    /* GPIO cleanup — safe now that worker has stopped */
     spi_worker_gpio_deinit();
 
     /* Remove views */
@@ -805,9 +806,6 @@ static void spi_flash_dump_app_free(SpiFlashDumpApp* app) {
     view_free(app->verify_progress_view);
     hex_viewer_free(app->hex_viewer);
     variable_item_list_free(app->settings_list);
-
-    /* Worker */
-    spi_worker_free(app->worker);
 
     /* ViewDispatcher */
     view_dispatcher_free(app->view_dispatcher);

@@ -24,7 +24,6 @@ TttMultiApp* ttt_multi_alloc() {
     ttt_multi->view_dispatcher = view_dispatcher_alloc();
     ttt_multi->scene_manager = scene_manager_alloc(&ttt_multi_scene_handlers, ttt_multi);
 
-    view_dispatcher_enable_queue(ttt_multi->view_dispatcher);
     view_dispatcher_set_event_callback_context(ttt_multi->view_dispatcher, ttt_multi);
     view_dispatcher_set_custom_event_callback(
         ttt_multi->view_dispatcher, ttt_multi_custom_event_callback);

@@ -61,7 +61,6 @@ CANTransceiverGlobals* CANTransceiver_Constructor(void) {
     // TODO as needed
 
     // Configure the view dispatcher.
-    view_dispatcher_enable_queue(pInstance->pViewDispatcher);
     view_dispatcher_set_event_callback_context(pInstance->pViewDispatcher, pInstance);
     view_dispatcher_set_custom_event_callback(
         pInstance->pViewDispatcher, CANTransceiver_CustomEventCallback);

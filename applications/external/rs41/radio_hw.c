@@ -149,8 +149,8 @@ void radio_hw_flush_rx(RadioSource src) {
 }
 
 uint8_t radio_hw_rxbytes(RadioSource src) {
-    FuriHalSpiBusHandle* h = (src == RadioInternal) ? &furi_hal_spi_bus_handle_subghz :
-                                                      &furi_hal_spi_bus_handle_external;
+    const FuriHalSpiBusHandle* h = (src == RadioInternal) ? &furi_hal_spi_bus_handle_subghz :
+                                                            &furi_hal_spi_bus_handle_external;
     uint8_t tx[2] = {CC1101_ST_RXBYTES, 0x00u};
     uint8_t rx[2] = {0u, 0u};
     furi_hal_spi_acquire(h);
@@ -170,8 +170,8 @@ float radio_hw_get_rssi(RadioSource src) {
 
 void radio_hw_read_fifo(RadioSource src, uint8_t* dst, uint8_t n) {
     if(n == 0) return;
-    FuriHalSpiBusHandle* h = (src == RadioInternal) ? &furi_hal_spi_bus_handle_subghz :
-                                                      &furi_hal_spi_bus_handle_external;
+    const FuriHalSpiBusHandle* h = (src == RadioInternal) ? &furi_hal_spi_bus_handle_subghz :
+                                                            &furi_hal_spi_bus_handle_external;
     uint8_t cmd = CC1101_FIFO_RD;
     uint8_t status = 0u;
     furi_hal_spi_acquire(h);

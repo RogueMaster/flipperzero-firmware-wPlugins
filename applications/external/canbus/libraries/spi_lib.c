@@ -2,7 +2,7 @@
 
 // Function to callback for the SPI to work
 inline static void furi_hal_spi_bus_r_handle_event_callback(
-    FuriHalSpiBusHandle* handle,
+    const FuriHalSpiBusHandle* handle,
     FuriHalSpiBusHandleEvent event,
     const LL_SPI_InitTypeDef* preset) {
     if(event == FuriHalSpiBusHandleEventInit) {
@@ -48,7 +48,7 @@ inline static void furi_hal_spi_bus_r_handle_event_callback(
 }
 
 // Here is the CALLBACK
-static void spi_bus_callback(FuriHalSpiBusHandle* handle, FuriHalSpiBusHandleEvent event) {
+static void spi_bus_callback(const FuriHalSpiBusHandle* handle, FuriHalSpiBusHandleEvent event) {
     furi_hal_spi_bus_r_handle_event_callback(handle, event, SPEED_8MHZ);
 }
 

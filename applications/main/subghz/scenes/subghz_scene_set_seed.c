@@ -53,7 +53,7 @@ void subghz_scene_set_seed_on_enter(void* context) {
 
     // Setup view
     ByteInput* byte_input = subghz->byte_input;
-    byte_input_set_header_text(byte_input, "Enter SEED in Hex");
+    byte_input_set_header_text(byte_input, "Enter SEED in hex");
     byte_input_set_result_callback(
         byte_input, subghz_scene_set_seed_byte_input_callback, NULL, subghz, byte_ptr, byte_count);
     view_dispatcher_switch_to_view(subghz->view_dispatcher, SubGhzViewIdByteInput);
@@ -119,8 +119,6 @@ bool subghz_scene_set_seed_on_event(void* context, SceneManagerEvent event) {
             } else {
                 subghz_file_name_clear(subghz);
 
-                scene_manager_set_scene_state(
-                    subghz->scene_manager, SubGhzSceneSetType, SubGhzCustomEventManagerSet);
                 scene_manager_next_scene(subghz->scene_manager, SubGhzSceneSaveName);
             }
         }

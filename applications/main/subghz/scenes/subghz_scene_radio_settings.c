@@ -76,6 +76,20 @@ const int32_t debug_counter_val[DEBUG_COUNTER_COUNT] = {
     -50,
 };
 
+//TX Power
+#define TX_POWER_COUNT 9
+const char* const tx_power_text[TX_POWER_COUNT] = {
+    "Preset",
+    "10dBm +",
+    "7dBm",
+    "5dBm",
+    "0dBm",
+    "-10dBm",
+    "-15dBm",
+    "-20dBm",
+    "-30dBm",
+};
+
 static void subghz_scene_radio_settings_set_device(VariableItem* item) {
     SubGhz* subghz = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
@@ -90,6 +104,20 @@ static void subghz_scene_radio_settings_set_device(VariableItem* item) {
     subghz_txrx_radio_device_set(subghz->txrx, radio_device_value[index]);
 }
 
+static void subghz_scene_radio_settings_set_tx_power(VariableItem* item) {
+    SubGhz* subghz = variable_item_get_context(item);
+    uint8_t index = variable_item_get_current_value_index(item);
+
+    //Update the Menu Item on screen
+    variable_item_set_current_value_text(item, tx_power_text[index]);
+
+    //Set TX power and remember setting
+    subghz->last_settings->tx_power = subghz->tx_power = index;
+
+    //Save the settings now, this is the convention here!
+    subghz_last_settings_save(subghz->last_settings);
+}
+
 static void subghz_scene_receiver_config_set_debug_pin(VariableItem* item) {
     SubGhz* subghz = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
@@ -97,22 +125,6 @@ static void subghz_scene_receiver_config_set_debug_pin(VariableItem* item) {
     variable_item_set_current_value_text(item, debug_pin_text[index]);
 
     subghz_txrx_set_debug_pin_state(subghz->txrx, index == 1);
-}
-
-static void subghz_scene_reciever_config_set_ext_amp_leds_control(VariableItem* item) {
-    SubGhz* subghz = variable_item_get_context(item);
-    uint8_t index = variable_item_get_current_value_index(item);
-    variable_item_set_current_value_text(item, on_off_text[index]);
-    subghz->last_settings->leds_and_amp = index == 1;
-    // Set globally in furi hal
-    furi_hal_subghz_set_ext_leds_and_amp(subghz->last_settings->leds_and_amp);
-    subghz_last_settings_save(subghz->last_settings);
-    // reinit external device
-    const SubGhzRadioDeviceType current = subghz_txrx_radio_device_get(subghz->txrx);
-    if(current != SubGhzRadioDeviceTypeInternal) {
-        subghz_txrx_radio_device_set(subghz->txrx, SubGhzRadioDeviceTypeInternal);
-        subghz_txrx_radio_device_set(subghz->txrx, current);
-    }
 }
 
 static void subghz_scene_receiver_config_set_debug_counter(VariableItem* item) {
@@ -191,6 +203,18 @@ void subghz_scene_radio_settings_on_enter(void* context) {
     variable_item_set_current_value_index(item, value_index);
     variable_item_set_current_value_text(item, radio_device_text[value_index]);
 
+    //Add TX Power
+    item = variable_item_list_add(
+        subghz->variable_item_list,
+        "TX Power",
+        TX_POWER_COUNT,
+        subghz_scene_radio_settings_set_tx_power,
+        subghz);
+
+    value_index = subghz->tx_power;
+    variable_item_set_current_value_index(item, value_index);
+    variable_item_set_current_value_text(item, tx_power_text[value_index]);
+
     item = variable_item_list_add(
         variable_item_list,
         "GPS Baudrate",
@@ -231,16 +255,6 @@ void subghz_scene_radio_settings_on_enter(void* context) {
 
     item = variable_item_list_add(
         variable_item_list,
-        "Ext Amp & LEDs",
-        ON_OFF_COUNT,
-        subghz_scene_reciever_config_set_ext_amp_leds_control,
-        subghz);
-    value_index = subghz->last_settings->leds_and_amp ? 1 : 0;
-    variable_item_set_current_value_index(item, value_index);
-    variable_item_set_current_value_text(item, on_off_text[value_index]);
-
-    item = variable_item_list_add(
-        variable_item_list,
         "Debug Pin",
         DEBUG_P_COUNT,
         subghz_scene_receiver_config_set_debug_pin,
@@ -249,7 +263,12 @@ void subghz_scene_radio_settings_on_enter(void* context) {
     variable_item_set_current_value_index(item, value_index);
     variable_item_set_current_value_text(item, debug_pin_text[value_index]);
     variable_item_set_locked(
-        item, !furi_hal_rtc_is_flag_set(FuriHalRtcFlagDebug), "Enable\nDebug!");
+        item,
+        !furi_hal_rtc_is_flag_set(FuriHalRtcFlagDebug),
+        "Enable\n"
+        "Settings >\n"
+        "System >\n"
+        "Debug");
 
     view_dispatcher_switch_to_view(subghz->view_dispatcher, SubGhzViewIdVariableItemList);
 }

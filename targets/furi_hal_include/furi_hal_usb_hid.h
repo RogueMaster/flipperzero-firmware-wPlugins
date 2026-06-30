@@ -171,6 +171,7 @@ static const uint16_t hid_asciimap[] = {
 };
 
 typedef struct {
+    // Note: vid/pid should be uint16_t and are treated as such
     uint32_t vid;
     uint32_t pid;
     char manuf[HID_MANUF_PRODUCT_NAME_LEN];

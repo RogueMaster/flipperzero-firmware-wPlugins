@@ -1,5 +1,5 @@
 #include "../nfc_app_i.h"
-#include <nfc_icons.h>
+#include "loader/loader.h"
 
 typedef enum {
     NfcSceneMfClassicMfKeyCompleteStateAppMissing,
@@ -23,7 +23,9 @@ void nfc_scene_mf_classic_mfkey_complete_on_enter(void* context) {
         instance->widget, 64, 0, AlignCenter, AlignTop, FontPrimary, "Completed!");
 
     NfcSceneMfClassicMfKeyCompleteState scene_state =
-        NfcSceneMfClassicMfKeyCompleteStateAppMissing;
+        storage_common_exists(instance->storage, NFC_MFKEY32_APP_PATH) ?
+            NfcSceneMfClassicMfKeyCompleteStateAppPresent :
+            NfcSceneMfClassicMfKeyCompleteStateAppMissing;
     scene_manager_set_scene_state(
         instance->scene_manager, NfcSceneMfClassicMfkeyComplete, scene_state);
 
@@ -43,6 +45,22 @@ void nfc_scene_mf_classic_mfkey_complete_on_enter(void* context) {
             "Finish",
             nfc_scene_mf_classic_mfkey_complete_callback,
             instance);
+    } else {
+        widget_add_string_multiline_element(
+            instance->widget,
+            60,
+            16,
+            AlignLeft,
+            AlignTop,
+            FontSecondary,
+            "Now run Mfkey32\n to extract \nkeys");
+        widget_add_icon_element(instance->widget, 5, 18, &I_WarningDolphin_45x42);
+        widget_add_button_element(
+            instance->widget,
+            GuiButtonTypeRight,
+            "Run",
+            nfc_scene_mf_classic_mfkey_complete_callback,
+            instance);
     }
     view_dispatcher_switch_to_view(instance->view_dispatcher, NfcViewWidget);
 }
@@ -58,6 +76,8 @@ bool nfc_scene_mf_classic_mfkey_complete_on_event(void* context, SceneManagerEve
             if(scene_state == NfcSceneMfClassicMfKeyCompleteStateAppMissing) {
                 consumed = scene_manager_search_and_switch_to_previous_scene(
                     instance->scene_manager, NfcSceneStart);
+            } else {
+                nfc_app_run_external(instance, NFC_MFKEY32_APP_PATH);
             }
         }
     } else if(event.type == SceneManagerEventTypeBack) {

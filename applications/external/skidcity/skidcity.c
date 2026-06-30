@@ -1248,7 +1248,6 @@ static SkidCityApp* skidcity_app_alloc(void) {
 
     /* ViewDispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, skidcity_custom_event_cb);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, skidcity_back_event_cb);

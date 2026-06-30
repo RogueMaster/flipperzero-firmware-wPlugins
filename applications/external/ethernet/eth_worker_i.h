@@ -13,6 +13,7 @@ struct EthWorker {
     EthViewProcess* dhcp_process;
     EthViewProcess* stat_process;
     EthViewProcess* ping_process;
+    EthViewProcess* traceroute_process;
     EthViewProcess* reset_process;
     EthViewProcess* active_process;
 

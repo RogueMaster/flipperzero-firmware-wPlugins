@@ -14,8 +14,8 @@
 static CardType lfrfid_protocol_to_card_type(LFRFIDProtocol protocol) {
     switch(protocol) {
     case LFRFIDProtocolEM4100:
-    case LFRFIDProtocolEM4100_32:
-    case LFRFIDProtocolEM4100_16:
+    case LFRFIDProtocolEM410032:
+    case LFRFIDProtocolEM410016:
     case LFRFIDProtocolElectra:
         return CardTypeEm4100Like;
     case LFRFIDProtocolH10301:

@@ -1,5 +1,4 @@
 #include <jetpack_icons.h>
-
 #include "background_assets.h"
 
 static AssetProperties assetProperties[BG_ASSETS_MAX] = {

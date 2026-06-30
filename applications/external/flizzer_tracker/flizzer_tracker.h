@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cli/cli.h>
 #include <dialogs/dialogs.h>
 #include <furi.h>
 #include <gui/gui.h>
@@ -22,9 +21,9 @@
 #include "sound_engine/sound_engine_filter.h"
 #include "tracker_engine/tracker_engine_defs.h"
 
-#define APPSDATA_FOLDER                    "/ext/apps_assets"
-#define FLIZZER_TRACKER_FOLDER             APP_ASSETS_PATH("")
-#define FLIZZER_TRACKER_INSTRUMENTS_FOLDER APP_ASSETS_PATH("instruments")
+#define APPSDATA_FOLDER                    "/ext/apps_data"
+#define FLIZZER_TRACKER_FOLDER             "/ext/apps_data/flizzer_tracker"
+#define FLIZZER_TRACKER_INSTRUMENTS_FOLDER "/ext/apps_data/flizzer_tracker/instruments"
 #define FILE_NAME_LEN                      64
 
 typedef enum {

@@ -1,5 +1,4 @@
 #include "../lfrfid_i.h"
-#include <lfrfid_icons.h>
 
 // Set once a warning popup (cannot-write / still-trying) is shown, so later write-progress
 // events stop overwriting its message and layout.

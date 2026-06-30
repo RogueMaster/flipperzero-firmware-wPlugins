@@ -153,7 +153,7 @@ class SetFapDebugElfRoot(gdb.Command):
             gdb.events.stop.connect(helper.handle_stop)
             gdb.events.gdb_exiting.connect(helper.handle_exit)
         except gdb.error as e:
-            info(f"Support for Flipper external apps debug is not available: {e}")
+            error(f"Support for Flipper external apps debug is not available: {e}")
 
 
 class FlipperAppStateHelper:

@@ -1,5 +1,7 @@
 #include "mousejacker_ducky.h"
 
+#include "stdstring.h"
+
 static const char ducky_cmd_comment[] = {"REM"};
 static const char ducky_cmd_delay[] = {"DELAY "};
 static const char ducky_cmd_string[] = {"STRING "};
@@ -118,7 +120,7 @@ static void checksum(uint8_t* payload, size_t len) {
 }
 
 static void inject_packet(
-    FuriHalSpiBusHandle* handle,
+    const FuriHalSpiBusHandle* handle,
     uint8_t* addr,
     uint8_t addr_size,
     uint8_t rate,
@@ -163,7 +165,7 @@ static void build_hid_packet(uint8_t mod, uint8_t hid, uint8_t* payload) {
 }
 
 static void release_key(
-    FuriHalSpiBusHandle* handle,
+    const FuriHalSpiBusHandle* handle,
     uint8_t* addr,
     uint8_t addr_size,
     uint8_t rate,
@@ -187,7 +189,7 @@ static void release_key(
 }
 
 static void send_hid_packet(
-    FuriHalSpiBusHandle* handle,
+    const FuriHalSpiBusHandle* handle,
     uint8_t* addr,
     uint8_t addr_size,
     uint8_t rate,
@@ -213,7 +215,7 @@ static bool ducky_end_line(const char chr) {
 
 // returns false if there was an error processing script line
 static bool mj_process_ducky_line(
-    FuriHalSpiBusHandle* handle,
+    const FuriHalSpiBusHandle* handle,
     uint8_t* addr,
     uint8_t addr_size,
     uint8_t rate,
@@ -432,7 +434,7 @@ static bool mj_process_ducky_line(
 }
 
 void mj_process_ducky_script(
-    FuriHalSpiBusHandle* handle,
+    const FuriHalSpiBusHandle* handle,
     uint8_t* addr,
     uint8_t addr_size,
     uint8_t rate,
@@ -443,7 +445,7 @@ void mj_process_ducky_script(
 
     inject_packet(
         handle, addr, addr_size, rate, LOGITECH_HELLO, LOGITECH_HELLO_SIZE, plugin_state);
-    char* line = strtok(script, "\n");
+    char* line = nrf_strtok(script, "\n");
     while(line != NULL) {
         if(strcmp(&line[strlen(line) - 1], "\r") == 0) line[strlen(line) - 1] = (char)0;
 
@@ -451,7 +453,7 @@ void mj_process_ducky_script(
             FURI_LOG_D(TAG, "unable to process ducky script line: %s", line);
 
         prev_line = line;
-        line = strtok(NULL, "\n");
+        line = nrf_strtok(NULL, "\n");
     }
     build_hid_packet(0, 0, hid_payload);
     inject_packet(

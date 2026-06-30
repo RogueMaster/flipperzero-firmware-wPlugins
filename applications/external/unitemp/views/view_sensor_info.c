@@ -25,7 +25,9 @@
 #include "../interfaces/i2c_sensor.h"
 #include "../interfaces/spi_sensor.h"
 #include "../interfaces/onewire_sensor.h"
-#include "unitemp_icons.h"
+
+extern const Icon I_ButtonRight_4x7;
+extern const Icon I_ButtonLeft_4x7;
 
 struct SensorInfo {
     View* view;

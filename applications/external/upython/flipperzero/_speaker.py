@@ -30,7 +30,7 @@ The musical note C\ :sub:`0` as frequency in `Hz`.
 
 SPEAKER_NOTE_CS0: float
 """
-The musical note C#\ :sub:`0` as frequency in `Hz`.
+The musical note C\ :sub:`0` as frequency in `Hz`.
 
 .. versionadded:: 1.2.0
 .. versionchanged:: 1.7.0

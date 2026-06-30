@@ -21,6 +21,10 @@ typedef struct {
     bool level_up_is_pending;
 } DolphinStats;
 
+typedef struct {
+    bool happy_mode;
+} DolphinSettings;
+
 typedef enum {
     DolphinPubsubEventUpdate,
 } DolphinPubsubEvent;
@@ -31,6 +35,10 @@ typedef enum {
  */
 void dolphin_deed(DolphinDeed deed);
 
+void dolphin_get_settings(Dolphin* dolphin, DolphinSettings* settings);
+
+void dolphin_set_settings(Dolphin* dolphin, DolphinSettings* settings);
+
 /** Retrieve dolphin stats
  * Thread safe, blocking
  */
@@ -38,7 +46,7 @@ DolphinStats dolphin_stats(Dolphin* dolphin);
 
 /** GET RANDOM 3PT DEED
  */
-DolphinDeed getRandomDeed();
+DolphinDeed getRandomDeed(void);
 
 /** Flush dolphin queue and save state
  * Thread safe, blocking
@@ -48,6 +56,8 @@ void dolphin_flush(Dolphin* dolphin);
 void dolphin_upgrade_level(Dolphin* dolphin);
 
 FuriPubSub* dolphin_get_pubsub(Dolphin* dolphin);
+
+void dolphin_reload_state(Dolphin* dolphin);
 
 #ifdef __cplusplus
 }

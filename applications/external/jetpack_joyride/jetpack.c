@@ -17,7 +17,8 @@
 
 #include "includes/game_state.h"
 
-#define TAG             "Jetpack Game"
+#define TAG "Jetpack Game"
+
 #define SAVING_FILENAME APP_DATA_PATH("jetpack.save")
 static GameState* global_state;
 
@@ -251,18 +252,18 @@ static void jetpack_game_render_callback(Canvas* const canvas, void* ctx) {
     furi_mutex_release(game_state->mutex);
 }
 
-static void jetpack_game_input_callback(InputEvent* input_event, void* ctx) {
-    furi_assert(ctx);
-    FuriMessageQueue* event_queue = ctx;
+static void jetpack_game_input_callback(InputEvent* input_event, void* context) {
+    furi_assert(context);
 
+    FuriMessageQueue* event_queue = context;
     GameEvent event = {.type = EventTypeKey, .input = *input_event};
     furi_message_queue_put(event_queue, &event, FuriWaitForever);
 }
 
-static void jetpack_game_update_timer_callback(void* ctx) {
-    furi_assert(ctx);
-    FuriMessageQueue* event_queue = ctx;
+static void jetpack_game_update_timer_callback(void* context) {
+    furi_assert(context);
 
+    FuriMessageQueue* event_queue = context;
     GameEvent event = {.type = EventTypeTick};
     furi_message_queue_put(event_queue, &event, 0);
 }

@@ -76,7 +76,6 @@ int32_t fzspground_app(void* p) {
     Gui* gui = furi_record_open("gui");
 
     view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(view_dispatcher);
 
     view_dispatcher_attach_to_gui(view_dispatcher, gui, ViewDispatcherTypeFullscreen);
 

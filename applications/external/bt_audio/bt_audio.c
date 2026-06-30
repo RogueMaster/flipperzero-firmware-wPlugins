@@ -803,7 +803,6 @@ static BtAudio* bt_audio_alloc() {
     // View dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
 #if defined(FW_ORIGIN_RM)
-    view_dispatcher_enable_queue(app->view_dispatcher);
 #endif
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(

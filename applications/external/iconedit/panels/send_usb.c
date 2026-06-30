@@ -11,9 +11,9 @@
 
 #include <gui/icon_i.h>
 
-#define MAX_LINES       64
-#define LINE_COUNT      4 // number of lines visible in the panel
-#define END_OF_FILE_STR "EOF\n"
+#define MAX_LINES          64
+#define LINE_COUNT         4 // number of lines visible in the panel
+#define END_OF_DATA_STREAM "\n" // Blank line tells script we done sending data
 typedef enum {
     State_NONE,
     State_READY,
@@ -25,6 +25,7 @@ typedef enum {
 typedef struct {
     IEIcon* icon;
     SendUSBState state;
+    bool current_frame_only;
     char* lines[MAX_LINES];
     int num_lines;
     IconEditUpdateCallback callback;
@@ -37,10 +38,9 @@ static SendUSBModel sendModel = {.state = State_NONE};
 
 void add_line(char* line) {
     if(!line) return;
-    // deal with max lines
+    if(sendModel.num_lines >= MAX_LINES) return;
     char* new_line = malloc(strlen(line) + 1);
     strcpy(new_line, line);
-    new_line[strlen(line)] = 0;
     sendModel.lines[sendModel.num_lines] = new_line;
     sendModel.num_lines++;
     if(sendModel.callback) {
@@ -48,8 +48,20 @@ void add_line(char* line) {
     }
 }
 
-void send_usb_start(IEIcon* icon, SendAsType send_as) {
+void update_line(char* line) {
+    if(!line) return;
+    if(sendModel.num_lines == 0) return;
+    free(sendModel.lines[sendModel.num_lines - 1]);
+    sendModel.lines[sendModel.num_lines - 1] = malloc(strlen(line) + 1);
+    strcpy(sendModel.lines[sendModel.num_lines - 1], line);
+    if(sendModel.callback) {
+        sendModel.callback(sendModel.callback_context);
+    }
+}
+
+void send_usb_start(IEIcon* icon, SendAsType send_as, bool current_frame_only) {
     sendModel.send_as = send_as;
+    sendModel.current_frame_only = current_frame_only;
     if(send_as == SendAsC) {
         sendModel.filename_prompt = false;
     } else {
@@ -63,8 +75,12 @@ void send_usb_start(IEIcon* icon, SendAsType send_as) {
     }
     sendModel.icon = icon;
     for(int l = 0; l < MAX_LINES; l++) {
-        sendModel.lines[l] = NULL;
+        if(sendModel.lines[l]) {
+            free(sendModel.lines[l]);
+            sendModel.lines[l] = NULL;
+        }
     }
+    sendModel.num_lines = 0;
 
     sendModel.usb_if_prev = furi_hal_usb_get_config();
     furi_hal_usb_unlock();
@@ -82,6 +98,7 @@ void send_usb_stop() {
     for(int l = 0; l < MAX_LINES; l++) {
         if(sendModel.lines[l]) {
             free(sendModel.lines[l]);
+            sendModel.lines[l] = NULL;
         }
     }
     sendModel.num_lines = 0;
@@ -91,7 +108,7 @@ void send_usb_stop() {
 }
 
 void send_usb_send_str(const char* str) {
-    for(size_t i = 0; i < strlen(str); i++) {
+    for(size_t i = 0, len = strlen(str); i < len; i++) {
         uint16_t key = HID_ASCII_TO_KEY(str[i]);
         furi_hal_hid_kb_press(key);
         furi_hal_hid_kb_release(key);
@@ -106,11 +123,16 @@ void send_usb_set_update_callback(IconEditUpdateCallback callback, void* context
 void send_usb_send_filename() {
     FuriString* filename = furi_string_alloc_set(sendModel.icon->name);
     if(sendModel.send_as == SendAsPNG) {
-        furi_string_cat_str(filename, ".png");
+        // Anim's only need base name as our receive script will generate full filenames
+        if(sendModel.current_frame_only) {
+            furi_string_cat_str(filename, ".png");
+        }
+    } else if(sendModel.send_as == SendAsBMX) {
+        furi_string_cat_str(filename, ".bmx");
     }
     furi_string_cat_str(filename, "\n");
     send_usb_send_str(furi_string_get_cstr(filename));
-    send_usb_send_str(END_OF_FILE_STR);
+    send_usb_send_str(END_OF_DATA_STREAM);
     furi_string_free(filename);
 
     add_line("Ready to send data?");
@@ -124,29 +146,57 @@ void send_usb_send_icon() {
     FuriString* icon_text = NULL;
     switch(sendModel.send_as) {
     case SendAsC:
-        icon_text = c_file_generate(sendModel.icon);
+        // For .C files, sending a single frame or the whole animation is still a single "file"
+        icon_text = c_file_generate(sendModel.icon, sendModel.current_frame_only);
+        send_usb_send_str(furi_string_get_cstr(icon_text));
+        send_usb_send_str(END_OF_DATA_STREAM);
+        furi_string_free(icon_text);
         break;
     case SendAsPNG:
-        icon_text = png_file_generate(sendModel.icon);
+        // For PNG files, we'll need to generate text for each frame, and the recipient script will
+        // save each as a separate file. When the script receives the text "frame_rate", it knows
+        // we done with the frames and will then receive the frame rate itself, and save.
+        if(sendModel.current_frame_only) {
+            icon_text = png_file_generate_frame(sendModel.icon, sendModel.icon->current_frame);
+            send_usb_send_str(furi_string_get_cstr(icon_text));
+            send_usb_send_str(END_OF_DATA_STREAM);
+            furi_string_free(icon_text);
+        } else {
+            for(size_t f = 0; f < sendModel.icon->frame_count; f++) {
+                char progress[32];
+                snprintf(
+                    progress,
+                    sizeof(progress),
+                    "Sending: %d/%d",
+                    f + 1,
+                    sendModel.icon->frame_count);
+                update_line(progress);
+                icon_text = png_file_generate_frame(sendModel.icon, f);
+                send_usb_send_str(furi_string_get_cstr(icon_text));
+                send_usb_send_str(END_OF_DATA_STREAM);
+                furi_string_free(icon_text);
+            }
+            send_usb_send_str("frame_rate\n");
+            send_usb_send_str(END_OF_DATA_STREAM);
+            char fr_buf[8];
+            snprintf(fr_buf, sizeof(fr_buf), "%d\n", sendModel.icon->frame_rate);
+            send_usb_send_str(fr_buf);
+            send_usb_send_str(END_OF_DATA_STREAM);
+        }
+        break;
+    case SendAsBMX:
+        // No animation support yet, so current_frame is 0
+        icon_text = bmx_file_generate_frame(sendModel.icon, sendModel.icon->current_frame);
+        send_usb_send_str(furi_string_get_cstr(icon_text));
+        send_usb_send_str(END_OF_DATA_STREAM);
+        furi_string_free(icon_text);
         break;
     default:
         break;
     }
 
-    if(icon_text == NULL) {
-        FURI_LOG_E(TAG, "NULL icon_text to send");
-        add_line("Error!");
-        sendModel.state = State_DONE;
-        return;
-    }
-
-    send_usb_send_str(furi_string_get_cstr(icon_text));
-    if(sendModel.send_as != SendAsC) {
-        send_usb_send_str(END_OF_FILE_STR);
-    }
-
     furi_hal_hid_kb_release_all();
-    furi_string_free(icon_text);
+
     add_line("Sent!");
     sendModel.state = State_DONE;
 }
@@ -184,16 +234,6 @@ void send_usb_draw(Canvas* canvas, void* context) {
             AlignTop,
             sendModel.lines[l]);
     }
-    // if(sendModel.state == State_READY) {
-    //     // draw the OK button
-    //     canvas_draw_str_aligned(
-    //         canvas,
-    //         x + pad + line_pad + 1,
-    //         y + pad + line_pad + MAX_LINES * (line_h * line_pad * 2),
-    //         AlignLeft,
-    //         AlignTop,
-    //         "OK");
-    // }
     // draw a scrollbar / scroll indicator?
 }
 
@@ -214,7 +254,7 @@ bool send_usb_input(InputEvent* event, void* context) {
             switch(sendModel.state) {
             case State_READY:
                 // Our USB connection is ready and we're prompting user
-                // if they are ready to transmit
+                // if they are ready to transmit data
                 if(!sendModel.filename_prompt) {
                     sendModel.state = State_SENDING;
                     send_usb_send_icon();

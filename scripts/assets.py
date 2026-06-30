@@ -2,6 +2,7 @@
 
 import os
 import shutil
+import pathlib
 
 from flipper.app import App
 from flipper.assets.icon import file2image
@@ -10,10 +11,20 @@ ICONS_SUPPORTED_FORMATS = ["png"]
 
 ICONS_TEMPLATE_H_HEADER = """#pragma once
 
+#include <stddef.h>
 #include <gui/icon.h>
 
 """
 ICONS_TEMPLATE_H_ICON_NAME = "extern const Icon {name};\n"
+ICONS_TEMPLATE_H_ICON_PATHS = """
+typedef struct {
+    const Icon* icon;
+    const char* path;
+} IconPath;
+
+extern const IconPath ICON_PATHS[];
+extern const size_t ICON_PATHS_COUNT;
+"""
 
 ICONS_TEMPLATE_C_HEADER = """#include "{assets_filename}.h"
 
@@ -23,6 +34,15 @@ ICONS_TEMPLATE_C_HEADER = """#include "{assets_filename}.h"
 ICONS_TEMPLATE_C_FRAME = "const uint8_t {name}[] = {data};\n"
 ICONS_TEMPLATE_C_DATA = "const uint8_t* const {name}[] = {data};\n"
 ICONS_TEMPLATE_C_ICONS = "const Icon {name} = {{.width={width},.height={height},.frame_count={frame_count},.frame_rate={frame_rate},.frames=_{name}}};\n"
+ICONS_TEMPLATE_C_ICON_PATH = '    {{&{name}, "{path}"}},\n'
+ICONS_TEMPLATE_C_ICON_PATHS = """
+const IconPath ICON_PATHS[] = {{
+#ifndef FURI_RAM_EXEC
+{icon_paths}
+#endif
+}};
+const size_t ICON_PATHS_COUNT = COUNT_OF(ICON_PATHS);
+"""
 
 MAX_IMAGE_WIDTH = 2**16 - 1
 MAX_IMAGE_HEIGHT = 2**16 - 1
@@ -42,6 +62,22 @@ class Main(App):
             help="Base filename for file with icon data",
             required=False,
             default="assets_icons",
+        )
+        self.parser_icons.add_argument(
+            "--fw-bundle",
+            dest="fw_bundle",
+            help="Bundle all icons and path info, only for use in firmware blob",
+            default=0,
+            type=int,
+            required=False,
+        )
+        self.parser_icons.add_argument(
+            "--add-include",
+            dest="add_include",
+            help="Add assets_icons.h include drop-in for apps",
+            default=0,
+            type=int,
+            required=False,
         )
 
         self.parser_icons.set_defaults(func=self.icons)
@@ -103,6 +139,15 @@ class Main(App):
         )
         self.parser_dolphin.set_defaults(func=self.dolphin)
 
+        self.parser_packs = self.subparsers.add_parser(
+            "packs", help="Assemble asset packs"
+        )
+        self.parser_packs.add_argument("input_directory", help="Packs source directory")
+        self.parser_packs.add_argument(
+            "output_directory", help="Packs output directory"
+        )
+        self.parser_packs.set_defaults(func=self.packs)
+
     def _icon2header(self, file):
         image = file2image(file)
         if image.width > MAX_IMAGE_WIDTH or image.height > MAX_IMAGE_HEIGHT:
@@ -126,6 +171,13 @@ class Main(App):
             ICONS_TEMPLATE_C_HEADER.format(assets_filename=self.args.filename)
         )
         icons = []
+        paths = []
+        symbols = pathlib.Path(__file__).parent.parent
+        if "UFBT_HOME" in os.environ:
+            symbols /= "sdk_headers/f7_sdk"
+        symbols = (symbols / "targets/f7/api_symbols.csv").read_text()
+        api_has_icon = lambda name: f"Variable,+,{name},const Icon," in symbols
+        api_has_icon_disabled = lambda name: f"Variable,-,{name},const Icon," in symbols
         # Traverse icons tree, append image data to source file
         for dirpath, dirnames, filenames in os.walk(self.args.input_directory):
             self.logger.debug(f"Processing directory {dirpath}")
@@ -136,6 +188,12 @@ class Main(App):
             if "frame_rate" in filenames:
                 self.logger.debug("Folder contains animation")
                 icon_name = "A_" + os.path.split(dirpath)[1].replace("-", "_")
+                icon_in_api = api_has_icon(icon_name)
+                if not self.args.fw_bundle and icon_in_api:
+                    self.logger.info(
+                        f"{self.args.filename}: ignoring duplicate icon {icon_name}"
+                    )
+                    continue
                 width = height = None
                 frame_count = 0
                 frame_rate = 0
@@ -170,6 +228,9 @@ class Main(App):
                 )
                 icons_c.write("\n")
                 icons.append((icon_name, width, height, frame_rate, frame_count))
+                if self.args.fw_bundle and icon_in_api:
+                    path = dirpath.removeprefix(self.args.input_directory)[1:]
+                    paths.append((icon_name, path.replace("\\", "/")))
             else:
                 # process icons
                 for filename in filenames:
@@ -179,6 +240,12 @@ class Main(App):
                     icon_name = "I_" + "_".join(filename.split(".")[:-1]).replace(
                         "-", "_"
                     )
+                    icon_in_api = api_has_icon(icon_name)
+                    if not self.args.fw_bundle and icon_in_api:
+                        self.logger.info(
+                            f"{self.args.filename}: ignoring duplicate icon {icon_name}"
+                        )
+                        continue
                     fullfilename = os.path.join(dirpath, filename)
                     width, height, data = self._icon2header(fullfilename)
                     frame_name = f"_{icon_name}_0"
@@ -192,6 +259,11 @@ class Main(App):
                     )
                     icons_c.write("\n")
                     icons.append((icon_name, width, height, 0, 1))
+                    if self.args.fw_bundle and icon_in_api:
+                        path = fullfilename.removeprefix(self.args.input_directory)[1:]
+                        paths.append(
+                            (icon_name, path.replace("\\", "/").rsplit(".", 1)[0])
+                        )
         # Create array of images:
         self.logger.debug("Finalizing source file")
         for name, width, height, frame_rate, frame_count in icons:
@@ -204,7 +276,14 @@ class Main(App):
                     frame_count=frame_count,
                 )
             )
-        icons_c.write("\n")
+        if not self.args.fw_bundle:
+            icons_c.write("\n")
+        else:
+            icon_paths = "\n".join(
+                ICONS_TEMPLATE_C_ICON_PATH.format(name=name, path=path)
+                for name, path in paths
+            )
+            icons_c.write(ICONS_TEMPLATE_C_ICON_PATHS.format(icon_paths=icon_paths))
         icons_c.close()
 
         # Create Public Header
@@ -216,7 +295,16 @@ class Main(App):
         )
         icons_h.write(ICONS_TEMPLATE_H_HEADER)
         for name, width, height, frame_rate, frame_count in icons:
+            if self.args.add_include and api_has_icon_disabled(name):
+                self.logger.info(
+                    f"{self.args.filename}: skipping duplicate decl {icon_name}"
+                )
+                continue
             icons_h.write(ICONS_TEMPLATE_H_ICON_NAME.format(name=name))
+        if self.args.fw_bundle:
+            icons_h.write(ICONS_TEMPLATE_H_ICON_PATHS)
+        if self.args.add_include:
+            icons_h.write("#include <assets_icons.h>\n")
         icons_h.close()
         self.logger.debug("Done")
         return 0
@@ -292,6 +380,19 @@ class Main(App):
         self.logger.info("Packing")
         dolphin.pack(self.args.output_directory, self.args.symbol_name)
         self.logger.info("Complete")
+
+        return 0
+
+    def packs(self):
+        import asset_packer
+
+        self.logger.info("Packing custom asset packs")
+        asset_packer.pack(
+            self.args.input_directory,
+            self.args.output_directory,
+            self.logger.info,
+        )
+        self.logger.info("Finished custom asset packs")
 
         return 0
 

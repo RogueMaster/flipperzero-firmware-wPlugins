@@ -1,21 +1,16 @@
 entry,status,name,type,params
-Version,+,87.10,,
+Version,+,87.1,,
 Header,+,applications/drivers/subghz/cc1101_ext/cc1101_ext_interconnect.h,,
 Header,+,applications/main/archive/helpers/archive_helpers_ext.h,,
-Header,+,applications/main/subghz/subghz_fap.h,,
 Header,+,applications/services/applications.h,,
 Header,+,applications/services/bt/bt_service/bt.h,,
 Header,+,applications/services/bt/bt_service/bt_keys_storage.h,,
-Header,+,applications/services/bt/bt_settings.h,,
 Header,+,applications/services/cli/cli.h,,
 Header,+,applications/services/cli/cli_vcp.h,,
-Header,+,applications/services/desktop/desktop_settings.h,,
 Header,+,applications/services/dialogs/dialogs.h,,
 Header,+,applications/services/dolphin/dolphin.h,,
 Header,+,applications/services/dolphin/helpers/dolphin_state.h,,
 Header,+,applications/services/expansion/expansion.h,,
-Header,+,applications/services/expansion/expansion_i.h,,
-Header,+,applications/services/expansion/expansion_settings.h,,
 Header,+,applications/services/gui/elements.h,,
 Header,+,applications/services/gui/gui.h,,
 Header,+,applications/services/gui/icon_i.h,,
@@ -46,12 +41,11 @@ Header,+,applications/services/loader/firmware_api/firmware_api.h,,
 Header,+,applications/services/loader/loader.h,,
 Header,+,applications/services/locale/locale.h,,
 Header,+,applications/services/notification/notification.h,,
-Header,+,applications/services/notification/notification_app.h,,
 Header,+,applications/services/notification/notification_messages.h,,
 Header,+,applications/services/power/power_service/power.h,,
-Header,+,applications/services/power/power_settings.h,,
 Header,+,applications/services/rpc/rpc_app.h,,
 Header,+,applications/services/storage/storage.h,,
+Header,+,build/icons/assets_icons.h,,
 Header,+,lib/bit_lib/bit_lib.h,,
 Header,+,lib/ble_profile/extra_profiles/hid_profile.h,,
 Header,+,lib/ble_profile/extra_services/hid_service.h,,
@@ -76,6 +70,9 @@ Header,+,lib/ibutton/ibutton_protocols.h,,
 Header,+,lib/ibutton/ibutton_worker.h,,
 Header,+,lib/ieee754_parse_wrap/wrappers.h,,
 Header,+,lib/infrared/encoder_decoder/infrared.h,,
+Header,+,lib/infrared/signal/infrared_brute_force.h,,
+Header,+,lib/infrared/signal/infrared_error_code.h,,
+Header,+,lib/infrared/signal/infrared_signal.h,,
 Header,+,lib/infrared/worker/infrared_transmit.h,,
 Header,+,lib/infrared/worker/infrared_worker.h,,
 Header,+,lib/lfrfid/lfrfid_dict_file.h,,
@@ -119,6 +116,14 @@ Header,+,lib/mbedtls/include/mbedtls/md.h,,
 Header,+,lib/mbedtls/include/mbedtls/md5.h,,
 Header,+,lib/mbedtls/include/mbedtls/sha1.h,,
 Header,+,lib/mbedtls/include/mbedtls/sha256.h,,
+Header,+,lib/mjs/mjs_array_buf_public.h,,
+Header,+,lib/mjs/mjs_array_public.h,,
+Header,+,lib/mjs/mjs_core_public.h,,
+Header,+,lib/mjs/mjs_exec_public.h,,
+Header,+,lib/mjs/mjs_object_public.h,,
+Header,+,lib/mjs/mjs_primitive_public.h,,
+Header,+,lib/mjs/mjs_string_public.h,,
+Header,+,lib/mjs/mjs_util_public.h,,
 Header,+,lib/mlib/m-algo.h,,
 Header,+,lib/mlib/m-array.h,,
 Header,+,lib/mlib/m-bptree.h,,
@@ -243,6 +248,10 @@ Header,+,lib/subghz/transmitter.h,,
 Header,+,lib/toolbox/api_lock.h,,
 Header,+,lib/toolbox/args.h,,
 Header,+,lib/toolbox/bit_buffer.h,,
+Header,+,lib/toolbox/cli/cli_ansi.h,,
+Header,+,lib/toolbox/cli/cli_command.h,,
+Header,+,lib/toolbox/cli/cli_registry.h,,
+Header,+,lib/toolbox/cli/shell/cli_shell.h,,
 Header,+,lib/toolbox/compress.h,,
 Header,+,lib/toolbox/crc32_calc.h,,
 Header,+,lib/toolbox/dir_walk.h,,
@@ -254,11 +263,13 @@ Header,+,lib/toolbox/manchester_encoder.h,,
 Header,+,lib/toolbox/md5_calc.h,,
 Header,+,lib/toolbox/name_generator.h,,
 Header,+,lib/toolbox/path.h,,
+Header,+,lib/toolbox/pipe.h,,
 Header,+,lib/toolbox/pretty_format.h,,
 Header,+,lib/toolbox/protocols/protocol_dict.h,,
 Header,+,lib/toolbox/pulse_protocols/pulse_glue.h,,
 Header,+,lib/toolbox/saved_struct.h,,
 Header,+,lib/toolbox/simple_array.h,,
+Header,+,lib/toolbox/str_buffer.h,,
 Header,+,lib/toolbox/stream/buffered_file_stream.h,,
 Header,+,lib/toolbox/stream/file_stream.h,,
 Header,+,lib/toolbox/stream/stream.h,,
@@ -296,7 +307,6 @@ Header,+,targets/f7/furi_hal/furi_hal_serial_types.h,,
 Header,+,targets/f7/furi_hal/furi_hal_spi_config.h,,
 Header,+,targets/f7/furi_hal/furi_hal_spi_types.h,,
 Header,+,targets/f7/furi_hal/furi_hal_subghz.h,,
-Header,+,targets/f7/furi_hal/furi_hal_subghz_configs.h,,
 Header,+,targets/f7/furi_hal/furi_hal_target_hw.h,,
 Header,+,targets/f7/furi_hal/furi_hal_usb_cdc.h,,
 Header,+,targets/f7/platform_specific/cxx_virtual_stub.h,,
@@ -327,8 +337,6 @@ Header,+,targets/furi_hal_include/furi_hal_usb_hid.h,,
 Header,+,targets/furi_hal_include/furi_hal_usb_hid_u2f.h,,
 Header,+,targets/furi_hal_include/furi_hal_version.h,,
 Header,+,targets/furi_hal_include/furi_hal_vibro.h,,
-Function,+,DESKTOP_SETTINGS_LOAD,_Bool,DesktopSettings*
-Function,+,DESKTOP_SETTINGS_SAVE,_Bool,DesktopSettings*
 Function,-,LL_ADC_CommonDeInit,ErrorStatus,ADC_Common_TypeDef*
 Function,-,LL_ADC_CommonInit,ErrorStatus,"ADC_Common_TypeDef*, const LL_ADC_CommonInitTypeDef*"
 Function,-,LL_ADC_CommonStructInit,void,LL_ADC_CommonInitTypeDef*
@@ -426,11 +434,9 @@ Function,-,LL_USART_DeInit,ErrorStatus,const USART_TypeDef*
 Function,+,LL_USART_Init,ErrorStatus,"USART_TypeDef*, const LL_USART_InitTypeDef*"
 Function,-,LL_USART_StructInit,void,LL_USART_InitTypeDef*
 Function,-,LL_mDelay,void,uint32_t
-Function,+,LOAD_POWER_SETTINGS,_Bool,uint32_t*
 Function,-,Osal_MemCmp,int,"const void*, const void*, unsigned int"
 Function,-,Osal_MemCpy,void*,"void*, const void*, unsigned int"
 Function,-,Osal_MemSet,void*,"void*, int, unsigned int"
-Function,+,SAVE_POWER_SETTINGS,_Bool,uint32_t*
 Function,-,SK6805_get_led_count,uint8_t,
 Function,-,SK6805_init,void,
 Function,-,SK6805_set_led_color,void,"uint8_t, uint8_t, uint8_t, uint8_t"
@@ -438,6 +444,7 @@ Function,-,SK6805_update,void,
 Function,-,SystemCoreClockUpdate,void,
 Function,-,SystemInit,void,
 Function,-,_Exit,void,int
+Function,+,__aeabi_f2d,double,float
 Function,+,__aeabi_uldivmod,void*,"uint64_t, uint64_t"
 Function,-,__assert,void,"const char*, int, const char*"
 Function,+,__assert_func,void,"const char*, int, const char*, const char*"
@@ -478,6 +485,10 @@ Function,-,__utoa,char*,"unsigned, char*, int"
 Function,+,__wrap___assert,void,"const char*, int, const char*"
 Function,+,__wrap___assert_func,void,"const char*, int, const char*, const char*"
 Function,+,__wrap_fflush,int,FILE*
+Function,+,__wrap_fgetc,int,FILE*
+Function,+,__wrap_fgets,char*,"char*, size_t, FILE*"
+Function,+,__wrap_getc,int,FILE*
+Function,+,__wrap_getchar,int,
 Function,+,__wrap_printf,int,"const char*, ..."
 Function,+,__wrap_putc,int,"int, FILE*"
 Function,+,__wrap_putchar,int,int
@@ -485,6 +496,7 @@ Function,+,__wrap_puts,int,const char*
 Function,+,__wrap_snprintf,int,"char*, size_t, const char*, ..."
 Function,+,__wrap_strtod,double,"const char*, char**"
 Function,+,__wrap_strtof,float,"const char*, char**"
+Function,+,__wrap_ungetc,int,"int, FILE*"
 Function,+,__wrap_vsnprintf,int,"char*, size_t, const char*, va_list"
 Function,-,_asiprintf_r,int,"_reent*, char**, const char*, ..."
 Function,-,_asniprintf_r,char*,"_reent*, char*, size_t*, const char*, ..."
@@ -631,15 +643,18 @@ Function,-,acosh,double,double
 Function,-,acoshf,float,float
 Function,-,acoshl,long double,long double
 Function,-,acosl,long double,long double
-Function,+,aligned_alloc,void*,"size_t, size_t"
+Function,-,aligned_alloc,void*,"size_t, size_t"
 Function,+,aligned_free,void,void*
 Function,+,aligned_malloc,void*,"size_t, size_t"
 Function,-,arc4random,__uint32_t,
 Function,-,arc4random_buf,void,"void*, size_t"
 Function,-,arc4random_uniform,__uint32_t,__uint32_t
+Function,+,archive_favorites_handle_setting_pin_unpin,void,"const char*, const char*"
 Function,+,args_char_to_hex,_Bool,"char, char, uint8_t*"
 Function,+,args_get_first_word_length,size_t,FuriString*
 Function,+,args_length,size_t,FuriString*
+Function,+,args_read_duration,_Bool,"FuriString*, uint32_t*, const char*"
+Function,+,args_read_float_and_trim,_Bool,"FuriString*, float*"
 Function,+,args_read_hex_bytes,_Bool,"FuriString*, uint8_t*, size_t"
 Function,+,args_read_int_and_trim,_Bool,"FuriString*, int*"
 Function,+,args_read_probably_quoted_string_and_trim,_Bool,"FuriString*, FuriString*"
@@ -654,6 +669,8 @@ Function,-,asiprintf,int,"char**, const char*, ..."
 Function,-,asniprintf,char*,"char*, size_t*, const char*, ..."
 Function,-,asnprintf,char*,"char*, size_t*, const char*, ..."
 Function,-,asprintf,int,"char**, const char*, ..."
+Function,+,asset_packs_free,void,
+Function,+,asset_packs_init,void,
 Function,-,at_quick_exit,int,void (*)()
 Function,-,atan,double,double
 Function,-,atan2,double,"double, double"
@@ -799,6 +816,8 @@ Function,+,bt_get_status,BtStatus,Bt*
 Function,+,bt_keys_storage_alloc,BtKeysStorage*,const char*
 Function,+,bt_keys_storage_delete,_Bool,BtKeysStorage*
 Function,+,bt_keys_storage_free,void,BtKeysStorage*
+Function,+,bt_keys_storage_get_root_keys,const GapRootSecurityKeys*,BtKeysStorage*
+Function,+,bt_keys_storage_is_changed,_Bool,BtKeysStorage*
 Function,+,bt_keys_storage_load,_Bool,BtKeysStorage*
 Function,+,bt_keys_storage_set_default_path,void,Bt*
 Function,+,bt_keys_storage_set_file_path,void,"BtKeysStorage*, const char*"
@@ -808,8 +827,6 @@ Function,+,bt_keys_storage_update,_Bool,"BtKeysStorage*, uint8_t*, uint32_t"
 Function,+,bt_profile_restore_default,_Bool,Bt*
 Function,+,bt_profile_start,FuriHalBleProfileBase*,"Bt*, const FuriHalBleProfileTemplate*, FuriHalBleProfileParams"
 Function,+,bt_set_status_changed_callback,void,"Bt*, BtStatusChangedCallback, void*"
-Function,+,bt_settings_load,_Bool,BtSettings*
-Function,+,bt_settings_save,_Bool,const BtSettings*
 Function,+,buffered_file_stream_alloc,Stream*,Storage*
 Function,+,buffered_file_stream_close,_Bool,Stream*
 Function,+,buffered_file_stream_get_error,FS_Error,Stream*
@@ -850,9 +867,10 @@ Function,+,canvas_draw_frame,void,"Canvas*, int32_t, int32_t, size_t, size_t"
 Function,+,canvas_draw_glyph,void,"Canvas*, int32_t, int32_t, uint16_t"
 Function,+,canvas_draw_icon,void,"Canvas*, int32_t, int32_t, const Icon*"
 Function,+,canvas_draw_icon_animation,void,"Canvas*, int32_t, int32_t, IconAnimation*"
-Function,+,canvas_draw_icon_bitmap,void,"Canvas*, uint8_t, uint8_t, int16_t, int16_t, const Icon*"
+Function,+,canvas_draw_icon_animation_ex,void,"Canvas*, int32_t, int32_t, int32_t, int32_t, IconAnimation*"
 Function,+,canvas_draw_icon_ex,void,"Canvas*, int32_t, int32_t, const Icon*, IconRotation"
 Function,+,canvas_draw_line,void,"Canvas*, int32_t, int32_t, int32_t, int32_t"
+Function,+,canvas_draw_overlay,void,Canvas*
 Function,+,canvas_draw_rbox,void,"Canvas*, int32_t, int32_t, size_t, size_t, size_t"
 Function,+,canvas_draw_rframe,void,"Canvas*, int32_t, int32_t, size_t, size_t, size_t"
 Function,+,canvas_draw_str,void,"Canvas*, int32_t, int32_t, const char*"
@@ -884,29 +902,45 @@ Function,-,cfree,void,void*
 Function,+,cfw_settings_save,void,
 Function,-,clearerr,void,FILE*
 Function,-,clearerr_unlocked,void,FILE*
-Function,+,cli_add_command,void,"Cli*, const char*, CliCommandFlag, CliCallback, void*"
-Function,+,cli_cmd_interrupt_received,_Bool,Cli*
-Function,+,cli_delete_command,void,"Cli*, const char*"
-Function,+,cli_getc,char,Cli*
-Function,+,cli_is_connected,_Bool,Cli*
-Function,+,cli_nl,void,Cli*
+Function,+,cli_ansi_parser_alloc,CliAnsiParser*,
+Function,+,cli_ansi_parser_feed,CliAnsiParserResult,"CliAnsiParser*, char"
+Function,+,cli_ansi_parser_feed_timeout,CliAnsiParserResult,CliAnsiParser*
+Function,+,cli_ansi_parser_free,void,CliAnsiParser*
+Function,+,cli_is_pipe_broken_or_is_etx_next_char,_Bool,PipeSide*
 Function,+,cli_print_usage,void,"const char*, const char*, const char*"
-Function,+,cli_read,size_t,"Cli*, uint8_t*, size_t"
-Function,+,cli_read_timeout,size_t,"Cli*, uint8_t*, size_t, uint32_t"
-Function,+,cli_session_close,void,Cli*
-Function,+,cli_session_open,void,"Cli*, void*"
-Function,+,cli_write,void,"Cli*, const uint8_t*, size_t"
+Function,+,cli_registry_add_command,void,"CliRegistry*, const char*, CliCommandFlag, CliCommandExecuteCallback, void*"
+Function,+,cli_registry_add_command_ex,void,"CliRegistry*, const char*, CliCommandFlag, CliCommandExecuteCallback, void*, size_t"
+Function,+,cli_registry_alloc,CliRegistry*,
+Function,+,cli_registry_delete_command,void,"CliRegistry*, const char*"
+Function,+,cli_registry_free,void,CliRegistry*
+Function,+,cli_registry_reload_external_commands,void,"CliRegistry*, const CliCommandExternalConfig*"
+Function,+,cli_registry_remove_external_commands,void,CliRegistry*
+Function,+,cli_shell_alloc,CliShell*,"CliShellMotd, void*, PipeSide*, CliRegistry*, const CliCommandExternalConfig*"
+Function,+,cli_shell_free,void,CliShell*
+Function,+,cli_shell_join,void,CliShell*
+Function,+,cli_shell_set_prompt,void,"CliShell*, const char*"
+Function,+,cli_shell_start,void,CliShell*
+Function,+,cli_sleep,_Bool,"PipeSide*, uint32_t"
+Function,+,cli_vcp_disable,void,CliVcp*
+Function,+,cli_vcp_enable,void,CliVcp*
 Function,+,composite_api_resolver_add,void,"CompositeApiResolver*, const ElfApiInterface*"
 Function,+,composite_api_resolver_alloc,CompositeApiResolver*,
 Function,+,composite_api_resolver_free,void,CompositeApiResolver*
 Function,+,composite_api_resolver_get,const ElfApiInterface*,CompositeApiResolver*
-Function,+,compress_alloc,Compress*,uint16_t
+Function,+,compress_alloc,Compress*,"CompressType, const void*"
 Function,+,compress_decode,_Bool,"Compress*, uint8_t*, size_t, uint8_t*, size_t, size_t*"
+Function,+,compress_decode_streamed,_Bool,"Compress*, CompressIoCallback, void*, CompressIoCallback, void*"
 Function,+,compress_encode,_Bool,"Compress*, uint8_t*, size_t, uint8_t*, size_t, size_t*"
 Function,+,compress_free,void,Compress*
 Function,+,compress_icon_alloc,CompressIcon*,size_t
 Function,+,compress_icon_decode,void,"CompressIcon*, const uint8_t*, uint8_t**"
 Function,+,compress_icon_free,void,CompressIcon*
+Function,+,compress_stream_decoder_alloc,CompressStreamDecoder*,"CompressType, const void*, CompressIoCallback, void*"
+Function,+,compress_stream_decoder_free,void,CompressStreamDecoder*
+Function,+,compress_stream_decoder_read,_Bool,"CompressStreamDecoder*, uint8_t*, size_t"
+Function,+,compress_stream_decoder_rewind,_Bool,CompressStreamDecoder*
+Function,+,compress_stream_decoder_seek,_Bool,"CompressStreamDecoder*, size_t"
+Function,+,compress_stream_decoder_tell,size_t,CompressStreamDecoder*
 Function,-,copysign,double,"double, double"
 Function,-,copysignf,float,"float, float"
 Function,-,copysignl,long double,"long double, long double"
@@ -999,19 +1033,21 @@ Function,+,dolphin_deed_get_app,DolphinApp,DolphinDeed
 Function,+,dolphin_deed_get_app_limit,uint8_t,DolphinApp
 Function,+,dolphin_deed_get_weight,uint8_t,DolphinDeed
 Function,+,dolphin_flush,void,Dolphin*
-Function,+,dolphin_get_level,uint8_t,uint32_t
-Function,+,dolphin_get_levels,const uint32_t*,
+Function,-,dolphin_get_level,uint8_t,uint32_t
 Function,+,dolphin_get_pubsub,FuriPubSub*,Dolphin*
+Function,+,dolphin_get_settings,void,"Dolphin*, DolphinSettings*"
+Function,+,dolphin_reload_state,void,Dolphin*
+Function,+,dolphin_set_settings,void,"Dolphin*, DolphinSettings*"
 Function,-,dolphin_state_alloc,DolphinState*,
 Function,-,dolphin_state_butthurted,void,DolphinState*
 Function,+,dolphin_state_clear_limits,void,DolphinState*
 Function,-,dolphin_state_free,void,DolphinState*
 Function,-,dolphin_state_increase_level,void,DolphinState*
 Function,-,dolphin_state_is_levelup,_Bool,uint32_t
-Function,-,dolphin_state_load,_Bool,DolphinState*
+Function,-,dolphin_state_load,void,DolphinState*
 Function,+,dolphin_state_max_level,uint8_t,
 Function,-,dolphin_state_on_deed,void,"DolphinState*, DolphinDeed"
-Function,+,dolphin_state_save,_Bool,DolphinState*
+Function,+,dolphin_state_save,void,DolphinState*
 Function,-,dolphin_state_timestamp,uint64_t,
 Function,+,dolphin_state_xp_above_last_levelup,uint32_t,uint32_t
 Function,+,dolphin_state_xp_to_levelup,uint32_t,uint32_t
@@ -1035,8 +1071,8 @@ Function,+,elements_multiline_text_aligned,void,"Canvas*, int32_t, int32_t, Alig
 Function,+,elements_multiline_text_framed,void,"Canvas*, int32_t, int32_t, const char*"
 Function,+,elements_progress_bar,void,"Canvas*, int32_t, int32_t, size_t, float"
 Function,+,elements_progress_bar_with_text,void,"Canvas*, int32_t, int32_t, size_t, float, const char*"
-Function,+,elements_scrollable_text_line,void,"Canvas*, int32_t, int32_t, size_t, FuriString*, size_t, _Bool, _Bool"
-Function,+,elements_scrollable_text_line_str,void,"Canvas*, int32_t, int32_t, size_t, const char*, size_t, _Bool, _Bool"
+Function,+,elements_scrollable_text_line,void,"Canvas*, int32_t, int32_t, size_t, FuriString*, size_t, _Bool"
+Function,+,elements_scrollable_text_line_centered,void,"Canvas*, int32_t, int32_t, size_t, FuriString*, size_t, _Bool, _Bool"
 Function,+,elements_scrollbar,void,"Canvas*, size_t, size_t"
 Function,+,elements_scrollbar_horizontal,void,"Canvas*, int32_t, int32_t, size_t, size_t, size_t"
 Function,+,elements_scrollbar_pos,void,"Canvas*, int32_t, int32_t, size_t, size_t, size_t"
@@ -1086,11 +1122,8 @@ Function,-,exp2f,float,float
 Function,-,exp2l,long double,long double
 Function,+,expansion_disable,void,Expansion*
 Function,+,expansion_enable,void,Expansion*
-Function,+,expansion_get_settings,ExpansionSettings*,Expansion*
 Function,+,expansion_is_connected,_Bool,Expansion*
 Function,+,expansion_set_listen_serial,void,"Expansion*, FuriHalSerialId"
-Function,-,expansion_settings_load,_Bool,ExpansionSettings*
-Function,+,expansion_settings_save,_Bool,const ExpansionSettings*
 Function,-,expf,float,float
 Function,-,expl,long double,long double
 Function,-,explicit_bzero,void,"void*, size_t"
@@ -1127,7 +1160,7 @@ Function,+,felica_get_workflow_type,void,FelicaData*
 Function,+,felica_is_equal,_Bool,"const FelicaData*, const FelicaData*"
 Function,+,felica_load,_Bool,"FelicaData*, FlipperFormat*, uint32_t"
 Function,+,felica_poller_activate,FelicaError,"FelicaPoller*, FelicaData*"
-Function,+,felica_poller_read_blocks,FelicaError,"FelicaPoller*, const uint8_t, const uint8_t*, uint16_t, FelicaPollerReadCommandResponse**"
+Function,+,felica_poller_read_blocks,FelicaError,"FelicaPoller*, const uint8_t, const uint8_t* const, uint16_t, FelicaPollerReadCommandResponse** const"
 Function,+,felica_poller_sync_read,FelicaError,"Nfc*, FelicaData*, const FelicaCardKey*"
 Function,+,felica_reset,void,FelicaData*
 Function,+,felica_save,_Bool,"const FelicaData*, FlipperFormat*"
@@ -1155,6 +1188,7 @@ Function,+,file_browser_free,void,FileBrowser*
 Function,+,file_browser_get_view,View*,FileBrowser*
 Function,+,file_browser_set_callback,void,"FileBrowser*, FileBrowserCallback, void*"
 Function,+,file_browser_set_item_callback,void,"FileBrowser*, FileBrowserLoadItemCallback, void*"
+Function,+,file_browser_set_select_right,void,"FileBrowser*, _Bool"
 Function,+,file_browser_start,void,"FileBrowser*, FuriString*"
 Function,+,file_browser_stop,void,FileBrowser*
 Function,+,file_browser_worker_alloc,BrowserWorker*,"FuriString*, const char*, const char*, _Bool, _Bool"
@@ -1308,6 +1342,7 @@ Function,-,ftello,off_t,FILE*
 Function,-,ftrylockfile,int,FILE*
 Function,-,funlockfile,void,FILE*
 Function,-,funopen,FILE*,"const void*, int (*)(void*, char*, int), int (*)(void*, const char*, int), fpos_t (*)(void*, fpos_t, int), int (*)(void*)"
+Function,-,furi_background,void,
 Function,+,furi_delay_ms,void,uint32_t
 Function,+,furi_delay_tick,void,uint32_t
 Function,+,furi_delay_until_tick,FuriStatus,uint32_t
@@ -1320,11 +1355,16 @@ Function,+,furi_event_flag_set,uint32_t,"FuriEventFlag*, uint32_t"
 Function,+,furi_event_flag_wait,uint32_t,"FuriEventFlag*, uint32_t, uint32_t, uint32_t"
 Function,+,furi_event_loop_alloc,FuriEventLoop*,
 Function,+,furi_event_loop_free,void,FuriEventLoop*
-Function,+,furi_event_loop_message_queue_subscribe,void,"FuriEventLoop*, FuriMessageQueue*, FuriEventLoopEvent, FuriEventLoopMessageQueueCallback, void*"
-Function,+,furi_event_loop_message_queue_unsubscribe,void,"FuriEventLoop*, FuriMessageQueue*"
+Function,+,furi_event_loop_is_subscribed,_Bool,"FuriEventLoop*, FuriEventLoopObject*"
 Function,+,furi_event_loop_pend_callback,void,"FuriEventLoop*, FuriEventLoopPendingCallback, void*"
 Function,+,furi_event_loop_run,void,FuriEventLoop*
 Function,+,furi_event_loop_stop,void,FuriEventLoop*
+Function,+,furi_event_loop_subscribe_event_flag,void,"FuriEventLoop*, FuriEventFlag*, FuriEventLoopEvent, FuriEventLoopEventCallback, void*"
+Function,+,furi_event_loop_subscribe_message_queue,void,"FuriEventLoop*, FuriMessageQueue*, FuriEventLoopEvent, FuriEventLoopEventCallback, void*"
+Function,+,furi_event_loop_subscribe_mutex,void,"FuriEventLoop*, FuriMutex*, FuriEventLoopEvent, FuriEventLoopEventCallback, void*"
+Function,+,furi_event_loop_subscribe_semaphore,void,"FuriEventLoop*, FuriSemaphore*, FuriEventLoopEvent, FuriEventLoopEventCallback, void*"
+Function,+,furi_event_loop_subscribe_stream_buffer,void,"FuriEventLoop*, FuriStreamBuffer*, FuriEventLoopEvent, FuriEventLoopEventCallback, void*"
+Function,+,furi_event_loop_subscribe_thread_flags,void,"FuriEventLoop*, FuriEventLoopThreadFlagsCallback, void*"
 Function,+,furi_event_loop_tick_set,void,"FuriEventLoop*, uint32_t, FuriEventLoopTickCallback, void*"
 Function,+,furi_event_loop_timer_alloc,FuriEventLoopTimer*,"FuriEventLoop*, FuriEventLoopTimerCallback, FuriEventLoopTimerType, void*"
 Function,+,furi_event_loop_timer_free,void,FuriEventLoopTimer*
@@ -1334,6 +1374,8 @@ Function,+,furi_event_loop_timer_is_running,_Bool,const FuriEventLoopTimer*
 Function,+,furi_event_loop_timer_restart,void,FuriEventLoopTimer*
 Function,+,furi_event_loop_timer_start,void,"FuriEventLoopTimer*, uint32_t"
 Function,+,furi_event_loop_timer_stop,void,FuriEventLoopTimer*
+Function,+,furi_event_loop_unsubscribe,void,"FuriEventLoop*, FuriEventLoopObject*"
+Function,+,furi_event_loop_unsubscribe_thread_flags,void,FuriEventLoop*
 Function,+,furi_get_tick,uint32_t,
 Function,+,furi_hal_adc_acquire,FuriHalAdcHandle*,
 Function,+,furi_hal_adc_configure,void,FuriHalAdcHandle*
@@ -1345,7 +1387,7 @@ Function,+,furi_hal_adc_convert_vref,float,"FuriHalAdcHandle*, uint16_t"
 Function,+,furi_hal_adc_init,void,
 Function,+,furi_hal_adc_read,uint16_t,"FuriHalAdcHandle*, FuriHalAdcChannel"
 Function,+,furi_hal_adc_release,void,FuriHalAdcHandle*
-Function,+,furi_hal_bt_change_app,FuriHalBleProfileBase*,"const FuriHalBleProfileTemplate*, FuriHalBleProfileParams, GapEventCallback, void*"
+Function,+,furi_hal_bt_change_app,FuriHalBleProfileBase*,"const FuriHalBleProfileTemplate*, FuriHalBleProfileParams, const GapRootSecurityKeys*, GapEventCallback, void*"
 Function,+,furi_hal_bt_check_profile_type,_Bool,"FuriHalBleProfileBase*, const FuriHalBleProfileTemplate*"
 Function,+,furi_hal_bt_clear_white_list,_Bool,
 Function,+,furi_hal_bt_dump_state,void,FuriString*
@@ -1372,7 +1414,7 @@ Function,+,furi_hal_bt_nvm_sram_sem_release,void,
 Function,+,furi_hal_bt_reinit,void,
 Function,+,furi_hal_bt_set_key_storage_change_callback,void,"BleGlueKeyStorageChangedCallback, void*"
 Function,+,furi_hal_bt_start_advertising,void,
-Function,+,furi_hal_bt_start_app,FuriHalBleProfileBase*,"const FuriHalBleProfileTemplate*, FuriHalBleProfileParams, GapEventCallback, void*"
+Function,+,furi_hal_bt_start_app,FuriHalBleProfileBase*,"const FuriHalBleProfileTemplate*, FuriHalBleProfileParams, const GapRootSecurityKeys*, GapEventCallback, void*"
 Function,+,furi_hal_bt_start_packet_rx,void,"uint8_t, uint8_t"
 Function,+,furi_hal_bt_start_packet_tx,void,"uint8_t, uint8_t, uint8_t"
 Function,+,furi_hal_bt_start_radio_stack,_Bool,
@@ -1440,12 +1482,12 @@ Function,+,furi_hal_dma_init_early,void,
 Function,-,furi_hal_flash_erase,void,uint8_t
 Function,-,furi_hal_flash_get_base,size_t,
 Function,-,furi_hal_flash_get_cycles_count,size_t,
-Function,-,furi_hal_flash_get_free_end_address,const void*,
+Function,+,furi_hal_flash_get_free_end_address,const void*,
 Function,-,furi_hal_flash_get_free_page_count,size_t,
 Function,-,furi_hal_flash_get_free_page_start_address,size_t,
-Function,-,furi_hal_flash_get_free_start_address,const void*,
+Function,+,furi_hal_flash_get_free_start_address,const void*,
 Function,-,furi_hal_flash_get_page_number,int16_t,size_t
-Function,-,furi_hal_flash_get_page_size,size_t,
+Function,+,furi_hal_flash_get_page_size,size_t,
 Function,-,furi_hal_flash_get_read_block_size,size_t,
 Function,-,furi_hal_flash_get_write_block_size,size_t,
 Function,-,furi_hal_flash_init,void,
@@ -1478,23 +1520,23 @@ Function,+,furi_hal_hid_u2f_get_request,uint32_t,uint8_t*
 Function,+,furi_hal_hid_u2f_is_connected,_Bool,
 Function,+,furi_hal_hid_u2f_send_response,void,"uint8_t*, uint8_t"
 Function,+,furi_hal_hid_u2f_set_callback,void,"HidU2fCallback, void*"
-Function,+,furi_hal_i2c_acquire,void,FuriHalI2cBusHandle*
+Function,+,furi_hal_i2c_acquire,void,const FuriHalI2cBusHandle*
 Function,-,furi_hal_i2c_deinit_early,void,
 Function,-,furi_hal_i2c_init,void,
 Function,-,furi_hal_i2c_init_early,void,
-Function,+,furi_hal_i2c_is_device_ready,_Bool,"FuriHalI2cBusHandle*, uint8_t, uint32_t"
-Function,+,furi_hal_i2c_read_mem,_Bool,"FuriHalI2cBusHandle*, uint8_t, uint8_t, uint8_t*, size_t, uint32_t"
-Function,+,furi_hal_i2c_read_reg_16,_Bool,"FuriHalI2cBusHandle*, uint8_t, uint8_t, uint16_t*, uint32_t"
-Function,+,furi_hal_i2c_read_reg_8,_Bool,"FuriHalI2cBusHandle*, uint8_t, uint8_t, uint8_t*, uint32_t"
-Function,+,furi_hal_i2c_release,void,FuriHalI2cBusHandle*
-Function,+,furi_hal_i2c_rx,_Bool,"FuriHalI2cBusHandle*, uint8_t, uint8_t*, size_t, uint32_t"
-Function,+,furi_hal_i2c_rx_ext,_Bool,"FuriHalI2cBusHandle*, uint16_t, _Bool, uint8_t*, size_t, FuriHalI2cBegin, FuriHalI2cEnd, uint32_t"
-Function,+,furi_hal_i2c_trx,_Bool,"FuriHalI2cBusHandle*, uint8_t, const uint8_t*, size_t, uint8_t*, size_t, uint32_t"
-Function,+,furi_hal_i2c_tx,_Bool,"FuriHalI2cBusHandle*, uint8_t, const uint8_t*, size_t, uint32_t"
-Function,+,furi_hal_i2c_tx_ext,_Bool,"FuriHalI2cBusHandle*, uint16_t, _Bool, const uint8_t*, size_t, FuriHalI2cBegin, FuriHalI2cEnd, uint32_t"
-Function,+,furi_hal_i2c_write_mem,_Bool,"FuriHalI2cBusHandle*, uint8_t, uint8_t, const uint8_t*, size_t, uint32_t"
-Function,+,furi_hal_i2c_write_reg_16,_Bool,"FuriHalI2cBusHandle*, uint8_t, uint8_t, uint16_t, uint32_t"
-Function,+,furi_hal_i2c_write_reg_8,_Bool,"FuriHalI2cBusHandle*, uint8_t, uint8_t, uint8_t, uint32_t"
+Function,+,furi_hal_i2c_is_device_ready,_Bool,"const FuriHalI2cBusHandle*, uint8_t, uint32_t"
+Function,+,furi_hal_i2c_read_mem,_Bool,"const FuriHalI2cBusHandle*, uint8_t, uint8_t, uint8_t*, size_t, uint32_t"
+Function,+,furi_hal_i2c_read_reg_16,_Bool,"const FuriHalI2cBusHandle*, uint8_t, uint8_t, uint16_t*, uint32_t"
+Function,+,furi_hal_i2c_read_reg_8,_Bool,"const FuriHalI2cBusHandle*, uint8_t, uint8_t, uint8_t*, uint32_t"
+Function,+,furi_hal_i2c_release,void,const FuriHalI2cBusHandle*
+Function,+,furi_hal_i2c_rx,_Bool,"const FuriHalI2cBusHandle*, uint8_t, uint8_t*, size_t, uint32_t"
+Function,+,furi_hal_i2c_rx_ext,_Bool,"const FuriHalI2cBusHandle*, uint16_t, _Bool, uint8_t*, size_t, FuriHalI2cBegin, FuriHalI2cEnd, uint32_t"
+Function,+,furi_hal_i2c_trx,_Bool,"const FuriHalI2cBusHandle*, uint8_t, const uint8_t*, size_t, uint8_t*, size_t, uint32_t"
+Function,+,furi_hal_i2c_tx,_Bool,"const FuriHalI2cBusHandle*, uint8_t, const uint8_t*, size_t, uint32_t"
+Function,+,furi_hal_i2c_tx_ext,_Bool,"const FuriHalI2cBusHandle*, uint16_t, _Bool, const uint8_t*, size_t, FuriHalI2cBegin, FuriHalI2cEnd, uint32_t"
+Function,+,furi_hal_i2c_write_mem,_Bool,"const FuriHalI2cBusHandle*, uint8_t, uint8_t, const uint8_t*, size_t, uint32_t"
+Function,+,furi_hal_i2c_write_reg_16,_Bool,"const FuriHalI2cBusHandle*, uint8_t, uint8_t, uint16_t, uint32_t"
+Function,+,furi_hal_i2c_write_reg_8,_Bool,"const FuriHalI2cBusHandle*, uint8_t, uint8_t, uint8_t, uint32_t"
 Function,+,furi_hal_ibutton_emulate_set_next,void,uint32_t
 Function,+,furi_hal_ibutton_emulate_start,void,"uint32_t, FuriHalIbuttonEmulateCallback, void*"
 Function,+,furi_hal_ibutton_emulate_stop,void,
@@ -1557,9 +1599,6 @@ Function,+,furi_hal_nfc_iso14443a_poller_trx_short_frame,FuriHalNfcError,FuriHal
 Function,+,furi_hal_nfc_iso14443a_poller_tx_custom_parity,FuriHalNfcError,"const uint8_t*, size_t"
 Function,+,furi_hal_nfc_iso14443a_rx_sdd_frame,FuriHalNfcError,"uint8_t*, size_t, size_t*"
 Function,+,furi_hal_nfc_iso14443a_tx_sdd_frame,FuriHalNfcError,"const uint8_t*, size_t"
-Function,+,furi_hal_nfc_iso15693_detect_mode,FuriHalNfcError,
-Function,+,furi_hal_nfc_iso15693_force_1outof256,FuriHalNfcError,
-Function,+,furi_hal_nfc_iso15693_force_1outof4,FuriHalNfcError,
 Function,+,furi_hal_nfc_iso15693_listener_tx_sof,FuriHalNfcError,
 Function,+,furi_hal_nfc_listener_enable_rx,FuriHalNfcError,
 Function,+,furi_hal_nfc_listener_idle,FuriHalNfcError,
@@ -1630,7 +1669,7 @@ Function,+,furi_hal_random_init,void,
 Function,+,furi_hal_region_get,const FuriHalRegion*,
 Function,+,furi_hal_region_get_band,const FuriHalRegionBand*,uint32_t
 Function,+,furi_hal_region_get_name,const char*,
-Function,+,furi_hal_region_init,void,
+Function,-,furi_hal_region_init,void,
 Function,+,furi_hal_region_is_frequency_allowed,_Bool,uint32_t
 Function,+,furi_hal_region_is_provisioned,_Bool,
 Function,+,furi_hal_region_set,void,FuriHalRegion*
@@ -1638,6 +1677,8 @@ Function,-,furi_hal_resources_deinit_early,void,
 Function,+,furi_hal_resources_get_ext_pin_number,int32_t,const GpioPin*
 Function,-,furi_hal_resources_init,void,
 Function,-,furi_hal_resources_init_early,void,
+Function,+,furi_hal_resources_pin_by_name,const GpioPinRecord*,const char*
+Function,+,furi_hal_resources_pin_by_number,const GpioPinRecord*,uint8_t
 Function,+,furi_hal_rfid_comp_set_callback,void,"FuriHalRfidCompCallback, void*"
 Function,+,furi_hal_rfid_comp_start,void,
 Function,+,furi_hal_rfid_comp_stop,void,
@@ -1659,6 +1700,7 @@ Function,+,furi_hal_rfid_tim_read_pause,void,
 Function,+,furi_hal_rfid_tim_read_start,void,"float, float"
 Function,+,furi_hal_rfid_tim_read_stop,void,
 Function,-,furi_hal_rtc_deinit_early,void,
+Function,+,furi_hal_rtc_get_alarm,_Bool,DateTime*
 Function,+,furi_hal_rtc_get_boot_mode,FuriHalRtcBootMode,
 Function,+,furi_hal_rtc_get_datetime,void,DateTime*
 Function,+,furi_hal_rtc_get_fault_data,uint32_t,
@@ -1670,13 +1712,17 @@ Function,+,furi_hal_rtc_get_log_baud_rate,FuriHalRtcLogBaudRate,
 Function,+,furi_hal_rtc_get_log_device,FuriHalRtcLogDevice,
 Function,+,furi_hal_rtc_get_log_level,uint8_t,
 Function,+,furi_hal_rtc_get_pin_fails,uint32_t,
+Function,-,furi_hal_rtc_get_pin_value,uint32_t,
 Function,+,furi_hal_rtc_get_register,uint32_t,FuriHalRtcRegister
 Function,+,furi_hal_rtc_get_timestamp,uint32_t,
 Function,-,furi_hal_rtc_init,void,
 Function,-,furi_hal_rtc_init_early,void,
 Function,+,furi_hal_rtc_is_flag_set,_Bool,FuriHalRtcFlag
+Function,-,furi_hal_rtc_prepare_for_shutdown,void,
 Function,+,furi_hal_rtc_reset_flag,void,FuriHalRtcFlag
 Function,+,furi_hal_rtc_reset_registers,void,
+Function,+,furi_hal_rtc_set_alarm,void,"const DateTime*, _Bool"
+Function,-,furi_hal_rtc_set_alarm_callback,void,"FuriHalRtcAlarmCallback, void*"
 Function,+,furi_hal_rtc_set_boot_mode,void,FuriHalRtcBootMode
 Function,+,furi_hal_rtc_set_datetime,void,DateTime*
 Function,+,furi_hal_rtc_set_fault_data,void,uint32_t
@@ -1689,6 +1735,7 @@ Function,+,furi_hal_rtc_set_log_baud_rate,void,FuriHalRtcLogBaudRate
 Function,+,furi_hal_rtc_set_log_device,void,FuriHalRtcLogDevice
 Function,+,furi_hal_rtc_set_log_level,void,uint8_t
 Function,+,furi_hal_rtc_set_pin_fails,void,uint32_t
+Function,-,furi_hal_rtc_set_pin_value,void,uint32_t
 Function,+,furi_hal_rtc_set_register,void,"FuriHalRtcRegister, uint32_t"
 Function,+,furi_hal_rtc_sync_shadow,void,
 Function,+,furi_hal_sd_get_card_state,FuriStatus,
@@ -1703,6 +1750,7 @@ Function,+,furi_hal_serial_async_rx,uint8_t,FuriHalSerialHandle*
 Function,+,furi_hal_serial_async_rx_available,_Bool,FuriHalSerialHandle*
 Function,+,furi_hal_serial_async_rx_start,void,"FuriHalSerialHandle*, FuriHalSerialAsyncRxCallback, void*, _Bool"
 Function,+,furi_hal_serial_async_rx_stop,void,FuriHalSerialHandle*
+Function,+,furi_hal_serial_configure_framing,void,"FuriHalSerialHandle*, FuriHalSerialDataBits, FuriHalSerialParity, FuriHalSerialStopBits"
 Function,+,furi_hal_serial_control_acquire,FuriHalSerialHandle*,FuriHalSerialId
 Function,+,furi_hal_serial_control_deinit,void,
 Function,+,furi_hal_serial_control_init,void,
@@ -1722,7 +1770,6 @@ Function,+,furi_hal_serial_get_gpio_pin,const GpioPin*,"FuriHalSerialHandle*, Fu
 Function,+,furi_hal_serial_init,void,"FuriHalSerialHandle*, uint32_t"
 Function,+,furi_hal_serial_is_baud_rate_supported,_Bool,"FuriHalSerialHandle*, uint32_t"
 Function,+,furi_hal_serial_resume,void,FuriHalSerialHandle*
-Function,+,furi_hal_serial_send_break,void,FuriHalSerialHandle*
 Function,+,furi_hal_serial_set_br,void,"FuriHalSerialHandle*, uint32_t"
 Function,+,furi_hal_serial_suspend,void,FuriHalSerialHandle*
 Function,+,furi_hal_serial_tx,void,"FuriHalSerialHandle*, const uint8_t*, size_t"
@@ -1736,26 +1783,25 @@ Function,+,furi_hal_speaker_release,void,
 Function,+,furi_hal_speaker_set_volume,void,float
 Function,+,furi_hal_speaker_start,void,"float, float"
 Function,+,furi_hal_speaker_stop,void,
-Function,+,furi_hal_spi_acquire,void,FuriHalSpiBusHandle*
+Function,+,furi_hal_spi_acquire,void,const FuriHalSpiBusHandle*
 Function,+,furi_hal_spi_bus_deinit,void,FuriHalSpiBus*
-Function,+,furi_hal_spi_bus_handle_deinit,void,FuriHalSpiBusHandle*
-Function,+,furi_hal_spi_bus_handle_init,void,FuriHalSpiBusHandle*
+Function,+,furi_hal_spi_bus_handle_deinit,void,const FuriHalSpiBusHandle*
+Function,+,furi_hal_spi_bus_handle_init,void,const FuriHalSpiBusHandle*
 Function,+,furi_hal_spi_bus_init,void,FuriHalSpiBus*
-Function,+,furi_hal_spi_bus_rx,_Bool,"FuriHalSpiBusHandle*, uint8_t*, size_t, uint32_t"
-Function,+,furi_hal_spi_bus_trx,_Bool,"FuriHalSpiBusHandle*, const uint8_t*, uint8_t*, size_t, uint32_t"
-Function,+,furi_hal_spi_bus_trx_dma,_Bool,"FuriHalSpiBusHandle*, uint8_t*, uint8_t*, size_t, uint32_t"
-Function,+,furi_hal_spi_bus_tx,_Bool,"FuriHalSpiBusHandle*, const uint8_t*, size_t, uint32_t"
+Function,+,furi_hal_spi_bus_rx,_Bool,"const FuriHalSpiBusHandle*, uint8_t*, size_t, uint32_t"
+Function,+,furi_hal_spi_bus_trx,_Bool,"const FuriHalSpiBusHandle*, const uint8_t*, uint8_t*, size_t, uint32_t"
+Function,+,furi_hal_spi_bus_trx_dma,_Bool,"const FuriHalSpiBusHandle*, uint8_t*, uint8_t*, size_t, uint32_t"
+Function,+,furi_hal_spi_bus_tx,_Bool,"const FuriHalSpiBusHandle*, const uint8_t*, size_t, uint32_t"
 Function,-,furi_hal_spi_config_deinit_early,void,
 Function,-,furi_hal_spi_config_init,void,
 Function,-,furi_hal_spi_config_init_early,void,
 Function,-,furi_hal_spi_dma_init,void,
-Function,+,furi_hal_spi_release,void,FuriHalSpiBusHandle*
+Function,+,furi_hal_spi_release,void,const FuriHalSpiBusHandle*
 Function,+,furi_hal_subghz_check_tx,SubGhzTx,uint32_t
 Function,-,furi_hal_subghz_dump_state,void,
 Function,+,furi_hal_subghz_flush_rx,void,
 Function,+,furi_hal_subghz_flush_tx,void,
 Function,+,furi_hal_subghz_get_data_gpio,const GpioPin*,
-Function,+,furi_hal_subghz_get_ext_leds_and_amp,_Bool,
 Function,+,furi_hal_subghz_get_lqi,uint8_t,
 Function,+,furi_hal_subghz_get_rolling_counter_mult,int32_t,
 Function,+,furi_hal_subghz_get_rssi,float,
@@ -1773,7 +1819,6 @@ Function,+,furi_hal_subghz_reset,void,
 Function,+,furi_hal_subghz_rx,void,
 Function,+,furi_hal_subghz_rx_pipe_not_empty,_Bool,
 Function,+,furi_hal_subghz_set_async_mirror_pin,void,const GpioPin*
-Function,+,furi_hal_subghz_set_ext_leds_and_amp,void,_Bool
 Function,+,furi_hal_subghz_set_frequency,uint32_t,uint32_t
 Function,+,furi_hal_subghz_set_frequency_and_path,uint32_t,uint32_t
 Function,+,furi_hal_subghz_set_path,void,FuriHalSubGhzPath
@@ -1812,6 +1857,7 @@ Function,+,furi_hal_version_get_hw_connect,uint8_t,
 Function,+,furi_hal_version_get_hw_display,FuriHalVersionDisplay,
 Function,+,furi_hal_version_get_hw_region,FuriHalVersionRegion,
 Function,+,furi_hal_version_get_hw_region_name,const char*,
+Function,+,furi_hal_version_get_hw_region_name_otp,const char*,
 Function,+,furi_hal_version_get_hw_region_otp,FuriHalVersionRegion,
 Function,+,furi_hal_version_get_hw_target,uint8_t,
 Function,+,furi_hal_version_get_hw_timestamp,uint32_t,
@@ -1880,6 +1926,7 @@ Function,+,furi_semaphore_acquire,FuriStatus,"FuriSemaphore*, uint32_t"
 Function,+,furi_semaphore_alloc,FuriSemaphore*,"uint32_t, uint32_t"
 Function,+,furi_semaphore_free,void,FuriSemaphore*
 Function,+,furi_semaphore_get_count,uint32_t,FuriSemaphore*
+Function,+,furi_semaphore_get_space,uint32_t,FuriSemaphore*
 Function,+,furi_semaphore_release,FuriStatus,FuriSemaphore*
 Function,+,furi_stream_buffer_alloc,FuriStreamBuffer*,"size_t, size_t"
 Function,+,furi_stream_buffer_bytes_available,size_t,FuriStreamBuffer*
@@ -1890,6 +1937,7 @@ Function,+,furi_stream_buffer_receive,size_t,"FuriStreamBuffer*, void*, size_t, 
 Function,+,furi_stream_buffer_reset,FuriStatus,FuriStreamBuffer*
 Function,+,furi_stream_buffer_send,size_t,"FuriStreamBuffer*, const void*, size_t, uint32_t"
 Function,+,furi_stream_buffer_spaces_available,size_t,FuriStreamBuffer*
+Function,+,furi_stream_get_trigger_level,size_t,FuriStreamBuffer*
 Function,+,furi_stream_set_trigger_level,_Bool,"FuriStreamBuffer*, size_t"
 Function,+,furi_string_alloc,FuriString*,
 Function,+,furi_string_alloc_move,FuriString*,FuriString*
@@ -1967,9 +2015,11 @@ Function,+,furi_thread_get_id,FuriThreadId,FuriThread*
 Function,+,furi_thread_get_name,const char*,FuriThreadId
 Function,+,furi_thread_get_priority,FuriThreadPriority,FuriThread*
 Function,+,furi_thread_get_return_code,int32_t,FuriThread*
+Function,+,furi_thread_get_signal_callback,FuriThreadSignalCallback,const FuriThread*
 Function,+,furi_thread_get_stack_space,uint32_t,FuriThreadId
 Function,+,furi_thread_get_state,FuriThreadState,FuriThread*
-Function,+,furi_thread_get_stdout_callback,FuriThreadStdoutWriteCallback,
+Function,+,furi_thread_get_stdin_callback,void,"FuriThreadStdinReadCallback*, void**"
+Function,+,furi_thread_get_stdout_callback,void,"FuriThreadStdoutWriteCallback*, void**"
 Function,+,furi_thread_is_suspended,_Bool,FuriThreadId
 Function,+,furi_thread_join,_Bool,FuriThread*
 Function,+,furi_thread_list_alloc,FuriThreadList*,
@@ -1977,7 +2027,6 @@ Function,+,furi_thread_list_free,void,FuriThreadList*
 Function,+,furi_thread_list_get_at,FuriThreadListItem*,"FuriThreadList*, size_t"
 Function,+,furi_thread_list_get_isr_time,float,FuriThreadList*
 Function,+,furi_thread_list_get_or_insert,FuriThreadListItem*,"FuriThreadList*, FuriThread*"
-Function,+,furi_thread_list_process,void,"FuriThreadList*, uint32_t, uint32_t"
 Function,+,furi_thread_list_size,size_t,FuriThreadList*
 Function,+,furi_thread_resume,void,FuriThreadId
 Function,+,furi_thread_set_appid,void,"FuriThread*, const char*"
@@ -1990,16 +2039,20 @@ Function,+,furi_thread_set_signal_callback,void,"FuriThread*, FuriThreadSignalCa
 Function,+,furi_thread_set_stack_size,void,"FuriThread*, size_t"
 Function,+,furi_thread_set_state_callback,void,"FuriThread*, FuriThreadStateCallback"
 Function,+,furi_thread_set_state_context,void,"FuriThread*, void*"
-Function,+,furi_thread_set_stdout_callback,void,FuriThreadStdoutWriteCallback
+Function,+,furi_thread_set_stdin_callback,void,"FuriThreadStdinReadCallback, void*"
+Function,+,furi_thread_set_stdout_callback,void,"FuriThreadStdoutWriteCallback, void*"
 Function,+,furi_thread_signal,_Bool,"const FuriThread*, uint32_t, void*"
 Function,+,furi_thread_start,void,FuriThread*
+Function,+,furi_thread_stdin_read,size_t,"char*, size_t, FuriWait"
+Function,+,furi_thread_stdin_unread,void,"char*, size_t"
 Function,+,furi_thread_stdout_flush,int32_t,
 Function,+,furi_thread_stdout_write,size_t,"const char*, size_t"
 Function,+,furi_thread_suspend,void,FuriThreadId
 Function,+,furi_thread_yield,void,
 Function,+,furi_timer_alloc,FuriTimer*,"FuriTimerCallback, FuriTimerType, void*"
+Function,+,furi_timer_flush,void,
 Function,+,furi_timer_free,void,FuriTimer*
-Function,+,furi_timer_get_current_name,const char*,
+Function,-,furi_timer_get_current_name,const char*,
 Function,+,furi_timer_get_expire_time,uint32_t,FuriTimer*
 Function,+,furi_timer_is_running,uint32_t,FuriTimer*
 Function,+,furi_timer_pending_callback,void,"FuriTimerPendigCallback, void*, uint32_t"
@@ -2023,7 +2076,7 @@ Function,-,gap_extra_beacon_set_data,_Bool,"const uint8_t*, uint8_t"
 Function,-,gap_extra_beacon_start,_Bool,
 Function,-,gap_extra_beacon_stop,_Bool,
 Function,-,gap_get_state,GapState,
-Function,-,gap_init,_Bool,"GapConfig*, GapEventCallback, void*"
+Function,-,gap_init,_Bool,"GapConfig*, const GapRootSecurityKeys*, GapEventCallback, void*"
 Function,-,gap_start_advertising,void,
 Function,-,gap_stop_advertising,void,
 Function,-,gap_thread_stop,void,
@@ -2034,18 +2087,19 @@ Function,-,getchar,int,
 Function,-,getchar_unlocked,int,
 Function,-,getenv,char*,const char*
 Function,-,gets,char*,char*
-Function,-,getsubopt,int,"char**, char**, char**"
+Function,-,getsubopt,int,"char**, char* const*, char**"
 Function,-,getw,int,FILE*
 Function,+,gui_add_framebuffer_callback,void,"Gui*, GuiCanvasCommitCallback, void*"
 Function,+,gui_add_view_port,void,"Gui*, ViewPort*, GuiLayer"
 Function,+,gui_direct_draw_acquire,Canvas*,Gui*
 Function,+,gui_direct_draw_release,void,Gui*
-Function,-,gui_get_count_of_enabled_view_port_in_layer,uint8_t,"Gui*, GuiLayer"
 Function,+,gui_get_framebuffer_size,size_t,const Gui*
+Function,+,gui_is_lockdown,_Bool,const Gui*
 Function,+,gui_remove_framebuffer_callback,void,"Gui*, GuiCanvasCommitCallback, void*"
 Function,+,gui_remove_view_port,void,"Gui*, ViewPort*"
 Function,+,gui_set_hide_statusbar,void,"Gui*, _Bool"
 Function,+,gui_set_lockdown,void,"Gui*, _Bool"
+Function,+,gui_set_lockdown_inhibit,void,"Gui*, _Bool"
 Function,+,gui_view_port_send_to_back,void,"Gui*, ViewPort*"
 Function,+,gui_view_port_send_to_front,void,"Gui*, ViewPort*"
 Function,-,hci_send_req,int,"hci_request*, uint8_t"
@@ -2121,6 +2175,19 @@ Function,-,infinity,double,
 Function,-,infinityf,float,
 Function,+,infrared_alloc_decoder,InfraredDecoderHandler*,
 Function,+,infrared_alloc_encoder,InfraredEncoderHandler*,
+Function,-,infrared_brute_force_add_record,void,"InfraredBruteForce*, uint32_t, const char*"
+Function,-,infrared_brute_force_alloc,InfraredBruteForce*,
+Function,-,infrared_brute_force_calculate_messages,InfraredErrorCode,InfraredBruteForce*
+Function,-,infrared_brute_force_calculate_messages_ex,InfraredErrorCode,"InfraredBruteForce*, _Bool, _Bool"
+Function,-,infrared_brute_force_free,void,InfraredBruteForce*
+Function,-,infrared_brute_force_get_button_count,size_t,const InfraredBruteForce*
+Function,-,infrared_brute_force_get_button_name,const char*,"const InfraredBruteForce*, size_t"
+Function,-,infrared_brute_force_is_started,_Bool,const InfraredBruteForce*
+Function,-,infrared_brute_force_reset,void,InfraredBruteForce*
+Function,-,infrared_brute_force_send,_Bool,"InfraredBruteForce*, uint32_t"
+Function,-,infrared_brute_force_set_db_filename,void,"InfraredBruteForce*, const char*"
+Function,-,infrared_brute_force_start,_Bool,"InfraredBruteForce*, uint32_t, uint32_t*"
+Function,-,infrared_brute_force_stop,void,InfraredBruteForce*
 Function,+,infrared_check_decoder_ready,const InfraredMessage*,InfraredDecoderHandler*
 Function,+,infrared_decode,const InfraredMessage*,"InfraredDecoderHandler*, _Bool, uint32_t"
 Function,+,infrared_encode,InfraredStatus,"InfraredEncoderHandler*, uint32_t*, _Bool*"
@@ -2139,6 +2206,22 @@ Function,+,infrared_reset_encoder,void,"InfraredEncoderHandler*, const InfraredM
 Function,+,infrared_send,void,"const InfraredMessage*, int"
 Function,+,infrared_send_raw,void,"const uint32_t[], uint32_t, _Bool"
 Function,+,infrared_send_raw_ext,void,"const uint32_t[], uint32_t, _Bool, uint32_t, float"
+Function,-,infrared_signal_alloc,InfraredSignal*,
+Function,-,infrared_signal_free,void,InfraredSignal*
+Function,-,infrared_signal_get_message,const InfraredMessage*,const InfraredSignal*
+Function,-,infrared_signal_get_raw_signal,const InfraredRawSignal*,const InfraredSignal*
+Function,-,infrared_signal_is_raw,_Bool,const InfraredSignal*
+Function,-,infrared_signal_is_valid,_Bool,const InfraredSignal*
+Function,-,infrared_signal_read,InfraredErrorCode,"InfraredSignal*, FlipperFormat*, FuriString*"
+Function,-,infrared_signal_read_body,InfraredErrorCode,"InfraredSignal*, FlipperFormat*"
+Function,-,infrared_signal_read_name,InfraredErrorCode,"FlipperFormat*, FuriString*"
+Function,-,infrared_signal_save,InfraredErrorCode,"const InfraredSignal*, FlipperFormat*, const char*"
+Function,-,infrared_signal_search_by_index_and_read,InfraredErrorCode,"InfraredSignal*, FlipperFormat*, size_t"
+Function,-,infrared_signal_search_by_name_and_read,InfraredErrorCode,"InfraredSignal*, FlipperFormat*, const char*"
+Function,-,infrared_signal_set_message,void,"InfraredSignal*, const InfraredMessage*"
+Function,-,infrared_signal_set_raw_signal,void,"InfraredSignal*, const uint32_t*, size_t, uint32_t, float"
+Function,-,infrared_signal_set_signal,void,"InfraredSignal*, const InfraredSignal*"
+Function,-,infrared_signal_transmit,void,const InfraredSignal*
 Function,+,infrared_worker_alloc,InfraredWorker*,
 Function,+,infrared_worker_free,void,InfraredWorker*
 Function,+,infrared_worker_get_decoded_signal,const InfraredMessage*,const InfraredWorkerSignal*
@@ -2377,14 +2460,15 @@ Function,-,llrintl,long long int,long double
 Function,-,llround,long long int,double
 Function,-,llroundf,long long int,float
 Function,-,llroundl,long long int,long double
+Function,+,loader_clear_launch_queue,void,Loader*
+Function,+,loader_enqueue_launch,void,"Loader*, const char*, const char*, LoaderDeferredLaunchFlag"
+Function,+,loader_get_application_launch_path,_Bool,"Loader*, FuriString*"
 Function,+,loader_get_application_name,_Bool,"Loader*, FuriString*"
-Function,+,loader_get_gamesmenu_apps,GamesMenuList_t*,Loader*
-Function,+,loader_get_mainmenu_apps,MainMenuList_t*,Loader*
 Function,+,loader_get_pubsub,FuriPubSub*,Loader*
 Function,+,loader_is_locked,_Bool,Loader*
 Function,+,loader_lock,_Bool,Loader*
-Function,+,loader_show_gamesmenu,void,Loader*
 Function,+,loader_show_menu,void,Loader*
+Function,+,loader_show_settings,void,Loader*
 Function,+,loader_signal,_Bool,"Loader*, uint32_t, void*"
 Function,+,loader_start,LoaderStatus,"Loader*, const char*, const char*, FuriString*"
 Function,+,loader_start_detached_with_gui_error,void,"Loader*, const char*, const char*"
@@ -2637,7 +2721,7 @@ Function,+,memchr,void*,"const void*, int, size_t"
 Function,+,memcmp,int,"const void*, const void*, size_t"
 Function,+,memcpy,void*,"void*, const void*, size_t"
 Function,-,memmem,void*,"const void*, size_t, const void*, size_t"
-Function,+,memmgr_alloc_from_pool,void*,size_t
+Function,-,memmgr_alloc_from_pool,void*,size_t
 Function,+,memmgr_get_free_heap,size_t,
 Function,+,memmgr_get_minimum_free_heap,size_t,
 Function,+,memmgr_get_total_heap,size_t,
@@ -2646,7 +2730,7 @@ Function,+,memmgr_heap_enable_thread_trace,void,FuriThreadId
 Function,+,memmgr_heap_get_max_free_block,size_t,
 Function,+,memmgr_heap_get_thread_memory,size_t,FuriThreadId
 Function,+,memmgr_heap_printf_free_blocks,void,
-Function,+,memmgr_pool_get_free,size_t,
+Function,-,memmgr_pool_get_free,size_t,
 Function,-,memmgr_pool_get_max_block,size_t,
 Function,+,memmove,void*,"void*, const void*, size_t"
 Function,-,mempcpy,void*,"void*, const void*, size_t"
@@ -2655,8 +2739,8 @@ Function,+,memset,void*,"void*, int, size_t"
 Function,+,menu_add_item,void,"Menu*, const char*, const Icon*, uint32_t, MenuItemCallback, void*"
 Function,+,menu_alloc,Menu*,
 Function,+,menu_free,void,Menu*
+Function,+,menu_get_selected_item,uint32_t,Menu*
 Function,+,menu_get_view,View*,Menu*
-Function,+,menu_pos_alloc,Menu*,"size_t, _Bool"
 Function,+,menu_reset,void,Menu*
 Function,+,menu_set_selected_item,void,"Menu*, uint32_t"
 Function,+,mf_classic_alloc,MfClassicData*,
@@ -2768,7 +2852,7 @@ Function,+,mf_ultralight_3des_decrypt,void,"mbedtls_des3_context*, const uint8_t
 Function,+,mf_ultralight_3des_encrypt,void,"mbedtls_des3_context*, const uint8_t*, const uint8_t*, const uint8_t*, const uint8_t, uint8_t*"
 Function,+,mf_ultralight_3des_get_key,const uint8_t*,const MfUltralightData*
 Function,+,mf_ultralight_3des_key_valid,_Bool,const MfUltralightData*
-Function,+,mf_ultralight_3des_shift_data,void,uint8_t*
+Function,+,mf_ultralight_3des_shift_data,void,uint8_t* const
 Function,+,mf_ultralight_alloc,MfUltralightData*,
 Function,+,mf_ultralight_copy,void,"MfUltralightData*, const MfUltralightData*"
 Function,+,mf_ultralight_detect_protocol,_Bool,const Iso14443_3aData*
@@ -2811,6 +2895,88 @@ Function,+,mf_ultralight_save,_Bool,"const MfUltralightData*, FlipperFormat*"
 Function,+,mf_ultralight_set_uid,_Bool,"MfUltralightData*, const uint8_t*, size_t"
 Function,+,mf_ultralight_support_feature,_Bool,"const uint32_t, const uint32_t"
 Function,+,mf_ultralight_verify,_Bool,"MfUltralightData*, const FuriString*"
+Function,+,mjs_apply,mjs_err_t,"mjs*, mjs_val_t*, mjs_val_t, mjs_val_t, int, mjs_val_t*"
+Function,+,mjs_arg,mjs_val_t,"mjs*, int"
+Function,+,mjs_array_buf_get_ptr,char*,"mjs*, mjs_val_t, size_t*"
+Function,+,mjs_array_del,void,"mjs*, mjs_val_t, unsigned long"
+Function,+,mjs_array_get,mjs_val_t,"mjs*, mjs_val_t, unsigned long"
+Function,+,mjs_array_length,unsigned long,"mjs*, mjs_val_t"
+Function,+,mjs_array_push,mjs_err_t,"mjs*, mjs_val_t, mjs_val_t"
+Function,+,mjs_array_set,mjs_err_t,"mjs*, mjs_val_t, unsigned long, mjs_val_t"
+Function,+,mjs_call,mjs_err_t,"mjs*, mjs_val_t*, mjs_val_t, mjs_val_t, int, ..."
+Function,+,mjs_create,mjs*,void*
+Function,+,mjs_dataview_get_buf,mjs_val_t,"mjs*, mjs_val_t"
+Function,+,mjs_del,int,"mjs*, mjs_val_t, const char*, size_t"
+Function,+,mjs_destroy,void,mjs*
+Function,+,mjs_disasm_all,void,"mjs*, MjsPrintCallback, void*"
+Function,+,mjs_disown,int,"mjs*, mjs_val_t*"
+Function,-,mjs_dump,void,"mjs*, int, MjsPrintCallback, void*"
+Function,+,mjs_exec,mjs_err_t,"mjs*, const char*, mjs_val_t*"
+Function,+,mjs_exec_file,mjs_err_t,"mjs*, const char*, mjs_val_t*"
+Function,+,mjs_exit,void,mjs*
+Function,+,mjs_ffi_resolve,void*,"mjs*, const char*"
+Function,-,mjs_fprintf,void,"mjs_val_t, mjs*, FILE*"
+Function,+,mjs_get,mjs_val_t,"mjs*, mjs_val_t, const char*, size_t"
+Function,-,mjs_get_bcode_filename_by_offset,const char*,"mjs*, int"
+Function,+,mjs_get_bool,int,"mjs*, mjs_val_t"
+Function,+,mjs_get_context,void*,mjs*
+Function,+,mjs_get_cstring,const char*,"mjs*, mjs_val_t*"
+Function,+,mjs_get_double,double,"mjs*, mjs_val_t"
+Function,+,mjs_get_global,mjs_val_t,mjs*
+Function,+,mjs_get_int,int,"mjs*, mjs_val_t"
+Function,+,mjs_get_int32,int32_t,"mjs*, mjs_val_t"
+Function,+,mjs_get_lineno_by_offset,int,"mjs*, int"
+Function,+,mjs_get_offset_by_call_frame_num,int,"mjs*, int"
+Function,+,mjs_get_ptr,void*,"mjs*, mjs_val_t"
+Function,+,mjs_get_stack_trace,const char*,mjs*
+Function,+,mjs_get_string,const char*,"mjs*, mjs_val_t*, size_t*"
+Function,+,mjs_get_this,mjs_val_t,mjs*
+Function,+,mjs_get_v,mjs_val_t,"mjs*, mjs_val_t, mjs_val_t"
+Function,+,mjs_get_v_proto,mjs_val_t,"mjs*, mjs_val_t, mjs_val_t"
+Function,+,mjs_is_array,int,mjs_val_t
+Function,+,mjs_is_array_buf,int,mjs_val_t
+Function,+,mjs_is_boolean,int,mjs_val_t
+Function,+,mjs_is_data_view,int,mjs_val_t
+Function,+,mjs_is_foreign,int,mjs_val_t
+Function,+,mjs_is_function,int,mjs_val_t
+Function,+,mjs_is_null,int,mjs_val_t
+Function,+,mjs_is_number,int,mjs_val_t
+Function,+,mjs_is_object,int,mjs_val_t
+Function,+,mjs_is_object_based,int,mjs_val_t
+Function,+,mjs_is_string,int,mjs_val_t
+Function,+,mjs_is_truthy,int,"mjs*, mjs_val_t"
+Function,+,mjs_is_typed_array,int,mjs_val_t
+Function,+,mjs_is_undefined,int,mjs_val_t
+Function,+,mjs_mk_array,mjs_val_t,mjs*
+Function,+,mjs_mk_array_buf,mjs_val_t,"mjs*, char*, size_t"
+Function,+,mjs_mk_boolean,mjs_val_t,"mjs*, int"
+Function,+,mjs_mk_foreign,mjs_val_t,"mjs*, void*"
+Function,+,mjs_mk_foreign_func,mjs_val_t,"mjs*, mjs_func_ptr_t"
+Function,+,mjs_mk_function,mjs_val_t,"mjs*, size_t"
+Function,+,mjs_mk_null,mjs_val_t,
+Function,+,mjs_mk_number,mjs_val_t,"mjs*, double"
+Function,+,mjs_mk_object,mjs_val_t,mjs*
+Function,+,mjs_mk_string,mjs_val_t,"mjs*, const char*, size_t, int"
+Function,+,mjs_mk_undefined,mjs_val_t,
+Function,+,mjs_nargs,int,mjs*
+Function,+,mjs_next,mjs_val_t,"mjs*, mjs_val_t, mjs_val_t*"
+Function,+,mjs_own,void,"mjs*, mjs_val_t*"
+Function,+,mjs_prepend_errorf,mjs_err_t,"mjs*, mjs_err_t, const char*, ..."
+Function,-,mjs_print_error,void,"mjs*, FILE*, const char*, int"
+Function,+,mjs_return,void,"mjs*, mjs_val_t"
+Function,+,mjs_set,mjs_err_t,"mjs*, mjs_val_t, const char*, size_t, mjs_val_t"
+Function,+,mjs_set_errorf,mjs_err_t,"mjs*, mjs_err_t, const char*, ..."
+Function,+,mjs_set_exec_flags_poller,void,"mjs*, mjs_flags_poller_t"
+Function,+,mjs_set_ffi_resolver,void,"mjs*, mjs_ffi_resolver_t*, void*"
+Function,-,mjs_set_generate_jsc,void,"mjs*, int"
+Function,+,mjs_set_v,mjs_err_t,"mjs*, mjs_val_t, mjs_val_t, mjs_val_t"
+Function,+,mjs_sprintf,void,"mjs_val_t, mjs*, char*, size_t"
+Function,+,mjs_strcmp,int,"mjs*, mjs_val_t*, const char*, size_t"
+Function,+,mjs_strerror,const char*,"mjs*, mjs_err"
+Function,+,mjs_struct_to_obj,mjs_val_t,"mjs*, const void*, const mjs_c_struct_member*"
+Function,+,mjs_to_boolean_v,mjs_val_t,"mjs*, mjs_val_t"
+Function,+,mjs_to_string,mjs_err_t,"mjs*, mjs_val_t*, char**, size_t*, int*"
+Function,+,mjs_typeof,const char*,mjs_val_t
 Function,-,mkdtemp,char*,char*
 Function,-,mkostemp,int,"char*, int"
 Function,-,mkostemps,int,"char*, int, int"
@@ -2837,9 +3003,9 @@ Function,+,name_generator_make_auto,void,"char*, size_t, const char*"
 Function,+,name_generator_make_auto_basic,void,"char*, size_t, const char*"
 Function,+,name_generator_make_auto_datetime,void,"char*, size_t, const char*, DateTime*"
 Function,+,name_generator_make_detailed,void,"char*, size_t, const char*"
-Function,+,name_generator_make_detailed_datetime,void,"char*, size_t, const char*, DateTime*"
+Function,+,name_generator_make_detailed_datetime,void,"char*, size_t, const char*, DateTime*, _Bool"
 Function,+,name_generator_make_random,void,"char*, size_t"
-Function,+,name_generator_make_random_prefixed,void,"char*, size_t, const char*"
+Function,+,name_generator_make_random_prefixed,void,"char*, size_t, const char*, _Bool"
 Function,-,nan,double,const char*
 Function,-,nanf,float,const char*
 Function,-,nanl,long double,const char*
@@ -2920,14 +3086,14 @@ Function,+,notification_internal_message,void,"NotificationApp*, const Notificat
 Function,+,notification_internal_message_block,void,"NotificationApp*, const NotificationSequence*"
 Function,+,notification_message,void,"NotificationApp*, const NotificationSequence*"
 Function,+,notification_message_block,void,"NotificationApp*, const NotificationSequence*"
-Function,+,notification_message_save_settings,void,NotificationApp*
+Function,+,notification_messages_notes_frequency_from_name,float,const char*
 Function,-,nrand48,long,unsigned short[3]
 Function,+,ntag4xx_alloc,Ntag4xxData*,
 Function,+,ntag4xx_copy,void,"Ntag4xxData*, const Ntag4xxData*"
 Function,+,ntag4xx_free,void,Ntag4xxData*
 Function,+,ntag4xx_get_base_data,Iso14443_4aData*,const Ntag4xxData*
 Function,+,ntag4xx_get_device_name,const char*,"const Ntag4xxData*, NfcDeviceNameType"
-Function,+,ntag4xx_get_type_from_version,Ntag4xxType,const Ntag4xxVersion*
+Function,+,ntag4xx_get_type_from_version,Ntag4xxType,const Ntag4xxVersion* const
 Function,+,ntag4xx_get_uid,const uint8_t*,"const Ntag4xxData*, size_t*"
 Function,+,ntag4xx_is_equal,_Bool,"const Ntag4xxData*, const Ntag4xxData*"
 Function,+,ntag4xx_load,_Bool,"Ntag4xxData*, FlipperFormat*, uint32_t"
@@ -3011,6 +3177,23 @@ Function,+,pb_skip_field,_Bool,"pb_istream_t*, pb_wire_type_t"
 Function,+,pb_write,_Bool,"pb_ostream_t*, const pb_byte_t*, size_t"
 Function,-,pclose,int,FILE*
 Function,-,perror,void,const char*
+Function,+,pipe_alloc,PipeSideBundle,"size_t, size_t"
+Function,+,pipe_alloc_ex,PipeSideBundle,"PipeSideReceiveSettings, PipeSideReceiveSettings"
+Function,+,pipe_attach_to_event_loop,void,"PipeSide*, FuriEventLoop*"
+Function,+,pipe_bytes_available,size_t,PipeSide*
+Function,+,pipe_detach_from_event_loop,void,PipeSide*
+Function,+,pipe_free,void,PipeSide*
+Function,+,pipe_install_as_stdio,void,PipeSide*
+Function,+,pipe_receive,size_t,"PipeSide*, void*, size_t"
+Function,+,pipe_role,PipeRole,PipeSide*
+Function,+,pipe_send,size_t,"PipeSide*, const void*, size_t"
+Function,+,pipe_set_broken_callback,void,"PipeSide*, PipeSideBrokenCallback, FuriEventLoopEvent"
+Function,+,pipe_set_callback_context,void,"PipeSide*, void*"
+Function,+,pipe_set_data_arrived_callback,void,"PipeSide*, PipeSideDataArrivedCallback, FuriEventLoopEvent"
+Function,+,pipe_set_space_freed_callback,void,"PipeSide*, PipeSideSpaceFreedCallback, FuriEventLoopEvent"
+Function,+,pipe_set_state_check_period,void,"PipeSide*, FuriWait"
+Function,+,pipe_spaces_available,size_t,PipeSide*
+Function,+,pipe_state,PipeState,PipeSide*
 Function,+,plugin_manager_alloc,PluginManager*,"const char*, uint32_t, const ElfApiInterface*"
 Function,+,plugin_manager_free,void,PluginManager*
 Function,+,plugin_manager_get,const FlipperAppPluginDescriptor*,"PluginManager*, uint32_t"
@@ -3036,20 +3219,20 @@ Function,-,pow,double,"double, double"
 Function,-,pow10,double,double
 Function,-,pow10f,float,float
 Function,+,power_enable_low_battery_level_notification,void,"Power*, _Bool"
+Function,+,power_enable_otg,void,"Power*, _Bool"
 Function,+,power_get_info,void,"Power*, PowerInfo*"
 Function,+,power_get_pubsub,FuriPubSub*,Power*
-Function,+,power_get_settings_events_pubsub,FuriPubSub*,Power*
 Function,+,power_is_battery_healthy,_Bool,Power*
+Function,+,power_is_otg_enabled,_Bool,Power*
 Function,+,power_off,void,Power*
-Function,+,power_reboot,void,PowerBootMode
-Function,+,power_update_viewport,void,Power*
+Function,+,power_reboot,void,"Power*, PowerBootMode"
 Function,+,powf,float,"float, float"
 Function,-,powl,long double,"long double, long double"
 Function,+,pretty_format_bytes_hex_canonical,void,"FuriString*, size_t, const char*, const uint8_t*, size_t"
 Function,-,printf,int,"const char*, ..."
 Function,+,process_favorite_launch,_Bool,char**
 Function,+,property_value_out,void,"PropertyValueContext*, const char*, unsigned int, ..."
-Function,+,protocol_dict_alloc,ProtocolDict*,"const ProtocolBase**, size_t"
+Function,+,protocol_dict_alloc,ProtocolDict*,"const ProtocolBase* const*, size_t"
 Function,+,protocol_dict_decoders_feed,ProtocolId,"ProtocolDict*, _Bool, uint32_t"
 Function,+,protocol_dict_decoders_feed_by_feature,ProtocolId,"ProtocolDict*, uint32_t, _Bool, uint32_t"
 Function,+,protocol_dict_decoders_feed_by_id,ProtocolId,"ProtocolDict*, size_t, _Bool, uint32_t"
@@ -3113,7 +3296,6 @@ Function,-,rename,int,"const char*, const char*"
 Function,-,renameat,int,"int, const char*, int, const char*"
 Function,-,rewind,void,FILE*
 Function,+,rgb2hsv,void,"const RgbColor*, HsvColor*"
-Function,+,rgb565cmp,int,"const Rgb565Color*, const Rgb565Color*"
 Function,+,rgb_backlight_get_color,void,"uint8_t, RgbColor*"
 Function,+,rgb_backlight_get_rainbow_interval,uint32_t,
 Function,+,rgb_backlight_get_rainbow_mode,RGBBacklightRainbowMode,
@@ -3156,7 +3338,7 @@ Function,+,rpc_system_app_set_callback,void,"RpcAppSystem*, RpcAppSystemCallback
 Function,+,rpc_system_app_set_error_code,void,"RpcAppSystem*, uint32_t"
 Function,+,rpc_system_app_set_error_text,void,"RpcAppSystem*, const char*"
 Function,-,rpmatch,int,const char*
-Function,+,run_with_default_app,void,const char*
+Function,-,run_with_default_app,void,const char*
 Function,+,saved_struct_get_metadata,_Bool,"const char*, uint8_t*, uint8_t*, size_t*"
 Function,+,saved_struct_load,_Bool,"const char*, void*, size_t, uint8_t, uint8_t"
 Function,+,saved_struct_save,_Bool,"const char*, const void*, size_t, uint8_t, uint8_t"
@@ -3258,29 +3440,29 @@ Function,+,srand,void,unsigned
 Function,-,srand48,void,long
 Function,-,srandom,void,unsigned
 Function,+,sscanf,int,"const char*, const char*, ..."
-Function,+,st25r3916_change_reg_bits,void,"FuriHalSpiBusHandle*, uint8_t, uint8_t, uint8_t"
-Function,+,st25r3916_change_test_reg_bits,void,"FuriHalSpiBusHandle*, uint8_t, uint8_t, uint8_t"
-Function,+,st25r3916_check_reg,_Bool,"FuriHalSpiBusHandle*, uint8_t, uint8_t, uint8_t"
-Function,+,st25r3916_clear_reg_bits,void,"FuriHalSpiBusHandle*, uint8_t, uint8_t"
-Function,+,st25r3916_direct_cmd,void,"FuriHalSpiBusHandle*, uint8_t"
-Function,+,st25r3916_get_irq,uint32_t,FuriHalSpiBusHandle*
-Function,+,st25r3916_mask_irq,void,"FuriHalSpiBusHandle*, uint32_t"
-Function,+,st25r3916_modify_reg,void,"FuriHalSpiBusHandle*, uint8_t, uint8_t, uint8_t"
-Function,+,st25r3916_read_burst_regs,void,"FuriHalSpiBusHandle*, uint8_t, uint8_t*, uint8_t"
-Function,+,st25r3916_read_fifo,_Bool,"FuriHalSpiBusHandle*, uint8_t*, size_t, size_t*"
-Function,+,st25r3916_read_pta_mem,void,"FuriHalSpiBusHandle*, uint8_t*, size_t"
-Function,+,st25r3916_read_reg,void,"FuriHalSpiBusHandle*, uint8_t, uint8_t*"
-Function,+,st25r3916_read_test_reg,void,"FuriHalSpiBusHandle*, uint8_t, uint8_t*"
-Function,+,st25r3916_reg_read_fifo,void,"FuriHalSpiBusHandle*, uint8_t*, size_t"
-Function,+,st25r3916_reg_write_fifo,void,"FuriHalSpiBusHandle*, const uint8_t*, size_t"
-Function,+,st25r3916_set_reg_bits,void,"FuriHalSpiBusHandle*, uint8_t, uint8_t"
-Function,+,st25r3916_write_burst_regs,void,"FuriHalSpiBusHandle*, uint8_t, const uint8_t*, uint8_t"
-Function,+,st25r3916_write_fifo,void,"FuriHalSpiBusHandle*, const uint8_t*, size_t"
-Function,+,st25r3916_write_pta_mem,void,"FuriHalSpiBusHandle*, const uint8_t*, size_t"
-Function,+,st25r3916_write_ptf_mem,void,"FuriHalSpiBusHandle*, const uint8_t*, size_t"
-Function,+,st25r3916_write_pttsn_mem,void,"FuriHalSpiBusHandle*, uint8_t*, size_t"
-Function,+,st25r3916_write_reg,void,"FuriHalSpiBusHandle*, uint8_t, uint8_t"
-Function,+,st25r3916_write_test_reg,void,"FuriHalSpiBusHandle*, uint8_t, uint8_t"
+Function,+,st25r3916_change_reg_bits,void,"const FuriHalSpiBusHandle*, uint8_t, uint8_t, uint8_t"
+Function,+,st25r3916_change_test_reg_bits,void,"const FuriHalSpiBusHandle*, uint8_t, uint8_t, uint8_t"
+Function,+,st25r3916_check_reg,_Bool,"const FuriHalSpiBusHandle*, uint8_t, uint8_t, uint8_t"
+Function,+,st25r3916_clear_reg_bits,void,"const FuriHalSpiBusHandle*, uint8_t, uint8_t"
+Function,+,st25r3916_direct_cmd,void,"const FuriHalSpiBusHandle*, uint8_t"
+Function,+,st25r3916_get_irq,uint32_t,const FuriHalSpiBusHandle*
+Function,+,st25r3916_mask_irq,void,"const FuriHalSpiBusHandle*, uint32_t"
+Function,+,st25r3916_modify_reg,void,"const FuriHalSpiBusHandle*, uint8_t, uint8_t, uint8_t"
+Function,+,st25r3916_read_burst_regs,void,"const FuriHalSpiBusHandle*, uint8_t, uint8_t*, uint8_t"
+Function,+,st25r3916_read_fifo,_Bool,"const FuriHalSpiBusHandle*, uint8_t*, size_t, size_t*"
+Function,+,st25r3916_read_pta_mem,void,"const FuriHalSpiBusHandle*, uint8_t*, size_t"
+Function,+,st25r3916_read_reg,void,"const FuriHalSpiBusHandle*, uint8_t, uint8_t*"
+Function,+,st25r3916_read_test_reg,void,"const FuriHalSpiBusHandle*, uint8_t, uint8_t*"
+Function,+,st25r3916_reg_read_fifo,void,"const FuriHalSpiBusHandle*, uint8_t*, size_t"
+Function,+,st25r3916_reg_write_fifo,void,"const FuriHalSpiBusHandle*, const uint8_t*, size_t"
+Function,+,st25r3916_set_reg_bits,void,"const FuriHalSpiBusHandle*, uint8_t, uint8_t"
+Function,+,st25r3916_write_burst_regs,void,"const FuriHalSpiBusHandle*, uint8_t, const uint8_t*, uint8_t"
+Function,+,st25r3916_write_fifo,void,"const FuriHalSpiBusHandle*, const uint8_t*, size_t"
+Function,+,st25r3916_write_pta_mem,void,"const FuriHalSpiBusHandle*, const uint8_t*, size_t"
+Function,+,st25r3916_write_ptf_mem,void,"const FuriHalSpiBusHandle*, const uint8_t*, size_t"
+Function,+,st25r3916_write_pttsn_mem,void,"const FuriHalSpiBusHandle*, uint8_t*, size_t"
+Function,+,st25r3916_write_reg,void,"const FuriHalSpiBusHandle*, uint8_t, uint8_t"
+Function,+,st25r3916_write_test_reg,void,"const FuriHalSpiBusHandle*, uint8_t, uint8_t"
 Function,+,st25tb_alloc,St25tbData*,
 Function,+,st25tb_copy,void,"St25tbData*, const St25tbData*"
 Function,+,st25tb_free,void,St25tbData*
@@ -3316,6 +3498,7 @@ Function,+,storage_common_migrate,FS_Error,"Storage*, const char*, const char*"
 Function,+,storage_common_mkdir,FS_Error,"Storage*, const char*"
 Function,+,storage_common_remove,FS_Error,"Storage*, const char*"
 Function,+,storage_common_rename,FS_Error,"Storage*, const char*, const char*"
+Function,+,storage_common_rename_safe,FS_Error,"Storage*, const char*, const char*"
 Function,+,storage_common_resolve_path_and_ensure_app_directory,void,"Storage*, FuriString*"
 Function,+,storage_common_stat,FS_Error,"Storage*, const char*, FileInfo*"
 Function,+,storage_common_timestamp,FS_Error,"Storage*, const char*, uint32_t*"
@@ -3348,7 +3531,7 @@ Function,+,storage_file_write,size_t,"File*, const void*, size_t"
 Function,+,storage_get_next_filename,void,"Storage*, const char*, const char*, const char*, FuriString*, uint8_t"
 Function,+,storage_get_pubsub,FuriPubSub*,Storage*
 Function,+,storage_int_backup,FS_Error,"Storage*, const char*"
-Function,+,storage_int_restore,FS_Error,"Storage*, const char*, Storage_name_converter"
+Function,+,storage_int_restore,FS_Error,"Storage*, const char*, StorageNameConverter"
 Function,+,storage_sd_format,FS_Error,Storage*
 Function,+,storage_sd_info,FS_Error,"Storage*, SDInfo*"
 Function,+,storage_sd_mount,FS_Error,Storage*
@@ -3364,6 +3547,8 @@ Function,+,storage_virtual_quit,FS_Error,Storage*
 Function,+,storage_virtual_unmount,FS_Error,Storage*
 Function,-,stpcpy,char*,"char*, const char*"
 Function,-,stpncpy,char*,"char*, const char*, size_t"
+Function,+,str_buffer_clear_all_clones,void,StrBuffer*
+Function,+,str_buffer_make_owned_clone,const char*,"StrBuffer*, const char*"
 Function,+,strcasecmp,int,"const char*, const char*"
 Function,-,strcasecmp_l,int,"const char*, const char*, locale_t"
 Function,+,strcasestr,char*,"const char*, const char*"
@@ -3431,7 +3616,7 @@ Function,-,strncat,char*,"char*, const char*, size_t"
 Function,+,strncmp,int,"const char*, const char*, size_t"
 Function,+,strncpy,char*,"char*, const char*, size_t"
 Function,-,strndup,char*,"const char*, size_t"
-Function,-,strnlen,size_t,"const char*, size_t"
+Function,+,strnlen,size_t,"const char*, size_t"
 Function,-,strnstr,char*,"const char*, const char*, size_t"
 Function,-,strpbrk,char*,"const char*, const char*"
 Function,+,strrchr,char*,"const char*, int"
@@ -3444,7 +3629,7 @@ Function,-,strtod_l,double,"const char*, char**, locale_t"
 Function,+,strtof,float,"const char*, char**"
 Function,-,strtof_l,float,"const char*, char**, locale_t"
 Function,+,strtok,char*,"char*, const char*"
-Function,-,strtok_r,char*,"char*, const char*, char**"
+Function,+,strtok_r,char*,"char*, const char*, char**"
 Function,+,strtol,long,"const char*, char**, int"
 Function,-,strtol_l,long,"const char*, char**, int, locale_t"
 Function,-,strtold,long double,"const char*, char**"
@@ -3459,7 +3644,6 @@ Function,-,strupr,char*,char*
 Function,-,strverscmp,int,"const char*, const char*"
 Function,-,strxfrm,size_t,"char*, const char*, size_t"
 Function,-,strxfrm_l,size_t,"char*, const char*, size_t, locale_t"
-Function,+,subghz_app,int32_t,char*
 Function,+,subghz_block_generic_deserialize,SubGhzProtocolStatus,"SubGhzBlockGeneric*, FlipperFormat*"
 Function,+,subghz_block_generic_deserialize_check_count_bit,SubGhzProtocolStatus,"SubGhzBlockGeneric*, FlipperFormat*, uint16_t"
 Function,+,subghz_block_generic_get_preset_name,void,"const char*, FuriString*"
@@ -3689,12 +3873,14 @@ Function,+,tar_archive_file_finalize,_Bool,TarArchive*
 Function,+,tar_archive_finalize,_Bool,TarArchive*
 Function,+,tar_archive_free,void,TarArchive*
 Function,+,tar_archive_get_entries_count,int32_t,TarArchive*
+Function,+,tar_archive_get_mode_for_path,TarOpenMode,const char*
+Function,+,tar_archive_get_read_progress,_Bool,"TarArchive*, int32_t*, int32_t*"
 Function,+,tar_archive_open,_Bool,"TarArchive*, const char*, TarOpenMode"
 Function,+,tar_archive_set_file_callback,void,"TarArchive*, tar_unpack_file_cb, void*"
 Function,+,tar_archive_set_read_callback,void,"TarArchive*, tar_unpack_read_cb, void*"
 Function,+,tar_archive_store_data,_Bool,"TarArchive*, const char*, const uint8_t*, const int32_t"
 Function,+,tar_archive_unpack_file,_Bool,"TarArchive*, const char*, const char*"
-Function,+,tar_archive_unpack_to,_Bool,"TarArchive*, const char*, Storage_name_converter"
+Function,+,tar_archive_unpack_to,_Bool,"TarArchive*, const char*, TarArchiveNameConverter"
 Function,-,tempnam,char*,"const char*, const char*"
 Function,+,text_box_alloc,TextBox*,
 Function,+,text_box_free,void,TextBox*
@@ -3713,6 +3899,7 @@ Function,+,text_input_set_header_text,void,"TextInput*, const char*"
 Function,+,text_input_set_minimum_length,void,"TextInput*, size_t"
 Function,+,text_input_set_result_callback,void,"TextInput*, TextInputCallback, void*, char*, size_t, _Bool"
 Function,+,text_input_set_validator,void,"TextInput*, TextInputValidatorCallback, void*"
+Function,+,text_input_show_illegal_symbols,void,"TextInput*, _Bool"
 Function,-,tgamma,double,double
 Function,-,tgammaf,float,float
 Function,-,tgammal,long double,long double
@@ -3784,7 +3971,7 @@ Function,-,vdiprintf,int,"int, const char*, __gnuc_va_list"
 Function,-,vdprintf,int,"int, const char*, __gnuc_va_list"
 Function,+,version_get,const Version*,
 Function,+,version_get_builddate,const char*,const Version*
-Function,+,version_get_custom_name,const char*,const Version*
+Function,-,version_get_custom_name,const char*,const Version*
 Function,+,version_get_dirty_flag,_Bool,const Version*
 Function,+,version_get_firmware_origin,const char*,const Version*
 Function,+,version_get_git_origin,const char*,const Version*
@@ -3803,6 +3990,7 @@ Function,+,view_allocate_model,void,"View*, ViewModelType, size_t"
 Function,+,view_commit_model,void,"View*, _Bool"
 Function,+,view_dispatcher_add_view,void,"ViewDispatcher*, uint32_t, View*"
 Function,+,view_dispatcher_alloc,ViewDispatcher*,
+Function,+,view_dispatcher_alloc_ex,ViewDispatcher*,FuriEventLoop*
 Function,+,view_dispatcher_attach_to_gui,void,"ViewDispatcher*, Gui*, ViewDispatcherType"
 Function,+,view_dispatcher_enable_queue,void,ViewDispatcher*
 Function,+,view_dispatcher_free,void,ViewDispatcher*
@@ -3825,13 +4013,14 @@ Function,+,view_holder_alloc,ViewHolder*,
 Function,+,view_holder_attach_to_gui,void,"ViewHolder*, Gui*"
 Function,+,view_holder_free,void,ViewHolder*
 Function,+,view_holder_get_free_context,void*,ViewHolder*
+Function,+,view_holder_send_to_back,void,ViewHolder*
+Function,+,view_holder_send_to_front,void,ViewHolder*
 Function,+,view_holder_set_back_callback,void,"ViewHolder*, BackCallback, void*"
 Function,+,view_holder_set_free_callback,void,"ViewHolder*, FreeCallback, void*"
 Function,+,view_holder_set_view,void,"ViewHolder*, View*"
-Function,+,view_holder_start,void,ViewHolder*
-Function,+,view_holder_stop,void,ViewHolder*
 Function,+,view_holder_update,void,"View*, void*"
 Function,+,view_port_alloc,ViewPort*,
+Function,+,view_port_ascii_callback_set,void,"ViewPort*, ViewPortAsciiCallback, void*"
 Function,+,view_port_draw_callback_set,void,"ViewPort*, ViewPortDrawCallback, void*"
 Function,+,view_port_enabled_set,void,"ViewPort*, _Bool"
 Function,+,view_port_free,void,ViewPort*
@@ -3844,6 +4033,7 @@ Function,+,view_port_set_height,void,"ViewPort*, uint8_t"
 Function,+,view_port_set_orientation,void,"ViewPort*, ViewPortOrientation"
 Function,+,view_port_set_width,void,"ViewPort*, uint8_t"
 Function,+,view_port_update,void,ViewPort*
+Function,+,view_set_ascii_callback,void,"View*, ViewAsciiCallback"
 Function,+,view_set_context,void,"View*, void*"
 Function,+,view_set_custom_callback,void,"View*, ViewCustomCallback"
 Function,+,view_set_draw_callback,void,"View*, ViewDrawCallback"
@@ -3872,13 +4062,15 @@ Function,-,vsprintf,int,"char*, const char*, __gnuc_va_list"
 Function,-,vsscanf,int,"const char*, const char*, __gnuc_va_list"
 Function,-,wcstombs,size_t,"char*, const wchar_t*, size_t"
 Function,-,wctomb,int,"char*, wchar_t"
-Function,+,widget_add_button_element,WidgetElement*,"Widget*, GuiButtonType, const char*, ButtonCallback, void*"
-Function,+,widget_add_frame_element,WidgetElement*,"Widget*, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t"
-Function,+,widget_add_icon_element,WidgetElement*,"Widget*, uint8_t, uint8_t, const Icon*"
-Function,+,widget_add_string_element,WidgetElement*,"Widget*, uint8_t, uint8_t, Align, Align, Font, const char*"
-Function,+,widget_add_string_multiline_element,WidgetElement*,"Widget*, uint8_t, uint8_t, Align, Align, Font, const char*"
+Function,+,widget_add_button_element,void,"Widget*, GuiButtonType, const char*, ButtonCallback, void*"
+Function,+,widget_add_circle_element,void,"Widget*, uint8_t, uint8_t, uint8_t, _Bool"
+Function,+,widget_add_icon_element,void,"Widget*, uint8_t, uint8_t, const Icon*"
+Function,+,widget_add_line_element,void,"Widget*, uint8_t, uint8_t, uint8_t, uint8_t"
+Function,+,widget_add_rect_element,void,"Widget*, uint8_t, uint8_t, uint8_t, uint8_t, uint8_t, _Bool"
+Function,+,widget_add_string_element,void,"Widget*, uint8_t, uint8_t, Align, Align, Font, const char*"
+Function,+,widget_add_string_multiline_element,void,"Widget*, uint8_t, uint8_t, Align, Align, Font, const char*"
 Function,+,widget_add_text_box_element,WidgetElement*,"Widget*, uint8_t, uint8_t, uint8_t, uint8_t, Align, Align, const char*, _Bool"
-Function,+,widget_add_text_scroll_element,WidgetElement*,"Widget*, uint8_t, uint8_t, uint8_t, uint8_t, const char*"
+Function,+,widget_add_text_scroll_element,void,"Widget*, uint8_t, uint8_t, uint8_t, uint8_t, const char*"
 Function,+,widget_alloc,Widget*,
 Function,+,widget_free,void,Widget*
 Function,+,widget_get_view,View*,Widget*
@@ -3891,27 +4083,315 @@ Function,-,yn,double,"int, double"
 Function,-,ynf,float,"int, float"
 Variable,-,AHBPrescTable,const uint32_t[16],
 Variable,-,APBPrescTable,const uint32_t[8],
+Variable,+,A_125khz_14,const Icon,
+Variable,+,A_Alarm_47x39,const Icon,
+Variable,+,A_BadUsb_14,const Icon,
+Variable,+,A_DabTimer_14,const Icon,
+Variable,+,A_GPIO_14,const Icon,
+Variable,+,A_Infrared_14,const Icon,
+Variable,+,A_Levelup_128x64,const Icon,
+Variable,+,A_Loading_24,const Icon,
+Variable,+,A_NFC_14,const Icon,
+Variable,+,A_Plugins_14,const Icon,
+Variable,+,A_RM_14,const Icon,
+Variable,+,A_Round_loader_8x8,const Icon,
+Variable,+,A_Settings_14,const Icon,
+Variable,+,A_Sub1ghz_14,const Icon,
+Variable,+,A_SubGHzRemote_14,const Icon,
+Variable,+,A_U2F_14,const Icon,
+Variable,+,A_iButton_14,const Icon,
 Variable,+,DOLPHIN_LEVELS,const uint32_t[],
 Variable,+,DOLPHIN_LEVEL_COUNT,const size_t,
 Variable,+,FLIPPER_APPS,const FlipperInternalApplication[],
 Variable,+,FLIPPER_APPS_COUNT,const size_t,
-Variable,+,FLIPPER_ARCHIVE,const FlipperInternalApplication,
-Variable,+,FLIPPER_AUTORUN_APP_NAME,const char*,
-Variable,+,FLIPPER_DEBUG_APPS,const FlipperInternalApplication[],
-Variable,+,FLIPPER_DEBUG_APPS_COUNT,const size_t,
+Variable,-,FLIPPER_ARCHIVE,const FlipperInternalApplication,
+Variable,-,FLIPPER_AUTORUN_APP_NAME,const char*,
+Variable,-,FLIPPER_DEBUG_APPS,const FlipperInternalApplication[],
+Variable,-,FLIPPER_DEBUG_APPS_COUNT,const size_t,
 Variable,+,FLIPPER_EXTERNAL_APPS,const FlipperExternalApplication[],
 Variable,+,FLIPPER_EXTERNAL_APPS_COUNT,const size_t,
-Variable,+,FLIPPER_EXTSETTINGS_APPS,const FlipperExternalApplication[],
-Variable,+,FLIPPER_EXTSETTINGS_APPS_COUNT,const size_t,
-Variable,+,FLIPPER_ON_SYSTEM_START,const FlipperInternalOnStartHook[],
-Variable,+,FLIPPER_ON_SYSTEM_START_COUNT,const size_t,
-Variable,+,FLIPPER_SERVICES,const FlipperInternalApplication[],
-Variable,+,FLIPPER_SERVICES_COUNT,const size_t,
-Variable,+,FLIPPER_SETTINGS_APPS,const FlipperInternalApplication[],
+Variable,-,FLIPPER_ON_SYSTEM_START,const FlipperInternalOnStartHook[],
+Variable,-,FLIPPER_ON_SYSTEM_START_COUNT,const size_t,
+Variable,-,FLIPPER_SERVICES,const FlipperInternalApplication[],
+Variable,-,FLIPPER_SERVICES_COUNT,const size_t,
+Variable,+,FLIPPER_SETTINGS_APPS,const FlipperExternalApplication[],
 Variable,+,FLIPPER_SETTINGS_APPS_COUNT,const size_t,
-Variable,+,FLIPPER_SYSTEM_APPS,const FlipperInternalApplication[],
-Variable,+,FLIPPER_SYSTEM_APPS_COUNT,const size_t,
+Variable,-,FLIPPER_SYSTEM_APPS,const FlipperInternalApplication[],
+Variable,-,FLIPPER_SYSTEM_APPS_COUNT,const size_t,
+Variable,+,ICON_PATHS,const IconPath[],
+Variable,+,ICON_PATHS_COUNT,const size_t,
 Variable,-,ITM_RxBuffer,volatile int32_t,
+Variable,+,I_125_10px,const Icon,
+Variable,+,I_ActiveConnection_50x64,const Icon,
+Variable,+,I_AngSmile1_10x12,const Icon,
+Variable,+,I_Apps_10px,const Icon,
+Variable,+,I_ArrowC_1_36x36,const Icon,
+Variable,+,I_ArrowUpEmpty_14x15,const Icon,
+Variable,+,I_ArrowUpFilled_14x15,const Icon,
+Variable,+,I_Auth_62x31,const Icon,
+Variable,+,I_BLE_Pairing_128x64,const Icon,
+Variable,+,I_BLE_beacon_7x8,const Icon,
+Variable,+,I_Background_128x11,const Icon,
+Variable,+,I_Bad_BLE_48x22,const Icon,
+Variable,+,I_BatteryBody_52x28,const Icon,
+Variable,+,I_Battery_16x16,const Icon,
+Variable,+,I_Battery_25x8,const Icon,
+Variable,+,I_Ble_connected_15x15,const Icon,
+Variable,+,I_Ble_disconnected_15x15,const Icon,
+Variable,+,I_Bluetooth_Connected_16x8,const Icon,
+Variable,+,I_Bluetooth_Idle_5x8,const Icon,
+Variable,+,I_ButtonCenter_7x7,const Icon,
+Variable,+,I_ButtonDown_7x4,const Icon,
+Variable,+,I_ButtonLeftSmall_3x5,const Icon,
+Variable,+,I_ButtonLeft_4x7,const Icon,
+Variable,+,I_ButtonRightSmall_3x5,const Icon,
+Variable,+,I_ButtonRight_4x7,const Icon,
+Variable,+,I_ButtonUp_7x4,const Icon,
+Variable,+,I_Button_18x18,const Icon,
+Variable,+,I_CC_Bluetooth_16x16,const Icon,
+Variable,+,I_CC_CFW_16x16,const Icon,
+Variable,+,I_CC_DarkMode_16x16,const Icon,
+Variable,+,I_CC_GameMode_16x16,const Icon,
+Variable,+,I_CC_LefthandedMode_16x16,const Icon,
+Variable,+,I_CC_Lock_16x16,const Icon,
+Variable,-,I_Certification1_103x56,const Icon,
+Variable,-,I_Certification2_46x33,const Icon,
+Variable,-,I_CertificationChina0_121x41,const Icon,
+Variable,-,I_CertificationChina1_124x47,const Icon,
+Variable,-,I_CertificationMexico_98x41,const Icon,
+Variable,-,I_CertificationTaiwan_33x32,const Icon,
+Variable,+,I_Charging_lightning_9x10,const Icon,
+Variable,+,I_Charging_lightning_mask_9x10,const Icon,
+Variable,+,I_Circles_47x47,const Icon,
+Variable,+,I_Clock_18x18,const Icon,
+Variable,+,I_Connect_me_62x31,const Icon,
+Variable,+,I_Connected_62x31,const Icon,
+Variable,+,I_Cos_9x7,const Icon,
+Variable,-,I_DFU_128x50,const Icon,
+Variable,+,I_DolphinDone_80x58,const Icon,
+Variable,+,I_DolphinMafia_119x62,const Icon,
+Variable,+,I_DolphinReadingSuccess_59x63,const Icon,
+Variable,+,I_DolphinSaved_92x58,const Icon,
+Variable,+,I_DolphinSuccess_91x55,const Icon,
+Variable,+,I_DolphinWait_59x54,const Icon,
+Variable,+,I_Drive_112x35,const Icon,
+Variable,+,I_Dynamic_9x7,const Icon,
+Variable,-,I_Erase_pin_128x64,const Icon,
+Variable,+,I_Error_18x18,const Icon,
+Variable,+,I_Error_62x31,const Icon,
+Variable,+,I_EviSmile1_10x12,const Icon,
+Variable,+,I_EviSmile1_18x21,const Icon,
+Variable,+,I_EviSmile2_18x21,const Icon,
+Variable,+,I_EviWaiting1_18x21,const Icon,
+Variable,+,I_EviWaiting2_18x21,const Icon,
+Variable,+,I_Exp_module_connected_12x8,const Icon,
+Variable,+,I_FaceCharging_29x14,const Icon,
+Variable,+,I_FaceConfused_29x14,const Icon,
+Variable,+,I_FaceNopower_29x14,const Icon,
+Variable,+,I_FaceNormal_29x14,const Icon,
+Variable,+,I_Fishing_123x52,const Icon,
+Variable,+,I_Hashmark_7x7,const Icon,
+Variable,+,I_Health_16x16,const Icon,
+Variable,+,I_Hidden_window_9x8,const Icon,
+Variable,+,I_InfraredArrowDown_4x8,const Icon,
+Variable,+,I_InfraredArrowUp_4x8,const Icon,
+Variable,+,I_InfraredLearnShort_128x31,const Icon,
+Variable,+,I_KeyBackspaceSelected_17x11,const Icon,
+Variable,+,I_KeyBackspace_17x11,const Icon,
+Variable,+,I_KeyKeyboardSelected_10x11,const Icon,
+Variable,+,I_KeyKeyboard_10x11,const Icon,
+Variable,+,I_KeySaveBlockedSelected_22x11,const Icon,
+Variable,+,I_KeySaveBlocked_22x11,const Icon,
+Variable,+,I_KeySaveSelected_22x11,const Icon,
+Variable,+,I_KeySave_22x11,const Icon,
+Variable,+,I_KeySignSelected_21x11,const Icon,
+Variable,+,I_KeySign_21x11,const Icon,
+Variable,+,I_Keychain_39x36,const Icon,
+Variable,+,I_Left_mouse_icon_9x9,const Icon,
+Variable,+,I_LoadingHourglass_24x24,const Icon,
+Variable,+,I_Lock_7x8,const Icon,
+Variable,+,I_Lockscreen,const Icon,
+Variable,-,I_MFKey_qr_25x25,const Icon,
+Variable,+,I_MHz_25x11,const Icon,
+Variable,+,I_Modern_reader_18x34,const Icon,
+Variable,+,I_More_data_placeholder_5x7,const Icon,
+Variable,+,I_Move_flipper_26x39,const Icon,
+Variable,+,I_Muted_8x8,const Icon,
+Variable,+,I_NFC_dolphin_emulation_51x64,const Icon,
+Variable,+,I_NFC_manual_60x50,const Icon,
+Variable,+,I_Nfc_10px,const Icon,
+Variable,+,I_Ok_btn_9x9,const Icon,
+Variable,+,I_Ok_btn_pressed_13x13,const Icon,
+Variable,+,I_Percent_10x14,const Icon,
+Variable,+,I_Pin_arrow_up_7x9,const Icon,
+Variable,+,I_Pin_attention_dpad_29x29,const Icon,
+Variable,+,I_Pin_back_arrow_10x8,const Icon,
+Variable,+,I_Pin_pointer_5x3,const Icon,
+Variable,+,I_Pin_star_7x7,const Icon,
+Variable,+,I_Pressed_Button_13x13,const Icon,
+Variable,+,I_Quest_7x8,const Icon,
+Variable,+,I_RFIDDolphinReceive_97x61,const Icon,
+Variable,+,I_RFIDDolphinSend_97x61,const Icon,
+Variable,+,I_RFIDSmallChip_14x14,const Icon,
+Variable,+,I_Raw_9x7,const Icon,
+Variable,+,I_Release_arrow_18x15,const Icon,
+Variable,+,I_Right_mouse_icon_9x9,const Icon,
+Variable,+,I_Rpc_active_7x8,const Icon,
+Variable,+,I_SDQuestion_35x43,const Icon,
+Variable,-,I_SDcardFail_11x8,const Icon,
+Variable,+,I_SDcardMounted_11x8,const Icon,
+Variable,+,I_Sats_6x9,const Icon,
+Variable,+,I_Scanning_123x52,const Icon,
+Variable,+,I_SmallArrowDown_3x5,const Icon,
+Variable,+,I_SmallArrowUp_3x5,const Icon,
+Variable,+,I_Smile_18x18,const Icon,
+Variable,+,I_Space_65x18,const Icon,
+Variable,+,I_Static_9x7,const Icon,
+Variable,+,I_Temperature_16x16,const Icon,
+Variable,+,I_Unlock_7x8,const Icon,
+Variable,+,I_Unplug_bg_bottom_128x10,const Icon,
+Variable,+,I_Unplug_bg_top_128x14,const Icon,
+Variable,-,I_Updating_32x40,const Icon,
+Variable,-,I_Updating_Logo_62x15,const Icon,
+Variable,+,I_UsbTree_48x22,const Icon,
+Variable,+,I_Voldwn_6x6,const Icon,
+Variable,+,I_Voltage_16x16,const Icon,
+Variable,+,I_Volup_8x6,const Icon,
+Variable,+,I_WarningDolphinFlip_45x42,const Icon,
+Variable,+,I_WarningDolphin_45x42,const Icon,
+Variable,-,I_Warning_30x23,const Icon,
+Variable,-,I_Weather_7x8,const Icon,
+Variable,+,I_arrow_nano_down,const Icon,
+Variable,+,I_arrow_nano_up,const Icon,
+Variable,+,I_back_10px,const Icon,
+Variable,+,I_badusb_10px,const Icon,
+Variable,+,I_blue_19x20,const Icon,
+Variable,+,I_blue_hover_19x20,const Icon,
+Variable,+,I_brightness_text_40x5,const Icon,
+Variable,+,I_celsius_24x23,const Icon,
+Variable,+,I_celsius_hover_24x23,const Icon,
+Variable,+,I_ch_down_24x21,const Icon,
+Variable,+,I_ch_down_hover_24x21,const Icon,
+Variable,+,I_ch_text_31x34,const Icon,
+Variable,+,I_ch_up_24x21,const Icon,
+Variable,+,I_ch_up_hover_24x21,const Icon,
+Variable,+,I_check_big_20x17,const Icon,
+Variable,+,I_color_text_24x5,const Icon,
+Variable,+,I_cool_30x51,const Icon,
+Variable,+,I_dir_10px,const Icon,
+Variable,+,I_dolph_cry_49x54,const Icon,
+Variable,+,I_dry_19x20,const Icon,
+Variable,+,I_dry_hover_19x20,const Icon,
+Variable,+,I_dry_text_15x5,const Icon,
+Variable,+,I_eject_19x20,const Icon,
+Variable,+,I_eject_hover_19x20,const Icon,
+Variable,+,I_eject_text_19x5,const Icon,
+Variable,-,I_err_01,const Icon,
+Variable,-,I_err_02,const Icon,
+Variable,-,I_err_03,const Icon,
+Variable,-,I_err_04,const Icon,
+Variable,-,I_err_05,const Icon,
+Variable,-,I_err_06,const Icon,
+Variable,-,I_err_07,const Icon,
+Variable,-,I_err_09,const Icon,
+Variable,+,I_exit_19x20,const Icon,
+Variable,+,I_exit_hover_19x20,const Icon,
+Variable,+,I_exit_text_18x5,const Icon,
+Variable,+,I_fahren_24x23,const Icon,
+Variable,+,I_fahren_hover_24x23,const Icon,
+Variable,+,I_fast_backward_19x20,const Icon,
+Variable,+,I_fast_backward_hover_19x20,const Icon,
+Variable,+,I_fast_backward_text_19x6,const Icon,
+Variable,+,I_fast_f_19x20,const Icon,
+Variable,+,I_fast_f_hover_19x20,const Icon,
+Variable,+,I_fast_f_text_19x6,const Icon,
+Variable,+,I_file_10px,const Icon,
+Variable,+,I_floppydisk_10px,const Icon,
+Variable,+,I_green_19x20,const Icon,
+Variable,+,I_green_hover_19x20,const Icon,
+Variable,+,I_heat_30x51,const Icon,
+Variable,+,I_iButtonDolphinVerySuccess_92x55,const Icon,
+Variable,+,I_iButtonKey_49x44,const Icon,
+Variable,+,I_ibutt_10px,const Icon,
+Variable,+,I_input_19x20,const Icon,
+Variable,+,I_input_hover_19x20,const Icon,
+Variable,+,I_input_text_24x5,const Icon,
+Variable,+,I_ir_10px,const Icon,
+Variable,+,I_ir_scope_10px,const Icon,
+Variable,+,I_js_script_10px,const Icon,
+Variable,+,I_keyboard_10px,const Icon,
+Variable,+,I_loading_10px,const Icon,
+Variable,+,I_mag_card_10px,const Icon,
+Variable,+,I_max_24x23,const Icon,
+Variable,+,I_max_hover_24x23,const Icon,
+Variable,+,I_menu_text_20x5,const Icon,
+Variable,+,I_minus_19x20,const Icon,
+Variable,+,I_minus_hover_19x20,const Icon,
+Variable,+,I_mode_19x20,const Icon,
+Variable,+,I_mode_hover_19x20,const Icon,
+Variable,+,I_mode_text_20x5,const Icon,
+Variable,+,I_music_10px,const Icon,
+Variable,+,I_mute_19x20,const Icon,
+Variable,+,I_mute_hover_19x20,const Icon,
+Variable,+,I_mute_text_19x5,const Icon,
+Variable,+,I_next_19x20,const Icon,
+Variable,+,I_next_hover_19x20,const Icon,
+Variable,+,I_next_text_19x6,const Icon,
+Variable,+,I_off_19x20,const Icon,
+Variable,+,I_off_hover_19x20,const Icon,
+Variable,+,I_off_text_12x5,const Icon,
+Variable,+,I_ok_19x20,const Icon,
+Variable,+,I_ok_hover_19x20,const Icon,
+Variable,+,I_ok_text_19x5,const Icon,
+Variable,+,I_on_text_9x5,const Icon,
+Variable,+,I_pause_19x20,const Icon,
+Variable,+,I_pause_hover_19x20,const Icon,
+Variable,+,I_pause_text_23x5,const Icon,
+Variable,+,I_play_19x20,const Icon,
+Variable,+,I_play_hover_19x20,const Icon,
+Variable,+,I_play_text_19x5,const Icon,
+Variable,+,I_plus_19x20,const Icon,
+Variable,+,I_plus_hover_19x20,const Icon,
+Variable,+,I_power_19x20,const Icon,
+Variable,+,I_power_hover_19x20,const Icon,
+Variable,+,I_power_text_24x5,const Icon,
+Variable,+,I_prev_19x20,const Icon,
+Variable,+,I_prev_hover_19x20,const Icon,
+Variable,+,I_prev_text_19x5,const Icon,
+Variable,+,I_protopirate_10px,const Icon,
+Variable,-,I_qr_benchmark_25x25,const Icon,
+Variable,+,I_red_19x20,const Icon,
+Variable,+,I_red_hover_19x20,const Icon,
+Variable,+,I_rotate_19x20,const Icon,
+Variable,+,I_rotate_hover_19x20,const Icon,
+Variable,+,I_rotate_text_24x5,const Icon,
+Variable,+,I_search_10px,const Icon,
+Variable,+,I_settings_10px,const Icon,
+Variable,+,I_speed_text_30x30,const Icon,
+Variable,+,I_stop_19x20,const Icon,
+Variable,+,I_stop_hover_19x20,const Icon,
+Variable,+,I_stop_text_19x5,const Icon,
+Variable,+,I_sub1_10px,const Icon,
+Variable,+,I_subplaylist_10px,const Icon,
+Variable,+,I_subrem_10px,const Icon,
+Variable,+,I_subtitle_19x20,const Icon,
+Variable,+,I_subtitle_hover_19x20,const Icon,
+Variable,+,I_subtitle_text_19x5,const Icon,
+Variable,+,I_timer_19x20,const Icon,
+Variable,+,I_timer_hover_19x20,const Icon,
+Variable,+,I_timer_text_23x5,const Icon,
+Variable,+,I_u2f_10px,const Icon,
+Variable,+,I_unknown_10px,const Icon,
+Variable,+,I_update_10px,const Icon,
+Variable,+,I_vol_ac_text_30x30,const Icon,
+Variable,+,I_vol_tv_text_29x34,const Icon,
+Variable,+,I_voldown_24x21,const Icon,
+Variable,+,I_voldown_hover_24x21,const Icon,
+Variable,+,I_volup_24x21,const Icon,
+Variable,+,I_volup_hover_24x21,const Icon,
+Variable,+,I_white_19x20,const Icon,
+Variable,+,I_white_hover_19x20,const Icon,
+Variable,+,I_xremote_10px,const Icon,
 Variable,-,MSIRangeTable,const uint32_t[16],
 Variable,-,SmpsPrescalerTable,const uint32_t[4][6],
 Variable,+,SystemCoreClock,uint32_t,
@@ -3923,25 +4403,25 @@ Variable,-,__stdio_exit_handler,void (*)(),
 Variable,+,_ctype_,const char[],
 Variable,+,_impure_data,_reent,
 Variable,+,_impure_ptr,_reent*,
-Variable,-,_sys_errlist,const char*[],
+Variable,-,_sys_errlist,const char* const[],
 Variable,-,_sys_nerr,int,
 Variable,-,ble_profile_hid,const FuriHalBleProfileTemplate*,
-Variable,+,ble_profile_serial,const FuriHalBleProfileTemplate*,
-Variable,+,cfw_settings,CfwSettings,
-Variable,+,cli_vcp,CliSession,
-Variable,+,firmware_api_interface,const ElfApiInterface*,
+Variable,+,ble_profile_serial,const FuriHalBleProfileTemplate* const,
+Variable,+,cfw_settings,CFWSettings,
+Variable,+,compress_config_heatshrink_default,const CompressConfigHeatshrink,
+Variable,+,firmware_api_interface,const ElfApiInterface* const,
 Variable,+,furi_hal_i2c_bus_external,FuriHalI2cBus,
 Variable,+,furi_hal_i2c_bus_power,FuriHalI2cBus,
-Variable,+,furi_hal_i2c_handle_external,FuriHalI2cBusHandle,
-Variable,+,furi_hal_i2c_handle_power,FuriHalI2cBusHandle,
+Variable,+,furi_hal_i2c_handle_external,const FuriHalI2cBusHandle,
+Variable,+,furi_hal_i2c_handle_power,const FuriHalI2cBusHandle,
 Variable,+,furi_hal_spi_bus_d,FuriHalSpiBus,
-Variable,+,furi_hal_spi_bus_handle_display,FuriHalSpiBusHandle,
-Variable,+,furi_hal_spi_bus_handle_external,FuriHalSpiBusHandle,
-Variable,+,furi_hal_spi_bus_handle_external_extra,FuriHalSpiBusHandle,
-Variable,+,furi_hal_spi_bus_handle_nfc,FuriHalSpiBusHandle,
-Variable,+,furi_hal_spi_bus_handle_sd_fast,FuriHalSpiBusHandle,
-Variable,+,furi_hal_spi_bus_handle_sd_slow,FuriHalSpiBusHandle,
-Variable,+,furi_hal_spi_bus_handle_subghz,FuriHalSpiBusHandle,
+Variable,+,furi_hal_spi_bus_handle_display,const FuriHalSpiBusHandle,
+Variable,+,furi_hal_spi_bus_handle_external,const FuriHalSpiBusHandle,
+Variable,+,furi_hal_spi_bus_handle_external_extra,const FuriHalSpiBusHandle,
+Variable,+,furi_hal_spi_bus_handle_nfc,const FuriHalSpiBusHandle,
+Variable,+,furi_hal_spi_bus_handle_sd_fast,const FuriHalSpiBusHandle,
+Variable,+,furi_hal_spi_bus_handle_sd_slow,const FuriHalSpiBusHandle,
+Variable,+,furi_hal_spi_bus_handle_subghz,const FuriHalSpiBusHandle,
 Variable,+,furi_hal_spi_bus_r,FuriHalSpiBus,
 Variable,+,furi_hal_spi_preset_1edge_low_16m,const LL_SPI_InitTypeDef,
 Variable,+,furi_hal_spi_preset_1edge_low_2m,const LL_SPI_InitTypeDef,
@@ -3999,7 +4479,7 @@ Variable,+,gpio_usb_dp,const GpioPin,
 Variable,+,gpio_vibro,const GpioPin,
 Variable,+,input_pins,const InputPin[],
 Variable,+,input_pins_count,const size_t,
-Variable,+,lfrfid_protocols,const ProtocolBase*[],
+Variable,+,lfrfid_protocols,const ProtocolBase* const[],
 Variable,+,message_blink_set_color_blue,const NotificationMessage,
 Variable,+,message_blink_set_color_cyan,const NotificationMessage,
 Variable,+,message_blink_set_color_green,const NotificationMessage,
@@ -4184,6 +4664,7 @@ Variable,+,sequence_display_backlight_off,const NotificationSequence,
 Variable,+,sequence_display_backlight_off_delay_1000,const NotificationSequence,
 Variable,+,sequence_display_backlight_on,const NotificationSequence,
 Variable,+,sequence_double_vibro,const NotificationSequence,
+Variable,+,sequence_empty,const NotificationSequence,
 Variable,+,sequence_error,const NotificationSequence,
 Variable,+,sequence_lcd_contrast_update,const NotificationSequence,
 Variable,+,sequence_not_charging,const NotificationSequence,

@@ -3,6 +3,7 @@
 #include <furi.h>
 #include <furi_hal.h>
 #include <dolphin/dolphin.h>
+#include <dolphin/helpers/dolphin_state.h>
 #include <power/power_service/power.h>
 #include <storage/storage.h>
 #include <assets_icons.h>
@@ -11,6 +12,8 @@
 #include "views/one_shot_animation_view.h"
 #include "animation_storage.h"
 #include "animation_manager.h"
+
+#include <cfw/cfw.h>
 
 #define TAG "AnimationManager"
 
@@ -47,7 +50,7 @@ struct AnimationManager {
     int32_t freezed_animation_time_left;
     ViewStack* view_stack;
 
-    bool dummy_mode            : 1;
+    bool _dummy_mode           : 1; // Unused, kept for compatibility
     bool blocking_shown_url    : 1;
     bool blocking_shown_sd_bad : 1;
     bool blocking_shown_no_db  : 1;
@@ -95,16 +98,7 @@ void animation_manager_set_interact_callback(
     animation_manager->interact_callback = callback;
 }
 
-void animation_manager_set_dummy_mode_state(AnimationManager* animation_manager, bool enabled) {
-    furi_assert(animation_manager);
-    // Prevent change of animations if mode is the same
-    if(animation_manager->dummy_mode != enabled) {
-        animation_manager->dummy_mode = enabled;
-        animation_manager_start_new_idle(animation_manager);
-    }
-}
-
-static void animation_manager_check_blocking_callback(const void* message, void* context) {
+static void animation_manager_storage_callback(const void* message, void* context) {
     const StorageEvent* storage_event = message;
 
     switch(storage_event->type) {
@@ -118,6 +112,22 @@ static void animation_manager_check_blocking_callback(const void* message, void*
         }
         break;
 
+    default:
+        break;
+    }
+}
+
+static void animation_manager_dolphin_callback(const void* message, void* context) {
+    const DolphinPubsubEvent* dolphin_event = message;
+
+    switch(*dolphin_event) {
+    case DolphinPubsubEventUpdate:
+        furi_assert(context);
+        AnimationManager* animation_manager = context;
+        if(animation_manager->check_blocking_callback) {
+            animation_manager->check_blocking_callback(animation_manager->context);
+        }
+        break;
     default:
         break;
     }
@@ -208,7 +218,10 @@ static void animation_manager_start_new_idle(AnimationManager* animation_manager
     const BubbleAnimation* bubble_animation =
         animation_storage_get_bubble_animation(animation_manager->current_animation);
     animation_manager->state = AnimationManagerStateIdle;
-    furi_timer_start(animation_manager->idle_animation_timer, bubble_animation->duration * 1000);
+    int32_t duration = (cfw_settings.cycle_anims == 0) ? (bubble_animation->duration) :
+                                                         (cfw_settings.cycle_anims);
+    furi_timer_start(
+        animation_manager->idle_animation_timer, (duration > 0) ? (duration * 1000) : 0);
 }
 
 static bool animation_manager_check_blocking(AnimationManager* animation_manager) {
@@ -300,12 +313,12 @@ AnimationManager* animation_manager_alloc(void) {
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     animation_manager->pubsub_subscription_storage = furi_pubsub_subscribe(
-        storage_get_pubsub(storage), animation_manager_check_blocking_callback, animation_manager);
+        storage_get_pubsub(storage), animation_manager_storage_callback, animation_manager);
     furi_record_close(RECORD_STORAGE);
 
     Dolphin* dolphin = furi_record_open(RECORD_DOLPHIN);
     animation_manager->pubsub_subscription_dolphin = furi_pubsub_subscribe(
-        dolphin_get_pubsub(dolphin), animation_manager_check_blocking_callback, animation_manager);
+        dolphin_get_pubsub(dolphin), animation_manager_dolphin_callback, animation_manager);
     furi_record_close(RECORD_DOLPHIN);
 
     animation_manager->blocking_shown_sd_ok = true;
@@ -364,11 +377,13 @@ static bool animation_manager_is_valid_idle_animation(
 
         result = (sd_status == FSE_NOT_READY);
     }
-    if((stats->butthurt < info->min_butthurt) || (stats->butthurt > info->max_butthurt)) {
-        result = false;
-    }
-    if((stats->level < info->min_level) || (stats->level > info->max_level)) {
-        result = false;
+    if(!cfw_settings.unlock_anims) {
+        if((stats->butthurt < info->min_butthurt) || (stats->butthurt > info->max_butthurt)) {
+            result = false;
+        }
+        if((stats->level < info->min_level) || (stats->level > info->max_level)) {
+            result = false;
+        }
     }
 
     return result;
@@ -376,9 +391,12 @@ static bool animation_manager_is_valid_idle_animation(
 
 static StorageAnimation*
     animation_manager_select_idle_animation(AnimationManager* animation_manager) {
-    if(animation_manager->dummy_mode) {
-        return animation_storage_find_animation(HARDCODED_ANIMATION_NAME);
+    const char* avoid_animation = NULL;
+    if(animation_manager->current_animation) {
+        avoid_animation = animation_storage_get_meta(animation_manager->current_animation)->name;
     }
+    UNUSED(animation_manager);
+
     StorageAnimationList_t animation_list;
     StorageAnimationList_init(animation_list);
     animation_storage_fill_animation_list(&animation_list);
@@ -388,6 +406,7 @@ static StorageAnimation*
     furi_record_close(RECORD_DOLPHIN);
     uint32_t whole_weight = 0;
 
+    // Filter valid animations
     StorageAnimationList_it_t it;
     for(StorageAnimationList_it(it, animation_list); !StorageAnimationList_end_p(it);) {
         StorageAnimation* storage_animation = *StorageAnimationList_ref(it);
@@ -396,12 +415,33 @@ static StorageAnimation*
         bool valid = animation_manager_is_valid_idle_animation(manifest_info, &stats);
 
         if(valid) {
-            whole_weight += manifest_info->weight;
             StorageAnimationList_next(it);
         } else {
             animation_storage_free_storage_animation(&storage_animation);
             /* remove and increase iterator */
             StorageAnimationList_remove(animation_list, it);
+        }
+    }
+
+    if(StorageAnimationList_size(animation_list) == 1) {
+        // One valid anim, dont skip current anim (current = only ext one)
+        avoid_animation = NULL;
+    }
+
+    // Avoid repeating current animation and calculate weights
+    for(StorageAnimationList_it(it, animation_list); !StorageAnimationList_end_p(it);) {
+        StorageAnimation* storage_animation = *StorageAnimationList_ref(it);
+        const StorageAnimationManifestInfo* manifest_info =
+            animation_storage_get_meta(storage_animation);
+
+        if(avoid_animation && strcmp(manifest_info->name, avoid_animation) == 0) {
+            // Avoid repeating same animation twice
+            animation_storage_free_storage_animation(&storage_animation);
+            /* remove and increase iterator */
+            StorageAnimationList_remove(animation_list, it);
+        } else {
+            whole_weight += manifest_info->weight;
+            StorageAnimationList_next(it);
         }
     }
 
@@ -428,7 +468,10 @@ static StorageAnimation*
     StorageAnimationList_clear(animation_list);
 
     /* cache animation, if failed - choose reliable animation */
-    if(!animation_storage_get_bubble_animation(selected)) {
+    if(selected == NULL) {
+        FURI_LOG_E(TAG, "Can't find valid animation in manifest");
+        selected = animation_storage_find_animation(HARDCODED_ANIMATION_NAME);
+    } else if(!animation_storage_get_bubble_animation(selected)) {
         const char* name = animation_storage_get_meta(selected)->name;
         FURI_LOG_E(TAG, "Can't upload animation described in manifest: \'%s\'", name);
         animation_storage_free_storage_animation(&selected);
@@ -511,7 +554,8 @@ void animation_manager_load_and_continue_animation(AnimationManager* animation_m
                 const StorageAnimationManifestInfo* manifest_info =
                     animation_storage_get_meta(restore_animation);
                 bool valid = animation_manager_is_valid_idle_animation(manifest_info, &stats);
-                if(valid) {
+                // Restore only if anim is valid and not the error anim
+                if(valid && strcmp(manifest_info->name, HARDCODED_ANIMATION_NAME) != 0) {
                     animation_manager_replace_current_animation(
                         animation_manager, restore_animation);
                     animation_manager->state = AnimationManagerStateIdle;
@@ -523,8 +567,12 @@ void animation_manager_load_and_continue_animation(AnimationManager* animation_m
                     } else {
                         const BubbleAnimation* animation = animation_storage_get_bubble_animation(
                             animation_manager->current_animation);
+                        int32_t duration = (cfw_settings.cycle_anims == 0) ?
+                                               (animation->duration) :
+                                               (cfw_settings.cycle_anims);
                         furi_timer_start(
-                            animation_manager->idle_animation_timer, animation->duration * 1000);
+                            animation_manager->idle_animation_timer,
+                            (duration > 0) ? (duration * 1000) : 0);
                     }
                 }
             } else {
@@ -556,6 +604,11 @@ void animation_manager_load_and_continue_animation(AnimationManager* animation_m
 static void animation_manager_switch_to_one_shot_view(AnimationManager* animation_manager) {
     furi_assert(animation_manager);
     furi_assert(!animation_manager->one_shot_view);
+
+    // For some reason, removing this unused check has a change to cause NULL pointer crashes
+    // Maybe getting stats has a side effect of synchronizing some state in dolphin service?
+    // Anyway dolphin_get_level() will always return between 1 and COUNT+1 (included) so can
+    // check this boundary to also prevent compiler optimizing it out (I don't trust GCC anymore)
     Dolphin* dolphin = furi_record_open(RECORD_DOLPHIN);
     DolphinStats stats = dolphin_stats(dolphin);
     furi_record_close(RECORD_DOLPHIN);
@@ -567,10 +620,8 @@ static void animation_manager_switch_to_one_shot_view(AnimationManager* animatio
     View* next_view = one_shot_view_get_view(animation_manager->one_shot_view);
     view_stack_remove_view(animation_manager->view_stack, prev_view);
     view_stack_add_view(animation_manager->view_stack, next_view);
-    if(stats.level <= 20) {
-        one_shot_view_start_animation(animation_manager->one_shot_view, &A_Levelup1_128x64);
-    } else if(stats.level >= 21) {
-        one_shot_view_start_animation(animation_manager->one_shot_view, &A_Levelup2_128x64);
+    if(stats.level > 0 && stats.level <= DOLPHIN_LEVEL_COUNT + 1) {
+        one_shot_view_start_animation(animation_manager->one_shot_view, &A_Levelup_128x64);
     } else {
         furi_crash();
     }

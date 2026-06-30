@@ -1,5 +1,5 @@
 #include "../lfrfid_i.h"
-#include <lfrfid_icons.h>
+
 #include <cfw/cfw.h>
 
 FuriTimer* timer_auto_exit = NULL;

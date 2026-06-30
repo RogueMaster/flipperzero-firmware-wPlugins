@@ -193,7 +193,6 @@ static App* app_alloc(void) {
     app->path = furi_string_alloc();
 
     app->vd = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->vd);
 
     app->pages_menu = submenu_alloc();
     submenu_set_header(app->pages_menu, "Survival Manual");

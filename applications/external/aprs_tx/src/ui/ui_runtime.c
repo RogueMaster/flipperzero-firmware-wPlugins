@@ -235,7 +235,6 @@ FlipperHamApp* flipperham_app_alloc(void) {
     gapp = app;
     app->gui = furi_record_open(RECORD_GUI);
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     app->submenu = submenu_alloc();
     app->send_menu = submenu_alloc();
     app->bulletin_menu = submenu_alloc();

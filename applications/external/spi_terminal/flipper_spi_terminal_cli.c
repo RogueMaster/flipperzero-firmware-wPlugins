@@ -75,9 +75,9 @@ void flipper_spi_terminal_cli_command_print_full_help() {
     }
 }
 
-static void flipper_spi_terminal_cli_command(Cli* cli, FuriString* args, void* context) {
+static void flipper_spi_terminal_cli_command(PipeSide* pipe, FuriString* args, void* context) {
     SPI_TERM_LOG_T("Received CLI command %s", furi_string_get_cstr(args));
-    furi_check(cli);
+    furi_check(pipe);
     furi_check(args);
     furi_check(context);
 
@@ -110,7 +110,7 @@ void flipper_spi_terminal_cli_alloc(FlipperSPITerminalApp* app) {
     SPI_TERM_LOG_T("Open CLI");
     app->cli = furi_record_open(RECORD_CLI);
 
-    cli_add_command(
+    cli_registry_add_command(
         app->cli,
         SPI_TERM_CLI_COMMAND,
         CliCommandFlagParallelSafe,
@@ -122,7 +122,7 @@ void flipper_spi_terminal_cli_free(FlipperSPITerminalApp* app) {
     SPI_TERM_LOG_T("Free CLI");
     furi_check(app);
 
-    cli_delete_command(app->cli, SPI_TERM_CLI_COMMAND);
+    cli_registry_delete_command(app->cli, SPI_TERM_CLI_COMMAND);
 
     SPI_TERM_LOG_T("Closing CLI");
     furi_record_close(RECORD_CLI);

@@ -5,8 +5,8 @@ Fixed the bug where the user block number is incorrectly handled throughout the 
 ## 1.1
 
 There's no functional update in this version. Only some tweaks.
-1. The block number iterator was updated but then @WillyJL noticed it causes more trouble so it was reverted. 
-2. The writing success screen now uses up-to-date system icon. The changes was made by @WillyJL in his app catalog. 
+1. The block number iterator was updated but then @Willy-JL noticed it causes more trouble so it was reverted. 
+2. The writing success screen now uses up-to-date system icon. The changes was made by @Willy-JL in his app catalog. 
 3. The functions that handle file format and directory are updated to use OFW's built-in functions instead of the old manual method. Thank @augustozanellato for introducing me to these functions. This wouldn't affect functionality. However, the .t5577 files in previous versions wouldn't be supported in this update. Please use the updated example 'examples/Tag_1.t5577' as reference. The main change is parsing the 8-digit hex block data into 4 bytes. 
 4. Added Github workflow to check build each time a new commit is made. This was copied from @xtruan 's [PR](https://github.com/zinongli/KeyCopier/pull/5) to my other app.
 

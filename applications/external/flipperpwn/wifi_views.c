@@ -249,6 +249,29 @@ static void fpwn_wifi_scan_draw(Canvas* canvas, void* model_ptr) {
 }
 
 /* =========================================================================
+ * Password entered callback — joins the selected AP
+ * ========================================================================= */
+static void fpwn_wifi_password_done(void* ctx) {
+    FPwnApp* app = (FPwnApp*)ctx;
+
+    if(app->wifi_portal_mode) {
+        /* Evil portal mode — start captive portal with the entered SSID */
+        app->wifi_portal_mode = false;
+        fpwn_marauder_evil_portal(app->marauder, app->wifi_text_buf);
+        furi_string_reset(app->wifi_status_text);
+        text_box_reset(app->wifi_status);
+        fpwn_set_current_view(FPwnViewWifiStatus);
+        view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewWifiStatus);
+        return;
+    }
+
+    /* Normal flow — send join command (empty password is fine for open networks) */
+    fpwn_marauder_join(app->marauder, app->wifi_selected_ap, app->wifi_text_buf);
+    fpwn_set_current_view(FPwnViewWifiStatus);
+    view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewWifiStatus);
+}
+
+/* =========================================================================
  * AP scan view — input callback
  * ========================================================================= */
 static bool fpwn_wifi_scan_input(InputEvent* event, void* ctx) {
@@ -318,6 +341,13 @@ static bool fpwn_wifi_scan_input(InputEvent* event, void* ctx) {
                         memset(app->wifi_text_buf, 0, sizeof(app->wifi_text_buf));
                         text_input_reset(app->wifi_text_input);
                         text_input_set_header_text(app->wifi_text_input, "Password (empty=open)");
+                        text_input_set_result_callback(
+                            app->wifi_text_input,
+                            fpwn_wifi_password_done,
+                            app,
+                            app->wifi_text_buf,
+                            sizeof(app->wifi_text_buf),
+                            false);
                         fpwn_set_current_view(FPwnViewWifiPassword);
                         view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewWifiPassword);
                     }
@@ -327,29 +357,6 @@ static bool fpwn_wifi_scan_input(InputEvent* event, void* ctx) {
         consumed);
 
     return consumed;
-}
-
-/* =========================================================================
- * Password entered callback — joins the selected AP
- * ========================================================================= */
-static void fpwn_wifi_password_done(void* ctx) {
-    FPwnApp* app = (FPwnApp*)ctx;
-
-    if(app->wifi_portal_mode) {
-        /* Evil portal mode — start captive portal with the entered SSID */
-        app->wifi_portal_mode = false;
-        fpwn_marauder_evil_portal(app->marauder, app->wifi_text_buf);
-        furi_string_reset(app->wifi_status_text);
-        text_box_reset(app->wifi_status);
-        fpwn_set_current_view(FPwnViewWifiStatus);
-        view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewWifiStatus);
-        return;
-    }
-
-    /* Normal flow — send join command (empty password is fine for open networks) */
-    fpwn_marauder_join(app->marauder, app->wifi_selected_ap, app->wifi_text_buf);
-    fpwn_set_current_view(FPwnViewWifiStatus);
-    view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewWifiStatus);
 }
 
 /* =========================================================================
@@ -982,94 +989,125 @@ static void fpwn_wifi_save_results(FPwnApp* app) {
     char line[160];
 
     /* --- AP scan results --- */
-    uint32_t ap_count = 0;
-    FPwnWifiAP* aps = fpwn_marauder_get_aps(app->marauder, &ap_count);
-    if(ap_count > 0) {
-        const char* hdr = "=== Access Points ===\n";
-        storage_file_write(file, hdr, strlen(hdr));
-        for(uint32_t i = 0; i < ap_count; i++) {
-            const char* enc = aps[i].encryption == 0 ? "Open" :
-                              aps[i].encryption == 1 ? "WEP" :
-                              aps[i].encryption == 2 ? "WPA" :
-                                                       "WPA2";
-            int n = snprintf(
-                line,
-                sizeof(line),
-                "[%lu] %s  %s  %ddBm  CH%u  %s\n",
-                (unsigned long)i,
-                aps[i].ssid,
-                aps[i].bssid,
-                (int)aps[i].rssi,
-                (unsigned)aps[i].channel,
-                enc);
-            if(n > 0 && n < (int)sizeof(line)) storage_file_write(file, line, (uint16_t)n);
+    {
+        FPwnWifiAP* aps = malloc(FPWN_MAX_APS * sizeof(FPwnWifiAP));
+        if(aps) {
+            uint32_t ap_count = fpwn_marauder_copy_aps(app->marauder, aps, FPWN_MAX_APS);
+            if(ap_count > 0) {
+                const char* hdr = "=== Access Points ===\n";
+                storage_file_write(file, hdr, strlen(hdr));
+                for(uint32_t i = 0; i < ap_count; i++) {
+                    const char* enc = aps[i].encryption == 0 ? "Open" :
+                                      aps[i].encryption == 1 ? "WEP" :
+                                      aps[i].encryption == 2 ? "WPA" :
+                                                               "WPA2";
+                    int n = snprintf(
+                        line,
+                        sizeof(line),
+                        "[%lu] %s  %s  %ddBm  CH%u  %s\n",
+                        (unsigned long)i,
+                        aps[i].ssid,
+                        aps[i].bssid,
+                        (int)aps[i].rssi,
+                        (unsigned)aps[i].channel,
+                        enc);
+                    if(n > 0 && n < (int)sizeof(line)) storage_file_write(file, line, (uint16_t)n);
+                }
+                storage_file_write(file, "\n", 1);
+            }
+            free(aps);
         }
-        storage_file_write(file, "\n", 1);
     }
 
     /* --- Ping scan results --- */
-    uint32_t host_count = 0;
-    FPwnNetHost* hosts = fpwn_marauder_get_hosts(app->marauder, &host_count);
-    if(host_count > 0) {
-        const char* hdr = "=== Hosts ===\n";
-        storage_file_write(file, hdr, strlen(hdr));
-        for(uint32_t i = 0; i < host_count; i++) {
-            int n = snprintf(
-                line, sizeof(line), "%s  %s\n", hosts[i].ip, hosts[i].alive ? "UP" : "down");
-            if(n > 0 && n < (int)sizeof(line)) storage_file_write(file, line, (uint16_t)n);
+    {
+        FPwnNetHost* hosts = malloc(FPWN_MAX_HOSTS * sizeof(FPwnNetHost));
+        if(hosts) {
+            uint32_t host_count = fpwn_marauder_copy_hosts(app->marauder, hosts, FPWN_MAX_HOSTS);
+            if(host_count > 0) {
+                const char* hdr = "=== Hosts ===\n";
+                storage_file_write(file, hdr, strlen(hdr));
+                for(uint32_t i = 0; i < host_count; i++) {
+                    int n = snprintf(
+                        line,
+                        sizeof(line),
+                        "%s  %s\n",
+                        hosts[i].ip,
+                        hosts[i].alive ? "UP" : "down");
+                    if(n > 0 && n < (int)sizeof(line)) storage_file_write(file, line, (uint16_t)n);
+                }
+                storage_file_write(file, "\n", 1);
+            }
+            free(hosts);
         }
-        storage_file_write(file, "\n", 1);
     }
 
     /* --- Port scan results --- */
-    uint32_t port_count = 0;
-    FPwnPortResult* ports = fpwn_marauder_get_ports(app->marauder, &port_count);
-    if(port_count > 0) {
-        const char* hdr = "=== Ports ===\n";
-        storage_file_write(file, hdr, strlen(hdr));
-        for(uint32_t i = 0; i < port_count; i++) {
-            if(!ports[i].open) continue;
-            int n = snprintf(
-                line,
-                sizeof(line),
-                "%u/tcp  open  %s\n",
-                (unsigned)ports[i].port,
-                ports[i].service);
-            if(n > 0 && n < (int)sizeof(line)) storage_file_write(file, line, (uint16_t)n);
+    {
+        FPwnPortResult* ports = malloc(FPWN_MAX_PORTS * sizeof(FPwnPortResult));
+        if(ports) {
+            uint32_t port_count = fpwn_marauder_copy_ports(app->marauder, ports, FPWN_MAX_PORTS);
+            if(port_count > 0) {
+                const char* hdr = "=== Ports ===\n";
+                storage_file_write(file, hdr, strlen(hdr));
+                for(uint32_t i = 0; i < port_count; i++) {
+                    if(!ports[i].open) continue;
+                    int n = snprintf(
+                        line,
+                        sizeof(line),
+                        "%u/tcp  open  %s\n",
+                        (unsigned)ports[i].port,
+                        ports[i].service);
+                    if(n > 0 && n < (int)sizeof(line)) storage_file_write(file, line, (uint16_t)n);
+                }
+                storage_file_write(file, "\n", 1);
+            }
+            free(ports);
         }
-        storage_file_write(file, "\n", 1);
     }
 
     /* --- Station scan results --- */
-    uint32_t sta_count = 0;
-    FPwnStation* stations = fpwn_marauder_get_stations(app->marauder, &sta_count);
-    if(sta_count > 0) {
-        const char* hdr = "=== Stations ===\n";
-        storage_file_write(file, hdr, strlen(hdr));
-        for(uint32_t i = 0; i < sta_count; i++) {
-            int n = snprintf(
-                line,
-                sizeof(line),
-                "%s  %ddBm  %s\n",
-                stations[i].mac,
-                (int)stations[i].rssi,
-                stations[i].ap_ssid);
-            if(n > 0 && n < (int)sizeof(line)) storage_file_write(file, line, (uint16_t)n);
+    {
+        FPwnStation* stations = malloc(FPWN_MAX_STATIONS * sizeof(FPwnStation));
+        if(stations) {
+            uint32_t sta_count =
+                fpwn_marauder_copy_stations(app->marauder, stations, FPWN_MAX_STATIONS);
+            if(sta_count > 0) {
+                const char* hdr = "=== Stations ===\n";
+                storage_file_write(file, hdr, strlen(hdr));
+                for(uint32_t i = 0; i < sta_count; i++) {
+                    int n = snprintf(
+                        line,
+                        sizeof(line),
+                        "%s  %ddBm  %s\n",
+                        stations[i].mac,
+                        (int)stations[i].rssi,
+                        stations[i].ap_ssid);
+                    if(n > 0 && n < (int)sizeof(line)) storage_file_write(file, line, (uint16_t)n);
+                }
+                storage_file_write(file, "\n", 1);
+            }
+            free(stations);
         }
-        storage_file_write(file, "\n", 1);
     }
 
     /* --- Captured credentials --- */
-    uint32_t cred_count = 0;
-    FPwnCapturedCred* creds = fpwn_marauder_get_creds(app->marauder, &cred_count);
-    if(cred_count > 0) {
-        const char* hdr = "=== Captured Credentials ===\n";
-        storage_file_write(file, hdr, strlen(hdr));
-        for(uint32_t i = 0; i < cred_count; i++) {
-            int n = snprintf(line, sizeof(line), "[%lu] %s\n", (unsigned long)i, creds[i].data);
-            if(n > 0 && n < (int)sizeof(line)) storage_file_write(file, line, (uint16_t)n);
+    {
+        FPwnCapturedCred* creds = malloc(FPWN_MAX_CREDS * sizeof(FPwnCapturedCred));
+        if(creds) {
+            uint32_t cred_count = fpwn_marauder_copy_creds(app->marauder, creds, FPWN_MAX_CREDS);
+            if(cred_count > 0) {
+                const char* hdr = "=== Captured Credentials ===\n";
+                storage_file_write(file, hdr, strlen(hdr));
+                for(uint32_t i = 0; i < cred_count; i++) {
+                    int n = snprintf(
+                        line, sizeof(line), "[%lu] %s\n", (unsigned long)i, creds[i].data);
+                    if(n > 0 && n < (int)sizeof(line)) storage_file_write(file, line, (uint16_t)n);
+                }
+                storage_file_write(file, "\n", 1);
+            }
+            free(creds);
         }
-        storage_file_write(file, "\n", 1);
     }
 
     /* --- Status log (last 4 KB) --- */
@@ -1202,6 +1240,13 @@ static void fpwn_wifi_menu_callback(void* ctx, uint32_t index) {
         memset(app->wifi_text_buf, 0, sizeof(app->wifi_text_buf));
         text_input_reset(app->wifi_text_input);
         text_input_set_header_text(app->wifi_text_input, "Portal SSID");
+        text_input_set_result_callback(
+            app->wifi_text_input,
+            fpwn_wifi_password_done,
+            app,
+            app->wifi_text_buf,
+            sizeof(app->wifi_text_buf),
+            false);
         fpwn_set_current_view(FPwnViewWifiPassword);
         view_dispatcher_switch_to_view(app->view_dispatcher, FPwnViewWifiPassword);
         break;
@@ -1459,6 +1504,11 @@ void fpwn_wifi_views_free(FPwnApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, FPwnViewPortScan);
     view_dispatcher_remove_view(app->view_dispatcher, FPwnViewStationScan);
     view_dispatcher_remove_view(app->view_dispatcher, FPwnViewCredentials);
+
+    /* Deregister the log callback before freeing the string/mutex it uses,
+     * otherwise a late UART line could invoke fpwn_wifi_rx_callback on
+     * freed resources. */
+    fpwn_marauder_set_log_callback(app->marauder, NULL, NULL);
 
     submenu_free(app->wifi_menu);
     view_free(app->wifi_scan_view);

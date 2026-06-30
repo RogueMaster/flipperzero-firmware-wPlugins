@@ -444,7 +444,6 @@ static UidBruteSmarter* uid_brute_smarter_alloc(void) {
 
     // Initialize view dispatcher
     instance->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(instance->view_dispatcher);
     view_dispatcher_attach_to_gui(
         instance->view_dispatcher, instance->gui, ViewDispatcherTypeFullscreen);
 

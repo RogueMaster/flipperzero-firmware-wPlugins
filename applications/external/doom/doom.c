@@ -1,5 +1,6 @@
 #include <furi.h>
 #include <gui/gui.h>
+#include <dolphin/dolphin.h>
 #include <input/input.h>
 #include <stdlib.h>
 #include <math.h>
@@ -995,6 +996,9 @@ int32_t doom_app() {
     music_player_worker_load_rtttl_from_string(plugin_state->music_instance->worker, dsintro);
     music_player_worker_start(plugin_state->music_instance->worker);
 #endif
+
+    // Call dolphin deed on game start
+    dolphin_deed(DolphinDeedPluginGameStart);
 
     for(bool processing = true; processing;) {
         FuriStatus event_status = furi_message_queue_get(event_queue, &event, 100);

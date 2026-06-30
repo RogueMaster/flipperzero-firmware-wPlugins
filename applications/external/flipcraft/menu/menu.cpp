@@ -265,7 +265,6 @@ Result run(Gui* gui, Storage* storage) {
     app->storage = storage;
 
     app->vd = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->vd);
     app->main_menu = submenu_alloc();
     app->picker = submenu_alloc();
     app->text_input = text_input_alloc();

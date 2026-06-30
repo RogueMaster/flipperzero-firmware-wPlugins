@@ -58,6 +58,6 @@ App(
     ],
     fap_author="Oliver Fabel",
     fap_weburl="https://github.com/ofabel/mp-flipper",
-    fap_version="1.7",
+    fap_version="1.8",
     fap_description="Compile and execute MicroPython scripts",
 )

@@ -3,8 +3,6 @@
 #include "item.h"
 #include "action_i.h"
 
-#define MAX_FILE_LEN (size_t)256
-
 void action_ql_resolve(
     void* context,
     const FuriString* action_path,
@@ -44,7 +42,6 @@ void action_ql_resolve(
                 "Quac Link: Linked file does not exist! %s", furi_string_get_cstr(new_path));
             break;
         }
-
     } while(false);
     storage_file_close(file_link);
     storage_file_free(file_link);

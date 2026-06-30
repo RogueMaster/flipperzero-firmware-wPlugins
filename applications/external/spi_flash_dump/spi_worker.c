@@ -1,4 +1,9 @@
+/* spi_worker.c — Bit-banged SPI driver and background read/verify worker thread.
+ * Handles GPIO init, JEDEC ID detection, chip read-to-file, and verify-against-file.
+ * Uses PA4 (CS), PB3 (CLK), PA7 (MOSI), PA6 (MISO) on the external header. */
+
 #include "spi_worker.h"
+#include <toolbox/crc32_calc.h>
 
 /* ------------------------------------------------------------------ */
 /*  Pin assignments – external GPIO header                            */
@@ -13,7 +18,7 @@
 #define SPI_PIN_CS   (&gpio_ext_pa4)
 
 /* ------------------------------------------------------------------ */
-/*  JEDEC ID database – 30 common SPI NOR flash parts                 */
+/*  JEDEC ID database – 32 common SPI NOR flash parts                 */
 /* ------------------------------------------------------------------ */
 
 const SpiFlashChipInfo spi_flash_db[] = {
@@ -90,6 +95,9 @@ struct SpiWorker {
     /* verify-specific */
     uint32_t* match_out;
     uint32_t* mismatch_out;
+    /* CRC32 of dump file (computed in worker thread after successful read) */
+    uint32_t crc32;
+    bool crc32_valid;
 };
 
 /* ------------------------------------------------------------------ */
@@ -155,6 +163,34 @@ uint8_t spi_transfer_byte(uint8_t tx, uint32_t clock_delay) {
     }
 
     return rx;
+}
+
+/* ------------------------------------------------------------------ */
+/*  4-byte address mode helpers                                       */
+/* ------------------------------------------------------------------ */
+
+/** Enter 4-byte address mode (cmd 0xB7). Required for chips > 16 MB. */
+static void enter_4byte_mode(uint32_t delay) {
+    spi_cs_low();
+    spi_transfer_byte(CMD_ENTER_4BYTE, delay);
+    spi_cs_high();
+}
+
+/** Exit 4-byte address mode (cmd 0xE9). */
+static void exit_4byte_mode(uint32_t delay) {
+    spi_cs_low();
+    spi_transfer_byte(CMD_EXIT_4BYTE, delay);
+    spi_cs_high();
+}
+
+/** Send a 24-bit or 32-bit address depending on `four_byte`. */
+static void spi_send_address(uint32_t address, bool four_byte, uint32_t delay) {
+    if(four_byte) {
+        spi_transfer_byte((address >> 24) & 0xFF, delay);
+    }
+    spi_transfer_byte((address >> 16) & 0xFF, delay);
+    spi_transfer_byte((address >> 8) & 0xFF, delay);
+    spi_transfer_byte(address & 0xFF, delay);
 }
 
 /* ------------------------------------------------------------------ */
@@ -266,6 +302,9 @@ bool chip_read(
     uint32_t address = 0;
     uint32_t total = chip->size_bytes;
     bool success = true;
+    bool four_byte = (total > SPI_3BYTE_ADDR_MAX);
+
+    if(four_byte) enter_4byte_mode(delay);
 
     while(address < total) {
         uint32_t chunk = SPI_FLASH_PAGE_SIZE;
@@ -273,10 +312,7 @@ bool chip_read(
 
         spi_cs_low();
         spi_transfer_byte(read_cmd, delay);
-        /* 24-bit address, MSB first */
-        spi_transfer_byte((address >> 16) & 0xFF, delay);
-        spi_transfer_byte((address >> 8) & 0xFF, delay);
-        spi_transfer_byte(address & 0xFF, delay);
+        spi_send_address(address, four_byte, delay);
 
         /* Fast-Read (0x0B) requires a dummy byte */
         if(read_cmd == CMD_FAST_READ) {
@@ -296,6 +332,8 @@ bool chip_read(
         address += chunk;
         if(cb) cb(address, total, cb_ctx);
     }
+
+    if(four_byte) exit_4byte_mode(delay);
 
     storage_file_close(file);
     storage_file_free(file);
@@ -333,6 +371,9 @@ bool chip_verify(
     uint32_t total = chip->size_bytes;
     uint32_t match = 0;
     uint32_t mismatch = 0;
+    bool four_byte = (total > SPI_3BYTE_ADDR_MAX);
+
+    if(four_byte) enter_4byte_mode(delay);
 
     while(address < total) {
         uint32_t chunk = SPI_FLASH_PAGE_SIZE;
@@ -341,9 +382,7 @@ bool chip_verify(
         /* Read from SPI */
         spi_cs_low();
         spi_transfer_byte(read_cmd, delay);
-        spi_transfer_byte((address >> 16) & 0xFF, delay);
-        spi_transfer_byte((address >> 8) & 0xFF, delay);
-        spi_transfer_byte(address & 0xFF, delay);
+        spi_send_address(address, four_byte, delay);
         if(read_cmd == CMD_FAST_READ) {
             spi_transfer_byte(0xFF, delay);
         }
@@ -377,6 +416,8 @@ bool chip_verify(
         if(cb) cb(address, total, cb_ctx);
     }
 
+    if(four_byte) exit_4byte_mode(delay);
+
     storage_file_close(file);
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
@@ -396,6 +437,20 @@ static int32_t spi_worker_thread(void* ctx) {
 
     if(w->op == WorkerOpRead) {
         w->result = chip_read(w->chip, w->path, w->read_cmd, w->delay_us, w->cb, w->cb_ctx);
+
+        /* Compute CRC32 here in the worker thread so the timer daemon is not
+           blocked re-reading the entire dump file from SD card. */
+        if(w->result) {
+            Storage* storage = furi_record_open(RECORD_STORAGE);
+            File* crc_file = storage_file_alloc(storage);
+            if(storage_file_open(crc_file, w->path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+                w->crc32 = crc32_calc_file(crc_file, NULL, NULL);
+                w->crc32_valid = true;
+                storage_file_close(crc_file);
+            }
+            storage_file_free(crc_file);
+            furi_record_close(RECORD_STORAGE);
+        }
     } else {
         w->result = chip_verify(
             w->chip,
@@ -418,6 +473,7 @@ static int32_t spi_worker_thread(void* ctx) {
 
 SpiWorker* spi_worker_alloc(void) {
     SpiWorker* w = malloc(sizeof(SpiWorker));
+    furi_assert(w);
     memset(w, 0, sizeof(SpiWorker));
     w->thread = furi_thread_alloc_ex("SpiWorker", 4096, spi_worker_thread, w);
     return w;
@@ -454,8 +510,11 @@ void spi_worker_start_read(
     w->cb = cb;
     w->cb_ctx = cb_ctx;
     w->result = false;
+    w->crc32 = 0;
+    w->crc32_valid = false;
     w->running = true;
 
+    furi_thread_join(w->thread);
     furi_thread_start(w->thread);
 }
 
@@ -483,6 +542,7 @@ void spi_worker_start_verify(
     w->result = false;
     w->running = true;
 
+    furi_thread_join(w->thread);
     furi_thread_start(w->thread);
 }
 
@@ -496,4 +556,12 @@ void spi_worker_wait(SpiWorker* w) {
 
 bool spi_worker_get_result(SpiWorker* w) {
     return w->result;
+}
+
+uint32_t spi_worker_get_crc32(SpiWorker* w) {
+    return w->crc32;
+}
+
+bool spi_worker_has_crc32(SpiWorker* w) {
+    return w->crc32_valid;
 }

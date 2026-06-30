@@ -82,16 +82,16 @@ typedef struct {
 } AppEvent;
 
 // Forward declarations
-static bool send_wupa(FuriHalSpiBusHandle* handle, uint8_t* rx_buffer, size_t* rx_bits);
+static bool send_wupa(const FuriHalSpiBusHandle* handle, uint8_t* rx_buffer, size_t* rx_bits);
 static bool send_receive_command_full(
-    FuriHalSpiBusHandle* handle,
+    const FuriHalSpiBusHandle* handle,
     const uint8_t* tx_data,
     size_t tx_bits,
     uint8_t* rx_buffer,
     size_t rx_buffer_size,
     size_t* rx_bits,
     bool send_with_crc);
-static bool test_next_key(FuriHalSpiBusHandle* handle, AppContext* app);
+static bool test_next_key(const FuriHalSpiBusHandle* handle, AppContext* app);
 
 /*
 static void log_rx_data(uint8_t* rx_buffer, size_t rx_bits) {
@@ -111,7 +111,7 @@ static void log_rx_data(uint8_t* rx_buffer, size_t rx_bits) {
  * Send WUPA using the ST25R3916 built-in command for short frames.
  * This correctly transmits 0x52 (7 bits) and expects a 2-byte response (44 00).
  */
-static bool send_wupa(FuriHalSpiBusHandle* handle, uint8_t* rx_buffer, size_t* rx_bits) {
+static bool send_wupa(const FuriHalSpiBusHandle* handle, uint8_t* rx_buffer, size_t* rx_bits) {
     // Clear FIFO & interrupts first
     st25r3916_direct_cmd(handle, ST25R3916_CMD_CLEAR_FIFO);
     st25r3916_get_irq(handle);
@@ -151,7 +151,7 @@ static bool send_wupa(FuriHalSpiBusHandle* handle, uint8_t* rx_buffer, size_t* r
  * Typically used for commands that do have parity + CRC in normal ISO14443A (e.g. READ(0x30)).
  */
 static bool send_receive_command_full(
-    FuriHalSpiBusHandle* handle,
+    const FuriHalSpiBusHandle* handle,
     const uint8_t* tx_data,
     size_t tx_bits,
     uint8_t* rx_buffer,
@@ -191,7 +191,7 @@ static void des3_init(mbedtls_des3_context* ctx) {
     memset(ctx->private_sk, 0, sizeof(ctx->private_sk));
 }
 
-static bool test_next_key(FuriHalSpiBusHandle* handle, AppContext* app) {
+static bool test_next_key(const FuriHalSpiBusHandle* handle, AppContext* app) {
     //FURI_LOG_I(TAG, "Testing key %lu", app->current_key_index);
 
     uint8_t rx_buffer[32];
@@ -327,7 +327,7 @@ static bool test_next_key(FuriHalSpiBusHandle* handle, AppContext* app) {
     return false;
 }
 
-static void setup_nfc_field(FuriHalSpiBusHandle* handle) {
+static void setup_nfc_field(const FuriHalSpiBusHandle* handle) {
     FURI_LOG_I(TAG, "setup_nfc_field");
     st25r3916_direct_cmd(handle, ST25R3916_CMD_SET_DEFAULT);
     furi_delay_ms(1);
@@ -383,7 +383,7 @@ static void setup_nfc_field(FuriHalSpiBusHandle* handle) {
     FURI_LOG_I(TAG, "RF field enabled");
 }
 
-static void disable_nfc_field(FuriHalSpiBusHandle* handle) {
+static void disable_nfc_field(const FuriHalSpiBusHandle* handle) {
     FURI_LOG_I(TAG, "Disabling NFC field");
     st25r3916_write_reg(handle, ST25R3916_REG_OP_CONTROL, 0x00);
     st25r3916_direct_cmd(handle, ST25R3916_CMD_SET_DEFAULT);

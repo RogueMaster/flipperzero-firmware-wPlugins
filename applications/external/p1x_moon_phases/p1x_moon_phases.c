@@ -210,7 +210,6 @@ int32_t p1x_moon_phases_app(void* p) {
 
     // Create view dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     // Create custom view
     app->view = view_alloc();

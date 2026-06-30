@@ -48,7 +48,6 @@ static PcMonitorApp* pc_monitor_alloc() {
         .state_callback = NULL,
         .ctrl_line_callback = NULL,
         .config_callback = NULL,
-        .break_callback = NULL,
     };
     furi_hal_cdc_set_callbacks(0, &usb_cdc_callbacks, app);
 

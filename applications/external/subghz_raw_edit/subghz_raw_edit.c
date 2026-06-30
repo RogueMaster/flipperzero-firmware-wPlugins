@@ -20,7 +20,7 @@
 #include <lib/subghz/transmitter.h>
 #include <lib/subghz/subghz_protocol_registry.h>
 
-#include "subghz_raw_edit_icons.h"
+#include <assets_icons.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1369,7 +1369,6 @@ static uint32_t prompt_back_cb(void* ctx) {
 static bool prompt_filename(Gui* gui, char* namebuf, size_t buflen) {
     PromptCtx pc = {.vd = NULL, .confirmed = false};
     ViewDispatcher* vd = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(vd);
     pc.vd = vd;
 
     TextInput* ti = text_input_alloc();
@@ -2023,7 +2022,6 @@ int32_t subghz_raw_edit_app(void* p) {
     Gui* gui = furi_record_open(RECORD_GUI);
 
     menu->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(menu->view_dispatcher);
     menu->submenu = submenu_alloc();
     menu->widget = widget_alloc();
     menu->config_list = variable_item_list_alloc();

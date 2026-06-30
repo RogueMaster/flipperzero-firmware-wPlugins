@@ -9,6 +9,7 @@ import re
 import shlex
 import ssl
 import string
+import urllib.parse
 import urllib.request
 
 
@@ -34,7 +35,11 @@ def get_commit_json(event):
     commit_url = event["pull_request"]["base"]["repo"]["commits_url"].replace(
         "{/sha}", f"/{event['pull_request']['head']['sha']}"
     )
-    with urllib.request.urlopen(commit_url, context=context) as commit_file:
+    request = urllib.request.Request(commit_url)
+    if "GH_TOKEN" in os.environ:
+        request.add_header("Authorization", "Bearer %s" % (os.environ["GH_TOKEN"]))
+
+    with urllib.request.urlopen(request, context=context) as commit_file:
         commit_json = json.loads(commit_file.read().decode("utf-8"))
     return commit_json
 
@@ -59,15 +64,15 @@ def get_details(event, args):
         ref = event["ref"]
     data["commit_sha"] = data["commit_hash"][:8]
     data["branch_name"] = re.sub("refs/\w+/", "", ref)
+    data["branch_name_urlencoded"] = urllib.parse.quote_plus(data["branch_name"])
     data["suffix"] = (
-        data["branch_name"].replace("/", "_")
-        + "-"
-        + current_time.strftime("%d%m%Y")
+        "rm-"
+        + data["branch_name"].removeprefix("rm-").replace("/", "-")
         + "-"
         + data["commit_sha"]
     )
     if ref.startswith("refs/tags/"):
-        data["suffix"] = data["branch_name"].replace("/", "_")
+        data["suffix"] = data["branch_name"].replace("/", "-")
     return data
 
 
@@ -91,6 +96,9 @@ def add_envs(data, gh_env_file, gh_out_file, args):
     add_env("DIST_SUFFIX", data["suffix"], gh_env_file)
     add_env("WORKFLOW_BRANCH_OR_TAG", data["branch_name"], gh_env_file)
     add_set_output_var("branch_name", data["branch_name"], gh_out_file)
+    add_set_output_var(
+        "branch_name_urlencoded", data["branch_name_urlencoded"], gh_out_file
+    )
     add_set_output_var("commit_sha", data["commit_sha"], gh_out_file)
     add_set_output_var("default_target", os.getenv("DEFAULT_TARGET"), gh_out_file)
     add_set_output_var("suffix", data["suffix"], gh_out_file)

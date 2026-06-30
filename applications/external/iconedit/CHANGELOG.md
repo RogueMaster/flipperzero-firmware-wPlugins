@@ -1,3 +1,20 @@
+## 0.7
+
+- Added Settings tab
+- Canvas Scale: controls default editor pixel size
+- Cursor Guides: Toggle drawing of cursor guides
+- Fixed crash on About tab 
+
+## 0.6
+
+- Save/Send animations
+- Refactored image_receive.py script to receive binary and animations
+
+## 0.5
+
+- XBM fixes
+- UI cleanup
+
 ## 0.4
 
 - Send binary files to PC

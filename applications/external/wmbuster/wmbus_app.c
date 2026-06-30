@@ -184,7 +184,6 @@ WmbusApp* wmbus_app_alloc(void) {
     app->key_store = key_store_alloc(app->storage);
     key_store_load(app->key_store);
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&k_scene_handlers, app);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);

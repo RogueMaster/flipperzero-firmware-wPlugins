@@ -155,7 +155,7 @@ typedef struct {
     uint32_t anomaly_count;
     uint8_t current_payload[NFC_FUZZER_MAX_PAYLOAD_LEN];
     uint8_t current_payload_len;
-    bool worker_running;
+    volatile bool worker_running;
 
     /* Mutex for shared state between main and worker threads */
     FuriMutex* mutex;

@@ -44,7 +44,13 @@ bool storage_settings_scene_factory_reset_on_event(void* context, SceneManagerEv
         switch(event.event) {
         case DialogExResultLeft:
             scene_manager_set_scene_state(app->scene_manager, StorageSettingsFactoryReset, 0);
-            consumed = scene_manager_previous_scene(app->scene_manager);
+            if(app->from_favorites) {
+                scene_manager_stop(app->scene_manager);
+                view_dispatcher_stop(app->view_dispatcher);
+                return true;
+            } else {
+                consumed = scene_manager_previous_scene(app->scene_manager);
+            }
             break;
         case DialogExResultRight:
             counter++;
@@ -65,7 +71,9 @@ bool storage_settings_scene_factory_reset_on_event(void* context, SceneManagerEv
             } else {
                 furi_hal_rtc_reset_registers();
                 furi_hal_rtc_set_flag(FuriHalRtcFlagStorageFormatInternal);
-                power_reboot(PowerBootModeNormal);
+
+                Power* power = furi_record_open(RECORD_POWER);
+                power_reboot(power, PowerBootModeNormal);
             }
 
             consumed = true;

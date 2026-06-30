@@ -35,7 +35,7 @@ WifiMarauderApp* wifi_marauder_app_alloc() {
 
     app->view_dispatcher = view_dispatcher_alloc();
     app->scene_manager = scene_manager_alloc(&wifi_marauder_scene_handlers, app);
-    view_dispatcher_enable_queue(app->view_dispatcher);
+
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 
     view_dispatcher_set_custom_event_callback(
@@ -65,11 +65,9 @@ WifiMarauderApp* wifi_marauder_app_alloc() {
     app->text_box_store = furi_string_alloc();
     furi_string_reserve(app->text_box_store, WIFI_MARAUDER_TEXT_BOX_STORE_SIZE);
 
-    app->text_input = wifi_text_input_alloc();
+    app->text_input = text_input_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher,
-        WifiMarauderAppViewTextInput,
-        wifi_text_input_get_view(app->text_input));
+        app->view_dispatcher, WifiMarauderAppViewTextInput, text_input_get_view(app->text_input));
 
     app->widget = widget_alloc();
     view_dispatcher_add_view(
@@ -96,7 +94,7 @@ void wifi_marauder_make_app_folder(WifiMarauderApp* app) {
     furi_assert(app);
 
     if(!storage_simply_mkdir(app->storage, MARAUDER_APP_FOLDER)) {
-        // dialog_message_show_storage_error(app->dialogs, "Cannot create\napp folder");
+        dialog_message_show_storage_error(app->dialogs, "Cannot create\napp folder");
     }
 
     if(!storage_simply_mkdir(app->storage, MARAUDER_APP_FOLDER_PCAPS)) {
@@ -161,7 +159,7 @@ void wifi_marauder_app_free(WifiMarauderApp* app) {
     widget_free(app->widget);
     text_box_free(app->text_box);
     furi_string_free(app->text_box_store);
-    wifi_text_input_free(app->text_input);
+    text_input_free(app->text_input);
     submenu_free(app->submenu);
     variable_item_list_free(app->var_item_list);
     storage_file_free(app->capture_file);

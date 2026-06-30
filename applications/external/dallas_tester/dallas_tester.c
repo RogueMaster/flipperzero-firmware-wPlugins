@@ -21,7 +21,6 @@ static DallasTester* dallas_tester_alloc(void) {
     app->worker = dallas_test_worker_alloc();
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&dallas_tester_scene_handlers, app);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(

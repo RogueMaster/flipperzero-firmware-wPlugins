@@ -5,6 +5,7 @@
 #include "scenes/gpio_scene.h"
 #include "gpio_custom_event.h"
 #include "usb_uart_bridge.h"
+#include <power/power_service/power.h>
 
 #include <gui/gui.h>
 #include <gui/view_dispatcher.h>
@@ -18,7 +19,7 @@
 #include "views/gpio_usb_uart.h"
 #include "views/gpio_i2c_scanner.h"
 #include "views/gpio_i2c_sfp.h"
-#include "gpio_icons.h"
+#include <assets_icons.h>
 #include <expansion/expansion.h>
 
 struct GpioApp {
@@ -29,6 +30,7 @@ struct GpioApp {
     SceneManager* scene_manager;
     Widget* widget;
     DialogEx* dialog;
+    Power* power;
 
     VariableItemList* var_item_list;
     VariableItem* var_item_flow;

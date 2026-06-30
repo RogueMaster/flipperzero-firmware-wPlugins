@@ -9,6 +9,6 @@ App(
     fap_icon_assets="assets",
     fap_author="Rrycbarm",
     fap_weburl="https://github.com/Rrycbarm/t-rex-runner",
-    fap_version="1.4",
+    fap_version="1.5",
     fap_description="Play the port of the Chrome browser T-Rex game on your Flipper Zero.",
 )

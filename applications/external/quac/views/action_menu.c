@@ -156,7 +156,6 @@ static void action_menu_draw_landscape(Canvas* canvas, ActionMenuModel* model) {
                 width,
                 disp_str,
                 scroll_counter,
-                false,
                 false);
             furi_string_free(disp_str);
 
@@ -258,7 +257,6 @@ static void action_menu_draw_portrait(Canvas* canvas, ActionMenuModel* model) {
                 width,
                 disp_str,
                 scroll_counter,
-                false,
                 false);
             furi_string_free(disp_str);
 

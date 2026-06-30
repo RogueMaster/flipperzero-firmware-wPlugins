@@ -175,8 +175,8 @@ typedef struct {
     uint32_t token_count;
     uint32_t token_capacity; /* allocated size of tokens array   */
 
-    uint16_t pc; /* program counter (token index) */
-    ScriptState state;
+    uint32_t pc; /* program counter (token index) */
+    volatile ScriptState state;
 
     ScriptVar vars[BADUSB_PRO_MAX_VARS];
     uint8_t var_count;
@@ -184,7 +184,7 @@ typedef struct {
     ScriptFunc funcs[BADUSB_PRO_MAX_FUNCS];
     uint8_t func_count;
 
-    uint16_t call_stack[BADUSB_PRO_MAX_STACK];
+    uint32_t call_stack[BADUSB_PRO_MAX_STACK];
     uint8_t call_depth;
 
     uint16_t default_delay; /* ms between commands     */
@@ -256,7 +256,7 @@ typedef struct {
     uint8_t file_count;
 
     FuriThread* worker_thread;
-    bool worker_running;
+    volatile bool worker_running;
 
     FuriHalUsbInterface* prev_usb_mode;
     volatile bool usb_restored; /* atomic flag to prevent double USB restore */

@@ -7,6 +7,7 @@ App(
     fap_icon="wifi_10px.png",
     fap_icon_assets="assets",
     fap_icon_assets_symbol="mayhem_marauder",
+    fap_libs=["assets"],
     fap_category="GPIO/ESP32",
     fap_author="0xchocolate & eried",
     fap_weburl="https://github.com/eried/flipperzero-mayhem",

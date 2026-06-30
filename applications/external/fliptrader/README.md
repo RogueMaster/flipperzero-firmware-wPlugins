@@ -64,11 +64,11 @@ FlipTrader automatically allocates necessary resources and initializes settings 
 1. **Flash the WiFi Devboard**: Follow the instructions to flash the WiFi Devboard with FlipperHTTP:https://github.com/jblanked/FlipperHTTP
 2. **Install the App**: Download FlipTrader from the App Store.
 3. **Launch FlipTrader**: Open the app on your Flipper Zero.
-4. **Explore the Features**:
+4. Click **Settings** to manage your network configurations.
+5. **Explore the Features**:
    - Browse the **Assets** section and select an asset to fetch its current price.
    - Visit **About** for app information and version history.
-   - Use **WiFi Settings** to manage your network configurations.
 
 ## Known Issues
 1. **Asset Screen Delay**: Occasionally, the Asset Price screen may get stuck on "Loading Data".
-    - If it takes longer than 10 seconds, restart your Flipper Zero.
+    - Update to version 1.2 (or higher)

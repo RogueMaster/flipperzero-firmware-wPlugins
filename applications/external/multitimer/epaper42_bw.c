@@ -16,7 +16,7 @@
 static const GpioPin* const epaper42_pin_dc = &gpio_ext_pc0;
 static const GpioPin* const epaper42_pin_rst = &gpio_ext_pc1;
 static const GpioPin* const epaper42_pin_busy = &gpio_ext_pc3;
-static FuriHalSpiBusHandle* const epaper42_spi = &furi_hal_spi_bus_handle_external;
+static const FuriHalSpiBusHandle* const epaper42_spi = &furi_hal_spi_bus_handle_external;
 
 static uint8_t* epaper42_framebuffer = NULL;
 static bool epaper42_initialized = false;

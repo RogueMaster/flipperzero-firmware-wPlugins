@@ -199,7 +199,6 @@ SubGhzPlaylistCreator* subghz_playlist_creator_alloc(void) {
     app->storage = furi_record_open(RECORD_STORAGE);
     FURI_LOG_D(TAG, "Opened Storage record: %p", app->storage);
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     FURI_LOG_D(TAG, "Allocated view dispatcher: %p", app->view_dispatcher);
     app->submenu = submenu_alloc();
     FURI_LOG_D(TAG, "Allocated submenu: %p", app->submenu);

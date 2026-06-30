@@ -10,7 +10,7 @@ App(
     entry_point="subghz_remote_app",
     icon="A_SubGHzRemote_14",
     stack_size=2 * 1024,
-    order=21,
+    order=11,
     fap_category="Sub-GHz",
     fap_icon="icon.png",
     fap_icon_assets="icons",

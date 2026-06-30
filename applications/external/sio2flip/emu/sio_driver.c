@@ -25,7 +25,7 @@
 
 #include "sio_driver.h"
 
-#define MAX_SIO_DEVICES 4
+#define MAX_SIO_DEVICES 8
 
 #define SIO_DEFAULT_BAUDRATE 19200
 
@@ -38,11 +38,15 @@
 // PB7/USART1.RX [pin 14] -> SIO DOUT
 #define GPIO_EXT_UART FuriHalSerialIdUsart
 
-#define WORKER_EVT_STOP    (1 << 0)
-#define WORKER_EVT_RECEIVE (1 << 1)
-#define WORKER_EVT_ERROR   (1 << 3)
+#define WORKER_EVT_STOP        (1 << 0)
+#define WORKER_EVT_FRAME_RX    (1 << 1)
+#define WORKER_EVT_FRAME_ERROR (1 << 2)
+#define WORKER_EVT_STREAM_TX   (1 << 3)
+#define WORKER_EVT_STREAM_RX   (1 << 4)
 
-#define WORKER_EVT_ALL (WORKER_EVT_STOP | WORKER_EVT_RECEIVE | WORKER_EVT_ERROR)
+#define WORKER_EVT_ALL                                                                       \
+    (WORKER_EVT_STOP | WORKER_EVT_FRAME_RX | WORKER_EVT_FRAME_ERROR | WORKER_EVT_STREAM_TX | \
+     WORKER_EVT_STREAM_RX)
 
 typedef struct {
     SIODevice device;
@@ -68,6 +72,13 @@ struct SIODriver {
     FuriHalSerialHandle* uart;
     FuriThread* rx_thread;
     SIORequest request;
+
+    SIOTxCallback tx_callback;
+    SIORxCallback rx_callback;
+    void* callback_context;
+
+    FuriStreamBuffer* rx_stream;
+    bool stream_mode;
 
     SIOHandler handler[MAX_SIO_DEVICES];
 };
@@ -157,6 +168,8 @@ static void sio_driver_command_pin_callback(void* context) {
     bool command_low = !furi_hal_gpio_read(GPIO_EXT_COMMAND);
 
     if(command_low) {
+        sio->stream_mode = false;
+
         if(!sio->command_phase) {
             // Start of command
             sio->command_phase = true;
@@ -164,7 +177,7 @@ static void sio_driver_command_pin_callback(void* context) {
             sio->rx_expected = 4; // Device, Command, Aux1, Aux2
         } else {
             // Command pin went log again during command phase
-            furi_thread_flags_set(furi_thread_get_id(sio->rx_thread), WORKER_EVT_ERROR);
+            furi_thread_flags_set(furi_thread_get_id(sio->rx_thread), WORKER_EVT_FRAME_ERROR);
         }
 
         if(sio->baudrate != sio->req_baudrate) {
@@ -180,6 +193,12 @@ void sio_driver_rx_callback(FuriHalSerialHandle* handle, FuriHalSerialRxEvent ev
     if(event & FuriHalSerialRxEventData) {
         while(furi_hal_serial_async_rx_available(handle)) {
             uint8_t rx_byte = furi_hal_serial_async_rx(handle);
+
+            if(sio->stream_mode) {
+                furi_stream_buffer_send(sio->rx_stream, &rx_byte, sizeof(rx_byte), 0);
+                furi_thread_flags_set(furi_thread_get_id(sio->rx_thread), WORKER_EVT_STREAM_RX);
+                continue;
+            }
 
             if(sio->rx_count < sio->rx_expected) {
                 // Store received byte
@@ -201,11 +220,12 @@ void sio_driver_rx_callback(FuriHalSerialHandle* handle, FuriHalSerialRxEvent ev
                     } else {
                         sio->request.rx_size = sio->rx_count;
                     }
-                    furi_thread_flags_set(furi_thread_get_id(sio->rx_thread), WORKER_EVT_RECEIVE);
+                    furi_thread_flags_set(furi_thread_get_id(sio->rx_thread), WORKER_EVT_FRAME_RX);
 
                 } else {
                     // Checksum error
-                    furi_thread_flags_set(furi_thread_get_id(sio->rx_thread), WORKER_EVT_ERROR);
+                    furi_thread_flags_set(
+                        furi_thread_get_id(sio->rx_thread), WORKER_EVT_FRAME_ERROR);
                 }
             }
         }
@@ -222,7 +242,9 @@ static int32_t sio_driver_rx_worker(void* context) {
         if(events & WORKER_EVT_STOP) {
             // Worker thread is stopping
             break;
-        } else if(events & WORKER_EVT_ERROR) {
+        }
+
+        if(events & WORKER_EVT_FRAME_ERROR) {
             FURI_LOG_E(
                 TAG,
                 "SIO: frame error (%d bytes received - %02X %02X %02X %02X...)",
@@ -243,7 +265,9 @@ static int32_t sio_driver_rx_worker(void* context) {
             }
 
             sio->command_phase = false;
-        } else if(events & WORKER_EVT_RECEIVE) {
+        }
+
+        if(events & WORKER_EVT_FRAME_RX) {
             sio->error_count = 0;
 
             if(sio->command_phase) {
@@ -309,6 +333,30 @@ static int32_t sio_driver_rx_worker(void* context) {
                 sio_driver_send_data(sio, sio->request.tx_data, sio->request.tx_size);
             }
         }
+
+        if(events & WORKER_EVT_STREAM_TX) {
+            // Stream mode TX
+            if(sio->stream_mode && sio->tx_callback != NULL) {
+                uint8_t buffer[64];
+                size_t size = sio->tx_callback(sio->callback_context, buffer, sizeof(buffer));
+                while(size > 0) {
+                    furi_hal_serial_tx(sio->uart, buffer, size);
+                    size = sio->tx_callback(sio->callback_context, buffer, sizeof(buffer));
+                }
+            }
+        }
+
+        if(events & WORKER_EVT_STREAM_RX) {
+            if(sio->stream_mode && sio->rx_callback != NULL) {
+                uint8_t buffer[64];
+                size_t size =
+                    furi_stream_buffer_receive(sio->rx_stream, buffer, sizeof(buffer), 0);
+                while(size > 0) {
+                    sio->rx_callback(sio->callback_context, buffer, size);
+                    size = furi_stream_buffer_receive(sio->rx_stream, buffer, sizeof(buffer), 0);
+                }
+            }
+        }
     }
     return 0;
 }
@@ -332,6 +380,12 @@ SIODriver* sio_driver_alloc() {
     }
 
     furi_hal_serial_init(sio->uart, sio->baudrate);
+
+    sio->rx_stream = furi_stream_buffer_alloc(2048, 1);
+    if(sio->rx_stream == NULL) {
+        FURI_LOG_E(TAG, "Failed to allocate RX stream buffer");
+        goto cleanup;
+    }
 
     sio->rx_thread = furi_thread_alloc();
     if(!sio->rx_thread) {
@@ -373,6 +427,10 @@ void sio_driver_free(SIODriver* sio) {
             furi_thread_free(sio->rx_thread);
         }
 
+        if(sio->rx_stream != NULL) {
+            furi_stream_buffer_free(sio->rx_stream);
+        }
+
         if(sio->uart != NULL) {
             furi_hal_serial_deinit(sio->uart);
             furi_hal_serial_control_release(sio->uart);
@@ -397,6 +455,8 @@ bool sio_driver_attach(
     furi_check(command_callback != NULL);
     furi_check(data_callback != NULL);
 
+    // TODO: synchronize this with worker thread
+
     for(int i = 0; i < MAX_SIO_DEVICES; i++) {
         SIOHandler* handler = &sio->handler[i];
         if(handler->command_callback == NULL) {
@@ -414,6 +474,8 @@ bool sio_driver_attach(
 void sio_driver_detach(SIODriver* sio, uint8_t device) {
     furi_check(sio != NULL);
 
+    // TODO: synchronize this with worker thread
+
     for(int i = 0; i < MAX_SIO_DEVICES; i++) {
         SIOHandler* handler = &sio->handler[i];
         if(handler->device == device) {
@@ -424,4 +486,28 @@ void sio_driver_detach(SIODriver* sio, uint8_t device) {
             break;
         }
     }
+}
+
+void sio_driver_set_stream_callbacks(
+    SIODriver* sio,
+    SIORxCallback rx_callback,
+    SIOTxCallback tx_callback,
+    void* context) {
+    furi_check(sio != NULL);
+
+    // TODO: synchronize this with worker thread
+
+    sio->rx_callback = rx_callback;
+    sio->tx_callback = tx_callback;
+    sio->callback_context = context;
+}
+
+void sio_driver_activate_stream_mode(SIODriver* sio) {
+    furi_check(sio != NULL);
+    sio->stream_mode = true;
+}
+
+void sio_driver_wakeup_tx(SIODriver* sio) {
+    furi_check(sio != NULL);
+    furi_thread_flags_set(furi_thread_get_id(sio->rx_thread), WORKER_EVT_STREAM_TX);
 }

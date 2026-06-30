@@ -1,3 +1,6 @@
+#ifndef __GPIO_SCENE_START_H__
+#define __GPIO_SCENE_START_H__
+
 #include "../gpio_app_i.h"
 #include <furi_hal_power.h>
 #include <furi_hal_usb.h>
@@ -66,7 +69,7 @@ void gpio_scene_start_on_enter(void* context) {
         GpioOtgSettingsNum,
         gpio_scene_start_var_list_change_callback,
         app);
-    if(furi_hal_power_is_otg_enabled()) {
+    if(power_is_otg_enabled(app->power)) {
         variable_item_set_current_value_index(item, GpioOtgOn);
         variable_item_set_current_value_text(item, gpio_otg_text[GpioOtgOn]);
     } else {
@@ -89,9 +92,9 @@ bool gpio_scene_start_on_event(void* context, SceneManagerEvent event) {
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == GpioStartEventOtgOn) {
-            furi_hal_power_enable_otg();
+            power_enable_otg(app->power, true);
         } else if(event.event == GpioStartEventOtgOff) {
-            furi_hal_power_disable_otg();
+            power_enable_otg(app->power, false);
         } else if(event.event == GpioStartEventManualControl) {
             scene_manager_set_scene_state(app->scene_manager, GpioSceneStart, GpioItemTest);
             scene_manager_next_scene(app->scene_manager, GpioSceneTest);
@@ -104,6 +107,7 @@ bool gpio_scene_start_on_event(void* context, SceneManagerEvent event) {
         } else if(event.event == GpioStartEventUsbUart) {
             scene_manager_set_scene_state(app->scene_manager, GpioSceneStart, GpioItemUsbUart);
             if(!furi_hal_usb_is_locked()) {
+                dolphin_deed(DolphinDeedGpioUartBridge);
                 scene_manager_next_scene(app->scene_manager, GpioSceneUsbUart);
             } else {
                 scene_manager_next_scene(app->scene_manager, GpioSceneUsbUartCloseRpc);
@@ -118,3 +122,5 @@ void gpio_scene_start_on_exit(void* context) {
     GpioApp* app = context;
     variable_item_list_reset(app->var_item_list);
 }
+
+#endif // __GPIO_SCENE_START_H__

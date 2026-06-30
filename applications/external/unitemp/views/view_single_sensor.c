@@ -28,6 +28,7 @@
 #include <gui/elements.h>
 #include <locale/locale.h>
 
+#include <assets_icons.h>
 #include "unitemp_icons.h"
 
 #define TEMP_STR_SIZE 32

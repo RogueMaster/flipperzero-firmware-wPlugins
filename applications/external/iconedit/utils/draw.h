@@ -14,7 +14,11 @@ typedef enum {
     FontMicro,
     Font5x7
 } IEFont;
-int ie_draw_str(Canvas* canvas, int x, int y, Align h, Align v, IEFont font, const char* str);
+
+// Draws the text string using the current canvas color, returns width of text
+uint16_t ie_draw_str(Canvas* canvas, int x, int y, Align h, Align v, IEFont font, const char* str);
+// Help function when laying out UI elements
 uint16_t ie_draw_get_str_width(Canvas* canvas, IEFont font, const char* str);
 
+// Draws a simple frame with shadow lines, clears content area
 void ie_draw_modal_panel_frame(Canvas* canvas, int x, int y, int w, int h);

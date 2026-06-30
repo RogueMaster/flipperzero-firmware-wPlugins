@@ -11,14 +11,6 @@ extern bool sent_get_request;
 extern bool get_request_success;
 extern bool request_processed;
 
-void flip_trader_request_error(Canvas* canvas);
-bool send_price_request();
-void process_asset_price();
-
-// Callback for drawing the main screen
-void flip_trader_view_draw_callback(Canvas* canvas, void* model);
-// Input callback for the view (async input handling)
-bool flip_trader_view_input_callback(InputEvent* event, void* context);
 void callback_submenu_choices(void* context, uint32_t index);
 void text_updated_ssid(void* context);
 
@@ -29,4 +21,53 @@ uint32_t callback_to_submenu(void* context);
 uint32_t callback_to_wifi_settings(void* context);
 uint32_t callback_to_assets_submenu(void* context);
 void settings_item_selected(void* context, uint32_t index);
+
+// Add edits by Derek Jamison
+typedef enum AssetState AssetState;
+enum AssetState {
+    AssetStateInitial,
+    AssetStateRequested,
+    AssetStateReceived,
+    AssetStateParsed,
+    AssetStateParseError,
+    AssetStateError,
+};
+
+typedef enum FlipTraderCustomEvent FlipTraderCustomEvent;
+enum FlipTraderCustomEvent {
+    FlipTraderCustomEventProcess,
+};
+
+typedef struct AssetLoaderModel AssetLoaderModel;
+typedef bool (*AssetLoaderFetch)(AssetLoaderModel* model);
+typedef char* (*AssetLoaderParser)(AssetLoaderModel* model);
+struct AssetLoaderModel {
+    char* title;
+    char* asset_text;
+    AssetState asset_state;
+    AssetLoaderFetch fetcher;
+    AssetLoaderParser parser;
+    void* parser_context;
+    size_t request_index;
+    size_t request_count;
+    ViewNavigationCallback back_callback;
+    FuriTimer* timer;
+};
+
+void flip_trader_generic_switch_to_view(
+    FlipTraderApp* app,
+    char* title,
+    AssetLoaderFetch fetcher,
+    AssetLoaderParser parser,
+    size_t request_count,
+    ViewNavigationCallback back,
+    uint32_t view_id);
+
+void flip_trader_loader_draw_callback(Canvas* canvas, void* model);
+
+void flip_trader_loader_init(View* view);
+
+void flip_trader_loader_free_model(View* view);
+
+bool flip_trader_custom_event_callback(void* context, uint32_t index);
 #endif // FLIP_TRADER_CALLBACK_H

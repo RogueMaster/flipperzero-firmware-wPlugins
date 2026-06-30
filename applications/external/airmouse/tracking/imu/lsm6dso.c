@@ -27,7 +27,7 @@ bool lsm6dso_begin() {
     lsm6dso_ctx.write_reg = lsm6dso_write_i2c;
     lsm6dso_ctx.read_reg = lsm6dso_read_i2c;
     lsm6dso_ctx.mdelay = furi_delay_ms;
-    lsm6dso_ctx.handle = &furi_hal_i2c_handle_external;
+    lsm6dso_ctx.handle = (void*)&furi_hal_i2c_handle_external;
 
     uint8_t whoami;
     lsm6dso_device_id_get(&lsm6dso_ctx, &whoami);

@@ -132,7 +132,6 @@ static MiZipBalanceEditorApp* mizip_balance_editor_app_alloc() {
 
     // Create the ViewDispatcher and SceneManager instance
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&mizip_balance_editor_scene_handlers, app);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(

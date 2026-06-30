@@ -23,7 +23,7 @@ typedef struct {
     FuriPubSubSubscription* input_subscription;
     Gui* gui;
     Canvas* canvas;
-    Cli* cli;
+    CliRegistry* cli;
     FuriThreadList* thread_list;
 
     // These are protected by the mutex
@@ -125,8 +125,8 @@ static bool flipper95_cli_print_perfect_number(const Flipper95* instance) {
     return true;
 }
 
-static void flipper95_cli_callback(Cli* cli, FuriString* args, void* context) {
-    UNUSED(cli);
+static void flipper95_cli_callback(PipeSide* pipe, FuriString* args, void* context) {
+    UNUSED(pipe);
     Flipper95* instance = context;
 
     FuriString* cmd = furi_string_alloc();
@@ -144,6 +144,7 @@ static void flipper95_cli_callback(Cli* cli, FuriString* args, void* context) {
     if(!success) {
         flipper95_cli_print_usage();
     }
+    furi_string_free(cmd);
 }
 
 static float flipper95_get_cpu_usage(Flipper95* instance) {
@@ -240,7 +241,7 @@ static void canvas_draw_ascii_str_wrapped_ellipsis(
 static void flipper95_run(Flipper95* instance) {
     furi_thread_set_current_priority(FuriThreadPriorityIdle);
     furi_thread_set_signal_callback(furi_thread_get_current(), thread_signal_callback, instance);
-    cli_add_command(
+    cli_registry_add_command(
         instance->cli, CLI_COMMAND, CliCommandFlagParallelSafe, flipper95_cli_callback, instance);
     furi_hal_power_insomnia_enter();
 
@@ -400,7 +401,7 @@ static void flipper95_run(Flipper95* instance) {
     mbedtls_mpi_free(&temp);
 
     furi_hal_power_insomnia_exit();
-    cli_delete_command(instance->cli, CLI_COMMAND);
+    cli_registry_delete_command(instance->cli, CLI_COMMAND);
 }
 
 int32_t flipper95_app(void* p) {

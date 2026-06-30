@@ -24,6 +24,8 @@ EthWorker* eth_worker_alloc() {
     worker->dhcp_process = ethernet_view_process_malloc(EthWorkerProcessDHCP, worker->config);
     worker->stat_process = ethernet_view_process_malloc(EthWorkerProcessStatic, worker->config);
     worker->ping_process = ethernet_view_process_malloc(EthWorkerProcessPing, worker->config);
+    worker->traceroute_process =
+        ethernet_view_process_malloc(EthWorkerProcessTraceroute, worker->config);
     worker->reset_process = ethernet_view_process_malloc(EthWorkerProcessReset, worker->config);
     worker->active_process = worker->init_process;
 
@@ -51,6 +53,7 @@ void eth_worker_free(EthWorker* worker) {
     ethernet_view_process_free(worker->dhcp_process);
     ethernet_view_process_free(worker->stat_process);
     ethernet_view_process_free(worker->ping_process);
+    ethernet_view_process_free(worker->traceroute_process);
     ethernet_view_process_free(worker->reset_process);
     ethernet_save_process_free(worker->config);
 

@@ -118,7 +118,6 @@ ViewDispatcher* get_view_dispatcher() {
 
 static void ldtoypad_setup_dispatcher(LDToyPadApp* app, Gui* gui) {
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher = app->view_dispatcher;
     view_dispatcher_attach_to_gui(app->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);

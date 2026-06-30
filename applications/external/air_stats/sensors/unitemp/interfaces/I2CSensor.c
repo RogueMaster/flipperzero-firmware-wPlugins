@@ -19,7 +19,7 @@
 
 static uint8_t sensors_count = 0;
 
-void unitemp_i2c_acquire(FuriHalI2cBusHandle* handle) {
+void unitemp_i2c_acquire(const FuriHalI2cBusHandle* handle) {
     furi_hal_i2c_acquire(handle);
     LL_GPIO_SetPinPull(gpio_ext_pc1.port, gpio_ext_pc1.pin, LL_GPIO_PULL_UP);
     LL_GPIO_SetPinPull(gpio_ext_pc0.port, gpio_ext_pc0.pin, LL_GPIO_PULL_UP);

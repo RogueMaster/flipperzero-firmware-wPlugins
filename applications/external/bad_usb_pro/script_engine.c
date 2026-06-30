@@ -1,3 +1,7 @@
+/* script_engine.c — Script execution engine for BadUSB Pro.
+ * Manages script loading, line-by-line execution, HID keystroke dispatch,
+ * and runtime state (variables, call stack, repeat counters). */
+
 #include "script_engine.h"
 #include "ducky_parser.h"
 #include <furi_hal_usb_hid.h>
@@ -226,6 +230,13 @@ static void substitute_vars(ScriptEngine* engine, const char* input, char* out, 
                     memcpy(out + oi, val, vlen);
                     oi += vlen;
                 }
+            } else {
+                /* Variable not found — emit $NAME literally so text like
+                 * "Price: $5.00" is not silently mangled. */
+                if(oi < out_size - 1) out[oi++] = '$';
+                for(size_t k = 0; k < vi && oi < out_size - 1; k++) {
+                    out[oi++] = vname[k];
+                }
             }
         } else {
             out[oi++] = *p++;
@@ -312,13 +323,16 @@ static void type_char(char ch) {
 
     if(need_shift) {
         furi_hal_hid_kb_press(KEY_MOD_LEFT_SHIFT | keycode);
-        furi_delay_ms(2);
+        furi_delay_ms(10);
         furi_hal_hid_kb_release(KEY_MOD_LEFT_SHIFT | keycode);
     } else {
         furi_hal_hid_kb_press(keycode);
-        furi_delay_ms(2);
+        furi_delay_ms(10);
         furi_hal_hid_kb_release(keycode);
     }
+    /* Minimum inter-key gap so Windows HID driver registers each keystroke.
+     * 2ms hold + 0ms gap was too fast — Windows 11 dropped characters. */
+    furi_delay_ms(5);
 }
 
 /** Type a string character-by-character with optional inter-character delay */
@@ -356,9 +370,9 @@ static void press_single_key(uint16_t keycode) {
  * ════════════════════════════════════════════════════════════════════════════ */
 
 /** Skip to matching END_IF or ELSE, handling nesting */
-static uint16_t find_else_or_endif(ScriptEngine* engine, uint16_t from) {
+static uint32_t find_else_or_endif(ScriptEngine* engine, uint32_t from) {
     int depth = 1;
-    for(uint16_t i = from; i < engine->token_count; i++) {
+    for(uint32_t i = from; i < engine->token_count; i++) {
         if(engine->tokens[i].type == TokenIf)
             depth++;
         else if(engine->tokens[i].type == TokenEndIf) {
@@ -372,9 +386,9 @@ static uint16_t find_else_or_endif(ScriptEngine* engine, uint16_t from) {
 }
 
 /** Skip to matching END_IF from an ELSE block */
-static uint16_t find_endif(ScriptEngine* engine, uint16_t from) {
+static uint32_t find_endif(ScriptEngine* engine, uint32_t from) {
     int depth = 1;
-    for(uint16_t i = from; i < engine->token_count; i++) {
+    for(uint32_t i = from; i < engine->token_count; i++) {
         if(engine->tokens[i].type == TokenIf)
             depth++;
         else if(engine->tokens[i].type == TokenEndIf) {
@@ -386,9 +400,9 @@ static uint16_t find_endif(ScriptEngine* engine, uint16_t from) {
 }
 
 /** Skip to matching END_WHILE */
-static uint16_t find_end_while(ScriptEngine* engine, uint16_t from) {
+static uint32_t find_end_while(ScriptEngine* engine, uint32_t from) {
     int depth = 1;
-    for(uint16_t i = from; i < engine->token_count; i++) {
+    for(uint32_t i = from; i < engine->token_count; i++) {
         if(engine->tokens[i].type == TokenWhile)
             depth++;
         else if(engine->tokens[i].type == TokenEndWhile) {
@@ -400,17 +414,17 @@ static uint16_t find_end_while(ScriptEngine* engine, uint16_t from) {
 }
 
 /** Find the WHILE that matches an END_WHILE (search backwards) */
-static uint16_t find_matching_while(ScriptEngine* engine, uint16_t end_while_idx) {
+static uint32_t find_matching_while(ScriptEngine* engine, uint32_t end_while_idx) {
     int depth = 1;
-    for(int16_t i = (int16_t)(end_while_idx - 1); i >= 0; i--) {
+    for(int32_t i = (int32_t)(end_while_idx - 1); i >= 0; i--) {
         if(engine->tokens[i].type == TokenEndWhile)
             depth++;
         else if(engine->tokens[i].type == TokenWhile) {
             depth--;
-            if(depth == 0) return (uint16_t)i;
+            if(depth == 0) return (uint32_t)i;
         }
     }
-    return 0;
+    return engine->token_count; /* not found — caller will set error */
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -820,10 +834,10 @@ void script_engine_run(ScriptEngine* engine) {
         case TokenRepeat: {
             /* Repeat the previous command N times */
             if(engine->pc > 0) {
-                uint16_t prev = engine->pc - 1;
+                uint32_t prev = engine->pc - 1;
                 ScriptToken* prev_tok = &engine->tokens[prev];
                 /* Save and temporarily re-point */
-                uint16_t save_pc = engine->pc;
+                uint32_t save_pc = engine->pc;
                 for(int32_t r = 0; r < tok->int_value && engine->state == ScriptStateRunning;
                     r++) {
                     engine->pc = prev;
@@ -870,7 +884,7 @@ void script_engine_run(ScriptEngine* engine) {
             bool cond = evaluate_condition(engine, tok->str_value);
             if(!cond) {
                 /* Skip to ELSE or END_IF */
-                uint16_t target = find_else_or_endif(engine, engine->pc + 1);
+                uint32_t target = find_else_or_endif(engine, engine->pc + 1);
                 if(target >= engine->token_count) {
                     snprintf(
                         engine->error_msg,
@@ -893,7 +907,7 @@ void script_engine_run(ScriptEngine* engine) {
         case TokenElse: {
             /* If we hit ELSE during execution it means the IF was true and we executed
              * the true branch — so skip to END_IF */
-            uint16_t target = find_endif(engine, engine->pc + 1);
+            uint32_t target = find_endif(engine, engine->pc + 1);
             if(target >= engine->token_count) {
                 snprintf(
                     engine->error_msg,
@@ -917,7 +931,7 @@ void script_engine_run(ScriptEngine* engine) {
             bool cond = evaluate_condition(engine, tok->str_value);
             if(!cond) {
                 /* Skip to END_WHILE */
-                uint16_t target = find_end_while(engine, engine->pc + 1);
+                uint32_t target = find_end_while(engine, engine->pc + 1);
                 if(target >= engine->token_count) {
                     snprintf(
                         engine->error_msg,
@@ -936,7 +950,18 @@ void script_engine_run(ScriptEngine* engine) {
 
         case TokenEndWhile: {
             /* Jump back to the matching WHILE */
-            uint16_t while_idx = find_matching_while(engine, engine->pc);
+            uint32_t while_idx = find_matching_while(engine, engine->pc);
+            if(while_idx >= engine->token_count) {
+                snprintf(
+                    engine->error_msg,
+                    sizeof(engine->error_msg),
+                    "Unmatched END_WHILE at line %d",
+                    tok->source_line);
+                engine->error_line = tok->source_line;
+                engine->state = ScriptStateError;
+                notify_ui(engine);
+                return;
+            }
             engine->pc = while_idx;
             continue; /* don't increment pc — we want to re-evaluate the WHILE */
         }

@@ -90,6 +90,7 @@ typedef struct {
     volatile uint8_t led_scroll;
     volatile bool paused;
     volatile bool abort_requested;
+    volatile bool led_channel_broken; /* firmware lacks Set_Report handler */
 } ExfilState;
 
 /* ---- Worker callback ---- */

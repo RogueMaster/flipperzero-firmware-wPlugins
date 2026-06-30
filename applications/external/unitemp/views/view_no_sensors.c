@@ -20,6 +20,7 @@
 
 #include <gui/elements.h>
 
+#include <assets_icons.h>
 #include "unitemp_icons.h"
 
 struct NoSensors {

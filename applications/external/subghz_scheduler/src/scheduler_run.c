@@ -166,10 +166,9 @@ static int32_t scheduler_tx(void* context) {
     return 0;
 }
 
-static void scheduler_thread_state_callback(FuriThreadState state, void* context) {
+static void
+    scheduler_thread_state_callback(FuriThread* thread, FuriThreadState state, void* context) {
     SchedulerApp* app = context;
-    FuriThread* thread = furi_thread_get_current();
-    furi_check(thread);
     furi_assert(app->thread == thread);
 
     if(state == FuriThreadStateStopped) {

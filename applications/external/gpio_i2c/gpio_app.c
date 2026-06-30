@@ -21,7 +21,7 @@ static void gpio_app_tick_event_callback(void* context) {
     scene_manager_handle_tick_event(app->scene_manager);
 }
 
-GpioApp* gpio_app_alloc() {
+GpioApp* gpio_app_alloc(void) {
     GpioApp* app = malloc(sizeof(GpioApp));
 
     app->expansion = furi_record_open(RECORD_EXPANSION);
@@ -30,9 +30,10 @@ GpioApp* gpio_app_alloc() {
     app->gui = furi_record_open(RECORD_GUI);
     app->gpio_items = gpio_items_alloc();
 
+    app->power = furi_record_open(RECORD_POWER);
+
     app->view_dispatcher = view_dispatcher_alloc();
     app->scene_manager = scene_manager_alloc(&gpio_scene_handlers, app);
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 
     view_dispatcher_set_custom_event_callback(
@@ -45,6 +46,11 @@ GpioApp* gpio_app_alloc() {
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
+
+    // Dialog view
+    app->dialog = dialog_ex_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, GpioAppViewExitConfirm, dialog_ex_get_view(app->dialog));
 
     app->var_item_list = variable_item_list_alloc();
     view_dispatcher_add_view(
@@ -94,10 +100,12 @@ void gpio_app_free(GpioApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, GpioAppViewUsbUart);
     view_dispatcher_remove_view(app->view_dispatcher, GpioAppViewUsbUartCfg);
     view_dispatcher_remove_view(app->view_dispatcher, GpioAppViewUsbUartCloseRpc);
+    view_dispatcher_remove_view(app->view_dispatcher, GpioAppViewExitConfirm);
     variable_item_list_free(app->var_item_list);
     widget_free(app->widget);
     gpio_test_free(app->gpio_test);
     gpio_usb_uart_free(app->gpio_usb_uart);
+    dialog_ex_free(app->dialog);
     gpio_i2c_scanner_free(app->gpio_i2c_scanner);
     gpio_i2c_sfp_free(app->gpio_i2c_sfp);
 
@@ -108,6 +116,7 @@ void gpio_app_free(GpioApp* app) {
     // Close records
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_NOTIFICATION);
+    furi_record_close(RECORD_POWER);
 
     expansion_enable(app->expansion);
     furi_record_close(RECORD_EXPANSION);

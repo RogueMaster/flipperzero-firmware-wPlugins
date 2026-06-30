@@ -36,17 +36,16 @@ static inline uint8_t totp_cli_key_to_pin_code(uint8_t key) {
     return code;
 }
 
-static bool totp_cli_read_pin(Cli* cli, uint8_t* pin, uint8_t* pin_length) {
+static bool totp_cli_read_pin(PipeSide* pipe, uint8_t* pin, uint8_t* pin_length) {
     TOTP_CLI_PRINTF("Enter new PIN (use arrow keys on your keyboard): ");
     fflush(stdout);
     uint8_t c;
     *pin_length = 0;
-    while(cli_read(cli, &c, 1) == 1) {
+    while(pipe_receive(pipe, &c, 1) == 1) {
         if(c == CliKeyEsc) {
             uint8_t c2;
             uint8_t c3;
-            if(cli_read_timeout(cli, &c2, 1, 0) == 1 && cli_read_timeout(cli, &c3, 1, 0) == 1 &&
-               c2 == 0x5b) {
+            if(pipe_receive(pipe, &c2, 1) == 1 && pipe_receive(pipe, &c3, 1) == 1 && c2 == 0x5b) {
                 uint8_t code = totp_cli_key_to_pin_code(c3);
                 if(code > 0) {
                     pin[*pin_length] = code;
@@ -66,7 +65,7 @@ static bool totp_cli_read_pin(Cli* cli, uint8_t* pin, uint8_t* pin_length) {
                 TOTP_CLI_DELETE_LAST_CHAR();
             }
         } else if(c == CliKeyCR) {
-            cli_nl(cli);
+            TOTP_CLI_NL();
             break;
         }
     }
@@ -75,7 +74,7 @@ static bool totp_cli_read_pin(Cli* cli, uint8_t* pin, uint8_t* pin_length) {
     return true;
 }
 
-static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
+static void handle(PluginState* plugin_state, FuriString* args, PipeSide* pipe) {
     UNUSED(plugin_state);
     FuriString* temp_str = furi_string_alloc();
 
@@ -110,14 +109,14 @@ static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
         arguments_parsed = false;
     }
 
-    if(arguments_parsed && totp_cli_ensure_authenticated(plugin_state, cli)) {
+    if(arguments_parsed && totp_cli_ensure_authenticated(plugin_state, pipe)) {
         TOTP_CLI_LOCK_UI(plugin_state);
         do {
             uint8_t new_pin[CRYPTO_IV_LENGTH];
             memset(&new_pin[0], 0, CRYPTO_IV_LENGTH);
             uint8_t new_pin_length = 0;
             if(do_change) {
-                if(!totp_cli_read_pin(cli, &new_pin[0], &new_pin_length)) {
+                if(!totp_cli_read_pin(pipe, &new_pin[0], &new_pin_length)) {
                     memset_s(&new_pin[0], CRYPTO_IV_LENGTH, 0, CRYPTO_IV_LENGTH);
                     break;
                 }

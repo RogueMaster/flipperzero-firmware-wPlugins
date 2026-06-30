@@ -105,7 +105,6 @@ bool easy_flipper_set_view_dispatcher(ViewDispatcher** view_dispatcher, Gui* gui
         FURI_LOG_E(EASY_TAG, "Failed to allocate ViewDispatcher");
         return false;
     }
-    view_dispatcher_enable_queue(*view_dispatcher);
     view_dispatcher_attach_to_gui(*view_dispatcher, gui, ViewDispatcherTypeFullscreen);
     if(context) {
         view_dispatcher_set_event_callback_context(*view_dispatcher, context);

@@ -31,16 +31,12 @@ typedef enum {
  * only carries what the draw callback needs to render one frame.
  * ========================================================================= */
 
-#define ROGUE_SCAN_SUMMARY_LEN 48
-
 typedef struct {
     RogueStatus status;
     char flagged_ssid[ROGUE_SSID_LEN];
     uint32_t flagged_bssid_count;
     uint32_t ap_count;
     bool scanning;
-    /* Human-readable summary line for the suspicious SSID */
-    char summary[ROGUE_SCAN_SUMMARY_LEN];
 } RogueScanModel;
 
 /* =========================================================================

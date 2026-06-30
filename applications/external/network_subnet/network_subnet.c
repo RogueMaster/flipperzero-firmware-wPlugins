@@ -40,7 +40,6 @@ static NetworkSubnetApp* allocate_and_init() {
     app->scene_manager = scene_manager_alloc(&network_subnet_scene_handlers, app);
     FURI_LOG_D(NETWORK_SUBNET_TAG, "Scene Manager Allocated");
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     FURI_LOG_D(NETWORK_SUBNET_TAG, "View Dispatcher allocated");
     app->submenu = submenu_alloc();
     FURI_LOG_D(NETWORK_SUBNET_TAG, "Submenu Allocated");

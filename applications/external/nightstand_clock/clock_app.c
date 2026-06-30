@@ -7,6 +7,7 @@
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
 #include <notification/notification_app.h>
+#include <cfw/settings.h>
 
 #include "clock_app.h"
 
@@ -150,15 +151,20 @@ static void clock_render_callback(Canvas* const canvas, void* ctx) {
         snprintf(
             time_string, TIME_LEN, CLOCK_TIME_FORMAT, curr_dt.hour, curr_dt.minute, curr_dt.second);
     } else {
-        bool pm = curr_dt.hour > 12;
         bool pm12 = curr_dt.hour >= 12;
-        snprintf(
-            time_string,
-            TIME_LEN,
-            CLOCK_TIME_FORMAT,
-            pm ? curr_dt.hour - 12 : curr_dt.hour,
-            curr_dt.minute,
-            curr_dt.second);
+        uint8_t hour = curr_dt.hour;
+
+        LocaleTimeFormat time_format = locale_get_time_format();
+        if(time_format == LocaleTimeFormat12h) {
+            if(hour > 12) {
+                hour -= 12;
+            }
+            if(hour == 0) {
+                hour = cfw_settings.midnight_format_00 ? 0 : 12;
+            }
+        }
+
+        snprintf(time_string, TIME_LEN, CLOCK_TIME_FORMAT, hour, curr_dt.minute, curr_dt.second);
 
         snprintf(
             meridian_string,

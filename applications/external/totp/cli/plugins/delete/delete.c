@@ -8,8 +8,8 @@
 
 #define TOTP_CLI_COMMAND_DELETE_ARG_FORCE_PREFIX "-f"
 
-static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
-    if(!totp_cli_ensure_authenticated(plugin_state, cli)) {
+static void handle(PluginState* plugin_state, FuriString* args, PipeSide* pipe) {
+    if(!totp_cli_ensure_authenticated(plugin_state, pipe)) {
         return;
     }
 
@@ -55,7 +55,7 @@ static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
         fflush(stdout);
         char user_pick;
         do {
-            user_pick = tolower(cli_getc(cli));
+            user_pick = tolower(getchar());
         } while(user_pick != 'y' && user_pick != 'n' && user_pick != CliKeyCR &&
                 user_pick != CliKeyETX && user_pick != CliKeyEsc);
 

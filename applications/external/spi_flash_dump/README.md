@@ -94,7 +94,7 @@ Connect the target flash chip to the Flipper Zero GPIO header:
 4. If detected: chip name, size, and page size are shown
 5. Press **OK** to begin dump
 6. Progress bar shows completion percentage
-7. Dump saved to: `/ext/spi_flash_dump/<chipid>_<timestamp>.bin`
+7. Dump saved to: `/ext/spi_dumps/<chipname>_<timestamp>.bin`
 
 ### Hex Viewer
 
@@ -151,7 +151,7 @@ Write and erase commands are **not** implemented — this is a read-only tool.
 Dumps are saved to the Flipper SD card:
 
 ```
-/ext/spi_flash_dump/
+/ext/spi_dumps/
 ├── W25Q128_20260302_091400.bin   (raw binary, 16,777,216 bytes)
 ├── MX25L6406_20260301_154320.bin
 └── UNKNOWN_9F020000_20260228.bin

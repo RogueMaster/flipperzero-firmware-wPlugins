@@ -41,7 +41,7 @@ struct RhUart {
     RhUartRxCallback rx_callback;
     void* rx_callback_ctx;
     Expansion* expansion;
-    bool connected;
+    volatile bool connected;
     volatile bool running;
 };
 
@@ -93,9 +93,17 @@ static int32_t rh_uart_rx_worker(void* context) {
 
             /* Skip empty lines and Marauder binary framing tokens. */
             if(line_pos > 0 && strncmp(line_buf, "[BUF/", 5) != 0) {
+                /* Only mark as connected if the line contains a Ray Hunter
+                 * protocol marker.  The ESP32 bridge sketch responds with
+                 * "RH:" prefix or NDJSON containing "analysis_state".
+                 * Standard Marauder boot messages do NOT contain these,
+                 * preventing false "connected" on unrelated firmware. */
                 if(!uart->connected) {
-                    uart->connected = true;
-                    FURI_LOG_I(TAG, "ESP32 board connected");
+                    if(strstr(line_buf, "RH:") || strstr(line_buf, "analysis_state") ||
+                       strstr(line_buf, "rayhunter")) {
+                        uart->connected = true;
+                        FURI_LOG_I(TAG, "Ray Hunter bridge connected");
+                    }
                 }
 
                 if(uart->rx_callback) {

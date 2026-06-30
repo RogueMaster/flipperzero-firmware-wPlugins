@@ -172,6 +172,7 @@ typedef enum {
     StorageCommandCommonEquivalentPath,
 
     StorageCommandFileExpand,
+    StorageCommandCommonRename,
     StorageCommandVirtualInit,
     StorageCommandVirtualFormat,
     StorageCommandVirtualMount,

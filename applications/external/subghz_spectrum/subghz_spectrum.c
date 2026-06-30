@@ -1,3 +1,6 @@
+/* subghz_spectrum.c — Main application and UI for Sub-GHz Spectrum Analyzer.
+ * Displays real-time RSSI across a selectable frequency band via CC1101. */
+
 #include <furi.h>
 #include <furi_hal.h>
 #include <gui/gui.h>
@@ -373,6 +376,15 @@ static void spectrum_worker_callback(SpectrumData* sweep_data, void* context) {
     furi_mutex_release(app->data_mutex);
 }
 
+/* ─── View Exit ─── */
+
+static void spectrum_view_exit_callback(void* context) {
+    SpectrumApp* app = context;
+    if(spectrum_worker_is_running(app->worker)) {
+        spectrum_worker_stop(app->worker);
+    }
+}
+
 /* ─── Band Selection ─── */
 
 static void spectrum_settings_callback(void* context, uint32_t index) {
@@ -411,6 +423,7 @@ static void spectrum_band_select_callback(void* context, uint32_t index) {
 static void spectrum_step_change_callback(VariableItem* item) {
     SpectrumApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
+    if(idx >= STEP_COUNT) idx = 0;
     app->step_index = idx;
     variable_item_set_current_value_text(item, step_names[idx]);
 }
@@ -463,6 +476,7 @@ static bool spectrum_back_event_callback(void* context) {
 
 static SpectrumApp* spectrum_app_alloc(void) {
     SpectrumApp* app = malloc(sizeof(SpectrumApp));
+    furi_assert(app);
     memset(app, 0, sizeof(SpectrumApp));
     spectrum_data_reset(&app->spectrum_data);
 
@@ -476,7 +490,6 @@ static SpectrumApp* spectrum_app_alloc(void) {
 
     /* View Dispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(
         app->view_dispatcher, spectrum_back_event_callback);
@@ -488,6 +501,7 @@ static SpectrumApp* spectrum_app_alloc(void) {
     view_set_draw_callback(app->spectrum_view, spectrum_view_draw_callback);
     view_set_input_callback(app->spectrum_view, spectrum_view_input_callback);
     view_set_context(app->spectrum_view, app);
+    view_set_exit_callback(app->spectrum_view, spectrum_view_exit_callback);
     view_set_previous_callback(app->spectrum_view, spectrum_navigation_band_select);
     view_dispatcher_add_view(app->view_dispatcher, SpectrumViewSpectrum, app->spectrum_view);
 

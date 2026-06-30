@@ -4,37 +4,62 @@
 #include "panels.h"
 #include "utils/draw.h"
 #include "../iconedit.h"
+#include <iconedit_icons.h>
 
 static struct {
     SettingType selected_item;
-} settingsModel = {.selected_item = Setting_Include};
+} settingsModel = {.selected_item = Setting_Canvas_Scale};
+
+#define MAX_CANVAS_SCALE 10
 
 void settings_draw(Canvas* canvas, void* context) {
     UNUSED(canvas);
     UNUSED(context);
     IconEdit* app = context;
 
-    // TODO: Fix all this up.. it's crap
+    int y = 18;
+    // Canvas scale: Auto, 1x, 2x, 3x, .. 10x
+    canvas_draw_str_aligned(canvas, 3, y, AlignLeft, AlignTop, "Canvas Scale");
+    size_t cw = canvas_width(canvas);
+    char buf[8] = {0};
+    if(app->settings.canvas_scale == 0) {
+        snprintf(buf, sizeof(buf), "%s", "Auto");
+    } else {
+        snprintf(buf, sizeof(buf), "%dx", app->settings.canvas_scale);
+    }
+    canvas_draw_str_aligned(canvas, cw - (cw / 4), y, AlignCenter, AlignTop, buf);
 
-    // Icon* checkbox;
-    // Icon* checked = NULL;
-    // Icon* unchecked = NULL;
-
-    // checkbox = app->settings.include_icon_header ? checked : unchecked;
-    // canvas_draw_icon(canvas, 1, 20, checkbox);
-    ie_draw_str(canvas, 10, 20, AlignLeft, AlignTop, Font5x7, "Include icon_i.h");
-    if(app->panel == Panel_Settings && settingsModel.selected_item == Setting_Include) {
+    if(app->panel == Panel_Settings && settingsModel.selected_item == Setting_Canvas_Scale) {
+        if(app->settings.canvas_scale > 0) {
+            canvas_draw_icon(canvas, cw - (cw / 4) - 16 - 5, y + 1, &I_iet_smArrowL);
+        }
+        if(app->settings.canvas_scale < MAX_CANVAS_SCALE) {
+            canvas_draw_icon(canvas, cw - (cw / 4) + 16, y + 1, &I_iet_smArrowR);
+        }
         canvas_set_color(canvas, ColorXOR);
-        canvas_draw_frame(canvas, 0, 19, 64, 9);
+        canvas_draw_frame(canvas, 0, y - 2, cw, 11);
         canvas_set_color(canvas, ColorBlack);
     }
 
-    // checkbox = app->settings.delete_auto_brace ? checked : unchecked;
-    // canvas_draw_icon(canvas, 1, 30, checkbox);
-    ie_draw_str(canvas, 10, 30, AlignLeft, AlignTop, Font5x7, "Delete auto brace");
-    if(app->panel == Panel_Settings && settingsModel.selected_item == Setting_Delete_Brace) {
+    y += 13;
+    // Draw Cursor Guides: On / Off
+    canvas_draw_str_aligned(canvas, 3, y, AlignLeft, AlignTop, "Cursor Guides");
+    canvas_draw_str_aligned(
+        canvas,
+        cw - (cw / 4),
+        y,
+        AlignCenter,
+        AlignTop,
+        app->settings.draw_cursor_guides ? "On" : "Off");
+
+    if(app->panel == Panel_Settings && settingsModel.selected_item == Setting_Draw_Cursor_Guides) {
+        if(app->settings.draw_cursor_guides) {
+            canvas_draw_icon(canvas, cw - (cw / 4) - 16 - 5, y + 1, &I_iet_smArrowL);
+        } else {
+            canvas_draw_icon(canvas, cw - (cw / 4) + 16, y + 1, &I_iet_smArrowR);
+        }
         canvas_set_color(canvas, ColorXOR);
-        canvas_draw_frame(canvas, 0, 29, 64, 9);
+        canvas_draw_frame(canvas, 0, y - 2, cw, 11);
         canvas_set_color(canvas, ColorBlack);
     }
 }
@@ -45,30 +70,47 @@ bool settings_input(InputEvent* event, void* context) {
     if(event->type == InputTypeShort) {
         switch(event->key) {
         case InputKeyUp: {
-            if(settingsModel.selected_item == Setting_Include) {
+            if(settingsModel.selected_item == Setting_Canvas_Scale) {
                 app->panel = Panel_TabBar;
-            } else {
-                settingsModel.selected_item -= 1;
+                iconedit_save_settings(app);
+            }
+            if(settingsModel.selected_item == Setting_Draw_Cursor_Guides) {
+                settingsModel.selected_item = Setting_Canvas_Scale;
             }
             break;
         }
-        case InputKeyDown: {
-            SettingType next_setting = (SettingType)(settingsModel.selected_item + 1);
-            if(next_setting <= Setting_COUNT - 1) {
-                settingsModel.selected_item = next_setting;
+        case InputKeyLeft:
+            if(settingsModel.selected_item == Setting_Canvas_Scale) {
+                if(app->settings.canvas_scale > 0) {
+                    app->settings.canvas_scale--;
+                }
+            }
+            if(settingsModel.selected_item == Setting_Draw_Cursor_Guides) {
+                if(app->settings.draw_cursor_guides) {
+                    app->settings.draw_cursor_guides = false;
+                }
             }
             break;
-        }
-        case InputKeyOk:
-            if(settingsModel.selected_item == Setting_Include) {
-                app->settings.include_icon_header = !app->settings.include_icon_header;
+        case InputKeyRight:
+            if(settingsModel.selected_item == Setting_Canvas_Scale) {
+                if(app->settings.canvas_scale < MAX_CANVAS_SCALE) {
+                    app->settings.canvas_scale++;
+                }
             }
-            if(settingsModel.selected_item == Setting_Delete_Brace) {
-                app->settings.delete_auto_brace = !app->settings.delete_auto_brace;
+            if(settingsModel.selected_item == Setting_Draw_Cursor_Guides) {
+                if(!app->settings.draw_cursor_guides) {
+                    app->settings.draw_cursor_guides = true;
+                }
+            }
+            break;
+        case InputKeyDown:
+            if(settingsModel.selected_item == Setting_Canvas_Scale) {
+                settingsModel.selected_item = Setting_Draw_Cursor_Guides;
             }
             break;
         case InputKeyBack:
             app->panel = Panel_TabBar;
+            iconedit_save_settings(app);
             break;
         default:
             break;

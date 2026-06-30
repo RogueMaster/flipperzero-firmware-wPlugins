@@ -25,7 +25,6 @@ static NfcToolsApp* nfc_tools_app_alloc(void) {
     app->scan_destination = NfcToolsSceneIdTagInfo;
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&nfc_tools_scene_handlers, app);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);

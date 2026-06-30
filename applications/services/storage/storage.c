@@ -3,18 +3,16 @@
 #include "storage_message.h"
 #include "storage_processing.h"
 #include "storage/storage_glue.h"
-#include "storages/storage_int.h"
 #include "storages/storage_ext.h"
 #include <assets_icons.h>
 
 #define STORAGE_TICK 1000
 
-// #define ICON_SD_MOUNTED &I_SDcardMounted_11x8
-// #define ICON_SD_ERROR &I_SDcardFail_11x8
+#define ICON_SD_MOUNTED &I_SDcardMounted_11x8
+#define ICON_SD_ERROR   &I_SDcardFail_11x8
 
 #define TAG "Storage"
 
-/*
 static void storage_app_sd_icon_draw_callback(Canvas* canvas, void* context) {
     furi_assert(canvas);
     furi_assert(context);
@@ -32,7 +30,6 @@ static void storage_app_sd_icon_draw_callback(Canvas* canvas, void* context) {
         break;
     }
 }
-*/
 
 Storage* storage_app_alloc(void) {
     Storage* app = malloc(sizeof(Storage));
@@ -44,25 +41,39 @@ Storage* storage_app_alloc(void) {
         storage_data_timestamp(&app->storage[i]);
     }
 
-#ifndef FURI_RAM_EXEC
-    storage_int_init(&app->storage[ST_INT]);
-#endif
     storage_ext_init(&app->storage[ST_EXT]);
 #ifndef FURI_RAM_EXEC
     storage_mnt_init(&app->storage[ST_MNT]);
 #endif
 
     // sd icon gui
-    app->sd_gui.enabled = false;
-    /*
+    app->sd_gui.enabled = (app->storage[ST_EXT].status != StorageStatusNotReady);
     app->sd_gui.view_port = view_port_alloc();
     view_port_set_width(app->sd_gui.view_port, icon_get_width(ICON_SD_MOUNTED));
     view_port_draw_callback_set(app->sd_gui.view_port, storage_app_sd_icon_draw_callback, app);
-    view_port_enabled_set(app->sd_gui.view_port, false);
-	*/
+    view_port_enabled_set(app->sd_gui.view_port, app->sd_gui.enabled);
 
     return app;
 }
+
+#ifndef FURI_RAM_EXEC
+#include <furi/flipper.h>
+#include <toolbox/run_parallel.h>
+
+static int32_t sd_mount_callback(void* context) {
+    Storage* app = context;
+    StorageEvent event = {.type = StorageEventTypeCardMount};
+
+    // Needs to happen before other services load their settings
+    flipper_mount_callback(&event, NULL);
+
+    // Everything else
+    furi_pubsub_publish(app->pubsub, &event);
+
+    furi_record_close(RECORD_STORAGE);
+    return 0;
+}
+#endif
 
 void storage_tick(Storage* app) {
     for(uint8_t i = 0; i < STORAGE_COUNT; i++) {
@@ -75,7 +86,7 @@ void storage_tick(Storage* app) {
     // storage not enabled but was enabled (sd card unmount)
     if(app->storage[ST_EXT].status == StorageStatusNotReady && app->sd_gui.enabled == true) {
         app->sd_gui.enabled = false;
-        // view_port_enabled_set(app->sd_gui.view_port, false);
+        view_port_enabled_set(app->sd_gui.view_port, false);
 
         FURI_LOG_I(TAG, "SD card unmount");
         StorageEvent event = {.type = StorageEventTypeCardUnmount};
@@ -90,12 +101,18 @@ void storage_tick(Storage* app) {
         app->storage[ST_EXT].status == StorageStatusErrorInternal) &&
        app->sd_gui.enabled == false) {
         app->sd_gui.enabled = true;
-        // view_port_enabled_set(app->sd_gui.view_port, true);
+        view_port_enabled_set(app->sd_gui.view_port, true);
 
         if(app->storage[ST_EXT].status == StorageStatusOK) {
             FURI_LOG_I(TAG, "SD card mount");
+#ifndef FURI_RAM_EXEC
+            // Can't use pubsub for migration and can't lockup storage thread,
+            // see more explanation in flipper_mount_callback()
+            run_parallel(sd_mount_callback, app, 3 * 1024);
+#else
             StorageEvent event = {.type = StorageEventTypeCardMount};
             furi_pubsub_publish(app->pubsub, &event);
+#endif
         } else {
             FURI_LOG_I(TAG, "SD card mount error");
             StorageEvent event = {.type = StorageEventTypeCardMountError};

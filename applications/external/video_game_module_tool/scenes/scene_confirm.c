@@ -25,8 +25,8 @@ void scene_confirm_on_enter(void* context) {
     FuriString* file_name = furi_string_alloc();
     path_extract_filename(app->file_path, file_name, false);
 
-    FuriString* label = furi_string_alloc_printf("Install %s?", furi_string_get_cstr(file_name));
-    widget_add_string_element(
+    FuriString* label = furi_string_alloc_printf("Install\n%s?", furi_string_get_cstr(file_name));
+    widget_add_string_multiline_element(
         app->widget, 64, 0, AlignCenter, AlignTop, FontPrimary, furi_string_get_cstr(label));
 
     furi_string_free(label);

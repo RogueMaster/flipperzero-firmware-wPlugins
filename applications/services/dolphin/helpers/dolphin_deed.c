@@ -17,7 +17,7 @@ static const DolphinDeedWeight dolphin_deed_weights[] = {
 
     {5, DolphinAppNfc}, // DolphinDeedNfcRead
     {15, DolphinAppNfc}, // DolphinDeedNfcReadSuccess
-    {5, DolphinAppNfc}, // DolphinDeedNfcSave
+    {15, DolphinAppNfc}, // DolphinDeedNfcSave
     {5, DolphinAppNfc}, // DolphinDeedNfcDetectReader
     {10, DolphinAppNfc}, // DolphinDeedNfcEmulate
     {10, DolphinAppNfc}, // DolphinDeedNfcKeyAdd
@@ -34,14 +34,18 @@ static const DolphinDeedWeight dolphin_deed_weights[] = {
     {10, DolphinAppIbutton}, // DolphinDeedIbuttonEmulate
     {10, DolphinAppIbutton}, // DolphinDeedIbuttonAdd
 
-    {15, DolphinAppBadusb}, // DolphinDeedBadUsbPlayScript
+    {15, DolphinAppBadUsb}, // DolphinDeedBadUsbPlayScript
+
     {15, DolphinAppPlugin}, // DolphinDeedU2fAuthorized
 
-    {5, DolphinAppPlugin}, // DolphinDeedGpioUartBridge
+    {10, DolphinAppPlugin}, // DolphinDeedGpioUartBridge
 
+    // Values set to 0 to handle deeds in loader not by individual apps
     {5, DolphinAppPlugin}, // DolphinDeedPluginStart
     {5, DolphinAppPlugin}, // DolphinDeedPluginGameStart
     {20, DolphinAppPlugin}, // DolphinDeedPluginGameWin
+    // Only for pentesting apps, yielded by loader
+    {10, DolphinAppPlugin}, // DolphinDeedPluginInternalStart
 };
 
 static uint8_t dolphin_deed_limits[] = {
@@ -50,9 +54,7 @@ static uint8_t dolphin_deed_limits[] = {
     100, // DolphinAppNfc
     100, // DolphinAppIr
     100, // DolphinAppIbutton
-    100, // DolphinAppBadusb
-    // 100, // DolphinAppU2f
-    // 100, // DolphinAppGpio
+    100, // DolphinAppBadUsb
     200, // DolphinAppPlugin
 };
 

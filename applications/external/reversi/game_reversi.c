@@ -42,7 +42,7 @@ static void draw_callback(Canvas* const canvas, void* ctx) {
     furi_assert(ctx);
     const AppState* app_state = ctx;
     furi_mutex_acquire(app_state->mutex, FuriWaitForever);
-    if(app_state == NULL) return;
+
     const GameState* game_state = &app_state->game;
 
     canvas_clear(canvas);
@@ -173,6 +173,7 @@ static void gray_canvas(Canvas* const canvas) {
 
 bool load_game(GameState* game_state) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
+    storage_common_migrate(storage, EXT_PATH("apps/Games/game_reversi.save"), SAVING_FILENAME);
 
     File* file = storage_file_alloc(storage);
     uint16_t bytes_readed = 0;

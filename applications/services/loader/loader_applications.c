@@ -11,6 +11,12 @@
 
 #define TAG "LoaderApplications"
 
+#ifdef JS_RUNNER_FAP
+#define JS_RUNNER_APP EXT_PATH("apps/Main/js_app.fap")
+#else
+#define JS_RUNNER_APP "JS Runner"
+#endif
+
 struct LoaderApplications {
     FuriThread* thread;
     void (*closed_cb)(void*);
@@ -59,7 +65,6 @@ static LoaderApplicationsApp* loader_applications_app_alloc(void) {
     app->loading = loading_alloc();
 
     view_holder_attach_to_gui(app->view_holder, app->gui);
-    view_holder_set_view(app->view_holder, loading_get_view(app->loading));
 
     return app;
 } //-V773
@@ -85,13 +90,19 @@ static bool loader_applications_item_callback(
     FuriString* item_name) {
     LoaderApplicationsApp* loader_applications_app = context;
     furi_assert(loader_applications_app);
-    return flipper_application_load_name_and_icon(
-        path, loader_applications_app->storage, icon_ptr, item_name);
+    if(furi_string_end_with(path, ".fap")) {
+        return flipper_application_load_name_and_icon(
+            path, loader_applications_app->storage, icon_ptr, item_name);
+    } else {
+        path_extract_filename(path, item_name, false);
+        memcpy(*icon_ptr, icon_get_frame_data(&I_js_script_10px, 0), FAP_MANIFEST_MAX_ICON_SIZE);
+        return true;
+    }
 }
 
 static bool loader_applications_select_app(LoaderApplicationsApp* loader_applications_app) {
     const DialogsFileBrowserOptions browser_options = {
-        .extension = ".fap",
+        .extension = ".fap|.js",
         .skip_assets = true,
         .icon = &I_unknown_10px,
         .hide_ext = true,
@@ -113,14 +124,14 @@ static void loader_pubsub_callback(const void* message, void* context) {
     const LoaderEvent* event = message;
     const FuriThreadId thread_id = (FuriThreadId)context;
 
-    if(event->type == LoaderEventTypeApplicationStopped) {
+    if(event->type == LoaderEventTypeNoMoreAppsInQueue) {
         furi_thread_flags_set(thread_id, APPLICATION_STOP_EVENT);
     }
 }
 
 static void
     loader_applications_start_app(LoaderApplicationsApp* app, const char* name, const char* args) {
-    dolphin_deed(DolphinDeedPluginStart);
+    dolphin_deed(DolphinDeedPluginInternalStart);
 
     // load app
     FuriThreadId thread_id = furi_thread_get_current_id();
@@ -134,6 +145,7 @@ static void
     }
 
     furi_pubsub_unsubscribe(loader_get_pubsub(app->loader), subscription);
+    furi_thread_flags_clear(APPLICATION_STOP_EVENT);
 }
 
 static int32_t loader_applications_thread(void* p) {
@@ -141,14 +153,19 @@ static int32_t loader_applications_thread(void* p) {
     LoaderApplicationsApp* app = loader_applications_app_alloc();
 
     // start loading animation
-    view_holder_start(app->view_holder);
+    view_holder_set_view(app->view_holder, loading_get_view(app->loading));
 
     while(loader_applications_select_app(app)) {
-        loader_applications_start_app(app, furi_string_get_cstr(app->file_path), NULL);
+        if(!furi_string_end_with(app->file_path, ".js")) {
+            loader_applications_start_app(app, furi_string_get_cstr(app->file_path), NULL);
+        } else {
+            loader_applications_start_app(
+                app, JS_RUNNER_APP, furi_string_get_cstr(app->file_path));
+        }
     }
 
     // stop loading animation
-    view_holder_stop(app->view_holder);
+    view_holder_set_view(app->view_holder, NULL);
 
     loader_applications_app_free(app);
 

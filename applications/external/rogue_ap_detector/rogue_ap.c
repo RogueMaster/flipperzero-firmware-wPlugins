@@ -177,6 +177,10 @@ static void rogue_refresh_timer_cb(void* ctx) {
 
     furi_mutex_release(app->ap_results->mutex);
 
+    /* Sync scanning state from worker so UI reflects actual state
+     * (e.g., when Marauder auto-completes a scan). */
+    bool currently_scanning = rogue_ap_worker_is_scanning(app->worker);
+
     /* Push snapshot into the scan view model and request redraw. */
     with_view_model(
         app->scan_view,
@@ -185,6 +189,7 @@ static void rogue_refresh_timer_cb(void* ctx) {
             m->status = status;
             m->ap_count = ap_count;
             m->flagged_bssid_count = flagged_bssid_count;
+            m->scanning = currently_scanning;
             strncpy(m->flagged_ssid, flagged_ssid, ROGUE_SSID_LEN - 1);
             m->flagged_ssid[ROGUE_SSID_LEN - 1] = '\0';
         },
@@ -288,7 +293,7 @@ static void rogue_rebuild_results(RogueApp* app) {
                     min_set = true;
                 }
             }
-            int8_t delta = (int8_t)(max_rssi - min_rssi);
+            int delta = (int)max_rssi - (int)min_rssi;
             const char* label = (delta >= ROGUE_EVIL_TWIN_RSSI_DELTA) ? "[EVIL TWIN]" :
                                                                         "[SUSPECT]";
 
@@ -368,6 +373,8 @@ static void rogue_rssi_change_cb(VariableItem* item) {
     if(idx >= RSSI_OPTIONS_COUNT) idx = RSSI_OPTIONS_COUNT - 1;
     variable_item_set_current_value_text(item, rssi_option_labels[idx]);
     app->settings.min_rssi = rssi_options[idx];
+    /* Publish to the shared results struct so the worker thread applies it. */
+    app->ap_results->min_rssi = rssi_options[idx];
 }
 
 static void rogue_settings_setup(RogueApp* app) {
@@ -440,6 +447,7 @@ static RogueApp* rogue_app_alloc(void) {
     app->ap_results = malloc(sizeof(RogueApResults));
     furi_assert(app->ap_results);
     memset(app->ap_results, 0, sizeof(RogueApResults));
+    app->ap_results->min_rssi = -90;
     app->ap_results->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     furi_assert(app->ap_results->mutex);
 
@@ -449,7 +457,6 @@ static RogueApp* rogue_app_alloc(void) {
 
     /* ---- View dispatcher ---- */
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, rogue_nav_callback);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, rogue_custom_event_callback);

@@ -25,7 +25,6 @@ static WiFirApp* wi_fir_alloc(void) {
 
     /* Allocate ViewDispatcher and SceneManager */
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&wi_fir_scene_handlers, app);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);

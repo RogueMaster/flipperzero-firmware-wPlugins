@@ -16,6 +16,9 @@
 
 #include <toolbox/saved_struct.h>
 
+#include <infrared/infrared_settings.h>
+#include <toolbox/saved_struct.h>
+
 #define TAG "XRemote"
 
 void xremote_get_version(char* version, size_t length) {
@@ -79,12 +82,7 @@ void xremote_submenu_callback(void* context, uint32_t index) {
 
 static bool xremote_infra_settings_load(bool is_otg_enabled) {
     InfraredSettings settings = {0};
-    bool infrared_app_settings_loaded = saved_struct_load(
-        INFRARED_SETTINGS_PATH,
-        &settings,
-        sizeof(InfraredSettings),
-        INFRARED_SETTINGS_MAGIC,
-        INFRARED_SETTINGS_VERSION);
+    bool infrared_app_settings_loaded = infrared_settings_load(&settings);
 
     if(infrared_app_settings_loaded) {
         if(settings.tx_pin < FuriHalInfraredTxPinMax) {

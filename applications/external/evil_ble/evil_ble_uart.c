@@ -43,7 +43,7 @@ struct EvilBleUart {
     EvilBleUartRxCallback rx_callback;
     void* rx_callback_ctx;
     Expansion* expansion;
-    bool connected;
+    volatile bool connected;
     volatile bool running;
 };
 
@@ -149,7 +149,7 @@ EvilBleUart* evil_ble_uart_alloc(void) {
 
     /* Start worker before enabling async RX to avoid dropping early bytes. */
     uart->running = true;
-    uart->rx_thread = furi_thread_alloc_ex("EvilBleUartRx", 1024, evil_ble_uart_rx_worker, uart);
+    uart->rx_thread = furi_thread_alloc_ex("EvilBleUartRx", 2048, evil_ble_uart_rx_worker, uart);
     furi_assert(uart->rx_thread);
     furi_thread_start(uart->rx_thread);
 
@@ -202,8 +202,12 @@ void evil_ble_uart_send(EvilBleUart* uart, const char* cmd) {
 
 void evil_ble_uart_set_rx_callback(EvilBleUart* uart, EvilBleUartRxCallback cb, void* ctx) {
     furi_assert(uart);
-    /* Pointer-sized assignment — atomic on Cortex-M4. */
+    /* Disable callback first to prevent the worker from invoking the old
+     * callback with the new (possibly NULL) context during deregistration. */
+    uart->rx_callback = NULL;
+    __DMB();
     uart->rx_callback_ctx = ctx;
+    __DMB();
     uart->rx_callback = cb;
 }
 

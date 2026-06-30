@@ -2044,7 +2044,6 @@ static App* flippass_app_alloc(const char* args) {
     App* app = malloc(sizeof(App));
     app->gui = furi_record_open(RECORD_GUI);
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&flippass_scene_handlers, app);
     app->input_events = furi_record_open(RECORD_INPUT_EVENTS);
     app->input_subscription =

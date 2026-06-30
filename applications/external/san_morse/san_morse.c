@@ -904,7 +904,6 @@ int32_t san_morse_app(void* p) {
     morse_player_set_callback(app->player, player_state_callback, app);
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     // Menu (los items se agregan en rebuild_menu_and_about)

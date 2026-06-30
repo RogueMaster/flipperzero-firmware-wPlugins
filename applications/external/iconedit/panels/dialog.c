@@ -5,8 +5,6 @@
 #include "../iconedit.h"
 #include "../utils/draw.h"
 #include "../utils/notification.h"
-// #include "../icon.h"
-// #include "canvas.h"
 
 #define LIST_LEN(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -35,6 +33,7 @@ static struct {
     void* context;
 
     int button; // the currently / pressed button index
+    PanelType called_from;
 } dialogModel = {.message = NULL, .prompt = Dialog_OK, .button = DialogBtn_NONE};
 
 void dialog_setup(const char* msg, DialogPrompt prompt, DialogCallback callback, void* context) {
@@ -59,6 +58,24 @@ void dialog_setup(const char* msg, DialogPrompt prompt, DialogCallback callback,
 
     dialogModel.callback = callback;
     dialogModel.context = context;
+}
+
+void dialog_free_dialog() {
+    if(dialogModel.message) {
+        furi_string_free(dialogModel.message);
+        dialogModel.message = NULL;
+    }
+}
+
+void dialog_return_to_panel(void* context, DialogButton button) {
+    UNUSED(button);
+    IconEdit* app = context;
+    app->panel = dialogModel.called_from;
+}
+void dialog_info_dialog(IconEdit* app, const char* msg, PanelType return_to) {
+    dialogModel.called_from = return_to;
+    app->panel = Panel_Dialog;
+    dialog_setup(msg, Dialog_OK, dialog_return_to_panel, app);
 }
 
 DialogButton dialog_get_button() {

@@ -261,7 +261,6 @@ extern "C" int32_t mode7_demo_app(void* p) {
     Gui* gui = static_cast<Gui*>(furi_record_open(RECORD_GUI));
 
     ViewDispatcher* view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(view_dispatcher);
     view_dispatcher_attach_to_gui(view_dispatcher, gui, ViewDispatcherTypeFullscreen);
 
     View* test_view = view_alloc();

@@ -1,6 +1,10 @@
-#include "storage_processing.h"
 #include <m-list.h>
 #include <m-dict.h>
+
+#include "storage_processing.h"
+#include "storage_internal_dirname_i.h"
+
+#define TAG "Storage"
 
 #define STORAGE_PATH_PREFIX_LEN 4u
 _Static_assert(
@@ -62,33 +66,25 @@ static StorageType storage_get_type_by_path(FuriString* path) {
 
     return type;
 }
-static void storage_path_change_to_real_storage(FuriString* path, StorageType real_storage) {
-    if(furi_string_search(path, STORAGE_ANY_PATH_PREFIX) == 0) {
-        switch(real_storage) {
-        case ST_EXT:
-            furi_string_replace_at(
-                path, 0, strlen(STORAGE_EXT_PATH_PREFIX), STORAGE_EXT_PATH_PREFIX);
-            break;
-        case ST_INT:
-            furi_string_replace_at(
-                path, 0, strlen(STORAGE_INT_PATH_PREFIX), STORAGE_INT_PATH_PREFIX);
-            break;
-        default:
-            break;
-        }
-    }
-}
 
 FS_Error storage_get_data(Storage* app, FuriString* path, StorageData** storage) {
     StorageType type = storage_get_type_by_path(path);
 
     if(storage_type_is_valid(type)) {
+        // Any storage phase-out: redirect "/any" to "/ext"
         if(type == ST_ANY) {
-            type = ST_INT;
-            if(storage_data_status(&app->storage[ST_EXT]) == StorageStatusOK) {
-                type = ST_EXT;
-            }
-            storage_path_change_to_real_storage(path, type);
+            FURI_LOG_W(
+                TAG,
+                STORAGE_ANY_PATH_PREFIX " is deprecated, use " STORAGE_EXT_PATH_PREFIX " instead");
+            furi_string_replace_at(
+                path, 0, strlen(STORAGE_EXT_PATH_PREFIX), STORAGE_EXT_PATH_PREFIX);
+            type = ST_EXT;
+        }
+
+        furi_assert(type == ST_EXT || type == ST_MNT);
+
+        if(storage_data_status(&app->storage[type]) != StorageStatusOK) {
+            return FSE_NOT_READY;
         }
 
         *storage = &app->storage[type];
@@ -391,6 +387,40 @@ static FS_Error storage_process_common_remove(Storage* app, FuriString* path) {
     return ret;
 }
 
+static FS_Error storage_process_common_rename(Storage* app, FuriString* old, FuriString* new) {
+    FS_Error ret = FSE_OK;
+
+    do {
+        const StorageType storage_type_old = storage_get_type_by_path(old);
+        const StorageType storage_type_new = storage_get_type_by_path(new);
+
+        // Different filesystems, return to caller to do copy + remove
+        if(storage_type_old != storage_type_new) {
+            ret = FSE_NOT_IMPLEMENTED;
+            break;
+        }
+
+        // Same filesystem, use fast rename
+        StorageData* storage;
+        ret = storage_get_data(app, old, &storage);
+
+        if(ret != FSE_OK) break;
+
+        if(storage_path_already_open(old, storage)) {
+            ret = FSE_ALREADY_OPEN;
+            break;
+        }
+
+        storage_data_timestamp(storage);
+        FS_CALL(
+            storage,
+            common.rename(
+                storage, cstr_path_without_vfs_prefix(old), cstr_path_without_vfs_prefix(new)));
+    } while(false);
+
+    return ret;
+}
+
 static FS_Error storage_process_common_mkdir(Storage* app, FuriString* path) {
     StorageData* storage;
     FS_Error ret = storage_get_data(app, path, &storage);
@@ -573,13 +603,16 @@ void storage_process_alias(
             furi_string_get_cstr(apps_assets_path_with_appsid));
 
         furi_string_free(apps_assets_path_with_appsid);
-    } else if(furi_string_start_with(path, STORAGE_CFG_PATH_PREFIX)) {
-        // Create config folder if it doesn't exist
-        FuriString* config_path = furi_string_alloc_set(STORAGE_CFG_PATH_PREFIX);
-        if(create_folders && storage_process_common_stat(app, config_path, NULL) != FSE_OK) {
-            storage_process_common_mkdir(app, config_path);
+
+    } else if(furi_string_start_with(path, STORAGE_INT_PATH_PREFIX)) {
+        furi_string_replace_at(
+            path, 0, strlen(STORAGE_INT_PATH_PREFIX), EXT_PATH(STORAGE_INTERNAL_DIR_NAME));
+
+        FuriString* int_on_ext_path = furi_string_alloc_set(EXT_PATH(STORAGE_INTERNAL_DIR_NAME));
+        if(storage_process_common_stat(app, int_on_ext_path, NULL) != FSE_OK) {
+            storage_process_common_mkdir(app, int_on_ext_path);
         }
-        furi_string_free(config_path);
+        furi_string_free(int_on_ext_path);
     }
 }
 
@@ -691,6 +724,16 @@ void storage_process_message_internal(Storage* app, StorageMessage* message) {
         storage_process_alias(app, path, message->data->path.thread_id, false);
         message->return_data->error_value = storage_process_common_remove(app, path);
         break;
+    case StorageCommandCommonRename: {
+        FuriString* old_path = furi_string_alloc_set(message->data->rename.old);
+        FuriString* new_path = furi_string_alloc_set(message->data->rename.new);
+        storage_process_alias(app, old_path, message->data->rename.thread_id, false);
+        storage_process_alias(app, new_path, message->data->rename.thread_id, false);
+        message->return_data->error_value = storage_process_common_rename(app, old_path, new_path);
+        furi_string_free(old_path);
+        furi_string_free(new_path);
+        break;
+    }
     case StorageCommandCommonMkDir:
         path = furi_string_alloc_set(message->data->path.path);
         storage_process_alias(app, path, message->data->path.thread_id, true);
@@ -714,10 +757,6 @@ void storage_process_message_internal(Storage* app, StorageMessage* message) {
         storage_path_trim_trailing_slashes(path2);
         storage_process_alias(app, path1, message->data->cequivpath.thread_id, false);
         storage_process_alias(app, path2, message->data->cequivpath.thread_id, false);
-        // Comparison is done on path name, same beginning of name != same file/folder
-        // Check with a / suffixed to ensure same file/folder name
-        furi_string_cat(path1, "/");
-        furi_string_cat(path2, "/");
         if(message->data->cequivpath.check_subdir) {
             // by appending slashes at the end and then truncating the second path, we can
             // effectively check for shared path components:
@@ -766,7 +805,8 @@ void storage_process_message_internal(Storage* app, StorageMessage* message) {
     case StorageCommandVirtualInit:
         File* image = message->data->virtualinit.image;
         StorageData* image_storage = get_storage_by_file(image, app->storage);
-        message->return_data->error_value = storage_process_virtual_init(image_storage, image);
+        message->return_data->error_value =
+            storage_process_virtual_init(&app->storage[ST_MNT], image, image_storage);
         break;
     case StorageCommandVirtualFormat:
         message->return_data->error_value = storage_process_virtual_format(&app->storage[ST_MNT]);

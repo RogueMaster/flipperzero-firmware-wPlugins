@@ -35,7 +35,6 @@ void app_switch_to_view(App* app, uint32_t view_id) {
 
 void scene_manager_init(App* app) {
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, app_custom_event_callback);

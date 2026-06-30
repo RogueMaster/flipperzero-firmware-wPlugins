@@ -15,10 +15,9 @@ static Vector2 angle_to_vector2(float angle_in_degrees, uint8_t distance, Vector
 }
 
 #if __has_include(<cfw/cfw.h>)
-static void dab_timer_dumbmode_changed(DesktopSettings* settings) {
-    settings->is_dumbmode = !settings->is_dumbmode;
-    settings->dummy_mode = settings->is_dumbmode;
-    DESKTOP_SETTINGS_SAVE(settings);
+static void dab_timer_dumbmode_changed(void) {
+    cfw_settings.game_mode = !cfw_settings.game_mode;
+    cfw_settings_save();
 }
 #endif
 
@@ -477,7 +476,7 @@ static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
        plugin_state->faceType != FaceStyleCircleInverted &&
        plugin_state->faceType != FaceStyleBinaryInverted) {
 #if __has_include(<cfw/cfw.h>)
-        if(!plugin_state->desktop_settings->is_dumbmode && !plugin_state->w_test) {
+        if(!cfw_settings.game_mode && !plugin_state->w_test) {
 #else
         if(!plugin_state->w_test) {
 #endif
@@ -501,7 +500,7 @@ static void dab_timer_render_callback(Canvas* const canvas, void* ctx) {
             }
         }
 #if __has_include(<cfw/cfw.h>)
-        if(plugin_state->w_test && plugin_state->desktop_settings->is_dumbmode) {
+        if(plugin_state->w_test && cfw_settings.game_mode) {
 #else
         if(plugin_state->w_test) {
 #endif
@@ -514,9 +513,6 @@ static void dab_timer_state_init(DabTimerState* const plugin_state) {
     memset(plugin_state, 0, sizeof(DabTimerState));
     plugin_state->alert_time = 80;
     plugin_state->date_format = locale_get_date_format();
-#if __has_include(<cfw/cfw.h>)
-    plugin_state->desktop_settings = malloc(sizeof(DesktopSettings));
-#endif
     plugin_state->curEmotiveFace = 0;
     plugin_state->codeSequence = 0;
     plugin_state->faceType = FaceStylePwn;
@@ -532,9 +528,6 @@ static void dab_timer_state_init(DabTimerState* const plugin_state) {
 void dab_timer_free(DabTimerState* plugin_state) {
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_NOTIFICATION);
-#if __has_include(<cfw/cfw.h>)
-    free(plugin_state->desktop_settings);
-#endif
     furi_message_queue_free(plugin_state->event_queue);
     furi_mutex_free(plugin_state->mutex);
     free(plugin_state);
@@ -575,9 +568,6 @@ int32_t dab_timer_app(void* p) {
         free(plugin_state);
         return 255;
     }
-#if __has_include(<cfw/cfw.h>)
-    DESKTOP_SETTINGS_LOAD(plugin_state->desktop_settings);
-#endif
     // Set system callbacks
     ViewPort* view_port = view_port_alloc();
     view_port_draw_callback_set(view_port, dab_timer_render_callback, plugin_state);
@@ -624,7 +614,7 @@ int32_t dab_timer_app(void* p) {
                             plugin_state->codeSequence++;
                             if(plugin_state->codeSequence == 8) {
 #if __has_include(<cfw/cfw.h>)
-                                dab_timer_dumbmode_changed(plugin_state->desktop_settings);
+                                dab_timer_dumbmode_changed();
 #endif
                                 plugin_state->w_test = true; // OH HEY NOW LETS GAIN EXP & MORE FUN
                             }
@@ -662,7 +652,7 @@ int32_t dab_timer_app(void* p) {
                         } else {
                             plugin_state->codeSequence = 0;
 #if __has_include(<cfw/cfw.h>)
-                            if(!plugin_state->desktop_settings->is_dumbmode) {
+                            if(!cfw_settings.game_mode) {
 #endif
                                 if(plugin_state->songSelect == SoundAlertMario ||
                                    plugin_state->songSelect == SoundAlertGoGoPoRa ||
@@ -709,9 +699,8 @@ int32_t dab_timer_app(void* p) {
                     if(plugin_state->codeSequence == 10) {
                         plugin_state->codeSequence = 0;
 #if __has_include(<cfw/cfw.h>)
-                        plugin_state->desktop_settings->is_dumbmode =
-                            true; // MAKE SURE IT'S ON SO IT GETS TURNED OFF
-                        dab_timer_dumbmode_changed(plugin_state->desktop_settings);
+                        cfw_settings.game_mode = true; // MAKE SURE IT'S ON SO IT GETS TURNED OFF
+                        dab_timer_dumbmode_changed();
 #endif
                         if(plugin_state->songSelect == SoundAlertMario ||
                            plugin_state->songSelect == SoundAlertGoGoPoRa ||

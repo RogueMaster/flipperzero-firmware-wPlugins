@@ -1306,7 +1306,6 @@ static void zerofido_draw_auto_scroll_line(
         width,
         line,
         furi_get_tick() / ZF_CREDENTIAL_DETAIL_SCROLL_TICK_DIVISOR,
-        false,
         false);
 }
 
@@ -1989,7 +1988,6 @@ bool zerofido_ui_init(ZerofidoApp* app) {
     app->ui_thread_id = furi_thread_get_current_id();
     app->active_view = ZfViewStatus;
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     if(!app->view_dispatcher) {
         zerofido_ui_deinit(app);

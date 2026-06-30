@@ -1,5 +1,10 @@
 # Firmware Assets {#firmware_assets}
 
+## Requirements
+
+- Python3
+- Python3 packages: Pillow & heatshrink2 
+
 ## Compiling
 
 ```bash
@@ -30,6 +35,7 @@ Don't include assets that you are not using, compiler is not going to strip unus
 
 ## Structure
 - `dolphin`             - Dolphin game assets sources. Goes to `compiled` and `resources` folders in `build` directory.
+- `packs`               - Hot-swappable asset packs used system wide, both animations and icons. Compiled to `.bm` and `.bmx`, then put at `SD/asset_packs`
 - `icons`               - Icons sources. Goes to `compiled` folder in `build` directory.
 - `protobuf`            - Protobuf sources. Goes to `compiled` folder in `build` directory.
 - `slideshow`           - One-time slideshows for desktop

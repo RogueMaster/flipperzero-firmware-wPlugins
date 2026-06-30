@@ -1,13 +1,13 @@
 App(
     appid="storage_settings",
     name="Storage",
-    apptype=FlipperAppType.EXTSETTINGS,
+    apptype=FlipperAppType.SETTINGS,
     entry_point="storage_settings_app",
     requires=["storage"],
     flags=["InsomniaSafe"],
     stack_size=2 * 1024,
     order=30,
-    fap_category="Settings",
+    fap_libs=["assets", "toolbox"],
     fap_icon="update_10px.png",
-    fap_libs=["assets"],
+    fap_category="Settings",
 )

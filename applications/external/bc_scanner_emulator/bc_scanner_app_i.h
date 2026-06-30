@@ -5,7 +5,7 @@
 
 #include <gui/gui.h>
 #include <gui/icon_i.h>
-#include "bc_scanner_icons.h"
+#include <bc_scanner_icons.h>
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
 #include <gui/modules/submenu.h>
@@ -14,7 +14,6 @@
 #include <gui/modules/variable_item_list.h>
 #include <gui/modules/widget.h>
 #include "views/bc_scanner_view.h"
-#include "bc_scanner_icons.h"
 
 #define RECORD_STORAGE             "storage"
 #define BC_SCANNER_APP_PATH_FOLDER ANY_PATH("bcscanner")

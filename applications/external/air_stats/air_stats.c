@@ -325,7 +325,6 @@ int32_t air_stats_main(void* p) {
 
     /* ViewDispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     /* Popup (registered as ViewPopup in dispatcher) */
     app->popup = popup_alloc();

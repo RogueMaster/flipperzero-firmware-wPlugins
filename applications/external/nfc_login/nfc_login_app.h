@@ -23,7 +23,21 @@
 #include <nfc/protocols/iso14443_3a/iso14443_3a.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a_poller.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a_poller_sync.h>
+#if defined(__has_include)
+#if __has_include(<nfc_login_icons.h>)
+// Prefer app-specific icon pack when available (extapps / OFW)
 #include <nfc_login_icons.h>
+#elif __has_include(<assets_icons.h>)
+// Fallback to firmware-wide assets (e.g. Momentum)
+#include <assets_icons.h>
+#else
+#error \
+    "Icon assets header not found. Need nfc_login_icons.h (extapps) or assets_icons.h (Momentum)."
+#endif
+#else
+// Conservative fallback: expect extapp-generated header
+#include <nfc_login_icons.h>
+#endif
 #include <string.h>
 #include <stdlib.h>
 
@@ -41,7 +55,7 @@
 
 #if !defined(HAS_MOMENTUM_SUPPORT)
 #ifdef __has_include
-#if __has_include(<momentum/momentum.h>) || __has_include(<firmware/momentum.h>)
+#if __has_include(<cfw/cfw.h>) || __has_include(<firmware/momentum.h>)
 #define HAS_MOMENTUM_SUPPORT
 #elif defined(FIRMWARE_MOMENTUM) || defined(MOMENTUM_FIRMWARE) || defined(__MOMENTUM__) || \
     defined(MOMENTUM) || defined(HAS_MOMENTUM) || defined(MOMENTUM_FW)

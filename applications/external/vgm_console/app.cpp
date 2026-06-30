@@ -5,7 +5,6 @@ VideoGameModuleConsoleApp::VideoGameModuleConsoleApp() {
 
     // Allocate ViewDispatcher
     viewDispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(viewDispatcher);
     if(!viewDispatcher) {
         FURI_LOG_E(TAG, "Failed to allocate ViewDispatcher");
         return;
