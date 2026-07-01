@@ -135,6 +135,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [UART Terminal v1.7 (By cool4uma)](https://github.com/cool4uma/UART_Terminal)
 - Updated: [USB HID Autofire v1.1 (By pbek)](https://github.com/pbek/usb_hid_autofire)
 - Updated: [Metroflip v2.0.3 (By luu176)](https://github.com/luu176/Metroflip)
+- Updated: [Nickname Generator v0.2 (By disaxq)](https://github.com/disaxq/Nickname-Generator)
 
 <a name="release"></a>
 
@@ -736,7 +737,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [NFC Stock v0.1.5 (By Endika)](https://github.com/Endika/flipper-nfc-stock)
 - [NFC Tools v1.3 (By wakdev)](https://github.com/wakdev/nfctools-fz)
 - [NFC URL v1.0 (By y-dejong)](https://github.com/y-dejong/nfcurl)
-- [Nickname Generator v0.1 (By disaxq)](https://github.com/disaxq/Nickname-Generator)
+- [Nickname Generator v0.2 (By disaxq)](https://github.com/disaxq/Nickname-Generator)
 - [Nightstand Clock v1.2 (By nymda)](https://github.com/nymda/FlipperNightStand)
 - [Noptel LRF Sampler v2.4 (By Giraut)](https://github.com/Giraut/flipper_zero_noptel_lrf_sampler)
 - [Notes for FZ WIP (By AdrianN001)](https://github.com/AdrianN001/Flipper-Zero-Note-Application)

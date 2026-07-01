@@ -17,31 +17,89 @@ typedef struct {
 } NicknameCategory;
 // dictionary
 const char* classic_parts[] = {
-    "Ace",       "Alpha",    "Amazon",      "Angel",     "Apollo",   "Archer",  "Argus",
-    "Aries",     "Artemis",  "Assassin",    "Athena",    "Atlas",    "Aurora",  "Avenger",
-    "Bandit",    "Baron",    "Basilisk",    "Bat",       "Bear",     "Beast",   "Behemoth",
-    "Berserker", "Blade",    "Blaze",       "Blizzard",  "Blitz",    "Blood",   "Bolt",
-    "Bomber",    "Bone",     "Bounty",      "Bravo",     "Breaker",  "Breeze",  "Brick",
-    "Brimstone", "Brute",    "Bullet",      "Buzz",      "Caesar",   "Caliber", "Cannon",
-    "Captain",   "Cardinal", "Cat",         "Centurion", "Champion", "Chaos",   "Charger",
-    "Chaser",    "Chief",    "Chimera",     "Chrome",    "Cipher",   "Claw",    "Cobra",
-    "Comet",     "Commando", "Condor",      "Cosmo",     "Cougar",   "Crash",   "Crimson",
-    "Crow",      "Crusader", "Crystal",     "Cyclone",   "Dagger",   "Dawn",    "Demon",
-    "Destiny",   "Diamond",  "Diesel",      "Dino",      "Discord",  "Diver",   "Doc",
-    "Doom",      "Dragon",   "Drake",       "Dread",     "Droid",    "Duke",    "Dusk",
-    "Eagle",     "Echo",     "Edge",        "Ember",     "Emperor",  "Enigma",  "Envy",
-    "Epsilon",   "Equinox",  "Executioner", // ... и так далее
-};
-const char* meme_parts[] =
-    {
-        "Doge",    "Pepe",       "Troll",  "Wojak",        "Chad",      "Karen", "Boomer",
-        "Zoomer",  "Millennial", "Stonks", "DiamondHands", "ToTheMoon", "HODL",  "Sus",
-        "Bruh",    "Yeet",       "Dab",    "Floss",        "Skrt",      "Lit",   "Gucci",
-        "Supreme", "Flex",       "Drip",   "Clout",        "Salty",     "Spicy", "Savage",
-        "Roasted", "Oof",        "BigOof", // ... и так далее
-};
+    "Ace",       "Alpha",    "Amazon",      "Angel",     "Apollo",   "Archer",   "Argus",
+    "Aries",     "Artemis",  "Assassin",    "Athena",    "Atlas",    "Aurora",   "Avenger",
+    "Bandit",    "Baron",    "Basilisk",    "Bat",       "Bear",     "Beast",    "Behemoth",
+    "Berserker", "Blade",    "Blaze",       "Blizzard",  "Blitz",    "Blood",    "Bolt",
+    "Bomber",    "Bone",     "Bounty",      "Bravo",     "Breaker",  "Breeze",   "Brick",
+    "Brimstone", "Brute",    "Bullet",      "Buzz",      "Caesar",   "Caliber",  "Cannon",
+    "Captain",   "Cardinal", "Cat",         "Centurion", "Champion", "Chaos",    "Charger",
+    "Chaser",    "Chief",    "Chimera",     "Chrome",    "Cipher",   "Claw",     "Cobra",
+    "Comet",     "Commando", "Condor",      "Cosmo",     "Cougar",   "Crash",    "Crimson",
+    "Crow",      "Crusader", "Crystal",     "Cyclone",   "Dagger",   "Dawn",     "Demon",
+    "Destiny",   "Diamond",  "Diesel",      "Dino",      "Discord",  "Diver",    "Doc",
+    "Doom",      "Dragon",   "Drake",       "Dread",     "Droid",    "Duke",     "Dusk",
+    "Eagle",     "Echo",     "Edge",        "Ember",     "Emperor",  "Enigma",   "Envy",
+    "Epsilon",   "Equinox",  "Executioner", "Knight",    "Rogue",    "Warrior",  "Paladin",
+    "Ranger",    "Mage",     "Warlock",     "Druid",     "Shadow",   "Mystic",   "Phoenix",
+    "Griffin",   "Hydra",    "Minotaur",    "Golem",     "Wraith",   "Specter",  "Phantom",
+    "Reaper",    "Voyager",  "Nomad",       "Wanderer",  "Sentinel", "Guardian", "Vanguard",
+    "Raider",    "Victor",   "Conqueror",   "Renegade",  "Maverick"};
+const char* meme_parts[] = {
+    "Doge",
+    "Pepe",
+    "Troll",
+    "Wojak",
+    "Chad",
+    "Karen",
+    "Boomer",
+    "Zoomer",
+    "Millennial",
+    "Stonks",
+    "MemeLord",
+    "MemeQueen",
+    "Leet",
+    "Epic",
+    "Fail",
+    "Noob",
+    "Pro",
+    "Gamer",
+    "Hacker",
+    "Wizard",
+    "BigBrain",
+    "SmolBrain",
+    "OkayBoomer",
+    "FeelsBadMan",
+    "FeelsGoodMan",
+    "SadFrog",
+    "SuccessKid",
+    "DistractedBoyfriend",
+    "WomanYellingAtCat",
+    "Drakeposting",
+    "BuffDoge",
+    "Cheems",
+    "YOLO",
+    "ROFL",
+    "LMAO",
+    "Bruh",
+    "Yeet",
+    "Skrrt",
+    "Sus",
+    "Simp",
+    "Cap",
+    "NoCap"};
 const char* hacker_parts[] = {
     "ZeroCool",
+    "Malwarebytes",
+    "BitDefender",
+    "Kaspersky",
+    "Norton",
+    "McAfee",
+    "Avast",
+    "AVG",
+    "Malware",
+    "Spyware",
+    "Ransomware",
+    "Firewall",
+    "Antivirus",
+    "Encryption",
+    "Decryption",
+    "Hash",
+    "Algorithm",
+    "Exploit",
+    "Vulnerability",
+    "Patch",
+    "Security",
     "AcidBurn",
     "CrashOverride",
     "TheMentor",
@@ -243,7 +301,6 @@ const char* hacker_parts[] = {
     "HackLord",
     "CyberQueen"};
 
-// для словаря
 NicknameCategory categories[] = {
     {"Classic", classic_parts, sizeof(classic_parts) / sizeof(classic_parts[0])},
     {"Meme", meme_parts, sizeof(meme_parts) / sizeof(meme_parts[0])},
@@ -258,12 +315,25 @@ void generate_nickname() {
         strcpy(nickname, "");
 
         while(strlen(nickname) < MAX_NICKNAME_LENGTH) {
-            int random_index = rand() % categories[current_category].num_parts;
-            if(strlen(nickname) + strlen(categories[current_category].parts[random_index]) <=
-               MAX_NICKNAME_LENGTH) {
+            // Добавляем часть из словаря
+            size_t random_index = rand() % categories[current_category].num_parts;
+            size_t part_length = strlen(categories[current_category].parts[random_index]);
+
+            if(strlen(nickname) + part_length <= MAX_NICKNAME_LENGTH) {
                 strcat(nickname, categories[current_category].parts[random_index]);
             } else {
                 break;
+            }
+
+            // С вероятностью 90% добавляем случайную цифру
+            if(rand() % 10 < 9 && strlen(nickname) < MAX_NICKNAME_LENGTH) {
+                char digit[3]; // Увеличиваем размер массива до 3
+                snprintf(
+                    digit,
+                    sizeof(digit),
+                    "%d",
+                    rand() % 10); // Используем snprintf для безопасности
+                strcat(nickname, digit);
             }
         }
         nickname[MAX_NICKNAME_LENGTH] = '\0';
