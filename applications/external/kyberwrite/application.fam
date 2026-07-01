@@ -1,0 +1,14 @@
+App(
+    appid="kyberwrite",
+    name="KyberWrite",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="kyberwrite_app",
+    requires=["gui", "dialogs"],
+    stack_size=2 * 1024,
+    fap_icon="kyberwrite_icon.png",
+    fap_category="RFID",
+    fap_author="Spandox",
+    fap_version="0.1.0",
+    fap_description="Program EM4x05 tubes as Disney Galaxy's Edge kyber crystals",
+    fap_icon_assets="icons",
+)
