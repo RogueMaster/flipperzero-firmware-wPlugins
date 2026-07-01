@@ -13,29 +13,29 @@
 
 #include <ck42x_dopewars_icons.h>
 
-#define DW_TAG "DopeFlipper"
-#define DW_DRUGS 8
-#define DW_LOCS  10
-#define DW_LABELS 32
-#define DW_LABEL_LEN 64
-#define DW_MSG_LEN 384
-#define DW_SAVE_MAGIC 0x44573432UL /* DW42 */
-#define DW_SAVE_VERSION 2
-#define DW_APP_DATA_ROOT EXT_PATH("apps_data")
-#define DW_SAVE_DIR EXT_PATH("apps_data/ck42x_dopewars")
-#define DW_SAVE_PATH EXT_PATH("apps_data/ck42x_dopewars/save.bin")
-#define DW_PROFILE_PATH EXT_PATH("apps_data/ck42x_dopewars/profile.txt")
+#define DW_TAG                "DopeFlipper"
+#define DW_DRUGS              8
+#define DW_LOCS               10
+#define DW_LABELS             32
+#define DW_LABEL_LEN          64
+#define DW_MSG_LEN            384
+#define DW_SAVE_MAGIC         0x44573432UL /* DW42 */
+#define DW_SAVE_VERSION       2
+#define DW_APP_DATA_ROOT      EXT_PATH("apps_data")
+#define DW_SAVE_DIR           EXT_PATH("apps_data/ck42x_dopewars")
+#define DW_SAVE_PATH          EXT_PATH("apps_data/ck42x_dopewars/save.bin")
+#define DW_PROFILE_PATH       EXT_PATH("apps_data/ck42x_dopewars/profile.txt")
 #define DW_STATS_PROFILE_PATH EXT_PATH("apps_data/ck42x_dopewars/stats.ck42x")
-#define DW_BADUSB_WIN_PATH EXT_PATH("apps_data/ck42x_dopewars/global_windows.txt")
-#define DW_BADUSB_LINUX_PATH EXT_PATH("apps_data/ck42x_dopewars/global_linux.txt")
-#define DW_BADUSB_MAC_PATH EXT_PATH("apps_data/ck42x_dopewars/global_mac.txt")
-#define DW_LEADERBOARD_URL "https://www.ck42x.com/dopeflipper"
-#define DW_STATS_MAGIC 0x44575354UL /* DWST */
-#define DW_STATS_VERSION 3
-#define DW_STATS_PATH EXT_PATH("apps_data/ck42x_dopewars/stats.bin")
-#define DW_LEADERBOARD_SIZE 5
-#define DW_FIGHT_SEQ_MAX 8
-#define DW_RUN_BULLETS_MAX 4
+#define DW_BADUSB_WIN_PATH    EXT_PATH("apps_data/ck42x_dopewars/global_windows.txt")
+#define DW_BADUSB_LINUX_PATH  EXT_PATH("apps_data/ck42x_dopewars/global_linux.txt")
+#define DW_BADUSB_MAC_PATH    EXT_PATH("apps_data/ck42x_dopewars/global_mac.txt")
+#define DW_LEADERBOARD_URL    "https://www.ck42x.com/dopeflipper"
+#define DW_STATS_MAGIC        0x44575354UL /* DWST */
+#define DW_STATS_VERSION      3
+#define DW_STATS_PATH         EXT_PATH("apps_data/ck42x_dopewars/stats.bin")
+#define DW_LEADERBOARD_SIZE   5
+#define DW_FIGHT_SEQ_MAX      8
+#define DW_RUN_BULLETS_MAX    4
 
 #define DW_PRODUCT_BASE 100
 #define DW_TRAVEL_BASE  200
@@ -302,7 +302,8 @@ static const DwDrug dw_drugs[DW_DRUGS] = {
     {"Oxy", "[O]", 3000, 15000, 2000, 40000},
 };
 
-static const char* dw_drug_keys[DW_DRUGS] = {"weed", "shrooms", "acid", "ecstasy", "speed", "cocaine", "heroin", "oxy"};
+static const char* dw_drug_keys[DW_DRUGS] =
+    {"weed", "shrooms", "acid", "ecstasy", "speed", "cocaine", "heroin", "oxy"};
 
 static const DwLocation dw_locations[DW_LOCS] = {
     {"Bronx", "Burnt-out buildings and opportunity.", {70, 80, 90, 85, 75, 100, 100, 110}},
@@ -399,7 +400,6 @@ static const uint8_t dw_title_xbm[1024] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
-
 static void dw_show_loading(DwApp* app);
 static void dw_show_title(DwApp* app);
 static void dw_show_main(DwApp* app);
@@ -431,8 +431,21 @@ static void dw_append(char* dst, size_t size, const char* line);
 static uint32_t dw_run_play_seconds(DwApp* app);
 static uint32_t dw_score_code(DwApp* app, int32_t net, int32_t profit);
 static uint32_t dw_profile_hash(DwApp* app, int32_t net, int32_t profit, int32_t inv_value);
-static void dw_export_profile(DwApp* app, int32_t net, int32_t profit, int32_t inv_value, uint32_t score_code, bool finished);
-static void dw_export_stats_profile(DwApp* app, int32_t net, int32_t profit, int32_t inv_value, uint32_t score_code, uint32_t profile_hash, bool finished);
+static void dw_export_profile(
+    DwApp* app,
+    int32_t net,
+    int32_t profit,
+    int32_t inv_value,
+    uint32_t score_code,
+    bool finished);
+static void dw_export_stats_profile(
+    DwApp* app,
+    int32_t net,
+    int32_t profit,
+    int32_t inv_value,
+    uint32_t score_code,
+    uint32_t profile_hash,
+    bool finished);
 static void dw_autosync_stats_profile(DwApp* app, bool finished);
 static int32_t dw_run_inventory_value(DwApp* app, bool local_prices);
 static int32_t dw_run_net(DwApp* app, bool local_prices);
@@ -460,14 +473,16 @@ static uint32_t dw_rand_range(uint32_t min, uint32_t max) {
 
 static uint16_t dw_coat_used(DwApp* app) {
     uint16_t used = 0;
-    for(uint8_t i = 0; i < DW_DRUGS; i++) used += app->inventory[i];
+    for(uint8_t i = 0; i < DW_DRUGS; i++)
+        used += app->inventory[i];
     return used;
 }
 
 static int32_t dw_run_inventory_value(DwApp* app, bool local_prices) {
     int32_t inv_value = 0;
     for(uint8_t i = 0; i < DW_DRUGS; i++) {
-        int32_t price = local_prices ? app->prices[i] : (int32_t)((dw_drugs[i].min + dw_drugs[i].max) / 2);
+        int32_t price = local_prices ? app->prices[i] :
+                                       (int32_t)((dw_drugs[i].min + dw_drugs[i].max) / 2);
         inv_value += app->inventory[i] * price;
     }
     return inv_value;
@@ -482,7 +497,8 @@ static uint8_t dw_days_elapsed(DwApp* app) {
 }
 
 static uint8_t dw_run_pressure(DwApp* app) {
-    uint16_t pressure = app->heat + (uint16_t)dw_days_elapsed(app) * 2U + (uint16_t)app->cop_streak * 3U;
+    uint16_t pressure =
+        app->heat + (uint16_t)dw_days_elapsed(app) * 2U + (uint16_t)app->cop_streak * 3U;
     return pressure > 100 ? 100 : (uint8_t)pressure;
 }
 
@@ -565,7 +581,6 @@ static uint32_t dw_profile_hash(DwApp* app, int32_t net, int32_t profit, int32_t
     return code ? code : 1;
 }
 
-
 static uint32_t dw_hash_u32(uint32_t seed, uint32_t value) {
     uint32_t code = seed;
     for(uint8_t b = 0; b < 4; b++) {
@@ -609,7 +624,8 @@ static void dw_sanitize_device_name(char* out, size_t out_size, const char* name
     size_t j = 0;
     for(size_t i = 0; name[i] && j + 1 < out_size; i++) {
         char c = name[i];
-        bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-' || c == '.';
+        bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+                  c == '_' || c == '-' || c == '.';
         out[j++] = ok ? c : '_';
     }
     out[j] = '\0';
@@ -617,7 +633,8 @@ static void dw_sanitize_device_name(char* out, size_t out_size, const char* name
 }
 
 static uint32_t dw_stats_seed_for_device(const char* device_name) {
-    uint32_t seed = dw_hash_cstr_seed(2166136261UL, device_name && *device_name ? device_name : "Flipper");
+    uint32_t seed =
+        dw_hash_cstr_seed(2166136261UL, device_name && *device_name ? device_name : "Flipper");
     seed ^= 0xA7D042C3UL;
     seed *= 16777619UL;
     return seed ? seed : 0x6D2B79F5UL;
@@ -631,7 +648,11 @@ static uint32_t dw_stats_stream_next(uint32_t state) {
     return state ? state : 0x6D2B79F5UL;
 }
 
-static void dw_encode_stats_hex(const char* payload, char* encoded, size_t encoded_size, const char* device_name) {
+static void dw_encode_stats_hex(
+    const char* payload,
+    char* encoded,
+    size_t encoded_size,
+    const char* device_name) {
     static const char hex[] = "0123456789ABCDEF";
     if(!payload || !encoded || encoded_size == 0) return;
     uint32_t state = dw_stats_seed_for_device(device_name);
@@ -645,8 +666,13 @@ static void dw_encode_stats_hex(const char* payload, char* encoded, size_t encod
     encoded[out] = '\0';
 }
 
-static uint32_t dw_device_lock(const char* device_name, uint32_t score_code, uint32_t profile_hash, uint32_t games_played) {
-    uint32_t code = dw_hash_cstr_seed(2166136261UL, device_name && *device_name ? device_name : "Flipper");
+static uint32_t dw_device_lock(
+    const char* device_name,
+    uint32_t score_code,
+    uint32_t profile_hash,
+    uint32_t games_played) {
+    uint32_t code =
+        dw_hash_cstr_seed(2166136261UL, device_name && *device_name ? device_name : "Flipper");
     code = dw_hash_u32(code, score_code);
     code = dw_hash_u32(code, profile_hash);
     code = dw_hash_u32(code, games_played);
@@ -655,9 +681,15 @@ static uint32_t dw_device_lock(const char* device_name, uint32_t score_code, uin
     return code ? code : 1;
 }
 
-static uint32_t dw_encoded_profile_seal(const char* encoded, const char* device_name, uint32_t score_code, uint32_t profile_hash) {
+static uint32_t dw_encoded_profile_seal(
+    const char* encoded,
+    const char* device_name,
+    uint32_t score_code,
+    uint32_t profile_hash) {
     uint32_t code = dw_hash_cstr_seed(2166136261UL, encoded);
-    code = dw_hash_u32(code, dw_hash_cstr_seed(2166136261UL, device_name && *device_name ? device_name : "Flipper"));
+    code = dw_hash_u32(
+        code,
+        dw_hash_cstr_seed(2166136261UL, device_name && *device_name ? device_name : "Flipper"));
     code = dw_hash_u32(code, score_code);
     code = dw_hash_u32(code, profile_hash);
     code ^= 0x51A7C0DEUL;
@@ -671,7 +703,15 @@ static uint32_t dw_run_play_seconds(DwApp* app) {
     return elapsed_ticks / furi_kernel_get_tick_frequency();
 }
 
-static int dw_format_profile(DwApp* app, char* profile, size_t profile_size, int32_t net, int32_t profit, int32_t inv_value, uint32_t score_code, bool finished) {
+static int dw_format_profile(
+    DwApp* app,
+    char* profile,
+    size_t profile_size,
+    int32_t net,
+    int32_t profit,
+    int32_t inv_value,
+    uint32_t score_code,
+    bool finished) {
     if(!app || !profile || profile_size == 0) return -1;
     uint32_t profile_hash = dw_profile_hash(app, net, profit, inv_value);
     return snprintf(
@@ -743,13 +783,21 @@ static void dw_hex_encode(const char* input, size_t input_len, char* output, siz
     output[out] = '\0';
 }
 
-static void dw_export_stats_profile(DwApp* app, int32_t net, int32_t profit, int32_t inv_value, uint32_t score_code, uint32_t profile_hash, bool finished) {
+static void dw_export_stats_profile(
+    DwApp* app,
+    int32_t net,
+    int32_t profit,
+    int32_t inv_value,
+    uint32_t score_code,
+    uint32_t profile_hash,
+    bool finished) {
     static char device_name[32];
     static char payload[2304];
     static char product_lines[1024];
     static char encoded[4609];
     static char package[5120];
-    dw_sanitize_device_name(device_name, sizeof(device_name), furi_hal_version_get_device_name_ptr());
+    dw_sanitize_device_name(
+        device_name, sizeof(device_name), furi_hal_version_get_device_name_ptr());
     product_lines[0] = '\0';
     for(uint8_t i = 0; i < DW_DRUGS; i++) {
         char line[128];
@@ -767,7 +815,8 @@ static void dw_export_stats_profile(DwApp* app, int32_t net, int32_t profit, int
             (long)app->sell_value[i]);
         dw_append(product_lines, sizeof(product_lines), line);
     }
-    uint32_t device_lock = dw_device_lock(device_name, score_code, profile_hash, app->stats.games_played);
+    uint32_t device_lock =
+        dw_device_lock(device_name, score_code, profile_hash, app->stats.games_played);
     int payload_len = snprintf(
         payload,
         sizeof(payload),
@@ -869,7 +918,8 @@ static void dw_export_stats_profile(DwApp* app, int32_t net, int32_t profit, int
     if(storage_file_open(file, DW_STATS_PROFILE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         size_t written = storage_file_write(file, package, bytes);
         storage_file_sync(file);
-        if(written != bytes) FURI_LOG_W(DW_TAG, "Stats profile write short: %u", (unsigned)written);
+        if(written != bytes)
+            FURI_LOG_W(DW_TAG, "Stats profile write short: %u", (unsigned)written);
     } else {
         FURI_LOG_W(DW_TAG, "Could not open stats profile for write");
     }
@@ -918,10 +968,12 @@ static bool dw_build_global_url(DwApp* app, char* url, size_t url_size) {
     uint32_t score_code = dw_score_code(app, net, profit);
     char profile[1024];
     char encoded[2049];
-    int len = dw_format_profile(app, profile, sizeof(profile), net, profit, inv_value, score_code, finished);
+    int len = dw_format_profile(
+        app, profile, sizeof(profile), net, profit, inv_value, score_code, finished);
     if(len <= 0 || (size_t)len >= sizeof(profile)) return false;
     dw_hex_encode(profile, (size_t)len, encoded, sizeof(encoded));
-    int url_len = snprintf(url, url_size, "%s?profile_hex=%s&submit=1", DW_LEADERBOARD_URL, encoded);
+    int url_len =
+        snprintf(url, url_size, "%s?profile_hex=%s&submit=1", DW_LEADERBOARD_URL, encoded);
     return url_len > 0 && (size_t)url_len < url_size;
 }
 
@@ -934,20 +986,31 @@ static bool dw_prepare_badusb_script(DwApp* app, const char* path, const char* o
     if(strcmp(os_name, "windows") == 0) {
         snprintf(script, sizeof(script), "DELAY 700\nGUI r\nDELAY 450\nSTRING %s\nENTER\n", url);
     } else if(strcmp(os_name, "linux") == 0) {
-        snprintf(script, sizeof(script), "DELAY 700\nALT F2\nDELAY 450\nSTRING xdg-open %s\nENTER\n", url);
+        snprintf(
+            script,
+            sizeof(script),
+            "DELAY 700\nALT F2\nDELAY 450\nSTRING xdg-open %s\nENTER\n",
+            url);
     } else {
-        snprintf(script, sizeof(script), "DELAY 700\nGUI SPACE\nDELAY 600\nSTRING %s\nENTER\n", url);
+        snprintf(
+            script, sizeof(script), "DELAY 700\nGUI SPACE\nDELAY 600\nSTRING %s\nENTER\n", url);
     }
     return dw_write_text_file(path, script);
 }
 
 static void dw_run_global_badusb(DwApp* app, const char* path, const char* os_name) {
     if(app->day != 0) {
-        dw_show_status(app, "Global Board", "Finish a run first.\n\nFallback site:\nhttps://www.ck42x.com/dopeflipper");
+        dw_show_status(
+            app,
+            "Global Board",
+            "Finish a run first.\n\nFallback site:\nhttps://www.ck42x.com/dopeflipper");
         return;
     }
     if(!dw_prepare_badusb_script(app, path, os_name)) {
-        dw_show_status(app, "Global Board", "Could not build BadUSB script.\n\nFallback site:\nhttps://www.ck42x.com/dopeflipper\nProfile file:\n/ext/apps_data/ck42x_dopewars/profile.txt");
+        dw_show_status(
+            app,
+            "Global Board",
+            "Could not build BadUSB script.\n\nFallback site:\nhttps://www.ck42x.com/dopeflipper\nProfile file:\n/ext/apps_data/ck42x_dopewars/profile.txt");
         return;
     }
     Loader* loader = furi_record_open(RECORD_LOADER);
@@ -956,9 +1019,16 @@ static void dw_run_global_badusb(DwApp* app, const char* path, const char* os_na
     view_dispatcher_stop(app->dispatcher);
 }
 
-static void dw_export_profile(DwApp* app, int32_t net, int32_t profit, int32_t inv_value, uint32_t score_code, bool finished) {
+static void dw_export_profile(
+    DwApp* app,
+    int32_t net,
+    int32_t profit,
+    int32_t inv_value,
+    uint32_t score_code,
+    bool finished) {
     char profile[1024];
-    int len = dw_format_profile(app, profile, sizeof(profile), net, profit, inv_value, score_code, finished);
+    int len = dw_format_profile(
+        app, profile, sizeof(profile), net, profit, inv_value, score_code, finished);
     if(len <= 0) return;
     size_t bytes = (size_t)len;
     if(bytes >= sizeof(profile)) bytes = sizeof(profile) - 1;
@@ -1196,7 +1266,6 @@ static void dw_delete_save(void) {
     furi_record_close(RECORD_STORAGE);
 }
 
-
 static uint32_t dw_stats_checksum(DwStats* stats) {
     uint32_t old = stats->checksum;
     stats->checksum = 0;
@@ -1321,7 +1390,8 @@ static void dw_save_stats(DwApp* app) {
     if(storage_file_open(file, DW_STATS_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         size_t written = storage_file_write(file, &app->stats, sizeof(app->stats));
         storage_file_sync(file);
-        if(written != sizeof(app->stats)) FURI_LOG_W(DW_TAG, "Stats write short: %u", (unsigned)written);
+        if(written != sizeof(app->stats))
+            FURI_LOG_W(DW_TAG, "Stats write short: %u", (unsigned)written);
     } else {
         FURI_LOG_W(DW_TAG, "Could not open stats for write");
     }
@@ -1365,7 +1435,8 @@ static void dw_update_stats(DwApp* app, int32_t net, int32_t profit, int32_t inv
     if(net >= 0) {
         app->stats.wins++;
         app->stats.current_streak++;
-        if(app->stats.current_streak > app->stats.best_streak) app->stats.best_streak = app->stats.current_streak;
+        if(app->stats.current_streak > app->stats.best_streak)
+            app->stats.best_streak = app->stats.current_streak;
     } else {
         app->stats.losses++;
         app->stats.current_streak = 0;
@@ -1418,7 +1489,8 @@ static void dw_new_game(DwApp* app) {
     app->run_caught = 0;
     app->action_count = 0;
     app->run_started_tick = furi_get_tick();
-    app->run_chain = dw_hash_u32(furi_hal_random_get() ^ 0xD042A17CUL, app->stats.games_played + 1);
+    app->run_chain =
+        dw_hash_u32(furi_hal_random_get() ^ 0xD042A17CUL, app->stats.games_played + 1);
     app->selected_product = 0;
     app->pending_officers = 0;
     app->coat_offer = false;
@@ -1452,7 +1524,12 @@ static void dw_generate_prices(DwApp* app, int8_t override[DW_DRUGS]) {
 static void dw_start_round(DwApp* app) {
     int8_t overrides[DW_DRUGS];
     memset(overrides, 0, sizeof(overrides));
-    snprintf(app->last_msg, sizeof(app->last_msg), "%s\n%s\n", dw_locations[app->location].name, dw_locations[app->location].flavor);
+    snprintf(
+        app->last_msg,
+        sizeof(app->last_msg),
+        "%s\n%s\n",
+        dw_locations[app->location].name,
+        dw_locations[app->location].flavor);
 
     uint8_t market_hits = 0;
     for(size_t i = 0; i < COUNT_OF(dw_market_events); i++) {
@@ -1477,7 +1554,11 @@ static void dw_start_round(DwApp* app) {
             app->cash -= squeeze;
             app->heat = MIN(100, app->heat + 5);
             char line[96];
-            snprintf(line, sizeof(line), "Shark pressure. Paid $%ld to stay breathing.\n", (long)squeeze);
+            snprintf(
+                line,
+                sizeof(line),
+                "Shark pressure. Paid $%ld to stay breathing.\n",
+                (long)squeeze);
             dw_append(app->last_msg, sizeof(app->last_msg), line);
         }
     }
@@ -1506,7 +1587,10 @@ static void dw_start_round(DwApp* app) {
     if(!app->coat_offer && dw_rand(100) < 4 && app->cash >= 750) {
         app->coat_offer = true;
         app->coat_increase = dw_rand_range(15, 40);
-        dw_append(app->last_msg, sizeof(app->last_msg), "Coat dealer found. Buy deeper pockets from main menu.\n");
+        dw_append(
+            app->last_msg,
+            sizeof(app->last_msg),
+            "Coat dealer found. Buy deeper pockets from main menu.\n");
     }
 }
 
@@ -1524,7 +1608,6 @@ static bool dw_cop_check(DwApp* app) {
     }
     return false;
 }
-
 
 static void dw_set_topbar(DwApp* app, const char* screen) {
     snprintf(
@@ -1566,7 +1649,8 @@ static void dw_draw_location_art(Canvas* canvas, uint8_t loc) {
         canvas_draw_line(canvas, 0, 47, 127, 47);
         canvas_draw_line(canvas, 0, 21, 84, 21);
         canvas_draw_line(canvas, 4, 18, 88, 18);
-        for(int32_t x = 8; x < 82; x += 14) canvas_draw_line(canvas, x, 18, x + 5, 47);
+        for(int32_t x = 8; x < 82; x += 14)
+            canvas_draw_line(canvas, x, 18, x + 5, 47);
         dw_draw_building(canvas, 92, 22, 18, 25);
         canvas_draw_line(canvas, 93, 31, 109, 24);
         canvas_draw_line(canvas, 93, 24, 109, 31);
@@ -1591,13 +1675,15 @@ static void dw_draw_location_art(Canvas* canvas, uint8_t loc) {
         canvas_draw_line(canvas, 28, 21, 64, 42);
         canvas_draw_line(canvas, 64, 42, 99, 21);
         canvas_draw_line(canvas, 99, 21, 127, 31);
-        for(int32_t x = 10; x < 120; x += 12) canvas_draw_line(canvas, x, 33, x + 2, 51);
+        for(int32_t x = 10; x < 120; x += 12)
+            canvas_draw_line(canvas, x, 33, x + 2, 51);
         canvas_draw_str_aligned(canvas, 64, 18, AlignCenter, AlignBottom, "BRIDGE");
         break;
     case 3: /* Queens */
         canvas_draw_line(canvas, 0, 24, 127, 24);
         canvas_draw_line(canvas, 0, 27, 127, 27);
-        for(int32_t x = 6; x < 122; x += 15) canvas_draw_line(canvas, x, 24, x - 4, 50);
+        for(int32_t x = 6; x < 122; x += 15)
+            canvas_draw_line(canvas, x, 24, x - 4, 50);
         canvas_draw_frame(canvas, 18, 15, 42, 9);
         canvas_draw_frame(canvas, 68, 15, 42, 9);
         for(int32_t x = 5; x < 122; x += 20) {
@@ -1608,7 +1694,8 @@ static void dw_draw_location_art(Canvas* canvas, uint8_t loc) {
         break;
     case 4: /* Staten */
         for(int32_t y = 45; y < 55; y += 4) {
-            for(int32_t x = 0; x < 128; x += 16) canvas_draw_line(canvas, x, y, x + 8, y + 2);
+            for(int32_t x = 0; x < 128; x += 16)
+                canvas_draw_line(canvas, x, y, x + 8, y + 2);
         }
         canvas_draw_line(canvas, 24, 38, 93, 38);
         canvas_draw_line(canvas, 31, 28, 85, 28);
@@ -1648,7 +1735,8 @@ static void dw_art_draw_callback(Canvas* canvas, void* model) {
         canvas_draw_frame(canvas, 18, 22, 92, 20);
         canvas_draw_str_aligned(canvas, 64, 36, AlignCenter, AlignCenter, "DOPE WARS");
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 56, AlignCenter, AlignCenter, "loading street intel...");
+        canvas_draw_str_aligned(
+            canvas, 64, 56, AlignCenter, AlignCenter, "loading street intel...");
         return;
     }
 
@@ -1747,21 +1835,36 @@ static const uint8_t* dw_edge_glyph(char c) {
     static const uint8_t slash[] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x00, 0x00};
 
     switch(c) {
-    case 'A': return a;
-    case 'B': return b;
-    case 'D': return d;
-    case 'E': return e;
-    case 'L': return l;
-    case 'N': return n;
-    case 'O': return o;
-    case 'R': return r;
-    case 'S': return s;
-    case 'T': return t;
-    case 'U': return u;
-    case 'V': return v;
-    case 'Y': return y;
-    case '/': return slash;
-    default: return NULL;
+    case 'A':
+        return a;
+    case 'B':
+        return b;
+    case 'D':
+        return d;
+    case 'E':
+        return e;
+    case 'L':
+        return l;
+    case 'N':
+        return n;
+    case 'O':
+        return o;
+    case 'R':
+        return r;
+    case 'S':
+        return s;
+    case 'T':
+        return t;
+    case 'U':
+        return u;
+    case 'V':
+        return v;
+    case 'Y':
+        return y;
+    case '/':
+        return slash;
+    default:
+        return NULL;
     }
 }
 
@@ -1788,7 +1891,15 @@ static void dw_draw_edge_label(Canvas* canvas, int32_t x, int32_t y, const char*
     }
 }
 
-static void dw_draw_button(Canvas* canvas, int32_t x, int32_t y, size_t w, size_t h, const char* label, bool active, bool primary) {
+static void dw_draw_button(
+    Canvas* canvas,
+    int32_t x,
+    int32_t y,
+    size_t w,
+    size_t h,
+    const char* label,
+    bool active,
+    bool primary) {
     canvas_set_color(canvas, ColorBlack);
     if(active) {
         canvas_draw_rbox(canvas, x, y, w, h, 3);
@@ -1796,7 +1907,8 @@ static void dw_draw_button(Canvas* canvas, int32_t x, int32_t y, size_t w, size_
     } else {
         canvas_draw_rframe(canvas, x, y, w, h, 3);
         if(primary) {
-            canvas_draw_line(canvas, x + 3, y + (int32_t)h - 3, x + (int32_t)w - 4, y + (int32_t)h - 3);
+            canvas_draw_line(
+                canvas, x + 3, y + (int32_t)h - 3, x + (int32_t)w - 4, y + (int32_t)h - 3);
         }
     }
 
@@ -1840,12 +1952,22 @@ static void dw_trade_draw_callback(Canvas* canvas, DwApp* app) {
     canvas_draw_box(canvas, 0, 0, 128, 10);
     canvas_set_color(canvas, ColorWhite);
     canvas_set_font(canvas, FontSecondary);
-    snprintf(app->header, sizeof(app->header), "%s %s", app->trade_sell ? "SELL" : "BUY", dw_locations[app->location].name);
+    snprintf(
+        app->header,
+        sizeof(app->header),
+        "%s %s",
+        app->trade_sell ? "SELL" : "BUY",
+        dw_locations[app->location].name);
     canvas_draw_str(canvas, 1, 8, app->header);
     canvas_set_color(canvas, ColorBlack);
 
     canvas_set_font(canvas, FontPrimary);
-    snprintf(app->labels[0], sizeof(app->labels[0]), "%s = $%ld", dw_drugs[i].name, (long)app->prices[i]);
+    snprintf(
+        app->labels[0],
+        sizeof(app->labels[0]),
+        "%s = $%ld",
+        dw_drugs[i].name,
+        (long)app->prices[i]);
     canvas_draw_str(canvas, 4, 23, app->labels[0]);
     canvas_set_font(canvas, FontSecondary);
     snprintf(
@@ -1857,7 +1979,13 @@ static void dw_trade_draw_callback(Canvas* canvas, DwApp* app) {
         app->inventory[i],
         max_qty == 0 ? " blocked" : "");
     canvas_draw_str(canvas, 4, 35, app->labels[1]);
-    snprintf(app->labels[2], sizeof(app->labels[2]), "Qty %u/%u total $%ld", app->trade_qty, max_qty, (long)total);
+    snprintf(
+        app->labels[2],
+        sizeof(app->labels[2]),
+        "Qty %u/%u total $%ld",
+        app->trade_qty,
+        max_qty,
+        (long)total);
     canvas_draw_str(canvas, 4, 47, app->labels[2]);
     canvas_draw_str(canvas, 1, 62, "UD item  LR qty  OK trade");
 }
@@ -1878,7 +2006,8 @@ static bool dw_trade_input_callback(InputEvent* event, DwApp* app) {
     }
     if(event->key == InputKeyUp || event->key == InputKeyDown) {
         if(event->key == InputKeyUp) {
-            app->selected_product = app->selected_product == 0 ? (DW_DRUGS - 1) : app->selected_product - 1;
+            app->selected_product = app->selected_product == 0 ? (DW_DRUGS - 1) :
+                                                                 app->selected_product - 1;
         } else {
             app->selected_product = (app->selected_product + 1) % DW_DRUGS;
         }
@@ -1965,7 +2094,8 @@ static bool dw_input_to_fight_move(InputKey key, uint8_t* move) {
     return false;
 }
 
-static void dw_draw_bar(Canvas* canvas, int32_t x, int32_t y, int32_t w, uint16_t value, uint16_t max) {
+static void
+    dw_draw_bar(Canvas* canvas, int32_t x, int32_t y, int32_t w, uint16_t value, uint16_t max) {
     if(max == 0) max = 1;
     if(value > max) value = max;
     canvas_draw_frame(canvas, x, y, w, 5);
@@ -1973,7 +2103,8 @@ static void dw_draw_bar(Canvas* canvas, int32_t x, int32_t y, int32_t w, uint16_
     if(fill > 0) canvas_draw_box(canvas, x + 1, y + 1, fill, 3);
 }
 
-static void dw_draw_fight_arrow(Canvas* canvas, int32_t cx, int32_t cy, uint8_t move, bool active) {
+static void
+    dw_draw_fight_arrow(Canvas* canvas, int32_t cx, int32_t cy, uint8_t move, bool active) {
     canvas_set_color(canvas, ColorBlack);
     if(active) {
         canvas_draw_rbox(canvas, cx - 8, cy - 8, 16, 16, 2);
@@ -2007,7 +2138,8 @@ static void dw_draw_fight_arrow(Canvas* canvas, int32_t cx, int32_t cy, uint8_t 
     canvas_set_color(canvas, ColorBlack);
 }
 
-static void dw_draw_fighter(Canvas* canvas, int32_t x, int32_t ground, bool cop, uint8_t move, bool active) {
+static void
+    dw_draw_fighter(Canvas* canvas, int32_t x, int32_t ground, bool cop, uint8_t move, bool active) {
     int32_t dir = cop ? -1 : 1;
     if(active) {
         canvas_draw_line(canvas, x - 10, ground - 27, x - 7, ground - 24);
@@ -2073,7 +2205,8 @@ static void dw_run_reset_bullet(DwApp* app, uint8_t idx) {
     uint8_t other = idx == 0 ? 1 : 0;
     app->run_bullet_x[idx] = (uint8_t)(112 + dw_rand(13));
     app->run_bullet_lane[idx] = dw_rand(3);
-    if(app->run_bullet_count > 1 && app->run_bullet_x[other] > 80 && app->run_bullet_lane[idx] == app->run_bullet_lane[other]) {
+    if(app->run_bullet_count > 1 && app->run_bullet_x[other] > 80 &&
+       app->run_bullet_lane[idx] == app->run_bullet_lane[other]) {
         app->run_bullet_lane[idx] = (app->run_bullet_lane[idx] + 1 + dw_rand(2)) % 3;
     }
 }
@@ -2105,7 +2238,13 @@ static void dw_cop_fight_draw_callback(Canvas* canvas, DwApp* app) {
     canvas_draw_box(canvas, 0, 0, 128, 10);
     canvas_set_color(canvas, ColorWhite);
     canvas_set_font(canvas, FontSecondary);
-    snprintf(app->header, sizeof(app->header), "COP FIGHT x%u H%u S%u", app->pending_officers ? app->pending_officers : 1, app->heat, app->cop_streak);
+    snprintf(
+        app->header,
+        sizeof(app->header),
+        "COP FIGHT x%u H%u S%u",
+        app->pending_officers ? app->pending_officers : 1,
+        app->heat,
+        app->cop_streak);
     canvas_draw_str(canvas, 1, 8, app->header);
     canvas_set_color(canvas, ColorBlack);
 
@@ -2118,19 +2257,30 @@ static void dw_cop_fight_draw_callback(Canvas* canvas, DwApp* app) {
         if(reveal_idx >= app->cop_sequence_len) reveal_idx = app->cop_sequence_len - 1;
         uint8_t move = app->cop_sequence[reveal_idx];
         canvas_draw_str(canvas, 2, 20, "WATCH COMBO");
-        snprintf(app->labels[0], sizeof(app->labels[0]), "%u/%u", (uint8_t)(reveal_idx + 1), app->cop_sequence_len);
+        snprintf(
+            app->labels[0],
+            sizeof(app->labels[0]),
+            "%u/%u",
+            (uint8_t)(reveal_idx + 1),
+            app->cop_sequence_len);
         canvas_draw_str_aligned(canvas, 126, 20, AlignRight, AlignBottom, app->labels[0]);
         dw_draw_bar(canvas, 36, 14, 56, reveal_idx + 1, app->cop_sequence_len);
         dw_draw_fighter(canvas, 31, 51, false, move, true);
         dw_draw_fighter(canvas, 98, 51, true, move, false);
         dw_draw_fight_arrow(canvas, 64, 30, move, true);
-        canvas_draw_str_aligned(canvas, 64, 42, AlignCenter, AlignBottom, dw_fight_move_label(move));
+        canvas_draw_str_aligned(
+            canvas, 64, 42, AlignCenter, AlignBottom, dw_fight_move_label(move));
         for(uint8_t i = 0; i <= reveal_idx && i < app->cop_sequence_len; i++) {
             canvas_draw_str(canvas, 36 + (i * 7), 62, dw_fight_move_arrow(app->cop_sequence[i]));
         }
     } else {
         canvas_draw_str(canvas, 2, 20, "REPEAT COMBO");
-        snprintf(app->labels[0], sizeof(app->labels[0]), "%u/%u", app->cop_sequence_pos, app->cop_sequence_len);
+        snprintf(
+            app->labels[0],
+            sizeof(app->labels[0]),
+            "%u/%u",
+            app->cop_sequence_pos,
+            app->cop_sequence_len);
         canvas_draw_str_aligned(canvas, 126, 20, AlignRight, AlignBottom, app->labels[0]);
         dw_draw_bar(canvas, 36, 14, 56, app->cop_sequence_pos, app->cop_sequence_len);
         dw_draw_fighter(canvas, 31, 51, false, app->cop_sequence_pos, false);
@@ -2153,7 +2303,9 @@ static void dw_cop_fight_draw_callback(Canvas* canvas, DwApp* app) {
 static void dw_cop_run_draw_callback(Canvas* canvas, DwApp* app) {
     static const uint8_t lanes[3] = {24, 39, 54};
     uint16_t goal = app->run_ticks_goal ? app->run_ticks_goal : 1;
-    uint8_t time_left = app->cop_skill_moves >= goal ? 0 : (uint8_t)(((goal - app->cop_skill_moves) * 55U) / 1000U + 1U);
+    uint8_t time_left = app->cop_skill_moves >= goal ?
+                            0 :
+                            (uint8_t)(((goal - app->cop_skill_moves) * 55U) / 1000U + 1U);
     uint8_t max_hits = app->heat > 75 ? 3 : 4;
 
     canvas_clear(canvas);
@@ -2161,7 +2313,13 @@ static void dw_cop_run_draw_callback(Canvas* canvas, DwApp* app) {
     canvas_draw_box(canvas, 0, 0, 128, 10);
     canvas_set_color(canvas, ColorWhite);
     canvas_set_font(canvas, FontSecondary);
-    snprintf(app->header, sizeof(app->header), "COP RUN x%u H%u S%u", app->pending_officers ? app->pending_officers : 1, app->heat, app->cop_streak);
+    snprintf(
+        app->header,
+        sizeof(app->header),
+        "COP RUN x%u H%u S%u",
+        app->pending_officers ? app->pending_officers : 1,
+        app->heat,
+        app->cop_streak);
     canvas_draw_str(canvas, 1, 8, app->header);
     canvas_set_color(canvas, ColorBlack);
 
@@ -2200,7 +2358,8 @@ static void dw_cop_skill_draw_callback(Canvas* canvas, DwApp* app) {
 static void dw_update_cop_fight_game(DwApp* app) {
     if(app->mode != DwModeCopFightGame || app->cop_game_phase != 0) return;
     uint32_t elapsed_ticks = furi_get_tick() - app->cop_skill_started;
-    uint32_t total_ticks = furi_ms_to_ticks(((uint32_t)app->cop_sequence_len * dw_fight_reveal_ms(app)) + 450U);
+    uint32_t total_ticks =
+        furi_ms_to_ticks(((uint32_t)app->cop_sequence_len * dw_fight_reveal_ms(app)) + 450U);
     if(elapsed_ticks >= total_ticks) {
         app->cop_game_phase = 1;
         app->cop_sequence_pos = 0;
@@ -2219,7 +2378,8 @@ static void dw_update_cop_run_game(DwApp* app) {
             continue;
         }
         app->run_bullet_x[i] = x - app->cop_skill_speed;
-        if(app->run_bullet_lane[i] == app->run_lane && app->run_bullet_x[i] <= 16 && app->run_bullet_x[i] >= 8) {
+        if(app->run_bullet_lane[i] == app->run_lane && app->run_bullet_x[i] <= 16 &&
+           app->run_bullet_x[i] >= 8) {
             app->run_hits++;
             dw_sfx_bad();
             dw_run_reset_bullet(app, i);
@@ -2341,7 +2501,8 @@ static bool dw_hub_input_callback(InputEvent* event, void* context) {
         view_dispatcher_stop(app->dispatcher);
         return true;
     } else if(event->key == InputKeyLeft) {
-        uint8_t next = app->hub_selected == 0 ? (uint8_t)(COUNT_OF(dw_hub_events) - 1) : app->hub_selected - 1;
+        uint8_t next = app->hub_selected == 0 ? (uint8_t)(COUNT_OF(dw_hub_events) - 1) :
+                                                app->hub_selected - 1;
         dw_hub_select(app, next);
         return true;
     } else if(event->key == InputKeyRight) {
@@ -2498,10 +2659,12 @@ static void dw_show_global_leaderboard(DwApp* app) {
     submenu_reset(app->submenu);
     dw_set_topbar(app, "GLOBAL");
     submenu_set_header(app->submenu, app->header);
-    submenu_add_item(app->submenu, "Windows BadUSB", DwEventGlobalWindows, dw_submenu_callback, app);
+    submenu_add_item(
+        app->submenu, "Windows BadUSB", DwEventGlobalWindows, dw_submenu_callback, app);
     submenu_add_item(app->submenu, "Linux BadUSB", DwEventGlobalLinux, dw_submenu_callback, app);
     submenu_add_item(app->submenu, "macOS BadUSB", DwEventGlobalMac, dw_submenu_callback, app);
-    submenu_add_item(app->submenu, "Fallback URL", DwEventGlobalFallback, dw_submenu_callback, app);
+    submenu_add_item(
+        app->submenu, "Fallback URL", DwEventGlobalFallback, dw_submenu_callback, app);
     submenu_add_item(app->submenu, "Back", DwEventLeaderboard, dw_submenu_callback, app);
     app->current_view = DwViewMenu;
     view_dispatcher_switch_to_view(app->dispatcher, DwViewMenu);
@@ -2514,13 +2677,19 @@ static void dw_show_leaderboard(DwApp* app) {
     submenu_set_header(app->submenu, app->header);
     snprintf(app->labels[0], sizeof(app->labels[0]), "Best net $%ld", (long)app->stats.best_net);
     snprintf(app->labels[1], sizeof(app->labels[1]), "Rank %s", dw_rank_for(app->stats.best_net));
-    snprintf(app->labels[2], sizeof(app->labels[2]), "Biggest $%ld", (long)app->stats.biggest_deal);
-    snprintf(app->labels[3], sizeof(app->labels[3]), "Games %lu", (unsigned long)app->stats.games_played);
+    snprintf(
+        app->labels[2], sizeof(app->labels[2]), "Biggest $%ld", (long)app->stats.biggest_deal);
+    snprintf(
+        app->labels[3],
+        sizeof(app->labels[3]),
+        "Games %lu",
+        (unsigned long)app->stats.games_played);
     submenu_add_item(app->submenu, app->labels[0], DwEventStatus, dw_submenu_callback, app);
     submenu_add_item(app->submenu, app->labels[1], DwEventStatus, dw_submenu_callback, app);
     submenu_add_item(app->submenu, app->labels[2], DwEventStatus, dw_submenu_callback, app);
     submenu_add_item(app->submenu, app->labels[3], DwEventStatus, dw_submenu_callback, app);
-    submenu_add_item(app->submenu, "Global leaderboard", DwEventGlobalInfo, dw_submenu_callback, app);
+    submenu_add_item(
+        app->submenu, "Global leaderboard", DwEventGlobalInfo, dw_submenu_callback, app);
     submenu_add_item(app->submenu, "Back", DwEventBackMain, dw_submenu_callback, app);
     app->current_view = DwViewMenu;
     view_dispatcher_switch_to_view(app->dispatcher, DwViewMenu);
@@ -2539,7 +2708,8 @@ static void dw_show_product(DwApp* app, uint8_t drug_idx) {
         (long)app->prices[drug_idx],
         app->inventory[drug_idx]);
     submenu_set_header(app->submenu, app->header);
-    int32_t avg = ((dw_drugs[drug_idx].min + dw_drugs[drug_idx].max) / 2) * dw_locations[app->location].bias[drug_idx] / 100;
+    int32_t avg = ((dw_drugs[drug_idx].min + dw_drugs[drug_idx].max) / 2) *
+                  dw_locations[app->location].bias[drug_idx] / 100;
     snprintf(app->labels[0], sizeof(app->labels[0]), "Avg here: $%ld", (long)avg);
     submenu_add_item(app->submenu, app->labels[0], DwEventStatus, dw_submenu_callback, app);
     if(app->trade_sell) {
@@ -2547,7 +2717,8 @@ static void dw_show_product(DwApp* app, uint8_t drug_idx) {
         submenu_add_item(app->submenu, "Sell 5", DwEventSell5, dw_submenu_callback, app);
         submenu_add_item(app->submenu, "Sell 10", DwEventSell10, dw_submenu_callback, app);
         submenu_add_item(app->submenu, "Sell all", DwEventSellAll, dw_submenu_callback, app);
-        submenu_add_item(app->submenu, "Back to SELL", DwEventSellScreen, dw_submenu_callback, app);
+        submenu_add_item(
+            app->submenu, "Back to SELL", DwEventSellScreen, dw_submenu_callback, app);
     } else {
         submenu_add_item(app->submenu, "Buy 1", DwEventBuy1, dw_submenu_callback, app);
         submenu_add_item(app->submenu, "Buy 5", DwEventBuy5, dw_submenu_callback, app);
@@ -2566,8 +2737,14 @@ static void dw_show_travel(DwApp* app) {
     dw_set_topbar(app, "TRAVEL");
     submenu_set_header(app->submenu, app->header);
     for(uint8_t i = 0; i < DW_LOCS; i++) {
-        snprintf(app->labels[i], sizeof(app->labels[i]), "%s%s", i == app->location ? "* " : "", dw_locations[i].name);
-        submenu_add_item(app->submenu, app->labels[i], DW_TRAVEL_BASE + i, dw_submenu_callback, app);
+        snprintf(
+            app->labels[i],
+            sizeof(app->labels[i]),
+            "%s%s",
+            i == app->location ? "* " : "",
+            dw_locations[i].name);
+        submenu_add_item(
+            app->submenu, app->labels[i], DW_TRAVEL_BASE + i, dw_submenu_callback, app);
     }
     submenu_add_item(app->submenu, "Back", DwEventBackMain, dw_submenu_callback, app);
     app->current_view = DwViewMenu;
@@ -2577,9 +2754,16 @@ static void dw_show_travel(DwApp* app) {
 static void dw_show_cop(DwApp* app) {
     app->mode = DwModeCop;
     submenu_reset(app->submenu);
-    snprintf(app->header, sizeof(app->header), "COPS! %u officer%s  STREAK %u", app->pending_officers, app->pending_officers == 1 ? "" : "s", app->cop_streak);
+    snprintf(
+        app->header,
+        sizeof(app->header),
+        "COPS! %u officer%s  STREAK %u",
+        app->pending_officers,
+        app->pending_officers == 1 ? "" : "s",
+        app->cop_streak);
     submenu_set_header(app->submenu, app->header);
-    submenu_add_item(app->submenu, "Fight: loot + heat", DwEventCopFight, dw_submenu_callback, app);
+    submenu_add_item(
+        app->submenu, "Fight: loot + heat", DwEventCopFight, dw_submenu_callback, app);
     submenu_add_item(app->submenu, "Run: cool heat", DwEventCopRun, dw_submenu_callback, app);
     app->current_view = DwViewMenu;
     view_dispatcher_switch_to_view(app->dispatcher, DwViewMenu);
@@ -2589,7 +2773,8 @@ static void dw_show_status(DwApp* app, const char* title, const char* body) {
     widget_reset(app->widget);
     snprintf(app->text, sizeof(app->text), "\e#%s\n%s", title, body);
     widget_add_text_scroll_element(app->widget, 0, 0, 128, 52, app->text);
-    widget_add_button_element(app->widget, GuiButtonTypeLeft, "Back", dw_widget_button_callback, app);
+    widget_add_button_element(
+        app->widget, GuiButtonTypeLeft, "Back", dw_widget_button_callback, app);
     app->current_view = DwViewWidget;
     view_dispatcher_switch_to_view(app->dispatcher, DwViewWidget);
 }
@@ -2644,7 +2829,13 @@ static void dw_do_buy(DwApp* app, uint16_t requested) {
     if(cost > app->biggest_deal) app->biggest_deal = cost;
     dw_record_action(app, 1, cost, ((uint16_t)i << 8) | qty);
     if(cost > 5000) app->heat = MIN(100, app->heat + (cost / 5000));
-    snprintf(app->last_msg, sizeof(app->last_msg), "Bought %u %s for $%ld.", qty, dw_drugs[i].name, (long)cost);
+    snprintf(
+        app->last_msg,
+        sizeof(app->last_msg),
+        "Bought %u %s for $%ld.",
+        qty,
+        dw_drugs[i].name,
+        (long)cost);
     dw_sfx_buy();
     dw_save_game(app);
     dw_trade_clamp_qty(app, true);
@@ -2673,10 +2864,22 @@ static void dw_do_sell(DwApp* app, uint16_t requested) {
     dw_record_action(app, 2, revenue, ((uint16_t)i << 8) | qty);
     if(revenue > 5000) app->heat = MIN(100, app->heat + (revenue / 8000));
     if(new_big_deal) {
-        snprintf(app->last_msg, sizeof(app->last_msg), "NEW BIG DEAL! Sold %u %s for $%ld.", qty, dw_drugs[i].name, (long)revenue);
+        snprintf(
+            app->last_msg,
+            sizeof(app->last_msg),
+            "NEW BIG DEAL! Sold %u %s for $%ld.",
+            qty,
+            dw_drugs[i].name,
+            (long)revenue);
         dw_sfx_good();
     } else {
-        snprintf(app->last_msg, sizeof(app->last_msg), "Sold %u %s for $%ld.", qty, dw_drugs[i].name, (long)revenue);
+        snprintf(
+            app->last_msg,
+            sizeof(app->last_msg),
+            "Sold %u %s for $%ld.",
+            qty,
+            dw_drugs[i].name,
+            (long)revenue);
     }
     dw_sfx_sell();
     dw_save_game(app);
@@ -2720,7 +2923,8 @@ static void dw_travel_to(DwApp* app, uint8_t loc) {
 static void dw_start_cop_fight(DwApp* app) {
     uint8_t officers = app->pending_officers ? app->pending_officers : 1;
     uint8_t pressure = dw_run_pressure(app);
-    uint8_t len = 3 + (pressure / 28) + ((officers + 1) / 2) + MIN((uint8_t)1, app->cop_streak / 4);
+    uint8_t len =
+        3 + (pressure / 28) + ((officers + 1) / 2) + MIN((uint8_t)1, app->cop_streak / 4);
     if(pressure >= 75) len++;
     if(len < 4) len = 4;
     if(len > DW_FIGHT_SEQ_MAX) len = DW_FIGHT_SEQ_MAX;
@@ -2774,12 +2978,22 @@ static void dw_cop_fight(DwApp* app, uint8_t skill_score) {
     if(result >= 55) {
         app->fight_wins++;
         app->cop_streak = MIN(99, app->cop_streak + 1);
-        int32_t combo_bonus = ((int32_t)app->cop_streak * officers * (skill_score >= 95 ? 140 : 80));
+        int32_t combo_bonus =
+            ((int32_t)app->cop_streak * officers * (skill_score >= 95 ? 140 : 80));
         if((app->cop_streak % 3) == 0) combo_bonus += 750 * officers;
-        int32_t loot = ((int32_t)dw_rand_range(150, 550) * officers) + ((int32_t)skill_score * officers * 5) + combo_bonus;
+        int32_t loot = ((int32_t)dw_rand_range(150, 550) * officers) +
+                       ((int32_t)skill_score * officers * 5) + combo_bonus;
         app->cash += loot;
         app->heat = MIN(100, app->heat + 12 + (officers * 2));
-        snprintf(app->last_msg, sizeof(app->last_msg), "Clean fight! Streak %u. Combo bonus $%ld. Dropped %u cop%s and grabbed $%ld.", app->cop_streak, (long)combo_bonus, officers, officers == 1 ? "" : "s", (long)loot);
+        snprintf(
+            app->last_msg,
+            sizeof(app->last_msg),
+            "Clean fight! Streak %u. Combo bonus $%ld. Dropped %u cop%s and grabbed $%ld.",
+            app->cop_streak,
+            (long)combo_bonus,
+            officers,
+            officers == 1 ? "" : "s",
+            (long)loot);
         dw_sfx_good();
     } else if(result >= 20) {
         app->fight_messy++;
@@ -2787,7 +3001,12 @@ static void dw_cop_fight(DwApp* app, uint8_t skill_score) {
         int32_t loss = (app->cash * (int32_t)(6 + officers * 3)) / 100;
         app->cash -= loss;
         app->heat = MIN(100, app->heat + 15 + (officers * 2));
-        snprintf(app->last_msg, sizeof(app->last_msg), "Messy win. Skill %u%%. You escaped but lost $%ld.", skill_score, (long)loss);
+        snprintf(
+            app->last_msg,
+            sizeof(app->last_msg),
+            "Messy win. Skill %u%%. You escaped but lost $%ld.",
+            skill_score,
+            (long)loss);
         dw_sfx_good();
     } else {
         app->fight_losses++;
@@ -2804,7 +3023,14 @@ static void dw_cop_fight(DwApp* app, uint8_t skill_score) {
         app->cash -= loss;
         app->inventory[drug] -= lost;
         app->heat = MIN(100, app->heat + 22 + (officers * 3));
-        snprintf(app->last_msg, sizeof(app->last_msg), "Lost the fight. Skill %u%%. Cops took $%ld and %u %s.", skill_score, (long)loss, lost, dw_drugs[drug].name);
+        snprintf(
+            app->last_msg,
+            sizeof(app->last_msg),
+            "Lost the fight. Skill %u%%. Cops took $%ld and %u %s.",
+            skill_score,
+            (long)loss,
+            lost,
+            dw_drugs[drug].name);
         dw_sfx_bad();
     }
     app->pending_officers = 0;
@@ -2822,9 +3048,16 @@ static void dw_cop_run(DwApp* app, uint8_t skill_score) {
         app->run_clean++;
         app->cop_streak = MIN(99, app->cop_streak + 1);
         uint8_t drop = dw_heat_drop(app, 3 + officers + (skill_score / 35));
-        int32_t stash_bonus = 75 + ((int32_t)skill_score * officers) + ((int32_t)app->cop_streak * 50);
+        int32_t stash_bonus =
+            75 + ((int32_t)skill_score * officers) + ((int32_t)app->cop_streak * 50);
         app->cash += stash_bonus;
-        snprintf(app->last_msg, sizeof(app->last_msg), "Clean getaway! Streak %u. Heat -%u. Stash saved +$%ld.", app->cop_streak, drop, (long)stash_bonus);
+        snprintf(
+            app->last_msg,
+            sizeof(app->last_msg),
+            "Clean getaway! Streak %u. Heat -%u. Stash saved +$%ld.",
+            app->cop_streak,
+            drop,
+            (long)stash_bonus);
         dw_sfx_good();
     } else if(result >= 10) {
         app->run_messy++;
@@ -2832,7 +3065,12 @@ static void dw_cop_run(DwApp* app, uint8_t skill_score) {
         int32_t fine = dw_rand_range(100, 550) * officers;
         app->cash = app->cash > fine ? app->cash - fine : 0;
         app->heat = MIN(100, app->heat + 4 + officers);
-        snprintf(app->last_msg, sizeof(app->last_msg), "Messy run. Skill %u%%. Ditched them but dropped $%ld.", skill_score, (long)fine);
+        snprintf(
+            app->last_msg,
+            sizeof(app->last_msg),
+            "Messy run. Skill %u%%. Ditched them but dropped $%ld.",
+            skill_score,
+            (long)fine);
         dw_sfx_good();
     } else {
         app->run_caught++;
@@ -2843,7 +3081,14 @@ static void dw_cop_run(DwApp* app, uint8_t skill_score) {
         app->cash = app->cash > fine ? app->cash - fine : 0;
         app->inventory[drug] -= lost;
         app->heat = MIN(100, app->heat + 12 + (officers * 2));
-        snprintf(app->last_msg, sizeof(app->last_msg), "Caught running. Skill %u%%. Lost $%ld and %u %s.", skill_score, (long)fine, lost, dw_drugs[drug].name);
+        snprintf(
+            app->last_msg,
+            sizeof(app->last_msg),
+            "Caught running. Skill %u%%. Lost $%ld and %u %s.",
+            skill_score,
+            (long)fine,
+            lost,
+            dw_drugs[drug].name);
         dw_sfx_bad();
     }
     app->pending_officers = 0;
@@ -2896,9 +3141,12 @@ static void dw_end_game(DwApp* app) {
         app->cops_ran,
         app->heat);
     widget_add_text_scroll_element(app->widget, 0, 0, 128, 52, app->text);
-    widget_add_button_element(app->widget, GuiButtonTypeLeft, "Exit", dw_widget_button_callback, app);
-    widget_add_button_element(app->widget, GuiButtonTypeCenter, "Global", dw_widget_button_callback, app);
-    widget_add_button_element(app->widget, GuiButtonTypeRight, "New", dw_widget_button_callback, app);
+    widget_add_button_element(
+        app->widget, GuiButtonTypeLeft, "Exit", dw_widget_button_callback, app);
+    widget_add_button_element(
+        app->widget, GuiButtonTypeCenter, "Global", dw_widget_button_callback, app);
+    widget_add_button_element(
+        app->widget, GuiButtonTypeRight, "New", dw_widget_button_callback, app);
     app->current_view = DwViewWidget;
     view_dispatcher_switch_to_view(app->dispatcher, DwViewWidget);
 }
@@ -2912,7 +3160,12 @@ static void dw_handle_bank_deposit(DwApp* app) {
     app->bank += amount;
     app->cash = 0;
     dw_record_action(app, 6, amount, 0);
-    snprintf(app->last_msg, sizeof(app->last_msg), "Deposited $%ld. Bank balance $%ld.", (long)amount, (long)app->bank);
+    snprintf(
+        app->last_msg,
+        sizeof(app->last_msg),
+        "Deposited $%ld. Bank balance $%ld.",
+        (long)amount,
+        (long)app->bank);
     dw_save_game(app);
     dw_show_loan(app);
 }
@@ -2945,7 +3198,12 @@ static void dw_handle_loan(DwApp* app, bool all) {
     app->cash -= amount;
     app->debt -= amount;
     dw_record_action(app, 8, amount, all ? 1 : 0);
-    snprintf(app->last_msg, sizeof(app->last_msg), "Repaid $%ld. Debt now $%ld.", (long)amount, (long)app->debt);
+    snprintf(
+        app->last_msg,
+        sizeof(app->last_msg),
+        "Repaid $%ld. Debt now $%ld.",
+        (long)amount,
+        (long)app->debt);
     dw_save_game(app);
     dw_show_loan(app);
 }
@@ -2976,7 +3234,10 @@ static void dw_handle_event(DwApp* app, uint32_t event) {
     } else if(event == DwEventGlobalInfo) {
         dw_show_global_leaderboard(app);
     } else if(event == DwEventGlobalFallback) {
-        dw_show_status(app, "Global Board", "Fallback site:\nhttps://www.ck42x.com/dopeflipper\n\nIf BadUSB fails, connect USB and use Sync Flipper, or upload profile.txt from /ext/apps_data/ck42x_dopewars/.");
+        dw_show_status(
+            app,
+            "Global Board",
+            "Fallback site:\nhttps://www.ck42x.com/dopeflipper\n\nIf BadUSB fails, connect USB and use Sync Flipper, or upload profile.txt from /ext/apps_data/ck42x_dopewars/.");
     } else if(event == DwEventGlobalWindows) {
         dw_run_global_badusb(app, DW_BADUSB_WIN_PATH, "windows");
     } else if(event == DwEventGlobalLinux) {
@@ -3000,7 +3261,10 @@ static void dw_handle_event(DwApp* app, uint32_t event) {
     } else if(event == DwEventStatsScreen) {
         dw_show_stats(app);
     } else if(event == DwEventAbout) {
-        dw_show_status(app, "DopeFlipper", "CK42X pocket market game.\n\nBuy low. Sell high. Pay the shark before 30 days run out.");
+        dw_show_status(
+            app,
+            "DopeFlipper",
+            "CK42X pocket market game.\n\nBuy low. Sell high. Pay the shark before 30 days run out.");
     } else if(event == DwEventSaveNow) {
         dw_save_game(app);
         snprintf(app->last_msg, sizeof(app->last_msg), "Run saved to SD card.");
@@ -3022,7 +3286,11 @@ static void dw_handle_event(DwApp* app, uint32_t event) {
             app->cash -= 500;
             app->max_coat += app->coat_increase;
             dw_record_action(app, 9, 500, app->coat_increase);
-            snprintf(app->last_msg, sizeof(app->last_msg), "Bought deeper pockets. Capacity now %u.", app->max_coat);
+            snprintf(
+                app->last_msg,
+                sizeof(app->last_msg),
+                "Bought deeper pockets. Capacity now %u.",
+                app->max_coat);
             app->coat_offer = false;
             app->coat_increase = 0;
             dw_sfx_good();
@@ -3086,7 +3354,8 @@ static DwApp* dw_app_alloc(void) {
     app->widget = widget_alloc();
     app->art_view = view_alloc();
     app->hub_view = view_alloc();
-    app->cop_skill_timer = furi_timer_alloc(dw_cop_skill_tick_callback, FuriTimerTypePeriodic, app);
+    app->cop_skill_timer =
+        furi_timer_alloc(dw_cop_skill_tick_callback, FuriTimerTypePeriodic, app);
 
     view_dispatcher_set_event_callback_context(app->dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->dispatcher, dw_custom_event_callback);

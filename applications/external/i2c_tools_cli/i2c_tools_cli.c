@@ -102,9 +102,8 @@ int32_t i2c_tools_cli_app(void* p) {
                     i2ctools->main_view->current_view = MAIN_VIEW;
                 }
             } else if(event.type == InputTypeLong && v == SEND_VIEW) {
-                i2ctools->sender->display = (i2ctools->sender->display == DISPLAY_HEX) ?
-                                                DISPLAY_ASCII :
-                                                DISPLAY_HEX;
+                i2ctools->sender->display =
+                    (i2ctools->sender->display == DISPLAY_HEX) ? DISPLAY_ASCII : DISPLAY_HEX;
             }
         }
         // Up

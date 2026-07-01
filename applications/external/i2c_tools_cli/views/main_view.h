@@ -5,20 +5,20 @@
 #define APP_NAME "I2C Tools"
 
 #define SCAN_MENU_TEXT "Scan"
-#define SCAN_MENU_X 90
-#define SCAN_MENU_Y 7
+#define SCAN_MENU_X    90
+#define SCAN_MENU_Y    7
 
 #define SNIFF_MENU_TEXT "Sniff"
-#define SNIFF_MENU_X 90
-#define SNIFF_MENU_Y 21
+#define SNIFF_MENU_X    90
+#define SNIFF_MENU_Y    21
 
 #define SEND_MENU_TEXT "Send"
-#define SEND_MENU_X 90
-#define SEND_MENU_Y 35
+#define SEND_MENU_X    90
+#define SEND_MENU_Y    35
 
 #define INFOS_MENU_TEXT "Infos"
-#define INFOS_MENU_X 90
-#define INFOS_MENU_Y 49
+#define INFOS_MENU_X    90
+#define INFOS_MENU_Y    49
 
 // Menu
 typedef enum {

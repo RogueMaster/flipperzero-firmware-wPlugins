@@ -28,13 +28,12 @@ void kyberwrite_scene_menu_on_enter(void* context) {
 
     submenu_reset(app->menu);
     submenu_set_header(app->menu, "Kyber Crystal Tool");
-    submenu_add_item(app->menu, "Read Crystal",           MenuIndexRead,        menu_callback, app);
-    submenu_add_item(app->menu, "Quick Change (color)",   MenuIndexQuickChange, menu_callback, app);
-    submenu_add_item(app->menu, "Full Init (new chip)",   MenuIndexFullInit,    menu_callback, app);
+    submenu_add_item(app->menu, "Read Crystal", MenuIndexRead, menu_callback, app);
+    submenu_add_item(app->menu, "Quick Change (color)", MenuIndexQuickChange, menu_callback, app);
+    submenu_add_item(app->menu, "Full Init (new chip)", MenuIndexFullInit, menu_callback, app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, KyberViewMenu);
 }
-
 
 bool kyberwrite_scene_menu_on_event(void* context, SceneManagerEvent event) {
     furi_assert(context);

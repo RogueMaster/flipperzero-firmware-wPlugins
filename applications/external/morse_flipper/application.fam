@@ -1,37 +1,15 @@
-# For details and options, see documentation/AppManifests.md in the firmware tree
-
-import os
-import sys
-
-app_dir = os.path.dirname(app_manifest_path)
-if app_dir and app_dir not in sys.path:
-    sys.path.insert(0, app_dir)
-
-git_commit = "fail"
-git_host = "fail"
-git_built = "fail"
-
-try:
-    import gitver
-
-    git_commit = getattr(gitver, "git_commit", "fail")
-    git_host = getattr(gitver, "git_host", "fail")
-    git_built = getattr(gitver, "git_built", "fail")
-except Exception:
-    pass
-
 App(
     appid="morse_flipper",
     name="Morse Flipper",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="morse_flipper_fap",
-    requires=["gui"],
     stack_size=16 * 1024,
     cdefines=[
         "MORSE_FLIPPER_FAP=1",
-        f'APP_BUILD_COMMIT=\\"{git_commit}\\"',
-        f'APP_BUILD_HOST=\\"{git_host}\\"',
-        f'APP_BUILD_TIME=\\"{git_built}\\"',
+        'APP_BUILD_COMMIT=\\"MARKET\\"',
+        'APP_BUILD_HOST=\\"MARKET\\"',
+        'APP_BUILD_TIME=\\"MARKET\\"',
     ],
     sources=[
         "src/firmware/morse_flipper_fap.c",
@@ -88,11 +66,10 @@ App(
         "src/firmware/trainer_files.c",
         "src/firmware/usb/*.c",
     ],
-    targets=["f7"],
-    fap_category="Tools",
+    fap_icon="morse-flipper.png",
+    fap_category="Sub-GHz",
     fap_version="0.1.69",
-    fap_author="@yo3gnd",
+    fap_author="yo3gnd",
     fap_weburl="https://github.com/yo3gnd/morse-flipper/",
     fap_description="Learn, practise, send, and experiment with Morse code on Flipper Zero.",
-    fap_icon="morse-flipper.png",
 )

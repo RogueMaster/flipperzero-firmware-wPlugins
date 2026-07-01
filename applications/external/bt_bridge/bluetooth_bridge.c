@@ -27,7 +27,7 @@
 
 #define TAG "BleUART"
 
-#include "commit_hash.h"
+// #include "commit_hash.h"
 #ifndef COMMIT_HASH
 #define COMMIT_HASH "dev"
 #endif
@@ -35,7 +35,7 @@
 #define BRIDGE_UART_ID FuriHalSerialIdUsart
 #define BRIDGE_BAUD    115200
 #define UART_BUF_SIZE  512
-#define BLE_BUF_SIZE   8192  /* larger buffer for BLE RX — holds full .fap during update */
+#define BLE_BUF_SIZE   8192 /* larger buffer for BLE RX — holds full .fap during update */
 
 /* Magic prefix for self-update: "\x00FAP" */
 static const uint8_t UPDATE_MAGIC[] = {0x00, 'F', 'A', 'P'};
@@ -68,8 +68,8 @@ typedef struct {
     FuriString* tmp_path;
     uint32_t update_size;
     uint32_t update_received;
-    uint32_t update_crc;  /* expected CRC32 from header */
-    uint8_t* update_buf;  /* RAM buffer for incoming .fap data */
+    uint32_t update_crc; /* expected CRC32 from header */
+    uint8_t* update_buf; /* RAM buffer for incoming .fap data */
     uint8_t magic_pos;
     uint8_t header_buf[8]; /* 4 bytes size + 4 bytes CRC32 */
     uint8_t header_pos;
@@ -81,10 +81,8 @@ typedef struct {
 
 /* ---------- UART RX callback (ISR context) ---------- */
 
-static void uart_rx_callback(
-    FuriHalSerialHandle* handle,
-    FuriHalSerialRxEvent event,
-    void* context) {
+static void
+    uart_rx_callback(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* context) {
     BleUartBridge* app = context;
     if(!app->running) return;
     if(event & FuriHalSerialRxEventData) {
@@ -101,8 +99,7 @@ static uint16_t ble_rx_callback(SerialServiceEvent event, void* context) {
     BleUartBridge* app = context;
     if(!app->running) return 0;
     if(event.event == SerialServiceEventTypeDataReceived && event.data.size > 0) {
-        furi_stream_buffer_send(
-            app->ble_rx_stream, event.data.buffer, event.data.size, 0);
+        furi_stream_buffer_send(app->ble_rx_stream, event.data.buffer, event.data.size, 0);
     }
     return 0;
 }
@@ -162,14 +159,12 @@ static void ble_process_data(BleUartBridge* app, const uint8_t* data, size_t len
         case UpdateSize: {
             app->header_buf[app->header_pos++] = data[pos++];
             if(app->header_pos == 8) {
-                app->update_size = (uint32_t)app->header_buf[0] |
-                                   ((uint32_t)app->header_buf[1] << 8) |
-                                   ((uint32_t)app->header_buf[2] << 16) |
-                                   ((uint32_t)app->header_buf[3] << 24);
-                app->update_crc  = (uint32_t)app->header_buf[4] |
-                                   ((uint32_t)app->header_buf[5] << 8) |
-                                   ((uint32_t)app->header_buf[6] << 16) |
-                                   ((uint32_t)app->header_buf[7] << 24);
+                app->update_size =
+                    (uint32_t)app->header_buf[0] | ((uint32_t)app->header_buf[1] << 8) |
+                    ((uint32_t)app->header_buf[2] << 16) | ((uint32_t)app->header_buf[3] << 24);
+                app->update_crc =
+                    (uint32_t)app->header_buf[4] | ((uint32_t)app->header_buf[5] << 8) |
+                    ((uint32_t)app->header_buf[6] << 16) | ((uint32_t)app->header_buf[7] << 24);
                 if(app->update_size == 0 || app->update_size > 512 * 1024) {
                     app->update_state = UpdateError;
                     return;
@@ -194,11 +189,13 @@ static void ble_process_data(BleUartBridge* app, const uint8_t* data, size_t len
             pos += to_copy;
             if(app->update_received >= app->update_size) {
                 /* Verify CRC32 before writing to flash */
-                uint32_t actual_crc = crc32_calc_buffer(
-                    0, app->update_buf, app->update_size);
+                uint32_t actual_crc = crc32_calc_buffer(0, app->update_buf, app->update_size);
                 if(actual_crc != app->update_crc) {
-                    FURI_LOG_E(TAG, "CRC32 mismatch: expected %08lx got %08lx",
-                        (unsigned long)app->update_crc, (unsigned long)actual_crc);
+                    FURI_LOG_E(
+                        TAG,
+                        "CRC32 mismatch: expected %08lx got %08lx",
+                        (unsigned long)app->update_crc,
+                        (unsigned long)actual_crc);
                     free(app->update_buf);
                     app->update_buf = NULL;
                     if(app->ble_profile) {
@@ -209,8 +206,8 @@ static void ble_process_data(BleUartBridge* app, const uint8_t* data, size_t len
                     return;
                 }
                 /* All data received and verified — write to flash */
-                FURI_LOG_I(TAG, "Update %lu bytes CRC OK, writing...",
-                    (unsigned long)app->update_size);
+                FURI_LOG_I(
+                    TAG, "Update %lu bytes CRC OK, writing...", (unsigned long)app->update_size);
 
                 if(!app->storage) {
                     app->storage = furi_record_open(RECORD_STORAGE);
@@ -219,18 +216,22 @@ static void ble_process_data(BleUartBridge* app, const uint8_t* data, size_t len
                 /* Write directly to self_path (overwrite in place) */
                 File* f = storage_file_alloc(app->storage);
                 bool write_ok = false;
-                if(storage_file_open(f, furi_string_get_cstr(app->self_path),
-                       FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-                    size_t written = storage_file_write(
-                        f, app->update_buf, app->update_size);
+                if(storage_file_open(
+                       f, furi_string_get_cstr(app->self_path), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+                    size_t written = storage_file_write(f, app->update_buf, app->update_size);
                     write_ok = (written == app->update_size);
                     if(!write_ok) {
-                        FURI_LOG_E(TAG, "Write failed: %lu/%lu",
-                            (unsigned long)written, (unsigned long)app->update_size);
+                        FURI_LOG_E(
+                            TAG,
+                            "Write failed: %lu/%lu",
+                            (unsigned long)written,
+                            (unsigned long)app->update_size);
                     }
                     storage_file_close(f);
                 } else {
-                    FURI_LOG_E(TAG, "Failed to open %s for writing",
+                    FURI_LOG_E(
+                        TAG,
+                        "Failed to open %s for writing",
                         furi_string_get_cstr(app->self_path));
                 }
                 storage_file_free(f);
@@ -303,10 +304,13 @@ static void draw_callback(Canvas* canvas, void* context) {
     case UpdateSize:
     case UpdateReceiving: {
         char buf[40];
-        uint32_t pct = app->update_size > 0
-                           ? (app->update_received * 100 / app->update_size) : 0;
-        snprintf(buf, sizeof(buf), "Updating: %lu / %lu B",
-            (unsigned long)app->update_received, (unsigned long)app->update_size);
+        uint32_t pct = app->update_size > 0 ? (app->update_received * 100 / app->update_size) : 0;
+        snprintf(
+            buf,
+            sizeof(buf),
+            "Updating: %lu / %lu B",
+            (unsigned long)app->update_received,
+            (unsigned long)app->update_size);
         canvas_draw_str(canvas, 2, 30, buf);
         /* Progress bar: 2px margin, 124px wide, 12px tall */
         canvas_draw_frame(canvas, 2, 38, 124, 12);
@@ -416,18 +420,15 @@ int32_t bluetooth_bridge_app(void* p) {
 
     while(app->running) {
         /* UART RX -> BLE TX (pause during self-update to avoid indication collision) */
-        size_t uart_len = furi_stream_buffer_receive(
-            app->uart_rx_stream, buf, sizeof(buf), 0);
-        if(uart_len > 0 && app->running && app->ble_profile &&
-           app->update_state == UpdateIdle) {
+        size_t uart_len = furi_stream_buffer_receive(app->uart_rx_stream, buf, sizeof(buf), 0);
+        if(uart_len > 0 && app->running && app->ble_profile && app->update_state == UpdateIdle) {
             ble_profile_serial_tx(app->ble_profile, buf, (uint16_t)uart_len);
             app->rx_count += uart_len;
         }
         if(!app->running) break;
 
         /* BLE RX -> UART TX / update */
-        size_t ble_len = furi_stream_buffer_receive(
-            app->ble_rx_stream, buf, sizeof(buf), 0);
+        size_t ble_len = furi_stream_buffer_receive(app->ble_rx_stream, buf, sizeof(buf), 0);
         if(ble_len > 0 && app->running) {
             ble_process_data(app, buf, ble_len);
             app->update_last_rx_tick = furi_get_tick();
@@ -518,7 +519,8 @@ int32_t bluetooth_bridge_app(void* p) {
 
     if(should_relaunch) {
         Loader* loader = furi_record_open(RECORD_LOADER);
-        loader_enqueue_launch(loader, furi_string_get_cstr(relaunch_path), NULL, LoaderDeferredLaunchFlagNone);
+        loader_enqueue_launch(
+            loader, furi_string_get_cstr(relaunch_path), NULL, LoaderDeferredLaunchFlagNone);
         furi_record_close(RECORD_LOADER);
         furi_string_free(relaunch_path);
     }

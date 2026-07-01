@@ -17,19 +17,28 @@ static void build_write_data(KyberApp* app, LFRFIDEM4305* out) {
 static void update_progress_widget(KyberApp* app) {
     widget_reset(app->writing_widget);
 
-    const char* mode_str = (app->mode == KyberModeFullInit)
-        ? "Full init in progress..."
-        : "Changing color...";
+    const char* mode_str = (app->mode == KyberModeFullInit) ? "Full init in progress..." :
+                                                              "Changing color...";
 
     widget_add_string_element(
         app->writing_widget, 64, 10, AlignCenter, AlignCenter, FontPrimary, "KyberWrite");
     widget_add_string_element(
         app->writing_widget, 64, 28, AlignCenter, AlignCenter, FontSecondary, mode_str);
     widget_add_string_element(
-        app->writing_widget, 64, 42, AlignCenter, AlignCenter, FontSecondary,
+        app->writing_widget,
+        64,
+        42,
+        AlignCenter,
+        AlignCenter,
+        FontSecondary,
         KYBER_CRYSTALS[app->crystal_index].name);
     widget_add_string_element(
-        app->writing_widget, 64, 56, AlignCenter, AlignCenter, FontSecondary,
+        app->writing_widget,
+        64,
+        56,
+        AlignCenter,
+        AlignCenter,
+        FontSecondary,
         "Hold saber near Flipper");
 }
 
@@ -52,8 +61,7 @@ static void write_timer_callback(void* context) {
     app->write_success = true;
     notification_message(app->notifications, &sequence_success);
 
-
-    static const char* lines[] = { "Read your crystal", "to ensure it wrote" };
+    static const char* lines[] = {"Read your crystal", "to ensure it wrote"};
     app->hint_title = "Writes are ify";
     app->hint_text_lines = 2;
     app->hint_text = lines;
@@ -61,9 +69,8 @@ static void write_timer_callback(void* context) {
     if(app->show_hints) {
         view_dispatcher_send_custom_event(app->view_dispatcher, KyberEventShowHint);
     } else {
-         view_dispatcher_send_custom_event(app->view_dispatcher, KyberEventWriteComplete);
+        view_dispatcher_send_custom_event(app->view_dispatcher, KyberEventWriteComplete);
     }
-
 }
 
 void kyberwrite_scene_writing_on_enter(void* context) {
@@ -105,8 +112,8 @@ void kyberwrite_scene_writing_on_exit(void* context) {
     furi_assert(context);
     KyberApp* app = context;
 
-    FuriTimer* timer = (FuriTimer*)(uintptr_t)
-        scene_manager_get_scene_state(app->scene_manager, KyberSceneWriting);
+    FuriTimer* timer = (FuriTimer*)(uintptr_t)scene_manager_get_scene_state(
+        app->scene_manager, KyberSceneWriting);
     furi_timer_stop(timer);
     furi_timer_free(timer);
 

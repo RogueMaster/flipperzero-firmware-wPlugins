@@ -190,8 +190,7 @@ static void i2c_cli_callback(PipeSide* pipe, FuriString* args, void* context) {
 
 void i2c_cli_register(void) {
     CliRegistry* registry = furi_record_open(RECORD_CLI);
-    cli_registry_add_command(
-        registry, "i2c", CliCommandFlagParallelSafe, i2c_cli_callback, NULL);
+    cli_registry_add_command(registry, "i2c", CliCommandFlagParallelSafe, i2c_cli_callback, NULL);
     furi_record_close(RECORD_CLI);
 }
 

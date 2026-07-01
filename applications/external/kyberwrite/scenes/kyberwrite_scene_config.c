@@ -33,6 +33,6 @@ static void (*const kyberwrite_on_exit_handlers[])(void*) = {
 const SceneManagerHandlers kyberwrite_scene_handlers = {
     .on_enter_handlers = kyberwrite_on_enter_handlers,
     .on_event_handlers = kyberwrite_on_event_handlers,
-    .on_exit_handlers  = kyberwrite_on_exit_handlers,
-    .scene_num         = KyberSceneCount,
+    .on_exit_handlers = kyberwrite_on_exit_handlers,
+    .scene_num = KyberSceneCount,
 };

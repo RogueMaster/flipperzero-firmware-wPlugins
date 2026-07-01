@@ -20,7 +20,6 @@ typedef enum {
     KyberEventAppExit,
 } KyberCustomEvent;
 
-
 void kyberwrite_scene_splash_on_enter(void* context);
 bool kyberwrite_scene_splash_on_event(void* context, SceneManagerEvent event);
 void kyberwrite_scene_splash_on_exit(void* context);

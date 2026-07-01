@@ -1,5 +1,0 @@
-.ufbt/
-dist/
-.vscode/compile_commands.json
-*.pyc
-__pycache__/

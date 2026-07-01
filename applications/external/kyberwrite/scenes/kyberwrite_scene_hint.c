@@ -4,13 +4,16 @@ static void hint_button_callback(GuiButtonType result, InputType type, void* con
 
 static void draw_hint(KyberApp* app) {
     widget_reset(app->hint_widget);
-    widget_add_string_element(app->hint_widget, 64, 8, AlignCenter, AlignTop, FontPrimary, app->hint_title);
+    widget_add_string_element(
+        app->hint_widget, 64, 8, AlignCenter, AlignTop, FontPrimary, app->hint_title);
     uint8_t y = 24;
     for(uint8_t i = 0; i < app->hint_text_lines; i++) {
-        widget_add_string_element(app->hint_widget, 8, y, AlignLeft, AlignTop, FontSecondary, app->hint_text[i]);
+        widget_add_string_element(
+            app->hint_widget, 8, y, AlignLeft, AlignTop, FontSecondary, app->hint_text[i]);
         y += 10;
     }
-    widget_add_button_element(app->hint_widget, GuiButtonTypeRight, "Next", hint_button_callback, app);
+    widget_add_button_element(
+        app->hint_widget, GuiButtonTypeRight, "Next", hint_button_callback, app);
 }
 
 static void hint_button_callback(GuiButtonType result, InputType type, void* context) {
@@ -51,5 +54,3 @@ void kyberwrite_scene_hint_on_exit(void* context) {
     KyberApp* app = context;
     widget_reset(app->hint_widget);
 }
-
-
