@@ -1,0 +1,17 @@
+# uFBT / generated build output
+.ufbt/
+dist/
+.vscode/compile_commands.json
+
+# Local agent notes / private rollback artifacts
+.hermes/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Python/cache noise
+__pycache__/
+*.pyc
