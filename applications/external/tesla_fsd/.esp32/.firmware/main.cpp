@@ -27,6 +27,10 @@
 #include "web_dashboard.h"
 #include "can_dump.h"
 #include "http_can_stream.h"
+#include "blackbox.h"
+#include "capability.h"
+#include "profile_match.h"
+#include "../../fsd_logic/fsd_events.h"
 #include "prefs.h"
 #if defined(BOARD_TTGO_DISPLAY)
 #include "display.h"
@@ -1041,6 +1045,7 @@ static void update_led() {
 
 // ── CAN frame dispatcher ──────────────────────────────────────────────────────
 static void process_frame(CanBusId bus, const CanFrame &frame) {
+    uint32_t now = millis();
     state_enter();
     g_state.rx_count++;
     // Configurable signal mapping (#122): when set, read DAS/steering from the
@@ -1055,6 +1060,12 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
         g_state.soft_engage_latched = false;  // re-require centred wheel next engage (#108)
     }
     fsd_abort_guard_update(&g_state);  // latch off injection if the car aborts (#108)
+    // Black-box event-core poll (#124): once per frame, reading das_ap_state as
+    // of the last DAS parse (same vantage as abort_guard above). Detects the
+    // abort transition; the snapshot carries the toggles for the .json summary.
+    blackbox_note_ap_state(g_state.das_ap_state, now);
+    FSDEventType bb_evt = fsd_events_poll(&g_state, now);
+    FSDState bb_snap = g_state;
     if (frame.id == CAN_ID_GTW_CAR_STATE)  g_state.seen_gtw_car_state++;
     if (frame.id == CAN_ID_GTW_CAR_CONFIG) g_state.seen_gtw_car_config++;
     if (frame.id == CAN_ID_AP_CONTROL)     g_state.seen_ap_control++;
@@ -1062,6 +1073,16 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
     if (frame.id == CAN_ID_BMS_SOC)        g_state.seen_bms_soc++;
     if (frame.id == CAN_ID_BMS_THERMAL)    g_state.seen_bms_thermal++;
     state_exit();
+
+    // Black-box: record every frame (all ids/buses, both modes) and arm a
+    // capture on an abort transition (#124). Never triggers on a plain
+    // disengage — only EVT_ABORT here; bus-off/manual arm from elsewhere.
+    blackbox_record(bus, frame, now);
+    if (bb_evt == EVT_ABORT) blackbox_arm(BB_TRIG_ABORT, &bb_snap, now);
+
+    // Tap capability checker (#125): count capability-relevant ids per bus during
+    // an active listen window. Pure RX — no-op when no check is running.
+    capability_record(bus, frame, now);
 
     can_dump_record(bus, frame);
     // Record to the web stream in BOTH modes so a capture can run *through* an
@@ -1128,7 +1149,12 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
     if (!das_cfg && hw_uses_hw4_das_status(das_state.hw_version) && frame.id == CAN_ID_DAS_STATUS_HW4) {
         state_enter();
         fsd_handle_das_status_hw4(&g_state, &frame);
+        uint8_t ap = g_state.das_ap_state;         // as read by the std parser
+        uint8_t ho = g_state.das_hands_on_state;
         state_exit();
+        // Variant-profile auto-suggest (#126): feed the raw frame + what the std
+        // parser made of it, so a stuck parser can be detected and matched.
+        profile_match_record(frame, ap, ho, now);
         return;
     }
     // HW4 trims that never broadcast 0x39B carry the hands-on field on 0x399
@@ -1449,6 +1475,7 @@ void setup() {
     g_state.force_fsd             = false;
     g_state.china_mode            = false;
     g_state.bms_output            = false;
+    g_state.blackbox_enabled      = BLACKBOX_DEFAULT_ENABLED;  // ON on LittleFS/SD, OFF on volatile RAM (#124)
 
     prefs_load(&g_state);
 #if defined(BOARD_TTGO_DISPLAY)
@@ -1470,6 +1497,9 @@ void setup() {
     led_set(LED_BLUE);
 
     can_dump_init();
+    blackbox_init(&g_state, &g_state_mux);  // ring + storage (after SD is mounted)
+    capability_init(&g_state, &g_state_mux);  // tap capability checker (#125)
+    profile_match_init(&g_state, &g_state_mux);  // variant-profile auto-suggest (#126)
 
 #if defined(BOARD_LILYGO)
     {
@@ -1549,6 +1579,8 @@ void loop() {
         }
         // Recover a bus-off controller so RX resumes without a manual toggle (#108).
         g_can[i]->serviceHealth();
+        // Bus-off just fired → arm a black-box capture via the event-core (#124).
+        if (g_can[i]->busOffEvent()) blackbox_busoff(now);
     }
 
     // ── Periodic error counter refresh (~every 250 ms) ────────────────────────
@@ -1653,6 +1685,8 @@ void loop() {
     }
 
     can_dump_tick(now);
+    blackbox_tick(now);  // post-roll countdown + flush (#124)
+    capability_tick(now);  // finalize the capability listen window (#125)
 
 #if defined(BOARD_LILYGO)
     sleep_tick(now);

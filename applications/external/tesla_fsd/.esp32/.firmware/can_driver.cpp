@@ -30,6 +30,7 @@ class TwaiDriver : public CanDriver {
     bool     filter_single_ = false;  // accept only filter_id_ when true
     uint32_t filter_id_     = 0;      // standard 11-bit id for single-id capture
     bool     recovering_    = false;  // true while a bus-off recovery is in flight
+    bool     busoff_event_  = false;  // consume-on-read edge: recovery just started
 
     bool install_and_start(bool listen_only) {
         twai_general_config_t g = TWAI_GENERAL_CONFIG_DEFAULT(
@@ -129,6 +130,7 @@ public:
             // observing 128 occurrences of 11 consecutive recessive bits.
             if (twai_initiate_recovery() == ESP_OK) {
                 recovering_ = true;
+                busoff_event_ = true;  // edge for the black-box EVT_BUSOFF trigger
                 Serial.printf("[CAN] %s bus-off detected — initiating recovery\n", label_);
             }
         } else if (recovering_ && info.state == TWAI_STATE_STOPPED) {
@@ -139,6 +141,12 @@ public:
                 Serial.printf("[CAN] %s bus recovered — restarted\n", label_);
             }
         }
+    }
+
+    bool busOffEvent() override {
+        bool e = busoff_event_;
+        busoff_event_ = false;
+        return e;
     }
 
     uint32_t txCount() override { return tx_count_; }

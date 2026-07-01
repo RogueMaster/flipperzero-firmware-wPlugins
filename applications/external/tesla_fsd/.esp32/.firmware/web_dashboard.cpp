@@ -12,6 +12,9 @@
 #include "web_dashboard.h"
 #include "can_dump.h"
 #include "http_can_stream.h"
+#include "blackbox.h"
+#include "capability.h"
+#include "profile_match.h"
 #include "prefs.h"
 #include <WebServer.h>
 #include <WebSocketsServer.h>
@@ -72,6 +75,19 @@ static bool require_admin_auth(bool challenge_browser = false) {
     } else {
         g_http.send(401, "text/plain", "Authentication failed");
     }
+    return false;
+}
+
+// Black-box captures hold recorded CAN (VIN, drive data), so gate the download
+// endpoints behind admin auth — but only when an AP password is set. Open setups
+// keep the one-click capture-download workflow; password-protected devices don't
+// leak persistent captures to other hosts on a shared LAN. Softer than
+// require_admin_auth (which hard-blocks when no password is set).
+static bool download_auth_ok() {
+    FSDState s;
+    if (!state_copy(&s) || !ap_has_password(&s)) return true;   // open setup — allow
+    if (g_http.authenticate(OTA_AUTH_USER, s.wifi_pass)) return true;
+    g_http.requestAuthentication(BASIC_AUTH, "Tesla-FSD");
     return false;
 }
 
@@ -461,6 +477,10 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     <label class="sw"><input type="checkbox" id="swTlssc" onchange="cmd('tlssc_restore',this.checked)"><span class="sl2"></span></label>
   </div>
   <div class="row" style="display:block">
+    <div id="pmSuggest" style="display:none;margin:0 0 8px;padding:8px 10px;border:1px solid var(--accent);border-radius:6px;background:var(--card2)">
+      <div style="font-size:12px;color:var(--text)">Looks like variant <b id="pmName">?</b> &mdash; the standard parser can't read AP-state on this bus.</div>
+      <button type="button" id="pmApply" onclick="pmApply()" style="margin-top:6px;background:var(--accent);color:#000;border:0;padding:6px 12px;border-radius:4px;cursor:pointer">Apply this profile</button>
+    </div>
     <details>
       <summary class="lbl" style="cursor:pointer">Signal Map (advanced, 14.x)</summary>
       <div style="font-size:11px;color:var(--muted);margin:6px 0 8px">Override where the nag killer reads AP-state / hands-on / steering. Leave DAS id <b>0</b> for auto-detect. byte 0-7, shift 0-7, mask hex.</div>
@@ -508,6 +528,47 @@ R"rawliteral(
 R"rawliteral(
   </div>
 </details>
+</div>
+
+<!-- Tap capability checker (#125) -->
+<div class="card">
+  <div class="card-head"><div class="icon ic-d">T</div><h2>Tap Check</h2>
+    <span id="capSt" class="pill off" style="margin-left:auto"><span class="pd"></span>Idle</span></div>
+  <div class="log-info" style="margin-bottom:8px">
+    Listens a few seconds and reports whether each feature can work on the bus this
+    device is tapped into. Pure read-only &mdash; nothing is transmitted.
+  </div>
+  <div id="capBody"></div>
+  <button id="capBtn" type="button" class="btn-main btn-blue" onclick="cmd('capability_recheck',true)" style="margin-top:8px">RE-CHECK</button>
+</div>
+
+<!-- Black-box incident recorder (#124) -->
+<div class="card">
+  <div class="card-head"><div class="icon ic-d">R</div><h2>Black-box</h2>
+    <span id="bbBadge" class="pill on" style="display:none;margin-left:auto">NEW</span></div>
+  <div id="bbNote" class="log-info" style="margin-bottom:10px;display:none">
+    Records full-rate CAN around anomalies (aborts, bus-off, manual marks) to the
+    device only &mdash; never uploaded. Use the toggle below to enable or disable.
+    <button type="button" onclick="bbDismiss()" style="margin-left:6px;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:2px 8px;border-radius:4px;cursor:pointer">Got it</button>
+  </div>
+  <div class="row">
+    <span class="lbl">Auto-record</span>
+    <label class="sw"><input type="checkbox" id="swBlackbox" onchange="cmd('blackbox_enable',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
+    <span class="lbl">Status</span>
+    <span class="pill off" id="bbSt"><span class="pd"></span>Idle</span>
+  </div>
+  <div class="row">
+    <span class="lbl">Storage</span>
+    <span id="bbStore" style="font-size:.78em;color:var(--text2)">--</span>
+  </div>
+  <div id="bbVolatileWarn" class="log-info" style="display:none;margin:8px 0;color:var(--yellow)">
+    &#9888;&#xFE0F; Volatile storage &mdash; download events before power-off; they are lost on reboot.
+  </div>
+  <button id="bbMark" type="button" class="btn-main btn-blue" onclick="cmd('blackbox_mark',true)" style="margin:8px 0">&#9873; MARK NOW</button>
+  <div id="bbList" style="margin-top:4px"></div>
+  <button id="bbDelAll" type="button" class="btn-main btn-stop" onclick="bbDeleteAll()" style="margin-top:10px;display:none">DELETE ALL EVENTS</button>
 </div>
 
 <!-- Administration -->
@@ -708,6 +769,95 @@ function updateControlsSummary(d){
   e.textContent=items.length?items.join(', '):'Expand to setup';
   e.title=e.textContent;
 }
+// ── Black-box incident recorder (#124) ──
+var bbCaptures=-1,bbNew=false,bbNoteDismissed=false;
+try{bbNoteDismissed=localStorage.getItem('bbNote')==='1'}catch(e){}
+function bbEsc(s){return String(s==null?'':s).replace(/[<>&"]/g,function(c){return{'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]})}
+function bbDismiss(){bbNoteDismissed=true;try{localStorage.setItem('bbNote','1')}catch(e){}var n=document.getElementById('bbNote');if(n)n.style.display='none';}
+function bbSeen(){bbNew=false;var bd=document.getElementById('bbBadge');if(bd)bd.style.display='none';}
+function bbSync(d){
+  var b=d.blackbox;if(!b)return;
+  var sw=document.getElementById('swBlackbox');if(sw&&sw!==document.activeElement)sw.checked=!!b.enabled;
+  pill('bbSt',b.enabled,b.armed?'Capturing':(b.enabled?'Armed':'Off'));
+  var st=document.getElementById('bbStore');
+  if(st)st.textContent=(b.backend||'?')+' · '+(b.psram?'PSRAM':'internal')+' · '+((b.cap||0).toLocaleString())+' frames · '+(b.events||0)+' saved';
+  var vw=document.getElementById('bbVolatileWarn');if(vw)vw.style.display=b.volatile?'block':'none';
+  var note=document.getElementById('bbNote');if(note)note.style.display=bbNoteDismissed?'none':'block';
+  var da=document.getElementById('bbDelAll');if(da)da.style.display=(b.events>0)?'block':'none';
+  if(bbCaptures<0){bbCaptures=b.captures;bbRefreshList();}
+  else if(b.captures!==bbCaptures){bbCaptures=b.captures;bbNew=true;bbRefreshList();}
+  var bd=document.getElementById('bbBadge');if(bd)bd.style.display=bbNew?'inline-block':'none';
+}
+function bbRefreshList(){
+  fetch('/blackbox/list').then(function(r){return r.json()}).then(function(a){
+    var el=document.getElementById('bbList');if(!el)return;
+    if(!a||!a.length){el.innerHTML='<div style="font-size:.78em;color:var(--text3);padding:6px 0">No events recorded yet.</div>';return;}
+    a.sort(function(x,y){return (y.name||'').localeCompare(x.name||'')});
+    var h='';
+    a.forEach(function(ev){
+      var s=ev.summary||{},nm=encodeURIComponent(ev.name);
+      h+='<div style="border-top:1px solid var(--border);padding:8px 0">';
+      h+='<div style="font-size:.8em;color:var(--text);font-family:monospace">'+bbEsc(s.detail||s.trigger||'event')+'</div>';
+      h+='<div style="font-size:.72em;color:var(--text3);margin:2px 0">'+bbEsc(s.hw||'')+' · '+(s.frames||0)+' frames · '+bbEsc((s.buses&&s.buses.dual_can)?'dual-CAN':'single')+'</div>';
+      h+='<div style="display:flex;gap:6px;margin-top:4px">';
+      h+='<a class="btn-main btn-blue" style="padding:4px 10px;font-size:.7em;flex:0" href="/blackbox/get?name='+nm+'&type=log" onclick="bbSeen()">.log</a>';
+      h+='<a class="btn-main btn-blue" style="padding:4px 10px;font-size:.7em;flex:0" href="/blackbox/get?name='+nm+'&type=json" onclick="bbSeen()">.json</a>';
+      h+='<button type="button" class="btn-main btn-stop" style="padding:4px 10px;font-size:.7em" onclick="bbDelete(\''+bbEsc(ev.name)+'\')">del</button>';
+      h+='</div></div>';
+    });
+    el.innerHTML=h;
+  }).catch(function(){});
+}
+function bbDelete(n){cmd('blackbox_delete',n);setTimeout(bbRefreshList,400);}
+function bbDeleteAll(){if(confirm('Delete all recorded events from the device?')){cmd('blackbox_delete_all',true);bbSeen();setTimeout(bbRefreshList,400);}}
+// ── Tap capability checker (#125) ──
+var CAP_MSG={
+  nag_killer:['0x370 + DAS state present — gates correctly',
+              '0x370 here but no DAS state — dual-CAN recommended (read DAS on a second tap)',
+              'no 0x370 on this tap — wrong bus for the nag killer'],
+  ap_first:['DAS state readable',
+            'dual-CAN',
+            'no DAS state here (need 0x399/0x39B)'],
+  fsd_activation:['AP control frame present (0x3FD/0x3EE)',
+                  '',
+                  'no AP control frame to modify here'],
+  soft_engage:['0x129 steering angle present',
+               '',
+               'no 0x129 — degrades to AP-First-only']};
+function capRow(name,key,v){
+  var col=v===0?'var(--accent)':v===1?'var(--yellow)':'var(--red)';
+  var sym=v===0?'✓':v===1?'⚠':'✗';
+  var msg=(CAP_MSG[key]||['','',''])[v]||'';
+  return '<div style="display:flex;gap:8px;padding:5px 0;border-top:1px solid var(--border)">'
+    +'<span style="color:'+col+';font-weight:700;flex:0 0 14px">'+sym+'</span>'
+    +'<span style="flex:0 0 92px;font-size:.8em;color:var(--text)">'+name+'</span>'
+    +'<span style="font-size:.73em;color:var(--text3);line-height:1.3">'+msg+'</span></div>';
+}
+function capSync(d){
+  var c=d.capability;if(!c)return;
+  pill('capSt',c.state===2,c.state===1?'Listening…':(c.state===2?'Done':'Idle'));
+  var btn=document.getElementById('capBtn');if(btn)btn.disabled=(c.state===1);
+  var el=document.getElementById('capBody');if(!el)return;
+  if(c.state===0){el.innerHTML='<div style="font-size:.78em;color:var(--text3);padding:6px 0">Connect to run a check, or press Re-check.</div>';return;}
+  if(c.state===1){el.innerHTML='<div style="font-size:.8em;color:var(--text2);padding:6px 0">Listening on the bus… '+Math.ceil((c.ms_left||0)/1000)+'s</div>';return;}
+  var buses=c.buses||[];
+  if(!buses.length){el.innerHTML='<div style="font-size:.8em;color:var(--yellow);padding:6px 0">No frames seen — check wiring / that the car is awake.</div>';return;}
+  var dual=buses.length>1;
+  var h='';
+  buses.forEach(function(b){
+    h+='<div style="margin-top:8px">';
+    if(dual)h+='<div style="font-size:.78em;color:var(--text2);font-weight:600;margin-bottom:2px">'+bbEsc(b.bus)+' &middot; '+(b.frames||0)+' frames</div>';
+    h+=capRow('Nag killer','nag_killer',b.nag_killer);
+    h+=capRow('AP-First','ap_first',b.ap_first);
+    h+=capRow('FSD activate','fsd_activation',b.fsd_activation);
+    h+=capRow('Soft Engage','soft_engage',b.soft_engage);
+    var hint=b.hint?('Best guess: '+bbEsc(b.hint)+' — confirm in Service Mode → CAN Port'):'';
+    if(hint)h+='<div style="font-size:.7em;color:var(--text3);padding-top:5px">'+hint+'</div>';
+    if(b.hw_unconfirmed)h+='<div style="font-size:.7em;color:var(--yellow);padding-top:3px">HW unconfirmed — 0x399 reading assumed; verdict may change once HW is detected.</div>';
+    h+='</div>';
+  });
+  el.innerHTML=h;
+}
 function ring(p){
   var b=document.getElementById('socBar');
   b.style.strokeDashoffset=CIRC-(CIRC*Math.min(p,100)/100);
@@ -763,6 +913,7 @@ function upd(d){
   if(document.getElementById('swNagB')) document.getElementById('swNagB').checked=d.nag_burst;
   if(document.getElementById('swAbrt')) document.getElementById('swAbrt').checked=d.abort_guard;
   if(d.cfg_das_id!==undefined) setSig(d);
+  pmSync(d);
   if(document.getElementById('swBms')) document.getElementById('swBms').checked=d.bms_output;
   if(document.getElementById('swFsd')) document.getElementById('swFsd').checked=d.force_fsd;
   if(document.getElementById('swChina')) document.getElementById('swChina').checked=d.china_mode;
@@ -780,6 +931,8 @@ function upd(d){
     document.getElementById('numSleep').value=Math.floor((d.sleep_ms||0)/1000);
 
   updateControlsSummary(d);
+  bbSync(d);
+  capSync(d);
   pill('dumpSt',d.can_dump,d.can_dump?'Recording':'Idle');
 
   // CAN stats
@@ -1002,6 +1155,29 @@ function saveSigCfg(){
 }
 function sv(id,val){ var e=document.getElementById(id); if(e&&e!==document.activeElement) e.value=val; }
 function hx(n){ return n?('0x'+n.toString(16).toUpperCase()):'0'; }
+// ── Built-in variant-profile auto-suggest (#126) ──
+var PM_SUG=null;
+function pmSync(d){
+  var p=d.profile;var el=document.getElementById('pmSuggest');if(!el)return;
+  if(p&&p.suggest){
+    PM_SUG=p;
+    var nm=document.getElementById('pmName');if(nm)nm.textContent=p.name||'?';
+    el.style.display='block';
+  } else {
+    PM_SUG=null;el.style.display='none';
+  }
+}
+function sf(id,val){ var e=document.getElementById(id); if(e) e.value=val; }
+function pmApply(){
+  var p=PM_SUG;if(!p)return;
+  // One-tap confirm: fill the Signal Map fields from the suggested profile and
+  // apply via the existing sig_cfg path. Steer mapping is left as-is (0 unless
+  // the user already set it). Never applied without this tap.
+  sf('cgDid',hx(p.das_id));
+  sf('cgApB',p.apb); sf('cgApS',p.aps); sf('cgApM',hx(p.apm));
+  sf('cgHoB',p.hob); sf('cgHoS',p.hos); sf('cgHoM',hx(p.hom));
+  saveSigCfg();
+}
 function setSig(d){
   sv('cgDid',hx(d.cfg_das_id)); sv('cgApB',d.cfg_apb); sv('cgApS',d.cfg_aps); sv('cgApM',hx(d.cfg_apm));
   sv('cgHoB',d.cfg_hob); sv('cgHoS',d.cfg_hos); sv('cgHoM',hx(d.cfg_hom));
@@ -1328,6 +1504,9 @@ static String build_json() {
     j += "\"uptime_s\":";      j += uptime_s;                          j += ',';
     j += "\"fw_build\":\"";    j += __DATE__;  j += ' '; j += __TIME__; j += "\",";
     j += "\"can_dump\":";      j += can_dump_active()                 ? "true" : "false"; j += ',';
+    j += "\"blackbox\":";      j += blackbox_status_json();            j += ',';
+    j += "\"capability\":";    j += capability_status_json();          j += ',';
+    j += "\"profile\":";       j += profile_match_json();               j += ',';
     j += "\"sleep_ms\":";     j += state.sleep_idle_ms;               j += ',';
     j += "\"wifi_ssid\":\"";  j += json_escape(state.wifi_ssid);      j += "\",";
     j += "\"wifi_pass\":\"";  j += state.wifi_pass[0] ? "***" : "";  j += "\",";
@@ -1351,6 +1530,10 @@ static void ws_event(uint8_t num, WStype_t type,
                      uint8_t *payload, size_t length)
 {
     if (type == WStype_CONNECTED) {
+        // Auto-run the tap capability check on connect (#125): the first few
+        // seconds answer "will the nag killer work on this tap?" before any
+        // guesswork. Pure RX — counting only.
+        capability_start(millis());
         // Push current state immediately on connect
         String json = build_json();
         g_ws.sendTXT(num, json.c_str(), json.length());
@@ -1527,6 +1710,37 @@ static void ws_event(uint8_t num, WStype_t type,
                               (uint16_t)v[7], v[8], v[9]);
                 prefs_save(&saved);
             }
+        }
+    } else if (strstr(buf, "\"blackbox_enable\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            blackbox_set_enabled(enabled);          // locks the state mux itself
+            FSDState saved;
+            state_enter();
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Black-box: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"capability_recheck\"")) {
+        capability_start(millis());                 // re-run the tap check (#125)
+        Serial.println("[Web] Capability: re-check");
+    } else if (strstr(buf, "\"blackbox_mark\"")) {
+        blackbox_mark(millis());                    // inject EVT_MANUAL + arm
+        Serial.println("[Web] Black-box: manual mark");
+    } else if (strstr(buf, "\"blackbox_delete_all\"")) {
+        blackbox_delete_all();
+        Serial.println("[Web] Black-box: delete all");
+    } else if (strstr(buf, "\"blackbox_delete\"")) {
+        const char *v = strstr(buf, "\"value\":\"");
+        if (v) {
+            v += 9;
+            char name[40];
+            size_t i = 0;
+            while (v[i] && v[i] != '\"' && i < sizeof(name) - 1) { name[i] = v[i]; i++; }
+            name[i] = '\0';
+            if (name[0]) { blackbox_delete(name); Serial.printf("[Web] Black-box: delete %s\n", name); }
         }
     }
 #if defined(BOARD_TTGO_DISPLAY)
@@ -1781,6 +1995,36 @@ static void handle_sdformat() {
     g_http.send(200, "application/json", result);
 }
 
+// ── Black-box (#124) ──────────────────────────────────────────────────────────
+static void handle_blackbox_list() {
+    if (!download_auth_ok()) return;
+    g_http.sendHeader("Cache-Control", "no-store");
+    g_http.send(200, "application/json", blackbox_list_json());
+}
+
+static void handle_blackbox_get() {
+    if (!download_auth_ok()) return;
+    String name = g_http.arg("name");
+    bool json = (g_http.arg("type") == "json");
+    if (name.length() == 0 || name.length() >= 40) {
+        g_http.send(400, "text/plain", "bad name");
+        return;
+    }
+    size_t size = 0;
+    if (!blackbox_file_size(name.c_str(), json, &size)) {
+        g_http.send(404, "text/plain", "no such event");
+        return;
+    }
+    String fname = name + (json ? ".json" : ".log");
+    g_http.setContentLength(size);
+    g_http.sendHeader("Content-Disposition", "attachment; filename=\"" + fname + "\"");
+    g_http.sendHeader("Cache-Control", "no-store");
+    g_http.send(200, json ? "application/json" : "text/plain", "");
+    WiFiClient client = g_http.client();
+    blackbox_stream_body(client, name.c_str(), json);
+    client.flush();
+}
+
 static void handle_restart() {
     if (!require_admin_auth()) return;
     g_http.send(200, "text/plain", "OK");
@@ -1948,6 +2192,8 @@ void web_dashboard_init(FSDState *state,
     g_http.on("/api/status", HTTP_GET,  handle_status);
     g_http.on("/auth",       HTTP_GET,  handle_auth);
     g_http.on("/sdformat",   HTTP_GET,  handle_sdformat);
+    g_http.on("/blackbox/list", HTTP_GET, handle_blackbox_list);
+    g_http.on("/blackbox/get",  HTTP_GET, handle_blackbox_get);
     g_http.on("/restart",    HTTP_GET,  handle_restart);
     g_http.on("/update",     HTTP_POST, handle_ota_done, handle_ota_upload);
     g_http.begin();

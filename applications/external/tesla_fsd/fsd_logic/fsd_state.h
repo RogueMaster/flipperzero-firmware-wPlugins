@@ -82,6 +82,20 @@ typedef struct FSDState {
     uint32_t
         ap_unstable_tick_ms; // ms clock when das_ap_state was last < 2 (AP-first stability debounce)
 
+    // --- Shared event-core bookkeeping (#123, fsd_events.h) ---
+    // Per-instance state for fsd_events_poll() / fsd_events_inject(): detects
+    // das_ap_state transitions and rate-limits each event type. No statics, so
+    // the detector is host-testable and re-entrant.
+    // FSD_EVENT_COUNT must match the FSDEventType enum in fsd_events.h, which
+    // can't be included here without a cycle; fsd_events.h _Static_asserts it.
+#define FSD_EVENT_COUNT 5
+    uint8_t evt_prev_ap_state; // das_ap_state at the previous poll (transition source)
+    uint32_t
+        evt_cooldown_until_ms[FSD_EVENT_COUNT]; // per-type cooldown expiry, indexed by FSDEventType
+    uint8_t evt_last_from; // last emitted event: from-state
+    uint8_t evt_last_to; // last emitted event: to-state
+    uint32_t evt_last_ms; // last emitted event: timestamp (now_ms)
+
     // --- Soft Engage (steer-jerk mitigation, #108) ---
     // Hold the activation-edge injection until the wheel is near-centred, so the
     // DAS's steering-path recompute at FSD-enable is small (the jerk is worse on
@@ -262,6 +276,10 @@ typedef struct FSDState {
 
     // 2026.14.x firmware warning (persisted in NVS on ESP32)
     bool firmware_14x_warning;
+
+    // Black-box incident recorder (#124, persisted in NVS on ESP32). Default ON.
+    // Auto-records full-rate CAN around aborts / bus-off / manual marks.
+    bool blackbox_enabled;
 
     // DAS_status fields parsed by the ESP32 handler
     uint8_t das_speed_limit_1;

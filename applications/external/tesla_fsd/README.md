@@ -127,6 +127,18 @@
 | **Hands-Off** | `0x3F8` bit14 | UI-level hands-on disable (second nag vector) |
 | **Telemetry Off** | `0x3F8` bit43 | Disable trip telemetry — may itself be a ban signal, use only with SIM pulled |
 
+**14.x experimental (off by default, please report):**
+
+These target Tesla 2026.14.x / 2026.20 behaviour and are all **off by default**. They are probes, not confirmed universal fixes — see [#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122) for live status. Toggle in the ESP32 web dashboard (and Flipper Settings where available).
+
+| Setting | Description |
+|---------|-------------|
+| **Abort Guard** (ESP32) | Steer-jerk mitigation ([#108](https://github.com/hypery11/flipper-tesla-fsd/issues/108)). The activation jerk is the car *aborting* the engage (`DAS_autopilotState` → `8 ABORTING` → `9 ABORTED`). When on, cuts all activation injection the instant an abort state appears and stays off until a clean disengage. **Validated on-car:** eliminated the jerk on wide/straight roads (0 in hundreds of cycles, was ~1/25–30). Limit: some narrow roads jump straight to `FAULT (9)` with no lead, which it can't catch. |
+| **Soft Engage** | Steer-jerk mitigation ([#108](https://github.com/hypery11/flipper-tesla-fsd/issues/108)). Holds the activation-edge injection until the wheel is within ±5° of centre. Needs `0x129` (steering angle) on the tapped bus; degrades to AP-First-only if absent. Largely superseded by Abort Guard for straight-road jerks. |
+| **Nag Burst** | Echoes `0x370` in bursts (~1 s on / ~1.5 s off) instead of continuously ([#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)). The rest periods are the believed reason a TSL6P-style device evades the stricter 14.x nag detector. Pairs with a ±1.8 Nm steering-torque cap. |
+| **EPAS-faithful (Mode-C)** | Demand-state torque model that mirrors a real EPAS instead of flipping `handsOnLevel` ([#100](https://github.com/hypery11/flipper-tesla-fsd/issues/100)). For cars where the standard nag killer trips the preflight. **Not yet confirmed on-car.** |
+| **Signal Map** (ESP32 → advanced) | Override where the nag killer reads AP-state / hands-on / steering: `id + byte/shift/mask` ([#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)). For variants whose `0x39B`/`0x399` layout differs. Freshness-gated — a wrong map fails closed. Leave DAS id `0` for auto-detect. |
+
 **Hardware:**
 
 | Setting | Description |

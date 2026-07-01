@@ -19,10 +19,14 @@
 #include <string.h>
 
 #include "fsd_can_ops.h"
+#include "fsd_blackbox_summary.h"
+#include "fsd_capability.h"
 #include "fsd_capture.h"
 #include "fsd_checksum.h"
+#include "fsd_events.h"
 #include "fsd_handler.h"
 #include "fsd_profile.h"
+#include "fsd_profile_db.h"
 
 static int g_pass = 0;
 static int g_fail = 0;
@@ -636,6 +640,397 @@ static void test_abort_guard(void) {
     CHECK(
         fsd_handle_legacy_autopilot(&h, &f, 5000u) == false,
         "legacy autopilot suppressed while abort latched");
+}
+
+// ── fsd-events shared event-core (#123) ──────────────────────────────────────
+static void test_fsd_events(void) {
+    FSDState s;
+    memset(&s, 0, sizeof(s));
+
+    // Cold start (das_ap_state 0): first poll just seeds the baseline, no event.
+    CHECK(fsd_events_poll(&s, 0u) == EVT_NONE, "cold poll: no event");
+
+    // Engage 0->6 (UNAVAIL->active) is not a reported transition.
+    s.das_ap_state = 6;
+    CHECK(fsd_events_poll(&s, 100u) == EVT_NONE, "engage to active: no event");
+    CHECK(fsd_events_poll(&s, 200u) == EVT_NONE, "steady active: no event");
+
+    // 6 -> 8 (ABORTING): EVT_ABORT, carrying from/to + timestamp.
+    s.das_ap_state = DAS_APSTATE_ABORTING;
+    CHECK(fsd_events_poll(&s, 1000u) == EVT_ABORT, "6->8: abort fires");
+    CHECK(s.evt_last_from == 6 && s.evt_last_to == 8, "abort carries 6->8");
+    CHECK(s.evt_last_ms == 1000u, "abort carries timestamp");
+
+    // 8 -> 9 (ABORTING->ABORTED): still inside the abort, no re-fire.
+    s.das_ap_state = DAS_APSTATE_ABORTED;
+    CHECK(fsd_events_poll(&s, 1100u) == EVT_NONE, "8->9: no re-fire within abort");
+
+    // 9 -> 1 (abort resolves to disengaged): disengage uses its own cooldown
+    // slot, so it fires even though the abort cooldown is still active.
+    s.das_ap_state = 1;
+    CHECK(fsd_events_poll(&s, 1200u) == EVT_DISENGAGE, "9->1: disengage fires");
+    CHECK(s.evt_last_from == 9 && s.evt_last_to == 1, "disengage carries 9->1");
+
+    // 6 -> 9 path also fires a single abort.
+    memset(&s, 0, sizeof(s));
+    s.das_ap_state = 6;
+    fsd_events_poll(&s, 0u);
+    s.das_ap_state = DAS_APSTATE_ABORTED;
+    CHECK(fsd_events_poll(&s, 10u) == EVT_ABORT, "6->9: abort fires");
+
+    // Clean disengage 6 -> 1 (no abort first).
+    memset(&s, 0, sizeof(s));
+    s.das_ap_state = 6;
+    fsd_events_poll(&s, 0u);
+    s.das_ap_state = 1;
+    CHECK(fsd_events_poll(&s, 10u) == EVT_DISENGAGE, "6->1: clean disengage fires");
+    CHECK(s.evt_last_from == 6 && s.evt_last_to == 1, "disengage carries 6->1");
+
+    // Cooldown: a flapping abort does not re-emit within FSD_EVENT_COOLDOWN_MS,
+    // then re-arms once the window passes.
+    memset(&s, 0, sizeof(s));
+    s.das_ap_state = 6;
+    fsd_events_poll(&s, 0u);
+    s.das_ap_state = 8;
+    CHECK(fsd_events_poll(&s, 1000u) == EVT_ABORT, "abort #1 fires");
+    s.das_ap_state = 6;
+    fsd_events_poll(&s, 1500u); // leave abort: no event
+    s.das_ap_state = 8;
+    CHECK(fsd_events_poll(&s, 2000u) == EVT_NONE, "abort #2 within cooldown suppressed");
+    s.das_ap_state = 6;
+    fsd_events_poll(&s, 1000u + FSD_EVENT_COOLDOWN_MS + 1u);
+    s.das_ap_state = 8;
+    CHECK(
+        fsd_events_poll(&s, 1000u + FSD_EVENT_COOLDOWN_MS + 2u) == EVT_ABORT,
+        "abort re-arms after cooldown");
+
+    // Injected MANUAL respects its own cooldown and re-arms after the window.
+    memset(&s, 0, sizeof(s));
+    CHECK(fsd_events_inject(&s, EVT_MANUAL, 0u) == EVT_MANUAL, "manual #1 fires");
+    CHECK(
+        fsd_events_inject(&s, EVT_MANUAL, 5000u) == EVT_NONE, "manual within cooldown suppressed");
+    CHECK(
+        fsd_events_inject(&s, EVT_MANUAL, FSD_EVENT_COOLDOWN_MS + 1u) == EVT_MANUAL,
+        "manual re-arms after cooldown");
+
+    // Injected BUSOFF has an independent cooldown slot from MANUAL.
+    CHECK(
+        fsd_events_inject(&s, EVT_BUSOFF, FSD_EVENT_COOLDOWN_MS + 2u) == EVT_BUSOFF,
+        "busoff fires independent of manual cooldown");
+    CHECK(
+        fsd_events_inject(&s, EVT_BUSOFF, FSD_EVENT_COOLDOWN_MS + 100u) == EVT_NONE,
+        "busoff within its own cooldown suppressed");
+
+    // inject only accepts caller-sourced types — detection-only / none are rejected.
+    CHECK(fsd_events_inject(&s, EVT_ABORT, 999999u) == EVT_NONE, "inject rejects EVT_ABORT");
+    CHECK(
+        fsd_events_inject(&s, EVT_DISENGAGE, 999999u) == EVT_NONE, "inject rejects EVT_DISENGAGE");
+    CHECK(fsd_events_inject(&s, EVT_NONE, 999999u) == EVT_NONE, "inject rejects EVT_NONE");
+}
+
+// ── tap capability verdicts (#125) ───────────────────────────────────────────
+static void test_capability(void) {
+    // A "full Party-like" tap: 0x370 + HW4 DAS (0x39B) + AP control + steer.
+    // Everything works.
+    FSDCapSeen full = {0};
+    full.epas = true;
+    full.das_hw4 = true;
+    full.ap_control = true;
+    full.steer = true;
+    FSDCapReport r = fsd_capability_eval(full, TeslaHW_HW4);
+    CHECK(r.nag_killer == CAP_OK, "full tap: nag killer OK (%d)", r.nag_killer);
+    CHECK(r.ap_first == CAP_OK, "full tap: AP-First OK");
+    CHECK(r.fsd_activation == CAP_OK, "full tap: FSD activation OK");
+    CHECK(r.soft_engage == CAP_OK, "full tap: soft engage OK");
+    CHECK(r.bus_hint == CAP_HINT_PARTY, "full tap: hint Party-like");
+    CHECK(!r.hw_unconfirmed, "full tap: HW known");
+
+    // ── THE 0x399 TRAP ──
+    // HW4 with 0x399 ONLY (the ISA speed chime, NOT DAS state) + 0x370.
+    // DAS state must read as MISSING -> nag killer degrades to dual-CAN, and
+    // AP-First is impossible.
+    FSDCapSeen hw4_isa = {0};
+    hw4_isa.epas = true;
+    hw4_isa.das_hw3 = true; // 0x399 seen, but it's the chime
+    r = fsd_capability_eval(hw4_isa, TeslaHW_HW4);
+    CHECK(!r.has_das, "0x399 on HW4 is the chime, not DAS state");
+    CHECK(r.nag_killer == CAP_DUAL_CAN, "HW4 0x399-only: nag killer dual-CAN (%d)", r.nag_killer);
+    CHECK(r.ap_first == CAP_MISSING, "HW4 0x399-only: AP-First missing");
+
+    // HW3 with 0x399 (here it IS the DAS state) + 0x370 -> everything gates.
+    FSDCapSeen hw3_das = {0};
+    hw3_das.epas = true;
+    hw3_das.das_hw3 = true;
+    r = fsd_capability_eval(hw3_das, TeslaHW_HW3);
+    CHECK(r.has_das, "0x399 on HW3 is DAS state");
+    CHECK(r.nag_killer == CAP_OK, "HW3 0x399: nag killer OK");
+    CHECK(r.ap_first == CAP_OK, "HW3 0x399: AP-First OK");
+
+    // Legacy with 0x399 also reads as DAS state (only HW4 is the trap).
+    FSDCapSeen legacy_das = {0};
+    legacy_das.epas = true;
+    legacy_das.das_hw3 = true;
+    legacy_das.ap_legacy = true;
+    r = fsd_capability_eval(legacy_das, TeslaHW_Legacy);
+    CHECK(r.has_das, "0x399 on Legacy is DAS state");
+    CHECK(r.nag_killer == CAP_OK, "Legacy 0x399: nag killer OK");
+    CHECK(r.fsd_activation == CAP_OK, "Legacy 0x3EE: FSD activation OK");
+
+    // ── dual-CAN: 0x370 present but NO DAS state anywhere ──
+    FSDCapSeen epas_only = {0};
+    epas_only.epas = true;
+    r = fsd_capability_eval(epas_only, TeslaHW_HW4);
+    CHECK(r.nag_killer == CAP_DUAL_CAN, "0x370 without DAS: dual-CAN recommended");
+    CHECK(r.ap_first == CAP_MISSING, "0x370 without DAS: AP-First missing");
+
+    // ── wrong bus for the nag killer: no 0x370 to echo ──
+    FSDCapSeen no_epas = {0};
+    no_epas.das_hw4 = true; // DAS state here, but no 0x370
+    r = fsd_capability_eval(no_epas, TeslaHW_HW4);
+    CHECK(r.nag_killer == CAP_MISSING, "no 0x370: nag killer missing (wrong bus)");
+    CHECK(r.ap_first == CAP_OK, "DAS present: AP-First still OK");
+
+    // ── FSD activation: either 0x3FD or 0x3EE satisfies it ──
+    FSDCapSeen legacy_ap = {0};
+    legacy_ap.ap_legacy = true;
+    CHECK(
+        fsd_capability_eval(legacy_ap, TeslaHW_Legacy).fsd_activation == CAP_OK,
+        "0x3EE alone: FSD activation OK");
+    FSDCapSeen empty = {0};
+    CHECK(
+        fsd_capability_eval(empty, TeslaHW_HW3).fsd_activation == CAP_MISSING,
+        "no AP frame: FSD activation missing");
+
+    // ── soft engage degrades to AP-First-only without 0x129 ──
+    CHECK(
+        fsd_capability_eval(hw3_das, TeslaHW_HW3).soft_engage == CAP_MISSING,
+        "no 0x129: soft engage degrades (missing)");
+
+    // ── HW unknown inference ──
+    // 0x39B seen -> infer HW4 (so a lone 0x399 would be treated as chime).
+    FSDCapSeen unk_hw4 = {0};
+    unk_hw4.das_hw4 = true;
+    unk_hw4.das_hw3 = true;
+    unk_hw4.epas = true;
+    r = fsd_capability_eval(unk_hw4, TeslaHW_Unknown);
+    CHECK(r.hw_unconfirmed, "unknown HW: flagged unconfirmed");
+    CHECK(r.hw_effective == TeslaHW_HW4, "0x39B present -> inferred HW4");
+    CHECK(r.has_das, "inferred HW4 still has DAS via 0x39B");
+
+    // Unknown HW, only 0x399 + 0x370: assume HW3/Legacy -> 0x399 IS DAS state,
+    // so the nag killer is reported workable but unconfirmed.
+    FSDCapSeen unk_399 = {0};
+    unk_399.das_hw3 = true;
+    unk_399.epas = true;
+    r = fsd_capability_eval(unk_399, TeslaHW_Unknown);
+    CHECK(r.hw_unconfirmed, "unknown HW w/ 0x399: unconfirmed");
+    CHECK(r.hw_effective == TeslaHW_HW3, "0x399-only unknown -> assume HW3");
+    CHECK(r.has_das, "0x399-only unknown -> treated as DAS state");
+    CHECK(r.nag_killer == CAP_OK, "0x399-only unknown: nag killer OK (unconfirmed)");
+
+    // Unknown HW with 0x3EE -> infer Legacy.
+    FSDCapSeen unk_legacy = {0};
+    unk_legacy.ap_legacy = true;
+    unk_legacy.das_hw3 = true;
+    unk_legacy.epas = true;
+    r = fsd_capability_eval(unk_legacy, TeslaHW_Unknown);
+    CHECK(r.hw_effective == TeslaHW_Legacy, "0x3EE present -> inferred Legacy");
+    CHECK(r.has_das, "inferred Legacy: 0x399 is DAS state");
+
+    // ── bus hint: steering, no 0x370 -> Chassis/Vehicle-like ──
+    FSDCapSeen chassis = {0};
+    chassis.steer = true;
+    r = fsd_capability_eval(chassis, TeslaHW_HW4);
+    CHECK(r.bus_hint == CAP_HINT_CHASSIS, "steer w/o 0x370: hint Chassis-like");
+    CHECK(r.soft_engage == CAP_OK, "0x129 present: soft engage OK");
+
+    // Empty tap -> everything missing, no hint.
+    r = fsd_capability_eval(empty, TeslaHW_HW4);
+    CHECK(
+        r.nag_killer == CAP_MISSING && r.ap_first == CAP_MISSING &&
+            r.fsd_activation == CAP_MISSING && r.soft_engage == CAP_MISSING,
+        "empty tap: all missing");
+    CHECK(r.bus_hint == CAP_HINT_NONE, "empty tap: no hint");
+}
+
+// ── built-in variant profiles + auto-suggest matcher (#126) ────────────────────
+// Helper: build a DAS frame with an 8-byte payload.
+static FSDProfileFrame
+    pf(uint8_t b0,
+       uint8_t b1,
+       uint8_t b2,
+       uint8_t b3,
+       uint8_t b4,
+       uint8_t b5,
+       uint8_t b6,
+       uint8_t b7) {
+    FSDProfileFrame f = {{b0, b1, b2, b3, b4, b5, b6, b7}, 8};
+    return f;
+}
+
+static void test_profile_db(void) {
+    // Look up the seed rows by identity so the test survives table re-ordering.
+    int i_hw3 = -1, i_hw4 = -1, i_ssw = -1, i_high = -1;
+    for(int i = 0; i < FSD_PROFILE_DB_COUNT; i++) {
+        const FSDProfile* p = &FSD_PROFILE_DB[i];
+        if(p->das_id == 0x399 && p->apstate.byte == 0 && p->apstate.shift == 0) i_hw3 = i;
+        if(p->das_id == 0x39B && p->apstate.byte == 1 && p->apstate.shift == 4) i_hw4 = i;
+        if(p->das_id == 0x39B && p->apstate.byte == 0 && p->apstate.shift == 4) i_ssw = i;
+        if(p->das_id == 0x39B && p->apstate.byte == 0 && p->apstate.shift == 0) i_high = i;
+    }
+    CHECK(i_hw3 >= 0 && i_hw4 >= 0 && i_ssw >= 0 && i_high >= 0, "all 4 seed profiles present");
+    CHECK(FSD_PROFILE_DB[i_ssw].needs_override, "ssw0209 flagged needs_override");
+    CHECK(!FSD_PROFILE_DB[i_hw4].needs_override, "std HW4 not needs_override");
+    CHECK(!FSD_PROFILE_DB[i_high].needs_override, "Highland auto-handled, not needs_override");
+    // handson is byte5/shift2/mask0xF throughout.
+    for(int i = 0; i < FSD_PROFILE_DB_COUNT; i++) {
+        CHECK(
+            FSD_PROFILE_DB[i].handson.byte == 5 && FSD_PROFILE_DB[i].handson.shift == 2 &&
+                FSD_PROFILE_DB[i].handson.mask == 0x0F,
+            "handson byte5/sh2/0xF: %s",
+            FSD_PROFILE_DB[i].name);
+    }
+
+    // ── Standard HW3 (0x399): AP-state in byte0 low nibble sweeps 2->3->4. ──
+    // Only one candidate for 0x399, so a live sweep -> unique match, but it is
+    // auto-handled -> no suggestion.
+    FSDProfileFrame hw3[] = {
+        pf(0x02, 0, 0, 0, 0, 0x00, 0, 0),
+        pf(0x03, 0, 0, 0, 0, 0x04, 0, 0),
+        pf(0x04, 0, 0, 0, 0, 0x08, 0, 0),
+        pf(0x03, 0, 0, 0, 0, 0x04, 0, 0),
+    };
+    FSDMatchResult r = fsd_profile_match(0x399, hw3, 4);
+    CHECK(r.status == FSD_MATCH_ONE && r.index == i_hw3, "std HW3: unique match");
+    CHECK(!fsd_profile_should_suggest(r), "std HW3: no suggestion (auto-handled)");
+
+    // ── Standard HW4 (0x39B): AP-state in byte1 hi nibble sweeps 1->2->3. ──
+    // byte0 is constant 0x00 so neither byte0-hi (ssw0209) nor byte0-lo
+    // (Highland) qualifies -> unique std HW4, auto-handled -> no suggestion.
+    FSDProfileFrame hw4[] = {
+        pf(0x00, 0x10, 0, 0, 0, 0x00, 0, 0),
+        pf(0x00, 0x20, 0, 0, 0, 0x04, 0, 0),
+        pf(0x00, 0x30, 0, 0, 0, 0x08, 0, 0),
+        pf(0x00, 0x20, 0, 0, 0, 0x04, 0, 0),
+    };
+    r = fsd_profile_match(0x39B, hw4, 4);
+    CHECK(r.status == FSD_MATCH_ONE && r.index == i_hw4, "std HW4: unique match");
+    CHECK(!fsd_profile_should_suggest(r), "std HW4: no suggestion (parser is fine)");
+
+    // ── THE REAL GAP: ssw0209 byte0 HI-nibble (0x39B, shift4). ──
+    // AP-state sweeps 1->2->3 in byte0[7:4]. byte1[7:4] is pinned at 1 (the
+    // Highland/ssw signature) so std HW4 reads a constant -> disqualified.
+    // byte0[3:0] is pinned at 1 so Highland's byte0-lo reads a constant ->
+    // disqualified. Only ssw0209 qualifies, and it needs_override -> SUGGEST.
+    FSDProfileFrame ssw[] = {
+        pf(0x11, 0x10, 0, 0, 0, 0x00, 0, 0), // hi=1 avail, lo=1, byte1 hi=1
+        pf(0x21, 0x10, 0, 0, 0, 0x04, 0, 0), // hi=2 active
+        pf(0x31, 0x10, 0, 0, 0, 0x08, 0, 0), // hi=3
+        pf(0x21, 0x10, 0, 0, 0, 0x04, 0, 0), // hi=2
+    };
+    r = fsd_profile_match(0x39B, ssw, 4);
+    CHECK(r.status == FSD_MATCH_ONE && r.index == i_ssw, "ssw0209 hi-nibble: unique match");
+    CHECK(fsd_profile_should_suggest(r), "ssw0209 hi-nibble: SUGGEST (the real gap)");
+    CHECK(FSD_PROFILE_DB[r.index].apstate.shift == 4, "ssw0209 suggests shift4");
+
+    // ── Ambiguous: byte0 sweeps sensibly in BOTH nibbles -> ssw0209 AND
+    // Highland both qualify -> AMBIGUOUS -> no suggestion (fall back to manual). ──
+    FSDProfileFrame amb[] = {
+        pf(0x12, 0x10, 0, 0, 0, 0x00, 0, 0), // hi=1,lo=2
+        pf(0x23, 0x10, 0, 0, 0, 0x04, 0, 0), // hi=2,lo=3
+        pf(0x34, 0x10, 0, 0, 0, 0x08, 0, 0), // hi=3,lo=4
+        pf(0x23, 0x10, 0, 0, 0, 0x04, 0, 0),
+    };
+    r = fsd_profile_match(0x39B, amb, 4);
+    CHECK(r.status == FSD_MATCH_AMBIGUOUS, "two nibbles live -> ambiguous");
+    CHECK(!fsd_profile_should_suggest(r), "ambiguous -> no suggestion");
+
+    // ── No match: nothing reaches active (parked car), all fields constant 0. ──
+    FSDProfileFrame parked[] = {
+        pf(0x11, 0x11, 0, 0, 0, 0x00, 0, 0), // every candidate nibble constant 1
+        pf(0x11, 0x11, 0, 0, 0, 0x00, 0, 0),
+        pf(0x11, 0x11, 0, 0, 0, 0x00, 0, 0),
+        pf(0x11, 0x11, 0, 0, 0, 0x00, 0, 0),
+    };
+    r = fsd_profile_match(0x39B, parked, 4);
+    CHECK(r.status == FSD_MATCH_NONE, "constant/never-active -> no match");
+    CHECK(!fsd_profile_should_suggest(r), "no match -> no suggestion");
+
+    // ── No match: unknown DAS id has no candidates. ──
+    r = fsd_profile_match(0x123, ssw, 4);
+    CHECK(r.status == FSD_MATCH_NONE, "unknown das_id -> no candidates -> no match");
+
+    // ── Too few frames: below FSD_PROFILE_MIN_FRAMES -> no decision. ──
+    r = fsd_profile_match(0x39B, ssw, 2);
+    CHECK(r.status == FSD_MATCH_NONE, "too few frames -> no match");
+
+    // ── Out-of-range guard: a nibble that decodes >9 disqualifies that profile.
+    // byte0 hi = 0xA (10) is out of range -> ssw0209 disqualified; std HW4 sweeps
+    // fine -> unique std HW4, no suggestion. Proves the out-of-range rejection. ──
+    FSDProfileFrame oor[] = {
+        pf(0xA1, 0x10, 0, 0, 0, 0x00, 0, 0), // byte0 hi=0xA (10) invalid
+        pf(0xA1, 0x20, 0, 0, 0, 0x04, 0, 0),
+        pf(0xA1, 0x30, 0, 0, 0, 0x08, 0, 0),
+        pf(0xA1, 0x20, 0, 0, 0, 0x04, 0, 0),
+    };
+    r = fsd_profile_match(0x39B, oor, 4);
+    CHECK(r.status == FSD_MATCH_ONE && r.index == i_hw4, "out-of-range nibble rejected");
+}
+
+// ── black-box .json summary formatter (#124) ─────────────────────────────────
+static void test_blackbox_summary(void) {
+    uint32_t tl_ts[3] = {0u, 4200u, 4670u};
+    uint8_t tl_state[3] = {2u, 6u, 9u};
+    FSDBlackboxSummary s;
+    memset(&s, 0, sizeof(s));
+    s.trigger = "ABORT";
+    s.from_state = 6;
+    s.to_state = 9;
+    s.trigger_rel_ms = 4670u;
+    s.window_pre_ms = 10000u;
+    s.window_post_ms = 5000u;
+    s.frame_count = 12345u;
+    s.hw_version = 3; // HW4
+    s.hw4_das_status_seen = true;
+    s.dual_can = true;
+    s.bus0_frames = 8000u;
+    s.bus1_frames = 4345u;
+    s.nag = true;
+    s.abort_guard = true;
+    s.tl_ts = tl_ts;
+    s.tl_state = tl_state;
+    s.tl_count = 3;
+
+    char out[512];
+    int n = fsd_blackbox_format_json(out, sizeof(out), &s);
+    CHECK(n > 0 && n == (int)strlen(out), "summary returns written length");
+    CHECK(strstr(out, "\"trigger\":\"ABORT\"") != NULL, "trigger present");
+    CHECK(strstr(out, "\"transition\":\"6->9\"") != NULL, "transition 6->9");
+    CHECK(strstr(out, "ABORT 6->9 @ t=4.670s") != NULL, "human detail with rel time");
+    CHECK(strstr(out, "\"hw\":\"HW4\"") != NULL, "hw name HW4");
+    CHECK(strstr(out, "\"dual_can\":true") != NULL, "dual_can flag");
+    CHECK(strstr(out, "\"can0\":8000") != NULL, "can0 frame count");
+    CHECK(strstr(out, "\"nag\":true") != NULL, "nag toggle");
+    CHECK(strstr(out, "\"abort_guard\":true") != NULL, "abort_guard toggle");
+    CHECK(strstr(out, "\"signal_map\":false") != NULL, "signal_map off");
+    CHECK(strstr(out, "{\"t\":4670,\"s\":9}") != NULL, "timeline tail entry");
+    CHECK(strstr(out, "\"frames\":12345") != NULL, "frame count");
+
+    // Manual mark: from==to, empty timeline still yields valid JSON.
+    memset(&s, 0, sizeof(s));
+    s.trigger = "MANUAL";
+    s.from_state = s.to_state = 2;
+    n = fsd_blackbox_format_json(out, sizeof(out), &s);
+    CHECK(n > 0, "manual summary non-empty");
+    CHECK(strstr(out, "\"transition\":\"2->2\"") != NULL, "manual transition 2->2");
+    CHECK(strstr(out, "\"ap_timeline\":[]") != NULL, "empty timeline");
+    CHECK(out[strlen(out) - 1] == '}', "well-terminated JSON");
+
+    // Truncation safety: a tiny buffer must stay NUL-terminated and in-bounds.
+    char tiny[16];
+    n = fsd_blackbox_format_json(tiny, sizeof(tiny), &s);
+    CHECK(n < (int)sizeof(tiny), "tiny buffer not overrun");
+    CHECK(tiny[n] == '\0', "tiny buffer NUL-terminated");
 }
 
 // ── nag burst/pause + ±1.8 Nm torque cap (#122) ──────────────────────────────
@@ -1543,6 +1938,10 @@ int main(void) {
     test_nag_burst_cap();
     test_signal_config();
     test_abort_guard();
+    test_fsd_events();
+    test_capability();
+    test_profile_db();
+    test_blackbox_summary();
     test_can_ops();
     test_additive_checksum();
     test_candump_format();
