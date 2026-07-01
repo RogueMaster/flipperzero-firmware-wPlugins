@@ -134,6 +134,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Nightstand Clock v1.2 (By nymda)](https://github.com/nymda/FlipperNightStand)
 - Updated: [UART Terminal v1.7 (By cool4uma)](https://github.com/cool4uma/UART_Terminal)
 - Updated: [USB HID Autofire v1.1 (By pbek)](https://github.com/pbek/usb_hid_autofire)
+- Updated: [Metroflip v2.0.3 (By luu176)](https://github.com/luu176/Metroflip)
 
 <a name="release"></a>
 

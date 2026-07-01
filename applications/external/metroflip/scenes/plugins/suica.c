@@ -777,6 +777,10 @@ static bool suica_on_event(Metroflip* app, SceneManagerEvent event) {
 
 static void suica_on_exit(Metroflip* app) {
     widget_reset(app->widget);
+    /* Stop the scan LED. The only other stop is in the poller callback's
+       success path, so without this, backing out of a Suica scan before a
+       card is tapped would leave the LED blinking. */
+    metroflip_app_blink_stop(app);
     if(app->suica_context) {
         if(app->suica_context->parsed_data) {
             furi_string_free(app->suica_context->parsed_data);
