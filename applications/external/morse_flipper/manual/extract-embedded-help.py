@@ -80,7 +80,11 @@ def cstr(s):
 
 
 def cards(name, src):
-    m = re.search(r"static const char\* const " + re.escape(name) + r"\[\] = \{(.*?)\};", src, re.S)
+    m = re.search(
+        r"static const char\* const " + re.escape(name) + r"\[\] = \{(.*?)\};",
+        src,
+        re.S,
+    )
     if not m:
         raise SystemExit("missing array")
     return [cstr(x) for x in re.findall(r'"(?:\\.|[^"\\])*"', m.group(1))]

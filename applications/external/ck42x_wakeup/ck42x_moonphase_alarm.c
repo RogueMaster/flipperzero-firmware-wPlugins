@@ -12,25 +12,25 @@
 #include <storage/storage.h>
 #include <string.h>
 
-#define LOOP_MS 100
+#define LOOP_MS               100
 #define ANIM_TICKS_PER_SECOND 10U
-#define IR_MAX_TIMINGS 160U
-#define ALARM_COUNT 8U
-#define SUBGHZ_FREQ_HZ 433920000UL
+#define IR_MAX_TIMINGS        160U
+#define ALARM_COUNT           8U
+#define SUBGHZ_FREQ_HZ        433920000UL
 #define COUNTER_CYCLE_SECONDS 4U
-#define COUNTER_SAVE_DIR STORAGE_APP_DATA_PATH_PREFIX "/ck42x_wakeup"
-#define COUNTER_SAVE_FILE COUNTER_SAVE_DIR "/counter.bin"
-#define ALARM_SAVE_FILE COUNTER_SAVE_DIR "/alarms.bin"
-#define PREFS_SAVE_FILE COUNTER_SAVE_DIR "/prefs.bin"
-#define COUNTER_SAVE_MAGIC 0x43534B31UL
-#define COUNTER_SAVE_VERSION 1U
-#define ALARM_SAVE_MAGIC 0x414C4B31UL
-#define ALARM_SAVE_VERSION 1U
-#define PREFS_SAVE_MAGIC 0x50524631UL
-#define PREFS_SAVE_VERSION 1U
+#define COUNTER_SAVE_DIR      STORAGE_APP_DATA_PATH_PREFIX "/ck42x_wakeup"
+#define COUNTER_SAVE_FILE     COUNTER_SAVE_DIR "/counter.bin"
+#define ALARM_SAVE_FILE       COUNTER_SAVE_DIR "/alarms.bin"
+#define PREFS_SAVE_FILE       COUNTER_SAVE_DIR "/prefs.bin"
+#define COUNTER_SAVE_MAGIC    0x43534B31UL
+#define COUNTER_SAVE_VERSION  1U
+#define ALARM_SAVE_MAGIC      0x414C4B31UL
+#define ALARM_SAVE_VERSION    1U
+#define PREFS_SAVE_MAGIC      0x50524631UL
+#define PREFS_SAVE_VERSION    1U
 
 #define MENU_VISIBLE_ROWS 5U
-#define MENU_FOOTER_ROWS 4U
+#define MENU_FOOTER_ROWS  4U
 
 typedef enum {
     ScreenMain,
@@ -177,12 +177,9 @@ typedef struct {
 } Ck42xWakeupApp;
 
 static const uint16_t subghz_ck42x_pulse_us[] = {
-    9000, 4500,
-    500, 500, 500, 1500, 500, 500, 500, 1500,
-    500, 1500, 500, 500, 500, 1500, 500, 500,
-    500, 500, 500, 1500, 500, 1500, 500, 500,
-    500, 1500, 500, 500, 500, 500, 500, 1500,
-    500, 9000,
+    9000, 4500, 500, 500,  500, 1500, 500, 500, 500, 1500, 500, 1500,
+    500,  500,  500, 1500, 500, 500,  500, 500, 500, 1500, 500, 1500,
+    500,  500,  500, 1500, 500, 500,  500, 500, 500, 1500, 500, 9000,
 };
 
 static const char* jumper_name(JumperType type) {
@@ -200,11 +197,13 @@ static const char* tone_name(AlarmTone tone) {
 
 static float tone_freq(AlarmTone tone, uint8_t step) {
     if(tone == ToneRickroll) {
-        static const float notes[] = {587.0f, 659.0f, 784.0f, 659.0f, 988.0f, 988.0f, 880.0f, 740.0f};
+        static const float notes[] = {
+            587.0f, 659.0f, 784.0f, 659.0f, 988.0f, 988.0f, 880.0f, 740.0f};
         return notes[step & 7U];
     }
     if(tone == ToneNokia) {
-        static const float notes[] = {1318.0f, 1174.0f, 740.0f, 830.0f, 1108.0f, 987.0f, 587.0f, 659.0f};
+        static const float notes[] = {
+            1318.0f, 1174.0f, 740.0f, 830.0f, 1108.0f, 987.0f, 587.0f, 659.0f};
         return notes[step & 7U];
     }
     if(tone == ToneUrgent) return (step & 1U) ? 1760.0f : 988.0f;
@@ -240,15 +239,21 @@ static const char* badkb_payload_name(BadkbPayload payload) {
 static const char* badkb_payload_url(BadkbPayload payload) {
     if(payload == BadkbCk42x) return "https://ck42x.com";
     if(payload == BadkbRickroll) return "https://youtu.be/dQw4w9WgXcQ";
-    if(payload == BadkbWakeSearch) return "https://www.youtube.com/results?search_query=alarm+clock";
+    if(payload == BadkbWakeSearch)
+        return "https://www.youtube.com/results?search_query=alarm+clock";
     if(payload == BadkbBeeMusic) return "https://ck42x.com/beemusic";
     if(payload == BadkbWakePage) return "https://ck42x.com/tools/ck42x-wakeup/uploader";
     if(payload == BadkbLofiLive) return "https://youtu.be/EWrX250Zhko";
-    if(payload == BadkbNyanSearch) return "https://www.youtube.com/results?search_query=nyan+cat+original";
-    if(payload == BadkbMorningAlarm) return "https://www.youtube.com/results?search_query=morning+alarm+clock+music";
-    if(payload == BadkbTenHourTimer) return "https://www.youtube.com/results?search_query=10+hour+alarm+clock+sound";
-    if(payload == BadkbRainSounds) return "https://www.youtube.com/results?search_query=morning+rain+sounds";
-    if(payload == BadkbPomodoro) return "https://www.youtube.com/results?search_query=study+with+me+pomodoro";
+    if(payload == BadkbNyanSearch)
+        return "https://www.youtube.com/results?search_query=nyan+cat+original";
+    if(payload == BadkbMorningAlarm)
+        return "https://www.youtube.com/results?search_query=morning+alarm+clock+music";
+    if(payload == BadkbTenHourTimer)
+        return "https://www.youtube.com/results?search_query=10+hour+alarm+clock+sound";
+    if(payload == BadkbRainSounds)
+        return "https://www.youtube.com/results?search_query=morning+rain+sounds";
+    if(payload == BadkbPomodoro)
+        return "https://www.youtube.com/results?search_query=study+with+me+pomodoro";
     return NULL;
 }
 
@@ -261,9 +266,20 @@ static uint8_t menu_start_for_rows(uint8_t selected, uint8_t count, uint8_t visi
 
 static void draw_stars(Canvas* canvas) {
     static const uint8_t stars[][2] = {
-        {5,5},{120,8},{112,56},{12,49},{80,4},{96,19},{8,31},
-        {124,42},{72,59},{49,7},{58,55},{28,19},{103,51},{118,16}
-    };
+        {5, 5},
+        {120, 8},
+        {112, 56},
+        {12, 49},
+        {80, 4},
+        {96, 19},
+        {8, 31},
+        {124, 42},
+        {72, 59},
+        {49, 7},
+        {58, 55},
+        {28, 19},
+        {103, 51},
+        {118, 16}};
     canvas_set_color(canvas, ColorWhite);
     for(size_t i = 0; i < sizeof(stars) / sizeof(stars[0]); i++) {
         canvas_draw_dot(canvas, stars[i][0], stars[i][1]);
@@ -292,7 +308,13 @@ static void draw_title(Canvas* canvas, const char* title) {
     canvas_draw_str(canvas, 4, 11, title);
 }
 
-static void draw_menu_list(Canvas* canvas, const char* title, const char* const* items, uint8_t count, uint8_t selected, const char* footer) {
+static void draw_menu_list(
+    Canvas* canvas,
+    const char* title,
+    const char* const* items,
+    uint8_t count,
+    uint8_t selected,
+    const char* footer) {
     draw_title(canvas, title);
     uint8_t visible_rows = footer ? MENU_FOOTER_ROWS : MENU_VISIBLE_ROWS;
     uint8_t start = menu_start_for_rows(selected, count, visible_rows);
@@ -312,7 +334,8 @@ static void draw_menu_list(Canvas* canvas, const char* title, const char* const*
 
 static LevelDuration subghz_ck42x_tx_callback(void* ctx) {
     Ck42xWakeupApp* app = ctx;
-    if(app->subghz_tx_index >= (sizeof(subghz_ck42x_pulse_us) / sizeof(subghz_ck42x_pulse_us[0]))) {
+    if(app->subghz_tx_index >=
+       (sizeof(subghz_ck42x_pulse_us) / sizeof(subghz_ck42x_pulse_us[0]))) {
         return level_duration_reset();
     }
     uint16_t duration = subghz_ck42x_pulse_us[app->subghz_tx_index];
@@ -559,15 +582,19 @@ static void start_ir_capture(Ck42xWakeupApp* app, uint8_t alarm) {
     app->ir_worker = infrared_worker_alloc();
     infrared_worker_rx_enable_signal_decoding(app->ir_worker, false);
     infrared_worker_rx_enable_blink_on_receiving(app->ir_worker, true);
-    infrared_worker_rx_set_received_signal_callback(app->ir_worker, ir_worker_received_callback, app);
+    infrared_worker_rx_set_received_signal_callback(
+        app->ir_worker, ir_worker_received_callback, app);
     infrared_worker_rx_start(app->ir_worker);
 }
 
 static void send_ir_signal(Ck42xWakeupApp* app, uint8_t alarm) {
     alarm %= ALARM_COUNT;
     uint16_t count = app->ir_count[alarm];
-    if(!app->alarm_ir_enabled[alarm] || !app->ir_ready[alarm] || count < 8U || furi_hal_infrared_is_busy()) return;
-    infrared_send_raw_ext(app->ir_timings[alarm], count, app->ir_start_from_mark[alarm], 38000UL, 0.33f);
+    if(!app->alarm_ir_enabled[alarm] || !app->ir_ready[alarm] || count < 8U ||
+       furi_hal_infrared_is_busy())
+        return;
+    infrared_send_raw_ext(
+        app->ir_timings[alarm], count, app->ir_start_from_mark[alarm], 38000UL, 0.33f);
 }
 
 static void start_alarm_audio(Ck42xWakeupApp* app, uint8_t alarm) {
@@ -658,7 +685,8 @@ static void alarm_save(Ck42xWakeupApp* app) {
             save->badkb_payload[i] = (uint8_t)app->alarm_badkb_payload[i];
             save->ir_ready[i] = app->ir_ready[i] ? 1U : 0U;
             save->ir_start_from_mark[i] = app->ir_start_from_mark[i] ? 1U : 0U;
-            save->ir_count[i] = app->ir_count[i] <= IR_MAX_TIMINGS ? app->ir_count[i] : IR_MAX_TIMINGS;
+            save->ir_count[i] = app->ir_count[i] <= IR_MAX_TIMINGS ? app->ir_count[i] :
+                                                                     IR_MAX_TIMINGS;
             memcpy(save->ir_timings[i], app->ir_timings[i], sizeof(save->ir_timings[i]));
         }
         if(storage_file_open(file, ALARM_SAVE_FILE, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
@@ -681,7 +709,8 @@ static void alarm_load(Ck42xWakeupApp* app) {
         if(storage_file_open(file, ALARM_SAVE_FILE, FSAM_READ, FSOM_OPEN_EXISTING)) {
             if(storage_file_size(file) == sizeof(AlarmSave)) {
                 storage_file_read(file, save, sizeof(AlarmSave));
-                if(save->magic == ALARM_SAVE_MAGIC && save->version == ALARM_SAVE_VERSION && save->size == sizeof(AlarmSave)) {
+                if(save->magic == ALARM_SAVE_MAGIC && save->version == ALARM_SAVE_VERSION &&
+                   save->size == sizeof(AlarmSave)) {
                     for(uint8_t i = 0; i < ALARM_COUNT; i++) {
                         app->alarm_configured[i] = save->configured[i] != 0U;
                         app->alarm_enabled[i] = save->enabled[i] != 0U;
@@ -691,13 +720,19 @@ static void alarm_load(Ck42xWakeupApp* app) {
                         app->alarm_subg_enabled[i] = save->subg_enabled[i] != 0U;
                         app->alarm_haptic_enabled[i] = save->haptic_enabled[i] != 0U;
                         app->alarm_audio_enabled[i] = save->audio_enabled[i] != 0U;
-                        app->alarm_tone[i] = save->tone[i] < ToneCount ? (AlarmTone)save->tone[i] : ToneClassic;
+                        app->alarm_tone[i] = save->tone[i] < ToneCount ? (AlarmTone)save->tone[i] :
+                                                                         ToneClassic;
                         app->alarm_badkb_enabled[i] = save->badkb_enabled[i] != 0U;
-                        app->alarm_badkb_payload[i] = save->badkb_payload[i] < BadkbCount ? (BadkbPayload)save->badkb_payload[i] : BadkbOff;
+                        app->alarm_badkb_payload[i] = save->badkb_payload[i] < BadkbCount ?
+                                                          (BadkbPayload)save->badkb_payload[i] :
+                                                          BadkbOff;
                         app->ir_ready[i] = save->ir_ready[i] != 0U;
                         app->ir_start_from_mark[i] = save->ir_start_from_mark[i] != 0U;
-                        app->ir_count[i] = save->ir_count[i] <= IR_MAX_TIMINGS ? save->ir_count[i] : IR_MAX_TIMINGS;
-                        memcpy(app->ir_timings[i], save->ir_timings[i], sizeof(app->ir_timings[i]));
+                        app->ir_count[i] = save->ir_count[i] <= IR_MAX_TIMINGS ?
+                                               save->ir_count[i] :
+                                               IR_MAX_TIMINGS;
+                        memcpy(
+                            app->ir_timings[i], save->ir_timings[i], sizeof(app->ir_timings[i]));
                         if(!app->ir_ready[i]) {
                             app->alarm_ir_enabled[i] = false;
                             app->ir_count[i] = 0;
@@ -717,7 +752,8 @@ static void backlight_apply(Ck42xWakeupApp* app) {
     if(!app->notification) return;
     notification_message(
         app->notification,
-        app->backlight_keep_on ? &sequence_display_backlight_enforce_on : &sequence_display_backlight_enforce_auto);
+        app->backlight_keep_on ? &sequence_display_backlight_enforce_on :
+                                 &sequence_display_backlight_enforce_auto);
 }
 
 static void prefs_save(Ck42xWakeupApp* app) {
@@ -821,7 +857,9 @@ static void ck42x_clock_tick(Ck42xWakeupApp* app) {
     }
     if(app->screen != ScreenRing && app->sec == 0) {
         for(uint8_t i = 0; i < ALARM_COUNT; i++) {
-            if(app->alarm_configured[i] && app->alarm_enabled[i] && !app->alarm_fired_this_minute[i] && app->hr == app->alarm_hr[i] && app->min == app->alarm_min[i]) {
+            if(app->alarm_configured[i] && app->alarm_enabled[i] &&
+               !app->alarm_fired_this_minute[i] && app->hr == app->alarm_hr[i] &&
+               app->min == app->alarm_min[i]) {
                 app->alarm_fired_this_minute[i] = true;
                 enter_ring(app, i);
                 break;
@@ -859,9 +897,21 @@ static void draw_main(Canvas* canvas, Ck42xWakeupApp* app) {
     canvas_draw_str(canvas, 67, 42, line);
     uint8_t sel = app->selected_alarm;
     if(app->alarm_configured[sel]) {
-        snprintf(line, sizeof(line), "A%u %s %02u:%02u", (unsigned)(sel + 1U), app->alarm_enabled[sel] ? "ON" : "off", (unsigned)app->alarm_hr[sel], (unsigned)app->alarm_min[sel]);
+        snprintf(
+            line,
+            sizeof(line),
+            "A%u %s %02u:%02u",
+            (unsigned)(sel + 1U),
+            app->alarm_enabled[sel] ? "ON" : "off",
+            (unsigned)app->alarm_hr[sel],
+            (unsigned)app->alarm_min[sel]);
         canvas_draw_str(canvas, 67, 53, line);
-        snprintf(line, sizeof(line), "IR%s SG%s", app->ir_ready[sel] ? "+" : "-", app->alarm_subg_enabled[sel] ? "+" : "-");
+        snprintf(
+            line,
+            sizeof(line),
+            "IR%s SG%s",
+            app->ir_ready[sel] ? "+" : "-",
+            app->alarm_subg_enabled[sel] ? "+" : "-");
         canvas_draw_str(canvas, 67, 63, line);
     } else {
         canvas_draw_str(canvas, 67, 53, "No alarms");
@@ -904,7 +954,16 @@ static void draw_alarm_list(Canvas* canvas, Ck42xWakeupApp* app) {
         uint8_t idx = alarm_index_for_list_pos(app, pos);
         char line[40];
         if(idx < ALARM_COUNT) {
-            snprintf(line, sizeof(line), "A%u %s %02u:%02u IR%s SG%s", (unsigned)(idx + 1U), app->alarm_enabled[idx] ? "ON " : "off", (unsigned)app->alarm_hr[idx], (unsigned)app->alarm_min[idx], app->ir_ready[idx] ? "+" : "-", app->alarm_subg_enabled[idx] ? "+" : "-");
+            snprintf(
+                line,
+                sizeof(line),
+                "A%u %s %02u:%02u IR%s SG%s",
+                (unsigned)(idx + 1U),
+                app->alarm_enabled[idx] ? "ON " : "off",
+                (unsigned)app->alarm_hr[idx],
+                (unsigned)app->alarm_min[idx],
+                app->ir_ready[idx] ? "+" : "-",
+                app->alarm_subg_enabled[idx] ? "+" : "-");
         } else {
             snprintf(line, sizeof(line), "+ new alarm");
         }
@@ -923,18 +982,40 @@ static void draw_alarm_detail(Canvas* canvas, Ck42xWakeupApp* app) {
     uint8_t sel = app->selected_alarm;
     char rows[9][40];
     if(app->detail_cursor >= 9U) app->detail_cursor = 8U;
-    snprintf(rows[0], sizeof(rows[0]), "Time       %02u:%02u", (unsigned)app->alarm_hr[sel], (unsigned)app->alarm_min[sel]);
+    snprintf(
+        rows[0],
+        sizeof(rows[0]),
+        "Time       %02u:%02u",
+        (unsigned)app->alarm_hr[sel],
+        (unsigned)app->alarm_min[sel]);
     snprintf(rows[1], sizeof(rows[1]), "Enabled    %s", app->alarm_enabled[sel] ? "ON" : "OFF");
-    snprintf(rows[2], sizeof(rows[2]), "IR alarm   %s %03u", app->alarm_ir_enabled[sel] ? "ON" : "OFF", (unsigned)app->ir_count[sel]);
-    snprintf(rows[3], sizeof(rows[3]), "SubG       %s", app->alarm_subg_enabled[sel] ? "ON" : "OFF");
-    snprintf(rows[4], sizeof(rows[4]), "Haptics    %s", app->alarm_haptic_enabled[sel] ? "ON" : "OFF");
-    snprintf(rows[5], sizeof(rows[5]), "Audio      %s %s", app->alarm_audio_enabled[sel] ? "ON" : "OFF", tone_name(app->alarm_tone[sel]));
-    snprintf(rows[6], sizeof(rows[6]), "BadKB      %s", app->alarm_badkb_enabled[sel] ? badkb_payload_name(app->alarm_badkb_payload[sel]) : "OFF");
+    snprintf(
+        rows[2],
+        sizeof(rows[2]),
+        "IR alarm   %s %03u",
+        app->alarm_ir_enabled[sel] ? "ON" : "OFF",
+        (unsigned)app->ir_count[sel]);
+    snprintf(
+        rows[3], sizeof(rows[3]), "SubG       %s", app->alarm_subg_enabled[sel] ? "ON" : "OFF");
+    snprintf(
+        rows[4], sizeof(rows[4]), "Haptics    %s", app->alarm_haptic_enabled[sel] ? "ON" : "OFF");
+    snprintf(
+        rows[5],
+        sizeof(rows[5]),
+        "Audio      %s %s",
+        app->alarm_audio_enabled[sel] ? "ON" : "OFF",
+        tone_name(app->alarm_tone[sel]));
+    snprintf(
+        rows[6],
+        sizeof(rows[6]),
+        "BadKB      %s",
+        app->alarm_badkb_enabled[sel] ? badkb_payload_name(app->alarm_badkb_payload[sel]) : "OFF");
     snprintf(rows[7], sizeof(rows[7]), "Test alarm now");
     snprintf(rows[8], sizeof(rows[8]), "Delete/clear slot");
     uint8_t start = menu_start_for_rows(app->detail_cursor, 9U, MENU_FOOTER_ROWS);
     for(uint8_t row = 0; row < MENU_FOOTER_ROWS && start + row < 9U; row++) {
-        draw_menu_row(canvas, row, (uint8_t)(start + row) == app->detail_cursor, rows[start + row]);
+        draw_menu_row(
+            canvas, row, (uint8_t)(start + row) == app->detail_cursor, rows[start + row]);
     }
     canvas_set_font(canvas, FontSecondary);
     char footer[32];
@@ -947,7 +1028,12 @@ static void draw_time_select(Canvas* canvas, Ck42xWakeupApp* app) {
     uint8_t sel = app->selected_alarm;
     canvas_set_font(canvas, FontBigNumbers);
     char line[16];
-    snprintf(line, sizeof(line), "%02u:%02u", (unsigned)app->alarm_hr[sel], (unsigned)app->alarm_min[sel]);
+    snprintf(
+        line,
+        sizeof(line),
+        "%02u:%02u",
+        (unsigned)app->alarm_hr[sel],
+        (unsigned)app->alarm_min[sel]);
     canvas_draw_str(canvas, 34, 35, line);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, app->time_field == 0 ? 42 : 75, 45, "^^");
@@ -963,7 +1049,8 @@ static void draw_ir_menu(Canvas* canvas, Ck42xWakeupApp* app) {
     snprintf(rows[2], sizeof(rows[2]), "Test replay %03u", (unsigned)app->ir_count[sel]);
     snprintf(rows[3], sizeof(rows[3]), "Save/back RAM");
     const char* ptrs[4] = {rows[0], rows[1], rows[2], rows[3]};
-    draw_menu_list(canvas, "IR Alarm", ptrs, 4U, app->ir_menu_cursor, "Capture saves to alarm RAM");
+    draw_menu_list(
+        canvas, "IR Alarm", ptrs, 4U, app->ir_menu_cursor, "Capture saves to alarm RAM");
 }
 
 static void draw_ir_capture(Canvas* canvas, Ck42xWakeupApp* app) {
@@ -971,9 +1058,19 @@ static void draw_ir_capture(Canvas* canvas, Ck42xWakeupApp* app) {
     canvas_set_font(canvas, FontSecondary);
     char line[40];
     uint8_t alarm = app->ir_record_alarm % ALARM_COUNT;
-    snprintf(line, sizeof(line), "A%u: %s", (unsigned)(alarm + 1U), app->ir_recording ? "listening" : (app->ir_ready[alarm] ? "captured" : "empty"));
+    snprintf(
+        line,
+        sizeof(line),
+        "A%u: %s",
+        (unsigned)(alarm + 1U),
+        app->ir_recording ? "listening" : (app->ir_ready[alarm] ? "captured" : "empty"));
     canvas_draw_str(canvas, 6, 27, line);
-    snprintf(line, sizeof(line), "Timings: %03u/%u", (unsigned)app->ir_count[alarm], (unsigned)IR_MAX_TIMINGS);
+    snprintf(
+        line,
+        sizeof(line),
+        "Timings: %03u/%u",
+        (unsigned)app->ir_count[alarm],
+        (unsigned)IR_MAX_TIMINGS);
     canvas_draw_str(canvas, 6, 39, line);
     canvas_draw_str(canvas, 6, 51, "Aim remote, press key");
     canvas_draw_str(canvas, 6, 63, "OK retry Rt test Back save");
@@ -987,14 +1084,16 @@ static void draw_subg_menu(Canvas* canvas, Ck42xWakeupApp* app) {
     snprintf(rows[2], sizeof(rows[2]), "Test 433.92 TX");
     snprintf(rows[3], sizeof(rows[3]), "Save/back");
     const char* ptrs[4] = {rows[0], rows[1], rows[2], rows[3]};
-    draw_menu_list(canvas, "Sub-GHz Alarm", ptrs, 4U, app->subg_menu_cursor, "Learn blocked; TX works");
+    draw_menu_list(
+        canvas, "Sub-GHz Alarm", ptrs, 4U, app->subg_menu_cursor, "Learn blocked; TX works");
 }
 
 static void draw_badkb_menu(Canvas* canvas, Ck42xWakeupApp* app) {
     uint8_t sel = app->selected_alarm;
     char rows[4][40];
     snprintf(rows[0], sizeof(rows[0]), "Enabled %s", app->alarm_badkb_enabled[sel] ? "ON" : "OFF");
-    snprintf(rows[1], sizeof(rows[1]), "Payload %s", badkb_payload_name(app->alarm_badkb_payload[sel]));
+    snprintf(
+        rows[1], sizeof(rows[1]), "Payload %s", badkb_payload_name(app->alarm_badkb_payload[sel]));
     snprintf(rows[2], sizeof(rows[2]), "Test payload");
     snprintf(rows[3], sizeof(rows[3]), "Save/back");
     const char* ptrs[4] = {rows[0], rows[1], rows[2], rows[3]};
@@ -1019,7 +1118,8 @@ static void draw_counter_menu(Canvas* canvas, Ck42xWakeupApp* app) {
     snprintf(rows[2], sizeof(rows[2]), "Reset count %03u", (unsigned)(app->counter_count % 1000U));
     snprintf(rows[3], sizeof(rows[3]), "Save/back");
     const char* ptrs[4] = {rows[0], rows[1], rows[2], rows[3]};
-    draw_menu_list(canvas, "Character", ptrs, 4U, app->counter_menu_cursor, "Global setting saves");
+    draw_menu_list(
+        canvas, "Character", ptrs, 4U, app->counter_menu_cursor, "Global setting saves");
 }
 
 static void draw_about(Canvas* canvas) {
@@ -1037,7 +1137,11 @@ static void draw_settings(Canvas* canvas, Ck42xWakeupApp* app) {
     snprintf(rows[0], sizeof(rows[0]), "Clock +1 minute");
     snprintf(rows[1], sizeof(rows[1]), "Clock -1 minute");
     snprintf(rows[2], sizeof(rows[2]), "Backlight keep %s", app->backlight_keep_on ? "ON" : "OFF");
-    snprintf(rows[3], sizeof(rows[3]), "Character %s", app->counter_enabled ? jumper_name(app->jumper_type) : "OFF");
+    snprintf(
+        rows[3],
+        sizeof(rows[3]),
+        "Character %s",
+        app->counter_enabled ? jumper_name(app->jumper_type) : "OFF");
     snprintf(rows[4], sizeof(rows[4]), "Back");
     const char* ptrs[5] = {rows[0], rows[1], rows[2], rows[3], rows[4]};
     draw_menu_list(canvas, "Settings", ptrs, 5U, app->settings_cursor, "Backlight persists");
@@ -1054,7 +1158,14 @@ static void draw_ring(Canvas* canvas, Ck42xWakeupApp* app) {
     canvas_set_font(canvas, FontSecondary);
     char line[40];
     uint8_t alarm = app->ringing_alarm;
-    snprintf(line, sizeof(line), "A%u %02u:%02u %s", (unsigned)(alarm + 1U), (unsigned)app->alarm_hr[alarm], (unsigned)app->alarm_min[alarm], tone_name(app->alarm_tone[alarm]));
+    snprintf(
+        line,
+        sizeof(line),
+        "A%u %02u:%02u %s",
+        (unsigned)(alarm + 1U),
+        (unsigned)app->alarm_hr[alarm],
+        (unsigned)app->alarm_min[alarm],
+        tone_name(app->alarm_tone[alarm]));
     canvas_draw_str(canvas, 15, 51, line);
     canvas_draw_str(canvas, 5, 63, "OK dismiss | vibe sound IR SG BK");
 }
@@ -1062,20 +1173,34 @@ static void draw_ring(Canvas* canvas, Ck42xWakeupApp* app) {
 static void ck42x_draw_callback(Canvas* canvas, void* context) {
     Ck42xWakeupApp* app = context;
     canvas_clear(canvas);
-    if(app->screen == ScreenMenu) draw_menu(canvas, app);
-    else if(app->screen == ScreenAlarmList) draw_alarm_list(canvas, app);
-    else if(app->screen == ScreenAlarmDetail) draw_alarm_detail(canvas, app);
-    else if(app->screen == ScreenTimeSelect) draw_time_select(canvas, app);
-    else if(app->screen == ScreenIrMenu) draw_ir_menu(canvas, app);
-    else if(app->screen == ScreenIrCapture) draw_ir_capture(canvas, app);
-    else if(app->screen == ScreenSubgMenu) draw_subg_menu(canvas, app);
-    else if(app->screen == ScreenBadkbMenu) draw_badkb_menu(canvas, app);
-    else if(app->screen == ScreenAudioMenu) draw_audio_menu(canvas, app);
-    else if(app->screen == ScreenCounterMenu) draw_counter_menu(canvas, app);
-    else if(app->screen == ScreenAbout) draw_about(canvas);
-    else if(app->screen == ScreenSettings) draw_settings(canvas, app);
-    else if(app->screen == ScreenRing) draw_ring(canvas, app);
-    else draw_main(canvas, app);
+    if(app->screen == ScreenMenu)
+        draw_menu(canvas, app);
+    else if(app->screen == ScreenAlarmList)
+        draw_alarm_list(canvas, app);
+    else if(app->screen == ScreenAlarmDetail)
+        draw_alarm_detail(canvas, app);
+    else if(app->screen == ScreenTimeSelect)
+        draw_time_select(canvas, app);
+    else if(app->screen == ScreenIrMenu)
+        draw_ir_menu(canvas, app);
+    else if(app->screen == ScreenIrCapture)
+        draw_ir_capture(canvas, app);
+    else if(app->screen == ScreenSubgMenu)
+        draw_subg_menu(canvas, app);
+    else if(app->screen == ScreenBadkbMenu)
+        draw_badkb_menu(canvas, app);
+    else if(app->screen == ScreenAudioMenu)
+        draw_audio_menu(canvas, app);
+    else if(app->screen == ScreenCounterMenu)
+        draw_counter_menu(canvas, app);
+    else if(app->screen == ScreenAbout)
+        draw_about(canvas);
+    else if(app->screen == ScreenSettings)
+        draw_settings(canvas, app);
+    else if(app->screen == ScreenRing)
+        draw_ring(canvas, app);
+    else
+        draw_main(canvas, app);
 }
 
 static void cursor_up(uint8_t* cursor, uint8_t count) {
@@ -1111,28 +1236,40 @@ static void clear_alarm(Ck42xWakeupApp* app, uint8_t alarm) {
 }
 
 static void handle_main_input(Ck42xWakeupApp* app, InputKey key) {
-    if(key == InputKeyBack) app->running = false;
-    else if(key == InputKeyOk) app->screen = ScreenMenu;
-    else if(key == InputKeyUp) enter_ring(app, app->selected_alarm);
+    if(key == InputKeyBack)
+        app->running = false;
+    else if(key == InputKeyOk)
+        app->screen = ScreenMenu;
+    else if(key == InputKeyUp)
+        enter_ring(app, app->selected_alarm);
 }
 
 static void handle_menu_input(Ck42xWakeupApp* app, InputKey key) {
-    if(key == InputKeyBack) app->screen = ScreenMain;
-    else if(key == InputKeyUp) cursor_up(&app->menu_cursor, 3U);
-    else if(key == InputKeyDown) cursor_down(&app->menu_cursor, 3U);
+    if(key == InputKeyBack)
+        app->screen = ScreenMain;
+    else if(key == InputKeyUp)
+        cursor_up(&app->menu_cursor, 3U);
+    else if(key == InputKeyDown)
+        cursor_down(&app->menu_cursor, 3U);
     else if(key == InputKeyOk) {
-        if(app->menu_cursor == 0U) app->screen = ScreenAlarmList;
-        else if(app->menu_cursor == 1U) app->screen = ScreenAbout;
-        else app->screen = ScreenSettings;
+        if(app->menu_cursor == 0U)
+            app->screen = ScreenAlarmList;
+        else if(app->menu_cursor == 1U)
+            app->screen = ScreenAbout;
+        else
+            app->screen = ScreenSettings;
     }
 }
 
 static void handle_alarm_list_input(Ck42xWakeupApp* app, InputKey key) {
     uint8_t count = (uint8_t)(configured_alarm_count(app) + 1U);
     if(app->alarm_list_cursor >= count) app->alarm_list_cursor = (uint8_t)(count - 1U);
-    if(key == InputKeyBack) app->screen = ScreenMenu;
-    else if(key == InputKeyUp) cursor_up(&app->alarm_list_cursor, count);
-    else if(key == InputKeyDown) cursor_down(&app->alarm_list_cursor, count);
+    if(key == InputKeyBack)
+        app->screen = ScreenMenu;
+    else if(key == InputKeyUp)
+        cursor_up(&app->alarm_list_cursor, count);
+    else if(key == InputKeyDown)
+        cursor_down(&app->alarm_list_cursor, count);
     else if(key == InputKeyOk) {
         uint8_t idx = alarm_index_for_list_pos(app, app->alarm_list_cursor);
         if(idx >= ALARM_COUNT) {
@@ -1154,21 +1291,29 @@ static void handle_alarm_detail_input(Ck42xWakeupApp* app, InputKey key) {
     if(key == InputKeyBack) {
         alarm_save(app);
         app->screen = ScreenAlarmList;
-    } else if(key == InputKeyUp) cursor_up(&app->detail_cursor, 9U);
-    else if(key == InputKeyDown) cursor_down(&app->detail_cursor, 9U);
+    } else if(key == InputKeyUp)
+        cursor_up(&app->detail_cursor, 9U);
+    else if(key == InputKeyDown)
+        cursor_down(&app->detail_cursor, 9U);
     else if(key == InputKeyOk) {
-        if(app->detail_cursor == 0U) app->screen = ScreenTimeSelect;
+        if(app->detail_cursor == 0U)
+            app->screen = ScreenTimeSelect;
         else if(app->detail_cursor == 1U) {
             app->alarm_enabled[sel] = !app->alarm_enabled[sel];
             alarm_save(app);
-        } else if(app->detail_cursor == 2U) app->screen = ScreenIrMenu;
-        else if(app->detail_cursor == 3U) app->screen = ScreenSubgMenu;
+        } else if(app->detail_cursor == 2U)
+            app->screen = ScreenIrMenu;
+        else if(app->detail_cursor == 3U)
+            app->screen = ScreenSubgMenu;
         else if(app->detail_cursor == 4U) {
             app->alarm_haptic_enabled[sel] = !app->alarm_haptic_enabled[sel];
             alarm_save(app);
-        } else if(app->detail_cursor == 5U) app->screen = ScreenAudioMenu;
-        else if(app->detail_cursor == 6U) app->screen = ScreenBadkbMenu;
-        else if(app->detail_cursor == 7U) enter_ring(app, sel);
+        } else if(app->detail_cursor == 5U)
+            app->screen = ScreenAudioMenu;
+        else if(app->detail_cursor == 6U)
+            app->screen = ScreenBadkbMenu;
+        else if(app->detail_cursor == 7U)
+            enter_ring(app, sel);
         else if(app->detail_cursor == 8U) {
             clear_alarm(app, sel);
             alarm_save(app);
@@ -1188,9 +1333,11 @@ static void handle_time_input(Ck42xWakeupApp* app, InputKey key) {
     } else if(key == InputKeyUp || key == InputKeyDown) {
         bool up = key == InputKeyUp;
         if(app->time_field == 0U) {
-            app->alarm_hr[sel] = up ? (uint8_t)((app->alarm_hr[sel] + 1U) % 24U) : (uint8_t)((app->alarm_hr[sel] + 23U) % 24U);
+            app->alarm_hr[sel] = up ? (uint8_t)((app->alarm_hr[sel] + 1U) % 24U) :
+                                      (uint8_t)((app->alarm_hr[sel] + 23U) % 24U);
         } else {
-            app->alarm_min[sel] = up ? (uint8_t)((app->alarm_min[sel] + 1U) % 60U) : (uint8_t)((app->alarm_min[sel] + 59U) % 60U);
+            app->alarm_min[sel] = up ? (uint8_t)((app->alarm_min[sel] + 1U) % 60U) :
+                                       (uint8_t)((app->alarm_min[sel] + 59U) % 60U);
         }
     }
 }
@@ -1200,14 +1347,18 @@ static void handle_ir_menu_input(Ck42xWakeupApp* app, InputKey key) {
     if(key == InputKeyBack) {
         alarm_save(app);
         app->screen = ScreenAlarmDetail;
-    } else if(key == InputKeyUp) cursor_up(&app->ir_menu_cursor, 4U);
-    else if(key == InputKeyDown) cursor_down(&app->ir_menu_cursor, 4U);
+    } else if(key == InputKeyUp)
+        cursor_up(&app->ir_menu_cursor, 4U);
+    else if(key == InputKeyDown)
+        cursor_down(&app->ir_menu_cursor, 4U);
     else if(key == InputKeyOk) {
-        if(app->ir_menu_cursor == 0U) start_ir_capture(app, sel);
+        if(app->ir_menu_cursor == 0U)
+            start_ir_capture(app, sel);
         else if(app->ir_menu_cursor == 1U) {
             app->alarm_ir_enabled[sel] = !app->alarm_ir_enabled[sel];
             alarm_save(app);
-        } else if(app->ir_menu_cursor == 2U) send_ir_signal(app, sel);
+        } else if(app->ir_menu_cursor == 2U)
+            send_ir_signal(app, sel);
         else {
             alarm_save(app);
             app->screen = ScreenAlarmDetail;
@@ -1237,8 +1388,10 @@ static void handle_subg_menu_input(Ck42xWakeupApp* app, InputKey key) {
     if(key == InputKeyBack) {
         alarm_save(app);
         app->screen = ScreenAlarmDetail;
-    } else if(key == InputKeyUp) cursor_up(&app->subg_menu_cursor, 4U);
-    else if(key == InputKeyDown) cursor_down(&app->subg_menu_cursor, 4U);
+    } else if(key == InputKeyUp)
+        cursor_up(&app->subg_menu_cursor, 4U);
+    else if(key == InputKeyDown)
+        cursor_down(&app->subg_menu_cursor, 4U);
     else if(key == InputKeyOk) {
         if(app->subg_menu_cursor == 0U) {
             app->alarm_subg_enabled[sel] = false;
@@ -1260,8 +1413,10 @@ static void handle_badkb_menu_input(Ck42xWakeupApp* app, InputKey key) {
     if(key == InputKeyBack) {
         alarm_save(app);
         app->screen = ScreenAlarmDetail;
-    } else if(key == InputKeyUp) cursor_up(&app->badkb_menu_cursor, 4U);
-    else if(key == InputKeyDown) cursor_down(&app->badkb_menu_cursor, 4U);
+    } else if(key == InputKeyUp)
+        cursor_up(&app->badkb_menu_cursor, 4U);
+    else if(key == InputKeyDown)
+        cursor_down(&app->badkb_menu_cursor, 4U);
     else if(key == InputKeyOk) {
         if(app->badkb_menu_cursor == 0U) {
             app->alarm_badkb_enabled[sel] = !app->alarm_badkb_enabled[sel];
@@ -1270,9 +1425,11 @@ static void handle_badkb_menu_input(Ck42xWakeupApp* app, InputKey key) {
             }
             alarm_save(app);
         } else if(app->badkb_menu_cursor == 1U) {
-            app->alarm_badkb_payload[sel] = (BadkbPayload)((app->alarm_badkb_payload[sel] + 1U) % BadkbCount);
+            app->alarm_badkb_payload[sel] =
+                (BadkbPayload)((app->alarm_badkb_payload[sel] + 1U) % BadkbCount);
             alarm_save(app);
-        } else if(app->badkb_menu_cursor == 2U) badkb_inject_payload(app->alarm_badkb_payload[sel]);
+        } else if(app->badkb_menu_cursor == 2U)
+            badkb_inject_payload(app->alarm_badkb_payload[sel]);
         else {
             alarm_save(app);
             app->screen = ScreenAlarmDetail;
@@ -1285,8 +1442,10 @@ static void handle_audio_menu_input(Ck42xWakeupApp* app, InputKey key) {
     if(key == InputKeyBack) {
         alarm_save(app);
         app->screen = ScreenAlarmDetail;
-    } else if(key == InputKeyUp) cursor_up(&app->audio_menu_cursor, 4U);
-    else if(key == InputKeyDown) cursor_down(&app->audio_menu_cursor, 4U);
+    } else if(key == InputKeyUp)
+        cursor_up(&app->audio_menu_cursor, 4U);
+    else if(key == InputKeyDown)
+        cursor_down(&app->audio_menu_cursor, 4U);
     else if(key == InputKeyOk) {
         if(app->audio_menu_cursor == 0U) {
             app->alarm_audio_enabled[sel] = !app->alarm_audio_enabled[sel];
@@ -1294,7 +1453,8 @@ static void handle_audio_menu_input(Ck42xWakeupApp* app, InputKey key) {
         } else if(app->audio_menu_cursor == 1U) {
             app->alarm_tone[sel] = (AlarmTone)((app->alarm_tone[sel] + 1U) % ToneCount);
             alarm_save(app);
-        } else if(app->audio_menu_cursor == 2U) test_tone(app->alarm_tone[sel]);
+        } else if(app->audio_menu_cursor == 2U)
+            test_tone(app->alarm_tone[sel]);
         else {
             alarm_save(app);
             app->screen = ScreenAlarmDetail;
@@ -1306,8 +1466,10 @@ static void handle_counter_menu_input(Ck42xWakeupApp* app, InputKey key) {
     if(key == InputKeyBack) {
         counter_save(app);
         app->screen = ScreenSettings;
-    } else if(key == InputKeyUp) cursor_up(&app->counter_menu_cursor, 4U);
-    else if(key == InputKeyDown) cursor_down(&app->counter_menu_cursor, 4U);
+    } else if(key == InputKeyUp)
+        cursor_up(&app->counter_menu_cursor, 4U);
+    else if(key == InputKeyDown)
+        cursor_down(&app->counter_menu_cursor, 4U);
     else if(key == InputKeyOk) {
         if(app->counter_menu_cursor == 0U) {
             app->counter_enabled = !app->counter_enabled;
@@ -1326,9 +1488,12 @@ static void handle_counter_menu_input(Ck42xWakeupApp* app, InputKey key) {
 }
 
 static void handle_settings_input(Ck42xWakeupApp* app, InputKey key) {
-    if(key == InputKeyBack) app->screen = ScreenMenu;
-    else if(key == InputKeyUp) cursor_up(&app->settings_cursor, 5U);
-    else if(key == InputKeyDown) cursor_down(&app->settings_cursor, 5U);
+    if(key == InputKeyBack)
+        app->screen = ScreenMenu;
+    else if(key == InputKeyUp)
+        cursor_up(&app->settings_cursor, 5U);
+    else if(key == InputKeyDown)
+        cursor_down(&app->settings_cursor, 5U);
     else if(key == InputKeyOk) {
         if(app->settings_cursor == 0U) {
             app->seconds += 60U;
@@ -1343,7 +1508,8 @@ static void handle_settings_input(Ck42xWakeupApp* app, InputKey key) {
         } else if(app->settings_cursor == 3U) {
             app->counter_menu_cursor = 0;
             app->screen = ScreenCounterMenu;
-        } else app->screen = ScreenMenu;
+        } else
+            app->screen = ScreenMenu;
     }
 }
 
@@ -1409,20 +1575,34 @@ int32_t ck42x_moonphase_alarm_app(void* p) {
         InputEvent input;
         FuriStatus status = furi_message_queue_get(app->queue, &input, LOOP_MS);
         if(status == FuriStatusOk && input.type == InputTypeShort) {
-            if(app->screen == ScreenMenu) handle_menu_input(app, input.key);
-            else if(app->screen == ScreenAlarmList) handle_alarm_list_input(app, input.key);
-            else if(app->screen == ScreenAlarmDetail) handle_alarm_detail_input(app, input.key);
-            else if(app->screen == ScreenTimeSelect) handle_time_input(app, input.key);
-            else if(app->screen == ScreenIrMenu) handle_ir_menu_input(app, input.key);
-            else if(app->screen == ScreenIrCapture) handle_ir_capture_input(app, input.key);
-            else if(app->screen == ScreenSubgMenu) handle_subg_menu_input(app, input.key);
-            else if(app->screen == ScreenBadkbMenu) handle_badkb_menu_input(app, input.key);
-            else if(app->screen == ScreenAudioMenu) handle_audio_menu_input(app, input.key);
-            else if(app->screen == ScreenCounterMenu) handle_counter_menu_input(app, input.key);
-            else if(app->screen == ScreenSettings) handle_settings_input(app, input.key);
-            else if(app->screen == ScreenAbout && input.key == InputKeyBack) app->screen = ScreenMenu;
-            else if(app->screen == ScreenRing) handle_ring_input(app, input.key);
-            else handle_main_input(app, input.key);
+            if(app->screen == ScreenMenu)
+                handle_menu_input(app, input.key);
+            else if(app->screen == ScreenAlarmList)
+                handle_alarm_list_input(app, input.key);
+            else if(app->screen == ScreenAlarmDetail)
+                handle_alarm_detail_input(app, input.key);
+            else if(app->screen == ScreenTimeSelect)
+                handle_time_input(app, input.key);
+            else if(app->screen == ScreenIrMenu)
+                handle_ir_menu_input(app, input.key);
+            else if(app->screen == ScreenIrCapture)
+                handle_ir_capture_input(app, input.key);
+            else if(app->screen == ScreenSubgMenu)
+                handle_subg_menu_input(app, input.key);
+            else if(app->screen == ScreenBadkbMenu)
+                handle_badkb_menu_input(app, input.key);
+            else if(app->screen == ScreenAudioMenu)
+                handle_audio_menu_input(app, input.key);
+            else if(app->screen == ScreenCounterMenu)
+                handle_counter_menu_input(app, input.key);
+            else if(app->screen == ScreenSettings)
+                handle_settings_input(app, input.key);
+            else if(app->screen == ScreenAbout && input.key == InputKeyBack)
+                app->screen = ScreenMenu;
+            else if(app->screen == ScreenRing)
+                handle_ring_input(app, input.key);
+            else
+                handle_main_input(app, input.key);
             view_port_update(app->view_port);
         }
 

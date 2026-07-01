@@ -33,13 +33,15 @@ def _generate_commit_hash_header():
     try:
         h = subprocess.check_output(
             ["git", "rev-parse", "--short", "HEAD"],
-            cwd=REPO_DIR, text=True,
+            cwd=REPO_DIR,
+            text=True,
         ).strip()
     except Exception:
         h = "unknown"
     header = REPO_DIR / "commit_hash.h"
     header.write_text(f'#define COMMIT_HASH "{h}"\n')
     return h
+
 
 # BLE constants
 BLE_ADDRESS = "3E2917B6-34CA-6BF7-DE94-139B6824A6F0"
@@ -51,6 +53,7 @@ UPDATE_MAGIC = b"\x00FAP"
 async def _find_flipper():
     """Find Flipper via BLE — tries address lookup, then full scan."""
     from bleak import BleakScanner
+
     dev = await BleakScanner.find_device_by_address(BLE_ADDRESS, timeout=10.0)
     if dev:
         return dev
@@ -66,12 +69,15 @@ async def _find_flipper():
 
 # ─── USB ────────────────────────────────────────────────────────────────────────
 
+
 def deploy_usb():
     """Deploy via USB using ufbt launch."""
     print("=== USB deploy ===")
     if not FAP_PATH.exists():
         print(f"  Building first...")
-        r = subprocess.run(["ufbt"], cwd=FAP_PATH.parent.parent, capture_output=True, text=True)
+        r = subprocess.run(
+            ["ufbt"], cwd=FAP_PATH.parent.parent, capture_output=True, text=True
+        )
         if r.returncode != 0:
             print(f"  Build failed:\n{r.stderr}")
             return False
@@ -80,7 +86,9 @@ def deploy_usb():
     r = subprocess.run(
         ["ufbt", "launch"],
         cwd=FAP_PATH.parent.parent,
-        capture_output=True, text=True, timeout=30,
+        capture_output=True,
+        text=True,
+        timeout=30,
     )
     print(r.stdout.strip())
     if r.returncode != 0:
@@ -91,6 +99,7 @@ def deploy_usb():
 
 
 # ─── BLE in-app ─────────────────────────────────────────────────────────────────
+
 
 async def deploy_ble():
     """Deploy via BLE in-app self-update protocol.
@@ -202,6 +211,7 @@ async def deploy_ble():
 
 # ─── RPC BLE ────────────────────────────────────────────────────────────────────
 
+
 async def deploy_rpc():
     """Deploy via Flipper system RPC over BLE.
 
@@ -292,14 +302,16 @@ class _FlipperRPC:
                 return
             if len(self.rx_buf) < i + varint_val:
                 return
-            msg_data = bytes(self.rx_buf[i:i + varint_val])
-            self.rx_buf = self.rx_buf[i + varint_val:]
+            msg_data = bytes(self.rx_buf[i : i + varint_val])
+            self.rx_buf = self.rx_buf[i + varint_val :]
             try:
                 msg = self.pb2.Main()
                 msg.ParseFromString(msg_data)
                 self.responses.put_nowait(msg)
             except Exception as e:
-                print(f"\n    [RPC parse error: {e}, len={len(msg_data)}, hex={msg_data[:20].hex()}]")
+                print(
+                    f"\n    [RPC parse error: {e}, len={len(msg_data)}, hex={msg_data[:20].hex()}]"
+                )
                 # If parse fails, the varint might have been wrong.
                 # Skip one byte and retry.
                 continue
@@ -328,7 +340,8 @@ class _FlipperRPC:
         chunk_sz = min(self.client.mtu_size - 3, 200)
         for i in range(0, len(frame), chunk_sz):
             await self.client.write_gatt_char(
-                RX_CHAR, frame[i:i + chunk_sz], response=False)
+                RX_CHAR, frame[i : i + chunk_sz], response=False
+            )
             await asyncio.sleep(0.005)
 
     async def _recv(self, timeout=30.0):
@@ -341,7 +354,7 @@ class _FlipperRPC:
         cmd_id = self.cmd_id
         while sent < total:
             end = min(sent + self.WRITE_CHUNK, total)
-            is_last = (end >= total)
+            is_last = end >= total
             msg = self.pb2.Main()
             msg.command_id = cmd_id
             msg.has_next = not is_last
@@ -371,12 +384,14 @@ class _FlipperRPC:
 
 # ─── Auto ───────────────────────────────────────────────────────────────────────
 
+
 async def deploy_auto():
     """Try USB first, then RPC, then BLE in-app."""
     print("=== Auto deploy ===\n")
 
     # 1. USB
     import glob
+
     if glob.glob("/dev/cu.usbmodem*"):
         print("USB device found, trying USB...")
         if deploy_usb():
@@ -405,6 +420,7 @@ async def deploy_auto():
 
 
 # ─── Main ───────────────────────────────────────────────────────────────────────
+
 
 def main():
     # Always regenerate commit_hash.h and rebuild
