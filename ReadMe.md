@@ -149,6 +149,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [WikiFlip v1.3 (By RogerF5-Security)](https://github.com/RogerF5-Security/WikiFlip)
 - Added: [Cocktail Book v0.4 (By resu95)](https://github.com/resu95/flipper_cocktail_book)
 - Updated: [FM Radio v1.1.1 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-firmware-wPlugins/tree/420/applications/external/fm_radio) `Req: TEA5767`
+- Updated: [Daikin64 AC Remote v0.1 (By mrcalifornium)](https://github.com/mrcalifornium/flipperzero-daikin64-ac-remote)
 
 <a name="release"></a>
 
