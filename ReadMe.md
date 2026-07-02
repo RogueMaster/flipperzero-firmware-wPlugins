@@ -145,6 +145,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: [GUI: add canvas_buffer to public api #4399 (By apfxtech)](https://github.com/flipperdevices/flipperzero-firmware/pull/4399)
 - Updated: [ProtoPirate v3.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [Access Audit v1.13 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
+- NFC: [Align MIFARE type detection with NXP AN10833 - Classic/Ultralight/NTAG/Plus sizing & security level; fixes Mifare Mini clone mis-detection and Ultralight AES read hang (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1014)
 
 <a name="release"></a>
 
