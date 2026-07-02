@@ -28,8 +28,8 @@ This software is for experimental purposes only and is not meant for any illegal
 
 ## Latest Updates - [PATREON: Latest Release RM0701-1827-48872cb8-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
-- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-07-01 18:27 EST`
-- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-07-01 18:27 EST`
+- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-07-02 12:20 EST`
+- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-07-02 12:20 EST`
 - Switched to Momentum Base Fork with all RM Apps
 - TLDR: More stability, LFS Removed, CLI/Thread/Timer/UART Updates, JS Runner app restored, Pipe modules installed & refactors from OFW added.
 - Updated: [CFW Settings v2.1 (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/tree/dev/applications/main/momentum_app)
@@ -135,13 +135,15 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [USB HID Autofire v1.1 (By pbek)](https://github.com/pbek/usb_hid_autofire)
 - Updated: [Metroflip v2.0.3 (By luu176)](https://github.com/luu176/Metroflip)
 - Updated: [Nickname Generator v0.2 (By disaxq)](https://github.com/disaxq/Nickname-Generator)
-- Updated: [Tesla Mod v2.16.12 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Added: [KyberWrite v0.1 (By spandox2)](https://github.com/spandox2/KyberWrite)
 - Added: [Morse Flipper v0.1.69 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - Added: [DopeWars v0.7.9 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-dopeflipper)
 - Added: [I2C Tools Cli v1.0 (By Tristus1er)](https://github.com/Tristus1er/flipperzero-i2c-tools-cli)
 - Added: [Bluetooth Bridge v0.1 (By excitoon)](https://github.com/excitoon/zero-bluetooth-bridge)
 - Added: [CK42X Wakeup v2.29 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-wakeup)
+- Updated: [Tesla Mod v2.16.12 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- OFW: [Storage: add retry on file copy to Flipper #4402 (By ssecsd)](https://github.com/flipperdevices/flipperzero-firmware/pull/4402)
+- OFW: [GUI: add canvas_buffer to public api #4399 (By apfxtech)](https://github.com/flipperdevices/flipperzero-firmware/pull/4399)
 
 <a name="release"></a>
 

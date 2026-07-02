@@ -851,6 +851,58 @@ static void test_capability(void) {
             r.fsd_activation == CAP_MISSING && r.soft_engage == CAP_MISSING,
         "empty tap: all missing");
     CHECK(r.bus_hint == CAP_HINT_NONE, "empty tap: no hint");
+
+    // ── Vehicle/body-bus reachability (#128) ──
+    // Reachability is RX presence only: ANY of the four body frames -> reachable.
+    // No body frame on any of the prior AP/EPAS taps -> not reachable.
+    CHECK(r.body_control == CAP_MISSING && !r.has_body, "empty tap: body bus not reachable");
+    CHECK(
+        fsd_capability_eval(full, TeslaHW_HW4).body_control == CAP_MISSING,
+        "AP/Party tap w/o body frames: body bus not reachable");
+
+    // Each body frame alone flips reachability and sets exactly its own flag.
+    FSDCapSeen body_ui = {0};
+    body_ui.body_ui = true;
+    r = fsd_capability_eval(body_ui, TeslaHW_HW4);
+    CHECK(r.body_control == CAP_OK && r.has_body, "0x273 alone: body bus reachable");
+    CHECK(
+        r.body_ui && !r.body_window && !r.body_lights && !r.body_door,
+        "0x273 alone: only body_ui flagged");
+
+    FSDCapSeen body_win = {0};
+    body_win.body_window = true;
+    r = fsd_capability_eval(body_win, TeslaHW_HW4);
+    CHECK(
+        r.body_control == CAP_OK && r.body_window && !r.body_ui, "0x119 alone: windows reachable");
+
+    FSDCapSeen body_lt = {0};
+    body_lt.body_lights = true;
+    CHECK(
+        fsd_capability_eval(body_lt, TeslaHW_HW4).body_control == CAP_OK,
+        "0x3E9 alone: lights reachable");
+
+    FSDCapSeen body_dr = {0};
+    body_dr.body_door = true;
+    r = fsd_capability_eval(body_dr, TeslaHW_HW4);
+    CHECK(
+        r.body_control == CAP_OK && r.body_door && !r.body_ui,
+        "0x102 alone: mirror read-back reachable");
+
+    // Full Vehicle tap: all four seen -> reachable, all four flags set. Body
+    // reachability is independent of AP/EPAS presence.
+    FSDCapSeen body_all = {0};
+    body_all.body_ui = true;
+    body_all.body_door = true;
+    body_all.body_window = true;
+    body_all.body_lights = true;
+    r = fsd_capability_eval(body_all, TeslaHW_HW4);
+    CHECK(r.body_control == CAP_OK && r.has_body, "all four body frames: reachable");
+    CHECK(
+        r.body_ui && r.body_door && r.body_window && r.body_lights,
+        "all four body frames: every flag set");
+    CHECK(
+        r.nag_killer == CAP_MISSING,
+        "body-only tap: AP features still missing (independent verdicts)");
 }
 
 // ── built-in variant profiles + auto-suggest matcher (#126) ────────────────────

@@ -19,12 +19,17 @@ enum CapId : uint8_t {
     CAP_ID_AP_CTRL,    // 0x3FD AP_CONTROL
     CAP_ID_AP_LEGACY,  // 0x3EE AP_LEGACY
     CAP_ID_STEER,      // 0x129 STEER_ANGLE
+    CAP_ID_BODY_UI,    // 0x273 UI_vehicleControl   (#128 Vehicle-bus reachability)
+    CAP_ID_BODY_DOOR,  // 0x102 VCLEFT_doorStatus
+    CAP_ID_BODY_WINDOW,// 0x119 VCSEC_windowRequests
+    CAP_ID_BODY_LIGHTS,// 0x3E9 DAS_bodyControls
     CAP_ID_COUNT,
 };
 
 static const uint32_t kCapCanId[CAP_ID_COUNT] = {
-    CAN_ID_EPAS_STATUS, CAN_ID_DAS_STATUS_HW4, CAN_ID_DAS_STATUS_HW3,
-    CAN_ID_AP_CONTROL,  CAN_ID_AP_LEGACY,      CAN_ID_STEER_ANGLE,
+    CAN_ID_EPAS_STATUS, CAN_ID_DAS_STATUS_HW4,  CAN_ID_DAS_STATUS_HW3,
+    CAN_ID_AP_CONTROL,  CAN_ID_AP_LEGACY,       CAN_ID_STEER_ANGLE,
+    CAN_ID_UI_VEHICLE_CTRL, CAN_ID_VCLEFT_DOOR, CAN_ID_VCSEC_WINDOW, CAN_ID_DAS_BODY,
 };
 
 enum CapRunState : uint8_t { CAP_STATE_IDLE = 0, CAP_STATE_RUNNING, CAP_STATE_DONE };
@@ -74,6 +79,10 @@ static FSDCapSeen seen_for_bus(uint8_t bus) {
     s.ap_control = g_count[bus][CAP_ID_AP_CTRL]   >= CAP_MIN_FRAMES;
     s.ap_legacy  = g_count[bus][CAP_ID_AP_LEGACY] >= CAP_MIN_FRAMES;
     s.steer      = g_count[bus][CAP_ID_STEER]     >= CAP_MIN_FRAMES;
+    s.body_ui     = g_count[bus][CAP_ID_BODY_UI]     >= CAP_MIN_FRAMES;
+    s.body_door   = g_count[bus][CAP_ID_BODY_DOOR]   >= CAP_MIN_FRAMES;
+    s.body_window = g_count[bus][CAP_ID_BODY_WINDOW] >= CAP_MIN_FRAMES;
+    s.body_lights = g_count[bus][CAP_ID_BODY_LIGHTS] >= CAP_MIN_FRAMES;
     return s;
 }
 
@@ -105,7 +114,7 @@ String capability_status_json() {
     }
 
     String j;
-    j.reserve(640);
+    j.reserve(896);
     j  = "{";
     j += "\"state\":";   j += (int)st;       j += ',';
     j += "\"ms_left\":"; j += ms_left;       j += ',';
@@ -133,11 +142,16 @@ String capability_status_json() {
         j += "\"das_hw3\":";   j += seen.das_hw3    ? "true" : "false"; j += ',';
         j += "\"ap_ctrl\":";   j += seen.ap_control ? "true" : "false"; j += ',';
         j += "\"ap_legacy\":"; j += seen.ap_legacy  ? "true" : "false"; j += ',';
-        j += "\"steer\":";     j += seen.steer      ? "true" : "false"; j += "},";
+        j += "\"steer\":";     j += seen.steer      ? "true" : "false"; j += ',';
+        j += "\"body_ui\":";     j += seen.body_ui     ? "true" : "false"; j += ',';
+        j += "\"body_door\":";   j += seen.body_door   ? "true" : "false"; j += ',';
+        j += "\"body_window\":"; j += seen.body_window ? "true" : "false"; j += ',';
+        j += "\"body_lights\":"; j += seen.body_lights ? "true" : "false"; j += "},";
         j += "\"nag_killer\":";     j += (int)r.nag_killer;     j += ',';
         j += "\"ap_first\":";       j += (int)r.ap_first;       j += ',';
         j += "\"fsd_activation\":"; j += (int)r.fsd_activation; j += ',';
         j += "\"soft_engage\":";    j += (int)r.soft_engage;    j += ',';
+        j += "\"body_control\":";   j += (int)r.body_control;   j += ',';
         j += "\"hw_unconfirmed\":"; j += r.hw_unconfirmed ? "true" : "false"; j += ',';
         j += "\"hint\":\"";         j += hint_str(r.bus_hint);  j += "\"}";
     }

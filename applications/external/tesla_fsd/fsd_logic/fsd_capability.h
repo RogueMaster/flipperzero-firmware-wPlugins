@@ -50,6 +50,14 @@ typedef struct {
     bool ap_control; // 0x3FD AP_CONTROL — FSD activation frame (HW3/HW4)
     bool ap_legacy; // 0x3EE AP_LEGACY  — FSD activation frame (Legacy/HW1/HW2)
     bool steer; // 0x129 STEER_ANGLE — Soft Engage gate
+
+    // Vehicle/body-bus presence (#128). RX-only reachability, NOT actuation:
+    // these frames carry rolling counters / CRC / VCSEC auth, so seeing them
+    // proves only that body/comfort control is physically reachable on this tap.
+    bool body_ui; // 0x273 UI_vehicleControl  — mirror fold/lock/wiper/horn/seat heat
+    bool body_door; // 0x102 VCLEFT_doorStatus   — mirror state/tilt read-back
+    bool body_window; // 0x119 VCSEC_windowRequests — windows
+    bool body_lights; // 0x3E9 DAS_bodyControls    — lights/hazards/turn/wipers
 } FSDCapSeen;
 
 typedef struct {
@@ -57,12 +65,18 @@ typedef struct {
     FSDCapVerdict ap_first; // Abort Guard: needs DAS state
     FSDCapVerdict fsd_activation; // a frame here to modify
     FSDCapVerdict soft_engage; // 0x129; MISSING => degrades to AP-First-only
+    FSDCapVerdict body_control; // Vehicle/body-bus reachable (#128); RX presence only
 
     // Derived predicates (exposed for the UI / one-line verdicts).
     bool has_epas;
     bool has_das;
     bool has_ap_ctrl;
     bool has_steer;
+    bool has_body; // any of the four body-bus frames seen -> Vehicle bus reachable
+    bool body_ui; // 0x273 seen (mirror/lock/wiper/horn/seat-heat writes reachable)
+    bool body_door; // 0x102 seen (mirror state read-back reachable)
+    bool body_window; // 0x119 seen (window writes reachable)
+    bool body_lights; // 0x3E9 seen (lights/hazards/turn/wiper writes reachable)
 
     FSDCapBusHint bus_hint;
     bool hw_unconfirmed; // hw_version was Unknown -> inferred below
@@ -86,6 +100,12 @@ static inline FSDCapReport fsd_capability_eval(FSDCapSeen seen, TeslaHWVersion h
         CAP_MISSING,
         CAP_MISSING,
         CAP_MISSING,
+        CAP_MISSING,
+        false,
+        false,
+        false,
+        false,
+        false,
         false,
         false,
         false,
@@ -113,6 +133,14 @@ static inline FSDCapReport fsd_capability_eval(FSDCapSeen seen, TeslaHWVersion h
     r.has_ap_ctrl = seen.ap_control || seen.ap_legacy;
     r.has_steer = seen.steer;
 
+    // Vehicle/body-bus reachability (#128): reachable if ANY body frame is seen.
+    // Presence only — does not imply these frames can be actuated (counters/CRC/auth).
+    r.body_ui = seen.body_ui;
+    r.body_door = seen.body_door;
+    r.body_window = seen.body_window;
+    r.body_lights = seen.body_lights;
+    r.has_body = seen.body_ui || seen.body_door || seen.body_window || seen.body_lights;
+
     // Nag killer: needs both the 0x370 echo source AND DAS state to gate on.
     if(r.has_epas && r.has_das)
         r.nag_killer = CAP_OK;
@@ -124,6 +152,7 @@ static inline FSDCapReport fsd_capability_eval(FSDCapSeen seen, TeslaHWVersion h
     r.ap_first = r.has_das ? CAP_OK : CAP_MISSING;
     r.fsd_activation = r.has_ap_ctrl ? CAP_OK : CAP_MISSING;
     r.soft_engage = r.has_steer ? CAP_OK : CAP_MISSING; // else AP-First-only
+    r.body_control = r.has_body ? CAP_OK : CAP_MISSING; // else needs X179 A-pillar tap
 
     // Best-guess bus family (hint only).
     if(r.has_epas && r.has_das)

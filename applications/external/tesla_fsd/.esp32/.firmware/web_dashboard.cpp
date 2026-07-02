@@ -823,7 +823,10 @@ var CAP_MSG={
                   'no AP control frame to modify here'],
   soft_engage:['0x129 steering angle present',
                '',
-               'no 0x129 — degrades to AP-First-only']};
+               'no 0x129 — degrades to AP-First-only'],
+  body_control:['Vehicle/body bus reachable — mirror/window/lights frames present (RX only; not proof of actuation)',
+                '',
+                'not on this tap — needs the X179 A-pillar (Vehicle-bus) tap']};
 function capRow(name,key,v){
   var col=v===0?'var(--accent)':v===1?'var(--yellow)':'var(--red)';
   var sym=v===0?'✓':v===1?'⚠':'✗';
@@ -851,6 +854,15 @@ function capSync(d){
     h+=capRow('AP-First','ap_first',b.ap_first);
     h+=capRow('FSD activate','fsd_activation',b.fsd_activation);
     h+=capRow('Soft Engage','soft_engage',b.soft_engage);
+    h+=capRow('Body/comfort bus','body_control',b.body_control);
+    if(b.body_control===0){
+      var seen=[];
+      if(b.body_ui)seen.push('mirror/lock/horn');
+      if(b.body_window)seen.push('windows');
+      if(b.body_lights)seen.push('lights/turn');
+      if(b.body_door)seen.push('mirror read-back');
+      if(seen.length)h+='<div style="font-size:.7em;color:var(--text3);padding-top:3px">Reachable frames: '+seen.join(', ')+' (presence only — not proof injection actuates them).</div>';
+    }
     var hint=b.hint?('Best guess: '+bbEsc(b.hint)+' — confirm in Service Mode → CAN Port'):'';
     if(hint)h+='<div style="font-size:.7em;color:var(--text3);padding-top:5px">'+hint+'</div>';
     if(b.hw_unconfirmed)h+='<div style="font-size:.7em;color:var(--yellow);padding-top:3px">HW unconfirmed — 0x399 reading assumed; verdict may change once HW is detected.</div>';
