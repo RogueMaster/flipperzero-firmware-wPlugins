@@ -11,6 +11,7 @@
 typedef enum {
     WikiFlipViewCategories = 0,
     WikiFlipViewTerms,
+    WikiFlipViewSettings,
     WikiFlipViewDefinition,
 } WikiFlipView;
 
