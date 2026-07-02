@@ -45,7 +45,7 @@ void saflip_scene_log_info_on_enter(void* context) {
     widget_add_string_element(
         app->widget, 0, 31, AlignLeft, AlignTop, FontSecondary, furi_string_get_cstr(temp_str));
 
-    // widget_add_line_element(app->widget, 62, 10, 62, 40);
+    widget_add_line_element(app->widget, 62, 10, 62, 40);
 
     furi_string_printf(temp_str, "Latched: %s\n", entry.lock_latched ? "Yes" : "No");
     widget_add_string_element(
@@ -59,7 +59,7 @@ void saflip_scene_log_info_on_enter(void* context) {
     widget_add_string_element(
         app->widget, 66, 31, AlignLeft, AlignTop, FontSecondary, furi_string_get_cstr(temp_str));
 
-    // widget_add_line_element(app->widget, 0, 41, 128, 41);
+    widget_add_line_element(app->widget, 0, 41, 128, 41);
     char* description = saflok_log_entry_description(entry);
     if(description == NULL) {
         FuriString* unknown_desc =

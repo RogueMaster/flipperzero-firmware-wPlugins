@@ -1,6 +1,6 @@
 # Infrared Captures
 
-**Credits go to @gsurkov, @skotopes, @knrn-ai, @DrZlo13 and @ahumeniy for making and contributing to the original `UniversalRemotes.md` Documentation located [Here](https://github.com/flipperdevices/flipperzero-firmware/blob/dev/documentation/UniversalRemotes.md).** 
+**Credits go to @gsurkov, @skotopes, @knrn-ai, @DrZlo13 and @ahumeniy for making and contributing to the original `UniversalRemotes.md` Documentation located [Here](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/dev/documentation/UniversalRemotes.md).** 
 
 **slightly adapted by @amec0e**
 

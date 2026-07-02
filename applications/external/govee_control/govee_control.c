@@ -102,7 +102,6 @@ static GoveeApp* govee_app_alloc() {
 
     // View dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     if(!app->view_dispatcher) {
         furi_record_close(RECORD_GUI);
         furi_record_close(RECORD_NOTIFICATION);

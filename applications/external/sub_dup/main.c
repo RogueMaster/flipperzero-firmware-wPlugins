@@ -9,7 +9,6 @@ static SubDupFinderApp* app_alloc(void) {
     SubDupFinderApp* app = malloc(sizeof(SubDupFinderApp));
     memset(app, 0, sizeof(SubDupFinderApp));
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     app->main_submenu = submenu_alloc();
     app->groups_submenu = submenu_alloc();
     app->files_in_group_submenu = submenu_alloc();

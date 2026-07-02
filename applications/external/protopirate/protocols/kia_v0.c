@@ -458,7 +458,7 @@ static bool kia_v0_decoder_try_honda(SubGhzProtocolDecoderKIA* instance) {
     kia_v0_decoder_commit(instance, key, KIA_V0_TYPE_HONDA, KIA_V0_BIT_COUNT_HONDA);
     return true;
 }
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 static size_t kia_v0_append_short_pairs(LevelDuration* upload, size_t index, size_t count) {
     return pp_emit_short_pairs(
@@ -466,7 +466,7 @@ static size_t kia_v0_append_short_pairs(LevelDuration* upload, size_t index, siz
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 static size_t kia_v0_append_data_pairs(
     LevelDuration* upload,
@@ -484,7 +484,7 @@ static size_t kia_v0_append_data_pairs(
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 static void kia_v0_build_honda_upload(SubGhzProtocolEncoderKIA* instance, uint64_t raw) {
     size_t index = 0;
@@ -507,7 +507,7 @@ static void kia_v0_build_honda_upload(SubGhzProtocolEncoderKIA* instance, uint64
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 static void kia_v0_build_kia_upload(SubGhzProtocolEncoderKIA* instance, uint64_t raw) {
     size_t index = 0;
@@ -528,7 +528,7 @@ static void kia_v0_build_kia_upload(SubGhzProtocolEncoderKIA* instance, uint64_t
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 static void kia_v0_build_suzuki_upload(SubGhzProtocolEncoderKIA* instance, uint64_t shifted) {
     size_t index = 0;
@@ -557,7 +557,7 @@ static uint8_t kia_v0_infer_type_from_bits(uint32_t bits) {
     if(bits == KIA_V0_BIT_COUNT_HONDA) return KIA_V0_TYPE_HONDA;
     return KIA_V0_TYPE_KIA;
 }
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 static void kia_v0_encoder_apply_fields(SubGhzProtocolEncoderKIA* instance) {
     instance->generic.serial = instance->fields.serial;
@@ -611,7 +611,7 @@ static void kia_v0_encoder_apply_fields(SubGhzProtocolEncoderKIA* instance) {
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 static void kia_v0_encoder_sync_from_generic(SubGhzProtocolEncoderKIA* instance) {
     instance->fields.serial = instance->generic.serial;
@@ -625,7 +625,7 @@ static void kia_v0_encoder_sync_from_generic(SubGhzProtocolEncoderKIA* instance)
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 static void kia_v0_encoder_apply_flipper_fields(
     SubGhzProtocolEncoderKIA* instance,
@@ -668,7 +668,7 @@ static void kia_v0_encoder_apply_flipper_fields(
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 void* subghz_protocol_encoder_kia_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
@@ -686,7 +686,7 @@ void* subghz_protocol_encoder_kia_alloc(SubGhzEnvironment* environment) {
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 SubGhzProtocolStatus
     subghz_protocol_encoder_kia_deserialize(void* context, FlipperFormat* flipper_format) {
@@ -764,7 +764,7 @@ SubGhzProtocolStatus
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 void subghz_protocol_encoder_kia_set_button(void* context, uint8_t button) {
     furi_check(context);
@@ -778,7 +778,7 @@ void subghz_protocol_encoder_kia_set_button(void* context, uint8_t button) {
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 void subghz_protocol_encoder_kia_set_counter(void* context, uint16_t counter) {
     furi_check(context);
@@ -788,7 +788,7 @@ void subghz_protocol_encoder_kia_set_counter(void* context, uint16_t counter) {
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 void subghz_protocol_encoder_kia_increment_counter(void* context) {
     furi_check(context);
@@ -798,7 +798,7 @@ void subghz_protocol_encoder_kia_increment_counter(void* context) {
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 uint16_t subghz_protocol_encoder_kia_get_counter(void* context) {
     furi_check(context);
@@ -807,7 +807,7 @@ uint16_t subghz_protocol_encoder_kia_get_counter(void* context) {
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 uint8_t subghz_protocol_encoder_kia_get_button(void* context) {
     furi_check(context);
@@ -1106,7 +1106,7 @@ const SubGhzProtocolDecoder subghz_protocol_kia_decoder = {
     .get_string = subghz_protocol_decoder_kia_get_string,
 };
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 const SubGhzProtocolEncoder subghz_protocol_kia_encoder = {
     .alloc = subghz_protocol_encoder_kia_alloc,
     .free = pp_encoder_free,
@@ -1130,6 +1130,14 @@ const SubGhzProtocol kia_protocol_v0 = {
     .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_FM |
             SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save |
             SubGhzProtocolFlag_Send,
+#if PROTOPIRATE_WITH_DECODER
     .decoder = &subghz_protocol_kia_decoder,
+#else
+    .decoder = NULL,
+#endif
+#if PROTOPIRATE_WITH_ENCODER
     .encoder = &subghz_protocol_kia_encoder,
+#else
+    .encoder = NULL,
+#endif
 };

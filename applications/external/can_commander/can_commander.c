@@ -4801,7 +4801,6 @@ static App* app_alloc(void) {
     }
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     if(!app->view_dispatcher) {
         goto fail;
     }

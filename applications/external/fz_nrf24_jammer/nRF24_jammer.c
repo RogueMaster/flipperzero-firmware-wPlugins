@@ -1093,7 +1093,7 @@ int32_t nRF24_jammer_app(void* p) {
 
     if(state->spi_mode == SPI_MODE_EXTRA) {
         // 2-in-1 NRF24+CC1101 module: only 1 NRF24, CS on PC3, CE on PB2
-        nrf24_dev[0].spi_handle = (FuriHalSpiBusHandle*)nrf24;
+        nrf24_dev[0].spi_handle = (const FuriHalSpiBusHandle*)nrf24;
         nrf24_dev[0].initialized = false;
         nrf24_dev[0].ce_pin = &gpio_ext_pb2;
         nrf24_dev[0].cs_pin = &gpio_ext_pc3;
@@ -1103,7 +1103,7 @@ int32_t nRF24_jammer_app(void* p) {
         }
     } else {
         for(uint8_t i = 0; i < MAX_NRF24; i++) {
-            nrf24_dev[i].spi_handle = (FuriHalSpiBusHandle*)nrf24;
+            nrf24_dev[i].spi_handle = (const FuriHalSpiBusHandle*)nrf24;
             nrf24_dev[i].initialized = false;
             if(i == 0) {
                 nrf24_dev[i].ce_pin = &gpio_ext_pb2;

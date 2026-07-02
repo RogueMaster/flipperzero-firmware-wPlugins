@@ -1,5 +1,0 @@
-ADD_SCENE(usb_can, start, Start)
-ADD_SCENE(usb_can, config, Config)
-ADD_SCENE(usb_can, usb_can, UsbCan)
-ADD_SCENE(usb_can, error_dialog, ErrorDialog)
-ADD_SCENE(usb_can, exit_confirm, ExitConfirm)

@@ -202,6 +202,11 @@ static uint32_t start_menu_previous(void* context) {
 void metroflip_scene_start_on_enter(void* context) {
     Metroflip* app = context;
 
+    /* The main menu is the guaranteed return point for every "back" path, and
+       it must never blink. Stopping here clears any scan LED that a scene left
+       running (e.g. backing out of a scan before tapping a card). */
+    metroflip_app_blink_stop(app);
+
     if(app->mfc_data) {
         mf_classic_free(app->mfc_data);
         app->mfc_data = NULL;

@@ -74,7 +74,7 @@ bool unitemp_settings_load(void* context) {
     app->settings->humidity_unit = UT_HUMIDITY_RELATIVE;
     app->settings->heat_index = false;
     app->settings->otg_auto_on = true;
-    app->settings->otg_latest_state = furi_hal_power_is_otg_enabled();
+    app->settings->otg_latest_state = power_is_otg_enabled(app->power);
     app->settings->environment_state_led_indication = true;
     app->settings->environment_state_sound_and_vibro_indication = true;
 
@@ -156,6 +156,7 @@ static UnitempApp* unitemp_app_alloc(void) {
     UnitempApp* app = malloc(sizeof(UnitempApp));
 
     app->storage = furi_record_open(RECORD_STORAGE);
+    app->power = furi_record_open(RECORD_POWER);
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
     app->dialogs = furi_record_open(RECORD_DIALOGS);
 
@@ -172,7 +173,6 @@ static UnitempApp* unitemp_app_alloc(void) {
     //GUI allocations
     app->gui = furi_record_open(RECORD_GUI);
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&unitemp_scene_handlers, app);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 
@@ -249,6 +249,8 @@ static void unitemp_app_free(UnitempApp* app) {
 
     furi_record_close(RECORD_NOTIFICATION);
     app->notifications = NULL;
+    furi_record_close(RECORD_POWER);
+    app->power = NULL;
     furi_record_close(RECORD_GUI);
     app->gui = NULL;
     furi_record_close(RECORD_STORAGE);

@@ -29,7 +29,7 @@ UART_TerminalApp* uart_terminal_app_alloc() {
 
     app->view_dispatcher = view_dispatcher_alloc();
     app->scene_manager = scene_manager_alloc(&uart_terminal_scene_handlers, app);
-    view_dispatcher_enable_queue(app->view_dispatcher);
+
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 
     view_dispatcher_set_custom_event_callback(
@@ -84,6 +84,10 @@ UART_TerminalApp* uart_terminal_app_alloc() {
         uart_text_input_get_view(app->hex_input));
 
     app->setup_selected_option_index[BAUDRATE_ITEM_IDX] = DEFAULT_BAUDRATE_OPT_IDX;
+
+    app->old_term_mode = 0;
+    app->TERMINAL_MODE = 0;
+    app->atmode_was_set = false;
 
     scene_manager_next_scene(app->scene_manager, UART_TerminalSceneStart);
 

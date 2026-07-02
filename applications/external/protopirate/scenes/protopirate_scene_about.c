@@ -12,6 +12,7 @@
 #define CREDIT_LINE_HEIGHT 10
 #define SCROLL_SPEED       1
 
+#ifdef ENABLE_EMULATE_FEATURE
 static const InputKey EMULATE_TOGGLE_COMBO[] = {
     InputKeyUp,
     InputKeyUp,
@@ -23,6 +24,7 @@ static const InputKey EMULATE_TOGGLE_COMBO[] = {
     InputKeyRight,
 };
 #define EMULATE_TOGGLE_COMBO_LEN (sizeof(EMULATE_TOGGLE_COMBO) / sizeof(EMULATE_TOGGLE_COMBO[0]))
+#endif
 
 static const char* credits[] = {
     "",
@@ -62,7 +64,9 @@ typedef struct {
     uint8_t frame;
     uint8_t seed;
     int16_t scroll_offset;
+#ifdef ENABLE_EMULATE_FEATURE
     uint8_t combo_progress;
+#endif
 } GlitchState;
 
 static GlitchState g_state = {0};
@@ -159,6 +163,7 @@ static void about_draw_callback(Canvas* canvas, void* context) {
 
 static bool about_input_callback(InputEvent* event, void* context) {
     furi_check(context);
+#ifdef ENABLE_EMULATE_FEATURE
     ProtoPirateApp* app = context;
 
     if(event->type != InputTypePress) {
@@ -184,8 +189,13 @@ static bool about_input_callback(InputEvent* event, void* context) {
     }
 
     return true;
+#else
+    UNUSED(event);
+    return false;
+#endif
 }
 
+#ifdef ENABLE_EMULATE_FEATURE
 static void about_show_emulate_toggle_popup(ProtoPirateApp* app) {
     const bool now_enabled = app->emulate_feature_enabled;
 
@@ -204,6 +214,7 @@ static void about_show_emulate_toggle_popup(ProtoPirateApp* app) {
     dialog_message_show(app->dialogs, message);
     dialog_message_free(message);
 }
+#endif
 
 void protopirate_scene_about_on_enter(void* context) {
     furi_check(context);
@@ -218,7 +229,9 @@ void protopirate_scene_about_on_enter(void* context) {
     g_state.frame = 0;
     g_state.seed = furi_get_tick() & 0xFF;
     g_state.scroll_offset = 0;
+#ifdef ENABLE_EMULATE_FEATURE
     g_state.combo_progress = 0;
+#endif
 
     view_set_draw_callback(app->view_about, about_draw_callback);
     view_set_input_callback(app->view_about, about_input_callback);
@@ -245,7 +258,9 @@ bool protopirate_scene_about_on_event(void* context, SceneManagerEvent event) {
 
         view_commit_model(app->view_about, true);
         consumed = true;
-    } else if(event.type == SceneManagerEventTypeCustom) {
+    }
+#ifdef ENABLE_EMULATE_FEATURE
+    else if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == ProtoPirateCustomEventAboutToggleEmulate) {
             app->emulate_feature_enabled = !app->emulate_feature_enabled;
 
@@ -262,6 +277,7 @@ bool protopirate_scene_about_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         }
     }
+#endif
 
     return consumed;
 }
@@ -272,4 +288,5 @@ void protopirate_scene_about_on_exit(void* context) {
 
     view_set_draw_callback(app->view_about, NULL);
     view_set_input_callback(app->view_about, NULL);
+    view_set_context(app->view_about, NULL);
 }

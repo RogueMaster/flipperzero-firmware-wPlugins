@@ -119,6 +119,9 @@ typedef struct {
     /* Mutex protecting config (read by timer cb, written by settings). */
     FuriMutex* config_mutex;
 
+    /* Active view tracker for navigation_callback */
+    RhView current_view;
+
     /* Monotonically increasing threat for notification de-duplication.
    * Set to RhThreatNone so the first High always fires a notification. */
     RhThreatLevel last_notified_threat;

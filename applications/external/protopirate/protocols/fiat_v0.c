@@ -1,11 +1,8 @@
 #include "fiat_v0.h"
 #include "protocols_common.h"
-#include "../protopirate_app_i.h"
 #include <lib/toolbox/manchester_decoder.h>
-#include <inttypes.h>
 
 #define TAG                     "FiatProtocolV0"
-#define FIAT_PROTOCOL_V0_NAME   "Fiat V0"
 #define FIAT_V0_PREAMBLE_PAIRS  150
 #define FIAT_V0_GAP_US          800
 #define FIAT_V0_TOTAL_BURSTS    3
@@ -41,6 +38,17 @@ typedef enum {
     FiatV0DecoderStepPreamble = 1,
     FiatV0DecoderStepData = 2,
 } FiatV0DecoderStep;
+
+static const char* fiat_v0_display_suffix(uint8_t endbyte) {
+    const uint8_t low_nibble = endbyte & 0x0FU;
+    if((low_nibble >= 0x04U) && (low_nibble <= 0x07U)) {
+        return "Lock";
+    }
+    if((low_nibble >= 0x08U) && (low_nibble <= 0x0BU)) {
+        return "Unlock";
+    }
+    return "??";
+}
 
 static void fiat_v0_finish_packet(struct SubGhzProtocolDecoderFiatV0* instance) {
     instance->generic.data = ((uint64_t)instance->hop << 32) | instance->fix;
@@ -78,7 +86,7 @@ const SubGhzProtocolDecoder subghz_protocol_fiat_v0_decoder = {
     .get_string = subghz_protocol_decoder_fiat_v0_get_string,
 };
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 const SubGhzProtocolEncoder subghz_protocol_fiat_v0_encoder = {
     .alloc = subghz_protocol_encoder_fiat_v0_alloc,
     .free = pp_encoder_free,
@@ -102,14 +110,22 @@ const SubGhzProtocol fiat_protocol_v0 = {
     .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_AM |
             SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save |
             SubGhzProtocolFlag_Send,
+#if PROTOPIRATE_WITH_DECODER
     .decoder = &subghz_protocol_fiat_v0_decoder,
+#else
+    .decoder = NULL,
+#endif
+#if PROTOPIRATE_WITH_ENCODER
     .encoder = &subghz_protocol_fiat_v0_encoder,
+#else
+    .encoder = NULL,
+#endif
 };
 
 // ============================================================================
 // ENCODER IMPLEMENTATION
 // ============================================================================
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 void* subghz_protocol_encoder_fiat_v0_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
@@ -128,7 +144,7 @@ void* subghz_protocol_encoder_fiat_v0_alloc(SubGhzEnvironment* environment) {
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 static void subghz_protocol_encoder_fiat_v0_get_upload(SubGhzProtocolEncoderFiatV0* instance) {
     furi_check(instance);
@@ -220,7 +236,7 @@ static void subghz_protocol_encoder_fiat_v0_get_upload(SubGhzProtocolEncoderFiat
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 SubGhzProtocolStatus
     subghz_protocol_encoder_fiat_v0_deserialize(void* context, FlipperFormat* flipper_format) {
@@ -239,10 +255,9 @@ SubGhzProtocolStatus
     uint32_t bit_count = 0;
     if(pp_encoder_read_bit(flipper_format, allowed_bits, 2, &bit_count) !=
        SubGhzProtocolStatusOk) {
-        instance->generic.data_count_bit = 71; // legacy default for garbage Bit values
-    } else {
-        instance->generic.data_count_bit = bit_count;
+        return SubGhzProtocolStatusErrorValueBitCount;
     }
+    instance->generic.data_count_bit = bit_count;
 
     uint64_t key = 0;
     if(!pp_flipper_read_hex_u64(flipper_format, FF_KEY, &key)) {
@@ -489,51 +504,64 @@ SubGhzProtocolStatus subghz_protocol_decoder_fiat_v0_serialize(
     furi_check(context);
     SubGhzProtocolDecoderFiatV0* instance = context;
 
-    SubGhzProtocolStatus ret = SubGhzProtocolStatusError;
+    SubGhzProtocolStatus ret =
+        subghz_block_generic_serialize(&instance->generic, flipper_format, preset);
+    if(ret != SubGhzProtocolStatusOk) {
+        return ret;
+    }
 
-    do {
-        if(!flipper_format_write_uint32(flipper_format, FF_FREQUENCY, &preset->frequency, 1))
-            break;
+    ret = pp_serialize_fields(
+        flipper_format,
+        PP_FIELD_SERIAL | PP_FIELD_BTN | PP_FIELD_CNT,
+        instance->fix,
+        instance->endbyte,
+        instance->hop,
+        0);
+    if(ret != SubGhzProtocolStatusOk) {
+        return ret;
+    }
 
-        if(!flipper_format_write_string_cstr(
-               flipper_format, FF_PRESET, furi_string_get_cstr(preset->name)))
-            break;
+    uint32_t endbyte_ff = instance->endbyte;
+    if(!flipper_format_write_uint32(flipper_format, "EndByte", &endbyte_ff, 1)) {
+        return SubGhzProtocolStatusErrorParserOthers;
+    }
 
-        if(!flipper_format_write_string_cstr(
-               flipper_format, FF_PROTOCOL, instance->generic.protocol_name))
-            break;
-
-        uint32_t bits = instance->generic.data_count_bit;
-        if(!flipper_format_write_uint32(flipper_format, FF_BIT, &bits, 1)) break;
-
-        char key_str[20];
-        snprintf(key_str, sizeof(key_str), "%08lX%08lX", instance->hop, instance->fix);
-        if(!flipper_format_write_string_cstr(flipper_format, FF_KEY, key_str)) break;
-
-        if(pp_serialize_fields(
-               flipper_format,
-               PP_FIELD_SERIAL | PP_FIELD_BTN | PP_FIELD_CNT,
-               instance->fix,
-               instance->endbyte,
-               instance->hop,
-               0) != SubGhzProtocolStatusOk)
-            break;
-
-        uint32_t endbyte_ff = instance->endbyte;
-        if(!flipper_format_write_uint32(flipper_format, "EndByte", &endbyte_ff, 1)) break;
-
-        ret = SubGhzProtocolStatusOk;
-    } while(false);
-
-    return ret;
+    return pp_write_display(
+        flipper_format,
+        instance->generic.protocol_name,
+        fiat_v0_display_suffix(instance->endbyte));
 }
 
 SubGhzProtocolStatus
     subghz_protocol_decoder_fiat_v0_deserialize(void* context, FlipperFormat* flipper_format) {
     furi_check(context);
     SubGhzProtocolDecoderFiatV0* instance = context;
-    return subghz_block_generic_deserialize_check_count_bit(
+
+    SubGhzProtocolStatus status = subghz_block_generic_deserialize_check_count_bit(
         &instance->generic, flipper_format, subghz_protocol_fiat_v0_const.min_count_bit_for_found);
+    if(status != SubGhzProtocolStatusOk) {
+        return status;
+    }
+
+    instance->hop = (uint32_t)(instance->generic.data >> 32U);
+    instance->fix = (uint32_t)(instance->generic.data & 0xFFFFFFFFU);
+    instance->decoder.decode_data = instance->generic.data;
+    instance->decoder.decode_count_bit = instance->generic.data_count_bit;
+
+    uint32_t endbyte_u32 = 0U;
+    flipper_format_rewind(flipper_format);
+    if(flipper_format_read_uint32(flipper_format, "EndByte", &endbyte_u32, 1)) {
+        instance->endbyte = (uint8_t)(endbyte_u32 & 0x7FU);
+    } else {
+        pp_encoder_read_fields(flipper_format, NULL, &endbyte_u32, NULL, NULL);
+        instance->endbyte = (uint8_t)(endbyte_u32 & 0x7FU);
+    }
+
+    instance->generic.serial = instance->fix;
+    instance->generic.btn = instance->endbyte;
+    instance->generic.cnt = instance->hop;
+
+    return status;
 }
 
 void subghz_protocol_decoder_fiat_v0_get_string(void* context, FuriString* output) {

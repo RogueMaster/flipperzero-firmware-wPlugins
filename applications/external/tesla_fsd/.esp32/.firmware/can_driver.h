@@ -57,6 +57,12 @@ public:
      *  MCP2515 returns true once the chip has answered an SPI probe. */
     virtual bool hardwarePresent() { return true; }
 
+    /** Consume-on-read edge: true exactly once after serviceHealth() has just
+     *  initiated a bus-off recovery. Lets the main loop forward an EVT_BUSOFF to
+     *  the event-core (the black-box trigger) without fsd_logic reaching into the
+     *  TWAI controller state. Default false for drivers with no bus-off concept. */
+    virtual bool busOffEvent() { return false; }
+
     /** Periodic health service — call once per main-loop iteration.
      *  TWAI: detects a bus-off controller (TX errors exceeded the limit) and
      *  drives the ESP-IDF recovery sequence so RX resumes without a manual

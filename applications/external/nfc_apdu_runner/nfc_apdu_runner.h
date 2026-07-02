@@ -32,7 +32,7 @@
 #include <toolbox/hex.h>
 #include <toolbox/path.h>
 
-#define APP_DIRECTORY_PATH "/ext/apps_assets/nfc_apdu_runner"
+#define APP_DIRECTORY_PATH "/ext/apps_data/nfc_apdu_runner"
 #define FILE_EXTENSION     ".apduscr"
 #define RESPONSE_EXTENSION ".apdures"
 #define MAX_APDU_COMMANDS  50

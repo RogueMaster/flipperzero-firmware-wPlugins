@@ -857,51 +857,6 @@ uint32_t fpwn_marauder_copy_creds(FPwnMarauder* m, FPwnCapturedCred* dst, uint32
     return count;
 }
 
-FPwnWifiAP* fpwn_marauder_get_aps(FPwnMarauder* m, uint32_t* count) {
-    furi_assert(m);
-    furi_assert(count);
-    furi_mutex_acquire(m->mutex, FuriWaitForever);
-    *count = m->ap_count;
-    furi_mutex_release(m->mutex);
-    return m->aps;
-}
-
-FPwnNetHost* fpwn_marauder_get_hosts(FPwnMarauder* m, uint32_t* count) {
-    furi_assert(m);
-    furi_assert(count);
-    furi_mutex_acquire(m->mutex, FuriWaitForever);
-    *count = m->host_count;
-    furi_mutex_release(m->mutex);
-    return m->hosts;
-}
-
-FPwnPortResult* fpwn_marauder_get_ports(FPwnMarauder* m, uint32_t* count) {
-    furi_assert(m);
-    furi_assert(count);
-    furi_mutex_acquire(m->mutex, FuriWaitForever);
-    *count = m->port_count;
-    furi_mutex_release(m->mutex);
-    return m->ports;
-}
-
-FPwnStation* fpwn_marauder_get_stations(FPwnMarauder* m, uint32_t* count) {
-    furi_assert(m);
-    furi_assert(count);
-    furi_mutex_acquire(m->mutex, FuriWaitForever);
-    *count = m->station_count;
-    furi_mutex_release(m->mutex);
-    return m->stations;
-}
-
-FPwnCapturedCred* fpwn_marauder_get_creds(FPwnMarauder* m, uint32_t* count) {
-    furi_assert(m);
-    furi_assert(count);
-    furi_mutex_acquire(m->mutex, FuriWaitForever);
-    *count = m->cred_count;
-    furi_mutex_release(m->mutex);
-    return m->creds;
-}
-
 /* Poll for deferred 'list -a' after stopscan.  Called from the scan timer.
  * Sends 'list -a' once 1.5 s have elapsed since the stopscan command. */
 void fpwn_marauder_poll_list(FPwnMarauder* m) {

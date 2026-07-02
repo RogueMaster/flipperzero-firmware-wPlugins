@@ -23,7 +23,7 @@
 #include <gui/modules/widget.h>
 #include <gui/modules/loading.h>
 
-#include "ibutton_icons.h"
+#include <assets_icons.h>
 
 #include "ibutton_custom_event.h"
 #include "scenes/ibutton_scene.h"

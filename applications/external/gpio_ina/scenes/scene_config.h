@@ -16,5 +16,10 @@
 
 ADD_SCENE(settings, Settings)
 ADD_SCENE(edit_shunt, EditShunt)
+ADD_SCENE(edit_shunt_alt, EditShuntAlt)
 ADD_SCENE(gauge, Gauge)
 ADD_SCENE(wiring, Wiring)
+ADD_SCENE(datalog, Datalog)
+ADD_SCENE(dialog_stop, DialogStop)
+ADD_SCENE(dialog_exit, DialogExit)
+ADD_SCENE(shunt_switch, ShuntSwitch)

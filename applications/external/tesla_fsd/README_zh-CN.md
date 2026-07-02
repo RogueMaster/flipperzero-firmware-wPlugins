@@ -155,6 +155,18 @@ git clone https://github.com/hypery11/flipper-tesla-fsd.git applications_user/te
 | Model S / X（2021+） | HW4 | `>= 2026.2.3`（除 2026.8.6） | Auto | 支持 |
 | Model S / X（2016-2019） | HW1 / HW2 | 任何 | Legacy | v2.0 已實作，**待上車驗證** |
 
+### 14.x 实验性开关（默认全部关闭）
+
+针对 Tesla 2026.14.x / 2026.20 行为，**默认全部关闭**。这些是探针，不是已确认的通用修法 — 实时状态见 [#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)。在 ESP32 网页仪表板切换（部分也在 Flipper 设置中）。
+
+| 开关 | 说明 |
+|------|------|
+| **Abort Guard**（ESP32） | Steer-jerk 缓解（[#108](https://github.com/hypery11/flipper-tesla-fsd/issues/108)）。启动瞬间的方向盘抽动其实是车自己**中止**接管（`DAS_autopilotState` → `8 ABORTING` → `9 ABORTED`）。开启后一检测到 abort 状态就立刻切掉所有 activation 注入，并维持到干净脱离。**已上车验证：** 在宽／直路上消除了抽动（数百次循环 0 次，原本约 1/25–30）。局限：部分窄路会直接跳到 `FAULT (9)`、没有前导信号，挡不住。 |
+| **Soft Engage** | Steer-jerk 缓解（[#108](https://github.com/hypery11/flipper-tesla-fsd/issues/108)）。把启动边缘的注入压住，直到方向盘回到中心 ±5° 内。需要总线上有 `0x129`（方向盘角度）；没有就退化成只有 AP-First。直路抽动已大致被 Abort Guard 取代。 |
+| **Nag Burst** | 以爆发／暂停方式回放 `0x370`（约 1 秒开 / 1.5 秒关），而非连续（[#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)）。休息期被认为是 TSL6P 类设备能躲过更严格 14.x nag 检测的原因。搭配 ±1.8 Nm 转向扭力上限。 |
+| **EPAS-faithful（Mode-C）** | 模拟真实 EPAS 的 demand-state 扭力模型，不去翻 `handsOnLevel`（[#100](https://github.com/hypery11/flipper-tesla-fsd/issues/100)）。用于标准 nag 抑制会触发 preflight 的车。**尚未上车确认。** |
+| **Signal Map**（ESP32 → 高级） | 自定义 nag 抑制读取 AP-state／hands-on／方向盘的位置：`id + byte/shift/mask`（[#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)）。用于 `0x39B`/`0x399` 布局不同的车型变体。有新鲜度门控 — 设错会 fail-closed。DAS id 留 `0` 为自动检测。 |
+
 ### 社群测试报告
 
 實車报告（用 [Car compatibility report](https://github.com/hypery11/flipper-tesla-fsd/issues/new?template=car_compatibility.yml) issue template 自己报告）：

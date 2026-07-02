@@ -243,7 +243,6 @@ static bool enc_reader_app_navigation_callback(
 
 static void app_view_dispatcher_alloc(EncApp* app) {
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 

@@ -154,24 +154,6 @@ uint32_t fpwn_marauder_copy_ports(FPwnMarauder* m, FPwnPortResult* dst, uint32_t
 uint32_t fpwn_marauder_copy_stations(FPwnMarauder* m, FPwnStation* dst, uint32_t max_count);
 uint32_t fpwn_marauder_copy_creds(FPwnMarauder* m, FPwnCapturedCred* dst, uint32_t max_count);
 
-/* Returns a pointer to the internal AP array and sets *count.
- * Valid until the next scan_ap() call. */
-FPwnWifiAP* fpwn_marauder_get_aps(FPwnMarauder* m, uint32_t* count);
-
-/* Returns a pointer to the internal host array and sets *count. */
-FPwnNetHost* fpwn_marauder_get_hosts(FPwnMarauder* m, uint32_t* count);
-
-/* Returns a pointer to the internal port array and sets *count. */
-FPwnPortResult* fpwn_marauder_get_ports(FPwnMarauder* m, uint32_t* count);
-
-/* Returns a pointer to the internal station array and sets *count.
- * Valid until the next scan_sta() call. */
-FPwnStation* fpwn_marauder_get_stations(FPwnMarauder* m, uint32_t* count);
-
-/* Returns a pointer to the captured credentials array and sets *count.
- * Populated by evil portal POST data and similar captures. */
-FPwnCapturedCred* fpwn_marauder_get_creds(FPwnMarauder* m, uint32_t* count);
-
 /* Returns the furi_get_tick() value from when the current AP scan started.
  * Used by the timer callback to implement auto-stop after 8 seconds. */
 uint32_t fpwn_marauder_get_scan_start(FPwnMarauder* m);

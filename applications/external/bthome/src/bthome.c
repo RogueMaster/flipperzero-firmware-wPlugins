@@ -227,7 +227,6 @@ static BtHomeApp* bthome_app_alloc(void) {
     }
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     if(!app->view_dispatcher) {
         FURI_LOG_E(APP_LOG_TAG, "Failed to allocate view dispatcher");
 

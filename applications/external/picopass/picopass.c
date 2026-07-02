@@ -24,7 +24,6 @@ Picopass* picopass_alloc() {
     Picopass* picopass = malloc(sizeof(Picopass));
 
     picopass->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(picopass->view_dispatcher);
     picopass->scene_manager = scene_manager_alloc(&picopass_scene_handlers, picopass);
     view_dispatcher_set_event_callback_context(picopass->view_dispatcher, picopass);
     view_dispatcher_set_custom_event_callback(
@@ -235,13 +234,20 @@ bool picopass_is_memset(const uint8_t* data, const uint8_t pattern, size_t size)
     return result;
 }
 
-int32_t picopass_app(void* p) {
-    UNUSED(p);
+int32_t picopass_app(const char* p) {
     picopass_migrate_from_old_folder();
 
     Picopass* picopass = picopass_alloc();
 
-    scene_manager_next_scene(picopass->scene_manager, PicopassSceneStart);
+    PicopassScene start_scene = PicopassSceneStart;
+    if(p) {
+        furi_string_set(picopass->dev->load_path, p);
+        if(picopass_device_load(picopass->dev, picopass->dev->load_path)) {
+            start_scene = PicopassSceneSavedMenu;
+        }
+    }
+
+    scene_manager_next_scene(picopass->scene_manager, start_scene);
 
     view_dispatcher_run(picopass->view_dispatcher);
 

@@ -30,7 +30,7 @@ SubGhzProtocolStatus
     subghz_protocol_decoder_honda_static_deserialize(void* context, FlipperFormat* flipper_format);
 void subghz_protocol_decoder_honda_static_get_string(void* context, FuriString* output);
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 void* subghz_protocol_encoder_honda_static_alloc(SubGhzEnvironment* environment);
 SubGhzProtocolStatus
     subghz_protocol_encoder_honda_static_deserialize(void* context, FlipperFormat* flipper_format);

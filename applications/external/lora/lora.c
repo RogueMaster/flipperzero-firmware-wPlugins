@@ -24,7 +24,7 @@ Code porting from LoRa library https://github.dev/thekakester/Arduino-LoRa-Sx126
 
 static uint32_t timeout = 1000;
 //static uint32_t timeout = 100;
-static FuriHalSpiBusHandle* spi = &furi_hal_spi_bus_handle_external;
+static const FuriHalSpiBusHandle* spi = &furi_hal_spi_bus_handle_external;
 
 const GpioPin* const pin_beacon = &gpio_swclk;
 const GpioPin* const pin_nss1 = &gpio_ext_pc0;

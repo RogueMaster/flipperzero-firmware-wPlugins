@@ -227,8 +227,7 @@ static void flippass_db_browser_view_draw_list(Canvas* canvas, FlipPassDbBrowser
             label_width,
             model->draw_string,
             is_selected ? model->scroll_counter : 0U,
-            true,
-            false);
+            true);
     }
 
     canvas_set_color(canvas, ColorBlack);
@@ -352,7 +351,7 @@ static void flippass_db_browser_view_draw_callback(Canvas* canvas, void* _model)
     canvas_set_font(canvas, FontSecondary);
     furi_string_set_str(model->draw_string, model->header);
     elements_scrollable_text_line(
-        canvas, 2, 8, 124U, model->draw_string, model->scroll_counter, true, false);
+        canvas, 2, 8, 124U, model->draw_string, model->scroll_counter, true);
 
     flippass_db_browser_view_draw_list(canvas, model);
     flippass_db_browser_view_draw_buttons(canvas, model);

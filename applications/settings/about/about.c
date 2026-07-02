@@ -1,9 +1,12 @@
 #include <furi.h>
-#include <dialogs/dialogs.h>
+
 #include <gui/gui.h>
-#include <gui/view_dispatcher.h>
+#include <gui/view_holder.h>
 #include <gui/modules/empty_screen.h>
+
+#include <dialogs/dialogs.h>
 #include <assets_icons.h>
+
 #include <furi_hal_version.h>
 #include <furi_hal_region.h>
 #include <furi_hal_bt.h>
@@ -173,16 +176,22 @@ static DialogMessageButton about_screen_fw_version(DialogsApp* dialogs, DialogMe
         furi_hal_info_get_api_version(&api_major, &api_minor);
         furi_string_cat_printf(
             buffer,
-            "%s   %s\n%s%s   F%d:%d.%d   %s\n%s",
+            "%s [%s]\n%s%s [%d.%d] %s\n[%d] ",
             version_get_version(ver),
             version_get_builddate(ver),
-            version_get_dirty_flag(ver) ? "[!]" : "",
+            version_get_dirty_flag(ver) ? "[!] " : "",
             version_get_githash(ver),
-            version_get_target(ver),
             api_major,
             api_minor,
-            c2_ver ? c2_ver->StackTypeString : "",
-            version_get_gitbranch(ver));
+            c2_ver ? c2_ver->StackTypeString : "<none>",
+            version_get_target(ver));
+        if(!strcmp(version_get_version(ver), "rm-dev") &&
+           strcmp(version_get_gitbranch(ver), "dev")) {
+            // Not a tag but not dev branch, show custom branch
+            furi_string_cat(buffer, version_get_gitbranch(ver));
+        } else {
+            furi_string_cat(buffer, "rogue-master.net");
+        }
     }
 
     dialog_message_set_header(message, "Firmware Info:", 0, 0, AlignLeft, AlignTop);
@@ -204,32 +213,30 @@ const AboutDialogScreen about_screens[] = {
     about_screen_cert_china_0,
     about_screen_cert_china_1,
     about_screen_cert_taiwan,
-    about_screen_cert_mexico};
+    about_screen_cert_mexico,
+};
 
 int32_t about_settings_app(void* p) {
-    UNUSED(p);
+    bool about_battery = p && !strncmp(p, "about_battery", strlen("about_battery"));
     DialogsApp* dialogs = furi_record_open(RECORD_DIALOGS);
     DialogMessage* message = dialog_message_alloc();
 
     Gui* gui = furi_record_open(RECORD_GUI);
-    ViewDispatcher* view_dispatcher = view_dispatcher_alloc();
+    ViewHolder* view_holder = view_holder_alloc();
     EmptyScreen* empty_screen = empty_screen_alloc();
-    const uint32_t empty_screen_index = 0;
 
     size_t screen_index = 0;
     DialogMessageButton screen_result;
 
     // draw empty screen to prevent menu flickering
-    view_dispatcher_add_view(
-        view_dispatcher, empty_screen_index, empty_screen_get_view(empty_screen));
-    view_dispatcher_attach_to_gui(view_dispatcher, gui, ViewDispatcherTypeFullscreen);
-    view_dispatcher_switch_to_view(view_dispatcher, empty_screen_index);
+    view_holder_attach_to_gui(view_holder, gui);
+    view_holder_set_view(view_holder, empty_screen_get_view(empty_screen));
 
     int32_t ret = 0;
     while(1) {
         if(screen_index >= COUNT_OF(about_screens) - 1) {
             dialog_message_set_buttons(message, "Prev.", NULL, NULL);
-        } else if(screen_index == 0) {
+        } else if(screen_index == 0 && !about_battery) {
             dialog_message_set_buttons(message, NULL, NULL, "Next");
         } else {
             dialog_message_set_buttons(message, "Prev.", NULL, "Next");
@@ -260,8 +267,8 @@ int32_t about_settings_app(void* p) {
     dialog_message_free(message);
     furi_record_close(RECORD_DIALOGS);
 
-    view_dispatcher_remove_view(view_dispatcher, empty_screen_index);
-    view_dispatcher_free(view_dispatcher);
+    view_holder_set_view(view_holder, NULL);
+    view_holder_free(view_holder);
     empty_screen_free(empty_screen);
     furi_record_close(RECORD_GUI);
 

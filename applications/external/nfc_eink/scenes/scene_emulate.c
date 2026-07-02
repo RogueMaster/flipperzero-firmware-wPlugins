@@ -46,7 +46,7 @@ void nfc_eink_scene_emulate_on_enter(void* context) {
 
     Widget* widget = instance->widget;
 
-    widget_add_icon_element(widget, 0, 3, &I_NFC_dolphin_emulation_47x61);
+    widget_add_icon_element(widget, 0, 3, &I_NFC_dolphin_emulation_51x64);
     widget_add_string_element(widget, 90, 26, AlignCenter, AlignCenter, FontPrimary, "Emulating");
 
     view_dispatcher_switch_to_view(instance->view_dispatcher, NfcEinkViewWidget);

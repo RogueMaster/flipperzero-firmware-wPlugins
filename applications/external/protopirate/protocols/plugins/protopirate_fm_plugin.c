@@ -1,15 +1,11 @@
 #include "../protopirate_protocol_plugins.h"
+#include "../protocols_common.h"
 #include "../scher_khan.h"
 #include "../kia_v0.h"
 #include "../kia_v3_v4.h"
 #include "../kia_v5.h"
 #include "../kia_v6.h"
 #include "../kia_v7.h"
-#include "../ford_v1.h"
-#include "../ford_v2.h"
-#include "../ford_v3.h"
-#include "../honda_static.h"
-#include "../land_rover_v0.h"
 #include "../mazda_v0.h"
 #include "../mitsubishi_v0.h"
 #include "../psa.h"
@@ -20,11 +16,6 @@ static const SubGhzProtocol* const protopirate_protocol_registry_fm_items[] = {
     &kia_protocol_v3_v4,
     &kia_protocol_v5,
     &kia_protocol_v6,
-    &ford_protocol_v1,
-    &ford_protocol_v2,
-    &ford_protocol_v3,
-    &honda_static_protocol,
-    &land_rover_v0_protocol,
     &mazda_v0_protocol,
     &mitsubishi_v0_protocol,
     &kia_protocol_v7,
@@ -38,9 +29,11 @@ static const SubGhzProtocolRegistry protopirate_protocol_registry_fm = {
 };
 
 static const ProtoPirateProtocolPlugin protopirate_fm_plugin = {
-    .plugin_name = "ProtoPirate FM Registry",
-    .filter = ProtoPirateProtocolRegistryFilterFM,
+    .plugin_name = "ProtoPirate FM Default Registry",
+    .kind = ProtoPirateProtocolPluginKindRx,
+    .route = ProtoPirateProtocolRegistryRouteFMDefault,
     .registry = &protopirate_protocol_registry_fm,
+    .release = NULL,
 };
 
 static const FlipperAppPluginDescriptor protopirate_fm_plugin_descriptor = {

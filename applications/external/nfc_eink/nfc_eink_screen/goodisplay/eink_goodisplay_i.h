@@ -54,7 +54,7 @@ typedef struct {
 } FURI_PACKED APDU_Response;
 
 typedef struct {
-    uint16_t data_length;
+    uint16_t data_length; ///TODO: remove this to CC_File struct
     uint8_t data[];
 } FURI_PACKED APDU_Response_Read;
 
@@ -73,6 +73,7 @@ typedef struct {
 } FURI_PACKED NDEF_File_Ctrl_TLV;
 
 typedef struct {
+    ///TODO: uint16_t data_length; //maybe this should be here instead of APDU_Response_Read
     uint8_t mapping_version;
     uint16_t r_apdu_max_size;
     uint16_t c_apdu_max_size;

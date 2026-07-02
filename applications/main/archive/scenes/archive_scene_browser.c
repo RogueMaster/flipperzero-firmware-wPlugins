@@ -6,6 +6,8 @@
 #include "../views/archive_browser_view.h"
 #include "archive/scenes/archive_scene.h"
 
+#include <desktop/desktop_i.h>
+
 #define TAG "ArchiveSceneBrowser"
 
 #define SCENE_STATE_DEFAULT      (0)
@@ -23,20 +25,22 @@ const char* archive_get_flipper_app_name(ArchiveFileTypeEnum file_type) {
         return "125 kHz RFID";
     case ArchiveFileTypeInfrared:
         return "Infrared";
-    case ArchiveFileTypeCrossRemote:
-        return EXT_PATH("apps/Infrared/cross_remote.fap");
     case ArchiveFileTypeSubghzPlaylist:
         return EXT_PATH("apps/Sub-GHz/subghz_playlist.fap");
     case ArchiveFileTypeSubghzRemote:
         return EXT_PATH("apps/Sub-GHz/subghz_remote_refactored.fap");
+    case ArchiveFileTypeProtoPirate:
+        return EXT_PATH("apps/Sub-GHz/proto_pirate.fap");
     case ArchiveFileTypeInfraredRemote:
         return EXT_PATH("apps/Infrared/ir_remote.fap");
     case ArchiveFileTypeBadUsb:
-        return EXT_PATH("apps/USB/bad_usb.fap");
+        return "Bad KB";
     case ArchiveFileTypeWAV:
         return EXT_PATH("apps/Media/wav_player.fap");
     case ArchiveFileTypeMag:
         return EXT_PATH("apps/GPIO/magspoof.fap");
+    case ArchiveFileTypeCrossRemote:
+        return EXT_PATH("apps/Infrared/cross_remote.fap");
     case ArchiveFileTypePicopass:
         return EXT_PATH("apps/NFC/picopass.fap");
     case ArchiveFileTypeU2f:
@@ -45,8 +49,12 @@ const char* archive_get_flipper_app_name(ArchiveFileTypeEnum file_type) {
         return "UpdaterApp";
     case ArchiveFileTypeDiskImage:
         return EXT_PATH("apps/USB/mass_storage.fap");
-    case ArchiveFileTypeProtoPirate:
-        return EXT_PATH("apps/Sub-GHz/proto_pirate.fap");
+    case ArchiveFileTypeJS:
+#ifdef JS_RUNNER_FAP
+        return EXT_PATH("apps/Main/js_app.fap");
+#else
+        return "JS Runner";
+#endif
     default:
         return NULL;
     }
@@ -58,7 +66,7 @@ static void archive_loader_callback(const void* message, void* context) {
     const LoaderEvent* event = message;
     ArchiveApp* archive = (ArchiveApp*)context;
 
-    if(event->type == LoaderEventTypeApplicationStopped) {
+    if(event->type == LoaderEventTypeNoMoreAppsInQueue) {
         view_dispatcher_send_custom_event(
             archive->view_dispatcher, ArchiveBrowserEventListRefresh);
     }
@@ -138,7 +146,22 @@ static void
 
     const char* app_name = archive_get_flipper_app_name(selected->type);
 
-    if(selected->type == ArchiveFileTypeSearch) {
+    if(selected->type == ArchiveFileTypeSetting) {
+        FuriString* app_name = furi_string_alloc_set(selected->path);
+        furi_string_right(app_name, furi_string_search_char(app_name, '/', 1) + 1);
+        size_t slash = furi_string_search_char(app_name, '/', 1);
+        if(slash != FURI_STRING_FAILURE) {
+            furi_string_left(app_name, slash);
+            FuriString* app_args =
+                furi_string_alloc_set_str(furi_string_get_cstr(app_name) + slash + 1);
+            loader_start_with_gui_error(
+                loader, furi_string_get_cstr(app_name), furi_string_get_cstr(app_args));
+            furi_string_free(app_args);
+        } else {
+            loader_start_with_gui_error(loader, furi_string_get_cstr(app_name), NULL);
+        }
+        furi_string_free(app_name);
+    } else if(selected->type == ArchiveFileTypeSearch) {
         while(archive_get_tab(browser) != ArchiveTabSearch) {
             archive_switch_tab(browser, TAB_LEFT);
         }
@@ -165,6 +188,12 @@ static void
         }
     } else if(selected->type == ArchiveFileTypeApplication) {
         loader_start_detached_with_gui_error(loader, furi_string_get_cstr(selected->path), NULL);
+    } else if(selected->type == ArchiveFileTypeFolder) {
+        // Folders are handled by archive, so we should only get here with run_with_default_app() outside archive
+        furi_check(browser == NULL, "What you doin?");
+        Desktop* desktop = furi_record_open(RECORD_DESKTOP);
+        desktop_launch_archive(desktop, furi_string_get_cstr(selected->path));
+        furi_record_close(RECORD_DESKTOP);
     } else {
         archive_show_file(loader, furi_string_get_cstr(selected->path));
     }
@@ -203,7 +232,7 @@ void archive_scene_browser_on_enter(void* context) {
     browser->is_root = true;
 
     archive_browser_set_callback(browser, archive_scene_browser_callback, archive);
-    if(archive_get_tab(browser) == ArchiveTabFavorites && archive_favorites_count() < 1) {
+    if(archive_get_tab(browser) == ArchiveTabFavorites && archive_favorites_count(browser) < 1) {
         archive_switch_tab(browser, TAB_LEFT);
     }
     archive_update_focus(browser, archive->text_store);
@@ -482,7 +511,6 @@ bool archive_scene_browser_on_event(void* context, SceneManagerEvent event) {
 
 void archive_scene_browser_on_exit(void* context) {
     ArchiveApp* archive = (ArchiveApp*)context;
-
     if(archive->loader_stop_subscription) {
         furi_pubsub_unsubscribe(
             loader_get_pubsub(archive->loader), archive->loader_stop_subscription);

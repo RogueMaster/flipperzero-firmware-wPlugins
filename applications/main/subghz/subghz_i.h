@@ -36,6 +36,8 @@
 
 #include "rpc/rpc_app.h"
 
+#include <power/power_service/power.h>
+
 #include "helpers/subghz_threshold_rssi.h"
 
 #include "helpers/subghz_txrx.h"
@@ -101,6 +103,7 @@ struct SubGhz {
     bool fav_timeout;
     FuriTimer* timer;
 
+    uint8_t tx_power;
     void* rpc_ctx;
 };
 

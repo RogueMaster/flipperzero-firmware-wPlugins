@@ -1,16 +1,16 @@
-/* 
+/*
  * This file is part of the INA Meter application for Flipper Zero (https://github.com/cepetr/flipper-tina).
-  * 
- * This program is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU General Public License as published by  
+  *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, version 3.
  *
- * This program is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License 
+ * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -24,16 +24,27 @@
 #include "sensor/ina226_driver.h"
 #include "sensor/ina228_driver.h"
 
+#define TICK_EVENT_PERIOD    5 // Sensor read period in ms
+#define SCREEN_UPDATE_PERIOD 200 // Screen update period in ms
+
 static bool app_custom_event_callback(void* context, uint32_t event) {
-    furi_assert(context != NULL);
     App* app = (App*)context;
+    furi_assert(app != NULL);
+
     return scene_manager_handle_custom_event(app->scene_manager, event);
 }
 
 static bool app_back_event_callback(void* context) {
-    furi_assert(context != NULL);
     App* app = (App*)context;
-    return scene_manager_handle_back_event(app->scene_manager);
+    furi_assert(app != NULL);
+
+    bool handled = scene_manager_handle_back_event(app->scene_manager);
+
+    if(!handled) {
+        scene_manager_next_scene(app->scene_manager, SceneDialogExit);
+    }
+
+    return true;
 }
 
 // Set RGB LED to white for 1ms
@@ -45,27 +56,44 @@ const NotificationSequence sequence_blink = {
     NULL,
 };
 
+static bool is_charging(App* app) {
+    PowerInfo power_info;
+    power_get_info(app->power, &power_info);
+    return power_info.is_charging;
+}
+
 static void app_tick_event_callback(void* context) {
-    furi_assert(context != NULL);
     App* app = (App*)context;
+    furi_assert(app != NULL);
+
+    static int tick_counter = 1;
 
     if(app->sensor != NULL) {
         app->sensor->tick(app->sensor);
 
-        if(app->config.led_blinking) {
-            SensorState sensor_state;
-            app->sensor->get_state(app->sensor, &sensor_state);
+        SensorState sensor_state;
+        app->sensor->get_state(app->sensor, &sensor_state);
 
-            bool new_measurement = sensor_state.time != app->last_measurement_time;
-            app->last_measurement_time = sensor_state.time;
+        bool new_measurement = sensor_state.ticks != app->last_measurement_ticks;
+        app->last_measurement_ticks = sensor_state.ticks;
 
-            if(new_measurement) {
+        if(new_measurement) {
+            if(app->config.led_blinking && !is_charging(app)) {
                 notification_message(app->notifications, &sequence_blink);
+            }
+
+            if(app->datalog != NULL) {
+                datalog_append_record(app->datalog, &sensor_state);
+                // datalog_screen_update(app->datalog_screen, app->datalog);
             }
         }
     }
 
-    scene_manager_handle_tick_event(app->scene_manager);
+    if(--tick_counter == 0) {
+        tick_counter = SCREEN_UPDATE_PERIOD / TICK_EVENT_PERIOD;
+        scene_manager_handle_tick_event(app->scene_manager);
+        datalog_screen_update(app->datalog_screen, app->datalog);
+    }
 }
 
 void app_restart_sensor_driver(App* app) {
@@ -99,10 +127,14 @@ void app_restart_sensor_driver(App* app) {
             [SensorPrecision_High] = Ina226ConvTime_2116us,
             [SensorPrecision_Max] = Ina226ConvTime_8244us,
         };
+        Ina226Averaging ina226_averaging[SensorAveraging_count] = {
+            [SensorAveraging_Medium] = Ina226Averaging_256,
+            [SensorAveraging_Max] = Ina226Averaging_1024,
+        };
         Ina226Config ina226_config = {
             .i2c_address = app->config.i2c_address,
             .shunt_resistor = app->config.shunt_resistor,
-            .averaging = Ina226Averaging_1024,
+            .averaging = ina226_averaging[app->config.sensor_averaging],
             .vbus_conv_time = ina226_conv_time[app->config.voltage_precision],
             .vshunt_conv_time = ina226_conv_time[app->config.current_precision],
         };
@@ -115,10 +147,14 @@ void app_restart_sensor_driver(App* app) {
             [SensorPrecision_High] = Ina228ConvTime_1052us,
             [SensorPrecision_Max] = Ina228ConvTime_4120us,
         };
+        Ina228Averaging ina228_averaging[SensorAveraging_count] = {
+            [SensorAveraging_Medium] = Ina228Averaging_256,
+            [SensorAveraging_Max] = Ina228Averaging_1024,
+        };
         Ina228Config ina228_config = {
             .i2c_address = app->config.i2c_address,
             .shunt_resistor = app->config.shunt_resistor,
-            .averaging = Ina228Averaging_1024,
+            .averaging = ina228_averaging[app->config.sensor_averaging],
             .vbus_conv_time = ina228_conv_time[app->config.voltage_precision],
             .vshunt_conv_time = ina228_conv_time[app->config.current_precision],
             .adc_range = Ina228AdcRange_160mV,
@@ -145,6 +181,8 @@ static App* app_alloc() {
 
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
 
+    app->power = furi_record_open(RECORD_POWER);
+
     // Initialize the application configuration
     app_config_init(&app->config);
     app_config_load(&app->config, app->storage);
@@ -154,11 +192,11 @@ static App* app_alloc() {
 
     // Initialize view dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, app_custom_event_callback);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, app_back_event_callback);
-    view_dispatcher_set_tick_event_callback(app->view_dispatcher, app_tick_event_callback, 100);
+    view_dispatcher_set_tick_event_callback(
+        app->view_dispatcher, app_tick_event_callback, TICK_EVENT_PERIOD);
 
     // Attach view dispatcher to the GUI
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
@@ -178,8 +216,15 @@ static App* app_alloc() {
     view_dispatcher_add_view(
         app->view_dispatcher, AppViewCurrentGauge, current_gauge_get_view(app->current_gauge));
 
+    app->datalog_screen = datalog_screen_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, AppViewDatalog, datalog_screen_get_view(app->datalog_screen));
+
     app->popup = popup_alloc();
     view_dispatcher_add_view(app->view_dispatcher, AppViewWiring, popup_get_view(app->popup));
+
+    app->dialog = dialog_ex_alloc();
+    view_dispatcher_add_view(app->view_dispatcher, AppViewDialog, dialog_ex_get_view(app->dialog));
 
     app_restart_sensor_driver(app);
 
@@ -191,6 +236,8 @@ static App* app_alloc() {
 static void app_free(App* app) {
     FURI_LOG_T(TAG, "Stopping application...");
 
+    datalog_close(app->datalog);
+
     // Free views
     view_dispatcher_remove_view(app->view_dispatcher, AppViewVariableList);
     variable_item_list_free(app->var_item_list);
@@ -200,6 +247,12 @@ static void app_free(App* app) {
 
     view_dispatcher_remove_view(app->view_dispatcher, AppViewWiring);
     popup_free(app->popup);
+
+    view_dispatcher_remove_view(app->view_dispatcher, AppViewDialog);
+    dialog_ex_free(app->dialog);
+
+    view_dispatcher_remove_view(app->view_dispatcher, AppViewDatalog);
+    datalog_screen_free(app->datalog_screen);
 
     view_dispatcher_remove_view(app->view_dispatcher, AppViewCurrentGauge);
     current_gauge_free(app->current_gauge);
@@ -216,6 +269,7 @@ static void app_free(App* app) {
     // Save the application configuration
     app_config_save(&app->config, app->storage);
 
+    furi_record_close(RECORD_POWER);
     furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_STORAGE);

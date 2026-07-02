@@ -10,8 +10,6 @@
 #include <gui/modules/variable_item_list.h>
 
 #include <notification/notification_messages.h>
-#include <expansion/expansion.h>
-#include <furi_hal.h>
 #include <furi_hal_gpio.h>
 #include <furi_hal_resources.h>
 

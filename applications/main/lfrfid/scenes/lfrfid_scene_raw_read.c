@@ -1,5 +1,4 @@
 #include "../lfrfid_i.h"
-#include <lfrfid_icons.h>
 
 #define RAW_READ_TIME_MS (5000UL)
 

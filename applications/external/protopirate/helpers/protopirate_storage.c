@@ -1,7 +1,11 @@
 // helpers/protopirate_storage.c
 #include "protopirate_storage.h"
 #include "../defines.h"
+#include "../protocols/protocol_items.h"
 #include "../protocols/protocols_common.h"
+#include <lib/flipper_format/flipper_format_i.h>
+#include <toolbox/stream/stream.h>
+#include <string.h>
 
 #define TAG "ProtoPirateStorage"
 
@@ -12,21 +16,67 @@ bool protopirate_storage_init(void) {
     return result;
 }
 
-void protopirate_storage_wipe_history_cache(void) {
+bool protopirate_storage_commit_temp_file(
+    Storage* storage,
+    const char* tmp_path,
+    const char* final_path) {
+    furi_check(storage);
+    furi_check(tmp_path);
+    furi_check(final_path);
+
+    FuriString* backup_path = furi_string_alloc();
+    furi_string_printf(backup_path, "%s.bak", final_path);
+    const char* backup_cstr = furi_string_get_cstr(backup_path);
+
+    if(storage_file_exists(storage, backup_cstr)) {
+        storage_simply_remove(storage, backup_cstr);
+    }
+
+    if(storage_file_exists(storage, final_path)) {
+        if(storage_common_rename(storage, final_path, backup_cstr) != FSE_OK) {
+            FURI_LOG_E(TAG, "Failed to stage backup for %s", final_path);
+            furi_string_free(backup_path);
+            return false;
+        }
+    }
+
+    if(storage_common_rename(storage, tmp_path, final_path) != FSE_OK) {
+        FURI_LOG_E(TAG, "Failed to commit %s", final_path);
+        if(storage_file_exists(storage, backup_cstr)) {
+            if(storage_common_rename(storage, backup_cstr, final_path) != FSE_OK) {
+                FURI_LOG_E(TAG, "Failed to restore backup for %s", final_path);
+            }
+        }
+        if(storage_file_exists(storage, tmp_path)) {
+            storage_simply_remove(storage, tmp_path);
+        }
+        furi_string_free(backup_path);
+        return false;
+    }
+
+    if(storage_file_exists(storage, backup_cstr)) {
+        storage_simply_remove(storage, backup_cstr);
+    }
+
+    furi_string_free(backup_path);
+    return true;
+}
+
+static void protopirate_storage_remove_history_folder(void) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     if(storage_dir_exists(storage, PROTOPIRATE_HISTORY_FOLDER)) {
         storage_simply_remove_recursive(storage, PROTOPIRATE_HISTORY_FOLDER);
-        FURI_LOG_I(TAG, "Wiped history cache");
     }
     furi_record_close(RECORD_STORAGE);
 }
 
+void protopirate_storage_wipe_history_cache(void) {
+    protopirate_storage_remove_history_folder();
+    FURI_LOG_I(TAG, "Wiped history cache");
+}
+
 void protopirate_storage_purge_temp_history_at_startup(void) {
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    if(storage_dir_exists(storage, PROTOPIRATE_HISTORY_FOLDER)) {
-        storage_simply_remove_recursive(storage, PROTOPIRATE_HISTORY_FOLDER);
-    }
-    furi_record_close(RECORD_STORAGE);
+    protopirate_storage_remove_history_folder();
 }
 
 bool protopirate_storage_ensure_history_folder(void) {
@@ -34,8 +84,8 @@ bool protopirate_storage_ensure_history_folder(void) {
         return false;
     }
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    storage_simply_mkdir(storage, PROTOPIRATE_CACHE_FOLDER);
-    bool ok = storage_simply_mkdir(storage, PROTOPIRATE_HISTORY_FOLDER);
+    bool ok = storage_simply_mkdir(storage, PROTOPIRATE_CACHE_FOLDER) &&
+              storage_simply_mkdir(storage, PROTOPIRATE_HISTORY_FOLDER);
     furi_record_close(RECORD_STORAGE);
     return ok;
 }
@@ -122,6 +172,33 @@ bool protopirate_storage_get_next_filename(const char* protocol_name, FuriString
     return found;
 }
 
+bool protopirate_storage_get_capture_display_protocol(
+    FlipperFormat* flipper_format,
+    FuriString* protocol_name) {
+    furi_check(flipper_format);
+    furi_check(protocol_name);
+
+    FuriString* raw_protocol = furi_string_alloc();
+    bool have_protocol = false;
+    uint32_t protocol_type = 0U;
+
+    flipper_format_rewind(flipper_format);
+    have_protocol = flipper_format_read_string(flipper_format, FF_PROTOCOL, raw_protocol);
+    if(!have_protocol) {
+        furi_string_set(raw_protocol, "Unknown");
+    }
+
+    flipper_format_rewind(flipper_format);
+    flipper_format_read_uint32(flipper_format, FF_TYPE, &protocol_type, 1);
+
+    const char* display_name = protopirate_protocol_catalog_display_name(
+        furi_string_get_cstr(raw_protocol), protocol_type);
+    furi_string_set(protocol_name, display_name ? display_name : "Unknown");
+
+    furi_string_free(raw_protocol);
+    return have_protocol;
+}
+
 static const char* const protopirate_storage_base_u32_fields[] = {
     "TE",
     FF_SERIAL,
@@ -141,6 +218,7 @@ static const char* const protopirate_storage_tail_u32_fields[] = {
     "DataHi",
     "DataLo",
     "RawCnt",
+    "Rolling",
     "Encrypted",
     "Decrypted",
     "KIAVersion",
@@ -159,6 +237,89 @@ static bool
     *count = 0;
     flipper_format_rewind(flipper_format);
     return flipper_format_get_value_count(flipper_format, key, count) && (*count > 0);
+}
+
+static bool protopirate_storage_stream_read_char(Stream* stream, char* out) {
+    uint8_t value = 0;
+    if(stream_read(stream, &value, 1U) != 1U) return false;
+    *out = (char)value;
+    return true;
+}
+
+static bool protopirate_storage_stream_write_char(Stream* stream, char value) {
+    return stream_write_char(stream, value) == 1U;
+}
+
+static bool protopirate_storage_copy_raw_value_line(
+    Stream* out_stream,
+    Stream* in_stream,
+    const char* key) {
+    const size_t key_len = strlen(key);
+    if(!key_len || !stream_rewind(in_stream) || !stream_seek(out_stream, 0, StreamOffsetFromEnd)) {
+        return protopirate_storage_fail("Stream", key);
+    }
+
+    bool copied = false;
+
+    while(!stream_eof(in_stream)) {
+        bool line_match = true;
+        bool line_ended = false;
+
+        for(size_t i = 0; i < key_len; i++) {
+            char c = '\0';
+            if(!protopirate_storage_stream_read_char(in_stream, &c)) {
+                return protopirate_storage_fail("Read", key);
+            }
+            if(c == '\n') {
+                line_match = false;
+                line_ended = true;
+                break;
+            }
+            if(c != key[i]) {
+                line_match = false;
+            }
+        }
+
+        if(line_ended) continue;
+
+        char c = '\0';
+        if(!protopirate_storage_stream_read_char(in_stream, &c)) {
+            return protopirate_storage_fail("Read", key);
+        }
+
+        if(c != ':') {
+            line_match = false;
+        }
+
+        if(line_match) {
+            if(stream_write(out_stream, (const uint8_t*)key, key_len) != key_len ||
+               !protopirate_storage_stream_write_char(out_stream, ':')) {
+                return protopirate_storage_fail("Write", key);
+            }
+
+            bool wrote_newline = false;
+            while(protopirate_storage_stream_read_char(in_stream, &c)) {
+                if(!protopirate_storage_stream_write_char(out_stream, c)) {
+                    return protopirate_storage_fail("Write", key);
+                }
+                if(c == '\n') {
+                    wrote_newline = true;
+                    break;
+                }
+            }
+
+            if(!wrote_newline && !protopirate_storage_stream_write_char(out_stream, '\n')) {
+                return protopirate_storage_fail("Write", key);
+            }
+            copied = true;
+            continue;
+        }
+
+        while(c != '\n' && protopirate_storage_stream_read_char(in_stream, &c)) {
+        }
+    }
+
+    return copied ? true : protopirate_storage_fail("Read", key);
 }
 
 static bool protopirate_storage_copy_string_optional(
@@ -253,29 +414,19 @@ static bool protopirate_storage_copy_u32_array(
     const char* key,
     uint32_t count,
     uint32_t max_count) {
-    if(count >= max_count) {
+    if(count > max_count) {
         FURI_LOG_E(TAG, "%s too large: %lu", key, (unsigned long)count);
         return false;
     }
 
-    uint32_t* data = malloc(sizeof(uint32_t) * count);
-    if(!data) {
-        FURI_LOG_E(TAG, "Malloc failed: %s (%lu u32)", key, (unsigned long)count);
+    Stream* in_stream = flipper_format_get_raw_stream(flipper_format);
+    Stream* out_stream = flipper_format_get_raw_stream(save_file);
+    if(!in_stream || !out_stream) {
+        FURI_LOG_E(TAG, "Raw stream missing: %s", key);
         return false;
     }
 
-    bool status = false;
-    flipper_format_rewind(flipper_format);
-    if(!flipper_format_read_uint32(flipper_format, key, data, count)) {
-        protopirate_storage_fail("Read", key);
-    } else if(!flipper_format_write_uint32(save_file, key, data, count)) {
-        protopirate_storage_fail("Write", key);
-    } else {
-        status = true;
-    }
-
-    free(data);
-    return status;
+    return protopirate_storage_copy_raw_value_line(out_stream, in_stream, key);
 }
 
 static bool protopirate_storage_copy_u32_array_if_present(
@@ -299,29 +450,19 @@ static bool protopirate_storage_copy_hex_array_if_present(
     if(!protopirate_storage_get_count(flipper_format, key, &count)) {
         return true;
     }
-    if(count >= max_count) {
+    if(count > max_count) {
         FURI_LOG_E(TAG, "%s too large: %lu", key, (unsigned long)count);
         return false;
     }
 
-    uint8_t* data = malloc(count);
-    if(!data) {
-        FURI_LOG_E(TAG, "Malloc failed: %s (%lu bytes)", key, (unsigned long)count);
+    Stream* in_stream = flipper_format_get_raw_stream(flipper_format);
+    Stream* out_stream = flipper_format_get_raw_stream(save_file);
+    if(!in_stream || !out_stream) {
+        FURI_LOG_E(TAG, "Raw stream missing: %s", key);
         return false;
     }
 
-    bool status = false;
-    flipper_format_rewind(flipper_format);
-    if(!flipper_format_read_hex(flipper_format, key, data, count)) {
-        protopirate_storage_fail("Read", key);
-    } else if(!flipper_format_write_hex(save_file, key, data, count)) {
-        protopirate_storage_fail("Write", key);
-    } else {
-        status = true;
-    }
-
-    free(data);
-    return status;
+    return protopirate_storage_copy_raw_value_line(out_stream, in_stream, key);
 }
 
 static bool protopirate_storage_copy_key(
@@ -407,7 +548,7 @@ static bool protopirate_storage_write_capture_data(
                protopirate_storage_base_u32_fields,
                COUNT_OF(protopirate_storage_base_u32_fields)))
             break;
-        if(!protopirate_storage_copy_hex_fixed(save_file, flipper_format, "Key2", 8, NULL)) break;
+        if(!protopirate_storage_copy_hex_or_u32(save_file, flipper_format, "Key2", 4)) break;
         if(!protopirate_storage_copy_u32_optional(save_file, flipper_format, "KeyIdx")) break;
         if(!protopirate_storage_copy_u32_optional(save_file, flipper_format, "Seed")) break;
         if(!protopirate_storage_copy_hex_or_u32(save_file, flipper_format, "ValidationField", 2))
@@ -418,6 +559,10 @@ static bool protopirate_storage_write_capture_data(
         if(!protopirate_storage_copy_u32_optional(save_file, flipper_format, "Fx")) break;
         if(!protopirate_storage_copy_hex_fixed(save_file, flipper_format, "Key1", 8, NULL)) break;
         if(!protopirate_storage_copy_u32_optional(save_file, flipper_format, "Check")) break;
+        if(!protopirate_storage_copy_hex_fixed(save_file, flipper_format, "Hitag2 Key", 6, NULL))
+            break;
+        if(!protopirate_storage_copy_u32_optional(save_file, flipper_format, "Hitag2 Epoch"))
+            break;
         if(!protopirate_storage_copy_u32_array_if_present(
                save_file, flipper_format, "RAW_Data", 4096))
             break;
@@ -438,6 +583,73 @@ static bool protopirate_storage_write_capture_data(
     return status;
 }
 
+static bool protopirate_storage_write_capture_file(
+    Storage* storage,
+    FlipperFormat* flipper_format,
+    const char* path) {
+    FlipperFormat* save_file = flipper_format_file_alloc(storage);
+    bool ok = false;
+
+    do {
+        if(!flipper_format_file_open_new(save_file, path)) {
+            FURI_LOG_E(TAG, "Failed to create file: %s", path);
+            break;
+        }
+
+        if(!flipper_format_write_header_cstr(
+               save_file, "Flipper SubGhz Key File", PROTOPIRATE_APP_FILE_VERSION)) {
+            FURI_LOG_E(TAG, "Failed to write header");
+            break;
+        }
+
+        if(!protopirate_storage_write_capture_data(save_file, flipper_format)) {
+            FURI_LOG_E(TAG, "Failed to write capture data");
+            break;
+        }
+
+        ok = true;
+    } while(false);
+
+    flipper_format_free(save_file);
+    return ok;
+}
+
+static bool protopirate_storage_save_capture_atomic(
+    Storage* storage,
+    FlipperFormat* flipper_format,
+    const char* full_path) {
+    FuriString* tmp_path = furi_string_alloc();
+    furi_check(tmp_path);
+    furi_string_printf(tmp_path, "%s.tmp", full_path);
+    const char* tmp_cstr = furi_string_get_cstr(tmp_path);
+    bool ok = false;
+    bool write_ok = false;
+
+    do {
+        if(storage_file_exists(storage, tmp_cstr)) {
+            storage_simply_remove(storage, tmp_cstr);
+        }
+
+        if(!protopirate_storage_write_capture_file(storage, flipper_format, tmp_cstr)) {
+            break;
+        }
+        write_ok = true;
+
+        if(!protopirate_storage_commit_temp_file(storage, tmp_cstr, full_path)) {
+            break;
+        }
+
+        ok = true;
+    } while(false);
+
+    if(!write_ok && storage_file_exists(storage, tmp_cstr)) {
+        storage_simply_remove(storage, tmp_cstr);
+    }
+
+    furi_string_free(tmp_path);
+    return ok;
+}
+
 bool protopirate_storage_save_capture_to_path(FlipperFormat* flipper_format, const char* full_path) {
     furi_check(flipper_format);
     furi_check(full_path);
@@ -448,37 +660,12 @@ bool protopirate_storage_save_capture_to_path(FlipperFormat* flipper_format, con
     }
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    FlipperFormat* save_file = flipper_format_file_alloc(storage);
-    bool result = false;
-
-    do {
-        // Remove if it already exists (overwrite)
-        if(storage_file_exists(storage, full_path)) {
-            storage_simply_remove(storage, full_path);
-        }
-
-        if(!flipper_format_file_open_new(save_file, full_path)) {
-            FURI_LOG_E(TAG, "Failed to create file: %s", full_path);
-            break;
-        }
-
-        if(!flipper_format_write_header_cstr(save_file, "Flipper SubGhz Key File", 1)) {
-            FURI_LOG_E(TAG, "Failed to write header");
-            break;
-        }
-
-        if(!protopirate_storage_write_capture_data(save_file, flipper_format)) {
-            FURI_LOG_E(TAG, "Failed to write capture data");
-            break;
-        }
-
-        result = true;
-        FURI_LOG_I(TAG, "Saved capture to %s", full_path);
-
-    } while(false);
-
-    flipper_format_free(save_file);
+    bool result = protopirate_storage_save_capture_atomic(storage, flipper_format, full_path);
     furi_record_close(RECORD_STORAGE);
+
+    if(result) {
+        FURI_LOG_I(TAG, "Saved capture to %s", full_path);
+    }
     return result;
 }
 
@@ -513,35 +700,16 @@ bool protopirate_storage_save_capture(
     }
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    FlipperFormat* save_file = flipper_format_file_alloc(storage);
-    bool result = false;
-
-    do {
-        if(!flipper_format_file_open_new(save_file, furi_string_get_cstr(file_path))) {
-            FURI_LOG_E(TAG, "Failed to create file");
-            break;
-        }
-
-        if(!flipper_format_write_header_cstr(save_file, "Flipper SubGhz Key File", 1)) {
-            FURI_LOG_E(TAG, "Failed to write header");
-            break;
-        }
-
-        if(!protopirate_storage_write_capture_data(save_file, flipper_format)) {
-            FURI_LOG_E(TAG, "Failed to write capture data");
-            break;
-        }
-
-        if(out_path) furi_string_set(out_path, file_path);
-
-        result = true;
-        FURI_LOG_I(TAG, "Saved capture to %s", furi_string_get_cstr(file_path));
-
-    } while(false);
-
-    flipper_format_free(save_file);
-    furi_string_free(file_path);
+    bool result = protopirate_storage_save_capture_atomic(
+        storage, flipper_format, furi_string_get_cstr(file_path));
     furi_record_close(RECORD_STORAGE);
+
+    if(result) {
+        if(out_path) furi_string_set(out_path, file_path);
+        FURI_LOG_I(TAG, "Saved capture to %s", furi_string_get_cstr(file_path));
+    }
+
+    furi_string_free(file_path);
     return result;
 }
 

@@ -70,6 +70,8 @@ struct ObservationProvider {
     NfcProtocol uid_protocol;
     /* Populated by poller callback */
     AccessObservation pending;
+    /* Worker-thread-only: set when the Ultralight/NTAG default password auths. */
+    bool ul_default_pwd_ok;
 };
 
 /* -------------------------------------------------------------------------
@@ -465,8 +467,11 @@ static NfcCommand iso14443_3a_poller_cb(NfcGenericEvent event, void* context) {
 /* -------------------------------------------------------------------------
  * MfUltralight poller callback  (runs on NFC worker thread)
  *
- * The poller fires RequestMode first (we ask for Read), then AuthRequest if
- * the card requires a password (we skip it), then ReadSuccess/ReadFailed.
+ * The poller fires RequestMode first (we ask for Read), then AuthRequest if the
+ * card requires a password. We test the factory password FFFFFFFF only when the
+ * config is readable and no AUTHLIM lockout is configured (non-destructive);
+ * otherwise we skip auth. Then ReadSuccess (incl. after a successful default-
+ * password auth) or ReadFailed/CardLocked (protected — salvage type + UID).
  * -------------------------------------------------------------------------
  */
 
@@ -477,10 +482,32 @@ static NfcCommand mf_ultralight_poller_cb(NfcGenericEvent event, void* context) 
     /* These two events don't touch shared provider state — no mutex needed. */
     if(ul_event->type == MfUltralightPollerEventTypeRequestMode) {
         ul_event->data->poller_mode = MfUltralightPollerModeRead;
+        p->ul_default_pwd_ok = false; /* reset per scan */
         return NfcCommandContinue;
     }
     if(ul_event->type == MfUltralightPollerEventTypeAuthRequest) {
-        ul_event->data->auth_context.skip_auth = true;
+        /* Config-gated default-password test (non-destructive): only send the
+         * factory password FFFFFFFF if the card exposes its config pages AND has
+         * no failed-auth lockout (AUTHLIM == 0), so a wrong guess can never trip
+         * a lockout / brick the card. Otherwise skip auth entirely. */
+        const MfUltralightData* cfg_data = (const MfUltralightData*)nfc_poller_get_data(p->poller);
+        MfUltralightConfigPages* cfg = NULL;
+        bool safe_to_test = cfg_data && mf_ultralight_get_config_page(cfg_data, &cfg) && cfg &&
+                            cfg->access.authlim == 0;
+        if(safe_to_test) {
+            ul_event->data->auth_context.skip_auth = false;
+            memset(
+                ul_event->data->auth_context.password.data,
+                0xFF,
+                sizeof(ul_event->data->auth_context.password.data));
+        } else {
+            ul_event->data->auth_context.skip_auth = true;
+        }
+        return NfcCommandContinue;
+    }
+    if(ul_event->type == MfUltralightPollerEventTypeAuthSuccess) {
+        /* The factory password (FFFFFFFF) we supplied was accepted. */
+        p->ul_default_pwd_ok = true;
         return NfcCommandContinue;
     }
 
@@ -497,6 +524,7 @@ static NfcCommand mf_ultralight_poller_cb(NfcGenericEvent event, void* context) 
             p->pending.tech = TechTypeNfc13Mhz;
             p->pending.card_type = mf_ultralight_type_to_card_type(ul_data->type);
             p->pending.metadata_complete = true;
+            p->pending.default_password_readable = p->ul_default_pwd_ok;
 
             if(uid && uid_len > 0) {
                 p->pending.uid_present = true;
@@ -653,16 +681,54 @@ static NfcCommand mf_plus_poller_cb(NfcGenericEvent event, void* context) {
     return NfcCommandStop;
 }
 
+/* Well-known public MIFARE Classic keys, each tried as both key A and key B.
+ * Covers the standard mfoc / Proxmark3 default-key set (incl. 4D3A99C351DD and
+ * 1A982C7E459A) plus the NXP MAD / NFC Forum NDEF keys and common vendor
+ * defaults. Kept small so the per-sector auth sweep stays fast. */
+static const uint8_t MF_CLASSIC_DEFAULT_KEYS[][MF_CLASSIC_KEY_SIZE] = {
+    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, /* FFFFFFFFFFFF — factory transport default */
+    {0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5}, /* A0A1A2A3A4A5 — MAD key A (NXP AN10787)   */
+    {0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7}, /* D3F7D3F7D3F7 — NFC Forum NDEF public key */
+    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, /* 000000000000 — blanked / all-zero key    */
+    {0xA0, 0xB0, 0xC0, 0xD0, 0xE0, 0xF0}, /* A0B0C0D0E0F0 — common vendor default      */
+    {0xA1, 0xB1, 0xC1, 0xD1, 0xE1, 0xF1}, /* A1B1C1D1E1F1 — common vendor default      */
+    {0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5}, /* B0B1B2B3B4B5 — common vendor default      */
+    {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}, /* AABBCCDDEEFF — common vendor default      */
+    {0x4D, 0x3A, 0x99, 0xC3, 0x51, 0xDD}, /* 4D3A99C351DD — mfoc/Proxmark public key   */
+    {0x1A, 0x98, 0x2C, 0x7E, 0x45, 0x9A}, /* 1A982C7E459A — mfoc/Proxmark public key   */
+};
+static const MfClassicKeyType MF_CLASSIC_KEY_TYPES[] = {MfClassicKeyTypeA, MfClassicKeyTypeB};
+
+/* Try every default key (as key A and key B) against the sector that contains
+ * block_num. Returns true at the first key that authenticates. Re-activates the
+ * card on each attempt (skip_module_activation=false) so it is safe to call
+ * across sectors in sequence. */
+static bool mf_classic_block_has_default_key(MfClassicPoller* poller, uint8_t block_num) {
+    const size_t num_keys = sizeof(MF_CLASSIC_DEFAULT_KEYS) / sizeof(MF_CLASSIC_DEFAULT_KEYS[0]);
+    const size_t num_types = sizeof(MF_CLASSIC_KEY_TYPES) / sizeof(MF_CLASSIC_KEY_TYPES[0]);
+    for(size_t k = 0; k < num_keys; k++) {
+        for(size_t t = 0; t < num_types; t++) {
+            MfClassicKey key;
+            memcpy(key.data, MF_CLASSIC_DEFAULT_KEYS[k], MF_CLASSIC_KEY_SIZE);
+            MfClassicAuthContext auth_ctx;
+            if(mf_classic_poller_auth(
+                   poller, block_num, &key, MF_CLASSIC_KEY_TYPES[t], &auth_ctx, false) ==
+               MfClassicErrorNone) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 /* -------------------------------------------------------------------------
  * MfClassic poller callback  (runs on NFC worker thread)
  *
  * Uses MfClassicPollerModeRead. The poller fires RequestReadSector starting
- * from sector 0. On that event we manually call mf_classic_poller_auth against
- * a list of well-known public keys (each tried as both key A and key B) and
- * record whether any succeeded. We then halt the card and stop — no full sector
- * read is performed and no card data is retained. The loop stops at the first
- * key that authenticates. See DEFAULT_KEYS below for the full list (factory
- * transport, NXP MAD, NFC Forum NDEF, and common vendor defaults).
+ * from sector 0. Sector 0 (the access-control sector) is always tested against
+ * the default-key list; only if it still uses a default key do we sweep the
+ * remaining sectors and count how many are on default keys (N/M). A re-keyed
+ * sector 0 means a managed card and returns fast. No sector data is retained.
  * -------------------------------------------------------------------------
  */
 
@@ -690,41 +756,26 @@ static NfcCommand mf_classic_poller_cb(NfcGenericEvent event, void* context) {
 
     if(cl_event->type == MfClassicPollerEventTypeRequestReadSector &&
        cl_event->data->read_sector_request_data.sector_num == 0) {
-        /* Well-known public MIFARE Classic keys checked against sector 0.
-         * Each is tried as both key A and key B. Kept under 10 so the auth
-         * loop stays fast; these cover the keys overwhelmingly seen in the
-         * field on cards that were never re-keyed. */
-        static const uint8_t DEFAULT_KEYS[][MF_CLASSIC_KEY_SIZE] = {
-            {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, /* FFFFFFFFFFFF — factory transport default */
-            {0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5}, /* A0A1A2A3A4A5 — MAD key A (NXP AN10787)   */
-            {0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7}, /* D3F7D3F7D3F7 — NFC Forum NDEF public key */
-            {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, /* 000000000000 — blanked / all-zero key    */
-            {0xA0, 0xB0, 0xC0, 0xD0, 0xE0, 0xF0}, /* A0B0C0D0E0F0 — common vendor default      */
-            {0xA1, 0xB1, 0xC1, 0xD1, 0xE1, 0xF1}, /* A1B1C1D1E1F1 — common vendor default      */
-            {0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5}, /* B0B1B2B3B4B5 — common vendor default      */
-            {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}, /* AABBCCDDEEFF — common vendor default      */
-        };
-        static const MfClassicKeyType KEY_TYPES[] = {MfClassicKeyTypeA, MfClassicKeyTypeB};
-        const size_t num_keys = sizeof(DEFAULT_KEYS) / sizeof(DEFAULT_KEYS[0]);
-        const size_t num_key_types = sizeof(KEY_TYPES) / sizeof(KEY_TYPES[0]);
-
         MfClassicPoller* cl_poller = (MfClassicPoller*)event.instance;
-        MfClassicAuthContext auth_ctx;
-        bool default_key_found = false;
 
-        for(size_t k = 0; k < num_keys && !default_key_found; k++) {
-            for(size_t t = 0; t < num_key_types && !default_key_found; t++) {
-                MfClassicKey key;
-                memcpy(key.data, DEFAULT_KEYS[k], MF_CLASSIC_KEY_SIZE);
-                MfClassicError err =
-                    mf_classic_poller_auth(cl_poller, 0, &key, KEY_TYPES[t], &auth_ctx, false);
-                if(err == MfClassicErrorNone) default_key_found = true;
+        /* Card type → sector count (read before auth; the data buffer stays
+         * valid afterwards for UID/SAK/ATQA). */
+        const MfClassicData* cl_data = (const MfClassicData*)nfc_poller_get_data(p->poller);
+        uint8_t total_sectors = cl_data ? mf_classic_get_total_sectors_num(cl_data->type) : 0;
+
+        /* Always test sector 0 against the full key list. Only if it is still on
+         * a default key do we sweep the remaining sectors and count how many use
+         * default keys — a re-keyed sector 0 (managed card) returns fast. */
+        bool default_key_found = mf_classic_block_has_default_key(cl_poller, 0);
+        uint8_t default_key_sectors = default_key_found ? 1 : 0;
+        if(default_key_found) {
+            for(uint8_t s = 1; s < total_sectors; s++) {
+                uint8_t block = mf_classic_get_first_block_num_of_sector(s);
+                if(mf_classic_block_has_default_key(cl_poller, block)) default_key_sectors++;
             }
         }
 
         mf_classic_poller_halt(cl_poller);
-
-        const MfClassicData* cl_data = (const MfClassicData*)nfc_poller_get_data(p->poller);
 
         furi_mutex_acquire(p->mutex, FuriWaitForever);
 
@@ -737,6 +788,8 @@ static NfcCommand mf_classic_poller_cb(NfcGenericEvent event, void* context) {
             p->pending.tech = TechTypeNfc13Mhz;
             p->pending.metadata_complete = true;
             p->pending.default_keys_readable = default_key_found;
+            p->pending.total_sectors = total_sectors;
+            p->pending.default_key_sectors = default_key_sectors;
 
             if(iso_data) {
                 uint8_t sak = iso14443_3a_get_sak(iso_data);

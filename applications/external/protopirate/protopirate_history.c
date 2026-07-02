@@ -12,12 +12,29 @@
 #define HISTORY_SCRATCH_TEXT_RESERVE 256U
 #define HISTORY_SCRATCH_PATH_RESERVE 128U
 #define HISTORY_ARENA_RESERVE        1024U
+#define HISTORY_DUPLICATE_WINDOW     500U
+
+typedef enum {
+    ProtoPirateSavedMatchStateNone = 0,
+    ProtoPirateSavedMatchStatePending,
+    ProtoPirateSavedMatchStateDone,
+} ProtoPirateSavedMatchState;
+
+typedef enum {
+    ProtoPirateAutoSaveStateNone = 0,
+    ProtoPirateAutoSaveStatePending,
+    ProtoPirateAutoSaveStateDone,
+} ProtoPirateAutoSaveState;
 
 typedef struct {
     uint32_t seq_id;
     uint16_t text_offset;
     uint16_t text_len;
     uint8_t type;
+    uint8_t saved_match_state;
+    uint8_t auto_save_state;
+    FuriString* matched_saved_path;
+    FuriString* matched_name;
 } ProtoPirateHistoryItem;
 
 ARRAY_DEF(ProtoPirateHistoryItemArray, ProtoPirateHistoryItem, M_POD_OPLIST)
@@ -56,6 +73,26 @@ static void
     protopirate_history_delete_capture_file(ProtoPirateHistory* instance, uint32_t seq_id) {
     protopirate_history_build_path(instance, seq_id, instance->scratch_path);
     protopirate_storage_delete_file(furi_string_get_cstr(instance->scratch_path));
+}
+
+static void protopirate_history_item_clear_matched(ProtoPirateHistoryItem* item) {
+    if(!item) return;
+    if(item->matched_saved_path) {
+        furi_string_free(item->matched_saved_path);
+        item->matched_saved_path = NULL;
+    }
+    if(item->matched_name) {
+        furi_string_free(item->matched_name);
+        item->matched_name = NULL;
+    }
+}
+
+static void protopirate_history_clear_all_matched(ProtoPirateHistory* instance) {
+    size_t n = ProtoPirateHistoryItemArray_size(instance->data);
+    for(size_t i = 0; i < n; i++) {
+        ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, i);
+        protopirate_history_item_clear_matched(item);
+    }
 }
 
 static void
@@ -116,6 +153,7 @@ ProtoPirateHistory* protopirate_history_alloc(void) {
 void protopirate_history_free(ProtoPirateHistory* instance) {
     furi_check(instance);
     protopirate_history_release_scratch(instance);
+    protopirate_history_clear_all_matched(instance);
     ProtoPirateHistoryItemArray_clear(instance->data);
     protopirate_storage_wipe_history_cache();
 
@@ -142,6 +180,7 @@ void protopirate_history_free(ProtoPirateHistory* instance) {
 void protopirate_history_reset(ProtoPirateHistory* instance) {
     furi_check(instance);
     protopirate_history_release_scratch(instance);
+    protopirate_history_clear_all_matched(instance);
     ProtoPirateHistoryItemArray_reset(instance->data);
     furi_string_reset(instance->text_arena);
     instance->last_index = 0;
@@ -216,10 +255,11 @@ bool protopirate_history_capture_path_equals(
     return strcmp(furi_string_get_cstr(instance->scratch_path), path) == 0;
 }
 
-bool protopirate_history_add_to_history(
+bool protopirate_history_add_to_history_at(
     ProtoPirateHistory* instance,
     void* context,
-    SubGhzRadioPreset* preset) {
+    SubGhzRadioPreset* preset,
+    uint32_t update_timestamp) {
     furi_check(instance);
     furi_check(context);
 
@@ -229,10 +269,11 @@ bool protopirate_history_add_to_history(
 
     SubGhzProtocolDecoderBase* decoder_base = context;
 
-    if((instance->code_last_hash_data ==
+    if((ProtoPirateHistoryItemArray_size(instance->data) > 0) &&
+       (instance->code_last_hash_data ==
         subghz_protocol_decoder_base_get_hash_data(decoder_base)) &&
-       ((furi_get_tick() - instance->last_update_timestamp) < 500)) {
-        instance->last_update_timestamp = furi_get_tick();
+       ((update_timestamp - instance->last_update_timestamp) < HISTORY_DUPLICATE_WINDOW)) {
+        instance->last_update_timestamp = update_timestamp;
         return false;
     }
 
@@ -264,7 +305,7 @@ bool protopirate_history_add_to_history(
     }
 
     instance->code_last_hash_data = subghz_protocol_decoder_base_get_hash_data(decoder_base);
-    instance->last_update_timestamp = furi_get_tick();
+    instance->last_update_timestamp = update_timestamp;
 
     const char* text_cstr = furi_string_get_cstr(instance->scratch_text);
     size_t text_len = furi_string_size(instance->scratch_text);
@@ -278,6 +319,10 @@ bool protopirate_history_add_to_history(
     item->text_offset = (uint16_t)offset;
     item->text_len = (uint16_t)text_len;
     item->type = 0;
+    item->saved_match_state = ProtoPirateSavedMatchStateNone;
+    item->auto_save_state = ProtoPirateAutoSaveStateNone;
+    item->matched_saved_path = NULL;
+    item->matched_name = NULL;
 
     instance->last_index++;
 
@@ -289,6 +334,13 @@ bool protopirate_history_add_to_history(
         (unsigned long)seq);
 
     return true;
+}
+
+bool protopirate_history_add_to_history(
+    ProtoPirateHistory* instance,
+    void* context,
+    SubGhzRadioPreset* preset) {
+    return protopirate_history_add_to_history_at(instance, context, preset, furi_get_tick());
 }
 
 void protopirate_history_delete_item(ProtoPirateHistory* instance, uint16_t idx) {
@@ -312,6 +364,7 @@ void protopirate_history_delete_item(ProtoPirateHistory* instance, uint16_t idx)
     uint16_t text_offset = item->text_offset;
     uint16_t text_len = item->text_len;
 
+    protopirate_history_item_clear_matched(item);
     protopirate_history_delete_capture_file(instance, seq_id);
     ProtoPirateHistoryItemArray_pop_at(NULL, instance->data, idx);
     protopirate_history_arena_remove(instance, text_offset, text_len);
@@ -396,6 +449,134 @@ FlipperFormat* protopirate_history_get_raw_data(ProtoPirateHistory* instance, ui
     }
     instance->loaded_idx = (int16_t)idx;
     return instance->loaded_ff;
+}
+
+void protopirate_history_set_matched_saved(
+    ProtoPirateHistory* instance,
+    uint16_t idx,
+    const char* name,
+    const char* path) {
+    furi_check(instance);
+
+    if(idx >= ProtoPirateHistoryItemArray_size(instance->data)) {
+        return;
+    }
+
+    ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, idx);
+
+    if(!item->matched_name) item->matched_name = furi_string_alloc();
+    if(!item->matched_saved_path) item->matched_saved_path = furi_string_alloc();
+
+    furi_string_set_str(item->matched_name, name ? name : "");
+    furi_string_set_str(item->matched_saved_path, path ? path : "");
+    item->saved_match_state = ProtoPirateSavedMatchStateDone;
+}
+
+const char*
+    protopirate_history_get_matched_saved_path(ProtoPirateHistory* instance, uint16_t idx) {
+    furi_check(instance);
+
+    if(idx >= ProtoPirateHistoryItemArray_size(instance->data)) {
+        return NULL;
+    }
+
+    ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, idx);
+    if(!item->matched_saved_path || furi_string_size(item->matched_saved_path) == 0) {
+        return NULL;
+    }
+    return furi_string_get_cstr(item->matched_saved_path);
+}
+
+const char* protopirate_history_get_matched_name(ProtoPirateHistory* instance, uint16_t idx) {
+    furi_check(instance);
+
+    if(idx >= ProtoPirateHistoryItemArray_size(instance->data)) {
+        return NULL;
+    }
+
+    ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, idx);
+    if(!item->matched_name || furi_string_size(item->matched_name) == 0) {
+        return NULL;
+    }
+    return furi_string_get_cstr(item->matched_name);
+}
+
+bool protopirate_history_has_matched_saved(ProtoPirateHistory* instance, uint16_t idx) {
+    return protopirate_history_get_matched_saved_path(instance, idx) != NULL;
+}
+
+void protopirate_history_mark_auto_save_pending(ProtoPirateHistory* instance, uint16_t idx) {
+    furi_check(instance);
+
+    if(idx >= ProtoPirateHistoryItemArray_size(instance->data)) {
+        return;
+    }
+
+    ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, idx);
+    item->auto_save_state = ProtoPirateAutoSaveStatePending;
+}
+
+bool protopirate_history_find_pending_auto_save(ProtoPirateHistory* instance, uint16_t* idx) {
+    furi_check(instance);
+    furi_check(idx);
+
+    const size_t item_count = ProtoPirateHistoryItemArray_size(instance->data);
+    for(size_t i = 0; i < item_count; i++) {
+        ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, i);
+        if(item->auto_save_state == ProtoPirateAutoSaveStatePending) {
+            *idx = (uint16_t)i;
+            return true;
+        }
+    }
+    return false;
+}
+
+void protopirate_history_mark_auto_save_done(ProtoPirateHistory* instance, uint16_t idx) {
+    furi_check(instance);
+
+    if(idx >= ProtoPirateHistoryItemArray_size(instance->data)) {
+        return;
+    }
+
+    ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, idx);
+    item->auto_save_state = ProtoPirateAutoSaveStateDone;
+}
+
+void protopirate_history_mark_saved_match_pending(ProtoPirateHistory* instance, uint16_t idx) {
+    furi_check(instance);
+
+    if(idx >= ProtoPirateHistoryItemArray_size(instance->data)) {
+        return;
+    }
+
+    ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, idx);
+    item->saved_match_state = ProtoPirateSavedMatchStatePending;
+}
+
+bool protopirate_history_find_pending_saved_match(ProtoPirateHistory* instance, uint16_t* idx) {
+    furi_check(instance);
+    furi_check(idx);
+
+    const size_t item_count = ProtoPirateHistoryItemArray_size(instance->data);
+    for(size_t i = 0; i < item_count; i++) {
+        ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, i);
+        if(item->saved_match_state == ProtoPirateSavedMatchStatePending) {
+            *idx = (uint16_t)i;
+            return true;
+        }
+    }
+    return false;
+}
+
+void protopirate_history_mark_saved_match_done(ProtoPirateHistory* instance, uint16_t idx) {
+    furi_check(instance);
+
+    if(idx >= ProtoPirateHistoryItemArray_size(instance->data)) {
+        return;
+    }
+
+    ProtoPirateHistoryItem* item = ProtoPirateHistoryItemArray_get(instance->data, idx);
+    item->saved_match_state = ProtoPirateSavedMatchStateDone;
 }
 
 void protopirate_history_set_item_str(ProtoPirateHistory* instance, uint16_t idx, const char* str) {

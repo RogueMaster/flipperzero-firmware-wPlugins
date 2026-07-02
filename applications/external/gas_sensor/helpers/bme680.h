@@ -31,7 +31,7 @@ typedef struct bme68x_data Bme68xData;
 */
 typedef struct Bme680 {
     uint8_t chip_id;
-    FuriHalI2cBusHandle* i2c;
+    const FuriHalI2cBusHandle* i2c;
     Bme68xDev* dev;
     Bme68xConf* conf;
     Bme68xHeatrConf* heatr_conf;

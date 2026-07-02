@@ -11,7 +11,6 @@
 
 #include "nfc_protocol_support_base.h"
 #include "nfc_protocol_support_gui_common.h"
-#include <nfc_icons.h>
 
 #include <flipper_application/plugins/plugin_manager.h>
 
@@ -227,7 +226,9 @@ bool nfc_protocol_support_has_feature(
     furi_assert(context);
 
     NfcApp* instance = context;
-    return nfc_protocol_support_get(protocol, instance)->features & feature;
+    const NfcProtocolSupportBase* base = nfc_protocol_support_get(protocol, instance);
+    const uint32_t features = base->get_features ? base->get_features(instance) : base->features;
+    return features & feature;
 }
 
 // Common scene handlers
@@ -773,11 +774,11 @@ static void nfc_protocol_support_scene_emulate_on_enter(NfcApp* instance) {
     FuriString* temp_str = furi_string_alloc();
     const NfcProtocol protocol = nfc_device_get_protocol(instance->nfc_device);
 
-    widget_add_icon_element(widget, 0, 3, &I_NFC_dolphin_emulation_47x61);
+    widget_add_icon_element(widget, 0, 0, &I_NFC_dolphin_emulation_51x64);
 
     if(nfc_protocol_support_has_feature(protocol, instance, NfcProtocolFeatureEmulateUid)) {
         widget_add_string_element(
-            widget, 90, 13, AlignCenter, AlignTop, FontPrimary, "Emulating UID");
+            widget, 90, 26, AlignCenter, AlignCenter, FontPrimary, "Emulating UID");
 
         size_t uid_len;
         const uint8_t* uid = nfc_device_get_uid(instance->nfc_device, &uid_len);
@@ -789,7 +790,8 @@ static void nfc_protocol_support_scene_emulate_on_enter(NfcApp* instance) {
         furi_string_trim(temp_str);
 
     } else {
-        widget_add_string_element(widget, 90, 13, AlignCenter, AlignTop, FontPrimary, "Emulating");
+        widget_add_string_element(
+            widget, 90, 26, AlignCenter, AlignCenter, FontPrimary, "Emulating");
         if(!furi_string_empty(instance->file_name)) {
             furi_string_printf(
                 temp_str,
@@ -949,7 +951,7 @@ static void nfc_protocol_support_scene_write_setup_view(NfcApp* instance) {
         popup_set_icon(popup, 12, 23, &A_Loading_24);
     } else if(state == NfcSceneWriteStateSuccess) {
         popup_set_header(popup, "Successfully\nwritten!", 126, 2, AlignRight, AlignTop);
-        popup_set_icon(popup, 0, 5, &I_DolphinNice_96x59);
+        popup_set_icon(popup, 0, 9, &I_DolphinSuccess_91x55);
         popup_set_timeout(popup, 1500);
         popup_set_context(popup, instance);
         popup_set_callback(popup, nfc_protocol_support_scene_write_popup_callback);

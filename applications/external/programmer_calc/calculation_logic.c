@@ -207,7 +207,7 @@ bool hexToDec(const char* hexString, unsigned long long* hexToDecResult) {
     return true;
 }
 
-bool binToDec(const char* binaryString, int* binToDecResult) {
+bool binToDec(const char* binaryString, unsigned long long* binToDecResult) {
     if(binaryString == NULL || binToDecResult == NULL) {
         return false;
     }
@@ -217,7 +217,7 @@ bool binToDec(const char* binaryString, int* binToDecResult) {
         if(*p != '0' && *p != '1') {
             return false;
         }
-        if(*binToDecResult > INT_MAX / 2) {
+        if(*binToDecResult > ULLONG_MAX / 2) {
             return false; // check overflow
         }
         *binToDecResult = (*binToDecResult << 1) | (*p - '0');
@@ -283,7 +283,7 @@ void calculate(Calculator* calculator_state) {
         return;
     }
 
-    int num = 0;
+    unsigned long long num = 0;
     char result = '\0';
     unsigned long long hexToDecResult = 0;
 
@@ -356,7 +356,7 @@ void calculate(Calculator* calculator_state) {
             snprintf(
                 calculator_state->binToDecResult,
                 sizeof(calculator_state->binToDecResult),
-                "%d",
+                "%llu",
                 num);
         } else {
             snprintf(

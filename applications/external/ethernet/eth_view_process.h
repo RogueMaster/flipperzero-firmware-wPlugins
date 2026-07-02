@@ -57,3 +57,14 @@ typedef struct EthViewDrawPing {
     uint8_t current_digit;
     uint8_t* ip;
 } EthViewDrawPing;
+
+typedef struct {
+    uint8_t hop_number;
+    uint8_t ip[4];
+    uint16_t rtt_ms; // Round-trip time in milliseconds
+} TracerouteHop;
+
+typedef struct {
+    TracerouteHop hops[30]; // Maximum hops, adjust as needed
+    uint8_t hop_count; // Number of hops recorded
+} TracerouteResult;

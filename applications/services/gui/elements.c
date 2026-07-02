@@ -15,6 +15,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <cfw/settings.h>
+
 typedef struct {
     int32_t x;
     int32_t y;
@@ -100,14 +102,17 @@ void elements_scrollbar_horizontal(
     size_t pos,
     size_t total) {
     furi_check(canvas);
+
     // prevent overflows
     canvas_set_color(canvas, ColorWhite);
     canvas_draw_box(canvas, x, y - 3, width, 3);
+
     // dot line
     canvas_set_color(canvas, ColorBlack);
     for(size_t i = x; i < width + x; i += 2) {
         canvas_draw_dot(canvas, i, y - 2);
     }
+
     // Position block
     if(total) {
         float block_w = ((float)width) / total;
@@ -669,12 +674,23 @@ void elements_string_fit_width(Canvas* canvas, FuriString* string, size_t width)
     }
 }
 
-void elements_scrollable_text_line_str(
+void elements_scrollable_text_line(
     Canvas* canvas,
     int32_t x,
     int32_t y,
     size_t width,
-    const char* string,
+    FuriString* string,
+    size_t scroll,
+    bool ellipsis) {
+    elements_scrollable_text_line_centered(canvas, x, y, width, string, scroll, ellipsis, false);
+}
+
+void elements_scrollable_text_line_centered(
+    Canvas* canvas,
+    int32_t x,
+    int32_t y,
+    size_t width,
+    FuriString* string,
     size_t scroll,
     bool ellipsis,
     bool centered) {
@@ -684,8 +700,9 @@ void elements_scrollable_text_line_str(
     FuriString* line = furi_string_alloc_set(string);
 
     size_t len_px = canvas_string_width(canvas, furi_string_get_cstr(line));
+    bool marquee = cfw_settings.scroll_marquee;
     if(len_px > width) {
-        if(centered) {
+        if(centered && !marquee) {
             centered = false;
             x -= width / 2;
         }
@@ -703,11 +720,31 @@ void elements_scrollable_text_line_str(
             scroll_size--;
             if(!scroll_size) break;
         }
+
         // Ensure that we have something to scroll
         if(scroll_size) {
-            scroll_size += 3;
-            scroll = scroll % scroll_size;
-            furi_string_right(line, scroll);
+            if(marquee) {
+                const size_t delay = 3; // positions before/after scroll to delay
+                size_t total_scroll = (scroll_size * 2) + (delay * 2);
+                size_t use_scroll = scroll % total_scroll;
+
+                if(use_scroll < scroll_size) {
+                    furi_string_right(line, use_scroll);
+                } else if(use_scroll < (scroll_size + delay)) {
+                    // Delay right
+                    furi_string_right(line, scroll_size);
+                } else if(use_scroll < (scroll_size * 2 + delay)) {
+                    size_t reverse_pos = scroll_size - (use_scroll - (scroll_size + delay));
+                    furi_string_right(line, reverse_pos);
+                } else {
+                    // Delay left
+                    furi_string_right(line, 0);
+                }
+            } else {
+                scroll_size += 3;
+                scroll = scroll % scroll_size;
+                furi_string_right(line, scroll);
+            }
         }
 
         len_px = canvas_string_width(canvas, furi_string_get_cstr(line));
@@ -728,19 +765,6 @@ void elements_scrollable_text_line_str(
         canvas_draw_str(canvas, x, y, furi_string_get_cstr(line));
     }
     furi_string_free(line);
-}
-
-void elements_scrollable_text_line(
-    Canvas* canvas,
-    int32_t x,
-    int32_t y,
-    size_t width,
-    FuriString* string,
-    size_t scroll,
-    bool ellipsis,
-    bool centered) {
-    elements_scrollable_text_line_str(
-        canvas, x, y, width, furi_string_get_cstr(string), scroll, ellipsis, centered);
 }
 
 void elements_text_box(

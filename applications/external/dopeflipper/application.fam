@@ -1,0 +1,16 @@
+App(
+    appid="dopewars",
+    name="DopeWars",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ck42x_dopewars_app",
+    stack_size=8 * 1024,
+    fap_icon_assets="images",
+    fap_icon="ck42x_dopewars.png",
+    fap_icon_assets_symbol="ck42x_dopewars",
+    fap_category="Games",
+    fap_author="CK42X",
+    fap_weburl="https://www.ck42x.com/dopeflipper",
+    #  fap_weburl="https://github.com/lordbuffcloud/flipper-ck42x-dopeflipper",
+    fap_version="0.7.9",
+    fap_description="CK42X pocket market game inspired by ck42x.com/dopewars.",
+)

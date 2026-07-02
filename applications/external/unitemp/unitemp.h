@@ -162,6 +162,7 @@ typedef struct {
     NotificationApp* notifications;
 
     FuriThread* reader_thread;
+    Power* power;
 
     UnitempSettings* settings;
     Sensor* editable_sensor;

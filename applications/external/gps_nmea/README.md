@@ -66,6 +66,7 @@ the hardware setup.
 * Quectel L76K
 * [Quectel L80]
 * [M10Q-5883]
+* NewHail GNSS Modul
 
 If you have verified this application working with a module not listed here,
 please submit a PR adding it to the list.

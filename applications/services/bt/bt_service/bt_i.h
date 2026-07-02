@@ -19,8 +19,7 @@
 #include <bt/bt_settings.h>
 #include <bt/bt_service/bt_keys_storage.h>
 
-#define BT_KEYS_STORAGE_OLD_PATH INT_PATH(".bt.keys")
-#define BT_KEYS_STORAGE_PATH     CFG_PATH("bt.keys")
+#include "bt_keys_filename.h"
 
 typedef enum {
     BtMessageTypeUpdateStatus,
@@ -31,6 +30,9 @@ typedef enum {
     BtMessageTypeSetProfile,
     BtMessageTypeDisconnect,
     BtMessageTypeForgetBondedDevices,
+    BtMessageTypeGetSettings,
+    BtMessageTypeSetSettings,
+    BtMessageTypeReloadKeysSettings,
 } BtMessageType;
 
 typedef struct {
@@ -48,6 +50,8 @@ typedef union {
     } profile;
     FuriHalBleProfileParams profile_params;
     BtKeyStorageUpdateData key_storage_data;
+    BtSettings* settings;
+    const BtSettings* csettings;
 } BtMessageData;
 
 typedef struct {
@@ -82,18 +86,18 @@ struct Bt {
     FuriEventFlag* api_event;
     BtStatusChangedCallback status_changed_cb;
     void* status_changed_ctx;
-    uint32_t pin;
+
     bool suppress_pin_screen;
 };
 
 /** Open a new RPC connection
-  *
-  * @param bt                    Bt instance
-  */
+ *
+ * @param bt                    Bt instance
+ */
 void bt_open_rpc_connection(Bt* bt);
 
 /** Close the active RPC connection
-  *
-  * @param bt                    Bt instance
-  */
+ *
+ * @param bt                    Bt instance
+ */
 void bt_close_rpc_connection(Bt* bt);

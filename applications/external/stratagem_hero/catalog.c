@@ -150,7 +150,6 @@ static void stratagem_list_widget_view_draw_callback(Canvas* canvas, void* _mode
                      0 :
                      model->horizontal_scroll_counter - LONG_TEXT_SCROLL_DELAY) :
                 0,
-            false,
             false);
 
         furi_string_free(title);
@@ -408,8 +407,7 @@ static void stratagem_detail_widget_draw_callback(Canvas* canvas, void* _model) 
                             0 :
                             model->horizontal_scroll_counter - LONG_TEXT_SCROLL_DELAY;
     FuriString* title = furi_string_alloc_set(stratagem->title);
-    elements_scrollable_text_line(
-        canvas, title_x, 12, title_w, title, scroll_offset, false, false);
+    elements_scrollable_text_line(canvas, title_x, 12, title_w, title, scroll_offset, false);
     furi_string_free(title);
 
     int cooldown_x = title_x;

@@ -18,7 +18,9 @@
 
 #pragma once
 
-#define SIO_MAX_FRAME_SIZE 1024U
+#include <toolbox/pipe.h>
+
+#define SIO_MAX_FRAME_SIZE 2048U
 
 // SIO status codes
 typedef enum {
@@ -35,31 +37,15 @@ typedef enum {
     SIO_DEVICE_DISK2 = 0x32,
     SIO_DEVICE_DISK3 = 0x33,
     SIO_DEVICE_DISK4 = 0x34,
+    SIO_DEVICE_RS232 = 0x50,
 } SIODevice;
 
-// SIO command codes
-typedef enum {
-    SIO_COMMAND_READ = 0x52, // Read sector
-    SIO_COMMAND_WRITE = 0x57, // Write sector
-    SIO_COMMAND_STATUS = 0x53, // Get status
-    SIO_COMMAND_PUT = 0x50, // Write sector without verification
-    SIO_COMMAND_FORMAT = 0x21, // Format disk
-    SIO_COMMAND_FORMAT_MEDIUM = 0x22, // Format disk (medium density)
-    SIO_COMMAND_GET_HSI = 0x3F, // Get high-speed index
-    SIO_COMMAND_READ_PERCOM = 0x4E, // Read PERCOM configuration
-    SIO_COMMAND_WRITE_PERCOM = 0x4F, // Write PERCOM configuration
-    SIO_COMMAND_FORMAT_WITH_SKEW = 0x66, // Format disk with skew
+typedef uint8_t SIOCommand;
 
-    SIO_COMMAND_READ_HS = 0xD2, // Read sector
-    SIO_COMMAND_WRITE_HS = 0xD7, // Write sector
-    SIO_COMMAND_STATUS_HS = 0xD3, // Get status
-    SIO_COMMAND_PUT_HS = 0xD0, // Write sector without verification
-    SIO_COMMAND_FORMAT_HS = 0xA1, // Format disk
-
-    SIO_COMMAND_READ_BLOCK_HEADER = 0xF0, // Read XEX block header
-    SIO_COMMAND_READ_BLOCK = 0xF1, // Read XEX block
-
-} SIOCommand;
+// Common SIO command codes
+#define SIO_COMMAND_READ   0x52
+#define SIO_COMMAND_WRITE  0x57
+#define SIO_COMMAND_STATUS 0x53
 
 // SIO request structure passed to the device driver
 typedef struct {
@@ -126,3 +112,25 @@ bool sio_driver_attach(
 
 // Detaches a periheral driver from the SIO driver
 void sio_driver_detach(SIODriver* sio, uint8_t device);
+
+// Stream mode callbacks
+typedef void (*SIORxCallback)(void* context, const void* data, size_t size);
+typedef size_t (*SIOTxCallback)(void* context, void* data, size_t size);
+
+// Sets callbacks for the stream mode. In this mode, the SIO driver
+// will not process SIO requests, but will pass the received data
+// to the `rx_callback` and will send data using the provided by
+// `tx_callback`.
+void sio_driver_set_stream_callbacks(
+    SIODriver* sio,
+    SIORxCallback rx_callback,
+    SIOTxCallback tx_callback,
+    void* context);
+
+// Enables the stream mode. Stream mode will be automatically
+// disable when a command frame is received.
+void sio_driver_activate_stream_mode(SIODriver* sio);
+
+// Wake up the SIO worker thread to call the `tx_callback`
+// and send data to the UART.
+void sio_driver_wakeup_tx(SIODriver* sio);

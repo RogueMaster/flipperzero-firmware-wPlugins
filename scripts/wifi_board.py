@@ -163,22 +163,6 @@ class Main(App):
         self.logger.info("Trying to find WiFi board using VID:PID")
         return self.find_port("VID:PID=303A:0002")
 
-    def find_wifi_board_bootloader_damn_windows(self):
-        self.logger.info("Trying to find WiFi board using VID:PID")
-        # idk why, but python thinks that list_ports.grep returns tuple[str, str, str]
-        ports: list[ListPortInfo] = list(list_ports.grep("VID:PID=303A:0002"))  # type: ignore
-
-        if len(ports) == 0:
-            # Blackmagic probe serial port not found, will be handled later
-            pass
-        elif len(ports) > 1:
-            raise Exception("More than one WiFi board found")
-        else:
-            port = ports[0]
-            if os.name == "nt":
-                port.device = f"\\\\.\\{port.device}"
-            return port.device
-
     def update(self):
         try:
             port = self.find_wifi_board_bootloader_port()

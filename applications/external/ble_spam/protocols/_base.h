@@ -4,7 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <ble_spam_icons.h>
+#include <assets_icons.h>
+#include "ble_spam_icons.h"
 #include <furi_hal_random.h>
 #include <core/core_defines.h>
 #include "../ble_spam.h"

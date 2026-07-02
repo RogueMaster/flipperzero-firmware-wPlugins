@@ -33,6 +33,8 @@ extern "C" {
 #define TOTP_CLI_PRINTF_INFO(format, ...) \
     TOTP_CLI_PRINTF_COLORFUL(TOTP_CLI_COLOR_INFO, format, ##__VA_ARGS__)
 
+#define TOTP_CLI_NL() TOTP_CLI_PRINTF("\r\n")
+
 #define TOTP_CLI_LOCK_UI(plugin_state)                                  \
     Scene __previous_scene = plugin_state->current_scene;               \
     totp_scene_director_activate_scene(plugin_state, TotpSceneStandby); \

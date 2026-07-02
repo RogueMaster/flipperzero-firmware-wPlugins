@@ -4,12 +4,11 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="iconedit_app",
     stack_size=2 * 1024,
-    fap_icon="iconedit.png",
-    fap_icon_assets="images",
     fap_category="Tools",
+    fap_icon_assets="images",
+    fap_icon="images/iconedit.png",
     fap_author="Roberto De Feo",
     fap_weburl="https://github.com/rdefeo/iconedit",
-    fap_version="0.4",
+    fap_version="0.7.1",
     fap_description="Icon editor",
-    #  COMPRESSION UPDATES / Save/SendAsBMX FROM 0.3 REMOVED
 )

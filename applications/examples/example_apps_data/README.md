@@ -4,7 +4,7 @@ This example demonstrates how to utilize the Apps Data folder to store data that
 
 ## Source code
 
-Source code for this example can be found [here](https://github.com/flipperdevices/flipperzero-firmware/tree/dev/applications/examples/example_apps_data).
+Source code for this example can be found [here](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/dev/applications/examples/example_apps_data).
 
 ## What is the Apps Data Folder?
 

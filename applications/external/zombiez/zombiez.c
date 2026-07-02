@@ -2,6 +2,7 @@
 #include <gui/gui.h>
 #include <input/input.h>
 #include <stdlib.h>
+#include <dolphin/dolphin.h>
 
 //ORIGINAL REPO: https://github.com/Dooskington/flipperzero-zombiez
 //AUTHORS: https://github.com/Dooskington | https://github.com/DevMilanIan
@@ -189,6 +190,7 @@ static void render_callback(Canvas* const canvas, void* ctx) {
 static void input_callback(InputEvent* input_event, void* ctx) {
     furi_assert(ctx);
     FuriMessageQueue* event_queue = ctx;
+
     PluginEvent event = {.type = EventTypeKey, .input = *input_event};
     furi_message_queue_put(event_queue, &event, FuriWaitForever);
 }
@@ -235,6 +237,7 @@ static void tick(PluginState* const plugin_state) {
                         free(z);
                         plugin_state->zombies[i] = NULL;
                         plugin_state->score++;
+                        //if(plugin_state->score % 15 == 0) dolphin_deed(getRandomDeed());
                         //}
                     } else if(z->position.x <= WALL_X && z->position.x > 0) { // zombie got to the wall
                         plugin_state->zombies_count -= 1;
@@ -315,6 +318,9 @@ int32_t zombiez_game_app(void* p) {
     // Open GUI and register view_port
     Gui* gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
+
+    // Call dolphin deed on game start
+    dolphin_deed(DolphinDeedPluginGameStart);
 
     PluginEvent event;
     bool isRunning = true;

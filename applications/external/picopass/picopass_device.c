@@ -404,6 +404,19 @@ static bool picopass_device_load_data(PicopassDevice* dev, FuriString* path, boo
     return parsed;
 }
 
+bool picopass_device_load(PicopassDevice* dev, FuriString* path) {
+    furi_string_set(dev->load_path, path);
+    FuriString* filename = furi_string_alloc();
+    path_extract_filename(dev->load_path, filename, true);
+    strlcpy(dev->dev_name, furi_string_get_cstr(filename), sizeof(dev->dev_name));
+    furi_string_free(filename);
+    bool res = picopass_device_load_data(dev, dev->load_path, true);
+    if(res) {
+        picopass_device_set_name(dev, dev->dev_name);
+    }
+    return res;
+}
+
 void picopass_device_clear(PicopassDevice* dev) {
     furi_assert(dev);
 
@@ -429,7 +442,7 @@ bool picopass_file_select(PicopassDevice* dev) {
     picopass_app_folder = furi_string_alloc_set(STORAGE_APP_DATA_PATH_PREFIX);
 
     DialogsFileBrowserOptions browser_options;
-    dialog_file_browser_set_basic_options(&browser_options, PICOPASS_APP_EXTENSION, &I_Nfc_10px);
+    dialog_file_browser_set_basic_options(&browser_options, PICOPASS_APP_EXTENSION, &I_125_10px);
     browser_options.base_path = STORAGE_APP_DATA_PATH_PREFIX;
 
     bool res = dialog_file_browser_show(
@@ -437,15 +450,7 @@ bool picopass_file_select(PicopassDevice* dev) {
 
     furi_string_free(picopass_app_folder);
     if(res) {
-        FuriString* filename;
-        filename = furi_string_alloc();
-        path_extract_filename(dev->load_path, filename, true);
-        strlcpy(dev->dev_name, furi_string_get_cstr(filename), sizeof(dev->dev_name));
-        res = picopass_device_load_data(dev, dev->load_path, true);
-        if(res) {
-            picopass_device_set_name(dev, dev->dev_name);
-        }
-        furi_string_free(filename);
+        res = picopass_device_load(dev, dev->load_path);
     }
 
     return res;

@@ -382,6 +382,7 @@ int32_t bomberduck_app(void* p) {
         return 255;
     }
 
+    dolphin_deed(DolphinDeedPluginGameStart);
     // Создаем новый view port
     ViewPort* view_port = view_port_alloc();
     // Создаем callback отрисовки, без контекста

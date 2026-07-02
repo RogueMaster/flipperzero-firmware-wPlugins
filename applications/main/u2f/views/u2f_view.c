@@ -1,6 +1,7 @@
 #include "u2f_view.h"
 #include <gui/elements.h>
-#include <u2f_icons.h>
+#include <assets_icons.h>
+#include <cfw/cfw.h>
 
 struct U2fView {
     View* view;

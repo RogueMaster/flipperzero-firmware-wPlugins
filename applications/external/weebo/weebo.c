@@ -335,7 +335,6 @@ Weebo* weebo_alloc() {
     Weebo* weebo = malloc(sizeof(Weebo));
 
     weebo->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(weebo->view_dispatcher);
     weebo->scene_manager = scene_manager_alloc(&weebo_scene_handlers, weebo);
     view_dispatcher_set_event_callback_context(weebo->view_dispatcher, weebo);
     view_dispatcher_set_custom_event_callback(weebo->view_dispatcher, weebo_custom_event_callback);

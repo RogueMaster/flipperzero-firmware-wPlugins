@@ -7,7 +7,6 @@
 // 6. Emulate grayscale
 // 7. Photo browser app
 
-#include <datetime/datetime.h>
 #include <furi.h>
 #include <furi_hal.h>
 #include <gui/gui.h>
@@ -21,7 +20,8 @@
 #include <gui/modules/dialog_ex.h>
 #include <storage/filesystem_api_defines.h>
 #include <storage/storage.h>
-#include <esp32cam_camera_icons.h>
+
+#include <assets_icons.h>
 
 #define THREAD_ALLOC 2048
 

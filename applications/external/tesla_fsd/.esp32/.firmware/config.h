@@ -23,6 +23,11 @@
 #define CAN_ID_DAS_STATUS_HW3 0x399u  // 921  - DAS_status on Legacy/HW3 AP/DAS
 #define CAN_ID_ISA_SPEED      0x399u  // 921  - ISA speed limit on HW4 only
 #define CAN_ID_DAS_STATUS_HW4 0x39Bu  // 923  - DAS_status on HW4 AP/DAS
+// Vehicle/body bus reachability probes (#128) — RX presence only, never actuated.
+#define CAN_ID_UI_VEHICLE_CTRL 0x273u // 627  - UI_vehicleControl: mirror fold/lock/wiper/horn/seat heat
+#define CAN_ID_VCLEFT_DOOR     0x102u // 258  - VCLEFT_doorStatus: mirror state/tilt read-back
+#define CAN_ID_VCSEC_WINDOW    0x119u // 281  - VCSEC_windowRequests: windows
+#define CAN_ID_DAS_BODY        0x3E9u // 1001 - DAS_bodyControls: lights/hazards/turn/wipers
 
 // ── GPIO ──────────────────────────────────────────────────────────────────────
 #if defined(BOARD_LILYGO_T2CAN)

@@ -27,12 +27,6 @@ static ProtoPiratePsaBfContext g_active_ctx = ProtoPiratePsaBfContextReceiverInf
 static void show_bf_result(void* app, uint8_t status, ButtonCallback callback);
 static void bf_finish_and_show_result(void* app, ButtonCallback result_callback);
 
-static void psa_bf_done_cb(void* context) {
-    if(g_host_api && g_host_api->send_custom_event) {
-        g_host_api->send_custom_event(context, ProtoPirateCustomEventPsaBruteforceComplete);
-    }
-}
-
 static bool item_needs_bruteforce_from_ff(FlipperFormat* ff, bool require_psa_protocol) {
     if(!ff) return false;
     FuriString* s = furi_string_alloc();
@@ -75,13 +69,14 @@ static void show_bf_progress(void* app) {
         widget, 62, 12, AlignLeft, AlignTop, FontSecondary, furi_string_get_cstr(pct_str));
     furi_string_free(pct_str);
 
-    widget_add_frame_element(
+    widget_add_rect_element(
         widget,
         PSA_BF_PROGRESS_BAR_X,
         PSA_BF_PROGRESS_BAR_Y,
         PSA_BF_PROGRESS_BAR_W,
         PSA_BF_PROGRESS_BAR_H,
-        2);
+        2,
+        false);
     static uint16_t bf_frame = 0;
     bf_frame++;
     uint8_t inner_w = PSA_BF_PROGRESS_BAR_W - 4;
@@ -89,13 +84,14 @@ static void show_bf_progress(void* app) {
     uint8_t travel = inner_w - block_w;
     uint16_t phase = (bf_frame * 2) % (uint16_t)(2 * travel);
     uint8_t block_x = (phase <= travel) ? (uint8_t)phase : (uint8_t)(2 * travel - phase);
-    widget_add_frame_element(
+    widget_add_rect_element(
         widget,
         PSA_BF_PROGRESS_BAR_X + 2 + block_x,
         PSA_BF_PROGRESS_BAR_Y + 2,
         block_w,
         PSA_BF_PROGRESS_BAR_H - 4,
-        0);
+        0,
+        true);
 }
 
 static void bf_result_ok_callback(GuiButtonType result, InputType type, void* context) {
@@ -235,8 +231,8 @@ static bool start_bruteforce(void* app) {
         g_host_api->notification_error(app);
         return false;
     }
-    state->on_done = psa_bf_done_cb;
-    state->on_done_ctx = app;
+    state->on_done = NULL;
+    state->on_done_ctx = NULL;
     g_bf_state = state;
     g_bf_thread = furi_thread_alloc_ex("PsaBf", 2048, psa_brute_force_thread_entry, state);
     if(!g_bf_thread) {
@@ -276,7 +272,12 @@ static bool
             if(bfst == PSA_BF_STATUS_IDLE || bfst == PSA_BF_STATUS_RUNNING) {
                 show_bf_progress(app);
             } else {
-                bf_finish_and_show_result(app, NULL);
+                if(ctx == ProtoPiratePsaBfContextSubDecode) {
+                    g_host_api->send_custom_event(
+                        app, ProtoPirateCustomEventPsaBruteforceComplete);
+                } else {
+                    bf_finish_and_show_result(app, NULL);
+                }
             }
             return true;
         }
@@ -333,6 +334,7 @@ static bool
 static void plugin_on_scene_exit(void* app, ProtoPiratePsaBfContext ctx) {
     UNUSED(app);
     UNUSED(ctx);
+    bf_cancel_thread();
 }
 
 static bool plugin_widget_left_should_bruteforce(void* app, ProtoPiratePsaBfContext ctx) {

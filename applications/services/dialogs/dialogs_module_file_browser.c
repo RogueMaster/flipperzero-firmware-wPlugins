@@ -46,20 +46,23 @@ bool dialogs_app_process_module_file_browser(const DialogsAppMessageDataFileBrow
         data->file_icon,
         data->hide_ext);
     file_browser_set_item_callback(file_browser, data->item_callback, data->item_callback_context);
+    file_browser_set_select_right(file_browser, data->select_right);
     file_browser_start(file_browser, data->preselected_filename);
 
     view_holder_set_view(view_holder, file_browser_get_view(file_browser));
-    view_holder_start(view_holder);
     api_lock_wait_unlock(file_browser_context->lock);
 
     ret = file_browser_context->result;
 
-    view_holder_stop(view_holder);
-    view_holder_free(view_holder);
+    view_holder_set_view(view_holder, NULL);
     file_browser_stop(file_browser);
+
     file_browser_free(file_browser);
+    view_holder_free(view_holder);
+
     api_lock_free(file_browser_context->lock);
     free(file_browser_context);
+
     furi_record_close(RECORD_GUI);
 
     return ret;

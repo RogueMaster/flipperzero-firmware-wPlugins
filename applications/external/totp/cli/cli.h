@@ -1,6 +1,12 @@
 #pragma once
 
 #include <cli/cli.h>
+#if __has_include(<toolbox/cli/cli_command.h>)
+#include <toolbox/cli/cli_command.h>
+#endif
+#if __has_include(<toolbox/cli/cli_registry.h>)
+#include <toolbox/cli/cli_registry.h>
+#endif
 #include "../types/plugin_state.h"
 
 typedef struct TotpCliContext TotpCliContext;

@@ -13,7 +13,7 @@
 #include <furi_hal_gpio.h>
 #include <furi_hal_serial.h>
 #include <storage/storage.h>
-#include <cfw/cfw.h>
+#include <cfw/settings.h>
 
 #define HTTP_TAG               "FlipWiFi" // change this to your app name
 #define http_tag               "flip_wifi" // change this to your app id

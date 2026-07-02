@@ -128,7 +128,6 @@ int32_t password_manager_app(void* p) {
     }
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     if(!app->view_dispatcher) {
         furi_record_close(RECORD_GUI);
         free(app);

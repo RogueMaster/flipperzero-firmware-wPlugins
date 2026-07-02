@@ -52,7 +52,7 @@ const SubGhzProtocolDecoder kia_protocol_v2_decoder = {
     .get_string = kia_protocol_decoder_v2_get_string,
 };
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 const SubGhzProtocolEncoder kia_protocol_v2_encoder = {
     .alloc = kia_protocol_encoder_v2_alloc,
     .free = pp_encoder_free,
@@ -76,8 +76,16 @@ const SubGhzProtocol kia_protocol_v2 = {
     .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_AM |
             SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save |
             SubGhzProtocolFlag_Send,
+#if PROTOPIRATE_WITH_DECODER
     .decoder = &kia_protocol_v2_decoder,
+#else
+    .decoder = NULL,
+#endif
+#if PROTOPIRATE_WITH_ENCODER
     .encoder = &kia_protocol_v2_encoder,
+#else
+    .encoder = NULL,
+#endif
 };
 
 static uint8_t kia_v2_calculate_crc(uint64_t data) {
@@ -100,41 +108,33 @@ static uint8_t kia_v2_calculate_crc(uint64_t data) {
 
     return (crc + 1) & 0x0F;
 }
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 static void kia_protocol_encoder_v2_get_upload(SubGhzProtocolEncoderKiaV2* instance) {
     furi_check(instance);
     if(instance->encoder.upload == NULL) return;
     size_t index = 0;
+    LevelDuration* up = instance->encoder.upload;
+    const size_t cap = KIA_V2_UPLOAD_CAPACITY;
+
+    const uint32_t te_short = (uint32_t)kia_protocol_v2_const.te_short;
+    const uint32_t te_long = (uint32_t)kia_protocol_v2_const.te_long;
 
     uint8_t crc = kia_v2_calculate_crc(instance->generic.data);
     instance->generic.data = (instance->generic.data & ~0x0FULL) | crc;
 
     for(uint8_t burst = 0; burst < KIA_V2_TOTAL_BURSTS; burst++) {
         for(int i = 0; i < KIA_V2_HEADER_PAIRS; i++) {
-            instance->encoder.upload[index++] =
-                level_duration_make(false, (uint32_t)kia_protocol_v2_const.te_long);
-            instance->encoder.upload[index++] =
-                level_duration_make(true, (uint32_t)kia_protocol_v2_const.te_long);
+            index = pp_emit(up, index, cap, false, te_long);
+            index = pp_emit(up, index, cap, true, te_long);
         }
 
-        instance->encoder.upload[index++] =
-            level_duration_make(false, (uint32_t)kia_protocol_v2_const.te_short);
+        index = pp_emit(up, index, cap, false, te_short);
 
         for(uint8_t i = instance->generic.data_count_bit; i > 1; i--) {
             bool bit = bit_read(instance->generic.data, i - 2);
-
-            if(bit) {
-                instance->encoder.upload[index++] =
-                    level_duration_make(true, (uint32_t)kia_protocol_v2_const.te_short);
-                instance->encoder.upload[index++] =
-                    level_duration_make(false, (uint32_t)kia_protocol_v2_const.te_short);
-            } else {
-                instance->encoder.upload[index++] =
-                    level_duration_make(false, (uint32_t)kia_protocol_v2_const.te_short);
-                instance->encoder.upload[index++] =
-                    level_duration_make(true, (uint32_t)kia_protocol_v2_const.te_short);
-            }
+            index = pp_emit(up, index, cap, bit, te_short);
+            index = pp_emit(up, index, cap, !bit, te_short);
         }
     }
 
@@ -151,11 +151,14 @@ static void kia_protocol_encoder_v2_get_upload(SubGhzProtocolEncoderKiaV2* insta
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 void* kia_protocol_encoder_v2_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
-    SubGhzProtocolEncoderKiaV2* instance = malloc(sizeof(SubGhzProtocolEncoderKiaV2));
+    SubGhzProtocolEncoderKiaV2* instance = calloc(1, sizeof(SubGhzProtocolEncoderKiaV2));
+    if(!instance) {
+        return NULL;
+    }
 
     instance->base.protocol = &kia_protocol_v2;
     instance->generic.protocol_name = instance->base.protocol->name;
@@ -170,7 +173,7 @@ void* kia_protocol_encoder_v2_alloc(SubGhzEnvironment* environment) {
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 SubGhzProtocolStatus
     kia_protocol_encoder_v2_deserialize(void* context, FlipperFormat* flipper_format) {
@@ -256,7 +259,10 @@ SubGhzProtocolStatus
 
 void* kia_protocol_decoder_v2_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
-    SubGhzProtocolDecoderKiaV2* instance = malloc(sizeof(SubGhzProtocolDecoderKiaV2));
+    SubGhzProtocolDecoderKiaV2* instance = calloc(1, sizeof(SubGhzProtocolDecoderKiaV2));
+    if(!instance) {
+        return NULL;
+    }
     instance->base.protocol = &kia_protocol_v2;
     instance->generic.protocol_name = instance->base.protocol->name;
     return instance;

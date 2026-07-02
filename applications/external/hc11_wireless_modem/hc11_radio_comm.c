@@ -24,9 +24,9 @@
 
      fap_libs = ["hwdrivers"],
 ***/
-CC1101Status cc1101_strobe(FuriHalSpiBusHandle*, uint8_t);
-CC1101Status cc1101_read_reg(FuriHalSpiBusHandle*, uint8_t, uint8_t*);
-CC1101Status cc1101_write_reg(FuriHalSpiBusHandle*, uint8_t, uint8_t);
+CC1101Status cc1101_strobe(const FuriHalSpiBusHandle*, uint8_t);
+CC1101Status cc1101_read_reg(const FuriHalSpiBusHandle*, uint8_t, uint8_t*);
+CC1101Status cc1101_write_reg(const FuriHalSpiBusHandle*, uint8_t, uint8_t);
 
 /*** Defines ***/
 #define TAG "hc11_radio_comm"
@@ -269,7 +269,7 @@ void set_raw_data_handler(HC11RadioCommApp* app, void (*cb)(uint8_t*, uint16_t, 
 }
 
 /** Set CC1101 idle **/
-static void cc1101_set_idle(FuriHalSpiBusHandle* spi) {
+static void cc1101_set_idle(const FuriHalSpiBusHandle* spi) {
     uint8_t st;
 
     cc1101_strobe(spi, CC1101_STROBE_SIDLE);
@@ -280,7 +280,7 @@ static void cc1101_set_idle(FuriHalSpiBusHandle* spi) {
 }
 
 /** Enable CC1101 RX **/
-static void cc1101_enable_rx(FuriHalSpiBusHandle* spi) {
+static void cc1101_enable_rx(const FuriHalSpiBusHandle* spi) {
     uint8_t st;
 
     cc1101_strobe(spi, CC1101_STROBE_SRX);
@@ -291,7 +291,7 @@ static void cc1101_enable_rx(FuriHalSpiBusHandle* spi) {
 }
 
 /** Enable CC1101 TX **/
-static void cc1101_enable_tx(FuriHalSpiBusHandle* spi) {
+static void cc1101_enable_tx(const FuriHalSpiBusHandle* spi) {
     uint8_t st;
 
     cc1101_strobe(spi, CC1101_STROBE_STX);
@@ -316,7 +316,7 @@ static int32_t hc11_rx_tx_thread(void* ctx) {
     uint8_t loglevel;
     uint32_t evts;
     uint8_t regval_prev[1], regval[1];
-    FuriHalSpiBusHandle* spi;
+    const FuriHalSpiBusHandle* spi;
     bool get_pkt_size;
     uint8_t leave_bytes_in_fifo;
     uint8_t pkt_bytes_remaining;

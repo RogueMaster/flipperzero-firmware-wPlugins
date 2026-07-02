@@ -13,7 +13,7 @@
 #include <furi_hal_gpio.h>
 #include <furi_hal_serial.h>
 #include <storage/storage.h>
-#include <cfw/cfw.h>
+#include <cfw/settings.h>
 
 #ifdef __cplusplus
 extern "C" {

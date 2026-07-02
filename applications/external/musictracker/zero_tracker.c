@@ -1,6 +1,6 @@
 #include <furi.h>
 #include <gui/gui.h>
-#include <gui/view_dispatcher.h>
+#include <gui/view_holder.h>
 #include <notification/notification_messages.h>
 #include "zero_tracker.h"
 #include "tracker_engine/tracker.h"
@@ -474,10 +474,26 @@ Song song = {
     .ticks_per_second = 60,
 };
 
-void tracker_message(TrackerMessage message, void* context) {
+void tracker_message(const TrackerMessage* message, void* context) {
     FuriMessageQueue* queue = context;
     furi_assert(queue);
-    furi_message_queue_put(queue, &message, 0);
+    furi_message_queue_put(queue, message, 0);
+}
+
+static void exit_callback(void* context) {
+    FuriMessageQueue* queue = context;
+
+    const TrackerMessage message = {.type = TrackerShutDown};
+    furi_message_queue_put(queue, &message, FuriWaitForever);
+}
+
+static bool thread_exit_signal_callback(uint32_t signal, void* arg, void* ctx) {
+    UNUSED(arg);
+    if(signal == FuriSignalExit) {
+        exit_callback(ctx);
+        return true;
+    }
+    return false;
 }
 
 int32_t zero_tracker_app(void* p) {
@@ -486,51 +502,55 @@ int32_t zero_tracker_app(void* p) {
     NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
     notification_message(notification, &sequence_display_backlight_enforce_on);
 
+    FuriMessageQueue* queue = furi_message_queue_alloc(8, sizeof(TrackerMessage));
+
     Gui* gui = furi_record_open(RECORD_GUI);
-    ViewDispatcher* view_dispatcher = view_dispatcher_alloc();
+    ViewHolder* view_holder = view_holder_alloc();
     TrackerView* tracker_view = tracker_view_alloc();
     tracker_view_set_song(tracker_view, &song);
-    view_dispatcher_add_view(view_dispatcher, 0, tracker_view_get_view(tracker_view));
-    view_dispatcher_attach_to_gui(view_dispatcher, gui, ViewDispatcherTypeFullscreen);
-    view_dispatcher_switch_to_view(view_dispatcher, 0);
 
-    FuriMessageQueue* queue = furi_message_queue_alloc(8, sizeof(TrackerMessage));
+    view_holder_set_back_callback(view_holder, exit_callback, queue);
+    view_holder_attach_to_gui(view_holder, gui);
+    view_holder_set_view(view_holder, tracker_view_get_view(tracker_view));
+    view_holder_send_to_front(view_holder);
+
     Tracker* tracker = tracker_alloc();
     tracker_set_message_callback(tracker, tracker_message, queue);
     tracker_set_song(tracker, &song);
     tracker_start(tracker);
 
+    furi_thread_set_signal_callback(furi_thread_get_current(), thread_exit_signal_callback, queue);
+
     while(1) {
         TrackerMessage message;
-        FuriStatus status = furi_message_queue_get(queue, &message, FuriWaitForever);
-        if(status == FuriStatusOk) {
-            if(message.type == TrackerPositionChanged) {
-                uint8_t order_list_index = message.data.position.order_list_index;
-                uint8_t row = message.data.position.row;
-                uint8_t pattern = song.order_list[order_list_index];
-                tracker_view_set_position(tracker_view, order_list_index, row);
-                FURI_LOG_I("Tracker", "O:%d P:%d R:%d", order_list_index, pattern, row);
-            } else if(message.type == TrackerEndOfSong) {
-                FURI_LOG_I("Tracker", "End of song");
-                break;
-            }
+        furi_check(furi_message_queue_get(queue, &message, FuriWaitForever) == FuriStatusOk);
+        if(message.type == TrackerPositionChanged) {
+            uint8_t order_list_index = message.data.position.order_list_index;
+            uint8_t row = message.data.position.row;
+            uint8_t pattern = song.order_list[order_list_index];
+            tracker_view_set_position(tracker_view, order_list_index, row);
+            FURI_LOG_I("Tracker", "O:%d P:%d R:%d", order_list_index, pattern, row);
+        } else if(message.type == TrackerEndOfSong) {
+            FURI_LOG_I("Tracker", "End of song");
+            break;
+        } else if(message.type == TrackerShutDown) {
+            break;
         }
     }
 
     tracker_stop(tracker);
     tracker_free(tracker);
+
+    view_holder_set_view(view_holder, NULL);
+    view_holder_free(view_holder);
+    tracker_view_free(tracker_view);
+
+    furi_record_close(RECORD_GUI);
+
     furi_message_queue_free(queue);
 
-    furi_delay_ms(500);
-
-    view_dispatcher_remove_view(view_dispatcher, 0);
-    tracker_view_free(tracker_view);
-    view_dispatcher_free(view_dispatcher);
-
     notification_message(notification, &sequence_display_backlight_enforce_auto);
-
     furi_record_close(RECORD_NOTIFICATION);
-    furi_record_close(RECORD_GUI);
 
     return 0;
 }

@@ -34,12 +34,17 @@
 #include "scenes/plugins/protopirate_emulate_plugin.h"
 #endif
 #include "scenes/plugins/protopirate_psa_bf_plugin.h"
+#include "scenes/plugins/protopirate_tool_scene_plugin.h"
+#include "helpers/protopirate_views.h"
+#include "helpers/protopirate_radio.h"
+#include "helpers/protopirate_protocol_plugin_host.h"
+#include "helpers/protopirate_txrx.h"
 
 #define PROTOPIRATE_KEYSTORE_DIR_NAME APP_ASSETS_PATH("encrypted")
 
 typedef struct ProtoPirateApp ProtoPirateApp;
 
-typedef struct {
+typedef struct ProtoPirateTxRx {
     SubGhzWorker* worker;
     SubGhzEnvironment* environment;
     SubGhzReceiver* receiver;
@@ -48,7 +53,7 @@ typedef struct {
     CompositeApiResolver* plugin_resolver;
     PluginManager* protocol_plugin_manager;
     const ProtoPirateProtocolPlugin* protocol_plugin;
-    ProtoPirateProtocolRegistryFilter protocol_registry_filter;
+    ProtoPirateProtocolRegistryRoute protocol_registry_route;
     ProtoPirateHistory* history;
     const SubGhzDevice* radio_device;
     ProtoPirateTxRxState txrx_state;
@@ -77,8 +82,8 @@ struct ProtoPirateApp {
     ProtoPirateLock lock;
     FuriString* loaded_file_path;
     bool auto_save;
+    bool check_saved;
     bool radio_initialized;
-    ProtoPirateSettings settings;
     uint32_t start_tx_time;
     uint8_t tx_power;
     char save_filename[64];
@@ -99,6 +104,17 @@ struct ProtoPirateApp {
     CompositeApiResolver* psa_bf_plugin_resolver;
     PluginManager* psa_bf_plugin_manager;
     const ProtoPiratePsaBfPlugin* psa_bf_plugin;
+    CompositeApiResolver* tool_scene_plugin_resolver;
+    PluginManager* tool_scene_plugin_manager;
+    const ProtoPirateToolScenePlugin* tool_scene_plugin;
+    ProtoPirateToolScenePluginKind tool_scene_plugin_kind;
+
+#define TOOL_SCENE_NAV_NONE            0U
+#define TOOL_SCENE_NAV_POP             1U
+#define TOOL_SCENE_NAV_NEXT            2U
+#define TOOL_SCENE_NAV_SEARCH_PREVIOUS 3U
+    uint8_t tool_scene_nav_pending;
+    uint32_t tool_scene_nav_target;
 };
 
 #ifdef ENABLE_EMULATE_FEATURE
@@ -110,49 +126,10 @@ typedef enum {
     ProtoPirateSetTypeMAX,
 } ProtoPirateSetType;
 
-void protopirate_preset_init(
-    void* context,
-    const char* preset_name,
-    uint32_t frequency,
-    uint8_t* preset_data,
-    size_t preset_data_size);
-
-void protopirate_get_frequency_modulation(
-    ProtoPirateApp* app,
-    FuriString* frequency,
-    FuriString* modulation);
-void protopirate_get_frequency_modulation_str(
-    ProtoPirateApp* app,
-    char* frequency,
-    size_t frequency_size,
-    char* modulation,
-    size_t modulation_size);
-
-void protopirate_begin(ProtoPirateApp* app, uint8_t* preset_data);
-uint32_t protopirate_rx(ProtoPirateApp* app, uint32_t frequency);
-void protopirate_idle(ProtoPirateApp* app);
-void protopirate_rx_end(ProtoPirateApp* app);
-void protopirate_sleep(ProtoPirateApp* app);
-void protopirate_hopper_update(ProtoPirateApp* app);
-void protopirate_tx(ProtoPirateApp* app, uint32_t frequency);
-void protopirate_tx_stop(ProtoPirateApp* app);
-bool protopirate_radio_init(ProtoPirateApp* app);
-void protopirate_radio_deinit(ProtoPirateApp* app);
-bool protopirate_refresh_protocol_registry(ProtoPirateApp* app, bool ensure_receiver_ready);
-bool protopirate_apply_protocol_registry_for_preset_data(
-    ProtoPirateApp* app,
-    const uint8_t* preset_data,
-    size_t preset_data_size);
-bool protopirate_ensure_variable_item_list(ProtoPirateApp* app);
-bool protopirate_ensure_widget(ProtoPirateApp* app);
-bool protopirate_ensure_text_input(ProtoPirateApp* app);
-bool protopirate_ensure_view_about(ProtoPirateApp* app);
-bool protopirate_ensure_receiver_view(ProtoPirateApp* app);
-void protopirate_release_shared_radio_state(ProtoPirateApp* app);
-
-void protopirate_rx_stack_suspend_for_tx(ProtoPirateApp* app);
-
-void protopirate_rx_stack_resume_after_tx(ProtoPirateApp* app);
+bool protopirate_tool_scene_on_enter(void* app, ProtoPirateToolScenePluginKind kind);
+bool protopirate_tool_scene_on_event(void* app, SceneManagerEvent event);
+void protopirate_tool_scene_on_exit(void* app);
+void protopirate_tool_scene_plugin_release(ProtoPirateApp* app);
 
 void protopirate_app_free(ProtoPirateApp* app);
 

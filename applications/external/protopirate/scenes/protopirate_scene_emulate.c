@@ -19,12 +19,15 @@ static bool host_radio_init(void* app) {
     return protopirate_radio_init((ProtoPirateApp*)app);
 }
 
-static bool host_apply_protocol_registry_for_preset_data(
+static bool host_apply_protocol_registry_for_context(
     void* app,
+    const char* preset_name,
+    uint32_t frequency,
     const uint8_t* preset_data,
-    size_t preset_data_size) {
-    return protopirate_apply_protocol_registry_for_preset_data(
-        (ProtoPirateApp*)app, preset_data, preset_data_size);
+    size_t preset_data_size,
+    const char* protocol_name) {
+    return protopirate_apply_protocol_registry_for_context(
+        (ProtoPirateApp*)app, preset_name, frequency, preset_data, preset_data_size, protocol_name);
 }
 
 static void host_rx_stack_suspend_for_tx(void* app) {
@@ -33,6 +36,10 @@ static void host_rx_stack_suspend_for_tx(void* app) {
 
 static bool host_ensure_view_about(void* app) {
     return protopirate_ensure_view_about((ProtoPirateApp*)app);
+}
+
+static bool host_ensure_text_input(void* app) {
+    return protopirate_ensure_text_input((ProtoPirateApp*)app);
 }
 
 static void host_idle(void* app) {
@@ -70,9 +77,10 @@ static void protopirate_emulate_apply_pending_nav(ProtoPirateApp* app) {
 
 static const ProtoPirateEmulateHostApi protopirate_emulate_host_api = {
     .radio_init = host_radio_init,
-    .apply_protocol_registry_for_preset_data = host_apply_protocol_registry_for_preset_data,
+    .apply_protocol_registry_for_context = host_apply_protocol_registry_for_context,
     .rx_stack_suspend_for_tx = host_rx_stack_suspend_for_tx,
     .ensure_view_about = host_ensure_view_about,
+    .ensure_text_input = host_ensure_text_input,
     .idle = host_idle,
     .history_release_scratch = host_history_release_scratch,
     .storage_delete_temp = host_storage_delete_temp,

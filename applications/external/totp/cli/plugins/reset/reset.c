@@ -7,7 +7,7 @@
 
 #define TOTP_CLI_RESET_CONFIRMATION_KEYWORD "YES"
 
-static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
+static void handle(PluginState* plugin_state, FuriString* args, PipeSide* pipe) {
     UNUSED(args);
     TOTP_CLI_LOCK_UI(plugin_state);
     TOTP_CLI_PRINTF_WARNING(
@@ -16,7 +16,7 @@ static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
     TOTP_CLI_PRINTF_WARNING("Type \"" TOTP_CLI_RESET_CONFIRMATION_KEYWORD
                             "\" and hit <ENTER> to confirm:\r\n");
     FuriString* temp_str = furi_string_alloc();
-    bool is_confirmed = totp_cli_read_line(cli, temp_str, false) &&
+    bool is_confirmed = totp_cli_read_line(pipe, temp_str, false) &&
                         furi_string_cmpi_str(temp_str, TOTP_CLI_RESET_CONFIRMATION_KEYWORD) == 0;
     furi_string_free(temp_str);
     if(is_confirmed) {

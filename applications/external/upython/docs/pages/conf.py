@@ -35,8 +35,8 @@ now = datetime.datetime.now()
 project = "uPython"
 copyright = str(now.year) + ", Oliver Fabel"
 author = "Oliver Fabel"
-release = "1.7.0"
-version = "1.7"
+release = "1.8.0"
+version = "1.8"
 language = "en"
 
 extensions = ["sphinx.ext.autodoc", "myst_parser"]

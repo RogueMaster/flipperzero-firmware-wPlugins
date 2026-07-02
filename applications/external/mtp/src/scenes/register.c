@@ -43,8 +43,6 @@ void register_scenes(App* app) {
         app->allocated_scenes = (void**)malloc(sizeof(void*) * AppSceneNum);
     }
 
-    view_dispatcher_enable_queue(app->view_dispatcher);
-
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, scene_handler_event_forwarder);
     view_dispatcher_set_navigation_event_callback(

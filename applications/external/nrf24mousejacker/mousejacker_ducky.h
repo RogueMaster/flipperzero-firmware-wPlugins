@@ -34,7 +34,7 @@ typedef struct {
 } PluginState;
 
 void mj_process_ducky_script(
-    FuriHalSpiBusHandle* handle,
+    const FuriHalSpiBusHandle* handle,
     uint8_t* addr,
     uint8_t addr_size,
     uint8_t rate,

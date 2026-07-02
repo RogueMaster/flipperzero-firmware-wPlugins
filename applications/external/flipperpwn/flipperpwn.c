@@ -404,7 +404,7 @@ static bool fpwn_custom_event_callback(void* ctx, uint32_t event) {
         }
 
         app->exec_thread =
-            furi_thread_alloc_ex("FPwnExec", 6144, fpwn_payload_execute_thread, app);
+            furi_thread_alloc_ex("FPwnExec", 8192, fpwn_payload_execute_thread, app);
         furi_thread_start(app->exec_thread);
         return true;
     }
@@ -910,7 +910,6 @@ static FPwnApp* flipperpwn_app_alloc(void) {
 
     /* ---- View dispatcher ---- */
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, fpwn_navigation_callback);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, fpwn_custom_event_callback);

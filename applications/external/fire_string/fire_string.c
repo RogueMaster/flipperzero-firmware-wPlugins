@@ -82,7 +82,6 @@ void fire_string_scene_manager_init(FireString* app) {
 void fire_string_view_dispatcher_init(FireString* app) {
     FURI_LOG_T(TAG, "fire_string_view_dispatcher_init");
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     // allocate each view
     FURI_LOG_D(TAG, "fire_string_view_dispatcher_init allocating views");

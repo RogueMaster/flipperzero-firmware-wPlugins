@@ -7,6 +7,7 @@ App(
     stack_size=2 * 1024,
     fap_icon="nfc_maker_10px.png",
     fap_icon_assets="icons",
+    fap_libs=["assets"],
     fap_category="NFC",
     fap_author="WillyJL",
     fap_weburl="https://github.com/Next-Flip/Momentum-Apps/tree/dev/nfc_maker",

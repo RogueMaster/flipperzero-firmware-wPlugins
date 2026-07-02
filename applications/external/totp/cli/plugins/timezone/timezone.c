@@ -6,10 +6,10 @@
 #include "../../cli_plugin_interface.h"
 #include "../../cli_shared_methods.h"
 
-static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
+static void handle(PluginState* plugin_state, FuriString* args, PipeSide* pipe) {
     UNUSED(args);
     UNUSED(plugin_state);
-    if(!totp_cli_ensure_authenticated(plugin_state, cli)) {
+    if(!totp_cli_ensure_authenticated(plugin_state, pipe)) {
         return;
     }
 

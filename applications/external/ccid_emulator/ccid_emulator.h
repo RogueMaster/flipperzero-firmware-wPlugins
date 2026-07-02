@@ -136,7 +136,7 @@ typedef struct {
 
     /* APDU log ring buffer */
     CcidApduLogEntry log_entries[CCID_EMU_LOG_MAX_ENTRIES];
-    uint16_t log_count; /* total entries written (may wrap)      */
+    uint32_t log_count; /* total entries written (may wrap)      */
     FuriMutex* log_mutex;
     volatile bool log_dirty; /* set by USB callback, polled by timer  */
 

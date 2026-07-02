@@ -5,7 +5,7 @@
 #include <lib/subghz/receiver.h>
 #include <lib/subghz/protocols/base.h>
 
-#define PROTOPIRATE_HISTORY_MAX 10
+#define PROTOPIRATE_HISTORY_MAX 20
 
 typedef struct SubGhzEnvironment SubGhzEnvironment;
 typedef struct ProtoPirateHistory ProtoPirateHistory;
@@ -34,6 +34,11 @@ bool protopirate_history_add_to_history(
     ProtoPirateHistory* instance,
     void* context,
     SubGhzRadioPreset* preset);
+bool protopirate_history_add_to_history_at(
+    ProtoPirateHistory* instance,
+    void* context,
+    SubGhzRadioPreset* preset,
+    uint32_t update_timestamp);
 void protopirate_history_delete_item(ProtoPirateHistory* instance, uint16_t idx);
 void protopirate_history_get_text_item_menu(
     ProtoPirateHistory* instance,
@@ -49,3 +54,22 @@ FlipperFormat* protopirate_history_get_raw_data(ProtoPirateHistory* instance, ui
 void protopirate_history_release_scratch(ProtoPirateHistory* instance);
 
 void protopirate_history_set_item_str(ProtoPirateHistory* instance, uint16_t idx, const char* str);
+
+void protopirate_history_set_matched_saved(
+    ProtoPirateHistory* instance,
+    uint16_t idx,
+    const char* name,
+    const char* path);
+
+const char* protopirate_history_get_matched_saved_path(ProtoPirateHistory* instance, uint16_t idx);
+
+const char* protopirate_history_get_matched_name(ProtoPirateHistory* instance, uint16_t idx);
+
+bool protopirate_history_has_matched_saved(ProtoPirateHistory* instance, uint16_t idx);
+
+void protopirate_history_mark_auto_save_pending(ProtoPirateHistory* instance, uint16_t idx);
+bool protopirate_history_find_pending_auto_save(ProtoPirateHistory* instance, uint16_t* idx);
+void protopirate_history_mark_auto_save_done(ProtoPirateHistory* instance, uint16_t idx);
+void protopirate_history_mark_saved_match_pending(ProtoPirateHistory* instance, uint16_t idx);
+bool protopirate_history_find_pending_saved_match(ProtoPirateHistory* instance, uint16_t* idx);
+void protopirate_history_mark_saved_match_done(ProtoPirateHistory* instance, uint16_t idx);

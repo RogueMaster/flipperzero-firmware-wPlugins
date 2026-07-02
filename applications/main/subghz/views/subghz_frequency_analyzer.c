@@ -160,7 +160,7 @@ void subghz_frequency_analyzer_draw(Canvas* canvas, SubGhzFrequencyAnalyzerModel
     canvas_set_color(canvas, ColorBlack);
     canvas_set_font(canvas, FontSecondary);
 
-    // canvas_draw_str(canvas, 0, 7, model->is_ext_radio ? "Ext" : "Int");
+    //canvas_draw_str(canvas, 0, 7, model->is_ext_radio ? "Ext" : "Int");
     canvas_draw_str(canvas, 20, 7, "Frequency Analyzer");
 
     // RSSI
@@ -299,6 +299,7 @@ bool subghz_frequency_analyzer_input(InputEvent* event, void* context) {
         // If it was a long press also send a second event
         if(event->type == InputTypeLong && frequency_to_save > 0) {
             // Worker stopped on app thread instead of GUI thread when switching scene in callback
+
             instance->callback(SubGhzCustomEventViewFreqAnalOkLong, instance->context);
         }
     }

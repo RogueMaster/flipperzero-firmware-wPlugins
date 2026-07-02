@@ -9,31 +9,17 @@ App(
     order=40,
     sources=["*.c", "!infrared_cli.c"],
     resources="resources",
+    fap_libs=["assets", "infrared"],
     fap_icon="icon.png",
     fap_category="Infrared",
-    fap_icon_assets="images",
-    #  [Infrared: Add option to `Load from Library File` for Universal Remotes (By zxkmm & Willy-JL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a711e09ed3e87711a6d59dd9ae44ff120ef88534)
-    #  Infrared: [IR Easy Learn (By jaylikesbunda)](https://github.com/Next-Flip/Momentum-Firmware/pull/350)
 )
 
 App(
-    appid="infrared_cli",
+    appid="cli_ir",
     targets=["f7"],
     apptype=FlipperAppType.PLUGIN,
-    entry_point="infrared_cli_start_ir_plugin_ep",
+    entry_point="cli_ir_ep",
     requires=["cli"],
-    sources=[
-        "infrared_cli.c",
-        "infrared_brute_force.c",
-        "infrared_signal.c",
-    ],
-)
-
-App(
-    appid="infrared_start",
-    apptype=FlipperAppType.STARTUP,
-    targets=["f7"],
-    entry_point="infrared_on_system_start",
     sources=["infrared_cli.c"],
-    order=25,
+    fap_libs=["infrared"],
 )

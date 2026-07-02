@@ -9,7 +9,7 @@
 #include "dice_rm_icons.h"
 
 #if __has_include(<cfw/cfw.h>)
-#include "applications/settings/desktop_settings/desktop_settings_app.h"
+#include <cfw/cfw.h>
 #endif
 
 #define TAG "Dice Roller"
@@ -27,9 +27,6 @@ typedef struct {
 typedef struct {
     FuriMutex* mutex;
     FuriMessageQueue* event_queue;
-#if __has_include(<cfw/cfw.h>)
-    DesktopSettings* desktop_settings;
-#endif
     DateTime datetime;
     uint8_t diceSelect;
     uint8_t diceQty;
@@ -482,9 +479,6 @@ static void dice_state_init(DiceState* const state) {
     state->playerOneScore = 0;
     state->playerTwoScore = 0;
     state->letsRoll = false;
-#if __has_include(<cfw/cfw.h>)
-    state->desktop_settings = malloc(sizeof(DesktopSettings));
-#endif
 }
 
 static void dice_tick(void* ctx) {
@@ -523,10 +517,6 @@ int32_t dice_app(void* p) {
         free(plugin_state);
         return 255;
     }
-
-#if __has_include(<cfw/cfw.h>)
-    DESKTOP_SETTINGS_LOAD(plugin_state->desktop_settings);
-#endif
 
     ViewPort* view_port = view_port_alloc();
     view_port_draw_callback_set(view_port, dice_render_callback, plugin_state);
@@ -567,7 +557,7 @@ int32_t dice_app(void* p) {
                             plugin_state->diceSelect = 100;
                         } else if(plugin_state->diceSelect == 100) {
 #if __has_include(<cfw/cfw.h>)
-                            if(plugin_state->desktop_settings->is_dumbmode) {
+                            if(cfw_settings.game_mode) {
                                 plugin_state->diceSelect = 231;
                             } else {
 #endif
@@ -585,7 +575,7 @@ int32_t dice_app(void* p) {
                             plugin_state->diceSelect = 228;
                         } else if(plugin_state->diceSelect == 228) {
 #if __has_include(<cfw/cfw.h>)
-                            if(plugin_state->desktop_settings->is_dumbmode) {
+                            if(cfw_settings.game_mode) {
                                 plugin_state->diceSelect = 59;
                             } else {
 #endif
@@ -635,9 +625,6 @@ int32_t dice_app(void* p) {
     view_port_free(view_port);
     furi_message_queue_free(plugin_state->event_queue);
     furi_mutex_free(plugin_state->mutex);
-#if __has_include(<cfw/cfw.h>)
-    free(plugin_state->desktop_settings);
-#endif
     free(plugin_state);
     return 0;
 }

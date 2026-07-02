@@ -4,11 +4,11 @@
 
 #include <easy_flipper/easy_flipper.h>
 #include <flipper_http/flipper_http.h>
-#include <text_input/uart_text_input.h>
+#include <assets_icons.h>
 #include "web_crawler_icons.h"
 
 #define TAG         "Web Crawler"
-#define VERSION_TAG TAG " v1.0.1"
+#define VERSION_TAG TAG " v" FAP_VERSION
 extern char* http_method_names[];
 
 // Define the submenu items for our WebCrawler application
@@ -55,7 +55,7 @@ typedef struct {
     Submenu* submenu_config;
     Widget* widget;
     VariableItemList* variable_item_list;
-    UART_TextInput* uart_text_input;
+    TextInput* uart_text_input;
 
     VariableItem* path_item;
     VariableItem* ssid_item;

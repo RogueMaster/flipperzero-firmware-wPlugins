@@ -943,7 +943,6 @@ extern "C" int32_t flipper_atm_app(void* p) {
     app->gui = (Gui*)furi_record_open(RECORD_GUI);
     app->storage = (Storage*)furi_record_open(RECORD_STORAGE);
     app->dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->dispatcher);
 
     app->selected_path = furi_string_alloc();
     furi_string_set_str(app->selected_path, APP_ASSETS_PATH("title.atm"));

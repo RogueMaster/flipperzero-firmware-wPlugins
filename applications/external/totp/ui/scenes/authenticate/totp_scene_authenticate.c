@@ -1,6 +1,9 @@
 #include "totp_scene_authenticate.h"
 #include <dialogs/dialogs.h>
 #include <totp_icons.h>
+#if __has_include(<assets_icons.h>)
+#include <assets_icons.h>
+#endif
 #include "../../../types/common.h"
 #include "../../constants.h"
 #include "../../../services/config/config.h"
@@ -8,6 +11,8 @@
 #include "../../totp_scenes_enum.h"
 #include "../../../services/crypto/crypto_facade.h"
 #include "../../../types/user_pin_codes.h"
+
+#include <assets_icons.h>
 
 #define MAX_CODE_LENGTH CRYPTO_IV_LENGTH
 static const uint8_t PIN_ASTERISK_RADIUS = 3;
@@ -151,7 +156,11 @@ bool totp_scene_authenticate_handle_event(
                 SCREEN_HEIGHT_CENTER - 5,
                 AlignCenter,
                 AlignCenter);
+#if __has_include(<assets_icons.h>)
+            dialog_message_set_icon(message, &I_WarningDolphinFlip_45x42, 83, 22);
+#else
             dialog_message_set_icon(message, &I_DolphinCommon_56x48, 72, 17);
+#endif
             dialog_message_show(plugin_state->dialogs_app, message);
             dialog_message_free(message);
         }

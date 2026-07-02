@@ -242,7 +242,6 @@ int32_t app(void* p) {
 
     // Dispatcher
     app->dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->dispatcher);
     view_dispatcher_set_event_callback_context(app->dispatcher, app);
     view_dispatcher_set_navigation_event_callback(app->dispatcher, app_navigation_callback);
     view_dispatcher_set_tick_event_callback(app->dispatcher, app_tick_callback, 500);

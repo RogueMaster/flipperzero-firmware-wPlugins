@@ -29,7 +29,6 @@ TUM_App* tum_app_alloc() {
     app->card_message_ext = t_union_msgext_alloc();
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, tum_app_custom_event_cb);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, tum_app_back_event_cb);

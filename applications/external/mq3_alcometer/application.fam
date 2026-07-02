@@ -1,8 +1,9 @@
 App(
-    appid="mq3_alcometer",
+    appid="alcohol_sensor",
     name="MQ-3 Alcometer",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="alcohol_sensor_app",
+    stack_size=2 * 1024,
     fap_category="GPIO",
     fap_author="Serjantlk",
     fap_weburl="https://github.com/serjantlk/MQ-3-Alcometer.git",

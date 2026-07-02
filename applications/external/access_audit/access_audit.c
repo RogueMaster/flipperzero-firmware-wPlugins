@@ -381,14 +381,12 @@ static void access_audit_draw_callback(Canvas* canvas, void* context) {
     access_audit_format_uid_line(&app->obs, line, sizeof(line));
     canvas_draw_str(canvas, 2, 48, line);
 
-    /* Bottom row: surface the active-scan default-key finding when present,
-     * otherwise show the controls hint. The finding is the more important
-     * signal and would otherwise only appear in the saved report. */
-    if(app->obs.default_keys_readable) {
-        canvas_draw_str(canvas, 2, 62, "! Default key readable");
-    } else {
-        canvas_draw_str(canvas, 2, 62, "OK:rescan  Back:exit");
-    }
+    /* Bottom row always shows the controls hint. Findings (default keys N/M,
+     * factory password, password-locked memory, etc.) are recorded in the saved
+     * report — nothing evicts the controls hint. The risk label + score above
+     * already convey severity at a glance. Back goes to name-entry/save (the
+     * session always has the just-scanned card here), not a bare exit. */
+    canvas_draw_str(canvas, 2, 62, "OK:rescan  Back:save");
 }
 
 static void access_audit_input_callback(InputEvent* input_event, void* context) {
@@ -487,6 +485,7 @@ int32_t access_audit_app(void* p) {
                         else
                             app->scan_mode = ScanModeNfc;
                         access_audit_start_scanning(app);
+                        view_port_update(app->view_port);
                     } else if(event.input.key == InputKeyLeft) {
                         access_audit_stop_scanning(app);
                         if(app->scan_mode == ScanModeNfc)

@@ -617,13 +617,13 @@ static void byte_input_view_draw_callback(Canvas* canvas, void* _model) {
             const uint8_t column_count = byte_input_get_row_size(row);
             const ByteInputKey* keys = byte_input_get_row(row);
 
-            for(int8_t column = 0; column < column_count; column++) {
+            for(uint8_t column = 0; column < column_count; column++) {
                 bool selected = model->selected_row == row && model->selected_column == column;
                 const Icon* icon = NULL;
                 if(keys[column].value == enter_symbol) {
-                    icon = selected ? &I_KeySaveSelected_24x11 : &I_KeySave_24x11;
+                    icon = selected ? &I_KeySaveSelected_22x11 : &I_KeySave_22x11;
                 } else if(keys[column].value == backspace_symbol) {
-                    icon = selected ? &I_KeyBackspaceSelected_16x9 : &I_KeyBackspace_16x9;
+                    icon = selected ? &I_KeyBackspaceSelected_17x11 : &I_KeyBackspace_17x11;
                 }
                 canvas_set_color(canvas, ColorBlack);
                 if(icon != NULL) {
@@ -726,6 +726,51 @@ static bool byte_input_view_input_callback(InputEvent* event, void* context) {
     return consumed;
 }
 
+static bool byte_input_view_ascii_callback(AsciiEvent* event, void* context) {
+    ByteInput* byte_input = context;
+    furi_assert(byte_input);
+
+    switch(event->value) {
+    case AsciiValueDC3: // Right
+    case AsciiValueDC4: // Left
+        with_view_model(
+            byte_input->view,
+            ByteInputModel * model,
+            {
+                if(event->value == AsciiValueDC3) {
+                    byte_input_inc_selected_byte_mini(model);
+                } else {
+                    byte_input_dec_selected_byte_mini(model);
+                }
+            },
+            true);
+        return true;
+    default: // Look in keyboard
+        for(size_t r = 0; r < keyboard_row_count; r++) {
+            const ByteInputKey* row = byte_input_get_row(r);
+            uint8_t size = byte_input_get_row_size(r);
+            for(size_t key = 0; key < size; key++) {
+                char value = row[key].value;
+                if(event->value == value) {
+                    with_view_model(
+                        byte_input->view,
+                        ByteInputModel * model,
+                        {
+                            model->selected_row = r;
+                            model->selected_column = key;
+                            byte_input_handle_ok(model);
+                        },
+                        true);
+                    return true;
+                }
+            }
+        }
+        break;
+    }
+
+    return false;
+}
+
 /** Reset all input-related data in model
  *
  * @param      model  The model
@@ -747,6 +792,7 @@ ByteInput* byte_input_alloc(void) {
     view_allocate_model(byte_input->view, ViewModelTypeLocking, sizeof(ByteInputModel));
     view_set_draw_callback(byte_input->view, byte_input_view_draw_callback);
     view_set_input_callback(byte_input->view, byte_input_view_input_callback);
+    view_set_ascii_callback(byte_input->view, byte_input_view_ascii_callback);
 
     with_view_model(
         byte_input->view,
@@ -799,5 +845,6 @@ void byte_input_set_result_callback(
 
 void byte_input_set_header_text(ByteInput* byte_input, const char* text) {
     furi_check(byte_input);
+
     with_view_model(byte_input->view, ByteInputModel * model, { model->header = text; }, true);
 }

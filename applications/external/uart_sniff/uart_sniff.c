@@ -166,6 +166,7 @@ static bool uart_sniff_custom_event_cb(void* context, uint32_t event) {
     UartSniffApp* app = (UartSniffApp*)context;
     switch((UartSniffEvent)event) {
     case UartSniffEventRefresh:
+        if(!app->sniffing || !app->worker) return true;
         uart_sniff_format_display(app);
         text_box_set_text(app->text_box, app->display_buf);
         text_box_set_focus(app->text_box, TextBoxFocusEnd);
@@ -235,12 +236,9 @@ static bool app_navigation_cb(void* context) {
             uart_sniff_worker_free(app->worker);
             app->worker = NULL;
         }
-        /* The view_dispatcher will handle the actual view switch via
-         * sniff_view_back_cb returning UartSniffViewMenu. */
-        return false; /* allow default back — triggers previous_callback */
     }
 
-    /* Back pressed at the main menu: exit app. */
+    /* Exit app on any Back from the top-level navigation callback. */
     view_dispatcher_stop(app->view_dispatcher);
     return true;
 }
@@ -322,7 +320,6 @@ static UartSniffApp* uart_sniff_app_alloc(void) {
 
     /* ViewDispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, app_navigation_cb);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, uart_sniff_custom_event_cb);

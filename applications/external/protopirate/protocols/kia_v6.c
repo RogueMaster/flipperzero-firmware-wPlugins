@@ -114,7 +114,7 @@ const SubGhzProtocolDecoder kia_protocol_v6_decoder = {
     .get_string = kia_protocol_decoder_v6_get_string,
 };
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 const SubGhzProtocolEncoder kia_protocol_v6_encoder = {
     .alloc = kia_protocol_encoder_v6_alloc,
     .free = pp_encoder_free,
@@ -137,8 +137,16 @@ const SubGhzProtocol kia_protocol_v6 = {
     .type = SubGhzProtocolTypeDynamic,
     .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_FM |
             SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Save | SubGhzProtocolFlag_Load,
+#if PROTOPIRATE_WITH_DECODER
     .decoder = &kia_protocol_v6_decoder,
+#else
+    .decoder = NULL,
+#endif
+#if PROTOPIRATE_WITH_ENCODER
     .encoder = &kia_protocol_v6_encoder,
+#else
+    .encoder = NULL,
+#endif
 };
 
 #define kia_v6_crc8(data, len) subghz_protocol_blocks_crc8((data), (len), 0x07, 0xFF)
@@ -215,7 +223,7 @@ static void aes_addroundkey(uint8_t* state, const uint8_t* round_key) {
     }
 }
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 static void aes_subbytes(uint8_t* state) {
     for(int row = 0; row < 4; row++) {
         for(int col = 0; col < 4; col++) {
@@ -358,7 +366,7 @@ static void get_kia_v6_aes_key(uint8_t* aes_key) {
     }
 }
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 static void kia_v6_encrypt_payload(
     uint8_t fx_field,
     uint32_t serial,
@@ -812,7 +820,7 @@ void kia_protocol_decoder_v6_get_string(void* context, FuriString* output) {
         instance->crc2_field);
 }
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 #define KIA_V6_PREAMBLE_PAIRS_1 640
 #define KIA_V6_PREAMBLE_PAIRS_2 38
@@ -928,13 +936,17 @@ static void kia_protocol_encoder_v6_build_upload(SubGhzProtocolEncoderKiaV6* ins
 }
 
 void* kia_protocol_encoder_v6_alloc(SubGhzEnvironment* environment) {
-    SubGhzProtocolEncoderKiaV6* instance = malloc(sizeof(SubGhzProtocolEncoderKiaV6));
-    if(!instance) return NULL;
-    memset(instance, 0, sizeof(SubGhzProtocolEncoderKiaV6));
-
     if(environment) {
         protopirate_keys_load(environment);
     }
+    if(!protopirate_keys_has_kia_v6_keystore_a() || !protopirate_keys_has_kia_v6_keystore_b()) {
+        FURI_LOG_E(TAG, "Kia V6 encoder missing KIA_KEY2/KIA_KEY3 keystore entries");
+        return NULL;
+    }
+
+    SubGhzProtocolEncoderKiaV6* instance = malloc(sizeof(SubGhzProtocolEncoderKiaV6));
+    if(!instance) return NULL;
+    memset(instance, 0, sizeof(SubGhzProtocolEncoderKiaV6));
 
     instance->base.protocol = &kia_protocol_v6;
     instance->generic.protocol_name = instance->base.protocol->name;
@@ -985,4 +997,4 @@ SubGhzProtocolStatus
     return SubGhzProtocolStatusOk;
 }
 
-#endif // ENABLE_EMULATE_FEATURE
+#endif // PROTOPIRATE_WITH_ENCODER

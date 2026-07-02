@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cli/cli.h>
+
 #include <furi/core/string.h>
 #include "../types/plugin_state.h"
 
@@ -9,5 +10,5 @@
 
 typedef struct {
     const char* name;
-    void (*handle)(PluginState*, FuriString*, Cli*);
+    void (*handle)(PluginState*, FuriString*, PipeSide*);
 } CliPlugin;

@@ -90,11 +90,14 @@ static void caesar_cipher_state_init(CaesarState* const caesar_state) {
 }
 
 static void caesar_cipher_state_free(CaesarState* const caesar_state) {
-    text_input_free(caesar_state->text_input);
-    text_box_free(caesar_state->text_box);
     view_dispatcher_remove_view(caesar_state->view_dispatcher, 0);
     view_dispatcher_remove_view(caesar_state->view_dispatcher, 1);
     view_dispatcher_free(caesar_state->view_dispatcher);
+
+    text_input_free(caesar_state->text_input);
+    text_box_free(caesar_state->text_box);
+
+    furi_mutex_free(caesar_state->mutex);
     free(caesar_state);
 }
 
@@ -125,9 +128,6 @@ int32_t caesar_cipher_app() {
     // Open GUI and register view_port
     Gui* gui = furi_record_open("gui");
     //gui_add_view_port(gui, view_port, GuiLayerFullscreen);
-
-    FURI_LOG_D("caesar_cipher", "Enabling view dispatcher queue");
-    view_dispatcher_enable_queue(caesar_state->view_dispatcher);
 
     FURI_LOG_D("caesar_cipher", "Adding text input view to dispatcher");
     view_dispatcher_add_view(

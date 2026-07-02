@@ -1,6 +1,7 @@
 // scenes/protopirate_scene_saved_info.c
 #include "../protopirate_app_i.h"
 #include "../helpers/protopirate_storage.h"
+#include "../protocols/protocol_items.h"
 #include "../protocols/protocols_common.h"
 #include "proto_pirate_icons.h"
 
@@ -107,14 +108,13 @@ void protopirate_scene_saved_info_on_enter(void* context) {
 
     // Read fields
     uint32_t temp_data = 0;
-    app->emulate_disabled_for_loaded = false;
+    app->emulate_disabled_for_loaded = true;
 
     flipper_format_rewind(ff);
     if(flipper_format_read_string(ff, FF_PROTOCOL, temp_str)) {
-        furi_string_cat_printf(info_str, "Protocol: %s\n", furi_string_get_cstr(temp_str));
-    }
-    if(furi_string_cmp_str(temp_str, "Scher-Khan") == 0) {
-        app->emulate_disabled_for_loaded = true;
+        const char* protocol_name = furi_string_get_cstr(temp_str);
+        furi_string_cat_printf(info_str, "Protocol: %s\n", protocol_name);
+        app->emulate_disabled_for_loaded = !protopirate_protocol_catalog_can_tx(protocol_name);
     }
 
     flipper_format_rewind(ff);

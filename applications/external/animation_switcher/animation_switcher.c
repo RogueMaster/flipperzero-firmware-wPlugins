@@ -36,7 +36,6 @@ static FasApp* fas_app_alloc(void) {
 
     /* View dispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, fas_custom_event_cb);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, fas_navigation_event_cb);

@@ -252,8 +252,7 @@ static void zf_status_draw_scrollable_line(
         width,
         line,
         scroll ? (furi_get_tick() / ZF_HOME_TEXT_SCROLL_TICK_DIVISOR) : 0U,
-        !scroll,
-        false);
+        !scroll);
 }
 
 static void zf_status_draw_callback(Canvas* canvas, void* model) {

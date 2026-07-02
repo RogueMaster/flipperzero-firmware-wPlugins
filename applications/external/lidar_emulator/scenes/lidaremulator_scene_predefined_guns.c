@@ -53,12 +53,9 @@ static int32_t transmit_thread(void* context) {
     furi_hal_gpio_init_simple(pin_led, GpioModeAnalog);
 
     if(ctx->use_external_5v) {
-        uint8_t attempts = 0;
-        while(!furi_hal_power_is_otg_enabled() && attempts++ < 5) {
-            furi_hal_power_enable_otg();
-            furi_delay_ms(10);
-        }
-        furi_delay_ms(200);
+        Power* power = furi_record_open(RECORD_POWER);
+        power_enable_otg(power, false);
+        furi_record_close(RECORD_POWER);
     }
 
     free(ctx);
@@ -148,12 +145,9 @@ bool lidaremulator_scene_predefined_guns_view_on_event(InputEvent* event, void* 
              lidaremulator->ir_ext_5v_enabled);
 
         if(ctx->use_external_5v) {
-            uint8_t attempts = 0;
-            while(!furi_hal_power_is_otg_enabled() && attempts++ < 5) {
-                furi_hal_power_enable_otg();
-                furi_delay_ms(10);
-            }
-            furi_delay_ms(200);
+            Power* power = furi_record_open(RECORD_POWER);
+            power_enable_otg(power, true);
+            furi_record_close(RECORD_POWER);
         }
 
         furi_hal_light_set(LightRed, 0);

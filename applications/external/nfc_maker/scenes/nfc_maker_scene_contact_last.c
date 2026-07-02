@@ -12,13 +12,13 @@ static void nfc_maker_scene_contact_last_text_input_callback(void* context) {
 
 void nfc_maker_scene_contact_last_on_enter(void* context) {
     NfcMaker* app = context;
-    NFCMaker_TextInput* text_input = app->text_input;
+    TextInput* text_input = app->text_input;
 
-    nfc_maker_text_input_set_header_text(text_input, "Enter Last Name:");
+    text_input_set_header_text(text_input, "Enter Last Name:");
 
     strlcpy(app->small_buf2, "Smith", sizeof(app->small_buf2));
 
-    nfc_maker_text_input_set_result_callback(
+    text_input_set_result_callback(
         text_input,
         nfc_maker_scene_contact_last_text_input_callback,
         app,
@@ -26,7 +26,7 @@ void nfc_maker_scene_contact_last_on_enter(void* context) {
         sizeof(app->small_buf2),
         true);
 
-    nfc_maker_text_input_set_minimum_length(text_input, 0);
+    text_input_set_minimum_length(text_input, 0);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcMakerViewTextInput);
 }
@@ -51,5 +51,5 @@ bool nfc_maker_scene_contact_last_on_event(void* context, SceneManagerEvent even
 
 void nfc_maker_scene_contact_last_on_exit(void* context) {
     NfcMaker* app = context;
-    nfc_maker_text_input_reset(app->text_input);
+    text_input_reset(app->text_input);
 }

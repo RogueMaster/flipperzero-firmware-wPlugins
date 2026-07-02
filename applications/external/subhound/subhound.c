@@ -361,7 +361,6 @@ static SubhoundApp* subhound_app_alloc(void) {
     app->dialogs = furi_record_open(RECORD_DIALOGS);
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(
         app->view_dispatcher, subhound_navigation_callback);

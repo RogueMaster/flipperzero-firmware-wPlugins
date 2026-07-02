@@ -41,7 +41,7 @@ struct FPwnWifiUart {
     FPwnWifiRxCallback rx_callback;
     void* rx_callback_ctx;
     Expansion* expansion;
-    bool connected;
+    volatile bool connected;
     volatile bool running;
 };
 
@@ -155,7 +155,7 @@ FPwnWifiUart* fpwn_wifi_uart_alloc(void) {
     /* Start the line-assembler worker before enabling async RX so that no
      * bytes are dropped between the two operations. */
     uart->running = true;
-    uart->rx_thread = furi_thread_alloc_ex("FPwnUartRx", 1024, fpwn_uart_rx_worker, uart);
+    uart->rx_thread = furi_thread_alloc_ex("FPwnUartRx", 2048, fpwn_uart_rx_worker, uart);
     furi_assert(uart->rx_thread);
     furi_thread_start(uart->rx_thread);
 

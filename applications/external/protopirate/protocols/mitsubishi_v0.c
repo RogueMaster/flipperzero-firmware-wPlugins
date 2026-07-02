@@ -122,8 +122,16 @@ const SubGhzProtocol mitsubishi_v0_protocol = {
     .type = SubGhzProtocolTypeDynamic,
     .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_FM |
             SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save,
+#if PROTOPIRATE_WITH_DECODER
     .decoder = &subghz_protocol_mitsubishi_decoder,
+#else
+    .decoder = NULL,
+#endif
+#if PROTOPIRATE_WITH_ENCODER
     .encoder = &subghz_protocol_mitsubishi_encoder,
+#else
+    .encoder = NULL,
+#endif
 };
 
 void* subghz_protocol_decoder_mitsubishi_alloc(SubGhzEnvironment* environment) {

@@ -7,6 +7,7 @@ App(
     stack_size=3 * 1024,
     fap_category="Infrared",
     fap_icon_assets="assets",
+    fap_libs=["assets"],
     fap_icon_assets_symbol="xc",
     fap_icon="assets/App_Icon_10x10.png",
     fap_author="kala13x",

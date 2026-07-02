@@ -114,7 +114,6 @@ int32_t nfc_stock_app(void* p) {
 
     app->scene_manager = scene_manager_alloc(&nfc_stock_scene_handlers, app);
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     app->ui = nfc_stock_ui_alloc();
     nfc_stock_ui_configure(app->ui, app->view_dispatcher, app->scene_manager);

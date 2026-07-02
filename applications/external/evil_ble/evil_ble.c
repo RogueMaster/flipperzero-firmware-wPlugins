@@ -128,18 +128,28 @@ static void evil_ble_rebuild_main_menu(EvilBleApp* app) {
     submenu_add_item(
         app->main_menu, "Scan for Devices", EvilBleMainMenuScan, evil_ble_main_menu_callback, app);
 
-    /* Label "Clone Selected" only if we have at least one scanned device. */
+    /* Label "Clone Selected" only if we have at least one scanned device.
+     * submenu_add_item does NOT copy the string, so use persistent storage. */
     uint32_t count = evil_ble_scanner_get_count(app->scanner);
-    char clone_label[48];
     if(count > 0) {
         snprintf(
-            clone_label, sizeof(clone_label), "Clone Selected (%lu found)", (unsigned long)count);
+            app->clone_menu_label,
+            sizeof(app->clone_menu_label),
+            "Clone Selected (%lu found)",
+            (unsigned long)count);
     } else {
-        strncpy(clone_label, "Clone Selected (scan first)", sizeof(clone_label) - 1);
-        clone_label[sizeof(clone_label) - 1] = '\0';
+        strncpy(
+            app->clone_menu_label,
+            "Clone Selected (scan first)",
+            sizeof(app->clone_menu_label) - 1);
+        app->clone_menu_label[sizeof(app->clone_menu_label) - 1] = '\0';
     }
     submenu_add_item(
-        app->main_menu, clone_label, EvilBleMainMenuClone, evil_ble_main_menu_callback, app);
+        app->main_menu,
+        app->clone_menu_label,
+        EvilBleMainMenuClone,
+        evil_ble_main_menu_callback,
+        app);
 
     /* "Stop Clone" always visible; shows beacon active state. */
     const char* stop_label = app->cloning ? "Stop Clone [ACTIVE]" : "Stop Clone";
@@ -193,13 +203,16 @@ static void evil_ble_rebuild_device_list(EvilBleApp* app) {
         EvilBleDevice dev;
         if(!evil_ble_scanner_get_device(app->scanner, i, &dev)) continue;
 
-        /* Format: "[name] (dBm)" — fits within the 128-px Flipper display. */
-        char label[64];
-        snprintf(label, sizeof(label), "%s (%d)", dev.name, (int)dev.rssi);
-
-        /* Store label in app scratch; Submenu keeps only the pointer.
-     * Since we rebuild the whole list each time, device index == item index. */
-        submenu_add_item(app->device_list, label, i, evil_ble_device_list_callback, app);
+        /* Format: "[name] (dBm)" — fits within the 128-px Flipper display.
+         * submenu_add_item does NOT copy the string, so use persistent storage. */
+        snprintf(
+            app->device_labels[i],
+            sizeof(app->device_labels[i]),
+            "%s (%d)",
+            dev.name,
+            (int)dev.rssi);
+        submenu_add_item(
+            app->device_list, app->device_labels[i], i, evil_ble_device_list_callback, app);
     }
 }
 
@@ -343,7 +356,6 @@ static EvilBleApp* evil_ble_app_alloc(void) {
 
     /* ---- View dispatcher ---- */
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(
         app->view_dispatcher, evil_ble_navigation_callback);

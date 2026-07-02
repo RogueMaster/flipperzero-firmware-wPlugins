@@ -844,7 +844,6 @@ static Daikin64App* daikin64_app_alloc(void) {
     app->gui = furi_record_open(RECORD_GUI);
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     app->view = view_alloc();
 
     view_set_orientation(app->view, ViewOrientationVertical);

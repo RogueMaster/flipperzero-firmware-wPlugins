@@ -1895,7 +1895,6 @@ static MultiTimerApp* multitimer_app_alloc() {
     }
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     if(!app->view_dispatcher) {
         FURI_LOG_E(TAG, "Failed to allocate view dispatcher");
         multitimer_app_free(app);

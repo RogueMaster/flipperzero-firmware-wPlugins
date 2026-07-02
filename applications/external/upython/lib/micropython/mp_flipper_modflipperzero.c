@@ -7,6 +7,7 @@
 #include "py/obj.h"
 #include "py/stream.h"
 #include "py/runtime.h"
+#include <string.h>
 
 #include "mp_flipper_modflipperzero.h"
 
@@ -65,130 +66,6 @@ typedef struct _mp_obj_float_t {
     mp_obj_base_t base;
     mp_float_t value;
 } mp_obj_float_t;
-
-/*
-Python script for notes generation
-
-# coding: utf-8
-# Python script for notes generation
-
-from typing import List
-
-note_names: List = ['C', 'CS', 'D', 'DS', 'E', 'F', 'FS', 'G', 'GS', 'A', 'AS', 'B']
-
-for octave in range(9):
-    for name in note_names:
-        print("static const struct _mp_obj_float_t flipperzero_speaker_note_%s%s_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_%s%s};" % (name.lower(),octave,name,octave))
-*/
-
-static const struct _mp_obj_float_t flipperzero_speaker_note_c0_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_C0};
-static const struct _mp_obj_float_t flipperzero_speaker_note_cs0_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_CS0};
-static const struct _mp_obj_float_t flipperzero_speaker_note_d0_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_D0};
-static const struct _mp_obj_float_t flipperzero_speaker_note_ds0_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_DS0};
-static const struct _mp_obj_float_t flipperzero_speaker_note_e0_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_E0};
-static const struct _mp_obj_float_t flipperzero_speaker_note_f0_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_F0};
-static const struct _mp_obj_float_t flipperzero_speaker_note_fs0_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_FS0};
-static const struct _mp_obj_float_t flipperzero_speaker_note_g0_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_G0};
-static const struct _mp_obj_float_t flipperzero_speaker_note_gs0_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_GS0};
-static const struct _mp_obj_float_t flipperzero_speaker_note_a0_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_A0};
-static const struct _mp_obj_float_t flipperzero_speaker_note_as0_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_AS0};
-static const struct _mp_obj_float_t flipperzero_speaker_note_b0_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_B0};
-static const struct _mp_obj_float_t flipperzero_speaker_note_c1_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_C1};
-static const struct _mp_obj_float_t flipperzero_speaker_note_cs1_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_CS1};
-static const struct _mp_obj_float_t flipperzero_speaker_note_d1_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_D1};
-static const struct _mp_obj_float_t flipperzero_speaker_note_ds1_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_DS1};
-static const struct _mp_obj_float_t flipperzero_speaker_note_e1_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_E1};
-static const struct _mp_obj_float_t flipperzero_speaker_note_f1_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_F1};
-static const struct _mp_obj_float_t flipperzero_speaker_note_fs1_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_FS1};
-static const struct _mp_obj_float_t flipperzero_speaker_note_g1_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_G1};
-static const struct _mp_obj_float_t flipperzero_speaker_note_gs1_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_GS1};
-static const struct _mp_obj_float_t flipperzero_speaker_note_a1_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_A1};
-static const struct _mp_obj_float_t flipperzero_speaker_note_as1_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_AS1};
-static const struct _mp_obj_float_t flipperzero_speaker_note_b1_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_B1};
-static const struct _mp_obj_float_t flipperzero_speaker_note_c2_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_C2};
-static const struct _mp_obj_float_t flipperzero_speaker_note_cs2_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_CS2};
-static const struct _mp_obj_float_t flipperzero_speaker_note_d2_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_D2};
-static const struct _mp_obj_float_t flipperzero_speaker_note_ds2_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_DS2};
-static const struct _mp_obj_float_t flipperzero_speaker_note_e2_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_E2};
-static const struct _mp_obj_float_t flipperzero_speaker_note_f2_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_F2};
-static const struct _mp_obj_float_t flipperzero_speaker_note_fs2_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_FS2};
-static const struct _mp_obj_float_t flipperzero_speaker_note_g2_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_G2};
-static const struct _mp_obj_float_t flipperzero_speaker_note_gs2_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_GS2};
-static const struct _mp_obj_float_t flipperzero_speaker_note_a2_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_A2};
-static const struct _mp_obj_float_t flipperzero_speaker_note_as2_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_AS2};
-static const struct _mp_obj_float_t flipperzero_speaker_note_b2_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_B2};
-static const struct _mp_obj_float_t flipperzero_speaker_note_c3_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_C3};
-static const struct _mp_obj_float_t flipperzero_speaker_note_cs3_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_CS3};
-static const struct _mp_obj_float_t flipperzero_speaker_note_d3_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_D3};
-static const struct _mp_obj_float_t flipperzero_speaker_note_ds3_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_DS3};
-static const struct _mp_obj_float_t flipperzero_speaker_note_e3_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_E3};
-static const struct _mp_obj_float_t flipperzero_speaker_note_f3_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_F3};
-static const struct _mp_obj_float_t flipperzero_speaker_note_fs3_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_FS3};
-static const struct _mp_obj_float_t flipperzero_speaker_note_g3_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_G3};
-static const struct _mp_obj_float_t flipperzero_speaker_note_gs3_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_GS3};
-static const struct _mp_obj_float_t flipperzero_speaker_note_a3_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_A3};
-static const struct _mp_obj_float_t flipperzero_speaker_note_as3_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_AS3};
-static const struct _mp_obj_float_t flipperzero_speaker_note_b3_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_B3};
-static const struct _mp_obj_float_t flipperzero_speaker_note_c4_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_C4};
-static const struct _mp_obj_float_t flipperzero_speaker_note_cs4_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_CS4};
-static const struct _mp_obj_float_t flipperzero_speaker_note_d4_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_D4};
-static const struct _mp_obj_float_t flipperzero_speaker_note_ds4_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_DS4};
-static const struct _mp_obj_float_t flipperzero_speaker_note_e4_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_E4};
-static const struct _mp_obj_float_t flipperzero_speaker_note_f4_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_F4};
-static const struct _mp_obj_float_t flipperzero_speaker_note_fs4_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_FS4};
-static const struct _mp_obj_float_t flipperzero_speaker_note_g4_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_G4};
-static const struct _mp_obj_float_t flipperzero_speaker_note_gs4_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_GS4};
-static const struct _mp_obj_float_t flipperzero_speaker_note_a4_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_A4};
-static const struct _mp_obj_float_t flipperzero_speaker_note_as4_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_AS4};
-static const struct _mp_obj_float_t flipperzero_speaker_note_b4_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_B4};
-static const struct _mp_obj_float_t flipperzero_speaker_note_c5_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_C5};
-static const struct _mp_obj_float_t flipperzero_speaker_note_cs5_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_CS5};
-static const struct _mp_obj_float_t flipperzero_speaker_note_d5_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_D5};
-static const struct _mp_obj_float_t flipperzero_speaker_note_ds5_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_DS5};
-static const struct _mp_obj_float_t flipperzero_speaker_note_e5_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_E5};
-static const struct _mp_obj_float_t flipperzero_speaker_note_f5_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_F5};
-static const struct _mp_obj_float_t flipperzero_speaker_note_fs5_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_FS5};
-static const struct _mp_obj_float_t flipperzero_speaker_note_g5_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_G5};
-static const struct _mp_obj_float_t flipperzero_speaker_note_gs5_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_GS5};
-static const struct _mp_obj_float_t flipperzero_speaker_note_a5_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_A5};
-static const struct _mp_obj_float_t flipperzero_speaker_note_as5_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_AS5};
-static const struct _mp_obj_float_t flipperzero_speaker_note_b5_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_B5};
-static const struct _mp_obj_float_t flipperzero_speaker_note_c6_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_C6};
-static const struct _mp_obj_float_t flipperzero_speaker_note_cs6_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_CS6};
-static const struct _mp_obj_float_t flipperzero_speaker_note_d6_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_D6};
-static const struct _mp_obj_float_t flipperzero_speaker_note_ds6_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_DS6};
-static const struct _mp_obj_float_t flipperzero_speaker_note_e6_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_E6};
-static const struct _mp_obj_float_t flipperzero_speaker_note_f6_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_F6};
-static const struct _mp_obj_float_t flipperzero_speaker_note_fs6_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_FS6};
-static const struct _mp_obj_float_t flipperzero_speaker_note_g6_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_G6};
-static const struct _mp_obj_float_t flipperzero_speaker_note_gs6_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_GS6};
-static const struct _mp_obj_float_t flipperzero_speaker_note_a6_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_A6};
-static const struct _mp_obj_float_t flipperzero_speaker_note_as6_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_AS6};
-static const struct _mp_obj_float_t flipperzero_speaker_note_b6_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_B6};
-static const struct _mp_obj_float_t flipperzero_speaker_note_c7_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_C7};
-static const struct _mp_obj_float_t flipperzero_speaker_note_cs7_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_CS7};
-static const struct _mp_obj_float_t flipperzero_speaker_note_d7_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_D7};
-static const struct _mp_obj_float_t flipperzero_speaker_note_ds7_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_DS7};
-static const struct _mp_obj_float_t flipperzero_speaker_note_e7_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_E7};
-static const struct _mp_obj_float_t flipperzero_speaker_note_f7_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_F7};
-static const struct _mp_obj_float_t flipperzero_speaker_note_fs7_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_FS7};
-static const struct _mp_obj_float_t flipperzero_speaker_note_g7_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_G7};
-static const struct _mp_obj_float_t flipperzero_speaker_note_gs7_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_GS7};
-static const struct _mp_obj_float_t flipperzero_speaker_note_a7_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_A7};
-static const struct _mp_obj_float_t flipperzero_speaker_note_as7_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_AS7};
-static const struct _mp_obj_float_t flipperzero_speaker_note_b7_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_B7};
-static const struct _mp_obj_float_t flipperzero_speaker_note_c8_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_C8};
-static const struct _mp_obj_float_t flipperzero_speaker_note_cs8_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_CS8};
-static const struct _mp_obj_float_t flipperzero_speaker_note_d8_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_D8};
-static const struct _mp_obj_float_t flipperzero_speaker_note_ds8_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_DS8};
-static const struct _mp_obj_float_t flipperzero_speaker_note_e8_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_E8};
-static const struct _mp_obj_float_t flipperzero_speaker_note_f8_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_F8};
-static const struct _mp_obj_float_t flipperzero_speaker_note_fs8_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_FS8};
-static const struct _mp_obj_float_t flipperzero_speaker_note_g8_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_G8};
-static const struct _mp_obj_float_t flipperzero_speaker_note_gs8_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_GS8};
-static const struct _mp_obj_float_t flipperzero_speaker_note_a8_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_A8};
-static const struct _mp_obj_float_t flipperzero_speaker_note_as8_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_AS8};
-static const struct _mp_obj_float_t flipperzero_speaker_note_b8_obj = {{&mp_type_float}, (mp_float_t)MP_FLIPPER_SPEAKER_NOTE_B8};
 
 static const struct _mp_obj_float_t flipperzero_speaker_volume_min_obj = {
     {&mp_type_float},
@@ -744,6 +621,60 @@ MP_DEFINE_CONST_OBJ_TYPE(
     locals_dict,
     &flipperzero_uart_connection_locals_dict);
 
+static const char* notes = "CCDDEFFGGAAB";
+static const float base_frequency = 16.3515979;
+static const float const_factor = 1.05946309436;
+
+static inline float get_frequency_by_note(const uint8_t octave, const char note, const bool is_sharp) {
+    float frequency = base_frequency;
+
+    for(size_t i = 0; i < octave * 12; i++) {
+        frequency *= const_factor;
+    }
+
+    for(size_t j = 0; j < 12; j++) {
+        if(notes[j] == note) {
+            frequency *= (is_sharp ? const_factor : 1.0);
+
+            return frequency;
+        }
+
+        frequency *= const_factor;
+    }
+
+    return -1.0;
+}
+
+void flipperzero_module_attr(mp_obj_t self_in, qstr attr, mp_obj_t* dest) {
+    if(dest[0] == MP_OBJ_NULL) {
+        // load attribute
+
+        const char* attribute = qstr_str(attr);
+
+        if(strstr(attribute, "SPEAKER_NOTE_") == &attribute[0]) {
+            size_t len = strlen(attribute);
+            uint8_t octave = attribute[len - 1] - '0';
+            bool is_sharp = attribute[len - 2] == 'S';
+            size_t note_index = len - (is_sharp ? 3 : 2);
+            uint8_t i_note = UINT8_MAX;
+
+            float frequency = get_frequency_by_note(octave, attribute[note_index], is_sharp);
+
+            if(octave > 8 || frequency < 0.0) {
+                dest[0] = mp_const_none;
+            } else {
+                dest[0] = mp_obj_new_float(frequency);
+            }
+
+            return;
+        }
+    } else if(dest[1] == MP_OBJ_NULL) {
+        // delete attribute
+    } else {
+        // store attribute
+    }
+}
+
 static const mp_rom_map_elem_t flipperzero_module_globals_table[] = {
     // light
     {MP_OBJ_NEW_QSTR(MP_QSTR___name__), MP_OBJ_NEW_QSTR(MP_QSTR_flipperzero)},
@@ -757,132 +688,9 @@ static const mp_rom_map_elem_t flipperzero_module_globals_table[] = {
     {MP_ROM_QSTR(MP_QSTR_light_blink_stop), MP_ROM_PTR(&flipperzero_light_blink_stop_obj)},
     // vibro
     {MP_ROM_QSTR(MP_QSTR_vibro_set), MP_ROM_PTR(&flipperzero_vibro_set_obj)},
-    /*
-Python script for notes generation
-
-# coding: utf-8
-# Python script for notes generation
-
-from typing import List
-
-note_names: List = ['C', 'CS', 'D', 'DS', 'E', 'F', 'FS', 'G', 'GS', 'A', 'AS', 'B']
-
-for octave in range(9):
-    for name in note_names:
-        print("{MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_%s%s), MP_ROM_PTR(&flipperzero_speaker_note_%s%s_obj)}," % (name,octave,name.lower(),octave))
-*/
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_C0), MP_ROM_PTR(&flipperzero_speaker_note_c0_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_CS0), MP_ROM_PTR(&flipperzero_speaker_note_cs0_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_D0), MP_ROM_PTR(&flipperzero_speaker_note_d0_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_DS0), MP_ROM_PTR(&flipperzero_speaker_note_ds0_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_E0), MP_ROM_PTR(&flipperzero_speaker_note_e0_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_F0), MP_ROM_PTR(&flipperzero_speaker_note_f0_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_FS0), MP_ROM_PTR(&flipperzero_speaker_note_fs0_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_G0), MP_ROM_PTR(&flipperzero_speaker_note_g0_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_GS0), MP_ROM_PTR(&flipperzero_speaker_note_gs0_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_A0), MP_ROM_PTR(&flipperzero_speaker_note_a0_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_AS0), MP_ROM_PTR(&flipperzero_speaker_note_as0_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_B0), MP_ROM_PTR(&flipperzero_speaker_note_b0_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_C1), MP_ROM_PTR(&flipperzero_speaker_note_c1_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_CS1), MP_ROM_PTR(&flipperzero_speaker_note_cs1_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_D1), MP_ROM_PTR(&flipperzero_speaker_note_d1_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_DS1), MP_ROM_PTR(&flipperzero_speaker_note_ds1_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_E1), MP_ROM_PTR(&flipperzero_speaker_note_e1_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_F1), MP_ROM_PTR(&flipperzero_speaker_note_f1_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_FS1), MP_ROM_PTR(&flipperzero_speaker_note_fs1_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_G1), MP_ROM_PTR(&flipperzero_speaker_note_g1_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_GS1), MP_ROM_PTR(&flipperzero_speaker_note_gs1_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_A1), MP_ROM_PTR(&flipperzero_speaker_note_a1_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_AS1), MP_ROM_PTR(&flipperzero_speaker_note_as1_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_B1), MP_ROM_PTR(&flipperzero_speaker_note_b1_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_C2), MP_ROM_PTR(&flipperzero_speaker_note_c2_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_CS2), MP_ROM_PTR(&flipperzero_speaker_note_cs2_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_D2), MP_ROM_PTR(&flipperzero_speaker_note_d2_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_DS2), MP_ROM_PTR(&flipperzero_speaker_note_ds2_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_E2), MP_ROM_PTR(&flipperzero_speaker_note_e2_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_F2), MP_ROM_PTR(&flipperzero_speaker_note_f2_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_FS2), MP_ROM_PTR(&flipperzero_speaker_note_fs2_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_G2), MP_ROM_PTR(&flipperzero_speaker_note_g2_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_GS2), MP_ROM_PTR(&flipperzero_speaker_note_gs2_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_A2), MP_ROM_PTR(&flipperzero_speaker_note_a2_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_AS2), MP_ROM_PTR(&flipperzero_speaker_note_as2_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_B2), MP_ROM_PTR(&flipperzero_speaker_note_b2_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_C3), MP_ROM_PTR(&flipperzero_speaker_note_c3_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_CS3), MP_ROM_PTR(&flipperzero_speaker_note_cs3_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_D3), MP_ROM_PTR(&flipperzero_speaker_note_d3_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_DS3), MP_ROM_PTR(&flipperzero_speaker_note_ds3_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_E3), MP_ROM_PTR(&flipperzero_speaker_note_e3_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_F3), MP_ROM_PTR(&flipperzero_speaker_note_f3_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_FS3), MP_ROM_PTR(&flipperzero_speaker_note_fs3_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_G3), MP_ROM_PTR(&flipperzero_speaker_note_g3_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_GS3), MP_ROM_PTR(&flipperzero_speaker_note_gs3_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_A3), MP_ROM_PTR(&flipperzero_speaker_note_a3_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_AS3), MP_ROM_PTR(&flipperzero_speaker_note_as3_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_B3), MP_ROM_PTR(&flipperzero_speaker_note_b3_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_C4), MP_ROM_PTR(&flipperzero_speaker_note_c4_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_CS4), MP_ROM_PTR(&flipperzero_speaker_note_cs4_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_D4), MP_ROM_PTR(&flipperzero_speaker_note_d4_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_DS4), MP_ROM_PTR(&flipperzero_speaker_note_ds4_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_E4), MP_ROM_PTR(&flipperzero_speaker_note_e4_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_F4), MP_ROM_PTR(&flipperzero_speaker_note_f4_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_FS4), MP_ROM_PTR(&flipperzero_speaker_note_fs4_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_G4), MP_ROM_PTR(&flipperzero_speaker_note_g4_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_GS4), MP_ROM_PTR(&flipperzero_speaker_note_gs4_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_A4), MP_ROM_PTR(&flipperzero_speaker_note_a4_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_AS4), MP_ROM_PTR(&flipperzero_speaker_note_as4_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_B4), MP_ROM_PTR(&flipperzero_speaker_note_b4_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_C5), MP_ROM_PTR(&flipperzero_speaker_note_c5_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_CS5), MP_ROM_PTR(&flipperzero_speaker_note_cs5_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_D5), MP_ROM_PTR(&flipperzero_speaker_note_d5_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_DS5), MP_ROM_PTR(&flipperzero_speaker_note_ds5_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_E5), MP_ROM_PTR(&flipperzero_speaker_note_e5_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_F5), MP_ROM_PTR(&flipperzero_speaker_note_f5_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_FS5), MP_ROM_PTR(&flipperzero_speaker_note_fs5_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_G5), MP_ROM_PTR(&flipperzero_speaker_note_g5_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_GS5), MP_ROM_PTR(&flipperzero_speaker_note_gs5_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_A5), MP_ROM_PTR(&flipperzero_speaker_note_a5_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_AS5), MP_ROM_PTR(&flipperzero_speaker_note_as5_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_B5), MP_ROM_PTR(&flipperzero_speaker_note_b5_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_C6), MP_ROM_PTR(&flipperzero_speaker_note_c6_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_CS6), MP_ROM_PTR(&flipperzero_speaker_note_cs6_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_D6), MP_ROM_PTR(&flipperzero_speaker_note_d6_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_DS6), MP_ROM_PTR(&flipperzero_speaker_note_ds6_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_E6), MP_ROM_PTR(&flipperzero_speaker_note_e6_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_F6), MP_ROM_PTR(&flipperzero_speaker_note_f6_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_FS6), MP_ROM_PTR(&flipperzero_speaker_note_fs6_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_G6), MP_ROM_PTR(&flipperzero_speaker_note_g6_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_GS6), MP_ROM_PTR(&flipperzero_speaker_note_gs6_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_A6), MP_ROM_PTR(&flipperzero_speaker_note_a6_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_AS6), MP_ROM_PTR(&flipperzero_speaker_note_as6_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_B6), MP_ROM_PTR(&flipperzero_speaker_note_b6_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_C7), MP_ROM_PTR(&flipperzero_speaker_note_c7_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_CS7), MP_ROM_PTR(&flipperzero_speaker_note_cs7_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_D7), MP_ROM_PTR(&flipperzero_speaker_note_d7_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_DS7), MP_ROM_PTR(&flipperzero_speaker_note_ds7_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_E7), MP_ROM_PTR(&flipperzero_speaker_note_e7_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_F7), MP_ROM_PTR(&flipperzero_speaker_note_f7_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_FS7), MP_ROM_PTR(&flipperzero_speaker_note_fs7_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_G7), MP_ROM_PTR(&flipperzero_speaker_note_g7_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_GS7), MP_ROM_PTR(&flipperzero_speaker_note_gs7_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_A7), MP_ROM_PTR(&flipperzero_speaker_note_a7_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_AS7), MP_ROM_PTR(&flipperzero_speaker_note_as7_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_B7), MP_ROM_PTR(&flipperzero_speaker_note_b7_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_C8), MP_ROM_PTR(&flipperzero_speaker_note_c8_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_CS8), MP_ROM_PTR(&flipperzero_speaker_note_cs8_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_D8), MP_ROM_PTR(&flipperzero_speaker_note_d8_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_DS8), MP_ROM_PTR(&flipperzero_speaker_note_ds8_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_E8), MP_ROM_PTR(&flipperzero_speaker_note_e8_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_F8), MP_ROM_PTR(&flipperzero_speaker_note_f8_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_FS8), MP_ROM_PTR(&flipperzero_speaker_note_fs8_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_G8), MP_ROM_PTR(&flipperzero_speaker_note_g8_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_GS8), MP_ROM_PTR(&flipperzero_speaker_note_gs8_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_A8), MP_ROM_PTR(&flipperzero_speaker_note_a8_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_AS8), MP_ROM_PTR(&flipperzero_speaker_note_as8_obj)},
-    {MP_ROM_QSTR(MP_QSTR_SPEAKER_NOTE_B8), MP_ROM_PTR(&flipperzero_speaker_note_b8_obj)},
-
+    // speaker
     {MP_ROM_QSTR(MP_QSTR_SPEAKER_VOLUME_MIN), MP_ROM_PTR(&flipperzero_speaker_volume_min_obj)},
     {MP_ROM_QSTR(MP_QSTR_SPEAKER_VOLUME_MAX), MP_ROM_PTR(&flipperzero_speaker_volume_max_obj)},
-
     {MP_ROM_QSTR(MP_QSTR_speaker_start), MP_ROM_PTR(&flipperzero_speaker_start_obj)},
     {MP_ROM_QSTR(MP_QSTR_speaker_set_volume), MP_ROM_PTR(&flipperzero_speaker_set_volume_obj)},
     {MP_ROM_QSTR(MP_QSTR_speaker_stop), MP_ROM_PTR(&flipperzero_speaker_stop_obj)},
@@ -987,6 +795,7 @@ const mp_obj_module_t flipperzero_module = {
 };
 
 MP_REGISTER_MODULE(MP_QSTR_flipperzero, flipperzero_module);
+MP_REGISTER_MODULE_DELEGATION(flipperzero_module, flipperzero_module_attr);
 
 void mp_flipper_on_input(uint16_t button, uint16_t type) {
     if(mp_flipper_on_input_callback != NULL) {

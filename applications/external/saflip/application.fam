@@ -6,6 +6,7 @@ App(
     stack_size=2 * 1024,
     fap_icon="icon.png",
     fap_icon_assets="images",
+    fap_libs=["assets"],
     fap_category="NFC",
     fap_author="Aaronjamt",
     fap_weburl="https://github.com/aaronjamt/saflip",

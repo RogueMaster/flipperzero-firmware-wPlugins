@@ -19,6 +19,8 @@
 static void scene_edit_shunt_input_callback(void* context, int32_t number) {
     App* app = (App*)context;
     app->config.shunt_resistor = number / 1.0E3;
+
+    scene_manager_previous_scene(app->scene_manager);
 }
 
 static void scene_edit_shunt_init(App* app) {
@@ -52,5 +54,5 @@ bool scene_edit_shunt_on_event(void* context, SceneManagerEvent event) {
 void scene_edit_shunt_on_exit(void* context) {
     App* app = (App*)context;
 
-    variable_item_list_reset(app->var_item_list);
+    UNUSED(app);
 }

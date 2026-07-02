@@ -6,7 +6,7 @@
 
 	FYI. *something* in the following code is the fix
 
-void  furi_hal_i2c_acquire (FuriHalI2cBusHandle* handle)
+void  furi_hal_i2c_acquire (const FuriHalI2cBusHandle* handle)
 {
 	// 1. Disable the power/backlight (it uses i2c)
     furi_hal_power_insomnia_enter();
@@ -19,15 +19,15 @@ void  furi_hal_i2c_acquire (FuriHalI2cBusHandle* handle)
     // 5. Activate bus
     handle->bus->callback(handle->bus, FuriHalI2cBusEventActivate);
     // 6. Activate handle
-    handle->callback(handle, FuriHalI2cBusHandleEventActivate);
+    handle->callback(handle, const FuriHalI2cBusHandleEventActivate);
 }
 
-void  furi_hal_i2c_release (FuriHalI2cBusHandle* handle)
+void  furi_hal_i2c_release (const FuriHalI2cBusHandle* handle)
 {
     // Ensure that current handle is our handle
     furi_check(handle->bus->current_handle == handle);
     // 6. Deactivate handle
-    handle->callback(handle, FuriHalI2cBusHandleEventDeactivate);
+    handle->callback(handle, const FuriHalI2cBusHandleEventDeactivate);
     // 5. Deactivate bus
     handle->bus->callback(handle->bus, FuriHalI2cBusEventDeactivate);
     // 3,4. Reset current handle
@@ -50,7 +50,7 @@ void  furi_hal_i2c_release (FuriHalI2cBusHandle* handle)
 #if ENABLE_WORKAROUND == 1
 //+============================================================================ ========================================
 static inline bool furi_hal_Wi2c_is_device_ready(
-    FuriHalI2cBusHandle* const bus,
+    const FuriHalI2cBusHandle* const bus,
     const uint8_t addr,
     const uint32_t tmo) {
     furi_hal_i2c_acquire(bus);
@@ -61,7 +61,7 @@ static inline bool furi_hal_Wi2c_is_device_ready(
 
 //+============================================================================
 static inline bool furi_hal_Wi2c_tx(
-    FuriHalI2cBusHandle* const bus,
+    const FuriHalI2cBusHandle* const bus,
     const uint8_t addr,
     const void* buf,
     const size_t len,
@@ -74,7 +74,7 @@ static inline bool furi_hal_Wi2c_tx(
 
 //+============================================================================
 static inline bool furi_hal_Wi2c_rx(
-    FuriHalI2cBusHandle* const bus,
+    const FuriHalI2cBusHandle* const bus,
     const uint8_t addr,
     void* buf,
     const size_t len,
@@ -87,7 +87,7 @@ static inline bool furi_hal_Wi2c_rx(
 
 //+============================================================================
 static inline bool furi_hal_Wi2c_trx(
-    FuriHalI2cBusHandle* const bus,
+    const FuriHalI2cBusHandle* const bus,
     const uint8_t addr,
     const void* tx,
     const size_t txlen,
@@ -112,7 +112,7 @@ static inline bool furi_hal_Wi2c_trx(
 // The puts a delay between the address being set and the data being read
 //
 static inline bool furi_hal_i2c_trxd(
-    FuriHalI2cBusHandle* const bus,
+    const FuriHalI2cBusHandle* const bus,
     const uint8_t addr,
     const void* tx,
     const size_t txlen,

@@ -30,7 +30,15 @@ static void nfc_maker_scene_save_generate_populate_ndef_buffer(NfcMaker* app) {
 
         FuriString* vcard = furi_string_alloc_set("BEGIN:VCARD\r\nVERSION:3.0\r\n");
         furi_string_cat_printf(
-            vcard, "PRODID:-//RogueMasterCFW//%s//EN\r\n", version_get_version(NULL));
+            vcard,
+            "PRODID:-//"
+#ifdef FW_ORIGIN_RM
+            "RogueMasterCFW"
+#else
+            "FlipperZero"
+#endif
+            "//%s//EN\r\n",
+            version_get_version(NULL));
         furi_string_cat_printf(vcard, "N:%s;%s;;;\r\n", app->small_buf2, app->small_buf1);
         furi_string_cat_printf(
             vcard,

@@ -13,7 +13,7 @@ v0.3:
 - Added detection of overlaps between the XEX file and boot code
 - Fixed XEX file loading
 
-v0.2:(Not in RM until THREAD changes and PIPE gets added)
+v0.2:
 - Added Atari 850 modem emulation
 
 v0.1:

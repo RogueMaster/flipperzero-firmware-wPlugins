@@ -73,7 +73,7 @@ typedef struct ICM42688P ICM42688P;
 
 typedef void (*ICM42688PIrqCallback)(void* ctx);
 
-ICM42688P* icm42688p_alloc(FuriHalSpiBusHandle* spi_bus, const GpioPin* irq_pin);
+ICM42688P* icm42688p_alloc(const FuriHalSpiBusHandle* spi_bus, const GpioPin* irq_pin);
 
 bool icm42688p_init(ICM42688P* icm42688p);
 

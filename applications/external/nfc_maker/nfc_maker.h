@@ -7,16 +7,26 @@
 #include <gui/modules/validators.h>
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
+#ifdef FW_ORIGIN_RM
+#include <assets_icons.h>
 #include <nfc_maker_icons.h>
+#else
+extern const Icon I_DolphinDone_80x58;
+extern const Icon I_WarningDolphinFlip_45x42;
+#endif
 #include <gui/modules/submenu.h>
-#include "nfc_maker_text_input.h"
+#ifdef FW_ORIGIN_RM
+#include <gui/modules/text_input.h>
+#else
+#include "dropin/text_input.h"
+#endif
 #include <gui/modules/byte_input.h>
 #include <gui/modules/popup.h>
 #include "scenes/nfc_maker_scene.h"
 #include <lib/flipper_format/flipper_format.h>
 #include <toolbox/name_generator.h>
 #include <bit_lib/bit_lib.h>
-#if __has_include(<applications/main/nfc/nfc_app_i.h>)
+#if defined(FW_ORIGIN_RM) && __has_include(<applications/main/nfc/nfc_app_i.h>)
 #include <applications/main/nfc/nfc_app_i.h>
 #else
 #define NFC_APP_FOLDER    EXT_PATH("nfc")
@@ -95,7 +105,7 @@ typedef struct {
     SceneManager* scene_manager;
     ViewDispatcher* view_dispatcher;
     Submenu* submenu;
-    NFCMaker_TextInput* text_input;
+    TextInput* text_input;
     ByteInput* byte_input;
     Popup* popup;
 

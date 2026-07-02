@@ -31,7 +31,7 @@
 #define CLOCK_TIME_FORMAT     "%.2d:%.2d:%.2d"
 #define CLOCK_ISO_DATE_FORMAT "%.4d-%.2d-%.2d"
 
-//static FuriHalSpiBusHandle* spi = &furi_hal_spi_bus_handle_external;
+//static const FuriHalSpiBusHandle* spi = &furi_hal_spi_bus_handle_external;
 
 const GpioPin* const pin_led = &gpio_swclk;
 const GpioPin* const pin_back = &gpio_button_back;
@@ -1976,7 +1976,6 @@ static LoRaApp* lora_app_alloc() {
     Gui* gui = furi_record_open(RECORD_GUI);
 
     app->view_dispatcher = view_dispatcher_alloc();
-    //view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 
@@ -2349,7 +2348,7 @@ int32_t main_lora_app(void* _p) {
     UNUSED(_p);
 
     static FuriHalSpiBusHandle spi_handle;
-    FuriHalSpiBusHandle* spi;
+    const FuriHalSpiBusHandle* spi;
 
     memcpy(&spi_handle, &furi_hal_spi_bus_handle_external, sizeof(FuriHalSpiBusHandle));
     spi_handle.cs = &gpio_ext_pc0;

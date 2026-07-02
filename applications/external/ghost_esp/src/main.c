@@ -86,7 +86,6 @@ int32_t ghost_esp_app(void* p) {
 
     // Initialize UI components - core components first
     state->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(state->view_dispatcher);
     state->main_menu = main_menu_alloc();
     if(!state->view_dispatcher || !state->main_menu) {
         if(state->view_dispatcher) view_dispatcher_free(state->view_dispatcher);

@@ -14,6 +14,7 @@
 #include <input/input.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
+#include <dolphin/dolphin.h>
 
 #define Y_FIELD_SIZE 6
 #define Y_LAST       (Y_FIELD_SIZE - 1)
@@ -491,17 +492,17 @@ static void heap_defense_render_callback(Canvas* const canvas, void* mutex) {
 }
 
 static void heap_defense_input_callback(InputEvent* input_event, void* ctx) {
-    furi_assert(ctx);
     FuriMessageQueue* event_queue = ctx;
     if(input_event->type != InputTypePress && input_event->type != InputTypeLong) return;
 
+    furi_assert(event_queue);
     GameEvent event = {.type = EventKeyPress, .input = *input_event};
     furi_message_queue_put(event_queue, &event, FuriWaitForever);
 }
 
 static void heap_defense_timer_callback(void* ctx) {
-    furi_assert(ctx);
     FuriMessageQueue* event_queue = ctx;
+    furi_assert(event_queue);
 
     GameEvent event;
     event.type = EventGameTick;
@@ -540,6 +541,9 @@ int32_t heap_defence_app(void* p) {
     game->person->p.y -= 2;
     game->game_status = 0;
     game->animation = AnimationPause;
+
+    // Call dolphin deed on game start
+    dolphin_deed(DolphinDeedPluginGameStart);
 
     GameEvent event = {0};
     while(event.input.key != InputKeyBack) {

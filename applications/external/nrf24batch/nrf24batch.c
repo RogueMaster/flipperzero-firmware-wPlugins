@@ -13,10 +13,11 @@
 #include <nrf24.h>
 #include <u8g2.h>
 
-#define TAG     "nrf24batch"
+#define TAG "nrf24batch"
+
 #define VERSION "1.9"
 
-#define SCAN_APP_PATH_FOLDER  APP_ASSETS_PATH("")
+#define SCAN_APP_PATH_FOLDER  STORAGE_APP_DATA_PATH_PREFIX
 #define LOG_FILEEXT           ".txt"
 #define NRF_READ_TIMEOUT      300UL // ms
 #define WORK_PERIOD           2 // ms, Timer period
@@ -1112,6 +1113,7 @@ static void save_batch(void) {
 static void input_callback(InputEvent* input_event, void* ctx) {
     furi_assert(ctx);
     FuriMessageQueue* event_queue = ctx;
+
     PluginEvent event = {.type = EventTypeKey, .input = *input_event};
     furi_message_queue_put(event_queue, &event, FuriWaitForever);
 }

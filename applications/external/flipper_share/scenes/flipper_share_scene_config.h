@@ -1,0 +1,5 @@
+ADD_SCENE(flipper_share, menu, Menu)
+ADD_SCENE(flipper_share, file_browser, FileBrowser)
+ADD_SCENE(flipper_share, show_file, ShowFile)
+ADD_SCENE(flipper_share, send, Send)
+ADD_SCENE(flipper_share, receive, Receive)

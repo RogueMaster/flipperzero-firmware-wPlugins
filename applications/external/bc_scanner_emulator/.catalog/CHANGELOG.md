@@ -1,3 +1,11 @@
+## v 0.4
+
+- Update to flipper SDK version 1.3.2
+
+## v 0.3
+
+- Update to flipper SDK version 0.98.1
+
 ## v 0.2
 
 - New UI

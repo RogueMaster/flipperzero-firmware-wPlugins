@@ -1,6 +1,5 @@
 #include "../lfrfid_i.h"
 #include "../helpers/lfrfid_dialog.h"
-#include <lfrfid_icons.h>
 
 #define LFRFID_T5577_BITRATE_RF_64         0x00140000
 #define LFRFID_T5577_MODULATION_MANCHESTER 0x00008000
@@ -35,7 +34,7 @@ static void lfrfid_setpw_t5577_password_and_config_to_EM(LfRfid* app) {
     //uint32_t new_password = app->new_password;
 
     popup_set_header(popup, "Setting\npassword", 102, 10, AlignCenter, AlignCenter);
-    //popup_set_icon(popup, 0, 3, &I_RFIDDolphinSend_97x61);
+    popup_set_icon(popup, 0, 3, &I_RFIDDolphinSend_97x61);
     popup_set_text(popup, curr_buf, /*92*/ 66, 33, AlignCenter, AlignCenter);
     snprintf(
         curr_buf,
@@ -112,8 +111,8 @@ void lfrfid_scene_setpw_t5577_on_enter(void* context) {
     lfrfid_setpw_t5577_password_and_config_to_EM(app);
 
     notification_message(app->notifications, &sequence_success);
-    popup_set_header(popup, "Done!", 102, 10, AlignCenter, AlignTop);
-    popup_set_icon(popup, 0, 7, &I_RFIDDolphinSuccess_108x57);
+    popup_set_header(popup, "Done!", 95, 10, AlignCenter, AlignTop);
+    popup_set_icon(popup, 0, 9, &I_DolphinSuccess_91x55);
     popup_set_context(popup, app);
     popup_set_callback(popup, lfrfid_popup_timeout_callback);
     popup_set_timeout(popup, 1500);

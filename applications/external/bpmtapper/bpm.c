@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include "bpm_tapper_icons.h"
 
+#include <assets_icons.h>
+
 typedef enum {
     EventTypeTick,
     EventTypeKey,

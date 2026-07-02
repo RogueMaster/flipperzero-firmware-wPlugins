@@ -12,6 +12,8 @@
 
 #include "../defines.h"
 
+#define FIAT_PROTOCOL_V0_NAME "Fiat V0"
+
 typedef struct SubGhzProtocolDecoderFiatV0 SubGhzProtocolDecoderFiatV0;
 typedef struct SubGhzProtocolEncoderFiatV0 SubGhzProtocolEncoderFiatV0;
 
@@ -19,7 +21,6 @@ extern const SubGhzProtocol fiat_protocol_v0;
 
 // Decoder functions
 void* subghz_protocol_decoder_fiat_v0_alloc(SubGhzEnvironment* environment);
-void subghz_protocol_decoder_fiat_v0_free(void* context);
 void subghz_protocol_decoder_fiat_v0_reset(void* context);
 void subghz_protocol_decoder_fiat_v0_feed(void* context, bool level, uint32_t duration);
 uint8_t subghz_protocol_decoder_fiat_v0_get_hash_data(void* context);

@@ -72,7 +72,7 @@ struct SubGhzProtocolDecoderPSA {
     uint8_t decrypted_type;
 };
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 struct SubGhzProtocolEncoderPSA {
     SubGhzProtocolEncoderBase base;
     SubGhzProtocolBlockEncoder encoder;
@@ -102,7 +102,7 @@ const SubGhzProtocolDecoder subghz_protocol_psa_decoder = {
     .deserialize = subghz_protocol_decoder_psa_deserialize,
     .get_string = subghz_protocol_decoder_psa_get_string,
 };
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 const SubGhzProtocolEncoder subghz_protocol_psa_encoder = {
     .alloc = subghz_protocol_encoder_psa_alloc,
     .free = subghz_protocol_encoder_psa_free,
@@ -125,13 +125,21 @@ const SubGhzProtocol psa_protocol = {
     .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_AM |
             SubGhzProtocolFlag_FM | SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Save |
             SubGhzProtocolFlag_Load,
+#if PROTOPIRATE_WITH_DECODER
     .decoder = &subghz_protocol_psa_decoder,
+#else
+    .decoder = NULL,
+#endif
+#if PROTOPIRATE_WITH_ENCODER
     .encoder = &subghz_protocol_psa_encoder,
+#else
+    .encoder = NULL,
+#endif
 };
 
 static void psa_calculate_checksum(uint8_t* buffer);
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 static void psa_second_stage_xor_encrypt(uint8_t* buffer) {
     uint8_t E6 = buffer[8];
     uint8_t E7 = buffer[9];

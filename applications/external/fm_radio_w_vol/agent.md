@@ -1,68 +1,47 @@
-# Repo notes (agent/human)
+# Repo notes (local AI / developer)
 
-This repository contains a Flipper Zero external app for controlling an FM receiver and (optionally) an external I2C volume controller.
+Flipper Zero external app for the **FReD FM** radio board (TEA5767 + PT2257/PT2259 + PAM8406 + RDS on `PA4`).
 
-## What it is
-- App entry: [application.fam](application.fam)
-- Main app/UI logic: [radio.c](radio.c)
-- TEA5767 driver: [TEA5767/](TEA5767/)
-- PT audio driver support: [PT/](PT/)
+## Layout (post-refactor)
+
+| Path | Role |
+|------|------|
+| [application.fam](application.fam) | Flipper app manifest (`appid` `fred_fm`) |
+| [src/fred_fm/app/](src/fred_fm/app/) | Entry, alloc/free, view setup |
+| [src/fred_fm/core/](src/fred_fm/core/) | Tune, presets, settings, seek |
+| [src/fred_fm/ui/](src/fred_fm/ui/) | Views, input, config menu |
+| [src/fred_fm/audio/](src/fred_fm/audio/) | PT22xx + PAM8406 output |
+| [src/fred_fm/rds/](src/fred_fm/rds/) | RDS pipeline, capture, worker |
+| [src/fred_fm/include/](src/fred_fm/include/) | `config.h`, `types.h` |
+| [src/drivers/tea5767/](src/drivers/tea5767/) | TEA5767 I2C driver |
+| [src/drivers/pt/](src/drivers/pt/) | PT2257 / PT2259 / facade |
+| [src/drivers/pam/](src/drivers/pam/) | PAM8406 GPIO |
+| [src/drivers/rds/](src/drivers/rds/) | Acquisition, DSP, decoder |
+
+`backups/` is local-only (see `.gitignore`).
 
 ## Build / run
-This is an external app. Typical workflow:
 
-- Build: `ufbt build`
-- Install + launch (device connected): `ufbt launch`
+```bash
+ufbt update && ufbt fap_fred_fm && ufbt launch
+```
 
-## Virtualenv (.venv) note
-This repo contains a Python virtual environment at `.venv/`. In some setups `ufbt` is installed inside that venv,
-so opening a fresh terminal without activating `.venv` may lead to `ufbt: command not found`.
+If `ufbt` is missing: `source .venv/bin/activate` or `pipx install ufbt`.
 
-- Activate venv for this repo: `source .venv/bin/activate`
-- Verify tools: `command -v ufbt && ufbt --version`
-
-If you prefer `ufbt` to work regardless of venv activation, install it globally via `pipx install ufbt`.
-
-## Persistent data on device
-Settings and presets are stored on the SD card:
+## Device data (SD)
 
 - `/ext/apps_data/fred_fm/settings.fff`
 - `/ext/apps_data/fred_fm/presets.fff`
+- RDS debug: `rds_capture_*` under same folder when enabled
 
-## Publishing / licensing
-- License: GPLv3 (see [LICENSE](LICENSE)).
-- Upstream origin is documented in [README.md](README.md).
-- If you publish built binaries (e.g. `.fap`) from modified sources, publish the corresponding source code for that exact version (tag/commit) and keep attribution.
+## Catalog / PR checklist (Flipper Apps Catalog)
 
-## Audit / refactor plan (2026-02-21)
+- **Version:** stay on `0.11` until next feature release; update `commit_sha` in catalog manifest after push.
+- **Hardware:** app requires FReD FM board (or partial TEA5767-only for FM without full RDS).
+- **Tested:** v0.11 verified on retail **FReD FM PCB v1.1** (Tindie) — tune, seek, presets, volume, RDS PS, constellation.
+- **Bundle validate:** `python3 tools/bundle.py --nolint applications/GPIO/fred_fm/manifest.yml bundle.zip` (catalog repo; needs `dataclass_wizard`).
+- **AI disclosure (Partially AI assisted):** layout refactor (`src/`), module headers, driver comment pass, RDS FIR tap headers, and catalog prep were done with AI assistance under human review. Core RDS DSP algorithms, hardware bring-up, and on-device validation are author-owned. Flipper app entry and driver integration remain GPLv3; see [README.md](README.md) provenance.
 
-Status legend: `[ ]` = do zrobienia, `[x]` = gotowe, `[~]` = w trakcie
+## License
 
-### A. Martwy kod / nieużywane zmienne
-- [x] A1: Usunąć `int* signal_strength;` (radio.c) — nieużywany
-- [x] A2: Usunąć `uint8_t tea5767_registers[5];` (radio.c) — nieużywany
-- [x] A3: Uprościć `volume_values[]` / `volume_names[]` (radio.c)
-- [x] A4: j.w. (inline volume_names)
-- [x] A5: Usunąć `char* current_vol` (radio.c) — ustawiany, nigdy odczytywany
-- [x] A6: Usunąć `struct StationInfo` (TEA5767.c) — nieużywany duplikat
-- [x] A7: Usunąć `RADIO_BAND` enum (TEA5767.h) — nieużywany
-
-### B. Logika / poprawność
-- [x] B1: Poprawić wcięcie w `tea5767_write_registers` (TEA5767.c)
-- [x] B2: Usunąć redundancję `REG_3_SSL | 0x60` → `REG_3_SSL` (TEA5767.c)
-- [x] B3: Usunąć `tea5767_MuteOff()` (niebezpieczna read-modify-write)
-- [x] B4: `bool current_volume = false` zamiast `= 0` (radio.c)
-
-### C. Nieużywane funkcje TEA5767
-- [x] C1–C8: Usunięte: seekUp, seekDown, ToggleMute, MuteOn, MuteOff, SetFreqKHz, set_mute, set_stereo (+ deklaracje z .h)
-
-### D. Refaktoring / uproszczenia
-- [x] D1: Rename `FlipTheWorld` → `Listen`
-- [x] D2: Uprościć/usunąć martwy `MyModel` struct
-- [x] D3: Wynieść logikę I2C polling / save / scan z draw_callback do FuriTimer
-- [x] D4: Usunąć nieaktualne komentarze w elements_button_top_*
-
-### E. Styl / drobnostki
-- [x] E1: Usunąć pustą linię na początku radio.c
-- [x] E2: Dodać `static` do globalnych zmiennych (radio.c)
-- [x] E3: Poprawić literówkę "SLC" → "SCL"
+GPLv3 — see [LICENSE](LICENSE). Publish matching source for any distributed `.fap` build.
