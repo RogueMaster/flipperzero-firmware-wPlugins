@@ -1,0 +1,15 @@
+App(
+    appid="cocktail_book",
+    name="Cocktail Book",
+    fap_version="0.4",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="cocktail_book_app",
+    requires=["gui", "storage"],
+    stack_size=4 * 1024,
+    fap_category="Tools",
+    fap_icon="images/app_icon_10x10.png",
+    fap_icon_assets="images",
+    fap_author="resu95",
+    fap_weburl="https://github.com/resu95/flipper_cocktail_book",
+    fap_description="Cocktail Recipes",
+)
