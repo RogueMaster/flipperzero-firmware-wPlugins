@@ -2,6 +2,7 @@
 
 import os
 
+
 def ProtoPirateDefineEnabled(name, app_manifest_path=app_manifest_path):
     defines_path = os.path.join(os.path.dirname(app_manifest_path), "defines.h")
     with open(defines_path) as defines_file:
@@ -71,7 +72,7 @@ App(
     fap_icon_assets="images",
     fap_file_assets="keystore",
     fap_icon_assets_symbol="proto_pirate",
-    cdefines=["ENABLE_SUB_DECODE_SCENE", "ENABLE_TIMING_TUNER_SCENE"],
+    cdefines=["ENABLE_TIMING_TUNER_SCENE"],
     fap_category="Sub-GHz",
     fap_version="3.2",
 )
@@ -184,6 +185,7 @@ _TX_PLUGIN_SOURCES = [
     "protocols/protocols_common.c",
 ]
 
+
 def ProtoPirateTxProtocolPlugin(
     key,
     protocol_header,
@@ -205,13 +207,15 @@ def ProtoPirateTxProtocolPlugin(
         requires=["proto_pirate"],
         cdefines=[
             "PROTOPIRATE_PROTOCOL_TX_ONLY=1",
-            f"PP_TX_PROTOCOL_HEADER=\\\"../{protocol_header}\\\"",
+            f'PP_TX_PROTOCOL_HEADER=\\"../{protocol_header}\\"',
             f"PP_TX_PROTOCOL_NAME={protocol_name}",
             f"PP_TX_PROTOCOL_ITEM={protocol_item}",
         ],
-        sources=tx_plugin_sources + [f"protocols/{source}" for source in protocol_sources],
+        sources=tx_plugin_sources
+        + [f"protocols/{source}" for source in protocol_sources],
         fal_embedded=True,
     )
+
 
 ProtoPirateTxProtocolPlugin(
     "chrysler_v0",
