@@ -15,8 +15,10 @@
  * blackbox.cpp): LittleFS (real data partition, persistent, retention N=5),
  * SD (LILYGO), or volatile RAM + dashboard download (min_spiffs boards).
  *
- * Default ON; the enable toggle is persisted in NVS. Single-threaded: every
- * entry point is called from the Arduino loop()/CAN path.
+ * Default OFF; the enable toggle is persisted in NVS. The ring is allocated
+ * lazily (heap-guarded) on enable — boot never grabs it, so WiFi/web always
+ * get the heap first. Single-threaded: every entry point is called from the
+ * Arduino loop()/CAN path.
  */
 
 #include <Arduino.h>
@@ -38,14 +40,12 @@
   #define BLACKBOX_BACKEND_NAME     "ram"
 #endif
 
-// Default enable state. Persistent backends (LittleFS / SD) stream straight to
-// file and survive a power cycle → default ON. The volatile RAM backend keeps a
-// frozen copy in heap and loses events on reboot → default OFF (opt-in).
-#if defined(BLACKBOX_BACKEND_RAM)
-  #define BLACKBOX_DEFAULT_ENABLED  false
-#else
-  #define BLACKBOX_DEFAULT_ENABLED  true
-#endif
+// Default enable state: OFF on every backend. A fresh flash must boot with the
+// recorder off so WiFi/dashboard always come up — the ~108 KB ring on a
+// no-PSRAM S3 can starve the WiFi/web stack if grabbed at boot (#124). The user
+// opts in from the dashboard, where the heap guard in blackbox_set_enabled()
+// protects the allocation.
+#define BLACKBOX_DEFAULT_ENABLED  false
 
 enum BBTrigger : uint8_t {
     BB_TRIG_ABORT = 0,
@@ -53,9 +53,10 @@ enum BBTrigger : uint8_t {
     BB_TRIG_MANUAL,
 };
 
-// Allocate the ring (PSRAM-aware) and mount the storage backend. Pass the
-// shared state + critical-section mux so marks can inject through the
-// event-core and flushes can snapshot toggles.
+// Wire up state + storage backend and make the PSRAM/size decision. Does NOT
+// allocate the ring — that happens lazily, heap-guarded, on enable (#124), so
+// boot never starves the WiFi/web stack. Pass the shared state + mux so marks
+// can inject through the event-core and flushes can snapshot toggles.
 void blackbox_init(FSDState* state, portMUX_TYPE* state_mux);
 
 // Record one RX frame into the ring. Cheap (a memcpy); no-op when disabled.

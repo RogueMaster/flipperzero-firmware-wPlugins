@@ -69,6 +69,7 @@ static uint32_t  g_cap  = 0;        // ring capacity (frames); 0 = unavailable
 static uint32_t  g_head = 0;        // next write slot
 static uint32_t  g_tail = 0;        // oldest frame
 static bool      g_ring_psram = false;
+static bool      g_want_psram = false;  // size decision from init; alloc is lazy
 
 static bool      g_armed = false;
 static BBTrigger g_trig = BB_TRIG_ABORT;
@@ -388,27 +389,70 @@ static bool backend_is_volatile() { return true; }
 // ─────────────────────────────────────────────────────────────────────────────
 //  Common: ring + trigger + flush
 // ─────────────────────────────────────────────────────────────────────────────
-void blackbox_init(FSDState* state, portMUX_TYPE* state_mux) {
-    g_state = state;
-    g_mux   = state_mux;
+// Keep this much heap/PSRAM free after the ring so the WiFi/web stack always
+// has a working margin. The ~108 KB S3 ring grabbed at boot could starve WiFi
+// → OOM reboot loop (#124); the guard makes an on-demand enable refuse rather
+// than brick connectivity.
+#define BLACKBOX_HEAP_MARGIN  (60u * 1024u)
 
-    bool have_psram = ESP.getPsramSize() > 0;
-    g_cap = have_psram ? BLACKBOX_FRAMES_PSRAM : BLACKBOX_FRAMES_INTERNAL;
-    size_t bytes = (size_t)g_cap * sizeof(BBFrame);
-    g_ring = (BBFrame*)(have_psram ? ps_malloc(bytes) : malloc(bytes));
-    if (!g_ring && have_psram) {                 // PSRAM alloc failed — try internal
-        g_cap = BLACKBOX_FRAMES_INTERNAL;
-        g_ring = (BBFrame*)malloc((size_t)g_cap * sizeof(BBFrame));
-        have_psram = false;
+// Try to allocate the ring in the requested memory, but only if enough stays
+// free afterwards. Returns true and publishes g_ring/g_cap on success.
+static bool bb_try_alloc(bool psram, uint32_t frames) {
+    size_t bytes = (size_t)frames * sizeof(BBFrame);
+    size_t freeb = psram ? ESP.getFreePsram() : ESP.getFreeHeap();
+    if (freeb < bytes + BLACKBOX_HEAP_MARGIN) {
+        Serial.printf("[BB] ring alloc skipped (%s): free %luB < need %luB + %luB margin\n",
+                      psram ? "psram" : "heap", (unsigned long)freeb,
+                      (unsigned long)bytes, (unsigned long)BLACKBOX_HEAP_MARGIN);
+        return false;
     }
-    if (!g_ring) { g_cap = 0; Serial.println("[BB] ring alloc failed — recorder disabled"); }
-    g_ring_psram = have_psram && g_ring;
-
-    backend_init();
+    BBFrame* p = (BBFrame*)(psram ? ps_malloc(bytes) : malloc(bytes));
+    if (!p) { Serial.printf("[BB] ring alloc failed (%s)\n", psram ? "psram" : "heap"); return false; }
+    g_ring = p;
+    g_cap = frames;
+    g_ring_psram = psram;
+    g_head = g_tail = 0;
     Serial.printf("[BB] ring=%lu frames (%lu KB) %s  window=%us pre/%us post\n",
                   (unsigned long)g_cap, (unsigned long)(bytes / 1024u),
                   g_ring_psram ? "PSRAM" : "internal-RAM",
                   BLACKBOX_PRE_MS / 1000u, BLACKBOX_POST_MS / 1000u);
+    return true;
+}
+
+// Lazily allocate the ring (on enable). PSRAM first when present, else internal
+// RAM — each attempt is heap-guarded. Returns true once g_ring is ready.
+static bool blackbox_alloc_ring() {
+    if (g_ring) return true;
+    if (g_want_psram && bb_try_alloc(true, BLACKBOX_FRAMES_PSRAM)) return true;
+    return bb_try_alloc(false, BLACKBOX_FRAMES_INTERNAL);
+}
+
+// Free the ring and drop any pre-roll / armed capture (on disable).
+static void blackbox_free_ring() {
+    if (g_ring) { free(g_ring); g_ring = nullptr; }
+    g_cap = 0;
+    g_head = g_tail = 0;
+    g_armed = false;
+}
+
+void blackbox_init(FSDState* state, portMUX_TYPE* state_mux) {
+    g_state = state;
+    g_mux   = state_mux;
+
+    // Size decision only — the ring is allocated lazily on enable so boot never
+    // competes with the WiFi/web stack for heap (#124).
+    g_want_psram = ESP.getPsramSize() > 0;
+    g_ring = nullptr;
+    g_cap = 0;
+    g_ring_psram = false;
+
+    backend_init();
+    Serial.printf("[BB] init backend=%s — ring allocated on enable "
+                  "(%s target %lu frames)\n",
+                  BLACKBOX_BACKEND_NAME,
+                  g_want_psram ? "PSRAM" : "internal-RAM",
+                  (unsigned long)(g_want_psram ? BLACKBOX_FRAMES_PSRAM
+                                               : BLACKBOX_FRAMES_INTERNAL));
 }
 
 void blackbox_record(CanBusId bus, const CanFrame& frame, uint32_t now_ms) {
@@ -591,15 +635,33 @@ void blackbox_tick(uint32_t now_ms) {
 
 void blackbox_set_enabled(bool enabled) {
     if (g_state == nullptr) return;
-    bb_enter();
-    g_state->blackbox_enabled = enabled;
-    bb_exit();
-    if (!enabled) { g_armed = false; g_head = g_tail = 0; }  // stop + drop pre-roll
-    Serial.printf("[BB] %s\n", enabled ? "enabled" : "disabled");
+    if (enabled) {
+        // Allocate the ring on demand, heap-guarded. If it can't be had without
+        // starving WiFi/web, stay disabled and report it — never brick the link.
+        if (!blackbox_alloc_ring()) {
+            bb_enter();
+            g_state->blackbox_enabled = false;
+            bb_exit();
+            Serial.println("[BB] enable refused — not enough free heap; staying off");
+            return;
+        }
+        bb_enter();
+        g_state->blackbox_enabled = true;
+        bb_exit();
+        Serial.println("[BB] enabled");
+    } else {
+        bb_enter();
+        g_state->blackbox_enabled = false;
+        bb_exit();
+        blackbox_free_ring();  // stop + drop pre-roll + release the ring
+        Serial.println("[BB] disabled");
+    }
 }
 
+// Reports true only when the ring is actually live, so a guard-refused enable
+// (or a persisted-ON boot before reconcile) shows as off on the dashboard.
 bool blackbox_is_enabled() {
-    return g_state != nullptr && g_state->blackbox_enabled;
+    return g_state != nullptr && g_state->blackbox_enabled && g_ring != nullptr;
 }
 
 String blackbox_status_json() {

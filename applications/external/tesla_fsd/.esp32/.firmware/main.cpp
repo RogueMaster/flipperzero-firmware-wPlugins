@@ -1553,6 +1553,10 @@ void setup() {
     if (wifi_init(&g_state)) {
         web_dashboard_init(&g_state, g_can, CAN_ACTIVE_BUS_COUNT, &g_state_mux);
         http_can_stream_set_enabled(true);  // capture works in both modes now (#108)
+        // Ring is allocated lazily on enable. If it was persisted ON, (re)apply
+        // it now that WiFi/web hold their heap — the guard refuses if too tight,
+        // so a persisted-ON device can never re-trigger the boot loop (#124).
+        if (g_state.blackbox_enabled) blackbox_set_enabled(true);
         Serial.println("[SER] Type 'ip' in the serial monitor to print WiFi URLs again");
     }
 }

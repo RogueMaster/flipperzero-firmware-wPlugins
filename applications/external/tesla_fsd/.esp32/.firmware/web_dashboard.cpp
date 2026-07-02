@@ -1464,7 +1464,11 @@ static String build_json() {
         (state.hw_version == TeslaHW_HW3) ? "HW3: DAS 0x399" :
         (state.hw_version == TeslaHW_Legacy) ? "Legacy: DAS 0x399" :
         "Waiting for HW detection";
-    j.reserve(1500);
+    // Fully-populated payload runs ~2.4-2.6 KB: ~1.4 KB of scalar fields plus
+    // nested blackbox/capability/profile/bms/ota/http_can_stream objects
+    // (capability alone reserves 896). 3 KB avoids per-call String reallocs —
+    // build_json() runs on every WS push and /api/state poll (#124).
+    j.reserve(3072);
     j  = "{";
     j += "\"fsd_enabled\":";   j += state.fsd_enabled                 ? "true" : "false"; j += ',';
     j += "\"ap_active\":";     j += state.ap_active                   ? "true" : "false"; j += ',';
