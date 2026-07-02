@@ -4,8 +4,22 @@
 
 Flipper Zero external app and hardware project for TEA5767 FM reception, PT2257/PT2259-S audio control, PAM8406 output stage, and working RDS decode from the TEA5767 MPXO path. The current PCB v1.1 product name is **FReD FM - Flipper Zero FM + RDS Radio Board**.
 
+## Required Hardware
+
+**This is a GPIO category app for a specific expansion board — not a generic Flipper FM receiver.**
+
+| Requirement | Notes |
+| --- | --- |
+| **Flipper Zero** | Firmware compatible with current Release / RC (build with [uFBT](https://pypi.org/project/ufbt/)). |
+| **microSD card** | Settings, presets, and optional RDS debug captures. |
+| **FReD FM board (PCB v1.1)** | Intended target: TEA5767, PT2259-S (or PT2257 on prototypes), PAM8406, MPXO → `PA4` RDS path. Sold as [FReD FM on Tindie](https://www.tindie.com/products/electronicstore/flipper-zero-fm-radio-board-with-pt-volume-control/). |
+| **Partial setup** | TEA5767-only module: FM tune/seek works; full RDS/constellation expects the v1.1 MPXO analog front-end. |
+
+**Catalog verification (v0.11):** FM tune, seek, presets, volume, RDS PS, and constellation view tested on retail **FReD FM PCB v1.1** hardware from Tindie.
+
 ## Table of Contents
 
+- [Required Hardware](#required-hardware)
 - [Quick Start](#quick-start)
 - [Project Status](#project-status)
 - [Features](#features)
@@ -328,6 +342,7 @@ Presets file:
 
 - **Upstream origin**: https://github.com/victormico/flipperzero-radio
 - **Upstream FlipC listing**: [![FlipC.org](https://flipc.org/victormico/flipperzero-radio/badge?nowerr=1)](https://flipc.org/victormico/flipperzero-radio?nowerr=1)
+- **TEA5767 driver**: register map and early API style from [Coolshrimp TEA5767](https://github.com/Coolshrimp/TEA5767) (GPLv3); maintained under `src/drivers/tea5767/`.
 - **This version**: **FReD FM** (`appid` `fred_fm`). App data: `/ext/apps_data/fred_fm/`.
 - **Maintained by**: pchmielewski1
 - **License**: GPLv3 (see `LICENSE`)

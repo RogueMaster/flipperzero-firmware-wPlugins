@@ -3,6 +3,8 @@ v0.11:
 - APP_DATA_PATH storage under /ext/apps_data/fred_fm/
 - Unified fred_fm_* symbol naming across the app
 - RDS capture backpressure fix for reliable full SD writes
+- Source refactor: src/fred_fm/ + src/drivers/ layout, per-module headers, documented public APIs
+- RDS DSP filter coefficients split into dedicated tap headers (HB1/HB2/HB3/FIR41)
 
 v0.10:
 - RDS decode pipeline stabilization and constellation debug view

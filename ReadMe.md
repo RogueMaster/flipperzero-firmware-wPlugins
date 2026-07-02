@@ -148,6 +148,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Tesla Mod v2.16b13 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [WikiFlip v1.3 (By RogerF5-Security)](https://github.com/RogerF5-Security/WikiFlip)
 - Added: [Cocktail Book v0.4 (By resu95)](https://github.com/resu95/flipper_cocktail_book)
+- Updated: [FM Radio v1.1.1 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-firmware-wPlugins/tree/420/applications/external/fm_radio) `Req: TEA5767`
 
 <a name="release"></a>
 
