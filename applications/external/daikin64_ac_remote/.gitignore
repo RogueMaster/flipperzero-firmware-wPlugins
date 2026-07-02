@@ -1,0 +1,12 @@
+.ufbt/
+.vscode/
+dist/
+build/
+*.fap
+*.elf
+*.map
+*.impsyms
+*.pyc
+__pycache__/
+.DS_Store
+reference_mitsubishi_ac_remote/
