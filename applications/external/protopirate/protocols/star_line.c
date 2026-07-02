@@ -66,7 +66,7 @@ const SubGhzProtocolDecoder subghz_protocol_star_line_decoder = {
     .get_string = subghz_protocol_decoder_star_line_get_string,
 };
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 const SubGhzProtocolEncoder subghz_protocol_star_line_encoder = {
     .alloc = subghz_protocol_encoder_star_line_alloc,
     .free = subghz_protocol_encoder_star_line_free,
@@ -91,8 +91,20 @@ const SubGhzProtocol subghz_protocol_star_line = {
     .flag = SubGhzProtocolFlag_433 | SubGhzProtocolFlag_AM | SubGhzProtocolFlag_Decodable |
             SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save | SubGhzProtocolFlag_Send,
 
+#if PROTOPIRATE_WITH_DECODER
+
     .decoder = &subghz_protocol_star_line_decoder,
+
+#else
+
+    .decoder = NULL,
+
+#endif
+#if PROTOPIRATE_WITH_ENCODER
     .encoder = &subghz_protocol_star_line_encoder,
+#else
+    .encoder = NULL,
+#endif
 };
 
 /** 
@@ -105,10 +117,10 @@ static void subghz_protocol_star_line_check_remote_controller(
     SubGhzBlockGeneric* instance,
     SubGhzKeystore* keystore,
     const char** manufacture_name);
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 void* subghz_protocol_encoder_star_line_alloc(SubGhzEnvironment* environment) {
-    SubGhzProtocolEncoderStarLine* instance = malloc(sizeof(SubGhzProtocolEncoderStarLine));
+    SubGhzProtocolEncoderStarLine* instance = calloc(1, sizeof(SubGhzProtocolEncoderStarLine));
     furi_check(instance);
 
     instance->base.protocol = &subghz_protocol_star_line;
@@ -116,6 +128,7 @@ void* subghz_protocol_encoder_star_line_alloc(SubGhzEnvironment* environment) {
     instance->keystore = subghz_environment_get_keystore(environment);
 
     instance->manufacture_from_file = furi_string_alloc();
+    furi_check(instance->manufacture_from_file);
 
     instance->encoder.repeat = 40;
     pp_encoder_buffer_ensure(instance, STAR_LINE_UPLOAD_CAPACITY);
@@ -125,7 +138,7 @@ void* subghz_protocol_encoder_star_line_alloc(SubGhzEnvironment* environment) {
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 void subghz_protocol_encoder_star_line_free(void* context) {
     furi_check(context);
@@ -241,7 +254,7 @@ bool subghz_protocol_star_line_create_data(
  * @param instance Pointer to a SubGhzProtocolEncoderKeeloq instance
  * @return true On success
  */
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 static bool subghz_protocol_encoder_star_line_get_upload(
     SubGhzProtocolEncoderStarLine* instance,
     uint8_t btn) {
@@ -278,7 +291,7 @@ static bool subghz_protocol_encoder_star_line_get_upload(
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 static SubGhzProtocolStatus subghz_protocol_encoder_star_line_serialize(
     SubGhzProtocolEncoderStarLine* instance,
@@ -333,7 +346,7 @@ static SubGhzProtocolStatus subghz_protocol_encoder_star_line_serialize(
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 SubGhzProtocolStatus
     subghz_protocol_encoder_star_line_deserialize(void* context, FlipperFormat* flipper_format) {

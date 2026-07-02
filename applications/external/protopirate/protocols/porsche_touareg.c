@@ -159,8 +159,16 @@ const SubGhzProtocol porsche_touareg_protocol = {
     .type = SubGhzProtocolTypeDynamic,
     .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_AM |
             SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save,
+#if PROTOPIRATE_WITH_DECODER
     .decoder = &subghz_protocol_porsche_cayenne_decoder,
+#else
+    .decoder = NULL,
+#endif
+#if PROTOPIRATE_WITH_ENCODER
     .encoder = &subghz_protocol_porsche_cayenne_encoder,
+#else
+    .encoder = NULL,
+#endif
 };
 
 void* subghz_protocol_decoder_porsche_cayenne_alloc(SubGhzEnvironment* environment) {

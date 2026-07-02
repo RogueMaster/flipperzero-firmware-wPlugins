@@ -3,12 +3,11 @@
 
 #include <furi.h>
 #include <furi_hal.h>
-#include "protocols/protocol_items.h"
-#include "protocols/protocols_common.h"
 #include "helpers/protopirate_settings.h"
 #include "helpers/protopirate_storage.h"
 #include "helpers/protopirate_psa_bf_host.h"
-#include "protocols/keys.h"
+#include "helpers/protopirate_views.h"
+#include "helpers/protopirate_radio.h"
 #include <string.h>
 
 #define TAG "ProtoPirateApp"
@@ -29,132 +28,6 @@ static void protopirate_app_tick_event_callback(void* context) {
     furi_check(context);
     ProtoPirateApp* app = context;
     scene_manager_handle_tick_event(app->scene_manager);
-}
-
-bool protopirate_ensure_variable_item_list(ProtoPirateApp* app) {
-    furi_check(app);
-    if(app->variable_item_list) {
-        return true;
-    }
-
-    app->variable_item_list = variable_item_list_alloc();
-    if(!app->variable_item_list) {
-        return false;
-    }
-
-    view_dispatcher_add_view(
-        app->view_dispatcher,
-        ProtoPirateViewVariableItemList,
-        variable_item_list_get_view(app->variable_item_list));
-    return true;
-}
-
-bool protopirate_ensure_widget(ProtoPirateApp* app) {
-    furi_check(app);
-    if(app->widget) {
-        return true;
-    }
-
-    app->widget = widget_alloc();
-    if(!app->widget) {
-        return false;
-    }
-
-    view_dispatcher_add_view(
-        app->view_dispatcher, ProtoPirateViewWidget, widget_get_view(app->widget));
-    return true;
-}
-
-bool protopirate_ensure_text_input(ProtoPirateApp* app) {
-    furi_check(app);
-    if(app->text_input) {
-        return true;
-    }
-
-    app->text_input = text_input_alloc();
-    if(!app->text_input) {
-        return false;
-    }
-
-    view_dispatcher_add_view(
-        app->view_dispatcher, ProtoPirateViewTextInput, text_input_get_view(app->text_input));
-    return true;
-}
-
-bool protopirate_ensure_view_about(ProtoPirateApp* app) {
-    furi_check(app);
-    if(app->view_about) {
-        return true;
-    }
-
-    app->view_about = view_alloc();
-    if(!app->view_about) {
-        return false;
-    }
-
-    view_dispatcher_add_view(app->view_dispatcher, ProtoPirateViewAbout, app->view_about);
-    return true;
-}
-
-bool protopirate_ensure_receiver_view(ProtoPirateApp* app) {
-    furi_check(app);
-    if(app->protopirate_receiver) {
-        return true;
-    }
-
-    app->protopirate_receiver = protopirate_view_receiver_alloc(app->auto_save);
-    if(!app->protopirate_receiver) {
-        return false;
-    }
-
-    view_dispatcher_add_view(
-        app->view_dispatcher,
-        ProtoPirateViewReceiver,
-        protopirate_view_receiver_get_view(app->protopirate_receiver));
-    return true;
-}
-
-static void protopirate_radio_init_cleanup(ProtoPirateApp* app, bool devices_initialized) {
-    furi_check(app);
-    furi_check(app->txrx);
-
-    if(app->txrx->receiver) {
-        subghz_receiver_free(app->txrx->receiver);
-        app->txrx->receiver = NULL;
-    }
-
-    if(app->txrx->radio_device) {
-        if(devices_initialized) {
-            subghz_devices_idle(app->txrx->radio_device);
-        }
-        radio_device_loader_end(app->txrx->radio_device);
-        app->txrx->radio_device = NULL;
-    }
-
-    if(app->txrx->environment) {
-        subghz_environment_free(app->txrx->environment);
-        app->txrx->environment = NULL;
-    }
-
-    if(app->txrx->protocol_plugin_manager) {
-        plugin_manager_free(app->txrx->protocol_plugin_manager);
-        app->txrx->protocol_plugin_manager = NULL;
-    }
-
-    if(app->txrx->plugin_resolver) {
-        composite_api_resolver_free(app->txrx->plugin_resolver);
-        app->txrx->plugin_resolver = NULL;
-    }
-
-    if(devices_initialized) {
-        subghz_devices_deinit();
-    }
-
-    app->txrx->protocol_registry = NULL;
-    app->txrx->protocol_plugin = NULL;
-    app->txrx->protocol_registry_filter = ProtoPirateProtocolRegistryFilterAM;
-    app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
-    app->radio_initialized = false;
 }
 
 ProtoPirateApp* protopirate_app_alloc() {
@@ -212,8 +85,13 @@ ProtoPirateApp* protopirate_app_alloc() {
 
     // Apply auto-save setting
     app->auto_save = settings.auto_save;
+    app->check_saved = settings.check_saved;
     app->tx_power = settings.tx_power;
+#ifdef ENABLE_EMULATE_FEATURE
     app->emulate_feature_enabled = settings.emulate_feature_enabled;
+#else
+    app->emulate_feature_enabled = false;
+#endif
 
     // Init setting - KEEP THIS, it's small
     app->setting = subghz_setting_alloc();
@@ -256,7 +134,7 @@ ProtoPirateApp* protopirate_app_alloc() {
     furi_check(app->txrx->preset->name);
     app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
     app->txrx->rx_key_state = ProtoPirateRxKeyStateIDLE;
-    app->txrx->protocol_registry_filter = ProtoPirateProtocolRegistryFilterAM;
+    app->txrx->protocol_registry_route = ProtoPirateProtocolRegistryRouteAMDefault;
 
     // Get preset name and data
     const char* preset_name = subghz_setting_get_preset_name(app->setting, preset_index);
@@ -285,190 +163,6 @@ ProtoPirateApp* protopirate_app_alloc() {
     return app;
 }
 
-bool protopirate_radio_init(ProtoPirateApp* app) {
-    furi_check(app);
-    furi_check(app->txrx);
-
-    FURI_LOG_I(TAG, "=== protopirate_radio_init called ===");
-    FURI_LOG_D(TAG, "State: radio_initialized=%d", app->radio_initialized);
-
-    if(app->radio_initialized) {
-        const bool radio_ready = (app->txrx->environment != NULL) &&
-                                 (app->txrx->radio_device != NULL);
-        if(radio_ready) {
-            FURI_LOG_D(TAG, "Radio already initialized, returning true");
-            return true;
-        }
-
-        FURI_LOG_W(
-            TAG,
-            "Radio marked initialized but resources missing (env=%p device=%p), repairing",
-            app->txrx->environment,
-            app->txrx->radio_device);
-        protopirate_radio_deinit(app);
-    }
-
-    // Fresh radio init - nothing was initialized before
-    FURI_LOG_I(TAG, "Fresh radio init - allocating all components");
-
-    // Create environment with our custom protocols
-    app->txrx->environment = subghz_environment_alloc();
-    if(!app->txrx->environment) {
-        FURI_LOG_E(TAG, "Failed to allocate environment!");
-        protopirate_radio_init_cleanup(app, false);
-        return false;
-    }
-
-    app->txrx->protocol_registry = NULL;
-
-    if(!protopirate_refresh_protocol_registry(app, false)) {
-        FURI_LOG_E(TAG, "Failed to configure protocol registry");
-        protopirate_radio_init_cleanup(app, false);
-        return false;
-    }
-
-    // Load keystores
-    subghz_environment_load_keystore(app->txrx->environment, PROTOPIRATE_KEYSTORE_DIR_NAME);
-
-    // Load ProtoPirate specific keys
-    protopirate_keys_load(app->txrx->environment);
-    FURI_LOG_I(TAG, "Loaded ProtoPirate secure keys");
-
-    // Initialize SubGhz devices
-    subghz_devices_init();
-    FURI_LOG_D(TAG, "SubGhz devices initialized");
-
-    // Try external CC1101 first
-    app->txrx->radio_device = radio_device_loader_set(NULL, SubGhzRadioDeviceTypeExternalCC1101);
-
-    // if not loading, fallback to internal
-    if(!app->txrx->radio_device) {
-        FURI_LOG_W(TAG, "External CC1101 not found, trying internal radio");
-        app->txrx->radio_device = radio_device_loader_set(NULL, SubGhzRadioDeviceTypeInternal);
-    }
-
-    if(!app->txrx->radio_device) {
-        FURI_LOG_E(TAG, "Failed to initialize any radio device!");
-        protopirate_radio_init_cleanup(app, true);
-        return false;
-    }
-#ifndef REMOVE_LOGS
-    const char* device_name = subghz_devices_get_name(app->txrx->radio_device);
-    bool is_external = device_name && strstr(device_name, "ext");
-    FURI_LOG_I(
-        TAG,
-        "Radio device initialized: %s (%s)",
-        device_name ? device_name : "unknown",
-        is_external ? "external" : "internal");
-#endif
-    subghz_devices_reset(app->txrx->radio_device);
-    subghz_devices_idle(app->txrx->radio_device);
-
-    app->radio_initialized = true;
-
-    FURI_LOG_D(TAG, "Final state: radio_initialized=%d", app->radio_initialized);
-
-    return true;
-}
-
-// Deinitialize radio subsystem
-void protopirate_radio_deinit(ProtoPirateApp* app) {
-    FURI_LOG_I(TAG, "=== protopirate_radio_deinit called ===");
-    FURI_LOG_D(TAG, "State: radio_initialized=%d", app->radio_initialized);
-    FURI_LOG_D(
-        TAG,
-        "Pointers: worker=%p, environment=%p, receiver=%p, history=%p, radio_device=%p",
-        app->txrx->worker,
-        app->txrx->environment,
-        app->txrx->receiver,
-        app->txrx->history,
-        app->txrx->radio_device);
-
-    bool has_radio_resources = app->radio_initialized || app->txrx->worker ||
-                               app->txrx->environment || app->txrx->receiver ||
-                               app->txrx->history || app->txrx->radio_device;
-    if(!has_radio_resources) {
-        FURI_LOG_D(TAG, "Radio resources were not initialized, returning");
-        return;
-    }
-
-    bool devices_initialized = app->radio_initialized || (app->txrx->radio_device != NULL);
-
-    // Make sure we're not receiving
-    if(app->txrx->worker && app->txrx->txrx_state == ProtoPirateTxRxStateRx) {
-        FURI_LOG_D(TAG, "Stopping active RX, state=%d", app->txrx->txrx_state);
-        subghz_worker_stop(app->txrx->worker);
-        if(app->txrx->radio_device) {
-            subghz_devices_stop_async_rx(app->txrx->radio_device);
-        }
-    }
-
-    if(app->txrx->radio_device) {
-        FURI_LOG_D(TAG, "Putting radio device to sleep and ending: %p", app->txrx->radio_device);
-        subghz_devices_sleep(app->txrx->radio_device);
-        radio_device_loader_end(app->txrx->radio_device);
-        app->txrx->radio_device = NULL;
-    } else {
-        FURI_LOG_D(TAG, "Radio device was NULL, skipping sleep/end");
-    }
-
-    if(devices_initialized) {
-        FURI_LOG_D(TAG, "Calling subghz_devices_deinit");
-        subghz_devices_deinit();
-    }
-
-    if(app->txrx->receiver) {
-        FURI_LOG_D(TAG, "Freeing receiver %p", app->txrx->receiver);
-        subghz_receiver_free(app->txrx->receiver);
-        app->txrx->receiver = NULL;
-    } else {
-        FURI_LOG_D(TAG, "Receiver was NULL, skipping free");
-    }
-
-    if(app->txrx->environment) {
-        FURI_LOG_D(TAG, "Freeing environment %p", app->txrx->environment);
-        subghz_environment_free(app->txrx->environment);
-        app->txrx->environment = NULL;
-        app->txrx->protocol_registry = NULL;
-    } else {
-        FURI_LOG_D(TAG, "Environment was NULL, skipping free");
-    }
-
-    if(app->txrx->protocol_plugin_manager) {
-        FURI_LOG_D(TAG, "Freeing protocol plugin manager %p", app->txrx->protocol_plugin_manager);
-        plugin_manager_free(app->txrx->protocol_plugin_manager);
-        app->txrx->protocol_plugin_manager = NULL;
-    }
-
-    if(app->txrx->plugin_resolver) {
-        FURI_LOG_D(TAG, "Freeing plugin resolver %p", app->txrx->plugin_resolver);
-        composite_api_resolver_free(app->txrx->plugin_resolver);
-        app->txrx->plugin_resolver = NULL;
-    }
-    app->txrx->protocol_plugin = NULL;
-
-    if(app->txrx->history) {
-        FURI_LOG_D(TAG, "Freeing history %p", app->txrx->history);
-        protopirate_history_free(app->txrx->history);
-        app->txrx->history = NULL;
-    } else {
-        FURI_LOG_D(TAG, "History was NULL, skipping free");
-    }
-
-    if(app->txrx->worker) {
-        FURI_LOG_D(TAG, "Freeing worker %p", app->txrx->worker);
-        subghz_worker_free(app->txrx->worker);
-        app->txrx->worker = NULL;
-    } else {
-        FURI_LOG_D(TAG, "Worker was NULL, skipping free");
-    }
-
-    app->txrx->txrx_state = ProtoPirateTxRxStateIDLE;
-    app->radio_initialized = false;
-
-    FURI_LOG_D(TAG, "Final state: radio_initialized=%d", app->radio_initialized);
-}
-
 void protopirate_app_free(ProtoPirateApp* app) {
     furi_check(app);
 
@@ -479,9 +173,14 @@ void protopirate_app_free(ProtoPirateApp* app) {
     ProtoPirateSettings settings;
     settings.frequency = app->txrx->preset->frequency;
     settings.auto_save = app->auto_save;
+    settings.check_saved = app->check_saved;
     settings.tx_power = app->tx_power;
     settings.hopping_enabled = (app->txrx->hopper_state != ProtoPirateHopperStateOFF);
+#ifdef ENABLE_EMULATE_FEATURE
     settings.emulate_feature_enabled = app->emulate_feature_enabled;
+#else
+    settings.emulate_feature_enabled = false;
+#endif
 
     // Find current preset index
     settings.preset_index = 0;
@@ -504,7 +203,11 @@ void protopirate_app_free(ProtoPirateApp* app) {
 
     protopirate_settings_save(&settings);
 
-    // Deinitialize whichever is active - NULL checks inside handle all cases
+    protopirate_tool_scene_plugin_release(app);
+#ifdef ENABLE_EMULATE_FEATURE
+    protopirate_emulate_context_release(app);
+#endif
+
     FURI_LOG_D(TAG, "Calling radio_deinit");
     protopirate_radio_deinit(app);
 
@@ -514,93 +217,42 @@ void protopirate_app_free(ProtoPirateApp* app) {
         app->loaded_file_path = NULL;
     }
 
-    // Submenu
-    if(app->submenu) {
-        FURI_LOG_D(TAG, "Removing submenu view");
-        view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewSubmenu);
-        submenu_free(app->submenu);
-    }
+    protopirate_views_free(app);
 
-    // Variable Item List
-    if(app->variable_item_list) {
-        FURI_LOG_D(TAG, "Removing variable_item_list view");
-        view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewVariableItemList);
-        variable_item_list_free(app->variable_item_list);
-    }
-
-    // About View
-    if(app->view_about) {
-        FURI_LOG_D(TAG, "Removing about view");
-        view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewAbout);
-        view_free(app->view_about);
-    }
-
-    // File path
     if(app->file_path) {
         FURI_LOG_D(TAG, "Freeing file_path");
         furi_string_free(app->file_path);
+        app->file_path = NULL;
     }
 
-    // Widget
-    if(app->widget) {
-        FURI_LOG_D(TAG, "Removing widget view");
-        view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewWidget);
-        widget_free(app->widget);
-    }
-
-    // Text Input
-    if(app->text_input) {
-        FURI_LOG_D(TAG, "Removing text_input view");
-        view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewTextInput);
-        text_input_free(app->text_input);
-    }
     if(app->save_protocol) {
         furi_string_free(app->save_protocol);
         app->save_protocol = NULL;
     }
 
-    // Receiver
-    if(app->protopirate_receiver) {
-        FURI_LOG_D(TAG, "Removing receiver view");
-        view_dispatcher_remove_view(app->view_dispatcher, ProtoPirateViewReceiver);
-        protopirate_view_receiver_free(app->protopirate_receiver);
-    }
-
     protopirate_psa_bf_context_release(app);
 
-    // Setting
     FURI_LOG_D(TAG, "Freeing subghz_setting");
     subghz_setting_free(app->setting);
 
-    // Free preset
     FURI_LOG_D(TAG, "Freeing preset");
     furi_string_free(app->txrx->preset->name);
     free(app->txrx->preset);
 
     free(app->txrx);
 
-#ifdef ENABLE_EMULATE_FEATURE
-    protopirate_emulate_context_release(app);
-#endif
-
-    pp_shared_upload_release();
-
-    // View dispatcher
     FURI_LOG_D(TAG, "Freeing view_dispatcher and scene_manager");
     view_dispatcher_free(app->view_dispatcher);
     scene_manager_free(app->scene_manager);
 
-    // Close Dialogs
     FURI_LOG_D(TAG, "Closing dialogs record");
     furi_record_close(RECORD_DIALOGS);
     app->dialogs = NULL;
 
-    // Notifications
     FURI_LOG_D(TAG, "Closing notifications record");
     furi_record_close(RECORD_NOTIFICATION);
     app->notifications = NULL;
 
-    // Close records
     FURI_LOG_D(TAG, "Closing GUI record");
     furi_record_close(RECORD_GUI);
 
@@ -613,7 +265,6 @@ int32_t protopirate_app(char* p) {
 
     ProtoPirateApp* protopirate_app = protopirate_app_alloc();
     if(!protopirate_app) {
-        // logging is already done in protopirate_app_alloc()
         furi_hal_power_suppress_charge_exit();
         return -1;
     }
@@ -627,14 +278,18 @@ int32_t protopirate_app(char* p) {
 
     //We now jump straight to emulate scene from Browser. If the user wanted the key to look at, just click back.
     if(load_saved) {
+#ifdef ENABLE_EMULATE_FEATURE
         if(protopirate_app->emulate_feature_enabled) {
             view_dispatcher_send_custom_event(
                 protopirate_app->view_dispatcher, ProtoPirateCustomEventSavedInfoEmulate);
             notification_message(protopirate_app->notifications, &sequence_success);
         } else {
+#endif
             view_dispatcher_send_custom_event(
                 protopirate_app->view_dispatcher, ProtoPirateCustomEventReceiverInfoSave);
+#ifdef ENABLE_EMULATE_FEATURE
         }
+#endif
     }
 
     view_dispatcher_run(protopirate_app->view_dispatcher);

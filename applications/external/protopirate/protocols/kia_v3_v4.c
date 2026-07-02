@@ -87,7 +87,7 @@ static void kia_v3_v4_add_raw_bit(SubGhzProtocolDecoderKiaV3V4* instance, bool b
     }
 }
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 static inline void kia_v3_v4_emit_bit_pwm(LevelDuration* upload, size_t* idx, bool bit, bool v4) {
     const uint32_t te_short = kia_protocol_v3_v4_const.te_short;
     const uint32_t te_long = kia_protocol_v3_v4_const.te_long;
@@ -173,7 +173,7 @@ const SubGhzProtocolDecoder kia_protocol_v3_v4_decoder = {
     .get_string = kia_protocol_decoder_v3_v4_get_string,
 };
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 const SubGhzProtocolEncoder kia_protocol_v3_v4_encoder = {
     .alloc = kia_protocol_encoder_v3_v4_alloc,
     .free = pp_encoder_free,
@@ -197,22 +197,34 @@ const SubGhzProtocol kia_protocol_v3_v4 = {
     .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_FM |
             SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save |
             SubGhzProtocolFlag_Send,
+#if PROTOPIRATE_WITH_DECODER
     .decoder = &kia_protocol_v3_v4_decoder,
+#else
+    .decoder = NULL,
+#endif
+#if PROTOPIRATE_WITH_ENCODER
     .encoder = &kia_protocol_v3_v4_encoder,
+#else
+    .encoder = NULL,
+#endif
 };
 
 // ============================================================================
 // ENCODER IMPLEMENTATION
 // ============================================================================
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 void* kia_protocol_encoder_v3_v4_alloc(SubGhzEnvironment* environment) {
-    SubGhzProtocolEncoderKiaV3V4* instance = malloc(sizeof(SubGhzProtocolEncoderKiaV3V4));
-    furi_check(instance);
-
     if(environment) {
         protopirate_keys_load(environment);
     }
+    if(!protopirate_keys_has_kia_mf_key()) {
+        FURI_LOG_E(TAG, "Kia V3/V4 encoder missing KIA_KEY1 keystore entry");
+        return NULL;
+    }
+
+    SubGhzProtocolEncoderKiaV3V4* instance = malloc(sizeof(SubGhzProtocolEncoderKiaV3V4));
+    furi_check(instance);
 
     instance->base.protocol = &kia_protocol_v3_v4;
     instance->generic.protocol_name = instance->base.protocol->name;
@@ -234,7 +246,7 @@ void* kia_protocol_encoder_v3_v4_alloc(SubGhzEnvironment* environment) {
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 static void kia_protocol_encoder_v3_v4_build_packet(
     SubGhzProtocolEncoderKiaV3V4* instance,
@@ -303,7 +315,7 @@ static void kia_protocol_encoder_v3_v4_patch_crc(SubGhzProtocolEncoderKiaV3V4* i
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 static void kia_protocol_encoder_v3_v4_get_upload(SubGhzProtocolEncoderKiaV3V4* instance) {
     furi_check(instance);
@@ -370,7 +382,7 @@ static void kia_protocol_encoder_v3_v4_get_upload(SubGhzProtocolEncoderKiaV3V4* 
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 SubGhzProtocolStatus
     kia_protocol_encoder_v3_v4_deserialize(void* context, FlipperFormat* flipper_format) {
@@ -474,7 +486,7 @@ SubGhzProtocolStatus
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 void kia_protocol_encoder_v3_v4_stop(void* context) {
     if(!context) return;
@@ -484,7 +496,7 @@ void kia_protocol_encoder_v3_v4_stop(void* context) {
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 LevelDuration kia_protocol_encoder_v3_v4_yield(void* context) {
     SubGhzProtocolEncoderKiaV3V4* instance = context;
@@ -537,7 +549,7 @@ LevelDuration kia_protocol_encoder_v3_v4_yield(void* context) {
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 void kia_protocol_encoder_v3_v4_set_button(void* context, uint8_t button) {
     furi_check(context);
@@ -549,7 +561,7 @@ void kia_protocol_encoder_v3_v4_set_button(void* context, uint8_t button) {
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 void kia_protocol_encoder_v3_v4_set_counter(void* context, uint16_t counter) {
     furi_check(context);
@@ -561,7 +573,7 @@ void kia_protocol_encoder_v3_v4_set_counter(void* context, uint16_t counter) {
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 void kia_protocol_encoder_v3_v4_increment_counter(void* context) {
     furi_check(context);
@@ -573,7 +585,7 @@ void kia_protocol_encoder_v3_v4_increment_counter(void* context) {
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 uint16_t kia_protocol_encoder_v3_v4_get_counter(void* context) {
     furi_check(context);
@@ -582,7 +594,7 @@ uint16_t kia_protocol_encoder_v3_v4_get_counter(void* context) {
 }
 
 #endif
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 uint8_t kia_protocol_encoder_v3_v4_get_button(void* context) {
     furi_check(context);

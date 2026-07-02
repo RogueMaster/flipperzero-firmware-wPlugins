@@ -29,12 +29,16 @@ Protocols are split into **AM** and **FM** registries. The active registry is ch
 | ------------------------ | ------- | ------- | --------------- | ---------- | ------------------------------ | ------------ | --------------- |
 | Chrysler V0              | ✅       | ✅       | PWM             | AM650      | Rolling Code                   | Checksum     | 315.00 / 433.92 |
 | Fiat V0                  | ✅       | ✅       | Manchester      | AM650      | Rolling Code (static emu only) | ❌            | 315.00 / 433.92 |
-| Fiat V1                  | ✅       | ❌       | Manchester      | AM650      | Rolling Code                   | CRC8         | 315.00 / 433.92 |
+| Fiat V1                  | ✅       | ✅       | Manchester      | AM650      | HITAG2                  | XOR8         | 315.00 / 433.92 |
+| Fiat V2                  | ✅       | ❌       | Manchester      | AM650      | Rolling Code                   | ❌            | 315.00 / 433.92 |
 | Ford V0                  | ✅       | ✅       | Manchester      | AM650      | Rolling Code                   | ✅ + Checksum | 315.00 / 433.92 |
+| Ford V3                  | ✅       | ❌       | Manchester      | AM650      | Rolling Code                   | ❌            | 434.25          |
 | Honda V1                 | ✅       | ✅       | Manchester      | AM650      | Rolling Code                   | CRC4         | 315.00 / 433.92 |
 | Kia V1                   | ✅       | ✅       | Manchester      | AM650      | Rolling Code                   | CRC4         | 315.00 / 433.92 |
+| Mazda V0                 | ✅       | ✅       | Manchester      | AM650      | Rolling Code                   | Checksum     | 315.00 / 433.92 |
 | Porsche Touareg          | ✅       | ❌       | PWM             | AM650      | Rolling Code                   | ❌            | 315.00 / 433.92 |
 | PSA (Peugeot/Citroen)    | ✅       | ✅       | Manchester      | AM650      | XTEA/XOR                       | CRC8         | 315.00 / 433.92 |
+| Renault V0               | ✅       | ✅       | Manchester      | AM650      | Rolling Code / Replay          | Type/IC      | 315.00 / 433.92 |
 | StarLine                 | ✅       | ✅       | PWM             | AM650      | KeeLoq                         | ❌            | 315.00 / 433.92 |
 | Subaru                   | ✅       | ✅       | PPM             | AM650      | Rolling Code                   | ❌            | 315.00 / 433.92 |
 | VAG (VW/Audi/Seat/Skoda) | ✅       | ✅       | Manchester      | AM650      | AUT64/XTEA                     | ❌            | 434.42          |
@@ -55,7 +59,7 @@ Protocols are split into **AM** and **FM** registries. The active registry is ch
 | Kia V5                        | ✅       | ✅       | PWM             | FM476      | Rolling Code                 | ✅          | 315.00 / 433.92 |
 | Kia V6                        | ✅       | ✅       | Manchester      | FM476      | AES128                       | CRC8       | 315.00 / 433.92 |
 | Kia V7                        | ✅       | ✅       | Manchester      | FM476      | Rolling Code                 | CRC8       | 315.00 / 433.92 |
-| Land Rover V0                 | ✅       | ✅       | PWM             | F4         | Rolling Code                 | Check+Tail | 315.00 / 433.92 |
+| Honda V2                      | ✅       | ✅       | PWM             | F4         | Rolling Code                 | Check+Tail | 315.00 / 433.92 |
 | Mazda V0                      | ✅       | ✅       | Manchester      | FM (F2?)   | Rolling Code                 | Checksum   | 315.00 / 433.92 |
 | Mitsubishi V0                 | ✅       | ❌       | PWM             | FM476      | Rolling Code                 | ❌          | 315.00 / 433.92 |
 | PSA (Peugeot/Citroen)         | ✅       | ✅       | Manchester      | FM (F3?)   | XTEA/XOR                     | CRC8       | 315.00 / 433.92 |

@@ -62,7 +62,7 @@ static const char* const honda_v1_button_names[HONDA_V1_BUTTON_MAX + 1U] = {
     [HondaV1ButtonPanic] = "Panic",
 };
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 static const uint32_t honda_v1_button_codes[HONDA_V1_BUTTON_MAX + 1U] = {
     [HondaV1ButtonUnlock] = 0x00080808,
     [HondaV1ButtonLock] = 0x00088888,
@@ -87,7 +87,7 @@ struct SubGhzProtocolDecoderHondaV1 {
     uint8_t k2;
 };
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 struct SubGhzProtocolEncoderHondaV1 {
     SubGhzProtocolEncoderBase base;
     SubGhzProtocolBlockEncoder encoder;
@@ -109,7 +109,7 @@ static const char* honda_v1_button_name(uint8_t b) {
     return "Unknown";
 }
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 static uint32_t honda_v1_button_code(uint8_t button) {
     if(!honda_v1_button_valid(button)) {
         return HONDA_V1_BUTTON_FALLBACK_CODE;
@@ -177,7 +177,7 @@ static void honda_v1_decode_fields(SubGhzBlockGeneric* generic) {
     generic->data_count_bit = HONDA_V1_BIT_COUNT;
 }
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 static uint64_t honda_v1_build_key(uint32_t serial, uint8_t button, uint16_t counter) {
     const uint32_t table = honda_v1_button_code(button);
     const uint32_t low = ((table & HONDA_V1_COUNTER_MASK) << 16U) | counter;
@@ -306,7 +306,7 @@ static void
     }
 }
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 static bool honda_v1_append_frame(
     SubGhzProtocolEncoderHondaV1* instance,
     size_t* index,
@@ -407,7 +407,7 @@ const SubGhzProtocolDecoder subghz_protocol_honda_v1_decoder = {
     .get_string = subghz_protocol_decoder_honda_v1_get_string,
 };
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 const SubGhzProtocolEncoder subghz_protocol_honda_v1_encoder = {
     .alloc = subghz_protocol_encoder_honda_v1_alloc,
     .free = pp_encoder_free,
@@ -430,15 +430,23 @@ const SubGhzProtocol honda_v1_protocol = {
     .type = SubGhzProtocolTypeDynamic,
     .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_AM |
             SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Save | SubGhzProtocolFlag_Load
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
             | SubGhzProtocolFlag_Send
 #endif
     ,
+#if PROTOPIRATE_WITH_DECODER
     .decoder = &subghz_protocol_honda_v1_decoder,
+#else
+    .decoder = NULL,
+#endif
+#if PROTOPIRATE_WITH_ENCODER
     .encoder = &subghz_protocol_honda_v1_encoder,
+#else
+    .encoder = NULL,
+#endif
 };
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 void* subghz_protocol_encoder_honda_v1_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
 

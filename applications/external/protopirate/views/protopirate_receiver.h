@@ -33,6 +33,9 @@ void protopirate_view_receiver_set_autosave(ProtoPirateReceiver* receiver, bool 
 void protopirate_view_receiver_set_sub_decode_mode(
     ProtoPirateReceiver* receiver,
     bool sub_decode_mode);
+void protopirate_view_receiver_set_sub_decode_progress(
+    ProtoPirateReceiver* receiver,
+    uint8_t progress);
 void protopirate_view_receiver_reset_menu(ProtoPirateReceiver* receiver);
 
 void protopirate_view_receiver_sync_menu_from_history(

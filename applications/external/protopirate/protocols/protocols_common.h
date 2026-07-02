@@ -4,11 +4,12 @@
 #include <lib/subghz/types.h>
 #include <lib/subghz/blocks/const.h>
 #include <lib/subghz/blocks/decoder.h>
-#include <lib/subghz/blocks/encoder.h>
 #include <lib/subghz/blocks/generic.h>
 #include <lib/subghz/blocks/math.h>
 #include <lib/subghz/protocols/base.h>
 #include <lib/toolbox/manchester_decoder.h>
+
+#include "../defines.h"
 
 extern const char FF_BIT[];
 extern const char FF_KEY[];
@@ -51,6 +52,8 @@ void pp_encoder_read_fields(
     uint32_t* btn_out,
     uint32_t* cnt_out,
     uint32_t* type_out);
+
+#define PP_ENCODER_REPEAT_MAX 50U
 
 uint32_t pp_encoder_read_repeat(FlipperFormat* ff, uint32_t default_repeat);
 
@@ -118,6 +121,12 @@ uint8_t pp_decoder_hash_blocks(void* context);
 
 void pp_decoder_free_default(void* context);
 
+#define PP_SHARED_UPLOAD_CAPACITY 2048U
+
+#if PROTOPIRATE_WITH_ENCODER
+
+#include <lib/subghz/blocks/encoder.h>
+
 typedef struct {
     SubGhzProtocolEncoderBase base;
     SubGhzProtocolBlockEncoder encoder;
@@ -127,10 +136,10 @@ void pp_encoder_free(void* context);
 void pp_encoder_stop(void* context);
 LevelDuration pp_encoder_yield(void* context);
 
-#define PP_SHARED_UPLOAD_CAPACITY 2048U
-
 void pp_encoder_buffer_ensure(void* context, size_t capacity);
 
 LevelDuration* pp_shared_upload_buffer(void);
 size_t pp_shared_upload_capacity(void);
 void pp_shared_upload_release(void);
+
+#endif

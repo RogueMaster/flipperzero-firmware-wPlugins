@@ -9,6 +9,7 @@ enum ProtoPirateSettingIndex {
     ProtoPirateSettingIndexTXPower,
 #endif
     ProtoPirateSettingIndexAutoSave,
+    ProtoPirateSettingIndexCheckSaved,
     ProtoPirateSettingIndexLock,
 };
 
@@ -25,6 +26,12 @@ const uint32_t hopping_value[HOPPING_COUNT] = {
 
 #define AUTO_SAVE_COUNT 2
 const char* const auto_save_text[AUTO_SAVE_COUNT] = {
+    "OFF",
+    "ON",
+};
+
+#define CHECK_SAVED_COUNT 2
+const char* const check_saved_text[CHECK_SAVED_COUNT] = {
     "OFF",
     "ON",
 };
@@ -173,6 +180,14 @@ static void protopirate_scene_receiver_config_set_auto_save(VariableItem* item) 
     variable_item_set_current_value_text(item, auto_save_text[index]);
 }
 
+static void protopirate_scene_receiver_config_set_check_saved(VariableItem* item) {
+    ProtoPirateApp* app = variable_item_get_context(item);
+    uint8_t index = variable_item_get_current_value_index(item);
+
+    app->check_saved = (index == 1);
+    variable_item_set_current_value_text(item, check_saved_text[index]);
+}
+
 #ifdef ENABLE_EMULATE_FEATURE
 static void protopirate_scene_receiver_config_set_tx_power(VariableItem* item) {
     ProtoPirateApp* app = variable_item_get_context(item);
@@ -267,6 +282,15 @@ void protopirate_scene_receiver_config_on_enter(void* context) {
         app);
     variable_item_set_current_value_index(item, app->auto_save ? 1 : 0);
     variable_item_set_current_value_text(item, auto_save_text[app->auto_save ? 1 : 0]);
+
+    item = variable_item_list_add(
+        app->variable_item_list,
+        "Check Saved:",
+        CHECK_SAVED_COUNT,
+        protopirate_scene_receiver_config_set_check_saved,
+        app);
+    variable_item_set_current_value_index(item, app->check_saved ? 1 : 0);
+    variable_item_set_current_value_text(item, check_saved_text[app->check_saved ? 1 : 0]);
 
     variable_item_list_add(app->variable_item_list, "Lock Keyboard", 1, NULL, NULL);
     variable_item_list_set_enter_callback(

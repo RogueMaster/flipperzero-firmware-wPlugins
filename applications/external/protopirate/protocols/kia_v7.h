@@ -35,7 +35,7 @@ SubGhzProtocolStatus
     kia_protocol_decoder_v7_deserialize(void* context, FlipperFormat* flipper_format);
 void kia_protocol_decoder_v7_get_string(void* context, FuriString* output);
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 void* kia_protocol_encoder_v7_alloc(SubGhzEnvironment* environment);
 SubGhzProtocolStatus
     kia_protocol_encoder_v7_deserialize(void* context, FlipperFormat* flipper_format);

@@ -5,6 +5,7 @@
 #include <input/input.h>
 #include <gui/elements.h>
 #include <furi.h>
+#include <stdio.h>
 
 #include "proto_pirate_icons.h"
 
@@ -34,6 +35,7 @@ typedef struct {
     ProtoPirateLock lock;
     uint8_t lock_count;
     uint8_t animation_frame;
+    uint8_t sub_decode_progress;
     bool dolphin_view;
     bool sub_decode_mode;
 } ProtoPirateReceiverModel;
@@ -110,7 +112,24 @@ void protopirate_view_receiver_set_sub_decode_mode(
     with_view_model(
         receiver->view,
         ProtoPirateReceiverModel * model,
-        { model->sub_decode_mode = sub_decode_mode; },
+        {
+            model->sub_decode_mode = sub_decode_mode;
+            if(!sub_decode_mode) {
+                model->sub_decode_progress = 0;
+            }
+        },
+        true);
+}
+
+void protopirate_view_receiver_set_sub_decode_progress(
+    ProtoPirateReceiver* receiver,
+    uint8_t progress) {
+    furi_check(receiver);
+    if(progress > 100) progress = 100;
+    with_view_model(
+        receiver->view,
+        ProtoPirateReceiverModel * model,
+        { model->sub_decode_progress = progress; },
         true);
 }
 
@@ -202,6 +221,22 @@ static void protopirate_view_receiver_draw_frame(Canvas* canvas, uint16_t idx, b
     canvas_draw_dot(canvas, scrollbar ? 121 : 126, (0 + idx * FRAME_HEIGHT) + 11);
 }
 
+static void protopirate_view_receiver_draw_progress_badge(Canvas* canvas, uint8_t progress) {
+    char progress_text[8];
+    snprintf(progress_text, sizeof(progress_text), "%u%%", progress > 100 ? 100 : progress);
+
+    canvas_set_font(canvas, FontSecondary);
+    uint8_t width = canvas_string_width(canvas, progress_text) + 8;
+    if(width < 30) width = 30;
+    if(width > 42) width = 42;
+
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_rbox(canvas, 0, 52, width, 12, 2);
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_str_aligned(canvas, width / 2, 62, AlignCenter, AlignBottom, progress_text);
+    canvas_set_color(canvas, ColorBlack);
+}
+
 void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* model) {
     canvas_clear(canvas);
     canvas_set_color(canvas, ColorBlack);
@@ -220,13 +255,20 @@ void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* mo
 
         // Draw RSSI
         protopirate_view_rssi_draw(canvas, model);
+    } else {
+        protopirate_view_receiver_draw_progress_badge(canvas, model->sub_decode_progress);
     }
 
     //Draw To Unlock, Locked etc...
     if(model->lock_count) {
-        canvas_draw_str(canvas, 44, 63, furi_string_get_cstr(model->frequency_str));
-        canvas_draw_str(canvas, 79, 63, furi_string_get_cstr(model->preset_str));
-        canvas_draw_str(canvas, 96, 63, furi_string_get_cstr(model->history_stat_str));
+        if(model->sub_decode_mode) {
+            canvas_draw_str(canvas, 44, 63, furi_string_get_cstr(model->frequency_str));
+            canvas_draw_str(canvas, 96, 63, furi_string_get_cstr(model->history_stat_str));
+        } else {
+            canvas_draw_str(canvas, 44, 63, furi_string_get_cstr(model->frequency_str));
+            canvas_draw_str(canvas, 79, 63, furi_string_get_cstr(model->preset_str));
+            canvas_draw_str(canvas, 96, 63, furi_string_get_cstr(model->history_stat_str));
+        }
         canvas_set_font(canvas, FontSecondary);
         elements_bold_rounded_frame(canvas, 14, 8, 99, 48);
         elements_multiline_text(canvas, 65, 26, "To unlock\npress:");
@@ -240,9 +282,14 @@ void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* mo
             canvas_draw_icon(canvas, 64, 55, &I_Lock_7x8);
             canvas_draw_str(canvas, 74, 62, "Locked");
         } else {
-            canvas_draw_str(canvas, 44, 63, furi_string_get_cstr(model->frequency_str));
-            canvas_draw_str(canvas, 79, 63, furi_string_get_cstr(model->preset_str));
-            canvas_draw_str(canvas, 96, 63, furi_string_get_cstr(model->history_stat_str));
+            if(model->sub_decode_mode) {
+                canvas_draw_str(canvas, 44, 63, furi_string_get_cstr(model->frequency_str));
+                canvas_draw_str(canvas, 96, 63, furi_string_get_cstr(model->history_stat_str));
+            } else {
+                canvas_draw_str(canvas, 44, 63, furi_string_get_cstr(model->frequency_str));
+                canvas_draw_str(canvas, 79, 63, furi_string_get_cstr(model->preset_str));
+                canvas_draw_str(canvas, 96, 63, furi_string_get_cstr(model->history_stat_str));
+            }
         }
     }
 
@@ -280,7 +327,7 @@ void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* mo
         }
     } else {
         //Are we in Radar View or FLipper View Mode?
-        if(!model->dolphin_view) {
+        if(!model->sub_decode_mode && !model->dolphin_view) {
             const uint8_t center_x = 64;
             const uint8_t center_y = 22;
             for(uint8_t wave = 0; wave < 3; wave++) {
@@ -345,16 +392,20 @@ void protopirate_view_receiver_draw(Canvas* canvas, ProtoPirateReceiverModel* mo
             //canvas_draw_str(canvas, 44, 10, model->external_radio ? "Ext" : "Int");       //FOR EXACT FLIPPER CLONE
         }
 
-        // Draw EXT/INT indicator in upper right corner
         canvas_set_font(canvas, FontSecondary);
-        if(model->external_radio) {
-            canvas_draw_str_aligned(canvas, 127, 0, AlignRight, AlignTop, "Ext");
+        if(model->sub_decode_mode) {
+            canvas_draw_str_aligned(
+                canvas, 127, 0, AlignRight, AlignTop, furi_string_get_cstr(model->preset_str));
         } else {
-            canvas_draw_str_aligned(canvas, 127, 0, AlignRight, AlignTop, "Int");
+            if(model->external_radio) {
+                canvas_draw_str_aligned(canvas, 127, 0, AlignRight, AlignTop, "Ext");
+            } else {
+                canvas_draw_str_aligned(canvas, 127, 0, AlignRight, AlignTop, "Int");
+            }
         }
 
         //Draw the Auto-save Indicator
-        if(model->auto_save) {
+        if(!model->sub_decode_mode && model->auto_save) {
             const char* auto_save_text = "Save";
             canvas_draw_str(
                 canvas, 110 - canvas_string_width(canvas, auto_save_text), 7, auto_save_text);
@@ -369,8 +420,15 @@ bool protopirate_view_receiver_input(InputEvent* event, void* context) {
     bool consumed = false;
 
     ProtoPirateLock lock;
+    bool sub_decode_mode = false;
     with_view_model(
-        receiver->view, ProtoPirateReceiverModel * model, { lock = model->lock; }, false);
+        receiver->view,
+        ProtoPirateReceiverModel * model,
+        {
+            lock = model->lock;
+            sub_decode_mode = model->sub_decode_mode;
+        },
+        false);
 
     if(lock == ProtoPirateLockOn) {
         bool do_unlock_cb = false;
@@ -433,7 +491,7 @@ bool protopirate_view_receiver_input(InputEvent* event, void* context) {
             consumed = true;
             break;
         case InputKeyLeft:
-            if(receiver->callback) {
+            if(!sub_decode_mode && receiver->callback) {
                 receiver->callback(ProtoPirateCustomEventViewReceiverConfig, receiver->context);
             }
             consumed = true;
@@ -465,7 +523,7 @@ bool protopirate_view_receiver_input(InputEvent* event, void* context) {
 
                     if(item_count > 0) {
                         do_ok_cb = true;
-                    } else if(event->type == InputTypeLong) {
+                    } else if(!sub_decode_mode && event->type == InputTypeLong) {
                         do_toggle = true;
                     }
                 },
@@ -538,6 +596,7 @@ ProtoPirateReceiver* protopirate_view_receiver_alloc(bool auto_save) {
             model->lock_count = 0;
             model->auto_save = auto_save;
             model->animation_frame = 0;
+            model->sub_decode_progress = 0;
             model->dolphin_view = true;
             model->sub_decode_mode = false;
         },

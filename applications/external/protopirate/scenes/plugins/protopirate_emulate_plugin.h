@@ -7,16 +7,20 @@
 #include <gui/scene_manager.h>
 
 #define PROTOPIRATE_EMULATE_PLUGIN_APP_ID      "protopirate_emulate_plugin"
-#define PROTOPIRATE_EMULATE_PLUGIN_API_VERSION 1U
+#define PROTOPIRATE_EMULATE_PLUGIN_API_VERSION 2U
 
 typedef struct {
     bool (*radio_init)(void* app);
-    bool (*apply_protocol_registry_for_preset_data)(
+    bool (*apply_protocol_registry_for_context)(
         void* app,
+        const char* preset_name,
+        uint32_t frequency,
         const uint8_t* preset_data,
-        size_t preset_data_size);
+        size_t preset_data_size,
+        const char* protocol_name);
     void (*rx_stack_suspend_for_tx)(void* app);
     bool (*ensure_view_about)(void* app);
+    bool (*ensure_text_input)(void* app);
     void (*idle)(void* app);
     void (*history_release_scratch)(void* app);
     void (*storage_delete_temp)(void);

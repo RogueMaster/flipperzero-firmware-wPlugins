@@ -174,7 +174,17 @@ uint32_t pp_encoder_read_repeat(FlipperFormat* ff, uint32_t default_repeat) {
     if(!ff) return default_repeat;
     flipper_format_rewind(ff);
     uint32_t tmp = 0;
-    return flipper_format_read_uint32(ff, FF_REPEAT, &tmp, 1) ? tmp : default_repeat;
+    if(!flipper_format_read_uint32(ff, FF_REPEAT, &tmp, 1)) {
+        return default_repeat;
+    }
+
+    if(tmp == 0) {
+        return default_repeat;
+    }
+    if(tmp > PP_ENCODER_REPEAT_MAX) {
+        tmp = PP_ENCODER_REPEAT_MAX;
+    }
+    return tmp;
 }
 
 SubGhzProtocolStatus pp_serialize_fields(
@@ -247,6 +257,8 @@ size_t
     return i;
 }
 
+#if PROTOPIRATE_WITH_ENCODER
+
 void pp_encoder_free(void* context) {
     furi_check(context);
     ProtoPirateEncoderHeader* hdr = context;
@@ -303,6 +315,8 @@ void pp_encoder_buffer_ensure(void* context, size_t capacity) {
     hdr->encoder.upload = pp_shared_upload_buffer();
     hdr->encoder.size_upload = capacity;
 }
+
+#endif
 
 uint8_t pp_decoder_hash_blocks(void* context) {
     furi_check(context);

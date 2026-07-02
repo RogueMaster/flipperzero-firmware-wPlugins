@@ -16,7 +16,6 @@
 #define FORD_V2_ENC_PREAMBLE_PAIRS     70U
 #define FORD_V2_ENC_BURST_COUNT        6U
 #define FORD_V2_ENC_INTER_BURST_GAP_US 16000U
-#define FORD_V2_ENC_ALLOC_ELEMS        2600U
 #define FORD_V2_ENC_SEPARATOR_ELEMS    2U
 #define FORD_V2_ENC_PREAMBLE_ELEMS     (FORD_V2_ENC_PREAMBLE_PAIRS * 2U)
 #define FORD_V2_ENC_DATA_ELEMS         ((FORD_V2_DATA_BITS - 1U) * 2U)
@@ -70,7 +69,7 @@ typedef struct SubGhzProtocolDecoderFordV2 {
     bool structure_ok;
 } SubGhzProtocolDecoderFordV2;
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 typedef struct SubGhzProtocolEncoderFordV2 {
     SubGhzProtocolEncoderBase base;
     SubGhzProtocolBlockEncoder encoder;
@@ -125,7 +124,7 @@ static bool ford_v2_button_is_valid(uint8_t btn) {
     }
 }
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 static uint8_t ford_v2_uint8_parity(uint8_t value) {
     uint8_t parity = 0U;
     while(value) {
@@ -350,7 +349,7 @@ static void ford_v2_decoder_rebuild_raw_buffer(SubGhzProtocolDecoderFordV2* inst
     }
 }
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 static inline void ford_v2_encoder_add_level(
     SubGhzProtocolEncoderFordV2* instance,
     bool level,
@@ -360,7 +359,7 @@ static inline void ford_v2_encoder_add_level(
         uint32_t prev = level_duration_get_duration(instance->encoder.upload[idx - 1]);
         instance->encoder.upload[idx - 1] = level_duration_make(level, prev + duration);
     } else {
-        furi_check(idx < FORD_V2_ENC_ALLOC_ELEMS);
+        furi_check(idx < FORD_V2_ENC_UPLOAD_ELEMS);
         instance->encoder.upload[idx] = level_duration_make(level, duration);
         instance->encoder.size_upload++;
     }
@@ -486,11 +485,8 @@ static SubGhzProtocolStatus
 static void ford_v2_encoder_deserialize_apply_repeat(
     SubGhzProtocolEncoderFordV2* instance,
     FlipperFormat* flipper_format) {
-    flipper_format_rewind(flipper_format);
-    uint32_t repeat = FORD_V2_ENCODER_DEFAULT_REPEAT;
-    if(flipper_format_read_uint32(flipper_format, "Repeat", &repeat, 1)) {
-        instance->encoder.repeat = repeat;
-    }
+    instance->encoder.repeat =
+        (int32_t)pp_encoder_read_repeat(flipper_format, FORD_V2_ENCODER_DEFAULT_REPEAT);
 }
 
 void* subghz_protocol_encoder_ford_v2_alloc(SubGhzEnvironment* environment) {
@@ -501,7 +497,7 @@ void* subghz_protocol_encoder_ford_v2_alloc(SubGhzEnvironment* environment) {
     instance->base.protocol = &ford_protocol_v2;
     instance->generic.protocol_name = instance->base.protocol->name;
     instance->encoder.repeat = FORD_V2_ENCODER_DEFAULT_REPEAT;
-    instance->encoder.upload = calloc(FORD_V2_ENC_ALLOC_ELEMS, sizeof(LevelDuration));
+    instance->encoder.upload = calloc(FORD_V2_ENC_UPLOAD_ELEMS, sizeof(LevelDuration));
     furi_check(instance->encoder.upload);
 
     return instance;
@@ -797,7 +793,7 @@ const SubGhzProtocolDecoder subghz_protocol_ford_v2_decoder = {
     .get_string = subghz_protocol_decoder_ford_v2_get_string,
 };
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 const SubGhzProtocolEncoder subghz_protocol_ford_v2_encoder = {
     .alloc = subghz_protocol_encoder_ford_v2_alloc,
     .free = subghz_protocol_encoder_ford_v2_free,
@@ -820,10 +816,18 @@ const SubGhzProtocol ford_protocol_v2 = {
     .type = SubGhzProtocolTypeDynamic,
     .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_FM |
             SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
             | SubGhzProtocolFlag_Send
 #endif
     ,
+#if PROTOPIRATE_WITH_DECODER
     .decoder = &subghz_protocol_ford_v2_decoder,
+#else
+    .decoder = NULL,
+#endif
+#if PROTOPIRATE_WITH_ENCODER
     .encoder = &subghz_protocol_ford_v2_encoder,
+#else
+    .encoder = NULL,
+#endif
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include <lib/subghz/environment.h>
@@ -18,4 +19,9 @@ uint64_t get_kia_v6_keystore_b();
 
 uint64_t get_kia_v5_key();
 
-void protopirate_keys_load(SubGhzEnvironment* environment);
+bool protopirate_keys_has_kia_mf_key(void);
+bool protopirate_keys_has_kia_v6_keystore_a(void);
+bool protopirate_keys_has_kia_v6_keystore_b(void);
+bool protopirate_keys_has_kia_v5_key(void);
+
+bool protopirate_keys_load(SubGhzEnvironment* environment);

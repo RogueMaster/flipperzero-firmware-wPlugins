@@ -1,3 +1,43 @@
+# --- Main app ---
+
+import os
+
+def ProtoPirateDefineEnabled(name, app_manifest_path=app_manifest_path):
+    defines_path = os.path.join(os.path.dirname(app_manifest_path), "defines.h")
+    with open(defines_path) as defines_file:
+        for line in defines_file:
+            parts = line.strip().split()
+            if len(parts) >= 2 and parts[0] == "#define" and parts[1] == name:
+                return True
+    return False
+
+
+_ENABLE_TIMING_TUNER = ProtoPirateDefineEnabled("ENABLE_TIMING_TUNER_SCENE")
+_ENABLE_EMULATE = ProtoPirateDefineEnabled("ENABLE_EMULATE_FEATURE")
+
+_MAIN_APP_SOURCES = [
+    "*.c*",
+    "!protocols/plugins",
+    "!scenes/plugins",
+    "!protocols",
+    "!protopirate_emulate_plugin.c",
+    "!protopirate_psa_bf_plugin.c",
+    "protocols/protocol_items.c",
+    "protocols/protocols_common.c",
+    "!raw_file_reader.c",
+]
+
+if not _ENABLE_TIMING_TUNER:
+    _MAIN_APP_SOURCES += [
+        "!protopirate_scene_timing_tuner.c",
+        "!protocol_timings.c",
+    ]
+
+if not _ENABLE_EMULATE:
+    _MAIN_APP_SOURCES += [
+        "!protopirate_scene_emulate.c",
+    ]
+
 App(
     appid="proto_pirate",
     name="ProtoPirate",
@@ -5,16 +45,17 @@ App(
     targets=["f7"],
     entry_point="protopirate_app",
     stack_size=2 * 1024,
-    sources=["*.c*"],
+    sources=_MAIN_APP_SOURCES,
     fap_icon="images/protopirate_10px.png",
     fap_icon_assets="images",
     fap_file_assets="keystore",
     fap_icon_assets_symbol="proto_pirate",
+    cdefines=["PROTOPIRATE_PROTOCOL_RX_ONLY=1"],
     fap_category="Sub-GHz",
     fap_author="RocketGod-git",
     fap_weburl="https://github.com/RocketGod-git/ProtoPirate",
     #  fap_weburl="https://protopirate.net/ProtoPirate/ProtoPirate",
-    fap_version="3.0.2",
+    fap_version="3.2",
     fap_description="Decode car key fob signals from Sub-GHz",
 )
 
@@ -25,38 +66,58 @@ App(
     targets=["f7"],
     entry_point="protopirate_app",
     stack_size=2 * 1024,
-    sources=["*.c*"],
+    sources=_MAIN_APP_SOURCES,
     fap_icon="images/protopirate_10px.png",
     fap_icon_assets="images",
     fap_file_assets="keystore",
     fap_icon_assets_symbol="proto_pirate",
     cdefines=["ENABLE_SUB_DECODE_SCENE", "ENABLE_TIMING_TUNER_SCENE"],
     fap_category="Sub-GHz",
-    fap_version="3.0.2",
+    fap_version="3.2",
 )
+
+# --- RX protocol plugins ---
 
 App(
     appid="protopirate_am_plugin",
     apptype=FlipperAppType.PLUGIN,
     entry_point="protopirate_am_plugin_ep",
     requires=["proto_pirate"],
+    cdefines=["PROTOPIRATE_PROTOCOL_RX_ONLY=1"],
     sources=[
         "protocols/plugins/protopirate_am_plugin.c",
         "protocols/protocols_common.c",
-        "protocols/aut64.c",
         "protocols/chrysler_v0.c",
         "protocols/fiat_v0.c",
         "protocols/fiat_v1.c",
+        "protocols/fiat_v2.c",
         "protocols/ford_v0.c",
+        "protocols/ford_v3.c",
         "protocols/honda_v1.c",
         "protocols/kia_v1.c",
         "protocols/kia_v2.c",
+        "protocols/mazda_v0.c",
         "protocols/porsche_touareg.c",
         "protocols/psa.c",
         "protocols/psa_crypto.c",
+        "protocols/renault_v0.c",
         "protocols/subaru.c",
-        "protocols/vag.c",
         "protocols/star_line.c",
+    ],
+    fal_embedded=True,
+)
+
+App(
+    appid="protopirate_am_vag_plugin",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="protopirate_am_vag_plugin_ep",
+    requires=["proto_pirate"],
+    cdefines=["PROTOPIRATE_PROTOCOL_RX_ONLY=1"],
+    sources=[
+        "protocols/plugins/protopirate_am_vag_plugin.c",
+        "protocols/protocols_common.c",
+        "protocols/aut64.c",
+        "protocols/vag.c",
     ],
     fal_embedded=True,
 )
@@ -66,6 +127,7 @@ App(
     apptype=FlipperAppType.PLUGIN,
     entry_point="protopirate_fm_plugin_ep",
     requires=["proto_pirate"],
+    cdefines=["PROTOPIRATE_PROTOCOL_RX_ONLY=1"],
     sources=[
         "protocols/plugins/protopirate_fm_plugin.c",
         "protocols/protocols_common.c",
@@ -76,11 +138,6 @@ App(
         "protocols/kia_v5.c",
         "protocols/kia_v6.c",
         "protocols/kia_v7.c",
-        "protocols/ford_v1.c",
-        "protocols/ford_v2.c",
-        "protocols/ford_v3.c",
-        "protocols/honda_static.c",
-        "protocols/land_rover_v0.c",
         "protocols/mazda_v0.c",
         "protocols/mitsubishi_v0.c",
         "protocols/psa.c",
@@ -90,15 +147,273 @@ App(
 )
 
 App(
-    appid="protopirate_emulate_plugin",
+    appid="protopirate_fm_f4_plugin",
     apptype=FlipperAppType.PLUGIN,
-    entry_point="protopirate_emulate_plugin_ep",
+    entry_point="protopirate_fm_f4_plugin_ep",
     requires=["proto_pirate"],
+    cdefines=["PROTOPIRATE_PROTOCOL_RX_ONLY=1"],
     sources=[
-        "scenes/plugins/protopirate_emulate_plugin.c",
+        "protocols/plugins/protopirate_fm_f4_plugin.c",
+        "protocols/protocols_common.c",
+        "protocols/ford_v1.c",
+        "protocols/ford_v2.c",
+        "protocols/ford_v3.c",
+        "protocols/honda_v2.c",
     ],
     fal_embedded=True,
 )
+
+App(
+    appid="protopirate_fm_honda1_plugin",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="protopirate_fm_honda1_plugin_ep",
+    requires=["proto_pirate"],
+    cdefines=["PROTOPIRATE_PROTOCOL_RX_ONLY=1"],
+    sources=[
+        "protocols/plugins/protopirate_fm_honda1_plugin.c",
+        "protocols/protocols_common.c",
+        "protocols/honda_static.c",
+    ],
+    fal_embedded=True,
+)
+
+# --- TX protocol plugins ---
+
+_TX_PLUGIN_SOURCES = [
+    "protocols/plugins/protopirate_tx_protocol_plugin.c",
+    "protocols/protocols_common.c",
+]
+
+def ProtoPirateTxProtocolPlugin(
+    key,
+    protocol_header,
+    protocol_name,
+    protocol_item,
+    protocol_sources,
+    App=App,
+    FlipperAppType=FlipperAppType,
+    tx_plugin_sources=_TX_PLUGIN_SOURCES,
+    enable_emulate=_ENABLE_EMULATE,
+):
+    if not enable_emulate:
+        return
+
+    App(
+        appid=f"protopirate_tx_{key}_plugin",
+        apptype=FlipperAppType.PLUGIN,
+        entry_point="protopirate_tx_protocol_plugin_ep",
+        requires=["proto_pirate"],
+        cdefines=[
+            "PROTOPIRATE_PROTOCOL_TX_ONLY=1",
+            f"PP_TX_PROTOCOL_HEADER=\\\"../{protocol_header}\\\"",
+            f"PP_TX_PROTOCOL_NAME={protocol_name}",
+            f"PP_TX_PROTOCOL_ITEM={protocol_item}",
+        ],
+        sources=tx_plugin_sources + [f"protocols/{source}" for source in protocol_sources],
+        fal_embedded=True,
+    )
+
+ProtoPirateTxProtocolPlugin(
+    "chrysler_v0",
+    "chrysler_v0.h",
+    "CHRYSLER_PROTOCOL_V0_NAME",
+    "chrysler_protocol_v0",
+    ["chrysler_v0.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "fiat_v0",
+    "fiat_v0.h",
+    "FIAT_PROTOCOL_V0_NAME",
+    "fiat_protocol_v0",
+    ["fiat_v0.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "fiat_v1",
+    "fiat_v1.h",
+    "FIAT_V1_PROTOCOL_NAME",
+    "fiat_v1_protocol",
+    ["fiat_v1.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "ford_v0",
+    "ford_v0.h",
+    "FORD_PROTOCOL_V0_NAME",
+    "ford_protocol_v0",
+    ["ford_v0.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "ford_v1",
+    "ford_v1.h",
+    "FORD_PROTOCOL_V1_NAME",
+    "ford_protocol_v1",
+    ["ford_v1.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "ford_v2",
+    "ford_v2.h",
+    "FORD_PROTOCOL_V2_NAME",
+    "ford_protocol_v2",
+    ["ford_v2.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "honda_static",
+    "honda_static.h",
+    "HONDA_STATIC_PROTOCOL_NAME",
+    "honda_static_protocol",
+    ["honda_static.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "honda_v1",
+    "honda_v1.h",
+    "HONDA_V1_PROTOCOL_NAME",
+    "honda_v1_protocol",
+    ["honda_v1.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "kia_v0",
+    "kia_v0.h",
+    "KIA_PROTOCOL_V0_NAME",
+    "kia_protocol_v0",
+    ["kia_v0.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "kia_v1",
+    "kia_v1.h",
+    "KIA_PROTOCOL_V1_NAME",
+    "kia_protocol_v1",
+    ["kia_v1.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "kia_v2",
+    "kia_v2.h",
+    "KIA_PROTOCOL_V2_NAME",
+    "kia_protocol_v2",
+    ["kia_v2.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "kia_v3_v4",
+    "kia_v3_v4.h",
+    "KIA_PROTOCOL_V3_V4_NAME",
+    "kia_protocol_v3_v4",
+    ["keys.c", "kia_v3_v4.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "kia_v5",
+    "kia_v5.h",
+    "KIA_PROTOCOL_V5_NAME",
+    "kia_protocol_v5",
+    ["keys.c", "kia_v5.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "kia_v6",
+    "kia_v6.h",
+    "KIA_PROTOCOL_V6_NAME",
+    "kia_protocol_v6",
+    ["keys.c", "kia_v6.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "kia_v7",
+    "kia_v7.h",
+    "KIA_PROTOCOL_V7_NAME",
+    "kia_protocol_v7",
+    ["kia_v7.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "honda_v2",
+    "honda_v2.h",
+    "HONDA_V2_PROTOCOL_NAME",
+    "honda_v2_protocol",
+    ["honda_v2.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "mazda_v0",
+    "mazda_v0.h",
+    "MAZDA_PROTOCOL_V0_NAME",
+    "mazda_v0_protocol",
+    ["mazda_v0.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "psa",
+    "psa.h",
+    "PSA_PROTOCOL_NAME",
+    "psa_protocol",
+    ["psa.c", "psa_crypto.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "renault_v0",
+    "renault_v0.h",
+    "RENAULT_PROTOCOL_V0_NAME",
+    "renault_v0_protocol",
+    ["renault_v0.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "star_line",
+    "star_line.h",
+    "SUBGHZ_PROTOCOL_STAR_LINE_NAME",
+    "subghz_protocol_star_line",
+    ["star_line.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "subaru",
+    "subaru.h",
+    "SUBARU_PROTOCOL_NAME",
+    "subaru_protocol",
+    ["subaru.c"],
+)
+ProtoPirateTxProtocolPlugin(
+    "vag",
+    "vag.h",
+    "VAG_PROTOCOL_NAME",
+    "vag_protocol",
+    ["aut64.c", "vag.c"],
+)
+
+# --- Tool / scene plugins ---
+
+App(
+    appid="protopirate_sub_decode_plugin",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="protopirate_sub_decode_plugin_ep",
+    requires=["proto_pirate"],
+    cdefines=["PROTOPIRATE_SUB_DECODE_PLUGIN_BUILD=1"],
+    sources=[
+        "scenes/protopirate_scene_sub_decode.c",
+        "helpers/raw_file_reader.c",
+        "protopirate_history.c",
+        "helpers/protopirate_storage.c",
+        "protocols/protocol_items.c",
+        "protocols/protocols_common.c",
+    ],
+    fap_icon_assets="images",
+    fal_embedded=True,
+)
+
+if _ENABLE_TIMING_TUNER:
+    App(
+        appid="protopirate_timing_tuner_plugin",
+        apptype=FlipperAppType.PLUGIN,
+        entry_point="protopirate_timing_tuner_plugin_ep",
+        requires=["proto_pirate"],
+        cdefines=["PROTOPIRATE_TIMING_TUNER_PLUGIN_BUILD=1"],
+        sources=[
+            "scenes/protopirate_scene_timing_tuner.c",
+            "protocols/protocol_timings.c",
+        ],
+        fal_embedded=True,
+    )
+
+if _ENABLE_EMULATE:
+    App(
+        appid="protopirate_emulate_plugin",
+        apptype=FlipperAppType.PLUGIN,
+        entry_point="protopirate_emulate_plugin_ep",
+        requires=["proto_pirate"],
+        sources=[
+            "scenes/plugins/protopirate_emulate_plugin.c",
+            "protocols/protocol_items.c",
+        ],
+        fal_embedded=True,
+    )
 
 App(
     appid="protopirate_psa_bf_plugin",

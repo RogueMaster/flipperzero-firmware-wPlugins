@@ -13,13 +13,6 @@ _Static_assert(
     VAG_ENCODER_UPLOAD_MAX_SIZE <= PP_SHARED_UPLOAD_CAPACITY,
     "VAG_ENCODER_UPLOAD_MAX_SIZE exceeds shared upload slab");
 
-static inline size_t
-    vag_emit_manchester_inv(LevelDuration* up, size_t i, size_t cap, bool bit_value, uint32_t te) {
-    i = pp_emit(up, i, cap, bit_value, te);
-    i = pp_emit(up, i, cap, !bit_value, te);
-    return i;
-}
-
 static const SubGhzBlockConst subghz_protocol_vag_const = {
     .te_short = 500,
     .te_long = 1000,
@@ -178,7 +171,7 @@ static void vag_tea_decrypt(uint32_t* v0, uint32_t* v1, const uint32_t* key_sche
         *v0 -= (((*v1 << 4) ^ (*v1 >> 5)) + *v1) ^ (sum + key_schedule[sum & 3]);
     }
 }
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 static void vag_tea_encrypt(uint32_t* v0, uint32_t* v1, const uint32_t* key_schedule) {
     uint32_t sum = 0;
     for(int i = 0; i < VAG_TEA_ROUNDS; i++) {
@@ -511,7 +504,7 @@ const SubGhzProtocolDecoder subghz_protocol_vag_decoder = {
     .deserialize = subghz_protocol_decoder_vag_deserialize,
     .get_string = subghz_protocol_decoder_vag_get_string,
 };
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 const SubGhzProtocolEncoder subghz_protocol_vag_encoder = {
     .alloc = subghz_protocol_encoder_vag_alloc,
     .free = subghz_protocol_encoder_vag_free,
@@ -534,8 +527,16 @@ const SubGhzProtocol vag_protocol = {
     .type = SubGhzProtocolTypeDynamic,
     .flag = SubGhzProtocolFlag_433 | SubGhzProtocolFlag_AM | SubGhzProtocolFlag_Decodable |
             SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save | SubGhzProtocolFlag_Send,
+#if PROTOPIRATE_WITH_DECODER
     .decoder = &subghz_protocol_vag_decoder,
+#else
+    .decoder = NULL,
+#endif
+#if PROTOPIRATE_WITH_ENCODER
     .encoder = &subghz_protocol_vag_encoder,
+#else
+    .encoder = NULL,
+#endif
 };
 
 void* subghz_protocol_decoder_vag_alloc(SubGhzEnvironment* environment) {
@@ -957,7 +958,7 @@ SubGhzProtocolStatus
     return ret;
 }
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 
 typedef struct SubGhzProtocolEncoderVAG {
     SubGhzProtocolEncoderBase base;
@@ -1132,7 +1133,7 @@ static void vag_encoder_build_type1(SubGhzProtocolEncoderVAG* instance) {
 #endif
     for(int i = 15; i >= 0; i--) {
         bool bit = (prefix >> i) & 1;
-        index = vag_emit_manchester_inv(upload, index, cap, bit, 300);
+        index = pp_emit_manchester_bit(upload, index, cap, bit, 300);
     }
     FURI_LOG_D(TAG, "Prefix 0x%04X: %zu pulses", prefix, index - prefix_start);
 
@@ -1151,7 +1152,7 @@ static void vag_encoder_build_type1(SubGhzProtocolEncoderVAG* instance) {
 #endif
     for(int i = 63; i >= 0; i--) {
         bool bit = (key1_inv >> i) & 1;
-        index = vag_emit_manchester_inv(upload, index, cap, bit, 300);
+        index = pp_emit_manchester_bit(upload, index, cap, bit, 300);
     }
     FURI_LOG_D(TAG, "Key1: %zu pulses (64 bits)", index - key1_start);
 
@@ -1163,7 +1164,7 @@ static void vag_encoder_build_type1(SubGhzProtocolEncoderVAG* instance) {
 #endif
     for(int i = 15; i >= 0; i--) {
         bool bit = (key2_inv >> i) & 1;
-        index = vag_emit_manchester_inv(upload, index, cap, bit, 300);
+        index = pp_emit_manchester_bit(upload, index, cap, bit, 300);
     }
     FURI_LOG_D(TAG, "Key2: %zu pulses (16 bits)", index - key2_start);
 
@@ -1272,7 +1273,7 @@ static void vag_encoder_build_type2(SubGhzProtocolEncoderVAG* instance) {
 #endif
     for(int i = 15; i >= 0; i--) {
         bool bit = (prefix >> i) & 1;
-        index = vag_emit_manchester_inv(upload, index, cap, bit, 300);
+        index = pp_emit_manchester_bit(upload, index, cap, bit, 300);
     }
     FURI_LOG_D(TAG, "Prefix 0x%04X: %zu pulses", prefix, index - prefix_start);
 
@@ -1290,7 +1291,7 @@ static void vag_encoder_build_type2(SubGhzProtocolEncoderVAG* instance) {
 #endif
     for(int i = 63; i >= 0; i--) {
         bool bit = (key1_inv >> i) & 1;
-        index = vag_emit_manchester_inv(upload, index, cap, bit, 300);
+        index = pp_emit_manchester_bit(upload, index, cap, bit, 300);
     }
     FURI_LOG_D(TAG, "Key1: %zu pulses", index - key1_start);
 
@@ -1302,7 +1303,7 @@ static void vag_encoder_build_type2(SubGhzProtocolEncoderVAG* instance) {
 #endif
     for(int i = 15; i >= 0; i--) {
         bool bit = (key2_inv >> i) & 1;
-        index = vag_emit_manchester_inv(upload, index, cap, bit, 300);
+        index = pp_emit_manchester_bit(upload, index, cap, bit, 300);
     }
     FURI_LOG_D(TAG, "Key2: %zu pulses", index - key2_start);
 
@@ -1438,7 +1439,7 @@ static void vag_encoder_build_type3_4(SubGhzProtocolEncoderVAG* instance) {
         for(int i = 63; i >= 0; i--) {
             bool bit = (key1 >> i) & 1;
 
-            index = vag_emit_manchester_inv(upload, index, cap, bit, 500);
+            index = pp_emit_manchester_bit(upload, index, cap, bit, 500);
         }
         FURI_LOG_D(TAG, "Repeat %d: Key1 %zu pulses (64 bits)", repeat + 1, index - key1_start);
 
@@ -1447,7 +1448,7 @@ static void vag_encoder_build_type3_4(SubGhzProtocolEncoderVAG* instance) {
 #endif
         for(int i = 15; i >= 0; i--) {
             bool bit = (key2 >> i) & 1;
-            index = vag_emit_manchester_inv(upload, index, cap, bit, 500);
+            index = pp_emit_manchester_bit(upload, index, cap, bit, 500);
         }
         FURI_LOG_D(TAG, "Repeat %d: Key2 %zu pulses (16 bits)", repeat + 1, index - key2_start);
 
@@ -1528,7 +1529,7 @@ void subghz_protocol_decoder_vag_get_string(void* context, FuriString* output) {
     }
 }
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 void* subghz_protocol_encoder_vag_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
     FURI_LOG_I(TAG, "VAG encoder alloc");

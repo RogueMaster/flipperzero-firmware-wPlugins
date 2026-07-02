@@ -43,7 +43,7 @@ struct SubGhzProtocolDecoderKiaV7 {
     bool crc_valid;
 };
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 struct SubGhzProtocolEncoderKiaV7 {
     SubGhzProtocolEncoderBase base;
     SubGhzProtocolBlockEncoder encoder;
@@ -155,7 +155,7 @@ static uint64_t kia_v7_encode_key(
     return pp_bytes_to_u64_be(bytes);
 }
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 static void kia_v7_decode_key_encoder(SubGhzProtocolEncoderKiaV7* instance) {
     kia_v7_decode_key_common(
         &instance->generic,
@@ -233,7 +233,7 @@ const SubGhzProtocolDecoder kia_protocol_v7_decoder = {
     .get_string = kia_protocol_decoder_v7_get_string,
 };
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 const SubGhzProtocolEncoder kia_protocol_v7_encoder = {
     .alloc = kia_protocol_encoder_v7_alloc,
     .free = pp_encoder_free,
@@ -257,11 +257,19 @@ const SubGhzProtocol kia_protocol_v7 = {
     .flag = SubGhzProtocolFlag_315 | SubGhzProtocolFlag_433 | SubGhzProtocolFlag_FM |
             SubGhzProtocolFlag_Decodable | SubGhzProtocolFlag_Load | SubGhzProtocolFlag_Save |
             SubGhzProtocolFlag_Send,
+#if PROTOPIRATE_WITH_DECODER
     .decoder = &kia_protocol_v7_decoder,
+#else
+    .decoder = NULL,
+#endif
+#if PROTOPIRATE_WITH_ENCODER
     .encoder = &kia_protocol_v7_encoder,
+#else
+    .encoder = NULL,
+#endif
 };
 
-#ifdef ENABLE_EMULATE_FEATURE
+#if PROTOPIRATE_WITH_ENCODER
 void* kia_protocol_encoder_v7_alloc(SubGhzEnvironment* environment) {
     UNUSED(environment);
 

@@ -1,6 +1,7 @@
 // scenes/protopirate_scene_receiver.c
 #include "../protopirate_app_i.h"
 #include "../helpers/protopirate_storage.h"
+#include "../helpers/protopirate_saved_match.h"
 #include "views/protopirate_receiver.h"
 #include <notification/notification_messages.h>
 #include <stdio.h>
@@ -72,43 +73,12 @@ static void protopirate_scene_receiver_callback(
         uint16_t last_index = protopirate_history_get_item(app->txrx->history) - 1;
         protopirate_view_receiver_set_idx_menu(app->protopirate_receiver, last_index);
 
+        uint16_t new_idx = protopirate_history_get_item(app->txrx->history) - 1;
         if(app->auto_save) {
-            FlipperFormat* ff = protopirate_history_get_raw_data(
-                app->txrx->history, protopirate_history_get_item(app->txrx->history) - 1);
-
-            if(ff) {
-                FuriString* protocol = furi_string_alloc();
-                if(!protocol) {
-                    FURI_LOG_E(TAG, "protocol allocation failed");
-                    return;
-                }
-
-                flipper_format_rewind(ff);
-                if(!flipper_format_read_string(ff, FF_PROTOCOL, protocol)) {
-                    furi_string_set_str(protocol, "Unknown");
-                }
-
-                furi_string_replace_all(protocol, "/", "_");
-                furi_string_replace_all(protocol, " ", "_");
-
-                FuriString* saved_path = furi_string_alloc();
-                if(!saved_path) {
-                    FURI_LOG_E(TAG, "saved_path allocation failed");
-                    furi_string_free(protocol);
-                    return;
-                }
-
-                if(protopirate_storage_save_capture(
-                       ff, furi_string_get_cstr(protocol), saved_path)) {
-                    FURI_LOG_I(TAG, "Auto-saved: %s", furi_string_get_cstr(saved_path));
-                    notification_message(app->notifications, &sequence_double_vibro);
-                } else {
-                    FURI_LOG_E(TAG, "Auto-save failed");
-                }
-
-                furi_string_free(protocol);
-                furi_string_free(saved_path);
-            }
+            protopirate_history_mark_auto_save_pending(app->txrx->history, new_idx);
+        }
+        if(app->check_saved) {
+            protopirate_history_mark_saved_match_pending(app->txrx->history, new_idx);
         }
 
         view_dispatcher_send_custom_event(
@@ -123,17 +93,108 @@ static void protopirate_scene_receiver_callback(
     }
 }
 
-static void protopirate_scene_receiver_start_rx_stack(ProtoPirateApp* app) {
+static bool protopirate_scene_receiver_process_auto_save(ProtoPirateApp* app) {
     furi_check(app);
-    if(!app->radio_initialized) {
+
+    if(!app->txrx || !app->txrx->history) {
+        return false;
+    }
+
+    uint16_t idx = 0;
+    if(!protopirate_history_find_pending_auto_save(app->txrx->history, &idx)) {
+        return false;
+    }
+
+    FlipperFormat* ff = protopirate_history_get_raw_data(app->txrx->history, idx);
+    if(ff) {
+        FuriString* protocol = furi_string_alloc();
+        FuriString* saved_path = furi_string_alloc();
+
+        if(protocol && saved_path) {
+            flipper_format_rewind(ff);
+            if(!flipper_format_read_string(ff, FF_PROTOCOL, protocol)) {
+                furi_string_set_str(protocol, "Unknown");
+            }
+
+            furi_string_replace_all(protocol, "/", "_");
+            furi_string_replace_all(protocol, " ", "_");
+
+            if(protopirate_storage_save_capture(ff, furi_string_get_cstr(protocol), saved_path)) {
+                FURI_LOG_I(TAG, "Auto-saved: %s", furi_string_get_cstr(saved_path));
+                notification_message(app->notifications, &sequence_double_vibro);
+            } else {
+                FURI_LOG_E(TAG, "Auto-save failed");
+                notification_message(app->notifications, &sequence_error);
+            }
+        } else {
+            FURI_LOG_E(TAG, "Auto-save allocation failed");
+            notification_message(app->notifications, &sequence_error);
+        }
+
+        if(protocol) furi_string_free(protocol);
+        if(saved_path) furi_string_free(saved_path);
+        protopirate_history_release_scratch(app->txrx->history);
+    } else {
+        FURI_LOG_E(TAG, "Auto-save skipped: history capture unavailable");
+        notification_message(app->notifications, &sequence_error);
+    }
+
+    protopirate_history_mark_auto_save_done(app->txrx->history, idx);
+    return true;
+}
+
+static void protopirate_scene_receiver_process_saved_match(ProtoPirateApp* app) {
+    furi_check(app);
+
+    if(!app->check_saved || !app->txrx || !app->txrx->history) {
         return;
     }
 
-    protopirate_rx_stack_resume_after_tx(app);
+    uint16_t idx = 0;
+    if(!protopirate_history_find_pending_saved_match(app->txrx->history, &idx)) {
+        return;
+    }
+
+    FlipperFormat* ff = protopirate_history_get_raw_data(app->txrx->history, idx);
+    if(ff) {
+        FuriString* matched_name = furi_string_alloc();
+        FuriString* matched_path = furi_string_alloc();
+        if(matched_name && matched_path) {
+            flipper_format_rewind(ff);
+            if(protopirate_saved_match_signal(ff, matched_name, matched_path)) {
+                protopirate_history_set_matched_saved(
+                    app->txrx->history,
+                    idx,
+                    furi_string_get_cstr(matched_name),
+                    furi_string_get_cstr(matched_path));
+                FURI_LOG_I(TAG, "Matched saved signal: %s", furi_string_get_cstr(matched_name));
+            }
+        } else {
+            FURI_LOG_E(TAG, "Failed to allocate saved-match strings");
+        }
+        if(matched_name) furi_string_free(matched_name);
+        if(matched_path) furi_string_free(matched_path);
+        protopirate_history_release_scratch(app->txrx->history);
+    }
+
+    protopirate_history_mark_saved_match_done(app->txrx->history, idx);
+}
+
+static void protopirate_scene_receiver_process_deferred_storage(ProtoPirateApp* app) {
+    if(protopirate_scene_receiver_process_auto_save(app)) {
+        return;
+    }
+
+    protopirate_scene_receiver_process_saved_match(app);
+}
+
+static bool protopirate_scene_receiver_bind_rx_stack(ProtoPirateApp* app) {
+    furi_check(app);
+
     if(!app->txrx->receiver) {
         FURI_LOG_E(TAG, "SubGhz receiver unavailable — staying on receiver in degraded mode");
         notification_message(app->notifications, &sequence_error);
-        return;
+        return false;
     }
 
     if(!app->txrx->worker) {
@@ -141,7 +202,7 @@ static void protopirate_scene_receiver_start_rx_stack(ProtoPirateApp* app) {
         if(!app->txrx->worker) {
             FURI_LOG_E(TAG, "Failed to allocate worker — staying on receiver in degraded mode");
             notification_message(app->notifications, &sequence_error);
-            return;
+            return false;
         }
         subghz_worker_set_overrun_callback(
             app->txrx->worker, (SubGhzWorkerOverrunCallback)subghz_receiver_reset);
@@ -150,9 +211,16 @@ static void protopirate_scene_receiver_start_rx_stack(ProtoPirateApp* app) {
     }
 
     subghz_receiver_reset(app->txrx->receiver);
-
     subghz_worker_set_context(app->txrx->worker, app->txrx->receiver);
     subghz_receiver_set_rx_callback(app->txrx->receiver, protopirate_scene_receiver_callback, app);
+    return true;
+}
+
+static void protopirate_scene_receiver_start_rx_stack(ProtoPirateApp* app) {
+    furi_check(app);
+    if(!app->radio_initialized) {
+        return;
+    }
 
     if(app->txrx->hopper_state != ProtoPirateHopperStateOFF) {
         app->txrx->hopper_state = ProtoPirateHopperStateRunning;
@@ -172,6 +240,12 @@ static void protopirate_scene_receiver_start_rx_stack(ProtoPirateApp* app) {
     if(app->txrx->hopper_state == ProtoPirateHopperStateRunning) {
         frequency = subghz_setting_get_hopper_frequency(app->setting, 0);
         app->txrx->hopper_idx_frequency = 0;
+        app->txrx->preset->frequency = frequency;
+    }
+
+    protopirate_rx_stack_resume_after_tx(app);
+    if(!protopirate_scene_receiver_bind_rx_stack(app)) {
+        return;
     }
 
     FURI_LOG_I(TAG, "Starting RX on %lu Hz", frequency);
@@ -205,6 +279,8 @@ void protopirate_scene_receiver_on_enter(void* context) {
         app->txrx->history = protopirate_history_alloc();
         if(!app->txrx->history) {
             FURI_LOG_E(TAG, "Failed to allocate history!");
+            notification_message(app->notifications, &sequence_error);
+            scene_manager_previous_scene(app->scene_manager);
             return;
         }
     }
@@ -328,8 +404,12 @@ bool protopirate_scene_receiver_on_event(void* context, SceneManagerEvent event)
             break;
         }
     } else if(event.type == SceneManagerEventTypeTick) {
+        protopirate_scene_receiver_process_deferred_storage(app);
+
         if(app->txrx->hopper_state != ProtoPirateHopperStateOFF) {
-            protopirate_hopper_update(app);
+            if(protopirate_hopper_update(app) && protopirate_scene_receiver_bind_rx_stack(app)) {
+                protopirate_rx(app, app->txrx->preset->frequency);
+            }
             static uint8_t hopper_statusbar_tick = 0;
             if(++hopper_statusbar_tick >= 8) {
                 hopper_statusbar_tick = 0;
