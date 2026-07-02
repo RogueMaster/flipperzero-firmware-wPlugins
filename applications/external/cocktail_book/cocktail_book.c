@@ -15,19 +15,19 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#define APP_VERSION "0.4.0"
-#define APP_CREDITS "Developed by resu95, recipes by @der_spirituelle "
+#define APP_VERSION     FAP_VERSION
+#define APP_CREDITS     "Developed by resu95, recipes by @der_spirituelle "
 #define MENU_ITEM_ABOUT UINT32_MAX
 
-#define COCKTAIL_SD_DIR "/ext/apps_data/cocktail_book"
+#define COCKTAIL_SD_DIR  "/ext/apps_data/cocktail_book"
 #define COCKTAIL_SD_FILE "/ext/apps_data/cocktail_book/recipes.txt"
 
-#define MAX_COCKTAILS 40
+#define MAX_COCKTAILS       40
 #define SD_FILE_BUFFER_SIZE 8192
 #define SD_STRING_POOL_SIZE 8192
 
 #define RECIPE_VISIBLE_LINES 3
-#define RECIPE_LINE_MAX 72
+#define RECIPE_LINE_MAX      72
 
 typedef enum {
     CocktailBookViewTitle,
@@ -109,13 +109,11 @@ static const Cocktail fallback_cocktails[] = {
         .base = "Gin",
         .glass = "Tumbler",
         .ice = "Block",
-        .ingredients =
-            "30 ml Gin\n"
-            "30 ml Campari\n"
-            "30 ml red Vermouth",
-        .method =
-            "Stir all ingredients well on ice.\n"
-            "Strain on ice into chilled Tumbler.",
+        .ingredients = "30 ml Gin\n"
+                       "30 ml Campari\n"
+                       "30 ml red Vermouth",
+        .method = "Stir all ingredients well on ice.\n"
+                  "Strain on ice into chilled Tumbler.",
         .garnish = "Orange zest",
         .note = "Bitter, strong, classic.",
     },
@@ -125,13 +123,11 @@ static const Cocktail fallback_cocktails[] = {
         .base = "Rum",
         .glass = "Coupe",
         .ice = "Cubes",
-        .ingredients =
-            "60 ml white Rum\n"
-            "25 ml Lime juice\n"
-            "15 ml Simple Sirup",
-        .method =
-            "Shake well on ice.\n"
-            "Strain into frozen Coupe.",
+        .ingredients = "60 ml white Rum\n"
+                       "25 ml Lime juice\n"
+                       "15 ml Simple Sirup",
+        .method = "Shake well on ice.\n"
+                  "Strain into frozen Coupe.",
         .garnish = "Lime zest optional",
         .note = "tart, fresh, dry.",
     },
@@ -141,12 +137,10 @@ static const Cocktail fallback_cocktails[] = {
         .base = "Gin | Vodka",
         .glass = "Martini",
         .ice = "none",
-        .ingredients =
-            "60 ml Dry Gin\n"
-            "20 ml Dry Vermouth",
-        .method =
-            "Stir on Ice.\n"
-            "Strain into frozen Martini glass.",
+        .ingredients = "60 ml Dry Gin\n"
+                       "20 ml Dry Vermouth",
+        .method = "Stir on Ice.\n"
+                  "Strain into frozen Martini glass.",
         .garnish = "Green Olive,Lemon Zest",
         .note = "strong, dry, classic.",
     },
@@ -156,13 +150,11 @@ static const Cocktail fallback_cocktails[] = {
         .base = "Whiskey",
         .glass = "Tumbler",
         .ice = "Block",
-        .ingredients =
-            "60 ml Bourbon or Rye\n"
-            "1 Bsp Simple Sirup\n"
-            "2 dsh Angostura",
-        .method =
-            "Stir in glass with ice\n"
-            "Strain into chilled Tumbler",
+        .ingredients = "60 ml Bourbon or Rye\n"
+                       "1 Bsp Simple Sirup\n"
+                       "2 dsh Angostura",
+        .method = "Stir in glass with ice\n"
+                  "Strain into chilled Tumbler",
         .garnish = "Orange zest",
         .note = "Spirit-forward. Dont dilute too much.",
     },
@@ -172,14 +164,12 @@ static const Cocktail fallback_cocktails[] = {
         .base = "Tequila",
         .glass = "Highball",
         .ice = "Cubes",
-        .ingredients =
-            "60 ml Tequila Blanco\n"
-            "15 ml Lime juice\n"
-            "150 ml pink grapefruit soda\n"
-            "pinch Sea salt",
-        .method =
-            "Build in glass with ice\n"
-            "Stir gently",
+        .ingredients = "60 ml Tequila Blanco\n"
+                       "15 ml Lime juice\n"
+                       "150 ml pink grapefruit soda\n"
+                       "pinch Sea salt",
+        .method = "Build in glass with ice\n"
+                  "Stir gently",
         .garnish = "Lime wedge",
         .note = "easy drinking / sweet / sour",
     },
@@ -189,15 +179,13 @@ static const Cocktail fallback_cocktails[] = {
         .base = "Whiskey",
         .glass = "Coupe / Tumbler",
         .ice = "Cubes",
-        .ingredients =
-            "50 ml Bourbon\n"
-            "25 ml Lemon juice\n"
-            "20 ml Simple Sirup\n"
-            "Optional Eggwhites",
-        .method =
-            "Optional Dry Shake.\n"
-            "Shake on ice.\n"
-            "Strain well into chilled Tumbler.",
+        .ingredients = "50 ml Bourbon\n"
+                       "25 ml Lemon juice\n"
+                       "20 ml Simple Sirup\n"
+                       "Optional Eggwhites",
+        .method = "Optional Dry Shake.\n"
+                  "Shake on ice.\n"
+                  "Strain well into chilled Tumbler.",
         .garnish = "Zest or Cherry",
         .note = "Balance: Sweet / Sour / Power.",
     },
@@ -207,14 +195,12 @@ static const Cocktail fallback_cocktails[] = {
         .base = "Tequila",
         .glass = "Coupe",
         .ice = "Cubes",
-        .ingredients =
-            "50 ml Tequila Blanco\n"
-            "25 ml Lime juice\n"
-            "20 ml Cointreau\n"
-            "Optional 5 ml Agave sirup",
-        .method =
-            "Shake with ice.\n"
-            "Strain in chilled Coupe.",
+        .ingredients = "50 ml Tequila Blanco\n"
+                       "25 ml Lime juice\n"
+                       "20 ml Cointreau\n"
+                       "Optional 5 ml Agave sirup",
+        .method = "Shake with ice.\n"
+                  "Strain in chilled Coupe.",
         .garnish = "salted Rim / Lime",
         .note = "Agave only if needed.",
     },
@@ -224,13 +210,11 @@ static const Cocktail fallback_cocktails[] = {
         .base = "Aperol",
         .glass = "Wine",
         .ice = "Cubes",
-        .ingredients =
-            "90 ml Prosecco\n"
-            "60 ml Aperol\n"
-            "30 ml Soda",
-        .method =
-            "Fill glass with ice.\n"
-            "Build and stir gentle.",
+        .ingredients = "90 ml Prosecco\n"
+                       "60 ml Aperol\n"
+                       "30 ml Soda",
+        .method = "Fill glass with ice.\n"
+                  "Build and stir gentle.",
         .garnish = "Orange slice",
         .note = "Dont stir too hard.",
     },
@@ -240,14 +224,12 @@ static const Cocktail fallback_cocktails[] = {
         .base = "Limoncello",
         .glass = "Wine",
         .ice = "Cubes",
-        .ingredients =
-            "90 ml Prosecco\n"
-            "50 ml Limoncello\n"
-            "30 ml Soda\n"
-            "10 ml optional Lemon juice",
-        .method =
-            "Build in glass on ice\n"
-            "Stir carefully.",
+        .ingredients = "90 ml Prosecco\n"
+                       "50 ml Limoncello\n"
+                       "30 ml Soda\n"
+                       "10 ml optional Lemon juice",
+        .method = "Build in glass on ice\n"
+                  "Stir carefully.",
         .garnish = "Lemon Zest | green Olive",
         .note = "Fresh, bright, summery.",
     },
@@ -257,15 +239,13 @@ static const Cocktail fallback_cocktails[] = {
         .base = "Vodka / Coffee",
         .glass = "Coupe",
         .ice = "Cubes",
-        .ingredients =
-            "40 ml Vodka\n"
-            "30 ml Espresso\n"
-            "20 ml Kahlua\n"
-            "10 ml Simple Sirup",
-        .method =
-            "Brew fresh Espresso.\n"
-            "Immediately shake hard over ice.\n"
-            "Strain into frozen Coupe.",
+        .ingredients = "40 ml Vodka\n"
+                       "30 ml Espresso\n"
+                       "20 ml Kahlua\n"
+                       "10 ml Simple Sirup",
+        .method = "Brew fresh Espresso.\n"
+                  "Immediately shake hard over ice.\n"
+                  "Strain into frozen Coupe.",
         .garnish = "3 Coffee beans",
         .note = "Shake hard for nice foam.",
     },
@@ -275,15 +255,13 @@ static const Cocktail fallback_cocktails[] = {
         .base = "Bourbon",
         .glass = "Tumbler",
         .ice = "Cubes",
-        .ingredients =
-            "50 ml Bourbon\n"
-            "15 ml Simple Sirup\n"
-            "3-4 dsh Peychauds\n"
-            "5 ml Absinth",
-        .method =
-            "Rinse tumbler with Absinth, discard\n"
-            "Stir over ice.\n"
-            "Strain over ice.",
+        .ingredients = "50 ml Bourbon\n"
+                       "15 ml Simple Sirup\n"
+                       "3-4 dsh Peychauds\n"
+                       "5 ml Absinth",
+        .method = "Rinse tumbler with Absinth, discard\n"
+                  "Stir over ice.\n"
+                  "Strain over ice.",
         .garnish = "Lemon zest",
         .note = "Strong / Classy / special",
     },
@@ -293,14 +271,12 @@ static const Cocktail fallback_cocktails[] = {
         .base = "Gin",
         .glass = "Coupe",
         .ice = "Cubes",
-        .ingredients =
-            "30 ml Gin\n"
-            "30 ml Green Chartreuse\n"
-            "30 ml Maraschino Luxardo\n"
-            "30 ml Lime juice",
-        .method =
-            "Shake over ice\n"
-            "Strain in coupe without ice",
+        .ingredients = "30 ml Gin\n"
+                       "30 ml Green Chartreuse\n"
+                       "30 ml Maraschino Luxardo\n"
+                       "30 ml Lime juice",
+        .method = "Shake over ice\n"
+                  "Strain in coupe without ice",
         .garnish = "Cherry",
         .note = "Tart / Herbal / refreshing",
     },
@@ -310,29 +286,25 @@ static const Cocktail fallback_cocktails[] = {
         .base = "Ginger Beer",
         .glass = "Highball",
         .ice = "Cubes",
-        .ingredients =
-            "120 ml Ginger Beer\n"
-            "25 ml Lime juice\n"
-            "15 ml Simple sirup",
-        .method =
-            "Build on ice in glass.\n"
-            "Gentle stir.",
+        .ingredients = "120 ml Ginger Beer\n"
+                       "25 ml Lime juice\n"
+                       "15 ml Simple sirup",
+        .method = "Build on ice in glass.\n"
+                  "Gentle stir.",
         .garnish = "Lime / Mint",
         .note = "Fresh, spicy, NA.",
     },
-      {
+    {
         .name = "Virgin Mary",
         .category = CocktailCategoryAlcoholFree,
         .base = "Tomato Juice",
         .glass = "Highball",
         .ice = "Cubes",
-        .ingredients =
-            "200 ml Tomato juice\n"
-            "25 ml Lime juice\n"
-            "2-3 dsh Tabasco",
-        .method =
-            "Build on ice in glass.\n"
-            "Stir well.",
+        .ingredients = "200 ml Tomato juice\n"
+                       "25 ml Lime juice\n"
+                       "2-3 dsh Tabasco",
+        .method = "Build on ice in glass.\n"
+                  "Stir well.",
         .garnish = "Pepper / Celery",
         .note = "Salty, spicy, NA.",
     },
@@ -459,7 +431,7 @@ static const char* sample_recipes_txt =
     "method=Brew Espresso fresh.|Shake hard on ice.|Strain into chilled coupe.\n"
     "garnish=3 Coffee beans\n"
     "note=Hard shake for nice foam.\n"
-     "\n"
+    "\n"
     "[Cocktail]\n"
     "name=Virgin Mary\n"
     "category=Alcohol Free\n"
@@ -512,8 +484,7 @@ static bool text_contains_ci(const char* haystack, const char* needle) {
     for(const char* h = haystack; *h; h++) {
         size_t i = 0;
 
-        while(i < needle_len &&
-              h[i] &&
+        while(i < needle_len && h[i] &&
               tolower((unsigned char)h[i]) == tolower((unsigned char)needle[i])) {
             i++;
         }
@@ -540,10 +511,10 @@ static const char* cocktail_category_get_name(CocktailCategory category) {
         return "TikiDrinks";
     case CocktailCategoryAlcoholFree:
         return "Non Alcoholic";
-        case CocktailCategoryDigestive:
-    return "Digestive";
+    case CocktailCategoryDigestive:
+        return "Digestive";
     case CocktailCategoryHighball:
-    return "Highball";
+        return "Highball";
     default:
         return "Unknown";
     }
@@ -566,17 +537,16 @@ static CocktailCategory cocktail_category_from_string(const char* text) {
         return CocktailCategoryTikiDrinks;
     }
 
-    if(cocktail_book_streq(text, "Non Alcoholic") ||
-       cocktail_book_streq(text, "AlcoholFree") ||
+    if(cocktail_book_streq(text, "Non Alcoholic") || cocktail_book_streq(text, "AlcoholFree") ||
        cocktail_book_streq(text, "NonAlcoholic")) {
         return CocktailCategoryAlcoholFree;
     }
     if(cocktail_book_streq(text, "Digestive")) {
-    return CocktailCategoryDigestive;
-}
- if(cocktail_book_streq(text, "Highball")) {
-    return CocktailCategoryHighball;
-}
+        return CocktailCategoryDigestive;
+    }
+    if(cocktail_book_streq(text, "Highball")) {
+        return CocktailCategoryHighball;
+    }
     return CocktailCategoryClassic;
 }
 
@@ -650,7 +620,8 @@ static uint8_t cocktail_book_max_scroll_for_text(const char* text) {
     return (uint8_t)max_scroll;
 }
 
-static char* cocktail_book_pool_strdup(CocktailBookApp* app, const char* text, bool pipe_to_newline) {
+static char*
+    cocktail_book_pool_strdup(CocktailBookApp* app, const char* text, bool pipe_to_newline) {
     if(!text) return NULL;
 
     size_t len = strlen(text);
@@ -853,7 +824,8 @@ static void cocktail_book_switch_to(CocktailBookApp* app, CocktailBookView view)
     view_dispatcher_switch_to_view(app->dispatcher, view);
 }
 
-static void draw_text_fit(Canvas* canvas, int32_t x, int32_t y, uint8_t max_width, const char* text) {
+static void
+    draw_text_fit(Canvas* canvas, int32_t x, int32_t y, uint8_t max_width, const char* text) {
     if(!text) {
         return;
     }
@@ -944,10 +916,8 @@ static bool cocktail_text_contains(const Cocktail* cocktail, const char* needle)
         return false;
     }
 
-    return text_contains_ci(cocktail->name, needle) ||
-           text_contains_ci(cocktail->base, needle) ||
-           text_contains_ci(cocktail->glass, needle) ||
-           text_contains_ci(cocktail->ice, needle);
+    return text_contains_ci(cocktail->name, needle) || text_contains_ci(cocktail->base, needle) ||
+           text_contains_ci(cocktail->glass, needle) || text_contains_ci(cocktail->ice, needle);
 }
 
 static const Icon* header_icon_for_cocktail(const Cocktail* cocktail) {
@@ -983,8 +953,7 @@ static const Icon* header_icon_for_cocktail(const Cocktail* cocktail) {
         return &I_tumbler_10x10;
     }
 
-    if(cocktail_text_contains(cocktail, "Coupette") ||
-       cocktail_text_contains(cocktail, "Coupe")) {
+    if(cocktail_text_contains(cocktail, "Coupette") || cocktail_text_contains(cocktail, "Coupe")) {
         return &I_coup_10x10;
     }
 
@@ -1003,8 +972,7 @@ static const Icon* glass_icon_for_cocktail(const Cocktail* cocktail) {
         return &I_tumbler_10x10;
     }
 
-    if(text_contains_ci(cocktail->glass, "Coupe") ||
-       text_contains_ci(cocktail->glass, "Coupe")) {
+    if(text_contains_ci(cocktail->glass, "Coupe") || text_contains_ci(cocktail->glass, "Coupe")) {
         return &I_coup_10x10;
     }
 
@@ -1033,11 +1001,9 @@ static const char* ice_label_for_cocktail(const Cocktail* cocktail) {
         return "Block";
     }
 
-    if(text_contains_ci(cocktail->ice, "crushed") ||
-       text_contains_ci(cocktail->ice, "crush")) {
+    if(text_contains_ci(cocktail->ice, "crushed") || text_contains_ci(cocktail->ice, "crush")) {
         return "Crushed";
     }
- 
 
     return "Cubes";
 }
@@ -1255,7 +1221,8 @@ static bool recipe_view_input_callback(InputEvent* event, void* context) {
             app->recipe_view,
             RecipeViewModel * model,
             {
-                const char* section_text = recipe_section_get_text(model->cocktail, model->section);
+                const char* section_text =
+                    recipe_section_get_text(model->cocktail, model->section);
                 uint8_t max_scroll = cocktail_book_max_scroll_for_text(section_text);
 
                 if(model->scroll_line < max_scroll) {
@@ -1331,11 +1298,7 @@ static void cocktail_book_build_cocktail_menu(CocktailBookApp* app) {
     for(uint32_t i = 0; i < app->cocktail_count; i++) {
         if(cocktail_matches_category(&app->cocktails[i], app->selected_category)) {
             submenu_add_item(
-                app->cocktail_menu,
-                app->cocktails[i].name,
-                i,
-                cocktail_selected_callback,
-                app);
+                app->cocktail_menu, app->cocktails[i].name, i, cocktail_selected_callback, app);
 
             visible_count++;
         }
@@ -1343,11 +1306,7 @@ static void cocktail_book_build_cocktail_menu(CocktailBookApp* app) {
 
     if(visible_count == 0) {
         submenu_add_item(
-            app->cocktail_menu,
-            "Keine Cocktails",
-            UINT32_MAX,
-            cocktail_selected_callback,
-            app);
+            app->cocktail_menu, "Keine Cocktails", UINT32_MAX, cocktail_selected_callback, app);
     }
 
     submenu_set_selected_item(app->cocktail_menu, 0);
@@ -1426,11 +1385,7 @@ static void cocktail_book_create_category_menu(CocktailBookApp* app) {
     }
 
     submenu_add_item(
-        app->category_menu,
-        "About / Credits",
-        MENU_ITEM_ABOUT,
-        category_selected_callback,
-        app);
+        app->category_menu, "About / Credits", MENU_ITEM_ABOUT, category_selected_callback, app);
 }
 
 static void cocktail_book_create_cocktail_menu(CocktailBookApp* app) {
@@ -1496,13 +1451,9 @@ static CocktailBookApp* cocktail_book_alloc(void) {
     view_dispatcher_add_view(app->dispatcher, CocktailBookViewTitle, app->title_view);
     view_dispatcher_add_view(app->dispatcher, CocktailBookViewDisclaimer, app->disclaimer_view);
     view_dispatcher_add_view(
-        app->dispatcher,
-        CocktailBookViewCategoryMenu,
-        submenu_get_view(app->category_menu));
+        app->dispatcher, CocktailBookViewCategoryMenu, submenu_get_view(app->category_menu));
     view_dispatcher_add_view(
-        app->dispatcher,
-        CocktailBookViewCocktailMenu,
-        submenu_get_view(app->cocktail_menu));
+        app->dispatcher, CocktailBookViewCocktailMenu, submenu_get_view(app->cocktail_menu));
     view_dispatcher_add_view(app->dispatcher, CocktailBookViewRecipe, app->recipe_view);
     view_dispatcher_add_view(app->dispatcher, CocktailBookViewAbout, app->about_view);
 

@@ -147,6 +147,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Align MIFARE type detection with NXP AN10833 - Classic/Ultralight/NTAG/Plus sizing & security level; fixes Mifare Mini clone mis-detection and Ultralight AES read hang (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1014)
 - Updated: [Tesla Mod v2.16b13 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [WikiFlip v1.3 (By RogerF5-Security)](https://github.com/RogerF5-Security/WikiFlip)
+- Added: [Cocktail Book v0.4 (By resu95)](https://github.com/resu95/flipper_cocktail_book)
 
 <a name="release"></a>
 
@@ -488,6 +489,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Clippy v0.1 (By mtormento)](https://github.com/mtormento/clippy)
 - [Clock v1.2 (By kowalski7cc)](https://github.com/kowalski7cc/flipperzero-firmware/tree/clock-v1)
 - [CO2 Logger v0.4 (By harryob2)](https://github.com/harryob2/co2_logger) `Req: MH-Z19`
+- [Cocktail Book v0.4 (By resu95)](https://github.com/resu95/flipper_cocktail_book)
 - [Coffee-EEPROM (By wh00hw)](https://github.com/wh00hw/Coffee-EEPROM-FAP) For ethical pentest only.
 - [COGS MyKey v1.1 (By lupettohf)](https://github.com/lupettohf/mykey)
 - [Combo Cracker v0.5 (By CharlesTheGreat77)](https://github.com/CharlesTheGreat77/ComboCracker-FZ)
