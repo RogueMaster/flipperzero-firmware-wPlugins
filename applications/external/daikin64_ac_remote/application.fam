@@ -2,6 +2,7 @@ App(
     appid="daikin64_ac_remote",
     name="Daikin64 AC Remote",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="daikin64_ac_remote_app",
     stack_size=4 * 1024,
     fap_libs=["infrared"],
