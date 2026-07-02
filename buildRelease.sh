@@ -1,4 +1,5 @@
-rm -rf RM*-*-*.tgz RM*-*-*.zip .sconsign.dblite dist build
+rm -rf RM*-*-*.tgz RM*-*-*.zip
+# .sconsign.dblite dist build
 git pull
 DATE_VAR=`date +%m%d`
 TIME_VAR=`date +%H%M`
