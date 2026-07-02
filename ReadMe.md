@@ -144,6 +144,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: [Storage: add retry on file copy to Flipper #4402 (By ssecsd)](https://github.com/flipperdevices/flipperzero-firmware/pull/4402)
 - OFW: [GUI: add canvas_buffer to public api #4399 (By apfxtech)](https://github.com/flipperdevices/flipperzero-firmware/pull/4399)
 - Updated: [ProtoPirate v3.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
+- Updated: [Access Audit v1.13 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
 
 <a name="release"></a>
 
@@ -413,7 +414,7 @@ This software is for experimental purposes only and is not meant for any illegal
 ## Apps / Plugins
 
 - [24Cxx Programmer v2.0 (By kamylwnb)](https://github.com/kamylwnb/24cxxprog)
-- [Access Audit v1.12 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
+- [Access Audit v1.13 (By matthewkayne)](https://github.com/matthewkayne/flipper-access-audit)
 - [Agentic Remote USB/BT v0.28 (By Wet-wr-Labs)](https://github.com/Wet-wr-Labs/claupper)
 - [Air Level v1.0 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/vgm/air_level) `Req: Video Game Module By Flipper Devices`
 - [Air Stats v1.0 (By thevan4)](https://github.com/thevan4/flipper-air-stats) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/air_stats/README.md)

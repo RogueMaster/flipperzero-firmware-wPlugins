@@ -85,10 +85,20 @@ Keys checked (key A and key B for each):
 - `A1B1C1D1E1F1` - common vendor default
 - `B0B1B2B3B4B5` - common vendor default
 - `AABBCCDDEEFF` - common vendor default
+- `4D3A99C351DD` - mfoc / Proxmark public key
+- `1A982C7E459A` - mfoc / Proxmark public key
 
-The list is intentionally capped (under 10 keys) so the active auth loop completes quickly. The check stops at the first key that authenticates. This rule requires an active authentication attempt. A note is written to the report indicating the finding came from an active scan.
+The check stops at the first key that authenticates per sector. Sector 0 is always tested; **only if sector 0 uses a default key** are the remaining sectors swept, and the report records how many of the card's N sectors are on default keys (`N/M sectors use default keys`). A re-keyed sector 0 returns immediately (no full sweep). This rule requires an active authentication attempt; a note is written to the report indicating the finding came from an active scan.
 
-**Score contribution:** +15 · **Max severity:** HIGH
+**Score contribution:** +15 · **Max severity:** HIGH (the all-sector count is reporting detail and does not change the score)
+
+---
+
+### `default_password` (Ultralight / NTAG)
+
+A report-only finding (not a scoring rule). On MIFARE Ultralight / NTAG cards the scan tests the factory password `FFFFFFFF`; if it is accepted, the report notes that memory is effectively unprotected.
+
+**Non-destructive gate:** the password is sent only when the card exposes its config pages **and** has no failed-auth lockout configured (`AUTHLIM == 0`), so a wrong guess can never trip a lockout. When a lockout is set (or config is unreadable) the test is skipped and the card is reported as password-protected without sending anything. The card is already scored HIGH (UID-cloneable, no mutual auth), so this finding does not change the score.
 
 ---
 

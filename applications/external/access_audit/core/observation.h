@@ -66,6 +66,9 @@ typedef struct {
     bool sak_atqa_present; /* true when SAK and ATQA were captured (ISO14443-3A only) */
     bool default_keys_readable; /* true when sector 0 auth succeeded with a default key (Classic only) */
     bool memory_locked; /* true when user memory is password-protected (Ultralight/NTAG read NAK'd) */
+    bool default_password_readable; /* Ultralight/NTAG: factory password (FFFFFFFF) accepted */
+    uint8_t default_key_sectors; /* MIFARE Classic: count of sectors found on a default key */
+    uint8_t total_sectors; /* MIFARE Classic: total sectors on the card (0 if unknown) */
     size_t uid_len;
     uint8_t uid[10];
     uint8_t sak; /* ISO14443-3A Select Acknowledge byte */

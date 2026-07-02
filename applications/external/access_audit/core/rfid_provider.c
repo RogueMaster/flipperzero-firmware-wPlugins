@@ -61,12 +61,21 @@ static void
     p->pending.card_type = lfrfid_protocol_to_card_type((LFRFIDProtocol)protocol);
     p->pending.metadata_complete = true;
 
-    /* Pull the raw data bytes and use them as the UID. */
+    /* Pull the raw data bytes and use them as the UID.
+     *
+     * protocol_dict_get_data() requires the destination buffer to hold the
+     * protocol's FULL data size — it asserts on a smaller buffer and then copies
+     * the full size. Passing the clamped copy_size crashed the firmware on any
+     * 125 kHz protocol whose data exceeds sizeof(uid) (e.g. extended HID,
+     * Indala). Read into a full-size temp buffer, then keep the first bytes as
+     * the UID, clamped to the uid field. */
     size_t data_size = protocol_dict_get_data_size(p->dict, (size_t)protocol);
-    if(data_size > 0) {
+    uint8_t tmp[64];
+    if(data_size > 0 && data_size <= sizeof(tmp)) {
+        protocol_dict_get_data(p->dict, (size_t)protocol, tmp, data_size);
         size_t copy_size = data_size <= sizeof(p->pending.uid) ? data_size :
                                                                  sizeof(p->pending.uid);
-        protocol_dict_get_data(p->dict, (size_t)protocol, p->pending.uid, copy_size);
+        memcpy(p->pending.uid, tmp, copy_size);
         p->pending.uid_present = true;
         p->pending.uid_len = copy_size;
     }

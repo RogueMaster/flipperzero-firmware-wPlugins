@@ -178,6 +178,9 @@ static void write_card_entry(File* f, size_t index, size_t total, const SessionE
     if(entry->obs.memory_locked) {
         fw(f, "  Note:   user memory is password-protected (pages locked; UID still cloneable)\n");
     }
+    if(entry->obs.default_password_readable) {
+        fw(f, "  Note:   factory password FFFFFFFF accepted -- memory effectively unprotected\n");
+    }
 
     /* UID with byte count */
     if(entry->obs.uid_present && entry->obs.uid_len > 0) {
@@ -283,9 +286,19 @@ static void write_card_entry(File* f, size_t index, size_t total, const SessionE
 
     /* Default key finding - explicit note when confirmed via active scan */
     if(rule_default_keys(&entry->obs)) {
-        fw(f,
-           "  Note:   Sector 0 readable with a default key (active scan). "
-           "Keys have never been changed.\n");
+        if(entry->obs.total_sectors > 0) {
+            snprintf(
+                buf,
+                sizeof(buf),
+                "  Note:   %u/%u sectors use default keys (active scan)\n",
+                (unsigned)entry->obs.default_key_sectors,
+                (unsigned)entry->obs.total_sectors);
+            fw(f, buf);
+        } else {
+            fw(f,
+               "  Note:   Sector 0 readable with a default key (active scan). "
+               "Keys have never been changed.\n");
+        }
     }
 
     fw(f, "\n");
