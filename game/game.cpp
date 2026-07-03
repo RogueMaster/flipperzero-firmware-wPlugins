@@ -4,6 +4,41 @@
 
 namespace flipcraft {
 
+// Per-block material type (low nibble) and hardness (high nibble); replaces
+// the old switch ladders with one table load.
+static constexpr uint8_t kBlockTypeHard[16] = {
+    /* AIR     */ 0x30 | BLOCKTYPE_SAPLING,
+    /* GRASS   */ 0x00 | BLOCKTYPE_SOFT,
+    /* DIRT    */ 0x00 | BLOCKTYPE_SOFT,
+    /* STONE   */ 0x20 | BLOCKTYPE_STONE,
+    /* COBBLE  */ 0x20 | BLOCKTYPE_STONE,
+    /* LOG     */ 0x10 | BLOCKTYPE_WOOD,
+    /* LEAVES  */ 0x00 | BLOCKTYPE_LEAVES,
+    /* PLANK   */ 0x10 | BLOCKTYPE_WOOD,
+    /* COALORE */ 0x20 | BLOCKTYPE_STONE,
+    /* IRONORE */ 0x30 | BLOCKTYPE_STONE,
+    /* SAND    */ 0x00 | BLOCKTYPE_SOFT,
+    /* GLASS   */ 0x10 | BLOCKTYPE_GLASS,
+    /* SAPLING */ 0x30 | BLOCKTYPE_SAPLING,
+    /* TABLE   */ 0x10 | BLOCKTYPE_WOOD,
+    /* FURNACE */ 0x20 | BLOCKTYPE_STONE,
+    /* CHEST   */ 0x10 | BLOCKTYPE_WOOD,
+};
+static inline int blockType(uint8_t id)     { return kBlockTypeHard[id & 0xF] & 0x0F; }
+static inline int blockHardness(uint8_t id) { return kBlockTypeHard[id & 0xF] >> 4; }
+
+// Entity dropped when a block breaks; 0xFF marks the leaves special case
+// (random sapling/stick/apple), 0 drops nothing.
+static constexpr uint8_t kBlockDrop[16] = {
+    0, ENTITY_DIRT, ENTITY_DIRT, ENTITY_COBBLE, ENTITY_COBBLE, ENTITY_LOG,
+    0xFF, ENTITY_PLANK, ENTITY_COAL, ENTITY_IRONORE, ENTITY_SAND, 0,
+    ENTITY_SAPLING, ENTITY_TABLE, ENTITY_FURNACE, ENTITY_CHEST,
+};
+
+// Blocks grass can "see the sky" through (leaf decay / grass spread checks).
+static constexpr uint16_t BLOCKS_SEETHROUGH_LIGHT =
+    (1u << BLOCK_AIR) | (1u << BLOCK_LEAVES) | (1u << BLOCK_GLASS) | (1u << BLOCK_SAPLING);
+
 uint8_t Game::rng() {
     rngState ^= rngState<<13; rngState ^= rngState>>17; rngState ^= rngState<<5;
     return (uint8_t)(rngState & 0xFF);
@@ -11,27 +46,26 @@ uint8_t Game::rng() {
 int Game::smul446(int a,int b){ int r=(s8(a)*s8(b))>>6; return (int8_t)std::clamp(r,-128,127); }
 
 bool Game::setup(const GameConfig& config) {
-
     if(!world.openWorld(*config.files, config.worldDataPath)) return false;
-    for (int i=0;i<256;i++) ram[i]=0;
+
+    pl = PlayerState{};
+    renderer.invalidateChunkMeshes(); // the Game object survives across worlds
 
     playerX=world.hdrPX; playerY=world.hdrPY; playerZ=world.hdrPZ;
-    m(M_ROT)=world.hdrRot; rngState=world.hdrRng;
-    m(M_ONGROUND)=0xFF; velYsub=0; posYsub=0;
-    m(M_CROUCHING)=0xFF;
+    pl.rot=world.hdrRot; rngState=world.hdrRng;
+    pl.onGround=true; velYsub=0; posYsub=0;
     forceRedraw=true; lastSig=0;
-    m(M_HEALTH)=MAXHEALTH;
 
     items.clear();
     loadStorageDirectory();   // rebuild chest/furnace headers from disk
     loadInventory();          // persisted inventory, or the starter set
-    screenId=SCR_PLAY; selSlot=-1; cursor=0; score=0; gameOverPending=false;
+    screenId=SCR_PLAY; selSlot=-1; cursor=0; score=0; gameOverPending=false; loadedTile=-1;
     screen.fb=&fb;
     renderer.zcolour=fb.px;   // scene rasterises straight into the shared framebuffer
 
-    world.updateWindow(playerX/BLOCKSIZE, playerZ/BLOCKSIZE);
+    world.updateWindow(playerX/BLOCKSIZE, playerZ/BLOCKSIZE, true);
     auto surfaceYAt = [&](int bx, int bz) {
-        world.updateWindow(bx, bz);
+        world.updateWindow(bx, bz, true);
         for (int by = WORLD_SY - 1; by >= 0; by--)
             if (world.getBlock(bx, by, bz) != BLOCK_AIR) return by;
         return -1;
@@ -39,7 +73,6 @@ bool Game::setup(const GameConfig& config) {
     int bx=playerX/BLOCKSIZE, bz=playerZ/BLOCKSIZE;
     int surfaceY=surfaceYAt(bx, bz);
     if (surfaceY < 0) {
-
         bx = std::min(4, world.worldSX() - 1);
         bz = std::min(4, world.worldSZ() - 1);
         surfaceY = surfaceYAt(bx, bz);
@@ -56,30 +89,18 @@ void Game::shutdown() {
     // the one whose GUI is open), not just the open one.
     for(size_t i=0;i<tiles.size();i++) if(tiles[i].active && tiles[i].loaded) flushTileStorage((int)i);
     saveInventory();
-    world.closeWorld(playerX, playerY, playerZ, m(M_ROT), rngState);
-}
-
-int Game::getBlockType(int id){
-    switch(id){case BLOCK_STONE:case BLOCK_COBBLE:case BLOCK_IRONORE:case BLOCK_COALORE:case BLOCK_FURNACE:return BLOCKTYPE_STONE;
-    case BLOCK_PLANK:case BLOCK_LOG:case BLOCK_TABLE:case BLOCK_CHEST:return BLOCKTYPE_WOOD;
-    case BLOCK_SAND:case BLOCK_DIRT:case BLOCK_GRASS:return BLOCKTYPE_SOFT;
-    case BLOCK_LEAVES:return BLOCKTYPE_LEAVES; case BLOCK_GLASS:return BLOCKTYPE_GLASS; default:return BLOCKTYPE_SAPLING;}
-}
-int Game::getBlockHardness(int id){
-    switch(id){case BLOCK_LEAVES:case BLOCK_SAND:case BLOCK_DIRT:case BLOCK_GRASS:return 0;
-    case BLOCK_GLASS:case BLOCK_PLANK:case BLOCK_LOG:case BLOCK_TABLE:case BLOCK_CHEST:return 1;
-    case BLOCK_STONE:case BLOCK_COBBLE:case BLOCK_COALORE:case BLOCK_FURNACE:return 2; default:return 3;}
+    world.closeWorld(playerX, playerY, playerZ, pl.rot, rngState);
 }
 
 void Game::addItemToInventory(int item){
     if(item==0) return;
     int type=item&0xF0;
     if(type<0xF0){
-        for(int i=0;i<15;i++){int c=m(M_INVENTORY+i); if((c&0xF0)!=type||c==0)continue;
+        for(int i=0;i<15;i++){int c=pl.inventory[i]; if((c&0xF0)!=type||c==0)continue;
             int tot=(c&0x0F)+(item&0x0F);
-            if(tot>=16){m(M_INVENTORY+i)=(uint8_t)(type|15); item=type|(tot-15);} else {m(M_INVENTORY+i)=(uint8_t)(type+tot);return;}}
+            if(tot>=16){pl.inventory[i]=(uint8_t)(type|15); item=type|(tot-15);} else {pl.inventory[i]=(uint8_t)(type+tot);return;}}
     }
-    for(int i=0;i<15;i++) if(m(M_INVENTORY+i)==0){m(M_INVENTORY+i)=(uint8_t)item;return;}
+    for(int i=0;i<15;i++) if(pl.inventory[i]==0){pl.inventory[i]=(uint8_t)item;return;}
 }
 
 void Game::createEntity(int x,int y,int z,int entityId){
@@ -157,62 +178,80 @@ void Game::flushTileStorage(int ti){
     t.loaded=false; t.lit=false;   // smelting pauses while closed
 }
 
+// On-disk inventory record: 15 item cells, selected slot, health, one legacy
+// byte (old global log counter) kept for save compatibility.
 void Game::loadInventory(){
     uint8_t buf[18];
     if(world.readInventory(buf,18)){
-        for(int i=0;i<15;i++) m(M_INVENTORY+i)=buf[i];
-        m(M_INVENTORYSLOT)=buf[15]; m(M_HEALTH)=buf[16]; m(M_LOGSINWORLD)=buf[17];
+        for(int i=0;i<15;i++) pl.inventory[i]=buf[i];
+        pl.invSlot=(uint8_t)(buf[15]&0x0F); if(pl.invSlot>4) pl.invSlot=0;
+        pl.health=buf[16];
     } else {
-        m(M_INVENTORY+0)=0x14; m(M_INVENTORY+1)=0x55; m(M_INVENTORY+2)=0x89;
-        m(M_INVENTORY+3)=0xFE; m(M_INVENTORY+4)=0xFF;
-        m(M_HEALTH)=MAXHEALTH;
+        pl.inventory[0]=0x14; pl.inventory[1]=0x55; pl.inventory[2]=0x89;
+        pl.inventory[3]=0xFE; pl.inventory[4]=0xFF;
+        pl.health=MAXHEALTH;
     }
 }
 void Game::saveInventory(){
     uint8_t buf[18];
-    for(int i=0;i<15;i++) buf[i]=m(M_INVENTORY+i);
-    buf[15]=m(M_INVENTORYSLOT); buf[16]=m(M_HEALTH); buf[17]=m(M_LOGSINWORLD);
+    for(int i=0;i<15;i++) buf[i]=pl.inventory[i];
+    buf[15]=pl.invSlot; buf[16]=pl.health; buf[17]=0;
     world.writeInventory(buf,18);
 }
 
+// Voxel DDA: walks exactly the blocks the ray crosses, one boundary per step,
+// instead of sampling every world unit with three floorf calls.
 Game::RayHit Game::rayCast(){
     RayHit h{0,0,0,0,0,0,BLOCK_AIR,-1};
-    float ox=playerX+PLAYERHALFWIDTH, oy=playerY+PLAYERCAMHEIGHT, oz=playerZ+PLAYERHALFWIDTH;
-    float dx=renderer.camDir(0)/64.0f, dy=renderer.camDir(1)/64.0f, dz=renderer.camDir(2)/64.0f;
-    float L=sqrtf(dx*dx+dy*dy+dz*dz);
-    if(L<1e-6f) return h;
-    dx/=L;dy/=L;dz/=L;
-    int px=(int)floorf(ox/16.0f),py=(int)floorf(oy/16.0f),pz=(int)floorf(oz/16.0f);
-    for(float t=0;t<=(float)RAYCASTMAXLENGTH;t+=1.0f){
-        int bx=(int)floorf((ox+dx*t)/16.0f),by=(int)floorf((oy+dy*t)/16.0f),bz=(int)floorf((oz+dz*t)/16.0f);
+    const float ox=playerX+PLAYERHALFWIDTH, oy=playerY+PLAYERCAMHEIGHT, oz=playerZ+PLAYERHALFWIDTH;
+    const float dx=renderer.matrix[2][0], dy=renderer.matrix[2][1], dz=renderer.matrix[2][2];
+
+    int bx=ifloor(ox*(1.0f/16.0f)), by=ifloor(oy*(1.0f/16.0f)), bz=ifloor(oz*(1.0f/16.0f));
+    int px=bx, py=by, pz=bz;
+
+    constexpr float FAR = 1e9f;
+    const int sx = dx>0 ? 1:-1, sy = dy>0 ? 1:-1, sz = dz>0 ? 1:-1;
+    const float tdx = dx!=0 ? fabsf(16.0f/dx) : FAR;
+    const float tdy = dy!=0 ? fabsf(16.0f/dy) : FAR;
+    const float tdz = dz!=0 ? fabsf(16.0f/dz) : FAR;
+    float tmx = dx!=0 ? ((dx>0 ? (bx+1)*16.0f-ox : ox-bx*16.0f)*tdx*(1.0f/16.0f)) : FAR;
+    float tmy = dy!=0 ? ((dy>0 ? (by+1)*16.0f-oy : oy-by*16.0f)*tdy*(1.0f/16.0f)) : FAR;
+    float tmz = dz!=0 ? ((dz>0 ? (bz+1)*16.0f-oz : oz-bz*16.0f)*tdz*(1.0f/16.0f)) : FAR;
+
+    float t=0;
+    while(t<=(float)RAYCASTMAXLENGTH){
         if(by<0){h.id=-1;h.length=(int)t;h.bx=bx;h.by=by;h.bz=bz;return h;}
         uint8_t id=world.getBlock(bx,by,bz);
         if(id!=BLOCK_AIR){h.id=id;h.length=(int)t;h.bx=bx;h.by=by;h.bz=bz;h.px=px;h.py=py;h.pz=pz;return h;}
         px=bx;py=by;pz=bz;
+        if(tmx<=tmy && tmx<=tmz){ t=tmx; tmx+=tdx; bx+=sx; }
+        else if(tmy<=tmz)       { t=tmy; tmy+=tdy; by+=sy; }
+        else                    { t=tmz; tmz+=tdz; bz+=sz; }
     }
     return h;
 }
 
 void Game::handleBreakAndPlace(const Input& in){
+    if(!in.breakPressed && !in.placePressed) return;   // no raycast on idle ticks
+
     RayHit hit=rayCast(); int id=hit.id;
     if(id==BLOCK_AIR||hit.length<0){
-        if(in.placePressed){int slot=m(M_INVENTORYSLOT)&0x0F;int it=m(M_INVENTORY+slot);
-            if((it&0xF0)==ITEM_APPLE){int hp=std::min((int)m(M_HEALTH)+APPLEHEALTH,MAXHEALTH);m(M_HEALTH)=(uint8_t)hp;
-                int c=it-1; if((c&0xF0)!=ITEM_APPLE)c=0; m(M_INVENTORY+slot)=(uint8_t)c;}}
+        if(in.placePressed){int it=pl.inventory[pl.invSlot];
+            if((it&0xF0)==ITEM_APPLE){int hp=std::min((int)pl.health+APPLEHEALTH,MAXHEALTH);pl.health=(uint8_t)hp;
+                int c=it-1; if((c&0xF0)!=ITEM_APPLE)c=0; pl.inventory[pl.invSlot]=(uint8_t)c;}}
         return;
     }
     int bx=hit.bx,by=hit.by,bz=hit.bz;
     if(in.breakPressed&&id!=-1){
         if(id==BLOCK_SAPLING)return;
-        int slot=m(M_INVENTORYSLOT)&0x0F;int held=m(M_INVENTORY+slot);int strength=STRENGTH_FIST;
+        int held=pl.inventory[pl.invSlot];
+        int strength=STRENGTH_FIST;
         if(held>=ITEM_NONSTACKABLE&&held<=ITEM_SHEARS){
-            int low=held&0x03,tier=(held>>2)&0x03,toolStrength=STRENGTH_WOOD+tier;
             if(held==ITEM_SHEARS) strength=(id==BLOCK_LEAVES)?STRENGTH_IRON:STRENGTH_FIST;
-            else if(low==TOOL_PICKAXE&&getBlockType(id)==BLOCKTYPE_STONE)strength=toolStrength;
-            else if(low==TOOL_AXE&&getBlockType(id)==BLOCKTYPE_WOOD)strength=toolStrength;
-            else if(low==TOOL_SHOVEL&&getBlockType(id)==BLOCKTYPE_SOFT)strength=toolStrength;
+            // pickaxe/axe/shovel index equals the block type they break fast
+            else if((held&3)<3 && (held&3)==blockType(id)) strength=STRENGTH_WOOD+((held>>2)&3);
         }
-        int net=strength-getBlockHardness(id);
+        int net=strength-blockHardness(id);
 
         int be=findBlockEntity(bx,by,bz);
         if(be>=0){
@@ -222,14 +261,14 @@ void Game::handleBreakAndPlace(const Input& in){
             tiles[be].loaded=false;   // destroyed: never flush it back to disk
         }
         world.setBlock(bx,by,bz,BLOCK_AIR);
-        if(net>=STRENGTHFORITEM&&id!=BLOCK_GLASS){
-            if(id==BLOCK_GRASS)createEntity(bx,by,bz,ENTITY_DIRT);
-            else if(id==BLOCK_STONE)createEntity(bx,by,bz,ENTITY_COBBLE);
-            else if(id==BLOCK_LEAVES){ if(strength==STRENGTH_IRON)createEntity(bx,by,bz,ENTITY_LEAVES);
+        if(net>=STRENGTHFORITEM){
+            uint8_t drop=kBlockDrop[id&0xF];
+            if(drop==0xFF){ // leaves
+                if(strength==STRENGTH_IRON)createEntity(bx,by,bz,ENTITY_LEAVES);
                 else{int r=rng(); if(r<LEAVES_SAPLING_PROBABILITY)createEntity(bx,by,bz,ENTITY_SAPLING);
                     else if(r<LEAVES_STICK_PROBABILITY)createEntity(bx,by,bz,ENTITY_STICK);
                     else if(r<LEAVES_APPLE_PROBABILITY)createEntity(bx,by,bz,ENTITY_APPLE);}}
-            else createEntity(bx,by,bz,id);
+            else if(drop) createEntity(bx,by,bz,drop);
         }
         int yy=by; while(true){yy++;uint8_t a=world.getBlock(bx,yy,bz);
             if(a==BLOCK_SAND){createEntity(bx,yy,bz,ENTITY_FALLINGSAND);world.setBlock(bx,yy,bz,BLOCK_AIR);}
@@ -238,11 +277,10 @@ void Game::handleBreakAndPlace(const Input& in){
         return;
     }
     if(in.placePressed){
-
         if(id==BLOCK_TABLE){ screenId=SCR_CRAFTING; cursor=0; selSlot=-1; return; }
         if(id==BLOCK_FURNACE||id==BLOCK_CHEST){ int bi=findBlockEntity(bx,by,bz);
             if(bi>=0){openTileStorage(bi); loadedTile=bi; screenId=tiles[bi].isChest?SCR_CHEST:SCR_FURNACE; cursor=0; selSlot=-1;} return; }
-        int slot=m(M_INVENTORYSLOT)&0x0F;int item=m(M_INVENTORY+slot);
+        int item=pl.inventory[pl.invSlot];
         bool placeable=!(item==0||(item>=ITEM_IRONINGOT&&item<ITEM_TABLE)||item==ITEM_COAL);
         if(!placeable)return;
         int blockId=(item>=ITEM_TABLE)?(item&0x0F):(item>>4);
@@ -260,19 +298,19 @@ void Game::handleBreakAndPlace(const Input& in){
             if(below==BLOCK_AIR){createEntity(px,py,pz,ENTITY_FALLINGSAND);} else world.setBlock(px,py,pz,BLOCK_SAND);}
         else world.setBlock(px,py,pz,(uint8_t)blockId);
         if(blockId==BLOCK_CHEST||blockId==BLOCK_FURNACE){BlockEnt b;b.active=true;b.isChest=(blockId==BLOCK_CHEST);
-            b.bx=px;b.by=py;b.bz=pz;b.dir=(m(M_ROT)&0x0F);
+            b.bx=px;b.by=py;b.bz=pz;b.dir=(pl.rot&0x0F);
             b.storage=allocStorage(); b.loaded=false;
             if(b.storage>=0){uint8_t sb[STORAGE_SLOT_SIZE];packStorage(b,sb);world.writeStorageSlot(b.storage,sb);}
             tiles.push_back(b);}
-        if(item<0xF0){int c=item-1; if((c&0x0F)==0)c=0; m(M_INVENTORY+slot)=(uint8_t)c;} else m(M_INVENTORY+slot)=0;
+        if(item<0xF0){int c=item-1; if((c&0x0F)==0)c=0; pl.inventory[pl.invSlot]=(uint8_t)c;} else pl.inventory[pl.invSlot]=0;
     }
 }
 
 bool Game::playerCollides(int x,int y,int z){
     for(int bx=x/16;bx<=(x+PLAYERWIDTH)/16;bx++)
     for(int by=y/16;by<=(y+PLAYERHEIGHT)/16;by++)
-    for(int bz=z/16;bz<=(z+PLAYERWIDTH)/16;bz++){
-        uint8_t id=world.getBlock(bx,by,bz); if(id!=BLOCK_AIR&&id!=BLOCK_SAPLING)return true;}
+    for(int bz=z/16;bz<=(z+PLAYERWIDTH)/16;bz++)
+        if(blockIsSolid(world.getBlock(bx,by,bz)))return true;
     return false;
 }
 void Game::moveAndCollide(int dx,int dy,int dz){
@@ -282,12 +320,10 @@ void Game::moveAndCollide(int dx,int dy,int dz){
         int top=-1;
         for(int by=WORLD_SY-1;by>=0&&top<0;by--)
             for(int cx=bx0;cx<=bx1&&top<0;cx++)
-                for(int cz=bz0;cz<=bz1;cz++){
-                    uint8_t id=world.getBlock(cx,by,cz);
-                    if(id!=BLOCK_AIR&&id!=BLOCK_SAPLING){top=by;break;}
-                }
+                for(int cz=bz0;cz<=bz1;cz++)
+                    if(blockIsSolid(world.getBlock(cx,by,cz))){top=by;break;}
         y=(top+1)*BLOCKSIZE;
-        velYsub=0; posYsub=0; m(M_ONGROUND)=0xFF;
+        velYsub=0; posYsub=0; pl.onGround=true;
     }
 
     const int maxX = world.worldSX()*BLOCKSIZE - PLAYERWIDTH;
@@ -301,9 +337,9 @@ void Game::moveAndCollide(int dx,int dy,int dz){
         if(dy<0){
             int speed=-velYsub*JUMP_AIRTIME/VERT_SUBPIXEL;
             int over=speed-MINFALLDAMAGESPEED;
-            if(over>0){int dmg=smul446(over,FALLDAMAGESCALING); int hp=s8(m(M_HEALTH))-dmg;
-                if(hp<=0){gameOverPending=true;} else m(M_HEALTH)=u8(hp);}
-            m(M_ONGROUND)=0xFF;
+            if(over>0){int dmg=smul446(over,FALLDAMAGESCALING); int hp=(int)pl.health-dmg;
+                if(hp<=0){gameOverPending=true;} else pl.health=u8(hp);}
+            pl.onGround=true;
         }
         velYsub=0; posYsub=0;
 
@@ -311,30 +347,29 @@ void Game::moveAndCollide(int dx,int dy,int dz){
         while(playerCollides(x,ny,z)&&ny>=0&&ny<=WORLD_SY*BLOCKSIZE) ny+=step;
         y=ny;
     } else y=ny;
-    if(y<0){y=0;m(M_ONGROUND)=0xFF;velYsub=0;posYsub=0;}
+    if(y<0){y=0;pl.onGround=true;velYsub=0;posYsub=0;}
 
     playerX=x;playerY=y;playerZ=z;
 }
 void Game::miscInputs(const Input& in){
-    uint8_t cr=in.crouch?0xFF:0; if(cr!=m(M_CROUCHING)){m(M_CROUCHING)=cr;}
-    if(in.turn||in.pitch){int rot=m(M_ROT);int yaw=(rot&0x0F),pitch=(rot>>4)&0x0F;
+    pl.crouching=in.crouch;
+    if(in.turn||in.pitch){int yaw=(pl.rot&0x0F),pitch=(pl.rot>>4)&0x0F;
         yaw=(yaw+in.turn)&0x0F;
-
         if(in.pitch>0 && pitch!=4)  pitch=(pitch+1)&0x0F;
         if(in.pitch<0 && pitch!=12) pitch=(pitch-1)&0x0F;
-        m(M_ROT)=(uint8_t)((pitch<<4)|yaw);}
-    renderer.setCamRot(m(M_ROT));
+        pl.rot=(uint8_t)((pitch<<4)|yaw);}
+    renderer.setCamRot(pl.rot);
     int sinY=(int)renderer.sinYaw(),cosY=(int)renderer.cosYaw();
     int fwd=smul446(in.forward,SPEEDFACTOR);
 
     int dx=smul446(fwd,sinY);
     int dz=smul446(fwd,cosY);
     bool grounded = playerCollides(playerX, playerY-1, playerZ);
-    m(M_ONGROUND)=0;
+    pl.onGround=false;
     if(grounded && in.jump){
         velYsub = JUMPSTRENGTH*VERT_SUBPIXEL/JUMP_AIRTIME; posYsub=0;
     } else if(grounded){
-        velYsub=0; posYsub=0; m(M_ONGROUND)=0xFF;
+        velYsub=0; posYsub=0; pl.onGround=true;
     } else {
         velYsub -= GRAVITY*VERT_SUBPIXEL/(JUMP_AIRTIME*JUMP_AIRTIME);
     }
@@ -342,7 +377,7 @@ void Game::miscInputs(const Input& in){
     int dy = posYsub/VERT_SUBPIXEL; posYsub -= dy*VERT_SUBPIXEL;
     moveAndCollide(dx,dy,dz);
 
-    bool moving = in.forward!=0 && m(M_ONGROUND);
+    bool moving = in.forward!=0 && pl.onGround;
     if(moving) bobTimer += BOB_SPEED;
     float target = moving ? 1.0f : 0.0f;
     if(bobAmt<target){ bobAmt+=BOB_EASE; if(bobAmt>target)bobAmt=target; }
@@ -357,8 +392,7 @@ void Game::updateAllItems(){
         int ny=e.y+e.vy;
         int bx=e.x/16, bz=e.z/16, nby=ny/16;
         if(ny<0){ny=0;e.vy=0;}
-        uint8_t below=world.getBlock(bx,nby,bz);
-        if(below!=BLOCK_AIR&&below!=BLOCK_SAPLING){ e.y=(nby+1)*16; e.vy=0;
+        if(blockIsSolid(world.getBlock(bx,nby,bz))){ e.y=(nby+1)*16; e.vy=0;
             if(e.id==ENTITY_FALLINGSAND){ world.setBlock(bx,e.y/16,bz,BLOCK_SAND); e.active=false; continue; } }
         else e.y=ny;
         if(e.id==ENTITY_FALLINGSAND)continue;
@@ -420,7 +454,7 @@ void Game::updateAllFurnaces(){
 
 void Game::doRandomTicks(){
     auto above=[&](int x,int y,int z){uint8_t a=world.getBlock(x,y+1,z);
-        return a==BLOCK_AIR||a==BLOCK_LEAVES||a==BLOCK_GLASS||a==BLOCK_SAPLING;};
+        return ((BLOCKS_SEETHROUGH_LIGHT>>(a&0xF))&1u)!=0;};
     auto nearLog=[&](int x,int y,int z){
         for(int r=0;r<=LEAF_LOG_RADIUS;r++)
             for(int dx=-r;dx<=r;dx++)for(int dz=-r;dz<=r;dz++){
@@ -463,39 +497,34 @@ void Game::doRandomTicks(){
 }
 
 void Game::respawn(){
-
     int x=(playerX & ~15)+3,z=(playerZ & ~15)+3;
     int bx=x/BLOCKSIZE,bz=z/BLOCKSIZE,by=playerY/BLOCKSIZE;
     while(by<WORLD_SY){
-        uint8_t feet=world.getBlock(bx,by,bz);
-        uint8_t head=world.getBlock(bx,by+1,bz);
-        bool feetClear=feet==BLOCK_AIR||feet==BLOCK_SAPLING;
-        bool headClear=head==BLOCK_AIR||head==BLOCK_SAPLING;
-        if(feetClear&&headClear)break;
+        if(!blockIsSolid(world.getBlock(bx,by,bz)) && !blockIsSolid(world.getBlock(bx,by+1,bz)))break;
         by++;
     }
     playerX=x;playerY=by*BLOCKSIZE;playerZ=z;
-    velYsub=0;posYsub=0;m(M_ONGROUND)=0;m(M_HEALTH)=MAXHEALTH;
+    velYsub=0;posYsub=0;pl.onGround=false;pl.health=MAXHEALTH;
     screenId=SCR_PLAY;selSlot=-1;loadedTile=-1;gameOverPending=false;
-    world.updateWindow((playerX+PLAYERHALFWIDTH)/BLOCKSIZE,(playerZ+PLAYERHALFWIDTH)/BLOCKSIZE);
+    world.updateWindow((playerX+PLAYERHALFWIDTH)/BLOCKSIZE,(playerZ+PLAYERHALFWIDTH)/BLOCKSIZE,true);
 }
 
 void Game::drawHotbar(){
     screen.x1=19;screen.y1=51;screen.x2=76;screen.y2=63;screen.clearRect();
     screen.x1=20;screen.y1=52;screen.x2=75;screen.y2=63;screen.drawRect();
-    int sel=m(M_INVENTORYSLOT)&0x0F;
+    int sel=pl.invSlot;
     for(int i=0;i<5;i++){int x=21+i*11,y=53; screen.x1=x;screen.y1=y;screen.x2=x+9;screen.y2=y+9;screen.clearRect();
         if(i==sel){screen.x1=x;screen.y1=y;screen.x2=x+9;screen.y2=y+9;screen.drawRect();
             screen.x1=x+1;screen.y1=y+1;screen.x2=x+8;screen.y2=y+8;screen.clearRect();}
-        int it=m(M_INVENTORY+i); if(it){screen.itemIcon(x+2,y+2,it);
+        int it=pl.inventory[i]; if(it){screen.itemIcon(x+2,y+2,it);
             if((it&0xF0)<0xF0){int n=it&0x0F; if(n>0&&n<=9)screen.number(x+6,y+5,n);}}}
-    for(int i=0;i<MAXHEALTH;i++)screen.heart(19+i*6,43,i<(int)m(M_HEALTH));
+    for(int i=0;i<MAXHEALTH;i++)screen.heart(19+i*6,43,i<(int)pl.health);
 }
 void Game::finishRender(){
-    renderer.clearBuffer(); renderer.setCamRot(m(M_ROT));
+    renderer.clearBuffer(); renderer.setCamRot(pl.rot);
     float bobV=sinf(bobTimer*2.0f)*bobAmt;
     renderer.camPos[0]=playerX+PLAYERHALFWIDTH; renderer.camPos[2]=playerZ+PLAYERHALFWIDTH;
-    renderer.camPos[1]=playerY+(m(M_CROUCHING)?PLAYERCROUCHCAMHEIGHT:PLAYERCAMHEIGHT)+bobV*CAM_BOB_AMPLITUDE;
+    renderer.camPos[1]=playerY+(pl.crouching?PLAYERCROUCHCAMHEIGHT:PLAYERCAMHEIGHT)+bobV*CAM_BOB_AMPLITUDE;
     renderer.renderScene(world);
     for(auto& f:tiles) if(f.active){
         int tex = f.isChest?TEX_CHESTFRONT:(f.lit?TEX_FURNACEFRONTON:TEX_FURNACEFRONTOFF);
@@ -509,7 +538,7 @@ void Game::finishRender(){
 }
 
 void Game::worldFrame(const Input& in){
-    if(in.slotScroll){int s=(m(M_INVENTORYSLOT)&0x0F)+in.slotScroll; if(s<0)s=4; if(s>4)s=0; m(M_INVENTORYSLOT)=(uint8_t)s;}
+    if(in.slotScroll){int s=pl.invSlot+in.slotScroll; if(s<0)s=4; if(s>4)s=0; pl.invSlot=(uint8_t)s;}
     handleBreakAndPlace(in);
     if(screenId!=SCR_PLAY)return;
     miscInputs(in);
@@ -523,14 +552,14 @@ std::vector<Game::Slot> Game::buildSlots(ScreenId s){
     std::vector<Slot> v;
     auto add=[&](uint8_t* c,int gx,int gy,int sx,int sy,bool grid,bool out){v.push_back({c,gx,gy,sx,sy,grid,out});};
 
-    for(int r=0;r<3;r++)for(int c=0;c<5;c++) add(&m(M_INVENTORY+r*5+c),c,r,21+c*11,53-r*11,false,false);
+    for(int r=0;r<3;r++)for(int c=0;c<5;c++) add(&pl.inventory[r*5+c],c,r,21+c*11,53-r*11,false,false);
     if(s==SCR_INVENTORY){
         int map[4]={0,1,3,4};
-        for(int i=0;i<4;i++){int gx=i%2,gy=i/2; add(&m(M_CRAFTINGGRID+map[i]),5+gx,4+gy,26+gx*9,9+gy*9,true,false);}
-        add(&m(M_CRAFTINGOUTPUT),6,5,60,14,false,true);
+        for(int i=0;i<4;i++){int gx=i%2,gy=i/2; add(&pl.craftGrid[map[i]],5+gx,4+gy,26+gx*9,9+gy*9,true,false);}
+        add(&pl.craftOutput,6,5,60,14,false,true);
     } else if(s==SCR_CRAFTING){
-        for(int i=0;i<9;i++){int gx=i%3,gy=i/3; add(&m(M_CRAFTINGGRID+i),5+gx,4+gy,21+gx*9,1+gy*9,true,false);}
-        add(&m(M_CRAFTINGOUTPUT),8,5,65,10,false,true);
+        for(int i=0;i<9;i++){int gx=i%3,gy=i/3; add(&pl.craftGrid[i],5+gx,4+gy,21+gx*9,1+gy*9,true,false);}
+        add(&pl.craftOutput,8,5,65,10,false,true);
     } else if(s==SCR_FURNACE&&loadedTile>=0){ BlockEnt& f=tiles[loadedTile];
         add(&f.slot[0],6,4,30,1,false,false);
         add(&f.slot[1],6,5,30,19,false,false);
@@ -541,10 +570,9 @@ std::vector<Game::Slot> Game::buildSlots(ScreenId s){
     return v;
 }
 void Game::tryCraft(){
-    uint8_t grid[9]={0}; for(int i=0;i<9;i++)grid[i]=m(M_CRAFTINGGRID+i);
-    uint16_t out=craftTable(grid); if(!out)return;
+    uint16_t out=craftTable(pl.craftGrid); if(!out)return;
 
-    for(int i=0;i<9;i++){int c=m(M_CRAFTINGGRID+i); if(c){int n=(c&0x0F)-1; m(M_CRAFTINGGRID+i)=(uint8_t)(n>0?(c&0xF0)|n:0);}}
+    for(int i=0;i<9;i++){int c=pl.craftGrid[i]; if(c){int n=(c&0x0F)-1; pl.craftGrid[i]=(uint8_t)(n>0?(c&0xF0)|n:0);}}
     addItemToInventory(out&0xFF);
 }
 void Game::guiFrame(const Input& in){
@@ -574,10 +602,8 @@ void Game::guiFrame(const Input& in){
                 else if((dv&0xF0)==stype && (dv&0x0F)<15){ *dst.cell=(uint8_t)(dv+1); moved=true; }
                 if(moved){ scnt--; if(scnt<=0){*src.cell=0; selSlot=-1;} else *src.cell=(uint8_t)(stype|scnt); }
             }
-            if(screenId==SCR_INVENTORY||screenId==SCR_CRAFTING){
-                uint8_t g[9]={0}; for(int i=0;i<9;i++)g[i]=m(M_CRAFTINGGRID+i);
-                m(M_CRAFTINGOUTPUT)=(uint8_t)(craftTable(g)&0xFF);
-            }
+            if(screenId==SCR_INVENTORY||screenId==SCR_CRAFTING)
+                pl.craftOutput=(uint8_t)(craftTable(pl.craftGrid)&0xFF);
         }
     }
     if(in.menuSelect&&!slots.empty()){
@@ -591,10 +617,8 @@ void Game::guiFrame(const Input& in){
         } else if(selSlot<0){ if(*cur.cell)selSlot=cursor; }
         else { std::swap(*slots[selSlot].cell,*cur.cell); selSlot=-1; }
 
-        if(screenId==SCR_INVENTORY||screenId==SCR_CRAFTING){
-            uint8_t g[9]={0}; for(int i=0;i<9;i++)g[i]=m(M_CRAFTINGGRID+i);
-            m(M_CRAFTINGOUTPUT)=(uint8_t)(craftTable(g)&0xFF);
-        }
+        if(screenId==SCR_INVENTORY||screenId==SCR_CRAFTING)
+            pl.craftOutput=(uint8_t)(craftTable(pl.craftGrid)&0xFF);
     }
     if(screenId==SCR_FURNACE)updateAllFurnaces();
 }
@@ -606,7 +630,7 @@ void Game::drawGui(){
         screen.x1=44;screen.y1=16;screen.x2=51;screen.y2=23;screen.drawRect();
         screen.x1=46;screen.y1=18;screen.x2=47;screen.y2=19;screen.clearRect();
         screen.x1=49;screen.y1=18;screen.x2=50;screen.y2=19;screen.clearRect();
-        int sc=score; int x=42; for(int p=100;p>=1;p/=10){int d=(sc/p)%10; if(p<100&&sc<p&&p>1){} screen.number(x,28,d); x+=5;}
+        int sc=score; int x=42; for(int p=100;p>=1;p/=10){int d=(sc/p)%10; screen.number(x,28,d); x+=5;}
         screen.x1=34;screen.y1=36;screen.x2=61;screen.y2=43;screen.drawRect();
         screen.x1=35;screen.y1=37;screen.x2=60;screen.y2=42;screen.clearRect();
         return; }
@@ -642,7 +666,10 @@ uint32_t Game::visualSignature() const {
     mix((uint32_t)playerX); mix((uint32_t)playerY); mix((uint32_t)playerZ);
     mixf(bobTimer); mixf(bobAmt);
     mix(world.revision);
-    for(int i=0;i<42;i++) mix(ram[i]);
+    for(int i=0;i<15;i++) mix(pl.inventory[i]);
+    for(int i=0;i<9;i++) mix(pl.craftGrid[i]);
+    mix(pl.craftOutput); mix(pl.invSlot); mix(pl.rot); mix(pl.health);
+    mix((uint32_t)pl.crouching);
     for(const auto& e:items) if(e.active){ mix((uint32_t)e.id); mix((uint32_t)e.x); mix((uint32_t)e.y); mix((uint32_t)e.z); }
     for(const auto& t:tiles) if(t.active){
         mix((uint32_t)((t.bx<<16)|(t.by<<8)|t.bz));

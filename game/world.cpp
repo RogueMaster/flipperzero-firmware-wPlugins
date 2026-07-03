@@ -132,8 +132,10 @@ bool World::openWorld(const FileSystem& files, const char* dataPath) {
             slotCX[sx][sz] = slotCZ[sx][sz] = -1;
             slotMaxY[sx][sz] = -1;
             slotDirty[sx][sz] = false;
+            slotGen[sx][sz] = 0;
         }
     centerCX = centerCZ = -2;
+    loadPending = false;
     opened = true;
     return true;
 }
@@ -203,7 +205,8 @@ void World::writeStorageSlot(int index, const uint8_t* src) {
     if(!opened || (unsigned)index >= STORAGE_CAPACITY) return;
     uint32_t off = storageBase(*this) + (uint32_t)index * STORAGE_SLOT_SIZE;
     if(fileSeek(*fs, file, off)) fileWrite(*fs, file, src, STORAGE_SLOT_SIZE);
-    fileSync(*fs, file);
+    // No per-write sync: storage slots are flushed while streaming chunks and a
+    // FAT sync here stalls the tick. save()/closeWorld() sync the file.
 }
 
 bool World::flushSlot(int sx, int sz) {
@@ -216,6 +219,17 @@ bool World::flushSlot(int sx, int sz) {
     return ok;
 }
 
+// A slot's content changed: invalidate its cached mesh and the meshes of the
+// four adjacent chunks, whose boundary faces depend on this chunk's blocks.
+void World::onSlotLoaded(int cx, int cz) {
+    revision++; // a freshly streamed chunk must reach the next rendered frame
+    bumpGen(cx, cz);
+    bumpGen(cx - 1, cz);
+    bumpGen(cx + 1, cz);
+    bumpGen(cx, cz - 1);
+    bumpGen(cx, cz + 1);
+}
+
 bool World::loadChunkDirect(int cx, int cz) {
     int sx = cx % 3, sz = cz % 3;
     flushSlot(sx, sz);
@@ -226,12 +240,14 @@ bool World::loadChunkDirect(int cx, int cz) {
         slotCX[sx][sz] = slotCZ[sx][sz] = -1;
         slotMaxY[sx][sz] = -1;
         slotDirty[sx][sz] = false;
+        onSlotLoaded(cx, cz); // neighbours may have meshed against the old occupant
         return false;
     }
     slotMaxY[sx][sz] = chunkMaxY(&slot[sx][sz][0][0][0]);
     slotCX[sx][sz] = cx;
     slotCZ[sx][sz] = cz;
     slotDirty[sx][sz] = false;
+    onSlotLoaded(cx, cz);
     return ok;
 }
 
@@ -248,13 +264,14 @@ bool World::loadRunStaged(int cx0, int cz, int count) {
         slotCX[sx][sz] = cx;
         slotCZ[sx][sz] = cz;
         slotDirty[sx][sz] = false;
+        onSlotLoaded(cx, cz);
     }
     return true;
 }
 
-void World::updateWindow(int blockX, int blockZ) {
+void World::updateWindow(int blockX, int blockZ, bool immediate) {
     if(!opened) return;
-    int cx = blockX >> 3, cz = blockZ >> 3;
+    int cx = blockX >> CHUNK_SHIFT, cz = blockZ >> CHUNK_SHIFT;
     if(cx < 0)
         cx = 0;
     else if(cx >= chunksX)
@@ -263,37 +280,63 @@ void World::updateWindow(int blockX, int blockZ) {
         cz = 0;
     else if(cz >= chunksZ)
         cz = chunksZ - 1;
-    if(cx == centerCX && cz == centerCZ) return;
+    if(cx == centerCX && cz == centerCZ && !loadPending) return;
     centerCX = cx;
     centerCZ = cz;
 
-    for(int ncz = cz - 1; ncz <= cz + 1; ncz++) {
-        if(ncz < 0 || ncz >= chunksZ) continue;
-        int run0 = -1, run1 = -1;
-        for(int ncx = cx - 1; ncx <= cx + 1; ncx++) {
-            bool valid = (ncx >= 0 && ncx < chunksX);
-            bool resident = valid && slotCX[ncx % 3][ncz % 3] == ncx &&
-                            slotCZ[ncx % 3][ncz % 3] == ncz;
-            if(valid && !resident) {
-                if(run0 < 0) run0 = ncx;
-                run1 = ncx;
-            } else if(run0 >= 0) {
+    if(immediate) {
+        // Load every missing chunk of the ring now, coalescing horizontal runs
+        // into one sequential read per row.
+        for(int ncz = cz - 1; ncz <= cz + 1; ncz++) {
+            if(ncz < 0 || ncz >= chunksZ) continue;
+            int run0 = -1, run1 = -1;
+            for(int ncx = cx - 1; ncx <= cx + 1; ncx++) {
+                bool valid = (ncx >= 0 && ncx < chunksX);
+                bool resident = valid && slotCX[ncx % 3][ncz % 3] == ncx &&
+                                slotCZ[ncx % 3][ncz % 3] == ncz;
+                if(valid && !resident) {
+                    if(run0 < 0) run0 = ncx;
+                    run1 = ncx;
+                } else if(run0 >= 0) {
+                    int n = run1 - run0 + 1;
+                    if(n == 1)
+                        loadChunkDirect(run0, ncz);
+                    else
+                        loadRunStaged(run0, ncz, n);
+                    run0 = -1;
+                }
+            }
+            if(run0 >= 0) {
                 int n = run1 - run0 + 1;
                 if(n == 1)
                     loadChunkDirect(run0, ncz);
                 else
                     loadRunStaged(run0, ncz, n);
-                run0 = -1;
             }
         }
-        if(run0 >= 0) {
-            int n = run1 - run0 + 1;
-            if(n == 1)
-                loadChunkDirect(run0, ncz);
-            else
-                loadRunStaged(run0, ncz, n);
-        }
+        loadPending = false;
+        return;
     }
+
+    // Streaming mode: one SD read per tick, nearest chunk first. The player
+    // covers at most half a block per tick while the freshly-entered ring is
+    // still RENDER_RADIUS_BLOCKS away, so spreading the loads over a few ticks
+    // is invisible but removes the multi-chunk stall from a single frame.
+    static const int8_t kOrder[9][2] = {
+        {0,0}, {-1,0}, {1,0}, {0,-1}, {0,1}, {-1,-1}, {1,-1}, {-1,1}, {1,1}};
+    int missing = 0, firstCX = 0, firstCZ = 0;
+    for(const auto& o : kOrder) {
+        int ncx = cx + o[0], ncz = cz + o[1];
+        if(ncx < 0 || ncx >= chunksX || ncz < 0 || ncz >= chunksZ) continue;
+        if(slotCX[ncx % 3][ncz % 3] == ncx && slotCZ[ncx % 3][ncz % 3] == ncz) continue;
+        if(missing == 0) {
+            firstCX = ncx;
+            firstCZ = ncz;
+        }
+        missing++;
+    }
+    if(missing) loadChunkDirect(firstCX, firstCZ);
+    loadPending = missing > 1;
 }
 
 void World::save() {

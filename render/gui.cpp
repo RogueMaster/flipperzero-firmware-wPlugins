@@ -58,18 +58,4 @@ void Screen2D::itemIcon(int x,int y,int itemId) {
     }
 }
 
-void Screen2D::drawTex(int texId, bool inv) {
-    static const uint8_t ARROW[8] = {0,0b00001000,0b00001100,0b11111110,0b11111110,0b00001100,0b00001000,0};
-    static const uint8_t FLAME[8] = {0b00010000,0b00011000,0b00111100,0b01111110,0b01111110,0b01011010,0b00111100,0};
-    static const uint8_t EMPTY8[8] = {0};
-    const uint8_t* g = EMPTY8;
-    if (texId==0x63||texId==0x64) g = ARROW;
-    else if (texId==0x65) g = FLAME;
-    for (int r=0;r<8;r++) for (int c=0;c<8;c++) {
-        int bit = (g[r]>>(7-c))&1;
-        if (inv) bit ^= 1;
-        if (bit) setPixel(x1+c,y1+r,1);
-    }
-}
-
 }

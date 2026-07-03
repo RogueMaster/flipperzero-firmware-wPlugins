@@ -1,9 +1,21 @@
-
 #pragma once
 #include "../flipcraft.h"
+#include <vector>
 
 namespace flipcraft {
+
 struct Vertex { float x=0, y=0, z=0, u=0, v=0; };
+
+// Visible faces of one resident chunk, packed one face per uint32_t:
+//   bits 0-2  local x        bits 3-5  local z      bits 6-9   y
+//   bits 10-14 quad id       bits 15-22 texture id  bits 23-26 settings
+// Rebuilt only when the chunk content changes (World::slotGen mismatch), so a
+// frame never scans voxels -- it just walks these lists.
+struct ChunkMesh {
+    int cx = -1, cz = -1;
+    uint16_t gen = 0;
+    std::vector<uint32_t> faces;
+};
 
 class Renderer {
 public:
@@ -22,11 +34,10 @@ public:
 
     void setCamRot(uint8_t data);
     void clearBuffer();
+    // Drop all cached chunk meshes; call when a different world is opened.
+    void invalidateChunkMeshes();
     float sinYaw() const, cosYaw() const;
     float camDir(int axis) const;
-
-    Vertex worldToCam(const Vertex& v) const;
-    void drawQuadWorld(const Vertex quad[4]);
 
     void renderScene(const World& w);
     void renderFace(int x,int y,int z,uint8_t texId,int direction,bool small_);
@@ -34,10 +45,15 @@ public:
     void renderOverlay(const World& w,int x,int y,int z,int breakPhase);
 
 private:
+    ChunkMesh chunkMesh[WINDOW_CHUNKS][WINDOW_CHUNKS];
+
     void camRotToMatrix(int pitchIndex,int yawIndex);
+    Vertex worldToCam(const Vertex& v) const;
     Vertex camToScreen(const Vertex& v) const;
     void drawQuadCam(Vertex q[4]);
     void renderQuad(float x,float y,float z,int quadId,uint8_t texId,int texSettings);
+    void drawBlockQuad(int x,int y,int z,int quadId,uint8_t texId,int texSettings);
+    void buildChunkMesh(const World& w,int sx,int sz);
     void rasterTri(const Vertex& a,const Vertex& b,const Vertex& c);
     bool isBackfacing(const Vertex& a,const Vertex& b,const Vertex& c) const;
 };

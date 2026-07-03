@@ -26,8 +26,6 @@ struct Screen2D {
                 fb->px[y][x+UI_X_OFFSET]^=1;
     }
 
-    void drawTex(int texId, bool inv=false);
-
     void number(int x,int y,int d);
     void itemIcon(int x,int y,int itemId);
     void heart(int x,int y,bool full);

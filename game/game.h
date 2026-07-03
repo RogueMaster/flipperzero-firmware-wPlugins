@@ -6,22 +6,9 @@
 
 namespace flipcraft {
 
-enum Mem {
-    M_X=0, M_Y=1, M_Z=2, M_ROT=3, M_ONGROUND=4, M_VELY=5, M_NEEDRERENDER=6,
-    M_CROUCHING=7,
-    M_PREVX=8,  // legacy not used (prev player X)
-    M_PREVY=9,  // legacy not used (prev player Y)
-    M_PREVZ=10, // legacy not used (prev player Z)
-    M_INVENTORY=11, M_INVENTORYSLOT=26, M_CRAFTINGGRID=27, M_CRAFTINGOUTPUT=36,
-    M_PERMSELSLOT=37, // legacy not used (old: m(M_PERMSELSLOT)=0xFF on crafting/inventory open)
-    M_HEALTH=41,
-    M_LOGSINWORLD=44, // legacy not used (leaves now decay locally; slot kept for save compatibility)
-};
-
 enum ScreenId { SCR_PLAY, SCR_INVENTORY, SCR_CRAFTING, SCR_FURNACE, SCR_CHEST, SCR_GAMEOVER };
 
 struct Input {
-
     int  forward=0;
     int  turn=0, pitch=0;
     bool jump=false, crouch=false;
@@ -32,6 +19,20 @@ struct Input {
     int  navX=0, navY=0;
     bool menuSelect=false;
     bool distribute=false;
+};
+
+// All persistent player-visible state. Item cells keep the packed byte
+// encoding used on disk and across the UI: high nibble item type, low nibble
+// count (tools occupy the whole 0xF0..0xFF range and do not stack).
+struct PlayerState {
+    uint8_t inventory[15] = {0};
+    uint8_t invSlot = 0;       // selected hotbar slot, 0..4
+    uint8_t craftGrid[9] = {0};
+    uint8_t craftOutput = 0;
+    uint8_t rot = 0x08;        // camera: pitch << 4 | yaw, 16 steps per turn
+    uint8_t health = MAXHEALTH;
+    bool onGround = false;
+    bool crouching = false;
 };
 
 struct ItemEnt { int id=0; int x=0,y=0,z=0; int vy=0; bool active=false; };
@@ -51,7 +52,7 @@ public:
     Renderer renderer;
     Framebuffer fb;
     Screen2D screen;
-    uint8_t ram[256] = {0};
+    PlayerState pl;
     uint32_t rngState = 0x1234;
 
     int playerX = 0, playerY = 0, playerZ = 0;
@@ -72,7 +73,6 @@ public:
     void shutdown();
     void simulate(const Input& in);
     bool render();
-    uint8_t& m(int addr) { return ram[addr]; }
 
 private:
     uint8_t rng();
@@ -85,8 +85,6 @@ private:
     bool playerCollides(int x,int y,int z);
     struct RayHit { int bx,by,bz, px,py,pz, id, length; };
     RayHit rayCast();
-    int getBlockType(int id);
-    int getBlockHardness(int id);
     void createEntity(int x,int y,int z,int entityId);
     void addItemToInventory(int item);
     void updateAllItems();
