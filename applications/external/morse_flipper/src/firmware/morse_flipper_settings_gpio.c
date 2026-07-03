@@ -70,11 +70,11 @@ void morse_flipper_settings_gpio_ground_changed(VariableItem* item) {
 }
 
 static uint8_t morse_flipper_ptt_choice_from_ui(uint8_t idx) {
-    return idx == 1U ? MorseFlipperGpioPinP15 : MORSE_FLIPPER_GPIO_PIN_NONE;
+    return idx == 1U ? MorseFlipperGpioPinP16 : MORSE_FLIPPER_GPIO_PIN_NONE;
 }
 
 static uint8_t morse_flipper_ptt_choice_to_ui(uint8_t idx) {
-    return idx == MorseFlipperGpioPinP15 ? 1U : 0U;
+    return idx == MorseFlipperGpioPinP16 ? 1U : 0U;
 }
 
 void morse_flipper_settings_gpio_ptt_changed(VariableItem* item) {

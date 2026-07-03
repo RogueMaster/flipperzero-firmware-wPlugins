@@ -105,8 +105,12 @@ String profile_match_json() {
     String j;
     j.reserve(176);
     j  = "{\"suggest\":";
-    j += suggest ? "true" : "false";
-    if (suggest && idx >= 0) {
+    // Emit the profile fields only when the index is genuinely in range — never
+    // dereference a stray index (fsd_profile_should_suggest already bounds it;
+    // this is belt-and-suspenders so a torn read can't fault the WS/aux path).
+    bool emit = suggest && idx >= 0 && idx < FSD_PROFILE_DB_COUNT;
+    j += emit ? "true" : "false";
+    if (emit) {
         const FSDProfile* p = &FSD_PROFILE_DB[idx];
         j += ",\"name\":\""; j += p->name; j += "\"";
         j += ",\"das_id\":"; j += (int)p->das_id;

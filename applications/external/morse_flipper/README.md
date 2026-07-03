@@ -1,6 +1,6 @@
 # Morse Flipper
 
-Morse Flipper is a CW trainer, keyer, hardware adapter, portable ham helper, and Sub-GHz Morse experiment bench for the Flipper Zero. [Download version 0.1.69 here](https://github.com/yo3gnd/morse-flipper/releases/download/v0.1.69/morse_flipper.fap).
+Morse Flipper is a CW trainer, keyer, hardware adapter, portable ham helper, and Sub-GHz Morse experiment bench for the Flipper Zero. [Download version 0.1.70 here](https://github.com/yo3gnd/morse-flipper/releases/download/v0.1.70/morse_flipper.fap).
 
 It is built around one opinion: do not learn Morse by staring at dots and dashes. Learn the sound. Hear the character, type the character, and keep the counting part of your brain out of it.
 
@@ -8,12 +8,14 @@ It works with nothing more than the Flipper buttons and buzzer. Add a simple jac
 
 This started as a 2024 experiment, then got the proper launch-shape treatment in 2026. The important bits are still where they should be: timing, keying, GPIO behaviour, RF compromises, tests, and the stubborn refusal to make CW look like a barcode for the ears.
 
-Morse Flipper also includes a fairly extensive help manual on the Flipper itself, under `Help`. It covers how to learn and practise Morse Code, how to connect straight keys and paddles, what is worth practising, and which outside resources are worth your time. Please read it; there is more useful Morse guidance in there than fits comfortably in a README. An online copy is available here: [manual/internal-help.md](manual/internal-help.md).
+Morse Flipper also includes a fairly extensive help manual on the Flipper itself, under `Help`. It covers how to learn and practise Morse Code, how to connect straight keys and paddles, what is worth practising, and which outside resources are worth your time. Please read it; there is more useful Morse guidance in there than fits comfortably in a README.
+
+The full Morse Flipper manual lives here: [manual/README.md](manual/README.md).
 
 ## What it does
 
 - Flipper-to-Flipper Sub-GHz Morse TX/RX, plus receive/decode experiments for compatible OOK Morse signals inside the Flipper's supported bands.
-- LCWO-style listening practice, straight-key timing practice, and five-character sending drills.
+- Listening practice (LCWO/Koch progressions), straight-key timing practice, and five-character sending drills.
 - Free practice with a straight key, paddle, Flipper buttons, USB, MIDI, mouse, or keyboard input.
 - Built-in help for setup, hardware, practice, portable operating, contests, prepper use, and the bits of CW folklore that otherwise become pub arguments.
 - Straight keys and paddles through either the Flipper joystick or a simple 6.5 mm jack adapter.
@@ -33,7 +35,7 @@ It also falls back sensibly when a straight key is plugged into a stereo paddle 
 
 There are already Flipper Morse apps, but many of them teach the most common bad habit first: looking at dots and dashes. That is fine for a code table and rubbish for copying real CW at speed.
 
-Morse Flipper tries to train the useful reflex instead. Keep the character speed high, widen the gaps if needed, and let the sound become the letter. The app has a small LCWO-style trainer because LCWO is still the gold standard for this approach, but the Flipper version is useful when the laptop is not.
+Morse Flipper tries to train the useful reflex instead. Keep the character speed high, widen the gaps if needed, and let the sound become the letter. The app has a small Listening trainer because LCWO is still the gold standard for this approach, but the Flipper version is useful when the laptop is not.
 
 The other half of the project is hardware. A Flipper is already a pocket full of GPIO, USB and RF mischief; this app turns that into a CW adapter, a paddle interface, a portable keyer, and a way to reuse old keys or scrap hardware without building a whole dedicated box first.
 

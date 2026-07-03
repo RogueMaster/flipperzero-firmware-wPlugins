@@ -33,6 +33,8 @@ static void morse_trainer_note_session_result(MorseTrainer* trainer, bool missed
     trainer->session_scored_groups++;
     trainer->session_letter_hits =
         (uint16_t)(trainer->session_letter_hits + trainer->last_group_hits);
+    trainer->session_letter_total =
+        (uint16_t)(trainer->session_letter_total + trainer->last_group_total);
     if(!trainer->session_aborted && trainer->session_scored_groups >= trainer->session_groups)
         trainer->session_active = false;
 
@@ -293,6 +295,7 @@ void morse_trainer_start_repeat(MorseTrainer* trainer) {
     trainer->wait_ms = 0U;
     trainer->last_score = -1;
     trainer->last_group_hits = 0U;
+    trainer->last_group_total = 0U;
     trainer->last_failed = false;
     trainer->last_missed = false;
     trainer->phase = MorseTrainerPhaseListen;
@@ -354,6 +357,7 @@ void morse_trainer_tick(MorseTrainer* trainer, uint32_t ms, uint32_t timeout_ms)
 
     trainer->last_score = 0;
     trainer->last_group_hits = 0U;
+    trainer->last_group_total = (uint8_t)strlen(trainer->last_group);
     trainer->last_failed = true;
     trainer->last_missed = true;
     trainer->phase = MorseTrainerPhaseDone;
@@ -380,6 +384,7 @@ int16_t morse_trainer_score_repeat(MorseTrainer* trainer) {
     trainer->last_group_hits = (!trainer->last_failed && trainer->last_group[0] != '\0') ?
                                    (uint8_t)strlen(trainer->last_group) :
                                    0U;
+    trainer->last_group_total = (uint8_t)strlen(trainer->last_group);
     trainer->phase = MorseTrainerPhaseDone;
     morse_trainer_note_session_result(trainer, trainer->last_missed);
     return trainer->last_score;
@@ -401,6 +406,7 @@ int16_t morse_trainer_score_repeat_text(MorseTrainer* trainer, const char* text)
         if(trainer->last_group[i] == trainer->reveal[i]) hit++;
 
     trainer->last_group_hits = (uint8_t)hit;
+    trainer->last_group_total = (uint8_t)(got_len > want_len ? got_len : want_len);
     trainer->last_score = want_len == 0U ? 0 : (int16_t)(((int32_t)hit * 100) / (int32_t)want_len);
     trainer->last_failed = trainer->reveal[0] == '\0' || want_len != got_len ||
                            strcmp(trainer->last_group, trainer->reveal) != 0;
@@ -424,7 +430,9 @@ void morse_trainer_reset_session(MorseTrainer* trainer) {
     trainer->session_fail_count = 0U;
     trainer->session_consecutive_missed = 0U;
     trainer->last_group_hits = 0U;
+    trainer->last_group_total = 0U;
     trainer->session_letter_hits = 0U;
+    trainer->session_letter_total = 0U;
     trainer->session_score_sum = 0U;
     trainer->session_scored_groups = 0U;
 
@@ -546,7 +554,7 @@ uint16_t morse_trainer_session_letter_hits(const MorseTrainer* trainer) {
 
 uint16_t morse_trainer_session_letter_total(const MorseTrainer* trainer) {
     if(trainer == NULL) return 0U;
-    return (uint16_t)((uint16_t)trainer->group_size * (uint16_t)trainer->session_groups);
+    return trainer->session_letter_total;
 }
 
 uint8_t morse_trainer_session_letter_percent(const MorseTrainer* trainer) {

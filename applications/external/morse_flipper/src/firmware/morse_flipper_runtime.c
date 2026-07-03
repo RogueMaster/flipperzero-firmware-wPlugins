@@ -488,10 +488,6 @@ const char* morse_flipper_input_line(const MorseFlipperApp* app, char* buf, size
 }
 
 static void morse_flipper_session_mode_tick(MorseFlipperApp* app, uint32_t now_ms) {
-    if(app->session_started && morse_trainer_phase(&app->trainer) == MorseTrainerPhaseRepeat) {
-        morse_trainer_tick(
-            &app->trainer, MORSE_FLIPPER_POLL_MS, (uint32_t)app->trainer_answer_timeout_s * 1000U);
-    }
     morse_flipper_tick_session(app, now_ms);
 }
 

@@ -113,7 +113,7 @@ void morse_flipper_clamp_straight_settings(MorseFlipperApp* app) {
 }
 
 static uint8_t morse_flipper_config_load_ptt_idx(uint8_t stored_ptt_idx) {
-    return stored_ptt_idx == MorseFlipperGpioPinP15 ? MorseFlipperGpioPinP15 :
+    return stored_ptt_idx == MorseFlipperGpioPinP16 ? MorseFlipperGpioPinP16 :
                                                       MORSE_FLIPPER_GPIO_PIN_NONE;
 }
 
@@ -132,7 +132,12 @@ static void morse_flipper_config_apply_gpio(
     app->gpio_dit_idx = dit;
     app->gpio_dah_idx = dah;
     app->gpio_ground_idx = ground;
-    app->gpio_ptt_idx = morse_flipper_config_load_ptt_idx(ptt);
+    ptt = morse_flipper_config_load_ptt_idx(ptt);
+    if(morse_flipper_gpio_validate_with_ptt(dit, dah, ground, ptt) != MorseFlipperGpioRuleOk) {
+        ptt = MORSE_FLIPPER_GPIO_PIN_NONE;
+    }
+
+    app->gpio_ptt_idx = ptt;
     morse_flipper_gpio_sync_straight_idx(app);
 }
 

@@ -13,6 +13,12 @@ static void morse_flipper_session_answer_text(
     char* out,
     size_t out_sz,
     uint8_t max_chars);
+static uint8_t morse_flipper_session_answer_count(const char* answer);
+static void morse_flipper_session_answer_committed_text(
+    const MorseFlipperApp* app,
+    char* out,
+    size_t out_sz,
+    uint8_t max_chars);
 
 void morse_flipper_reset_session_runtime(MorseFlipperApp* app) {
     if(app == NULL) return;
@@ -23,6 +29,7 @@ void morse_flipper_reset_session_runtime(MorseFlipperApp* app) {
     app->session_result_tone = false;
     app->session_result_good = false;
     app->session_last_input_at = 0U;
+    app->session_answer_complete_at = 0U;
     app->session_result_until = 0U;
     app->session_next_group_at = 0U;
     app->session_complete_at = 0U;
@@ -91,6 +98,20 @@ bool morse_flipper_session_wait_key_down(const MorseFlipperApp* app) {
     return morse_flipper_logical_dit_down(app) || morse_flipper_logical_dah_down(app);
 }
 
+static bool morse_flipper_session_can_hurry(const MorseFlipperApp* app) {
+    return app != NULL && app->session_result_hold && app->session_next_group_at != 0U;
+}
+
+bool morse_flipper_session_hurry(MorseFlipperApp* app, uint32_t now_ms) {
+    if(!morse_flipper_session_can_hurry(app)) return false;
+    if(app->session_next_group_at <= now_ms + 1000U) return true;
+
+    app->session_next_group_at = now_ms + 1000U;
+    app->session_wait_draw_s = 0xFFU;
+    morse_flipper_view_dirty(app);
+    return true;
+}
+
 static void morse_flipper_queue_session_feedback(MorseFlipperApp* app, uint32_t now_ms) {
     if(app == NULL || !app->session_round_pending) return;
 
@@ -100,6 +121,7 @@ static void morse_flipper_queue_session_feedback(MorseFlipperApp* app, uint32_t 
     app->session_result_good = !morse_trainer_last_failed(&app->trainer);
     app->session_result_tone = !app->session_result_good;
     app->session_result_until = now_ms + MORSE_FLIPPER_SESSION_RESULT_MS;
+    app->session_answer_complete_at = 0U;
     app->session_next_group_at = morse_trainer_session_has_next(&app->trainer) ?
                                      (now_ms + ((uint32_t)app->trainer_group_pause_s * 1000U)) :
                                      0U;
@@ -160,6 +182,7 @@ void morse_flipper_start_session(MorseFlipperApp* app, uint32_t now_ms) {
     app->session_result_tone = false;
     app->session_result_good = false;
     app->session_result_until = 0U;
+    app->session_answer_complete_at = 0U;
     app->session_next_group_at = now_ms + ((uint32_t)app->trainer_group_pause_s * 1000U);
     app->session_wait_draw_s = 0xFFU;
     morse_flipper_view_dirty(app);
@@ -170,12 +193,14 @@ void morse_flipper_tick_session(MorseFlipperApp* app, uint32_t now_ms) {
     uint32_t left_ms;
     uint8_t left_s;
     char ans[MORSE_TRAINER_GROUP_CAP];
+    uint8_t group_size;
+    uint8_t answer_count;
 
     if(app == NULL || app->screen != MorseFlipperScreenSession || !app->session_started) return;
 
     /*
      * Session flow, in order: expire error tone, count down to the next group,
-     * launch/listen/playback, delay final screen, then settle and score the answer.
+     * launch/listen/playback, delay final screen, then score or timeout the answer.
      */
     if(app->session_result_tone && now_ms >= app->session_result_until) {
         app->session_result_tone = false;
@@ -184,11 +209,7 @@ void morse_flipper_tick_session(MorseFlipperApp* app, uint32_t now_ms) {
 
     if(app->session_result_hold && app->session_next_group_at > now_ms) {
         if(morse_flipper_session_wait_key_down(app)) {
-            if(app->session_next_group_at - now_ms > 1000U) {
-                app->session_next_group_at = now_ms + 1000U;
-                app->session_wait_draw_s = 0xFFU;
-                morse_flipper_view_dirty(app);
-            }
+            morse_flipper_session_hurry(app, now_ms);
         }
 
         left_ms = app->session_next_group_at - now_ms;
@@ -215,7 +236,9 @@ void morse_flipper_tick_session(MorseFlipperApp* app, uint32_t now_ms) {
         return;
     }
 
-    if(morse_trainer_session_completed(&app->trainer)) {
+    if(morse_trainer_session_completed(&app->trainer) ||
+       (morse_trainer_session_aborted(&app->trainer) &&
+        morse_trainer_phase(&app->trainer) == MorseTrainerPhaseDone)) {
         if(app->session_complete_at == 0U) app->session_complete_at = now_ms;
         if(now_ms - app->session_complete_at >= 1000U) {
             morse_flipper_scene_open(app, MorseFlipperSceneSessionEnd);
@@ -234,18 +257,33 @@ void morse_flipper_tick_session(MorseFlipperApp* app, uint32_t now_ms) {
 
     if(morse_flipper_session_live_keying(app)) {
         app->session_last_input_at = now_ms;
+        app->session_answer_complete_at = 0U;
         return;
     }
 
     if(!morse_flipper_session_repeat_active(app)) return;
 
-    morse_flipper_session_answer_text(
-        app, ans, sizeof(ans), morse_trainer_group_size(&app->trainer));
-    if(ans[0] == '\0') return;
+    group_size = morse_trainer_group_size(&app->trainer);
+    morse_flipper_session_answer_text(app, ans, sizeof(ans), MORSE_TRAINER_GROUP_CAP - 1U);
+    answer_count = morse_flipper_session_answer_count(ans);
 
-    dt = morse_flipper_current_dit_ms(app) * 8U;
-    if(dt < MORSE_FLIPPER_SESSION_SETTLE_MS) dt = MORSE_FLIPPER_SESSION_SETTLE_MS;
+    if(answer_count >= group_size) {
+        if(app->session_answer_complete_at == 0U) {
+            app->session_answer_complete_at = now_ms;
+            return;
+        }
 
+        if(now_ms - app->session_answer_complete_at < MORSE_FLIPPER_SESSION_ANSWER_GRACE_MS)
+            return;
+
+        morse_trainer_score_repeat_text(&app->trainer, ans);
+        morse_flipper_queue_session_feedback(app, now_ms);
+        return;
+    }
+    app->session_answer_complete_at = 0U;
+
+    dt = (uint32_t)app->trainer_answer_timeout_s * 1000U;
+    if(dt == 0U) dt = (uint32_t)MORSE_FLIPPER_TRAINER_TIMEOUT_DEFAULT_S * 1000U;
     if(now_ms - app->session_last_input_at < dt) return;
 
     morse_trainer_score_repeat_text(&app->trainer, ans);
@@ -572,7 +610,7 @@ void morse_flipper_draw_session_rows(Canvas* canvas, const MorseFlipperApp* app)
 
     if(idle) {
         canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignCenter, "Koch - LCWO");
+        canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignCenter, "Listening");
         canvas_set_font(canvas, FontSecondary);
         if(app->input_source == MorseFlipperInputSourceButtons) {
             canvas_draw_str_aligned(canvas, 64, 38, AlignCenter, AlignCenter, "Press OK to start");
@@ -644,7 +682,6 @@ void morse_flipper_draw_session_bottom(Canvas* canvas, const MorseFlipperApp* ap
     uint8_t size = morse_trainer_group_size(&app->trainer);
     uint8_t asked = 0U;
     uint8_t total = morse_trainer_session_total(&app->trainer);
-    uint8_t scored = 0U;
     uint8_t fill = 0U;
     uint16_t letter_hits;
     uint16_t letter_total;
@@ -667,15 +704,11 @@ void morse_flipper_draw_session_bottom(Canvas* canvas, const MorseFlipperApp* ap
         if(asked == 1U && !app->trainer_playback_active && !app->session_round_pending &&
            morse_trainer_phase(&app->trainer) == MorseTrainerPhaseListen)
             asked = 0U;
-        if(app->session_round_pending && asked != 0U)
-            scored = (uint8_t)(asked - 1U);
-        else
-            scored = asked;
     }
 
     if(total != 0U && asked != 0U) fill = (uint8_t)(((uint16_t)asked * 100U) / total);
     letter_hits = morse_trainer_session_letter_hits(&app->trainer);
-    letter_total = (uint16_t)((uint16_t)scored * (uint16_t)size);
+    letter_total = morse_trainer_session_letter_total(&app->trainer);
     if(app->session_round_pending && !app->trainer_playback_active &&
        morse_trainer_phase(&app->trainer) == MorseTrainerPhaseRepeat) {
         morse_flipper_session_answer_committed_text(app, live_answer, sizeof(live_answer), size);
@@ -715,5 +748,11 @@ void morse_flipper_draw_session_bottom(Canvas* canvas, const MorseFlipperApp* ap
     canvas_draw_str(canvas, x, 51, progress_line);
 
     canvas_draw_frame(canvas, 13, 57, 102, 5);
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_dot(canvas, 13, 57);
+    canvas_draw_dot(canvas, 114, 57);
+    canvas_draw_dot(canvas, 13, 61);
+    canvas_draw_dot(canvas, 114, 61);
+    canvas_set_color(canvas, ColorBlack);
     if(fill != 0U) canvas_draw_box(canvas, 14, 58, fill, 3);
 }

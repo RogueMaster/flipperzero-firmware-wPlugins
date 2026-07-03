@@ -39,7 +39,9 @@ typedef struct {
     uint8_t session_fail_count;
     uint8_t session_consecutive_missed;
     uint8_t last_group_hits;
+    uint8_t last_group_total;
     uint16_t session_letter_hits;
+    uint16_t session_letter_total;
     uint16_t session_score_sum;
     uint8_t session_scored_groups;
     uint8_t custom_set_idx;
