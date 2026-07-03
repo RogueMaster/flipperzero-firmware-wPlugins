@@ -1,9 +1,8 @@
-#include "platform.h"
-
 #include "../../game/game.h"
-#include "../../menu/menu.h"
+#include "../../plugin_api.h"
 
 #include <furi.h>
+#include <flipper_application/flipper_application.h>
 #include <gui/canvas.h>
 #include <gui/gui.h>
 #include <input/input.h>
@@ -145,6 +144,7 @@ struct AppState {
     bool ev_exit = false;
 };
 
+// Pack the 1-bit framebuffer into SSD1306 page layout: 8 vertical pixels per byte.
 static void packSsd(const Framebuffer& fb, uint8_t* ssd) {
     for(int page = 0; page < (SCREEN_HEIGHT / 8); ++page) {
         const uint8_t* r0 = fb.px[page * 8 + 0];
@@ -436,22 +436,38 @@ static void runGame(Game& game, Gui* gui, const char* path) {
     delete st;
 }
 
-int32_t run(Game& game) {
-    Storage* storage = reinterpret_cast<Storage*>(furi_record_open(RECORD_STORAGE));
+}
+}
+
+// --- .fal plugin boundary ----------------------------------------------------
+// The Game object (world window, framebuffer, z-buffer, chunk meshes) exists
+// only for the duration of one session: while the menu is open none of it is
+// allocated, and the whole game code segment itself is unmapped by the host.
+
+static int32_t flipcraft_game_run(const char* world_path) {
+    using namespace flipcraft;
+
+    Game* game = new(std::nothrow) Game();
+    if(!game) return -1;
+
     Gui* gui = reinterpret_cast<Gui*>(furi_record_open(RECORD_GUI));
-
-    // Show the save selector, play the chosen world, then return to the menu
-    // until the player leaves it.
-    while(true) {
-        menu::Result choice = menu::run(gui, storage);
-        if(!choice.launch) break;
-        runGame(game, gui, choice.path);
-    }
-
+    platform::runGame(*game, gui, world_path);
     furi_record_close(RECORD_GUI);
-    furi_record_close(RECORD_STORAGE);
+
+    delete game;
     return 0;
 }
 
-}
+static const FlipcraftGameApi flipcraft_game_api = {
+    .run = flipcraft_game_run,
+};
+
+static const FlipperAppPluginDescriptor flipcraft_game_descriptor = {
+    .appid = FLIPCRAFT_GAME_APP_ID,
+    .ep_api_version = FLIPCRAFT_GAME_API_VERSION,
+    .entry_point = &flipcraft_game_api,
+};
+
+extern "C" const FlipperAppPluginDescriptor* flipcraft_game_ep(void) {
+    return &flipcraft_game_descriptor;
 }

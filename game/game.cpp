@@ -4,8 +4,7 @@
 
 namespace flipcraft {
 
-// Per-block material type (low nibble) and hardness (high nibble); replaces
-// the old switch ladders with one table load.
+// Per-block material type (low nibble) and hardness (high nibble).
 static constexpr uint8_t kBlockTypeHard[16] = {
     /* AIR     */ 0x30 | BLOCKTYPE_SAPLING,
     /* GRASS   */ 0x00 | BLOCKTYPE_SOFT,
@@ -116,13 +115,16 @@ int Game::findBlockEntity(int x,int y,int z){
 
 // --- Storage region (persisted after the world array) -----------------------
 // On-disk slot (STORAGE_SLOT_SIZE bytes):
-//   [0] flags: bit0 in-use, bit1 isChest   [1] dir(0x0F)
-//   [2] bx  [3] by  [4] bz                  [5..14] slot[10]
+//   [0] flags: bit0 in-use, bit1 isChest
+//   [1] dir(0x0F) | bits8-9 of bx << 4 | bits8-9 of bz << 6
+//   [2] bx low byte  [3] by  [4] bz low byte   [5..14] slot[10]
 //   [15] furnace: low nibble fuelTime, high nibble timer (lit derived)
+// Coordinates are 10 bits (worlds up to 1024 blocks); old saves have zero in
+// the high bits of [1], so the format stays backward compatible.
 static void packStorage(const BlockEnt& t, uint8_t* b){
     memset(b,0,STORAGE_SLOT_SIZE);
     b[0]=(uint8_t)(0x01|(t.isChest?0x02:0x00));
-    b[1]=(uint8_t)(t.dir&0x0F);
+    b[1]=(uint8_t)((t.dir&0x0F)|(((t.bx>>8)&0x3)<<4)|(((t.bz>>8)&0x3)<<6));
     b[2]=(uint8_t)t.bx; b[3]=(uint8_t)t.by; b[4]=(uint8_t)t.bz;
     for(int i=0;i<10;i++) b[5+i]=t.slot[i];
     b[15]=(uint8_t)((t.fuelTime&0x0F)|((t.timer&0x0F)<<4));
@@ -144,7 +146,8 @@ void Game::loadStorageDirectory(){
             if(!(b[0]&0x01)) continue;            // free slot
             int idx=first+i;
             BlockEnt t; t.active=true; t.isChest=(b[0]&0x02)!=0;
-            t.dir=b[1]&0x0F; t.bx=b[2]; t.by=b[3]; t.bz=b[4];
+            t.dir=b[1]&0x0F;
+            t.bx=b[2]|(((b[1]>>4)&0x3)<<8); t.by=b[3]; t.bz=b[4]|(((b[1]>>6)&0x3)<<8);
             t.storage=idx; t.loaded=false;        // contents stay lazy
             storageUsed[idx>>3]|=(uint8_t)(1<<(idx&7));
             tiles.push_back(t);
@@ -199,8 +202,8 @@ void Game::saveInventory(){
     world.writeInventory(buf,18);
 }
 
-// Voxel DDA: walks exactly the blocks the ray crosses, one boundary per step,
-// instead of sampling every world unit with three floorf calls.
+// Voxel DDA: steps one block boundary at a time, visiting exactly the blocks
+// the ray crosses.
 Game::RayHit Game::rayCast(){
     RayHit h{0,0,0,0,0,0,BLOCK_AIR,-1};
     const float ox=playerX+PLAYERHALFWIDTH, oy=playerY+PLAYERCAMHEIGHT, oz=playerZ+PLAYERHALFWIDTH;
@@ -409,10 +412,8 @@ void Game::updateAllItems(){
     items.erase(std::remove_if(items.begin(),items.end(),[](const ItemEnt&e){return !e.active;}),items.end());
 }
 
-// Load furnaces that entered the active simulation window, flush+unload those
-// that left it. Furnaces then smelt continuously while resident (updateAllFurnaces),
-// no longer only while their GUI is open. Chests stay lazy (loaded on open) since
-// they do not tick. The window is activeWindowAround() from flipcraft.h.
+// Load furnaces entering the active window, flush+unload those leaving it, then
+// tick every resident furnace. Chests stay lazy (loaded only when opened).
 void Game::simulateFurnaces(){
     int pbx=(playerX+PLAYERHALFWIDTH)/BLOCKSIZE, pbz=(playerZ+PLAYERHALFWIDTH)/BLOCKSIZE;
     ActiveWindow win=activeWindowAround(pbx,pbz,world.worldSX(),world.worldSZ());
@@ -657,6 +658,7 @@ void Game::simulate(const Input& in){
     }
 }
 
+// FNV-1a hash of all visible state; render() redraws only when it changes.
 uint32_t Game::visualSignature() const {
     uint32_t h=2166136261u;
     auto mix=[&](uint32_t v){ h^=v; h*=16777619u; };

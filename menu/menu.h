@@ -6,14 +6,18 @@
 namespace flipcraft {
 namespace menu {
 
+enum class Action { Quit, Launch, Generate };
+
 // Result of one menu session.
 struct Result {
-    bool launch = false;          // true: open the world at `path`
-    char path[256] = {0};         // full data path to the .fcw save to open
+    Action action = Action::Quit;
+    char path[256] = {0}; // full data path of the .fcw save to open or create
+    uint8_t chunks = 16;  // requested world size for Action::Generate
+    uint32_t seed = 0;    // parsed seed for Action::Generate
 };
 
-// Show the world-select menu and block until the user either picks a world to
-// play (launch=true) or leaves the app (launch=false). Owns its own
+// Show the world-select menu and block until the user picks a world to play,
+// asks for a new generated one, or leaves the app. Owns its own
 // ViewDispatcher; the caller keeps ownership of `gui` and `storage`.
 Result run(Gui* gui, Storage* storage);
 
