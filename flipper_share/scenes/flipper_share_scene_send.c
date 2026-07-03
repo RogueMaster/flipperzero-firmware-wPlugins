@@ -22,6 +22,7 @@ static void update_timer_callback(void* context);
 
 static FileReadingState* file_reading_state_alloc() {
     FileReadingState* state = malloc(sizeof(FileReadingState));
+    if(!state) return NULL;
     state->counter = 0;
     state->reading_complete = false;
     state->worker_thread = NULL;
@@ -64,8 +65,15 @@ static int32_t file_read_worker_thread(void* context) {
 void flipper_share_scene_send_on_enter(void* context) {
     FlipperShareApp* app = context;
 
+    // Create the shared-state lock BEFORE starting the worker/radio threads.
+    fs_lock_ensure();
+
     // Create state for the scene
     FileReadingState* state = file_reading_state_alloc();
+    if(!state) {
+        FURI_LOG_E(TAG, "send_on_enter: out of memory");
+        return;
+    }
     app->file_reading_state = state;
 
     // Setup dialog to show progress
@@ -230,4 +238,8 @@ void flipper_share_scene_send_on_exit(void* context) {
         furi_timer_free(app->timer);
         app->timer = NULL;
     }
+
+    // Worker thread is joined in on_event and the SubGhz worker is stopped above,
+    // so free the shared context and the shared-state lock.
+    fs_deinit();
 }

@@ -34,6 +34,38 @@ enum {
 
 fs_ctx_t g; //static, extern in .h
 
+// ===== Shared-state lock =====
+// Protects `g`, g_map and fs_parts against concurrent access from the worker
+// thread (fs_idle), the SubGhz RX-callback thread (fs_handle_*) and the GUI
+// timer/draw callbacks. Kept as a file-scope static (NOT a field of `g`, so
+// memset(&g,0) in fs_init does not clobber it).
+static FuriMutex* g_lock = NULL;
+
+void fs_lock_ensure(void) {
+    if(!g_lock) {
+        g_lock = furi_mutex_alloc(FuriMutexTypeNormal);
+    }
+}
+
+static void fs_lock_free(void) {
+    if(g_lock) {
+        furi_mutex_free(g_lock);
+        g_lock = NULL;
+    }
+}
+
+void fs_lock(void) {
+    if(g_lock) furi_mutex_acquire(g_lock, FuriWaitForever);
+}
+
+void fs_unlock(void) {
+    if(g_lock) furi_mutex_release(g_lock);
+}
+
+bool fs_try_lock_ms(uint32_t timeout_ms) {
+    return g_lock && (furi_mutex_acquire(g_lock, furi_ms_to_ticks(timeout_ms)) == FuriStatusOk);
+}
+
 void fs_notify_success(void) {
     NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
     notification_message(notification, &sequence_success);
@@ -470,10 +502,10 @@ void subghz_send_bytes(const uint8_t* buf, size_t len) {
 }
 
 void fs_ensure_inbox_dir(void) {
-    g.storage = furi_record_open(RECORD_STORAGE);
-    if(!g.storage) return;
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    if(!storage) return;
 
-    bool ok = storage_simply_mkdir(g.storage, EXT_PATH(FS_RECEIVER_DIRECTORY));
+    bool ok = storage_simply_mkdir(storage, EXT_PATH(FS_RECEIVER_DIRECTORY));
     if(!ok) {
         FURI_LOG_E(TAG, "fs_ensure_inbox_dir: Failed to create directory '%s'", EXT_PATH(FS_RECEIVER_DIRECTORY));
     }
@@ -482,6 +514,24 @@ void fs_ensure_inbox_dir(void) {
     furi_record_close(RECORD_STORAGE);
 }
 
+// Close the persistent session file handle (receiver write / sender read) if
+// open, and release the storage record. Caller MUST hold g_lock. Idempotent.
+static void fs_close_session_file(void) {
+    if(g.file) {
+        storage_file_close(g.file);
+        storage_file_free(g.file);
+        g.file = NULL;
+    }
+    if(g.storage) {
+        furi_record_close(RECORD_STORAGE);
+        g.storage = NULL;
+    }
+}
+
+// Create/truncate the receive file and KEEP it open for the whole session in
+// g.storage/g.file (#3: no more open/close per block). Preallocates the cluster
+// chain by seeking to file_size (write-mode seek past EOF extends the file),
+// then rewinds to 0. Caller holds g_lock (fs_handle_announce).
 uint8_t fs_file_create_truncate(uint32_t file_size) {
     FURI_LOG_I(TAG, "fs_file_create_truncate: Creating and truncating file '%s'", g.r_file_path);
     if (g.mode != FS_MODE_RECEIVER) {
@@ -489,62 +539,46 @@ uint8_t fs_file_create_truncate(uint32_t file_size) {
         return 1;
     }
 
+    // Defensive: drop any leftover handle from a previous session.
+    fs_close_session_file();
+
     g.storage = furi_record_open(RECORD_STORAGE);
     g.file = storage_file_alloc(g.storage);
     if(!g.file) {
         FURI_LOG_E(TAG, "fs_file_create_truncate: Failed to allocate file handle");
+        fs_close_session_file();
         return 2;
     }
     if(!storage_file_open(g.file, g.r_file_path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         FURI_LOG_E(TAG, "fs_file_create_truncate: Failed to open file '%s'", g.r_file_path);
-        storage_file_close(g.file);
-        storage_file_free(g.file);
-        furi_record_close(RECORD_STORAGE);
+        fs_close_session_file();
         return 3;
     }
 
-    // UNUSED(file_size);
+    // Preallocate the full file, then rewind. Per-block writes will seek in place.
     if(!storage_file_seek(g.file, file_size, true)) {
         FURI_LOG_E(TAG, "fs_file_create_truncate: Failed to seek to offset %lu", file_size);
-        storage_file_close(g.file);
-        storage_file_free(g.file);
-        furi_record_close(RECORD_STORAGE);
+        fs_close_session_file();
         return 4;
     }
+    storage_file_seek(g.file, 0, true);
 
-    storage_file_close(g.file);
-    storage_file_free(g.file);
-    furi_record_close(RECORD_STORAGE);
-
-    return 0;
+    return 0; // handle stays open in g.file for the session
 }
 
+// Called from fs_handle_data (RX thread) while holding g_lock. Writes into the
+// persistent session handle (opened once in fs_file_create_truncate). FatFS
+// coalesces these sub-sector writes in the FIL's 512-byte buffer, so physical
+// SD writes happen ~once per 512 bytes, not per 52-byte block.
 void my_write_block(uint32_t block_number, const uint8_t in52[FS_DATA_LENGTH], uint32_t valid_len) {
-    uint32_t offset = block_number * FS_DATA_LENGTH;
-    // FURI_LOG_I(TAG, "my_write_block: block %lu, valid_len %lu", block_number, valid_len);
-    
-    g.storage = furi_record_open(RECORD_STORAGE);
-    g.file = storage_file_alloc(g.storage);
     if(!g.file) {
-        FURI_LOG_E(TAG, "my_write_block: Failed to allocate file handle");
-        storage_file_close(g.file);
-        storage_file_free(g.file);
-        furi_record_close(RECORD_STORAGE);
+        FURI_LOG_E(TAG, "my_write_block: no open file handle");
         return;
     }
-    if(!storage_file_open(g.file, g.r_file_path, FSAM_WRITE, FSOM_OPEN_EXISTING)) {
-        FURI_LOG_E(TAG, "my_write_block: Failed to open file '%s'", g.r_file_path);
-        storage_file_close(g.file);
-        storage_file_free(g.file);
-        furi_record_close(RECORD_STORAGE);
-        return;
-    }
+    uint32_t offset = block_number * FS_DATA_LENGTH;
 
     if(!storage_file_seek(g.file, offset, true)) {
         FURI_LOG_E(TAG, "my_write_block: Failed to seek to offset %lu", offset);
-        storage_file_close(g.file);
-        storage_file_free(g.file);
-        furi_record_close(RECORD_STORAGE);
         return;
     }
 
@@ -552,31 +586,16 @@ void my_write_block(uint32_t block_number, const uint8_t in52[FS_DATA_LENGTH], u
     if (bytes_written < valid_len) {
         FURI_LOG_W(TAG, "my_write_block: Write error, only %lu bytes written", bytes_written);
     }
-
-    storage_file_close(g.file);
-    storage_file_free(g.file);
-    furi_record_close(RECORD_STORAGE);
-    return;
 }
 
+// Sender-side block read from the persistent session handle (opened once in
+// fs_init). Called from fs_send_data on the worker thread under g_lock.
 uint32_t my_read_block(uint32_t block_number, uint8_t out52[FS_DATA_LENGTH]) {
-    // FURI_LOG_I(TAG, "my_read_block: block %lu", block_number);
-
-    g.storage = furi_record_open(RECORD_STORAGE);
-    g.file = storage_file_alloc(g.storage);
-    if(!g.file) {
-        FURI_LOG_E(TAG, "my_read_block: Failed to allocate file handle");
-        return 1;
-    }
-    if(!storage_file_open(g.file, g.s_file_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        FURI_LOG_E(TAG, "my_read_block: Failed to open file '%s'", g.s_file_path);
-        storage_file_close(g.file);
-        storage_file_free(g.file);
-        furi_record_close(RECORD_STORAGE);
-        return 2;
-    }
-
     memset(out52, 0, FS_DATA_LENGTH);
+    if(!g.file) {
+        FURI_LOG_E(TAG, "my_read_block: no open file handle");
+        return 0;
+    }
 
     storage_file_seek(g.file, block_number * FS_DATA_LENGTH, true);
 
@@ -584,10 +603,6 @@ uint32_t my_read_block(uint32_t block_number, uint8_t out52[FS_DATA_LENGTH]) {
     if (bytes < FS_DATA_LENGTH) {
         FURI_LOG_W(TAG, "my_read_block: Read error, last block? %lu bytes read", bytes);
     }
-
-    storage_file_close(g.file);
-    storage_file_free(g.file);
-    furi_record_close(RECORD_STORAGE);
 
     return bytes; // number of valid bytes read, can be < FS_DATA_LENGTH for last block
 }
@@ -624,8 +639,6 @@ bool fs_init_from_external_receive() {
 }
 
 bool fs_init(const fs_init_params_t* p) {
-    memset(&g, 0, sizeof(g));
-
     if (!p || !p->send_bytes || !p->now_ms) {
         FURI_LOG_E(TAG, "fs_init: Invalid parameters");
         return false;
@@ -635,113 +648,126 @@ bool fs_init(const fs_init_params_t* p) {
         return false;
     }
 
-    g.mode = p->mode;
+    // Make sure the shared-state lock exists (normally created in the scene
+    // on_enter before any thread starts; this is a defensive fallback).
+    fs_lock_ensure();
 
-    g.state = (p->mode == FS_MODE_SENDER) ? FS_ST_ANNOUNCING : FS_ST_RECEIVING;
-    g.cb_send_bytes = p->send_bytes;
-    g.cb_now_ms     = p->now_ms;
-    g.last_tick_ms = g.last_announce_ms = g.last_rx_ms = g.cb_now_ms();
-    
-    if (g.mode == FS_MODE_SENDER) {
-        g.tx_id = p->tx_id;
+    if (p->mode == FS_MODE_SENDER) {
         FURI_LOG_I(TAG, "fs_init: SENDER mode, file_path='%s'", p->s_file_path);
 
-        // Process target file metadata:
-
-        // copy file_path from p->s_file_path (s_file_path is an array -> check contents)
+        if (!p->s_read_block) return false;
         if (p->s_file_path[0] == '\0') {
             FURI_LOG_E(TAG, "fs_init: Invalid file path");
             return false;
         }
 
-        strncpy((char*)g.s_file_path, (const char*)p->s_file_path, sizeof(g.s_file_path) - 1);
-        g.s_file_path[sizeof(g.s_file_path) - 1] = '\0'; // Ensure null-termination
-
-        // get basename from file_path to g.s_file_name
-        const char* basename = fs_basename((const char*)g.s_file_path);
+        const char* basename = fs_basename(p->s_file_path);
         if (strlen(basename) >= FS_FILENAME_LENGTH) {
             FURI_LOG_E(TAG, "fs_init: File name too long: %s", basename);
             return false;
         }
-        g.s_file_name[0] = '\0'; // Zero-initialize
-        strncpy((char*)g.s_file_name, basename, FS_FILENAME_LENGTH - 1);
-        g.s_file_name[FS_FILENAME_LENGTH - 1] = '\0'; // Ensure null-termination
 
-        g.s_file_size = 0;
-        g.storage = furi_record_open(RECORD_STORAGE);
-        g.file = storage_file_alloc(g.storage);
-        if (g.file) {
-            if (storage_file_open(g.file, g.s_file_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
-                g.s_file_size = storage_file_size(g.file);
-            } else {
-                FURI_LOG_E(TAG, "fs_init: Failed to open file '%s'", g.s_file_path);
-                g.s_file_size = 0; // Reset file size on failure
-                storage_file_free(g.file);
-                furi_record_close(RECORD_STORAGE);
-                return false;
-            }
-        } else {
-            FURI_LOG_E(TAG, "fs_init: Invalid file name or storage");
+        // Read size + compute MD5 on LOCAL handles (no shared g.storage/g.file),
+        // BEFORE touching `g`. md5_calc_file() opens the file by path itself.
+        uint32_t file_size = 0;
+        unsigned char md5[16];
+        memset(md5, 0, sizeof(md5));
+
+        Storage* storage = furi_record_open(RECORD_STORAGE);
+        File* file = storage_file_alloc(storage);
+        if (!file) {
+            FURI_LOG_E(TAG, "fs_init: Failed to allocate file handle");
+            furi_record_close(RECORD_STORAGE);
             return false;
         }
-        if (g.storage) {
-            storage_file_close(g.file);
-            // storage_file_free(g.file);
-            // furi_record_close(RECORD_STORAGE);
-            // g.storage = NULL; // storage is not needed after file open
-        }
-        
-        g.s_md5[0] = 0; // Zero-initialize MD5
-        FS_Error err = 0;
-        md5_calc_file(g.file, g.s_file_path, g.s_md5, &err);
-
-        if (g.storage) {
-            storage_file_free(g.file);
+        if (!storage_file_open(file, p->s_file_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+            FURI_LOG_E(TAG, "fs_init: Failed to open file '%s'", p->s_file_path);
+            storage_file_free(file);
             furi_record_close(RECORD_STORAGE);
-            g.storage = NULL;
+            return false;
+        }
+        file_size = storage_file_size(file);
+        storage_file_close(file);
+
+        FS_Error err = 0;
+        md5_calc_file(file, p->s_file_path, md5, &err);
+
+        storage_file_free(file);
+        furi_record_close(RECORD_STORAGE);
+
+        // #3: open ONE persistent read handle for the whole session. Done AFTER
+        // md5 released its handle on the same path (per-path FSE_ALREADY_OPEN).
+        Storage* psto = furi_record_open(RECORD_STORAGE);
+        File* pfile = storage_file_alloc(psto);
+        if (!pfile || !storage_file_open(pfile, p->s_file_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+            FURI_LOG_E(TAG, "fs_init: Failed to open persistent read handle '%s'", p->s_file_path);
+            if (pfile) storage_file_free(pfile);
+            furi_record_close(RECORD_STORAGE);
+            return false;
         }
 
-
-        if (!p->s_read_block) return false;
+        // Publish the fully-prepared session state atomically.
+        fs_lock();
+        memset(&g, 0, sizeof(g));
+        g.mode = FS_MODE_SENDER;
+        g.state = FS_ST_ANNOUNCING;
+        g.cb_send_bytes = p->send_bytes;
+        g.cb_now_ms = p->now_ms;
+        g.last_tick_ms = g.last_announce_ms = g.last_rx_ms = p->now_ms();
+        g.tx_id = p->tx_id;
+        strncpy(g.s_file_path, p->s_file_path, sizeof(g.s_file_path) - 1);
+        g.s_file_path[sizeof(g.s_file_path) - 1] = '\0';
+        strncpy(g.s_file_name, basename, FS_FILENAME_LENGTH - 1);
+        g.s_file_name[FS_FILENAME_LENGTH - 1] = '\0';
+        g.s_file_size = file_size;
+        memcpy(g.s_md5, md5, sizeof(g.s_md5));
         g.cb_read_block = p->s_read_block;
-
         g.s_is_blocks_requested = 0;
         g.s_block_needed_first = 0;
         g.s_block_needed_last = 0;
+        g.storage = psto;  // persistent read handle
+        g.file = pfile;
+        fs_unlock();
 
-        FURI_LOG_I(TAG, "fs_init: SENDER, file_path='%s', file_name='%s', file_size=%lu, mode=%d, tx_id=%d",
-            g.s_file_path, g.s_file_name, g.s_file_size, g.mode, g.tx_id);
+        FURI_LOG_I(TAG, "fs_init: SENDER, file_path='%s', file_name='%s', file_size=%lu, tx_id=%d",
+            g.s_file_path, g.s_file_name, g.s_file_size, g.tx_id);
         FURI_LOG_I(TAG, "fs_init: md5=%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
             g.s_md5[0], g.s_md5[1], g.s_md5[2], g.s_md5[3],
             g.s_md5[4], g.s_md5[5], g.s_md5[6], g.s_md5[7],
             g.s_md5[8], g.s_md5[9], g.s_md5[10], g.s_md5[11],
             g.s_md5[12], g.s_md5[13], g.s_md5[14], g.s_md5[15]);
-        
+
     } else { // RECEIVER:
         if (!p->r_write_block) return false;
+
+        fs_lock();
+        memset(&g, 0, sizeof(g));
+        g.mode = FS_MODE_RECEIVER;
+        g.state = FS_ST_RECEIVING;
+        g.cb_send_bytes = p->send_bytes;
+        g.cb_now_ms = p->now_ms;
+        g.last_tick_ms = g.last_announce_ms = g.last_rx_ms = p->now_ms();
         g.cb_write_block = p->r_write_block;
-        g.r_locked = false;
-        g.r_is_finished = false;
-        g.r_is_success = false;
         g.tx_id = 0; // will be set from ANNOUNCE
+        fs_unlock();
+
         FURI_LOG_I(TAG, "fs_init: RECEIVER");
     }
     return true;
 }
 
+// Must be called only after ALL threads that touch `g` are stopped/joined
+// (worker thread + SubGhz RX worker). Frees the block map/parts, zeroes the
+// context and finally destroys the shared-state lock.
 void fs_deinit(void) {
     FURI_LOG_I(TAG, "fs_deinit");
 
-    // close file handle if opened
-    if (g.storage) {
-        storage_file_close(g.file);
-        storage_file_free(g.file);
-        furi_record_close(RECORD_STORAGE);
-        g.storage = NULL;
-        g.file = NULL;
-    }
+    fs_lock();
+    // close the persistent session file handle if a transfer was interrupted
+    // (on success the finalization stage already closed it); flushes the buffer
+    fs_close_session_file();
 
-    // free block map
+    // free block map / parts
     fs_map_deinit();
     fs_parts_deinit();
 
@@ -753,6 +779,10 @@ void fs_deinit(void) {
 
     // zero whole context after resources freed
     memset(&g, 0, sizeof(g));
+    fs_unlock();
+
+    // destroy the lock last, once no thread can use it anymore
+    fs_lock_free();
 
     FURI_LOG_I(TAG, "fs_deinit: done");
 }
@@ -797,24 +827,28 @@ void fs_send_request(uint32_t range_start, uint32_t range_end) {
 void fs_send_data() {
     if (g.mode != FS_MODE_SENDER || !g.cb_send_bytes || !g.cb_read_block) return;
 
+    // Pick the next block to send under the lock (fs_handle_request, on the RX
+    // thread, mutates these fields concurrently).
+    fs_lock();
     if (g.s_is_blocks_requested == 0) {
+        fs_unlock();
         FURI_LOG_E(TAG, "fs_send_data: No blocks needed, cannot send data");
         return;
     }
-
     uint32_t block_number = g.s_block_needed_first;
     if (g.s_block_needed_first < g.s_block_needed_last) {
         g.s_block_needed_first++;
     } else {
         g.s_is_blocks_requested = 0; // all requested blocks have been sent
     }
+    fs_unlock();
 
     FURI_LOG_I(TAG, "fs_send_data: block_number=%lu", block_number);
 
     uint8_t data52[FS_DATA_LENGTH];
     uint32_t valid = g.cb_read_block(block_number, data52); // fill and zero‑pad if valid<FS_DATA_LENGTH
 
-    fs_notify_led_green();
+    if (block_number % 2 == 0) fs_notify_led_green(); // #6: throttle LED to every 2nd block
 
     (void)valid; // receiver computes final length using file_size
 
@@ -837,239 +871,296 @@ void fs_idle(void) {
     uint32_t now = g.cb_now_ms();
 
     if (g.mode == FS_MODE_SENDER) {
-        if (g.state == FS_ST_ANNOUNCING) {
-            if (now - g.last_announce_ms >= FS_ANNOUNCE_INTERVAL_MS) {
-                fs_send_announce();
-                g.last_announce_ms = now;
-            }
-        }    
-        if (now - g.last_rx_ms > FS_TX_TIMEOUT_MS) {    // TODO: g.last_tick_ms
-            if (g.s_is_blocks_requested == 1) {
-                fs_send_data();
-            }
-        }
+        // Decide what to do under the lock (last_rx_ms / s_is_blocks_requested are
+        // mutated by fs_handle_request on the RX thread), then act outside it —
+        // the radio sends are slow and must not hold the lock.
+        fs_lock();
+        bool do_announce = (g.state == FS_ST_ANNOUNCING) &&
+                           (now - g.last_announce_ms >= FS_ANNOUNCE_INTERVAL_MS);
+        if (do_announce) g.last_announce_ms = now;
+        bool do_data = (now - g.last_rx_ms > FS_TX_TIMEOUT_MS) && (g.s_is_blocks_requested == 1);
+        g.last_tick_ms = now;
+        fs_unlock();
+
+        if (do_announce) fs_send_announce();
+        if (do_data) fs_send_data(); // takes the lock internally for bookkeeping
+        return;
     }
 
     if (g.mode == FS_MODE_RECEIVER) {
+        fs_lock();
         if (g.r_is_finished) {
-            // FURI_LOG_I(TAG, "fs_idle: Receiver finished, reopen to try again.");
+            g.last_tick_ms = now;
+            fs_unlock();
             return;
         }
+
+        // --- Decide whether to (re)send a REQUEST for the next missing window ---
+        bool do_request = false;
+        uint32_t nbyte_start = 0, nbyte_end = 0, wait_before_request = 0;
         if (now - g.last_rx_ms > FS_RX_TIMEOUT_MS) {
-            // You may clear the receiver lock or restart announce on the sender
-            // if (g.mode == FS_MODE_RECEIVER) {
-            //     g.r_locked = false; // release session lock
-            // }
-            // If tx_id locked and blocks are needed: calculate range and send REQUEST, TODO
-            if (g.r_locked && g.r_is_finished == false) {
-                if (g.r_blocks_received < g.r_blocks_needed) { // find next needed block window
-                    uint32_t nblk_start = fs_map_search(0, 0);
-                    uint32_t nblk_end = fs_map_search(1, nblk_start + 1);
-                    uint32_t nbyte_start = nblk_start * FS_DATA_LENGTH;
-                    if (nblk_end == UINT32_MAX) {
-                        nblk_end = g.r_blocks_needed - 1; // last block
-                    }
-                    uint32_t nbyte_end = (nblk_end + 1) * FS_DATA_LENGTH; // inclusive end
-                    
-                    // Queueing:
-                    // Check how many blocks are still needed
-                    // If the more blocks are needed, the later we send a request for them
-                    // So that the transmitter processes the request from the one who has already received almost everything earlier
-                    uint32_t blocks_left = g.r_blocks_needed - g.r_blocks_received;
-                    uint32_t wait_before_request = (blocks_left * 300) / g.r_blocks_needed; // ms
-
-                    FURI_LOG_I(TAG, "fs_idle: sending REQUEST for blocks range (%lu, %lu), bytes (%lu, %lu), delay=%lums",
-                        nblk_start, nblk_end, nbyte_start, nbyte_end, wait_before_request);
-
-                    furi_delay_ms(wait_before_request);
-
-                    furi_delay_ms((uint8_t)((furi_get_tick() % 30))); // Random jitter, ms
-
-                    fs_send_request(nbyte_start, nbyte_end);
-                    fs_notify_led_cyan();
+            if (g.r_locked && !g.r_finalizing && g.r_blocks_received < g.r_blocks_needed) {
+                uint32_t nblk_start = fs_map_search(0, 0);
+                uint32_t nblk_end   = fs_map_search(1, nblk_start + 1);
+                nbyte_start = nblk_start * FS_DATA_LENGTH;
+                if (nblk_end == UINT32_MAX) {
+                    nblk_end = g.r_blocks_needed - 1; // last block
                 }
+                nbyte_end = (nblk_end + 1) * FS_DATA_LENGTH; // inclusive end
+                // The more blocks still missing, the later we ask — so peers that
+                // already have almost everything get served first.
+                uint32_t blocks_left = g.r_blocks_needed - g.r_blocks_received;
+                wait_before_request = (blocks_left * 300) / g.r_blocks_needed; // ms
+                do_request = (nblk_start != UINT32_MAX);
+                FURI_LOG_I(TAG, "fs_idle: REQUEST blocks (%lu, %lu), bytes (%lu, %lu), delay=%lums",
+                    nblk_start, nblk_end, nbyte_start, nbyte_end, wait_before_request);
             }
             g.last_rx_ms = now; // debounce timer
         }
-        if (g.r_locked && g.r_blocks_received == g.r_blocks_needed) {
-            FURI_LOG_I(TAG, "fs_idle: ALL THE BLOCKS RECEIVED, resetting state?");
 
-            g.r_locked = false; // release session lock
+        // --- Detect completion and enter finalization ATOMICALLY ---
+        // Setting r_finalizing (and clearing r_locked) under the lock makes
+        // fs_handle_announce/fs_handle_data early-return, so nothing truncates or
+        // writes the file while we hash it. r_file_path / r_md5 stay frozen.
+        bool do_finalize = g.r_locked && !g.r_finalizing &&
+                           (g.r_blocks_received == g.r_blocks_needed);
+        if (do_finalize) {
+            FURI_LOG_I(TAG, "fs_idle: ALL BLOCKS RECEIVED, finalizing");
+            g.r_finalizing = true;
+            g.r_locked = false;      // keep existing UX (lock released on completion)
             g.r_locked_tx_id = 0;
             g.r_blocks_received = 0;
-
-            fs_map_deinit(); // reset block map
-            fs_parts_deinit(); // reset parts map
-
-            // Calculate MD5 and compare with announced
-            g.storage = furi_record_open(RECORD_STORAGE);
-            g.file = storage_file_alloc(g.storage);
-            
-            unsigned char real_md5[16];
-            real_md5[0] = 0; // Zero-initialize MD5
-            FS_Error err = 0;
-            md5_calc_file(g.file, g.r_file_path, real_md5, &err);
-
-            if (err != 0) {
-                FURI_LOG_E(TAG, "fs_idle: md5_calc_file error %d", err);
-            } else {
-                g.r_is_success = true;
-                FURI_LOG_I(TAG, "fs_idle: Received file md5=%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
-                    real_md5[0], real_md5[1], real_md5[2], real_md5[3],
-                    real_md5[4], real_md5[5], real_md5[6], real_md5[7],
-                    real_md5[8], real_md5[9], real_md5[10], real_md5[11],
-                    real_md5[12], real_md5[13], real_md5[14], real_md5[15]);
-            }
-
-            // real_md5[12] = 1;    // Uncomment to test negative case, force corrupt hash
-
-            storage_file_free(g.file);
-            furi_record_close(RECORD_STORAGE);
-            g.storage = NULL;
-
-            // compare real_md5 with g.r_md5 from ANNOUNCE TODO fix
-            if (memcmp(real_md5, g.r_md5, 16) == 0) {
-                FURI_LOG_I(TAG, "fs_idle: MD5 match, file received successfully");
-                g.r_is_success = true;
-            } else {
-                FURI_LOG_W(TAG, "fs_idle: MD5 mismatch, file may be corrupted");
-                g.r_is_success = false;
-            }
-
-            g.r_is_finished = true; // reception finished flag
-
-            // g.r_is_success = false; // For testing negative case
-
-            if (g.r_is_success) {
-                fs_notify_success();
-            } else {
-                fs_notify_error();
-            }
-
+            // Close the persistent write handle BEFORE hashing: flushes the last
+            // partial sector + dir-entry and frees the path (per-path
+            // FSE_ALREADY_OPEN) so md5_calc_file can reopen it for read.
+            fs_close_session_file();
+            fs_map_deinit();
+            fs_parts_deinit();
         }
+        g.last_tick_ms = now;
+        fs_unlock();
+
+        // --- Slow work OUTSIDE the lock ---
+        if (do_request) {
+            furi_delay_ms(wait_before_request);
+            furi_delay_ms((uint8_t)((furi_get_tick() % 30))); // random jitter, ms
+            fs_send_request(nbyte_start, nbyte_end);
+            fs_notify_led_cyan();
+        }
+
+        if (do_finalize) {
+            // MD5 on a LOCAL handle; r_finalizing keeps the RX thread out of the file.
+            Storage* storage = furi_record_open(RECORD_STORAGE);
+            File* file = storage ? storage_file_alloc(storage) : NULL;
+            unsigned char real_md5[16];
+            memset(real_md5, 0, sizeof(real_md5));
+            FS_Error err = 0;
+            bool md5_ok = false;
+            if (file) {
+                md5_ok = md5_calc_file(file, g.r_file_path, real_md5, &err);
+                storage_file_free(file);
+            }
+            furi_record_close(RECORD_STORAGE);
+
+            if (!md5_ok || err != 0) {
+                FURI_LOG_E(TAG, "fs_idle: md5_calc_file error %d", err);
+            }
+
+            bool success = md5_ok && (err == 0) && (memcmp(real_md5, g.r_md5, 16) == 0);
+            if (success) {
+                FURI_LOG_I(TAG, "fs_idle: MD5 match, file received successfully");
+            } else {
+                FURI_LOG_W(TAG, "fs_idle: MD5 mismatch/error, file may be corrupted");
+            }
+
+            fs_lock();
+            g.r_is_success = success;
+            g.r_is_finished = true; // reception finished flag
+            fs_unlock();
+
+            if (success) fs_notify_success();
+            else fs_notify_error();
+        }
+        return;
     }
+
     g.last_tick_ms = now;
 }
 
 // ===== Packet reception and mini state machine =====
 
+// Reject file names that could escape /ext/inbox/ (path separators / traversal)
+// or are empty. `name` must already be NUL-terminated.
+static bool fs_filename_is_safe(const char* name) {
+    if (name[0] == '\0') return false;
+    if (strchr(name, '/') != NULL) return false;
+    if (strchr(name, '\\') != NULL) return false;
+    if (strstr(name, "..") != NULL) return false;
+    return true;
+}
+
 static void fs_handle_announce(uint8_t tx_id, const FS_pl_announce_t* ann) {
-    g.last_rx_ms = g.cb_now_ms ? g.cb_now_ms() : 0;
-
-    // FURI_LOG_I(TAG, "fs_handle_announce: tx_id=%d, file_name='%s', file_size=%lu",
-    //          tx_id, ann->file_name, ann->file_size);
-
     if (g.mode != FS_MODE_RECEIVER) return;
 
-    if (g.r_is_finished == false && g.r_locked == false) {
+    // notifications to fire after releasing the lock
+    bool notify_vibro = false, notify_red = false, notify_blue = false;
+
+    fs_lock();
+
+    // Ignore all announces while finalizing/finished — this is what prevents an
+    // ANNOUNCE from re-locking and truncating the file that fs_idle is hashing.
+    if (g.r_finalizing || g.r_is_finished) {
+        fs_unlock();
+        return;
+    }
+
+    g.last_rx_ms = g.cb_now_ms ? g.cb_now_ms() : 0;
+
+    if (g.r_locked == false) {
+        // #8: sanitize the announced file name before using it in a path
+        char name[FS_FILENAME_LENGTH];
+        memcpy(name, ann->file_name, FS_FILENAME_LENGTH);
+        name[FS_FILENAME_LENGTH - 1] = '\0';
+        if (!fs_filename_is_safe(name)) {
+            FURI_LOG_W(TAG, "fs_handle_announce: rejected unsafe file name");
+            fs_unlock();
+            fs_notify_led_red();
+            return;
+        }
+
         FURI_LOG_I(TAG, "fs_handle_announce: LOCK to tx_id=%d, file_name='%s', file_size=%lu",
-                 tx_id, ann->file_name, ann->file_size);
+                 tx_id, name, ann->file_size);
         g.r_locked = true;
         g.r_locked_tx_id = tx_id;
         g.tx_id = tx_id; // respond on the same tx_id
-        memcpy(g.r_file_name, ann->file_name, FS_FILENAME_LENGTH);
+        memcpy(g.r_file_name, name, FS_FILENAME_LENGTH);
         g.r_file_size = ann->file_size;
         memcpy(g.r_md5, ann->hash_md5, sizeof(g.r_md5));
         g.r_blocks_needed = (g.r_file_size + FS_DATA_LENGTH - 1) / FS_DATA_LENGTH; // round up
 
-        // build fullpath as /ext/<file_name>
+        // build fullpath as /ext/<dir>/<file_name>
         snprintf((char*)g.r_file_path, sizeof(g.r_file_path), "/ext/%s/%s", FS_RECEIVER_DIRECTORY, g.r_file_name);
         FURI_LOG_I(TAG, "fs_handle_announce: r_file_path='%s'", g.r_file_path);
 
         fs_ensure_inbox_dir();
-        if (fs_file_create_truncate(g.r_file_size)!= 0) {
+        if (fs_file_create_truncate(g.r_file_size) != 0) {
             FURI_LOG_E(TAG, "fs_handle_announce: Failed to create/truncate file");
             g.r_locked = false; // release lock if failed to create file
             g.r_locked_tx_id = 0;
+            fs_unlock();
             return;
         }
 
         FURI_LOG_I(TAG, "fs_handle_announce: Init fs_map for %lu blocks...", g.r_blocks_needed);
         if (!fs_map_init(g.r_blocks_needed)) {
             FURI_LOG_E(TAG, "fs_handle_announce: Failed to init block map");
+            fs_close_session_file(); // drop the just-opened write handle
             g.r_locked = false; // release lock if failed to init map
             g.r_locked_tx_id = 0;
+            fs_unlock();
             return;
         }
         // Init parts for GUI progress bar
         FURI_LOG_I(TAG, "fs_handle_announce: Init fs_parts for %lu blocks...", g.r_blocks_needed);
         if (!fs_parts_init(g.r_blocks_needed)) {
             FURI_LOG_E(TAG, "fs_handle_announce: Failed to init parts");
+            fs_close_session_file(); // drop the just-opened write handle
+            g.r_locked = false;
+            g.r_locked_tx_id = 0;
+            fs_unlock();
             return;
         }
 
-        fs_notify_vibro();
+        notify_vibro = true;
     }
 
     // If already locked on another sender — ignore
     if (g.r_locked && g.r_locked_tx_id != tx_id) {
-        fs_notify_led_red();
-        return;
+        notify_red = true;
+    } else {
+        notify_blue = true;
     }
 
-    fs_notify_led_blue();
+    fs_unlock();
 
-    // You may update metadata / resend REQUEST if needed
+    if (notify_vibro) fs_notify_vibro();
+    if (notify_red)   fs_notify_led_red();
+    else if (notify_blue) fs_notify_led_blue();
 }
 
 static void fs_handle_request(uint8_t tx_id, const FS_pl_request_t* rq) {
-    g.last_rx_ms = g.cb_now_ms ? g.cb_now_ms() : 0;
+    if (g.mode != FS_MODE_SENDER) return;
 
     FURI_LOG_I(TAG, "fs_handle_request: tx_id=%d, range_start=%lu, range_end=%lu",
              tx_id, rq->range_start, rq->range_end);
 
-    if (g.mode != FS_MODE_SENDER) return;
+    bool notify_cyan = false;
+
+    fs_lock();
+    g.last_rx_ms = g.cb_now_ms ? g.cb_now_ms() : 0;
+
     if (tx_id != g.tx_id) {
+        fs_unlock();
+        FURI_LOG_W(TAG, "fs_handle_request: tx_id=%d != g.tx_id, ignoring", tx_id);
         fs_notify_led_red();
-        FURI_LOG_W(TAG, "fs_handle_request: tx_id=%d != g.tx_id=%d, ignoring", tx_id, g.tx_id);
         return;
     }
-    
     if (g.s_is_blocks_requested == 1) {
+        fs_unlock();
         FURI_LOG_W(TAG, "fs_handle_request: tx_id=%d, already have blocks requested", tx_id);
         return;
     }
-    fs_notify_led_cyan();
 
     // Normalize to blocks (uneven tail == file_size allowed)
     uint32_t start = rq->range_start;
     uint32_t end   = rq->range_end;
-
     if (end > g.s_file_size) end = g.s_file_size;
-    if (start >= end) return;
+    if (start >= end) {
+        fs_unlock();
+        return;
+    }
 
     uint32_t first_block = start / FS_DATA_LENGTH;
-    uint32_t last_byte   = end - 1;
-    uint32_t last_block  = last_byte / FS_DATA_LENGTH;
-
-    FURI_LOG_I(TAG, "fs_handle_request: tx_id=%d, range_start=%lu, range_end=%lu, "
-             "first_block=%lu, last_block=%lu",
-             tx_id, start, end, first_block, last_block);
+    uint32_t last_block  = (end - 1) / FS_DATA_LENGTH;
 
     g.s_is_blocks_requested = 1;
     g.s_block_needed_first = first_block;
     g.s_block_needed_last = last_block;
+    notify_cyan = true;
+    fs_unlock();
 
+    FURI_LOG_I(TAG, "fs_handle_request: tx_id=%d, bytes (%lu, %lu), blocks (%lu, %lu)",
+             tx_id, start, end, first_block, last_block);
+
+    if (notify_cyan) fs_notify_led_cyan();
 }
 
 static void fs_handle_data(uint8_t tx_id, const FS_pl_data_t* d) {
+    if (g.mode != FS_MODE_RECEIVER) return;
+
+    // Whole body under the lock (incl. the write): the RX thread is the only
+    // writer of the map/counter, so holding the lock across my_write_block just
+    // makes fs_idle/GUI wait briefly and guarantees no interleave with the
+    // finalization stage.
+    fs_lock();
+
+    if (g.r_finalizing || g.r_is_finished) { fs_unlock(); return; }
+
     g.last_rx_ms = g.cb_now_ms ? g.cb_now_ms() : 0;
 
-    // FURI_LOG_I(TAG, "fs_handle_data: tx_id=%d, block_number=%lu", tx_id, d->block_number);
-
-    if (g.mode != FS_MODE_RECEIVER) return;
-    if (!g.r_locked || tx_id != g.r_locked_tx_id) return;
+    if (!g.r_locked || tx_id != g.r_locked_tx_id) { fs_unlock(); return; }
 
     if (fs_map_get(d->block_number) == 1) { // already received
+        fs_unlock();
         FURI_LOG_W(TAG, "fs_handle_data: block %lu already received", d->block_number);
         return;
     }
 
-    if (!g.cb_write_block) return;
+    if (!g.cb_write_block) { fs_unlock(); return; }
 
     // Calculate valid block length based on file size
     uint32_t block_start = d->block_number * FS_DATA_LENGTH;
-    if (block_start >= g.r_file_size) return; // out of range
+    if (block_start >= g.r_file_size) { fs_unlock(); return; } // out of range
 
     uint32_t remaining = g.r_file_size - block_start;
     uint32_t valid_len = (remaining >= FS_DATA_LENGTH) ? FS_DATA_LENGTH : remaining;
@@ -1080,12 +1171,16 @@ static void fs_handle_data(uint8_t tx_id, const FS_pl_data_t* d) {
     fs_parts_on_block_set(d->block_number); // handle parts
     g.r_blocks_received++;
 
-    fs_notify_led_green();
+    uint32_t received = g.r_blocks_received;
+    uint32_t needed = g.r_blocks_needed;
+    bool notify_green = (received % 2 == 0); // #6: throttle LED to every 2nd block
+    fs_unlock();
+
+    if (notify_green) fs_notify_led_green();
 
     FURI_LOG_I(TAG, "fs_handle_data[txid=%d]: block %lu written, valid_len=%lu, "
              "blocks_received: %lu/%lu", tx_id,
-             d->block_number, valid_len, g.r_blocks_received, g.r_blocks_needed);
-
+             d->block_number, valid_len, received, needed);
 }
 
 // Main entry for raw packets

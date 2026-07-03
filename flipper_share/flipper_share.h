@@ -106,6 +106,7 @@ typedef struct {
     unsigned char    r_md5[16];
     bool       r_is_finished;
     bool       r_is_success;
+    bool       r_finalizing;     // set while computing final MD5; receiver ignores incoming packets
 
     // Callback for writing a received block data by number to real storage.
     // in52 is always 52 bytes, but must write min(52, remainder).
@@ -138,6 +139,14 @@ bool fs_init_from_external_receive();
 bool fs_init(const fs_init_params_t* p);
 void fs_deinit(void);
 void fs_idle(void); // to be called periodically from main loop (50ms?)
+
+// Shared-state lock (protects `g`, g_map and fs_parts across the worker,
+// SubGhz RX-callback and GUI threads). Create it in the scene on_enter BEFORE
+// starting any worker/radio thread; fs_deinit() frees it.
+void fs_lock_ensure(void);              // idempotent, alloc mutex if missing
+void fs_lock(void);                     // blocking acquire (no-op if not created)
+void fs_unlock(void);                   // release (no-op if not created)
+bool fs_try_lock_ms(uint32_t timeout_ms); // timed acquire, true if acquired (for GUI callbacks)
 
 // High-level sending (can be called from outside):
 void fs_send_announce(void);

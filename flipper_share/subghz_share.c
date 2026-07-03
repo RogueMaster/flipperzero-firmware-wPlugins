@@ -117,17 +117,17 @@ uint8_t ss_subghz_deinit() {
 }
 
 static void ss_subghz_rx_callback(void* ctx) {
+    furi_assert(ctx);
+    // The worker's "have_read" callback is edge-triggered (fires only on an
+    // empty->non-empty rx buffer transition). If we read just one packet and
+    // return, any packets buffered behind it get stranded until the buffer
+    // happens to drain to zero. Drain the whole buffer here so every packet is
+    // processed and the edge-trigger re-arms for the next arrival.
     uint8_t buffer[SUBGHZ_MESSAGE_LEN_MAX];
-    size_t len = subghz_tx_rx_worker_read(subghz_chat->subghz_txrx, buffer, sizeof(buffer));
-    if(len > 0) {
-        // FURI_LOG_I(TAG, "ss_subghz_rx_callback: received %zu bytes", len);
-        // FURI_LOG_I(TAG, "ss_subghz_rx_callback: received %zu bytes: %.*s", len, (int)len, buffer);
-        // if (fs_receive_callback(buffer, len) != 0) {
-        //     FURI_LOG_E(TAG, "ss_subghz_rx_callback: failed to add packet to decoder");
-        // }
+    size_t len;
+    while((len = subghz_tx_rx_worker_read(subghz_chat->subghz_txrx, buffer, sizeof(buffer))) > 0) {
         fs_receive_callback(buffer, len);
     }
-    furi_assert(ctx);
 }
 
 uint8_t ss_subghz_init() {

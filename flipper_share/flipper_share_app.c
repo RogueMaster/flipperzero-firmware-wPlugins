@@ -65,7 +65,9 @@ static void submenu_callback(void* context, uint32_t index) {
         dialog_ex_set_header(app->dialog_about, "About", 64, 0, AlignCenter, AlignTop);
         dialog_ex_set_text(
             app->dialog_about,
-            "\nFlipper Share (flipper_share)\n"
+            // FAP_VERSION is a string literal injected by fbt/ufbt from
+            // application.fam's fap_version — single source of truth, no duplication.
+            "\nFlipper Share v" FAP_VERSION "\n"
             "A file sharing app via Sub-GHz\n"
             "Developed by @lomalkin\n"
             "github.com/lomalkin",

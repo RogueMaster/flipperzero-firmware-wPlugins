@@ -27,6 +27,7 @@ static void dialog_ex_callback(DialogExResult result, void* context);
 
 static FileReadingState* file_state_alloc() {
     FileReadingState* state = malloc(sizeof(FileReadingState));
+    if(!state) return NULL;
     state->counter = 0;
     state->reading_complete = false;
     state->worker_thread = NULL;
@@ -58,10 +59,16 @@ static int32_t file_read_worker_thread(void* context) {
         fs_idle();
         furi_delay_ms(FS_IDLE_OPERATION);
 
-        // "r_file_path=%s", g.r_file_path);
-        state->counter = (g.r_blocks_received * 100) / g.r_blocks_needed;
+        // Snapshot progress under the lock; guard against division by zero
+        // (r_blocks_needed == 0 before the first ANNOUNCE is handled).
+        fs_lock();
+        uint32_t received = g.r_blocks_received;
+        uint32_t needed = g.r_blocks_needed;
+        bool finished = g.r_is_finished;
+        fs_unlock();
 
-        if(g.r_is_finished) {
+        state->counter = needed ? (received * 100) / needed : 0;
+        if(finished) {
             state->reading_complete = true;
         }
 
@@ -84,8 +91,22 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     // model holds percent (0-100)
     uint8_t* model = (uint8_t*)context;
     uint8_t percent = model ? *model : 0;
-    
-    FURI_LOG_I(TAG, "Progress view draw: percent=%u", (unsigned int)percent);
+
+    // Snapshot shared state under the lock (the RX thread mutates r_file_* and
+    // fs_parts concurrently). Skip on contention rather than block the renderer.
+    char fname[FS_FILENAME_LENGTH];
+    uint32_t fsize = 0;
+    uint8_t parts_bits[FS_PARTS_BYTES];
+    if(fs_try_lock_ms(10)) {
+        memcpy(fname, g.r_file_name, sizeof(fname));
+        fname[sizeof(fname) - 1] = '\0';
+        fsize = g.r_file_size;
+        fs_parts_bitmap_copy(parts_bits);
+        fs_unlock();
+    } else {
+        fname[0] = '\0';
+        memset(parts_bits, 0, sizeof(parts_bits));
+    }
 
     canvas_clear(canvas);
 
@@ -94,10 +115,10 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     canvas_set_color(canvas, ColorBlack);
     elements_multiline_text_aligned(canvas, 64, 4, AlignCenter, AlignTop, "Receiving...");
 
-    // Filename (basename) g.r_file_name and g.r_file_size
+    // Filename (basename) + size
     canvas_set_font(canvas, FontSecondary);
     char name_line[64];
-    snprintf(name_line, sizeof(name_line), "%.*s, %lu KB", 48, g.r_file_name, (unsigned long)(g.r_file_size / 1024));
+    snprintf(name_line, sizeof(name_line), "%.*s, %lu KB", 48, fname, (unsigned long)(fsize / 1024));
     elements_multiline_text_aligned(canvas, 64, 20, AlignCenter, AlignTop, name_line);
 
     // Show progress percent as text above bar
@@ -109,13 +130,10 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     const int y = 50;
     const int w = 101; // frame width
     const int h = 12;
-    
+
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_frame(canvas, x, y, w, h);
 
-    uint8_t parts_bits[FS_PARTS_BYTES];
-    fs_parts_bitmap_copy(parts_bits);
-    
     for (uint32_t i = 0; i < FS_PARTS_COUNT; ++i) {
         if ((parts_bits[i >> 3] >> (i & 7u)) & 1u) {    // bit value by number
             canvas_draw_line(canvas, x + i + 1, y, x + i + 1, y + h - 1);
@@ -187,8 +205,16 @@ static void progress_view_deinit(FlipperShareApp* app) {
 void flipper_share_scene_receive_on_enter(void* context) {
     FlipperShareApp* app = context;
 
+    // Create the shared-state lock BEFORE starting the worker thread and the
+    // SubGhz RX worker, so both threads see a valid mutex from their first tick.
+    fs_lock_ensure();
+
     // Create state for the scene
     FileReadingState* state = file_state_alloc();
+    if(!state) {
+        FURI_LOG_E(TAG, "receive_on_enter: out of memory");
+        return;
+    }
     app->file_reading_state = state;
 
     // Setup dialog to show progress (use same UI as send scene so buttons appear)
@@ -218,73 +244,70 @@ static void update_timer_callback(void* context) {
     furi_assert(context);
     FlipperShareApp* app = context;
     FileReadingState* state = (FileReadingState*)app->file_reading_state;
-    char progress_text[256];
-    
-    if(state) {
-        // FURI_LOG_I(
-        //     TAG, 
-        //     "Timer: counter=%u, complete=%d, locked=%d, finished=%d", 
-        //     (unsigned int)state->counter, 
-        //     state->reading_complete,
-        //     g.r_locked,
-        //     g.r_is_finished);
-            
-        if(state->reading_complete) {
-            if (g.r_is_success) {
-                dialog_ex_set_header(app->dialog_show_file, "Success!", 64, 10, AlignCenter, AlignCenter);
-            } else {
-                dialog_ex_set_header(app->dialog_show_file, "Hash failed", 64, 10, AlignCenter, AlignCenter);
-            }
-            snprintf(progress_text, sizeof(progress_text), "Saved to:\n%.*s", 64, g.r_file_path);
-            // dialog_ex_set_right_button_text(app->dialog_show_file, "OK");
-            
-            // If completed and still showing progress view, switch back to dialog
-            if(progress_view_active) {
-                FURI_LOG_I(TAG, "Transfer complete, switching to dialog");
-                view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdShowFile);
-                progress_view_active = false;
-            }
-        } else {
-            if(g.r_locked) {
-                snprintf(
-                    progress_text,
-                    sizeof(progress_text),
-                    "%.*s, %lu KB\n%u%%",
-                    64,
-                    g.r_file_name,
-                    (unsigned long)(g.r_file_size / 1024),
-                    (unsigned int)state->counter);
-                    
-                // If locked and not finished, show graphical progress view instead of dialog
-                if(!progress_view) {
-                    FURI_LOG_I(TAG, "Initializing progress view");
-                    progress_view_init(app);
-                }
-                
-                if(!progress_view_active) {
-                    FURI_LOG_I(TAG, "Switching to progress view");
-                    view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdProgress);
-                    progress_view_active = true;
-                }
-                
-                // Update progress view model
-                with_view_model(progress_view, uint8_t* model, {
-                    *model = (uint8_t)state->counter;
-                    FURI_LOG_I(TAG, "Updating progress model: %u%%", (unsigned int)state->counter);
-                }, true);
-            } else {
-                snprintf(progress_text, sizeof(progress_text), "Waiting for announce...");
-                
-                // If we're no longer locked but the progress view is active, switch back to dialog
-                if(progress_view_active) {
-                    FURI_LOG_I(TAG, "No longer locked, switching to dialog");
-                    view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdShowFile);
-                    progress_view_active = false;
-                }
-            }
+    if(!state) return;
+
+    // IMPORTANT: this runs on the FreeRTOS timer daemon, whose stack is only
+    // ~1KB (configTIMER_TASK_STACK_DEPTH). Keep stack use minimal — ONE buffer,
+    // formatted directly from `g` under the lock (no extra path/name copies).
+    char progress_text[192];
+    bool complete = state->reading_complete;
+    bool is_success = false;
+    bool is_locked = false;
+
+    if(!fs_try_lock_ms(20)) return; // skip this tick on contention
+    if(complete) {
+        is_success = g.r_is_success;
+        snprintf(progress_text, sizeof(progress_text), "Saved to:\n%.*s", 96, g.r_file_path);
+    } else {
+        is_locked = g.r_locked;
+        if(is_locked) {
+            snprintf(
+                progress_text,
+                sizeof(progress_text),
+                "%.*s, %lu KB\n%u%%",
+                64,
+                g.r_file_name,
+                (unsigned long)(g.r_file_size / 1024),
+                (unsigned int)state->counter);
         }
-        dialog_ex_set_text(app->dialog_show_file, progress_text, 64, 32, AlignCenter, AlignCenter);
     }
+    fs_unlock();
+
+    if(complete) {
+        dialog_ex_set_header(
+            app->dialog_show_file,
+            is_success ? "Success!" : "Hash failed",
+            64, 10, AlignCenter, AlignCenter);
+
+        // If completed and still showing progress view, switch back to dialog
+        if(progress_view_active) {
+            view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdShowFile);
+            progress_view_active = false;
+        }
+    } else if(is_locked) {
+        // If locked and not finished, show graphical progress view instead of dialog
+        if(!progress_view) {
+            progress_view_init(app);
+        }
+        if(!progress_view_active) {
+            view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdProgress);
+            progress_view_active = true;
+        }
+
+        // Update progress view model
+        with_view_model(progress_view, uint8_t* model, {
+            *model = (uint8_t)state->counter;
+        }, true);
+    } else {
+        snprintf(progress_text, sizeof(progress_text), "Waiting for announce...");
+
+        // If we're no longer locked but the progress view is active, switch back to dialog
+        if(progress_view_active) {
+            view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdShowFile);
+            progress_view_active = false;
+        }
+    }
+    dialog_ex_set_text(app->dialog_show_file, progress_text, 64, 32, AlignCenter, AlignCenter);
 }
 
 // Callback for DialogEx buttons
@@ -385,4 +408,9 @@ void flipper_share_scene_receive_on_exit(void* context) {
         furi_timer_free(app->timer);
         app->timer = NULL;
     }
+
+    // Worker thread is joined in on_event and the SubGhz RX worker is stopped
+    // above, so no thread touches `g` anymore: free the block map/parts and the
+    // shared-state lock.
+    fs_deinit();
 }
