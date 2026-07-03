@@ -86,6 +86,14 @@ static void drawCb(Canvas* canvas, void* ctx) {
     uint8_t* buf = canvas_get_buffer(canvas);
     if(buf) packFramebuffer(g->fb, buf);
 
+    if(g->screenId == SCR_GAMEOVER) {
+        canvas_set_color(canvas, ColorBlack);
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignBottom, "You died!");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignBottom, "Press OK to respawn");
+    }
+
     if(g->screenId == SCR_PLAY && g->hudItemTicks) {
         const char* name = itemName(g->pl.inventory[g->pl.invSlot].type);
         if(name) {

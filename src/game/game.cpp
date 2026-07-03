@@ -729,17 +729,7 @@ void Game::guiFrame(const Input& in){
     if(screenId==SCR_FURNACE)updateAllFurnaces();
 }
 void Game::drawGui(){
-    if(screenId==SCR_GAMEOVER){ screen.clearScreen();
-        screen.x1=12;screen.y1=10;screen.x2=83;screen.y2=46;screen.drawRect();
-        screen.x1=13;screen.y1=11;screen.x2=82;screen.y2=45;screen.clearRect();
-
-        screen.x1=44;screen.y1=16;screen.x2=51;screen.y2=23;screen.drawRect();
-        screen.x1=46;screen.y1=18;screen.x2=47;screen.y2=19;screen.clearRect();
-        screen.x1=49;screen.y1=18;screen.x2=50;screen.y2=19;screen.clearRect();
-        int sc=score; int x=42; for(int p=100;p>=1;p/=10){int d=(sc/p)%10; screen.number(x,28,d); x+=5;}
-        screen.x1=34;screen.y1=36;screen.x2=61;screen.y2=43;screen.drawRect();
-        screen.x1=35;screen.y1=37;screen.x2=60;screen.y2=42;screen.clearRect();
-        return; }
+    if(screenId==SCR_GAMEOVER){ screen.clearScreen(); return; }   // text drawn in device.cpp
     screen.clearScreen();
     auto slots=buildSlots(screenId);
     for(size_t i=0;i<slots.size();i++){Slot& s=slots[i]; ItemCell it=*s.cell;
