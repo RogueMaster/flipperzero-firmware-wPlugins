@@ -346,9 +346,10 @@ void Renderer::renderItem(float x,float y,float z,uint8_t itemId,uint8_t inv) {
     renderQuad(x, y, z, QUAD_ITEMSHADOW, TEX_SHADOW, TS_CULLBACK|TS_TRANSPARENT|TS_INVERTED);
 }
 
-// tex[6] = negx,posx,negz,posz,negy,posy
+// tex[6] = negx,posx,negz,posz,negy,posy; headDir = world side the body's +Z
+// points at, top/bottom faces are sampled in body space (v=0 at the head end)
 void Renderer::renderBox(float x0,float y0,float z0,float x1,float y1,float z1,
-                         const uint8_t tex[6],int texSettings) {
+                         const uint8_t tex[6],int texSettings,uint8_t headDir) {
     // per face+vertex corner: bit0 pick x1, bit1 pick y1, bit2 pick z1
     static const uint8_t kCorner[6][4] = {
         {4,6,2,0}, {1,3,7,5}, {0,2,3,1}, {5,7,6,4}, {4,0,1,5}, {2,6,7,3},
@@ -364,7 +365,15 @@ void Renderer::renderBox(float x0,float y0,float z0,float x1,float y1,float z1,
             uint8_t c = kCorner[f][i];
             Vertex w;
             w.x = px[c&1]; w.y = py[(c>>1)&1]; w.z = pz[(c>>2)&1];
-            w.u = kQuadUvs[i][0]; w.v = kQuadUvs[i][1];
+            if (f>=4) {
+                const float cxb=(float)(c&1), czb=(float)((c>>2)&1);
+                switch (headDir&3) {
+                    case 0:  w.u=czb; w.v=cxb;      break;
+                    case 1:  w.u=czb; w.v=1.0f-cxb; break;
+                    case 2:  w.u=cxb; w.v=czb;      break;
+                    default: w.u=cxb; w.v=1.0f-czb; break;
+                }
+            } else { w.u = kQuadUvs[i][0]; w.v = kQuadUvs[i][1]; }
             cam[i] = worldToCam(w);
         }
         texture = (Texture)tex[f];
@@ -394,7 +403,7 @@ void Renderer::renderMob(float x,float y,float z,uint8_t species,uint8_t face,ui
         if (bx.flags & 1) tex[face&3] = s.texFront;
         renderBox(x+std::min(wxA,wxB)*k, y+bx.oy*k,        z+std::min(wzA,wzB)*k,
                   x+std::max(wxA,wxB)*k, y+(bx.oy+bx.sy)*k, z+std::max(wzA,wzB)*k,
-                  tex, TS_CULLBACK ^ inv);
+                  tex, TS_CULLBACK ^ inv, face);
     }
     renderQuad((x-4.0f)/16.0f, y/16.0f, (z-4.0f)/16.0f, QUAD_ITEMSHADOW, TEX_SHADOW,
                TS_CULLBACK|TS_TRANSPARENT|TS_INVERTED);

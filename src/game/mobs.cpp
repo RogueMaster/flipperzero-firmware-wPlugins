@@ -13,8 +13,8 @@ static constexpr uint8_t kHurtMode[3] = {MOB_FLEE, MOB_CHASE, MOB_CHASE};
 static constexpr uint8_t kHurtTime[3] = {30, 90, 90};
 static constexpr uint8_t kAggro[3] = {0, 0, 96};
 static constexpr uint8_t kMobDrop[3] = {ENTITY_APPLE /* мясо */, ENTITY_APPLE /* мясо */, ENTITY_GUNPOWDER};
-// 16 nibbles of species id: 8 sheep, 6 wolves, 2 creepers
-static constexpr uint64_t SPAWN_ROLL = UINT64_C(0x2211111100000000);
+// 16 nibbles of species id: 8 sheep, 4 wolves, 4 creepers
+static constexpr uint64_t SPAWN_ROLL = UINT64_C(0x2222111100000000);
 
 static inline int mobHeight(const MobSpec& s) { return (s.geom >> 4) << 1; }
 
@@ -155,6 +155,12 @@ void Game::updateAllMobs(){
             }
         }
 
+        if(m.tamed){
+            int ldx=std::abs(pxc-(m.x+7)), ldz=std::abs(pzc-(m.z+7));
+            if((ldx|ldz)>48){ m.mode=MOB_CHASE; m.target=0xFF; m.timer=20; }   // heel: 3-block leash
+            else if(m.mode==MOB_CHASE && m.target==0xFF && (ldx|ldz)<24) m.mode=MOB_WANDER;
+        }
+
         int tx=pxc, ty=playerY, tz=pzc;
         if(m.target!=0xFF){
             const Mob& o=mobs[m.target];
@@ -218,7 +224,7 @@ void Game::updateAllMobs(){
         } else m.y=ny;
 
         int dmgN=s.hpDmg&0x0F;
-        if(dmgN && m.mode==MOB_CHASE && !m.cool &&
+        if(dmgN && m.mode==MOB_CHASE && !m.cool && !(m.tamed && m.target==0xFF) &&
            adx<18 && adz<18 && m.y<ty+24 && m.y+hgt>ty){
             m.cool=MOB_ATTACK_COOL;
             if(m.target==0xFF){
@@ -227,7 +233,10 @@ void Game::updateAllMobs(){
             } else {
                 bool boomPrey=(mobSpec(mobs[m.target].species).info&1)!=0;
                 hurtMobFrom(m.target,dmgN,m.x+7,m.z+7,(uint8_t)mi);
-                if(boomPrey){ m.mode=MOB_FLEE; m.timer=25; m.cool=38; }   // bite and run, ~3 s
+                if(boomPrey){
+                    bool play=rng()<0x50;   // ~31%/bite: lingers by the lit fuse, ~50/50 per duel
+                    m.mode=play?MOB_IDLE:MOB_FLEE; m.timer=play?30:25; m.cool=38;
+                }
             }
         }
     }

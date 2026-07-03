@@ -50,7 +50,7 @@ private:
 
     void camRotToMatrix(int pitchIndex,int yawIndex);
     void renderBox(float x0,float y0,float z0,float x1,float y1,float z1,
-                   const uint8_t tex[6],int texSettings);
+                   const uint8_t tex[6],int texSettings,uint8_t headDir);
     Vertex worldToCam(const Vertex& v) const;
     Vertex camToScreen(const Vertex& v) const;
     void drawQuadCam(Vertex q[4]);

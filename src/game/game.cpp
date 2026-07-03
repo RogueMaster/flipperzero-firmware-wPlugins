@@ -240,29 +240,26 @@ Game::RayHit Game::rayCast(){
         else                    { t=tmz; tmz+=tdz; bz+=sz; }
     }
 
-    // tBlock is in block units; mob boxes live in world sub-pixels.
+    // Generous pick: a creature counts as aimed at when its centre projects
+    // into the middle half of the screen (|sx-64|<=32 -> 7|camX| <= 4*camZ)
+    // and no wall is closer along the view axis. Nearest such body wins.
     float bestW=tBlock*16.0f;
-    auto slab=[](float lo,float hi,float d,float o,float& tn,float& tf){
-        if(fabsf(d)<1e-6f) return o>=lo && o<=hi;
-        float a=(lo-o)/d, b=(hi-o)/d; if(a>b)std::swap(a,b);
-        if(a>tn)tn=a;
-        if(b<tf)tf=b;
-        return tn<=tf;
-    };
     ActiveWindow win=activeWindowAround((playerX+PLAYERHALFWIDTH)/BLOCKSIZE,
                                         (playerZ+PLAYERHALFWIDTH)/BLOCKSIZE,
                                         world.worldSX(), world.worldSZ());
+    const float (*M)[3]=renderer.matrix;
     for(int i=0;i<MAX_MOBS;i++){
         const Mob& m=mobs[i]; if(!m.active)continue;
         int mbx=(m.x+7)>>4, mbz=(m.z+7)>>4;   // dormant off-ring bodies are not hittable
         if(mbx<win.x0||mbx>win.x1||mbz<win.z0||mbz>win.z1)continue;
         const float hgt=(float)((mobSpec(m.species).geom>>4)<<1);
-        float tn=0.0f, tf=bestW;
-        if(slab((float)m.x,(float)(m.x+MOBWIDTH),dx,ox,tn,tf) &&
-           slab((float)m.y,(float)m.y+hgt,       dy,oy,tn,tf) &&
-           slab((float)m.z,(float)(m.z+MOBWIDTH),dz,oz,tn,tf)){
-            h.mob=i; bestW=tn>0.0f?tn:0.0f;
-        }
+        float rx=m.x+7-ox, ry=m.y+hgt*0.5f-oy, rz=m.z+7-oz;
+        float cz=M[2][0]*rx+M[2][1]*ry+M[2][2]*rz;
+        if(cz<(float)CLIP || cz>=bestW) continue;
+        float cx=M[0][0]*rx+M[0][2]*rz;
+        float cy=M[1][0]*rx+M[1][1]*ry+M[1][2]*rz;
+        if(7.0f*fabsf(cx)>4.0f*cz || 7.0f*fabsf(cy)>4.0f*cz) continue;
+        h.mob=i; bestW=cz;
     }
     return h;
 }
@@ -275,9 +272,23 @@ void Game::handleBreakAndPlace(const Input& in){
 
     RayHit hit=rayCast(); int id=hit.id;
     if(hit.mob>=0){
-        int held=pl.inventory[pl.invSlot];
-        hurtMobFrom(hit.mob, held>=ITEM_NONSTACKABLE ? kToolDmg[held&0x0F] : 1,
-                    playerX+PLAYERHALFWIDTH, playerZ+PLAYERHALFWIDTH, 0xFF);
+        Mob& tm=mobs[hit.mob];
+        if(in.placePressed){   // short: attack
+            int held=pl.inventory[pl.invSlot];
+            hurtMobFrom(hit.mob, held>=ITEM_NONSTACKABLE ? kToolDmg[held&0x0F] : 1,
+                        playerX+PLAYERHALFWIDTH, playerZ+PLAYERHALFWIDTH, 0xFF);
+        } else if(tm.species==MOB_WOLF && !tm.tamed){   // long: tame for two of мясо
+            int have=0;
+            for(int i=0;i<15;i++) if((pl.inventory[i]&0xF0)==ITEM_APPLE) have+=pl.inventory[i]&0x0F;
+            if(have>=2){
+                int need=2;
+                for(int i=0;i<15&&need;i++){int c=pl.inventory[i];
+                    if((c&0xF0)!=ITEM_APPLE)continue;
+                    int t=std::min(need,c&0x0F); need-=t; c-=t;
+                    pl.inventory[i]=(uint8_t)((c&0x0F)?c:0);}
+                tm.tamed=1; tm.mode=MOB_IDLE; tm.target=0xFF; tm.timer=10;
+            }
+        }
         return;
     }
     if(id==BLOCK_AIR||hit.length<0){

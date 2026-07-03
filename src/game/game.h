@@ -49,6 +49,7 @@ struct Mob {
     uint8_t hurt=0;     // damage-flash ticks left, colour inverts on odd ticks
     uint8_t cool=0;     // touch-attack cooldown / exploder fuse
     uint8_t target=0xFF;// chase/flee subject: 0xFF player, else mob index
+    uint8_t tamed=0;    // guards the player, never bites him
     int x=0,y=0,z=0;    // world sub-pixels, min corner (body is MOBWIDTH wide)
     int vy=0;
 };
