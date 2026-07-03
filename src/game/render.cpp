@@ -373,14 +373,15 @@ void Renderer::renderBox(float x0,float y0,float z0,float x1,float y1,float z1,
 }
 
 // (x,y,z) feet centre in world sub-pixels; face = world side local +Z points
-// at (NEGX,POSX,NEGZ,POSZ = 0..3); inv = 0 or TS_INVERTED
-void Renderer::renderMob(float x,float y,float z,uint8_t species,uint8_t face,uint8_t inv) {
+// at (NEGX,POSX,NEGZ,POSZ = 0..3); inv = 0 or TS_INVERTED; sc16 = scale*16
+void Renderer::renderMob(float x,float y,float z,uint8_t species,uint8_t face,uint8_t inv,uint8_t sc16) {
     const int bxc = ifloor(x*(1.0f/16.0f)), bzc = ifloor(z*(1.0f/16.0f));
     if (bxc < winX0 || bxc > winX1 || bzc < winZ0 || bzc > winZ1) return;
     const MobSpec& s = mobSpec(species);
     // local (lx,lz) -> world: {wx = a*lx + b*lz, wz = c*lx + d*lz}
     static const int8_t kRot[4][4] = {{0,-1,1,0},{0,1,-1,0},{-1,0,0,-1},{1,0,0,1}};
     const int8_t a=kRot[face&3][0], b=kRot[face&3][1], c=kRot[face&3][2], d=kRot[face&3][3];
+    const float k = sc16*(1.0f/16.0f);
 
     int n;
     const MobBox* boxes = mobBoxes(species, n);
@@ -391,8 +392,8 @@ void Renderer::renderMob(float x,float y,float z,uint8_t species,uint8_t face,ui
         const int wzA=c*lx0+d*lz0, wzB=c*lx1+d*lz1;
         uint8_t tex[6] = {s.texSide,s.texSide,s.texSide,s.texSide,s.texTop,s.texTop};
         if (bx.flags & 1) tex[face&3] = s.texFront;
-        renderBox(x+std::min(wxA,wxB), y+bx.oy,       z+std::min(wzA,wzB),
-                  x+std::max(wxA,wxB), y+bx.oy+bx.sy, z+std::max(wzA,wzB),
+        renderBox(x+std::min(wxA,wxB)*k, y+bx.oy*k,        z+std::min(wzA,wzB)*k,
+                  x+std::max(wxA,wxB)*k, y+(bx.oy+bx.sy)*k, z+std::max(wzA,wzB)*k,
                   tex, TS_CULLBACK ^ inv);
     }
     renderQuad((x-4.0f)/16.0f, y/16.0f, (z-4.0f)/16.0f, QUAD_ITEMSHADOW, TEX_SHADOW,

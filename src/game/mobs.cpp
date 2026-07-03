@@ -224,7 +224,11 @@ void Game::updateAllMobs(){
             if(m.target==0xFF){
                 int hp=(int)pl.health-dmgN;
                 if(hp<=0) gameOverPending=true; else pl.health=u8(hp);
-            } else hurtMobFrom(m.target,dmgN,m.x+7,m.z+7,(uint8_t)mi);
+            } else {
+                bool boomPrey=(mobSpec(mobs[m.target].species).info&1)!=0;
+                hurtMobFrom(m.target,dmgN,m.x+7,m.z+7,(uint8_t)mi);
+                if(boomPrey){ m.mode=MOB_FLEE; m.timer=25; m.cool=38; }   // bite and run, ~3 s
+            }
         }
     }
 }

@@ -607,10 +607,14 @@ void Game::finishRender(){
     for(auto& e:items) if(e.active)
         renderer.renderItem(e.x/16.0f,e.y/16.0f,e.z/16.0f,(uint8_t)e.id,
                             (uint8_t)(e.id==ENTITY_LITDYNAMITE?(e.fuse&1)<<1:0));
-    for(const auto& m:mobs) if(m.active)
+    for(const auto& m:mobs) if(m.active){
+        int sc16=16;   // fusing exploder swells to ~1.4x at detonation
+        if((mobSpec(m.species).info&1) && m.cool)
+            sc16=16+((MOB_FUSE_TICKS-m.cool)*7)/MOB_FUSE_TICKS;
         renderer.renderMob((float)(m.x+7), (float)m.y, (float)(m.z+7), m.species,
                            (uint8_t)((MOB_YAW_FACE>>((m.yaw&15)*2))&3),
-                           (uint8_t)((m.hurt&1)<<1));   // TS_INVERTED on odd flash ticks
+                           (uint8_t)((m.hurt&1)<<1), (uint8_t)sc16);
+    }
     RayHit hit=rayCast();
     if(hit.mob<0&&hit.id!=BLOCK_AIR&&hit.id!=-1&&hit.length>=0) renderer.renderOverlay(world,hit.bx,hit.by,hit.bz,0);
     drawHotbar();

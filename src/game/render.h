@@ -42,7 +42,7 @@ public:
     void renderScene(const World& w);
     void renderFace(int x,int y,int z,uint8_t texId,int direction,bool small_);
     void renderItem(float x,float y,float z,uint8_t itemId,uint8_t inv=0);
-    void renderMob(float x,float y,float z,uint8_t species,uint8_t face,uint8_t inv);
+    void renderMob(float x,float y,float z,uint8_t species,uint8_t face,uint8_t inv,uint8_t sc16);
     void renderOverlay(const World& w,int x,int y,int z,int breakPhase);
 
 private:
