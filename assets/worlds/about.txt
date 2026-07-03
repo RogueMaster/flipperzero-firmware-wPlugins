@@ -1,0 +1,28 @@
+Flipcraft
+Tiny voxel sandbox for
+Flipper Zero.
+
+World controls:
+Up/Down - walk
+Left/Right - turn
+OK + Up/Down - look
+OK + Left/Right - hotbar
+OK short - place / use
+OK long - mine
+Back short - jump
+Back long - inventory
+OK + Back - quit
+
+Menus:
+Arrows - cursor
+OK - pick / place / craft
+OK + arrow - drop one
+Back - close
+
+Create worlds from a
+template or generate by
+seed, up to 1024x1024
+blocks. Same seed and
+size = same world.
+
+by @apfxtech

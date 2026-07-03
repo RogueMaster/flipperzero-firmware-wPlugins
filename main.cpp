@@ -58,6 +58,30 @@ const void* pluginLoad(
     return entry;
 }
 
+// Persistent splash screen owned by the host for the whole app lifetime. It
+// sits at the bottom of the fullscreen layer, so whenever no plugin has a
+// viewport attached (a .fal is being read from SD, a Game session is being
+// set up or torn down) the player sees "Flipcraft / Loading..." instead of a
+// flash of the desktop that looks like a crash.
+struct Splash {
+    ViewPort* view_port = nullptr;
+    const char* line = "Loading...";
+};
+
+void splashDraw(Canvas* canvas, void* ctx) {
+    Splash* s = reinterpret_cast<Splash*>(ctx);
+    canvas_clear(canvas);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignBottom, "Flipcraft");
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignBottom, s->line);
+}
+
+void splashSet(Splash* s, const char* line) {
+    s->line = line;
+    view_port_update(s->view_port);
+}
+
 // Full-screen "Generating world" bar shown while the worldgen plugin runs on
 // this thread; the GUI thread reads `percent` through the viewport callback.
 struct GenProgress {
@@ -82,7 +106,7 @@ void genOnProgress(void* ctx, uint8_t percent) {
 }
 
 // Loads the worldgen plugin, shows the progress screen, writes the world.
-bool generateWorld(Storage* storage, const char* path, uint8_t chunks, uint32_t seed) {
+bool generateWorld(Gui* gui, Storage* storage, const char* path, uint8_t chunks, uint32_t seed) {
     FlipperApplication* plugin = nullptr;
     const FlipcraftWorldgenApi* gen = reinterpret_cast<const FlipcraftWorldgenApi*>(pluginLoad(
         storage,
@@ -93,7 +117,6 @@ bool generateWorld(Storage* storage, const char* path, uint8_t chunks, uint32_t 
     if(!gen) return false;
 
     GenProgress progress;
-    Gui* gui = reinterpret_cast<Gui*>(furi_record_open(RECORD_GUI));
     progress.view_port = view_port_alloc();
     view_port_draw_callback_set(progress.view_port, genDraw, &progress);
     gui_add_view_port(gui, progress.view_port, GuiLayerFullscreen);
@@ -103,7 +126,6 @@ bool generateWorld(Storage* storage, const char* path, uint8_t chunks, uint32_t 
     view_port_enabled_set(progress.view_port, false);
     gui_remove_view_port(gui, progress.view_port);
     view_port_free(progress.view_port);
-    furi_record_close(RECORD_GUI);
 
     flipper_application_free(plugin); // worldgen code leaves RAM here
     return ok;
@@ -114,11 +136,20 @@ bool generateWorld(Storage* storage, const char* path, uint8_t chunks, uint32_t 
 extern "C" int32_t flipcraft_app(void* p) {
     (void)p;
     Storage* storage = reinterpret_cast<Storage*>(furi_record_open(RECORD_STORAGE));
+    Gui* gui = reinterpret_cast<Gui*>(furi_record_open(RECORD_GUI));
     int32_t result = 0;
     char world_path[256];
 
+    // Bottom-of-stack splash: plugin viewports are added later, so they draw
+    // (and take input) on top of it while they exist.
+    Splash splash;
+    splash.view_port = view_port_alloc();
+    view_port_draw_callback_set(splash.view_port, splashDraw, &splash);
+    gui_add_view_port(gui, splash.view_port, GuiLayerFullscreen);
+
     while(true) {
         FlipperApplication* plugin = nullptr;
+        splashSet(&splash, "Loading...");
         const FlipcraftMenuApi* menu = reinterpret_cast<const FlipcraftMenuApi*>(pluginLoad(
             storage,
             APP_ASSETS_PATH("plugins/flipcraft_menu.fal"),
@@ -132,12 +163,13 @@ extern "C" int32_t flipcraft_app(void* p) {
         uint8_t chunks = 16;
         uint32_t seed = 0;
         FlipcraftMenuAction action = menu->run(world_path, sizeof(world_path), &chunks, &seed);
+        splashSet(&splash, "Loading world...");
         flipper_application_free(plugin); // menu code leaves RAM here
         if(action == FlipcraftMenuActionQuit) break;
 
         if(action == FlipcraftMenuActionGenerate) {
             // On failure the save was already removed; fall back to the menu.
-            if(!generateWorld(storage, world_path, chunks, seed)) continue;
+            if(!generateWorld(gui, storage, world_path, chunks, seed)) continue;
         }
 
         const FlipcraftGameApi* game = reinterpret_cast<const FlipcraftGameApi*>(pluginLoad(
@@ -154,6 +186,11 @@ extern "C" int32_t flipcraft_app(void* p) {
         flipper_application_free(plugin); // game code leaves RAM here
     }
 
+    view_port_enabled_set(splash.view_port, false);
+    gui_remove_view_port(gui, splash.view_port);
+    view_port_free(splash.view_port);
+
+    furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_STORAGE);
     return result;
 }
