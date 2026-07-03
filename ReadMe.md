@@ -127,9 +127,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - SubGHz: [Add Cardin S508 rolling-code decoder (decode-only) (By half2me)](https://github.com/DarkFlippers/unleashed-firmware/pull/1004)
 - SubGhz: [Add Telcoma/Cardin EDGE protocol (By half2me)](https://github.com/DarkFlippers/unleashed-firmware/pull/1001)
 - SubGHz: [All Supported Protocols](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/documentation/SubGHzSupportedSystems.md)
-- SubGHz: Region Locked -  To transmit to outside ranges (Unlock), use the CFW Settings app under Applications=>Settings.
+- SubGHz: Region Locked -  To transmit to outside ranges (Unlock), use the CFW Settings app under Apps=>Settings.
 - SubGHz: [Transmit Indicator before Out of Region Frequency Use (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/e24d4a0689db555ae083fec23a471e878adb6cd4)
-- SubGHz: USE CFW Settings to use unlock from SD flag from [(cloudbreakdaniel)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/97db0dc91ee3dff812b4dec0618e3f198de14405).  Update `subghz/assets/extend_range.txt` with [this file](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/assets/resources/subghz/assets/extend_range.txt) on SD.  **UPDATE IGNORE FLAG TO TRUE TO UNLEASH YOUR FLIPPER!!**
+- SubGHz: USE CFW Settings to use unlock from SD flag from [(cloudbreakdaniel)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/97db0dc91ee3dff812b4dec0618e3f198de14405).  Update `subghz/assets/extend_range.txt` with [this file](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/main/subghz/resources/subghz/assets/extend_range.txt) on SD.  **UPDATE IGNORE FLAG TO TRUE TO UNLEASH YOUR FLIPPER!!**
 - SubGHz: [X10 Protocol Decoder (By CodeAllNight/jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/subghz/protocols/x10)
 
 ## Games
