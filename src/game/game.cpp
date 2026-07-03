@@ -94,15 +94,14 @@ void Game::shutdown() {
     world.closeWorld(playerX, playerY, playerZ, pl.rot, rngState);
 }
 
-void Game::addItemToInventory(int item){
-    if(item==0) return;
-    int type=item&0xF0;
-    if(type<0xF0 && (item&0x0F)){
-        for(int i=0;i<15;i++){int c=pl.inventory[i]; if((c&0xF0)!=type||c==0)continue;
-            int tot=(c&0x0F)+(item&0x0F);
-            if(tot>=16){pl.inventory[i]=(uint8_t)(type|15); item=type|(tot-15);} else {pl.inventory[i]=(uint8_t)(type+tot);return;}}
+void Game::addItemToInventory(uint8_t type,uint8_t count){
+    if(!type||!count) return;
+    if(type<ITEM_NONSTACKABLE){
+        for(int i=0;i<15;i++){ItemCell& c=pl.inventory[i]; if(c.type!=type)continue;
+            int tot=c.count+count;
+            if(tot>MAX_STACK){c.count=MAX_STACK; count=(uint8_t)(tot-MAX_STACK);} else {c.count=(uint8_t)tot;return;}}
     }
-    for(int i=0;i<15;i++) if(pl.inventory[i]==0){pl.inventory[i]=(uint8_t)item;return;}
+    for(int i=0;i<15;i++) if(pl.inventory[i].empty()){pl.inventory[i]={type,count};return;}
 }
 
 void Game::createEntity(int x,int y,int z,int entityId){
@@ -123,22 +122,21 @@ int Game::findBlockEntity(int x,int y,int z){
 
 // On-disk slot (STORAGE_SLOT_SIZE bytes):
 //   [0] flags: bit0 in-use, bit1 isChest
-//   [1] dir(0x0F) | bits8-9 of bx << 4 | bits8-9 of bz << 6
-//   [2] bx low byte  [3] by  [4] bz low byte   [5..14] slot[10]
-//   [15] furnace: low nibble fuelTime, high nibble timer (lit derived)
-// Coordinates are 10 bits (worlds up to 1024 blocks); old saves have zero in
-// the high bits of [1], so the format stays backward compatible.
+//   [1] dir(0x0F) | bits8-9 of bx << 4 | bits8-9 of bz << 6 (10-bit coords)
+//   [2] bx low byte  [3] by  [4] bz low byte
+//   [5] furnace: low nibble fuelTime, high nibble timer (lit derived)
+//   [6..25] slot[10] as {type,count} pairs
 static void packStorage(const BlockEnt& t, uint8_t* b){
     memset(b,0,STORAGE_SLOT_SIZE);
     b[0]=(uint8_t)(0x01|(t.isChest?0x02:0x00));
     b[1]=(uint8_t)((t.dir&0x0F)|(((t.bx>>8)&0x3)<<4)|(((t.bz>>8)&0x3)<<6));
     b[2]=(uint8_t)t.bx; b[3]=(uint8_t)t.by; b[4]=(uint8_t)t.bz;
-    for(int i=0;i<10;i++) b[5+i]=t.slot[i];
-    b[15]=(uint8_t)((t.fuelTime&0x0F)|((t.timer&0x0F)<<4));
+    b[5]=(uint8_t)((t.fuelTime&0x0F)|((t.timer&0x0F)<<4));
+    for(int i=0;i<10;i++){ b[6+2*i]=t.slot[i].type; b[7+2*i]=t.slot[i].count; }
 }
 static void unpackContents(BlockEnt& t, const uint8_t* b){
-    for(int i=0;i<10;i++) t.slot[i]=b[5+i];
-    t.fuelTime=b[15]&0x0F; t.timer=(b[15]>>4)&0x0F; t.lit=t.fuelTime>0;
+    for(int i=0;i<10;i++) t.slot[i]={b[6+2*i],b[7+2*i]};
+    t.fuelTime=b[5]&0x0F; t.timer=(b[5]>>4)&0x0F; t.lit=t.fuelTime>0;
 }
 
 void Game::loadStorageDirectory(){
@@ -188,25 +186,25 @@ void Game::flushTileStorage(int ti){
     t.loaded=false; t.lit=false;   // smelting pauses while closed
 }
 
-// On-disk inventory record: 15 item cells, selected slot, health, one legacy
-// byte (old global log counter) kept for save compatibility.
+// On-disk inventory record: 15 {type,count} cells, then health<<4 | invSlot.
 void Game::loadInventory(){
-    uint8_t buf[18];
-    if(world.readInventory(buf,18)){
-        for(int i=0;i<15;i++) pl.inventory[i]=buf[i];
-        pl.invSlot=(uint8_t)(buf[15]&0x0F); if(pl.invSlot>4) pl.invSlot=0;
-        pl.health=buf[16];
+    uint8_t buf[31];
+    if(world.readInventory(buf,31)){
+        for(int i=0;i<15;i++) pl.inventory[i]={buf[2*i],buf[2*i+1]};
+        pl.invSlot=(uint8_t)(buf[30]&0x0F); if(pl.invSlot>4) pl.invSlot=0;
+        pl.health=(uint8_t)(buf[30]>>4);
+        if(pl.health==0||pl.health>MAXHEALTH) pl.health=MAXHEALTH;
     } else {
-        pl.inventory[0]=0x14; pl.inventory[1]=0x55; pl.inventory[2]=0x89;
-        pl.inventory[3]=0xFE; pl.inventory[4]=0xFF;
+        pl.inventory[0]={ITEM_STICK,4}; pl.inventory[1]={ITEM_LOG,5}; pl.inventory[2]={ITEM_COAL,9};
+        pl.inventory[3]={ITEM_FURNACE,1}; pl.inventory[4]={ITEM_CHEST,1};
         pl.health=MAXHEALTH;
     }
 }
 void Game::saveInventory(){
-    uint8_t buf[18];
-    for(int i=0;i<15;i++) buf[i]=pl.inventory[i];
-    buf[15]=pl.invSlot; buf[16]=pl.health; buf[17]=0;
-    world.writeInventory(buf,18);
+    uint8_t buf[31];
+    for(int i=0;i<15;i++){ buf[2*i]=pl.inventory[i].type; buf[2*i+1]=pl.inventory[i].count; }
+    buf[30]=(uint8_t)(((pl.health&0x0F)<<4)|(pl.invSlot&0x0F));
+    world.writeInventory(buf,31);
 }
 
 // Voxel DDA: steps one block boundary at a time, visiting exactly the blocks
@@ -274,33 +272,33 @@ void Game::handleBreakAndPlace(const Input& in){
     if(hit.mob>=0){
         Mob& tm=mobs[hit.mob];
         if(in.placePressed){   // short: attack
-            int held=pl.inventory[pl.invSlot];
+            uint8_t held=pl.inventory[pl.invSlot].type;
             hurtMobFrom(hit.mob, held>=ITEM_NONSTACKABLE ? kToolDmg[held&0x0F] : 1,
                         playerX+PLAYERHALFWIDTH, playerZ+PLAYERHALFWIDTH, 0xFF);
         } else if(tm.species==MOB_WOLF && !tm.tamed){   // long: tame for two of мясо
             int have=0;
-            for(int i=0;i<15;i++) if((pl.inventory[i]&0xF0)==ITEM_APPLE) have+=pl.inventory[i]&0x0F;
+            for(int i=0;i<15;i++) if(pl.inventory[i].type==ITEM_APPLE) have+=pl.inventory[i].count;
             if(have>=2){
                 int need=2;
-                for(int i=0;i<15&&need;i++){int c=pl.inventory[i];
-                    if((c&0xF0)!=ITEM_APPLE)continue;
-                    int t=std::min(need,c&0x0F); need-=t; c-=t;
-                    pl.inventory[i]=(uint8_t)((c&0x0F)?c:0);}
+                for(int i=0;i<15&&need;i++){ItemCell& c=pl.inventory[i];
+                    if(c.type!=ITEM_APPLE)continue;
+                    int t=std::min(need,(int)c.count); need-=t; c.count=(uint8_t)(c.count-t);
+                    if(!c.count)c={};}
                 tm.tamed=1; tm.mode=MOB_IDLE; tm.target=0xFF; tm.timer=10;
             }
         }
         return;
     }
     if(id==BLOCK_AIR||hit.length<0){
-        if(in.placePressed){int it=pl.inventory[pl.invSlot];
-            if((it&0xF0)==ITEM_APPLE){int hp=std::min((int)pl.health+APPLEHEALTH,MAXHEALTH);pl.health=(uint8_t)hp;
-                int c=it-1; if((c&0xF0)!=ITEM_APPLE)c=0; pl.inventory[pl.invSlot]=(uint8_t)c;}}
+        if(in.placePressed){ItemCell& it=pl.inventory[pl.invSlot];
+            if(it.type==ITEM_APPLE){int hp=std::min((int)pl.health+APPLEHEALTH,MAXHEALTH);pl.health=(uint8_t)hp;
+                if(--it.count==0)it={};}}
         return;
     }
     int bx=hit.bx,by=hit.by,bz=hit.bz;
     if(in.breakPressed&&id!=-1){
         if(id==BLOCK_SAPLING)return;
-        int held=pl.inventory[pl.invSlot];
+        int held=pl.inventory[pl.invSlot].type;
         int strength=STRENGTH_FIST;
         if(held>=ITEM_NONSTACKABLE&&held<=ITEM_SHEARS){
             if(held==ITEM_SHEARS) strength=(id==BLOCK_LEAVES)?STRENGTH_IRON:STRENGTH_FIST;
@@ -337,10 +335,12 @@ void Game::handleBreakAndPlace(const Input& in){
         if(id==BLOCK_DYNAMITE){ igniteDynamite(bx,by,bz,DYNAMITE_FUSE_TICKS); return; }
         if(id==BLOCK_FURNACE||id==BLOCK_CHEST){ int bi=findBlockEntity(bx,by,bz);
             if(bi>=0){openTileStorage(bi); loadedTile=bi; screenId=tiles[bi].isChest?SCR_CHEST:SCR_FURNACE; cursor=0; selSlot=-1;} return; }
-        int item=pl.inventory[pl.invSlot];
-        bool placeable=!(item==0||(item&0x0F)==0||(item>=ITEM_IRONINGOT&&item<ITEM_TABLE)||item==ITEM_COAL);
+        ItemCell& cell=pl.inventory[pl.invSlot];
+        uint8_t item=cell.type;
+        bool placeable=!(item==0||cell.count==0||(item>=ITEM_IRONINGOT&&item<ITEM_TABLE)||
+                         item==ITEM_COAL||item==ITEM_GUNPOWDER);
         if(!placeable)return;
-        int blockId=(item<0x10)?BLOCK_DYNAMITE:((item>=ITEM_TABLE)?(item&0x0F):(item>>4));
+        int blockId=(item==ITEM_DYNAMITE)?BLOCK_DYNAMITE:((item>=ITEM_TABLE)?(item&0x0F):(item>>4));
         int px=hit.px,py=hit.py,pz=hit.pz;
         if(blockId==BLOCK_SAPLING){uint8_t below=world.getBlock(px,py-1,pz); if(below!=BLOCK_DIRT&&below!=BLOCK_GRASS)return;}
         if(blockId!=BLOCK_SAPLING){
@@ -359,7 +359,7 @@ void Game::handleBreakAndPlace(const Input& in){
             b.storage=allocStorage(); b.loaded=false;
             if(b.storage>=0){uint8_t sb[STORAGE_SLOT_SIZE];packStorage(b,sb);world.writeStorageSlot(b.storage,sb);}
             tiles.push_back(b);}
-        if(item<0xF0){int c=item-1; if((c&0x0F)==0)c=0; pl.inventory[pl.invSlot]=(uint8_t)c;} else pl.inventory[pl.invSlot]=0;
+        if(--cell.count==0)cell={};
     }
 }
 
@@ -483,13 +483,13 @@ void Game::updateAllItems(){
 
         if(std::abs(e.x-pxc)<=PICKUPSIDEPOS && std::abs(e.z-pzc)<=PICKUPSIDEPOS &&
            e.y-pyc<=PICKUPUP && pyc-e.y<=PICKUPDOWN+PLAYERCAMHEIGHT){
-            int item;
-            switch(e.id){case ENTITY_APPLE:item=ITEM_APPLE|1;break;case ENTITY_TABLE:item=ITEM_TABLE;break;
-                case ENTITY_FURNACE:item=ITEM_FURNACE;break;case ENTITY_CHEST:item=ITEM_CHEST;break;
-                case ENTITY_GUNPOWDER:item=ITEM_GUNPOWDER;break;
-                case ENTITY_DYNAMITE:item=ITEM_DYNAMITE;break;
-                default:item=(e.id<<4)|1;break;}
-            addItemToInventory(item); e.active=false;
+            uint8_t type;
+            switch(e.id){case ENTITY_APPLE:type=ITEM_APPLE;break;case ENTITY_TABLE:type=ITEM_TABLE;break;
+                case ENTITY_FURNACE:type=ITEM_FURNACE;break;case ENTITY_CHEST:type=ITEM_CHEST;break;
+                case ENTITY_GUNPOWDER:type=ITEM_GUNPOWDER;break;
+                case ENTITY_DYNAMITE:type=ITEM_DYNAMITE;break;
+                default:type=(uint8_t)(e.id<<4);break;}
+            addItemToInventory(type,1); e.active=false;
         }
     }
     items.erase(std::remove_if(items.begin(),items.end(),[](const ItemEnt&e){return !e.active;}),items.end());
@@ -513,21 +513,22 @@ void Game::simulateFurnaces(){
 
 void Game::updateAllFurnaces(){
     for(auto& f:tiles){ if(!f.active||f.isChest||!f.loaded)continue;
-        uint16_t res=craftFurnace(f.slot[0]);
-        bool valid = res!=0 && (f.slot[0]&0x0F)>0 &&
-            (f.slot[2]==0 || ((f.slot[2]&0xF0)==(res&0xF0) && (f.slot[2]&0x0F)+(res&0x0F)<=15));
+        uint16_t res=craftFurnace(f.slot[0].type);
+        uint8_t rt=(uint8_t)(res>>8), rc=(uint8_t)res;
+        bool valid = res!=0 && f.slot[0].count>0 &&
+            (f.slot[2].empty() || (f.slot[2].type==rt && f.slot[2].count+rc<=MAX_STACK));
 
-        if(valid && f.fuelTime==0 && f.slot[1]!=0){
-            int add=0; int fuel=f.slot[1]&0xF0;
+        if(valid && f.fuelTime==0 && !f.slot[1].empty()){
+            int add=0; uint8_t fuel=f.slot[1].type;
             if(fuel==ITEM_COAL)add=8; else if(fuel==ITEM_STICK||fuel==ITEM_SAPLING||(fuel>=ITEM_WOODPICKAXE&&fuel<=ITEM_WOODSWORD))add=1;
             else if(fuel==ITEM_PLANK||fuel==ITEM_LOG)add=2;
-            if(add){ f.fuelTime=add; f.slot[1]=(uint8_t)((f.slot[1]&0x0F)>1?f.slot[1]-1:0); f.lit=true; }
+            if(add){ f.fuelTime=add; if(--f.slot[1].count==0)f.slot[1]={}; f.lit=true; }
         }
         if(valid && f.fuelTime>0){
             f.timer++;
             if(f.timer>=SMELTTIME/16){ f.timer=0;
-                f.slot[0]=(uint8_t)((f.slot[0]&0x0F)>1?f.slot[0]-1:0);
-                if(f.slot[2]==0)f.slot[2]=(uint8_t)res; else f.slot[2]=(uint8_t)((f.slot[2]&0xF0)|((f.slot[2]&0x0F)+(res&0x0F)));
+                if(--f.slot[0].count==0)f.slot[0]={};
+                if(f.slot[2].empty())f.slot[2]={rt,rc}; else f.slot[2].count=(uint8_t)(f.slot[2].count+rc);
                 f.fuelTime--;
                 if(f.fuelTime==0)f.lit=false;
             }
@@ -601,11 +602,11 @@ void Game::drawHotbar(){
     for(int i=0;i<5;i++){int x=21+i*11,y=53; screen.x1=x;screen.y1=y;screen.x2=x+9;screen.y2=y+9;screen.clearRect();
         if(i==sel){screen.x1=x;screen.y1=y;screen.x2=x+9;screen.y2=y+9;screen.drawRect();
             screen.x1=x+1;screen.y1=y+1;screen.x2=x+8;screen.y2=y+8;screen.clearRect();}
-        int it=pl.inventory[i]; if(it){screen.itemIcon(x+2,y+2,it);
-            if((it&0xF0)<0xF0){int n=it&0x0F; if(n>0&&n<=9)screen.number(x+6,y+5,n);}}}
-    // While the item tooltip is up it takes the hearts' place (drawn over the
-    // canvas with the firmware font in device.cpp), so skip the hearts.
-    if(!hudItemTicks)
+        ItemCell it=pl.inventory[i]; if(it.type){screen.itemIcon(x+2,y+2,it.type);
+            if(it.type<ITEM_NONSTACKABLE){int n=it.count;
+                if(n>9)screen.number(x+2,y+5,n/10);
+                screen.number(x+6,y+5,n%10);}}}
+    if(!hudItemTicks)   // tooltip in device.cpp takes the hearts' place
         for(int i=0;i<MAXHEALTH;i++)screen.heart(19+i*6,43,i<(int)pl.health);
 }
 void Game::finishRender(){
@@ -648,7 +649,7 @@ void Game::worldFrame(const Input& in){
 
 std::vector<Game::Slot> Game::buildSlots(ScreenId s){
     std::vector<Slot> v;
-    auto add=[&](uint8_t* c,int gx,int gy,int sx,int sy,bool grid,bool out){v.push_back({c,gx,gy,sx,sy,grid,out});};
+    auto add=[&](ItemCell* c,int gx,int gy,int sx,int sy,bool grid,bool out){v.push_back({c,gx,gy,sx,sy,grid,out});};
 
     for(int r=0;r<3;r++)for(int c=0;c<5;c++) add(&pl.inventory[r*5+c],c,r,21+c*11,53-r*11,false,false);
     if(s==SCR_INVENTORY){
@@ -670,8 +671,8 @@ std::vector<Game::Slot> Game::buildSlots(ScreenId s){
 void Game::tryCraft(){
     uint16_t out=craftTable(pl.craftGrid); if(!out)return;
 
-    for(int i=0;i<9;i++){int c=pl.craftGrid[i]; if(c){int n=(c&0x0F)-1; pl.craftGrid[i]=(uint8_t)(n>0?(c&0xF0)|n:0);}}
-    addItemToInventory(out&0xFF);
+    for(int i=0;i<9;i++){ItemCell& c=pl.craftGrid[i]; if(c.type){if(--c.count==0)c={};}}
+    addItemToInventory((uint8_t)(out>>8),(uint8_t)out);
 }
 void Game::guiFrame(const Input& in){
     auto slots=buildSlots(screenId);
@@ -692,31 +693,35 @@ void Game::guiFrame(const Input& in){
 
         if(in.distribute && selSlot>=0 && selSlot<(int)slots.size() && cursor!=selSlot){
             Slot& src=slots[selSlot]; Slot& dst=slots[cursor];
-            int sv=*src.cell, stype=sv&0xF0, scnt=sv&0x0F;
-            if(stype<0xF0 && scnt>0 && !dst.output){
-                int dv=*dst.cell;
+            ItemCell& sv=*src.cell;
+            if(sv.type && sv.type<ITEM_NONSTACKABLE && sv.count>0 && !dst.output){
+                ItemCell& dv=*dst.cell;
                 bool moved=false;
-                if(dv==0){ *dst.cell=(uint8_t)(stype|1); moved=true; }
-                else if((dv&0xF0)==stype && (dv&0x0F)<15){ *dst.cell=(uint8_t)(dv+1); moved=true; }
-                if(moved){ scnt--; if(scnt<=0){*src.cell=0; selSlot=-1;} else *src.cell=(uint8_t)(stype|scnt); }
+                if(dv.empty()){ dv={sv.type,1}; moved=true; }
+                else if(dv.type==sv.type && dv.count<MAX_STACK){ dv.count++; moved=true; }
+                if(moved && --sv.count==0){ sv={}; selSlot=-1; }
             }
-            if(screenId==SCR_INVENTORY||screenId==SCR_CRAFTING)
-                pl.craftOutput=(uint8_t)(craftTable(pl.craftGrid)&0xFF);
+            if(screenId==SCR_INVENTORY||screenId==SCR_CRAFTING){
+                uint16_t o=craftTable(pl.craftGrid);
+                pl.craftOutput={(uint8_t)(o>>8),(uint8_t)o};
+            }
         }
     }
     if(in.menuSelect&&!slots.empty()){
         Slot& cur=slots[cursor];
         if(cur.output){
             if(screenId==SCR_FURNACE){
-                if(*cur.cell){addItemToInventory(*cur.cell);*cur.cell=0;}
-            } else if(*cur.cell){
+                if(cur.cell->type){addItemToInventory(cur.cell->type,cur.cell->count);*cur.cell={};}
+            } else if(cur.cell->type){
                 tryCraft();
             }
-        } else if(selSlot<0){ if(*cur.cell)selSlot=cursor; }
+        } else if(selSlot<0){ if(cur.cell->type)selSlot=cursor; }
         else { std::swap(*slots[selSlot].cell,*cur.cell); selSlot=-1; }
 
-        if(screenId==SCR_INVENTORY||screenId==SCR_CRAFTING)
-            pl.craftOutput=(uint8_t)(craftTable(pl.craftGrid)&0xFF);
+        if(screenId==SCR_INVENTORY||screenId==SCR_CRAFTING){
+            uint16_t o=craftTable(pl.craftGrid);
+            pl.craftOutput={(uint8_t)(o>>8),(uint8_t)o};
+        }
     }
     if(screenId==SCR_FURNACE)updateAllFurnaces();
 }
@@ -734,10 +739,13 @@ void Game::drawGui(){
         return; }
     screen.clearScreen();
     auto slots=buildSlots(screenId);
-    for(size_t i=0;i<slots.size();i++){Slot& s=slots[i]; int it=*s.cell;
+    for(size_t i=0;i<slots.size();i++){Slot& s=slots[i]; ItemCell it=*s.cell;
         int box=s.grid?8:10; screen.x1=s.sx;screen.y1=s.sy;screen.x2=s.sx+box-1;screen.y2=s.sy+box-1;screen.drawRect();
         screen.x1=s.sx+1;screen.y1=s.sy+1;screen.x2=s.sx+box-2;screen.y2=s.sy+box-2;screen.clearRect();
-        if(it){screen.itemIcon(s.sx+2,s.sy+2,it); if((it&0xF0)<0xF0){int n=it&0x0F;if(n>0&&n<=9)screen.number(s.sx+6,s.sy+5,n);}}
+        if(it.type){screen.itemIcon(s.sx+2,s.sy+2,it.type);
+            if(it.type<ITEM_NONSTACKABLE){int n=it.count;
+                if(n>9)screen.number(s.sx+2,s.sy+5,n/10);
+                screen.number(s.sx+6,s.sy+5,n%10);}}
         if((int)i==cursor)
             screen.invertRect(s.sx+1,s.sy+1,s.sx+box-2,s.sy+box-2);
     }
@@ -765,10 +773,11 @@ uint32_t Game::visualSignature() const {
     mix((uint32_t)playerX); mix((uint32_t)playerY); mix((uint32_t)playerZ);
     mixf(bobTimer); mixf(bobAmt);
     mix(world.revision);
-    for(int i=0;i<15;i++) mix(pl.inventory[i]);
-    for(int i=0;i<9;i++) mix(pl.craftGrid[i]);
-    mix(pl.craftOutput); mix(pl.invSlot); mix(pl.rot); mix(pl.health);
-    mix(hudItemTicks);   // count-down forces a redraw each tick to age the tooltip
+    auto mixCell=[&](const ItemCell& c){ mix((uint32_t)(c.type|(c.count<<8))); };
+    for(int i=0;i<15;i++) mixCell(pl.inventory[i]);
+    for(int i=0;i<9;i++) mixCell(pl.craftGrid[i]);
+    mixCell(pl.craftOutput); mix(pl.invSlot); mix(pl.rot); mix(pl.health);
+    mix(hudItemTicks);
     mix((uint32_t)pl.crouching);
     for(const auto& e:items) if(e.active){ mix((uint32_t)e.id); mix((uint32_t)e.x); mix((uint32_t)e.y); mix((uint32_t)e.z); mix((uint32_t)e.fuse); }
     for(const auto& m:mobs) if(m.active){
@@ -779,7 +788,7 @@ uint32_t Game::visualSignature() const {
         mix((uint32_t)((t.dir<<2)|(t.isChest?2:0)|(t.lit?1:0))); }
     if(loadedTile>=0 && (size_t)loadedTile<tiles.size()){
         const BlockEnt& t=tiles[loadedTile];
-        for(int i=0;i<10;i++) mix(t.slot[i]);
+        for(int i=0;i<10;i++) mixCell(t.slot[i]);
         mix((uint32_t)((t.timer<<8)|t.fuelTime)); }
     return h;
 }

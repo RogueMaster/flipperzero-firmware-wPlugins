@@ -27,7 +27,7 @@ struct Screen2D {
     }
 
     void number(int x,int y,int d);
-    void itemIcon(int x,int y,int itemId);
+    void itemIcon(int x,int y,int type);
     void heart(int x,int y,bool full);
 };
 

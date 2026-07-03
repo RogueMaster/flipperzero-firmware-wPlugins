@@ -86,10 +86,8 @@ static void drawCb(Canvas* canvas, void* ctx) {
     uint8_t* buf = canvas_get_buffer(canvas);
     if(buf) packFramebuffer(g->fb, buf);
 
-    // After a hotbar switch, show the selected item's name where the hearts
-    // sit, drawn with the built-in firmware font (no bundled glyph bitmaps).
     if(g->screenId == SCR_PLAY && g->hudItemTicks) {
-        const char* name = itemName(g->pl.inventory[g->pl.invSlot]);
+        const char* name = itemName(g->pl.inventory[g->pl.invSlot].type);
         if(name) {
             canvas_set_font(canvas, FontSecondary);
             int bw = (int)canvas_string_width(canvas, name) + 6, bh = 11;

@@ -26,8 +26,10 @@ constexpr int WORLD_SZ             = WORLD_CHUNKS_Z * CHUNK_SIZE;
 constexpr int WINDOW_CHUNKS        = 3;
 constexpr int CHUNK_BLOCKS         = CHUNK_SIZE * WORLD_SY * CHUNK_SIZE;
 constexpr int STORAGE_CAPACITY       = 256;
-constexpr int STORAGE_SLOT_SIZE      = 16;
+constexpr int STORAGE_SLOT_SIZE      = 32;
+constexpr int STORAGE_PAD_V2         = 4096; // old v2 slot region, kept as migration source
 constexpr int INVENTORY_REGION_SIZE  = 32;
+constexpr int MAX_STACK              = 99;
 constexpr int PLAYERWIDTH          = 9;
 constexpr int PLAYERHEIGHT         = 28;
 constexpr int PLAYERHALFWIDTH      = 5;
@@ -43,9 +45,7 @@ constexpr int JUMP_AIRTIME         = 2;
 constexpr int SPEEDFACTOR          = 0x40;
 constexpr int RAYCASTMAXLENGTH     = 0x40;
 constexpr int MAXHEALTH            = 8;
-// Ticks the "selected item" tooltip replaces the hearts for after a hotbar
-// switch. At the 80 ms game tick that is ~0.8 s.
-constexpr int HUD_LABEL_TICKS      = 10;
+constexpr int HUD_LABEL_TICKS      = 10; // hotbar tooltip, ~0.8 s at the 80 ms tick
 constexpr int APPLEHEALTH          = 2;
 constexpr int MINFALLDAMAGESPEED   = 32;
 constexpr int FALLDAMAGESCALING    = 0x08;
@@ -101,12 +101,16 @@ enum Item : uint8_t {
     ITEM_IRONAXE = 0xF9, ITEM_IRONSHOVEL = 0xFA, ITEM_IRONSWORD = 0xFB,
     ITEM_SHEARS = 0xFC, ITEM_TABLE = 0xFD, ITEM_FURNACE = 0xFE, ITEM_CHEST = 0xFF,
 
-    // The 4-bit type space is full. Two previously unreachable cell encodings
-    // carry the new items:
-    //   0xB0 = "glass, count 0" -> one gunpowder (single per cell),
-    //   0x0N = "air, count N"   -> N dynamite (stacks like any material).
-    ITEM_GUNPOWDER = 0xB0,
+    // Gunpowder shares glass's craft nibble (type>>4); dynamite's nibble is 0,
+    // invisible to recipes.
+    ITEM_GUNPOWDER = 0xB1,
     ITEM_DYNAMITE = 0x01,
+};
+
+struct ItemCell {
+    uint8_t type = 0;  // Item enum value; materials keep the id in the high nibble
+    uint8_t count = 0;
+    bool empty() const { return type == 0; }
 };
 
 enum Entity : uint8_t {
@@ -299,6 +303,7 @@ struct World {
 
 private:
     bool tryOpenAndReadHeader(const char* path);
+    void migrateV2();
     bool loadChunkDirect(int cx, int cz);
     bool loadRunStaged(int cx0, int cz, int count);
     void onSlotLoaded(int cx, int cz);
@@ -311,10 +316,7 @@ struct Framebuffer {
     void clear() { for (auto& row : px) for (auto& p : row) p = 0; }
 };
 
-// Short human-readable name of an inventory cell, or nullptr for an empty
-// cell. Used by the hotbar tooltip; drawn with the firmware font so no glyph
-// bitmaps are bundled.
-const char* itemName(uint8_t id);
+const char* itemName(uint8_t type);
 
 // 8-byte row-packed 8x8 texture: bit `u` of byte `v` is texel (u, v).
 const uint8_t* texturePacked(int texId);
@@ -354,7 +356,8 @@ const MobBox* mobBoxes(uint8_t species, int& count);
 // yaw*2 -> facing index (NEGX,POSX,NEGZ,POSZ = 0..3), 2-bit fields
 constexpr uint32_t MOB_YAW_FACE = 0xF55AA00Fu;
 
-uint16_t craftTable(const uint8_t grid[9]);
-uint16_t craftFurnace(uint8_t input);
+// Result packed as type << 8 | count, 0 = no recipe.
+uint16_t craftTable(const ItemCell grid[9]);
+uint16_t craftFurnace(uint8_t inputType);
 
 }

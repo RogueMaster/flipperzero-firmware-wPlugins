@@ -21,14 +21,13 @@ struct Input {
     bool distribute=false;
 };
 
-// All persistent player-visible state. Item cells keep the packed byte
-// encoding used on disk and across the UI: high nibble item type, low nibble
-// count (tools occupy the whole 0xF0..0xFF range and do not stack).
+// All persistent player-visible state. Tools occupy the 0xF0..0xFF type range
+// and never stack (count is always 1).
 struct PlayerState {
-    uint8_t inventory[15] = {0};
+    ItemCell inventory[15];
     uint8_t invSlot = 0;       // selected hotbar slot, 0..4
-    uint8_t craftGrid[9] = {0};
-    uint8_t craftOutput = 0;
+    ItemCell craftGrid[9];
+    ItemCell craftOutput;
     uint8_t rot = 0x08;        // camera: pitch << 4 | yaw, 16 steps per turn
     uint8_t health = MAXHEALTH;
     bool onGround = false;
@@ -55,7 +54,7 @@ struct Mob {
 };
 struct BlockEnt {
     bool active=false; bool isChest=false; int bx=0,by=0,bz=0; int dir=0;
-    uint8_t slot[10]={0};
+    ItemCell slot[10];
     int timer=0;
     int fuelTime=0;
     bool lit=false;
@@ -106,7 +105,7 @@ private:
     struct RayHit { int bx,by,bz, px,py,pz, id, length, mob; };
     RayHit rayCast();
     void createEntity(int x,int y,int z,int entityId);
-    void addItemToInventory(int item);
+    void addItemToInventory(uint8_t type,uint8_t count);
     void updateAllItems();
     void updateAllMobs();
     void trySpawnMob();
@@ -131,7 +130,7 @@ private:
     void openTileStorage(int tileIndex);   // lazy: read contents into slot[]
     void flushTileStorage(int tileIndex);  // write contents back, mark unloaded
 
-    struct Slot { uint8_t* cell; int gx, gy, sx, sy; bool grid; bool output; };
+    struct Slot { ItemCell* cell; int gx, gy, sx, sy; bool grid; bool output; };
     std::vector<Slot> buildSlots(ScreenId s);
     void guiFrame(const Input& in);
     void drawGui();

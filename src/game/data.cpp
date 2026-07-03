@@ -211,35 +211,38 @@ static constexpr uint64_t craftKey(const char* s) {
     return v;
 }
 
+// Result packed as type << 8 | count.
+static constexpr uint16_t R(uint8_t type, uint8_t n) { return (uint16_t)((type << 8) | n); }
+
 struct CraftRecipe { uint64_t key; uint16_t result; };
 static constexpr CraftRecipe CRAFT_RECIPES[] = {
-    {craftKey("770770000"), ITEM_TABLE},
-    {craftKey("500000000"), uint16_t(ITEM_PLANK | 0x4)},
-    {craftKey("444404444"), ITEM_FURNACE},
-    {craftKey("777707777"), ITEM_CHEST},
-    {craftKey("700700000"), uint16_t(ITEM_STICK | 0x4)},
-    {craftKey("777010010"), ITEM_WOODPICKAXE},
-    {craftKey("444010010"), ITEM_STONEPICKAXE},
-    {craftKey("DDD010010"), ITEM_IRONPICKAXE},
-    {craftKey("770710010"), ITEM_WOODAXE},
-    {craftKey("440410010"), ITEM_STONEAXE},
-    {craftKey("DD0D10010"), ITEM_IRONAXE},
-    {craftKey("700100100"), ITEM_WOODSHOVEL},
-    {craftKey("400100100"), ITEM_STONESHOVEL},
-    {craftKey("D00100100"), ITEM_IRONSHOVEL},
-    {craftKey("700700100"), ITEM_WOODSWORD},
-    {craftKey("400400100"), ITEM_STONESWORD},
-    {craftKey("D00D00100"), ITEM_IRONSWORD},
-    {craftKey("0D0D00000"), ITEM_SHEARS},
-    {craftKey("AB0000000"), ITEM_DYNAMITE},
-    {craftKey("BA0000000"), ITEM_DYNAMITE},
-    {craftKey("A00B00000"), ITEM_DYNAMITE},
-    {craftKey("B00A00000"), ITEM_DYNAMITE},
+    {craftKey("770770000"), R(ITEM_TABLE, 1)},
+    {craftKey("500000000"), R(ITEM_PLANK, 4)},
+    {craftKey("444404444"), R(ITEM_FURNACE, 1)},
+    {craftKey("777707777"), R(ITEM_CHEST, 1)},
+    {craftKey("700700000"), R(ITEM_STICK, 4)},
+    {craftKey("777010010"), R(ITEM_WOODPICKAXE, 1)},
+    {craftKey("444010010"), R(ITEM_STONEPICKAXE, 1)},
+    {craftKey("DDD010010"), R(ITEM_IRONPICKAXE, 1)},
+    {craftKey("770710010"), R(ITEM_WOODAXE, 1)},
+    {craftKey("440410010"), R(ITEM_STONEAXE, 1)},
+    {craftKey("DD0D10010"), R(ITEM_IRONAXE, 1)},
+    {craftKey("700100100"), R(ITEM_WOODSHOVEL, 1)},
+    {craftKey("400100100"), R(ITEM_STONESHOVEL, 1)},
+    {craftKey("D00100100"), R(ITEM_IRONSHOVEL, 1)},
+    {craftKey("700700100"), R(ITEM_WOODSWORD, 1)},
+    {craftKey("400400100"), R(ITEM_STONESWORD, 1)},
+    {craftKey("D00D00100"), R(ITEM_IRONSWORD, 1)},
+    {craftKey("0D0D00000"), R(ITEM_SHEARS, 1)},
+    {craftKey("AB0000000"), R(ITEM_DYNAMITE, 1)},
+    {craftKey("BA0000000"), R(ITEM_DYNAMITE, 1)},
+    {craftKey("A00B00000"), R(ITEM_DYNAMITE, 1)},
+    {craftKey("B00A00000"), R(ITEM_DYNAMITE, 1)},
 };
 
-uint16_t craftTable(const uint8_t grid[9]) {
+uint16_t craftTable(const ItemCell grid[9]) {
     uint64_t v = 0;
-    for (int i = 0; i < 9; i++) v |= (uint64_t)(grid[i] >> 4) << (4 * i);
+    for (int i = 0; i < 9; i++) v |= (uint64_t)(grid[i].type >> 4) << (4 * i);
     if (!v) return 0;
     // Shift the pattern into the top-left corner: drop empty leading columns
     // (each row moves one nibble right, its last column cleared), then rows.
@@ -247,22 +250,22 @@ uint16_t craftTable(const uint8_t grid[9]) {
     while (!(v & GRID_ROW0)) v >>= 12;
     for (const CraftRecipe& r : CRAFT_RECIPES)
         if (r.key == v) {
-            // gunpowder shares the glass type nibble; require the exact cell
-            if (r.result == ITEM_DYNAMITE) {
+            // gunpowder shares the glass craft nibble; require the exact type
+            if (r.result == R(ITEM_DYNAMITE, 1)) {
                 bool ok = false;
-                for (int i = 0; i < 9; i++) ok |= grid[i] == ITEM_GUNPOWDER;
+                for (int i = 0; i < 9; i++) ok |= grid[i].type == ITEM_GUNPOWDER;
                 if (!ok) continue;
             }
             return r.result;
         }
     return 0;
 }
-uint16_t craftFurnace(uint8_t input) {
-    switch (input >> 4) {
-        case BLOCK_COBBLE: return ITEM_STONE | 0x1;
-        case BLOCK_LOG:    return ITEM_COAL | 0x1;
-        case BLOCK_IRONORE:return ITEM_IRONINGOT | 0x1;
-        case BLOCK_SAND:   return ITEM_GLASS | 0x1;
+uint16_t craftFurnace(uint8_t inputType) {
+    switch (inputType >> 4) {
+        case BLOCK_COBBLE: return R(ITEM_STONE, 1);
+        case BLOCK_LOG:    return R(ITEM_COAL, 1);
+        case BLOCK_IRONORE:return R(ITEM_IRONINGOT, 1);
+        case BLOCK_SAND:   return R(ITEM_GLASS, 1);
         default: return 0;
     }
 }

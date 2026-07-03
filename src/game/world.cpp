@@ -9,9 +9,10 @@
 namespace flipcraft {
 
 static constexpr uint32_t FCW_MAGIC = 0x31574346;
-static constexpr uint16_t FCW_VERSION = 2;
+static constexpr uint16_t FCW_VERSION = 3;
 static constexpr uint32_t HEADER_SIZE = 64;
-static constexpr uint8_t INVENTORY_MAGIC = 0xA5;
+static constexpr uint8_t INVENTORY_MAGIC = 0xA6;    // v3; v2 used 0xA5
+static constexpr uint8_t INVENTORY_MAGIC_V2 = 0xA5;
 
 static inline void put_u16(uint8_t* p, uint16_t v) {
     p[0] = v;
@@ -48,7 +49,7 @@ uint32_t inventoryBase(const World& w) {
 }
 
 uint32_t storageBase(const World& w) {
-    return inventoryBase(w) + INVENTORY_REGION_SIZE;
+    return inventoryBase(w) + INVENTORY_REGION_SIZE + STORAGE_PAD_V2;
 }
 
 uint32_t regionEnd(const World& w) {
@@ -104,7 +105,18 @@ bool World::openWorld(const char* dataPath) {
     }
     existed = true;
 
+    uint32_t szBefore = storage_file_size(file);
     ensureRegion();
+    // v2 regions occupied exactly [inventoryBase, storageBase); the old slot
+    // area stays untouched as STORAGE_PAD_V2, so a crashed migration reruns.
+    if(hdrVersion == 2 && szBefore >= storageBase(*this)) migrateV2();
+    if(hdrVersion != FCW_VERSION) {
+        uint8_t v[2];
+        put_u16(v, FCW_VERSION);
+        if(storage_file_seek(file, 4, true) && storage_file_write(file, v, 2) == 2)
+            hdrVersion = FCW_VERSION;
+    }
+    storage_file_sync(file);
 
     for(int sx = 0; sx < WINDOW_CHUNKS; sx++)
         for(int sz = 0; sz < WINDOW_CHUNKS; sz++) {
@@ -136,14 +148,74 @@ bool World::ensureRegion() {
             off += n;
         }
     }
-    if(hdrVersion != FCW_VERSION) {
-        uint8_t v[2];
-        put_u16(v, FCW_VERSION);
-        if(storage_file_seek(file, 4, true) && storage_file_write(file, v, 2) == 2)
-            hdrVersion = FCW_VERSION;
-    }
-    storage_file_sync(file);
     return true;
+}
+
+// v2 cell byte -> v3 {type, count}: high nibble type, low nibble count;
+// 0x0N = dynamite, 0xB0 = one gunpowder, 0xFx = tool.
+static void cellFromV2(uint8_t c, uint8_t* out) {
+    uint8_t t = c & 0xF0, n = c & 0x0F;
+    out[0] = 0;
+    out[1] = 0;
+    if(c == 0) return;
+    if(t == 0xF0) {
+        out[0] = c;
+        out[1] = 1;
+    } else if(t == 0) {
+        out[0] = ITEM_DYNAMITE;
+        out[1] = n;
+    } else if(n == 0) {
+        if(c == 0xB0) {
+            out[0] = ITEM_GUNPOWDER;
+            out[1] = 1;
+        }
+    } else {
+        out[0] = t;
+        out[1] = n;
+    }
+}
+
+// v2 layout: inventory [magic A5][15 cells][invSlot][health] at inventoryBase,
+// 256x16 storage slots right after it (= today's pad). Slots copy old->new
+// region; both stay intact during the copy, so the pass is idempotent.
+void World::migrateV2() {
+    uint32_t invBase = inventoryBase(*this);
+    uint8_t inv[INVENTORY_REGION_SIZE];
+    if(storage_file_seek(file, invBase, true) &&
+       storage_file_read(file, inv, sizeof(inv)) == sizeof(inv) &&
+       inv[0] == INVENTORY_MAGIC_V2) {
+        uint8_t out[INVENTORY_REGION_SIZE];
+        memset(out, 0, sizeof(out));
+        out[0] = INVENTORY_MAGIC;
+        for(int i = 0; i < 15; i++) cellFromV2(inv[1 + i], out + 1 + 2 * i);
+        out[31] = (uint8_t)(((inv[17] & 0x0F) << 4) | (inv[16] & 0x0F));
+        if(storage_file_seek(file, invBase, true)) storage_file_write(file, out, sizeof(out));
+    }
+
+    uint32_t oldBase = invBase + INVENTORY_REGION_SIZE;
+    uint32_t newBase = storageBase(*this);
+    for(int first = 0; first < STORAGE_CAPACITY; first += 16) {
+        uint8_t oldB[16 * 16], newB[16 * STORAGE_SLOT_SIZE];
+        if(!storage_file_seek(file, oldBase + (uint32_t)first * 16, true) ||
+           storage_file_read(file, oldB, sizeof(oldB)) != sizeof(oldB))
+            return;
+        memset(newB, 0, sizeof(newB));
+        for(int i = 0; i < 16; i++) {
+            const uint8_t* o = oldB + i * 16;
+            uint8_t* n = newB + i * STORAGE_SLOT_SIZE;
+            if(!(o[0] & 0x01)) continue;
+            n[0] = o[0];
+            n[1] = o[1];
+            n[2] = o[2];
+            n[3] = o[3];
+            n[4] = o[4];
+            n[5] = o[15]; // furnace fuel|timer moved from [15] to [5]
+            for(int k = 0; k < 10; k++) cellFromV2(o[5 + k], n + 6 + 2 * k);
+        }
+        if(!storage_file_seek(file, newBase + (uint32_t)first * STORAGE_SLOT_SIZE, true) ||
+           storage_file_write(file, newB, sizeof(newB)) != sizeof(newB))
+            return;
+    }
 }
 
 bool World::readInventory(uint8_t* dst, uint32_t n) {

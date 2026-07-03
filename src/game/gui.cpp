@@ -21,10 +21,7 @@ void Screen2D::number(int x,int y,int d) {
 static const uint8_t HEART[7] = {
     0b0110110, 0b1111111, 0b1111111, 0b1111111, 0b0111110, 0b0011100, 0b0001000 };
 
-// A shape pixel is "body" when all four orthogonal neighbours are also part of
-// the heart; the rest form its 1px border. Full = black body / white border,
-// empty = white body / black border. Every shape pixel is painted, so both are
-// fully opaque and nothing of the scene shows through.
+// full = black body / white 1px border, empty = inverted; both opaque
 void Screen2D::heart(int x,int y,bool full) {
     auto on = [](int r,int c){ return r>=0&&r<7&&c>=0&&c<7 && (HEART[r]&(1<<(6-c))); };
     for (int r=0;r<7;r++) for (int c=0;c<7;c++) {
@@ -34,30 +31,28 @@ void Screen2D::heart(int x,int y,bool full) {
     }
 }
 
-const char* itemName(uint8_t id) {
-    if (id == 0) return nullptr;                     // empty cell
-    if ((id & 0xF0) == 0x00) return "Dynamite";      // "air, count N" encoding
-    if (id == ITEM_GUNPOWDER) return "Gunpowder";    // "glass, count 0" cell
-    if ((id & 0xF0) == ITEM_NONSTACKABLE) {
+const char* itemName(uint8_t type) {
+    if (type == 0) return nullptr;
+    if (type == ITEM_DYNAMITE) return "Dynamite";
+    if (type == ITEM_GUNPOWDER) return "Gunpowder";
+    if (type >= ITEM_NONSTACKABLE) {
         static const char* const tools[16] = {
             "Wood Pickaxe","Wood Axe","Wood Shovel","Wood Sword",
             "Stone Pickaxe","Stone Axe","Stone Shovel","Stone Sword",
             "Iron Pickaxe","Iron Axe","Iron Shovel","Iron Sword",
             "Shears","Crafting Table","Furnace","Chest" };
-        return tools[id & 0x0F];
+        return tools[type & 0x0F];
     }
     static const char* const mats[16] = {
         nullptr,"Stick","Dirt","Stone","Cobblestone","Wood Log","Leaves","Planks",
         "Coal","Iron Ore","Sand","Glass","Sapling","Iron Ingot","Apple",nullptr };
-    return mats[(id >> 4) & 0x0F];
+    return mats[type >> 4];
 }
 
-void Screen2D::itemIcon(int x,int y,int itemId) {
-    int type = (itemId & 0xF0) >> 4;
-    bool nonstack = (itemId & 0xF0) == 0xF0;
-    int sub = itemId & 0x0F;
-    int key = nonstack ? (0x10 | sub) : type;
-    if(!nonstack && sub==0 && type) key = type ^ 0x08;   // count-0 single items
+void Screen2D::itemIcon(int x,int y,int type) {
+    int key = (type >= ITEM_NONSTACKABLE) ? (0x10 | (type & 0x0F))
+            : (type == ITEM_GUNPOWDER)    ? (0x0B ^ 0x08)
+            : (type >> 4);
     for (int r=0;r<6;r++) for (int c=0;c<6;c++) {
         bool border = (r==0||r==5||c==0||c==5);
         bool inside = false;
