@@ -12,7 +12,7 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="flipcraft_app",
     requires=["gui", "storage"],
-    sources=["main.cpp"],
+    sources=["src/main.cpp"],
     stack_size=8 * 1024,
     fap_category="Games",
     fap_file_assets="assets/worlds",
@@ -27,7 +27,7 @@ App(
     apptype=FlipperAppType.PLUGIN,
     entry_point="flipcraft_menu_ep",
     requires=["flipcraft"],
-    sources=["menu/menu.cpp"],
+    sources=["src/menu/menu.cpp"],
     fal_embedded=True,
 )
 
@@ -36,7 +36,7 @@ App(
     apptype=FlipperAppType.PLUGIN,
     entry_point="flipcraft_worldgen_ep",
     requires=["flipcraft"],
-    sources=["worldgen/worldgen.cpp"],
+    sources=["src/world/worldgen.cpp"],
     fal_embedded=True,
 )
 
@@ -46,12 +46,12 @@ App(
     entry_point="flipcraft_game_ep",
     requires=["flipcraft"],
     sources=[
-        "platform/f7fz/platform.cpp",
-        "game/game.cpp",
-        "game/data.cpp",
-        "game/world.cpp",
-        "render/render.cpp",
-        "render/gui.cpp",
+        "src/game/device.cpp",
+        "src/game/game.cpp",
+        "src/game/data.cpp",
+        "src/game/world.cpp",
+        "src/game/render.cpp",
+        "src/game/gui.cpp",
     ],
     fal_embedded=True,
 )

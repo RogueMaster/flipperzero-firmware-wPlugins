@@ -90,7 +90,6 @@ struct MenuApp {
     int templates_count = 0;
 };
 
-// Forward declarations for callbacks referenced before their definitions.
 void main_callback(void* context, uint32_t index);
 void list_callback(void* context, uint32_t index);
 void open_worlds(MenuApp* app);
@@ -99,14 +98,12 @@ void join_path(char* dst, size_t size, const char* dir, const char* name) {
     snprintf(dst, size, "%s/%s", dir, name);
 }
 
-// Copy a file name into `dst` without its ".fcw" extension.
 void strip_ext(char* dst, size_t size, const char* name) {
     snprintf(dst, size, "%s", name);
     size_t len = strlen(dst);
     if(len > 4 && strcmp(dst + len - 4, ".fcw") == 0) dst[len - 4] = '\0';
 }
 
-// List *.fcw files in `dir` into `names`. Returns the count found.
 int scan_dir(Storage* storage, const char* dir, char names[][NAME_LEN], int max) {
     File* f = storage_file_alloc(storage);
     int n = 0;
@@ -264,7 +261,6 @@ void open_about(MenuApp* app) {
     open_text_box(app, false);
 }
 
-// Parse the save header and describe the world.
 void open_info(MenuApp* app) {
     char path[256];
     join_path(path, sizeof(path), DATA_DIR, app->sel_name);
@@ -310,8 +306,6 @@ void main_callback(void* context, uint32_t index) {
     if(index == IDX_WORLDS) open_worlds(app);
     else if(index == IDX_ABOUT) open_about(app);
 }
-
-// Text input results ----------------------------------------------------------
 
 void build_result_path(MenuApp* app) {
     char fname[NAME_LEN + 8];
@@ -379,7 +373,6 @@ void list_callback(void* context, uint32_t index) {
 
     case LIST_CREATE:
         if(index == IDX_GENERATE) {
-            // Random seed by default; the player edits or replaces it freely.
             snprintf(
                 app->text_buf,
                 sizeof(app->text_buf),
@@ -461,7 +454,6 @@ bool nav_callback(void* context) {
 } // namespace
 
 Result run(Gui* gui, Storage* storage) {
-    // Make sure the saves directory exists so Create has somewhere to write.
     storage_common_mkdir(storage, DATA_DIR);
 
     MenuApp* app = new(std::nothrow) MenuApp();
@@ -514,8 +506,6 @@ Result run(Gui* gui, Storage* storage) {
 
 }
 }
-
-// --- .fal plugin boundary ----------------------------------------------------
 
 static FlipcraftMenuAction
     flipcraft_menu_run(char* out_path, size_t out_size, uint8_t* out_chunks, uint32_t* out_seed) {

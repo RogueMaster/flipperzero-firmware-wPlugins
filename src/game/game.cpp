@@ -45,7 +45,7 @@ uint8_t Game::rng() {
 int Game::smul446(int a,int b){ int r=(s8(a)*s8(b))>>6; return (int8_t)std::clamp(r,-128,127); }
 
 bool Game::setup(const GameConfig& config) {
-    if(!world.openWorld(*config.files, config.worldDataPath)) return false;
+    if(!world.openWorld(config.worldDataPath)) return false;
 
     pl = PlayerState{};
     renderer.invalidateChunkMeshes(); // the Game object survives across worlds
@@ -56,8 +56,8 @@ bool Game::setup(const GameConfig& config) {
     forceRedraw=true; lastSig=0;
 
     items.clear();
-    loadStorageDirectory();   // rebuild chest/furnace headers from disk
-    loadInventory();          // persisted inventory, or the starter set
+    loadStorageDirectory();
+    loadInventory();
     screenId=SCR_PLAY; selSlot=-1; cursor=0; score=0; gameOverPending=false; loadedTile=-1;
     screen.fb=&fb;
     renderer.zcolour=fb.px;   // scene rasterises straight into the shared framebuffer
@@ -113,7 +113,6 @@ int Game::findBlockEntity(int x,int y,int z){
     return -1;
 }
 
-// --- Storage region (persisted after the world array) -----------------------
 // On-disk slot (STORAGE_SLOT_SIZE bytes):
 //   [0] flags: bit0 in-use, bit1 isChest
 //   [1] dir(0x0F) | bits8-9 of bx << 4 | bits8-9 of bz << 6

@@ -38,7 +38,7 @@ struct Writer {
 };
 typedef void (*Progress)(void* ctx, uint8_t percent);
 
-// --- world-hash / noise (hashes match worldgen.py bit-for-bit) --------------
+// world-hash / noise: hashes match worldgen.py bit-for-bit.
 
 static uint32_t g_seed;
 static int g_worldW;         // world size in blocks
@@ -116,7 +116,6 @@ static float ridged(float x, float z, uint32_t salt, int octaves) {
     return 1.0f - (a > 1.0f ? 1.0f : a);
 }
 
-// --- column field -------------------------------------------------------------
 // One byte per column: bits 0-3 terrain top y (1..10), then biome flags.
 // A pure function of global (x, z), cached per tile.
 
@@ -180,7 +179,6 @@ static int localSlope(int x, int z) {
     return s;
 }
 
-// --- feature selection (per tile) ----------------------------------------------
 // The Python script scores every eligible column, sorts them all and picks
 // greedily with a minimum spacing. Storing every candidate does not fit, so we
 // keep the best candidate of each small map cell (the score fields are smooth,
@@ -249,8 +247,6 @@ static int greedyPlace(
     return placed;
 }
 
-// Trees ----------------------------------------------------------------------
-
 static Placed g_trees[96];
 static int g_treeCount;
 
@@ -274,8 +270,6 @@ static bool treeFits(int x, int z) {
     return lower + 2 <= HEIGHT - 1;
 }
 
-// Fallen trunks ----------------------------------------------------------------
-
 constexpr int FALLEN_LEN = 4;
 static Placed g_fallen[8];
 static int g_fallenCount;
@@ -298,16 +292,12 @@ static bool fallenFits(int x, int z) {
     return true;
 }
 
-// Stone piles ------------------------------------------------------------------
-
 static Placed g_piles[8];
 static int g_pileCount;
 
 static float pileScore(int x, int z) {
     return fbm(x * 0.13f + 11.0f, z * 0.13f - 3.0f, 80, 3);
 }
-
-// Buildings ---------------------------------------------------------------------
 
 static Placed g_houses[4]; // aux = floor y
 static int g_houseCount;
@@ -361,8 +351,6 @@ static void placeFeatures() {
         g_houses[i].aux =
             (uint8_t)topAt(g_tileX0 + g_houses[i].x + 2, g_tileZ0 + g_houses[i].z + 2);
 }
-
-// --- chunk fill + feature stamping ----------------------------------------------
 
 // Clipped block write into the chunk buffer. `allow` is a bitmask of block ids
 // the cell may currently hold (the Python get_block()==AIR guards); pass
@@ -492,8 +480,6 @@ static void stampFeatures(uint8_t* ch, int bx0, int bz0) {
             stampHouse(ch, bx0, bz0, x, z, g_houses[i].aux);
     }
 }
-
-// --- entry ---------------------------------------------------------------------
 
 static void putU16(uint8_t* p, uint16_t v) { p[0] = (uint8_t)v; p[1] = (uint8_t)(v >> 8); }
 static void putU32(uint8_t* p, uint32_t v) {

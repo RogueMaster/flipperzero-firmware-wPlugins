@@ -105,7 +105,6 @@ void genOnProgress(void* ctx, uint8_t percent) {
     view_port_update(p->view_port);
 }
 
-// Loads the worldgen plugin, shows the progress screen, writes the world.
 bool generateWorld(Gui* gui, Storage* storage, const char* path, uint8_t chunks, uint32_t seed) {
     FlipperApplication* plugin = nullptr;
     const FlipcraftWorldgenApi* gen = reinterpret_cast<const FlipcraftWorldgenApi*>(pluginLoad(

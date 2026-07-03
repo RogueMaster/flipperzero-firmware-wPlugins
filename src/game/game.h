@@ -1,7 +1,7 @@
 #pragma once
 #include "../flipcraft.h"
-#include "../render/render.h"
-#include "../render/gui.h"
+#include "render.h"
+#include "gui.h"
 #include <vector>
 
 namespace flipcraft {
@@ -96,7 +96,6 @@ private:
     void drawHotbar();
     int  findBlockEntity(int x,int y,int z);
 
-    // Storage persistence (see world.cpp for the on-disk region).
     void loadStorageDirectory();   // rebuild `tiles` headers from the table at open
     void loadInventory();          // read inventory region or seed starter set
     void saveInventory();          // write inventory region

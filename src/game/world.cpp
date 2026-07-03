@@ -1,5 +1,8 @@
 #include "../flipcraft.h"
 
+#include <furi.h>
+#include <storage/storage.h>
+
 #include <limits>
 #include <string.h>
 
@@ -36,34 +39,6 @@ static int chunkMaxY(const uint8_t* chunk) {
     return -1;
 }
 
-static void* fileOpen(const FileSystem& fs, const char* path, FileMode mode) {
-    return fs.open ? fs.open(fs.ctx, path, mode) : nullptr;
-}
-
-static void fileClose(const FileSystem& fs, void* file) {
-    if(fs.close) fs.close(fs.ctx, file);
-}
-
-static bool fileSeek(const FileSystem& fs, void* file, uint32_t offset) {
-    return fs.seek && fs.seek(fs.ctx, file, offset);
-}
-
-static size_t fileRead(const FileSystem& fs, void* file, void* data, size_t size) {
-    return fs.read ? fs.read(fs.ctx, file, data, size) : 0;
-}
-
-static size_t fileWrite(const FileSystem& fs, void* file, const void* data, size_t size) {
-    return fs.write ? fs.write(fs.ctx, file, data, size) : 0;
-}
-
-static uint32_t fileSize(const FileSystem& fs, void* file) {
-    return fs.size ? fs.size(fs.ctx, file) : 0;
-}
-
-static void fileSync(const FileSystem& fs, void* file) {
-    if(fs.sync) fs.sync(fs.ctx, file);
-}
-
 uint32_t worldArrayBytes(const World& w) {
     return (uint32_t)w.chunksX * (uint32_t)w.chunksZ * CHUNK_BLOCKS;
 }
@@ -81,13 +56,13 @@ uint32_t regionEnd(const World& w) {
 }
 
 bool World::tryOpenAndReadHeader(const char* path) {
-    void* f = fileOpen(*fs, path, FileMode::ReadWriteExisting);
-    if(!f) return false;
+    if(!storage_file_open(file, path, FSAM_READ_WRITE, FSOM_OPEN_EXISTING)) return false;
 
     uint8_t hdr[HEADER_SIZE];
     uint16_t ver = 0;
     uint16_t fileChunksX = 0, fileChunksZ = 0;
-    bool valid = fileSeek(*fs, f, 0) && fileRead(*fs, f, hdr, HEADER_SIZE) == HEADER_SIZE &&
+    bool valid = storage_file_seek(file, 0, true) &&
+                 storage_file_read(file, hdr, HEADER_SIZE) == HEADER_SIZE &&
                  get_u32(hdr + 0) == FCW_MAGIC && (ver = get_u16(hdr + 4)) >= 1 &&
                  ver <= FCW_VERSION && (fileChunksX = get_u16(hdr + 6)) > 0 &&
                  (fileChunksZ = get_u16(hdr + 8)) > 0 && hdr[10] == CHUNK_SIZE &&
@@ -98,13 +73,13 @@ bool World::tryOpenAndReadHeader(const char* path) {
             (uint64_t)HEADER_SIZE + (uint64_t)fileChunksX * (uint64_t)fileChunksZ * CHUNK_BLOCKS;
         uint64_t endSize =
             minSize + INVENTORY_REGION_SIZE + (uint64_t)STORAGE_CAPACITY * STORAGE_SLOT_SIZE;
-        valid = endSize <= std::numeric_limits<uint32_t>::max() && fileSize(*fs, f) >= minSize;
+        valid = endSize <= std::numeric_limits<uint32_t>::max() &&
+                storage_file_size(file) >= minSize;
     }
     if(!valid) {
-        fileClose(*fs, f);
+        storage_file_close(file);
         return false;
     }
-    file = f;
     chunksX = fileChunksX;
     chunksZ = fileChunksZ;
     hdrVersion = ver;
@@ -116,11 +91,15 @@ bool World::tryOpenAndReadHeader(const char* path) {
     return true;
 }
 
-bool World::openWorld(const FileSystem& files, const char* dataPath) {
-    fs = &files;
+bool World::openWorld(const char* dataPath) {
+    storage = static_cast<::Storage*>(furi_record_open(RECORD_STORAGE));
+    file = storage_file_alloc(storage);
     existed = false;
     if(!tryOpenAndReadHeader(dataPath)) {
+        storage_file_free(file);
         file = nullptr;
+        furi_record_close(RECORD_STORAGE);
+        storage = nullptr;
         return false;
     }
     existed = true;
@@ -142,35 +121,36 @@ bool World::openWorld(const FileSystem& files, const char* dataPath) {
 
 bool World::ensureRegion() {
     if(!file) return false;
-    uint32_t sz = fileSize(*fs, file);
+    uint32_t sz = storage_file_size(file);
     uint32_t invBase = inventoryBase(*this);
     uint32_t end = regionEnd(*this);
     if(sz < end) {
         uint8_t zero[256];
         memset(zero, 0, sizeof(zero));
         uint32_t off = (sz < invBase) ? invBase : sz;
-        if(!fileSeek(*fs, file, off)) return false;
+        if(!storage_file_seek(file, off, true)) return false;
         while(off < end) {
             uint32_t n = end - off;
             if(n > sizeof(zero)) n = sizeof(zero);
-            if(fileWrite(*fs, file, zero, n) != n) return false;
+            if(storage_file_write(file, zero, n) != n) return false;
             off += n;
         }
     }
     if(hdrVersion != FCW_VERSION) {
         uint8_t v[2];
         put_u16(v, FCW_VERSION);
-        if(fileSeek(*fs, file, 4) && fileWrite(*fs, file, v, 2) == 2) hdrVersion = FCW_VERSION;
+        if(storage_file_seek(file, 4, true) && storage_file_write(file, v, 2) == 2)
+            hdrVersion = FCW_VERSION;
     }
-    fileSync(*fs, file);
+    storage_file_sync(file);
     return true;
 }
 
 bool World::readInventory(uint8_t* dst, uint32_t n) {
     if(!opened || n + 1 > INVENTORY_REGION_SIZE) return false;
     uint8_t buf[INVENTORY_REGION_SIZE];
-    if(!fileSeek(*fs, file, inventoryBase(*this)) ||
-       fileRead(*fs, file, buf, INVENTORY_REGION_SIZE) != INVENTORY_REGION_SIZE)
+    if(!storage_file_seek(file, inventoryBase(*this), true) ||
+       storage_file_read(file, buf, INVENTORY_REGION_SIZE) != INVENTORY_REGION_SIZE)
         return false;
     if(buf[0] != INVENTORY_MAGIC) return false; // never written -> use defaults
     memcpy(dst, buf + 1, n);
@@ -183,28 +163,29 @@ void World::writeInventory(const uint8_t* src, uint32_t n) {
     memset(buf, 0, sizeof(buf));
     buf[0] = INVENTORY_MAGIC;
     memcpy(buf + 1, src, n);
-    if(fileSeek(*fs, file, inventoryBase(*this))) fileWrite(*fs, file, buf, INVENTORY_REGION_SIZE);
-    fileSync(*fs, file);
+    if(storage_file_seek(file, inventoryBase(*this), true))
+        storage_file_write(file, buf, INVENTORY_REGION_SIZE);
+    storage_file_sync(file);
 }
 
 bool World::readStorageBatch(int first, int count, uint8_t* dst) {
     if(!opened || first < 0 || count <= 0 || first + count > STORAGE_CAPACITY) return false;
     uint32_t off = storageBase(*this) + (uint32_t)first * STORAGE_SLOT_SIZE;
     size_t bytes = (size_t)count * STORAGE_SLOT_SIZE;
-    return fileSeek(*fs, file, off) && fileRead(*fs, file, dst, bytes) == bytes;
+    return storage_file_seek(file, off, true) && storage_file_read(file, dst, bytes) == bytes;
 }
 
 bool World::readStorageSlot(int index, uint8_t* dst) {
     if(!opened || (unsigned)index >= STORAGE_CAPACITY) return false;
     uint32_t off = storageBase(*this) + (uint32_t)index * STORAGE_SLOT_SIZE;
-    return fileSeek(*fs, file, off) &&
-           fileRead(*fs, file, dst, STORAGE_SLOT_SIZE) == STORAGE_SLOT_SIZE;
+    return storage_file_seek(file, off, true) &&
+           storage_file_read(file, dst, STORAGE_SLOT_SIZE) == STORAGE_SLOT_SIZE;
 }
 
 void World::writeStorageSlot(int index, const uint8_t* src) {
     if(!opened || (unsigned)index >= STORAGE_CAPACITY) return;
     uint32_t off = storageBase(*this) + (uint32_t)index * STORAGE_SLOT_SIZE;
-    if(fileSeek(*fs, file, off)) fileWrite(*fs, file, src, STORAGE_SLOT_SIZE);
+    if(storage_file_seek(file, off, true)) storage_file_write(file, src, STORAGE_SLOT_SIZE);
     // No per-write sync: storage slots are flushed while streaming chunks and a
     // FAT sync here stalls the tick. save()/closeWorld() sync the file.
 }
@@ -213,8 +194,8 @@ bool World::flushSlot(int sx, int sz) {
     if(!slotDirty[sx][sz] || slotCX[sx][sz] < 0) return true;
     uint32_t off =
         HEADER_SIZE + (uint32_t)(slotCZ[sx][sz] * chunksX + slotCX[sx][sz]) * CHUNK_BLOCKS;
-    bool ok = fileSeek(*fs, file, off) &&
-              fileWrite(*fs, file, &slot[sx][sz][0][0][0], CHUNK_BLOCKS) == CHUNK_BLOCKS;
+    bool ok = storage_file_seek(file, off, true) &&
+              storage_file_write(file, &slot[sx][sz][0][0][0], CHUNK_BLOCKS) == CHUNK_BLOCKS;
     slotDirty[sx][sz] = false;
     return ok;
 }
@@ -234,8 +215,8 @@ bool World::loadChunkDirect(int cx, int cz) {
     int sx = cx % 3, sz = cz % 3;
     flushSlot(sx, sz);
     uint32_t off = HEADER_SIZE + (uint32_t)(cz * chunksX + cx) * CHUNK_BLOCKS;
-    bool ok = fileSeek(*fs, file, off) &&
-              fileRead(*fs, file, &slot[sx][sz][0][0][0], CHUNK_BLOCKS) == CHUNK_BLOCKS;
+    bool ok = storage_file_seek(file, off, true) &&
+              storage_file_read(file, &slot[sx][sz][0][0][0], CHUNK_BLOCKS) == CHUNK_BLOCKS;
     if(!ok) {
         slotCX[sx][sz] = slotCZ[sx][sz] = -1;
         slotMaxY[sx][sz] = -1;
@@ -255,7 +236,8 @@ bool World::loadRunStaged(int cx0, int cz, int count) {
     uint8_t staging[WINDOW_CHUNKS * CHUNK_BLOCKS];
     uint32_t off = HEADER_SIZE + (uint32_t)(cz * chunksX + cx0) * CHUNK_BLOCKS;
     size_t bytes = (size_t)count * CHUNK_BLOCKS;
-    if(!fileSeek(*fs, file, off) || fileRead(*fs, file, staging, bytes) != bytes) return false;
+    if(!storage_file_seek(file, off, true) || storage_file_read(file, staging, bytes) != bytes)
+        return false;
     for(int i = 0; i < count; i++) {
         int cx = cx0 + i, sx = cx % 3, sz = cz % 3;
         flushSlot(sx, sz);
@@ -344,7 +326,7 @@ void World::save() {
     for(int sx = 0; sx < WINDOW_CHUNKS; sx++)
         for(int sz = 0; sz < WINDOW_CHUNKS; sz++)
             flushSlot(sx, sz);
-    fileSync(*fs, file);
+    storage_file_sync(file);
 }
 
 void World::closeWorld(int px, int py, int pz, uint8_t rot, uint32_t rng) {
@@ -359,11 +341,13 @@ void World::closeWorld(int px, int py, int pz, uint8_t rot, uint32_t rng) {
     buf[12] = rot;
     buf[13] = 0;
     put_u32(buf + 14, rng);
-    if(fileSeek(*fs, file, 18)) fileWrite(*fs, file, buf, sizeof(buf));
-    fileSync(*fs, file);
-    fileClose(*fs, file);
+    if(storage_file_seek(file, 18, true)) storage_file_write(file, buf, sizeof(buf));
+    storage_file_sync(file);
+    storage_file_close(file);
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
     file = nullptr;
-    fs = nullptr;
+    storage = nullptr;
     opened = false;
 }
 }

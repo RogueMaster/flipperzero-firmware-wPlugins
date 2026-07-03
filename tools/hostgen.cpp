@@ -1,10 +1,6 @@
-// Host-side driver for worldgen/gen_core.h: builds the exact generator code
-// that ships in flipcraft_worldgen.fal and writes a .fcw for offline checks.
-//
 //   c++ -std=c++17 -O2 -o /tmp/hostgen tools/hostgen.cpp
 //   /tmp/hostgen out.fcw 16 12345      # chunks per side: 16/32/64/128
-//
-#include "../worldgen/gen_core.h"
+#include "../src/world/gen_core.h"
 
 #include <cstdio>
 #include <cstdlib>

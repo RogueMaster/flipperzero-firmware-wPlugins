@@ -3,7 +3,7 @@
 
 namespace flipcraft {
 
-#include "../assets/textures.inc"
+#include "../../assets/textures.inc"
 
 const uint8_t* texturePacked(int texId) {
     return TEXTURES_PACKED[(uint8_t)texId];

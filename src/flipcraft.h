@@ -3,27 +3,13 @@
 #include <cstdint>
 #include <cmath>
 
+// furi storage handles (opaque here; world.cpp uses the real storage API).
+struct Storage;
+struct File;
+
 namespace flipcraft {
 
-enum class FileMode {
-    Read,
-    WriteTruncate,
-    ReadWriteExisting,
-};
-
-struct FileSystem {
-    void* ctx = nullptr;
-    void* (*open)(void* ctx, const char* path, FileMode mode) = nullptr;
-    void (*close)(void* ctx, void* file) = nullptr;
-    bool (*seek)(void* ctx, void* file, uint32_t offset) = nullptr;
-    size_t (*read)(void* ctx, void* file, void* data, size_t size) = nullptr;
-    size_t (*write)(void* ctx, void* file, const void* data, size_t size) = nullptr;
-    uint32_t (*size)(void* ctx, void* file) = nullptr;
-    void (*sync)(void* ctx, void* file) = nullptr;
-};
-
 struct GameConfig {
-    const FileSystem* files = nullptr;
     const char* worldDataPath = nullptr;
 };
 
@@ -120,7 +106,7 @@ constexpr int STRENGTH_FIST = 4, STRENGTH_WOOD = 5, STRENGTH_STONE = 6, STRENGTH
 constexpr int BLOCKTYPE_STONE = 0, BLOCKTYPE_WOOD = 1, BLOCKTYPE_SOFT = 2,
               BLOCKTYPE_LEAVES = 3, BLOCKTYPE_GLASS = 4, BLOCKTYPE_SAPLING = 5;
 
-// --- Per-block property bitmasks (bit N describes block id N) ---------------
+// Per-block property bitmasks: bit N describes block id N.
 // "Transparent": a face of an adjacent full block is visible through it.
 constexpr uint16_t BLOCKS_TRANSPARENT =
     (1u << BLOCK_AIR) | (1u << BLOCK_LEAVES) | (1u << BLOCK_SAPLING) |
@@ -211,8 +197,8 @@ struct World {
     bool    loadPending = false; // chunks of the current ring still on disk
     uint32_t revision = 0;
 
-    const FileSystem* fs = nullptr;
-    void*   file = nullptr;
+    ::Storage* storage = nullptr;
+    ::File*    file = nullptr;
     bool    opened = false;
     int     chunksX = WORLD_CHUNKS_X, chunksZ = WORLD_CHUNKS_Z;
 
@@ -273,7 +259,7 @@ struct World {
         }
     }
 
-    bool openWorld(const FileSystem& files, const char* dataPath);
+    bool openWorld(const char* dataPath);
     // Keeps the 3x3 chunk ring around the player resident. In the normal
     // (streaming) mode it loads at most one chunk per call so SD latency is
     // spread across ticks instead of stalling one frame; `immediate` loads
