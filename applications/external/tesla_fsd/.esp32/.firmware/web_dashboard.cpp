@@ -925,7 +925,6 @@ function upd(d){
   if(document.getElementById('swNagB')) document.getElementById('swNagB').checked=d.nag_burst;
   if(document.getElementById('swAbrt')) document.getElementById('swAbrt').checked=d.abort_guard;
   if(d.cfg_das_id!==undefined) setSig(d);
-  pmSync(d);
   if(document.getElementById('swBms')) document.getElementById('swBms').checked=d.bms_output;
   if(document.getElementById('swFsd')) document.getElementById('swFsd').checked=d.force_fsd;
   if(document.getElementById('swChina')) document.getElementById('swChina').checked=d.china_mode;
@@ -943,8 +942,6 @@ function upd(d){
     document.getElementById('numSleep').value=Math.floor((d.sleep_ms||0)/1000);
 
   updateControlsSummary(d);
-  bbSync(d);
-  capSync(d);
   pill('dumpSt',d.can_dump,d.can_dump?'Recording':'Idle');
 
   // CAN stats
@@ -1381,12 +1378,27 @@ function toggleHttpLog(){
   else startHttpLog();
 }
 
+// ── Aux status poll (#124) ──
+// blackbox/capability/profile are served on demand from /api/aux, NOT in the
+// hot 1 Hz WS state push. Poll them on a slower timer so the black-box card,
+// Tap Check card and profile suggestion stay live without bloating each push.
+var auxBusy=false;
+function auxPoll(){
+  if(auxBusy)return;
+  auxBusy=true;
+  fetch('/api/aux').then(function(r){return r.json()}).then(function(a){
+    if(a){bbSync(a);capSync(a);pmSync(a);}
+  }).catch(function(){}).then(function(){auxBusy=false;});
+}
+setInterval(auxPoll,2500);
+
 function conn(){
   ws=new WebSocket('ws://'+location.hostname+':81/');
   ws.onopen=function(){
     document.getElementById('dot').className='cdot';
     document.getElementById('connErr').style.display='none';
     clearTimeout(rt);
+    auxPoll();
   };
   ws.onmessage=function(e){ try{var d=JSON.parse(e.data);initWifi(d);upd(d);}catch(x){} };
   ws.onclose=function(){
@@ -1464,11 +1476,11 @@ static String build_json() {
         (state.hw_version == TeslaHW_HW3) ? "HW3: DAS 0x399" :
         (state.hw_version == TeslaHW_Legacy) ? "Legacy: DAS 0x399" :
         "Waiting for HW detection";
-    // Fully-populated payload runs ~2.4-2.6 KB: ~1.4 KB of scalar fields plus
-    // nested blackbox/capability/profile/bms/ota/http_can_stream objects
-    // (capability alone reserves 896). 3 KB avoids per-call String reallocs —
-    // build_json() runs on every WS push and /api/state poll (#124).
-    j.reserve(3072);
+    // Core payload runs ~1.3-1.5 KB of scalar fields plus small bms/ota/
+    // http_can_stream objects — back near the beta.11 shape now that the heavy
+    // blackbox/capability/profile blocks fetch from /api/aux (#124). 1.5 KB
+    // avoids per-call String reallocs; build_json() runs on every WS push.
+    j.reserve(1536);
     j  = "{";
     j += "\"fsd_enabled\":";   j += state.fsd_enabled                 ? "true" : "false"; j += ',';
     j += "\"ap_active\":";     j += state.ap_active                   ? "true" : "false"; j += ',';
@@ -1520,9 +1532,9 @@ static String build_json() {
     j += "\"uptime_s\":";      j += uptime_s;                          j += ',';
     j += "\"fw_build\":\"";    j += __DATE__;  j += ' '; j += __TIME__; j += "\",";
     j += "\"can_dump\":";      j += can_dump_active()                 ? "true" : "false"; j += ',';
-    j += "\"blackbox\":";      j += blackbox_status_json();            j += ',';
-    j += "\"capability\":";    j += capability_status_json();          j += ',';
-    j += "\"profile\":";       j += profile_match_json();               j += ',';
+    // blackbox/capability/profile moved OFF the hot WS state push (#124): they
+    // are large and blackbox_status_json() scans the LittleFS dir every call.
+    // The dashboard polls them on a slower timer via GET /api/aux instead.
     j += "\"sleep_ms\":";     j += state.sleep_idle_ms;               j += ',';
     j += "\"wifi_ssid\":\"";  j += json_escape(state.wifi_ssid);      j += "\",";
     j += "\"wifi_pass\":\"";  j += state.wifi_pass[0] ? "***" : "";  j += "\",";
@@ -1537,6 +1549,21 @@ static String build_json() {
     j += "\"filtered\":";     j += http_can_stream_frames_filtered();  j += ',';
     j += "\"buffered\":";     j += http_can_stream_buffered_frames();  j += "},";
     j += "\"ota_partition\":"; j += ota_part;
+    j += '}';
+    return j;
+}
+
+// Heavy/auxiliary status blocks, served on demand via GET /api/aux and polled
+// by the dashboard on a slow timer — kept OUT of the 1 Hz WS state push (#124)
+// so the hot path stays small and never touches the filesystem. Each helper is
+// self-guarding and always returns a valid JSON object (never an empty string).
+static String build_aux_json() {
+    String j;
+    j.reserve(1536);
+    j  = "{";
+    j += "\"blackbox\":";   j += blackbox_status_json();   j += ',';
+    j += "\"capability\":"; j += capability_status_json(); j += ',';
+    j += "\"profile\":";    j += profile_match_json();
     j += '}';
     return j;
 }
@@ -2001,6 +2028,14 @@ static void handle_status() {
     g_http.send(200, "application/json", build_json());
 }
 
+// On-demand aux status (blackbox/capability/profile). Polled by the dashboard
+// on a slow timer so these heavy blocks stay off the hot WS state push (#124).
+static void handle_aux() {
+    if (g_state == nullptr) { g_http.send(503, "application/json", "{}"); return; }
+    g_http.sendHeader("Cache-Control", "no-store");
+    g_http.send(200, "application/json", build_aux_json());
+}
+
 static void handle_auth() {
     if (!require_admin_auth()) return;
     g_http.send(200, "text/plain", "OK");
@@ -2206,6 +2241,7 @@ void web_dashboard_init(FSDState *state,
 
     g_http.on("/",           HTTP_GET,  handle_root);
     g_http.on("/api/status", HTTP_GET,  handle_status);
+    g_http.on("/api/aux",    HTTP_GET,  handle_aux);
     g_http.on("/auth",       HTTP_GET,  handle_auth);
     g_http.on("/sdformat",   HTTP_GET,  handle_sdformat);
     g_http.on("/blackbox/list", HTTP_GET, handle_blackbox_list);
@@ -2241,6 +2277,7 @@ void web_dashboard_update() {
         g_last_fps_ms = now;
 
         String json = build_json();
+        Serial.printf("[WS] state json=%u bytes\n", (unsigned)json.length());
         g_ws.broadcastTXT(json.c_str(), json.length());
     }
 }
