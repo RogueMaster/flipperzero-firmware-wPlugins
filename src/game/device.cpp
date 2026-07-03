@@ -82,8 +82,25 @@ static void drawCb(Canvas* canvas, void* ctx) {
 
     if(furi_mutex_acquire(st->mutex, 0) != FuriStatusOk) return;
 
+    Game* g = st->game;
     uint8_t* buf = canvas_get_buffer(canvas);
-    if(buf) packFramebuffer(st->game->fb, buf);
+    if(buf) packFramebuffer(g->fb, buf);
+
+    // After a hotbar switch, show the selected item's name where the hearts
+    // sit, drawn with the built-in firmware font (no bundled glyph bitmaps).
+    if(g->screenId == SCR_PLAY && g->hudItemTicks) {
+        const char* name = itemName(g->pl.inventory[g->pl.invSlot]);
+        if(name) {
+            canvas_set_font(canvas, FontSecondary);
+            int bw = (int)canvas_string_width(canvas, name) + 6, bh = 11;
+            int bx = 64 - bw / 2, by = 40;
+            canvas_set_color(canvas, ColorWhite);
+            canvas_draw_box(canvas, bx, by, bw, bh);
+            canvas_set_color(canvas, ColorBlack);
+            canvas_draw_frame(canvas, bx, by, bw, bh);
+            canvas_draw_str_aligned(canvas, 64, by + bh - 2, AlignCenter, AlignBottom, name);
+        }
+    }
 
     furi_mutex_release(st->mutex);
 }

@@ -20,15 +20,36 @@ void Screen2D::number(int x,int y,int d) {
 
 static const uint8_t HEART[7] = {
     0b0110110, 0b1111111, 0b1111111, 0b1111111, 0b0111110, 0b0011100, 0b0001000 };
-    
-void Screen2D::heart(int x,int y,bool full) {
-    for (int r=0;r<7;r++) for (int c=0;c<7;c++) {
-        bool on = HEART[r] & (1<<(6-c));
 
-        bool outline = on && (r==0||r==6|| !( (HEART[r]&(1<<(7-c))) && (HEART[r]&(1<<(5-c))) && (r>0&&(HEART[r-1]&(1<<(6-c)))) && (r<6&&(HEART[r+1]&(1<<(6-c)))) ));
-        bool v = full ? on : outline;
-        if (v) setPixel(x+c,y+r,1);
+// A shape pixel is "body" when all four orthogonal neighbours are also part of
+// the heart; the rest form its 1px border. Full = black body / white border,
+// empty = white body / black border. Every shape pixel is painted, so both are
+// fully opaque and nothing of the scene shows through.
+void Screen2D::heart(int x,int y,bool full) {
+    auto on = [](int r,int c){ return r>=0&&r<7&&c>=0&&c<7 && (HEART[r]&(1<<(6-c))); };
+    for (int r=0;r<7;r++) for (int c=0;c<7;c++) {
+        if (!on(r,c)) continue;
+        bool body = on(r-1,c) && on(r+1,c) && on(r,c-1) && on(r,c+1);
+        setPixel(x+c,y+r, full ? (body?1:0) : (body?0:1));
     }
+}
+
+const char* itemName(uint8_t id) {
+    if (id == 0) return nullptr;                     // empty cell
+    if ((id & 0xF0) == 0x00) return "Dynamite";      // "air, count N" encoding
+    if (id == ITEM_GUNPOWDER) return "Gunpowder";    // "glass, count 0" cell
+    if ((id & 0xF0) == ITEM_NONSTACKABLE) {
+        static const char* const tools[16] = {
+            "Wood Pickaxe","Wood Axe","Wood Shovel","Wood Sword",
+            "Stone Pickaxe","Stone Axe","Stone Shovel","Stone Sword",
+            "Iron Pickaxe","Iron Axe","Iron Shovel","Iron Sword",
+            "Shears","Crafting Table","Furnace","Chest" };
+        return tools[id & 0x0F];
+    }
+    static const char* const mats[16] = {
+        nullptr,"Stick","Dirt","Stone","Cobblestone","Wood Log","Leaves","Planks",
+        "Coal","Iron Ore","Sand","Glass","Sapling","Iron Ingot","Apple",nullptr };
+    return mats[(id >> 4) & 0x0F];
 }
 
 void Screen2D::itemIcon(int x,int y,int itemId) {

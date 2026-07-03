@@ -43,6 +43,9 @@ constexpr int JUMP_AIRTIME         = 2;
 constexpr int SPEEDFACTOR          = 0x40;
 constexpr int RAYCASTMAXLENGTH     = 0x40;
 constexpr int MAXHEALTH            = 8;
+// Ticks the "selected item" tooltip replaces the hearts for after a hotbar
+// switch. At the 80 ms game tick that is ~0.8 s.
+constexpr int HUD_LABEL_TICKS      = 10;
 constexpr int APPLEHEALTH          = 2;
 constexpr int MINFALLDAMAGESPEED   = 32;
 constexpr int FALLDAMAGESCALING    = 0x08;
@@ -307,6 +310,11 @@ struct Framebuffer {
     uint8_t px[SCREEN_HEIGHT][SCREEN_WIDTH];
     void clear() { for (auto& row : px) for (auto& p : row) p = 0; }
 };
+
+// Short human-readable name of an inventory cell, or nullptr for an empty
+// cell. Used by the hotbar tooltip; drawn with the firmware font so no glyph
+// bitmaps are bundled.
+const char* itemName(uint8_t id);
 
 // 8-byte row-packed 8x8 texture: bit `u` of byte `v` is texel (u, v).
 const uint8_t* texturePacked(int texId);

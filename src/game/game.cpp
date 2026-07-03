@@ -603,7 +603,10 @@ void Game::drawHotbar(){
             screen.x1=x+1;screen.y1=y+1;screen.x2=x+8;screen.y2=y+8;screen.clearRect();}
         int it=pl.inventory[i]; if(it){screen.itemIcon(x+2,y+2,it);
             if((it&0xF0)<0xF0){int n=it&0x0F; if(n>0&&n<=9)screen.number(x+6,y+5,n);}}}
-    for(int i=0;i<MAXHEALTH;i++)screen.heart(19+i*6,43,i<(int)pl.health);
+    // While the item tooltip is up it takes the hearts' place (drawn over the
+    // canvas with the firmware font in device.cpp), so skip the hearts.
+    if(!hudItemTicks)
+        for(int i=0;i<MAXHEALTH;i++)screen.heart(19+i*6,43,i<(int)pl.health);
 }
 void Game::finishRender(){
     renderer.clearBuffer(); renderer.setCamRot(pl.rot);
@@ -632,7 +635,8 @@ void Game::finishRender(){
 }
 
 void Game::worldFrame(const Input& in){
-    if(in.slotScroll){int s=pl.invSlot+in.slotScroll; if(s<0)s=4; if(s>4)s=0; pl.invSlot=(uint8_t)s;}
+    if(in.slotScroll){int s=pl.invSlot+in.slotScroll; if(s<0)s=4; if(s>4)s=0; pl.invSlot=(uint8_t)s; hudItemTicks=HUD_LABEL_TICKS;}
+    else if(hudItemTicks) hudItemTicks--;
     handleBreakAndPlace(in);
     if(screenId!=SCR_PLAY)return;
     miscInputs(in);
@@ -764,6 +768,7 @@ uint32_t Game::visualSignature() const {
     for(int i=0;i<15;i++) mix(pl.inventory[i]);
     for(int i=0;i<9;i++) mix(pl.craftGrid[i]);
     mix(pl.craftOutput); mix(pl.invSlot); mix(pl.rot); mix(pl.health);
+    mix(hudItemTicks);   // count-down forces a redraw each tick to age the tooltip
     mix((uint32_t)pl.crouching);
     for(const auto& e:items) if(e.active){ mix((uint32_t)e.id); mix((uint32_t)e.x); mix((uint32_t)e.y); mix((uint32_t)e.z); mix((uint32_t)e.fuse); }
     for(const auto& m:mobs) if(m.active){

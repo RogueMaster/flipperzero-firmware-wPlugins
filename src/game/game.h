@@ -81,6 +81,7 @@ public:
     std::vector<BlockEnt> tiles;
     int loadedTile = -1;
     int score = 0;
+    uint8_t hudItemTicks = 0;   // ticks left showing the switched-item tooltip
 
     float bobTimer = 0.0f;
     float bobAmt   = 0.0f;
