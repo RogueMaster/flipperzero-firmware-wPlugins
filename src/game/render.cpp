@@ -381,6 +381,16 @@ void Renderer::renderBox(float x0,float y0,float z0,float x1,float y1,float z1,
     }
 }
 
+// Lit dynamite entity: full block-size cube, (x,z) centre / y bottom in world
+// sub-pixels; inv flashes the fuse
+void Renderer::renderDynamite(float x,float y,float z,uint8_t inv) {
+    const int bxc = ifloor(x*(1.0f/16.0f)), bzc = ifloor(z*(1.0f/16.0f));
+    if (bxc < winX0 || bxc > winX1 || bzc < winZ0 || bzc > winZ1) return;
+    static const uint8_t tex[6] = {TEX_DYNAMITE,TEX_DYNAMITE,TEX_DYNAMITE,TEX_DYNAMITE,
+                                   TEX_DYNAMITETOP,TEX_DYNAMITETOP};
+    renderBox(x-8.0f, y, z-8.0f, x+8.0f, y+16.0f, z+8.0f, tex, TS_CULLBACK ^ inv, 2);
+}
+
 // (x,y,z) feet centre in world sub-pixels; face = world side local +Z points
 // at (NEGX,POSX,NEGZ,POSZ = 0..3); inv = 0 or TS_INVERTED; sc16 = scale*16
 void Renderer::renderMob(float x,float y,float z,uint8_t species,uint8_t face,uint8_t inv,uint8_t sc16) {

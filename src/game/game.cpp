@@ -619,9 +619,12 @@ void Game::finishRender(){
         int tex = f.isChest?TEX_CHESTFRONT:(f.lit?TEX_FURNACEFRONTON:TEX_FURNACEFRONTOFF);
         renderer.renderFace(f.bx,f.by,f.bz,(uint8_t)tex,f.dir&3,false);
     }
-    for(auto& e:items) if(e.active)
-        renderer.renderItem(e.x/16.0f,e.y/16.0f,e.z/16.0f,(uint8_t)e.id,
-                            (uint8_t)(e.id==ENTITY_LITDYNAMITE?(e.fuse&1)<<1:0));
+    for(auto& e:items) if(e.active){
+        if(e.id==ENTITY_LITDYNAMITE)
+            renderer.renderDynamite((float)e.x,(float)e.y,(float)e.z,(uint8_t)((e.fuse&1)<<1));
+        else
+            renderer.renderItem(e.x/16.0f,e.y/16.0f,e.z/16.0f,(uint8_t)e.id);
+    }
     for(const auto& m:mobs) if(m.active){
         int sc16=16;   // fusing exploder swells to ~1.4x at detonation
         if((mobSpec(m.species).info&1) && m.cool)

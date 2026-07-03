@@ -142,8 +142,7 @@ static void initMesh() {
       g_blockMesh[BLOCK_CHEST] = e; g_itemMesh[BLOCK_CHEST] = e; }
 
     g_blockMesh[BLOCK_DYNAMITE] = makeCube(TEX_DYNAMITETOP,0b1000,TEX_DYNAMITETOP,0b1000,TEX_DYNAMITE,0b1000,true,TEX_DYNAMITE,0b1000);
-    g_itemMesh[ENTITY_DYNAMITE]    = g_blockMesh[BLOCK_DYNAMITE];
-    g_itemMesh[ENTITY_LITDYNAMITE] = g_blockMesh[BLOCK_DYNAMITE];
+    g_itemMesh[ENTITY_DYNAMITE] = g_blockMesh[BLOCK_DYNAMITE];
 
     { MeshEntry e; e.exists = true;
       setTextures(e, {{TEX_COALITEMLIGHT,0b1100},{TEX_COALITEMDARK,0b1110}});
