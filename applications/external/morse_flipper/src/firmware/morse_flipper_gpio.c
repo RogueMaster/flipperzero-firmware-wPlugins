@@ -89,12 +89,26 @@ MorseFlipperGpioRule morse_flipper_gpio_validate(uint8_t dit, uint8_t dah, uint8
     return MorseFlipperGpioRuleOk;
 }
 
+MorseFlipperGpioRule
+    morse_flipper_gpio_validate_with_ptt(uint8_t dit, uint8_t dah, uint8_t ground, uint8_t ptt) {
+    MorseFlipperGpioRule rule = morse_flipper_gpio_validate(dit, dah, ground);
+
+    if(rule != MorseFlipperGpioRuleOk) return rule;
+    if(ptt == MORSE_FLIPPER_GPIO_PIN_NONE) return MorseFlipperGpioRuleOk;
+    if(ptt != MorseFlipperGpioPinP16) return MorseFlipperGpioRuleBadIndex;
+    if(ptt == dit || ptt == dah || ptt == ground) return MorseFlipperGpioRulePttShared;
+
+    return MorseFlipperGpioRuleOk;
+}
+
 const char* morse_flipper_gpio_rule_text(MorseFlipperGpioRule rule) {
     switch(rule) {
     case MorseFlipperGpioRulePaddlesSharePin:
         return "Dit and dah must differ.";
     case MorseFlipperGpioRuleGroundShared:
         return "Virtual gnd must stay unique.";
+    case MorseFlipperGpioRulePttShared:
+        return "PTT/TX must stay unique.";
     case MorseFlipperGpioRuleBadIndex:
         return "That GPIO choice is not valid.";
     default:
@@ -148,7 +162,7 @@ static const GpioPin* morse_flipper_gpio_ptt_pin_ptr(const MorseFlipperApp* app)
 
     ptt = app->gpio_ptt_idx;
     if(ptt == MORSE_FLIPPER_GPIO_PIN_NONE) return NULL;
-    if(ptt != MorseFlipperGpioPinP15) return NULL;
+    if(ptt != MorseFlipperGpioPinP16) return NULL;
     if(ptt == morse_flipper_gpio_straight_idx(app) || ptt == app->gpio_dit_idx ||
        ptt == app->gpio_dah_idx || ptt == app->gpio_ground_idx)
         return NULL;
@@ -175,11 +189,15 @@ void morse_flipper_gpio_reset_candidates(void) {
 }
 
 void morse_flipper_gpio_apply(MorseFlipperApp* app) {
+    const GpioPin* ham_key_pin = morse_flipper_gpio_pins[MorseFlipperGpioPinP15];
+
     morse_flipper_gpio_bind_from_app(app);
     morse_flipper_gpio_reset_candidates();
 
     furi_hal_gpio_init(morse_flipper_dit_pin, GpioModeInput, GpioPullUp, GpioSpeedLow);
     furi_hal_gpio_init(morse_flipper_dah_pin, GpioModeInput, GpioPullUp, GpioSpeedLow);
+    furi_hal_gpio_init(ham_key_pin, GpioModeOutputPushPull, GpioPullNo, GpioSpeedLow);
+    furi_hal_gpio_write(ham_key_pin, false);
     if(morse_flipper_ground_pin != NULL) {
         furi_hal_gpio_init(
             morse_flipper_ground_pin, GpioModeOutputPushPull, GpioPullNo, GpioSpeedLow);
@@ -192,6 +210,7 @@ void morse_flipper_gpio_apply(MorseFlipperApp* app) {
     }
 
     if(app != NULL) {
+        app->ham.key_level = false;
         app->ptt_level = false;
         app->ptt_tail_until = 0U;
     }
@@ -220,7 +239,7 @@ bool morse_flipper_gpio_try_apply(
     uint8_t ground,
     uint8_t ptt,
     MorseFlipperGpioRule* out_rule) {
-    MorseFlipperGpioRule rule = morse_flipper_gpio_validate(dit, dah, ground);
+    MorseFlipperGpioRule rule = morse_flipper_gpio_validate_with_ptt(dit, dah, ground, ptt);
 
     if(out_rule != NULL) {
         *out_rule = rule;
@@ -233,7 +252,7 @@ bool morse_flipper_gpio_try_apply(
     app->gpio_dit_idx = dit;
     app->gpio_dah_idx = dah;
     app->gpio_ground_idx = ground;
-    app->gpio_ptt_idx = ptt == MorseFlipperGpioPinP15 ? MorseFlipperGpioPinP15 :
+    app->gpio_ptt_idx = ptt == MorseFlipperGpioPinP16 ? MorseFlipperGpioPinP16 :
                                                         MORSE_FLIPPER_GPIO_PIN_NONE;
     morse_flipper_gpio_sync_straight_idx(app);
     morse_flipper_gpio_apply(app);
@@ -273,20 +292,28 @@ void morse_flipper_sync_ptt(MorseFlipperApp* app, uint32_t now_ms) {
         return;
     }
 
-    if(app->screen != MorseFlipperScreenRun || morse_flipper_ptt_pin == NULL) {
+    if(app->screen != MorseFlipperScreenRun) {
         app->ptt_tail_until = 0U;
+        want_key = false;
         want_high = false;
     } else {
-        tx_active = (app->note_sources[0] != 0U) || (app->note_sources[1] != 0U) ||
-                    (app->note_sources[2] != 0U) || (app->preview_ticks > 0U);
-        if(tx_active)
+        want_key = (app->note_sources[0] != 0U) || (app->note_sources[1] != 0U) ||
+                   (app->note_sources[2] != 0U);
+        tx_active = want_key || (app->preview_ticks > 0U);
+        if(morse_flipper_ptt_pin != NULL && tx_active)
             app->ptt_tail_until = now_ms + ((uint32_t)morse_flipper_current_dit_ms(app) * 7U);
-        want_high = tx_active || (app->ptt_tail_until != 0U && now_ms < app->ptt_tail_until);
+        want_high = morse_flipper_ptt_pin != NULL &&
+                    (tx_active || (app->ptt_tail_until != 0U && now_ms < app->ptt_tail_until));
         if(!want_high) app->ptt_tail_until = 0U;
     }
 
-    if(app->ptt_level == want_high) return;
-    if(morse_flipper_ptt_pin != NULL) furi_hal_gpio_write(morse_flipper_ptt_pin, want_high);
-    app->ptt_level = want_high;
+    if(app->ham.key_level != want_key) {
+        furi_hal_gpio_write(ham_key_pin, want_key);
+        app->ham.key_level = want_key;
+    }
+    if(app->ptt_level != want_high) {
+        if(morse_flipper_ptt_pin != NULL) furi_hal_gpio_write(morse_flipper_ptt_pin, want_high);
+        app->ptt_level = want_high;
+    }
 }
 #endif

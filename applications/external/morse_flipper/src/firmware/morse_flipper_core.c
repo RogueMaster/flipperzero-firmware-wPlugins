@@ -93,18 +93,23 @@ void morse_flipper_sync_backlight(MorseFlipperApp* app, uint32_t now_ms) {
 
 void morse_flipper_sync_signal_led(MorseFlipperApp* app, bool on) {
     bool red;
+    bool green;
 
     if(app == NULL) return;
 
     red = on && app->session_result_tone;
-    if(app->signal_led_on == on && app->signal_led_red == red) return;
+    green = on && app->session_result_good && app->session_result_until != 0U &&
+            furi_get_tick() < app->session_result_until;
+    if(app->signal_led_on == on && app->signal_led_red == red && app->signal_led_green == green)
+        return;
 
     app->signal_led_on = on;
     app->signal_led_red = red;
+    app->signal_led_green = green;
     if(on) {
         furi_hal_light_set(LightBlue, 0U);
-        furi_hal_light_set(LightGreen, red ? 0U : 96U);
-        furi_hal_light_set(LightRed, 255U);
+        furi_hal_light_set(LightGreen, green ? 255U : (red ? 0U : 96U));
+        furi_hal_light_set(LightRed, green ? 0U : 255U);
     } else {
         furi_hal_light_set(LightRed | LightGreen | LightBlue, 0U);
     }

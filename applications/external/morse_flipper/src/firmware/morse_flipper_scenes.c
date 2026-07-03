@@ -74,11 +74,7 @@ static void morse_flipper_scene_menu_training_on_enter(void* context) {
     morse_flipper_scene_enter_now(app, MorseFlipperSceneMenuTraining);
     submenu_set_header(app->submenu, "Training");
     submenu_add_item(
-        app->submenu,
-        "Koch - LCWO groups",
-        MorseFlipperSceneSession,
-        morse_flipper_scene_menu_pick,
-        app);
+        app->submenu, "Listening", MorseFlipperSceneSession, morse_flipper_scene_menu_pick, app);
     submenu_add_item(
         app->submenu,
         "Straight trainer",
@@ -136,7 +132,7 @@ static void morse_flipper_scene_menu_settings_on_enter(void* context) {
         morse_flipper_scene_menu_pick,
         app);
     submenu_add_item(
-        app->submenu, "Koch - LCWO", MorseFlipperSceneTrainer, morse_flipper_scene_menu_pick, app);
+        app->submenu, "Listening", MorseFlipperSceneTrainer, morse_flipper_scene_menu_pick, app);
     submenu_add_item(
         app->submenu,
         "Straight trainer",
@@ -723,7 +719,7 @@ static bool morse_flipper_scene_help_on_event(void* context, SceneManagerEvent e
     }
 
     if(event.type != SceneManagerEventTypeCustom) return false;
-    n = morse_flipper_help_card_count(app->help_topic);
+    n = morse_flipper_help_card_count(app);
     if(event.event == MorseFlipperCustomHelpPrev) {
         if(app->help_page > 0U) {
             app->help_page--;

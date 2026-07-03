@@ -1,0 +1,17 @@
+There are sites like https:x6x6vail.woozle.org, V-band or iCW let you practise with other people using a real paddle.
+---
+To do this, you need a com~puter adapter for your SK or paddle. This app can emulate an adapter for CW practice sites. You can still use the Flipper's buttons if you must.
+---
+Most simple adapters lie to the computer and pretend to be a keyboard or mouse. That is how they get a key or paddle in. The fancy word for doing this is emulation.
+---
+The site reads those key presses, generates audio for your speakers, and sends your keypresses, as Morse, to the other participants.
+---
+The nicer modern option is MIDI: lower latency, quicker response, and better timing between the browser and the adapter.
+---
+A MIDI adapter lets you keep that Vail browser tab in the background and do other things with your browser.
+---
+This app supports a Vail style MIDI adapter properly, in~cluding keyers, WPM and tone control.
+---
+You do not need a callsign to practise on those sites, nor a transmitter. The experience is similar to a real QSO and worth it - especially if you are still afraid of your first live transmission on the bands.
+---
+CW has its own language. If you want to operate on those sites, you will be expected to understand it. Read "A com~plete Morse contact" to understand it.

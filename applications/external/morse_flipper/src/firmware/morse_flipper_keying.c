@@ -76,6 +76,9 @@ static bool morse_flipper_signal_led_level(const MorseFlipperApp* app, bool want
     if(app == NULL) return false;
 
     /* Result tone is red; playback marks are orange. Both deliberately bypass TX state. */
+    if(app->session_result_good && app->session_result_until != 0U &&
+       furi_get_tick() < app->session_result_until)
+        return true;
     if(app->session_result_tone) return true;
     if(app->trainer_playback_mark || app->straight_playback_mark) return true;
 

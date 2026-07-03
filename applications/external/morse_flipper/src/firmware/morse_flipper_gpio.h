@@ -29,6 +29,7 @@ typedef enum {
     MorseFlipperGpioRuleBadIndex,
     MorseFlipperGpioRulePaddlesSharePin,
     MorseFlipperGpioRuleGroundShared,
+    MorseFlipperGpioRulePttShared,
 } MorseFlipperGpioRule;
 
 bool morse_flipper_gpio_pin_valid(uint8_t pin_idx);
@@ -39,5 +40,7 @@ uint8_t morse_flipper_gpio_default_dah(void);
 uint8_t morse_flipper_gpio_default_ground(void);
 
 MorseFlipperGpioRule morse_flipper_gpio_validate(uint8_t dit, uint8_t dah, uint8_t ground);
+MorseFlipperGpioRule
+    morse_flipper_gpio_validate_with_ptt(uint8_t dit, uint8_t dah, uint8_t ground, uint8_t ptt);
 
 const char* morse_flipper_gpio_rule_text(MorseFlipperGpioRule rule);

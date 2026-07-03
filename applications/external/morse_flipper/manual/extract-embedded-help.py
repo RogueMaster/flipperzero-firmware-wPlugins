@@ -7,23 +7,23 @@ import re
 import sys
 
 root = pathlib.Path(__file__).resolve().parents[1]
-help_c = root / "src" / "firmware" / "morse_flipper_help.c"
+help_dir = root / "assets" / "help"
 out_md = root / "manual" / "internal-help.md"
 esc = "\x1b"
 skip_md5 = "622ada3310f55b86677b2ac6a346ba81"
 
 chapters = [
-    ("First steps", "morse_help_first_steps"),
-    ("Input & keys", "morse_help_input_keys"),
-    ("Connecting the paddle", "morse_help_connecting_paddle"),
-    ("How to practice", "morse_help_practice"),
-    ("Prepping", "morse_help_prepping"),
-    ("A complete Morse contact", "morse_help_contact"),
-    ("Contesting", "morse_help_contesting"),
-    ("USB & live practice", "morse_help_usb_live"),
-    ("Ham usage", "morse_help_ham_usage"),
-    ("Troubleshooting", "morse_help_troubleshooting"),
-    ("Moving forward", "morse_help_moving_forward"),
+    ("First steps", "01-first-steps"),
+    ("Input & keys", "02-input-and-keys"),
+    ("Connecting the paddle", "03-connecting-the-paddle"),
+    ("How to practice", "04-how-to-practice"),
+    ("Prepping", "05-prepping"),
+    ("A complete Morse contact", "06-a-complete-morse-contact"),
+    ("Contesting", "07-contesting"),
+    ("USB & live practice", "08-usb-and-live-practice"),
+    ("Ham usage", "09-ham-usage"),
+    ("Troubleshooting", "10-troubleshooting"),
+    ("Moving forward", "11-moving-forward"),
 ]
 
 glyph = {
@@ -36,58 +36,11 @@ glyph = {
 }
 
 
-def cstr(s):
-    s = s[1:-1]
-    r = ""
-    i = 0
-    while i < len(s):
-        if s[i] != "\\":
-            r += s[i]
-            i += 1
-            continue
-        i += 1
-        if i >= len(s):
-            r += "\\"
-            break
-        c = s[i]
-        if c == "n":
-            r += "\n"
-        elif c == "r":
-            r += "\r"
-        elif c == "t":
-            r += "\t"
-        elif c == "e":
-            r += esc
-        elif c in ['"', "'", "\\"]:
-            r += c
-        elif c == "x":
-            h = s[i + 1 : i + 3]
-            if re.match(r"^[0-9a-fA-F]{2}$", h):
-                r += chr(int(h, 16))
-                i += 2
-            else:
-                r += c
-        elif c in "01234567":
-            j = i
-            while j < len(s) and j < i + 3 and s[j] in "01234567":
-                j += 1
-            r += chr(int(s[i:j], 8))
-            i = j - 1
-        else:
-            r += c
-        i += 1
-    return r
-
-
-def cards(name, src):
-    m = re.search(
-        r"static const char\* const " + re.escape(name) + r"\[\] = \{(.*?)\};",
-        src,
-        re.S,
-    )
-    if not m:
-        raise SystemExit("missing array")
-    return [cstr(x) for x in re.findall(r'"(?:\\.|[^"\\])*"', m.group(1))]
+def cards(name):
+    p = help_dir / name
+    if not p.exists():
+        raise SystemExit("missing " + name)
+    return [x.strip("\r\n") for x in re.split(r"(?m)^---$", p.read_text())]
 
 
 def iconize(s):
@@ -117,6 +70,21 @@ def iconize(s):
     return r
 
 
+def strip_soft_breaks(s):
+    r = ""
+    i = 0
+    while i < len(s):
+        if s[i] == "~":
+            i += 1
+            if i < len(s) and s[i] == "~":
+                r += "~"
+                i += 1
+            continue
+        r += s[i]
+        i += 1
+    return r
+
+
 def fmt_line(s):
     bold = False
     mono = False
@@ -130,7 +98,7 @@ def fmt_line(s):
         elif c not in "lcr":
             break
         s = s[2:].lstrip()
-    s = iconize(s)
+    s = strip_soft_breaks(iconize(s))
     s = re.sub(r"\s+", " ", s).strip()
     s = s.replace(r"\_", "_").replace(r"\`", "`")
     s = re.sub(r"__(.+?)__", r"**\1**", s)
@@ -174,7 +142,6 @@ def must_link(s, old, new):
     return s.replace(old, new)
 
 
-src = help_c.read_text()
 md = [
     "# Internal Help",
     "",
@@ -183,7 +150,7 @@ md = [
 ]
 for title, name in chapters:
     md += ["## " + title, ""]
-    for card in cards(name, src):
+    for card in cards(name):
         if show_card(card):
             md += render_card(card)
     md.append("")

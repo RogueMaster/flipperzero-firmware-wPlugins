@@ -119,8 +119,10 @@ typedef struct {
     uint16_t mono_atoms;
     uint16_t sanitized;
     uint16_t unknown_icons;
+    uint16_t microfit_lines;
     int16_t last_extra_gap_px;
     int16_t last_line_width;
+    int16_t last_microfit_shrink_px;
 } CwmdTestStats;
 
 void cwmd_test_stats(Canvas* canvas, const CwmdConfig* cfg, const char* text, CwmdTestStats* out);

@@ -436,16 +436,26 @@ static void morse_usb_midi_init(usbd_device* dev, FuriHalUsbInterface* intf, voi
 }
 
 static void morse_usb_midi_deinit(usbd_device* dev) {
-    morse_usb_midi_state.connected = false;
-    morse_usb_midi_state.dev = NULL;
+    FuriSemaphore* tx_sem;
 
-    if(morse_usb_midi_state.tx_sem != NULL) {
-        furi_semaphore_free(morse_usb_midi_state.tx_sem);
-        morse_usb_midi_state.tx_sem = NULL;
-    }
+    morse_usb_midi_state.connected = false;
+
+    usbd_reg_endpoint(dev, MORSE_USB_MIDI_EP_OUT, NULL);
+    usbd_reg_endpoint(dev, MORSE_USB_MIDI_EP_IN, NULL);
+    usbd_ep_deconfig(dev, MORSE_USB_MIDI_EP_OUT);
+    usbd_ep_deconfig(dev, MORSE_USB_MIDI_EP_IN);
+    morse_usb_midi_reset_tx_sem();
 
     usbd_reg_config(dev, NULL);
     usbd_reg_control(dev, NULL);
+
+    tx_sem = morse_usb_midi_state.tx_sem;
+    morse_usb_midi_state.tx_sem = NULL;
+    if(tx_sem != NULL) {
+        furi_semaphore_free(tx_sem);
+    }
+
+    morse_usb_midi_state.dev = NULL;
 }
 
 static void morse_usb_midi_wakeup(usbd_device* dev) {
@@ -496,10 +506,10 @@ static void morse_usb_midi_ep_event(usbd_device* dev, uint8_t event, uint8_t ep)
     UNUSED(dev);
     UNUSED(ep);
 
-    if(event == usbd_evt_eptx) {
+    if(event == usbd_evt_eptx && morse_usb_midi_state.tx_sem != NULL) {
         furi_semaphore_release(morse_usb_midi_state.tx_sem);
     } else if(event == usbd_evt_eprx) {
-        if(morse_usb_midi_state.rx_callback != NULL) {
+        if(morse_usb_midi_state.connected && morse_usb_midi_state.rx_callback != NULL) {
             morse_usb_midi_state.rx_callback(morse_usb_midi_state.context);
         }
     }

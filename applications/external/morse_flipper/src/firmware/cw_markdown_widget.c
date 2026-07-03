@@ -10,20 +10,24 @@
 #include <stddef.h>
 #include <string.h>
 
-#define CWMD_SCREEN_W           128U
-#define CWMD_SCREEN_H           64U
-#define CWMD_CHROME_H           13U
-#define CWMD_SCROLL_W           1U
-#define CWMD_SCROLL_GAP         2U
-#define CWMD_MAX_ITEMS          24U
-#define CWMD_ITEM_TEXT          24U
-#define CWMD_BULLET_INDENT      8U
-#define CWMD_BULLET_SIZE        4U
-#define CWMD_JUSTIFY_MIN_NUM    4U
-#define CWMD_JUSTIFY_MIN_DEN    5U
-#define CWMD_WORD_GAP_MIN       3U
-#define CWMD_JUSTIFY_MAX_GAP    12U
-#define CWMD_SCROLL_PX_PER_TICK 1U
+#define CWMD_SCREEN_W            128U
+#define CWMD_SCREEN_H            64U
+#define CWMD_CHROME_H            13U
+#define CWMD_SCROLL_W            1U
+#define CWMD_SCROLL_GAP          2U
+#define CWMD_MAX_ITEMS           24U
+#define CWMD_ITEM_TEXT           24U
+#define CWMD_SOFT_BREAKS_MAX     8U
+#define CWMD_BULLET_INDENT       8U
+#define CWMD_BULLET_SIZE         4U
+#define CWMD_JUSTIFY_MIN_NUM     4U
+#define CWMD_JUSTIFY_MIN_DEN     5U
+#define CWMD_JUSTIFY_MIN_GAPS    2U
+#define CWMD_WORD_GAP_MIN        3U
+#define CWMD_JUSTIFY_MAX_GAP     12U
+#define CWMD_MICROFIT_GAP_MIN    2U
+#define CWMD_MICROFIT_MAX_SHRINK 2U
+#define CWMD_SCROLL_PX_PER_TICK  1U
 
 typedef enum {
     CwmdItemText = 0,
@@ -41,6 +45,8 @@ typedef struct {
     CwmdStyle style;
     const CwmdIcon* icon;
     uint16_t width;
+    uint8_t soft_break_count;
+    uint8_t soft_breaks[CWMD_SOFT_BREAKS_MAX];
     char text[CWMD_ITEM_TEXT];
 } CwmdItem;
 
@@ -55,6 +61,7 @@ typedef struct {
     bool hard_empty;
     CwmdAlign align;
     CwmdStyle line_style;
+    uint8_t microfit_shrink;
 } CwmdLine;
 
 typedef struct {
@@ -65,6 +72,8 @@ typedef struct {
     CwmdAlign align;
     CwmdStyle line_style;
     CwmdStyle inline_style;
+    bool has_pending_item;
+    CwmdItem pending_item;
 #ifdef CWMD_HOST_TEST
     CwmdTestStats* stats;
 #endif
@@ -274,6 +283,12 @@ static bool
     uint8_t n;
 
     memset(item, 0, sizeof(*item));
+    if(parser->has_pending_item) {
+        *item = parser->pending_item;
+        parser->has_pending_item = false;
+        memset(&parser->pending_item, 0, sizeof(parser->pending_item));
+        return true;
+    }
     if(*parser->p == '\0' || *parser->p == '\n') return false;
 
     if(*parser->p == ' ' || *parser->p == '\t') {
@@ -327,7 +342,20 @@ static bool
             break;
         }
 
-        ch = *parser->p++;
+        if(*parser->p == '~') {
+            parser->p++;
+            if(*parser->p == '~') {
+                ch = '~';
+                parser->p++;
+            } else {
+                if(n > 0U && item->soft_break_count < CWMD_SOFT_BREAKS_MAX) {
+                    item->soft_breaks[item->soft_break_count++] = n;
+                }
+                continue;
+            }
+        } else {
+            ch = *parser->p++;
+        }
         if((uint8_t)ch < 32U || (uint8_t)ch > 127U) {
             ch = '?';
 #ifdef CWMD_HOST_TEST
@@ -337,6 +365,9 @@ static bool
         item->text[n++] = ch;
     }
     item->text[n] = '\0';
+    while(item->soft_break_count > 0U && item->soft_breaks[item->soft_break_count - 1U] >= n) {
+        item->soft_break_count--;
+    }
     item->width = cwmd_text_width(canvas, style, item->text);
     return n != 0U;
 }
@@ -354,6 +385,137 @@ static void cwmd_trim_trailing_gaps(CwmdLine* line) {
     }
 }
 
+static bool cwmd_microfit_is_punctuation(char ch) {
+    return ch == '.' || ch == '?' || ch == '!' || ch == ',' || ch == ';' || ch == ':';
+}
+
+static bool cwmd_microfit_gap_is_shrinkable(const CwmdLine* line, uint8_t index) {
+    return index < line->item_count && line->items[index].type == CwmdItemGap &&
+           line->items[index].width > CWMD_MICROFIT_GAP_MIN;
+}
+
+static bool cwmd_microfit_gap_after_punctuation(const CwmdLine* line, uint8_t index) {
+    const CwmdItem* prev;
+    size_t len;
+
+    if(index == 0U || !cwmd_microfit_gap_is_shrinkable(line, index)) return false;
+    prev = &line->items[index - 1U];
+    if(prev->type != CwmdItemText) return false;
+    len = strlen(prev->text);
+    if(len == 0U) return false;
+    return cwmd_microfit_is_punctuation(prev->text[len - 1U]);
+}
+
+static bool cwmd_microfit_plan_has(const uint8_t* plan, uint8_t count, uint8_t index) {
+    uint8_t i;
+
+    for(i = 0U; i < count; i++) {
+        if(plan[i] == index) return true;
+    }
+    return false;
+}
+
+static bool cwmd_microfit_collect_plan(const CwmdLine* line, uint8_t needed, uint8_t* plan) {
+    uint8_t count = 0U;
+    int16_t i;
+
+    for(i = (int16_t)line->item_count - 1; i >= 0 && count < needed; i--) {
+        if(cwmd_microfit_gap_after_punctuation(line, (uint8_t)i)) {
+            plan[count++] = (uint8_t)i;
+        }
+    }
+
+    for(i = (int16_t)line->item_count - 1; i >= 0 && count < needed; i--) {
+        if(cwmd_microfit_gap_is_shrinkable(line, (uint8_t)i) &&
+           !cwmd_microfit_plan_has(plan, count, (uint8_t)i)) {
+            plan[count++] = (uint8_t)i;
+        }
+    }
+
+    return count == needed;
+}
+
+static bool
+    cwmd_microfit_line_for_item(CwmdLine* line, const CwmdItem* item, uint16_t line_width) {
+    uint16_t prospective;
+    uint16_t overflow_full;
+    uint8_t overflow;
+    uint8_t remaining;
+    uint8_t plan[CWMD_MICROFIT_MAX_SHRINK];
+    uint8_t i;
+
+    prospective = (uint16_t)(line->width + item->width);
+    if(prospective <= line_width) return true;
+    if(item->type == CwmdItemGap) return false;
+    if(line->align != CwmdAlignJustify || line->bullet || line->line_style.mono) return false;
+    if(line->microfit_shrink >= CWMD_MICROFIT_MAX_SHRINK) return false;
+
+    overflow_full = (uint16_t)(prospective - line_width);
+    remaining = (uint8_t)(CWMD_MICROFIT_MAX_SHRINK - line->microfit_shrink);
+    if(overflow_full > remaining) return false;
+    overflow = (uint8_t)overflow_full;
+    if(!cwmd_microfit_collect_plan(line, overflow, plan)) return false;
+
+    for(i = 0U; i < overflow; i++) {
+        line->items[plan[i]].width--;
+        line->width--;
+    }
+    line->microfit_shrink = (uint8_t)(line->microfit_shrink + overflow);
+    return true;
+}
+
+static bool cwmd_soft_split_item(
+    Canvas* canvas,
+    const CwmdLine* line,
+    const CwmdItem* item,
+    uint16_t line_width,
+    CwmdItem* prefix,
+    CwmdItem* suffix) {
+    size_t len;
+    uint16_t available;
+    uint16_t prefix_width;
+    uint8_t split_pos;
+    int16_t i;
+    uint8_t j;
+
+    if(item->type != CwmdItemText || item->soft_break_count == 0U) return false;
+    if(line->width >= line_width) return false;
+    available = (uint16_t)(line_width - line->width);
+    len = strlen(item->text);
+
+    for(i = (int16_t)item->soft_break_count - 1; i >= 0; i--) {
+        split_pos = item->soft_breaks[i];
+        if(split_pos == 0U || split_pos >= len || split_pos + 2U > CWMD_ITEM_TEXT) continue;
+
+        memset(prefix, 0, sizeof(*prefix));
+        prefix->type = CwmdItemText;
+        prefix->style = item->style;
+        memcpy(prefix->text, item->text, split_pos);
+        prefix->text[split_pos] = '-';
+        prefix->text[split_pos + 1U] = '\0';
+        prefix_width = cwmd_text_width(canvas, item->style, prefix->text);
+        if(prefix_width > available) continue;
+        prefix->width = prefix_width;
+
+        memset(suffix, 0, sizeof(*suffix));
+        suffix->type = CwmdItemText;
+        suffix->style = item->style;
+        strncpy(suffix->text, item->text + split_pos, CWMD_ITEM_TEXT - 1U);
+        suffix->text[CWMD_ITEM_TEXT - 1U] = '\0';
+        suffix->width = cwmd_text_width(canvas, item->style, suffix->text);
+        for(j = 0U; j < item->soft_break_count; j++) {
+            if(item->soft_breaks[j] > split_pos && item->soft_breaks[j] < len &&
+               suffix->soft_break_count < CWMD_SOFT_BREAKS_MAX) {
+                suffix->soft_breaks[suffix->soft_break_count++] =
+                    (uint8_t)(item->soft_breaks[j] - split_pos);
+            }
+        }
+        return true;
+    }
+
+    return false;
+}
+
 static bool cwmd_build_line(
     Canvas* canvas,
     const CwmdConfig* cfg,
@@ -363,7 +525,10 @@ static bool cwmd_build_line(
     uint16_t line_width = avail_width;
     CwmdParser saved;
     CwmdItem item;
+    CwmdItem prefix;
+    CwmdItem suffix;
     bool have_item = false;
+    bool split_line;
 
     /* Snapshot before each atom so overflow can hand the word to the next line intact. */
     memset(line, 0, sizeof(*line));
@@ -378,8 +543,8 @@ static bool cwmd_build_line(
                          line_width;
     }
 
-    if(*parser->p == '\0') return false;
-    if(*parser->p == '\n') {
+    if(!parser->has_pending_item && *parser->p == '\0') return false;
+    if(!parser->has_pending_item && *parser->p == '\n') {
         parser->p++;
         cwmd_parser_reset(parser);
         line->ended_logical = true;
@@ -387,17 +552,34 @@ static bool cwmd_build_line(
         return true;
     }
 
-    while(*parser->p != '\0' && *parser->p != '\n') {
+    while(parser->has_pending_item || (*parser->p != '\0' && *parser->p != '\n')) {
         saved = *parser;
         if(!cwmd_next_item(canvas, cfg, parser, &item)) break;
         if(item.type == CwmdItemGap && !have_item) continue;
 
-        if(have_item && (uint16_t)(line->width + item.width) > line_width) {
+        if(line->item_count >= CWMD_MAX_ITEMS) {
             *parser = saved;
             break;
         }
 
-        if(line->item_count >= CWMD_MAX_ITEMS) {
+        split_line = false;
+        if((uint16_t)(line->width + item.width) > line_width) {
+            bool fits_after_microfit = have_item &&
+                                       cwmd_microfit_line_for_item(line, &item, line_width);
+            if(!fits_after_microfit) {
+                if(cwmd_soft_split_item(canvas, line, &item, line_width, &prefix, &suffix)) {
+                    item = prefix;
+                    parser->pending_item = suffix;
+                    parser->has_pending_item = true;
+                    split_line = true;
+                } else if(have_item) {
+                    *parser = saved;
+                    break;
+                }
+            }
+        }
+
+        if(have_item && (uint16_t)(line->width + item.width) > line_width && !split_line) {
             *parser = saved;
             break;
         }
@@ -406,16 +588,17 @@ static bool cwmd_build_line(
         line->width += item.width;
         if(item.type == CwmdItemGap) line->gaps++;
         have_item = true;
+        if(split_line) break;
     }
 
     cwmd_trim_trailing_gaps(line);
     line->align = parser->bullet ? CwmdAlignLeft : parser->align;
     line->line_style = parser->line_style;
-    if(*parser->p == '\n') {
+    if(!parser->has_pending_item && *parser->p == '\n') {
         parser->p++;
         cwmd_parser_reset(parser);
         line->ended_logical = true;
-    } else if(*parser->p == '\0') {
+    } else if(!parser->has_pending_item && *parser->p == '\0') {
         line->ended_logical = true;
     } else {
         parser->first_bullet_line = false;
@@ -435,7 +618,7 @@ static bool cwmd_line_should_justify(const CwmdLine* line, uint16_t avail_width,
     if(line->align != CwmdAlignJustify) return false;
     if(line->ended_logical) return false;
     if(line->line_style.mono) return false;
-    if(line->gaps < 3U) return false;
+    if(line->gaps < CWMD_JUSTIFY_MIN_GAPS) return false;
     if(line->width >= avail_width) return false;
     if((uint32_t)line->width * CWMD_JUSTIFY_MIN_DEN < (uint32_t)avail_width * CWMD_JUSTIFY_MIN_NUM)
         return false;
@@ -527,7 +710,8 @@ static uint16_t cwmd_process(
 #endif
 ) {
     CwmdParser parser = {0};
-    CwmdLine line;
+    /* Keep the large line scratch buffer off the GUI thread stack. */
+    static CwmdLine line;
     uint16_t avail_width;
     uint16_t line_no = 0U;
     int16_t scroll_px = state ? state->scroll_px : 0;
@@ -556,6 +740,10 @@ static uint16_t cwmd_process(
             stats->centered += line.align == CwmdAlignCenter ? 1U : 0U;
             stats->righted += line.align == CwmdAlignRight ? 1U : 0U;
             stats->last_line_width = (int16_t)line.width;
+            if(line.microfit_shrink != 0U) {
+                stats->microfit_lines++;
+                stats->last_microfit_shrink_px = (int16_t)line.microfit_shrink;
+            }
             if(cwmd_line_should_justify(&line, avail_width, &extra)) {
                 stats->justified++;
                 stats->last_extra_gap_px = extra / line.gaps;

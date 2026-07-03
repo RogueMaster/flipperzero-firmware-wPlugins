@@ -52,7 +52,7 @@
 #define MORSE_FLIPPER_CONFIG_PATH                   APP_DATA_PATH("config.bin")
 #define MORSE_FLIPPER_SETTINGS_VERSION              1U
 #define MORSE_FLIPPER_DEFAULT_DIT_MS                100U
-#define MORSE_FLIPPER_SESSION_SETTLE_MS             1000U
+#define MORSE_FLIPPER_SESSION_ANSWER_GRACE_MS       250U
 #define MORSE_FLIPPER_SESSION_RESULT_MS             160U
 #define MORSE_FLIPPER_TXG_RESULT_DELAY_MS           500U
 #define MORSE_FLIPPER_STRAIGHT_SETTLE_MS            700U
@@ -244,9 +244,9 @@ typedef enum {
     MorseFlipperHelpContact,
     MorseFlipperHelpContesting,
     MorseFlipperHelpUsbLive,
-    MorseFlipperHelpMovingForward,
     MorseFlipperHelpHamUsage,
     MorseFlipperHelpTroubleshooting,
+    MorseFlipperHelpMovingForward,
     MorseFlipperHelpCount,
 } MorseFlipperHelpTopic;
 
@@ -349,6 +349,7 @@ typedef struct MorseFlipperApp {
     bool tone_on;
     bool signal_led_on;
     bool signal_led_red;
+    bool signal_led_green;
     bool speaker_owned;
     bool speaker_busy;
     float speaker_hz;
@@ -392,6 +393,7 @@ typedef struct MorseFlipperApp {
     uint8_t trainer_row;
     uint8_t help_topic;
     uint8_t help_page;
+    uint8_t help_card_count;
     uint8_t about_mode;
     uint8_t about_ok_count;
     uint8_t about_social_idx;
@@ -456,6 +458,7 @@ typedef struct MorseFlipperApp {
     uint32_t txg_sum_dgap;
     uint32_t txg_sum_variance;
     uint32_t session_last_input_at;
+    uint32_t session_answer_complete_at;
     uint32_t session_result_until;
     uint32_t session_next_group_at;
     uint32_t session_complete_at;
@@ -667,6 +670,7 @@ void morse_flipper_tick_session(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_leave_session(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_leave_live_screen(MorseFlipperApp* app, uint32_t now_ms);
 bool morse_flipper_session_wait_key_down(const MorseFlipperApp* app);
+bool morse_flipper_session_hurry(MorseFlipperApp* app, uint32_t now_ms);
 bool morse_flipper_session_end_flash(const MorseFlipperApp* app);
 bool morse_flipper_session_running_view(const MorseFlipperApp* app);
 bool morse_flipper_session_left_exit_active(const MorseFlipperApp* app);
@@ -836,7 +840,7 @@ void morse_flipper_settings_usb_paddle_changed(VariableItem* item);
 void morse_flipper_settings_usb_straight_changed(VariableItem* item);
 void morse_flipper_settings_usb_mouse_swap_changed(VariableItem* item);
 void morse_flipper_scene_menu_pick(void* ctx, uint32_t idx);
-uint8_t morse_flipper_help_card_count(uint8_t t);
+uint8_t morse_flipper_help_card_count(const MorseFlipperApp* app);
 void morse_flipper_scene_home_on_enter(void* context);
 bool morse_flipper_scene_home_on_event(void* context, SceneManagerEvent event);
 void morse_flipper_scene_home_on_exit(void* context);
