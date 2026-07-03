@@ -14,12 +14,12 @@ static float kSinYaw[16], kCosYaw[16];
 
 // Per-block face textures for full cubes: [block][0 top, 1 bottom, 2 side].
 struct FaceTex { uint8_t tex, set; bool valid; };
-static FaceTex gFaceTex[16][3];
+static FaceTex gFaceTex[32][3];
 
 // Pre-flattened mesh quads for the non-full blocks (sapling cross, chest box).
 struct NonFullQuad { uint8_t quad, tex, set; };
 struct NonFullMesh { uint8_t count; NonFullQuad q[8]; };
-static NonFullMesh gNonFull[16];
+static NonFullMesh gNonFull[32];
 
 // Axis-aligned faces are invisible unless the camera is on their front side;
 // this rejects roughly half of all cached faces with one compare, before any
@@ -48,7 +48,7 @@ static void initTables() {
         kCosYaw[i] = floorf( cosf(a) * 64.0f);
     }
 
-    for (int id = 0; id < 16; id++) {
+    for (int id = 0; id < 32; id++) {
         const MeshEntry& m = meshBlock((uint8_t)id);
         for (int f = 0; f < 3; f++) {
             bool valid = m.exists && f < m.texCount;
@@ -324,7 +324,7 @@ void Renderer::renderOverlay(const World& w,int x,int y,int z,int breakPhase) {
     }
 }
 
-void Renderer::renderItem(float x,float y,float z,uint8_t itemId) {
+void Renderer::renderItem(float x,float y,float z,uint8_t itemId,uint8_t inv) {
     const MeshEntry& it = meshItem(itemId);
     if (it.exists && itemIsBlockItem(itemId)) {
         static const int ItemQuads[6] = {QUAD_BLOCKITEM_NEGY,QUAD_BLOCKITEM_POSY,QUAD_BLOCKITEM_NEGX,
@@ -333,17 +333,70 @@ void Renderer::renderItem(float x,float y,float z,uint8_t itemId) {
         for (int i=0;i<6;i++) {
             if (TexIndices[i] >= it.texCount) continue;
             const MeshTex& t = it.textures[TexIndices[i]];
-            renderQuad(x, y, z, ItemQuads[i], t.id, t.settings);
+            renderQuad(x, y, z, ItemQuads[i], t.id, t.settings ^ inv);
         }
     } else if (it.exists) {
         for (int qi=0; qi<it.quadCount; qi++) {
             const MeshQuadRef& q = it.quads[qi];
             if (q.texIndex >= it.texCount) continue;
             const MeshTex& t = it.textures[q.texIndex];
-            renderQuad(x, y, z, q.quadId, t.id, t.settings);
+            renderQuad(x, y, z, q.quadId, t.id, t.settings ^ inv);
         }
     }
     renderQuad(x, y, z, QUAD_ITEMSHADOW, TEX_SHADOW, TS_CULLBACK|TS_TRANSPARENT|TS_INVERTED);
+}
+
+// tex[6] = negx,posx,negz,posz,negy,posy
+void Renderer::renderBox(float x0,float y0,float z0,float x1,float y1,float z1,
+                         const uint8_t tex[6],int texSettings) {
+    // per face+vertex corner: bit0 pick x1, bit1 pick y1, bit2 pick z1
+    static const uint8_t kCorner[6][4] = {
+        {4,6,2,0}, {1,3,7,5}, {0,2,3,1}, {5,7,6,4}, {4,0,1,5}, {2,6,7,3},
+    };
+    const float px[2]={x0,x1}, py[2]={y0,y1}, pz[2]={z0,z1};
+    settings.cullBackface = (texSettings & TS_CULLBACK) != 0;
+    settings.transparent  = (texSettings & TS_TRANSPARENT) != 0;
+    settings.inverted     = (texSettings & TS_INVERTED) != 0;
+    settings.overlay      = (texSettings & TS_OVERLAY) != 0;
+    for (int f=0;f<6;f++) {
+        Vertex cam[4];
+        for (int i=0;i<4;i++) {
+            uint8_t c = kCorner[f][i];
+            Vertex w;
+            w.x = px[c&1]; w.y = py[(c>>1)&1]; w.z = pz[(c>>2)&1];
+            w.u = kQuadUvs[i][0]; w.v = kQuadUvs[i][1];
+            cam[i] = worldToCam(w);
+        }
+        texture = (Texture)tex[f];
+        drawQuadCam(cam);
+    }
+}
+
+// (x,y,z) feet centre in world sub-pixels; face = world side local +Z points
+// at (NEGX,POSX,NEGZ,POSZ = 0..3); inv = 0 or TS_INVERTED
+void Renderer::renderMob(float x,float y,float z,uint8_t species,uint8_t face,uint8_t inv) {
+    const int bxc = ifloor(x*(1.0f/16.0f)), bzc = ifloor(z*(1.0f/16.0f));
+    if (bxc < winX0 || bxc > winX1 || bzc < winZ0 || bzc > winZ1) return;
+    const MobSpec& s = mobSpec(species);
+    // local (lx,lz) -> world: {wx = a*lx + b*lz, wz = c*lx + d*lz}
+    static const int8_t kRot[4][4] = {{0,-1,1,0},{0,1,-1,0},{-1,0,0,-1},{1,0,0,1}};
+    const int8_t a=kRot[face&3][0], b=kRot[face&3][1], c=kRot[face&3][2], d=kRot[face&3][3];
+
+    int n;
+    const MobBox* boxes = mobBoxes(species, n);
+    for (int i=0;i<n;i++) {
+        const MobBox& bx = boxes[i];
+        const int lx0=bx.ox, lz0=bx.oz, lx1=bx.ox+bx.sx, lz1=bx.oz+bx.sz;
+        const int wxA=a*lx0+b*lz0, wxB=a*lx1+b*lz1;
+        const int wzA=c*lx0+d*lz0, wzB=c*lx1+d*lz1;
+        uint8_t tex[6] = {s.texSide,s.texSide,s.texSide,s.texSide,s.texTop,s.texTop};
+        if (bx.flags & 1) tex[face&3] = s.texFront;
+        renderBox(x+std::min(wxA,wxB), y+bx.oy,       z+std::min(wzA,wzB),
+                  x+std::max(wxA,wxB), y+bx.oy+bx.sy, z+std::max(wzA,wzB),
+                  tex, TS_CULLBACK ^ inv);
+    }
+    renderQuad((x-4.0f)/16.0f, y/16.0f, (z-4.0f)/16.0f, QUAD_ITEMSHADOW, TEX_SHADOW,
+               TS_CULLBACK|TS_TRANSPARENT|TS_INVERTED);
 }
 
 // Rebuild the packed face list for the chunk resident in window slot (sx,sz).

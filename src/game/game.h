@@ -35,7 +35,23 @@ struct PlayerState {
     bool crouching = false;
 };
 
-struct ItemEnt { int id=0; int x=0,y=0,z=0; int vy=0; bool active=false; };
+struct ItemEnt { int id=0; int x=0,y=0,z=0; int vy=0; int fuse=0; bool active=false; };
+
+// One creature. Behaviour is a 2-bit mode; everything species-specific comes
+// from the MobSpec byte table, everything situational from `timer`/`target`.
+struct Mob {
+    bool active=false;
+    uint8_t species=0;
+    uint8_t hp=0;
+    uint8_t yaw=0;      // 16-step heading, camera convention: fwd=(-sin,cos)
+    uint8_t mode=0;     // MOB_IDLE / MOB_WANDER / MOB_CHASE / MOB_FLEE
+    uint8_t timer=0;    // ticks until the next decision / aggro left
+    uint8_t hurt=0;     // damage-flash ticks left, colour inverts on odd ticks
+    uint8_t cool=0;     // touch-attack cooldown / exploder fuse
+    uint8_t target=0xFF;// chase/flee subject: 0xFF player, else mob index
+    int x=0,y=0,z=0;    // world sub-pixels, min corner (body is MOBWIDTH wide)
+    int vy=0;
+};
 struct BlockEnt {
     bool active=false; bool isChest=false; int bx=0,by=0,bz=0; int dir=0;
     uint8_t slot[10]={0};
@@ -60,6 +76,7 @@ public:
 
     ScreenId screenId = SCR_PLAY;
     std::vector<ItemEnt> items;
+    Mob mobs[MAX_MOBS];
     std::vector<BlockEnt> tiles;
     int loadedTile = -1;
     int score = 0;
@@ -83,11 +100,19 @@ private:
     void miscInputs(const Input& in);
     void moveAndCollide(int dx,int dy,int dz);
     bool playerCollides(int x,int y,int z);
-    struct RayHit { int bx,by,bz, px,py,pz, id, length; };
+    bool boxCollides(int x,int y,int z,int w,int h);
+    struct RayHit { int bx,by,bz, px,py,pz, id, length, mob; };
     RayHit rayCast();
     void createEntity(int x,int y,int z,int entityId);
     void addItemToInventory(int item);
     void updateAllItems();
+    void updateAllMobs();
+    void trySpawnMob();
+    void hurtMobFrom(int index,int dmg,int srcX,int srcZ,uint8_t attacker);
+    void explodeMob(Mob& m);
+    void explodeAt(int cx,int cy,int cz);
+    void igniteDynamite(int bx,int by,int bz,int fuse);
+    bool mobBlocksPlayer(int ox,int oz,int nx,int ny,int nz);
     void updateAllFurnaces();
     void simulateFurnaces();   // load/tick/flush furnaces inside the active window
     void doRandomTicks();

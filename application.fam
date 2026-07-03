@@ -48,6 +48,7 @@ App(
     sources=[
         "src/game/device.cpp",
         "src/game/game.cpp",
+        "src/game/mobs.cpp",
         "src/game/data.cpp",
         "src/game/world.cpp",
         "src/game/render.cpp",

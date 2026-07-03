@@ -48,6 +48,14 @@ constexpr int MINFALLDAMAGESPEED   = 32;
 constexpr int FALLDAMAGESCALING    = 0x08;
 constexpr int RANDOMTICKSPEED      = 10;
 constexpr int SMELTTIME            = 0xC0;
+constexpr int MAX_MOBS             = 6;
+constexpr int MOBWIDTH             = 14;
+constexpr int MOB_HURT_TICKS      = 12;  // ~1 s of damage flash at the 80 ms tick
+constexpr int MOB_ATTACK_COOL     = 12;  // ticks between touch attacks
+constexpr int MOB_FUSE_TICKS      = 13;  // exploder wind-up, flashes while burning
+constexpr int MOB_BLAST_RANGE     = 40;  // 2.5 blocks, Chebyshev, in sub-pixels
+constexpr int MOB_BLAST_DMG       = 7;   // ~90% of MAXHEALTH
+constexpr int DYNAMITE_FUSE_TICKS = 38;  // ~3 s at the 80 ms tick
 constexpr int LEAVES_SAPLING_PROBABILITY = 50;
 constexpr int LEAVES_STICK_PROBABILITY   = 70;
 constexpr int LEAVES_APPLE_PROBABILITY   = 80;
@@ -74,6 +82,7 @@ enum Block : uint8_t {
     BLOCK_COBBLE = 0x4, BLOCK_LOG = 0x5, BLOCK_LEAVES = 0x6, BLOCK_PLANK = 0x7,
     BLOCK_COALORE = 0x8, BLOCK_IRONORE = 0x9, BLOCK_SAND = 0xA, BLOCK_GLASS = 0xB,
     BLOCK_SAPLING = 0xC, BLOCK_TABLE = 0xD, BLOCK_FURNACE = 0xE, BLOCK_CHEST = 0xF,
+    BLOCK_DYNAMITE = 0x10,
 };
 
 enum Item : uint8_t {
@@ -88,6 +97,13 @@ enum Item : uint8_t {
     ITEM_STONESHOVEL = 0xF6, ITEM_STONESWORD = 0xF7, ITEM_IRONPICKAXE = 0xF8,
     ITEM_IRONAXE = 0xF9, ITEM_IRONSHOVEL = 0xFA, ITEM_IRONSWORD = 0xFB,
     ITEM_SHEARS = 0xFC, ITEM_TABLE = 0xFD, ITEM_FURNACE = 0xFE, ITEM_CHEST = 0xFF,
+
+    // The 4-bit type space is full. Two previously unreachable cell encodings
+    // carry the new items:
+    //   0xB0 = "glass, count 0" -> one gunpowder (single per cell),
+    //   0x0N = "air, count N"   -> N dynamite (stacks like any material).
+    ITEM_GUNPOWDER = 0xB0,
+    ITEM_DYNAMITE = 0x01,
 };
 
 enum Entity : uint8_t {
@@ -95,6 +111,7 @@ enum Entity : uint8_t {
     ENTITY_LOG = 0x5, ENTITY_LEAVES = 0x6, ENTITY_PLANK = 0x7, ENTITY_COAL = 0x8,
     ENTITY_IRONORE = 0x9, ENTITY_SAND = 0xA, ENTITY_FALLINGSAND = 0xB,
     ENTITY_SAPLING = 0xC, ENTITY_TABLE = 0xD, ENTITY_FURNACE = 0xE, ENTITY_CHEST = 0xF,
+    ENTITY_DYNAMITE = 0x10, ENTITY_GUNPOWDER = 0x11, ENTITY_LITDYNAMITE = 0x12,
 };
 
 constexpr int TOOL_PICKAXE = 0, TOOL_AXE = 1, TOOL_SHOVEL = 2, TOOL_SWORD = 3;
@@ -106,27 +123,27 @@ constexpr int STRENGTH_FIST = 4, STRENGTH_WOOD = 5, STRENGTH_STONE = 6, STRENGTH
 constexpr int BLOCKTYPE_STONE = 0, BLOCKTYPE_WOOD = 1, BLOCKTYPE_SOFT = 2,
               BLOCKTYPE_LEAVES = 3, BLOCKTYPE_GLASS = 4, BLOCKTYPE_SAPLING = 5;
 
-// Per-block property bitmasks: bit N describes block id N.
+// Per-block property bitmasks: bit N describes block id N (ids 0..31).
 // "Transparent": a face of an adjacent full block is visible through it.
-constexpr uint16_t BLOCKS_TRANSPARENT =
+constexpr uint32_t BLOCKS_TRANSPARENT =
     (1u << BLOCK_AIR) | (1u << BLOCK_LEAVES) | (1u << BLOCK_SAPLING) |
     (1u << BLOCK_GLASS) | (1u << BLOCK_CHEST);
 // "Full": renders as a full cube via face culling (everything except the
 // mesh-quad blocks: air, sapling cross, small chest box).
-constexpr uint16_t BLOCKS_NOT_FULL =
+constexpr uint32_t BLOCKS_NOT_FULL =
     (1u << BLOCK_AIR) | (1u << BLOCK_SAPLING) | (1u << BLOCK_CHEST);
 // "Solid": collides with the player and stops falling items.
-constexpr uint16_t BLOCKS_SOLID =
-    (uint16_t)~((1u << BLOCK_AIR) | (1u << BLOCK_SAPLING));
+constexpr uint32_t BLOCKS_SOLID =
+    ~((1u << BLOCK_AIR) | (1u << BLOCK_SAPLING));
 // Entities that render as a small textured cube (the rest are cross sprites).
-constexpr uint16_t ENTITIES_NOT_BLOCKITEM =
+constexpr uint32_t ENTITIES_NOT_BLOCKITEM =
     (1u << ENTITY_STICK) | (1u << ENTITY_APPLE) | (1u << ENTITY_COAL) |
-    (1u << ENTITY_FALLINGSAND) | (1u << ENTITY_SAPLING);
+    (1u << ENTITY_FALLINGSAND) | (1u << ENTITY_SAPLING) | (1u << ENTITY_GUNPOWDER);
 
-inline bool blockIsTransparent(uint8_t id) { return (BLOCKS_TRANSPARENT >> (id & 0xF)) & 1u; }
-inline bool blockIsFull(uint8_t id)        { return !((BLOCKS_NOT_FULL >> (id & 0xF)) & 1u); }
-inline bool blockIsSolid(uint8_t id)       { return (BLOCKS_SOLID >> (id & 0xF)) & 1u; }
-inline bool itemIsBlockItem(uint8_t id)    { return !((ENTITIES_NOT_BLOCKITEM >> (id & 0xF)) & 1u); }
+inline bool blockIsTransparent(uint8_t id) { return (BLOCKS_TRANSPARENT >> (id & 0x1F)) & 1u; }
+inline bool blockIsFull(uint8_t id)        { return !((BLOCKS_NOT_FULL >> (id & 0x1F)) & 1u); }
+inline bool blockIsSolid(uint8_t id)       { return (BLOCKS_SOLID >> (id & 0x1F)) & 1u; }
+inline bool itemIsBlockItem(uint8_t id)    { return !((ENTITIES_NOT_BLOCKITEM >> (id & 0x1F)) & 1u); }
 
 enum Texture : uint8_t {
     TEX_EMPTY = 0x00, TEX_COALITEMLIGHT = 0x01, TEX_GRASSSIDE = 0x02, TEX_DIRT = 0x03,
@@ -139,6 +156,10 @@ enum Texture : uint8_t {
     TEX_COALITEMDARK = 0x18, TEX_STICKITEMLIGHT = 0x19, TEX_STICKITEMDARK = 0x1A,
     TEX_APPLEITEMLIGHT = 0x1B, TEX_APPLEITEMDARK = 0x1C, TEX_SHADOW = 0x1D,
     TEX_BREAK0 = 0x65,
+    TEX_SHEEPFRONT = 0x90, TEX_SHEEPSIDE = 0x91, TEX_SHEEPTOP = 0x92,
+    TEX_WOLFFRONT = 0x93, TEX_WOLFSIDE = 0x94, TEX_WOLFTOP = 0x95,
+    TEX_CREEPERFRONT = 0x96, TEX_CREEPERSIDE = 0x97, TEX_CREEPERTOP = 0x98,
+    TEX_DYNAMITE = 0x99, TEX_DYNAMITETOP = 0x9A,
 };
 
 enum Quad : uint8_t {
@@ -303,6 +324,27 @@ struct MeshEntry {
 };
 const MeshEntry& meshBlock(uint8_t blockId);
 const MeshEntry& meshItem(uint8_t blockOrItemHighNibbleId);
+
+constexpr uint8_t MOB_SHEEP = 0, MOB_WOLF = 1, MOB_CREEPER = 2, MOB_SPECIES = 3;
+constexpr uint8_t MOB_IDLE = 0, MOB_WANDER = 1, MOB_CHASE = 2, MOB_FLEE = 3;
+constexpr uint8_t TEMPER_PASSIVE = 0, TEMPER_NEUTRAL = 1, TEMPER_HOSTILE = 2;
+
+struct MobSpec {
+    uint8_t texFront, texSide, texTop;
+    uint8_t prey;    // bitmask of species this one hunts (1 << species)
+    uint8_t info;    // bit0 exploder | temperament << 1
+    uint8_t hpDmg;   // max HP << 4 | touch damage (0 = never bites)
+    uint8_t geom;    // (collision height / 2) << 4 | speed, px per tick
+};
+const MobSpec& mobSpec(uint8_t species);
+
+// Box in mob-local px, origin at the feet centre, +Z forward; rotated to the
+// facing at render time. flags bit0: front of this box wears texFront.
+struct MobBox { int8_t ox, oy, oz; uint8_t sx, sy, sz, flags; };
+const MobBox* mobBoxes(uint8_t species, int& count);
+
+// yaw*2 -> facing index (NEGX,POSX,NEGZ,POSZ = 0..3), 2-bit fields
+constexpr uint32_t MOB_YAW_FACE = 0xF55AA00Fu;
 
 uint16_t craftTable(const uint8_t grid[9]);
 uint16_t craftFurnace(uint8_t input);

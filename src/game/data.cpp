@@ -63,8 +63,8 @@ static MeshEntry makeCube(uint8_t top, uint8_t topS, uint8_t bot, uint8_t botS,
     return e;
 }
 
-static MeshEntry g_blockMesh[16];
-static MeshEntry g_itemMesh[16];
+static MeshEntry g_blockMesh[32];
+static MeshEntry g_itemMesh[32];
 static const MeshEntry g_emptyMesh{};
 static bool g_meshReady = false;
 
@@ -140,10 +140,59 @@ static void initMesh() {
       setQuads(e, {{QUAD_SMALL_NEGX,2},{QUAD_SMALL_POSX,2},{QUAD_SMALL_NEGZ,2},{QUAD_SMALL_POSZ,2},
                    {QUAD_SMALL_NEGY,0},{QUAD_SMALL_POSY,0}});
       g_blockMesh[BLOCK_CHEST] = e; g_itemMesh[BLOCK_CHEST] = e; }
+
+    g_blockMesh[BLOCK_DYNAMITE] = makeCube(TEX_DYNAMITETOP,0b1000,TEX_DYNAMITETOP,0b1000,TEX_DYNAMITE,0b1000,true,TEX_DYNAMITE,0b1000);
+    g_itemMesh[ENTITY_DYNAMITE]    = g_blockMesh[BLOCK_DYNAMITE];
+    g_itemMesh[ENTITY_LITDYNAMITE] = g_blockMesh[BLOCK_DYNAMITE];
+
+    { MeshEntry e; e.exists = true;
+      setTextures(e, {{TEX_COALITEMLIGHT,0b1100},{TEX_COALITEMDARK,0b1110}});
+      setQuads(e, {{QUAD_CROSSITEM1,0},{QUAD_CROSSITEM1,1},{QUAD_CROSSITEM2,0},{QUAD_CROSSITEM2,1},
+                   {QUAD_CROSSITEM3,0},{QUAD_CROSSITEM3,1},{QUAD_CROSSITEM4,0},{QUAD_CROSSITEM4,1}});
+      g_itemMesh[ENTITY_GUNPOWDER] = e; }
 }
 
-const MeshEntry& meshBlock(uint8_t id) { initMesh(); return (id < 16) ? g_blockMesh[id] : g_emptyMesh; }
-const MeshEntry& meshItem(uint8_t hi)  { initMesh(); return (hi < 16) ? g_itemMesh[hi] : g_emptyMesh; }
+const MeshEntry& meshBlock(uint8_t id) { initMesh(); return (id < 32) ? g_blockMesh[id] : g_emptyMesh; }
+const MeshEntry& meshItem(uint8_t hi)  { initMesh(); return (hi < 32) ? g_itemMesh[hi] : g_emptyMesh; }
+
+static constexpr MobSpec MOB_SPECS[MOB_SPECIES] = {
+    {TEX_SHEEPFRONT, TEX_SHEEPSIDE, TEX_SHEEPTOP,
+     0, TEMPER_PASSIVE << 1, 0x20, (9 << 4) | 3},
+    {TEX_WOLFFRONT, TEX_WOLFSIDE, TEX_WOLFTOP,
+     (1 << MOB_SHEEP) | (1 << MOB_CREEPER), TEMPER_NEUTRAL << 1,
+     0x21, (7 << 4) | 5},
+    {TEX_CREEPERFRONT, TEX_CREEPERSIDE, TEX_CREEPERTOP,
+     0, (TEMPER_HOSTILE << 1) | 1, 0x20, (13 << 4) | 4},
+};
+const MobSpec& mobSpec(uint8_t species) { return MOB_SPECS[species % MOB_SPECIES]; }
+
+static constexpr MobBox SHEEP_BOXES[] = {
+    {-4, 0,  4, 8, 6, 3, 0},
+    {-4, 0, -7, 8, 6, 3, 0},
+    {-6, 6, -10, 12, 11, 20, 0},
+    {-3, 12, 9, 6, 7, 6, 1},
+};
+static constexpr MobBox WOLF_BOXES[] = {
+    {-3, 0,  5, 6, 5, 3, 0},
+    {-3, 0, -8, 6, 5, 3, 0},
+    {-4, 4, -9, 8, 8, 17, 0},
+    {-3, 9,  8, 6, 6, 6, 1},
+    {-1, 10, -12, 2, 3, 4, 0},
+};
+static constexpr MobBox CREEPER_BOXES[] = {
+    {-4, 0,  2, 8, 5, 4, 0},
+    {-4, 0, -6, 8, 5, 4, 0},
+    {-3, 5, -3, 6, 12, 6, 0},
+    {-4, 17, -4, 8, 9, 8, 1},
+};
+static constexpr struct { const MobBox* b; uint8_t n; } MOB_PLANS[MOB_SPECIES] = {
+    {SHEEP_BOXES, 4}, {WOLF_BOXES, 5}, {CREEPER_BOXES, 4},
+};
+const MobBox* mobBoxes(uint8_t species, int& count) {
+    const auto& p = MOB_PLANS[species % MOB_SPECIES];
+    count = p.n;
+    return p.b;
+}
 
 // The 3x3 grid packs into 36 bits: one nibble of item type per cell, cell i
 // (row-major) at bit 4*i. Normalisation and matching are then pure bit ops.
@@ -182,6 +231,10 @@ static constexpr CraftRecipe CRAFT_RECIPES[] = {
     {craftKey("400400100"), ITEM_STONESWORD},
     {craftKey("D00D00100"), ITEM_IRONSWORD},
     {craftKey("0D0D00000"), ITEM_SHEARS},
+    {craftKey("AB0000000"), ITEM_DYNAMITE},
+    {craftKey("BA0000000"), ITEM_DYNAMITE},
+    {craftKey("A00B00000"), ITEM_DYNAMITE},
+    {craftKey("B00A00000"), ITEM_DYNAMITE},
 };
 
 uint16_t craftTable(const uint8_t grid[9]) {
@@ -193,7 +246,15 @@ uint16_t craftTable(const uint8_t grid[9]) {
     while (!(v & GRID_COL0)) v = (v >> 4) & GRID_KEEP01;
     while (!(v & GRID_ROW0)) v >>= 12;
     for (const CraftRecipe& r : CRAFT_RECIPES)
-        if (r.key == v) return r.result;
+        if (r.key == v) {
+            // gunpowder shares the glass type nibble; require the exact cell
+            if (r.result == ITEM_DYNAMITE) {
+                bool ok = false;
+                for (int i = 0; i < 9; i++) ok |= grid[i] == ITEM_GUNPOWDER;
+                if (!ok) continue;
+            }
+            return r.result;
+        }
     return 0;
 }
 uint16_t craftFurnace(uint8_t input) {

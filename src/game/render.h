@@ -41,13 +41,16 @@ public:
 
     void renderScene(const World& w);
     void renderFace(int x,int y,int z,uint8_t texId,int direction,bool small_);
-    void renderItem(float x,float y,float z,uint8_t itemId);
+    void renderItem(float x,float y,float z,uint8_t itemId,uint8_t inv=0);
+    void renderMob(float x,float y,float z,uint8_t species,uint8_t face,uint8_t inv);
     void renderOverlay(const World& w,int x,int y,int z,int breakPhase);
 
 private:
     ChunkMesh chunkMesh[WINDOW_CHUNKS][WINDOW_CHUNKS];
 
     void camRotToMatrix(int pitchIndex,int yawIndex);
+    void renderBox(float x0,float y0,float z0,float x1,float y1,float z1,
+                   const uint8_t tex[6],int texSettings);
     Vertex worldToCam(const Vertex& v) const;
     Vertex camToScreen(const Vertex& v) const;
     void drawQuadCam(Vertex q[4]);

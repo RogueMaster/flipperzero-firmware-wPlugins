@@ -20,6 +20,7 @@ void Screen2D::number(int x,int y,int d) {
 
 static const uint8_t HEART[7] = {
     0b0110110, 0b1111111, 0b1111111, 0b1111111, 0b0111110, 0b0011100, 0b0001000 };
+    
 void Screen2D::heart(int x,int y,bool full) {
     for (int r=0;r<7;r++) for (int c=0;c<7;c++) {
         bool on = HEART[r] & (1<<(6-c));
@@ -35,6 +36,7 @@ void Screen2D::itemIcon(int x,int y,int itemId) {
     bool nonstack = (itemId & 0xF0) == 0xF0;
     int sub = itemId & 0x0F;
     int key = nonstack ? (0x10 | sub) : type;
+    if(!nonstack && sub==0 && type) key = type ^ 0x08;   // count-0 single items
     for (int r=0;r<6;r++) for (int c=0;c<6;c++) {
         bool border = (r==0||r==5||c==0||c==5);
         bool inside = false;

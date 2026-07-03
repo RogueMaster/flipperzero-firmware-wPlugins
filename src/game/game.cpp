@@ -5,7 +5,7 @@
 namespace flipcraft {
 
 // Per-block material type (low nibble) and hardness (high nibble).
-static constexpr uint8_t kBlockTypeHard[16] = {
+static constexpr uint8_t kBlockTypeHard[32] = {
     /* AIR     */ 0x30 | BLOCKTYPE_SAPLING,
     /* GRASS   */ 0x00 | BLOCKTYPE_SOFT,
     /* DIRT    */ 0x00 | BLOCKTYPE_SOFT,
@@ -22,20 +22,22 @@ static constexpr uint8_t kBlockTypeHard[16] = {
     /* TABLE   */ 0x10 | BLOCKTYPE_WOOD,
     /* FURNACE */ 0x20 | BLOCKTYPE_STONE,
     /* CHEST   */ 0x10 | BLOCKTYPE_WOOD,
+    /* DYNAMITE*/ 0x00 | BLOCKTYPE_SOFT,
 };
-static inline int blockType(uint8_t id)     { return kBlockTypeHard[id & 0xF] & 0x0F; }
-static inline int blockHardness(uint8_t id) { return kBlockTypeHard[id & 0xF] >> 4; }
+static inline int blockType(uint8_t id)     { return kBlockTypeHard[id & 0x1F] & 0x0F; }
+static inline int blockHardness(uint8_t id) { return kBlockTypeHard[id & 0x1F] >> 4; }
 
 // Entity dropped when a block breaks; 0xFF marks the leaves special case
 // (random sapling/stick/apple), 0 drops nothing.
-static constexpr uint8_t kBlockDrop[16] = {
+static constexpr uint8_t kBlockDrop[32] = {
     0, ENTITY_DIRT, ENTITY_DIRT, ENTITY_COBBLE, ENTITY_COBBLE, ENTITY_LOG,
     0xFF, ENTITY_PLANK, ENTITY_COAL, ENTITY_IRONORE, ENTITY_SAND, 0,
     ENTITY_SAPLING, ENTITY_TABLE, ENTITY_FURNACE, ENTITY_CHEST,
+    ENTITY_DYNAMITE,
 };
 
 // Blocks grass can "see the sky" through (leaf decay / grass spread checks).
-static constexpr uint16_t BLOCKS_SEETHROUGH_LIGHT =
+static constexpr uint32_t BLOCKS_SEETHROUGH_LIGHT =
     (1u << BLOCK_AIR) | (1u << BLOCK_LEAVES) | (1u << BLOCK_GLASS) | (1u << BLOCK_SAPLING);
 
 uint8_t Game::rng() {
@@ -56,6 +58,7 @@ bool Game::setup(const GameConfig& config) {
     forceRedraw=true; lastSig=0;
 
     items.clear();
+    for(auto& m:mobs) m=Mob{};
     loadStorageDirectory();
     loadInventory();
     screenId=SCR_PLAY; selSlot=-1; cursor=0; score=0; gameOverPending=false; loadedTile=-1;
@@ -94,7 +97,7 @@ void Game::shutdown() {
 void Game::addItemToInventory(int item){
     if(item==0) return;
     int type=item&0xF0;
-    if(type<0xF0){
+    if(type<0xF0 && (item&0x0F)){
         for(int i=0;i<15;i++){int c=pl.inventory[i]; if((c&0xF0)!=type||c==0)continue;
             int tot=(c&0x0F)+(item&0x0F);
             if(tot>=16){pl.inventory[i]=(uint8_t)(type|15); item=type|(tot-15);} else {pl.inventory[i]=(uint8_t)(type+tot);return;}}
@@ -105,8 +108,13 @@ void Game::addItemToInventory(int item){
 void Game::createEntity(int x,int y,int z,int entityId){
     ItemEnt e; e.active=true; e.id=entityId;
     e.x=x*16+8; e.y=y*16+4; e.z=z*16+8; e.vy=rng()&0x07;
-    if(entityId==ENTITY_FALLINGSAND) e.vy=0;
+    if(entityId==ENTITY_FALLINGSAND||entityId==ENTITY_LITDYNAMITE) e.vy=0;
     items.push_back(e);
+}
+void Game::igniteDynamite(int bx,int by,int bz,int fuse){
+    world.setBlock(bx,by,bz,BLOCK_AIR);
+    createEntity(bx,by,bz,ENTITY_LITDYNAMITE);
+    items.back().fuse=fuse;
 }
 int Game::findBlockEntity(int x,int y,int z){
     for(size_t i=0;i<tiles.size();i++) if(tiles[i].active&&tiles[i].bx==x&&tiles[i].by==y&&tiles[i].bz==z) return (int)i;
@@ -202,9 +210,10 @@ void Game::saveInventory(){
 }
 
 // Voxel DDA: steps one block boundary at a time, visiting exactly the blocks
-// the ray crosses.
+// the ray crosses. Creatures are slab-tested afterwards; a body closer than
+// the first solid block wins the hit (h.mob >= 0).
 Game::RayHit Game::rayCast(){
-    RayHit h{0,0,0,0,0,0,BLOCK_AIR,-1};
+    RayHit h{0,0,0,0,0,0,BLOCK_AIR,-1,-1};
     const float ox=playerX+PLAYERHALFWIDTH, oy=playerY+PLAYERCAMHEIGHT, oz=playerZ+PLAYERHALFWIDTH;
     const float dx=renderer.matrix[2][0], dy=renderer.matrix[2][1], dz=renderer.matrix[2][2];
 
@@ -220,23 +229,57 @@ Game::RayHit Game::rayCast(){
     float tmy = dy!=0 ? ((dy>0 ? (by+1)*16.0f-oy : oy-by*16.0f)*tdy*(1.0f/16.0f)) : FAR;
     float tmz = dz!=0 ? ((dz>0 ? (bz+1)*16.0f-oz : oz-bz*16.0f)*tdz*(1.0f/16.0f)) : FAR;
 
-    float t=0;
+    float t=0, tBlock=(float)RAYCASTMAXLENGTH;
     while(t<=(float)RAYCASTMAXLENGTH){
-        if(by<0){h.id=-1;h.length=(int)t;h.bx=bx;h.by=by;h.bz=bz;return h;}
+        if(by<0){h.id=-1;h.length=(int)t;h.bx=bx;h.by=by;h.bz=bz;tBlock=t;break;}
         uint8_t id=world.getBlock(bx,by,bz);
-        if(id!=BLOCK_AIR){h.id=id;h.length=(int)t;h.bx=bx;h.by=by;h.bz=bz;h.px=px;h.py=py;h.pz=pz;return h;}
+        if(id!=BLOCK_AIR){h.id=id;h.length=(int)t;h.bx=bx;h.by=by;h.bz=bz;h.px=px;h.py=py;h.pz=pz;tBlock=t;break;}
         px=bx;py=by;pz=bz;
         if(tmx<=tmy && tmx<=tmz){ t=tmx; tmx+=tdx; bx+=sx; }
         else if(tmy<=tmz)       { t=tmy; tmy+=tdy; by+=sy; }
         else                    { t=tmz; tmz+=tdz; bz+=sz; }
     }
+
+    // tBlock is in block units; mob boxes live in world sub-pixels.
+    float bestW=tBlock*16.0f;
+    auto slab=[](float lo,float hi,float d,float o,float& tn,float& tf){
+        if(fabsf(d)<1e-6f) return o>=lo && o<=hi;
+        float a=(lo-o)/d, b=(hi-o)/d; if(a>b)std::swap(a,b);
+        if(a>tn)tn=a;
+        if(b<tf)tf=b;
+        return tn<=tf;
+    };
+    ActiveWindow win=activeWindowAround((playerX+PLAYERHALFWIDTH)/BLOCKSIZE,
+                                        (playerZ+PLAYERHALFWIDTH)/BLOCKSIZE,
+                                        world.worldSX(), world.worldSZ());
+    for(int i=0;i<MAX_MOBS;i++){
+        const Mob& m=mobs[i]; if(!m.active)continue;
+        int mbx=(m.x+7)>>4, mbz=(m.z+7)>>4;   // dormant off-ring bodies are not hittable
+        if(mbx<win.x0||mbx>win.x1||mbz<win.z0||mbz>win.z1)continue;
+        const float hgt=(float)((mobSpec(m.species).geom>>4)<<1);
+        float tn=0.0f, tf=bestW;
+        if(slab((float)m.x,(float)(m.x+MOBWIDTH),dx,ox,tn,tf) &&
+           slab((float)m.y,(float)m.y+hgt,       dy,oy,tn,tf) &&
+           slab((float)m.z,(float)(m.z+MOBWIDTH),dz,oz,tn,tf)){
+            h.mob=i; bestW=tn>0.0f?tn:0.0f;
+        }
+    }
     return h;
 }
+
+// melee damage per tool sub-id (held & 0x0F); swords 2/3/4 by tier
+static constexpr uint8_t kToolDmg[16] = {1,1,1,2, 1,1,1,3, 1,1,1,4, 1,1,1,1};
 
 void Game::handleBreakAndPlace(const Input& in){
     if(!in.breakPressed && !in.placePressed) return;   // no raycast on idle ticks
 
     RayHit hit=rayCast(); int id=hit.id;
+    if(hit.mob>=0){
+        int held=pl.inventory[pl.invSlot];
+        hurtMobFrom(hit.mob, held>=ITEM_NONSTACKABLE ? kToolDmg[held&0x0F] : 1,
+                    playerX+PLAYERHALFWIDTH, playerZ+PLAYERHALFWIDTH, 0xFF);
+        return;
+    }
     if(id==BLOCK_AIR||hit.length<0){
         if(in.placePressed){int it=pl.inventory[pl.invSlot];
             if((it&0xF0)==ITEM_APPLE){int hp=std::min((int)pl.health+APPLEHEALTH,MAXHEALTH);pl.health=(uint8_t)hp;
@@ -264,7 +307,7 @@ void Game::handleBreakAndPlace(const Input& in){
         }
         world.setBlock(bx,by,bz,BLOCK_AIR);
         if(net>=STRENGTHFORITEM){
-            uint8_t drop=kBlockDrop[id&0xF];
+            uint8_t drop=kBlockDrop[id&0x1F];
             if(drop==0xFF){ // leaves
                 if(strength==STRENGTH_IRON)createEntity(bx,by,bz,ENTITY_LEAVES);
                 else{int r=rng(); if(r<LEAVES_SAPLING_PROBABILITY)createEntity(bx,by,bz,ENTITY_SAPLING);
@@ -280,12 +323,13 @@ void Game::handleBreakAndPlace(const Input& in){
     }
     if(in.placePressed){
         if(id==BLOCK_TABLE){ screenId=SCR_CRAFTING; cursor=0; selSlot=-1; return; }
+        if(id==BLOCK_DYNAMITE){ igniteDynamite(bx,by,bz,DYNAMITE_FUSE_TICKS); return; }
         if(id==BLOCK_FURNACE||id==BLOCK_CHEST){ int bi=findBlockEntity(bx,by,bz);
             if(bi>=0){openTileStorage(bi); loadedTile=bi; screenId=tiles[bi].isChest?SCR_CHEST:SCR_FURNACE; cursor=0; selSlot=-1;} return; }
         int item=pl.inventory[pl.invSlot];
-        bool placeable=!(item==0||(item>=ITEM_IRONINGOT&&item<ITEM_TABLE)||item==ITEM_COAL);
+        bool placeable=!(item==0||(item&0x0F)==0||(item>=ITEM_IRONINGOT&&item<ITEM_TABLE)||item==ITEM_COAL);
         if(!placeable)return;
-        int blockId=(item>=ITEM_TABLE)?(item&0x0F):(item>>4);
+        int blockId=(item<0x10)?BLOCK_DYNAMITE:((item>=ITEM_TABLE)?(item&0x0F):(item>>4));
         int px=hit.px,py=hit.py,pz=hit.pz;
         if(blockId==BLOCK_SAPLING){uint8_t below=world.getBlock(px,py-1,pz); if(below!=BLOCK_DIRT&&below!=BLOCK_GRASS)return;}
         if(blockId!=BLOCK_SAPLING){
@@ -308,11 +352,28 @@ void Game::handleBreakAndPlace(const Input& in){
     }
 }
 
-bool Game::playerCollides(int x,int y,int z){
-    for(int bx=x/16;bx<=(x+PLAYERWIDTH)/16;bx++)
-    for(int by=y/16;by<=(y+PLAYERHEIGHT)/16;by++)
-    for(int bz=z/16;bz<=(z+PLAYERWIDTH)/16;bz++)
+bool Game::boxCollides(int x,int y,int z,int w,int h){
+    for(int bx=x/16;bx<=(x+w)/16;bx++)
+    for(int by=y/16;by<=(y+h)/16;by++)
+    for(int bz=z/16;bz<=(z+w)/16;bz++)
         if(blockIsSolid(world.getBlock(bx,by,bz)))return true;
+    return false;
+}
+bool Game::playerCollides(int x,int y,int z){
+    return boxCollides(x,y,z,PLAYERWIDTH,PLAYERHEIGHT);
+}
+// blocks only newly created overlaps, so an overlapped pair can separate
+bool Game::mobBlocksPlayer(int ox,int oz,int nx,int ny,int nz){
+    for(const auto& m:mobs){
+        if(!m.active)continue;
+        int h=(mobSpec(m.species).geom>>4)<<1;
+        if(ny>=m.y+h || ny+PLAYERHEIGHT<=m.y) continue;
+        bool now = nx<m.x+MOBWIDTH && nx+PLAYERWIDTH>m.x &&
+                   nz<m.z+MOBWIDTH && nz+PLAYERWIDTH>m.z;
+        bool was = ox<m.x+MOBWIDTH && ox+PLAYERWIDTH>m.x &&
+                   oz<m.z+MOBWIDTH && oz+PLAYERWIDTH>m.z;
+        if(now && !was) return true;
+    }
     return false;
 }
 void Game::moveAndCollide(int dx,int dy,int dz){
@@ -331,8 +392,10 @@ void Game::moveAndCollide(int dx,int dy,int dz){
     const int maxX = world.worldSX()*BLOCKSIZE - PLAYERWIDTH;
     const int maxZ = world.worldSZ()*BLOCKSIZE - PLAYERWIDTH;
 
-    int nx=x+dx; nx=std::clamp(nx,0,maxX); if(!playerCollides(nx,y,z))x=nx;
-    int nz=z+dz; nz=std::clamp(nz,0,maxZ); if(!playerCollides(x,y,nz))z=nz;
+    int nx=x+dx; nx=std::clamp(nx,0,maxX);
+    if(!playerCollides(nx,y,z) && !mobBlocksPlayer(x,z,nx,y,z))x=nx;
+    int nz=z+dz; nz=std::clamp(nz,0,maxZ);
+    if(!playerCollides(x,y,nz) && !mobBlocksPlayer(x,z,x,y,nz))z=nz;
 
     int ny=y+dy;
     if(playerCollides(x,ny,z)){
@@ -388,6 +451,7 @@ void Game::miscInputs(const Input& in){
 
 void Game::updateAllItems(){
     int pxc=playerX+PLAYERHALFWIDTH, pyc=playerY+PLAYERCAMHEIGHT, pzc=playerZ+PLAYERHALFWIDTH;
+    int boom[4][3]; int booms=0;   // deferred: explodeAt() mutates `items`
     for(auto& e:items){ if(!e.active)continue;
 
         e.vy-=2; if(e.vy<-8)e.vy=-8;
@@ -398,17 +462,27 @@ void Game::updateAllItems(){
             if(e.id==ENTITY_FALLINGSAND){ world.setBlock(bx,e.y/16,bz,BLOCK_SAND); e.active=false; continue; } }
         else e.y=ny;
         if(e.id==ENTITY_FALLINGSAND)continue;
+        if(e.id==ENTITY_LITDYNAMITE){
+            if(--e.fuse<=0){
+                if(booms<4){ boom[booms][0]=e.x/16; boom[booms][1]=e.y/16; boom[booms][2]=e.z/16; booms++; e.active=false; }
+                else e.fuse=1;
+            }
+            continue;
+        }
 
         if(std::abs(e.x-pxc)<=PICKUPSIDEPOS && std::abs(e.z-pzc)<=PICKUPSIDEPOS &&
            e.y-pyc<=PICKUPUP && pyc-e.y<=PICKUPDOWN+PLAYERCAMHEIGHT){
             int item;
             switch(e.id){case ENTITY_APPLE:item=ITEM_APPLE|1;break;case ENTITY_TABLE:item=ITEM_TABLE;break;
                 case ENTITY_FURNACE:item=ITEM_FURNACE;break;case ENTITY_CHEST:item=ITEM_CHEST;break;
+                case ENTITY_GUNPOWDER:item=ITEM_GUNPOWDER;break;
+                case ENTITY_DYNAMITE:item=ITEM_DYNAMITE;break;
                 default:item=(e.id<<4)|1;break;}
             addItemToInventory(item); e.active=false;
         }
     }
     items.erase(std::remove_if(items.begin(),items.end(),[](const ItemEnt&e){return !e.active;}),items.end());
+    for(int i=0;i<booms;i++) explodeAt(boom[i][0],boom[i][1],boom[i][2]);
 }
 
 // Load furnaces entering the active window, flush+unload those leaving it, then
@@ -454,7 +528,7 @@ void Game::updateAllFurnaces(){
 
 void Game::doRandomTicks(){
     auto above=[&](int x,int y,int z){uint8_t a=world.getBlock(x,y+1,z);
-        return ((BLOCKS_SEETHROUGH_LIGHT>>(a&0xF))&1u)!=0;};
+        return ((BLOCKS_SEETHROUGH_LIGHT>>(a&0x1F))&1u)!=0;};
     auto nearLog=[&](int x,int y,int z){
         for(int r=0;r<=LEAF_LOG_RADIUS;r++)
             for(int dx=-r;dx<=r;dx++)for(int dz=-r;dz<=r;dz++){
@@ -531,9 +605,14 @@ void Game::finishRender(){
         renderer.renderFace(f.bx,f.by,f.bz,(uint8_t)tex,f.dir&3,false);
     }
     for(auto& e:items) if(e.active)
-        renderer.renderItem(e.x/16.0f,e.y/16.0f,e.z/16.0f,(uint8_t)e.id);
+        renderer.renderItem(e.x/16.0f,e.y/16.0f,e.z/16.0f,(uint8_t)e.id,
+                            (uint8_t)(e.id==ENTITY_LITDYNAMITE?(e.fuse&1)<<1:0));
+    for(const auto& m:mobs) if(m.active)
+        renderer.renderMob((float)(m.x+7), (float)m.y, (float)(m.z+7), m.species,
+                           (uint8_t)((MOB_YAW_FACE>>((m.yaw&15)*2))&3),
+                           (uint8_t)((m.hurt&1)<<1));   // TS_INVERTED on odd flash ticks
     RayHit hit=rayCast();
-    if(hit.id!=BLOCK_AIR&&hit.id!=-1&&hit.length>=0) renderer.renderOverlay(world,hit.bx,hit.by,hit.bz,0);
+    if(hit.mob<0&&hit.id!=BLOCK_AIR&&hit.id!=-1&&hit.length>=0) renderer.renderOverlay(world,hit.bx,hit.by,hit.bz,0);
     drawHotbar();
 }
 
@@ -542,7 +621,7 @@ void Game::worldFrame(const Input& in){
     handleBreakAndPlace(in);
     if(screenId!=SCR_PLAY)return;
     miscInputs(in);
-    updateAllItems(); doRandomTicks();
+    updateAllItems(); updateAllMobs(); doRandomTicks();
     simulateFurnaces();   // every furnace in the active window smelts, GUI open or not
     if(gameOverPending){gameOverPending=false; score=0; screenId=SCR_GAMEOVER; return;}
     world.updateWindow((playerX+PLAYERHALFWIDTH)/BLOCKSIZE,(playerZ+PLAYERHALFWIDTH)/BLOCKSIZE);
@@ -671,7 +750,10 @@ uint32_t Game::visualSignature() const {
     for(int i=0;i<9;i++) mix(pl.craftGrid[i]);
     mix(pl.craftOutput); mix(pl.invSlot); mix(pl.rot); mix(pl.health);
     mix((uint32_t)pl.crouching);
-    for(const auto& e:items) if(e.active){ mix((uint32_t)e.id); mix((uint32_t)e.x); mix((uint32_t)e.y); mix((uint32_t)e.z); }
+    for(const auto& e:items) if(e.active){ mix((uint32_t)e.id); mix((uint32_t)e.x); mix((uint32_t)e.y); mix((uint32_t)e.z); mix((uint32_t)e.fuse); }
+    for(const auto& m:mobs) if(m.active){
+        mix((uint32_t)m.x); mix((uint32_t)((m.y<<12)^m.z));
+        mix((uint32_t)((m.species<<24)|(m.mode<<16)|(m.yaw<<8)|m.hurt)); }
     for(const auto& t:tiles) if(t.active){
         mix((uint32_t)((t.bx<<16)|(t.by<<8)|t.bz));
         mix((uint32_t)((t.dir<<2)|(t.isChest?2:0)|(t.lit?1:0))); }
