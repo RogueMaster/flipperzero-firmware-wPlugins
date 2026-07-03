@@ -116,3 +116,9 @@ void spi_worker_wait(SpiWorker* worker);
 
 /** Get the result of the last operation (true = success). */
 bool spi_worker_get_result(SpiWorker* worker);
+
+/** Get CRC32 of the dump file (only valid after a successful read). */
+uint32_t spi_worker_get_crc32(SpiWorker* worker);
+
+/** Returns true if CRC32 was computed (read succeeded and file was re-read). */
+bool spi_worker_has_crc32(SpiWorker* worker);

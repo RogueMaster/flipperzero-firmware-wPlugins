@@ -44,6 +44,8 @@ typedef struct {
     /* Details of the most suspicious SSID: */
     char flagged_ssid[ROGUE_SSID_LEN];
     uint32_t flagged_bssid_count;
+    /* Min RSSI filter (set from Settings view, read by worker). */
+    int8_t min_rssi;
 } RogueApResults;
 
 /* =========================================================================

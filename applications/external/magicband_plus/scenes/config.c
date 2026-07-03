@@ -1,75 +1,60 @@
 #include "../magicband_plus_lights.h"
-
 #include "protocols/_protocols.h"
 
-static void _config_bool(VariableItem* item) {
-    bool* value = variable_item_get_context(item);
-    *value = variable_item_get_current_value_index(item);
-    variable_item_set_current_value_text(item, *value ? "ON" : "OFF");
-}
-static void config_bool(VariableItemList* list, const char* name, bool* value) {
-    VariableItem* item = variable_item_list_add(list, name, 2, _config_bool, value);
-    variable_item_set_current_value_index(item, *value);
-    variable_item_set_current_value_text(item, *value ? "ON" : "OFF");
-}
-
-static void config_callback(void* _ctx, uint32_t index) {
+static void config_enter_cb(void* _ctx, uint32_t index) {
     Ctx* ctx = _ctx;
-    scene_manager_set_scene_state(ctx->scene_manager, SceneConfig, index);
-    if(!ctx->attack->protocol) {
-        index--;
-    } else if(ctx->attack->protocol->config_count) {
-        uint8_t extra = ctx->attack->protocol->config_count(&ctx->attack->payload);
-        if(index > extra) index -= extra;
+    uint8_t cnt = 0;
+    if(ctx->attack && ctx->attack->protocol && ctx->attack->protocol->config_count) {
+        cnt = ctx->attack->protocol->config_count(&ctx->attack->payload);
     }
-
-    switch(index) {
-    case ConfigRandomMac:
-        break;
-    case ConfigLedIndicator:
-        break;
-    case ConfigLockKeyboard:
-        ctx->lock_keyboard = true;
-        view_dispatcher_send_custom_event(ctx->view_dispatcher, 0);
-        notification_message_block(ctx->notification, &sequence_display_backlight_off);
-        break;
-    default:
-        break;
+    if(index == cnt) {
+        ble_spam_toggle_adv(ctx);
+        bool adv = ble_spam_is_advertising(ctx);
+        if(adv && ctx->fast_mode) {
+            ctx->config_in_prewarm = true;
+            view_dispatcher_switch_to_view(ctx->view_dispatcher, ViewMain);
+        } else if(ctx->item_send) {
+            variable_item_set_current_value_text(ctx->item_send, adv ? "LIVE" : ">");
+        }
     }
 }
+
 void scene_config_on_enter(void* _ctx) {
     Ctx* ctx = _ctx;
     VariableItemList* list = ctx->variable_item_list;
     variable_item_list_reset(list);
-    //OFW PATCH
     ctx->item_pp_color = NULL;
+    ctx->item_send = NULL;
+    ctx->config_in_prewarm = false;
 
-    //variable_item_list_set_header(list, ctx->attack->title);
-
-    config_bool(list, "Random MAC", &ctx->attack->payload.random_mac);
-
-    variable_item_list_set_enter_callback(list, config_callback, ctx);
-    if(!ctx->attack->protocol) {
-        variable_item_list_add(list, "None shall escape the SINK", 0, NULL, NULL);
-    } else if(ctx->attack->protocol->extra_config) {
-        ctx->fallback_config_enter = config_callback;
+    if(ctx->attack && ctx->attack->protocol && ctx->attack->protocol->extra_config &&
+       ctx->attack->protocol->config_count &&
+       ctx->attack->protocol->config_count(&ctx->attack->payload) > 0) {
+        ctx->fallback_config_enter = NULL;
         ctx->attack->protocol->extra_config(ctx);
     }
 
-    config_bool(list, "LED Indicator", &ctx->led_indicator);
+    bool adv = ble_spam_is_advertising(ctx);
+    ctx->item_send = variable_item_list_add(list, "Send / Stop", 0, NULL, NULL);
+    variable_item_set_current_value_text(ctx->item_send, adv ? "LIVE" : ">");
 
-    variable_item_list_add(list, "Lock Keyboard", 0, NULL, NULL);
-
+    variable_item_list_set_enter_callback(list, config_enter_cb, ctx);
     variable_item_list_set_selected_item(
         list, scene_manager_get_scene_state(ctx->scene_manager, SceneConfig));
-
     view_dispatcher_switch_to_view(ctx->view_dispatcher, ViewVariableItemList);
 }
 
 bool scene_config_on_event(void* _ctx, SceneManagerEvent event) {
     Ctx* ctx = _ctx;
-    if(event.type == SceneManagerEventTypeCustom) {
-        scene_manager_previous_scene(ctx->scene_manager);
+    if(event.type == SceneManagerEventTypeTick) {
+        if(ctx->config_in_prewarm && !ble_spam_is_warming(ctx)) {
+            ctx->config_in_prewarm = false;
+            view_dispatcher_switch_to_view(ctx->view_dispatcher, ViewVariableItemList);
+            if(ctx->item_send) {
+                bool adv = ble_spam_is_advertising(ctx);
+                variable_item_set_current_value_text(ctx->item_send, adv ? "LIVE" : ">");
+            }
+        }
         return true;
     }
     return false;
@@ -77,5 +62,8 @@ bool scene_config_on_event(void* _ctx, SceneManagerEvent event) {
 
 void scene_config_on_exit(void* _ctx) {
     Ctx* ctx = _ctx;
+    ble_spam_stop_adv(ctx);
+    ctx->config_in_prewarm = false;
+    ctx->item_send = NULL;
     variable_item_list_reset(ctx->variable_item_list);
 }

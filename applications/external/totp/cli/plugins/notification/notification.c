@@ -29,8 +29,8 @@ static void
     }
 }
 
-static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
-    if(!totp_cli_ensure_authenticated(plugin_state, cli)) {
+static void handle(PluginState* plugin_state, FuriString* args, PipeSide* pipe) {
+    if(!totp_cli_ensure_authenticated(plugin_state, pipe)) {
         return;
     }
 
@@ -67,7 +67,7 @@ static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
             if(totp_config_file_update_notification_method(plugin_state)) {
                 TOTP_CLI_PRINTF_SUCCESS("Notification method is set to ");
                 totp_cli_command_notification_print_method(new_method, TOTP_CLI_COLOR_SUCCESS);
-                cli_nl(cli);
+                TOTP_CLI_NL();
             } else {
                 TOTP_CLI_PRINT_ERROR_UPDATING_CONFIG_FILE();
             }
@@ -77,7 +77,7 @@ static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
             TOTP_CLI_PRINTF_INFO("Current notification method is ");
             totp_cli_command_notification_print_method(
                 plugin_state->notification_method, TOTP_CLI_COLOR_INFO);
-            cli_nl(cli);
+            TOTP_CLI_NL();
         }
     } while(false);
 

@@ -44,13 +44,9 @@ static StationCache* station_cache = NULL;
 
 // Forward declarations for helper functions
 static bool renfe_sum10_is_history_entry(const uint8_t* block_data);
-static void renfe_sum10_parse_history_entry(
-    FuriString* parsed_data,
-    const uint8_t* block_data,
-    int entry_num);
-static void renfe_sum10_parse_travel_history(FuriString* parsed_data, const MfClassicData* data);
 static uint32_t renfe_sum10_extract_timestamp(const uint8_t* block_data);
 static void renfe_sum10_sort_history_entries(HistoryEntry* entries, int count);
+static const char* renfe_sum10_transaction_type_name(uint8_t transaction_type);
 static bool renfe_sum10_has_history_data(const MfClassicData* data);
 static bool renfe_sum10_load_station_file(const char* region);
 static const char* renfe_sum10_get_station_name_from_cache(uint16_t station_code);
@@ -604,10 +600,6 @@ static const char* renfe_sum10_get_station_name_dynamic(uint16_t station_code) {
     return "Unknown";
 }
 
-// Updated wrapper function to maintain API compatibility
-static const char* renfe_sum10_get_station_name(uint16_t station_code) {
-    return renfe_sum10_get_station_name_dynamic(station_code);
-}
 // Extract zone code from Block 5 data
 static uint16_t renfe_sum10_extract_zone_code(const uint8_t* block5_data) {
     if(!block5_data) {
@@ -830,149 +822,37 @@ static const char* renfe_sum10_get_zone_name(uint16_t zone_code) {
     }
 }
 
-// Parse a single history entry
-static void renfe_sum10_parse_history_entry(
-    FuriString* parsed_data,
-    const uint8_t* block_data,
-    int entry_num) {
-    // Check for null pointers
-    if(!parsed_data || !block_data) {
-        return;
-    }
-
-    // Extract transaction type from first byte
-    uint8_t transaction_type = block_data[0];
-
-    // Transaction type mappings
-    // 0x13=Entry, 0x1A=Exit, 0x1E=Transfer, 0x16=Validation, 0x33=Top-up, etc.
-
-    // Extract station codes (bytes 9-10) - Read as big-endian
-    uint16_t station_code = (block_data[9] << 8) | block_data[10];
-
-    // Format the entry
-    furi_string_cat_printf(parsed_data, "%d. ", entry_num);
-
-    // Interpret transaction type
+// Map a history entry transaction type byte to its display name
+// 0x13=Entry, 0x1A=Exit, 0x1E=Transfer, 0x16=Validation, 0x33=Top-up, etc.
+static const char* renfe_sum10_transaction_type_name(uint8_t transaction_type) {
     switch(transaction_type) {
     case 0x13:
-        furi_string_cat_printf(parsed_data, "Entry");
-        break;
+        return "Entry";
     case 0x1A:
-        furi_string_cat_printf(parsed_data, "Exit");
-        break;
+        return "Exit";
     case 0x1E:
-        furi_string_cat_printf(parsed_data, "Transfer");
-        break;
+        return "Transfer";
     case 0x16:
-        furi_string_cat_printf(parsed_data, "Validation");
-        break;
+        return "Validation";
     case 0x17:
-        furi_string_cat_printf(parsed_data, "Inspection");
-        break;
+        return "Inspection";
     case 0x23:
-        furi_string_cat_printf(parsed_data, "Discount");
-        break;
+        return "Discount";
     case 0x2A:
-        furi_string_cat_printf(parsed_data, "Penalty");
-        break;
+        return "Penalty";
     case 0x33:
-        furi_string_cat_printf(parsed_data, "Top-up");
-        break;
+        return "Top-up";
     case 0x3A:
-        furi_string_cat_printf(parsed_data, "Charge");
-        break;
+        return "Charge";
     case 0x18:
-        furi_string_cat_printf(parsed_data, "Check");
-        break;
+        return "Check";
     case 0x2B:
-        furi_string_cat_printf(parsed_data, "Special");
-        break;
+        return "Special";
     default:
-        furi_string_cat_printf(parsed_data, "Unknown");
-        break;
+        return "Unknown";
     }
-    // Add station information
-    const char* station_name = renfe_sum10_get_station_name(station_code);
-    if(station_code != 0x0000 && strlen(station_name) > 0) {
-        furi_string_cat_printf(parsed_data, " - %s", station_name);
-        if(strcmp(station_name, "Unknown") == 0) {
-            furi_string_cat_printf(parsed_data, " (Code: %04X)", station_code);
-        }
-    }
-
-    furi_string_cat_printf(parsed_data, "\n");
-}
-// Parse travel history from the card data (with sorting and strict validation)
-static void renfe_sum10_parse_travel_history(FuriString* parsed_data, const MfClassicData* data) {
-    // Check for null pointers
-    if(!parsed_data || !data) {
-        return;
-    }
-
-    // Define specific blocks that contain history
-    int history_blocks[] = {18, 22, 28, 29, 30, 44, 45, 46};
-    int num_blocks = sizeof(history_blocks) / sizeof(history_blocks[0]);
-
-    // Array to store found history entries for sorting
-    HistoryEntry* history_entries = malloc(sizeof(HistoryEntry) * num_blocks);
-    if(!history_entries) {
-        furi_string_cat_printf(parsed_data, "Memory allocation error\n");
-        return;
-    }
-
-    int history_count = 0;
-
-    int max_blocks = (data->type == MfClassicType1k) ? 64 : 256;
-
-    // Collect all valid history entries with strict validation
-    for(int i = 0; i < num_blocks; i++) {
-        int block = history_blocks[i];
-
-        // Check if block number is within valid range for this card type
-        if(block >= max_blocks) {
-            continue;
-        }
-
-        // Check if block was actually read
-        if(!mf_classic_is_block_read(data, block)) {
-            continue;
-        }
-
-        const uint8_t* block_data = data->block[block].data;
-
-        // Use strict block-specific validation to avoid false positives
-        if(renfe_sum10_is_travel_history_block(block_data, block)) {
-            // Store the entry for sorting
-            memcpy(history_entries[history_count].block_data, block_data, 16);
-            history_entries[history_count].timestamp = renfe_sum10_extract_timestamp(block_data);
-            history_entries[history_count].block_number = block;
-
-            history_count++;
-        }
-    }
-
-    if(history_count == 0) {
-        // Don't add any message here - let the calling function handle it
-    } else {
-        // Sort the history entries by timestamp (newest first)
-        renfe_sum10_sort_history_entries(history_entries, history_count);
-
-        // Display the sorted history
-        furi_string_cat_printf(parsed_data, "Travel History (%d trips):\n", history_count);
-        furi_string_cat_printf(parsed_data, "(Most recent first)\n\n");
-
-        for(int i = 0; i < history_count; i++) {
-            furi_string_cat_printf(parsed_data, "Trip %d:\n", i + 1);
-            renfe_sum10_parse_history_entry(parsed_data, history_entries[i].block_data, i + 1);
-            furi_string_cat_printf(parsed_data, "\n");
-        }
-    }
-
-    // Free allocated memory
-    free(history_entries);
 }
 
-// Parse only travel history (called when user presses LEFT button)
 typedef struct {
     uint8_t data_sector;
     const MfClassicKeyPair* keys;
@@ -994,44 +874,6 @@ static bool renfe_sum10_get_card_config(RenfeSum10CardConfig* config, MfClassicT
     }
 
     return success;
-}
-
-// Parse only travel history (called when user presses LEFT button)
-static bool renfe_sum10_parse_history_only(FuriString* parsed_data, const MfClassicData* data) {
-    // Check for null pointers
-    if(!parsed_data || !data) {
-        return false;
-    }
-
-    // Detect card variant for correct header
-    const char* card_variant = renfe_sum10_detect_card_variant(data);
-
-    // Clear existing data and show only travel history
-    furi_string_reset(parsed_data);
-    furi_string_cat_printf(parsed_data, "\e#RENFE %s\n", card_variant);
-    furi_string_cat_printf(parsed_data, "\e#Travel History\n\n");
-
-    // Check if we have history data first using strict validation
-    bool has_history = renfe_sum10_has_history_data(data);
-
-    if(!has_history) {
-        // Show a clear message when no history is found
-        furi_string_cat_printf(parsed_data, "No travel history found\n\n");
-        furi_string_cat_printf(parsed_data, "This card appears to be:\n");
-        furi_string_cat_printf(parsed_data, "• New or unused\n");
-        furi_string_cat_printf(parsed_data, "• Recently reset\n");
-        furi_string_cat_printf(parsed_data, "• Used only for balance\n\n");
-        furi_string_cat_printf(parsed_data, "Note: The system filters out\n");
-        furi_string_cat_printf(parsed_data, "false positives to ensure\n");
-        furi_string_cat_printf(parsed_data, "only real trips are shown.\n");
-    } else {
-        // Parse travel history with strict validation
-        renfe_sum10_parse_travel_history(parsed_data, data);
-    }
-
-    furi_string_cat_printf(parsed_data, "\n Press LEFT to return");
-
-    return true;
 }
 
 // Check if a specific block likely contains travel history (not configuration)
@@ -1103,324 +945,350 @@ static bool renfe_sum10_has_history_data(const MfClassicData* data) {
     return false;
 }
 
-// Parse function for RENFE Suma 10 cards
-static bool renfe_sum10_parse(FuriString* parsed_data, const MfClassicData* data) {
-    // Check for null pointers
-    if(!parsed_data) {
-        return false;
-    }
+// Display card view for RENFE Suma 10 cards
+static bool
+    renfe_sum10_display_card_view(const MfClassicData* data, Metroflip* app, bool from_file) {
+    if(!data) return false;
 
-    if(!data) {
-        return false;
-    }
-
-    bool parsed = false;
     RenfeSum10CardConfig cfg;
+    memset(&cfg, 0, sizeof(cfg));
+    if(!renfe_sum10_get_card_config(&cfg, data->type)) return false;
 
-    do {
-        memset(&cfg, 0, sizeof(cfg));
-        if(!renfe_sum10_get_card_config(&cfg, data->type)) {
-            break;
+    const char* card_variant = renfe_sum10_detect_card_variant(data);
+
+    /* Card view setup */
+    View* view = metroflip_card_view_alloc(app);
+    {
+        char title[METROFLIP_CARD_VIEW_TITLE_LEN];
+        snprintf(title, sizeof(title), "RENFE %.13s", card_variant);
+        metroflip_card_view_set_title(view, title);
+    }
+
+    char val[METROFLIP_CARD_VIEW_VALUE_LEN];
+
+    /* Page: Card Info */
+    uint8_t p = metroflip_card_view_add_page(view, "Card Info");
+
+    // Card type
+    if(data->type == MfClassicType1k) {
+        metroflip_card_view_add_field(view, p, "Type", "Mifare Classic 1K", false);
+    } else if(data->type == MfClassicType4k) {
+        metroflip_card_view_add_field(view, p, "Type", "Mifare Plus 2K", false);
+    } else {
+        metroflip_card_view_add_field(view, p, "Type", "Unknown", false);
+    }
+
+    // Variant
+    if(strcmp(card_variant, "MOBILIS 30") == 0) {
+        metroflip_card_view_add_field(view, p, "Variant", "Monthly Pass", false);
+    } else {
+        metroflip_card_view_add_field(view, p, "Variant", "Pay-per-trip", false);
+    }
+
+    // UID
+    if(data->iso14443_3a_data && data->iso14443_3a_data->uid_len > 0) {
+        const uint8_t* uid = data->iso14443_3a_data->uid;
+        size_t uid_len = data->iso14443_3a_data->uid_len;
+        size_t pos = 0;
+        for(size_t i = 0; i < uid_len && pos < sizeof(val) - 3; i++) {
+            if(i > 0 && pos < sizeof(val) - 4) val[pos++] = ' ';
+            pos += snprintf(val + pos, sizeof(val) - pos, "%02X", uid[i]);
         }
-
-        // Detect card variant and show appropriate header
-        const char* card_variant = renfe_sum10_detect_card_variant(data);
-        furi_string_cat_printf(parsed_data, "\e#🚆 RENFE %s\n", card_variant);
-
-        // 1. Show card type info
-        if(data->type == MfClassicType1k) {
-            furi_string_cat_printf(parsed_data, "Type: Mifare Classic 1K\n");
-        } else if(data->type == MfClassicType4k) {
-            furi_string_cat_printf(parsed_data, "Type: Mifare Plus 2K\n");
-        } else {
-            furi_string_cat_printf(parsed_data, "Type: Unknown\n");
-        }
-
-        // 2. Extract and show UID (SECURE VERSION - following renfe_regular approach)
-        if(data && data->iso14443_3a_data && data->iso14443_3a_data->uid_len > 0) {
-            // UID available from live reading - show actual UID
-            const uint8_t* uid = data->iso14443_3a_data->uid;
-            size_t uid_len = data->iso14443_3a_data->uid_len;
-
-            furi_string_cat_printf(parsed_data, "UID: ");
-            for(size_t i = 0; i < uid_len; i++) {
-                furi_string_cat_printf(parsed_data, "%02X", uid[i]);
-                if(i < uid_len - 1) {
-                    furi_string_cat_printf(parsed_data, " ");
-                }
-            }
-            furi_string_cat_printf(parsed_data, "\n");
-        } else {
-            // Try to extract UID from block 0 as fallback
-            if(mf_classic_is_block_read(data, 0)) {
-                const uint8_t* block0 = data->block[0].data;
-
-                // Additional null pointer safety check
-                if(block0 != NULL) {
-                    furi_string_cat_printf(parsed_data, "UID: ");
-
-                    if(block0[0] == 0x88) {
-                        // 7-byte UID: Skip cascade tag (0x88), take next 3 bytes
-                        for(int i = 1; i < 4; i++) {
-                            furi_string_cat_printf(parsed_data, "%02X ", block0[i]);
-                        }
-                        furi_string_cat_printf(parsed_data, "XX XX XX XX");
-                    } else {
-                        // 4-byte UID
-                        for(int i = 0; i < 4; i++) {
-                            furi_string_cat_printf(parsed_data, "%02X", block0[i]);
-                            if(i < 3) {
-                                furi_string_cat_printf(parsed_data, " ");
-                            }
-                        }
-                    }
-                    furi_string_cat_printf(parsed_data, "\n");
-                } else {
-                    furi_string_cat_printf(parsed_data, "UID: Block 0 unavailable\n");
-                }
+        metroflip_card_view_add_field(view, p, "UID", val, false);
+    } else if(mf_classic_is_block_read(data, 0)) {
+        const uint8_t* block0 = data->block[0].data;
+        if(block0 != NULL) {
+            if(block0[0] == 0x88) {
+                // 7-byte UID: Skip cascade tag (0x88), take next 3 bytes
+                snprintf(
+                    val,
+                    sizeof(val),
+                    "%02X %02X %02X XX XX XX XX",
+                    block0[1],
+                    block0[2],
+                    block0[3]);
             } else {
-                furi_string_cat_printf(parsed_data, "UID: N/A\n");
+                // 4-byte UID
+                snprintf(
+                    val,
+                    sizeof(val),
+                    "%02X %02X %02X %02X",
+                    block0[0],
+                    block0[1],
+                    block0[2],
+                    block0[3]);
             }
+            metroflip_card_view_add_field(view, p, "UID", val, false);
         }
+    }
 
-        // 3. Show card variant-specific information
-        if(strcmp(card_variant, "MOBILIS 30") == 0) {
-            furi_string_cat_printf(parsed_data, "Variant: Monthly Pass\n");
+    /* Page: Details */
+    p = metroflip_card_view_add_page(view, "Details");
 
-            // Extract cardholder name from Block 9 if available
-            if(mf_classic_is_block_read(data, 9)) {
-                const uint8_t* block9 = data->block[9].data;
-                char name_buffer[16] = {0};
-                bool has_valid_name = false;
+    // MOBILIS 30 holder name
+    if(strcmp(card_variant, "MOBILIS 30") == 0) {
+        if(mf_classic_is_block_read(data, 9)) {
+            const uint8_t* block9 = data->block[9].data;
+            char name_buffer[METROFLIP_CARD_VIEW_VALUE_LEN] = {0};
+            bool has_valid_name = false;
 
-                // Extract name (typically in first part of block 9, handling accents)
-                for(size_t i = 0; i < 6 && i < sizeof(name_buffer) - 1; i++) {
-                    char normalized_char = renfe_sum10_normalize_accent(block9[i]);
+            for(size_t i = 0; i < 6 && i < sizeof(name_buffer) - 1; i++) {
+                char normalized_char = renfe_sum10_normalize_accent(block9[i]);
 
-                    if(normalized_char >= 'A' && normalized_char <= 'Z') {
-                        // Keep uppercase letters as-is
-                        name_buffer[i] = normalized_char;
-                        has_valid_name = true;
-                    } else if(normalized_char >= 'a' && normalized_char <= 'z') {
-                        // Convert to proper case (first letter uppercase)
-                        name_buffer[i] = (i == 0) ? (normalized_char - 'a' + 'A') :
-                                                    normalized_char;
-                        has_valid_name = true;
-                    } else if(normalized_char == 0) {
-                        // End of string
-                        break;
-                    } else if(block9[i] >= 0x20 && block9[i] <= 0x7E) {
-                        // Other printable ASCII
-                        name_buffer[i] = (char)block9[i];
-                        has_valid_name = true;
-                    } else {
-                        // Invalid character, stop processing
-                        break;
-                    }
+                if(normalized_char >= 'A' && normalized_char <= 'Z') {
+                    name_buffer[i] = normalized_char;
+                    has_valid_name = true;
+                } else if(normalized_char >= 'a' && normalized_char <= 'z') {
+                    name_buffer[i] = (i == 0) ? (normalized_char - 'a' + 'A') : normalized_char;
+                    has_valid_name = true;
+                } else if(normalized_char == 0) {
+                    break;
+                } else if(block9[i] >= 0x20 && block9[i] <= 0x7E) {
+                    name_buffer[i] = (char)block9[i];
+                    has_valid_name = true;
+                } else {
+                    break;
                 }
+            }
 
-                if(has_valid_name) {
-                    furi_string_cat_printf(parsed_data, "👤 Holder: %s", name_buffer);
+            if(has_valid_name) {
+                // Try to extract surname from Block 14
+                if(mf_classic_is_block_read(data, 14)) {
+                    const uint8_t* block14 = data->block[14].data;
+                    char surname_buffer[32] = {0}; // Increased buffer for both surnames
+                    bool has_valid_surname = false;
+                    size_t surname_pos = 0;
+                    int words_found = 0;
+                    bool in_word = false;
+                    int consecutive_non_letters = 0;
 
-                    // Try to extract surname(s) from Block 14
-                    if(mf_classic_is_block_read(data, 14)) {
-                        const uint8_t* block14 = data->block[14].data;
-                        char surname_buffer[32] = {0}; // Increased buffer for both surnames
-                        bool has_valid_surname = false;
-                        size_t surname_pos = 0;
-                        int words_found = 0;
-                        bool in_word = false;
+                    for(size_t i = 0; i < 16 && surname_pos < sizeof(surname_buffer) - 2; i++) {
+                        char normalized_char = renfe_sum10_normalize_accent(block14[i]);
 
-                        // First pass: scan entire block for text patterns
-                        int consecutive_non_letters = 0;
-                        for(size_t i = 0; i < 16 && surname_pos < sizeof(surname_buffer) - 2;
-                            i++) {
-                            char normalized_char = renfe_sum10_normalize_accent(block14[i]);
-
-                            if(normalized_char >= 'A' && normalized_char <= 'Z') {
-                                // Valid uppercase letter
-                                consecutive_non_letters = 0;
-                                if(!in_word && words_found > 0 && surname_pos > 0 &&
-                                   surname_buffer[surname_pos - 1] != ' ') {
-                                    surname_buffer[surname_pos++] =
-                                        ' '; // Add space before new word
-                                }
-                                surname_buffer[surname_pos++] = normalized_char;
-                                has_valid_surname = true;
-                                in_word = true;
-                            } else if(normalized_char >= 'a' && normalized_char <= 'z') {
-                                // Convert lowercase to uppercase for surnames
-                                consecutive_non_letters = 0;
-                                if(!in_word && words_found > 0 && surname_pos > 0 &&
-                                   surname_buffer[surname_pos - 1] != ' ') {
-                                    surname_buffer[surname_pos++] =
-                                        ' '; // Add space before new word
-                                }
-                                surname_buffer[surname_pos++] = normalized_char - 'a' + 'A';
-                                has_valid_surname = true;
-                                in_word = true;
-                            } else if(normalized_char == ' ' && in_word) {
-                                // Space - end of current word
-                                consecutive_non_letters = 0;
+                        if(normalized_char >= 'A' && normalized_char <= 'Z') {
+                            consecutive_non_letters = 0;
+                            if(!in_word && words_found > 0 && surname_pos > 0 &&
+                               surname_buffer[surname_pos - 1] != ' ') {
+                                surname_buffer[surname_pos++] = ' ';
+                            }
+                            surname_buffer[surname_pos++] = normalized_char;
+                            has_valid_surname = true;
+                            in_word = true;
+                        } else if(normalized_char >= 'a' && normalized_char <= 'z') {
+                            consecutive_non_letters = 0;
+                            if(!in_word && words_found > 0 && surname_pos > 0 &&
+                               surname_buffer[surname_pos - 1] != ' ') {
+                                surname_buffer[surname_pos++] = ' ';
+                            }
+                            surname_buffer[surname_pos++] = normalized_char - 'a' + 'A';
+                            has_valid_surname = true;
+                            in_word = true;
+                        } else if(normalized_char == ' ' && in_word) {
+                            consecutive_non_letters = 0;
+                            if(surname_pos > 0 && surname_buffer[surname_pos - 1] != ' ') {
+                                surname_buffer[surname_pos++] = ' ';
+                            }
+                            words_found++;
+                            in_word = false;
+                        } else if(
+                            (normalized_char == 0 || (block14[i] != 0x20 && block14[i] < 0x20) ||
+                             (block14[i] > 0x7E && normalized_char == 0)) &&
+                            in_word) {
+                            if(surname_pos > 0 && surname_buffer[surname_pos - 1] != ' ') {
+                                surname_buffer[surname_pos++] = ' ';
+                            }
+                            words_found++;
+                            in_word = false;
+                            consecutive_non_letters++;
+                        } else if(normalized_char == 0 && !in_word) {
+                            consecutive_non_letters++;
+                            continue;
+                        } else {
+                            consecutive_non_letters++;
+                            if(consecutive_non_letters >= 2 && words_found >= 1) break;
+                            if(in_word) {
                                 if(surname_pos > 0 && surname_buffer[surname_pos - 1] != ' ') {
                                     surname_buffer[surname_pos++] = ' ';
                                 }
                                 words_found++;
                                 in_word = false;
-                            } else if(
-                                (normalized_char == 0 ||
-                                 (block14[i] != 0x20 && block14[i] < 0x20) ||
-                                 (block14[i] > 0x7E && normalized_char == 0)) &&
-                                in_word) {
-                                // End of word due to non-printable character
-                                if(surname_pos > 0 && surname_buffer[surname_pos - 1] != ' ') {
-                                    surname_buffer[surname_pos++] = ' ';
-                                }
-                                words_found++;
-                                in_word = false;
-                                consecutive_non_letters++;
-                            } else if(normalized_char == 0 && !in_word) {
-                                // Skip null bytes between words
-                                consecutive_non_letters++;
-                                continue;
-                            } else {
-                                // Other characters (numbers, symbols, etc.)
-                                consecutive_non_letters++;
-                                if(consecutive_non_letters >= 2 && words_found >= 1) {
-                                    // Stop if we have consecutive non-letter characters and at least one word
-                                    break;
-                                }
-                                if(in_word) {
-                                    // End current word if we encounter non-letter
-                                    if(surname_pos > 0 && surname_buffer[surname_pos - 1] != ' ') {
-                                        surname_buffer[surname_pos++] = ' ';
-                                    }
-                                    words_found++;
-                                    in_word = false;
-                                }
                             }
                         }
-
-                        // Mark end of last word if we were in one
-                        if(in_word) {
-                            words_found++;
-                        }
-
-                        // Clean up trailing spaces and unwanted characters
-                        while(surname_pos > 0 && (surname_buffer[surname_pos - 1] == ' ' ||
-                                                  surname_buffer[surname_pos - 1] == 'U' ||
-                                                  surname_buffer[surname_pos - 1] == 'u')) {
-                            surname_buffer[--surname_pos] = '\0';
-                        }
-
-                        // Additional cleanup: remove any single letter at the end if preceded by space
-                        if(surname_pos >= 3 && surname_buffer[surname_pos - 2] == ' ' &&
-                           ((surname_buffer[surname_pos - 1] >= 'A' &&
-                             surname_buffer[surname_pos - 1] <= 'Z') ||
-                            (surname_buffer[surname_pos - 1] >= 'a' &&
-                             surname_buffer[surname_pos - 1] <= 'z'))) {
-                            // Check if it's likely a stray character (single letter after space)
-                            surname_buffer[surname_pos - 2] = '\0';
-                            surname_pos -= 2;
-                        }
-
-                        // Final cleanup of trailing spaces again
-                        while(surname_pos > 0 && surname_buffer[surname_pos - 1] == ' ') {
-                            surname_buffer[--surname_pos] = '\0';
-                        }
-
-                        // Accept if we have at least 3 characters and at least one word
-                        if(has_valid_surname && surname_pos >= 3) {
-                            furi_string_cat_printf(parsed_data, " %s", surname_buffer);
-                        }
                     }
 
-                    furi_string_cat_printf(parsed_data, "\n");
+                    if(in_word) words_found++;
+
+                    // Cleanup trailing spaces
+                    while(surname_pos > 0 && (surname_buffer[surname_pos - 1] == ' ' ||
+                                              surname_buffer[surname_pos - 1] == 'U' ||
+                                              surname_buffer[surname_pos - 1] == 'u')) {
+                        surname_buffer[--surname_pos] = '\0';
+                    }
+                    if(surname_pos >= 3 && surname_buffer[surname_pos - 2] == ' ' &&
+                       ((surname_buffer[surname_pos - 1] >= 'A' &&
+                         surname_buffer[surname_pos - 1] <= 'Z') ||
+                        (surname_buffer[surname_pos - 1] >= 'a' &&
+                         surname_buffer[surname_pos - 1] <= 'z'))) {
+                        surname_buffer[surname_pos - 2] = '\0';
+                        surname_pos -= 2;
+                    }
+                    while(surname_pos > 0 && surname_buffer[surname_pos - 1] == ' ') {
+                        surname_buffer[--surname_pos] = '\0';
+                    }
+
+                    if(has_valid_surname && surname_pos >= 3) {
+                        // .15 precision keeps name+space+surname within the 32-char value
+                        snprintf(val, sizeof(val), "%.15s %.15s", name_buffer, surname_buffer);
+                    } else {
+                        snprintf(val, sizeof(val), "%s", name_buffer);
+                    }
+                } else {
+                    snprintf(val, sizeof(val), "%s", name_buffer);
                 }
-            }
-        } else {
-            furi_string_cat_printf(parsed_data, "Variant: Pay-per-trip\n");
-        }
-
-        // 4. Extract and show origin station information (where card was first topped up)
-        const char* origin_station = renfe_sum10_get_origin_station(data);
-        if(origin_station && strcmp(origin_station, "Unknown") != 0) {
-            furi_string_cat_printf(parsed_data, "Origin: %s\n", origin_station);
-        } else {
-            furi_string_cat_printf(parsed_data, "Origin: Unknown\n");
-        }
-
-        // 5. Extract and show zone information
-        uint16_t zone_code = 0x0000;
-        const char* zone_name = "N/A";
-
-        // For MOBILIS 30, use specialized zone extraction
-        if(strcmp(card_variant, "MOBILIS 30") == 0) {
-            zone_code = renfe_sum10_extract_mobilis_zone_code(data);
-            zone_name = renfe_sum10_get_zone_name(zone_code);
-        } else {
-            // For SUMA 10, use standard Block 5 extraction
-            if(mf_classic_is_block_read(data, 5)) {
-                const uint8_t* block5 = data->block[5].data;
-                if(block5 != NULL) {
-                    zone_code = renfe_sum10_extract_zone_code(block5);
-                    zone_name = renfe_sum10_get_zone_name(zone_code);
-                }
+                metroflip_card_view_add_field(view, p, "Holder", val, false);
             }
         }
+    }
 
-        if(zone_code != 0x0000) {
-            furi_string_cat_printf(parsed_data, "Zone: %s\n", zone_name ? zone_name : "Error");
-        } else {
-            furi_string_cat_printf(parsed_data, "Zone: %s\n", zone_name ? zone_name : "Error");
-        }
+    // Origin station
+    const char* origin_station = renfe_sum10_get_origin_station(data);
+    if(origin_station && strcmp(origin_station, "Unknown") != 0) {
+        snprintf(val, sizeof(val), "%s", origin_station);
+        metroflip_card_view_add_field(view, p, "Origin", val, false);
+    } else {
+        metroflip_card_view_add_field(view, p, "Origin", "Unknown", false);
+    }
 
-        // 6. Extract and show trips from Block 5
+    /* Page: Zone & Trips */
+    p = metroflip_card_view_add_page(view, "Zone & Trips");
+
+    // Zone
+    uint16_t zone_code = 0x0000;
+    const char* zone_name = "N/A";
+
+    if(strcmp(card_variant, "MOBILIS 30") == 0) {
+        zone_code = renfe_sum10_extract_mobilis_zone_code(data);
+        zone_name = renfe_sum10_get_zone_name(zone_code);
+    } else {
         if(mf_classic_is_block_read(data, 5)) {
             const uint8_t* block5 = data->block[5].data;
-            if(block5 != NULL && block5[0] == 0x01 && block5[1] == 0x00 && block5[2] == 0x00 &&
-               block5[3] == 0x00) {
-                // Extract trip count from byte 4
-                int viajes = (int)block5[4];
-                furi_string_cat_printf(parsed_data, "Trips: %d\n", viajes);
-            } else {
-                furi_string_cat_printf(parsed_data, "Trips: N/A\n");
+            if(block5 != NULL) {
+                zone_code = renfe_sum10_extract_zone_code(block5);
+                zone_name = renfe_sum10_get_zone_name(zone_code);
             }
+        }
+    }
+    snprintf(val, sizeof(val), "%s", zone_name ? zone_name : "N/A");
+    metroflip_card_view_add_field(view, p, "Zone", val, false);
+
+    // Trips
+    if(mf_classic_is_block_read(data, 5)) {
+        const uint8_t* block5 = data->block[5].data;
+        if(block5 != NULL && block5[0] == 0x01 && block5[1] == 0x00 && block5[2] == 0x00 &&
+           block5[3] == 0x00) {
+            int viajes = (int)block5[4];
+            snprintf(val, sizeof(val), "%d", viajes);
+            metroflip_card_view_add_field(view, p, "Trips", val, true);
         } else {
-            furi_string_cat_printf(parsed_data, "Trips: N/A\n");
+            metroflip_card_view_add_field(view, p, "Trips", "N/A", false);
+        }
+    } else {
+        metroflip_card_view_add_field(view, p, "Trips", "N/A", false);
+    }
+
+    // History status
+    bool has_history = renfe_sum10_has_history_data(data);
+    if(has_history) {
+        metroflip_card_view_add_field(view, p, "History", "Available", false);
+    } else {
+        metroflip_card_view_add_field(view, p, "History", "Empty", false);
+    }
+
+    /* Page: Travel History (sorted newest first, one field per trip) */
+    if(has_history) {
+        // Define specific blocks that contain history
+        int history_blocks[] = {18, 22, 28, 29, 30, 44, 45, 46};
+        int num_blocks = sizeof(history_blocks) / sizeof(history_blocks[0]);
+        int max_blocks = (data->type == MfClassicType1k) ? 64 : 256;
+
+        HistoryEntry history_entries[sizeof(history_blocks) / sizeof(history_blocks[0])];
+        int history_count = 0;
+
+        // Collect all valid history entries with strict validation
+        for(int i = 0; i < num_blocks; i++) {
+            int block = history_blocks[i];
+
+            // Check if block number is within valid range for this card type
+            if(block >= max_blocks) {
+                continue;
+            }
+
+            // Check if block was actually read
+            if(!mf_classic_is_block_read(data, block)) {
+                continue;
+            }
+
+            const uint8_t* block_data = data->block[block].data;
+            if(!block_data) {
+                continue;
+            }
+
+            // Use strict block-specific validation to avoid false positives
+            if(renfe_sum10_is_travel_history_block(block_data, block)) {
+                memcpy(history_entries[history_count].block_data, block_data, 16);
+                history_entries[history_count].timestamp =
+                    renfe_sum10_extract_timestamp(block_data);
+                history_entries[history_count].block_number = block;
+                history_count++;
+            }
         }
 
-        // Add travel history status prominently (visible above buttons)
-        furi_string_cat_printf(parsed_data, "\n");
-        if(renfe_sum10_has_history_data(data)) {
-            furi_string_cat_printf(parsed_data, "History: Available\n");
-            furi_string_cat_printf(parsed_data, "   ⬅ Press LEFT to view details\n");
-        } else {
-            furi_string_cat_printf(parsed_data, "History: Empty/Not found\n");
-            furi_string_cat_printf(parsed_data, "   (New card or cleared history)\n");
+        if(history_count > 0) {
+            // Sort the history entries by timestamp (newest first)
+            renfe_sum10_sort_history_entries(history_entries, history_count);
+
+            char header[METROFLIP_CARD_VIEW_HEADER_LEN];
+            // & 0xFF bounds the value so -Wformat-truncation knows it fits
+            snprintf(header, sizeof(header), "History (%d trips)", history_count & 0xFF);
+            p = metroflip_card_view_add_page(view, header);
+            metroflip_card_view_add_field(view, p, "", "(Most recent first)", false);
+
+            for(int i = 0; i < history_count; i++) {
+                const uint8_t* entry_data = history_entries[i].block_data;
+
+                // Interpret transaction type from first byte
+                const char* type_name = renfe_sum10_transaction_type_name(entry_data[0]);
+
+                // Extract station code (bytes 9-10) - read as big-endian
+                uint16_t station_code = (entry_data[9] << 8) | entry_data[10];
+                const char* station_name = renfe_sum10_get_station_name_dynamic(station_code);
+
+                if(station_code != 0x0000 && strlen(station_name) > 0) {
+                    if(strcmp(station_name, "Unknown") == 0) {
+                        snprintf(val, sizeof(val), "%s - Unknown (%04X)", type_name, station_code);
+                    } else {
+                        snprintf(val, sizeof(val), "%s - %s", type_name, station_name);
+                    }
+                } else {
+                    snprintf(val, sizeof(val), "%s", type_name);
+                }
+
+                char label[METROFLIP_CARD_VIEW_LABEL_LEN];
+                snprintf(label, sizeof(label), "Trip %d", i + 1);
+                metroflip_card_view_add_field(view, p, label, val, false);
+            }
         }
-
-        parsed = true;
-
-    } while(false);
-
-    return parsed;
-}
-
-// Widget callback function for handling button events (only for History button)
-static void renfe_sum10_widget_callback(GuiButtonType result, InputType type, void* context) {
-    if(!context) {
-        return;
     }
 
-    Metroflip* app = context;
-    if(!app->view_dispatcher) {
-        return;
+    /* Buttons */
+    if(from_file) {
+        metroflip_card_view_set_delete(view, true);
+    } else {
+        metroflip_card_view_set_save(view, true);
     }
 
-    if(type == InputTypeShort) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, result);
-    }
+    metroflip_card_view_show(app);
+    return true;
 }
 
 static NfcCommand renfe_sum10_poller_callback(NfcGenericEvent event, void* context) {
@@ -1494,50 +1362,10 @@ static NfcCommand renfe_sum10_poller_callback(NfcGenericEvent event, void* conte
             app->sec_num = 0;
         }
     } else if(mfc_event->type == MfClassicPollerEventTypeSuccess) {
-        // Handle successful completion - parse and display immediately (like working version)
-
-        if(!app->nfc_device) {
-            return NfcCommandStop;
-        }
-
-        const MfClassicData* mfc_data = nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
-        if(!mfc_data) {
-            return NfcCommandStop;
-        }
-
-        FuriString* parsed_data = furi_string_alloc();
-        if(!parsed_data) {
-            return NfcCommandStop;
-        }
-
-        Widget* widget = app->widget;
-        if(!widget) {
-            furi_string_free(parsed_data);
-            return NfcCommandStop;
-        }
-
-        if(!renfe_sum10_parse(parsed_data, mfc_data)) {
-            furi_string_reset(app->text_box_store);
-            furi_string_printf(parsed_data, "\e#Unknown card\n");
-        }
-
-        widget_add_text_scroll_element(widget, 0, 0, 128, 52, furi_string_get_cstr(parsed_data));
-
-        // Always show History button - if no history found, we'll show a message
-        // Use the standard Metroflip callbacks in the poller success
-        widget_add_button_element(
-            widget, GuiButtonTypeLeft, "History", renfe_sum10_widget_callback, app);
-        widget_add_button_element(
-            widget, GuiButtonTypeCenter, "Save", metroflip_save_widget_callback, app);
-        widget_add_button_element(
-            widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-
-        furi_string_free(parsed_data);
-
-        if(app->view_dispatcher) {
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-        }
-        metroflip_app_blink_stop(app);
+        /* Hand off to the main thread - building/registering/switching the
+           card view must not happen on the NFC worker thread. The data was
+           already captured into app->nfc_device during the sector reads. */
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
         command = NfcCommandStop;
     } else if(mfc_event->type == MfClassicPollerEventTypeFail) {
         command = NfcCommandStop;
@@ -1571,49 +1399,25 @@ static void renfe_sum10_on_enter(Metroflip* app) {
         furi_record_close(RECORD_STORAGE);
 
         if(mfc_data) {
-            FuriString* parsed_data = furi_string_alloc();
-            Widget* widget = app->widget;
-
-            if(!widget) {
-                FURI_LOG_E(TAG, "RENFE: Widget is NULL!");
-                if(should_free_mfc_data) mf_classic_free(mfc_data);
-                furi_string_free(parsed_data);
-                return;
-            }
-
-            if(!app->text_box_store) {
-                if(should_free_mfc_data) mf_classic_free(mfc_data);
-                furi_string_free(parsed_data);
-                return;
-            }
-
-            furi_string_reset(app->text_box_store);
-            if(!renfe_sum10_parse(parsed_data, mfc_data)) {
-                furi_string_reset(app->text_box_store);
-                furi_string_printf(parsed_data, "\e#Unknown card\n");
-            }
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 52, furi_string_get_cstr(parsed_data));
-
-            // Use the standard Metroflip callbacks instead of custom ones
-            widget_add_button_element(
-                widget, GuiButtonTypeLeft, "History", renfe_sum10_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Delete", metroflip_delete_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-
-            if(!app->view_dispatcher) {
-                if(should_free_mfc_data) mf_classic_free(mfc_data);
-                furi_string_free(parsed_data);
-                return;
+            if(!renfe_sum10_display_card_view(mfc_data, app, true)) {
+                Widget* widget = app->widget;
+                FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                furi_string_free(s);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
             }
 
             if(should_free_mfc_data) mf_classic_free(mfc_data);
-            furi_string_free(parsed_data);
-
-            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
+            Widget* widget = app->widget;
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
+            widget_add_button_element(
+                widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+            view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
     } else {
         // Setup view
@@ -1626,7 +1430,8 @@ static void renfe_sum10_on_enter(Metroflip* app) {
             return;
         }
 
-        popup_set_header(popup, "Apply\n card to\nthe back", 68, 30, AlignLeft, AlignTop);
+        popup_set_header(
+            popup, "Scanning...\nApply card\nto the back", 68, 30, AlignLeft, AlignTop);
         popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
         // Start worker
@@ -1647,168 +1452,44 @@ static bool renfe_sum10_on_event(Metroflip* app, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == MetroflipCustomEventCardDetected) {
+        if(event.event == MetroflipCustomEventPollerSuccess) {
+            /* Read finished on the worker thread; build the card view here on
+               the main/GUI thread. */
+            metroflip_app_blink_stop(app);
+            const MfClassicData* mfc_data =
+                app->nfc_device ? nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic) :
+                                  NULL;
+            if(!mfc_data || !renfe_sum10_display_card_view(mfc_data, app, false)) {
+                FURI_LOG_I(TAG, "Unknown card type");
+                Widget* widget = app->widget;
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, "\e#Unknown card\n");
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+            }
+            consumed = true;
+        } else if(event.event == MetroflipCustomEventCardDetected) {
             if(app->popup) {
                 Popup* popup = app->popup;
-                popup_set_header(popup, "DON'T\nMOVE", 68, 30, AlignLeft, AlignTop);
+                popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             }
             consumed = true;
         } else if(event.event == MetroflipCustomEventCardLost) {
             if(app->popup) {
                 Popup* popup = app->popup;
-                popup_set_header(popup, "Card \n lost", 68, 30, AlignLeft, AlignTop);
+                popup_set_header(popup, "Card lost!\nTry again", 68, 30, AlignLeft, AlignTop);
             }
             consumed = true;
         } else if(event.event == MetroflipCustomEventWrongCard) {
             if(app->popup) {
                 Popup* popup = app->popup;
-                popup_set_header(popup, "WRONG \n CARD", 68, 30, AlignLeft, AlignTop);
+                popup_set_header(popup, "Wrong card", 68, 30, AlignLeft, AlignTop);
             }
             consumed = true;
         } else if(event.event == MetroflipCustomEventPollerFail) {
             if(app->popup) {
                 Popup* popup = app->popup;
-                popup_set_header(popup, "Failed", 68, 30, AlignLeft, AlignTop);
-            }
-            consumed = true;
-        } else if(event.event == GuiButtonTypeLeft) {
-            // Handle LEFT button press to show travel history
-            if(app->data_loaded) {
-                MfClassicData* mfc_data = NULL;
-                bool should_free_mfc_data = false;
-
-                // Load from file (original behavior)
-                Storage* storage = furi_record_open(RECORD_STORAGE);
-                FlipperFormat* ff = flipper_format_file_alloc(storage);
-                if(flipper_format_file_open_existing(ff, app->file_path)) {
-                    mfc_data = mf_classic_alloc();
-                    mf_classic_load(mfc_data, ff, 2);
-                    should_free_mfc_data = true;
-                }
-                flipper_format_free(ff);
-                furi_record_close(RECORD_STORAGE);
-
-                if(mfc_data) {
-                    FuriString* parsed_data = furi_string_alloc();
-                    Widget* widget = app->widget;
-
-                    if(widget) {
-                        // Reset widget and show only travel history
-                        widget_reset(widget);
-                        if(!renfe_sum10_parse_history_only(parsed_data, mfc_data)) {
-                            furi_string_reset(parsed_data);
-                            furi_string_printf(
-                                parsed_data, "\e#Travel History\nNo history found\n");
-                        }
-                        widget_add_text_scroll_element(
-                            widget, 0, 0, 128, 52, furi_string_get_cstr(parsed_data));
-                        widget_add_button_element(
-                            widget, GuiButtonTypeRight, "Back", renfe_sum10_widget_callback, app);
-                        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-                    }
-
-                    if(should_free_mfc_data) mf_classic_free(mfc_data);
-                    furi_string_free(parsed_data);
-                }
-            } else {
-                // Card is connected - use already read data
-                const MfClassicData* mfc_data =
-                    nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
-                if(mfc_data && app->widget) {
-                    FuriString* parsed_data = furi_string_alloc();
-                    Widget* widget = app->widget;
-
-                    // Reset widget and show travel history
-                    widget_reset(widget);
-                    if(!renfe_sum10_parse_history_only(parsed_data, mfc_data)) {
-                        furi_string_reset(parsed_data);
-                        furi_string_printf(parsed_data, "\e#Travel History\nNo history found\n");
-                    }
-                    widget_add_text_scroll_element(
-                        widget, 0, 0, 128, 52, furi_string_get_cstr(parsed_data));
-                    widget_add_button_element(
-                        widget, GuiButtonTypeRight, "Back", renfe_sum10_widget_callback, app);
-
-                    furi_string_free(parsed_data);
-                    view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-                }
-            }
-            consumed = true;
-        } else if(event.event == GuiButtonTypeRight) {
-            // Handle RIGHT button press - go back to main card view from history
-            if(app->data_loaded) {
-                MfClassicData* mfc_data = NULL;
-                bool should_free_mfc_data = false;
-
-                // Load from file (original behavior)
-                Storage* storage = furi_record_open(RECORD_STORAGE);
-                FlipperFormat* ff = flipper_format_file_alloc(storage);
-                if(flipper_format_file_open_existing(ff, app->file_path)) {
-                    mfc_data = mf_classic_alloc();
-                    mf_classic_load(mfc_data, ff, 2);
-                    should_free_mfc_data = true;
-                }
-                flipper_format_free(ff);
-                furi_record_close(RECORD_STORAGE);
-
-                if(mfc_data) {
-                    FuriString* parsed_data = furi_string_alloc();
-                    Widget* widget = app->widget;
-
-                    if(widget) {
-                        widget_reset(widget);
-                        if(!renfe_sum10_parse(parsed_data, mfc_data)) {
-                            furi_string_printf(parsed_data, "\e#Unknown card\n");
-                        }
-                        widget_add_text_scroll_element(
-                            widget, 0, 0, 128, 52, furi_string_get_cstr(parsed_data));
-
-                        widget_add_button_element(
-                            widget, GuiButtonTypeLeft, "History", renfe_sum10_widget_callback, app);
-                        widget_add_button_element(
-                            widget,
-                            GuiButtonTypeCenter,
-                            "Delete",
-                            metroflip_delete_widget_callback,
-                            app);
-                        widget_add_button_element(
-                            widget,
-                            GuiButtonTypeRight,
-                            "Exit",
-                            metroflip_exit_widget_callback,
-                            app);
-
-                        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-                    }
-
-                    if(should_free_mfc_data) mf_classic_free(mfc_data);
-                    furi_string_free(parsed_data);
-                }
-            } else {
-                // Card is connected - use already read data
-                const MfClassicData* mfc_data =
-                    nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
-                if(mfc_data && app->widget) {
-                    FuriString* parsed_data = furi_string_alloc();
-                    Widget* widget = app->widget;
-
-                    widget_reset(widget);
-                    if(!renfe_sum10_parse(parsed_data, mfc_data)) {
-                        furi_string_printf(parsed_data, "\e#Unknown card\n");
-                    }
-                    widget_add_text_scroll_element(
-                        widget, 0, 0, 128, 52, furi_string_get_cstr(parsed_data));
-
-                    widget_add_button_element(
-                        widget, GuiButtonTypeLeft, "History", renfe_sum10_widget_callback, app);
-                    widget_add_button_element(
-                        widget, GuiButtonTypeCenter, "Save", metroflip_save_widget_callback, app);
-                    widget_add_button_element(
-                        widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-
-                    view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-                    furi_string_free(parsed_data);
-                }
+                popup_set_header(popup, "Read failed", 68, 30, AlignLeft, AlignTop);
             }
             consumed = true;
         }
@@ -1825,19 +1506,14 @@ static void renfe_sum10_on_exit(Metroflip* app) {
         return;
     }
 
-    if(app->widget) {
-        widget_reset(app->widget);
-    }
+    widget_reset(app->widget);
+    popup_reset(app->popup);
+    metroflip_app_blink_stop(app);
 
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
         app->poller = NULL;
-    }
-
-    // Clear view
-    if(app->popup) {
-        popup_reset(app->popup);
     }
 
     // Clear station cache to free memory
@@ -1848,8 +1524,6 @@ static void renfe_sum10_on_exit(Metroflip* app) {
         free(station_cache);
         station_cache = NULL;
     }
-
-    metroflip_app_blink_stop(app);
 }
 
 static const MetroflipPlugin renfe_sum10_plugin = {

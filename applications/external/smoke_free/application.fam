@@ -1,0 +1,13 @@
+App(
+    appid="smoke_free",
+    name="Smoke Free",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="nie_pale",
+    stack_size=3 * 1024,
+    fap_icon="icon.png",
+    fap_category="Tools",
+    fap_author="Dr.Mosfet",
+    fap_weburl="https://github.com/kamylwnb/smoke_free",
+    fap_version="0.1",
+    fap_description="Tracks time without smoking. Saves data to SD card.",
+)

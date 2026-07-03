@@ -107,9 +107,9 @@ static void input_callback(InputEvent* input_event, void* ctx) {
 }
 
 static void timer_callback(void* ctx) {
-    // Проверяем, что контекст не нулевой
-    furi_assert(ctx);
     FuriMessageQueue* event_queue = ctx;
+    // Проверяем, что контекст не нулевой
+    furi_assert(event_queue);
 
     ZeitrafferEvent event = {.type = EventTypeTick};
     furi_message_queue_put(event_queue, &event, 0);
@@ -326,6 +326,7 @@ int32_t zeitraffer_app(void* p) {
                     }
                 }
             }
+            view_port_update(view_port);
         }
 
         // Наше событие — это сработавший таймер
@@ -379,6 +380,8 @@ int32_t zeitraffer_app(void* p) {
             default:
                 notification_message(notifications, &sequence_display_backlight_enforce_auto);
             }
+
+            view_port_update(view_port);
         }
         if(Time < 1) Time = 1; // Не даём открутить таймер меньше единицы
         if(Count < -1)
@@ -423,6 +426,7 @@ int32_t zeitraffer_app(void* p) {
     } while(0);
 
     flipper_format_free(save);
+
     furi_record_close(RECORD_STORAGE);
 
     // Очищаем таймер

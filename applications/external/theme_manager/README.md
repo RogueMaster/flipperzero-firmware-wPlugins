@@ -1,12 +1,13 @@
 # 🎨 Theme Manager for Flipper Zero
 
 [![Build](https://github.com/Hoasker/flipper-theme-manager/actions/workflows/build.yml/badge.svg)](https://github.com/Hoasker/flipper-theme-manager/actions)
+[![FlipperLab](https://img.shields.io/badge/Flipper%20Lab-Available-orange)](https://lab.flipper.net/apps/theme_manager)
 
 Manage dolphin animation themes directly from your Flipper Zero — no PC required.
 
 ## Download
 
-- [**Flipper Apps Catalog**](https://lab.flipper.net/apps/theme_manager) (coming soon)
+- [**Flipper Apps Catalog**](https://lab.flipper.net/apps/theme_manager)
 - [**GitHub Releases**](https://github.com/Hoasker/flipper-theme-manager/releases)
 
 ## Screenshots
@@ -25,17 +26,24 @@ Manage dolphin animation themes directly from your Flipper Zero — no PC requir
 
 - **Scan SD card** — auto-detects animation packs in `/ext/animation_packs/`
 - **3 theme formats** — Pack `[P]`, Anim Pack `[A]`, Single animation `[S]`
-- **Animation preview** — thumbnail of first frame on the info screen
+- **Theme validation** — checks file integrity (invalid marked `[!P]`, blocked from applying)
+- **Animated preview** — multi-frame animation playback on the info screen
+- **Favorites** — mark themes with `*` prefix, favorites grouped at top of menu
 - **Theme info** — view type, animation count, and size before applying
-- **One-tap apply** — merges theme files into `/ext/dolphin/`
+- **One-tap apply** — merges theme files into `/ext/dolphin/` with progress bar
 - **Delete themes** — remove theme packs directly from the app
 - **Auto-backup** — backs up entire `/ext/dolphin/` before overwriting
 - **Restore** — revert to previous theme from the menu
-- **Reboot dialog** — apply and reboot instantly, or keep browsing
+- **Reboot countdown** — 5-second auto-reboot timer after applying theme
+- **SD card check** — verifies SD card at startup with clear error message
 
 ## Installation
 
-### From Releases (recommended)
+### From Flipper Apps Catalog (recommended)
+
+Search for **Theme Manager** in the [Flipper Apps Catalog](https://lab.flipper.net/apps/theme_manager) and install directly to your Flipper Zero.
+
+### From Releases
 
 1. Download `theme_manager.fap` from [Releases](https://github.com/Hoasker/flipper-theme-manager/releases)
 2. Copy to your Flipper's SD card: `/ext/apps/Tools/`
@@ -86,10 +94,11 @@ animation_packs/MySingleAnim/
 ## How It Works
 
 1. Scans `/ext/animation_packs/` for supported theme formats
-2. Select a theme → view info with animation preview
-3. Apply → backs up `/ext/dolphin/` → merges new theme
-4. Reboot to see new animations, or keep browsing
-5. Use **Restore Previous** to revert anytime
+2. Select a theme → view info with animated preview
+3. Press **Up** on Info screen to add/remove from favorites
+4. Apply → backs up `/ext/dolphin/` → merges new theme with progress bar
+5. 5-second reboot countdown starts (or press Later to cancel)
+6. Use **Restore Previous** to revert anytime
 
 ## Custom Firmware
 

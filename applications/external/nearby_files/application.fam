@@ -1,0 +1,21 @@
+App(
+    appid="nearby_files",
+    name="Nearby Files",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="nearby_files_app",
+    stack_size=4 * 1024,
+    fap_icon="nearby_files_10px.png",
+    fap_icon_assets="icons",
+    fap_private_libs=[
+        Lib(
+            name="minmea",
+            sources=["minmea.c"],
+            cdefines=["timegm=mktime"],
+        ),
+    ],
+    fap_category="GPIO/GPS",
+    fap_author="Stichoza",
+    fap_weburl="https://github.com/Stichoza/flipper-nearby-files",
+    fap_version="1.7",
+    fap_description="A GPS-enabled file browser that displays files sorted by distance from your current location.",
+)

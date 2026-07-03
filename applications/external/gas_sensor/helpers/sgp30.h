@@ -78,7 +78,7 @@
  * @brief Sgp30 instance definition
 */
 typedef struct Sgp30 {
-    FuriHalI2cBusHandle* i2c;
+    const FuriHalI2cBusHandle* i2c;
     uint64_t chip_id;
     uint8_t i2c_addr;
     uint8_t i2c_addr_read;

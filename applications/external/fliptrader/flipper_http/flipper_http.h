@@ -7,7 +7,7 @@
 #include <furi_hal_gpio.h>
 #include <furi_hal_serial.h>
 #include <storage/storage.h>
-#include <cfw/cfw.h>
+#include <cfw/settings.h>
 
 // STORAGE_EXT_PATH_PREFIX is defined in the Furi SDK as /ext
 

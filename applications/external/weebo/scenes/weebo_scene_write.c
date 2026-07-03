@@ -64,7 +64,7 @@ NfcCommand weebo_scene_write_poller_callback(NfcGenericEvent event, void* contex
         }
 
         uint8_t modified[NTAG215_SIZE];
-        nfc3d_amiibo_pack(&weebo->keys, weebo->figure, modified);
+        nfc3d_amiibo_pack(&weebo->keys, weebo->figure, modified, false);
 
         MfUltralightError error;
         MfUltralightPage page;

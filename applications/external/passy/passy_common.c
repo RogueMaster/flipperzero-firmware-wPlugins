@@ -4,6 +4,21 @@
 
 #define TAG "PassyCommon"
 
+const char* passy_auth_method_string(PassyAuthMethod method) {
+    switch(method) {
+    case PassyAuthMethodBac:
+        return "BAC";
+    case PassyAuthMethodPace:
+        return "PACE";
+    case PassyAuthMethodNone:
+        return "None";
+    case PassyAuthMethodAny:
+        return "Any";
+    default:
+        return "Unknown";
+    }
+}
+
 static char asn1_log[PASSY_WORKER_MAX_BUFFER_SIZE];
 int passy_print_struct_callback(const void* buffer, size_t size, void* app_key) {
     if(app_key) {

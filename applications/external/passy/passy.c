@@ -130,7 +130,6 @@ Passy* passy_alloc() {
     Passy* passy = malloc(sizeof(Passy));
 
     passy->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(passy->view_dispatcher);
     passy->scene_manager = scene_manager_alloc(&passy_scene_handlers, passy);
     view_dispatcher_set_event_callback_context(passy->view_dispatcher, passy);
     view_dispatcher_set_custom_event_callback(passy->view_dispatcher, passy_custom_event_callback);
@@ -157,6 +156,13 @@ Passy* passy_alloc() {
     passy->submenu = submenu_alloc();
     view_dispatcher_add_view(
         passy->view_dispatcher, PassyViewMenu, submenu_get_view(passy->submenu));
+
+    // Variable Item List
+    passy->variable_item_list = variable_item_list_alloc();
+    view_dispatcher_add_view(
+        passy->view_dispatcher,
+        PassyViewVariableItemList,
+        variable_item_list_get_view(passy->variable_item_list));
 
     // Popup
     passy->popup = popup_alloc();
@@ -210,6 +216,10 @@ void passy_free(Passy* passy) {
     // Submenu
     view_dispatcher_remove_view(passy->view_dispatcher, PassyViewMenu);
     submenu_free(passy->submenu);
+
+    // Variable Item List
+    view_dispatcher_remove_view(passy->view_dispatcher, PassyViewVariableItemList);
+    variable_item_list_free(passy->variable_item_list);
 
     // Popup
     view_dispatcher_remove_view(passy->view_dispatcher, PassyViewPopup);

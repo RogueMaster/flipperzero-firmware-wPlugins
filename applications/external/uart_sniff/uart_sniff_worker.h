@@ -39,7 +39,7 @@ UartSniffWorker* uart_sniff_worker_alloc(uint32_t baud, FuriHalSerialId serial_i
 void uart_sniff_worker_free(UartSniffWorker* worker);
 
 /**
- * Copy up to `len` bytes from the tail of the ring buffer into `out`.
+ * Copy the most recent `len` bytes from the ring buffer into `out`.
  * Takes the ring mutex internally; safe to call from any thread.
  *
  * @param worker  Worker instance.

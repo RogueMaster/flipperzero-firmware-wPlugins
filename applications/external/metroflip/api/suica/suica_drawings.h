@@ -1127,6 +1127,33 @@ static void
     furi_string_free(buffer);
 }
 
+/* Bus rides have no bespoke artwork - show the decoded line/stop codes
+   instead of a blank body (drawn on pages 0 and 1). */
+static void suica_draw_bus_page(Canvas* canvas, SuicaHistory history) {
+    canvas_draw_icon(canvas, 0, 37, &I_Suica_DashLine);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 23, "Bus Ride");
+    canvas_set_font(canvas, FontSecondary);
+    FuriString* buffer = furi_string_alloc();
+    furi_string_printf(
+        buffer, "Line: 0x%02X%02X", history.bus_line_code[0], history.bus_line_code[1]);
+    canvas_draw_str(canvas, 2, 35, furi_string_get_cstr(buffer));
+    furi_string_printf(buffer, "Stop: 0x%02X%02X", history.shop_code[0], history.shop_code[1]);
+    canvas_draw_str(canvas, 2, 47, furi_string_get_cstr(buffer));
+    furi_string_free(buffer);
+}
+
+/* Entries whose terminal code we don't decode yet - say so instead of
+   rendering an empty screen under the header. */
+static void suica_draw_unknown_page(Canvas* canvas) {
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 2, 23, "Unknown entry");
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 2, 35, "We can't decode this");
+    canvas_draw_str(canvas, 2, 45, "entry type yet. Report it:");
+    canvas_draw_str(canvas, 2, 55, "github.com/luu176/Metroflip");
+}
+
 static void suica_history_draw_callback(Canvas* canvas, void* model) {
     canvas_set_bitmap_mode(canvas, true);
     SuicaHistoryViewModel* my_model = (SuicaHistoryViewModel*)model;
@@ -1178,7 +1205,11 @@ static void suica_history_draw_callback(Canvas* canvas, void* model) {
         case SuicaHistoryTopUp:
             suica_draw_train_page_1(canvas, my_model->history, my_model, SuicaHistoryTopUp);
             break;
+        case SuicaHistoryBus:
+            suica_draw_bus_page(canvas, my_model->history);
+            break;
         default:
+            suica_draw_unknown_page(canvas);
             break;
         }
         break;
@@ -1200,7 +1231,11 @@ static void suica_history_draw_callback(Canvas* canvas, void* model) {
         case SuicaHistoryTopUp:
             suica_draw_top_up_page_2(canvas, my_model->history, my_model);
             break;
+        case SuicaHistoryBus:
+            suica_draw_bus_page(canvas, my_model->history);
+            break;
         default:
+            suica_draw_unknown_page(canvas);
             break;
         }
         break;

@@ -69,7 +69,7 @@ vars.AddVariables(
     BoolVariable(
         "DEBUG",
         help="Enable debug build",
-        default=True,
+        default=False,
     ),
     BoolVariable(
         "LIB_DEBUG",
@@ -79,7 +79,7 @@ vars.AddVariables(
     BoolVariable(
         "COMPACT",
         help="Optimize for size",
-        default=False,
+        default=True,
     ),
     EnumVariable(
         "TARGET_HW",
@@ -221,6 +221,16 @@ vars.AddVariables(
         "FIRMWARE_APP_SET",
         "Application set to use from FIRMWARE_APPS",
         "default",
+    ),
+    BoolVariable(
+        "SKIP_EXTERNAL",
+        help="Skip external apps unless explicitly selected",
+        default=False,
+    ),
+    (
+        "EXTRA_EXT_APPS",
+        "List of appids to include regardless of other configuration",
+        [],
     ),
     (
         "APPSRC",

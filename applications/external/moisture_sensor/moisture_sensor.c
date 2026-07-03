@@ -119,7 +119,6 @@ static MoistureSensorApp* moisture_sensor_app_alloc(void) {
 
     // Allocate view dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     if(!app->view_dispatcher) goto error;
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);

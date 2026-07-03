@@ -1,3 +1,10 @@
+## 1.5
+ - Update UI with correct name
+ - Save advanced files as well
+ - More countries support confirmed (Serbia, Mexico, Turkey, Japan, Bulgaria, Bangladesh, Singapore, China, Korea, Georgia, Netherlands, Austria)
+ - Bug fixes for crash on back, progress bar, and buffer sizes
+ - Prefix functions with passy_ for namespace safety
+ - Adding dutch 2022+ passport to known issues
 ## 1.4
  - uppercase all letters in passport number
  - More countries support confirmed

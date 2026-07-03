@@ -26,6 +26,11 @@ FlippPomodoroState* flipp_pomodoro__new();
 /// @returns Current stage value
 PomodoroStage flipp_pomodoro__get_stage(FlippPomodoroState* state);
 
+/// @brief Get stage by index
+/// @param index - stage index in the sequence
+/// @returns Stage value at the given index
+PomodoroStage flipp_pomodoro__stage_by_index(int index);
+
 /// @brief Destroys state of timer and it's dependencies
 void flipp_pomodoro__destroy(FlippPomodoroState* state);
 

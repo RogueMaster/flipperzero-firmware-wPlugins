@@ -1,4 +1,5 @@
 #include <flip_trader.h>
+void flip_trader_loader_free_model(View* view);
 
 void asset_names_free(char** names) {
     if(names) {
@@ -67,7 +68,7 @@ char** asset_names_alloc() {
 char** asset_names = NULL;
 // index
 uint32_t asset_index = 0;
-
+FlipTraderApp* app_instance = NULL;
 // Function to free the resources used by FlipTraderApp
 void flip_trader_app_free(FlipTraderApp* app) {
     if(!app) {
@@ -76,9 +77,10 @@ void flip_trader_app_free(FlipTraderApp* app) {
     }
 
     // Free View(s)
-    if(app->view_main) {
-        view_dispatcher_remove_view(app->view_dispatcher, FlipTraderViewMain);
-        view_free(app->view_main);
+    if(app->view_loader) {
+        view_dispatcher_remove_view(app->view_dispatcher, FlipTraderViewLoader);
+        flip_trader_loader_free_model(app->view_loader);
+        view_free(app->view_loader);
     }
 
     // Free Submenu(s)
@@ -92,9 +94,13 @@ void flip_trader_app_free(FlipTraderApp* app) {
     }
 
     // Free Widget(s)
-    if(app->widget) {
+    if(app->widget_about) {
         view_dispatcher_remove_view(app->view_dispatcher, FlipTraderViewAbout);
-        widget_free(app->widget);
+        widget_free(app->widget_about);
+    }
+    if(app->widget_result) {
+        view_dispatcher_remove_view(app->view_dispatcher, FlipTraderViewWidgetResult);
+        widget_free(app->widget_result);
     }
 
     // Free Variable Item List(s)
@@ -106,11 +112,11 @@ void flip_trader_app_free(FlipTraderApp* app) {
     // Free Text Input(s)
     if(app->uart_text_input_ssid) {
         view_dispatcher_remove_view(app->view_dispatcher, FlipTraderViewTextInputSSID);
-        uart_text_input_free(app->uart_text_input_ssid);
+        text_input_free(app->uart_text_input_ssid);
     }
     if(app->uart_text_input_password) {
         view_dispatcher_remove_view(app->view_dispatcher, FlipTraderViewTextInputPassword);
-        uart_text_input_free(app->uart_text_input_password);
+        text_input_free(app->uart_text_input_password);
     }
 
     asset_names_free(asset_names);

@@ -2,6 +2,16 @@
 
 #### CC1101 Frequency range specs: 300-348 MHz, 386-464 MHz, and 778-928 MHz  (+ 350MHz and 467MHz was added to default range)
 
+### From Flipper
+
+On RM Firmware, you can add manage frequencies list from Flipper from `Momentum > Protocols > SubGHz Freqs`:
+- Use Defaults: whether to include default frequency list, if yes your custom frequencies go at END of default list
+- Static Freqs: list used by `Read`, `Read RAW` and `Frequency Analyzer`
+- Hopper Freqs: list used by `Read > Config > Hopping: ON`
+
+This menu is a utility for configuring the normal config file that all firmwares use directly from Flipper.
+
+
 ### From config file
 
 Edit user settings file located on your microSD card - `subghz/assets/setting_user.txt` (remove .example from name to use config)

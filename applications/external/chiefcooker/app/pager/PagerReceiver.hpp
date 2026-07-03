@@ -25,7 +25,7 @@
 #define LOG_TAG "PGR_RCV"
 
 #define MAX_REPEATS                  99
-#define PAGERS_ARRAY_SIZE_MULTIPLIER 8
+#define PAGERS_ARRAY_SIZE_MULTIPLIER 4
 
 using namespace std;
 

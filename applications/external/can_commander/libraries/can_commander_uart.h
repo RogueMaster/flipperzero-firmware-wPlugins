@@ -43,6 +43,7 @@ typedef enum {
     CcToolObdPid = 9,
     CcToolDbcDecode = 10,
     CcToolCustomInject = 11,
+    CcToolReplay = 12,
 } CcToolId;
 
 typedef enum {
@@ -196,6 +197,9 @@ bool cc_client_dbc_remove_signal(CcClient* client, uint16_t sid, CcStatusCode* o
 bool cc_client_dbc_list(CcClient* client, CcStatusCode* out_status);
 
 bool cc_client_stats_get(CcClient* client, CcStatusCode* out_status);
+bool cc_client_wifi_get_cfg(CcClient* client, CcStatusCode* out_status);
+bool cc_client_wifi_set_cfg(CcClient* client, const char* args, CcStatusCode* out_status);
+bool cc_client_led_set_brightness(CcClient* client, uint8_t brightness, CcStatusCode* out_status);
 
 const char* cc_status_to_string(CcStatusCode status);
 const char* cc_bus_to_string(CcBus bus);

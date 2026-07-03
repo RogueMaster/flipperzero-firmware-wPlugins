@@ -12,14 +12,16 @@ GamesMenuList Version 0
 /ext/apps/Games/arduventure.fap
 /ext/apps/Games/arkanoid.fap
 /ext/apps/Games/asteroids.fap
+/ext/apps/Games/avocado_zero.fap
 /ext/apps/Games/banana.fap
 /ext/apps/Games/blackjack.fap
 /ext/apps/Games/blackjack_rg.fap
 /ext/apps/Games/bomberduck.fap
 /ext/apps/Games/bomberfox.fap
+/ext/apps/Games/brainy.fap
 /ext/apps/Games/bzzbzz.fap
 /ext/apps/Games/catacombs.fap
-/ext/apps/Games/cells_sim_app.fap
+/ext/apps/Games/cell_lab.fap
 /ext/apps/Games/checkers.fap
 /ext/apps/Games/chess.fap
 /ext/apps/Games/chess_clock.fap
@@ -30,6 +32,7 @@ GamesMenuList Version 0
 /ext/apps/Games/countdown.fap
 /ext/apps/Games/crossy_road.fap
 /ext/apps/Games/deadzone.fap
+/ext/apps/Games/decision_maker.fap
 /ext/apps/Games/dice_rm.fap
 /ext/apps/Games/digital_kaleidoscope.fap
 /ext/apps/Games/dnd_dice_app.fap
@@ -45,6 +48,7 @@ GamesMenuList Version 0
 /ext/apps/Games/flipper_hero.fap
 /ext/apps/Games/flappy_bird.fap
 /ext/apps/Games/flippy_road.fap
+/ext/apps/Games/fliprogue.fap
 /ext/apps/Games/fmatrix.fap
 /ext/apps/Games/fortune_cookie.fap
 /ext/apps/Games/furious_birds.fap
@@ -59,6 +63,7 @@ GamesMenuList Version 0
 /ext/apps/Games/heap_defence.fap
 /ext/apps/Games/holdem.fap
 /ext/apps/Games/hunter_flipper.fap
+/ext/apps/Games/impostor.fap
 /ext/apps/Games/infinite_tic_tac_toe.fap
 /ext/apps/Games/insults.fap
 /ext/apps/Games/jetpack.fap
@@ -80,6 +85,7 @@ GamesMenuList Version 0
 /ext/apps/Games/myblab.fap
 /ext/apps/Games/nah2nah3.fap
 /ext/apps/Games/nu_pogodi.fap
+/ext/apps/Games/oregon_trail.fap
 /ext/apps/Games/p1x_adventure.fap
 /ext/apps/Games/p1x_network_defender.fap
 /ext/apps/Games/p1x_your_own_adventure.fap
@@ -104,7 +110,7 @@ GamesMenuList Version 0
 /ext/apps/Games/rock_paper_scissors_2.fap
 /ext/apps/Games/roots_of_life.fap
 /ext/apps/Games/rubiks_cube_scrambler.fap
-/ext/apps/Games/sand_simulation.fap
+/ext/apps/Games/rush_hour.fap
 /ext/apps/Games/scorched_tanks.fap
 /ext/apps/Games/secret_toggle.fap
 /ext/apps/Games/simon_says.fap
@@ -116,6 +122,7 @@ GamesMenuList Version 0
 /ext/apps/Games/solitaire.fap
 /ext/apps/Games/space_impact.fap
 /ext/apps/Games/space_invaders.fap
+/ext/apps/Games/stratahero.fap
 /ext/apps/Games/stratagem.fap
 /ext/apps/Games/sudoku.fap
 /ext/apps/Games/super_chip.fap
@@ -128,12 +135,14 @@ GamesMenuList Version 0
 /ext/apps/Games/tic_tac_toe_multi.fap
 /ext/apps/Games/tictactoe.fap
 /ext/apps/Games/trex_runner.fap
+/ext/apps/Games/trivia_zero.fap
 /ext/apps/Games/ultimate_tic_tac_toe.fap
 /ext/apps/Games/umpire_indicator.fap
 /ext/apps/GPIO/VGM/vgm_air_mouse.fap
 /ext/apps/Games/vexed.fap
 /ext/apps/GPIO/VGM/video_game_module_tool.fap
 /ext/apps/Games/videopoker.fap
+/ext/apps/Games/volorsavanna.fap
 /ext/apps/Games/wave.fap
 /ext/apps/Games/wolfenduino.fap
 /ext/apps/Games/yapinvaders.fap

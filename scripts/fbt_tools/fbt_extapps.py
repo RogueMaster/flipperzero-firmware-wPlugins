@@ -91,6 +91,7 @@ class AppBuilder:
             self.app_work_dir,
             self.app._appdir.Dir(self.app.fap_icon_assets),
             icon_bundle_name=f"{self.app.fap_icon_assets_symbol or self.app.appid}_icons",
+            add_include=True,
         )
         self.app_env.Alias("_fap_icons", fap_icons)
         self.fw_env.Append(_APP_ICONS=[fap_icons])
@@ -303,27 +304,38 @@ def _validate_app_imports(target, source, env):
         # js_app app_api_table, js_event_loop_api_table, js_gui_api_table
         ("js_",): (
             "js_delay_with_flags",
-            "js_event_loop_get_loop",
             "js_flags_set",
             "js_flags_wait",
-            "js_gui_make_view_factory",
             "js_module_get",
-            # test_js
+            "js_value_buffer_size",
+            "js_value_parse",
+            "js_event_loop_get_loop",
+            "js_gui_make_view_factory",
+            "js_gui_font_declaration",
         ),
         # metroflip_api_table
         (
+            "atr_plugin",
             "bip_plugin",
             "calypso_plugin",
             "charliecard_plugin",
             "clipper_plugin",
             "gocard_plugin",
+            "intertic_plugin",
             "itso_plugin",
             "metromoney_plugin",
             "myki_plugin",
+            "nol_plugin",
             "opal_plugin",
+            "renfe_regular_plugin",
+            "renfe_sum10_plugin",
             "smartrider_plugin",
             "suica_plugin",
+            "tmobilitat_plugin",
+            "tmoney_plugin",
             "troika_plugin",
+            "trt_plugin",
+            "two_cities_plugin",
         ): (
             "metroflip_",
             "bit_slice_to_dec",
@@ -380,6 +392,8 @@ def _validate_app_imports(target, source, env):
         ("test_js",): (
             "js_thread_run",
             "js_thread_stop",
+            "js_value_buffer_size",
+            "js_value_parse",
         ),
     }
     ignore_syms = []
@@ -559,7 +573,7 @@ def _gather_app_components(env, appname) -> AppDeploymentComponents:
             if host_app.apptype in [
                 FlipperAppType.EXTERNAL,
                 FlipperAppType.MENUEXTERNAL,
-                FlipperAppType.EXTSETTINGS,
+                FlipperAppType.SETTINGS,
             ]:
                 components.add_app(host_app)
             else:

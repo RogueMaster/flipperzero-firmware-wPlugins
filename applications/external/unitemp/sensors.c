@@ -12,7 +12,8 @@
 //BMP280, BME280, BME680
 #include "./sensors/BMx280.h"
 #include "./sensors/BME680.h"
-#include "./sensors/SHT30.h"
+#include "./sensors/SHT3x.h"
+#include "./sensors/SHT4x.h"
 #include "./sensors/BMP180.h"
 #include "./sensors/HTU21x.h"
 #include "./sensors/HDC1080.h"
@@ -23,6 +24,8 @@
 #include "./sensors/SCD30.h"
 #include "./sensors/MAX31725.h"
 #include "./sensors/SCD4x.h"
+#include "./sensors/TMP102.h"
+#include "./sensors/SHTC3.h"
 
 #define DISPLAY_UPDATE_PERIOD_MS 250UL
 #define APP_SENSORS_FILENAME     "sensors.list"
@@ -56,8 +59,11 @@ static const SensorModel* sensor_model_list[] = {
     &SCD30, //tested
     &SCD4x, //tested
     &SHT2x, //tested
-    &SHT30, //tested
-    &SI7021
+    &SHT3x, //tested
+    &SHT4x, //tested
+    &SHTC3, //tested
+    &SI7021, //tested
+    &TMP102, //tested
 
 };
 //Number of sensor models
@@ -231,13 +237,8 @@ SensorStatus unitemp_sensor_update(Sensor* sensor, void* context) {
         }
     }
 
-    if(app->settings->otg_auto_on && !furi_hal_power_is_otg_enabled()) {
-        uint8_t attempts = 0;
-        while(!furi_hal_power_is_otg_enabled() && attempts++ < 5) {
-            furi_hal_power_enable_otg();
-            furi_delay_ms(10);
-        }
-        furi_delay_ms(200);
+    if(app->settings->otg_auto_on && !power_is_otg_enabled(app->power)) {
+        power_enable_otg(app->power, true);
     }
 
     //Если датчик дважды не ответил, то он переводится в неинициализированные (требуется для BME* и SDC30)
@@ -454,14 +455,17 @@ bool unitemp_sensors_save(void* context) {
     for(uint8_t i = 0; i < unitemp_sensors_get_count(); i++) {
         Sensor* sensor = unitemp_sensors_get(i);
         //Replacing a space with ?
+
+        char tmp_sensor_name[11];
+        strcpy(tmp_sensor_name, sensor->name);
         for(uint8_t i = 0; i < 10; i++) {
-            if(sensor->name[i] == ' ') sensor->name[i] = '?';
+            if(tmp_sensor_name[i] == ' ') tmp_sensor_name[i] = '?';
         }
 
         stream_write_format(
             app->file_stream,
             "%s %s %d ",
-            sensor->name,
+            tmp_sensor_name,
             sensor->model->modelname,
             sensor->temperature_offset);
 
@@ -511,13 +515,8 @@ bool unitemp_sensors_init(void* context) {
     for(uint8_t i = 0; i < unitemp_sensors_get_count(); i++) {
         //Turning on 5V if there is none on port 1 FZ
         //May disappear when USB is disconnected
-        if(app->settings->otg_auto_on && !furi_hal_power_is_otg_enabled()) {
-            uint8_t attempts = 0;
-            while(!furi_hal_power_is_otg_enabled() && attempts++ < 5) {
-                furi_hal_power_enable_otg();
-                furi_delay_ms(10);
-            }
-            furi_delay_ms(200);
+        if(app->settings->otg_auto_on && !power_is_otg_enabled(app->power)) {
+            power_enable_otg(app->power, true);
         }
 
         if(!unitemp_sensor_init(sensors_list[i])) {
@@ -541,9 +540,7 @@ bool unitemp_sensors_deinit(void* context) {
     bool result = true;
 
     //Turning off 5 V if it was not turned on before
-    if(!app->settings->otg_latest_state) {
-        furi_hal_power_disable_otg();
-    }
+    power_enable_otg(app->power, app->settings->otg_latest_state);
 
     //Searching through sensors from the list
     for(uint8_t i = 0; i < unitemp_sensors_get_count(); i++) {

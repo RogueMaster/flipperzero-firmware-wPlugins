@@ -1,0 +1,48 @@
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/cybersantana83/ChaosID.git
+    commit_sha: 1a16dfd80cf9f31038906ff150ac6b6db49c8595
+description: |
+  ChaosID is a forensic card identifier for Flipper Zero. It does not aim to
+  clone cards or break cryptography on the device itself, but to tell you
+  exactly what a card is, how it has been broken (if it has been), and what
+  level of risk it represents.
+
+  Features:
+
+  - Sequential automatic scan across both frequencies: LF (125 kHz) and
+    HF (13.56 MHz). No need to know in advance what kind of card you have.
+  - Real protocol detection via lfrfid_worker (EM4100, HID Prox H10301,
+    Indala, AWID) and nfc_scanner (MIFARE Classic/Ultralight/DESFire/Plus,
+    NTAG, FeliCa, iCLASS, ISO15693).
+  - UID, ATQA and SAK extracted via iso14443_3a_poller_sync.
+  - Built-in database of 15+ card profiles documenting cryptography used,
+    public attack vectors, year of cryptographic break and risk
+    classification: Trivial, Broken or Hardened.
+  - Persistent scan log saved to /ext/apps_data/chaos_id/scans.csv with
+    timestamp, frequency, protocol, UID, parsed data and risk level.
+    Built-in History menu for review on-device.
+  - Investigate button: for MIFARE Classic cards, launches a dictionary
+    attack against 20 well-known default keys (FFFFFFFFFFFF,
+    A0A1A2A3A4A5, D3F7D3F7D3F7, MAD-A/B, etc.). Shows live progress
+    and final report of how many keys/sectors were recovered.
+
+  Intended for security research, physical access control auditing and
+  educational use. Part of the Chaos IAM research series by Cafe com Solda.
+
+  Project page: https://github.com/cybersantana83/ChaosID
+short_description: "Card forensics + risk classification + MIFARE Classic dictionary attack"
+changelog: |
+  0.6 - Catalog submission, full English metadata
+  0.5 - MIFARE Classic dictionary attack with Investigate button
+  0.4 - Scan persistence (CSV log) + History menu
+  0.3 - Real UID/ATQA/SAK extraction via iso14443_3a_poller_sync
+  0.2 - Real LF + HF protocol detection (lfrfid_worker + nfc_scanner)
+  0.1 - Initial release with UI skeleton and card database
+author: "cybersantana83 (Cristiano Santana, Cafe com Solda)"
+screenshots:
+  - "./img/1.png"
+  - "./img/2.png"
+  - "./img/3.png"
+  - "./img/4.png"

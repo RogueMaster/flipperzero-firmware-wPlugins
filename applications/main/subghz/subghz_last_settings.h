@@ -31,7 +31,7 @@ typedef struct {
     bool enable_sound;
     bool autosave;
     float hopping_threshold;
-    bool leds_and_amp;
+    uint8_t tx_power;
 } SubGhzLastSettings;
 
 SubGhzLastSettings* subghz_last_settings_alloc(void);

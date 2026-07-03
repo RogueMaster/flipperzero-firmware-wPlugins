@@ -33,8 +33,17 @@ CalypsoApp* get_ravkav_contract_structure() {
 
     RavKavContractStructure->type = CALYPSO_APP_CONTRACT;
     RavKavContractStructure->container = malloc(sizeof(CalypsoContainerElement));
+    if(!RavKavContractStructure->container) {
+        free(RavKavContractStructure);
+        return NULL;
+    }
     RavKavContractStructure->container->elements =
         malloc(app_elements_count * sizeof(CalypsoElement));
+    if(!RavKavContractStructure->container->elements) {
+        free(RavKavContractStructure->container);
+        free(RavKavContractStructure);
+        return NULL;
+    }
     RavKavContractStructure->container->size = app_elements_count;
 
     RavKavContractStructure->container->elements[0] =
@@ -102,8 +111,17 @@ CalypsoApp* get_ravkav_env_holder_structure() {
 
     RavKavEnvHolderStructure->type = CALYPSO_APP_ENV_HOLDER;
     RavKavEnvHolderStructure->container = malloc(sizeof(CalypsoContainerElement));
+    if(!RavKavEnvHolderStructure->container) {
+        free(RavKavEnvHolderStructure);
+        return NULL;
+    }
     RavKavEnvHolderStructure->container->elements =
         malloc(app_elements_count * sizeof(CalypsoElement));
+    if(!RavKavEnvHolderStructure->container->elements) {
+        free(RavKavEnvHolderStructure->container);
+        free(RavKavEnvHolderStructure);
+        return NULL;
+    }
     RavKavEnvHolderStructure->container->size = app_elements_count;
 
     RavKavEnvHolderStructure->container->elements[0] = make_calypso_final_element(
@@ -169,8 +187,17 @@ CalypsoApp* get_ravkav_event_structure() {
 
     RavKavEventStructure->type = CALYPSO_APP_EVENT;
     RavKavEventStructure->container = malloc(sizeof(CalypsoContainerElement));
+    if(!RavKavEventStructure->container) {
+        free(RavKavEventStructure);
+        return NULL;
+    }
     RavKavEventStructure->container->elements =
         malloc(app_elements_count * sizeof(CalypsoElement));
+    if(!RavKavEventStructure->container->elements) {
+        free(RavKavEventStructure->container);
+        free(RavKavEventStructure);
+        return NULL;
+    }
     RavKavEventStructure->container->size = app_elements_count;
 
     RavKavEventStructure->container->elements[0] =

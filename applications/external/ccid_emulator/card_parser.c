@@ -1,3 +1,6 @@
+/* card_parser.c — .ccid card profile parser for CCID Emulator.
+ * Loads AID-to-APDU response mappings from SD card profile files. */
+
 #include "card_parser.h"
 
 #include <furi.h>
@@ -317,9 +320,9 @@ static const char sample_card_content[] =
     "\n"
     "[rules]\n"
     "# SELECT by AID (MasterFile)\n"
-    "00 A4 04 00 07 A0 00 00 00 04 10 10 = 6F 19 84 07 A0 00 00 00 04 10 10 A5 0E 50 04 56 49 53 41 87 01 01 9F 11 01 01 90 00\n"
+    "00 A4 04 00 07 A0 00 00 00 04 10 10 = 6F 18 84 07 A0 00 00 00 04 10 10 A5 0D 50 04 56 49 53 41 87 01 01 9F 11 01 01 90 00\n"
     "# SELECT PSE\n"
-    "00 A4 04 00 0E 31 50 41 59 2E 53 59 53 2E 44 44 46 30 31 = 6F 1E 84 0E 31 50 41 59 2E 53 59 53 2E 44 44 46 30 31 A5 0C 88 01 01 5F 2D 04 65 6E 66 72 90 00\n"
+    "00 A4 04 00 0E 31 50 41 59 2E 53 59 53 2E 44 44 46 30 31 = 6F 1C 84 0E 31 50 41 59 2E 53 59 53 2E 44 44 46 30 31 A5 0A 88 01 01 5F 2D 04 65 6E 66 72 90 00\n"
     "# GET PROCESSING OPTIONS\n"
     "80 A8 00 00 02 83 00 = 77 0A 82 02 19 80 94 04 08 01 01 00 90 00\n"
     "# READ RECORD (wildcard on P1/P2)\n"

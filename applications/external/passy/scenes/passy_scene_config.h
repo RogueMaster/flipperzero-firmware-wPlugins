@@ -1,4 +1,5 @@
 ADD_SCENE(passy, main_menu, MainMenu)
+ADD_SCENE(passy, auth_menu, AuthMenu)
 ADD_SCENE(passy, read, Read)
 ADD_SCENE(passy, read_error, ReadError)
 ADD_SCENE(passy, read_success, ReadSuccess)

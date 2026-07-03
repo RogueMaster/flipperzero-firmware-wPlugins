@@ -57,7 +57,6 @@ static NfcEinkApp* nfc_eink_app_alloc() {
     instance->notifications = furi_record_open(RECORD_NOTIFICATION);
 
     instance->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(instance->view_dispatcher);
     view_dispatcher_set_event_callback_context(instance->view_dispatcher, instance);
     view_dispatcher_set_custom_event_callback(
         instance->view_dispatcher, nfc_eink_app_custom_event_callback);

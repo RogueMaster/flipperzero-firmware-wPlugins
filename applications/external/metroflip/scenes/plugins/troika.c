@@ -1329,6 +1329,130 @@ bool mosgortrans_parse_transport_block(const MfClassicBlock* block, FuriString* 
     return true;
 }
 
+/* Helper: extract key overview fields (number, balance/trips) from a transport block.
+ * Returns true if the block was recognized and fields were extracted. */
+static bool troika_extract_block_summary(
+    const MfClassicBlock* block,
+    uint32_t* out_number,
+    bool* has_balance,
+    uint32_t* out_balance,
+    bool* has_trips,
+    uint16_t* out_trips) {
+    BlockData data_block = {};
+    *has_balance = false;
+    *has_trips = false;
+
+    const uint16_t valid_departments[] = {0x106, 0x108, 0x10A, 0x10E, 0x110, 0x117};
+    uint16_t transport_department = bit_lib_get_bits_16(block->data, 0, 10);
+    bool department_valid = false;
+    for(uint8_t i = 0; i < 6; i++) {
+        if(transport_department == valid_departments[i]) {
+            department_valid = true;
+            break;
+        }
+    }
+    if(!department_valid) return false;
+
+    uint16_t layout_type = bit_lib_get_bits_16(block->data, 52, 4);
+    if(layout_type == 0xE) {
+        layout_type = bit_lib_get_bits_16(block->data, 52, 9);
+    } else if(layout_type == 0xF) {
+        layout_type = bit_lib_get_bits_16(block->data, 52, 14);
+    }
+
+    switch(layout_type) {
+    case 0x02:
+        parse_layout_2(&data_block, block);
+        *out_number = data_block.number;
+        *has_trips = true;
+        *out_trips = data_block.total_trips;
+        break;
+    case 0x06:
+        parse_layout_6(&data_block, block);
+        *out_number = data_block.number;
+        *has_trips = true;
+        *out_trips = data_block.remaining_trips;
+        break;
+    case 0x08:
+        parse_layout_8(&data_block, block);
+        *out_number = data_block.number;
+        *has_trips = true;
+        *out_trips = data_block.remaining_trips;
+        break;
+    case 0x0A:
+        parse_layout_A(&data_block, block);
+        *out_number = data_block.number;
+        *has_trips = true;
+        *out_trips = data_block.remaining_trips;
+        break;
+    case 0x0C:
+        parse_layout_C(&data_block, block);
+        *out_number = data_block.number;
+        *has_trips = true;
+        *out_trips = data_block.remaining_trips;
+        break;
+    case 0x0D:
+        parse_layout_D(&data_block, block);
+        *out_number = data_block.number;
+        *has_trips = true;
+        *out_trips = data_block.remaining_trips;
+        break;
+    case 0xE1:
+    case 0x1C1:
+        parse_layout_E1(&data_block, block);
+        *out_number = data_block.number;
+        *has_balance = true;
+        *out_balance = data_block.remaining_funds;
+        break;
+    case 0xE2:
+    case 0x1C2:
+        parse_layout_E2(&data_block, block);
+        *out_number = data_block.number;
+        *has_trips = true;
+        *out_trips = data_block.remaining_trips;
+        break;
+    case 0xE3:
+    case 0x1C3:
+        parse_layout_E3(&data_block, block);
+        *out_number = data_block.number;
+        *has_balance = true;
+        *out_balance = data_block.remaining_funds;
+        break;
+    case 0xE4:
+    case 0x1C4:
+        parse_layout_E4(&data_block, block);
+        *out_number = data_block.number;
+        *has_balance = true;
+        *out_balance = data_block.remaining_funds;
+        break;
+    case 0xE5:
+    case 0x1C5:
+        parse_layout_E5(&data_block, block);
+        *out_number = data_block.number;
+        *has_balance = true;
+        *out_balance = data_block.remaining_funds;
+        break;
+    case 0xE6:
+    case 0x1C6:
+        parse_layout_E6(&data_block, block);
+        *out_number = data_block.number;
+        *has_trips = true;
+        *out_trips = data_block.remaining_trips;
+        break;
+    case 0x3CCB:
+        parse_layout_FCB(&data_block, block);
+        *out_number = data_block.number;
+        break;
+    case 0x3C0B:
+        *out_number = data_block.number;
+        break;
+    default:
+        return false;
+    }
+
+    return true;
+}
+
 const MfClassicKeyPair troika_1k_keys[16] = {
     {.a = 0xa0a1a2a3a4a5, .b = 0xfbf225dc5d58},
     {.a = 0xa82607b01c0d, .b = 0x2910989b6880},
@@ -1407,56 +1531,148 @@ static bool troika_get_card_config(TroikaCardConfig* config, MfClassicType type)
     return success;
 }
 
-static bool troika_parse(FuriString* parsed_data, const MfClassicData* data) {
-    bool parsed = false;
-
-    do {
-        // Verify card type
-        TroikaCardConfig cfg = {};
-        if(!troika_get_card_config(&cfg, data->type)) break;
-
-        // Verify key
-        const MfClassicSectorTrailer* sec_tr =
-            mf_classic_get_sector_trailer_by_sector(data, cfg.data_sector);
-
-        const uint64_t key =
-            bit_lib_bytes_to_num_be(sec_tr->key_a.data, COUNT_OF(sec_tr->key_a.data));
-        if(key != cfg.keys[cfg.data_sector].a) break;
-
-        FuriString* metro_result = furi_string_alloc();
-        FuriString* ground_result = furi_string_alloc();
-        FuriString* tat_result = furi_string_alloc();
-
-        bool is_metro_data_present =
-            mosgortrans_parse_transport_block(&data->block[32], metro_result);
-        bool is_ground_data_present =
-            mosgortrans_parse_transport_block(&data->block[28], ground_result);
-        bool is_tat_data_present = mosgortrans_parse_transport_block(&data->block[16], tat_result);
-
-        furi_string_cat_printf(parsed_data, "\e#Troyka card\n");
-        if(is_metro_data_present && !furi_string_empty(metro_result)) {
-            render_section_header(parsed_data, "Metro", 22, 21);
-            furi_string_cat_printf(parsed_data, "%s\n", furi_string_get_cstr(metro_result));
+/* Add every "Label: value" line of parsed text as a card-view field; lines
+ * without a separator become plain text fields. Balance lines are bolded. */
+static void troika_add_text_as_fields(View* view, uint8_t page, FuriString* text) {
+    const char* s = furi_string_get_cstr(text);
+    while(*s) {
+        const char* nl = strchr(s, '\n');
+        size_t len = nl ? (size_t)(nl - s) : strlen(s);
+        if(len > 0) {
+            char line[64];
+            if(len > sizeof(line) - 1) len = sizeof(line) - 1;
+            memcpy(line, s, len);
+            line[len] = '\0';
+            char* sep = strstr(line, ": ");
+            if(sep) {
+                *sep = '\0';
+                bool highlight = (strcmp(line, "Balance") == 0);
+                metroflip_card_view_add_field(view, page, line, sep + 2, highlight);
+            } else {
+                metroflip_card_view_add_field(view, page, "", line, false);
+            }
         }
+        if(!nl) break;
+        s = nl + 1;
+    }
+}
 
-        if(is_ground_data_present && !furi_string_empty(ground_result)) {
-            render_section_header(parsed_data, "Ediny", 22, 22);
-            furi_string_cat_printf(parsed_data, "%s\n", furi_string_get_cstr(ground_result));
-        }
+/* Parse MIFARE Classic data and populate card view */
+static bool troika_display_card_view(const MfClassicData* data, Metroflip* app, bool from_file) {
+    // Verify card type
+    TroikaCardConfig cfg = {};
+    if(!troika_get_card_config(&cfg, data->type)) return false;
 
-        if(is_tat_data_present && !furi_string_empty(tat_result)) {
-            render_section_header(parsed_data, "TAT", 24, 23);
-            furi_string_cat_printf(parsed_data, "%s\n", furi_string_get_cstr(tat_result));
-        }
+    // Verify key
+    const MfClassicSectorTrailer* sec_tr =
+        mf_classic_get_sector_trailer_by_sector(data, cfg.data_sector);
+    const uint64_t key = bit_lib_bytes_to_num_be(sec_tr->key_a.data, COUNT_OF(sec_tr->key_a.data));
+    if(key != cfg.keys[cfg.data_sector].a) return false;
 
+    // Parse all three transport sections using existing parser
+    FuriString* metro_result = furi_string_alloc();
+    FuriString* ground_result = furi_string_alloc();
+    FuriString* tat_result = furi_string_alloc();
+
+    bool is_metro_data_present = mosgortrans_parse_transport_block(&data->block[32], metro_result);
+    bool is_ground_data_present =
+        mosgortrans_parse_transport_block(&data->block[28], ground_result);
+    bool is_tat_data_present = mosgortrans_parse_transport_block(&data->block[16], tat_result);
+
+    bool has_any = (is_metro_data_present && !furi_string_empty(metro_result)) ||
+                   (is_ground_data_present && !furi_string_empty(ground_result)) ||
+                   (is_tat_data_present && !furi_string_empty(tat_result));
+
+    if(!has_any) {
         furi_string_free(tat_result);
         furi_string_free(ground_result);
         furi_string_free(metro_result);
+        return false;
+    }
 
-        parsed = is_metro_data_present || is_ground_data_present || is_tat_data_present;
-    } while(false);
+    /* Extract summary data from the primary transport block for the Overview page */
+    uint32_t card_number = 0;
+    bool has_balance = false;
+    uint32_t balance = 0;
+    bool has_trips = false;
+    uint16_t trips = 0;
+    bool got_summary = false;
 
-    return parsed;
+    /* Try blocks in priority order: Metro (32), Ediny (28), TAT (16) */
+    if(is_metro_data_present) {
+        got_summary = troika_extract_block_summary(
+            &data->block[32], &card_number, &has_balance, &balance, &has_trips, &trips);
+    }
+    if(!got_summary && is_ground_data_present) {
+        got_summary = troika_extract_block_summary(
+            &data->block[28], &card_number, &has_balance, &balance, &has_trips, &trips);
+    }
+    if(!got_summary && is_tat_data_present) {
+        got_summary = troika_extract_block_summary(
+            &data->block[16], &card_number, &has_balance, &balance, &has_trips, &trips);
+    }
+
+    /* Allocate card view */
+    View* view = metroflip_card_view_alloc(app);
+    metroflip_card_view_set_title(view, "Troika");
+
+    char val[METROFLIP_CARD_VIEW_VALUE_LEN];
+
+    /* Page: Overview */
+    uint8_t p = metroflip_card_view_add_page(view, "Overview");
+
+    if(got_summary && card_number != 0) {
+        snprintf(val, sizeof(val), "%010lu", card_number);
+        metroflip_card_view_add_field(view, p, "Number", val, false);
+    }
+
+    if(has_balance) {
+        /* Determine display format based on magnitude -- some layouts store
+         * balance in kopecks (/100), others in whole rubles */
+        if(balance >= 100) {
+            snprintf(val, sizeof(val), "%lu rub", balance / 100);
+        } else {
+            snprintf(val, sizeof(val), "%lu rub", balance);
+        }
+        metroflip_card_view_add_field(view, p, "Balance", val, true);
+    }
+
+    if(has_trips) {
+        snprintf(val, sizeof(val), "%u", trips);
+        metroflip_card_view_add_field(view, p, "Trips Left", val, true);
+    }
+
+    /* Section pages: one page per transport section, showing every line the
+     * mosgortrans parser produced (pages scroll, so nothing is dropped). */
+
+    if(is_metro_data_present && !furi_string_empty(metro_result)) {
+        p = metroflip_card_view_add_page(view, "Metro");
+        troika_add_text_as_fields(view, p, metro_result);
+    }
+
+    if(is_ground_data_present && !furi_string_empty(ground_result)) {
+        p = metroflip_card_view_add_page(view, "Ediny");
+        troika_add_text_as_fields(view, p, ground_result);
+    }
+
+    if(is_tat_data_present && !furi_string_empty(tat_result)) {
+        p = metroflip_card_view_add_page(view, "TAT");
+        troika_add_text_as_fields(view, p, tat_result);
+    }
+
+    furi_string_free(tat_result);
+    furi_string_free(ground_result);
+    furi_string_free(metro_result);
+
+    /* Button configuration */
+    if(from_file) {
+        metroflip_card_view_set_delete(view, true);
+    } else {
+        metroflip_card_view_set_save(view, true);
+    }
+
+    metroflip_card_view_show(app);
+    return true;
 }
 
 bool checked = false;
@@ -1521,24 +1737,11 @@ static NfcCommand troika_poller_callback(NfcGenericEvent event, void* context) {
             app->sec_num++;
         }
     } else if(mfc_event->type == MfClassicPollerEventTypeSuccess) {
-        const MfClassicData* mfc_data = nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
-        FuriString* parsed_data = furi_string_alloc();
-        Widget* widget = app->widget;
-        if(!troika_parse(parsed_data, mfc_data)) {
-            furi_string_reset(app->text_box_store);
-            FURI_LOG_I(TAG, "Unknown card type");
-            furi_string_printf(parsed_data, "\e#Unknown card\n");
-        }
-        widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
-
-        widget_add_button_element(
-            widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-        widget_add_button_element(
-            widget, GuiButtonTypeCenter, "Save", metroflip_save_widget_callback, app);
-
-        furi_string_free(parsed_data);
-        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-        metroflip_app_blink_stop(app);
+        nfc_device_set_data(
+            app->nfc_device, NfcProtocolMfClassic, nfc_poller_get_data(app->poller));
+        /* Hand off to the main thread - building/registering/switching the
+           card view must not happen on the NFC worker thread. */
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
         command = NfcCommandStop;
     } else if(mfc_event->type == MfClassicPollerEventTypeFail) {
         FURI_LOG_I(TAG, "fail");
@@ -1559,34 +1762,36 @@ static void troika_on_enter(Metroflip* app) {
         if(flipper_format_file_open_existing(ff, app->file_path)) {
             MfClassicData* mfc_data = mf_classic_alloc();
             mf_classic_load(mfc_data, ff, 2);
-            FuriString* parsed_data = furi_string_alloc();
-            Widget* widget = app->widget;
 
-            furi_string_reset(app->text_box_store);
-            if(!troika_parse(parsed_data, mfc_data)) {
-                furi_string_reset(app->text_box_store);
+            if(!troika_display_card_view(mfc_data, app, true)) {
                 FURI_LOG_I(TAG, "Unknown card type");
-                furi_string_printf(parsed_data, "\e#Unknown card\n");
+                Widget* widget = app->widget;
+                FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                furi_string_free(s);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
             }
-            widget_add_text_scroll_element(
-                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
 
+            mf_classic_free(mfc_data);
+        } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
+            Widget* widget = app->widget;
+            widget_add_text_scroll_element(
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
             widget_add_button_element(
                 widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Delete", metroflip_delete_widget_callback, app);
-            mf_classic_free(mfc_data);
-            furi_string_free(parsed_data);
             view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
+        furi_record_close(RECORD_STORAGE);
     } else {
-        // Setup view
         Popup* popup = app->popup;
-        popup_set_header(popup, "Apply\n card to\nthe back", 68, 30, AlignLeft, AlignTop);
+        popup_set_header(
+            popup, "Scanning...\nApply card\nto the back", 68, 30, AlignLeft, AlignTop);
         popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
-        // Start worker
         view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewPopup);
         app->poller = nfc_poller_alloc(app->nfc, NfcProtocolMfClassic);
         nfc_poller_start(app->poller, troika_poller_callback, app);
@@ -1599,21 +1804,36 @@ static bool troika_on_event(Metroflip* app, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == MetroflipCustomEventCardDetected) {
+        if(event.event == MetroflipCustomEventPollerSuccess) {
+            /* Read finished on the worker thread; build the card view here on
+               the main/GUI thread. */
+            metroflip_app_blink_stop(app);
+            const MfClassicData* mfc_data =
+                nfc_device_get_data(app->nfc_device, NfcProtocolMfClassic);
+            if(!troika_display_card_view(mfc_data, app, false)) {
+                FURI_LOG_I(TAG, "Unknown card type");
+                Widget* widget = app->widget;
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, "\e#Unknown card\n");
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+            }
+            consumed = true;
+        } else if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "DON'T\nMOVE", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventCardLost) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Card \n lost", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card lost!\nTry again", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventWrongCard) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "WRONG \n CARD", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Wrong card", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventPollerFail) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Failed", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Read failed", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
@@ -1626,16 +1846,14 @@ static bool troika_on_event(Metroflip* app, SceneManagerEvent event) {
 
 static void troika_on_exit(Metroflip* app) {
     widget_reset(app->widget);
+    popup_reset(app->popup);
+    metroflip_app_blink_stop(app);
 
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
+        app->poller = NULL;
     }
-
-    // Clear view
-    popup_reset(app->popup);
-
-    metroflip_app_blink_stop(app);
 }
 
 /* Actual implementation of app<>plugin interface */

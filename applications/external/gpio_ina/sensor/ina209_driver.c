@@ -112,7 +112,8 @@ static bool ina209_driver_tick(SensorDriver* driver) {
                 // Calculate current, bus voltage and power
                 drv->state.current = shunt_voltage / drv->config.shunt_resistor;
                 drv->state.voltage = 4E-3 * (bus_reg >> 3); // LSB = 4mV
-                drv->state.time = furi_get_tick();
+                drv->state.ticks = furi_get_tick();
+                drv->state.timestamp = furi_hal_rtc_get_timestamp();
                 drv->state.ready = true;
             }
         } else {

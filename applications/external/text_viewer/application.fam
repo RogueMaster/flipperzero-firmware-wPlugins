@@ -9,6 +9,6 @@ App(
     fap_icon_assets_symbol="text_viewer",
     fap_category="Tools",
     fap_author="WillyJL",  # Original by kowalski7cc & kyhwana, new has code borrowed from archive > show
-    fap_version="1.6",
+    fap_version="1.7",
     fap_description="Text viewer application",
 )

@@ -68,137 +68,27 @@ void dashboard_apply_template(
         app->dashboard_view,
         AppDashboardModel * model,
         {
+            /* Zero the entire model including the union */
+            memset(model, 0, sizeof(AppDashboardModel));
+
+            model->mode = AppDashboardNone;
+
             strncpy(model->title, title ? title : "", sizeof(model->title) - 1U);
             model->title[sizeof(model->title) - 1U] = '\0';
-            model->mode = AppDashboardNone;
-            strncpy(model->label, "Waiting for response", sizeof(model->label) - 1U);
-            model->label[sizeof(model->label) - 1U] = '\0';
-            strncpy(model->value, "--", sizeof(model->value) - 1U);
-            model->value[sizeof(model->value) - 1U] = '\0';
-            model->unit[0] = '\0';
-            model->note[0] = '\0';
-            model->bit_row[0][0] = '\0';
-            model->bit_row[1][0] = '\0';
-            model->bit_row[2][0] = '\0';
-            model->bit_row[3][0] = '\0';
-            model->bit_id_line[0] = '\0';
-            model->bittrack_have_live = false;
-            model->bittrack_have_base = false;
-            memset(model->bittrack_live, 0, sizeof(model->bittrack_live));
-            memset(model->bittrack_base, 0, sizeof(model->bittrack_base));
-            memset(model->bittrack_changed, 0, sizeof(model->bittrack_changed));
-            memset(model->bittrack_frozen, 0, sizeof(model->bittrack_frozen));
-            model->write_bus = CcBusCan0;
-            model->write_id = 0U;
-            model->write_ext = false;
-            model->write_dlc = 8U;
-            memset(model->write_data, 0, sizeof(model->write_data));
-            model->write_count_cfg = 1U;
-            model->write_interval_ms_cfg = 250U;
-            model->read_head = 0U;
-            model->read_count = 0U;
-            model->read_selected = 0U;
-            model->read_page = 0U;
-            model->read_hold = false;
-            model->read_total = 0U;
-            model->read_bus0 = 0U;
-            model->read_bus1 = 0U;
-            model->read_std = 0U;
-            model->read_ext = 0U;
-            model->read_rate_window_start_ms = 0U;
-            model->read_rate_window_count = 0U;
-            model->read_rate_fps = 0U;
-            model->read_overload = false;
-            model->input_hold_mask = 0U;
-            model->reverse_phase = 0U;
-            model->reverse_count = 0U;
-            model->reverse_selected = 0U;
-            model->reverse_overflow = false;
-            memset(model->reverse_ids, 0, sizeof(model->reverse_ids));
-            memset(model->reverse_ext, 0, sizeof(model->reverse_ext));
-            memset(model->reverse_byte_mask, 0, sizeof(model->reverse_byte_mask));
-            memset(model->reverse_flash_until_ms, 0, sizeof(model->reverse_flash_until_ms));
-            memset(model->read_frames, 0, sizeof(model->read_frames));
-            model->mode_page = 0U;
-
-            model->speed_has_sample = false;
-            model->speed_last_bus = CcBusCan0;
-            model->speed_last_rate = 0U;
-            model->speed_min_rate = 0U;
-            model->speed_max_rate = 0U;
-            model->speed_sum_rate = 0U;
-            model->speed_total_samples = 0U;
-            model->speed_head = 0U;
-            model->speed_count = 0U;
-            model->speed_selected = 0U;
-            memset(model->speed_samples, 0, sizeof(model->speed_samples));
-
-            model->val_selected_byte = 0U;
-            model->val_total_changes = 0U;
-            model->val_head = 0U;
-            model->val_count = 0U;
-            model->val_selected = 0U;
-            memset(model->val_known, 0, sizeof(model->val_known));
-            memset(model->val_bytes, 0, sizeof(model->val_bytes));
-            memset(model->val_byte_changes, 0, sizeof(model->val_byte_changes));
-            memset(model->val_changes, 0, sizeof(model->val_changes));
-
-            model->unique_total = 0U;
-            model->unique_has_last = false;
-            model->unique_head = 0U;
-            model->unique_count = 0U;
-            model->unique_selected = 0U;
-            memset(&model->unique_last, 0, sizeof(model->unique_last));
-            memset(model->unique_entries, 0, sizeof(model->unique_entries));
-
-            model->dbc_has_latest = false;
-            model->dbc_head = 0U;
-            model->dbc_count = 0U;
-            model->dbc_selected = 0U;
-            model->dbc_signal_count = 0U;
-            model->dbc_signal_selected = 0U;
-            memset(&model->dbc_latest, 0, sizeof(model->dbc_latest));
-            memset(model->dbc_entries, 0, sizeof(model->dbc_entries));
-            memset(model->dbc_signals, 0, sizeof(model->dbc_signals));
-            model->obd_dtc_active = false;
-            model->obd_dtc_complete = false;
-            model->obd_dtc_page = 0U;
-            memset(model->obd_dtc_selected, 0, sizeof(model->obd_dtc_selected));
-            memset(model->obd_dtc_count, 0, sizeof(model->obd_dtc_count));
-            memset(model->obd_dtc_codes, 0, sizeof(model->obd_dtc_codes));
-            memset(model->obd_dtc_cat_counts, 0, sizeof(model->obd_dtc_cat_counts));
-
-            model->custom_selected_slot = app_custom_inject_get_active_slot(app);
-            model->custom_pending = false;
-            model->custom_pending_slot = 0U;
-            model->custom_pending_remaining = 0U;
-            model->custom_pending_interval_ms = 0U;
-            model->custom_recent_head = 0U;
-            model->custom_recent_count = 0U;
-            memset(model->custom_slot_used, 0, sizeof(model->custom_slot_used));
-            memset(model->custom_slot_ready, 0, sizeof(model->custom_slot_ready));
-            memset(model->custom_slot_name, 0, sizeof(model->custom_slot_name));
-            memset(model->custom_slot_bus, 0, sizeof(model->custom_slot_bus));
-            memset(model->custom_slot_id, 0, sizeof(model->custom_slot_id));
-            memset(model->custom_slot_ext, 0, sizeof(model->custom_slot_ext));
-            memset(model->custom_recent, 0, sizeof(model->custom_recent));
-            for(uint8_t i = 0U; i < 5U; i++) {
-                snprintf(
-                    model->custom_slot_name[i],
-                    sizeof(model->custom_slot_name[i]),
-                    "Slot%u",
-                    (unsigned)(i + 1U));
-            }
 
             if(label) {
                 strncpy(model->label, label, sizeof(model->label) - 1U);
-                model->label[sizeof(model->label) - 1U] = '\0';
+            } else {
+                strncpy(model->label, "Waiting for response", sizeof(model->label) - 1U);
             }
+            model->label[sizeof(model->label) - 1U] = '\0';
 
             if(value) {
                 strncpy(model->value, value, sizeof(model->value) - 1U);
-                model->value[sizeof(model->value) - 1U] = '\0';
+            } else {
+                strncpy(model->value, "--", sizeof(model->value) - 1U);
             }
+            model->value[sizeof(model->value) - 1U] = '\0';
 
             if(unit) {
                 strncpy(model->unit, unit, sizeof(model->unit) - 1U);
@@ -209,8 +99,6 @@ void dashboard_apply_template(
                 strncpy(model->note, note, sizeof(model->note) - 1U);
                 model->note[sizeof(model->note) - 1U] = '\0';
             }
-
-            model->counter = 0U;
         },
         true);
 }
@@ -239,6 +127,8 @@ AppDashboardMode dashboard_mode_for_tool(CcToolId tool_id) {
         return AppDashboardDbcDecode;
     case CcToolCustomInject:
         return AppDashboardCustomInject;
+    case CcToolReplay:
+        return AppDashboardReplay;
     default:
         return AppDashboardNone;
     }
@@ -292,6 +182,9 @@ static void dashboard_init_mode(App* app, AppDashboardMode mode) {
         dashboard_apply_template(
             app, "CUSTOM INJECT", "Slot", slot_value, "", "Waiting for slot data");
     } break;
+    case AppDashboardReplay:
+        dashboard_apply_template(app, "REPLAY", "State", "IDLE", "", "Waiting for tool ready");
+        break;
     case AppDashboardNone:
     default:
         dashboard_apply_template(app, "CAN Commander", "Live Monitor", "--", "", "");
@@ -311,14 +204,30 @@ void dashboard_set_mode(App* app, AppDashboardMode mode) {
         AppDashboardModel * model,
         {
             model->mode = mode;
-            if(mode == AppDashboardDbcDecode) {
+            if(mode == AppDashboardWrite) {
+                model->write_dlc = 8U;
+                model->write_count_cfg = 1U;
+                model->write_interval_ms_cfg = 250U;
+            } else if(mode == AppDashboardCustomInject) {
+                model->custom_selected_slot = app_custom_inject_get_active_slot(app);
+                for(uint8_t i = 0U; i < 5U; i++) {
+                    snprintf(
+                        model->custom_slot_name[i],
+                        sizeof(model->custom_slot_name[i]),
+                        "Slot%u",
+                        (unsigned)(i + 1U));
+                }
+            } else if(mode == AppDashboardReplay) {
+                model->replay_max_frames = 384U;
+                model->replay_count_cfg = 1U;
+            } else if(mode == AppDashboardDbcDecode) {
                 model->dbc_signal_count = 0U;
                 model->dbc_signal_selected = 0U;
                 model->mode_page = 0U;
                 memset(model->dbc_signals, 0, sizeof(model->dbc_signals));
 
                 uint8_t count = 0U;
-                for(uint8_t i = 0U; i < APP_DBC_CFG_MAX_SIGNALS; i++) {
+                for(uint8_t i = 0U; i < APP_DBC_CFG_MAX_SIGNALS && app->dbc_config_signals; i++) {
                     const AppDbcSignalCache* signal = &app->dbc_config_signals[i];
                     if(!signal->used || count >= APP_DBC_CFG_MAX_SIGNALS) {
                         continue;
@@ -424,6 +333,12 @@ bool dashboard_handle_event(App* app, const CcEvent* event) {
     case AppDashboardCustomInject:
         if(event->type == CcEventTypeTool && event->data.tool.tool == CcToolCustomInject) {
             dashboard_update_custom_inject(app, event);
+            return true;
+        }
+        return false;
+    case AppDashboardReplay:
+        if(event->type == CcEventTypeTool && event->data.tool.tool == CcToolReplay) {
+            dashboard_update_replay(app, event);
             return true;
         }
         return false;

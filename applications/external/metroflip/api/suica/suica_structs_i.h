@@ -59,6 +59,7 @@ typedef struct {
     uint16_t balance_change;
     SuicaBalanceChangeSign balance_sign;
     uint8_t shop_code[2];
+    uint8_t bus_line_code[2];
 } SuicaHistory;
 
 typedef struct {

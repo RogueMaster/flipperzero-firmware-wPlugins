@@ -2,7 +2,7 @@
 #include "../usb_uart_bridge.h"
 #include <furi_hal.h>
 #include <gui/elements.h>
-#include <gpio_icons.h>
+#include <assets_icons.h>
 
 struct GpioUsbUart {
     View* view;

@@ -5,6 +5,7 @@
 #include "../iconedit.h"
 #include "../utils/draw.h"
 #include "../utils/notification.h"
+#include <iconedit_icons.h>
 
 static uint8_t fps = 4;
 
@@ -12,13 +13,8 @@ void fps_set_fps(uint8_t new_fps) {
     fps = new_fps;
 }
 
-uint8_t fps_get_fps() {
-    return fps;
-}
-
 void fps_draw(Canvas* canvas, void* context) {
     UNUSED(context);
-    // IconEdit* app = context;
 
     size_t cw = canvas_width(canvas);
     size_t ch = canvas_height(canvas);
@@ -29,10 +25,10 @@ void fps_draw(Canvas* canvas, void* context) {
 
     ie_draw_modal_panel_frame(canvas, x, y, pw, ph);
     char buf[8];
-    snprintf(buf, 8, "%d fps", fps);
+    snprintf(buf, sizeof(buf), "%d fps", fps);
     canvas_draw_str_aligned(canvas, cw / 2, ch / 2 - 5, AlignCenter, AlignTop, buf);
-    canvas_draw_triangle(canvas, (cw / 2) - 16, (ch / 2) - 2, 5, 5, CanvasDirectionRightToLeft);
-    canvas_draw_triangle(canvas, (cw / 2) + 16, (ch / 2) - 2, 5, 5, CanvasDirectionLeftToRight);
+    canvas_draw_icon(canvas, (cw / 2) - 16 - 5, (ch / 2) - 3, &I_iet_smArrowL);
+    canvas_draw_icon(canvas, (cw / 2) + 16, (ch / 2) - 3, &I_iet_smArrowR);
 }
 
 bool fps_input(InputEvent* event, void* context) {

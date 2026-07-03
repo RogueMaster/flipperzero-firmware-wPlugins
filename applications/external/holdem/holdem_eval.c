@@ -238,6 +238,55 @@ void sort_five_for_display(Card cards[5]) {
     for(size_t card_index = 0; card_index < 5; card_index++)
         rank_counts[cards[card_index].rank]++;
 
+    bool broadway_straight = rank_counts[0] && rank_counts[9] && rank_counts[10] &&
+                             rank_counts[11] && rank_counts[12];
+    bool wheel_straight = rank_counts[0] && rank_counts[1] && rank_counts[2] && rank_counts[3] &&
+                          rank_counts[4];
+    bool straight_run = false;
+
+    for(size_t start_rank = 0; start_rank <= 8; start_rank++) {
+        bool found_run = true;
+        for(size_t offset = 0; offset < 5; offset++) {
+            if(!rank_counts[start_rank + offset]) {
+                found_run = false;
+                break;
+            }
+        }
+        if(found_run) {
+            straight_run = true;
+            break;
+        }
+    }
+
+    if(broadway_straight || wheel_straight || straight_run) {
+        for(size_t left = 0; left < 5; left++) {
+            for(size_t right = left + 1; right < 5; right++) {
+                uint8_t left_rank = cards[left].rank;
+                uint8_t right_rank = cards[right].rank;
+                uint8_t left_display_rank = left_rank;
+                uint8_t right_display_rank = right_rank;
+                bool should_swap = false;
+
+                if(broadway_straight) {
+                    if(left_rank == 0u) left_display_rank = 13u;
+                    if(right_rank == 0u) right_display_rank = 13u;
+                }
+
+                if(right_display_rank < left_display_rank)
+                    should_swap = true;
+                else if(right_display_rank == left_display_rank && cards[right].suit > cards[left].suit)
+                    should_swap = true;
+
+                if(should_swap) {
+                    Card temp_card = cards[left];
+                    cards[left] = cards[right];
+                    cards[right] = temp_card;
+                }
+            }
+        }
+        return;
+    }
+
     for(size_t left = 0; left < 5; left++) {
         for(size_t right = left + 1; right < 5; right++) {
             uint8_t left_rank_count = rank_counts[cards[left].rank];

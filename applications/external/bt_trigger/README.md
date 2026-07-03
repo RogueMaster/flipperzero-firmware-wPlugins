@@ -1,16 +1,26 @@
-# BT Trigger
+# Flipper Zero — Bluetooth Camera Trigger
 
-Control your smartphone camera via your Flipper Zero
+A Bluetooth intervalometer for the Flipper Zero, built to trigger an iPhone/Android camera remotely with a configurable number of shots and interval between them.
 
-With the BT Trigger app, you can remotely take pictures with the help of your Flipper Zero via Bluetooth Low Energy.
+<p align="center">
+  <img src="f0_primary.jpg" width="45%"/>
+  <img src="f0_wait_bt.jpg" width="45%"/>
+</p>
 
-To take a picture remotely, do as follows:
+## Why
 
-1. Run the BT Trigger app and connect to your smartphone. Your Flipper Zero will be displayed as Control <device name> in Bluetooth settings.
-2. Run the Camera app on your smartphone.
-3. To take one picture, press the Right button.
+I wanted to shoot Milky Way timelapses with my iPhone. Those triggers exist for DSLR but I didn't find any for iPhone — the Flipper Zero was sitting on my desk and I wanted to learn.
 
+## What it does
 
-You can take multiple pictures by pressing the Ok button. You can also set the delay between shots by pressing the Up and Down buttons. The number of photos taken is displayed in the app. To reset the shot count, press the Left button.
+- Connects to an iPhone/Android via Bluetooth
+- Triggers the camera shutter remotely
+- Configurable number of shots and interval between them
 
-Your smartphone must be configured to use the volume-up button as shutter. It will not work if the phone is configured to use the volume buttons for zoom.
+## Result
+
+[First try](https://e.pcloud.link/publink/show?code=XZLjIiZTka72V9i4eQB91O28Cs5W8ePglhV)
+
+## Note
+
+This app has since been forked and is available on the [Flipper App Store](https://lab.flipper.net/apps/bt_trigger).

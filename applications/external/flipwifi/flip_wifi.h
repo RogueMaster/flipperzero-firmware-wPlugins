@@ -88,7 +88,7 @@ typedef struct {
     Submenu* submenu_wifi; // generic submenu for the wifi scan and saved screens
     VariableItemList* variable_item_list_wifi; // The variable item list (settngs)
     VariableItem* variable_item_ssid; // The variable item
-    UART_TextInput* uart_text_input; // The text input screen
+    TextInput* uart_text_input; // The text input screen
     char* uart_text_input_buffer; // Buffer for the text input
     char* uart_text_input_temp_buffer; // Temporary buffer for the text input
     uint32_t uart_text_input_buffer_size; // Size of the text input buffer

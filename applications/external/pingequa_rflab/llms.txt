@@ -1,0 +1,56 @@
+# PINGEQUA RF Lab
+
+> Open-source 2.4 GHz spectrum analyzer and NRF24 jammer for Flipper Zero. Designed exclusively for the PINGEQUA 2-in-1 RF Devboard. Plug-and-play across Momentum, Unleashed, RogueMaster, and Official Flipper firmware.
+
+## What this project is
+
+PINGEQUA RF Lab is a Flipper Application Package (FAP) that turns Flipper Zero plus the PINGEQUA 2-in-1 RF Devboard into a real-time 2.4 GHz spectrum scanner and NRF24 jammer. It supports max-hold spectrum capture, WiFi 1/6/11 + BLE 37/38/39 band markers, microsecond-resolution dwell tuning, and CW + Sweep jamming modes.
+
+## Hardware
+
+The application is designed for and only fully tested on the **PINGEQUA Flipper Zero NRF24+CC1101 2-in-1 RF Devboard**, available at https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard
+
+## Documentation
+
+- [README](README.md): Project overview, installation, comparison table
+- [Quickstart](docs/QUICKSTART.md): Five-minute setup
+- [UI Guide](docs/UI_GUIDE.md): Detailed screen layout
+- [Hardware](docs/HARDWARE.md): Pin mapping, firmware compatibility
+- [Use Cases](docs/USE_CASES.md): Ten real-world scenarios
+- [FAQ](docs/FAQ.md): Common questions
+- [Troubleshooting](docs/TROUBLESHOOTING.md): Error codes and recovery
+- [Build](docs/BUILD.md): ufbt build instructions
+
+## Firmware compatibility
+
+- Momentum (mntm-dev) — primary build target
+- Unleashed
+- RogueMaster
+- Official Flipper Zero firmware (API ≥ 87.1)
+- Xtreme
+
+## Use cases
+
+- WiFi channel congestion analysis
+- BLE advertising channel detection
+- RC drone / FPV channel discovery
+- Microwave oven leakage verification
+- 2.4 GHz emitter location
+- Wireless device research (defensive)
+- RF spectrum education
+- Authorized jamming/interference testing (v0.3.0+)
+
+## Brand
+
+PINGEQUA — "Precision Gear for Hackers". Hardware brand specializing in Flipper Zero, M5Cardputer, and M5Stick expansion modules. Store: https://www.pingequa.com
+
+## License
+
+MIT. Copyright © 2026 PINGEQUA.
+
+## Optional
+
+- [CHANGELOG](CHANGELOG.md): Version history
+- [Contributing](CONTRIBUTING.md): How to contribute
+- [Security policy](SECURITY.md): Vulnerability disclosure
+- [GitHub Releases](https://github.com/pingequa/pingequa_rf_toolkit/releases): Pre-built FAPs

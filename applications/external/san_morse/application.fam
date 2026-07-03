@@ -1,0 +1,14 @@
+App(
+    appid="san_morse",
+    name="San Morse",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="san_morse_app",
+    requires=["gui", "notification"],
+    stack_size=4 * 1024,
+    fap_icon="icons/san_morse_10px.png",
+    fap_category="Tools",
+    fap_author="sanjorge",
+    fap_weburl="https://github.com/sanjorgek/san-morse-flipper",
+    fap_version="1.0",
+    fap_description="Morse trainer with a decision-tree guide and text-to-Morse playback",
+)

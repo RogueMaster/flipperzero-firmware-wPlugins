@@ -41,7 +41,6 @@ iButtonConverter* ibutton_converter_alloc(void) {
         scene_manager_alloc(&ibutton_converter_scene_handlers, ibutton_converter);
 
     ibutton_converter->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(ibutton_converter->view_dispatcher);
     view_dispatcher_set_event_callback_context(
         ibutton_converter->view_dispatcher, ibutton_converter);
     view_dispatcher_set_custom_event_callback(

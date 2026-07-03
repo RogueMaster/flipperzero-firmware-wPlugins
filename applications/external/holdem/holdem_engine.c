@@ -100,6 +100,77 @@ Card pop_card(HoldemGame* game) {
     return next_card;
 }
 
+static void refund_uncalled_excess(HoldemGame* game) {
+    int highest_contrib_index = -1;
+    int32_t highest_contrib = 0;
+    int32_t second_highest_contrib = 0;
+    bool highest_is_tied = false;
+
+    for(size_t player_index = 0; player_index < game->player_count; player_index++) {
+        int32_t contribution = game->players[player_index].hand_contrib;
+        if(contribution > highest_contrib) {
+            second_highest_contrib = highest_contrib;
+            highest_contrib = contribution;
+            highest_contrib_index = (int)player_index;
+            highest_is_tied = false;
+        } else if(contribution == highest_contrib && contribution > 0) {
+            highest_is_tied = true;
+        } else if(contribution > second_highest_contrib) {
+            second_highest_contrib = contribution;
+        }
+    }
+
+    if(highest_contrib_index < 0 || highest_is_tied || highest_contrib <= second_highest_contrib)
+        return;
+
+    int32_t uncalled_excess = highest_contrib - second_highest_contrib;
+    Player* player = &game->players[highest_contrib_index];
+    player->stack += uncalled_excess;
+    player->hand_contrib -= uncalled_excess;
+    if(player->street_bet >= uncalled_excess) {
+        player->street_bet -= uncalled_excess;
+    } else {
+        player->street_bet = 0;
+    }
+    game->pot -= uncalled_excess;
+}
+
+static int32_t forced_preflop_contribution_for_player(const HoldemGame* game, int player_index) {
+    if(game->stage != StagePreflop) return 0;
+    if(player_index == game->sb_idx) return game->small_blind;
+    if(player_index == game->bb_idx) return game->big_blind;
+    return 0;
+}
+
+static void refund_uncalled_fold_action(HoldemGame* game, int winner_index) {
+    if(winner_index < 0 || winner_index >= (int)game->player_count) return;
+
+    Player* winner = &game->players[winner_index];
+    int32_t forced_contribution = forced_preflop_contribution_for_player(game, winner_index);
+    int32_t uncalled_action = winner->street_bet - forced_contribution;
+
+    if(uncalled_action <= 0) return;
+
+    winner->stack += uncalled_action;
+    winner->street_bet -= uncalled_action;
+    if(winner->hand_contrib >= uncalled_action) {
+        winner->hand_contrib -= uncalled_action;
+    } else {
+        winner->hand_contrib = 0;
+    }
+    if(game->pot >= uncalled_action) {
+        game->pot -= uncalled_action;
+    } else {
+        game->pot = 0;
+    }
+}
+
+void normalize_contested_pot(HoldemGame* game) {
+    if(active_in_hand_count(game) > 1) {
+        refund_uncalled_excess(game);
+    }
+}
+
 void reset_hand(HoldemGame* game) {
     // Hand reset preserves long-lived table state like stacks, button position, and blind size,
     // but wipes every per-hand field so the next deal starts from a clean slate.
@@ -160,6 +231,7 @@ bool resolve_fold_win(HoldemGame* game, PayoutResult* payout_result) {
     }
 
     if(active_players == 1 && winner_index >= 0) {
+        refund_uncalled_fold_action(game, winner_index);
         int32_t payout = game->pot;
         memset(payout_result, 0, sizeof(*payout_result));
         payout_result->idx[0] = winner_index;
@@ -173,6 +245,7 @@ bool resolve_fold_win(HoldemGame* game, PayoutResult* payout_result) {
 
 void resolve_showdown(HoldemGame* game, PayoutResult* payout_result) {
     memset(payout_result, 0, sizeof(*payout_result));
+    refund_uncalled_excess(game);
 
     // Build sorted unique contribution levels used to distribute side pots.
     int32_t contribution_levels[HOLDEM_MAX_PLAYERS];
@@ -333,6 +406,10 @@ void init_game(HoldemGame* game) {
     snprintf(game->players[3].name, sizeof(game->players[3].name), "Bot3");
     game->players[3].stack = 1000;
     game->players[3].is_bot = true;
+
+    snprintf(game->players[4].name, sizeof(game->players[4].name), "Bot4");
+    game->players[4].stack = 1000;
+    game->players[4].is_bot = true;
 }
 
 void init_game_with_player_count(HoldemGame* game, size_t player_count) {

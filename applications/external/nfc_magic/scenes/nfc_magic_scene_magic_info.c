@@ -22,14 +22,31 @@ void nfc_magic_scene_magic_info_on_enter(void* context) {
 
     if(instance->protocol == NfcMagicProtocolClassic) {
         widget_add_string_element(
-            widget, 0, 0, AlignLeft, AlignTop, FontPrimary, "It Might Be a Magic Card");
-        furi_string_printf(message, "You can make sure the card is\nmagic by writing to it\n");
+            widget, 0, 0, AlignLeft, AlignTop, FontPrimary, "Magic Not Confirmed");
+        // Hand-wrapped: the text box breaks mid-word, so keep each line short.
+        furi_string_printf(
+            message,
+            "Not a magic tag, or\nsector 0 key is non-standard.\nTry writing to confirm.");
     } else {
         widget_add_string_element(
             widget, 0, 0, AlignLeft, AlignTop, FontPrimary, "Magic card detected!");
+        furi_string_printf(
+            message, "Magic Type: %s", nfc_magic_protocols_get_name(instance->protocol));
+
+        const char* detail = NULL;
+        if(instance->protocol == NfcMagicProtocolGen2) {
+            detail = gen2_type_get_detail(instance->gen2_type);
+        } else if(instance->protocol == NfcMagicProtocolGen1) {
+            if(instance->gen1_uid_len == 4) {
+                detail = "4-byte UID";
+            } else if(instance->gen1_uid_len == 7) {
+                detail = "7-byte UID";
+            }
+        }
+        if(detail) {
+            furi_string_cat_printf(message, "\n%s", detail);
+        }
     }
-    furi_string_cat_printf(
-        message, "Magic Type: %s", nfc_magic_protocols_get_name(instance->protocol));
     widget_add_text_box_element(
         widget, 0, 10, 128, 54, AlignLeft, AlignTop, furi_string_get_cstr(message), false);
 
@@ -47,7 +64,7 @@ void nfc_magic_scene_magic_info_on_enter(void* context) {
 
         furi_string_printf(
             message,
-            "Configured As %s",
+            "Configured As:\n%s",
             gen4_get_configuration_name(&instance->gen4_data->config));
 
         widget_add_string_multiline_element(

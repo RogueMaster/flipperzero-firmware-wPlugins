@@ -162,7 +162,8 @@ static bool ina228_driver_tick(SensorDriver* driver) {
                 // LSB = 195.3125uV
                 drv->state.voltage = 195.3125E-6 * (vbus_reg >> 4);
 
-                drv->state.time = furi_get_tick();
+                drv->state.ticks = furi_get_tick();
+                drv->state.timestamp = furi_hal_rtc_get_timestamp();
                 drv->state.ready = true;
             }
         } else {

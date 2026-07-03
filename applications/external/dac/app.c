@@ -60,7 +60,7 @@ typedef struct {
 const FuriHalPwmOutputId channel_pwm = FuriHalPwmOutputIdTim1PA7;
 
 // For our I2C output we scan the external I2C bus to find a device.
-FuriHalI2cBusHandle* i2c_bus = &furi_hal_i2c_handle_external;
+const FuriHalI2cBusHandle* i2c_bus = &furi_hal_i2c_handle_external;
 
 // For our ADC input we use pin C3, which is FuriHalAdcChannel4.
 const GpioPin* adc_input_gpio = &gpio_ext_pc3;
@@ -459,7 +459,6 @@ static DacApp* dac_app_alloc() {
     Gui* gui = furi_record_open(RECORD_GUI);
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 

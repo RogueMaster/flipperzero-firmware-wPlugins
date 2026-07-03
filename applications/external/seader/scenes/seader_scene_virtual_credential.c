@@ -8,6 +8,7 @@ void seader_virtual_credential_worker_callback(uint32_t event, void* context) {
 
 void seader_scene_virtual_credential_on_enter(void* context) {
     Seader* seader = context;
+    seader_worker_acquire(seader);
 
     // Setup view
     Popup* popup = seader->popup;
@@ -52,4 +53,5 @@ void seader_scene_virtual_credential_on_exit(void* context) {
 
     // Clear view
     popup_reset(seader->popup);
+    seader_worker_release(seader);
 }

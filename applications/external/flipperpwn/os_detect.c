@@ -1,3 +1,7 @@
+/* os_detect.c — Target OS detection for FlipperPwn.
+ * Uses USB CDC device enumeration responses to identify Windows, macOS,
+ * or Linux on the connected host. */
+
 #include "flipperpwn.h"
 #include <furi_hal_usb_cdc.h>
 #include <string.h>
@@ -161,7 +165,7 @@ static void fpwn_detect_cdc_rx_cb(void* context) {
     s_detect_cdc_rx = true;
 }
 
-static void fpwn_detect_cdc_state_cb(void* context, uint8_t state) {
+static void fpwn_detect_cdc_state_cb(void* context, CdcState state) {
     UNUSED(context);
     UNUSED(state);
 }
@@ -240,17 +244,20 @@ static FPwnOS fpwn_cdc_detect_attempt(FPwnApp* app, FPwnOS candidate) {
      * the tag + EOT, and exits. */
     switch(candidate) {
     case FPwnOSWindows:
+        /* Filter for COM ports only — Windows 11 can return device paths
+         * like \\?\USB#VID_... that .NET SerialPort rejects with
+         * "does not start with COM/com". */
         fpwn_type_string("$_t=[IO.Ports.SerialPort]; "
                          "$_d='FPWN:WIN'; "
-                         "$_p=$_t::GetPortNames(); "
+                         "$_p=$_t::GetPortNames()|?{$_ -match '^COM\\d+$'}; "
                          "1..20|%{sleep -m 500; "
-                         "$_n=$_t::GetPortNames()|?{$_ -notin $_p}; "
+                         "$_n=$_t::GetPortNames()|?{$_ -match '^COM\\d+$' -and $_ -notin $_p}; "
                          "if($_n){"
-                         "$_s=$_t::new($_n[0],115200); "
+                         "try{$_s=$_t::new($_n[0],115200); "
                          "$_s.Open(); "
                          "[byte[]]$_b=[Text.Encoding]::ASCII.GetBytes($_d+[char]4); "
                          "$_s.Write($_b,0,$_b.Length); "
-                         "$_s.Close(); break}}; exit");
+                         "$_s.Close()}catch{}; break}}; exit");
         break;
     case FPwnOSLinux:
         fpwn_type_string("_p=$(ls -1 /dev/ttyACM* 2>/dev/null); "
@@ -310,7 +317,7 @@ static FPwnOS fpwn_cdc_detect_attempt(FPwnApp* app, FPwnOS candidate) {
     memset(rxbuf_all, 0, sizeof(rxbuf_all));
 
     uint32_t rx_start = furi_get_tick();
-    const uint32_t rx_timeout_ms = 12000;
+    const uint32_t rx_timeout_ms = 8000;
     bool got_eot = false;
 
     while(!got_eot && !app->abort_requested) {
@@ -345,11 +352,22 @@ static FPwnOS fpwn_cdc_detect_attempt(FPwnApp* app, FPwnOS candidate) {
     /* Phase 6: Switch back to HID */
     furi_hal_usb_unlock();
     furi_hal_usb_set_config(&usb_hid, NULL);
-    furi_delay_ms(2000); /* HID re-enumeration */
+    /* HID re-enumeration — split into small increments so abort is responsive */
+    for(uint32_t w = 0; w < 2000 && !app->abort_requested; w += 100) {
+        furi_delay_ms(100);
+    }
 
-    /* Phase 7: Parse the response */
+    /* Phase 7: Parse the response.
+     * Case-insensitive matching — if CapsLock was on during typing, the
+     * tag string is case-inverted ('fpwn:win' instead of 'FPWN:WIN'). */
     FPwnOS result = FPwnOSUnknown;
     if(got_eot && rxpos > 0) {
+        /* Normalize to uppercase for matching */
+        for(uint32_t i = 0; i < rxpos; i++) {
+            if(rxbuf_all[i] >= 'a' && rxbuf_all[i] <= 'z') {
+                rxbuf_all[i] -= 32;
+            }
+        }
         if(strstr(rxbuf_all, "FPWN:WIN"))
             result = FPwnOSWindows;
         else if(strstr(rxbuf_all, "FPWN:LNX"))

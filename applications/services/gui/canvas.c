@@ -1,11 +1,13 @@
 #include "canvas_i.h"
+#include "canvas.h"
 #include "icon_animation_i.h"
 
 #include <furi.h>
 #include <furi_hal.h>
 #include <stdint.h>
 #include <u8g2_glue.h>
-#include <cfw/cfw.h>
+#include <cfw/asset_packs_i.h>
+#include <cfw/settings.h>
 
 const CanvasFontParameters canvas_font_params[FontTotalNumber] = {
     [FontPrimary] = {.leading_default = 12, .leading_min = 11, .height = 8, .descender = 2},
@@ -130,13 +132,16 @@ size_t canvas_current_font_height(const Canvas* canvas) {
 }
 
 size_t canvas_current_font_width(const Canvas* canvas) {
-    furi_assert(canvas);
-    return (size_t)u8g2_GetMaxCharWidth(&canvas->fb);
+    furi_check(canvas);
+    return u8g2_GetMaxCharWidth(&canvas->fb);
 }
 
 const CanvasFontParameters* canvas_get_font_params(const Canvas* canvas, Font font) {
     furi_check(canvas);
     furi_check(font < FontTotalNumber);
+    if(asset_packs && asset_packs->font_params[font]) {
+        return asset_packs->font_params[font];
+    }
     return &canvas_font_params[font];
 }
 
@@ -180,6 +185,10 @@ void canvas_invert_color(Canvas* canvas) {
 void canvas_set_font(Canvas* canvas, Font font) {
     furi_check(canvas);
     u8g2_SetFontMode(&canvas->fb, 1);
+    if(asset_packs && asset_packs->fonts[font]) {
+        u8g2_SetFont(&canvas->fb, asset_packs->fonts[font]);
+        return;
+    }
     switch(font) {
     case FontPrimary:
         u8g2_SetFont(&canvas->fb, u8g2_font_helvB08_tr);
@@ -286,27 +295,53 @@ void canvas_draw_bitmap(
     canvas_draw_u8g2_bitmap(&canvas->fb, x, y, width, height, bitmap_data, IconRotation0);
 }
 
+static void _canvas_draw_icon_animation(
+    Canvas* canvas,
+    int32_t x,
+    int32_t y,
+    int32_t width_scale,
+    int32_t height_scale,
+    IconAnimation* icon_animation) {
+    furi_check(canvas);
+    furi_check(icon_animation);
+    // Ensure scale % is > 0
+    furi_assert(width_scale > 0 && height_scale > 0);
+    // Ensure scale % is <= 100: animated icons > 100% are buggy
+    // TODO: Future, allow scaling > 100
+    furi_assert(width_scale <= 100 && height_scale <= 100);
+
+    x += canvas->offset_x;
+    y += canvas->offset_y;
+
+    uint8_t* icon_data = NULL;
+    compress_icon_decode(
+        canvas->compress_icon, icon_animation_get_data(icon_animation), &icon_data);
+
+    int32_t width = icon_animation_get_width(icon_animation);
+    int32_t height = icon_animation_get_height(icon_animation);
+    int32_t width_scaled = (width * width_scale) / 100;
+    int32_t height_scaled = (height * height_scale) / 100;
+
+    canvas_draw_u8g2_bitmap(
+        &canvas->fb, x, y, width_scaled, height_scaled, icon_data, IconRotation0);
+}
+
 void canvas_draw_icon_animation(
     Canvas* canvas,
     int32_t x,
     int32_t y,
     IconAnimation* icon_animation) {
-    furi_check(canvas);
-    furi_check(icon_animation);
+    _canvas_draw_icon_animation(canvas, x, y, 100, 100, icon_animation);
+}
 
-    x += canvas->offset_x;
-    y += canvas->offset_y;
-    uint8_t* icon_data = NULL;
-    compress_icon_decode(
-        canvas->compress_icon, icon_animation_get_data(icon_animation), &icon_data);
-    canvas_draw_u8g2_bitmap(
-        &canvas->fb,
-        x,
-        y,
-        icon_animation_get_width(icon_animation),
-        icon_animation_get_height(icon_animation),
-        icon_data,
-        IconRotation0);
+void canvas_draw_icon_animation_ex(
+    Canvas* canvas,
+    int32_t x,
+    int32_t y,
+    int32_t width_scale,
+    int32_t height_scale,
+    IconAnimation* icon_animation) {
+    _canvas_draw_icon_animation(canvas, x, y, width_scale, height_scale, icon_animation);
 }
 
 static void canvas_draw_u8g2_bitmap_int(
@@ -424,6 +459,7 @@ void canvas_draw_icon_ex(
     x += canvas->offset_x;
     y += canvas->offset_y;
     uint8_t* icon_data = NULL;
+    icon = asset_packs_swap_icon(icon);
     compress_icon_decode(canvas->compress_icon, icon_get_frame_data(icon, 0), &icon_data);
     canvas_draw_u8g2_bitmap(
         &canvas->fb, x, y, icon_get_width(icon), icon_get_height(icon), icon_data, rotation);
@@ -436,6 +472,7 @@ void canvas_draw_icon(Canvas* canvas, int32_t x, int32_t y, const Icon* icon) {
     x += canvas->offset_x;
     y += canvas->offset_y;
     uint8_t* icon_data = NULL;
+    icon = asset_packs_swap_icon(icon);
     compress_icon_decode(canvas->compress_icon, icon_get_frame_data(icon, 0), &icon_data);
     canvas_draw_u8g2_bitmap(
         &canvas->fb, x, y, icon_get_width(icon), icon_get_height(icon), icon_data, IconRotation0);
@@ -446,6 +483,22 @@ void canvas_draw_dot(Canvas* canvas, int32_t x, int32_t y) {
     x += canvas->offset_x;
     y += canvas->offset_y;
     u8g2_DrawPixel(&canvas->fb, x, y);
+}
+
+void canvas_draw_overlay(Canvas* canvas) {
+    furi_check(canvas);
+    uint8_t original = canvas->fb.draw_color;
+    canvas_set_color(canvas, ColorWhite);
+    for(size_t j = 0; j < canvas->height; j++) {
+        bool draw_pixel = (j % 2) == 0;
+        for(size_t i = 0; i < canvas->width; i += 2) {
+            size_t x = i + (draw_pixel ? 0 : 1);
+            if(x < canvas->width) {
+                canvas_draw_dot(canvas, x, j);
+            }
+        }
+    }
+    canvas->fb.draw_color = original;
 }
 
 void canvas_draw_box(Canvas* canvas, int32_t x, int32_t y, size_t width, size_t height) {
@@ -563,41 +616,11 @@ void canvas_draw_xbm_ex(
     canvas_draw_u8g2_bitmap(&canvas->fb, x, y, width, height, bitmap_data, rotation);
 }
 
-void canvas_draw_xbm_custom(
-    Canvas* canvas,
-    int32_t x,
-    int32_t y,
-    size_t width,
-    size_t height,
-    IconRotation rotation,
-    const uint8_t* bitmap_data) {
-    furi_check(canvas);
-    x += canvas->offset_x;
-    y += canvas->offset_y;
-    canvas_draw_u8g2_bitmap(&canvas->fb, x, y, width, height, bitmap_data, rotation);
-}
-
 void canvas_draw_glyph(Canvas* canvas, int32_t x, int32_t y, uint16_t ch) {
     furi_check(canvas);
     x += canvas->offset_x;
     y += canvas->offset_y;
     u8g2_DrawGlyph(&canvas->fb, x, y, ch);
-}
-
-void canvas_draw_icon_bitmap(
-    Canvas* canvas,
-    uint8_t x,
-    uint8_t y,
-    int16_t w,
-    int16_t h,
-    const Icon* icon) {
-    furi_assert(canvas);
-    furi_assert(icon);
-    x += canvas->offset_x;
-    y += canvas->offset_y;
-    uint8_t* icon_data = NULL;
-    compress_icon_decode(canvas->compress_icon, icon_get_frame_data(icon, 0), &icon_data);
-    u8g2_DrawXBM(&canvas->fb, x, y, w, h, icon_data);
 }
 
 void canvas_set_bitmap_mode(Canvas* canvas, bool alpha) {

@@ -1,0 +1,46 @@
+# Format : label;key;value[,variant1,variant2,...][;category]
+# - Lignes vides et lignes commençant par # ignorées.
+# - Séparateur strict : ';' entre les 3 (ou 4) champs, sans espace.
+# - Plusieurs valeurs séparées par ',' = variantes, cyclables avec </> dans Quick Log.
+# - Variante contenant '=' -> tag additionnel au primaire (ex. material=wood).
+# - Catégorie optionnelle (4e champ) : 0..14. Si omise -> 14 (Other).
+#
+# Catégories :
+#   0 = Street furniture    8 = Tourism
+#   1 = Roads & signs       9 = Nature
+#   2 = Parking            10 = Education
+#   3 = Sports & leisure   11 = Religion
+#   4 = Waste              12 = Transport
+#   5 = Shops              13 = Address
+#   6 = Services           14 = Other
+#   7 = Emergency
+#
+# Copier ce fichier sur la microSD sous /ext/apps_data/osm_logger/presets.txt
+# pour remplacer la liste par défaut compilée dans l'app.
+# Limites : 128 presets max, 8 variantes par preset, fichier <= 4 Ko.
+# Pour trouver les bonnes clés/valeurs OSM : https://taginfo.openstreetmap.org/
+
+# Exemples
+Banc;amenity;bench;0
+Poubelle;amenity;waste_basket;0
+# Fontaine avec variantes "fountain" et tag additionnel "bottle=yes"
+Fontaine;amenity;drinking_water,fountain,bottle=yes;0
+Toilettes;amenity;toilets;0
+
+# Roads
+Passage pieton;highway;crossing;1
+
+# Shops
+Pharmacie;amenity;pharmacy;5
+Boulangerie;shop;bakery;5
+Cafe;amenity;cafe,pub,bar,fast_food;5
+
+# Services
+Banque;amenity;bank;6
+Distributeur;amenity;atm;6
+
+# Tourism
+Hotel;tourism;hotel,hostel;8
+
+# Address (le numéro se saisit dans la note sur le Flipper)
+Numero de rue;addr:housenumber;TBD;13

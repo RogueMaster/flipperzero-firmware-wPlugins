@@ -1,5 +1,4 @@
 #include "nfc_app_i.h"
-#include "nfc_icons.h"
 #include "api/nfc_app_api_interface.h"
 #include "helpers/protocol_support/nfc_protocol_support.h"
 
@@ -45,7 +44,6 @@ NfcApp* nfc_app_alloc(void) {
 
     instance->view_dispatcher = view_dispatcher_alloc();
     instance->scene_manager = scene_manager_alloc(&nfc_scene_handlers, instance);
-    view_dispatcher_enable_queue(instance->view_dispatcher);
     view_dispatcher_set_event_callback_context(instance->view_dispatcher, instance);
     view_dispatcher_set_custom_event_callback(
         instance->view_dispatcher, nfc_custom_event_callback);
@@ -106,6 +104,13 @@ NfcApp* nfc_app_alloc(void) {
     view_dispatcher_add_view(
         instance->view_dispatcher, NfcViewTextInput, text_input_get_view(instance->text_input));
 
+    // NDEF Text Input (extended keyboard with punctuation)
+    instance->ndef_text_input = ndef_text_input_alloc();
+    view_dispatcher_add_view(
+        instance->view_dispatcher,
+        NfcViewNdefTextInput,
+        ndef_text_input_get_view(instance->ndef_text_input));
+
     // Byte Input
     instance->byte_input = byte_input_alloc();
     view_dispatcher_add_view(
@@ -137,6 +142,9 @@ NfcApp* nfc_app_alloc(void) {
     instance->iso14443_3a_edit_data = iso14443_3a_alloc();
     instance->file_path = furi_string_alloc_set(NFC_APP_FOLDER);
     instance->file_name = furi_string_alloc();
+
+    instance->ndef_write.primary = furi_string_alloc();
+    instance->ndef_write.secondary = furi_string_alloc();
 
     return instance;
 }
@@ -184,6 +192,10 @@ void nfc_app_free(NfcApp* instance) {
     view_dispatcher_remove_view(instance->view_dispatcher, NfcViewTextInput);
     text_input_free(instance->text_input);
 
+    // NDEF Text Input
+    view_dispatcher_remove_view(instance->view_dispatcher, NfcViewNdefTextInput);
+    ndef_text_input_free(instance->ndef_text_input);
+
     // ByteInput
     view_dispatcher_remove_view(instance->view_dispatcher, NfcViewByteInput);
     byte_input_free(instance->byte_input);
@@ -223,6 +235,9 @@ void nfc_app_free(NfcApp* instance) {
     iso14443_3a_free(instance->iso14443_3a_edit_data);
     furi_string_free(instance->file_path);
     furi_string_free(instance->file_name);
+
+    furi_string_free(instance->ndef_write.primary);
+    furi_string_free(instance->ndef_write.secondary);
 
     free(instance);
 }
@@ -491,6 +506,26 @@ static void nfc_show_initial_scene_for_device(NfcApp* nfc) {
         nfc_show_loading_popup(nfc, false);
     }
     scene_manager_next_scene(nfc->scene_manager, scene);
+}
+
+void nfc_app_run_external(NfcApp* nfc, const char* app_path) {
+    furi_assert(nfc);
+    furi_assert(app_path);
+
+    Loader* loader = furi_record_open(RECORD_LOADER);
+
+    loader_enqueue_launch(loader, app_path, NULL, LoaderDeferredLaunchFlagGui);
+
+    FuriString* self_path = furi_string_alloc();
+    furi_check(loader_get_application_launch_path(loader, self_path));
+
+    loader_enqueue_launch(
+        loader, furi_string_get_cstr(self_path), NULL, LoaderDeferredLaunchFlagGui);
+    furi_string_free(self_path);
+
+    furi_record_close(RECORD_LOADER);
+
+    view_dispatcher_stop(nfc->view_dispatcher);
 }
 
 int32_t nfc_app(void* p) {

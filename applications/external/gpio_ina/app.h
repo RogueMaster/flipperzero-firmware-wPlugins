@@ -22,18 +22,24 @@
 #include <gui/modules/variable_item_list.h>
 #include <gui/modules/number_input.h>
 #include <gui/modules/popup.h>
+#include <gui/modules/dialog_ex.h>
 #include <storage/storage.h>
 #include <notification/notification_messages.h>
+#include <power/power_service/power.h>
 
 #include "app_common.h"
 #include "app_config.h"
 #include "views/current_gauge.h"
+#include "views/datalog_screen.h"
+#include "datalog.h"
 
 typedef enum {
     AppViewNumberInput,
     AppViewVariableList,
     AppViewCurrentGauge,
+    AppViewDialog,
     AppViewWiring,
+    AppViewDatalog,
 } AppView;
 
 typedef struct {
@@ -42,18 +48,22 @@ typedef struct {
     NotificationApp* notifications;
     ViewDispatcher* view_dispatcher;
     SceneManager* scene_manager;
+    Power* power;
 
     VariableItemList* var_item_list;
     NumberInput* number_input;
     CurrentGauge* current_gauge;
+    DatalogScreen* datalog_screen;
     Popup* popup;
+    DialogEx* dialog;
 
     AppConfig config;
     SensorDriver* sensor;
+    Datalog* datalog;
 
-    // Time of the last measurement
+    // Time (ticks) of the last measurement
     // (== 0 if no measurement was done yet)
-    uint32_t last_measurement_time;
+    uint32_t last_measurement_ticks;
 } App;
 
 // Restarts the sensor driver to apply the new configuration

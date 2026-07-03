@@ -2,6 +2,7 @@ App(
     appid="irblaster",
     name="IR Blaster",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="irblaster_main",
     stack_size=1 * 1024,
     fap_icon="ir_10px.png",

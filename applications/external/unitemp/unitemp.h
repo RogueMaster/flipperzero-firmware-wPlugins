@@ -51,7 +51,7 @@
 //Application name
 #define APP_NAME        "Unitemp"
 //Application version
-#define UNITEMP_APP_VER "2.0.2-dev"
+#define UNITEMP_APP_VER FAP_VERSION
 
 //Settings file name
 #define APP_SETTINGS_FILENAME "unitemp.settings"
@@ -162,6 +162,7 @@ typedef struct {
     NotificationApp* notifications;
 
     FuriThread* reader_thread;
+    Power* power;
 
     UnitempSettings* settings;
     Sensor* editable_sensor;

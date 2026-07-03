@@ -1,0 +1,14 @@
+App(
+    appid="fliprogue",
+    name="FlipRogue",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="fliprogue_app",
+    sources=["src/*.c"],
+    stack_size=2 * 1024,
+    fap_category="Games",
+    fap_icon="fliprogue.png",
+    fap_author="Abzac",
+    fap_weburl="https://github.com/Abzac/fliprogue",
+    fap_version="1.2.1",
+    fap_description="dungeon decorators, hazards, and pocket RPG chaos",
+)

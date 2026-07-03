@@ -199,12 +199,19 @@ void nvs_clear_cancelled_callback(void* context) {
     }
 }
 void show_app_info(void* context) {
+    if(!context) return;
     SettingsUIContext* settings_context = (SettingsUIContext*)context;
     AppState* app = (AppState*)settings_context->context;
 
     FURI_LOG_D("AppInfo", "Show app info called, context: %p", app);
 
-    const char* info_text = "";
+    const char* info_text = "Version: v1.8.0\n"
+                            "Created by: Spooky\n"
+                            "Updated by:\n"
+                            "@jaylikesbunda\n"
+                            "@tototo31\n"
+                            "Built with <3\n"
+                            "GhostESP-Revival/GhostESP-FlipperCompanion\n\n";
 
     if(app && app->confirmation_view) {
         // Create a new context for the confirmation dialog
@@ -214,6 +221,7 @@ void show_app_info(void* context) {
             return;
         }
         confirm_ctx->state = app;
+        app->active_confirm_context = confirm_ctx;
 
         // Save current view before switching
         app->previous_view = app->current_view;
@@ -230,8 +238,8 @@ void show_app_info(void* context) {
 
         // Switch to confirmation view
         FURI_LOG_D("AppInfo", "Switching to confirmation view");
-        view_dispatcher_switch_to_view(app->view_dispatcher, 7); // 7 is confirmation view
-        app->current_view = 7;
+        view_dispatcher_switch_to_view(app->view_dispatcher, VIEW_CONFIRMATION);
+        app->current_view = VIEW_CONFIRMATION;
     } else {
         FURI_LOG_E("AppInfo", "Invalid app state or confirmation view");
     }

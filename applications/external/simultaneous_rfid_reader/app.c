@@ -97,7 +97,6 @@ static UHFReaderApp* uhf_reader_app_alloc() {
     //Creating the initial GUI
     Gui* Gui = furi_record_open(RECORD_GUI);
     App->ViewDispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(App->ViewDispatcher);
     view_dispatcher_attach_to_gui(App->ViewDispatcher, Gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(App->ViewDispatcher, App);
 

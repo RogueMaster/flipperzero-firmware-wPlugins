@@ -3,9 +3,9 @@
 #include "../../cli_plugin_interface.h"
 #include "../../../version.h"
 
-static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
+static void handle(PluginState* plugin_state, FuriString* args, PipeSide* pipe) {
     UNUSED(args);
-    UNUSED(cli);
+    UNUSED(pipe);
     UNUSED(plugin_state);
     TOTP_CLI_PRINTF(
         "%" PRIu8 ".%" PRIu8 ".%" PRIu8

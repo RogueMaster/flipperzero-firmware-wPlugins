@@ -3,6 +3,14 @@
 #include "run/run.hpp"
 #include <math.h>
 
+#ifndef COLOR_WHITE
+#define COLOR_WHITE 0xFFFF
+#endif
+
+#ifndef COLOR_BLACK
+#define COLOR_BLACK 0x0000
+#endif
+
 Sprite::Sprite(
     const char* name,
     EntityType type,
@@ -24,25 +32,25 @@ Sprite::Sprite(
     this->health = health;
 
     if(strcmp(name, "Cyclops") == 0) {
-        sprite = enemy_left_cyclops_10x11px;
-        sprite_left = enemy_left_cyclops_10x11px;
-        sprite_right = enemy_right_cyclops_10x11px;
         size = Vector(10, 11);
+        sprite = new Image(size, true, enemy_left_cyclops_10x11px);
+        sprite_left = new Image(size, true, enemy_left_cyclops_10x11px);
+        sprite_right = new Image(size, true, enemy_right_cyclops_10x11px);
     } else if(strcmp(name, "Ogre") == 0) {
-        sprite = enemy_left_ogre_10x13px;
-        sprite_left = enemy_left_ogre_10x13px;
-        sprite_right = enemy_right_ogre_10x13px;
         size = Vector(10, 13);
+        sprite = new Image(size, true, enemy_left_ogre_10x13px);
+        sprite_left = new Image(size, true, enemy_left_ogre_10x13px);
+        sprite_right = new Image(size, true, enemy_right_ogre_10x13px);
     } else if(strcmp(name, "Ghost") == 0) {
-        sprite = enemy_left_ghost_15x15px;
-        sprite_left = enemy_left_ghost_15x15px;
-        sprite_right = enemy_right_ghost_15x15px;
         size = Vector(15, 15);
+        sprite = new Image(size, true, enemy_left_ghost_15x15px);
+        sprite_left = new Image(size, true, enemy_left_ghost_15x15px);
+        sprite_right = new Image(size, true, enemy_right_ghost_15x15px);
     } else if(strcmp(name, "Funny NPC") == 0) {
-        sprite = npc_left_funny_15x21px;
-        sprite_left = npc_left_funny_15x21px;
-        sprite_right = npc_right_funny_15x21px;
         size = Vector(15, 21);
+        sprite = new Image(size, true, npc_left_funny_15x21px);
+        sprite_left = new Image(size, true, npc_left_funny_15x21px);
+        sprite_right = new Image(size, true, npc_right_funny_15x21px);
     } else {
         // Default sprite
         sprite = nullptr;
@@ -107,7 +115,6 @@ void Sprite::collision(Entity* other, Game* game) {
             if(health > 0) {
                 state = ENTITY_ATTACKED;
                 elapsed_move_timer = 0;
-                position_changed = true;
                 position_set(old_position);
             }
 
@@ -173,19 +180,19 @@ void Sprite::drawUsername(Vector pos, Game* game) {
         return;
     }
 
-    game->draw->setFontCustom(FONT_SIZE_SMALL);
+    game->draw->setFont(FONT_SIZE_SMALL);
 
     // draw box around the name
-    game->draw->fillRect(
+    game->draw->fillRectangle(
         Vector(pos.x - game->pos.x - (strlen(name) * 2 - 5), pos.y - game->pos.y - 7),
         Vector(strlen(name) * 4 + 1, 8),
-        ColorWhite);
+        COLOR_WHITE);
 
     // draw name over player's head
     game->draw->text(
         Vector(pos.x - game->pos.x - (strlen(name) * 2 - 4), pos.y - game->pos.y - 2),
         name,
-        ColorBlack);
+        COLOR_BLACK);
 }
 
 void Sprite::render(Draw* canvas, Game* game) {
@@ -316,8 +323,6 @@ void Sprite::update(Game* game) {
             // Set the state to idle
             state = ENTITY_IDLE;
             elapsed_move_timer = 0;
-
-            position_changed = true;
         }
     } break;
     default:

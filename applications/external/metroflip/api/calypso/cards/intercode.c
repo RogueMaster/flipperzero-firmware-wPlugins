@@ -12,8 +12,17 @@ CalypsoApp* get_intercode_structure_env_holder() {
 
     IntercodeEnvHolderStructure->type = CALYPSO_APP_ENV_HOLDER;
     IntercodeEnvHolderStructure->container = malloc(sizeof(CalypsoContainerElement));
+    if(!IntercodeEnvHolderStructure->container) {
+        free(IntercodeEnvHolderStructure);
+        return NULL;
+    }
     IntercodeEnvHolderStructure->container->elements =
         malloc(app_elements_count * sizeof(CalypsoElement));
+    if(!IntercodeEnvHolderStructure->container->elements) {
+        free(IntercodeEnvHolderStructure->container);
+        free(IntercodeEnvHolderStructure);
+        return NULL;
+    }
     IntercodeEnvHolderStructure->container->size = app_elements_count;
 
     IntercodeEnvHolderStructure->container->elements[0] = make_calypso_final_element(
@@ -179,8 +188,17 @@ CalypsoApp* get_intercode_structure_contract() {
 
     IntercodeContractStructure->type = CALYPSO_APP_CONTRACT;
     IntercodeContractStructure->container = malloc(sizeof(CalypsoContainerElement));
+    if(!IntercodeContractStructure->container) {
+        free(IntercodeContractStructure);
+        return NULL;
+    }
     IntercodeContractStructure->container->elements =
         malloc(app_elements_count * sizeof(CalypsoElement));
+    if(!IntercodeContractStructure->container->elements) {
+        free(IntercodeContractStructure->container);
+        free(IntercodeContractStructure);
+        return NULL;
+    }
     IntercodeContractStructure->container->size = app_elements_count;
 
     IntercodeContractStructure->container->elements[0] = make_calypso_bitmap_element(
@@ -426,8 +444,17 @@ CalypsoApp* get_intercode_structure_event() {
 
     IntercodeEventStructure->type = CALYPSO_APP_EVENT;
     IntercodeEventStructure->container = malloc(sizeof(CalypsoContainerElement));
+    if(!IntercodeEventStructure->container) {
+        free(IntercodeEventStructure);
+        return NULL;
+    }
     IntercodeEventStructure->container->elements =
         malloc(app_elements_count * sizeof(CalypsoElement));
+    if(!IntercodeEventStructure->container->elements) {
+        free(IntercodeEventStructure->container);
+        free(IntercodeEventStructure);
+        return NULL;
+    }
     IntercodeEventStructure->container->size = app_elements_count;
 
     IntercodeEventStructure->container->elements[0] = make_calypso_final_element(
@@ -560,8 +587,17 @@ CalypsoApp* get_intercode_structure_counter() {
 
     IntercodeCounterStructure->type = CALYPSO_APP_COUNTER;
     IntercodeCounterStructure->container = malloc(sizeof(CalypsoContainerElement));
+    if(!IntercodeCounterStructure->container) {
+        free(IntercodeCounterStructure);
+        return NULL;
+    }
     IntercodeCounterStructure->container->elements =
         malloc(app_elements_count * sizeof(CalypsoElement));
+    if(!IntercodeCounterStructure->container->elements) {
+        free(IntercodeCounterStructure->container);
+        free(IntercodeCounterStructure);
+        return NULL;
+    }
     IntercodeCounterStructure->container->size = app_elements_count;
 
     IntercodeCounterStructure->container->elements[0] = make_calypso_final_element(

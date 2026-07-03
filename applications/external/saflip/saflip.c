@@ -68,7 +68,6 @@ SaflipApp* saflip_app_alloc() {
     // GUI modules
     app->gui = furi_record_open(RECORD_GUI);
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     app->scene_manager = scene_manager_alloc(&saflip_scene_handlers, app);
     app->menu = menu_alloc();
     app->popup = popup_alloc();

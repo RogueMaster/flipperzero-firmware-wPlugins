@@ -43,20 +43,36 @@ static bool nfc_magic_scene_file_select_is_file_suitable(NfcMagicApp* instance) 
     return suitable;
 }
 
+// For a detected Gen1 tag whose UID length is known, the source file's UID length
+// must match it: writing a mismatched block 0 would corrupt the UID/BCC. Returns true
+// (rejecting the file) on mismatch; allows it when the tag length is unknown.
+static bool nfc_magic_scene_file_select_is_uid_len_mismatch(NfcMagicApp* instance) {
+    if(instance->protocol != NfcMagicProtocolGen1) return false;
+    if(instance->gen1_uid_len == 0) return false;
+
+    size_t source_uid_len = 0;
+    nfc_device_get_uid(instance->source_dev, &source_uid_len);
+
+    return source_uid_len != instance->gen1_uid_len;
+}
+
 void nfc_magic_scene_file_select_on_enter(void* context) {
     NfcMagicApp* instance = context;
 
+    instance->source_uid_mismatch = false;
+
     if(nfc_magic_load_from_file_select(instance)) {
-        if(nfc_magic_scene_file_select_is_file_suitable(instance)) {
-            if(instance->protocol == NfcMagicProtocolClassic ||
-               instance->protocol == NfcMagicProtocolGen2) {
-                scene_manager_next_scene(
-                    instance->scene_manager, NfcMagicSceneMfClassicDictAttack);
-            } else {
-                scene_manager_next_scene(instance->scene_manager, NfcMagicSceneWriteConfirm);
-            }
-        } else {
+        if(!nfc_magic_scene_file_select_is_file_suitable(instance)) {
             scene_manager_next_scene(instance->scene_manager, NfcMagicSceneWrongCard);
+        } else if(nfc_magic_scene_file_select_is_uid_len_mismatch(instance)) {
+            instance->source_uid_mismatch = true;
+            scene_manager_next_scene(instance->scene_manager, NfcMagicSceneWrongCard);
+        } else if(
+            instance->protocol == NfcMagicProtocolClassic ||
+            instance->protocol == NfcMagicProtocolGen2) {
+            scene_manager_next_scene(instance->scene_manager, NfcMagicSceneMfClassicDictAttack);
+        } else {
+            scene_manager_next_scene(instance->scene_manager, NfcMagicSceneWriteConfirm);
         }
     } else {
         scene_manager_previous_scene(instance->scene_manager);

@@ -6,7 +6,7 @@
 #include "helpers/bad_usb_hid.h"
 
 #include <gui/gui.h>
-#include <bad_usb_icons.h>
+#include <assets_icons.h>
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
 #include <dialogs/dialogs.h>

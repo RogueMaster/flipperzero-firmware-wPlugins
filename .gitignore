@@ -29,6 +29,7 @@ __pycache__/
 
 .obj/
 bindings/
+.DS_Store
 .mxproject
 Brewfile.lock.json
 
@@ -46,11 +47,6 @@ null.d
 
 # bundle output
 /dist
-/artifacts-default
-/artifacts-ofw-anims
-/artifacts-rgb-patch
-/artifacts-extra-apps
-/artifacts-clean
 
 # SCons build dir
 /build
@@ -67,6 +63,7 @@ PVS-Studio.log
 *.PVS-Studio.*
 
 .gdbinit
+
 /fbt_options_local.py
 
 RM*-*.tgz
@@ -75,3 +72,10 @@ RM*-*.txt
 RM*-*-*/
 RM-*.sh
 /%SystemDrive%
+
+# JS packages
+node_modules/
+
+# cli_perf script output in case of errors
+/block.bin
+/return_block.bin

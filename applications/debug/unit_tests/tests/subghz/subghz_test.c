@@ -704,6 +704,41 @@ MU_TEST(subghz_decoder_hay21_test) {
         "Test decoder " SUBGHZ_PROTOCOL_HAY21_NAME " error\r\n");
 }
 
+MU_TEST(subghz_decoder_solight_te44_test) {
+    mu_assert(
+        subghz_decoder_test(
+            EXT_PATH("unit_tests/subghz/solight_te44_raw.sub"), WS_PROTOCOL_SOLIGHT_TE44_NAME),
+        "Test decoder " WS_PROTOCOL_SOLIGHT_TE44_NAME " error\r\n");
+}
+
+MU_TEST(subghz_decoder_bresser_3ch_v1_test) {
+    mu_assert(
+        subghz_decoder_test(
+            EXT_PATH("unit_tests/subghz/bresser_3ch_raw.sub"), WS_PROTOCOL_BRESSER_3CH_NAME),
+        "Test decoder " WS_PROTOCOL_BRESSER_3CH_NAME " v1 error\r\n");
+}
+
+MU_TEST(subghz_decoder_bresser_3ch_v0_test) {
+    mu_assert(
+        subghz_decoder_test(
+            EXT_PATH("unit_tests/subghz/bresser_3ch_v0_raw.sub"), WS_PROTOCOL_BRESSER_3CH_NAME),
+        "Test decoder " WS_PROTOCOL_BRESSER_3CH_NAME " v0 error\r\n");
+}
+
+MU_TEST(subghz_decoder_vauno_en8822c_test) {
+    mu_assert(
+        subghz_decoder_test(
+            EXT_PATH("unit_tests/subghz/vauno_en8822c.sub"), WS_PROTOCOL_VAUNO_EN8822C_NAME),
+        "Test decoder " WS_PROTOCOL_VAUNO_EN8822C_NAME " error\r\n");
+}
+
+MU_TEST(subghz_decoder_elplast_test) {
+    mu_assert(
+        subghz_decoder_test(
+            EXT_PATH("unit_tests/subghz/elplast_raw.sub"), SUBGHZ_PROTOCOL_ELPLAST_NAME),
+        "Test decoder " SUBGHZ_PROTOCOL_ELPLAST_NAME " error\r\n");
+}
+
 //test encoders
 MU_TEST(subghz_encoder_princeton_test) {
     mu_assert(
@@ -916,6 +951,12 @@ MU_TEST(subghz_encoder_marantec24_test) {
         "Test encoder " SUBGHZ_PROTOCOL_MARANTEC24_NAME " error\r\n");
 }
 
+MU_TEST(subghz_encoder_elplast_test) {
+    mu_assert(
+        subghz_encoder_test(EXT_PATH("unit_tests/subghz/elplast.sub")),
+        "Test encoder " SUBGHZ_PROTOCOL_ELPLAST_NAME " error\r\n");
+}
+
 MU_TEST(subghz_random_test) {
     mu_assert(subghz_decode_random_test(TEST_RANDOM_DIR_NAME), "Random test error\r\n");
 }
@@ -973,7 +1014,7 @@ MU_TEST_SUITE(subghz) {
     MU_RUN_TEST(subghz_decoder_feron_test);
     MU_RUN_TEST(subghz_decoder_legrand_test);
     MU_RUN_TEST(subghz_decoder_marantec24_test);
-
+    MU_RUN_TEST(subghz_decoder_elplast_test);
     MU_RUN_TEST(subghz_encoder_princeton_test);
     MU_RUN_TEST(subghz_encoder_came_test);
     MU_RUN_TEST(subghz_encoder_came_twee_test);
@@ -1009,6 +1050,7 @@ MU_TEST_SUITE(subghz) {
     MU_RUN_TEST(subghz_encoder_hollarm_test);
     MU_RUN_TEST(subghz_encoder_reversrb2_test);
     MU_RUN_TEST(subghz_encoder_legrand_test);
+    MU_RUN_TEST(subghz_encoder_elplast_test);
 
     MU_RUN_TEST(subghz_random_test);
     subghz_test_deinit();

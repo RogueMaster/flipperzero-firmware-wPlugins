@@ -115,7 +115,6 @@ static void scheduler_run_view_draw_callback(Canvas* canvas, SchedulerRunViewMod
         file_name_width_px,
         model->file_name,
         model->tick_counter,
-        false,
         false);
 
     /* ============= NEXT TX COUNTDOWN ============= */

@@ -12,11 +12,11 @@
 
 #include "libraries/missing_api.h"
 
-#define APP_MONITOR_KEEP_MAX  2500U
-#define APP_MONITOR_KEEP_TAIL 1500U
+#define APP_MONITOR_KEEP_MAX  1500U
+#define APP_MONITOR_KEEP_TAIL 1000U
 #define APP_ARGS_KV_WORK_MAX  (APP_CUSTOM_INJECT_SLOT_ARGS_MAX + 128U)
 
-#define APP_RX_THREAD_STACK      (4U * 1024U)
+#define APP_RX_THREAD_STACK      (3U * 1024U)
 #define APP_RX_THREAD_INTERVAL   5U
 #define APP_RX_EVENT_BUDGET      192U
 #define APP_RX_EVENT_YIELD_EVERY 24U
@@ -775,6 +775,24 @@ static int32_t app_rx_worker_thread(void* context) {
 
                 while(processed < APP_RX_EVENT_BUDGET &&
                       cc_client_pop_event(app->client, &event)) {
+                    if(app->fw_version_check_pending && event.type == CcEventTypeStatus &&
+                       event.data.status.len >= 3U && event.data.status.len < 16U) {
+                        const uint8_t major = event.data.status.payload[0];
+                        const uint8_t minor = event.data.status.payload[1];
+                        const uint8_t slen = event.data.status.payload[2];
+                        if(slen < sizeof(app->fw_version_string) &&
+                           (uint16_t)(3U + slen) == event.data.status.len) {
+                            app->fw_version_major = major;
+                            app->fw_version_minor = minor;
+                            memcpy(app->fw_version_string, &event.data.status.payload[3], slen);
+                            app->fw_version_string[slen] = '\0';
+                            app->fw_version_received = true;
+                            app->fw_version_check_pending = false;
+                            processed++;
+                            continue;
+                        }
+                    }
+
                     bool dashboard_consumed = false;
                     bool apply_to_dashboard = true;
                     if(dashboard_mode_active && dashboard_processed >= APP_RX_DASH_EVENT_BUDGET) {
@@ -980,6 +998,81 @@ done:
     return ok;
 }
 
+static bool app_firmware_version_ok(const App* app) {
+    if(!app || !app->fw_version_received) {
+        return false;
+    }
+    if(app->fw_version_major > APP_FW_MIN_MAJOR) {
+        return true;
+    }
+    if(app->fw_version_major == APP_FW_MIN_MAJOR && app->fw_version_minor >= APP_FW_MIN_MINOR) {
+        return true;
+    }
+    return false;
+}
+
+static void app_set_fw_version_warning(App* app) {
+    char fw_text[24] = {0};
+    if(app->fw_version_received) {
+        snprintf(fw_text, sizeof(fw_text), "v%s", app->fw_version_string);
+    } else {
+        snprintf(fw_text, sizeof(fw_text), "unknown");
+    }
+    app_set_status(
+        app,
+        "Firmware out of date!\n"
+        "Firmware is: %s\n"
+        "Firmware needs: %s+\n"
+        "App: %s\n"
+        "Update at:\n%s",
+        fw_text,
+        APP_FW_MIN_STRING,
+        PROGRAM_VERSION,
+        APP_FW_UPDATE_URL);
+}
+
+static void app_check_firmware_version(App* app) {
+    app->fw_version_received = false;
+    app->fw_version_major = 0U;
+    app->fw_version_minor = 0U;
+    app->fw_version_string[0] = '\0';
+    app->fw_version_check_pending = true;
+
+    CcStatusCode info_status = CcStatusUnknown;
+    if(!cc_client_get_info(app->client, &info_status)) {
+        app->fw_version_check_pending = false;
+        app_append_monitor(app, "[uart] get_info transport failed");
+        return;
+    }
+
+    if(info_status != CcStatusOk) {
+        app->fw_version_check_pending = false;
+        app_append_monitor(app, "[uart] get_info => %s", cc_status_to_string(info_status));
+        return;
+    }
+
+    const uint32_t start_tick = furi_get_tick();
+    const uint32_t timeout_ticks = furi_ms_to_ticks(1500U);
+    while((furi_get_tick() - start_tick) < timeout_ticks) {
+        if(app->fw_version_received) {
+            break;
+        }
+        furi_delay_ms(10);
+    }
+    app->fw_version_check_pending = false;
+
+    if(app->fw_version_received) {
+        app_append_monitor(
+            app,
+            "[uart] firmware v%s (%u.%u)",
+            app->fw_version_string,
+            (unsigned)app->fw_version_major,
+            (unsigned)app->fw_version_minor);
+    } else {
+        app_append_monitor(app, "[uart] firmware version response timed out");
+    }
+}
+
 bool app_connect(App* app, bool force_reconnect) {
     if(!app || !app->client) {
         return false;
@@ -989,6 +1082,8 @@ bool app_connect(App* app, bool force_reconnect) {
         cc_client_close(app->client);
         app->connected = false;
         app->tool_active = false;
+        app->fw_version_warn_shown = false;
+        app->fw_version_checked = false;
     }
 
     if(!cc_client_is_open(app->client) && !cc_client_open(app->client)) {
@@ -999,29 +1094,58 @@ bool app_connect(App* app, bool force_reconnect) {
     }
 
     CcStatusCode status = CcStatusUnknown;
-    if(!cc_client_ping(app->client, &status)) {
+    bool ping_ok = false;
+    for(uint8_t attempt = 0U; attempt < 3U; attempt++) {
+        status = CcStatusUnknown;
+        if(cc_client_ping(app->client, &status) && status == CcStatusOk) {
+            ping_ok = true;
+            if(attempt > 0U) {
+                app_append_monitor(app, "[uart] ping ok on attempt %u", (unsigned)(attempt + 1U));
+            }
+            break;
+        }
+        app_append_monitor(
+            app,
+            "[uart] ping attempt %u failed (%s)",
+            (unsigned)(attempt + 1U),
+            cc_status_to_string(status));
+        if(attempt < 2U) {
+            furi_delay_ms(50);
+        }
+    }
+
+    if(!ping_ok) {
         app->connected = false;
         app->tool_active = false;
-        app_append_monitor(app, "[uart] ping transport failed");
         return false;
     }
 
-    app->connected = (status == CcStatusOk);
+    app->connected = true;
     app_append_monitor(app, "[uart] ping => %s", cc_status_to_string(status));
+
     return app->connected;
 }
 
+void app_verify_firmware_version(App* app) {
+    if(!app || !app->connected) {
+        return;
+    }
+    app_check_firmware_version(app);
+    app->fw_version_checked = true;
+    app->fw_version_warn_pending = !app_firmware_version_ok(app);
+    if(app->fw_version_warn_pending) {
+        app_set_fw_version_warning(app);
+    }
+}
+
 bool app_require_connected(App* app) {
-    if(app->connected) {
-        return true;
+    if(!app->connected) {
+        if(!app_connect(app, false)) {
+            app_set_status(app, "Not connected to \nCAN Commander");
+            return false;
+        }
     }
-
-    if(app_connect(app, false)) {
-        return true;
-    }
-
-    app_set_status(app, "Not connected to \nCAN Commander");
-    return false;
+    return true;
 }
 
 void app_begin_edit(App* app, char* destination, size_t destination_size, const char* header_text) {
@@ -1073,9 +1197,14 @@ void app_begin_args_editor_apply(
 void app_apply_edit(App* app) {
     if(app->input_editing_arg_value) {
         if(app->input_arg_value_index < app->args_editor_count) {
-            if(app->input_header && strcmp(app->input_header, "slot_name") == 0) {
+            if(app->input_header &&
+               (strcmp(app->input_header, "slot_name") == 0 ||
+                strcmp(app->input_header, "ssid") == 0 || strcmp(app->input_header, "pass") == 0 ||
+                strcmp(app->input_header, "password") == 0)) {
                 for(size_t i = 0; app->input_work[i] != '\0'; i++) {
                     if(app->input_work[i] == ' ') {
+                        app->input_work[i] = '_';
+                    } else if(app->input_work[i] == '=') {
                         app->input_work[i] = '_';
                     }
                 }
@@ -1202,6 +1331,41 @@ void app_action_stats(App* app) {
 
     app_set_status(app, "STATS_GET => %s", cc_status_to_string(status));
     app_append_monitor(app, "[cmd] stats => %s", cc_status_to_string(status));
+}
+
+void app_action_wifi_get_cfg(App* app) {
+    if(!app_require_connected(app)) {
+        return;
+    }
+
+    CcStatusCode status = CcStatusUnknown;
+    if(!cc_client_wifi_get_cfg(app->client, &status)) {
+        app->connected = false;
+        app_set_status(app, "WIFI_GET_CFG transport error");
+        app_append_monitor(app, "[cmd] wifi get cfg transport error");
+        return;
+    }
+
+    app_set_status(app, "WIFI_GET_CFG => %s", cc_status_to_string(status));
+    app_append_monitor(app, "[cmd] wifi get cfg => %s", cc_status_to_string(status));
+}
+
+void app_action_wifi_set_cfg(App* app, const char* args) {
+    if(!app_require_connected(app)) {
+        return;
+    }
+
+    CcStatusCode status = CcStatusUnknown;
+    if(!cc_client_wifi_set_cfg(app->client, args, &status)) {
+        app->connected = false;
+        app_set_status(app, "WIFI_SET_CFG transport error");
+        app_append_monitor(app, "[cmd] wifi set cfg transport error");
+        return;
+    }
+
+    app_set_status(app, "WIFI_SET_CFG => %s", cc_status_to_string(status));
+    app_append_monitor(
+        app, "[cmd] wifi set cfg args='%s' => %s", args, cc_status_to_string(status));
 }
 
 void app_action_start_read_all(App* app) {
@@ -1344,6 +1508,39 @@ void app_action_tool_start(App* app, CcToolId tool_id, const char* args, const c
 
         args = tool_start_args;
         app_append_monitor(app, "[cmd] write canonical args='%s'", app->args_write_tool);
+    }
+
+    if(tool_id == CcToolReplay) {
+        char bus_value[16] = {0};
+        char id_value[12] = {0};
+        char ext_value[4] = {0};
+
+        if(!arg_get_value_last(args, "bus", bus_value, sizeof(bus_value)) ||
+           bus_value[0] == '\0') {
+            strncpy(bus_value, "can0", sizeof(bus_value) - 1U);
+        }
+        if(strcmp(bus_value, "can0") != 0 && strcmp(bus_value, "can1") != 0 &&
+           strcmp(bus_value, "both") != 0) {
+            strncpy(bus_value, "can0", sizeof(bus_value) - 1U);
+        }
+
+        if(!arg_get_value_last(args, "id", id_value, sizeof(id_value)) || id_value[0] == '\0') {
+            strncpy(id_value, "2C1", sizeof(id_value) - 1U);
+        }
+
+        if(!arg_get_value_last(args, "ext", ext_value, sizeof(ext_value)) ||
+           ext_value[0] == '\0') {
+            strncpy(ext_value, "0", sizeof(ext_value) - 1U);
+        }
+
+        snprintf(
+            tool_start_args,
+            sizeof(tool_start_args),
+            "bus=%s id=%s ext=%s",
+            bus_value,
+            id_value,
+            ext_value);
+        args = tool_start_args;
     }
 
     if(tool_id == CcToolObdPid) {
@@ -1728,6 +1925,34 @@ static bool app_custom_inject_normalize_hex_token(
     return true;
 }
 
+static void app_custom_inject_sanitize_name_token(const char* in, char* out, size_t out_size) {
+    if(!out || out_size == 0U) {
+        return;
+    }
+
+    out[0] = '\0';
+    if(!in || in[0] == '\0') {
+        return;
+    }
+
+    size_t w = 0U;
+    for(size_t i = 0U; in[i] != '\0' && w + 1U < out_size && w < 23U; i++) {
+        const unsigned char ch = (unsigned char)in[i];
+        if(ch == ' ' || ch == '\t') {
+            out[w++] = '_';
+            continue;
+        }
+
+        // Keep token parser-safe payload: avoid spaces and '=' separators.
+        if(ch == '=') {
+            continue;
+        }
+
+        out[w++] = (char)ch;
+    }
+    out[w] = '\0';
+}
+
 static const char* app_custom_inject_profile_for_slot(const App* app, uint8_t slot_number) {
     if(!app_custom_inject_slot_is_valid(slot_number)) {
         return NULL;
@@ -1795,6 +2020,19 @@ static bool
     }
 
     size_t used = (size_t)wrote;
+    char slot_name_raw[40] = {0};
+    if(arg_get_value_last(profile, "slot_name", slot_name_raw, sizeof(slot_name_raw))) {
+        char slot_name[32] = {0};
+        app_custom_inject_sanitize_name_token(slot_name_raw, slot_name, sizeof(slot_name));
+        if(slot_name[0] != '\0') {
+            const int name_wrote = snprintf(out + used, out_size - used, " name=%s", slot_name);
+            if(name_wrote <= 0 || (size_t)name_wrote >= (out_size - used)) {
+                app_set_status(app, "Custom Inject add args too long");
+                return false;
+            }
+            used += (size_t)name_wrote;
+        }
+    }
 
     bool mux_enabled = false;
     if(!app_custom_inject_profile_bool(profile, "mux", false, &mux_enabled)) {
@@ -1873,6 +2111,29 @@ static bool
 
     size_t used = (size_t)wrote;
     bool has_any = false;
+
+    char slot_name_raw[40] = {0};
+    if(arg_get_value_last(profile, "slot_name", slot_name_raw, sizeof(slot_name_raw))) {
+        char slot_name[32] = {0};
+        app_custom_inject_sanitize_name_token(slot_name_raw, slot_name, sizeof(slot_name));
+        if(slot_name[0] != '\0') {
+            wrote = snprintf(out + used, out_size - used, " name=%s", slot_name);
+            if(wrote <= 0 || (size_t)wrote >= (out_size - used)) {
+                app_set_status(app, "Custom Inject modify args too long");
+                return false;
+            }
+            used += (size_t)wrote;
+            has_any = true;
+        } else {
+            wrote = snprintf(out + used, out_size - used, " name_clear=1");
+            if(wrote <= 0 || (size_t)wrote >= (out_size - used)) {
+                app_set_status(app, "Custom Inject modify args too long");
+                return false;
+            }
+            used += (size_t)wrote;
+            has_any = true;
+        }
+    }
 
     char mask[24] = {0};
     if(app_custom_inject_normalize_hex_token(profile, "mask", mask, sizeof(mask))) {
@@ -3171,8 +3432,24 @@ bool app_custom_inject_load_slot_set_file(App* app, const char* file_path) {
     return ok;
 }
 
-static void app_dbc_config_recount(App* app) {
+static bool app_dbc_config_ensure_alloc(App* app) {
     if(!app) {
+        return false;
+    }
+    if(app->dbc_config_signals) {
+        return true;
+    }
+    app->dbc_config_signals = malloc(sizeof(AppDbcSignalCache) * APP_DBC_CFG_MAX_SIGNALS);
+    if(!app->dbc_config_signals) {
+        return false;
+    }
+    memset(app->dbc_config_signals, 0, sizeof(AppDbcSignalCache) * APP_DBC_CFG_MAX_SIGNALS);
+    return true;
+}
+
+static void app_dbc_config_recount(App* app) {
+    if(!app || !app->dbc_config_signals) {
+        if(app) app->dbc_config_signal_count = 0U;
         return;
     }
 
@@ -3186,7 +3463,7 @@ static void app_dbc_config_recount(App* app) {
 }
 
 static int8_t app_dbc_config_find_slot_by_sid(const App* app, uint16_t sid) {
-    if(!app) {
+    if(!app || !app->dbc_config_signals) {
         return -1;
     }
 
@@ -3200,7 +3477,7 @@ static int8_t app_dbc_config_find_slot_by_sid(const App* app, uint16_t sid) {
 }
 
 static int8_t app_dbc_config_find_free_slot(const App* app) {
-    if(!app) {
+    if(!app || !app->dbc_config_signals) {
         return -1;
     }
 
@@ -3215,7 +3492,7 @@ static int8_t app_dbc_config_find_free_slot(const App* app) {
 
 static bool
     app_dbc_config_upsert_signal(App* app, const CcDbcSignalDef* def, const char* signal_name) {
-    if(!app || !def) {
+    if(!app || !def || !app_dbc_config_ensure_alloc(app)) {
         return false;
     }
 
@@ -3334,7 +3611,10 @@ void app_dbc_config_reset(App* app) {
         return;
     }
 
-    memset(app->dbc_config_signals, 0, sizeof(app->dbc_config_signals));
+    if(app->dbc_config_signals) {
+        free(app->dbc_config_signals);
+        app->dbc_config_signals = NULL;
+    }
     app->dbc_config_signal_count = 0U;
 }
 
@@ -3378,7 +3658,7 @@ const char* app_dbc_config_lookup_signal_name(const App* app, uint16_t sid) {
 }
 
 static bool app_dbc_config_apply_to_firmware(App* app) {
-    if(!app_require_connected(app)) {
+    if(!app_require_connected(app) || !app->dbc_config_signals) {
         return false;
     }
 
@@ -3434,7 +3714,7 @@ static bool app_dbc_config_apply_to_firmware(App* app) {
 }
 
 bool app_dbc_config_save_file(App* app, const char* config_name) {
-    if(!app) {
+    if(!app || !app->dbc_config_signals) {
         return false;
     }
 
@@ -4244,7 +4524,7 @@ void app_action_dbc_list(App* app) {
 }
 
 static void app_set_default_args(App* app) {
-    strncpy(app->args_read_all, "bus=both ascii=0", sizeof(app->args_read_all) - 1U);
+    strncpy(app->args_read_all, "bus=can0 ascii=0", sizeof(app->args_read_all) - 1U);
 
     strncpy(
         app->args_filtered,
@@ -4256,14 +4536,14 @@ static void app_set_default_args(App* app) {
         "bus=can0 id=1D5 ext=0 rtr=0 dlc=8 data=102030AABBCCDDEE count=1 interval_ms=250",
         sizeof(app->args_write_tool) - 1U);
 
-    strncpy(app->args_speed, "bus=both", sizeof(app->args_speed) - 1U);
-    strncpy(app->args_valtrack, "bus=both strict=1", sizeof(app->args_valtrack) - 1U);
-    strncpy(app->args_unique_ids, "bus=both", sizeof(app->args_unique_ids) - 1U);
+    strncpy(app->args_speed, "bus=can0", sizeof(app->args_speed) - 1U);
+    strncpy(app->args_valtrack, "bus=can0 strict=1", sizeof(app->args_valtrack) - 1U);
+    strncpy(app->args_unique_ids, "bus=can0", sizeof(app->args_unique_ids) - 1U);
     strncpy(app->args_bittrack, "bus=can0 id=273 ext=0", sizeof(app->args_bittrack) - 1U);
 
     strncpy(
         app->args_reverse_auto,
-        "bus=can0 calibration_ms=10000 monitor_ms=20000 summary=0",
+        "bus=can0 calibration_ms=20000 monitor_ms=200000 summary=0",
         sizeof(app->args_reverse_auto) - 1U);
 
     strncpy(
@@ -4272,8 +4552,9 @@ static void app_set_default_args(App* app) {
         sizeof(app->args_reverse_read) - 1U);
 
     strncpy(app->args_obd_pid, "bus=can0 pid=0C interval_ms=250", sizeof(app->args_obd_pid) - 1U);
-    strncpy(app->args_dbc_decode, "bus=both", sizeof(app->args_dbc_decode) - 1U);
+    strncpy(app->args_dbc_decode, "bus=can0", sizeof(app->args_dbc_decode) - 1U);
     strncpy(app->args_custom_inject_start, "bus=can0", sizeof(app->args_custom_inject_start) - 1U);
+    strncpy(app->args_replay, "bus=can0 id=2C1 ext=0", sizeof(app->args_replay) - 1U);
 
     app_custom_inject_reset_all_slots(app);
     strncpy(
@@ -4288,6 +4569,7 @@ static void app_set_default_args(App* app) {
         app->args_custom_inject_field,
         "slot=1 start=0 len=1 value=0",
         sizeof(app->args_custom_inject_field) - 1U);
+    app->led_brightness = 5U;
     app->custom_inject_active_slot = 0U;
     strncpy(
         app->custom_inject_edit_name,
@@ -4348,6 +4630,10 @@ static void app_set_default_args(App* app) {
         sizeof(app->args_dbc_add) - 1U);
 
     strncpy(app->args_dbc_remove, "sid=1", sizeof(app->args_dbc_remove) - 1U);
+    strncpy(
+        app->args_wifi_cfg,
+        "ap=1 ssid=CANCommander pass=cancommander",
+        sizeof(app->args_wifi_cfg) - 1U);
     app_copy_string(app->dbc_config_name, sizeof(app->dbc_config_name), "dbc_profile");
     app_copy_string(app->dbc_config_save_name, sizeof(app->dbc_config_save_name), "dbc_profile");
     app_dbc_config_reset(app);
@@ -4515,7 +4801,6 @@ static App* app_alloc(void) {
     }
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     if(!app->view_dispatcher) {
         goto fail;
     }
@@ -4666,6 +4951,11 @@ static void app_free(App* app) {
         cc_client_free(app->client);
     }
 
+    if(app->dbc_config_signals) {
+        free(app->dbc_config_signals);
+        app->dbc_config_signals = NULL;
+    }
+
     if(app->monitor_text) {
         furi_string_free(app->monitor_text);
     }
@@ -4702,7 +4992,23 @@ int32_t cancommander_main(void* p) {
     Gui* gui = furi_record_open(RECORD_GUI);
     view_dispatcher_attach_to_gui(app->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
 
+    /* Give the ESP32 time to finish booting after OTG power was enabled,
+     * then open a clean UART and run the firmware version check once so
+     * tools don't hit a cold handshake on first use. */
+    furi_delay_ms(400);
+    if(app_connect(app, true)) {
+        app_verify_firmware_version(app);
+    }
+
     scene_manager_next_scene(app->scene_manager, cancommander_scene_main_menu);
+
+    /* If the boot-time version check found an out-of-date firmware, surface
+     * the warning immediately by pushing the status scene on top. Back from
+     * the status scene returns the user to the main menu. */
+    if(app->fw_version_warn_pending) {
+        app->fw_version_warn_shown = true;
+        scene_manager_next_scene(app->scene_manager, cancommander_scene_status);
+    }
     view_dispatcher_run(app->view_dispatcher);
 
     furi_record_close(RECORD_GUI);

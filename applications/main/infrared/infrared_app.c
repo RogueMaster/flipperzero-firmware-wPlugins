@@ -2,7 +2,7 @@
 
 #include "infrared_settings.h"
 
-#include <furi_hal_power.h>
+#include <power/power_service/power.h>
 
 #include <string.h>
 #include <toolbox/path.h>
@@ -170,7 +170,6 @@ static InfraredApp* infrared_alloc(void) {
     infrared->gui = furi_record_open(RECORD_GUI);
 
     ViewDispatcher* view_dispatcher = infrared->view_dispatcher;
-    view_dispatcher_enable_queue(view_dispatcher);
     view_dispatcher_set_event_callback_context(view_dispatcher, infrared);
     view_dispatcher_set_custom_event_callback(view_dispatcher, infrared_custom_event_callback);
     view_dispatcher_set_navigation_event_callback(view_dispatcher, infrared_back_event_callback);
@@ -500,12 +499,12 @@ void infrared_set_tx_pin(InfraredApp* infrared, FuriHalInfraredTxPin tx_pin) {
 }
 
 void infrared_enable_otg(InfraredApp* infrared, bool enable) {
-    if(enable) {
-        if(!furi_hal_power_is_otg_enabled()) furi_hal_power_enable_otg();
-    } else {
-        if(furi_hal_power_is_otg_enabled()) furi_hal_power_disable_otg();
-    }
+    Power* power = furi_record_open(RECORD_POWER);
+
+    power_enable_otg(power, enable);
     infrared->app_state.is_otg_enabled = enable;
+
+    furi_record_close(RECORD_POWER);
 }
 
 static void infrared_load_settings(InfraredApp* infrared) {

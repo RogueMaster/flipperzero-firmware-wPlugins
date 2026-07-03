@@ -5,7 +5,7 @@ App(
     entry_point="barcode_main",
     stack_size=2 * 1024,
     fap_category="Tools",
-    fap_icon="images/barcode_10.png",
+    fap_icon="keyboard/icons/barcode_10.png",
     fap_icon_assets="keyboard/icons",
     fap_icon_assets_symbol="barcode_app",
     fap_file_assets="barcode_encoding_files",

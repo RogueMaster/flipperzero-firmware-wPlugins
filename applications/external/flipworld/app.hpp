@@ -7,7 +7,7 @@
 #include "about/about.hpp"
 
 #define TAG         "FlipWorld"
-#define VERSION     "1.0.3"
+#define VERSION     "1.0.4"
 #define VERSION_TAG TAG " " VERSION
 #define APP_ID      "flip_world"
 

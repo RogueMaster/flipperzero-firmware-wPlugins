@@ -1,7 +1,14 @@
 #include "../seader_i.h"
+#include "../credential_sio_label.h"
 #include <dolphin/dolphin.h>
 
 #define TAG "SeaderCredentialInfoScene"
+
+static bool seader_credential_is_picopass_sio_context(const SeaderCredential* credential) {
+    return credential && (credential->type == SeaderCredentialTypePicopass ||
+                          (credential->has_pacs_media_type &&
+                           credential->pacs_media_type == SeaderPacsMediaTypePicopass));
+}
 
 void seader_scene_credential_info_widget_callback(
     GuiButtonType result,
@@ -16,14 +23,23 @@ void seader_scene_credential_info_widget_callback(
 void seader_scene_credential_info_on_enter(void* context) {
     Seader* seader = context;
     SeaderCredential* credential = seader->credential;
-    PluginWiegand* plugin = seader->plugin_wiegand;
-    Widget* widget = seader->widget;
+    seader_wiegand_plugin_acquire(seader);
+    Widget* widget = seader_get_widget(seader);
+    if(!widget) {
+        FURI_LOG_E(TAG, "Widget view unavailable");
+        return;
+    }
 
-    // Use reusable strings instead of allocating new ones
+    if(!seader_temp_strings_ensure(seader, 4U)) {
+        FURI_LOG_E(TAG, "Temp string allocation failed");
+        seader_wiegand_plugin_release(seader);
+        return;
+    }
     FuriString* type_str = seader->temp_string1;
     FuriString* bitlength_str = seader->temp_string2;
     FuriString* credential_str = seader->temp_string3;
     FuriString* sio_str = seader->temp_string4;
+    char sio_label[SEADER_TEXT_STORE_SIZE + 1] = {0};
 
     furi_string_set(credential_str, "");
     furi_string_set(bitlength_str, "");
@@ -41,16 +57,13 @@ void seader_scene_credential_info_on_enter(void* context) {
         seader_scene_credential_info_widget_callback,
         seader);
 
-    if(plugin) {
-        size_t format_count = plugin->count(credential->bit_length, credential->credential);
-        if(format_count > 0) {
-            widget_add_button_element(
-                seader->widget,
-                GuiButtonTypeCenter,
-                "Parse",
-                seader_scene_credential_info_widget_callback,
-                seader);
-        }
+    if(credential->bit_length > 0) {
+        widget_add_button_element(
+            seader->widget,
+            GuiButtonTypeCenter,
+            "Parse",
+            seader_scene_credential_info_widget_callback,
+            seader);
     }
 
     widget_add_string_element(
@@ -72,8 +85,13 @@ void seader_scene_credential_info_on_enter(void* context) {
         FontSecondary,
         furi_string_get_cstr(credential_str));
 
-    if(credential->sio[0] == 0x30) {
-        furi_string_set(sio_str, "+SIO");
+    if(seader_sio_label_format(
+           credential->sio[0] == 0x30,
+           seader_credential_is_picopass_sio_context(credential),
+           credential->sio_start_block,
+           sio_label,
+           sizeof(sio_label))) {
+        furi_string_set(sio_str, sio_label);
         widget_add_string_element(
             widget, 64, 48, AlignCenter, AlignCenter, FontSecondary, furi_string_get_cstr(sio_str));
     }
@@ -108,5 +126,9 @@ void seader_scene_credential_info_on_exit(void* context) {
     Seader* seader = context;
 
     // Clear views
-    widget_reset(seader->widget);
+    if(seader->widget) {
+        widget_reset(seader->widget);
+    }
+    seader_temp_strings_release(seader, 4U);
+    seader_wiegand_plugin_release(seader);
 }

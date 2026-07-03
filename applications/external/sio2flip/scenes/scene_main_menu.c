@@ -26,6 +26,7 @@ typedef enum {
     MenuIndex_LedBlinking,
     MenuIndex_SioSpeedMode,
     MenuIndex_SioBaudrate,
+    MenuIndex_Atari850,
     MenuIndex_WiringInfo,
 } MenuIndex;
 
@@ -53,6 +54,14 @@ static void on_baudrate_changed(VariableItem* item) {
     app->config.speed_index = speed_index_options[index].value;
 }
 
+static void on_atari850_changed(VariableItem* item) {
+    uint8_t index = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, index ? "Yes" : "No");
+
+    App* app = (App*)variable_item_get_context(item);
+    app->config.atari850 = index ? true : false;
+}
+
 static void scene_main_menu_enter_callback(void* context, uint32_t index) {
     App* app = (App*)context;
 
@@ -75,7 +84,7 @@ void scene_main_menu_init(App* app) {
 
     VariableItem* item;
 
-    item = variable_item_list_add(list, "Emulate FDD...", 0, NULL, app);
+    item = variable_item_list_add(list, "Start emulation...", 0, NULL, app);
 
     item = variable_item_list_add(list, "Run XEX file...", 0, NULL, app);
 
@@ -94,6 +103,10 @@ void scene_main_menu_init(App* app) {
     variable_item_set_current_value_index(
         item, speed_index_by_value(app->config.speed_index) - speed_index_options);
     on_baudrate_changed(item);
+
+    item = variable_item_list_add(list, "Atari 850", 2, on_atari850_changed, app);
+    variable_item_set_current_value_index(item, app->config.atari850 ? 1 : 0);
+    on_atari850_changed(item);
 
     item = variable_item_list_add(list, "Wiring info", 0, NULL, app);
 

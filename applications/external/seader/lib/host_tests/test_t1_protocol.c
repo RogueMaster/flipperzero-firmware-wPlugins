@@ -196,6 +196,35 @@ static MunitResult test_recv_i_block_too_large_rejected(const MunitParameter par
     return MUNIT_OK;
 }
 
+static MunitResult test_recv_chained_i_block_oom_returns_error(
+    const MunitParameter params[],
+    void* fixture) {
+    (void)params;
+    (void)fixture;
+
+    SeaderUartBridge uart = {0};
+    SeaderWorker worker = {0};
+    Seader seader = make_test_seader(&uart, &worker);
+    uint8_t i_block_more[] = {0x00, 0x20, 0x02, 0xAA, 0xBB, 0x00};
+    CCID_Message message = {.payload = i_block_more, .dwLength = sizeof(i_block_more)};
+
+    t1_host_test_reset();
+    uart.t1.ifsd = SEADER_T1_IFS_DEFAULT;
+    uart.t1.recv_pcb = 0x00;
+    seader_add_lrc(i_block_more, sizeof(i_block_more) - 1U);
+    bit_buffer_test_fail_next_alloc(true);
+
+    munit_assert_false(seader_recv_t1(&seader, &message));
+    munit_assert_null(uart.t1.rx_buffer);
+    munit_assert_size(g_t1_host_test_state.xfrblock_call_count, ==, 0);
+    munit_assert_size(g_t1_host_test_state.process_call_count, ==, 0);
+    munit_assert_size(g_t1_host_test_state.abort_call_count, ==, 1);
+    munit_assert_int(
+        seader.hf_read_failure_reason, ==, SeaderHfReadFailureReasonResourceExhausted);
+    munit_assert_string_equal(seader.read_error, "SAM exchange memory error");
+    return MUNIT_OK;
+}
+
 static MunitResult test_recv_r_block_nack_retransmits(const MunitParameter params[], void* fixture) {
     (void)params;
     (void)fixture;
@@ -308,6 +337,48 @@ static MunitResult test_recv_live_uhf_config_chained_blocks(
     return MUNIT_OK;
 }
 
+static MunitResult test_recv_live_sam_card_detected(
+    const MunitParameter params[],
+    void* fixture) {
+    (void)params;
+    (void)fixture;
+
+    static const char* expected_apdu_hex =
+        "0A4400000000BD028A009000";
+
+    SeaderUartBridge uart = {0};
+    SeaderWorker worker = {0};
+    Seader seader = make_test_seader(&uart, &worker);
+    uint8_t rx_block[64] = {0};
+    uint8_t expected_apdu[64] = {0};
+    CCID_Message message = {0};
+    size_t expected_apdu_len = 0U;
+    const size_t inf_len = 12;
+
+    t1_host_test_reset();
+    uart.t1.ifsd = 0xFE;
+    uart.t1.recv_pcb = 0x00;
+
+    expected_apdu_len =
+        test_hex_to_bytes(expected_apdu_hex, expected_apdu, sizeof(expected_apdu));
+    munit_assert_size(expected_apdu_len, ==, inf_len);
+
+    rx_block[0] = 0x00;
+    rx_block[1] = 0x00;
+    rx_block[2] = (uint8_t)inf_len;
+    memcpy(rx_block + 3, expected_apdu, inf_len);
+    seader_add_lrc(rx_block, 3 + inf_len);
+
+    message.payload = rx_block;
+    message.dwLength = 3 + inf_len + 1;
+    munit_assert_true(seader_recv_t1(&seader, &message));
+    munit_assert_size(g_t1_host_test_state.process_call_count, ==, 1);
+    munit_assert_size(g_t1_host_test_state.last_apdu_len, ==, expected_apdu_len);
+    munit_assert_memory_equal(
+        expected_apdu_len, g_t1_host_test_state.last_apdu, expected_apdu);
+    return MUNIT_OK;
+}
+
 static MunitTest test_t1_regression_cases[] = {
     {(char*)"/recv/wtx-request-responds",
      test_recv_wtx_request_responds,
@@ -351,6 +422,12 @@ static MunitTest test_t1_regression_cases[] = {
      NULL,
      MUNIT_TEST_OPTION_NONE,
      NULL},
+    {(char*)"/recv/chained-i-block-oom-errors",
+     test_recv_chained_i_block_oom_returns_error,
+     NULL,
+     NULL,
+     MUNIT_TEST_OPTION_NONE,
+     NULL},
     {(char*)"/recv/r-block-nack-retransmits",
      test_recv_r_block_nack_retransmits,
      NULL,
@@ -365,6 +442,12 @@ static MunitTest test_t1_regression_cases[] = {
      NULL},
     {(char*)"/recv/live-uhf-config-chained-blocks",
      test_recv_live_uhf_config_chained_blocks,
+     NULL,
+     NULL,
+     MUNIT_TEST_OPTION_NONE,
+     NULL},
+    {(char*)"/recv/live-sam-card-detected",
+     test_recv_live_sam_card_detected,
      NULL,
      NULL,
      MUNIT_TEST_OPTION_NONE,

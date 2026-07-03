@@ -15,7 +15,10 @@ void seader_scene_saved_menu_submenu_callback(void* context, uint32_t index) {
 void seader_scene_saved_menu_on_enter(void* context) {
     Seader* seader = context;
     SeaderCredential* credential = seader->credential;
-    Submenu* submenu = seader->submenu;
+    Submenu* submenu = seader_get_submenu(seader);
+    if(!submenu) {
+        return;
+    }
 
     submenu_add_item(
         submenu, "Info", SubmenuIndexInfo, seader_scene_saved_menu_submenu_callback, seader);
@@ -32,8 +35,7 @@ void seader_scene_saved_menu_on_enter(void* context) {
     }
 
     submenu_set_selected_item(
-        seader->submenu,
-        scene_manager_get_scene_state(seader->scene_manager, SeaderSceneSavedMenu));
+        submenu, scene_manager_get_scene_state(seader->scene_manager, SeaderSceneSavedMenu));
 
     view_dispatcher_switch_to_view(seader->view_dispatcher, SeaderViewMenu);
 }
@@ -63,5 +65,7 @@ bool seader_scene_saved_menu_on_event(void* context, SceneManagerEvent event) {
 void seader_scene_saved_menu_on_exit(void* context) {
     Seader* seader = context;
 
-    submenu_reset(seader->submenu);
+    if(seader->submenu) {
+        submenu_reset(seader->submenu);
+    }
 }

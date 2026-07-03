@@ -3,15 +3,18 @@
  *
  * Parsing contract
  * ~~~~~~~~~~~~~~~~
- * Marauder BLE output arrives as:
- *   "-70 AA:BB:CC:DD:EE:FF"   — RSSI then MAC on one line
- *   "Name: SomeDevice"         — optional, may follow immediately
- *   "  Name: SomeDevice"       — also valid (leading whitespace)
+ * Marauder scanbt (BT_SCAN_ALL) outputs one line per device:
+ *   "-65 Device: MyPhone"          — RSSI then name
+ *   "-70 Device: aa:bb:cc:dd:ee:ff" — RSSI then MAC (no name available)
  *
- * We detect a device line by scanning for the 17-char MAC pattern
- * (XX:XX:XX:XX:XX:XX).  RSSI is the integer that precedes the MAC.
- * The next line is tentatively stored and applied as the name if it
- * starts with optional whitespace then "Name:".
+ * Format: "<RSSI> Device: <text>"
+ *   - Named devices: text is the human-readable name; no MAC is present.
+ *   - Unnamed devices: text is the lowercase MAC address.
+ *
+ * For named devices we derive a deterministic placeholder MAC using an
+ * FNV-1a hash of the name, encoded as "DE:VI:CE:hh:hh:hh".  The
+ * "DE:VI:CE" prefix is locally-administered and will never appear as a
+ * real OUI, so it cannot collide with actual hardware addresses.
  *
  * AirTag heuristic
  * ~~~~~~~~~~~~~~~~
@@ -65,13 +68,7 @@ struct BleScanWorker {
     bool log_sd;
     File* log_file;
     Storage* storage;
-
-    /* Pending-name buffer: stores the last device line's MAC so the
-   * following "Name:" line can be attached to it. */
-    char pending_mac[BLE_SCANNER_MAC_LEN];
-    bool have_pending;
-
-    bool scanning;
+    volatile bool scanning;
 };
 
 /* --------------------------------------------------------------------------
@@ -200,124 +197,97 @@ static void worker_close_log(BleScanWorker* w) {
     }
 }
 
+/* Generate a deterministic placeholder MAC for devices known only by name.
+ * Uses FNV-1a (32-bit) over the name bytes, then packs 3 low bytes into
+ * "DE:VI:CE:hh:hh:hh".  The "DE:VI:CE" prefix is locally-administered and
+ * will never appear as a real hardware OUI. */
+static void name_hash_mac(const char* name, char mac_out[BLE_SCANNER_MAC_LEN]) {
+    /* FNV-1a 32-bit */
+    uint32_t hash = 0x811c9dc5u;
+    for(const char* p = name; *p; p++) {
+        hash ^= (uint8_t)*p;
+        hash *= 0x01000193u;
+    }
+    snprintf(
+        mac_out,
+        BLE_SCANNER_MAC_LEN,
+        "DE:VI:CE:%02X:%02X:%02X",
+        (unsigned)((hash >> 16) & 0xFF),
+        (unsigned)((hash >> 8) & 0xFF),
+        (unsigned)(hash & 0xFF));
+}
+
+/* Check if `name` contains "airtag" (case-insensitive). */
+static bool name_is_airtag(const char* name) {
+    char lower[BLE_SCANNER_NAME_LEN] = {0};
+    for(int i = 0; i < BLE_SCANNER_NAME_LEN - 1 && name[i]; i++) {
+        lower[i] = (char)tolower((unsigned char)name[i]);
+    }
+    return strstr(lower, "airtag") != NULL;
+}
+
 /* --------------------------------------------------------------------------
  * RX callback — fires on the UART worker thread for each received line.
  *
- * Two-state parser:
- *   State A (have_pending == false): look for a device line containing a MAC.
- *   State B (have_pending == true):  check if this line is a Name continuation.
+ * Single-state parser for the scanbt (BT_SCAN_ALL) output format:
+ *   "<RSSI> Device: <name-or-MAC>"
  *
+ * Each line is self-contained.  No multi-line state required.
  * Must not block or call furi_delay_ms.
  * -------------------------------------------------------------------------- */
 static void worker_rx_line(const char* line, void* ctx) {
+    if(!ctx) return; /* Guard against teardown race (set_rx_callback clears ctx before cb) */
     BleScanWorker* w = (BleScanWorker*)ctx;
     if(!w->scanning) return;
 
+    /* Every device line contains " Device: " — skip anything else. */
+    const char* marker = strstr(line, " Device: ");
+    if(!marker) return;
+
+    /* RSSI is the signed integer at the start of the line. */
+    int rssi_val = atoi(line);
+    if(rssi_val > 0 || rssi_val < -120) return; /* sanity: must be negative dBm */
+    int8_t rssi = (int8_t)rssi_val;
+
+    /* Device text starts right after " Device: " (9 chars). */
+    const char* device_text = marker + 9;
+    if(*device_text == '\0') return;
+
     char mac[BLE_SCANNER_MAC_LEN];
-    const char* mac_pos = find_mac(line, mac);
+    char name[BLE_SCANNER_NAME_LEN];
+    name[0] = '\0';
 
-    if(mac_pos != NULL) {
-        /* ---- Device line ---- */
-
-        /* Extract RSSI: scan backwards from mac_pos for an integer. */
-        int8_t rssi = -100;
-        if(mac_pos > line) {
-            /* Walk back over whitespace then digits */
-            const char* p = mac_pos - 1;
-            while(p > line && (*p == ' ' || *p == '\t'))
-                p--;
-            /* p now points at the last digit of the RSSI value (if present) */
-            if(isdigit((unsigned char)*p) || *p == '-') {
-                /* find start of the number */
-                const char* num_end = p + 1;
-                while(p > line && (isdigit((unsigned char)*(p - 1)) || *(p - 1) == '-'))
-                    p--;
-                char rssi_buf[8];
-                size_t rssi_len = (size_t)(num_end - p);
-                if(rssi_len < sizeof(rssi_buf)) {
-                    memcpy(rssi_buf, p, rssi_len);
-                    rssi_buf[rssi_len] = '\0';
-                    int parsed = atoi(rssi_buf);
-                    if(parsed <= 0 && parsed >= -120) {
-                        rssi = (int8_t)parsed;
-                    }
-                }
-            }
-        }
-
-        /* Update or create device entry */
-        furi_mutex_acquire(w->results->mutex, FuriWaitForever);
-        uint32_t idx = find_or_insert(w->results, mac);
-        if(idx < BLE_SCANNER_MAX_DEVICES) {
-            BleScanDevice* dev = &w->results->devices[idx];
-            dev->rssi = rssi;
-            dev->last_seen_tick = furi_get_tick();
-
-            /* AirTag heuristic: Apple OUI */
-            if(oui_is_apple(mac)) {
-                dev->is_airtag = true;
-            }
-        }
-        furi_mutex_release(w->results->mutex);
-
-        /* Enter state B: next line might be a Name */
-        strncpy(w->pending_mac, mac, BLE_SCANNER_MAC_LEN - 1);
-        w->pending_mac[BLE_SCANNER_MAC_LEN - 1] = '\0';
-        w->have_pending = true;
-        return;
+    if(find_mac(device_text, mac)) {
+        /* Device identified by MAC — no name available from this line. */
+    } else {
+        /* Device identified by human-readable name — derive a stable
+         * placeholder MAC so the entry survives repeated scanbt updates. */
+        strncpy(name, device_text, BLE_SCANNER_NAME_LEN - 1);
+        name[BLE_SCANNER_NAME_LEN - 1] = '\0';
+        name_hash_mac(name, mac);
     }
 
-    if(w->have_pending) {
-        /* ---- Possible Name/Serial continuation line ---- */
-        const char* p = line;
-        /* Skip leading whitespace */
-        while(*p == ' ' || *p == '\t')
-            p++;
+    furi_mutex_acquire(w->results->mutex, FuriWaitForever);
+    uint32_t idx = find_or_insert(w->results, mac);
+    if(idx < BLE_SCANNER_MAX_DEVICES) {
+        BleScanDevice* dev = &w->results->devices[idx];
+        dev->rssi = rssi;
+        dev->last_seen_tick = furi_get_tick();
 
-        if(strncmp(p, "Name:", 5) == 0) {
-            p += 5;
-            while(*p == ' ')
-                p++;
-
-            furi_mutex_acquire(w->results->mutex, FuriWaitForever);
-            uint32_t idx = find_or_insert(w->results, w->pending_mac);
-            if(idx < BLE_SCANNER_MAX_DEVICES) {
-                BleScanDevice* dev = &w->results->devices[idx];
-                strncpy(dev->name, p, BLE_SCANNER_NAME_LEN - 1);
-                dev->name[BLE_SCANNER_NAME_LEN - 1] = '\0';
-
-                /* AirTag heuristic: name contains "AirTag" */
-                /* Case-insensitive check: Marauder may capitalise differently */
-                char lower_name[BLE_SCANNER_NAME_LEN] = {0};
-                for(int i = 0; i < BLE_SCANNER_NAME_LEN - 1 && dev->name[i]; i++) {
-                    lower_name[i] = (char)tolower((unsigned char)dev->name[i]);
-                }
-                if(strstr(lower_name, "airtag") != NULL) {
-                    dev->is_airtag = true;
-                }
-
-                /* Log to SD if enabled — do this under the same lock to
-         * avoid reading a partially-written struct. */
-                worker_log(w, dev);
-            }
-            furi_mutex_release(w->results->mutex);
-
-            /* Name line consumed — reset pending state. */
-            w->have_pending = false;
-        } else if(*p == '\0') {
-            /* Blank line — keep pending for one more line (some firmware
-       * inserts a blank between device and name). */
-        } else {
-            /* Unrecognised continuation — log the device as-is and reset. */
-            furi_mutex_acquire(w->results->mutex, FuriWaitForever);
-            uint32_t idx = find_or_insert(w->results, w->pending_mac);
-            if(idx < BLE_SCANNER_MAX_DEVICES) {
-                worker_log(w, &w->results->devices[idx]);
-            }
-            furi_mutex_release(w->results->mutex);
-            w->have_pending = false;
+        /* Write name only when we have one (don't blank an existing name). */
+        if(name[0] && !dev->name[0]) {
+            strncpy(dev->name, name, BLE_SCANNER_NAME_LEN - 1);
+            dev->name[BLE_SCANNER_NAME_LEN - 1] = '\0';
         }
+
+        /* AirTag heuristic: Apple OUI or name substring. */
+        if(!dev->is_airtag) {
+            dev->is_airtag = oui_is_apple(mac) || name_is_airtag(dev->name);
+        }
+
+        worker_log(w, dev);
     }
+    furi_mutex_release(w->results->mutex);
 }
 
 /* --------------------------------------------------------------------------
@@ -361,8 +331,6 @@ void ble_scan_worker_start(BleScanWorker* worker) {
     if(worker->scanning) return;
 
     worker->scanning = true;
-    worker->have_pending = false;
-
     worker_open_log(worker);
 
     ble_uart_send(worker->uart, "scanbt");
@@ -374,8 +342,6 @@ void ble_scan_worker_stop(BleScanWorker* worker) {
     if(!worker->scanning) return;
 
     worker->scanning = false;
-    worker->have_pending = false;
-
     ble_uart_send(worker->uart, "stopscan");
     FURI_LOG_I(TAG, "BLE scan stopped");
 

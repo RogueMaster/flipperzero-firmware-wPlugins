@@ -500,7 +500,6 @@ static TypeAidApp* type_aid_app_alloc() {
 
     FURI_LOG_D(TAG, "Creating view dispatcher");
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     FURI_LOG_D(TAG, "Creating text input");
     app->text_input = text_input_alloc();

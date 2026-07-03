@@ -22,7 +22,7 @@ void playback_start(IEIcon* icon) {
 
     // wipe out any previous animation data
     if(playbackModel.anim) {
-        assert(false);
+        FURI_LOG_W(TAG, "Playback animation already exists, cleaning up");
         ie_icon_animation_stop(playbackModel.anim);
         ie_icon_animation_free(playbackModel.anim);
     }
@@ -48,7 +48,6 @@ void playback_set_update_callback(IEIconAnimationCallback callback, void* contex
 }
 
 void playback_draw(Canvas* canvas, void* context) {
-    UNUSED(canvas);
     UNUSED(context);
     // IconEdit* app = context;
 
@@ -71,7 +70,7 @@ void playback_draw(Canvas* canvas, void* context) {
     }
     if(icon->frame_count == 1 || !playbackModel.anim->animating) {
         char scale[6];
-        snprintf(scale, 6, "%dx", playbackModel.scale);
+        snprintf(scale, sizeof(scale), "%dx", playbackModel.scale);
         ie_draw_str(canvas, 0, 64 - 7, AlignLeft, AlignTop, Font5x7, scale);
         if(!playbackModel.anim->animating) {
             canvas_draw_icon(canvas, 10, 64 - 10, &I_iet_Pause);
@@ -85,7 +84,7 @@ bool playback_input(InputEvent* event, void* context) {
     if(event->type == InputTypeShort) {
         switch(event->key) {
         case InputKeyUp: {
-            playbackModel.scale += playbackModel.scale + 1 < 10; //
+            playbackModel.scale += playbackModel.scale + 1 <= 10;
             break;
         }
         case InputKeyDown: {

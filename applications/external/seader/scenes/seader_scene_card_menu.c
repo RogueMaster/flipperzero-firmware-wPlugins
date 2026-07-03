@@ -17,7 +17,10 @@ void seader_scene_card_menu_submenu_callback(void* context, uint32_t index) {
 void seader_scene_card_menu_on_enter(void* context) {
     Seader* seader = context;
     SeaderCredential* credential = seader->credential;
-    Submenu* submenu = seader->submenu;
+    Submenu* submenu = seader_get_submenu(seader);
+    if(!submenu) {
+        return;
+    }
 
     submenu_add_item(
         submenu, "Save", SubmenuIndexSave, seader_scene_card_menu_submenu_callback, seader);
@@ -33,7 +36,7 @@ void seader_scene_card_menu_on_enter(void* context) {
         SubmenuIndexSaveRFID,
         seader_scene_card_menu_submenu_callback,
         seader);
-    if(credential->sio[0] == 0x30 && credential->diversifier_len == RFAL_PICOPASS_UID_LEN) {
+    if(credential->sio[0] == 0x30 && credential->diversifier_len == PICOPASS_UID_LEN) {
         submenu_add_item(
             submenu,
             "Save SR",
@@ -45,8 +48,7 @@ void seader_scene_card_menu_on_enter(void* context) {
         submenu, "Save MFC", SubmenuIndexSaveMFC, seader_scene_card_menu_submenu_callback, seader);
 
     submenu_set_selected_item(
-        seader->submenu,
-        scene_manager_get_scene_state(seader->scene_manager, SeaderSceneCardMenu));
+        submenu, scene_manager_get_scene_state(seader->scene_manager, SeaderSceneCardMenu));
 
     view_dispatcher_switch_to_view(seader->view_dispatcher, SeaderViewMenu);
 }
@@ -60,36 +62,30 @@ bool seader_scene_card_menu_on_event(void* context, SceneManagerEvent event) {
             scene_manager_set_scene_state(
                 seader->scene_manager, SeaderSceneCardMenu, SubmenuIndexSave);
             seader->credential->save_format = SeaderCredentialSaveFormatAgnostic;
-            scene_manager_next_scene(seader->scene_manager, SeaderSceneSaveName);
-            consumed = true;
+            consumed = seader_hf_request_teardown(seader, SeaderHfTeardownActionPrepareSave);
         } else if(event.event == SubmenuIndexSavePicopass) {
             scene_manager_set_scene_state(
                 seader->scene_manager, SeaderSceneCardMenu, SubmenuIndexSavePicopass);
             seader->credential->save_format = SeaderCredentialSaveFormatPicopass;
-            scene_manager_next_scene(seader->scene_manager, SeaderSceneSaveName);
-            consumed = true;
+            consumed = seader_hf_request_teardown(seader, SeaderHfTeardownActionPrepareSave);
         } else if(event.event == SubmenuIndexSaveRFID) {
             scene_manager_set_scene_state(
                 seader->scene_manager, SeaderSceneCardMenu, SubmenuIndexSaveRFID);
             seader->credential->save_format = SeaderCredentialSaveFormatRFID;
-            scene_manager_next_scene(seader->scene_manager, SeaderSceneSaveName);
-            consumed = true;
+            consumed = seader_hf_request_teardown(seader, SeaderHfTeardownActionPrepareSave);
         } else if(event.event == SubmenuIndexSaveSR) {
             scene_manager_set_scene_state(
                 seader->scene_manager, SeaderSceneCardMenu, SubmenuIndexSaveSR);
             seader->credential->save_format = SeaderCredentialSaveFormatSR;
-            scene_manager_next_scene(seader->scene_manager, SeaderSceneSaveName);
-            consumed = true;
+            consumed = seader_hf_request_teardown(seader, SeaderHfTeardownActionPrepareSave);
         } else if(event.event == SubmenuIndexSaveMFC) {
             scene_manager_set_scene_state(
                 seader->scene_manager, SeaderSceneCardMenu, SubmenuIndexSaveMFC);
             seader->credential->save_format = SeaderCredentialSaveFormatMFC;
-            scene_manager_next_scene(seader->scene_manager, SeaderSceneSaveName);
-            consumed = true;
+            consumed = seader_hf_request_teardown(seader, SeaderHfTeardownActionPrepareSave);
         }
     } else if(event.type == SceneManagerEventTypeBack) {
-        consumed = scene_manager_search_and_switch_to_previous_scene(
-            seader->scene_manager, SeaderSceneSamPresent);
+        consumed = scene_manager_previous_scene(seader->scene_manager);
     }
 
     return consumed;
@@ -98,5 +94,7 @@ bool seader_scene_card_menu_on_event(void* context, SceneManagerEvent event) {
 void seader_scene_card_menu_on_exit(void* context) {
     Seader* seader = context;
 
-    submenu_reset(seader->submenu);
+    if(seader->submenu) {
+        submenu_reset(seader->submenu);
+    }
 }

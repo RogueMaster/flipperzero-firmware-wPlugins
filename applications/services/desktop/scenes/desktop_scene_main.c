@@ -2,19 +2,15 @@
 #include <furi_hal.h>
 #include <applications.h>
 #include <assets_icons.h>
-#include <storage/storage.h>
 #include <loader/loader.h>
+#include <toolbox/run_parallel.h>
 
 #include "../desktop_i.h"
 #include "../views/desktop_events.h"
 #include "../views/desktop_view_main.h"
 #include "desktop_scene.h"
-#include "desktop_scene_i.h"
 
 #define TAG "DesktopSrv"
-
-#define CLOCK_APP    EXT_PATH("apps/Main/dab_timer.fap")
-#define PASSPORT_APP EXT_PATH("apps/Settings/passport.fap")
 
 static void desktop_scene_main_new_idle_animation_callback(void* context) {
     furi_assert(context);
@@ -37,15 +33,11 @@ static void desktop_scene_main_interact_animation_callback(void* context) {
         desktop->view_dispatcher, DesktopAnimationEventInteractAnimation);
 }
 
-static void launch_games_menu() {
-    Loader* loader = furi_record_open(RECORD_LOADER);
-    loader_show_gamesmenu(loader);
-    furi_record_close(RECORD_LOADER);
-}
-
 #ifdef APP_ARCHIVE
-static void
-    desktop_switch_to_app(Desktop* desktop, const FlipperInternalApplication* flipper_app) {
+static void desktop_switch_to_app(
+    Desktop* desktop,
+    const FlipperInternalApplication* flipper_app,
+    void* context) {
     furi_assert(desktop);
     furi_assert(flipper_app);
     furi_assert(flipper_app->app);
@@ -66,56 +58,11 @@ static void
     furi_thread_set_name(desktop->scene_thread, flipper_app->name);
     furi_thread_set_stack_size(desktop->scene_thread, flipper_app->stack_size);
     furi_thread_set_callback(desktop->scene_thread, flipper_app->app);
+    furi_thread_set_context(desktop->scene_thread, context);
 
     furi_thread_start(desktop->scene_thread);
 }
 #endif
-
-static inline bool desktop_scene_main_check_none(const char* str) {
-    return (str[1] == '\0' && str[0] == '?');
-}
-
-static void desktop_scene_main_open_app_or_profile(Desktop* desktop, const char* path) {
-    if(strlen(path) > 0) {
-        loader_start_detached_with_gui_error(desktop->loader, path, NULL);
-    } else {
-        loader_start_detached_with_gui_error(desktop->loader, "Passport", NULL);
-    }
-}
-
-static void desktop_scene_main_open_fav_or_profile(Desktop* desktop, FavoriteApp* application) {
-    bool load_ok = false;
-    if(strlen(application->name_or_path) > 0) {
-        if(!desktop_scene_main_check_none(application->name_or_path)) {
-            // Load app
-            loader_start_detached_with_gui_error(desktop->loader, application->name_or_path, NULL);
-        }
-        load_ok = true;
-    }
-    // In case of "default" setting
-    if(!load_ok) {
-        loader_start_detached_with_gui_error(desktop->loader, PASSPORT_APP, NULL);
-    }
-}
-
-static void desktop_scene_main_start_favorite(Desktop* desktop, FavoriteApp* application) {
-    if(!desktop_scene_main_check_none(application->name_or_path)) {
-        if(!strcmp(application->name_or_path, "!L")) {
-            scene_manager_set_scene_state(desktop->scene_manager, DesktopSceneLockMenu, 0);
-            desktop_lock(desktop);
-        } else if(!strcmp(application->name_or_path, "!G")) {
-            launch_games_menu();
-        } else {
-            if(strlen(application->name_or_path) > 0) {
-                loader_start_detached_with_gui_error(
-                    desktop->loader, application->name_or_path, NULL);
-            } else {
-                loader_start_detached_with_gui_error(
-                    desktop->loader, LOADER_APPLICATIONS_NAME, NULL);
-            }
-        }
-    }
-}
 
 void desktop_scene_main_callback(DesktopEvent event, void* context) {
     Desktop* desktop = (Desktop*)context;
@@ -153,16 +100,13 @@ bool desktop_scene_main_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         } break;
 
-        case DesktopMainEventOpenGamesMenu: {
-            Loader* loader = furi_record_open(RECORD_LOADER);
-            loader_show_gamesmenu(loader);
-            furi_record_close(RECORD_LOADER);
+        case DesktopMainEventLockKeypad:
+            desktop_lock(desktop, false);
             consumed = true;
-        } break;
+            break;
 
-        case DesktopMainEventLock:
-            scene_manager_set_scene_state(desktop->scene_manager, DesktopSceneLockMenu, 0);
-            desktop_lock(desktop);
+        case DesktopMainEventLockWithPin:
+            desktop_lock(desktop, true);
             consumed = true;
             break;
 
@@ -173,60 +117,17 @@ bool desktop_scene_main_on_event(void* context, SceneManagerEvent event) {
 
         case DesktopMainEventOpenArchive:
 #ifdef APP_ARCHIVE
-            desktop_switch_to_app(desktop, &FLIPPER_ARCHIVE);
+            desktop_switch_to_app(desktop, &FLIPPER_ARCHIVE, desktop->archive_dir);
 #endif
             consumed = true;
             break;
 
         case DesktopMainEventOpenPowerOff: {
-            loader_start_detached_with_gui_error(desktop->loader, "Power", "off");
+            // Workaround for shutdown when app can't be opened
+            run_parallel(desktop_shutdown, desktop, 512);
             consumed = true;
             break;
         }
-
-        case DesktopMainEventOpenFavoriteDownLong:
-            DESKTOP_SETTINGS_LOAD(&desktop->settings);
-            desktop_scene_main_start_favorite(
-                desktop, &desktop->settings.favorite_apps[FavoriteAppDownLong]);
-            consumed = true;
-            break;
-        case DesktopMainEventOpenFavoriteLeftShort:
-            DESKTOP_SETTINGS_LOAD(&desktop->settings);
-            desktop_scene_main_start_favorite(
-                desktop, &desktop->settings.favorite_apps[FavoriteAppLeftShort]);
-            consumed = true;
-            break;
-        case DesktopMainEventOpenFavoriteLeftLong:
-            DESKTOP_SETTINGS_LOAD(&desktop->settings);
-            desktop_scene_main_start_favorite(
-                desktop, &desktop->settings.favorite_apps[FavoriteAppLeftLong]);
-            consumed = true;
-            break;
-        case DesktopMainEventOpenFavoriteRightShort:
-            DESKTOP_SETTINGS_LOAD(&desktop->settings);
-            desktop_scene_main_start_favorite(
-                desktop, &desktop->settings.favorite_apps[FavoriteAppRightShort]);
-            consumed = true;
-            break;
-        case DesktopMainEventOpenFavoriteRightLong:
-            DESKTOP_SETTINGS_LOAD(&desktop->settings);
-            desktop_scene_main_start_favorite(
-                desktop, &desktop->settings.favorite_apps[FavoriteAppRightLong]);
-            consumed = true;
-            break;
-        case DesktopMainEventOpenFavoriteUpLong:
-            DESKTOP_SETTINGS_LOAD(&desktop->settings);
-            if(!desktop_scene_main_check_none(
-                   desktop->settings.favorite_apps[FavoriteAppUpLong].name_or_path)) {
-                desktop_scene_main_start_favorite(
-                    desktop, &desktop->settings.favorite_apps[FavoriteAppUpLong]);
-            } else {
-                scene_manager_set_scene_state(desktop->scene_manager, DesktopSceneLockMenu, 0);
-                desktop_lock(desktop);
-            }
-            consumed = true;
-            break;
-
         case DesktopAnimationEventCheckAnimation:
             animation_manager_check_blocking_process(desktop->animation_manager);
             consumed = true;
@@ -237,72 +138,10 @@ bool desktop_scene_main_on_event(void* context, SceneManagerEvent event) {
             break;
         case DesktopAnimationEventInteractAnimation:
             if(!animation_manager_interact_process(desktop->animation_manager)) {
-                DESKTOP_SETTINGS_LOAD(&desktop->settings);
-                if(!desktop->settings.dummy_mode) {
-                    desktop_scene_main_open_fav_or_profile(
-                        desktop, &desktop->settings.favorite_apps[FavoriteAppRightShort]);
-                } else {
-                    desktop_scene_main_open_fav_or_profile(
-                        desktop, &desktop->settings.dummy_apps[DummyAppRight]);
-                }
+                desktop_run_keybind(desktop, InputTypeShort, InputKeyRight);
             }
             consumed = true;
             break;
-        case DesktopMainEventOpenPassport: {
-            desktop_scene_main_open_app_or_profile(desktop, PASSPORT_APP);
-            break;
-        }
-        case DesktopMainEventOpenClock: {
-            Storage* storage = furi_record_open(RECORD_STORAGE);
-            if(storage_file_exists(storage, CLOCK_APP)) {
-                furi_record_close(RECORD_STORAGE);
-                desktop_scene_main_open_app_or_profile(desktop, CLOCK_APP);
-            } else {
-                furi_record_close(RECORD_STORAGE);
-                animation_manager_new_idle_process(desktop->animation_manager);
-                consumed = true;
-            }
-            break;
-        }
-        case DesktopDummyEventOpenLeft:
-            desktop_scene_main_open_fav_or_profile(
-                desktop, &desktop->settings.dummy_apps[DummyAppLeft]);
-            break;
-        case DesktopDummyEventOpenDown:
-            desktop_scene_main_open_fav_or_profile(
-                desktop, &desktop->settings.dummy_apps[DummyAppDown]);
-            break;
-        case DesktopDummyEventOpenOk:
-            desktop_scene_main_open_fav_or_profile(
-                desktop, &desktop->settings.dummy_apps[DummyAppOk]);
-            break;
-        case DesktopDummyEventOpenUpLong:
-            if(!desktop_scene_main_check_none(
-                   desktop->settings.dummy_apps[DummyAppUpLong].name_or_path)) {
-                desktop_scene_main_open_fav_or_profile(
-                    desktop, &desktop->settings.dummy_apps[DummyAppUpLong]);
-            } else {
-                scene_manager_set_scene_state(desktop->scene_manager, DesktopSceneLockMenu, 0);
-                desktop_lock(desktop);
-            }
-            break;
-        case DesktopDummyEventOpenDownLong:
-            desktop_scene_main_open_fav_or_profile(
-                desktop, &desktop->settings.dummy_apps[DummyAppDownLong]);
-            break;
-        case DesktopDummyEventOpenLeftLong:
-            desktop_scene_main_open_fav_or_profile(
-                desktop, &desktop->settings.dummy_apps[DummyAppLeftLong]);
-            break;
-        case DesktopDummyEventOpenRightLong:
-            desktop_scene_main_open_fav_or_profile(
-                desktop, &desktop->settings.dummy_apps[DummyAppRightLong]);
-            break;
-        case DesktopDummyEventOpenOkLong:
-            desktop_scene_main_open_fav_or_profile(
-                desktop, &desktop->settings.dummy_apps[DummyAppOkLong]);
-            break;
-
         case DesktopLockedEventUpdate:
             desktop_view_locked_update(desktop->locked_view);
             consumed = true;

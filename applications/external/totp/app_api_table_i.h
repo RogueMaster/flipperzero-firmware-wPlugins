@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <cli/cli.h>
+
 #include <lib/print/wrappers.h>
 #include <lib/toolbox/args.h>
 #include <memset_s.h>

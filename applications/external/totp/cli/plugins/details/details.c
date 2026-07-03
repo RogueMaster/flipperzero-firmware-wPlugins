@@ -76,8 +76,8 @@ static void print_automation_features(
     }
 }
 
-static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
-    if(!totp_cli_ensure_authenticated(plugin_state, cli)) {
+static void handle(PluginState* plugin_state, FuriString* args, PipeSide* pipe) {
+    if(!totp_cli_ensure_authenticated(plugin_state, pipe)) {
         return;
     }
 

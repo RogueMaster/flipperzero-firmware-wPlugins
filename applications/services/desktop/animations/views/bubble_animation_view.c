@@ -1,5 +1,5 @@
+
 #include "../animation_manager.h"
-#include "../animation_storage.h"
 #include "bubble_animation_view.h"
 
 #include <furi_hal.h>
@@ -130,11 +130,13 @@ static bool bubble_animation_input_callback(InputEvent* event, void* context) {
         bubble_animation_activate(animation_view, false);
     }
 
-    if(event->key == InputKeyRight && event->type == InputTypeShort) {
+    if(event->key == InputKeyRight) {
         /* Right button reserved for animation activation, so consume */
-        if(animation_view->interact_callback) {
-            consumed = true;
-            animation_view->interact_callback(animation_view->interact_callback_context);
+        if(event->type == InputTypeShort) {
+            if(animation_view->interact_callback) {
+                consumed = true;
+                animation_view->interact_callback(animation_view->interact_callback_context);
+            }
         }
     }
 

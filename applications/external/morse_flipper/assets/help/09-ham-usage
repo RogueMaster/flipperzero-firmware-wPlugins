@@ -1,0 +1,21 @@
+Ham Keyer is a field keyer and logger in one slightly opin~ionated box. It can send fixed lines like RR UR 5NN BK or POTA RO 0038 K, while also keying and logging what you send on the paddles - usually a callsign which cannot be made into a macro.
+---
+With Break-In (BKIN) off, you can still key and it will be decoded and logged, but you will not transmit - keying the transceiver is disabled.
+
+Flipper will generate sidetone as you key - great for taking notes in the POTA log itself, or typing a call you misheard.
+---
+With Break-In on (BKIN on) you transmit and it logs. Handy for POTA or SOTA, where the operator already has enough plates wobbling. Logs are dated on the SD card, and each change is timestamped.
+---
+Rig keying uses P15 for key and P16 for PTT. Do not wire a radio on optimism.
+
+Check the rig input, polarity, and ground arrangement. Use a transistor or optocoupler if the noise or RFI makes Flipper misbehave.
+---
+Back toggles BKIN. Long press Left exits.
+
+With BKIN off, paddle input is logged but not sent to the rig.
+---
+Assign short messages to Up, Down, Left, Right, and OK. Use them for field exchanges, not essays.
+
+If logging is enabled, entries go to x6extx6hamx6morse- flipper- ham- keyer- YYYY MM DD.txt.
+
+You get one file each day.

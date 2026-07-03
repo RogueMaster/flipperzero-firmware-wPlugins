@@ -43,8 +43,13 @@ static void rh_about_setup(RhApp* app);
  * -------------------------------------------------------------------------- */
 static bool rh_navigation_cb(void* ctx) {
     RhApp* app = (RhApp*)ctx;
-    /* Only the main view triggers navigation (Settings/About handle Back
-   * internally via their own back-press pop to main). */
+    if(app->current_view == RhViewMain) {
+        /* Back from main view — exit the application. */
+        view_dispatcher_stop(app->view_dispatcher);
+        return false;
+    }
+    /* Other views navigate back to main. */
+    app->current_view = RhViewMain;
     view_dispatcher_switch_to_view(app->view_dispatcher, RhViewMain);
     return true;
 }
@@ -126,7 +131,7 @@ static void rh_main_draw_cb(Canvas* canvas, void* model) {
 
     /* ---- Status row ---- */
     if(!s->connected) {
-        canvas_draw_str(canvas, 2, 22, "Waiting for ESP32...");
+        canvas_draw_str(canvas, 2, 22, "Waiting for RH bridge...");
     } else {
         /* Show recording status if known, otherwise "Connected".
      * Buffer = "Status: " (8) + RH_STATUS_LEN (64) + NUL = 73 bytes. */
@@ -207,11 +212,13 @@ static bool rh_main_input_cb(InputEvent* event, void* ctx) {
     if(event->type != InputTypeShort) return false;
 
     if(event->key == InputKeyOk || event->key == InputKeyLeft) {
+        app->current_view = RhViewSettings;
         view_dispatcher_switch_to_view(app->view_dispatcher, RhViewSettings);
         return true;
     }
 
     if(event->key == InputKeyRight) {
+        app->current_view = RhViewAbout;
         view_dispatcher_switch_to_view(app->view_dispatcher, RhViewAbout);
         return true;
     }
@@ -391,13 +398,7 @@ static void rh_about_setup(RhApp* app) {
         "Source: github.com/EFForg/rayhunter\n"
         "Default: http://192.168.1.1:8080");
 
-    widget_add_button_element(
-        app->about_widget,
-        GuiButtonTypeLeft,
-        "Back",
-        /* Use a direct lambda via a cast-compatible wrapper. */
-        NULL, /* navigation handles Back via navigation_cb */
-        app);
+    /* Back navigation is handled by rh_navigation_cb — no button needed. */
 }
 
 /* --------------------------------------------------------------------------
@@ -427,7 +428,6 @@ static RhApp* rh_app_alloc(void) {
 
     /* ---- View dispatcher ---- */
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, rh_navigation_cb);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, rh_custom_event_cb);

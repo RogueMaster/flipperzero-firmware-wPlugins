@@ -61,7 +61,7 @@ extern "C" {
  *
  * @return     device status
  */
-uint8_t nrf24_write_reg(FuriHalSpiBusHandle* handle, uint8_t reg, uint8_t data);
+uint8_t nrf24_write_reg(const FuriHalSpiBusHandle* handle, uint8_t reg, uint8_t data);
 
 /** Read device register
  *
@@ -71,7 +71,7 @@ uint8_t nrf24_write_reg(FuriHalSpiBusHandle* handle, uint8_t reg, uint8_t data);
  *
  * @return     device status
  */
-uint8_t nrf24_read_reg(FuriHalSpiBusHandle* handle, uint8_t reg, uint8_t* data, uint8_t size);
+uint8_t nrf24_read_reg(const FuriHalSpiBusHandle* handle, uint8_t reg, uint8_t* data, uint8_t size);
 
 /** Power down the radio
  * 
@@ -79,7 +79,7 @@ uint8_t nrf24_read_reg(FuriHalSpiBusHandle* handle, uint8_t reg, uint8_t* data, 
  * 
  * @return     device status
  */
-uint8_t nrf24_set_idle(FuriHalSpiBusHandle* handle);
+uint8_t nrf24_set_idle(const FuriHalSpiBusHandle* handle);
 
 /** Sets the radio to RX mode
  *
@@ -87,7 +87,7 @@ uint8_t nrf24_set_idle(FuriHalSpiBusHandle* handle);
  * 
  * @return     device status
  */
-uint8_t nrf24_set_rx_mode(FuriHalSpiBusHandle* handle, bool nodelay);
+uint8_t nrf24_set_rx_mode(const FuriHalSpiBusHandle* handle, bool nodelay);
 
 /*=============================================================================================================*/
 
@@ -109,7 +109,7 @@ void nrf24_deinit();
  *
  * @return     device status
  */
-uint8_t nrf24_flush_rx(FuriHalSpiBusHandle* handle);
+uint8_t nrf24_flush_rx(const FuriHalSpiBusHandle* handle);
 
 /** Gets RDP from register 0x09
  *
@@ -117,7 +117,7 @@ uint8_t nrf24_flush_rx(FuriHalSpiBusHandle* handle);
  * 
  * @return     RDP from register 0x09
  */
-uint8_t nrf24_get_rdp(FuriHalSpiBusHandle* handle);
+uint8_t nrf24_get_rdp(const FuriHalSpiBusHandle* handle);
 
 /** Gets the current status flags from the STATUS register
  * 
@@ -125,9 +125,9 @@ uint8_t nrf24_get_rdp(FuriHalSpiBusHandle* handle);
  * 
  * @return     status flags
  */
-uint8_t nrf24_status(FuriHalSpiBusHandle* handle);
+uint8_t nrf24_status(const FuriHalSpiBusHandle* handle);
 
-bool nrf24_check_connected(FuriHalSpiBusHandle* handle);
+bool nrf24_check_connected(const FuriHalSpiBusHandle* handle);
 
 #ifdef __cplusplus
 }

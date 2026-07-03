@@ -4,11 +4,11 @@
 #include <input/input.h>
 #include <notification/notification_messages.h>
 #include <stdlib.h>
-#include <dolphin/dolphin.h>
-#include <storage/storage.h>
 
 #include <nrf24.h>
 #include <toolbox/stream/file_stream.h>
+
+#include "stdstring.h"
 
 #define LOGITECH_MAX_CHANNEL 85
 #define COUNT_THRESHOLD      2
@@ -16,7 +16,7 @@
 #define MAX_ADDRS            100
 #define MAX_CONFIRMED        32
 
-#define NRFSNIFF_APP_PATH_FOLDER EXT_PATH("apps_data/nrfsniff")
+#define NRFSNIFF_APP_PATH_FOLDER STORAGE_APP_DATA_PATH_PREFIX
 #define NRFSNIFF_APP_FILENAME    "addresses.txt"
 #define TAG                      "nrfsniff"
 
@@ -161,11 +161,11 @@ static bool save_addr_to_file(
     if(target_rate == 8) rate = 2;
     snprintf(ending, sizeof(ending), ",%d\n", rate);
     hexlify(data, size, addrline);
-    strcat(addrline, ending);
+    nrf_strcat(addrline, ending);
     linesize = strlen(addrline);
     strcpy(filepath, NRFSNIFF_APP_PATH_FOLDER);
-    strcat(filepath, "/");
-    strcat(filepath, NRFSNIFF_APP_FILENAME);
+    nrf_strcat(filepath, "/");
+    nrf_strcat(filepath, NRFSNIFF_APP_FILENAME);
     stream_seek(stream, 0, StreamOffsetFromStart);
 
     // check if address already exists in file
@@ -177,14 +177,14 @@ static bool save_addr_to_file(
             file_contents = malloc(file_size + 1);
             memset(file_contents, 0, file_size + 1);
             if(stream_read(stream, file_contents, file_size) > 0) {
-                char* line = strtok((char*)file_contents, "\n");
+                char* line = nrf_strtok((char*)file_contents, "\n");
 
                 while(line != NULL) {
                     if(!memcmp(line, addrline, 12)) {
                         found = true;
                         break;
                     }
-                    line = strtok(NULL, "\n");
+                    line = nrf_strtok(NULL, "\n");
                 }
             }
             free(file_contents);
@@ -295,7 +295,6 @@ static void wrap_up(Storage* storage, NotificationApp* notification) {
             hexlify(addr, 5, top_address);
             found_count++;
             save_addr_to_file(storage, addr, 5, notification);
-            dolphin_deed(getRandomDeed());
             if(confirmed_idx < MAX_CONFIRMED) memcpy(confirmed[confirmed_idx++], addr, 5);
             break;
         }
@@ -429,6 +428,7 @@ int32_t nrfsniff_app(void* p) {
                                 FURI_LOG_E(TAG, "NRF24 not connected");
                             }
                         }
+
                         break;
                     case InputKeyBack:
                         if(nrf_ready) {

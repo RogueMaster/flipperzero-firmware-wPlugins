@@ -8,7 +8,7 @@
 
 #include <gui/gui.h>
 #include <gui/view.h>
-#include <infrared_icons.h>
+#include <assets_icons.h>
 #include <gui/view_stack.h>
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
@@ -31,7 +31,7 @@
 
 #include "infrared_app.h"
 #include "infrared_remote.h"
-#include "infrared_brute_force.h"
+#include <lib/infrared/signal/infrared_brute_force.h>
 #include "infrared_custom_event.h"
 
 #include "scenes/infrared_scene.h"

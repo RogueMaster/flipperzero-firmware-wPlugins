@@ -1,0 +1,15 @@
+App(
+    appid="tv_remote",
+    name="TV Remote",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="flipper_tv_remote_app",
+    stack_size=2 * 1024,
+    fap_icon="icons/tv_remote_10px.png",
+    fap_category="Infrared",
+    fap_author="jmanion0139",
+    fap_weburl="https://github.com/jmanion0139/flipper_tv_remote",
+    fap_version="1.2",
+    fap_description="Record or import TV remote buttons and use Flipper as a TV remote",
+    #   v1.2: [Ability to import saved .ir files from the Flipper's built-in Infrared app (or any standard Flipper IR library file) and map their signals to the TV Remote buttons (By BentheGameWolf)](https://github.com/jmanion0139/flipper_tv_remote/pull/3)
+)

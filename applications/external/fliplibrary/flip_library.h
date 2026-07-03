@@ -76,9 +76,9 @@ typedef struct {
     VariableItem* variable_item_ssid; // The variable item (SSID)
     VariableItem* variable_item_password; // The variable item (password)
     VariableItem* variable_item_temperature_unit; // The variable item for temperature unit
-    UART_TextInput* uart_text_input_ssid; // The text input for the SSID
-    UART_TextInput* uart_text_input_password; // The text input for the password
-    UART_TextInput* uart_text_input_query; // The text input for querying information
+    TextInput* uart_text_input_ssid; // The text input for the SSID
+    TextInput* uart_text_input_password; // The text input for the password
+    TextInput* uart_text_input_query; // The text input for querying information
     //
     Widget* widget_result; // The text box that displays the result
 

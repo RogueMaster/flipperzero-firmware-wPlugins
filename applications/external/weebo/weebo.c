@@ -5,7 +5,6 @@
 #define WEEBO_KEY_RETAIL_FILENAME "key_retail"
 #define FIGURE_ID_LIST            APP_ASSETS_PATH("figure_ids.nfc")
 #define UNPACKED_FIGURE_ID        0x1dc
-#define NFC_APP_EXTENSION         ".nfc"
 #define NFC_APP_PATH_PREFIX       "/ext/nfc"
 
 static const char* nfc_resources_header = "Flipper NFC resources";
@@ -26,7 +25,8 @@ bool weebo_load_key_retail(Weebo* weebo) {
     }
 
     do {
-        furi_string_printf(path, "/ext/nfc/assets/%s%s", WEEBO_KEY_RETAIL_FILENAME, ".bin");
+        furi_string_printf(
+            path, "%s/%s%s", STORAGE_APP_DATA_PATH_PREFIX, WEEBO_KEY_RETAIL_FILENAME, ".bin");
 
         bool opened =
             file_stream_open(stream, furi_string_get_cstr(path), FSAM_READ, FSOM_OPEN_EXISTING);
@@ -57,7 +57,7 @@ bool weebo_load_key_retail(Weebo* weebo) {
 bool weebo_load_figure(Weebo* weebo, FuriString* path, bool show_dialog) {
     bool parsed = false;
     FuriString* reason = furi_string_alloc_set("Couldn't load file");
-    uint8_t buffer[NTAG215_SIZE];
+    uint8_t buffer[AMIIBO_BUFFER_SIZE];
     memset(buffer, 0, sizeof(buffer));
 
     if(weebo->loading_cb) {
@@ -75,12 +75,15 @@ bool weebo_load_figure(Weebo* weebo, FuriString* path, bool show_dialog) {
         }
 
         const MfUltralightData* data = nfc_device_get_data(nfc_device, NfcProtocolMfUltralight);
-        if(data->type != MfUltralightTypeNTAG215) {
-            furi_string_printf(reason, "Not NTAG215");
+        MfUltralightType type = data->type;
+        if(type != MfUltralightTypeNTAG215 && type != MfUltralightTypeNTAGI2CPlus1K &&
+           type != MfUltralightTypeNTAGI2CPlus2K) {
+            furi_string_printf(reason, "Unsupported tag type");
             break;
         }
 
         if(!mf_ultralight_is_all_data_read(data)) {
+            //TODO: check is the missing data is the PWD and/or PACK and fill that in
             furi_string_printf(reason, "Incomplete data");
             break;
         }
@@ -89,17 +92,20 @@ bool weebo_load_figure(Weebo* weebo, FuriString* path, bool show_dialog) {
         uint8_t pwd[4];
         weebo_calculate_pwd(uid, pwd);
 
-        if(memcmp(data->page[133].data, pwd, sizeof(pwd)) != 0) {
+        uint8_t pwd_page = mf_ultralight_get_pwd_page_num(type);
+        if(memcmp(data->page[pwd_page].data, pwd, sizeof(pwd)) != 0) {
             furi_string_printf(reason, "Wrong password");
             break;
         }
 
-        for(size_t i = 0; i < 135; i++) {
+        bool tag_v3 = (type == MfUltralightTypeNTAGI2CPlus2K);
+        size_t tag_pages = tag_v3 ? AMIIBO_V3_PAGES : 135;
+        for(size_t i = 0; i < tag_pages; i++) {
             memcpy(
                 buffer + i * MF_ULTRALIGHT_PAGE_SIZE, data->page[i].data, MF_ULTRALIGHT_PAGE_SIZE);
         }
 
-        if(!nfc3d_amiibo_unpack(&weebo->keys, buffer, weebo->figure)) {
+        if(!nfc3d_amiibo_unpack(&weebo->keys, buffer, weebo->figure, tag_v3)) {
             FURI_LOG_E(TAG, "Failed to unpack");
             break;
         }
@@ -329,7 +335,6 @@ Weebo* weebo_alloc() {
     Weebo* weebo = malloc(sizeof(Weebo));
 
     weebo->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(weebo->view_dispatcher);
     weebo->scene_manager = scene_manager_alloc(&weebo_scene_handlers, weebo);
     view_dispatcher_set_event_callback_context(weebo->view_dispatcher, weebo);
     view_dispatcher_set_custom_event_callback(weebo->view_dispatcher, weebo_custom_event_callback);
@@ -391,6 +396,9 @@ Weebo* weebo_alloc() {
     weebo->dialogs = furi_record_open(RECORD_DIALOGS);
     weebo->load_path = furi_string_alloc();
 
+    // Initialize file cycling
+    weebo->file_list = weebo_file_list_alloc();
+
     weebo->keys_loaded = false;
 
     return weebo;
@@ -448,6 +456,10 @@ void weebo_free(Weebo* weebo) {
     weebo->notifications = NULL;
 
     furi_string_free(weebo->load_path);
+
+    // Clean up file cycling
+    weebo_file_list_free(weebo->file_list);
+
     furi_record_close(RECORD_STORAGE);
     furi_record_close(RECORD_DIALOGS);
 

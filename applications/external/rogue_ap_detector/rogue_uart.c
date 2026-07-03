@@ -37,7 +37,7 @@ struct RogueUart {
     RogueUartRxCallback rx_callback;
     void* rx_callback_ctx;
     Expansion* expansion;
-    bool connected;
+    volatile bool connected;
     volatile bool running;
 };
 
@@ -143,7 +143,7 @@ RogueUart* rogue_uart_alloc(void) {
 
     /* Start the worker before enabling async RX to avoid dropping bytes. */
     uart->running = true;
-    uart->rx_thread = furi_thread_alloc_ex("RogueUartRx", 1024, rogue_uart_rx_worker, uart);
+    uart->rx_thread = furi_thread_alloc_ex("RogueUartRx", 2048, rogue_uart_rx_worker, uart);
     furi_assert(uart->rx_thread);
     furi_thread_start(uart->rx_thread);
 

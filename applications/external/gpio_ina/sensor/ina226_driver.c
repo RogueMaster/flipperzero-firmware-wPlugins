@@ -123,7 +123,8 @@ static bool ina226_driver_tick(SensorDriver* driver) {
                 drv->state.current = shunt_voltage / drv->config.shunt_resistor;
                 drv->state.voltage = 1.25E-3 * bus_reg; // LSB = 1.25mV
 
-                drv->state.time = furi_get_tick();
+                drv->state.ticks = furi_get_tick();
+                drv->state.timestamp = furi_hal_rtc_get_timestamp();
                 drv->state.ready = true;
             }
         } else {

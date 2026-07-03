@@ -2,24 +2,26 @@
 
 #ifdef ENABLE_SUB_DECODE_SCENE
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #include <toolbox/stream/stream.h>
 #include <lib/flipper_format/flipper_format.h>
+#include <lib/flipper_format/flipper_format_i.h>
+#include "../protocols/protocols_common.h"
 
 #define TAG "RawFileReader"
+
+#define RAW_READER_MAX_TOKEN_LEN 64U
+#define RAW_READER_KEY           "RAW_Data:"
 
 static const char local_flipper_format_delimiter = ':';
 static const char local_flipper_format_comment = '#';
 static const char local_flipper_format_eoln = '\n';
 static const char local_flipper_format_eolr = '\r';
 
-struct FlipperFormat {
-    Stream* stream;
-    bool strict_mode;
-};
-
 RawFileReader* raw_file_reader_alloc(void) {
     RawFileReader* reader = malloc(sizeof(RawFileReader));
-    furi_check(reader);
+    if(!reader) return NULL;
     memset(reader, 0, sizeof(RawFileReader));
     return reader;
 }
@@ -28,84 +30,6 @@ void raw_file_reader_free(RawFileReader* reader) {
     if(!reader) return;
     raw_file_reader_close(reader);
     free(reader);
-}
-
-static inline bool local_flipper_format_stream_is_space(char c) {
-    return c == ' ' || c == '\t' || c == local_flipper_format_eolr;
-}
-
-static bool local_flipper_format_stream_read_value(Stream* stream, FuriString* value, bool* last) {
-    enum {
-        LeadingSpace,
-        ReadValue,
-        TrailingSpace
-    } state = LeadingSpace;
-    const size_t buffer_size = 32;
-    uint8_t buffer[buffer_size];
-    bool result = false;
-    bool error = false;
-
-    furi_string_reset(value);
-
-    while(true) {
-        size_t was_read = stream_read(stream, buffer, buffer_size);
-
-        if(was_read == 0) {
-            if(state != LeadingSpace && stream_eof(stream)) {
-                result = true;
-                *last = true;
-            } else {
-                error = true;
-            }
-        }
-
-        for(size_t i = 0; i < was_read; i++) {
-            const uint8_t data = buffer[i];
-
-            if(state == LeadingSpace) {
-                if(local_flipper_format_stream_is_space(data)) {
-                    continue;
-                } else if(data == local_flipper_format_eoln) {
-                    stream_seek(stream, (int32_t)i - (int32_t)was_read, StreamOffsetFromCurrent);
-                    error = true;
-                    break;
-                } else {
-                    state = ReadValue;
-                    furi_string_push_back(value, data);
-                }
-            } else if(state == ReadValue) {
-                if(local_flipper_format_stream_is_space(data)) {
-                    state = TrailingSpace;
-                } else if(data == local_flipper_format_eoln) {
-                    if(!stream_seek(
-                           stream, (int32_t)i - (int32_t)was_read, StreamOffsetFromCurrent)) {
-                        error = true;
-                    } else {
-                        result = true;
-                        *last = true;
-                    }
-                    break;
-                } else {
-                    furi_string_push_back(value, data);
-                }
-            } else if(state == TrailingSpace) {
-                if(local_flipper_format_stream_is_space(data)) {
-                    continue;
-                } else if(!stream_seek(
-                              stream, (int32_t)i - (int32_t)was_read, StreamOffsetFromCurrent)) {
-                    error = true;
-                } else {
-                    *last = (data == local_flipper_format_eoln);
-                    result = true;
-                }
-                break;
-            }
-        }
-
-        if(error || result) break;
-    }
-
-    return result;
 }
 
 static bool local_flipper_format_stream_read_valid_key(Stream* stream, FuriString* key) {
@@ -164,8 +88,11 @@ static bool local_flipper_format_stream_read_valid_key(Stream* stream, FuriStrin
                 // just new symbol, reset the new_line flag
                 new_line = false;
                 if(accumulate) {
-                    // and accumulate data if we want
-                    furi_string_push_back(key, data);
+                    if(furi_string_size(key) >= RAW_READER_MAX_TOKEN_LEN) {
+                        accumulate = false;
+                    } else {
+                        furi_string_push_back(key, data);
+                    }
                 }
             }
         }
@@ -201,36 +128,125 @@ static bool
     return found;
 }
 
-static bool local_flipper_format_stream_get_value_count(
-    Stream* stream,
-    const char* key,
-    uint32_t* count,
-    bool strict_mode) {
-    bool result = false;
-    bool last = false;
+static bool raw_file_reader_stream_read_char(RawFileReader* reader, char* out) {
+    if(!reader || !reader->stream || !out) {
+        return false;
+    }
 
-    FuriString* value;
-    value = furi_string_alloc();
+    if(reader->buffer_index >= reader->buffer_count) {
+        const size_t was_read =
+            stream_read(reader->stream, reader->buffer, RAW_READER_BUFFER_SIZE);
+        if(was_read == 0U) {
+            return false;
+        }
 
-    do {
-        if(!local_flipper_format_stream_seek_to_key(stream, key, strict_mode)) break;
-        *count = 0;
+        reader->buffer_count = (uint16_t)was_read;
+        reader->buffer_index = 0U;
+    }
 
-        result = true;
-        while(true) {
-            if(!local_flipper_format_stream_read_value(stream, value, &last)) {
-                result = false;
+    const uint8_t value = reader->buffer[reader->buffer_index++];
+    if(reader->stream_pos < UINT64_MAX) {
+        reader->stream_pos++;
+    }
+    *out = (char)value;
+    return true;
+}
+
+static bool raw_file_reader_at_logical_eof(const RawFileReader* reader) {
+    return reader && reader->stream && reader->buffer_index >= reader->buffer_count &&
+           stream_eof(reader->stream);
+}
+
+static void raw_file_reader_mark_finished(RawFileReader* reader) {
+    reader->file_finished = true;
+    reader->stream_pos = reader->file_size > 0U ? reader->file_size : reader->stream_pos;
+}
+
+static bool raw_file_reader_seek_next_values(RawFileReader* reader) {
+    const char* key = RAW_READER_KEY;
+    size_t match = 0U;
+    char c = '\0';
+
+    while(raw_file_reader_stream_read_char(reader, &c)) {
+        if(c == key[match]) {
+            match++;
+            if(key[match] == '\0') {
+                reader->in_line = true;
+                return true;
+            }
+        } else {
+            match = (c == key[0]) ? 1U : 0U;
+        }
+    }
+
+    raw_file_reader_mark_finished(reader);
+    return false;
+}
+
+static bool raw_file_reader_stream_next_int(RawFileReader* reader, int32_t* out) {
+    if(!reader || !out || !reader->stream) return false;
+
+    while(true) {
+        if(!reader->in_line && !raw_file_reader_seek_next_values(reader)) {
+            return false;
+        }
+
+        bool negative = false;
+        bool sign_seen = false;
+        bool have_digits = false;
+        int32_t value = 0;
+        char c = '\0';
+
+        while(raw_file_reader_stream_read_char(reader, &c)) {
+            if(c == '\r') {
+                continue;
+            }
+
+            if(c == '\n') {
+                reader->in_line = false;
+                if(have_digits) {
+                    *out = negative ? -value : value;
+                    return true;
+                }
                 break;
             }
 
-            *count = *count + 1;
-            if(last) break;
+            if(!sign_seen && !have_digits && (c == ' ' || c == '\t' || c == ',')) {
+                continue;
+            }
+
+            if(!sign_seen && !have_digits && (c == '-' || c == '+')) {
+                negative = (c == '-');
+                sign_seen = true;
+                continue;
+            }
+
+            if(c >= '0' && c <= '9') {
+                have_digits = true;
+                value = (value * 10) + (c - '0');
+                continue;
+            }
+
+            if(have_digits) {
+                *out = negative ? -value : value;
+                return true;
+            }
+
+            negative = false;
+            sign_seen = false;
         }
 
-    } while(false);
+        if(have_digits) {
+            raw_file_reader_mark_finished(reader);
+            *out = negative ? -value : value;
+            return true;
+        }
 
-    furi_string_free(value);
-    return result;
+        if(raw_file_reader_at_logical_eof(reader)) {
+            raw_file_reader_mark_finished(reader);
+            return false;
+        }
+    }
 }
 
 bool raw_file_reader_open(RawFileReader* reader, const char* file_path) {
@@ -263,7 +279,7 @@ bool raw_file_reader_open(RawFileReader* reader, const char* file_path) {
             break;
         }
 
-        if(!flipper_format_read_string(reader->ff, "Protocol", temp_str)) {
+        if(!flipper_format_read_string(reader->ff, FF_PROTOCOL, temp_str)) {
             FURI_LOG_E(TAG, "Missing Protocol field");
             break;
         }
@@ -286,25 +302,39 @@ bool raw_file_reader_open(RawFileReader* reader, const char* file_path) {
     reader->buffer_count = 0;
     reader->buffer_index = 0;
     reader->file_finished = false;
-    reader->current_level = true;
+    reader->in_line = false;
 
-    FURI_LOG_I(TAG, "Opened RAW file: %s", file_path);
-
-    reader->count = 0;
-    uint32_t temp_count = 0;
-
-    while(local_flipper_format_stream_get_value_count(
-        reader->ff->stream, "RAW_Data", &temp_count, reader->ff->strict_mode)) {
-        //reader->file_finished = true;
-        reader->count += temp_count;
+    reader->stream = flipper_format_get_raw_stream(reader->ff);
+    if(!reader->stream) {
+        FURI_LOG_E(TAG, "Missing raw stream");
+        raw_file_reader_close(reader);
+        return false;
     }
-    flipper_format_rewind(reader->ff);
 
+    if(!local_flipper_format_stream_seek_to_key(reader->stream, "RAW_Data", false)) {
+        FURI_LOG_E(TAG, "RAW file has no samples");
+        raw_file_reader_close(reader);
+        return false;
+    }
+    reader->in_line = true;
+    reader->data_start_offset = stream_tell(reader->stream);
+    reader->stream_pos = reader->data_start_offset;
+    reader->file_size = stream_size(reader->stream);
+    if(reader->file_size == 0) {
+        FileInfo file_info = {0};
+        if(storage_common_stat(reader->storage, file_path, &file_info) == FSE_OK) {
+            reader->file_size = file_info.size;
+        }
+    }
+
+    FURI_LOG_I(TAG, "Opened RAW file for streaming decode: %s", file_path);
     return true;
 }
 
 void raw_file_reader_close(RawFileReader* reader) {
     if(!reader) return;
+
+    reader->stream = NULL;
 
     if(reader->ff) {
         flipper_format_free(reader->ff);
@@ -319,43 +349,25 @@ void raw_file_reader_close(RawFileReader* reader) {
     reader->storage = NULL;
     reader->buffer_count = 0;
     reader->buffer_index = 0;
-    reader->count = 0;
+    reader->in_line = false;
     reader->file_finished = false;
-}
-
-static bool raw_file_reader_load_chunk(RawFileReader* reader) {
-    if(reader->file_finished) return false;
-
-    size_t to_read = (reader->count < RAW_READER_BUFFER_SIZE) ? reader->count :
-                                                                RAW_READER_BUFFER_SIZE;
-
-    if(!flipper_format_read_int32(reader->ff, "RAW_Data", reader->buffer, to_read)) {
-        reader->file_finished = true;
-        return false;
-    }
-
-    reader->buffer_count = to_read;
-    reader->buffer_index = 0;
-    reader->count -= to_read;
-
-    return true;
+    reader->file_size = 0;
+    reader->data_start_offset = 0;
+    reader->stream_pos = 0;
 }
 
 bool raw_file_reader_get_next(RawFileReader* reader, bool* level, uint32_t* duration) {
     if(!reader || !level || !duration) return false;
 
-    if(memmgr_get_free_heap() < 1024) {
+    if(reader->buffer_index >= reader->buffer_count && memmgr_get_free_heap() < 1024) {
         FURI_LOG_E(TAG, "Not enough memory to continue reading");
         return false;
     }
 
-    if(reader->buffer_index >= reader->buffer_count) {
-        if(!raw_file_reader_load_chunk(reader)) {
-            return false;
-        }
+    int32_t value = 0;
+    if(!raw_file_reader_stream_next_int(reader, &value)) {
+        return false;
     }
-
-    int32_t value = reader->buffer[reader->buffer_index++];
 
     if(value >= 0) {
         *level = true;
@@ -370,6 +382,22 @@ bool raw_file_reader_get_next(RawFileReader* reader, bool* level, uint32_t* dura
 
 bool raw_file_reader_is_finished(RawFileReader* reader) {
     if(!reader) return true;
-    return reader->file_finished && (reader->buffer_index >= reader->buffer_count);
+    return reader->file_finished && reader->buffer_index >= reader->buffer_count;
+}
+
+uint8_t raw_file_reader_get_progress(const RawFileReader* reader) {
+    if(!reader) return 0;
+    if(reader->file_finished && reader->buffer_index >= reader->buffer_count) return 100;
+    if(reader->file_size <= reader->data_start_offset) return 0;
+
+    const uint64_t total = reader->file_size - reader->data_start_offset;
+    const uint64_t current_pos = reader->stream_pos;
+    uint64_t done = 0;
+    if(current_pos > reader->data_start_offset) {
+        done = current_pos - reader->data_start_offset;
+    }
+    if(done >= total) return 100;
+
+    return (uint8_t)((done * 100ULL) / total);
 }
 #endif // ENABLE_SUB_DECODE_SCENE

@@ -42,7 +42,6 @@ UHFApp* uhf_alloc() {
     UHFApp* uhf_app = (UHFApp*)malloc(sizeof(UHFApp));
     uhf_app->view_dispatcher = view_dispatcher_alloc();
     uhf_app->scene_manager = scene_manager_alloc(&uhf_scene_handlers, uhf_app);
-    view_dispatcher_enable_queue(uhf_app->view_dispatcher);
     view_dispatcher_set_event_callback_context(uhf_app->view_dispatcher, uhf_app);
     view_dispatcher_set_custom_event_callback(uhf_app->view_dispatcher, uhf_custom_event_callback);
     view_dispatcher_set_navigation_event_callback(

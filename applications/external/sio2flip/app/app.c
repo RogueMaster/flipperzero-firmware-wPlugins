@@ -110,7 +110,6 @@ static App* app_alloc() {
 
     // Initialize view dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, app_custom_event_callback);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, app_back_event_callback);
@@ -175,6 +174,11 @@ static App* app_alloc() {
 
     xex_loader_set_activity_callback(app->xex_loader, xex_activity_callback, app);
 
+    app->atari850 = atari850_alloc(&app->config);
+    furi_check(app->atari850 != NULL);
+
+    atari850_load_rom(app->atari850, app->storage);
+
     FURI_LOG_T(TAG, "Application started");
 
     return app;
@@ -190,6 +194,10 @@ static void app_free(App* app) {
             fdd_free(app->fdd[i]);
         }
     }
+
+    atari850_free(app->atari850);
+
+    usb_vcp_free(app->usb_vcp);
 
     sio_driver_free(app->sio);
 
@@ -258,6 +266,12 @@ void app_start_fdd_emulation(App* app) {
     for(size_t i = 0; i < FDD_EMULATOR_COUNT; i++) {
         fdd_start(app->fdd[i], app->sio);
     }
+
+    if(app->config.atari850) {
+        atari850_start(app->atari850, app->sio);
+        app->usb_vcp = usb_vcp_alloc(app->sio);
+        furi_check(app->usb_vcp != NULL);
+    }
 }
 
 void app_stop_emulation(App* app) {
@@ -265,6 +279,11 @@ void app_stop_emulation(App* app) {
         fdd_stop(app->fdd[i]);
     }
     xex_loader_stop(app->xex_loader);
+
+    usb_vcp_free(app->usb_vcp);
+    app->usb_vcp = NULL;
+
+    atari850_stop(app->atari850);
 }
 
 const char* app_build_unique_file_name(App* app) {

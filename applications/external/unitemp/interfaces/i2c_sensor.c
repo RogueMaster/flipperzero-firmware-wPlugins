@@ -26,7 +26,7 @@ const SensorConnectionInterface unitemp_i2c = {
 
 static uint8_t sensors_count = 0;
 
-void unitemp_i2c_acquire(FuriHalI2cBusHandle* handle) {
+void unitemp_i2c_acquire(const FuriHalI2cBusHandle* handle) {
     furi_hal_i2c_acquire(handle);
     LL_GPIO_SetPinPull(gpio_ext_pc1.port, gpio_ext_pc1.pin, LL_GPIO_PULL_UP);
     LL_GPIO_SetPinPull(gpio_ext_pc0.port, gpio_ext_pc0.pin, LL_GPIO_PULL_UP);
@@ -76,7 +76,7 @@ bool unitemp_i2c_write_reg(I2CSensor* i2c_sensor, uint8_t reg, uint8_t value) {
     unitemp_i2c_acquire(i2c_sensor->i2c_handle);
     uint8_t buff[1] = {value};
     bool status = furi_hal_i2c_write_mem(
-        i2c_sensor->i2c_handle, i2c_sensor->current_i2c_adress, reg, buff, 1, 10);
+        i2c_sensor->i2c_handle, i2c_sensor->current_i2c_adress, reg, buff, 1, 100);
     furi_hal_i2c_release(i2c_sensor->i2c_handle);
     return status;
 }
@@ -84,7 +84,7 @@ bool unitemp_i2c_write_reg(I2CSensor* i2c_sensor, uint8_t reg, uint8_t value) {
 bool unitemp_i2c_write_array(I2CSensor* i2c_sensor, uint8_t len, uint8_t* data) {
     unitemp_i2c_acquire(i2c_sensor->i2c_handle);
     bool status =
-        furi_hal_i2c_tx(i2c_sensor->i2c_handle, i2c_sensor->current_i2c_adress, data, len, 10);
+        furi_hal_i2c_tx(i2c_sensor->i2c_handle, i2c_sensor->current_i2c_adress, data, len, 100);
     furi_hal_i2c_release(i2c_sensor->i2c_handle);
     return status;
 }

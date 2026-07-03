@@ -1,3 +1,6 @@
+/* hid_exfil.c — Main application, UI, and entry point for HID Exfil.
+ * Provides payload selection, target config, execution control, and data viewer. */
+
 #include "hid_exfil.h"
 #include "hid_exfil_worker.h"
 #include "hid_exfil_payloads.h"
@@ -93,15 +96,19 @@ static void execution_view_draw_callback(Canvas* canvas, void* model) {
         (unsigned long)rate);
     canvas_draw_str(canvas, 2, 44, line);
 
-    /* LED state indicators */
-    snprintf(
-        line,
-        sizeof(line),
-        "[N:%s] [C:%s] [S:%s]",
-        s->led_num ? "ON" : "--",
-        s->led_caps ? "ON" : "--",
-        s->led_scroll ? "ON" : "--");
-    canvas_draw_str(canvas, 2, 54, line);
+    /* LED state indicators or firmware warning */
+    if(s->led_channel_broken) {
+        canvas_draw_str(canvas, 2, 54, "! FW bug: LED read broken");
+    } else {
+        snprintf(
+            line,
+            sizeof(line),
+            "[N:%s] [C:%s] [S:%s]",
+            s->led_num ? "ON" : "--",
+            s->led_caps ? "ON" : "--",
+            s->led_scroll ? "ON" : "--");
+        canvas_draw_str(canvas, 2, 54, line);
+    }
 
     /* Controls hint */
     canvas_set_font(canvas, FontSecondary);
@@ -276,8 +283,13 @@ static void config_enter_callback(void* context, uint32_t index) {
 
     /* Index 3 = "Start Exfiltration" button */
     if(index == 3) {
-        /* Set up USB HID */
-        app->usb_prev = furi_hal_usb_get_config();
+        /* Set up USB HID — only save the original config on the first run.
+         * If the user went Execution→DataViewer→Back without restoring USB,
+         * usb_prev still holds the pre-HID config and must not be overwritten
+         * with the current (HID) config, or the original is lost forever. */
+        if(!app->usb_prev) {
+            app->usb_prev = furi_hal_usb_get_config();
+        }
         furi_hal_usb_unlock();
         furi_hal_usb_set_config(&usb_hid, NULL);
         {
@@ -321,6 +333,7 @@ static void config_enter_callback(void* context, uint32_t index) {
 
 static HidExfilApp* hid_exfil_app_alloc(void) {
     HidExfilApp* app = malloc(sizeof(HidExfilApp));
+    furi_assert(app);
     memset(app, 0, sizeof(HidExfilApp));
 
     /* Default config */
@@ -338,7 +351,6 @@ static HidExfilApp* hid_exfil_app_alloc(void) {
 
     /* View Dispatcher */
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, back_event_callback);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
@@ -419,6 +431,7 @@ static HidExfilApp* hid_exfil_app_alloc(void) {
 
     /* ---- Worker ---- */
     app->worker = hid_exfil_worker_alloc();
+    furi_assert(app->worker);
 
     return app;
 }

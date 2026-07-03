@@ -28,6 +28,18 @@ void sort_records(FileRecord* records, size_t count) {
     }
 }
 
+void db_remove_record(HashDatabase* db, const char* filename) {
+    for(size_t i = 0; i < db->count; i++) {
+        if(strcmp(db->records[i].path, filename) == 0) {
+            for(size_t j = i; j < db->count - 1; j++) {
+                db->records[j] = db->records[j + 1];
+            }
+            db->count--;
+            return;
+        }
+    }
+}
+
 void process_duplicates(HashDatabase* db) {
     db->num_groups = 0;
     if(db->count == 0) return;

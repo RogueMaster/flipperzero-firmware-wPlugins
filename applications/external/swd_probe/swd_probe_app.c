@@ -3,7 +3,7 @@
 #include "jep106.h"
 #include "adi.h"
 
-#define SWD_PATH APP_ASSETS_PATH("")
+#define SWD_PATH EXT_PATH("apps_data/swd")
 
 static void render_callback(Canvas* const canvas, void* cb_ctx);
 static bool swd_message_process(AppFSM* ctx);
@@ -3134,6 +3134,8 @@ int32_t swd_probe_app_main(void* p) {
 
     DBGS("swd_execute_script");
     swd_execute_script(app, SWD_PATH "/startup.swd");
+
+    dolphin_deed(DolphinDeedPluginGameStart);
 
     DBGS("processing");
     for(bool processing = true; processing;) {

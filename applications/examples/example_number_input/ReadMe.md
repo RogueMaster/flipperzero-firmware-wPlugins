@@ -4,7 +4,7 @@ Simple keyboard that limits user inputs to a full number (integer). Useful to en
 
 ## Source code
 
-Source code for this example can be found [here](https://github.com/flipperdevices/flipperzero-firmware/tree/dev/applications/examples/example_number_input).
+Source code for this example can be found [here](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/dev/applications/examples/example_number_input).
 
 ## General principle
 

@@ -53,9 +53,8 @@ typedef struct {
     const GpioPin* async_mirror_pin;
 
     int32_t rolling_counter_mult;
-    bool extended_range   : 1;
-    bool bypass_region    : 1;
-    bool ext_leds_and_amp : 1;
+    bool extended_range : 1;
+    bool bypass_region  : 1;
 } FuriHalSubGhz;
 
 volatile FuriHalSubGhz furi_hal_subghz = {
@@ -65,7 +64,6 @@ volatile FuriHalSubGhz furi_hal_subghz = {
     .rolling_counter_mult = 1,
     .extended_range = false,
     .bypass_region = false,
-    .ext_leds_and_amp = true,
 };
 
 int32_t furi_hal_subghz_get_rolling_counter_mult(void) {
@@ -94,14 +92,6 @@ bool furi_hal_subghz_get_bypass_region(void) {
 
 void furi_hal_subghz_set_async_mirror_pin(const GpioPin* pin) {
     furi_hal_subghz.async_mirror_pin = pin;
-}
-
-void furi_hal_subghz_set_ext_leds_and_amp(bool enabled) {
-    furi_hal_subghz.ext_leds_and_amp = enabled;
-}
-
-bool furi_hal_subghz_get_ext_leds_and_amp(void) {
-    return furi_hal_subghz.ext_leds_and_amp;
 }
 
 const GpioPin* furi_hal_subghz_get_data_gpio(void) {

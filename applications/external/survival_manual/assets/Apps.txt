@@ -1,0 +1,174 @@
+A phone can be a versatile tool when you install and use the right apps.
+Make sure you check that the apps work offline since you probably won't have an internet connection.
+
+== ANGLES ==
+
+A majority of phones are fitted with a tilt sensor. The Angulo app can take advantage of these sensors to measure angles, which you can then convert into distances using a calculator app.
+
+Trailsense does angles, too.
+
+== APPSTORE / F-DROID ==
+
+The Google Play store may not work. F-Droid.org allows you to point to alternative repositories. While using the default repository, you can be pretty sure the app is libre/FOSS – as are all apps mentioned here.  Also, learn how to "sideload", or install apps without going through an app store directly. Using F-Droid, for example, people can exchange their installed apps via Bluetooth.
+
+== BARCODE SCANNER ==
+
+In a more day-to-day approach, one can stumble upon a fragment of barcode without the human-readable cipher part and can use a smartphone to get the information back.
+
+Barcodes are also used in their two-dimensional form (like QR codes) to easily import cryptographic public keys or URLs into smartphones using the camera.
+
+Barcode scanner or Binary Eye are libre apps available on F-Droid.org that will read barcodes.
+
+== CALCULATORS ==
+
+Every Android phone comes standard with a calculator app. These calculator apps have several modes, and can be used to make complicated scientific computations.
+
+== CAMERA ==
+
+Your phone's camera can help you take quick pictures of signs, allowing you to capture large chunks of text in an instant. Doing so with a camera rather than your mind will allow you access to true information that has not been altered by time and space in your brain – especially easily done under stressful conditions. OpenNoteScanner is a camera app dedicated to processing pictures to improve the readability of text.
+
+You can also take pictures of the place you are, to help find your way back to it later. Or you can take pictures of your findings far from a site, to help inform others about them.
+
+== COMPASS ==
+
+Directions can be useful, learn how to read a compass and how to navigate using it. It may be easier to learn with a real compass and then reproduce it with your phone. A compass is included in Trailsense
+
+== CRYPTOCURRENCY ==
+
+In a situation where currency or banks are no longer a viable option, it may be best to have a cryptocurrency wallet like WallETH or Electrum already set up. Transfer a small amount onto it now and learn how to use it for later. For even better security, utilize a hardware wallet like the TREZOR. You can also use the TREZOR (including the new model T) together with WallETH on your phone. If you are concerned about the volatility of cryptocurrencies, you may want to research stable coins like DAI.
+
+== ENCRYPTION SOFTWARE ==
+
+It is always a good idea to keep some information private.
+DroidFS can be used on Android. The volumes created by it are compatible with Gocryptfs.
+
+== GAMES ==
+Carry a couple of mini card decks. They work when your phone finally dies. Until then, consider loading some games on your phone to fight boredom and keep the mind stimulated.
+
+I recommend gobandroid [full disclosure: I made this app] to play the ancient game of Go, which has simple rules but is still immensely deep.
+
+Sokoban is an ancient Japanese puzzle game in which you push jewels into target zones through different maps. Be careful that you don't corner yourself or the jewels! The game provides 354 levels, sorted by difficulty, and may provide mental stimulation for years.
+
+Shattered Pixel Dungeon is a mobile dungeon crawler roguelike with very good pixel art graphics. "Every game is unique, with four different playable characters, randomized levels
+and enemies, and over 150 items to collect and use." It's also updated frequently!
+
+Minetest is "a near infinite world block sandbox game and a game engine, inspired
+by InfiniMiner, Minecraft and the like." The default Minetest game that comes with Minetest is rather bland, be sure to download some mods (such as Mesecons, mobs, and hunger) and/or some games (such as Mineclone 2: a clone of Minecraft gameplay in the Minetest engine, with libre code and graphics, or Nodecore: a voxel sandbox game with no fancy GUI and a limited inventory, where crafting takes place in-world instead of on a crafting table in a menu, and furnaces have to be designed and constructed.)
+
+Lichess isn't on F-Droid yet, but it's open-source and the APK can be downloaded from their website. A lot of functionality is online, but when the app is in offline mode it can be used to play chess against the computer or against a friend by using your phone as a chessboard.
+
+Space Trader is a game that's all about traveling to different star systems and making money trading stuff, in space. There's no 3D graphics, though, you just choose a star system and trade stuff. It hasn't been updated since 2019-02-05, but it's pretty fun.
+
+Simon Tatham’s Portable Puzzle Collection has 39 singleplayer puzzles including variations of popular games such as Mastermind, sudoku, and Minesweeper. The APK isn’t available on F-Droid – instead, it can be installed from Google Play or downloaded directly from Chris Boyle’s website, or the GitHub repository.
+
+Make sure that the games work offline. Also, be careful not to run out of battery when you really need it.
+
+== INSTANT MESSAGING ==
+
+Most instant messaging apps (such as Telegram and WhatsApp) rely on centralized servers for facilitating communication between the participants. In a survival situation, it's likely that these servers would become unavailable rendering those apps useless.
+
+Briar is a decentralized instant messaging app which communicates directly between two or more Android smartphones or tablets using TOR, Wi-Fi or Bluetooth which pairs devices directly. Traditionally, Bluetooth devices have been limited to a range of just 10 meters (33 feet), however, some modern smartphones support Bluetooth 5.0 which can reach up to 400 meters (1312 feet). Check the specification of your smartphone and tablet to find the maximum theoretical distance for its Bluetooth connection, then test it with a peripheral such as a headset.
+
+Briar is available to download from F-Droid and Google Play. If you are installing via F-Droid, you will need this link: fdroidrepos://briarproject.org/fdroid/repo?fingerprint=1FB874BEE7276D28ECB2C9B06E8A122EC4BCB4008161436CE474C257CBF49BD6
+
+== LIGHT ==
+
+A phone's flashlight can bring light into the dark when you do not have a real flashlight on you. There are many flashlight apps on F-Droid. Including Trail Sense
+
+== MAPS / NAVIGATION ==
+
+Have a mapping and navigation solution that can work offline like Organic Maps (or OsmAnd for more features in complex menus). Download the data for your area and any other areas that you may need. Try it out offline (enable airplane mode). It may take a little longer to acquire a GPS signal, but you want to make sure it works now, in advance of the need for it to work later.
+
+== MORSE SIGNAL ==
+
+Morse signal is easy to transmit, even without special gear. It can be transmitted in different ways, including:
+- The reflected light of a mirror (or a tilted smartphone screen)
+- The sound of strikes on a large piece of metal
+- A horn
+
+You can broadcast a Morse signal farther than you can project your voice, and likely using less energy.
+
+The famous SOS distress signal is ubiquitous, and indicates that you need to be rescued: dot dot dot, dash, dash, dash, dot dot dot (• • • — — — • • •). But beyond this knowledge, Morse code could be useful for exchanging further information about your situation. For instance, if you are trapped in a cave: what do you need first? Are there people in your group that need special assistance?
+
+This exchange could be achieved using a Morse signal generator app, like the libre [Morse]  (https://github.com/Crazy-Marvin/Morse). Morse allows you to type your message (English is the International Morse tradition, but broken English works fine, as well) and the app will play the corresponding sound using the flashlight, screen, orloudspeaker of the phone.
+
+Trailsense has the limited Morse ability to flash an SOS signal with the flashlight or the whistle (Although in my {ElonSatoshi} experience the whistle goes BEEEEEP BEEEEEP BEEEEEP instead of BEEP BEEP BEEP BEEEEEP BEEEEEP BEEEEEP BEEP BEEP BEEP)
+
+== MUSIC ==
+
+Have a Music app that is not a streaming solution, as well as some uplifting music. I suggest DUB or reggae – like PANDA DUB / LION'S DEN, but download whatever works best for you.
+
+VLC is a libre media player supporting a wide variety of music and video formats (.MP3, .FLAC, .OGG, .MKV, .MP4…).
+
+Dogmazic (website, mobile app) provides archives of freely downloadable music.
+
+== MESSAGING ==
+
+Briar allows you to message anyone you're in Bluetooth range of, or have Internet connection to, without needing a server. This can be useful if you find others and need to contact them while searching nearby areas, send files to, or get files from.
+
+== PASS APP ==
+
+I recommend PassAndroid for your Pass app. Imagine how frustrating it would be if you get a ticket to a rescue ship in esPass format and are unable to display it. (Full disclosure: I am the developer of PassAndroid.)
+
+== OFFLINE DICTIONARY AND TRANSLATION DICTIONARIES ==
+
+Install an offline working dictionary, along with the languages that you are most likely to face.
+
+QuickDic is a libre offline translation dictionary available on F-Droid.org fitted with a wide variety of languages.
+
+Wiktionary is a very high quality dictionary, and you can download it with one of the apps in the Offline wiki section below.
+
+== OFFLINE ENCYCLOPEDIA ==
+
+Smartphones allow you to carry not just one book, but your entire library. So why not bring a full encyclopedia, just in case.
+
+See the Offline wiki section for how to access Wikipedia offline.
+
+== OFFLINE WIKI ==
+
+Kiwix allows you to download copies of Wikipedia, other wikis, and other kinds of content and read them offline. It uses up more disk space than Aard 2 and is slower, but has more features and a larger community - for example, you can set up a server and a router to serve Kiwix files to everyone in Wi-Fi range.
+
+Aard 2 (Android only) also allows you to download copies of Wikipedia, other wikis, and other kinds of content and read them offline. It has a smaller library of downloadable things, but they take up less space than Kiwix. You can find files to download here.
+
+If your Android phone is newer, you can use OSS-Dict, which is Aard 2 with a few new features and a modern-looking user interface.
+
+== RADIO ==
+
+A lot of Android phones come stock with an FM radio receiver. Many governments have broadcasting plans in case of emergency. Your phone can receive this information using a pair of headphones plugged into the phone, as it typically uses the headphone cable as an antenna to receive the signal. You can also use any other 3.5mm jack component such as:
+
+- A microphone
+- Computer loudspeakers
+- A jack extension cord
+- Even just a broken version of the above
+
+Be sure to have the radio app redirect the sound towards the phone integrated loudspeaker if you plug something that can't actually produce sound, as the default behavior is to direct the sound to the plugged headphones.
+
+== READERS ==
+
+Install PDF or eBook readers and download some books or manuals.
+
+Document Viewer is a libre app available from F-Droid.org for reading PDF documents, as well as OpenXPS, ComicBook CBZ, FictionBook FB, etc.
+
+Every phone is equipped with enough storage memory to hold thousands of textbooks, as well as classic literature – many of these works are already in the public domain.
+
+The Gutenberg Project has gathered over 56,000 of them, and there's a top 100 selection to help you make your choice.
+
+There is also Standard Ebooks which is an ambitious project to create free high-quality e-books with strict typesetting standards and elegant cover designs.
+
+== RECORDER ==
+
+In survival situations, as stated in the Psychology chapter, you will get yourself in a stable situation more easily by keeping the willpower to fight on. To keep going, many people in a survival situation write diaries to combat loneliness and keep track of their life and its unexpected events. If you have a power source, your smartphone can be a reliable Dictaphone if you lack paper to write on. Be aware, however, that you should remove any password or lock codes from your phone if you want others to access it later.
+
+Fossify Voice Recorder is a good app to use.
+
+== TEA APP ==
+
+I recommend Material Tea timer (Full disclosure: I am the developer of Material Tea Timer). Tea or infusions in general will be useful in many dire situations.
+
+== TRAILSENSE ==
+
+Navigation – The compass can be used to determine the direction to North, and when combined with the GPS it can be used to navigate to predefined locations. The predefined locations, known as beacons, can be created while at a location and at any point you can use the compass to navigate back to where the beacon was placed.
+
+Weather – The barometer can be used to determine if the weather will change soon and if a storm is likely to occur. The barometric pressure history (last 48 hours) is displayed as a graph and an interpretation of the current reading is shown. If the pressure suddenly drops, a storm alert notification is sent.
+
+Trail sense

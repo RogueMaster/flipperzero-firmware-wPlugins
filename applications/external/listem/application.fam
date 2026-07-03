@@ -9,6 +9,6 @@ App(
     fap_category="Tools",
     fap_author="Clawzman",
     fap_weburl="https://github.com/Clawzman/Flipper_ListEM",
-    fap_version="1.3",
+    fap_version="1.4",
     fap_description="NFC / RFID / iButton List Generator",
 )

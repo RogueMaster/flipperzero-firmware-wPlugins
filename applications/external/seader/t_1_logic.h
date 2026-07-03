@@ -29,6 +29,7 @@ typedef enum {
     SeaderT1ActionSendMoreData,
     SeaderT1ActionRetransmit,
     SeaderT1ActionSendNak,
+    SeaderT1ActionResourceExhausted,
     SeaderT1ActionError,
 } SeaderT1Action;
 

@@ -1,0 +1,13 @@
+App(
+    appid="decision_maker",
+    name="Decision Maker",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="random_decision_maker_app",
+    stack_size=2 * 1024,
+    fap_icon="icon.png",
+    fap_category="Games",
+    fap_author="jacki",
+    fap_weburl="https://github.com/Gerijacki/random_decision_maker",
+    fap_version="1.0",
+    fap_description="Spin a roulette to pick a random option for you.",
+)

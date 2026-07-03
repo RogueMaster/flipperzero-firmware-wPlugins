@@ -19,7 +19,6 @@
 #pragma once
 
 #include <storage/storage.h>
-#include "app_common.h"
 
 #include "utils/slice.h"
 
@@ -87,6 +86,9 @@ typedef struct {
         // (empty string means no disk inserted)
         FuriString* image;
     } fdd[FDD_EMULATOR_COUNT];
+
+    // Emulates Atari 850 modem
+    bool atari850;
 
 } AppConfig;
 

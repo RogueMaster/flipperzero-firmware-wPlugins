@@ -47,6 +47,12 @@
 #define NFC3D_UID_OFFSET 0x1D4
 #define PAGE_SIZE        4
 
+// NTAG I2C Plus 2K ("v3") amiibo data is shifted by an inserted 0x40-byte block,
+// so its encrypted image spans 146 pages (vs 130 used by NTAG215/v2). Buffers that
+// hold a full amiibo tag image are sized for the largest case.
+#define AMIIBO_V3_PAGES    146
+#define AMIIBO_BUFFER_SIZE (AMIIBO_V3_PAGES * PAGE_SIZE)
+
 enum WeeboCustomEvent {
     // Reserve first 100 events for button types and indexes, starting from 0
     WeeboCustomEventReserved = 100,
@@ -92,6 +98,9 @@ struct Weebo {
 
     FuriString* load_path;
     char file_name[WEEBO_FILE_NAME_MAX_LENGTH + 1];
+
+    // File cycling support
+    WeeboFileList* file_list;
 
     bool keys_loaded;
     nfc3d_amiibo_keys keys;

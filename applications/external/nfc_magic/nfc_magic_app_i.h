@@ -51,6 +51,7 @@
 
 #define NFC_MAGIC_APP_NAME_SIZE             22
 #define NFC_MAGIC_APP_TEXT_STORE_SIZE       128
+#define NFC_MAGIC_APP_FOLDER                EXT_PATH("nfc")
 #define NFC_MAGIC_APP_EXTENSION             ".nfc"
 #define NFC_MAGIC_APP_FILENAME_PREFIX       "NFC"
 #define NFC_MAGIC_APP_BYTE_INPUT_STORE_SIZE (4)
@@ -108,6 +109,9 @@ struct NfcMagicApp {
 
     Nfc* nfc;
     NfcMagicProtocol protocol;
+    Gen2Type gen2_type;
+    uint8_t gen1_uid_len;
+    bool source_uid_mismatch;
     NfcMagicScanner* scanner;
     NfcPoller* poller;
     Gen1aPoller* gen1a_poller;

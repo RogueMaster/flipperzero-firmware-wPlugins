@@ -1,5 +1,4 @@
 #include "../mass_storage_app_i.h"
-#include "../missing_api.h"
 #include <lib/toolbox/value_index.h>
 
 enum VarItemListIndex {
@@ -114,10 +113,9 @@ bool mass_storage_scene_create_image_on_event(void* context, SceneManagerEvent e
             break;
         case VarItemListIndexCreateImage: {
             mass_storage_app_show_loading_popup(app, true);
-            const char* name =
-                local_strnlen(app->create_image_name, sizeof(app->create_image_name)) ?
-                    app->create_image_name :
-                    image_sizes[app->create_image_size].name;
+            const char* name = strnlen(app->create_image_name, sizeof(app->create_image_name)) ?
+                                   app->create_image_name :
+                                   image_sizes[app->create_image_size].name;
             furi_string_printf(
                 app->file_path,
                 "%s/%s%s",

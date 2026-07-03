@@ -1,242 +1,424 @@
-#include <gui/gui.h>
-#include <gui/view_dispatcher.h>
 #include <gui/modules/menu.h>
 #include <gui/modules/submenu.h>
 #include <assets_icons.h>
 #include <applications.h>
-#include <cfw/cfw.h>
+#include <archive/helpers/archive_favorites.h>
+#include <toolbox/run_parallel.h>
+#include <archive/helpers/archive_helpers_ext.h>
 
 #include "loader.h"
+#include "loader_i.h"
 #include "loader_menu.h"
+#include "loader_menu_storage_i.h"
+
+#include <flipper_application/flipper_application.h>
+#include <toolbox/stream/file_stream.h>
+#include <gui/modules/file_browser.h>
+#include <core/dangerous_defines.h>
+#include <cfw/cfw.h>
+#include <gui/icon_i.h>
+#include <m-list.h>
 
 #define TAG "LoaderMenu"
-
-struct LoaderMenu {
-    FuriThread* thread;
-    void (*closed_cb)(void*);
-    void* context;
-};
-
-static int32_t loader_menu_thread(void* p);
-static int32_t loader_gamesmenu_thread(void* p);
-
-LoaderMenu* loader_menu_alloc(void (*closed_cb)(void*), void* context) {
-    LoaderMenu* loader_menu = malloc(sizeof(LoaderMenu));
-    loader_menu->closed_cb = closed_cb;
-    loader_menu->context = context;
-    loader_menu->thread = furi_thread_alloc_ex(TAG, 1024, loader_menu_thread, loader_menu);
-    furi_thread_start(loader_menu->thread);
-    return loader_menu;
-}
-
-LoaderMenu* loader_gamesmenu_alloc(void (*closed_cb)(void*), void* context) {
-    LoaderMenu* loader_menu = malloc(sizeof(LoaderMenu));
-    loader_menu->closed_cb = closed_cb;
-    loader_menu->context = context;
-    loader_menu->thread = furi_thread_alloc_ex(TAG, 1024, loader_gamesmenu_thread, loader_menu);
-    furi_thread_start(loader_menu->thread);
-    return loader_menu;
-}
-
-void loader_menu_free(LoaderMenu* loader_menu) {
-    furi_assert(loader_menu);
-    furi_thread_join(loader_menu->thread);
-    furi_thread_free(loader_menu->thread);
-    free(loader_menu);
-}
 
 typedef enum {
     LoaderMenuViewPrimary,
     LoaderMenuViewSettings,
 } LoaderMenuView;
 
+struct LoaderMenu {
+    FuriThread* thread;
+    void (*closed_cb)(void*);
+    void* context;
+
+    Loader* loader;
+    FuriPubSubSubscription* subscription;
+
+    uint32_t selected_primary;
+    uint32_t selected_setting;
+    LoaderMenuView current_view;
+    bool settings_only;
+};
+
+static int32_t loader_menu_thread(void* p);
+
+static void loader_pubsub_callback(const void* message, void* context) {
+    const LoaderEvent* event = message;
+    LoaderMenu* loader_menu = context;
+
+    if(event->type == LoaderEventTypeApplicationBeforeLoad) {
+        if(loader_menu->thread) {
+            furi_thread_flags_set(furi_thread_get_id(loader_menu->thread), 0);
+            furi_thread_join(loader_menu->thread);
+            furi_thread_free(loader_menu->thread);
+            loader_menu->thread = NULL;
+        }
+    } else if(event->type == LoaderEventTypeNoMoreAppsInQueue) {
+        if(!loader_menu->thread) {
+            loader_menu->thread = furi_thread_alloc_ex(TAG, 2048, loader_menu_thread, loader_menu);
+            furi_thread_start(loader_menu->thread);
+        }
+    }
+}
+
+enum {
+    LoaderMenuIndexApplications = (uint32_t)-1,
+    LoaderMenuIndexLast = (uint32_t)-2,
+    LoaderMenuIndexSettings = (uint32_t)-3,
+};
+
+LoaderMenu* loader_menu_alloc(void (*closed_cb)(void*), void* context, bool settings_only) {
+    LoaderMenu* loader_menu = malloc(sizeof(LoaderMenu));
+    loader_menu->closed_cb = closed_cb;
+    loader_menu->context = context;
+    loader_menu->selected_primary = LoaderMenuIndexApplications;
+    loader_menu->selected_setting = 0;
+    loader_menu->settings_only = settings_only;
+    loader_menu->current_view = settings_only ? LoaderMenuViewSettings : LoaderMenuViewPrimary;
+    loader_menu->loader = furi_record_open(RECORD_LOADER);
+
+    view_holder_set_back_callback(loader_menu->loader->view_holder, NULL, NULL);
+    view_holder_set_view(
+        loader_menu->loader->view_holder, loading_get_view(loader_menu->loader->loading));
+
+    loader_menu->subscription = furi_pubsub_subscribe(
+        loader_get_pubsub(loader_menu->loader), loader_pubsub_callback, loader_menu);
+
+    loader_menu->thread = furi_thread_alloc_ex(TAG, 2048, loader_menu_thread, loader_menu);
+    furi_thread_start(loader_menu->thread);
+    return loader_menu;
+}
+
+void loader_menu_free(LoaderMenu* loader_menu) {
+    furi_assert(loader_menu);
+
+    furi_pubsub_unsubscribe(loader_get_pubsub(loader_menu->loader), loader_menu->subscription);
+    furi_record_close(RECORD_LOADER);
+
+    if(loader_menu->thread) {
+        furi_thread_join(loader_menu->thread);
+        furi_thread_free(loader_menu->thread);
+    }
+
+    view_holder_set_view(loader_menu->loader->view_holder, NULL);
+
+    free(loader_menu);
+}
+
 typedef struct {
-    Gui* gui;
-    ViewDispatcher* view_dispatcher;
+    const char* name;
+    const Icon* icon;
+    const char* path;
+} MenuApp;
+
+LIST_DEF(MenuAppList, MenuApp, M_POD_OPLIST)
+#define M_OPL_MenuAppList_t() LIST_OPLIST(MenuAppList)
+
+typedef struct {
+    LoaderMenu* loader_menu;
     Menu* primary_menu;
     Submenu* settings_menu;
+    MenuAppList_t apps_list;
 } LoaderMenuApp;
 
 static void loader_menu_start(const char* name) {
     Loader* loader = furi_record_open(RECORD_LOADER);
-    loader_start_with_gui_error(loader, name, NULL);
+    loader_start_detached_with_gui_error(loader, name, NULL);
     furi_record_close(RECORD_LOADER);
 }
 
-static void loader_menu_callback(void* context, uint32_t index) {
+static void loader_menu_apps_callback(void* context, uint32_t index) {
+    LoaderMenuApp* app = context;
+    const MenuApp* menu_app = MenuAppList_get(app->apps_list, index);
+    const char* name = menu_app->path ? menu_app->path : menu_app->name;
+
+    if(menu_app->path && !strstr(menu_app->path, ".fap")) {
+        run_with_default_app(menu_app->path);
+    } else {
+        loader_menu_start(name);
+    }
+}
+
+static void loader_menu_last_callback(void* context, uint32_t index) {
+    UNUSED(index);
     UNUSED(context);
-    loader_menu_start((const char*)index);
+    const char* path = FLIPPER_EXTERNAL_APPS[FLIPPER_EXTERNAL_APPS_COUNT - 1].name;
+    loader_menu_start(path);
+}
+
+static void loader_menu_applications_callback(void* context, uint32_t index) {
+    UNUSED(index);
+    UNUSED(context);
+    const char* name = LOADER_APPLICATIONS_NAME;
+    loader_menu_start(name);
+}
+
+// Can't do this in GUI callbacks because now ViewHolder waits for ongoing
+// input, and inputs are not processed because GUI is processing callbacks
+static int32_t loader_menu_setting_pin_unpin_parallel(void* context) {
+    const char* name = context;
+    archive_favorites_handle_setting_pin_unpin(name, NULL);
+    return 0;
+}
+
+static void
+    loader_menu_settings_menu_callback(void* context, InputType input_type, uint32_t index) {
+    UNUSED(context);
+    const char* name = FLIPPER_SETTINGS_APPS[index].name;
+
+    if(input_type == InputTypeShort) {
+        // Workaround for SD format when app can't be opened
+        if(!strcmp(name, "Storage")) {
+            Storage* storage = furi_record_open(RECORD_STORAGE);
+            FS_Error status = storage_sd_status(storage);
+            furi_record_close(RECORD_STORAGE);
+            // If SD card not ready, cannot be formatted, so we want loader to give
+            // normal error message, with function below
+            if(status != FSE_NOT_READY) {
+                // Attempt to launch the app, and if failed offer to format SD card
+                run_parallel(loader_menu_storage_settings, storage, 512);
+                return;
+            }
+        }
+        loader_menu_start(name);
+    } else if(input_type == InputTypeLong) {
+        run_parallel(loader_menu_setting_pin_unpin_parallel, (void*)name, 512);
+    }
+}
+
+// Can't do this in GUI callbacks because now ViewHolder waits for ongoing
+// input, and inputs are not processed because GUI is processing callbacks
+static void loader_menu_set_view_pending(void* context, uint32_t arg) {
+    LoaderMenuApp* app = context;
+    view_holder_set_view(app->loader_menu->loader->view_holder, (View*)arg);
 }
 
 static void loader_menu_switch_to_settings(void* context, uint32_t index) {
     UNUSED(index);
     LoaderMenuApp* app = context;
-    view_dispatcher_switch_to_view(app->view_dispatcher, LoaderMenuViewSettings);
+    furi_timer_pending_callback(
+        loader_menu_set_view_pending, app, (uint32_t)submenu_get_view(app->settings_menu));
+    app->loader_menu->current_view = LoaderMenuViewSettings;
 }
 
-static uint32_t loader_menu_switch_to_primary(void* context) {
-    UNUSED(context);
-    return LoaderMenuViewPrimary;
-}
-
-static uint32_t loader_menu_exit(void* context) {
-    UNUSED(context);
-    return VIEW_NONE;
-}
-
-static void loader_menu_build_menu(LoaderMenuApp* app, LoaderMenu* menu) {
-    Loader* loader = furi_record_open(RECORD_LOADER);
-    MainMenuList_t* mainmenu_apps = loader_get_mainmenu_apps(loader);
-    furi_record_close(RECORD_LOADER);
-
-    // Apps from CFW Settings
-    for(size_t i = 0; i < MainMenuList_size(*mainmenu_apps); i++) {
-        const MainMenuApp* mainmenu_app = MainMenuList_get(*mainmenu_apps, i);
-
-        if(strcmp(mainmenu_app->name, LOADER_APPLICATIONS_NAME) == 0) {
-            menu_add_item(
-                app->primary_menu,
-                LOADER_APPLICATIONS_NAME,
-                &A_Plugins_14,
-                (uint32_t)LOADER_APPLICATIONS_NAME,
-                loader_menu_callback,
-                (void*)menu);
-        } else if(strcmp(mainmenu_app->name, "Settings") == 0) {
-            menu_add_item(
-                app->primary_menu,
-                "Settings",
-                &A_Settings_14,
-                (uint32_t) "Settings",
-                loader_menu_switch_to_settings,
-                app);
-        } else {
-            menu_add_item(
-                app->primary_menu,
-                mainmenu_app->name,
-                mainmenu_app->icon,
-                (uint32_t)mainmenu_app->path,
-                loader_menu_callback,
-                (void*)menu);
+static void loader_menu_back(void* context) {
+    LoaderMenuApp* app = context;
+    if(app->loader_menu->current_view == LoaderMenuViewSettings &&
+       !app->loader_menu->settings_only) {
+        furi_timer_pending_callback(
+            loader_menu_set_view_pending, app, (uint32_t)menu_get_view(app->primary_menu));
+        app->loader_menu->current_view = LoaderMenuViewPrimary;
+    } else {
+        furi_thread_flags_set(furi_thread_get_id(app->loader_menu->thread), 0);
+        if(app->loader_menu->closed_cb) {
+            app->loader_menu->closed_cb(app->loader_menu->context);
         }
     }
 }
 
-static void loader_menu_build_gamesmenu(LoaderMenuApp* app, LoaderMenu* menu) {
-    Loader* loader = furi_record_open(RECORD_LOADER);
-    GamesMenuList_t* gamesmenu_apps = loader_get_gamesmenu_apps(loader);
-    furi_record_close(RECORD_LOADER);
+static void loader_menu_add_app_entry(
+    LoaderMenuApp* app,
+    const char* name,
+    const Icon* icon,
+    const char* path) {
+    MenuAppList_push_back(app->apps_list, (MenuApp){name, icon, path});
+    menu_add_item(
+        app->primary_menu,
+        name,
+        icon,
+        MenuAppList_size(app->apps_list) - 1,
+        loader_menu_apps_callback,
+        app);
+}
 
-    // Game Apps from CFW Settings
-    for(size_t i = 0; i < GamesMenuList_size(*gamesmenu_apps); i++) {
-        const GamesMenuApp* gamesmenu_app = GamesMenuList_get(*gamesmenu_apps, i);
+static const Icon* loader_menu_get_ext_icon(Storage* storage, const char* path) {
+    if(storage_dir_exists(storage, path)) return &I_dir_10px;
+    const char* ext = strrchr(path, '.');
+    if(ext && strcasecmp(ext, ".js") == 0) return &I_js_script_10px;
 
-        menu_add_item(
-            app->primary_menu,
-            gamesmenu_app->name,
-            gamesmenu_app->icon,
-            (uint32_t)gamesmenu_app->path,
-            loader_menu_callback,
-            (void*)menu);
+    return &I_file_10px;
+}
+
+bool loader_menu_load_fap_meta(
+    Storage* storage,
+    FuriString* path,
+    FuriString* name,
+    const Icon** icon) {
+    *icon = NULL;
+    uint8_t* icon_buf = malloc(CUSTOM_ICON_MAX_SIZE);
+    if(!flipper_application_load_name_and_icon(path, storage, &icon_buf, name)) {
+        free(icon_buf);
+        icon_buf = NULL;
+        return false;
     }
+    *icon = malloc(sizeof(Icon));
+    FURI_CONST_ASSIGN((*icon)->frame_count, 1);
+    FURI_CONST_ASSIGN((*icon)->frame_rate, 1);
+    FURI_CONST_ASSIGN((*icon)->width, 10);
+    FURI_CONST_ASSIGN((*icon)->height, 10);
+    FURI_CONST_ASSIGN_PTR((*icon)->frames, malloc(sizeof(const uint8_t*)));
+    FURI_CONST_ASSIGN_PTR((*icon)->frames[0], icon_buf);
+    return true;
+}
+
+static void loader_menu_find_add_app(LoaderMenuApp* app, Storage* storage, FuriString* line) {
+    const char* name = NULL;
+    const Icon* icon = NULL;
+    const char* path = NULL;
+    if(furi_string_start_with(line, "/")) {
+        path = strdup(furi_string_get_cstr(line));
+        if(!loader_menu_load_fap_meta(storage, line, line, &icon)) {
+            icon = loader_menu_get_ext_icon(storage, path);
+        }
+        name = strdup(furi_string_get_cstr(line));
+    } else {
+        for(size_t i = 0; !name && i < FLIPPER_APPS_COUNT; i++) {
+            if(furi_string_equal(line, FLIPPER_APPS[i].name)) {
+                name = FLIPPER_APPS[i].name;
+                icon = FLIPPER_APPS[i].icon;
+            }
+        }
+        for(size_t i = 0; !name && i < FLIPPER_EXTERNAL_APPS_COUNT; i++) {
+            if(furi_string_equal(line, FLIPPER_EXTERNAL_APPS[i].name)) {
+                name = FLIPPER_EXTERNAL_APPS[i].name;
+                icon = FLIPPER_EXTERNAL_APPS[i].icon;
+            }
+        }
+    }
+    // Path only set for FAPs
+    if(name && icon) {
+        loader_menu_add_app_entry(app, name, icon, path);
+    }
+}
+
+static void loader_menu_build_menu(LoaderMenuApp* app, LoaderMenu* menu) {
+    menu_add_item(
+        app->primary_menu,
+        LOADER_APPLICATIONS_NAME,
+        &A_Plugins_14,
+        LoaderMenuIndexApplications,
+        loader_menu_applications_callback,
+        NULL);
+
+    MenuAppList_init(app->apps_list);
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    Stream* stream = file_stream_alloc(storage);
+    FuriString* line = furi_string_alloc();
+    uint32_t version;
+    if(file_stream_open(stream, MAINMENU_APPS_PATH, FSAM_READ, FSOM_OPEN_EXISTING) &&
+       stream_read_line(stream, line) &&
+       sscanf(furi_string_get_cstr(line), "MenuAppList Version %lu", &version) == 1 &&
+       version <= 1) {
+        while(stream_read_line(stream, line)) {
+            furi_string_trim(line);
+            if(version == 0) {
+                if(furi_string_equal(line, "RFID")) {
+                    furi_string_set(line, "125 kHz RFID");
+                } else if(furi_string_equal(line, "SubGHz")) {
+                    furi_string_set(line, "Sub-GHz");
+                } else if(furi_string_equal(line, "CFW")) {
+                    furi_string_set(line, "CFW Settings");
+                }
+            }
+            loader_menu_find_add_app(app, storage, line);
+        }
+    } else {
+        for(size_t i = 0; i < FLIPPER_APPS_COUNT; i++) {
+            loader_menu_add_app_entry(app, FLIPPER_APPS[i].name, FLIPPER_APPS[i].icon, NULL);
+        }
+        // Until count - 1 because last app is hardcoded below
+        for(size_t i = 0; i < FLIPPER_EXTERNAL_APPS_COUNT - 1; i++) {
+            loader_menu_add_app_entry(
+                app, FLIPPER_EXTERNAL_APPS[i].name, FLIPPER_EXTERNAL_APPS[i].icon, NULL);
+        }
+    }
+    furi_string_free(line);
+    stream_free(stream);
+    furi_record_close(RECORD_STORAGE);
+
+    const FlipperExternalApplication* last =
+        &FLIPPER_EXTERNAL_APPS[FLIPPER_EXTERNAL_APPS_COUNT - 1];
+    menu_add_item(
+        app->primary_menu,
+        last->name,
+        last->icon,
+        LoaderMenuIndexLast,
+        loader_menu_last_callback,
+        NULL);
+    menu_add_item(
+        app->primary_menu,
+        "Settings",
+        &A_Settings_14,
+        LoaderMenuIndexSettings,
+        loader_menu_switch_to_settings,
+        app);
+
+    menu_set_selected_item(app->primary_menu, menu->selected_primary);
 }
 
 static void loader_menu_build_submenu(LoaderMenuApp* app, LoaderMenu* loader_menu) {
     for(size_t i = 0; i < FLIPPER_SETTINGS_APPS_COUNT; i++) {
-        submenu_add_item(
+        submenu_add_item_ex(
             app->settings_menu,
             FLIPPER_SETTINGS_APPS[i].name,
-            (uint32_t)FLIPPER_SETTINGS_APPS[i].name,
-            loader_menu_callback,
-            loader_menu);
+            i,
+            loader_menu_settings_menu_callback,
+            NULL);
     }
-    for(size_t i = 0; i < FLIPPER_EXTSETTINGS_APPS_COUNT; i++) {
-        submenu_add_item(
-            app->settings_menu,
-            FLIPPER_EXTSETTINGS_APPS[i].name,
-            (uint32_t)FLIPPER_EXTSETTINGS_APPS[i].name,
-            loader_menu_callback,
-            loader_menu);
-    }
+    submenu_set_selected_item(app->settings_menu, loader_menu->selected_setting);
 }
 
 static LoaderMenuApp* loader_menu_app_alloc(LoaderMenu* loader_menu) {
     LoaderMenuApp* app = malloc(sizeof(LoaderMenuApp));
-    app->gui = furi_record_open(RECORD_GUI);
-    app->view_dispatcher = view_dispatcher_alloc();
-
-    Loader* loader = furi_record_open(RECORD_LOADER);
-    MainMenuList_t* mainmenu_apps = loader_get_mainmenu_apps(loader);
-    size_t APP_COUNT = MainMenuList_size(*mainmenu_apps);
-    furi_record_close(RECORD_LOADER);
-
-    uint32_t my_start_point = CLAMP(cfw_settings.start_point, APP_COUNT - 1, 0U);
-    app->primary_menu = menu_pos_alloc((size_t)my_start_point, false);
-    app->settings_menu = submenu_alloc();
-
-    loader_menu_build_menu(app, loader_menu);
-    loader_menu_build_submenu(app, loader_menu);
+    app->loader_menu = loader_menu;
 
     // Primary menu
-    View* primary_view = menu_get_view(app->primary_menu);
-    view_set_context(primary_view, app->primary_menu);
-    view_set_previous_callback(primary_view, loader_menu_exit);
-    view_dispatcher_add_view(app->view_dispatcher, LoaderMenuViewPrimary, primary_view);
+    if(!app->loader_menu->settings_only) {
+        app->primary_menu = menu_alloc();
+        loader_menu_build_menu(app, loader_menu);
+    }
 
     // Settings menu
-    View* settings_view = submenu_get_view(app->settings_menu);
-    view_set_context(settings_view, app->settings_menu);
-    view_set_previous_callback(settings_view, loader_menu_switch_to_primary);
-    view_dispatcher_add_view(app->view_dispatcher, LoaderMenuViewSettings, settings_view);
+    app->settings_menu = submenu_alloc();
+    loader_menu_build_submenu(app, loader_menu);
 
-    view_dispatcher_enable_queue(app->view_dispatcher);
-    view_dispatcher_switch_to_view(app->view_dispatcher, LoaderMenuViewPrimary);
-
-    return app;
-}
-
-static LoaderMenuApp* loader_gamesmenu_app_alloc(LoaderMenu* loader_menu) {
-    LoaderMenuApp* app = malloc(sizeof(LoaderMenuApp));
-    app->gui = furi_record_open(RECORD_GUI);
-    app->view_dispatcher = view_dispatcher_alloc();
-
-    Loader* loader = furi_record_open(RECORD_LOADER);
-    GamesMenuList_t* gamemenu_apps = loader_get_gamesmenu_apps(loader);
-    size_t APP_COUNT = GamesMenuList_size(*gamemenu_apps);
-    furi_record_close(RECORD_LOADER);
-
-    uint32_t my_start_point = CLAMP(cfw_settings.game_start_point, APP_COUNT - 1, 0U);
-    app->primary_menu = menu_pos_alloc((size_t)my_start_point, true);
-    loader_menu_build_gamesmenu(app, loader_menu);
-
-    // Primary menu
-    View* primary_view = menu_get_view(app->primary_menu);
-    view_set_context(primary_view, app->primary_menu);
-    view_set_previous_callback(primary_view, loader_menu_exit);
-    view_dispatcher_add_view(app->view_dispatcher, LoaderMenuViewPrimary, primary_view);
-
-    view_dispatcher_enable_queue(app->view_dispatcher);
-    view_dispatcher_switch_to_view(app->view_dispatcher, LoaderMenuViewPrimary);
+    View* view = app->loader_menu->current_view == LoaderMenuViewSettings ?
+                     submenu_get_view(app->settings_menu) :
+                     menu_get_view(app->primary_menu);
+    view_holder_set_view(app->loader_menu->loader->view_holder, view);
+    view_holder_set_back_callback(app->loader_menu->loader->view_holder, loader_menu_back, app);
 
     return app;
 }
 
 static void loader_menu_app_free(LoaderMenuApp* app) {
-    view_dispatcher_remove_view(app->view_dispatcher, LoaderMenuViewPrimary);
-    view_dispatcher_remove_view(app->view_dispatcher, LoaderMenuViewSettings);
-    view_dispatcher_free(app->view_dispatcher);
+    view_holder_set_back_callback(app->loader_menu->loader->view_holder, NULL, NULL);
+    view_holder_set_view(
+        app->loader_menu->loader->view_holder,
+        loading_get_view(app->loader_menu->loader->loading));
 
-    menu_free(app->primary_menu);
+    if(!app->loader_menu->settings_only) {
+        app->loader_menu->selected_primary = menu_get_selected_item(app->primary_menu);
+        menu_free(app->primary_menu);
+        for
+            M_EACH(menu_app, app->apps_list, MenuAppList_t) {
+                // Path only set for FAPs, if unset then name and
+                // icon point to flash and must not be freed
+                if(menu_app->path) {
+                    free((void*)menu_app->name);
+                    free((void*)menu_app->icon->frames[0]);
+                    free((void*)menu_app->icon->frames);
+                    free((void*)menu_app->icon);
+                    free((void*)menu_app->path);
+                }
+            }
+        MenuAppList_clear(app->apps_list);
+    }
+    app->loader_menu->selected_setting = app->loader_menu->current_view == LoaderMenuViewSettings ?
+                                             submenu_get_selected_item(app->settings_menu) :
+                                             0;
     submenu_free(app->settings_menu);
-    furi_record_close(RECORD_GUI);
-    free(app);
-}
 
-static void loader_gamesmenu_app_free(LoaderMenuApp* app) {
-    view_dispatcher_remove_view(app->view_dispatcher, LoaderMenuViewPrimary);
-    view_dispatcher_free(app->view_dispatcher);
-
-    menu_free(app->primary_menu);
-    furi_record_close(RECORD_GUI);
     free(app);
 }
 
@@ -246,32 +428,9 @@ static int32_t loader_menu_thread(void* p) {
 
     LoaderMenuApp* app = loader_menu_app_alloc(loader_menu);
 
-    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
-    view_dispatcher_run(app->view_dispatcher);
-
-    if(loader_menu->closed_cb) {
-        loader_menu->closed_cb(loader_menu->context);
-    }
+    furi_thread_flags_wait(0, FuriFlagWaitAll, FuriWaitForever);
 
     loader_menu_app_free(app);
-
-    return 0;
-}
-
-static int32_t loader_gamesmenu_thread(void* p) {
-    LoaderMenu* loader_menu = p;
-    furi_assert(loader_menu);
-
-    LoaderMenuApp* app = loader_gamesmenu_app_alloc(loader_menu);
-
-    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
-    view_dispatcher_run(app->view_dispatcher);
-
-    if(loader_menu->closed_cb) {
-        loader_menu->closed_cb(loader_menu->context);
-    }
-
-    loader_gamesmenu_app_free(app);
 
     return 0;
 }

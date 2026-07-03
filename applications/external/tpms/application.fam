@@ -6,12 +6,12 @@ App(
     entry_point="tpms_app",
     stack_size=4 * 1024,
     fap_icon="tpms_10px.png",
-    fap_category="Sub-GHz",
     fap_icon_assets="images",
     fap_icon_assets_symbol="tpms",
+    fap_category="Sub-GHz",
     fap_author="wosk",
     fap_weburl="https://github.com/wosk/flipperzero-tpms",
-    fap_version="0.2",
-    fap_description="Tire Pressure Monintoring System application for Flipper Zero. Read TPMS sensors. Relearn by 125kHz signal",
+    fap_version="1.0",
+    fap_description="Use SubGHz and RFID to read or activate TPMS sensors. Tire Pressure Monintoring System application for Flipper Zero. Read TPMS sensors. Relearn by 125kHz signal.",
     #   v0.2: [Add Schrader SMD3MA4, Schrader EG53MA4, and Abarth 124 (By mslocrian)](https://github.com/wosk/flipperzero-tpms/pull/26)
 )

@@ -215,7 +215,6 @@ bool unitemp_onewire_scan(OneWireSensor* ow_sensor) {
         }
     } while(0);
 
-    unitemp_onewire_bus_strong_mode(ow_sensor->bus, false);
     unitemp_onewire_bus_deinit(ow_sensor->bus);
     if(id == NULL) return false;
 

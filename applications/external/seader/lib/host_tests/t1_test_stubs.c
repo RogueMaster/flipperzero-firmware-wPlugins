@@ -29,3 +29,19 @@ void seader_worker_send_version(Seader* seader) {
     (void)seader;
     g_t1_host_test_state.send_version_call_count++;
 }
+
+void seader_abort_active_read_with_reason(
+    Seader* seader,
+    SeaderHfReadFailureReason reason,
+    const char* detail) {
+    g_t1_host_test_state.abort_call_count++;
+    seader->hf_read_failure_reason = reason;
+    if(detail && detail[0] != '\0') {
+        strncpy(seader->read_error, detail, sizeof(seader->read_error) - 1U);
+    } else {
+        strncpy(
+            seader->read_error,
+            seader_hf_read_failure_reason_text(reason),
+            sizeof(seader->read_error) - 1U);
+    }
+}

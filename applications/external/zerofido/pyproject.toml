@@ -1,0 +1,12 @@
+[project]
+name = "zerofido"
+version = "0.7.0"
+license = "GPL-3.0-or-later"
+requires-python = ">=3.14"
+dependencies = [
+    "cbor2>=5.6.5",
+    "cryptography>=44.0.2",
+    "hidapi>=0.15.0",
+    "pyserial>=3.5",
+    "ufbt>=0.2.6",
+]

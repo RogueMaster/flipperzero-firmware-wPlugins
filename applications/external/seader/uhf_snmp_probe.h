@@ -11,6 +11,8 @@ typedef enum {
     SeaderUhfSnmpProbeStageIdle = 0,
     SeaderUhfSnmpProbeStageDiscovery,
     SeaderUhfSnmpProbeStageReadIce,
+    SeaderUhfSnmpProbeStageReadStandardEncryptionKey,
+    SeaderUhfSnmpProbeStageReadStandardSignatureKey,
     SeaderUhfSnmpProbeStageReadTagConfig,
     SeaderUhfSnmpProbeStageReadMonza4QtKey,
     SeaderUhfSnmpProbeStageReadHiggs3Key,
@@ -22,6 +24,9 @@ typedef struct {
     SeaderUhfSnmpProbeStage stage;
     uint32_t usm_engine_boots;
     uint32_t usm_engine_time;
+    bool standard_pacs_keys_probed;
+    bool standard_encryption_key_present;
+    bool standard_signature_key_present;
     bool has_monza4qt;
     bool has_higgs3;
     bool monza4qt_key_present;
@@ -32,6 +37,7 @@ typedef struct {
     size_t usm_username_len;
     uint8_t ice_value_storage[SEADER_UHF_SNMP_MAX_VALUE_LEN];
     size_t ice_value_len;
+    bool supports_uhf;
 } SeaderUhfSnmpProbe;
 
 void seader_uhf_snmp_probe_init(SeaderUhfSnmpProbe* probe);
@@ -54,3 +60,5 @@ bool seader_uhf_snmp_probe_consume_error(
     uint32_t error_code,
     const uint8_t* data,
     size_t data_len);
+
+bool seader_uhf_snmp_probe_standard_pacs_keys_present(const SeaderUhfSnmpProbe* probe);

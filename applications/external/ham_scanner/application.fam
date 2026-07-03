@@ -1,0 +1,14 @@
+App(
+    appid="ham_scanner",
+    name="HAM Scanner",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ham_scanner_app",
+    stack_size=2 * 1024,
+    fap_icon_assets="assets",
+    fap_icon="icons/ham_scanner.png",
+    fap_category="Sub-GHz",
+    fap_author="Clawzman",
+    fap_weburl="https://github.com/Clawzman/Flipper-HAM-Scanner",
+    fap_version="1.1",
+    fap_description="HAM Scanner for Flipper",
+)

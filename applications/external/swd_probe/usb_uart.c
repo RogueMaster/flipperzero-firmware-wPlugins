@@ -7,7 +7,7 @@
 #include "usb_cdc.h"
 #include "cli/cli_vcp.h"
 #include <toolbox/api_lock.h>
-#include "cli/cli.h"
+#include <cli/cli.h>
 
 #define USB_CDC_PKT_LEN      CDC_DATA_SZ
 #define USB_UART_RX_BUF_SIZE (USB_CDC_PKT_LEN * 5)
@@ -49,22 +49,21 @@ static const CdcCallbacks cdc_cb = {
     .state_callback = &vcp_state_callback,
     .ctrl_line_callback = &vcp_on_cdc_control_line,
     .config_callback = &vcp_on_line_config,
-    .break_callback = NULL,
 };
 
 static void usb_uart_vcp_init(UsbUart* usb_uart, uint8_t vcp_ch) {
     furi_hal_usb_unlock();
 
-    Cli* cli = furi_record_open(RECORD_CLI);
-    cli_session_close(cli);
+    CliVcp* cli_vcp = furi_record_open(RECORD_CLI_VCP);
+    cli_vcp_disable(cli_vcp);
 
     if(vcp_ch == 0) {
         furi_check(furi_hal_usb_set_config(&usb_cdc_single, NULL) == true);
     } else {
         furi_check(furi_hal_usb_set_config(&usb_cdc_dual, NULL) == true);
-        cli_session_open(cli, &cli_vcp);
+        cli_vcp_enable(cli_vcp);
     }
-    furi_record_close(RECORD_CLI);
+    furi_record_close(RECORD_CLI_VCP);
     furi_hal_cdc_set_callbacks(vcp_ch, (CdcCallbacks*)&cdc_cb, usb_uart);
 }
 
@@ -72,9 +71,9 @@ static void usb_uart_vcp_deinit(UsbUart* usb_uart, uint8_t vcp_ch) {
     UNUSED(usb_uart);
     furi_hal_cdc_set_callbacks(vcp_ch, NULL, NULL);
     if(vcp_ch != 0) {
-        Cli* cli = furi_record_open(RECORD_CLI);
-        cli_session_close(cli);
-        furi_record_close(RECORD_CLI);
+        CliVcp* cli_vcp = furi_record_open(RECORD_CLI_VCP);
+        cli_vcp_disable(cli_vcp);
+        furi_record_close(RECORD_CLI_VCP);
     }
 }
 
@@ -159,9 +158,9 @@ static int32_t usb_uart_worker(void* context) {
 
     furi_hal_usb_unlock();
     furi_check(furi_hal_usb_set_config(&usb_cdc_single, NULL) == true);
-    Cli* cli = furi_record_open(RECORD_CLI);
-    cli_session_open(cli, &cli_vcp);
-    furi_record_close(RECORD_CLI);
+    CliVcp* cli_vcp = furi_record_open(RECORD_CLI_VCP);
+    cli_vcp_enable(cli_vcp);
+    furi_record_close(RECORD_CLI_VCP);
 
     return 0;
 }

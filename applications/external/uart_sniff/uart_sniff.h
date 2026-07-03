@@ -94,8 +94,8 @@ typedef struct {
     FuriHalSerialId serial_id; /* USART or LPUART */
     UartSniffShow show_mode;
 
-    /* State */
-    bool sniffing;
+    /* State — volatile: GUI thread writes, timer daemon reads */
+    volatile bool sniffing;
 } UartSniffApp;
 
 /* -----------------------------------------------------------------------

@@ -5,6 +5,7 @@
 #include <lib/subghz/devices/cc1101_int/cc1101_int_interconnect.h>
 #include <furi.h>
 #include <furi_hal.h>
+#include "../defines.h"
 
 #define TAG "RadioDeviceLoader"
 

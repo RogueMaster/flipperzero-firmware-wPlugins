@@ -11090,7 +11090,6 @@ static bool simple_app_portal_run_text_input(SimpleApp* app) {
     previous_ssid[sizeof(previous_ssid) - 1] = '\0';
 
     ViewDispatcher* dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(dispatcher);
     if(!dispatcher) return false;
 
     TextInput* text_input = text_input_alloc();

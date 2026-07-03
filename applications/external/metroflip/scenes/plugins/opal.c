@@ -3,16 +3,9 @@
  *
  * Copyright 2023 Michael Farrell <micolous+git@gmail.com>
  *
- * This will only read "standard" MIFARE DESFire-based Opal cards. Free travel
- * cards (including School Opal cards, veteran, vision-impaired persons and
- * TfNSW employees' cards) and single-trip tickets are MIFARE Ultralight C
- * cards and not supported.
+ * This will only read "standard" MIFARE DESFire-based Opal cards.
  *
  * Reference: https://github.com/metrodroid/metrodroid/wiki/Opal
- *
- * Note: The card values are all little-endian (like Flipper), but the above
- * reference was originally written based on Java APIs, which are big-endian.
- * This implementation presumes a little-endian system.
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by
@@ -48,18 +41,19 @@ static const MfDesfireFileId opal_file_id = 0x07;
 static const char* opal_modes[5] =
     {"Rail / Metro", "Ferry / Light Rail", "Bus", "Unknown mode", "Manly Ferry"};
 
+// Strings kept <= 31 chars (METROFLIP_CARD_VIEW_VALUE_LEN - 1).
 static const char* opal_usages[14] = {
     "New / Unused",
     "Tap on: new journey",
-    "Tap on: transfer from same mode",
-    "Tap on: transfer from other mode",
-    NULL, // Manly Ferry: new journey
-    NULL, // Manly Ferry: transfer from ferry
-    NULL, // Manly Ferry: transfer from other
+    "Tap on: transfer same mode",
+    "Tap on: transfer other mode",
+    NULL,
+    NULL,
+    NULL,
     "Tap off: distance fare",
     "Tap off: flat fare",
-    "Automated tap off: failed to tap off",
-    "Tap off: end of trip without start",
+    "Auto tap off: failed to tap off",
+    "Tap off: trip without start",
     "Tap off: reversal",
     "Tap on: rejected",
     "Unknown usage",
@@ -83,134 +77,119 @@ typedef struct FURI_PACKED {
 
 static_assert(sizeof(OpalFile) == 16, "OpalFile");
 
-// Converts an Opal timestamp to DateTime.
-//
-// Opal measures days since 1980-01-01 and minutes since midnight, and presumes
-// all days are 1440 minutes.
 static void opal_days_minutes_to_datetime(uint16_t days, uint16_t minutes, DateTime* out) {
     out->year = 1980;
     out->month = 1;
-    // 1980-01-01 is a Tuesday
     out->weekday = ((days + 1) % 7) + 1;
     out->hour = minutes / 60;
     out->minute = minutes % 60;
     out->second = 0;
 
-    // What year is it?
     for(;;) {
         const uint16_t num_days_in_year = datetime_get_days_per_year(out->year);
         if(days < num_days_in_year) break;
         days -= num_days_in_year;
         out->year++;
     }
-
-    // 1-index the day of the year
     days++;
-
     for(;;) {
-        // What month is it?
         const bool is_leap = datetime_is_leap_year(out->year);
         const uint8_t num_days_in_month = datetime_get_days_per_month(is_leap, out->month);
         if(days <= num_days_in_month) break;
         days -= num_days_in_month;
         out->month++;
     }
-
     out->day = days;
 }
-bool opal_parse(const MfDesfireData* data, FuriString* parsed_data) {
-    furi_assert(parsed_data);
 
-    bool parsed = false;
+static bool opal_display_card_view(const MfDesfireData* data, Metroflip* app, bool from_file) {
+    const MfDesfireApplication* mf_app = mf_desfire_get_application(data, &opal_app_id);
+    if(mf_app == NULL) return false;
 
-    do {
-        const MfDesfireApplication* app = mf_desfire_get_application(data, &opal_app_id);
-        if(app == NULL) break;
+    const MfDesfireFileSettings* file_settings =
+        mf_desfire_get_file_settings(mf_app, &opal_file_id);
+    if(file_settings == NULL || file_settings->type != MfDesfireFileTypeStandard ||
+       file_settings->data.size != sizeof(OpalFile))
+        return false;
 
-        const MfDesfireFileSettings* file_settings =
-            mf_desfire_get_file_settings(app, &opal_file_id);
-        if(file_settings == NULL || file_settings->type != MfDesfireFileTypeStandard ||
-           file_settings->data.size != sizeof(OpalFile))
-            break;
+    const MfDesfireFileData* file_data = mf_desfire_get_file_data(mf_app, &opal_file_id);
+    if(file_data == NULL) return false;
 
-        const MfDesfireFileData* file_data = mf_desfire_get_file_data(app, &opal_file_id);
-        if(file_data == NULL) break;
+    const OpalFile* opal = simple_array_cget_data(file_data->data);
 
-        const OpalFile* opal_file = simple_array_cget_data(file_data->data);
+    if(opal->check_digit > 9) return false;
 
-        const uint8_t serial2 = opal_file->serial / 10000000;
-        const uint16_t serial3 = (opal_file->serial / 1000) % 10000;
-        const uint16_t serial4 = (opal_file->serial % 1000);
+    /* Card view setup */
+    View* view = metroflip_card_view_alloc(app);
+    metroflip_card_view_set_title(view, "Opal");
 
-        if(opal_file->check_digit > 9) break;
+    char val[METROFLIP_CARD_VIEW_VALUE_LEN];
 
-        // Negative balance. Make this a positive value again and record the
-        // sign separately, because then we can handle balances of -99..-1
-        // cents, as the "dollars" division below would result in a positive
-        // zero value.
-        const bool is_negative_balance = (opal_file->balance < 0);
-        const char* sign = is_negative_balance ? "-" : "";
-        const int32_t balance = is_negative_balance ? labs(opal_file->balance) : //-V1081
-                                                      opal_file->balance;
-        const uint8_t balance_cents = balance % 100;
-        const int32_t balance_dollars = balance / 100;
+    /* ── Page: Card Info ── */
+    uint8_t p = metroflip_card_view_add_page(view, "Card Info");
 
-        DateTime timestamp;
-        opal_days_minutes_to_datetime(opal_file->days, opal_file->minutes, &timestamp);
+    const uint8_t s2 = opal->serial / 10000000;
+    const uint16_t s3 = (opal->serial / 1000) % 10000;
+    const uint16_t s4 = opal->serial % 1000;
+    snprintf(val, sizeof(val), "3085 22%02u %04u %03u%u", s2, s3, s4, opal->check_digit);
+    metroflip_card_view_add_field(view, p, "Serial", val, false);
 
-        // Usages 4..6 associated with the Manly Ferry, which correspond to
-        // usages 1..3 for other modes.
-        const bool is_manly_ferry = (opal_file->usage >= 4) && (opal_file->usage <= 6);
+    const bool neg = (opal->balance < 0);
+    const int32_t abs_bal = neg ? labs(opal->balance) : opal->balance;
+    snprintf(
+        val,
+        sizeof(val),
+        "%s$%ld.%02u",
+        neg ? "-" : "",
+        (long)(abs_bal / 100),
+        (unsigned)(abs_bal % 100));
+    metroflip_card_view_add_field(view, p, "Balance", val, true);
 
-        // 3..7 are "reserved", but we use 4 to indicate the Manly Ferry.
-        const uint8_t mode = is_manly_ferry ? 4 : opal_file->mode;
-        const uint8_t usage = is_manly_ferry ? opal_file->usage - 3 : opal_file->usage;
+    metroflip_card_view_add_field(view, p, "Status", opal->blocked ? "Blocked" : "Active", false);
 
-        const char* mode_str = opal_modes[mode > 4 ? 3 : mode];
-        const char* usage_str = opal_usages[usage > 12 ? 13 : usage];
+    metroflip_card_view_add_field(
+        view, p, "Auto Top-up", opal->auto_topup ? "Enabled" : "Disabled", false);
 
-        furi_string_printf(
-            parsed_data,
-            "\e#Opal: $%s%ld.%02hu\nNo.: 3085 22%02hhu %04hu %03hu%01hhu\n%s, %s\n",
-            sign,
-            balance_dollars,
-            balance_cents,
-            serial2,
-            serial3,
-            serial4,
-            opal_file->check_digit,
-            mode_str,
-            usage_str);
+    /* ── Page: Last Activity ── */
+    p = metroflip_card_view_add_page(view, "Last Activity");
 
-        FuriString* timestamp_str = furi_string_alloc();
+    const bool is_manly = (opal->usage >= 4) && (opal->usage <= 6);
+    const uint8_t mode = is_manly ? 4 : opal->mode;
+    const uint8_t usage = is_manly ? opal->usage - 3 : opal->usage;
 
-        locale_format_date(timestamp_str, &timestamp, locale_get_date_format(), "-");
-        furi_string_cat(parsed_data, timestamp_str);
-        furi_string_cat(parsed_data, " at ");
+    metroflip_card_view_add_field(view, p, "Mode", opal_modes[mode > 4 ? 3 : mode], false);
 
-        locale_format_time(timestamp_str, &timestamp, locale_get_time_format(), false);
-        furi_string_cat(parsed_data, timestamp_str);
+    const char* usage_str = opal_usages[usage > 12 ? 13 : usage];
+    if(usage_str) {
+        metroflip_card_view_add_field(view, p, "Action", usage_str, false);
+    }
 
-        furi_string_free(timestamp_str);
+    DateTime ts;
+    opal_days_minutes_to_datetime(opal->days, opal->minutes, &ts);
+    FuriString* ds = furi_string_alloc();
+    locale_format_date(ds, &ts, locale_get_date_format(), "-");
+    FuriString* ts_str = furi_string_alloc();
+    locale_format_time(ts_str, &ts, locale_get_time_format(), false);
+    snprintf(val, sizeof(val), "%s %s", furi_string_get_cstr(ds), furi_string_get_cstr(ts_str));
+    furi_string_free(ds);
+    furi_string_free(ts_str);
+    metroflip_card_view_add_field(view, p, "When", val, false);
 
-        furi_string_cat_printf(
-            parsed_data,
-            "\nWeekly journeys: %hhu, Txn #%hu\n",
-            opal_file->weekly_journeys,
-            opal_file->txn_number);
+    snprintf(val, sizeof(val), "%u", opal->weekly_journeys);
+    metroflip_card_view_add_field(view, p, "Wk Trips", val, false);
 
-        if(opal_file->auto_topup) {
-            furi_string_cat_str(parsed_data, "Auto-topup enabled\n");
-        }
+    snprintf(val, sizeof(val), "%u", opal->txn_number);
+    metroflip_card_view_add_field(view, p, "Txn Number", val, false);
 
-        if(opal_file->blocked) {
-            furi_string_cat_str(parsed_data, "Card blocked\n");
-        }
+    /* Buttons */
+    if(from_file) {
+        metroflip_card_view_set_delete(view, true);
+    } else {
+        metroflip_card_view_set_save(view, true);
+    }
 
-        parsed = true;
-    } while(false);
-
-    return parsed;
+    metroflip_card_view_show(app);
+    return true;
 }
 
 static NfcCommand opal_poller_callback(NfcGenericEvent event, void* context) {
@@ -219,32 +198,16 @@ static NfcCommand opal_poller_callback(NfcGenericEvent event, void* context) {
     Metroflip* app = context;
     NfcCommand command = NfcCommandContinue;
 
-    FuriString* parsed_data = furi_string_alloc();
-    Widget* widget = app->widget;
-    furi_string_reset(app->text_box_store);
     const MfDesfirePollerEvent* mf_desfire_event = event.event_data;
     if(mf_desfire_event->type == MfDesfirePollerEventTypeReadSuccess) {
         nfc_device_set_data(
             app->nfc_device, NfcProtocolMfDesfire, nfc_poller_get_data(app->poller));
-        const MfDesfireData* data = nfc_device_get_data(app->nfc_device, NfcProtocolMfDesfire);
-        if(!opal_parse(data, parsed_data)) {
-            furi_string_reset(app->text_box_store);
-            FURI_LOG_I(TAG, "Unknown card type");
-            furi_string_printf(parsed_data, "\e#Unknown card\n");
-        }
-        widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
-
-        widget_add_button_element(
-            widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-        widget_add_button_element(
-            widget, GuiButtonTypeCenter, "Save", metroflip_save_widget_callback, app);
-
-        furi_string_free(parsed_data);
-        view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
-        metroflip_app_blink_stop(app);
+        /* Hand off to the main thread - building/registering/switching the
+           card view must not happen on the NFC worker thread. */
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
         command = NfcCommandStop;
     } else if(mf_desfire_event->type == MfDesfirePollerEventTypeReadFailed) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerSuccess);
+        view_dispatcher_send_custom_event(app->view_dispatcher, MetroflipCustomEventPollerFail);
         command = NfcCommandContinue;
     }
 
@@ -258,30 +221,37 @@ static void opal_on_enter(Metroflip* app) {
         Storage* storage = furi_record_open(RECORD_STORAGE);
         FlipperFormat* ff = flipper_format_file_alloc(storage);
         if(flipper_format_file_open_existing(ff, app->file_path)) {
-            mf_desfire_load(app->mfdes_data, ff, 2);
-            FuriString* parsed_data = furi_string_alloc();
+            MfDesfireData* data = mf_desfire_alloc();
+            mf_desfire_load(data, ff, 2);
+
+            if(!opal_display_card_view(data, app, true)) {
+                Widget* widget = app->widget;
+                FuriString* s = furi_string_alloc_set("\e#Unknown card\n");
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                furi_string_free(s);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+            }
+
+            mf_desfire_free(data);
+        } else {
+            FURI_LOG_E(TAG, "Failed to open saved file: %s", app->file_path);
             Widget* widget = app->widget;
-
-            furi_string_reset(app->text_box_store);
-            opal_parse(app->mfdes_data, parsed_data);
             widget_add_text_scroll_element(
-                widget, 0, 0, 128, 64, furi_string_get_cstr(parsed_data));
-
+                widget, 0, 0, 128, 64, "\e#Error\nFailed to open\nsaved file.");
             widget_add_button_element(
                 widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
-            widget_add_button_element(
-                widget, GuiButtonTypeCenter, "Delete", metroflip_delete_widget_callback, app);
-            furi_string_free(parsed_data);
             view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
         }
         flipper_format_free(ff);
+        furi_record_close(RECORD_STORAGE);
     } else {
-        // Setup view
         Popup* popup = app->popup;
-        popup_set_header(popup, "Apply\n card to\nthe back", 68, 30, AlignLeft, AlignTop);
+        popup_set_header(
+            popup, "Scanning...\nApply card\nto the back", 68, 30, AlignLeft, AlignTop);
         popup_set_icon(popup, 0, 3, &I_RFIDDolphinReceive_97x61);
 
-        // Start worker
         view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewPopup);
         app->poller = nfc_poller_alloc(app->nfc, NfcProtocolMfDesfire);
         nfc_poller_start(app->poller, opal_poller_callback, app);
@@ -294,21 +264,35 @@ static bool opal_on_event(Metroflip* app, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == MetroflipCustomEventCardDetected) {
+        if(event.event == MetroflipCustomEventPollerSuccess) {
+            /* Read finished on the worker thread; build the card view here on
+               the main/GUI thread. */
+            metroflip_app_blink_stop(app);
+            const MfDesfireData* data = nfc_device_get_data(app->nfc_device, NfcProtocolMfDesfire);
+            if(!opal_display_card_view(data, app, false)) {
+                FURI_LOG_I(TAG, "Unknown card type");
+                Widget* widget = app->widget;
+                widget_add_text_scroll_element(widget, 0, 0, 128, 64, "\e#Unknown card\n");
+                widget_add_button_element(
+                    widget, GuiButtonTypeRight, "Exit", metroflip_exit_widget_callback, app);
+                view_dispatcher_switch_to_view(app->view_dispatcher, MetroflipViewWidget);
+            }
+            consumed = true;
+        } else if(event.event == MetroflipCustomEventCardDetected) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "DON'T\nMOVE", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card found!\nDon't move...", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventCardLost) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Card \n lost", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Card lost!\nTry again", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventWrongCard) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "WRONG \n CARD", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Wrong card", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         } else if(event.event == MetroflipCustomEventPollerFail) {
             Popup* popup = app->popup;
-            popup_set_header(popup, "Failed", 68, 30, AlignLeft, AlignTop);
+            popup_set_header(popup, "Read failed", 68, 30, AlignLeft, AlignTop);
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
@@ -321,10 +305,13 @@ static bool opal_on_event(Metroflip* app, SceneManagerEvent event) {
 
 static void opal_on_exit(Metroflip* app) {
     widget_reset(app->widget);
+    popup_reset(app->popup);
     metroflip_app_blink_stop(app);
+
     if(app->poller && !app->data_loaded) {
         nfc_poller_stop(app->poller);
         nfc_poller_free(app->poller);
+        app->poller = NULL;
     }
 }
 
@@ -334,7 +321,6 @@ static const MetroflipPlugin opal_plugin = {
     .plugin_on_enter = opal_on_enter,
     .plugin_on_event = opal_on_event,
     .plugin_on_exit = opal_on_exit,
-
 };
 
 /* Plugin descriptor to comply with basic plugin specification */

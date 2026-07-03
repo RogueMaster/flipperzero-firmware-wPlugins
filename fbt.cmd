@@ -9,6 +9,7 @@ if [%FBT_NO_SYNC%] == [] (
         set _FBT_CLONE_FLAGS=%_FBT_CLONE_FLAGS% --depth 1
     )
     if exist ".git" (
+        git submodule --quiet sync --recursive
         git submodule update --init --recursive %_FBT_CLONE_FLAGS%
         if %ERRORLEVEL% neq 0 (
             echo Failed to update submodules, set FBT_NO_SYNC to skip

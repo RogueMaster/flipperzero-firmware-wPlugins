@@ -1,7 +1,5 @@
 #include "xremote.h"
 
-#include <infrared/infrared_settings.h>
-
 bool xremote_custom_event_callback(void* context, uint32_t event) {
     furi_assert(context);
     XRemote* app = context;
@@ -31,7 +29,6 @@ XRemote* xremote_app_alloc() {
 
     //Scene additions
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     app->scene_manager = scene_manager_alloc(&xremote_scene_handlers, app);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
@@ -224,8 +221,6 @@ static void xremote_ir_load_settings(XRemote* app) {
 }
 
 int32_t xremote_app(void* p) {
-    bool otg_was_enabled = furi_hal_power_is_otg_enabled();
-
     XRemote* app = xremote_app_alloc();
 
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
@@ -237,49 +232,20 @@ int32_t xremote_app(void* p) {
     storage_common_mkdir(storage, XREMOTE_APP_FOLDER);
     furi_record_close(RECORD_STORAGE);
 
-    if(strcmp(subghz_txrx_radio_device_get_name(app->subghz->txrx), "cc1101_ext") != 0) {
-        InfraredSettings settings = {0};
-        infrared_settings_load(&settings);
-        if(settings.tx_pin < FuriHalInfraredTxPinMax) {
-            furi_hal_infrared_set_tx_output(settings.tx_pin);
-            if(settings.otg_enabled != otg_was_enabled) {
-                if(settings.otg_enabled) {
-                    furi_hal_power_enable_otg();
-                } else {
-                    furi_hal_power_disable_otg();
-                }
-            }
-        } else {
-            FuriHalInfraredTxPin tx_pin_detected = furi_hal_infrared_detect_tx_output();
-            furi_hal_infrared_set_tx_output(tx_pin_detected);
-            if(tx_pin_detected != FuriHalInfraredTxPinInternal) {
-                furi_hal_power_enable_otg();
-            }
-        }
-        //bool loadFavorite = false;
-        if(p && strlen(p)) {
-            furi_string_set_str(app->file_path, p);
-            app->loadFavorite = xremote_cross_remote_load(app->cross_remote, app->file_path);
-        }
-        if(app->loadFavorite) {
-            scene_manager_next_scene(
-                app->scene_manager, XRemoteSceneTransmit); //if you loaded from Favorites
-        } else {
-            scene_manager_next_scene(
-                app->scene_manager, XRemoteSceneMenu); //if you want to directly start with Menu
-        }
+    //bool loadFavorite = false;
+    if(p && strlen(p)) {
+        furi_string_set_str(app->file_path, p);
+        app->loadFavorite = xremote_cross_remote_load(app->cross_remote, app->file_path);
+    }
+    if(app->loadFavorite) {
+        scene_manager_next_scene(
+            app->scene_manager, XRemoteSceneTransmit); //if you loaded from Favorites
+    } else {
+        scene_manager_next_scene(
+            app->scene_manager, XRemoteSceneMenu); //if you want to directly start with Menu
     }
 
     view_dispatcher_run(app->view_dispatcher);
-
-    furi_hal_infrared_set_tx_output(FuriHalInfraredTxPinInternal);
-    if(furi_hal_power_is_otg_enabled() != otg_was_enabled) {
-        if(otg_was_enabled) {
-            furi_hal_power_enable_otg();
-        } else {
-            furi_hal_power_disable_otg();
-        }
-    }
 
     xremote_save_settings(app);
     furi_hal_power_suppress_charge_exit();

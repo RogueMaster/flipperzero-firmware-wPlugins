@@ -97,15 +97,13 @@ Scripts are plain text files with the `.ds` extension.
 
 ## OS Detection
 
-BadUSB Pro uses a three-phase USB LED heuristic — no keystrokes reach the screen during detection:
+BadUSB Pro uses a single-phase USB LED timing heuristic — no visible keystrokes reach the screen during detection:
 
-```
-Phase 0 — CapsLock probe  →  checks USB HID connectivity
-Phase 1 — NumLock probe   →  macOS ignores NumLock on external keyboards
-Phase 2 — ScrollLock probe →  Windows propagates ScrollLock LED; Linux does not
-```
+1. Toggle Caps Lock and measure how quickly the host OS reflects the LED state change back via USB HID
+2. Classify by response latency: ≤25ms = macOS, ≤70ms = Windows, >70ms = Linux
+3. Toggle Caps Lock back to restore the original state
 
-All toggled LEDs are restored after detection. The result is stored in `$OS`.
+The result is stored in the `$OS` variable (`WIN`, `MAC`, `LINUX`, or `UNKNOWN` if no response within 500ms).
 
 ---
 

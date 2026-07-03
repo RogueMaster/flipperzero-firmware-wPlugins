@@ -186,8 +186,7 @@ void action_subghz_tx(void* context, const FuriString* action_path, FuriString* 
             txrx, action_subghz_raw_end_callback, furi_thread_get_current());
         furi_thread_flags_wait(0, FuriFlagWaitAll, FuriWaitForever);
     } else {
-        // TODO: Should this be based on a Setting?
-        furi_delay_ms(1500);
+        furi_delay_ms(app->settings.subghz_duration);
     }
 
     FURI_LOG_I(TAG, "SUBGHZ: Action complete.");

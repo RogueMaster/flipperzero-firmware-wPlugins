@@ -16,17 +16,26 @@
 #include <infrared.h>
 #include <infrared_worker.h>
 #include <furi_hal_infrared.h>
+// #include <bad_usb/helpers/bad_usb_hid.h>
 #include <ble_profile/extra_profiles/hid_profile.h>
 #include <ble_profile/extra_services/hid_service.h>
+#include <bt/bt_service/bt.h>
+#include <notification/notification_messages.h>
 #include <fire_string_icons.h>
 
-#include "helpers/bad_usb_hid.h"
+#include "helpers/bad_usb_hid/bad_usb_hid.h"
 
-#define TAG                 "firestring-app"
-#define DEFAULT_PATH        APP_DATA_PATH()
-#define FILE_EXT            ".rnd"
-#define TEXT_INPUT_BUF_SIZE 24
-#define DICT_FILE           "eff_short_wordlist_1_alpha.txt"
+#define TAG                      "firestring-app"
+#define DEFAULT_PATH             APP_DATA_PATH()
+#define DICT_MAX_SIZE            512
+#define STR_RESERVE_LEN          4096
+#define FILE_EXT                 ".rnd"
+#define TEXT_INPUT_BUF_SIZE      24
+#define DICT_FILE                "eff_short_wordlist_1_alpha.txt"
+#define HID_BT_KEYS_STORAGE_NAME ".bt_hid.keys"
+#define HID_DEFAULT_LAYOUT       "en-US.kl"
+#define ASCII_TO_KEY(script, x) \
+    (((uint8_t)x < 128) ? (script->hid->layout[(uint8_t)x]) : HID_KEYBOARD_NONE)
 
 // scene index
 typedef enum {
@@ -36,6 +45,7 @@ typedef enum {
     FireStringScene_GenerateStepTwo,
     FireStringScene_LoadingUSB,
     FireStringScene_USB,
+    FireStringScene_Bluetooth,
     FireStringScene_LoadString,
     FireStringScene_SaveString,
     FireStringScene_About,
@@ -60,29 +70,45 @@ typedef enum {
     FireStringEvent_ShowBadUSB,
     FireStringEvent_ShowFileBrowser,
     FireStringEvent_ShowSaved,
+    FireStringCustomEvent_SaveDone,
     FireStringEvent_ShowAbout,
     FireStringEvent_Exit
 } FireStringEvent;
 
 typedef enum {
     StrType_AlphaNumSymb,
-    StrType_Passphrase,
+    StrType_Words,
     StrType_AlphaNum,
     StrType_Alpha,
     StrType_Symb,
     StrType_Num,
+    StrType_Hex,
     StrType_Bin,
 } StrType;
+
+typedef enum {
+    DelimType_Dash,
+    DelimType_Plus,
+    DelimType_Comma,
+    DelimType_SemiColon,
+    DelimType_ForwardSlash,
+    DelimType_VerticalBar,
+    DelimType_Space,
+} DelimType;
 
 // app settings
 typedef struct {
     uint32_t str_len;
     uint8_t str_type;
+    uint8_t delimiter;
     bool use_ir;
     bool file_loaded;
 } FireStringSettings;
 
 typedef struct {
+    FuriHalBleProfileBase* ble_hid_profile;
+    Bt* bt;
+    bool bt_connected;
     const BadUsbHidApi* api;
     void* hid_inst;
     BadUsbHidInterface interface;
@@ -114,4 +140,5 @@ typedef struct {
     FireStringHID* hid;
     FireStringSettings* settings;
     FuriThread* thread;
+    NotificationApp* notifications;
 } FireString;

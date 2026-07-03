@@ -12,8 +12,17 @@ CalypsoApp* get_opus_contract_structure() {
 
     OpusContractStructure->type = CALYPSO_APP_CONTRACT;
     OpusContractStructure->container = malloc(sizeof(CalypsoContainerElement));
+    if(!OpusContractStructure->container) {
+        free(OpusContractStructure);
+        return NULL;
+    }
     OpusContractStructure->container->elements =
         malloc(app_elements_count * sizeof(CalypsoElement));
+    if(!OpusContractStructure->container->elements) {
+        free(OpusContractStructure->container);
+        free(OpusContractStructure);
+        return NULL;
+    }
     OpusContractStructure->container->size = app_elements_count;
 
     OpusContractStructure->container->elements[0] = make_calypso_bitmap_element(
@@ -111,7 +120,16 @@ CalypsoApp* get_opus_event_structure() {
 
     OpusEventStructure->type = CALYPSO_APP_EVENT;
     OpusEventStructure->container = malloc(sizeof(CalypsoContainerElement));
+    if(!OpusEventStructure->container) {
+        free(OpusEventStructure);
+        return NULL;
+    }
     OpusEventStructure->container->elements = malloc(app_elements_count * sizeof(CalypsoElement));
+    if(!OpusEventStructure->container->elements) {
+        free(OpusEventStructure->container);
+        free(OpusEventStructure);
+        return NULL;
+    }
     OpusEventStructure->container->size = app_elements_count;
 
     OpusEventStructure->container->elements[0] =
@@ -185,8 +203,17 @@ CalypsoApp* get_opus_env_holder_structure() {
 
     OpusEnvHolderStructure->type = CALYPSO_APP_ENV_HOLDER;
     OpusEnvHolderStructure->container = malloc(sizeof(CalypsoContainerElement));
+    if(!OpusEnvHolderStructure->container) {
+        free(OpusEnvHolderStructure);
+        return NULL;
+    }
     OpusEnvHolderStructure->container->elements =
         malloc(app_elements_count * sizeof(CalypsoElement));
+    if(!OpusEnvHolderStructure->container->elements) {
+        free(OpusEnvHolderStructure->container);
+        free(OpusEnvHolderStructure);
+        return NULL;
+    }
     OpusEnvHolderStructure->container->size = app_elements_count;
 
     OpusEnvHolderStructure->container->elements[0] = make_calypso_final_element(

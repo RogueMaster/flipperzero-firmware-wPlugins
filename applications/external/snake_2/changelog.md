@@ -11,3 +11,6 @@ v2.3:
 3. Game timer.
 4. Breaking by holding the back-direction arrow.
 5. Brand-new system of the next random fruit positioning (it fixed the major bug when the fruit appeared in the left-upper corner of a screen despite the fact that the field (0,0) is already taken by the snake's body).
+
+v2.4:
+1. Bump version

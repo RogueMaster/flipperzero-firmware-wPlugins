@@ -34,7 +34,6 @@ static VkThermo* vk_thermo_app_alloc(void) {
 
     // View Dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(
         app->view_dispatcher, vk_thermo_navigation_event_callback);

@@ -43,6 +43,8 @@ private:
     bool isExternal;
     SubGhzState state = IDLE;
     bool receiveAfterTransmission = false;
+    uint32_t rssiScanCurrentFrequency = 0;
+    uint32_t rssiScanPreviousFrequency = 0;
 
     static void captureCallback(SubGhzReceiver* receiver, SubGhzProtocolDecoderBase* decoderBase, void* context) {
         UNUSED(receiver);
@@ -250,6 +252,32 @@ public:
 
     bool IsExternal() {
         return isExternal;
+    }
+
+    void BeginRssiScan() {
+        PutToIdle();
+        rssiScanPreviousFrequency = receiveFrequency;
+        rssiScanCurrentFrequency = 0;
+        subghz_devices_set_rx(device);
+    }
+
+    float ReadRssiAt(uint32_t frequency) {
+        if(frequency != rssiScanCurrentFrequency) {
+            subghz_devices_idle(device);
+            setFrequencyIgnoringStateChecks(frequency);
+            subghz_devices_set_rx(device);
+            rssiScanCurrentFrequency = frequency;
+        }
+        // CC1101 AGC needs ~300us after RX entry to stabilize before RSSI is meaningful
+        furi_delay_us(300);
+        return subghz_devices_get_rssi(device);
+    }
+
+    void EndRssiScan() {
+        subghz_devices_idle(device);
+        state = IDLE;
+        receiveFrequency = rssiScanPreviousFrequency;
+        rssiScanCurrentFrequency = 0;
     }
 
     ~SubGhzModule() {

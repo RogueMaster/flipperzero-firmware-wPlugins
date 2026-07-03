@@ -1,0 +1,37 @@
+/**
+ * @file RDSDspFir41Taps.h
+ * @brief Q15 FIR stage 4 (41 taps) — EN50067-shaped RDS baseband low-pass.
+ *
+ * Cascade position: final FIR after HB1 -> HB2 -> HB3 (~15.625 kHz sample rate).
+ * Passband ~3.8 kHz (RDS data bandwidth); unity-gain Q15 taps with |acc| within
+ * int16_t after >>15, so RDS_FIR41_OUTPUT_SHIFT stays 0 in RDSDsp.c.
+ *
+ * rds_fir41_pair_q15[] packs symmetric coefficient pairs for SMLAD; the center
+ * tap at index 20 is applied separately in rds_fir41_apply_q15().
+ */
+#pragma once
+
+#include <stdint.h>
+
+#include "RDSDspTapsCommon.h"
+
+#define RDS_FIR41_TAPS 41U
+
+static const int16_t rds_fir41_q15[RDS_FIR41_TAPS] = {
+    -16,  -16, 21,   30,    -35, -60,  57,   113,  -85, -198,  117,  329, -149, -534,
+    179,  884, -203, -1641, 218, 5190, 7982, 5190, 218, -1641, -203, 884, 179,  -534,
+    -149, 329, 117,  -198,  -85, 113,  57,   -60,  -35, 30,    21,   -16, -16,
+};
+
+static const uint32_t rds_fir41_pair_q15[20] = {
+    RDS_PACK_I16_CONST(5190, 5190),   RDS_PACK_I16_CONST(218, 218),
+    RDS_PACK_I16_CONST(-1641, -1641), RDS_PACK_I16_CONST(-203, -203),
+    RDS_PACK_I16_CONST(884, 884),     RDS_PACK_I16_CONST(179, 179),
+    RDS_PACK_I16_CONST(-534, -534),   RDS_PACK_I16_CONST(-149, -149),
+    RDS_PACK_I16_CONST(329, 329),     RDS_PACK_I16_CONST(117, 117),
+    RDS_PACK_I16_CONST(-198, -198),   RDS_PACK_I16_CONST(-85, -85),
+    RDS_PACK_I16_CONST(113, 113),     RDS_PACK_I16_CONST(57, 57),
+    RDS_PACK_I16_CONST(-60, -60),     RDS_PACK_I16_CONST(-35, -35),
+    RDS_PACK_I16_CONST(30, 30),       RDS_PACK_I16_CONST(21, 21),
+    RDS_PACK_I16_CONST(-16, -16),     RDS_PACK_I16_CONST(-16, -16),
+};

@@ -18,6 +18,7 @@
 
 #include "../unitemp.h"
 
+#include <assets_icons.h>
 #include "unitemp_icons.h"
 
 void unitemp_scene_help_on_enter(void* context) {

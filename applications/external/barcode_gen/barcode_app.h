@@ -9,12 +9,13 @@
 #include <gui/view_dispatcher.h>
 #include <gui/modules/submenu.h>
 #include <gui/modules/widget.h>
-#include "keyboard/text_input.h"
+#include <gui/modules/text_input.h>
 #include <flipper_format/flipper_format.h>
 
 #include "barcode_utils.h"
 
-#define TAG          "BARCODE"
+#define TAG "BARCODE"
+
 #define VERSION      FAP_VERSION
 #define FILE_VERSION "1"
 
@@ -46,7 +47,6 @@
 #include "views/create_view.h"
 #include "views/message_view.h"
 #include "barcode_validator.h"
-extern const Icon I_barcode_10;
 
 typedef struct BarcodeApp BarcodeApp;
 

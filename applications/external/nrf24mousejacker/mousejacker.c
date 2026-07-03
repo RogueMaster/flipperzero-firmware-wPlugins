@@ -8,15 +8,16 @@
 #include <furi_hal_spi.h>
 #include <furi_hal_interrupt.h>
 #include <furi_hal_resources.h>
-#include <notification/notification_messages.h>
 #include <nrf24.h>
+#include <notification/notification_messages.h>
 #include "mousejacker_ducky.h"
 #include <dolphin/dolphin.h>
-#include "nrf24_mouse_jacker_icons.h"
+#include <nrf24_mouse_jacker_icons.h>
 
-#define TAG                                "mousejacker"
+#define TAG "mousejacker"
+
 #define LOGITECH_MAX_CHANNEL               85
-#define NRFSNIFF_APP_PATH_FOLDER_ADDRESSES EXT_PATH("apps_data/nrfsniff/addresses.txt")
+#define NRFSNIFF_APP_PATH_FOLDER_ADDRESSES EXT_PATH("apps_data/nrf24sniff/addresses.txt")
 #define LOCAL_BADUSB_FOLDER                EXT_PATH("badusb")
 #define MOUSEJACKER_APP_PATH_EXTENSION     ".txt"
 #define MAX_ADDRS                          100
@@ -400,5 +401,6 @@ int32_t mousejacker_app(void* p) {
     furi_message_queue_free(event_queue);
     furi_mutex_free(plugin_state->mutex);
     free(plugin_state);
+
     return 0;
 }

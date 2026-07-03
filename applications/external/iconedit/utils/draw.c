@@ -212,44 +212,18 @@ const uint8_t u8g2_font_5x7_tr[804] =
     "\10s\261MI\326\1|\5\261\261\71}\11s\261\311Q\305\24\1~\7\24\271K*\1\0\0\0\4"
     "\377\377\0";
 
-int ie_draw_str(Canvas* canvas, int x, int y, Align h, Align v, IEFont font, const char* str) {
-    int bh = 7;
-    if(font == FontMicro) {
-        canvas_set_custom_u8g2_font(canvas, u8g2_font_micro_tr);
-        bh = 5;
-    } else if(font == Font5x7) {
-        canvas_set_custom_u8g2_font(canvas, u8g2_font_5x7_tr);
-    } else {
-        furi_assert(false);
-        FURI_LOG_E("IEDraw", "Invalid font!");
-    }
-
-    canvas_set_color(canvas, ColorWhite);
-    int w = canvas_string_width(canvas, str);
-    int bx = x - 1;
-    int by = y;
-    if(h == AlignRight) bx -= w;
-    if(v == AlignBottom) by -= bh;
-    canvas_draw_box(canvas, bx, by, w + 2, bh);
-
-    canvas_set_color(canvas, ColorBlack);
+uint16_t
+    ie_draw_str(Canvas* canvas, int x, int y, Align h, Align v, IEFont font, const char* str) {
+    canvas_set_custom_u8g2_font(canvas, font == FontMicro ? u8g2_font_micro_tr : u8g2_font_5x7_tr);
     canvas_draw_str_aligned(canvas, x, y, h, v, str);
-
-    canvas_set_font(canvas, FontSecondary); // reset?
+    uint16_t w = canvas_string_width(canvas, str);
+    canvas_set_font(canvas, FontSecondary);
     return w;
 }
 
 uint16_t ie_draw_get_str_width(Canvas* canvas, IEFont font, const char* str) {
-    if(font == FontMicro) {
-        canvas_set_custom_u8g2_font(canvas, u8g2_font_micro_tr);
-    } else if(font == Font5x7) {
-        canvas_set_custom_u8g2_font(canvas, u8g2_font_5x7_tr);
-    } else {
-        furi_assert(false);
-        FURI_LOG_E("IEDraw", "Invalid font!");
-    }
-    uint16_t width = canvas_string_width(canvas, str);
-    return width;
+    canvas_set_custom_u8g2_font(canvas, font == FontMicro ? u8g2_font_micro_tr : u8g2_font_5x7_tr);
+    return canvas_string_width(canvas, str);
 }
 
 void ie_draw_modal_panel_frame(Canvas* canvas, int x, int y, int w, int h) {
@@ -258,9 +232,15 @@ void ie_draw_modal_panel_frame(Canvas* canvas, int x, int y, int w, int h) {
     int shadow_y = 1;
 
     canvas_set_color(canvas, ColorWhite);
-    canvas_draw_box(canvas, x - pad, y - pad, w + pad * 2 + shadow_x, h + pad * 2 + shadow_y);
+    canvas_draw_box(
+        canvas,
+        x - pad - 1,
+        y - pad - 1,
+        w + pad * 2 + 2 + 1 + shadow_x,
+        h + pad * 2 + 2 + 1 + shadow_y);
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_frame(canvas, x - pad, y - pad, w + pad * 2, h + pad * 2);
+    // draw shadow lines
     canvas_draw_line(
         canvas,
         x - pad + shadow_x,

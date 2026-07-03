@@ -1,5 +1,44 @@
 # Changelog
 
+## v1.8.0
+
+- Added NetBIOS Scan, HTTP Banner Scan, SNMP Probe, and WPA3 Compliance Check commands to WiFi Scanning menu
+- Added WiFi Status and WebUI AP commands to WiFi Network menu
+- Added Show Time, Coredump Dump, Erase Coredump, Load Config, Identify Device, and Force Crash commands to WiFi Settings menu
+- Added Scan Advertisers, List Advertisers, and BLE Bridge commands to BLE Scanning menu
+- Added Set GPS Baud, WiGLE Auto Upload, and WiGLE Donate commands to GPS menu
+- Reorganized WiFi Settings menu into 5 sub-category menus: LED & RGB, SD Card, Settings Mgmt, Device & Debug, Misc
+- Reorganized WiFi Network menu into 5 sub-category menus: Evil Portal, WiFi Connection, Network Scan, IoT Control, WebUI
+- Reorganized BLE Scanning menu into 4 sub-category menus: Flipper & Skimmer, AirTag, GATT, Advertisers & Traffic
+- Reorganized GPS menu into 2 sub-category menus: GPS Config, Wardriving
+- Moved network reconnaissance commands (Scan Local Network, Scan Ports, ARP Scan, Scan SSH, NetBIOS Scan, HTTP Banner Scan, SNMP Probe) from WiFi Scanning to WiFi Network > Network Scan sub-category
+- Removed duplicate Chip Info entry that appeared at both index 2 and index 23 in the old WiFi Settings flat menu
+- Added 16 new ViewId enums, Submenu pointers, and navigation logic to support the sub-category menu hierarchy
+
+## v1.7.0
+
+- Fixed cancel button in confirmation dialogs returning to main menu instead of the correct sub-menu
+- Fixed `clear_pcap_files` not resetting the `HasOpenedFile` flag after closing the file handle, causing silent write failures on active captures
+- Fixed app crashing the entire device on SD card mkdir failure, now exits gracefully instead
+- Removed dead null check in `settings_storage_init` that could never be reached
+- Fixed sync timing counters never resetting between capture sessions
+- Fixed IR universals list query failing on slow UART connections due to using a fixed 200ms delay instead of a proper timeout loop
+- Fixed app info dialog showing empty text
+- Removed unreachable return statement in `settings_custom_event_callback`
+- Fixed critical resource leak on text_box allocation failure, early return now properly cleans up UART context, expansion protocol, OTG state and all allocated memory
+- Fixed NULL pointer dereference in `uart_storage_rx_callback` when `app` is NULL
+- Fixed memory leak in `show_app_info`, confirmation context now tracked in `active_confirm_context`
+- Fixed `SETTING_SHOW_INFO` event handler returning `false` instead of `true`
+- Fixed `show_confirmation_dialog_ex` overwriting `active_confirm_context` without freeing previous allocation
+- Fixed memory leak in `get_latest_log_file` on `realloc` failure
+- Fixed race condition in UART cleanup, capture streams now cleaned after thread join
+- Fixed missing NULL checks on `storage_file_alloc` in file clearing functions
+- Fixed missing NULL check on `context` in `show_app_info`
+- Fixed error path in core UI allocation leaking `RECORD_DIALOGS`, expansion protocol and OTG power state
+- Replaced all magic number view IDs with named ViewId enum constants across the entire codebase for readability and maintainability
+- Added navigate_to_view helper to centralize view switching logic, reducing back event callback from ~240 lines to ~55 lines
+- Added Flock Detection, Flock List, and Stop Flock Detection commands to WiFi Scanning menu
+
 ## v1.6.3
 
 - Fixed an issue where the text view would be empty

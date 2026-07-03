@@ -5,150 +5,147 @@
 #include "../iconedit.h"
 #include "../utils/draw.h"
 
+#define CANVAS_DIM 60u // same for width and height
+
 typedef enum {
     Draw_NONE,
     Draw_Point1_Set,
 } DrawState;
 
 static struct {
+    IEIcon* icon;
+
+    // cursor in absolute icon coordinates
     size_t cursor_x;
     size_t cursor_y;
+
+    // view port
+    size_t scale;
+    size_t vpx, vpy; // top-left of our view
+    size_t vpw, vph; // view port size
+    size_t vps; // size of each drawn pixel
+    bool scroll;
+
     DrawState draw_state;
     size_t p1x, p1y;
     uint8_t* double_buffer;
-} canvasModel;
+} canvasModel = {0};
 
-void canvas_alloc_canvas(size_t width, size_t height) {
-    // place the cursor in the middle-ish
-    // keeping in mind the canvas size (64x64) and our lowest scale of 2x
-    canvasModel.cursor_x = (width / 2) - 1;
-    if(width > 32) {
-        canvasModel.cursor_x = 15;
-    }
-    canvasModel.cursor_y = (height / 2) - 1;
-    if(height > 32) {
-        canvasModel.cursor_y = 15;
-    }
+void canvas_initialize(IEIcon* icon, size_t scale_setting) {
+    canvas_free_canvas();
+
+    canvasModel.icon = icon;
+    canvasModel.double_buffer = malloc(icon->width * icon->height * sizeof(uint8_t));
+
+    canvas_set_scale(scale_setting);
+
     canvasModel.draw_state = Draw_NONE;
     canvasModel.p1x = 0;
     canvasModel.p1y = 0;
-    canvasModel.double_buffer = malloc(width * height * sizeof(uint8_t));
 }
 
 void canvas_free_canvas() {
     if(canvasModel.double_buffer) {
         free(canvasModel.double_buffer);
+        canvasModel.double_buffer = NULL;
     }
 }
 
-void canvas_draw(Canvas* canvas, void* context) {
-    UNUSED(canvas);
-    IconEdit* app = context;
-    IEIcon* icon = app->icon;
-
-    // minimum scale is always 2x - so we can actually SEE the pixels
+// Sets up the view port size based on the scale setting.
+// Repositions the cursor to the middle of the viewport
+void canvas_set_scale(size_t scale_setting) {
+    if(scale_setting == 0) {
+        FURI_LOG_E(TAG, "Can not set canvas scale to 0");
+        return;
+    }
+    // Auto minimum scale is always 2x - so we can actually SEE the pixels
     // also, let's constrain the canvas to the 64x64 area - always
     // but our drawing area needs to be a little less - like 60x60? <-- do we even do this?
     // anything larger needs a scrolling canvas!
     // Hitting Play will show it fullscreen too - even if 1 frame
-    int scale = 2;
-    bool scroll = false;
-    int max_dim = MAX(icon->width, icon->height);
-    if(max_dim <= 32) {
-        scale = 64 / max_dim;
-    } else {
-        scroll = true;
+    canvasModel.scale = scale_setting == SETTING_SCALE_AUTO ? SETTING_SCALE_AUTO_MIN :
+                                                              scale_setting;
+    size_t max_dim = MAX(canvasModel.icon->width, canvasModel.icon->height);
+    if(scale_setting == SETTING_SCALE_AUTO && max_dim <= (CANVAS_DIM / SETTING_SCALE_AUTO_MIN)) {
+        canvasModel.scale = CANVAS_DIM / max_dim;
     }
+
+    // recompute our viewport size, width, and height
+    canvasModel.vpx = 0;
+    canvasModel.vpy = 0;
+
+    canvasModel.vps = CANVAS_DIM / canvasModel.scale;
+    canvasModel.vpw = MIN(canvasModel.vps, canvasModel.icon->width);
+    canvasModel.vph = MIN(canvasModel.vps, canvasModel.icon->height);
+
+    canvasModel.scroll = canvasModel.vpw < canvasModel.icon->width ||
+                         canvasModel.vph < canvasModel.icon->height;
+
+    // place the cursor in the middle-ish of view port
+    canvasModel.cursor_x = canvasModel.vpw > 1 ? (canvasModel.vpw / 2) - 1 : 0;
+    canvasModel.cursor_y = canvasModel.vph > 1 ? (canvasModel.vph / 2) - 1 : 0;
+}
+
+void canvas_draw(Canvas* canvas, void* context) {
+    IconEdit* app = context;
+    IEIcon* icon = app->icon;
 
     // Determine where we're drawing our canvas, based on icon size
-    int x_offset = 64; // top-left corner
-    int y_offset = 0; // of our canvas area
-
-    // our icon is too big for the canvas, even at the low 2x scale, or it fits
-    // either way, we want it centered, accounting for both width and height
-
-    // if(scroll) {
-    //     if(icon->width * scale <= 64) {
-    //         x_offset += (64 - (icon->width * scale)) / 2;
-    //     }
-    //     if(icon->height * scale <= 64) {
-    //         y_offset += (64 - (icon->height * scale)) / 2;
-    //     }
-    // } else {
-    //     x_offset += (64 - (icon->width * scale)) / 2;
-    //     y_offset += (64 - (icon->height * scale)) / 2;
-    // }
-    if(!scroll || icon->width * scale <= 64) {
-        x_offset += (64 - (icon->width * scale)) / 2;
-    }
-    if(!scroll || icon->height * scale <= 64) {
-        y_offset += (64 - (icon->height * scale)) / 2;
-    }
-
-    // canvas dimensions
-    int cw = x_offset + icon->width * scale;
-    int ch = y_offset + icon->height * scale;
-
-    // clear the canvas area - this helps clear any tabbar text
-    // maybe we don't need to do the whole 64x64 box?
+    // Default to the top-left corner of our canvas area, with a 2-pixel
+    // padding for grid dots, cursor guides and scrollbars
+    // Assign offsets so that our viewport is centered in our canvas
+    int x_offset = 64 + 2 + (CANVAS_DIM - (canvasModel.vpw * canvasModel.scale)) / 2;
+    int y_offset = 2 + (CANVAS_DIM - (canvasModel.vph * canvasModel.scale)) / 2;
+    // clear the entire canvas area
     canvas_set_color(canvas, ColorWhite);
-    canvas_draw_box(canvas, x_offset, y_offset, cw, ch);
+    canvas_draw_box(canvas, 64, 0, 64, 64);
     canvas_set_color(canvas, ColorBlack);
 
     // draw editor grid - the guide dots around the canvas border
-    for(size_t i = 0; i < (icon->width + 1); ++i) {
+    // we should change the grid size based on scale - meaning, if scale is 1 or 2, drawing dots every
+    // 1 or 2 pixels doesn't look good, so bump that up a bit?
+    for(size_t i = 0; i < (canvasModel.vpw + 1); ++i) {
         // top and bottom frame dots
-        canvas_draw_dot(canvas, x_offset + i * scale, y_offset - 1);
-        canvas_draw_dot(canvas, x_offset + i * scale, y_offset + (icon->height * scale) + 1);
+        canvas_draw_dot(canvas, x_offset + i * canvasModel.scale, y_offset - 1);
+        canvas_draw_dot(
+            canvas,
+            x_offset + i * canvasModel.scale,
+            y_offset + (canvasModel.vph * canvasModel.scale));
     }
-    for(size_t i = 0; i < (icon->height + 1); ++i) {
+    for(size_t i = 0; i < (canvasModel.vph + 1); ++i) {
         // left and right frame dots
-        canvas_draw_dot(canvas, x_offset - 1, y_offset + i * scale);
-        canvas_draw_dot(canvas, x_offset + (icon->width * scale) + 1, y_offset + i * scale);
+        canvas_draw_dot(canvas, x_offset - 1, y_offset + i * canvasModel.scale);
+        canvas_draw_dot(
+            canvas,
+            x_offset + (canvasModel.vpw * canvasModel.scale) + 1,
+            y_offset + i * canvasModel.scale);
     }
-
-    // define our scrolled offset coordinates. if we're scrolling, we're at a 2x scale
-    // which means we are looking at a 32x32 view port of our icon
-    // we want to slide that view if our cursor *approaches* the edge, but isn't quite there
-    // and our view should be bounded by the icon dimensions
-    // cursor position is in absolute coordinates on the icon
-    size_t window_pad = 4;
-    size_t vpx = 0;
-    size_t vpy = 0;
-    if(scroll) {
-        if(canvasModel.cursor_x >= 32 - window_pad) {
-            vpx = (canvasModel.cursor_x + window_pad) - 32;
-            if(vpx > icon->width - 32) {
-                vpx = icon->width - 32;
-            }
-        }
-        if(canvasModel.cursor_y >= 32 - window_pad) {
-            vpy = (canvasModel.cursor_y + window_pad) - 32;
-            if(vpy > icon->height - 32) {
-                vpy = icon->height - 32;
-            }
-        }
-    }
-    int cx = canvasModel.cursor_x - vpx;
-    int cy = canvasModel.cursor_y - vpy;
 
     // draw scroll bars!
-    if(scroll) {
+    if(canvasModel.scroll) {
         // X axis scrollbar
-        if(icon->width * scale > 64) {
-            int sw = (32 * 64) / icon->width;
-            float xp = (vpx * 1.0) / (icon->width - 32);
-            int so = (64 - sw) * xp;
-            int ys = MIN(y_offset + (icon->height * scale) + 1, (size_t)63);
+        if(canvasModel.vpw < icon->width) {
+            // scrollbar width in screen pixels
+            int sw =
+                ((1.0 * canvasModel.vpw) / icon->width) * (canvasModel.vpw * canvasModel.scale);
+            // X position as a percentage
+            float xp = (canvasModel.vpx * 1.0) / icon->width;
+            // scrollbar offset in screen pixels
+            int so = (canvasModel.vpw * canvasModel.scale) * xp;
+            int ys = y_offset + (canvasModel.vph * canvasModel.scale) + 1;
             canvas_draw_line(canvas, x_offset + so, ys, x_offset + so + sw, ys);
         }
         // Y axis scrollbar
-        if(icon->height * scale > 64) {
-            int sh = (32 * 64) / icon->height;
-            float yp = (vpy * 1.0) / (icon->height - 32);
-            int so = (64 - sh) * yp;
+        if(canvasModel.vph < icon->height) {
+            // scrollbar height in screen pixels
+            int sh =
+                ((1.0 * canvasModel.vph) / icon->height) * (canvasModel.vph * canvasModel.scale);
+            // Y position as a percentage
+            float yp = (canvasModel.vpy * 1.0) / icon->height;
+            // scrollbar offset in screen pixels
+            int so = (canvasModel.vph * canvasModel.scale) * yp;
             canvas_draw_line(
-                canvas, x_offset - 1, y_offset + so, x_offset - 1, y_offset + so + sh);
+                canvas, x_offset - 2, y_offset + so, x_offset - 2, y_offset + so + sh);
         }
     }
 
@@ -186,93 +183,110 @@ void canvas_draw(Canvas* canvas, void* context) {
         }
     }
 
-    // Draw the icon in two ways:
-    // 1. Main way: draw scaled editor view, taking into account a scrolled viewport
-    for(size_t y = vpy; y < vpy + MIN((int)icon->height, 32); ++y) {
-        for(size_t x = vpx; x < vpx + MIN((int)icon->width, 32); ++x) {
+    // Draw the icon: scaled editor view, taking into account the scrolled viewport
+    for(size_t y = canvasModel.vpy; y < canvasModel.vpy + canvasModel.vph; ++y) {
+        for(size_t x = canvasModel.vpx; x < canvasModel.vpx + canvasModel.vpw; ++x) {
             if(canvasModel.double_buffer[y * icon->width + x]) {
                 canvas_draw_box(
                     canvas,
-                    x_offset + ((x - vpx) * scale),
-                    y_offset + ((y - vpy) * scale),
-                    scale,
-                    scale);
+                    x_offset + ((x - canvasModel.vpx) * canvasModel.scale),
+                    y_offset + ((y - canvasModel.vpy) * canvasModel.scale),
+                    canvasModel.scale,
+                    canvasModel.scale);
             }
         }
     }
 
-    // 2. Actual sized preview (ehhh, not enough room for this anymore)
-    // for(size_t i = 0; i < icon->width * icon->height; ++i) {
-    //     if(canvasModel.double_buffer[i]) {
-    //         canvas_draw_dot(canvas, PREVIEW_X + (i % icon->width), PREVIEW_Y + (i / icon->width));
-    //     }
-    // }
+    // Draw the cursor - one dot per corner
+    int cx = canvasModel.cursor_x - canvasModel.vpx;
+    int cy = canvasModel.cursor_y - canvasModel.vpy;
 
-    // draw the cursor
     if(app->panel == Panel_Canvas) {
         canvas_set_color(canvas, ColorXOR);
-        canvas_draw_dot(canvas, x_offset + cx * scale, y_offset + cy * scale);
-        canvas_draw_dot(canvas, x_offset + cx * scale + (scale - 1), y_offset + cy * scale);
         canvas_draw_dot(
-            canvas, x_offset + cx * scale + (scale - 1), y_offset + cy * scale + (scale - 1));
-        canvas_draw_dot(canvas, x_offset + cx * scale, y_offset + cy * scale + (scale - 1));
-        // canvas_draw_frame(
-        //     canvas,
-        //     x_offset + canvasModel.cursor_x * scale,
-        //     y_offset + canvasModel.cursor_y * scale,
-        //     scale,
-        //     scale);
+            canvas, x_offset + cx * canvasModel.scale, y_offset + cy * canvasModel.scale);
+        canvas_draw_dot(
+            canvas,
+            x_offset + cx * canvasModel.scale + (canvasModel.scale - 1),
+            y_offset + cy * canvasModel.scale);
+        canvas_draw_dot(
+            canvas,
+            x_offset + cx * canvasModel.scale + (canvasModel.scale - 1),
+            y_offset + cy * canvasModel.scale + (canvasModel.scale - 1));
+        canvas_draw_dot(
+            canvas,
+            x_offset + cx * canvasModel.scale,
+            y_offset + cy * canvasModel.scale + (canvasModel.scale - 1));
         canvas_set_color(canvas, ColorBlack);
     }
 
-    // draw cursor guides around border
-    if(app->panel == Panel_Canvas) {
+    // Draw cursor guides around border - amidst the grid dots
+    if(app->panel == Panel_Canvas && app->settings.draw_cursor_guides) {
+        // top
         canvas_draw_line(
             canvas,
-            x_offset + cx * scale,
+            x_offset + cx * canvasModel.scale,
             y_offset - 1,
-            x_offset + cx * scale + (scale - 1),
+            x_offset + cx * canvasModel.scale + (canvasModel.scale - 1),
             y_offset - 1);
+        // bottom
         canvas_draw_line(
             canvas,
-            x_offset + cx * scale,
-            y_offset + (icon->height * scale) + 1,
-            x_offset + cx * scale + (scale - 1),
-            y_offset + (icon->height * scale) + 1);
+            x_offset + cx * canvasModel.scale,
+            y_offset + (canvasModel.vph * canvasModel.scale),
+            x_offset + cx * canvasModel.scale + (canvasModel.scale - 1),
+            y_offset + (canvasModel.vph * canvasModel.scale));
+        // left
         canvas_draw_line(
             canvas,
             x_offset - 1,
-            y_offset + cy * scale,
+            y_offset + cy * canvasModel.scale,
             x_offset - 1,
-            y_offset + cy * scale + (scale - 1));
+            y_offset + cy * canvasModel.scale + (canvasModel.scale - 1));
+        // right
         canvas_draw_line(
             canvas,
-            x_offset + (icon->width * scale) + 1,
-            y_offset + cy * scale,
-            x_offset + (icon->width * scale) + 1,
-            y_offset + cy * scale + (scale - 1));
+            x_offset + (canvasModel.vpw * canvasModel.scale) + 1,
+            y_offset + cy * canvasModel.scale,
+            x_offset + (canvasModel.vpw * canvasModel.scale) + 1,
+            y_offset + cy * canvasModel.scale + (canvasModel.scale - 1));
     }
 }
 
 bool canvas_input(InputEvent* event, void* context) {
     IconEdit* app = context;
     bool consumed = true;
-    if(event->type == InputTypeShort) {
+    if(event->type == InputTypeShort || event->type == InputTypeRepeat) {
         switch(event->key) {
         case InputKeyUp: {
             canvasModel.cursor_y -= canvasModel.cursor_y > 0;
+            if(canvasModel.cursor_y < canvasModel.vpy + 3 && canvasModel.vpy > 0) {
+                canvasModel.vpy--;
+            }
             break;
         }
         case InputKeyDown: {
             canvasModel.cursor_y += canvasModel.cursor_y < (app->icon->height - 1);
+            if(canvasModel.cursor_y > canvasModel.vpy + canvasModel.vph - 3 &&
+               canvasModel.vpy < app->icon->height - canvasModel.vph) {
+                canvasModel.vpy++;
+            }
             break;
         }
         case InputKeyLeft: {
             canvasModel.cursor_x -= canvasModel.cursor_x > 0;
+            if(canvasModel.cursor_x > canvasModel.vpx &&
+               canvasModel.cursor_x < canvasModel.vpx + 3 && canvasModel.vpx > 0) {
+                canvasModel.vpx--;
+            }
             break;
         }
         case InputKeyRight: {
             canvasModel.cursor_x += canvasModel.cursor_x < (app->icon->width - 1);
+            if(canvasModel.cursor_x > canvasModel.vpx + canvasModel.vpw - 3 &&
+               canvasModel.vpx < app->icon->width - canvasModel.vpw) {
+                canvasModel.vpx++;
+            }
             break;
         }
         case InputKeyBack: {

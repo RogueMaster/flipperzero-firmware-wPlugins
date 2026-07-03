@@ -102,11 +102,13 @@ static void __furi_print_bt_stack_info(void) {
 
 static void __furi_print_heap_info(void) {
     furi_log_puts("\r\n\t     heap total: ");
-    __furi_put_uint32_as_text(xPortGetTotalHeapSize());
+    __furi_put_uint32_as_text(configTOTAL_HEAP_SIZE);
     furi_log_puts("\r\n\t      heap free: ");
     __furi_put_uint32_as_text(xPortGetFreeHeapSize());
+    HeapStats_t heap_stats;
+    vPortGetHeapStats(&heap_stats);
     furi_log_puts("\r\n\t heap watermark: ");
-    __furi_put_uint32_as_text(xPortGetMinimumEverFreeHeapSize());
+    __furi_put_uint32_as_text(heap_stats.xMinimumEverFreeBytesRemaining);
 }
 
 static void __furi_print_name(bool isr) {
@@ -177,7 +179,7 @@ FURI_NORETURN void __furi_crash_implementation(void) {
             ptr = (uint32_t) "Check serial logs";
         }
         furi_hal_rtc_set_fault_data(ptr);
-        furi_log_puts("\r\nRebooting Flipper Zero.\r\n");
+        furi_log_puts("\r\nRebooting system.\r\n");
         furi_log_puts("\033[0m\r\n");
         furi_hal_power_reset();
     }

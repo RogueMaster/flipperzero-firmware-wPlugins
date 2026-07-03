@@ -61,7 +61,6 @@ static void button_menu_draw_text(
                 ITEM_WIDTH - 8,
                 disp_str,
                 model->scroll_counter,
-                false,
                 false);
             draw_static = false;
         }
@@ -153,7 +152,7 @@ static void button_menu_view_draw_callback(Canvas* canvas, void* _model) {
 
         if(header_width >= ITEM_WIDTH - 8) {
             elements_scrollable_text_line(
-                canvas, 3, 13, ITEM_WIDTH - 8, disp_str, model->scroll_counter, false, false);
+                canvas, 3, 13, ITEM_WIDTH - 8, disp_str, model->scroll_counter, false);
         } else {
             elements_string_fit_width(canvas, disp_str, ITEM_WIDTH - 8);
             canvas_draw_str_aligned(

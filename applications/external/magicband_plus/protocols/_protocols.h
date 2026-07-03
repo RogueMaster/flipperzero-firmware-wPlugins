@@ -1,11 +1,5 @@
 #pragma once
 
-#include "continuity.h"
-#include "easysetup.h"
-#include "fastpair.h"
-#include "lovespouse.h"
-#include "nameflood.h"
-#include "swiftpair.h"
 #include "magicband.h"
 
 typedef enum {
@@ -24,18 +18,10 @@ struct Payload {
     } bruteforce;
     union {
         MagicbandCfg magicband;
-
-        ContinuityCfg continuity;
-        EasysetupCfg easysetup;
-        FastpairCfg fastpair;
-        LovespouseCfg lovespouse;
-        NamefloodCfg nameflood;
-        SwiftpairCfg swiftpair;
     } cfg;
 };
 
 extern const Protocol* protocols[];
-
 extern const size_t protocols_count;
 
 struct Attack {

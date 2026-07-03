@@ -17,6 +17,6 @@ App(
     fap_category="NFC",
     fap_author="bettse",
     fap_weburl="https://github.com/bettse/weebo",
-    fap_version="0.3",
+    fap_version="0.5.1",
     fap_description="An NTAG215 parser, writer, emulator, remixer, duplicator",
 )

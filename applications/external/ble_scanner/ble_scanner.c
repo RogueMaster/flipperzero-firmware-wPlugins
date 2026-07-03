@@ -183,15 +183,17 @@ static void ble_scan_draw(Canvas* canvas, void* model_ptr) {
 
     if(m->count == 0) {
         if(m->no_esp32) {
-            /* Explain the hardware requirement clearly.
-             * Flipper's built-in nRF52840 BT is NOT used by this app — it
-             * requires an ESP32 Marauder dev board on the GPIO UART. */
-            canvas_draw_str(canvas, 2, 26, "Needs ESP32 Marauder board");
-            canvas_draw_str(canvas, 2, 36, "GPIO: TX->14 RX->13 GND");
-            canvas_draw_str(canvas, 2, 46, "115200 baud, run scanbt");
-            canvas_draw_str(canvas, 2, 56, "Flipper BT cannot scan");
+            canvas_draw_str(canvas, 2, 26, "Needs ESP32 with BLE radio");
+            canvas_draw_str(canvas, 2, 36, "(NOT the S2 WiFi Dev Board)");
+            canvas_draw_str(canvas, 2, 46, "ESP32-WROOM or ESP32-S3 only");
+            canvas_draw_str(canvas, 2, 56, "S2 has WiFi only, no BT");
         } else {
-            canvas_draw_str(canvas, 6, 38, m->scanning ? "Scanning..." : "No devices");
+            canvas_draw_str(canvas, 2, 26, m->scanning ? "Scanning via ESP32..." : "No devices");
+            if(m->scanning) {
+                canvas_draw_str(canvas, 2, 38, "If no results appear, your");
+                canvas_draw_str(canvas, 2, 48, "ESP32 may lack BLE radio.");
+                canvas_draw_str(canvas, 2, 58, "S2 Dev Board = WiFi only");
+            }
         }
         return;
     }
@@ -453,7 +455,6 @@ static BleScanApp* ble_scanner_alloc(void) {
 
     /* ---- View dispatcher ---- */
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, ble_navigation_callback);
 

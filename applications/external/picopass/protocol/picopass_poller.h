@@ -23,6 +23,7 @@ typedef enum {
     PicopassPollerModeRead,
     PicopassPollerModeWrite,
     PicopassPollerModeWriteKey,
+    PicopassPollerModeClean,
 } PicopassPollerMode;
 
 typedef struct {

@@ -3,6 +3,7 @@
 #include <dialogs/dialogs.h>
 #include <gui/view_holder.h>
 #include <toolbox/api_lock.h>
+#include <toolbox/path.h>
 #include <gui/modules/text_input.h>
 
 #include "panels.h"
@@ -48,7 +49,7 @@ const FileTool FileTool_LEFT[File_COUNT] = {File_NONE, File_New, File_Open, File
 const FileTool FileTool_RIGHT[File_COUNT] =
     {File_Open, File_Save, File_Rename, File_NONE, File_NONE};
 
-FileTool tool = File_New;
+static FileTool tool = File_New;
 
 typedef struct {
     FuriApiLock lock;
@@ -126,6 +127,25 @@ void file_clear_dirty_dialog_cb(void* context, DialogButton button) {
     }
 }
 
+bool file_open_file_browser_callback(
+    FuriString* path,
+    void* context,
+    uint8_t** icon,
+    FuriString* item_name) {
+    UNUSED(context);
+    UNUSED(item_name);
+    char ext[5];
+    path_extract_extension(path, ext, sizeof(ext));
+    if(!strcmp(ext, ".png")) {
+        memcpy(*icon, icon_get_frame_data(&I_iet_PNG, 0), 32);
+    } else if(!strcmp(ext, ".bmx")) {
+        memcpy(*icon, icon_get_frame_data(&I_iet_BMX, 0), 32);
+    } else {
+        return false;
+    }
+    return true;
+}
+
 void file_input_handle_ok(void* context) {
     IconEdit* app = context;
     switch(tool) {
@@ -144,20 +164,34 @@ void file_input_handle_ok(void* context) {
             break;
         }
         DialogsFileBrowserOptions ieOptions;
-        dialog_file_browser_set_basic_options(&ieOptions, "png", &I_iet_PNG);
+        dialog_file_browser_set_basic_options(&ieOptions, "", NULL);
         ieOptions.base_path = STORAGE_EXT_PATH_PREFIX;
         ieOptions.skip_assets = true;
+        ieOptions.item_loader_callback = file_open_file_browser_callback;
         DialogsApp* dialog = furi_record_open(RECORD_DIALOGS);
-        FuriString* tmp_str = furi_string_alloc();
-        if(dialog_file_browser_show(dialog, tmp_str, tmp_str, &ieOptions)) {
-            FURI_LOG_I(TAG, "Selected %s to open", furi_string_get_cstr(tmp_str));
-            IEIcon* icon = png_file_open(furi_string_get_cstr(tmp_str));
-            app->icon = icon;
-            canvas_free_canvas();
-            canvas_alloc_canvas(icon->width, icon->height);
+        FuriString* filename = furi_string_alloc_set("/data");
+        if(dialog_file_browser_show(dialog, filename, filename, &ieOptions)) {
+            // FURI_LOG_I(TAG, "Selected %s to open", furi_string_get_cstr(tmp_str));
+            char ext[5];
+            path_extract_extension(filename, ext, sizeof(ext));
+            IEIcon* icon = NULL;
+            if(!strcmp(ext, ".png")) {
+                icon = png_file_open(furi_string_get_cstr(filename));
+            }
+            if(!strcmp(ext, ".bmx")) {
+                icon = bmx_file_open(furi_string_get_cstr(filename));
+            }
+            if(icon) {
+                ie_icon_free(app->icon);
+                app->icon = icon;
+                canvas_initialize(app->icon, app->settings.canvas_scale);
+            } else {
+                // unsupported file type
+                dialog_info_dialog(app, "Unsupported type", app->panel);
+            }
         }
         furi_record_close(RECORD_DIALOGS);
-        furi_string_free(tmp_str);
+        furi_string_free(filename);
         break;
     }
     case File_Save:
@@ -179,7 +213,7 @@ void file_input_handle_ok(void* context) {
 
         TextInput* text_input = text_input_alloc();
         char tmp_cstr[64] = {0};
-        strncpy(tmp_cstr, furi_string_get_cstr(app->icon->name), 64);
+        strncpy(tmp_cstr, furi_string_get_cstr(app->icon->name), sizeof(tmp_cstr));
         text_input_set_result_callback(
             text_input, text_input_callback, ti_context, tmp_cstr, 64, false);
         text_input_set_header_text(text_input, "Rename icon:");

@@ -31,6 +31,7 @@ bool seader_ccid_data_in_scratchpad(
     const uint8_t* data,
     size_t payload_len);
 SeaderCcidStatus seader_ccid_decode_status(uint8_t status);
+uint32_t seader_ccid_decode_le32(const uint8_t bytes[4]);
 bool seader_ccid_response_matches_pending(bool pending, uint8_t expected_seq, uint8_t response_seq);
 size_t seader_ccid_find_frame_start(
     const uint8_t* data,
@@ -48,3 +49,9 @@ SeaderCcidDataRoute seader_ccid_route_data_block(
     uint8_t sam_slot,
     uint8_t message_slot,
     uint8_t protocol_t);
+bool seader_ccid_payload_matches_exact(
+    const uint8_t* payload,
+    size_t payload_len,
+    const uint8_t* expected,
+    size_t expected_len);
+size_t seader_ccid_control_frame_size(size_t payload_len);
