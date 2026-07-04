@@ -6,17 +6,37 @@ namespace flipcraft {
 // forward = (-sin, cos) * 64, camera yaw convention
 static constexpr int8_t kDirX[16] = {0,-24,-45,-59,-64,-59,-45,-24,0,24,45,59,64,59,45,24};
 static constexpr int8_t kDirZ[16] = {64,59,45,24,0,-24,-45,-59,-64,-59,-45,-24,0,24,45,59};
-// yaw sector along (dx,dz), index (dx>0)<<2 | (dz>0)<<1 | (|dx|>|dz|)
-static constexpr uint8_t kSeekYaw[8] = {7,5,1,3,9,11,15,13};
 // indexed by temperament
 static constexpr uint8_t kHurtMode[3] = {MOB_FLEE, MOB_CHASE, MOB_CHASE};
 static constexpr uint8_t kHurtTime[3] = {30, 90, 90};
 static constexpr uint8_t kAggro[3] = {0, 0, 96};
-static constexpr uint8_t kMobDrop[3] = {ENTITY_APPLE /* мясо */, ENTITY_APPLE /* мясо */, ENTITY_GUNPOWDER};
-// 16 nibbles of species id: 8 sheep, 4 wolves, 4 creepers
-static constexpr uint64_t SPAWN_ROLL = UINT64_C(0x2222111100000000);
+static constexpr uint8_t kMobDrop[MOB_SPECIES] = {ENTITY_APPLE /* мясо */,
+    ENTITY_APPLE /* мясо */, ENTITY_GUNPOWDER, ENTITY_SAPLING};
+// 16 nibbles of species id: 8 sheep, 2 wolves, 2 creepers, 4 bees
+static constexpr uint64_t SPAWN_ROLL = UINT64_C(0x3333221100000000);
 
 static inline int mobHeight(const MobSpec& s) { return (s.geom >> 4) << 1; }
+
+// 16-step heading whose forward (-sin,cos) best matches (dx,dz); sector
+// bounds 1/5 and 2/3 approximate tan 11.25/33.75 within 0.1 deg
+static uint8_t yawTowards(int dx,int dz){
+    int ax=dx<0?-dx:dx, az=dz<0?-dz:dz;
+    int s;
+    if(5*ax<=az) s=0;
+    else if(3*ax<=2*az) s=1;
+    else if(3*az>2*ax) s=2;
+    else if(5*az>ax) s=3;
+    else s=4;
+    if(dx<=0) return (uint8_t)(dz>=0 ? s : 8-s);
+    return (uint8_t)(dz<0 ? 8+s : (16-s)&15);
+}
+
+// rotate at most 2 steps (45 deg) per tick towards the wanted heading
+static uint8_t turnTo(uint8_t yaw,uint8_t want){
+    int d=(want-yaw)&15;
+    if(d<8) return (uint8_t)((yaw+(d>2?2:d))&15);
+    d=16-d; return (uint8_t)((yaw-(d>2?2:d))&15);
+}
 
 void Game::trySpawnMob(){
     if(rng() & 0x1F) return;
@@ -41,6 +61,8 @@ void Game::trySpawnMob(){
     Mob m{}; m.active=true; m.species=sp;
     m.x=x; m.y=y; m.z=z;
     m.hp=s.hpDmg>>4; m.yaw=rng()&15; m.mode=MOB_WANDER; m.timer=20+(rng()&31);
+    m.sated=s.prey && !(rng()&3);   // 25%: spawns full
+    if(s.info&8) m.alt=rng()&63;    // flyer: hover 0..4 blocks above ground
     mobs[slot]=m;
 }
 
@@ -51,6 +73,7 @@ void Game::hurtMobFrom(int index,int dmg,int srcX,int srcZ,uint8_t attacker){
         createEntity((m.x+7)>>4,(m.y+8)>>4,(m.z+7)>>4,kMobDrop[m.species]);
         score++;
         m.active=false;
+        if(attacker<MAX_MOBS && m.species==MOB_SHEEP) mobs[attacker].sated=1;   // ate its fill
         return;
     }
     m.hp=(uint8_t)(m.hp-dmg);
@@ -60,10 +83,11 @@ void Game::hurtMobFrom(int index,int dmg,int srcX,int srcZ,uint8_t attacker){
     m.mode=kHurtMode[temp]; m.timer=kHurtTime[temp];
     m.target=attacker;
     int dx=srcX-(m.x+7), dz=srcZ-(m.z+7);
-    int key=((dx>0)<<2)|((dz>0)<<1)|(std::abs(dx)>std::abs(dz));
-    m.yaw=kSeekYaw[key]^((m.mode&1)<<3);
+    uint8_t to=yawTowards(dx,dz);
+    m.yaw=to^((m.mode&1)<<3);
+    m.gx=(int16_t)srcX; m.gz=(int16_t)srcZ; m.seek=MOB_RETARGET_TICKS;
 
-    int away=kSeekYaw[key]^8;
+    int away=to^8;
     int nx=std::clamp(m.x+((kDirX[away]*10)>>6), 0, world.worldSX()*BLOCKSIZE-MOBWIDTH-1);
     int nz=std::clamp(m.z+((kDirZ[away]*10)>>6), 0, world.worldSZ()*BLOCKSIZE-MOBWIDTH-1);
     if(!boxCollides(nx,m.y,nz,MOBWIDTH,mobHeight(s))){ m.x=nx; m.z=nz; }
@@ -138,6 +162,7 @@ void Game::updateAllMobs(){
 
         if(m.hurt) m.hurt--;
         if(m.cool) m.cool--;
+        if(m.seek) m.seek--;
 
         if(m.mode<MOB_CHASE){
             int pdx=std::abs(pxc-(m.x+7)), pdz=std::abs(pzc-(m.z+7));
@@ -147,6 +172,7 @@ void Game::updateAllMobs(){
                 for(int oi=0;oi<MAX_MOBS;oi++){
                     const Mob& o=mobs[oi];
                     if(!o.active || !((s.prey>>o.species)&1)) continue;
+                    if(m.sated && !(mobSpec(o.species).info&1)) continue;   // full: food ignored, war stays
                     if((std::abs(o.x-m.x)|std::abs(o.z-m.z))<96 && std::abs(o.y-m.y)<48){
                         m.mode=MOB_CHASE; m.target=(uint8_t)oi; m.timer=90;
                         break;
@@ -171,17 +197,27 @@ void Game::updateAllMobs(){
         int adx=std::abs(dx), adz=std::abs(dz);
 
         if(m.timer) m.timer--;
-        else { uint8_t r=rng(); m.mode=r&1; m.yaw=(r>>1)&15; m.timer=20+(r>>4); m.target=0xFF; }
+        else { uint8_t r=rng(); m.mode=r&1; m.yaw=(r>>1)&15; m.timer=20+(r>>4); m.target=0xFF;
+               if(s.info&8) m.alt=rng()&63; }
 
         // wander at half speed, chase/flee at full
         int v = m.mode ? (int)(s.geom&0x0F)<<(m.mode>>1)>>1 : 0;
         int mx,mz;
         if(m.mode>=MOB_CHASE){
-            int key=((dx>0)<<2)|((dz>0)<<1)|(adx>adz);
-            m.yaw=kSeekYaw[key]^((m.mode&1)<<3);
-            int L=adx>adz?adx:adz; if(!L)L=1;
-            int sgn=1-((m.mode&1)<<1);
-            mx=v*dx*sgn/L; mz=v*dz*sgn/L;
+            // lazy re-aim: the goal moves only when the target left the dead
+            // zone around it and the reaction delay ran out
+            if(!m.seek && (std::abs(tx-m.gx)|std::abs(tz-m.gz))>MOB_DEADZONE){
+                m.gx=(int16_t)tx; m.gz=(int16_t)tz; m.seek=MOB_RETARGET_TICKS;
+            }
+            int wdx=m.gx-(m.x+7), wdz=m.gz-(m.z+7);
+            int awx=std::abs(wdx), awz=std::abs(wdz);
+            int L=awx>awz?awx:awz;
+            if(m.mode==MOB_CHASE && L<=4){ mx=0; mz=0; }   // at the stale goal: wait
+            else {
+                // walk along the facing: no strafing, turns become arcs
+                m.yaw=turnTo(m.yaw,(uint8_t)(yawTowards(wdx,wdz)^((m.mode&1)<<3)));
+                mx=(v*kDirX[m.yaw])>>6; mz=(v*kDirZ[m.yaw])>>6;
+            }
         } else {
             mx=(v*kDirX[m.yaw])>>6; mz=(v*kDirZ[m.yaw])>>6;
         }
@@ -205,18 +241,33 @@ void Game::updateAllMobs(){
                    y<playerY+PLAYERHEIGHT && y+hgt>playerY;
         };
         const bool wasP=overPlayer(m.x,m.y,m.z);
+        const bool fly=(s.info&8)!=0;
+        bool bumped=false;
         bool grounded=boxCollides(m.x,m.y-1,m.z,MOBWIDTH,hgt);
         int nx=std::clamp(m.x+mx,wx0,wx1), nz=std::clamp(m.z+mz,wz0,wz1);
         if(m.mode==MOB_WANDER && (nx!=m.x+mx || nz!=m.z+mz)) m.yaw^=8;
         int stepY=((m.y>>4)+1)<<4;
         if(overPlayer(nx,m.y,m.z) && !wasP) nx=m.x;
         if(!boxCollides(nx,m.y,m.z,MOBWIDTH,hgt)) m.x=nx;
+        else if(fly) bumped=true;
         else if(grounded && m.vy==0 && !boxCollides(nx,stepY,m.z,MOBWIDTH,hgt)) m.vy=9;
         if(overPlayer(m.x,m.y,nz) && !wasP) nz=m.z;
         if(!boxCollides(m.x,m.y,nz,MOBWIDTH,hgt)) m.z=nz;
+        else if(fly) bumped=true;
         else if(grounded && m.vy==0 && !boxCollides(m.x,stepY,nz,MOBWIDTH,hgt)) m.vy=9;
 
-        m.vy-=2; if(m.vy<-8)m.vy=-8;
+        if(fly){
+            int wantY;
+            if(m.mode>=MOB_CHASE) wantY=ty+8;   // hover at the target's waist
+            else {
+                int fbx=(m.x+7)>>4, fbz=(m.z+7)>>4, gby=m.y>>4;
+                while(gby>0 && !blockIsSolid(world.getBlock(fbx,gby-1,fbz))) gby--;
+                wantY=(gby<<4)+m.alt;
+            }
+            m.vy=bumped?4:std::clamp(wantY-m.y,-4,4);
+        } else {
+            m.vy-=2; if(m.vy<-8)m.vy=-8;
+        }
         int ny=m.y+m.vy; if(ny<0){ny=0;m.vy=0;}
         if(boxCollides(m.x,ny,m.z,MOBWIDTH,hgt)){
             if(m.vy<0) m.y=((ny>>4)+1)<<4;

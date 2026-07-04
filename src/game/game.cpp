@@ -334,7 +334,14 @@ void Game::handleBreakAndPlace(const Input& in){
         if(id==BLOCK_TABLE){ screenId=SCR_CRAFTING; cursor=0; selSlot=-1; return; }
         if(id==BLOCK_DYNAMITE){ igniteDynamite(bx,by,bz,DYNAMITE_FUSE_TICKS); return; }
         if(id==BLOCK_FURNACE||id==BLOCK_CHEST){ int bi=findBlockEntity(bx,by,bz);
-            if(bi>=0){openTileStorage(bi); loadedTile=bi; screenId=tiles[bi].isChest?SCR_CHEST:SCR_FURNACE; cursor=0; selSlot=-1;} return; }
+            if(bi<0){ // block without a directory entry (storage table was full): adopt it
+                BlockEnt b;b.active=true;b.isChest=(id==BLOCK_CHEST);
+                b.bx=bx;b.by=by;b.bz=bz;
+                b.dir=(hit.pz<bz)?2:(hit.pz>bz)?3:(hit.px<bx)?0:(hit.px>bx)?1:(pl.rot&0x0F);
+                b.storage=allocStorage();
+                if(b.storage>=0){uint8_t sb[STORAGE_SLOT_SIZE];packStorage(b,sb);world.writeStorageSlot(b.storage,sb);}
+                tiles.push_back(b); bi=(int)tiles.size()-1;}
+            openTileStorage(bi); loadedTile=bi; screenId=tiles[bi].isChest?SCR_CHEST:SCR_FURNACE; cursor=0; selSlot=-1; return; }
         ItemCell& cell=pl.inventory[pl.invSlot];
         uint8_t item=cell.type;
         bool placeable=!(item==0||cell.count==0||(item>=ITEM_IRONINGOT&&item<ITEM_TABLE)||
@@ -630,7 +637,7 @@ void Game::finishRender(){
         if((mobSpec(m.species).info&1) && m.cool)
             sc16=16+((MOB_FUSE_TICKS-m.cool)*7)/MOB_FUSE_TICKS;
         renderer.renderMob((float)(m.x+7), (float)m.y, (float)(m.z+7), m.species,
-                           (uint8_t)((MOB_YAW_FACE>>((m.yaw&15)*2))&3),
+                           (uint8_t)(m.yaw&15),
                            (uint8_t)((m.hurt&1)<<1), (uint8_t)sc16);
     }
     RayHit hit=rayCast();

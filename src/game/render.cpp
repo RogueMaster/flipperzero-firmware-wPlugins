@@ -349,12 +349,13 @@ void Renderer::renderItem(float x,float y,float z,uint8_t itemId,uint8_t inv) {
 
 // tex[6] = negx,posx,negz,posz,negy,posy; headDir = world side the body's +Z
 // points at, top/bottom faces are sampled in body space (v=0 at the head end)
+// per face+vertex corner: bit0 pick x1, bit1 pick y1, bit2 pick z1
+static const uint8_t kCorner[6][4] = {
+    {4,6,2,0}, {1,3,7,5}, {0,2,3,1}, {5,7,6,4}, {4,0,1,5}, {2,6,7,3},
+};
+
 void Renderer::renderBox(float x0,float y0,float z0,float x1,float y1,float z1,
                          const uint8_t tex[6],int texSettings,uint8_t headDir) {
-    // per face+vertex corner: bit0 pick x1, bit1 pick y1, bit2 pick z1
-    static const uint8_t kCorner[6][4] = {
-        {4,6,2,0}, {1,3,7,5}, {0,2,3,1}, {5,7,6,4}, {4,0,1,5}, {2,6,7,3},
-    };
     const float px[2]={x0,x1}, py[2]={y0,y1}, pz[2]={z0,z1};
     settings.cullBackface = (texSettings & TS_CULLBACK) != 0;
     settings.transparent  = (texSettings & TS_TRANSPARENT) != 0;
@@ -392,29 +393,45 @@ void Renderer::renderDynamite(float x,float y,float z,uint8_t inv) {
     renderBox(x-8.0f, y, z-8.0f, x+8.0f, y+16.0f, z+8.0f, tex, TS_CULLBACK ^ inv, 2);
 }
 
-// (x,y,z) feet centre in world sub-pixels; face = world side local +Z points
-// at (NEGX,POSX,NEGZ,POSZ = 0..3); inv = 0 or TS_INVERTED; sc16 = scale*16
-void Renderer::renderMob(float x,float y,float z,uint8_t species,uint8_t face,uint8_t inv,uint8_t sc16) {
+// (x,y,z) feet centre in world sub-pixels; yaw = 16-step heading, camera
+// convention fwd=(-sin,cos); inv = 0 or TS_INVERTED; sc16 = scale*16
+void Renderer::renderMob(float x,float y,float z,uint8_t species,uint8_t yaw,uint8_t inv,uint8_t sc16) {
     const int bxc = ifloor(x*(1.0f/16.0f)), bzc = ifloor(z*(1.0f/16.0f));
     if (bxc < winX0 || bxc > winX1 || bzc < winZ0 || bzc > winZ1) return;
     const MobSpec& s = mobSpec(species);
-    // local (lx,lz) -> world: {wx = a*lx + b*lz, wz = c*lx + d*lz}
-    static const int8_t kRot[4][4] = {{0,-1,1,0},{0,1,-1,0},{-1,0,0,-1},{1,0,0,1}};
-    const int8_t a=kRot[face&3][0], b=kRot[face&3][1], c=kRot[face&3][2], d=kRot[face&3][3];
+    // local (lx,lz) -> world: {wx = c*lx - s*lz, wz = s*lx + c*lz}
+    const float sn = kFsin[yaw & 0xF], cs = kFcos[yaw & 0xF];
     const float k = sc16*(1.0f/16.0f);
+    settings.cullBackface = true;
+    settings.transparent  = false;
+    settings.inverted     = (inv & TS_INVERTED) != 0;
+    settings.overlay      = false;
 
     int n;
     const MobBox* boxes = mobBoxes(species, n);
     for (int i=0;i<n;i++) {
         const MobBox& bx = boxes[i];
-        const int lx0=bx.ox, lz0=bx.oz, lx1=bx.ox+bx.sx, lz1=bx.oz+bx.sz;
-        const int wxA=a*lx0+b*lz0, wxB=a*lx1+b*lz1;
-        const int wzA=c*lx0+d*lz0, wzB=c*lx1+d*lz1;
-        uint8_t tex[6] = {s.texSide,s.texSide,s.texSide,s.texSide,s.texTop,s.texTop};
-        if (bx.flags & 1) tex[face&3] = s.texFront;
-        renderBox(x+std::min(wxA,wxB)*k, y+bx.oy*k,        z+std::min(wzA,wzB)*k,
-                  x+std::max(wxA,wxB)*k, y+(bx.oy+bx.sy)*k, z+std::max(wzA,wzB)*k,
-                  tex, TS_CULLBACK ^ inv, face);
+        const float lx[2]={bx.ox*k,(bx.ox+bx.sx)*k};
+        const float ly[2]={y+bx.oy*k,y+(bx.oy+bx.sy)*k};
+        const float lz[2]={bx.oz*k,(bx.oz+bx.sz)*k};
+        for (int f=0;f<6;f++) {
+            Vertex cam[4];
+            for (int j=0;j<4;j++) {
+                uint8_t c = kCorner[f][j];
+                const float px=lx[c&1], pz=lz[(c>>2)&1];
+                Vertex w;
+                w.x = x + cs*px - sn*pz;
+                w.y = ly[(c>>1)&1];
+                w.z = z + sn*px + cs*pz;
+                // top/bottom sampled in body space, v=0 at the head end
+                if (f>=4) { w.u=(float)(c&1); w.v=1.0f-(float)((c>>2)&1); }
+                else { w.u = kQuadUvs[j][0]; w.v = kQuadUvs[j][1]; }
+                cam[j] = worldToCam(w);
+            }
+            texture = (Texture)((f==3 && (bx.flags&1)) ? s.texFront :
+                                f>=4 ? s.texTop : s.texSide);
+            drawQuadCam(cam);
+        }
     }
     renderQuad((x-4.0f)/16.0f, y/16.0f, (z-4.0f)/16.0f, QUAD_ITEMSHADOW, TEX_SHADOW,
                TS_CULLBACK|TS_TRANSPARENT|TS_INVERTED);
