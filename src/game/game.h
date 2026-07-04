@@ -131,7 +131,17 @@ private:
     void flushTileStorage(int tileIndex);  // write contents back, mark unloaded
 
     struct Slot { ItemCell* cell; int gx, gy, sx, sy; bool grid; bool output; };
-    std::vector<Slot> buildSlots(ScreenId s);
+    // The GUI never shows more than 25 slots (15 inventory + 9 craft grid + 1
+    // output); a fixed list on the caller's stack avoids per-frame heap churn.
+    struct SlotList {
+        static constexpr int MAX = 25;
+        Slot s[MAX];
+        int n = 0;
+        size_t size() const { return (size_t)n; }
+        bool empty() const { return n == 0; }
+        Slot& operator[](size_t i) { return s[i]; }
+    };
+    SlotList buildSlots(ScreenId s);
     void guiFrame(const Input& in);
     void drawGui();
     void tryCraft();

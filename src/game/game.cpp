@@ -650,9 +650,10 @@ void Game::worldFrame(const Input& in){
     world.updateWindow((playerX+PLAYERHALFWIDTH)/BLOCKSIZE,(playerZ+PLAYERHALFWIDTH)/BLOCKSIZE);
 }
 
-std::vector<Game::Slot> Game::buildSlots(ScreenId s){
-    std::vector<Slot> v;
-    auto add=[&](ItemCell* c,int gx,int gy,int sx,int sy,bool grid,bool out){v.push_back({c,gx,gy,sx,sy,grid,out});};
+Game::SlotList Game::buildSlots(ScreenId s){
+    SlotList v;
+    auto add=[&](ItemCell* c,int gx,int gy,int sx,int sy,bool grid,bool out){
+        if(v.n<SlotList::MAX) v.s[v.n++]={c,gx,gy,sx,sy,grid,out};};
 
     for(int r=0;r<3;r++)for(int c=0;c<5;c++) add(&pl.inventory[r*5+c],c,r,21+c*11,53-r*11,false,false);
     if(s==SCR_INVENTORY){
