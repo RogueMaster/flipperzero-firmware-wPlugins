@@ -1,0 +1,22 @@
+# uFBT / build outputs
+/dist/
+/build/
+.sconsign.dblite
+
+# IDE / editor artifacts
+.vscode/compile_commands.json
+compile_commands.json
+.idea/
+*.swp
+*.swo
+
+# Debug / binary outputs
+*.elf
+*.fap
+*.map
+*.o
+*.a
+
+# Local OS noise
+.DS_Store
+Thumbs.db
