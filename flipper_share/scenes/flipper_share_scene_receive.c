@@ -96,16 +96,21 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     // fs_parts concurrently). Skip on contention rather than block the renderer.
     char fname[FS_FILENAME_LENGTH];
     uint32_t fsize = 0;
-    uint8_t parts_bits[FS_PARTS_BYTES];
+    uint32_t rcv = 0, need = 0, start = 0, last_progress = 0;
+    uint8_t levels[FS_PARTS_COUNT];
     if(fs_try_lock_ms(10)) {
         memcpy(fname, g.r_file_name, sizeof(fname));
         fname[sizeof(fname) - 1] = '\0';
         fsize = g.r_file_size;
-        fs_parts_bitmap_copy(parts_bits);
+        rcv = g.r_blocks_received;
+        need = g.r_blocks_needed;
+        start = g.r_start_ms;
+        last_progress = g.r_last_progress_ms;
+        fs_parts_levels_copy(levels);
         fs_unlock();
     } else {
         fname[0] = '\0';
-        memset(parts_bits, 0, sizeof(parts_bits));
+        memset(levels, 0, sizeof(levels));
     }
 
     canvas_clear(canvas);
@@ -115,15 +120,50 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     canvas_set_color(canvas, ColorBlack);
     elements_multiline_text_aligned(canvas, 64, 4, AlignCenter, AlignTop, "Receiving...");
 
-    // Filename (basename) + size
+    // Filename on its own line (as-is; long names may overflow — accepted).
     canvas_set_font(canvas, FontSecondary);
-    char name_line[64];
-    snprintf(name_line, sizeof(name_line), "%.*s, %lu KB", 48, fname, (unsigned long)(fsize / 1024));
-    elements_multiline_text_aligned(canvas, 64, 20, AlignCenter, AlignTop, name_line);
+    elements_multiline_text_aligned(canvas, 64, 20, AlignCenter, AlignTop, fname);
 
-    // Show progress percent as text above bar
-    snprintf(name_line, sizeof(name_line), "Progress: %u%%", (unsigned int)percent);
-    elements_multiline_text_aligned(canvas, 64, 36, AlignCenter, AlignTop, name_line);
+    // Size + percent + ETA on one line above the bar.
+    // ETA = remaining / rate, where rate is the measured session average once
+    // enough has elapsed; before that (warmup) it uses the nominal constant.
+    // If no new block has arrived for FS_STALL_MS, show "stalled" instead of a
+    // number (this also avoids ETA blowing up / overflowing when recv is small
+    // and elapsed keeps growing during a link outage).
+    uint32_t rem_blocks = (need > rcv) ? (need - rcv) : 0;
+    uint32_t rem_bytes = rem_blocks * FS_DATA_LENGTH;
+    uint32_t recv_bytes = rcv * FS_DATA_LENGTH;
+    uint32_t now = furi_get_tick();
+    uint32_t elapsed_ms = (now > start) ? (now - start) : 0;
+
+    bool stalled = (rem_blocks > 0) && (last_progress != 0) &&
+                   ((now - last_progress) > FS_STALL_MS);
+
+    char info[48];
+    if(stalled) {
+        snprintf(
+            info,
+            sizeof(info),
+            "%u%%  %lu KB  stalled",
+            (unsigned int)percent,
+            (unsigned long)(fsize / 1024));
+    } else {
+        // Clamp in uint64 before casting to guard against overflow.
+        uint64_t e = (elapsed_ms >= FS_ETA_WARMUP_MS && recv_bytes > 0)
+                         ? ((uint64_t)rem_bytes * elapsed_ms / ((uint64_t)recv_bytes * 1000u))
+                         : ((uint64_t)rem_bytes / FS_PAYLOAD_THROUGHPUT_BPS);
+        if(e > FS_ETA_MAX_SEC) e = FS_ETA_MAX_SEC;
+        char eta[16];
+        fs_fmt_duration((uint32_t)e, eta, sizeof(eta));
+        snprintf(
+            info,
+            sizeof(info),
+            "%u%%  %lu KB  ETA %s",
+            (unsigned int)percent,
+            (unsigned long)(fsize / 1024),
+            eta);
+    }
+    elements_multiline_text_aligned(canvas, 64, 36, AlignCenter, AlignTop, info);
 
     // Progress bar frame and fill
     const int x = 13;
@@ -134,16 +174,18 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_frame(canvas, x, y, w, h);
 
+    // Torrent-style, but each column is filled from the bottom to a height
+    // proportional to the fraction of blocks received in that part (levels[i] is
+    // 0..255). Any received part shows at least 1px so early progress is visible.
     for (uint32_t i = 0; i < FS_PARTS_COUNT; ++i) {
-        if ((parts_bits[i >> 3] >> (i & 7u)) & 1u) {    // bit value by number
-            canvas_draw_line(canvas, x + i + 1, y, x + i + 1, y + h - 1);
-        }
+        uint8_t lv = levels[i];
+        if (!lv) continue;
+        int fill = (lv * h) / 255;
+        if (fill < 1) fill = 1;
+        if (fill > h) fill = h;
+        canvas_draw_line(canvas, x + i + 1, y + h - fill, x + i + 1, y + h - 1);
     }
-
-    // Percent text below
-    char pct[16];
-    snprintf(pct, sizeof(pct), "%u%%", (unsigned int)percent);
-    elements_multiline_text_aligned(canvas, 64, y + h + 8, AlignCenter, AlignTop, pct);
+    // (nothing drawn below the bar: y+h ≈ 62, screen is 64px tall)
 }
 
 static bool progress_view_input_callback(InputEvent* event, void* context) {
@@ -257,7 +299,20 @@ static void update_timer_callback(void* context) {
     if(!fs_try_lock_ms(20)) return; // skip this tick on contention
     if(complete) {
         is_success = g.r_is_success;
-        snprintf(progress_text, sizeof(progress_text), "Saved to:\n%.*s", 96, g.r_file_path);
+        // Actual receive throughput + elapsed time (r_start_ms..r_finish_ms).
+        uint32_t st = g.r_start_ms, fin = g.r_finish_ms, fsz = g.r_file_size;
+        uint32_t el_ms = (fin > st) ? (fin - st) : 0;
+        uint32_t bps = (el_ms > 0) ? (uint32_t)((uint64_t)fsz * 1000u / el_ms) : 0;
+        char tbuf[16];
+        fs_fmt_duration(el_ms / 1000u, tbuf, sizeof(tbuf));
+        snprintf(
+            progress_text,
+            sizeof(progress_text),
+            "Saved to:\n%.*s\n%lu Bps  %s",
+            72,
+            g.r_file_path,
+            (unsigned long)bps,
+            tbuf);
     } else {
         is_locked = g.r_locked;
         if(is_locked) {

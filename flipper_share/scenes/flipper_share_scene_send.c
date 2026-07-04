@@ -114,50 +114,44 @@ static void dialog_ex_callback(DialogExResult result, void* context) {
 static void update_timer_callback(void* context) {
     furi_assert(context);
     FlipperShareApp* app = context;
-
     FileReadingState* state = (FileReadingState*)app->file_reading_state;
+    if(!state) return;
 
-    char progress_text[255];
-    if(state) {
-        if(state->reading_complete) {
+    char progress_text[128];
+
+    if(state->reading_complete) {
+        snprintf(progress_text, sizeof(progress_text), "Complete! %lu bytes read", state->counter);
+        dialog_ex_set_right_button_text(app->dialog_show_file, "OK");
+    } else {
+        // Filename on line 1, size on line 2 (bytes if < 1 KB, else KB).
+        // s_file_name/s_file_size are set once in fs_init and stable, but snapshot
+        // under the lock for consistency; skip this tick on contention.
+        char fname[FS_FILENAME_LENGTH];
+        uint32_t fsize;
+        if(!fs_try_lock_ms(20)) return;
+        memcpy(fname, g.s_file_name, sizeof(fname));
+        fname[sizeof(fname) - 1] = '\0';
+        fsize = g.s_file_size;
+        fs_unlock();
+
+        // Rough ETA by the nominal constant only (the sender has no receiver-side
+        // progress). Pure division by a nonzero constant; clamp for a sane display.
+        uint32_t eta_sec = fsize / FS_PAYLOAD_THROUGHPUT_BPS;
+        if(eta_sec > FS_ETA_MAX_SEC) eta_sec = FS_ETA_MAX_SEC;
+        char eta[16];
+        fs_fmt_duration(eta_sec, eta, sizeof(eta));
+
+        if(fsize < 1024) {
             snprintf(
-                progress_text, sizeof(progress_text), "Complete! %lu bytes read", state->counter);
-
-            dialog_ex_set_right_button_text(app->dialog_show_file, "OK");
+                progress_text, sizeof(progress_text), "%s\n%lu B  ~ %s", fname,
+                (unsigned long)fsize, eta);
         } else {
-            // Print filename and size
-            const char* prefix = "";
-            int pref_len = snprintf(progress_text, sizeof(progress_text), "%s", prefix);
-            if(pref_len < 0) pref_len = 0;
-            int avail = (int)sizeof(progress_text) - pref_len - 1;
-            if(avail < 0) avail = 0;
             snprintf(
-                progress_text + pref_len,
-                (size_t)avail + 1,
-                "%.*s, %lu KB",
-                avail,
-                g.s_file_name,
-                g.s_file_size / 1024);
-
-            // int len = strlen(progress_text);
-            // if(len < (int)sizeof(progress_text) - 1) {
-            //     // int percent = (int)((state->counter * 100) / app->selected_file_size);
-            //     // snprintf(progress_text + len, sizeof(progress_text) - (size_t)len, "");
-            // }
+                progress_text, sizeof(progress_text), "%s\n%lu KB  ~ %s", fname,
+                (unsigned long)(fsize / 1024), eta);
         }
-        // Update dialog text
-        dialog_ex_set_text(app->dialog_show_file, progress_text, 64, 32, AlignCenter, AlignCenter);
     }
-    // snprintf(
-    //     progress_text,
-    //     255,
-    //     "%s\n %u bytes",
-    //     app->selected_file_path,
-    //     app->selected_file_size);
 
-    //snprintf(progress_text, sizeof(progress_text), " %lu bytes", state->counter);
-
-    // Update dialog text
     dialog_ex_set_text(app->dialog_show_file, progress_text, 64, 32, AlignCenter, AlignCenter);
 }
 

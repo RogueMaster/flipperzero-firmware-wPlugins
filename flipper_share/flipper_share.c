@@ -260,37 +260,33 @@ static struct {
     uint32_t         B;     // block_count
     uint32_t         N;     // parts count (= FS_PARTS_COUNT)
     fs_parts_mode_t  mode;
-    // Bitmap of parts received, 1 bit = part full
-    uint8_t          bits[FS_PARTS_BYTES];
-
-    // If B>=N, then each part has at least 1 block, so missing[] >= 1 always
-    uint32_t         seg_start[FS_PARTS_COUNT];
-    uint32_t         seg_end  [FS_PARTS_COUNT];
-    uint32_t         missing  [FS_PARTS_COUNT]; // >=1, monotonically decrease to 0
+    uint32_t         received[FS_PARTS_COUNT]; // blocks received per part
+    uint32_t         total   [FS_PARTS_COUNT]; // blocks total per part (>=1 unless B==0)
 } fs_parts;
-
-static inline void _parts_bit_set(uint32_t s) {
-    fs_parts.bits[s >> 3] |= (uint8_t)(1u << (s & 7u));
-}
-static inline uint8_t _parts_bit_get(uint32_t s) {
-    return (fs_parts.bits[s >> 3] >> (s & 7u)) & 1u;
-}
 
 static inline uint32_t _scale_floor_u32(uint32_t x, uint32_t mul, uint32_t den) {
     return (uint32_t)(((uint64_t)x * (uint64_t)mul) / (uint64_t)den);
 }
 
-// Init pre-calculated if B>=N
+// ceil(x*mul/den)
+static inline uint32_t _scale_ceil_u32(uint32_t x, uint32_t mul, uint32_t den) {
+    return (uint32_t)(((uint64_t)x * (uint64_t)mul + (uint64_t)den - 1u) / (uint64_t)den);
+}
+
+// Pre-calc per-part totals when B>=N. Part s owns blocks [ceil(s*B/N), ceil((s+1)*B/N)),
+// which is the exact inverse of part(i)=floor(i*N/B) used in fs_parts_on_block_set.
+// => sum(total)=B and each part fills exactly when all its blocks arrive (no
+// floor/ceil mismatch, so no "never-filling" parts).
 static void _init_blocks_per_part(void) {
     const uint32_t B = fs_parts.B;
     const uint32_t N = fs_parts.N;
 
+    uint32_t prev = 0; // ceil(0*B/N)
     for (uint32_t s = 0; s < N; ++s) {
-        uint32_t start = _scale_floor_u32(s,     B, N);
-        uint32_t end   = _scale_floor_u32(s + 1, B, N) - 1u;
-        fs_parts.seg_start[s] = start;
-        fs_parts.seg_end[s]   = end;
-        fs_parts.missing[s]   = (end >= start) ? (end - start + 1u) : 0u; // if B>=N, then always >=1
+        uint32_t next = _scale_ceil_u32(s + 1, B, N);
+        fs_parts.total[s]    = next - prev; // >=1 since B>=N
+        fs_parts.received[s] = 0;
+        prev = next;
     }
 }
 
@@ -304,8 +300,6 @@ bool fs_parts_init(uint32_t block_count) {
         return false;
     }
 
-    memset(fs_parts.bits, 0, sizeof(fs_parts.bits));
-
     if (fs_parts.B == 0) {
         fs_parts.mode = FS_PARTS_MODE_NONE;
         return true;
@@ -315,7 +309,12 @@ bool fs_parts_init(uint32_t block_count) {
         fs_parts.mode = FS_PARTS_MODE_BLOCKS_PER_PART;
         _init_blocks_per_part();
     } else {
-        fs_parts.mode = FS_PARTS_MODE_PARTS_PER_BLOCK;  // no need to pre-calculate anything
+        // B<N: each part is covered by exactly one block → total 1 per part.
+        fs_parts.mode = FS_PARTS_MODE_PARTS_PER_BLOCK;
+        for (uint32_t s = 0; s < fs_parts.N; ++s) {
+            fs_parts.total[s] = 1u;
+            fs_parts.received[s] = 0u;
+        }
     }
     return true;
 }
@@ -329,22 +328,16 @@ void fs_parts_on_block_set(uint32_t i) {
     if (i >= fs_parts.B) return; // out of range
 
     if (fs_parts.mode == FS_PARTS_MODE_BLOCKS_PER_PART) {
-        // Find part that block i belongs to
+        // Block i belongs to exactly one part: part(i) = floor(i*N/B).
         uint32_t s = _scale_floor_u32(i, fs_parts.N, fs_parts.B);
         if (s >= fs_parts.N) return; // bounds check
 
-        // If already set, do nothing
-        if (_parts_bit_get(s)) return;
-
-        // Decrement "how many still not received"
-        if (fs_parts.missing[s] > 0) {
-            fs_parts.missing[s]--;
-            if (fs_parts.missing[s] == 0) {
-                _parts_bit_set(s);
-            }
+        // Count it (idempotent to duplicate DATA — capped at total[s]).
+        if (fs_parts.received[s] < fs_parts.total[s]) {
+            fs_parts.received[s]++;
         }
     } else {
-        // FS_PARTS_MODE_PARTS_PER_BLOCK: block covers range of parts [sf .. sl]
+        // FS_PARTS_MODE_PARTS_PER_BLOCK (B<N): block covers range of parts [sf .. sl]
         // sf = floor(i*N/B), sl = floor((i+1)*N/B) - 1
         uint32_t sf = _scale_floor_u32(i,     fs_parts.N, fs_parts.B);
         uint32_t sl = _scale_floor_u32(i + 1, fs_parts.N, fs_parts.B);
@@ -354,21 +347,36 @@ void fs_parts_on_block_set(uint32_t i) {
         if (sl >= fs_parts.N) sl = fs_parts.N - 1u;
         if (sf >  sl)  return;
 
-        // Set bits. This is idempotent, each bit is set at most once per session.
+        // Mark covered columns full (total[s]==1). Idempotent.
         for (uint32_t s = sf; s <= sl; ++s) {
-            _parts_bit_set(s);
+            fs_parts.received[s] = fs_parts.total[s];
         }
     }
 }
 
 int fs_parts_get(uint32_t part_index) {
     if (part_index >= fs_parts.N || fs_parts.N == 0) return -1;
-    return _parts_bit_get(part_index) ? 1 : 0;
+    return (fs_parts.total[part_index] > 0 &&
+            fs_parts.received[part_index] >= fs_parts.total[part_index]) ? 1 : 0;
 }
 
-void fs_parts_bitmap_copy(uint8_t* dst) {
+// Fill dst[0..FS_PARTS_COUNT-1] with per-part fill level 0..255 (received/total).
+// A partially-received part yields >=1 so early progress is visible; a fully
+// received part yields 255. Caller must hold g_lock.
+void fs_parts_levels_copy(uint8_t* dst) {
     if (!dst) return;
-    memcpy(dst, fs_parts.bits, FS_PARTS_BYTES);
+    for (uint32_t s = 0; s < FS_PARTS_COUNT; ++s) {
+        uint32_t tot = fs_parts.total[s];
+        uint32_t rcv = fs_parts.received[s];
+        if (tot == 0 || rcv == 0) {
+            dst[s] = 0;
+        } else if (rcv >= tot) {
+            dst[s] = 255;
+        } else {
+            uint32_t v = (uint32_t)(((uint64_t)rcv * 255u) / tot);
+            dst[s] = (uint8_t)(v ? v : 1u);
+        }
+    }
 }
 
 uint32_t fs_parts_count(void) {
@@ -388,6 +396,18 @@ bool fs_parts_is_ready(void) {
 
 
 // ===== Helpers =====
+
+// Adaptive duration: "M:SS" under 1h, "H:MM:SS" from 1h. Divisors are constants.
+void fs_fmt_duration(uint32_t secs, char* buf, size_t n) {
+    uint32_t h = secs / 3600;
+    uint32_t m = (secs % 3600) / 60;
+    uint32_t s = secs % 60;
+    if(h) {
+        snprintf(buf, n, "%lu:%02lu:%02lu", (unsigned long)h, (unsigned long)m, (unsigned long)s);
+    } else {
+        snprintf(buf, n, "%lu:%02lu", (unsigned long)m, (unsigned long)s);
+    }
+}
 
 const char* fs_basename(const char* path) {
     if (!path || !*path) return "";  // empty
@@ -927,6 +947,7 @@ void fs_idle(void) {
         if (do_finalize) {
             FURI_LOG_I(TAG, "fs_idle: ALL BLOCKS RECEIVED, finalizing");
             g.r_finalizing = true;
+            g.r_finish_ms = now;     // reception end (all blocks in) — before MD5
             g.r_locked = false;      // keep existing UX (lock released on completion)
             g.r_locked_tx_id = 0;
             g.r_blocks_received = 0;
@@ -1033,6 +1054,9 @@ static void fs_handle_announce(uint8_t tx_id, const FS_pl_announce_t* ann) {
         g.r_locked = true;
         g.r_locked_tx_id = tx_id;
         g.tx_id = tx_id; // respond on the same tx_id
+        g.r_start_ms = g.cb_now_ms ? g.cb_now_ms() : 0; // reception start (for ETA / speed)
+        g.r_finish_ms = 0;
+        g.r_last_progress_ms = g.r_start_ms; // seed stall detector so we aren't "stalled" at t0
         memcpy(g.r_file_name, name, FS_FILENAME_LENGTH);
         g.r_file_size = ann->file_size;
         memcpy(g.r_md5, ann->hash_md5, sizeof(g.r_md5));
@@ -1170,6 +1194,7 @@ static void fs_handle_data(uint8_t tx_id, const FS_pl_data_t* d) {
     fs_map_set(d->block_number, 1); // mark block as received
     fs_parts_on_block_set(d->block_number); // handle parts
     g.r_blocks_received++;
+    g.r_last_progress_ms = g.last_rx_ms; // real progress timestamp (for stall detection)
 
     uint32_t received = g.r_blocks_received;
     uint32_t needed = g.r_blocks_needed;
