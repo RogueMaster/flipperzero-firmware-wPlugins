@@ -91,7 +91,11 @@ float Renderer::camDir(int axis) const { return floorf(matrix[2][axis]*64.0f); }
 
 void Renderer::invalidateChunkMeshes() {
     for (auto& col : chunkMesh)
-        for (auto& cm : col) { cm.cx = cm.cz = -1; cm.faces.clear(); }
+        for (auto& cm : col) {
+            cm.cx = cm.cz = -1;
+            cm.faces.clear();
+            cm.faces.shrink_to_fit();   // release, don't keep the old world's capacity
+        }
 }
 
 // matrix[0][1] is 0 by construction (no roll), so row 0 skips the oy term.
@@ -417,64 +421,80 @@ void Renderer::renderMob(float x,float y,float z,uint8_t species,uint8_t face,ui
 }
 
 // Rebuild the packed face list for the chunk resident in window slot (sx,sz).
-// One pass over the chunk's voxels up to its highest non-air layer; runs only
-// when the chunk changed, never per frame.
+// Two passes over the chunk's voxels up to its highest non-air layer: the
+// first only counts, so the list is allocated once at exactly its final size
+// (no push_back doubling, no high-water capacity kept between rebuilds). Runs
+// only when the chunk changed, never per frame.
 void Renderer::buildChunkMesh(const World& w, int sx, int sz) {
     ChunkMesh& cm = chunkMesh[sx][sz];
     const int cx = w.slotCX[sx][sz], cz = w.slotCZ[sx][sz];
     cm.cx = cx; cm.cz = cz; cm.gen = w.slotGen[sx][sz];
+    // Free the old list before counting so the peak is one list, never two.
     cm.faces.clear();
+    cm.faces.shrink_to_fit();
 
     const uint8_t (*B)[CHUNK_SIZE][CHUNK_SIZE] = w.slot[sx][sz];
     const int bx0 = cx << CHUNK_SHIFT, bz0 = cz << CHUNK_SHIFT;
     // An all-air chunk still owns its bedrock floor, so scan at least y == 0.
     const int yTop = w.slotMaxY[sx][sz] < 0 ? 0 : w.slotMaxY[sx][sz];
 
-    auto emit = [&cm](int lx, int y, int lz, int quad, uint8_t tex, uint8_t set) {
-        cm.faces.push_back((uint32_t)lx | ((uint32_t)lz << 3) | ((uint32_t)y << 6) |
-                           ((uint32_t)quad << 10) | ((uint32_t)tex << 15) |
-                           ((uint32_t)set << 23));
+    uint32_t* out = nullptr;   // null on the counting pass
+    int count = 0;
+    auto emit = [&out, &count](int lx, int y, int lz, int quad, uint8_t tex, uint8_t set) {
+        if (out)
+            out[count] = (uint32_t)lx | ((uint32_t)lz << 3) | ((uint32_t)y << 6) |
+                         ((uint32_t)quad << 10) | ((uint32_t)tex << 15) |
+                         ((uint32_t)set << 23);
+        count++;
     };
     // A face is visible when the neighbour is a different, see-through block.
     auto shows = [](uint8_t id, uint8_t n) { return n != id && blockIsTransparent(n); };
 
-    for (int y = 0; y <= yTop; y++) {
-        for (int lz = 0; lz < CHUNK_SIZE; lz++) {
-            const uint8_t* row = B[y][lz];
-            for (int lx = 0; lx < CHUNK_SIZE; lx++) {
-                const uint8_t id = row[lx];
-                if (y == 0 && blockIsTransparent(id))
-                    emit(lx, 0, lz, QUAD_BEDROCK, TEX_STONE, TS_CULLBACK|TS_INVERTED);
-                if (id == BLOCK_AIR) continue;
+    auto scan = [&]() {
+        for (int y = 0; y <= yTop; y++) {
+            for (int lz = 0; lz < CHUNK_SIZE; lz++) {
+                const uint8_t* row = B[y][lz];
+                for (int lx = 0; lx < CHUNK_SIZE; lx++) {
+                    const uint8_t id = row[lx];
+                    if (y == 0 && blockIsTransparent(id))
+                        emit(lx, 0, lz, QUAD_BEDROCK, TEX_STONE, TS_CULLBACK|TS_INVERTED);
+                    if (id == BLOCK_AIR) continue;
 
-                if (!blockIsFull(id)) {
-                    const NonFullMesh& nf = gNonFull[id];
-                    for (int i = 0; i < nf.count; i++)
-                        emit(lx, y, lz, nf.q[i].quad, nf.q[i].tex, nf.q[i].set);
-                    continue;
-                }
+                    if (!blockIsFull(id)) {
+                        const NonFullMesh& nf = gNonFull[id];
+                        for (int i = 0; i < nf.count; i++)
+                            emit(lx, y, lz, nf.q[i].quad, nf.q[i].tex, nf.q[i].set);
+                        continue;
+                    }
 
-                const FaceTex* ft = gFaceTex[id];
-                uint8_t n;
-                if (ft[2].valid) {  // side faces
-                    n = lx > 0 ? row[lx-1] : w.getBlock(bx0-1, y, bz0+lz);
-                    if (shows(id, n)) emit(lx, y, lz, QUAD_FULL_NEGX, ft[2].tex, ft[2].set);
-                    n = lx < CHUNK_MASK ? row[lx+1] : w.getBlock(bx0+CHUNK_SIZE, y, bz0+lz);
-                    if (shows(id, n)) emit(lx, y, lz, QUAD_FULL_POSX, ft[2].tex, ft[2].set);
-                    n = lz > 0 ? B[y][lz-1][lx] : w.getBlock(bx0+lx, y, bz0-1);
-                    if (shows(id, n)) emit(lx, y, lz, QUAD_FULL_NEGZ, ft[2].tex, ft[2].set);
-                    n = lz < CHUNK_MASK ? B[y][lz+1][lx] : w.getBlock(bx0+lx, y, bz0+CHUNK_SIZE);
-                    if (shows(id, n)) emit(lx, y, lz, QUAD_FULL_POSZ, ft[2].tex, ft[2].set);
+                    const FaceTex* ft = gFaceTex[id];
+                    uint8_t n;
+                    if (ft[2].valid) {  // side faces
+                        n = lx > 0 ? row[lx-1] : w.getBlock(bx0-1, y, bz0+lz);
+                        if (shows(id, n)) emit(lx, y, lz, QUAD_FULL_NEGX, ft[2].tex, ft[2].set);
+                        n = lx < CHUNK_MASK ? row[lx+1] : w.getBlock(bx0+CHUNK_SIZE, y, bz0+lz);
+                        if (shows(id, n)) emit(lx, y, lz, QUAD_FULL_POSX, ft[2].tex, ft[2].set);
+                        n = lz > 0 ? B[y][lz-1][lx] : w.getBlock(bx0+lx, y, bz0-1);
+                        if (shows(id, n)) emit(lx, y, lz, QUAD_FULL_NEGZ, ft[2].tex, ft[2].set);
+                        n = lz < CHUNK_MASK ? B[y][lz+1][lx] : w.getBlock(bx0+lx, y, bz0+CHUNK_SIZE);
+                        if (shows(id, n)) emit(lx, y, lz, QUAD_FULL_POSZ, ft[2].tex, ft[2].set);
+                    }
+                    // Down face: y == 0 can never be seen from below, skip it.
+                    if (y > 0 && ft[1].valid && shows(id, B[y-1][lz][lx]))
+                        emit(lx, y, lz, QUAD_FULL_NEGY, ft[1].tex, ft[1].set);
+                    n = y < WORLD_SY - 1 ? B[y+1][lz][lx] : (uint8_t)BLOCK_AIR;
+                    if (ft[0].valid && shows(id, n))
+                        emit(lx, y, lz, QUAD_FULL_POSY, ft[0].tex, ft[0].set);
                 }
-                // Down face: y == 0 can never be seen from below, skip it.
-                if (y > 0 && ft[1].valid && shows(id, B[y-1][lz][lx]))
-                    emit(lx, y, lz, QUAD_FULL_NEGY, ft[1].tex, ft[1].set);
-                n = y < WORLD_SY - 1 ? B[y+1][lz][lx] : (uint8_t)BLOCK_AIR;
-                if (ft[0].valid && shows(id, n))
-                    emit(lx, y, lz, QUAD_FULL_POSY, ft[0].tex, ft[0].set);
             }
         }
-    }
+    };
+
+    scan();                     // pass 1: count faces
+    cm.faces.resize(count);     // from zero capacity resize allocates exactly count
+    out = cm.faces.data();
+    count = 0;
+    scan();                     // pass 2: fill; same input, so counts match
 }
 
 void Renderer::renderScene(const World& w) {
