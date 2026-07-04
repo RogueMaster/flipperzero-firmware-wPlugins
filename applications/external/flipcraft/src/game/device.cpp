@@ -1,107 +1,17 @@
-#include "platform.h"
-
-#include "../../game/game.h"
-#include "../../menu/menu.h"
+#include "game.h"
+#include "../plugin_api.h"
 
 #include <furi.h>
+#include <flipper_application/flipper_application.h>
 #include <gui/canvas.h>
 #include <gui/gui.h>
 #include <input/input.h>
-#include <storage/storage.h>
 
 #include <new>
 #include <string.h>
 
 namespace flipcraft {
-namespace platform {
-
-static constexpr int DISP_W = 128;
-static constexpr int DISP_H = 64;
-static constexpr int SSD_SZ = DISP_W * DISP_H / 8;
-static_assert(SCREEN_WIDTH == DISP_W && SCREEN_HEIGHT == DISP_H);
-
-struct F7File {
-    Storage* storage = nullptr;
-    ::File* file = nullptr;
-};
-
-static void* fsOpen(void*, const char* path, FileMode mode) {
-    Storage* storage = reinterpret_cast<Storage*>(furi_record_open(RECORD_STORAGE));
-    ::File* file = storage_file_alloc(storage);
-
-    FS_AccessMode access = FSAM_READ;
-    FS_OpenMode open = FSOM_OPEN_EXISTING;
-    switch(mode) {
-    case FileMode::Read:
-        access = FSAM_READ;
-        open = FSOM_OPEN_EXISTING;
-        break;
-    case FileMode::WriteTruncate:
-        access = FSAM_WRITE;
-        open = FSOM_CREATE_ALWAYS;
-        break;
-    case FileMode::ReadWriteExisting:
-        access = FSAM_READ_WRITE;
-        open = FSOM_OPEN_EXISTING;
-        break;
-    }
-
-    if(!storage_file_open(file, path, access, open)) {
-        storage_file_close(file);
-        storage_file_free(file);
-        furi_record_close(RECORD_STORAGE);
-        return nullptr;
-    }
-
-    F7File* out = new(std::nothrow) F7File();
-    if(!out) {
-        storage_file_close(file);
-        storage_file_free(file);
-        furi_record_close(RECORD_STORAGE);
-        return nullptr;
-    }
-
-    out->storage = storage;
-    out->file = file;
-    return out;
-}
-
-static void fsClose(void*, void* handle) {
-    F7File* file = reinterpret_cast<F7File*>(handle);
-    if(!file) return;
-    storage_file_close(file->file);
-    storage_file_free(file->file);
-    furi_record_close(RECORD_STORAGE);
-    delete file;
-}
-
-static bool fsSeek(void*, void* handle, uint32_t offset) {
-    F7File* file = reinterpret_cast<F7File*>(handle);
-    return file && storage_file_seek(file->file, offset, true);
-}
-
-static size_t fsRead(void*, void* handle, void* data, size_t size) {
-    F7File* file = reinterpret_cast<F7File*>(handle);
-    if(!file) return 0;
-    return storage_file_read(file->file, data, size);
-}
-
-static size_t fsWrite(void*, void* handle, const void* data, size_t size) {
-    F7File* file = reinterpret_cast<F7File*>(handle);
-    if(!file) return 0;
-    return storage_file_write(file->file, data, size);
-}
-
-static uint32_t fsSize(void*, void* handle) {
-    F7File* file = reinterpret_cast<F7File*>(handle);
-    if(!file) return 0;
-    return storage_file_size(file->file);
-}
-
-static void fsSync(void*, void* handle) {
-    F7File* file = reinterpret_cast<F7File*>(handle);
-    if(file) storage_file_sync(file->file);
-}
+namespace device {
 
 static void delayMs(uint32_t ms) {
     furi_delay_ms(ms);
@@ -153,7 +63,8 @@ struct AppState {
     bool ev_exit = false;
 };
 
-static void packSsd(const Framebuffer& fb, uint8_t* ssd) {
+// Pack the 1-bit framebuffer into the Flipper canvas buffer: 8 vertical pixels per byte.
+static void packFramebuffer(const Framebuffer& fb, uint8_t* dst) {
     for(int page = 0; page < (SCREEN_HEIGHT / 8); ++page) {
         const uint8_t* r0 = fb.px[page * 8 + 0];
         const uint8_t* r1 = fb.px[page * 8 + 1];
@@ -163,7 +74,7 @@ static void packSsd(const Framebuffer& fb, uint8_t* ssd) {
         const uint8_t* r5 = fb.px[page * 8 + 5];
         const uint8_t* r6 = fb.px[page * 8 + 6];
         const uint8_t* r7 = fb.px[page * 8 + 7];
-        uint8_t* out = ssd + page * DISP_W;
+        uint8_t* out = dst + page * SCREEN_WIDTH;
         for(int col = 0; col < SCREEN_WIDTH; ++col) {
             out[col] = static_cast<uint8_t>(
                 (r0[col] != 0) | ((r1[col] != 0) << 1) | ((r2[col] != 0) << 2) |
@@ -178,8 +89,31 @@ static void drawCb(Canvas* canvas, void* ctx) {
 
     if(furi_mutex_acquire(st->mutex, 0) != FuriStatusOk) return;
 
-    uint8_t* ssd = canvas_get_buffer(canvas);
-    if(ssd) packSsd(st->game->fb, ssd);
+    Game* g = st->game;
+    uint8_t* buf = canvas_get_buffer(canvas);
+    if(buf) packFramebuffer(g->fb, buf);
+
+    if(g->screenId == SCR_GAMEOVER) {
+        canvas_set_color(canvas, ColorBlack);
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignBottom, "You died!");
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignBottom, "Press OK to respawn");
+    }
+
+    if(g->screenId == SCR_PLAY && g->hudItemTicks) {
+        const char* name = itemName(g->pl.inventory[g->pl.invSlot].type);
+        if(name) {
+            canvas_set_font(canvas, FontSecondary);
+            int bw = (int)canvas_string_width(canvas, name) + 6, bh = 11;
+            int bx = 64 - bw / 2, by = 40;
+            canvas_set_color(canvas, ColorWhite);
+            canvas_draw_box(canvas, bx, by, bw, bh);
+            canvas_set_color(canvas, ColorBlack);
+            canvas_draw_frame(canvas, bx, by, bw, bh);
+            canvas_draw_str_aligned(canvas, 64, by + bh - 2, AlignCenter, AlignBottom, name);
+        }
+    }
 
     furi_mutex_release(st->mutex);
 }
@@ -358,20 +292,6 @@ static Input pollInput(AppState* st) {
     return in;
 }
 
-static const FileSystem g_files = {
-    nullptr,
-    fsOpen,
-    fsClose,
-    fsSeek,
-    fsRead,
-    fsWrite,
-    fsSize,
-    fsSync,
-};
-
-// Run a single game session for the save at `path`. Returns to the caller (the
-// menu loop) when the player quits. Opening a save that fails to load is not
-// fatal: we simply return so the menu can be shown again.
 static void runGame(Game& game, Gui* gui, const char* path) {
     AppState* st = new(std::nothrow) AppState();
     if(!st) return;
@@ -386,7 +306,7 @@ static void runGame(Game& game, Gui* gui, const char* path) {
         return;
     }
 
-    GameConfig config = {&g_files, path};
+    GameConfig config = {path};
     if(!game.setup(config)) {
         furi_mutex_free(st->mutex);
         furi_mutex_free(st->inputMutex);
@@ -451,22 +371,37 @@ static void runGame(Game& game, Gui* gui, const char* path) {
     delete st;
 }
 
-int32_t run(Game& game) {
-    Storage* storage = reinterpret_cast<Storage*>(furi_record_open(RECORD_STORAGE));
+}
+}
+
+// The Game object (world window, framebuffer, z-buffer, chunk meshes) exists
+// only for the duration of one session: while the menu is open none of it is
+// allocated, and the whole game code segment itself is unmapped by the host.
+
+static int32_t flipcraft_game_run(const char* world_path) {
+    using namespace flipcraft;
+
+    Game* game = new(std::nothrow) Game();
+    if(!game) return -1;
+
     Gui* gui = reinterpret_cast<Gui*>(furi_record_open(RECORD_GUI));
-
-    // Show the save selector, play the chosen world, then return to the menu
-    // until the player leaves it.
-    while(true) {
-        menu::Result choice = menu::run(gui, storage);
-        if(!choice.launch) break;
-        runGame(game, gui, choice.path);
-    }
-
+    device::runGame(*game, gui, world_path);
     furi_record_close(RECORD_GUI);
-    furi_record_close(RECORD_STORAGE);
+
+    delete game;
     return 0;
 }
 
-}
+static const FlipcraftGameApi flipcraft_game_api = {
+    .run = flipcraft_game_run,
+};
+
+static const FlipperAppPluginDescriptor flipcraft_game_descriptor = {
+    .appid = FLIPCRAFT_GAME_APP_ID,
+    .ep_api_version = FLIPCRAFT_GAME_API_VERSION,
+    .entry_point = &flipcraft_game_api,
+};
+
+extern "C" const FlipperAppPluginDescriptor* flipcraft_game_ep(void) {
+    return &flipcraft_game_descriptor;
 }

@@ -1,32 +1,10 @@
 #pragma once
 #include "../flipcraft.h"
-#include "../render/render.h"
-#include "../render/gui.h"
+#include "render.h"
+#include "gui.h"
 #include <vector>
 
 namespace flipcraft {
-
-enum Mem {
-    M_X = 0,
-    M_Y = 1,
-    M_Z = 2,
-    M_ROT = 3,
-    M_ONGROUND = 4,
-    M_VELY = 5,
-    M_NEEDRERENDER = 6,
-    M_CROUCHING = 7,
-    M_PREVX = 8, // legacy not used (prev player X)
-    M_PREVY = 9, // legacy not used (prev player Y)
-    M_PREVZ = 10, // legacy not used (prev player Z)
-    M_INVENTORY = 11,
-    M_INVENTORYSLOT = 26,
-    M_CRAFTINGGRID = 27,
-    M_CRAFTINGOUTPUT = 36,
-    M_PERMSELSLOT = 37, // legacy not used (old: m(M_PERMSELSLOT)=0xFF on crafting/inventory open)
-    M_HEALTH = 41,
-    M_LOGSINWORLD =
-        44, // legacy not used (leaves now decay locally; slot kept for save compatibility)
-};
 
 enum ScreenId {
     SCR_PLAY,
@@ -50,18 +28,49 @@ struct Input {
     bool distribute = false;
 };
 
+// All persistent player-visible state. Tools occupy the 0xF0..0xFF type range
+// and never stack (count is always 1).
+struct PlayerState {
+    ItemCell inventory[15];
+    uint8_t invSlot = 0; // selected hotbar slot, 0..4
+    ItemCell craftGrid[9];
+    ItemCell craftOutput;
+    uint8_t rot = 0x08; // camera: pitch << 4 | yaw, 16 steps per turn
+    uint8_t health = MAXHEALTH;
+    bool onGround = false;
+    bool crouching = false;
+};
+
 struct ItemEnt {
     int id = 0;
     int x = 0, y = 0, z = 0;
     int vy = 0;
+    int fuse = 0;
     bool active = false;
+};
+
+// One creature. Behaviour is a 2-bit mode; everything species-specific comes
+// from the MobSpec byte table, everything situational from `timer`/`target`.
+struct Mob {
+    bool active = false;
+    uint8_t species = 0;
+    uint8_t hp = 0;
+    uint8_t yaw = 0; // 16-step heading, camera convention: fwd=(-sin,cos)
+    uint8_t mode = 0; // MOB_IDLE / MOB_WANDER / MOB_CHASE / MOB_FLEE
+    uint8_t timer = 0; // ticks until the next decision / aggro left
+    uint8_t hurt = 0; // damage-flash ticks left, colour inverts on odd ticks
+    uint8_t cool = 0; // touch-attack cooldown / exploder fuse
+    uint8_t target = 0xFF; // chase/flee subject: 0xFF player, else mob index
+    uint8_t tamed = 0; // guards the player, never bites him
+    int x = 0, y = 0, z = 0; // world sub-pixels, min corner (body is MOBWIDTH wide)
+    int vy = 0;
 };
 struct BlockEnt {
     bool active = false;
     bool isChest = false;
     int bx = 0, by = 0, bz = 0;
     int dir = 0;
-    uint8_t slot[10] = {0};
+    ItemCell slot[10];
     int timer = 0;
     int fuelTime = 0;
     bool lit = false;
@@ -75,7 +84,7 @@ public:
     Renderer renderer;
     Framebuffer fb;
     Screen2D screen;
-    uint8_t ram[256] = {0};
+    PlayerState pl;
     uint32_t rngState = 0x1234;
 
     int playerX = 0, playerY = 0, playerZ = 0;
@@ -83,9 +92,11 @@ public:
 
     ScreenId screenId = SCR_PLAY;
     std::vector<ItemEnt> items;
+    Mob mobs[MAX_MOBS];
     std::vector<BlockEnt> tiles;
     int loadedTile = -1;
     int score = 0;
+    uint8_t hudItemTicks = 0; // ticks left showing the switched-item tooltip
 
     float bobTimer = 0.0f;
     float bobAmt = 0.0f;
@@ -96,9 +107,6 @@ public:
     void shutdown();
     void simulate(const Input& in);
     bool render();
-    uint8_t& m(int addr) {
-        return ram[addr];
-    }
 
 private:
     uint8_t rng();
@@ -109,15 +117,21 @@ private:
     void miscInputs(const Input& in);
     void moveAndCollide(int dx, int dy, int dz);
     bool playerCollides(int x, int y, int z);
+    bool boxCollides(int x, int y, int z, int w, int h);
     struct RayHit {
-        int bx, by, bz, px, py, pz, id, length;
+        int bx, by, bz, px, py, pz, id, length, mob;
     };
     RayHit rayCast();
-    int getBlockType(int id);
-    int getBlockHardness(int id);
     void createEntity(int x, int y, int z, int entityId);
-    void addItemToInventory(int item);
+    void addItemToInventory(uint8_t type, uint8_t count);
     void updateAllItems();
+    void updateAllMobs();
+    void trySpawnMob();
+    void hurtMobFrom(int index, int dmg, int srcX, int srcZ, uint8_t attacker);
+    void explodeMob(Mob& m);
+    void explodeAt(int cx, int cy, int cz);
+    void igniteDynamite(int bx, int by, int bz, int fuse);
+    bool mobBlocksPlayer(int ox, int oz, int nx, int ny, int nz);
     void updateAllFurnaces();
     void simulateFurnaces(); // load/tick/flush furnaces inside the active window
     void doRandomTicks();
@@ -126,7 +140,6 @@ private:
     void drawHotbar();
     int findBlockEntity(int x, int y, int z);
 
-    // Storage persistence (see world.cpp for the on-disk region).
     void loadStorageDirectory(); // rebuild `tiles` headers from the table at open
     void loadInventory(); // read inventory region or seed starter set
     void saveInventory(); // write inventory region
@@ -136,7 +149,7 @@ private:
     void flushTileStorage(int tileIndex); // write contents back, mark unloaded
 
     struct Slot {
-        uint8_t* cell;
+        ItemCell* cell;
         int gx, gy, sx, sy;
         bool grid;
         bool output;

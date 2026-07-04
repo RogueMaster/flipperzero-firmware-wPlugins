@@ -1,24 +1,58 @@
+# Flipcraft is split into three pieces so only what is needed sits in RAM
+# (FAP code is executed from RAM on this platform):
+#   flipcraft          -- tiny resident host bridge, swaps the plugins below
+#   flipcraft_menu     -- world selector UI, mapped only while the menu is open
+#   flipcraft_game     -- game logic + renderer, mapped only during a session
+#   flipcraft_worldgen -- terrain generator, mapped only while creating a world
+# The plugins are embedded into the FAP and unpacked to
+# /ext/apps_assets/flipcraft/plugins/ on first launch.
 App(
     appid="flipcraft",
     name="Flipcraft",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="flipcraft_app",
-    sources=[
-        "main.cpp",
-        "platform/f7fz/platform.cpp",
-        "menu/menu.cpp",
-        "game/game.cpp",
-        "game/data.cpp",
-        "game/world.cpp",
-        "render/render.cpp",
-        "render/gui.cpp",
-    ],
+    sources=["src/main.cpp"],
     stack_size=8 * 1024,
     fap_file_assets="assets/worlds",
     fap_icon="assets/icon.png",
     fap_category="Games",
     fap_author="apfxtech",
     fap_weburl="https://github.com/apfxtech/Flipcraft",
-    fap_version="2.2",
+    fap_version="2.4",
     fap_description="Big world crafting game for Flipper Zero.",
+)
+
+App(
+    appid="flipcraft_menu",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flipcraft_menu_ep",
+    requires=["flipcraft"],
+    sources=["src/menu/menu.cpp"],
+    fal_embedded=True,
+)
+
+App(
+    appid="flipcraft_worldgen",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flipcraft_worldgen_ep",
+    requires=["flipcraft"],
+    sources=["src/world/worldgen.cpp"],
+    fal_embedded=True,
+)
+
+App(
+    appid="flipcraft_game",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flipcraft_game_ep",
+    requires=["flipcraft"],
+    sources=[
+        "src/game/device.cpp",
+        "src/game/game.cpp",
+        "src/game/mobs.cpp",
+        "src/game/data.cpp",
+        "src/game/world.cpp",
+        "src/game/render.cpp",
+        "src/game/gui.cpp",
+    ],
+    fal_embedded=True,
 )
