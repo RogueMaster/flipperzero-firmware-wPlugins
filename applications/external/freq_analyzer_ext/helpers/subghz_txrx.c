@@ -25,7 +25,7 @@ static void subghz_txrx_radio_device_power_off(SubGhzTxRx* instance) {
 SubGhzTxRx* subghz_txrx_alloc(void) {
     SubGhzTxRx* instance = malloc(sizeof(SubGhzTxRx));
     instance->setting = subghz_setting_alloc();
-    subghz_setting_load(instance->setting, EXT_PATH("subghz/assets/setting_user"));
+    subghz_setting_load(instance->setting, EXT_PATH("subghz/assets/setting_user.txt"));
 
     instance->preset = malloc(sizeof(SubGhzRadioPreset));
     instance->preset->name = furi_string_alloc();

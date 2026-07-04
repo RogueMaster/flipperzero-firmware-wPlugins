@@ -12,7 +12,7 @@ private:
 
     FrequencyManager() {
         SubGhzSetting* setting = subghz_setting_alloc();
-        subghz_setting_load(setting, EXT_PATH("subghz/assets/setting_user"));
+        subghz_setting_load(setting, EXT_PATH("subghz/assets/setting_user.txt"));
 
         frequencyCount = subghz_setting_get_frequency_count(setting);
         defaultFreqIndex = subghz_setting_get_frequency_default_index(setting);
