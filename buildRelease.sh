@@ -13,6 +13,15 @@ HASH_VAR=`git rev-parse \`git branch -r --sort=committerdate | tail -1\` | awk '
 # repo ORIGINAL de flipperdevices; los traemos de ahi (0.25 etc. son ancestros del commit fijado).
 git -C assets/protobuf fetch --tags --force https://github.com/flipperdevices/flipperzero-protobuf.git || true
 git -C assets/protobuf describe --tags --abbrev=0 || echo "AVISO: protobuf sigue sin tag reachable"
+
+# SOLO LOS FONDOS DE MIGUEL: dejar unicamente el pack 'Mruwzum'. Se borran los packs de RogueMaster
+# (RM, NoAnim) del WORKSPACE del build -> NO del git, asi al fusionar upstream no hay conflictos.
+# (Sustituye al viejo inject.sh + SOLO5MIGUEL; 4 Jul 2026.)
+for p in assets/packs/*/; do
+  name="$(basename "$p")"
+  if [ "$name" != "Mruwzum" ]; then echo "[build] quitando pack RogueMaster: $name"; rm -rf "$p"; fi
+done
+
 # FBT_NO_SYNC=1: NO dejar que fbt re-sincronice los submodulos aqui (pisaria los tags recien traidos).
 # Asi coincide con el build local que SI funciona.
 FBT_NO_SYNC=1 ./fbt updater_package
