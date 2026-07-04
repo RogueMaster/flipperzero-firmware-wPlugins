@@ -125,8 +125,7 @@ bool Renderer::isBackfacing(const Vertex& v1,const Vertex& v2,const Vertex& v3) 
 }
 
 void Renderer::clearBuffer() {
-    memset(zdepth, 0, sizeof(zdepth));
-    if(zcolour) memset(zcolour, 0, (size_t)SCREEN_HEIGHT * SCREEN_WIDTH);
+    if(zbuf) memset(zbuf, 0, (size_t)SCREEN_HEIGHT * SCREEN_WIDTH);
 }
 
 // Pixels between perspective-correct samples. Texture coords are interpolated
@@ -178,8 +177,7 @@ void Renderer::rasterTri(const Vertex& A,const Vertex& B,const Vertex& C) {
         float S     = e0*uA + e1*uB + e2*uC;
         float T     = e0*vA + e1*vB + e2*vC;
         float depthAcc = 512.0f * invZ;
-        uint8_t* drow = zdepth[y];
-        uint8_t* crow = zcolour[y];
+        uint8_t* row = zbuf[y];
 
         bool wasIn = false;     // the row's span is contiguous: leave -> done
         int sub = 0;            // pixels left in the current affine run
@@ -196,7 +194,7 @@ void Renderer::rasterTri(const Vertex& A,const Vertex& B,const Vertex& C) {
 
             int depth = (int)depthAcc;              // invZ>0 -> trunc == floor
             if (depth > 127) depth = 127;
-            if (drow[x] > depth) {                  // occluded
+            if ((row[x] >> 1) > depth) {            // occluded
                 if (sub > 0) { fu += dfu; fv += dfv; sub--; }
                 continue;
             }
@@ -219,9 +217,8 @@ void Renderer::rasterTri(const Vertex& A,const Vertex& B,const Vertex& C) {
 
             if (skipZero && color==0) continue;
             color ^= invMask;
-            if (useOverlay) color ^= crow[x];
-            drow[x] = (uint8_t)depth;
-            crow[x] = color;
+            if (useOverlay) color ^= row[x] & 1;
+            row[x] = (uint8_t)((depth << 1) | color);
         }
     }
 }

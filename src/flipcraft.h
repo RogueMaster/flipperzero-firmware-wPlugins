@@ -311,6 +311,8 @@ private:
     bool ensureRegion();
 };
 
+// Bit 0 of each byte is the pixel colour; the 3D rasterizer keeps its z-depth
+// in bits 1-7 of the same byte (see Renderer::zbuf), 2D UI writes plain 0/1.
 struct Framebuffer {
     uint8_t px[SCREEN_HEIGHT][SCREEN_WIDTH];
     void clear() { for (auto& row : px) for (auto& p : row) p = 0; }

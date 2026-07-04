@@ -63,7 +63,7 @@ bool Game::setup(const GameConfig& config) {
     loadInventory();
     screenId=SCR_PLAY; selSlot=-1; cursor=0; score=0; gameOverPending=false; loadedTile=-1;
     screen.fb=&fb;
-    renderer.zcolour=fb.px;   // scene rasterises straight into the shared framebuffer
+    renderer.zbuf=fb.px;   // one shared buffer: depth in bits 1-7, colour in bit 0
 
     world.updateWindow(playerX/BLOCKSIZE, playerZ/BLOCKSIZE, true);
     auto surfaceYAt = [&](int bx, int bz) {

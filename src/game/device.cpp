@@ -55,7 +55,8 @@ struct AppState {
     bool ev_exit = false;
 };
 
-// Pack the 1-bit framebuffer into the Flipper canvas buffer: 8 vertical pixels per byte.
+// Pack the framebuffer into the Flipper canvas buffer: 8 vertical pixels per
+// byte. Only bit 0 of each source byte is colour (bits 1-7 hold z-depth).
 static void packFramebuffer(const Framebuffer& fb, uint8_t* dst) {
     for(int page = 0; page < (SCREEN_HEIGHT / 8); ++page) {
         const uint8_t* r0 = fb.px[page * 8 + 0];
@@ -69,10 +70,10 @@ static void packFramebuffer(const Framebuffer& fb, uint8_t* dst) {
         uint8_t* out = dst + page * SCREEN_WIDTH;
         for(int col = 0; col < SCREEN_WIDTH; ++col) {
             out[col] = static_cast<uint8_t>(
-                (r0[col] != 0)        | ((r1[col] != 0) << 1) |
-                ((r2[col] != 0) << 2) | ((r3[col] != 0) << 3) |
-                ((r4[col] != 0) << 4) | ((r5[col] != 0) << 5) |
-                ((r6[col] != 0) << 6) | ((r7[col] != 0) << 7));
+                (r0[col] & 1)        | ((r1[col] & 1) << 1) |
+                ((r2[col] & 1) << 2) | ((r3[col] & 1) << 3) |
+                ((r4[col] & 1) << 4) | ((r5[col] & 1) << 5) |
+                ((r6[col] & 1) << 6) | ((r7[col] & 1) << 7));
         }
     }
 }

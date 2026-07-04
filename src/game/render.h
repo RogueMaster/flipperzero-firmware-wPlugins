@@ -29,8 +29,10 @@ public:
 
     int winX0 = 0, winX1 = WORLD_SX - 1, winZ0 = 0, winZ1 = WORLD_SZ - 1;
 
-    uint8_t zdepth[SCREEN_HEIGHT][SCREEN_WIDTH];
-    uint8_t (*zcolour)[SCREEN_WIDTH] = nullptr;
+    // Shared with Game::fb. Each byte packs depth << 1 | colour: the rasterizer
+    // clamps depth to 7 bits, so one 8 KB buffer serves as both z-buffer and
+    // framebuffer. 2D UI code writes plain 0/1 bytes (depth 0) on top.
+    uint8_t (*zbuf)[SCREEN_WIDTH] = nullptr;
 
     void setCamRot(uint8_t data);
     void clearBuffer();
