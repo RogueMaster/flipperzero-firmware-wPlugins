@@ -2,29 +2,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <cmath>
-#include <array>
+
+// furi storage handles (opaque here; world.cpp uses the real storage API).
+struct Storage;
+struct File;
 
 namespace flipcraft {
 
-enum class FileMode {
-    Read,
-    WriteTruncate,
-    ReadWriteExisting,
-};
-
-struct FileSystem {
-    void* ctx = nullptr;
-    void* (*open)(void* ctx, const char* path, FileMode mode) = nullptr;
-    void (*close)(void* ctx, void* file) = nullptr;
-    bool (*seek)(void* ctx, void* file, uint32_t offset) = nullptr;
-    size_t (*read)(void* ctx, void* file, void* data, size_t size) = nullptr;
-    size_t (*write)(void* ctx, void* file, const void* data, size_t size) = nullptr;
-    uint32_t (*size)(void* ctx, void* file) = nullptr;
-    void (*sync)(void* ctx, void* file) = nullptr;
-};
-
 struct GameConfig {
-    const FileSystem* files = nullptr;
     const char* worldDataPath = nullptr;
 };
 
@@ -41,38 +26,45 @@ constexpr int WORLD_SZ = WORLD_CHUNKS_Z * CHUNK_SIZE;
 constexpr int WINDOW_CHUNKS = 3;
 constexpr int CHUNK_BLOCKS = CHUNK_SIZE * WORLD_SY * CHUNK_SIZE;
 constexpr int STORAGE_CAPACITY = 256;
-constexpr int STORAGE_SLOT_SIZE = 16;
+constexpr int STORAGE_SLOT_SIZE = 32;
+constexpr int STORAGE_PAD_V2 = 4096; // old v2 slot region, kept as migration source
 constexpr int INVENTORY_REGION_SIZE = 32;
+constexpr int MAX_STACK = 99;
 constexpr int PLAYERWIDTH = 9;
 constexpr int PLAYERHEIGHT = 28;
 constexpr int PLAYERHALFWIDTH = 5;
 constexpr int PLAYERCAMHEIGHT = 24;
 constexpr int PICKUPDOWN = 12;
 constexpr int PICKUPUP = 37;
-constexpr int PICKUPSIDENEG = 22;
 constexpr int PICKUPSIDEPOS = 28;
 constexpr int PLAYERCROUCHCAMHEIGHT = 22;
-constexpr int MIDDLEOFVOID = 0xA0;
-constexpr int BLOCKMIDDLEOFVOID = 0xC;
 constexpr int GRAVITY = 15;
 constexpr int JUMPSTRENGTH = 22;
 constexpr int VERT_SUBPIXEL = 16;
 constexpr int JUMP_AIRTIME = 2;
 constexpr int SPEEDFACTOR = 0x40;
 constexpr int RAYCASTMAXLENGTH = 0x40;
-constexpr int BREAKTIME = 24;
 constexpr int MAXHEALTH = 8;
+constexpr int HUD_LABEL_TICKS = 10; // hotbar tooltip, ~0.8 s at the 80 ms tick
 constexpr int APPLEHEALTH = 2;
 constexpr int MINFALLDAMAGESPEED = 32;
 constexpr int FALLDAMAGESCALING = 0x08;
 constexpr int RANDOMTICKSPEED = 10;
 constexpr int SMELTTIME = 0xC0;
+constexpr int MAX_MOBS = 6;
+constexpr int MOBWIDTH = 14;
+constexpr int MOB_HURT_TICKS = 12; // ~1 s of damage flash at the 80 ms tick
+constexpr int MOB_ATTACK_COOL = 12; // ticks between touch attacks
+constexpr int MOB_FUSE_TICKS = 26; // ~2 s exploder wind-up, flashes and swells
+constexpr int MOB_BLAST_RANGE = 40; // 2.5 blocks, Chebyshev, in sub-pixels
+constexpr int MOB_BLAST_DMG = 7; // ~90% of MAXHEALTH
+constexpr int DYNAMITE_FUSE_TICKS = 38; // ~3 s at the 80 ms tick
 constexpr int LEAVES_SAPLING_PROBABILITY = 50;
 constexpr int LEAVES_STICK_PROBABILITY = 70;
 constexpr int LEAVES_APPLE_PROBABILITY = 80;
 constexpr int LEAF_LOG_RADIUS = 3;
 
-static_assert(CHUNK_SIZE == 8, "getBlock fast path assumes 8-block chunks");
+static_assert(CHUNK_SIZE == 8, "block addressing assumes 8-block chunks");
 static_assert((1 << CHUNK_SHIFT) == CHUNK_SIZE, "CHUNK_SHIFT must match CHUNK_SIZE");
 static_assert(CHUNK_MASK == 7, "CHUNK_MASK must match CHUNK_SIZE");
 static_assert(
@@ -113,6 +105,7 @@ enum Block : uint8_t {
     BLOCK_TABLE = 0xD,
     BLOCK_FURNACE = 0xE,
     BLOCK_CHEST = 0xF,
+    BLOCK_DYNAMITE = 0x10,
 };
 
 enum Item : uint8_t {
@@ -149,6 +142,19 @@ enum Item : uint8_t {
     ITEM_TABLE = 0xFD,
     ITEM_FURNACE = 0xFE,
     ITEM_CHEST = 0xFF,
+
+    // Gunpowder shares glass's craft nibble (type>>4); dynamite's nibble is 0,
+    // invisible to recipes.
+    ITEM_GUNPOWDER = 0xB1,
+    ITEM_DYNAMITE = 0x01,
+};
+
+struct ItemCell {
+    uint8_t type = 0; // Item enum value; materials keep the id in the high nibble
+    uint8_t count = 0;
+    bool empty() const {
+        return type == 0;
+    }
 };
 
 enum Entity : uint8_t {
@@ -167,13 +173,48 @@ enum Entity : uint8_t {
     ENTITY_TABLE = 0xD,
     ENTITY_FURNACE = 0xE,
     ENTITY_CHEST = 0xF,
+    ENTITY_DYNAMITE = 0x10,
+    ENTITY_GUNPOWDER = 0x11,
+    ENTITY_LITDYNAMITE = 0x12,
 };
 
 constexpr int TOOL_PICKAXE = 0, TOOL_AXE = 1, TOOL_SHOVEL = 2, TOOL_SWORD = 3;
 constexpr int STRENGTHFORITEM = 3;
 constexpr int STRENGTH_FIST = 4, STRENGTH_WOOD = 5, STRENGTH_STONE = 6, STRENGTH_IRON = 7;
+// Block material types. Chosen so that a matching tool's low bits equal the
+// type it is effective against: TOOL_PICKAXE==BLOCKTYPE_STONE, TOOL_AXE==
+// BLOCKTYPE_WOOD, TOOL_SHOVEL==BLOCKTYPE_SOFT.
 constexpr int BLOCKTYPE_STONE = 0, BLOCKTYPE_WOOD = 1, BLOCKTYPE_SOFT = 2, BLOCKTYPE_LEAVES = 3,
               BLOCKTYPE_GLASS = 4, BLOCKTYPE_SAPLING = 5;
+
+// Per-block property bitmasks: bit N describes block id N (ids 0..31).
+// "Transparent": a face of an adjacent full block is visible through it.
+constexpr uint32_t BLOCKS_TRANSPARENT = (1u << BLOCK_AIR) | (1u << BLOCK_LEAVES) |
+                                        (1u << BLOCK_SAPLING) | (1u << BLOCK_GLASS) |
+                                        (1u << BLOCK_CHEST);
+// "Full": renders as a full cube via face culling (everything except the
+// mesh-quad blocks: air, sapling cross, small chest box).
+constexpr uint32_t BLOCKS_NOT_FULL = (1u << BLOCK_AIR) | (1u << BLOCK_SAPLING) |
+                                     (1u << BLOCK_CHEST);
+// "Solid": collides with the player and stops falling items.
+constexpr uint32_t BLOCKS_SOLID = ~((1u << BLOCK_AIR) | (1u << BLOCK_SAPLING));
+// Entities that render as a small textured cube (the rest are cross sprites).
+constexpr uint32_t ENTITIES_NOT_BLOCKITEM = (1u << ENTITY_STICK) | (1u << ENTITY_APPLE) |
+                                            (1u << ENTITY_COAL) | (1u << ENTITY_FALLINGSAND) |
+                                            (1u << ENTITY_SAPLING) | (1u << ENTITY_GUNPOWDER);
+
+inline bool blockIsTransparent(uint8_t id) {
+    return (BLOCKS_TRANSPARENT >> (id & 0x1F)) & 1u;
+}
+inline bool blockIsFull(uint8_t id) {
+    return !((BLOCKS_NOT_FULL >> (id & 0x1F)) & 1u);
+}
+inline bool blockIsSolid(uint8_t id) {
+    return (BLOCKS_SOLID >> (id & 0x1F)) & 1u;
+}
+inline bool itemIsBlockItem(uint8_t id) {
+    return !((ENTITIES_NOT_BLOCKITEM >> (id & 0x1F)) & 1u);
+}
 
 enum Texture : uint8_t {
     TEX_EMPTY = 0x00,
@@ -206,10 +247,18 @@ enum Texture : uint8_t {
     TEX_APPLEITEMLIGHT = 0x1B,
     TEX_APPLEITEMDARK = 0x1C,
     TEX_SHADOW = 0x1D,
-    TEX_CHECKER = 0x30,
     TEX_BREAK0 = 0x65,
-    TEX_BREAK5 = 0x6A,
-    TEX_BREAK7 = 0x6C,
+    TEX_SHEEPFRONT = 0x90,
+    TEX_SHEEPSIDE = 0x91,
+    TEX_SHEEPTOP = 0x92,
+    TEX_WOLFFRONT = 0x93,
+    TEX_WOLFSIDE = 0x94,
+    TEX_WOLFTOP = 0x95,
+    TEX_CREEPERFRONT = 0x96,
+    TEX_CREEPERSIDE = 0x97,
+    TEX_CREEPERTOP = 0x98,
+    TEX_DYNAMITE = 0x99,
+    TEX_DYNAMITETOP = 0x9A,
 };
 
 enum Quad : uint8_t {
@@ -239,8 +288,14 @@ enum Quad : uint8_t {
     QUAD_CROSSITEM3 = 0x17,
     QUAD_CROSSITEM4 = 0x18,
     QUAD_BEDROCK = 0x19,
-    QUAD_NONE = 0x1F,
+    QUAD_COUNT = 0x1A,
 };
+
+// Texture settings nibble, shared by mesh tables and the rasterizer.
+constexpr uint8_t TS_CULLBACK = 0b1000;
+constexpr uint8_t TS_TRANSPARENT = 0b0100;
+constexpr uint8_t TS_INVERTED = 0b0010;
+constexpr uint8_t TS_OVERLAY = 0b0001;
 
 constexpr int SCREEN_WIDTH = 128;
 constexpr int SCREEN_HEIGHT = 64;
@@ -260,28 +315,11 @@ inline int ifloor(float x) {
     return ((float)i > x) ? i - 1 : i;
 }
 
-// Quantize to a fixed-point grid (bits wide, `precision` fractional bits) and
-// return as float. All inputs use bits <= 17, precision <= 16, so int32 is
-// enough -- no int64, no floorf. Semantics match the previous int64 version.
-inline float FixedPoint(float value, int bits, int precision, bool sgned = false) {
-    int32_t shiftamount = int32_t(1) << precision;
-    int32_t bitmask = (int32_t(1) << bits) - 1;
-    int32_t v = ifloor(value * (float)shiftamount) & bitmask;
-    if(sgned && v > (int32_t(1) << (bits - 1))) v -= (int32_t(1) << bits);
-    return (float)v * (1.0f / (float)shiftamount);
-}
-
 inline uint8_t u8(int v) {
     return (uint8_t)(v & 0xFF);
 }
 inline int8_t s8(int v) {
     return (int8_t)(uint8_t)(v & 0xFF);
-}
-
-inline uint8_t addv(uint8_t a, uint8_t b) {
-    int lo = ((a & 0xF) + (b & 0xF)) & 0xF;
-    int hi = ((a >> 4) + (b >> 4)) & 0xF;
-    return (uint8_t)((hi << 4) | lo);
 }
 
 struct World {
@@ -290,12 +328,17 @@ struct World {
     int slotCZ[WINDOW_CHUNKS][WINDOW_CHUNKS];
     int slotMaxY[WINDOW_CHUNKS][WINDOW_CHUNKS];
     bool slotDirty[WINDOW_CHUNKS][WINDOW_CHUNKS];
+    // Bumped whenever a slot's visible content may have changed (block edit,
+    // chunk (re)load, or an edit on a shared face of a neighbouring chunk).
+    // The renderer compares it against its cached mesh and rebuilds lazily.
+    uint16_t slotGen[WINDOW_CHUNKS][WINDOW_CHUNKS];
 
     int centerCX = -2, centerCZ = -2;
+    bool loadPending = false; // chunks of the current ring still on disk
     uint32_t revision = 0;
 
-    const FileSystem* fs = nullptr;
-    void* file = nullptr;
+    ::Storage* storage = nullptr;
+    ::File* file = nullptr;
     bool opened = false;
     int chunksX = WORLD_CHUNKS_X, chunksZ = WORLD_CHUNKS_Z;
 
@@ -321,46 +364,57 @@ struct World {
         }
         return BLOCK_AIR;
     }
-    void setBlock(int x, int y, int z, uint8_t id) {
-        if((unsigned)x < (unsigned)worldSX() && (unsigned)y < (unsigned)WORLD_SY &&
-           (unsigned)z < (unsigned)worldSZ()) {
-            int cx = x >> CHUNK_SHIFT, cz = z >> CHUNK_SHIFT, sx = cx % 3, sz = cz % 3;
-            if(slotCX[sx][sz] == cx && slotCZ[sx][sz] == cz) {
-                uint8_t& cell = slot[sx][sz][y][z & CHUNK_MASK][x & CHUNK_MASK];
-                if(cell != id) revision++;
-                cell = id;
-                if(id != BLOCK_AIR) {
-                    if(y > slotMaxY[sx][sz]) slotMaxY[sx][sz] = y;
-                } else if(y == slotMaxY[sx][sz]) {
-                    int maxY = -1;
-                    for(int yy = WORLD_SY - 1; yy >= 0 && maxY < 0; yy--)
-                        for(int zz = 0; zz < CHUNK_SIZE && maxY < 0; zz++)
-                            for(int xx = 0; xx < CHUNK_SIZE; xx++)
-                                if(slot[sx][sz][yy][zz][xx] != BLOCK_AIR) {
-                                    maxY = yy;
-                                    break;
-                                }
-                    slotMaxY[sx][sz] = maxY;
-                }
-                slotDirty[sx][sz] = true;
-            }
-        }
-    }
-    int activeMaxY(const ActiveWindow& win) const {
-        int x0 = win.x0 >> CHUNK_SHIFT, x1 = win.x1 >> CHUNK_SHIFT;
-        int z0 = win.z0 >> CHUNK_SHIFT, z1 = win.z1 >> CHUNK_SHIFT;
-        int maxY = 0;
-        for(int cz = z0; cz <= z1; cz++)
-            for(int cx = x0; cx <= x1; cx++) {
-                int sx = cx % 3, sz = cz % 3;
-                if(slotCX[sx][sz] == cx && slotCZ[sx][sz] == cz && slotMaxY[sx][sz] > maxY)
-                    maxY = slotMaxY[sx][sz];
-            }
-        return maxY;
+
+    // Invalidate the cached mesh of chunk (cx,cz) if it is resident.
+    void bumpGen(int cx, int cz) {
+        if((unsigned)cx >= (unsigned)chunksX || (unsigned)cz >= (unsigned)chunksZ) return;
+        int sx = cx % 3, sz = cz % 3;
+        if(slotCX[sx][sz] == cx && slotCZ[sx][sz] == cz) slotGen[sx][sz]++;
     }
 
-    bool openWorld(const FileSystem& files, const char* dataPath);
-    void updateWindow(int blockX, int blockZ);
+    void setBlock(int x, int y, int z, uint8_t id) {
+        if((unsigned)x >= (unsigned)worldSX() || (unsigned)y >= (unsigned)WORLD_SY ||
+           (unsigned)z >= (unsigned)worldSZ())
+            return;
+        int cx = x >> CHUNK_SHIFT, cz = z >> CHUNK_SHIFT, sx = cx % 3, sz = cz % 3;
+        if(slotCX[sx][sz] != cx || slotCZ[sx][sz] != cz) return;
+        uint8_t& cell = slot[sx][sz][y][z & CHUNK_MASK][x & CHUNK_MASK];
+        if(cell == id) return;
+        cell = id;
+        revision++;
+        slotDirty[sx][sz] = true;
+        slotGen[sx][sz]++;
+        // Edits on a chunk border also change which faces the neighbour shows.
+        int lx = x & CHUNK_MASK, lz = z & CHUNK_MASK;
+        if(lx == 0)
+            bumpGen(cx - 1, cz);
+        else if(lx == CHUNK_MASK)
+            bumpGen(cx + 1, cz);
+        if(lz == 0)
+            bumpGen(cx, cz - 1);
+        else if(lz == CHUNK_MASK)
+            bumpGen(cx, cz + 1);
+        if(id != BLOCK_AIR) {
+            if(y > slotMaxY[sx][sz]) slotMaxY[sx][sz] = y;
+        } else if(y == slotMaxY[sx][sz]) {
+            int maxY = -1;
+            for(int yy = WORLD_SY - 1; yy >= 0 && maxY < 0; yy--)
+                for(int zz = 0; zz < CHUNK_SIZE && maxY < 0; zz++)
+                    for(int xx = 0; xx < CHUNK_SIZE; xx++)
+                        if(slot[sx][sz][yy][zz][xx] != BLOCK_AIR) {
+                            maxY = yy;
+                            break;
+                        }
+            slotMaxY[sx][sz] = maxY;
+        }
+    }
+
+    bool openWorld(const char* dataPath);
+    // Keeps the 3x3 chunk ring around the player resident. In the normal
+    // (streaming) mode it loads at most one chunk per call so SD latency is
+    // spread across ticks instead of stalling one frame; `immediate` loads
+    // everything synchronously (setup, respawn/teleport).
+    void updateWindow(int blockX, int blockZ, bool immediate = false);
     void save();
     void closeWorld(int px, int py, int pz, uint8_t rot, uint32_t rng);
     bool readInventory(uint8_t* dst, uint32_t n);
@@ -371,8 +425,10 @@ struct World {
 
 private:
     bool tryOpenAndReadHeader(const char* path);
+    void migrateV2();
     bool loadChunkDirect(int cx, int cz);
     bool loadRunStaged(int cx0, int cz, int count);
+    void onSlotLoaded(int cx, int cz);
     bool flushSlot(int sx, int sz);
     bool ensureRegion();
 };
@@ -386,11 +442,11 @@ struct Framebuffer {
     }
 };
 
-const uint8_t* textureBitmap(int texId);
+const char* itemName(uint8_t type);
+
+// 8-byte row-packed 8x8 texture: bit `u` of byte `v` is texel (u, v).
+const uint8_t* texturePacked(int texId);
 const int (*quadTemplate(int quadId))[3];
-bool blockIsTransparent(uint8_t id);
-bool blockIsFull(uint8_t id);
-bool itemIsBlockItem(uint8_t entityId);
 
 struct MeshTex {
     uint8_t id;
@@ -411,7 +467,32 @@ struct MeshEntry {
 const MeshEntry& meshBlock(uint8_t blockId);
 const MeshEntry& meshItem(uint8_t blockOrItemHighNibbleId);
 
-uint16_t craftTable(const uint8_t grid[9]);
-uint16_t craftFurnace(uint8_t input);
+constexpr uint8_t MOB_SHEEP = 0, MOB_WOLF = 1, MOB_CREEPER = 2, MOB_SPECIES = 3;
+constexpr uint8_t MOB_IDLE = 0, MOB_WANDER = 1, MOB_CHASE = 2, MOB_FLEE = 3;
+constexpr uint8_t TEMPER_PASSIVE = 0, TEMPER_NEUTRAL = 1, TEMPER_HOSTILE = 2;
+
+struct MobSpec {
+    uint8_t texFront, texSide, texTop;
+    uint8_t prey; // bitmask of species this one hunts (1 << species)
+    uint8_t info; // bit0 exploder | temperament << 1
+    uint8_t hpDmg; // max HP << 4 | touch damage (0 = never bites)
+    uint8_t geom; // (collision height / 2) << 4 | speed, px per tick
+};
+const MobSpec& mobSpec(uint8_t species);
+
+// Box in mob-local px, origin at the feet centre, +Z forward; rotated to the
+// facing at render time. flags bit0: front of this box wears texFront.
+struct MobBox {
+    int8_t ox, oy, oz;
+    uint8_t sx, sy, sz, flags;
+};
+const MobBox* mobBoxes(uint8_t species, int& count);
+
+// yaw*2 -> facing index (NEGX,POSX,NEGZ,POSZ = 0..3), 2-bit fields
+constexpr uint32_t MOB_YAW_FACE = 0xF55AA00Fu;
+
+// Result packed as type << 8 | count, 0 = no recipe.
+uint16_t craftTable(const ItemCell grid[9]);
+uint16_t craftFurnace(uint8_t inputType);
 
 }

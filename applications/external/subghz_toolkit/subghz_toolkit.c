@@ -829,7 +829,7 @@ static SubGhzToolkitApp* subghz_toolkit_app_alloc() {
     app->protocol_registry = subghz_environment_get_protocol_registry(app->environment);
     app->receiver = subghz_receiver_alloc_init(app->environment);
     app->setting = subghz_setting_alloc();
-    subghz_setting_load(app->setting, EXT_PATH("subghz/assets/setting_user"));
+    subghz_setting_load(app->setting, EXT_PATH("subghz/assets/setting_user.txt"));
 
     view_set_previous_callback(submenu_get_view(app->submenu), subghz_toolkit_exit_callback);
 

@@ -20,6 +20,9 @@ typedef enum {
     SceneInfo,
     SceneClock,
     ScenePlant,
+    SceneI2CScan,
+    SceneBenchmark,
+    ScenePixelWalk,
 } Scene;
 
 typedef struct {
@@ -42,6 +45,8 @@ typedef struct {
     bool cmd_flip_v;
     bool cmd_all_on;
     bool cmd_power;
+    uint8_t cmd_start_line;
+    uint8_t cmd_fade_mode;
 
     // scrolling
     int scroll_menu_idx;
@@ -61,9 +66,6 @@ typedef struct {
     int8_t plant_rotation;
     uint32_t plant_last_press_tick;
     uint8_t plant_stress;
-    uint8_t plant_need; // 0: water, 1: sun, 2: shade, 3: rotate L, 4: rotate R
-    uint8_t plant_need_message_idx;
-    uint32_t plant_need_change_time;
     uint32_t plant_last_update_time;
     uint32_t plant_last_app_close_time;
     uint32_t plant_ticks;
@@ -74,6 +76,21 @@ typedef struct {
     uint8_t plant_lockout_attempts;
     uint8_t plant_insult_idx;
     bool plant_is_monty_insult;
+
+    // I2C scanner
+    bool i2c_scan_done;
+    uint8_t i2c_scan_progress;
+    bool i2c_scan_found[128];
+    uint8_t i2c_scan_found_count;
+
+    // FPS benchmark
+    float bench_fps;
+    bool bench_done;
+
+    // Pixel walk
+    uint8_t walk_mode; // 0=pixel, 1=vline, 2=hline, 3=block
+    uint16_t walk_step;
+    uint8_t walk_speed; // 1-10, frames per step
 
     bool running;
     FuriMutex* mutex;
@@ -94,11 +111,9 @@ typedef struct {
     int32_t sun;
     int8_t rotation;
     uint8_t stress;
-    uint8_t need;
 
     // Timestamps for real-time updates
     uint32_t last_update_time;
-    uint32_t need_change_time;
 } PlantSaveState;
 
 static void plant_crypt_data(uint8_t* data, size_t size) {
@@ -129,11 +144,9 @@ static void save_plant_state(App* app) {
         state.sun = app->plant_sun;
         state.rotation = app->plant_rotation;
         state.stress = app->plant_stress;
-        state.need = app->plant_need;
 
         // Timestamp for real-time decay
         state.last_update_time = furi_hal_rtc_get_timestamp();
-        state.need_change_time = app->plant_need_change_time;
 
         state.magic = PLANT_SAVE_MAGIC;
 
@@ -163,28 +176,23 @@ static void load_plant_state(App* app) {
                 app->plant_sun = state.sun;
                 app->plant_rotation = state.rotation;
                 app->plant_stress = state.stress;
-                app->plant_need = state.need;
 
                 app->plant_last_update_time = state.last_update_time;
-                app->plant_need_change_time = state.need_change_time;
 
                 // Calculate real-time updates while app was closed
                 uint32_t now = furi_hal_rtc_get_timestamp();
                 if(app->plant_last_update_time > 0 && now > app->plant_last_update_time) {
                     uint32_t elapsed_seconds = now - app->plant_last_update_time;
-                    uint32_t ticks_elapsed = elapsed_seconds / 5; // simulating 5-tick updates
+                    uint32_t ticks_elapsed = elapsed_seconds / 5;
 
                     if(!app->plant_is_dead) {
-                        // Slow decay while closed
-                        app->plant_water -= (ticks_elapsed / 2); // -1 water per 10 sec
-                        app->plant_sun -= (ticks_elapsed / 4); // -1 sun per 20 sec
+                        app->plant_water -= (ticks_elapsed / 2);
+                        app->plant_sun -= (ticks_elapsed / 4);
 
-                        // Withering on neglect
                         if(app->plant_stress > 20 && app->plant_growth > 0) {
-                            app->plant_growth -= (ticks_elapsed / 100); // shrink slowly
+                            app->plant_growth -= (ticks_elapsed / 100);
                         }
 
-                        // Death from extreme neglect
                         if(app->plant_water < -20 || app->plant_water > 120 ||
                            app->plant_stress > 40) {
                             app->plant_is_dead = true;
@@ -194,7 +202,7 @@ static void load_plant_state(App* app) {
                     }
                 }
 
-                app->plant_last_update_time = 0; // will be set on close
+                app->plant_last_update_time = 0;
             }
         }
     }
@@ -270,101 +278,6 @@ static const char* monty_insults[] = {
     "...who say Ni!",
     "Bring us a shrubbery!"};
 #define NUM_MONTY_INSULTS 42
-
-// -- Plant need messages (16 per need) --
-static const char* plant_need_messages[] = {
-    // Water (0)
-    "I'm parched, duh.",
-    "Liquid please, NOW.",
-    "Dying of thirst here.",
-    "Water me, slacker.",
-    "My roots are crispy.",
-    "Cotyledons curling up.",
-    "Need a drink badly.",
-    "Transpiration killing me.",
-    "So. Very. Dry.",
-    "Please hydrate me.",
-    "Dust in my veins.",
-    "Cellular collapse soon.",
-    "Desperate for moisture.",
-    "This is pathetic.",
-    "Even cacti pity me.",
-    "Water or I'm gone.",
-
-    // Sun (1)
-    "I need more light.",
-    "So. Very. Dark.",
-    "Where is the sun?",
-    "Photosynthesis failing.",
-    "Dim and depressed.",
-    "Chlorophyll starving.",
-    "Light, you monster.",
-    "SAD is real for plants.",
-    "Etiolating over here.",
-    "Can't see anything.",
-    "Pale and droopy.",
-    "Find me sunlight.",
-    "This dungeon stinks.",
-    "Literally dying in dark.",
-    "Even mushrooms laugh.",
-    "Windows exist, use them.",
-
-    // Shade (2)
-    "This light burns, ow.",
-    "My leaves are bleached.",
-    "Turn down the heat.",
-    "Photosynthesis overdose.",
-    "Too much sun, jerk.",
-    "Scorching my stems.",
-    "I'm literally burning.",
-    "Shade would be nice.",
-    "Heat-fried leaf tips.",
-    "This is brutal.",
-    "Sunburn, but worse.",
-    "Chlorophyll toast.",
-    "Wilt if you don't help.",
-    "Desert plant I'm not.",
-    "Shade now, please.",
-    "This is cruel.",
-
-    // Rotate Left (3)
-    "Right side numb, move me.",
-    "Phototropism failing here.",
-    "Turn me left, lazy.",
-    "Left my light, fix it.",
-    "Sun is over that way.",
-    "Stuck in the dark side.",
-    "This angle is wrong.",
-    "Lean me toward light.",
-    "My right limb is gone.",
-    "Asymmetrical and upset.",
-    "Left side needs sun.",
-    "Rotate me, I beg.",
-    "Uneven growth sucks.",
-    "Lopsided and cranky.",
-    "Please spin me left.",
-    "Right side abandoned.",
-
-    // Rotate Right (4)
-    "Left side numb, move me.",
-    "Phototropism failing here.",
-    "Turn me right, lazy.",
-    "Left my light, fix it.",
-    "Sun is that direction.",
-    "Stuck in the dark side.",
-    "This angle is wrong.",
-    "Lean me toward light.",
-    "My left limb is gone.",
-    "Asymmetrical and upset.",
-    "Right side needs sun.",
-    "Rotate me, I beg.",
-    "Uneven growth sucks.",
-    "Lopsided and cranky.",
-    "Please spin me right.",
-    "Left side abandoned.",
-};
-#define NUM_NEED_MESSAGES 16
-#define NUM_NEED_TYPES    5
 
 static const char* weekday_names[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 
@@ -477,15 +390,44 @@ static void pattern_gradient(App* app) {
 
 static void pattern_shapes(App* app) {
     ssd1306_clear(&app->oled);
-    ssd1306_rect(&app->oled, 2, 2, 40, 25);
-    ssd1306_fill_rect(&app->oled, 6, 6, 12, 12);
-    ssd1306_circle(&app->oled, 85, 15, 14);
-    ssd1306_circle(&app->oled, 85, 15, 8);
-    ssd1306_line(&app->oled, 0, 63, 127, 32);
-    ssd1306_line(&app->oled, 0, 32, 127, 63);
-    ssd1306_string(&app->oled, 2, 36, "SSD1306 Test App");
-    ssd1306_string(&app->oled, 2, 46, "abcdefghijklmnopqrstu");
-    ssd1306_string(&app->oled, 2, 56, "0123456789 !@#$%");
+
+    // -- Top 16px: title bar --
+    // Thin border top and bottom of the header zone
+    ssd1306_line(&app->oled, 0, 0, 127, 0);
+    ssd1306_line(&app->oled, 0, 15, 127, 15);
+    // Decorative corner marks
+    ssd1306_pixel(&app->oled, 2, 1, true);
+    ssd1306_pixel(&app->oled, 2, 14, true);
+    ssd1306_pixel(&app->oled, 125, 1, true);
+    ssd1306_pixel(&app->oled, 125, 14, true);
+    // Centered title
+    ssd1306_string(&app->oled, 30, 4, "SSD1306  Test");
+
+    // -- Boundary --
+    ssd1306_line(&app->oled, 0, 16, 127, 16);
+
+    // -- Bottom 48px: two-column layout --
+    // Left column: geometric composition
+    ssd1306_rect(&app->oled, 4, 20, 50, 41); // frame
+    ssd1306_circle(&app->oled, 29, 34, 10); // centered circle
+    ssd1306_fill_rect(&app->oled, 24, 29, 11, 11); // filled center
+    ssd1306_line(&app->oled, 8, 24, 50, 57); // accent diagonal
+    ssd1306_pixel(&app->oled, 12, 24, true); // corner dots
+    ssd1306_pixel(&app->oled, 46, 24, true);
+    ssd1306_pixel(&app->oled, 12, 57, true);
+    ssd1306_pixel(&app->oled, 46, 57, true);
+
+    // Vertical divider
+    ssd1306_line(&app->oled, 60, 20, 60, 60);
+
+    // Right column: text samples
+    ssd1306_string(&app->oled, 66, 22, "ABCDEFGHIJ");
+    ssd1306_string(&app->oled, 66, 32, "abcdefghij");
+    ssd1306_string(&app->oled, 66, 42, "0123456789");
+    ssd1306_string(&app->oled, 66, 52, "( ) [ ] { }");
+    // Small decorative underline
+    ssd1306_line(&app->oled, 66, 60, 124, 60);
+
     ssd1306_flush(&app->oled);
 }
 
@@ -528,9 +470,12 @@ static const char* main_menu_items[] = {
     "Display Commands",
     "Scrolling",
     "Display Info",
+    "I2C Scanner",
+    "FPS Benchmark",
+    "Pixel Walk",
     "Botanical Obligation",
 };
-#define MAIN_MENU_COUNT 7
+#define MAIN_MENU_COUNT 10
 
 static const char* cmd_labels[] = {
     "Invert",
@@ -539,18 +484,18 @@ static const char* cmd_labels[] = {
     "Force All Pixels",
     "Display Power",
     "Variant: ",
+    "Start Line: ",
+    "Fade/Blink: ",
 };
-#define CMD_COUNT 6
+#define CMD_COUNT 8
 
 static const char* scroll_labels[] = {
     "Scroll Right",
     "Scroll Left",
-    "Diagonal Up-Right",
-    "Diagonal Up-Left",
     "Stop Scroll",
     "Speed: ",
 };
-#define SCROLL_COUNT 6
+#define SCROLL_COUNT 4
 
 static void
     draw_menu(Canvas* canvas, const char** items, int count, int cursor, const char* title) {
@@ -704,66 +649,148 @@ static void render_clock_oled(App* app) {
     app->last_second = dt.second;
 }
 
-// Helper: draw a leaf at (cx, cy) with size and angle
-static void draw_leaf(SSD1306* d, int cx, int cy, int size, int angle) {
-    (void)angle;
-    // Simple leaf: two curved lines forming an ellipse
+// -- Botanical Obligation: Drawing helpers --
 
-    // Draw leaf outline
-    for(int i = -size; i <= size; i++) {
-        int y_offset = (i * i) / (size * size + 1);
-        int x_left = cx - (size - y_offset / 2);
-        int x_right = cx + (size - y_offset / 2);
+static void draw_pot(SSD1306* d, int cx, int rotation) {
+    // Pot rim -- tilts with rotation
+    int rim_offset = rotation / 2; // rim shifts slightly less than body
+    ssd1306_fill_rect(d, cx - 12 + rim_offset, 47, 24, 3);
+    ssd1306_line(d, cx - 12 + rim_offset, 47, cx + 12 + rim_offset, 47);
 
-        int actual_y = cy + i;
-        if(actual_y >= 17 && actual_y < 64) {
-            ssd1306_pixel(d, x_left, actual_y, true);
-            ssd1306_pixel(d, x_right, actual_y, true);
-        }
+    // Pot body -- trapezoid with tilt based on rotation
+    // Left and right sides shift opposite directions to create tilt
+    for(int y = 50; y <= 59; y++) {
+        int w = 12 - (y - 50) * 3 / 9;
+        // Base shifts more than top (tilt pivot at rim)
+        int tilt = rotation * (y - 47) / 6;
+        ssd1306_line(d, cx - w + tilt, y, cx + w + tilt, y);
     }
-}
 
-// Helper: draw a flower (circle with petals)
-static void draw_flower(SSD1306* d, int cx, int cy, int petal_size) {
-    if(cy < 17 || cy >= 64) return;
+    // Soil surface -- follows rim tilt
+    ssd1306_line(d, cx - 11 + rim_offset, 51, cx + 11 + rim_offset, 51);
 
-    // Center circle
-    for(int x = -2; x <= 2; x++) {
-        for(int y = -2; y <= 2; y++) {
-            int px = cx + x;
-            int py = cy + y;
-            if(px >= 0 && px < 128 && py >= 17 && py < 64) {
-                if(x * x + y * y <= 4) ssd1306_pixel(d, px, py, true);
+    // Soil texture
+    for(int i = 0; i < 6; i++) {
+        int sx = cx - 8 + i * 3 + rim_offset;
+        ssd1306_pixel(d, sx, 53, true);
+        ssd1306_pixel(d, sx + 1, 52, true);
+    }
+
+    // Shadow on ground opposite to tilt direction
+    if(rotation != 0) {
+        int shadow_dir = (rotation > 0) ? -1 : 1;
+        for(int w = 0; w < abs(rotation) + 2; w++) {
+            int sx = cx + shadow_dir * (w + 8);
+            if(sx >= 0 && sx < 128) {
+                ssd1306_pixel(d, sx, 60, true);
+                if(w < abs(rotation)) ssd1306_pixel(d, sx, 59, true);
             }
         }
     }
+}
 
-    // Petals (4 directions)
-    for(int petal = 0; petal < 4; petal++) {
-        int angle = petal * 90;
-        float rad = (angle * 3.14159f) / 180.0f;
-        int px = cx + (int)(petal_size * 1.5f * cosf((float)rad));
-        int py = cy - (int)(petal_size * 1.5f * sinf((float)rad));
+static void draw_grass(SSD1306* d) {
+    // Ground line
+    ssd1306_line(d, 0, 60, 127, 60);
+    // Grass tufts
+    for(int x = 2; x < 126; x += 10) {
+        ssd1306_pixel(d, x, 59, true);
+        ssd1306_pixel(d, x + 1, 58, true);
+        ssd1306_pixel(d, x + 2, 59, true);
+    }
+}
 
-        if(px >= 0 && px < 128 && py >= 17 && py < 64) {
-            ssd1306_circle(d, px, py, petal_size);
+static void
+    draw_leaf(SSD1306* d, int cx, int cy, int size, bool left_side, int droop, bool sunburned) {
+    // Draw a filled teardrop leaf
+    // left_side: true = points left, false = points right
+    // droop: 0-3, adds downward sag
+    // sunburned: creates gaps in the leaf
+
+    int dir = left_side ? -1 : 1;
+
+    for(int i = 0; i <= size; i++) {
+        int y = cy - size + i + droop;
+        int half_w = (size - i) / 2;
+        if(half_w < 1) half_w = 1;
+
+        for(int w = 0; w <= half_w; w++) {
+            if(sunburned && (i + w) % 3 == 0) continue; // scorch gaps
+
+            int lx = cx + dir * w;
+            int rx = cx - dir * w;
+            if(lx >= 0 && lx < 128 && y >= 0 && y < 64) ssd1306_pixel(d, lx, y, true);
+            if(w > 0 && rx >= 0 && rx < 128) ssd1306_pixel(d, rx, y, true);
+        }
+    }
+    // Center vein
+    if(!sunburned || size > 4) {
+        for(int i = 0; i < size; i++) {
+            int vy = cy - size + i + droop + 1;
+            if(vy >= 0 && vy < 64) ssd1306_pixel(d, cx, vy, true);
         }
     }
 }
 
-// Helper: draw a petal cluster
-static void draw_petals(SSD1306* d, int cx, int cy, int num_petals) {
-    if(cy < 17 || cy >= 64) return;
+static void draw_flower(SSD1306* d, int cx, int cy, int size) {
+    // Center
+    ssd1306_fill_rect(d, cx - 1, cy - 1, 3, 3);
 
-    for(int i = 0; i < num_petals; i++) {
-        float angle = (i * 360.0f) / num_petals * 3.14159f / 180.0f;
-        int px = cx + (int)(5 * cosf((float)angle));
-        int py = cy - (int)(5 * sinf((float)angle));
-
-        if(px >= 0 && px < 128 && py >= 17 && py < 64) {
-            ssd1306_pixel(d, px, py, true);
-            if(i % 2 == 0 && py - 1 >= 17) ssd1306_pixel(d, px, py - 1, true);
+    // Petals at 45-degree increments
+    for(int a = 0; a < 8; a++) {
+        float rad = (a * 45.0f * 3.14159f) / 180.0f;
+        int px = cx + (int)(size * 1.2f * cosf(rad));
+        int py = cy - (int)(size * 1.2f * sinf(rad));
+        if(px >= 0 && px < 128 && py >= 0 && py < 64) {
+            ssd1306_fill_rect(d, px - 1, py - 1, 3, 3);
         }
+    }
+}
+
+static void draw_dead_scene(SSD1306* d, App* app) {
+    // Yellow bar header
+    if(app->yellow_bar_height > 0) {
+        ssd1306_fill_rect(d, 0, 0, 128, 16);
+        for(int16_t y = 4; y < 12; y++)
+            for(int16_t x = 0; x < 128; x++)
+                ssd1306_pixel(d, x, y, false);
+    }
+    ssd1306_string(d, 2, 4, "R.I.P. Spiteful Ficus");
+
+    const char* insult = app->plant_is_monty_insult ?
+                             monty_insults[app->plant_insult_idx % NUM_MONTY_INSULTS] :
+                             death_insults[app->plant_insult_idx % NUM_DEATH_INSULTS];
+    ssd1306_string(d, 2, 22, insult);
+
+    uint32_t now = furi_hal_rtc_get_timestamp();
+    uint32_t remaining = (app->plant_dead_until > now) ? (app->plant_dead_until - now) : 0;
+    char time_str[24];
+    snprintf(time_str, sizeof(time_str), "%lum %lus", remaining / 60, remaining % 60);
+    ssd1306_string(d, 2, 34, time_str);
+
+    // Gravestone
+    int gx = 100;
+    ssd1306_fill_rect(d, gx - 1, 38, 2, 26); // base pillar
+    ssd1306_fill_rect(d, gx - 6, 38, 12, 2); // base
+    ssd1306_fill_rect(d, gx - 8, 36, 16, 3); // top slab
+    ssd1306_fill_rect(d, gx - 6, 34, 12, 3); // rounded top
+    ssd1306_pixel(d, gx - 4, 33, true);
+    ssd1306_pixel(d, gx + 4, 33, true);
+    // R.I.P. on gravestone
+    ssd1306_pixel(d, gx - 2, 37, true);
+    ssd1306_pixel(d, gx + 2, 37, true);
+
+    // Wilted plant next to gravestone
+    int wx = 55;
+    draw_pot(d, wx, 0);
+    // Bent, broken stem
+    ssd1306_line(d, wx, 48, wx - 2, 38);
+    ssd1306_line(d, wx - 2, 38, wx + 4, 28);
+    // Dropped leaves on ground
+    for(int i = 0; i < 5; i++) {
+        int lx = wx - 5 + i * 3;
+        ssd1306_pixel(d, lx, 59, true);
+        ssd1306_pixel(d, lx - 1, 60, true);
     }
 }
 
@@ -772,103 +799,328 @@ static void render_plant_oled(App* app) {
     ssd1306_clear(d);
 
     if(app->plant_is_dead) {
-        if(app->yellow_bar_height > 0) {
-            ssd1306_fill_rect(d, 0, 0, 128, 16);
-            for(int16_t y = 4; y < 12; y++)
-                for(int16_t x = 0; x < 128; x++)
-                    ssd1306_pixel(d, x, y, false);
-        }
-        ssd1306_string(d, 2, 4, "R.I.P. Spiteful Ficus");
-
-        const char* insult = app->plant_is_monty_insult ?
-                                 monty_insults[app->plant_insult_idx % NUM_MONTY_INSULTS] :
-                                 death_insults[app->plant_insult_idx % NUM_DEATH_INSULTS];
-
-        ssd1306_string(d, 2, 25, insult);
-
-        uint32_t now = furi_hal_rtc_get_timestamp();
-        uint32_t remaining = (app->plant_dead_until > now) ? (app->plant_dead_until - now) : 0;
-        char time_str[32];
-        snprintf(time_str, sizeof(time_str), "Wait: %lu m %lu s", remaining / 60, remaining % 60);
-        ssd1306_string(d, 2, 45, time_str);
-
-        // draw gravestone
-        ssd1306_rect(d, 90, 40, 24, 24);
-        ssd1306_line(d, 90, 40, 102, 30);
-        ssd1306_line(d, 102, 30, 114, 40);
-        ssd1306_line(d, 98, 48, 106, 48);
-        ssd1306_line(d, 102, 44, 102, 54);
-
+        draw_dead_scene(d, app);
         ssd1306_flush(d);
         return;
     }
 
-    // Get current message for the need
-    const char* message =
-        plant_need_messages[app->plant_need * NUM_NEED_MESSAGES + app->plant_need_message_idx];
+    // Determine growth stage
+    uint8_t stage;
+    if(app->plant_growth < 20)
+        stage = 0; // Sprout
+    else if(app->plant_growth < 50)
+        stage = 1; // Growing
+    else if(app->plant_growth < 100)
+        stage = 2; // Flowering
+    else
+        stage = 3; // Ancient
 
-    // Draw hint text in the upper 16px (yellow bar zone) or top area
-    if(app->yellow_bar_height > 0) {
-        ssd1306_fill_rect(d, 0, 0, 128, 16);
-        for(int16_t y = 4; y < 12; y++)
-            for(int16_t x = 0; x < 128; x++)
-                ssd1306_pixel(d, x, y, false);
+    // Compute visual indicators from stats
+    int droop = 0;
+    if(app->plant_water < 10)
+        droop = 3;
+    else if(app->plant_water < 20)
+        droop = 2;
+    else if(app->plant_water < 35)
+        droop = 1;
+
+    bool overwatered = (app->plant_water > 80);
+    bool sunburned = (app->plant_sun > 75);
+    bool light_starved = (app->plant_sun < 10);
+    bool happy =
+        (app->plant_stress < 5 && app->plant_water > 20 && app->plant_water < 70 &&
+         app->plant_sun > 15 && app->plant_sun < 70);
+
+    // Draw subtle status icon in top-left corner (no text hints!)
+    // Sun indicator
+    int icon_x = 2;
+    if(sunburned) {
+        // Bright sun symbol
+        ssd1306_fill_rect(d, icon_x + 2, 2, 3, 3);
+        ssd1306_pixel(d, icon_x + 1, 1, true);
+        ssd1306_pixel(d, icon_x + 5, 1, true);
+        ssd1306_pixel(d, icon_x, 3, true);
+        ssd1306_pixel(d, icon_x + 6, 3, true);
+        ssd1306_pixel(d, icon_x + 1, 5, true);
+        ssd1306_pixel(d, icon_x + 5, 5, true);
+    } else if(light_starved) {
+        // Crescent moon (darkness)
+        ssd1306_circle(d, icon_x + 3, 4, 3);
+        ssd1306_fill_rect(d, icon_x + 1, 1, 3, 6);
+        ssd1306_circle(d, icon_x + 3, 4, 3);
     }
-    ssd1306_string(d, 2, 4, message);
-
-    // ground
-    ssd1306_line(d, 0, 60, 127, 60);
-
-    // pot (rotates slightly)
-    int px = 64 + app->plant_rotation;
-    ssd1306_line(d, px - 4, 60, px - 8, 45);
-    ssd1306_line(d, px + 4, 60, px + 8, 45);
-    ssd1306_line(d, px - 8, 45, px + 8, 45);
-
-    // stalk with procedural leaves and flowers
-    uint32_t segments = app->plant_growth / 5;
-    if(segments > 200) segments = 200;
-
-    int cx = px;
-    int cy = 45;
-    uint32_t seed = 0x12345678; // deterministic seed for consistent shape
-
-    for(uint32_t i = 0; i < segments; i++) {
-        seed = seed * 1664525 + 1013904223;
-        int dx = (seed >> 24) % 9 - 4; // -4 to +4 sideways
-        int dy = (seed >> 20) % 4 + 1; // 1 to 4 upwards
-
-        int nx = cx + dx;
-        int ny = cy - dy;
-
-        // Bounds checking
-        if(nx < 0) nx = 0;
-        if(nx > 127) nx = 127;
-        if(ny < 17) ny = 17;
-
-        ssd1306_line(d, cx, cy, nx, ny);
-
-        // Procedurally add leaves every 10-15 segments
-        if((i + 1) % 12 == 0 && i > 5) {
-            int leaf_size = 2 + (i / 30);
-            if(leaf_size > 5) leaf_size = 5;
-            draw_leaf(d, nx - 8, ny, leaf_size, (seed >> 12) & 1);
-            draw_leaf(d, nx + 8, ny, leaf_size, (seed >> 13) & 1);
-        }
-
-        // Add flowers near the top
-        if(segments > 50 && i > segments - 15 && (i + 1) % 5 == 0) {
-            draw_flower(d, nx - 6, ny - 3, 2);
-        }
-
-        // Add petal clusters
-        if(segments > 80 && i > segments - 30 && (i + 1) % 8 == 0) {
-            draw_petals(d, nx, ny - 2, 5 + (seed >> 16) % 3);
-        }
-
-        cx = nx;
-        cy = ny;
+    // Water indicator
+    if(app->plant_water < 15) {
+        // Drop symbol
+        ssd1306_pixel(d, 12, 1, true);
+        ssd1306_pixel(d, 11, 2, true);
+        ssd1306_pixel(d, 13, 2, true);
+        ssd1306_pixel(d, 11, 3, true);
+        ssd1306_pixel(d, 12, 3, true);
+        ssd1306_pixel(d, 13, 3, true);
+    } else if(overwatered) {
+        // Wave symbol
+        ssd1306_pixel(d, 11, 1, true);
+        ssd1306_pixel(d, 13, 1, true);
+        ssd1306_pixel(d, 12, 2, true);
+        ssd1306_pixel(d, 11, 3, true);
+        ssd1306_pixel(d, 13, 3, true);
+        ssd1306_pixel(d, 12, 4, true);
     }
+
+    // Rotation direction arrow at top of screen
+    if(app->plant_rotation != 0) {
+        int arrow_y = 2;
+        if(app->plant_rotation < 0) {
+            // Arrow pointing left
+            for(int a = 0; a < 4; a++) {
+                ssd1306_pixel(d, 122 + a, arrow_y + 1 - a, true);
+                ssd1306_pixel(d, 122 + a, arrow_y + 1 + a, true);
+            }
+            ssd1306_line(d, 122, arrow_y + 1, 126, arrow_y + 1);
+        } else {
+            // Arrow pointing right
+            for(int a = 0; a < 4; a++) {
+                ssd1306_pixel(d, 122 + a, arrow_y + 1 - (3 - a), true);
+                ssd1306_pixel(d, 122 + a, arrow_y + 1 + (3 - a), true);
+            }
+            ssd1306_line(d, 126, arrow_y + 1, 122, arrow_y + 1);
+        }
+    }
+
+    // Ground
+    draw_grass(d);
+
+    // Pot position with rotation
+    int px = 64;
+    draw_pot(d, px, app->plant_rotation);
+
+    // Stem calculation -- leans with rotation (more dramatic now)
+    int stem_base_y = 48;
+    int max_height = 35;
+    int stem_height = (app->plant_growth * max_height) / 120;
+    if(stem_height > max_height) stem_height = max_height;
+    if(stem_height < 2) stem_height = 2;
+
+    // Stem leans with rotation: base at pot center, top shifts with rotation
+    int stem_top_x = px + app->plant_rotation * 2; // amplified lean at top
+    int stem_mid_x = px + app->plant_rotation; // half lean at middle
+
+    // Overwatered adds extra bend
+    if(overwatered) {
+        stem_mid_x += 3;
+        stem_top_x += 2;
+    }
+    if(light_starved) {
+        stem_mid_x -= 2;
+        stem_top_x -= 3;
+    }
+
+    int stem_top_y = stem_base_y - stem_height;
+
+    // Draw thickened stem
+    int thickness = 1;
+    if(stage >= 1) thickness = 2;
+    if(stage >= 2) thickness = 3;
+
+    // Main stem as filled rect
+    int stem_bottom_y = stem_base_y;
+    for(int s = 0; s < thickness; s++) {
+        int ox = s - thickness / 2;
+        // Bottom to middle
+        int mx = stem_mid_x + ox;
+        int my = stem_base_y - stem_height / 2;
+        ssd1306_line(d, px + ox, stem_bottom_y, mx, my);
+        // Middle to top
+        ssd1306_line(d, mx, my, stem_top_x + ox, stem_top_y);
+    }
+
+    // Branch points and leaf positions along the stem
+    int leaf_count = 0;
+    if(stage >= 1) leaf_count = 2 + (app->plant_growth / 12);
+    if(stage >= 2) leaf_count = 4 + (app->plant_growth / 8);
+    if(stage >= 3) leaf_count = 6 + (app->plant_growth / 5);
+    if(leaf_count > 16) leaf_count = 16;
+    if(light_starved && leaf_count > 3) leaf_count /= 2;
+
+    int leaf_size = 2;
+    if(stage >= 1) leaf_size = 3;
+    if(stage >= 2) leaf_size = 4;
+    if(stage >= 3) leaf_size = 5;
+
+    for(int l = 0; l < leaf_count; l++) {
+        // Position leaf along the stem
+        float t = (float)(l + 1) / (float)(leaf_count + 1);
+        int ly = stem_base_y - (int)(t * stem_height);
+
+        // Interpolate X: base(px) -> mid(stem_mid_x) -> top(stem_top_x)
+        int lx;
+        if(t < 0.5f) {
+            float tt = t * 2.0f;
+            lx = px + (int)((stem_mid_x - px) * tt);
+        } else {
+            float tt = (t - 0.5f) * 2.0f;
+            lx = stem_mid_x + (int)((stem_top_x - stem_mid_x) * tt);
+        }
+
+        bool left = (l % 2 == 0);
+        draw_leaf(d, lx, ly, leaf_size, left, droop, sunburned);
+    }
+
+    // Flowers at top when flowering/ancient and happy
+    if(happy && stage >= 2) {
+        int flower_size = (stage >= 3) ? 4 : 3;
+        draw_flower(d, stem_top_x - 4, stem_top_y - 2, flower_size);
+        if(stage >= 3) {
+            draw_flower(d, stem_top_x + 5, stem_top_y - 1, flower_size - 1);
+        }
+    }
+
+    ssd1306_flush(d);
+}
+
+// -- I2C Scanner --
+
+static void render_i2c_scan_oled(App* app) {
+    SSD1306* d = &app->oled;
+    ssd1306_clear(d);
+
+    if(!app->i2c_scan_done) {
+        ssd1306_string(d, 10, 4, "Scanning I2C bus...");
+        char prog[20];
+        snprintf(prog, sizeof(prog), "Addr: 0x%02X", app->i2c_scan_progress);
+        ssd1306_string(d, 10, 20, prog);
+        // progress bar
+        ssd1306_rect(d, 8, 36, 112, 8);
+        int fill = (app->i2c_scan_progress * 110) / 127;
+        if(fill > 0) ssd1306_fill_rect(d, 9, 37, fill, 6);
+        ssd1306_string(d, 10, 52, "Please wait...");
+    } else {
+        ssd1306_string(d, 2, 4, "I2C Scan Results");
+        ssd1306_line(d, 0, 13, 127, 13);
+
+        if(app->i2c_scan_found_count == 0) {
+            ssd1306_string(d, 20, 28, "No devices found");
+        } else {
+            char count_str[30];
+            snprintf(
+                count_str, sizeof(count_str), "Found: %d device(s)", app->i2c_scan_found_count);
+            ssd1306_string(d, 2, 16, count_str);
+
+            // display found addresses in a compact grid
+            uint8_t col = 0;
+            uint8_t row = 0;
+            for(uint16_t addr = 0; addr < 128; addr++) {
+                if(app->i2c_scan_found[addr]) {
+                    int16_t x = 2 + (col % 5) * 26;
+                    int16_t y = 26 + row * 9;
+                    if(y < 56) {
+                        char astr[8];
+                        snprintf(astr, sizeof(astr), "0x%02X", addr);
+                        ssd1306_string(d, x, y, astr);
+                    }
+                    col++;
+                    if(col % 5 == 0) row++;
+                }
+            }
+        }
+        ssd1306_string(d, 2, 56, "OK: rescan  BACK: exit");
+    }
+    ssd1306_flush(d);
+}
+
+// -- FPS Benchmark --
+
+static void run_benchmark(App* app) {
+    SSD1306* d = &app->oled;
+    uint32_t start = furi_get_tick();
+    uint32_t count = 0;
+    uint32_t deadline = start + 5000; // 5 seconds
+    uint8_t pattern = 0;
+
+    while(furi_get_tick() < deadline) {
+        pattern++;
+        ssd1306_fill(d, pattern);
+        ssd1306_flush(d);
+        count++;
+    }
+
+    float elapsed = (furi_get_tick() - start) / 1000.0f;
+    app->bench_fps = (elapsed > 0) ? (count / elapsed) : 0;
+    app->bench_done = true;
+}
+
+static void render_benchmark_oled(App* app) {
+    SSD1306* d = &app->oled;
+    ssd1306_clear(d);
+
+    ssd1306_string(d, 10, 4, "FPS Benchmark");
+
+    if(!app->bench_done) {
+        ssd1306_string(d, 10, 28, "Running...");
+        ssd1306_string(d, 4, 44, "Measuring flush rate");
+    } else {
+        ssd1306_line(d, 0, 13, 127, 13);
+        char result[32];
+        snprintf(result, sizeof(result), "%.1f frames/sec", (double)app->bench_fps);
+        ssd1306_string(d, 14, 22, result);
+        ssd1306_string(d, 2, 36, "Full-screen flushes");
+        ssd1306_string(d, 2, 46, "via I2C bus");
+
+        // rating
+        const char* rating;
+        if(app->bench_fps >= 80)
+            rating = "Excellent!";
+        else if(app->bench_fps >= 50)
+            rating = "Good";
+        else if(app->bench_fps >= 25)
+            rating = "Acceptable";
+        else
+            rating = "Slow module";
+        ssd1306_string(d, 28, 56, rating);
+    }
+    ssd1306_flush(d);
+}
+
+// -- Pixel Walk / Marching Ants --
+
+static void render_pixel_walk_oled(App* app) {
+    SSD1306* d = &app->oled;
+    uint16_t step = app->walk_step;
+    uint8_t mode = app->walk_mode;
+
+    ssd1306_clear(d);
+
+    switch(mode) {
+    case 0: { // single pixel
+        uint16_t x = step % 128;
+        uint16_t y = (step / 128) % 64;
+        ssd1306_pixel(d, x, y, true);
+        break;
+    }
+    case 1: { // vertical line scanning horizontally
+        uint16_t x = step % 128;
+        ssd1306_line(d, x, 0, x, 63);
+        break;
+    }
+    case 2: { // horizontal line scanning vertically
+        uint16_t y = step % 64;
+        ssd1306_line(d, 0, y, 127, y);
+        break;
+    }
+    case 3: { // 2x2 block
+        uint16_t x = step % 127;
+        uint16_t y = (step / 127) % 63;
+        ssd1306_fill_rect(d, x, y, 2, 2);
+        break;
+    }
+    }
+
+    // info overlay at bottom
+    const char* mode_names[] = {"Pixel", "V-Line", "H-Line", "2x2 Block"};
+    char info[32];
+    snprintf(info, sizeof(info), "%s  step:%d", mode_names[mode], step);
+    ssd1306_string(d, 2, 56, info);
 
     ssd1306_flush(d);
 }
@@ -949,6 +1201,11 @@ static void draw_callback(Canvas* canvas, void* ctx) {
                     sizeof(line),
                     "Variant: %s",
                     app->yellow_bar_height > 0 ? "Yellow-bar" : "Monochrome");
+            } else if(idx == 6) {
+                snprintf(line, sizeof(line), "Start Line: %d", app->cmd_start_line);
+            } else if(idx == 7) {
+                const char* fade_names[] = {"Off", "Fade", "Fade+", "Blink", "Blink+"};
+                snprintf(line, sizeof(line), "Fade/Blink: %s", fade_names[app->cmd_fade_mode]);
             } else {
                 snprintf(
                     line, sizeof(line), "%s: %s", cmd_labels[idx], toggles[idx] ? "ON" : "OFF");
@@ -1055,12 +1312,105 @@ static void draw_callback(Canvas* canvas, void* ctx) {
             canvas_draw_str_aligned(canvas, 64, 28, AlignCenter, AlignCenter, "It's dead, Jim.");
             canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignCenter, "Check OLED.");
         } else {
-            canvas_draw_str_aligned(canvas, 64, 28, AlignCenter, AlignCenter, "See OLED.");
+            canvas_draw_str_aligned(canvas, 64, 28, AlignCenter, AlignCenter, "It watches you.");
             canvas_draw_str_aligned(
-                canvas, 64, 40, AlignCenter, AlignCenter, "Don't mess this up.");
+                canvas, 64, 38, AlignCenter, AlignCenter, "OK  UP  DOWN  <  >");
+            canvas_draw_str_aligned(
+                canvas, 64, 50, AlignCenter, AlignCenter, "No hints. Figure it out.");
         }
-        canvas_draw_str_aligned(canvas, 64, 58, AlignCenter, AlignCenter, "BACK to exit menu");
+        canvas_draw_str_aligned(canvas, 64, 60, AlignCenter, AlignCenter, "BACK to exit");
         break;
+
+    case SceneI2CScan: {
+        canvas_clear(canvas);
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 12, "I2C Bus Scanner");
+        canvas_draw_line(canvas, 0, 15, 128, 15);
+        canvas_set_font(canvas, FontSecondary);
+
+        if(!app->i2c_scan_done) {
+            char prog[24];
+            snprintf(prog, sizeof(prog), "Scanning 0x%02X...", app->i2c_scan_progress);
+            canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignCenter, prog);
+            canvas_draw_frame(canvas, 8, 40, 112, 8);
+            int fill = (app->i2c_scan_progress * 110) / 127;
+            if(fill > 0) canvas_draw_box(canvas, 9, 41, fill, 6);
+        } else {
+            char count[24];
+            snprintf(count, sizeof(count), "Found: %d device(s)", app->i2c_scan_found_count);
+            canvas_draw_str_aligned(canvas, 64, 22, AlignCenter, AlignCenter, count);
+
+            uint8_t col = 0;
+            uint8_t row = 0;
+            for(uint16_t addr = 0; addr < 128; addr++) {
+                if(app->i2c_scan_found[addr]) {
+                    int16_t x = 4 + (col % 5) * 25;
+                    int16_t y = 34 + row * 11;
+                    if(y < 58) {
+                        char astr[8];
+                        snprintf(astr, sizeof(astr), "0x%02X", addr);
+                        canvas_draw_str(canvas, x, y, astr);
+                    }
+                    col++;
+                    if(col % 5 == 0) row++;
+                }
+            }
+            canvas_draw_str_aligned(canvas, 64, 60, AlignCenter, AlignCenter, "OK: rescan");
+        }
+        break;
+    }
+
+    case SceneBenchmark: {
+        canvas_clear(canvas);
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 12, "FPS Benchmark");
+        canvas_draw_line(canvas, 0, 15, 128, 15);
+        canvas_set_font(canvas, FontSecondary);
+
+        if(!app->bench_done) {
+            canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "Running...");
+            canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignCenter, "5 sec flush test");
+        } else {
+            char result[32];
+            snprintf(result, sizeof(result), "%.1f frames/sec", (double)app->bench_fps);
+            canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignCenter, result);
+
+            const char* rating;
+            if(app->bench_fps >= 80)
+                rating = "Excellent!";
+            else if(app->bench_fps >= 50)
+                rating = "Good";
+            else if(app->bench_fps >= 25)
+                rating = "Acceptable";
+            else
+                rating = "Slow module";
+            canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignCenter, rating);
+
+            canvas_draw_str_aligned(canvas, 64, 56, AlignCenter, AlignCenter, "OK: re-run");
+        }
+        break;
+    }
+
+    case ScenePixelWalk: {
+        canvas_clear(canvas);
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str(canvas, 2, 12, "Pixel Walk");
+        canvas_draw_line(canvas, 0, 15, 128, 15);
+        canvas_set_font(canvas, FontSecondary);
+
+        const char* mode_names[] = {"Pixel", "V-Line", "H-Line", "2x2 Block"};
+        char line1[32];
+        snprintf(line1, sizeof(line1), "Mode: %s", mode_names[app->walk_mode]);
+        canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignCenter, line1);
+
+        char line2[32];
+        snprintf(line2, sizeof(line2), "Speed: %d", app->walk_speed);
+        canvas_draw_str_aligned(canvas, 64, 36, AlignCenter, AlignCenter, line2);
+
+        canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignCenter, "OK: mode");
+        canvas_draw_str_aligned(canvas, 64, 56, AlignCenter, AlignCenter, "L/R: speed");
+        break;
+    }
     }
 
     furi_mutex_release(app->mutex);
@@ -1076,7 +1426,7 @@ static void handle_plant(App* app, InputEvent* ev) {
 
     if(ev->key == InputKeyBack) {
         app->scene = SceneMainMenu;
-        app->cursor = 6;
+        app->cursor = 9;
         app->plant_last_update_time = furi_hal_rtc_get_timestamp();
         save_plant_state(app);
         return;
@@ -1085,9 +1435,9 @@ static void handle_plant(App* app, InputEvent* ev) {
     if(app->plant_is_dead) return;
 
     uint32_t now = furi_get_tick();
-    if(now - app->plant_last_press_tick < 1000) {
-        // Button mashing penalty!
-        app->plant_stress += 2;
+    if(now - app->plant_last_press_tick < 800) {
+        // Button mashing penalty -- plant shakes
+        app->plant_stress += 3;
         app->plant_last_press_tick = now;
         render_plant_oled(app);
         return;
@@ -1095,65 +1445,97 @@ static void handle_plant(App* app, InputEvent* ev) {
     app->plant_last_press_tick = now;
     if(app->plant_stress > 0) app->plant_stress--;
 
-    // Rotate message index
-    app->plant_need_message_idx = (app->plant_need_message_idx + 1) % NUM_NEED_MESSAGES;
+    // Growth-stage-based stat effect magnitude
+    uint8_t stage;
+    if(app->plant_growth < 20)
+        stage = 0;
+    else if(app->plant_growth < 50)
+        stage = 1;
+    else if(app->plant_growth < 100)
+        stage = 2;
+    else
+        stage = 3;
+    int effect = 12 + stage * 3; // 12, 15, 18, 21
 
     switch(ev->key) {
     case InputKeyOk: // water
-        if(app->plant_need == 0) {
-            app->plant_water += 20;
-            app->plant_need = rand() % 5;
-            app->plant_need_message_idx = 0;
-            app->plant_need_change_time = furi_hal_rtc_get_timestamp();
-        } else {
-            app->plant_water += 30;
-            app->plant_stress += 5;
-        }
+        app->plant_water += effect;
+        if(app->plant_water > 120) app->plant_water = 120;
         break;
     case InputKeyUp: // sun
-        if(app->plant_need == 1) {
-            app->plant_sun += 20;
-            app->plant_need = rand() % 5;
-            app->plant_need_message_idx = 0;
-            app->plant_need_change_time = furi_hal_rtc_get_timestamp();
-        } else {
-            app->plant_stress += 5;
-        }
+        app->plant_sun += effect;
+        if(app->plant_sun > 100) app->plant_sun = 100;
         break;
     case InputKeyDown: // shade
-        if(app->plant_need == 2) {
-            app->plant_sun -= 20;
-            app->plant_need = rand() % 5;
-            app->plant_need_message_idx = 0;
-            app->plant_need_change_time = furi_hal_rtc_get_timestamp();
-        } else {
-            app->plant_stress += 5;
-        }
+        app->plant_sun -= effect;
+        if(app->plant_sun < 0) app->plant_sun = 0;
         break;
     case InputKeyLeft: // rotate L
         app->plant_rotation -= 2;
-        if(app->plant_need == 3) {
-            app->plant_need = rand() % 5;
-            app->plant_need_message_idx = 0;
-            app->plant_need_change_time = furi_hal_rtc_get_timestamp();
-        } else {
-            app->plant_stress += 2;
-        }
+        if(app->plant_rotation < -6) app->plant_rotation = -6;
+        if(app->plant_sun > 0) app->plant_sun--;
         break;
     case InputKeyRight: // rotate R
         app->plant_rotation += 2;
-        if(app->plant_need == 4) {
-            app->plant_need = rand() % 5;
-            app->plant_need_message_idx = 0;
-            app->plant_need_change_time = furi_hal_rtc_get_timestamp();
-        } else {
-            app->plant_stress += 2;
-        }
+        if(app->plant_rotation > 6) app->plant_rotation = 6;
+        if(app->plant_sun > 0) app->plant_sun--;
         break;
     default:
         break;
     }
+
     render_plant_oled(app);
+}
+
+// -- I2C Scanner handler --
+
+static void handle_i2c_scan(App* app, InputEvent* ev) {
+    if(ev->type != InputTypePress) return;
+
+    if(ev->key == InputKeyBack) {
+        app->scene = SceneMainMenu;
+        app->cursor = 6;
+        app->i2c_scan_done = false;
+        app->i2c_scan_progress = 0;
+        app->i2c_scan_found_count = 0;
+        memset(app->i2c_scan_found, 0, sizeof(app->i2c_scan_found));
+    }
+}
+
+// -- Benchmark handler --
+
+static void handle_benchmark(App* app, InputEvent* ev) {
+    if(ev->type != InputTypePress) return;
+
+    if(ev->key == InputKeyBack) {
+        app->scene = SceneMainMenu;
+        app->cursor = 7;
+        app->bench_done = false;
+        app->bench_fps = 0;
+    }
+}
+
+// -- Pixel Walk handler --
+
+static void handle_pixel_walk(App* app, InputEvent* ev) {
+    if(ev->type != InputTypePress && ev->type != InputTypeRepeat) return;
+
+    switch(ev->key) {
+    case InputKeyBack:
+        app->scene = SceneMainMenu;
+        app->cursor = 8;
+        app->walk_mode = (app->walk_mode + 1) % 4;
+        app->walk_step = 0;
+        break;
+    case InputKeyLeft:
+        if(app->walk_speed > 1) app->walk_speed--;
+        break;
+    case InputKeyRight:
+        if(app->walk_speed < 10) app->walk_speed++;
+        break;
+    default:
+        break;
+    }
 }
 
 // -- Input handling --
@@ -1192,6 +1574,24 @@ static void handle_main_menu(App* app, InputEvent* ev) {
             app->scene = SceneInfo;
             break;
         case 6:
+            app->scene = SceneI2CScan;
+            app->i2c_scan_done = false;
+            app->i2c_scan_progress = 0;
+            app->i2c_scan_found_count = 0;
+            memset(app->i2c_scan_found, 0, sizeof(app->i2c_scan_found));
+            break;
+        case 7:
+            app->scene = SceneBenchmark;
+            app->bench_done = false;
+            app->bench_fps = 0;
+            break;
+        case 8:
+            app->scene = ScenePixelWalk;
+            app->walk_mode = 0;
+            app->walk_step = 0;
+            app->walk_speed = 3;
+            break;
+        case 9:
             app->scene = ScenePlant;
             if(app->plant_is_dead) {
                 uint32_t now = furi_hal_rtc_get_timestamp();
@@ -1215,7 +1615,7 @@ static void handle_main_menu(App* app, InputEvent* ev) {
                     save_plant_state(app);
                 }
             } else if(app->plant_water == 0 && app->plant_growth == 0) {
-                app->plant_water = 50; // default start
+                app->plant_water = 50;
             }
             render_plant_oled(app);
             break;
@@ -1313,7 +1713,37 @@ static void handle_commands(App* app, InputEvent* ev) {
             app->yellow_bar_height = (app->yellow_bar_height == 0) ? YELLOW_BAR_16 :
                                                                      YELLOW_BAR_NONE;
             break;
+        case 6:
+            app->cmd_start_line = (app->cmd_start_line + 8) & 0x3F;
+            ssd1306_set_start_line(&app->oled, app->cmd_start_line);
+            break;
+        case 7:
+            app->cmd_fade_mode = (app->cmd_fade_mode + 1) % 5;
+            ssd1306_set_fade_blink(&app->oled, app->cmd_fade_mode);
+            break;
         }
+        break;
+    case InputKeyLeft:
+        if(app->cursor == 6 && app->cmd_start_line >= 8)
+            app->cmd_start_line -= 8;
+        else if(app->cursor == 6)
+            app->cmd_start_line = 0;
+        else if(app->cursor == 7 && app->cmd_fade_mode > 0)
+            app->cmd_fade_mode--;
+        if(app->cursor == 6)
+            ssd1306_set_start_line(&app->oled, app->cmd_start_line);
+        else if(app->cursor == 7)
+            ssd1306_set_fade_blink(&app->oled, app->cmd_fade_mode);
+        break;
+    case InputKeyRight:
+        if(app->cursor == 6)
+            app->cmd_start_line = (app->cmd_start_line + 8) & 0x3F;
+        else if(app->cursor == 7)
+            app->cmd_fade_mode = (app->cmd_fade_mode + 1) % 5;
+        if(app->cursor == 6)
+            ssd1306_set_start_line(&app->oled, app->cmd_start_line);
+        else if(app->cursor == 7)
+            ssd1306_set_fade_blink(&app->oled, app->cmd_fade_mode);
         break;
     case InputKeyBack:
         app->scene = SceneMainMenu;
@@ -1342,24 +1772,18 @@ static void handle_scrolling(App* app, InputEvent* ev) {
             ssd1306_scroll_h(&app->oled, true, 0, 7, app->scroll_speed);
             break;
         case 2:
-            ssd1306_scroll_hv(&app->oled, false, 0, 7, app->scroll_speed, 1);
-            break;
-        case 3:
-            ssd1306_scroll_hv(&app->oled, true, 0, 7, app->scroll_speed, 1);
-            break;
-        case 4:
             ssd1306_scroll_stop(&app->oled);
             break;
-        case 5:
+        case 3:
             app->scroll_speed = (app->scroll_speed + 1) & 0x07;
             break;
         }
         break;
     case InputKeyLeft:
-        if(app->cursor == 5 && app->scroll_speed > 0) app->scroll_speed--;
+        if(app->cursor == 3 && app->scroll_speed > 0) app->scroll_speed--;
         break;
     case InputKeyRight:
-        if(app->cursor == 5 && app->scroll_speed < 7) app->scroll_speed++;
+        if(app->cursor == 3 && app->scroll_speed < 7) app->scroll_speed++;
         break;
     case InputKeyBack:
         ssd1306_scroll_stop(&app->oled);
@@ -1477,6 +1901,15 @@ int32_t ssd1306_app_main(void* p) {
                 case ScenePlant:
                     handle_plant(app, &ev);
                     break;
+                case SceneI2CScan:
+                    handle_i2c_scan(app, &ev);
+                    break;
+                case SceneBenchmark:
+                    handle_benchmark(app, &ev);
+                    break;
+                case ScenePixelWalk:
+                    handle_pixel_walk(app, &ev);
+                    break;
                 }
             }
 
@@ -1503,56 +1936,165 @@ int32_t ssd1306_app_main(void* p) {
             if(!app->plant_is_dead) {
                 app->plant_ticks++;
 
-                // Randomized 2-21 minute need timer
-                uint32_t now_epoch = furi_hal_rtc_get_timestamp();
-                uint32_t need_timer_seconds = (app->plant_need_change_time > 0) ?
-                                                  (now_epoch - app->plant_need_change_time) :
-                                                  0;
+                // Determine growth stage
+                uint8_t stage;
+                if(app->plant_growth < 20)
+                    stage = 0; // Sprout
+                else if(app->plant_growth < 50)
+                    stage = 1; // Growing
+                else if(app->plant_growth < 100)
+                    stage = 2; // Flowering
+                else
+                    stage = 3; // Ancient
 
-                // 120 to 1260 seconds (2 to 21 minutes)
-                uint32_t need_threshold = 120 + (app->plant_need * 53 + (rand() % 200));
+                // Stat decay rate increases with growth stage
+                // Sprout: slow decay, only water matters much
+                // Growing: moderate decay, water + light needed
+                // Flowering: fast decay, tight tolerance
+                // Ancient: very fast decay, unforgiving
+                int decay_rate = 1 + stage; // 1, 2, 3, 4 ticks between decay steps
 
-                if(need_timer_seconds > need_threshold) {
-                    app->plant_need = rand() % 5;
-                    app->plant_need_message_idx = 0;
-                    app->plant_need_change_time = now_epoch;
+                if(app->plant_ticks % decay_rate == 0) {
+                    // Water decays faster if sun is high (evaporation)
+                    int water_decay = 1;
+                    if(app->plant_sun > 50) water_decay = 2;
+                    app->plant_water -= water_decay;
+
+                    // Sun decays (clouds pass, day ends)
+                    if(stage >= 1) {
+                        app->plant_sun--;
+                    }
+
+                    // Stress slowly recovers if conditions are good
+                    if(app->plant_stress > 0 && app->plant_ticks % 15 == 0) {
+                        if(app->plant_water > 15 && app->plant_water < 85 && app->plant_sun > 5 &&
+                           app->plant_sun < 80) {
+                            app->plant_stress--;
+                        }
+                    }
                 }
 
+                // Growth conditions (checked every 5 ticks)
                 if(app->plant_ticks % 5 == 0) {
-                    // slow adjustments
-                    if(app->plant_water > -30) app->plant_water--;
-                    if(app->plant_sun > 0) app->plant_sun--;
-                    if(app->plant_stress > 0 && app->plant_ticks % 25 == 0) app->plant_stress--;
+                    bool in_goldilocks =
+                        (app->plant_water > 15 && app->plant_water < 80 && app->plant_sun > 5 &&
+                         app->plant_sun < 75 && app->plant_stress < 15);
 
-                    // grow if somewhat happy (not drowned, not completely parched, relatively low stress)
-                    if(app->plant_stress < 10 && app->plant_water > 10 && app->plant_water < 90) {
+                    if(in_goldilocks) {
                         app->plant_growth++;
-                    } else if(app->plant_stress > 20 && app->plant_growth > 0) {
-                        app->plant_growth--; // shrinks/withers!
+                    } else if(app->plant_stress > 25 && app->plant_growth > 0) {
+                        // Withering
+                        app->plant_growth--;
                     }
 
-                    // Slow withering on neglect (very high stress or extreme conditions)
-                    if(app->plant_stress > 35 && app->plant_growth > 0) {
-                        if(app->plant_ticks % 10 == 0) app->plant_growth--;
+                    // Overwatering penalty
+                    if(app->plant_water > 90) {
+                        app->plant_stress += 1;
                     }
 
-                    // death mechanics
-                    if(app->plant_water < -20 || app->plant_water > 120 ||
-                       app->plant_stress > 40) {
-                        app->plant_is_dead = true;
-                        app->plant_dead_until = now_epoch + (60 + (rand() % 241));
-                        app->plant_lockout_attempts = 0;
-                        app->plant_is_monty_insult = false;
-                        app->plant_insult_idx = rand() % NUM_DEATH_INSULTS;
-                        app->plant_growth = 0;
-                        app->plant_last_update_time = now_epoch;
-                        save_plant_state(app);
+                    // Sunburn penalty
+                    if(app->plant_sun > 80) {
+                        app->plant_stress += 1;
                     }
+
+                    // Light starvation at higher stages
+                    if(stage >= 2 && app->plant_sun < 5) {
+                        app->plant_stress += 2;
+                    }
+                }
+
+                // Death conditions
+                uint32_t now_epoch = furi_hal_rtc_get_timestamp();
+                if(app->plant_water < -25 || app->plant_water > 120 || app->plant_stress > 40) {
+                    app->plant_is_dead = true;
+                    app->plant_dead_until = now_epoch + (60 + (rand() % 241));
+                    app->plant_lockout_attempts = 0;
+                    app->plant_is_monty_insult = false;
+                    app->plant_insult_idx = rand() % NUM_DEATH_INSULTS;
+                    app->plant_growth = 0;
+                    app->plant_last_update_time = now_epoch;
+                    save_plant_state(app);
                 }
             }
 
             render_plant_oled(app);
             furi_mutex_release(app->mutex);
+        }
+
+        // periodic I2C scan step
+        if(app->detected && app->scene == SceneI2CScan && !app->i2c_scan_done) {
+            furi_mutex_acquire(app->mutex, FuriWaitForever);
+
+            if(app->i2c_scan_progress < 128) {
+                uint8_t i2c_addr = app->i2c_scan_progress << 1;
+                if(ssd1306_detect(i2c_addr)) {
+                    app->i2c_scan_found[app->i2c_scan_progress] = true;
+                    app->i2c_scan_found_count++;
+                }
+                app->i2c_scan_progress++;
+            }
+            if(app->i2c_scan_progress >= 128) {
+                app->i2c_scan_done = true;
+            }
+
+            render_i2c_scan_oled(app);
+            furi_mutex_release(app->mutex);
+            view_port_update(vp);
+        }
+
+        // benchmark run
+        if(app->detected && app->scene == SceneBenchmark && !app->bench_done) {
+            furi_mutex_acquire(app->mutex, FuriWaitForever);
+            render_benchmark_oled(app);
+            furi_mutex_release(app->mutex);
+            view_port_update(vp);
+
+            // Run benchmark outside the mutex since it takes 5 seconds
+            run_benchmark(app);
+
+            furi_mutex_acquire(app->mutex, FuriWaitForever);
+            render_benchmark_oled(app);
+            furi_mutex_release(app->mutex);
+            view_port_update(vp);
+        }
+
+        // periodic pixel walk update
+        if(app->detected && app->scene == ScenePixelWalk) {
+            uint16_t max_step;
+            switch(app->walk_mode) {
+            case 0:
+                max_step = 128 * 64 - 1;
+                break; // pixel
+            case 1:
+                max_step = 127;
+                break; // v-line
+            case 2:
+                max_step = 63;
+                break; // h-line
+            case 3:
+                max_step = 127 * 63 - 1;
+                break; // block
+            default:
+                max_step = 128 * 64 - 1;
+                break;
+            }
+
+            // Burst of steps per main-loop tick
+            // walk_speed 1 = ~10ms step (fast), walk_speed 10 = ~100ms step (slow)
+            int step_delay = app->walk_speed * 10;
+            int burst = 200 / step_delay;
+            if(burst < 1) burst = 1;
+            if(burst > 30) burst = 30;
+
+            for(int b = 0; b < burst; b++) {
+                furi_mutex_acquire(app->mutex, FuriWaitForever);
+                app->walk_step++;
+                if(app->walk_step > max_step) app->walk_step = 0;
+                render_pixel_walk_oled(app);
+                furi_mutex_release(app->mutex);
+                furi_delay_ms(step_delay);
+            }
+            view_port_update(vp);
         }
     }
 

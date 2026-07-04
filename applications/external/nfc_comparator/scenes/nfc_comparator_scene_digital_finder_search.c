@@ -23,8 +23,7 @@ bool nfc_comparator_digital_finder_search_scene_on_event(void* context, SceneMan
     if(event.type == SceneManagerEventTypeBack) {
         force_quit = true;
         nfc_comparator_finder_searcher_worker_stop(nfc_comparator->workers.searcher.worker);
-        scene_manager_search_and_switch_to_previous_scene(
-            nfc_comparator->scene_manager, NfcComparatorScene_FinderMenu);
+        scene_manager_previous_scene(nfc_comparator->scene_manager);
         consumed = true;
     } else if(event.type == SceneManagerEventTypeTick) {
         switch(*nfc_comparator_finder_searcher_worker_get_state(
@@ -34,7 +33,7 @@ bool nfc_comparator_digital_finder_search_scene_on_event(void* context, SceneMan
                 nfc_comparator->views.popup, "Finding....", 64, 5, AlignCenter, AlignTop);
             popup_set_text(
                 nfc_comparator->views.popup,
-                "Hold card next\nto Flipper's back",
+                "This can take a while",
                 64,
                 40,
                 AlignCenter,

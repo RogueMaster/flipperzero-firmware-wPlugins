@@ -1,13 +1,12 @@
 #include "../flipcraft.h"
-#include <string.h>
 #include <initializer_list>
 
 namespace flipcraft {
 
-#include "../assets/textures.inc"
+#include "../../assets/textures.inc"
 
-const uint8_t* textureBitmap(int texId) {
-    return SOURCE_TEXTURES[(uint8_t)texId];
+const uint8_t* texturePacked(int texId) {
+    return TEXTURES_PACKED[(uint8_t)texId];
 }
 
 static const int QUADS[][4][3] = {
@@ -40,21 +39,8 @@ static const int QUADS[][4][3] = {
 };
 
 const int (*quadTemplate(int quadId))[3] {
-    if(quadId >= 0 && quadId <= 0x19) return QUADS[quadId];
+    if(quadId >= 0 && quadId < QUAD_COUNT) return QUADS[quadId];
     return QUADS[0];
-}
-
-bool blockIsTransparent(uint8_t id) {
-    return id == BLOCK_AIR || id == BLOCK_LEAVES || id == BLOCK_SAPLING || id == BLOCK_GLASS ||
-           id == BLOCK_CHEST;
-}
-bool blockIsFull(uint8_t id) {
-    return !(id == BLOCK_AIR || id == BLOCK_SAPLING || id == BLOCK_CHEST);
-}
-bool itemIsBlockItem(uint8_t entityId) {
-    return !(
-        entityId == ENTITY_STICK || entityId == ENTITY_APPLE || entityId == ENTITY_COAL ||
-        entityId == ENTITY_FALLINGSAND || entityId == ENTITY_SAPLING);
 }
 
 static void setTextures(MeshEntry& e, std::initializer_list<MeshTex> list) {
@@ -62,13 +48,10 @@ static void setTextures(MeshEntry& e, std::initializer_list<MeshTex> list) {
     for(const MeshTex& t : list)
         if(e.texCount < 4) e.textures[e.texCount++] = t;
 }
-// Stops at the QUAD_NONE sentinel so old terminated lists drop in unchanged.
 static void setQuads(MeshEntry& e, std::initializer_list<MeshQuadRef> list) {
     e.quadCount = 0;
-    for(const MeshQuadRef& q : list) {
-        if(q.quadId == QUAD_NONE) break;
+    for(const MeshQuadRef& q : list)
         if(e.quadCount < 8) e.quads[e.quadCount++] = q;
-    }
 }
 
 static MeshEntry makeCube(
@@ -88,15 +71,14 @@ static MeshEntry makeCube(
     return e;
 }
 
-static MeshEntry* g_blockMesh = nullptr;
-static MeshEntry* g_itemMesh = nullptr;
-static MeshEntry* g_emptyMesh = nullptr;
+static MeshEntry g_blockMesh[32];
+static MeshEntry g_itemMesh[32];
+static const MeshEntry g_emptyMesh{};
+static bool g_meshReady = false;
 
 static void initMesh() {
-    if(g_blockMesh) return;
-    g_blockMesh = new MeshEntry[16]();
-    g_itemMesh = new MeshEntry[16]();
-    g_emptyMesh = new MeshEntry();
+    if(g_meshReady) return;
+    g_meshReady = true;
 
     {
         MeshEntry e;
@@ -196,13 +178,7 @@ static void initMesh() {
         MeshEntry e;
         e.exists = true;
         setTextures(e, {{TEX_SAPLINGLIGHT, 0b0100}, {TEX_SAPLINGDARK, 0b0110}});
-        setQuads(
-            e,
-            {{QUAD_CROSS1, 0},
-             {QUAD_CROSS1, 1},
-             {QUAD_CROSS2, 0},
-             {QUAD_CROSS2, 1},
-             {QUAD_NONE, 0}});
+        setQuads(e, {{QUAD_CROSS1, 0}, {QUAD_CROSS1, 1}, {QUAD_CROSS2, 0}, {QUAD_CROSS2, 1}});
         g_blockMesh[BLOCK_SAPLING] = e;
         MeshEntry it;
         it.exists = true;
@@ -212,8 +188,7 @@ static void initMesh() {
             {{QUAD_CROSSITEM1, 0},
              {QUAD_CROSSITEM1, 1},
              {QUAD_CROSSITEM2, 0},
-             {QUAD_CROSSITEM2, 1},
-             {QUAD_NONE, 0}});
+             {QUAD_CROSSITEM2, 1}});
         g_itemMesh[BLOCK_SAPLING] = it;
     }
 
@@ -249,106 +224,189 @@ static void initMesh() {
              {QUAD_SMALL_NEGZ, 2},
              {QUAD_SMALL_POSZ, 2},
              {QUAD_SMALL_NEGY, 0},
-             {QUAD_SMALL_POSY, 0},
-             {QUAD_NONE, 0}});
+             {QUAD_SMALL_POSY, 0}});
         g_blockMesh[BLOCK_CHEST] = e;
         g_itemMesh[BLOCK_CHEST] = e;
+    }
+
+    g_blockMesh[BLOCK_DYNAMITE] = makeCube(
+        TEX_DYNAMITETOP,
+        0b1000,
+        TEX_DYNAMITETOP,
+        0b1000,
+        TEX_DYNAMITE,
+        0b1000,
+        true,
+        TEX_DYNAMITE,
+        0b1000);
+    g_itemMesh[ENTITY_DYNAMITE] = g_blockMesh[BLOCK_DYNAMITE];
+
+    {
+        MeshEntry e;
+        e.exists = true;
+        setTextures(e, {{TEX_COALITEMLIGHT, 0b1100}, {TEX_COALITEMDARK, 0b1110}});
+        setQuads(
+            e,
+            {{QUAD_CROSSITEM1, 0},
+             {QUAD_CROSSITEM1, 1},
+             {QUAD_CROSSITEM2, 0},
+             {QUAD_CROSSITEM2, 1},
+             {QUAD_CROSSITEM3, 0},
+             {QUAD_CROSSITEM3, 1},
+             {QUAD_CROSSITEM4, 0},
+             {QUAD_CROSSITEM4, 1}});
+        g_itemMesh[ENTITY_GUNPOWDER] = e;
     }
 }
 
 const MeshEntry& meshBlock(uint8_t id) {
     initMesh();
-    return (id < 16) ? g_blockMesh[id] : *g_emptyMesh;
+    return (id < 32) ? g_blockMesh[id] : g_emptyMesh;
 }
 const MeshEntry& meshItem(uint8_t hi) {
     initMesh();
-    return (hi < 16) ? g_itemMesh[hi] : *g_emptyMesh;
+    return (hi < 32) ? g_itemMesh[hi] : g_emptyMesh;
+}
+
+static constexpr MobSpec MOB_SPECS[MOB_SPECIES] = {
+    {TEX_SHEEPFRONT, TEX_SHEEPSIDE, TEX_SHEEPTOP, 0, TEMPER_PASSIVE << 1, 0x20, (9 << 4) | 3},
+    {TEX_WOLFFRONT,
+     TEX_WOLFSIDE,
+     TEX_WOLFTOP,
+     (1 << MOB_SHEEP) | (1 << MOB_CREEPER),
+     TEMPER_NEUTRAL << 1,
+     0x21,
+     (7 << 4) | 5},
+    {TEX_CREEPERFRONT,
+     TEX_CREEPERSIDE,
+     TEX_CREEPERTOP,
+     0,
+     (TEMPER_HOSTILE << 1) | 1,
+     0x20,
+     (13 << 4) | 4},
+};
+const MobSpec& mobSpec(uint8_t species) {
+    return MOB_SPECS[species % MOB_SPECIES];
+}
+
+static constexpr MobBox SHEEP_BOXES[] = {
+    {-4, 0, 4, 8, 6, 3, 0},
+    {-4, 0, -7, 8, 6, 3, 0},
+    {-6, 6, -10, 12, 11, 20, 0},
+    {-3, 12, 9, 6, 7, 6, 1},
+};
+static constexpr MobBox WOLF_BOXES[] = {
+    {-3, 0, 5, 6, 5, 3, 0},
+    {-3, 0, -8, 6, 5, 3, 0},
+    {-4, 4, -9, 8, 8, 17, 0},
+    {-3, 9, 8, 6, 6, 6, 1},
+    {-1, 10, -12, 2, 3, 4, 0},
+};
+static constexpr MobBox CREEPER_BOXES[] = {
+    {-4, 0, 2, 8, 5, 4, 0},
+    {-4, 0, -6, 8, 5, 4, 0},
+    {-3, 5, -3, 6, 12, 6, 0},
+    {-4, 17, -4, 8, 9, 8, 1},
+};
+static constexpr struct {
+    const MobBox* b;
+    uint8_t n;
+} MOB_PLANS[MOB_SPECIES] = {
+    {SHEEP_BOXES, 4},
+    {WOLF_BOXES, 5},
+    {CREEPER_BOXES, 4},
+};
+const MobBox* mobBoxes(uint8_t species, int& count) {
+    const auto& p = MOB_PLANS[species % MOB_SPECIES];
+    count = p.n;
+    return p.b;
+}
+
+// The 3x3 grid packs into 36 bits: one nibble of item type per cell, cell i
+// (row-major) at bit 4*i. Normalisation and matching are then pure bit ops.
+constexpr uint64_t GRID_COL0 = 0x00F00F00Full; // cells 0,3,6
+constexpr uint64_t GRID_ROW0 = 0x0000000FFFull; // cells 0,1,2
+constexpr uint64_t GRID_KEEP01 = 0x0FF0FF0FFull; // columns 0,1 of every row
+
+// Compile-time recipe key from the same row-major digit strings as before
+// ('0'-'9' and 'A'-'F' are item type nibbles).
+static constexpr uint64_t craftKey(const char* s) {
+    uint64_t v = 0;
+    for(int i = 0; i < 9; i++) {
+        uint64_t n = (s[i] >= 'A') ? (uint64_t)(s[i] - 'A' + 10) : (uint64_t)(s[i] - '0');
+        v |= n << (4 * i);
+    }
+    return v;
+}
+
+// Result packed as type << 8 | count.
+static constexpr uint16_t R(uint8_t type, uint8_t n) {
+    return (uint16_t)((type << 8) | n);
 }
 
 struct CraftRecipe {
-    char key[10];
+    uint64_t key;
     uint16_t result;
 };
-static const CraftRecipe CRAFT_RECIPES[] = {
-    {"770770000", ITEM_TABLE},
-    {"500000000", uint16_t(ITEM_PLANK | 0x4)},
-    {"444404444", ITEM_FURNACE},
-    {"777707777", ITEM_CHEST},
-    {"700700000", uint16_t(ITEM_STICK | 0x4)},
-    {"777010010", ITEM_WOODPICKAXE},
-    {"444010010", ITEM_STONEPICKAXE},
-    {"DDD010010", ITEM_IRONPICKAXE},
-    {"770710010", ITEM_WOODAXE},
-    {"440410010", ITEM_STONEAXE},
-    {"DD0D10010", ITEM_IRONAXE},
-    {"700100100", ITEM_WOODSHOVEL},
-    {"400100100", ITEM_STONESHOVEL},
-    {"D00100100", ITEM_IRONSHOVEL},
-    {"700700100", ITEM_WOODSWORD},
-    {"400400100", ITEM_STONESWORD},
-    {"D00D00100", ITEM_IRONSWORD},
-    {"0D0D00000", ITEM_SHEARS},
+static constexpr CraftRecipe CRAFT_RECIPES[] = {
+    {craftKey("770770000"), R(ITEM_TABLE, 1)},
+    {craftKey("500000000"), R(ITEM_PLANK, 4)},
+    {craftKey("444404444"), R(ITEM_FURNACE, 1)},
+    {craftKey("777707777"), R(ITEM_CHEST, 1)},
+    {craftKey("700700000"), R(ITEM_STICK, 4)},
+    {craftKey("777010010"), R(ITEM_WOODPICKAXE, 1)},
+    {craftKey("444010010"), R(ITEM_STONEPICKAXE, 1)},
+    {craftKey("DDD010010"), R(ITEM_IRONPICKAXE, 1)},
+    {craftKey("770710010"), R(ITEM_WOODAXE, 1)},
+    {craftKey("440410010"), R(ITEM_STONEAXE, 1)},
+    {craftKey("DD0D10010"), R(ITEM_IRONAXE, 1)},
+    {craftKey("700100100"), R(ITEM_WOODSHOVEL, 1)},
+    {craftKey("400100100"), R(ITEM_STONESHOVEL, 1)},
+    {craftKey("D00100100"), R(ITEM_IRONSHOVEL, 1)},
+    {craftKey("700700100"), R(ITEM_WOODSWORD, 1)},
+    {craftKey("400400100"), R(ITEM_STONESWORD, 1)},
+    {craftKey("D00D00100"), R(ITEM_IRONSWORD, 1)},
+    {craftKey("0D0D00000"), R(ITEM_SHEARS, 1)},
+    {craftKey("AB0000000"), R(ITEM_DYNAMITE, 1)},
+    {craftKey("BA0000000"), R(ITEM_DYNAMITE, 1)},
+    {craftKey("A00B00000"), R(ITEM_DYNAMITE, 1)},
+    {craftKey("B00A00000"), R(ITEM_DYNAMITE, 1)},
 };
-static const int CRAFT_COUNT = (int)(sizeof(CRAFT_RECIPES) / sizeof(CRAFT_RECIPES[0]));
 
-static bool colEmpty(const char* s) {
-    return s[0] == '0' && s[3] == '0' && s[6] == '0';
-}
-static void shiftLeft(char* s) {
-    s[0] = s[1];
-    s[3] = s[4];
-    s[6] = s[7];
-    s[1] = s[2];
-    s[4] = s[5];
-    s[7] = s[8];
-    s[2] = '0';
-    s[5] = '0';
-    s[8] = '0';
-}
-static bool rowEmpty0(const char* s) {
-    return s[0] == '0' && s[1] == '0' && s[2] == '0';
-}
-static void shiftUp(char* s) {
-    s[0] = s[3];
-    s[1] = s[4];
-    s[2] = s[5];
-    s[3] = s[6];
-    s[4] = s[7];
-    s[5] = s[8];
-    s[6] = '0';
-    s[7] = '0';
-    s[8] = '0';
-}
-
-uint16_t craftTable(const uint8_t grid[9]) {
-    char s[10];
-    s[9] = 0;
-    bool anything = false;
-    for(int i = 0; i < 9; i++) {
-        uint8_t v = (grid[i] >> 4) & 0xF;
-        s[i] = (char)((v < 10) ? ('0' + v) : ('A' + v - 10));
-        if(s[i] != '0') anything = true;
-    }
-
-    if(!anything) return 0;
-    while(colEmpty(s))
-        shiftLeft(s);
-    while(rowEmpty0(s))
-        shiftUp(s);
-    for(int i = 0; i < CRAFT_COUNT; i++)
-        if(strcmp(s, CRAFT_RECIPES[i].key) == 0) return CRAFT_RECIPES[i].result;
+uint16_t craftTable(const ItemCell grid[9]) {
+    uint64_t v = 0;
+    for(int i = 0; i < 9; i++)
+        v |= (uint64_t)(grid[i].type >> 4) << (4 * i);
+    if(!v) return 0;
+    // Shift the pattern into the top-left corner: drop empty leading columns
+    // (each row moves one nibble right, its last column cleared), then rows.
+    while(!(v & GRID_COL0))
+        v = (v >> 4) & GRID_KEEP01;
+    while(!(v & GRID_ROW0))
+        v >>= 12;
+    for(const CraftRecipe& r : CRAFT_RECIPES)
+        if(r.key == v) {
+            // gunpowder shares the glass craft nibble; require the exact type
+            if(r.result == R(ITEM_DYNAMITE, 1)) {
+                bool ok = false;
+                for(int i = 0; i < 9; i++)
+                    ok |= grid[i].type == ITEM_GUNPOWDER;
+                if(!ok) continue;
+            }
+            return r.result;
+        }
     return 0;
 }
-uint16_t craftFurnace(uint8_t input) {
-    switch(input >> 4) {
+uint16_t craftFurnace(uint8_t inputType) {
+    switch(inputType >> 4) {
     case BLOCK_COBBLE:
-        return ITEM_STONE | 0x1;
+        return R(ITEM_STONE, 1);
     case BLOCK_LOG:
-        return ITEM_COAL | 0x1;
+        return R(ITEM_COAL, 1);
     case BLOCK_IRONORE:
-        return ITEM_IRONINGOT | 0x1;
+        return R(ITEM_IRONINGOT, 1);
     case BLOCK_SAND:
-        return ITEM_GLASS | 0x1;
+        return R(ITEM_GLASS, 1);
     default:
         return 0;
     }

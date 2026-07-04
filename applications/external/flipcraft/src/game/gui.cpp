@@ -25,25 +25,68 @@ void Screen2D::number(int x, int y, int d) {
 
 static const uint8_t HEART[7] =
     {0b0110110, 0b1111111, 0b1111111, 0b1111111, 0b0111110, 0b0011100, 0b0001000};
+
+// full = black body / white 1px border, empty = inverted; both opaque
 void Screen2D::heart(int x, int y, bool full) {
+    auto on = [](int r, int c) {
+        return r >= 0 && r < 7 && c >= 0 && c < 7 && (HEART[r] & (1 << (6 - c)));
+    };
     for(int r = 0; r < 7; r++)
         for(int c = 0; c < 7; c++) {
-            bool on = HEART[r] & (1 << (6 - c));
-
-            bool outline = on && (r == 0 || r == 6 ||
-                                  !((HEART[r] & (1 << (7 - c))) && (HEART[r] & (1 << (5 - c))) &&
-                                    (r > 0 && (HEART[r - 1] & (1 << (6 - c)))) &&
-                                    (r < 6 && (HEART[r + 1] & (1 << (6 - c))))));
-            bool v = full ? on : outline;
-            if(v) setPixel(x + c, y + r, 1);
+            if(!on(r, c)) continue;
+            bool body = on(r - 1, c) && on(r + 1, c) && on(r, c - 1) && on(r, c + 1);
+            setPixel(x + c, y + r, full ? (body ? 1 : 0) : (body ? 0 : 1));
         }
 }
 
-void Screen2D::itemIcon(int x, int y, int itemId) {
-    int type = (itemId & 0xF0) >> 4;
-    bool nonstack = (itemId & 0xF0) == 0xF0;
-    int sub = itemId & 0x0F;
-    int key = nonstack ? (0x10 | sub) : type;
+const char* itemName(uint8_t type) {
+    if(type == 0) return nullptr;
+    if(type == ITEM_DYNAMITE) return "Dynamite";
+    if(type == ITEM_GUNPOWDER) return "Gunpowder";
+    if(type >= ITEM_NONSTACKABLE) {
+        static const char* const tools[16] = {
+            "Wood Pickaxe",
+            "Wood Axe",
+            "Wood Shovel",
+            "Wood Sword",
+            "Stone Pickaxe",
+            "Stone Axe",
+            "Stone Shovel",
+            "Stone Sword",
+            "Iron Pickaxe",
+            "Iron Axe",
+            "Iron Shovel",
+            "Iron Sword",
+            "Shears",
+            "Crafting Table",
+            "Furnace",
+            "Chest"};
+        return tools[type & 0x0F];
+    }
+    static const char* const mats[16] = {
+        nullptr,
+        "Stick",
+        "Dirt",
+        "Stone",
+        "Cobblestone",
+        "Wood Log",
+        "Leaves",
+        "Planks",
+        "Coal",
+        "Iron Ore",
+        "Sand",
+        "Glass",
+        "Sapling",
+        "Iron Ingot",
+        "Apple",
+        nullptr};
+    return mats[type >> 4];
+}
+
+void Screen2D::itemIcon(int x, int y, int type) {
+    int key = (type >= ITEM_NONSTACKABLE) ? (0x10 | (type & 0x0F)) :
+              (type == ITEM_GUNPOWDER)    ? (0x0B ^ 0x08) :
+                                            (type >> 4);
     for(int r = 0; r < 6; r++)
         for(int c = 0; c < 6; c++) {
             bool border = (r == 0 || r == 5 || c == 0 || c == 5);
@@ -81,25 +124,6 @@ void Screen2D::itemIcon(int x, int y, int itemId) {
             }
             bool v = border || inside;
             if(v) setPixel(x + c, y + r, 1);
-        }
-}
-
-void Screen2D::drawTex(int texId, bool inv) {
-    static const uint8_t ARROW[8] = {
-        0, 0b00001000, 0b00001100, 0b11111110, 0b11111110, 0b00001100, 0b00001000, 0};
-    static const uint8_t FLAME[8] = {
-        0b00010000, 0b00011000, 0b00111100, 0b01111110, 0b01111110, 0b01011010, 0b00111100, 0};
-    static const uint8_t EMPTY8[8] = {0};
-    const uint8_t* g = EMPTY8;
-    if(texId == 0x63 || texId == 0x64)
-        g = ARROW;
-    else if(texId == 0x65)
-        g = FLAME;
-    for(int r = 0; r < 8; r++)
-        for(int c = 0; c < 8; c++) {
-            int bit = (g[r] >> (7 - c)) & 1;
-            if(inv) bit ^= 1;
-            if(bit) setPixel(x1 + c, y1 + r, 1);
         }
 }
 

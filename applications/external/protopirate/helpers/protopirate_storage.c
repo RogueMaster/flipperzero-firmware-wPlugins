@@ -513,6 +513,19 @@ static bool protopirate_storage_copy_key_2(
            protopirate_storage_copy_u32_optional(save_file, flipper_format, "Key_2");
 }
 
+static bool
+    protopirate_storage_copy_key2(FlipperFormat* save_file, FlipperFormat* flipper_format) {
+    bool copied = false;
+    if(!protopirate_storage_copy_hex_fixed(save_file, flipper_format, "Key2", 8, &copied)) {
+        return false;
+    }
+    if(copied) {
+        return true;
+    }
+
+    return protopirate_storage_copy_hex_or_u32(save_file, flipper_format, "Key2", 4);
+}
+
 static bool protopirate_storage_write_capture_data(
     FlipperFormat* save_file,
     FlipperFormat* flipper_format) {
@@ -548,7 +561,7 @@ static bool protopirate_storage_write_capture_data(
                protopirate_storage_base_u32_fields,
                COUNT_OF(protopirate_storage_base_u32_fields)))
             break;
-        if(!protopirate_storage_copy_hex_or_u32(save_file, flipper_format, "Key2", 4)) break;
+        if(!protopirate_storage_copy_key2(save_file, flipper_format)) break;
         if(!protopirate_storage_copy_u32_optional(save_file, flipper_format, "KeyIdx")) break;
         if(!protopirate_storage_copy_u32_optional(save_file, flipper_format, "Seed")) break;
         if(!protopirate_storage_copy_hex_or_u32(save_file, flipper_format, "ValidationField", 2))

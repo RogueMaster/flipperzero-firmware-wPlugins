@@ -53,6 +53,9 @@ void ssd1306_scroll_hv(
     uint8_t v_offset);
 void ssd1306_scroll_stop(SSD1306* d);
 
+// Fade / Blink
+void ssd1306_set_fade_blink(SSD1306* d, uint8_t mode);
+
 // Drawing primitives
 void ssd1306_clear(SSD1306* d);
 void ssd1306_fill(SSD1306* d, uint8_t pattern);

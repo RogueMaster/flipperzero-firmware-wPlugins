@@ -734,7 +734,7 @@ static SubAnalyzerApp* sub_analyzer_app_alloc() {
     app->protocol_registry = &subghz_protocol_registry;
     app->receiver = subghz_receiver_alloc_init(app->environment);
     app->setting = subghz_setting_alloc();
-    subghz_setting_load(app->setting, EXT_PATH("subghz/assets/setting_user"));
+    subghz_setting_load(app->setting, EXT_PATH("subghz/assets/setting_user.txt"));
 
     view_set_previous_callback(submenu_get_view(app->submenu), sub_analyzer_exit_callback);
     view_set_previous_callback(popup_get_view(app->popup), sub_analyzer_exit_to_submenu_callback);
