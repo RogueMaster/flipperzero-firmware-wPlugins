@@ -97,7 +97,7 @@ bool Game::setup(const GameConfig& config) {
     gameOverPending = false;
     loadedTile = -1;
     screen.fb = &fb;
-    renderer.zcolour = fb.px; // scene rasterises straight into the shared framebuffer
+    renderer.zbuf = fb.px; // one shared buffer: depth in bits 1-7, colour in bit 0
 
     world.updateWindow(playerX / BLOCKSIZE, playerZ / BLOCKSIZE, true);
     auto surfaceYAt = [&](int bx, int bz) {
@@ -509,13 +509,32 @@ void Game::handleBreakAndPlace(const Input& in) {
         }
         if(id == BLOCK_FURNACE || id == BLOCK_CHEST) {
             int bi = findBlockEntity(bx, by, bz);
-            if(bi >= 0) {
-                openTileStorage(bi);
-                loadedTile = bi;
-                screenId = tiles[bi].isChest ? SCR_CHEST : SCR_FURNACE;
-                cursor = 0;
-                selSlot = -1;
+            if(bi < 0) { // block without a directory entry (storage table was full): adopt it
+                BlockEnt b;
+                b.active = true;
+                b.isChest = (id == BLOCK_CHEST);
+                b.bx = bx;
+                b.by = by;
+                b.bz = bz;
+                b.dir = (hit.pz < bz) ? 2 :
+                        (hit.pz > bz) ? 3 :
+                        (hit.px < bx) ? 0 :
+                        (hit.px > bx) ? 1 :
+                                        (pl.rot & 0x0F);
+                b.storage = allocStorage();
+                if(b.storage >= 0) {
+                    uint8_t sb[STORAGE_SLOT_SIZE];
+                    packStorage(b, sb);
+                    world.writeStorageSlot(b.storage, sb);
+                }
+                tiles.push_back(b);
+                bi = (int)tiles.size() - 1;
             }
+            openTileStorage(bi);
+            loadedTile = bi;
+            screenId = tiles[bi].isChest ? SCR_CHEST : SCR_FURNACE;
+            cursor = 0;
+            selSlot = -1;
             return;
         }
         ItemCell& cell = pl.inventory[pl.invSlot];
@@ -1014,7 +1033,7 @@ void Game::finishRender() {
                 (float)m.y,
                 (float)(m.z + 7),
                 m.species,
-                (uint8_t)((MOB_YAW_FACE >> ((m.yaw & 15) * 2)) & 3),
+                (uint8_t)(m.yaw & 15),
                 (uint8_t)((m.hurt & 1) << 1),
                 (uint8_t)sc16);
         }
@@ -1050,10 +1069,10 @@ void Game::worldFrame(const Input& in) {
         (playerX + PLAYERHALFWIDTH) / BLOCKSIZE, (playerZ + PLAYERHALFWIDTH) / BLOCKSIZE);
 }
 
-std::vector<Game::Slot> Game::buildSlots(ScreenId s) {
-    std::vector<Slot> v;
+Game::SlotList Game::buildSlots(ScreenId s) {
+    SlotList v;
     auto add = [&](ItemCell* c, int gx, int gy, int sx, int sy, bool grid, bool out) {
-        v.push_back({c, gx, gy, sx, sy, grid, out});
+        if(v.n < SlotList::MAX) v.s[v.n++] = {c, gx, gy, sx, sy, grid, out};
     };
 
     for(int r = 0; r < 3; r++)

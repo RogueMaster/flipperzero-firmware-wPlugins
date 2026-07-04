@@ -37,7 +37,14 @@ enum : uint8_t {
     COALORE = 8,
     IRONORE = 9,
     SAND = 10,
+    TABLE = 13,
+    FURNACE = 14,
+    CHEST = 15, // engine Block ids (flipcraft.h)
 };
+
+// v3 tile-entity region layout, must match world.cpp/game.cpp packStorage()
+constexpr uint32_t INV_REGION = 32, PAD_V2 = 4096;
+constexpr int SLOT_CAP = 256, SLOT_SIZE = 32;
 
 // Random-access sink: tiles are generated depth-first, so chunk payloads are
 // written at explicit file offsets.
@@ -355,7 +362,7 @@ static bool houseFits(int x, int z) {
     return true;
 }
 
-static void placeFeatures() {
+static void placeFeatures(bool allowHouse) {
     int w = g_tileW;
     int n;
 
@@ -372,11 +379,14 @@ static void placeFeatures() {
     n = collectCellMaxima(8, 3, w - 4, -1e29f, clearGroundEligible, pileScore);
     g_pileCount = greedyPlace(n, 6, 196, nullptr, g_piles);
 
-    n = collectCellMaxima(8, 5, w - 9, -1e29f, houseEligible, houseScore);
-    g_houseCount = greedyPlace(n, 3, 625, houseFits, g_houses);
-    for(int i = 0; i < g_houseCount; i++)
-        g_houses[i].aux =
-            (uint8_t)topAt(g_tileX0 + g_houses[i].x + 2, g_tileZ0 + g_houses[i].z + 2);
+    g_houseCount = 0;
+    if(allowHouse) { // the world gets a single house (see generate)
+        n = collectCellMaxima(8, 5, w - 9, -1e29f, houseEligible, houseScore);
+        g_houseCount = greedyPlace(n, 1, 625, houseFits, g_houses);
+        if(g_houseCount)
+            g_houses[0].aux =
+                (uint8_t)topAt(g_tileX0 + g_houses[0].x + 2, g_tileZ0 + g_houses[0].z + 2);
+    }
 }
 
 // Clipped block write into the chunk buffer. `allow` is a bitmask of block ids
@@ -478,6 +488,9 @@ static void stampHouse(uint8_t* ch, int bx0, int bz0, int x, int z, int floorY) 
         }
     chSet(ch, bx0, bz0, x + 2, floorY + 1, z, AIR, ALLOW_ANY); // doorway
     chSet(ch, bx0, bz0, x + 2, floorY + 2, z, AIR, ALLOW_ANY);
+    chSet(ch, bx0, bz0, x + 1, floorY + 1, z + 3, TABLE, ALLOW_ANY);
+    chSet(ch, bx0, bz0, x + 2, floorY + 1, z + 3, FURNACE, ALLOW_ANY);
+    chSet(ch, bx0, bz0, x + 3, floorY + 1, z + 3, CHEST, ALLOW_ANY);
 }
 
 static bool bboxHitsChunk(int bx0, int bz0, int x0, int z0, int x1, int z1) {
@@ -508,6 +521,29 @@ static void stampFeatures(uint8_t* ch, int bx0, int bz0) {
     }
 }
 
+// Furnace + chest tile-entity slots for one house, both facing the doorway
+// (dir 2 = -Z face); the chest holds one seed-random item.
+static bool writeHouseSlots(const Writer& out, uint32_t slot0, int& used, int hx, int hz, int by) {
+    uint8_t s[2][SLOT_SIZE];
+    memset(s, 0, sizeof(s));
+    for(int c = 0; c < 2; c++) { // 0 furnace, 1 chest
+        int bx = hx + 2 + c, bz = hz + 3;
+        uint8_t* b = s[c];
+        b[0] = (uint8_t)(0x01 | (c << 1)); // in-use | isChest
+        b[1] = (uint8_t)(2 | (((bx >> 8) & 3) << 4) | (((bz >> 8) & 3) << 6));
+        b[2] = (uint8_t)bx;
+        b[3] = (uint8_t)by;
+        b[4] = (uint8_t)bz;
+    }
+    // apple coal ingot gunpowder dynamite glass stick sapling (flipcraft.h Item)
+    static const uint8_t kLoot[8] = {0xE0, 0x80, 0xD0, 0xB1, 0x01, 0xB0, 0x10, 0xC0};
+    s[1][6] = kLoot[whash(hx, hz, 100) & 7];
+    s[1][7] = 1;
+    if(!out.writeAt(out.ctx, slot0 + (uint32_t)used * SLOT_SIZE, s, sizeof(s))) return false;
+    used += 2;
+    return true;
+}
+
 static void putU16(uint8_t* p, uint16_t v) {
     p[0] = (uint8_t)v;
     p[1] = (uint8_t)(v >> 8);
@@ -531,7 +567,7 @@ static bool generate(int chunks, uint32_t seed, Writer out, Progress progress, v
     uint8_t hdr[HEADER_SIZE];
     memset(hdr, 0, sizeof(hdr));
     putU32(hdr + 0, 0x31574346); // 'FCW1'
-    putU16(hdr + 4, 1); // version 1, the engine upgrades on open
+    putU16(hdr + 4, 3); // v3: the tile-entity region is written below
     putU16(hdr + 6, (uint16_t)chunks);
     putU16(hdr + 8, (uint16_t)chunks);
     hdr[10] = CHUNK;
@@ -548,10 +584,43 @@ static bool generate(int chunks, uint32_t seed, Writer out, Progress progress, v
     putU32(hdr + 32, seed);
     if(!out.writeAt(out.ctx, 0, hdr, sizeof(hdr))) return false;
 
+    // Zero the whole tile-entity region so unwritten slots read as free.
+    const uint32_t invBase = HEADER_SIZE + (uint32_t)chunks * (uint32_t)chunks * CHUNK_BYTES;
+    const uint32_t slot0 = invBase + INV_REGION + PAD_V2;
+    {
+        uint8_t zero[256];
+        memset(zero, 0, sizeof(zero));
+        uint32_t end = slot0 + (uint32_t)SLOT_CAP * SLOT_SIZE;
+        for(uint32_t off = invBase; off < end; off += sizeof(zero)) {
+            uint32_t n = end - off;
+            if(n > sizeof(zero)) n = sizeof(zero);
+            if(!out.writeAt(out.ctx, off, zero, n)) return false;
+        }
+    }
+    int slotsUsed = 0;
+
     const int tiles = (chunks + TILE_CHUNKS - 1) / TILE_CHUNKS;
     const int tileChunks = chunks < TILE_CHUNKS ? chunks : TILE_CHUNKS;
     uint8_t chunk[CHUNK_BYTES];
     int tileIdx = 0, tileTotal = tiles * tiles;
+
+    // The world's single house goes to the tile holding the global maximum of
+    // the house score field, biome-checked on an 8-block grid (pure functions
+    // of coords, so the pick is a seed-deterministic property of the world).
+    int houseTx = 0, houseTz = 0;
+    {
+        float best = -1e30f;
+        for(int z = 0; z + 4 < g_worldW; z += 8)
+            for(int x = 0; x + 4 < g_worldW; x += 8) {
+                if(computeColumn(x + 2, z + 2) & (COL_DESERT | COL_RAVINE)) continue;
+                float s = houseScore(x, z);
+                if(s > best) {
+                    best = s;
+                    houseTx = x / TILE_W;
+                    houseTz = z / TILE_W;
+                }
+            }
+    }
 
     for(int tz = 0; tz < tiles; tz++)
         for(int tx = 0; tx < tiles; tx++, tileIdx++) {
@@ -566,7 +635,17 @@ static bool generate(int chunks, uint32_t seed, Writer out, Progress progress, v
                 if(progress) progress(pctx, (uint8_t)((base + lz * 60 / g_tileW) / tileTotal));
             }
 
-            placeFeatures();
+            placeFeatures(tx == houseTx && tz == houseTz);
+
+            for(int i = 0; i < g_houseCount; i++)
+                if(!writeHouseSlots(
+                       out,
+                       slot0,
+                       slotsUsed,
+                       g_tileX0 + g_houses[i].x,
+                       g_tileZ0 + g_houses[i].z,
+                       g_houses[i].aux + 1))
+                    return false;
 
             for(int lcz = 0; lcz < tileChunks; lcz++) {
                 for(int lcx = 0; lcx < tileChunks; lcx++) {

@@ -47,6 +47,10 @@ struct AppState {
     FuriMutex* inputMutex = nullptr;
     ViewPort* view_port = nullptr;
 
+    uint8_t present[SCREEN_WIDTH * SCREEN_HEIGHT / 8] = {};
+    ScreenId presentScreen = SCR_PLAY;
+    const char* presentName = nullptr;
+
     uint8_t held = 0;
     uint8_t pressLatch = 0;
     uint8_t releaseLatch = 0;
@@ -63,7 +67,8 @@ struct AppState {
     bool ev_exit = false;
 };
 
-// Pack the 1-bit framebuffer into the Flipper canvas buffer: 8 vertical pixels per byte.
+// Pack the framebuffer into the Flipper canvas buffer: 8 vertical pixels per
+// byte. Only bit 0 of each source byte is colour (bits 1-7 hold z-depth).
 static void packFramebuffer(const Framebuffer& fb, uint8_t* dst) {
     for(int page = 0; page < (SCREEN_HEIGHT / 8); ++page) {
         const uint8_t* r0 = fb.px[page * 8 + 0];
@@ -77,23 +82,42 @@ static void packFramebuffer(const Framebuffer& fb, uint8_t* dst) {
         uint8_t* out = dst + page * SCREEN_WIDTH;
         for(int col = 0; col < SCREEN_WIDTH; ++col) {
             out[col] = static_cast<uint8_t>(
-                (r0[col] != 0) | ((r1[col] != 0) << 1) | ((r2[col] != 0) << 2) |
-                ((r3[col] != 0) << 3) | ((r4[col] != 0) << 4) | ((r5[col] != 0) << 5) |
-                ((r6[col] != 0) << 6) | ((r7[col] != 0) << 7));
+                (r0[col] & 1) | ((r1[col] & 1) << 1) | ((r2[col] & 1) << 2) |
+                ((r3[col] & 1) << 3) | ((r4[col] & 1) << 4) | ((r5[col] & 1) << 5) |
+                ((r6[col] & 1) << 6) | ((r7[col] & 1) << 7));
         }
     }
 }
 
+// Game thread, after a finished render: publish the packed frame and the
+// overlay snapshot. The only writer of present[]/presentScreen/presentName.
+static void presentFrame(AppState* st) {
+    Game* g = st->game;
+    const char* name = (g->screenId == SCR_PLAY && g->hudItemTicks) ?
+                           itemName(g->pl.inventory[g->pl.invSlot].type) :
+                           nullptr;
+    furi_mutex_acquire(st->mutex, FuriWaitForever);
+    packFramebuffer(g->fb, st->present);
+    st->presentScreen = g->screenId;
+    st->presentName = name; // itemName returns static strings, the pointer is stable
+    furi_mutex_release(st->mutex);
+}
+
+// GUI thread. Never touches the Game object: copies the last finished frame,
+// so a redraw landing mid-tick shows the previous frame instead of the
+// cleared canvas (the old one-frame white flash). The lock is held for
+// microseconds on both sides, so waiting on it is safe here.
 static void drawCb(Canvas* canvas, void* ctx) {
     AppState* st = reinterpret_cast<AppState*>(ctx);
 
-    if(furi_mutex_acquire(st->mutex, 0) != FuriStatusOk) return;
-
-    Game* g = st->game;
+    furi_mutex_acquire(st->mutex, FuriWaitForever);
     uint8_t* buf = canvas_get_buffer(canvas);
-    if(buf) packFramebuffer(g->fb, buf);
+    if(buf) memcpy(buf, st->present, sizeof(st->present));
+    ScreenId screen = st->presentScreen;
+    const char* name = st->presentName;
+    furi_mutex_release(st->mutex);
 
-    if(g->screenId == SCR_GAMEOVER) {
+    if(screen == SCR_GAMEOVER) {
         canvas_set_color(canvas, ColorBlack);
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignBottom, "You died!");
@@ -101,21 +125,16 @@ static void drawCb(Canvas* canvas, void* ctx) {
         canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignBottom, "Press OK to respawn");
     }
 
-    if(g->screenId == SCR_PLAY && g->hudItemTicks) {
-        const char* name = itemName(g->pl.inventory[g->pl.invSlot].type);
-        if(name) {
-            canvas_set_font(canvas, FontSecondary);
-            int bw = (int)canvas_string_width(canvas, name) + 6, bh = 11;
-            int bx = 64 - bw / 2, by = 40;
-            canvas_set_color(canvas, ColorWhite);
-            canvas_draw_box(canvas, bx, by, bw, bh);
-            canvas_set_color(canvas, ColorBlack);
-            canvas_draw_frame(canvas, bx, by, bw, bh);
-            canvas_draw_str_aligned(canvas, 64, by + bh - 2, AlignCenter, AlignBottom, name);
-        }
+    if(name) {
+        canvas_set_font(canvas, FontSecondary);
+        int bw = (int)canvas_string_width(canvas, name) + 6, bh = 11;
+        int bx = 64 - bw / 2, by = 40;
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_box(canvas, bx, by, bw, bh);
+        canvas_set_color(canvas, ColorBlack);
+        canvas_draw_frame(canvas, bx, by, bw, bh);
+        canvas_draw_str_aligned(canvas, 64, by + bh - 2, AlignCenter, AlignBottom, name);
     }
-
-    furi_mutex_release(st->mutex);
 }
 
 static int keyIndex(InputKey key) {
@@ -314,15 +333,16 @@ static void runGame(Game& game, Gui* gui, const char* path) {
         return;
     }
 
+    // First frame is presented before the viewport exists, so drawCb always
+    // has a finished frame to copy.
+    game.simulate(Input{});
+    game.render();
+    presentFrame(st);
+
     st->view_port = view_port_alloc();
     view_port_draw_callback_set(st->view_port, drawCb, st);
     view_port_input_callback_set(st->view_port, inputCb, st);
     gui_add_view_port(gui, st->view_port, GuiLayerFullscreen);
-
-    furi_mutex_acquire(st->mutex, FuriWaitForever);
-    game.simulate(Input{});
-    game.render();
-    furi_mutex_release(st->mutex);
     view_port_update(st->view_port);
 
     const uint32_t TICK_MS = GAME_TICK_MS;
@@ -340,28 +360,22 @@ static void runGame(Game& game, Gui* gui, const char* path) {
         while(acc >= TICK_MS) {
             Input in = pollInput(st);
             if(st->ev_exit) break;
-            furi_mutex_acquire(st->mutex, FuriWaitForever);
             game.simulate(in);
-            furi_mutex_release(st->mutex);
             acc -= TICK_MS;
             stepped = true;
         }
         if(st->ev_exit) break;
 
-        if(stepped) {
-            furi_mutex_acquire(st->mutex, FuriWaitForever);
-            bool present = game.render();
-            furi_mutex_release(st->mutex);
-            if(present) view_port_update(st->view_port);
+        if(stepped && game.render()) {
+            presentFrame(st);
+            view_port_update(st->view_port);
         }
 
         uint32_t ahead = (acc < TICK_MS) ? (TICK_MS - acc) : 1;
         delayMs(ahead);
     }
 
-    furi_mutex_acquire(st->mutex, FuriWaitForever);
-    game.shutdown();
-    furi_mutex_release(st->mutex);
+    game.shutdown(); // drawCb only reads the present buffer, no lock needed
 
     view_port_enabled_set(st->view_port, false);
     gui_remove_view_port(gui, st->view_port);

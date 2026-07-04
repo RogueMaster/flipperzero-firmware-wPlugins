@@ -62,6 +62,10 @@ struct Mob {
     uint8_t cool = 0; // touch-attack cooldown / exploder fuse
     uint8_t target = 0xFF; // chase/flee subject: 0xFF player, else mob index
     uint8_t tamed = 0; // guards the player, never bites him
+    uint8_t sated = 0; // full: skips food prey, exploders still hunted
+    uint8_t alt = 0; // flyer: wanted hover height above ground, sub-px
+    uint8_t seek = 0; // ticks until the chase goal may be re-aimed
+    int16_t gx = 0, gz = 0; // chase/flee goal point, sub-pixels
     int x = 0, y = 0, z = 0; // world sub-pixels, min corner (body is MOBWIDTH wide)
     int vy = 0;
 };
@@ -154,7 +158,23 @@ private:
         bool grid;
         bool output;
     };
-    std::vector<Slot> buildSlots(ScreenId s);
+    // The GUI never shows more than 25 slots (15 inventory + 9 craft grid + 1
+    // output); a fixed list on the caller's stack avoids per-frame heap churn.
+    struct SlotList {
+        static constexpr int MAX = 25;
+        Slot s[MAX];
+        int n = 0;
+        size_t size() const {
+            return (size_t)n;
+        }
+        bool empty() const {
+            return n == 0;
+        }
+        Slot& operator[](size_t i) {
+            return s[i];
+        }
+    };
+    SlotList buildSlots(ScreenId s);
     void guiFrame(const Input& in);
     void drawGui();
     void tryCraft();
