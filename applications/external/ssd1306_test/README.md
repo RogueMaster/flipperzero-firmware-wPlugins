@@ -51,7 +51,7 @@ Connect the SSD1306 OLED to the Flipper Zero GPIO header:
 | SCL      | C0              | Pin 16      |
 | SDA      | C1              | Pin 15      |
 
-> **Note:** Use the 3.3V pin, not 5V. The Flipper Zero GPIO is 3.3V logic. Most SSD1306 modules work fine at 3.3V. If your module requires 5V for its power rail, you may use the 5V pin (pin 1) for VCC only, but the I2C data lines (SCL/SDA) must remain 3.3V-tolerant.
+**Note:** Use the 3.3V pin, not 5V. The Flipper Zero GPIO is 3.3V logic. Most SSD1306 modules work fine at 3.3V. If your module requires 5V for its power rail, you may use the 5V pin (pin 1) for VCC only, but the I2C data lines (SCL/SDA) must remain 3.3V-tolerant.
 
 ## Building
 

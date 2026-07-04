@@ -230,11 +230,19 @@ void ssd1306_set_charge_pump(SSD1306* d, bool enable) {
 // Scrolling
 
 void ssd1306_scroll_h(SSD1306* d, bool left, uint8_t start_page, uint8_t end_page, uint8_t speed) {
-    ssd1306_cmd(d, 0x2E); // stop any active scroll
-    uint8_t buf[8] = {
-        0x00, (uint8_t)(left ? 0x27 : 0x26), 0x00, start_page, speed, end_page, 0x00, 0xFF};
-    i2c_send(d, buf, 8);
-    ssd1306_cmd(d, 0x2F); // activate
+    ssd1306_cmd(d, 0x2E); // deactivate scroll
+    uint8_t freq = (speed & 0x07) | 0x08; // bit3=1 per command table
+    uint8_t buf[9] = {
+        0x00,
+        (uint8_t)(left ? 0x27 : 0x26),
+        0x00,
+        start_page & 0x07,
+        freq,
+        end_page & 0x07,
+        0x00,
+        0xFF,
+        0x2F}; // activate in same transaction
+    i2c_send(d, buf, 9);
 }
 
 void ssd1306_scroll_hv(
@@ -244,17 +252,45 @@ void ssd1306_scroll_hv(
     uint8_t end_page,
     uint8_t speed,
     uint8_t v_offset) {
-    ssd1306_cmd(d, 0x2E);
-    // set vertical scroll area: 0 fixed top rows, 64 scroll rows
-    cmd3(d, 0xA3, 0x00, 0x40);
-    uint8_t buf[7] = {
-        0x00, (uint8_t)(left ? 0x2A : 0x29), 0x00, start_page, speed, end_page, v_offset};
-    i2c_send(d, buf, 7);
-    ssd1306_cmd(d, 0x2F);
+    ssd1306_cmd(d, 0x2E); // deactivate scroll
+
+    // Set vertical scroll area: top fixed=0, scroll=64 rows (POR default)
+    cmd3(d, 0xA3, 0x00, SSD1306_HEIGHT);
+
+    // Send 0x29/0x2A setup + 0x2F activate in one consecutive sequence
+    // per Figure 10-10 in the datasheet
+    uint8_t freq = speed & 0x07;
+    uint8_t buf[8] = {
+        0x00, // I2C control: command mode
+        (uint8_t)(left ? 0x2A : 0x29), // 0x29=V+H right, 0x2A=V+H left
+        0x00, // dummy
+        start_page & 0x07, // start page
+        freq, // interval (bit3=0)
+        end_page & 0x07, // end page
+        v_offset & 0x3F, // vertical offset
+        0x2F // activate scroll (same transaction)
+    };
+    i2c_send(d, buf, 8);
 }
 
 void ssd1306_scroll_stop(SSD1306* d) {
     ssd1306_cmd(d, 0x2E);
+}
+
+// Fade / Blink (command 0x23)
+// mode: 0=off, 1=fade slow, 2=fade fast, 3=blink slow, 4=blink fast
+// Byte format: bits[7:6]=mode(2=fade,3=blink), bits[5:4]=interval, bits[3:0]=step
+void ssd1306_set_fade_blink(SSD1306* d, uint8_t mode) {
+    static const uint8_t fade_bytes[] = {
+        0x00, // off
+        0xB4, // fade out: interval=3(64f), step=4
+        0x92, // fade out: interval=1(16f), step=2
+        0xF4, // blink:    interval=3(64f), step=4
+        0xC2, // blink:    interval=0(8f),  step=2
+    };
+    if(mode < 5) {
+        ssd1306_cmd2(d, 0x23, fade_bytes[mode]);
+    }
 }
 
 // Drawing
