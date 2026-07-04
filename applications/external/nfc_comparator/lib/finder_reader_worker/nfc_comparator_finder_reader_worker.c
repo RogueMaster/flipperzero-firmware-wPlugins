@@ -59,7 +59,9 @@ static int32_t nfc_comparator_finder_reader_worker_task(void* context) {
          nfc_comparator_finder_searcher_worker_start(worker->searcher_worker);
 
          while(worker->state == NfcComparatorFinderReaderWorkerState_Finding) {
-            if(worker->searcher_worker->state == NfcComparatorFinderSearcherWorkerState_Stopped) {
+            if(worker->searcher_worker && worker->searcher_worker->state == NfcComparatorFinderSearcherWorkerState_Stopped) {
+               break;
+            } else if (!worker->searcher_worker) {
                break;
             }
             furi_delay_ms(100);

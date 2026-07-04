@@ -38,6 +38,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Show a loading screen while a large CUID dictionary loads on Read - animated spinner + CUID dictionary is loading label instead of a blank/frozen-looking screen while a per-UID (MFKey-recovered) dictionary is scanned (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1022)
 - Updated: [Flipcraft v2.4 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - Updated: [SSD1306 Test v1.1 (By martinbogo)](https://github.com/martinbogo/ssd1306_test) `Req: SSD1306`
+- Updated: [NFC Comparator v2.6 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
 
 <a name="release"></a>
 
