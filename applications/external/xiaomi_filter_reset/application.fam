@@ -1,0 +1,21 @@
+# Flipper Application manifest.
+# See documentation/AppManifests.md in the firmware repo for all options.
+
+App(
+    appid="xiaomi_filter_reset",
+    name="Xiaomi Filter Reset",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="xiaomi_filter_reset_app",
+    stack_size=4 * 1024,
+    fap_category="NFC",
+    fap_icon="icons/xiaomi_filter_reset.png",  # 10x10 1-bit PNG
+    fap_version="1.0",
+    fap_description="Reset or check the filter-life counter on Xiaomi air purifier NFC filters.",
+    fap_author="khmm12",
+    fap_weburl="https://github.com/khmm12/flipper-xiaomi-filter-reset",
+    sources=[
+        "xiaomi_filter_reset.c",
+        "scenes/*.c",
+        "src/**/*.c",
+    ],
+)

@@ -1,0 +1,20 @@
+# Static analysis for the pure, host-compilable core (src/core).
+# The Flipper app sources are additionally linted by the compiler through
+# `ufbt` (the firmware build enables -Wall -Werror and friends).
+Checks: >
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  misc-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  -readability-math-missing-parentheses,
+  -readability-function-cognitive-complexity,
+  -misc-include-cleaner,
+  -bugprone-easily-swappable-parameters
+WarningsAsErrors: ''
+HeaderFilterRegex: 'src/core/.*\.h$'
+FormatStyle: file

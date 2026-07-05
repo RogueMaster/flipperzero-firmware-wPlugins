@@ -1,0 +1,23 @@
+# Flipper / ufbt build output
+dist/
+build/
+*.fap
+*.elf
+.ufbt/
+
+# ufbt-generated editor helpers (regenerated on build)
+.vscode/
+.clangd
+compile_commands.json
+
+# Host test build artifacts
+test/build/
+*.o
+*.dSYM/
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Local environment
+.env

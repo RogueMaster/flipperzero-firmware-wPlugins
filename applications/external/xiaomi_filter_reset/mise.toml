@@ -1,0 +1,7 @@
+# Project toolchain, managed by mise (https://mise.jdx.dev/).
+#
+# Provisions ufbt (the micro Flipper Build Tool) via the pipx backend. When uv is
+# installed mise uses uvx, so the isolated install is fast. After `mise install`
+# the `ufbt` command is on PATH inside the project.
+[tools]
+"pipx:ufbt" = "latest"
