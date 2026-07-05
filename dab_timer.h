@@ -13,7 +13,7 @@
 #include <notification/notification_messages.h>
 
 #if __has_include(<cfw/cfw.h>)
-#include "applications/settings/desktop_settings/desktop_settings_app.h"
+#include <cfw/cfw.h>
 #endif
 
 #define DAB_TIMER_ISO_DATE_FORMAT "%.4d-%.2d-%.2d"
@@ -69,9 +69,6 @@ typedef enum {
 typedef struct {
     FuriMutex* mutex;
     FuriMessageQueue* event_queue;
-#if __has_include(<cfw/cfw.h>)
-    DesktopSettings* desktop_settings;
-#endif
     LocaleDateFormat date_format;
     LocaleTimeFormat time_format;
     // ViewDispatcher* view_dispatcher;
