@@ -1,0 +1,12 @@
+dist/*
+.vscode
+.clang-format
+.clangd
+.editorconfig
+.env
+.ufbt
+
+private
+build
+.DS_Store
+*.log

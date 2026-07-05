@@ -8,21 +8,23 @@
             <td style="border:none; padding:10px;">
                 <img src="screenshots/1.png" alt="Main Menu - Operations" style="width:100%;">
                 <br>
-                <em>Menu główne z operacjami (Odczyt, Zapis, Kasowanie)</em>
+                <em>Splashscreen</em>
             </td>
             <td style="border:none; padding:10px;">
                 <img src="screenshots/2.png" alt="Configuration Menu" style="width:100%;">
                 <br>
-                <em>Menu konfiguracji (Adres I2C, Rozmiar pamięci)</em>
+                <em>Main menu</em>
             </td>
             <td style="border:none; padding:10px;">
                 <img src="screenshots/3.png" alt="Data Display - EEPROM Contents" style="width:100%;">
                 <br>
-                <em>Wyświetlanie zawartości EEPROM (Dane heksadecymalne)</em>
+                <em>Displaying EEPROM Contents (Hex Data)</em>
             </td>
         </tr>
     </table>
 </div>
+
+[![FAP : Build and lint](https://github.com/kamylwnb/24cxxprog/actions/workflows/build.yml/badge.svg)](https://github.com/kamylwnb/24cxxprog/actions/workflows/build.yml)
 
 ---
 
@@ -74,104 +76,34 @@ Built for reliability on the Flipper Zero platform:
 
 Comprehensive support for the entire 24Cxx family:
 
-<table style="width:100%; border:1px solid #ddd; border-collapse: collapse; text-align: left;">
-    <thead style="background-color: #f8f8f8;">
-        <tr>
-            <th style="padding: 8px; border:1px solid #ddd;">Chip Model</th>
-            <th style="padding: 8px; border:1px solid #ddd;">Memory Size</th>
-            <th style="padding: 8px; border:1px solid #ddd;">Page Size</th>
-            <th style="padding: 8px; border:1px solid #ddd;">Address Range</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td style="padding: 8px; border:1px solid #ddd;"><strong>24C01</strong></td>
-            <td style="padding: 8px; border:1px solid #ddd;">128 Bytes</td>
-            <td style="padding: 8px; border:1px solid #ddd;">8 Bytes</td>
-            <td style="padding: 8px; border:1px solid #ddd;">0x00 - 0x7F</td>
-        </tr>
-        <tr>
-            <td style="padding: 8px; border:1px solid #ddd;"><strong>24C02</strong></td>
-            <td style="padding: 8px; border:1px solid #ddd;">256 Bytes</td>
-            <td style="padding: 8px; border:1px solid #ddd;">8 Bytes</td>
-            <td style="padding: 8px; border:1px solid #ddd;">0x00 - 0xFF</td>
-        </tr>
-        <tr>
-            <td style="padding: 8px; border:1px solid #ddd;"><strong>24C04 - 24C16</strong></td>
-            <td style="padding: 8px; border:1px solid #ddd;">512B - 2KB</td>
-            <td style="padding: 8px; border:1px solid #ddd;">16 Bytes</td>
-            <td style="padding: 8px; border:1px solid #ddd;">0x00 - 0xFFFF</td>
-        </tr>
-        <tr>
-            <td style="padding: 8px; border:1px solid #ddd;"><strong>24C32 - 24C64</strong></td>
-            <td style="padding: 8px; border:1px solid #ddd;">4KB - 8KB</td>
-            <td style="padding: 8px; border:1px solid #ddd;">32 Bytes</td>
-            <td style="padding: 8px; border:1px solid #ddd;">0x0000 - 0x1FFF</td>
-        </tr>
-        <tr>
-            <td style="padding: 8px; border:1px solid #ddd;"><strong>24C128 - 24C512</strong></td>
-            <td style="padding: 8px; border:1px solid #ddd;">16KB - 64KB</td>
-            <td style="padding: 8px; border:1px solid #ddd;">64 Bytes</td>
-            <td style="padding: 8px; border:1px solid #ddd;">0x0000 - 0xFFFF</td>
-        </tr>
-    </tbody>
-</table>
+| Chip Model          | Memory Size | Page Size | Address Range   |
+|---------------------|-------------|-----------|-----------------|
+| **24C01**           | 128 Bytes   | 8 Bytes   | 0x00 - 0x7F     |
+| **24C02**           | 256 Bytes   | 8 Bytes   | 0x00 - 0xFF     |
+| **24C04 - 24C16**   | 512B - 2KB  | 16 Bytes  | 0x00 - 0xFFFF   |
+| **24C32 - 24C64**   | 4KB - 8KB   | 32 Bytes  | 0x0000 - 0x1FFF |
+| **24C128 - 24C512** | 16KB - 64KB | 64 Bytes  | 0x0000 - 0xFFFF |
 
 ---
 
 ## 🕹️ Navigation Guide
 
-<table style="width:100%; border:1px solid #ddd; border-collapse: collapse; text-align: left;">
-    <thead style="background-color: #f8f8f8;">
-        <tr>
-            <th style="padding: 8px; border:1px solid #ddd;">Screen</th>
-            <th style="padding: 8px; border:1px solid #ddd;">D-Pad Up/Down</th>
-            <th style="padding: 8px; border:1px solid #ddd;">D-Pad Left/Right</th>
-            <th style="padding: 8px; border:1px solid #ddd;">OK Button</th>
-            <th style="padding: 8px; border:1px solid #ddd;">Back Button</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td style="padding: 8px; border:1px solid #ddd;"><strong>Main Menu</strong></td>
-            <td style="padding: 8px; border:1px solid #ddd;">Browse operations (Read, Write, Erase, Dump, Restore)</td>
-            <td style="padding: 8px; border:1px solid #ddd;">-</td>
-            <td style="padding: 8px; border:1px solid #ddd;">Select operation</td>
-            <td style="padding: 8px; border:1px solid #ddd;"><strong>Exit</strong> application</td>
-        </tr>
-        <tr>
-            <td style="padding: 8px; border:1px solid #ddd;"><strong>Read/Write</strong></td>
-            <td style="padding: 8px; border:1px solid #ddd;">Navigate through addresses</td>
-            <td style="padding: 8px; border:1px solid #ddd;">Adjust byte values (Write mode)</td>
-            <td style="padding: 8px; border:1px solid #ddd;">Confirm operation</td>
-            <td style="padding: 8px; border:1px solid #ddd;">Return to Main Menu</td>
-        </tr>
-        <tr>
-            <td style="padding: 8px; border:1px solid #ddd;"><strong>Configuration</strong></td>
-            <td style="padding: 8px; border:1px solid #ddd;">Navigate between settings</td>
-            <td style="padding: 8px; border:1px solid #ddd;">Adjust parameter values</td>
-            <td style="padding: 8px; border:1px solid #ddd;">Apply settings</td>
-            <td style="padding: 8px; border:1px solid #ddd;">Cancel and return</td>
-        </tr>
-        <tr>
-            <td style="padding: 8px; border:1px solid #ddd;"><strong>Data View</strong></td>
-            <td style="padding: 8px; border:1px solid #ddd;">Scroll data up/down</td>
-            <td style="padding: 8px; border:1px solid #ddd;">Jump to address</td>
-            <td style="padding: 8px; border:1px solid #ddd;">Show hex/ASCII toggle</td>
-            <td style="padding: 8px; border:1px solid #ddd;">Exit data view</td>
-        </tr>
-    </tbody>
-</table>
+| Screen            | D-Pad Up/Down                                         | D-Pad Left/Right                | OK Button             | Back Button          |
+|-------------------|-------------------------------------------------------|---------------------------------|-----------------------|----------------------|
+| **Main Menu**     | Browse operations (Read, Write, Erase, Dump, Restore) | -                               | Select operation      | **Exit** application |
+| **Read/Write**    | Navigate through addresses                            | Adjust byte values (Write mode) | Confirm operation     | Return to Main Menu  |
+| **Configuration** | Navigate between settings                             | Adjust parameter values         | Apply settings        | Cancel and return    |
+| **Data View**     | Scroll data up/down                                   | Jump to address                 | Show hex/ASCII toggle | Exit data view       |
 
 ## 🔌 Hardware Connections
 
 Standard I2C pinout for Flipper Zero GPIO:
 
-```
+```txt
 24Cxx EEPROM Module      Flipper Zero GPIO
 ─────────────────        ─────────────────
-SDA (Pin 5)       ───→   GPIO_SDA (Pin 16)
-SCL (Pin 6)       ───→   GPIO_SCL (Pin 15)
+SDA (Pin 5)       ───→   GPIO_SDA (Pin 15)
+SCL (Pin 6)       ───→   GPIO_SCL (Pin 16)
 GND (Pin 4)       ───→   GND (Pin 8)
 VCC (Pin 8)       ───→   3.3V (Pin 9)
 
@@ -181,29 +113,34 @@ Optional Pull-ups: 4.7kΩ from SDA and SCL to 3.3V
 ## 📋 Operation Details
 
 ### Read
-- Displays EEPROM contents in hexadecimal format
-- Shows address, data bytes, and ASCII representation
-- Scrollable for chips larger than display capacity
+
+* Displays EEPROM contents in hexadecimal format
+* Shows address, data bytes, and ASCII representation
+* Scrollable for chips larger than display capacity
 
 ### Write
-- Enter target address and data values
-- Supports single byte or page programming
-- Automatic write cycle delay handling
+
+* Enter target address and data values
+* Supports single byte or page programming
+* Automatic write cycle delay handling
 
 ### Erase
-- Clear individual bytes to 0xFF
-- Erase entire pages
-- Full chip erase with confirmation
+
+* Clear individual bytes to 0xFF
+* Erase entire pages
+* Full chip erase with confirmation
 
 ### Dump
-- Export EEPROM to **`/ext/apps_data/24cxxprog/`** directory
-- Creates timestamped backup files
-- Preserves complete memory state
+
+* Export EEPROM to **`/ext/apps_data/24cxxprog/`** directory
+* Creates timestamped backup files
+* Preserves complete memory state
 
 ### Restore
-- Load previously dumped EEPROM data
-- Verify before writing
-- Restore to specified starting address
+
+* Load previously dumped EEPROM data
+* Verify before writing
+* Restore to specified starting address
 
 ---
 

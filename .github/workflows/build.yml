@@ -1,0 +1,26 @@
+name: "FAP: Build and lint"
+on: [push, pull_request]
+jobs:
+  ufbt-build-action:
+    runs-on: ubuntu-latest
+    name: 'ufbt: Build and lint'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      # ── BUILD (runs when commit message contains [build]) ──────────────────
+      - name: Build with ufbt
+        if: contains(github.event.head_commit.message, '[build]')
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        id: build-app
+        with:
+          sdk-channel: release
+      - name: Upload app artifacts
+        if: contains(github.event.head_commit.message, '[build]')
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}
+          path: ${{ steps.build-app.outputs.fap-artifacts }}
+      - name: Lint sources
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        with:
+          task: lint
