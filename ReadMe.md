@@ -52,7 +52,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [GameBoy Emu v1.0 (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF/tree/0d598b854c868067bf39111ae14bc8c2e195c26c/applications/system/FlipperGB)
 - Updated: [Dab Timer v2.2 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer)
 - Updated: [24Cxx Programmer v2.1 (By kamylwnb)](https://github.com/kamylwnb/24cxxprog)
-- Updated Lock Screen Image
+- Updated Lock Screen Image + SD Card Assets Updated With New Pack Info (By RogueMaster)
 
 <a name="release"></a>
 
