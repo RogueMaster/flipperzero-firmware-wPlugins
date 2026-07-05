@@ -46,6 +46,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Flipper Share v1.4 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share)
 - Added: [FlipGB v1.0 (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF/tree/0d598b854c868067bf39111ae14bc8c2e195c26c/applications/system/FlipperGB) (No Promises For Performance on Flipper)
 - Updated: [Flipcraft v4.2 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
+- Added: [Xiaomi Filter Reset v1.0 (By khmm12)](https://github.com/khmm12/flipper-xiaomi-filter-reset)
 
 <a name="release"></a>
 
@@ -838,6 +839,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [wM-Buster v1.1.1 (By i12bp8)](https://github.com/i12bp8/wmbuster)
 - [WS2812B LED Tester v1.9 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio/ws2812b_tester)
 - [XBox360 USB Game Controller v0.2 (By expected-ingot)](https://github.com/expected-ingot/flipper-xinput)
+- [Xiaomi Filter Reset v1.0 (By khmm12)](https://github.com/khmm12/flipper-xiaomi-filter-reset)
 - [XRemote v1.4 (By kala13x)](https://github.com/kala13x/flipper-xremote)
 - [YuriCable Pro Max v0.4 (By arag0re)](https://github.com/arag0re/fz-yuricable-pro-max)
 - [ZeroFIDO v0.7 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido)
