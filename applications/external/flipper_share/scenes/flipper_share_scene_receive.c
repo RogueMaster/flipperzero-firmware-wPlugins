@@ -27,6 +27,7 @@ static void dialog_ex_callback(DialogExResult result, void* context);
 
 static FileReadingState* file_state_alloc() {
     FileReadingState* state = malloc(sizeof(FileReadingState));
+    if(!state) return NULL;
     state->counter = 0;
     state->reading_complete = false;
     state->worker_thread = NULL;
@@ -58,10 +59,16 @@ static int32_t file_read_worker_thread(void* context) {
         fs_idle();
         furi_delay_ms(FS_IDLE_OPERATION);
 
-        // "r_file_path=%s", g.r_file_path);
-        state->counter = (g.r_blocks_received * 100) / g.r_blocks_needed;
+        // Snapshot progress under the lock; guard against division by zero
+        // (r_blocks_needed == 0 before the first ANNOUNCE is handled).
+        fs_lock();
+        uint32_t received = g.r_blocks_received;
+        uint32_t needed = g.r_blocks_needed;
+        bool finished = g.r_is_finished;
+        fs_unlock();
 
-        if(g.r_is_finished) {
+        state->counter = needed ? (received * 100) / needed : 0;
+        if(finished) {
             state->reading_complete = true;
         }
 
@@ -85,7 +92,26 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     uint8_t* model = (uint8_t*)context;
     uint8_t percent = model ? *model : 0;
 
-    FURI_LOG_I(TAG, "Progress view draw: percent=%u", (unsigned int)percent);
+    // Snapshot shared state under the lock (the RX thread mutates r_file_* and
+    // fs_parts concurrently). Skip on contention rather than block the renderer.
+    char fname[FS_FILENAME_LENGTH];
+    uint32_t fsize = 0;
+    uint32_t rcv = 0, need = 0, start = 0, last_progress = 0;
+    uint8_t levels[FS_PARTS_COUNT];
+    if(fs_try_lock_ms(10)) {
+        memcpy(fname, g.r_file_name, sizeof(fname));
+        fname[sizeof(fname) - 1] = '\0';
+        fsize = g.r_file_size;
+        rcv = g.r_blocks_received;
+        need = g.r_blocks_needed;
+        start = g.r_start_ms;
+        last_progress = g.r_last_progress_ms;
+        fs_parts_levels_copy(levels);
+        fs_unlock();
+    } else {
+        fname[0] = '\0';
+        memset(levels, 0, sizeof(levels));
+    }
 
     canvas_clear(canvas);
 
@@ -94,21 +120,50 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     canvas_set_color(canvas, ColorBlack);
     elements_multiline_text_aligned(canvas, 64, 4, AlignCenter, AlignTop, "Receiving...");
 
-    // Filename (basename) g.r_file_name and g.r_file_size
+    // Filename on its own line (as-is; long names may overflow — accepted).
     canvas_set_font(canvas, FontSecondary);
-    char name_line[64];
-    snprintf(
-        name_line,
-        sizeof(name_line),
-        "%.*s, %lu KB",
-        48,
-        g.r_file_name,
-        (unsigned long)(g.r_file_size / 1024));
-    elements_multiline_text_aligned(canvas, 64, 20, AlignCenter, AlignTop, name_line);
+    elements_multiline_text_aligned(canvas, 64, 20, AlignCenter, AlignTop, fname);
 
-    // Show progress percent as text above bar
-    snprintf(name_line, sizeof(name_line), "Progress: %u%%", (unsigned int)percent);
-    elements_multiline_text_aligned(canvas, 64, 36, AlignCenter, AlignTop, name_line);
+    // Size + percent + ETA on one line above the bar.
+    // ETA = remaining / rate, where rate is the measured session average once
+    // enough has elapsed; before that (warmup) it uses the nominal constant.
+    // If no new block has arrived for FS_STALL_MS, show "stalled" instead of a
+    // number (this also avoids ETA blowing up / overflowing when recv is small
+    // and elapsed keeps growing during a link outage).
+    uint32_t rem_blocks = (need > rcv) ? (need - rcv) : 0;
+    uint32_t rem_bytes = rem_blocks * FS_DATA_LENGTH;
+    uint32_t recv_bytes = rcv * FS_DATA_LENGTH;
+    uint32_t now = furi_get_tick();
+    uint32_t elapsed_ms = (now > start) ? (now - start) : 0;
+
+    bool stalled = (rem_blocks > 0) && (last_progress != 0) &&
+                   ((now - last_progress) > FS_STALL_MS);
+
+    char info[48];
+    if(stalled) {
+        snprintf(
+            info,
+            sizeof(info),
+            "%u%%  %lu KB  stalled",
+            (unsigned int)percent,
+            (unsigned long)(fsize / 1024));
+    } else {
+        // Clamp in uint64 before casting to guard against overflow.
+        uint64_t e = (elapsed_ms >= FS_ETA_WARMUP_MS && recv_bytes > 0) ?
+                         ((uint64_t)rem_bytes * elapsed_ms / ((uint64_t)recv_bytes * 1000u)) :
+                         ((uint64_t)rem_bytes / FS_PAYLOAD_THROUGHPUT_BPS);
+        if(e > FS_ETA_MAX_SEC) e = FS_ETA_MAX_SEC;
+        char eta[16];
+        fs_fmt_duration((uint32_t)e, eta, sizeof(eta));
+        snprintf(
+            info,
+            sizeof(info),
+            "%u%%  %lu KB  ETA %s",
+            (unsigned int)percent,
+            (unsigned long)(fsize / 1024),
+            eta);
+    }
+    elements_multiline_text_aligned(canvas, 64, 36, AlignCenter, AlignTop, info);
 
     // Progress bar frame and fill
     const int x = 13;
@@ -119,19 +174,18 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_frame(canvas, x, y, w, h);
 
-    uint8_t parts_bits[FS_PARTS_BYTES];
-    fs_parts_bitmap_copy(parts_bits);
-
+    // Torrent-style, but each column is filled from the bottom to a height
+    // proportional to the fraction of blocks received in that part (levels[i] is
+    // 0..255). Any received part shows at least 1px so early progress is visible.
     for(uint32_t i = 0; i < FS_PARTS_COUNT; ++i) {
-        if((parts_bits[i >> 3] >> (i & 7u)) & 1u) { // bit value by number
-            canvas_draw_line(canvas, x + i + 1, y, x + i + 1, y + h - 1);
-        }
+        uint8_t lv = levels[i];
+        if(!lv) continue;
+        int fill = (lv * h) / 255;
+        if(fill < 1) fill = 1;
+        if(fill > h) fill = h;
+        canvas_draw_line(canvas, x + i + 1, y + h - fill, x + i + 1, y + h - 1);
     }
-
-    // Percent text below
-    char pct[16];
-    snprintf(pct, sizeof(pct), "%u%%", (unsigned int)percent);
-    elements_multiline_text_aligned(canvas, 64, y + h + 8, AlignCenter, AlignTop, pct);
+    // (nothing drawn below the bar: y+h ≈ 62, screen is 64px tall)
 }
 
 static bool progress_view_input_callback(InputEvent* event, void* context) {
@@ -193,8 +247,16 @@ static void progress_view_deinit(FlipperShareApp* app) {
 void flipper_share_scene_receive_on_enter(void* context) {
     FlipperShareApp* app = context;
 
+    // Create the shared-state lock BEFORE starting the worker thread and the
+    // SubGhz RX worker, so both threads see a valid mutex from their first tick.
+    fs_lock_ensure();
+
     // Create state for the scene
     FileReadingState* state = file_state_alloc();
+    if(!state) {
+        FURI_LOG_E(TAG, "receive_on_enter: out of memory");
+        return;
+    }
     app->file_reading_state = state;
 
     // Setup dialog to show progress (use same UI as send scene so buttons appear)
@@ -225,82 +287,85 @@ static void update_timer_callback(void* context) {
     furi_assert(context);
     FlipperShareApp* app = context;
     FileReadingState* state = (FileReadingState*)app->file_reading_state;
-    char progress_text[256];
+    if(!state) return;
 
-    if(state) {
-        // FURI_LOG_I(
-        //     TAG,
-        //     "Timer: counter=%u, complete=%d, locked=%d, finished=%d",
-        //     (unsigned int)state->counter,
-        //     state->reading_complete,
-        //     g.r_locked,
-        //     g.r_is_finished);
+    // IMPORTANT: this runs on the FreeRTOS timer daemon, whose stack is only
+    // ~1KB (configTIMER_TASK_STACK_DEPTH). Keep stack use minimal — ONE buffer,
+    // formatted directly from `g` under the lock (no extra path/name copies).
+    char progress_text[192];
+    bool complete = state->reading_complete;
+    bool is_success = false;
+    bool is_locked = false;
 
-        if(state->reading_complete) {
-            if(g.r_is_success) {
-                dialog_ex_set_header(
-                    app->dialog_show_file, "Success!", 64, 10, AlignCenter, AlignCenter);
-            } else {
-                dialog_ex_set_header(
-                    app->dialog_show_file, "Hash failed", 64, 10, AlignCenter, AlignCenter);
-            }
-            snprintf(progress_text, sizeof(progress_text), "Saved to:\n%.*s", 64, g.r_file_path);
-            // dialog_ex_set_right_button_text(app->dialog_show_file, "OK");
-
-            // If completed and still showing progress view, switch back to dialog
-            if(progress_view_active) {
-                FURI_LOG_I(TAG, "Transfer complete, switching to dialog");
-                view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdShowFile);
-                progress_view_active = false;
-            }
-        } else {
-            if(g.r_locked) {
-                snprintf(
-                    progress_text,
-                    sizeof(progress_text),
-                    "%.*s, %lu KB\n%u%%",
-                    64,
-                    g.r_file_name,
-                    (unsigned long)(g.r_file_size / 1024),
-                    (unsigned int)state->counter);
-
-                // If locked and not finished, show graphical progress view instead of dialog
-                if(!progress_view) {
-                    FURI_LOG_I(TAG, "Initializing progress view");
-                    progress_view_init(app);
-                }
-
-                if(!progress_view_active) {
-                    FURI_LOG_I(TAG, "Switching to progress view");
-                    view_dispatcher_switch_to_view(
-                        app->view_dispatcher, FlipperShareViewIdProgress);
-                    progress_view_active = true;
-                }
-
-                // Update progress view model
-                with_view_model(
-                    progress_view,
-                    uint8_t * model,
-                    {
-                        *model = (uint8_t)state->counter;
-                        FURI_LOG_I(
-                            TAG, "Updating progress model: %u%%", (unsigned int)state->counter);
-                    },
-                    true);
-            } else {
-                snprintf(progress_text, sizeof(progress_text), "Waiting for announce...");
-
-                // If we're no longer locked but the progress view is active, switch back to dialog
-                if(progress_view_active) {
-                    FURI_LOG_I(TAG, "No longer locked, switching to dialog");
-                    view_dispatcher_switch_to_view(
-                        app->view_dispatcher, FlipperShareViewIdShowFile);
-                    progress_view_active = false;
-                }
-            }
+    if(!fs_try_lock_ms(20)) return; // skip this tick on contention
+    if(complete) {
+        is_success = g.r_is_success;
+        // Actual receive throughput + elapsed time (r_start_ms..r_finish_ms).
+        uint32_t st = g.r_start_ms, fin = g.r_finish_ms, fsz = g.r_file_size;
+        uint32_t el_ms = (fin > st) ? (fin - st) : 0;
+        uint32_t bps = (el_ms > 0) ? (uint32_t)((uint64_t)fsz * 1000u / el_ms) : 0;
+        char tbuf[16];
+        fs_fmt_duration(el_ms / 1000u, tbuf, sizeof(tbuf));
+        snprintf(
+            progress_text,
+            sizeof(progress_text),
+            "Saved to:\n%.*s\n%lu Bps  %s",
+            72,
+            g.r_file_path,
+            (unsigned long)bps,
+            tbuf);
+    } else {
+        is_locked = g.r_locked;
+        if(is_locked) {
+            snprintf(
+                progress_text,
+                sizeof(progress_text),
+                "%.*s, %lu KB\n%u%%",
+                64,
+                g.r_file_name,
+                (unsigned long)(g.r_file_size / 1024),
+                (unsigned int)state->counter);
         }
-        dialog_ex_set_text(app->dialog_show_file, progress_text, 64, 32, AlignCenter, AlignCenter);
     }
+    fs_unlock();
+
+    if(complete) {
+        dialog_ex_set_header(
+            app->dialog_show_file,
+            is_success ? "Success!" : "Hash failed",
+            64,
+            10,
+            AlignCenter,
+            AlignCenter);
+
+        // If completed and still showing progress view, switch back to dialog
+        if(progress_view_active) {
+            view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdShowFile);
+            progress_view_active = false;
+        }
+    } else if(is_locked) {
+        // If locked and not finished, show graphical progress view instead of dialog
+        if(!progress_view) {
+            progress_view_init(app);
+        }
+        if(!progress_view_active) {
+            view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdProgress);
+            progress_view_active = true;
+        }
+
+        // Update progress view model
+        with_view_model(
+            progress_view, uint8_t * model, { *model = (uint8_t)state->counter; }, true);
+    } else {
+        snprintf(progress_text, sizeof(progress_text), "Waiting for announce...");
+
+        // If we're no longer locked but the progress view is active, switch back to dialog
+        if(progress_view_active) {
+            view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdShowFile);
+            progress_view_active = false;
+        }
+    }
+    dialog_ex_set_text(app->dialog_show_file, progress_text, 64, 32, AlignCenter, AlignCenter);
 }
 
 // Callback for DialogEx buttons
@@ -401,4 +466,9 @@ void flipper_share_scene_receive_on_exit(void* context) {
         furi_timer_free(app->timer);
         app->timer = NULL;
     }
+
+    // Worker thread is joined in on_event and the SubGhz RX worker is stopped
+    // above, so no thread touches `g` anymore: free the block map/parts and the
+    // shared-state lock.
+    fs_deinit();
 }
