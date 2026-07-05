@@ -44,12 +44,12 @@ This software is for experimental purposes only and is not meant for any illegal
 - CCID: [Add interrupt support #4198 (By kidbomb)](https://github.com/flipperdevices/flipperzero-firmware/pull/4198)
 - NFC: [Parser to identify some hotel systems #4323 (By bettse)](https://github.com/flipperdevices/flipperzero-firmware/pull/4323) (Already in RM)
 - Updated: [Flipper Share v1.4 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share)
-- Added: [FlipGB v1.0 (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF/tree/0d598b854c868067bf39111ae14bc8c2e195c26c/applications/system/FlipperGB) (No Promises For Performance on Flipper)
+- Added: [GameBoy Emu v1.0 (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF/tree/0d598b854c868067bf39111ae14bc8c2e195c26c/applications/system/FlipperGB) (No Promises For Performance on Flipper)
 - Updated: [Flipcraft v4.2 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - Added: [Xiaomi Filter Reset v1.0 (By khmm12)](https://github.com/khmm12/flipper-xiaomi-filter-reset)
 - NFC: [Fix memory leaks & double-frees in the NFC app - heap-corrupting double-frees in the Plantain and SZPPK/SEVPPK/SK transit parsers (crash on two-trip tickets), leaks in the Saflok parser, the app API resolver (per launch) and the CUID-dictionary error path, plus a ~15x RAM over-allocation of the MIFARE DESFire file-data array (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1030)
 - Updated: [Daikin64 AC Remote v0.1 (By mrcalifornium)](https://github.com/mrcalifornium/flipperzero-daikin64-ac-remote)
-- Updated: [FlipGB v1.0 (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF/tree/0d598b854c868067bf39111ae14bc8c2e195c26c/applications/system/FlipperGB)
+- Updated: [GameBoy Emu v1.0 (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF/tree/0d598b854c868067bf39111ae14bc8c2e195c26c/applications/system/FlipperGB)
 
 <a name="release"></a>
 
@@ -207,7 +207,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Flappy Bird v1.5 (By DroomOne)](https://github.com/DroomOne/flipperzero-firmware/tree/dev/applications/flappy_bird)
 - [Flight Assault v0.4 (By evillero)](https://github.com/evillero/flight_assault)
 - [Flipcraft v4.2 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
-- [FlipGB v1.0 (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF/tree/0d598b854c868067bf39111ae14bc8c2e195c26c/applications/system/FlipperGB)
 - [Flipper Hero v1.4 (By mentoster)](https://github.com/mentoster/Flipper-hero)
 - [Flippy Road v1.1 (By rkilpadi)](https://github.com/rkilpadi/flippy-road)
 - [FlipRogue v1.2.1 (By Abzac)](https://github.com/Abzac/fliprogue)
@@ -216,6 +215,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Free Roam v0.6 (By jblanked)](https://github.com/jblanked/Free-Roam) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Furious Birds v1.1 (By bmstr-ru)](https://github.com/bmstr-ru/furious-birds)
 - [Game of Life v1.3 (By Mad-MO)](https://github.com/Mad-MO/FlipperGoL)
+- [GameBoy Emu v1.0 (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF/tree/0d598b854c868067bf39111ae14bc8c2e195c26c/applications/system/FlipperGB)
 - [Geometry Dash v0.1 (By goosedev72-projects)](https://github.com/goosedev72-projects/flipperzero-geometryflip)
 - [Ghouls v0.6 (By jblanked)](https://github.com/jblanked/Ghouls-Flipper) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Groks Adventure v0.15 (By DigiMancer3D)](https://github.com/DigiMancer3D/Groks_Adventure)
