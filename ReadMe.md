@@ -39,13 +39,13 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [NFC Comparator v2.6 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
 - Fixed SubGHz Settings Load For: [Chief Cooker v1.1 (By denr01)](https://github.com/denr01/FZ-ChiefCooker), [Cross Remote v3.3 (By leedave)](https://github.com/leedave/flipper-zero-cross-remote), [Frequency Analyzer (External) v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/dev/non_catalog_apps/freq_analyzer_ext), [Restaurant Pager Trigger v1.7 (By leedave)](https://github.com/leedave/flipper-zero-meal-pager), [Sub Analyzer v1.0 (By RocketGod)](https://github.com/RocketGod-git/Flipper-Zero-SUB-Analyzer), [Sub-Ghz Toolkit 1808 v1.0 (By RocketGod-git)](https://github.com/RocketGod-git/RocketGods-SubGHz-Toolkit) & [TPMS Reader v1.0 (By wosk)](https://github.com/wosk/flipperzero-tpms)
 - Updated: [ProtoPirate v3.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate) (Fixed Emulate/Decode Issues Hopefully and SubGHz Settings Load) [Fixes for VAG (By zero-mega)](https://github.com/RocketGod-git/ProtoPirate/commit/a5463f56e00eefce87033e88424c48a68c86662b)
-- Updated: [Flipcraft v4.1 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - RFID: [Read T5577 tags holding multiple EM4100 IDs again - a T5577 written with several EM4100 IDs (e.g. via Multiwriter) hung on Read since the Electra protocol was added; also resets a stale PAC/Stanley decoder buffer (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1025)
 - Added: [Walkman v1.0 (By rynosec)](https://github.com/rynosec/flipper-walkman) `Req:  GD3300D / HW-311 / YX5300-family board`
 - CCID: [Add interrupt support #4198 (By kidbomb)](https://github.com/flipperdevices/flipperzero-firmware/pull/4198)
 - NFC: [Parser to identify some hotel systems #4323 (By bettse)](https://github.com/flipperdevices/flipperzero-firmware/pull/4323) (Already in RM)
 - Updated: [Flipper Share v1.4 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share)
 - Added: [FlipGB v1.0 (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF/tree/0d598b854c868067bf39111ae14bc8c2e195c26c/applications/system/FlipperGB) (No Promises For Performance on Flipper)
+- Updated: [Flipcraft v4.2 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 
 <a name="release"></a>
 
@@ -202,7 +202,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Five Nights at Flippers v1.3 (By sillygir1)](https://github.com/sillygir1/flipperzero-fnaf)
 - [Flappy Bird v1.5 (By DroomOne)](https://github.com/DroomOne/flipperzero-firmware/tree/dev/applications/flappy_bird)
 - [Flight Assault v0.4 (By evillero)](https://github.com/evillero/flight_assault)
-- [Flipcraft v4.1 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
+- [Flipcraft v4.2 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - [FlipGB v1.0 (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF/tree/0d598b854c868067bf39111ae14bc8c2e195c26c/applications/system/FlipperGB)
 - [Flipper Hero v1.4 (By mentoster)](https://github.com/mentoster/Flipper-hero)
 - [Flippy Road v1.1 (By rkilpadi)](https://github.com/rkilpadi/flippy-road)

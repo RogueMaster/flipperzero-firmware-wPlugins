@@ -1183,7 +1183,19 @@ void Game::guiFrame(const Input& in) {
         } else if(selSlot < 0) {
             if(cur.cell->type) selSlot = cursor;
         } else {
-            std::swap(*slots[selSlot].cell, *cur.cell);
+            ItemCell& sv = *slots[selSlot].cell;
+            ItemCell& dv = *cur.cell;
+            if(sv.type && sv.type == dv.type && sv.type < ITEM_NONSTACKABLE) {
+                int tot = (int)dv.count + (int)sv.count;
+                if(tot <= MAX_STACK) {
+                    dv.count = (uint8_t)tot;
+                    sv = {};
+                } else {
+                    dv.count = MAX_STACK;
+                    sv.count = (uint8_t)(tot - MAX_STACK);
+                }
+            } else
+                std::swap(sv, dv);
             selSlot = -1;
         }
 
