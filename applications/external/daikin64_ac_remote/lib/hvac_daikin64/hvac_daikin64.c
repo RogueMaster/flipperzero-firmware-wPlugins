@@ -18,17 +18,12 @@
 #define DAIKIN64_ONE_SPACE 954
 #define DAIKIN64_ZERO_SPACE 382
 #define DAIKIN64_GAP 20300
-#define DAIKIN64_MESSAGE_GAP 100000
 
-#define DAIKIN64_TIMINGS_COUNT ((2 * 2) + 2 + (64 * 2) + 2 + 2)
+#define DAIKIN64_TIMINGS_COUNT ((2 * 2) + 2 + (64 * 2) + 2 + 1)
 
 // APGS02 neutral frame bytes in protocol order, least-significant byte first.
 static const uint8_t daikin64_base_lsb[DAIKIN64_PACKET_SIZE] =
     {0x16, 0x8A, 0x41, 0x10, 0x10, 0x18, 0x27, 0x05};
-
-// APGS02 power button baseline, least-significant byte first.
-static const uint8_t daikin64_power_base_lsb[DAIKIN64_PACKET_SIZE] =
-    {0x16, 0x8A, 0x41, 0x10, 0x10, 0x18, 0x27, 0x0D};
 
 static uint8_t daikin64_clamp_temp(uint8_t temperature) {
     if(temperature < DAIKIN64_MIN_TEMP) return DAIKIN64_MIN_TEMP;
@@ -114,15 +109,14 @@ static void daikin64_packet_to_lsb(
     }
 }
 
-static void
-    daikin64_refresh_clock_and_checksum(uint8_t packet[DAIKIN64_PACKET_SIZE], uint8_t minute_offset) {
+static void daikin64_refresh_clock_and_checksum(uint8_t packet[DAIKIN64_PACKET_SIZE]) {
     uint8_t frame[DAIKIN64_PACKET_SIZE];
     daikin64_packet_to_lsb(packet, frame);
 
 #ifndef HVAC_DAIKIN64_NO_FLIPPER
     DateTime datetime;
     furi_hal_rtc_get_datetime(&datetime);
-    daikin64_set_clock_lsb(frame, datetime.hour, (uint8_t)(datetime.minute + minute_offset));
+    daikin64_set_clock_lsb(frame, datetime.hour, datetime.minute);
 #endif
 
     frame[7] &= 0x0F;
@@ -145,7 +139,10 @@ void daikin64_init(Daikin64State* state) {
     state->off_timer_minutes = 18U * 60U;
 }
 
-void daikin64_build_packet(const Daikin64State* state, uint8_t packet[DAIKIN64_PACKET_SIZE]) {
+static void daikin64_build(
+    const Daikin64State* state,
+    uint8_t packet[DAIKIN64_PACKET_SIZE],
+    bool power_toggle) {
     if(!packet) return;
 
     Daikin64State fallback;
@@ -166,10 +163,14 @@ void daikin64_build_packet(const Daikin64State* state, uint8_t packet[DAIKIN64_P
     frame[7] = 0x04;
     if(state->swing) frame[7] |= 0x01;
     if(state->sleep) frame[7] |= 0x02;
-    if(state->power) frame[7] |= 0x08;
+    if(power_toggle || state->power) frame[7] |= 0x08;
     frame[7] |= (uint8_t)(daikin64_checksum_lsb(frame) << 4);
 
     daikin64_lsb_to_packet(frame, packet);
+}
+
+void daikin64_build_packet(const Daikin64State* state, uint8_t packet[DAIKIN64_PACKET_SIZE]) {
+    daikin64_build(state, packet, false);
 }
 
 bool daikin64_verify_checksum(const uint8_t packet[DAIKIN64_PACKET_SIZE]) {
@@ -184,29 +185,7 @@ bool daikin64_verify_checksum(const uint8_t packet[DAIKIN64_PACKET_SIZE]) {
 void daikin64_build_power_packet(
     const Daikin64State* state,
     uint8_t packet[DAIKIN64_PACKET_SIZE]) {
-    if(!packet) return;
-
-    Daikin64State fallback;
-    if(!state) {
-        daikin64_init(&fallback);
-        state = &fallback;
-    }
-
-    uint8_t frame[DAIKIN64_PACKET_SIZE];
-    for(size_t i = 0; i < DAIKIN64_PACKET_SIZE; i++) {
-        frame[i] = daikin64_power_base_lsb[i];
-    }
-
-    frame[1] = (uint8_t)((daikin64_valid_fan(state->fan) << 4) | daikin64_valid_mode(state->mode));
-    frame[4] = daikin64_timer_lsb(state->on_timer_minutes, state->on_timer_enabled);
-    frame[5] = daikin64_timer_lsb(state->off_timer_minutes, state->off_timer_enabled);
-    frame[6] = daikin64_bcd(daikin64_clamp_temp(state->temperature));
-    frame[7] = 0x0C;
-    if(state->swing) frame[7] |= 0x01;
-    if(state->sleep) frame[7] |= 0x02;
-    frame[7] |= (uint8_t)(daikin64_checksum_lsb(frame) << 4);
-
-    daikin64_lsb_to_packet(frame, packet);
+    daikin64_build(state, packet, true);
 }
 
 static void daikin64_send_packet(const uint8_t packet[DAIKIN64_PACKET_SIZE]) {
@@ -232,7 +211,6 @@ static void daikin64_send_packet(const uint8_t packet[DAIKIN64_PACKET_SIZE]) {
     timings[timing_index++] = DAIKIN64_BIT_MARK;
     timings[timing_index++] = DAIKIN64_GAP;
     timings[timing_index++] = DAIKIN64_HDR_MARK;
-    timings[timing_index++] = DAIKIN64_MESSAGE_GAP;
 
     infrared_send_raw_ext(
         timings, (uint32_t)timing_index, true, DAIKIN64_FREQ, DAIKIN64_DUTY_CYCLE);
@@ -244,15 +222,13 @@ static void daikin64_send_packet(const uint8_t packet[DAIKIN64_PACKET_SIZE]) {
 void daikin64_send(const Daikin64State* state) {
     uint8_t packet[DAIKIN64_PACKET_SIZE];
     daikin64_build_packet(state, packet);
-    daikin64_refresh_clock_and_checksum(packet, 0);
+    daikin64_refresh_clock_and_checksum(packet);
     daikin64_send_packet(packet);
 }
 
 void daikin64_send_power_toggle(const Daikin64State* state) {
-    static uint8_t power_minute_offset = 0;
     uint8_t packet[DAIKIN64_PACKET_SIZE];
     daikin64_build_power_packet(state, packet);
-    power_minute_offset = (power_minute_offset + 1U) % 10U;
-    daikin64_refresh_clock_and_checksum(packet, power_minute_offset);
+    daikin64_refresh_clock_and_checksum(packet);
     daikin64_send_packet(packet);
 }

@@ -7,7 +7,6 @@ App(
     stack_size=4 * 1024,
     fap_libs=["infrared"],
     fap_icon="daikin64_ac_remote.png",
-    fap_icon_assets="assets",
     fap_category="Infrared",
     fap_author="mrcalifornium",
     fap_weburl="https://github.com/mrcalifornium/flipperzero-daikin64-ac-remote",

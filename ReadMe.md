@@ -48,6 +48,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Flipcraft v4.2 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - Added: [Xiaomi Filter Reset v1.0 (By khmm12)](https://github.com/khmm12/flipper-xiaomi-filter-reset)
 - NFC: [Fix memory leaks & double-frees in the NFC app - heap-corrupting double-frees in the Plantain and SZPPK/SEVPPK/SK transit parsers (crash on two-trip tickets), leaks in the Saflok parser, the app API resolver (per launch) and the CUID-dictionary error path, plus a ~15x RAM over-allocation of the MIFARE DESFire file-data array (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1030)
+- Updated: [Daikin64 AC Remote v0.1 (By mrcalifornium)](https://github.com/mrcalifornium/flipperzero-daikin64-ac-remote)
+- Updated: [FlipGB v1.0 (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF/tree/0d598b854c868067bf39111ae14bc8c2e195c26c/applications/system/FlipperGB)
 
 <a name="release"></a>
 

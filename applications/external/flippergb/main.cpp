@@ -732,8 +732,10 @@ extern "C" int32_t flipgb_app(void* p) {
     Storage* storage = (Storage*)furi_record_open(RECORD_STORAGE);
     DialogsApp* dialogs = (DialogsApp*)furi_record_open(RECORD_DIALOGS);
 
-    FuriString* rom_path = furi_string_alloc_set_str("/ext");
+    FuriString* rom_path = furi_string_alloc_set_str("/ext/gb");
     FuriString* sav_path = furi_string_alloc();
+
+    storage_simply_mkdir(storage, "/ext/gb");
 
     Gui* gui = NULL;
     Canvas* canvas = NULL;
@@ -745,7 +747,7 @@ extern "C" int32_t flipgb_app(void* p) {
         /* --- pick a ROM with the stock file browser (normal GUI mode) --- */
         DialogsFileBrowserOptions browser_options;
         dialog_file_browser_set_basic_options(&browser_options, ".gb", NULL);
-        browser_options.base_path = "/ext";
+        browser_options.base_path = "/ext/gb";
         browser_options.hide_ext = false;
 
         if(!dialog_file_browser_show(dialogs, rom_path, rom_path, &browser_options)) {
