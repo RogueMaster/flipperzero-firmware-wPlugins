@@ -1,0 +1,13 @@
+App(
+    appid="multi_tally",
+    name="Multi Tally",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="multi_tally_app",
+    sources=["multi_tally.c"],
+    stack_size=2 * 1024,
+    fap_category="Tools",
+    fap_icon="icon_10px.png",
+    fap_author="ziper",
+    fap_version="1.0",
+    fap_description="Six independent tally counters, one per hardware button",
+)
