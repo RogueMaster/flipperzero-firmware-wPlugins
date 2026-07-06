@@ -46,6 +46,10 @@ typedef enum {
     ScreenSetupLed,
     ScreenSetupBoot,
     ScreenSetupSdManager,
+    ScreenSetupOta,
+    ScreenOtaStatus,
+    ScreenOtaList,
+    ScreenOtaInfo,
     ScreenHelpQr,
     ScreenConsole,
     ScreenGps,
@@ -53,6 +57,7 @@ typedef enum {
     ScreenChannelView,
     ScreenConfirmBlackout,
     ScreenConfirmSnifferDos,
+    ScreenConfirmOtaConnect,
     ScreenConfirmExit,
     ScreenKarmaMenu,
     ScreenEvilTwinMenu,
@@ -87,7 +92,32 @@ typedef enum {
     SnifferDogPhaseError,
     SnifferDogPhaseFinished,
 } SnifferDogPhase;
-#define LAB_C5_VERSION_TEXT "0.40"
+#define LAB_C5_VERSION_TEXT FAP_VERSION
+
+typedef enum {
+    OtaInputNone = 0,
+    OtaInputSsid,
+    OtaInputPassword,
+    OtaInputIp,
+    OtaInputNetmask,
+    OtaInputGw,
+    OtaInputDns,
+} OtaInputField;
+
+typedef enum {
+    OtaItemCheck = 0,
+    OtaItemSsid,
+    OtaItemPass,
+    OtaItemMode,
+    OtaItemIp,
+    OtaItemNetmask,
+    OtaItemGw,
+    OtaItemDns,
+    OtaItemChannel,
+    OtaItemList,
+    OtaItemInfo,
+    OtaItemBoot,
+} OtaSetupItem;
 
 #define SCAN_SSID_HIDDEN_LABEL        "Hidden"
 #define SCAN_RESULTS_DEFAULT_CAPACITY 64
@@ -199,6 +229,14 @@ typedef enum {
 #define SCANNER_CHANNEL_TIME_STEP_MS     10
 #define SCANNER_CHANNEL_TIME_DEFAULT_MIN 100
 #define SCANNER_CHANNEL_TIME_DEFAULT_MAX 300
+#define OTA_PASS_MAX_LEN                 64
+#define OTA_IP_MAX_LEN                   16
+#define OTA_SETUP_VISIBLE_COUNT          4
+#define OTA_STATUS_LINE_MAX              48
+#define OTA_STATUS_LINES                 3
+#define OTA_LIST_MAX                     5
+#define OTA_INFO_MAX                     5
+#define OTA_LINE_BUFFER                  160
 
 static const uint8_t channel_view_channels_24ghz[] =
     {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
@@ -282,6 +320,7 @@ typedef enum {
     MenuActionOpenBootSetup,
     MenuActionOpenDownload,
     MenuActionOpenSdManager,
+    MenuActionOpenOta,
     MenuActionOpenHelp,
 
     MenuActionOpenConsole,
@@ -844,6 +883,34 @@ typedef struct {
     uint8_t boot_long_command_index;
     bool boot_setup_long;
     size_t boot_setup_index;
+    size_t ota_setup_index;
+    size_t ota_setup_offset;
+    bool ota_use_dhcp;
+    bool ota_pass_show;
+    bool ota_connect_confirm_yes;
+    bool ota_input_requested;
+    bool ota_input_active;
+    OtaInputField ota_input_field;
+    char ota_ssid[SCAN_SSID_MAX_LEN];
+    char ota_password[OTA_PASS_MAX_LEN];
+    char ota_ip[OTA_IP_MAX_LEN];
+    char ota_netmask[OTA_IP_MAX_LEN];
+    char ota_gw[OTA_IP_MAX_LEN];
+    char ota_dns[OTA_IP_MAX_LEN];
+    bool ota_status_active;
+    bool ota_list_active;
+    bool ota_info_active;
+    bool ota_boot_target_slot1;
+    char ota_channel[8];
+    char ota_wifi_status[OTA_STATUS_LINE_MAX];
+    char ota_ip_status[OTA_STATUS_LINE_MAX];
+    char ota_response[OTA_STATUS_LINE_MAX];
+    char ota_list_lines[OTA_LIST_MAX][OTA_STATUS_LINE_MAX];
+    size_t ota_list_count;
+    char ota_info_lines[OTA_INFO_MAX][OTA_STATUS_LINE_MAX];
+    size_t ota_info_count;
+    char ota_line_buffer[OTA_LINE_BUFFER];
+    size_t ota_line_length;
     bool led_read_pending;
     char led_read_buffer[64];
     size_t led_read_length;
@@ -958,6 +1025,26 @@ static void simple_app_send_boot_command(SimpleApp* app, bool is_short, uint8_t 
 static void simple_app_request_boot_status(SimpleApp* app);
 static bool simple_app_handle_boot_status_line(SimpleApp* app, const char* line);
 static void simple_app_boot_feed(SimpleApp* app, char ch);
+static size_t simple_app_ota_item_count(const SimpleApp* app);
+static void simple_app_ota_adjust_offset(SimpleApp* app);
+static void simple_app_ota_request_text_input(SimpleApp* app, OtaInputField field);
+static bool simple_app_ota_run_text_input(SimpleApp* app);
+static void simple_app_reset_ota_status(SimpleApp* app);
+static void simple_app_reset_ota_list(SimpleApp* app);
+static void simple_app_reset_ota_info(SimpleApp* app);
+static OtaSetupItem simple_app_ota_item_at(const SimpleApp* app, size_t index);
+static void simple_app_ota_process_line(SimpleApp* app, const char* line);
+static void simple_app_ota_feed(SimpleApp* app, char ch);
+static void simple_app_draw_setup_ota(SimpleApp* app, Canvas* canvas);
+static void simple_app_handle_setup_ota_input(SimpleApp* app, InputKey key);
+static void simple_app_draw_confirm_ota_connect(SimpleApp* app, Canvas* canvas);
+static void simple_app_handle_confirm_ota_connect_input(SimpleApp* app, InputKey key);
+static void simple_app_draw_ota_status(SimpleApp* app, Canvas* canvas);
+static void simple_app_handle_ota_status_input(SimpleApp* app, InputKey key);
+static void simple_app_draw_ota_list(SimpleApp* app, Canvas* canvas);
+static void simple_app_handle_ota_list_input(SimpleApp* app, InputKey key);
+static void simple_app_draw_ota_info(SimpleApp* app, Canvas* canvas);
+static void simple_app_handle_ota_info_input(SimpleApp* app, InputKey key);
 static void
     simple_app_serial_irq(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* context);
 static void simple_app_handle_boot_trigger(SimpleApp* app, bool is_long);
@@ -1313,6 +1400,7 @@ static const MenuEntry menu_entries_setup[] = {
     {menu_label_boot_short, NULL, MenuActionOpenBootSetup},
     {"Console", NULL, MenuActionOpenConsole},
     {"Download Mode", NULL, MenuActionOpenDownload},
+    {"OTA Update", NULL, MenuActionOpenOta},
     {"Scanner Filters", NULL, MenuActionOpenScannerSetup},
     {"Scanner Timing", NULL, MenuActionOpenScannerTiming},
     {"GPS", NULL, MenuActionOpenGps},
@@ -7583,6 +7671,7 @@ static void simple_app_append_serial_data(SimpleApp* app, const uint8_t* data, s
         simple_app_boot_feed(app, ch);
         simple_app_vendor_feed(app, ch);
         simple_app_scanner_timing_feed(app, ch);
+        simple_app_ota_feed(app, ch);
         simple_app_deauth_guard_feed(app, ch);
         simple_app_deauth_feed(app, ch);
         simple_app_handshake_feed(app, ch);
@@ -7609,6 +7698,10 @@ static void simple_app_append_serial_data(SimpleApp* app, const uint8_t* data, s
     }
 
     simple_app_update_scroll(app);
+    if(app->viewport && (app->screen == ScreenOtaStatus || app->screen == ScreenOtaList ||
+                         app->screen == ScreenOtaInfo)) {
+        view_port_update(app->viewport);
+    }
 }
 
 static bool simple_app_is_start_sniffer_command(const char* command) {
@@ -8434,6 +8527,21 @@ static void simple_app_draw_confirm_sniffer_dos(SimpleApp* app, Canvas* canvas) 
     canvas_set_font(canvas, FontSecondary);
     const char* option_line = app->confirm_sniffer_dos_yes ? "No        > Yes" : "> No        Yes";
     canvas_draw_str_aligned(canvas, DISPLAY_WIDTH / 2, 50, AlignCenter, AlignCenter, option_line);
+}
+
+static void simple_app_draw_confirm_ota_connect(SimpleApp* app, Canvas* canvas) {
+    if(!app) return;
+    canvas_set_color(canvas, ColorBlack);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(
+        canvas, DISPLAY_WIDTH / 2, 14, AlignCenter, AlignCenter, "Connect WiFi?");
+    canvas_draw_str_aligned(
+        canvas, DISPLAY_WIDTH / 2, 26, AlignCenter, AlignCenter, "Required for OTA");
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, DISPLAY_WIDTH / 2, 42, AlignCenter, AlignCenter, "Confirm?");
+    canvas_set_font(canvas, FontSecondary);
+    const char* option_line = app->ota_connect_confirm_yes ? "No        > Yes" : "> No        Yes";
+    canvas_draw_str_aligned(canvas, DISPLAY_WIDTH / 2, 54, AlignCenter, AlignCenter, option_line);
 }
 
 static void simple_app_draw_confirm_exit(SimpleApp* app, Canvas* canvas) {
@@ -10414,6 +10522,25 @@ static size_t simple_app_escape_wifi_field(const char* src, char* dst, size_t ds
     return out;
 }
 
+static bool simple_app_append_escaped(char* out, size_t out_len, size_t* offset, const char* src) {
+    if(!out || !offset || out_len == 0) return false;
+    size_t pos = *offset;
+    if(pos >= out_len) return false;
+    if(!src) src = "";
+    for(size_t i = 0; src[i] != '\0'; i++) {
+        char ch = src[i];
+        if(ch == '\\' || ch == '\"') {
+            if(pos + 2 >= out_len) return false;
+            out[pos++] = '\\';
+        }
+        if(pos + 1 >= out_len) return false;
+        out[pos++] = ch;
+    }
+    out[pos] = '\0';
+    *offset = pos;
+    return true;
+}
+
 static bool simple_app_build_evil_twin_qr(SimpleApp* app, const char* ssid, const char* pass) {
     if(!app || !ssid) return false;
     if(!simple_app_alloc_evil_twin_qr_buffers(app)) {
@@ -10490,7 +10617,7 @@ static void simple_app_draw_evil_twin_pass_list(SimpleApp* app, Canvas* canvas) 
 
     simple_app_evil_twin_pass_sync_offset(app);
 
-    uint8_t y = 24;
+    uint8_t y = 22;
     size_t visible = 4;
     if(visible == 0) visible = 1;
     if(visible > app->evil_twin_pass_count) {
@@ -10952,7 +11079,7 @@ static void simple_app_draw_passwords_select(SimpleApp* app, Canvas* canvas) {
             canvas_draw_str(canvas, 2, y, ">");
         }
         canvas_draw_str(canvas, 14, y, options[idx]);
-        y += 12;
+        y += 10;
     }
     canvas_draw_str(canvas, 2, 62, "OK select, Back");
 }
@@ -11144,6 +11271,133 @@ static bool simple_app_portal_run_text_input(SimpleApp* app) {
     }
 
     return accepted;
+}
+
+typedef struct {
+    ViewDispatcher* dispatcher;
+    bool accepted;
+} SimpleAppOtaInputContext;
+
+static void simple_app_ota_text_input_result(void* context) {
+    SimpleAppOtaInputContext* ctx = context;
+    if(!ctx || !ctx->dispatcher) return;
+    ctx->accepted = true;
+    view_dispatcher_stop(ctx->dispatcher);
+}
+
+static bool simple_app_ota_text_input_navigation(void* context) {
+    SimpleAppOtaInputContext* ctx = context;
+    if(!ctx || !ctx->dispatcher) return false;
+    ctx->accepted = false;
+    view_dispatcher_stop(ctx->dispatcher);
+    return true;
+}
+
+static bool simple_app_ota_run_text_input(SimpleApp* app) {
+    if(!app || !app->gui || !app->viewport) return false;
+
+    char* target = NULL;
+    size_t max_len = 0;
+    size_t min_len = 0;
+    const char* header = NULL;
+    switch(app->ota_input_field) {
+    case OtaInputSsid:
+        target = app->ota_ssid;
+        max_len = sizeof(app->ota_ssid);
+        min_len = 1;
+        header = "WiFi SSID";
+        break;
+    case OtaInputPassword:
+        target = app->ota_password;
+        max_len = sizeof(app->ota_password);
+        header = "WiFi Password";
+        break;
+    case OtaInputIp:
+        target = app->ota_ip;
+        max_len = sizeof(app->ota_ip);
+        header = "Static IP";
+        break;
+    case OtaInputNetmask:
+        target = app->ota_netmask;
+        max_len = sizeof(app->ota_netmask);
+        header = "Netmask";
+        break;
+    case OtaInputGw:
+        target = app->ota_gw;
+        max_len = sizeof(app->ota_gw);
+        header = "Gateway";
+        break;
+    case OtaInputDns:
+        target = app->ota_dns;
+        max_len = sizeof(app->ota_dns);
+        header = "DNS";
+        break;
+    default:
+        return false;
+    }
+
+    if(!target || max_len < 2 || !header) return false;
+
+    bool viewport_detached = false;
+    char buffer[OTA_PASS_MAX_LEN];
+    if(max_len > sizeof(buffer)) {
+        max_len = sizeof(buffer);
+    }
+    strncpy(buffer, target, max_len - 1);
+    buffer[max_len - 1] = '\0';
+
+    ViewDispatcher* dispatcher = view_dispatcher_alloc();
+    if(!dispatcher) return false;
+
+    TextInput* text_input = text_input_alloc();
+    if(!text_input) {
+        view_dispatcher_free(dispatcher);
+        return false;
+    }
+
+    SimpleAppOtaInputContext ctx = {
+        .dispatcher = dispatcher,
+        .accepted = false,
+    };
+
+    view_dispatcher_set_event_callback_context(dispatcher, &ctx);
+    view_dispatcher_set_navigation_event_callback(
+        dispatcher, simple_app_ota_text_input_navigation);
+
+    text_input_set_header_text(text_input, header);
+    text_input_set_result_callback(
+        text_input, simple_app_ota_text_input_result, &ctx, buffer, max_len, false);
+    if(min_len > 0) {
+        text_input_set_minimum_length(text_input, min_len);
+    }
+
+    view_dispatcher_add_view(dispatcher, 0, text_input_get_view(text_input));
+
+    gui_remove_view_port(app->gui, app->viewport);
+    viewport_detached = true;
+    app->ota_input_active = true;
+
+    view_dispatcher_attach_to_gui(dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    view_dispatcher_switch_to_view(dispatcher, 0);
+    view_dispatcher_run(dispatcher);
+
+    view_dispatcher_remove_view(dispatcher, 0);
+    view_dispatcher_free(dispatcher);
+    text_input_free(text_input);
+
+    if(viewport_detached) {
+        gui_add_view_port(app->gui, app->viewport, GuiLayerFullscreen);
+        view_port_update(app->viewport);
+    }
+    app->ota_input_active = false;
+
+    if(ctx.accepted) {
+        strncpy(target, buffer, max_len - 1);
+        target[max_len - 1] = '\0';
+        simple_app_trim(target);
+    }
+
+    return ctx.accepted;
 }
 
 static void simple_app_draw_portal_ssid_popup(SimpleApp* app, Canvas* canvas) {
@@ -13866,6 +14120,410 @@ static void simple_app_draw_setup_boot(SimpleApp* app, Canvas* canvas) {
     canvas_draw_str(canvas, 16, y, boot_command_options[cmd_index]);
 }
 
+static size_t simple_app_ota_item_count(const SimpleApp* app) {
+    if(!app) return 0;
+    return app->ota_use_dhcp ? 8 : 12;
+}
+
+static OtaSetupItem simple_app_ota_item_at(const SimpleApp* app, size_t index) {
+    if(!app) return OtaItemCheck;
+    if(app->ota_use_dhcp) {
+        switch(index) {
+        case 0:
+            return OtaItemCheck;
+        case 1:
+            return OtaItemSsid;
+        case 2:
+            return OtaItemPass;
+        case 3:
+            return OtaItemMode;
+        case 4:
+            return OtaItemChannel;
+        case 5:
+            return OtaItemList;
+        case 6:
+            return OtaItemInfo;
+        case 7:
+            return OtaItemBoot;
+        default:
+            return OtaItemBoot;
+        }
+    }
+    switch(index) {
+    case 0:
+        return OtaItemCheck;
+    case 1:
+        return OtaItemSsid;
+    case 2:
+        return OtaItemPass;
+    case 3:
+        return OtaItemMode;
+    case 4:
+        return OtaItemIp;
+    case 5:
+        return OtaItemNetmask;
+    case 6:
+        return OtaItemGw;
+    case 7:
+        return OtaItemDns;
+    case 8:
+        return OtaItemChannel;
+    case 9:
+        return OtaItemList;
+    case 10:
+        return OtaItemInfo;
+    case 11:
+        return OtaItemBoot;
+    default:
+        return OtaItemBoot;
+    }
+}
+
+static void simple_app_ota_adjust_offset(SimpleApp* app) {
+    if(!app) return;
+    size_t count = simple_app_ota_item_count(app);
+    if(count == 0) {
+        app->ota_setup_index = 0;
+        app->ota_setup_offset = 0;
+        return;
+    }
+    if(app->ota_setup_index >= count) {
+        app->ota_setup_index = count - 1;
+    }
+    size_t visible = OTA_SETUP_VISIBLE_COUNT;
+    if(visible > count) visible = count;
+    size_t max_offset = (count > visible) ? (count - visible) : 0;
+    if(app->ota_setup_offset > max_offset) {
+        app->ota_setup_offset = max_offset;
+    }
+    if(app->ota_setup_index < app->ota_setup_offset) {
+        app->ota_setup_offset = app->ota_setup_index;
+    } else if(app->ota_setup_index >= app->ota_setup_offset + visible) {
+        app->ota_setup_offset = app->ota_setup_index - visible + 1;
+    }
+}
+
+static void simple_app_ota_request_text_input(SimpleApp* app, OtaInputField field) {
+    if(!app || app->ota_input_active) return;
+    app->ota_input_field = field;
+    app->ota_input_requested = true;
+}
+
+static void simple_app_reset_ota_status(SimpleApp* app) {
+    if(!app) return;
+    app->ota_status_active = true;
+    app->ota_wifi_status[0] = '\0';
+    app->ota_ip_status[0] = '\0';
+    app->ota_response[0] = '\0';
+}
+
+static void simple_app_reset_ota_list(SimpleApp* app) {
+    if(!app) return;
+    app->ota_list_active = true;
+    app->ota_list_count = 0;
+    for(size_t i = 0; i < OTA_LIST_MAX; i++) {
+        app->ota_list_lines[i][0] = '\0';
+    }
+}
+
+static void simple_app_reset_ota_info(SimpleApp* app) {
+    if(!app) return;
+    app->ota_info_active = true;
+    app->ota_info_count = 0;
+    for(size_t i = 0; i < OTA_INFO_MAX; i++) {
+        app->ota_info_lines[i][0] = '\0';
+    }
+}
+
+static void simple_app_ota_store_line(char* dest, size_t dest_len, const char* line) {
+    if(!dest || dest_len == 0) return;
+    if(!line) {
+        dest[0] = '\0';
+        return;
+    }
+    strncpy(dest, line, dest_len - 1);
+    dest[dest_len - 1] = '\0';
+    simple_app_truncate_text(dest, OTA_STATUS_LINE_MAX - 1);
+}
+
+static bool simple_app_ota_extract_quoted(const char* line, char* out, size_t out_len) {
+    if(!line || !out || out_len == 0) return false;
+    const char* first = strchr(line, '\'');
+    if(!first) return false;
+    const char* second = strchr(first + 1, '\'');
+    if(!second || second <= first + 1) return false;
+    size_t len = (size_t)(second - first - 1);
+    if(len >= out_len) len = out_len - 1;
+    memcpy(out, first + 1, len);
+    out[len] = '\0';
+    return true;
+}
+
+static void simple_app_ota_process_line(SimpleApp* app, const char* line) {
+    if(!app || !line || line[0] == '\0') return;
+    if(line[0] == '>') {
+        line++;
+        while(*line == ' ' || *line == '\t')
+            line++;
+        if(*line == '\0') return;
+    }
+
+    if(strncmp(line, "OTA[", 4) == 0 && app->ota_list_active) {
+        if(app->ota_list_count < OTA_LIST_MAX) {
+            simple_app_ota_store_line(
+                app->ota_list_lines[app->ota_list_count],
+                sizeof(app->ota_list_lines[app->ota_list_count]),
+                line);
+            app->ota_list_count++;
+        }
+        return;
+    }
+
+    if((strncmp(line, "OTA boot:", 9) == 0 || strncmp(line, "OTA running:", 12) == 0 ||
+        strncmp(line, "OTA next:", 9) == 0 || strncmp(line, "APP[", 4) == 0) &&
+       app->ota_info_active) {
+        if(app->ota_info_count < OTA_INFO_MAX) {
+            simple_app_ota_store_line(
+                app->ota_info_lines[app->ota_info_count],
+                sizeof(app->ota_info_lines[app->ota_info_count]),
+                line);
+            app->ota_info_count++;
+        }
+        return;
+    }
+
+    if(strncmp(line, "OTA channel:", 12) == 0) {
+        const char* channel = line + 12;
+        while(*channel == ' ' || *channel == '\t')
+            channel++;
+        strncpy(app->ota_channel, channel, sizeof(app->ota_channel) - 1);
+        app->ota_channel[sizeof(app->ota_channel) - 1] = '\0';
+        simple_app_trim(app->ota_channel);
+        simple_app_ota_store_line(app->ota_response, sizeof(app->ota_response), line);
+        return;
+    }
+
+    if(strncmp(line, "DHCP IP:", 8) == 0 || strncmp(line, "Static IP:", 10) == 0) {
+        simple_app_ota_store_line(app->ota_ip_status, sizeof(app->ota_ip_status), line);
+        return;
+    }
+
+    if(strncmp(line, "Connecting to AP", 16) == 0 || strncmp(line, "Initializing WiFi", 17) == 0) {
+        simple_app_ota_store_line(app->ota_wifi_status, sizeof(app->ota_wifi_status), line);
+        return;
+    }
+
+    if(strncmp(line, "Wi-Fi:", 6) == 0 || strncmp(line, "SUCCESS: Connected", 18) == 0) {
+        char ssid[SCAN_SSID_MAX_LEN] = {0};
+        if(simple_app_ota_extract_quoted(line, ssid, sizeof(ssid))) {
+            char status[OTA_STATUS_LINE_MAX];
+            snprintf(status, sizeof(status), "WiFi: %s", ssid);
+            simple_app_ota_store_line(app->ota_wifi_status, sizeof(app->ota_wifi_status), status);
+        } else {
+            simple_app_ota_store_line(
+                app->ota_wifi_status, sizeof(app->ota_wifi_status), "WiFi: connected");
+        }
+        return;
+    }
+
+    if(strncmp(line, "FAILED:", 7) == 0 || strncmp(line, "TIMEOUT:", 8) == 0) {
+        simple_app_ota_store_line(app->ota_wifi_status, sizeof(app->ota_wifi_status), line);
+        return;
+    }
+
+    if(strncmp(line, "OTA:", 4) == 0 || strncmp(line, "Usage:", 6) == 0 ||
+       strncmp(line, "Command returned", 16) == 0) {
+        simple_app_ota_store_line(app->ota_response, sizeof(app->ota_response), line);
+        return;
+    }
+}
+
+static void simple_app_ota_feed(SimpleApp* app, char ch) {
+    if(!app) return;
+    if(ch == '\r') return;
+    if(ch == '\n') {
+        if(app->ota_line_length > 0) {
+            app->ota_line_buffer[app->ota_line_length] = '\0';
+            simple_app_ota_process_line(app, app->ota_line_buffer);
+        }
+        app->ota_line_length = 0;
+        return;
+    }
+    if(app->ota_line_length + 1 >= sizeof(app->ota_line_buffer)) {
+        app->ota_line_length = 0;
+        return;
+    }
+    app->ota_line_buffer[app->ota_line_length++] = ch;
+}
+
+static void simple_app_ota_build_line(SimpleApp* app, size_t index, char* out, size_t out_len) {
+    if(!app || !out || out_len == 0) return;
+
+    const char* value = "";
+    switch(simple_app_ota_item_at(app, index)) {
+    case OtaItemCheck:
+        snprintf(out, out_len, "Check OTA");
+        break;
+    case OtaItemSsid:
+        value = (app->ota_ssid[0] != '\0') ? app->ota_ssid : "<empty>";
+        snprintf(out, out_len, "SSID: %s", value);
+        break;
+    case OtaItemPass: {
+        const char* pass_value = "<empty>";
+        if(app->ota_password[0] != '\0') {
+            pass_value = app->ota_pass_show ? app->ota_password : "******";
+        }
+        int max_len = app->ota_pass_show ? 12 : 6;
+        snprintf(
+            out, out_len, "Pass:%.*s %s", max_len, pass_value, app->ota_pass_show ? "H" : "S");
+        break;
+    }
+    case OtaItemMode:
+        snprintf(out, out_len, "Mode: %s", app->ota_use_dhcp ? "DHCP" : "Manual");
+        break;
+    case OtaItemIp:
+        value = (app->ota_ip[0] != '\0') ? app->ota_ip : "<empty>";
+        snprintf(out, out_len, "IP: %s", value);
+        break;
+    case OtaItemNetmask:
+        value = (app->ota_netmask[0] != '\0') ? app->ota_netmask : "<empty>";
+        snprintf(out, out_len, "Netmask: %s", value);
+        break;
+    case OtaItemGw:
+        value = (app->ota_gw[0] != '\0') ? app->ota_gw : "<empty>";
+        snprintf(out, out_len, "GW: %s", value);
+        break;
+    case OtaItemDns:
+        value = (app->ota_dns[0] != '\0') ? app->ota_dns : "<empty>";
+        snprintf(out, out_len, "DNS: %s", value);
+        break;
+    case OtaItemChannel:
+        value = (app->ota_channel[0] != '\0') ? app->ota_channel : "main";
+        snprintf(out, out_len, "Channel: %s", value);
+        break;
+    case OtaItemList:
+        snprintf(out, out_len, "List updates");
+        break;
+    case OtaItemInfo:
+        snprintf(out, out_len, "Show info");
+        break;
+    case OtaItemBoot:
+        snprintf(out, out_len, "Boot: %s", app->ota_boot_target_slot1 ? "ota_1" : "ota_0");
+        break;
+    default:
+        out[0] = '\0';
+        break;
+    }
+
+    simple_app_truncate_text(out, SERIAL_LINE_CHAR_LIMIT);
+}
+
+static void simple_app_draw_setup_ota(SimpleApp* app, Canvas* canvas) {
+    if(!app || !canvas) return;
+
+    canvas_set_color(canvas, ColorBlack);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 16, 14, "OTA Update");
+
+    simple_app_ota_adjust_offset(app);
+    size_t count = simple_app_ota_item_count(app);
+    size_t visible = OTA_SETUP_VISIBLE_COUNT;
+    if(visible > count) visible = count;
+
+    canvas_set_font(canvas, FontSecondary);
+    uint8_t y = 24;
+    char line[64];
+    for(size_t i = 0; i < visible; i++) {
+        size_t item_index = app->ota_setup_offset + i;
+        simple_app_ota_build_line(app, item_index, line, sizeof(line));
+        if(item_index == app->ota_setup_index) {
+            canvas_draw_str(canvas, 2, y, ">");
+        }
+        canvas_draw_str(canvas, 12, y, line);
+        y += 12;
+    }
+
+    (void)canvas;
+}
+
+static void simple_app_draw_ota_status(SimpleApp* app, Canvas* canvas) {
+    if(!app || !canvas) return;
+    canvas_set_color(canvas, ColorBlack);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 18, 12, "OTA Status");
+
+    canvas_set_font(canvas, FontSecondary);
+    const char* wifi_line = (app->ota_wifi_status[0] != '\0') ? app->ota_wifi_status : "WiFi: --";
+    const char* ip_line = (app->ota_ip_status[0] != '\0') ? app->ota_ip_status : "IP: --";
+    const char* ota_line = (app->ota_response[0] != '\0') ? app->ota_response : "OTA: --";
+    canvas_draw_str(canvas, 4, 26, wifi_line);
+    canvas_draw_str(canvas, 4, 38, ip_line);
+    canvas_draw_str(canvas, 4, 50, ota_line);
+    canvas_draw_str(canvas, 2, 62, "Back to OTA");
+}
+
+static void simple_app_draw_ota_list(SimpleApp* app, Canvas* canvas) {
+    if(!app || !canvas) return;
+    canvas_set_color(canvas, ColorBlack);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 28, 12, "OTA List");
+
+    canvas_set_font(canvas, FontSecondary);
+    if(app->ota_list_count == 0) {
+        canvas_draw_str(canvas, 4, 32, "No data");
+    } else {
+        uint8_t y = 26;
+        for(size_t i = 0; i < app->ota_list_count && i < OTA_LIST_MAX; i++) {
+            canvas_draw_str(canvas, 4, y, app->ota_list_lines[i]);
+            y += 12;
+        }
+    }
+    canvas_draw_str(canvas, 2, 62, "Back to OTA");
+}
+
+static void simple_app_draw_ota_info(SimpleApp* app, Canvas* canvas) {
+    if(!app || !canvas) return;
+    canvas_set_color(canvas, ColorBlack);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 30, 12, "OTA Info");
+
+    canvas_set_font(canvas, FontSecondary);
+    if(app->ota_info_count == 0) {
+        canvas_draw_str(canvas, 4, 32, "No data");
+    } else {
+        uint8_t y = 24;
+        const uint8_t max_y = 54;
+        for(size_t i = 0; i < app->ota_info_count && i < OTA_INFO_MAX; i++) {
+            const char* text = app->ota_info_lines[i];
+            while(*text != '\0' && y <= max_y) {
+                char line[32];
+                size_t taken = 0;
+                size_t last_space = 0;
+                while(text[taken] != '\0' && taken < 26) {
+                    if(text[taken] == ' ') {
+                        last_space = taken;
+                    }
+                    taken++;
+                }
+                if(text[taken] != '\0' && last_space > 0) {
+                    taken = last_space;
+                }
+                if(taken == 0) break;
+                strncpy(line, text, taken);
+                line[taken] = '\0';
+                simple_app_trim(line);
+                canvas_draw_str(canvas, 4, y, line);
+                y += 10;
+                text += taken;
+                while(*text == ' ')
+                    text++;
+            }
+            if(y > max_y) break;
+        }
+    }
+    canvas_draw_str(canvas, 2, 62, "Back to OTA");
+}
+
 static void simple_app_reset_sd_listing(SimpleApp* app) {
     if(!app) return;
     simple_app_sd_free_files(app);
@@ -14834,6 +15492,18 @@ static void simple_app_draw(Canvas* canvas, void* context) {
     case ScreenSetupSdManager:
         simple_app_draw_setup_sd_manager(app, canvas);
         break;
+    case ScreenSetupOta:
+        simple_app_draw_setup_ota(app, canvas);
+        break;
+    case ScreenOtaStatus:
+        simple_app_draw_ota_status(app, canvas);
+        break;
+    case ScreenOtaList:
+        simple_app_draw_ota_list(app, canvas);
+        break;
+    case ScreenOtaInfo:
+        simple_app_draw_ota_info(app, canvas);
+        break;
     case ScreenHelpQr:
         simple_app_draw_help_qr(app, canvas);
         break;
@@ -14857,6 +15527,9 @@ static void simple_app_draw(Canvas* canvas, void* context) {
         break;
     case ScreenConfirmSnifferDos:
         simple_app_draw_confirm_sniffer_dos(app, canvas);
+        break;
+    case ScreenConfirmOtaConnect:
+        simple_app_draw_confirm_ota_connect(app, canvas);
         break;
     case ScreenConfirmExit:
         simple_app_draw_confirm_exit(app, canvas);
@@ -15080,6 +15753,11 @@ static void simple_app_handle_menu_input(SimpleApp* app, InputKey key) {
         } else if(entry->action == MenuActionOpenSdManager) {
             simple_app_open_sd_manager(app);
             return;
+        } else if(entry->action == MenuActionOpenOta) {
+            app->screen = ScreenSetupOta;
+            app->ota_setup_index = 0;
+            simple_app_ota_adjust_offset(app);
+            simple_app_send_command(app, "ota_channel", false);
         } else if(entry->action == MenuActionOpenHelp) {
             simple_app_prepare_help_qr(app);
             app->screen = ScreenHelpQr;
@@ -17027,6 +17705,287 @@ static void simple_app_handle_setup_boot_input(SimpleApp* app, InputKey key) {
     }
 }
 
+static bool simple_app_ota_send_wifi_connect(SimpleApp* app) {
+    if(!app) return false;
+
+    simple_app_reset_ota_status(app);
+    simple_app_ota_store_line(
+        app->ota_wifi_status, sizeof(app->ota_wifi_status), "WiFi: connecting");
+
+    if(app->ota_ssid[0] == '\0') {
+        simple_app_show_status_message(app, "SSID required", 1200, true);
+        return false;
+    }
+
+    if(!app->ota_use_dhcp) {
+        if(app->ota_ip[0] == '\0' || app->ota_netmask[0] == '\0' || app->ota_gw[0] == '\0') {
+            simple_app_show_status_message(app, "IP/Netmask/GW required", 1500, true);
+            return false;
+        }
+    }
+
+    char command[256];
+    size_t pos = 0;
+    int written = snprintf(command, sizeof(command), "wifi_connect \"");
+    if(written <= 0 || (size_t)written >= sizeof(command)) {
+        simple_app_show_status_message(app, "OTA: command too long", 1500, true);
+        return false;
+    }
+    pos = (size_t)written;
+    if(!simple_app_append_escaped(command, sizeof(command), &pos, app->ota_ssid)) {
+        simple_app_show_status_message(app, "OTA: SSID too long", 1500, true);
+        return false;
+    }
+    written = snprintf(command + pos, sizeof(command) - pos, "\" \"");
+    if(written <= 0 || (size_t)written >= sizeof(command) - pos) {
+        simple_app_show_status_message(app, "OTA: command too long", 1500, true);
+        return false;
+    }
+    pos += (size_t)written;
+    if(!simple_app_append_escaped(command, sizeof(command), &pos, app->ota_password)) {
+        simple_app_show_status_message(app, "OTA: password too long", 1500, true);
+        return false;
+    }
+    written = snprintf(command + pos, sizeof(command) - pos, "\" ota");
+    if(written <= 0 || (size_t)written >= sizeof(command) - pos) {
+        simple_app_show_status_message(app, "OTA: command too long", 1500, true);
+        return false;
+    }
+    pos += (size_t)written;
+
+    if(!app->ota_use_dhcp) {
+        if(app->ota_dns[0] != '\0') {
+            written = snprintf(
+                command + pos,
+                sizeof(command) - pos,
+                " %s %s %s %s",
+                app->ota_ip,
+                app->ota_netmask,
+                app->ota_gw,
+                app->ota_dns);
+        } else {
+            written = snprintf(
+                command + pos,
+                sizeof(command) - pos,
+                " %s %s %s",
+                app->ota_ip,
+                app->ota_netmask,
+                app->ota_gw);
+        }
+        if(written <= 0 || (size_t)written >= sizeof(command) - pos) {
+            simple_app_show_status_message(app, "OTA: command too long", 1500, true);
+            return false;
+        }
+    }
+
+    app->screen = ScreenOtaStatus;
+    simple_app_send_command(app, command, false);
+    return true;
+}
+
+static void simple_app_handle_setup_ota_input(SimpleApp* app, InputKey key) {
+    if(!app) return;
+
+    if(key == InputKeyBack) {
+        app->screen = ScreenMenu;
+        if(app->viewport) {
+            view_port_update(app->viewport);
+        }
+        return;
+    }
+
+    size_t count = simple_app_ota_item_count(app);
+    if(count == 0) return;
+
+    if(key == InputKeyUp) {
+        if(app->ota_setup_index > 0) {
+            app->ota_setup_index--;
+            simple_app_ota_adjust_offset(app);
+            if(app->viewport) view_port_update(app->viewport);
+        }
+        return;
+    }
+
+    if(key == InputKeyDown) {
+        if(app->ota_setup_index + 1 < count) {
+            app->ota_setup_index++;
+            simple_app_ota_adjust_offset(app);
+            if(app->viewport) view_port_update(app->viewport);
+        }
+        return;
+    }
+
+    OtaSetupItem item = simple_app_ota_item_at(app, app->ota_setup_index);
+
+    if(item == OtaItemCheck) {
+        if(key == InputKeyOk) {
+            app->ota_connect_confirm_yes = false;
+            app->screen = ScreenConfirmOtaConnect;
+            if(app->viewport) view_port_update(app->viewport);
+        }
+        return;
+    }
+
+    if(item == OtaItemSsid) {
+        if(key == InputKeyOk) {
+            simple_app_ota_request_text_input(app, OtaInputSsid);
+        }
+        return;
+    }
+
+    if(item == OtaItemPass) {
+        if(key == InputKeyLeft || key == InputKeyRight) {
+            app->ota_pass_show = !app->ota_pass_show;
+            if(app->viewport) view_port_update(app->viewport);
+            return;
+        }
+        if(key == InputKeyOk) {
+            simple_app_ota_request_text_input(app, OtaInputPassword);
+        }
+        return;
+    }
+
+    if(item == OtaItemMode) {
+        if(key == InputKeyLeft || key == InputKeyRight || key == InputKeyOk) {
+            app->ota_use_dhcp = !app->ota_use_dhcp;
+            simple_app_ota_adjust_offset(app);
+            if(app->viewport) view_port_update(app->viewport);
+        }
+        return;
+    }
+
+    if(item == OtaItemChannel) {
+        if(key == InputKeyLeft || key == InputKeyRight) {
+            if(strcasecmp(app->ota_channel, "dev") == 0) {
+                snprintf(app->ota_channel, sizeof(app->ota_channel), "main");
+            } else {
+                snprintf(app->ota_channel, sizeof(app->ota_channel), "dev");
+            }
+            if(app->viewport) view_port_update(app->viewport);
+            return;
+        }
+        if(key == InputKeyOk) {
+            char cmd[32];
+            snprintf(cmd, sizeof(cmd), "ota_channel %s", app->ota_channel);
+            simple_app_reset_ota_status(app);
+            app->screen = ScreenOtaStatus;
+            simple_app_send_command(app, cmd, false);
+            if(app->viewport) view_port_update(app->viewport);
+        }
+        return;
+    }
+
+    if(item == OtaItemList) {
+        if(key == InputKeyOk) {
+            simple_app_reset_ota_list(app);
+            app->screen = ScreenOtaList;
+            simple_app_send_command(app, "ota_list", false);
+            if(app->viewport) view_port_update(app->viewport);
+        }
+        return;
+    }
+
+    if(item == OtaItemInfo) {
+        if(key == InputKeyOk) {
+            simple_app_reset_ota_info(app);
+            app->screen = ScreenOtaInfo;
+            simple_app_send_command(app, "ota_info", false);
+            if(app->viewport) view_port_update(app->viewport);
+        }
+        return;
+    }
+
+    if(item == OtaItemBoot) {
+        if(key == InputKeyLeft || key == InputKeyRight) {
+            app->ota_boot_target_slot1 = !app->ota_boot_target_slot1;
+            if(app->viewport) view_port_update(app->viewport);
+            return;
+        }
+        if(key == InputKeyOk) {
+            const char* target = app->ota_boot_target_slot1 ? "ota_1" : "ota_0";
+            char cmd[32];
+            snprintf(cmd, sizeof(cmd), "ota_boot %s", target);
+            simple_app_reset_ota_status(app);
+            app->screen = ScreenOtaStatus;
+            simple_app_send_command(app, cmd, false);
+            if(app->viewport) view_port_update(app->viewport);
+        }
+        return;
+    }
+
+    if(key != InputKeyOk) return;
+
+    switch(item) {
+    case OtaItemIp:
+        simple_app_ota_request_text_input(app, OtaInputIp);
+        break;
+    case OtaItemNetmask:
+        simple_app_ota_request_text_input(app, OtaInputNetmask);
+        break;
+    case OtaItemGw:
+        simple_app_ota_request_text_input(app, OtaInputGw);
+        break;
+    case OtaItemDns:
+        simple_app_ota_request_text_input(app, OtaInputDns);
+        break;
+    default:
+        break;
+    }
+}
+
+static void simple_app_handle_confirm_ota_connect_input(SimpleApp* app, InputKey key) {
+    if(!app) return;
+
+    if(key == InputKeyBack) {
+        app->screen = ScreenSetupOta;
+        if(app->viewport) view_port_update(app->viewport);
+        return;
+    }
+
+    if(key == InputKeyLeft || key == InputKeyRight) {
+        app->ota_connect_confirm_yes = !app->ota_connect_confirm_yes;
+        if(app->viewport) view_port_update(app->viewport);
+        return;
+    }
+
+    if(key == InputKeyOk) {
+        if(app->ota_connect_confirm_yes) {
+            if(!simple_app_ota_send_wifi_connect(app)) {
+                app->screen = ScreenSetupOta;
+            }
+        } else {
+            simple_app_reset_ota_status(app);
+            app->screen = ScreenOtaStatus;
+            simple_app_send_command(app, "ota_check", false);
+        }
+        if(app->viewport) view_port_update(app->viewport);
+    }
+}
+
+static void simple_app_handle_ota_status_input(SimpleApp* app, InputKey key) {
+    if(!app) return;
+    if(key == InputKeyBack) {
+        app->screen = ScreenSetupOta;
+        if(app->viewport) view_port_update(app->viewport);
+    }
+}
+
+static void simple_app_handle_ota_list_input(SimpleApp* app, InputKey key) {
+    if(!app) return;
+    if(key == InputKeyBack) {
+        app->screen = ScreenSetupOta;
+        if(app->viewport) view_port_update(app->viewport);
+    }
+}
+
+static void simple_app_handle_ota_info_input(SimpleApp* app, InputKey key) {
+    if(!app) return;
+    if(key == InputKeyBack) {
+        app->screen = ScreenSetupOta;
+        if(app->viewport) view_port_update(app->viewport);
+    }
+}
+
 static void simple_app_handle_serial_input(SimpleApp* app, InputKey key) {
     if(!app) return;
     if(app->gps_console_mode && key == InputKeyBack) {
@@ -17859,6 +18818,18 @@ static void simple_app_input(InputEvent* event, void* context) {
     case ScreenSetupSdManager:
         simple_app_handle_setup_sd_manager_input(app, event->key);
         break;
+    case ScreenSetupOta:
+        simple_app_handle_setup_ota_input(app, event->key);
+        break;
+    case ScreenOtaStatus:
+        simple_app_handle_ota_status_input(app, event->key);
+        break;
+    case ScreenOtaList:
+        simple_app_handle_ota_list_input(app, event->key);
+        break;
+    case ScreenOtaInfo:
+        simple_app_handle_ota_info_input(app, event->key);
+        break;
     case ScreenHelpQr:
         simple_app_handle_help_qr_input(app, event->key);
         break;
@@ -17885,6 +18856,9 @@ static void simple_app_input(InputEvent* event, void* context) {
         break;
     case ScreenConfirmSnifferDos:
         simple_app_handle_confirm_sniffer_dos_input(app, event->key);
+        break;
+    case ScreenConfirmOtaConnect:
+        simple_app_handle_confirm_ota_connect_input(app, event->key);
         break;
     case ScreenEvilTwinMenu:
         simple_app_handle_evil_twin_menu_input(app, event->key);
@@ -18054,6 +19028,31 @@ int32_t Lab_C5_app(void* p) {
     app->boot_long_command_index = 0; // start_blackout
     app->boot_setup_index = 0;
     app->boot_setup_long = false;
+    app->ota_setup_index = 0;
+    app->ota_setup_offset = 0;
+    app->ota_use_dhcp = true;
+    app->ota_pass_show = false;
+    app->ota_connect_confirm_yes = false;
+    app->ota_input_requested = false;
+    app->ota_input_active = false;
+    app->ota_input_field = OtaInputNone;
+    app->ota_ssid[0] = '\0';
+    app->ota_password[0] = '\0';
+    app->ota_ip[0] = '\0';
+    app->ota_netmask[0] = '\0';
+    app->ota_gw[0] = '\0';
+    app->ota_dns[0] = '\0';
+    app->ota_status_active = false;
+    app->ota_list_active = false;
+    app->ota_info_active = false;
+    app->ota_boot_target_slot1 = false;
+    snprintf(app->ota_channel, sizeof(app->ota_channel), "main");
+    app->ota_wifi_status[0] = '\0';
+    app->ota_ip_status[0] = '\0';
+    app->ota_response[0] = '\0';
+    app->ota_list_count = 0;
+    app->ota_info_count = 0;
+    app->ota_line_length = 0;
     app->scanner_view_offset = 0;
     app->karma_sniffer_duration_sec = 15;
     simple_app_update_karma_duration_label(app);
@@ -18197,6 +19196,17 @@ int32_t Lab_C5_app(void* p) {
                     simple_app_show_status_message(app, "SSID cleared", 1000, true);
                 }
                 simple_app_portal_sync_offset(app);
+            }
+            if(app->viewport) {
+                view_port_update(app->viewport);
+            }
+        }
+
+        if(app->ota_input_requested && !app->ota_input_active) {
+            app->ota_input_requested = false;
+            bool accepted = simple_app_ota_run_text_input(app);
+            if(accepted) {
+                simple_app_show_status_message(app, "OTA field updated", 1000, true);
             }
             if(app->viewport) {
                 view_port_update(app->viewport);
