@@ -15,9 +15,9 @@
 #define TAG "MultiTally"
 
 #define GROUP_COUNT 6
-#define NAME_LEN 12
-#define VALUE_MAX 999999
-#define FLASH_MS 150
+#define NAME_LEN    12
+#define VALUE_MAX   999999
+#define FLASH_MS    150
 #define AUTOSAVE_MS 10000
 
 #define SAVE_PATH APP_DATA_PATH("multi_tally.save")
@@ -92,8 +92,7 @@ struct App {
     uint8_t back_repeats;
 };
 
-static const char* const default_names[GROUP_COUNT] =
-    {"Up", "Down", "Left", "Right", "OK", "Back"};
+static const char* const default_names[GROUP_COUNT] = {"Up", "Down", "Left", "Right", "OK", "Back"};
 
 // Text markers for the Groups list, same order as groups
 static const char* const group_marks[GROUP_COUNT] = {"[^]", "[v]", "[<]", "[>]", "[o]", "[Bk]"};
@@ -120,37 +119,36 @@ static const NotificationSequence seq_beep_minus = {
     NULL,
 };
 
-static const char* const help_text =
-    "\e#Multi Tally\n"
-    "Each button counts its\n"
-    "own group: Up, Down,\n"
-    "Left, Right, OK, Back.\n"
-    "\n"
-    "Short press: +step\n"
-    "Long press: -step\n"
-    "Hold OK: menu\n"
-    "Hold Back: exit\n"
-    "(hold time is set\n"
-    "in Settings, 2 s\n"
-    "by default)\n"
-    "\n"
-    "Screen cells:\n"
-    " Left | Up  | Right\n"
-    " OK  | Down | Back\n"
-    "\n"
-    "In Groups you can\n"
-    "rename a group, set\n"
-    "its step, turn it off\n"
-    "and zero its count.\n"
-    "\n"
-    "Settings: vibro,\n"
-    "sound and LED blink\n"
-    "on each count, always-\n"
-    "on backlight, hold\n"
-    "time for menu/exit.\n"
-    "\n"
-    "Everything is saved\n"
-    "automatically.";
+static const char* const help_text = "\e#Multi Tally\n"
+                                     "Each button counts its\n"
+                                     "own group: Up, Down,\n"
+                                     "Left, Right, OK, Back.\n"
+                                     "\n"
+                                     "Short press: +step\n"
+                                     "Long press: -step\n"
+                                     "Hold OK: menu\n"
+                                     "Hold Back: exit\n"
+                                     "(hold time is set\n"
+                                     "in Settings, 2 s\n"
+                                     "by default)\n"
+                                     "\n"
+                                     "Screen cells:\n"
+                                     " Left | Up  | Right\n"
+                                     " OK  | Down | Back\n"
+                                     "\n"
+                                     "In Groups you can\n"
+                                     "rename a group, set\n"
+                                     "its step, turn it off\n"
+                                     "and zero its count.\n"
+                                     "\n"
+                                     "Settings: vibro,\n"
+                                     "sound and LED blink\n"
+                                     "on each count, always-\n"
+                                     "on backlight, hold\n"
+                                     "time for menu/exit.\n"
+                                     "\n"
+                                     "Everything is saved\n"
+                                     "automatically.";
 
 static uint8_t step_index(int32_t step) {
     for(uint8_t i = 0; i < COUNT_OF(step_values); i++) {
@@ -234,14 +232,16 @@ static void state_load(App* app) {
             int32_t values[GROUP_COUNT], steps[GROUP_COUNT];
             uint32_t enabled[GROUP_COUNT];
             if(flipper_format_read_int32(ff, "Values", values, GROUP_COUNT)) {
-                for(uint8_t i = 0; i < GROUP_COUNT; i++) app->groups[i].value = values[i];
+                for(uint8_t i = 0; i < GROUP_COUNT; i++)
+                    app->groups[i].value = values[i];
             }
             if(flipper_format_read_int32(ff, "Steps", steps, GROUP_COUNT)) {
                 for(uint8_t i = 0; i < GROUP_COUNT; i++)
                     app->groups[i].step = step_values[step_index(steps[i])];
             }
             if(flipper_format_read_uint32(ff, "Enabled", enabled, GROUP_COUNT)) {
-                for(uint8_t i = 0; i < GROUP_COUNT; i++) app->groups[i].enabled = enabled[i] != 0;
+                for(uint8_t i = 0; i < GROUP_COUNT; i++)
+                    app->groups[i].enabled = enabled[i] != 0;
             }
             uint32_t opt;
             if(flipper_format_read_uint32(ff, "Vibro", &opt, 1)) app->vibro = opt != 0;
@@ -421,8 +421,10 @@ static bool main_input_callback(InputEvent* event, void* context) {
     case InputKeyDown:
     case InputKeyLeft:
     case InputKeyRight:
-        if(event->type == InputTypeShort) group_add(app, gi, +1);
-        else if(event->type == InputTypeLong) group_add(app, gi, -1);
+        if(event->type == InputTypeShort)
+            group_add(app, gi, +1);
+        else if(event->type == InputTypeLong)
+            group_add(app, gi, -1);
         break;
 
     case InputKeyOk:
@@ -695,7 +697,8 @@ static void reset_dialog_callback(DialogExResult result, void* context) {
             // defaults have backlight enforcement off
             notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
         } else {
-            for(uint8_t i = 0; i < GROUP_COUNT; i++) app->groups[i].value = 0;
+            for(uint8_t i = 0; i < GROUP_COUNT; i++)
+                app->groups[i].value = 0;
         }
         app->dirty = true;
         view_dispatcher_switch_to_view(app->view_dispatcher, ViewIdMain);

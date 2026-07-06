@@ -12,7 +12,8 @@ static void cfs_settings_weight_show_list(CfsApp* app) {
     submenu_set_header(submenu, "Weight -> Length (m)");
     char label[32];
     for(uint32_t i = 0; i < CFS_WEIGHT_COUNT; i++) {
-        snprintf(label, sizeof(label), "%s: %u m", cfs_weight_label(i), app->settings.weight_len[i]);
+        snprintf(
+            label, sizeof(label), "%s: %u m", cfs_weight_label(i), app->settings.weight_len[i]);
         submenu_add_item(submenu, label, i, cfs_submenu_send_index, app);
     }
     view_dispatcher_switch_to_view(app->view_dispatcher, CfsViewSubmenu);

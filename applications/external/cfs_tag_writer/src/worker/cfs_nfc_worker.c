@@ -13,10 +13,10 @@
 #define TAG "CfsNfcWorker"
 
 // CFS data lives in sector 1: data blocks 4/5/6, sector trailer block 7.
-#define CFS_BLOCK_FIRST    (4)
-#define CFS_BLOCK_TRAILER  (7)
-#define CFS_BLOCK_COUNT    (3)
-#define CFS_MAX_ATTEMPTS   (3)
+#define CFS_BLOCK_FIRST      (4)
+#define CFS_BLOCK_TRAILER    (7)
+#define CFS_BLOCK_COUNT      (3)
+#define CFS_MAX_ATTEMPTS     (3)
 #define CFS_ATTEMPT_DELAY_MS (100)
 // Overall time to wait for the user to present a tag before giving up.
 #define CFS_WAIT_FOR_TAG_MS  (30000)
@@ -79,8 +79,8 @@ static bool cfs_try_read_blocks(
     uint8_t out[CFS_PLAINTEXT_SIZE]) {
     for(int i = 0; i < CFS_BLOCK_COUNT; i++) {
         MfClassicBlock block;
-        MfClassicError err = mf_classic_poller_sync_read_block(
-            nfc, CFS_BLOCK_FIRST + i, key, key_type, &block);
+        MfClassicError err =
+            mf_classic_poller_sync_read_block(nfc, CFS_BLOCK_FIRST + i, key, key_type, &block);
         if(err != MfClassicErrorNone) return false;
         memcpy(out + i * MF_CLASSIC_BLOCK_SIZE, block.data, MF_CLASSIC_BLOCK_SIZE);
     }
@@ -95,8 +95,8 @@ static bool cfs_try_write_blocks(
     for(int i = 0; i < CFS_BLOCK_COUNT; i++) {
         MfClassicBlock block;
         memcpy(block.data, in + i * MF_CLASSIC_BLOCK_SIZE, MF_CLASSIC_BLOCK_SIZE);
-        MfClassicError err = mf_classic_poller_sync_write_block(
-            nfc, CFS_BLOCK_FIRST + i, key, key_type, &block);
+        MfClassicError err =
+            mf_classic_poller_sync_write_block(nfc, CFS_BLOCK_FIRST + i, key, key_type, &block);
         if(err != MfClassicErrorNone) return false;
     }
     return true;
@@ -180,9 +180,8 @@ static void cfs_do_read(CfsNfcWorker* worker) {
 
     cfs_crypto_decrypt(raw, worker->read_plain);
 
-    result = cfs_data_decode(worker->read_plain, &worker->tag_data) ?
-                 CfsNfcWorkerEventSuccess :
-                 CfsNfcWorkerEventReadFailed;
+    result = cfs_data_decode(worker->read_plain, &worker->tag_data) ? CfsNfcWorkerEventSuccess :
+                                                                      CfsNfcWorkerEventReadFailed;
     nfc_free(nfc);
     cfs_emit(worker, result);
 }
@@ -330,8 +329,7 @@ CfsNfcWorker* cfs_nfc_worker_alloc(void) {
     CfsNfcWorker* worker = malloc(sizeof(CfsNfcWorker));
     memset(worker, 0, sizeof(CfsNfcWorker));
     worker->mode = CfsNfcWorkerModeIdle;
-    worker->thread =
-        furi_thread_alloc_ex("CfsNfcWorker", 4 * 1024, cfs_nfc_worker_thread, worker);
+    worker->thread = furi_thread_alloc_ex("CfsNfcWorker", 4 * 1024, cfs_nfc_worker_thread, worker);
     return worker;
 }
 

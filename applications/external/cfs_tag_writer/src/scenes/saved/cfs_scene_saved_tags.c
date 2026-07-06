@@ -10,8 +10,7 @@ void cfs_scene_saved_tags_on_enter(void* context) {
     cfs_storage_ensure_dir(app->storage); // base_path must exist to browse it
 
     DialogsFileBrowserOptions options;
-    dialog_file_browser_set_basic_options(
-        &options, CFS_STORAGE_EXTENSION, &I_CfsTagFile_10x10);
+    dialog_file_browser_set_basic_options(&options, CFS_STORAGE_EXTENSION, &I_CfsTagFile_10x10);
     options.base_path = CFS_STORAGE_DIR;
     options.hide_dot_files = true;
 

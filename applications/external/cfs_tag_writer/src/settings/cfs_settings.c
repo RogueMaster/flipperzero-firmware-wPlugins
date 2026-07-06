@@ -49,7 +49,8 @@ void cfs_settings_load(Storage* storage, CfsSettings* settings) {
         if(u >= CfsSerialModeCount) break;
         tmp.serial_mode = (CfsSerialMode)u;
         if(!flipper_format_read_uint32(ff, "WeightLen", wl, CFS_WEIGHT_COUNT)) break;
-        for(size_t i = 0; i < CFS_WEIGHT_COUNT; i++) tmp.weight_len[i] = (uint16_t)wl[i];
+        for(size_t i = 0; i < CFS_WEIGHT_COUNT; i++)
+            tmp.weight_len[i] = (uint16_t)wl[i];
         if(!flipper_format_read_uint32(ff, "SerialCounter", &tmp.serial_counter, 1)) break;
         if(!flipper_format_read_uint32(ff, "ColorPalette", &u, 1)) break;
         if(u >= CfsPaletteCount) break;
@@ -74,13 +75,15 @@ bool cfs_settings_save(Storage* storage, const CfsSettings* settings) {
     furi_assert(settings);
 
     uint32_t wl[CFS_WEIGHT_COUNT];
-    for(size_t i = 0; i < CFS_WEIGHT_COUNT; i++) wl[i] = settings->weight_len[i];
+    for(size_t i = 0; i < CFS_WEIGHT_COUNT; i++)
+        wl[i] = settings->weight_len[i];
 
     FlipperFormat* ff = flipper_format_file_alloc(storage);
     bool ok = false;
     do {
         if(!flipper_format_file_open_always(ff, CFS_SETTINGS_PATH)) break;
-        if(!flipper_format_write_header_cstr(ff, CFS_SETTINGS_FILETYPE, CFS_SETTINGS_VERSION)) break;
+        if(!flipper_format_write_header_cstr(ff, CFS_SETTINGS_FILETYPE, CFS_SETTINGS_VERSION))
+            break;
         uint32_t u = settings->default_brand;
         if(!flipper_format_write_uint32(ff, "DefaultBrand", &u, 1)) break;
         u = settings->serial_mode;

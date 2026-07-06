@@ -155,7 +155,8 @@ static uint8_t cfs_hex_val(char c) {
 
 static size_t cfs_strnlen(const char* s, size_t max) {
     size_t n = 0;
-    while(n < max && s[n] != '\0') n++;
+    while(n < max && s[n] != '\0')
+        n++;
     return n;
 }
 
@@ -248,13 +249,7 @@ void cfs_data_encode(const CfsTagData* data, uint8_t plaintext[CFS_PLAINTEXT_SIZ
     memcpy(p + CFS_OFF_FILAMENT, data->filament_id, CFS_FILAMENT_LEN);
 
     // Color: "0RRGGBB".
-    snprintf(
-        buf,
-        sizeof(buf),
-        "0%02X%02X%02X",
-        data->color_r,
-        data->color_g,
-        data->color_b);
+    snprintf(buf, sizeof(buf), "0%02X%02X%02X", data->color_r, data->color_g, data->color_b);
     memcpy(p + CFS_OFF_COLOR, buf, CFS_COLOR_LEN);
 
     // Length: 4-digit DECIMAL meters (must match cfs_data_decode).
@@ -319,8 +314,8 @@ const uint16_t cfs_weight_grams[CFS_WEIGHT_COUNT] = {250, 500, 600, 750, 1000};
 const uint16_t cfs_default_weight_length[CFS_WEIGHT_COUNT] = {82, 165, 198, 247, 330};
 
 const char* cfs_weight_label(size_t index) {
-    static const char* const labels[CFS_WEIGHT_COUNT] =
-        {"250 g", "500 g", "600 g", "750 g", "1 kg"};
+    static const char* const labels[CFS_WEIGHT_COUNT] = {
+        "250 g", "500 g", "600 g", "750 g", "1 kg"};
     if(index >= CFS_WEIGHT_COUNT) return "?";
     return labels[index];
 }
@@ -361,8 +356,8 @@ void cfs_brand_material_label(const CfsTagData* data, char* out, size_t out_size
     const char* brand = cfs_resolve_brand_name(data);
     const char* material = info ? info->name :
                            (data->filament_type != CfsFilamentUnknown) ?
-                                                cfs_filament_type_to_name(data->filament_type) :
-                                                data->filament_id;
+                                  cfs_filament_type_to_name(data->filament_type) :
+                                  data->filament_id;
     // Generic catalog names already embed the brand ("Generic ABS"); skip the
     // brand prefix when it would double up ("Generic Generic ABS").
     if(strncmp(material, brand, strlen(brand)) == 0) {
@@ -391,42 +386,42 @@ void cfs_build_save_name(const CfsTagData* data, char* out, size_t out_size) {
 // 32 named colors. Basic = first 8, Standard = first 16, Extended = all 32.
 const CfsColorPreset cfs_color_table[CFS_COLOR_TABLE_MAX] = {
     // Basic (0-7)
-    {"Black",        0x00, 0x00, 0x00},
-    {"White",        0xFF, 0xFF, 0xFF},
-    {"Gray",         0x80, 0x80, 0x80},
-    {"Red",          0xFF, 0x00, 0x00},
-    {"Green",        0x00, 0x80, 0x00},
-    {"Blue",         0x00, 0x00, 0xFF},
-    {"Yellow",       0xFF, 0xFF, 0x00},
-    {"Orange",       0xFF, 0xA5, 0x00},
+    {"Black", 0x00, 0x00, 0x00},
+    {"White", 0xFF, 0xFF, 0xFF},
+    {"Gray", 0x80, 0x80, 0x80},
+    {"Red", 0xFF, 0x00, 0x00},
+    {"Green", 0x00, 0x80, 0x00},
+    {"Blue", 0x00, 0x00, 0xFF},
+    {"Yellow", 0xFF, 0xFF, 0x00},
+    {"Orange", 0xFF, 0xA5, 0x00},
 
     // Standard (8-15)
-    {"Silver",       0xC0, 0xC0, 0xC0},
-    {"Dark Gray",    0x40, 0x40, 0x40},
-    {"Brown",        0x8B, 0x45, 0x13},
-    {"Purple",       0x80, 0x00, 0x80},
-    {"Pink",         0xFF, 0xC0, 0xCB},
-    {"Cyan",         0x00, 0xFF, 0xFF},
-    {"Gold",         0xFF, 0xD7, 0x00},
-    {"Clear",        0xF8, 0xF8, 0xFF},
+    {"Silver", 0xC0, 0xC0, 0xC0},
+    {"Dark Gray", 0x40, 0x40, 0x40},
+    {"Brown", 0x8B, 0x45, 0x13},
+    {"Purple", 0x80, 0x00, 0x80},
+    {"Pink", 0xFF, 0xC0, 0xCB},
+    {"Cyan", 0x00, 0xFF, 0xFF},
+    {"Gold", 0xFF, 0xD7, 0x00},
+    {"Clear", 0xF8, 0xF8, 0xFF},
 
     // Extended (16-31)
-    {"Navy",         0x00, 0x00, 0x80},
-    {"Teal",         0x00, 0x80, 0x80},
-    {"Sky Blue",     0x87, 0xCE, 0xEB},
+    {"Navy", 0x00, 0x00, 0x80},
+    {"Teal", 0x00, 0x80, 0x80},
+    {"Sky Blue", 0x87, 0xCE, 0xEB},
     {"Forest Green", 0x22, 0x8B, 0x22},
-    {"Olive",        0x80, 0x80, 0x00},
-    {"Lime",         0x32, 0xCD, 0x32},
-    {"Magenta",      0xFF, 0x00, 0xFF},
-    {"Violet",       0xEE, 0x82, 0xEE},
-    {"Beige",        0xF5, 0xF5, 0xDC},
-    {"Tan",          0xD2, 0xB4, 0x8C},
-    {"Copper",       0xB8, 0x73, 0x33},
-    {"Khaki",        0xF0, 0xE6, 0x8C},
-    {"Mint",         0x98, 0xFF, 0x98},
-    {"Lavender",     0xE6, 0xE6, 0xFA},
-    {"Maroon",       0x80, 0x00, 0x00},
-    {"Turquoise",    0x40, 0xE0, 0xD0},
+    {"Olive", 0x80, 0x80, 0x00},
+    {"Lime", 0x32, 0xCD, 0x32},
+    {"Magenta", 0xFF, 0x00, 0xFF},
+    {"Violet", 0xEE, 0x82, 0xEE},
+    {"Beige", 0xF5, 0xF5, 0xDC},
+    {"Tan", 0xD2, 0xB4, 0x8C},
+    {"Copper", 0xB8, 0x73, 0x33},
+    {"Khaki", 0xF0, 0xE6, 0x8C},
+    {"Mint", 0x98, 0xFF, 0x98},
+    {"Lavender", 0xE6, 0xE6, 0xFA},
+    {"Maroon", 0x80, 0x00, 0x00},
+    {"Turquoise", 0x40, 0xE0, 0xD0},
 };
 
 size_t cfs_palette_count(CfsColorPalette palette) {

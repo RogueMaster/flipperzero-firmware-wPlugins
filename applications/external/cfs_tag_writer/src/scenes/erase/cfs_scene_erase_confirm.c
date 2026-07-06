@@ -1,9 +1,7 @@
 #include "src/core/cfs_app_i.h"
 
-static void cfs_erase_confirm_button_callback(
-    GuiButtonType result,
-    InputType type,
-    void* context) {
+static void
+    cfs_erase_confirm_button_callback(GuiButtonType result, InputType type, void* context) {
     CfsApp* app = context;
     if(type != InputTypeShort) return;
     if(result == GuiButtonTypeCenter) {

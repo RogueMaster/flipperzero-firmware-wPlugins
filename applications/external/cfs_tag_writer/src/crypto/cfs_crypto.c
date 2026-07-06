@@ -109,7 +109,7 @@ bool cfs_crypto_self_test(void) {
         '0', 'F', 'F', '5', 'F', '0', 'B', // color
         '0', '1', '6', '5', //       length
         '7', '3', '6', '3', '1', '4', // serial
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 // reserved
+        0,   0,   0,   0,   0,   0,   0,   0, 0, 0, 0, 0, 0, 0 // reserved
     };
 
     uint8_t cipher[CFS_CRYPTO_PLAINTEXT_SIZE];

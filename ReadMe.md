@@ -54,6 +54,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [24Cxx Programmer v2.1 (By kamylwnb)](https://github.com/kamylwnb/24cxxprog)
 - Updated Lock Screen Image + SD Card Assets Updated With New Pack Info (By RogueMaster)
 - Updated: [Cross Remote v3.4 (By leedave)](https://github.com/leedave/flipper-zero-cross-remote)
+- Added: [CFS Tag Writer v1.0 (By pwschattenberg)](https://github.com/pwschattenberg/cfs-tag-writer)
+- Added: [BadUSB wPlaceholders v1.0 (By whitewhidow)](https://github.com/whitewhidow/flipper-badusb-ph)
+- Added: [Multi Tally v1.0 (By aseypalich1)](https://github.com/aseypalich1/flipper-multi-counter)
 
 <a name="release"></a>
 
@@ -348,6 +351,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Bad KB (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/739) (Part of BadUSB)
 - [Badge Audit v1.0 (By ViperDroid)](https://github.com/ViperDroid/flipper-badge-audit)
 - [BadUSB Pro v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- [BadUSB wPlaceholders v1.0 (By whitewhidow)](https://github.com/whitewhidow/flipper-badusb-ph)
 - [Barcode App v1.4 (By Kingal1337)](https://github.com/Kingal1337/flipper-barcode-generator)
 - [BarCode Scanner Emulator (By polarikus)](https://github.com/polarikus/flipper-zero_bc_scanner_emulator) `Uses: COM-port`
 - [Battery Checker v0.2 (By Programistich)](https://github.com/Programistich/battery_checker)
@@ -382,6 +386,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Canon Intervalometer v1.0 (By TravisCG)](https://github.com/TravisCG/canonivm)
 - [Caesar Cipher v1.3 (By panki27)](https://github.com/panki27/caesar-cipher)
 - [CCID Emulator v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- [CFS Tag Writer v1.0 (By pwschattenberg)](https://github.com/pwschattenberg/cfs-tag-writer)
 - [CFW Settings v2.1 (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/tree/dev/applications/main/momentum_app)
 - [Chameleon Ultra v1.0 (By muylder)](https://github.com/muylder/Chameleon_Flipper)
 - [ChaosID v0.6 (By cybersantana83)](https://github.com/cybersantana83/ChaosID)
@@ -631,6 +636,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [MQ-3 Alcometer v1.0 (By serjantlk)](https://github.com/serjantlk/MQ-3-Alcometer) `Req: MQ-3 Breathalyzer` [Sold Here](https://flipperaddons.com/product/mq-3-alkotester)
 - [MR60FDA1 Radar v0.1 (By adamaratski)](https://github.com/adamaratski/flipperzero-r60afd1) `Req: MR60FDA1/MR60FDA2`
 - [Multi Converter v1.3 (By theisolinearchip)](https://github.com/theisolinearchip)
+- [Multi Tally v1.0 (By aseypalich1)](https://github.com/aseypalich1/flipper-multi-counter)
 - [MultiTimer v1.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-multitimer)
 - [Music Beeper (By DrZlo13)](https://github.com/flipperdevices/flipperzero-firmware/pull/1189)
 - [Music Player v1.3 (By DrZlo13)-OFW](https://github.com/flipperdevices/flipperzero-firmware/pull/1189)

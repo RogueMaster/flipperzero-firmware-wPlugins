@@ -32,8 +32,7 @@ bool cfs_scene_write_material_on_event(void* context, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom && event.event < cfs_catalog_count()) {
         const CfsFilamentInfo* e = cfs_catalog_entry(event.event);
         // Tag filament_id is a 1-char prefix + the 5-char catalog id.
-        snprintf(
-            app->pending.filament_id, sizeof(app->pending.filament_id), "1%s", e->base_id);
+        snprintf(app->pending.filament_id, sizeof(app->pending.filament_id), "1%s", e->base_id);
         app->pending.filament_type = cfs_filament_id_to_type(app->pending.filament_id);
         scene_manager_next_scene(app->scene_manager, CfsSceneWriteColor);
         return true;

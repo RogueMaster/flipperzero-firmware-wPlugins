@@ -53,12 +53,13 @@ void cfs_scene_settings_on_enter(void* context) {
     variable_item_set_current_value_index(item, app->settings.default_brand);
     variable_item_set_current_value_text(item, cfs_brand_to_name(app->settings.default_brand));
 
-    item =
-        variable_item_list_add(list, "Serial", CfsSerialModeCount, cfs_settings_serial_changed, app);
+    item = variable_item_list_add(
+        list, "Serial", CfsSerialModeCount, cfs_settings_serial_changed, app);
     variable_item_set_current_value_index(item, app->settings.serial_mode);
     variable_item_set_current_value_text(item, cfs_serial_mode_label(app->settings.serial_mode));
 
-    item = variable_item_list_add(list, "Colors", CfsPaletteCount, cfs_settings_colors_changed, app);
+    item =
+        variable_item_list_add(list, "Colors", CfsPaletteCount, cfs_settings_colors_changed, app);
     variable_item_set_current_value_index(item, app->settings.color_palette);
     variable_item_set_current_value_text(item, cfs_palette_label(app->settings.color_palette));
 

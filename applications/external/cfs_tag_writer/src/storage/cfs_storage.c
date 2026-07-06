@@ -17,8 +17,8 @@
 // CFS payload lives in sector 1 (blocks 4/5/6, ciphertext); block 7 is the
 // trailer. We synthesize a full 64-block dump on save; on load we only trust
 // blocks 4/5/6 and rebuild everything else at write time.
-#define CFS_MC_BLOCKS     (64)
-#define CFS_MC_BLOCK_SIZE (16)
+#define CFS_MC_BLOCKS             (64)
+#define CFS_MC_BLOCK_SIZE         (16)
 #define CFS_STORAGE_PATH_BUF_SIZE (CFS_STORAGE_NAME_MAX + sizeof(CFS_STORAGE_DIR) + 8)
 
 // cfs_access_bits (sector-1 trailer) is shared from cfs_crypto.

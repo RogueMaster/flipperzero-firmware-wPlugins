@@ -52,7 +52,13 @@ void cfs_scene_read_result_on_enter(void* context) {
         widget_add_string_element(widget, 0, 1, AlignLeft, AlignTop, FontPrimary, info->name);
     } else if(d->filament_type != CfsFilamentUnknown) {
         widget_add_string_element(
-            widget, 0, 1, AlignLeft, AlignTop, FontPrimary, cfs_filament_type_to_name(d->filament_type));
+            widget,
+            0,
+            1,
+            AlignLeft,
+            AlignTop,
+            FontPrimary,
+            cfs_filament_type_to_name(d->filament_type));
     } else {
         snprintf(line, sizeof(line), "ID %s", d->filament_id);
         widget_add_string_element(widget, 0, 1, AlignLeft, AlignTop, FontPrimary, line);
@@ -82,7 +88,8 @@ void cfs_scene_read_result_on_enter(void* context) {
     // Actions. Right "Raw" opens the details/diagnostic view (filament id,
     // vendor, date bytes, UID). Re-read a live tag with Back -> Read.
     widget_add_button_element(widget, GuiButtonTypeLeft, "Save", cfs_result_button_callback, app);
-    widget_add_button_element(widget, GuiButtonTypeCenter, "Write", cfs_result_button_callback, app);
+    widget_add_button_element(
+        widget, GuiButtonTypeCenter, "Write", cfs_result_button_callback, app);
     widget_add_button_element(widget, GuiButtonTypeRight, "Raw", cfs_result_button_callback, app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, CfsViewWidget);

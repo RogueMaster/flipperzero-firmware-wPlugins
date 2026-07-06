@@ -24,7 +24,8 @@ void cfs_scene_debug_selftest_on_enter(void* context) {
     bool ok = crypto_ok && data_ok;
 
     popup_reset(app->popup);
-    popup_set_header(app->popup, ok ? "Self-Test PASS" : "Self-Test FAIL", 64, 10, AlignCenter, AlignTop);
+    popup_set_header(
+        app->popup, ok ? "Self-Test PASS" : "Self-Test FAIL", 64, 10, AlignCenter, AlignTop);
     snprintf(
         app->text_scratch,
         sizeof(app->text_scratch),
