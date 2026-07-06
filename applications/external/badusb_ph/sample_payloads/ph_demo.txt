@@ -1,0 +1,11 @@
+REM Placeholder demo payload - benign, types text only.
+REM Demonstrates [placeholder] substitution. Open it in the
+REM "Bad USB (placeholders)" app and you'll be asked to fill
+REM in host, port, url and username before it runs.
+DELAY 2000
+STRING Connecting to [host] on port [port]
+ENTER
+STRING Target URL: [url]
+ENTER
+STRING Logged in as [username]
+ENTER

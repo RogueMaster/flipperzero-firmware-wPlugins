@@ -1,0 +1,15 @@
+App(
+    appid="badusb_ph",
+    name="BBIT BadUSB with placeholders",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="bad_usb_app",
+    stack_size=4 * 1024,
+    fap_libs=["ble_profile"],
+    fap_icon="images/badusb_10px.png",
+    fap_icon_assets="images",
+    fap_category="USB",
+    fap_version="1.0",
+    fap_author="whitewhidow",
+    fap_weburl="https://github.com/whitewhidow/flipper-badusb-ph",
+    fap_description="BadUSB with [placeholder] token substitution and per-payload saved configs, over USB or BLE.",
+)

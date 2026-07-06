@@ -1,0 +1,11 @@
+# ufbt build output
+/dist/
+/.ufbt/
+/build/
+
+# editor / tooling
+/.vscode/
+compile_commands.json
+*.o
+*.elf
+*.fap
