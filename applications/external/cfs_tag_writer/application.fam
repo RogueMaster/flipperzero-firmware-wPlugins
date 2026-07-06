@@ -1,0 +1,15 @@
+App(
+    appid="cfs_tag_writer",
+    name="CFS Tag Writer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="cfs_tag_writer_app",
+    stack_size=4 * 1024,
+    sources=["*.c"],
+    fap_category="NFC",
+    fap_version="1.0",
+    fap_icon="icons/cfs_tag_writer.png",
+    fap_icon_assets="icons",
+    fap_description="Read, write & clone CFS filament spool NFC tags",
+    fap_author="P. Schattenberg",
+    fap_libs=["mbedtls"],
+)

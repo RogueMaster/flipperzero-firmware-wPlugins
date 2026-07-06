@@ -1,0 +1,8 @@
+# Build artifacts
+*.o
+*.d
+*.elf
+
+# uFBT build output
+dist/
+.ufbt/

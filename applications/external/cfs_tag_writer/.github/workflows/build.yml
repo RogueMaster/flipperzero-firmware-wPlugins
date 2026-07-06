@@ -1,0 +1,48 @@
+name: "FAP: Build for multiple SDK sources"
+# This will build your app for dev and release channels on GitHub. 
+# It will also build your app every day to make sure it's up to date with the latest SDK changes.
+# See https://github.com/marketplace/actions/build-flipper-application-package-fap for more information
+
+on:
+  push:
+    branches: 
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule: 
+    - cron: "1 1 * * *"
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  ufbt-build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: dev channel
+            sdk-channel: dev
+          - name: release channel
+            sdk-channel: release
+    name: 'ufbt: Build for ${{ matrix.name }}'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build with ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        id: build-app
+        with:
+          sdk-channel: ${{ matrix.sdk-channel }}
+      - name: Generate Artifact Attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: ${{ steps.build-app.outputs.fap-artifacts }}
+      - name: Upload app artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}
+          path: ${{ steps.build-app.outputs.fap-artifacts }}
