@@ -26,10 +26,10 @@ This software is for experimental purposes only and is not meant for any illegal
 
 <a name="latest"></a> 
 
-## Latest Updates - [PATREON: Latest Release RM0705-1435-a9175bb5-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
+## Latest Updates - [PATREON: Latest Release RM0706-1826-09c57551-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
-- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-07-05 14:35 EST`
-- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-07-05 14:35 EST`
+- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-07-06 18:26 EST`
+- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-07-06 18:26 EST`
 - Updated: NFC: [FeliCa: Add Standard card emulation support #4383 (By nikachu2012)](https://github.com/flipperdevices/flipperzero-firmware/pull/4383)
 - Updated: [Morse Flipper v0.1.70 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - NFC: [Read MIFARE Plus 2K in SL1 as full 32 sectors / 64 keys - a Plus 2K in SL1 is byte-identical to a Classic 1K in SAK/ATQA and was mis-sized as 1K; it is now told apart by its ISO14443-4 ATS (Plus S/X signature), while Plus SE, SmartMX, magic Perfect CUID and plain 1K stay 1K (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1016)
