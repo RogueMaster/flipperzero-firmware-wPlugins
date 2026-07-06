@@ -1,5 +1,5 @@
 -r requirements.txt
 pytest==9.1.1
-ruff==0.15.17
+ruff==0.15.20
 mypy==2.1.0
 respx==0.23.1
