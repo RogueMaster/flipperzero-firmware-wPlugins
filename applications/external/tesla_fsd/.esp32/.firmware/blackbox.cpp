@@ -139,6 +139,11 @@ static bool bb_name_ok(const char* name) {
 #endif
 
 static bool g_fs_ok = false;
+// Cached count of saved .json events. The status/aux poll (~every 2.5 s) reads
+// this instead of scanning the directory — a live scan on that hot path was
+// stalling the web task and dropping WiFi (#124). Kept current by recomputing
+// only inside the save/delete paths, which already touch the filesystem.
+static int  g_event_count = 0;
 
 // Strip a directory prefix and a trailing extension → bare event basename.
 static void bb_basename(const char* path, char* out, size_t n) {
@@ -181,6 +186,22 @@ static void bb_enforce_retention() {
     }
 }
 
+// Live directory scan → number of .json events. Only ever called from the
+// save/delete paths (which already touch the FS) and once at init; never from
+// the status/aux poll — that reads the g_event_count cache.
+static int bb_scan_count() {
+    if (!g_fs_ok) return 0;
+    File dir = BB_FS.open(BLACKBOX_DIR);
+    if (!dir) return 0;
+    int n = 0;
+    for (File e = dir.openNextFile(); e; e = dir.openNextFile()) {
+        if (strstr(e.name(), ".json")) n++;
+        e.close();
+    }
+    dir.close();
+    return n;
+}
+
 static void backend_init() {
 #if defined(BLACKBOX_BACKEND_LITTLEFS)
     g_fs_ok = LittleFS.begin(true);  // format-on-fail: own the spiffs data partition
@@ -189,7 +210,9 @@ static void backend_init() {
     g_fs_ok = SD.cardType() != CARD_NONE;  // can_dump_init() already mounted SD
 #endif
     if (g_fs_ok && !BB_FS.exists(BLACKBOX_DIR)) BB_FS.mkdir(BLACKBOX_DIR);
-    Serial.printf("[BB] backend=%s ok=%d\n", BLACKBOX_BACKEND_NAME, g_fs_ok);
+    g_event_count = g_fs_ok ? bb_scan_count() : 0;  // one boot-time scan
+    Serial.printf("[BB] backend=%s ok=%d events=%d\n",
+                  BLACKBOX_BACKEND_NAME, g_fs_ok, g_event_count);
 }
 
 // Persist one event. `frame_count`/per-bus counts already computed by the caller;
@@ -209,20 +232,11 @@ static void backend_store(const char* base, const char* json,
     else Serial.printf("[BB] .json open failed: %s\n", p);
 
     bb_enforce_retention();
+    g_event_count = bb_scan_count();  // reflects the new event + any retention drop
 }
 
-static int backend_count() {
-    if (!g_fs_ok) return 0;
-    File dir = BB_FS.open(BLACKBOX_DIR);
-    if (!dir) return 0;
-    int n = 0;
-    for (File e = dir.openNextFile(); e; e = dir.openNextFile()) {
-        if (strstr(e.name(), ".json")) n++;
-        e.close();
-    }
-    dir.close();
-    return n;
-}
+// Status/poll path: return the cache, never scan (see g_event_count).
+static int backend_count() { return g_fs_ok ? g_event_count : 0; }
 
 static String backend_list_json() {
     String out = "[";
@@ -282,6 +296,7 @@ static bool backend_delete(const char* name) {
     bool ok = false;
     snprintf(p, sizeof(p), BLACKBOX_DIR "/%s.log", name);  ok |= BB_FS.remove(p);
     snprintf(p, sizeof(p), BLACKBOX_DIR "/%s.json", name); ok |= BB_FS.remove(p);
+    if (ok) g_event_count = bb_scan_count();
     return ok;
 }
 
@@ -525,7 +540,10 @@ static void build_summary(char* out, int out_sz, uint32_t frame_count,
         uint32_t idx = (start + k) % BLACKBOX_TL_MAX;
         uint32_t ts = g_tl_ts[idx];
         if (ts < lo || ts > hi) continue;
-        tl_ts[tlc] = ts - window_start;
+        // window_start is the first frame in-window, which can post-date an
+        // entry (or the trigger) on a sparse/idle bus — clamp so the rel-ms
+        // never underflows to ~2^32.
+        tl_ts[tlc] = (ts >= window_start) ? ts - window_start : 0u;
         tl_state[tlc] = g_tl_state[idx];
         tlc++;
     }
@@ -535,7 +553,10 @@ static void build_summary(char* out, int out_sz, uint32_t frame_count,
     s.trigger        = trig_name_uc(g_trig);
     s.from_state     = g_snap.evt_last_from;
     s.to_state       = g_snap.evt_last_to;
-    s.trigger_rel_ms = g_trig_ms - window_start;
+    // When the window's first frame post-dates the trigger (idle bus, trigger
+    // fires before any post-roll frame lands) window_start > g_trig_ms; guard
+    // the unsigned subtraction so t= reads 0 instead of underflowing to ~2^32.
+    s.trigger_rel_ms = (g_trig_ms >= window_start) ? g_trig_ms - window_start : 0u;
     s.window_pre_ms  = BLACKBOX_PRE_MS;
     s.window_post_ms = BLACKBOX_POST_MS;
     s.frame_count    = frame_count;
