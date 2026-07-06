@@ -60,7 +60,7 @@ bool xiaomi_filter_page_is_zero(const uint8_t page[XIAOMI_FILTER_PAGE_SIZE]) {
 }
 
 static char xiaomi_filter_printable(uint8_t byte) {
-    return (byte >= 0x20 && byte < 0x7F) ? (char)byte : '?';
+    return (char)((byte >= 0x20 && byte < 0x7F) ? byte : '?');
 }
 
 void xiaomi_filter_product_code(

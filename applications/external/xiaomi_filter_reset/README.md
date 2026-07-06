@@ -4,6 +4,7 @@ A [Flipper Zero](https://flipperzero.one/) app that resets the **filter-life cou
 on Xiaomi air purifier filters, so the appliance reports **100%** again — no filter
 swap and no smartphone app required.
 
+[![Flipper Apps Catalog](https://img.shields.io/badge/Flipper-Apps%20Catalog-orange.svg)](https://lab.flipper.net/apps/xiaomi_filter_reset)
 [![CI](https://github.com/khmm12/flipper-xiaomi-filter-reset/actions/workflows/ci.yml/badge.svg)](https://github.com/khmm12/flipper-xiaomi-filter-reset/actions/workflows/ci.yml)
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
 [![Flipper category: NFC](https://img.shields.io/badge/Flipper-NFC-orange.svg)](https://flipperzero.one/)
@@ -80,10 +81,10 @@ are in [`docs/protocol.md`](./docs/protocol.md).
 
 ## Install
 
-### Option A — Flipper App Catalog (recommended once published)
+### Option A — Flipper App Catalog (recommended)
 
-Search for **"Xiaomi Filter Reset"** in the Apps catalog inside
-[qFlipper](https://flipperzero.one/update) or the mobile app and install it.
+Install from the [Flipper Apps Catalog](https://lab.flipper.net/apps/xiaomi_filter_reset),
+or search for **"Xiaomi Filter Reset"** in the web catalog or the Flipper mobile app.
 
 ### Option B — Prebuilt `.fap`
 
