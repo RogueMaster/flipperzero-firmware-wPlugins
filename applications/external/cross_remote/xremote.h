@@ -53,6 +53,8 @@ typedef struct {
     bool transmitting;
     bool stop_transmit;
     size_t transmit_item;
+    bool pause_active; // a non-blocking pause is currently counting down
+    uint32_t pause_deadline; // kernel tick at which the active pause completes
     char text_store[XREMOTE_TEXT_STORE_NUM][XREMOTE_TEXT_STORE_SIZE + 1];
     SubGhz* subghz;
     NumberInput* number_input;

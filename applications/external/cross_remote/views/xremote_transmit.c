@@ -9,12 +9,14 @@ struct XRemoteTransmit {
 typedef struct {
     int type;
     const char* name;
-    int time;
+    int time; // animation frame counter (0..2)
+    int remaining; // seconds left in the active pause (for the countdown)
 } XRemoteTransmitModel;
 
 static void xremote_transmit_model_init(XRemoteTransmitModel* const model) {
     model->type = XRemoteRemoteItemTypeInfrared;
     model->time = 1;
+    model->remaining = 0;
 }
 
 void xremote_transmit_model_set_name(XRemoteTransmit* instance, const char* name) {
@@ -30,6 +32,13 @@ void xremote_transmit_model_set_type(XRemoteTransmit* instance, int type) {
     model->time = 1;
     model->type = type;
     view_commit_model(instance->view, false);
+}
+
+void xremote_transmit_model_set_remaining(XRemoteTransmit* instance, int remaining) {
+    furi_assert(instance);
+    XRemoteTransmitModel* model = view_get_model(instance->view);
+    model->remaining = remaining;
+    view_commit_model(instance->view, true);
 }
 
 void xremote_transmit_set_callback(
@@ -73,6 +82,18 @@ void xremote_transmit_draw_pause(Canvas* canvas, XRemoteTransmitModel* model) {
     canvas_draw_str_aligned(canvas, 74, 15, AlignLeft, AlignTop, "Sequence");
     canvas_draw_str_aligned(canvas, 74, 25, AlignLeft, AlignTop, model->name);
 
+    // Live MM:SS countdown of the remaining pause time. Drawn on a white,
+    // framed box so it stays legible on top of the pause background artwork.
+    char countdown[24];
+    snprintf(
+        countdown, sizeof(countdown), "%02d:%02d", model->remaining / 60, model->remaining % 60);
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_box(canvas, 76, 34, 52, 16);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_frame(canvas, 76, 34, 52, 16);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 104, 42, AlignCenter, AlignCenter, countdown);
+
     if(model->time == 0) {
         canvas_draw_icon(canvas, 9, 28, &I_pause_ani_1_22x23);
     } else if(model->time == 1) {
@@ -113,6 +134,7 @@ void xremote_transmit_draw(Canvas* canvas, XRemoteTransmitModel* model) {
     if(model->time > 2) {
         model->time = 0;
     }
+    canvas_set_font(canvas, FontSecondary);
     elements_button_right(canvas, "exit");
 }
 

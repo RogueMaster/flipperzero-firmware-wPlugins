@@ -53,6 +53,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Dab Timer v2.2 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer)
 - Updated: [24Cxx Programmer v2.1 (By kamylwnb)](https://github.com/kamylwnb/24cxxprog)
 - Updated Lock Screen Image + SD Card Assets Updated With New Pack Info (By RogueMaster)
+- Updated: [Cross Remote v3.4 (By leedave)](https://github.com/leedave/flipper-zero-cross-remote)
 
 <a name="release"></a>
 
@@ -402,7 +403,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Cookie Clicker v1.1 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/hid/hid_cookie)
 - [Count Down Timer v1.5 (By 0w0mewo)](https://github.com/0w0mewo/fpz_cntdown_timer)
 - [Counter v1.5 (By Krulknul & TEXploder)](https://github.com/TEXploder/TEX-Counter)
-- [Cross Remote v3.3 (By leedave)](https://github.com/leedave/flipper-zero-cross-remote)
+- [Cross Remote v3.4 (By leedave)](https://github.com/leedave/flipper-zero-cross-remote)
 - [Crypto Dictionary v0.1 (By armixz)](https://github.com/armixz/Flipper-Zero-Crypto-Dictionary)
 - [Cyborg Detector v1.1 (By RocketGod-Git)](https://github.com/RocketGod-Git/Flipper-Zero-Cyborg-Detector)
 - [Dab Timer v2.2 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer)

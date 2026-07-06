@@ -106,8 +106,10 @@ bool xremote_cross_remote_add_ir_item(
 bool xremote_cross_remote_add_pause(CrossRemote* remote, int time) {
     CrossRemoteItem* item = xremote_cross_remote_item_alloc();
     xremote_cross_remote_item_set_type(item, XRemoteRemoteItemTypePause);
-    char name[9];
-    snprintf(name, 9, CROSS_REMOTE_PAUSE_NAME, time);
+    // Oversized for the compiler's worst-case int range (format-truncation);
+    // at runtime `time` is clamped to <= 3600 (60:00).
+    char name[32];
+    snprintf(name, sizeof(name), CROSS_REMOTE_PAUSE_NAME, time / 60, time % 60);
     xremote_cross_remote_item_set_name(item, name);
     xremote_cross_remote_item_set_time(item, time);
     CrossRemoteItemArray_push_back(remote->items, item);
