@@ -472,11 +472,6 @@ BadUsbApp* bad_usb_app_alloc(char* arg) {
     app->dialogs = furi_record_open(RECORD_DIALOGS);
 
     app->view_dispatcher = view_dispatcher_alloc();
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    view_dispatcher_enable_queue(
-        app->view_dispatcher); // required on RM; deprecated no-op on stock
-#pragma GCC diagnostic pop
     app->scene_manager = scene_manager_alloc(&bad_usb_scene_handlers, app);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
