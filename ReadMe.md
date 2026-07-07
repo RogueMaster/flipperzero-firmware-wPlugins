@@ -28,8 +28,8 @@ This software is for experimental purposes only and is not meant for any illegal
 
 ## Latest Updates - [PATREON: Latest Release RM0706-1826-09c57551-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
-- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-07-06 18:26 EST`
-- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-07-06 18:26 EST`
+- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-07-07 14:30 EST`
+- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-07-07 14:30 EST`
 - Updated: NFC: [FeliCa: Add Standard card emulation support #4383 (By nikachu2012)](https://github.com/flipperdevices/flipperzero-firmware/pull/4383)
 - NFC: [Read MIFARE Plus 2K in SL1 as full 32 sectors / 64 keys - a Plus 2K in SL1 is byte-identical to a Classic 1K in SAK/ATQA and was mis-sized as 1K; it is now told apart by its ISO14443-4 ATS (Plus S/X signature), while Plus SE, SmartMX, magic Perfect CUID and plain 1K stay 1K (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1016)
 - Updated: [WiFi (Marauder) v0.7.9 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion) `Req: ESP32` with [ESP32 MARAUDER Firmware](https://github.com/justcallmekoko/ESP32Marauder/releases/latest)
@@ -60,6 +60,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Xiaomi Filter Reset v1.0 (By khmm12)](https://github.com/khmm12/flipper-xiaomi-filter-reset)
 - ESP Flasher: [Bump Marauder v1.13.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.13.0)
 - Updated: [Morse Flipper v0.1.72 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
+- OFW: PR: [CCID: move USB layer from firmware HAL into ccid_test app #4407 (By kidbomb)](https://github.com/flipperdevices/flipperzero-firmware/pull/4407)
+- NFC: [Native MIFARE Plus support in SL3 - MIFARE Plus is now a first-class protocol instead of detection-only: read (AES auth + encrypted/plaintext blocks, admin keys & config, originality signature), automatic dictionary attack with a per-UID key cache (instant re-reads of saved cards), full SL3 emulation with shadow-writeback (a reader can authenticate, read & write the recovered card), write/update-to-card, GetVersion + ATS-based S/X/SE/EV1/EV2 detection, Add Manually for 18 Plus variants, and MIFARE-Classic-style dump & keys screens; SL0/SL1/SL2 stay untouched (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1032)
+- Updated: [CCID Emulator v1.1 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 
 <a name="release"></a>
 
@@ -388,7 +391,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [CANBUS ATTACK v1.0 (By jorgepnaranjo25)](https://github.com/jorgepnaranjo25/CAN-Bus-Attack) `Req: CANBUS By ElectronicCats`
 - [Canon Intervalometer v1.0 (By TravisCG)](https://github.com/TravisCG/canonivm)
 - [Caesar Cipher v1.3 (By panki27)](https://github.com/panki27/caesar-cipher)
-- [CCID Emulator v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
+- [CCID Emulator v1.1 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [CFS Tag Writer v1.0 (By pwschattenberg)](https://github.com/pwschattenberg/cfs-tag-writer)
 - [CFW Settings v2.1 (By WillyJL)](https://github.com/Next-Flip/Momentum-Firmware/tree/dev/applications/main/momentum_app)
 - [Chameleon Ultra v1.0 (By muylder)](https://github.com/muylder/Chameleon_Flipper)
