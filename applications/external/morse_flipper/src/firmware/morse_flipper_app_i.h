@@ -17,7 +17,6 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/text_input.h>
 #include <gui/modules/variable_item_list.h>
-#include <gui/modules/widget.h>
 #include <gui/scene_manager.h>
 #include <gui/view_dispatcher.h>
 #include <input/input.h>
@@ -157,7 +156,6 @@ typedef enum {
     MorseFlipperViewMenu = 0,
     MorseFlipperViewLive,
     MorseFlipperViewSettings,
-    MorseFlipperViewWidget,
     MorseFlipperViewTextInput,
 } MorseFlipperView;
 
@@ -329,7 +327,6 @@ typedef struct MorseFlipperApp {
     Submenu* submenu;
     TextInput* text_input;
     VariableItemList* settings_list;
-    Widget* widget;
     VariableItem* audio_cfg_items[MorseFlipperAudioSettingP2Volume + 1U];
     VariableItem* trainer_items[MorseFlipperTrainerSettingChars + 1U];
     VariableItem* straight_cfg_items[3];
@@ -369,6 +366,7 @@ typedef struct MorseFlipperApp {
     bool session_result_hold;
     bool session_result_tone;
     bool session_result_good;
+    bool session_start_holdoff;
 
     /* Help/About UI state; the hidden trace entry uses the OK tap counter. */
     bool about_show_next;
@@ -481,6 +479,7 @@ typedef struct MorseFlipperApp {
     MorseTrainer trainer;
     MorseFlipperHamKeyer ham_keyer;
     MorseTrainerCustomSets custom_sets;
+    bool custom_sets_loaded;
 
     /* Live feature flags; each block is owned by its matching runtime module. */
     bool straight_playback_active;
@@ -658,6 +657,7 @@ void morse_flipper_tick_trainer_playback(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_help_open(MorseFlipperApp* app);
 void morse_flipper_about_open(MorseFlipperApp* app);
 void morse_flipper_cycle_trainer_value(MorseFlipperApp* app, int dir);
+void morse_flipper_ensure_custom_sets_loaded(MorseFlipperApp* app);
 void morse_flipper_apply_trainer_charset_choice(MorseFlipperApp* app);
 void morse_flipper_drop_live_keying_for_playback(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_begin_group_playback(MorseFlipperApp* app, uint32_t now_ms);
@@ -877,4 +877,5 @@ bool morse_flipper_active_mode_input(MorseFlipperApp* app, InputEvent* event, ui
 
 MorseFlipperApp* morse_flipper_boot(void);
 ViewDispatcher* morse_flipper_view_dispatcher_get(MorseFlipperApp* app);
+void morse_flipper_ensure_view(MorseFlipperApp* app, uint8_t view);
 void morse_flipper_shutdown(MorseFlipperApp* app);

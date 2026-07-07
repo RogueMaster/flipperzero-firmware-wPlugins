@@ -15,7 +15,6 @@ void morse_flipper_settings_usb_mode_changed(VariableItem* item) {
 
     variable_item_set_current_value_text(item, morse_flipper_usb_mode_names[idx]);
     app->pc_mode_pref = idx;
-    morse_flipper_set_pc_mode(app, idx);
     morse_flipper_save_config(app);
 }
 
@@ -51,7 +50,7 @@ void morse_flipper_scene_pc_on_enter(void* context) {
     VariableItem* it;
     uint8_t sel = scene_manager_get_scene_state(app->scene_manager, MorseFlipperScenePc);
 
-    morse_flipper_scene_enter_now(app, MorseFlipperScenePc);
+    morse_flipper_ensure_view(app, MorseFlipperViewSettings);
     variable_item_list_reset(app->settings_list);
     variable_item_list_set_enter_callback(
         app->settings_list, morse_flipper_settings_noop_enter, app);
@@ -91,6 +90,7 @@ void morse_flipper_scene_pc_on_enter(void* context) {
 
     if(sel > MorseFlipperUsbSettingMouseSwap) sel = MorseFlipperUsbSettingConnection;
     variable_item_list_set_selected_item(app->settings_list, sel);
+    morse_flipper_scene_enter_now(app, MorseFlipperScenePc);
 }
 
 bool morse_flipper_scene_pc_on_event(void* context, SceneManagerEvent event) {

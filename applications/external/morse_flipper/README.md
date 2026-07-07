@@ -1,6 +1,6 @@
 # Morse Flipper
 
-Morse Flipper is a CW trainer, keyer, hardware adapter, portable ham helper, and Sub-GHz Morse experiment bench for the Flipper Zero. [Download version 0.1.70 here](https://github.com/yo3gnd/morse-flipper/releases/download/v0.1.70/morse_flipper.fap).
+Morse Flipper is a CW trainer, keyer, hardware adapter, portable ham helper, and Sub-GHz Morse experiment bench for the Flipper Zero. [Download version 0.1.71 here](https://github.com/yo3gnd/morse-flipper/releases/download/v0.1.71/morse_flipper.fap).
 
 It is built around one opinion: do not learn Morse by staring at dots and dashes. Learn the sound. Hear the character, type the character, and keep the counting part of your brain out of it.
 
@@ -11,6 +11,10 @@ This started as a 2024 experiment, then got the proper launch-shape treatment in
 Morse Flipper also includes a fairly extensive help manual on the Flipper itself, under `Help`. It covers how to learn and practise Morse Code, how to connect straight keys and paddles, what is worth practising, and which outside resources are worth your time. Please read it; there is more useful Morse guidance in there than fits comfortably in a README.
 
 The full Morse Flipper manual lives here: [manual/README.md](manual/README.md).
+
+## 0.1.71 Hourglass Fix
+
+Some users on both official and custom firmware saw the app get stuck forever on the startup hourglass. Version 0.1.71 fixes that nonsense.
 
 ## What it does
 

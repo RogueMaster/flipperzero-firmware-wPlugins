@@ -20,6 +20,29 @@ static void morse_flipper_session_answer_committed_text(
     size_t out_sz,
     uint8_t max_chars);
 
+static bool morse_flipper_session_answer_is_straight(const MorseFlipperApp* app) {
+    if(app == NULL) return false;
+    if(app->input_source == MorseFlipperInputSourceStraight) return true;
+    if(app->input_source == MorseFlipperInputSourcePaddle &&
+       morse_flipper_gpio_probe_use_straight(app))
+        return true;
+    if(app->input_source == MorseFlipperInputSourceButtons &&
+       morse_flipper_straight_like_mode(app))
+        return true;
+    return false;
+}
+
+static void morse_flipper_session_reset_answer_decoder(MorseFlipperApp* app) {
+    if(app == NULL) return;
+
+    if(morse_flipper_session_answer_is_straight(app)) {
+        morse_flipper_cw_decoder_init(
+            &app->tx_decoder, morse_flipper_current_straight_dit_ms(app));
+    } else {
+        morse_flipper_cw_decoder_init_fixed(&app->tx_decoder, morse_flipper_current_dit_ms(app));
+    }
+}
+
 void morse_flipper_reset_session_runtime(MorseFlipperApp* app) {
     if(app == NULL) return;
 
@@ -28,6 +51,7 @@ void morse_flipper_reset_session_runtime(MorseFlipperApp* app) {
     app->session_result_hold = false;
     app->session_result_tone = false;
     app->session_result_good = false;
+    app->session_start_holdoff = false;
     app->session_last_input_at = 0U;
     app->session_answer_complete_at = 0U;
     app->session_result_until = 0U;
@@ -50,7 +74,7 @@ void morse_flipper_reset_session_state(MorseFlipperApp* app, uint32_t now_ms) {
     app->rf_tx_edge_at = 0U;
     app->rf_tx_gap_flushed = true;
     app->rf_tx_level = false;
-    morse_flipper_cw_decoder_init(&app->tx_decoder, morse_flipper_current_dit_ms(app));
+    morse_flipper_session_reset_answer_decoder(app);
 
     morse_flipper_refresh_keyer(app, now_ms);
     morse_flipper_update_sidetone(app);
@@ -157,7 +181,7 @@ void morse_flipper_begin_group_playback(MorseFlipperApp* app, uint32_t now_ms) {
     app->rf_tx_edge_at = 0U;
     app->rf_tx_gap_flushed = true;
     app->rf_tx_level = false;
-    morse_flipper_cw_decoder_init(&app->tx_decoder, morse_flipper_current_dit_ms(app));
+    morse_flipper_session_reset_answer_decoder(app);
     if(app->screen == MorseFlipperScreenSession) {
         app->session_round_pending = true;
         app->session_result_hold = false;

@@ -29,6 +29,7 @@ static void decoder_push_dit_sample(MorseFlipperCwDecoder* decoder, uint16_t ms)
     uint32_t total;
 
     if(!decoder || !ms) return;
+    if(decoder->fixed_timing) return;
 
     /* Rolling dit estimate: small, cheap, and good enough for a human fist. */
     if(decoder->dit_sample_count <
@@ -265,20 +266,35 @@ static void decoder_replay_pending(MorseFlipperCwDecoder* decoder) {
     }
 }
 
-void morse_flipper_cw_decoder_init(MorseFlipperCwDecoder* decoder, uint16_t starting_dit_ms) {
+static void morse_flipper_cw_decoder_init_mode(
+    MorseFlipperCwDecoder* decoder,
+    uint16_t starting_dit_ms,
+    bool fixed_timing) {
     if(!decoder) return;
     memset(decoder, 0, sizeof(*decoder));
     decoder->dit_ms = starting_dit_ms;
+    decoder->fixed_timing = fixed_timing;
     decoder_clear_symbol(decoder);
+}
+
+void morse_flipper_cw_decoder_init(MorseFlipperCwDecoder* decoder, uint16_t starting_dit_ms) {
+    morse_flipper_cw_decoder_init_mode(decoder, starting_dit_ms, false);
+}
+
+void morse_flipper_cw_decoder_init_fixed(MorseFlipperCwDecoder* decoder, uint16_t starting_dit_ms) {
+    morse_flipper_cw_decoder_init_mode(decoder, starting_dit_ms, true);
 }
 
 void morse_flipper_cw_decoder_reset(MorseFlipperCwDecoder* decoder) {
     uint16_t starting_dit_ms;
+    bool fixed_timing;
 
     if(!decoder) return;
     starting_dit_ms = decoder->dit_ms;
+    fixed_timing = decoder->fixed_timing;
     memset(decoder, 0, sizeof(*decoder));
     decoder->dit_ms = starting_dit_ms;
+    decoder->fixed_timing = fixed_timing;
     decoder_clear_symbol(decoder);
 }
 

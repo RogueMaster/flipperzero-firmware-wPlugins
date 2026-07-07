@@ -49,7 +49,34 @@ static void morse_flipper_draw_txg_big_slots(Canvas* canvas, int32_t cy, const c
     }
 }
 
+static void
+    morse_flipper_txg_answer_with_preview(const MorseFlipperApp* app, char* out, size_t out_sz) {
+    uint8_t n = 0U;
+    char preview;
+
+    if(out == NULL || out_sz == 0U) return;
+    out[0] = '\0';
+    if(app == NULL) return;
+
+    while(n < MORSE_FLIPPER_TX_GROUP_LEN && n + 1U < out_sz && app->tx_group.answer[n] != '\0') {
+        out[n] = app->tx_group.answer[n];
+        n++;
+    }
+    out[n] = '\0';
+
+    if(n >= MORSE_FLIPPER_TX_GROUP_LEN || n + 1U >= out_sz) return;
+    if(app->screen != MorseFlipperScreenTxGroups || !app->txg_wait_answer) return;
+
+    preview =
+        (char)morse_flipper_live_upper_char(morse_flipper_cw_decoder_preview(&app->tx_decoder));
+    if(preview == 0 || preview == ' ' || preview == '|') return;
+
+    out[n++] = preview;
+    out[n] = '\0';
+}
+
 static void morse_flipper_draw_tx_groups_practice(Canvas* canvas, MorseFlipperApp* app) {
+    char answer[MORSE_FLIPPER_TX_GROUP_LEN + 1U];
     char score[8];
     uint8_t x;
 
@@ -57,7 +84,8 @@ static void morse_flipper_draw_tx_groups_practice(Canvas* canvas, MorseFlipperAp
 
     morse_flipper_draw_txg_big_slots(canvas, 18, app->tx_group.target);
     morse_flipper_draw_tx_history_divider(canvas, morse_flipper_live_left_hint(app));
-    morse_flipper_draw_txg_big_slots(canvas, 49, app->tx_group.answer);
+    morse_flipper_txg_answer_with_preview(app, answer, sizeof(answer));
+    morse_flipper_draw_txg_big_slots(canvas, 49, answer);
 
     canvas_set_font(canvas, FontSecondary);
     morse_flipper_txg_score_pct(app, score, sizeof(score));

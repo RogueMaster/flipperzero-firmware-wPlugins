@@ -66,7 +66,7 @@ void morse_flipper_scene_home_on_enter(void* context) {
     uint8_t idx;
     char wpm_text[4];
 
-    morse_flipper_scene_enter_now(app, MorseFlipperSceneHome);
+    morse_flipper_ensure_view(app, MorseFlipperViewSettings);
     variable_item_list_reset(app->settings_list);
     variable_item_list_set_enter_callback(
         app->settings_list, morse_flipper_settings_enter_callback, app);
@@ -112,6 +112,7 @@ void morse_flipper_scene_home_on_enter(void* context) {
     variable_item_list_add(app->settings_list, "GPIO", 0U, NULL, app);
     if(sel > MorseFlipperSettingGpio) sel = MorseFlipperSettingWpm;
     variable_item_list_set_selected_item(app->settings_list, sel);
+    morse_flipper_scene_enter_now(app, MorseFlipperSceneHome);
 }
 
 bool morse_flipper_scene_home_on_event(void* context, SceneManagerEvent event) {
