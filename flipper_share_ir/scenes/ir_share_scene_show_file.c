@@ -1,22 +1,22 @@
-#include "../flipper_share_app.h"
+#include "../ir_share_app.h"
 
 
 // Callback for handling button presses in the dialog
 static void dialog_ex_callback(DialogExResult result, void* context) {
     furi_assert(context);
-    FlipperShareApp* app = context;
+    IrShareApp* app = context;
     
     if(result == DialogExResultLeft || result == DialogExResultRight) {
         view_dispatcher_send_custom_event(app->view_dispatcher, result);
     }
 }
 
-void flipper_share_scene_show_file_on_enter(void* context) {
+void ir_share_scene_show_file_on_enter(void* context) {
     if(!context) {
         return;
     }
 
-    FlipperShareApp* app = context;
+    IrShareApp* app = context;
 
     // Additional safety checks
     if(!app || !app->dialog_show_file || !app->view_dispatcher) {
@@ -36,15 +36,15 @@ void flipper_share_scene_show_file_on_enter(void* context) {
     dialog_ex_set_context(app->dialog_show_file, app);
     dialog_ex_set_result_callback(app->dialog_show_file, dialog_ex_callback);
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdShowFile);
+    view_dispatcher_switch_to_view(app->view_dispatcher, IrShareViewIdShowFile);
 }
 
-bool flipper_share_scene_show_file_on_event(void* context, SceneManagerEvent event) {
+bool ir_share_scene_show_file_on_event(void* context, SceneManagerEvent event) {
     if(!context) {
         return false;
     }
 
-    FlipperShareApp* app = context;
+    IrShareApp* app = context;
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
@@ -57,7 +57,7 @@ bool flipper_share_scene_show_file_on_event(void* context, SceneManagerEvent eve
         } else if(event.event == DialogExResultRight) {
             // OK button pressed - start reading file
             if(app->scene_manager) {
-                scene_manager_next_scene(app->scene_manager, FlipperShareSceneSend);
+                scene_manager_next_scene(app->scene_manager, IrShareSceneSend);
             }
             consumed = true;
         }
@@ -70,6 +70,6 @@ bool flipper_share_scene_show_file_on_event(void* context, SceneManagerEvent eve
     return consumed;
 }
 
-void flipper_share_scene_show_file_on_exit(void* context) {
+void ir_share_scene_show_file_on_exit(void* context) {
     UNUSED(context);
 }

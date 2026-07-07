@@ -1,15 +1,18 @@
-#include "flipper_share_app.h"
+#include "ir_share_app.h"
 #include <stream/stream.h>
 #include <stream/buffered_file_stream.h>
+
+#define TAG "IrShare"
 
 // Callback when a file is selected in the file browser
 static void file_browser_select_callback(void* context) {
     if(!context) return;
-    FlipperShareApp* app = context;
+    IrShareApp* app = context;
 
     // Get the selected file path from result_path
     const char* file_path = furi_string_get_cstr(app->result_path);
     if(file_path && file_path[0]) {
+        FURI_LOG_I(TAG, "file selected: '%s'", file_path);
         strncpy(app->selected_file_path, file_path, sizeof(app->selected_file_path) - 1);
         app->selected_file_path[sizeof(app->selected_file_path) - 1] = '\0';
         app->file_info_loaded = false;
@@ -31,65 +34,65 @@ _Bool file_browser_callback(FuriString* path, void* context, unsigned char** ico
     return false;
 }
 
-// Set the callback after creating the file_browser (in flipper_share_alloc):
+// Set the callback after creating the file_browser (in ir_share_alloc):
 // file_browser_set_result_callback(app->file_browser, file_browser_callback, app);
 
-void show_file_info_scene(FlipperShareApp* app) {
+void show_file_info_scene(IrShareApp* app) {
     furi_assert(app);
     dialog_ex_set_header(app->dialog_show_file, "File Info", 64, 0, AlignCenter, AlignTop);
     dialog_ex_set_text(app->dialog_show_file, app->selected_file_path, 64, 32, AlignCenter, AlignCenter);
-    view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdShowFile);
+    view_dispatcher_switch_to_view(app->view_dispatcher, IrShareViewIdShowFile);
 }
 
-bool flipper_share_custom_event_callback(void* context, uint32_t event) {
+bool ir_share_custom_event_callback(void* context, uint32_t event) {
     furi_assert(context);
-    FlipperShareApp* app = context;
+    IrShareApp* app = context;
     return scene_manager_handle_custom_event(app->scene_manager, event);
 }
 
-static bool flipper_share_back_event_callback(void* context) {
+static bool ir_share_back_event_callback(void* context) {
     furi_assert(context);
-    FlipperShareApp* app = context;
+    IrShareApp* app = context;
     return scene_manager_handle_back_event(app->scene_manager);
 }
 
 static void submenu_callback(void* context, uint32_t index) {
     furi_assert(context);
-    FlipperShareApp* app = context;
+    IrShareApp* app = context;
 
     if(index == 0) { // Send - open file browser
-        scene_manager_next_scene(app->scene_manager, FlipperShareSceneFileBrowser);
+        scene_manager_next_scene(app->scene_manager, IrShareSceneFileBrowser);
     } else if(index == 1) { // Receive
-        scene_manager_next_scene(app->scene_manager, FlipperShareSceneReceive);
+        scene_manager_next_scene(app->scene_manager, IrShareSceneReceive);
     } else if(index == 2) { // About
         dialog_ex_set_header(app->dialog_about, "About", 64, 0, AlignCenter, AlignTop);
         dialog_ex_set_text(
             app->dialog_about,
             // FAP_VERSION is a string literal injected by fbt/ufbt from
             // application.fam's fap_version — single source of truth, no duplication.
-            "\nFlipper Share v" FAP_VERSION "\n"
-            "A file sharing app via Sub-GHz\n"
+            "\nFlipper Share IR v" FAP_VERSION "\n"
+            "File transfer over Infrared\n"
             "Developed by @lomalkin\n"
             "github.com/lomalkin",
             0,
             0,
             AlignLeft,
             AlignTop);
-        view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdAbout);
+        view_dispatcher_switch_to_view(app->view_dispatcher, IrShareViewIdAbout);
     }
 }
 
 // Return to main menu when pressing Back on About
-static uint32_t flipper_share_about_previous(void* context) {
+static uint32_t ir_share_about_previous(void* context) {
     UNUSED(context);
-    return FlipperShareViewIdMenu;
+    return IrShareViewIdMenu;
 }
 
 // TODO: check / cleanup
 
 // Function to read file information (size, etc.) - commented out for debugging
 /*
-static bool read_file_info(FlipperShareApp* app) {
+static bool read_file_info(IrShareApp* app) {
     if(!app || !app->selected_file_path[0]) {
         return false;
     }
@@ -116,7 +119,7 @@ static bool read_file_info(FlipperShareApp* app) {
 */
 
 // Example function for reading file content (commented out for now)
-// static bool read_file_content(FlipperShareApp* app, char* buffer, size_t buffer_size) {
+// static bool read_file_content(IrShareApp* app, char* buffer, size_t buffer_size) {
 //     Storage* storage = furi_record_open(RECORD_STORAGE);
 //     File* file = storage_file_alloc(storage);
 //     bool success = false;
@@ -141,7 +144,7 @@ static void file_browser_callback(void* context) {
         return;
     }
     
-    FlipperShareApp* app = context;
+    IrShareApp* app = context;
     
     // Set the selected file path
     strcpy(app->selected_file_path, "/ext/test_file.txt");
@@ -158,26 +161,26 @@ static void file_browser_callback(void* context) {
 }
 */
 
-static FlipperShareApp* flipper_share_alloc() {
-    FlipperShareApp* app = malloc(sizeof(FlipperShareApp));
+static IrShareApp* ir_share_alloc() {
+    IrShareApp* app = malloc(sizeof(IrShareApp));
     app->gui = furi_record_open(RECORD_GUI);
 
     app->view_dispatcher = view_dispatcher_alloc();
 
-    app->scene_manager = scene_manager_alloc(&flipper_share_scene_handlers, app);
+    app->scene_manager = scene_manager_alloc(&ir_share_scene_handlers, app);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
-        app->view_dispatcher, flipper_share_custom_event_callback);
+        app->view_dispatcher, ir_share_custom_event_callback);
     view_dispatcher_set_navigation_event_callback(
-        app->view_dispatcher, flipper_share_back_event_callback);
+        app->view_dispatcher, ir_share_back_event_callback);
 
     // Create submenu for main menu
     app->submenu = submenu_alloc();
-    submenu_add_item(app->submenu, "Send", 0, submenu_callback, app);
-    submenu_add_item(app->submenu, "Receive", 1, submenu_callback, app);
+    submenu_add_item(app->submenu, "Send via IR", 0, submenu_callback, app);
+    submenu_add_item(app->submenu, "Receive via IR", 1, submenu_callback, app);
     submenu_add_item(app->submenu, "About", 2, submenu_callback, app);
     view_dispatcher_add_view(
-        app->view_dispatcher, FlipperShareViewIdMenu, submenu_get_view(app->submenu));
+        app->view_dispatcher, IrShareViewIdMenu, submenu_get_view(app->submenu));
 
     // Create file browser with result_path for selected file retrieval
     FuriString* result_path = furi_string_alloc();
@@ -202,20 +205,20 @@ static FlipperShareApp* flipper_share_alloc() {
     app->result_path = result_path;
     view_dispatcher_add_view(
         app->view_dispatcher,
-        FlipperShareViewIdFileBrowser,
+        IrShareViewIdFileBrowser,
         file_browser_get_view(app->file_browser));
 
     // Create dialog to show file path/info
     app->dialog_show_file = dialog_ex_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher,
-        FlipperShareViewIdShowFile,
+        IrShareViewIdShowFile,
         dialog_ex_get_view(app->dialog_show_file));
 
     // Create dialog for Receive
     app->dialog_receive = dialog_ex_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher, FlipperShareViewIdReceive, dialog_ex_get_view(app->dialog_receive));
+        app->view_dispatcher, IrShareViewIdReceive, dialog_ex_get_view(app->dialog_receive));
 
     app->selected_file_path[0] = '\0';  // Explicitly initialize with empty string
     app->selected_file_size = 0;
@@ -228,22 +231,22 @@ static FlipperShareApp* flipper_share_alloc() {
     // Create dialog for About
     app->dialog_about = dialog_ex_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher, FlipperShareViewIdAbout, dialog_ex_get_view(app->dialog_about));
+        app->view_dispatcher, IrShareViewIdAbout, dialog_ex_get_view(app->dialog_about));
     // Ensure Back from About returns to Menu
-    view_set_previous_callback(dialog_ex_get_view(app->dialog_about), flipper_share_about_previous);
+    view_set_previous_callback(dialog_ex_get_view(app->dialog_about), ir_share_about_previous);
 
     return app;
 }
 
-static void flipper_share_free(FlipperShareApp* app) {
+static void ir_share_free(IrShareApp* app) {
     furi_assert(app);
 
-    view_dispatcher_remove_view(app->view_dispatcher, FlipperShareViewIdReceive);
-    view_dispatcher_remove_view(app->view_dispatcher, FlipperShareViewIdShowFile);
-    view_dispatcher_remove_view(app->view_dispatcher, FlipperShareViewIdFileBrowser);
-    view_dispatcher_remove_view(app->view_dispatcher, FlipperShareViewIdMenu);
+    view_dispatcher_remove_view(app->view_dispatcher, IrShareViewIdReceive);
+    view_dispatcher_remove_view(app->view_dispatcher, IrShareViewIdShowFile);
+    view_dispatcher_remove_view(app->view_dispatcher, IrShareViewIdFileBrowser);
+    view_dispatcher_remove_view(app->view_dispatcher, IrShareViewIdMenu);
     // Also remove the About view to avoid leaving a dangling view pointer
-    view_dispatcher_remove_view(app->view_dispatcher, FlipperShareViewIdAbout);
+    view_dispatcher_remove_view(app->view_dispatcher, IrShareViewIdAbout);
 
     dialog_ex_free(app->dialog_show_file);
     dialog_ex_free(app->dialog_receive);
@@ -264,17 +267,17 @@ static void flipper_share_free(FlipperShareApp* app) {
     free(app);
 }
 
-int32_t flipper_share_app(void* p) {
+int32_t ir_share_app(void* p) {
     UNUSED(p);
-    FlipperShareApp* app = flipper_share_alloc();
+    IrShareApp* app = ir_share_alloc();
 
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
-    scene_manager_next_scene(app->scene_manager, FlipperShareSceneMenu);
+    scene_manager_next_scene(app->scene_manager, IrShareSceneMenu);
 
     view_dispatcher_run(app->view_dispatcher);
 
-    flipper_share_free(app);
+    ir_share_free(app);
 
     return 0;
 }

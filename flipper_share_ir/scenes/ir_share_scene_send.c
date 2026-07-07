@@ -1,15 +1,15 @@
-#include "../flipper_share_app.h"
+#include "../ir_share_app.h"
 #include <furi.h>
 #include <furi_hal.h>
 #include <furi_hal_power.h>
 #include <stdlib.h>
 
-#include "subghz_share.h"
-#include "flipper_share.h"
+#include "ir_transport.h"
+#include "ir_share.h"
 
-#define FS_IDLE_OPERATION 50 //ms
+#define ISH_IDLE_OPERATION 5 //ms (each ish_send blocks ~300ms; the modem lead gap handles frame separation)
 
-#define TAG "FlipperShareSend"
+#define TAG "IrShareSend"
 
 typedef struct {
     uint32_t counter;
@@ -37,19 +37,19 @@ static void file_reading_state_free(FileReadingState* state) {
 }
 
 static int32_t file_read_worker_thread(void* context) {
-    FlipperShareApp* app = context;
+    IrShareApp* app = context;
     FileReadingState* state = (FileReadingState*)app->file_reading_state;
 
     bool is_running = true;
 
-    fs_init_from_external_transmit(app->selected_file_path);
+    ish_init_from_external_transmit(app->selected_file_path);
 
     state->counter = g.s_file_size;
 
     while(is_running) {
-        fs_idle();
+        ish_idle();
 
-        furi_delay_ms(FS_IDLE_OPERATION);
+        furi_delay_ms(ISH_IDLE_OPERATION);
 
         // Check if we should stop
         if(furi_thread_flags_get() & 0x1) {
@@ -62,11 +62,11 @@ static int32_t file_read_worker_thread(void* context) {
     return 0;
 }
 
-void flipper_share_scene_send_on_enter(void* context) {
-    FlipperShareApp* app = context;
+void ir_share_scene_send_on_enter(void* context) {
+    IrShareApp* app = context;
 
     // Create the shared-state lock BEFORE starting the worker/radio threads.
-    fs_lock_ensure();
+    ish_lock_ensure();
 
     // Create state for the scene
     FileReadingState* state = file_reading_state_alloc();
@@ -77,7 +77,7 @@ void flipper_share_scene_send_on_enter(void* context) {
     app->file_reading_state = state;
 
     // Setup dialog to show progress
-    dialog_ex_set_header(app->dialog_show_file, "Sending...", 64, 10, AlignCenter, AlignCenter);
+    dialog_ex_set_header(app->dialog_show_file, "Sending via IR...", 64, 10, AlignCenter, AlignCenter);
     dialog_ex_set_text(app->dialog_show_file, "Starting...", 64, 32, AlignCenter, AlignCenter);
     dialog_ex_set_left_button_text(app->dialog_show_file, "Cancel");
     dialog_ex_set_right_button_text(app->dialog_show_file, NULL); // Skip right button
@@ -92,19 +92,19 @@ void flipper_share_scene_send_on_enter(void* context) {
     furi_thread_start(state->worker_thread);
 
     // Show dialog
-    view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdShowFile);
+    view_dispatcher_switch_to_view(app->view_dispatcher, IrShareViewIdShowFile);
 
     // Start timer for updating display
     app->timer = furi_timer_alloc(update_timer_callback, FuriTimerTypePeriodic, app);
     furi_timer_start(app->timer, 250);
 
-    ss_subghz_init(); // TODO Move to thread?
+    ir_transport_init(); // TODO Move to thread?
 }
 
 // Callback for handling button presses in the dialog
 static void dialog_ex_callback(DialogExResult result, void* context) {
     furi_assert(context);
-    FlipperShareApp* app = context;
+    IrShareApp* app = context;
 
     if(result == DialogExResultLeft) {
         view_dispatcher_send_custom_event(app->view_dispatcher, DialogExResultLeft);
@@ -113,7 +113,7 @@ static void dialog_ex_callback(DialogExResult result, void* context) {
 
 static void update_timer_callback(void* context) {
     furi_assert(context);
-    FlipperShareApp* app = context;
+    IrShareApp* app = context;
     FileReadingState* state = (FileReadingState*)app->file_reading_state;
     if(!state) return;
 
@@ -124,22 +124,22 @@ static void update_timer_callback(void* context) {
         dialog_ex_set_right_button_text(app->dialog_show_file, "OK");
     } else {
         // Filename on line 1, size on line 2 (bytes if < 1 KB, else KB).
-        // s_file_name/s_file_size are set once in fs_init and stable, but snapshot
+        // s_file_name/s_file_size are set once in ish_init and stable, but snapshot
         // under the lock for consistency; skip this tick on contention.
-        char fname[FS_FILENAME_LENGTH];
+        char fname[ISH_FILENAME_LENGTH];
         uint32_t fsize;
-        if(!fs_try_lock_ms(20)) return;
+        if(!ish_try_lock_ms(20)) return;
         memcpy(fname, g.s_file_name, sizeof(fname));
         fname[sizeof(fname) - 1] = '\0';
         fsize = g.s_file_size;
-        fs_unlock();
+        ish_unlock();
 
         // Rough ETA by the nominal constant only (the sender has no receiver-side
         // progress). Pure division by a nonzero constant; clamp for a sane display.
-        uint32_t eta_sec = fsize / FS_PAYLOAD_THROUGHPUT_BPS;
-        if(eta_sec > FS_ETA_MAX_SEC) eta_sec = FS_ETA_MAX_SEC;
+        uint32_t eta_sec = fsize / ISH_PAYLOAD_THROUGHPUT_BPS;
+        if(eta_sec > ISH_ETA_MAX_SEC) eta_sec = ISH_ETA_MAX_SEC;
         char eta[16];
-        fs_fmt_duration(eta_sec, eta, sizeof(eta));
+        ish_fmt_duration(eta_sec, eta, sizeof(eta));
 
         if(fsize < 1024) {
             snprintf(
@@ -155,8 +155,8 @@ static void update_timer_callback(void* context) {
     dialog_ex_set_text(app->dialog_show_file, progress_text, 64, 32, AlignCenter, AlignCenter);
 }
 
-bool flipper_share_scene_send_on_event(void* context, SceneManagerEvent event) {
-    FlipperShareApp* app = context;
+bool ir_share_scene_send_on_event(void* context, SceneManagerEvent event) {
+    IrShareApp* app = context;
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
@@ -213,12 +213,10 @@ bool flipper_share_scene_send_on_event(void* context, SceneManagerEvent event) {
     return consumed;
 }
 
-void flipper_share_scene_send_on_exit(void* context) {
-    FlipperShareApp* app = context;
+void ir_share_scene_send_on_exit(void* context) {
+    IrShareApp* app = context;
 
-    if(ss_subghz_deinit()) {
-        FURI_LOG_W(TAG, "ss_subghz_deinit reported error on scene exit");
-    }
+    ir_transport_deinit();
 
     // Free resources
     if(app->file_reading_state) {
@@ -235,5 +233,5 @@ void flipper_share_scene_send_on_exit(void* context) {
 
     // Worker thread is joined in on_event and the SubGhz worker is stopped above,
     // so free the shared context and the shared-state lock.
-    fs_deinit();
+    ish_deinit();
 }

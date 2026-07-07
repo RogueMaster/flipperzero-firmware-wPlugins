@@ -1,20 +1,20 @@
-#include "../flipper_share_app.h"
+#include "../ir_share_app.h"
 #include <furi.h>
 #include <furi_hal.h>
 #include <furi_hal_power.h>
 #include <stdlib.h>
 
-#include "subghz_share.h"
-#include "flipper_share.h"
-#include "flipper_share_scene.h"
+#include "ir_transport.h"
+#include "ir_share.h"
+#include "ir_share_scene.h"
 
 #include <gui/gui.h>
 #include <gui/view.h>
 #include <gui/elements.h>
 
-#define FS_IDLE_OPERATION 50 //ms
+#define ISH_IDLE_OPERATION 50 //ms
 
-#define TAG "FlipperShareSend"
+#define TAG "IrShareSend"
 
 typedef struct {
     uint32_t counter;
@@ -42,7 +42,7 @@ static void file_reading_state_free(FileReadingState* state) {
 }
 
 static int32_t file_read_worker_thread(void* context) {
-    FlipperShareApp* app = context;
+    IrShareApp* app = context;
     FileReadingState* state = (FileReadingState*)app->file_reading_state;
 
     bool is_running = true;
@@ -53,19 +53,19 @@ static int32_t file_read_worker_thread(void* context) {
         app->selected_file_path,
         app->selected_file_size);
 
-    fs_init_from_external_receive();
+    ish_init_from_external_receive();
 
     while(is_running) {
-        fs_idle();
-        furi_delay_ms(FS_IDLE_OPERATION);
+        ish_idle();
+        furi_delay_ms(ISH_IDLE_OPERATION);
 
         // Snapshot progress under the lock; guard against division by zero
         // (r_blocks_needed == 0 before the first ANNOUNCE is handled).
-        fs_lock();
+        ish_lock();
         uint32_t received = g.r_blocks_received;
         uint32_t needed = g.r_blocks_needed;
         bool finished = g.r_is_finished;
-        fs_unlock();
+        ish_unlock();
 
         state->counter = needed ? (received * 100) / needed : 0;
         if(finished) {
@@ -93,12 +93,12 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     uint8_t percent = model ? *model : 0;
 
     // Snapshot shared state under the lock (the RX thread mutates r_file_* and
-    // fs_parts concurrently). Skip on contention rather than block the renderer.
-    char fname[FS_FILENAME_LENGTH];
+    // ish_parts concurrently). Skip on contention rather than block the renderer.
+    char fname[ISH_FILENAME_LENGTH];
     uint32_t fsize = 0;
     uint32_t rcv = 0, need = 0, start = 0, last_progress = 0;
-    uint8_t levels[FS_PARTS_COUNT];
-    if(fs_try_lock_ms(10)) {
+    uint8_t levels[ISH_PARTS_COUNT];
+    if(ish_try_lock_ms(10)) {
         memcpy(fname, g.r_file_name, sizeof(fname));
         fname[sizeof(fname) - 1] = '\0';
         fsize = g.r_file_size;
@@ -106,8 +106,8 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
         need = g.r_blocks_needed;
         start = g.r_start_ms;
         last_progress = g.r_last_progress_ms;
-        fs_parts_levels_copy(levels);
-        fs_unlock();
+        ish_parts_levels_copy(levels);
+        ish_unlock();
     } else {
         fname[0] = '\0';
         memset(levels, 0, sizeof(levels));
@@ -118,7 +118,7 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     // Header
     canvas_set_font(canvas, FontPrimary);
     canvas_set_color(canvas, ColorBlack);
-    elements_multiline_text_aligned(canvas, 64, 4, AlignCenter, AlignTop, "Receiving...");
+    elements_multiline_text_aligned(canvas, 64, 4, AlignCenter, AlignTop, "Receiving via IR...");
 
     // Filename on its own line (as-is; long names may overflow — accepted).
     canvas_set_font(canvas, FontSecondary);
@@ -127,17 +127,17 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     // Size + percent + ETA on one line above the bar.
     // ETA = remaining / rate, where rate is the measured session average once
     // enough has elapsed; before that (warmup) it uses the nominal constant.
-    // If no new block has arrived for FS_STALL_MS, show "stalled" instead of a
+    // If no new block has arrived for ISH_STALL_MS, show "stalled" instead of a
     // number (this also avoids ETA blowing up / overflowing when recv is small
     // and elapsed keeps growing during a link outage).
     uint32_t rem_blocks = (need > rcv) ? (need - rcv) : 0;
-    uint32_t rem_bytes = rem_blocks * FS_DATA_LENGTH;
-    uint32_t recv_bytes = rcv * FS_DATA_LENGTH;
+    uint32_t rem_bytes = rem_blocks * ISH_DATA_LENGTH;
+    uint32_t recv_bytes = rcv * ISH_DATA_LENGTH;
     uint32_t now = furi_get_tick();
     uint32_t elapsed_ms = (now > start) ? (now - start) : 0;
 
     bool stalled = (rem_blocks > 0) && (last_progress != 0) &&
-                   ((now - last_progress) > FS_STALL_MS);
+                   ((now - last_progress) > ISH_STALL_MS);
 
     char info[48];
     if(stalled) {
@@ -149,12 +149,12 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
             (unsigned long)(fsize / 1024));
     } else {
         // Clamp in uint64 before casting to guard against overflow.
-        uint64_t e = (elapsed_ms >= FS_ETA_WARMUP_MS && recv_bytes > 0)
+        uint64_t e = (elapsed_ms >= ISH_ETA_WARMUP_MS && recv_bytes > 0)
                          ? ((uint64_t)rem_bytes * elapsed_ms / ((uint64_t)recv_bytes * 1000u))
-                         : ((uint64_t)rem_bytes / FS_PAYLOAD_THROUGHPUT_BPS);
-        if(e > FS_ETA_MAX_SEC) e = FS_ETA_MAX_SEC;
+                         : ((uint64_t)rem_bytes / ISH_PAYLOAD_THROUGHPUT_BPS);
+        if(e > ISH_ETA_MAX_SEC) e = ISH_ETA_MAX_SEC;
         char eta[16];
-        fs_fmt_duration((uint32_t)e, eta, sizeof(eta));
+        ish_fmt_duration((uint32_t)e, eta, sizeof(eta));
         snprintf(
             info,
             sizeof(info),
@@ -177,7 +177,7 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     // Torrent-style, but each column is filled from the bottom to a height
     // proportional to the fraction of blocks received in that part (levels[i] is
     // 0..255). Any received part shows at least 1px so early progress is visible.
-    for (uint32_t i = 0; i < FS_PARTS_COUNT; ++i) {
+    for (uint32_t i = 0; i < ISH_PARTS_COUNT; ++i) {
         uint8_t lv = levels[i];
         if (!lv) continue;
         int fill = (lv * h) / 255;
@@ -190,7 +190,7 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
 
 static bool progress_view_input_callback(InputEvent* event, void* context) {
     if(!context) return false;
-    FlipperShareApp* app = context;
+    IrShareApp* app = context;
     
     FURI_LOG_I(TAG, "Progress view input: key=%d, type=%d", event->key, event->type);
     
@@ -215,7 +215,7 @@ static bool progress_view_input_callback(InputEvent* event, void* context) {
             progress_view_active = false;
             
             FURI_LOG_I(TAG, "Switching to dialog view");
-            view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdShowFile);
+            view_dispatcher_switch_to_view(app->view_dispatcher, IrShareViewIdShowFile);
             
             FURI_LOG_I(TAG, "Sending DialogExResultLeft event");
             view_dispatcher_send_custom_event(app->view_dispatcher, DialogExResultLeft);
@@ -226,30 +226,30 @@ static bool progress_view_input_callback(InputEvent* event, void* context) {
     return false;
 }
 
-static void progress_view_init(FlipperShareApp* app) {
+static void progress_view_init(IrShareApp* app) {
     if(progress_view) return;
     progress_view = view_alloc();
     view_set_context(progress_view, app);
     view_allocate_model(progress_view, ViewModelTypeLocking, sizeof(uint8_t));
     view_set_draw_callback(progress_view, progress_view_draw_callback);
     view_set_input_callback(progress_view, progress_view_input_callback);
-    view_dispatcher_add_view(app->view_dispatcher, FlipperShareViewIdProgress, progress_view);
+    view_dispatcher_add_view(app->view_dispatcher, IrShareViewIdProgress, progress_view);
 }
 
-static void progress_view_deinit(FlipperShareApp* app) {
+static void progress_view_deinit(IrShareApp* app) {
     if(!progress_view) return;
-    view_dispatcher_remove_view(app->view_dispatcher, FlipperShareViewIdProgress);
+    view_dispatcher_remove_view(app->view_dispatcher, IrShareViewIdProgress);
     view_free(progress_view);
     progress_view = NULL;
     progress_view_active = false;
 }
 
-void flipper_share_scene_receive_on_enter(void* context) {
-    FlipperShareApp* app = context;
+void ir_share_scene_receive_on_enter(void* context) {
+    IrShareApp* app = context;
 
     // Create the shared-state lock BEFORE starting the worker thread and the
     // SubGhz RX worker, so both threads see a valid mutex from their first tick.
-    fs_lock_ensure();
+    ish_lock_ensure();
 
     // Create state for the scene
     FileReadingState* state = file_state_alloc();
@@ -273,18 +273,18 @@ void flipper_share_scene_receive_on_enter(void* context) {
         furi_thread_alloc_ex("FileReadWorker", 2048, file_read_worker_thread, app);
     furi_thread_start(state->worker_thread);
 
-    view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdShowFile);
+    view_dispatcher_switch_to_view(app->view_dispatcher, IrShareViewIdShowFile);
 
     // Start timer for updating display
     app->timer = furi_timer_alloc(update_timer_callback, FuriTimerTypePeriodic, app);
     furi_timer_start(app->timer, 250);
 
-    ss_subghz_init(); // TODO Move to thread?
+    ir_transport_init(); // TODO Move to thread?
 }
 
 static void update_timer_callback(void* context) {
     furi_assert(context);
-    FlipperShareApp* app = context;
+    IrShareApp* app = context;
     FileReadingState* state = (FileReadingState*)app->file_reading_state;
     if(!state) return;
 
@@ -296,7 +296,7 @@ static void update_timer_callback(void* context) {
     bool is_success = false;
     bool is_locked = false;
 
-    if(!fs_try_lock_ms(20)) return; // skip this tick on contention
+    if(!ish_try_lock_ms(20)) return; // skip this tick on contention
     if(complete) {
         is_success = g.r_is_success;
         // Actual receive throughput + elapsed time (r_start_ms..r_finish_ms).
@@ -304,7 +304,7 @@ static void update_timer_callback(void* context) {
         uint32_t el_ms = (fin > st) ? (fin - st) : 0;
         uint32_t bps = (el_ms > 0) ? (uint32_t)((uint64_t)fsz * 1000u / el_ms) : 0;
         char tbuf[16];
-        fs_fmt_duration(el_ms / 1000u, tbuf, sizeof(tbuf));
+        ish_fmt_duration(el_ms / 1000u, tbuf, sizeof(tbuf));
         snprintf(
             progress_text,
             sizeof(progress_text),
@@ -326,7 +326,7 @@ static void update_timer_callback(void* context) {
                 (unsigned int)state->counter);
         }
     }
-    fs_unlock();
+    ish_unlock();
 
     if(complete) {
         dialog_ex_set_header(
@@ -336,7 +336,7 @@ static void update_timer_callback(void* context) {
 
         // If completed and still showing progress view, switch back to dialog
         if(progress_view_active) {
-            view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdShowFile);
+            view_dispatcher_switch_to_view(app->view_dispatcher, IrShareViewIdShowFile);
             progress_view_active = false;
         }
     } else if(is_locked) {
@@ -345,7 +345,7 @@ static void update_timer_callback(void* context) {
             progress_view_init(app);
         }
         if(!progress_view_active) {
-            view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdProgress);
+            view_dispatcher_switch_to_view(app->view_dispatcher, IrShareViewIdProgress);
             progress_view_active = true;
         }
 
@@ -358,7 +358,7 @@ static void update_timer_callback(void* context) {
 
         // If we're no longer locked but the progress view is active, switch back to dialog
         if(progress_view_active) {
-            view_dispatcher_switch_to_view(app->view_dispatcher, FlipperShareViewIdShowFile);
+            view_dispatcher_switch_to_view(app->view_dispatcher, IrShareViewIdShowFile);
             progress_view_active = false;
         }
     }
@@ -368,7 +368,7 @@ static void update_timer_callback(void* context) {
 // Callback for DialogEx buttons
 static void dialog_ex_callback(DialogExResult result, void* context) {
     furi_assert(context);
-    FlipperShareApp* app = context;
+    IrShareApp* app = context;
 
     if(result == DialogExResultLeft) {
         view_dispatcher_send_custom_event(app->view_dispatcher, DialogExResultLeft);
@@ -377,8 +377,8 @@ static void dialog_ex_callback(DialogExResult result, void* context) {
     }
 }
 
-bool flipper_share_scene_receive_on_event(void* context, SceneManagerEvent event) {
-    FlipperShareApp* app = context;
+bool ir_share_scene_receive_on_event(void* context, SceneManagerEvent event) {
+    IrShareApp* app = context;
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
@@ -442,14 +442,12 @@ bool flipper_share_scene_receive_on_event(void* context, SceneManagerEvent event
     return consumed;
 }
 
-void flipper_share_scene_receive_on_exit(void* context) {
-    FlipperShareApp* app = context;
+void ir_share_scene_receive_on_exit(void* context) {
+    IrShareApp* app = context;
     // Ensure progress view is deinitialized if it was created
     progress_view_deinit(app);
 
-    if(ss_subghz_deinit()) {
-        FURI_LOG_W(TAG, "ss_subghz_deinit reported error on scene exit");
-    }
+    ir_transport_deinit();
 
     // Clean up resources
     if(app->file_reading_state) {
@@ -467,5 +465,5 @@ void flipper_share_scene_receive_on_exit(void* context) {
     // Worker thread is joined in on_event and the SubGhz RX worker is stopped
     // above, so no thread touches `g` anymore: free the block map/parts and the
     // shared-state lock.
-    fs_deinit();
+    ish_deinit();
 }
