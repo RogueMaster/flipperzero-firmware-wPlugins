@@ -20,7 +20,7 @@
 #include <lib/subghz/transmitter.h>
 #include <lib/subghz/subghz_protocol_registry.h>
 
-#include <assets_icons.h>
+#include "subghz_raw_edit_icons.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,8 +35,8 @@
 #define GAP_KEEP_MAX_US 1500
 
 #define MERGE_GAP_US    15000
-#define MERGE_MAX_FILES 16
 #define MERGE_PATH_LEN  128
+#define MERGE_BUF_CHUNK 512
 
 #define APP_VERSION FAP_VERSION
 #define APP_REPO    "github.com/Lechnio/SubGHz-RAW-Edit"
@@ -1717,14 +1717,19 @@ static void run_merge(Storage* storage, DialogsApp* dialogs) {
     memset(app, 0, sizeof(App));
     app->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
 
-    char(*paths)[MERGE_PATH_LEN] = safe_malloc(MERGE_MAX_FILES * MERGE_PATH_LEN);
-    bool is_raw_arr[MERGE_MAX_FILES];
-    if(!paths) {
+    // Packed buffer of file paths: <len_byte><path_bytes><len_byte>...<0>.
+    // The high bit (0x80) of each len byte flags a RAW file; a 0 byte marks
+    // the end. Grows on demand so the only real limit is available RAM.
+    size_t pcap = MERGE_BUF_CHUNK;
+    size_t pused = 0;
+    uint8_t* pbuf = safe_malloc(pcap);
+    if(!pbuf) {
         show_oom_dialog(dialogs, "Not enough RAM to\nstart merging.\nReboot Flipper.");
         furi_mutex_free(app->mutex);
         free(app);
         return;
     }
+    pbuf[0] = 0;
 
     Gui* gui = furi_record_open(RECORD_GUI);
     ViewPort* load_vp = view_port_alloc();
@@ -1743,7 +1748,7 @@ static void run_merge(Storage* storage, DialogsApp* dialogs) {
     dialog_file_browser_set_basic_options(&br, ".sub", &I_sub1_10px);
     br.base_path = SUBGHZ_DIR;
 
-    while(n < MERGE_MAX_FILES) {
+    while(true) {
         if(!dialog_file_browser_show(dialogs, path, path, &br)) {
             if(n == 0) break;
 
@@ -1824,9 +1829,42 @@ static void run_merge(Storage* storage, DialogsApp* dialogs) {
             continue;
         }
 
-        strncpy(paths[n], furi_string_get_cstr(path), MERGE_PATH_LEN - 1);
-        paths[n][MERGE_PATH_LEN - 1] = '\0';
-        is_raw_arr[n] = is_raw;
+        const char* cstr = furi_string_get_cstr(path);
+        size_t plen = strlen(cstr);
+        if(plen > MERGE_PATH_LEN - 1) plen = MERGE_PATH_LEN - 1;
+
+        // Append <len_byte><path> to the packed buffer, growing if needed.
+        // +2 keeps room for this entry's len byte plus the final terminator.
+        size_t need = pused + 1 + plen + 1;
+        if(need > pcap) {
+            size_t newcap = pcap;
+            while(newcap < need)
+                newcap *= 2;
+
+            uint8_t* np = safe_realloc(pbuf, newcap);
+            if(!np) {
+                DialogMessage* m = dialog_message_alloc();
+                dialog_message_set_header(m, "Merge .sub files", 64, 2, AlignCenter, AlignTop);
+                dialog_message_set_text(
+                    m,
+                    "Out of RAM for more\nfiles. Merging what\nwas added so far.",
+                    64,
+                    32,
+                    AlignCenter,
+                    AlignCenter);
+                dialog_message_set_buttons(m, NULL, "OK", NULL);
+                dialog_message_show(dialogs, m);
+                dialog_message_free(m);
+                break;
+            }
+            pbuf = np;
+            pcap = newcap;
+        }
+
+        pbuf[pused++] = (uint8_t)(plen | (is_raw ? 0x80 : 0));
+        memcpy(pbuf + pused, cstr, plen);
+        pused += plen;
+        pbuf[pused] = 0;
 
         if(n == 0) {
             freq = f;
@@ -1849,13 +1887,13 @@ static void run_merge(Storage* storage, DialogsApp* dialogs) {
     furi_string_free(path);
 
     if(aborted || n < 1 || total < 2) {
-        free(paths);
+        free(pbuf);
         goto cleanup;
     }
 
     app->sd.data = safe_malloc(total * sizeof(int16_t));
     if(!app->sd.data) {
-        free(paths);
+        free(pbuf);
         show_oom_dialog(dialogs, "Not enough RAM to\nbuild the merge.\nReboot Flipper.");
         goto cleanup;
     }
@@ -1869,13 +1907,23 @@ static void run_merge(Storage* storage, DialogsApp* dialogs) {
     gui_add_view_port(gui, load_vp, GuiLayerFullscreen);
     view_port_update(load_vp);
 
-    for(int i = 0; i < n; i++)
-        fill_sub_into(storage, paths[i], &app->sd, is_raw_arr[i], i > 0);
+    char pathbuf[MERGE_PATH_LEN];
+    size_t off = 0;
+    for(int i = 0; i < n; i++) {
+        uint8_t lb = pbuf[off++];
+        bool is_raw = lb & 0x80;
+        size_t plen = lb & 0x7F;
+        memcpy(pathbuf, pbuf + off, plen);
+        pathbuf[plen] = '\0';
+        off += plen;
+
+        fill_sub_into(storage, pathbuf, &app->sd, is_raw, i > 0);
+    }
 
     if(g_normalize_jitter) normalize_jitter(&app->sd);
 
     gui_remove_view_port(gui, load_vp);
-    free(paths);
+    free(pbuf);
 
     recompute_total_us(&app->sd);
     strncpy(app->basename, "merged", sizeof(app->basename) - 1);
