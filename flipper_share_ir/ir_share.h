@@ -37,12 +37,6 @@
 #define ISH_STALL_MS 12000                                   // no new block for this long -> show "stalled"
 #define ISH_ETA_MAX_SEC (99u*3600u + 59u*60u + 59u)          // clamp ETA display (avoid uint32 overflow / garbage)
 
-// Receiver caps each REQUEST to this many blocks so the sender periodically stops
-// to listen: prompt retransmit of lost blocks and regular half-duplex turn-taking.
-// Larger => fewer request round-trips (faster on a clean link); a lost early block
-// is only re-requested after the chunk finishes (still converges).
-#define ISH_REQUEST_MAX_BLOCKS 256u
-
 #define ISH_PARTS_COUNT 100u                                 // For progress bar in GUI
 #define ISH_PARTS_BYTES ((uint32_t)((ISH_PARTS_COUNT + 7u) / 8u))
 

@@ -39,7 +39,12 @@ enum {
                                       // every ~350ms << this, so no spurious re-requests.
     ISH_TX_TIMEOUT_MS       = 100,    // sender gap after last RX before streaming data
     ISH_IDLE_TICK_MS        = 20,     // interval for calling ish_idle()
-    ISH_CONNECTED_IDLE_MS   = 5000    // sender reverts CONNECTED->ANNOUNCING after this idle
+    ISH_CONNECTED_IDLE_MS   = 5000,   // sender reverts CONNECTED->ANNOUNCING after this idle
+    ISH_REQUEST_JITTER_MS   = 1500    // random backoff before each (re)REQUEST, up to ~the
+                                      // main retry/announce interval, to break ALOHA-style
+                                      // phase-lock with the sender's periodic ANNOUNCEs
+                                      // (both sides transmitting at once -> never hear each
+                                      // other -> stall). No priority arbitration in 1:1 IR.
 };
 
 // ===== Global state =====
@@ -954,13 +959,12 @@ void ish_idle(void) {
                 uint32_t nblk_end   = ish_map_search(1, nblk_start + 1);
                 nbyte_start = nblk_start * ISH_DATA_LENGTH;
                 if (nblk_end == UINT32_MAX) {
-                    nblk_end = g.r_blocks_needed - 1; // last block
+                    nblk_end = g.r_blocks_needed - 1; // last missing block -> request to end
                 }
-                // Cap the requested span so the sender periodically stops to listen:
-                // prompt retransmit of lost blocks and regular half-duplex turn-taking.
-                if (nblk_end > nblk_start + (ISH_REQUEST_MAX_BLOCKS - 1)) {
-                    nblk_end = nblk_start + (ISH_REQUEST_MAX_BLOCKS - 1);
-                }
+                // No cap: request the whole first contiguous missing run. On a fresh
+                // transfer that is the entire file, so ONE REQUEST makes the sender
+                // stream to the end (with interleaved announces); afterwards the
+                // receiver only re-requests genuinely missing (lost) blocks.
                 nbyte_end = (nblk_end + 1) * ISH_DATA_LENGTH; // inclusive end
                 do_request = (nblk_start != UINT32_MAX);
                 FURI_LOG_I(TAG, "ish_idle: REQUEST blocks (%lu, %lu), bytes (%lu, %lu)",
@@ -994,9 +998,19 @@ void ish_idle(void) {
 
         // --- Slow work OUTSIDE the lock ---
         if (do_request) {
-            furi_delay_ms((uint8_t)((furi_get_tick() % 30))); // small random jitter, ms
+            // Large random backoff (up to ~the retry/announce interval) so periodic
+            // REQUESTs don't stay phase-locked with the sender's periodic ANNOUNCEs
+            // (both transmitting at once never hear each other). No priority
+            // arbitration in 1:1 IR.
+            furi_delay_ms(furi_get_tick() % ISH_REQUEST_JITTER_MS);
             ish_send_request(nbyte_start, nbyte_end);
             ish_notify_led_cyan();
+            // Debounce from send completion (not the decision): the long jitter above
+            // must not let the next re-request fire before this REQUEST's DATA has had
+            // a full round trip to come back.
+            ish_lock();
+            g.last_rx_ms = g.cb_now_ms ? g.cb_now_ms() : now;
+            ish_unlock();
         }
 
         if (do_finalize) {
@@ -1065,7 +1079,12 @@ static void ish_handle_announce(uint8_t tx_id, const ISH_pl_announce_t* ann) {
         return;
     }
 
-    g.last_rx_ms = g.cb_now_ms ? g.cb_now_ms() : 0;
+    // NOTE: do NOT reset last_rx_ms on an ANNOUNCE. On the receiver last_rx_ms
+    // drives the re-request timeout; it must track DATA progress (and our own sent
+    // REQUESTs) only. If announces reset it, a sender that keeps announcing at a
+    // period <= the re-request timeout while idle at end-of-stream would forever
+    // suppress the receiver's re-request -> stall that only clears when the link is
+    // physically broken (which stops the announces). The initial lock seeds it below.
 
     if (g.r_locked == false) {
         // #8: sanitize the announced file name before using it in a path
