@@ -779,7 +779,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Sub-GHz Rolling Flaws v1.5 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials)
 - [Sub-GHz Scheduler v3.0 (By shalebridge)](https://github.com/shalebridge/flipper-subghz-scheduler)
 - [Sub-GHz Spectrum v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- [Sub-Ghz Toolkit 1808 v1.0 (By RocketGod-git)](https://github.com/RocketGod-git/RocketGods-SubGHz-Toolkit)
+- [Sub-GHz Toolkit 1808 v1.0 (By RocketGod-git)](https://github.com/RocketGod-git/RocketGods-SubGHz-Toolkit)
 - [Subhound v1.2 (By maxwalks)](https://github.com/maxwalks/subhound)
 - [Survival Manual v1.0 (By Radiomanrf)](https://github.com/Radiomanrf/Survival_manual)
 - [SWD Probe v1.4 (By g3gg0)](https://github.com/g3gg0/flipper-swd_probe)
