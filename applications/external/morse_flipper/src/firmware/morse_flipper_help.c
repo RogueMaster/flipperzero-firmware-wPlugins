@@ -59,6 +59,16 @@ static const uint8_t morse_help_slash_xbm[] = {
     0x01,
 };
 
+static const uint8_t morse_help_ground_xbm[] = {
+    0x08,
+    0x08,
+    0x7f,
+    0x00,
+    0x3e,
+    0x00,
+    0x1c,
+};
+
 static const CwmdIcon morse_help_icons[] = {
     {
         .id = 1U,
@@ -113,6 +123,15 @@ static const CwmdIcon morse_help_icons[] = {
         .left_bearing = 1U,
         .right_bearing = 0U,
         .xbm = morse_help_slash_xbm,
+    },
+    {
+        .id = 7U,
+        .width = 7U,
+        .height = 7U,
+        .y_offset = 0,
+        .left_bearing = 0U,
+        .right_bearing = 0U,
+        .xbm = morse_help_ground_xbm,
     },
 };
 

@@ -2,10 +2,10 @@ If keying does not work, start simple: use the Flipper joystick OK as a straight
 
 Settings x1 Keying is always source plus mode: where the signal comes from, and how the app turns it into Morse.
 ---
-A straight key uses ditx6SK. A paddle needs dit, dah, and ground.
+A straight key uses ditx6SK. A paddle needs dit, dah, and x7 ground.
 
 The default jack wiring is:
-- P3 x1 ground
+- P3 x1 x7 ground
 - P5 x1 dah
 - P7 x1 dit or SK
 ---
@@ -21,6 +21,6 @@ For USB output, choose Key~board, Mouse, or MIDI, then wait a bit for the comput
 
 Custom character sets and ham logs live on the SD card under x6extx6ham.
 ---
-High quality audio is output only on P2. Connect it to an audio jack. It will sound better if you can add a small filtering capacitor, 1-50x2F, between P2 and ground.
+High quality audio is output only on P2. Connect it to an audio jack. It will sound better if you can add a small filtering capacitor, 1-50x2F, between P2 and x7 ground.
 
 You don't have to use the P2 output; you can always fall back to the internal buzzer for the sidetone.

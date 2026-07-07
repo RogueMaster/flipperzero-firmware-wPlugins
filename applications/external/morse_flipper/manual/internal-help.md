@@ -40,44 +40,44 @@ This is the same help file that lives on the Flipper under Help: a gentle introd
 
 - Use a 6.5 mm female jack, solder header pins on it, and plug it straight into the GPIO port. Simple is good here.
 - Use this wiring:
-  - P3 → gnd (sleeve)
+  - P3 → ⏚ gnd (sleeve)
   - P5 → dah (ring)
   - P7 → dit (tip)
-- With this layout, ground sits on P3. That is fine physically. The app should still use P3 as the default virtual ground.
+- With this layout, ground ⏚ sits on P3. That is fine physically. The app should still use P3 as the default virtual ground.
 - The jack and cable should point outward, away from the screen and buttons. This is neater, sturdier, and less annoying than loose GPIO wires.
 - If your paddle uses a 3.5 mm plug, use a simple 3.5 mm to 6.5 mm adapter, just the usual audio sort.
 - You can also solder a suitable 3.5mm TRS jack - the GPIO can be reassigned in settings.
 - A straight key fits the same header:
-  - P3 → gnd
-  - P7 → dit/SK
+  - P3 → ⏚ gnd
+  - P7 → dit / SK
 - One adapter covers both cases:
-  - Paddle → P3/P5/P7
-  - Straight key → P3/P7
-- If your wiring does not match this layout, change it from Settings → Keying → GPIO. You can move dit/SK, dah and the ground pin in there. Straight mode always uses the dit/SK pin from that menu. This layout matches the female jack to the GPIO header with the least swaps.
-- Regardless of layout, you always need a ground. P3 can be reassigned if that is more convenient, or you can use the Flipper's normal ground pins. If your key has no ground contact, it will not work.
+  - Paddle → P3 / P5 / P7
+  - Straight key → P3 / P7
+- If your wiring does not match this layout, change it from Settings → Keying → GPIO. You can move dit/ SK, dah and the ⏚ ground pin in there. Straight mode always uses the dit/SK pin from that menu. This layout matches the female jack to the GPIO header with the least swaps.
+- Regardless of layout, you always need a ground ⏚. P3 can be reassigned if that is more convenient, or you can use any Flipper ground pin. If your key has no ground contact, it will not work.
 
 ## How to practice
 
 - You can become perfectly competent at CW and still do most of your sending from a computer. I rarely touch my key unless I have to.
-- LCWO.net is the gold standard for learning to tell letters apart by sound. It starts with two letters.
+- The website www.LCWO.net is the gold standard for learning to tell letters apart by sound. It starts with two letters.
 - Once you stop making mistakes on those two, you add another.
 - When you add a new letter, resist the urge to translate it into dots and dashes. Learn the sound directly. This app avoids showing the pattern on purpose, because once you start reading Morse as dots and dashes, you have made the whole thing harder than it should be.
 - There is a Listening trainer in here too: same sort of Koch/ LCWO style progression, and the same idea, just on a small orange gadget instead of a laptop.
 - Keep the WPM high. You want to recognise letters by sound, not count dits and dahs. Stay above 20 wpm; start at 30, or 25 if 30 is simply too much.
 - Do not lower the WPM below 30 before you reach lesson 10.
 - If you catch yourself spelling it out as dash dot dash and then deciding it is K, the speed is too low. Turn it up.
-- You **REALLY** want to stop thinking out the sound. Remember how you were taught the multiplication table.
+- You **really** want to stop thinking out the sound. Remember how you learnt the multiplication table.
 - Use Farnsworth to open up the gaps. The spacing should help you hear the rhythm, not tempt you back into counting.
 - You need to hear letters, not inventory. If you only copy shapes back as "three dots, one dash", you are practising parroting, not Morse. Doing this will not help you.
 - You can also use this app to sharpen straight key sending and practise five character sending groups competitively. Do not make those the main event too early. Copying characters by ear comes first. If you cannot hear the letters reliably, better sending just makes tidier nonsense.
 - Straight key sending is a skill of its own. The line between a recognisable personal fist and sloppy sending is subtle, and beginners usually cannot hear the difference yet. The Straight trainer grades your marks, gaps and dah/dit ratio. Groups of 5 has Easy, Medium and IARU HST scoring. Use Medium as the first serious target and start at 15 WPM. Drop to Easy if the timing feels impossible, but remember that Easy still permits sending that would sound rough on the air.
-- On the Straight trainer result line: The target ratio is 3. OK means that part was close enough. When you see a number, not OK, it is a percentage score. Higher is better. A low number means that your sending was far from the expected timing. Above 80%, you will only see OK.
+- On the Straight trainer result line: The target ratio is dah/dit = 3. OK means that part was close enough. When you see a number, not OK, it is a percentage score. Higher is better. A low number means that your sending was far from the expected timing. Above 80%, you will only see OK.
   - S → spacing
   - di → dit length
   - da → dah length
   - r → dah to dit ratio
 - For Groups of 5, Easy is a forgiving warm up. Medium expects clean practice timing and is the sensible everyday target. IARU HST uses competition style scoring. Use it when Medium stops being useful and you want the app to be rude but fair.
-- Music practice is oddly useful, especially rhythm work with a metronome. Pitch drills, not so much. Do use a metronome if you want clean skill transfer. You should use a metronome anyway during music practice. Hanons helped me with transmit speed.
+- Music practice is oddly useful, especially rhythm work with a metronome. Pitch drills, not so much. Do use a metronome if you want clean skill transfer. You should use a metronome anyway during music practice. Hanons helped my SK transmit speed.
 
 ## Prepping
 
@@ -187,18 +187,18 @@ This is the same help file that lives on the Flipper under Help: a gentle introd
 ## Troubleshooting
 
 - If keying does not work, start simple: use the Flipper joystick OK as a straight key. Then try OK + Back as button paddles. Then plug in a real key. Settings → Keying is always source plus mode: where the signal comes from, and how the app turns it into Morse.
-- A straight key uses dit/SK. A paddle needs dit, dah, and ground. The default jack wiring is:
-  - P3 → ground
+- A straight key uses dit/SK. A paddle needs dit, dah, and ⏚ ground. The default jack wiring is:
+  - P3 → ⏚ ground
   - P5 → dah
   - P7 → dit or SK
 - The paddles can be swapped from settings, if needed. When Back is not exiting, it is being used as a paddle. You will see this symbol on the right: ⏴ This is your reminder to long press Left for back.
 - A GPIO short warning means the jack wiring looks wrong for the chosen input. Unplug the key and check it. A mono straight key in the paddle jack will be treated as a straight key.
 - For USB output, choose Keyboard, Mouse, or MIDI, then wait a bit for the computer to reconnect with the new settings. Custom character sets and ham logs live on the SD card under /ext/ham.
-- High quality audio is output only on P2. Connect it to an audio jack. It will sound better if you can add a small filtering capacitor, 1-50µF, between P2 and ground. You don't have to use the P2 output; you can always fall back to the internal buzzer for the sidetone.
+- High quality audio is output only on P2. Connect it to an audio jack. It will sound better if you can add a small filtering capacitor, 1-50µF, between P2 and ⏚ ground. You don't have to use the P2 output; you can always fall back to the internal buzzer for the sidetone.
 
 ## Moving forward
 
-- This is only a small app, really, just a practical way into CW. I made it for people who are curious about Morse and RF and would rather prod the thing than read about it forever.
+- This is only a small app, really, just a practical way into CW. I made it for people who are curious about Morse and RF and would rather prod the thing than read about it for ages.
 - Seriously, get a telegraphy key; I suggest paddles over a straight key. The Flipper's silicone membrane buttons will eventually wear out, especially when a practice plateau tempts you to press harder, as if force were the missing skill. Keying from the joystick gets annoying quickly too.
 - lcwo.net is the easy daily practice route on a computer. It lets you type what you hear, which means you can practise and make mistakes faster than you can on the Flipper.
 - For desktop, Morse Runner Community Edition will simulate live contest traffic, exchanges and general unpleasantness. Look for the Community Edition, not the older one. It is found on github.
