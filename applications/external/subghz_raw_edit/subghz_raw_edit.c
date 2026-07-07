@@ -34,9 +34,16 @@
 
 #define GAP_KEEP_MAX_US 1500
 
-#define MERGE_GAP_US    15000
-#define MERGE_PATH_LEN  128
-#define MERGE_BUF_CHUNK 512
+#define MERGE_GAP_DEFAULT_MS 15
+#define MERGE_GAP_MIN_MS     1
+// Gaps are stored as int16_t and clamped to DUR_CLAMP (32000 us = 32 ms),
+// so anything above 32 ms would just be clamped away.
+#define MERGE_GAP_MAX_MS     32
+#define MERGE_REPEAT_DEFAULT 1
+#define MERGE_REPEAT_MIN     1
+#define MERGE_REPEAT_MAX     64
+#define MERGE_PATH_LEN       128
+#define MERGE_BUF_CHUNK      512
 
 #define APP_VERSION FAP_VERSION
 #define APP_REPO    "github.com/Lechnio/SubGHz-RAW-Edit"
@@ -547,6 +554,12 @@ static bool synthesize_via_transmitter(
  * |dur| ~ m*Te; gaps and noise (outside the data window) are left alone. */
 static bool g_normalize_jitter = false;
 
+/* Silence separator inserted between merged signals, in milliseconds. */
+static int32_t g_merge_gap_ms = MERGE_GAP_DEFAULT_MS;
+
+/* How many times each loaded signal is repeated in the merged output. */
+static int32_t g_merge_repeat = MERGE_REPEAT_DEFAULT;
+
 #define JITTER_DATA_MIN_US 60
 #define JITTER_DATA_MAX_US 3000
 #define JITTER_FIT_ITERS   8
@@ -737,6 +750,20 @@ static void merge_push(SubData* dst, int32_t v) {
     }
 }
 
+/* Insert a clean inter-signal separator so the silence at the join equals
+ * exactly the configured gap. Signals (especially synthesized KeeLoq) end and
+ * start with their own guard silence. Letting merge_push add the gap on top of
+ * it would double (or worse) the visible gap. So we replace the previous
+ * signal's trailing silence with the gap here and the next signal's leading
+ * silence is dropped by the caller when it is appended. */
+static void merge_separator(SubData* dst) {
+    int32_t gap = -(g_merge_gap_ms * 1000);
+    if(dst->count > 0 && dst->data[dst->count - 1] < 0)
+        dst->data[dst->count - 1] = (int16_t)gap;
+    else
+        merge_push(dst, gap);
+}
+
 static size_t count_sub_samples(
     Storage* storage,
     const char* path,
@@ -831,7 +858,10 @@ static void fill_raw_into(Storage* storage, const char* path, SubData* dst, bool
     LineReader lr = {.file = f, .len = 0, .pos = 0, .eof = false};
     FuriString* line = furi_string_alloc();
 
-    if(add_separator) merge_push(dst, -MERGE_GAP_US);
+    // Drop this signal's own leading silence when it follows a separator, so
+    // the join carries exactly one gap (see merge_separator).
+    bool skip_lead = add_separator;
+    if(add_separator) merge_separator(dst);
 
     while(lr_read_line(&lr, line)) {
         const char* s = furi_string_get_cstr(line);
@@ -848,6 +878,13 @@ static void fill_raw_into(Storage* storage, const char* path, SubData* dst, bool
                 continue;
             }
             p = end;
+
+            if(skip_lead) {
+                if(v < 0) continue;
+
+                skip_lead = false;
+            }
+
             merge_push(dst, (int32_t)v);
         }
     }
@@ -871,10 +908,20 @@ static void fill_sub_into(
     SubData tmp;
     bool ok = load_sub(storage, path, &tmp);
     if(ok && tmp.data) {
-        if(add_separator) merge_push(dst, -MERGE_GAP_US);
-        for(size_t i = 0; i < tmp.count; i++)
-            merge_push(dst, tmp.data[i]);
+        bool skip_lead = add_separator;
+        if(add_separator) merge_separator(dst);
+        for(size_t i = 0; i < tmp.count; i++) {
+            int32_t v = tmp.data[i];
+            if(skip_lead) {
+                if(v < 0) continue;
+
+                skip_lead = false;
+            }
+
+            merge_push(dst, v);
+        }
     }
+
     if(tmp.data) free(tmp.data);
 }
 
@@ -892,6 +939,7 @@ static void propose_edit_name(Storage* st, App* a, char* out, size_t outlen) {
             break;
         }
     }
+
     furi_string_free(path);
 }
 
@@ -1804,7 +1852,9 @@ static void run_merge(Storage* storage, DialogsApp* dialogs) {
             continue;
         }
 
-        size_t extra = cnt + (n > 0 ? 1 : 0);
+        size_t copies = (size_t)g_merge_repeat;
+        size_t gaps = (n > 0) ? copies : (copies - 1);
+        size_t extra = cnt * copies + gaps;
         size_t newtotal = total + extra;
         bool over_cap = newtotal > MAX_SAMPLES;
         bool over_ram = newtotal * sizeof(int16_t) + LOAD_HEAP_RESERVE > memmgr_get_free_heap();
@@ -1917,7 +1967,8 @@ static void run_merge(Storage* storage, DialogsApp* dialogs) {
         pathbuf[plen] = '\0';
         off += plen;
 
-        fill_sub_into(storage, pathbuf, &app->sd, is_raw, i > 0);
+        for(int r = 0; r < g_merge_repeat; r++)
+            fill_sub_into(storage, pathbuf, &app->sd, is_raw, (i > 0) || (r > 0));
     }
 
     if(g_normalize_jitter) normalize_jitter(&app->sd);
@@ -1956,6 +2007,7 @@ typedef enum {
     MenuViewSubmenu,
     MenuViewAbout,
     MenuViewConfig,
+    MenuViewGapInput,
 } MenuViewId;
 
 typedef enum {
@@ -1976,6 +2028,11 @@ typedef struct {
     Submenu* submenu;
     Widget* widget;
     VariableItemList* config_list;
+    TextInput* num_input;
+    VariableItem* gap_item;
+    VariableItem* repeat_item;
+    char num_text[8];
+    int editing;
     Storage* storage;
     DialogsApp* dialogs;
     MenuAction action;
@@ -2012,11 +2069,107 @@ static void config_norm_changed_cb(VariableItem* item) {
     variable_item_set_current_value_text(item, idx ? "ON" : "OFF");
 }
 
+typedef enum {
+    ConfigItemNormalize = 0,
+    ConfigItemGap,
+    ConfigItemRepeat,
+} ConfigItem;
+
+static void config_gap_sync_item(VariableItem* item) {
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%ld ms", (long)g_merge_gap_ms);
+    variable_item_set_current_value_index(item, g_merge_gap_ms - MERGE_GAP_MIN_MS);
+    variable_item_set_current_value_text(item, buf);
+}
+
+static void config_repeat_sync_item(VariableItem* item) {
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%ldx", (long)g_merge_repeat);
+    variable_item_set_current_value_index(item, g_merge_repeat - MERGE_REPEAT_MIN);
+    variable_item_set_current_value_text(item, buf);
+}
+
+static void config_gap_changed_cb(VariableItem* item) {
+    g_merge_gap_ms = MERGE_GAP_MIN_MS + variable_item_get_current_value_index(item);
+    config_gap_sync_item(item);
+}
+
+static void config_repeat_changed_cb(VariableItem* item) {
+    g_merge_repeat = MERGE_REPEAT_MIN + variable_item_get_current_value_index(item);
+    config_repeat_sync_item(item);
+}
+
+static void config_num_input_cb(void* context) {
+    Menu* menu = context;
+    int32_t v = atoi(menu->num_text);
+
+    if(menu->editing == ConfigItemGap) {
+        if(v < MERGE_GAP_MIN_MS) v = MERGE_GAP_MIN_MS;
+        if(v > MERGE_GAP_MAX_MS) v = MERGE_GAP_MAX_MS;
+        g_merge_gap_ms = v;
+        config_gap_sync_item(menu->gap_item);
+    } else if(menu->editing == ConfigItemRepeat) {
+        if(v < MERGE_REPEAT_MIN) v = MERGE_REPEAT_MIN;
+        if(v > MERGE_REPEAT_MAX) v = MERGE_REPEAT_MAX;
+        g_merge_repeat = v;
+        config_repeat_sync_item(menu->repeat_item);
+    }
+
+    view_dispatcher_switch_to_view(menu->view_dispatcher, MenuViewConfig);
+}
+
+static uint32_t config_num_input_back_cb(void* context) {
+    UNUSED(context);
+    return MenuViewConfig;
+}
+
+// OK on a numeric config item opens a keyboard for a manual value.
+static void config_enter_cb(void* context, uint32_t index) {
+    Menu* menu = context;
+
+    const char* header;
+    int32_t current;
+    if(index == ConfigItemGap) {
+        header = "Merge gap [ms] (1-32)";
+        current = g_merge_gap_ms;
+    } else if(index == ConfigItemRepeat) {
+        header = "Merge repeat each (1-64)";
+        current = g_merge_repeat;
+    } else {
+        return; // non-numeric item (e.g. Normalize jitter)
+    }
+
+    menu->editing = index;
+    snprintf(menu->num_text, sizeof(menu->num_text), "%ld", (long)current);
+    text_input_set_header_text(menu->num_input, header);
+    text_input_set_result_callback(
+        menu->num_input, config_num_input_cb, menu, menu->num_text, sizeof(menu->num_text), false);
+    view_dispatcher_switch_to_view(menu->view_dispatcher, MenuViewGapInput);
+}
+
 static void menu_build_config(Menu* menu) {
     VariableItem* it = variable_item_list_add(
         menu->config_list, "Normalize jitter", 2, config_norm_changed_cb, menu);
     variable_item_set_current_value_index(it, g_normalize_jitter ? 1 : 0);
     variable_item_set_current_value_text(it, g_normalize_jitter ? "ON" : "OFF");
+
+    menu->gap_item = variable_item_list_add(
+        menu->config_list,
+        "Merge gap",
+        MERGE_GAP_MAX_MS - MERGE_GAP_MIN_MS + 1,
+        config_gap_changed_cb,
+        menu);
+    config_gap_sync_item(menu->gap_item);
+
+    menu->repeat_item = variable_item_list_add(
+        menu->config_list,
+        "Merge repeat",
+        MERGE_REPEAT_MAX - MERGE_REPEAT_MIN + 1,
+        config_repeat_changed_cb,
+        menu);
+    config_repeat_sync_item(menu->repeat_item);
+
+    variable_item_list_set_enter_callback(menu->config_list, config_enter_cb, menu);
 }
 
 static uint32_t submenu_back_cb(void* context) {
@@ -2073,6 +2226,7 @@ int32_t subghz_raw_edit_app(void* p) {
     menu->submenu = submenu_alloc();
     menu->widget = widget_alloc();
     menu->config_list = variable_item_list_alloc();
+    menu->num_input = text_input_alloc();
 
     submenu_set_header(menu->submenu, APP_NAME);
     submenu_add_item(menu->submenu, "Select .sub file", MenuItemSelectFile, menu_submenu_cb, menu);
@@ -2086,6 +2240,7 @@ int32_t subghz_raw_edit_app(void* p) {
     view_set_previous_callback(submenu_get_view(menu->submenu), submenu_back_cb);
     view_set_previous_callback(widget_get_view(menu->widget), about_back_cb);
     view_set_previous_callback(variable_item_list_get_view(menu->config_list), config_back_cb);
+    view_set_previous_callback(text_input_get_view(menu->num_input), config_num_input_back_cb);
 
     view_dispatcher_attach_to_gui(menu->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_add_view(
@@ -2093,6 +2248,8 @@ int32_t subghz_raw_edit_app(void* p) {
     view_dispatcher_add_view(menu->view_dispatcher, MenuViewAbout, widget_get_view(menu->widget));
     view_dispatcher_add_view(
         menu->view_dispatcher, MenuViewConfig, variable_item_list_get_view(menu->config_list));
+    view_dispatcher_add_view(
+        menu->view_dispatcher, MenuViewGapInput, text_input_get_view(menu->num_input));
 
     bool running = true;
     while(running) {
@@ -2112,9 +2269,11 @@ int32_t subghz_raw_edit_app(void* p) {
     view_dispatcher_remove_view(menu->view_dispatcher, MenuViewSubmenu);
     view_dispatcher_remove_view(menu->view_dispatcher, MenuViewAbout);
     view_dispatcher_remove_view(menu->view_dispatcher, MenuViewConfig);
+    view_dispatcher_remove_view(menu->view_dispatcher, MenuViewGapInput);
     submenu_free(menu->submenu);
     widget_free(menu->widget);
     variable_item_list_free(menu->config_list);
+    text_input_free(menu->num_input);
     view_dispatcher_free(menu->view_dispatcher);
 
     furi_record_close(RECORD_GUI);
