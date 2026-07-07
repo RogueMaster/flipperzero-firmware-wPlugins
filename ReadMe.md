@@ -64,6 +64,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Native MIFARE Plus support in SL3 - MIFARE Plus is now a first-class protocol instead of detection-only: read (AES auth + encrypted/plaintext blocks, admin keys & config, originality signature), automatic dictionary attack with a per-UID key cache (instant re-reads of saved cards), full SL3 emulation with shadow-writeback (a reader can authenticate, read & write the recovered card), write/update-to-card, GetVersion + ATS-based S/X/SE/EV1/EV2 detection, Add Manually for 18 Plus variants, and MIFARE-Classic-style dump & keys screens; SL0/SL1/SL2 stay untouched (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1032)
 - Updated: [CCID Emulator v1.1 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Updated: [Sub-GHz RAW Edit v1.6 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
+- NFC: [Internal MIFARE Plus cleanup - data-drive the Add Manually generator variants and unify the admin-key address mapping into one source of truth; small internal-flash saving, no functional change (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1035)
+- Sub-GHz: [Fix crash when exiting CLI `subghz chat` with an external CC1101 - pressing Ctrl+C dereferenced the just-freed external CC1101 radio plugin during chat worker shutdown; internal CC1101 was unaffected (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1036)
 
 <a name="release"></a>
 
