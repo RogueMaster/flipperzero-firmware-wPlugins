@@ -3,6 +3,8 @@
 #include <applications/drivers/subghz/cc1101_ext/cc1101_ext_interconnect.h>
 #include <lib/subghz/devices/devices.h>
 
+#include <furi_hal_power.h>
+
 #define TAG "Sub-GHzSchedulerApp"
 
 static bool scheduler_app_custom_event_callback(void* context, uint32_t event) {
@@ -31,6 +33,35 @@ static void scheduler_make_app_folder(SchedulerApp* app) {
         dialog_message_show_storage_error(app->dialogs, "Unable to create\napp folder");
     }
     furi_record_close(RECORD_STORAGE);
+}
+
+static void scheduler_app_ext_device_cleanup() {
+    if(furi_hal_power_is_otg_enabled()) {
+        furi_hal_power_disable_otg();
+    }
+}
+
+static bool scheduler_app_ext_device_init() {
+    bool present = false;
+
+    uint8_t otg_attempts = 5;
+    while(!(present = furi_hal_power_is_otg_enabled()) && otg_attempts--) {
+        furi_hal_power_enable_otg();
+        furi_delay_ms(100);
+    }
+
+    if(present) {
+        subghz_devices_init();
+        const SubGhzDevice* device = subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_EXT_NAME);
+        present = subghz_devices_is_connect(device);
+        if(!present) {
+            scheduler_app_ext_device_cleanup();
+        }
+
+        subghz_devices_deinit();
+    }
+
+    return present;
 }
 
 SchedulerApp* scheduler_app_alloc(void) {
@@ -96,10 +127,7 @@ SchedulerApp* scheduler_app_alloc(void) {
     app->scheduler = scheduler_alloc();
 
     // Test for external device
-    subghz_devices_init();
-    const SubGhzDevice* device = subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_EXT_NAME);
-    app->ext_radio_present = subghz_devices_is_connect(device);
-    subghz_devices_deinit();
+    app->ext_radio_present = scheduler_app_ext_device_init();
     if(app->ext_radio_present) {
         FURI_LOG_I(TAG, "External radio detected.");
         scheduler_set_radio(app->scheduler, 1);
@@ -123,6 +151,8 @@ void scheduler_app_free(SchedulerApp* app) {
         furi_thread_free(app->thread);
         app->thread = NULL;
     }
+
+    scheduler_app_ext_device_cleanup();
 
     view_dispatcher_remove_view(app->view_dispatcher, SchedulerAppViewInterval);
     scheduler_interval_view_free(app->interval_view);

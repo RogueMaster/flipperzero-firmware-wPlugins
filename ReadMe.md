@@ -66,6 +66,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Sub-GHz RAW Edit v1.6 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - NFC: [Internal MIFARE Plus cleanup - data-drive the Add Manually generator variants and unify the admin-key address mapping into one source of truth; small internal-flash saving, no functional change (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1035)
 - Sub-GHz: [Fix crash when exiting CLI `subghz chat` with an external CC1101 - pressing Ctrl+C dereferenced the just-freed external CC1101 radio plugin during chat worker shutdown; internal CC1101 was unaffected (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1036)
+- Updated: [Sub-GHz Scheduler v3.0 (By shalebridge)](https://github.com/shalebridge/flipper-subghz-scheduler)
 
 <a name="release"></a>
 
