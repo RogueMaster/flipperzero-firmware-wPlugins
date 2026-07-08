@@ -40,9 +40,17 @@ static constexpr uint8_t kBlockDrop[32] = {
 static constexpr uint32_t BLOCKS_SEETHROUGH_LIGHT =
     (1u << BLOCK_AIR) | (1u << BLOCK_LEAVES) | (1u << BLOCK_GLASS) | (1u << BLOCK_SAPLING);
 
+// xorshift32 with a multiplicative scrambler: the raw low bits of xorshift
+// are linearly correlated between nearby outputs (visible as streaks in
+// anything sampled with &N), the top byte of state*M is not.
 uint8_t Game::rng() {
     rngState ^= rngState<<13; rngState ^= rngState>>17; rngState ^= rngState<<5;
-    return (uint8_t)(rngState & 0xFF);
+    return (uint8_t)((rngState * UINT32_C(0x2545F491)) >> 24);
+}
+uint8_t Game::spawnRng() {
+    spawnRngState ^= spawnRngState<<13; spawnRngState ^= spawnRngState>>17;
+    spawnRngState ^= spawnRngState<<5;
+    return (uint8_t)((spawnRngState * UINT32_C(0x2545F491)) >> 24);
 }
 int Game::smul446(int a,int b){ int r=(s8(a)*s8(b))>>6; return (int8_t)std::clamp(r,-128,127); }
 
@@ -54,6 +62,9 @@ bool Game::setup(const GameConfig& config) {
 
     playerX=world.hdrPX; playerY=world.hdrPY; playerZ=world.hdrPZ;
     pl.rot=world.hdrRot; rngState=world.hdrRng;
+    spawnRngState=world.hdrRng ^ UINT32_C(0x9E3779B9); // xorshift state must stay nonzero
+    if(!spawnRngState) spawnRngState=UINT32_C(0x6C078965);
+    lastSpawn=0xFF;
     pl.onGround=true; velYsub=0; posYsub=0;
     forceRedraw=true; lastSig=0;
 

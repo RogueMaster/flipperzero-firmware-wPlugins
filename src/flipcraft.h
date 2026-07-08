@@ -52,6 +52,7 @@ constexpr int FALLDAMAGESCALING    = 0x08;
 constexpr int RANDOMTICKSPEED      = 10;
 constexpr int SMELTTIME            = 0xC0;
 constexpr int MAX_MOBS             = 6;
+constexpr int MOB_CHUNK_CAP        = 3;  // spawn density: max mobs per chunk
 constexpr int MOBWIDTH             = 14;
 constexpr int MOB_HURT_TICKS      = 12;  // ~1 s of damage flash at the 80 ms tick
 constexpr int MOB_ATTACK_COOL     = 12;  // ticks between touch attacks

@@ -52,6 +52,7 @@ struct Mob {
     uint8_t sated=0;    // full: skips food prey, exploders still hunted
     uint8_t alt=0;      // flyer: wanted hover height above ground, sub-px
     uint8_t seek=0;     // ticks until the chase goal may be re-aimed
+    uint8_t fx=0,fz=0;  // walk remainders, 7 fractional bits (see updateAllMobs)
     int16_t gx=0,gz=0;  // chase/flee goal point, sub-pixels
     int x=0,y=0,z=0;    // world sub-pixels, min corner (body is MOBWIDTH wide)
     int vy=0;
@@ -74,6 +75,8 @@ public:
     Screen2D screen;
     PlayerState pl;
     uint32_t rngState = 0x1234;
+    uint32_t spawnRngState = 0x1234; // separate stream so spawn draws never
+                                     // correlate with world-tick consumers
 
     int playerX = 0, playerY = 0, playerZ = 0;
     int velYsub = 0, posYsub = 0;
@@ -98,7 +101,9 @@ public:
 
 private:
     uint8_t rng();
+    uint8_t spawnRng();
     int smul446(int a,int b);
+    uint8_t lastSpawn = 0xFF;   // species of the previous spawn (anti-streak)
 
     void worldFrame(const Input& in);
     void handleBreakAndPlace(const Input& in);
