@@ -1,0 +1,7 @@
+ADD_SCENE(pocketlab, menu, Menu)
+ADD_SCENE(pocketlab, labs, Labs)
+ADD_SCENE(pocketlab, lesson, Lesson)
+ADD_SCENE(pocketlab, progress, Progress)
+ADD_SCENE(pocketlab, settings, Settings)
+ADD_SCENE(pocketlab, reset_confirm, ResetConfirm)
+ADD_SCENE(pocketlab, about, About)

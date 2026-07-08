@@ -1,0 +1,20 @@
+# Build output (the .fap is distributed via GitHub Releases, not committed)
+/dist/
+*.fap
+
+# ufbt local SDK metadata (SDK itself lives in ~/.ufbt)
+.ufbt/
+
+# Editors / IDE
+/.vscode/
+/.idea/
+.nova/
+.zed/
+*.swp
+
+# OS
+.DS_Store
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

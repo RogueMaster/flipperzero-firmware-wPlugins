@@ -1,0 +1,27 @@
+# Submission manifest for the official Flipper Application Catalog.
+#
+# To publish PocketLab, open a pull request against
+# https://github.com/flipperdevices/flipper-application-catalog
+# adding this file at:
+#   applications/Tools/pocketlab/manifest.yml
+#
+# Fill in the commit_sha you want to ship, add screenshots, then submit.
+# App metadata (name, icon, category, version) is read from application.fam.
+
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/PerfectoWeb/flipper-pocketlab.git
+    commit_sha: REPLACE_WITH_RELEASE_COMMIT_SHA
+    subdir: .
+
+short_description: Learn your Flipper with short, gamified hands-on labs.
+
+description: '@README.md'
+
+changelog: '@CHANGELOG.md'
+
+screenshots:
+  - screenshots/menu.png
+  - screenshots/lesson.png
+  - screenshots/reward.png
