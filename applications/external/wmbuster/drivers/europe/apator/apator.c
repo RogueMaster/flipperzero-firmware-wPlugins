@@ -8,6 +8,8 @@
 
 #include "../../engine/driver.h"
 
+#include <stdio.h>
+
 /* amiplus — smart electricity (relabelled by NES, DEV, APT). */
 static const WmbusMVT k_mvt_amiplus[] = {
     {"APA", 0x01, 0x02},
@@ -87,6 +89,77 @@ const WmbusDriver wmbus_drv_apator_elf = {
  * in the wild: wmbusmeters' apatoreitn driver registers (mfr, 0x08,
  * 0x04) which is version=0x08, medium=0x04, while older firmware uses
  * the inverted (0x04, 0x08). Cover both. */
+static uint16_t apator_hca_le16(const uint8_t* p) {
+    return (uint16_t)p[0] | ((uint16_t)p[1] << 8);
+}
+
+static size_t apator_hca_fallback(const uint8_t* a, size_t len, char* o, size_t cap) {
+    size_t pos = (size_t)snprintf(o, cap, "Apator HCA\n");
+    pos += (size_t)snprintf(
+        o + pos,
+        cap - pos,
+        "Bytes %u\n"
+        "Status bad length\n",
+        (unsigned)len);
+
+    size_t off = 0;
+    int rows = 0;
+    while(off < len && rows < 3 && pos + 24 < cap) {
+        size_t n = len - off;
+        if(n > 6) n = 6;
+        pos += (size_t)snprintf(o + pos, cap - pos, "Hex%02u ", (unsigned)off);
+        for(size_t i = 0; i < n && pos + 3 < cap; i++) {
+            pos += (size_t)snprintf(o + pos, cap - pos, "%02X", a[off + i]);
+        }
+        if(pos + 1 < cap) {
+            o[pos++] = '\n';
+            o[pos] = '\0';
+        }
+        off += n;
+        rows++;
+    }
+
+    return pos;
+}
+
+static size_t decode_apator_hca(
+    uint16_t m,
+    uint8_t v,
+    uint8_t med,
+    const uint8_t* a,
+    size_t len,
+    char* o,
+    size_t cap) {
+    (void)m;
+    (void)v;
+    (void)med;
+
+    if(len != 15) return apator_hca_fallback(a, len, o, cap);
+
+    const uint16_t units = apator_hca_le16(a + 3);
+    const uint16_t ref_units = apator_hca_le16(a + 7);
+
+    return (size_t)snprintf(
+        o,
+        cap,
+        "Apator HCA\n"
+        "Units %u\n"
+        "RefUnits %u\n"
+        "TempC %u\n"
+        "Marker %02X%02X\n"
+        "Flags %02X%02X%02X%02X%02X\n",
+        units,
+        ref_units,
+        (unsigned)a[12],
+        a[9],
+        a[10],
+        a[5],
+        a[6],
+        a[11],
+        a[13],
+        a[14]);
+}
+
 static const WmbusMVT k_mvt_apator_hca[] = {
     {"APA", 0x04, 0x08},
     {"APT", 0x04, 0x08},
@@ -97,7 +170,7 @@ const WmbusDriver wmbus_drv_apator_hca = {
     .id = "apator-hca",
     .title = "Apator HCA",
     .mvt = k_mvt_apator_hca,
-    .decode = NULL,
+    .decode = decode_apator_hca,
 };
 
 /* Ultrimis water (cold) */

@@ -113,7 +113,44 @@ static void draw_footer(Canvas* c, const ScanModel* m) {
     if(m->stats_tail[0]) canvas_draw_str(c, 128 - tail_w - 2, 64 - 2, m->stats_tail);
 }
 
-static void draw_row(Canvas* c, int y_top, const ScanRow* r, bool selected) {
+static void fit_scan_text(Canvas* c, char* s, int max_w) {
+    while(canvas_string_width(c, s) > max_w && s[0]) {
+        s[strlen(s) - 1] = 0;
+    }
+}
+
+static void fit_scan_head(Canvas* c, char* head, size_t cap, int max_w) {
+    if(canvas_string_width(c, head) <= max_w) return;
+
+    char mfr[5] = {0};
+    char medium[8] = {0};
+    char tail[8] = {0};
+    const char* first_space = strchr(head, ' ');
+    const char* last_space = strrchr(head, ' ');
+
+    if(first_space && last_space && first_space < last_space) {
+        size_t mfr_len = (size_t)(first_space - head);
+        size_t medium_len = (size_t)(last_space - first_space - 1);
+        if(mfr_len >= sizeof(mfr)) mfr_len = sizeof(mfr) - 1;
+        if(medium_len >= sizeof(medium)) medium_len = sizeof(medium) - 1;
+
+        memcpy(mfr, head, mfr_len);
+        memcpy(medium, first_space + 1, medium_len);
+        strncpy(tail, last_space + 1, sizeof(tail) - 1);
+
+        if(medium[0]) {
+            snprintf(head, cap, "%s %c %s", mfr, medium[0], tail);
+            if(canvas_string_width(c, head) <= max_w) return;
+        }
+
+        snprintf(head, cap, "%s %s", mfr, tail);
+        if(canvas_string_width(c, head) <= max_w) return;
+    }
+
+    fit_scan_text(c, head, max_w);
+}
+
+static void draw_row(Canvas* c, int y_top, const ScanRow* r, bool selected, bool has_scrollbar) {
     /* Selected rows paint inverted; the pen colour must remain set across
      * every draw call in the row. */
     if(selected) {
@@ -141,7 +178,8 @@ static void draw_row(Canvas* c, int y_top, const ScanRow* r, bool selected) {
      * edge until both fit. Without this clamp a verbose value (e.g. a
      * raw hex dump from a proprietary frame) used to wipe the head off
      * the row entirely, leaving the user staring at nothing but hex. */
-    const int kHeadMinW = 60; /* enough for "MFR 12345678" + medium */
+    const int kHeadMinW = 42; /* enough for compact "MFR 1234" */
+    const int right_edge = has_scrollbar ? 122 : 126;
     char val[24];
     val[0] = 0;
     if(r->value[0]) {
@@ -149,19 +187,17 @@ static void draw_row(Canvas* c, int y_top, const ScanRow* r, bool selected) {
         val[sizeof(val) - 1] = 0;
     }
     int vw = val[0] ? canvas_string_width(c, val) : 0;
-    int max_val_w = 128 - text_x - kHeadMinW - 4;
-    while(vw > max_val_w && val[0]) {
-        val[strlen(val) - 1] = 0;
-        vw = canvas_string_width(c, val);
-    }
+    int max_val_w = right_edge - text_x - kHeadMinW - 4;
+    if(max_val_w < 0) max_val_w = 0;
+    fit_scan_text(c, val, max_val_w);
+    vw = val[0] ? canvas_string_width(c, val) : 0;
 
-    int max_head_w = 128 - text_x - vw - 4;
-    while(canvas_string_width(c, head) > max_head_w && head[0]) {
-        head[strlen(head) - 1] = 0;
-    }
+    int max_head_w = right_edge - text_x - vw - 4;
+    if(max_head_w < 0) max_head_w = 0;
+    fit_scan_head(c, head, sizeof(head), max_head_w);
 
     canvas_draw_str(c, text_x, text_y, head);
-    if(val[0]) canvas_draw_str(c, 128 - vw - 2, text_y, val);
+    if(val[0]) canvas_draw_str(c, right_edge - vw, text_y, val);
 
     canvas_set_color(c, ColorBlack);
 }
@@ -180,16 +216,18 @@ static void scan_view_draw(Canvas* c, void* m_) {
         return;
     }
 
+    bool has_scrollbar = m->row_count > SCAN_VISIBLE_ROWS;
+
     /* Visible window: rows[scroll .. scroll+SCAN_VISIBLE_ROWS-1]. */
     for(size_t i = 0; i < SCAN_VISIBLE_ROWS; i++) {
         size_t idx = m->scroll + i;
         if(idx >= m->row_count) break;
         int y = SCAN_LIST_TOP + (int)i * SCAN_ROW_HEIGHT;
-        draw_row(c, y, &m->rows[idx], idx == m->cursor);
+        draw_row(c, y, &m->rows[idx], idx == m->cursor, has_scrollbar);
     }
 
     /* Scrollbar — thin column on the right edge of the list area. */
-    if(m->row_count > SCAN_VISIBLE_ROWS) {
+    if(has_scrollbar) {
         elements_scrollbar_pos(
             c, 127, SCAN_LIST_TOP, SCAN_LIST_BOTTOM - SCAN_LIST_TOP, m->cursor, m->row_count);
     }
