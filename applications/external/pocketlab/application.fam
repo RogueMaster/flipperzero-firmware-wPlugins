@@ -4,10 +4,10 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="pocketlab_app",
     stack_size=3 * 1024,
-    fap_category="Tools",
     fap_icon="pocketlab.png",
-    fap_description="Learn your Flipper with short, gamified hands-on labs.",
+    fap_category="Tools",
     fap_author="PerfectoWeb",
     fap_weburl="https://github.com/PerfectoWeb/flipper-pocketlab",
     fap_version="1.1",
+    fap_description="Learn your Flipper with short, gamified hands-on labs.",
 )

@@ -173,7 +173,7 @@ def _proto_ver_generator(target, source, env):
         git_major, git_minor = "0", "4"
     else:
         git_major, git_minor = git_describe.split(".")
-    
+
     version_file_data = (
         "#pragma once",
         f"#define PROTOBUF_MAJOR_VERSION {git_major}",
