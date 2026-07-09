@@ -67,11 +67,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Internal MIFARE Plus cleanup - data-drive the Add Manually generator variants and unify the admin-key address mapping into one source of truth; small internal-flash saving, no functional change (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1035)
 - Sub-GHz: [Fix crash when exiting CLI `subghz chat` with an external CC1101 - pressing Ctrl+C dereferenced the just-freed external CC1101 radio plugin during chat worker shutdown; internal CC1101 was unaffected (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1036)
 - Updated: [Sub-GHz Scheduler v3.0 (By shalebridge)](https://github.com/shalebridge/flipper-subghz-scheduler)
-- Updated: [wM-Buster v1.1.1 (By i12bp8)](https://github.com/i12bp8/wmbuster)
 - [Make protobuf version generator tolerant when git tags unavailable (By juansandoval0613)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1194)
 - Added: [PocketLab v1.1 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
 - Updated: [PocketLab v1.2.1 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
 - Updated: [Tesla Mod v2.16b15 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Updated: [wM-Buster v1.1.1 (By i12bp8)](https://github.com/i12bp8/wmbuster)
 - Using API v88.0 Like OFW
 - Updated: [Rush Hour v0.1.6 (By Endika)](https://github.com/Endika/flipper-tutu) (Version Only)
 
