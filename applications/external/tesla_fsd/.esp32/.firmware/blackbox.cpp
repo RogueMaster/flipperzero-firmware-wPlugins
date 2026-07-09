@@ -14,6 +14,7 @@
 #include "../../fsd_logic/fsd_capture.h"           // tesla_format_candump_line
 #include "../../fsd_logic/fsd_events.h"            // fsd_events_inject
 #include "../../fsd_logic/fsd_blackbox_summary.h"  // fsd_blackbox_format_json
+#include "../../fsd_logic/fsd_blackbox_filter.h"   // fsd_blackbox_should_record
 #include <stdlib.h>
 #include <string.h>
 
@@ -472,6 +473,11 @@ void blackbox_init(FSDState* state, portMUX_TYPE* state_mux) {
 
 void blackbox_record(CanBusId bus, const CanFrame& frame, uint32_t now_ms) {
     if (g_cap == 0 || g_state == nullptr || !g_state->blackbox_enabled) return;
+    // Store only the key diagnostic IDs (fsd_blackbox_filter.h). On a busy full
+    // bus (~3300 f/s) recording everything fills the ring in ~1.8 s, truncating
+    // the 10 s pre / 5 s post window; the filter drops the stored rate ~15x so
+    // the whole window survives. Define BLACKBOX_CAPTURE_ALL to keep every frame.
+    if (!fsd_blackbox_should_record(frame.id)) return;
     if (ring_next(g_head) == g_tail) g_tail = ring_next(g_tail);  // evict oldest
     BBFrame& s = g_ring[g_head];
     s.ts_ms = now_ms;

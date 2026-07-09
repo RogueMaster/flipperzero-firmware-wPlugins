@@ -547,8 +547,8 @@ R"rawliteral(
   <div class="card-head"><div class="icon ic-d">R</div><h2>Black-box</h2>
     <span id="bbBadge" class="pill on" style="display:none;margin-left:auto">NEW</span></div>
   <div id="bbNote" class="log-info" style="margin-bottom:10px;display:none">
-    Records full-rate CAN around anomalies (aborts, bus-off, manual marks) to the
-    device only &mdash; never uploaded. Use the toggle below to enable or disable.
+    Records the key diagnostic CAN IDs around anomalies (aborts, bus-off, manual
+    marks) to the device only &mdash; never uploaded. Use the toggle below to enable or disable.
     <button type="button" onclick="bbDismiss()" style="margin-left:6px;background:var(--card2);border:1px solid var(--border);color:var(--text);padding:2px 8px;border-radius:4px;cursor:pointer">Got it</button>
   </div>
   <div class="row">

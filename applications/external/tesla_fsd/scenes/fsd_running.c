@@ -263,7 +263,9 @@ static int32_t fsd_running_worker(void* context) {
 
         // AP-first stability debounce: stamp the last moment AP was not engaged,
         // so fsd_ap_first_allows() can require AP to hold stable before injecting.
-        if(state.das_ap_state < 2) {
+        // < DAS_APSTATE_ENGAGED (3): AVAILABLE(2) is not engaged, so the window
+        // measures time held at 3+, and a drop to AVAILABLE re-requires a centred wheel.
+        if(state.das_ap_state < DAS_APSTATE_ENGAGED) {
             state.ap_unstable_tick_ms = now;
             state.soft_engage_latched = false; // re-require centred wheel next engage (#108)
         }
