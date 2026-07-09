@@ -16,6 +16,6 @@ App(
     fap_category="Games",
     fap_author="Endika",
     fap_weburl="https://github.com/Endika/flipper-tutu",
-    fap_version="0.1.5",
+    fap_version="0.1.6",
     fap_description="Sliding car puzzle (Rush Hour) with 100 levels of increasing difficulty.",
 )

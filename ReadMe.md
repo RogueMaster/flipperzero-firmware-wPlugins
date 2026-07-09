@@ -73,6 +73,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [PocketLab v1.2.1 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
 - Updated: [Tesla Mod v2.16b15 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Using API v88.0 Like OFW
+- Updated: [Rush Hour v0.1.6 (By Endika)](https://github.com/Endika/flipper-tutu) (Version Only)
 
 <a name="release"></a>
 
@@ -297,7 +298,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Rock Paper Scissors 2 v1.1 (By benwoo1110)](https://github.com/benwoo1110/rps-FlipperZero)
 - [Root of Life v1.4 (By Xorboo)](https://github.com/Xorboo/root-of-life)
 - [Rubiks Cube Scrambler v1.4 (By RaZeSloth)](https://github.com/RaZeSloth/flipperzero-rubiks-cube-scrambler)
-- [Rush Hour v0.1.5 (By Endika)](https://github.com/Endika/flipper-tutu)
+- [Rush Hour v0.1.6 (By Endika)](https://github.com/Endika/flipper-tutu)
 - [Scorched Tanks v1.4 (By jasniec)](https://github.com/jasniec/flipper-scorched-tanks-game)
 - [Secret Toggle (By nostrumuva)](https://github.com/nostrumuva/secret_toggle)
 - [Simon Says v0.2 (By SimplyMinimal)](https://github.com/SimplyMinimal/FlipperZero-SimonSays)
