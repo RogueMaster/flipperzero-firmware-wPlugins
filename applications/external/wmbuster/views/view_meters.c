@@ -6,6 +6,7 @@
 #include "../protocol/wmbus_manuf.h"
 #include "../protocol/wmbus_medium.h"
 #include "../drivers/engine/driver.h"
+#include "../subghz/wmbus_worker.h"
 #include "scan_canvas.h"
 #include <furi_hal_light.h>
 #include <furi_hal_resources.h>
@@ -203,8 +204,9 @@ static void format_band(WmbusApp* app, char* out, size_t cap) {
     default:
         break;
     }
+    const char* radio = wmbus_worker_is_external(app->worker) ? "EXT" : "INT";
     unsigned f = (unsigned)(app->settings.freq_hz / 1000);
-    snprintf(out, cap, "%u.%02u %s", f / 1000, (f / 10) % 100, mn);
+    snprintf(out, cap, "%u.%02u %s %s", f / 1000, (f / 10) % 100, mn, radio);
 }
 
 static const char* filter_label(WmbusFilter f) {

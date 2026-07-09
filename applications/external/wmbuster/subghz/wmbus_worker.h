@@ -41,3 +41,6 @@ typedef struct {
 } WmbusWorkerStats;
 
 void wmbus_worker_get_stats(const WmbusWorker* w, WmbusWorkerStats* out);
+
+/* Returns true when the worker is currently using the external CC1101. */
+bool wmbus_worker_is_external(const WmbusWorker* w);
