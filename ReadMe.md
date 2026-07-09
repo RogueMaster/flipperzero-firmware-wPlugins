@@ -72,6 +72,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [PocketLab v1.1 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
 - Updated: [PocketLab v1.2.1 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
 - Updated: [Tesla Mod v2.16b15 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Using API v88.0 Like OFW
 
 <a name="release"></a>
 
