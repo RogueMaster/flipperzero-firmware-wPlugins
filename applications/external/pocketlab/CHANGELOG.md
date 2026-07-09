@@ -3,6 +3,36 @@
 All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.1] - 2026-07-09
+
+### Fixed
+
+- Home screen scroll hints are back at the top and bottom of the grid as small
+  3px chevrons, instead of one arrow in the centre.
+
+## [1.2] - 2026-07-09
+
+### Added
+
+- **Quiz mode**: a random exam drawn from the quizzes of your completed labs,
+  with an A/B/C answer sheet and a score at the end.
+- **Badge gallery**: browse earned and locked badges, each with a unique jingle
+  and a targeting reticle over the selection.
+- **Daily streak** tracked and shown on the Profile screen.
+
+### Changed
+
+- Content expanded to **30 labs across 11 tracks**.
+- Home screen redesigned as a scrollable tile grid with per-item icons.
+- About reworked: a matrix-rain intro, a self-typing terminal, and a coffee-break
+  page with a donation QR code and an animated mascot.
+- Level Up now rains confetti with a richer fanfare; finishing a step plays a
+  lighter, distinct chime, kept separate from the level-up tune.
+- Resetting progress plays a short "cleared" flash; wrong quiz answers shake and
+  buzz for clearer feedback.
+- Polish throughout: coin-flip navigation clicks, a winking logo, and twinkling
+  pixels on the selected tile.
+
 ## [1.1] - 2026-07-08
 
 ### Changed

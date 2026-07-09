@@ -25,6 +25,7 @@ typedef struct {
     bool feedback;
     bool last_right;
     uint32_t anim;
+    uint8_t shake; // countdown for the wrong-answer shake
     uint32_t xp_shown;
     const char* quiz_options[POCKETLAB_QUIZ_OPTIONS];
     uint8_t quiz_answer;
@@ -137,17 +138,27 @@ static void
         canvas_draw_str(canvas, 4, y, model->quiz_options[i]);
         canvas_set_color(canvas, ColorBlack);
     }
-    lesson_view_draw_chevron(canvas, model->anim);
+}
+
+// A bold check mark with its lower tip at (x, y).
+static void lesson_view_draw_check(Canvas* canvas, uint8_t x, uint8_t y) {
+    canvas_draw_line(canvas, x - 3, y - 3, x, y);
+    canvas_draw_line(canvas, x, y, x + 6, y - 6);
+    canvas_draw_line(canvas, x - 3, y - 4, x, y - 1); // thickness
+    canvas_draw_line(canvas, x, y - 1, x + 6, y - 7);
 }
 
 static void
     lesson_view_draw_feedback(Canvas* canvas, const LessonModel* model, const PocketLabStep* step) {
+    // On a wrong answer the title jitters left/right for a few frames.
+    const int dx = (model->shake > 0) ? ((model->shake & 1) ? 3 : -3) : 0;
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(
-        canvas,
-        2,
-        12,
-        pocketlab_text(model->last_right ? PocketLabTextCorrect : PocketLabTextTryAgain));
+    if(model->last_right) {
+        lesson_view_draw_check(canvas, 5, 11);
+        canvas_draw_str(canvas, 15, 12, pocketlab_text(PocketLabTextCorrect));
+    } else {
+        canvas_draw_str(canvas, 2 + dx, 12, pocketlab_text(PocketLabTextTryAgain));
+    }
     elements_text_box(
         canvas,
         2,
@@ -259,12 +270,13 @@ static bool lesson_view_input_callback(InputEvent* event, void* context) {
                 } else if(event->key == InputKeyOk) {
                     model->feedback = true;
                     model->last_right = model->quiz_sel == model->quiz_answer;
+                    if(!model->last_right) model->shake = 6;
                     play_sound = true;
                     sound = model->last_right ? PocketLabSoundCorrect : PocketLabSoundWrong;
                     consumed = true;
                 }
             } else if(step->type == PocketLabStepQuiz && model->feedback) {
-                if(event->key == InputKeyOk) {
+                if(event->key == InputKeyOk || event->key == InputKeyRight) {
                     if(model->last_right) {
                         model->step++;
                         model->feedback = false;
@@ -272,7 +284,7 @@ static bool lesson_view_input_callback(InputEvent* event, void* context) {
                         lesson_view_prepare_quiz(model);
                         play_sound = true;
                         sound = model->lab->steps[model->step].type == PocketLabStepReward ?
-                                    PocketLabSoundReward :
+                                    PocketLabSoundComplete :
                                     PocketLabSoundClick;
                     } else {
                         model->feedback = false;
@@ -280,7 +292,7 @@ static bool lesson_view_input_callback(InputEvent* event, void* context) {
                     consumed = true;
                 }
             } else if(step->type == PocketLabStepReward) {
-                if(event->key == InputKeyOk) {
+                if(event->key == InputKeyOk || event->key == InputKeyRight) {
                     finished = true;
                     consumed = true;
                 }
@@ -290,7 +302,7 @@ static bool lesson_view_input_callback(InputEvent* event, void* context) {
                     lesson_view_prepare_quiz(model);
                     play_sound = true;
                     sound = model->lab->steps[model->step].type == PocketLabStepReward ?
-                                PocketLabSoundReward :
+                                PocketLabSoundComplete :
                                 PocketLabSoundClick;
                     consumed = true;
                 }
@@ -315,6 +327,7 @@ static void lesson_view_timer_callback(void* context) {
         LessonModel * model,
         {
             model->anim++;
+            if(model->shake > 0) model->shake--;
             const PocketLabStep* step = &model->lab->steps[model->step];
             if(step->type == PocketLabStepReward && !model->already_completed &&
                model->xp_shown < model->lab->xp) {
@@ -399,6 +412,7 @@ void lesson_view_configure(
             model->feedback = false;
             model->last_right = false;
             model->anim = 0;
+            model->shake = 0;
             model->xp_shown = 0;
             lesson_view_prepare_quiz(model);
         },

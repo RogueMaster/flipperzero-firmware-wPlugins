@@ -7,13 +7,19 @@ void pocketlab_scene_progress_on_enter(void* context) {
         app->state.level,
         app->state.xp,
         pocketlab_completed_count(app),
-        pocketlab_labs_count);
+        pocketlab_labs_count,
+        app->state.streak_days,
+        pocketlab_level_title(app->state.level));
     view_dispatcher_switch_to_view(app->view_dispatcher, PocketLabViewProgress);
 }
 
 bool pocketlab_scene_progress_on_event(void* context, SceneManagerEvent event) {
-    UNUSED(context);
-    UNUSED(event);
+    PocketLab* app = context;
+    if(event.type == SceneManagerEventTypeCustom &&
+       event.event == PocketLabCustomEventOpenBadges) {
+        scene_manager_next_scene(app->scene_manager, PocketLabSceneBadges);
+        return true;
+    }
     return false;
 }
 

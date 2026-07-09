@@ -13,6 +13,23 @@ typedef enum {
     PocketLabStepReward,
 } PocketLabStepType;
 
+typedef enum {
+    PocketLabTrackBasics,
+    PocketLabTrackInfrared,
+    PocketLabTrackSubGhz,
+    PocketLabTrackRfid,
+    PocketLabTrackNfc,
+    PocketLabTrackIbutton,
+    PocketLabTrackUsb,
+    PocketLabTrackGpio,
+    PocketLabTrackBluetooth,
+    PocketLabTrackSecurity,
+    PocketLabTrackSystem,
+    PocketLabTrackCount,
+} PocketLabTrack;
+
+const char* pocketlab_track_name(PocketLabTrack track);
+
 typedef struct {
     PocketLabStepType type;
     const char* title;
@@ -29,6 +46,7 @@ typedef struct {
     const char* id;
     const char* title;
     const char* badge;
+    PocketLabTrack track;
     uint16_t xp;
     // 10x10 topic glyph (one bit per column) shown next to the lesson title.
     uint16_t icon[10];

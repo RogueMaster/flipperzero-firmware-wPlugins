@@ -2,6 +2,7 @@
 
 void pocketlab_scene_about_on_enter(void* context) {
     PocketLab* app = context;
+    about_view_configure(app->about_view, app->notifications, app->state.sound != 0);
     view_dispatcher_switch_to_view(app->view_dispatcher, PocketLabViewAbout);
 }
 

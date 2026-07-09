@@ -12,7 +12,6 @@ bool pocketlab_scene_labs_on_event(void* context, SceneManagerEvent event) {
     PocketLab* app = context;
 
     if(event.type == SceneManagerEventTypeCustom && event.event < pocketlab_labs_count) {
-        scene_manager_set_scene_state(app->scene_manager, PocketLabSceneLabs, event.event);
         app->current_lab = &pocketlab_labs[event.event];
         scene_manager_next_scene(app->scene_manager, PocketLabSceneLesson);
         return true;

@@ -2,8 +2,9 @@
 
 static const char* const strings[PocketLabTextCount] = {
     [PocketLabTextAppName] = "PocketLab",
-    [PocketLabTextMenuStart] = "Start learning",
-    [PocketLabTextMenuProgress] = "My progress",
+    [PocketLabTextMenuStart] = "Labs",
+    [PocketLabTextMenuQuiz] = "Quiz",
+    [PocketLabTextMenuProgress] = "Profile",
     [PocketLabTextMenuSettings] = "Settings",
     [PocketLabTextMenuAbout] = "About",
     [PocketLabTextLabsTitle] = "Choose a lab",

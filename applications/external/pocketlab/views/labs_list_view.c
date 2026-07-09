@@ -7,6 +7,7 @@
 
 #define LABS_ROW_HEIGHT   16
 #define LABS_VISIBLE_ROWS 4
+#define LABS_MAX_ITEMS    48 // tracks + labs, with headroom
 
 struct LabsListView {
     View* view;
@@ -14,19 +15,80 @@ struct LabsListView {
     void* context;
 };
 
+// A display row is either a track header or a lab.
 typedef struct {
-    uint32_t completed_mask;
-    size_t selected;
-    size_t offset;
+    bool is_header;
+    uint8_t value; // header: track enum; lab: lab index
+} LabsItem;
+
+typedef struct {
+    uint64_t completed_mask;
+    LabsItem items[LABS_MAX_ITEMS];
+    size_t item_count;
+    size_t selected; // display index, always points at a lab
+    size_t offset; // first visible display row
 } LabsListModel;
+
+// Builds the grouped display list: for each track that has labs, a header
+// followed by its labs, regardless of the order labs appear in the array.
+static void labs_list_view_build(LabsListModel* model) {
+    size_t n = 0;
+    for(uint8_t track = 0; track < PocketLabTrackCount; track++) {
+        bool has = false;
+        for(size_t i = 0; i < pocketlab_labs_count; i++) {
+            if(pocketlab_labs[i].track == track) {
+                has = true;
+                break;
+            }
+        }
+        if(!has || n >= LABS_MAX_ITEMS) continue;
+
+        model->items[n].is_header = true;
+        model->items[n].value = track;
+        n++;
+
+        for(size_t i = 0; i < pocketlab_labs_count && n < LABS_MAX_ITEMS; i++) {
+            if(pocketlab_labs[i].track == track) {
+                model->items[n].is_header = false;
+                model->items[n].value = (uint8_t)i;
+                n++;
+            }
+        }
+    }
+    model->item_count = n;
+}
+
+static size_t labs_list_view_first_lab(const LabsListModel* model) {
+    for(size_t i = 0; i < model->item_count; i++) {
+        if(!model->items[i].is_header) return i;
+    }
+    return 0;
+}
+
+static void labs_list_view_scroll(LabsListModel* model) {
+    if(model->selected < model->offset) {
+        model->offset = model->selected;
+    } else if(model->selected >= model->offset + LABS_VISIBLE_ROWS) {
+        model->offset = model->selected - LABS_VISIBLE_ROWS + 1;
+    }
+}
+
+static void
+    labs_list_view_track_progress(uint8_t track, uint64_t mask, uint8_t* done, uint8_t* total) {
+    *done = 0;
+    *total = 0;
+    for(size_t i = 0; i < pocketlab_labs_count; i++) {
+        if(pocketlab_labs[i].track != track) continue;
+        (*total)++;
+        if(mask & (1ULL << i)) (*done)++;
+    }
+}
 
 static void labs_list_view_draw_check(Canvas* canvas, uint8_t cx, uint8_t cy) {
     canvas_draw_line(canvas, cx - 2, cy, cx - 1, cy + 2);
     canvas_draw_line(canvas, cx - 1, cy + 2, cx + 2, cy - 2);
 }
 
-// Draws the completion indicator so it stays readable in every state.
-// The foreground color is white on a selected (inverted) row, black otherwise.
 static void
     labs_list_view_draw_indicator(Canvas* canvas, uint8_t cx, uint8_t cy, bool done, bool selected) {
     const Color foreground = selected ? ColorWhite : ColorBlack;
@@ -36,12 +98,10 @@ static void
         canvas_set_color(canvas, foreground);
         canvas_draw_circle(canvas, cx, cy, 4);
     } else if(selected) {
-        // Inverted outline plus an inverted check, no fill.
         canvas_set_color(canvas, foreground);
         canvas_draw_circle(canvas, cx, cy, 4);
         labs_list_view_draw_check(canvas, cx, cy);
     } else {
-        // Filled disc with the check punched out in the background color.
         canvas_set_color(canvas, foreground);
         canvas_draw_disc(canvas, cx, cy, 4);
         canvas_set_color(canvas, background);
@@ -55,15 +115,29 @@ static void labs_list_view_draw_callback(Canvas* canvas, void* context) {
     LabsListModel* model = context;
     canvas_clear(canvas);
 
-    for(size_t row = 0; row < LABS_VISIBLE_ROWS; row++) {
-        const size_t index = model->offset + row;
-        if(index >= pocketlab_labs_count) {
-            break;
+    for(size_t r = 0; r < LABS_VISIBLE_ROWS; r++) {
+        const size_t idx = model->offset + r;
+        if(idx >= model->item_count) break;
+
+        const uint8_t y = r * LABS_ROW_HEIGHT;
+        const LabsItem* item = &model->items[idx];
+
+        if(item->is_header) {
+            canvas_set_font(canvas, FontPrimary);
+            canvas_draw_str(canvas, 4, y + LABS_ROW_HEIGHT - 5, pocketlab_track_name(item->value));
+
+            uint8_t done = 0, total = 0;
+            labs_list_view_track_progress(item->value, model->completed_mask, &done, &total);
+            char count[8];
+            snprintf(count, sizeof(count), "%u/%u", done, total);
+            canvas_set_font(canvas, FontSecondary);
+            canvas_draw_str_aligned(
+                canvas, 124, y + LABS_ROW_HEIGHT - 4, AlignRight, AlignBottom, count);
+            continue;
         }
 
-        const uint8_t y = row * LABS_ROW_HEIGHT;
-        const bool selected = index == model->selected;
-        const bool done = (model->completed_mask & (1UL << index)) != 0;
+        const bool selected = idx == model->selected;
+        const bool done = (model->completed_mask & (1ULL << item->value)) != 0;
 
         if(selected) {
             canvas_set_color(canvas, ColorBlack);
@@ -73,20 +147,13 @@ static void labs_list_view_draw_callback(Canvas* canvas, void* context) {
         labs_list_view_draw_indicator(canvas, 10, y + LABS_ROW_HEIGHT / 2, done, selected);
 
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 22, y + LABS_ROW_HEIGHT / 2 + 4, pocketlab_labs[index].title);
+        canvas_draw_str(
+            canvas, 22, y + LABS_ROW_HEIGHT / 2 + 4, pocketlab_labs[item->value].title);
 
         canvas_set_color(canvas, ColorBlack);
     }
 
-    elements_scrollbar(canvas, model->selected, pocketlab_labs_count);
-}
-
-static void labs_list_view_scroll(LabsListModel* model) {
-    if(model->selected < model->offset) {
-        model->offset = model->selected;
-    } else if(model->selected >= model->offset + LABS_VISIBLE_ROWS) {
-        model->offset = model->selected - LABS_VISIBLE_ROWS + 1;
-    }
+    elements_scrollbar(canvas, model->selected, model->item_count);
 }
 
 static bool labs_list_view_input_callback(InputEvent* event, void* context) {
@@ -97,34 +164,40 @@ static bool labs_list_view_input_callback(InputEvent* event, void* context) {
 
     bool consumed = false;
     bool selected = false;
-    uint32_t selected_index = 0;
+    uint32_t lab_index = 0;
 
     with_view_model(
         instance->view,
         LabsListModel * model,
         {
             if(event->key == InputKeyUp) {
-                if(model->selected > 0) {
-                    model->selected--;
-                    labs_list_view_scroll(model);
+                for(size_t j = model->selected; j-- > 0;) {
+                    if(!model->items[j].is_header) {
+                        model->selected = j;
+                        break;
+                    }
                 }
+                labs_list_view_scroll(model);
                 consumed = true;
             } else if(event->key == InputKeyDown) {
-                if(model->selected + 1 < pocketlab_labs_count) {
-                    model->selected++;
-                    labs_list_view_scroll(model);
+                for(size_t j = model->selected + 1; j < model->item_count; j++) {
+                    if(!model->items[j].is_header) {
+                        model->selected = j;
+                        break;
+                    }
                 }
+                labs_list_view_scroll(model);
                 consumed = true;
             } else if(event->key == InputKeyOk) {
                 selected = true;
-                selected_index = model->selected;
+                lab_index = model->items[model->selected].value;
                 consumed = true;
             }
         },
         true);
 
     if(selected && instance->callback) {
-        instance->callback(instance->context, selected_index);
+        instance->callback(instance->context, lab_index);
     }
 
     return consumed;
@@ -164,14 +237,19 @@ void labs_list_view_set_callback(
     instance->context = context;
 }
 
-void labs_list_view_configure(LabsListView* instance, uint32_t completed_mask, uint32_t selected) {
+void labs_list_view_configure(LabsListView* instance, uint64_t completed_mask, uint32_t selected) {
     furi_assert(instance);
     with_view_model(
         instance->view,
         LabsListModel * model,
         {
             model->completed_mask = completed_mask;
-            model->selected = selected < pocketlab_labs_count ? selected : 0;
+            labs_list_view_build(model);
+            if(selected < model->item_count && !model->items[selected].is_header) {
+                model->selected = selected;
+            } else {
+                model->selected = labs_list_view_first_lab(model);
+            }
             model->offset = 0;
             labs_list_view_scroll(model);
         },

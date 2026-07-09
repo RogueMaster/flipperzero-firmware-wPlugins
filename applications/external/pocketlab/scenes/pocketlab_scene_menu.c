@@ -2,6 +2,7 @@
 
 typedef enum {
     MenuIndexStart,
+    MenuIndexQuiz,
     MenuIndexProgress,
     MenuIndexSettings,
     MenuIndexAbout,
@@ -12,6 +13,7 @@ void pocketlab_scene_menu_on_enter(void* context) {
 
     const char* items[] = {
         pocketlab_text(PocketLabTextMenuStart),
+        pocketlab_text(PocketLabTextMenuQuiz),
         pocketlab_text(PocketLabTextMenuProgress),
         pocketlab_text(PocketLabTextMenuSettings),
         pocketlab_text(PocketLabTextMenuAbout),
@@ -22,7 +24,10 @@ void pocketlab_scene_menu_on_enter(void* context) {
         pocketlab_text(PocketLabTextAppName),
         items,
         COUNT_OF(items),
-        scene_manager_get_scene_state(app->scene_manager, PocketLabSceneMenu));
+        scene_manager_get_scene_state(app->scene_manager, PocketLabSceneMenu),
+        app->state.xp,
+        app->notifications,
+        app->state.sound != 0);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, PocketLabViewHome);
 }
@@ -39,6 +44,9 @@ bool pocketlab_scene_menu_on_event(void* context, SceneManagerEvent event) {
     switch(event.event) {
     case MenuIndexStart:
         scene_manager_next_scene(app->scene_manager, PocketLabSceneLabs);
+        break;
+    case MenuIndexQuiz:
+        scene_manager_next_scene(app->scene_manager, PocketLabSceneExam);
         break;
     case MenuIndexProgress:
         scene_manager_next_scene(app->scene_manager, PocketLabSceneProgress);

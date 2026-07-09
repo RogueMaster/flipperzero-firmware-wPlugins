@@ -70,6 +70,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [wM-Buster v1.1.1 (By i12bp8)](https://github.com/i12bp8/wmbuster)
 - [Make protobuf version generator tolerant when git tags unavailable (By juansandoval0613)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1194)
 - Added: [PocketLab v1.1 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
+- Updated: [PocketLab v1.2.1 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
 
 <a name="release"></a>
 
@@ -712,7 +713,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Plantower PMSx003 sensor reader v1.4 (By 3cky)](https://github.com/3cky/flipperzero-airmon) `Req: Plantower PMS5003/PMS7003/PMS9003`
 - [Plugin Demo v1.0 (By csBlueChip)](https://github.com/csBlueChip/FlipperZero_plugin_howto)
 - [Pocket CVSS v0.3 (By vavkamil)](https://github.com/vavkamil/pocket-cvss)
-- [PocketLab v1.1 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
+- [PocketLab v1.2.1 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
 - [POCSAG Pager v1.4 (By XMasterx & Shmuma)](https://github.com/xMasterX/flipper-pager)
 - [Pokemon Trading v2.3 (By EstebanFuentealba & kbembedded)](https://github.com/EstebanFuentealba/Flipper-Zero-Game-Boy-Trading-Pokemons)
 - [Polk MagnifiMini Remote v1.0 (By varunyellina)](https://github.com/varunyellina/flipper-ir-remote-polkmagnifi)

@@ -3,6 +3,7 @@
 typedef enum {
     PocketLabTextAppName,
     PocketLabTextMenuStart,
+    PocketLabTextMenuQuiz,
     PocketLabTextMenuProgress,
     PocketLabTextMenuSettings,
     PocketLabTextMenuAbout,

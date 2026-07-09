@@ -38,10 +38,17 @@ bool pocketlab_scene_reset_confirm_on_event(void* context, SceneManagerEvent eve
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == PocketLabCustomEventResetConfirm) {
             pocketlab_reset_progress(app);
-            scene_manager_previous_scene(app->scene_manager);
+            pocketlab_sound_play(app->notifications, app->state.sound != 0, PocketLabSoundReset);
+            // Brief "cleared" flash before returning to the settings screen.
+            levelup_view_configure(app->levelup_view, "Reset!", "Progress cleared", 30);
+            view_dispatcher_switch_to_view(app->view_dispatcher, PocketLabViewLevelUp);
             return true;
         }
         if(event.event == PocketLabCustomEventResetCancel) {
+            scene_manager_previous_scene(app->scene_manager);
+            return true;
+        }
+        if(event.event == PocketLabCustomEventLevelUpDone) {
             scene_manager_previous_scene(app->scene_manager);
             return true;
         }

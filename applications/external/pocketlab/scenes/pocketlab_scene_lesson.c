@@ -20,8 +20,11 @@ bool pocketlab_scene_lesson_on_event(void* context, SceneManagerEvent event) {
 
     if(event.type == SceneManagerEventTypeCustom &&
        event.event == PocketLabCustomEventLessonDone) {
-        pocketlab_award_lab(app, app->current_lab);
+        const bool leveled = pocketlab_award_lab(app, app->current_lab);
         scene_manager_previous_scene(app->scene_manager);
+        if(leveled) {
+            scene_manager_next_scene(app->scene_manager, PocketLabSceneLevelUp);
+        }
         return true;
     }
 
