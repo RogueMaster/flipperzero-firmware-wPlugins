@@ -28,7 +28,7 @@ enum {
 // stepping past `target` (the step magnitude never exceeds the gap magnitude).
 static int32_t ease_toward(int32_t current, int32_t target, int32_t divisor) {
     int32_t diff = target - current;
-    if (diff == 0) {
+    if(diff == 0) {
         return current;
     }
     int32_t magnitude = diff > 0 ? diff : -diff;
@@ -36,7 +36,7 @@ static int32_t ease_toward(int32_t current, int32_t target, int32_t divisor) {
     return current + (diff > 0 ? step_magnitude : -step_magnitude);
 }
 
-void sim_init(SimState *state) {
+void sim_init(SimState* state) {
     state->distance_fp = 0;
     state->speed_fp = 0;
     // Seed value is irrelevant here: the opening zone is always flat, and a flat zone's height
@@ -44,7 +44,7 @@ void sim_init(SimState *state) {
     state->vehicle_y = terrain_at(0, 0).height;
 }
 
-void sim_step(SimState *state, ShapeId shape, uint32_t seed, uint32_t dt_ms) {
+void sim_step(SimState* state, ShapeId shape, uint32_t seed, uint32_t dt_ms) {
     int32_t current_x = state->distance_fp >> SIM_FP_SHIFT;
     TerrainSample sample = terrain_at(seed, current_x);
 

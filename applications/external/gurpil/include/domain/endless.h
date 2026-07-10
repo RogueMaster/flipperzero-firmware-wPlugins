@@ -16,28 +16,28 @@
  */
 
 typedef enum {
-    EndlessIdle,    // not started yet: endless_init's resting state.
+    EndlessIdle, // not started yet: endless_init's resting state.
     EndlessRunning, // timer depleting, distance/checkpoints tracked.
-    EndlessOver,    // time_left_ms hit 0: run is frozen, score is `distance`.
+    EndlessOver, // time_left_ms hit 0: run is frozen, score is `distance`.
 } EndlessPhase;
 
 // Tuning constants. Public so the app/UI layer can read the exact same values it displays.
 enum {
-    ENDLESS_START_TIME_MS = 6000,             // initial time budget for a fresh run, ms.
-    ENDLESS_CHECKPOINT_BONUS_BASE_MS = 3000,  // bonus for the very first checkpoint, ms.
+    ENDLESS_START_TIME_MS = 6000, // initial time budget for a fresh run, ms.
+    ENDLESS_CHECKPOINT_BONUS_BASE_MS = 3000, // bonus for the very first checkpoint, ms.
     ENDLESS_CHECKPOINT_BONUS_FLOOR_MS = 1500, // bonus never decays below this, ms.
-    ENDLESS_CHECKPOINT_BONUS_DECAY_MS = 40,   // bonus lost per checkpoint already crossed, ms.
-    ENDLESS_CHECKPOINT_SPACING = 45,          // distance units between checkpoints.
-    ENDLESS_MAX_TIME_MS = 7000,               // hard cap on time_left_ms; bonuses never exceed it.
+    ENDLESS_CHECKPOINT_BONUS_DECAY_MS = 40, // bonus lost per checkpoint already crossed, ms.
+    ENDLESS_CHECKPOINT_SPACING = 45, // distance units between checkpoints.
+    ENDLESS_MAX_TIME_MS = 7000, // hard cap on time_left_ms; bonuses never exceed it.
 };
 
 typedef struct {
     EndlessPhase phase;
-    uint32_t time_left_ms;    // remaining time budget; saturates at 0, never wraps.
-    int32_t distance;         // best (monotonic non-decreasing) distance reached so far.
-    int32_t next_checkpoint;  // distance threshold that triggers the next time bonus.
+    uint32_t time_left_ms; // remaining time budget; saturates at 0, never wraps.
+    int32_t distance; // best (monotonic non-decreasing) distance reached so far.
+    int32_t next_checkpoint; // distance threshold that triggers the next time bonus.
     uint32_t checkpoints_hit; // total checkpoints crossed so far, for scoring/UI.
-    uint32_t last_bonus_ms;   // time bonus granted by the most recent checkpoint, for the UI flash.
+    uint32_t last_bonus_ms; // time bonus granted by the most recent checkpoint, for the UI flash.
 } EndlessState;
 
 /* The (decaying) time bonus a checkpoint grants, given how many were already crossed before it:
@@ -50,10 +50,10 @@ uint32_t endless_checkpoint_bonus_ms(uint32_t checkpoints_hit);
 /* Resets `state` to a run's start: EndlessIdle; time_left_ms = ENDLESS_START_TIME_MS;
  * distance = 0; next_checkpoint = ENDLESS_CHECKPOINT_SPACING; checkpoints_hit = 0;
  * last_bonus_ms = 0. */
-void endless_init(EndlessState *state);
+void endless_init(EndlessState* state);
 
 /* Moves `state` from EndlessIdle to EndlessRunning. No-op if not currently Idle. */
-void endless_start(EndlessState *state);
+void endless_start(EndlessState* state);
 
 /* Advances `state` by one tick of `dt_ms` milliseconds, given the sim's current `distance`.
  * No-op unless `state->phase == EndlessRunning` (a call while Idle or Over does nothing).
@@ -67,4 +67,4 @@ void endless_start(EndlessState *state);
  *      several checkpoints crossed in one big jump each grant their own (decaying) bonus.
  *   4. If `time_left_ms == 0`, phase becomes EndlessOver (freezing distance/checkpoints: later
  *      ticks are no-ops per the guard above). */
-void endless_tick(EndlessState *state, uint32_t dt_ms, int32_t distance);
+void endless_tick(EndlessState* state, uint32_t dt_ms, int32_t distance);

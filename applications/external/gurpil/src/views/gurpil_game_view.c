@@ -25,71 +25,71 @@ typedef struct {
     GameState game;
     uint32_t frame; // per-tick counter driving the wheel-spin animation; reset per run.
     int32_t best;
-    bool is_new_best;       // whether the game-over panel should show "New best!"; reset per run.
+    bool is_new_best; // whether the game-over panel should show "New best!"; reset per run.
     bool game_over_handled; // true once this run's game-over has been scored, so
-                            // gurpil_game_view_tick reports it exactly once.
+        // gurpil_game_view_tick reports it exactly once.
     uint32_t checkpoint_flash_remaining_ms; // >0 while show_checkpoint_flash should render;
-                                            // ticks down by dt_ms, reset on a fresh crossing.
+        // ticks down by dt_ms, reset on a fresh crossing.
 } GurpilGameViewModel;
 
 struct GurpilGameView {
-    View *view;
-    ViewDispatcher *view_dispatcher; // only used to send GurpilGameEventReturnToMenu.
+    View* view;
+    ViewDispatcher* view_dispatcher; // only used to send GurpilGameEventReturnToMenu.
 };
 
-static void gurpil_game_view_draw_callback(Canvas *canvas, void *model) {
-    const GurpilGameViewModel *m = model;
-    gurpil_render(canvas, &m->game, m->best, m->frame, m->checkpoint_flash_remaining_ms > 0,
-                  m->is_new_best);
+static void gurpil_game_view_draw_callback(Canvas* canvas, void* model) {
+    const GurpilGameViewModel* m = model;
+    gurpil_render(
+        canvas, &m->game, m->best, m->frame, m->checkpoint_flash_remaining_ms > 0, m->is_new_best);
 }
 
 static GurpilKey gurpil_key_from_input(InputKey key) {
-    switch (key) {
-        case InputKeyUp:
-            return GurpilKeyUp;
-        case InputKeyDown:
-            return GurpilKeyDown;
-        case InputKeyLeft:
-            return GurpilKeyLeft;
-        case InputKeyRight:
-            return GurpilKeyRight;
-        case InputKeyOk:
-            return GurpilKeyOk;
-        case InputKeyBack:
-            return GurpilKeyBack;
-        default:
-            return GurpilKeyOther;
+    switch(key) {
+    case InputKeyUp:
+        return GurpilKeyUp;
+    case InputKeyDown:
+        return GurpilKeyDown;
+    case InputKeyLeft:
+        return GurpilKeyLeft;
+    case InputKeyRight:
+        return GurpilKeyRight;
+    case InputKeyOk:
+        return GurpilKeyOk;
+    case InputKeyBack:
+        return GurpilKeyBack;
+    default:
+        return GurpilKeyOther;
     }
 }
 
-static bool gurpil_game_view_input_callback(InputEvent *event, void *context) {
-    GurpilGameView *instance = context;
+static bool gurpil_game_view_input_callback(InputEvent* event, void* context) {
+    GurpilGameView* instance = context;
 
-    if (event->type == InputTypePress) {
+    if(event->type == InputTypePress) {
         // Immediate feedback for shape selection: react on press, not on release+debounce
         // (InputTypeShort) — a reflex game can't afford that latency. shape_for_input_key
         // returns ShapeCount (ignored by game_set_shape's own range guard) for Ok/Back/Other,
         // so this is safe to call unconditionally for every key while the run is live.
         GurpilKey key = gurpil_key_from_input(event->key);
-        GurpilGameViewModel *model = view_get_model(instance->view);
+        GurpilGameViewModel* model = view_get_model(instance->view);
         bool consumed = !game_is_over(&model->game);
-        if (consumed) {
+        if(consumed) {
             game_set_shape(&model->game, shape_for_input_key(key));
         }
         view_commit_model(instance->view, false);
         return consumed;
     }
 
-    if (event->type == InputTypeShort && event->key == InputKeyOk) {
-        GurpilGameViewModel *model = view_get_model(instance->view);
+    if(event->type == InputTypeShort && event->key == InputKeyOk) {
+        GurpilGameViewModel* model = view_get_model(instance->view);
         bool over = game_is_over(&model->game);
         view_commit_model(instance->view, false);
-        if (over) {
+        if(over) {
             // From game-over, Ok returns to the menu; Back does the same at any time via
             // SceneManager's default "unconsumed Back pops the scene" fallback (see
             // gurpil_scene.h), so it needs no handling here.
-            view_dispatcher_send_custom_event(instance->view_dispatcher,
-                                              GurpilGameEventReturnToMenu);
+            view_dispatcher_send_custom_event(
+                instance->view_dispatcher, GurpilGameEventReturnToMenu);
             return true;
         }
     }
@@ -97,8 +97,8 @@ static bool gurpil_game_view_input_callback(InputEvent *event, void *context) {
     return false;
 }
 
-GurpilGameView *gurpil_game_view_alloc(ViewDispatcher *view_dispatcher) {
-    GurpilGameView *instance = malloc(sizeof(GurpilGameView));
+GurpilGameView* gurpil_game_view_alloc(ViewDispatcher* view_dispatcher) {
+    GurpilGameView* instance = malloc(sizeof(GurpilGameView));
     furi_check(instance != NULL);
 
     instance->view_dispatcher = view_dispatcher;
@@ -111,17 +111,17 @@ GurpilGameView *gurpil_game_view_alloc(ViewDispatcher *view_dispatcher) {
     return instance;
 }
 
-void gurpil_game_view_free(GurpilGameView *instance) {
+void gurpil_game_view_free(GurpilGameView* instance) {
     view_free(instance->view);
     free(instance);
 }
 
-View *gurpil_game_view_get_view(const GurpilGameView *instance) {
+View* gurpil_game_view_get_view(const GurpilGameView* instance) {
     return instance->view;
 }
 
-void gurpil_game_view_start_run(GurpilGameView *instance, uint32_t seed, int32_t best) {
-    GurpilGameViewModel *model = view_get_model(instance->view);
+void gurpil_game_view_start_run(GurpilGameView* instance, uint32_t seed, int32_t best) {
+    GurpilGameViewModel* model = view_get_model(instance->view);
     game_start(&model->game, seed);
     model->frame = 0;
     model->best = best;
@@ -131,23 +131,23 @@ void gurpil_game_view_start_run(GurpilGameView *instance, uint32_t seed, int32_t
     view_commit_model(instance->view, true);
 }
 
-bool gurpil_game_view_tick(GurpilGameView *instance, uint32_t dt_ms) {
-    GurpilGameViewModel *model = view_get_model(instance->view);
+bool gurpil_game_view_tick(GurpilGameView* instance, uint32_t dt_ms) {
+    GurpilGameViewModel* model = view_get_model(instance->view);
 
     bool became_over = false;
-    if (!game_is_over(&model->game)) {
+    if(!game_is_over(&model->game)) {
         game_tick(&model->game, dt_ms);
         model->frame++;
 
-        if (game_checkpoint_just_hit(&model->game)) {
+        if(game_checkpoint_just_hit(&model->game)) {
             model->checkpoint_flash_remaining_ms = CHECKPOINT_FLASH_DURATION_MS;
-        } else if (model->checkpoint_flash_remaining_ms > dt_ms) {
+        } else if(model->checkpoint_flash_remaining_ms > dt_ms) {
             model->checkpoint_flash_remaining_ms -= dt_ms;
         } else {
             model->checkpoint_flash_remaining_ms = 0;
         }
 
-        if (game_is_over(&model->game) && !model->game_over_handled) {
+        if(game_is_over(&model->game) && !model->game_over_handled) {
             model->game_over_handled = true;
             became_over = true;
         }
@@ -157,22 +157,22 @@ bool gurpil_game_view_tick(GurpilGameView *instance, uint32_t dt_ms) {
     return became_over;
 }
 
-int32_t gurpil_game_view_distance(GurpilGameView *instance) {
-    GurpilGameViewModel *model = view_get_model(instance->view);
+int32_t gurpil_game_view_distance(GurpilGameView* instance) {
+    GurpilGameViewModel* model = view_get_model(instance->view);
     int32_t distance = game_distance(&model->game);
     view_commit_model(instance->view, false);
     return distance;
 }
 
-bool gurpil_game_view_is_new_best(GurpilGameView *instance, int32_t pre_run_best) {
-    GurpilGameViewModel *model = view_get_model(instance->view);
+bool gurpil_game_view_is_new_best(GurpilGameView* instance, int32_t pre_run_best) {
+    GurpilGameViewModel* model = view_get_model(instance->view);
     bool is_new_best = game_is_new_best(&model->game, pre_run_best);
     view_commit_model(instance->view, false);
     return is_new_best;
 }
 
-void gurpil_game_view_set_best(GurpilGameView *instance, int32_t best, bool is_new_best) {
-    GurpilGameViewModel *model = view_get_model(instance->view);
+void gurpil_game_view_set_best(GurpilGameView* instance, int32_t best, bool is_new_best) {
+    GurpilGameViewModel* model = view_get_model(instance->view);
     model->best = best;
     model->is_new_best = is_new_best;
     view_commit_model(instance->view, true);

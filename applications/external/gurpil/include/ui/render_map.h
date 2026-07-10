@@ -28,7 +28,7 @@ enum {
     GURPIL_FOOTER_TOP_Y = GURPIL_SCREEN_HEIGHT - GURPIL_FOOTER_HEIGHT,
 
     GURPIL_VEHICLE_COLUMN = 42, // fixed screen column the vehicle sits at (~1/3 from left);
-                                // the terrain scrolls under it as the game distance grows.
+        // the terrain scrolls under it as the game distance grows.
 
     // Screen y a height-0 ground column draws at — the playfield's own last row, just above the
     // footer separator, rather than the screen's actual bottom row; taller ground (up to
@@ -84,7 +84,7 @@ ShapeId shape_for_input_key(GurpilKey key);
  */
 
 enum {
-    WHEEL_ROTATION_STEP_COUNT = 8,     // discrete angles a full spin steps through.
+    WHEEL_ROTATION_STEP_COUNT = 8, // discrete angles a full spin steps through.
     WHEEL_ROTATION_TICKS_PER_STEP = 2, // sim ticks each angle is held; lower spins faster.
 };
 
@@ -98,7 +98,7 @@ uint32_t wheel_rotation_step(uint32_t frame);
  * marker of `radius` screen px, for the rotation step `wheel_rotation_step(frame)` selects.
  * Used to draw a rotating spoke on the circle glyph, or a rotating diameter bar on the line
  * glyph. */
-void wheel_spoke_endpoint(uint32_t frame, int32_t radius, int32_t *dx, int32_t *dy);
+void wheel_spoke_endpoint(uint32_t frame, int32_t radius, int32_t* dx, int32_t* dy);
 
 /*
  * In-play D-pad control legend layout (no furi, no Canvas): a horizontal strip of [arrow +
@@ -124,16 +124,16 @@ enum {
 
     FOOTER_LEGEND_CONTENT_TOP_Y = GURPIL_FOOTER_TOP_Y + 1, // first row below the separator line.
 
-    FOOTER_LEGEND_GLYPH_RADIUS = 4,     // radius (or half-size) of each shape glyph, px — doubled
-                                        // from the old stacked layout so the shape itself reads
-                                        // clearly at a glance, not just its outline.
+    FOOTER_LEGEND_GLYPH_RADIUS = 4, // radius (or half-size) of each shape glyph, px — doubled
+        // from the old stacked layout so the shape itself reads
+        // clearly at a glance, not just its outline.
     FOOTER_LEGEND_HIGHLIGHT_MARGIN = 1, // padding between the mounted shape's glyph and the
-                                        // highlight frame drawn around it, px.
+        // highlight frame drawn around it, px.
     // Farthest either the glyph or its highlight frame reaches from the glyph's own center, px.
     FOOTER_LEGEND_GLYPH_HALF_EXTENT = FOOTER_LEGEND_GLYPH_RADIUS + FOOTER_LEGEND_HIGHLIGHT_MARGIN,
 
     FOOTER_LEGEND_ARROW_SIZE = 6, // triangle base AND height for each direction arrow, px —
-                                  // doubled from the old stacked layout for the same reason.
+        // doubled from the old stacked layout for the same reason.
     // The farthest an arrow's tip reaches from its own anchor point along the axis it points
     // (canvas_draw_triangle's apex sits height-1 px past (x, y)).
     FOOTER_LEGEND_ARROW_REACH = FOOTER_LEGEND_ARROW_SIZE - 1,
@@ -157,18 +157,19 @@ enum {
     // pointing arrow's tip (FOOTER_LEGEND_ARROW_REACH px further right than the anchor) still
     // clears the glyph's own left edge (1 px left of the slot center, per
     // FOOTER_LEGEND_GLYPH_X_OFFSET above) by FOOTER_LEGEND_ARROW_GLYPH_GAP px.
-    FOOTER_LEGEND_ARROW_X_OFFSET = -(FOOTER_LEGEND_ARROW_REACH + FOOTER_LEGEND_ARROW_GLYPH_GAP + 1),
+    FOOTER_LEGEND_ARROW_X_OFFSET =
+        -(FOOTER_LEGEND_ARROW_REACH + FOOTER_LEGEND_ARROW_GLYPH_GAP + 1),
 };
 
 typedef struct {
     int32_t glyph_x, glyph_y; // shape-glyph center.
     int32_t arrow_x, arrow_y; // direction arrow's base/height intersection point (the same (x, y)
-                              // canvas_draw_triangle takes) — its tip extends further than this
-                              // anchor, per the FOOTER_LEGEND_ARROW_REACH comment above; the
-                              // caller picks the CanvasDirection so the tip points the right way.
-                              // Shares the glyph's own row (arrow_y == glyph_y) and sits to its
-                              // left (arrow_x < glyph_x) — see FOOTER_LEGEND_ARROW_X_OFFSET.
-    ShapeId shape;            // the wheel shape this direction mounts.
+        // canvas_draw_triangle takes) — its tip extends further than this
+        // anchor, per the FOOTER_LEGEND_ARROW_REACH comment above; the
+        // caller picks the CanvasDirection so the tip points the right way.
+        // Shares the glyph's own row (arrow_y == glyph_y) and sits to its
+        // left (arrow_x < glyph_x) — see FOOTER_LEGEND_ARROW_X_OFFSET.
+    ShapeId shape; // the wheel shape this direction mounts.
 } FooterLegendCell;
 
 /* Returns the x each footer slot (0..FOOTER_LEGEND_SLOT_COUNT-1, including the Back slot) is

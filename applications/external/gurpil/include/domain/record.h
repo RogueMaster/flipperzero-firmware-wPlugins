@@ -28,7 +28,7 @@
  *   Bytes 2-3: reserved (set to 0x00)
  *   Bytes 4-7: distance as little-endian int32_t
  */
-size_t record_serialize(int32_t best, uint8_t *out, size_t out_len);
+size_t record_serialize(int32_t best, uint8_t* out, size_t out_len);
 
 /* Parses a best distance from a fixed 8-byte buffer in little-endian format.
  * Validates the magic/version tag to detect corrupt or foreign data.
@@ -42,7 +42,7 @@ size_t record_serialize(int32_t best, uint8_t *out, size_t out_len);
  * Never crashes on NULL or malformed input; returns 0 (safe default).
  * Note: cannot distinguish "0 distance" from "corrupt data", so both return 0.
  */
-int32_t record_parse(const uint8_t *buf, size_t len);
+int32_t record_parse(const uint8_t* buf, size_t len);
 
 /* Keeps the maximum of two distances. Used to update the record after a run.
  *

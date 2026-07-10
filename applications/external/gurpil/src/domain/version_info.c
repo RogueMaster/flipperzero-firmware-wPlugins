@@ -2,13 +2,13 @@
 
 #include <stddef.h>
 
-static bool parse_uint_segment(const char *start, const char *end, int *out) {
-    if (start == end) {
+static bool parse_uint_segment(const char* start, const char* end, int* out) {
+    if(start == end) {
         return false; // empty segment, e.g. "1..3" or ".2.3"
     }
     int value = 0;
-    for (const char *p = start; p < end; p++) {
-        if (*p < '0' || *p > '9') {
+    for(const char* p = start; p < end; p++) {
+        if(*p < '0' || *p > '9') {
             return false;
         }
         value = value * 10 + (*p - '0');
@@ -17,30 +17,30 @@ static bool parse_uint_segment(const char *start, const char *end, int *out) {
     return true;
 }
 
-bool gurpil_version_parse(const char *version, int *major, int *minor, int *patch) {
-    if (version == NULL || major == NULL || minor == NULL || patch == NULL) {
+bool gurpil_version_parse(const char* version, int* major, int* minor, int* patch) {
+    if(version == NULL || major == NULL || minor == NULL || patch == NULL) {
         return false;
     }
 
-    const char *first_dot = NULL;
-    const char *second_dot = NULL;
-    for (const char *p = version; *p != '\0'; p++) {
-        if (*p == '.') {
-            if (first_dot == NULL) {
+    const char* first_dot = NULL;
+    const char* second_dot = NULL;
+    for(const char* p = version; *p != '\0'; p++) {
+        if(*p == '.') {
+            if(first_dot == NULL) {
                 first_dot = p;
-            } else if (second_dot == NULL) {
+            } else if(second_dot == NULL) {
                 second_dot = p;
             } else {
                 return false; // more than two dots
             }
         }
     }
-    if (first_dot == NULL || second_dot == NULL) {
+    if(first_dot == NULL || second_dot == NULL) {
         return false; // needs exactly three dot-separated segments
     }
 
-    const char *end = version;
-    while (*end != '\0') {
+    const char* end = version;
+    while(*end != '\0') {
         end++;
     }
 

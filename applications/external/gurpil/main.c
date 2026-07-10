@@ -2,7 +2,7 @@
 
 #include <furi.h>
 
-int32_t gurpil_app(void *p) {
+int32_t gurpil_app(void* p) {
     UNUSED(p);
     return gurpil_app_run();
 }

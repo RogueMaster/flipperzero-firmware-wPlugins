@@ -32,9 +32,9 @@ enum {
 
     // Height shaping, in the game-unit band documented in terrain.h (TERRAIN_HEIGHT_MIN..MAX).
     HEIGHT_BASELINE = 20, // flat surface height
-    ROCKY_AMPLITUDE = 8,  // rocky bumps swing +/- this around the baseline
+    ROCKY_AMPLITUDE = 8, // rocky bumps swing +/- this around the baseline
     UPHILL_MAX_RISE = 16, // uphill rises from baseline to baseline + this across the zone
-    OBSTACLE_BUMP = 4,    // obstacle marker: a modest raise, not a wall — the stall is gameplay
+    OBSTACLE_BUMP = 4, // obstacle marker: a modest raise, not a wall — the stall is gameplay
 };
 
 // Large odd multiplier (Knuth's multiplicative hash) used to spread zone indices across the
@@ -48,7 +48,7 @@ uint32_t gurpil_rng_seed(uint32_t seed) {
     return seed == 0 ? 1u : seed;
 }
 
-uint32_t gurpil_rng_next(uint32_t *state) {
+uint32_t gurpil_rng_next(uint32_t* state) {
     uint32_t x = *state;
     x ^= x << 13;
     x ^= x >> 17;
@@ -65,7 +65,7 @@ static uint32_t zone_rng_state(uint32_t seed, int32_t zone_index) {
     return gurpil_rng_seed(mixed);
 }
 
-static int32_t zone_length(uint32_t *rng_state) {
+static int32_t zone_length(uint32_t* rng_state) {
     return ZONE_LENGTH_MIN + (int32_t)(gurpil_rng_next(rng_state) % ZONE_LENGTH_SPAN);
 }
 
@@ -76,13 +76,13 @@ static int32_t ramped_weight(int32_t easy, int32_t hard, int32_t progress_percen
 }
 
 static int32_t ramp_progress_percent(int32_t zone_start_x) {
-    if (zone_start_x >= RAMP_DISTANCE_UNITS) {
+    if(zone_start_x >= RAMP_DISTANCE_UNITS) {
         return RAMP_PROGRESS_MAX;
     }
     return (zone_start_x * RAMP_PROGRESS_MAX) / RAMP_DISTANCE_UNITS;
 }
 
-static TerrainKind pick_kind(uint32_t *rng_state, int32_t zone_start_x) {
+static TerrainKind pick_kind(uint32_t* rng_state, int32_t zone_start_x) {
     int32_t progress = ramp_progress_percent(zone_start_x);
     int32_t weight_flat = ramped_weight(EASY_WEIGHT_FLAT, HARD_WEIGHT_FLAT, progress);
     int32_t weight_rocky = ramped_weight(EASY_WEIGHT_ROCKY, HARD_WEIGHT_ROCKY, progress);
@@ -91,15 +91,15 @@ static TerrainKind pick_kind(uint32_t *rng_state, int32_t zone_start_x) {
     int32_t total = weight_flat + weight_rocky + weight_uphill + weight_obstacle;
 
     int32_t draw = (int32_t)(gurpil_rng_next(rng_state) % (uint32_t)total);
-    if (draw < weight_flat) {
+    if(draw < weight_flat) {
         return TerrainFlat;
     }
     draw -= weight_flat;
-    if (draw < weight_rocky) {
+    if(draw < weight_rocky) {
         return TerrainRocky;
     }
     draw -= weight_rocky;
-    if (draw < weight_uphill) {
+    if(draw < weight_uphill) {
         return TerrainUphill;
     }
     return TerrainObstacle;
@@ -115,48 +115,49 @@ static uint32_t hash_mix(uint32_t seed_value, int32_t offset) {
 }
 
 static int16_t clamp_height(int32_t height) {
-    if (height < TERRAIN_HEIGHT_MIN) {
+    if(height < TERRAIN_HEIGHT_MIN) {
         return TERRAIN_HEIGHT_MIN;
     }
-    if (height > TERRAIN_HEIGHT_MAX) {
+    if(height > TERRAIN_HEIGHT_MAX) {
         return TERRAIN_HEIGHT_MAX;
     }
     return (int16_t)height;
 }
 
-static int16_t height_for(TerrainKind kind, uint32_t zone_seed_value, int32_t offset_in_zone,
-                          int32_t length) {
-    switch (kind) {
-        case TerrainRocky: {
-            uint32_t hash = hash_mix(zone_seed_value, offset_in_zone);
-            int32_t bump = (int32_t)(hash % (2 * ROCKY_AMPLITUDE + 1)) - ROCKY_AMPLITUDE;
-            return clamp_height(HEIGHT_BASELINE + bump);
-        }
-        case TerrainUphill: {
-            int32_t rise = length > 0 ? (offset_in_zone * UPHILL_MAX_RISE) / length : 0;
-            return clamp_height(HEIGHT_BASELINE + rise);
-        }
-        case TerrainObstacle:
-            return clamp_height(HEIGHT_BASELINE + OBSTACLE_BUMP);
-        default: // TerrainFlat, and the TerrainKindCount sentinel as a defensive fallback.
-            return clamp_height(HEIGHT_BASELINE);
+static int16_t
+    height_for(TerrainKind kind, uint32_t zone_seed_value, int32_t offset_in_zone, int32_t length) {
+    switch(kind) {
+    case TerrainRocky: {
+        uint32_t hash = hash_mix(zone_seed_value, offset_in_zone);
+        int32_t bump = (int32_t)(hash % (2 * ROCKY_AMPLITUDE + 1)) - ROCKY_AMPLITUDE;
+        return clamp_height(HEIGHT_BASELINE + bump);
+    }
+    case TerrainUphill: {
+        int32_t rise = length > 0 ? (offset_in_zone * UPHILL_MAX_RISE) / length : 0;
+        return clamp_height(HEIGHT_BASELINE + rise);
+    }
+    case TerrainObstacle:
+        return clamp_height(HEIGHT_BASELINE + OBSTACLE_BUMP);
+    default: // TerrainFlat, and the TerrainKindCount sentinel as a defensive fallback.
+        return clamp_height(HEIGHT_BASELINE);
     }
 }
 
 TerrainSample terrain_at(uint32_t seed, int32_t x) {
-    if (x < 0) {
+    if(x < 0) {
         x = 0;
     }
 
     int32_t zone_index = 0;
     int32_t zone_start = 0;
-    for (;;) {
+    for(;;) {
         uint32_t rng_state = zone_rng_state(seed, zone_index);
         int32_t length = zone_length(&rng_state);
 
-        if (x < zone_start + length) {
-            TerrainKind kind =
-                (zone_index < OPENING_ZONE_COUNT) ? TerrainFlat : pick_kind(&rng_state, zone_start);
+        if(x < zone_start + length) {
+            TerrainKind kind = (zone_index < OPENING_ZONE_COUNT) ?
+                                   TerrainFlat :
+                                   pick_kind(&rng_state, zone_start);
             int32_t offset_in_zone = x - zone_start;
             TerrainSample sample = {kind, height_for(kind, rng_state, offset_in_zone, length)};
             return sample;

@@ -35,17 +35,17 @@ typedef enum {
 } GurpilViewId;
 
 typedef struct {
-    Gui *gui;
-    SceneManager *scene_manager;
-    ViewDispatcher *view_dispatcher;
+    Gui* gui;
+    SceneManager* scene_manager;
+    ViewDispatcher* view_dispatcher;
 
-    Submenu *menu;
-    Widget *how_to_play;
-    Widget *credits;
-    GurpilGameView *game_view;
+    Submenu* menu;
+    Widget* how_to_play;
+    Widget* credits;
+    GurpilGameView* game_view;
 
-    FuriTimer *game_timer; // owned by the Game scene: allocated on_enter, stopped+freed on_exit,
-                           // so the endless countdown only ever runs while Play is on screen.
+    FuriTimer* game_timer; // owned by the Game scene: allocated on_enter, stopped+freed on_exit,
+        // so the endless countdown only ever runs while Play is on screen.
 
     int32_t best; // persisted best distance; loaded once at startup, saved on every new best.
 } GurpilApp;

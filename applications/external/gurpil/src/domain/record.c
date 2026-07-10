@@ -1,12 +1,12 @@
 #include "include/domain/record.h"
 
 enum {
-    RECORD_MAGIC = 0x42,   // ASCII 'B' for "Best distance"
+    RECORD_MAGIC = 0x42, // ASCII 'B' for "Best distance"
     RECORD_VERSION = 0x01, // Format version 1
 };
 
-size_t record_serialize(int32_t best, uint8_t *out, size_t out_len) {
-    if (out_len < RECORD_BYTES) {
+size_t record_serialize(int32_t best, uint8_t* out, size_t out_len) {
+    if(out_len < RECORD_BYTES) {
         return 0;
     }
 
@@ -28,11 +28,11 @@ size_t record_serialize(int32_t best, uint8_t *out, size_t out_len) {
     return RECORD_BYTES;
 }
 
-int32_t record_parse(const uint8_t *buf, size_t len) {
-    if (buf == NULL || len < RECORD_BYTES) {
+int32_t record_parse(const uint8_t* buf, size_t len) {
+    if(buf == NULL || len < RECORD_BYTES) {
         return 0;
     }
-    if (buf[0] != RECORD_MAGIC || buf[1] != RECORD_VERSION) {
+    if(buf[0] != RECORD_MAGIC || buf[1] != RECORD_VERSION) {
         return 0;
     }
 
@@ -44,7 +44,7 @@ int32_t record_parse(const uint8_t *buf, size_t len) {
 
 int32_t record_update(int32_t prev_best, int32_t distance) {
     // A negative distance never lowers the record.
-    if (distance < 0) {
+    if(distance < 0) {
         distance = prev_best;
     }
     return distance > prev_best ? distance : prev_best;

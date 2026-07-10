@@ -18,7 +18,7 @@
  */
 
 enum {
-    SIM_FP_SHIFT = 8,               // fractional bits of the fixed-point scale.
+    SIM_FP_SHIFT = 8, // fractional bits of the fixed-point scale.
     SIM_FP_ONE = 1 << SIM_FP_SHIFT, // fixed-point representation of the integer value 1.
 
     // The fastest speed_fp a run can ever reach: shape_speed_factor's own maximum (FACTOR_BEST
@@ -30,14 +30,14 @@ enum {
 
 typedef struct {
     int32_t distance_fp; // total distance travelled so far, in fixed-point game-x units.
-    int32_t speed_fp;    // current speed, in fixed-point game-x units per second.
-    int16_t vehicle_y;   // terrain height (game units, TERRAIN_HEIGHT_MIN..MAX) under the vehicle.
+    int32_t speed_fp; // current speed, in fixed-point game-x units per second.
+    int16_t vehicle_y; // terrain height (game units, TERRAIN_HEIGHT_MIN..MAX) under the vehicle.
 } SimState;
 
 /* Resets `state` to a run's start: zero distance, zero speed, vehicle_y at the start terrain
  * height. No seed parameter is needed: the opening terrain zone is always flat (terrain.c),
  * and a flat zone's height is seed-independent, so x=0's height is the same for every seed. */
-void sim_init(SimState *state);
+void sim_init(SimState* state);
 
 /* Advances `state` by one fixed timestep of `dt_ms` milliseconds:
  *   1. samples the terrain kind at the vehicle's current x (distance_fp >> SIM_FP_SHIFT).
@@ -47,4 +47,4 @@ void sim_init(SimState *state);
  *   5. updates vehicle_y to the terrain height at the new distance.
  * Deterministic: replaying the same (initial state, shape, seed, dt_ms) sequence always
  * produces the same resulting states. */
-void sim_step(SimState *state, ShapeId shape, uint32_t seed, uint32_t dt_ms);
+void sim_step(SimState* state, ShapeId shape, uint32_t seed, uint32_t dt_ms);

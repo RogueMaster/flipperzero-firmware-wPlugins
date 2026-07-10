@@ -44,5 +44,10 @@
  * plus a "Back: menu" line, with the currently mounted shape highlighted) while the run is still
  * live, and — once game_is_over(game) — an opaque game-over panel (which replaces the legend)
  * showing the run's final distance, `best`, and "New best!" when `is_new_best` is set. */
-void gurpil_render(Canvas *canvas, const GameState *game, int32_t best, uint32_t frame,
-                   bool show_checkpoint_flash, bool is_new_best);
+void gurpil_render(
+    Canvas* canvas,
+    const GameState* game,
+    int32_t best,
+    uint32_t frame,
+    bool show_checkpoint_flash,
+    bool is_new_best);

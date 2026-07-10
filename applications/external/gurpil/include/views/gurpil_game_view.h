@@ -29,16 +29,16 @@ enum {
 
 /* Allocates the view. `view_dispatcher` is kept only to send GurpilGameEventReturnToMenu; it is
  * not retained beyond that (the view is added to it separately, by the caller). */
-GurpilGameView *gurpil_game_view_alloc(ViewDispatcher *view_dispatcher);
+GurpilGameView* gurpil_game_view_alloc(ViewDispatcher* view_dispatcher);
 
-void gurpil_game_view_free(GurpilGameView *instance);
+void gurpil_game_view_free(GurpilGameView* instance);
 
 /* View instance to register with the app's ViewDispatcher/hand to view_dispatcher_add_view. */
-View *gurpil_game_view_get_view(const GurpilGameView *instance);
+View* gurpil_game_view_get_view(const GurpilGameView* instance);
 
 /* Starts a brand-new run: fresh RNG seed, sim/endless/shape reset, animation frame counter back
  * to 0, `best` stored for the HUD/game-over overlay. Called from the Game scene's on_enter. */
-void gurpil_game_view_start_run(GurpilGameView *instance, uint32_t seed, int32_t best);
+void gurpil_game_view_start_run(GurpilGameView* instance, uint32_t seed, int32_t best);
 
 /* Advances the run by one fixed `dt_ms` step and requests a redraw — called every tick from the
  * Game scene's own FuriTimer, unconditionally (a no-op once the run is over, aside from still
@@ -50,18 +50,18 @@ void gurpil_game_view_start_run(GurpilGameView *instance, uint32_t seed, int32_t
  *
  * Returns true exactly once per run, on the tick the countdown reaches 0, so the caller can score
  * and persist the run's distance without any risk of double-scoring on later ticks. */
-bool gurpil_game_view_tick(GurpilGameView *instance, uint32_t dt_ms);
+bool gurpil_game_view_tick(GurpilGameView* instance, uint32_t dt_ms);
 
 /* The run's distance so far (or its final distance, once over). */
-int32_t gurpil_game_view_distance(GurpilGameView *instance);
+int32_t gurpil_game_view_distance(GurpilGameView* instance);
 
 /* True once this run's distance has strictly exceeded `pre_run_best` — wraps the pure
  * game_is_new_best predicate (application/game.h). Intended to be read right after
  * gurpil_game_view_tick reports the run just ended, with `pre_run_best` the best recorded
  * *before* this run started (i.e. before the caller potentially bumps its own persisted best). */
-bool gurpil_game_view_is_new_best(GurpilGameView *instance, int32_t pre_run_best);
+bool gurpil_game_view_is_new_best(GurpilGameView* instance, int32_t pre_run_best);
 
 /* Updates the `best` shown in the HUD/game-over overlay, and whether the game-over panel should
  * show "New best!" — called right after gurpil_game_view_tick reports the run just ended, once
  * the caller has compared/persisted it (see gurpil_game_view_is_new_best above). */
-void gurpil_game_view_set_best(GurpilGameView *instance, int32_t best, bool is_new_best);
+void gurpil_game_view_set_best(GurpilGameView* instance, int32_t best, bool is_new_best);

@@ -34,7 +34,7 @@ typedef struct {
 /* xorshift32: pure PRNG, no libc rand, no globals. `*state` must be non-zero (see
  * gurpil_rng_seed) — xorshift is stuck at zero forever otherwise. Advances `*state` in place
  * and returns the new value. */
-uint32_t gurpil_rng_next(uint32_t *state);
+uint32_t gurpil_rng_next(uint32_t* state);
 
 /* Maps an arbitrary caller seed (including 0) to a valid, non-zero xorshift32 state. */
 uint32_t gurpil_rng_seed(uint32_t seed);

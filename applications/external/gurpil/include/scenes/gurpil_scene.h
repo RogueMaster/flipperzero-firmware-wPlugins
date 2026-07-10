@@ -22,17 +22,17 @@ typedef enum {
 extern const SceneManagerHandlers gurpil_scene_handlers;
 
 // Generate scene on_enter handler declarations
-#define ADD_SCENE(prefix, name, id) void prefix##_scene_##name##_on_enter(void *);
+#define ADD_SCENE(prefix, name, id) void prefix##_scene_##name##_on_enter(void*);
 #include "include/scenes/gurpil_scene_config.h"
 #undef ADD_SCENE
 
 // Generate scene on_event handler declarations
-#define ADD_SCENE(prefix, name, id)                                                                \
-    bool prefix##_scene_##name##_on_event(void *context, SceneManagerEvent event);
+#define ADD_SCENE(prefix, name, id) \
+    bool prefix##_scene_##name##_on_event(void* context, SceneManagerEvent event);
 #include "include/scenes/gurpil_scene_config.h"
 #undef ADD_SCENE
 
 // Generate scene on_exit handler declarations
-#define ADD_SCENE(prefix, name, id) void prefix##_scene_##name##_on_exit(void *context);
+#define ADD_SCENE(prefix, name, id) void prefix##_scene_##name##_on_exit(void* context);
 #include "include/scenes/gurpil_scene_config.h"
 #undef ADD_SCENE

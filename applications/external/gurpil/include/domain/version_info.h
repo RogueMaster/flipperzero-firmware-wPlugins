@@ -11,4 +11,4 @@
  * segments, empty segments, or a NULL argument) and leaves the outputs
  * untouched.
  */
-bool gurpil_version_parse(const char *version, int *major, int *minor, int *patch);
+bool gurpil_version_parse(const char* version, int* major, int* minor, int* patch);

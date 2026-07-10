@@ -1,15 +1,10 @@
 App(
-    appid="flipper_gurpil",
+    appid="gurpil",
     name="Gurpil",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="gurpil_app",
     stack_size=2 * 1024,
-    fap_category="Games",
     fap_icon="icons/icon.icon",
-    fap_version="0.1.8",  # x-release-please-version
-    fap_author="Endika",
-    fap_description="Endless side-scroller: pick your wheel shape, the terrain decides your speed.",
-    requires=["gui"],
     sources=[
         "main.c",
         "src/domain/version_info.c",
@@ -32,4 +27,9 @@ App(
         "src/scenes/gurpil_scene_credits.c",
         "src/app/gurpil_app.c",
     ],
+    fap_category="Games",
+    fap_version="0.1.8",
+    fap_weburl="https://github.com/Endika/flipper-gurpil",
+    fap_author="Endika",
+    fap_description="Endless side-scroller: pick your wheel shape, the terrain decides your speed.",
 )
