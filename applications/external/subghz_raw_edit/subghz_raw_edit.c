@@ -34,7 +34,7 @@
 
 #define GAP_KEEP_MAX_US 1500
 
-#define MERGE_GAP_DEFAULT_MS 15
+#define MERGE_GAP_DEFAULT_MS 100
 #define MERGE_GAP_MIN_MS     1
 // A single sample is int16_t clamped to DUR_CLAMP (32000 us = 32 ms), so gaps
 // longer than that are emitted as several consecutive silence samples.
