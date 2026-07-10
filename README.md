@@ -15,7 +15,8 @@ a long recording full of repeats and noise becomes a single tidy frame.
 > and rewrites files you already have on the SD card.
 
 ## Supported protocols
-Sub-GHz-RAW-Edit allows you to view RAW signals and any other `.sub` protocols supported by your firmware. For all protocols other than RAW capture, this app uses the device's internal decoder.
+Sub-GHz-RAW-Edit allows you to view RAW signals and any other `.sub` protocols supported by your firmware.
+For all protocols other than RAW capture, this app uses the device's internal decoder.
 
 As the `Save` option always writes output `.sub` files in `RAW` format,
 its able to transform already recognized signals (protocols) back to `RAW` again.
@@ -67,10 +68,13 @@ visually, on the device.
     Save.
   - *Undo* reverts the last cut. It is greyed out (struck through) when there is
     nothing to undo.
-- **Memory-safe.** Long silence gaps are clamped to fit a compact `int16`
-  buffer, the buffer grows in small chunks and shrinks to the file's real size
-  after loading. If there genuinely isn't enough free RAM, you get a clear
-  "reboot and try again" message instead of a crash.
+- **Merge multiple files** into one with the *Config → Merge gap* option to adjust the spacing.
+- **Repeat** any loaded signal up to 64 times automatically. Set it in *Config → Repeat*.
+  It applies to both **Select file** and **Merge files**. Repetitions are separated by 
+  the signal's own native gap, while different merged files are separated by the configurable **Merge gap**.
+  Especially useful for signals that a receiver only locks onto after seeing 
+  the frame repeated several times within its synchronization window.
+  Typically, about 5 repetitions are sufficient to ensure that the target decoder processes it correctly.
 - **Clean output.** The saved frame is aligned to start on a pulse and end on a
   gap, with the original `Frequency` and `Preset` preserved.
   There is also an option to auto normalize jitter quirks which makes the signal even more clean.
@@ -79,9 +83,9 @@ visually, on the device.
   Some signal receivers will reject a signal if it's "too clean" due to a built-in security layer.
   This layer can flag the signal as possibly synthesized.
 
-| Main menu | Action menu |
-|:---:|:---:|
-| ![Main menu](docs/images/08-main-menu.png) | ![Action menu](docs/images/09-action-menu.png) |
+| Main menu | Config menu | Action menu |
+|:---:|:---:|:---:|
+| ![Main menu](docs/images/08-main-menu.png) | ![Config menu](docs/images/09-config-menu.png) | ![Action menu](docs/images/10-action-menu.png) |
 
 ## Controls
 
