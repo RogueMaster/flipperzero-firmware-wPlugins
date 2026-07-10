@@ -1,0 +1,5 @@
+*.o
+*.fap
+build/
+test_gurpil*
+local.mk

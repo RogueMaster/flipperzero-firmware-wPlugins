@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore
+    # Only patch & minor are proposed; do majors manually when ready.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
