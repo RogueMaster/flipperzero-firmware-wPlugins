@@ -129,6 +129,14 @@ static inline int32_t iabs32(int32_t v) {
     return v < 0 ? -v : v;
 }
 
+static inline int32_t clamp_dur(int32_t v) {
+    if(v > DUR_CLAMP) return DUR_CLAMP;
+
+    if(v < -DUR_CLAMP) return -DUR_CLAMP;
+
+    return v;
+}
+
 static void fmt_time(int32_t us, char* out, size_t n) {
     if(us < 0) us = 0;
 
@@ -196,6 +204,13 @@ static void ensure_visible(App* a, int32_t m) {
     clamp_view(a);
 }
 
+// True when sample i is a real level change (an edge). The first sample is an
+// edge only if it starts high; runs of same-sign samples - e.g. a long gap
+// split into several silence samples - are one level, not repeated edges.
+static bool sample_is_edge(const SubData* sd, size_t i) {
+    return (i == 0) ? (sd->data[i] > 0) : ((sd->data[i] < 0) != (sd->data[i - 1] < 0));
+}
+
 static void recompute_activity(App* a) {
     memset(a->activity, 0, sizeof(a->activity));
     int32_t span = a->view_end - a->view_start;
@@ -213,9 +228,7 @@ static void recompute_activity(App* a) {
 
         if(s1 < a->view_start || s0 > a->view_end) continue;
 
-        bool transition = (i == 0) ? (a->sd.data[i] > 0) :
-                                     ((a->sd.data[i] < 0) != (a->sd.data[i - 1] < 0));
-        if(!transition) continue;
+        if(!sample_is_edge(&a->sd, i)) continue;
 
         int x = (int)(((int64_t)(s0 - a->view_start) * SCREEN_W_PX) / span);
 
@@ -243,9 +256,7 @@ static void recompute_overview(App* a) {
         int32_t s0 = run;
         run += ad;
 
-        bool transition = (i == 0) ? (a->sd.data[i] > 0) :
-                                     ((a->sd.data[i] < 0) != (a->sd.data[i - 1] < 0));
-        if(!transition) continue;
+        if(!sample_is_edge(&a->sd, i)) continue;
 
         int x = (int)(((int64_t)s0 * SCREEN_W_PX) / total);
 
@@ -399,19 +410,10 @@ static bool append_sample(SubData* sd, int32_t v) {
         return false;
     }
 
-    if(v > DUR_CLAMP) v = DUR_CLAMP;
-
-    if(v < -DUR_CLAMP) v = -DUR_CLAMP;
-
-    sd->data[sd->count++] = (int16_t)v;
+    sd->data[sd->count++] = (int16_t)clamp_dur(v);
 
     return true;
 }
-
-typedef enum {
-    SubFormatRaw,
-    SubFormatKeeloq,
-} SubFormat;
 
 static void* safe_malloc(size_t size) {
     if(size == 0 || memmgr_get_free_heap() < size + LOAD_HEAP_RESERVE) return NULL;
@@ -471,6 +473,29 @@ static bool synth_grow(SubData* sd, size_t need) {
     return true;
 }
 
+static bool push_duration(SubData* sd, int32_t v) {
+    int32_t sign = (v < 0) ? -1 : 1;
+    int32_t mag = iabs32(v);
+
+    do {
+        int32_t chunk = (mag > DUR_CLAMP) ? DUR_CLAMP : mag;
+        if(!synth_grow(sd, sd->count + 1)) {
+            sd->truncated = true;
+            return false;
+        }
+        sd->data[sd->count++] = (int16_t)(sign * chunk);
+        mag -= chunk;
+    } while(mag > 0);
+
+    return true;
+}
+
+// How many int16 samples a duration of magnitude |mag| µs occupies once split to
+// fit the per-sample clamp (the inverse count of what push_duration emits).
+static size_t duration_samples(int32_t mag) {
+    return (mag > DUR_CLAMP) ? (size_t)((mag + DUR_CLAMP - 1) / DUR_CLAMP) : 1;
+}
+
 static bool synthesize_via_transmitter(
     Storage* storage,
     const char* path,
@@ -506,12 +531,7 @@ static bool synthesize_via_transmitter(
             int32_t dur = (int32_t)level_duration_get_duration(ld);
             int32_t v = level_duration_get_level(ld) ? dur : -dur;
 
-            if(!synth_grow(sd, sd->count + 1)) {
-                sd->truncated = true;
-                break;
-            }
-
-            append_sample(sd, v);
+            if(!push_duration(sd, v)) break; // out of room; keep what we have
 
             if(sd->count >= SYNTH_YIELD_CAP) break;
         }
@@ -632,6 +652,76 @@ static void normalize_jitter(SubData* sd) {
     }
 }
 
+// Sum of all sample durations, saturated to int32, cached on the SubData.
+static void recompute_total_us(SubData* sd) {
+    int64_t run = 0;
+    for(size_t i = 0; i < sd->count; i++)
+        run += iabs32(sd->data[i]);
+
+    if(run > 0x7FFFFFFF) run = 0x7FFFFFFF;
+
+    sd->total_us = (int32_t)run;
+}
+
+// Parse a .sub metadata line (Frequency/Preset/Protocol) into the given fields.
+// Returns true if the line matched one of them; RAW_Data is handled by callers.
+static bool parse_sub_meta(
+    const char* s,
+    uint32_t* freq,
+    char* preset,
+    size_t preset_sz,
+    char* protocol,
+    size_t proto_sz) {
+    if(strncmp(s, "Frequency:", 10) == 0) {
+        *freq = (uint32_t)strtoul(s + 10, NULL, 10);
+        return true;
+    }
+
+    if(strncmp(s, "Preset:", 7) == 0) {
+        const char* p = s + 7;
+        while(*p == ' ')
+            p++;
+
+        strncpy(preset, p, preset_sz - 1);
+        preset[preset_sz - 1] = '\0';
+        return true;
+    }
+
+    if(strncmp(s, "Protocol:", 9) == 0) {
+        const char* p = s + 9;
+        while(*p == ' ')
+            p++;
+
+        strncpy(protocol, p, proto_sz - 1);
+        protocol[proto_sz - 1] = '\0';
+        return true;
+    }
+
+    return false;
+}
+
+// Pull the next integer from a RAW_Data value list, advancing *p. Returns false
+// at end of line. Skips stray non-numeric characters between values.
+static bool next_raw_value(const char** p, long* out) {
+    char* end;
+    while(**p) {
+        long v = strtol(*p, &end, 10);
+        if(end == *p) {
+            if(**p == '\0') break;
+
+            (*p)++;
+            continue;
+        }
+
+        *p = end;
+        *out = v;
+
+        return true;
+    }
+
+    return false;
+}
+
 static bool load_sub(Storage* storage, const char* path, SubData* sd) {
     memset(sd, 0, sizeof(*sd));
     sd->frequency = 433920000;
@@ -645,11 +735,11 @@ static bool load_sub(Storage* storage, const char* path, SubData* sd) {
 
     uint64_t fsize = storage_file_size(f);
 
-    /* Predict sample count from file weight. Measured RAW .sub captures run
-     * ~4.4-5.4 bytes per sample (number text + sign + space), so fsize/4 is a
-     * tight upper bound: well under the old fsize/2 (~2x) over-allocation, yet
-     * still above the real count so normal captures aren't truncated. Decoded
-     * files are tiny; synthesize_via_transmitter grows the buffer as it yields. */
+    // Predict sample count from file weight. Measured RAW .sub captures run
+    // ~4.4-5.4 bytes per sample (number text + sign + space), so fsize/4 is a
+    // good first guess that fits normal captures without over-allocating. It is
+    // only a hint: push_duration grows the buffer on demand (e.g. when long gaps
+    // split into several samples), and decoded files synthesize into it.
     size_t est = (size_t)(fsize / 4) + 64;
     if(est > MAX_SAMPLES) est = MAX_SAMPLES;
 
@@ -673,38 +763,16 @@ static bool load_sub(Storage* storage, const char* path, SubData* sd) {
         const char* s = furi_string_get_cstr(line);
         if(strncmp(s, "RAW_Data:", 9) == 0) {
             const char* p = s + 9;
-            char* end;
-            while(*p) {
-                long v = strtol(p, &end, 10);
-                if(end == p) {
-                    if(*p == '\0') break;
-
-                    p++;
-                    continue;
-                }
-
-                p = end;
-                if(!append_sample(sd, (int32_t)v)) {
+            long v;
+            while(next_raw_value(&p, &v)) {
+                if(!push_duration(sd, (int32_t)v)) {
                     stop = true;
                     break;
                 }
             }
-        } else if(strncmp(s, "Frequency:", 10) == 0) {
-            sd->frequency = (uint32_t)strtoul(s + 10, NULL, 10);
-        } else if(strncmp(s, "Preset:", 7) == 0) {
-            const char* p = s + 7;
-            while(*p == ' ')
-                p++;
-
-            strncpy(sd->preset, p, sizeof(sd->preset) - 1);
-            sd->preset[sizeof(sd->preset) - 1] = '\0';
-        } else if(strncmp(s, "Protocol:", 9) == 0) {
-            const char* p = s + 9;
-            while(*p == ' ')
-                p++;
-
-            strncpy(protocol, p, sizeof(protocol) - 1);
-            protocol[sizeof(protocol) - 1] = '\0';
+        } else {
+            parse_sub_meta(
+                s, &sd->frequency, sd->preset, sizeof(sd->preset), protocol, sizeof(protocol));
         }
     }
 
@@ -725,60 +793,24 @@ static bool load_sub(Storage* storage, const char* path, SubData* sd) {
 
     if(g_normalize_jitter) normalize_jitter(sd);
 
-    int64_t run = 0;
-    for(size_t i = 0; i < sd->count; i++)
-        run += iabs32(sd->data[i]);
-
-    if(run > 0x7FFFFFFF) run = 0x7FFFFFFF;
-
-    sd->total_us = (int32_t)run;
+    recompute_total_us(sd);
     return sd->count >= 2;
-}
-
-static void recompute_total_us(SubData* sd) {
-    int64_t run = 0;
-    for(size_t i = 0; i < sd->count; i++)
-        run += iabs32(sd->data[i]);
-
-    if(run > 0x7FFFFFFF) run = 0x7FFFFFFF;
-
-    sd->total_us = (int32_t)run;
-}
-
-static void merge_push(SubData* dst, int32_t v) {
-    if(dst->count > 0 && ((dst->data[dst->count - 1] < 0) == (v < 0))) {
-        int32_t merged = (int32_t)dst->data[dst->count - 1] + v;
-
-        if(merged > DUR_CLAMP) merged = DUR_CLAMP;
-
-        if(merged < -DUR_CLAMP) merged = -DUR_CLAMP;
-
-        dst->data[dst->count - 1] = (int16_t)merged;
-    } else {
-        append_sample(dst, v);
-    }
 }
 
 /* Insert a clean inter-signal separator so the silence at the join equals
  * exactly the configured gap. Signals (especially synthesized KeeLoq) end and
- * start with their own guard silence. Letting merge_push add the gap on top of
- * it would double (or worse) the visible gap. So we replace the previous
+ * start with their own guard silence. Adding the gap on top of it would double
+ * (or worse) the visible gap. So we replace the previous
  * signal's trailing silence with the gap here and the next signal's leading
  * silence is dropped by the caller when it is appended. */
 static void merge_separator(SubData* dst) {
     // Absorb the previous signal's trailing silence so the gap isn't added on
-    // top of it, then emit the gap. Since one int16 sample tops out at
-    // DUR_CLAMP, a long gap is written as several consecutive silence samples
-    // (append_sample keeps them separate; merge_push would clamp them into one).
-    if(dst->count > 0 && dst->data[dst->count - 1] < 0) dst->count--;
+    // top of it, then emit the gap via push_duration (which splits it into
+    // several samples when it exceeds the per-sample clamp).
+    while(dst->count > 0 && dst->data[dst->count - 1] < 0)
+        dst->count--;
 
-    int32_t remaining = g_merge_gap_ms * 1000;
-    while(remaining > 0) {
-        int32_t chunk = remaining > DUR_CLAMP ? DUR_CLAMP : remaining;
-        if(!append_sample(dst, -chunk)) break; // output buffer full; stop extending the gap
-
-        remaining -= chunk;
-    }
+    push_duration(dst, -(g_merge_gap_ms * 1000));
 }
 
 static size_t count_sub_samples(
@@ -786,10 +818,7 @@ static size_t count_sub_samples(
     const char* path,
     uint32_t* freq,
     char* preset,
-    size_t preset_sz,
-    bool* is_raw) {
-    *is_raw = true;
-
+    size_t preset_sz) {
     File* f = storage_file_alloc(storage);
     if(!storage_file_open(f, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         storage_file_free(f);
@@ -805,35 +834,14 @@ static size_t count_sub_samples(
         const char* s = furi_string_get_cstr(line);
         if(strncmp(s, "RAW_Data:", 9) == 0) {
             const char* p = s + 9;
-            char* end;
-            while(*p) {
-                strtol(p, &end, 10);
-                if(end == p) {
-                    if(*p == '\0') break;
-
-                    p++;
-                    continue;
-                }
-
-                p = end;
-                raw_count++;
+            long v;
+            while(next_raw_value(&p, &v)) {
+                // Must match load_sub: durations beyond the clamp are split into
+                // several samples, so count them the same way.
+                raw_count += duration_samples(iabs32((int32_t)v));
             }
-        } else if(strncmp(s, "Frequency:", 10) == 0) {
-            *freq = (uint32_t)strtoul(s + 10, NULL, 10);
-        } else if(strncmp(s, "Preset:", 7) == 0) {
-            const char* q = s + 7;
-            while(*q == ' ')
-                q++;
-
-            strncpy(preset, q, preset_sz - 1);
-            preset[preset_sz - 1] = '\0';
-        } else if(strncmp(s, "Protocol:", 9) == 0) {
-            const char* q = s + 9;
-            while(*q == ' ')
-                q++;
-
-            strncpy(protocol, q, sizeof(protocol) - 1);
-            protocol[sizeof(protocol) - 1] = '\0';
+        } else {
+            parse_sub_meta(s, freq, preset, preset_sz, protocol, sizeof(protocol));
         }
     }
 
@@ -841,10 +849,7 @@ static size_t count_sub_samples(
     storage_file_close(f);
     storage_file_free(f);
 
-    if(raw_count > 0) {
-        *is_raw = true;
-        return raw_count;
-    }
+    if(raw_count > 0) return raw_count;
 
     /* Decoded protocol: the frame length isn't predictable from the file alone,
      * so synthesize it once via the firmware encoder and count the samples. */
@@ -856,10 +861,7 @@ static size_t count_sub_samples(
 
         if(tmp.data) free(tmp.data);
 
-        if(n > 0) {
-            *is_raw = false;
-            return n;
-        }
+        if(n > 0) return n;
     }
 
     return 0;
@@ -904,8 +906,43 @@ static void append_signal(SubData* dst, const SubData* sig, MergeJoin join) {
             skip_lead = false;
         }
 
-        merge_push(dst, v);
+        if(!append_sample(dst, v)) break;
     }
+}
+
+static bool load_sub_repeated(Storage* storage, const char* path, SubData* out) {
+    SubData sig = {0};
+    bool ok = load_sub(storage, path, &sig);
+    if(!ok || !sig.data || sig.count == 0) {
+        *out = sig; // carries out_of_memory / flags for the caller
+        return ok;
+    }
+
+    // Metadata (frequency, preset, flags) carries over; rebuild the samples.
+    *out = sig;
+    out->data = NULL;
+    out->count = 0;
+    out->cap = 0;
+
+    size_t want = sig.count * (size_t)g_merge_repeat;
+    size_t need = want > MAX_SAMPLES ? MAX_SAMPLES : want;
+    out->data = safe_malloc(need * sizeof(int16_t));
+    if(!out->data) {
+        out->out_of_memory = true;
+        free(sig.data);
+        return false;
+    }
+    out->cap = need;
+    if(want > MAX_SAMPLES) out->truncated = true;
+
+    for(int r = 0; r < g_merge_repeat; r++) {
+        MergeJoin join = (r == 0) ? MergeJoinNone : MergeJoinNative;
+        append_signal(out, &sig, join);
+    }
+
+    recompute_total_us(out);
+    free(sig.data);
+    return out->count >= 2;
 }
 
 static void propose_edit_name(Storage* st, App* a, char* out, size_t outlen) {
@@ -1101,33 +1138,16 @@ static bool cut_compact(App* a) {
         if(keep <= 0) continue;
 
         int32_t val = sign * keep;
-        if(w > 0 && ((d[w - 1] >= 0) == (val >= 0))) {
-            int32_t merged = (int32_t)d[w - 1] + val;
-
-            if(merged > DUR_CLAMP) merged = DUR_CLAMP;
-
-            if(merged < -DUR_CLAMP) merged = -DUR_CLAMP;
-
-            d[w - 1] = (int16_t)merged;
-        } else {
-            if(val > DUR_CLAMP) val = DUR_CLAMP;
-
-            if(val < -DUR_CLAMP) val = -DUR_CLAMP;
-
-            d[w++] = (int16_t)val;
-        }
+        if(w > 0 && ((d[w - 1] >= 0) == (val >= 0)))
+            d[w - 1] = (int16_t)clamp_dur((int32_t)d[w - 1] + val);
+        else
+            d[w++] = (int16_t)clamp_dur(val);
     }
 
     a->sd.count = w;
     if(w < 2) return true;
 
-    int64_t tot = 0;
-    for(size_t i = 0; i < w; i++)
-        tot += iabs32(d[i]);
-
-    if(tot > 0x7FFFFFFF) tot = 0x7FFFFFFF;
-
-    a->sd.total_us = (int32_t)tot;
+    recompute_total_us(&a->sd);
 
     a->marker_a = lo;
     a->marker_b = lo;
@@ -1674,7 +1694,9 @@ static void run_editor(Storage* storage, DialogsApp* dialogs) {
     gui_add_view_port(gui, vp, GuiLayerFullscreen);
     view_port_update(vp);
 
-    bool loaded = load_sub(storage, furi_string_get_cstr(path), &app->sd);
+    bool loaded = (g_merge_repeat > 1) ?
+                      load_sub_repeated(storage, furi_string_get_cstr(path), &app->sd) :
+                      load_sub(storage, furi_string_get_cstr(path), &app->sd);
 
     if(app->sd.out_of_memory || !loaded) {
         gui_remove_view_port(gui, vp);
@@ -1752,8 +1774,8 @@ static void run_merge(Storage* storage, DialogsApp* dialogs) {
     app->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
 
     // Packed buffer of file paths: <len_byte><path_bytes><len_byte>...<0>.
-    // The high bit (0x80) of each len byte flags a RAW file; a 0 byte marks
-    // the end. Grows on demand so the only real limit is available RAM.
+    // A 0 length byte marks the end (paths are never empty). Grows on demand so
+    // the only real limit is available RAM.
     size_t pcap = MERGE_BUF_CHUNK;
     size_t pused = 0;
     uint8_t* pbuf = safe_malloc(pcap);
@@ -1803,9 +1825,7 @@ static void run_merge(Storage* storage, DialogsApp* dialogs) {
         char pr[48];
         strncpy(pr, preset, sizeof(pr) - 1);
         pr[sizeof(pr) - 1] = '\0';
-        bool is_raw = true;
-        size_t cnt =
-            count_sub_samples(storage, furi_string_get_cstr(path), &f, pr, sizeof(pr), &is_raw);
+        size_t cnt = count_sub_samples(storage, furi_string_get_cstr(path), &f, pr, sizeof(pr));
         gui_remove_view_port(gui, load_vp);
 
         if(cnt == 0) {
@@ -1842,7 +1862,7 @@ static void run_merge(Storage* storage, DialogsApp* dialogs) {
         // native trailing silence (no extra samples), while a new file inserts
         // the manual gap, which spans several samples once it exceeds DUR_CLAMP.
         size_t copies = (size_t)g_merge_repeat;
-        size_t gap_chunks = (size_t)((g_merge_gap_ms * 1000 + DUR_CLAMP - 1) / DUR_CLAMP);
+        size_t gap_chunks = duration_samples(g_merge_gap_ms * 1000);
         size_t extra = cnt * copies + (n > 0 ? gap_chunks : 0);
         size_t newtotal = total + extra;
         bool over_cap = newtotal > MAX_SAMPLES;
@@ -1901,7 +1921,7 @@ static void run_merge(Storage* storage, DialogsApp* dialogs) {
             pcap = newcap;
         }
 
-        pbuf[pused++] = (uint8_t)(plen | (is_raw ? 0x80 : 0));
+        pbuf[pused++] = (uint8_t)plen;
         memcpy(pbuf + pused, cstr, plen);
         pused += plen;
         pbuf[pused] = 0;
@@ -1950,8 +1970,7 @@ static void run_merge(Storage* storage, DialogsApp* dialogs) {
     char pathbuf[MERGE_PATH_LEN];
     size_t off = 0;
     for(int i = 0; i < n; i++) {
-        uint8_t lb = pbuf[off++];
-        size_t plen = lb & 0x7F; // high bit (RAW flag) no longer needed to load
+        size_t plen = pbuf[off++];
         memcpy(pathbuf, pbuf + off, plen);
         pathbuf[plen] = '\0';
         off += plen;
@@ -2142,7 +2161,7 @@ static void config_enter_cb(void* context, uint32_t index) {
         header = "Merge gap [ms] (1-1000)";
         current = g_merge_gap_ms;
     } else if(index == ConfigItemRepeat) {
-        header = "Merge repeat each (1-64)";
+        header = "Repeat each (1-64)";
         current = g_merge_repeat;
     } else {
         return; // non-numeric item (e.g. Normalize jitter)
@@ -2168,7 +2187,7 @@ static void menu_build_config(Menu* menu) {
 
     menu->repeat_item = variable_item_list_add(
         menu->config_list,
-        "Merge repeat",
+        "Repeat",
         MERGE_REPEAT_MAX - MERGE_REPEAT_MIN + 1,
         config_repeat_changed_cb,
         menu);
