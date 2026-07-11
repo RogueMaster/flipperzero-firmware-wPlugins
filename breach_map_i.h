@@ -17,7 +17,7 @@
 #include "modules/graph_engine.h"
 #include "modules/report_generator.h"
 #include "views/graph_view.h"
-#include "scenes/flipper_recon_scene.h"
+#include "scenes/breach_map_scene.h"
 
 /* Custom events. Submenu / variable item list callbacks send small indices,
  * so reserved events start high to avoid collisions. */
@@ -39,6 +39,7 @@ typedef enum {
     ReconTextTargetLocation,
     ReconTextTargetAssetName,
     ReconTextTargetAssetNotes,
+    ReconTextTargetAssetRemediation,
     ReconTextTargetEvidenceLabel,
     ReconTextTargetEvidencePath,
 } ReconTextTarget;
@@ -54,9 +55,9 @@ typedef enum {
     ReconMessageConfirmDiscard,
 } ReconMessageMode;
 
-typedef struct FlipperReconApp FlipperReconApp;
+typedef struct BreachMapApp BreachMapApp;
 
-struct FlipperReconApp {
+struct BreachMapApp {
     Gui* gui;
     Storage* storage;
     NotificationApp* notifications;
@@ -96,4 +97,4 @@ struct FlipperReconApp {
 
 /* Save the current session, handling rename (deletes the old file) and clearing
  * the dirty flag. Returns true on success. Fills message_text with the result. */
-bool flipper_recon_perform_save(FlipperReconApp* app);
+bool breach_map_perform_save(BreachMapApp* app);

@@ -1,13 +1,13 @@
-#include "../flipper_recon_i.h"
+#include "../breach_map_i.h"
 
-static void flipper_recon_scene_text_input_callback(void* context) {
-    FlipperReconApp* app = context;
+static void breach_map_scene_text_input_callback(void* context) {
+    BreachMapApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, RECON_EVENT_TEXT_DONE);
 }
 
 /* Resolve the header, current value and max length for the active target. */
 static void text_input_target_info(
-    FlipperReconApp* app,
+    BreachMapApp* app,
     const char** header,
     const char** value,
     size_t* max_len) {
@@ -44,6 +44,11 @@ static void text_input_target_info(
         *value = asset ? asset->notes : "";
         *max_len = RECON_NOTE_LEN;
         break;
+    case ReconTextTargetAssetRemediation:
+        *header = "Remediation";
+        *value = asset ? asset->remediation : "";
+        *max_len = RECON_NOTE_LEN;
+        break;
     case ReconTextTargetEvidenceLabel:
         *header = "Evidence label";
         *value = evidence ? evidence->label : "";
@@ -62,7 +67,7 @@ static void text_input_target_info(
     }
 }
 
-static void text_input_apply(FlipperReconApp* app) {
+static void text_input_apply(BreachMapApp* app) {
     Session* session = app->session;
     Asset* asset = (session->asset_count > app->selected_asset) ?
                        &session->assets[app->selected_asset] :
@@ -92,6 +97,12 @@ static void text_input_apply(FlipperReconApp* app) {
             asset->modified = furi_hal_rtc_get_timestamp();
         }
         break;
+    case ReconTextTargetAssetRemediation:
+        if(asset) {
+            strncpy(asset->remediation, app->text_buf, RECON_NOTE_LEN - 1);
+            asset->modified = furi_hal_rtc_get_timestamp();
+        }
+        break;
     case ReconTextTargetEvidenceLabel:
         if(evidence) strncpy(evidence->label, app->text_buf, RECON_NAME_LEN - 1);
         break;
@@ -104,8 +115,8 @@ static void text_input_apply(FlipperReconApp* app) {
     session_touch(session);
 }
 
-void flipper_recon_scene_text_input_on_enter(void* context) {
-    FlipperReconApp* app = context;
+void breach_map_scene_text_input_on_enter(void* context) {
+    BreachMapApp* app = context;
     const char* header = "";
     const char* value = "";
     size_t max_len = RECON_NAME_LEN;
@@ -117,18 +128,13 @@ void flipper_recon_scene_text_input_on_enter(void* context) {
     text_input_reset(app->text_input);
     text_input_set_header_text(app->text_input, header);
     text_input_set_result_callback(
-        app->text_input,
-        flipper_recon_scene_text_input_callback,
-        app,
-        app->text_buf,
-        max_len,
-        false);
+        app->text_input, breach_map_scene_text_input_callback, app, app->text_buf, max_len, false);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewTextInput);
 }
 
-bool flipper_recon_scene_text_input_on_event(void* context, SceneManagerEvent event) {
-    FlipperReconApp* app = context;
+bool breach_map_scene_text_input_on_event(void* context, SceneManagerEvent event) {
+    BreachMapApp* app = context;
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom && event.event == RECON_EVENT_TEXT_DONE) {
@@ -139,7 +145,7 @@ bool flipper_recon_scene_text_input_on_event(void* context, SceneManagerEvent ev
     return consumed;
 }
 
-void flipper_recon_scene_text_input_on_exit(void* context) {
-    FlipperReconApp* app = context;
+void breach_map_scene_text_input_on_exit(void* context) {
+    BreachMapApp* app = context;
     text_input_reset(app->text_input);
 }

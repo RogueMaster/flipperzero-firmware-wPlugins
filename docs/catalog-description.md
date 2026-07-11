@@ -1,4 +1,4 @@
-Flipper Recon is a physical security reconnaissance notebook for authorized
+BreachMap is a physical security reconnaissance notebook for authorized
 security assessments. It is not an attack tool — it helps you collect, organize
 and analyze observations from physical security audits.
 

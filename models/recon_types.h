@@ -16,7 +16,10 @@
 
 #define RECON_INVALID_INDEX 0xFFFF
 
-/* On-disk locations (APP_DATA_PATH expands to /ext/apps_data/flipper_recon). */
+/* Sentinel graph coordinate meaning "auto-place this node". */
+#define RECON_COORD_AUTO 0xFF
+
+/* On-disk locations (APP_DATA_PATH expands to /ext/apps_data/breach_map). */
 #define RECON_SESSION_DIR APP_DATA_PATH("sessions")
 #define RECON_EXPORT_DIR  APP_DATA_PATH("exports")
 #define RECON_SESSION_EXT ".recon"
@@ -49,6 +52,16 @@ typedef enum {
     RelTypeCount,
 } RelationType;
 
+typedef enum {
+    SeverityInfo,
+    SeverityLow,
+    SeverityMedium,
+    SeverityHigh,
+    SeverityCritical,
+    SeverityCount,
+} Severity;
+
 const char* asset_type_name(AssetType type);
 const char* evidence_type_name(EvidenceType type);
 const char* relation_type_name(RelationType type);
+const char* severity_name(Severity severity);

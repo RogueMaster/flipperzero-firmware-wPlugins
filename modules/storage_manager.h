@@ -16,7 +16,7 @@ void recon_sanitize_filename(const char* name, char* out, size_t out_len);
 /* True if a session file with this (already sanitized) base name exists. */
 bool recon_storage_session_exists(Storage* storage, const char* name);
 
-/* Persist a session to /ext/apps_data/flipper_recon/sessions/<name>.recon
+/* Persist a session to /ext/apps_data/breach_map/sessions/<name>.recon
  * using the Flipper file format. Returns true on success. */
 bool recon_storage_save_session(Storage* storage, const Session* session);
 

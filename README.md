@@ -1,9 +1,10 @@
-# 🔦 Flipper Recon
+# 🗺️ BreachMap
 
-**A physical security reconnaissance notebook that runs on your Flipper Zero.**
+**Map the path from badge to breach — a physical security reconnaissance notebook
+that runs on your Flipper Zero.**
 
 Your physical pentest engagements deserve better than a scratchpad of notes and a
-pile of loose `.sub` and `.nfc` files. Flipper Recon turns your Flipper into a
+pile of loose `.sub` and `.nfc` files. BreachMap turns your Flipper into a
 field notebook for **authorized** physical security assessments — capture what you
 see, link the evidence, map how everything connects, and walk away with a clean
 report.
@@ -31,7 +32,7 @@ controls which door, where the cameras cover, which badge you saw at the loading
 bay, what frequency that gate remote used. By the time you sit down to write the
 report, half the context is gone.
 
-Flipper Recon keeps that context **on the device, as you walk**, and structures it
+BreachMap keeps that context **on the device, as you walk**, and structures it
 so the report writes itself.
 
 ## Features
@@ -56,16 +57,16 @@ so the report writes itself.
 
 ## Quick start
 
-1. Install from the **Flipper Apps Catalog** (`Apps → Tools → Flipper Recon`), or
+1. Install from the **Flipper Apps Catalog** (`Apps → Tools → BreachMap`), or
    build it yourself (see below).
 2. Open the app and choose **New engagement**.
 3. Add assets, set their type / risk / notes, and attach evidence.
 4. Link assets with relations, then open **Graph** to visualize them.
-5. **Save**, then **Export JSON / Markdown** to `/ext/apps_data/flipper_recon/`.
+5. **Save**, then **Export JSON / Markdown** to `/ext/apps_data/breach_map/`.
 
 ## Where your data lives
 
-Everything is stored on the SD card under `/ext/apps_data/flipper_recon/`:
+Everything is stored on the SD card under `/ext/apps_data/breach_map/`:
 
 | Path | Contents |
 | --- | --- |
@@ -77,7 +78,7 @@ Everything is stored on the SD card under `/ext/apps_data/flipper_recon/`:
 
 ```json
 {
-  "tool": "Flipper Recon",
+  "tool": "BreachMap",
   "name": "Engagement",
   "assets": [
     {"id": 1, "type": "RF Device", "risk": 30, "name": "Badge", "evidence": []},
@@ -127,7 +128,7 @@ request (see [.github/workflows/ci.yml](.github/workflows/ci.yml)).
 
 ## ⚠️ Responsible use
 
-Flipper Recon is intended **solely for authorized security assessments and
+BreachMap is intended **solely for authorized security assessments and
 educational use**. Only assess systems you own or have explicit written permission
 to test. You are responsible for complying with all applicable laws and the terms
 of your engagement.

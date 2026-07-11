@@ -1,12 +1,12 @@
-#include "../flipper_recon_i.h"
+#include "../breach_map_i.h"
 
-static void flipper_recon_scene_session_list_callback(void* context, uint32_t index) {
-    FlipperReconApp* app = context;
+static void breach_map_scene_session_list_callback(void* context, uint32_t index) {
+    BreachMapApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, index);
 }
 
-void flipper_recon_scene_session_list_on_enter(void* context) {
-    FlipperReconApp* app = context;
+void breach_map_scene_session_list_on_enter(void* context) {
+    BreachMapApp* app = context;
     Submenu* submenu = app->submenu;
 
     /* release previously cached names */
@@ -21,14 +21,14 @@ void flipper_recon_scene_session_list_on_enter(void* context) {
 
     if(app->session_names_count == 0) {
         submenu_add_item(
-            submenu, "(no saved sessions)", 0, flipper_recon_scene_session_list_callback, app);
+            submenu, "(no saved sessions)", 0, breach_map_scene_session_list_callback, app);
     } else {
         for(size_t i = 0; i < app->session_names_count; i++) {
             submenu_add_item(
                 submenu,
                 furi_string_get_cstr(app->session_names[i]),
                 i,
-                flipper_recon_scene_session_list_callback,
+                breach_map_scene_session_list_callback,
                 app);
         }
     }
@@ -36,8 +36,8 @@ void flipper_recon_scene_session_list_on_enter(void* context) {
     view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewSubmenu);
 }
 
-bool flipper_recon_scene_session_list_on_event(void* context, SceneManagerEvent event) {
-    FlipperReconApp* app = context;
+bool breach_map_scene_session_list_on_event(void* context, SceneManagerEvent event) {
+    BreachMapApp* app = context;
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
@@ -49,14 +49,14 @@ bool flipper_recon_scene_session_list_on_event(void* context, SceneManagerEvent 
             if(recon_storage_load_session(app->storage, app->session, name)) {
                 strncpy(app->session_file, name, RECON_NAME_LEN - 1);
                 app->session_file[RECON_NAME_LEN - 1] = '\0';
-                scene_manager_next_scene(app->scene_manager, FlipperReconSceneSessionMenu);
+                scene_manager_next_scene(app->scene_manager, BreachMapSceneSessionMenu);
             }
         }
     }
     return consumed;
 }
 
-void flipper_recon_scene_session_list_on_exit(void* context) {
-    FlipperReconApp* app = context;
+void breach_map_scene_session_list_on_exit(void* context) {
+    BreachMapApp* app = context;
     submenu_reset(app->submenu);
 }

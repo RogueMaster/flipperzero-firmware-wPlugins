@@ -1,20 +1,20 @@
-#include "../flipper_recon_i.h"
+#include "../breach_map_i.h"
 
 #define EVIDENCE_LIST_ADD_INDEX 0
 #define EVIDENCE_LIST_OFFSET    1
 
-static void flipper_recon_scene_evidence_list_callback(void* context, uint32_t index) {
-    FlipperReconApp* app = context;
+static void breach_map_scene_evidence_list_callback(void* context, uint32_t index) {
+    BreachMapApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, index);
 }
 
-static uint16_t current_asset_id(FlipperReconApp* app) {
+static uint16_t current_asset_id(BreachMapApp* app) {
     if(app->selected_asset >= app->session->asset_count) return RECON_INVALID_INDEX;
     return app->session->assets[app->selected_asset].id;
 }
 
-void flipper_recon_scene_evidence_list_on_enter(void* context) {
-    FlipperReconApp* app = context;
+void breach_map_scene_evidence_list_on_enter(void* context) {
+    BreachMapApp* app = context;
     Submenu* submenu = app->submenu;
     Session* session = app->session;
     uint16_t asset_id = current_asset_id(app);
@@ -25,7 +25,7 @@ void flipper_recon_scene_evidence_list_on_enter(void* context) {
         submenu,
         "[+] Add evidence",
         EVIDENCE_LIST_ADD_INDEX,
-        flipper_recon_scene_evidence_list_callback,
+        breach_map_scene_evidence_list_callback,
         app);
 
     FuriString* label = furi_string_alloc();
@@ -37,7 +37,7 @@ void flipper_recon_scene_evidence_list_on_enter(void* context) {
             submenu,
             furi_string_get_cstr(label),
             i + EVIDENCE_LIST_OFFSET,
-            flipper_recon_scene_evidence_list_callback,
+            breach_map_scene_evidence_list_callback,
             app);
     }
     furi_string_free(label);
@@ -45,8 +45,8 @@ void flipper_recon_scene_evidence_list_on_enter(void* context) {
     view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewSubmenu);
 }
 
-bool flipper_recon_scene_evidence_list_on_event(void* context, SceneManagerEvent event) {
-    FlipperReconApp* app = context;
+bool breach_map_scene_evidence_list_on_event(void* context, SceneManagerEvent event) {
+    BreachMapApp* app = context;
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
@@ -58,20 +58,20 @@ bool flipper_recon_scene_evidence_list_on_event(void* context, SceneManagerEvent
             if(idx == RECON_INVALID_INDEX) {
                 app->message_mode = ReconMessageInfo;
                 furi_string_set(app->message_text, "Evidence limit reached");
-                scene_manager_next_scene(app->scene_manager, FlipperReconSceneMessage);
+                scene_manager_next_scene(app->scene_manager, BreachMapSceneMessage);
             } else {
                 app->selected_evidence = idx;
-                scene_manager_next_scene(app->scene_manager, FlipperReconSceneEvidenceEdit);
+                scene_manager_next_scene(app->scene_manager, BreachMapSceneEvidenceEdit);
             }
         } else {
             app->selected_evidence = event.event - EVIDENCE_LIST_OFFSET;
-            scene_manager_next_scene(app->scene_manager, FlipperReconSceneEvidenceEdit);
+            scene_manager_next_scene(app->scene_manager, BreachMapSceneEvidenceEdit);
         }
     }
     return consumed;
 }
 
-void flipper_recon_scene_evidence_list_on_exit(void* context) {
-    FlipperReconApp* app = context;
+void breach_map_scene_evidence_list_on_exit(void* context) {
+    BreachMapApp* app = context;
     submenu_reset(app->submenu);
 }

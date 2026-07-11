@@ -38,3 +38,16 @@ const char* relation_type_name(RelationType type) {
     if(type >= RelTypeCount) return "linked";
     return relation_type_names[type];
 }
+
+static const char* const severity_names[SeverityCount] = {
+    [SeverityInfo] = "Info",
+    [SeverityLow] = "Low",
+    [SeverityMedium] = "Medium",
+    [SeverityHigh] = "High",
+    [SeverityCritical] = "Critical",
+};
+
+const char* severity_name(Severity severity) {
+    if(severity >= SeverityCount) return "Info";
+    return severity_names[severity];
+}

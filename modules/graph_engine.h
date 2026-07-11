@@ -22,3 +22,9 @@ uint16_t graph_degree(const Session* session, uint16_t asset_id);
  * a vulnerable reader raises the effective risk of the door it controls.
  * Does not mutate stored asset risk. */
 void graph_propagate_risk(const Session* session, uint8_t* out_risk);
+
+/* Mark the edges that form the riskiest attack path (the chain that carries the
+ * most risk to the highest effective-risk asset). "edge_on_path" must have room
+ * for session->relation_count booleans. Returns the target asset index, or
+ * RECON_INVALID_INDEX if there is no such path. */
+uint16_t graph_attack_path(const Session* session, bool* edge_on_path);

@@ -1,7 +1,7 @@
 #include "storage_manager.h"
 #include <flipper_format/flipper_format.h>
 
-#define RECON_FILE_TYPE    "Flipper Recon Session"
+#define RECON_FILE_TYPE    "BreachMap Session"
 #define RECON_FILE_VERSION 1
 
 void recon_sanitize_filename(const char* name, char* out, size_t out_len) {
@@ -80,6 +80,13 @@ static bool write_session(FlipperFormat* ff, const Session* session) {
             if(!flipper_format_write_uint32(ff, "AssetCreated", &tmp, 1)) break;
             tmp = a->modified;
             if(!flipper_format_write_uint32(ff, "AssetModified", &tmp, 1)) break;
+            tmp = a->severity;
+            if(!flipper_format_write_uint32(ff, "AssetSeverity", &tmp, 1)) break;
+            if(!flipper_format_write_string_cstr(ff, "AssetRemediation", a->remediation)) break;
+            tmp = a->gx;
+            if(!flipper_format_write_uint32(ff, "AssetGx", &tmp, 1)) break;
+            tmp = a->gy;
+            if(!flipper_format_write_uint32(ff, "AssetGy", &tmp, 1)) break;
             ok = true;
         }
 
@@ -94,6 +101,7 @@ static bool write_session(FlipperFormat* ff, const Session* session) {
             if(!flipper_format_write_uint32(ff, "EvType", &tmp, 1)) break;
             if(!flipper_format_write_string_cstr(ff, "EvLabel", e->label)) break;
             if(!flipper_format_write_string_cstr(ff, "EvPath", e->path)) break;
+            if(!flipper_format_write_string_cstr(ff, "EvInfo", e->info)) break;
             tmp = e->created;
             if(!flipper_format_write_uint32(ff, "EvCreated", &tmp, 1)) break;
             ok = true;
@@ -188,6 +196,10 @@ bool recon_storage_load_session(Storage* storage, Session* session, const char* 
             read_str_field(ff, "AssetNotes", a->notes, RECON_NOTE_LEN);
             if(flipper_format_read_uint32(ff, "AssetCreated", &tmp, 1)) a->created = tmp;
             if(flipper_format_read_uint32(ff, "AssetModified", &tmp, 1)) a->modified = tmp;
+            if(flipper_format_read_uint32(ff, "AssetSeverity", &tmp, 1)) a->severity = tmp;
+            read_str_field(ff, "AssetRemediation", a->remediation, RECON_NOTE_LEN);
+            if(flipper_format_read_uint32(ff, "AssetGx", &tmp, 1)) a->gx = tmp;
+            if(flipper_format_read_uint32(ff, "AssetGy", &tmp, 1)) a->gy = tmp;
         }
         session->asset_count = asset_count;
 
@@ -199,6 +211,7 @@ bool recon_storage_load_session(Storage* storage, Session* session, const char* 
             if(flipper_format_read_uint32(ff, "EvType", &tmp, 1)) e->type = tmp;
             read_str_field(ff, "EvLabel", e->label, RECON_NAME_LEN);
             read_str_field(ff, "EvPath", e->path, RECON_PATH_LEN);
+            read_str_field(ff, "EvInfo", e->info, RECON_NAME_LEN);
             if(flipper_format_read_uint32(ff, "EvCreated", &tmp, 1)) e->created = tmp;
         }
         session->evidence_count = evidence_count;

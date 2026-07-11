@@ -1,7 +1,7 @@
-#include "../flipper_recon_i.h"
+#include "../breach_map_i.h"
 
-void flipper_recon_scene_summary_on_enter(void* context) {
-    FlipperReconApp* app = context;
+void breach_map_scene_summary_on_enter(void* context) {
+    BreachMapApp* app = context;
     Session* session = app->session;
     Widget* widget = app->widget;
     widget_reset(widget);
@@ -44,13 +44,13 @@ void flipper_recon_scene_summary_on_enter(void* context) {
     view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewWidget);
 }
 
-bool flipper_recon_scene_summary_on_event(void* context, SceneManagerEvent event) {
+bool breach_map_scene_summary_on_event(void* context, SceneManagerEvent event) {
     UNUSED(context);
     UNUSED(event);
     return false;
 }
 
-void flipper_recon_scene_summary_on_exit(void* context) {
-    FlipperReconApp* app = context;
+void breach_map_scene_summary_on_exit(void* context) {
+    BreachMapApp* app = context;
     widget_reset(app->widget);
 }

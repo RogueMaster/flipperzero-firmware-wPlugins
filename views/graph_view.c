@@ -39,6 +39,10 @@ static void graph_view_draw_callback(Canvas* canvas, void* model) {
 
     uint16_t n = session->asset_count;
 
+    /* riskiest attack path, highlighted below */
+    bool on_path[RECON_MAX_RELATIONS];
+    graph_attack_path(session, on_path);
+
     /* edges first, so nodes draw on top */
     for(uint16_t e = 0; e < session->relation_count; e++) {
         const Relation* rel = &session->relations[e];
@@ -49,6 +53,11 @@ static void graph_view_draw_callback(Canvas* canvas, void* model) {
         node_position(fi, n, &x1, &y1);
         node_position(ti, n, &x2, &y2);
         canvas_draw_line(canvas, x1, y1, x2, y2);
+        if(on_path[e]) {
+            /* thicken attack-path edges with parallel offset lines */
+            canvas_draw_line(canvas, x1, y1 + 1, x2, y2 + 1);
+            canvas_draw_line(canvas, x1 + 1, y1, x2 + 1, y2);
+        }
 
         /* directional arrowhead near the destination node */
         float dx = (float)(x2 - x1), dy = (float)(y2 - y1);

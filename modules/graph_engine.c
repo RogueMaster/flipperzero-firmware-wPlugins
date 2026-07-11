@@ -103,3 +103,67 @@ void graph_propagate_risk(const Session* session, uint8_t* out_risk) {
         if(!changed) break;
     }
 }
+
+static uint16_t idx_of_id(const Session* session, uint16_t id) {
+    for(uint16_t i = 0; i < session->asset_count; i++) {
+        if(session->assets[i].id == id) return i;
+    }
+    return RECON_INVALID_INDEX;
+}
+
+uint16_t graph_attack_path(const Session* session, bool* edge_on_path) {
+    furi_check(session);
+    furi_check(edge_on_path);
+    for(uint16_t e = 0; e < session->relation_count; e++)
+        edge_on_path[e] = false;
+    if(session->asset_count == 0) return RECON_INVALID_INDEX;
+
+    uint8_t risk[RECON_MAX_ASSETS];
+    uint16_t pred_node[RECON_MAX_ASSETS];
+    uint16_t pred_edge[RECON_MAX_ASSETS];
+    for(uint16_t i = 0; i < session->asset_count; i++) {
+        risk[i] = session->assets[i].risk;
+        pred_node[i] = RECON_INVALID_INDEX;
+        pred_edge[i] = RECON_INVALID_INDEX;
+    }
+
+    for(uint16_t pass = 0; pass < session->asset_count; pass++) {
+        bool changed = false;
+        for(uint16_t e = 0; e < session->relation_count; e++) {
+            const Relation* rel = &session->relations[e];
+            if(!edge_carries_risk(rel->type)) continue;
+            uint16_t fi = idx_of_id(session, rel->from_id);
+            uint16_t ti = idx_of_id(session, rel->to_id);
+            if(fi == RECON_INVALID_INDEX || ti == RECON_INVALID_INDEX) continue;
+            uint8_t incoming = (risk[fi] > RECON_RISK_DECAY) ? (risk[fi] - RECON_RISK_DECAY) : 0;
+            if(incoming > risk[ti]) {
+                risk[ti] = incoming;
+                pred_node[ti] = fi;
+                pred_edge[ti] = e;
+                changed = true;
+            }
+        }
+        if(!changed) break;
+    }
+
+    /* pick the highest-risk asset that was actually raised through a path */
+    uint16_t target = RECON_INVALID_INDEX;
+    uint8_t best = 0;
+    for(uint16_t i = 0; i < session->asset_count; i++) {
+        if(pred_edge[i] != RECON_INVALID_INDEX && risk[i] >= best) {
+            best = risk[i];
+            target = i;
+        }
+    }
+    if(target == RECON_INVALID_INDEX) return RECON_INVALID_INDEX;
+
+    /* walk predecessors back to the source, marking edges */
+    uint16_t cur = target;
+    uint16_t guard = 0;
+    while(cur != RECON_INVALID_INDEX && pred_edge[cur] != RECON_INVALID_INDEX &&
+          guard++ < session->asset_count) {
+        edge_on_path[pred_edge[cur]] = true;
+        cur = pred_node[cur];
+    }
+    return target;
+}

@@ -1,4 +1,4 @@
-#include "../flipper_recon_i.h"
+#include "../breach_map_i.h"
 
 typedef enum {
     DetailIndexName,
@@ -6,8 +6,8 @@ typedef enum {
     DetailIndexLocation,
 } DetailIndex;
 
-static void flipper_recon_scene_session_details_enter_callback(void* context, uint32_t index) {
-    FlipperReconApp* app = context;
+static void breach_map_scene_session_details_enter_callback(void* context, uint32_t index) {
+    BreachMapApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, index);
 }
 
@@ -17,8 +17,8 @@ static void add_field(VariableItemList* list, const char* label, const char* val
     variable_item_set_current_value_text(item, (value && value[0]) ? value : "-");
 }
 
-void flipper_recon_scene_session_details_on_enter(void* context) {
-    FlipperReconApp* app = context;
+void breach_map_scene_session_details_on_enter(void* context) {
+    BreachMapApp* app = context;
     VariableItemList* list = app->var_item_list;
     Session* session = app->session;
 
@@ -28,20 +28,20 @@ void flipper_recon_scene_session_details_on_enter(void* context) {
     add_field(list, "Location", session->location);
 
     variable_item_list_set_enter_callback(
-        list, flipper_recon_scene_session_details_enter_callback, app);
+        list, breach_map_scene_session_details_enter_callback, app);
     variable_item_list_set_selected_item(
-        list, scene_manager_get_scene_state(app->scene_manager, FlipperReconSceneSessionDetails));
+        list, scene_manager_get_scene_state(app->scene_manager, BreachMapSceneSessionDetails));
 
     view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewVarItemList);
 }
 
-bool flipper_recon_scene_session_details_on_event(void* context, SceneManagerEvent event) {
-    FlipperReconApp* app = context;
+bool breach_map_scene_session_details_on_event(void* context, SceneManagerEvent event) {
+    BreachMapApp* app = context;
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
         scene_manager_set_scene_state(
-            app->scene_manager, FlipperReconSceneSessionDetails, event.event);
+            app->scene_manager, BreachMapSceneSessionDetails, event.event);
         consumed = true;
         switch(event.event) {
         case DetailIndexName:
@@ -58,13 +58,13 @@ bool flipper_recon_scene_session_details_on_event(void* context, SceneManagerEve
             break;
         }
         if(consumed) {
-            scene_manager_next_scene(app->scene_manager, FlipperReconSceneTextInput);
+            scene_manager_next_scene(app->scene_manager, BreachMapSceneTextInput);
         }
     }
     return consumed;
 }
 
-void flipper_recon_scene_session_details_on_exit(void* context) {
-    FlipperReconApp* app = context;
+void breach_map_scene_session_details_on_exit(void* context) {
+    BreachMapApp* app = context;
     variable_item_list_reset(app->var_item_list);
 }

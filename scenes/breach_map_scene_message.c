@@ -1,7 +1,7 @@
-#include "../flipper_recon_i.h"
+#include "../breach_map_i.h"
 
 #define RECON_ABOUT_TEXT                                     \
-    "Flipper Recon\n"                                        \
+    "BreachMap\n"                                            \
     "Physical security recon notebook.\n\n"                  \
     "Organize engagements, assets, evidence and relations\n" \
     "from authorized physical security assessments.\n\n"     \
@@ -9,11 +9,9 @@
     "For authorized testing only.\n\n"                       \
     "made by Gerijacki"
 
-static void flipper_recon_scene_message_button_callback(
-    GuiButtonType result,
-    InputType type,
-    void* context) {
-    FlipperReconApp* app = context;
+static void
+    breach_map_scene_message_button_callback(GuiButtonType result, InputType type, void* context) {
+    BreachMapApp* app = context;
     if(type != InputTypeShort) return;
     if(result == GuiButtonTypeRight) {
         view_dispatcher_send_custom_event(app->view_dispatcher, RECON_EVENT_CONFIRM_YES);
@@ -22,8 +20,8 @@ static void flipper_recon_scene_message_button_callback(
     }
 }
 
-void flipper_recon_scene_message_on_enter(void* context) {
-    FlipperReconApp* app = context;
+void breach_map_scene_message_on_enter(void* context) {
+    BreachMapApp* app = context;
     Widget* widget = app->widget;
     widget_reset(widget);
 
@@ -42,9 +40,9 @@ void flipper_recon_scene_message_on_enter(void* context) {
             widget, 64, 20, AlignCenter, AlignCenter, FontSecondary, furi_string_get_cstr(text));
         furi_string_free(text);
         widget_add_button_element(
-            widget, GuiButtonTypeLeft, "Cancel", flipper_recon_scene_message_button_callback, app);
+            widget, GuiButtonTypeLeft, "Cancel", breach_map_scene_message_button_callback, app);
         widget_add_button_element(
-            widget, GuiButtonTypeRight, "Delete", flipper_recon_scene_message_button_callback, app);
+            widget, GuiButtonTypeRight, "Delete", breach_map_scene_message_button_callback, app);
         break;
     }
     case ReconMessageConfirmDeleteAsset: {
@@ -57,9 +55,9 @@ void flipper_recon_scene_message_on_enter(void* context) {
             widget, 64, 20, AlignCenter, AlignCenter, FontSecondary, furi_string_get_cstr(text));
         furi_string_free(text);
         widget_add_button_element(
-            widget, GuiButtonTypeLeft, "Cancel", flipper_recon_scene_message_button_callback, app);
+            widget, GuiButtonTypeLeft, "Cancel", breach_map_scene_message_button_callback, app);
         widget_add_button_element(
-            widget, GuiButtonTypeRight, "Delete", flipper_recon_scene_message_button_callback, app);
+            widget, GuiButtonTypeRight, "Delete", breach_map_scene_message_button_callback, app);
         break;
     }
     case ReconMessageConfirmDeleteRelation:
@@ -72,9 +70,9 @@ void flipper_recon_scene_message_on_enter(void* context) {
             widget, 64, 20, AlignCenter, AlignCenter, FontSecondary, furi_string_get_cstr(text));
         furi_string_free(text);
         widget_add_button_element(
-            widget, GuiButtonTypeLeft, "Cancel", flipper_recon_scene_message_button_callback, app);
+            widget, GuiButtonTypeLeft, "Cancel", breach_map_scene_message_button_callback, app);
         widget_add_button_element(
-            widget, GuiButtonTypeRight, "Delete", flipper_recon_scene_message_button_callback, app);
+            widget, GuiButtonTypeRight, "Delete", breach_map_scene_message_button_callback, app);
         break;
     }
     case ReconMessageConfirmOverwrite: {
@@ -87,13 +85,9 @@ void flipper_recon_scene_message_on_enter(void* context) {
             FontSecondary,
             "An engagement with\nthis name exists.\nOverwrite it?");
         widget_add_button_element(
-            widget, GuiButtonTypeLeft, "Cancel", flipper_recon_scene_message_button_callback, app);
+            widget, GuiButtonTypeLeft, "Cancel", breach_map_scene_message_button_callback, app);
         widget_add_button_element(
-            widget,
-            GuiButtonTypeRight,
-            "Overwrite",
-            flipper_recon_scene_message_button_callback,
-            app);
+            widget, GuiButtonTypeRight, "Overwrite", breach_map_scene_message_button_callback, app);
         break;
     }
     case ReconMessageConfirmDiscard: {
@@ -106,13 +100,9 @@ void flipper_recon_scene_message_on_enter(void* context) {
             FontSecondary,
             "Unsaved changes.\nDiscard them?");
         widget_add_button_element(
-            widget, GuiButtonTypeLeft, "Cancel", flipper_recon_scene_message_button_callback, app);
+            widget, GuiButtonTypeLeft, "Cancel", breach_map_scene_message_button_callback, app);
         widget_add_button_element(
-            widget,
-            GuiButtonTypeRight,
-            "Discard",
-            flipper_recon_scene_message_button_callback,
-            app);
+            widget, GuiButtonTypeRight, "Discard", breach_map_scene_message_button_callback, app);
         break;
     }
     }
@@ -120,8 +110,8 @@ void flipper_recon_scene_message_on_enter(void* context) {
     view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewWidget);
 }
 
-bool flipper_recon_scene_message_on_event(void* context, SceneManagerEvent event) {
-    FlipperReconApp* app = context;
+bool breach_map_scene_message_on_event(void* context, SceneManagerEvent event) {
+    BreachMapApp* app = context;
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
@@ -134,15 +124,15 @@ bool flipper_recon_scene_message_on_event(void* context, SceneManagerEvent event
                 recon_storage_delete_session(app->storage, app->session->name);
                 notification_message(app->notifications, &sequence_success);
                 scene_manager_search_and_switch_to_previous_scene(
-                    app->scene_manager, FlipperReconSceneStart);
+                    app->scene_manager, BreachMapSceneStart);
             } else if(app->message_mode == ReconMessageConfirmDeleteAsset) {
                 asset_manager_delete(app->session, app->selected_asset);
                 scene_manager_search_and_switch_to_previous_scene(
-                    app->scene_manager, FlipperReconSceneAssetList);
+                    app->scene_manager, BreachMapSceneAssetList);
             } else if(app->message_mode == ReconMessageConfirmDeleteRelation) {
                 graph_delete_relation(app->session, app->selected_relation);
                 scene_manager_search_and_switch_to_previous_scene(
-                    app->scene_manager, FlipperReconSceneRelationList);
+                    app->scene_manager, BreachMapSceneRelationList);
             } else if(app->message_mode == ReconMessageConfirmDeleteEvidence) {
                 /* remove evidence by shifting the array down */
                 Session* s = app->session;
@@ -154,22 +144,22 @@ bool flipper_recon_scene_message_on_event(void* context, SceneManagerEvent event
                     session_touch(s);
                 }
                 scene_manager_search_and_switch_to_previous_scene(
-                    app->scene_manager, FlipperReconSceneEvidenceList);
+                    app->scene_manager, BreachMapSceneEvidenceList);
             } else if(app->message_mode == ReconMessageConfirmOverwrite) {
-                flipper_recon_perform_save(app);
+                breach_map_perform_save(app);
                 /* success tone plays; return to the session menu */
                 scene_manager_previous_scene(app->scene_manager);
             } else if(app->message_mode == ReconMessageConfirmDiscard) {
                 session_mark_clean(app->session);
                 scene_manager_search_and_switch_to_previous_scene(
-                    app->scene_manager, FlipperReconSceneStart);
+                    app->scene_manager, BreachMapSceneStart);
             }
         }
     }
     return consumed;
 }
 
-void flipper_recon_scene_message_on_exit(void* context) {
-    FlipperReconApp* app = context;
+void breach_map_scene_message_on_exit(void* context) {
+    BreachMapApp* app = context;
     widget_reset(app->widget);
 }

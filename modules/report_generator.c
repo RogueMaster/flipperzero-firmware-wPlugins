@@ -72,7 +72,7 @@ bool report_export_json(Storage* storage, const Session* session, FuriString* ou
             break;
 
         if(!file_puts(file, "{\n")) break;
-        if(!file_put_kv_str(file, "tool", "Flipper Recon", true)) break;
+        if(!file_put_kv_str(file, "tool", "BreachMap", true)) break;
         if(!file_put_kv_num(file, "schema", 1, true)) break;
         if(!file_put_kv_str(file, "name", session->name, true)) break;
         if(!file_put_kv_str(file, "client", session->client, true)) break;
@@ -87,14 +87,17 @@ bool report_export_json(Storage* storage, const Session* session, FuriString* ou
             const Asset* a = &session->assets[i];
             furi_string_printf(
                 buf,
-                "        {\"id\": %u, \"type\": \"%s\", \"risk\": %u, \"name\": ",
+                "        {\"id\": %u, \"type\": \"%s\", \"risk\": %u, \"severity\": \"%s\", \"name\": ",
                 a->id,
                 asset_type_name(a->type),
-                a->risk);
+                a->risk,
+                severity_name(a->severity));
             inner_ok = file_puts(file, furi_string_get_cstr(buf));
             if(inner_ok) inner_ok = file_put_json_string(file, a->name);
             if(inner_ok) inner_ok = file_puts(file, ", \"notes\": ");
             if(inner_ok) inner_ok = file_put_json_string(file, a->notes);
+            if(inner_ok) inner_ok = file_puts(file, ", \"remediation\": ");
+            if(inner_ok) inner_ok = file_put_json_string(file, a->remediation);
             if(inner_ok) inner_ok = file_puts(file, ", \"evidence\": [");
             /* linked evidence ids */
             bool first = true;
@@ -199,6 +202,35 @@ bool report_export_markdown(Storage* storage, const Session* session, FuriString
             session->evidence_count,
             session->relation_count);
         if(!md_line(file, line)) break;
+
+        /* Executive summary: findings ranked by severity (Critical -> High -> ...). */
+        furi_string_set(line, "\n## Executive summary");
+        if(!md_line(file, line)) break;
+        {
+            bool any = false;
+            for(int sev = SeverityCritical; sev >= SeverityLow; sev--) {
+                for(uint16_t i = 0; i < session->asset_count; i++) {
+                    const Asset* a = &session->assets[i];
+                    if(a->severity != sev) continue;
+                    any = true;
+                    furi_string_printf(
+                        line,
+                        "- **%s** %s (%s)",
+                        severity_name(a->severity),
+                        a->name,
+                        asset_type_name(a->type));
+                    if(!md_line(file, line)) break;
+                    if(a->remediation[0]) {
+                        furi_string_printf(line, "  - Fix: %s", a->remediation);
+                        if(!md_line(file, line)) break;
+                    }
+                }
+            }
+            if(!any) {
+                furi_string_set(line, "No findings above informational.");
+                if(!md_line(file, line)) break;
+            }
+        }
 
         /* Assets with propagated risk. */
         furi_string_set(line, "\n## Assets");
