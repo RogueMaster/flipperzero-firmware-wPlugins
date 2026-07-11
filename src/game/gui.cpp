@@ -31,6 +31,18 @@ void Screen2D::heart(int x,int y,bool full) {
     }
 }
 
+void Screen2D::arrow(int x,int y) {
+    fillRect(x,y+3,x+6,y+5,1);
+    for (int i=0;i<5;i++) fillRect(x+6+i,y+i,x+6+i,y+8-i,1);
+}
+
+// unlit: checker-dimmed
+void Screen2D::flame(int x,int y,bool lit) {
+    static const uint8_t F[8]={0x08,0x0A,0x1A,0x1E,0x3E,0x7F,0x7F,0x3E};
+    for (int r=0;r<8;r++) for (int c=0;c<7;c++)
+        if ((F[r]&(1<<(6-c))) && (lit||((r+c)&1))) setPixel(x+c,y+r,1);
+}
+
 const char* itemName(uint8_t type) {
     if (type == 0) return nullptr;
     if (type == ITEM_DYNAMITE) return "Dynamite";
@@ -49,31 +61,86 @@ const char* itemName(uint8_t type) {
     return mats[type >> 4];
 }
 
-void Screen2D::itemIcon(int x,int y,int type) {
-    int key = (type >= ITEM_NONSTACKABLE) ? (0x10 | (type & 0x0F))
-            : (type == ITEM_GUNPOWDER)    ? (0x0B ^ 0x08)
-            : (type >> 4);
-    for (int r=0;r<6;r++) for (int c=0;c<6;c++) {
-        bool border = (r==0||r==5||c==0||c==5);
-        bool inside = false;
+// 8x8 row-packed texture, v=7 is the top row on world faces, so flip;
+// texInv: sand = inverted dirt; ink 0 draws white icons on dark cells
+static void sprite8(Screen2D& s,int x,int y,const uint8_t* t,bool texInv,int ink) {
+    for (int r=0;r<8;r++) for (int c=0;c<8;c++)
+        if ((((t[7-r]>>c)&1)!=0)!=texInv) s.setPixel(x+c,y+r,ink);
+}
 
-        if (!border) {
-            int rr=r-1, cc=c-1;
-            switch (key & 0x07) {
-                case 0: inside = ((rr+cc)&1); break;
-                case 1: inside = (rr&1)==0; break;
-                case 2: inside = (cc&1)==0; break;
-                case 3: inside = (rr==cc||rr+cc==3); break;
-                case 4: inside = (rr==1||rr==2)&&(cc==1||cc==2); break;
-                case 5: inside = (rr==0||rr==3||cc==0||cc==3); break;
-                case 6: inside = ((rr*cc)&1); break;
-                default: inside = (rr>=cc); break;
-            }
-            if (key & 0x08) inside = !inside;
-        }
-        bool v = border || inside;
-        if (v) setPixel(x+c,y+r,1);
+// MSB = left column
+static const uint8_t kToolShape[4][8] = {
+    {0x7E,0xC3,0x81,0x18,0x18,0x18,0x18,0x18},   // pickaxe
+    {0xF8,0x88,0xF8,0x18,0x18,0x18,0x18,0x18},   // axe
+    {0x3C,0x24,0x3C,0x18,0x18,0x18,0x18,0x18},   // shovel
+    {0x03,0x07,0x0E,0x1C,0xB8,0x70,0xD0,0x00},   // sword
+};
+static const uint8_t kToolFill[4][8] = {
+    {0x00,0x3C,0x7E,0x00,0x00,0x00,0x00,0x00},
+    {0x00,0x70,0x00,0x00,0x00,0x00,0x00,0x00},
+    {0x00,0x18,0x00,0x00,0x00,0x00,0x00,0x00},
+    {0x00,0x02,0x04,0x08,0x10,0x00,0x00,0x00},
+};
+static const uint8_t kShears[8] = {0x00,0x44,0x28,0x10,0x28,0x44,0xC6,0x00};
+static const uint8_t kIngot[8]  = {0x00,0x00,0x3C,0x7E,0xFF,0xFF,0x00,0x00};
+
+static void bitmap8(Screen2D& s,int x,int y,const uint8_t* b,int ink) {
+    for (int r=0;r<8;r++) for (int c=0;c<8;c++)
+        if ((b[r]>>(7-c))&1) s.setPixel(x+c,y+r,ink);
+}
+
+// tier 0 wood: outline; 1 stone: dithered head; 2 iron: solid head
+static void toolIcon(Screen2D& s,int x,int y,int idx,int ink) {
+    int tier=idx>>2;
+    for (int r=0;r<8;r++) {
+        uint8_t bits=kToolShape[idx&3][r];
+        if (tier==2) bits|=kToolFill[idx&3][r];
+        else if (tier==1) bits|=kToolFill[idx&3][r]&((r&1)?0x55:0xAA);
+        for (int c=0;c<8;c++) if ((bits>>(7-c))&1) s.setPixel(x+c,y+r,ink);
     }
+}
+
+// front face where the mesh has one, first (light) texture for flat items,
+// side face for plain cubes
+static void meshIcon(Screen2D& s,int x,int y,const MeshEntry& e,int ink) {
+    if (!e.exists) return;
+    const MeshTex& mt = e.texCount>3 ? e.textures[3]
+                      : e.quadCount  ? e.textures[0]
+                      : e.textures[2];
+    sprite8(s,x,y,texturePacked(mt.id),(mt.settings&TS_INVERTED)!=0,ink);
+}
+
+void Screen2D::itemIcon(int x,int y,int type,bool onDark) {
+    int ink = onDark ? 0 : 1;
+    if (type >= ITEM_NONSTACKABLE) {
+        int t=type&0x0F;
+        if (t<12) toolIcon(*this,x,y,t,ink);
+        else if (t==12) bitmap8(*this,x,y,kShears,ink);
+        else meshIcon(*this,x,y,meshBlock((uint8_t)t),ink);   // 0xD/0xE/0xF == block ids
+        return;
+    }
+    if (type==ITEM_DYNAMITE)  { meshIcon(*this,x,y,meshItem(ENTITY_DYNAMITE),ink);  return; }
+    if (type==ITEM_GUNPOWDER) { meshIcon(*this,x,y,meshItem(ENTITY_GUNPOWDER),ink); return; }
+    int hi=type>>4;
+    if (hi==0x0D) { bitmap8(*this,x,y,kIngot,ink); return; }
+    // stone/glass never drop, no item mesh; apple's entity id is 3, not 0xE
+    const MeshEntry& e = (hi==0x03) ? meshBlock(BLOCK_STONE)
+                       : (hi==0x0B) ? meshBlock(BLOCK_GLASS)
+                       : meshItem((uint8_t)(hi==0x0E?ENTITY_APPLE:hi));
+    meshIcon(*this,x,y,e,ink);
+}
+
+// icon + count over a white halo; w: 9 GUI cells, 10 output/hotbar cells
+void Screen2D::slotItem(int x,int y,int w,const ItemCell& it,bool onDark) {
+    if (!it.type) return;
+    int o=(w-8)/2;
+    itemIcon(x+o,y+o,it.type,onDark);
+    if (it.type>=ITEM_NONSTACKABLE || it.count<2) return;
+    int n=it.count;
+    int ux=x+w-3, uy=y+w-5;   // units digit, flush to the cell corner
+    fillRect((n>9?ux-4:ux)-1,uy-1,x+w-1,y+w-1,0);
+    if (n>9) number(ux-4,uy,n/10);
+    number(ux,uy,n%10);
 }
 
 }

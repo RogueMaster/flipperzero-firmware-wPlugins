@@ -8,6 +8,7 @@
 #include <input/input.h>
 
 #include <new>
+#include <stdio.h>
 #include <string.h>
 
 namespace flipcraft {
@@ -41,7 +42,8 @@ struct AppState {
 
     uint8_t present[SCREEN_WIDTH * SCREEN_HEIGHT / 8] = {};
     ScreenId presentScreen = SCR_PLAY;
-    const char* presentName = nullptr;
+    char presentLabel[24] = {};
+    int presentLX = 0, presentLY = 0;   // cursor cell anchor for the GUI tooltip
 
     uint8_t held = 0;
     uint8_t pressLatch = 0;
@@ -83,16 +85,33 @@ static void packFramebuffer(const Framebuffer& fb, uint8_t* dst) {
 }
 
 // Game thread, after a finished render: publish the packed frame and the
-// overlay snapshot. The only writer of present[]/presentScreen/presentName.
+// overlay snapshot. The only writer of present[]/presentScreen/presentLabel.
 static void presentFrame(AppState* st) {
     Game* g = st->game;
-    const char* name = (g->screenId == SCR_PLAY && g->hudItemTicks) ?
-                           itemName(g->pl.inventory[g->pl.invSlot].type) :
-                           nullptr;
+    char label[sizeof(st->presentLabel)];
+    label[0] = 0;
+    int lx = 0, ly = 0;
+    if(g->screenId == SCR_PLAY) {
+        if(g->hudItemTicks) {
+            const char* n = itemName(g->pl.inventory[g->pl.invSlot].type);
+            if(n) snprintf(label, sizeof(label), "%s", n);
+        }
+    } else if(g->screenId != SCR_GAMEOVER) {
+        ItemCell c = g->guiCursorItem(&lx, &ly);
+        const char* n = itemName(c.type);
+        if(n) {
+            if(c.type < ITEM_NONSTACKABLE && c.count > 1)
+                snprintf(label, sizeof(label), "%s x%u", n, (unsigned)c.count);
+            else
+                snprintf(label, sizeof(label), "%s", n);
+        }
+    }
     furi_mutex_acquire(st->mutex, FuriWaitForever);
     packFramebuffer(g->fb, st->present);
     st->presentScreen = g->screenId;
-    st->presentName = name; // itemName returns static strings, the pointer is stable
+    memcpy(st->presentLabel, label, sizeof(label));
+    st->presentLX = lx;
+    st->presentLY = ly;
     furi_mutex_release(st->mutex);
 }
 
@@ -107,7 +126,9 @@ static void drawCb(Canvas* canvas, void* ctx) {
     uint8_t* buf = canvas_get_buffer(canvas);
     if(buf) memcpy(buf, st->present, sizeof(st->present));
     ScreenId screen = st->presentScreen;
-    const char* name = st->presentName;
+    char label[sizeof(st->presentLabel)];
+    memcpy(label, st->presentLabel, sizeof(label));
+    int lx = st->presentLX, ly = st->presentLY;
     furi_mutex_release(st->mutex);
 
     if(screen == SCR_GAMEOVER) {
@@ -118,15 +139,25 @@ static void drawCb(Canvas* canvas, void* ctx) {
         canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignBottom, "Press OK to respawn");
     }
 
-    if(name) {
+    if(label[0]) {
         canvas_set_font(canvas, FontSecondary);
-        int bw = (int)canvas_string_width(canvas, name) + 6, bh = 11;
-        int bx = 64 - bw / 2, by = 40;
+        int bw = (int)canvas_string_width(canvas, label) + 6, bh = 11;
+        int bx, by;
+        if(screen == SCR_PLAY) {
+            bx = 64 - bw / 2;
+            by = 40;
+        } else {   // float next to the cursor cell, above it when possible
+            by = ly - bh - 2;
+            if(by < 0) by = ly + 12;
+            bx = lx + 4 - bw / 2;
+            if(bx < 1) bx = 1;
+            if(bx > SCREEN_WIDTH - bw - 1) bx = SCREEN_WIDTH - bw - 1;
+        }
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_box(canvas, bx, by, bw, bh);
         canvas_set_color(canvas, ColorBlack);
         canvas_draw_frame(canvas, bx, by, bw, bh);
-        canvas_draw_str_aligned(canvas, 64, by + bh - 2, AlignCenter, AlignBottom, name);
+        canvas_draw_str_aligned(canvas, bx + bw / 2, by + bh - 2, AlignCenter, AlignBottom, label);
     }
 }
 

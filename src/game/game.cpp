@@ -614,20 +614,17 @@ void Game::respawn(){
 }
 
 void Game::drawHotbar(){
-    screen.x1=19;screen.y1=51;screen.x2=76;screen.y2=63;screen.clearRect();
-    screen.x1=20;screen.y1=52;screen.x2=75;screen.y2=63;screen.drawRect();
+    screen.x1=35;screen.y1=51;screen.x2=92;screen.y2=63;screen.clearRect();
+    screen.x1=36;screen.y1=52;screen.x2=91;screen.y2=63;screen.drawRect();
     int sel=pl.invSlot;
-    for(int i=0;i<5;i++){int x=21+i*11,y=53; screen.x1=x;screen.y1=y;screen.x2=x+9;screen.y2=y+9;screen.clearRect();
+    for(int i=0;i<5;i++){int x=37+i*11,y=53; screen.x1=x;screen.y1=y;screen.x2=x+9;screen.y2=y+9;screen.clearRect();
         if(i==sel){screen.x1=x;screen.y1=y;screen.x2=x+9;screen.y2=y+9;screen.drawRect();
             screen.x1=x+1;screen.y1=y+1;screen.x2=x+8;screen.y2=y+8;screen.clearRect();}
-        ItemCell it=pl.inventory[i]; if(it.type){screen.itemIcon(x+2,y+2,it.type);
-            if(it.type<ITEM_NONSTACKABLE){int n=it.count;
-                if(n>9)screen.number(x+2,y+5,n/10);
-                screen.number(x+6,y+5,n%10);}}}
+        screen.slotItem(x,y,10,pl.inventory[i],false);}
     if(!hudItemTicks)   // tooltip in device.cpp takes the hearts' place
-        for(int i=0;i<MAXHEALTH;i++)screen.heart(19+i*6,43,i<(int)pl.health);
+        for(int i=0;i<MAXHEALTH;i++)screen.heart(35+i*6,43,i<(int)pl.health);
 }
-void Game::finishRender(){
+void Game::renderWorld(){
     renderer.clearBuffer(); renderer.setCamRot(pl.rot);
     float bobV=sinf(bobTimer*2.0f)*bobAmt;
     renderer.camPos[0]=playerX+PLAYERHALFWIDTH; renderer.camPos[2]=playerZ+PLAYERHALFWIDTH;
@@ -651,6 +648,10 @@ void Game::finishRender(){
                            (uint8_t)(m.yaw&15),
                            (uint8_t)((m.hurt&1)<<1), (uint8_t)sc16);
     }
+}
+
+void Game::finishRender(){
+    renderWorld();
     RayHit hit=rayCast();
     if(hit.mob<0&&hit.id!=BLOCK_AIR&&hit.id!=-1&&hit.length>=0) renderer.renderOverlay(world,hit.bx,hit.by,hit.bz,0);
     drawHotbar();
@@ -668,27 +669,39 @@ void Game::worldFrame(const Input& in){
     world.updateWindow((playerX+PLAYERHALFWIDTH)/BLOCKSIZE,(playerZ+PLAYERHALFWIDTH)/BLOCKSIZE);
 }
 
+// Reference layout (.sources/widen_1840x0.jpg): light panel over the world,
+// craft grid -> arrow -> output band, then the 5x3 inventory as dark cells;
+// hotbar is the bottom row.
 Game::SlotList Game::buildSlots(ScreenId s){
     SlotList v;
-    auto add=[&](ItemCell* c,int gx,int gy,int sx,int sy,bool grid,bool out){
-        if(v.n<SlotList::MAX) v.s[v.n++]={c,gx,gy,sx,sy,grid,out};};
+    auto add=[&](ItemCell* c,int sx,int sy,bool dark,bool out){
+        if(v.n<SlotList::MAX) v.s[v.n++]={c,sx,sy,dark,out};};
 
-    for(int r=0;r<3;r++)for(int c=0;c<5;c++) add(&pl.inventory[r*5+c],c,r,21+c*11,53-r*11,false,false);
+    for(int r=0;r<3;r++)for(int c=0;c<5;c++) add(&pl.inventory[r*5+c],38+c*10,53-r*10,true,false);
     if(s==SCR_INVENTORY){
         int map[4]={0,1,3,4};
-        for(int i=0;i<4;i++){int gx=i%2,gy=i/2; add(&pl.craftGrid[map[i]],5+gx,4+gy,26+gx*9,9+gy*9,true,false);}
-        add(&pl.craftOutput,6,5,60,14,false,true);
+        for(int i=0;i<4;i++) add(&pl.craftGrid[map[i]],39+(i%2)*10,7+(i/2)*10,false,false);
+        add(&pl.craftOutput,77,11,false,true);
     } else if(s==SCR_CRAFTING){
-        for(int i=0;i<9;i++){int gx=i%3,gy=i/3; add(&pl.craftGrid[i],5+gx,4+gy,21+gx*9,1+gy*9,true,false);}
-        add(&pl.craftOutput,8,5,65,10,false,true);
+        for(int i=0;i<9;i++) add(&pl.craftGrid[i],39+(i%3)*10,2+(i/3)*10,false,false);
+        add(&pl.craftOutput,82,11,false,true);
     } else if(s==SCR_FURNACE&&loadedTile>=0){ BlockEnt& f=tiles[loadedTile];
-        add(&f.slot[0],6,4,30,1,false,false);
-        add(&f.slot[1],6,5,30,19,false,false);
-        add(&f.slot[2],8,4,56,10,false,true);
+        add(&f.slot[0],45,2,false,false);
+        add(&f.slot[1],45,22,false,false);
+        add(&f.slot[2],73,11,false,true);
     } else if(s==SCR_CHEST&&loadedTile>=0){ BlockEnt& ch=tiles[loadedTile];
-        for(int i=0;i<10;i++){int gx=i%5,gy=i/5; add(&ch.slot[i],gx,4+gy,21+gx*11,18-gy*11,false,false);}
+        for(int i=0;i<10;i++) add(&ch.slot[i],38+(i%5)*10,8+(i/5)*10,true,false);
     }
     return v;
+}
+
+ItemCell Game::guiCursorItem(int* sx,int* sy){
+    if(screenId==SCR_PLAY||screenId==SCR_GAMEOVER) return {};
+    auto slots=buildSlots(screenId);
+    if(cursor<0||cursor>=(int)slots.size()) return {};
+    if(sx)*sx=slots[cursor].sx;
+    if(sy)*sy=slots[cursor].sy;
+    return *slots[cursor].cell;
 }
 void Game::tryCraft(){
     uint16_t out=craftTable(pl.craftGrid); if(!out)return;
@@ -757,20 +770,45 @@ void Game::guiFrame(const Input& in){
 }
 void Game::drawGui(){
     if(screenId==SCR_GAMEOVER){ screen.clearScreen(); return; }   // text drawn in device.cpp
-    screen.clearScreen();
-    auto slots=buildSlots(screenId);
-    for(size_t i=0;i<slots.size();i++){Slot& s=slots[i]; ItemCell it=*s.cell;
-        int box=s.grid?8:10; screen.x1=s.sx;screen.y1=s.sy;screen.x2=s.sx+box-1;screen.y2=s.sy+box-1;screen.drawRect();
-        screen.x1=s.sx+1;screen.y1=s.sy+1;screen.x2=s.sx+box-2;screen.y2=s.sy+box-2;screen.clearRect();
-        if(it.type){screen.itemIcon(s.sx+2,s.sy+2,it.type);
-            if(it.type<ITEM_NONSTACKABLE){int n=it.count;
-                if(n>9)screen.number(s.sx+2,s.sy+5,n/10);
-                screen.number(s.sx+6,s.sy+5,n%10);}}
-        if((int)i==cursor)
-            screen.invertRect(s.sx+1,s.sy+1,s.sx+box-2,s.sy+box-2);
+    renderWorld();                                 // the world stays visible at the sides
+    screen.fillRect(34,0,93,SCREEN_HEIGHT-1,0);
+    screen.fillRect(33,0,33,SCREEN_HEIGHT-1,1);
+    screen.fillRect(94,0,94,SCREEN_HEIGHT-1,1);
+
+    // station chrome: framed blocks whose interiors the slot loop clears
+    if(screenId==SCR_INVENTORY){
+        screen.fillRect(38,6,58,26,1);             // 2x2 craft grid
+        screen.arrow(62,12);
+        screen.fillRect(76,10,87,21,1);            // output
+    } else if(screenId==SCR_CRAFTING){
+        screen.fillRect(38,1,68,31,1);             // 3x3 craft grid
+        screen.arrow(69,12);
+        screen.fillRect(81,10,92,21,1);
+    } else if(screenId==SCR_FURNACE){
+        screen.fillRect(44,1,54,11,1);             // input
+        screen.fillRect(44,21,54,31,1);            // fuel
+        screen.arrow(58,12);
+        screen.fillRect(72,10,83,21,1);
+        if(loadedTile>=0){ BlockEnt& f=tiles[loadedTile];
+            screen.flame(46,13,f.lit);
+            int w=f.timer*11/(SMELTTIME/16);
+            if(w>0)screen.fillRect(58,22,57+w,23,1);   // smelt progress
+        }
     }
-    if(selSlot>=0&&selSlot<(int)slots.size()){Slot& s=slots[selSlot];
-        screen.x1=s.sx+3;screen.y1=s.sy+3;screen.x2=s.sx+4;screen.y2=s.sy+4;screen.drawRect();}
+
+    auto slots=buildSlots(screenId);
+    for(size_t i=0;i<slots.size();i++){Slot& s=slots[i];
+        int w=s.output?10:9;
+        screen.fillRect(s.sx,s.sy,s.sx+w-1,s.sy+w-1,s.dark?1:0);
+        screen.slotItem(s.sx,s.sy,w,*s.cell,s.dark);
+        if((int)i==selSlot){   // grabbed: inverted 1px ring inside the cell
+            screen.invertRect(s.sx,s.sy,s.sx+w-1,s.sy);
+            screen.invertRect(s.sx,s.sy+w-1,s.sx+w-1,s.sy+w-1);
+            screen.invertRect(s.sx,s.sy+1,s.sx,s.sy+w-2);
+            screen.invertRect(s.sx+w-1,s.sy+1,s.sx+w-1,s.sy+w-2);
+        }
+        if((int)i==cursor) screen.invertRect(s.sx,s.sy,s.sx+w-1,s.sy+w-1);
+    }
 }
 
 void Game::simulate(const Input& in){

@@ -98,6 +98,7 @@ public:
     void shutdown();
     void simulate(const Input& in);
     bool render();
+    ItemCell guiCursorItem(int* sx,int* sy);
 
 private:
     uint8_t rng();
@@ -127,6 +128,7 @@ private:
     void simulateFurnaces();   // load/tick/flush furnaces inside the active window
     void doRandomTicks();
     void respawn();
+    void renderWorld();
     void finishRender();
     void drawHotbar();
     int  findBlockEntity(int x,int y,int z);
@@ -139,7 +141,8 @@ private:
     void openTileStorage(int tileIndex);   // lazy: read contents into slot[]
     void flushTileStorage(int tileIndex);  // write contents back, mark unloaded
 
-    struct Slot { ItemCell* cell; int gx, gy, sx, sy; bool grid; bool output; };
+    // dark: storage cells drawn as filled blocks with light icons
+    struct Slot { ItemCell* cell; int sx, sy; bool dark; bool output; };
     // The GUI never shows more than 25 slots (15 inventory + 9 craft grid + 1
     // output); a fixed list on the caller's stack avoids per-frame heap churn.
     struct SlotList {

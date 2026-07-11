@@ -11,8 +11,8 @@ struct Screen2D {
 
     void clearScreen() { fb->clear(); }
     void setPixel(int x,int y,int v) {
-        if (x>=0&&x<UI_WIDTH&&y>=0&&y<SCREEN_HEIGHT)
-            fb->px[y][x+UI_X_OFFSET]=(uint8_t)v;
+        if (x>=0&&x<SCREEN_WIDTH&&y>=0&&y<SCREEN_HEIGHT)
+            fb->px[y][x]=(uint8_t)v;
     }
     void fillRect(int ax,int ay,int bx,int by,int v) {
         for (int y=ay;y<=by;y++) for (int x=ax;x<=bx;x++)
@@ -22,13 +22,16 @@ struct Screen2D {
     void clearRect() { fillRect(x1,y1,x2,y2,0); }
     void invertRect(int ax,int ay,int bx,int by) {
         for (int y=ay;y<=by;y++) for (int x=ax;x<=bx;x++)
-            if (x>=0&&x<UI_WIDTH&&y>=0&&y<SCREEN_HEIGHT)
-                fb->px[y][x+UI_X_OFFSET]^=1;
+            if (x>=0&&x<SCREEN_WIDTH&&y>=0&&y<SCREEN_HEIGHT)
+                fb->px[y][x]^=1;
     }
 
     void number(int x,int y,int d);
-    void itemIcon(int x,int y,int type);
+    void itemIcon(int x,int y,int type,bool onDark=false);
+    void slotItem(int x,int y,int w,const ItemCell& it,bool onDark);
     void heart(int x,int y,bool full);
+    void arrow(int x,int y);
+    void flame(int x,int y,bool lit);
 };
 
 }

@@ -195,8 +195,6 @@ constexpr uint8_t TS_OVERLAY     = 0b0001;
 
 constexpr int SCREEN_WIDTH  = 128;
 constexpr int SCREEN_HEIGHT = 64;
-constexpr int UI_WIDTH      = 96;
-constexpr int UI_X_OFFSET   = (SCREEN_WIDTH - UI_WIDTH) / 2;
 constexpr int LENS          = 56;
 constexpr int CLIP          = 3;
 
