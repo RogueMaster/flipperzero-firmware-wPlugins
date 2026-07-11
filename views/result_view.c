@@ -43,50 +43,49 @@ static void result_view_draw(Canvas* canvas, void* model) {
     if(!m->has) return;
     const CardGrade* g = &m->grade;
 
-    /* --- title: what the card is --- */
+    /* --- title row (y0..12): what the card is --- */
     canvas_set_font(canvas, FontPrimary);
     char name[40];
     fit_text(canvas, g->card_name, 124, name, sizeof(name));
-    canvas_draw_str(canvas, 2, 10, name);
+    canvas_draw_str(canvas, 2, 9, name);
     canvas_draw_line(canvas, 0, 12, 128, 12);
 
-    /* --- grade badge (left) --- */
-    canvas_draw_rframe(canvas, 2, 15, 34, 30, 3);
+    /* --- grade badge (left, y14..44) --- */
+    canvas_draw_rframe(canvas, 2, 14, 32, 30, 3);
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 19, 30, AlignCenter, AlignCenter, g->letter);
+    canvas_draw_str_aligned(canvas, 18, 25, AlignCenter, AlignCenter, g->letter);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 19, 40, AlignCenter, AlignCenter, "GRADE");
+    canvas_draw_str_aligned(canvas, 18, 38, AlignCenter, AlignCenter, "GRADE");
 
-    /* --- risk band bar (top right, inverted) --- */
+    /* --- risk band bar (right, y14..25, inverted) --- */
     canvas_set_color(canvas, ColorBlack);
-    canvas_draw_rbox(canvas, 40, 15, 86, 13, 2);
+    canvas_draw_rbox(canvas, 38, 14, 88, 11, 2);
     canvas_set_color(canvas, ColorWhite);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(
-        canvas, 83, 21, AlignCenter, AlignCenter, grader_band_label(g->band));
+        canvas, 82, 20, AlignCenter, AlignCenter, grader_band_label(g->band));
     canvas_set_color(canvas, ColorBlack);
 
-    /* --- score (big) --- */
+    /* --- score (big, y28..47, clear of the band bar) --- */
     char sc[8];
     snprintf(sc, sizeof(sc), "%d", g->score);
     canvas_set_font(canvas, FontBigNumbers);
-    canvas_draw_str(canvas, 44, 45, sc);
+    canvas_draw_str(canvas, 40, 47, sc);
     int nw = canvas_string_width(canvas, sc);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 44 + nw + 3, 45, "/100");
+    canvas_draw_str(canvas, 40 + nw + 3, 46, "/100");
 
-    /* --- security meter --- */
-    canvas_draw_frame(canvas, 2, 49, 124, 7);
-    int inner = 120; // 124 - 4
-    int fill = (g->score * inner) / 100;
-    if(fill > 0) canvas_draw_box(canvas, 4, 51, fill, 3);
+    /* --- security meter (y50..56) --- */
+    canvas_draw_frame(canvas, 2, 50, 124, 6);
+    int fill = (g->score * 120) / 100; // inner width 120 = 124 - 4
+    if(fill > 0) canvas_draw_box(canvas, 4, 52, fill, 2);
 
-    /* --- footer hints (inverted) --- */
+    /* --- footer hints (y57..63, inverted) --- */
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_box(canvas, 0, 57, 128, 7);
     canvas_set_color(canvas, ColorWhite);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 3, 63, "OK: Report");
+    canvas_draw_str(canvas, 3, 63, "OK Report");
     canvas_draw_str_aligned(canvas, 125, 63, AlignRight, AlignBottom, "Rescan >");
     canvas_set_color(canvas, ColorBlack);
 }

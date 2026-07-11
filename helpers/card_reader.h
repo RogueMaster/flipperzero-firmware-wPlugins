@@ -38,6 +38,8 @@ typedef struct {
     bool has_iso3a; // SAK/ATQA below are valid (ISO14443-3A family)
     uint8_t sak;
     uint8_t atqa[2];
+
+    bool is_emv; // answered SELECT PPSE -> contactless EMV payment card
 } CardReading;
 
 typedef struct CardReader CardReader;

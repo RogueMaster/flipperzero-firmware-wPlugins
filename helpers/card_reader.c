@@ -5,6 +5,9 @@
 #include <nfc/nfc_poller.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a_poller.h>
+#include <nfc/protocols/iso14443_4a/iso14443_4a.h>
+#include <nfc/protocols/iso14443_4a/iso14443_4a_poller.h>
+#include <bit_buffer.h>
 
 #define TAG "Warden"
 #define POLL_MS 20u
@@ -30,6 +33,7 @@ struct CardReader {
     size_t tmp_uid_len;
     uint8_t tmp_sak;
     uint8_t tmp_atqa[2];
+    bool tmp_is_emv;
 
     CardReading result;
 };
@@ -93,6 +97,75 @@ static NfcCommand card_reader_iso3a_cb(NfcGenericEvent event, void* context) {
     return cmd;
 }
 
+/* Ask an activated ISO-DEP card for its contactless payment directory
+ * (SELECT PPSE, "2PAY.SYS.DDF01"). A card that answers 0x9000 is an EMV bank
+ * card. We only SELECT the directory — we never read the PAN or any card data. */
+static bool card_reader_probe_emv(Iso14443_4aPoller* poller) {
+    static const uint8_t ppse_select[] = {
+        0x00, 0xA4, 0x04, 0x00, 0x0E, 0x32, 0x50, 0x41, 0x59, 0x2E, 0x53,
+        0x59, 0x53, 0x2E, 0x44, 0x44, 0x46, 0x30, 0x31, 0x00};
+
+    BitBuffer* tx = bit_buffer_alloc(sizeof(ppse_select));
+    BitBuffer* rx = bit_buffer_alloc(256);
+    bit_buffer_copy_bytes(tx, ppse_select, sizeof(ppse_select));
+
+    bool is_emv = false;
+    Iso14443_4aError err = iso14443_4a_poller_send_block(poller, tx, rx);
+    if(err == Iso14443_4aErrorNone) {
+        size_t n = bit_buffer_get_size_bytes(rx);
+        if(n >= 2) {
+            uint8_t sw1 = bit_buffer_get_byte(rx, n - 2);
+            uint8_t sw2 = bit_buffer_get_byte(rx, n - 1);
+            is_emv = (sw1 == 0x90 && sw2 == 0x00); // FCI returned = payment card
+        }
+    }
+
+    bit_buffer_free(tx);
+    bit_buffer_free(rx);
+    return is_emv;
+}
+
+static NfcCommand card_reader_iso4a_cb(NfcGenericEvent event, void* context) {
+    CardReader* cr = context;
+    const Iso14443_4aPollerEvent* ev = event.event_data;
+    NfcCommand cmd = NfcCommandContinue;
+
+    if(ev->type == Iso14443_4aPollerEventTypeReady) {
+        const Iso14443_4aData* data =
+            (const Iso14443_4aData*)nfc_poller_get_data(cr->active_poller);
+        const Iso14443_3aData* base = iso14443_4a_get_base_data(data);
+
+        size_t uid_len = 0;
+        const uint8_t* uid = iso14443_3a_get_uid(base, &uid_len);
+        uint8_t sak = iso14443_3a_get_sak(base);
+        uint8_t atqa[2] = {0};
+        iso14443_3a_get_atqa(base, atqa);
+
+        /* still inside the callback: legal to talk to the card */
+        bool emv = card_reader_probe_emv((Iso14443_4aPoller*)event.instance);
+
+        cr_lock(cr);
+        if(uid_len > WARDEN_UID_MAX) uid_len = WARDEN_UID_MAX;
+        for(size_t i = 0; i < uid_len; i++) cr->tmp_uid[i] = uid[i];
+        cr->tmp_uid_len = uid_len;
+        cr->tmp_sak = sak;
+        cr->tmp_atqa[0] = atqa[0];
+        cr->tmp_atqa[1] = atqa[1];
+        cr->tmp_is_emv = emv;
+        cr->poll_ok = true;
+        cr->poll_done = true;
+        cr_unlock(cr);
+        cmd = NfcCommandStop;
+    } else if(ev->type == Iso14443_4aPollerEventTypeError) {
+        cr_lock(cr);
+        cr->poll_ok = false;
+        cr->poll_done = true;
+        cr_unlock(cr);
+        cmd = NfcCommandStop;
+    }
+    return cmd;
+}
+
 /* --------------------------------------------------------- stack analysis */
 
 /* Deepest (most-derived) protocol in a detected stack — the real technology. */
@@ -132,10 +205,30 @@ static void read_iso3a_uid(CardReader* cr) {
     cr_lock(cr);
     cr->poll_done = false;
     cr->poll_ok = false;
+    cr->tmp_is_emv = false;
     cr_unlock(cr);
 
     cr->active_poller = nfc_poller_alloc(cr->nfc, NfcProtocolIso14443_3a);
     nfc_poller_start(cr->active_poller, card_reader_iso3a_cb, cr);
+
+    wait_flag(cr, &cr->poll_done);
+
+    nfc_poller_stop(cr->active_poller);
+    nfc_poller_free(cr->active_poller);
+    cr->active_poller = NULL;
+}
+
+/* ISO-DEP (ISO14443-4A) read: UID/SAK/ATQA from the base layer + EMV probe.
+ * Covers contactless bank cards, transit cards and ID smartcards. */
+static void read_iso4a(CardReader* cr) {
+    cr_lock(cr);
+    cr->poll_done = false;
+    cr->poll_ok = false;
+    cr->tmp_is_emv = false;
+    cr_unlock(cr);
+
+    cr->active_poller = nfc_poller_alloc(cr->nfc, NfcProtocolIso14443_4a);
+    nfc_poller_start(cr->active_poller, card_reader_iso4a_cb, cr);
 
     wait_flag(cr, &cr->poll_done);
 
@@ -182,9 +275,17 @@ static int32_t card_reader_worker(void* context) {
     r.base = pick_base(stack, num);
 
     /* --- 3. pull the UID/SAK on the A family (covers Classic, DESFire,
-     *        Ultralight/NTAG, Plus, ISO-DEP-A: the bulk of access badges) --- */
-    if(r.base == NfcProtocolIso14443_3a) {
+     *        Ultralight/NTAG, Plus, ISO-DEP-A: the bulk of access badges).
+     *        ISO-DEP (bank/transit/ID) gets the 4A path so we can EMV-probe. */
+    bool did_read = false;
+    if(r.top == NfcProtocolIso14443_4a) {
+        read_iso4a(cr);
+        did_read = true;
+    } else if(r.base == NfcProtocolIso14443_3a) {
         read_iso3a_uid(cr);
+        did_read = true;
+    }
+    if(did_read) {
         cr_lock(cr);
         if(cr->poll_ok) {
             r.has_iso3a = true;
@@ -193,6 +294,7 @@ static int32_t card_reader_worker(void* context) {
             r.sak = cr->tmp_sak;
             r.atqa[0] = cr->tmp_atqa[0];
             r.atqa[1] = cr->tmp_atqa[1];
+            r.is_emv = cr->tmp_is_emv;
         }
         cr_unlock(cr);
     }

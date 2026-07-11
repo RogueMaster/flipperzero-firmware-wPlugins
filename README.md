@@ -28,7 +28,7 @@ Most people have no idea whether the badge in their wallet is a bank vault or a 
 <div align="center">
 <img src="images/screens.png" alt="Warden screens: menu, scanning, grade card, and full report" width="100%">
 <br>
-<sub><b>Menu → Scan → Grade → Report.</b> Present a card, get a verdict, press OK for the full breakdown.</sub>
+<sub><b>Menu → Scan → Grade.</b> A broken Mifare Classic (F) and a contactless bank card (A), side by side. Press OK on any grade for the full breakdown.</sub>
 </div>
 
 ---
@@ -40,8 +40,9 @@ The **technology decides the crypto**, so that's what Warden grades. A Mifare Cl
 | Card technology | Grade | Band | Why |
 |---|:---:|:---:|---|
 | **Mifare DESFire** EV1/EV2/EV3 | **A** | 🟢 Secure | AES-128 with mutual authentication + diversified per-card keys. No practical clone. |
+| **Contactless bank card** (EMV) | **A** | 🟢 Secure | Verified by a live SELECT PPSE probe. Signs a one-time cryptogram per tap — can't be replayed or cloned for contactless. |
 | **FeliCa** | **A** | 🟢 Secure | Mutual authentication and encrypted sessions. Backs transit & e-money. |
-| **ISO-DEP smartcard** (14443-4A/B) | **B** | 🟡 Caution | Full APDU smartcard (EMV / e-passport family). Strength lives in the on-card applet. |
+| **ISO-DEP smartcard** (14443-4A/B) | **B** | 🟡 Caution | Full APDU smartcard that *isn't* EMV (transit / ID / corporate). Strength lives in the on-card applet. |
 | **Mifare Plus** | **B** | 🟡 Caution | Proper AES at SL3 — but emulates a **broken Classic** at SL1, and you can't see which. |
 | **ISO 15693** / iCLASS-class | **D** | 🟠 Weak | Often UID-only; plain ICODE/SLIX memory reads out. Legacy HID iCLASS shares a leaked key. |
 | **Mifare Ultralight / NTAG** | **D** | 🟠 Weak | No encryption by default — memory and UID copy onto a magic tag. |
@@ -75,23 +76,26 @@ Every grade comes with **findings** you can act on:
 
 ## What it reads
 
-Warden drives the Flipper's onboard 13.56 MHz radio as a **poller** and does two things:
+Warden drives the Flipper's onboard 13.56 MHz radio as a **poller**:
 
 ```mermaid
 flowchart LR
-    A([Hold badge<br/>to the back]) --> B{NfcScanner<br/>sweep}
+    A([Hold card<br/>to the back]) --> B{NfcScanner<br/>sweep}
     B -->|protocol stack| C[Identify top<br/>+ base tech]
     C --> D[Base poll:<br/>UID · SAK · ATQA]
-    D --> E{{Grading<br/>engine}}
+    D -->|ISO-DEP| P[SELECT PPSE<br/>EMV probe]
+    D --> E{{Grading engine}}
+    P --> E
     E --> F([Grade card<br/>A+ … F])
-    F -->|OK| G([Full report<br/>+ verdict])
+    F -->|OK| G([Full report])
     F -->|Right| A
 ```
 
 1. **`NfcScanner`** sweeps every supported protocol and reports the full stack on the card (e.g. `ISO14443-3A → ISO14443-4A → MfDesfire`).
 2. A short **base-layer poll** (ISO14443-3A/-3B, ISO15693 or FeliCa) pulls the activation data every access system keys on — the **UID**, plus **SAK/ATQA** on the A family.
+3. If the card speaks **ISO-DEP**, Warden sends one **`SELECT PPSE`** APDU. A contactless bank card answers `0x9000`, which is how Warden tells an EMV payment card from a generic smartcard. **It selects the payment directory only — it never reads your card number, expiry or CVV.**
 
-That is all Warden needs. It reads the same bytes a door reader reads at the start of every tap, and nothing more.
+Warden reads the same bytes a reader sees at the start of every tap, and nothing more.
 
 ---
 
@@ -176,7 +180,9 @@ Warden-FlipperZero/
 
 ## FAQ
 
-**Does it crack keys or dump memory?** No. Warden is strictly read-only activation data. It doesn't run nested/darkside attacks, doesn't try default keys against sectors, and never writes. The grade is driven by the card *technology*, which is what actually decides the security.
+**Does it crack keys or dump memory?** No. Warden is strictly read-only. It doesn't run nested/darkside attacks, doesn't try default keys against sectors, and never writes. The one active step is a single `SELECT PPSE` on ISO-DEP cards to tell a bank card apart from a generic smartcard — that selects the payment *directory* only and reads no card data.
+
+**I graded my credit/debit card and it's an A now — is that right?** Yes. A US contactless card is a **contactless EMV** card: each tap signs a one-time cryptogram, so a captured tap can't be replayed and it can't be cloned for contactless payment. That's genuinely strong, so it grades A / Secure. (Warden flags that your PAN and expiry *can* be skimmed — a privacy caveat — but never the CVV2, and no charge clears without online issuer approval.)
 
 **My Classic shows F but it "works fine" at my office.** That's the point. "Works" and "secure" are different questions — a Classic works *and* clones in seconds. The F is a warning about the second one.
 

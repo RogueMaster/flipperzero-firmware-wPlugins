@@ -168,6 +168,26 @@ static void grade_mf_plus(CardGrade* g, const CardReading* r) {
         "is SL3 before you trust it.");
 }
 
+static void grade_emv(CardGrade* g, const CardReading* r) {
+    UNUSED(r);
+    strncpy(g->card_name, "Contactless bank card (EMV)", sizeof(g->card_name) - 1);
+    g->score = 88;
+    strncpy(g->headline, "EMV payment - clone-resistant", sizeof(g->headline) - 1);
+    finding_add(g, FindingGood, "Unique cryptogram every tap - no replay");
+    finding_add(g, FindingGood, "Contactless uses a token, not your CVV2");
+    finding_add(g, FindingGood, "EMV chip: the global payment standard");
+    finding_add(g, FindingWarn, "Card number + expiry can be skimmed");
+    finding_add(g, FindingInfo, "Charges still need online issuer approval");
+    snprintf(
+        g->verdict,
+        sizeof(g->verdict),
+        "A contactless EMV bank card. Every tap signs a one-time cryptogram, so "
+        "a captured tap can't be replayed and the card can't be cloned for "
+        "contactless use. Your PAN and expiry may be skimmable (privacy, not "
+        "fraud) - but not the CVV2, and no charge clears without the issuer's "
+        "online OK.");
+}
+
 static void grade_iso_dep(CardGrade* g, const CardReading* r, bool type_b) {
     UNUSED(r);
     strncpy(
@@ -292,11 +312,17 @@ void grader_evaluate(const CardReading* reading, CardGrade* out) {
         grade_mf_plus(out, reading);
         break;
     case NfcProtocolIso14443_4a:
-        grade_iso_dep(out, reading, false);
+        if(reading->is_emv)
+            grade_emv(out, reading);
+        else
+            grade_iso_dep(out, reading, false);
         break;
     case NfcProtocolIso14443_4b:
     case NfcProtocolIso14443_3b:
-        grade_iso_dep(out, reading, true);
+        if(reading->is_emv)
+            grade_emv(out, reading);
+        else
+            grade_iso_dep(out, reading, true);
         break;
     case NfcProtocolIso15693_3:
     case NfcProtocolSlix:
@@ -309,7 +335,12 @@ void grader_evaluate(const CardReading* reading, CardGrade* out) {
         grade_st25tb(out, reading);
         break;
     case NfcProtocolIso14443_3a:
-        grade_bare_iso3a(out, reading);
+        /* SAK bit 5 = ISO14443-4 support: a smartcard the scanner didn't climb
+         * into, not a bare UID token. Grade it as ISO-DEP, not F. */
+        if(reading->has_iso3a && (reading->sak & 0x20))
+            grade_iso_dep(out, reading, false);
+        else
+            grade_bare_iso3a(out, reading);
         break;
     default:
         grade_unknown(out, reading);

@@ -71,44 +71,47 @@ def m_menu():
 def m_scan():
     img = screen()
     d = ImageDraw.Draw(img)
-    cx, cy = 64, 34
-    for k, r in enumerate((7, 15, 23)):
-        d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=INK, width=1)
-    d.ellipse([cx - 3, cy - 3, cx + 3, cy + 3], fill=INK)
-    for dx, dy in ((-9, 0), (5, 0)):
-        d.line([(cx + dx, cy), (cx + dx + 4, cy)], fill=INK, width=1)
-    for dy in (-9, 5):
-        d.line([(cx, cy + dy), (cx, cy + dy + 4)], fill=INK, width=1)
     ctext(d, 64, 0, "Grade a Card", PRIM)
-    ctext(d, 64, 52, "Reading NFC...", SEC)
+    cx, cy = 64, 29
+    for r in (8, 13, 18):
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=INK, width=1)
+    d.ellipse([cx - 2, cy - 2, cx + 2, cy + 2], fill=INK)
+    for dx in (-8, 5):
+        d.line([(cx + dx, cy), (cx + dx + 3, cy)], fill=INK, width=1)
+    for dy in (-8, 5):
+        d.line([(cx, cy + dy), (cx, cy + dy + 3)], fill=INK, width=1)
+    ctext(d, 64, 47, "Reading NFC...", SEC)
+    ctext(d, 64, 55, "Hold card to the back", SEC)
     return finish(img, "screen_scan.png")
 
 
 # ----------------------------------------------------------------- 3. grade
-def m_grade():
+def m_grade(fname, title, letter, band, score):
     img = screen()
     d = ImageDraw.Draw(img)
-    d.text((2, 1), "Mifare Classic 1K", font=PRIM, fill=INK)
+    d.text((2, 1), title, font=PRIM, fill=INK)
     d.line([(0, 12), (128, 12)], fill=INK)
     # badge
-    d.rounded_rectangle([2, 15, 36, 45], radius=3, outline=INK, width=1)
-    ctext(d, 19, 18, "F", BADGE)
-    ctext(d, 19, 36, "GRADE", SEC)
+    d.rounded_rectangle([2, 14, 34, 44], radius=3, outline=INK, width=1)
+    ctext(d, 18, 16, letter, BADGE)
+    ctext(d, 18, 34, "GRADE", SEC)
     # band bar
-    d.rounded_rectangle([40, 15, 126, 28], radius=2, fill=INK)
-    ctext(d, 83, 16, "BROKEN", SEC, fill=ORANGE)
+    d.rounded_rectangle([38, 14, 126, 25], radius=2, fill=INK)
+    ctext(d, 82, 15, band, SEC, fill=ORANGE)
     # score
-    d.text((44, 27), "18", font=BIG, fill=INK)
-    d.text((44 + int(d.textlength('18', font=BIG)) + 3, 34), "/100", font=SEC, fill=INK)
+    d.text((40, 27), str(score), font=BIG, fill=INK)
+    d.text((40 + int(d.textlength(str(score), font=BIG)) + 3, 34), "/100", font=SEC, fill=INK)
     # meter
-    d.rectangle([2, 49, 125, 55], outline=INK, width=1)
-    d.rectangle([4, 51, 4 + int(120 * 0.18), 53], fill=INK)
+    d.rectangle([2, 50, 125, 55], outline=INK, width=1)
+    fillw = int(120 * score / 100)
+    if fillw > 0:
+        d.rectangle([4, 52, 4 + fillw, 53], fill=INK)
     # footer
     d.rectangle([0, 57, 128, 64], fill=INK)
-    d.text((3, 56), "OK: Report", font=SEC, fill=ORANGE)
+    d.text((3, 56), "OK Report", font=SEC, fill=ORANGE)
     s = "Rescan >"
     d.text((125 - d.textlength(s, font=SEC), 56), s, font=SEC, fill=ORANGE)
-    return finish(img, "screen_grade.png")
+    return finish(img, fname)
 
 
 # ----------------------------------------------------------------- 4. report
@@ -151,5 +154,9 @@ def strip(paths):
 
 
 if __name__ == "__main__":
-    p = [m_menu(), m_scan(), m_grade(), m_report()]
-    strip(p)
+    menu = m_menu()
+    scan = m_scan()
+    classic = m_grade("screen_grade.png", "Mifare Classic 1K", "F", "BROKEN", 18)
+    emv = m_grade("screen_emv.png", "Contactless bank card", "A", "SECURE", 88)
+    m_report()
+    strip([menu, scan, classic, emv])
