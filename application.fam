@@ -1,0 +1,15 @@
+App(
+    appid="trident",
+    name="Trident",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="trident_app",
+    stack_size=8 * 1024,
+    fap_category="GPIO",
+    fap_icon="icons/trident_10px.png",
+    fap_icon_assets="icons",
+    fap_author="at0m-b0mb",
+    fap_weburl="https://github.com/at0m-b0mb/Trident-FlipperZero",
+    fap_version="1.0",
+    fap_description="One control surface for a 3-in-1 ESP32 + NRF24 + CC1101 expansion board. Drives the ESP32 Marauder serial CLI (dual-band Wi-Fi, BLE, GPS, 2.4G) with a live console; runs a 2.4 GHz spectrum analyzer on the NRF24 across all 126 channels; and sweeps the 300-348 / 387-464 / 779-928 MHz Sub-GHz bands on the CC1101 (internal or external). For authorised testing and RF exploration on hardware and networks you own.",
+    requires=["gui"],
+)
