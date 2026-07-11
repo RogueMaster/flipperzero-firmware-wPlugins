@@ -31,7 +31,8 @@ struct Screen2D {
     void slotItem(int x,int y,int w,const ItemCell& it,bool onDark);
     void heart(int x,int y,bool full);
     void arrow(int x,int y);
-    void flame(int x,int y,bool lit);
+    void flame(int x,int y);
+    void ticks(int x,int y,int w);
 };
 
 }

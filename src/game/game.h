@@ -141,8 +141,8 @@ private:
     void openTileStorage(int tileIndex);   // lazy: read contents into slot[]
     void flushTileStorage(int tileIndex);  // write contents back, mark unloaded
 
-    // dark: storage cells drawn as filled blocks with light icons
-    struct Slot { ItemCell* cell; int sx, sy; bool dark; bool output; };
+    // w: cell size; mark: craft-target cell, empty ones get corner ticks
+    struct Slot { ItemCell* cell; int sx, sy; uint8_t w; bool mark; bool output; };
     // The GUI never shows more than 25 slots (15 inventory + 9 craft grid + 1
     // output); a fixed list on the caller's stack avoids per-frame heap churn.
     struct SlotList {

@@ -674,23 +674,24 @@ void Game::worldFrame(const Input& in){
 // hotbar is the bottom row.
 Game::SlotList Game::buildSlots(ScreenId s){
     SlotList v;
-    auto add=[&](ItemCell* c,int sx,int sy,bool dark,bool out){
-        if(v.n<SlotList::MAX) v.s[v.n++]={c,sx,sy,dark,out};};
+    auto add=[&](ItemCell* c,int sx,int sy,uint8_t w,bool mark,bool out){
+        if(v.n<SlotList::MAX) v.s[v.n++]={c,sx,sy,w,mark,out};};
 
-    for(int r=0;r<3;r++)for(int c=0;c<5;c++) add(&pl.inventory[r*5+c],38+c*10,53-r*10,true,false);
+    for(int r=0;r<3;r++)for(int c=0;c<5;c++) add(&pl.inventory[r*5+c],38+c*10,53-r*10,9,false,false);
+    // the craft block is the same 31x31 area on both screens, only the grid differs
     if(s==SCR_INVENTORY){
         int map[4]={0,1,3,4};
-        for(int i=0;i<4;i++) add(&pl.craftGrid[map[i]],39+(i%2)*10,7+(i/2)*10,false,false);
-        add(&pl.craftOutput,77,11,false,true);
+        for(int i=0;i<4;i++) add(&pl.craftGrid[map[i]],44+(i%2)*10,7+(i/2)*10,9,true,false);
+        add(&pl.craftOutput,76,12,9,false,true);
     } else if(s==SCR_CRAFTING){
-        for(int i=0;i<9;i++) add(&pl.craftGrid[i],39+(i%3)*10,2+(i/3)*10,false,false);
-        add(&pl.craftOutput,82,11,false,true);
+        for(int i=0;i<9;i++) add(&pl.craftGrid[i],39+(i%3)*10,2+(i/3)*10,9,true,false);
+        add(&pl.craftOutput,81,12,9,false,true);
     } else if(s==SCR_FURNACE&&loadedTile>=0){ BlockEnt& f=tiles[loadedTile];
-        add(&f.slot[0],45,2,false,false);
-        add(&f.slot[1],45,22,false,false);
-        add(&f.slot[2],73,11,false,true);
+        add(&f.slot[0],49,2,9,false,false);
+        add(&f.slot[1],49,22,9,false,false);
+        add(&f.slot[2],70,12,9,false,true);
     } else if(s==SCR_CHEST&&loadedTile>=0){ BlockEnt& ch=tiles[loadedTile];
-        for(int i=0;i<10;i++) add(&ch.slot[i],38+(i%5)*10,8+(i/5)*10,true,false);
+        for(int i=0;i<10;i++) add(&ch.slot[i],38+(i%5)*10,8+(i/5)*10,9,false,false);
     }
     return v;
 }
@@ -775,39 +776,37 @@ void Game::drawGui(){
     screen.fillRect(33,0,33,SCREEN_HEIGHT-1,1);
     screen.fillRect(94,0,94,SCREEN_HEIGHT-1,1);
 
-    // station chrome: framed blocks whose interiors the slot loop clears
+    // the block+arrow+output group is centered as a whole in the free area
+    // above the inventory grid; reference gaps: 1px before arrow, 2px after
     if(screenId==SCR_INVENTORY){
-        screen.fillRect(38,6,58,26,1);             // 2x2 craft grid
-        screen.arrow(62,12);
-        screen.fillRect(76,10,87,21,1);            // output
+        screen.fillRect(43,6,63,26,1);             // 2x2 craft block, cells drawn on top
+        screen.arrow(65,12);
     } else if(screenId==SCR_CRAFTING){
-        screen.fillRect(38,1,68,31,1);             // 3x3 craft grid
-        screen.arrow(69,12);
-        screen.fillRect(81,10,92,21,1);
+        screen.fillRect(38,1,68,31,1);             // 3x3 craft block
+        screen.arrow(70,12);
     } else if(screenId==SCR_FURNACE){
-        screen.fillRect(44,1,54,11,1);             // input
-        screen.fillRect(44,21,54,31,1);            // fuel
-        screen.arrow(58,12);
-        screen.fillRect(72,10,83,21,1);
+        screen.arrow(59,12);
+        screen.flame(49,13);   // aligned with the input/fuel column, as in the reference
         if(loadedTile>=0){ BlockEnt& f=tiles[loadedTile];
-            screen.flame(46,13,f.lit);
-            int w=f.timer*11/(SMELTTIME/16);
-            if(w>0)screen.fillRect(58,22,57+w,23,1);   // smelt progress
+            int w=f.timer*9/(SMELTTIME/16);
+            if(w>0)screen.fillRect(59,21,58+w,22,1);   // smelt progress
         }
     }
 
     auto slots=buildSlots(screenId);
     for(size_t i=0;i<slots.size();i++){Slot& s=slots[i];
-        int w=s.output?10:9;
-        screen.fillRect(s.sx,s.sy,s.sx+w-1,s.sy+w-1,s.dark?1:0);
-        screen.slotItem(s.sx,s.sy,w,*s.cell,s.dark);
+        int w=s.w;
+        screen.fillRect(s.sx,s.sy,s.sx+w-1,s.sy+w-1,1);
+        if(s.mark&&s.cell->empty()) screen.ticks(s.sx,s.sy,w);
+        screen.slotItem(s.sx,s.sy,w,*s.cell,true);
         if((int)i==selSlot){   // grabbed: inverted 1px ring inside the cell
             screen.invertRect(s.sx,s.sy,s.sx+w-1,s.sy);
             screen.invertRect(s.sx,s.sy+w-1,s.sx+w-1,s.sy+w-1);
             screen.invertRect(s.sx,s.sy+1,s.sx,s.sy+w-2);
             screen.invertRect(s.sx+w-1,s.sy+1,s.sx+w-1,s.sy+w-2);
         }
-        if((int)i==cursor) screen.invertRect(s.sx,s.sy,s.sx+w-1,s.sy+w-1);
+        if((int)i==cursor)   // rim stays dark so an empty cell can't vanish
+            screen.invertRect(s.sx+1,s.sy+1,s.sx+w-2,s.sy+w-2);
     }
 }
 
