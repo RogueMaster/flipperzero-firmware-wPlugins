@@ -75,11 +75,11 @@ const char* itemName(uint8_t type) {
     return mats[type >> 4];
 }
 
-// 8x8 row-packed texture, v=7 is the top row on world faces, so flip;
-// texInv: sand = inverted dirt; ink 0 draws white icons on dark cells
 static void sprite8(Screen2D& s,int x,int y,const uint8_t* t,bool texInv,int ink) {
-    for (int r=0;r<8;r++) for (int c=0;c<8;c++)
-        if ((((t[7-r]>>c)&1)!=0)!=texInv) s.setPixel(x+c,y+r,ink);
+    for (int r=0;r<8;r++) for (int c=0;c<8;c++) {
+        bool px = (((t[7-r]>>c)&1)!=0)!=texInv;
+        if (px==(ink==1)) s.setPixel(x+c,y+r,ink);
+    }
 }
 
 // MSB = left column; pickaxe extracted pixel-for-pixel from the reference
