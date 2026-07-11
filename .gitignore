@@ -1,0 +1,20 @@
+# ufbt / fbt build output
+dist/
+build/
+.ufbt/
+
+# compiled objects
+*.o
+*.d
+*.elf
+*.bin
+
+# python
+__pycache__/
+*.pyc
+
+# editor / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
