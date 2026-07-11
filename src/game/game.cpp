@@ -752,6 +752,7 @@ void Game::guiFrame(const Input& in){
                 tryCraft();
             }
         } else if(selSlot<0){ if(cur.cell->type)selSlot=cursor; }
+        else if(selSlot==cursor){ selSlot=-1; }
         else {
             ItemCell& sv=*slots[selSlot].cell; ItemCell& dv=*cur.cell;
             if(sv.type && sv.type==dv.type && sv.type<ITEM_NONSTACKABLE){
