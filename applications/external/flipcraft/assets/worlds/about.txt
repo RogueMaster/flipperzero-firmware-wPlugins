@@ -20,41 +20,4 @@ OK - pick / place / craft
 OK + arrow - drop one
 Back - close
 
-Creatures (2 HP each,
-sword kills in one hit):
-Sheep - flees when hit,
-  drops an apple.
-Wolf - bites back if hit,
-  hunts sheep + creepers.
-Creeper - stalks you,
-  flashes and swells ~2s,
-  blast digs 3x3x3 and
-  deals ~90% of your HP.
-  Run 4+ blocks to disarm.
-  Always drops gunpowder.
-Aiming is forgiving: a
-creature near the screen
-centre counts as targeted.
-
-Taming: hold OK on a wild
-wolf with 2 apples. Tamed
-wolf guards you, never
-bites you, keeps within
-3 blocks.
-
-Dynamite: craft 1 sand +
-1 gunpowder. Place it,
-tap OK to light: ~3s
-fuse, creeper-size blast.
-Explosions ignite nearby
-dynamite - chain it!
-Long OK breaks unlit
-dynamite back to item.
-
-Create worlds from a
-template or generate by
-seed, up to 1024x1024
-blocks. Same seed and
-size = same world.
-
 by @apfxtech

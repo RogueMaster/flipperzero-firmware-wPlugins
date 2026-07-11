@@ -44,7 +44,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Parser to identify some hotel systems #4323 (By bettse)](https://github.com/flipperdevices/flipperzero-firmware/pull/4323) (Already in RM)
 - Updated: [Flipper Share v1.4 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share)
 - Added: [GameBoy Emu v1.0 (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF/tree/0d598b854c868067bf39111ae14bc8c2e195c26c/applications/system/FlipperGB) (No Promises For Performance on Flipper)
-- Updated: [Flipcraft v4.2 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - Added: [Xiaomi Filter Reset v1.0 (By khmm12)](https://github.com/khmm12/flipper-xiaomi-filter-reset)
 - NFC: [Fix memory leaks & double-frees in the NFC app - heap-corrupting double-frees in the Plantain and SZPPK/SEVPPK/SK transit parsers (crash on two-trip tickets), leaks in the Saflok parser, the app API resolver (per launch) and the CUID-dictionary error path, plus a ~15x RAM over-allocation of the MIFARE DESFire file-data array (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1030)
 - Updated: [Daikin64 AC Remote v0.1 (By mrcalifornium)](https://github.com/mrcalifornium/flipperzero-daikin64-ac-remote)
@@ -74,7 +73,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Using API v88.0 Like OFW
 - Updated: [Rush Hour v0.1.6 (By Endika)](https://github.com/Endika/flipper-tutu) (Version Only)
 - Updated: [Sub-GHz RAW Edit v1.7 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
-- Added: [Gurpil v0.1.8 (By Endika)}(https://github.com/Endika/flipper-gurpil)
+- Added: [Gurpil v0.1.8 (By Endika)](https://github.com/Endika/flipper-gurpil)
+- Updated: [Flipcraft v4.3 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 
 <a name="release"></a>
 
@@ -231,7 +231,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Five Nights at Flippers v1.3 (By sillygir1)](https://github.com/sillygir1/flipperzero-fnaf)
 - [Flappy Bird v1.5 (By DroomOne)](https://github.com/DroomOne/flipperzero-firmware/tree/dev/applications/flappy_bird)
 - [Flight Assault v0.4 (By evillero)](https://github.com/evillero/flight_assault)
-- [Flipcraft v4.2 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
+- [Flipcraft v4.3 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - [Flipper Hero v1.4 (By mentoster)](https://github.com/mentoster/Flipper-hero)
 - [Flippy Road v1.1 (By rkilpadi)](https://github.com/rkilpadi/flippy-road)
 - [FlipRogue v1.2.1 (By Abzac)](https://github.com/Abzac/fliprogue)

@@ -14,8 +14,8 @@ static constexpr uint8_t kHurtTime[3] = {30, 90, 90};
 static constexpr uint8_t kAggro[3] = {0, 0, 96};
 static constexpr uint8_t kMobDrop[MOB_SPECIES] =
     {ENTITY_APPLE /* мясо */, ENTITY_APPLE /* мясо */, ENTITY_GUNPOWDER, ENTITY_SAPLING};
-// 16 nibbles of species id: 8 sheep, 2 wolves, 2 creepers, 4 bees
-static constexpr uint64_t SPAWN_ROLL = UINT64_C(0x3333221100000000);
+// 16 nibbles of species id: 9 sheep, 2 wolves, 1 creeper, 4 bees
+static constexpr uint64_t SPAWN_ROLL = UINT64_C(0x3333211000000000);
 
 static inline int mobHeight(const MobSpec& s) {
     return (s.geom >> 4) << 1;
@@ -49,7 +49,7 @@ static uint8_t turnTo(uint8_t yaw, uint8_t want) {
 }
 
 void Game::trySpawnMob() {
-    if(rng() & 0x1F) return;
+    if(spawnRng() & 0x1F) return;
     int slot = -1;
     for(int i = 0; i < MAX_MOBS; i++)
         if(!mobs[i].active) {
@@ -58,7 +58,7 @@ void Game::trySpawnMob() {
         }
     if(slot < 0) return;
 
-    uint8_t p = rng(), q = rng();
+    uint8_t p = spawnRng(), q = spawnRng();
     int bx = (playerX + PLAYERHALFWIDTH) / BLOCKSIZE +
              (3 + (int)(((p & 31) * 6) >> 5)) * (1 - (int)((p >> 5) & 2));
     int bz = (playerZ + PLAYERHALFWIDTH) / BLOCKSIZE +
@@ -71,7 +71,20 @@ void Game::trySpawnMob() {
         by--;
     if(!blockIsSolid(world.getBlock(bx, by, bz))) return;
 
-    uint8_t sp = (uint8_t)((SPAWN_ROLL >> ((rng() & 15) << 2)) & 0xF);
+    // density cap: reject the spot if its chunk already holds MOB_CHUNK_CAP
+    int cx = bx >> CHUNK_SHIFT, cz = bz >> CHUNK_SHIFT, packed = 0;
+    for(int i = 0; i < MAX_MOBS; i++) {
+        const Mob& o = mobs[i];
+        if(o.active && (o.x + 7) >> (4 + CHUNK_SHIFT) == cx &&
+           (o.z + 7) >> (4 + CHUNK_SHIFT) == cz)
+            packed++;
+    }
+    if(packed >= MOB_CHUNK_CAP) return;
+
+    uint8_t sp = (uint8_t)((SPAWN_ROLL >> ((spawnRng() & 15) << 2)) & 0xF);
+    // anti-streak: a repeat of the previous species gets one reroll, halving
+    // same-species runs while barely denting the SPAWN_ROLL weights
+    if(sp == lastSpawn) sp = (uint8_t)((SPAWN_ROLL >> ((spawnRng() & 15) << 2)) & 0xF);
     const MobSpec& s = mobSpec(sp);
     int x = bx * BLOCKSIZE + 1, y = (by + 1) * BLOCKSIZE, z = bz * BLOCKSIZE + 1;
     if(boxCollides(x, y, z, MOBWIDTH, mobHeight(s))) return;
@@ -83,11 +96,12 @@ void Game::trySpawnMob() {
     m.y = y;
     m.z = z;
     m.hp = s.hpDmg >> 4;
-    m.yaw = rng() & 15;
+    m.yaw = spawnRng() & 15;
     m.mode = MOB_WANDER;
-    m.timer = 20 + (rng() & 31);
-    m.sated = s.prey && !(rng() & 3); // 25%: spawns full
-    if(s.info & 8) m.alt = rng() & 63; // flyer: hover 0..4 blocks above ground
+    m.timer = 20 + (spawnRng() & 31);
+    m.sated = s.prey && !(spawnRng() & 3); // 25%: spawns full
+    if(s.info & 8) m.alt = spawnRng() & 63; // flyer: hover 0..4 blocks above ground
+    lastSpawn = sp;
     mobs[slot] = m;
 }
 
@@ -116,10 +130,11 @@ void Game::hurtMobFrom(int index, int dmg, int srcX, int srcZ, uint8_t attacker)
     m.seek = MOB_RETARGET_TICKS;
 
     int away = to ^ 8;
-    int nx =
-        std::clamp(m.x + ((kDirX[away] * 10) >> 6), 0, world.worldSX() * BLOCKSIZE - MOBWIDTH - 1);
-    int nz =
-        std::clamp(m.z + ((kDirZ[away] * 10) >> 6), 0, world.worldSZ() * BLOCKSIZE - MOBWIDTH - 1);
+    // +32: round the shove to nearest so both signs kick equally hard
+    int nx = std::clamp(
+        m.x + ((kDirX[away] * 10 + 32) >> 6), 0, world.worldSX() * BLOCKSIZE - MOBWIDTH - 1);
+    int nz = std::clamp(
+        m.z + ((kDirZ[away] * 10 + 32) >> 6), 0, world.worldSZ() * BLOCKSIZE - MOBWIDTH - 1);
     if(!boxCollides(nx, m.y, nz, MOBWIDTH, mobHeight(s))) {
         m.x = nx;
         m.z = nz;
@@ -275,9 +290,10 @@ void Game::updateAllMobs() {
             if(s.info & 8) m.alt = rng() & 63;
         }
 
-        // wander at half speed, chase/flee at full
-        int v = m.mode ? (int)(s.geom & 0x0F) << (m.mode >> 1) >> 1 : 0;
-        int mx, mz;
+        // wander at half speed, chase/flee at full: v carries one extra
+        // fractional bit, consumed by the walk accumulator below
+        int v = m.mode ? (int)(s.geom & 0x0F) << (m.mode >> 1) : 0;
+        bool walk = m.mode != MOB_IDLE;
         if(m.mode >= MOB_CHASE) {
             // lazy re-aim: the goal moves only when the target left the dead
             // zone around it and the reaction delay ran out
@@ -289,19 +305,10 @@ void Game::updateAllMobs() {
             int wdx = m.gx - (m.x + 7), wdz = m.gz - (m.z + 7);
             int awx = std::abs(wdx), awz = std::abs(wdz);
             int L = awx > awz ? awx : awz;
-            if(m.mode == MOB_CHASE && L <= 4) {
-                mx = 0;
-                mz = 0;
-            } // at the stale goal: wait
-            else {
-                // walk along the facing: no strafing, turns become arcs
+            if(m.mode == MOB_CHASE && L <= 4) walk = false; // at the stale goal: wait
+            // walk along the facing: no strafing, turns become arcs
+            else
                 m.yaw = turnTo(m.yaw, (uint8_t)(yawTowards(wdx, wdz) ^ ((m.mode & 1) << 3)));
-                mx = (v * kDirX[m.yaw]) >> 6;
-                mz = (v * kDirZ[m.yaw]) >> 6;
-            }
-        } else {
-            mx = (v * kDirX[m.yaw]) >> 6;
-            mz = (v * kDirZ[m.yaw]) >> 6;
         }
 
         if(s.info & 1) {
@@ -315,11 +322,23 @@ void Game::updateAllMobs() {
                     m.cool = 0;
                     m.hurt = 0;
                 }
-                mx = 0;
-                mz = 0;
+                walk = false;
             } else if(m.mode == MOB_CHASE && (adx | adz) < 30 && std::abs(ty - m.y) < 32) {
                 m.cool = MOB_FUSE_TICKS;
             }
+        }
+
+        // v*kDir is the wanted velocity with 7 fractional bits; carrying the
+        // remainder in fx/fz makes the average step track the facing exactly.
+        // (A plain >> floored negative components to -1 and positive ones to
+        // 0, so slow mobs walked sideways and froze in the +X/+Z quadrant.)
+        int mx = 0, mz = 0;
+        if(walk) {
+            int accX = m.fx + v * kDirX[m.yaw], accZ = m.fz + v * kDirZ[m.yaw];
+            mx = accX >> 7;
+            mz = accZ >> 7;
+            m.fx = (uint8_t)(accX & 127);
+            m.fz = (uint8_t)(accZ & 127);
         }
 
         if(boxCollides(m.x, m.y, m.z, MOBWIDTH, hgt)) m.y += 16;
