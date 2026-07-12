@@ -1,22 +1,63 @@
 # Flipcraft
 
+Flipcraft is a tiny first-person voxel sandbox for the Flipper Zero — a
+pocket "Minecraft" rendered in true 3D on the 128x64 1-bit screen. You walk
+through a procedurally generated world, chop trees, dig for coal and iron,
+smelt ingots and glass in a furnace, craft tools and weapons at a crafting
+table, build with placed blocks, stash loot in chests, tame a wolf and try
+to survive creepers and your own dynamite.
+
+Worlds are generated from a text seed in four sizes, from 128x128 up to
+1024x1024 blocks, with forests, deserts, ravines and ore veins; the same
+seed produces the same terrain at any size. Everything persists on the SD
+card — the world itself, your inventory, health, and the contents of every
+chest and furnace — and any number of worlds can be created, renamed and
+deleted from the menu.
+
+## Features
+
+- Real-time 3D first-person renderer, 17 block types
+- Seed-based world generation: forests, deserts, ravines, coal and iron ore
+- 3x3 crafting: pickaxes, axes, shovels and swords in wood / stone / iron
+  tiers, plus shears, crafting table, furnace, chest and dynamite
+- Furnace smelting: iron ingots and glass, fueled by coal or wood
+- Creatures: sheep, tameable wolves and exploding creepers
+- 8 hearts of health, fall damage, apples to heal, respawn on death
+- Chest storage, world saves in `.fcw` files on the SD card
+
+## Donation
+
+| Service | Remark | QR Code | Link |
+|---|---|---|---|
+| <img src="https://cdn.simpleicons.org/boosty" alt="Boosty" width="14"/> **Boosty** | Support the project | <div align="center"><a href="https://boosty.to/apfxtech/donate"><img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fboosty.to%2Fapfxtech%2Fdonate" alt="Boosty donation QR code" width="140"/></a></div> | [boosty.to/apfxtech/donate](https://boosty.to/apfxtech/donate) |
+| <img src="https://raw.githubusercontent.com/gist/PonomareVlad/55c8708f11702b4df629ae61129a9895/raw/1657350724dab66f2ad68ea034c480a2df2a1dfd/YooMoney.svg" alt="YooMoney" width="14"/> **YooMoney** | RU payments only | <div align="center"><a href="https://yoomoney.ru/fundraise/1IV33POM6H4.260711"><img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fyoomoney.ru%2Ffundraise%2F1IV33POM6H4.260711" alt="YooMoney donation QR code" width="140"/></a></div> | [yoomoney.ru/fundraise/1IV33POM6H4.260711](https://yoomoney.ru/fundraise/1IV33POM6H4.260711) |
+
+
 ## Screenshots
 
-| World | World | Inventory |
-|---|---|---|
-| ![Forest](.catalog/screenshots/forest.png) | ![Forest 2](.catalog/screenshots/forest2.png) | ![Inventory](.catalog/screenshots/inventory.png) |
-
-| Crafting | Crafting | Crafting |
-|---|---|---|
-| ![Craft table](.catalog/screenshots/crafttable.png) | ![Crafting at craft table](.catalog/screenshots/crafting_crafttable.png) | ![Craftable view](.catalog/screenshots/craftable_view.png) |
-
-| Storage | Furnace | Menu |
-|---|---|---|
-| ![Box](.catalog/screenshots/box.png) | ![Melting sand](.catalog/screenshots/melting_sand.png) | ![Home menu](.catalog/screenshots/menu_home.png) |
-
-| Menu | Menu |
-|---|---|
-| ![Create menu](.catalog/screenshots/menu_create.png) | ![Delete menu](.catalog/screenshots/menu_delete.png) |
+<p align="center">
+  <img src=".catalog/screenshots/gameplay.png" width="49%"/>
+  <img src=".catalog/screenshots/inventory.png" width="49%"/>
+</p>
+<p align="center">
+  <img src=".catalog/screenshots/crafting.png" width="49%"/>
+  <img src=".catalog/screenshots/crafting_full.png" width="49%"/>
+</p>
+<p align="center">
+  <img src=".catalog/screenshots/furnace.png" width="49%"/>
+  <img src=".catalog/screenshots/death.png" width="49%"/>
+</p>
+<p align="center">
+  <img src=".catalog/screenshots/menu_main.png" width="49%"/>
+  <img src=".catalog/screenshots/menu_worlds.png" width="49%"/>
+</p>
+<p align="center">
+  <img src=".catalog/screenshots/world_seed.png" width="49%"/>
+  <img src=".catalog/screenshots/world_size.png" width="49%"/>
+</p>
+<p align="center">
+  <img src=".catalog/screenshots/world_generating.png" width="49%"/>
+</p>
 
 ## Controls
 
@@ -34,6 +75,17 @@
 Aiming at creatures is forgiving: any creature in the middle half of the
 screen counts as targeted, no pixel-perfect crosshair needed. Blocks still
 require the exact crosshair.
+
+### Menus
+
+- `Up` / `Down` / `Left` / `Right`: move cursor
+- `Ok`: pick up, place, or take output
+- `Ok` + arrow: drop one held item per slot crossed
+- `Back`: close menu
+
+### System
+
+- `Ok` + `Back`: quit (bug press first "OK")
 
 ## Creatures
 
@@ -74,14 +126,3 @@ vertical) = 1 dynamite. Stacks like any material.
 - The explosion **ignites any adjacent dynamite** with a short random
   delay - line up charges for a chain reaction.
 - `Ok` long press breaks an unlit dynamite back into the item.
-
-### Menus
-
-- `Up` / `Down` / `Left` / `Right`: move cursor
-- `Ok`: pick up, place, or take output
-- `Ok` + arrow: drop one held item per slot crossed
-- `Back`: close menu
-
-### System
-
-- `Ok` + `Back`: quit (bug press first "OK")
