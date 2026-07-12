@@ -16,6 +16,9 @@
 
 #define RECON_INVALID_INDEX 0xFFFF
 
+/* Max capture files listed in the quick-import picker. */
+#define RECON_MAX_IMPORT 24
+
 /* Sentinel graph coordinate meaning "auto-place this node". */
 #define RECON_COORD_AUTO 0xFF
 

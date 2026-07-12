@@ -3,6 +3,8 @@
 typedef enum {
     StartIndexNew,
     StartIndexOpen,
+    StartIndexSetPin,
+    StartIndexRemovePin,
     StartIndexAbout,
 } StartIndex;
 
@@ -13,14 +15,34 @@ static void breach_map_scene_start_submenu_callback(void* context, uint32_t inde
 
 void breach_map_scene_start_on_enter(void* context) {
     BreachMapApp* app = context;
-    Submenu* submenu = app->submenu;
 
+    /* screen lock: require the PIN once per launch */
+    if(app->pin_set && !app->unlocked) {
+        scene_manager_next_scene(app->scene_manager, BreachMapScenePin);
+        return;
+    }
+
+    Submenu* submenu = app->submenu;
     submenu_reset(submenu);
     submenu_set_header(submenu, "BreachMap");
     submenu_add_item(
         submenu, "New engagement", StartIndexNew, breach_map_scene_start_submenu_callback, app);
     submenu_add_item(
         submenu, "Open engagement", StartIndexOpen, breach_map_scene_start_submenu_callback, app);
+    submenu_add_item(
+        submenu,
+        app->pin_set ? "Change PIN" : "Set PIN",
+        StartIndexSetPin,
+        breach_map_scene_start_submenu_callback,
+        app);
+    if(app->pin_set) {
+        submenu_add_item(
+            submenu,
+            "Remove PIN",
+            StartIndexRemovePin,
+            breach_map_scene_start_submenu_callback,
+            app);
+    }
     submenu_add_item(
         submenu, "About", StartIndexAbout, breach_map_scene_start_submenu_callback, app);
 
@@ -45,6 +67,15 @@ bool breach_map_scene_start_on_event(void* context, SceneManagerEvent event) {
             break;
         case StartIndexOpen:
             scene_manager_next_scene(app->scene_manager, BreachMapSceneSessionList);
+            break;
+        case StartIndexSetPin:
+            app->text_target = ReconTextTargetPinSet;
+            scene_manager_next_scene(app->scene_manager, BreachMapSceneTextInput);
+            break;
+        case StartIndexRemovePin:
+            app->pin_set = false;
+            app->pin_hash = 0;
+            breach_settings_save(app->storage, app->pin_hash, app->pin_set);
             break;
         case StartIndexAbout:
             app->message_mode = ReconMessageAbout;

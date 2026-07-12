@@ -41,17 +41,23 @@ so the report writes itself.
   metadata, saved to the SD card and reopened anytime.
 - 🎯 **Assets** — record doors, RFID readers, cameras, BLE devices, RF devices and
   unknown targets. Each carries a type, a **risk score (0–100)** and free notes.
-- 🧾 **Evidence** — attach notes and link capture files (RF, NFC, BLE) to the asset
-  they belong to.
+- 🧾 **Evidence** — link real capture files with the native file browser and
+  auto-extract metadata (frequency/preset from `.sub`, device type/UID from `.nfc`),
+  or quick-import the latest capture from your SubGHz/NFC folders.
 - 🕸️ **Relationship graph** — model directed relations between assets
   (`Badge → Reader → Door → Camera`) and see the whole picture on an on-device node
-  graph.
+  graph with labels and directional arrows. Drag nodes into a floorplan layout.
+- 🎯 **Attack path** — the graph highlights the riskiest chain to your
+  highest-value asset, BloodHound-style.
 - 📈 **Risk propagation** — risk flows along access and control edges, so a weak
   reader automatically raises the *effective* risk of the door it controls.
+- 🚩 **Findings** — set a severity and remediation per asset; the Markdown report
+  opens with an executive summary ranked by severity.
 - 📊 **Risk summary** — a per-engagement dashboard with counts, average risk and
   the highest effective-risk asset.
 - 📤 **Reports** — export the whole engagement as machine-readable **JSON** or a
   human-readable **Markdown** report, straight to the SD card.
+- 🔒 **Screen lock** — optional PIN gate for casual protection of your notes.
 - 💾 **100% offline & local** — no companion app, no cloud, no radios used. Your
   findings never leave the SD card.
 
@@ -110,9 +116,13 @@ a single fixed-size structure.
 
 - [x] Per-engagement risk dashboard and highest-risk summary
 - [x] Directional arrows and labels on the graph
-- [ ] Native file browser to pick evidence files (no typing paths)
-- [ ] Auto-extract metadata: frequency/modulation from `.sub`, UID/protocol from `.nfc`
-- [ ] BLE device profiling
+- [x] Riskiest attack-path highlighting
+- [x] Findings (severity + remediation) and executive-summary report
+- [x] Native file browser and metadata extraction from `.sub` / `.nfc`
+- [x] Floorplan node placement
+- [x] Optional PIN screen lock
+- [ ] Deeper BLE device profiling
+- [ ] At-rest encryption of engagement files
 
 ## Development
 

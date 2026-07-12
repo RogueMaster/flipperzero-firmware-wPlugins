@@ -59,6 +59,11 @@ static void text_input_target_info(
         *value = evidence ? evidence->path : "";
         *max_len = RECON_PATH_LEN;
         break;
+    case ReconTextTargetPinSet:
+        *header = "Set PIN";
+        *value = "";
+        *max_len = 16;
+        break;
     default:
         *header = "Text";
         *value = "";
@@ -109,6 +114,14 @@ static void text_input_apply(BreachMapApp* app) {
     case ReconTextTargetEvidencePath:
         if(evidence) strncpy(evidence->path, app->text_buf, RECON_PATH_LEN - 1);
         break;
+    case ReconTextTargetPinSet:
+        if(app->text_buf[0]) {
+            app->pin_hash = breach_pin_hash(app->text_buf);
+            app->pin_set = true;
+            app->unlocked = true;
+            breach_settings_save(app->storage, app->pin_hash, app->pin_set);
+        }
+        return; /* not a session edit; do not touch the session */
     default:
         break;
     }

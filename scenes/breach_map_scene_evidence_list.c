@@ -1,7 +1,8 @@
 #include "../breach_map_i.h"
 
-#define EVIDENCE_LIST_ADD_INDEX 0
-#define EVIDENCE_LIST_OFFSET    1
+#define EVIDENCE_LIST_ADD_INDEX    0
+#define EVIDENCE_LIST_IMPORT_INDEX 1
+#define EVIDENCE_LIST_OFFSET       2
 
 static void breach_map_scene_evidence_list_callback(void* context, uint32_t index) {
     BreachMapApp* app = context;
@@ -25,6 +26,12 @@ void breach_map_scene_evidence_list_on_enter(void* context) {
         submenu,
         "[+] Add evidence",
         EVIDENCE_LIST_ADD_INDEX,
+        breach_map_scene_evidence_list_callback,
+        app);
+    submenu_add_item(
+        submenu,
+        "[v] Import capture",
+        EVIDENCE_LIST_IMPORT_INDEX,
         breach_map_scene_evidence_list_callback,
         app);
 
@@ -63,6 +70,8 @@ bool breach_map_scene_evidence_list_on_event(void* context, SceneManagerEvent ev
                 app->selected_evidence = idx;
                 scene_manager_next_scene(app->scene_manager, BreachMapSceneEvidenceEdit);
             }
+        } else if(event.event == EVIDENCE_LIST_IMPORT_INDEX) {
+            scene_manager_next_scene(app->scene_manager, BreachMapSceneCaptureImport);
         } else {
             app->selected_evidence = event.event - EVIDENCE_LIST_OFFSET;
             scene_manager_next_scene(app->scene_manager, BreachMapSceneEvidenceEdit);

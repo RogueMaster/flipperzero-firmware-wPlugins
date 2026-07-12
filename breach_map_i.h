@@ -10,12 +10,14 @@
 #include <gui/modules/widget.h>
 #include <storage/storage.h>
 #include <notification/notification_messages.h>
+#include <dialogs/dialogs.h>
 
 #include "models/session.h"
 #include "modules/storage_manager.h"
 #include "modules/asset_manager.h"
 #include "modules/graph_engine.h"
 #include "modules/report_generator.h"
+#include "modules/settings.h"
 #include "views/graph_view.h"
 #include "scenes/breach_map_scene.h"
 
@@ -42,6 +44,7 @@ typedef enum {
     ReconTextTargetAssetRemediation,
     ReconTextTargetEvidenceLabel,
     ReconTextTargetEvidencePath,
+    ReconTextTargetPinSet,
 } ReconTextTarget;
 
 typedef enum {
@@ -61,6 +64,7 @@ struct BreachMapApp {
     Gui* gui;
     Storage* storage;
     NotificationApp* notifications;
+    DialogsApp* dialogs;
     ViewDispatcher* view_dispatcher;
     SceneManager* scene_manager;
 
@@ -90,9 +94,18 @@ struct BreachMapApp {
     uint16_t rel_to_id;
     bool rel_pick_to; /* false: choosing source, true: choosing target */
 
+    /* screen lock */
+    uint32_t pin_hash;
+    bool pin_set;
+    bool unlocked;
+
     /* cached session file names for the session list */
     FuriString* session_names[RECON_MAX_SESSION_FILES];
     size_t session_names_count;
+
+    /* capture paths for the quick-import picker */
+    FuriString* import_paths[RECON_MAX_IMPORT];
+    size_t import_count;
 };
 
 /* Save the current session, handling rename (deletes the old file) and clearing

@@ -46,11 +46,15 @@ static BreachMapApp* breach_map_app_alloc(void) {
     app->gui = furi_record_open(RECORD_GUI);
     app->storage = furi_record_open(RECORD_STORAGE);
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
+    app->dialogs = furi_record_open(RECORD_DIALOGS);
 
     app->session = session_alloc();
     app->message_text = furi_string_alloc();
     app->session_file[0] = '\0';
     app->session_names_count = 0;
+    app->import_count = 0;
+    app->unlocked = false;
+    breach_settings_load(app->storage, &app->pin_hash, &app->pin_set);
 
     app->view_dispatcher = view_dispatcher_alloc();
     app->scene_manager = scene_manager_alloc(&breach_map_scene_handlers, app);
@@ -110,9 +114,13 @@ static void breach_map_app_free(BreachMapApp* app) {
     for(size_t i = 0; i < app->session_names_count; i++) {
         furi_string_free(app->session_names[i]);
     }
+    for(size_t i = 0; i < app->import_count; i++) {
+        furi_string_free(app->import_paths[i]);
+    }
     furi_string_free(app->message_text);
     session_free(app->session);
 
+    furi_record_close(RECORD_DIALOGS);
     furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_STORAGE);
     furi_record_close(RECORD_GUI);
