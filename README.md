@@ -107,14 +107,3 @@ The HID character map assumes a US keyboard layout. Special characters may be
 different when the target computer uses another keyboard layout.
 
 Idea by: Evgeniy Raev.
-
-## Publishing to the Apps Catalog
-
-Before submitting, add an open-source `LICENSE` file and capture at least one
-unmodified screenshot with qFlipper at `screenshots/flp0.png`. Push the complete
-source to a public GitHub repository, then replace the repository URL and commit
-SHA in `catalog/manifest.template.yml`.
-
-Fork `flipperdevices/flipper-application-catalog`, copy the completed manifest
-to `applications/Bluetooth/password_keyboard/manifest.yml`, validate it using the
-catalog's `tools/bundle.py` instructions, and open a pull request.

@@ -10,5 +10,7 @@ App(
     fap_icon="password_keyboard_10px.png",
     fap_description="A BLE password keyboard with concealed daily-limited passwords",
     fap_author="Evgeniy Raev",
+    fap_weburl="https://github.com/evgeniyraev/password_keyboard",
     fap_libs=["ble_profile"],
+    targets=["f7"],
 )
