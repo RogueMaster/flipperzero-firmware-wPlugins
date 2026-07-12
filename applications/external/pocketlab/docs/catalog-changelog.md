@@ -1,3 +1,12 @@
+## 1.3
+
+- 6 advanced labs with deeper per-subsystem topics and extra quizzes: MIFARE
+  Keys (MFKey32, nested attacks), T5577 cloning, IR protocols, iButton cloning,
+  advanced Bad USB payloads, and logic/bus sniffing. Now 36 labs.
+- Selected home tiles use a calm breathing cursor; Quiz and Labs navigation
+  clicks softly.
+- Fixed the Bluetooth glyph to match the real logo.
+
 ## 1.2.1
 
 - Home screen scroll hints are back at the top and bottom as small chevrons.

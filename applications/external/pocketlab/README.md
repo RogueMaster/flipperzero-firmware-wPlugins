@@ -6,6 +6,7 @@
 
 **Gamified, on-device learning for [Flipper Zero](https://github.com/flipperdevices).**
 
+[![Flipper Apps Catalog](https://img.shields.io/badge/Flipper%20Apps%20Catalog-PocketLab-FF8200)](https://lab.flipper.net/apps/pocketlab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/PerfectoWeb/flipper-pocketlab?color=FF8200&label=release)](https://github.com/PerfectoWeb/flipper-pocketlab/releases/latest)
 [![Flipper](https://img.shields.io/badge/Flipper-Official%20FW-FF8200)](https://flipperzero.one/)
@@ -24,8 +25,9 @@ time.
 
 ## ✨ Features
 
-- 🎓 **30 labs** across 11 tracks: IR, Sub-GHz, RFID, NFC, iButton, Bad USB,
-  GPIO, Bluetooth, security, system and more
+- 🎓 **36 labs** across 11 tracks: IR, Sub-GHz, RFID, NFC, iButton, Bad USB,
+  GPIO, Bluetooth, security, system and more – including **advanced deep-dives**
+  (MIFARE key recovery / MFKey32, T5577 cloning, IR protocols, and more)
 - 🎲 **Randomized quizzes** – a pool of distractors, shuffled every attempt, so
   you learn the answer, not its position
 - 🧠 **Quiz mode** – a random exam drawn from the labs you've completed, scored
@@ -53,14 +55,20 @@ time.
 
 ## 📥 Installation
 
-### A. Quick install (recommended)
+### A. Flipper Apps Catalog (easiest)
+
+Open **[PocketLab on the Flipper Apps Catalog »](https://lab.flipper.net/apps/pocketlab)**
+and hit **Install** from the Flipper mobile app or qFlipper, or find it right on
+the device under **Apps → Tools**.
+
+### B. Manual install
 
 1. Download **`pocketlab.fap`** from the
    [latest release »](https://github.com/PerfectoWeb/flipper-pocketlab/releases/latest/download/pocketlab.fap)
 2. Copy it to your Flipper's SD card into `apps/Tools/`
 3. On the device open **Apps → Tools → PocketLab** 🎉
 
-### B. Build from source (ufbt)
+### C. Build from source (ufbt)
 
 <details>
 <summary>Show build instructions</summary>

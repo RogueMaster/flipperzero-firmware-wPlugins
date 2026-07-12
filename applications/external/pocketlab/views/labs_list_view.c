@@ -4,15 +4,18 @@
 #include <gui/elements.h>
 
 #include "../helpers/pocketlab_content.h"
+#include "../helpers/pocketlab_sound.h"
 
 #define LABS_ROW_HEIGHT   16
 #define LABS_VISIBLE_ROWS 4
-#define LABS_MAX_ITEMS    48 // tracks + labs, with headroom
+#define LABS_MAX_ITEMS    72 // tracks + labs, with headroom
 
 struct LabsListView {
     View* view;
     LabsListViewCallback callback;
     void* context;
+    NotificationApp* notifications;
+    bool sound_enabled;
 };
 
 // A display row is either a track header or a lab.
@@ -164,12 +167,14 @@ static bool labs_list_view_input_callback(InputEvent* event, void* context) {
 
     bool consumed = false;
     bool selected = false;
+    bool play_nav = false;
     uint32_t lab_index = 0;
 
     with_view_model(
         instance->view,
         LabsListModel * model,
         {
+            const size_t prev = model->selected;
             if(event->key == InputKeyUp) {
                 for(size_t j = model->selected; j-- > 0;) {
                     if(!model->items[j].is_header) {
@@ -193,9 +198,13 @@ static bool labs_list_view_input_callback(InputEvent* event, void* context) {
                 lab_index = model->items[model->selected].value;
                 consumed = true;
             }
+            play_nav = !selected && model->selected != prev;
         },
         true);
 
+    if(play_nav) {
+        pocketlab_sound_play(instance->notifications, instance->sound_enabled, PocketLabSoundType);
+    }
     if(selected && instance->callback) {
         instance->callback(instance->context, lab_index);
     }
@@ -208,6 +217,8 @@ LabsListView* labs_list_view_alloc(void) {
     instance->view = view_alloc();
     instance->callback = NULL;
     instance->context = NULL;
+    instance->notifications = NULL;
+    instance->sound_enabled = false;
 
     view_set_context(instance->view, instance);
     view_allocate_model(instance->view, ViewModelTypeLocking, sizeof(LabsListModel));
@@ -237,8 +248,15 @@ void labs_list_view_set_callback(
     instance->context = context;
 }
 
-void labs_list_view_configure(LabsListView* instance, uint64_t completed_mask, uint32_t selected) {
+void labs_list_view_configure(
+    LabsListView* instance,
+    uint64_t completed_mask,
+    uint32_t selected,
+    NotificationApp* notifications,
+    bool sound_enabled) {
     furi_assert(instance);
+    instance->notifications = notifications;
+    instance->sound_enabled = sound_enabled;
     with_view_model(
         instance->view,
         LabsListModel * model,

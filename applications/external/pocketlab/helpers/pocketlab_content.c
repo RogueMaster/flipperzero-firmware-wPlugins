@@ -879,6 +879,267 @@ static const PocketLabStep weather_steps[] = {
     {.type = PocketLabStepReward},
 };
 
+// ---- Advanced labs (deeper per-subsystem topics) ---------------------------
+
+static const PocketLabStep nfckeys_steps[] = {
+    {
+        .type = PocketLabStepText,
+        .title = "Sector keys",
+        .body = "Each MIFARE Classic sector holds a Key A and Key B in its trailer.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "Dictionary first",
+        .body = "Flipper tries a list of common keys; many cards still use defaults.",
+    },
+    {
+        .type = PocketLabStepQuiz,
+        .title = "A sector is unlocked by its:",
+        .correct = "Key",
+        .distractors = {"Colour", "Voltage", "UID only", "PIN code", "Antenna"},
+        .distractor_count = 5,
+        .feedback_ok = "Right, Key A or Key B.",
+        .feedback_no = "It is unlocked by a key.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "MFKey32",
+        .body = "Emulate a card to a reader, capture nonces, recover keys offline.",
+    },
+    {
+        .type = PocketLabStepQuiz,
+        .title = "MFKey32 recovers keys from:",
+        .correct = "Reader nonces",
+        .distractors = {"Card photos", "GPS", "Bluetooth", "The PIN", "Screen taps"},
+        .distractor_count = 5,
+        .feedback_ok = "Yes, from captured reader nonces.",
+        .feedback_no = "It uses captured reader nonces.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "Nested & hardnested",
+        .body = "One known key unlocks others; hardened cards fix the nonce to resist it.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "Ethics",
+        .body = "Recover keys only from cards you own. Cloning access is illegal.",
+    },
+    {
+        .type = PocketLabStepTry,
+        .title = "Try it",
+        .body = "NFC, Detect Reader on your own reader, then run MFKey.",
+    },
+    {.type = PocketLabStepReward},
+};
+
+static const PocketLabStep t5577_steps[] = {
+    {
+        .type = PocketLabStepText,
+        .title = "The T5577 blank",
+        .body = "A writable 125 kHz chip that can mimic EM4100, HID Prox or Indala.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "Clone flow",
+        .body = "Read the source tag, save it, then write it onto a T5577 blank.",
+    },
+    {
+        .type = PocketLabStepQuiz,
+        .title = "A T5577 is special because it is:",
+        .correct = "Writable",
+        .distractors = {"Encrypted", "13.56 MHz", "Optical", "A battery", "Bluetooth"},
+        .distractor_count = 5,
+        .feedback_ok = "Right, you can write to it.",
+        .feedback_no = "It is a writable blank.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "LF has no crypto",
+        .body = "EM4100 sends a fixed ID with no auth, so LF access control is weak.",
+    },
+    {
+        .type = PocketLabStepQuiz,
+        .title = "EM4100 protects its ID with:",
+        .correct = "Nothing",
+        .distractors = {"AES", "A password", "Rolling code", "A key", "TLS"},
+        .distractor_count = 5,
+        .feedback_ok = "Correct, it has no security.",
+        .feedback_no = "It has no protection at all.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "Ethics",
+        .body = "Clone only your own fobs. Copying building access is not allowed.",
+    },
+    {
+        .type = PocketLabStepTry,
+        .title = "Try it",
+        .body = "125 kHz RFID, Read your fob, Save, then Write to a T5577.",
+    },
+    {.type = PocketLabStepReward},
+};
+
+static const PocketLabStep irproto_steps[] = {
+    {
+        .type = PocketLabStepText,
+        .title = "Parsed vs raw",
+        .body = "Remotes speak protocols; Flipper decodes known ones or stores raw timings.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "NEC & RC5",
+        .body = "NEC carries an address and command; RC5 and SIRC are other common ones.",
+    },
+    {
+        .type = PocketLabStepQuiz,
+        .title = "A NEC frame carries:",
+        .correct = "Address + command",
+        .distractors = {"Audio", "Video", "Voltage", "A photo", "GPS"},
+        .distractor_count = 5,
+        .feedback_ok = "Right, address and command bytes.",
+        .feedback_no = "It carries address and command.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "Learn a button",
+        .body = "Add a custom remote by capturing one raw signal per button you press.",
+    },
+    {
+        .type = PocketLabStepQuiz,
+        .title = "Universal TV-off works by:",
+        .correct = "Trying many codes",
+        .distractors = {"One secret code", "Wi-Fi", "Bluetooth", "A magnet", "Sound"},
+        .distractor_count = 5,
+        .feedback_ok = "Yes, it brute-forces a code list.",
+        .feedback_no = "It tries many known codes.",
+    },
+    {
+        .type = PocketLabStepTry,
+        .title = "Try it",
+        .body = "Infrared, Learn New Remote, capture a button from your own remote.",
+    },
+    {.type = PocketLabStepReward},
+};
+
+static const PocketLabStep ibtnwrite_steps[] = {
+    {
+        .type = PocketLabStepText,
+        .title = "Writable keys",
+        .body = "RW1990 and similar blanks let you save a read iButton ID onto them.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "Dallas ROM",
+        .body = "A Dallas key is a family byte, a unique serial and a CRC check.",
+    },
+    {
+        .type = PocketLabStepQuiz,
+        .title = "An iButton ID is:",
+        .correct = "Not encrypted",
+        .distractors = {"AES", "A password", "A radio code", "A PIN", "A song"},
+        .distractor_count = 5,
+        .feedback_ok = "Right, so it can be copied.",
+        .feedback_no = "It is unencrypted, so copyable.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "The CRC",
+        .body = "A wrong CRC means the reader rejects the key, so it must copy exactly.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "Ethics",
+        .body = "Copy only your own keys. Duplicating building keys needs permission.",
+    },
+    {
+        .type = PocketLabStepTry,
+        .title = "Try it",
+        .body = "iButton, Read your key, Save, then Write to a blank.",
+    },
+    {.type = PocketLabStepReward},
+};
+
+static const PocketLabStep usbadv_steps[] = {
+    {
+        .type = PocketLabStepText,
+        .title = "OS-aware payloads",
+        .body = "Good scripts branch for Windows, macOS or Linux, since shortcuts differ.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "Modifiers",
+        .body = "GUI r opens Run on Windows; combine ALT, CTRL and SHIFT for hotkeys.",
+    },
+    {
+        .type = PocketLabStepQuiz,
+        .title = "DELAY in a payload gives the PC:",
+        .correct = "Time to react",
+        .distractors = {"More colour", "Volume", "Encryption", "GPS", "Battery"},
+        .distractor_count = 5,
+        .feedback_ok = "Right, timing keeps it reliable.",
+        .feedback_no = "It gives the PC time to react.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "Detection",
+        .body = "Security tools flag machine-fast typing, so realistic tests add delays.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "Consent",
+        .body = "Run payloads only on computers you own or are authorised to test.",
+    },
+    {
+        .type = PocketLabStepTry,
+        .title = "Try it",
+        .body = "Bad USB, load a demo script, run it on your own PC.",
+    },
+    {.type = PocketLabStepReward},
+};
+
+static const PocketLabStep gpiologic_steps[] = {
+    {
+        .type = PocketLabStepText,
+        .title = "Reading buses",
+        .body = "Flipper can sniff serial buses on its GPIO to see how devices talk.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "UART, SPI, I2C",
+        .body = "UART needs a shared ground; SPI and I2C add clock and select lines.",
+    },
+    {
+        .type = PocketLabStepQuiz,
+        .title = "UART between two boards needs a common:",
+        .correct = "Ground",
+        .distractors = {"Antenna", "Battery", "Screen", "Key", "Speaker"},
+        .distractor_count = 5,
+        .feedback_ok = "Right, a shared ground reference.",
+        .feedback_no = "They must share a ground.",
+    },
+    {
+        .type = PocketLabStepText,
+        .title = "Mind the voltage",
+        .body = "Flipper GPIO is 3.3V; a 5V line can damage the pins without a divider.",
+    },
+    {
+        .type = PocketLabStepQuiz,
+        .title = "Flipper GPIO logic level is:",
+        .correct = "3.3V",
+        .distractors = {"5V", "12V", "1.5V", "230V", "9V"},
+        .distractor_count = 5,
+        .feedback_ok = "Right, 3.3V logic.",
+        .feedback_no = "It is 3.3V logic.",
+    },
+    {
+        .type = PocketLabStepTry,
+        .title = "Try it",
+        .body = "Wire a 3.3V UART device to GPIO and open the UART bridge.",
+    },
+    {.type = PocketLabStepReward},
+};
+
 const PocketLabLab pocketlab_labs[] = {
     {
         .id = "what-is-flipper",
@@ -1036,7 +1297,7 @@ const PocketLabLab pocketlab_labs[] = {
         .badge = "BLE Tinkerer",
         .track = PocketLabTrackBluetooth,
         .xp = 40,
-        .icon = {24, 40, 74, 52, 56, 52, 74, 40, 24, 0},
+        .icon = {24, 40, 74, 52, 24, 52, 74, 40, 24, 0},
         .steps = ble_steps,
         .step_count = COUNT_OF(ble_steps),
     },
@@ -1176,9 +1437,69 @@ const PocketLabLab pocketlab_labs[] = {
         .badge = "Remote Master",
         .track = PocketLabTrackBluetooth,
         .xp = 40,
-        .icon = {24, 40, 74, 52, 56, 52, 74, 40, 24, 0},
+        .icon = {24, 40, 74, 52, 24, 52, 74, 40, 24, 0},
         .steps = bleremote_steps,
         .step_count = COUNT_OF(bleremote_steps),
+    },
+    {
+        .id = "nfc-keys",
+        .title = "MIFARE Keys",
+        .badge = "Key Cracker",
+        .track = PocketLabTrackNfc,
+        .xp = 60,
+        .icon = {128, 320, 672, 336, 680, 336, 672, 320, 128, 0},
+        .steps = nfckeys_steps,
+        .step_count = COUNT_OF(nfckeys_steps),
+    },
+    {
+        .id = "rfid-t5577",
+        .title = "T5577 Cloning",
+        .badge = "Clone Smith",
+        .track = PocketLabTrackRfid,
+        .xp = 55,
+        .icon = {0, 510, 258, 282, 258, 322, 290, 510, 0, 0},
+        .steps = t5577_steps,
+        .step_count = COUNT_OF(t5577_steps),
+    },
+    {
+        .id = "ir-protocols",
+        .title = "IR Protocols",
+        .badge = "Signal Decoder",
+        .track = PocketLabTrackInfrared,
+        .xp = 55,
+        .icon = {0, 6, 38, 86, 86, 86, 38, 6, 0, 0},
+        .steps = irproto_steps,
+        .step_count = COUNT_OF(irproto_steps),
+    },
+    {
+        .id = "ibutton-write",
+        .title = "iButton Cloning",
+        .badge = "Blank Writer",
+        .track = PocketLabTrackIbutton,
+        .xp = 55,
+        .icon = {384, 576, 576, 384, 64, 32, 16, 24, 20, 6},
+        .steps = ibtnwrite_steps,
+        .step_count = COUNT_OF(ibtnwrite_steps),
+    },
+    {
+        .id = "usb-advanced",
+        .title = "Advanced Payloads",
+        .badge = "Script Smith",
+        .track = PocketLabTrackUsb,
+        .xp = 55,
+        .icon = {252, 258, 717, 717, 513, 633, 330, 180, 120, 0},
+        .steps = usbadv_steps,
+        .step_count = COUNT_OF(usbadv_steps),
+    },
+    {
+        .id = "gpio-logic",
+        .title = "Logic & Buses",
+        .badge = "Bus Analyst",
+        .track = PocketLabTrackGpio,
+        .xp = 55,
+        .icon = {146, 146, 146, 1023, 513, 341, 513, 1023, 0, 0},
+        .steps = gpiologic_steps,
+        .step_count = COUNT_OF(gpiologic_steps),
     },
 };
 

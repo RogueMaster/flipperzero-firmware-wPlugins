@@ -4,7 +4,12 @@ void pocketlab_scene_labs_on_enter(void* context) {
     PocketLab* app = context;
     const uint32_t selected =
         scene_manager_get_scene_state(app->scene_manager, PocketLabSceneLabs);
-    labs_list_view_configure(app->labs_list_view, app->state.completed_mask, selected);
+    labs_list_view_configure(
+        app->labs_list_view,
+        app->state.completed_mask,
+        selected,
+        app->notifications,
+        app->state.sound != 0);
     view_dispatcher_switch_to_view(app->view_dispatcher, PocketLabViewLabs);
 }
 

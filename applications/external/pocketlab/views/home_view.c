@@ -109,8 +109,11 @@ static void home_view_draw_callback(Canvas* canvas, void* context) {
         const uint8_t w = full ? (uint8_t)(HOME_TILE_W * 2 + HOME_GAP_X) : HOME_TILE_W;
 
         if(sel) {
+            // Breathing cursor: the black fill briefly shrinks by 1px all around.
+            const uint8_t in = (model->anim % 14) >= 12 ? 1 : 0;
             canvas_set_color(canvas, ColorBlack);
-            canvas_draw_rbox(canvas, x, y, w, HOME_TILE_H, HOME_RADIUS);
+            canvas_draw_rbox(
+                canvas, x + in, y + in, w - 2 * in, HOME_TILE_H - 2 * in, HOME_RADIUS);
             canvas_set_color(canvas, ColorWhite);
         } else {
             canvas_draw_rframe(canvas, x, y, w, HOME_TILE_H, HOME_RADIUS);
@@ -129,18 +132,6 @@ static void home_view_draw_callback(Canvas* canvas, void* context) {
             AlignLeft,
             AlignCenter,
             model->items[i]);
-
-        // Twinkling "stars" of dead pixels on the selected tile's black field.
-        if(sel) {
-            canvas_set_color(canvas, ColorWhite);
-            for(uint8_t s = 0; s < 4; s++) {
-                const uint32_t h = (model->anim / 3 + s * 131 + (uint32_t)i * 17) * 2654435761u;
-                if((h >> 29) % 4 != 0) continue; // flicker: visible only sometimes
-                const uint8_t sxp = x + 3 + (h >> 5) % (w - 6);
-                const uint8_t syp = y + 3 + (h >> 15) % (HOME_TILE_H - 6);
-                canvas_draw_dot(canvas, sxp, syp);
-            }
-        }
 
         canvas_set_color(canvas, ColorBlack);
     }

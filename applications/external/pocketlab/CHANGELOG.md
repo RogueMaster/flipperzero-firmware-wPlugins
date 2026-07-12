@@ -3,6 +3,30 @@
 All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.3] - 2026-07-09
+
+### Added
+
+- **6 advanced labs** that go deeper into each subsystem, with extra quizzes:
+  - **MIFARE Keys** – sector keys, the key dictionary, MFKey32 nonce recovery
+    and nested/hardnested attacks.
+  - **T5577 Cloning** – writing 125 kHz blanks and why LF access control is weak.
+  - **IR Protocols** – NEC/RC5, parsed vs raw signals and learning a button.
+  - **iButton Cloning** – RW1990 blanks, the Dallas ROM and its CRC.
+  - **Advanced Payloads** – OS-aware Bad USB scripts, modifiers and detection.
+  - **Logic & Buses** – sniffing UART/SPI/I2C and the 3.3V logic level.
+- Content is now **36 labs**; every new quiz feeds the Quiz-mode pool.
+
+### Changed
+
+- Selected home tiles now show a calm "breathing" cursor instead of the
+  twinkling-pixel effect.
+- Moving through the Quiz answers and the Labs list now plays a quiet click.
+
+### Fixed
+
+- The Bluetooth glyph now pinches at the waist, matching the real logo.
+
 ## [1.2.1] - 2026-07-09
 
 ### Fixed

@@ -259,9 +259,13 @@ static bool exam_view_input_callback(InputEvent* event, void* context) {
                 if(event->key == InputKeyUp) {
                     model->quiz_sel =
                         (model->quiz_sel + POCKETLAB_QUIZ_OPTIONS - 1) % POCKETLAB_QUIZ_OPTIONS;
+                    play_sound = true;
+                    sound = PocketLabSoundType; // quiet navigation tick
                     consumed = true;
                 } else if(event->key == InputKeyDown) {
                     model->quiz_sel = (model->quiz_sel + 1) % POCKETLAB_QUIZ_OPTIONS;
+                    play_sound = true;
+                    sound = PocketLabSoundType;
                     consumed = true;
                 } else if(event->key == InputKeyOk) {
                     model->feedback = true;

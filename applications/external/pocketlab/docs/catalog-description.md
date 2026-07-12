@@ -5,7 +5,7 @@ your Flipper's own features, then reward you with XP, levels and badges.
 
 ## Features
 
-- **30 labs** across 11 tracks: IR, Sub-GHz, 125 kHz RFID, NFC, iButton, Bad USB,
+- **36 labs** across 11 tracks: IR, Sub-GHz, 125 kHz RFID, NFC, iButton, Bad USB,
   GPIO/UART, Bluetooth, security, system and more.
 - **Randomized quizzes** - a pool of distractors, shuffled every attempt, so you
   learn the answer, not its position.
