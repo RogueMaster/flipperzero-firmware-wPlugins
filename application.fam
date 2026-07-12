@@ -1,0 +1,14 @@
+App(
+    appid="password_keyboard",
+    name="Password Keyboard",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="password_keyboard_app",
+    stack_size=4 * 1024,
+    sources=["password_keyboard.c", "zk_crypto.c", "zk_settings.c", "zk_vault.c"],
+    fap_version="0.1",
+    fap_category="Bluetooth",
+    fap_icon="password_keyboard_10px.png",
+    fap_description="A BLE password keyboard with concealed daily-limited passwords",
+    fap_author="Evgeniy Raev",
+    fap_libs=["ble_profile"],
+)
