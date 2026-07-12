@@ -1,15 +1,18 @@
 App(
-    appid="paranoia", 
-    name="Paranoia", 
+    appid="paranoia",
+    name="Paranoia",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="paranoia_app",
-    stack_size=2 * 1024,
+    # Raised from 2 KiB: Momentum's interrupt frames are slightly larger,
+    # and we now run NFC acquire/release which has a deeper call stack.
+    stack_size=4 * 1024,
     fap_category="Tools",
-    fap_version="0.1",
-    fap_icon="paranoia.png",  
-    fap_description="Anti-Surveillance Field Tool that scans for hidden wireless cameras, RFID skimmers, and IR monitoring devices",
-    fap_author="C0d3-5t3w",
+    fap_version=(0, 2),
+    fap_icon="paranoia.png",
+    fap_description="Anti-Surveillance Field Tool: scans RF, NFC and IR for hidden cameras, skimmers and monitoring devices",
+    fap_author="C0d3-5t3w (updated for Momentum by Claude)",
     fap_weburl="https://github.com/C0d3-5t3w/flipper-paranoia",
     fap_icon_assets="images",
-    requires=["gui", "notification", "furi_hal_subghz", "furi_hal_nfc", "furi_hal_infrared"],
+    # NOTE: 'requires' is not a valid ufbt/fbt FAM key — removed from original.
+    # Hardware access is granted implicitly via the HAL headers.
 )
