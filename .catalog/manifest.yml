@@ -8,5 +8,5 @@ short_description: Flipcraft is a real voxel survival sandbox for Flipper Zero
 description: "@APPSTORE.md"
 changelog: "@CHANGELOG.md"
 screenshots:
-  - ".catalog/screenshots/index.png"
+  - ".catalog/screenshots/gameplay.png"
   - ".catalog/screenshots/inventory.png"
