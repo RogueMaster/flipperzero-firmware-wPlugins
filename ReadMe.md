@@ -78,6 +78,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Paranoia WIP v0.2 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-paranoia)
 - Sub-GHz: Fix for Sub-GHz Add Manually furi check error & Launch from Apps list (By RogueMaster)
 - Sub-GHz: [Fix for Out of Memory crashes in Sub-Ghz (By Lechnio)](https://github.com/Next-Flip/Momentum-Firmware/pull/569)
+- Added: [BreachMap v1.0 (By Gerijacki)](https://github.com/Gerijacki/BreachMap)
 
 <a name="release"></a>
 
@@ -389,6 +390,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [BMI Air Mouse v1.4 (By ginkage)](https://github.com/ginkage/FlippAirMouse/) `Req: BMI160 or GY-521`
 - [BPM Tapper v1.3 (By panki27)](https://github.com/panki27/bpm-tapper)
 - [Brainfuck v1.5 (By nymda)](https://github.com/nymda/FlipperZeroBrainfuck)
+- [BreachMap v1.0 (By Gerijacki)](https://github.com/Gerijacki/BreachMap)
 - [BT Audio v1.2 (By FatherDivine)](https://github.com/FatherDivine/flipperzero-mayhem/tree/bt_audio/flipper_companion_apps/bt_audio) `Req: ESP32 w BT` & [This FW](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/external/bt_audio/.esp32_firmware)
 - [BT Remote for Kodi v1.2 (Remixed By coded-with-claws)](https://github.com/coded-with-claws/flipperzero-tools/tree/main/applications_user/bt_hid_kodi)
 - [BT Trigger v1.5 (By Nem0oo)](https://github.com/Nem0oo/flipper-zero_ios-bluetooth-trigger)
