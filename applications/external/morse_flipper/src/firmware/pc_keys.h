@@ -17,6 +17,7 @@ typedef enum {
     MorsePcKeyZ,
     MorsePcKeyC,
     MorsePcKeyW,
+    MorsePcKeyY,
     MorsePcKeyEnter,
     MorsePcKeyNumEnter,
     MorsePcKeyOpenBracket,

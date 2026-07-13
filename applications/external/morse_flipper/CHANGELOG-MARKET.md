@@ -1,3 +1,6 @@
+v0.1.76:
+- Add AZERTY and QWERTZ keyboard presets for PC keyer modes that pass through host OS keymaps correctly.
+
 v0.1.75:
 - Move custom character files and Ham Keyer logs into the app data folder expected by the Flipper app catalog.
 
