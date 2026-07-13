@@ -1,0 +1,4 @@
+# Copy this file to /ext/apps_data/password_keyboard/import.txt on the Flipper.
+# Each imported password is a regular (viewable) password.
+Work email|replace-with-your-password
+Router|replace-with-another-password

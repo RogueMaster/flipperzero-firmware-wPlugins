@@ -1,0 +1,8 @@
+.venv/
+.vscode/
+.DS_Store
+dist/
+.ufbt/
+*.fap
+*.o
+*.d
