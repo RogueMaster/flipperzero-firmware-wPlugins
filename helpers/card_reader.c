@@ -116,7 +116,11 @@ static bool card_reader_probe_emv(Iso14443_4aPoller* poller) {
         if(n >= 2) {
             uint8_t sw1 = bit_buffer_get_byte(rx, n - 2);
             uint8_t sw2 = bit_buffer_get_byte(rx, n - 1);
-            is_emv = (sw1 == 0x90 && sw2 == 0x00); // FCI returned = payment card
+            uint8_t first = bit_buffer_get_byte(rx, 0);
+            /* A payment card answered the SELECT PPSE. Accept any real-world
+             * success: 0x9000 (OK), 0x61xx (more data available), or a body
+             * that starts with the FCI template tag 0x6F (directory returned). */
+            is_emv = (sw1 == 0x90 && sw2 == 0x00) || (sw1 == 0x61) || (first == 0x6F);
         }
     }
 
@@ -284,6 +288,14 @@ static int32_t card_reader_worker(void* context) {
     } else if(r.base == NfcProtocolIso14443_3a) {
         read_iso3a_uid(cr);
         did_read = true;
+        /* The scanner reported only bare 3A, but the SAK says the card is
+         * ISO14443-4 (ISO-DEP) capable - a smartcard the sweep didn't climb
+         * into. Re-read via the 4A poller so we can EMV-probe it. */
+        cr_lock(cr);
+        bool undetected_isodep =
+            (r.top == NfcProtocolIso14443_3a) && cr->poll_ok && (cr->tmp_sak & 0x20u);
+        cr_unlock(cr);
+        if(undetected_isodep) read_iso4a(cr);
     }
     if(did_read) {
         cr_lock(cr);

@@ -39,10 +39,10 @@ The **technology decides the crypto**, so that's what Warden grades. A Mifare Cl
 
 | Card technology | Grade | Band | Why |
 |---|:---:|:---:|---|
-| **Mifare DESFire** EV1/EV2/EV3 | **A** | 🟢 Secure | AES-128 with mutual authentication + diversified per-card keys. No practical clone. |
-| **Contactless bank card** (EMV) | **A** | 🟢 Secure | Verified by a live SELECT PPSE probe. Signs a one-time cryptogram per tap — can't be replayed or cloned for contactless. |
+| **Mifare DESFire** EV1/EV2/EV3 | **A+** | 🟢 Secure | AES-128 with mutual authentication + diversified per-card keys. No practical clone. |
+| **Contactless bank card** (EMV) | **A+** | 🟢 Secure | Verified by a live SELECT PPSE probe. Signs a one-time cryptogram per tap — can't be replayed or cloned for contactless. |
 | **FeliCa** | **A** | 🟢 Secure | Mutual authentication and encrypted sessions. Backs transit & e-money. |
-| **ISO-DEP smartcard** (14443-4A/B) | **B** | 🟡 Caution | Full APDU smartcard that *isn't* EMV (transit / ID / corporate). Strength lives in the on-card applet. |
+| **ISO-DEP smartcard** (14443-4A/B) | **A** | 🟢 Secure | Real APDU smartcard (EMV / e-passport / secure-ID family). Runs on-card crypto — no clone at this layer. |
 | **Mifare Plus** | **B** | 🟡 Caution | Proper AES at SL3 — but emulates a **broken Classic** at SL1, and you can't see which. |
 | **ISO 15693** / iCLASS-class | **D** | 🟠 Weak | Often UID-only; plain ICODE/SLIX memory reads out. Legacy HID iCLASS shares a leaked key. |
 | **Mifare Ultralight / NTAG** | **D** | 🟠 Weak | No encryption by default — memory and UID copy onto a magic tag. |

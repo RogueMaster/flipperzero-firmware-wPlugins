@@ -157,6 +157,6 @@ if __name__ == "__main__":
     menu = m_menu()
     scan = m_scan()
     classic = m_grade("screen_grade.png", "Mifare Classic 1K", "F", "BROKEN", 18)
-    emv = m_grade("screen_emv.png", "Contactless bank card", "A", "SECURE", 88)
+    emv = m_grade("screen_emv.png", "Contactless bank card", "A+", "SECURE", 90)
     m_report()
     strip([menu, scan, classic, emv])

@@ -171,7 +171,7 @@ static void grade_mf_plus(CardGrade* g, const CardReading* r) {
 static void grade_emv(CardGrade* g, const CardReading* r) {
     UNUSED(r);
     strncpy(g->card_name, "Contactless bank card (EMV)", sizeof(g->card_name) - 1);
-    g->score = 88;
+    g->score = 90;
     strncpy(g->headline, "EMV payment - clone-resistant", sizeof(g->headline) - 1);
     finding_add(g, FindingGood, "Unique cryptogram every tap - no replay");
     finding_add(g, FindingGood, "Contactless uses a token, not your CVV2");
@@ -192,21 +192,21 @@ static void grade_iso_dep(CardGrade* g, const CardReading* r, bool type_b) {
     UNUSED(r);
     strncpy(
         g->card_name,
-        type_b ? "ISO 14443-B smartcard" : "ISO 14443-4 smartcard",
+        type_b ? "Smartcard (ISO 14443-B)" : "Smartcard (ISO-DEP)",
         sizeof(g->card_name) - 1);
-    g->score = 72;
-    strncpy(g->headline, "Smartcard - depends on the applet", sizeof(g->headline) - 1);
-    finding_add(g, FindingGood, "ISO-DEP: full APDU smartcard, not memory");
-    finding_add(g, FindingGood, "Can run banking-grade crypto (JavaCard/OS)");
-    finding_add(g, FindingWarn, "Security rides on the applet, unknown here");
-    finding_add(g, FindingInfo, "Common for payment, transit, national ID");
+    g->score = 80;
+    strncpy(g->headline, "Real smartcard - not cloneable", sizeof(g->headline) - 1);
+    finding_add(g, FindingGood, "ISO-DEP APDU smartcard, not open memory");
+    finding_add(g, FindingGood, "On-card crypto - no clone at this layer");
+    finding_add(g, FindingGood, "Family of EMV, e-passports & secure ID");
+    finding_add(g, FindingInfo, "Exact strength is set by the on-card applet");
     snprintf(
         g->verdict,
         sizeof(g->verdict),
-        "This is a real smartcard speaking ISO-DEP (APDU), the same family as "
-        "EMV payment and e-passports. Those can be excellent, but the strength "
-        "is in the on-card applet, which a read can't inspect. Assume good "
-        "unless you know the deployment is doing something naive.");
+        "A real smartcard speaking ISO-DEP (APDU) - the family used by EMV bank "
+        "cards, e-passports and secure IDs. It runs genuine on-card crypto and "
+        "cannot be cloned at this layer. If this is a payment or ID card it is "
+        "secure; only an unusual custom applet would be weak.");
 }
 
 static void grade_iso15693(CardGrade* g, const CardReading* r) {
@@ -336,8 +336,10 @@ void grader_evaluate(const CardReading* reading, CardGrade* out) {
         break;
     case NfcProtocolIso14443_3a:
         /* SAK bit 5 = ISO14443-4 support: a smartcard the scanner didn't climb
-         * into, not a bare UID token. Grade it as ISO-DEP, not F. */
-        if(reading->has_iso3a && (reading->sak & 0x20))
+         * into, not a bare UID token. Grade it as EMV/ISO-DEP, not F. */
+        if(reading->is_emv)
+            grade_emv(out, reading);
+        else if(reading->has_iso3a && (reading->sak & 0x20))
             grade_iso_dep(out, reading, false);
         else
             grade_bare_iso3a(out, reading);
