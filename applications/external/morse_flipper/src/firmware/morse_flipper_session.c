@@ -564,7 +564,7 @@ static void morse_flipper_session_title(const MorseFlipperApp* app, char* out, s
         return;
     }
 
-    if(app->trainer.custom_set_idx == 0U) {
+    if(morse_flipper_effective_trainer_custom_set_idx(app) == 0U) {
         morse_trainer_lesson_label(
             morse_trainer_lesson(&app->trainer), lesson_label, sizeof(lesson_label));
         snprintf(out, out_sz, "Lesson %s", lesson_label);

@@ -452,7 +452,7 @@ void morse_flipper_cycle_trainer_value(MorseFlipperApp* app, int dir) {
         break;
     default:
         morse_flipper_ensure_custom_sets_loaded(app);
-        next = (int)app->trainer.custom_set_idx + dir;
+        next = (int)morse_flipper_effective_trainer_custom_set_idx(app) + dir;
         if(next < 0) {
             next = (int)app->custom_sets.count;
         } else if(next > (int)app->custom_sets.count) {
@@ -486,28 +486,27 @@ void morse_flipper_ensure_custom_sets_loaded(MorseFlipperApp* app) {
     }
 
     selected = app->trainer.custom_set_idx;
-    app->custom_sets_loaded = true;
-    morse_trainer_load_custom_sets(&app->custom_sets);
+    app->custom_sets_loaded = morse_trainer_load_custom_sets(&app->custom_sets);
     app->trainer.custom_set_idx = selected;
-    if(app->trainer.custom_set_idx > app->custom_sets.count) {
-        app->trainer.custom_set_idx = 0U;
-    }
     morse_flipper_apply_trainer_charset_choice(app);
 }
 
+uint8_t morse_flipper_effective_trainer_custom_set_idx(const MorseFlipperApp* app) {
+    if(app == NULL || app->trainer.custom_set_idx == 0U) return 0U;
+    if(app->custom_sets.count == 0U || app->trainer.custom_set_idx > app->custom_sets.count)
+        return 0U;
+    return app->trainer.custom_set_idx;
+}
+
 void morse_flipper_apply_trainer_charset_choice(MorseFlipperApp* app) {
+    uint8_t idx;
+
     if(app == NULL) {
         return;
     }
 
-    if(app->trainer.custom_set_idx == 0U || app->custom_sets.count == 0U) {
-        app->trainer.custom_name[0] = '\0';
-        app->trainer.charset_override[0] = '\0';
-        return;
-    }
-
-    if(app->trainer.custom_set_idx > app->custom_sets.count) {
-        app->trainer.custom_set_idx = 0U;
+    idx = morse_flipper_effective_trainer_custom_set_idx(app);
+    if(idx == 0U) {
         app->trainer.custom_name[0] = '\0';
         app->trainer.charset_override[0] = '\0';
         return;
@@ -515,12 +514,12 @@ void morse_flipper_apply_trainer_charset_choice(MorseFlipperApp* app) {
 
     strncpy(
         app->trainer.custom_name,
-        app->custom_sets.sets[app->trainer.custom_set_idx - 1U].name,
+        app->custom_sets.sets[idx - 1U].name,
         sizeof(app->trainer.custom_name) - 1U);
     app->trainer.custom_name[sizeof(app->trainer.custom_name) - 1U] = '\0';
     strncpy(
         app->trainer.charset_override,
-        app->custom_sets.sets[app->trainer.custom_set_idx - 1U].chars,
+        app->custom_sets.sets[idx - 1U].chars,
         sizeof(app->trainer.charset_override) - 1U);
     app->trainer.charset_override[sizeof(app->trainer.charset_override) - 1U] = '\0';
 }

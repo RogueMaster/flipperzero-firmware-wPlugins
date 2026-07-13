@@ -209,7 +209,6 @@ void morse_flipper_ham_log_flush(MorseFlipperApp* app) {
 
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);
-    storage_common_mkdir(storage, MORSE_FLIPPER_HAM_DIR);
     ok = storage_file_open(file, path, FSAM_WRITE, FSOM_OPEN_APPEND);
     if(ok) {
         storage_file_write(file, header, strlen(header));

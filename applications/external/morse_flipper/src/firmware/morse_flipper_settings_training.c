@@ -90,7 +90,7 @@ void morse_flipper_trainer_menu_refresh(MorseFlipperApp* app) {
 
     it = app->trainer_items[MorseFlipperTrainerSettingChars];
     if(it) {
-        idx = app->trainer.custom_set_idx;
+        idx = morse_flipper_effective_trainer_custom_set_idx(app);
         variable_item_set_current_value_index(it, idx);
         variable_item_set_current_value_text(
             it, idx == 0U ? "lesson" : app->custom_sets.sets[idx - 1U].name);
@@ -275,11 +275,6 @@ void morse_flipper_scene_trainer_on_enter(void* context) {
         dirty = true;
     } else if(groups > 30U) {
         morse_trainer_set_session_groups(&app->trainer, 30U);
-        dirty = true;
-    }
-    if(app->trainer.custom_set_idx > app->custom_sets.count) {
-        app->trainer.custom_set_idx = 0U;
-        morse_flipper_apply_trainer_charset_choice(app);
         dirty = true;
     }
     if(dirty) morse_flipper_save_config(app);

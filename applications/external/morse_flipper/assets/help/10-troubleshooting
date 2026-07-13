@@ -19,7 +19,7 @@ A mono straight key in the paddle jack will be treated as a straight key.
 ---
 For USB output, choose Key~board, Mouse, or MIDI, then wait a bit for the computer to reconnect with the new settings.
 
-Custom character sets and ham logs live on the SD card under x6extx6ham.
+Custom character sets and ham logs live on the SD card under x6extx6apps_datax6morse_flipper.
 ---
 High quality audio is output only on P2. Connect it to an audio jack. It will sound better if you can add a small filtering capacitor, 1-50x2F, between P2 and x7 ground.
 

@@ -256,6 +256,7 @@ static bool morse_flipper_scene_menu_help_on_event(void* context, SceneManagerEv
         app->help_topic = event.event;
         app->help_page = 0U;
         app->help_md = (CwmdState){0};
+        app->help_chapter_card = false;
         scene_manager_set_scene_state(app->scene_manager, MorseFlipperSceneMenuHelp, event.event);
         scene_manager_next_scene(app->scene_manager, MorseFlipperSceneHelp);
         return true;
@@ -738,7 +739,7 @@ static bool morse_flipper_scene_help_on_event(void* context, SceneManagerEvent e
     if(event.type != SceneManagerEventTypeCustom) return false;
     n = morse_flipper_help_card_count(app);
     if(event.event == MorseFlipperCustomHelpPrev) {
-        if(app->help_page > 0U) {
+        if(!morse_flipper_help_is_chapter_card(app) && app->help_page > 0U) {
             app->help_page--;
             app->help_md = (CwmdState){0};
             morse_flipper_help_open(app);
@@ -747,10 +748,14 @@ static bool morse_flipper_scene_help_on_event(void* context, SceneManagerEvent e
     }
 
     if(event.event == MorseFlipperCustomHelpNext) {
-        if(app->help_page + 1U < n) {
+        if(morse_flipper_help_is_chapter_card(app)) {
+            morse_flipper_help_enter_chapter(app);
+        } else if(app->help_page + 1U < n) {
             app->help_page++;
             app->help_md = (CwmdState){0};
             morse_flipper_help_open(app);
+        } else {
+            morse_flipper_help_show_next_chapter(app);
         }
         return true;
     }

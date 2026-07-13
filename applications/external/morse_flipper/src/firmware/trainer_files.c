@@ -18,6 +18,7 @@
 #include <sys/stat.h>
 #endif
 
+#include <stdlib.h>
 #include <string.h>
 
 static const char* morse_trainer_custom_path_value = MORSE_FLIPPER_CUSTOM_CHARS_PATH;
@@ -34,6 +35,7 @@ static bool morse_trainer_read_custom_text(char* buf, size_t buf_sz) {
     Storage* storage;
     File* file;
     uint16_t got = 0U;
+    bool opened;
 
     if(buf == NULL || buf_sz == 0U) {
         return false;
@@ -41,21 +43,26 @@ static bool morse_trainer_read_custom_text(char* buf, size_t buf_sz) {
 
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);
-    storage_common_mkdir(storage, "/ext/ham");
 
-    if(!storage_file_open(file, morse_trainer_custom_path_value, FSAM_READ, FSOM_OPEN_EXISTING)) {
+    opened =
+        storage_file_open(file, morse_trainer_custom_path_value, FSAM_READ, FSOM_OPEN_EXISTING);
+    if(!opened) {
         if(storage_file_open(
                file, morse_trainer_custom_path_value, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
             storage_file_write(
                 file, morse_trainer_custom_defaults, strlen(morse_trainer_custom_defaults));
         }
         storage_file_close(file);
-        storage_file_open(file, morse_trainer_custom_path_value, FSAM_READ, FSOM_OPEN_EXISTING);
+        opened = storage_file_open(
+            file, morse_trainer_custom_path_value, FSAM_READ, FSOM_OPEN_EXISTING);
     }
 
-    got = storage_file_read(file, buf, buf_sz - 1U);
+    if(opened) {
+        got = storage_file_read(file, buf, buf_sz - 1U);
+        storage_file_close(file);
+    }
+
     buf[got] = '\0';
-    storage_file_close(file);
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
     return got != 0U;
@@ -71,8 +78,9 @@ static bool morse_trainer_read_custom_text(char* buf, size_t buf_sz) {
 
     f = fopen(morse_trainer_custom_path_value, "rb");
     if(f == NULL) {
-        mkdir("/ext", 0777);
-        mkdir("/ext/ham", 0777);
+        mkdir("ext", 0777);
+        mkdir("ext/apps_data", 0777);
+        mkdir(MORSE_FLIPPER_APP_DATA_DIR, 0777);
         f = fopen(morse_trainer_custom_path_value, "wb");
         if(f != NULL) {
             fwrite(morse_trainer_custom_defaults, 1, strlen(morse_trainer_custom_defaults), f);
@@ -93,17 +101,24 @@ static bool morse_trainer_read_custom_text(char* buf, size_t buf_sz) {
 #endif
 
 bool morse_trainer_load_custom_sets(MorseTrainerCustomSets* sets) {
-    char buf[512];
+    char* buf;
     char* line;
     char* next;
     char* eq;
+    bool loaded = false;
 
     if(sets == NULL) {
         return false;
     }
 
     memset(sets, 0, sizeof(*sets));
-    if(!morse_trainer_read_custom_text(buf, sizeof(buf))) {
+    buf = malloc(MORSE_TRAINER_CUSTOM_TEXT_CAP);
+    if(buf == NULL) {
+        return false;
+    }
+
+    if(!morse_trainer_read_custom_text(buf, MORSE_TRAINER_CUSTOM_TEXT_CAP)) {
+        free(buf);
         return false;
     }
 
@@ -127,5 +142,7 @@ bool morse_trainer_load_custom_sets(MorseTrainerCustomSets* sets) {
         line = next;
     }
 
-    return sets->count != 0U;
+    loaded = sets->count != 0U;
+    free(buf);
+    return loaded;
 }

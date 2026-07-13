@@ -29,26 +29,21 @@ static bool morse_flipper_help_input(MorseFlipperApp* app, const InputEvent* eve
         return true;
     }
 
-    if(event->key == InputKeyRight &&
-       (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, MorseFlipperCustomHelpNext);
-        return true;
-    }
-
-    if((event->key == InputKeyUp || event->key == InputKeyDown) &&
+    if((event->key == InputKeyUp || event->key == InputKeyDown || event->key == InputKeyRight) &&
        (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
         int16_t old_target = app->help_md.target_scroll_px;
         int16_t max_scroll = app->help_md.max_scroll_px;
+        bool forward = event->key != InputKeyUp;
+
+        if(forward && morse_flipper_help_is_chapter_card(app)) {
+            view_dispatcher_send_custom_event(app->view_dispatcher, MorseFlipperCustomHelpNext);
+            return true;
+        }
 
         cwmd_scroll_step(
-            &app->help_md,
-            event->key == InputKeyDown ? 1 : -1,
-            max_scroll,
-            MORSE_FLIPPER_MD_SCROLL_STEP_PX);
+            &app->help_md, forward ? 1 : -1, max_scroll, MORSE_FLIPPER_MD_SCROLL_STEP_PX);
         if(app->help_md.target_scroll_px == old_target) {
-            if(event->key == InputKeyDown && app->help_md.scroll_px >= max_scroll &&
-               old_target >= max_scroll &&
-               app->help_page + 1U < morse_flipper_help_card_count(app)) {
+            if(forward && app->help_md.scroll_px >= max_scroll && old_target >= max_scroll) {
                 view_dispatcher_send_custom_event(
                     app->view_dispatcher, MorseFlipperCustomHelpNext);
             }

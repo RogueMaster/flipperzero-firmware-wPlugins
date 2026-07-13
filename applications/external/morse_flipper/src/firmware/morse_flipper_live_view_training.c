@@ -539,7 +539,8 @@ void morse_flipper_draw_trainer_setup(Canvas* canvas, MorseFlipperApp* app) {
         sizeof(tone_line),
         "%c chars %s",
         app->trainer_row == 3U ? '>' : ' ',
-        app->trainer.custom_set_idx == 0U ? "lesson" : app->trainer.custom_name);
+        morse_flipper_effective_trainer_custom_set_idx(app) == 0U ? "lesson" :
+                                                                    app->trainer.custom_name);
     canvas_draw_str(canvas, 8, 24, trainer_line);
     canvas_draw_str(canvas, 8, 34, trainer_line2);
     canvas_draw_str(canvas, 8, 44, trainer_line3);

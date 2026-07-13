@@ -28,6 +28,7 @@ static const MorsePcPaddlePreset morse_pc_paddle_presets[] = {
     {", .", MorsePcKeyComma, MorsePcKeyPeriod},
     {"< >", MorsePcKeyLess, MorsePcKeyGreater},
     {"[ ]", MorsePcKeyOpenBracket, MorsePcKeyCloseBracket},
+    {"X W", MorsePcKeyX, MorsePcKeyW},
 };
 
 static const MorsePcStraightPreset morse_pc_straight_presets[] = {
@@ -37,6 +38,7 @@ static const MorsePcStraightPreset morse_pc_straight_presets[] = {
     {"C", MorsePcKeyC},
     {"Enter", MorsePcKeyEnter},
     {"Num enter", MorsePcKeyNumEnter},
+    {"W", MorsePcKeyW},
 };
 
 static uint8_t morse_pc_clamp_paddle_idx(uint8_t idx) {
@@ -73,6 +75,8 @@ const char* morse_pc_key_name(uint8_t key) {
         return "Z";
     case MorsePcKeyC:
         return "C";
+    case MorsePcKeyW:
+        return "W";
     case MorsePcKeyEnter:
         return "Enter";
     case MorsePcKeyNumEnter:

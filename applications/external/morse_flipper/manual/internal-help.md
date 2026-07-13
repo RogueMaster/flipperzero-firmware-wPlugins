@@ -182,7 +182,7 @@ This is the same help file that lives on the Flipper under Help: a gentle introd
 - With Break-In on (BKIN on) you transmit and it logs. Handy for POTA or SOTA, where the operator already has enough plates wobbling. Logs are dated on the SD card, and each change is timestamped.
 - Rig keying uses P15 for key and P16 for PTT. Do not wire a radio on optimism. Check the rig input, polarity, and ground arrangement. Use a transistor or optocoupler if the noise or RFI makes Flipper misbehave.
 - Back toggles BKIN. Long press Left exits. With BKIN off, paddle input is logged but not sent to the rig.
-- Assign short messages to Up, Down, Left, Right, and OK. Use them for field exchanges, not essays. If logging is enabled, entries go to /ext/ham/morse- flipper- ham- keyer- YYYY MM DD.txt. You get one file each day.
+- Assign short messages to Up, Down, Left, Right, and OK. Use them for field exchanges, not essays. If logging is enabled, entries go to /ext/apps_data/morse_flipper/morse- flipper- ham- keyer- YYYY MM DD.txt. You get one file each day.
 
 ## Troubleshooting
 
@@ -193,7 +193,7 @@ This is the same help file that lives on the Flipper under Help: a gentle introd
   - P7 → dit or SK
 - The paddles can be swapped from settings, if needed. When Back is not exiting, it is being used as a paddle. You will see this symbol on the right: ⏴ This is your reminder to long press Left for back.
 - A GPIO short warning means the jack wiring looks wrong for the chosen input. Unplug the key and check it. A mono straight key in the paddle jack will be treated as a straight key.
-- For USB output, choose Keyboard, Mouse, or MIDI, then wait a bit for the computer to reconnect with the new settings. Custom character sets and ham logs live on the SD card under /ext/ham.
+- For USB output, choose Keyboard, Mouse, or MIDI, then wait a bit for the computer to reconnect with the new settings. Custom character sets and ham logs live on the SD card under /ext/apps_data/morse_flipper.
 - High quality audio is output only on P2. Connect it to an audio jack. It will sound better if you can add a small filtering capacitor, 1-50µF, between P2 and ⏚ ground. You don't have to use the P2 output; you can always fall back to the internal buzzer for the sidetone.
 
 ## Moving forward
