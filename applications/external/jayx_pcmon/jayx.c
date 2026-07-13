@@ -275,7 +275,7 @@ static void jayx_handle_input(JayxApp* app, InputEvent* event) {
         if(event->type != InputTypeShort) return;
         if(event->key == InputKeyUp || event->key == InputKeyDown) {
             app->select_cursor = (app->select_cursor == JayxTransportUsb) ? JayxTransportBt :
-                                                                           JayxTransportUsb;
+                                                                            JayxTransportUsb;
             view_port_update(app->view_port);
         } else if(event->key == InputKeyOk) {
             if(app->select_cursor == JayxTransportBt) {
@@ -296,8 +296,9 @@ static void jayx_handle_input(JayxApp* app, InputEvent* event) {
             if(n > JAYX_SPEC_SECTIONS_MAX) n = JAYX_SPEC_SECTIONS_MAX;
             if(n > 0 && (event->key == InputKeyUp || event->key == InputKeyDown)) {
                 if(event->key == InputKeyUp) {
-                    app->specs_scroll = (app->specs_scroll == 0) ? (uint8_t)(n - 1) :
-                                                                  (uint8_t)(app->specs_scroll - 1);
+                    app->specs_scroll = (app->specs_scroll == 0) ?
+                                            (uint8_t)(n - 1) :
+                                            (uint8_t)(app->specs_scroll - 1);
                 } else {
                     app->specs_scroll = (uint8_t)((app->specs_scroll + 1) % n);
                 }

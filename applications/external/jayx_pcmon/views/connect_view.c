@@ -19,8 +19,8 @@ void draw_connect_view(Canvas* canvas, JayxApp* app) {
         canvas_set_font(canvas, FontSecondary);
 
         const char* usb_line = app->select_cursor == JayxTransportUsb ? "> USB" : "  USB";
-        const char* bt_line =
-            app->select_cursor == JayxTransportBt ? "> Bluetooth (WIP)" : "  Bluetooth (WIP)";
+        const char* bt_line = app->select_cursor == JayxTransportBt ? "> Bluetooth (WIP)" :
+                                                                      "  Bluetooth (WIP)";
 
         canvas_draw_str(canvas, 18, 28, usb_line);
         canvas_draw_str(canvas, 18, 40, bt_line);

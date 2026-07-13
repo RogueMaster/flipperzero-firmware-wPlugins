@@ -123,7 +123,9 @@ async def _send_loop(packet_fn) -> None:
         try:
             client = await _connect_client(device)
 
-            rx_uuid = _find_char_uuid(client, FLIPPER_SERIAL_RX, "fe62") or FLIPPER_SERIAL_RX
+            rx_uuid = (
+                _find_char_uuid(client, FLIPPER_SERIAL_RX, "fe62") or FLIPPER_SERIAL_RX
+            )
             print(f"RX char: {rx_uuid}")
 
             # Optional: subscribe to flow-control so the stack keeps the link warm
@@ -166,7 +168,9 @@ async def _send_loop(packet_fn) -> None:
                         await _write_packet(client, rx_uuid, packet)
                     ticks += 1
                     if ticks == 1 or ticks % 10 == 0:
-                        print(f"OK — sent tick #{ticks} ({len(packets)} pkt)", flush=True)
+                        print(
+                            f"OK — sent tick #{ticks} ({len(packets)} pkt)", flush=True
+                        )
                 except Exception as e:
                     print(f"BLE write failed: {e}")
                     break
@@ -194,7 +198,9 @@ def run_bt_loop(packet_fn) -> None:
     print("  3. Close Flipper mobile app")
     print("  4. Windows: Flipper paired under Bluetooth devices")
     if sys.platform == "win32":
-        print("  5. If auth fails: remove Flipper in Windows Bluetooth, pair again, retry")
+        print(
+            "  5. If auth fails: remove Flipper in Windows Bluetooth, pair again, retry"
+        )
     try:
         asyncio.run(_send_loop(packet_fn))
     except KeyboardInterrupt:

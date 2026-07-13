@@ -19,10 +19,7 @@ LIVE_SIZE = struct.calcsize(LIVE_FORMAT)
 assert LIVE_SIZE == 44, LIVE_SIZE
 
 # magic, ver, type, section_index, section_count, title[12], line0..2[36]
-SPECS_SECTION_FORMAT = (
-    f"<HBBBB{SPEC_TITLE_LEN}s"
-    + f"{SPEC_LINE_LEN}s" * SPEC_LINES
-)
+SPECS_SECTION_FORMAT = f"<HBBBB{SPEC_TITLE_LEN}s" + f"{SPEC_LINE_LEN}s" * SPEC_LINES
 SPECS_SECTION_SIZE = struct.calcsize(SPECS_SECTION_FORMAT)
 assert SPECS_SECTION_SIZE == 126, SPECS_SECTION_SIZE
 

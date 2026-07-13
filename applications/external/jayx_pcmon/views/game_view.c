@@ -1,6 +1,7 @@
 #include "../jayx.h"
 
-static void draw_fit_str(Canvas* canvas, int x, int y, Align h, Align v, const char* text, size_t max_w) {
+static void
+    draw_fit_str(Canvas* canvas, int x, int y, Align h, Align v, const char* text, size_t max_w) {
     FuriString* fs = furi_string_alloc_set(text);
     elements_string_fit_width(canvas, fs, max_w);
     canvas_draw_str_aligned(canvas, x, y, h, v, furi_string_get_cstr(fs));

@@ -50,7 +50,9 @@ def _specs_worker() -> None:
                 _specs_packets = packets
                 _specs_ready = True
                 _last_specs_build = time.monotonic()
-            print(f"Specs: ready ({len(packets)} sections in {time.monotonic() - t0:.1f}s)")
+            print(
+                f"Specs: ready ({len(packets)} sections in {time.monotonic() - t0:.1f}s)"
+            )
         except Exception as e:
             print(f"Specs: error {e}")
         time.sleep(SPECS_EVERY_S)
@@ -78,7 +80,11 @@ def make_packets() -> list[bytes]:
     global _last_specs_send
     now = time.monotonic()
     with _specs_lock:
-        if _specs_ready and _specs_packets and (now - _last_specs_send) >= SPECS_SEND_EVERY_S:
+        if (
+            _specs_ready
+            and _specs_packets
+            and (now - _last_specs_send) >= SPECS_SEND_EVERY_S
+        ):
             packets.extend(_specs_packets)
             _last_specs_send = now
 

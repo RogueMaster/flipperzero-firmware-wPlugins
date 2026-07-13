@@ -1,86 +1,53 @@
 # JAYX
 
-Live PC monitor for [Flipper Zero](https://flipperzero.one) — CPU, RAM, GPU, temps, FPS, and system info over USB.
+Live **PC monitor** for Flipper Zero over **USB**.
 
-Built with [ufbt](https://github.com/flipperdevices/flipperzero-ufbt).
+Shows CPU, RAM, GPU, temperatures, FPS, and hardware/OS info on the Flipper screen. A small Windows agent streams data from your PC.
 
-**Bluetooth is still in development** — check this repo for updates. Use USB for now.
+**Bluetooth is still in development.** Use USB for now.
 
-## Full setup guide
+## Full setup
 
-**→ [docs/SETUP.md](docs/SETUP.md)** — complete walkthrough: install tools, flash JAYX, run the PC agent, optional RTSS/temps, and troubleshooting.
+See the main guide: **[docs/SETUP.md](../../docs/SETUP.md)**
 
-## Screenshots
+Quick path:
 
-| Main menu | Live stats | FPS |
-| :---: | :---: | :---: |
-| ![Main menu](screenshots/MainMenu.png) | ![Live stats](screenshots/livestats.png) | ![FPS](screenshots/fpscounter.png) |
+1. On PC: `pip install ufbt` and `pip install -r pc_agent/requirements.txt`
+2. Build/install: `cd apps/jayx && ufbt launch` (stop any agent first)
+3. Flipper: **Apps → USB → JAYX → USB → OK**
+4. PC: `cd pc_agent && python monitor.py --usb`
 
-| System info | OS | CPU |
-| :---: | :---: | :---: |
-| ![System](screenshots/systeminfo.png) | ![OS](screenshots/osinfo.png) | ![CPU](screenshots/cpuinfo.png) |
+## Pages
 
-| About | No game / FPS idle | Bluetooth (WIP) |
-| :---: | :---: | :---: |
-| ![About](screenshots/Aboutpage.png) | ![FPS idle](screenshots/fpscounterNogame.png) | ![Bluetooth WIP](screenshots/Bluetoothpage.png) |
+| Page | Content |
+|------|---------|
+| **System** | CPU / RAM / GPU / VRAM usage and temps |
+| **Game** | Game/window name, large FPS, frametime |
+| **Specs** | SYSTEM · OS · CPU · MEMORY · GPU (Up/Down) |
+| **About** | Version and link type |
 
-## Quick start
-
-> Prefer the [full setup guide](docs/SETUP.md) the first time.
-
-```sh
-# PC tools (once)
-cd pc_agent
-pip install -r requirements.txt
-pip install ufbt
-
-# Flipper — close any monitor.py / qFlipper first
-cd ../apps/jayx
-ufbt launch
-
-# On Flipper: Apps → USB → JAYX → USB → OK
-# Then on PC:
-cd ../../pc_agent
-python monitor.py --usb
-```
-
-| Optional feature | Need |
-| --- | --- |
-| GPU % / VRAM / GPU temp | NVIDIA drivers |
-| FPS | [RTSS](https://www.guru3d.com/files-details/rtss-rivatuner-statistics-server-download.html) |
-| CPU temp | LibreHardwareMonitor running |
-
-### Controls
+## Controls
 
 | Key | Action |
 | --- | --- |
-| Left / Right | System · Game · Specs · About |
-| Up / Down | Specs section cards |
-| Back | Exit |
-
-## Layout
-
-```
-apps/jayx/        # Flipper FAP
-pc_agent/         # Windows metrics agent
-screenshots/      # Device UI captures
-docs/
-```
-
-## Docs
-
-- **[docs/SETUP.md](docs/SETUP.md) — full install & usage guide**  
-- [docs/CATALOG.md](docs/CATALOG.md) — Flipper Apps Catalog submission checklist  
-- [apps/jayx/README.md](apps/jayx/README.md) — app pages & protocol notes  
-- [docs/BUILDING.md](docs/BUILDING.md) — ufbt commands  
-- [docs/ADDING_AN_APP.md](docs/ADDING_AN_APP.md) — scaffold a new app  
+| **OK** | Start USB (from menu) |
+| **Left / Right** | Change page |
+| **Up / Down** | Specs section cards |
+| **Back** | Exit (or leave Bluetooth WIP screen) |
 
 ## Requirements
 
-- [ufbt](https://github.com/flipperdevices/flipperzero-ufbt) (`pip install ufbt`)
-- Python 3.10+ (PC agent)
-- Flipper Zero with matching firmware/API for the built FAP
+| Need | For |
+|------|-----|
+| Windows PC + USB cable | Required |
+| Python 3.10+ agent | Required |
+| NVIDIA drivers | GPU stats |
+| RTSS | FPS |
+| LibreHardwareMonitor | CPU temp |
 
-## License
+## Source
 
-[MIT](LICENSE) — required for Flipper Apps Catalog distribution.
+- App: `apps/jayx/`
+- Agent: `pc_agent/`
+- License: MIT (see repository root `LICENSE`)
+- Repo: https://github.com/contactjayclatty/JAYX

@@ -15,7 +15,7 @@
 
 #define TAG "JAYX"
 
-#define JAYX_VERSION   "0.3"
+#define JAYX_VERSION   FAP_VERSION
 #define JAYX_AUTHOR    "Jay"
 #define JAYX_PROTO_VER 3
 #define JAYX_MAGIC     0x4A58u

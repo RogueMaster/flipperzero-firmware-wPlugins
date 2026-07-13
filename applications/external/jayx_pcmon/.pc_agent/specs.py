@@ -18,6 +18,7 @@ except Exception:
     def nvml_vram_total_bytes() -> int | None:
         return None
 
+
 _cache: list[dict] | None = None
 _cache_ts = 0.0
 SPECS_TTL_S = 45.0

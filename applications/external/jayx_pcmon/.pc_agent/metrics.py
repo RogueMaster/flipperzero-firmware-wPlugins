@@ -37,7 +37,10 @@ user32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
 user32.GetWindowTextLengthW.restype = ctypes.c_int
 user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
 user32.GetWindowTextW.restype = ctypes.c_int
-user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+user32.GetWindowThreadProcessId.argtypes = [
+    wintypes.HWND,
+    ctypes.POINTER(wintypes.DWORD),
+]
 user32.GetWindowThreadProcessId.restype = wintypes.DWORD
 
 kernel32.OpenFileMappingW.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.LPCWSTR]
@@ -108,7 +111,9 @@ def _pick_nvml_handle():
                 name = ""
             # Prefer non-zero mem; boost names that look discrete
             score = mem
-            if any(k in name.upper() for k in ("RTX", "GTX", "QUADRO", "TESLA", "GEFORCE")):
+            if any(
+                k in name.upper() for k in ("RTX", "GTX", "QUADRO", "TESLA", "GEFORCE")
+            ):
                 score += 1
             if score > best_mem:
                 best_mem = score
@@ -279,8 +284,8 @@ def _read_rtss_entries() -> list[tuple[int, int]]:
             return []
         try:
             header = ctypes.string_at(view, 20)
-            dw_signature, _, app_entry_size, app_arr_offset, app_arr_size = struct.unpack(
-                "<IIIII", header
+            dw_signature, _, app_entry_size, app_arr_offset, app_arr_size = (
+                struct.unpack("<IIIII", header)
             )
             if dw_signature != RTSS_SIGNATURE:
                 return []

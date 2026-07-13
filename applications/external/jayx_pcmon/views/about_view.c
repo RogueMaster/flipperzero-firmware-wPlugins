@@ -8,7 +8,8 @@ void draw_about_view(Canvas* canvas, JayxApp* app) {
     canvas_draw_str_aligned(canvas, 64, 10, AlignCenter, AlignBottom, "JAYX");
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 22, AlignCenter, AlignBottom, "PC Monitor  v" JAYX_VERSION);
+    canvas_draw_str_aligned(
+        canvas, 64, 22, AlignCenter, AlignBottom, "PC Monitor  v" JAYX_VERSION);
     canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignBottom, "by " JAYX_AUTHOR);
 
     char line[32];
