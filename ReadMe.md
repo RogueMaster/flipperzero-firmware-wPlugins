@@ -75,6 +75,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Gurpil v0.1.8 (By Endika)](https://github.com/Endika/flipper-gurpil)
 - Updated: [Flipcraft v4.3 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - Updated: [PocketLab v1.3 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
+- Updated: [Paranoia WIP v0.2 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-paranoia)
 
 <a name="release"></a>
 
@@ -704,7 +705,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Orgasmotron v1.1 (By leedave)](https://github.com/leedave/Leeds-Flipper-Zero-Applications)
 - [Oscilloscope v0.4 (By anfractuosity)](https://github.com/anfractuosity/flipperscope)
 - [OSM Logger GPS v0.15 (By simongrossi)](https://github.com/simongrossi/flipperzero-osm-logger-gps)
-- [Paranoia WIP v0.1 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-paranoia)
+- [Paranoia WIP v0.2 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-paranoia)
 - [Password Generator v1.4 (By anakod)](https://github.com/anakod/flipper_passgen)
 - [Password Manager v1.2 (By Rrycbarm)](https://github.com/Rrycbarm/flipperZeroPasswordManager)
 - [Passy v1.5 (By bettse)](https://github.com/bettse/passy)
