@@ -3,9 +3,10 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="alcohol_sensor_app",
     name="MQ-3 Alcometer",
-    fap_version="1.0.0",
+    fap_version="1.0",
     fap_category="GPIO",
     fap_description="Breathalyzer using MQ-3 sensor with dynamic zero calibration and intoxication level scale",
-    fap_author="Serjantlk",
+    fap_author="serjantlk",
+    fap_icon="icon.png", 
     requires=["gui", "notification", "storage"],
 )
