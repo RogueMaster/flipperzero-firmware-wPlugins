@@ -4,8 +4,10 @@
 
 #define TAG "SubGhzDecodeRaw"
 
-#define SUBGHZ_DECODE_RAW_MIN_HEAP  (11u * 1024u)
-#define SUBGHZ_DECODE_RAW_MIN_BLOCK (8u * 1024u)
+#define SUBGHZ_DECODE_RAW_MIN_HEAP  (12u * 1024u)
+// The decode worker allocates two large contiguous buffers (stream ~4 KB and the
+// pre-reserved line buffer ~4.6 KB). Require the largest free block to hold both,
+#define SUBGHZ_DECODE_RAW_MIN_BLOCK (9u * 1024u)
 
 #define SAMPLES_TO_READ_PER_TICK 400
 
