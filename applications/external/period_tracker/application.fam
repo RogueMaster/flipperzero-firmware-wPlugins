@@ -1,0 +1,17 @@
+App(
+    appid="period_tracker",
+    name="Period Tracker",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="period_tracker_app",
+    stack_size=8 * 1024,
+    # Default sources glob is "*.c*", which also matches "*.csv".
+    # Exclude test_data so regenerating sample CSVs does not break the link step.
+    sources=["*.c*", "!test_data"],
+    fap_category="Tools",
+    fap_version="1.0",
+    fap_icon="period_tracker.png",  # 10x10 1-bit PNG (catalog requirement)
+    fap_description="Track menstrual cycles for multiple people with predictions and alerts",
+    fap_author="Roman Gorshunov",
+    fap_weburl="https://github.com/gorshunovr/period_tracker",
+    requires=["gui", "storage"],
+)

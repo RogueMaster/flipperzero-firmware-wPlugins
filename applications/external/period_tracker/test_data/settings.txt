@@ -1,0 +1,10 @@
+alarm_time=08:00
+pin_enabled=1
+symptom=Cramps
+symptom=Headache
+symptom=Mood Swings
+symptom=Bloating
+symptom=Fatigue
+symptom=Nausea
+symptom=Back Pain
+symptom=Breast Tenderness

@@ -1,0 +1,22 @@
+# Build outputs
+dist/
+build/
+.ufbt/
+
+# Local helper scripts (not published)
+scripts/
+
+# Local / secrets
+.env
+*.locked
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*~
+
+# Catalog validation artifacts
+bundle.zip
+bundle/

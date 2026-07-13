@@ -1,0 +1,19 @@
+## Flipper Apps Catalog manifest
+## Submitted PR: https://github.com/flipperdevices/flipper-application-catalog/pull/1129
+## Catalog path: applications/Tools/period_tracker/manifest.yml
+
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/gorshunovr/period_tracker.git
+    commit_sha: 193770d1a4421d681ed736ee455e15fc36019bfd
+description: "@docs/catalog_description.md"
+changelog: "@docs/changelog.md"
+screenshots:
+  - screenshots/01_main_menu.png
+  - screenshots/02_select_profile.png
+  - screenshots/03_daily_digest.png
+  - screenshots/04_predictions.png
+  - screenshots/06_cycle_stats.png
+  - screenshots/05_log_event.png
+  - screenshots/08_settings.png
