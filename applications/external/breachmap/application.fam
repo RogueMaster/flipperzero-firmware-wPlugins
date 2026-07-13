@@ -1,0 +1,13 @@
+App(
+    appid="breach_map",
+    name="BreachMap",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="breach_map_app",
+    stack_size=8 * 1024,
+    fap_category="Tools",
+    fap_version="1.0",
+    fap_author="Gerijacki",
+    fap_icon="icons/breach_map_10px.png",
+    fap_description="Physical security recon notebook: organize engagements, assets, evidence and relationships, and export findings as JSON/Markdown.",
+    sources=["*.c*", "!test"],
+)
