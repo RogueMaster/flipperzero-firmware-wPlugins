@@ -8,7 +8,8 @@ typedef struct {
     uint8_t sound;
     uint8_t led; // RGB LED indications on/off
     uint8_t vibro; // vibration on/off
-    uint8_t reserved;
+    uint8_t lang; // 0 = English, 1 = Russian, 2 = Spanish
+    uint8_t reserved[2]; // keep xp 4-byte aligned; the font follows the language
     uint32_t xp;
     uint32_t level;
     uint64_t completed_mask; // one bit per lab, up to 64 labs

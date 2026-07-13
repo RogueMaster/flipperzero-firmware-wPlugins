@@ -1,3 +1,14 @@
+## 1.5
+
+- Russian language: the whole app plus all 36 labs and quizzes are translated.
+  Choose the language in Settings.
+- Every lab now has its own unique badge icon.
+- Quizzes reward XP now (per correct answer); total XP is capped at 9999.
+- Long lab and quiz titles scroll so you can read them in full.
+- The XP counter goes glitchy once you max it out.
+- Profile screen and several labels realigned for a cleaner fit; About screen
+  polish.
+
 ## 1.4
 
 - Settings now has independent LED and Vibro toggles (both default on), next to

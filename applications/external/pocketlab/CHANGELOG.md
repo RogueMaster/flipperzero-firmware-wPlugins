@@ -3,6 +3,29 @@
 All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.5] - 2026-07-14
+
+### Added
+
+- **Russian language.** The full interface plus all 36 labs and quizzes are
+  translated; pick the language in Settings. A bundled font renders Cyrillic on
+  device (English keeps the native system font).
+- A **unique badge icon for every lab**, so achievements are easy to tell apart.
+- **Quizzes now award XP** (per correct answer). Total XP is capped at 9999.
+- Long lab and quiz titles **scroll** so they can be read in full.
+- The XP counter goes glitchy once you max it out.
+
+### Changed
+
+- The Profile screen uses the full display width; the level/XP cards and the
+  headings are realigned.
+- Home tiles and several labels were resized and repositioned for a cleaner fit.
+
+### Fixed
+
+- About screen polish: the version/author icons sit correctly, the coffee button
+  no longer overlaps the repo link, and the description wraps cleanly.
+
 ## [1.4] - 2026-07-12
 
 ### Added

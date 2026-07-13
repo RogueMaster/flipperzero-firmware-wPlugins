@@ -3,6 +3,8 @@
 #include <furi.h>
 #include <gui/elements.h>
 
+#include "../helpers/pocketlab_fonts.h"
+
 #define LEVELUP_PERIOD_MS 50
 #define LEVELUP_FRAMES    75 // ~3750 ms, 50% longer than the old popup timeout
 #define CONFETTI_COUNT    18
@@ -88,9 +90,9 @@ static void levelup_view_draw_callback(Canvas* canvas, void* model_) {
     canvas_set_color(canvas, ColorBlack);
     elements_slightly_rounded_frame(canvas, card_x, card_y, card_w, card_h);
 
-    canvas_set_font(canvas, FontPrimary);
+    pocketlab_font_apply(canvas, true);
     canvas_draw_str_aligned(canvas, 64, card_y + 10, AlignCenter, AlignCenter, model->header);
-    canvas_set_font(canvas, FontSecondary);
+    pocketlab_font_apply_small(canvas);
     canvas_draw_str_aligned(canvas, 64, card_y + 22, AlignCenter, AlignCenter, model->title);
 }
 

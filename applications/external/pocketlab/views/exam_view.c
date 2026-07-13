@@ -3,28 +3,127 @@
 #include <furi.h>
 #include <furi_hal_random.h>
 #include <gui/elements.h>
+#include <string.h>
 
 #include "../helpers/pocketlab_content.h"
+#include "../helpers/pocketlab_fonts.h"
+#include "../helpers/pocketlab_i18n.h"
+#include "../helpers/pocketlab_labtext.h"
 #include "../helpers/pocketlab_sound.h"
 
 #define EXAM_ANIM_MS  90
 #define EXAM_MAX      10 // questions per exam
 #define EXAM_POOL_MAX 128 // upper bound on quizzes across all labs
 
-// Random praise shown on a correct answer.
-static const char* const exam_praises[] = {
-    "Correct!",
-    "Great job!",
-    "Nailed it!",
-    "Genius!",
-    "Spot on!",
-    "Brilliant!",
-    "You rock!",
-    "Boom!",
-    "Perfect!",
-    "Too easy!",
+#define EXAM_PRAISE_COUNT 10
+
+// Random praise shown on a correct answer, one set per UI language.
+static const char* const exam_praises[PocketLabLangCount][EXAM_PRAISE_COUNT] = {
+    [PocketLabLangEn] =
+        {"Correct!",
+         "Great job!",
+         "Nailed it!",
+         "Genius!",
+         "Spot on!",
+         "Brilliant!",
+         "You rock!",
+         "Boom!",
+         "Perfect!",
+         "Too easy!"},
+    [PocketLabLangRu] =
+        {"Верно!",
+         "Отлично!",
+         "В точку!",
+         "Гений!",
+         "Именно!",
+         "Блестяще!",
+         "Ты крут!",
+         "Бум!",
+         "Идеально!",
+         "Легко!"},
 };
-#define EXAM_PRAISE_COUNT COUNT_OF(exam_praises)
+
+// Final-score verdict by band: 0 = perfect, 1 = great, 2 = keep going, 3 = retry.
+static const char* const exam_verdicts[PocketLabLangCount][4] = {
+    [PocketLabLangEn] = {"Perfect!", "Great job!", "Keep going!", "Try again!"},
+    [PocketLabLangRu] = {"Идеально!", "Отлично!", "Продолжай!", "Ещё раз!"},
+};
+
+// Greedy word-wrap centred on cx, using the font already set on the canvas
+// (elements_text_box only speaks the stock Latin font, so it can't show Cyrillic).
+static void exam_draw_wrapped(
+    Canvas* canvas,
+    uint8_t cx,
+    uint8_t y,
+    uint8_t w,
+    uint8_t line_h,
+    const char* text) {
+    char line[64] = {0};
+    uint8_t cy = y;
+    const char* p = text;
+    char word[48];
+    while(*p) {
+        while(*p == ' ')
+            p++;
+        size_t wi = 0;
+        while(*p && *p != ' ' && wi < sizeof(word) - 1)
+            word[wi++] = *p++;
+        word[wi] = '\0';
+        if(!wi) break;
+
+        char trial[112];
+        if(line[0]) {
+            snprintf(trial, sizeof(trial), "%s %s", line, word);
+        } else {
+            snprintf(trial, sizeof(trial), "%s", word);
+        }
+        if(canvas_string_width(canvas, trial) <= w) {
+            strncpy(line, trial, sizeof(line) - 1);
+        } else {
+            if(line[0]) {
+                canvas_draw_str_aligned(canvas, cx, cy, AlignCenter, AlignTop, line);
+                cy += line_h;
+            }
+            strncpy(line, word, sizeof(line) - 1);
+        }
+    }
+    if(line[0]) canvas_draw_str_aligned(canvas, cx, cy, AlignCenter, AlignTop, line);
+}
+
+// Count how many lines the greedy wrap of `text` produces at width `w` in the
+// current font, so a 2-line question can be nudged up to clear the answers.
+static size_t exam_wrap_count(Canvas* canvas, const char* text, uint8_t w) {
+    char cur[64] = {0};
+    char word[48];
+    char trial[120];
+    size_t n = 0;
+    const char* p = text;
+    while(*p) {
+        while(*p == ' ')
+            p++;
+        size_t wi = 0;
+        while(*p && *p != ' ' && wi < sizeof(word) - 1)
+            word[wi++] = *p++;
+        word[wi] = '\0';
+        if(!wi) break;
+
+        if(cur[0]) {
+            snprintf(trial, sizeof(trial), "%s %s", cur, word);
+        } else {
+            snprintf(trial, sizeof(trial), "%s", word);
+        }
+        if(canvas_string_width(canvas, trial) <= w) {
+            strncpy(cur, trial, sizeof(cur) - 1);
+            cur[sizeof(cur) - 1] = '\0';
+        } else {
+            if(cur[0]) n++;
+            strncpy(cur, word, sizeof(cur) - 1);
+            cur[sizeof(cur) - 1] = '\0';
+        }
+    }
+    if(cur[0]) n++;
+    return n;
+}
 
 struct ExamView {
     View* view;
@@ -100,43 +199,43 @@ static void exam_view_draw_chevron(Canvas* canvas, uint32_t anim) {
 }
 
 static void exam_view_draw_empty(Canvas* canvas) {
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 22, AlignCenter, AlignCenter, "No quizzes yet");
-    canvas_set_font(canvas, FontSecondary);
-    elements_text_box(
-        canvas,
-        4,
-        32,
-        120,
-        28,
-        AlignCenter,
-        AlignTop,
-        "Complete some labs to unlock the quiz.",
-        false);
+    pocketlab_font_apply(canvas, true);
+    canvas_draw_str_aligned(
+        canvas, 64, 22, AlignCenter, AlignCenter, pocketlab_text(PocketLabTextNoQuizzes));
+    pocketlab_font_apply_small(canvas);
+    const char* msg = pocketlab_text(PocketLabTextUnlockQuiz);
+    if(pocketlab_font_is_universal()) {
+        exam_draw_wrapped(canvas, 64, 34, 120, 10, msg);
+    } else {
+        // Stock English keeps its original box layout untouched.
+        elements_text_box(canvas, 4, 32, 120, 28, AlignCenter, AlignTop, msg, false);
+    }
 }
 
 static void exam_view_draw_result(Canvas* canvas, const ExamModel* model) {
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignTop, "Quiz complete!");
+    pocketlab_font_apply(canvas, true);
+    canvas_draw_str_aligned(
+        canvas, 64, 12, AlignCenter, AlignTop, pocketlab_text(PocketLabTextQuizComplete));
 
     char line[20];
     snprintf(line, sizeof(line), "%u/%u", model->score, model->count);
     canvas_set_font(canvas, FontBigNumbers);
     canvas_draw_str_aligned(canvas, 64, 34, AlignCenter, AlignCenter, line);
 
-    const char* verdict;
     const uint8_t pct = model->count ? (uint16_t)model->score * 100 / model->count : 0;
+    uint8_t band;
     if(pct == 100) {
-        verdict = "Perfect!";
+        band = 0;
     } else if(pct >= 70) {
-        verdict = "Great job!";
+        band = 1;
     } else if(pct >= 40) {
-        verdict = "Keep going!";
+        band = 2;
     } else {
-        verdict = "Try again!";
+        band = 3;
     }
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignBottom, verdict);
+    pocketlab_font_apply_small(canvas);
+    canvas_draw_str_aligned(
+        canvas, 64, 52, AlignCenter, AlignBottom, exam_verdicts[pocketlab_i18n_get_lang()][band]);
     exam_view_draw_chevron(canvas, model->anim);
 }
 
@@ -153,18 +252,34 @@ static void exam_view_draw_confetti(Canvas* canvas, int cx, int cy, uint8_t f) {
 static void exam_view_draw_feedback(Canvas* canvas, const ExamModel* model) {
     if(model->last_right) {
         if(model->fb_frame < 12) exam_view_draw_confetti(canvas, 64, 30, model->fb_frame);
-        canvas_set_font(canvas, FontPrimary);
+        pocketlab_font_apply(canvas, true);
         canvas_draw_str_aligned(
-            canvas, 64, 30, AlignCenter, AlignCenter, exam_praises[model->praise]);
+            canvas,
+            64,
+            30,
+            AlignCenter,
+            AlignCenter,
+            exam_praises[pocketlab_i18n_get_lang()][model->praise]);
     } else {
         // "Wrong" and the answer both centred on the screen.
         const int dx = (model->shake > 0) ? ((model->shake & 1) ? 3 : -3) : 0;
-        canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(canvas, 64 + dx, 20, AlignCenter, AlignCenter, "Wrong");
-        canvas_set_font(canvas, FontSecondary);
-        char ans[48];
-        snprintf(ans, sizeof(ans), "Answer: %s", model->options[model->answer]);
-        elements_text_box(canvas, 4, 30, 120, 28, AlignCenter, AlignTop, ans, false);
+        pocketlab_font_apply(canvas, true);
+        canvas_draw_str_aligned(
+            canvas, 64 + dx, 20, AlignCenter, AlignCenter, pocketlab_text(PocketLabTextWrong));
+        pocketlab_font_apply_small(canvas);
+        char ans[64];
+        snprintf(
+            ans,
+            sizeof(ans),
+            "%s: %s",
+            pocketlab_text(PocketLabTextAnswer),
+            pocketlab_tr(model->options[model->answer]));
+        if(pocketlab_font_is_universal()) {
+            exam_draw_wrapped(canvas, 64, 32, 120, 10, ans);
+        } else {
+            // Stock English keeps its original box layout untouched.
+            elements_text_box(canvas, 4, 30, 120, 28, AlignCenter, AlignTop, ans, false);
+        }
     }
     exam_view_draw_chevron(canvas, model->anim);
 }
@@ -172,8 +287,8 @@ static void exam_view_draw_feedback(Canvas* canvas, const ExamModel* model) {
 static void exam_view_draw_question(Canvas* canvas, const ExamModel* model) {
     const PocketLabStep* step = model->questions[model->current];
 
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 2, 8, "Quiz");
+    pocketlab_font_apply_small(canvas);
+    canvas_draw_str(canvas, 2, 8, pocketlab_text(PocketLabTextMenuQuiz));
     char pos[12];
     snprintf(pos, sizeof(pos), "%u/%u", model->current + 1, model->count);
     canvas_draw_str_aligned(canvas, 126, 8, AlignRight, AlignBottom, pos);
@@ -183,13 +298,24 @@ static void exam_view_draw_question(Canvas* canvas, const ExamModel* model) {
         return;
     }
 
-    // Question in bold so it stands out from the answers (text box uses \e#).
-    char q[80];
-    snprintf(q, sizeof(q), "\e#%s\e#", step->title);
-    elements_text_box(canvas, 2, 11, 124, 20, AlignLeft, AlignTop, q, false);
+    // Question in bold so it stands out from the answers.
+    const char* title = pocketlab_tr(step->title);
+    if(pocketlab_font_is_universal()) {
+        pocketlab_font_apply(canvas, true);
+        // A 2-line question sits 2px higher with tighter leading so its second
+        // line does not touch the answers.
+        const size_t nlines = exam_wrap_count(canvas, title, 124);
+        const uint8_t qy = nlines >= 2 ? 11 : 13;
+        const uint8_t qlh = nlines >= 2 ? 10 : 11;
+        exam_draw_wrapped(canvas, 64, qy, 124, qlh, title);
+    } else {
+        char q[80];
+        snprintf(q, sizeof(q), "\e#%s\e#", title); // text box uses \e# for bold
+        elements_text_box(canvas, 2, 11, 124, 20, AlignLeft, AlignTop, q, false);
+    }
 
     // Answers, each with an "A." / "B." / "C." marker and a little padding.
-    canvas_set_font(canvas, FontSecondary);
+    pocketlab_font_apply_small(canvas);
     for(uint8_t i = 0; i < POCKETLAB_QUIZ_OPTIONS; i++) {
         const uint8_t y = 39 + i * 11;
         if(i == model->quiz_sel) {
@@ -198,7 +324,7 @@ static void exam_view_draw_question(Canvas* canvas, const ExamModel* model) {
         }
         const char marker[3] = {(char)('A' + i), '.', '\0'};
         canvas_draw_str(canvas, 4, y, marker);
-        canvas_draw_str(canvas, 15, y, model->options[i]);
+        canvas_draw_str(canvas, 15, y, pocketlab_tr(model->options[i]));
         canvas_set_color(canvas, ColorBlack);
     }
 }
@@ -349,6 +475,14 @@ void exam_view_free(ExamView* instance) {
 View* exam_view_get_view(ExamView* instance) {
     furi_assert(instance);
     return instance->view;
+}
+
+uint8_t exam_view_get_score(ExamView* instance) {
+    furi_assert(instance);
+    uint8_t score = 0;
+    with_view_model(
+        instance->view, ExamModel * model, { score = model->finished ? model->score : 0; }, false);
+    return score;
 }
 
 void exam_view_set_done_callback(ExamView* instance, ExamViewDoneCallback callback, void* context) {

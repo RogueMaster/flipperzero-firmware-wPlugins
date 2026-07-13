@@ -31,10 +31,12 @@ time.
 - 🎲 **Randomized quizzes** – a pool of distractors, shuffled every attempt, so
   you learn the answer, not its position
 - 🧠 **Quiz mode** – a random exam drawn from the labs you've completed, scored
-  at the end, to test what stuck
+  at the end and rewarding XP, to test what stuck
+- 🌍 **English and Russian** – the full interface plus every lab and quiz, with a
+  language switch in Settings
 - 🏆 **Progression** – XP, levels, a daily streak and unlockable badges, all
   saved on the SD card
-- 🖼️ **Per-topic glyphs** next to each lesson title, so the subject reads at a glance
+- 🖼️ **A unique badge icon for every lab**, so the subject reads at a glance
 - 🔊 **Sound, LED & Vibro** – audio, RGB-LED and vibration feedback, each with its
   own on/off toggle in Settings
 - 🖥️ **Custom animated UI** – tile menu, a badge gallery, stat cards and a

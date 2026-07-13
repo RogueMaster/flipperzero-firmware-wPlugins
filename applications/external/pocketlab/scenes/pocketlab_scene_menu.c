@@ -15,7 +15,7 @@ void pocketlab_scene_menu_on_enter(void* context) {
         pocketlab_text(PocketLabTextMenuStart),
         pocketlab_text(PocketLabTextMenuQuiz),
         pocketlab_text(PocketLabTextMenuProgress),
-        pocketlab_text(PocketLabTextMenuSettings),
+        pocketlab_text(PocketLabTextMenuSettingsShort),
         pocketlab_text(PocketLabTextMenuAbout),
     };
 

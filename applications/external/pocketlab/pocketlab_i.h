@@ -5,7 +5,6 @@
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
 #include <gui/modules/widget.h>
-#include <gui/modules/variable_item_list.h>
 #include <notification/notification.h>
 
 #include "scenes/pocketlab_scene.h"
@@ -17,7 +16,10 @@
 #include "views/levelup_view.h"
 #include "views/exam_view.h"
 #include "views/about_view.h"
+#include "views/settings_view.h"
+#include "views/reset_view.h"
 #include "helpers/pocketlab_content.h"
+#include "helpers/pocketlab_fonts.h"
 #include "helpers/pocketlab_i18n.h"
 #include "helpers/pocketlab_sound.h"
 #include "helpers/pocketlab_storage.h"
@@ -33,6 +35,7 @@ typedef enum {
     PocketLabViewAbout,
     PocketLabViewLevelUp,
     PocketLabViewExam,
+    PocketLabViewReset,
 } PocketLabViewId;
 
 typedef enum {
@@ -42,6 +45,7 @@ typedef enum {
     PocketLabCustomEventOpenBadges,
     PocketLabCustomEventLevelUpDone,
     PocketLabCustomEventExamDone,
+    PocketLabCustomEventSettingsReset,
 } PocketLabCustomEvent;
 
 typedef struct {
@@ -52,7 +56,7 @@ typedef struct {
 
     HomeView* home_view;
     Widget* widget;
-    VariableItemList* variable_item_list;
+    SettingsView* settings_view;
     LabsListView* labs_list_view;
     ProgressView* progress_view;
     BadgesView* badges_view;
@@ -60,10 +64,17 @@ typedef struct {
     AboutView* about_view;
     LevelUpView* levelup_view;
     ExamView* exam_view;
+    ResetView* reset_view;
 
     PocketLabState state;
     const PocketLabLab* current_lab;
 } PocketLab;
+
+#define POCKETLAB_XP_MAX 9999 // hard cap; the XP display glitches at this value
+
+/** Add XP (clamped to POCKETLAB_XP_MAX) and update the level. Returns true if
+ * the level went up. Does not persist. */
+bool pocketlab_add_xp(PocketLab* app, uint32_t amount);
 
 /** Award XP/badge (first completion) and bump the daily streak. Returns true if
  * this completion raised the level. */

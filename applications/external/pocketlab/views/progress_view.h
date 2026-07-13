@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gui/view.h>
+#include <notification/notification.h>
 
 typedef struct ProgressView ProgressView;
 
@@ -25,4 +26,6 @@ void progress_view_configure(
     uint32_t labs_done,
     uint32_t labs_total,
     uint32_t streak,
-    const char* level_title);
+    const char* level_title,
+    NotificationApp* notifications,
+    bool sound_enabled);

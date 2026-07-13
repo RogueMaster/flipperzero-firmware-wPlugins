@@ -3,13 +3,14 @@
 #include <furi.h>
 #include <gui/elements.h>
 
+#include "../helpers/pocketlab_fonts.h"
 #include "../helpers/pocketlab_sound.h"
 
 #define HOME_TOP          14
 #define HOME_COLS         2
-#define HOME_TILE_W       60
+#define HOME_TILE_W       62
 #define HOME_TILE_H       22
-#define HOME_MARGIN_X     2 // 2 + 60 + 4 + 60 + 2 = 128, centred on the screen
+#define HOME_MARGIN_X     0 // 62 + 4 + 62 = 128, full display width, no side gap
 #define HOME_GAP_X        4
 #define HOME_GAP_Y        3
 #define HOME_VISIBLE_ROWS 2 // tile rows on screen; extra rows scroll
@@ -84,7 +85,7 @@ static void home_view_draw_callback(Canvas* canvas, void* context) {
     canvas_clear(canvas);
 
     home_view_draw_logo(canvas, 2, 0, (model->anim % 40) < 2); // winks now and then
-    canvas_set_font(canvas, FontPrimary);
+    canvas_set_font(canvas, FontPrimary); // brand title stays on the native font
     // Baseline chosen so the title is vertically centred against the 10px logo.
     canvas_draw_str(canvas, 16, 8, model->title);
 
@@ -124,7 +125,7 @@ static void home_view_draw_callback(Canvas* canvas, void* context) {
             home_view_draw_icon(
                 canvas, menu_icons[i], x + HOME_PAD, y + (HOME_TILE_H - HOME_ICON_H) / 2);
         }
-        canvas_set_font(canvas, FontSecondary);
+        pocketlab_font_apply_small(canvas);
         canvas_draw_str_aligned(
             canvas,
             x + HOME_PAD + HOME_ICON_W + 2,

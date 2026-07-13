@@ -19,18 +19,16 @@ uint32_t pocketlab_level_for_xp(uint32_t xp) {
 }
 
 const char* pocketlab_level_title(uint32_t level) {
-    static const char* const titles[] = {
-        "Novice",
-        "Apprentice",
-        "Explorer",
-        "Tinkerer",
-        "Adept",
-        "Expert",
-        "Master",
+    static const char* const titles[PocketLabLangCount][7] = {
+        [PocketLabLangEn] =
+            {"Novice", "Apprentice", "Explorer", "Tinkerer", "Adept", "Expert", "Master"},
+        [PocketLabLangRu] =
+            {"Новичок", "Ученик", "Искатель", "Умелец", "Адепт", "Эксперт", "Мастер"},
     };
-    const uint32_t count = COUNT_OF(titles);
+    const uint32_t count = 7;
     const uint32_t index = level >= 1 ? level - 1 : 0;
-    return titles[index < count ? index : count - 1];
+    const PocketLabLang lang = pocketlab_i18n_get_lang();
+    return titles[lang][index < count ? index : count - 1];
 }
 
 bool pocketlab_is_lab_completed(const PocketLab* app, const PocketLabLab* lab) {
@@ -46,6 +44,16 @@ uint8_t pocketlab_completed_count(const PocketLab* app) {
         }
     }
     return count;
+}
+
+bool pocketlab_add_xp(PocketLab* app, uint32_t amount) {
+    uint32_t xp = app->state.xp + amount;
+    if(xp > POCKETLAB_XP_MAX) xp = POCKETLAB_XP_MAX; // hard cap
+    app->state.xp = xp;
+    const uint32_t new_level = pocketlab_level_for_xp(xp);
+    const bool leveled = new_level > app->state.level;
+    app->state.level = new_level;
+    return leveled;
 }
 
 bool pocketlab_award_lab(PocketLab* app, const PocketLabLab* lab) {
@@ -65,10 +73,7 @@ bool pocketlab_award_lab(PocketLab* app, const PocketLabLab* lab) {
     const uint64_t bit = 1ULL << index;
     if(!(app->state.completed_mask & bit)) {
         app->state.completed_mask |= bit;
-        app->state.xp += lab->xp;
-        const uint32_t new_level = pocketlab_level_for_xp(app->state.xp);
-        leveled = new_level > app->state.level;
-        app->state.level = new_level;
+        leveled = pocketlab_add_xp(app, lab->xp);
     }
 
     pocketlab_storage_save(&app->state);
@@ -99,9 +104,21 @@ static void pocketlab_open_badges_callback(void* context) {
     view_dispatcher_send_custom_event(app->view_dispatcher, PocketLabCustomEventOpenBadges);
 }
 
+static void pocketlab_settings_reset_callback(void* context) {
+    PocketLab* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, PocketLabCustomEventSettingsReset);
+}
+
 static void pocketlab_levelup_done_callback(void* context) {
     PocketLab* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, PocketLabCustomEventLevelUpDone);
+}
+
+static void pocketlab_reset_view_callback(void* context, bool confirm) {
+    PocketLab* app = context;
+    view_dispatcher_send_custom_event(
+        app->view_dispatcher,
+        confirm ? PocketLabCustomEventResetConfirm : PocketLabCustomEventResetCancel);
 }
 
 static void pocketlab_exam_done_callback(void* context) {
@@ -143,11 +160,10 @@ static PocketLab* pocketlab_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, PocketLabViewWidget, widget_get_view(app->widget));
 
-    app->variable_item_list = variable_item_list_alloc();
+    app->settings_view = settings_view_alloc();
+    settings_view_set_reset_callback(app->settings_view, pocketlab_settings_reset_callback, app);
     view_dispatcher_add_view(
-        app->view_dispatcher,
-        PocketLabViewSettings,
-        variable_item_list_get_view(app->variable_item_list));
+        app->view_dispatcher, PocketLabViewSettings, settings_view_get_view(app->settings_view));
 
     app->labs_list_view = labs_list_view_alloc();
     labs_list_view_set_callback(app->labs_list_view, pocketlab_index_event_callback, app);
@@ -182,8 +198,17 @@ static PocketLab* pocketlab_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, PocketLabViewExam, exam_view_get_view(app->exam_view));
 
+    app->reset_view = reset_view_alloc();
+    reset_view_set_callback(app->reset_view, pocketlab_reset_view_callback, app);
+    view_dispatcher_add_view(
+        app->view_dispatcher, PocketLabViewReset, reset_view_get_view(app->reset_view));
+
     pocketlab_storage_load(&app->state);
+    if(app->state.lang >= PocketLabLangCount) app->state.lang = PocketLabLangEn;
     pocketlab_sound_configure_fx(app->state.led != 0, app->state.vibro != 0);
+    pocketlab_i18n_set_lang((PocketLabLang)app->state.lang);
+    // English uses the native stock font; other languages need the Universal font.
+    pocketlab_font_set_universal(app->state.lang != PocketLabLangEn);
     app->current_lab = NULL;
 
     return app;
@@ -200,10 +225,11 @@ static void pocketlab_free(PocketLab* app) {
     view_dispatcher_remove_view(app->view_dispatcher, PocketLabViewAbout);
     view_dispatcher_remove_view(app->view_dispatcher, PocketLabViewLevelUp);
     view_dispatcher_remove_view(app->view_dispatcher, PocketLabViewExam);
+    view_dispatcher_remove_view(app->view_dispatcher, PocketLabViewReset);
 
     home_view_free(app->home_view);
     widget_free(app->widget);
-    variable_item_list_free(app->variable_item_list);
+    settings_view_free(app->settings_view);
     labs_list_view_free(app->labs_list_view);
     progress_view_free(app->progress_view);
     badges_view_free(app->badges_view);
@@ -211,6 +237,7 @@ static void pocketlab_free(PocketLab* app) {
     about_view_free(app->about_view);
     levelup_view_free(app->levelup_view);
     exam_view_free(app->exam_view);
+    reset_view_free(app->reset_view);
 
     scene_manager_free(app->scene_manager);
     view_dispatcher_free(app->view_dispatcher);

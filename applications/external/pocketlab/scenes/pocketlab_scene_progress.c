@@ -9,7 +9,9 @@ void pocketlab_scene_progress_on_enter(void* context) {
         pocketlab_completed_count(app),
         pocketlab_labs_count,
         app->state.streak_days,
-        pocketlab_level_title(app->state.level));
+        pocketlab_level_title(app->state.level),
+        app->notifications,
+        app->state.sound != 0);
     view_dispatcher_switch_to_view(app->view_dispatcher, PocketLabViewProgress);
 }
 

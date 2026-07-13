@@ -48,8 +48,8 @@ typedef struct {
     const char* badge;
     PocketLabTrack track;
     uint16_t xp;
-    // 10x10 topic glyph (one bit per column) shown next to the lesson title.
-    uint16_t icon[10];
+    // 12x12 topic glyph (bit c of each row = pixel x=c) shown by the lesson/badge.
+    uint16_t icon[12];
     const PocketLabStep* steps;
     size_t step_count;
 } PocketLabLab;

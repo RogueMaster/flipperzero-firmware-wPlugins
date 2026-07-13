@@ -4,14 +4,18 @@
 #include <gui/elements.h>
 
 #include "../helpers/pocketlab_content.h"
+#include "../helpers/pocketlab_fonts.h"
+#include "../helpers/pocketlab_labtext.h"
 #include "../helpers/pocketlab_sound.h"
 
 #define LABS_ROW_HEIGHT   16
 #define LABS_VISIBLE_ROWS 4
 #define LABS_MAX_ITEMS    72 // tracks + labs, with headroom
+#define LABS_ANIM_MS      90 // marquee tick for the selected row
 
 struct LabsListView {
     View* view;
+    FuriTimer* timer;
     LabsListViewCallback callback;
     void* context;
     NotificationApp* notifications;
@@ -30,6 +34,7 @@ typedef struct {
     size_t item_count;
     size_t selected; // display index, always points at a lab
     size_t offset; // first visible display row
+    uint32_t anim; // marquee tick, reset when the selection moves
 } LabsListModel;
 
 // Builds the grouped display list: for each track that has labs, a header
@@ -114,6 +119,51 @@ static void
     canvas_set_color(canvas, foreground);
 }
 
+// Draw the selected row's lab title. If it is too wide it ping-pong scrolls so
+// the whole title can be read; overflow is repainted with the row background and
+// the indicator is redrawn on top. Non-selected rows are drawn plainly.
+static void labs_list_view_draw_title(
+    Canvas* canvas,
+    const char* title,
+    uint8_t y,
+    bool selected,
+    bool done,
+    uint32_t anim) {
+    const int x0 = 20;
+    const int ty = y + LABS_ROW_HEIGHT / 2 + 4;
+    const int right = 122; // keep clear of the scrollbar
+    const int avail = right - x0;
+    const int tw = canvas_string_width(canvas, title);
+
+    if(!selected || tw <= avail) {
+        canvas_draw_str(canvas, x0, ty, title);
+        return;
+    }
+
+    const int span = tw - avail;
+    const int hold = 12; // frames paused at each end
+    const int total = 2 * (span + hold);
+    const int t = (int)(anim % (uint32_t)total);
+    int off;
+    if(t < hold) {
+        off = 0;
+    } else if(t < hold + span) {
+        off = t - hold;
+    } else if(t < 2 * hold + span) {
+        off = span;
+    } else {
+        off = span - (t - 2 * hold - span);
+    }
+
+    canvas_draw_str(canvas, x0 - off, ty, title);
+    // Repaint the strips outside [x0, right) with the selected row's black
+    // background, then redraw the indicator over the left strip.
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_box(canvas, 0, y, x0, LABS_ROW_HEIGHT);
+    canvas_draw_box(canvas, right, y, 128 - right, LABS_ROW_HEIGHT);
+    labs_list_view_draw_indicator(canvas, 10, y + LABS_ROW_HEIGHT / 2, done, true);
+}
+
 static void labs_list_view_draw_callback(Canvas* canvas, void* context) {
     LabsListModel* model = context;
     canvas_clear(canvas);
@@ -126,14 +176,18 @@ static void labs_list_view_draw_callback(Canvas* canvas, void* context) {
         const LabsItem* item = &model->items[idx];
 
         if(item->is_header) {
-            canvas_set_font(canvas, FontPrimary);
-            canvas_draw_str(canvas, 4, y + LABS_ROW_HEIGHT - 5, pocketlab_track_name(item->value));
+            pocketlab_font_apply(canvas, true);
+            canvas_draw_str(
+                canvas,
+                4,
+                y + LABS_ROW_HEIGHT - 5,
+                pocketlab_tr(pocketlab_track_name(item->value)));
 
             uint8_t done = 0, total = 0;
             labs_list_view_track_progress(item->value, model->completed_mask, &done, &total);
             char count[8];
             snprintf(count, sizeof(count), "%u/%u", done, total);
-            canvas_set_font(canvas, FontSecondary);
+            pocketlab_font_apply_small(canvas);
             canvas_draw_str_aligned(
                 canvas, 124, y + LABS_ROW_HEIGHT - 4, AlignRight, AlignBottom, count);
             continue;
@@ -149,9 +203,14 @@ static void labs_list_view_draw_callback(Canvas* canvas, void* context) {
 
         labs_list_view_draw_indicator(canvas, 10, y + LABS_ROW_HEIGHT / 2, done, selected);
 
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(
-            canvas, 22, y + LABS_ROW_HEIGHT / 2 + 4, pocketlab_labs[item->value].title);
+        pocketlab_font_apply_small(canvas);
+        labs_list_view_draw_title(
+            canvas,
+            pocketlab_tr(pocketlab_labs[item->value].title),
+            y,
+            selected,
+            done,
+            model->anim);
 
         canvas_set_color(canvas, ColorBlack);
     }
@@ -199,6 +258,7 @@ static bool labs_list_view_input_callback(InputEvent* event, void* context) {
                 consumed = true;
             }
             play_nav = !selected && model->selected != prev;
+            if(model->selected != prev) model->anim = 0; // restart the marquee
         },
         true);
 
@@ -210,6 +270,22 @@ static bool labs_list_view_input_callback(InputEvent* event, void* context) {
     }
 
     return consumed;
+}
+
+static void labs_list_view_timer_callback(void* context) {
+    LabsListView* instance = context;
+    with_view_model(instance->view, LabsListModel * model, { model->anim++; }, true);
+}
+
+static void labs_list_view_enter_callback(void* context) {
+    LabsListView* instance = context;
+    with_view_model(instance->view, LabsListModel * model, { model->anim = 0; }, false);
+    furi_timer_start(instance->timer, furi_ms_to_ticks(LABS_ANIM_MS));
+}
+
+static void labs_list_view_exit_callback(void* context) {
+    LabsListView* instance = context;
+    furi_timer_stop(instance->timer);
 }
 
 LabsListView* labs_list_view_alloc(void) {
@@ -224,12 +300,19 @@ LabsListView* labs_list_view_alloc(void) {
     view_allocate_model(instance->view, ViewModelTypeLocking, sizeof(LabsListModel));
     view_set_draw_callback(instance->view, labs_list_view_draw_callback);
     view_set_input_callback(instance->view, labs_list_view_input_callback);
+    view_set_enter_callback(instance->view, labs_list_view_enter_callback);
+    view_set_exit_callback(instance->view, labs_list_view_exit_callback);
+
+    instance->timer =
+        furi_timer_alloc(labs_list_view_timer_callback, FuriTimerTypePeriodic, instance);
 
     return instance;
 }
 
 void labs_list_view_free(LabsListView* instance) {
     furi_assert(instance);
+    furi_timer_stop(instance->timer);
+    furi_timer_free(instance->timer);
     view_free(instance->view);
     free(instance);
 }

@@ -4,6 +4,9 @@
 #include <gui/elements.h>
 
 #include "../helpers/pocketlab_content.h"
+#include "../helpers/pocketlab_fonts.h"
+#include "../helpers/pocketlab_i18n.h"
+#include "../helpers/pocketlab_labtext.h"
 #include "../helpers/pocketlab_sound.h"
 
 #define BADGES_COLS         5
@@ -32,12 +35,12 @@ typedef struct {
 
 #define BADGES_PRESS_FRAMES 6
 
-// Draws the 10x10 glyph so its filled content is centered on (cx, cy).
+// Draws the 12x12 glyph so its filled content is centered on (cx, cy).
 static void badges_view_draw_glyph(Canvas* canvas, const uint16_t* rows, uint8_t cx, uint8_t cy) {
-    uint8_t min_c = 9, max_c = 0, min_r = 9, max_r = 0;
+    uint8_t min_c = 11, max_c = 0, min_r = 11, max_r = 0;
     bool any = false;
-    for(uint8_t r = 0; r < 10; r++) {
-        for(uint8_t c = 0; c < 10; c++) {
+    for(uint8_t r = 0; r < 12; r++) {
+        for(uint8_t c = 0; c < 12; c++) {
             if(rows[r] & (1u << c)) {
                 any = true;
                 if(c < min_c) min_c = c;
@@ -51,8 +54,8 @@ static void badges_view_draw_glyph(Canvas* canvas, const uint16_t* rows, uint8_t
 
     const int ox = (int)cx - (min_c + max_c) / 2;
     const int oy = (int)cy - (min_r + max_r) / 2;
-    for(uint8_t r = 0; r < 10; r++) {
-        for(uint8_t c = 0; c < 10; c++) {
+    for(uint8_t r = 0; r < 12; r++) {
+        for(uint8_t c = 0; c < 12; c++) {
             if(rows[r] & (1u << c)) {
                 canvas_draw_dot(canvas, ox + c, oy + r);
             }
@@ -98,6 +101,16 @@ static void badges_view_draw_up_arrow(Canvas* canvas, uint8_t x, uint8_t y) {
     canvas_draw_dot(canvas, x, y);
     canvas_draw_line(canvas, x - 1, y + 1, x + 1, y + 1);
     canvas_draw_line(canvas, x - 2, y + 2, x + 2, y + 2);
+}
+
+// A small 6x7 padlock, drawn to the left of a locked badge's name.
+static void badges_view_draw_lock(Canvas* canvas, uint8_t x, uint8_t y) {
+    static const uint8_t rows[7] = {0x0C, 0x12, 0x12, 0x3F, 0x3F, 0x33, 0x3F};
+    for(uint8_t r = 0; r < 7; r++) {
+        for(uint8_t c = 0; c < 6; c++) {
+            if(rows[r] & (1u << c)) canvas_draw_dot(canvas, x + c, y + r);
+        }
+    }
 }
 
 static void badges_view_draw_callback(Canvas* canvas, void* context) {
@@ -157,10 +170,20 @@ static void badges_view_draw_callback(Canvas* canvas, void* context) {
 
     const PocketLabLab* lab = &pocketlab_labs[model->selected];
     const bool selected_earned = (model->completed_mask & (1ULL << model->selected)) != 0;
-    char line[32];
-    snprintf(line, sizeof(line), "%s%s", lab->badge, selected_earned ? "" : " (locked)");
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 61, AlignCenter, AlignBottom, line);
+    pocketlab_font_apply_small(canvas);
+    const char* name = pocketlab_tr(lab->badge);
+    if(selected_earned) {
+        canvas_draw_str_aligned(canvas, 64, 61, AlignCenter, AlignBottom, name);
+    } else {
+        // A padlock to the left of the name marks a badge that is still locked.
+        const uint8_t lock_w = 6;
+        const uint8_t gap = 3;
+        const uint16_t tw = canvas_string_width(canvas, name);
+        const uint8_t total = (uint8_t)(lock_w + gap + tw);
+        const uint8_t sx = (uint8_t)(64 - total / 2);
+        badges_view_draw_lock(canvas, sx, 54);
+        canvas_draw_str_aligned(canvas, sx + lock_w + gap, 61, AlignLeft, AlignBottom, name);
+    }
 }
 
 static bool badges_view_input_callback(InputEvent* event, void* context) {

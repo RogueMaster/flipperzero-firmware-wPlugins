@@ -4,7 +4,7 @@
 #include <storage/storage.h>
 
 #define POCKETLAB_STATE_MAGIC   0x504C4231UL /* "PLB1" */
-#define POCKETLAB_STATE_VERSION 3
+#define POCKETLAB_STATE_VERSION 4
 
 #define POCKETLAB_DATA_DIR   "/ext/apps_data/pocketlab"
 #define POCKETLAB_STATE_PATH POCKETLAB_DATA_DIR "/state.bin"
@@ -33,13 +33,30 @@ typedef struct {
     uint32_t last_day;
 } PocketLabStateV2;
 
+// Version 3 on-disk layout (before the language/font settings were added).
+typedef struct {
+    uint32_t magic;
+    uint16_t version;
+    uint8_t sound;
+    uint8_t led;
+    uint8_t vibro;
+    uint8_t reserved;
+    uint32_t xp;
+    uint32_t level;
+    uint64_t completed_mask;
+    uint32_t streak_days;
+    uint32_t last_day;
+} PocketLabStateV3;
+
 static void pocketlab_storage_set_defaults(PocketLabState* state) {
     state->magic = POCKETLAB_STATE_MAGIC;
     state->version = POCKETLAB_STATE_VERSION;
     state->sound = 1;
     state->led = 1;
     state->vibro = 1;
-    state->reserved = 0;
+    state->lang = 0; // English
+    state->reserved[0] = 0;
+    state->reserved[1] = 0;
     state->xp = 0;
     state->level = 1;
     state->completed_mask = 0;
@@ -62,7 +79,19 @@ static void pocketlab_storage_migrate_v2(PocketLabState* state, const PocketLabS
     state->completed_mask = old->completed_mask;
     state->streak_days = old->streak_days;
     state->last_day = old->last_day;
-    // led/vibro keep their defaults (on)
+    // led/vibro and lang keep their defaults (on / English)
+}
+
+static void pocketlab_storage_migrate_v3(PocketLabState* state, const PocketLabStateV3* old) {
+    state->sound = old->sound;
+    state->led = old->led;
+    state->vibro = old->vibro;
+    state->xp = old->xp;
+    state->level = old->level;
+    state->completed_mask = old->completed_mask;
+    state->streak_days = old->streak_days;
+    state->last_day = old->last_day;
+    // lang keeps its default (English)
 }
 
 void pocketlab_storage_load(PocketLabState* state) {
@@ -84,6 +113,11 @@ void pocketlab_storage_load(PocketLabState* state) {
                 PocketLabState loaded;
                 if(storage_file_read(file, &loaded, sizeof(loaded)) == sizeof(loaded)) {
                     *state = loaded;
+                }
+            } else if(version == 3) {
+                PocketLabStateV3 old;
+                if(storage_file_read(file, &old, sizeof(old)) == sizeof(old)) {
+                    pocketlab_storage_migrate_v3(state, &old);
                 }
             } else if(version == 2) {
                 PocketLabStateV2 old;

@@ -17,8 +17,15 @@ static void pocketlab_scene_reset_confirm_button_callback(
 
 void pocketlab_scene_reset_confirm_on_enter(void* context) {
     PocketLab* app = context;
-    Widget* widget = app->widget;
 
+    // The stock Widget can't render Cyrillic, so Russian/Spanish use a custom
+    // view; English keeps the original Widget dialog unchanged.
+    if(pocketlab_font_is_universal()) {
+        view_dispatcher_switch_to_view(app->view_dispatcher, PocketLabViewReset);
+        return;
+    }
+
+    Widget* widget = app->widget;
     widget_reset(widget);
     widget_add_string_element(
         widget, 64, 12, AlignCenter, AlignTop, FontPrimary, "Reset progress?");
@@ -40,7 +47,11 @@ bool pocketlab_scene_reset_confirm_on_event(void* context, SceneManagerEvent eve
             pocketlab_reset_progress(app);
             pocketlab_sound_play(app->notifications, app->state.sound != 0, PocketLabSoundReset);
             // Brief "cleared" flash before returning to the settings screen.
-            levelup_view_configure(app->levelup_view, "Reset!", "Progress cleared", 30);
+            levelup_view_configure(
+                app->levelup_view,
+                pocketlab_text(PocketLabTextResetDone),
+                pocketlab_text(PocketLabTextResetCleared),
+                30);
             view_dispatcher_switch_to_view(app->view_dispatcher, PocketLabViewLevelUp);
             return true;
         }

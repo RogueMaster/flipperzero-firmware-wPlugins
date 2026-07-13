@@ -4,6 +4,8 @@
 #include <furi_hal_random.h>
 #include <string.h>
 
+#include "../helpers/pocketlab_fonts.h"
+#include "../helpers/pocketlab_i18n.h"
 #include "../helpers/pocketlab_sound.h"
 #include "../pocketlab_version.h"
 
@@ -79,7 +81,9 @@ typedef struct {
     uint8_t bullet; // draw a bullet dot after this many chars (0 = none)
 } AboutLine;
 
-static const AboutLine about_lines[] = {
+// The description wraps differently per language, so each has its own line set.
+// The URL/repo/author handle stay literal; only the labels are translated.
+static const AboutLine about_lines_en[] = {
     {NULL, 0, "PocketLab is an app that", 0},
     {NULL, 0, "teaches the Flipper Zero", 0},
     {NULL, 0, "features.", 0},
@@ -90,7 +94,31 @@ static const AboutLine about_lines[] = {
     {NULL, 0, "flipper-pocketlab", 0},
 };
 
-#define ABOUT_LINE_COUNT COUNT_OF(about_lines)
+// The URL is split so it fits the wider Cyrillic/Spanish font, and a trailing
+// blank line keeps the last URL line clear of the bottom-right "coffee" hint.
+static const AboutLine about_lines_ru[] = {
+    {NULL, 0, "PocketLab - твой", 0},
+    {NULL, 0, "карманный гайд по", 0},
+    {NULL, 0, "радиочастотам и", 0},
+    {NULL, 0, "Флипперу.", 0},
+    {NULL, 0, "", 0},
+    {about_icon_version, 9, "Версия: " POCKETLAB_VERSION, 0},
+    {about_icon_copyright, 9, "Автор: PerfectoWeb", 0},
+    {about_icon_github, 9, "github.com/", 0},
+    {NULL, 0, "PerfectoWeb/", 0},
+    {NULL, 0, "flipper-pocketlab", 0},
+    {NULL, 0, "", 0},
+};
+
+static const AboutLine* about_lines(void) {
+    return pocketlab_i18n_get_lang() == PocketLabLangRu ? about_lines_ru : about_lines_en;
+}
+
+// Line count varies by language (the URL wraps to more lines in RU).
+static size_t about_line_count(void) {
+    return pocketlab_i18n_get_lang() == PocketLabLangRu ? COUNT_OF(about_lines_ru) :
+                                                          COUNT_OF(about_lines_en);
+}
 
 struct AboutView {
     View* view;
@@ -119,25 +147,30 @@ typedef struct {
 } AboutModel;
 
 static uint16_t about_total_chars(void) {
+    const AboutLine* lines = about_lines();
+    const size_t count = about_line_count();
     uint16_t total = 0;
-    for(size_t i = 0; i < ABOUT_LINE_COUNT; i++) {
-        total += (uint16_t)strlen(about_lines[i].text);
+    for(size_t i = 0; i < count; i++) {
+        total += (uint16_t)strlen(lines[i].text);
     }
     return total;
 }
 
 static uint8_t about_max_offset(void) {
-    return ABOUT_LINE_COUNT > ABOUT_VISIBLE ? (uint8_t)(ABOUT_LINE_COUNT - ABOUT_VISIBLE) : 0;
+    const size_t count = about_line_count();
+    return count > ABOUT_VISIBLE ? (uint8_t)(count - ABOUT_VISIBLE) : 0;
 }
 
 // Index of the line currently being typed, given how many chars are revealed.
 static uint8_t about_typing_line(uint16_t typed) {
+    const AboutLine* lines = about_lines();
+    const size_t count = about_line_count();
     uint16_t acc = 0;
-    for(size_t i = 0; i < ABOUT_LINE_COUNT; i++) {
-        acc += (uint16_t)strlen(about_lines[i].text);
+    for(size_t i = 0; i < count; i++) {
+        acc += (uint16_t)strlen(lines[i].text);
         if(typed <= acc) return (uint8_t)i;
     }
-    return ABOUT_LINE_COUNT - 1;
+    return (uint8_t)(count - 1);
 }
 
 static void
@@ -199,22 +232,26 @@ static void about_draw_matrix(Canvas* canvas, uint32_t frame) {
 
 static void about_draw_terminal(Canvas* canvas, AboutModel* model) {
     // Plain, bold title instead of a terminal status bar.
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, ABOUT_LEFT, 11, "About");
+    pocketlab_font_apply(canvas, true);
+    canvas_draw_str(canvas, ABOUT_LEFT, 11, pocketlab_text(PocketLabTextMenuAbout));
 
     const uint16_t total = about_total_chars();
     const uint16_t typed = model->typed < total ? model->typed : total;
     const bool typing = model->typed < total;
 
     // Reveal text line by line; count characters up to the visible window.
+    const AboutLine* lines = about_lines();
+    // The Universal (Cyrillic) font is a touch taller, so it needs more leading.
+    const uint8_t line_h = pocketlab_font_is_universal() ? 12 : ABOUT_LINE_H;
     uint16_t remaining = typed;
     uint8_t cursor_x = ABOUT_LEFT;
     uint8_t cursor_y = ABOUT_BODY_TOP;
     bool cursor_set = false;
 
-    canvas_set_font(canvas, FontSecondary);
-    for(size_t i = 0; i < ABOUT_LINE_COUNT; i++) {
-        const AboutLine* line = &about_lines[i];
+    pocketlab_font_apply_small(canvas);
+    const size_t line_count = about_line_count();
+    for(size_t i = 0; i < line_count; i++) {
+        const AboutLine* line = &lines[i];
         const uint8_t length = (uint8_t)strlen(line->text);
         uint8_t shown = remaining >= length ? length : (uint8_t)remaining;
         if(remaining < length) {
@@ -227,16 +264,25 @@ static void about_draw_terminal(Canvas* canvas, AboutModel* model) {
         const bool visible = i >= (size_t)model->offset &&
                              i < (size_t)model->offset + ABOUT_VISIBLE;
         if(visible && shown > 0) {
-            const uint8_t y = (uint8_t)(ABOUT_BODY_TOP + (i - model->offset) * ABOUT_LINE_H);
+            const uint8_t y = (uint8_t)(ABOUT_BODY_TOP + (i - model->offset) * line_h);
             uint8_t tx = ABOUT_LEFT;
             if(line->icon) {
                 // A 9px icon centred on the ~7px text: 1px above and 1px below.
-                about_draw_bitmap(canvas, line->icon, line->icon_h, tx, y - line->icon_h + 2);
+                // The Universal font sits a touch lower, so lift the icon 1px there.
+                const int8_t icon_dy = pocketlab_font_is_universal() ? -1 : 0;
+                about_draw_bitmap(
+                    canvas,
+                    line->icon,
+                    line->icon_h,
+                    tx,
+                    (uint8_t)(y - line->icon_h + 2 + icon_dy));
                 tx += 12;
             }
-            char buffer[28];
-            uint8_t n = shown < sizeof(buffer) - 1 ? shown : sizeof(buffer) - 1;
+            char buffer[64];
+            uint8_t n = shown < sizeof(buffer) - 1 ? shown : (uint8_t)(sizeof(buffer) - 1);
             memcpy(buffer, line->text, n);
+            // Don't leave a dangling UTF-8 lead byte mid-type (Cyrillic is 2 bytes).
+            if(n > 0 && (unsigned char)buffer[n - 1] >= 0xC0) n--;
             buffer[n] = '\0';
             canvas_draw_str(canvas, tx, y, buffer);
 
@@ -267,8 +313,9 @@ static void about_draw_terminal(Canvas* canvas, AboutModel* model) {
 
     // Once the log is written, hint that the coffee page is one press away.
     if(!typing && (model->frame / 15) % 2 == 0) {
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 125, 61, AlignRight, AlignBottom, "coffee >");
+        pocketlab_font_apply_small(canvas);
+        canvas_draw_str_aligned(
+            canvas, 125, 61, AlignRight, AlignBottom, pocketlab_text(PocketLabTextCoffeeHint));
     }
 }
 
@@ -291,8 +338,26 @@ static void about_draw_qr(Canvas* canvas, uint8_t x0, uint8_t y0) {
 static void about_draw_back_button(Canvas* canvas) {
     canvas_draw_rbox(canvas, 2, 1, 40, 13, 3);
     canvas_set_color(canvas, ColorWhite);
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 22, 8, AlignCenter, AlignCenter, "< back");
+    pocketlab_font_apply_small(canvas);
+    const char* back = pocketlab_text(PocketLabTextBack); // "< back" / "< назад" / "< atrás"
+
+    if(!pocketlab_font_is_universal()) {
+        // English: unchanged, single centred string.
+        canvas_draw_str_aligned(canvas, 21, 7, AlignCenter, AlignCenter, back);
+    } else {
+        // RU/ES: split the leading arrow off so it can be nudged 1px right and
+        // 1px down to sit better on the pill, keeping the word centred.
+        const char* sp = strchr(back, ' ');
+        const char* word = sp ? sp + 1 : back;
+        const int full_w = (int)canvas_string_width(canvas, back);
+        const int arrow_w = (int)canvas_string_width(canvas, "<");
+        const int word_w = (int)canvas_string_width(canvas, word);
+        const int gap = full_w - arrow_w - word_w; // the space advance
+        const int left = 21 - full_w / 2;
+        canvas_draw_str_aligned(canvas, (uint8_t)(left + 1), 8, AlignLeft, AlignCenter, "<");
+        canvas_draw_str_aligned(
+            canvas, (uint8_t)(left + arrow_w + gap), 7, AlignLeft, AlignCenter, word);
+    }
     canvas_set_color(canvas, ColorBlack);
 }
 
@@ -511,8 +576,8 @@ static void about_draw_pacman_snack(
 static void about_draw_coffee(Canvas* canvas, AboutModel* model) {
     about_draw_back_button(canvas);
 
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 5, 27, "Enjoying");
+    pocketlab_font_apply_small(canvas);
+    canvas_draw_str(canvas, 5, 27, pocketlab_text(PocketLabTextEnjoying));
     canvas_draw_str(canvas, 5, 37, "PocketLab?");
 
     // "Scan to buy me a coffee" always on, but with letters briefly scrambled
@@ -586,9 +651,15 @@ static void about_view_timer_callback(void* context) {
                 } else if(model->typed < total) {
                     model->typed += ABOUT_TYPE_SPEED;
                     if(model->typed > total) model->typed = total;
-                    // Keep the line being typed at the bottom of the viewport.
-                    const uint8_t line = about_typing_line(model->typed);
-                    model->offset = line >= ABOUT_VISIBLE ? line - ABOUT_VISIBLE + 1 : 0;
+                    if(model->typed >= total) {
+                        // Once fully typed, rest at the very bottom so the trailing
+                        // blank line sits under the "coffee" hint (no overlap).
+                        model->offset = about_max_offset();
+                    } else {
+                        // Keep the line being typed at the bottom of the viewport.
+                        const uint8_t line = about_typing_line(model->typed);
+                        model->offset = line >= ABOUT_VISIBLE ? line - ABOUT_VISIBLE + 1 : 0;
+                    }
                     play_tick = (model->frame % 2) == 0;
                 }
             } else if(model->screen == 1) {
