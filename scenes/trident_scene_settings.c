@@ -119,5 +119,6 @@ bool trident_scene_settings_on_event(void* context, SceneManagerEvent event) {
 
 void trident_scene_settings_on_exit(void* context) {
     TridentApp* app = context;
+    trident_settings_save(&app->settings); // persist across runs
     variable_item_list_reset(app->var_item_list);
 }

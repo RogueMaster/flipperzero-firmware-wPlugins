@@ -2,10 +2,13 @@
 #include <stdio.h>
 
 /*
- * CC1101 menu: pick a band to analyze. Each entry launches the same sweep
- * analyzer pinned to that band; the active radio (internal / external CC1101)
- * comes from Settings.
+ * CC1101 menu:
+ *   - one band spectrum analyzer per band (300-348 / 387-464 / 779-928)
+ *   - a frequency finder pre-tuned to each common preset
+ * The active radio (internal / external CC1101) comes from Settings.
  */
+
+#define SUBGHZ_PRESET_BASE TRIDENT_SUBGHZ_BAND_COUNT
 
 static void trident_scene_subghz_cb(void* context, uint32_t index) {
     TridentApp* app = context;
@@ -20,8 +23,13 @@ void trident_scene_subghz_on_enter(void* context) {
     submenu_set_header(menu, "CC1101 - Sub-GHz");
     for(uint8_t i = 0; i < TRIDENT_SUBGHZ_BAND_COUNT; i++) {
         char label[24];
-        snprintf(label, sizeof(label), "Analyzer  %s MHz", trident_subghz_band_label(i));
+        snprintf(label, sizeof(label), "Spectrum  %s", trident_subghz_band_label(i));
         submenu_add_item(menu, label, i, trident_scene_subghz_cb, app);
+    }
+    for(uint8_t i = 0; i < TRIDENT_SUBGHZ_PRESET_COUNT; i++) {
+        char label[24];
+        snprintf(label, sizeof(label), "Finder  %s MHz", trident_subghz_presets[i].label);
+        submenu_add_item(menu, label, SUBGHZ_PRESET_BASE + i, trident_scene_subghz_cb, app);
     }
 
     submenu_set_selected_item(
@@ -35,10 +43,15 @@ bool trident_scene_subghz_on_event(void* context, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
+        scene_manager_set_scene_state(app->scene_manager, TridentSceneSubghz, event.event);
         if(event.event < TRIDENT_SUBGHZ_BAND_COUNT) {
-            scene_manager_set_scene_state(app->scene_manager, TridentSceneSubghz, event.event);
             app->settings.subghz_band = (uint8_t)event.event;
             scene_manager_next_scene(app->scene_manager, TridentSceneSubghzscan);
+            consumed = true;
+        } else if(event.event < SUBGHZ_PRESET_BASE + TRIDENT_SUBGHZ_PRESET_COUNT) {
+            uint8_t p = (uint8_t)(event.event - SUBGHZ_PRESET_BASE);
+            subghz_radio_set_camp_freq(app->subghz, trident_subghz_presets[p].hz);
+            scene_manager_next_scene(app->scene_manager, TridentSceneSubghzfind);
             consumed = true;
         }
     }

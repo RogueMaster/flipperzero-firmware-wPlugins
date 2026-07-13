@@ -18,11 +18,13 @@
 #include "helpers/marauder_uart.h"
 #include "helpers/nrf24_radio.h"
 #include "helpers/subghz_radio.h"
+#include "helpers/trident_storage.h"
 #include "views/console_view.h"
 #include "views/spectrum_view.h"
+#include "views/meter_view.h"
 #include "scenes/trident_scene.h"
 
-#define TRIDENT_VERSION   "1.0"
+#define TRIDENT_VERSION   "1.1"
 #define TRIDENT_CMD_MAX   64
 #define TRIDENT_TITLE_MAX 24
 #define TRIDENT_LINK_TIMEOUT_MS \
@@ -30,8 +32,9 @@
 
 typedef enum {
     TridentViewSubmenu, // home + every sub-menu
-    TridentViewConsole, // live ESP32 serial console
-    TridentViewSpectrum, // NRF24 / CC1101 analyzer
+    TridentViewConsole, // live ESP32 serial console + NRF24 sniffer log
+    TridentViewSpectrum, // NRF24 / CC1101 band analyzer
+    TridentViewMeter, // NRF24 / CC1101 finder gauge
     TridentViewVarList, // settings
     TridentViewTextInput, // send raw command / enter a value
     TridentViewWidget, // about + attack confirmation
@@ -55,7 +58,7 @@ typedef enum {
     TridentCc1101External = 1, // the board's CC1101 (needs cc1101_ext driver)
 } TridentCc1101Device;
 
-typedef struct {
+typedef struct TridentSettings {
     uint8_t uart_channel; // TridentUartChannel
     uint8_t cc1101_device; // TridentCc1101Device
     uint8_t subghz_band; // index into trident_subghz_bands[]
@@ -79,8 +82,9 @@ typedef struct {
     Widget* widget;
 
     // custom views
-    ConsoleView* console_view; // ESP32 serial console
-    SpectrumView* spectrum_view; // NRF24 + CC1101 analyzer
+    ConsoleView* console_view; // ESP32 serial console + NRF24 sniffer log
+    SpectrumView* spectrum_view; // NRF24 + CC1101 band analyzer
+    MeterView* meter_view; // NRF24 + CC1101 finder gauge
 
     // the three radios
     MarauderUart* uart; // ESP32 link
@@ -130,3 +134,4 @@ void trident_link_disarm(TridentApp* app); // stop the current op and release th
 void trident_link_send(TridentApp* app, const char* cmd); // raw send (adds nothing)
 void trident_notify_start(TridentApp* app); // short feedback when an attack starts
 bool trident_link_is_live(TridentApp* app); // received data recently?
+void trident_click(TridentApp* app); // short Geiger-style click (finder feedback)

@@ -7,6 +7,7 @@ typedef enum {
     AtkBeaconAp,
     AtkProbe,
     AtkRickroll,
+    AtkEvilPortal,
 } AtkIndex;
 
 static void trident_scene_attacks_cb(void* context, uint32_t index) {
@@ -26,6 +27,7 @@ void trident_scene_attacks_on_enter(void* context) {
     submenu_add_item(menu, "Beacon Spam (AP clone)", AtkBeaconAp, trident_scene_attacks_cb, app);
     submenu_add_item(menu, "Probe Flood", AtkProbe, trident_scene_attacks_cb, app);
     submenu_add_item(menu, "Rickroll Beacon", AtkRickroll, trident_scene_attacks_cb, app);
+    submenu_add_item(menu, "Evil Portal", AtkEvilPortal, trident_scene_attacks_cb, app);
 
     submenu_set_selected_item(
         menu, scene_manager_get_scene_state(app->scene_manager, TridentSceneAttacks));
@@ -58,6 +60,9 @@ bool trident_scene_attacks_on_event(void* context, SceneManagerEvent event) {
             break;
         case AtkRickroll:
             trident_launch(app, "Rickroll Beacon", MARAUDER_CMD_ATTACK_RICKROLL, true);
+            break;
+        case AtkEvilPortal:
+            trident_launch(app, "Evil Portal", MARAUDER_CMD_EVIL_PORTAL, true);
             break;
         default:
             consumed = false;

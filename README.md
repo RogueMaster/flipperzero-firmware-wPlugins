@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>One control surface for a 3-in-1 ESP32 + NRF24 + CC1101 expansion board.</b><br>
-  Wi-Fi &amp; Bluetooth, a 2.4&nbsp;GHz spectrum analyzer, and a Sub-GHz sweep — from a single Flipper Zero app.
+  Wi-Fi &amp; Bluetooth, a 2.4&nbsp;GHz analyzer / finder / sniffer, and a Sub-GHz sweep &amp; frequency finder — from a single Flipper Zero app.
 </p>
 
 <p align="center">
@@ -32,8 +32,8 @@ available on the platform, so what you see on screen reflects real hardware.
 | Radio  | Bus            | What Trident does                                             |
 | ------ | -------------- | ------------------------------------------------------------- |
 | ESP32  | GPIO UART      | Full ESP32 **Marauder** controller — Wi-Fi/BT/GPS + live console |
-| NRF24  | External SPI   | **2.4 GHz spectrum analyzer** across all 126 channels          |
-| CC1101 | Sub-GHz device | **Sub-GHz sweep** over 300–348 / 387–464 / 779–928 MHz         |
+| NRF24  | External SPI   | **2.4 GHz** spectrum analyzer, channel finder & sniffer        |
+| CC1101 | Sub-GHz device | **Sub-GHz** band sweep + frequency finder (internal / external) |
 
 ---
 
@@ -48,7 +48,7 @@ over the Flipper's GPIO UART at 115200 baud.
 - **Wi-Fi** — scan APs & stations, channel analyzer, set channel, targeting/select,
   sniffers (beacon / probe / deauth / PMKID / pwnagotchi / ESP / raw)
 - **Attacks** (gated behind a confirmation) — deauth, beacon spam (list / random / AP),
-  probe flood, Rickroll
+  probe flood, Rickroll, **Evil Portal**
 - **Bluetooth** — sniff BT, skimmer detect, AirTag scan, and BLE Spam
   (Apple / Samsung / Google / Windows / all)
 - **GPS** — live GPS data and AP / station wardriving
@@ -56,28 +56,38 @@ over the Flipper's GPIO UART at 115200 baud.
 - **Console** — a live serial terminal that speaks any raw Marauder command, so
   Trident stays useful across firmware revisions
 
-### 📶 NRF24 — 2.4 GHz spectrum analyzer
+### 📶 NRF24 — 2.4 GHz
 
-A read-only 2.4 GHz analyzer built on the nRF24L01+ Received Power Detector. It
-sweeps all 126 channels (2400–2525 MHz), samples carrier energy on each, and
-renders a live bar spectrum with peak-hold.
+Read-only 2.4 GHz tooling built on the nRF24L01+. Three modes:
 
-- All-channel sweep with decaying activity accumulator
-- Peak marker with channel + frequency readout
-- **OK** clears the activity / peak hold
+- **Spectrum Analyzer** — sweeps all 126 channels (2400–2525 MHz), sampling the
+  Received Power Detector, and renders a live bar spectrum with peak-hold
+- **Channel Finder** — camp one channel and read its hit-rate on an analog gauge,
+  with Geiger-style audio feedback (`◀ ▶` channel, `▲ ▼` ±10, `OK` zero)
+- **Sniffer** *(experimental)* — promiscuous capture on a channel (CRC off,
+  preamble-as-address), printing each frame's leading bytes to a scrolling log
 - Never transmits
 
-### 📻 CC1101 — Sub-GHz analyzer
+### 📻 CC1101 — Sub-GHz
 
-An RSSI sweep across the common Sub-GHz bands, driven through the firmware's
+RSSI analysis across the common Sub-GHz bands, driven through the firmware's
 tested Sub-GHz device layer.
 
-- Bands: **300–348**, **387–464** (covers 433) and **779–928 MHz** (covers 868/915)
-- Live spectrum with a decaying max-hold and dBm peak readout
+- **Spectrum sweep** over **300–348**, **387–464** (covers 433) and
+  **779–928 MHz** (covers 868/915), with a decaying max-hold and dBm peak readout
+- **Frequency Finder** — camp any frequency on the signal meter; tune with
+  `◀ ▶`, change the step (10 kHz … 10 MHz) with `▲ ▼`, one-touch presets for
+  315 / 390 / 418 / 433.92 / 868.35 / 915 MHz, Geiger audio feedback
 - Choose the **Internal** Flipper CC1101 or the board's **External** CC1101
   (the external radio needs a firmware that ships the `cc1101_ext` driver —
   Unleashed / RogueMaster / Momentum)
 - Never transmits
+
+### ✨ Everywhere
+
+- Clean, branded UI with shared spectrum + analog-meter renderers
+- **Settings are saved across runs** (UART pins, CC1101 radio, band, feedback)
+- Sound / vibro / LED feedback, all toggleable; `OK` resets peak-hold anywhere
 
 ---
 
@@ -148,11 +158,21 @@ python3 tools_gen_mockups.py   # images/screen_*.png, screens.png
 1. Open **Trident** from `Apps → GPIO`.
 2. Pick a radio from the home screen:
    - **ESP32 Wi-Fi / BT** → scan, sniff, target, attack, wardrive, or open the console
-   - **NRF24 2.4 GHz** → the spectrum analyzer starts immediately
-   - **CC1101 Sub-GHz** → choose a band, then the sweep analyzer opens
-3. On either analyzer, **OK** resets the peak / activity hold; **Back** stops it.
+   - **NRF24 2.4 GHz** → choose Spectrum Analyzer, Channel Finder or Sniffer
+   - **CC1101 Sub-GHz** → choose a band sweep, or a Frequency Finder preset
+3. On any analyzer or finder, **OK** resets the peak / activity hold; **Back** stops it.
 4. Tune behaviour in **Settings** (UART pins, CC1101 radio, default band,
-   attack confirmation, sound / vibro / LED feedback).
+   attack confirmation, sound / vibro / LED). Settings persist across runs.
+
+### Controls
+
+| Screen           | Keys                                                    |
+| ---------------- | ------------------------------------------------------- |
+| Analyzers        | `OK` reset peak · `Back` exit                           |
+| CC1101 Finder    | `◀ ▶` tune · `▲ ▼` step size · `OK` zero peak            |
+| NRF24 Finder     | `◀ ▶` channel · `▲ ▼` ±10 · `OK` zero peak               |
+| NRF24 Sniffer    | `◀ ▶` channel · `OK` clear log · `▲ ▼` scroll            |
+| ESP32 Console    | `OK` send a command · `▲ ▼` scroll                      |
 
 ---
 
@@ -165,13 +185,16 @@ application.fam           app manifest (ufbt)
 helpers/
   marauder.h              ESP32 Marauder command catalogue
   marauder_uart.[ch]      UART worker (line-oriented, 115200 8N1)
-  nrf24_radio.[ch]        nRF24L01+ SPI driver + 126-channel sweep worker
-  subghz_radio.[ch]       CC1101 sweep worker (internal / external device)
+  nrf24_radio.[ch]        nRF24L01+ SPI driver — sweep / camp / sniff modes
+  subghz_radio.[ch]       CC1101 worker — band sweep + frequency camp
+  trident_storage.[ch]    persist settings across runs
 views/
-  console_view.[ch]       live ESP32 serial console
+  console_view.[ch]       live text console (ESP32 serial + NRF24 sniffer log)
   spectrum_view.[ch]      shared analyzer bar-graph view
+  meter_view.[ch]         shared finder gauge (segmented meter + readout)
 scenes/                   start, esp32, wifi, attacks, bluetooth, gps, device,
-                          nrf24scan, subghz, subghzscan, settings, about, …
+                          nrf24 (scan/find/sniff), subghz (scan/find),
+                          settings, about, …
 ```
 
 ---
@@ -182,8 +205,8 @@ Trident is for **authorised testing, education and RF exploration only**. Use it
 on hardware, networks and radios that you own or have explicit permission to
 assess. The ESP32 attack tools transmit and can disrupt nearby devices — they
 are gated behind a confirmation, and enabling them is your responsibility. The
-NRF24 and CC1101 analyzers are receive-only. Radio transmission is regulated;
-know and follow the rules where you are.
+NRF24 and CC1101 tools are receive-only. Radio transmission is regulated; know
+and follow the rules where you are.
 
 ---
 

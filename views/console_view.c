@@ -14,6 +14,8 @@ struct ConsoleView {
     View* view;
     ConsoleViewCallback ok_cb;
     void* ok_ctx;
+    ConsoleViewKeyCallback key_cb;
+    void* key_ctx;
 };
 
 typedef struct {
@@ -25,6 +27,10 @@ typedef struct {
     bool live;
     char title[24];
     char chan[8];
+    char foot_l[12]; // footer-left hint
+    char foot_r[16]; // footer-right override ("" -> "UART <chan>")
+    char empty1[28]; // empty-state line 1
+    char empty2[28]; // empty-state line 2
     uint8_t anim;
 } ConsoleModel;
 
@@ -69,8 +75,8 @@ static void console_view_draw(Canvas* canvas, void* model) {
 
     if(m->count == 0) {
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 4, 32, "Waiting for the board...");
-        canvas_draw_str(canvas, 4, 44, "OK to send a command");
+        canvas_draw_str(canvas, 4, 32, m->empty1[0] ? m->empty1 : "Waiting for the board...");
+        canvas_draw_str(canvas, 4, 44, m->empty2[0] ? m->empty2 : "OK to send a command");
     } else {
         int bottom_logical = (int)m->count - 1 - m->scroll;
         int top_logical = bottom_logical - (VISIBLE_ROWS - 1);
@@ -91,12 +97,17 @@ static void console_view_draw(Canvas* canvas, void* model) {
     /* ---- footer ---- */
     canvas_draw_line(canvas, 0, BODY_DIVIDER, 127, BODY_DIVIDER);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 2, 63, "OK:cmd");
+    canvas_draw_str(canvas, 2, 63, m->foot_l[0] ? m->foot_l : "OK:cmd");
     if(m->scroll > 0) {
         canvas_draw_str_aligned(canvas, 63, 63, AlignCenter, AlignBottom, "PAUSED");
     }
     char right[16];
-    snprintf(right, sizeof(right), "UART %s", m->chan[0] ? m->chan : "?");
+    if(m->foot_r[0]) {
+        strncpy(right, m->foot_r, sizeof(right) - 1);
+        right[sizeof(right) - 1] = '\0';
+    } else {
+        snprintf(right, sizeof(right), "UART %s", m->chan[0] ? m->chan : "?");
+    }
     canvas_draw_str_aligned(canvas, 126, 63, AlignRight, AlignBottom, right);
 }
 
@@ -121,6 +132,11 @@ static bool console_view_input(InputEvent* event, void* context) {
         } else if(event->key == InputKeyOk && event->type == InputTypeShort) {
             if(v->ok_cb) v->ok_cb(v->ok_ctx);
             consumed = true;
+        } else if(event->key == InputKeyLeft || event->key == InputKeyRight) {
+            if(v->key_cb) {
+                v->key_cb(v->key_ctx, event->key);
+                consumed = true;
+            }
         }
     }
     return consumed;
@@ -132,6 +148,8 @@ ConsoleView* console_view_alloc(void) {
     ConsoleView* v = malloc(sizeof(ConsoleView));
     v->ok_cb = NULL;
     v->ok_ctx = NULL;
+    v->key_cb = NULL;
+    v->key_ctx = NULL;
     v->view = view_alloc();
     view_set_context(v->view, v);
     view_set_draw_callback(v->view, console_view_draw);
@@ -164,6 +182,50 @@ void console_view_set_ok_callback(ConsoleView* v, ConsoleViewCallback cb, void* 
     furi_assert(v);
     v->ok_cb = cb;
     v->ok_ctx = context;
+}
+
+void console_view_set_key_callback(ConsoleView* v, ConsoleViewKeyCallback cb, void* context) {
+    furi_assert(v);
+    v->key_cb = cb;
+    v->key_ctx = context;
+}
+
+void console_view_set_footer_left(ConsoleView* v, const char* text) {
+    furi_assert(v);
+    with_view_model(
+        v->view,
+        ConsoleModel * m,
+        {
+            strncpy(m->foot_l, text ? text : "", sizeof(m->foot_l) - 1);
+            m->foot_l[sizeof(m->foot_l) - 1] = '\0';
+        },
+        true);
+}
+
+void console_view_set_footer_right(ConsoleView* v, const char* text) {
+    furi_assert(v);
+    with_view_model(
+        v->view,
+        ConsoleModel * m,
+        {
+            strncpy(m->foot_r, text ? text : "", sizeof(m->foot_r) - 1);
+            m->foot_r[sizeof(m->foot_r) - 1] = '\0';
+        },
+        true);
+}
+
+void console_view_set_empty(ConsoleView* v, const char* l1, const char* l2) {
+    furi_assert(v);
+    with_view_model(
+        v->view,
+        ConsoleModel * m,
+        {
+            strncpy(m->empty1, l1 ? l1 : "", sizeof(m->empty1) - 1);
+            m->empty1[sizeof(m->empty1) - 1] = '\0';
+            strncpy(m->empty2, l2 ? l2 : "", sizeof(m->empty2) - 1);
+            m->empty2[sizeof(m->empty2) - 1] = '\0';
+        },
+        true);
 }
 
 void console_view_clear(ConsoleView* v) {

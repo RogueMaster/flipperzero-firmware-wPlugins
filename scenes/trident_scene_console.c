@@ -13,6 +13,10 @@ void trident_scene_console_on_enter(void* context) {
 
     trident_link_ensure(app);
     console_view_set_ok_callback(cv, trident_scene_console_ok_cb, app);
+    console_view_set_key_callback(cv, NULL, NULL); // reset any sniffer overrides
+    console_view_set_footer_left(cv, "OK:cmd");
+    console_view_set_footer_right(cv, ""); // use UART/<chan>
+    console_view_set_empty(cv, "Waiting for the board...", "OK to send a command");
     console_view_set_autoscroll(cv, app->settings.autoscroll);
     console_view_set_channel(
         cv, app->settings.uart_channel == TridentUartLpuart ? "15/16" : "13/14");

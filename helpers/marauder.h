@@ -51,6 +51,7 @@
 #define MARAUDER_CMD_ATTACK_BEACON_AP  "attack -t beacon -a"
 #define MARAUDER_CMD_ATTACK_PROBE      "attack -t probe"
 #define MARAUDER_CMD_ATTACK_RICKROLL   "attack -t rickroll"
+#define MARAUDER_CMD_EVIL_PORTAL       "evilportal" // captive-portal credential harvester
 
 /* ---- targeting ---- */
 #define MARAUDER_CMD_SELECT_AP_ALL "select -a all"

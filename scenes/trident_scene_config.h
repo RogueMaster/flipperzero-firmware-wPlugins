@@ -14,11 +14,15 @@ ADD_SCENE(trident, input, Input)
 ADD_SCENE(trident, confirm, Confirm)
 ADD_SCENE(trident, console, Console)
 ADD_SCENE(trident, send, Send)
-/* ---- NRF24 2.4 GHz analyzer ---- */
+/* ---- NRF24 2.4 GHz radio ---- */
+ADD_SCENE(trident, nrf24, Nrf24)
 ADD_SCENE(trident, nrf24scan, Nrf24scan)
-/* ---- CC1101 Sub-GHz analyzer ---- */
+ADD_SCENE(trident, nrf24find, Nrf24find)
+ADD_SCENE(trident, nrf24sniff, Nrf24sniff)
+/* ---- CC1101 Sub-GHz radio ---- */
 ADD_SCENE(trident, subghz, Subghz)
 ADD_SCENE(trident, subghzscan, Subghzscan)
+ADD_SCENE(trident, subghzfind, Subghzfind)
 /* ---- shared ---- */
 ADD_SCENE(trident, settings, Settings)
 ADD_SCENE(trident, about, About)

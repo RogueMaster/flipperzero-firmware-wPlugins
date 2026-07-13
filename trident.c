@@ -23,11 +23,23 @@ static const NotificationSequence seq_snd_start = {
     NULL,
 };
 
+static const NotificationSequence seq_click = {
+    &message_note_c7,
+    &message_delay_10,
+    &message_sound_off,
+    NULL,
+};
+
 void trident_notify_start(TridentApp* app) {
     furi_assert(app);
     if(app->settings.led) notification_message(app->notifications, &seq_led_red);
     if(app->settings.vibro) notification_message(app->notifications, &seq_vibro);
     if(app->settings.sound) notification_message(app->notifications, &seq_snd_start);
+}
+
+void trident_click(TridentApp* app) {
+    furi_assert(app);
+    if(app->settings.sound) notification_message(app->notifications, &seq_click);
 }
 
 /* ---------------- ESP32 serial link ---------------- */
@@ -153,6 +165,7 @@ static TridentApp* trident_app_alloc(void) {
     app->settings.sound = true;
     app->settings.vibro = true;
     app->settings.led = true;
+    trident_settings_load(&app->settings); // override defaults with saved values
 
     // radios
     app->uart = marauder_uart_alloc();
@@ -188,6 +201,10 @@ static TridentApp* trident_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, TridentViewSpectrum, spectrum_view_get_view(app->spectrum_view));
 
+    app->meter_view = meter_view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, TridentViewMeter, meter_view_get_view(app->meter_view));
+
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     return app;
@@ -210,6 +227,7 @@ static void trident_app_free(TridentApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, TridentViewWidget);
     view_dispatcher_remove_view(app->view_dispatcher, TridentViewConsole);
     view_dispatcher_remove_view(app->view_dispatcher, TridentViewSpectrum);
+    view_dispatcher_remove_view(app->view_dispatcher, TridentViewMeter);
 
     submenu_free(app->submenu);
     variable_item_list_free(app->var_item_list);
@@ -217,6 +235,7 @@ static void trident_app_free(TridentApp* app) {
     widget_free(app->widget);
     console_view_free(app->console_view);
     spectrum_view_free(app->spectrum_view);
+    meter_view_free(app->meter_view);
 
     view_dispatcher_free(app->view_dispatcher);
     scene_manager_free(app->scene_manager);

@@ -52,7 +52,7 @@ bool trident_scene_start_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
             break;
         case StartIndexNrf24:
-            scene_manager_next_scene(app->scene_manager, TridentSceneNrf24scan);
+            scene_manager_next_scene(app->scene_manager, TridentSceneNrf24);
             consumed = true;
             break;
         case StartIndexSubghz:

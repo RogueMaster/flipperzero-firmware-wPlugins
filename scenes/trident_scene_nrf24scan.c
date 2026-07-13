@@ -24,6 +24,7 @@ void trident_scene_nrf24scan_on_enter(void* context) {
     strncpy(boot.hi_label, "2525", sizeof(boot.hi_label) - 1);
     spectrum_view_set_snapshot(app->spectrum_view, &boot);
 
+    nrf24_radio_set_mode(app->nrf24, Nrf24ModeSweep);
     nrf24_radio_start(app->nrf24);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TridentViewSpectrum);

@@ -29,6 +29,7 @@ void trident_scene_subghzscan_on_enter(void* context) {
         app->subghz,
         app->settings.subghz_band,
         app->settings.cc1101_device == TridentCc1101External);
+    subghz_radio_set_mode(app->subghz, SubghzModeSweep);
     subghz_radio_start(app->subghz);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, TridentViewSpectrum);
