@@ -9,7 +9,7 @@ App(
     fap_icon_assets="icons",
     fap_author="at0m-b0mb",
     fap_weburl="https://github.com/at0m-b0mb/Warden-FlipperZero",
-    fap_version="1.0",
+    fap_version="1.1",
     fap_description="Access-card grader. Hold your own badge to the Flipper and Warden reads it, identifies the technology (Mifare Classic, DESFire, iCLASS/ISO15693, Ultralight/NTAG, FeliCa, ISO-DEP), and hands back a plain-English security grade (A+ to F) with a one-tap risk breakdown: broken crypto, UID-only clonable, weak/no encryption. Read-only, your keys never leave the card.",
     requires=["gui", "nfc"],
 )

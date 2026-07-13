@@ -283,19 +283,11 @@ static int32_t card_reader_worker(void* context) {
      *        ISO-DEP (bank/transit/ID) gets the 4A path so we can EMV-probe. */
     bool did_read = false;
     if(r.top == NfcProtocolIso14443_4a) {
-        read_iso4a(cr);
+        read_iso4a(cr); // ISO-DEP: UID/SAK + EMV probe in one pass
         did_read = true;
     } else if(r.base == NfcProtocolIso14443_3a) {
-        read_iso3a_uid(cr);
+        read_iso3a_uid(cr); // A family: UID/SAK/ATQA
         did_read = true;
-        /* The scanner reported only bare 3A, but the SAK says the card is
-         * ISO14443-4 (ISO-DEP) capable - a smartcard the sweep didn't climb
-         * into. Re-read via the 4A poller so we can EMV-probe it. */
-        cr_lock(cr);
-        bool undetected_isodep =
-            (r.top == NfcProtocolIso14443_3a) && cr->poll_ok && (cr->tmp_sak & 0x20u);
-        cr_unlock(cr);
-        if(undetected_isodep) read_iso4a(cr);
     }
     if(did_read) {
         cr_lock(cr);
@@ -308,6 +300,17 @@ static int32_t card_reader_worker(void* context) {
             r.atqa[1] = cr->tmp_atqa[1];
             r.is_emv = cr->tmp_is_emv;
         }
+        cr_unlock(cr);
+    }
+
+    /* The scanner saw only bare 3A but the SAK marks the card ISO14443-4
+     * (ISO-DEP) capable - a smartcard the sweep didn't climb into. Re-read via
+     * the 4A poller to EMV-probe it. This only *upgrades* r.is_emv on success;
+     * the 3A data we already captured is never dropped. */
+    if(r.has_iso3a && r.top == NfcProtocolIso14443_3a && (r.sak & 0x20u) && !r.is_emv) {
+        read_iso4a(cr);
+        cr_lock(cr);
+        if(cr->poll_ok && cr->tmp_is_emv) r.is_emv = true;
         cr_unlock(cr);
     }
 

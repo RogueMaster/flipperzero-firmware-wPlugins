@@ -19,7 +19,7 @@
 #include "views/result_view.h"
 #include "scenes/warden_scene.h"
 
-#define WARDEN_VERSION "1.0"
+#define WARDEN_VERSION "1.1"
 
 typedef enum {
     WardenViewSubmenu,
