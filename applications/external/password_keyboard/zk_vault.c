@@ -5,11 +5,11 @@
 #include <storage/storage.h>
 #include <string.h>
 
-#define ZK_VAULT_MAGIC 0x44424B5AU
-#define ZK_VAULT_VERSION 2
-#define ZK_VAULT_PATH APP_DATA_PATH("vault.bin")
+#define ZK_VAULT_MAGIC     0x44424B5AU
+#define ZK_VAULT_VERSION   2
+#define ZK_VAULT_PATH      APP_DATA_PATH("vault.bin")
 #define ZK_VAULT_TEMP_PATH APP_DATA_PATH("vault.tmp")
-#define ZK_IMPORT_PATH APP_DATA_PATH("import.txt")
+#define ZK_IMPORT_PATH     APP_DATA_PATH("import.txt")
 
 static uint32_t zk_random_bounded(uint32_t bound) {
     if(bound < 2) return 0;
@@ -101,8 +101,10 @@ bool zk_vault_load(ZkVault* vault) {
     storage_file_close(file);
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
-    if(!valid) zk_vault_init(vault);
-    else if(migrate) zk_vault_save(vault);
+    if(!valid)
+        zk_vault_init(vault);
+    else if(migrate)
+        zk_vault_save(vault);
     return valid;
 }
 
@@ -144,7 +146,8 @@ uint8_t zk_vault_remaining(ZkVault* vault, uint8_t index) {
     ZkPasswordRecord* record = &vault->records[index];
     if(!(record->flags & ZkPasswordHidden)) return UINT8_MAX;
     zk_vault_refresh_record(record);
-    return record->used_today >= record->daily_limit ? 0 : record->daily_limit - record->used_today;
+    return record->used_today >= record->daily_limit ? 0 :
+                                                       record->daily_limit - record->used_today;
 }
 
 bool zk_vault_consume(ZkVault* vault, uint8_t index) {
@@ -180,12 +183,7 @@ bool zk_vault_add(
     uint8_t key[ZK_KEY_SIZE];
     zk_crypto_derive_device_key(key);
     zk_crypto_seal(
-        key,
-        record->nonce,
-        (const uint8_t*)password,
-        record->length,
-        record->cipher,
-        record->tag);
+        key, record->nonce, (const uint8_t*)password, record->length, record->cipher, record->tag);
     zk_crypto_wipe(key, sizeof(key));
     vault->count++;
     if(!zk_vault_save(vault)) {
@@ -197,19 +195,17 @@ bool zk_vault_add(
 }
 
 bool zk_vault_decrypt(const ZkPasswordRecord* record, char output[ZK_MAX_PASSWORD_LENGTH + 1]) {
-    if(!record || !output || !record->length || record->length > ZK_MAX_PASSWORD_LENGTH) return false;
+    if(!record || !output || !record->length || record->length > ZK_MAX_PASSWORD_LENGTH)
+        return false;
     uint8_t key[ZK_KEY_SIZE];
     zk_crypto_derive_device_key(key);
     const bool valid = zk_crypto_open(
-        key,
-        record->nonce,
-        record->cipher,
-        record->length,
-        record->tag,
-        (uint8_t*)output);
+        key, record->nonce, record->cipher, record->length, record->tag, (uint8_t*)output);
     zk_crypto_wipe(key, sizeof(key));
-    if(valid) output[record->length] = '\0';
-    else zk_crypto_wipe(output, ZK_MAX_PASSWORD_LENGTH + 1);
+    if(valid)
+        output[record->length] = '\0';
+    else
+        zk_crypto_wipe(output, ZK_MAX_PASSWORD_LENGTH + 1);
     return valid;
 }
 

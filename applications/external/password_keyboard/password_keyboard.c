@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TAG "PasswordKeyboard"
+#define TAG             "PasswordKeyboard"
 #define ZK_BT_KEYS_PATH APP_DATA_PATH(".bt_hid.keys")
 
 typedef enum {
@@ -75,23 +75,20 @@ static void zk_draw_header(Canvas* canvas, ZkApp* app, const char* title) {
     canvas_draw_str(canvas, 2, 10, title);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(
-        canvas,
-        126,
-        9,
-        AlignRight,
-        AlignBottom,
-        app->connected ? "BT connected" : "BT waiting");
+        canvas, 126, 9, AlignRight, AlignBottom, app->connected ? "BT connected" : "BT waiting");
     canvas_draw_line(canvas, 0, 13, 127, 13);
 }
 
-static void zk_draw_footer(Canvas* canvas, const char* left, const char* center, const char* right) {
+static void
+    zk_draw_footer(Canvas* canvas, const char* left, const char* center, const char* right) {
     canvas_set_font(canvas, FontSecondary);
     if(left) canvas_draw_str_aligned(canvas, 2, 63, AlignLeft, AlignBottom, left);
     if(center) canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, center);
     if(right) canvas_draw_str_aligned(canvas, 126, 63, AlignRight, AlignBottom, right);
 }
 
-static void zk_draw_row(Canvas* canvas, uint8_t y, bool selected, const char* label, const char* value) {
+static void
+    zk_draw_row(Canvas* canvas, uint8_t y, bool selected, const char* label, const char* value) {
     if(selected) {
         canvas_set_color(canvas, ColorBlack);
         canvas_draw_box(canvas, 0, y - 9, 128, 12);
@@ -129,12 +126,7 @@ static void zk_draw_connect(Canvas* canvas, ZkApp* app) {
     canvas_draw_str_aligned(canvas, 64, 15, AlignCenter, AlignCenter, "Password Keyboard");
     canvas_set_font(canvas, FontSecondary);
     elements_multiline_text_aligned(
-        canvas,
-        64,
-        27,
-        AlignCenter,
-        AlignTop,
-        "Connect to PassKey\nin Bluetooth settings");
+        canvas, 64, 27, AlignCenter, AlignTop, "Connect to PassKey\nin Bluetooth settings");
     elements_button_center(canvas, "Waiting...");
     zk_draw_footer(canvas, "Back exits", NULL, NULL);
 }
@@ -144,7 +136,8 @@ static void zk_draw_main(Canvas* canvas, ZkApp* app) {
     const uint8_t count = app->vault.count + 2;
     const char* labels[ZK_MAX_PASSWORDS + 2];
     labels[0] = "+ Create new";
-    for(uint8_t i = 0; i < app->vault.count; i++) labels[i + 1] = app->vault.records[i].name;
+    for(uint8_t i = 0; i < app->vault.count; i++)
+        labels[i + 1] = app->vault.records[i].name;
     labels[count - 1] = "Settings";
     zk_draw_scrolling_list(canvas, labels, NULL, count, app->selection);
     if(app->vault.count && count <= 3) zk_draw_footer(canvas, NULL, NULL, "Hold OK: edit");
@@ -191,10 +184,10 @@ static void zk_draw_create_confirm(Canvas* canvas, ZkApp* app) {
         AlignTop,
         app->create_manual ?
             "Manual password ready.\nFocus the password field." :
-            (app->create_hidden ?
-                 "Generated and concealed.\nFocus the password field." :
-                 "Generated. Focus the target\npassword field before typing."));
-    if(app->message[0]) canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignBottom, app->message);
+            (app->create_hidden ? "Generated and concealed.\nFocus the password field." :
+                                  "Generated. Focus the target\npassword field before typing."));
+    if(app->message[0])
+        canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignBottom, app->message);
     elements_button_center(canvas, "Type first time");
 }
 
@@ -202,11 +195,7 @@ static void zk_draw_create_after_send(Canvas* canvas, ZkApp* app) {
     zk_draw_header(canvas, app, "Password entered");
     char usage[16];
     if(app->create_hidden) {
-        snprintf(
-            usage,
-            sizeof(usage),
-            "%u/day",
-            app->create_daily_limit);
+        snprintf(usage, sizeof(usage), "%u/day", app->create_daily_limit);
     } else {
         strlcpy(usage, "", sizeof(usage));
     }
@@ -272,12 +261,7 @@ static void zk_draw_delete_confirm(Canvas* canvas, ZkApp* app) {
     zk_draw_header(canvas, app, "Delete password?");
     canvas_set_font(canvas, FontSecondary);
     elements_multiline_text_aligned(
-        canvas,
-        64,
-        24,
-        AlignCenter,
-        AlignTop,
-        app->vault.records[app->password_index].name);
+        canvas, 64, 24, AlignCenter, AlignTop, app->vault.records[app->password_index].name);
     canvas_draw_str_aligned(canvas, 64, 47, AlignCenter, AlignBottom, "This cannot be undone");
     elements_button_center(canvas, "Delete");
     zk_draw_footer(canvas, "Back cancels", NULL, NULL);
@@ -383,12 +367,7 @@ static bool zk_prompt_text(
     text_input_set_header_text(text_input, header);
     text_input_set_minimum_length(text_input, 1);
     text_input_set_result_callback(
-        text_input,
-        zk_text_input_done,
-        app,
-        buffer,
-        buffer_size,
-        clear_default);
+        text_input, zk_text_input_done, app, buffer, buffer_size, clear_default);
 
     gui_remove_view_port(app->gui, app->viewport);
     view_dispatcher_set_event_callback_context(app->text_dispatcher, app);
@@ -509,8 +488,10 @@ static void zk_adjust_limit(ZkApp* app, int8_t delta) {
 
 static void zk_handle_main(ZkApp* app, InputKey key) {
     const uint8_t count = app->vault.count + 2;
-    if(key == InputKeyUp) app->selection = app->selection ? app->selection - 1 : count - 1;
-    else if(key == InputKeyDown) app->selection = (app->selection + 1) % count;
+    if(key == InputKeyUp)
+        app->selection = app->selection ? app->selection - 1 : count - 1;
+    else if(key == InputKeyDown)
+        app->selection = (app->selection + 1) % count;
     else if(key == InputKeyOk) {
         if(app->selection == 0) {
             app->create_classes = ZkClassLower | ZkClassUpper | ZkClassNumber;
@@ -518,16 +499,9 @@ static void zk_handle_main(ZkApp* app, InputKey key) {
             app->create_hidden = false;
             app->create_manual = false;
             app->create_daily_limit = ZK_DEFAULT_DAILY_LIMIT;
-            strlcpy(
-                app->create_name,
-                app->settings.default_name,
-                sizeof(app->create_name));
+            strlcpy(app->create_name, app->settings.default_name, sizeof(app->create_name));
             if(zk_prompt_text(
-                   app,
-                   "Name the password",
-                   app->create_name,
-                   sizeof(app->create_name),
-                   true)) {
+                   app, "Name the password", app->create_name, sizeof(app->create_name), true)) {
                 zk_set_screen(app, ZkScreenCreate);
             }
         } else if(app->selection == count - 1) {
@@ -542,9 +516,12 @@ static void zk_handle_main(ZkApp* app, InputKey key) {
 }
 
 static void zk_handle_create(ZkApp* app, InputKey key) {
-    if(key == InputKeyUp) app->selection = app->selection ? app->selection - 1 : 8;
-    else if(key == InputKeyDown) app->selection = (app->selection + 1) % 9;
-    else if(key == InputKeyBack) zk_cancel_creation(app);
+    if(key == InputKeyUp)
+        app->selection = app->selection ? app->selection - 1 : 8;
+    else if(key == InputKeyDown)
+        app->selection = (app->selection + 1) % 9;
+    else if(key == InputKeyBack)
+        zk_cancel_creation(app);
     else if(key == InputKeyLeft || key == InputKeyRight || key == InputKeyOk) {
         if(app->selection < 4) {
             app->create_classes ^= (1U << app->selection);
@@ -560,7 +537,8 @@ static void zk_handle_create(ZkApp* app, InputKey key) {
             if(app->create_hidden) zk_adjust_limit(app, key == InputKeyLeft ? -1 : 1);
         } else if(app->selection == 7 && key == InputKeyOk) {
             uint8_t class_count = 0;
-            for(uint8_t i = 0; i < 4; i++) class_count += !!(app->create_classes & (1U << i));
+            for(uint8_t i = 0; i < 4; i++)
+                class_count += !!(app->create_classes & (1U << i));
             if(!class_count || app->create_length < class_count) return;
             if(zk_password_generate(app->generated, app->create_length, app->create_classes)) {
                 app->create_manual = false;
@@ -569,11 +547,7 @@ static void zk_handle_create(ZkApp* app, InputKey key) {
         } else if(app->selection == 8 && key == InputKeyOk) {
             zk_crypto_wipe(app->generated, sizeof(app->generated));
             if(zk_prompt_text(
-                   app,
-                   "Enter the password",
-                   app->generated,
-                   sizeof(app->generated),
-                   false)) {
+                   app, "Enter the password", app->generated, sizeof(app->generated), false)) {
                 app->create_manual = true;
                 zk_set_screen(app, ZkScreenCreateConfirm);
             } else {
@@ -596,9 +570,12 @@ static void zk_handle_create_confirm(ZkApp* app, InputKey key) {
 }
 
 static void zk_handle_create_after_send(ZkApp* app, InputKey key) {
-    if(key == InputKeyUp) app->selection = app->selection ? app->selection - 1 : 3;
-    else if(key == InputKeyDown) app->selection = (app->selection + 1) % 4;
-    else if(key == InputKeyBack) zk_cancel_creation(app);
+    if(key == InputKeyUp)
+        app->selection = app->selection ? app->selection - 1 : 3;
+    else if(key == InputKeyDown)
+        app->selection = (app->selection + 1) % 4;
+    else if(key == InputKeyBack)
+        zk_cancel_creation(app);
     else if(key == InputKeyOk && app->selection == 0) {
         zk_type_password(app, app->generated);
     } else if(key == InputKeyOk && app->selection == 1) {
@@ -618,8 +595,10 @@ static void zk_handle_password(ZkApp* app, InputKey key) {
     } else if(!hidden && (key == InputKeyUp || key == InputKeyDown)) {
         app->selection ^= 1;
     } else if(key == InputKeyOk && !hidden && app->selection == 1) {
-        if(zk_vault_decrypt(record, app->revealed)) zk_set_screen(app, ZkScreenViewPassword);
-        else strlcpy(app->message, "Vault data is damaged", sizeof(app->message));
+        if(zk_vault_decrypt(record, app->revealed))
+            zk_set_screen(app, ZkScreenViewPassword);
+        else
+            strlcpy(app->message, "Vault data is damaged", sizeof(app->message));
     } else if(key == InputKeyOk) {
         if(!app->connected) {
             strlcpy(app->message, "Connect Bluetooth first", sizeof(app->message));
@@ -656,11 +635,7 @@ static void zk_handle_password_actions(ZkApp* app, InputKey key) {
             app->vault.records[app->password_index].name,
             sizeof(app->create_name));
         if(zk_prompt_text(
-               app,
-               "Rename password",
-               app->create_name,
-               sizeof(app->create_name),
-               false)) {
+               app, "Rename password", app->create_name, sizeof(app->create_name), false)) {
             if(zk_vault_rename(&app->vault, app->password_index, app->create_name)) {
                 zk_set_screen(app, ZkScreenMain);
             } else {
@@ -676,22 +651,13 @@ static void zk_handle_settings(ZkApp* app, InputKey key) {
     if(key == InputKeyBack) {
         zk_set_screen(app, ZkScreenMain);
     } else if(key == InputKeyOk) {
-        strlcpy(
-            app->create_name,
-            app->settings.default_name,
-            sizeof(app->create_name));
+        strlcpy(app->create_name, app->settings.default_name, sizeof(app->create_name));
         if(zk_prompt_text(
-               app,
-               "Default password name",
-               app->create_name,
-               sizeof(app->create_name),
-               false)) {
+               app, "Default password name", app->create_name, sizeof(app->create_name), false)) {
             char previous[ZK_NAME_LENGTH];
             strlcpy(previous, app->settings.default_name, sizeof(previous));
             strlcpy(
-                app->settings.default_name,
-                app->create_name,
-                sizeof(app->settings.default_name));
+                app->settings.default_name, app->create_name, sizeof(app->settings.default_name));
             if(zk_settings_save(&app->settings)) {
                 strlcpy(app->message, "Default name saved", sizeof(app->message));
             } else {
@@ -732,7 +698,8 @@ static void zk_handle_input(ZkApp* app, InputEvent input) {
         zk_handle_password(app, input.key);
         break;
     case ZkScreenViewPassword:
-        if(input.key == InputKeyBack || input.key == InputKeyOk) zk_set_screen(app, ZkScreenPassword);
+        if(input.key == InputKeyBack || input.key == InputKeyOk)
+            zk_set_screen(app, ZkScreenPassword);
         break;
     case ZkScreenPasswordActions:
         zk_handle_password_actions(app, input.key);

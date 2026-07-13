@@ -16,8 +16,14 @@ typedef struct {
 } ZkBlake2s;
 
 static const uint32_t zk_blake_iv[8] = {
-    0x6A09E667, 0xBB67AE85, 0x3C6EF372, 0xA54FF53A,
-    0x510E527F, 0x9B05688C, 0x1F83D9AB, 0x5BE0CD19,
+    0x6A09E667,
+    0xBB67AE85,
+    0x3C6EF372,
+    0xA54FF53A,
+    0x510E527F,
+    0x9B05688C,
+    0x1F83D9AB,
+    0x5BE0CD19,
 };
 
 static const uint8_t zk_blake_sigma[10][16] = {
@@ -49,22 +55,23 @@ static void zk_store32(uint8_t* p, uint32_t value) {
     p[3] = value >> 24;
 }
 
-#define ZK_G(a, b, c, d, x, y) \
-    do {                         \
-        a = a + b + x;           \
-        d = zk_rotr32(d ^ a, 16);\
-        c = c + d;               \
-        b = zk_rotr32(b ^ c, 12);\
-        a = a + b + y;           \
-        d = zk_rotr32(d ^ a, 8); \
-        c = c + d;               \
-        b = zk_rotr32(b ^ c, 7); \
+#define ZK_G(a, b, c, d, x, y)    \
+    do {                          \
+        a = a + b + x;            \
+        d = zk_rotr32(d ^ a, 16); \
+        c = c + d;                \
+        b = zk_rotr32(b ^ c, 12); \
+        a = a + b + y;            \
+        d = zk_rotr32(d ^ a, 8);  \
+        c = c + d;                \
+        b = zk_rotr32(b ^ c, 7);  \
     } while(0)
 
 static void zk_blake_compress(ZkBlake2s* state, const uint8_t block[64], bool last) {
     uint32_t m[16];
     uint32_t v[16];
-    for(size_t i = 0; i < 16; i++) m[i] = zk_load32(block + i * 4);
+    for(size_t i = 0; i < 16; i++)
+        m[i] = zk_load32(block + i * 4);
     for(size_t i = 0; i < 8; i++) {
         v[i] = state->h[i];
         v[i + 8] = zk_blake_iv[i];
@@ -83,10 +90,12 @@ static void zk_blake_compress(ZkBlake2s* state, const uint8_t block[64], bool la
         ZK_G(v[2], v[7], v[8], v[13], m[s[12]], m[s[13]]);
         ZK_G(v[3], v[4], v[9], v[14], m[s[14]], m[s[15]]);
     }
-    for(size_t i = 0; i < 8; i++) state->h[i] ^= v[i] ^ v[i + 8];
+    for(size_t i = 0; i < 8; i++)
+        state->h[i] ^= v[i] ^ v[i + 8];
 }
 
-static void zk_blake_init(ZkBlake2s* state, size_t out_length, const uint8_t* key, size_t key_length) {
+static void
+    zk_blake_init(ZkBlake2s* state, size_t out_length, const uint8_t* key, size_t key_length) {
     memset(state, 0, sizeof(*state));
     memcpy(state->h, zk_blake_iv, sizeof(state->h));
     state->out_length = out_length;
@@ -123,7 +132,8 @@ static void zk_blake_final(ZkBlake2s* state, uint8_t* output) {
     memset(state->buffer + state->used, 0, 64 - state->used);
     zk_blake_compress(state, state->buffer, true);
     uint8_t full[32];
-    for(size_t i = 0; i < 8; i++) zk_store32(full + i * 4, state->h[i]);
+    for(size_t i = 0; i < 8; i++)
+        zk_store32(full + i * 4, state->h[i]);
     memcpy(output, full, state->out_length);
     zk_crypto_wipe(full, sizeof(full));
     zk_crypto_wipe(state, sizeof(*state));
@@ -168,7 +178,8 @@ static void zk_crypto_stream(
         zk_blake_hash(block, sizeof(block), key, ZK_KEY_SIZE, message, sizeof(message), NULL, 0);
         size_t take = length - offset;
         if(take > sizeof(block)) take = sizeof(block);
-        for(size_t i = 0; i < take; i++) output[offset + i] = input[offset + i] ^ block[i];
+        for(size_t i = 0; i < take; i++)
+            output[offset + i] = input[offset + i] ^ block[i];
         offset += take;
     }
     zk_crypto_wipe(block, sizeof(block));
@@ -212,7 +223,8 @@ bool zk_crypto_open(
     uint8_t expected[ZK_TAG_SIZE];
     zk_crypto_tag(key, nonce, cipher, length, expected);
     uint8_t difference = 0;
-    for(size_t i = 0; i < sizeof(expected); i++) difference |= expected[i] ^ tag[i];
+    for(size_t i = 0; i < sizeof(expected); i++)
+        difference |= expected[i] ^ tag[i];
     zk_crypto_wipe(expected, sizeof(expected));
     if(difference) return false;
     zk_crypto_stream(key, nonce, cipher, length, plain);
@@ -221,5 +233,6 @@ bool zk_crypto_open(
 
 void zk_crypto_wipe(void* data, size_t length) {
     volatile uint8_t* bytes = data;
-    while(length--) *bytes++ = 0;
+    while(length--)
+        *bytes++ = 0;
 }

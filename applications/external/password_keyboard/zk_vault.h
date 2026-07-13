@@ -5,9 +5,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define ZK_MAX_PASSWORDS 12
+#define ZK_MAX_PASSWORDS       12
 #define ZK_MAX_PASSWORD_LENGTH 64
-#define ZK_NAME_LENGTH 24
+#define ZK_NAME_LENGTH         24
 #define ZK_DEFAULT_DAILY_LIMIT 3
 
 enum {

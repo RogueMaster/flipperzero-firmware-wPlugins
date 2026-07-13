@@ -14,4 +14,3 @@ typedef struct __attribute__((packed)) {
 void zk_settings_init(ZkSettings* settings);
 bool zk_settings_load(ZkSettings* settings);
 bool zk_settings_save(const ZkSettings* settings);
-

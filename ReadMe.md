@@ -79,6 +79,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: Fix for Sub-GHz Add Manually furi check error & Launch from Apps list (By RogueMaster)
 - Sub-GHz: [Fix for Out of Memory crashes in Sub-Ghz (By Lechnio)](https://github.com/Next-Flip/Momentum-Firmware/pull/569)
 - Added: [BreachMap v1.0 (By Gerijacki)](https://github.com/Gerijacki/BreachMap)
+- Added: [Password Keyboard v0.1 (By evgeniyraev)](https://github.com/evgeniyraev/password_keyboard)
 
 <a name="release"></a>
 
@@ -711,6 +712,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [OSM Logger GPS v0.15 (By simongrossi)](https://github.com/simongrossi/flipperzero-osm-logger-gps)
 - [Paranoia WIP v0.2 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-paranoia)
 - [Password Generator v1.4 (By anakod)](https://github.com/anakod/flipper_passgen)
+- [Password Keyboard v0.1 (By evgeniyraev)](https://github.com/evgeniyraev/password_keyboard)
 - [Password Manager v1.2 (By Rrycbarm)](https://github.com/Rrycbarm/flipperZeroPasswordManager)
 - [Passy v1.5 (By bettse)](https://github.com/bettse/passy)
 - [Pause Timer v1.0 (By Matt-London)](https://github.com/Matt-London/pause_timer)
