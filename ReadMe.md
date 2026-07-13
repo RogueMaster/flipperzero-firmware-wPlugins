@@ -83,6 +83,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: Sub-GHz: [Fix for Out of Memory crashes in Sub-Ghz (By Lechnio)](https://github.com/Next-Flip/Momentum-Firmware/pull/569)
 - Updated: [PocketLab v1.4 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
 - Updated: [Morse Flipper v0.1.76 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
+- Added: [Period Tracker v1.0 (By gorshunovr)](https://github.com/gorshunovr/period_tracker)
 
 <a name="release"></a>
 
@@ -721,6 +722,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Pause Timer v1.0 (By Matt-London)](https://github.com/Matt-London/pause_timer)
 - [PC Monitor v1.1.3 (By TheSainEyereg)](https://github.com/TheSainEyereg/flipper-pc-monitor) `Req: [Backend](https://github.com/TheSainEyereg/flipper-pc-monitor-backend)`
 - [PC Monitor USB v1.0 (By DonJulve & TheSainEyereg)](https://github.com/TheSainEyereg/flipper-pc-monitor) `Req: [Backend](https://github.com/DonJulve/Flipper-Zero-PC-Monitor-USB-Backend)`
+- [Period Tracker v1.0 (By gorshunovr)](https://github.com/gorshunovr/period_tracker)
 - [Pi Terminal v1.0 (By dagnazty & InfoSecREDD)](https://github.com/InfoSecREDD/Flip-pi)
 - [PicoPass (iClass) v1.22 (By Bettse)](https://gitlab.com/bettse/picopass)
 - [PINGEQUA RF Lab v0.5.4 (By pingequalab)](https://github.com/pingequalab/rf-lab)
