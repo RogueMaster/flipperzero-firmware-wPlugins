@@ -82,6 +82,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Tesla Mod v2.16b16 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: Sub-GHz: [Fix for Out of Memory crashes in Sub-Ghz (By Lechnio)](https://github.com/Next-Flip/Momentum-Firmware/pull/569)
 - Updated: [Morse Flipper v0.1.75 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
+- Updated: [PocketLab v1.4 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
 
 <a name="release"></a>
 
@@ -727,7 +728,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Plantower PMSx003 sensor reader v1.4 (By 3cky)](https://github.com/3cky/flipperzero-airmon) `Req: Plantower PMS5003/PMS7003/PMS9003`
 - [Plugin Demo v1.0 (By csBlueChip)](https://github.com/csBlueChip/FlipperZero_plugin_howto)
 - [Pocket CVSS v0.3 (By vavkamil)](https://github.com/vavkamil/pocket-cvss)
-- [PocketLab v1.3 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
+- [PocketLab v1.4 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
 - [POCSAG Pager v1.4 (By XMasterx & Shmuma)](https://github.com/xMasterX/flipper-pager)
 - [Pokemon Trading v2.3 (By EstebanFuentealba & kbembedded)](https://github.com/EstebanFuentealba/Flipper-Zero-Game-Boy-Trading-Pokemons)
 - [Polk MagnifiMini Remote v1.0 (By varunyellina)](https://github.com/varunyellina/flipper-ir-remote-polkmagnifi)

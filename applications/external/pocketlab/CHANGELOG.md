@@ -3,6 +3,20 @@
 All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.4] - 2026-07-12
+
+### Added
+
+- Separate **LED** and **Vibro** toggles in Settings (both default on),
+  independent of the Sound toggle – turn light or vibration off globally while
+  keeping the others.
+
+### Fixed
+
+- The About screen now always shows the current version. The version lives in a
+  single place (`pocketlab_version.h`) that the app binary, the catalog and the
+  About screen all read.
+
 ## [1.3] - 2026-07-09
 
 ### Added

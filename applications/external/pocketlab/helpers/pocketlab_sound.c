@@ -226,58 +226,85 @@ static const NotificationSequence sequence_glitch = {
     NULL,
 };
 
-void pocketlab_sound_play(NotificationApp* notifications, bool enabled, PocketLabSoundId sound) {
-    if(!enabled || notifications == NULL) {
-        return;
-    }
+// Global LED/vibro switches, set from Settings. Sound is passed per call.
+static bool s_led = true;
+static bool s_vibro = true;
 
+void pocketlab_sound_configure_fx(bool led, bool vibro) {
+    s_led = led;
+    s_vibro = vibro;
+}
+
+static const NotificationSequence* pocketlab_sequence_for(PocketLabSoundId sound) {
     switch(sound) {
     case PocketLabSoundClick:
-        notification_message(notifications, &sequence_click);
-        break;
+        return &sequence_click;
     case PocketLabSoundCorrect:
-        notification_message(notifications, &sequence_correct);
-        break;
+        return &sequence_correct;
     case PocketLabSoundWrong:
-        notification_message(notifications, &sequence_wrong);
-        break;
+        return &sequence_wrong;
     case PocketLabSoundReward:
-        notification_message(notifications, &sequence_reward);
-        break;
+        return &sequence_reward;
     case PocketLabSoundCoin:
-        notification_message(notifications, &sequence_coin);
-        break;
+        return &sequence_coin;
     case PocketLabSoundType:
-        notification_message(notifications, &sequence_type);
-        break;
+        return &sequence_type;
     case PocketLabSoundGeiger:
-        notification_message(notifications, &sequence_geiger);
-        break;
+        return &sequence_geiger;
     case PocketLabSoundSip:
-        notification_message(notifications, &sequence_sip);
-        break;
+        return &sequence_sip;
     case PocketLabSoundComplete:
-        notification_message(notifications, &sequence_complete);
-        break;
+        return &sequence_complete;
     case PocketLabSoundReset:
-        notification_message(notifications, &sequence_reset);
-        break;
+        return &sequence_reset;
     case PocketLabSoundThud:
-        notification_message(notifications, &sequence_thud);
-        break;
+        return &sequence_thud;
     case PocketLabSoundSplat:
-        notification_message(notifications, &sequence_splat);
-        break;
+        return &sequence_splat;
     case PocketLabSoundFly:
-        notification_message(notifications, &sequence_fly);
-        break;
+        return &sequence_fly;
     case PocketLabSoundGlitch:
-        notification_message(notifications, &sequence_glitch);
-        break;
+        return &sequence_glitch;
     case PocketLabSoundGrow:
-        notification_message(notifications, &sequence_grow);
-        break;
+        return &sequence_grow;
     }
+    return NULL;
+}
+
+// Plays `seq`, dropping the sound / LED / vibro messages whose channel is off,
+// so the three toggles work independently while timing (delays) is preserved.
+static void pocketlab_play_filtered(
+    NotificationApp* notifications,
+    const NotificationSequence* seq,
+    bool sound,
+    bool led,
+    bool vibro) {
+    if(seq == NULL) return;
+    if(sound && led && vibro) {
+        notification_message(notifications, seq);
+        return;
+    }
+    const NotificationMessage* buf[128];
+    size_t k = 0;
+    for(const NotificationMessage* const* p = *seq; *p != NULL; p++) {
+        const NotificationMessageType t = (*p)->type;
+        if(!sound && (t == NotificationMessageTypeSoundOn || t == NotificationMessageTypeSoundOff))
+            continue;
+        if(!led && (t == NotificationMessageTypeLedRed || t == NotificationMessageTypeLedGreen ||
+                    t == NotificationMessageTypeLedBlue))
+            continue;
+        if(!vibro && t == NotificationMessageTypeVibro) continue;
+        if(k < (sizeof(buf) / sizeof(buf[0])) - 1) buf[k++] = *p;
+    }
+    buf[k] = NULL;
+    notification_message(notifications, (const NotificationSequence*)&buf);
+}
+
+void pocketlab_sound_play(NotificationApp* notifications, bool enabled, PocketLabSoundId sound) {
+    if(notifications == NULL) return;
+    // Nothing to emit if sound and both effect channels are off.
+    if(!enabled && !s_led && !s_vibro) return;
+    pocketlab_play_filtered(notifications, pocketlab_sequence_for(sound), enabled, s_led, s_vibro);
 }
 
 void pocketlab_sound_play_jingle(NotificationApp* notifications, bool enabled, uint32_t index) {

@@ -2,6 +2,8 @@
 
 typedef enum {
     SettingsIndexSound,
+    SettingsIndexLed,
+    SettingsIndexVibro,
     SettingsIndexReset,
 } SettingsIndex;
 
@@ -16,6 +18,31 @@ static void pocketlab_scene_settings_sound_changed(VariableItem* item) {
     if(index) {
         pocketlab_sound_play(app->notifications, true, PocketLabSoundClick);
     }
+}
+
+static void pocketlab_scene_settings_led_changed(VariableItem* item) {
+    PocketLab* app = variable_item_get_context(item);
+    const uint8_t index = variable_item_get_current_value_index(item);
+
+    app->state.led = index;
+    variable_item_set_current_value_text(
+        item, pocketlab_text(index ? PocketLabTextOn : PocketLabTextOff));
+    pocketlab_sound_configure_fx(app->state.led, app->state.vibro);
+    // A short green blink confirms the LED is back on.
+    if(index)
+        pocketlab_sound_play(app->notifications, app->state.sound != 0, PocketLabSoundComplete);
+}
+
+static void pocketlab_scene_settings_vibro_changed(VariableItem* item) {
+    PocketLab* app = variable_item_get_context(item);
+    const uint8_t index = variable_item_get_current_value_index(item);
+
+    app->state.vibro = index;
+    variable_item_set_current_value_text(
+        item, pocketlab_text(index ? PocketLabTextOn : PocketLabTextOff));
+    pocketlab_sound_configure_fx(app->state.led, app->state.vibro);
+    // A buzz confirms vibro is back on.
+    if(index) pocketlab_sound_play(app->notifications, app->state.sound != 0, PocketLabSoundThud);
 }
 
 static void pocketlab_scene_settings_enter_callback(void* context, uint32_t index) {
@@ -40,6 +67,26 @@ void pocketlab_scene_settings_on_enter(void* context) {
     variable_item_set_current_value_index(sound_item, app->state.sound ? 1 : 0);
     variable_item_set_current_value_text(
         sound_item, pocketlab_text(app->state.sound ? PocketLabTextOn : PocketLabTextOff));
+
+    VariableItem* led_item = variable_item_list_add(
+        list,
+        pocketlab_text(PocketLabTextSettingsLed),
+        2,
+        pocketlab_scene_settings_led_changed,
+        app);
+    variable_item_set_current_value_index(led_item, app->state.led ? 1 : 0);
+    variable_item_set_current_value_text(
+        led_item, pocketlab_text(app->state.led ? PocketLabTextOn : PocketLabTextOff));
+
+    VariableItem* vibro_item = variable_item_list_add(
+        list,
+        pocketlab_text(PocketLabTextSettingsVibro),
+        2,
+        pocketlab_scene_settings_vibro_changed,
+        app);
+    variable_item_set_current_value_index(vibro_item, app->state.vibro ? 1 : 0);
+    variable_item_set_current_value_text(
+        vibro_item, pocketlab_text(app->state.vibro ? PocketLabTextOn : PocketLabTextOff));
 
     VariableItem* reset_item =
         variable_item_list_add(list, pocketlab_text(PocketLabTextSettingsReset), 1, NULL, app);

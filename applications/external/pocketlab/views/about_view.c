@@ -5,13 +5,14 @@
 #include <string.h>
 
 #include "../helpers/pocketlab_sound.h"
+#include "../pocketlab_version.h"
 
 #define ABOUT_PERIOD_MS  40
 #define ABOUT_MATRIX_END 38 // ~1.5 s of matrix rain before the terminal boots
 #define ABOUT_TYPE_SPEED 2 // characters revealed per frame
 
 #define ABOUT_BODY_TOP 23 // ~5px below the "About" title
-#define ABOUT_LINE_H   10
+#define ABOUT_LINE_H   11 // 1px more air between lines
 #define ABOUT_VISIBLE  4 // terminal lines fitting under the title
 #define ABOUT_LEFT     3
 
@@ -47,24 +48,17 @@ static bool about_coffee_letter(uint8_t pos) {
 
 // --- Small monochrome icons (bit c of each row = pixel x=c) -----------------
 
-// about_icon_copyright: 7x7
-static const uint16_t about_icon_copyright[7] = {
-    0x03E,
-    0x041,
-    0x05D,
-    0x045,
-    0x05D,
-    0x041,
-    0x03E,
-};
+// about_icon_copyright: 9x9, a "c" inside a circle (matches version).
+static const uint16_t about_icon_copyright[9] =
+    {0x07C, 0x082, 0x101, 0x139, 0x109, 0x139, 0x101, 0x082, 0x07C};
 
-// about_icon_github: 9x9
+// about_icon_version: 9x9, a "v" inside the same circle.
+static const uint16_t about_icon_version[9] =
+    {0x07C, 0x082, 0x101, 0x129, 0x129, 0x111, 0x101, 0x082, 0x07C};
+
+// about_icon_github: 9x9 Octocat silhouette (ears, face with eyes, feet).
 static const uint16_t about_icon_github[9] =
-    {0x0C6, 0x1FF, 0x101, 0x16D, 0x101, 0x139, 0x101, 0x0FE, 0x028};
-
-// about_icon_issue: 9x9
-static const uint16_t about_icon_issue[9] =
-    {0x0FE, 0x101, 0x111, 0x111, 0x111, 0x101, 0x111, 0x101, 0x0FE};
+    {0x044, 0x0EE, 0x0FE, 0x1FF, 0x1B6, 0x1FF, 0x0FE, 0x07C, 0x054};
 
 // QR code for https://perfecto-web.com/d/ (version 2-L, bit c of each row = module x=c).
 #define ABOUT_QR_SIZE  25
@@ -86,14 +80,13 @@ typedef struct {
 } AboutLine;
 
 static const AboutLine about_lines[] = {
-    {NULL, 0, "PocketLab is an app", 0},
-    {NULL, 0, "that teaches the", 0},
-    {NULL, 0, "Flipper Zero features.", 0},
+    {NULL, 0, "PocketLab is an app that", 0},
+    {NULL, 0, "teaches the Flipper Zero", 0},
+    {NULL, 0, "features.", 0},
     {NULL, 0, "", 0},
-    {about_icon_copyright, 7, "v1.2.1   PerfectoWeb", 6},
-    {about_icon_github, 9, "github.com/PerfectoWeb", 0},
-    {about_icon_issue, 9, "Issues & more:", 0},
-    {NULL, 0, "github.com/PerfectoWeb/", 0},
+    {about_icon_version, 9, "Version: " POCKETLAB_VERSION, 0},
+    {about_icon_copyright, 9, "Author: PerfectoWeb", 0},
+    {about_icon_github, 9, "github.com/PerfectoWeb/", 0},
     {NULL, 0, "flipper-pocketlab", 0},
 };
 
@@ -237,8 +230,9 @@ static void about_draw_terminal(Canvas* canvas, AboutModel* model) {
             const uint8_t y = (uint8_t)(ABOUT_BODY_TOP + (i - model->offset) * ABOUT_LINE_H);
             uint8_t tx = ABOUT_LEFT;
             if(line->icon) {
-                about_draw_bitmap(canvas, line->icon, line->icon_h, tx, y - line->icon_h + 1);
-                tx += 11;
+                // A 9px icon centred on the ~7px text: 1px above and 1px below.
+                about_draw_bitmap(canvas, line->icon, line->icon_h, tx, y - line->icon_h + 2);
+                tx += 12;
             }
             char buffer[28];
             uint8_t n = shown < sizeof(buffer) - 1 ? shown : sizeof(buffer) - 1;

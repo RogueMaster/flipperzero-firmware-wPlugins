@@ -20,6 +20,10 @@ typedef enum {
     PocketLabSoundGrow,
 } PocketLabSoundId;
 
+/** Global LED/vibro switches. Call at startup and whenever settings change.
+ * They gate the light/vibration parts of every sequence independently of sound. */
+void pocketlab_sound_configure_fx(bool led, bool vibro);
+
 void pocketlab_sound_play(NotificationApp* notifications, bool enabled, PocketLabSoundId sound);
 
 /** Plays a short jingle unique to a badge index (for the achievement gallery). */

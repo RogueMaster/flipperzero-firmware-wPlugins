@@ -35,7 +35,8 @@ time.
 - 🏆 **Progression** – XP, levels, a daily streak and unlockable badges, all
   saved on the SD card
 - 🖼️ **Per-topic glyphs** next to each lesson title, so the subject reads at a glance
-- 🔊 **Sound & LED** – audio feedback with the RGB LED blinking to the reward tune
+- 🔊 **Sound, LED & Vibro** – audio, RGB-LED and vibration feedback, each with its
+  own on/off toggle in Settings
 - 🖥️ **Custom animated UI** – tile menu, a badge gallery, stat cards and a
   matrix-rain About screen
 - 📦 **No extra hardware** – pure software, runs on a stock Flipper Zero

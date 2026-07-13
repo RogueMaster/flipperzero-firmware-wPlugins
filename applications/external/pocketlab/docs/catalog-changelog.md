@@ -1,3 +1,9 @@
+## 1.4
+
+- Settings now has independent LED and Vibro toggles (both default on), next to
+  the Sound toggle - turn light or vibration off globally on their own.
+- The About screen shows the correct app version.
+
 ## 1.3
 
 - 6 advanced labs with deeper per-subsystem topics and extra quizzes: MIFARE

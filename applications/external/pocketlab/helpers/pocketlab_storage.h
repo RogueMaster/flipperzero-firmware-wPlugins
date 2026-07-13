@@ -6,6 +6,8 @@ typedef struct {
     uint32_t magic;
     uint16_t version;
     uint8_t sound;
+    uint8_t led; // RGB LED indications on/off
+    uint8_t vibro; // vibration on/off
     uint8_t reserved;
     uint32_t xp;
     uint32_t level;

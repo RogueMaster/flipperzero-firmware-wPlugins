@@ -9,6 +9,8 @@ typedef enum {
     PocketLabTextMenuAbout,
     PocketLabTextLabsTitle,
     PocketLabTextSettingsSound,
+    PocketLabTextSettingsLed,
+    PocketLabTextSettingsVibro,
     PocketLabTextSettingsReset,
     PocketLabTextOn,
     PocketLabTextOff,

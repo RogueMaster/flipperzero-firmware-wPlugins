@@ -14,7 +14,7 @@ your Flipper's own features, then reward you with XP, levels and badges.
 - **Progression** - XP, levels, a daily streak and unlockable badges, saved on
   the SD card.
 - **Per-topic glyphs** next to each lesson title, so the subject reads at a glance.
-- **Sound and LED** feedback, with the RGB LED blinking in time with the reward tune.
+- **Sound, LED and Vibro** feedback, each with its own toggle in Settings.
 - **No extra hardware** - pure software, runs on a stock Flipper Zero.
 
 ## How to use

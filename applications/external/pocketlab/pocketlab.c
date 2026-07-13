@@ -183,6 +183,7 @@ static PocketLab* pocketlab_alloc(void) {
         app->view_dispatcher, PocketLabViewExam, exam_view_get_view(app->exam_view));
 
     pocketlab_storage_load(&app->state);
+    pocketlab_sound_configure_fx(app->state.led != 0, app->state.vibro != 0);
     app->current_lab = NULL;
 
     return app;
