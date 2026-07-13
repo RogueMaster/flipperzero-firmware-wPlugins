@@ -1,3 +1,7 @@
+## 2.16-beta.16 — experimental "Instant Engage" (steer-jerk / activation-lag A/B)
+
+- **Instant Engage (experimental, off by default, #129 / #108).** AP-First normally waits for AP to be engaged (`das_ap_state >= 3`) **and held stable for 1 s** before injecting. That 1 s debounce turned out to pull two ways: @7hf6cfqzkb-png (#129) found it makes FSD activation feel sluggish, while @dunckencn's black-box data (#108) showed the debounce pushes our injection right onto the `3 → 6` transition that correlates with his steer-jerk. **Instant Engage** injects the moment AP is genuinely engaged (skips the 1 s wait) — which is both faster (for #129) and *earlier* than the jerk window (for #108), so it may help both. Still blocks injection while AP is merely available (state 2), so it doesn't reintroduce the AP-off injection. Toggle in the ESP32 dashboard and Flipper Settings ("Instant Engage (exp.)"). **Please A/B it against the default** — the check is simply whether FSD still activates cleanly, and whether the lag (#129) / jerk (#108) improve. Host-tested.
+
 ## 2.16-beta.15 — black-box fixes (WiFi, capture window, timestamps) + AP-First off-by-one
 
 Four fixes, all from @dunckencn's on-car testing + black-box captures on #108/#122.

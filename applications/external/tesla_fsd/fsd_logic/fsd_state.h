@@ -78,6 +78,8 @@ typedef struct FSDState {
 
     // --- AP-first mode (2026.14.x compatibility) ---
     bool ap_first; // delay 0x3FD/0x3EE injection until AP is engaged AND stable
+    bool ap_first_edge; // experimental "Instant Engage": inject as soon as AP is
+        // engaged, skipping the AP_FIRST_STABLE_MS debounce. Off by default.
     uint8_t das_ap_state; // DAS_autopilotState: 0=UNAVAIL 1=UNAVAILABLE/AVAIL-flicker
         // 2=AVAILABLE (offered, NOT engaged) 3=ACTIVE_NOMINAL (first
         // engaged) 6=active 8/9=aborting/aborted

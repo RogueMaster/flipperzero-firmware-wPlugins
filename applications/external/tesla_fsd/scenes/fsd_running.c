@@ -169,6 +169,7 @@ static int32_t fsd_running_worker(void* context) {
     state.gtw_shield_armed = false;
     state.tlssc_restore = app->tlssc_restore;
     state.ap_first = app->ap_first;
+    state.ap_first_edge = app->ap_first_edge;
     state.soft_engage = app->soft_engage;
     state.gtw_tier_override = app->gtw_tier_override;
     state.scroll_press_ap = app->scroll_press_ap;

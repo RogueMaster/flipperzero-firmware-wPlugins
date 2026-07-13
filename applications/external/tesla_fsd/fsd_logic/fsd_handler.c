@@ -169,6 +169,7 @@ bool fsd_ap_first_allows(const FSDState* state, uint32_t now_ms) {
     // 2 = AVAILABLE (AP offered, NOT engaged); 3 = ACTIVE_NOMINAL is the first
     // genuinely-engaged state. Injecting at 2 fired 0x3EE while AP was off (#108).
     if(state->das_ap_state < DAS_APSTATE_ENGAGED) return false; // AP not engaged yet
+    if(state->ap_first_edge) return true; // experimental: inject at engage onset, no debounce
     // AP engaged: require it to have held stable for the debounce window.
     return (now_ms - state->ap_unstable_tick_ms) >= AP_FIRST_STABLE_MS;
 }

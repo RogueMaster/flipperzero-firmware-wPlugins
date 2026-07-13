@@ -1294,6 +1294,31 @@ static void test_legacy(void) {
     g.das_ap_state = 6;
     CHECK(fsd_ap_first_allows(&g, 5000) == true, "ap_first: active(6) + stable -> allow");
 
+    // Instant Engage (ap_first_edge, #129/#108): inject at engage onset, skip the
+    // AP_FIRST_STABLE_MS debounce. Still blocks until AP is actually engaged (>=3).
+    FSDState e;
+    memset(&e, 0, sizeof(e));
+    e.ap_first = true;
+    e.ap_first_edge = true;
+    e.das_ap_state = 2; // AVAILABLE — offered but NOT engaged
+    e.ap_unstable_tick_ms = 5000;
+    CHECK(fsd_ap_first_allows(&e, 5000) == false, "instant engage: AVAILABLE(2) still blocks");
+    e.das_ap_state = 3; // engaged this instant (tick == now, 0ms held)
+    e.ap_unstable_tick_ms = 5000;
+    CHECK(
+        fsd_ap_first_allows(&e, 5000) == true,
+        "instant engage: engaged(3) allows immediately, no debounce");
+    e.ap_first_edge = false; // toggle off -> debounce re-applies
+    CHECK(
+        fsd_ap_first_allows(&e, 5000) == false,
+        "instant engage off: engaged(3) but 0ms < debounce -> block");
+    e.das_ap_state = 2; // and still blocks at AVAILABLE(2) with edge on
+    e.ap_first_edge = true;
+    e.ap_unstable_tick_ms = 5000;
+    CHECK(
+        fsd_ap_first_allows(&e, 5000) == false,
+        "instant engage: AVAILABLE(2) blocks in both modes");
+
     // fsd_soft_engage_allows() — steer-jerk soft engage (#108)
     FSDState se;
     memset(&se, 0, sizeof(se));

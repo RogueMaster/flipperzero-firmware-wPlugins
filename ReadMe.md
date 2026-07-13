@@ -67,7 +67,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Sub-GHz Scheduler v3.0 (By shalebridge)](https://github.com/shalebridge/flipper-subghz-scheduler)
 - [Make protobuf version generator tolerant when git tags unavailable (By juansandoval0613)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1194)
 - Added: [PocketLab v1.1 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
-- Updated: [Tesla Mod v2.16b15 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [wM-Buster v1.1.1 (By i12bp8)](https://github.com/i12bp8/wmbuster)
 - Using API v88.0 Like OFW
 - Updated: [Rush Hour v0.1.6 (By Endika)](https://github.com/Endika/flipper-tutu) (Version Only)
@@ -80,6 +79,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Fix for Out of Memory crashes in Sub-Ghz (By Lechnio)](https://github.com/Next-Flip/Momentum-Firmware/pull/569)
 - Added: [BreachMap v1.0 (By Gerijacki)](https://github.com/Gerijacki/BreachMap)
 - Added: [Password Keyboard v0.1 (By evgeniyraev)](https://github.com/evgeniyraev/password_keyboard)
+- Updated: [Tesla Mod v2.16b16 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
 
@@ -250,7 +250,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Ghouls v0.6 (By jblanked)](https://github.com/jblanked/Ghouls-Flipper) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Groks Adventure v0.15 (By DigiMancer3D)](https://github.com/DigiMancer3D/Groks_Adventure)
 - [Guess The Number v1.3 (By kWAYTV)](https://github.com/kWAYTV/guess-the-number-fz)
-- [Gurpil v0.1.8 (By Endika)}(https://github.com/Endika/flipper-gurpil)
+- [Gurpil v0.1.8 (By Endika)](https://github.com/Endika/flipper-gurpil)
 - [Hangman v1.5 (By Evgeny Stepanischev & Eva Stepanischeva)](https://github.com/bolknote/Flipper-Zero-Hangman-Game)
 - [Hanoi Towers v1.0 (By AlexTaran)](https://github.com/AlexTaran/flipperzero)
 - [Heap Defence v1.4 (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/fc776446de9fdd553b221c02668b925b689378d8)
@@ -812,7 +812,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [TagTinker v2.1 (By i12bp8)](https://github.com/i12bp8/TagTinker)
 - [Tasks v1.2 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
 - [Temp Sensors Reader 2.1 (By quen0n)](https://github.com/quen0n/Unitemp-Flipper-Zero-Plugin) Req: [See App Readme For Supported Modules](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/applications/external/unitemp/README.md)
-- [Tesla Mod v2.16b15 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- [Tesla Mod v2.16b16 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - [Text To SAM v1.5 (By RoundPi)](https://github.com/Round-Pi/flipperzero-text2sam)
 - [Text Viewer v1.7 (By WillyJL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/ae4fc4a54febccb44b010c4025a99c2edef9a7f0)
 - [The C Prog. Language v0.2 (By armixz)](https://github.com/armixz/Flipper-Zero-The-C-Programming-Language)
