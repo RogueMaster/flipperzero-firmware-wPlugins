@@ -1,0 +1,11 @@
+* text=auto eol=lf
+
+*.c text
+*.h text
+*.fam text
+*.md text
+*.yml text
+
+*.png binary
+*.fap binary
+*.elf binary

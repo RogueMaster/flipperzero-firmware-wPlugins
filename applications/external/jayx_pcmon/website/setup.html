@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Guide — JAYX</title>
+    <meta name="description" content="Step-by-step JAYX installation: prerequisites, building and flashing the Flipper app, running the PC agent, and optional FPS/temperature extras.">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Setup Guide — JAYX">
+    <meta property="og:description" content="Step-by-step JAYX installation: prerequisites, building and flashing the Flipper app, running the PC agent, and optional FPS/temperature extras.">
+    <meta property="og:image" content="screenshots/livestats.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Setup Guide — JAYX">
+    <meta name="twitter:description" content="Step-by-step JAYX installation: prerequisites, building and flashing the Flipper app, running the PC agent, and optional FPS/temperature extras.">
+    <meta name="twitter:image" content="screenshots/livestats.png">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <span class="logo-accent">JAY</span><span class="logo-main">X</span><span class="logo-cursor">_</span>
+            </a>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="features.html" class="nav-link">Features</a>
+                <a href="index.html#simulator" class="nav-link">Interactive Demo</a>
+                <a href="setup.html" class="nav-link active">Setup Guide</a>
+                <a href="troubleshooting.html" class="nav-link">Troubleshooting</a>
+            </nav>
+            <div class="nav-actions">
+                <a href="https://github.com/contactjayclatty/JAYX" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-github" id="btn-github-nav">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/>
+                    </svg>
+                    <span>Star on GitHub</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Header -->
+    <section class="page-hero">
+        <h1>Step-by-Step <span class="text-orange">Installation</span></h1>
+        <p>Get up and running in under five minutes. Follow these simple configuration steps.</p>
+    </section>
+
+    <!-- Guided Setup -->
+    <section class="setup-section" id="setup">
+        <div class="section-container">
+
+            <!-- Setup Tabs -->
+            <div class="setup-tabs-nav">
+                <button class="setup-tab-btn active" data-setup-tab="step1">
+                    <span class="step-num">01</span>
+                    <span class="step-title">Prerequisites</span>
+                </button>
+                <button class="setup-tab-btn" data-setup-tab="step2">
+                    <span class="step-num">02</span>
+                    <span class="step-title">Build & Flash</span>
+                </button>
+                <button class="setup-tab-btn" data-setup-tab="step3">
+                    <span class="step-num">03</span>
+                    <span class="step-title">Run Agent</span>
+                </button>
+                <button class="setup-tab-btn" data-setup-tab="step4">
+                    <span class="step-num">04</span>
+                    <span class="step-title">Extras Config</span>
+                </button>
+            </div>
+
+            <!-- Setup Tab Contents -->
+            <div class="setup-tabs-content">
+                <!-- Step 1 -->
+                <div class="setup-tab-pane active" id="setup-pane-step1">
+                    <h3>Configure your Windows PC environment</h3>
+                    <p>Ensure you have Python 3.10+ installed and added to your system PATH environment variable.</p>
+
+                    <div class="setup-code-block">
+                        <div class="code-header">
+                            <span>PowerShell</span>
+                            <button class="btn-copy" data-target="code-setup1">Copy</button>
+                        </div>
+                        <pre><code id="code-setup1"># Clone the repository
+git clone https://github.com/contactjayclatty/JAYX.git
+cd JAYX/pc_agent
+
+# Install standard dependencies
+python -m pip install -r requirements.txt
+
+# Install the Flipper build tool
+python -m pip install ufbt</code></pre>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="setup-tab-pane" id="setup-pane-step2">
+                    <h3>Compile and Launch on Flipper Zero</h3>
+                    <p>Connect your Flipper Zero via USB. Ensure any terminal console tools, serial monitors, or **qFlipper** are fully closed before continuing, to avoid port locks.</p>
+
+                    <div class="setup-code-block">
+                        <div class="code-header">
+                            <span>PowerShell</span>
+                            <button class="btn-copy" data-target="code-setup2">Copy</button>
+                        </div>
+                        <pre><code id="code-setup2"># Move to the app directory
+cd ../apps/jayx
+
+# Compile and launch the app automatically
+ufbt launch</code></pre>
+                    </div>
+                    <div class="setup-tip">
+                        <strong>Pro Tip:</strong> First-time builds may take a minute while `ufbt` downloads the Flipper SDK for your device firmware.
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="setup-tab-pane" id="setup-pane-step3">
+                    <h3>Open Connection & Stream</h3>
+                    <p>Start JAYX on your device and launch the local python agent process on your PC.</p>
+
+                    <ol class="setup-list">
+                        <li>On the Flipper: Open **Apps** → **USB** → **JAYX**.</li>
+                        <li>Highlight **USB** and press the **OK** button. The screen will say <code>USB · waiting...</code></li>
+                        <li>On your Windows PC, open PowerShell and run the agent:</li>
+                    </ol>
+
+                    <div class="setup-code-block">
+                        <div class="code-header">
+                            <span>PowerShell</span>
+                            <button class="btn-copy" data-target="code-setup3">Copy</button>
+                        </div>
+                        <pre><code id="code-setup3">cd ../../pc_agent
+python monitor.py --usb</code></pre>
+                    </div>
+                    <p>Within seconds, JAYX will establish the link and stream live stats!</p>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="setup-tab-pane" id="setup-pane-step4">
+                    <h3>Enable FPS and Temperature stats</h3>
+                    <p>Out of the box, JAYX streams system specs, CPU load, and RAM usage. Use these third-party utilities to unlock the complete suite of hardware readings:</p>
+
+                    <div class="extras-grid">
+                        <div class="extra-item">
+                            <h4>🎮 Frame Rate Tracking (FPS)</h4>
+                            <p>Download and start <a href="https://www.guru3d.com/files-details/rtss-rivatuner-statistics-server-download.html" target="_blank" rel="noopener noreferrer">RivaTuner Statistics Server (RTSS)</a>. Ensure it runs in the background. The FPS will show up on the <strong>Game</strong> page when you focus a game window.</p>
+                        </div>
+                        <div class="extra-item">
+                            <h4>🌡️ CPU Temperatures</h4>
+                            <p>Download and run <a href="https://github.com/LibreHardwareMonitor/LibreHardwareMonitor" target="_blank" rel="noopener noreferrer">LibreHardwareMonitor</a>. Keep it active in the background tray. Restart the python agent to hook the sensors.</p>
+                        </div>
+                        <div class="extra-item">
+                            <h4>⚡ GPU Performance</h4>
+                            <p>NVIDIA Graphics metrics are supported natively via drivers. No extra tools are required if Nvidia drivers are installed. Other GPU brands will show metrics as N/A.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="cta-section">
+        <div class="section-container">
+            <h2>Ready to Upgrade Your Desk Setup?</h2>
+            <p>JAYX is 100% free and open-source under the MIT license. Check it out on GitHub to view code, contribute, or open issues.</p>
+            <div class="cta-buttons">
+                <a href="https://github.com/contactjayclatty/JAYX" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-github">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/>
+                    </svg>
+                    <span>View Repository on GitHub</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-left">
+                <span class="logo-accent">JAY</span><span class="logo-main">X</span>
+                <p>Live metrics streaming dashboard for Flipper Zero.</p>
+            </div>
+            <div class="footer-right">
+                <p>Licensed under <a href="https://github.com/contactjayclatty/JAYX/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT</a>.</p>
+                <p>Created by <a href="https://github.com/contactjayclatty" target="_blank" rel="noopener noreferrer">jayclatty</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

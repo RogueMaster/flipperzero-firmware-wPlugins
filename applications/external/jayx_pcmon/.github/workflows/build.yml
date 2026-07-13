@@ -1,0 +1,52 @@
+name: "FAP: Build all apps for multiple SDK sources"
+# Builds every app folder under apps/ for both dev and release firmware SDKs.
+# Also runs on a daily schedule to catch breakage from upstream SDK changes.
+# See https://github.com/marketplace/actions/build-flipper-application-package-fap for more information
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  schedule:
+    # daily build against upstream SDKs
+    - cron: "1 1 * * *"
+  workflow_dispatch:
+
+jobs:
+  discover-apps:
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.find.outputs.apps }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Find app folders
+        id: find
+        run: |
+          apps=$(find apps -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | jq -R -s -c 'split("\n")[:-1]')
+          echo "apps=$apps" >> "$GITHUB_OUTPUT"
+
+  ufbt-build:
+    needs: discover-apps
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: ${{ fromJson(needs.discover-apps.outputs.apps) }}
+        sdk-channel: [dev, release]
+    name: 'ufbt: ${{ matrix.app }} (${{ matrix.sdk-channel }})'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build with ufbt
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        id: build-app
+        with:
+          app-dir: apps/${{ matrix.app }}
+          sdk-channel: ${{ matrix.sdk-channel }}
+      - name: Upload app artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-${{ steps.build-app.outputs.suffix }}
+          path: ${{ steps.build-app.outputs.fap-artifacts }}

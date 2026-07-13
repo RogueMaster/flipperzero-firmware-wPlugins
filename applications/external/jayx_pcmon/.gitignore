@@ -1,0 +1,29 @@
+# Build outputs
+**/dist/
+**/*.fap
+**/*.elf
+
+# ufbt / editor scaffolding (regenerated per app)
+**/.vscode/
+**/.clang-format
+**/.clangd
+**/.editorconfig
+apps/*/.github/
+
+# Python agent
+**/__pycache__/
+**/*.py[cod]
+**/*.egg-info/
+.venv/
+venv/
+.env
+
+# Local tooling
+.ufbt/
+*.log
+.DS_Store
+Thumbs.db
+
+# Local release staging
+release/
+

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JAYX — Live PC Monitor for Flipper Zero</title>
+    <meta name="description" content="Monitor CPU, RAM, GPU, temperatures, system specs, and game FPS live on your Flipper Zero over USB.">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="JAYX — Live PC Monitor for Flipper Zero">
+    <meta property="og:description" content="Monitor CPU, RAM, GPU, temperatures, system specs, and game FPS live on your Flipper Zero over USB.">
+    <meta property="og:image" content="screenshots/livestats.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="JAYX — Live PC Monitor for Flipper Zero">
+    <meta name="twitter:description" content="Monitor CPU, RAM, GPU, temperatures, system specs, and game FPS live on your Flipper Zero over USB.">
+    <meta name="twitter:image" content="screenshots/livestats.png">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">
+                <span class="logo-accent">JAY</span><span class="logo-main">X</span><span class="logo-cursor">_</span>
+            </a>
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-link active">Home</a>
+                <a href="features.html" class="nav-link">Features</a>
+                <a href="#simulator" class="nav-link">Interactive Demo</a>
+                <a href="setup.html" class="nav-link">Setup Guide</a>
+                <a href="troubleshooting.html" class="nav-link">Troubleshooting</a>
+            </nav>
+            <div class="nav-actions">
+                <a href="https://github.com/contactjayclatty/JAYX" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-github" id="btn-github-nav">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                        <path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/>
+                    </svg>
+                    <span>Star on GitHub</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="badge">USB Streaming Metrics</div>
+                <h1 class="hero-title">Live PC Monitor for <span class="text-orange">Flipper Zero</span></h1>
+                <p class="hero-description">
+                    Turn your Flipper Zero into an external hardware dashboard. Stream CPU, RAM, GPU, temperatures, system specifications, and live game FPS over USB. Zero lag, customizable, and completely open source.
+                </p>
+                <div class="hero-buttons">
+                    <a href="setup.html" class="btn btn-primary">Get Started Now</a>
+                    <a href="https://github.com/contactjayclatty/JAYX" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">
+                        GitHub Repository
+                    </a>
+                </div>
+
+                <div class="quick-command-wrapper">
+                    <div class="command-box">
+                        <span class="prompt">$</span>
+                        <input type="text" readonly value="pip install ufbt" id="cmd-pip">
+                        <button class="btn-copy" data-target="cmd-pip" title="Copy to clipboard">
+                            <svg class="icon-copy" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            <svg class="icon-check hidden" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flipper Simulator -->
+            <div class="hero-visual" id="simulator">
+                <div class="flipper-container">
+                    <div class="flipper-body">
+                        <!-- LED Indicator -->
+                        <div class="flipper-led" id="flipper-led"></div>
+
+                        <!-- Screen Bezel -->
+                        <div class="flipper-bezel">
+                            <!-- Flipper Logo -->
+                            <div class="bezel-header">
+                                <span class="flipper-brand">▼ JAYX</span>
+                            </div>
+
+                            <!-- LCD Display Screen -->
+                            <div class="flipper-screen">
+                                <div class="lcd-scanline"></div>
+                                <div class="lcd-grid"></div>
+                                <div class="lcd-content">
+                                    <img src="screenshots/MainMenu.png" alt="Flipper screen" class="flipper-display-img" id="display-screen">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Interface Controls -->
+                        <div class="flipper-controls">
+                            <!-- Circular D-Pad -->
+                            <div class="dpad-wrapper">
+                                <button class="ctrl-btn btn-up" id="btn-up" aria-label="Up">
+                                    <svg viewBox="0 0 24 24"><polygon points="12,5 5,15 19,15" fill="currentColor"/></svg>
+                                </button>
+                                <button class="ctrl-btn btn-left" id="btn-left" aria-label="Left">
+                                    <svg viewBox="0 0 24 24"><polygon points="5,12 15,5 15,19" fill="currentColor"/></svg>
+                                </button>
+                                <button class="ctrl-btn btn-ok" id="btn-ok" aria-label="OK">
+                                    <span>OK</span>
+                                </button>
+                                <button class="ctrl-btn btn-right" id="btn-right" aria-label="Right">
+                                    <svg viewBox="0 0 24 24"><polygon points="19,12 9,5 9,19" fill="currentColor"/></svg>
+                                </button>
+                                <button class="ctrl-btn btn-down" id="btn-down" aria-label="Down">
+                                    <svg viewBox="0 0 24 24"><polygon points="12,19 5,9 19,9" fill="currentColor"/></svg>
+                                </button>
+                            </div>
+
+                            <!-- Back Button -->
+                            <button class="ctrl-btn btn-back" id="btn-back" aria-label="Back">
+                                <div class="back-circle"></div>
+                                <span class="back-label">BACK</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Simulator Instructions -->
+                    <div class="simulator-instructions">
+                        <p><strong>Interactive Flipper Simulator:</strong> Click the D-Pad buttons above to browse the device views. Press <strong>Left / Right</strong> to change screens; press <strong>Up / Down</strong> on the Specs screen to cycle hardware cards.</p>
+                        <div class="simulator-info-pill" id="screen-info">Current screen: Main Menu</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Explore Other Pages -->
+    <section class="explore-section">
+        <div class="section-container">
+            <div class="explore-grid">
+                <a href="features.html" class="explore-card">
+                    <span class="explore-title">Features <span class="explore-arrow">&rarr;</span></span>
+                    <p>Everything JAYX tracks — CPU, RAM, GPU, FPS, and hardware specs — plus a live console preview.</p>
+                </a>
+                <a href="setup.html" class="explore-card">
+                    <span class="explore-title">Setup Guide <span class="explore-arrow">&rarr;</span></span>
+                    <p>Step-by-step install: prerequisites, building the Flipper app, running the PC agent, and optional extras.</p>
+                </a>
+                <a href="troubleshooting.html" class="explore-card">
+                    <span class="explore-title">Troubleshooting <span class="explore-arrow">&rarr;</span></span>
+                    <p>Common issues like stuck connections, locked COM ports, and missing FPS/temperature readings.</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="cta-section">
+        <div class="section-container">
+            <h2>Ready to Upgrade Your Desk Setup?</h2>
+            <p>JAYX is 100% free and open-source under the MIT license. Check it out on GitHub to view code, contribute, or open issues.</p>
+            <div class="cta-buttons">
+                <a href="https://github.com/contactjayclatty/JAYX" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-github">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/>
+                    </svg>
+                    <span>View Repository on GitHub</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-left">
+                <span class="logo-accent">JAY</span><span class="logo-main">X</span>
+                <p>Live metrics streaming dashboard for Flipper Zero.</p>
+            </div>
+            <div class="footer-right">
+                <p>Licensed under <a href="https://github.com/contactjayclatty/JAYX/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT</a>.</p>
+                <p>Created by <a href="https://github.com/contactjayclatty" target="_blank" rel="noopener noreferrer">jayclatty</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
