@@ -76,6 +76,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Flipcraft v4.3 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
 - Updated: [PocketLab v1.3 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
 - Updated: [Paranoia WIP v0.2 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-paranoia)
+- Sub-GHz: Fix for Sub-GHz Add Manually furi check error & Launch from Apps list (By RogueMaster)
 
 <a name="release"></a>
 

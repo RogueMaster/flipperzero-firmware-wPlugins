@@ -502,7 +502,7 @@ int32_t subghz_app(char* p) {
 }
 #else
 int32_t subghz_add_manually(void* p) {
-    enum SubmenuIndex add_manually_scene_state = 0;
+    enum SubmenuIndex add_manually_scene_state = SubmenuIndexAddManually;
     if(p) {
         if(!strcmp(p, "AddManually")) {
             add_manually_scene_state = SubmenuIndexAddManually;
@@ -510,7 +510,7 @@ int32_t subghz_add_manually(void* p) {
             add_manually_scene_state = SubmenuIndexAddManuallyAdvanced;
         }
     }
-    if(!add_manually_scene_state) return 0;
+    // if(!add_manually_scene_state) return 0;
 
     bool alloc_for_tx = false;
     SubGhz* subghz = subghz_alloc(alloc_for_tx);
