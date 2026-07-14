@@ -1,19 +1,63 @@
 # Pack Track
 
-A native shipment-tracking application for the Flipper Zero — a clean, glanceable interface for keeping tabs on packages from your wrist-pocket hacker's tool. Built in C against the Flipper firmware's native GUI, input, and synchronization primitives, Pack Track delivers a desktop-quality tracking experience on a 128×64 monochrome display.
+A native shipment tracker for the Flipper Zero — a clean, glanceable list of
+your packages on a 128×64 monochrome display. Works two ways:
 
-> **Status:** UI reference implementation. The application ships with a curated set of demonstration shipments and is structured to make integration with a live carrier backend (HTTP companion app, sub-GHz relay, or BLE-tethered host) a drop-in extension.
+- **Manual (default):** keep the list yourself in a plain text file on the SD
+  card. No internet, no accounts, no backend.
+- **Live (optional):** with a WiFi devboard running FlipperHTTP and *your own*
+  tracking-service API key, press RIGHT to fetch real status. The app hardcodes
+  no provider — **you** supply the URL and which JSON fields to read, so it works
+  with any tracking service you have an account with.
+
+> **Nothing is hosted or signed up for by this app.** In live mode, every
+> credential — WiFi, API key, and the service itself — comes from you and lives
+> in a config file on your own SD card.
 
 ---
 
-## Highlights
+## Setting up your packages
 
-- **Multi-carrier ready.** First-class display support for UPS, USPS, FedEx, and DHL out of the box, with a generic schema that accepts arbitrary carriers and tracking-number formats.
-- **Five-state lifecycle.** Models the full shipment journey — *Pending*, *In Transit*, *Out for Delivery*, *Delivered*, and *Exception* — each with a distinctive iconographic glyph rendered directly to the canvas.
-- **Two-pane navigation.** A scrollable summary list pairs with a dedicated detail screen exposing carrier, full tracking ID, last-known location, and timestamp of the most recent update.
-- **Pixel-tuned UI.** Hand-laid out for the Flipper's 128×64 OLED: header rule, inverted-row selection, right-aligned status column, position counter, and a footer hint on the detail view.
-- **Concurrency-safe state.** All view-state mutations run under a `FuriMutex`, so the input handler and the render callback never race on a partially-updated frame.
-- **Lightweight footprint.** Runs in a 2 KB stack with no external dependencies beyond the standard Flipper SDK records (`gui`, `input`, C standard library).
+On first launch Pack Track creates a template file for you at:
+
+```
+SD card: /apps_data/package_tracker/packages.txt
+```
+
+Edit that file to list your shipments — **one package per line**, fields
+separated by ` | ` (a pipe):
+
+```
+Label | Carrier | Tracking | Status | Location | Updated
+```
+
+- **Status** must be one of: `pending`, `transit`, `out`, `delivered`, `exception`
+- Lines starting with `#` are comments and are ignored.
+- Blank lines are ignored.
+- Up to **12** packages are shown.
+
+### Example `packages.txt`
+
+```
+# Pack Track - one package per line:
+#   Label | Carrier | Tracking | Status | Location | Updated
+# Status: pending, transit, out, delivered, exception
+Flipper Case   | UPS   | 1Z999AA10123456784     | transit   | Memphis, TN     | Apr 17 2:14 PM
+Solder Paste   | USPS  | 9400111899223596012345 | out       | Local Facility  | Apr 18 8:02 AM
+Oscilloscope   | FedEx | 771234567890           | delivered | Front Door      | Apr 16 9:41 PM
+PCB Order      | DHL   | 1234567890             | pending   | Shenzhen, CN    | Apr 15 5:30 AM
+```
+
+### How to edit the file
+
+- **qFlipper** (easiest): open qFlipper → File Manager → browse to
+  `apps_data/package_tracker/` → drag `packages.txt` out, edit it in any text
+  editor, drag it back.
+- **SD card reader:** power off the Flipper, pop the microSD into your computer,
+  and edit `apps_data/package_tracker/packages.txt` directly.
+
+Changes take effect the next time you open the app (Pack Track reads the file on
+launch).
 
 ---
 
@@ -27,11 +71,14 @@ ufbt
 ufbt launch    # build, upload, and start on the connected Flipper
 ```
 
-Drop `package_tracker.fap` into `apps/Tools/` on your Flipper's microSD if you'd rather sideload manually.
+Or drop `dist/package_tracker.fap` into `apps/Tools/` on your Flipper's microSD
+to sideload manually.
 
 ### Build inside the firmware tree
 
-Clone Pack Track into `applications_user/package_tracker/` of your firmware checkout (official, Momentum, Unleashed, or RogueMaster) and run the firmware build as usual. The application is registered as an external FAP and appears under **Apps → Tools → Pack Track**.
+Clone Pack Track into `applications_user/package_tracker/` of your firmware
+checkout (Official, Momentum, Unleashed, or RogueMaster) and run the firmware
+build. It appears under **Apps → Tools → Pack Track**.
 
 ---
 
@@ -39,49 +86,33 @@ Clone Pack Track into `applications_user/package_tracker/` of your firmware chec
 
 | Screen | Input | Action |
 |--------|-------|--------|
-| List | ▲ / ▼ | Move selection (scrolls automatically beyond four visible rows) |
+| List | ▲ / ▼ | Move selection (scrolls automatically beyond four rows) |
 | List | OK | Open detail view for the highlighted shipment |
+| List | ▶ | Refresh all (live mode; needs board + `config.txt`) |
 | List | BACK (short) | Exit the application |
 | Detail | ◀ / ▶ | Page between shipments without returning to the list |
 | Detail | BACK (short) | Return to the list |
+| Refreshing | BACK | Cancel the refresh |
 | Anywhere | BACK (long) | Force-exit |
 
-The list view shows a status glyph, a human-readable label, and a short status code per row, plus a `current/total` counter in the header. The detail view promotes the label to the primary font and lays out carrier, tracking number, last reported location, and timestamp on individual rows.
+Each list row shows a status glyph, the label, and a short status code, plus a
+`current/total` counter in the header. The detail view shows carrier, full
+tracking number, last reported location, and the date you entered. If no
+packages are configured, the app points you to the `packages.txt` file.
 
 ---
 
-## Architecture
+## Status glyphs
 
-Pack Track is intentionally compact — a single translation unit, ~290 lines — organized around the standard Flipper event-loop pattern:
+| Status | Glyph |
+|--------|-------|
+| Delivered | filled dot |
+| Out for Delivery | ringed dot |
+| In Transit | hollow ring |
+| Pending | dash |
+| Exception | ✕ |
 
-```
-┌─────────────────┐   InputEvent   ┌────────────────────┐
-│  ViewPort input │ ─────────────▶ │ FuriMessageQueue   │
-└─────────────────┘                └─────────┬──────────┘
-                                             │
-                                             ▼
-                                   ┌────────────────────┐
-                                   │  Main event loop   │
-                                   │  (mutates state)   │
-                                   └─────────┬──────────┘
-                                             │ view_port_update
-                                             ▼
-                                   ┌────────────────────┐
-                                   │ render_callback    │
-                                   │ → draw_list /      │
-                                   │   draw_detail      │
-                                   └────────────────────┘
-```
-
-Key types live at the top of `package_tracker.c`:
-
-- `PackageStatus` — enum of the five lifecycle states.
-- `Package` — immutable record of carrier, tracking ID, label, last-update timestamp, location, and status.
-- `Screen` — discriminator for the active view (list vs. detail).
-- `TrackerState` — runtime UI state: current screen, selected index, scroll offset, and the mutex guarding them.
-- `TrackerEvent` — message posted from the input ISR-style callback into the main loop's queue.
-
-Rendering is split into two pure functions, `draw_list` and `draw_detail`, both invoked from a single `render_callback` that acquires the state mutex before touching the canvas. Status glyphs are drawn procedurally with `canvas_draw_disc`, `canvas_draw_circle`, `canvas_draw_line`, and `canvas_draw_dot` — no bitmap assets required.
+Glyphs are drawn procedurally on the canvas — no bitmap assets.
 
 ---
 
@@ -90,33 +121,74 @@ Rendering is split into two pure functions, `draw_list` and `draw_detail`, both 
 ```
 flipper-pack-track/
 ├── application.fam        # FAP manifest (app id, entry point, metadata)
-├── package_tracker.c      # Application source (UI, state, event loop)
+├── package_tracker.c      # UI, event loop, file loading, refresh worker
+├── tracker_util.c/.h      # config parse, URL templating, JSON extraction
+├── http.c/.h              # FlipperHTTP UART client (WiFi + GET)
 └── README.md
 ```
 
-The manifest registers Pack Track as an external `Tools`-category FAP with entry point `package_tracker_app`, a 2 KB stack, and a dependency on the `gui` record.
+Registered as an external `Tools`-category FAP with entry point
+`package_tracker_app`. The live-tracking helpers in `tracker_util.c` are pure C
+(host-tested); `http.c` talks to the board over the GPIO UART at 115200.
 
 ---
 
-## Extending Pack Track
+## Live tracking (optional)
 
-The data model is deliberately decoupled from the rendering layer. To wire in real shipments, replace the static `packages[]` array with a runtime collection populated from your source of truth. Suggested integrations:
+To fetch real status instead of editing it by hand, you need three things —
+**all provided by you, nothing hosted by this app:**
 
-- **Companion-app polling.** A desktop or mobile app pushes updates over USB serial (`furi_hal_cdc`) or BLE; the FAP refreshes its in-memory list on each notification.
-- **HTTP-bridged tracking.** Pair with an ESP32/ESP8266 dev board (Wi-Fi Devboard or any UART-attached MCU) that proxies carrier APIs and streams JSON updates to the Flipper.
-- **Local persistence.** Persist the list to `/ext/apps_data/package_tracker/` via the `Storage` record so shipments survive reboots.
-- **Editable entries.** Add an "Add tracking number" submenu using `DialogEx` and the on-screen keyboard from `gui/modules/text_input.h`.
+1. **A WiFi devboard running [FlipperHTTP](https://github.com/jblanked/FlipperHTTP).**
+   Flash it onto the board from your Flipper (no computer needed). This is what
+   gives the Flipper internet access.
+2. **A tracking service account + API key.** Sign up with any tracking service
+   or aggregator (e.g. Ship24, AfterShip, TrackingMore, 17track) and get your own
+   key. Pack Track is provider-agnostic — you point it at whatever you use.
+3. **A filled-in `config.txt`** (created automatically at
+   `apps_data/package_tracker/config.txt`).
 
-The `Package` struct uses `const char*` fields to keep the demo allocation-free; a dynamic implementation should swap these for `FuriString` or owned `char*` buffers and free them on teardown.
+### `config.txt` format
 
----
+```
+WIFI_SSID = MyNetwork
+WIFI_PASS = mypassword
 
-## Compatibility
+# The request URL. {tracking} and {carrier} are replaced for each package.
+# Put your API key wherever your service wants it (query string or a header).
+URL = https://api.example.com/track?number={tracking}&carrier={carrier}
 
-Targets the upstream Flipper Zero firmware API and is portable across the major community distributions (Official, Momentum, Unleashed, RogueMaster). No hardware peripherals beyond the GUI and input subsystems are touched.
+# Optional headers (repeatable) — e.g. an API key header:
+HEADER = Authorization: Bearer YOUR_KEY
+
+# Which JSON fields to read from the response. Dot notation; a number means an
+# array index. Example for a response like {"data":[{"status":"...","location":"..."}]}:
+FIELD_STATUS   = data.0.status
+FIELD_LOCATION = data.0.location
+FIELD_UPDATED  = data.0.checkpoint_time
+```
+
+### Using it
+
+- Add packages in `packages.txt` as usual (the tracking number + carrier are what
+  get sent). Status/location/date can be left as placeholders.
+- Open the app and press **RIGHT** to refresh. The board connects, each package
+  is looked up, and the fetched status/location/date replace what's shown.
+- The header shows progress ("Refreshing 2/5…") and the result ("Updated",
+  "No board found", "WiFi failed", "No URL in config.txt"). **BACK** cancels a
+  refresh.
+- If `config.txt` has no `URL`, the app stays in manual mode.
+
+### Notes & limits
+
+- Your WiFi password and API key sit in **plaintext** on the SD card. Fine for a
+  personal device; don't share the card.
+- The JSON field reader handles nested keys and array indices, string/number
+  leaves. Very large or deeply-irregular responses may not parse — pick a service
+  with a simple response, or the fields nearest the top.
+- The board and the FlipperHTTP firmware must be attached during a refresh.
 
 ---
 
 ## License
 
-Released under the MIT License. See the project's commit history for authorship.
+Released under the MIT License.
