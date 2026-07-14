@@ -34,6 +34,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [ProtoPirate v3.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [JAYX PC Monitor v0.4 (By contactjayclatty)](https://github.com/contactjayclatty/JAYX)
 - Updated: [Weather Station v2.0.1 (By Skorpionm)-OFW](https://github.com/flipperdevices/flipperzero-good-faps/tree/dev/weather_station) [Weather Station: add Auriol HG02832/HG05124A protocol (By kjoxa)](https://github.com/Next-Flip/Momentum-Apps/pull/81)
+- Added: [Pocket Chords v0.1 (By rvonsch)](https://github.com/rvonsch/flipper-pocket-chords)
 
 <a name="release"></a>
 
@@ -680,6 +681,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [PIR HC-SR501 Alarm v1.0 (By ku6a-cj)](https://github.com/ku6a-cj/-PIR-HC-SR501-Proximity-alarm-Flipper-zero) `Req: PIR HC-SR501`
 - [Plantower PMSx003 sensor reader v1.4 (By 3cky)](https://github.com/3cky/flipperzero-airmon) `Req: Plantower PMS5003/PMS7003/PMS9003`
 - [Plugin Demo v1.0 (By csBlueChip)](https://github.com/csBlueChip/FlipperZero_plugin_howto)
+- [Pocket Chords v0.1 (By rvonsch)](https://github.com/rvonsch/flipper-pocket-chords)
 - [Pocket CVSS v0.3 (By vavkamil)](https://github.com/vavkamil/pocket-cvss)
 - [PocketLab v1.5 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
 - [POCSAG Pager v1.4 (By XMasterx & Shmuma)](https://github.com/xMasterX/flipper-pager)
