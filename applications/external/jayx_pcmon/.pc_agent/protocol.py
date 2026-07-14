@@ -8,6 +8,7 @@ MAGIC = 0x4A58
 VERSION = 3
 MSG_LIVE = 0
 MSG_SPECS_SECTION = 1
+MSG_NET = 2
 
 GAME_NAME_LEN = 20
 SPEC_TITLE_LEN = 12
@@ -22,6 +23,11 @@ assert LIVE_SIZE == 44, LIVE_SIZE
 SPECS_SECTION_FORMAT = f"<HBBBB{SPEC_TITLE_LEN}s" + f"{SPEC_LINE_LEN}s" * SPEC_LINES
 SPECS_SECTION_SIZE = struct.calcsize(SPECS_SECTION_FORMAT)
 assert SPECS_SECTION_SIZE == 126, SPECS_SECTION_SIZE
+
+# magic, ver, type, up_val, up_unit[4], down_val, down_unit[4]
+NET_FORMAT = "<HBBH4sH4s"
+NET_SIZE = struct.calcsize(NET_FORMAT)
+assert NET_SIZE == 16, NET_SIZE
 
 
 def _pad_ascii(text: str, length: int) -> bytes:
@@ -87,6 +93,25 @@ def pack_specs_section(
         _pad_ascii(lines[0], SPEC_LINE_LEN),
         _pad_ascii(lines[1], SPEC_LINE_LEN),
         _pad_ascii(lines[2], SPEC_LINE_LEN),
+    )
+
+
+def pack_net(
+    *,
+    up_val: int,
+    up_unit: bytes,
+    down_val: int,
+    down_unit: bytes,
+) -> bytes:
+    return struct.pack(
+        NET_FORMAT,
+        MAGIC,
+        VERSION,
+        MSG_NET,
+        min(int(up_val), 0xFFFF),
+        up_unit[:4].ljust(4, b"\0"),
+        min(int(down_val), 0xFFFF),
+        down_unit[:4].ljust(4, b"\0"),
     )
 
 

@@ -1,3 +1,9 @@
+## v0.4
+
+* Network page: live upload/download throughput (System → Game → Network → Specs → About)
+* USB start/stop failures now logged instead of silently discarded
+* Shared row/unit-drawing helpers across views (System, Network)
+
 ## v0.3
 
 * Specs page: section cards (SYSTEM, OS, CPU, MEMORY, GPU) with Up/Down

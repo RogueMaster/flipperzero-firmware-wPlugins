@@ -42,8 +42,8 @@ void draw_game_view(Canvas* canvas, JayxApp* app) {
         canvas_draw_str(canvas, 2, 56, ms_buf);
         canvas_draw_str_aligned(canvas, 126, 56, AlignRight, AlignBottom, "RTSS");
 
-        /* Target bar (relative to 240 FPS) */
-        float pct = (float)d->fps / 240.0f;
+        /* Target bar (relative to JAYX_FPS_TARGET) */
+        float pct = (float)d->fps / (float)JAYX_FPS_TARGET;
         if(pct > 1.0f) pct = 1.0f;
         canvas_draw_frame(canvas, 40, 50, 48, 4);
         uint8_t fill = (uint8_t)(46.0f * pct);

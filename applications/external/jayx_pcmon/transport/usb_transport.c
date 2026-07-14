@@ -18,7 +18,9 @@ static void usb_cdc_rx_callback(void* context) {
 
 void jayx_usb_start(JayxApp* app) {
     app->previous_usb_config = furi_hal_usb_get_config();
-    furi_hal_usb_set_config(&usb_cdc_single, NULL);
+    if(!furi_hal_usb_set_config(&usb_cdc_single, NULL)) {
+        FURI_LOG_E(TAG, "USB CDC config failed");
+    }
 
     static CdcCallbacks cdc_cb = {
         .tx_ep_callback = NULL,
@@ -33,7 +35,9 @@ void jayx_usb_start(JayxApp* app) {
 void jayx_usb_stop(JayxApp* app) {
     furi_hal_cdc_set_callbacks(0, NULL, NULL);
     if(app->previous_usb_config) {
-        furi_hal_usb_set_config(app->previous_usb_config, NULL);
+        if(!furi_hal_usb_set_config(app->previous_usb_config, NULL)) {
+            FURI_LOG_E(TAG, "USB CDC restore failed");
+        }
         app->previous_usb_config = NULL;
     }
 }
