@@ -66,6 +66,7 @@ struct WmbusWorker {
     FuriThread* thread;
     volatile bool running;
     WmbusMode mode;
+    bool is_external; /* set at thread start after radio probe */
 
     uint8_t chip_buf[1024]; /* generous: max frame ~290 B + 3of6 expansion */
     uint8_t data_buf[WMBUS_MAX_FRAME];
@@ -77,6 +78,10 @@ struct WmbusWorker {
 void wmbus_worker_get_stats(const WmbusWorker* w, WmbusWorkerStats* out) {
     if(!w || !out) return;
     *out = w->stats;
+}
+
+bool wmbus_worker_is_external(const WmbusWorker* w) {
+    return w ? w->is_external : false;
 }
 
 static int32_t worker_thread(void* ctx);
@@ -284,16 +289,15 @@ static int32_t worker_thread(void* ctx) {
     Slicer s;
     memset(&s, 0, sizeof(s));
 
-    /* Internal radio uses furi_hal_subghz_* directly; the plugin
-     * abstraction (subghz_devices_*) is only used for the external
-     * module, which owns its own SPI / GDO0 / power. */
-    const SubGhzDevice* dev = NULL;
-    bool is_external = false;
-
-    if(w->app->settings.module == WmbusModuleExternal_) {
-        dev = wmbus_radio_select(NULL, WmbusModuleExternal);
-        is_external = dev && wmbus_radio_is_external(dev);
-    }
+    /* wmbus_radio_select handles Auto / Internal / External:
+     *   Auto     – probes external CC1101 via SPI, uses it when present.
+     *   Internal – always internal.
+     *   External – attempts external, falls back to internal if absent.
+     * The result tells us which radio is active for the rest of the
+     * session (RSSI reads, FIFO drains, teardown). */
+    const SubGhzDevice* dev = wmbus_radio_select(NULL, w->app->settings.module);
+    bool is_external = dev && wmbus_radio_is_external(dev);
+    w->is_external = is_external;
 
     uint32_t f = w->app->settings.freq_hz;
     if(f < 868000000 || f > 869500000) f = freq_for_mode(w->mode);
@@ -306,7 +310,7 @@ static int32_t worker_thread(void* ctx) {
         subghz_devices_flush_rx(dev);
         subghz_devices_set_rx(dev);
     } else {
-        if(dev) {
+        if(dev && !is_external) {
             wmbus_radio_release(dev);
             dev = NULL;
         }

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/Endika/flipper-tutu/compare/v0.1.5...v0.1.6) (2026-07-09)
+
+
+### Bug Fixes
+
+* **ci:** build the release FAP against stable SDK channel not dev ([b2c1a09](https://github.com/Endika/flipper-tutu/commit/b2c1a09371fb0a5c32d9553c7357c886302aac4b))
+
 ## [0.1.5](https://github.com/Endika/flipper-tutu/compare/v0.1.4...v0.1.5) (2026-06-09)
 
 

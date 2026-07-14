@@ -1,3 +1,6 @@
+## 3.4
+- Added contributed feature for an improved pause timer (Thanks to jxc)
+
 ## 3.3
 - Added support for Favorites menu. 
 

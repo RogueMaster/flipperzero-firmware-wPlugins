@@ -1,11 +1,11 @@
 Use a 6.5 mm female jack, solder header pins on it, and plug it straight into the GPIO port. Simple is good here.
 ---
 Use this wiring:
-- P3 x1 gnd (sleeve)
+- P3 x1 x7 gnd (sleeve)
 - P5 x1 dah (ring)
 - P7 x1 dit (tip)
 ---
-With this layout, ground sits on P3. That is fine physically. The app should still use P3 as the default virtual ground.
+With this layout, ground x7 sits on P3. That is fine physically. The app should still use P3 as the default virtual ground.
 ---
 The jack and cable should point outward, away from the screen and buttons. This is neater, sturdier, and less annoying than loose GPIO wires.
 ---
@@ -14,15 +14,15 @@ If your paddle uses a 3.5 mm plug, use a simple 3.5 mm to 6.5 mm adapter, just t
 You can also solder a suitable 3.5mm TRS jack - the GPIO can be reassigned in settings.
 ---
 A straight key fits the same header:
-- P3 x1 gnd
-- P7 x1 ditx6SK
+- P3 x1 x7 gnd
+- P7 x1 dit x6 SK
 ---
 One adapter covers both cases:
-- Paddle x1 P3x6P5x6P7
-- Straight key x1 P3x6P7
+- Paddle x1 P3 x6 P5 x6 P7
+- Straight key x1 P3 x6 P7
 ---
-If your wiring does not match this layout, change it from Settings x1 Keying x1 GPIO. You can move ditx6SK, dah and the ground pin in there.
+If your wiring does not match this layout, change it from Settings x1 Keying x1 GPIO. You can move ditx6 SK, dah and the x7 ground pin in there.
 
 Straight mode always uses the ditx6SK pin from that menu. This layout matches the fe~male jack to the GPIO header with the least swaps.
 ---
-Regardless of layout, you always need a ground. P3 can be reassigned if that is more convenient, or you can use the Flipper's normal ground pins. If your key has no ground contact, it will not work.
+Regardless of layout, you always need a ground x7. P3 can be reassigned if that is more convenient, or you can use any Flipper ground pin. If your key has no ground con~tact, it will not work.

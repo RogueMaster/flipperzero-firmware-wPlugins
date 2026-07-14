@@ -90,7 +90,7 @@ void morse_flipper_trainer_menu_refresh(MorseFlipperApp* app) {
 
     it = app->trainer_items[MorseFlipperTrainerSettingChars];
     if(it) {
-        idx = app->trainer.custom_set_idx;
+        idx = morse_flipper_effective_trainer_custom_set_idx(app);
         variable_item_set_current_value_index(it, idx);
         variable_item_set_current_value_text(
             it, idx == 0U ? "lesson" : app->custom_sets.sets[idx - 1U].name);
@@ -262,6 +262,8 @@ void morse_flipper_scene_trainer_on_enter(void* context) {
     uint8_t groups;
     bool dirty = false;
 
+    morse_flipper_ensure_custom_sets_loaded(app);
+
     gs = morse_trainer_group_size(&app->trainer);
     groups = morse_trainer_session_groups(&app->trainer);
     if(gs > 9U) {
@@ -275,14 +277,9 @@ void morse_flipper_scene_trainer_on_enter(void* context) {
         morse_trainer_set_session_groups(&app->trainer, 30U);
         dirty = true;
     }
-    if(app->trainer.custom_set_idx > app->custom_sets.count) {
-        app->trainer.custom_set_idx = 0U;
-        morse_flipper_apply_trainer_charset_choice(app);
-        dirty = true;
-    }
     if(dirty) morse_flipper_save_config(app);
 
-    morse_flipper_scene_enter_now(app, MorseFlipperSceneTrainer);
+    morse_flipper_ensure_view(app, MorseFlipperViewSettings);
     variable_item_list_reset(app->settings_list);
     memset(app->trainer_items, 0, sizeof(app->trainer_items));
     variable_item_list_set_enter_callback(
@@ -344,6 +341,7 @@ void morse_flipper_scene_trainer_on_enter(void* context) {
     if((sel & 0xffU) > MorseFlipperTrainerSettingChars) sel = 0U;
     morse_flipper_trainer_menu_refresh(app);
     morse_flipper_settings_list_restore(app->settings_list, sel);
+    morse_flipper_scene_enter_now(app, MorseFlipperSceneTrainer);
 }
 
 void morse_flipper_scene_trainer_on_exit(void* context) {
@@ -360,7 +358,7 @@ void morse_flipper_scene_straight_cfg_on_enter(void* context) {
     VariableItem* item;
     uint32_t sel = scene_manager_get_scene_state(app->scene_manager, MorseFlipperSceneStraightCfg);
 
-    morse_flipper_scene_enter_now(app, MorseFlipperSceneStraightCfg);
+    morse_flipper_ensure_view(app, MorseFlipperViewSettings);
     variable_item_list_reset(app->settings_list);
     memset(app->straight_cfg_items, 0, sizeof(app->straight_cfg_items));
     variable_item_list_set_enter_callback(
@@ -396,6 +394,7 @@ void morse_flipper_scene_straight_cfg_on_enter(void* context) {
     morse_flipper_straight_menu_refresh(app);
     if((sel & 0xffU) > 2U) sel = 0U;
     morse_flipper_settings_list_restore(app->settings_list, sel);
+    morse_flipper_scene_enter_now(app, MorseFlipperSceneStraightCfg);
 }
 
 void morse_flipper_scene_straight_cfg_on_exit(void* context) {
@@ -415,7 +414,7 @@ void morse_flipper_scene_tx_groups_cfg_on_enter(void* context) {
     if(app->txg_difficulty >= MorseFlipperTxgDifficultyCount)
         app->txg_difficulty = MorseFlipperTxgDifficultyCompetition;
 
-    morse_flipper_scene_enter_now(app, MorseFlipperSceneTxGroupsCfg);
+    morse_flipper_ensure_view(app, MorseFlipperViewSettings);
     variable_item_list_reset(app->settings_list);
     variable_item_list_set_enter_callback(
         app->settings_list, morse_flipper_settings_noop_enter, app);
@@ -432,6 +431,7 @@ void morse_flipper_scene_tx_groups_cfg_on_enter(void* context) {
 
     if(sel > 0U) sel = 0U;
     variable_item_list_set_selected_item(app->settings_list, sel);
+    morse_flipper_scene_enter_now(app, MorseFlipperSceneTxGroupsCfg);
 }
 
 bool morse_flipper_scene_tx_groups_cfg_on_event(void* context, SceneManagerEvent event) {

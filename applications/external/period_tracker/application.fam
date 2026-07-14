@@ -1,0 +1,13 @@
+App(
+    appid="period_tracker",
+    name="Period Tracker",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="period_tracker_app",
+    stack_size=8 * 1024,
+    fap_icon="period_tracker.png",
+    fap_category="Tools",
+    fap_author="Roman Gorshunov",
+    fap_weburl="https://github.com/gorshunovr/period_tracker",
+    fap_version="1.0",
+    fap_description="Track menstrual cycles for multiple people with predictions and alerts",
+)

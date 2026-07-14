@@ -284,6 +284,7 @@ static constexpr MobSpec MOB_SPECS[MOB_SPECIES] = {
      (TEMPER_HOSTILE << 1) | 1,
      0x20,
      (13 << 4) | 4},
+    {TEX_BEEFRONT, TEX_BEESIDE, TEX_BEETOP, 0, (TEMPER_NEUTRAL << 1) | 8, 0x32, (4 << 4) | 6},
 };
 const MobSpec& mobSpec(uint8_t species) {
     return MOB_SPECS[species % MOB_SPECIES];
@@ -308,6 +309,11 @@ static constexpr MobBox CREEPER_BOXES[] = {
     {-3, 5, -3, 6, 12, 6, 0},
     {-4, 17, -4, 8, 9, 8, 1},
 };
+static constexpr MobBox BEE_BOXES[] = {
+    {-3, 1, -4, 6, 5, 8, 1},
+    {-5, 6, -2, 2, 1, 4, 0},
+    {3, 6, -2, 2, 1, 4, 0},
+};
 static constexpr struct {
     const MobBox* b;
     uint8_t n;
@@ -315,6 +321,7 @@ static constexpr struct {
     {SHEEP_BOXES, 4},
     {WOLF_BOXES, 5},
     {CREEPER_BOXES, 4},
+    {BEE_BOXES, 3},
 };
 const MobBox* mobBoxes(uint8_t species, int& count) {
     const auto& p = MOB_PLANS[species % MOB_SPECIES];

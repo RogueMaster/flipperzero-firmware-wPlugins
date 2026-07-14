@@ -2,7 +2,7 @@
 
 The Koch trainer normally uses the built-in lesson order. This matches the LCWO.net order, so you can pick up on LCWO where you left off on the Flipper. Custom character sets let you replace that pool with your own rows: numbers, awkward letters, punctuation, or any small group you want to drill. In practice, each custom row behaves like a custom lesson.
 
-Custom sets live on the SD card: `/ext/ham/flipper-cw-custom-characters.txt`
+Custom sets live in the app data folder on the SD card: `/ext/apps_data/morse_flipper/flipper-cw-custom-characters.txt`
 
 The app creates the file if it is missing. The file is read when the app starts.
 
@@ -31,7 +31,7 @@ Limits are small: the first eight valid rows are loaded, names are short, and ea
 Open `Settings → Listening` and change `Chars`.
 
 - `lesson`: use the normal Koch lesson character pool.
-- any custom name: use that row from `/ext/ham/flipper-cw-custom-characters.txt`.
+- any custom name: use that row from `/ext/apps_data/morse_flipper/flipper-cw-custom-characters.txt`.
 
 When `Chars` is a custom set, the `Lesson` row is not the character source; changing it will not change the prompt pool. It is kept for when you switch `Chars` back to `lesson`. The trainer title will show the custom set name instead.
 

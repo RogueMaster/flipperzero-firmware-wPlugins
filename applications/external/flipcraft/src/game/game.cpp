@@ -57,11 +57,20 @@ static constexpr uint8_t kBlockDrop[32] = {
 static constexpr uint32_t BLOCKS_SEETHROUGH_LIGHT = (1u << BLOCK_AIR) | (1u << BLOCK_LEAVES) |
                                                     (1u << BLOCK_GLASS) | (1u << BLOCK_SAPLING);
 
+// xorshift32 with a multiplicative scrambler: the raw low bits of xorshift
+// are linearly correlated between nearby outputs (visible as streaks in
+// anything sampled with &N), the top byte of state*M is not.
 uint8_t Game::rng() {
     rngState ^= rngState << 13;
     rngState ^= rngState >> 17;
     rngState ^= rngState << 5;
-    return (uint8_t)(rngState & 0xFF);
+    return (uint8_t)((rngState * UINT32_C(0x2545F491)) >> 24);
+}
+uint8_t Game::spawnRng() {
+    spawnRngState ^= spawnRngState << 13;
+    spawnRngState ^= spawnRngState >> 17;
+    spawnRngState ^= spawnRngState << 5;
+    return (uint8_t)((spawnRngState * UINT32_C(0x2545F491)) >> 24);
 }
 int Game::smul446(int a, int b) {
     int r = (s8(a) * s8(b)) >> 6;
@@ -79,6 +88,9 @@ bool Game::setup(const GameConfig& config) {
     playerZ = world.hdrPZ;
     pl.rot = world.hdrRot;
     rngState = world.hdrRng;
+    spawnRngState = world.hdrRng ^ UINT32_C(0x9E3779B9); // xorshift state must stay nonzero
+    if(!spawnRngState) spawnRngState = UINT32_C(0x6C078965);
+    lastSpawn = 0xFF;
     pl.onGround = true;
     velYsub = 0;
     posYsub = 0;
@@ -97,7 +109,7 @@ bool Game::setup(const GameConfig& config) {
     gameOverPending = false;
     loadedTile = -1;
     screen.fb = &fb;
-    renderer.zcolour = fb.px; // scene rasterises straight into the shared framebuffer
+    renderer.zbuf = fb.px; // one shared buffer: depth in bits 1-7, colour in bit 0
 
     world.updateWindow(playerX / BLOCKSIZE, playerZ / BLOCKSIZE, true);
     auto surfaceYAt = [&](int bx, int bz) {
@@ -509,13 +521,32 @@ void Game::handleBreakAndPlace(const Input& in) {
         }
         if(id == BLOCK_FURNACE || id == BLOCK_CHEST) {
             int bi = findBlockEntity(bx, by, bz);
-            if(bi >= 0) {
-                openTileStorage(bi);
-                loadedTile = bi;
-                screenId = tiles[bi].isChest ? SCR_CHEST : SCR_FURNACE;
-                cursor = 0;
-                selSlot = -1;
+            if(bi < 0) { // block without a directory entry (storage table was full): adopt it
+                BlockEnt b;
+                b.active = true;
+                b.isChest = (id == BLOCK_CHEST);
+                b.bx = bx;
+                b.by = by;
+                b.bz = bz;
+                b.dir = (hit.pz < bz) ? 2 :
+                        (hit.pz > bz) ? 3 :
+                        (hit.px < bx) ? 0 :
+                        (hit.px > bx) ? 1 :
+                                        (pl.rot & 0x0F);
+                b.storage = allocStorage();
+                if(b.storage >= 0) {
+                    uint8_t sb[STORAGE_SLOT_SIZE];
+                    packStorage(b, sb);
+                    world.writeStorageSlot(b.storage, sb);
+                }
+                tiles.push_back(b);
+                bi = (int)tiles.size() - 1;
             }
+            openTileStorage(bi);
+            loadedTile = bi;
+            screenId = tiles[bi].isChest ? SCR_CHEST : SCR_FURNACE;
+            cursor = 0;
+            selSlot = -1;
             return;
         }
         ItemCell& cell = pl.inventory[pl.invSlot];
@@ -937,19 +968,19 @@ void Game::respawn() {
 }
 
 void Game::drawHotbar() {
-    screen.x1 = 19;
+    screen.x1 = 35;
     screen.y1 = 51;
-    screen.x2 = 76;
+    screen.x2 = 92;
     screen.y2 = 63;
     screen.clearRect();
-    screen.x1 = 20;
+    screen.x1 = 36;
     screen.y1 = 52;
-    screen.x2 = 75;
+    screen.x2 = 91;
     screen.y2 = 63;
     screen.drawRect();
     int sel = pl.invSlot;
     for(int i = 0; i < 5; i++) {
-        int x = 21 + i * 11, y = 53;
+        int x = 37 + i * 11, y = 53;
         screen.x1 = x;
         screen.y1 = y;
         screen.x2 = x + 9;
@@ -967,21 +998,13 @@ void Game::drawHotbar() {
             screen.y2 = y + 8;
             screen.clearRect();
         }
-        ItemCell it = pl.inventory[i];
-        if(it.type) {
-            screen.itemIcon(x + 2, y + 2, it.type);
-            if(it.type < ITEM_NONSTACKABLE) {
-                int n = it.count;
-                if(n > 9) screen.number(x + 2, y + 5, n / 10);
-                screen.number(x + 6, y + 5, n % 10);
-            }
-        }
+        screen.slotItem(x, y, 10, pl.inventory[i], false);
     }
     if(!hudItemTicks) // tooltip in device.cpp takes the hearts' place
         for(int i = 0; i < MAXHEALTH; i++)
-            screen.heart(19 + i * 6, 43, i < (int)pl.health);
+            screen.heart(35 + i * 6, 43, i < (int)pl.health);
 }
-void Game::finishRender() {
+void Game::renderWorld() {
     renderer.clearBuffer();
     renderer.setCamRot(pl.rot);
     float bobV = sinf(bobTimer * 2.0f) * bobAmt;
@@ -1014,10 +1037,14 @@ void Game::finishRender() {
                 (float)m.y,
                 (float)(m.z + 7),
                 m.species,
-                (uint8_t)((MOB_YAW_FACE >> ((m.yaw & 15) * 2)) & 3),
+                (uint8_t)(m.yaw & 15),
                 (uint8_t)((m.hurt & 1) << 1),
                 (uint8_t)sc16);
         }
+}
+
+void Game::finishRender() {
+    renderWorld();
     RayHit hit = rayCast();
     if(hit.mob < 0 && hit.id != BLOCK_AIR && hit.id != -1 && hit.length >= 0)
         renderer.renderOverlay(world, hit.bx, hit.by, hit.bz, 0);
@@ -1050,41 +1077,48 @@ void Game::worldFrame(const Input& in) {
         (playerX + PLAYERHALFWIDTH) / BLOCKSIZE, (playerZ + PLAYERHALFWIDTH) / BLOCKSIZE);
 }
 
-std::vector<Game::Slot> Game::buildSlots(ScreenId s) {
-    std::vector<Slot> v;
-    auto add = [&](ItemCell* c, int gx, int gy, int sx, int sy, bool grid, bool out) {
-        v.push_back({c, gx, gy, sx, sy, grid, out});
+// Reference layout (.sources/widen_1840x0.jpg): light panel over the world,
+// craft grid -> arrow -> output band, then the 5x3 inventory as dark cells;
+// hotbar is the bottom row.
+Game::SlotList Game::buildSlots(ScreenId s) {
+    SlotList v;
+    auto add = [&](ItemCell* c, int sx, int sy, uint8_t w, bool mark, bool out) {
+        if(v.n < SlotList::MAX) v.s[v.n++] = {c, sx, sy, w, mark, out};
     };
 
     for(int r = 0; r < 3; r++)
         for(int c = 0; c < 5; c++)
-            add(&pl.inventory[r * 5 + c], c, r, 21 + c * 11, 53 - r * 11, false, false);
+            add(&pl.inventory[r * 5 + c], 38 + c * 10, 53 - r * 10, 9, false, false);
+    // the craft block is the same 31x31 area on both screens, only the grid differs
     if(s == SCR_INVENTORY) {
         int map[4] = {0, 1, 3, 4};
-        for(int i = 0; i < 4; i++) {
-            int gx = i % 2, gy = i / 2;
-            add(&pl.craftGrid[map[i]], 5 + gx, 4 + gy, 26 + gx * 9, 9 + gy * 9, true, false);
-        }
-        add(&pl.craftOutput, 6, 5, 60, 14, false, true);
+        for(int i = 0; i < 4; i++)
+            add(&pl.craftGrid[map[i]], 44 + (i % 2) * 10, 7 + (i / 2) * 10, 9, true, false);
+        add(&pl.craftOutput, 76, 12, 9, false, true);
     } else if(s == SCR_CRAFTING) {
-        for(int i = 0; i < 9; i++) {
-            int gx = i % 3, gy = i / 3;
-            add(&pl.craftGrid[i], 5 + gx, 4 + gy, 21 + gx * 9, 1 + gy * 9, true, false);
-        }
-        add(&pl.craftOutput, 8, 5, 65, 10, false, true);
+        for(int i = 0; i < 9; i++)
+            add(&pl.craftGrid[i], 39 + (i % 3) * 10, 2 + (i / 3) * 10, 9, true, false);
+        add(&pl.craftOutput, 81, 12, 9, false, true);
     } else if(s == SCR_FURNACE && loadedTile >= 0) {
         BlockEnt& f = tiles[loadedTile];
-        add(&f.slot[0], 6, 4, 30, 1, false, false);
-        add(&f.slot[1], 6, 5, 30, 19, false, false);
-        add(&f.slot[2], 8, 4, 56, 10, false, true);
+        add(&f.slot[0], 49, 2, 9, false, false);
+        add(&f.slot[1], 49, 22, 9, false, false);
+        add(&f.slot[2], 70, 12, 9, false, true);
     } else if(s == SCR_CHEST && loadedTile >= 0) {
         BlockEnt& ch = tiles[loadedTile];
-        for(int i = 0; i < 10; i++) {
-            int gx = i % 5, gy = i / 5;
-            add(&ch.slot[i], gx, 4 + gy, 21 + gx * 11, 18 - gy * 11, false, false);
-        }
+        for(int i = 0; i < 10; i++)
+            add(&ch.slot[i], 38 + (i % 5) * 10, 8 + (i / 5) * 10, 9, false, false);
     }
     return v;
+}
+
+ItemCell Game::guiCursorItem(int* sx, int* sy) {
+    if(screenId == SCR_PLAY || screenId == SCR_GAMEOVER) return {};
+    auto slots = buildSlots(screenId);
+    if(cursor < 0 || cursor >= (int)slots.size()) return {};
+    if(sx) *sx = slots[cursor].sx;
+    if(sy) *sy = slots[cursor].sy;
+    return *slots[cursor].cell;
 }
 void Game::tryCraft() {
     uint16_t out = craftTable(pl.craftGrid);
@@ -1163,8 +1197,22 @@ void Game::guiFrame(const Input& in) {
             }
         } else if(selSlot < 0) {
             if(cur.cell->type) selSlot = cursor;
+        } else if(selSlot == cursor) {
+            selSlot = -1;
         } else {
-            std::swap(*slots[selSlot].cell, *cur.cell);
+            ItemCell& sv = *slots[selSlot].cell;
+            ItemCell& dv = *cur.cell;
+            if(sv.type && sv.type == dv.type && sv.type < ITEM_NONSTACKABLE) {
+                int tot = (int)dv.count + (int)sv.count;
+                if(tot <= MAX_STACK) {
+                    dv.count = (uint8_t)tot;
+                    sv = {};
+                } else {
+                    dv.count = MAX_STACK;
+                    sv.count = (uint8_t)(tot - MAX_STACK);
+                }
+            } else
+                std::swap(sv, dv);
             selSlot = -1;
         }
 
@@ -1180,39 +1228,44 @@ void Game::drawGui() {
         screen.clearScreen();
         return;
     } // text drawn in device.cpp
-    screen.clearScreen();
+    renderWorld(); // the world stays visible at the sides
+    screen.fillRect(34, 0, 93, SCREEN_HEIGHT - 1, 0);
+    screen.fillRect(33, 0, 33, SCREEN_HEIGHT - 1, 1);
+    screen.fillRect(94, 0, 94, SCREEN_HEIGHT - 1, 1);
+
+    // the block+arrow+output group is centered as a whole in the free area
+    // above the inventory grid; reference gaps: 1px before arrow, 2px after
+    if(screenId == SCR_INVENTORY) {
+        screen.fillRect(43, 6, 63, 26, 1); // 2x2 craft block, cells drawn on top
+        screen.arrow(65, 12);
+    } else if(screenId == SCR_CRAFTING) {
+        screen.fillRect(38, 1, 68, 31, 1); // 3x3 craft block
+        screen.arrow(70, 12);
+    } else if(screenId == SCR_FURNACE) {
+        screen.arrow(59, 12);
+        screen.flame(49, 13); // aligned with the input/fuel column, as in the reference
+        if(loadedTile >= 0) {
+            BlockEnt& f = tiles[loadedTile];
+            int w = f.timer * 9 / (SMELTTIME / 16);
+            if(w > 0) screen.fillRect(59, 21, 58 + w, 22, 1); // smelt progress
+        }
+    }
+
     auto slots = buildSlots(screenId);
     for(size_t i = 0; i < slots.size(); i++) {
         Slot& s = slots[i];
-        ItemCell it = *s.cell;
-        int box = s.grid ? 8 : 10;
-        screen.x1 = s.sx;
-        screen.y1 = s.sy;
-        screen.x2 = s.sx + box - 1;
-        screen.y2 = s.sy + box - 1;
-        screen.drawRect();
-        screen.x1 = s.sx + 1;
-        screen.y1 = s.sy + 1;
-        screen.x2 = s.sx + box - 2;
-        screen.y2 = s.sy + box - 2;
-        screen.clearRect();
-        if(it.type) {
-            screen.itemIcon(s.sx + 2, s.sy + 2, it.type);
-            if(it.type < ITEM_NONSTACKABLE) {
-                int n = it.count;
-                if(n > 9) screen.number(s.sx + 2, s.sy + 5, n / 10);
-                screen.number(s.sx + 6, s.sy + 5, n % 10);
-            }
+        int w = s.w;
+        screen.fillRect(s.sx, s.sy, s.sx + w - 1, s.sy + w - 1, 1);
+        if(s.mark && s.cell->empty()) screen.ticks(s.sx, s.sy, w);
+        screen.slotItem(s.sx, s.sy, w, *s.cell, true);
+        if((int)i == selSlot) { // grabbed: inverted 1px ring inside the cell
+            screen.invertRect(s.sx, s.sy, s.sx + w - 1, s.sy);
+            screen.invertRect(s.sx, s.sy + w - 1, s.sx + w - 1, s.sy + w - 1);
+            screen.invertRect(s.sx, s.sy + 1, s.sx, s.sy + w - 2);
+            screen.invertRect(s.sx + w - 1, s.sy + 1, s.sx + w - 1, s.sy + w - 2);
         }
-        if((int)i == cursor) screen.invertRect(s.sx + 1, s.sy + 1, s.sx + box - 2, s.sy + box - 2);
-    }
-    if(selSlot >= 0 && selSlot < (int)slots.size()) {
-        Slot& s = slots[selSlot];
-        screen.x1 = s.sx + 3;
-        screen.y1 = s.sy + 3;
-        screen.x2 = s.sx + 4;
-        screen.y2 = s.sy + 4;
-        screen.drawRect();
+        if((int)i == cursor) // rim stays dark so an empty cell can't vanish
+            screen.invertRect(s.sx + 1, s.sy + 1, s.sx + w - 2, s.sy + w - 2);
     }
 }
 

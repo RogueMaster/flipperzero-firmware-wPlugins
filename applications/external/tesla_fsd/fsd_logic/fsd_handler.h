@@ -62,15 +62,28 @@ uint8_t fsd_read_mux_id(const CANFRAME* frame);
 bool fsd_is_selected_in_ui(const CANFRAME* frame, bool force_fsd);
 TeslaHWVersion fsd_detect_hw_version(const CANFRAME* frame);
 
-// AP-First stability debounce: AP must hold das_ap_state >= 2 for at least this
-// long before injection is allowed, to avoid injecting on the activation edge
-// (the steer-jerk window). Mirrors ev-open-can-tools v3.0.2-beta.2 (1 s).
+// DAS_autopilotState engaged threshold. Standard DAS_autopilotState enum:
+// 2=AVAILABLE (AP offered / NOT engaged), 3=ACTIVE_NOMINAL (first genuinely
+// engaged state), 6=active, 8/9=aborting/aborted. So >= 3 means AP is actually
+// engaged; 2 merely means it is available. Confirmed vs the #108 black-box
+// capture (AP OFF bounced 1<->2 while a real engage went 2->3->6 and held at 6).
+#define DAS_APSTATE_ENGAGED 3u
+
+// AP-First stability debounce: AP must hold das_ap_state >= DAS_APSTATE_ENGAGED
+// for at least this long before injection is allowed, to avoid injecting on the
+// activation edge (the steer-jerk window). Mirrors ev-open-can-tools v3.0.2-beta.2 (1 s).
 #define AP_FIRST_STABLE_MS 1000u
 
+// Minimal Inject (#108): when ap_first_minimal is on, only this many AP-enable
+// frames are modified at the start of each engagement, then injection stops until
+// the car disengages. This moves injection to engage onset and off the later abort
+// edge (the steer-jerk window). A few frames reliably trigger FSD; tunable.
+#define AP_MINIMAL_INJECT_FRAMES 5u
+
 /** AP-First gate. Returns true if injection is permitted right now: either
- *  AP-First is off, or AP is engaged (das_ap_state >= 2) and has been stable for
- *  >= AP_FIRST_STABLE_MS. now_ms is a millisecond clock; ap_unstable_tick_ms is
- *  stamped by the caller whenever das_ap_state < 2. */
+ *  AP-First is off, or AP is engaged (das_ap_state >= DAS_APSTATE_ENGAGED) and has
+ *  been stable for >= AP_FIRST_STABLE_MS. now_ms is a millisecond clock;
+ *  ap_unstable_tick_ms is stamped by the caller whenever das_ap_state < ENGAGED. */
 bool fsd_ap_first_allows(const FSDState* state, uint32_t now_ms);
 
 // Soft Engage: |steering angle| must be within this of centre before the
@@ -80,7 +93,7 @@ bool fsd_ap_first_allows(const FSDState* state, uint32_t now_ms);
 /** Soft-Engage gate. Returns true if injection may proceed: soft_engage off, or
  *  already latched this engagement, or the wheel is within SOFT_ENGAGE_ANGLE_DEG
  *  of centre (which latches it on). Mutates soft_engage_latched. Reset the latch
- *  (soft_engage_latched=false) when AP drops (das_ap_state < 2). */
+ *  (soft_engage_latched=false) when AP drops (das_ap_state < DAS_APSTATE_ENGAGED). */
 bool fsd_soft_engage_allows(FSDState* state);
 
 // Abort Guard (#108): DAS_autopilotState values that mean the car is aborting an
@@ -90,7 +103,7 @@ bool fsd_soft_engage_allows(FSDState* state);
 
 /** Abort-Guard latch maintenance. Call once per RX frame (after das_ap_state is
  *  updated). When abort_guard is on: sets abort_guard_latched on an abort state
- *  (8/9), clears it on a clean disengage (das_ap_state < 2). No-op when off. */
+ *  (8/9), clears it on a clean disengage (das_ap_state < DAS_APSTATE_ENGAGED). No-op when off. */
 void fsd_abort_guard_update(FSDState* state);
 
 /** Abort-Guard gate. Returns false (suppress injection) only when abort_guard is

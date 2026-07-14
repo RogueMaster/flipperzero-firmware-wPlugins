@@ -23,9 +23,11 @@ typedef struct {
     char output[96];
     size_t output_len;
     bool timing_reset;
+    bool fixed_timing;
 } MorseFlipperCwDecoder;
 
 void morse_flipper_cw_decoder_init(MorseFlipperCwDecoder* decoder, uint16_t starting_dit_ms);
+void morse_flipper_cw_decoder_init_fixed(MorseFlipperCwDecoder* decoder, uint16_t starting_dit_ms);
 void morse_flipper_cw_decoder_reset(MorseFlipperCwDecoder* decoder);
 void morse_flipper_cw_decoder_feed_mark(MorseFlipperCwDecoder* decoder, uint16_t ms);
 void morse_flipper_cw_decoder_feed_space(MorseFlipperCwDecoder* decoder, uint16_t ms);

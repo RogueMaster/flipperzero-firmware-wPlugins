@@ -8,25 +8,48 @@ static constexpr int8_t kDirX[16] =
     {0, -24, -45, -59, -64, -59, -45, -24, 0, 24, 45, 59, 64, 59, 45, 24};
 static constexpr int8_t kDirZ[16] =
     {64, 59, 45, 24, 0, -24, -45, -59, -64, -59, -45, -24, 0, 24, 45, 59};
-// yaw sector along (dx,dz), index (dx>0)<<2 | (dz>0)<<1 | (|dx|>|dz|)
-static constexpr uint8_t kSeekYaw[8] = {7, 5, 1, 3, 9, 11, 15, 13};
 // indexed by temperament
 static constexpr uint8_t kHurtMode[3] = {MOB_FLEE, MOB_CHASE, MOB_CHASE};
 static constexpr uint8_t kHurtTime[3] = {30, 90, 90};
 static constexpr uint8_t kAggro[3] = {0, 0, 96};
-static constexpr uint8_t kMobDrop[3] = {
-    ENTITY_APPLE /* мясо */,
-    ENTITY_APPLE /* мясо */,
-    ENTITY_GUNPOWDER};
-// 16 nibbles of species id: 8 sheep, 4 wolves, 4 creepers
-static constexpr uint64_t SPAWN_ROLL = UINT64_C(0x2222111100000000);
+static constexpr uint8_t kMobDrop[MOB_SPECIES] =
+    {ENTITY_APPLE /* мясо */, ENTITY_APPLE /* мясо */, ENTITY_GUNPOWDER, ENTITY_SAPLING};
+// 16 nibbles of species id: 9 sheep, 2 wolves, 1 creeper, 4 bees
+static constexpr uint64_t SPAWN_ROLL = UINT64_C(0x3333211000000000);
 
 static inline int mobHeight(const MobSpec& s) {
     return (s.geom >> 4) << 1;
 }
 
+// 16-step heading whose forward (-sin,cos) best matches (dx,dz); sector
+// bounds 1/5 and 2/3 approximate tan 11.25/33.75 within 0.1 deg
+static uint8_t yawTowards(int dx, int dz) {
+    int ax = dx < 0 ? -dx : dx, az = dz < 0 ? -dz : dz;
+    int s;
+    if(5 * ax <= az)
+        s = 0;
+    else if(3 * ax <= 2 * az)
+        s = 1;
+    else if(3 * az > 2 * ax)
+        s = 2;
+    else if(5 * az > ax)
+        s = 3;
+    else
+        s = 4;
+    if(dx <= 0) return (uint8_t)(dz >= 0 ? s : 8 - s);
+    return (uint8_t)(dz < 0 ? 8 + s : (16 - s) & 15);
+}
+
+// rotate at most 2 steps (45 deg) per tick towards the wanted heading
+static uint8_t turnTo(uint8_t yaw, uint8_t want) {
+    int d = (want - yaw) & 15;
+    if(d < 8) return (uint8_t)((yaw + (d > 2 ? 2 : d)) & 15);
+    d = 16 - d;
+    return (uint8_t)((yaw - (d > 2 ? 2 : d)) & 15);
+}
+
 void Game::trySpawnMob() {
-    if(rng() & 0x1F) return;
+    if(spawnRng() & 0x1F) return;
     int slot = -1;
     for(int i = 0; i < MAX_MOBS; i++)
         if(!mobs[i].active) {
@@ -35,7 +58,7 @@ void Game::trySpawnMob() {
         }
     if(slot < 0) return;
 
-    uint8_t p = rng(), q = rng();
+    uint8_t p = spawnRng(), q = spawnRng();
     int bx = (playerX + PLAYERHALFWIDTH) / BLOCKSIZE +
              (3 + (int)(((p & 31) * 6) >> 5)) * (1 - (int)((p >> 5) & 2));
     int bz = (playerZ + PLAYERHALFWIDTH) / BLOCKSIZE +
@@ -48,7 +71,20 @@ void Game::trySpawnMob() {
         by--;
     if(!blockIsSolid(world.getBlock(bx, by, bz))) return;
 
-    uint8_t sp = (uint8_t)((SPAWN_ROLL >> ((rng() & 15) << 2)) & 0xF);
+    // density cap: reject the spot if its chunk already holds MOB_CHUNK_CAP
+    int cx = bx >> CHUNK_SHIFT, cz = bz >> CHUNK_SHIFT, packed = 0;
+    for(int i = 0; i < MAX_MOBS; i++) {
+        const Mob& o = mobs[i];
+        if(o.active && (o.x + 7) >> (4 + CHUNK_SHIFT) == cx &&
+           (o.z + 7) >> (4 + CHUNK_SHIFT) == cz)
+            packed++;
+    }
+    if(packed >= MOB_CHUNK_CAP) return;
+
+    uint8_t sp = (uint8_t)((SPAWN_ROLL >> ((spawnRng() & 15) << 2)) & 0xF);
+    // anti-streak: a repeat of the previous species gets one reroll, halving
+    // same-species runs while barely denting the SPAWN_ROLL weights
+    if(sp == lastSpawn) sp = (uint8_t)((SPAWN_ROLL >> ((spawnRng() & 15) << 2)) & 0xF);
     const MobSpec& s = mobSpec(sp);
     int x = bx * BLOCKSIZE + 1, y = (by + 1) * BLOCKSIZE, z = bz * BLOCKSIZE + 1;
     if(boxCollides(x, y, z, MOBWIDTH, mobHeight(s))) return;
@@ -60,9 +96,12 @@ void Game::trySpawnMob() {
     m.y = y;
     m.z = z;
     m.hp = s.hpDmg >> 4;
-    m.yaw = rng() & 15;
+    m.yaw = spawnRng() & 15;
     m.mode = MOB_WANDER;
-    m.timer = 20 + (rng() & 31);
+    m.timer = 20 + (spawnRng() & 31);
+    m.sated = s.prey && !(spawnRng() & 3); // 25%: spawns full
+    if(s.info & 8) m.alt = spawnRng() & 63; // flyer: hover 0..4 blocks above ground
+    lastSpawn = sp;
     mobs[slot] = m;
 }
 
@@ -73,6 +112,7 @@ void Game::hurtMobFrom(int index, int dmg, int srcX, int srcZ, uint8_t attacker)
         createEntity((m.x + 7) >> 4, (m.y + 8) >> 4, (m.z + 7) >> 4, kMobDrop[m.species]);
         score++;
         m.active = false;
+        if(attacker < MAX_MOBS && m.species == MOB_SHEEP) mobs[attacker].sated = 1; // ate its fill
         return;
     }
     m.hp = (uint8_t)(m.hp - dmg);
@@ -83,14 +123,18 @@ void Game::hurtMobFrom(int index, int dmg, int srcX, int srcZ, uint8_t attacker)
     m.timer = kHurtTime[temp];
     m.target = attacker;
     int dx = srcX - (m.x + 7), dz = srcZ - (m.z + 7);
-    int key = ((dx > 0) << 2) | ((dz > 0) << 1) | (std::abs(dx) > std::abs(dz));
-    m.yaw = kSeekYaw[key] ^ ((m.mode & 1) << 3);
+    uint8_t to = yawTowards(dx, dz);
+    m.yaw = to ^ ((m.mode & 1) << 3);
+    m.gx = (int16_t)srcX;
+    m.gz = (int16_t)srcZ;
+    m.seek = MOB_RETARGET_TICKS;
 
-    int away = kSeekYaw[key] ^ 8;
-    int nx =
-        std::clamp(m.x + ((kDirX[away] * 10) >> 6), 0, world.worldSX() * BLOCKSIZE - MOBWIDTH - 1);
-    int nz =
-        std::clamp(m.z + ((kDirZ[away] * 10) >> 6), 0, world.worldSZ() * BLOCKSIZE - MOBWIDTH - 1);
+    int away = to ^ 8;
+    // +32: round the shove to nearest so both signs kick equally hard
+    int nx = std::clamp(
+        m.x + ((kDirX[away] * 10 + 32) >> 6), 0, world.worldSX() * BLOCKSIZE - MOBWIDTH - 1);
+    int nz = std::clamp(
+        m.z + ((kDirZ[away] * 10 + 32) >> 6), 0, world.worldSZ() * BLOCKSIZE - MOBWIDTH - 1);
     if(!boxCollides(nx, m.y, nz, MOBWIDTH, mobHeight(s))) {
         m.x = nx;
         m.z = nz;
@@ -181,6 +225,7 @@ void Game::updateAllMobs() {
 
         if(m.hurt) m.hurt--;
         if(m.cool) m.cool--;
+        if(m.seek) m.seek--;
 
         if(m.mode < MOB_CHASE) {
             int pdx = std::abs(pxc - (m.x + 7)), pdz = std::abs(pzc - (m.z + 7));
@@ -192,6 +237,8 @@ void Game::updateAllMobs() {
                 for(int oi = 0; oi < MAX_MOBS; oi++) {
                     const Mob& o = mobs[oi];
                     if(!o.active || !((s.prey >> o.species) & 1)) continue;
+                    if(m.sated && !(mobSpec(o.species).info & 1))
+                        continue; // full: food ignored, war stays
                     if((std::abs(o.x - m.x) | std::abs(o.z - m.z)) < 96 &&
                        std::abs(o.y - m.y) < 48) {
                         m.mode = MOB_CHASE;
@@ -240,22 +287,28 @@ void Game::updateAllMobs() {
             m.yaw = (r >> 1) & 15;
             m.timer = 20 + (r >> 4);
             m.target = 0xFF;
+            if(s.info & 8) m.alt = rng() & 63;
         }
 
-        // wander at half speed, chase/flee at full
-        int v = m.mode ? (int)(s.geom & 0x0F) << (m.mode >> 1) >> 1 : 0;
-        int mx, mz;
+        // wander at half speed, chase/flee at full: v carries one extra
+        // fractional bit, consumed by the walk accumulator below
+        int v = m.mode ? (int)(s.geom & 0x0F) << (m.mode >> 1) : 0;
+        bool walk = m.mode != MOB_IDLE;
         if(m.mode >= MOB_CHASE) {
-            int key = ((dx > 0) << 2) | ((dz > 0) << 1) | (adx > adz);
-            m.yaw = kSeekYaw[key] ^ ((m.mode & 1) << 3);
-            int L = adx > adz ? adx : adz;
-            if(!L) L = 1;
-            int sgn = 1 - ((m.mode & 1) << 1);
-            mx = v * dx * sgn / L;
-            mz = v * dz * sgn / L;
-        } else {
-            mx = (v * kDirX[m.yaw]) >> 6;
-            mz = (v * kDirZ[m.yaw]) >> 6;
+            // lazy re-aim: the goal moves only when the target left the dead
+            // zone around it and the reaction delay ran out
+            if(!m.seek && (std::abs(tx - m.gx) | std::abs(tz - m.gz)) > MOB_DEADZONE) {
+                m.gx = (int16_t)tx;
+                m.gz = (int16_t)tz;
+                m.seek = MOB_RETARGET_TICKS;
+            }
+            int wdx = m.gx - (m.x + 7), wdz = m.gz - (m.z + 7);
+            int awx = std::abs(wdx), awz = std::abs(wdz);
+            int L = awx > awz ? awx : awz;
+            if(m.mode == MOB_CHASE && L <= 4) walk = false; // at the stale goal: wait
+            // walk along the facing: no strafing, turns become arcs
+            else
+                m.yaw = turnTo(m.yaw, (uint8_t)(yawTowards(wdx, wdz) ^ ((m.mode & 1) << 3)));
         }
 
         if(s.info & 1) {
@@ -269,11 +322,23 @@ void Game::updateAllMobs() {
                     m.cool = 0;
                     m.hurt = 0;
                 }
-                mx = 0;
-                mz = 0;
+                walk = false;
             } else if(m.mode == MOB_CHASE && (adx | adz) < 30 && std::abs(ty - m.y) < 32) {
                 m.cool = MOB_FUSE_TICKS;
             }
+        }
+
+        // v*kDir is the wanted velocity with 7 fractional bits; carrying the
+        // remainder in fx/fz makes the average step track the facing exactly.
+        // (A plain >> floored negative components to -1 and positive ones to
+        // 0, so slow mobs walked sideways and froze in the +X/+Z quadrant.)
+        int mx = 0, mz = 0;
+        if(walk) {
+            int accX = m.fx + v * kDirX[m.yaw], accZ = m.fz + v * kDirZ[m.yaw];
+            mx = accX >> 7;
+            mz = accZ >> 7;
+            m.fx = (uint8_t)(accX & 127);
+            m.fz = (uint8_t)(accZ & 127);
         }
 
         if(boxCollides(m.x, m.y, m.z, MOBWIDTH, hgt)) m.y += 16;
@@ -284,6 +349,8 @@ void Game::updateAllMobs() {
                    y < playerY + PLAYERHEIGHT && y + hgt > playerY;
         };
         const bool wasP = overPlayer(m.x, m.y, m.z);
+        const bool fly = (s.info & 8) != 0;
+        bool bumped = false;
         bool grounded = boxCollides(m.x, m.y - 1, m.z, MOBWIDTH, hgt);
         int nx = std::clamp(m.x + mx, wx0, wx1), nz = std::clamp(m.z + mz, wz0, wz1);
         if(m.mode == MOB_WANDER && (nx != m.x + mx || nz != m.z + mz)) m.yaw ^= 8;
@@ -291,16 +358,33 @@ void Game::updateAllMobs() {
         if(overPlayer(nx, m.y, m.z) && !wasP) nx = m.x;
         if(!boxCollides(nx, m.y, m.z, MOBWIDTH, hgt))
             m.x = nx;
+        else if(fly)
+            bumped = true;
         else if(grounded && m.vy == 0 && !boxCollides(nx, stepY, m.z, MOBWIDTH, hgt))
             m.vy = 9;
         if(overPlayer(m.x, m.y, nz) && !wasP) nz = m.z;
         if(!boxCollides(m.x, m.y, nz, MOBWIDTH, hgt))
             m.z = nz;
+        else if(fly)
+            bumped = true;
         else if(grounded && m.vy == 0 && !boxCollides(m.x, stepY, nz, MOBWIDTH, hgt))
             m.vy = 9;
 
-        m.vy -= 2;
-        if(m.vy < -8) m.vy = -8;
+        if(fly) {
+            int wantY;
+            if(m.mode >= MOB_CHASE)
+                wantY = ty + 8; // hover at the target's waist
+            else {
+                int fbx = (m.x + 7) >> 4, fbz = (m.z + 7) >> 4, gby = m.y >> 4;
+                while(gby > 0 && !blockIsSolid(world.getBlock(fbx, gby - 1, fbz)))
+                    gby--;
+                wantY = (gby << 4) + m.alt;
+            }
+            m.vy = bumped ? 4 : std::clamp(wantY - m.y, -4, 4);
+        } else {
+            m.vy -= 2;
+            if(m.vy < -8) m.vy = -8;
+        }
         int ny = m.y + m.vy;
         if(ny < 0) {
             ny = 0;

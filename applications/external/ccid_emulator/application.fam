@@ -9,6 +9,6 @@ App(
     fap_category="USB",
     fap_author="PentestSuite & barkandbite",
     fap_weburl="https://github.com/barkandbite/flipper_suite",
-    fap_version="1.0",
+    fap_version="1.1",
     fap_description="Programmable USB smartcard emulator via CCID",
 )

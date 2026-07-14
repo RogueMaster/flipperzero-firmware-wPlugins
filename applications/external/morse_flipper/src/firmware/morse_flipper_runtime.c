@@ -83,7 +83,8 @@ static void morse_flipper_finish_tx_group_answer(MorseFlipperApp* app, uint32_t 
     if(app == NULL || app->screen != MorseFlipperScreenTxGroups || !app->txg_wait_answer) return;
 
     dit_ms = morse_flipper_current_dit_ms(app);
-    if(morse_flipper_tx_group_finalize_answer_from_raw(&app->tx_group, dit_ms))
+    if(!morse_flipper_tx_group_complete(&app->tx_group) &&
+       morse_flipper_tx_group_finalize_answer_from_raw(&app->tx_group, dit_ms))
         morse_flipper_view_dirty(app);
 
     app->txg_wait_answer = false;
@@ -134,7 +135,8 @@ static void morse_flipper_finish_tx_group_timeout(MorseFlipperApp* app, uint32_t
 
     if(app == NULL) return;
     dit_ms = morse_flipper_current_dit_ms(app);
-    if(morse_flipper_tx_group_finalize_answer_from_raw(&app->tx_group, dit_ms))
+    if(!morse_flipper_tx_group_complete(&app->tx_group) &&
+       morse_flipper_tx_group_finalize_answer_from_raw(&app->tx_group, dit_ms))
         morse_flipper_view_dirty(app);
     app->txg_wait_answer = false;
     app->txg_done = true;
@@ -289,6 +291,8 @@ static void morse_flipper_feed_tx_edge(MorseFlipperApp* app, bool level, uint32_
                     morse_flipper_tx_group_feed_space(&app->tx_group, (uint16_t)dt);
             }
             morse_flipper_drain_tx_decoder(app);
+            if(app->screen == MorseFlipperScreenTxGroups && app->txg_wait_answer)
+                morse_flipper_view_dirty(app);
         }
     }
 
@@ -401,6 +405,17 @@ static void morse_flipper_sync_gpio_inputs(MorseFlipperApp* app, uint32_t now_ms
             dah_active = false;
         } else {
             app->txg_start_holdoff = false;
+        }
+    }
+
+    if(app->screen == MorseFlipperScreenSession && app->session_start_holdoff) {
+        if(morse_flipper_session_wait_key_down(app)) {
+            morse_flipper_straight_filter_reset(&app->straight_filter);
+            straight_active = false;
+            dit_active = false;
+            dah_active = false;
+        } else {
+            app->session_start_holdoff = false;
         }
     }
 
@@ -693,6 +708,8 @@ void morse_flipper_poll(MorseFlipperApp* app) {
             if(morse_flipper_tx_decoder_allowed(app)) {
                 morse_flipper_cw_decoder_feed_space(&app->tx_decoder, (uint16_t)gap);
                 morse_flipper_drain_tx_decoder(app);
+                if(app->screen == MorseFlipperScreenTxGroups && app->txg_wait_answer)
+                    morse_flipper_view_dirty(app);
             }
             app->rf_tx_gap_flushed = true;
         }

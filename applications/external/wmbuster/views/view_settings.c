@@ -7,7 +7,7 @@
 static const char* k_mode_names[] = {"T1", "C1", "T+C", "S1"};
 static const char* k_filter_names[] = {"All", "Top 10", "Top 5", "Top 3"};
 static const char* k_sort_names[] = {"Signal", "Recent", "ID", "Packets"};
-static const char* k_module_names[] = {"Internal", "External"};
+static const char* k_module_names[] = {"Auto", "Internal", "External"};
 
 static uint32_t freq_for_mode(WmbusMode m) {
     return (m == WmbusModeS1) ? 868300000 : 868950000;
@@ -47,7 +47,7 @@ static void on_log_change(VariableItem* it) {
 static void on_module_change(VariableItem* it) {
     WmbusApp* app = variable_item_get_context(it);
     uint8_t i = variable_item_get_current_value_index(it);
-    if(i >= WmbusModule_Count_) i = 0;
+    if(i >= WmbusModule_Count) i = 0;
     app->settings.module = (WmbusModuleSetting)i;
     variable_item_set_current_value_text(it, k_module_names[i]);
 }
@@ -76,8 +76,7 @@ void wmbus_view_settings_enter(void* ctx) {
     variable_item_set_current_value_index(it, app->settings.logging ? 1 : 0);
     variable_item_set_current_value_text(it, app->settings.logging ? "On" : "Off");
 
-    it =
-        variable_item_list_add(app->var_list, "Module", WmbusModule_Count_, on_module_change, app);
+    it = variable_item_list_add(app->var_list, "Module", WmbusModule_Count, on_module_change, app);
     variable_item_set_current_value_index(it, app->settings.module);
     variable_item_set_current_value_text(it, k_module_names[app->settings.module]);
 

@@ -1,0 +1,32 @@
+# Flipper Application Catalog submission manifest.
+#
+# To publish, fork https://github.com/flipperdevices/flipper-application-catalog
+# and place this file at: applications/NFC/xiaomi_filter_reset/manifest.yml
+# Then open a pull request. See that repo's documentation/Manifest.md for details.
+#
+# BEFORE SUBMITTING:
+#   * set sourcecode.location.commit_sha to the exact release commit (e.g. the v1.0.0 tag commit)
+#   * capture screenshots with qFlipper and place them under catalog/screenshots/
+#     (at least one is required; do not resize or re-encode them)
+
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/khmm12/flipper-xiaomi-filter-reset.git
+    commit_sha: 38ed9eb7bd39388477ddb9ed1b122d6daa0db898
+
+name: Xiaomi Filter Reset
+id: xiaomi_filter_reset
+author: "@khmm12"
+category: NFC
+version: "1.0"
+
+short_description: Reset or check the filter-life counter on Xiaomi air purifier NFC filters.
+
+description: "@catalog/description.md"
+changelog: "@catalog/changelog.md"
+
+screenshots:
+  - catalog/screenshots/screenshot_1.png
+  - catalog/screenshots/screenshot_2.png
+  - catalog/screenshots/screenshot_3.png

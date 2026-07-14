@@ -793,16 +793,30 @@ static int16_t cwmd_clamp_scroll(int16_t v, int16_t max_scroll_px) {
     return v;
 }
 
+static int16_t cwmd_scroll_target_limit(int16_t max_scroll_px, uint8_t step_px) {
+    int16_t remainder;
+
+    if(max_scroll_px <= 0) return 0;
+    if(step_px == 0U) step_px = 9U;
+    remainder = (int16_t)(max_scroll_px % (int16_t)step_px);
+    if(remainder > 0 && remainder < 9) {
+        return (int16_t)(max_scroll_px + ((int16_t)step_px - remainder));
+    }
+    return max_scroll_px;
+}
+
 void cwmd_scroll_step(CwmdState* state, int8_t dir, int16_t max_scroll_px, uint8_t step_px) {
     int16_t step;
+    int16_t target_limit;
 
     if(state == NULL) return;
     if(step_px == 0U) step_px = 9U;
     if(max_scroll_px < 0) max_scroll_px = 0;
-    state->max_scroll_px = max_scroll_px;
+    target_limit = cwmd_scroll_target_limit(max_scroll_px, step_px);
+    state->max_scroll_px = target_limit;
     step = (int16_t)step_px * dir;
     state->target_scroll_px =
-        cwmd_clamp_scroll((int16_t)(state->target_scroll_px + step), max_scroll_px);
+        cwmd_clamp_scroll((int16_t)(state->target_scroll_px + step), target_limit);
 }
 
 bool cwmd_scroll_tick(CwmdState* state) {
@@ -834,9 +848,11 @@ static void
     content_h = cwmd_content_height(canvas, cfg, text);
     max_scroll = content_h > cfg->height ? (int16_t)(content_h - cfg->height) : 0;
     if(state) {
-        state->max_scroll_px = max_scroll;
-        state->target_scroll_px = cwmd_clamp_scroll(state->target_scroll_px, max_scroll);
-        state->scroll_px = cwmd_clamp_scroll(state->scroll_px, max_scroll);
+        int16_t target_limit = state->max_scroll_px > max_scroll ? state->max_scroll_px :
+                                                                   max_scroll;
+        state->max_scroll_px = target_limit;
+        state->target_scroll_px = cwmd_clamp_scroll(state->target_scroll_px, target_limit);
+        state->scroll_px = cwmd_clamp_scroll(state->scroll_px, target_limit);
     }
     if(max_scroll <= 0) return;
     scroll = state ? state->scroll_px : 0;

@@ -5,10 +5,9 @@ App(
     entry_point="Lab_C5_app",
     stack_size=8 * 1024,
     fap_icon="gfx/icon.png",
-    fap_icon_assets="gfx",
     fap_category="GPIO",
     fap_author="Lab_Team",
     fap_weburl="https://github.com/C5Lab/projectZero",
-    fap_version="1.0",
+    fap_version="0.41",
     fap_description="WiFi Deauther controller for Lab_C5 module via UART",
 )

@@ -1,0 +1,18 @@
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/contactjayclatty/JAYX.git
+    commit_sha: 45de6eeecf00a788f1e597b6a755b0640e99eb37
+    subdir: apps/jayx
+short_description: Live PC CPU/RAM/GPU stats, FPS, and system info over USB
+description: "@README.md"
+changelog: "@changelog.md"
+screenshots:
+  - screenshots/livestats.png
+  - screenshots/fpscounter.png
+  - screenshots/systeminfo.png
+  - screenshots/MainMenu.png
+  - screenshots/osinfo.png
+  - screenshots/cpuinfo.png
+  - screenshots/Aboutpage.png
+  - screenshots/fpscounterNogame.png

@@ -89,6 +89,7 @@ Favorites
 [ ] Favorite 2 sends the saved state
 [ ] Favorite 3 sends the saved state
 [ ] Favorite 4 sends the saved state
+[ ] Favorite 5 sends the saved state
 ```
 
 ## How To Verify Behavior

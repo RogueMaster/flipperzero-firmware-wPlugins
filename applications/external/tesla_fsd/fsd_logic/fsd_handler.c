@@ -166,7 +166,10 @@ void fsd_handle_follow_distance(FSDState* state, const CANFRAME* frame) {
 
 bool fsd_ap_first_allows(const FSDState* state, uint32_t now_ms) {
     if(!state->ap_first) return true; // gate off -> always allow
-    if(state->das_ap_state < 2) return false; // AP not engaged yet
+    // 2 = AVAILABLE (AP offered, NOT engaged); 3 = ACTIVE_NOMINAL is the first
+    // genuinely-engaged state. Injecting at 2 fired 0x3EE while AP was off (#108).
+    if(state->das_ap_state < DAS_APSTATE_ENGAGED) return false; // AP not engaged yet
+    if(state->ap_first_edge) return true; // experimental: inject at engage onset, no debounce
     // AP engaged: require it to have held stable for the debounce window.
     return (now_ms - state->ap_unstable_tick_ms) >= AP_FIRST_STABLE_MS;
 }
@@ -187,7 +190,7 @@ bool fsd_soft_engage_allows(FSDState* state) {
 
 void fsd_abort_guard_update(FSDState* state) {
     if(!state->abort_guard) return;
-    if(state->das_ap_state < 2u) {
+    if(state->das_ap_state < DAS_APSTATE_ENGAGED) {
         state->abort_guard_latched = false; // clean disengage re-arms
     } else if(
         state->das_ap_state == DAS_APSTATE_ABORTING ||
@@ -213,6 +216,10 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
     // Abort Guard: once the car has entered an abort state this engagement, stop
     // injecting so we don't feed/repeat the abort that snaps the wheel (#108).
     if(!fsd_abort_guard_allows(state)) return false;
+    // Minimal Inject: once the per-engagement burst budget is spent, stop modifying
+    // for the rest of this engagement so injection stays at engage onset, off the
+    // later abort edge. ap_inject_count is reset to 0 on disengage (#108).
+    if(state->ap_first_minimal && state->ap_inject_count >= AP_MINIMAL_INJECT_FRAMES) return false;
 
     uint8_t mux = fsd_read_mux_id(frame);
     bool fsd_ui = fsd_is_selected_in_ui(frame, state->force_fsd);
@@ -291,7 +298,10 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
         }
     }
 
-    if(modified) state->frames_modified++;
+    if(modified) {
+        state->frames_modified++;
+        if(state->ap_first_minimal) state->ap_inject_count++; // spend one burst frame (#108)
+    }
     return modified;
 }
 
@@ -321,6 +331,9 @@ bool fsd_handle_legacy_autopilot(FSDState* state, CANFRAME* frame, uint32_t now_
     if(!fsd_soft_engage_allows(state)) return false;
     // Abort Guard: stop injecting once an abort was seen this engagement (#108).
     if(!fsd_abort_guard_allows(state)) return false;
+    // Minimal Inject: stop modifying once this engagement's burst budget is spent,
+    // so injection lands at engage onset, not the later abort edge (#108).
+    if(state->ap_first_minimal && state->ap_inject_count >= AP_MINIMAL_INJECT_FRAMES) return false;
 
     uint8_t mux = fsd_read_mux_id(frame);
     bool fsd_ui = fsd_is_selected_in_ui(frame, state->force_fsd);
@@ -340,7 +353,10 @@ bool fsd_handle_legacy_autopilot(FSDState* state, CANFRAME* frame, uint32_t now_
         modified = true;
     }
 
-    if(modified) state->frames_modified++;
+    if(modified) {
+        state->frames_modified++;
+        if(state->ap_first_minimal) state->ap_inject_count++; // spend one burst frame (#108)
+    }
     return modified;
 }
 
@@ -494,7 +510,8 @@ void fsd_handle_das_status_hw3(FSDState* state, const CANFRAME* frame) {
 void fsd_handle_das_status_hw4(FSDState* state, const CANFRAME* frame) {
     if(frame->data_lenght < 7) return;
     // DAS_autopilotState: bit12|4 → byte1 bits[7:4]
-    // 0=UNAVAIL 1=AVAIL 2=ACTIVE_NOMINAL 3=ACTIVE_MIN_DRIVER ...
+    // 0=UNAVAIL 1=UNAVAILABLE/AVAIL-flicker 2=AVAILABLE (offered, not engaged)
+    // 3=ACTIVE_NOMINAL (first engaged) 4=ACTIVE_MIN_DRIVER 6=active 8/9=aborting/aborted
     uint8_t hw4_state = (frame->buffer[1] >> 4) & 0x0F;
     // HW4 Highland (China MIC, fw 2026.20) carries DAS_autopilotState in byte0 low
     // nibble (HW3 position: 1=avail 2=ready 3=engaged) while byte1[7:4] is pinned at
@@ -1065,6 +1082,9 @@ static bool
     prev_das = das;
 
     // Global gate: AP active, and demand state not satisfied/suspended.
+    // NOTE: this < 2u is the nag-echo gate, NOT the AP-First engagement threshold
+    // (DAS_APSTATE_ENGAGED=3). Nag suppression is intentionally relevant down to
+    // AVAILABLE, so this stays at < 2u by design (#108).
     if(state->das_ap_state < 2u || das == 0 || das == 8 || das == 15) {
         last_raw = 2048;
         last_level = 0;

@@ -1,7 +1,7 @@
 /*
  * Purpose: Centralise storage paths for firmware and host test builds.
  * Owns: state, custom character, session log, and ham keyer log paths.
- * Depends on: Flipper APP_DATA_PATH/EXT_PATH in FAP builds.
+ * Depends on: Flipper APP_DATA_PATH in FAP builds.
  * Tests: tests/test_trainer_files.c.
  */
 
@@ -11,16 +11,16 @@
 #ifdef MORSE_FLIPPER_FAP
 #include <storage/storage.h>
 #define MORSE_FLIPPER_STATE_PATH           APP_DATA_PATH("morse_flipper.state")
-#define MORSE_FLIPPER_CUSTOM_CHARS_PATH    EXT_PATH("ham/flipper-cw-custom-characters.txt")
-#define MORSE_FLIPPER_SESSION_LOG_PATH     EXT_PATH("ham/morse-flipper-session-log.txt")
-#define MORSE_FLIPPER_HAM_KEYER_LOG_PREFIX EXT_PATH("ham/morse-flipper-ham-keyer-")
-#define MORSE_FLIPPER_HAM_DIR              EXT_PATH("ham")
+#define MORSE_FLIPPER_CUSTOM_CHARS_PATH    APP_DATA_PATH("flipper-cw-custom-characters.txt")
+#define MORSE_FLIPPER_SESSION_LOG_PATH     APP_DATA_PATH("morse-flipper-session-log.txt")
+#define MORSE_FLIPPER_HAM_KEYER_LOG_PREFIX APP_DATA_PATH("morse-flipper-ham-keyer-")
 #else
-#define MORSE_FLIPPER_STATE_PATH           "morse_flipper.state"
-#define MORSE_FLIPPER_CUSTOM_CHARS_PATH    "ext/ham/flipper-cw-custom-characters.txt"
-#define MORSE_FLIPPER_SESSION_LOG_PATH     "ext/ham/morse-flipper-session-log.txt"
-#define MORSE_FLIPPER_HAM_KEYER_LOG_PREFIX "ext/ham/morse-flipper-ham-keyer-"
-#define MORSE_FLIPPER_HAM_DIR              "ext/ham"
+#define MORSE_FLIPPER_APP_DATA_DIR "ext/apps_data/morse_flipper"
+#define MORSE_FLIPPER_STATE_PATH   "morse_flipper.state"
+#define MORSE_FLIPPER_CUSTOM_CHARS_PATH \
+    MORSE_FLIPPER_APP_DATA_DIR "/flipper-cw-custom-characters.txt"
+#define MORSE_FLIPPER_SESSION_LOG_PATH     MORSE_FLIPPER_APP_DATA_DIR "/morse-flipper-session-log.txt"
+#define MORSE_FLIPPER_HAM_KEYER_LOG_PREFIX MORSE_FLIPPER_APP_DATA_DIR "/morse-flipper-ham-keyer-"
 #endif
 
 #endif

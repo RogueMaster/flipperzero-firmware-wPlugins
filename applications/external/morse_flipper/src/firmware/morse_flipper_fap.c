@@ -12,6 +12,8 @@ int32_t morse_flipper_fap(void* p) {
     UNUSED(p);
 
     app = morse_flipper_boot();
+    if(app == NULL) return 1;
+
     view_dispatcher_run(morse_flipper_view_dispatcher_get(app));
     morse_flipper_shutdown(app);
     return 0;

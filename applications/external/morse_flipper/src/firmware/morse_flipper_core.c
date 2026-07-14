@@ -376,6 +376,7 @@ void morse_flipper_tick_trainer_playback(MorseFlipperApp* app, uint32_t now_ms) 
         app->trainer_playback_active = false;
         app->trainer_playback_mark = false;
         app->trainer_next_at = 0U;
+        if(app->screen == MorseFlipperScreenSession) app->session_start_holdoff = true;
         morse_flipper_view_dirty(app);
         return;
     }
@@ -406,6 +407,7 @@ void morse_flipper_tick_trainer_playback(MorseFlipperApp* app, uint32_t now_ms) 
             app->trainer_next_at = 0U;
             morse_trainer_finish_listen(&app->trainer);
             if(app->screen == MorseFlipperScreenSession) {
+                app->session_start_holdoff = true;
                 app->session_last_input_at = now_ms;
             }
         }
@@ -417,6 +419,7 @@ void morse_flipper_tick_trainer_playback(MorseFlipperApp* app, uint32_t now_ms) 
     if(app->trainer_mark_idx >= marks) {
         app->trainer_playback_active = false;
         app->trainer_next_at = 0U;
+        if(app->screen == MorseFlipperScreenSession) app->session_start_holdoff = true;
         morse_flipper_update_sidetone(app);
         return;
     }
@@ -448,7 +451,8 @@ void morse_flipper_cycle_trainer_value(MorseFlipperApp* app, int dir) {
         morse_trainer_set_session_groups(&app->trainer, (uint8_t)next);
         break;
     default:
-        next = (int)app->trainer.custom_set_idx + dir;
+        morse_flipper_ensure_custom_sets_loaded(app);
+        next = (int)morse_flipper_effective_trainer_custom_set_idx(app) + dir;
         if(next < 0) {
             next = (int)app->custom_sets.count;
         } else if(next > (int)app->custom_sets.count) {
@@ -474,19 +478,35 @@ void morse_flipper_leave_live_screen(MorseFlipperApp* app, uint32_t now_ms) {
     morse_flipper_scene_back(app);
 }
 
+void morse_flipper_ensure_custom_sets_loaded(MorseFlipperApp* app) {
+    uint8_t selected;
+
+    if(app == NULL || app->custom_sets_loaded) {
+        return;
+    }
+
+    selected = app->trainer.custom_set_idx;
+    app->custom_sets_loaded = morse_trainer_load_custom_sets(&app->custom_sets);
+    app->trainer.custom_set_idx = selected;
+    morse_flipper_apply_trainer_charset_choice(app);
+}
+
+uint8_t morse_flipper_effective_trainer_custom_set_idx(const MorseFlipperApp* app) {
+    if(app == NULL || app->trainer.custom_set_idx == 0U) return 0U;
+    if(app->custom_sets.count == 0U || app->trainer.custom_set_idx > app->custom_sets.count)
+        return 0U;
+    return app->trainer.custom_set_idx;
+}
+
 void morse_flipper_apply_trainer_charset_choice(MorseFlipperApp* app) {
+    uint8_t idx;
+
     if(app == NULL) {
         return;
     }
 
-    if(app->trainer.custom_set_idx == 0U || app->custom_sets.count == 0U) {
-        app->trainer.custom_name[0] = '\0';
-        app->trainer.charset_override[0] = '\0';
-        return;
-    }
-
-    if(app->trainer.custom_set_idx > app->custom_sets.count) {
-        app->trainer.custom_set_idx = 0U;
+    idx = morse_flipper_effective_trainer_custom_set_idx(app);
+    if(idx == 0U) {
         app->trainer.custom_name[0] = '\0';
         app->trainer.charset_override[0] = '\0';
         return;
@@ -494,12 +514,12 @@ void morse_flipper_apply_trainer_charset_choice(MorseFlipperApp* app) {
 
     strncpy(
         app->trainer.custom_name,
-        app->custom_sets.sets[app->trainer.custom_set_idx - 1U].name,
+        app->custom_sets.sets[idx - 1U].name,
         sizeof(app->trainer.custom_name) - 1U);
     app->trainer.custom_name[sizeof(app->trainer.custom_name) - 1U] = '\0';
     strncpy(
         app->trainer.charset_override,
-        app->custom_sets.sets[app->trainer.custom_set_idx - 1U].chars,
+        app->custom_sets.sets[idx - 1U].chars,
         sizeof(app->trainer.charset_override) - 1U);
     app->trainer.charset_override[sizeof(app->trainer.charset_override) - 1U] = '\0';
 }

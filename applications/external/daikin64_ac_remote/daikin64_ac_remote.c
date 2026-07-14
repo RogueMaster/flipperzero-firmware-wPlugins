@@ -721,16 +721,20 @@ static bool daikin64_input_callback(InputEvent* event, void* context) {
             app->view,
             Daikin64RemoteModel * model,
             {
-                if(event->key == InputKeyUp && model->state.temperature < DAIKIN64_MAX_TEMP) {
-                    model->state.temperature++;
-                    daikin64_prepare_setting_send(&send_state, &model->state);
-                    should_send = true;
-                    should_save = true;
-                } else if(event->key == InputKeyDown && model->state.temperature > DAIKIN64_MIN_TEMP) {
-                    model->state.temperature--;
-                    daikin64_prepare_setting_send(&send_state, &model->state);
-                    should_send = true;
-                    should_save = true;
+                if(model->page == Daikin64PageMain) {
+                    if(event->key == InputKeyUp && model->state.temperature < DAIKIN64_MAX_TEMP) {
+                        model->state.temperature++;
+                        daikin64_prepare_setting_send(&send_state, &model->state);
+                        should_send = true;
+                        should_save = true;
+                    } else if(
+                        event->key == InputKeyDown &&
+                        model->state.temperature > DAIKIN64_MIN_TEMP) {
+                        model->state.temperature--;
+                        daikin64_prepare_setting_send(&send_state, &model->state);
+                        should_send = true;
+                        should_save = true;
+                    }
                 }
             },
             true);

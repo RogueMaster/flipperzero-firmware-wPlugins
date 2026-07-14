@@ -102,7 +102,7 @@ void morse_flipper_scene_audio_cfg_on_enter(void* context) {
     uint32_t sel = scene_manager_get_scene_state(app->scene_manager, MorseFlipperSceneAudioCfg);
     VariableItem* item;
 
-    morse_flipper_scene_enter_now(app, MorseFlipperSceneAudioCfg);
+    morse_flipper_ensure_view(app, MorseFlipperViewSettings);
     variable_item_list_reset(app->settings_list);
     memset(app->audio_cfg_items, 0, sizeof(app->audio_cfg_items));
     variable_item_list_set_enter_callback(
@@ -127,6 +127,7 @@ void morse_flipper_scene_audio_cfg_on_enter(void* context) {
     if((sel & 0xffU) > MorseFlipperAudioSettingP2Volume) sel = 0U;
     morse_flipper_audio_menu_refresh(app);
     morse_flipper_settings_list_restore(app->settings_list, sel);
+    morse_flipper_scene_enter_now(app, MorseFlipperSceneAudioCfg);
 }
 
 bool morse_flipper_scene_audio_cfg_on_event(void* context, SceneManagerEvent event) {

@@ -1,0 +1,15 @@
+App(
+    appid="walkman",
+    name="Walkman",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipper_walkman_app",
+    stack_size=2 * 1024,
+    fap_icon="icons/walkman_icon.png",
+    fap_icon_assets="icons",
+    fap_category="GPIO",
+    fap_author="Rohit Yadav / rynosec",
+    fap_weburl="https://ryno.sh",
+    #  fap_weburl="https://github.com/rynosec/flipper-walkman",
+    fap_version=(1, 0),
+    fap_description="Retro Walkman-style UART MP3 controller for Flipper Zero",
+)

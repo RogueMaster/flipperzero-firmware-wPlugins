@@ -72,6 +72,10 @@ static uint16_t morse_flipper_hid_key_for_pc_key(uint8_t key) {
         return HID_KEYBOARD_X;
     case MorsePcKeyZ:
         return HID_KEYBOARD_Z;
+    case MorsePcKeyW:
+        return HID_KEYBOARD_W;
+    case MorsePcKeyY:
+        return HID_KEYBOARD_Y;
     case MorsePcKeyC:
         return HID_KEYBOARD_C;
     case MorsePcKeyEnter:

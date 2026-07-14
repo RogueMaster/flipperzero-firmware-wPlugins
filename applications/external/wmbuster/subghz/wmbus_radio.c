@@ -42,9 +42,34 @@ static bool external_is_connected(void) {
     return present;
 }
 
-const SubGhzDevice* wmbus_radio_select(const SubGhzDevice* current, WmbusModule module) {
+bool wmbus_radio_detect_external(void) {
+    return external_is_connected();
+}
+
+const SubGhzDevice* wmbus_radio_select(const SubGhzDevice* current, WmbusModuleSetting module) {
     const SubGhzDevice* target = NULL;
-    if(module == WmbusModuleExternal && external_is_connected()) {
+    bool want_ext = false;
+
+    switch(module) {
+    case WmbusModuleAuto:
+        /* Auto: probe for an external CC1101, use it when present. */
+        want_ext = external_is_connected();
+        if(want_ext) {
+            FURI_LOG_I(TAG, "Auto: external CC1101 detected");
+        } else {
+            FURI_LOG_I(TAG, "Auto: no external CC1101, using internal");
+        }
+        break;
+    case WmbusModuleExternal:
+        want_ext = true;
+        break;
+    case WmbusModuleInternal:
+    default:
+        want_ext = false;
+        break;
+    }
+
+    if(want_ext && external_is_connected()) {
         otg_power_on();
         target = subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_EXT_NAME);
         if(!target) {

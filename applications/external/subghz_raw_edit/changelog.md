@@ -1,3 +1,14 @@
+## v1.7
+
+- Add option to configure merge gap in range 1ms-1s.
+- Add option to multiplicate signals when loading single or merging multiple files up to 64 times.
+Multiplied signals (other then RAWs) will be seperated by synchronization gap
+that comes from internal decoder. The gap is by decoders to synchronize signals without preamble.
+- Removed limit of 16 merged files. There is no limit now (beside RAM capacity).
+- Rewritten gap clamping mechanizm. Now long gaps are not clamped to 32ms.
+The original length has been preserved instead.
+- Optimized loading via transmit deserialzier.
+
 ## v1.6
 
 - Fixed MPU fault stack overflow error on some flipper firmwares.

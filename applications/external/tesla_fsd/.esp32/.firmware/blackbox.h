@@ -2,8 +2,11 @@
 /*
  * blackbox.h — black-box incident recorder (ESP32, #124).
  *
- * A RAM ring buffer continuously records raw CAN frames (all ids, full rate,
- * all buses). When the shared event-core (fsd_events.h) reports an abort, a
+ * A RAM ring buffer continuously records raw CAN frames — by default only the
+ * key diagnostic ids (fsd_blackbox_filter.h), across all buses, so a busy full
+ * bus (~3300 f/s) can't fill the small ring in ~1.8 s and truncate the window;
+ * define BLACKBOX_CAPTURE_ALL to record every id instead. When the shared
+ * event-core (fsd_events.h) reports an abort, a
  * bus-off, or a dashboard "Mark", the recorder freezes a window of pre+post
  * frames and writes two files: a pure candump .log (drops straight into the
  * CRC cracker) and a decoded .json summary (fsd_blackbox_summary.h).
@@ -59,7 +62,8 @@ enum BBTrigger : uint8_t {
 // can inject through the event-core and flushes can snapshot toggles.
 void blackbox_init(FSDState* state, portMUX_TYPE* state_mux);
 
-// Record one RX frame into the ring. Cheap (a memcpy); no-op when disabled.
+// Record one RX frame into the ring. Cheap (id filter + memcpy); no-op when
+// disabled or when the id isn't a key diagnostic id (see fsd_blackbox_filter.h).
 void blackbox_record(CanBusId bus, const CanFrame& frame, uint32_t now_ms);
 
 // Note the current das_ap_state for the mini-timeline (call once per frame).

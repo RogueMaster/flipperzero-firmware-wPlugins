@@ -109,6 +109,17 @@ static void fit_with_ellipsis(Canvas* c, char* s, int max_w) {
     }
 }
 
+static size_t detail_scroll_positions(size_t row_count) {
+    if(row_count < DETAIL_VISIBLE) return 1;
+
+    /* One trailing blank row lets the last data row scroll above the OK hint. */
+    return row_count - DETAIL_VISIBLE + 2;
+}
+
+static size_t detail_scroll_max(size_t row_count) {
+    return detail_scroll_positions(row_count) - 1;
+}
+
 static void draw_rows(Canvas* c, const DetailModel* m) {
     canvas_set_color(c, ColorBlack);
 
@@ -121,7 +132,8 @@ static void draw_rows(Canvas* c, const DetailModel* m) {
     size_t end = m->scroll + DETAIL_VISIBLE;
     if(end > m->row_count) end = m->row_count;
 
-    bool has_scrollbar = m->row_count > DETAIL_VISIBLE;
+    size_t scroll_positions = detail_scroll_positions(m->row_count);
+    bool has_scrollbar = scroll_positions > 1;
     int right_edge = has_scrollbar ? 122 : 126;
 
     for(size_t i = m->scroll; i < end; i++) {
@@ -167,12 +179,7 @@ static void draw_rows(Canvas* c, const DetailModel* m) {
 
     if(has_scrollbar) {
         elements_scrollbar_pos(
-            c,
-            127,
-            DETAIL_LIST_TOP,
-            64 - DETAIL_LIST_TOP,
-            m->scroll,
-            m->row_count - DETAIL_VISIBLE + 1);
+            c, 127, DETAIL_LIST_TOP, 64 - DETAIL_LIST_TOP, m->scroll, scroll_positions);
     }
 }
 
@@ -188,7 +195,8 @@ static void draw_raw(Canvas* c, const DetailModel* m) {
         canvas_draw_str_aligned(c, 64, 38, AlignCenter, AlignCenter, "(no payload)");
         return;
     }
-    bool has_scrollbar = total_rows > DETAIL_VISIBLE;
+    size_t scroll_positions = detail_scroll_positions(total_rows);
+    bool has_scrollbar = scroll_positions > 1;
     size_t end = m->raw_scroll + DETAIL_VISIBLE;
     if(end > total_rows) end = total_rows;
 
@@ -205,12 +213,7 @@ static void draw_raw(Canvas* c, const DetailModel* m) {
 
     if(has_scrollbar) {
         elements_scrollbar_pos(
-            c,
-            127,
-            DETAIL_LIST_TOP,
-            64 - DETAIL_LIST_TOP,
-            m->raw_scroll,
-            total_rows - DETAIL_VISIBLE + 1);
+            c, 127, DETAIL_LIST_TOP, 64 - DETAIL_LIST_TOP, m->raw_scroll, scroll_positions);
     }
 }
 
@@ -261,22 +264,26 @@ static bool detail_view_input(InputEvent* ev, void* ctx) {
             } else if(m->raw_view) {
                 size_t total =
                     (m->apdu_len + DETAIL_RAW_BYTES_PER_ROW - 1) / DETAIL_RAW_BYTES_PER_ROW;
-                if(total > DETAIL_VISIBLE) {
+                size_t max_scroll = detail_scroll_max(total);
+                if(max_scroll > 0) {
                     if(ev->key == InputKeyUp && m->raw_scroll > 0) {
                         m->raw_scroll--;
                         need = true;
-                    } else if(ev->key == InputKeyDown && m->raw_scroll + DETAIL_VISIBLE < total) {
+                    } else if(ev->key == InputKeyDown && m->raw_scroll < max_scroll) {
                         m->raw_scroll++;
                         need = true;
                     }
                 }
-            } else if(m->row_count > DETAIL_VISIBLE) {
-                if(ev->key == InputKeyUp && m->scroll > 0) {
-                    m->scroll--;
-                    need = true;
-                } else if(ev->key == InputKeyDown && m->scroll + DETAIL_VISIBLE < m->row_count) {
-                    m->scroll++;
-                    need = true;
+            } else {
+                size_t max_scroll = detail_scroll_max(m->row_count);
+                if(max_scroll > 0) {
+                    if(ev->key == InputKeyUp && m->scroll > 0) {
+                        m->scroll--;
+                        need = true;
+                    } else if(ev->key == InputKeyDown && m->scroll < max_scroll) {
+                        m->scroll++;
+                        need = true;
+                    }
                 }
             }
         },
@@ -345,7 +352,7 @@ void detail_canvas_set_rows(DetailCanvas* dc, const DetailRow* rows, size_t n) {
             for(size_t i = 0; i < n; i++)
                 m->rows[i] = rows[i];
             m->row_count = n;
-            if(m->scroll > n) m->scroll = 0;
+            if(m->scroll > detail_scroll_max(n)) m->scroll = 0;
             /* Always reset to decoded view when fields change so the user
              * sees the new content first; OK still toggles on demand. */
             m->raw_view = false;

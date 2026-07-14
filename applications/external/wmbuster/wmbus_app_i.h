@@ -89,9 +89,10 @@ typedef enum {
 } WmbusSort;
 
 typedef enum {
-    WmbusModuleInternal_ = 0, /* on-board CC1101 (default)         */
-    WmbusModuleExternal_ = 1, /* GPIO-attached external CC1101     */
-    WmbusModule_Count_,
+    WmbusModuleAuto = 0, /* probe external first, fall back   */
+    WmbusModuleInternal = 1, /* force on-board CC1101             */
+    WmbusModuleExternal = 2, /* force GPIO-attached external      */
+    WmbusModule_Count,
 } WmbusModuleSetting;
 
 typedef struct {

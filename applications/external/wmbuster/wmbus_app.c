@@ -169,7 +169,7 @@ WmbusApp* wmbus_app_alloc(void) {
     app->settings.freq_hz = 868950000;
     app->settings.logging = false;
     app->settings.auto_decrypt = true;
-    app->settings.module = WmbusModuleInternal_;
+    app->settings.module = WmbusModuleAuto;
     app->selected = -1;
 
     subghz_devices_init();

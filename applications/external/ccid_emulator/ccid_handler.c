@@ -3,14 +3,6 @@
 
 #include "ccid_handler.h"
 
-#include <furi.h>
-#include <furi_hal.h>
-#include <furi_hal_usb.h>
-#include <furi_hal_usb_ccid.h>
-
-#include <stdio.h>
-#include <string.h>
-
 /* USB CCID spec §6.1: maximum data block length is 261 bytes */
 #define CCID_MAX_DATA_BLOCK_LEN 261
 
@@ -208,13 +200,13 @@ void ccid_handler_start(CcidEmulatorApp* app) {
      * before we can register callbacks or insert a smartcard.
      * Setting callbacks before switching triggers furi_check. */
     furi_hal_usb_unlock();
-    furi_hal_usb_set_config(&usb_ccid, NULL);
+    furi_hal_usb_set_config(&ccid_usb_interface, NULL);
 
     /* Now register callbacks (CCID mode is active) */
-    furi_hal_usb_ccid_set_callbacks(&app->ccid_callbacks, app);
+    ccid_usb_set_callbacks(&app->ccid_callbacks, app);
 
     /* Insert virtual smartcard */
-    furi_hal_usb_ccid_insert_smartcard();
+    ccid_usb_insert_smartcard();
 
     app->emulating = true;
     FURI_LOG_I("CcidHandler", "CCID emulation started");
@@ -226,12 +218,12 @@ void ccid_handler_stop(CcidEmulatorApp* app) {
     if(!app->emulating) return;
 
     /* Remove virtual smartcard */
-    furi_hal_usb_ccid_remove_smartcard();
+    ccid_usb_remove_smartcard();
 
     /* Clear callbacks BEFORE switching USB mode — calling CCID functions
      * after the USB interface has been switched away from CCID triggers
      * furi_check on Momentum firmware. */
-    furi_hal_usb_ccid_set_callbacks(NULL, NULL);
+    ccid_usb_set_callbacks(NULL, NULL);
 
     /* Restore previous USB interface */
     furi_hal_usb_unlock();

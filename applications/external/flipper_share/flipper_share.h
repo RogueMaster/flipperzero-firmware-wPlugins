@@ -14,6 +14,12 @@
 
 #define FS_SUBGHZ_RETRY_DELAY_MS 1000 // For Retry On error
 
+#define FS_PAYLOAD_THROUGHPUT_BPS 700 // nominal payload throughput for ETA, bytes/sec
+#define FS_ETA_WARMUP_MS          10000 // below this elapsed, ETA uses the constant fallback
+#define FS_STALL_MS               10000 // no new block for this long -> show "stalled"
+#define FS_ETA_MAX_SEC \
+    (99u * 3600u + 59u * 60u + 59u) // clamp ETA display (avoid uint32 overflow / garbage)
+
 #define FS_PARTS_COUNT 100u // For progress bar in GUI
 
 #define FS_PARTS_BYTES ((uint32_t)((FS_PARTS_COUNT + 7u) / 8u))
@@ -109,6 +115,10 @@ typedef struct {
     unsigned char r_md5[16];
     bool r_is_finished;
     bool r_is_success;
+    bool r_finalizing; // set while computing final MD5; receiver ignores incoming packets
+    uint32_t r_start_ms; // set on ANNOUNCE lock — reception start time
+    uint32_t r_finish_ms; // set when all blocks received (finalization) — reception end time
+    uint32_t r_last_progress_ms; // time of last accepted (new) block — for stall detection
 
     // Callback for writing a received block data by number to real storage.
     // in52 is always 52 bytes, but must write min(52, remainder).
@@ -149,6 +159,14 @@ bool fs_init(const fs_init_params_t* p);
 void fs_deinit(void);
 void fs_idle(void); // to be called periodically from main loop (50ms?)
 
+// Shared-state lock (protects `g`, g_map and fs_parts across the worker,
+// SubGhz RX-callback and GUI threads). Create it in the scene on_enter BEFORE
+// starting any worker/radio thread; fs_deinit() frees it.
+void fs_lock_ensure(void); // idempotent, alloc mutex if missing
+void fs_lock(void); // blocking acquire (no-op if not created)
+void fs_unlock(void); // release (no-op if not created)
+bool fs_try_lock_ms(uint32_t timeout_ms); // timed acquire, true if acquired (for GUI callbacks)
+
 // High-level sending (can be called from outside):
 void fs_send_announce(void);
 void fs_send_request(uint32_t range_start, uint32_t range_end);
@@ -158,13 +176,16 @@ void fs_send_data(void);
 // External callback for receiving "raw" 60 bytes from radio:
 void fs_receive_callback(const uint8_t* buf, size_t size);
 
+// Format a duration adaptively: "M:SS" under 1h, "H:MM:SS" from 1h (for GUI).
+void fs_fmt_duration(uint32_t secs, char* buf, size_t n);
+
 // Parts for progress bar in GUI
 
 bool fs_parts_init(uint32_t block_count);
 void fs_parts_reset(void);
 void fs_parts_on_block_set(uint32_t block_index);
 int fs_parts_get(uint32_t part_index);
-void fs_parts_bitmap_copy(uint8_t* dst);
+void fs_parts_levels_copy(uint8_t* dst); // dst[FS_PARTS_COUNT], per-part fill level 0..255
 
 uint32_t fs_parts_count(void);
 uint32_t fs_parts_block_count(void);

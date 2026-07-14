@@ -3,7 +3,7 @@
 #include "xremote_cross_remote_item.h"
 #include "../../xremote_i.h"
 
-#define CROSS_REMOTE_PAUSE_NAME "Pause %ds"
+#define CROSS_REMOTE_PAUSE_NAME "Pause %02d:%02d" // minutes:seconds
 
 CrossRemote* xremote_cross_remote_alloc();
 

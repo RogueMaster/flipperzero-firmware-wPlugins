@@ -11,14 +11,20 @@ or cut an unwanted stretch out of the middle and keep editing.
 Built for cleaning up `Read RAW` captures before decoding or replaying them -
 a long recording full of repeats and noise becomes a single tidy frame.
 
+Tired of maintaining playlists to transmit multiple .sub files?
+Simply use merge feature to combine `.sub` files of **any type** into a single file
+and play it back by using main Sub-GHz app. No third party applications required.
+Combine any number of files you want, provided they fit within the Flipper's RAM.
+
 > **Receive/analysis only.** This app never transmits. It only reads, displays
 > and rewrites files you already have on the SD card.
 
 ## Supported protocols
-Sub-GHz-RAW-Edit allows you to view RAW signals and any other `.sub` protocols supported by your firmware. For all protocols other than RAW capture, this app uses the device's internal decoder.
+Sub-GHz-RAW-Edit allows you to view RAW signals and any other `.sub` protocols supported by your firmware.
+For all protocols other than RAW capture, this app uses the device's internal decoder.
 
 As the `Save` option always writes output `.sub` files in `RAW` format,
-its able to transform already recognized signals (protocols) back to `RAW` again.
+its able to transform any already recognized signals back to `RAW` again.
 
 ## Screenshots
 
@@ -44,6 +50,9 @@ visually, on the device.
 
 ## Features
 
+- **Load any .sub file.** Load any type of signal in .sub format.
+While RAW files are read directly in 1:1 mode, other signals first pass
+through an internal decoder, as the corresponding RAW data must be generated beforehand.
 - **Auto-locates the signal.** On open it scans the whole capture, finds the
   longest clean burst (the most complete frame copy) and jumps the view there
   with the A/B markers already placed around it - no scrolling through empty
@@ -67,10 +76,13 @@ visually, on the device.
     Save.
   - *Undo* reverts the last cut. It is greyed out (struck through) when there is
     nothing to undo.
-- **Memory-safe.** Long silence gaps are clamped to fit a compact `int16`
-  buffer, the buffer grows in small chunks and shrinks to the file's real size
-  after loading. If there genuinely isn't enough free RAM, you get a clear
-  "reboot and try again" message instead of a crash.
+- **Merge multiple files** into one with the *Config → Merge gap* option to adjust the spacing.
+- **Repeat** any loaded signal up to 64 times automatically. Set it in *Config → Repeat*.
+  It applies to both **Select file** and **Merge files**. Repetitions are separated by 
+  the signal's own native gap, while different merged files are separated by the configurable **Merge gap**.
+  Especially useful for signals that a receiver only locks onto after seeing 
+  the frame repeated several times within its synchronization window.
+  Typically, about 5 repetitions are sufficient to ensure that the target decoder processes it correctly.
 - **Clean output.** The saved frame is aligned to start on a pulse and end on a
   gap, with the original `Frequency` and `Preset` preserved.
   There is also an option to auto normalize jitter quirks which makes the signal even more clean.
@@ -79,9 +91,9 @@ visually, on the device.
   Some signal receivers will reject a signal if it's "too clean" due to a built-in security layer.
   This layer can flag the signal as possibly synthesized.
 
-| Main menu | Action menu |
-|:---:|:---:|
-| ![Main menu](docs/images/08-main-menu.png) | ![Action menu](docs/images/09-action-menu.png) |
+| Main menu | Config menu | Action menu |
+|:---:|:---:|:---:|
+| ![Main menu](docs/images/08-main-menu.png) | ![Config menu](docs/images/09-config-menu.png) | ![Action menu](docs/images/10-action-menu.png) |
 
 ## Controls
 
@@ -101,6 +113,41 @@ The active marker is the one drawn as a solid line with a small box on top, and
 marked with `>` in the bottom bar. The other marker is dotted.
 
 ![GUI diagram](docs/images/07-gui-diagram.png)
+
+## Usage
+
+1. Launch **Sub-GHz RAW Edit** from *Apps -> Sub-GHz*.
+2. Pick any `.sub` file from `/ext/subghz`.
+3. The view opens centered on the detected frame. Zoom out (Down) to see the
+   whole signal, zoom in (Up) to see individual pulses.
+4. Place **A** at the start of one clean frame, press OK, place **B** at the
+   end.
+5. Hold **OK** to open the action menu and choose:
+   - **Save** - a name is suggested (`<name>_edit1`, the next free `_edit2`,
+     `_edit3`, ... so saves never overwrite an earlier one). Edit it if you
+     like and confirm; the A..B selection is written to
+     `/ext/subghz/<name>.sub`.
+   - **Cut** - the stretch between A and B is removed from the working copy and
+     the two sides are joined. Re-place the markers and Cut again to clean up
+     further, or Save when you are happy. If a cut would leave nothing behind it
+     is refused and rolled back.
+   - **Undo** - revert the last cut.
+
+## File format
+
+Reads and writes the standard Flipper RAW format:
+
+```
+Filetype: Flipper SubGhz RAW File
+Version: 1
+Frequency: 433920000
+Preset: FuriHalSubGhzPresetOok270Async
+Protocol: RAW
+RAW_Data: 257 -926 637 -526 ...
+```
+
+`Frequency` and `Preset` are carried over from the source file. Only the
+`RAW_Data` durations between the A and B markers are written.
 
 ## Build
 
@@ -141,41 +188,6 @@ ufbt launch                          # builds + uploads + runs
 Copy the built `subghz_raw_edit.fap` onto the SD card at `/ext/apps/Sub-GHz/` and
 launch it from **Apps -> Sub-GHz** on the Flipper.
 
-## Usage
-
-1. Launch **Sub-GHz RAW Edit** from *Apps -> Sub-GHz*.
-2. Pick a RAW `.sub` file from `/ext/subghz`.
-3. The view opens centered on the detected frame. Zoom out (Down) to see the
-   whole signal, zoom in (Up) to see individual pulses.
-4. Place **A** at the start of one clean frame, press OK, place **B** at the
-   end.
-5. Hold **OK** to open the action menu and choose:
-   - **Save** - a name is suggested (`<name>_edit1`, the next free `_edit2`,
-     `_edit3`, ... so saves never overwrite an earlier one). Edit it if you
-     like and confirm; the A..B selection is written to
-     `/ext/subghz/<name>.sub`.
-   - **Cut** - the stretch between A and B is removed from the working copy and
-     the two sides are joined. Re-place the markers and Cut again to clean up
-     further, or Save when you are happy. If a cut would leave nothing behind it
-     is refused and rolled back.
-   - **Undo** - revert the last cut.
-
-## File format
-
-Reads and writes the standard Flipper RAW format:
-
-```
-Filetype: Flipper SubGhz RAW File
-Version: 1
-Frequency: 433920000
-Preset: FuriHalSubGhzPresetOok270Async
-Protocol: RAW
-RAW_Data: 257 -926 637 -526 ...
-```
-
-`Frequency` and `Preset` are carried over from the source file. Only the
-`RAW_Data` durations between the A and B markers are written.
-
 ## Notes & limitations
 
 - **`Read RAW` does not record silence.** It starts capturing at the first
@@ -207,7 +219,7 @@ RAW_Data: 257 -926 637 -526 ...
   and ~24000 samples (signal edges). They're independent - noise hits the sample
   limit within seconds because it's a dense storm of edges,
   even though it's nowhere near the time limit; a real frame is only a few hundred edges.
-  The buffer holds ~24000 samples (signal edges) ≈ 47 KB of RAM — plenty for any
+  The buffer holds ~24000 samples (signal edges) ≈ 47 KB of RAM - plenty for any
   real frame (a few hundred edges), but noise fills it in seconds. For example, an
   `AM650` capture at `433.92` MHz in a noisy area hits the limit around a ~105 KB
   25–30 s file. If you want to load longer RAWs just use `AM270` which won't

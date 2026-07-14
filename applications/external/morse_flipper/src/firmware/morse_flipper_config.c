@@ -187,7 +187,7 @@ static void morse_flipper_config_apply(MorseFlipperApp* app, const MorseFlipperC
         config->gpio_ground_idx,
         config->gpio_ptt_idx);
 
-    if(config->trainer_custom_set_idx <= app->custom_sets.count)
+    if(config->trainer_custom_set_idx <= MORSE_TRAINER_CUSTOM_SET_CAP)
         app->trainer.custom_set_idx = config->trainer_custom_set_idx;
     if(config->usb_mode <= MorseFlipperPcModeMidi) app->pc_mode_pref = config->usb_mode;
     if(config->usb_paddle_preset < morse_pc_paddle_preset_count())

@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include "fsd_can_ops.h"
+#include "fsd_blackbox_filter.h"
 #include "fsd_blackbox_summary.h"
 #include "fsd_capability.h"
 #include "fsd_capture.h"
@@ -620,7 +621,16 @@ static void test_abort_guard(void) {
     fsd_abort_guard_update(&s);
     CHECK(fsd_abort_guard_allows(&s) == false, "re-active mid-cycle: stays suppressed");
 
-    // Clean disengage (das_ap_state < 2) clears the latch -> re-armed.
+    // Dropping to AVAILABLE(2) is a disengage (< DAS_APSTATE_ENGAGED) -> re-arms (#108).
+    s.das_ap_state = 2;
+    fsd_abort_guard_update(&s);
+    CHECK(s.abort_guard_latched == false, "AVAILABLE(2) disengage: latch cleared");
+    CHECK(fsd_abort_guard_allows(&s) == true, "AVAILABLE(2): re-armed, allows");
+
+    // Re-latch, then confirm a full disengage (das_ap_state < 2) also clears.
+    s.das_ap_state = DAS_APSTATE_ABORTING;
+    fsd_abort_guard_update(&s);
+    CHECK(s.abort_guard_latched == true, "re-latched for clean-disengage check");
     s.das_ap_state = 1;
     fsd_abort_guard_update(&s);
     CHECK(s.abort_guard_latched == false, "clean disengage: latch cleared");
@@ -1248,14 +1258,19 @@ static void test_legacy(void) {
     CHECK(
         fsd_handle_legacy_autopilot(&s, &f, 2000) == false,
         "legacy AP-first: blocked, AP not engaged");
-    s.das_ap_state = 2; // engaged, but...
+    s.das_ap_state = 2; // AVAILABLE = offered, NOT engaged (#108)
+    s.ap_unstable_tick_ms = 2000;
+    CHECK(
+        fsd_handle_legacy_autopilot(&s, &f, 3200) == false,
+        "legacy AP-first: blocked, AVAILABLE(2) not engaged");
+    s.das_ap_state = 3; // ACTIVE_NOMINAL = first engaged, but...
     s.ap_unstable_tick_ms = 2000; // ...only just became stable
     CHECK(
         fsd_handle_legacy_autopilot(&s, &f, 2500) == false,
         "legacy AP-first: blocked, not stable yet (500ms)");
     CHECK(
         fsd_handle_legacy_autopilot(&s, &f, 3000) != false,
-        "legacy AP-first: allowed, stable >= 1000ms");
+        "legacy AP-first: allowed, engaged + stable >= 1000ms");
 
     // fsd_ap_first_allows() directly
     FSDState g;
@@ -1263,13 +1278,99 @@ static void test_legacy(void) {
     CHECK(fsd_ap_first_allows(&g, 5000) == true, "ap_first off -> always allowed");
     g.ap_first = true;
     g.das_ap_state = 1;
-    CHECK(fsd_ap_first_allows(&g, 5000) == false, "ap_first: AVAIL(1) not enough");
-    g.das_ap_state = 2;
+    CHECK(fsd_ap_first_allows(&g, 5000) == false, "ap_first: UNAVAIL-flicker(1) not enough");
+    g.das_ap_state = 2; // AVAILABLE — offered but NOT engaged (#108 bug fix)
     g.ap_unstable_tick_ms = 1000;
-    CHECK(fsd_ap_first_allows(&g, 1500) == false, "ap_first: 500ms < debounce -> block");
-    CHECK(fsd_ap_first_allows(&g, 2000) == true, "ap_first: 1000ms >= debounce -> allow");
-    g.das_ap_state = 3;
-    CHECK(fsd_ap_first_allows(&g, 5000) == true, "ap_first: active(3) + stable -> allow");
+    CHECK(
+        fsd_ap_first_allows(&g, 5000) == false,
+        "ap_first: AVAILABLE(2) blocks even when 'stable'");
+    g.das_ap_state = 3; // ACTIVE_NOMINAL — first genuinely engaged
+    g.ap_unstable_tick_ms = 1000;
+    CHECK(
+        fsd_ap_first_allows(&g, 1500) == false, "ap_first: engaged but 500ms < debounce -> block");
+    CHECK(
+        fsd_ap_first_allows(&g, 2000) == true,
+        "ap_first: engaged(3) + 1000ms >= debounce -> allow");
+    g.das_ap_state = 6;
+    CHECK(fsd_ap_first_allows(&g, 5000) == true, "ap_first: active(6) + stable -> allow");
+
+    // Instant Engage (ap_first_edge, #129/#108): inject at engage onset, skip the
+    // AP_FIRST_STABLE_MS debounce. Still blocks until AP is actually engaged (>=3).
+    FSDState e;
+    memset(&e, 0, sizeof(e));
+    e.ap_first = true;
+    e.ap_first_edge = true;
+    e.das_ap_state = 2; // AVAILABLE — offered but NOT engaged
+    e.ap_unstable_tick_ms = 5000;
+    CHECK(fsd_ap_first_allows(&e, 5000) == false, "instant engage: AVAILABLE(2) still blocks");
+    e.das_ap_state = 3; // engaged this instant (tick == now, 0ms held)
+    e.ap_unstable_tick_ms = 5000;
+    CHECK(
+        fsd_ap_first_allows(&e, 5000) == true,
+        "instant engage: engaged(3) allows immediately, no debounce");
+    e.ap_first_edge = false; // toggle off -> debounce re-applies
+    CHECK(
+        fsd_ap_first_allows(&e, 5000) == false,
+        "instant engage off: engaged(3) but 0ms < debounce -> block");
+    e.das_ap_state = 2; // and still blocks at AVAILABLE(2) with edge on
+    e.ap_first_edge = true;
+    e.ap_unstable_tick_ms = 5000;
+    CHECK(
+        fsd_ap_first_allows(&e, 5000) == false,
+        "instant engage: AVAILABLE(2) blocks in both modes");
+
+    // Minimal Inject (ap_first_minimal, #108/#129): limit AP-enable injection to a
+    // brief burst at engage, then stop until disengage — off the abort edge.
+    // ap_first_edge on so the AP-First debounce is skipped and each engaged frame
+    // is judged purely by the burst budget.
+    FSDState m;
+    memset(&m, 0, sizeof(m));
+    m.ap_first = true;
+    m.ap_first_edge = true; // skip debounce; engaged frames allowed immediately
+    m.ap_first_minimal = true; // limit to AP_MINIMAL_INJECT_FRAMES per engagement
+    m.das_ap_state = 3; // engaged
+    m.ap_unstable_tick_ms = 5000;
+    CANFRAME mf;
+    zero(&mf);
+    mf.data_lenght = 8;
+    mf.buffer[0] = 1; // mux=1 -> always modified when gates pass (nag suppress)
+    for(unsigned i = 0; i < AP_MINIMAL_INJECT_FRAMES; i++) {
+        mf.buffer[0] = 1;
+        CHECK(
+            fsd_handle_legacy_autopilot(&m, &mf, 5000) != false, "minimal: burst frame modified");
+    }
+    CHECK(m.ap_inject_count == AP_MINIMAL_INJECT_FRAMES, "minimal: burst budget fully spent");
+    mf.buffer[0] = 1;
+    CHECK(
+        fsd_handle_legacy_autopilot(&m, &mf, 5000) == false,
+        "minimal: injection stops once budget spent");
+    mf.buffer[0] = 1;
+    CHECK(
+        fsd_handle_legacy_autopilot(&m, &mf, 6000) == false,
+        "minimal: stays stopped for rest of engagement");
+    // Disengage re-arms: the platform reset (das_ap_state < ENGAGED) zeroes the counter.
+    m.das_ap_state = 2; // AVAILABLE -> disengaged
+    m.ap_inject_count = 0; // reset block re-arms the burst
+    m.das_ap_state = 3; // engage again
+    mf.buffer[0] = 1;
+    CHECK(
+        fsd_handle_legacy_autopilot(&m, &mf, 7000) != false,
+        "minimal: re-armed after disengage, modifies again");
+    // Toggle off -> continuous injection (every frame), no burst cap.
+    FSDState mc;
+    memset(&mc, 0, sizeof(mc));
+    mc.ap_first = true;
+    mc.ap_first_edge = true;
+    mc.ap_first_minimal = false; // continuous
+    mc.das_ap_state = 3;
+    mc.ap_unstable_tick_ms = 5000;
+    for(unsigned i = 0; i < AP_MINIMAL_INJECT_FRAMES + 3u; i++) {
+        mf.buffer[0] = 1;
+        CHECK(
+            fsd_handle_legacy_autopilot(&mc, &mf, 5000) != false,
+            "minimal off: injection continues every frame");
+    }
+    CHECK(mc.ap_inject_count == 0, "minimal off: counter untouched when toggle off");
 
     // fsd_soft_engage_allows() — steer-jerk soft engage (#108)
     FSDState se;
@@ -1971,6 +2072,36 @@ static void test_state_init(void) {
     CHECK(s.hw_version == TeslaHW_HW4, "init applies HW4");
 }
 
+// ── black-box capture ID filter (#124) ───────────────────────────────────────
+static void test_blackbox_filter(void) {
+    // Every key id in the curated set is recorded.
+    for(size_t i = 0; i < FSD_BLACKBOX_KEY_ID_COUNT; i++)
+        CHECK(
+            fsd_blackbox_should_record(FSD_BLACKBOX_KEY_IDS[i]),
+            "key id 0x%lX recorded",
+            (unsigned long)FSD_BLACKBOX_KEY_IDS[i]);
+
+    // The abort / steer-jerk analysis ids must be present (the whole point).
+    CHECK(fsd_blackbox_should_record(CAN_ID_EPAS_STATUS), "0x370 EPAS in set");
+    CHECK(fsd_blackbox_should_record(CAN_ID_DAS_STATUS_HW3), "0x399 DAS_status HW3 in set");
+    CHECK(fsd_blackbox_should_record(CAN_ID_DAS_STATUS), "0x39B DAS_status HW4 in set");
+    CHECK(fsd_blackbox_should_record(CAN_ID_DAS_STEER), "0x488 DAS_steeringControl in set");
+    CHECK(fsd_blackbox_should_record(CAN_ID_STEER_ANGLE), "0x129 steering angle in set");
+    CHECK(fsd_blackbox_should_record(CAN_ID_AP_LEGACY), "0x3EE AP legacy in set");
+    CHECK(fsd_blackbox_should_record(CAN_ID_AP_CONTROL), "0x3FD AP control in set");
+    CHECK(fsd_blackbox_should_record(CAN_ID_ESP_STATUS), "0x145 brake in set");
+    CHECK(fsd_blackbox_should_record(0x238u), "0x238 map limit in set");
+    CHECK(fsd_blackbox_should_record(CAN_ID_DAS_STATUS2), "0x389 ACC limit in set");
+    CHECK(fsd_blackbox_should_record(CAN_ID_DAS_CONTROL), "0x2B9 DAS_control in set");
+    CHECK(fsd_blackbox_should_record(CAN_ID_DI_SYS_STATUS), "0x118 state in set");
+
+    // Chatty non-diagnostic frames are dropped (the ~15x rate cut).
+    CHECK(!fsd_blackbox_should_record(CAN_ID_BMS_HV_BUS), "0x132 BMS dropped");
+    CHECK(!fsd_blackbox_should_record(CAN_ID_ESP_WHEELSPD), "0x175 wheel speeds dropped");
+    CHECK(!fsd_blackbox_should_record(0x000), "0x000 dropped");
+    CHECK(!fsd_blackbox_should_record(0x7FF), "0x7FF dropped");
+}
+
 int main(void) {
     printf("test_fsd_core: Tesla FSD protocol core host tests\n");
     test_set_bit();
@@ -2012,6 +2143,7 @@ int main(void) {
     test_extras_and_builders();
     test_profile();
     test_state_init();
+    test_blackbox_filter();
 
     printf("\n%d passed, %d failed\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;

@@ -16,6 +16,6 @@ With BKIN off, paddle input is logged but not sent to the rig.
 ---
 Assign short messages to Up, Down, Left, Right, and OK. Use them for field exchanges, not essays.
 
-If logging is enabled, entries go to x6extx6hamx6morse- flipper- ham- keyer- YYYY MM DD.txt.
+If logging is enabled, entries go to x6extx6apps_datax6morse_flipperx6morse- flipper- ham- keyer- YYYY MM DD.txt.
 
 You get one file each day.

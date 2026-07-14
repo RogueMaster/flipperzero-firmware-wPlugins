@@ -52,12 +52,15 @@ constexpr int FALLDAMAGESCALING = 0x08;
 constexpr int RANDOMTICKSPEED = 10;
 constexpr int SMELTTIME = 0xC0;
 constexpr int MAX_MOBS = 6;
+constexpr int MOB_CHUNK_CAP = 3; // spawn density: max mobs per chunk
 constexpr int MOBWIDTH = 14;
 constexpr int MOB_HURT_TICKS = 12; // ~1 s of damage flash at the 80 ms tick
 constexpr int MOB_ATTACK_COOL = 12; // ticks between touch attacks
 constexpr int MOB_FUSE_TICKS = 26; // ~2 s exploder wind-up, flashes and swells
 constexpr int MOB_BLAST_RANGE = 40; // 2.5 blocks, Chebyshev, in sub-pixels
 constexpr int MOB_BLAST_DMG = 7; // ~90% of MAXHEALTH
+constexpr int MOB_DEADZONE = 12; // sub-px a chase target may stray before re-aim
+constexpr int MOB_RETARGET_TICKS = 6; // ~0.5 s reaction delay between re-aims
 constexpr int DYNAMITE_FUSE_TICKS = 38; // ~3 s at the 80 ms tick
 constexpr int LEAVES_SAPLING_PROBABILITY = 50;
 constexpr int LEAVES_STICK_PROBABILITY = 70;
@@ -259,6 +262,9 @@ enum Texture : uint8_t {
     TEX_CREEPERTOP = 0x98,
     TEX_DYNAMITE = 0x99,
     TEX_DYNAMITETOP = 0x9A,
+    TEX_BEEFRONT = 0x9B,
+    TEX_BEESIDE = 0x9C,
+    TEX_BEETOP = 0x9D,
 };
 
 enum Quad : uint8_t {
@@ -299,8 +305,6 @@ constexpr uint8_t TS_OVERLAY = 0b0001;
 
 constexpr int SCREEN_WIDTH = 128;
 constexpr int SCREEN_HEIGHT = 64;
-constexpr int UI_WIDTH = 96;
-constexpr int UI_X_OFFSET = (SCREEN_WIDTH - UI_WIDTH) / 2;
 constexpr int LENS = 56;
 constexpr int CLIP = 3;
 
@@ -433,6 +437,8 @@ private:
     bool ensureRegion();
 };
 
+// Bit 0 of each byte is the pixel colour; the 3D rasterizer keeps its z-depth
+// in bits 1-7 of the same byte (see Renderer::zbuf), 2D UI writes plain 0/1.
 struct Framebuffer {
     uint8_t px[SCREEN_HEIGHT][SCREEN_WIDTH];
     void clear() {
@@ -467,14 +473,14 @@ struct MeshEntry {
 const MeshEntry& meshBlock(uint8_t blockId);
 const MeshEntry& meshItem(uint8_t blockOrItemHighNibbleId);
 
-constexpr uint8_t MOB_SHEEP = 0, MOB_WOLF = 1, MOB_CREEPER = 2, MOB_SPECIES = 3;
+constexpr uint8_t MOB_SHEEP = 0, MOB_WOLF = 1, MOB_CREEPER = 2, MOB_BEE = 3, MOB_SPECIES = 4;
 constexpr uint8_t MOB_IDLE = 0, MOB_WANDER = 1, MOB_CHASE = 2, MOB_FLEE = 3;
 constexpr uint8_t TEMPER_PASSIVE = 0, TEMPER_NEUTRAL = 1, TEMPER_HOSTILE = 2;
 
 struct MobSpec {
     uint8_t texFront, texSide, texTop;
     uint8_t prey; // bitmask of species this one hunts (1 << species)
-    uint8_t info; // bit0 exploder | temperament << 1
+    uint8_t info; // bit0 exploder | temperament << 1 | bit3 flyer
     uint8_t hpDmg; // max HP << 4 | touch damage (0 = never bites)
     uint8_t geom; // (collision height / 2) << 4 | speed, px per tick
 };
@@ -487,9 +493,6 @@ struct MobBox {
     uint8_t sx, sy, sz, flags;
 };
 const MobBox* mobBoxes(uint8_t species, int& count);
-
-// yaw*2 -> facing index (NEGX,POSX,NEGZ,POSZ = 0..3), 2-bit fields
-constexpr uint32_t MOB_YAW_FACE = 0xF55AA00Fu;
 
 // Result packed as type << 8 | count, 0 = no recipe.
 uint16_t craftTable(const ItemCell grid[9]);

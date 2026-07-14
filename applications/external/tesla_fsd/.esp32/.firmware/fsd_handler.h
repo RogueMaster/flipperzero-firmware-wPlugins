@@ -38,6 +38,12 @@ bool fsd_can_transmit(const FSDState *state);
  *  injection is allowed when ap_first is on. */
 #define AP_FIRST_STABLE_MS 1000u
 
+// Minimal Inject (#108): when ap_first_minimal is on, only this many AP-enable
+// frames are injected at the start of each engagement, then injection stops until
+// the car disengages — moving injection to engage onset and off the later abort
+// edge. A few frames reliably trigger FSD; tunable. (Value matches fsd_logic.)
+#define AP_MINIMAL_INJECT_FRAMES 5u
+
 /** AP-First gate: true if injection is allowed now. When ap_first is off, always
  *  true. When on, requires das_ap_state >= 2 stable for AP_FIRST_STABLE_MS.
  *  now_ms = millis(); ap_unstable_tick_ms is stamped whenever das_ap_state < 2. */

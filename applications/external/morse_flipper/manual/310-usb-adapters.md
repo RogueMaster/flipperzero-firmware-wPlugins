@@ -15,8 +15,8 @@ Keyboard and mouse modes are compatibility modes. They work with almost anything
 Open `Settings → USB`.
 
 - `Connection`: `None` leaves the computer alone. `Keyboard` sends HID key presses. `Mouse` sends mouse button presses. `MIDI` exposes Flipper as `Morse Flipper MIDI`. Changing this reconnects USB, so give the computer a moment to notice.
-- `Paddle keys`: used only in `Keyboard` mode for dit and dah. Pick the pair the site expects. VBand uses `[ ]`; other tools may prefer `X Z`, `Ctrl-s`, `. /`, or another pair. This setting does not change the real paddle wiring, only the fake keyboard output.
-- `Straight key`: used only in `Keyboard` mode when the app sends a straight-key note. Choose `Space`, `X`, `Z`, `C`, `Enter`, or `Num enter` to match the target app.
+- `Paddle keys`: used only in `Keyboard` mode for dit and dah. Pick the pair the site expects. VBand uses `[ ]`; other tools may prefer `X Z`, `Ctrl-s`, `. /`, or another pair. On AZERTY or QWERTZ hosts, use the matching `X Z azerty (FR)` or `X Z qwertz (DE)` preset if the site expects X/Z. This setting does not change the real paddle wiring, only the fake keyboard output.
+- `Straight key`: used only in `Keyboard` mode when the app sends a straight-key note. Choose `Space`, `X`, `Z`, `C`, `Enter`, or `Num enter` to match the target app. On AZERTY or QWERTZ hosts, use `Z azerty (FR)` or `Z qwertz (DE)` if the site expects Z.
 - `Invert mouse`: used only in `Mouse` mode. It swaps left and right mouse buttons, because some tools make the obvious choice and some apparently had a longer lunch.
 
 ## Vail MIDI
