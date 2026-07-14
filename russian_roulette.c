@@ -40,30 +40,62 @@ typedef struct {
     FuriMutex* mutex;
 } RouletteState;
 
-static const NotificationSequence sequence_click = {
-    &message_vibro_on,
-    &message_delay_10,
-    &message_vibro_off,
+// Cocking the hammer at game start — two rising clicks.
+static const NotificationSequence sequence_start = {
+    &message_note_a5,
+    &message_delay_25,
+    &message_sound_off,
+    &message_delay_50,
+    &message_note_e6,
+    &message_delay_25,
+    &message_sound_off,
     NULL,
 };
 
+// Trigger pull on an empty chamber — a sharp click + vibro, then a soft "phew".
+static const NotificationSequence sequence_click = {
+    &message_vibro_on,
+    &message_note_e6,
+    &message_delay_10,
+    &message_sound_off,
+    &message_vibro_off,
+    &message_delay_50,
+    &message_note_c5,
+    &message_delay_50,
+    &message_sound_off,
+    NULL,
+};
+
+// The shot — a loud low bang with a red flash, then a descending game-over motif.
 static const NotificationSequence sequence_bang = {
     &message_vibro_on,
     &message_red_255,
-    &message_note_c4,
+    &message_note_c3,
     &message_delay_250,
     &message_sound_off,
     &message_vibro_off,
+    &message_delay_100,
+    &message_note_gs3,
+    &message_delay_100,
+    &message_sound_off,
+    &message_note_f3,
+    &message_delay_100,
+    &message_sound_off,
+    &message_note_c3,
+    &message_delay_250,
+    &message_sound_off,
     &message_red_0,
     NULL,
 };
 
+// Spinning the cylinder — a fast descending ratchet of clicks.
 static const NotificationSequence sequence_spin = {
-    &message_note_a4,
-    &message_delay_50,
-    &message_note_c4,
-    &message_delay_50,
-    &message_sound_off,
+    &message_note_c6,  &message_delay_10, &message_sound_off, &message_delay_10,
+    &message_note_a5,  &message_delay_10, &message_sound_off, &message_delay_10,
+    &message_note_fs5, &message_delay_10, &message_sound_off, &message_delay_10,
+    &message_note_d5,  &message_delay_10, &message_sound_off, &message_delay_10,
+    &message_note_a4,  &message_delay_10, &message_sound_off, &message_delay_10,
+    &message_note_e4,  &message_delay_10, &message_sound_off,
     NULL,
 };
 
@@ -229,6 +261,7 @@ int32_t russian_roulette_app(void* p) {
                     if(in->key == InputKeyOk) {
                         roulette_spin(state);
                         state->screen = ScreenReady;
+                        notification_message(notifications, &sequence_start);
                     } else if(in->key == InputKeyBack) {
                         running = false;
                     }
