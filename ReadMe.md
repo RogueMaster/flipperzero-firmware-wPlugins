@@ -31,6 +31,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-07-13 22:25 EST`
 - Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-07-13 22:25 EST`
 - Updated: [PocketLab v1.5 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
+- Updated: [ProtoPirate v3.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 
 <a name="release"></a>
 
