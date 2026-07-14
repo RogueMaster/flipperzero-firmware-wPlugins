@@ -79,12 +79,12 @@ This software is for experimental purposes only and is not meant for any illegal
 - Sub-GHz: [Fix for Out of Memory crashes in Sub-Ghz (By Lechnio)](https://github.com/Next-Flip/Momentum-Firmware/pull/569)
 - Added: [BreachMap v1.0 (By Gerijacki)](https://github.com/Gerijacki/BreachMap)
 - Added: [Password Keyboard v0.1 (By evgeniyraev)](https://github.com/evgeniyraev/password_keyboard)
-- Updated: [Tesla Mod v2.16b16 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: Sub-GHz: [Fix for Out of Memory crashes in Sub-Ghz (By Lechnio)](https://github.com/Next-Flip/Momentum-Firmware/pull/569)
 - Updated: [Morse Flipper v0.1.76 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - Added: [Period Tracker v1.0 (By gorshunovr)](https://github.com/gorshunovr/period_tracker)
 - Added: [JAYX PC Monitor v0.3 (By contactjayclatty)](https://github.com/contactjayclatty/JAYX)
 - Updated: [PocketLab v1.5 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
+- Updated: [Tesla Mod v2.16b16 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
 

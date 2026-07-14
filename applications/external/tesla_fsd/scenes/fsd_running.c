@@ -170,6 +170,7 @@ static int32_t fsd_running_worker(void* context) {
     state.tlssc_restore = app->tlssc_restore;
     state.ap_first = app->ap_first;
     state.ap_first_edge = app->ap_first_edge;
+    state.ap_first_minimal = app->ap_first_minimal;
     state.soft_engage = app->soft_engage;
     state.gtw_tier_override = app->gtw_tier_override;
     state.scroll_press_ap = app->scroll_press_ap;
@@ -269,6 +270,7 @@ static int32_t fsd_running_worker(void* context) {
         if(state.das_ap_state < DAS_APSTATE_ENGAGED) {
             state.ap_unstable_tick_ms = now;
             state.soft_engage_latched = false; // re-require centred wheel next engage (#108)
+            state.ap_inject_count = 0; // re-arm Minimal Inject burst next engage (#108)
         }
         fsd_abort_guard_update(&state); // latch off injection if the car aborts (#108)
         if((now - last_err_check) >= furi_ms_to_ticks(250)) {

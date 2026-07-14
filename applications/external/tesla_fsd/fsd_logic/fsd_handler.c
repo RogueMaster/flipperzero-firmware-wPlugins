@@ -216,6 +216,10 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
     // Abort Guard: once the car has entered an abort state this engagement, stop
     // injecting so we don't feed/repeat the abort that snaps the wheel (#108).
     if(!fsd_abort_guard_allows(state)) return false;
+    // Minimal Inject: once the per-engagement burst budget is spent, stop modifying
+    // for the rest of this engagement so injection stays at engage onset, off the
+    // later abort edge. ap_inject_count is reset to 0 on disengage (#108).
+    if(state->ap_first_minimal && state->ap_inject_count >= AP_MINIMAL_INJECT_FRAMES) return false;
 
     uint8_t mux = fsd_read_mux_id(frame);
     bool fsd_ui = fsd_is_selected_in_ui(frame, state->force_fsd);
@@ -294,7 +298,10 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
         }
     }
 
-    if(modified) state->frames_modified++;
+    if(modified) {
+        state->frames_modified++;
+        if(state->ap_first_minimal) state->ap_inject_count++; // spend one burst frame (#108)
+    }
     return modified;
 }
 
@@ -324,6 +331,9 @@ bool fsd_handle_legacy_autopilot(FSDState* state, CANFRAME* frame, uint32_t now_
     if(!fsd_soft_engage_allows(state)) return false;
     // Abort Guard: stop injecting once an abort was seen this engagement (#108).
     if(!fsd_abort_guard_allows(state)) return false;
+    // Minimal Inject: stop modifying once this engagement's burst budget is spent,
+    // so injection lands at engage onset, not the later abort edge (#108).
+    if(state->ap_first_minimal && state->ap_inject_count >= AP_MINIMAL_INJECT_FRAMES) return false;
 
     uint8_t mux = fsd_read_mux_id(frame);
     bool fsd_ui = fsd_is_selected_in_ui(frame, state->force_fsd);
@@ -343,7 +353,10 @@ bool fsd_handle_legacy_autopilot(FSDState* state, CANFRAME* frame, uint32_t now_
         modified = true;
     }
 
-    if(modified) state->frames_modified++;
+    if(modified) {
+        state->frames_modified++;
+        if(state->ap_first_minimal) state->ap_inject_count++; // spend one burst frame (#108)
+    }
     return modified;
 }
 

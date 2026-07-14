@@ -88,6 +88,7 @@ typedef struct {
     bool tlssc_restore; // 0x331 DAS config spoof to restore TLSSC
     bool ap_first; // 2026.14.x: delay injection until AP is engaged
     bool ap_first_edge; // experimental Instant Engage: inject at AP-engage onset, skip the 1s debounce (#129/#108)
+    bool ap_first_minimal; // experimental Minimal Inject: brief AP-enable burst at engage then stop, off the abort edge (#108/#129)
     bool soft_engage; // steer-jerk: hold activation until wheel centred (#108)
     bool nag_epas_faithful; // 2026.14.x experimental: mirror the in-the-wild 0x370 scheme (no handsOnLevel flip; torque centred at 0 Nm with live variance)
     bool firmware_14x_warning; // 2026.14.x: show TX-disables-AP warning in running scene (default ON, opt-out for pre-14.x users)

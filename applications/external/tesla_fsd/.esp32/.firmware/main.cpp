@@ -1061,6 +1061,7 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
     if (g_state.das_ap_state < DAS_APSTATE_ENGAGED) {
         g_state.ap_unstable_tick_ms = millis();
         g_state.soft_engage_latched = false;  // re-require centred wheel next engage (#108)
+        g_state.ap_inject_count = 0;          // re-arm Minimal Inject burst next engage (#108)
     }
     fsd_abort_guard_update(&g_state);  // latch off injection if the car aborts (#108)
     // Black-box event-core poll (#124): once per frame, reading das_ap_state as
@@ -1285,7 +1286,13 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
     if (frame.id == CAN_ID_AP_LEGACY && state_snapshot().hw_version == TeslaHW_Legacy) {
         CanFrame f = frame;
         state_enter();
-        bool modified = fsd_handle_legacy_autopilot(&g_state, &f);
+        // Minimal Inject (#108): once this engagement's burst budget is spent, stop
+        // modifying the 0x3EE frame so injection stays at engage onset, off the abort
+        // edge. ap_inject_count counts injected frames and resets to 0 on disengage.
+        bool minimal_ok = !(g_state.ap_first_minimal &&
+                            g_state.ap_inject_count >= AP_MINIMAL_INJECT_FRAMES);
+        bool modified = minimal_ok && fsd_handle_legacy_autopilot(&g_state, &f);
+        if (modified && ap_ok && g_state.ap_first_minimal) g_state.ap_inject_count++;
         state_exit();
         if (modified && tx && ap_ok) send_on_bus(bus, f);
         return;
@@ -1354,7 +1361,12 @@ static void process_frame(CanBusId bus, const CanFrame &frame) {
     if (frame.id == CAN_ID_AP_CONTROL) {
         CanFrame f = frame;
         state_enter();
-        bool modified = fsd_handle_autopilot_frame(&g_state, &f);
+        // Minimal Inject (#108): stop modifying 0x3FD once the burst budget is spent
+        // this engagement, keeping injection off the abort edge. Resets on disengage.
+        bool minimal_ok = !(g_state.ap_first_minimal &&
+                            g_state.ap_inject_count >= AP_MINIMAL_INJECT_FRAMES);
+        bool modified = minimal_ok && fsd_handle_autopilot_frame(&g_state, &f);
+        if (modified && ap_ok && g_state.ap_first_minimal) g_state.ap_inject_count++;
         state_exit();
         if (modified && tx && ap_ok) send_on_bus(bus, f);
         return;

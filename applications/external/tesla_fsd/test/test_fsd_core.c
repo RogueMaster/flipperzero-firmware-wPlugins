@@ -1319,6 +1319,59 @@ static void test_legacy(void) {
         fsd_ap_first_allows(&e, 5000) == false,
         "instant engage: AVAILABLE(2) blocks in both modes");
 
+    // Minimal Inject (ap_first_minimal, #108/#129): limit AP-enable injection to a
+    // brief burst at engage, then stop until disengage — off the abort edge.
+    // ap_first_edge on so the AP-First debounce is skipped and each engaged frame
+    // is judged purely by the burst budget.
+    FSDState m;
+    memset(&m, 0, sizeof(m));
+    m.ap_first = true;
+    m.ap_first_edge = true; // skip debounce; engaged frames allowed immediately
+    m.ap_first_minimal = true; // limit to AP_MINIMAL_INJECT_FRAMES per engagement
+    m.das_ap_state = 3; // engaged
+    m.ap_unstable_tick_ms = 5000;
+    CANFRAME mf;
+    zero(&mf);
+    mf.data_lenght = 8;
+    mf.buffer[0] = 1; // mux=1 -> always modified when gates pass (nag suppress)
+    for(unsigned i = 0; i < AP_MINIMAL_INJECT_FRAMES; i++) {
+        mf.buffer[0] = 1;
+        CHECK(
+            fsd_handle_legacy_autopilot(&m, &mf, 5000) != false, "minimal: burst frame modified");
+    }
+    CHECK(m.ap_inject_count == AP_MINIMAL_INJECT_FRAMES, "minimal: burst budget fully spent");
+    mf.buffer[0] = 1;
+    CHECK(
+        fsd_handle_legacy_autopilot(&m, &mf, 5000) == false,
+        "minimal: injection stops once budget spent");
+    mf.buffer[0] = 1;
+    CHECK(
+        fsd_handle_legacy_autopilot(&m, &mf, 6000) == false,
+        "minimal: stays stopped for rest of engagement");
+    // Disengage re-arms: the platform reset (das_ap_state < ENGAGED) zeroes the counter.
+    m.das_ap_state = 2; // AVAILABLE -> disengaged
+    m.ap_inject_count = 0; // reset block re-arms the burst
+    m.das_ap_state = 3; // engage again
+    mf.buffer[0] = 1;
+    CHECK(
+        fsd_handle_legacy_autopilot(&m, &mf, 7000) != false,
+        "minimal: re-armed after disengage, modifies again");
+    // Toggle off -> continuous injection (every frame), no burst cap.
+    FSDState mc;
+    memset(&mc, 0, sizeof(mc));
+    mc.ap_first = true;
+    mc.ap_first_edge = true;
+    mc.ap_first_minimal = false; // continuous
+    mc.das_ap_state = 3;
+    mc.ap_unstable_tick_ms = 5000;
+    for(unsigned i = 0; i < AP_MINIMAL_INJECT_FRAMES + 3u; i++) {
+        mf.buffer[0] = 1;
+        CHECK(
+            fsd_handle_legacy_autopilot(&mc, &mf, 5000) != false,
+            "minimal off: injection continues every frame");
+    }
+    CHECK(mc.ap_inject_count == 0, "minimal off: counter untouched when toggle off");
+
     // fsd_soft_engage_allows() — steer-jerk soft engage (#108)
     FSDState se;
     memset(&se, 0, sizeof(se));

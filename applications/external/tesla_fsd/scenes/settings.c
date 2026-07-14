@@ -61,6 +61,13 @@ static void ap_first_edge_changed(VariableItem* item) {
     app->ap_first_edge = (idx == 1);
 }
 
+static void ap_first_minimal_changed(VariableItem* item) {
+    TeslaFSDApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, toggle_text[idx]);
+    app->ap_first_minimal = (idx == 1);
+}
+
 static void nag_faithful_changed(VariableItem* item) {
     TeslaFSDApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
@@ -205,6 +212,7 @@ void tesla_fsd_scene_settings_on_enter(void* context) {
     ADD_TOGGLE("TLSSC Restore", tlssc_restore_changed, tlssc_restore)
     ADD_TOGGLE("AP-First (14.x)", ap_first_changed, ap_first)
     ADD_TOGGLE("Instant Engage (exp.)", ap_first_edge_changed, ap_first_edge)
+    ADD_TOGGLE("Minimal Inject (exp.)", ap_first_minimal_changed, ap_first_minimal)
     ADD_TOGGLE("Soft Engage", soft_engage_changed, soft_engage)
     ADD_TOGGLE("Nag Burst (14.x)", nag_burst_changed, nag_burst)
     ADD_TOGGLE("On 14.x?", warning_14x_changed, firmware_14x_warning)

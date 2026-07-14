@@ -16,6 +16,7 @@ void prefs_load(FSDState *state) {
     state->continuous_ap            = g_prefs.getBool("contap", false);
     state->ap_first                 = g_prefs.getBool("apfirst",false);
     state->ap_first_edge            = g_prefs.getBool("apfe",   false);
+    state->ap_first_minimal         = g_prefs.getBool("apmi",   false);
     state->nag_epas_faithful        = g_prefs.getBool("nagf",   false);
     state->soft_engage              = g_prefs.getBool("soft",   false);
     state->nag_burst                = g_prefs.getBool("nagb",   false);
@@ -81,6 +82,7 @@ void prefs_save(const FSDState *state) {
     g_prefs.putBool("contap", state->continuous_ap);
     g_prefs.putBool("apfirst",state->ap_first);
     g_prefs.putBool("apfe",   state->ap_first_edge);
+    g_prefs.putBool("apmi",   state->ap_first_minimal);
     g_prefs.putBool("nagf",   state->nag_epas_faithful);
     g_prefs.putBool("soft",   state->soft_engage);
     g_prefs.putBool("nagb",   state->nag_burst);

@@ -445,6 +445,10 @@ input:checked+.sl2:before{transform:translateX(20px);background:#fff}
     <label class="sw"><input type="checkbox" id="swApFe" onchange="cmd('ap_first_edge',this.checked)"><span class="sl2"></span></label>
   </div>
   <div class="row">
+    <span class="lbl">Minimal Inject (exp.)</span>
+    <label class="sw"><input type="checkbox" id="swApMi" onchange="cmd('ap_first_minimal',this.checked)"><span class="sl2"></span></label>
+  </div>
+  <div class="row">
     <span class="lbl">Nag EPAS-faithful (14.x, exp.)</span>
     <label class="sw"><input type="checkbox" id="swNagF" onchange="cmd('nag_faithful',this.checked)"><span class="sl2"></span></label>
   </div>
@@ -925,6 +929,7 @@ function upd(d){
   if(document.getElementById('swContinuousAp')) document.getElementById('swContinuousAp').checked=d.continuous_ap;
   if(document.getElementById('swApFirst')) document.getElementById('swApFirst').checked=d.ap_first;
   if(document.getElementById('swApFe')) document.getElementById('swApFe').checked=d.ap_first_edge;
+  if(document.getElementById('swApMi')) document.getElementById('swApMi').checked=d.ap_first_minimal;
   if(document.getElementById('swNagF')) document.getElementById('swNagF').checked=d.nag_faithful;
   if(document.getElementById('swSoft')) document.getElementById('swSoft').checked=d.soft_engage;
   if(document.getElementById('swNagB')) document.getElementById('swNagB').checked=d.nag_burst;
@@ -1500,6 +1505,7 @@ static String build_json() {
     j += "\"continuous_ap\":"; j += state.continuous_ap                 ? "true" : "false"; j += ',';
     j += "\"ap_first\":";      j += state.ap_first                      ? "true" : "false"; j += ',';
     j += "\"ap_first_edge\":"; j += state.ap_first_edge                 ? "true" : "false"; j += ',';
+    j += "\"ap_first_minimal\":"; j += state.ap_first_minimal           ? "true" : "false"; j += ',';
     j += "\"nag_faithful\":";  j += state.nag_epas_faithful             ? "true" : "false"; j += ',';
     j += "\"soft_engage\":";   j += state.soft_engage                  ? "true" : "false"; j += ',';
     j += "\"nag_burst\":";     j += state.nag_burst                    ? "true" : "false"; j += ',';
@@ -1688,6 +1694,18 @@ static void ws_event(uint8_t num, WStype_t type,
             saved = *g_state;
             state_exit();
             Serial.printf("[Web] Instant Engage: %s\n", enabled ? "ON" : "OFF");
+            prefs_save(&saved);
+        }
+    } else if (strstr(buf, "\"ap_first_minimal\"")) {
+        if (vptr) {
+            while (*vptr == ' ' || *vptr == ':') vptr++;
+            bool enabled = (strncmp(vptr, "true", 4) == 0);
+            FSDState saved;
+            state_enter();
+            g_state->ap_first_minimal = enabled;
+            saved = *g_state;
+            state_exit();
+            Serial.printf("[Web] Minimal Inject: %s\n", enabled ? "ON" : "OFF");
             prefs_save(&saved);
         }
     } else if (strstr(buf, "\"nag_faithful\"")) {

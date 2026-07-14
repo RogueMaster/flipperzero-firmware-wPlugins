@@ -74,6 +74,12 @@ TeslaHWVersion fsd_detect_hw_version(const CANFRAME* frame);
 // activation edge (the steer-jerk window). Mirrors ev-open-can-tools v3.0.2-beta.2 (1 s).
 #define AP_FIRST_STABLE_MS 1000u
 
+// Minimal Inject (#108): when ap_first_minimal is on, only this many AP-enable
+// frames are modified at the start of each engagement, then injection stops until
+// the car disengages. This moves injection to engage onset and off the later abort
+// edge (the steer-jerk window). A few frames reliably trigger FSD; tunable.
+#define AP_MINIMAL_INJECT_FRAMES 5u
+
 /** AP-First gate. Returns true if injection is permitted right now: either
  *  AP-First is off, or AP is engaged (das_ap_state >= DAS_APSTATE_ENGAGED) and has
  *  been stable for >= AP_FIRST_STABLE_MS. now_ms is a millisecond clock;
