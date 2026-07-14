@@ -36,7 +36,8 @@ All notable changes to this project are documented here. The format is based on
 
 ### Fixed
 
-- The About screen now always shows the current version.
+- The About screen now always shows the current version. The version lives in a
+  single place that the app binary, the catalog and the About screen all read.
 
 ## [1.3] - 2026-07-09
 

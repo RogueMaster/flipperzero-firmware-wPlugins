@@ -7,7 +7,6 @@
 #include "../helpers/pocketlab_fonts.h"
 #include "../helpers/pocketlab_i18n.h"
 #include "../helpers/pocketlab_sound.h"
-#include "../pocketlab_version.h"
 
 #define ABOUT_PERIOD_MS  40
 #define ABOUT_MATRIX_END 38 // ~1.5 s of matrix rain before the terminal boots
@@ -88,7 +87,7 @@ static const AboutLine about_lines_en[] = {
     {NULL, 0, "teaches the Flipper Zero", 0},
     {NULL, 0, "features.", 0},
     {NULL, 0, "", 0},
-    {about_icon_version, 9, "Version: " POCKETLAB_VERSION, 0},
+    {about_icon_version, 9, "Version: " FAP_VERSION, 0},
     {about_icon_copyright, 9, "Author: PerfectoWeb", 0},
     {about_icon_github, 9, "github.com/PerfectoWeb/", 0},
     {NULL, 0, "flipper-pocketlab", 0},
@@ -102,7 +101,7 @@ static const AboutLine about_lines_ru[] = {
     {NULL, 0, "радиочастотам и", 0},
     {NULL, 0, "Флипперу.", 0},
     {NULL, 0, "", 0},
-    {about_icon_version, 9, "Версия: " POCKETLAB_VERSION, 0},
+    {about_icon_version, 9, "Версия: " FAP_VERSION, 0},
     {about_icon_copyright, 9, "Автор: PerfectoWeb", 0},
     {about_icon_github, 9, "github.com/", 0},
     {NULL, 0, "PerfectoWeb/", 0},
