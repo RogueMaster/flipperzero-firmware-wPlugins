@@ -1,0 +1,93 @@
+{
+  "components": [
+    {
+      "partno": "SI7021",
+      "desc": "Humidity and temperature sensor.",
+      "type": 22,
+      "manufacturer": "SiliconLabs",
+      "date": "2012"
+    },
+    {
+      "partno": "HDC1008",
+      "desc": "Humidity and temperature sensor.",
+      "type": 22,
+      "manufacturer": "Texas Inst.",
+      "date": "2014"
+    },
+    {
+      "partno": "BMP180",
+      "desc": "Barometric pressure sensor.",
+      "type": 22,
+      "manufacturer": "Bosch",
+      "date": "2010"
+    },
+    {
+      "partno": "BMP280",
+      "desc": "Pressure and temperature sensor.",
+      "type": 22,
+      "manufacturer": "Bosch",
+      "date": "2013"
+    },
+    {
+      "partno": "PCA9685",
+      "desc": "PWM driver.",
+      "type": 12,
+      "manufacturer": "NXP Semi",
+      "date": "2010"
+    },
+    {
+      "partno": "INA219",
+      "desc": "Current and power sensor.",
+      "type": 22,
+      "manufacturer": "Texas Inst.",
+      "date": "2010"
+    },
+    {
+      "partno": "ADS1115",
+      "desc": "16-bit ADC.",
+      "type": 2,
+      "manufacturer": "Texas Inst.",
+      "date": "2012"
+    },
+    {
+      "partno": "HTU21D-F",
+      "desc": "Humidity and temperature sensor.",
+      "type": 22,
+      "manufacturer": "TE Conn.",
+      "date": "2013"
+    },
+    {
+      "partno": "TMP006",
+      "desc": "IR temperature sensor.",
+      "type": 22,
+      "manufacturer": "Texas Inst.",
+      "date": "2011"
+    },
+    {
+      "partno": "TMP007",
+      "desc": "IR temperature sensor.",
+      "type": 22,
+      "manufacturer": "Texas Inst.",
+      "date": "2014"
+    },
+    {
+      "partno": "INA260",
+      "desc": "Current and power sensor",
+      "type": 22,
+      "manufacturer": "Texas Inst.",
+      "date": "2018"
+    },
+    {
+      "partno": "MS8607",
+      "desc": "Pressure, temperature, and humidity sensor",
+      "type": 22,
+      "manufacturer": "TE Conn.",
+      "date": "2015"
+    }
+  ],
+  "unique_types": [
+    22,
+    12,
+    2
+  ]
+}

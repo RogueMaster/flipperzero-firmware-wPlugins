@@ -1,0 +1,14 @@
+App(
+    appid="chief_cooker",
+    name="Chief Cooker",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="chief_cooker_app",
+    stack_size=2 * 1024,
+    fap_icon="chief_cooker.png",
+    fap_category="Sub-GHz",
+    fap_author="Denr01",
+    fap_weburl="https://github.com/denr01/FZ-ChiefCooker",
+    fap_version="1.1",
+    fap_description="This app supports receiving, decoding, editing and sending restaurant pager signals.",
+    #  v1.1: [Add channel scanner, targeted RAM fixes, fix build script (By swimmer-303)](https://github.com/denr01/FZ-ChiefCooker/pull/4)
+)

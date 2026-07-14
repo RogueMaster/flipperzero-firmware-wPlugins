@@ -1,0 +1,14 @@
+App(
+    appid="space_travel_calculator",
+    name="Space Travel Calculator",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="space_travel_calculator_app",
+    stack_size=4 * 1024,
+    sources=["space_travel_calculator.c", "calculations.c"],
+    fap_icon="space_travel_calculator.png",
+    fap_category="Tools",
+    fap_author="ejfox",
+    fap_weburl="https://github.com/ejfox/flipper-space-calculators",
+    fap_version="1.0",
+    fap_description="KSP-style interplanetary transfer planner",
+)

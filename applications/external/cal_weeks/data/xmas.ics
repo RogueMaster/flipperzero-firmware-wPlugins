@@ -1,0 +1,66 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Simple Calendar//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+COMMENT:Test calendar with Christmas events including an all-day event
+
+BEGIN:VEVENT
+UID:fullday-20251224@example.com
+DTSTAMP:20251201T000000Z
+DTSTART;VALUE=DATE:20251224
+DTEND;VALUE=DATE:20251225
+SUMMARY:Heiligabend (ganztägig)
+DESCRIPTION:Ganztägiger Weihnachtstag ohne feste Uhrzeit
+COMMENT:All-day event for testing purposes
+CATEGORIES:Feiertag,Familie
+END:VEVENT
+
+BEGIN:VEVENT
+UID:church-20051224@example.com
+DTSTAMP:20251201T000000Z
+DTSTART:20251224T160000
+DTEND:20251224T170000
+SUMMARY:Besuch der Christmette
+DESCRIPTION:Gemeinsamer Besuch der Christmette in der Kirche
+LOCATION:Pfarrkirche St. Martin
+COMMENT:Religious service before the evening activities
+CATEGORIES:Kirche,Familie
+END:VEVENT
+
+BEGIN:VEVENT
+UID:christmas-20051224@example.com
+DTSTAMP:20251201T000000Z
+DTSTART:20251224T180000
+DTEND:20251224T235900
+SUMMARY:Heiligabend
+DESCRIPTION:Weihnachtsabend mit der Familie
+COMMENT:Main family event on Christmas Eve
+CATEGORIES:Familie
+END:VEVENT
+
+BEGIN:VEVENT
+UID:dinner-20051224@example.com
+DTSTAMP:20251201T000000Z
+DTSTART:20251224T193000
+DTEND:20251224T213000
+SUMMARY:Weihnachtsessen
+DESCRIPTION:Festliches Abendessen mit der Familie
+LOCATION:Zuhause
+COMMENT:Traditional Christmas dinner
+CATEGORIES:Essen,Familie
+END:VEVENT
+
+BEGIN:VEVENT
+UID:present-20051224@example.com
+DTSTAMP:20251201T000000Z
+DTSTART:20251224T213000
+DTEND:20251224T223000
+SUMMARY:Bescherung
+DESCRIPTION:Geschenke auspacken und gemeinsame Zeit
+LOCATION:Wohnzimmer
+COMMENT:Gift exchange after dinner
+CATEGORIES:Familie
+END:VEVENT
+
+END:VCALENDAR

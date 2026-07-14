@@ -1,0 +1,14 @@
+{
+  "components": [
+    {
+      "partno": "MAG3110",
+      "desc": "3-axis magnetometer.",
+      "type": 22,
+      "manufacturer": "NXP Semi",
+      "date": "2011"
+    }
+  ],
+  "unique_types": [
+    22
+  ]
+}

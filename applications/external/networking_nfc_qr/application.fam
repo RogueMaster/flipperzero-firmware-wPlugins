@@ -1,0 +1,14 @@
+App(
+    appid="networking_nfc_qr",
+    name="Networking NFC + QR",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="networking_nfc_qr_app_entry",
+    stack_size=16 * 1024,
+    fap_icon="icons/qrcode_10px.png",
+    fap_category="NFC",
+    fap_author="DonJulve",
+    fap_weburl="https://github.com/DonJulve/Networking_NFC_QR_Flipper_Zero",
+    fap_version="1.0",
+    fap_description="This app allows users to manage NFC, and QR codes directly on the Flipper Zero.",
+)

@@ -22,30 +22,20 @@ void flipbip_scene_menu_on_enter(void* context) {
 
     if(flipbip_has_file(FlipBipFileKey, NULL, false) &&
        flipbip_has_file(FlipBipFileDat, NULL, false)) {
-        submenu_add_item(
-            app->submenu,
-            "View BTC wallet",
-            SubmenuIndexScene1BTC,
-            flipbip_scene_menu_submenu_callback,
-            app);
-        submenu_add_item(
-            app->submenu,
-            "View ETH wallet",
-            SubmenuIndexScene1ETH,
-            flipbip_scene_menu_submenu_callback,
-            app);
-        submenu_add_item(
-            app->submenu,
-            "View DOGE wallet",
-            SubmenuIndexScene1DOGE,
-            flipbip_scene_menu_submenu_callback,
-            app);
-        submenu_add_item(
-            app->submenu,
-            "View ZEC (t-addr) wallet",
-            SubmenuIndexScene1ZEC,
-            flipbip_scene_menu_submenu_callback,
-            app);
+        for(uint32_t coin_type = 0; coin_type < NUM_COINS; coin_type++) {
+            char wallet_menu_item[17] = "View      wallet";
+            strncpy(
+                wallet_menu_item + 5,
+                COIN_TEXT_ARRAY[coin_type][COIN_TEXT_LABEL],
+                strlen(COIN_TEXT_ARRAY[coin_type][COIN_TEXT_LABEL]));
+            submenu_add_item(
+                app->submenu,
+                wallet_menu_item,
+                coin_type,
+                flipbip_scene_menu_submenu_callback,
+                app);
+        }
+
         submenu_add_item(
             app->submenu,
             "Regenerate wallet",
@@ -85,36 +75,12 @@ bool flipbip_scene_menu_on_event(void* context, SceneManagerEvent event) {
         view_dispatcher_stop(app->view_dispatcher);
         return true;
     } else if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == SubmenuIndexScene1BTC) {
+        if(event.event < SubmenuIndexScene1New) {
             app->overwrite_saved_seed = 0;
             app->import_from_mnemonic = 0;
-            app->bip44_coin = FlipBipCoinBTC0;
+            app->coin_type = event.event; // CoinType
             scene_manager_set_scene_state(
-                app->scene_manager, FlipBipSceneMenu, SubmenuIndexScene1BTC);
-            scene_manager_next_scene(app->scene_manager, FlipBipSceneScene_1);
-            return true;
-        } else if(event.event == SubmenuIndexScene1ETH) {
-            app->overwrite_saved_seed = 0;
-            app->import_from_mnemonic = 0;
-            app->bip44_coin = FlipBipCoinETH60;
-            scene_manager_set_scene_state(
-                app->scene_manager, FlipBipSceneMenu, SubmenuIndexScene1ETH);
-            scene_manager_next_scene(app->scene_manager, FlipBipSceneScene_1);
-            return true;
-        } else if(event.event == SubmenuIndexScene1DOGE) {
-            app->overwrite_saved_seed = 0;
-            app->import_from_mnemonic = 0;
-            app->bip44_coin = FlipBipCoinDOGE3;
-            scene_manager_set_scene_state(
-                app->scene_manager, FlipBipSceneMenu, SubmenuIndexScene1DOGE);
-            scene_manager_next_scene(app->scene_manager, FlipBipSceneScene_1);
-            return true;
-        } else if(event.event == SubmenuIndexScene1ZEC) {
-            app->overwrite_saved_seed = 0;
-            app->import_from_mnemonic = 0;
-            app->bip44_coin = FlipBipCoinZEC133;
-            scene_manager_set_scene_state(
-                app->scene_manager, FlipBipSceneMenu, SubmenuIndexScene1ZEC);
+                app->scene_manager, FlipBipSceneMenu, event.event); // CoinType
             scene_manager_next_scene(app->scene_manager, FlipBipSceneScene_1);
             return true;
         } else if(event.event == SubmenuIndexScene1New) {

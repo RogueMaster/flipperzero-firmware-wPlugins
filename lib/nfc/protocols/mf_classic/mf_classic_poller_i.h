@@ -3,12 +3,12 @@
 #include "mf_classic_poller.h"
 #include <lib/nfc/protocols/iso14443_3a/iso14443_3a_poller_i.h>
 #include <bit_lib/bit_lib.h>
-#include "nfc/helpers/iso14443_crc.h"
+#include <nfc/helpers/iso14443_crc.h>
 #include <nfc/helpers/crypto1.h>
 #include <stream/stream.h>
 #include <stream/buffered_file_stream.h>
-#include "keys_dict.h"
-#include "helpers/nfc_util.h"
+#include <toolbox/keys_dict.h>
+#include <helpers/nfc_util.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,32 +47,6 @@ typedef enum {
     MfClassicCardStateDetected,
     MfClassicCardStateLost,
 } MfClassicCardState;
-
-typedef enum {
-    MfClassicNestedPhaseNone,
-    MfClassicNestedPhaseAnalyzePRNG,
-    MfClassicNestedPhaseDictAttack,
-    MfClassicNestedPhaseDictAttackResume,
-    MfClassicNestedPhaseCalibrate,
-    MfClassicNestedPhaseRecalibrate,
-    MfClassicNestedPhaseCollectNtEnc,
-    MfClassicNestedPhaseFinished,
-} MfClassicNestedPhase;
-
-typedef enum {
-    MfClassicPrngTypeUnknown, // Tag not yet tested
-    MfClassicPrngTypeNoTag, // No tag detected during test
-    MfClassicPrngTypeWeak, // Weak PRNG, standard Nested
-    MfClassicPrngTypeHard, // Hard PRNG, Hardnested
-} MfClassicPrngType;
-
-typedef enum {
-    MfClassicBackdoorUnknown, // Tag not yet tested
-    MfClassicBackdoorNone, // No observed backdoor
-    MfClassicBackdoorAuth1, // Tag responds to v1 auth backdoor
-    MfClassicBackdoorAuth2, // Tag responds to v2 auth backdoor
-    MfClassicBackdoorAuth3, // Tag responds to v3 auth backdoor (static encrypted nonce)
-} MfClassicBackdoor;
 
 typedef struct {
     MfClassicKey key;
@@ -154,11 +128,14 @@ typedef struct {
     uint8_t current_sector;
     MfClassicKey current_key;
     MfClassicKeyType current_key_type;
+    MfClassicKeyType requested_key_type; // Key type requested from app (for CUID mode)
     bool auth_passed;
     uint16_t current_block;
     uint8_t reuse_key_sector;
     MfClassicBackdoor backdoor;
+    MfClassicPollerMode mode; // Current attack mode
     // Enhanced dictionary attack and nested nonce collection
+    bool enhanced_dict;
     MfClassicNestedPhase nested_phase;
     MfClassicKey nested_known_key;
     MfClassicKeyType nested_known_key_type;
@@ -206,6 +183,7 @@ struct MfClassicPoller {
 
     MfClassicType current_type_check;
     uint8_t sectors_total;
+    MfClassicPollerMode mode;
     MfClassicPollerModeContext mode_ctx;
 
     Crypto1* crypto;

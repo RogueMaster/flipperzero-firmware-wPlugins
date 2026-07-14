@@ -1,0 +1,13 @@
+0,1,Neuilly Porte Maillot
+0,2,Avenue Foch
+0,3,Avenue Henri Martin
+0,4,Boulainvilliers
+0,5,Avenue du President Kennedy Maison de Radio France
+0,12,Neuilly Porte Maillot
+1,1,Pereire Levallois
+2,1,Porte de Clichy
+3,1,Saint-Ouen
+4,1,Les Gresillons
+5,1,Gennevilliers
+6,1,Epinay-sur-Seine
+7,1,Saint-Gratien

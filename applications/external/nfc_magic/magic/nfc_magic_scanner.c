@@ -6,8 +6,11 @@
 #include "protocols/gen2/gen2_poller.h"
 #include "protocols/gen4/gen4_poller.h"
 #include <nfc/nfc_poller.h>
+#include <nfc/protocols/iso14443_3a/iso14443_3a.h>
 
 #include <furi/furi.h>
+
+#define TAG "NfcMagicScanner"
 
 typedef enum {
     NfcMagicScannerSessionStateIdle,
@@ -22,6 +25,8 @@ struct NfcMagicScanner {
 
     Gen4Password gen4_password;
     Gen4* gen4_data;
+    Gen2Type gen2_type;
+    uint8_t gen1_uid_len;
     bool magic_protocol_detected;
 
     NfcMagicScannerCallback callback;
@@ -39,6 +44,8 @@ static const NfcProtocol nfc_magic_scanner_not_magic_protocols[] = {
 static void nfc_magic_scanner_reset(NfcMagicScanner* instance) {
     instance->session_state = NfcMagicScannerSessionStateIdle;
     instance->current_protocol = NfcMagicProtocolGen1;
+    instance->gen2_type = Gen2TypeUnknown;
+    instance->gen1_uid_len = 0;
 }
 
 NfcMagicScanner* nfc_magic_scanner_alloc(Nfc* nfc) {
@@ -64,6 +71,29 @@ void nfc_magic_scanner_set_gen4_password(NfcMagicScanner* instance, Gen4Password
     instance->gen4_password = password;
 }
 
+// Reads the card's UID length (4 or 7) via a standard ISO14443-3A activation, or 0 if
+// it can't be determined. Gen1's backdoor wakeup is UID-length-agnostic, so this
+// resolves the anticollision cascade to tell 4-byte and 7-byte Gen1 tags apart.
+static uint8_t nfc_magic_scanner_read_uid_len(Nfc* nfc) {
+    uint8_t uid_len = 0;
+    NfcPoller* poller = nfc_poller_alloc(nfc, NfcProtocolIso14443_3a);
+    if(nfc_poller_detect(poller)) {
+        const Iso14443_3aData* data = nfc_poller_get_data(poller);
+        uid_len = data->uid_len;
+        if(uid_len != 4 && uid_len != 7) {
+            // Not a Gen1-relevant length (e.g. 10-byte or garbage): treat as unknown.
+            FURI_LOG_E(TAG, "Unexpected Gen1 UID length %u", (unsigned)uid_len);
+            uid_len = 0;
+        }
+    } else {
+        // Backdoor responded but standard activation failed (card moved?). Length stays
+        // 0 ("unknown") and callers fall back to 4-byte / skip the length check.
+        FURI_LOG_E(TAG, "Gen1 detected but UID-length activation failed");
+    }
+    nfc_poller_free(poller);
+    return uid_len;
+}
+
 static int32_t nfc_magic_scanner_worker(void* context) {
     furi_assert(context);
 
@@ -75,6 +105,7 @@ static int32_t nfc_magic_scanner_worker(void* context) {
             if(instance->current_protocol == NfcMagicProtocolGen1) {
                 instance->magic_protocol_detected = gen1a_poller_detect(instance->nfc);
                 if(instance->magic_protocol_detected) {
+                    instance->gen1_uid_len = nfc_magic_scanner_read_uid_len(instance->nfc);
                     break;
                 }
             } else if(instance->current_protocol == NfcMagicProtocolGen4) {
@@ -88,9 +119,11 @@ static int32_t nfc_magic_scanner_worker(void* context) {
                     break;
                 }
             } else if(instance->current_protocol == NfcMagicProtocolGen2) {
-                Gen2PollerError error = gen2_poller_detect(instance->nfc);
+                Gen2Type gen2_type = Gen2TypeUnknown;
+                Gen2PollerError error = gen2_poller_detect_type(instance->nfc, &gen2_type);
                 instance->magic_protocol_detected = (error == Gen2PollerErrorNone);
                 if(instance->magic_protocol_detected) {
+                    instance->gen2_type = gen2_type;
                     break;
                 }
             } else if(instance->current_protocol == NfcMagicProtocolClassic) {
@@ -107,6 +140,8 @@ static int32_t nfc_magic_scanner_worker(void* context) {
             NfcMagicScannerEvent event = {
                 .type = NfcMagicScannerEventTypeDetected,
                 .data.protocol = instance->current_protocol,
+                .data.gen2_type = instance->gen2_type,
+                .data.gen1_uid_len = instance->gen1_uid_len,
             };
             instance->callback(event, instance->context);
             break;

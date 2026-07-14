@@ -1,0 +1,13 @@
+App(
+    appid="lightning_distance",
+    name="Lightning Distance",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="lightning_distance_app",
+    stack_size=1 * 1024,
+    fap_icon="lightning_distance_10px.png",
+    fap_category="Tools",
+    fap_author="HyperMuffin12",
+    fap_weburl="https://github.com/HyperMuffin12/Flipper-Lightning-Distance",
+    fap_version="0.1",
+    fap_description="An app that calculates the distance of a lightning strike based on time between seeing the flash and hearing the thunderclap.",
+)

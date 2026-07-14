@@ -22,20 +22,26 @@ class GitVersion:
 
         dirty = False
         try:
-            self._exec_git("diff --quiet")
+            self._exec_git("diff HEAD --quiet")  # Check both staged and not
         except subprocess.CalledProcessError as e:
             if e.returncode == 1:
                 dirty = True
+
+        try:
+            tag = self._exec_git("describe --tags --abbrev=0 --exact-match")
+        except subprocess.CalledProcessError:
+            tag = ""
 
         # If WORKFLOW_BRANCH_OR_TAG is set in environment, is has precedence
         # (set by CI)
         branch = (
             os.environ.get("WORKFLOW_BRANCH_OR_TAG", None)
-            or self._exec_git("rev-parse --abbrev-ref HEAD")
+            or tag
+            or self._exec_git("rev-parse --abbrev-ref HEAD").removeprefix("rm-")
             or "unknown"
         )
 
-        version = os.environ.get("DIST_SUFFIX", None) or "0.104.1"
+        version = tag or "rm-420"
 
         if "SOURCE_DATE_EPOCH" in os.environ:
             commit_date = datetime.utcfromtimestamp(
@@ -51,18 +57,22 @@ class GitVersion:
             "GIT_COMMIT": commit,
             "GIT_BRANCH": branch,
             "VERSION": version,
-            "BUILD_DIRTY": 0,
-            "GIT_ORIGIN": "https://github.com/RogueMaster/flipperzero-firmware-wPlugins.git",
+            "BUILD_DIRTY": dirty and 1 or 0,
+            "GIT_ORIGIN": ",".join(self._get_git_origins()),
             "GIT_COMMIT_DATE": commit_date,
         }
 
-    # "GIT_ORIGIN": ",".join(self._get_git_origins()),
-
     def _get_git_origins(self):
         try:
-            remotes = self._exec_git("remote -v")
+            branch = self._exec_git("branch --show-current")
+            remote = self._exec_git(f"config branch.{branch}.remote")
+            origin = self._exec_git(f"remote get-url {remote}")
+            return set([origin])
         except subprocess.CalledProcessError:
-            return set()
+            try:
+                remotes = self._exec_git("remote -v")
+            except subprocess.CalledProcessError:
+                remotes = ""
         origins = set()
         for line in remotes.split("\n"):
             if not line:
@@ -70,7 +80,11 @@ class GitVersion:
             _, destination = line.split("\t")
             url, _ = destination.split(" ")
             origins.add(url)
-        return origins
+            break
+        if len(origins) == 1:
+            return origins
+        else:
+            return set(["https://github.com/RogueMaster/flipperzero-firmware-wPlugins"])
 
     def _exec_git(self, args):
         cmd = ["git"]

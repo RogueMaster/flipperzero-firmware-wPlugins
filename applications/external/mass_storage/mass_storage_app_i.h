@@ -19,9 +19,12 @@
 #include "views/mass_storage_view.h"
 #include <mass_storage_icons.h>
 
-#define MASS_STORAGE_APP_PATH_FOLDER STORAGE_APP_DATA_PATH_PREFIX
-#define MASS_STORAGE_APP_EXTENSION   ".img"
-#define MASS_STORAGE_FILE_NAME_LEN   40
+#define MASS_STORAGE_APP_PATH_FOLDER  STORAGE_APP_DATA_PATH_PREFIX
+#define MASS_STORAGE_APP_EXTENSION    ".img"
+#define MASS_STORAGE_FILE_NAME_LEN    40
+#define MASS_STORAGE_CONFIG_FILE_PATH MASS_STORAGE_APP_PATH_FOLDER "/usbconf.txt"
+
+#define TEXT_BUFFER_SIZE 128
 
 struct MassStorageApp {
     Gui* gui;
@@ -32,12 +35,14 @@ struct MassStorageApp {
     Popup* popup;
     DialogsApp* dialogs;
     TextInput* text_input;
+    char text_buffer[TEXT_BUFFER_SIZE];
     VariableItemList* variable_item_list;
     Loading* loading;
 
     FuriString* file_path;
     File* file;
     MassStorage* mass_storage_view;
+    void* mass_storage_config_ptr;
 
     FuriMutex* usb_mutex;
     MassStorageUsb* usb;

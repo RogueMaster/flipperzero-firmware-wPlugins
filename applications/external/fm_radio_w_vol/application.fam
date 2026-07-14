@@ -1,0 +1,21 @@
+App(
+    appid="fmradio_controller_pt2257",
+    name="FM Radio w Vol [TEA+PT]",
+    apptype=FlipperAppType.EXTERNAL,
+    sources=[
+        "src/fred_fm/**/*.c",
+        "src/drivers/**/*.c",
+        "!tools",
+        "!hooks",
+        "!backups",
+    ],
+    entry_point="fred_fm_app",
+    stack_size=4 * 1024,
+    fap_icon="radio.png",
+    fap_icon_assets="images",
+    fap_category="GPIO",
+    fap_author="coolshrimp & pchmielewski1",
+    fap_weburl="https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control",
+    fap_version="0.11",
+    fap_description="FM + RDS radio board app for controlling an FM receiver and (optionally) an external I2C volume controller",
+)

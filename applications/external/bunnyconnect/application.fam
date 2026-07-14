@@ -1,0 +1,18 @@
+App(
+    appid="bunnyconnect",
+    name="BunnyConnect",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="bunnyconnect_app",
+    stack_size=2 * 1024,
+    sources=[
+        "bunnyconnect.c",
+        "bunnyconnect_app.c",
+        "src/*.c",
+    ],
+    fap_icon="bunnyconnect.png",
+    fap_category="GPIO",
+    fap_author="C0d3-5t3w",
+    fap_weburl="https://github.com/C0d3-5t3w/flipper-bunnyconnect",
+    fap_version="1.0",
+    fap_description="USB serial communication tool",
+)

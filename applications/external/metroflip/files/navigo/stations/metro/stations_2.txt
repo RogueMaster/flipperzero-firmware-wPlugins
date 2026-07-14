@@ -1,0 +1,14 @@
+0,Rennes
+1,Hotel de Ville
+2,Cambronne
+3,Sevres-Lecourbe
+4,Segur
+6,Saint-Francois-Xavier
+7,Duroc
+8,Vaneau
+9,Sevres - Babylone
+10,Rue du Bac
+11,Rennes
+12,Saint-Sulpice
+14,Mabillon
+15,Saint-Germain-des-Pres

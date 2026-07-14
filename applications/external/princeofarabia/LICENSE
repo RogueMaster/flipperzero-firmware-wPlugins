@@ -1,0 +1,106 @@
+FlipperPrinceOfArabia License and Distribution Terms
+
+Copyright (c) 2026 Apfxtech
+
+This repository contains a Flipper Zero port related to the project
+"Press-Play-On-Tape/PrinceOfArabia". Not all material in this repository is
+distributed under the same terms.
+
+Read this entire file before using, modifying, distributing, or redistributing
+this repository or any binary built from it.
+
+1. Definitions
+
+"Original Contributions" means code, build glue, Flipper Zero integration,
+repository metadata, packaging, documentation, and other material authored by
+Apfxtech to the extent Apfxtech owns the relevant copyright.
+
+"Upstream-Derived Materials" means any code, assets, level data, music, images,
+text, gameplay data, or other material copied from, adapted from, based on, or
+otherwise derived from PrinceOfArabia or other non-Apfxtech sources.
+
+"Third-Party Components" means material in this repository that is provided
+under its own separate license or notice.
+
+2. License for Apfxtech Original Contributions
+
+Except for Upstream-Derived Materials, Third-Party Components, trademarks, trade
+dress, and any other rights not expressly granted, Apfxtech licenses the
+Original Contributions under the BSD 3-Clause License reproduced below.
+
+BSD 3-Clause License
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its contributors
+   may be used to endorse or promote products derived from this software without
+   specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+3. Terms for Upstream-Derived Materials
+
+Upstream-Derived Materials are not relicensed by Apfxtech under BSD 3-Clause.
+
+Upstream-Derived Materials included in this repository or in binaries built from
+this repository are distributed only under separate permission limited to the
+Flipper Zero platform.
+
+Accordingly, unless you have additional permission directly from the relevant
+rights holders, you may not:
+
+1. redistribute Upstream-Derived Materials for Arduboy or any platform other
+   than Flipper Zero;
+2. use this file as a basis to claim that the whole repository or the whole
+   binary is open source;
+3. remove the platform limitation applicable to Upstream-Derived Materials; or
+4. sublicense Upstream-Derived Materials under BSD 3-Clause, MIT, GPL, or any
+   other open-source license.
+
+If you redistribute a source tree, release archive, package, or binary
+containing Upstream-Derived Materials, that redistribution is authorized only
+for Flipper Zero versions of this project and only together with this license
+file and any other applicable notices.
+
+4. Combined Source Trees and Binaries
+
+This repository and its build outputs may contain both:
+
+1. Original Contributions licensed under BSD 3-Clause; and
+2. Upstream-Derived Materials distributed only for Flipper Zero under separate
+   permission.
+
+For that reason, the repository as a whole, and binaries as a whole, must not
+be described as being entirely under BSD 3-Clause or any other single
+open-source license.
+
+5. Third-Party Components
+
+Third-Party Components keep their own license terms. Those terms apply in
+addition to this file where relevant.
+6. No Trademark License
+
+No trademark or trade dress rights are granted by this file.
+
+7. If You Need Broader Rights
+
+If you need rights broader than those granted above, including rights to use or
+redistribute Upstream-Derived Materials outside the Flipper Zero platform, you
+must obtain permission from the relevant rights holders.

@@ -1,4 +1,6 @@
-#include "../minesweeper.h"
+#include "minesweeper.h"
+#include "scenes/minesweeper_scene.h"
+#include "minesweeper_redux_icons.h"
 
 typedef enum {
     MineSweeperSceneStartScreenContinueEvent,
@@ -9,14 +11,14 @@ bool minesweeper_scene_start_screen_input_callback(InputEvent* event, void* cont
     furi_assert(context);
 
     MineSweeperApp* app = context;
-    bool consumed = false;
 
-    if(event->key != InputKeyBack) {
-        consumed = scene_manager_handle_custom_event(
-            app->scene_manager, MineSweeperSceneStartScreenContinueEvent);
+    if(event->key == InputKeyOk && event->type == InputTypeShort) {
+        view_dispatcher_send_custom_event(
+            app->view_dispatcher, MineSweeperSceneStartScreenContinueEvent);
+        return true;
     }
 
-    return consumed;
+    return false;
 }
 
 void minesweeper_scene_start_screen_secondary_draw_callback(Canvas* canvas, void* _model) {
@@ -53,8 +55,8 @@ bool minesweeper_scene_start_screen_on_event(void* context, SceneManagerEvent ev
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == MineSweeperSceneStartScreenContinueEvent) {
-            mine_sweeper_game_screen_reset_clock(app->game_screen);
-            scene_manager_next_scene(app->scene_manager, MineSweeperSceneGameScreen);
+            app->generation_origin = MineSweeperGenerationOriginStart;
+            scene_manager_next_scene(app->scene_manager, MineSweeperSceneGenerating);
             consumed = true;
         }
     }

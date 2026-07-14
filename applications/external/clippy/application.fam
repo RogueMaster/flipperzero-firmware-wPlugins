@@ -1,0 +1,16 @@
+App(
+    appid="clippy",
+    name="Clippy",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="clippy_app",
+    stack_size=2 * 1024,
+    fap_icon="icon.png",
+    fap_icon_assets="resources/assets",
+    fap_file_assets="resources",
+    fap_libs=["ble_profile"],
+    fap_category="USB",
+    fap_author="mtormento",
+    fap_weburl="https://github.com/mtormento/clippy",
+    fap_version="0.1",
+    fap_description="Implements a shared clipboard",
+)

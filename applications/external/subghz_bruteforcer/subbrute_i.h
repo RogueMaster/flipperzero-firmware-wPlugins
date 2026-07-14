@@ -19,6 +19,8 @@
 
 #include <subghz_bruteforcer_icons.h>
 
+#include <assets_icons.h>
+
 #include <dialogs/dialogs.h>
 
 #include <notification/notification.h>
@@ -31,7 +33,7 @@
 #include "views/subbrute_attack_view.h"
 #include "views/subbrute_main_view.h"
 
-#define SUB_BRUTE_FORCER_VERSION "Sub-GHz BruteForcer 3.F"
+#define SUB_BRUTE_FORCER_VERSION "Sub-GHz BruteForcer 4.0"
 
 #ifdef FURI_DEBUG
 //#define SUBBRUTE_FAST_TRACK false

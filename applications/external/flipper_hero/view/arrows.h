@@ -5,10 +5,10 @@
 /*
     * Swaps the values of two integers.
     *
-    * @param xp The first integer.
-    * @param yp The second integer.
+    * @param a The first integer.
+    * @param b The second integer.
 */
-void swap(int* xp, int* yp);
+void swap(int32_t* a, int32_t* b);
 
 /**
  * Draws an arrow on the canvas, which can be either filled or empty.

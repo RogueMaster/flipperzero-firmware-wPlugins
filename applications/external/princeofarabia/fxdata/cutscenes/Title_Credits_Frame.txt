@@ -1,0 +1,3222 @@
+    Title_Credits_PoP_Frame[] = {
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 64, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 63, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 62, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 61, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 60, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 59, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 58, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 57, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 56, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 55, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 54, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 53, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 52, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 51, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 50, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 49, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 48, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 47, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 46, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 45, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 44, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 43, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 42, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 41, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 40, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 39, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 38, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 37, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 36, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 35, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 34, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 33, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 32, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 31, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 30, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 29, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 28, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 27, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 26, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 25, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 24, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 23, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 22, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 21, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 20, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 19, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 18, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 17, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 16, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 15, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 14, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 13, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 12, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 11, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 10, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 9, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 8, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 7, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 6, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 5, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 4, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 3, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 2, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 1, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 0, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -1, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -2, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -3, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -4, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -5, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -6, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -7, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -8, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -9, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -10, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -11, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -12, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -13, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -14, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -15, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -16, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -17, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -18, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -19, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -20, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -21, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -22, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -23, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -24, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -25, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -26, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -27, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -28, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -29, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -30, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -31, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -32, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -33, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -34, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -35, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -36, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -37, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -38, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -39, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -40, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -41, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -42, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -43, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -44, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -45, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -46, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -47, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -48, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -49, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -50, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -51, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -52, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -53, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -54, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -55, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -56, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -57, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -58, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -59, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -60, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -61, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -62, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -63, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -64, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -65, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -66, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -67, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -68, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -69, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -70, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -71, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -72, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -73, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -74, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -75, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -76, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -77, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -78, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -79, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -80, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -81, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -82, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -83, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -84, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -85, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -86, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -87, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -88, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -89, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -90, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -91, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -92, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -93, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -94, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -95, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -96, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -97, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -98, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -99, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -100, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -101, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -102, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -103, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -104, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -105, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -106, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -107, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -108, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -109, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -110, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -111, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -112, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -113, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -114, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -115, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -116, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -117, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -118, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -119, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -120, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -121, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -122, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -123, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -124, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -125, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -126, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -127, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -128, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -129, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -130, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -131, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -132, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -133, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -134, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -135, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -136, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoP,    int8_t 0, dbmMasked_last
+
+    }
+    Title_Credits_PoA_Frame[] = {
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 64, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 63, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 62, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 61, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 60, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 59, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 58, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 57, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 56, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 55, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 54, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 53, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 52, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 51, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 50, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 49, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 48, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 47, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 46, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 45, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 44, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 43, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 42, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 41, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 40, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 39, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 38, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 37, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 36, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 35, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 34, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 33, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 32, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 31, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 30, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 29, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 28, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 27, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 26, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 25, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 24, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 23, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 22, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 21, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 20, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 19, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 18, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 17, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 16, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 15, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 14, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 13, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 12, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 11, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 10, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 9, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 8, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 7, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 6, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 5, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 4, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 3, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, 2, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, 1, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, 0, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -1, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -2, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -3, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -4, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -5, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -6, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -7, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -8, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -9, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -10, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -11, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -12, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -13, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -14, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -15, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -16, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -17, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -18, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -19, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -20, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -21, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -22, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -23, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -24, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -25, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -26, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -27, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -28, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -29, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -30, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -31, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -32, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -33, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -34, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -35, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -36, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -37, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -38, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -39, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -40, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -41, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -42, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -43, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -44, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -45, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -46, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -47, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -48, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -49, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -50, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -51, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -52, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -53, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -54, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -55, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -56, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -57, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -58, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -59, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -60, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -61, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -62, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -63, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -64, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -65, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -66, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -67, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -68, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -69, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -70, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -71, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -72, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -73, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -74, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -75, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -76, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -77, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -78, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -79, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -80, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -81, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -82, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -83, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -84, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -85, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -86, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -87, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -88, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -89, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -90, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -91, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -92, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -93, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -94, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -95, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -96, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -97, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -98, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -99, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -100, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -101, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -102, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -103, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -104, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -105, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -106, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -107, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -108, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -109, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -110, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -111, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -112, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -113, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -114, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -115, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -116, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -117, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -118, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -119, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -120, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -121, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -122, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -123, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -124, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -125, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -126, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -127, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -128, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -129, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -130, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -131, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -132, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -133, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 0, dbmMasked
+        int16_t  27, -134, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 1, dbmMasked
+        int16_t  27, -135, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_end
+
+        int16_t   0, 54, uint24_t Credits_BG, uint8_t 0, dbmNormal
+        int16_t   7, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 119, 39, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  14, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t 112, 34, uint24_t Torches,    uint8_t 2, dbmMasked
+        int16_t  27, -136, uint24_t Title_Credits, uint8_t 0, dbmNormal
+        int16_t   0, 0, int24_t Title_PoA,    int8_t 0, dbmMasked_last
+
+    }

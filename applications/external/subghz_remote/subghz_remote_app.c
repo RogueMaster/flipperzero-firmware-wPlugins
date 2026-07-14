@@ -24,6 +24,9 @@ static void subghz_remote_make_app_folder(SubGhzRemoteApp* app) {
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
 
+    // Migrate old users data
+    storage_common_migrate(storage, EXT_PATH("unirf"), SUBREM_APP_FOLDER);
+
     if(!storage_simply_mkdir(storage, SUBREM_APP_FOLDER)) {
         // FURI_LOG_E(TAG, "Could not create folder %s", SUBREM_APP_FOLDER);
         dialog_message_show_storage_error(app->dialogs, "Cannot create\napp folder");
@@ -46,7 +49,6 @@ SubGhzRemoteApp* subghz_remote_app_alloc() {
     app->view_dispatcher = view_dispatcher_alloc();
 
     app->scene_manager = scene_manager_alloc(&subrem_scene_handlers, app);
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
@@ -65,6 +67,13 @@ SubGhzRemoteApp* subghz_remote_app_alloc() {
     app->submenu = submenu_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, SubRemViewIDSubmenu, submenu_get_view(app->submenu));
+
+    // Variable item list
+    app->var_item_list = variable_item_list_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        SubRemViewIDVariableItemList,
+        variable_item_list_get_view(app->var_item_list));
 
     // Dialog
     app->dialogs = furi_record_open(RECORD_DIALOGS);
@@ -119,6 +128,10 @@ void subghz_remote_app_free(SubGhzRemoteApp* app) {
     // Submenu
     view_dispatcher_remove_view(app->view_dispatcher, SubRemViewIDSubmenu);
     submenu_free(app->submenu);
+
+    // Variable item list
+    view_dispatcher_remove_view(app->view_dispatcher, SubRemViewIDVariableItemList);
+    variable_item_list_free(app->var_item_list);
 
     // Dialog
     furi_record_close(RECORD_DIALOGS);
@@ -175,6 +188,7 @@ int32_t subghz_remote_app(void* arg) {
 #ifdef FW_ORIGIN_Official
     const bool fw_ofw = strcmp(version_get_firmware_origin(version_get()), "Official") == 0;
 #endif
+    // Check for command-line argument first
     if((arg != NULL) && (strlen(arg) != 0)) {
         furi_string_set(subghz_remote_app->file_path, (const char*)arg);
         SubRemLoadMapState load_state = subrem_map_file_load(
@@ -187,8 +201,20 @@ int32_t subghz_remote_app(void* arg) {
             dialog_message_show_storage_error(subghz_remote_app->dialogs, "Cannot load\nmap file");
         }
     }
+    // Try loading default map if no argument provided
+    else if(subrem_load_default_path(subghz_remote_app)) {
+        SubRemLoadMapState load_state = subrem_map_file_load(
+            subghz_remote_app, furi_string_get_cstr(subghz_remote_app->file_path));
+
+        if(load_state == SubRemLoadMapStateOK || load_state == SubRemLoadMapStateNotAllOK) {
+            map_loaded = true;
+        }
+        // If default fails to load, silently fall through to file browser
+    }
 
     if(map_loaded) {
+        // Always push Start scene first so back button returns to menu
+        scene_manager_next_scene(subghz_remote_app->scene_manager, SubRemSceneStart);
         scene_manager_next_scene(subghz_remote_app->scene_manager, SubRemSceneRemote);
     } else {
         furi_string_set(subghz_remote_app->file_path, SUBREM_APP_FOLDER);

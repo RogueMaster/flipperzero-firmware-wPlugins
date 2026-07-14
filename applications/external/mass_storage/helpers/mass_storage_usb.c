@@ -1,5 +1,7 @@
 #include "mass_storage_usb.h"
 #include <furi_hal.h>
+#include <string.h>
+#include <stdlib.h>
 
 #define TAG "MassStorageUsb"
 
@@ -59,6 +61,11 @@ struct MassStorageUsb {
     FuriThread* thread;
     usbd_device* dev;
     SCSIDeviceFunc fn;
+    const MassStorageConfig* config;
+
+    // Dynamically allocated descriptors
+    struct usb_device_descriptor* dev_descr;
+    struct usb_string_descriptor* str_manuf_descr;
 };
 
 static int32_t mass_thread_worker(void* context) {
@@ -66,6 +73,7 @@ static int32_t mass_thread_worker(void* context) {
     usbd_device* dev = mass->dev;
     SCSISession scsi = {
         .fn = mass->fn,
+        .config = mass->config,
     };
     CBW cbw = {0};
     CSW csw = {0};
@@ -298,10 +306,14 @@ static void usb_deinit(usbd_device* dev) {
     furi_thread_free(mass->thread);
     mass->thread = NULL;
 
+    free(mass->usb.str_manuf_descr);
+    mass->usb.str_manuf_descr = NULL;
     free(mass->usb.str_prod_descr);
     mass->usb.str_prod_descr = NULL;
     free(mass->usb.str_serial_descr);
     mass->usb.str_serial_descr = NULL;
+    free(mass->dev_descr);
+    mass->dev_descr = NULL;
     free(mass);
 }
 
@@ -366,8 +378,6 @@ static usbd_respond usb_control(usbd_device* dev, usbd_ctlreq* req, usbd_rqc_cal
     return usbd_fail;
 }
 
-static const struct usb_string_descriptor dev_manuf_desc = USB_STRING_DESC("Flipper Devices Inc.");
-
 struct MassStorageDescriptor {
     struct usb_config_descriptor config;
     struct usb_interface_descriptor intf;
@@ -375,7 +385,7 @@ struct MassStorageDescriptor {
     struct usb_endpoint_descriptor ep_tx;
 } __attribute__((packed));
 
-static const struct usb_device_descriptor usb_mass_dev_descr = {
+static const struct usb_device_descriptor usb_mass_dev_descr_template = {
     .bLength = sizeof(struct usb_device_descriptor),
     .bDescriptorType = USB_DTYPE_DEVICE,
     .bcdUSB = VERSION_BCD(2, 0, 0),
@@ -436,42 +446,107 @@ static const struct MassStorageDescriptor usb_mass_cfg_descr = {
         },
 };
 
-MassStorageUsb* mass_storage_usb_start(const char* filename, SCSIDeviceFunc fn) {
+static struct usb_string_descriptor* create_string_descriptor(const char* str) {
+    if(!str) return NULL;
+
+    size_t len = strlen(str);
+    struct usb_string_descriptor* desc = malloc(len * 2 + 2);
+    if(!desc) return NULL;
+
+    desc->bLength = len * 2 + 2;
+    desc->bDescriptorType = USB_DTYPE_STRING;
+    for(size_t i = 0; i < len; i++) {
+        desc->wString[i] = str[i];
+    }
+    return desc;
+}
+
+MassStorageUsb* mass_storage_usb_start(
+    const char* filename,
+    SCSIDeviceFunc fn,
+    const MassStorageConfig* config) {
     MassStorageUsb* mass = malloc(sizeof(MassStorageUsb));
+    if(!mass) return NULL;
+
+    mass->config = config;
     mass->usb_prev = furi_hal_usb_get_config();
+
+    // Create a copy of the device descriptor template that we can modify
+    mass->dev_descr = malloc(sizeof(struct usb_device_descriptor));
+    if(!mass->dev_descr) {
+        free(mass);
+        return NULL;
+    }
+    memcpy(mass->dev_descr, &usb_mass_dev_descr_template, sizeof(struct usb_device_descriptor));
+
+    // Update USB VID/PID from config
+    if(config) {
+        if(config->usb_vendor_id != 0) {
+            mass->dev_descr->idVendor = config->usb_vendor_id;
+        }
+        if(config->usb_product_id != 0) {
+            mass->dev_descr->idProduct = config->usb_product_id;
+        }
+    }
+
     mass->usb.init = usb_init;
     mass->usb.deinit = usb_deinit;
     mass->usb.wakeup = usb_wakeup;
     mass->usb.suspend = usb_suspend;
-    mass->usb.dev_descr = (struct usb_device_descriptor*)&usb_mass_dev_descr;
-    mass->usb.str_manuf_descr = (void*)&dev_manuf_desc;
+    mass->usb.dev_descr = mass->dev_descr;
+    mass->usb.str_manuf_descr = NULL;
     mass->usb.str_prod_descr = NULL;
     mass->usb.str_serial_descr = NULL;
     mass->usb.cfg_descr = (void*)&usb_mass_cfg_descr;
 
-    const char* name = furi_hal_version_get_device_name_ptr();
-    if(!name) name = "Flipper Zero";
-    size_t len = strlen(name);
-    struct usb_string_descriptor* str_prod_descr = malloc(len * 2 + 2);
-    str_prod_descr->bLength = len * 2 + 2;
-    str_prod_descr->bDescriptorType = USB_DTYPE_STRING;
-    for(uint8_t i = 0; i < len; i++)
-        str_prod_descr->wString[i] = name[i];
-    mass->usb.str_prod_descr = str_prod_descr;
+    // Create manufacturer string descriptor
+    const char* manufacturer = NULL;
+    if(config && config->usb_manufacturer) {
+        manufacturer = config->usb_manufacturer;
+    } else {
+        manufacturer = "Flipper Devices Inc.";
+    }
+    mass->usb.str_manuf_descr = create_string_descriptor(manufacturer);
+    if(!mass->usb.str_manuf_descr) {
+        free(mass->dev_descr);
+        free(mass);
+        return NULL;
+    }
 
-    len = strlen(filename);
-    struct usb_string_descriptor* str_serial_descr = malloc(len * 2 + 2);
-    str_serial_descr->bLength = len * 2 + 2;
-    str_serial_descr->bDescriptorType = USB_DTYPE_STRING;
-    for(uint8_t i = 0; i < len; i++)
-        str_serial_descr->wString[i] = filename[i];
-    mass->usb.str_serial_descr = str_serial_descr;
+    // Create product string descriptor
+    const char* product_name = NULL;
+    if(config && config->usb_product) {
+        product_name = config->usb_product;
+    } else {
+        product_name = furi_hal_version_get_device_name_ptr();
+        if(!product_name) product_name = "Flipper Zero";
+    }
+    mass->usb.str_prod_descr = create_string_descriptor(product_name);
+    if(!mass->usb.str_prod_descr) {
+        free(mass->usb.str_manuf_descr);
+        free(mass->dev_descr);
+        free(mass);
+        return NULL;
+    }
+
+    // Create serial string descriptor
+    const char* usb_serial = (config && config->usb_serial) ? config->usb_serial : filename;
+    mass->usb.str_serial_descr = create_string_descriptor(usb_serial);
+    if(!mass->usb.str_serial_descr) {
+        free(mass->usb.str_prod_descr);
+        free(mass->usb.str_manuf_descr);
+        free(mass->dev_descr);
+        free(mass);
+        return NULL;
+    }
 
     mass->fn = fn;
     if(!furi_hal_usb_set_config(&mass->usb, mass)) {
         FURI_LOG_E(TAG, "USB locked, cannot start Mass Storage");
-        free(mass->usb.str_prod_descr);
         free(mass->usb.str_serial_descr);
+        free(mass->usb.str_prod_descr);
+        free(mass->usb.str_manuf_descr);
+        free(mass->dev_descr);
         free(mass);
         return NULL;
     }

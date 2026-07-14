@@ -1,0 +1,15 @@
+App(
+    appid="portal_of_flipper",
+    name="Portal Of Flipper",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="portal_of_flipper_app",
+    stack_size=5 * 1024,
+    fap_icon_assets="images",
+    fap_icon="portal_of_flipper.png",
+    fap_category="USB",
+    fap_author="bettse",
+    fap_weburl="https://gitlab.com/bettse/portal_of_flipper",
+    fap_version="1.3",
+    fap_description="USB emulator",
+    #  v1.1/v1.2: [Support for emulating xbox 360 portals & Use the backlight and RGB led to emulate the portals LEDs (By sanjay900)](https://github.com/sanjay900/portal_of_flipper)
+)

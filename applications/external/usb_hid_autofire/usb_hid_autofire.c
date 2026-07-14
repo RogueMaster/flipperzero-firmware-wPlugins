@@ -1,126 +1,187 @@
-#include <string.h>
-#include <furi.h>
-#include <furi_hal.h>
-#include <gui/gui.h>
-#include <input/input.h>
-#include "version.h"
-
-// Uncomment to be able to make a screenshot
-//#define USB_HID_AUTOFIRE_SCREENSHOT
-
-typedef enum {
-    EventTypeInput,
-} EventType;
-
-typedef struct {
-    union {
-        InputEvent input;
-    };
-    EventType type;
-} UsbMouseEvent;
-
-bool btn_left_autofire = false;
-uint32_t autofire_delay = 10;
-
-static void usb_hid_autofire_render_callback(Canvas* canvas, void* ctx) {
-    UNUSED(ctx);
-    char autofire_delay_str[12];
-    //std::string pi = "pi is " + std::to_string(3.1415926);
-    itoa(autofire_delay, autofire_delay_str, 10);
-    //sprintf(autofire_delay_str, "%lu", autofire_delay);
-
-    canvas_clear(canvas);
-
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 0, 10, "USB HID Autofire");
-    canvas_draw_str(canvas, 0, 34, btn_left_autofire ? "<active>" : "<inactive>");
-
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 90, 10, "v");
-    canvas_draw_str(canvas, 96, 10, VERSION);
-    canvas_draw_str(canvas, 0, 22, "Press [ok] for auto left clicking");
-    canvas_draw_str(canvas, 0, 46, "delay [ms]:");
-    canvas_draw_str(canvas, 50, 46, autofire_delay_str);
-    canvas_draw_str(canvas, 0, 63, "Press [back] to exit");
-}
-
-static void usb_hid_autofire_input_callback(InputEvent* input_event, void* ctx) {
-    FuriMessageQueue* event_queue = ctx;
-
-    UsbMouseEvent event;
-    event.type = EventTypeInput;
-    event.input = *input_event;
-    furi_message_queue_put(event_queue, &event, FuriWaitForever);
-}
+#include "usb_hid_autofire_i.h"
 
 int32_t usb_hid_autofire_app(void* p) {
     UNUSED(p);
-    FuriMessageQueue* event_queue = furi_message_queue_alloc(8, sizeof(UsbMouseEvent));
-    furi_check(event_queue);
-    ViewPort* view_port = view_port_alloc();
+    int32_t ret = -1;
+    bool gui_opened = false;
+    bool view_port_added = false;
+    bool usb_switched = false;
 
-    FuriHalUsbInterface* usb_mode_prev = furi_hal_usb_get_config();
+    UsbHidAutofireApp app = {
+        .event_queue = NULL,
+        .view_port = NULL,
+        .gui = NULL,
+        .dialogs = NULL,
+        .click_timer = NULL,
+        .ui_refresh_timer = NULL,
+        .settings_save_timer = NULL,
+        .usb_mode_prev = NULL,
+        .active = false,
+        .mouse_pressed = false,
+        .ui_dirty = true,
+        .settings_dirty = false,
+        .show_help = false,
+        .last_active_state = false,
+        .autofire_delay_ms = AUTOFIRE_DELAY_DEFAULT_MS,
+        .realtime_cps_x10 = 0U,
+        .last_click_release_tick_ms = 0U,
+        .last_click_interval_ms = 0U,
+        .adjust_hold_active = false,
+        .adjust_hold_key = InputKeyMAX,
+        .adjust_repeat_count = 0U,
+        .mode_hold_active = false,
+        .mode_hold_key = InputKeyMAX,
+        .ok_long_handled = false,
+        .back_long_handled = false,
+        .mode = AutofireModeMouseLeftClick,
+        .preset = AutofirePresetCustom,
+        .startup_policy = AutofireStartupPolicyPausedOnLaunch,
+        .click_phase = ClickPhasePress,
+    };
+
+    app.autofire_delay_ms = usb_hid_autofire_delay_clamp(app.autofire_delay_ms);
+    usb_hid_autofire_settings_load(&app);
+    usb_hid_autofire_reset_cps_tracking(&app);
+
+    app.event_queue = furi_message_queue_alloc(16, sizeof(UsbMouseEvent));
+    if(!app.event_queue) {
+        FURI_LOG_E(TAG, "Failed to allocate event queue");
+        goto cleanup;
+    }
+
+    app.view_port = view_port_alloc();
+    if(!app.view_port) {
+        FURI_LOG_E(TAG, "Failed to allocate viewport");
+        goto cleanup;
+    }
+
+    app.click_timer = furi_timer_alloc(usb_hid_autofire_timer_callback, FuriTimerTypeOnce, &app);
+    if(!app.click_timer) {
+        FURI_LOG_E(TAG, "Failed to allocate timer");
+        goto cleanup;
+    }
+
+    app.ui_refresh_timer =
+        furi_timer_alloc(usb_hid_autofire_ui_timer_callback, FuriTimerTypePeriodic, &app);
+    if(!app.ui_refresh_timer) {
+        FURI_LOG_E(TAG, "Failed to allocate UI refresh timer");
+        goto cleanup;
+    }
+
+    app.settings_save_timer =
+        furi_timer_alloc(usb_hid_autofire_settings_save_timer_callback, FuriTimerTypeOnce, &app);
+    if(!app.settings_save_timer) {
+        FURI_LOG_E(TAG, "Failed to allocate settings save timer");
+        goto cleanup;
+    }
+
+    app.usb_mode_prev = furi_hal_usb_get_config();
 #ifndef USB_HID_AUTOFIRE_SCREENSHOT
     furi_hal_usb_unlock();
-    furi_check(furi_hal_usb_set_config(&usb_hid, NULL) == true);
+    if(!furi_hal_usb_set_config(&usb_hid, NULL)) {
+        FURI_LOG_E(TAG, "Failed to switch USB to HID mode");
+        goto cleanup;
+    }
+    usb_switched = true;
 #endif
 
-    view_port_draw_callback_set(view_port, usb_hid_autofire_render_callback, NULL);
-    view_port_input_callback_set(view_port, usb_hid_autofire_input_callback, event_queue);
+    view_port_draw_callback_set(app.view_port, usb_hid_autofire_render_callback, &app);
+    view_port_input_callback_set(app.view_port, usb_hid_autofire_input_callback, app.event_queue);
 
-    // Open GUI and register view_port
-    Gui* gui = furi_record_open(RECORD_GUI);
-    gui_add_view_port(gui, view_port, GuiLayerFullscreen);
+    app.gui = furi_record_open(RECORD_GUI);
+    if(!app.gui) {
+        FURI_LOG_E(TAG, "Failed to open GUI record");
+        goto cleanup;
+    }
+    gui_opened = true;
+    gui_add_view_port(app.gui, app.view_port, GuiLayerFullscreen);
+    view_port_added = true;
+
+    app.dialogs = furi_record_open(RECORD_DIALOGS);
+
+    if((app.startup_policy == AutofireStartupPolicyRestoreLastState) && app.last_active_state) {
+        usb_hid_autofire_start(&app);
+    }
+
+    view_port_update(app.view_port);
+    app.ui_dirty = false;
 
     UsbMouseEvent event;
     while(1) {
-        FuriStatus event_status = furi_message_queue_get(event_queue, &event, 50);
+        FuriStatus event_status = furi_message_queue_get(app.event_queue, &event, FuriWaitForever);
+        if(event_status != FuriStatusOk) {
+            continue;
+        }
 
-        if(event_status == FuriStatusOk) {
-            if(event.type == EventTypeInput) {
-                if(event.input.key == InputKeyBack) {
-                    break;
-                }
-
-                if(event.input.type != InputTypeRelease) {
-                    continue;
-                }
-
-                switch(event.input.key) {
-                case InputKeyOk:
-                    btn_left_autofire = !btn_left_autofire;
-                    break;
-                case InputKeyLeft:
-                    if(autofire_delay > 0) {
-                        autofire_delay -= 10;
-                    }
-                    break;
-                case InputKeyRight:
-                    autofire_delay += 10;
-                    break;
-                default:
-                    break;
-                }
+        if(event.type == EventTypeTick) {
+            usb_hid_autofire_tick(&app);
+        } else if(event.type == EventTypeUiRefresh) {
+            uint32_t new_cps_x10 = usb_hid_autofire_realtime_cps_x10(&app);
+            if(new_cps_x10 != app.realtime_cps_x10) {
+                app.realtime_cps_x10 = new_cps_x10;
+                app.ui_dirty = true;
+            }
+        } else if(event.type == EventTypeSettingsSave) {
+            usb_hid_autofire_settings_flush_if_dirty(&app);
+        } else if(event.type == EventTypeInput) {
+            bool should_exit = false;
+            usb_hid_autofire_handle_input_event(&app, &event.input, &should_exit);
+            if(should_exit) {
+                break;
             }
         }
 
-        if(btn_left_autofire) {
-            furi_hal_hid_mouse_press(HID_MOUSE_BTN_LEFT);
-            // TODO: Don't wait, but use the timer directly to just don't send the release event (see furi_hal_cortex_delay_us)
-            furi_delay_us(autofire_delay * 500);
-            furi_hal_hid_mouse_release(HID_MOUSE_BTN_LEFT);
-            furi_delay_us(autofire_delay * 500);
+        if(app.ui_dirty) {
+            view_port_update(app.view_port);
+            app.ui_dirty = false;
         }
-
-        view_port_update(view_port);
     }
 
-    furi_hal_usb_set_config(usb_mode_prev, NULL);
+    ret = 0;
 
-    // remove & free all stuff created by app
-    gui_remove_view_port(gui, view_port);
-    view_port_free(view_port);
-    furi_message_queue_free(event_queue);
+cleanup:
+    usb_hid_autofire_settings_flush_if_dirty(&app);
+    usb_hid_autofire_stop(&app);
 
-    return 0;
+#ifndef USB_HID_AUTOFIRE_SCREENSHOT
+    if(usb_switched) {
+        furi_hal_usb_set_config(app.usb_mode_prev, NULL);
+    }
+#endif
+
+    if(view_port_added && app.gui && app.view_port) {
+        gui_remove_view_port(app.gui, app.view_port);
+    }
+
+    if(app.click_timer) {
+        furi_timer_stop(app.click_timer);
+        furi_timer_free(app.click_timer);
+    }
+
+    if(app.ui_refresh_timer) {
+        furi_timer_stop(app.ui_refresh_timer);
+        furi_timer_free(app.ui_refresh_timer);
+    }
+
+    if(app.settings_save_timer) {
+        furi_timer_stop(app.settings_save_timer);
+        furi_timer_free(app.settings_save_timer);
+    }
+
+    if(app.view_port) {
+        view_port_free(app.view_port);
+    }
+
+    if(app.event_queue) {
+        furi_message_queue_free(app.event_queue);
+    }
+
+    if(gui_opened) {
+        furi_record_close(RECORD_GUI);
+    }
+    if(app.dialogs) {
+        furi_record_close(RECORD_DIALOGS);
+    }
+
+    return ret;
 }

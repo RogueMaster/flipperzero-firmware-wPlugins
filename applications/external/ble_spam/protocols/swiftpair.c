@@ -4,7 +4,7 @@
 #include <storage/storage.h>
 #include <toolbox/stream/file_stream.h>
 
-// Hacked together by @Willy-JL and @Spooks4576
+// Hacked together by @WillyJL and @Spooks4576
 // Documentation at https://learn.microsoft.com/en-us/windows-hardware/design/component-guidelines/bluetooth-swift-pair
 
 static char names[256][sizeof(((SwiftpairCfg*)0)->name)];

@@ -1,0 +1,15 @@
+App(
+    appid="iso15693_nfc_writer",
+    name="ISO 15693-3 NFC Writer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="iso15693_writer_app",
+    stack_size=2 * 1024,
+    targets=["f7"],
+    fap_icon="icon.png",
+    fap_icon_assets="assets",
+    fap_category="NFC",
+    fap_author="ch4istO",
+    fap_weburl="https://github.com/ch4istO/unleashed-firmware/tree/dev/applications_user/iso15693_nfc_writer",
+    fap_version="1.0",
+    fap_description="Provides advanced handling of ISO 15693-3 compliant NFC tags (commonly found as ICODE SLIX).",
+)

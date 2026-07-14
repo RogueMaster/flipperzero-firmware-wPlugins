@@ -1,0 +1,13 @@
+App(
+    appid="carjacker",
+    name="CarJacker",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="carjacker_app",
+    stack_size=2 * 1024,
+    fap_icon="icons/carjacker_icon.png",
+    fap_category="Games",
+    fap_author="RocketGod-git",
+    fap_weburl="https://github.com/RocketGod-git/Flipper-Zero-CarJacker",
+    fap_version="1.0",
+    fap_description="Car stealing app - The Pirates Plunder style.",
+)

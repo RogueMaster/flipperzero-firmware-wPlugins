@@ -1,0 +1,27 @@
+language: cpp
+dist: trusty
+sudo: required # the doc target uses sudo to install dependencies
+
+os:
+  - linux
+  - osx
+
+env:
+  global:
+    - secure: |-
+        Gsnp9ERFnXt+diCfc7Vb72g+7HDn1MCHvw4zfUDdoBh9bxxFlLQRlzZZfwWhzni57lflrt
+        0QHXafu+oBVOJuNv6WauV3+ZyuWIQRmNGjZFNLvZsXHK/dyad2vGQBPvEkb+8l/aCyTpbr
+        6pxmyzLHSn1ZR7OX5rfPvwM3tOyZ3H0=
+  matrix:
+    - BUILD=Doc
+    - BUILD=Debug STANDARD=0x
+    - BUILD=Release STANDARD=98
+    - BUILD=Release STANDARD=0x
+
+matrix:
+  exclude:
+    - os: osx
+      env: BUILD=Doc
+
+script:
+  - support/travis-build.py

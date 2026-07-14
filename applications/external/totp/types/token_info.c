@@ -59,6 +59,7 @@ bool token_info_set_secret(
     }
 
     bool result;
+    token_info->token_plain_length = plain_secret_length;
     if(plain_secret_length > 0) {
         if(token_info->token != NULL) {
             free(token_info->token);

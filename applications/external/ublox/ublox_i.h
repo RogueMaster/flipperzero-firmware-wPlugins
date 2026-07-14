@@ -30,6 +30,7 @@
 #include "views/data_display_view.h"
 #include "helpers/ublox_custom_event.h"
 #include "helpers/kml.h"
+#include "helpers/gpx.h"
 
 extern const NotificationSequence sequence_new_reading;
 
@@ -50,7 +51,9 @@ struct Ublox {
     UbloxWorker* worker;
 
     // file stuff
+    // these structs are small so it's easiest to just have both
     KMLFile kmlfile;
+    GPXFile gpxfile;
     UbloxLogState log_state;
     FuriString* logfile_folder;
     char text_store[100];

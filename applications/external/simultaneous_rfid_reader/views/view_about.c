@@ -76,6 +76,7 @@ void view_about_alloc(UHFReaderApp* App) {
         " The read menu has the following options:\n"
         "- Press Ok to start/stop reading\n"
         "- Press Up to save the selected EPC\n"
+        "- Hold Up to pause scrolling the selected EPC\n"
         "- Press Down to see TID, EPC, User, and Reserved Memory\n"
         "- Press Left/Right to cycle through tags read (M6E & M7E Only)\n\n");
 

@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,12 +17,12 @@
 */
 #include "MAX31855.h"
 
-const SensorType MAX31855 = {
-    .typename = "MAX31855",
+const SensorModel MAX31855 = {
+    .modelname = "MAX31855",
     .altname = "MAX31855 (Thermocouple)",
-    .interface = &SPI,
-    .datatype = UT_TEMPERATURE,
-    .pollingInterval = 500,
+    .interface = &unitemp_spi,
+    .data_type = UT_DATA_TYPE_TEMP,
+    .polling_interval = 500,
     .allocator = unitemp_MAX31855_alloc,
     .mem_releaser = unitemp_MAX31855_free,
     .initializer = unitemp_MAX31855_init,
@@ -43,51 +43,53 @@ bool unitemp_MAX31855_free(Sensor* sensor) {
 bool unitemp_MAX31855_init(Sensor* sensor) {
     SPISensor* instance = sensor->instance;
     furi_hal_spi_bus_handle_init(instance->spi);
+    UNUSED(instance);
     return true;
 }
 
 bool unitemp_MAX31855_deinit(Sensor* sensor) {
-    SPISensor* instance = sensor->instance;
-    furi_hal_spi_bus_handle_deinit(instance->spi);
+    UNUSED(sensor);
     return true;
 }
 
-UnitempStatus unitemp_MAX31855_update(Sensor* sensor) {
+SensorStatus unitemp_MAX31855_update(Sensor* sensor) {
     SPISensor* instance = sensor->instance;
 
     furi_hal_spi_acquire(instance->spi);
-    furi_hal_gpio_write(instance->CS_pin->pin, false);
+    furi_hal_gpio_write(instance->cs_pin->pin, false);
 
     uint8_t buff[4] = {0};
 
     furi_hal_spi_bus_rx(instance->spi, buff, 4, 0xFF);
+    furi_hal_gpio_write(instance->cs_pin->pin, true);
     furi_hal_spi_release(instance->spi);
 
     uint32_t raw = (buff[0] << 24) | (buff[1] << 16) | (buff[2] << 8) | buff[3];
 
     if(raw == 0xFFFFFFFF || raw == 0) return UT_SENSORSTATUS_TIMEOUT;
 
-    //Определение состояния термопары
+    //Determining the status of the thermocouple
     uint8_t state = raw & 0b111;
-    //Обрыв
+    //Break
     if(state == 0x01) {
         UNITEMP_DEBUG("%s has thermocouple open circuit", sensor->name);
         return UT_SENSORSTATUS_ERROR;
     }
-    //Короткое замыкание к земле
+    //Short circuit to ground
     if(state == 0x02) {
         UNITEMP_DEBUG("%s has thermocouple short to GND", sensor->name);
         return UT_SENSORSTATUS_ERROR;
     }
-    //Короткое замыкание к питанию
+    //Short circuit to power
     if(state == 0x04) {
         UNITEMP_DEBUG("%s has thermocouple short to VCC", sensor->name);
         return UT_SENSORSTATUS_ERROR;
     }
 
-    raw = (raw >> 16) & 0xFFFC;
+    uint16_t temp_raw = (raw >> 16) & 0xFFFC;
+    int16_t signed_temp_raw = (int16_t)temp_raw;
 
-    sensor->temp = (int16_t)(raw) / 16.0f;
+    sensor->temperature = (float)signed_temp_raw / 16.0f;
 
     return UT_SENSORSTATUS_OK;
 }

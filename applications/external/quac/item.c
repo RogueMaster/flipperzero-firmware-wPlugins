@@ -92,28 +92,27 @@ ItemsView* item_get_items_view_from_path(void* context, const FuriString* input_
     ItemArray_init(iview->items);
     for(FileArray_it(iter, flist); !FileArray_end_p(iter); FileArray_next(iter)) {
         path = *FileArray_ref(iter);
-        const char* found_path = furi_string_get_cstr(path);
 
         Item* item = ItemArray_push_new(iview->items);
+        item->is_link = false;
+        item->name = furi_string_alloc();
 
         FileInfo fileinfo;
-        if(storage_common_stat(app->storage, found_path, &fileinfo) == FSE_OK &&
+        if(storage_common_stat(app->storage, furi_string_get_cstr(path), &fileinfo) == FSE_OK &&
            file_info_is_dir(&fileinfo)) {
             item->type = Item_Group;
+            path_extract_filename(path, item->name, false);
         } else {
-            // Action files have extensions, so item->ext starts with '.'
+            // Action files have extensions, which determine their type
             item->ext[0] = 0;
-            path_extract_extension(path, item->ext, MAX_EXT_LEN);
+            item_path_extract_filename(path, item->name, &(item->ext), &(item->is_link));
             item->type = item_get_item_type_from_extension(item->ext);
         }
 
-        item->name = furi_string_alloc();
-        path_extract_filename_no_ext(found_path, item->name);
         // FURI_LOG_I(TAG, "Basename: %s", furi_string_get_cstr(item->name));
         item_prettify_name(item->name);
 
-        item->path = furi_string_alloc();
-        furi_string_set(item->path, path);
+        item->path = furi_string_alloc_set(path);
         // FURI_LOG_I(TAG, "Path: %s", furi_string_get_cstr(item->path));
     }
 
@@ -165,8 +164,30 @@ ItemType item_get_item_type_from_extension(const char* ext) {
         type = Item_NFC;
     } else if(!strcmp(ext, ".ibtn")) {
         type = Item_iButton;
+    } else if(!strcmp(ext, ".picopass")) {
+        type = Item_Picopass;
     } else if(!strcmp(ext, ".qpl")) {
         type = Item_Playlist;
     }
     return type;
+}
+
+void item_path_extract_filename(
+    FuriString* path,
+    FuriString* name,
+    char (*ext)[MAX_EXT_LEN],
+    bool* is_link) {
+    furi_check(ext);
+    furi_check(is_link);
+
+    FuriString* temp = furi_string_alloc_set(path);
+    *is_link = furi_string_end_withi_str(temp, ".ql");
+    if(*is_link) {
+        furi_string_left(temp, furi_string_size(temp) - 3);
+    }
+
+    path_extract_extension(temp, *ext, MAX_EXT_LEN);
+    path_extract_filename(temp, name, true);
+
+    furi_string_free(temp);
 }

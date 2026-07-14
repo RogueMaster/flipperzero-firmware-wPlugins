@@ -1,0 +1,13 @@
+App(
+    appid="anim_previewer",
+    name="Anim Previewer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="anim_previewer_app",
+    stack_size=8 * 1024,
+    fap_icon="anim_previewer.png",
+    fap_category="Tools",
+    fap_author="H4W9",
+    fap_weburl="https://github.com/H4W9/AnimationPreviewerFlipperApp",
+    fap_version="1.0",
+    fap_description="Browse and preview dolphin animations from SD card",
+)

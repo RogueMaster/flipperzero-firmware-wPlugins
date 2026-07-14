@@ -18,6 +18,7 @@
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
 #include <gui/modules/submenu.h>
+#include <gui/modules/variable_item_list.h>
 #include <gui/modules/widget.h>
 #include <gui/modules/text_input.h>
 #include <gui/modules/popup.h>
@@ -28,6 +29,7 @@
 #include <flipper_format/flipper_format_i.h>
 
 #define SUBREM_APP_FOLDER   EXT_PATH("subghz/subghz_remote")
+#define SUBREM_APP_CONFIG   EXT_PATH("subghz/subghz_remote/.config")
 #define SUBREM_MAX_LEN_NAME 64
 
 typedef struct {
@@ -40,9 +42,11 @@ typedef struct {
     Popup* popup;
     TextInput* text_input;
     Submenu* submenu;
+    VariableItemList* var_item_list;
 
     FuriString* file_path;
     char file_name_tmp[SUBREM_MAX_LEN_NAME];
+    uint8_t button_tmp;
 
     SubRemViewRemote* subrem_remote_view;
     SubRemViewEditMenu* subrem_edit_menu;
@@ -69,3 +73,11 @@ void subrem_map_preset_reset(SubRemMapPreset* map_preset);
 bool subrem_save_map_to_file(SubGhzRemoteApp* app);
 
 void subrem_save_active_sub(void* context);
+
+bool subrem_load_default_path(SubGhzRemoteApp* app);
+
+bool subrem_save_default_path(const char* path);
+
+bool subrem_clear_default_path(void);
+
+bool subrem_has_default_path(void);

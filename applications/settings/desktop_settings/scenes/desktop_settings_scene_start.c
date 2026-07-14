@@ -3,33 +3,21 @@
 
 #include "../desktop_settings_app.h"
 #include "desktop_settings_scene.h"
-#include "desktop_settings_scene_i.h"
-#include <power/power_service/power.h>
 
 typedef enum {
     DesktopSettingsPinSetup = 0,
+    DesktopSettingsKeybindSetup,
+    DesktopSettingsResetKeybinds,
     DesktopSettingsAutoLockDelay,
     DesktopSettingsAutoLockPin,
-    DesktopSettingsDumbMode,
-    DesktopSettingsFavoriteDownLong,
-    DesktopSettingsFavoriteLeftShort,
-    DesktopSettingsFavoriteLeftLong,
-    DesktopSettingsFavoriteRightShort,
-    DesktopSettingsFavoriteRightLong,
-    DesktopSettingsFavoriteUpLong,
-    DesktopSettingsDummyLeft,
-    DesktopSettingsDummyLeftLong,
-    DesktopSettingsDummyRight,
-    DesktopSettingsDummyRightLong,
-    DesktopSettingsDummyUpLong,
-    DesktopSettingsDummyDown,
-    DesktopSettingsDummyDownLong,
-    DesktopSettingsDummyOk,
-    DesktopSettingsDummyOkLong,
+    DesktopSettingsAutoLockInhibit,
+    DesktopSettingsClockDisplay,
+    DesktopSettingsHappyMode,
 } DesktopSettingsEntry;
 
 #define AUTO_LOCK_DELAY_COUNT 9
-const char* const auto_lock_delay_text[AUTO_LOCK_DELAY_COUNT] = {
+
+static const char* const auto_lock_delay_text[AUTO_LOCK_DELAY_COUNT] = {
     "OFF",
     "10s",
     "15s",
@@ -41,21 +29,37 @@ const char* const auto_lock_delay_text[AUTO_LOCK_DELAY_COUNT] = {
     "10min",
 };
 
-const uint32_t auto_lock_delay_value[AUTO_LOCK_DELAY_COUNT] =
+static const uint32_t auto_lock_delay_value[AUTO_LOCK_DELAY_COUNT] =
     {0, 10000, 15000, 30000, 60000, 90000, 120000, 300000, 600000};
 
-#define DESKTOP_ON_OFF_COUNT 2
+#define USB_INHIBIT_AUTO_LOCK_DELAY_COUNT 2
 
-const char* const desktop_on_off_text[DESKTOP_ON_OFF_COUNT] = {
+const char* const usb_inhibit_auto_lock_delay_text[USB_INHIBIT_AUTO_LOCK_DELAY_COUNT] = {
     "OFF",
     "ON",
 };
 
-const uint32_t dumbmode_value[DESKTOP_ON_OFF_COUNT] = {false, true};
+const uint32_t usb_inhibit_auto_lock_delay_value[USB_INHIBIT_AUTO_LOCK_DELAY_COUNT] = {0, 1};
+
+#define CLOCK_ENABLE_COUNT 2
+const char* const clock_enable_text[CLOCK_ENABLE_COUNT] = {
+    "OFF",
+    "ON",
+};
+
+const uint32_t clock_enable_value[CLOCK_ENABLE_COUNT] = {0, 1};
 
 static void desktop_settings_scene_start_var_list_enter_callback(void* context, uint32_t index) {
     DesktopSettingsApp* app = context;
     view_dispatcher_send_custom_event(app->view_dispatcher, index);
+}
+
+static void desktop_settings_scene_start_clock_enable_changed(VariableItem* item) {
+    DesktopSettingsApp* app = variable_item_get_context(item);
+    uint8_t index = variable_item_get_current_value_index(item);
+
+    variable_item_set_current_value_text(item, clock_enable_text[index]);
+    app->settings.display_clock = index;
 }
 
 static void desktop_settings_scene_start_auto_lock_delay_changed(VariableItem* item) {
@@ -74,12 +78,12 @@ static void desktop_settings_scene_start_auto_lock_pin_changed(VariableItem* ite
     app->settings.auto_lock_with_pin = value;
 }
 
-static void desktop_settings_scene_start_dumbmode_changed(VariableItem* item) {
+static void desktop_settings_scene_start_usb_inhibit_auto_lock_delay_changed(VariableItem* item) {
     DesktopSettingsApp* app = variable_item_get_context(item);
     uint8_t index = variable_item_get_current_value_index(item);
 
-    variable_item_set_current_value_text(item, desktop_on_off_text[index]);
-    app->settings.is_dumbmode = dumbmode_value[index];
+    variable_item_set_current_value_text(item, usb_inhibit_auto_lock_delay_text[index]);
+    app->settings.usb_inhibit_auto_lock = usb_inhibit_auto_lock_delay_value[index];
 }
 
 void desktop_settings_scene_start_on_enter(void* context) {
@@ -90,6 +94,10 @@ void desktop_settings_scene_start_on_enter(void* context) {
     uint8_t value_index;
 
     variable_item_list_add(variable_item_list, "PIN Setup", 1, NULL, NULL);
+
+    variable_item_list_add(variable_item_list, "Keybinds Setup", 1, NULL, NULL);
+
+    variable_item_list_add(variable_item_list, "Reset Keybinds to Default", 1, NULL, NULL);
 
     item = variable_item_list_add(
         variable_item_list,
@@ -113,34 +121,34 @@ void desktop_settings_scene_start_on_enter(void* context) {
     variable_item_set_current_value_index(item, app->settings.auto_lock_with_pin);
     variable_item_set_current_value_text(item, app->settings.auto_lock_with_pin ? "ON" : "OFF");
 
+    // USB connection Inhibit autolock OFF|ON|with opened RPC session
     item = variable_item_list_add(
         variable_item_list,
-        "Games Only",
-        DESKTOP_ON_OFF_COUNT,
-        desktop_settings_scene_start_dumbmode_changed,
+        "Prevent Auto Lock with USB/RPC session",
+        USB_INHIBIT_AUTO_LOCK_DELAY_COUNT,
+        desktop_settings_scene_start_usb_inhibit_auto_lock_delay_changed,
+        app);
+
+    value_index = value_index_uint32(
+        app->settings.usb_inhibit_auto_lock,
+        usb_inhibit_auto_lock_delay_value,
+        USB_INHIBIT_AUTO_LOCK_DELAY_COUNT);
+    variable_item_set_current_value_index(item, value_index);
+    variable_item_set_current_value_text(item, usb_inhibit_auto_lock_delay_text[value_index]);
+
+    item = variable_item_list_add(
+        variable_item_list,
+        "Show Clock",
+        CLOCK_ENABLE_COUNT,
+        desktop_settings_scene_start_clock_enable_changed,
         app);
 
     value_index =
-        value_index_uint32(app->settings.is_dumbmode, dumbmode_value, DESKTOP_ON_OFF_COUNT);
+        value_index_uint32(app->settings.display_clock, clock_enable_value, CLOCK_ENABLE_COUNT);
     variable_item_set_current_value_index(item, value_index);
-    variable_item_set_current_value_text(item, desktop_on_off_text[value_index]);
+    variable_item_set_current_value_text(item, clock_enable_text[value_index]);
 
-    variable_item_list_add(variable_item_list, "Favorite - Down Hold", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "Favorite - Left Press", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "Favorite - Left Hold", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "Favorite - Right Press", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "Favorite - Right Hold", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "Favorite - Up Hold", 1, NULL, NULL);
-
-    variable_item_list_add(variable_item_list, "DummyMode - Left Press", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "DummyMode - Left Hold", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "DummyMode - Right Press", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "DummyMode - Right Hold", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "DummyMode - Up Hold", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "DummyMode - Down Press", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "DummyMode - Down Hold", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "DummyMode - Ok Press", 1, NULL, NULL);
-    variable_item_list_add(variable_item_list, "DummyMode - Ok Hold", 1, NULL, NULL);
+    variable_item_list_add(variable_item_list, "Happy Mode", 1, NULL, NULL);
 
     variable_item_list_set_enter_callback(
         variable_item_list, desktop_settings_scene_start_var_list_enter_callback, app);
@@ -157,118 +165,25 @@ bool desktop_settings_scene_start_on_event(void* context, SceneManagerEvent even
         case DesktopSettingsPinSetup:
             scene_manager_next_scene(app->scene_manager, DesktopSettingsAppScenePinMenu);
             break;
-        case DesktopSettingsAutoLockDelay:
-            break;
-        case DesktopSettingsAutoLockPin:
-            break;
-        case DesktopSettingsDumbMode:
-            break;
-        case DesktopSettingsFavoriteDownLong:
+
+        case DesktopSettingsKeybindSetup:
             scene_manager_set_scene_state(
-                app->scene_manager,
-                DesktopSettingsAppSceneFavorite,
-                SCENE_STATE_SET_FAVORITE_APP | FavoriteAppDownLong);
-            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneFavorite);
-            break;
-        case DesktopSettingsFavoriteLeftShort:
-            scene_manager_set_scene_state(
-                app->scene_manager,
-                DesktopSettingsAppSceneFavorite,
-                SCENE_STATE_SET_FAVORITE_APP | FavoriteAppLeftShort);
-            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneFavorite);
-            break;
-        case DesktopSettingsFavoriteLeftLong:
-            scene_manager_set_scene_state(
-                app->scene_manager,
-                DesktopSettingsAppSceneFavorite,
-                SCENE_STATE_SET_FAVORITE_APP | FavoriteAppLeftLong);
-            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneFavorite);
-            break;
-        case DesktopSettingsFavoriteRightShort:
-            scene_manager_set_scene_state(
-                app->scene_manager,
-                DesktopSettingsAppSceneFavorite,
-                SCENE_STATE_SET_FAVORITE_APP | FavoriteAppRightShort);
-            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneFavorite);
-            break;
-        case DesktopSettingsFavoriteRightLong:
-            scene_manager_set_scene_state(
-                app->scene_manager,
-                DesktopSettingsAppSceneFavorite,
-                SCENE_STATE_SET_FAVORITE_APP | FavoriteAppRightLong);
-            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneFavorite);
-            break;
-        case DesktopSettingsFavoriteUpLong:
-            scene_manager_set_scene_state(
-                app->scene_manager,
-                DesktopSettingsAppSceneFavorite,
-                SCENE_STATE_SET_FAVORITE_APP | FavoriteAppUpLong);
-            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneFavorite);
+                app->scene_manager, DesktopSettingsAppSceneKeybindsType, 0);
+            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneKeybindsType);
+            consumed = true;
             break;
 
-        case DesktopSettingsDummyLeft:
+        case DesktopSettingsResetKeybinds:
             scene_manager_set_scene_state(
-                app->scene_manager,
-                DesktopSettingsAppSceneFavorite,
-                SCENE_STATE_SET_DUMMY_APP | DummyAppLeft);
-            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneFavorite);
+                app->scene_manager, DesktopSettingsAppSceneKeybindsType, 0);
+            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneKeybindsReset);
+            consumed = true;
             break;
-        case DesktopSettingsDummyLeftLong:
-            scene_manager_set_scene_state(
-                app->scene_manager,
-                DesktopSettingsAppSceneFavorite,
-                SCENE_STATE_SET_DUMMY_APP | DummyAppLeftLong);
-            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneFavorite);
+
+        case DesktopSettingsHappyMode:
+            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneHappyMode);
             break;
-        case DesktopSettingsDummyRight:
-            scene_manager_set_scene_state(
-                app->scene_manager,
-                DesktopSettingsAppSceneFavorite,
-                SCENE_STATE_SET_DUMMY_APP | DummyAppRight);
-            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneFavorite);
-            break;
-        case DesktopSettingsDummyRightLong:
-            scene_manager_set_scene_state(
-                app->scene_manager,
-                DesktopSettingsAppSceneFavorite,
-                SCENE_STATE_SET_DUMMY_APP | DummyAppRightLong);
-            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneFavorite);
-            break;
-        case DesktopSettingsDummyUpLong:
-            scene_manager_set_scene_state(
-                app->scene_manager,
-                DesktopSettingsAppSceneFavorite,
-                SCENE_STATE_SET_DUMMY_APP | DummyAppUpLong);
-            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneFavorite);
-            break;
-        case DesktopSettingsDummyDown:
-            scene_manager_set_scene_state(
-                app->scene_manager,
-                DesktopSettingsAppSceneFavorite,
-                SCENE_STATE_SET_DUMMY_APP | DummyAppDown);
-            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneFavorite);
-            break;
-        case DesktopSettingsDummyDownLong:
-            scene_manager_set_scene_state(
-                app->scene_manager,
-                DesktopSettingsAppSceneFavorite,
-                SCENE_STATE_SET_DUMMY_APP | DummyAppDownLong);
-            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneFavorite);
-            break;
-        case DesktopSettingsDummyOk:
-            scene_manager_set_scene_state(
-                app->scene_manager,
-                DesktopSettingsAppSceneFavorite,
-                SCENE_STATE_SET_DUMMY_APP | DummyAppOk);
-            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneFavorite);
-            break;
-        case DesktopSettingsDummyOkLong:
-            scene_manager_set_scene_state(
-                app->scene_manager,
-                DesktopSettingsAppSceneFavorite,
-                SCENE_STATE_SET_DUMMY_APP | DummyAppOkLong);
-            scene_manager_next_scene(app->scene_manager, DesktopSettingsAppSceneFavorite);
-            break;
+
         default:
             break;
         }
@@ -280,5 +195,4 @@ bool desktop_settings_scene_start_on_event(void* context, SceneManagerEvent even
 void desktop_settings_scene_start_on_exit(void* context) {
     DesktopSettingsApp* app = context;
     variable_item_list_reset(app->variable_item_list);
-    DESKTOP_SETTINGS_SAVE(&app->settings);
 }

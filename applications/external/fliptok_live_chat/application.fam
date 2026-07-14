@@ -1,0 +1,13 @@
+App(
+    appid="fliptok_live_chat",
+    name="FlipTok Live",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="fliptok_live_chat_app",
+    stack_size=2 * 1024,
+    fap_icon="icon.png",
+    fap_category="Bluetooth",
+    fap_author="Dr.Mosfet",
+    fap_weburl="https://github.com/kamylwnb/FlipTok_Live_Chat",
+    fap_version="1.0.0",
+    fap_description="Display FlipTok Live chat on Flipper Zero",
+)

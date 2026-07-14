@@ -1,3 +1,11 @@
+## 4.1
+ - Key recovery is 40% faster, improved memory efficiency
+## 4.0
+ - Support new SEN dictionary for 10x faster recovery, dropped previous SEN dictionary format support
+## 3.1
+ - Key recovery is 20% faster, new write buffering of Static Encrypted Nested key candidates performs recovery 70x faster
+## 3.0
+ - Added Static Encrypted Nested key recovery, added NFC app support, dropped FlipperNested support
 ## 2.7
  - Mfkey32 recovery is 30% faster, fix UI and slowdown bugs
 ## 2.6

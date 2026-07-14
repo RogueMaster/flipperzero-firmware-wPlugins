@@ -1,0 +1,14 @@
+App(
+    appid="subghz_toolkit",
+    name="Sub-GHz Toolkit",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="subghz_toolkit_app",
+    stack_size=8 * 1024,
+    fap_icon="subghz_toolkit.png",
+    fap_category="Sub-GHz",
+    fap_author="RocketGod",
+    fap_weburl="https://github.com/RocketGod-git/RocketGods-SubGHz-Toolkit",
+    fap_version="1.0",
+    fap_description="Extract SubGhz protocol implementation details and decrypt KeeLoq keys",
+)

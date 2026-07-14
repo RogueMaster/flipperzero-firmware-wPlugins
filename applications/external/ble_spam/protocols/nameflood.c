@@ -4,7 +4,7 @@
 #include <storage/storage.h>
 #include <toolbox/stream/file_stream.h>
 
-// Hacked together by @Willy-JL
+// Hacked together by @WillyJL
 
 static char names[256][sizeof(((NamefloodCfg*)0)->name)];
 static uint8_t names_count = 0;

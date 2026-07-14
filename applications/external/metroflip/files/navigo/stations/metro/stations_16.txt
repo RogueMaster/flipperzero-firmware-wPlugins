@@ -1,0 +1,13 @@
+0,Felix Faure
+1,Falguiere
+2,Pasteur
+3,Volontaires
+4,Vaugirard
+5,Convention
+6,Porte de Versailles
+9,Balard
+10,Lourmel
+11,Boucicaut
+12,Felix Faure
+13,Charles Michels
+14,Javel - Andre Citroen

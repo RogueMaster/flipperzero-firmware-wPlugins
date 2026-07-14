@@ -1,0 +1,14 @@
+App(
+    appid="gauge_tool",
+    name="Gauge Tool",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="gauge_tool_app",
+    stack_size=2 * 1024,
+    fap_icon="gauge_tool.png",
+    fap_category="Settings",
+    fap_author="Aku",
+    fap_weburl="https://github.com/skotopes/flipperzero_gauge_tool",
+    fap_version="0.1",
+    fap_description="Gauge Tool (Use only if you know what you are doing)",
+    #  0.420.0: OFW: [FuriHal, drivers: rework gauge initialization routine #3912 (By skotopes)](https://github.com/flipperdevices/flipperzero-firmware/pull/3912) Downgrade from this firmware is not possible, it will break old initialization routine, you will see [ - ] instead of battery indicator. If you must downgrade then use [https://github.com/skotopes/flipperzero_gauge_tool](https://github.com/skotopes/flipperzero_gauge_tool) to unseal gauge.
+)

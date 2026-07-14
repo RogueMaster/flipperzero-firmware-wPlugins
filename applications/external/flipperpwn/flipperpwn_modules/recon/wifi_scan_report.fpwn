@@ -1,0 +1,54 @@
+# FlipperPwn Module: WiFi Scan Report
+# Scans nearby WiFi networks via ESP32 Dev Board and types the results
+# as a report into the target machine via USB HID keystrokes.
+# Requires: ESP32 WiFi Dev Board with Marauder firmware
+
+NAME wifi_scan_report
+DESCRIPTION Scan WiFi via ESP32, type discovered AP list into target as text
+CATEGORY recon
+PLATFORMS WIN,MAC,LINUX
+
+# No options needed — auto-detects all visible APs
+
+PLATFORM WIN
+  DELAY 500
+  GUI r
+  DELAY 300
+  STRING notepad
+  ENTER
+  DELAY 800
+  STRING === WiFi Scan Report ===
+  ENTER
+  WIFI_SCAN
+  WIFI_RESULT
+  STRING === End of Report ===
+  ENTER
+
+PLATFORM MAC
+  DELAY 500
+  GUI SPACE
+  DELAY 400
+  STRING TextEdit
+  ENTER
+  DELAY 1200
+  STRING === WiFi Scan Report ===
+  ENTER
+  WIFI_SCAN
+  WIFI_RESULT
+  STRING === End of Report ===
+  ENTER
+
+PLATFORM LINUX
+  DELAY 500
+  CTRL ALT t
+  DELAY 1000
+  STRING cat << 'WIFIREPORT'
+  ENTER
+  STRING === WiFi Scan Report ===
+  ENTER
+  WIFI_SCAN
+  WIFI_RESULT
+  STRING === End of Report ===
+  ENTER
+  STRING WIFIREPORT
+  ENTER

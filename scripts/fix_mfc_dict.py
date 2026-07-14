@@ -1,29 +1,32 @@
+#!/usr/bin/env python3
 import pathlib
 import string
+
+KEY_LENGTH = 12
 
 file = (
     pathlib.Path(__file__).parent
     / "../applications/main/nfc/resources/nfc/assets/mf_classic_dict.nfc"
 )
-try:
-    lines = file.read_text(encoding="ascii").splitlines()
-except UnicodeDecodeError:
-    print(
-        "Fix non-ASCII characters: https://pteo.paranoiaworks.mobi/diacriticsremover/"
-    )
-    exit()
+lines = file.read_text().split("\n")
 
-for i, line in enumerate(lines):
-    lines[i] = line = line.strip()
+total = 0
+for i, line in reversed(list(enumerate(lines))):
     if line.startswith("#"):
         continue
-    lines[i] = line = line.upper()
     if not line:
         continue
-    if len(line) != 12 or any(char not in string.hexdigits for char in line):
-        print(f"line {i + 1} is not correct: {line}")
-    for j in reversed(range(i + 1, len(lines))):
-        if lines[j].upper().strip() == line:
-            del lines[j]
+    key = line[:KEY_LENGTH]
+    if len(key) != KEY_LENGTH or any(char not in string.hexdigits for char in key):
+        print(f"Line {i + 1} is not correct: {line}")
+    for check in lines[:i]:
+        if check.upper()[:KEY_LENGTH] == line.upper()[:KEY_LENGTH]:
+            print(f"Line {i + 1} is a duplicate: {line}")
+            del lines[i]
+            break
+    else:  # Didn't break
+        total += 1
 
-file.write_text("\n".join(line for line in lines if line.removeprefix("#")))
+
+file.write_text("\n".join(lines))
+print(f"Total keys: {total}")

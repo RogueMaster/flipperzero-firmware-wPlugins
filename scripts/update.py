@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 
 import math
-import gzip
 import os
 import shutil
 import tarfile
 import zlib
 from os.path import exists, join
+import pathlib
 
 from flipper.app import App
 from flipper.assets.coprobin import CoproBinary, get_stack_type
+from flipper.assets.heatshrink_stream import HeatshrinkDataStreamHeader
 from flipper.assets.obdata import ObReferenceValues, OptionBytesData
+from flipper.assets.tarball import compress_tree_tarball, tar_sanitizer_filter
+from flipper.assets import tarball
 from flipper.utils.fff import FlipperFormatFile
 from slideshow import Main as SlideshowMain
 
@@ -19,10 +22,8 @@ class Main(App):
     UPDATE_MANIFEST_VERSION = 2
     UPDATE_MANIFEST_NAME = "update.fuf"
 
-    #  No compression, plain tar
     RESOURCE_TAR_MODE = "w:"
-    RESOURCE_TAR_FORMAT = tarfile.USTAR_FORMAT
-    RESOURCE_FILE_NAME = "resources.tar"
+    RESOURCE_FILE_NAME = "resources" + tarball.TAR_GZIP_EXTENSION
     RESOURCE_ENTRY_NAME_MAX_LENGTH = 100
 
     WHITELISTED_STACK_TYPES = set(
@@ -33,7 +34,15 @@ class Main(App):
     )
 
     FLASH_BASE = 0x8000000
-    MIN_LFS_PAGES = 6
+    FLASH_PAGE_SIZE = 4 * 1024
+    MIN_GAP_PAGES = 0
+
+    # Update stage file larger than that is not loadable without fix
+    # https://github.com/flipperdevices/flipperzero-firmware/pull/3676
+    UPDATER_SIZE_THRESHOLD = 128 * 1024
+
+    HEATSHRINK_WINDOW_SIZE = 13
+    HEATSHRINK_LOOKAHEAD_SIZE = 6
 
     # Post-update slideshow
     SPLASH_BIN_NAME = "splash.bin"
@@ -112,7 +121,7 @@ class Main(App):
                 self.logger.error(
                     f"You are trying to bundle a non-standard stack type '{self.args.radiotype}'."
                 )
-                self.disclaimer()
+                self.show_disclaimer()
                 return 1
 
             if radio_addr == 0:
@@ -125,14 +134,9 @@ class Main(App):
         if not exists(self.args.directory):
             os.makedirs(self.args.directory)
 
-        stage_size = os.stat(self.args.stage).st_size
-        max_stage_size = 131072  # 2 * MAX_READ in src/update.c
-        if stage_size > max_stage_size:
-            self.logger.warn(
-                f"RAM {stage_basename} size too big ({stage_size} > {max_stage_size} bytes)"
-            )
-            return 2
+        updater_stage_size = os.stat(self.args.stage).st_size
         shutil.copyfile(self.args.stage, join(self.args.directory, stage_basename))
+
         dfu_size = 0
         if self.args.dfu:
             dfu_size = os.stat(self.args.dfu).st_size
@@ -143,26 +147,37 @@ class Main(App):
             )
         if self.args.resources:
             resources_basename = self.RESOURCE_FILE_NAME
+            SlideshowMain(no_exit=True)(
+                [
+                    "-i",
+                    str(
+                        pathlib.Path(self.args.resources)
+                        / "../../../assets/slideshow/firstboot"
+                    ),
+                    "-o",
+                    str(pathlib.Path(self.args.resources) / "dolphin/firstboot.bin"),
+                ]
+            )
             if not self.package_resources(
                 self.args.resources, join(self.args.directory, resources_basename)
             ):
                 return 3
-            resources_path = join(self.args.directory, resources_basename)
-            with open(resources_path, "rb") as f_raw:
-                resources_raw = f_raw.read()
-            os.unlink(resources_path)
-            resources_basename += ".gz"
-            resources_path += ".gz"
-            with gzip.open(resources_path, "wb", compresslevel=9) as f_zip:
-                f_zip.write(resources_raw)
 
-        if not self.layout_check(dfu_size, radio_addr):
-            self.logger.warn("Memory layout looks suspicious")
-            if not self.args.disclaimer == "yes":
-                self.disclaimer()
+        if not self.layout_check(updater_stage_size, dfu_size, radio_addr):
+            self.logger.warning("Memory layout looks suspicious")
+            if self.args.disclaimer != "yes":
+                self.show_disclaimer()
                 return 2
 
         if self.args.splash:
+            SlideshowMain(no_exit=True)(
+                [
+                    "-i",
+                    str(pathlib.Path(self.args.splash).parent / "firstboot"),
+                    "-o",
+                    join(self.args.directory, "firstboot.bin"),
+                ]
+            )
             splash_args = [
                 "-i",
                 self.args.splash,
@@ -208,22 +223,33 @@ class Main(App):
 
         return 0
 
-    def layout_check(self, fw_size, radio_addr):
+    def layout_check(self, stage_size, fw_size, radio_addr):
+        if stage_size > self.UPDATER_SIZE_THRESHOLD:
+            self.logger.warning(
+                f"Updater size {stage_size}b > {self.UPDATER_SIZE_THRESHOLD}b and is not loadable on older firmwares!"
+            )
+
         if fw_size == 0 or radio_addr == 0:
             self.logger.info("Cannot validate layout for partial package")
             return True
 
-        lfs_span = radio_addr - self.FLASH_BASE - fw_size
-        self.logger.debug(f"Expected LFS size: {lfs_span}")
-        lfs_span_pages = lfs_span / (4 * 1024)
-        if lfs_span_pages < self.MIN_LFS_PAGES:
-            self.logger.warn(
-                f"Expected LFS size is too small (~{int(lfs_span_pages)} pages)"
+        fw2stack_gap = radio_addr - self.FLASH_BASE - fw_size
+        self.logger.debug(f"Expected reserved space size: {fw2stack_gap}")
+        fw2stack_gap_pages = fw2stack_gap / self.FLASH_PAGE_SIZE
+        if fw2stack_gap_pages < 0:
+            self.logger.warning(
+                f"Firmware image overlaps C2 region and is not programmable!"
+            )
+            return False
+
+        elif fw2stack_gap_pages < self.MIN_GAP_PAGES:
+            self.logger.warning(
+                f"Expected reserved flash size is too small (~{int(fw2stack_gap_pages)} page(s), need >={self.MIN_GAP_PAGES} page(s))"
             )
             return False
         return True
 
-    def disclaimer(self):
+    def show_disclaimer(self):
         self.logger.error(
             "You might brick your device into a state in which you'd need an SWD programmer to fix it."
         )
@@ -237,23 +263,19 @@ class Main(App):
                 f"Cannot package resource: name '{tarinfo.name}' too long"
             )
             raise ValueError("Resource name too long")
-        tarinfo.gid = tarinfo.uid = 0
-        tarinfo.mtime = 0
-        tarinfo.uname = tarinfo.gname = "furippa"
-        return tarinfo
+        return tar_sanitizer_filter(tarinfo)
 
     def package_resources(self, srcdir: str, dst_name: str):
         try:
-            with tarfile.open(
-                dst_name, self.RESOURCE_TAR_MODE, format=self.RESOURCE_TAR_FORMAT
-            ) as tarball:
-                tarball.add(
-                    srcdir,
-                    arcname="",
-                    filter=self._tar_filter,
-                )
+            src_size, compressed_size = compress_tree_tarball(
+                srcdir, dst_name, filter=self._tar_filter
+            )
+
+            self.logger.info(
+                f"Resources compression ratio: {compressed_size * 100 / src_size:.2f}%"
+            )
             return True
-        except ValueError as e:
+        except Exception as e:
             self.logger.error(f"Cannot package resources: {e}")
             return False
 

@@ -7,6 +7,7 @@ env.Append(
         "#/lib",
         # Ugly hack
         Dir("../assets/compiled"),
+        Dir("../../icons"),
     ],
 )
 
@@ -27,13 +28,11 @@ libs = env.BuildModules(
         "one_wire",
         "ibutton",
         "infrared",
-        "littlefs",
         "subghz",
         "nfc",
         "digital_signal",
         "pulse_reader",
         "signal_reader",
-        "appframe",
         "u8g2",
         "lfrfid",
         "flipper_application",
@@ -42,11 +41,12 @@ libs = env.BuildModules(
         "mjs",
         "nanopb",
         "update_util",
+        "cfw",
         "heatshrink",
         "ble_profile",
         "bit_lib",
-        "cfw",
         "datetime",
+        "ieee754_parse_wrap",
     ],
 )
 

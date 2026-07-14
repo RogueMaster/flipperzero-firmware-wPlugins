@@ -1,7 +1,7 @@
 # Flipper Game Boy Game Link Cable API
 Simple API that can be included in projects to provide a flexible and easy way to handle data exchange over a Game Link Cable.
 
-Current Version: 0.6
+Current Version: 0.62
 
 Available from: https://github.com/kbembedded/flipper-gblink
 
@@ -23,7 +23,7 @@ Available from: https://github.com/kbembedded/flipper-gblink
 - [ ] Proper documentation  
 
 ## Use example
-See https://github.com/EstebanFuentealba/Flipper-Zero-Game-Boy-Pokemon-Trading
+See https://github.com/kbembedded/Flipper-Zero-Game-Boy-Pokemon-Trading
 
 To include this in a Flipper Zero application, add this repo as a submodule in the `lib/` directory of the application source. Then add the following to `application.fam`:
 ```

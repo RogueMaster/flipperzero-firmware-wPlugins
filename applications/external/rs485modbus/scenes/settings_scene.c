@@ -21,7 +21,7 @@ void itemChangedCB(VariableItem* item) {
         break;
     case Parity_Option:
         variable_item_set_current_value_text(item, parityValues[index]);
-        app->uart->cfg->timeout = index;
+        app->uart->cfg->parity = index;
         break;
     case TimeOut_Option:
         app->uart->cfg->timeout = index;

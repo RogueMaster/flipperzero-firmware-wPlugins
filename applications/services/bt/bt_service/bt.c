@@ -17,7 +17,6 @@
 
 #define ICON_SPACER 2
 
-/*
 static void bt_draw_statusbar_callback(Canvas* canvas, void* context) {
     furi_assert(context);
 
@@ -41,7 +40,6 @@ static ViewPort* bt_statusbar_view_port_alloc(Bt* bt) {
     view_port_enabled_set(statusbar_view_port, false);
     return statusbar_view_port;
 }
-*/
 
 static void bt_pin_code_view_port_draw_callback(Canvas* canvas, void* context) {
     furi_assert(context);
@@ -63,6 +61,21 @@ static void bt_pin_code_view_port_input_callback(InputEvent* event, void* contex
     }
 }
 
+static void bt_storage_callback(const void* message, void* context) {
+    furi_assert(context);
+    Bt* bt = context;
+    const StorageEvent* event = message;
+
+    if(event->type == StorageEventTypeCardMount) {
+        const BtMessage msg = {
+            .type = BtMessageTypeReloadKeysSettings,
+        };
+
+        furi_check(
+            furi_message_queue_put(bt->message_queue, &msg, FuriWaitForever) == FuriStatusOk);
+    }
+}
+
 static ViewPort* bt_pin_code_view_port_alloc(Bt* bt) {
     ViewPort* view_port = view_port_alloc();
     view_port_draw_callback_set(view_port, bt_pin_code_view_port_draw_callback, bt);
@@ -73,8 +86,13 @@ static ViewPort* bt_pin_code_view_port_alloc(Bt* bt) {
 
 static void bt_pin_code_show(Bt* bt, uint32_t pin_code) {
     bt->pin_code = pin_code;
-    if(bt->suppress_pin_screen) return;
+    if(!bt->pin_code_view_port) {
+        // Pin code view port
+        bt->pin_code_view_port = bt_pin_code_view_port_alloc(bt);
+        gui_add_view_port(bt->gui, bt->pin_code_view_port, GuiLayerFullscreen);
+    }
     notification_message(bt->notification, &sequence_display_backlight_on);
+    if(bt->suppress_pin_screen) return;
 
     gui_view_port_send_to_front(bt->gui, bt->pin_code_view_port);
     view_port_enabled_set(bt->pin_code_view_port, true);
@@ -90,8 +108,8 @@ static void bt_pin_code_hide(Bt* bt) {
 static bool bt_pin_code_verify_event_handler(Bt* bt, uint32_t pin) {
     furi_assert(bt);
     bt->pin_code = pin;
-    if(bt->suppress_pin_screen) return true;
     notification_message(bt->notification, &sequence_display_backlight_on);
+    if(bt->suppress_pin_screen) return true;
 
     FuriString* pin_str;
     if(!bt->dialog_message) {
@@ -140,20 +158,18 @@ Bt* bt_alloc(void) {
     // Init default maximum packet size
     bt->max_packet_size = BLE_PROFILE_SERIAL_PACKET_SIZE_MAX;
     bt->current_profile = NULL;
-    // Load settings
-    bt_settings_load(&bt->bt_settings);
     // Keys storage
     bt->keys_storage = bt_keys_storage_alloc(BT_KEYS_STORAGE_PATH);
     // Alloc queue
     bt->message_queue = furi_message_queue_alloc(8, sizeof(BtMessage));
 
     // Setup statusbar view port
-    bt->pin_code_view_port = bt_pin_code_view_port_alloc(bt);
+    bt->statusbar_view_port = bt_statusbar_view_port_alloc(bt);
     // Notification
     bt->notification = furi_record_open(RECORD_NOTIFICATION);
     // Gui
     bt->gui = furi_record_open(RECORD_GUI);
-    gui_add_view_port(bt->gui, bt->pin_code_view_port, GuiLayerFullscreen);
+    gui_add_view_port(bt->gui, bt->statusbar_view_port, GuiLayerStatusBarLeft);
 
     // Dialogs
     bt->dialogs = furi_record_open(RECORD_DIALOGS);
@@ -169,8 +185,6 @@ Bt* bt_alloc(void) {
 
     // API evnent
     bt->api_event = furi_event_flag_alloc();
-
-    bt->pin = 0;
 
     return bt;
 }
@@ -248,7 +262,6 @@ static bool bt_on_gap_event_callback(GapEvent event, void* context) {
     furi_assert(context);
     Bt* bt = context;
     bool ret = false;
-    bt->pin = 0;
     bool do_update_status = false;
     bool current_profile_is_serial =
         furi_hal_bt_check_profile_type(bt->current_profile, ble_profile_serial);
@@ -287,14 +300,12 @@ static bool bt_on_gap_event_callback(GapEvent event, void* context) {
         do_update_status = true;
         ret = true;
     } else if(event.type == GapEventTypePinCodeShow) {
-        bt->pin = event.data.pin_code;
         BtMessage message = {
             .type = BtMessageTypePinCodeShow, .data.pin_code = event.data.pin_code};
         furi_check(
             furi_message_queue_put(bt->message_queue, &message, FuriWaitForever) == FuriStatusOk);
         ret = true;
     } else if(event.type == GapEventTypePinCodeVerify) {
-        bt->pin = event.data.pin_code;
         ret = bt_pin_code_verify_event_handler(bt, event.data.pin_code);
     } else if(event.type == GapEventTypeUpdateMTU) {
         bt->max_packet_size = event.data.max_packet_size;
@@ -328,7 +339,6 @@ static void bt_on_key_storage_change_callback(uint8_t* addr, uint16_t size, void
         furi_message_queue_put(bt->message_queue, &message, FuriWaitForever) == FuriStatusOk);
 }
 
-/*
 static void bt_statusbar_update(Bt* bt) {
     uint8_t active_icon_width = 0;
     if(bt->beacon_active) {
@@ -347,7 +357,6 @@ static void bt_statusbar_update(Bt* bt) {
         view_port_enabled_set(bt->statusbar_view_port, false);
     }
 }
-*/
 
 static void bt_show_warning(Bt* bt, const char* text) {
     if(!bt->dialog_message) {
@@ -395,6 +404,8 @@ void bt_close_rpc_connection(Bt* bt) {
 
 static void bt_change_profile(Bt* bt, BtMessage* message) {
     if(furi_hal_bt_is_gatt_gap_supported()) {
+        bt_settings_load(&bt->bt_settings);
+
         bt_close_rpc_connection(bt);
 
         bt_keys_storage_load(bt->keys_storage);
@@ -402,6 +413,7 @@ static void bt_change_profile(Bt* bt, BtMessage* message) {
         bt->current_profile = furi_hal_bt_change_app(
             message->data.profile.template,
             message->data.profile.params,
+            bt_keys_storage_get_root_keys(bt->keys_storage),
             bt_on_gap_event_callback,
             bt);
         if(bt->current_profile) {
@@ -429,26 +441,89 @@ static void bt_change_profile(Bt* bt, BtMessage* message) {
             *message->profile_instance = NULL;
         }
     }
-    if(message->lock) api_lock_unlock(message->lock);
 }
 
-static void bt_close_connection(Bt* bt, BtMessage* message) {
+static void bt_close_connection(Bt* bt) {
     bt_close_rpc_connection(bt);
     furi_hal_bt_stop_advertising();
-    if(message->lock) api_lock_unlock(message->lock);
 }
 
-bool bt_remote_rssi(Bt* bt, uint8_t* rssi) {
-    furi_assert(bt);
+static void bt_apply_settings(Bt* bt) {
+    if(bt->bt_settings.enabled) {
+        furi_hal_bt_start_advertising();
+    } else {
+        furi_hal_bt_stop_advertising();
+    }
+}
 
-    uint8_t rssi_val;
-    uint32_t since = furi_hal_bt_get_conn_rssi(&rssi_val);
+static void bt_load_keys(Bt* bt) {
+    if(!furi_hal_bt_is_gatt_gap_supported()) {
+        bt_show_warning(bt, "Unsupported radio stack");
+        bt->status = BtStatusUnavailable;
+        return;
 
-    if(since == 0) return false;
+    } else if(bt_keys_storage_is_changed(bt->keys_storage)) {
+        FURI_LOG_I(TAG, "Loading new keys");
 
-    *rssi = rssi_val;
+        bt_close_rpc_connection(bt);
+        bt_keys_storage_load(bt->keys_storage);
 
-    return true;
+        bt->current_profile = NULL;
+    } else {
+        FURI_LOG_I(TAG, "Keys unchanged");
+    }
+}
+
+static void bt_start_application(Bt* bt) {
+    if(!bt->current_profile) {
+        bt->current_profile = furi_hal_bt_change_app(
+            ble_profile_serial,
+            NULL,
+            bt_keys_storage_get_root_keys(bt->keys_storage),
+            bt_on_gap_event_callback,
+            bt);
+
+        if(!bt->current_profile) {
+            FURI_LOG_E(TAG, "BLE App start failed");
+            bt->status = BtStatusUnavailable;
+        }
+    }
+}
+
+static void bt_load_settings(Bt* bt) {
+    bt_settings_load(&bt->bt_settings);
+    bt_apply_settings(bt);
+}
+
+static void bt_handle_get_settings(Bt* bt, BtMessage* message) {
+    *message->data.settings = bt->bt_settings;
+}
+
+static void bt_handle_set_settings(Bt* bt, BtMessage* message) {
+    bt->bt_settings = *message->data.csettings;
+    bt_apply_settings(bt);
+    bt_settings_save(&bt->bt_settings);
+}
+
+static void bt_handle_reload_keys_settings(Bt* bt) {
+    bt_load_keys(bt);
+    bt_start_application(bt);
+    bt_load_settings(bt);
+}
+
+static void bt_init_keys_settings(Bt* bt) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    furi_pubsub_subscribe(storage_get_pubsub(storage), bt_storage_callback, bt);
+
+    if(storage_sd_status(storage) != FSE_OK) {
+        FURI_LOG_D(TAG, "SD Card not ready, skipping settings");
+
+        // Just start the BLE serial application without loading the keys or settings
+        bt_start_application(bt);
+        return;
+    }
+
+    bt_handle_reload_keys_settings(bt);
 }
 
 int32_t bt_srv(void* p) {
@@ -464,41 +539,30 @@ int32_t bt_srv(void* p) {
         return 0;
     }
 
-    // Load keys
-    if(!bt_keys_storage_load(bt->keys_storage)) {
-        FURI_LOG_W(TAG, "Failed to load bonding keys");
-    }
+    if(furi_hal_bt_start_radio_stack()) {
+        bt_init_keys_settings(bt);
+        furi_hal_bt_set_key_storage_change_callback(bt_on_key_storage_change_callback, bt);
 
-    // Start radio stack
-    if(!furi_hal_bt_start_radio_stack()) {
-        FURI_LOG_E(TAG, "Radio stack start failed");
-    }
-
-    if(furi_hal_bt_is_gatt_gap_supported()) {
-        bt->current_profile =
-            furi_hal_bt_start_app(ble_profile_serial, NULL, bt_on_gap_event_callback, bt);
-        if(!bt->current_profile) {
-            FURI_LOG_E(TAG, "BLE App start failed");
-        } else {
-            if(bt->bt_settings.enabled) {
-                furi_hal_bt_start_advertising();
-            }
-            furi_hal_bt_set_key_storage_change_callback(bt_on_key_storage_change_callback, bt);
-        }
     } else {
-        bt_show_warning(bt, "Unsupported radio stack");
-        bt->status = BtStatusUnavailable;
+        FURI_LOG_E(TAG, "Radio stack start failed");
     }
 
     furi_record_create(RECORD_BT, bt);
 
     BtMessage message;
+
     while(1) {
         furi_check(
             furi_message_queue_get(bt->message_queue, &message, FuriWaitForever) == FuriStatusOk);
+        FURI_LOG_D(
+            TAG,
+            "call %d, lock 0x%p, result 0x%p",
+            message.type,
+            (void*)message.lock,
+            (void*)message.result);
         if(message.type == BtMessageTypeUpdateStatus) {
             // Update view ports
-            // bt_statusbar_update(bt);
+            bt_statusbar_update(bt);
             bt_pin_code_hide(bt);
             if(bt->status_changed_cb) {
                 bt->status_changed_cb(bt->status, bt->status_changed_ctx);
@@ -519,10 +583,19 @@ int32_t bt_srv(void* p) {
         } else if(message.type == BtMessageTypeSetProfile) {
             bt_change_profile(bt, &message);
         } else if(message.type == BtMessageTypeDisconnect) {
-            bt_close_connection(bt, &message);
+            bt_close_connection(bt);
         } else if(message.type == BtMessageTypeForgetBondedDevices) {
             bt_keys_storage_delete(bt->keys_storage);
+        } else if(message.type == BtMessageTypeGetSettings) {
+            bt_handle_get_settings(bt, &message);
+        } else if(message.type == BtMessageTypeSetSettings) {
+            bt_handle_set_settings(bt, &message);
+        } else if(message.type == BtMessageTypeReloadKeysSettings) {
+            bt_handle_reload_keys_settings(bt);
         }
+
+        if(message.lock) api_lock_unlock(message.lock);
     }
+
     return 0;
 }

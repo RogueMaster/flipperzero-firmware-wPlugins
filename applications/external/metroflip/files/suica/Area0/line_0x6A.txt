@@ -1,0 +1,5 @@
+0x6A,0x03,Osaka Higashi,Shin-Kami,14,0
+0x6A,0x07,Osaka Higashi,JR Nagase,12,0
+0x6A,0x09,Osaka Higashi,JR Shuntokumichi,11,0
+0x6A,0x0B,Osaka Higashi,JR Kawachi-Eiwa,10,0
+0x6A,0x0D,Osaka Higashi,Takaida Chuo,9,0

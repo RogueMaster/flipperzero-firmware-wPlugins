@@ -13,7 +13,7 @@
 
 struct TotpUpdateContext {
     FuriString* args;
-    Cli* cli;
+    PipeSide* pipe;
     const CryptoSettings* crypto_settings;
 };
 
@@ -87,7 +87,7 @@ static TotpIteratorUpdateTokenResult
         // Reading token secret
         furi_string_reset(temp_str);
         TOTP_CLI_PRINTF("Enter token secret and confirm with [ENTER]:\r\n");
-        bool token_secret_read = totp_cli_read_line(context_t->cli, temp_str, mask_user_input);
+        bool token_secret_read = totp_cli_read_line(context_t->pipe, temp_str, mask_user_input);
         TOTP_CLI_DELETE_LAST_LINE();
         if(!token_secret_read) {
             furi_string_secure_free(temp_str);
@@ -110,8 +110,8 @@ static TotpIteratorUpdateTokenResult
     return TotpIteratorUpdateTokenResultSuccess;
 }
 
-static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
-    if(!totp_cli_ensure_authenticated(plugin_state, cli)) {
+static void handle(PluginState* plugin_state, FuriString* args, PipeSide* pipe) {
+    if(!totp_cli_ensure_authenticated(plugin_state, pipe)) {
         return;
     }
 
@@ -131,7 +131,7 @@ static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
     totp_token_info_iterator_go_to(iterator_context, token_number - 1);
 
     struct TotpUpdateContext update_context = {
-        .args = args, .cli = cli, .crypto_settings = &plugin_state->crypto_settings};
+        .args = args, .pipe = pipe, .crypto_settings = &plugin_state->crypto_settings};
     TotpIteratorUpdateTokenResult update_result = totp_token_info_iterator_update_current_token(
         iterator_context, &update_token_handler, &update_context);
 

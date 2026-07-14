@@ -1,0 +1,420 @@
+# Cataluña Region Stations - Metro, FGC, RENFE, Tranvía
+# Format: station_code,station_name
+
+# Estaciones reales más comunes encontradas en dumps (PRIORITARIAS)
+0x0000,Unknown Station
+0x8000,Barcelona-Sants
+0x8001,Barcelona-Passeig de Gràcia
+0x8002,Barcelona-França
+0x8003,Barcelona-Nord
+0x8004,Barcelona-Arc de Triomf
+0x8005,Barcelona-Clot-Aragó
+0x8006,Barcelona-La Sagrera
+0x8007,Barcelona-Sant Andreu
+
+# RENFE Cataluña - Principales estaciones
+0x8000,Barcelona-Sants
+0x8001,Barcelona-Passeig de Gràcia
+0x8002,Barcelona-França
+0x8003,Barcelona-Nord
+0x8004,Barcelona-Arc de Triomf
+0x8005,Barcelona-Clot-Aragó
+0x8006,Barcelona-La Sagrera
+0x8007,Barcelona-Sant Andreu
+
+# Metro de Barcelona - Línea 1 (Roja)
+0x001,Hospital de Bellvitge
+0x002,Bellvitge
+0x003,Avinguda Carrilet
+0x004,Rambla Just Oliveras
+0x005,Can Serra
+0x006,Florida
+0x007,Torrassa
+0x008,Santa Eulàlia
+0x009,Mercat Nou
+0x00A,Plaça de Sants
+0x00B,Sants Estació
+0x00C,Hostafrancs
+0x00D,Espanya
+0x00E,Rocafort
+0x00F,Urgell
+0x010,Universitat
+0x011,Catalunya
+0x012,Urquinaona
+0x013,Arc de Triomf
+0x014,Marina
+0x015,Glòries
+0x016,Clot
+0x017,Navas
+0x018,La Sagrera
+0x019,Fabra i Puig
+0x01A,Sant Andreu
+0x01B,Torras i Bages
+0x01C,Trinitat Vella
+0x01D,Baró de Viver
+0x01E,Santa Coloma
+0x01F,Fondo
+
+# Metro de Barcelona - Línea 2 (Púrpura)
+0x020,Paral·lel
+0x021,Sant Antoni
+0x022,Universitat
+0x023,Passeig de Gràcia
+0x024,Tetuan
+0x025,Monumental
+0x026,Sagrada Família
+0x027,Encants
+0x028,Clot
+0x029,Bac de Roda
+0x02A,Sant Martí
+0x02B,La Pau
+0x02C,Verneda
+0x02D,Artigues
+0x02E,Sant Roc
+0x02F,Gorg
+0x030,Pep Ventura
+
+# Metro de Barcelona - Línea 3 (Verde)
+0x031,Zona Universitària
+0x032,Palau Reial
+0x033,Maria Cristina
+0x034,Les Corts
+0x035,Plaça del Centre
+0x036,Sants Estació
+0x037,Tarragona
+0x038,Espanya
+0x039,Poble Sec
+0x03A,Paral·lel
+0x03B,Drassanes
+0x03C,Liceu
+0x03D,Catalunya
+0x03E,Passeig de Gràcia
+0x03F,Diagonal
+0x040,Fontana
+0x041,Lesseps
+0x042,Vallcarca
+0x043,Penitents
+0x044,Vallvidrera Superior
+0x045,Vallvidrera Inferior
+0x046,Peu del Funicular
+0x047,Montbau
+0x048,Mundet
+0x049,Valldaura
+0x04A,Canyelles
+0x04B,Roquetes
+0x04C,Trinitat Nova
+
+# Metro de Barcelona - Línea 4 (Amarilla)
+0x050,La Pau
+0x051,Verneda
+0x052,Sant Martí
+0x053,El Maresme-Fòrum
+0x054,Besòs Mar
+0x055,Besòs
+0x056,Maresme-Fòrum
+0x057,Selva de Mar
+0x058,El Maresme-Fòrum
+0x059,Ciutadella-Vila Olímpica
+0x05A,Barceloneta
+0x05B,Jaume I
+0x05C,Urquinaona
+0x05D,Girona
+0x05E,Verdaguer
+0x05F,Joanic
+0x060,Alfons X
+0x061,Guinardó
+0x062,Maragall
+0x063,Llucmajor
+0x064,Montbau
+0x065,Vall d'Hebron
+0x066,Montbau
+0x067,Canyelles
+0x068,Roquetes
+0x069,Trinitat Nova
+
+# Metro de Barcelona - Línea 5 (Azul)
+0x070,Cornellà Centre
+0x071,Gavarra
+0x072,Sant Ildefons
+0x073,Can Boixeres
+0x074,Can Vidalet
+0x075,Pubilla Cases
+0x076,Collblanc
+0x077,Badal
+0x078,Sants Estació
+0x079,Entença
+0x07A,Hospital Clínic
+0x07B,Diagonal
+0x07C,Provença
+0x07D,Sagrada Família
+0x07E,Sant Pau-Dos de Maig
+0x07F,Camp de l'Arpa
+0x080,La Sagrera
+0x081,Congrés
+0x082,Maragall
+0x083,Virrei Amat
+0x084,Vilapicina
+0x085,Horta
+0x086,El Carmel
+0x087,El Coll-La Teixonera
+0x088,Vall d'Hebron
+
+# Metro de Barcelona - Línea 9 Nord (Naranja)
+0x090,Can Zam
+0x091,Sagrera-Meridiana
+0x092,Onze de Setembre
+0x093,Bon Pastor
+0x094,Can Peixauet
+0x095,Fondo
+
+# Metro de Barcelona - Línea 9 Sud (Naranja)
+0x096,Aeroport T1
+0x097,Aeroport T2
+0x098,Mas Blau
+0x099,Parc Nou
+0x09A,Cèntric
+0x09B,El Prat Estació
+0x09C,Les Moreres
+0x09D,Mercabarna
+0x09E,Parc Logístic
+0x09F,Fira
+0x0A0,Europa-Fira
+0x0A1,Can Tries-Gornal
+0x0A2,Torrassa
+0x0A3,Collblanc
+0x0A4,Zona Universitària
+
+# Metro de Barcelona - Línea 10 (Azul claro)
+0x0A5,La Sagrera
+0x0A6,Onze de Setembre
+0x0A7,Bon Pastor
+0x0A8,Llefi
+0x0A9,La Salut
+0x0AA,Gorg
+
+# Metro de Barcelona - Línea 11 (Verde claro)
+0x0AB,Can Cuiàs
+0x0AC,Trinitat Nova
+
+# FGC (Ferrocarrils de la Generalitat de Catalunya)
+# Línea Barcelona-Vallès
+0x100,Plaça Catalunya
+0x101,Provença
+0x102,Gràcia
+0x103,Sant Gervasi
+0x104,Muntaner
+0x105,La Bonanova
+0x106,Les Tres Torres
+0x107,Sarrià
+0x108,Reina Elisenda
+0x109,Peu del Funicular
+0x10A,Baixador de Vallvidrera
+0x10B,Vallvidrera Superior
+0x10C,Les Planes
+0x10D,La Floresta
+0x10E,Sant Cugat
+0x10F,Volpelleres
+0x110,Mirasol-Gencat
+0x111,Sant Joan
+0x112,Sabadell Estació Nord
+0x113,Sabadell Rambla
+0x114,Sabadell Centre
+0x115,Creu Alta
+0x116,Barberà del Vallès
+0x117,Ripollet
+0x118,Cerdanyola Universitat
+0x119,Bellaterra
+0x11A,Universitat Autònoma
+
+# FGC Línea Llobregat-Anoia
+0x120,Plaça Espanya
+0x121,Magòria-La Campana
+0x122,Ildefons Cerdà
+0x123,Europa-Fira
+0x124,Gornal
+0x125,Sant Feliu-Consell Comarcal
+0x126,Molí Nou-Ciutat Cooperativa
+0x127,Sant Joan Despí
+0x128,Sant Just Desvern
+0x129,Can Ros
+0x12A,Esplugues
+0x12B,Cornellà Riera
+0x12C,Sant Boi
+0x12D,Molí Nou
+0x12E,Quatre Camins
+0x12F,Santa Coloma de Cervelló
+0x130,Sant Vicenç dels Horts
+0x131,Pallejà
+0x132,Can Ros
+0x133,Molins de Rei
+0x134,Vallirana
+0x135,Cervelló
+0x136,Collbató
+0x137,Monistrol de Montserrat
+0x138,Montserrat-Aeri
+0x139,Olesa de Montserrat
+0x13A,Esparreguera
+0x13B,Martorell Central
+0x13C,Martorell Vila
+0x13D,Martorell-Enllaç
+0x13E,Gelida
+0x13F,Sant Sadurní d'Anoia
+0x140,Subirats
+0x141,Lavern-Subirats
+0x142,Piera
+0x143,Capellades
+0x144,La Pobla de Claramunt
+0x145,Carme
+0x146,Igualada
+
+# Tramvia del Baix Llobregat (Trambaix)
+0x150,Francesc Macià
+0x151,Zona Universitària
+0x152,Palau Reial
+0x153,Avinguda Xile
+0x154,Numància
+0x155,Maria Cristina
+0x156,La Farga
+0x157,Cornellà Centre
+0x158,Almeda
+0x159,Sant Feliu-Consell Comarcal
+0x15A,Rambla de Sant Just
+0x15B,Torreblanca
+0x15C,Sant Joan Despí
+
+# Tramvia del Besòs (Trambesòs)
+0x160,Ciutadella-Vila Olímpica
+0x161,Wellington
+0x162,Llacuna
+0x163,Poblenou
+0x164,Selva de Mar
+0x165,El Maresme-Fòrum
+0x166,Besòs
+0x167,Maresme-Fòrum
+0x168,La Mina
+0x169,Gorg
+0x16A,Sant Adrià
+0x16B,Artigues
+0x16C,Verneda
+0x16D,Sant Roc
+0x16E,Gorg
+0x16F,La Pau
+
+# Rodalies de Catalunya (Cercanías)
+# R1 Barcelona-Figueres
+0x200,Barcelona-Sants
+0x201,Barcelona-Passeig de Gràcia
+0x202,Barcelona-Arc de Triomf
+0x203,Barcelona-Clot
+0x204,Barcelona-La Sagrera
+0x205,Barcelona-Sant Andreu
+0x206,Montcada i Reixac
+0x207,Montcada Bifurcació
+0x208,Mollet-Santa Rosa
+0x209,Mollet-Sant Fost
+0x210,Martorelles
+0x211,La Garriga
+0x212,Granollers Centre
+0x213,Granollers Canovelles
+0x214,Les Franqueses
+0x215,Llinars del Vallès
+0x216,Gualba
+0x217,Hostalric
+0x218,Sils
+0x219,Riudellots de la Selva
+0x21A,Girona
+0x21B,Flaçà
+0x21C,Vilarú
+0x21D,Viladasens
+0x21E,Figueres
+0x21F,Figueres Vilafant
+
+# R2 Barcelona-Puigcerdà/Latour de Querol
+0x220,Barcelona-Sants
+0x221,Sant Adrià de Besòs
+0x222,Badalona
+0x223,Montgat
+0x224,El Masnou
+0x225,Ocata
+0x226,Premià de Mar
+0x227,Vilassar de Mar
+0x228,Canet de Mar
+0x229,Arenys de Mar
+0x22A,Caldes d'Estrac
+0x22B,Sant Pol de Mar
+0x22C,Calella
+0x22D,Pineda de Mar
+0x22E,Tordera
+0x22F,Blanes
+0x230,Maçanet-Massanes
+0x231,Sils
+0x232,Riudellots de la Selva
+0x233,Girona
+0x234,Bordils-Juià
+0x235,Flaçà
+0x236,La Bisbal d'Empordà
+0x237,Parlavà
+0x238,Torroella de Montgrí
+
+# R3 Barcelona-Puigcerdà
+0x240,Barcelona-Sants
+0x241,Montcada Bifurcació
+0x242,Mollet-Sant Fost
+0x243,Parets del Vallès
+0x244,Montmeló
+0x245,Granollers Canovelles
+0x246,La Garriga
+0x247,Figaró
+0x248,Centelles
+0x249,Balenyà
+0x24A,Tona
+0x24B,Vic
+0x24C,Ripoll
+0x24D,Ribes de Freser
+0x24E,Planoles
+0x24F,Queralbs
+0x250,Puigcerdà
+
+# R4 Barcelona-Manresa
+0x251,Barcelona-Sants
+0x252,Sant Vicenç de Calders
+0x253,Cunit
+0x254,Segur de Calafell
+0x255,Calafell
+0x256,Castelldefels
+0x257,Gavà
+0x258,Viladecans
+0x259,Sant Boi de Llobregat
+0x25A,Molins de Rei
+0x25B,Pallejà
+0x25C,Martorell
+0x25D,Olesa de Montserrat
+0x25E,Esparreguera
+0x25F,Collbató
+0x260,Monistrol de Montserrat
+0x261,Manresa
+
+# Principales ciudades de Cataluña
+0xA000,Girona
+0xA100,Figueres
+0xA200,Portbou
+0xB000,Tarragona
+0xB100,Reus
+0xB200,Lleida
+0xB300,Tortosa
+0xB400,Amposta
+0xB500,Valls
+0xB600,Montblanc
+0xB700,Cambrils
+0xB800,Salou
+0xB900,Vila-seca
+0xBA00,Calafell
+0xBB00,Sitges
+0xBC00,Vilanova i la Geltrú
+0xBD00,Manresa
+0xBE00,Igualada
+0xBF00,Vic
+0xC000,Ripoll
+0xC100,Puigcerdà
+0xC200,Berga
+0xC300,Solsona

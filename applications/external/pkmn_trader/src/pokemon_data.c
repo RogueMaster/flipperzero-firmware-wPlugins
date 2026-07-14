@@ -896,12 +896,12 @@ void pokemon_stat_memcpy(PokemonData* dst, PokemonData* src, uint8_t which) {
             &(((TradeBlockGenI*)src->trade_block)->ot_name[which]),
             sizeof(struct name));
     } else if(dst->gen == GEN_II) {
-        ((TradeBlockGenI*)dst->trade_block)->party_members[0] =
-            ((TradeBlockGenI*)src->trade_block)->party_members[which];
+        ((TradeBlockGenII*)dst->trade_block)->party_members[0] =
+            ((TradeBlockGenII*)src->trade_block)->party_members[which];
         memcpy(
             &(((TradeBlockGenII*)dst->trade_block)->party[0]),
             &(((TradeBlockGenII*)src->trade_block)->party[which]),
-            sizeof(PokemonPartyGenI));
+            sizeof(PokemonPartyGenII));
         memcpy(
             &(((TradeBlockGenII*)dst->trade_block)->nickname[0]),
             &(((TradeBlockGenII*)src->trade_block)->nickname[which]),

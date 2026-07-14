@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hold Up — You're on an Unofficial Network</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: #fff;
+    width: 100%;
+    max-width: 400px;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+  .hero {
+    background: linear-gradient(135deg, #2c5364 0%, #203a43 100%);
+    padding: 32px 28px 24px;
+    text-align: center;
+    position: relative;
+  }
+  .warning-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,193,7,0.15);
+    border: 1px solid rgba(255,193,7,0.4);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #ffc107;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .warning-icon-big { font-size: 52px; margin: 8px 0; }
+  h1 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.3;
+    margin-bottom: 8px;
+  }
+  .hero-sub { font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.5; }
+  .body { padding: 24px 24px 20px; }
+  .risk-list {
+    background: #fef9ec;
+    border: 1px solid #fde68a;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .risk-list h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #92400e;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .risk-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #555;
+    line-height: 1.4;
+  }
+  .risk-item:last-child { margin-bottom: 0; }
+  .risk-dot {
+    width: 18px;
+    height: 18px;
+    background: #f59e0b;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: #fff;
+    font-weight: 700;
+  }
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
+    margin: 20px 0;
+  }
+  .escape-section { text-align: center; }
+  .trekistry-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .trek-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #2c5364, #203a43);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+  .trek-wordmark { font-size: 24px; font-weight: 800; color: #1a202c; letter-spacing: -0.5px; }
+  .trek-wordmark span { color: #2c5364; }
+  .escape-headline {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a202c;
+    margin-bottom: 6px;
+  }
+  .escape-desc {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    padding: 0 4px;
+  }
+  .destinations {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+  }
+  .dest { text-align: center; }
+  .dest-img { font-size: 28px; margin-bottom: 4px; }
+  .dest-name { font-size: 11px; color: #888; font-weight: 600; }
+  .btn-primary {
+    display: block;
+    background: linear-gradient(135deg, #2c5364 0%, #203a43 100%);
+    color: #fff;
+    border: none;
+    padding: 14px 20px;
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    margin-bottom: 10px;
+    width: 100%;
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-secondary {
+    display: block;
+    background: transparent;
+    color: #9ca3af;
+    border: 1.5px solid #e5e7eb;
+    padding: 11px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    width: 100%;
+  }
+  .footer {
+    background: #f9fafb;
+    padding: 14px 24px;
+    text-align: center;
+    font-size: 11px;
+    color: #aaa;
+    border-top: 1px solid #f0f0f0;
+    line-height: 1.6;
+  }
+  .footer a { color: #2c5364; text-decoration: none; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="hero">
+    <div class="warning-badge">&#x26A0; Security Notice</div>
+    <div class="warning-icon-big">&#x1F6A8;</div>
+    <h1>Whoa — you connected to an unofficial WiFi network.</h1>
+    <p class="hero-sub">Seriously, you probably shouldn't be on this. It's not safe.</p>
+  </div>
+  <div class="body">
+    <div class="risk-list">
+      <h3>&#x26A0; Why this matters</h3>
+      <div class="risk-item">
+        <div class="risk-dot">1</div>
+        <div>Unauthorized WiFi can intercept your passwords, messages, and banking data — even over HTTPS in some cases.</div>
+      </div>
+      <div class="risk-item">
+        <div class="risk-dot">2</div>
+        <div>Your device may be fingerprinted and tracked across locations.</div>
+      </div>
+      <div class="risk-item">
+        <div class="risk-dot">3</div>
+        <div>Disconnect now and connect to a trusted network with a known SSID and password.</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="escape-section">
+      <div class="trekistry-logo">
+        <div class="trek-icon">&#x1F9ED;</div>
+        <div class="trek-wordmark">Trek<span>istry</span></div>
+      </div>
+      <div class="escape-headline">But hey — if you're looking to escape...</div>
+      <p class="escape-desc">
+        You connected to the wrong network, but maybe you found the right idea.
+        Life's too short for bad WiFi and no plans. Trekistry helps you plan adventures
+        that are worth leaving home for.
+      </p>
+      <div class="destinations">
+        <div class="dest"><div class="dest-img">&#x1F3D4;</div><div class="dest-name">Mountains</div></div>
+        <div class="dest"><div class="dest-img">&#x1F3D6;</div><div class="dest-name">Coastlines</div></div>
+        <div class="dest"><div class="dest-img">&#x1F3F0;</div><div class="dest-name">Cities</div></div>
+        <div class="dest"><div class="dest-img">&#x1F332;</div><div class="dest-name">Wilderness</div></div>
+      </div>
+      <a href="https://trekistry.com" class="btn-primary">Plan My Next Trip at Trekistry &#x2192;</a>
+      <a href="#" class="btn-secondary">I understand the risk, let me proceed</a>
+    </div>
+  </div>
+  <div class="footer">
+    This network is operated for security research and authorized WiFi testing only.<br>
+    <a href="https://trekistry.com">trekistry.com</a> &mdash; Plan trips worth having.
+  </div>
+</div>
+</body>
+</html>

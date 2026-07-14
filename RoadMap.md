@@ -4,11 +4,9 @@
 - I likely won't have time to cover all these items.
 - Some of these would make great sample projects to learn how to make apps for flipper.
 - I tried to organize them in terms of difficulty.
+- [EMPTY]
 
 ## WISH LIST ITEMS:
-- Battery Type moved to Power Settings
-- `Notepad` APP to allow taking quick notes and saving to SD.
-- - Also can possibly open/edit .md,.txt,.fmf and other text friendly formats
 - `Bluetooth Audio` APP to allow flipper to pair to external speaker or headphones for mp3 playback
 - - Also can possible pair to speaker via NFC tap, here are some possible resources:
 - - - https://github.com/urish/circuitpython-mp3-ble

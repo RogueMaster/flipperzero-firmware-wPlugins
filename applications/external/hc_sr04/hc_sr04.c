@@ -30,6 +30,7 @@ typedef struct {
     bool measurement_made;
     uint32_t echo; // us
     float distance; // meters
+    int mode; // 1 = m, 2 = cm, 3 = ft, 4 = in
 } PluginState;
 
 const NotificationSequence sequence_done = {
@@ -40,6 +41,18 @@ const NotificationSequence sequence_done = {
     &message_sound_off,
     NULL,
 };
+
+float m_to_cm(float meters) {
+    return meters * 100.0f;
+}
+
+float m_to_feet(float meters) {
+    return meters * 3.28084f;
+}
+
+float m_to_inches(float meters) {
+    return meters * 39.3701f;
+}
 
 static void render_callback(Canvas* const canvas, void* ctx) {
     furi_assert(ctx);
@@ -78,7 +91,20 @@ static void render_callback(Canvas* const canvas, void* ctx) {
 
             canvas_draw_str_aligned(
                 canvas, 8, 38, AlignLeft, AlignTop, furi_string_get_cstr(str_buf));
-            furi_string_printf(str_buf, "Distance: %02f m", (double)plugin_state->distance);
+
+            if(plugin_state->mode == 1) {
+                furi_string_printf(str_buf, "Distance: %02f m", (double)plugin_state->distance);
+            } else if(plugin_state->mode == 2) {
+                furi_string_printf(
+                    str_buf, "Distance: %02f cm", (double)m_to_cm(plugin_state->distance));
+            } else if(plugin_state->mode == 3) {
+                furi_string_printf(
+                    str_buf, "Distance: %02f ft", (double)m_to_feet(plugin_state->distance));
+            } else if(plugin_state->mode == 4) {
+                furi_string_printf(
+                    str_buf, "Distance: %02f in", (double)m_to_inches(plugin_state->distance));
+            }
+
             canvas_draw_str_aligned(
                 canvas, 8, 48, AlignLeft, AlignTop, furi_string_get_cstr(str_buf));
 
@@ -188,6 +214,8 @@ int32_t hc_sr04_app() {
 
     hc_sr04_state_init(plugin_state);
 
+    plugin_state->mode = 1; // meters as default
+
     FuriHalSerialHandle* serial_handle = furi_hal_serial_control_acquire(FuriHalSerialIdUsart);
 
     plugin_state->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
@@ -230,8 +258,14 @@ int32_t hc_sr04_app() {
                     switch(event.input.key) {
                     case InputKeyUp:
                     case InputKeyDown:
+                        break;
                     case InputKeyRight:
+                        plugin_state->mode++;
+                        if(plugin_state->mode > 4) plugin_state->mode = 1;
+                        break;
                     case InputKeyLeft:
+                        plugin_state->mode--;
+                        if(plugin_state->mode < 1) plugin_state->mode = 4;
                         break;
                     case InputKeyOk:
                         hc_sr04_measure(plugin_state);

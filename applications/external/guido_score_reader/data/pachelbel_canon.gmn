@@ -1,0 +1,25 @@
+{
+[
+\title<"Pachelbel Canon (2 voices)">
+\composer<"Johann Pachelbel">
+\tempo<"Andante", "1/4=60">
+\key<0>
+\meter<"4/4">
+
+(* Voice 1 - Canon melody *)
+\staff<1>
+d1/2 a0/2 b0/2 f#1/2 | g1/2 d1/2 g1/2 a1/2 |
+d1/2 a0/2 b0/2 f#1/2 | g1/2 d1/2 g1/2 a1/2 |
+d1/4 f#1/4 a1/4 g1/4 f#1/4 d1/4 f#1/4 e1/4 |
+d1/4 b0/4 a1/4 g1/4 f#1/4 d1/4 e1/4 f#1/4 |
+g1/4 b0/4 a1/4 g1/4 f#1/4 e1/4 f#1/4 g1/4 |
+a1/4 b1/4 a1/4 g1/4 a1/4 f#1/4 g1/4 e1/4,
+
+(* Voice 2 - Ground bass *)
+\staff<2> \clef<"bass">
+d0/2 a-1/2 b-1/2 f#0/2 | g-1/2 d0/2 g-1/2 a-1/2 |
+d0/2 a-1/2 b-1/2 f#0/2 | g-1/2 d0/2 g-1/2 a-1/2 |
+d0/2 a-1/2 b-1/2 f#0/2 | g-1/2 d0/2 g-1/2 a-1/2 |
+d0/2 a-1/2 b-1/2 f#0/2 | g-1/2 d0/2 g-1/2 a-1/2
+]
+}

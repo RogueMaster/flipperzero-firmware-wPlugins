@@ -1,0 +1,22 @@
+App(
+    appid="fz_nrf24_jammer",
+    name="FZ nRF24 Jammer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="nRF24_jammer_app",
+    stack_size=2 * 1024,
+    fap_icon="icon.png",
+    fap_icon_assets="images",
+    fap_private_libs=[
+        Lib(
+            name="nrf24",
+            sources=[
+                "nrf24.c",
+            ],
+        ),
+    ],
+    fap_category="GPIO/NRF24",
+    fap_author="W0rthlessS0ul",
+    fap_weburl="https://github.com/W0rthlessS0ul/FZ_nRF24_jammer",
+    fap_version="1.4.0",
+    fap_description="The FZ nRF24 jammer is a powerful tool that requires an Flipper Zero and NRF24 module to assemble. It is designed to create interference, disrupting the normal operation of Bluetooth devices, BLE technology, drones, Wi-Fi networks and Zigbee.",
+)

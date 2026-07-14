@@ -11,6 +11,18 @@
 #define SCSI_ASC_INVALID_FIELD_IN_CDB           (0x24)
 
 typedef struct {
+    char* scsi_vendor_id; // 8 chars max
+    char* scsi_product_id; // 16 chars max
+    char* scsi_revision; // 4 chars max
+    char* scsi_serial; // Variable length
+    char* usb_manufacturer; // Variable length
+    char* usb_product; // Variable length
+    char* usb_serial; // Variable length
+    uint16_t usb_vendor_id; // USB VID
+    uint16_t usb_product_id; // USB PID
+} MassStorageConfig;
+
+typedef struct {
     void* ctx;
     bool (*read)(
         void* ctx,
@@ -27,6 +39,7 @@ typedef struct {
 typedef struct {
     SCSIDeviceFunc fn;
 
+    const MassStorageConfig* config;
     uint8_t* cmd;
     uint8_t cmd_len;
     bool rx_done;

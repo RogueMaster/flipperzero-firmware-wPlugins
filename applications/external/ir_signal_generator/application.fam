@@ -1,0 +1,13 @@
+App(
+    appid="ir_signal_generator",
+    name="IR Signal Generator",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ir_signal_generator_app",
+    stack_size=2 * 1024,
+    fap_icon="icon.png",
+    fap_category="Infrared",
+    fap_author="Sacriphanius / temboohms68",
+    fap_weburl="https://github.com/temboohms68/Flipper-Zero-IR-Signal-Generator",
+    fap_version="1.0",
+    fap_description="Advanced IR Signal Generator with RF Spectrum and External IR Support",
+)

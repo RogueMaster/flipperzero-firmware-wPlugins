@@ -1,0 +1,169 @@
+# Galicia - RENFE y transporte ferroviario
+# Códigos de estaciones del transporte público en Galicia
+# Formato: código=nombre_de_estación
+
+# RENFE Galicia - Principales estaciones
+0x8000=Santiago de Compostela
+0x8001=A Coruña-San Cristóbal
+0x8002=Vigo-Guixar
+0x8003=Vigo-Urzáiz
+0x8004=Pontevedra
+0x8005=Ourense
+0x8006=Lugo
+0x8007=Ferrol
+0x8008=Monforte de Lemos
+
+# RENFE Cercanías Galicia - Línea Vigo-Pontevedra-Santiago
+0x001=Vigo-Guixar
+0x002=Vigo-Urzáiz
+0x003=Samil
+0x004=Coruxo
+0x005=Redondela
+0x006=Arcade
+0x007=Soutomaior
+0x008=Vilaboa
+0x009=Pontevedra
+0x00A=Barro
+0x00B=Pontecesures
+0x00C=Valga
+0x00D=Catoira
+0x00E=Padrón
+0x00F=Dodro
+0x010=Rois
+0x011=Teo
+0x012=Santiago de Compostela
+
+# RENFE Cercanías Galicia - Línea A Coruña-Santiago
+0x020=A Coruña-San Cristóbal
+0x021=A Coruña
+0x022=Culleredo
+0x023=Cambre
+0x024=Ordes
+0x025=Sigüeiro
+0x026=Santiago de Compostela
+
+# RENFE Larga Distancia - Eje Atlántico
+0x030=Ferrol
+0x031=As Pontes
+0x032=Betanzos-Cidade
+0x033=Betanzos-Infesta
+0x034=A Coruña
+0x035=Vilagarcía de Arousa
+0x036=Pontevedra
+0x037=Vigo
+0x038=Tui
+0x039=Guillarei
+
+# Línea Zamora-A Coruña (Vía de la Plata)
+0x040=Ourense-San Francisco
+0x041=Ourense-Empalme
+0x042=Maside
+0x043=Silleda
+0x044=Lalín
+0x045=A Estrada
+0x046=Vedra
+0x047=Santiago de Compostela
+
+# Línea Monforte-Vigo
+0x050=Monforte de Lemos
+0x051=Chantada
+0x052=Portomarín
+0x053=Sarria
+0x054=Paradela
+0x055=Pobra do Brollón
+0x056=Láncara
+0x057=Lugo
+
+# Línea Norte - Tramo gallego
+0x060=Ferrol
+0x061=Narón
+0x062=Neda
+0x063=Fene
+0x064=Pontedeume
+0x065=Miño
+0x066=Betanzos-Infesta
+0x067=A Coruña
+
+# Línea Palencia-A Coruña
+0x070=Monforte de Lemos
+0x071=Sarria
+0x072=Lugo
+0x073=Baamonde
+0x074=Villalba
+0x075=Curtis
+0x076=A Coruña
+
+# Estaciones de mercancías y especiales
+0x080=Vigo-Transbordo
+0x081=Pontevedra-Mercancías
+0x082=A Coruña-Mercancías
+0x083=Santiago-Mercancías
+0x084=Ourense-Mercancías
+0x085=Ferrol-Arsenal
+
+# Tranvía de Vigo (Metro de Vigo)
+0x090=Praza do Rei
+0x091=Urzáiz
+0x092=Porta do Sol
+0x093=Colón
+0x094=Gran Vía
+0x095=Jenaro de la Fuente
+0x096=Camelias
+0x097=Balaídos
+0x098=Universidade
+0x099=Campus Universitario
+
+# Estaciones históricas y en desuso
+0x0A0=Ribadeo
+0x0A1=Viveiro
+0x0A2=Mondoñedo
+0x0A3=Villalba-Enlace
+0x0A4=Medina del Campo-Zamora-Vigo
+0x0A5=Xinzo de Limia
+0x0A6=Verín
+0x0A7=Viana del Bollo
+
+# Líneas de FEVE (antiguas)
+0x0B0=Ferrol-San Cibrao
+0x0B1=El Ferrol del Caudillo
+0x0B2=Pontedeume-FEVE
+0x0B3=Betanzos-FEVE
+0x0B4=A Coruña-FEVE
+0x021=Culleredo
+0x022=Cambre
+0x023=Carral
+0x024=Ordes
+0x025=Sigüeiro
+0x026=Santiago de Compostela
+
+# Línea Pontevedra - Vigo (metro ligero)
+0x030=Pontevedra
+0x031=Arcade
+0x032=Soutomaior
+0x033=Vigo-Urzáiz
+0x034=Vigo-Guixar
+
+# Ferrocarril turístico y otras líneas
+0x040=Ferrol
+0x041=Betanzos
+0x042=Curtis
+0x043=Teixeiro
+0x044=Santiago de Compostela
+
+# Autobuses urbanos principales (códigos aproximados)
+0x050=Estación Autobuses Vigo
+0x051=Estación Autobuses Santiago
+0x052=Estación Autobuses A Coruña
+0x053=Estación Autobuses Pontevedra
+0x054=Estación Autobuses Ferrol
+0x055=Estación Autobuses Lugo
+0x056=Estación Autobuses Ourense
+
+# Otras estaciones importantes
+0x060=Monforte de Lemos
+0x061=Sarria
+0x062=Lugo
+0x063=Ourense
+0x064=Xinzo de Limia
+0x065=Verin
+0x066=Puebla de Sanabria

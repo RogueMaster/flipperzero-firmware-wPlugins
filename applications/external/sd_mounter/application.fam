@@ -1,0 +1,14 @@
+App(
+    appid="sd_mounter",
+    name="SD Card Mounter",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="sd_mounter_app",
+    stack_size=2 * 1024,
+    fap_icon="sd_mounter.png",
+    fap_icon_assets="images",
+    fap_category="USB",
+    fap_author="Aaronjamt",
+    fap_weburl="https://github.com/aaronjamt/flipper_sd_mounters",
+    fap_version="0.1",
+    fap_description="Use Flipper as an SD card reader!",
+)

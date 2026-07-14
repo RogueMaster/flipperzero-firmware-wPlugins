@@ -14,8 +14,8 @@ void stream_to_serial() {
 
   uint8_t flipper_y = 0;
 
-  // Iterating over specific rows of the frame buffer.
-  for (uint8_t y = 28; y < 92; ++y) {
+  // Iterating over all rows of the frame buffer.
+  for (uint8_t y = 0; y < 128; y++) {
     Serial.print("Y:");      // Print "Y:" for every new row.
     Serial.write(flipper_y); // Send the row identifier as a byte.
 
@@ -24,9 +24,8 @@ void stream_to_serial() {
     // gives the starting index of the row in the 1D array.
     size_t true_y = y * frame_buffer->width;
 
-    // Iterating over specific columns of each row in the frame buffer.
-    for (uint8_t x = 16; x < 144;
-         x += 8) { // step by 8 as we're packing 8 pixels per byte.
+    // Iterating over all columns of each row in the frame buffer.
+    for (uint8_t x = 0; x < 128; x += 8) { // step by 8 as we're packing 8 pixels per byte.
       uint8_t packed_pixels = 0;
       // Packing 8 pixel values into one byte.
       for (uint8_t bit = 0; bit < 8; ++bit) {

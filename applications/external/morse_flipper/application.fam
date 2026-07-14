@@ -1,0 +1,98 @@
+# For details and options, see documentation/AppManifests.md in the firmware tree
+
+import os
+import sys
+
+app_dir = os.path.dirname(app_manifest_path)
+if app_dir and app_dir not in sys.path:
+    sys.path.insert(0, app_dir)
+
+git_commit = "fail"
+git_host = "fail"
+git_built = "fail"
+
+try:
+    import gitver
+
+    git_commit = getattr(gitver, "git_commit", "fail")
+    git_host = getattr(gitver, "git_host", "fail")
+    git_built = getattr(gitver, "git_built", "fail")
+except Exception:
+    pass
+
+App(
+    appid="morse_flipper",
+    name="Morse Flipper",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="morse_flipper_fap",
+    stack_size=4 * 1024,
+    cdefines=[
+        "MORSE_FLIPPER_FAP=1",
+        f'APP_BUILD_COMMIT=\\"{git_commit}\\"',
+        f'APP_BUILD_HOST=\\"{git_host}\\"',
+        f'APP_BUILD_TIME=\\"{git_built}\\"',
+    ],
+    sources=[
+        "src/firmware/morse_flipper_fap.c",
+        "src/firmware/morse_flipper_core.c",
+        "src/firmware/morse_flipper_screen.c",
+        "src/firmware/morse_flipper_status.c",
+        "src/firmware/morse_flipper_audio_route.c",
+        "src/firmware/cw_markdown_widget.c",
+        "src/firmware/morse_flipper_help.c",
+        "src/firmware/morse_flipper_app.c",
+        "src/firmware/morse_flipper_flow.c",
+        "src/firmware/morse_flipper_scenes.c",
+        "src/firmware/morse_flipper_config.c",
+        "src/firmware/morse_flipper_settings.c",
+        "src/firmware/morse_flipper_settings_keying.c",
+        "src/firmware/morse_flipper_settings_audio.c",
+        "src/firmware/morse_flipper_settings_gpio.c",
+        "src/firmware/morse_flipper_settings_training.c",
+        "src/firmware/morse_flipper_settings_usb.c",
+        "src/firmware/morse_flipper_keying.c",
+        "src/firmware/morse_flipper_transport.c",
+        "src/firmware/morse_flipper_input.c",
+        "src/firmware/morse_flipper_runtime.c",
+        "src/firmware/morse_flipper_session.c",
+        "src/firmware/morse_flipper_rf_live.c",
+        "src/firmware/morse_flipper_about.c",
+        "src/firmware/morse_flipper_live_view.c",
+        "src/firmware/morse_flipper_live_view_common.c",
+        "src/firmware/morse_flipper_live_view_run.c",
+        "src/firmware/morse_flipper_live_view_training.c",
+        "src/firmware/morse_flipper_live_view_rf.c",
+        "src/firmware/morse_flipper_live_view_ham.c",
+        "src/firmware/morse_flipper_gpio.c",
+        "src/firmware/morse_flipper_gpio_probe.c",
+        "src/firmware/morse_flipper_ham_keyer.c",
+        "src/firmware/morse_flipper_ham_runtime.c",
+        "src/firmware/morse_flipper_audio_pwm.c",
+        "src/firmware/morse_flipper_run_history.c",
+        "src/firmware/morse_flipper_run_layout.c",
+        "src/firmware/keyer.c",
+        "src/firmware/cw.c",
+        "src/firmware/morse_flipper_cw_token.c",
+        "src/firmware/morse_flipper_cw_decoder.c",
+        "src/firmware/pc_keys.c",
+        "src/firmware/morse_flipper_radio.c",
+        "src/firmware/morse_flipper_rf.c",
+        "src/firmware/morse_flipper_rf_timing.c",
+        "src/firmware/morse_flipper_straight_filter.c",
+        "src/firmware/morse_flipper_straight_trainer.c",
+        "src/firmware/morse_flipper_straight_runtime.c",
+        "src/firmware/morse_flipper_tx_groups.c",
+        "src/firmware/morse_flipper_tx_groups_runtime.c",
+        "src/firmware/trainer.c",
+        "src/firmware/trainer_files.c",
+        "src/firmware/usb/*.c",
+    ],
+    fap_icon="morse-flipper.png",
+    fap_file_assets="assets",
+    fap_category="Sub-GHz",
+    fap_version="0.1.76",
+    fap_author="yo3gnd",
+    fap_weburl="https://github.com/yo3gnd/morse-flipper/",
+    fap_description="Learn, practise, send, and experiment with Morse code on Flipper Zero.",
+)

@@ -22,6 +22,7 @@ typedef struct UART_TerminalApp {
     int uart_is_init;
     FuriHalSerialHandle* serial_handle;
     void (*handle_rx_data_cb)(uint8_t* buf, size_t len, void* context);
+    FuriString* reusable_str;
 } uart_app;
 
 void uart_init(uart_app* uapp, int baudrate, FuriHalSerialId ch);

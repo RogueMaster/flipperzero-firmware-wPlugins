@@ -21,7 +21,7 @@ This is a screenshot, but the game looks a lot better in the device itself:
 
 ![Asteroids for Flipper Zero screenshot](/images/Asteroids-PowerUps.png "In game screenshot")
 
-![Pause Screen](images/Pause%20Screen.png "Pause screen")
+![Pause Screen](images/PauseScreen.png "Pause screen")
 
 # Controls:
 * Left/Right: rotate ship in the two directions.
@@ -40,12 +40,18 @@ Your high scores will automatically be saved. Go forth and compete!
 * ![](assets/heart_10x10.png "Lives") - Et tu, Brute? Gives a bonus life up to a maximum of 5 lives
 * ![](assets/nuke_10x10.png "Nuke") - Nuke (work in progress). Destroys everything in sight (but keeps the power ups)
 * ![](assets/split_shield_10x10.png "Shield") - Use the force! Spins up a shield that can be used as a battering ram. Take zero damage while in use.
+* D - A mini drone assist that has your back!
 
 ## More power ups coming soon...
 
 ---
 ## Installing the binary file (no build needed)
+### Option 1 (Recommended)
+Download from the Flipper Zero App catalog store  
+https://lab.flipper.net/apps/asteroids
 
+
+### Option 2)
 Go to the releases and drop the `asteroids.fap` file into the
 following Flipper Zero location:
 
@@ -57,17 +63,19 @@ you can just take out the SD card, insert it in your computer,
 copy the fine into `apps/Games`, and that's it.
 
 ## Installing the app from source
+Step 1) Install `ufbt` cli tool
+- **Linux & macOS**: `python3 -m pip install --upgrade ufbt`
+- **Windows**: `py -m pip install --upgrade ufbt`
 
-* Download the Flipper Zero dev kit and build it:
+Step 2) Clone this repo with `git`
 ```
-mkdir -p ~/flipperZero/official/
-cd ~/flipperZero/official/
-git clone --recursive  https://github.com/flipperdevices/flipperzero-firmware.git  ./
-./fbt
+git clone https://github.com/SimplyMinimal/FlipperZero-Asteroids/
 ```
-* Copy this application folder in `official/application_user`.
+
+Step 3) Launch Asteroids  
+* `cd FlipperZero-Asteroids`
 * Connect your Flipper via USB.
-* Build and install with: `./fbt launch_app APPSRC=asteroids`.
+* Build and install with: `ufbt launch`.
 
 ## License
 

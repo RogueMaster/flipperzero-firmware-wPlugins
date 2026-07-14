@@ -158,6 +158,7 @@ static void dtmf_dolphin_dialer_draw_callback(Canvas* canvas, void* _model) {
     if(model->gap_ms) {
         furi_string_cat_printf(output, "Gaps: %u ms\n", model->gap_ms);
     }
+    furi_string_cat_printf(output, "GPIO: PA6");
     elements_multiline_text(
         canvas, (max_span * DTMF_DOLPHIN_BUTTON_WIDTH) + 4, 21, furi_string_get_cstr(output));
 

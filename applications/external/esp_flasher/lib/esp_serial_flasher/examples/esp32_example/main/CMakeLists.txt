@@ -1,17 +1,9 @@
 set(srcs main.c ../../common/example_common.c)
 set(include_dirs . ../../common)
 
-if ("${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}" VERSION_GREATER "4.0")
-    idf_component_register(SRCS ${srcs}
-                           INCLUDE_DIRS ${include_dirs})
-    set(target ${COMPONENT_LIB})
-else()
-    # remove when dropping IDF 3.3 support
-    set(COMPONENT_SRCS ${srcs})
-    set(COMPONENT_ADD_INCLUDEDIRS ${include_dirs})
-    register_component()
-    set(target ${COMPONENT_TARGET})
-endif()
+idf_component_register(SRCS ${srcs}
+                       INCLUDE_DIRS ${include_dirs})
+set(target ${COMPONENT_LIB})
 
 # Embed binaries into the app.
 # In ESP-IDF this can also be done using EMBED_FILES option of idf_component_register.

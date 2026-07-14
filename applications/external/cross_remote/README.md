@@ -29,12 +29,16 @@ Wouldn't it be nicer to simply click one button and let everything happen? This 
 - Save chained commands to a file<br>
 - Add pauses, becaue target systems are not always fast enough for multiple commands<br>
 - Run file containing chained IR & SubGhz commands<br>
+- Loop Transmissions until quit
+- Pin to Favorites menu (if supported by firmware)
 
 ### Settings
 - LED FX, allow the LED to blink
 - Save settings, stores a file with your settings in it on exit
 - IR time ms, the default duration of an IR signal transmission. Individual times can be set
 - SubG. time ms, the default duration of a SubGhz signal. Only needed for Encoded signals, RAW files play until finished
+- Loop transmip, repeats the command chain until cancelled
+- External IR & 5V on GPIO, settings for external IR boards
 
 ### Limitations
 SubGhz commands will stop working if you move/rename/delete the original files on your Flipper. This is because of how the Flippers SubGhz worker expects data. 
@@ -51,6 +55,17 @@ Then run the command:
 .\fbt launch_app APPSRC=applications_user/xremote
  ```
 The application will be compiled and copied onto your device. 
+
+## Pin to Favorites feature
+This feature is only available in custom firmwares that support it or if you modify the owf to support the .xr file types.
+
+From the start screen on flipper press down to enter the favorites menu. Navigate left and right until you hit the tab "browser". From there navigate into the folder apps_data/xremote and select the command chain you want to add to your favorites. Select "Pin" from the context menu and your command chain will be available in the favorites menu. 
+
+## Thank you notes
+- [WillyJL](https://github.com/WillyJL) for code contributions and distributing in Momentum Firmware
+- [Roguemaster](https://github.com/RogueMaster/flipperzero-firmware-wPlugins) for distributing in Roguemaster Firmware
+- [Miccayo](https://github.com/miccayo) for contributing the loop transmit feature
+- [jxc](https://github.com/jxc) for providing a great upgrade to the pause timer
 
 ## Licensing
 This code is open-source and may be used for whatever you want to do with it. 

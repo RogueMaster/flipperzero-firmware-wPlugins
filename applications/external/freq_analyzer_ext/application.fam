@@ -1,0 +1,17 @@
+App(
+    appid="freq_analyzer_ext",
+    name="Frequency Analyzer w External",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="freq_anal_app",
+    stack_size=3 * 1024,
+    fap_libs=["hwdrivers"],
+    fap_icon="icon.png",
+    fap_icon_assets="assets",
+    fap_category="Sub-GHz",
+    fap_author="xMasterX",
+    fap_weburl="https://github.com/xMasterX/all-the-plugins/tree/dev/non_catalog_apps/freq_analyzer_ext",
+    fap_version="1.0",
+    fap_description="Cut from unleashed FW subghz app directly, with external module support (no path isolate, get random signals from space!)",
+    #  NOTE FROM xMasterX: for very rare cases i got told this is useful, - getting wireless microphones frequencies for concert work, also app will be great for those people who loves to see random noise on screen and get "signals" from space, app does support ext modules, ext modules doesnt support path isolate, since they have only 1 path, unless you do wireless mics, please use regular frequency analyzer in subghz app
+)

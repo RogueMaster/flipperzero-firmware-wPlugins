@@ -1,0 +1,13 @@
+App(
+    appid="blackhat",
+    name="Flipper Blackhat [A33]",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="blackhat_app",
+    stack_size=1 * 1024,
+    fap_icon="icons/blackhat_10px.png",
+    fap_category="GPIO",
+    fap_author="machinehum",
+    fap_weburl="https://github.com/o7-machinehum/flipper-blackhat-app",
+    fap_version="0.4.1",
+    fap_description="Control of the flipper blackhat device",
+)

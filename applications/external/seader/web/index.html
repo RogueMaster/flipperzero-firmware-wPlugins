@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seader - Your Ultimate Credential Reading App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .header {
+            background-color: #1a1a1a; /* Updated color */
+            color: white;
+            text-align: center;
+            padding: 100px 20px;
+            background-image: url('./banner.png');
+            background-size: cover;
+            background-position: center;
+        }
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 0.5em;
+        }
+        .header p {
+            font-size: 1.5em;
+            margin-bottom: 1em;
+        }
+        .features, .hardware, .cta {
+            padding: 50px 20px;
+            background-color: #2a2a2a; /* Updated color */
+            color: white; /* Updated text color */
+            margin: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .features h2, .hardware h2, .cta h2 {
+            margin-bottom: 20px;
+            font-size: 2em;
+            color: #ffcc00; /* Updated color */
+            text-align: center;
+        }
+        .features p, .hardware p, .cta p {
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        .cta button {
+            background-color: #ffcc00; /* Updated color */
+            color: #1a1a1a; /* Updated text color */
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .cta button:hover {
+            background-color: #e6b800; /* Updated color */
+        }
+        .hardware table {
+            margin: 0 auto;
+            width: 80%;
+            border-collapse: collapse;
+        }
+        .hardware table, .hardware th, .hardware td {
+            border: 1px solid #ddd;
+        }
+        .hardware th, .hardware td {
+            padding: 8px;
+            text-align: left;
+        }
+        .hardware a {
+            color: #ffcc00; /* Updated color */
+            text-decoration: none;
+        }
+        .hardware a:hover {
+            text-decoration: underline;
+        }
+        .screenshots {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+            overflow-x: auto;
+            padding: 10px;
+        }
+        .screenshots img {
+            width: 512px;
+            height: 256px;
+            border: 2px solid #ffcc00;
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+        ul {
+            list-style-type: none; /* Remove bullet points */
+            padding: 0;
+        }
+        .hardware-details {
+            text-align: left;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .comparison-table th, .comparison-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        .comparison-table th {
+            background-color: #1a1a1a;
+            color: white;
+        }
+        .comparison-table td {
+            background-color: #2a2a2a;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Seader</h1>
+        <p>Your Ultimate Credential Reading App</p> <!-- Updated tagline -->
+    </div>
+    <div class="features">
+        <h2>Key Features</h2>
+        <ul>
+            <li>Allows for reading credential from HID: iClass, iClass SE, MFC SE, Desfire EV1/EV2, and Seos.</li>
+            <li>Downgrade credentials to iClass SR, iClass legacy, and Prox.</li>
+            <li>Works with Picopass Flipper app.</li>
+        </ul>
+    </div>
+    <div class="screenshots">
+        <img src="./menu.png" alt="Menu Screenshot">
+        <img src="./pacs.png" alt="PACS Screenshot">
+        <img src="./save_menu.png" alt="Save Menu Screenshot">
+    </div>
+    <div class="features">
+        <h2>Feature Comparison</h2>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    <th>Seader</th>
+                    <th>iCopyXS + ICS Decoder</th>
+                    <th>Weaponized Reader</th>
+                    <th>Proxmark3 RDV 4.01</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Reading Credentials</td>
+                    <td>Yes</td>
+                    <td>Yes</td>
+                    <td>Yes</td>
+                    <td>Yes</td>
+                </tr>
+                <tr>
+                    <td>Downgrading Credentials</td>
+                    <td>Yes</td>
+                    <td>Limited</td>
+                    <td>No</td>
+                    <td>Yes</td>
+                </tr>
+                <tr>
+                    <td>Works with Flipper</td>
+                    <td>Yes</td>
+                    <td>No</td>
+                    <td>No</td>
+                    <td>No</td>
+                </tr>
+                <tr>
+                    <td>Supports Multiple Credential Types</td>
+                    <td>Yes</td>
+                    <td>Yes</td>
+                    <td>Yes</td>
+                    <td>Yes</td>
+                </tr>
+                <tr>
+                    <td>Open Source</td>
+                    <td>Yes</td>
+                    <td>Yes</td>
+                    <td>Conditional</td>
+                    <td>Yes</td>
+                </tr>
+                <tr>
+                    <td>Community Support</td>
+                    <td>Yes</td>
+                    <td>No</td>
+                    <td>No</td>
+                    <td>Yes</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="hardware">
+        <h2>Hardware Options</h2>
+        <div class="hardware-details">
+            <h3>Option 1: NARD flipper add-on</h3>
+            <p>Buy it assembled at <a href="https://www.redteamtools.com/nard-sam-expansion-board-for-flipper-zero-with-hid-seos-iclass-sam/">Red Team Tools</a>, with or without SAM.</p>
+            <p>Or build it yourself from the files in the <a href="https://github.com/killergeek/nard">NARD repo</a>.</p>
+            <p>Optionally 3d print a <a href="https://www.printables.com/model/576735-flipper-zero-samnard-protecting-cover">case designed by Antiklesys</a>.</p>
+
+            <h3>Option 2: SAMAdams</h3>
+            <p>Buy it at <a href="https://www.redteamtools.com/sam-adams-for-flipper-zero/">Red Team Tools</a>.</p>
+
+            <h3>Option 3: Flippermeister</h3>
+            <p>Buy it at <a href="https://www.redteamtools.com/flippermeister/">Red Team Tools</a>.</p>
+
+            <h3>Option 4: Smart Card 2 Click</h3>
+            <p>Buy HID SAM:</p>
+            <ul>
+                <li><a href="https://www.cdw.com/product/hp-sim-for-hid-iclass-for-hip2-reader-security-sim/4854794">USA</a></li>
+                <li><a href="https://www.pc-canada.com/item/hp-sim-for-hid-iclass-se-and-hid-iclass-seos-for-hip2-reader/y7c07a">Canada</a></li>
+            </ul>
+            <p>Put SAM into <a href="https://a.co/d/1E9Zk1h">adapter</a> (because of chip on top) and plug into <a href="https://www.mikroe.com/smart-card-2-click">Smart Card 2 Click</a> (<a href="https://www.digikey.com/en/products/detail/mikroelektronika/MIKROE-5492/20840872">digikey</a> with cheaper US shipping). Connect Smart Card 2 Click to Flipper Zero (See `Connections` below).</p>
+            <p>Optionally 3d print a <a href="https://www.printables.com/model/543149-case-for-flipper-zero-devboard-smart2click-samsim">case designed by sean</a>.</p>
+            <h4>Connections</h4>
+            <table>
+                <tr>
+                    <th>Smart Card 2 Click</th>
+                    <th>Flipper</th>
+                </tr>
+                <tr>
+                    <td>5v</td>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td>GND</td>
+                    <td>8 / 11 / 18</td>
+                </tr>
+                <tr>
+                    <td>TX</td>
+                    <td>16</td>
+                </tr>
+                <tr>
+                    <td>RX</td>
+                    <td>15</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <div class="cta">
+        <h2>Get Started with Seader</h2>
+        <p>Download the app now and experience its amazing features!</p>
+        <a href="https://lab.flipper.net/apps/seader">
+            <button>Download Now</button>
+        </a>
+    </div>
+</body>
+</html>

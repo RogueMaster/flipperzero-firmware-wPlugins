@@ -1,71 +1,70 @@
-#include "mine_sweeper_led.h"
-#include "../minesweeper.h"
+#include "minesweeper.h"
+#include "helpers/mine_sweeper_led.h"
+
+static inline MineSweeperApp* mine_sweeper_led_get_app(void* context) {
+    furi_assert(context);
+
+    MineSweeperApp* app = context;
+    furi_assert(app->notification);
+
+    return app;
+}
+
+static inline void
+    mine_sweeper_led_play_sequence(MineSweeperApp* app, const NotificationSequence* sequence) {
+    furi_assert(app);
+    furi_assert(sequence);
+    furi_assert(app->notification);
+
+    notification_message(app->notification, sequence);
+}
+
+static inline bool mine_sweeper_led_is_on(int value) {
+    return value > 0;
+}
 
 void mine_sweeper_led_set_rgb(void* context, int red, int green, int blue) {
-    MineSweeperApp* app = context;
+    MineSweeperApp* app = mine_sweeper_led_get_app(context);
 
-    NotificationMessage notification_led_message_1;
-    notification_led_message_1.type = NotificationMessageTypeLedRed;
-    NotificationMessage notification_led_message_2;
-    notification_led_message_2.type = NotificationMessageTypeLedGreen;
-    NotificationMessage notification_led_message_3;
-    notification_led_message_3.type = NotificationMessageTypeLedBlue;
+    // Keep LED updates sequence-based/safe by quantizing RGB channels to off/on states.
+    const bool red_on = mine_sweeper_led_is_on(red);
+    const bool green_on = mine_sweeper_led_is_on(green);
+    const bool blue_on = mine_sweeper_led_is_on(blue);
 
-    notification_led_message_1.data.led.value = red;
-    notification_led_message_2.data.led.value = green;
-    notification_led_message_3.data.led.value = blue;
-    const NotificationSequence notification_sequence = {
-        &notification_led_message_1,
-        &notification_led_message_2,
-        &notification_led_message_3,
-        &message_do_not_reset,
-        NULL,
-    };
-    notification_message(app->notification, &notification_sequence);
-    furi_thread_flags_wait(
-        0, FuriFlagWaitAny, 10); //Delay, prevent removal from RAM before LED value set
+    mine_sweeper_led_play_sequence(app, &sequence_reset_rgb);
+
+    if(red_on) {
+        mine_sweeper_led_play_sequence(app, &sequence_set_red_255);
+    }
+    if(green_on) {
+        mine_sweeper_led_play_sequence(app, &sequence_set_green_255);
+    }
+    if(blue_on) {
+        mine_sweeper_led_play_sequence(app, &sequence_set_blue_255);
+    }
 }
 
 void mine_sweeper_led_blink_red(void* context) {
-    furi_assert(context);
-    MineSweeperApp* app = context;
-
-    notification_message(app->notification, &sequence_blink_red_100);
-    furi_thread_flags_wait(
-        0, FuriFlagWaitAny, 10); //Delay, prevent removal from RAM before LED value set
+    MineSweeperApp* app = mine_sweeper_led_get_app(context);
+    mine_sweeper_led_play_sequence(app, &sequence_blink_red_100);
 }
 
 void mine_sweeper_led_blink_yellow(void* context) {
-    furi_assert(context);
-    MineSweeperApp* app = context;
-
-    notification_message(app->notification, &sequence_blink_yellow_100);
-    furi_thread_flags_wait(
-        0, FuriFlagWaitAny, 10); //Delay, prevent removal from RAM before LED value set
+    MineSweeperApp* app = mine_sweeper_led_get_app(context);
+    mine_sweeper_led_play_sequence(app, &sequence_blink_yellow_100);
 }
 
 void mine_sweeper_led_blink_magenta(void* context) {
-    furi_assert(context);
-    MineSweeperApp* app = context;
-
-    notification_message(app->notification, &sequence_blink_magenta_100);
-    furi_thread_flags_wait(
-        0, FuriFlagWaitAny, 10); //Delay, prevent removal from RAM before LED value set
+    MineSweeperApp* app = mine_sweeper_led_get_app(context);
+    mine_sweeper_led_play_sequence(app, &sequence_blink_magenta_100);
 }
 
 void mine_sweeper_led_blink_cyan(void* context) {
-    furi_assert(context);
-    MineSweeperApp* app = context;
-
-    notification_message(app->notification, &sequence_blink_cyan_100);
-    furi_thread_flags_wait(
-        0, FuriFlagWaitAny, 10); //Delay, prevent removal from RAM before LED value set
+    MineSweeperApp* app = mine_sweeper_led_get_app(context);
+    mine_sweeper_led_play_sequence(app, &sequence_blink_cyan_100);
 }
 
 void mine_sweeper_led_reset(void* context) {
-    MineSweeperApp* app = context;
-    notification_message(app->notification, &sequence_reset_rgb);
-
-    furi_thread_flags_wait(
-        0, FuriFlagWaitAny, 300); //Delay, prevent removal from RAM before LED value set
+    MineSweeperApp* app = mine_sweeper_led_get_app(context);
+    mine_sweeper_led_play_sequence(app, &sequence_reset_rgb);
 }

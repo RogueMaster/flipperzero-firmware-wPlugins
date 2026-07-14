@@ -6,7 +6,7 @@
  * and technology (ISO14443-3A/B, ISO15693, ...), data exchange between higher
  * protocol-specific levels and underlying NFC hardware, as well as timings handling.
  *
- * In applications using the NFC protocol system there is no need to neiter explicitly
+ * In applications using the NFC protocol system there is no need to neither explicitly
  * create an Nfc instance nor call any of its functions, as it is all handled
  * automatically under the hood.
  *
@@ -115,7 +115,7 @@ typedef enum {
  */
 typedef enum {
     NfcErrorNone, /**< No error has occurred. */
-    NfcErrorInternal, /**< An unknown error has occured on the lower level. */
+    NfcErrorInternal, /**< An unknown error has occurred on the lower level. */
     NfcErrorTimeout, /**< Operation is taking too long (e.g. card does not respond). */
     NfcErrorIncompleteFrame, /**< An incomplete data frame has been received. */
     NfcErrorDataFormat, /**< Data has not been parsed due to wrong/unknown format. */
@@ -380,29 +380,23 @@ NfcError nfc_felica_listener_set_sensf_res_data(
  */
 NfcError nfc_iso15693_listener_tx_sof(Nfc* instance);
 
-/** 
- * @brief Set ISO15693 parser mode to autodetect
+/**
+ * @brief Start the timer used for manual FeliCa collision resolution in listener mode.
+ * 
+ * This blocks TX until the desired Time Slot, and should be called as soon as the listener
+ * determines that a collision resolution needs to be handled manually.
  *
-* @param[in,out] instance pointer to the instance to be configured.
- * @returns NfcErrorNone on success, any other error code on failure.
-*/
-NfcError nfc_iso15693_detect_mode(Nfc* instance);
+ * @param[in, out] instance instance pointer to the instance to be configured.
+ * @param[in] target_time_slot Target Time Slot number. Should be a value within the range of 0-15 (double-inclusive).
+ */
+void nfc_felica_listener_timer_anticol_start(Nfc* instance, uint8_t target_time_slot);
 
-/** 
- * @brief Set ISO15693 parser mode to 1OutOf4, disables autodetection
- *
- * @param[in,out] instance pointer to the instance to be configured.
- * @return NfcErrorNone on success, any other error code on failure.
-*/
-NfcError nfc_iso15693_force_1outof4(Nfc* instance);
-
-/** 
- * @brief Set ISO15693 parser mode to 1OutOf256, disables autodetection
- *
- * @param[in,out] instance pointer to the instance to be configured.
- * @return NfcErrorNone on success, any other error code on failure.
-*/
-NfcError nfc_iso15693_force_1outof256(Nfc* instance);
+/**
+ * @brief Cancel the timer used for manual FeliCa collision resolution in listener mode.
+ * 
+ * @param[in, out] instance instance pointer to the instance to be configured.
+ */
+void nfc_felica_listener_timer_anticol_stop(Nfc* instance);
 
 #ifdef __cplusplus
 }

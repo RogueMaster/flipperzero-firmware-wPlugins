@@ -110,6 +110,17 @@ const UbloxPlatformModel platform_model_values[PLATFORM_MODEL_COUNT] = {
     UbloxPlatformModelWrist,
 };
 
+#define LOG_FORMAT_COUNT 2
+const char* const log_format_text[LOG_FORMAT_COUNT] = {
+    "KML",
+    "GPX",
+};
+
+const UbloxLogFormat log_format_values[LOG_FORMAT_COUNT] = {
+    UbloxLogFormatKML,
+    UbloxLogFormatGPX,
+};
+
 uint8_t ublox_scene_data_display_config_next_refresh_rate(
     const UbloxDataDisplayRefreshRate value,
     void* context) {
@@ -273,6 +284,30 @@ static void ublox_scene_data_display_config_set_platform_model(VariableItem* ite
     ublox->gps_initted = false;
 }
 
+static uint8_t
+    ublox_scene_data_display_config_next_log_format(const UbloxLogFormat value, void* context) {
+    furi_assert(context);
+
+    uint8_t index = 0;
+    for(int i = 0; i < LOG_FORMAT_COUNT; i++) {
+        if(value == log_format_values[i]) {
+            index = i;
+            break;
+        } else {
+            index = 0;
+        }
+    }
+    return index;
+}
+
+static void ublox_scene_data_display_config_set_log_format(VariableItem* item) {
+    Ublox* ublox = variable_item_get_context(item);
+    uint8_t index = variable_item_get_current_value_index(item);
+
+    variable_item_set_current_value_text(item, log_format_text[index]);
+    (ublox->data_display_state).log_format = log_format_values[index];
+}
+
 static void ublox_scene_data_display_config_enter_callback(void* context, uint32_t index) {
     Ublox* ublox = context;
     if(index == UbloxSettingIndexResetOdometer) {
@@ -351,6 +386,17 @@ void ublox_scene_data_display_config_on_enter(void* context) {
         (ublox->device_state).odometer_mode, ublox);
     variable_item_set_current_value_index(item, value_index);
     variable_item_set_current_value_text(item, odometer_mode_text[value_index]);
+
+    item = variable_item_list_add(
+        ublox->variable_item_list,
+        "Log Format:",
+        LOG_FORMAT_COUNT,
+        ublox_scene_data_display_config_set_log_format,
+        ublox);
+    value_index = ublox_scene_data_display_config_next_log_format(
+        (ublox->data_display_state).log_format, ublox);
+    variable_item_set_current_value_index(item, value_index);
+    variable_item_set_current_value_text(item, log_format_text[value_index]);
 
     item = variable_item_list_add(ublox->variable_item_list, "Reset Odometer", 1, NULL, NULL);
     variable_item_list_set_enter_callback(

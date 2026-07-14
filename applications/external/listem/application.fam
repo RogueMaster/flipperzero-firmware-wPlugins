@@ -1,0 +1,14 @@
+App(
+    appid="listem",
+    name="ListEM",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="rfid_fuzzer_app",
+    stack_size=4 * 1024,
+    fap_icon="icon.png",
+    fap_icon_assets="images",
+    fap_category="Tools",
+    fap_author="Clawzman",
+    fap_weburl="https://github.com/Clawzman/Flipper_ListEM",
+    fap_version="1.4",
+    fap_description="NFC / RFID / iButton List Generator",
+)

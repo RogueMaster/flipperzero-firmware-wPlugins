@@ -1,0 +1,38 @@
+Real telegraphy always uses a device called a key, manipu~lator or tapper.
+
+---
+The Flipper's buttons do work as a key. They are still a fairly rotten excuse for one.
+---
+The classic movie key is called a straight key (SK). You press it down, it closes a contact, and that is the whole trick.
+---
+This is what movies like Lin~coln, Titanic, On the Beach, Western Union or the 1899 series show when someone is operating a telegraph.
+---
+With an SK, you control the timing: marks, gaps, all of it.
+---
+No straight key operator is perfectly identical to another. That personal style is called a fist, and experienced op~er~at~ors can often recognise one another by it.
+---
+Do not confuse a fist with bad sending. A good operator still sends cleanly; the differences are just small human ones.
+---
+Hours on a straight key will do your wrist no favours. That is one reason paddles and bugs turned up so early - think Vibroplex - a neat mechanical contraption generating dits with an oscilating pendulum.
+---
+The next keyers were devices with two contacts, one for dots and one for dashes. They are pushed from the side with a precise finger motion.
+---
+This device is called a paddle and needs support electronics. With a paddle and keyer, the code is usually cleaner and more even. That makes it easier on the ears and easier to copy. Most transceivers have these electronics inside them - you just connect a paddle and it works.
+---
+This app supports both SK and paddle inputs, and has multiple keyers available. They can simply be connected to GPIO.
+---
+Most people start without a proper key. That is fine. The Flipper can stand in for a while, but it gets bloody an~noying before long, and you will want the real thing.
+---
+Because of how the joystick is made, you cannot sensibly pinch two of its buttons at once. So the app reassigns the Back button.
+---
+If you are using buttons as an input source and you are in paddle mode, Back becomes one paddle and OK becomes the other.
+
+You can key, pinch, and feed a real keyer.
+---
+To exit such a screen, long press Left.
+
+When Back is being nicked as a paddle input, this symbol appears on the right: x3
+
+This is your reminder how to leave the screen.
+---
+It is a compromise solution, but there is sadly no way around it - keyers want two buttons pressed at once.

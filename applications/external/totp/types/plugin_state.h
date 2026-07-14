@@ -100,4 +100,9 @@ typedef struct {
      * @brief Crypto settings
      */
     CryptoSettings crypto_settings;
+
+    /**
+     * @brief Indicates the amount of groups to split the token into in UI. 0 if no grouping is needed.
+     */
+    uint8_t split_token_into_groups;
 } PluginState;

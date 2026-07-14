@@ -1,0 +1,14 @@
+App(
+    appid="jumping_pawns",
+    name="Jumping Pawns",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="jumping_pawns_app",
+    stack_size=15 * 1024,
+    fap_icon="icons/app.png",
+    fap_icon_assets="assets",
+    fap_category="Games",
+    fap_author="Tyl3rA",
+    fap_weburl="https://github.com/Tyl3rA/Jumping-Pawns",
+    fap_version="0.1",
+    fap_description="A simple board game where you race to move all of your pieces to the other side of the board.",
+)

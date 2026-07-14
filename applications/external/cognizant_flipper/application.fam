@@ -1,0 +1,13 @@
+App(
+    appid="cognizantflipper",
+    name="Cognizant Flipper",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="word_generator_app",
+    stack_size=1 * 1024,
+    fap_icon="cognizantflipper.png",
+    fap_category="Games",
+    fap_author="Luke Gamertsfelder",
+    fap_weburl="https://github.com/TunnelDog/Cognizant-Flipper",
+    fap_version="1.0",
+    fap_description="Random Word Generator",
+)

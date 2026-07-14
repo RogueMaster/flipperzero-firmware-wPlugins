@@ -1,0 +1,1681 @@
+    Title_CutScene_6_Frame[] = {
+
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 127, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 126, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 125, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 124, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 123, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 122, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 121, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 120, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 119, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 118, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 117, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 116, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 115, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 113, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 112, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 111, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 110, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 109, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 108, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 107, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 106, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 105, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 0, uint8_t dbmMasked
+int16_t 104, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 1, uint8_t dbmMasked
+int16_t 103, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 1, uint8_t dbmMasked
+int16_t 102, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 2, uint8_t dbmMasked
+int16_t 101, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 2, uint8_t dbmMasked
+int16_t 100, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 3, uint8_t dbmMasked
+int16_t 99, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 3, uint8_t dbmMasked
+int16_t 98, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 97, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 96, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 95, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 94, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 93, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 92, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 91, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 90, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 89, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 88, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 87, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 86, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 85, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 84, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 83, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 82, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 81, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 80, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 79, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 78, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 77, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 76, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 75, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 74, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 73, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 72, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 71, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 70, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 34, 28, uint24_t Princess, uint8_t 4, uint8_t dbmMasked
+int16_t 69, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 33, 28, uint24_t Princess, uint8_t 5, uint8_t dbmMasked
+int16_t 68, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 33, 28, uint24_t Princess, uint8_t 5, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 32, 28, uint24_t Princess, uint8_t 6, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 32, 28, uint24_t Princess, uint8_t 6, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 31, 28, uint24_t Princess, uint8_t 7, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 31, 28, uint24_t Princess, uint8_t 7, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 1, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 2, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 2, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 2, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 2, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 2, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 2, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 2, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 2, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 2, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 2, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 2, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 2, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 2, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 2, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 67, 49, uint24_t Mouse, uint8_t 2, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 68, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 69, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 70, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 71, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked
+int16_t 25,18, uint24_t Eeek, uint8_t 0, uint8_t dbmMasked_end
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 72, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 73, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 74, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 75, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 76, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 77, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 78, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 79, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 80, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 81, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 82, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 83, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 84, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 85, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 86, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 87, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 88, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 89, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 90, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 91, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 92, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 93, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 94, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 95, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 96, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 97, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 98, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 99, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 100, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 101, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 102, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 103, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 104, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 105, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 106, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 107, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 108, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 109, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 110, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 111, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 112, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 113, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 114, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 115, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 116, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 117, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 118, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 119, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 120, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 121, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 122, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 123, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 124, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 125, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 126, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+int16_t 127, 49, uint24_t Mouse, uint8_t 0, uint8_t dbmMasked
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 2, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 0, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+
+int16_t 0, 0, uint24_t Chambers_BG, uint8_t 0, uint8_t dbmNormal
+int16_t 10, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 114, 37, uint24_t Torches, uint8_t 1, uint8_t dbmMasked
+int16_t 30, 28, uint24_t Princess, uint8_t 8, uint8_t dbmMasked
+
+int16_t 0, 0, uint24_t Chambers_FG, uint8_t 0, uint8_t uint8_t dbmMasked_last
+
+
+
+
+
+
+    }

@@ -1,0 +1,29 @@
+{
+  "components": [
+    {
+      "partno": "PCF8575",
+      "desc": "16-bit I/O expander.",
+      "type": 16,
+      "manufacturer": "NXP Semi",
+      "date": "2004"
+    },
+    {
+      "partno": "MCP23008",
+      "desc": "8-bit I/O expander.",
+      "type": 16,
+      "manufacturer": "Microchip",
+      "date": "2008"
+    },
+    {
+      "partno": "LTR-559",
+      "desc": "Proximity and light sensor",
+      "type": 22,
+      "manufacturer": "Lite-On",
+      "date": "2016"
+    }
+  ],
+  "unique_types": [
+    16,
+    22
+  ]
+}

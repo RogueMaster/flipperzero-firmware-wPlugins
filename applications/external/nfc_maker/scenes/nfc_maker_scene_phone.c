@@ -12,18 +12,18 @@ static void nfc_maker_scene_phone_text_input_callback(void* context) {
 
 void nfc_maker_scene_phone_on_enter(void* context) {
     NfcMaker* app = context;
-    NFCMaker_TextInput* text_input = app->text_input;
+    TextInput* text_input = app->text_input;
 
-    nfc_maker_text_input_set_header_text(text_input, "Enter Phone Number:");
+    text_input_set_header_text(text_input, "Enter Phone Number:");
 
-    strlcpy(app->phone_buf, "+", PHONE_INPUT_LEN);
+    strlcpy(app->phone_buf, "+", sizeof(app->phone_buf));
 
-    nfc_maker_text_input_set_result_callback(
+    text_input_set_result_callback(
         text_input,
         nfc_maker_scene_phone_text_input_callback,
         app,
         app->phone_buf,
-        PHONE_INPUT_LEN,
+        sizeof(app->phone_buf),
         false);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcMakerViewTextInput);
@@ -49,5 +49,5 @@ bool nfc_maker_scene_phone_on_event(void* context, SceneManagerEvent event) {
 
 void nfc_maker_scene_phone_on_exit(void* context) {
     NfcMaker* app = context;
-    nfc_maker_text_input_reset(app->text_input);
+    text_input_reset(app->text_input);
 }

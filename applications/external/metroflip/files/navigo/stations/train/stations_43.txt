@@ -1,0 +1,20 @@
+9,1,Montgeron - Crosne
+9,2,Montgeron - Crosne
+9,3,Yerres
+10,1,Brunoy
+10,2,Brunoy
+11,1,Boussy-Saint-Antoine
+11,2,Combs-la-Ville - Quincy
+12,1,Lieusaint - Moissy
+13,1,Savigny-le-Temple - Nandy
+13,2,Cesson
+15,1,Le Mee
+15,2,Melun
+16,1,Livry-sur-Seine
+16,2,Chartrettes
+16,3,Fontaine-le-Port
+17,1,Hericy
+17,2,Vulaines-sur-Seine - Samoreau
+17,3,Champagne-sur-Seine
+17,4,Vernou-sur-Seine
+17,5,La Grande-Paroisse

@@ -78,8 +78,13 @@ void action_ir_power_otg(bool enable) {
 
     if(tx_pin_detected == FuriHalInfraredTxPinInternal) return;
 
-    if(enable)
-        furi_hal_power_enable_otg();
-    else
-        furi_hal_power_disable_otg();
+    if(enable) {
+        if(!furi_hal_power_is_otg_enabled()) {
+            furi_hal_power_enable_otg();
+        }
+    } else {
+        if(furi_hal_power_is_otg_enabled()) {
+            furi_hal_power_disable_otg();
+        }
+    }
 }

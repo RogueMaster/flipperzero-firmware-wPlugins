@@ -2,9 +2,9 @@
 
 ### Menu
 * Setup
-    * Enable BLE
-    * Enable BD
-    * Enable WiFi
+    * [X] Enable BLE
+    * [X] Enable BD
+    * [X] Enable WiFi
     * Channels
         * All
         * Selected
@@ -13,11 +13,12 @@
             * 3: etc.
     * MAC Address
 * Scan
-    * Start
-    * Stop
+    * [X] Start
+    * [X] Stop
     * Status
 * Devices
     * List of discovered devices
+        * [X] BDA
         * Name
         * RSSI
         * Protocol
@@ -30,7 +31,7 @@
         * As above
 * Track selected devices
     * RSSI metrics
-* About
+* [X] About
 
 ### Next steps
 * Start scan -> disable setup

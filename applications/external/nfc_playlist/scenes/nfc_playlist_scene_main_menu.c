@@ -7,46 +7,48 @@ typedef enum {
     NfcPlaylistMainMenu_Settings
 } NfcPlaylistMainMenuMenuSelection;
 
-void nfc_playlist_main_menu_menu_callback(void* context, uint32_t index) {
+static void nfc_playlist_main_menu_scene_menu_callback(void* context, uint32_t index) {
+    furi_assert(context);
     NfcPlaylist* nfc_playlist = context;
     scene_manager_handle_custom_event(nfc_playlist->scene_manager, index);
 }
 
 void nfc_playlist_main_menu_scene_on_enter(void* context) {
+    furi_assert(context);
     NfcPlaylist* nfc_playlist = context;
 
     FuriString* header = furi_string_alloc_printf("NFC Playlist v%s", FAP_VERSION);
-    submenu_set_header(nfc_playlist->submenu, furi_string_get_cstr(header));
+    submenu_set_header(nfc_playlist->views.submenu, furi_string_get_cstr(header));
     furi_string_free(header);
 
     submenu_add_lockable_item(
-        nfc_playlist->submenu,
+        nfc_playlist->views.submenu,
         "Start",
         NfcPlaylistMainMenu_Start,
-        nfc_playlist_main_menu_menu_callback,
+        nfc_playlist_main_menu_scene_menu_callback,
         nfc_playlist,
-        furi_string_empty(nfc_playlist->settings.playlist_path),
+        furi_string_empty(nfc_playlist->worker_info.settings->playlist_path),
         "No\nplaylist\nselected");
 
     submenu_add_item(
-        nfc_playlist->submenu,
+        nfc_playlist->views.submenu,
         "Select playlist",
         NfcPlaylistMainMenu_PlaylistSelect,
-        nfc_playlist_main_menu_menu_callback,
+        nfc_playlist_main_menu_scene_menu_callback,
         nfc_playlist);
 
     submenu_add_item(
-        nfc_playlist->submenu,
+        nfc_playlist->views.submenu,
         "Edit playlist",
         NfcPlaylistMainMenu_FileEdit,
-        nfc_playlist_main_menu_menu_callback,
+        nfc_playlist_main_menu_scene_menu_callback,
         nfc_playlist);
 
     submenu_add_item(
-        nfc_playlist->submenu,
+        nfc_playlist->views.submenu,
         "Settings",
         NfcPlaylistMainMenu_Settings,
-        nfc_playlist_main_menu_menu_callback,
+        nfc_playlist_main_menu_scene_menu_callback,
         nfc_playlist);
 
     view_dispatcher_switch_to_view(nfc_playlist->view_dispatcher, NfcPlaylistView_Submenu);
@@ -81,6 +83,7 @@ bool nfc_playlist_main_menu_scene_on_event(void* context, SceneManagerEvent even
 }
 
 void nfc_playlist_main_menu_scene_on_exit(void* context) {
+    furi_assert(context);
     NfcPlaylist* nfc_playlist = context;
-    submenu_reset(nfc_playlist->submenu);
+    submenu_reset(nfc_playlist->views.submenu);
 }

@@ -1,4 +1,7 @@
-#include "../minesweeper.h"
+#include "minesweeper.h"
+#include "helpers/mine_sweeper_config.h"
+#include "scenes/minesweeper_scene.h"
+
 static const char* info_string = "--   GAME INFO BELOW   --\n\n"
                                  "1. Press OK to clear a tile.\n\n"
                                  "2. Hold OK on a numbered tile\n"
@@ -29,16 +32,6 @@ static const char* info_string = "--   GAME INFO BELOW   --\n\n"
                                  "enables a board verifier\n"
                                  "when generating a new\n"
                                  "board.\n\n"
-                                 "          --WARNING!--\n"
-                                 "This setting will introduce\n"
-                                 "a variable amount of\n"
-                                 "overhead when generating\n"
-                                 "a new map. It can take\n"
-                                 "several seconds for a\n"
-                                 "valid map to generate. The\n"
-                                 "UI may hang and stop for a\n"
-                                 "while but it should resolve\n"
-                                 "in a few seconds.\n\n"
                                  "-----       WRAP       -----\n"
                                  "Enables wrapping player\n"
                                  "position to the other side\n"
@@ -68,10 +61,17 @@ bool minesweeper_scene_info_screen_on_event(void* context, SceneManagerEvent eve
     furi_assert(context);
 
     MineSweeperApp* app = context;
-    UNUSED(event);
-    UNUSED(app);
-
     bool consumed = false;
+
+    if(event.type == SceneManagerEventTypeBack) {
+        if(!scene_manager_search_and_switch_to_previous_scene(
+               app->scene_manager, MineSweeperSceneSettingsScreen)) {
+            FURI_LOG_W(TAG, "Info back target not found, stopping app");
+            scene_manager_stop(app->scene_manager);
+            view_dispatcher_stop(app->view_dispatcher);
+        }
+        consumed = true;
+    }
 
     return consumed;
 }

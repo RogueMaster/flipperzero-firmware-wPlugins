@@ -20,17 +20,23 @@ typedef enum {
     BandGray = 8,
     BandWhite = 9,
     BandGold = 10,
-    BandSilver = 11
+    BandSilver = 11,
+    BandPink = 12
 } BandColour;
 
-extern const int CHARS_NUMERIC;
-extern const int CHARS_MULTIPLIER;
-extern const int CHARS_TOLERANCE;
-extern const int CHARS_TEMP_COEFF;
-extern const int CHARS_CALCULATION;
+extern const uint8_t CHARS_NUMERIC;
+extern const uint8_t CHARS_MULTIPLIER;
+extern const uint8_t CHARS_TOLERANCE;
+extern const uint8_t CHARS_TEMP_COEFF;
+extern const uint8_t CHARS_CALCULATION;
 
-BandColour
-    alter_resistor_band(ResistorType rtype, int band, BandColour current_colour, int direction);
+extern double resistor_multiplier;
+
+BandColour alter_resistor_band(
+    ResistorType rtype,
+    uint8_t band,
+    BandColour current_colour,
+    int8_t direction);
 
 char* get_colour_short_description(BandColour colour);
 

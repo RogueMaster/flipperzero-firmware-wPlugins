@@ -1,0 +1,13 @@
+App(
+    appid="ld2410_human_detector",
+    name="LD2410 Human Detector",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ld2410_human_detector_app",
+    stack_size=4 * 1024,
+    fap_icon="ld2410_human_detector.png",
+    fap_category="GPIO",
+    fap_author="Oscar Rodriguez",
+    fap_weburl="https://github.com/sistemasorp/flipper-ld2410_human_detector",
+    fap_version="1.0",
+    fap_description="An application that turns your Flipper Zero into a sophisticated human presence detector using the HLK-LD2410 mmWave sensor.",
+)

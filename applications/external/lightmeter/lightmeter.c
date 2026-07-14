@@ -66,7 +66,6 @@ LightMeterApp* lightmeter_app_alloc(uint32_t first_scene) {
     // View dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
     app->scene_manager = scene_manager_alloc(&lightmeter_scene_handlers, app);
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
         app->view_dispatcher, lightmeter_custom_event_callback);
@@ -248,7 +247,7 @@ void lightmeter_app_i2c_callback(LightMeterApp* context) {
     }
 
     if(main_view_get_dome(app->main_view)) lux *= DOME_COEFFICIENT;
-    EV = lux2ev(lux);
+    EV = lux2ev(lux, app->config->iso);
 
     main_view_set_lux(app->main_view, lux);
     main_view_set_EV(app->main_view, EV);

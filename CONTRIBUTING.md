@@ -32,11 +32,11 @@ Feel free to ask questions in issues if you're not sure.
 
 #### Create a new issue
 
-If you found a problem, [search if an issue already exists](https://docs.github.com/en/github/searching-for-information-on-github/searching-on-github/searching-issues-and-pull-requests#search-by-the-title-body-or-comments). If a related issue doesn't exist, you can open a new issue using a relevant [issue form](https://github.com/flipperdevices/flipperzero-firmware/issues/new/choose). 
+If you found a problem, [search if an issue already exists](https://docs.github.com/en/github/searching-for-information-on-github/searching-on-github/searching-issues-and-pull-requests#search-by-the-title-body-or-comments). If a related issue doesn't exist, you can open a new issue using a relevant [issue form](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/issues/new/choose). 
 
 #### Solve an issue
 
-Scan through our [existing issues](https://github.com/flipperdevices/flipperzero-firmware/issues) to find one that interests you.
+Scan through our [existing issues](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/issues) to find one that interests you.
 
 ### Make Changes
 
@@ -69,4 +69,4 @@ Once you submit your PR, a Docs team member will review your proposal. We may as
 
 ### Your PR is merged!
 
-Congratulations :tada::tada: The FlipperDevices team thanks you :sparkles:.
+Congratulations :tada::tada: The RM team thanks you :sparkles:.

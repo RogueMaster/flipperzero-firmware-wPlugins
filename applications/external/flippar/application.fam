@@ -1,0 +1,14 @@
+App(
+    appid="flippar",
+    name="FlipPar",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flippar_app",
+    fap_icon="icon.png",
+    fap_icon_assets="assets",
+    stack_size=4 * 1024,
+    fap_category="Tools",
+    fap_author="jsammarco",
+    fap_weburl="https://github.com/jsammarco/FlipPar",
+    fap_version="0.1",
+    fap_description="Track golf and disc golf rounds on Flipper Zero.",
+)

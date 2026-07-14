@@ -1,0 +1,21 @@
+{
+  "components": [
+    {
+      "partno": "AK8963",
+      "desc": "3-axis magnetometer",
+      "type": 17,
+      "manufacturer": "Asahi Kasei",
+      "date": "2014"
+    },
+    {
+      "partno": "AK09916",
+      "desc": "3-axis magnetometer",
+      "type": 17,
+      "manufacturer": "Asahi Kasei",
+      "date": "2017"
+    }
+  ],
+  "unique_types": [
+    17
+  ]
+}

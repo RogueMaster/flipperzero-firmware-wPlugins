@@ -1,7 +1,7 @@
 #include "easysetup.h"
 #include "_protocols.h"
 
-// Hacked together by @Willy-JL and @Spooks4576
+// Hacked together by @WillyJL and @Spooks4576
 // Research by @Spooks4576
 
 static const struct {

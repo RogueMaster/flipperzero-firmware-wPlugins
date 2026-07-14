@@ -1,0 +1,15 @@
+Flipper Zero JavaScript is based on the mJS engine, which is fairly restricted.  For example:
+	- You must use the `let` keyword.  `const` and `var` are not allowed.
+	- You cannot do string interpolation with the `$`.
+	- You must use `let Math = require("math");` if you need access to any of the Math functions.
+	- You must use `to_string` to convert numerics (like integer and float) into a string.
+	- When keyboard.text display the on-screen keyboard, it covers the entire screen (so you can't see any previously printed information).
+	- All files are stored on the SD Card under the `/ext/` subdirectory.
+	- Delays are always measured in milliseconds and use the built-in `delay` function.
+	- Uint8Array(buffer) instead of `new Uint8Array(buffer)`.  Objects like `String` do not exist.  See arraybuf_to_string for code that should be used when converting a buffer into a string.
+	- There is no split or trim functions build in for strings.  "1,2".split(","); and "x  ".trim(); will generate runtime errors.
+	- See the training file for how to use the to_upper_case, to_lower_case, parse_int.  You can get the ascii value of a character in a string using charCodeAt and also convert an ascii value back to a char using chr; see training file for details.
+	- Console.log prints to the serial port debugger, as an [I]nfo.  Console.error prints to the serial port debugger, as an [E]rror.  The print method writes to the Flipper display.
+	- Functions must be declared before they are used, but typically after all of the require statements.
+
+You should only use functions defined in the firmware files, no additional built-in commands are supported.

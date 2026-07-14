@@ -1,0 +1,5 @@
+"Reference,""Qty"",""Value"",""DNP"",""Exclude from BOM"",""Exclude from Board"",""Footprint"",""Datasheet"",""Description"""
+"U2,U3,""4"",""NRF24L01"","""","""","""",""RF_Module:nRF24L01_Breakout"",""http://www.nordicsemi.com/eng/content/download/2730/34105/file/nRF24L01_Product_Specification_v2_0.pdf"",""HSPI,VSPI"""
+"C1,C2,""4"",""C_Polarized_US"","""","""","""","""",""~"",""100uF/16V"""
+"U1,""1"",""AMS1117-3.3"","""","""","""",""Package_TO_SOT_SMD:SOT-223-3_TabPin2"",""http://www.advanced-monolithic.com/pdf/ds1117.pdf"",""1A Low Dropout regulator, positive, 3.3V fixed output, SOT-223"""
+"A1,""1"",""Flipper_Zero"","""","""","""",""Module:Flipper_Zero_Angled"",""https://docs.flipper.net/development"",""Portable multi-tool for pentesters and geeks in a toy-like body, 13 GPIO, USB to UART/SPI/I2C bridge/converter, Serial Wire Debug interface (SWD), 2.54 mm pin header connector"""

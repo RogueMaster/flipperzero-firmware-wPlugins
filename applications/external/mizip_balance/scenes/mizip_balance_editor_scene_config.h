@@ -1,0 +1,8 @@
+ADD_SCENE(mizip_balance_editor, main_menu, MainMenu)
+ADD_SCENE(mizip_balance_editor, scanner, Scanner)
+ADD_SCENE(mizip_balance_editor, reader, Reader)
+ADD_SCENE(mizip_balance_editor, file_select, FileSelect)
+ADD_SCENE(mizip_balance_editor, number_input, NumberInput)
+ADD_SCENE(mizip_balance_editor, show_balance, ShowBalance)
+ADD_SCENE(mizip_balance_editor, write_success, WriteSuccess)
+ADD_SCENE(mizip_balance_editor, about, About)

@@ -1,0 +1,91 @@
+#pragma once
+#include <gui/gui.h>
+#include "auto_complete/auto_complete.h"
+
+enum KeyboardMode {
+    KEYBOARD_LOWERCASE = 0,
+    KEYBOARD_UPPERCASE = 1,
+    KEYBOARD_NUMBERS = 2
+};
+
+enum FunctionKey {
+    FUNC_KEY_SPACE = 0,
+    FUNC_KEY_BACKSPACE = 1,
+    FUNC_KEY_MODE_SWITCH = 2,
+    FUNC_KEY_CAPS_LOCK = 3,
+    FUNC_KEY_DONE = 4
+};
+
+class Keyboard {
+private:
+    AutoComplete autoComplete; // AutoComplete instance for suggestions
+    bool caps_lock; // Caps lock state
+    uint8_t cursor_x; // Current cursor position in the keyboard grid
+    uint8_t cursor_y; // Current cursor position in the keyboard grid
+    static const char keyboard_lowercase[3][11]; // keyboard layout for lowercase letters
+    static const char keyboard_uppercase[3][11]; // keyboard layout for uppercase letters
+    static const char keyboard_numbers[3][11]; // keyboard layout for numbers
+    static const size_t MAX_TEXT_SIZE = 256; // Maximum size of text input buffer
+    KeyboardMode mode; // Current keyboard mode
+    char text_buffer[MAX_TEXT_SIZE]; // internal buffer for text input
+    uint8_t text_cursor; // position in text buffer
+    bool text_edit_mode; // true when editing text position, false when navigating keyboard
+    char last_word[MAX_TEXT_SIZE]; // track last word for autocomplete
+    //
+    void
+        clampCursorToValidPosition(); // Ensure cursor is within valid bounds of the current keyboard layout
+    const char (*getCurrentKeyboard())[11]; // Get the current keyboard layout based on mode
+    const char* getModeName(); // Get the name of the current mode (e.g., "ABC", "123", "CAPS")
+    size_t getStringLength(
+        const char* str,
+        size_t max_size); // Get the length of a string, respecting max size
+    bool handleInput(
+        InputEvent* event,
+        char* target_buffer,
+        size_t target_size); // handle input and store result in target buffer
+    void updateAutoComplete(); // update autocomplete suggestions based on current word
+
+public:
+    Keyboard();
+    ~Keyboard();
+    //
+    static const int KEYBOARD_ROWS = 3;
+    static const int KEYBOARD_COLS = 10;
+    static const int FUNCTION_ROW = 3;
+    //
+    bool addDictionary(const char* filename); // load dictionary from file for autocomplete
+    bool addSuggestion(const char* word); // add a word to autocomplete suggestions
+    void clearText(); // clear text
+    void draw(Canvas* canvas, const char* title); // draw keyboard with title
+    void draw(
+        Canvas* canvas,
+        const char* title,
+        const char* current_text); // draw keyboard with title and current text
+    bool getCapsLock() const {
+        return caps_lock;
+    } // check if caps lock is enabled
+    char getCurrentChar(bool long_press); // get character at current cursor position
+    const char* getCurrentWord(); // get the current word being typed for autocomplete
+    uint8_t getCursorX() const {
+        return cursor_x;
+    } // get current cursor X position
+    uint8_t getCursorY() const {
+        return cursor_y;
+    } // get current cursor Y position
+    KeyboardMode getMode() const {
+        return mode;
+    } // get current keyboard mode
+    const char* getText() const; // get current text input
+    uint8_t getTextCursor() const {
+        return text_cursor;
+    } // get current text cursor position
+    bool getTextEditMode() const {
+        return text_edit_mode;
+    } // check if in text edit mode
+    size_t getTextLength() const; // get length of current text input
+    const char* getSuggestion(uint8_t index); // get suggestion at index
+    bool handleInput(InputEvent* event); // handle input from the user (pass input key here)
+    void reset(); // reset keyboard state
+    void resetText(); // reset text input buffer
+    void setText(const char* text); // set text input buffer to a specific string
+};

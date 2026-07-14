@@ -1,0 +1,15 @@
+App(
+    appid="frsscan",
+    name="FRSScan",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="frsscan_app",
+    stack_size=2 * 1024,
+    fap_icon="icons/frsscan.png",
+    fap_icon_assets="assets",
+    fap_category="Sub-GHz",
+    fap_author="thecybermind",
+    fap_weburl="https://github.com/thecybermind/frsscan",
+    fap_version="0.2",
+    fap_description="Scans common FRS and GMRS frequencies and plays them over the speaker so you can hear them. Press the center button to lock.",
+)

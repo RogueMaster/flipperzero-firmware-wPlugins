@@ -1,0 +1,125 @@
+# FlipperPwn Module — WiFi Survey → Auto HID Report
+# NOVEL: Full wireless recon that auto-generates a formatted report on the
+#        target machine by typing scan results via USB HID.
+#
+# Use case: You have brief physical access to a machine (plugged in Flipper)
+# and want to document the wireless environment for a pentest report.
+# No software installation needed — the Flipper IS the keyboard.
+#
+# This module:
+#   1. Scans for APs (access points)
+#   2. Scans for stations (associated clients)
+#   3. Sniffs for probe requests from unassociated devices
+#   4. Opens a text editor / terminal on the target
+#   5. Types a formatted survey report via USB HID
+#
+# Output: A text file on the target machine with the full WiFi environment map.
+#
+# REQUIREMENTS:
+#   - ESP32 WiFi Dev Board + WiFi Marauder >= 1.6.0
+#   - AUTHORIZED TESTING ONLY
+
+NAME        wifi_survey_report
+DESCRIPTION Full wireless survey: scan APs + stations + probes, generate HID-typed report
+CATEGORY    recon
+PLATFORMS   WIN,MAC,LINUX
+
+OPTION SCAN_DURATION 12000  "AP scan duration in ms (longer = more APs)"
+OPTION PROBE_DURATION 20000 "Probe sniff duration in ms"
+OPTION SITE_NAME "Target Site" "Site name for report header"
+OPTION ASSESSOR  "Assessor"    "Assessor name for report header"
+
+# ── Phase 1: AP Scan ─────────────────────────────────────────────────────────
+WIFI_SCAN
+WIFI_WAIT {{SCAN_DURATION}}
+
+# ── Phase 2: Station Scan ─────────────────────────────────────────────────────
+# Discover associated clients (requires AP scan first)
+WIFI_WAIT 8000
+
+# ── Phase 3: Probe Sniff ──────────────────────────────────────────────────────
+# Capture probe requests to find what networks devices remember
+WIFI_WAIT {{PROBE_DURATION}}
+
+# ── Phase 4: Open Editor and Type Report ─────────────────────────────────────
+PLATFORM WIN
+  GUI r
+  DELAY 500
+  STRING notepad
+  ENTER
+  DELAY 900
+
+PLATFORM MAC
+  GUI SPACE
+  DELAY 500
+  STRING textedit
+  ENTER
+  DELAY 1200
+
+PLATFORM LINUX
+  CTRL ALT t
+  DELAY 800
+  STRING nano /tmp/wifi_survey_$(date +%Y%m%d_%H%M%S).txt
+  ENTER
+  DELAY 500
+
+# Type report header
+STRINGLN ================================================
+STRINGLN  WIRELESS SURVEY REPORT
+STRINGLN ================================================
+STRINGLN
+STRING  Site:
+STRINGLN {{SITE_NAME}}
+STRING  Assessor:
+STRINGLN {{ASSESSOR}}
+STRING  Date/Time:
+# Note: WIFI_RESULT will inject the timestamp from the Marauder firmware
+STRINGLN (see below)
+STRINGLN  Tool:       Flipper Zero + WiFi Marauder (ESP32)
+STRINGLN
+STRINGLN ── ACCESS POINTS DISCOVERED ──────────────────
+STRINGLN
+
+# Dump AP scan results (SSID, BSSID, Channel, RSSI, Encryption)
+WIFI_RESULT
+
+STRINGLN
+STRINGLN ── ASSOCIATED STATIONS ───────────────────────
+STRINGLN
+
+# Dump station scan results
+WIFI_RESULT
+
+STRINGLN
+STRINGLN ── PROBE REQUESTS OBSERVED ───────────────────
+STRINGLN (Networks remembered by devices in range)
+STRINGLN
+
+# Dump probe request data
+WIFI_RESULT
+
+STRINGLN
+STRINGLN ── ASSESSMENT NOTES ──────────────────────────
+STRINGLN
+STRINGLN [ ] Open/unencrypted networks present?
+STRINGLN [ ] WPS enabled on any APs?
+STRINGLN [ ] Default SSIDs (NETGEAR-XX, xfinitywifi, etc.)?
+STRINGLN [ ] Rogue APs detected?
+STRINGLN [ ] Guest network isolation verified?
+STRINGLN
+STRINGLN ================================================
+STRINGLN END OF AUTOMATED SURVEY
+STRINGLN ================================================
+
+PLATFORM WIN
+  # Save the file
+  CTRL s
+  DELAY 500
+  STRING wifi_survey.txt
+  ENTER
+
+PLATFORM LINUX
+  CTRL x
+  DELAY 200
+  STRING y
+  ENTER

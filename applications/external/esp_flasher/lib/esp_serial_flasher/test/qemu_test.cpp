@@ -1,4 +1,4 @@
-/* Copyright 2018-2023 Espressif Systems (Shanghai) CO LTD
+/* Copyright 2018-2024 Espressif Systems (Shanghai) CO LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  */
 
 #include "catch.hpp"
-#include "serial_io_mock.h"
+#include "test_port.h"
 #include "esp_loader.h"
 #include "esp_loader_io.h"
 #include <algorithm>
@@ -38,7 +38,7 @@ TEST_CASE( "Can connect " )
 }
 
 
-inline auto file_size_is(ifstream& file)
+inline auto file_size_is(ifstream &file)
 {
     uint32_t file_size;
 
@@ -49,7 +49,7 @@ inline auto file_size_is(ifstream& file)
     return file_size;
 }
 
-void flash_application(ifstream& image)
+void flash_application(ifstream &image)
 {
     uint8_t payload[1024];
     int32_t count = 0;
@@ -57,7 +57,7 @@ void flash_application(ifstream& image)
 
     ESP_ERR_CHECK( esp_loader_flash_start(APP_START_ADDRESS, image_size, sizeof(payload)) );
 
-    while(image_size > 0) {
+    while (image_size > 0) {
         size_t to_read = min(image_size, sizeof(payload));
 
         image.read((char *)payload, to_read);
@@ -74,13 +74,13 @@ void flash_application(ifstream& image)
     // loader_flash_finish(false);
 }
 
-bool file_compare(ifstream& file_1, ifstream& file_2, size_t file_size)
+bool file_compare(ifstream &file_1, ifstream &file_2, size_t file_size)
 {
     vector<char> file_data_1(file_size);
     vector<char> file_data_2(file_size);
 
-    file_1.read((char*) &file_data_1[0], file_size);
-    file_2.read((char*) &file_data_2[0], file_size);
+    file_1.read((char *) &file_data_1[0], file_size);
+    file_2.read((char *) &file_data_2[0], file_size);
 
     return file_data_1 == file_data_2;
 }

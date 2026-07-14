@@ -1,0 +1,19 @@
+App(
+    appid="bt_audio",
+    name="BT Audio",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="bt_audio_app",
+    stack_size=2 * 1024,
+    fap_icon="bt_audio_10px.png",
+    sources=[
+        "bt_audio.c",
+        "bt_audio_uart.c",
+        "lib/qrcodegen/qrcodegen.c",
+        "scenes/*.c",
+    ],
+    fap_category="GPIO/ESP32",
+    fap_author="Father Divine",
+    fap_weburl="https://github.com/FatherDivine/flipperzero-mayhem/tree/bt_audio/flipper_companion_apps/applications/external/bt_audio",
+    fap_version="1.2",
+    fap_description="Control ESP32 Bluetooth Audio via UART",
+)

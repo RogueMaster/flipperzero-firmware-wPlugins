@@ -7,15 +7,50 @@
 #define FELICA_LISTENER_WRITE_BLOCK_COUNT_MAX (2U)
 #define FELICA_LISTENER_WRITE_BLOCK_COUNT_MIN (1U)
 
+#define FELICA_MC_SP_REG_ALL_RW_BYTES_0_1    (0U)
+#define FELICA_MC_ALL_BYTE                   (2U)
+#define FELICA_MC_SYS_OP                     (3U)
+#define FELICA_MC_RF_PRM                     (4U)
+#define FELICA_MC_CKCKV_W_MAC_A              (5U)
+#define FELICA_MC_SP_REG_R_RESTR_BYTES_6_7   (6U)
+#define FELICA_MC_SP_REG_W_RESTR_BYTES_8_9   (8U)
+#define FELICA_MC_SP_REG_W_MAC_A_BYTES_10_11 (10U)
+#define FELICA_MC_STATE_W_MAC_A              (12U)
+#define FELICA_MC_RESERVED_13                (13U)
+#define FELICA_MC_RESERVED_14                (14U)
+#define FELICA_MC_RESERVED_15                (15U)
+
 typedef enum {
     Felica_ListenerStateIdle,
     Felica_ListenerStateActivated,
 } FelicaListenerState;
 
+typedef struct FURI_PACKED {
+    uint8_t code;
+    uint16_t system_code;
+    uint8_t request_code;
+    uint8_t time_slot;
+} FelicaListenerPollingHeader;
+
+typedef struct {
+    uint8_t length;
+    uint8_t response_code;
+    FelicaIDm idm;
+    FelicaPMm pmm;
+} FelicaListenerPollingResponseHeader;
+
+typedef struct FURI_PACKED {
+    FelicaListenerPollingResponseHeader header;
+    uint16_t optional_request_data;
+} FelicaListenerPollingResponse;
+
 /** Generic Felica request same for both read and write operations. */
 typedef struct {
     uint8_t length;
-    FelicaCommandHeader header;
+    union {
+        FelicaCommandHeader header;
+        FelicaListenerPollingHeader polling;
+    };
 } FelicaListenerGenericRequest;
 
 /** Generic request but with list of requested elements. */
@@ -68,6 +103,12 @@ struct FelicaListener {
     uint8_t requested_blocks[FELICA_LISTENER_READ_BLOCK_COUNT_MAX];
     uint8_t mac_calc_start;
     bool rc_written;
+    uint8_t mode;
+    // Index of the currently selected System (via Polling with a specific System
+    // Code). Real multi-system cards derive a distinct IDm per System by encoding
+    // this index into the upper nibble of the base IDm's first byte - mirrors the
+    // convention used on the poller side when switching Systems.
+    uint8_t current_system_idx;
 
     BitBuffer* tx_buffer;
     BitBuffer* rx_buffer;
@@ -98,6 +139,16 @@ void felica_wcnt_increment(FelicaData* data);
  * @return     True if IDms' are equal, otherwise false.
  */
 bool felica_listener_check_idm(const FelicaListener* instance, const FelicaIDm* request_idm);
+
+/** Computes the IDm for the currently selected System (instance->current_system_idx),
+ * derived from the card's base IDm by encoding the System index into the upper
+ * nibble of the first byte.
+ *
+ * @param      instance  pointer to the listener instance to be used.
+ *
+ * @return     IDm to use for responses/comparisons in the current System context.
+ */
+FelicaIDm felica_listener_get_current_idm(const FelicaListener* instance);
 
 /** This is the first request validation function.
  *

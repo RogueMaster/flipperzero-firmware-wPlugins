@@ -11,8 +11,11 @@ For feature requests or bug reports, open an issue on this repository.
 # Usage
 This app is compatible with GPSes that follow the UBX protocol version
 15, so it is definitely compatible with 8-series GPSes, and probably 9
-and 10-series too. I've only tested the app with a u-blox SAM-M8Q
-module from SparkFun. 
+and 10-series too. GPS units that are tested and known to work are:
+
+- SAM-M8Q
+- NEO-M9N (thanks to @awol96!)
+
 
 ## Wiring
 Connect your GPS to the 3V3, GND, and I2C pins on the Flipper. If you

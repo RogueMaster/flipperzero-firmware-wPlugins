@@ -367,6 +367,63 @@ const SubBruteProtocol subbrute_protocol_pt2260_24bit_433 = {
     .file = PT2260FileProtocol};
 
 /**
+ * PT2262 (Princeton) 24bit 315MHz
+ */
+const SubBruteProtocol subbrute_protocol_pt2262_24bit_315 = {
+    .frequency = 315000000,
+    .bits = 24,
+    .te = 350,
+    .repeat = 4,
+    .preset = FuriHalSubGhzPresetOok650Async,
+    .file = PT2262FileProtocol};
+
+/**
+ * PT2262 (Princeton) 24bit 418MHz
+ */
+const SubBruteProtocol subbrute_protocol_pt2262_24bit_418 = {
+    .frequency = 418000000,
+    .bits = 24,
+    .te = 350,
+    .repeat = 4,
+    .preset = FuriHalSubGhzPresetOok650Async,
+    .file = PT2262FileProtocol};
+
+/**
+ * PT2262 (Princeton) 24bit 430MHz
+ */
+const SubBruteProtocol subbrute_protocol_pt2262_24bit_430 = {
+    .frequency = 430000000,
+    .bits = 24,
+    .te = 350,
+    .repeat = 4,
+    .preset = FuriHalSubGhzPresetOok650Async,
+    .file = PT2262FileProtocol};
+
+/**
+ * PT2262 (Princeton) 24bit 430.5MHz
+ *
+ * 
+ */
+const SubBruteProtocol subbrute_protocol_pt2262_24bit_430_5 = {
+    .frequency = 430500000,
+    .bits = 24,
+    .te = 350,
+    .repeat = 4,
+    .preset = FuriHalSubGhzPresetOok650Async,
+    .file = PT2262FileProtocol};
+
+/**
+ * PT2262 (Princeton) 24bit 433MHz
+ */
+const SubBruteProtocol subbrute_protocol_pt2262_24bit_433 = {
+    .frequency = 433920000,
+    .bits = 24,
+    .te = 350,
+    .repeat = 4,
+    .preset = FuriHalSubGhzPresetOok650Async,
+    .file = PT2262FileProtocol};
+
+/**
  * Holtek FM 12bit 433MHz
  */
 const SubBruteProtocol subbrute_protocol_holtek_12bit_433 = {
@@ -425,7 +482,7 @@ const SubBruteProtocol subbrute_protocol_holtek_12bit_am_915 = {
  * BF existing dump
  */
 const SubBruteProtocol subbrute_protocol_load_file =
-    {0, 0, 0, 3, FuriHalSubGhzPresetOok650Async, UnknownFileProtocol};
+    {0, 0, 0, 3, 0, FuriHalSubGhzPresetOok650Async, UnknownFileProtocol};
 
 static const char* subbrute_protocol_names[] = {
     [SubBruteAttackCAME12bit303] = "CAME 12bit 303MHz",
@@ -466,6 +523,11 @@ static const char* subbrute_protocol_names[] = {
     [SubBruteAttackPT226024bit330] = "PT2260 24bit 330MHz",
     [SubBruteAttackPT226024bit390] = "PT2260 24bit 390MHz",
     [SubBruteAttackPT226024bit433] = "PT2260 24bit 433MHz",
+    [SubBruteAttackPT226224bit315] = "PT2262 24bit 315MHz",
+    [SubBruteAttackPT226224bit418] = "PT2262 24bit 418MHz",
+    [SubBruteAttackPT226224bit430] = "PT2262 24bit 430MHz",
+    [SubBruteAttackPT226224bit4305] = "PT2262 24bit 430.5MHz",
+    [SubBruteAttackPT226224bit433] = "PT2262 24bit 433MHz",
     [SubBruteAttackLoadFile] = "BF existing dump",
     [SubBruteAttackTotalCount] = "Total Count",
 };
@@ -475,6 +537,7 @@ static const char* subbrute_protocol_presets[] = {
     [FuriHalSubGhzPresetOok270Async] = "FuriHalSubGhzPresetOok270Async",
     [FuriHalSubGhzPresetOok650Async] = "FuriHalSubGhzPresetOok650Async",
     [FuriHalSubGhzPreset2FSKDev238Async] = "FuriHalSubGhzPreset2FSKDev238Async",
+    [FuriHalSubGhzPreset2FSKDev12KAsync] = "FuriHalSubGhzPreset2FSKDev12KAsync",
     [FuriHalSubGhzPreset2FSKDev476Async] = "FuriHalSubGhzPreset2FSKDev476Async",
     [FuriHalSubGhzPresetMSK99_97KbAsync] = "FuriHalSubGhzPresetMSK99_97KbAsync",
     [FuriHalSubGhzPresetGFSK9_99KbAsync] = "FuriHalSubGhzPresetGFSK9_99KbAsync",
@@ -519,6 +582,11 @@ const SubBruteProtocol* subbrute_protocol_registry[] = {
     [SubBruteAttackPT226024bit330] = &subbrute_protocol_pt2260_24bit_330,
     [SubBruteAttackPT226024bit390] = &subbrute_protocol_pt2260_24bit_390,
     [SubBruteAttackPT226024bit433] = &subbrute_protocol_pt2260_24bit_433,
+    [SubBruteAttackPT226224bit315] = &subbrute_protocol_pt2262_24bit_315,
+    [SubBruteAttackPT226224bit418] = &subbrute_protocol_pt2262_24bit_418,
+    [SubBruteAttackPT226224bit430] = &subbrute_protocol_pt2262_24bit_430,
+    [SubBruteAttackPT226224bit4305] = &subbrute_protocol_pt2262_24bit_430_5,
+    [SubBruteAttackPT226224bit433] = &subbrute_protocol_pt2262_24bit_433,
     [SubBruteAttackLoadFile] = &subbrute_protocol_load_file};
 
 static const char* subbrute_protocol_file_types[] = {
@@ -539,12 +607,14 @@ static const char* subbrute_protocol_file_types[] = {
     [SMC5326FileProtocol] = "SMC5326",
     [UNILARMFileProtocol] = "SMC5326",
     [PT2260FileProtocol] = "Princeton",
+    [PT2262FileProtocol] = "Princeton",
     [HoneywellFileProtocol] = "Honeywell",
     [HoltekFileProtocol] = "Holtek_HT12X",
     [LegrandFileProtocol] = "Legrand",
     [HollarmileProtocol] = "Hollarm",
     [GangQiFileProtocol] = "GangQi",
     [Marantec24FileProtocol] = "Marantec24",
+    [FeronFileProtocol] = "Feron",
     [UnknownFileProtocol] = "Unknown"};
 
 /**
@@ -561,6 +631,7 @@ static const char* subbrute_key_small_with_tail = "Bit: %d\nKey: %s\nTE: %d\nRep
 
 const uint8_t lut_uni_alarm_smsc[] = {0x00, 0x02, 0x03}; // 00, 10, 11
 const uint8_t lut_pt2260[] = {0x00, 0x01, 0x03}; // 00, 01, 11
+const uint8_t lut_pt2262[] = {0x00, 0x01, 0x03}; // 00, 01, 11
 
 const uint64_t gate_smsc = 0x01D5; // 111010101
 //const uint8_t gate2 = 0x0175; // 101110101
@@ -652,7 +723,8 @@ void subbrute_protocol_create_candidate_for_existing_file(
 void subbrute_protocol_create_candidate_for_default(
     FuriString* candidate,
     SubBruteFileProtocol file,
-    uint64_t step) {
+    uint64_t step,
+    uint8_t opencode) {
     uint8_t p[8] = {0};
     uint64_t total = 0;
 
@@ -692,6 +764,47 @@ void subbrute_protocol_create_candidate_for_default(
         for(int i = 0; i < 8; i++) {
             p[i] = (uint8_t)(total >> 8 * (7 - i)) & 0xFF;
         }
+    } else if(file == PT2262FileProtocol) {
+        uint64_t gate_pt2262 = 0x03; // 11
+        uint8_t opencode_var = opencode;
+        if(opencode_var == 0) {
+            gate_pt2262 = 0x03; // 0001 PT2262常见抬杆码3
+        }
+        if(opencode_var == 1) {
+            gate_pt2262 = 0x0C; // 0010 PT2262常见抬杆码12
+        }
+        if(opencode_var == 2) {
+            gate_pt2262 = 0x30; // 0100 PT2262常见抬杆码48
+        }
+        if(opencode_var == 3) {
+            gate_pt2262 = 0xC0; // 1000 PT2262常见抬杆码192
+        }
+        if(opencode_var == 4) {
+            gate_pt2262 = 0xF0; // 1100 PT2262常见抬杆码240
+        }
+        if(opencode_var == 5) {
+            gate_pt2262 = 0x10; // 0F00 PT2262常见抬杆码16
+        }
+        if(opencode_var == 6) {
+            gate_pt2262 = 0x04; // 00F0 PT2262常见抬杆码4
+        }
+        if(opencode_var == 7) {
+            gate_pt2262 = 0x40; // F000 PT2262常见抬杆码64
+        }
+        if(opencode_var == 8) {
+            gate_pt2262 = 0xC3; // 1001 PT2262常见抬杆码195
+        }
+        for(size_t j = 0; j < 8; j++) {
+            total |= lut_pt2262[step % 3] << (2 * j);
+            double sub_step = (double)step / 3;
+            step = (uint64_t)floor(sub_step);
+        }
+        total <<= 8;
+        total |= gate_pt2262;
+
+        for(int i = 0; i < 8; i++) {
+            p[i] = (uint8_t)(total >> 8 * (7 - i)) & 0xFFU;
+        }
     } else {
         for(int i = 0; i < 8; i++) {
             p[i] = (uint8_t)(step >> 8 * (7 - i)) & 0xFF;
@@ -722,9 +835,10 @@ void subbrute_protocol_default_payload(
     uint64_t step,
     uint8_t bits,
     uint32_t te,
-    uint8_t repeat) {
+    uint8_t repeat,
+    uint8_t opencode) {
     FuriString* candidate = furi_string_alloc();
-    subbrute_protocol_create_candidate_for_default(candidate, file, step);
+    subbrute_protocol_create_candidate_for_default(candidate, file, step, opencode);
 
 #ifdef FURI_DEBUG
     FURI_LOG_D(
@@ -799,9 +913,10 @@ void subbrute_protocol_default_generate_file(
     SubBruteFileProtocol file,
     uint64_t step,
     uint8_t bits,
-    uint32_t te) {
+    uint32_t te,
+    uint8_t opencode) {
     FuriString* candidate = furi_string_alloc();
-    subbrute_protocol_create_candidate_for_default(candidate, file, step);
+    subbrute_protocol_create_candidate_for_default(candidate, file, step, opencode);
 
 #ifdef FURI_DEBUG
     FURI_LOG_D(TAG, "candidate: %s, step: %lld", furi_string_get_cstr(candidate), step);
@@ -886,7 +1001,12 @@ uint64_t
         attack_type == SubBruteAttackPT226024bit315 ||
         attack_type == SubBruteAttackPT226024bit330 ||
         attack_type == SubBruteAttackPT226024bit390 ||
-        attack_type == SubBruteAttackPT226024bit433) {
+        attack_type == SubBruteAttackPT226024bit433 ||
+        attack_type == SubBruteAttackPT226224bit315 ||
+        attack_type == SubBruteAttackPT226224bit418 ||
+        attack_type == SubBruteAttackPT226224bit430 ||
+        attack_type == SubBruteAttackPT226224bit4305 ||
+        attack_type == SubBruteAttackPT226224bit433) {
         max_value = 6561;
     } else {
         FuriString* max_value_s;

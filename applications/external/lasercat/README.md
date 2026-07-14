@@ -1,35 +1,69 @@
-
-
 <h1 align="center">LaserCat</h1>
+<h1 align="center"><img src="https://github.com/DroWez/LaserCat/blob/main/img_readme/catinfo2.jpg?raw=true" width="50%"></h1>
+Привет народ! Рад представить вам мое первое приложение для **Flipper Zero**. Все с чего-то начинают, и я решил начать с простого, но забавного проекта — лазера для кошки. Это приложение включает лазер, чтобы ваш питомец мог весело провести время.
 
-
-Привет народ! Это мое первое приложение для Flipper Zero.   Надо с чего-то начинать писать вот и решить написать лазер для кошки довольно простое приложение которое зажигает лазер. 
-
-Скриншоты приложения:
+## Скриншоты приложения
 
 <h1 align="center"><img src="https://github.com/DroWez/LaserCat/blob/main/img_readme/Screenshot1.png?raw=true" width="30%"> <img src="https://github.com/DroWez/LaserCat/blob/main/img_readme/Screenshot2.png?raw=true" width="30%"></h1>
 
+## Как компилировать приложение
 
-Как компилировать приложение надеюсь разберетесь :)  Или в дальнейшем может выложу релизы по известные прошивки F0
+Надеюсь, вы разберетесь с компиляцией самостоятельно. В будущем, возможно, я выложу релизы для популярных прошивок F0.
 
-Схема сборки лазера:
-<h1 align="center"><img src="https://github.com/DroWez/LaserCat/blob/main/img_readme/shema.jpg?raw=true" width="50%"></h1>
+## Схема сборки лазера
+<p align="center">Лазер 5 вольт</p>
+<h1 align="center"><img src="https://github.com/DroWez/LaserCat/blob/main/img_readme/5v.jpg?raw=true" width="60%"></h1>
+<p align="center">Лазер 3.3 вольта</p>
+<h1 align="center"><img src="https://github.com/DroWez/LaserCat/blob/main/img_readme/3v.jpg?raw=true" width="60%"></h1>
 
----------------------------------------------
-Hello folks! This is my first application for Flipper Zero.
+## Изменения в программе
+- **Версия 1.2**: Изменен дизайн и добавлена функция включать лазер по нажатию кнопки влево.
+- **Версия 1.1**: Изменен дизайн и программа адаптирована на новые версии прошивок.
+- **Версия 1.0**: Первая версия программы.
 
-You have to start writing something, so I decided to write a fairly simple cat laser application that turns on the laser.
+<table border="0">
+        <tr>
+            <td><img src="https://github.com/DroWez/LaserCat/blob/main/img_readme/donetecat.jpg?raw=true" alt="Описание картинки" width="200"></td>
+            <td>
+        <p><b>TON:</b>UQBBHaQKEbb1VExgZYjkrYGLQujBerw8H5LpbsdVtipuJJ76 </p>
+              <p><a href="https://yoomoney.ru/to/410012458524003">Перевод</a></p>        
+            </td>
+        </tr>
+    </table>
 
-Application screenshots:
+
+---------------------------
+
+Hello everyone! I'm excited to present my first application for **Flipper Zero**. Everyone has to start somewhere, and I decided to begin with a simple yet fun project — a laser for your cat. This application activates a laser so your pet can have a great time.
+
+## Application Screenshots
+
 <h1 align="center"><img src="https://github.com/DroWez/LaserCat/blob/main/img_readme/Screenshot1.png?raw=true" width="30%"> <img src="https://github.com/DroWez/LaserCat/blob/main/img_readme/Screenshot2.png?raw=true" width="30%"></h1>
 
+## How to Compile the Application
 
+I hope you can figure out the compilation process on your own. In the future, I might release versions for popular F0 firmware.
 
+## Laser Assembly Diagram
 
-How to compile the application, I hope you'll figure it out :) Or maybe later I'll release builds for well-known F0 firmware versions.
+<p align="center">Laser 5 volt</p>
+<h1 align="center"><img src="https://github.com/DroWez/LaserCat/blob/main/img_readme/5v.jpg?raw=true" width="60%"></h1>
+<p align="center">Laser 3.3 volt</p>
+<h1 align="center"><img src="https://github.com/DroWez/LaserCat/blob/main/img_readme/3v.jpg?raw=true" width="60%"></h1>
 
-Laser assembly scheme:
-<h1 align="center"><img src="https://github.com/DroWez/LaserCat/blob/main/img_readme/shema.jpg?raw=true" width="50%"></h1>
+## Program Changes
+- **Version 1.2**: The design has been changed, and a feature has been added to activate the laser by pressing the left button.
+- **Version 1.1**: Design updated and program adapted for new firmware versions.
+- **Version 1.0**: Initial release.
+
+<table border="0">
+        <tr>
+            <td><img src="https://github.com/DroWez/LaserCat/blob/main/img_readme/donetecat.jpg?raw=true" alt="Описание картинки" width="200"></td>
+            <td>
+        <p><b>TON:</b>UQBBHaQKEbb1VExgZYjkrYGLQujBerw8H5LpbsdVtipuJJ76</p>
+                </td>
+        </tr>
+    </table>
 
 
 ---------------------------

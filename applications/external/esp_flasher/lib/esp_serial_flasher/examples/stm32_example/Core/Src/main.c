@@ -38,6 +38,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define HIGHER_BAUDRATE 230400
+#define BUF_LEN 128
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -76,6 +77,7 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
   example_binaries_t bin;
+  static uint8_t buf[BUF_LEN] = {0};
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -101,7 +103,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   loader_stm32_config_t config = {
-      .huart = &huart1,
+      .huart = &huart2,
       .port_io0 = TARGET_IO0_GPIO_Port,
       .pin_num_io0 = TARGET_IO0_Pin,
       .port_rst = TARGET_RESET_GPIO_Port,
@@ -114,9 +116,35 @@ int main(void)
         
     get_example_binaries(esp_loader_get_target(), &bin);
 
+    printf("Loading bootloader...\n");
     flash_binary(bin.boot.data, bin.boot.size, bin.boot.addr);
+    printf("Loading partition table...\n");
     flash_binary(bin.part.data, bin.part.size, bin.part.addr);
+    printf("Loading app...\n");
     flash_binary(bin.app.data,  bin.app.size,  bin.app.addr);
+    esp_loader_reset_target();
+    
+#if (HIGHER_BAUDRATE != 115200)
+    HAL_UART_DeInit(&huart2);
+    huart2.Init.BaudRate = 115200;
+    if (HAL_UART_Init(&huart2) != HAL_OK) {
+      Error_Handler();
+    }
+#endif
+
+    // Delay for skipping the boot message of the targets
+    HAL_Delay(500);
+
+    printf("********************************************\n");
+    printf("*** Logs below are print from slave .... ***\n");
+    printf("********************************************\n");
+    while (1)
+    {
+      HAL_UART_Receive(&huart2, (uint8_t *)buf, BUF_LEN - 1, 100);
+      printf("%s", buf);
+      memset(buf, 0, BUF_LEN);
+    }
+  
   }
   /* USER CODE END 2 */
 
@@ -124,6 +152,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

@@ -34,7 +34,7 @@ If you want to manually build and install follow the steps below:
 	- Change board width
 	- Change board height
 	- Change difficulty
-	- Ensure Solvable (**Important!**) : This option will enable the board verifier for board generation and can significantly increase wait times for generating a board. Currently this may lock up the view port on the loading animation, but it should eventually resolve and return to the game.
+	- Ensure Solvable : Ensures a board can be unambiguously solved.
 	- Enable Feedback : This option toggles the haptic and sound feedback for the game.
     - Enable Wrap : This option toggles wrapping movement to the other side of the board when you move across the edge boundary.
 
@@ -44,22 +44,30 @@ The way I set the board up leaves the corners as safe starting positions!
 In addition to this, with the "Ensure Solvable" option set to true, the board will always be solvable from 0,0! Without "Ensure Solvable" enabled in the settings there is no guarantee that the game will be solvable without any guesses.
 
 ## Application Structure
-The following is the application structure with a breakdown of each folder:
--  **[F0_Minesweeper_Fap/](https://github.com/squee72564/F0_Minesweeper_Fap)**
-	- [github/workflows/](https://github.com/squee72564/F0_Minesweeper_Fap/tree/main/.github/workflows)
-		- Github workflows folder
-	- [img/](https://github.com/squee72564/F0_Minesweeper_Fap/tree/main/img), [assets/](https://github.com/squee72564/F0_Minesweeper_Fap/tree/main/assets) and [docs/](https://github.com/squee72564/F0_Minesweeper_Fap/tree/main/docs)
-		-  Contains custom image assets, documentation, changelog, and other miscellaneous items
-	- [scenes/](https://github.com/squee72564/F0_Minesweeper_Fap/tree/main/scenes)
-		- Contains `minesweeper_scene.c`, `minesweeper_scene.h`, and `minesweeper_scene_config.h` files to automate creation of scene FP arrays and Scene enumeration types. View the `.README` in this folder for more information on adding new scenes.
-		-  Contains the enter/event/exit functions for each scene used in a .c file
-	- [views/](https://github.com/squee72564/F0_Minesweeper_Fap/tree/main/views)
-		-  Contains the .c and .h files for any custom views used.
+The following is the current project layout:
+- **[F0_Minesweeper_Fap/](https://github.com/squee72564/F0_Minesweeper_Fap)**
+	- [.github/workflows/](https://github.com/squee72564/F0_Minesweeper_Fap/tree/main/.github/workflows)
+		- CI/build workflow definitions.
+	- [assets/](https://github.com/squee72564/F0_Minesweeper_Fap/tree/main/assets)
+		- Game image assets (tile sprites, icon, and start screen images).
+	- [docs/](https://github.com/squee72564/F0_Minesweeper_Fap/tree/main/docs)
+		- Supporting documentation such as the changelog.
+	- [engine/](https://github.com/squee72564/F0_Minesweeper_Fap/tree/main/engine)
+		- Core game logic, board generation, and solver helpers.
 	- [helpers/](https://github.com/squee72564/F0_Minesweeper_Fap/tree/main/helpers)
-		- Helper files for functions related to hardware access and control
-	- minesweeper.c / minesweeper.h
-		- Main Mine Sweeper App .c and .h file
-	- application.fam
-		- [Build system manifest file](https://github.com/flipperdevices/flipperzero-firmware/blob/dev/documentation/AppManifests.md#application-definition) for the application
+		- Flipper hardware/service helpers (haptics, LED, speaker, storage, and config).
+	- [scenes/](https://github.com/squee72564/F0_Minesweeper_Fap/tree/main/scenes)
+		- Scene registry/config (`minesweeper_scene*.{c,h}`) and per-scene enter/event/exit handlers.
+		- See `scenes/README.md` for scene wiring details.
+	- [views/](https://github.com/squee72564/F0_Minesweeper_Fap/tree/main/views)
+		- Custom view implementations for gameplay, generating/loading, and start screen rendering.
+	- [img/](https://github.com/squee72564/F0_Minesweeper_Fap/tree/main/img)
+		- README/demo images used in GitHub documentation.
+	- [dist/](https://github.com/squee72564/F0_Minesweeper_Fap/tree/main/dist)
+		- Built `.fap` artifacts output by local builds.
+	- `minesweeper.c` / `minesweeper.h`
+		- Main application entry and top-level app state/controller wiring.
+	- `application.fam`
+		- [Flipper application manifest](https://github.com/flipperdevices/flipperzero-firmware/blob/dev/documentation/AppManifests.md#application-definition).
 
-Right now the current structure of the application is heavily inspired from [leedave's](https://github.com/leedave/flipper-zero-fap-boilerplate) boilerplate repo.
+The structure is inspired by [leedave's](https://github.com/leedave/flipper-zero-fap-boilerplate) Flipper Zero FAP boilerplate and adapted for this game's architecture.

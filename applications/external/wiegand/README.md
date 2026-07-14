@@ -31,6 +31,10 @@ Here is how you wire up the MOSFET and the pull-down resistors:
 - For the MOSFET used for D0:
   - The gate pin of the MOSFET for D0 goes to pin B3 on the Flipper. (It should also already be connected to the pull-down resistor)
   - The drain pin of the MOSFET for D0 goes to pin A4 on the Flipper.
+ 
+## Warning
+
+- There is a risk when the flipper is in TX mode and the output goes low. If the device is receiving data during this time there will be a short. For this reason be sure that absoulutely no cards are being scanned while the flipper is in TX mode.
 
 ## W4: 4-bit Wiegand
 

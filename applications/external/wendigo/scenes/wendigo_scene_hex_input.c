@@ -1,13 +1,17 @@
 #include "../wendigo_app_i.h"
 
 void wendigo_scene_hex_input_callback(void* context) {
+    FURI_LOG_T(WENDIGO_TAG, "Start wendigo_scene_hex_input_callback()");
     WendigoApp* app = context;
 
     view_dispatcher_send_custom_event(app->view_dispatcher, Wendigo_EventStartConsole);
+    FURI_LOG_T(WENDIGO_TAG, "End wendigo_scene_hex_input_callback()");
 }
 
 void wendigo_scene_hex_input_on_enter(void* context) {
+    FURI_LOG_T(WENDIGO_TAG, "Start wendigo_scene_hex_input_on_enter()");
     WendigoApp* app = context;
+    app->current_view = WendigoAppViewHexInput;
 
     // Setup view
     Wendigo_TextInput* text_input = app->hex_input;
@@ -22,9 +26,11 @@ void wendigo_scene_hex_input_on_enter(void* context) {
         false);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, WendigoAppViewHexInput);
+    FURI_LOG_T(WENDIGO_TAG, "End wendigo_scene_hex_input_on_enter()");
 }
 
 bool wendigo_scene_hex_input_on_event(void* context, SceneManagerEvent event) {
+    FURI_LOG_T(WENDIGO_TAG, "Start wendigo_scene_hex_input_on_event()");
     WendigoApp* app = context;
     bool consumed = false;
 
@@ -36,12 +42,14 @@ bool wendigo_scene_hex_input_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         }
     }
-
+    FURI_LOG_T(WENDIGO_TAG, "End wendigo_scene_hex_input_on_event()");
     return consumed;
 }
 
 void wendigo_scene_hex_input_on_exit(void* context) {
+    FURI_LOG_T(WENDIGO_TAG, "Start wendigo_scene_hex_input_on_exit()");
     WendigoApp* app = context;
 
     wendigo_hex_input_reset(app->hex_input);
+    FURI_LOG_T(WENDIGO_TAG, "End wendigo_scene_hex_input_on_exit()");
 }

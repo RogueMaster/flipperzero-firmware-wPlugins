@@ -11,6 +11,10 @@
 #include <input/input.h>
 #include <storage/storage.h>
 
+#include "views/bars_view.h"
+#include "views/connect_view.h"
+#include "views/status_view.h"
+
 #define TAG                   "PCMonitor"
 #define BT_SERIAL_BUFFER_SIZE 128
 

@@ -1,0 +1,15 @@
+App(
+    appid="timed_remote",
+    name="Timed Remote",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="timed_remote_app",
+    targets=["f7"],
+    stack_size=4 * 1024,
+    fap_icon="timed_remote.png",
+    # fap_icon_assets="images",
+    fap_category="Infrared",
+    fap_author="A. Damsgaard",
+    fap_weburl="https://github.com/anders-dc/timed-remote",
+    fap_version="0.1",
+    fap_description="Send IR commands after timed duration",
+)

@@ -1,3 +1,8 @@
+# Video Player v0.4 #
+
+## Fixed ##
+- Build for new firmware version
+
 # Video Player v0.3 #
 
 ## Added ##

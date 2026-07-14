@@ -39,6 +39,21 @@ void subrem_scene_start_on_enter(void* context) {
         SubmenuIndexSubRemNewMapFile,
         subrem_scene_start_submenu_callback,
         app);
+
+    submenu_add_item(
+        submenu,
+        "Set Default",
+        SubmenuIndexSubRemSetDefault,
+        subrem_scene_start_submenu_callback,
+        app);
+    if(subrem_has_default_path()) {
+        submenu_add_item(
+            submenu,
+            "Clear Default",
+            SubmenuIndexSubRemClearDefault,
+            subrem_scene_start_submenu_callback,
+            app);
+    }
     // submenu_add_item(
     //     submenu,
     //     "About",
@@ -81,6 +96,14 @@ bool subrem_scene_start_on_event(void* context, SceneManagerEvent event) {
             scene_manager_set_scene_state(
                 app->scene_manager, SubRemSceneStart, SubmenuIndexSubRemNewMapFile);
             scene_manager_next_scene(app->scene_manager, SubRemSceneEnterNewName);
+            consumed = true;
+        } else if(event.event == SubmenuIndexSubRemSetDefault) {
+            scene_manager_set_scene_state(
+                app->scene_manager, SubRemSceneStart, SubmenuIndexSubRemSetDefault);
+            scene_manager_next_scene(app->scene_manager, SubRemSceneOpenMapFile);
+            consumed = true;
+        } else if(event.event == SubmenuIndexSubRemClearDefault) {
+            subrem_clear_default_path();
             consumed = true;
         }
         // } else if(event.event == SubmenuIndexSubRemAbout) {

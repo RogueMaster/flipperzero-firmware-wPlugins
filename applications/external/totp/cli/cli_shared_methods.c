@@ -1,16 +1,17 @@
 #include "cli_shared_methods.h"
 #include <cli/cli.h>
+
 #include <lib/toolbox/args.h>
 #include "cli_helpers.h"
 #include "../types/plugin_event.h"
 
-bool totp_cli_ensure_authenticated(const PluginState* plugin_state, Cli* cli) {
+bool totp_cli_ensure_authenticated(const PluginState* plugin_state, PipeSide* pipe) {
     if(plugin_state->current_scene == TotpSceneAuthentication) {
         TOTP_CLI_PRINTF("Pleases enter PIN on your flipper device\r\n");
 
         while((plugin_state->current_scene == TotpSceneAuthentication ||
                plugin_state->current_scene == TotpSceneNone) &&
-              !cli_cmd_interrupt_received(cli)) {
+              !cli_is_pipe_broken_or_is_etx_next_char(pipe)) {
             furi_delay_ms(100);
         }
 
@@ -32,17 +33,17 @@ void totp_cli_force_close_app(void* ctx) {
     furi_message_queue_put(event_queue, &event, FuriWaitForever);
 }
 
-bool totp_cli_read_line(Cli* cli, FuriString* out_str, bool mask_user_input) {
+bool totp_cli_read_line(PipeSide* pipe, FuriString* out_str, bool mask_user_input) {
     uint8_t c;
-    while(cli_read(cli, &c, 1) == 1) {
-        if(c == CliSymbolAsciiEsc) {
+    while(pipe_receive(pipe, &c, 1) == 1) {
+        if(c == CliKeyEsc) {
             // Some keys generating escape-sequences
             // We need to ignore them as we care about alpha-numerics only
             uint8_t c2;
-            cli_read_timeout(cli, &c2, 1, 0);
-            cli_read_timeout(cli, &c2, 1, 0);
-        } else if(c == CliSymbolAsciiETX) {
-            cli_nl(cli);
+            pipe_receive(pipe, &c2, 1);
+            pipe_receive(pipe, &c2, 1);
+        } else if(c == CliKeyETX) {
+            TOTP_CLI_NL();
             return false;
         } else if(
             (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
@@ -54,14 +55,14 @@ bool totp_cli_read_line(Cli* cli, FuriString* out_str, bool mask_user_input) {
             }
             fflush(stdout);
             furi_string_push_back(out_str, c);
-        } else if(c == CliSymbolAsciiBackspace || c == CliSymbolAsciiDel) {
+        } else if(c == CliKeyBackspace || c == CliKeyDEL) {
             size_t out_str_size = furi_string_size(out_str);
             if(out_str_size > 0) {
                 TOTP_CLI_DELETE_LAST_CHAR();
                 furi_string_left(out_str, out_str_size - 1);
             }
-        } else if(c == CliSymbolAsciiCR) {
-            cli_nl(cli);
+        } else if(c == CliKeyCR) {
+            TOTP_CLI_NL();
             break;
         }
     }

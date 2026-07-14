@@ -1,0 +1,481 @@
+    Title_IntroGame_End_PoP_Frame[] = {
+
+        int16_t  2, 64, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 63, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 62, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 61, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 60, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 59, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 58, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 57, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 56, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 55, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 54, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 53, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 52, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 51, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 50, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 49, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 48, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 47, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 46, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 45, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 44, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 43, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 42, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 41, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 40, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 39, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 38, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 37, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 36, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 35, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 34, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 33, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 32, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 31, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 30, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 29, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 28, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 27, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 26, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 25, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 24, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 23, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 22, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 21, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 20, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 19, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 18, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 17, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 16, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 15, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 14, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 13, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 12, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 11, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, 10, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,  9, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,  8, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,  7, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,  6, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,  5, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,  4, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,  3, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,  2, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,  1, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,  0, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, -1, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, -2, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, -3, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, -4, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, -5, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, -6, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, -7, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, -8, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2, -9, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-10, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-11, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-12, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-13, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-14, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-15, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-16, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-17, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-18, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-19, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-20, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-21, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-22, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-23, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-24, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-25, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-26, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-27, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-28, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-29, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-30, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-31, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-32, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-33, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-34, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-35, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-36, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-37, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-38, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-39, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-40, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-41, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-42, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-43, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-44, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-45, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-46, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-47, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-48, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-49, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-50, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-51, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-52, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-53, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-54, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-55, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-56, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-57, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-58, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-59, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-60, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-61, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-62, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-63, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-64, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-65, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-66, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-67, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-68, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-69, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-70, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-71, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-72, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-73, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-74, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-75, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-76, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-77, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-78, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-79, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-80, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-81, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-82, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-83, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-84, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-85, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-86, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-87, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-88, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-89, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-90, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-91, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-92, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-93, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-94, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-95, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-96, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-97, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-98, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-99, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-100, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-101, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-102, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-103, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-104, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-105, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-106, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-107, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-108, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-109, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-110, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-111, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-112, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-113, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-114, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-115, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-116, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-117, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-118, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-119, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-120, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-121, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-122, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-123, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-124, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-125, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-126, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-127, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-128, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-129, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-130, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-131, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-132, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-133, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-134, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-135, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-136, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-137, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-138, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-139, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-140, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-141, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-142, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-143, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-144, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-145, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-146, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-147, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-148, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-149, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-150, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-151, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-152, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-153, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-154, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-155, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-156, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-157, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-158, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-159, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-160, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-161, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-162, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-163, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-164, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-165, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-166, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-167, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-168, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-169, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-170, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_end
+        int16_t  2,-171, int24_t IntroGame_9_PoP,   uint8_t 0, dbmNormal_last
+
+    }
+
+    Title_IntroGame_End_PoA_Frame[] = {
+
+        int16_t  2, 64, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 63, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 62, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 61, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 60, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 59, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 58, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 57, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 56, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 55, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 54, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 53, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 52, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 51, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 50, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 49, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 48, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 47, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 46, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 45, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 44, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 43, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 42, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 41, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 40, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 39, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 38, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 37, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 36, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 35, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 34, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 33, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 32, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 31, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 30, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 29, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 28, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 27, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 26, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 25, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 24, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 23, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 22, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 21, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 20, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 19, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 18, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 17, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 16, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 15, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 14, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 13, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 12, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 11, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, 10, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,  9, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,  8, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,  7, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,  6, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,  5, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,  4, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,  3, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,  2, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,  1, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,  0, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, -1, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, -2, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, -3, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, -4, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, -5, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, -6, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, -7, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, -8, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2, -9, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-10, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-11, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-12, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-13, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-14, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-15, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-16, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-17, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-18, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-19, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-20, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-21, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-22, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-23, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-24, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-25, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-26, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-27, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-28, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-29, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-30, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-31, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-32, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-33, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-34, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-35, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-36, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-37, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-38, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-39, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-40, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-41, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-42, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-43, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-44, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-45, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-46, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-47, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-48, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-49, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-50, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-51, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-52, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-53, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-54, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-55, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-56, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-57, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-58, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-59, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-60, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-61, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-62, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-63, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-64, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-65, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-66, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-67, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-68, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-69, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-70, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-71, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-72, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-73, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-74, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-75, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-76, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-77, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-78, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-79, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-80, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-81, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-82, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-83, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-84, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-85, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-86, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-87, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-88, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-89, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-90, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-91, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-92, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-93, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-94, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-95, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-96, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-97, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-98, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-99, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-100, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-101, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-102, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-103, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-104, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-105, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-106, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-107, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-108, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-109, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-110, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-111, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-112, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-113, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-114, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-115, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-116, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-117, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-118, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-119, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-120, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-121, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-122, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-123, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-124, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-125, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-126, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-127, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-128, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-129, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-130, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-131, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-132, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-133, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-134, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-135, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-136, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-137, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-138, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-139, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-140, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-141, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-142, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-143, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-144, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-145, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-146, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-147, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-148, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-149, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-150, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-151, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-152, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-153, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-154, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-155, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-156, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-157, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-158, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-159, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-160, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-161, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-162, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-163, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-164, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-165, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-166, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-167, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-168, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-169, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-170, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_end
+        int16_t  2,-171, int24_t IntroGame_9_PoA,   uint8_t 0, dbmNormal_last
+
+    }

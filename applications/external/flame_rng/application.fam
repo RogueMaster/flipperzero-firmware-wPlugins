@@ -1,0 +1,13 @@
+App(
+    appid="flame_rng",
+    name="Flame RNG",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flame_rng",
+    stack_size=2 * 1024,
+    fap_category="Infrared",
+    fap_icon="flame_rng.png",
+    fap_author="OrionW06",
+    fap_weburl="https://github.com/OrionW06/Flame-RNG",
+    fap_version="0.3",
+    fap_description="An RNG intended for use with Flames and other IR sources.",
+)

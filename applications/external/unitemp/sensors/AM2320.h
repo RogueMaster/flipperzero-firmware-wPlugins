@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,48 +15,51 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#ifndef UNITEMP_AM2320
-#define UNITEMP_AM2320
 
-#include "../unitemp.h"
-#include "../Sensors.h"
-extern const SensorType AM2320_I2C;
+#include "../sensors.h"
+
+#ifndef AM2320_H_
+#define AM2320_H_
+
+extern const SensorModel AM2320_SW;
+extern const SensorModel AM2320_I2C;
+
 /**
- * @brief Выделение памяти и установка начальных значений датчика AM2320
+ * @brief Allocating memory and setting initial values ​​for the AM2320 sensor
  *
- * @param sensor Указатель на создаваемый датчик
- * @return Истина при успехе
+ * @param sensor Pointer to the sensor to create
+ * @return The truth about success
  */
 bool unitemp_AM2320_I2C_alloc(Sensor* sensor, char* args);
 
 /**
- * @brief Инициализации датчика AM2320
+ * @brief AM2320 sensor initialization
  *
- * @param sensor Указатель на датчик
- * @return Истина если инициализация упспешная
+ * @param sensor Pointer to sensor
+ * @return True if initialization is successful
  */
 bool unitemp_AM2320_init(Sensor* sensor);
 
 /**
- * @brief Деинициализация датчика
+ * @brief Deinitializing the sensor
  *
- * @param sensor Указатель на датчик
+ * @param sensor Pointer to sensor
  */
 bool unitemp_AM2320_I2C_deinit(Sensor* sensor);
 
 /**
- * @brief Обновление значений из датчика
+ * @brief Updating values ​​from sensor
  *
- * @param sensor Указатель на датчик
- * @return Статус обновления
+ * @param sensor Pointer to sensor
+ * @return Update status
  */
-UnitempStatus unitemp_AM2320_I2C_update(Sensor* sensor);
+SensorStatus unitemp_AM2320_I2C_update(Sensor* sensor);
 
 /**
- * @brief Высвободить память датчика
+ * @brief Free up sensor memory
  *
- * @param sensor Указатель на датчик
+ * @param sensor Pointer to sensor
  */
 bool unitemp_AM2320_I2C_free(Sensor* sensor);
 
-#endif
+#endif //AM2320_H_

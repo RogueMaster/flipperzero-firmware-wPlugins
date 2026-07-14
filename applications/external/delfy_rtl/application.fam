@@ -1,0 +1,15 @@
+App(
+    appid="delfyrtl",
+    name="DelfiRTL",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="delfyRTL_app",
+    stack_size=2 * 1024,
+    fap_icon="delfy_rtl.png",
+    fap_icon_assets="images",
+    fap_libs=["hwdrivers"],
+    fap_category="GPIO",
+    fap_author="gorebrau",
+    fap_weburl="https://github.com/gorebrau/delfyRTL",
+    fap_version="0.1",
+    fap_description="This project utilizes the RTL8720DN WiFi module in combination with the Flipper Zero to perform various WiFi penetration testing attacks on 2.4GHz and 5GHz networks.",
+)

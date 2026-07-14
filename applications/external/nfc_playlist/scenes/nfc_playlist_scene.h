@@ -1,6 +1,9 @@
 #pragma once
-
 #include <gui/scene_manager.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // Generate scene id and total number
 #define ADD_SCENE(prefix, name, id) NfcPlaylistScene_##id,
@@ -27,3 +30,7 @@ extern const SceneManagerHandlers nfc_playlist_scene_handlers;
 #define ADD_SCENE(prefix, name, id) void prefix##_##name##_scene_on_exit(void* context);
 #include "nfc_playlist_scene_config.h"
 #undef ADD_SCENE
+
+#ifdef __cplusplus
+}
+#endif

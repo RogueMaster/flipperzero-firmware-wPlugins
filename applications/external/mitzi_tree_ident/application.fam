@@ -1,0 +1,15 @@
+App(
+    appid="tree_ident",
+    name="Tree Identification",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="tree_ident_main",
+    cdefines=["APP_ID_CARD"],
+    stack_size=1 * 1024,
+    fap_icon_assets="images",
+    fap_icon="images/icon_10x10.png",
+    fap_category="Tools",
+    fap_author="fgreil",
+    fap_weburl="https://github.com/fgreil/mitzi-tree-ident",
+    fap_version=(0, 0, 5),
+    fap_description="Identify a tree by answering questions about the leave shapes",
+)

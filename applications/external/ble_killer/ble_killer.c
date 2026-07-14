@@ -1,20 +1,20 @@
 #include <furi.h>
 #include <furi_hal.h>
 #include <furi_hal_bt.h>
-#include <gui/view_dispatcher.h>
-#include <gui/modules/submenu.h>
-#include <gui/modules/text_input.h>
-#include <gui/modules/widget.h>
-#include <gui/elements.h>
-#include <gui/gui.h>
-#include <gui/view.h>
-#include <gui/modules/variable_item_list.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
+#include <gui/gui.h>
+#include <gui/view.h>
+#include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
+#include <gui/elements.h>
+#include <gui/modules/submenu.h>
 #include <gui/modules/text_box.h>
-
+#include <gui/modules/text_input.h>
+#include <gui/modules/variable_item_list.h>
+#include <gui/modules/widget.h>
 #include "uart.h"
+#include <cfw/cfw.h>
 
 typedef enum {
     subMenuSetup,
@@ -26,11 +26,11 @@ typedef enum {
 
 typedef enum {
     subMenuViewMain,
+    subMenuViewSetup,
     subMenuViewScan,
     subMenuViewWeapon,
     subMenuViewConsole,
-    subMenuViewAbout,
-    subMenuViewSetup
+    subMenuViewAbout
 } ViewList;
 
 typedef enum {
@@ -40,13 +40,18 @@ typedef enum {
 } Weapon_List;
 
 typedef struct {
+    Gui* gui;
     ViewDispatcher* view_dispatcher;
     Submenu* submenu;
     void* view_list[6];
     NotificationApp* notification;
     VariableItemList* variable_item_list;
     uart_app* uapp;
+    View* text_box_view;
+    View* scan_view;
+    View* weapon_view;
 
+    Widget* widget;
 } bleScanCtx;
 
 typedef struct {
@@ -79,7 +84,7 @@ typedef enum {
 
 #define WORKER_ALL_RX_EVENTS (WorkerEvtStop | WorkerEvtRxDone)
 
-#define UART_CH 0
+#define UART_CH (cfw_settings.uart_esp_channel)
 
 #define UART_TERMINAL_TEXT_BOX_STORE_SIZE 4096
 
@@ -91,12 +96,21 @@ bool scanEndFlag = false;
 
 char* device[MAX_DEVICE_SCAN];
 
+void* safe_malloc(size_t size) {
+    void* ptr = malloc(size);
+    if(ptr == NULL) {
+        FURI_LOG_E(TAG, "Memory allocation failed");
+    }
+    return ptr;
+}
+
 static void start_blink(bleScanCtx* ctx) {
     // uint16_t period = delays[state->delay];
     // if(period <= 100) period += 30;
     blink_message.data.led_blink.period = 30;
     notification_message(ctx->notification, &blink_sequence);
 }
+
 static void stop_blink(bleScanCtx* ctx) {
     notification_message(ctx->notification, &sequence_blink_stop);
 }
@@ -105,24 +119,20 @@ char* flipbip_strtok_r(char* s, const char* delim, char** last) {
     char* spanp;
     int c, sc;
     char* tok;
-    if(s == NULL && (s = *last) == NULL) return (NULL);
-    /*
-	 * Skip (span) leading delimiters (s += strspn(s, delim), sort of).
-	 */
+    if(s == NULL && (s = *last) == NULL) return NULL;
+    // Skip (span) leading delimiters (s += strspn(s, delim), sort of).
 cont:
     c = *s++;
     for(spanp = (char*)delim; (sc = *spanp++) != 0;) {
         if(c == sc) goto cont;
     }
-    if(c == 0) { /* no non-delimiter characters */
+    if(c == 0) { // no non-delimiter characters
         *last = NULL;
         return (NULL);
     }
     tok = s - 1;
-    /*
-	 * Scan token (scan for delimiters: s += strcspn(s, delim), sort of).
-	 * Note that delim must have one NUL; we stop if we see that, too.
-	 */
+    // Scan token (scan for delimiters: s += strcspn(s, delim), sort of).
+    // Note that delim must have one NUL; we stop if we see that, too.
     for(;;) {
         c = *s++;
         spanp = (char*)delim;
@@ -137,7 +147,8 @@ cont:
             }
         } while(sc != 0);
     }
-    /* NOTREACHED */
+    // Unreachable code, but added for completeness.
+    return NULL;
 }
 
 char* flipbip_strtok(char* s, const char* delim) {
@@ -148,7 +159,10 @@ char* flipbip_strtok(char* s, const char* delim) {
 static void scan_console_recv(void* ctx) {
     uart_app* uapp = ((bleScanCtx*)ctx)->uapp;
     if(scanEndFlag == true) {
-        // furi_timer_free(uapp->scan_timer);
+        if(uapp->scan_timer) {
+            furi_timer_free(uapp->scan_timer);
+            uapp->scan_timer = NULL;
+        }
         return;
     }
 
@@ -171,10 +185,12 @@ static void scan_console_recv(void* ctx) {
         // UNUSED(token);
         int i = 0;
         while(token != NULL && i < MAX_DEVICE_SCAN) {
-            device[i] = (char*)malloc(64);
-            if(device[i] != NULL) {
-                memcpy(device[i], token, strlen(token));
+            device[i] = (char*)safe_malloc(64);
+            if(device[i] == NULL) {
+                FURI_LOG_E(TAG, "Failed to allocate memory for device string");
+                break;
             }
+            memcpy(device[i], token, strlen(token));
             i++;
             token = flipbip_strtok(NULL, ",");
         }
@@ -216,6 +232,7 @@ void skeleton_submenu_callback(void* context, uint32_t index) {
 
 static void view_scan_draw_callback(Canvas* canvas, void* context) {
     // SkeletonScanModel *model = (SkeletonScanModel *)context;
+
     UNUSED(context);
     if(!scanEndFlag) {
         canvas_set_font(canvas, FontPrimary);
@@ -242,16 +259,7 @@ static void view_scan_draw_callback(Canvas* canvas, void* context) {
         }
 
         // furi_string_printf(xstr, "%s", "notification_message(_ctx->notification, &sequence_blink_stop);\ncanvas_draw_str(canvas, 5, 10+i*10, furi_string_get_cstr(xstr));");
-        // elements_scrollable_text_line(
-        //     canvas,
-        //     40,
-        //     50,
-        //     128,
-        //     xstr,
-        //     0,
-        //     true
-
-        // );
+        // elements_scrollable_text_line(canvas, 40, 50, 128, xstr, 0, true );
 
         // canvas_draw_str(canvas, 50, 50, furi_string_get_cstr(model->s));
 
@@ -259,14 +267,7 @@ static void view_scan_draw_callback(Canvas* canvas, void* context) {
         // widget_add_string_multiline_element(model->widget->view_list[subMenuViewAbout],10,20, AlignLeft, AlignTop, FontPrimary,furi_string_get_cstr(model->s));
 
         // Bus Fault
-        // widget_add_text_scroll_element(
-        //     model->widget->view_list[subMenuViewScan],
-        //     0,
-        //     0,
-        //     128,
-        //     64,
-        //     "This is a bluetooth ble scanner and controller tool.\n---\nScan any low energy ble device around."
-        // );
+        // widget_add_text_scroll_element(model->widget->view_list[subMenuViewScan],0,0,128, 64,"This is a bluetooth ble scanner and controller tool.\n---\nScan any low energy ble device around.");
 
         furi_string_free(xstr);
     }
@@ -465,7 +466,7 @@ static bool scan_custom_event_callback(uint32_t event, void* context) {
 
         // TextBox* text_box = uapp->text_box;
         // text_box_set_text(text_box, furi_string_get_cstr(uapp->text_box_store));
-        // stop_blink(bleCtx);
+        // stop_blink(app);
         return true;
     case UART_INIT:
         FURI_LOG_I(TAG, "UART init by scan module, baudrate: %d", uapp->BAUDRATE);
@@ -537,19 +538,18 @@ static bool view_console_input_callback(InputEvent* input_event, void* context) 
 void uart_terminal_console_output_handle_rx_data_cb(uint8_t* buf, size_t len, void* context) {
     furi_assert(context);
     uart_app* app = context;
-    FuriString* new_str = furi_string_alloc();
+    FuriString* new_str = app->reusable_str;
+    furi_string_reset(new_str);
 
     furi_string_cat_printf(new_str, "%s", buf);
 
     app->text_box_store_strlen += furi_string_size(new_str);
-    ;
     while(app->text_box_store_strlen >= UART_TERMINAL_TEXT_BOX_STORE_SIZE - 1) {
         furi_string_right(app->text_box_store, app->text_box_store_strlen / 2);
         app->text_box_store_strlen = furi_string_size(app->text_box_store) + len;
     }
 
     furi_string_cat(app->text_box_store, new_str);
-    // furi_string_cat(app->text_box_store, "\n");
     furi_string_free(new_str);
 }
 
@@ -683,11 +683,17 @@ void uart_init(uart_app* uapp, int baudrate, FuriHalSerialId ch) {
     uapp->BAUDRATE = baudrate;
 
     uapp->serial_handle = furi_hal_serial_control_acquire(ch);
+    if(!uapp->serial_handle) {
+        FURI_LOG_E(TAG, "Failed to acquire serial handle");
+        return;
+    }
     // furi_check(uapp->serial_handle);
 
     furi_hal_serial_init(uapp->serial_handle, uapp->BAUDRATE);
 
     furi_hal_serial_async_rx_start(uapp->serial_handle, uart_terminal_uart_on_irq_cb, uapp, false);
+
+    uapp->reusable_str = furi_string_alloc();
 }
 
 void uart_terminal_uart_free(uart_app* uart) {
@@ -700,6 +706,7 @@ void uart_terminal_uart_free(uart_app* uart) {
     furi_hal_serial_deinit(uart->serial_handle);
     furi_hal_serial_control_release(uart->serial_handle);
 
+    furi_string_free(uart->reusable_str);
     free(uart);
 }
 
@@ -707,8 +714,8 @@ char* BaudRate_strings[] = {"115200", "38400", "9600"};
 static void baudRate_change_callback(VariableItem* item) {
     furi_assert(item);
 
-    bleScanCtx* bleCtx = variable_item_get_context(item);
-    uart_app* uapp = bleCtx->uapp;
+    bleScanCtx* app = variable_item_get_context(item);
+    uart_app* uapp = app->uapp;
 
     int index = variable_item_get_current_value_index(item);
 
@@ -717,98 +724,106 @@ static void baudRate_change_callback(VariableItem* item) {
 
     FURI_LOG_I(TAG, "BaudRate changed: %s", BaudRate_strings[uapp->baudrate_index]);
     uapp->BAUDRATE = atoi(BaudRate_strings[uapp->baudrate_index]);
-    // view_dispatcher_send_custom_event(bleCtx->view_dispatcher, 0);
+    // view_dispatcher_send_custom_event(app->view_dispatcher, 0);
 }
 
 bleScanCtx* ble_init() {
-    bleScanCtx* bleCtx = malloc(sizeof(bleScanCtx));
-    Gui* gui = furi_record_open(RECORD_GUI);
+    bleScanCtx* app = (bleScanCtx*)safe_malloc(sizeof(bleScanCtx));
+    if(app == NULL) {
+        return NULL;
+    }
 
-    bleCtx->view_dispatcher = view_dispatcher_alloc();
+    app->gui = furi_record_open(RECORD_GUI);
+    app->view_dispatcher = view_dispatcher_alloc();
 
-    view_dispatcher_enable_queue(bleCtx->view_dispatcher);
-    view_dispatcher_attach_to_gui(bleCtx->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
-    view_dispatcher_set_event_callback_context(bleCtx->view_dispatcher, bleCtx);
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 
-    bleCtx->notification = furi_record_open(RECORD_NOTIFICATION);
+    app->notification = furi_record_open(RECORD_NOTIFICATION);
 
-    bleCtx->submenu = submenu_alloc();
+    app->submenu = submenu_alloc();
 
-    uart_app* uapp = malloc(sizeof(uart_app));
+    uart_app* uapp = (uart_app*)safe_malloc(sizeof(uart_app));
+    if(uapp == NULL) {
+        free(app);
+        return NULL;
+    }
 
     // 默认波特率
     uapp->BAUDRATE = 9600;
 
     // uapp->scanEndFlag = false;
 
-    bleCtx->uapp = uapp;
+    app->uapp = uapp;
 
     // 添加主菜单setup list列表
-    submenu_add_item(bleCtx->submenu, "Setup", subMenuSetup, skeleton_submenu_callback, bleCtx);
-    submenu_add_item(bleCtx->submenu, "Scan", subMenuScan, skeleton_submenu_callback, bleCtx);
-    submenu_add_item(bleCtx->submenu, "Weapon", subMenuWeapon, skeleton_submenu_callback, bleCtx);
-    submenu_add_item(
-        bleCtx->submenu, "Console", subMenuConsole, skeleton_submenu_callback, bleCtx);
-    submenu_add_item(bleCtx->submenu, "About", subMenuAbout, skeleton_submenu_callback, bleCtx);
+    submenu_add_item(app->submenu, "Setup", subMenuSetup, skeleton_submenu_callback, app);
+    submenu_add_item(app->submenu, "Scan", subMenuScan, skeleton_submenu_callback, app);
+    submenu_add_item(app->submenu, "Weapon", subMenuWeapon, skeleton_submenu_callback, app);
+    submenu_add_item(app->submenu, "Console", subMenuConsole, skeleton_submenu_callback, app);
+    submenu_add_item(app->submenu, "About", subMenuAbout, skeleton_submenu_callback, app);
 
-    view_set_previous_callback(submenu_get_view(bleCtx->submenu), navigation_exit_callback);
+    view_set_previous_callback(submenu_get_view(app->submenu), navigation_exit_callback);
+
     view_dispatcher_add_view(
-        bleCtx->view_dispatcher, subMenuViewMain, submenu_get_view(bleCtx->submenu));
-    view_dispatcher_switch_to_view(bleCtx->view_dispatcher, subMenuViewMain);
+        app->view_dispatcher, subMenuViewMain, submenu_get_view(app->submenu));
+    view_dispatcher_switch_to_view(app->view_dispatcher, subMenuViewMain);
 
-    bleCtx->variable_item_list = variable_item_list_alloc();
-    variable_item_list_reset(bleCtx->variable_item_list);
+    app->variable_item_list = variable_item_list_alloc();
+    variable_item_list_reset(app->variable_item_list);
+
+    VariableItem* credits =
+        variable_item_list_add(app->variable_item_list, "Confirm", 1, NULL, NULL);
+    variable_item_set_current_value_text(credits, "Ble_ext");
 
     VariableItem* item = variable_item_list_add(
-        bleCtx->variable_item_list,
+        app->variable_item_list,
         "BAUDRATE", // label to display
         COUNT_OF(BaudRate_strings), // number of choices
         baudRate_change_callback, // callback
-        bleCtx); // context [use variable_item_get_context(item) to access]
-
+        app); // context [use variable_item_get_context(item) to access]
     variable_item_set_current_value_index(item, 0);
     variable_item_set_current_value_text(item, BaudRate_strings[0]);
 
     view_set_previous_callback(
-        variable_item_list_get_view(bleCtx->variable_item_list), navigation_submenu_callback);
+        variable_item_list_get_view(app->variable_item_list), navigation_submenu_callback);
     view_set_custom_callback(
-        variable_item_list_get_view(bleCtx->variable_item_list), setup_custom_event_callback);
+        variable_item_list_get_view(app->variable_item_list), setup_custom_event_callback);
 
     view_dispatcher_add_view(
-        bleCtx->view_dispatcher,
+        app->view_dispatcher,
         subMenuViewSetup,
-        variable_item_list_get_view(bleCtx->variable_item_list));
+        variable_item_list_get_view(app->variable_item_list));
 
-    // bleCtx->view_list[subMenuViewSetup] = view_alloc();
-    bleCtx->view_list[subMenuViewScan] = widget_alloc();
-    bleCtx->view_list[subMenuViewWeapon] = view_alloc();
+    // app->view_list[subMenuViewSetup] = view_alloc();
+    app->view_list[subMenuViewScan] = widget_alloc();
+    app->view_list[subMenuViewWeapon] = view_alloc();
     uapp->text_box = text_box_alloc();
-    bleCtx->view_list[subMenuViewConsole] = uapp->text_box;
-    // bleCtx->view_list[subMenuViewConsole] = view_alloc();
-    bleCtx->view_list[subMenuViewAbout] = widget_alloc();
+    app->view_list[subMenuViewConsole] = uapp->text_box;
+    // app->view_list[subMenuViewConsole] = view_alloc();
+    app->view_list[subMenuViewAbout] = widget_alloc();
 
-    View* text_box_view = text_box_get_view(uapp->text_box);
-    view_dispatcher_add_view(bleCtx->view_dispatcher, subMenuViewConsole, text_box_view);
+    app->text_box_view = text_box_get_view(uapp->text_box);
+    view_dispatcher_add_view(app->view_dispatcher, subMenuViewConsole, app->text_box_view);
 
     uapp->text_box_store = furi_string_alloc();
     furi_string_reserve(uapp->text_box_store, UART_TERMINAL_TEXT_BOX_STORE_SIZE);
 
-    View* scan_view = widget_get_view(bleCtx->view_list[subMenuViewScan]);
+    app->scan_view = widget_get_view(app->view_list[subMenuViewScan]);
+    app->scan_view = view_alloc();
+    view_dispatcher_add_view(app->view_dispatcher, subMenuViewScan, app->scan_view);
 
-    view_dispatcher_add_view(bleCtx->view_dispatcher, subMenuViewScan, scan_view);
+    view_set_context(app->scan_view, app);
+    view_set_draw_callback(app->scan_view, view_scan_draw_callback);
+    view_set_input_callback(app->scan_view, view_scan_input_callback);
+    view_set_previous_callback(app->scan_view, navigation_submenu_callback);
+    view_set_enter_callback(app->scan_view, view_scan_enter_callback);
+    view_set_exit_callback(app->scan_view, view_scan_exit_callback);
+    view_set_custom_callback(app->scan_view, scan_custom_event_callback);
+    view_allocate_model(app->scan_view, ViewModelTypeLockFree, sizeof(SkeletonScanModel));
 
-    view_set_context(scan_view, bleCtx);
-
-    view_set_draw_callback(scan_view, view_scan_draw_callback);
-    view_set_input_callback(scan_view, view_scan_input_callback);
-    view_set_previous_callback(scan_view, navigation_submenu_callback);
-    view_set_enter_callback(scan_view, view_scan_enter_callback);
-    view_set_exit_callback(scan_view, view_scan_exit_callback);
-    view_set_custom_callback(scan_view, scan_custom_event_callback);
-    view_allocate_model(scan_view, ViewModelTypeLockFree, sizeof(SkeletonScanModel));
-
-    SkeletonScanModel* scan_model = view_get_model(scan_view);
-    scan_model->widget = bleCtx;
+    SkeletonScanModel* scan_model = view_get_model(app->scan_view);
+    scan_model->widget = app;
     scan_model->s = furi_string_alloc();
     furi_string_printf(
         scan_model->s,
@@ -816,69 +831,80 @@ bleScanCtx* ble_init() {
         "This is a bluetooth ble scanner and controller tool.\n---\nScan any low energy ble device around.\nScan any low energy ble device around.\nScan any low energy ble device around.");
 
     widget_add_text_scroll_element(
-        bleCtx->view_list[subMenuViewAbout],
+        app->view_list[subMenuViewAbout],
         0,
-        0,
+        1,
         128,
         64,
-        "This is a bluetooth ble scanner and something ble devices controller tool.\n---\nScan any low energy ble device around.");
+        //"This is a bluetooth ble scanner and something ble devices controller tool.\n---\nScan any low energy ble device around.");
+        "This program provides BLE Bluetooth scanning\n"
+        "function, as well as some Bluetooth device\n"
+        "vulnerability attack functions. \n\n"
+        "Author :H4lo (a domestic security expert)\n"
+        "Compatibility: Homebody Renovation");
 
-    view_set_context(text_box_view, bleCtx);
-    view_set_previous_callback(text_box_view, navigation_submenu_callback);
-    view_set_enter_callback(text_box_view, view_console_enter_callback);
-    view_set_exit_callback(text_box_view, view_console_exit_callback);
-    view_set_input_callback(text_box_view, view_console_input_callback);
-    view_set_custom_callback(text_box_view, console_custom_event_callback);
+    view_set_context(app->text_box_view, app);
+    view_set_previous_callback(app->text_box_view, navigation_submenu_callback);
+    view_set_enter_callback(app->text_box_view, view_console_enter_callback);
+    view_set_exit_callback(app->text_box_view, view_console_exit_callback);
+    view_set_input_callback(app->text_box_view, view_console_input_callback);
+    view_set_custom_callback(app->text_box_view, console_custom_event_callback);
 
-    View* weapon_view = (View*)bleCtx->view_list[subMenuViewWeapon];
+    app->weapon_view = app->view_list[subMenuViewWeapon];
+    view_dispatcher_add_view(app->view_dispatcher, subMenuViewWeapon, app->weapon_view);
 
-    view_dispatcher_add_view(bleCtx->view_dispatcher, subMenuViewWeapon, weapon_view);
-
-    view_set_context(weapon_view, bleCtx);
-    view_set_draw_callback(weapon_view, view_weapon_draw_callback);
-    view_set_input_callback(weapon_view, view_weapon_input_callback);
-    view_set_custom_callback(weapon_view, weapon_custom_event_callback);
-    // view_set_exit_callback(weapon_view, view_console_exit_callback);
-    view_set_previous_callback(weapon_view, navigation_submenu_callback);
+    view_set_context(app->weapon_view, app); //weapon_view攻击界面？
+    view_set_draw_callback(app->weapon_view, view_weapon_draw_callback);
+    view_set_input_callback(app->weapon_view, view_weapon_input_callback);
+    view_set_custom_callback(app->weapon_view, weapon_custom_event_callback);
+    // view_set_exit_callback(app->weapon_view, view_console_exit_callback);
+    view_set_previous_callback(app->weapon_view, navigation_submenu_callback);
 
     // draw callback 必须使用view_allocate_model
-    view_allocate_model(weapon_view, ViewModelTypeLockFree, sizeof(SkeletonWeaponModel));
-    SkeletonWeaponModel* model = view_get_model(weapon_view);
+    view_allocate_model(app->weapon_view, ViewModelTypeLockFree, sizeof(SkeletonWeaponModel));
+    SkeletonWeaponModel* model = view_get_model(app->weapon_view);
 
     model->state_index = 0;
     model->is_start = false;
 
     view_set_previous_callback(
-        widget_get_view(bleCtx->view_list[subMenuViewAbout]), navigation_submenu_callback);
+        widget_get_view(app->view_list[subMenuViewAbout]), navigation_submenu_callback);
 
     view_dispatcher_add_view(
-        bleCtx->view_dispatcher,
-        subMenuViewAbout,
-        widget_get_view(bleCtx->view_list[subMenuViewAbout]));
+        app->view_dispatcher, subMenuViewAbout, widget_get_view(app->view_list[subMenuViewAbout]));
 
-    return bleCtx;
+    return app;
 }
 
-void ble_free(bleScanCtx* bleCtx) {
-    uart_app* uapp = bleCtx->uapp;
-    view_dispatcher_remove_view(bleCtx->view_dispatcher, subMenuViewMain);
-    view_dispatcher_remove_view(bleCtx->view_dispatcher, subMenuViewScan);
-    view_dispatcher_remove_view(bleCtx->view_dispatcher, subMenuViewWeapon);
-    view_dispatcher_remove_view(bleCtx->view_dispatcher, subMenuViewConsole);
-    view_dispatcher_remove_view(bleCtx->view_dispatcher, subMenuViewAbout);
-    view_dispatcher_remove_view(bleCtx->view_dispatcher, subMenuViewSetup);
+void ble_free(bleScanCtx* app) {
+    if(app == NULL) {
+        return;
+    }
 
-    int i;
-    for(i = 0; i < MAX_DEVICE_SCAN; i++) {
+    uart_app* uapp = app->uapp;
+
+    for(int i = 0; i < MAX_DEVICE_SCAN; i++) {
         if(device[i] != NULL) {
             free(device[i]);
+            device[i] = NULL;
         }
     }
+
+    SkeletonScanModel* scan_model = view_get_model(app->scan_view);
+    if(scan_model != NULL && scan_model->s != NULL) {
+        furi_string_free(scan_model->s);
+    }
+
+    view_dispatcher_remove_view(app->view_dispatcher, subMenuViewMain);
+    view_dispatcher_remove_view(app->view_dispatcher, subMenuViewSetup);
+    view_dispatcher_remove_view(app->view_dispatcher, subMenuViewScan);
+    view_dispatcher_remove_view(app->view_dispatcher, subMenuViewWeapon);
+    view_dispatcher_remove_view(app->view_dispatcher, subMenuViewConsole);
+    view_dispatcher_remove_view(app->view_dispatcher, subMenuViewAbout);
 
     if(uapp->console_timer) {
         furi_timer_free(uapp->console_timer);
     }
-
     if(uapp->scan_timer) {
         furi_timer_free(uapp->scan_timer);
     }
@@ -890,28 +916,35 @@ void ble_free(bleScanCtx* bleCtx) {
         uart_terminal_uart_free(uapp);
     }
 
-    widget_free(bleCtx->view_list[subMenuViewAbout]);
-    // widget_free(bleCtx->view_list[subMenuViewScan]);
+    widget_free(app->view_list[subMenuViewAbout]);
+    widget_free(app->view_list[subMenuViewScan]);
 
-    submenu_free(bleCtx->submenu);
+    view_free(app->view_list[subMenuViewWeapon]);
+    view_free(app->view_list[subMenuViewConsole]);
 
-    furi_record_close(RECORD_GUI);
+    submenu_free(app->submenu);
+    variable_item_list_free(app->variable_item_list);
+    view_dispatcher_free(app->view_dispatcher);
+
     furi_record_close(RECORD_NOTIFICATION);
+    furi_record_close(RECORD_GUI);
 
-    view_dispatcher_free(bleCtx->view_dispatcher);
-
-    free(bleCtx);
+    free(app);
     scanEndFlag = false;
 }
 
 int32_t main_entry() {
-    bleScanCtx* bleCtx = ble_init();
+    bleScanCtx* app = ble_init();
+
+    if(app == NULL) {
+        return -1;
+    }
 
     FURI_LOG_I(TAG, "FINISH ble_init.");
 
-    view_dispatcher_run(bleCtx->view_dispatcher);
+    view_dispatcher_run(app->view_dispatcher);
 
-    ble_free(bleCtx);
+    ble_free(app);
 
     return 0;
 }

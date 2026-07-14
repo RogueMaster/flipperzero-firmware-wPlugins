@@ -1,0 +1,16 @@
+App(
+    appid="nfc_eink",
+    name="NFC E-Ink Tags",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="nfc_eink",
+    stack_size=5 * 1024,
+    sources=["*.c*"],
+    fap_icon="icon.png",
+    fap_icon_assets="assets",
+    fap_category="NFC",
+    fap_author="RebornedBrain",
+    fap_weburl="https://github.com/flipperdevices/flipperzero-good-faps/pull/245",
+    fap_version="1.0.4",
+    fap_description="Application for emulation and writing to NFC Eink tags",
+)

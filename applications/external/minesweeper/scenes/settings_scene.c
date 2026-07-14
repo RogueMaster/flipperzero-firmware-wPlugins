@@ -1,5 +1,9 @@
-#include "../minesweeper.h"
-#include "../views/minesweeper_game_screen.h"
+#include <inttypes.h>
+
+#include "minesweeper.h"
+#include "scenes/minesweeper_scene.h"
+#include "helpers/mine_sweeper_storage.h"
+#include "helpers/mine_sweeper_config.h"
 
 typedef enum {
     MineSweeperSettingsScreenDifficultyTypeEasy,
@@ -7,13 +11,6 @@ typedef enum {
     MineSweeperSettingsScreenDifficultyTypeHard,
     MineSweeperSettingsScreenDifficultyTypeNum,
 } MineSweeperSettingsScreenDifficultyType;
-
-typedef enum {
-    MineSweeperSettingsScreenIndexDifficulty,
-    MineSweeperSettingsScreenIndexWidth,
-    MineSweeperSettingsScreenIndexHeight,
-    MineSweeperSettingsScreenIndexNum,
-} MineSweeperSettingsScreenIndex;
 
 typedef enum {
     MineSweeperSettingsScreenEventDifficultyChange,
@@ -40,14 +37,14 @@ static void minesweeper_scene_settings_screen_set_difficulty(VariableItem* item)
     furi_assert(item);
 
     MineSweeperApp* app = variable_item_get_context(item);
-    app->t_settings_info.difficulty_item = item;
+    app->settings_draft.difficulty_item = item;
 
-    uint8_t index = variable_item_get_current_value_index(app->t_settings_info.difficulty_item);
+    uint8_t index = variable_item_get_current_value_index(app->settings_draft.difficulty_item);
 
-    app->t_settings_info.difficulty = index;
+    app->settings_draft.difficulty = index;
 
     variable_item_set_current_value_text(
-        app->t_settings_info.difficulty_item, settings_screen_difficulty_text[index]);
+        app->settings_draft.difficulty_item, settings_screen_difficulty_text[index]);
 
     view_dispatcher_send_custom_event(
         app->view_dispatcher, MineSweeperSettingsScreenEventDifficultyChange);
@@ -60,21 +57,21 @@ static void minesweeper_scene_settings_screen_set_width(VariableItem* item) {
     furi_assert(item);
 
     MineSweeperApp* app = variable_item_get_context(item);
-    app->t_settings_info.width_item = item;
+    app->settings_draft.width_item = item;
 
-    index = variable_item_get_current_value_index(app->t_settings_info.width_item);
-    app->t_settings_info.board_width = index + 16;
+    index = variable_item_get_current_value_index(app->settings_draft.width_item);
+    app->settings_draft.board_width = index + 16;
 
     snprintf(source, 5, "%" PRIu8, index + 16);
     source[4] = '\0';
 
-    furi_string_set_strn(app->t_settings_info.width_str, source, 5);
+    furi_string_set_strn(app->settings_draft.width_str, source, 5);
 
     variable_item_set_current_value_text(
-        app->t_settings_info.width_item, furi_string_get_cstr(app->t_settings_info.width_str));
+        app->settings_draft.width_item, furi_string_get_cstr(app->settings_draft.width_str));
 
     view_dispatcher_send_custom_event(
-        app->view_dispatcher, MineSweeperSettingsScreenEventHeightChange);
+        app->view_dispatcher, MineSweeperSettingsScreenEventWidthChange);
 }
 
 static void minesweeper_scene_settings_screen_set_height(VariableItem* item) {
@@ -84,21 +81,21 @@ static void minesweeper_scene_settings_screen_set_height(VariableItem* item) {
     furi_assert(item);
 
     MineSweeperApp* app = variable_item_get_context(item);
-    app->t_settings_info.height_item = item;
+    app->settings_draft.height_item = item;
 
-    index = variable_item_get_current_value_index(app->t_settings_info.height_item);
-    app->t_settings_info.board_height = index + 7;
+    index = variable_item_get_current_value_index(app->settings_draft.height_item);
+    app->settings_draft.board_height = index + 7;
 
     snprintf(source, 5, "%" PRIu8, index + 7);
     source[4] = '\0';
 
-    furi_string_set_strn(app->t_settings_info.height_str, source, 5);
+    furi_string_set_strn(app->settings_draft.height_str, source, 5);
 
     variable_item_set_current_value_text(
-        app->t_settings_info.height_item, furi_string_get_cstr(app->t_settings_info.height_str));
+        app->settings_draft.height_item, furi_string_get_cstr(app->settings_draft.height_str));
 
     view_dispatcher_send_custom_event(
-        app->view_dispatcher, MineSweeperSettingsScreenEventWidthChange);
+        app->view_dispatcher, MineSweeperSettingsScreenEventHeightChange);
 }
 
 static void minesweeper_scene_settings_screen_set_solvable(VariableItem* item) {
@@ -106,9 +103,9 @@ static void minesweeper_scene_settings_screen_set_solvable(VariableItem* item) {
 
     MineSweeperApp* app = variable_item_get_context(item);
 
-    uint8_t index = variable_item_get_current_value_index(app->t_settings_info.solvable_item);
+    uint8_t index = variable_item_get_current_value_index(app->settings_draft.solvable_item);
 
-    app->t_settings_info.ensure_solvable_board = (index == 1) ? true : false;
+    app->settings_draft.ensure_solvable_board = (index == 1) ? true : false;
 
     variable_item_set_current_value_text(item, settings_screen_verifier_text[index]);
 
@@ -165,7 +162,7 @@ void minesweeper_scene_settings_screen_on_enter(void* context) {
     // If we are accessing the scene and have not changed the settings
     if(!app->is_settings_changed) {
         // Set temp setting buffer to current state
-        app->t_settings_info = app->settings_info;
+        app->settings_draft = app->settings_committed;
     }
 
     // Set Difficulty Item
@@ -176,51 +173,51 @@ void minesweeper_scene_settings_screen_on_enter(void* context) {
         minesweeper_scene_settings_screen_set_difficulty,
         app);
 
-    app->t_settings_info.difficulty_item = item;
+    app->settings_draft.difficulty_item = item;
 
-    variable_item_set_current_value_index(item, app->t_settings_info.difficulty);
+    variable_item_set_current_value_index(item, app->settings_draft.difficulty);
 
     variable_item_set_current_value_text(
-        item, settings_screen_difficulty_text[app->t_settings_info.difficulty]);
+        item, settings_screen_difficulty_text[app->settings_draft.difficulty]);
 
     // Set Width Item
     item = variable_item_list_add(
         va, "Board Width", 33 - 16, minesweeper_scene_settings_screen_set_width, app);
 
-    app->t_settings_info.width_item = item;
+    app->settings_draft.width_item = item;
 
-    variable_item_set_current_value_index(item, app->t_settings_info.board_width - 16);
+    variable_item_set_current_value_index(item, app->settings_draft.board_width - 16);
 
     char source[5];
-    snprintf(source, 5, "%" PRIu8, app->t_settings_info.board_width);
+    snprintf(source, 5, "%" PRIu8, app->settings_draft.board_width);
     source[4] = '\0';
-    furi_string_set_strn(app->t_settings_info.width_str, source, 5);
+    furi_string_set_strn(app->settings_draft.width_str, source, 5);
 
     variable_item_set_current_value_text(
-        item, furi_string_get_cstr(app->t_settings_info.width_str));
+        item, furi_string_get_cstr(app->settings_draft.width_str));
 
     // Set Height Item
     item = variable_item_list_add(
         va, "Board Height", 33 - 7, minesweeper_scene_settings_screen_set_height, app);
 
-    app->t_settings_info.height_item = item;
+    app->settings_draft.height_item = item;
 
-    variable_item_set_current_value_index(item, app->t_settings_info.board_height - 7);
+    variable_item_set_current_value_index(item, app->settings_draft.board_height - 7);
 
-    snprintf(source, 5, "%" PRIu8, app->t_settings_info.board_height);
+    snprintf(source, 5, "%" PRIu8, app->settings_draft.board_height);
     source[4] = '\0';
-    furi_string_set_strn(app->t_settings_info.height_str, source, 5);
+    furi_string_set_strn(app->settings_draft.height_str, source, 5);
 
     variable_item_set_current_value_text(
-        item, furi_string_get_cstr(app->t_settings_info.height_str));
+        item, furi_string_get_cstr(app->settings_draft.height_str));
 
     // Set solvable item
     item = variable_item_list_add(
         va, "Ensure Solvable", 2, minesweeper_scene_settings_screen_set_solvable, app);
 
-    app->t_settings_info.solvable_item = item;
+    app->settings_draft.solvable_item = item;
 
-    uint8_t idx = (app->t_settings_info.ensure_solvable_board) ? 1 : 0;
+    uint8_t idx = (app->settings_draft.ensure_solvable_board) ? 1 : 0;
 
     variable_item_set_current_value_index(item, idx);
 
@@ -259,12 +256,13 @@ bool minesweeper_scene_settings_screen_on_event(void* context, SceneManagerEvent
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
+        // Only these fields require reset confirmation; wrap/feedback are immediate-save.
         app->is_settings_changed =
-            (app->settings_info.board_width != app->t_settings_info.board_width ||
-             app->settings_info.board_height != app->t_settings_info.board_height ||
-             app->settings_info.difficulty != app->t_settings_info.difficulty ||
-             app->settings_info.ensure_solvable_board !=
-                 app->t_settings_info.ensure_solvable_board);
+            (app->settings_committed.board_width != app->settings_draft.board_width ||
+             app->settings_committed.board_height != app->settings_draft.board_height ||
+             app->settings_committed.difficulty != app->settings_draft.difficulty ||
+             app->settings_committed.ensure_solvable_board !=
+                 app->settings_draft.ensure_solvable_board);
 
         switch(event.event) {
         case MineSweeperSettingsScreenEventDifficultyChange:
@@ -290,7 +288,14 @@ bool minesweeper_scene_settings_screen_on_event(void* context, SceneManagerEvent
 
         case MineSweeperSettingsScreenEventWrapChange:
             mine_sweeper_save_settings(app);
-            mine_sweeper_game_screen_set_wrap_enable(app->game_screen, app->wrap_enabled);
+            {
+                MineSweeperConfig config = app->game_state.config;
+                config.wrap_enabled = app->wrap_enabled;
+                if(minesweeper_engine_set_config(&app->game_state, &config) ==
+                   MineSweeperResultInvalid) {
+                    FURI_LOG_E(TAG, "Failed to apply wrap setting to engine");
+                }
+            }
             break;
 
         case MineSweeperSettingsScreenEventFeedbackChange:
@@ -310,10 +315,12 @@ bool minesweeper_scene_settings_screen_on_event(void* context, SceneManagerEvent
         } else {
             // Otherwise just go back
 
-            memset(&app->t_settings_info, 0, sizeof(app->t_settings_info));
+            memset(&app->settings_draft, 0, sizeof(app->settings_draft));
 
             if(!scene_manager_search_and_switch_to_previous_scene(
                    app->scene_manager, MineSweeperSceneMenuScreen)) {
+                FURI_LOG_W(TAG, "Settings back target not found, stopping app");
+
                 scene_manager_stop(app->scene_manager);
                 view_dispatcher_stop(app->view_dispatcher);
             }

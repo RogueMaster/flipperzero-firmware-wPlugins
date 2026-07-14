@@ -1,3 +1,7 @@
+## v1.5
+
+Update for Flipper 1.3.2 compatibility
+
 ## v1.4
 
 Shut down GPIO when exiting app

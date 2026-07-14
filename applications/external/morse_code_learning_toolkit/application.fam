@@ -1,0 +1,14 @@
+App(
+    appid="morse_master",
+    name="Morse Master",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="morse_master_app",
+    stack_size=2 * 1024,
+    fap_icon="morse_master.png",
+    fap_icon_assets="images",
+    fap_category="Games",
+    fap_author="P1X / w84death",
+    fap_weburl="https://github.com/w84death/morse-master",
+    fap_version="1.1",
+    fap_description="Learn Morse code using this toolkit.",
+)

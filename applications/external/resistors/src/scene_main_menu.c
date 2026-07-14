@@ -34,13 +34,29 @@ void resistors_main_menu_scene_on_enter(void* context) {
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "Resistors");
     submenu_add_item(
-        app->submenu, "3-bar resistor", ResistorsMainMenuSelectionR3, resistors_menu_callback, app);
+        app->submenu,
+        "3-Band Resistor",
+        ResistorsMainMenuSelectionR3,
+        resistors_menu_callback,
+        app);
     submenu_add_item(
-        app->submenu, "4-bar resistor", ResistorsMainMenuSelectionR4, resistors_menu_callback, app);
+        app->submenu,
+        "4-Band Resistor",
+        ResistorsMainMenuSelectionR4,
+        resistors_menu_callback,
+        app);
     submenu_add_item(
-        app->submenu, "5-bar resistor", ResistorsMainMenuSelectionR5, resistors_menu_callback, app);
+        app->submenu,
+        "5-Band Resistor",
+        ResistorsMainMenuSelectionR5,
+        resistors_menu_callback,
+        app);
     submenu_add_item(
-        app->submenu, "6-bar resistor", ResistorsMainMenuSelectionR6, resistors_menu_callback, app);
+        app->submenu,
+        "6-Band Resistor",
+        ResistorsMainMenuSelectionR6,
+        resistors_menu_callback,
+        app);
     view_dispatcher_switch_to_view(app->view_dispatcher, ResistorsSubmenuView);
 }
 

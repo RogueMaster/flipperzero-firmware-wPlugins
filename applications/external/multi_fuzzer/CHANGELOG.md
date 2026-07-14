@@ -1,3 +1,12 @@
+## v1.7
+- Fix Fixed prev navigation for AttackTypeLoadFileCustomUids
+## v1.6
+New systems in RFID Fuzzer:
+    - Electra
+    - Idteck
+    - Gallagher
+    - Nexwatch
+- Changed with how lists are handled to make adding RFID protocols easier to add
 ## v1.4
 - Fix worker being not in LFRFIDWorkerIdle before next key (limit TD to 0.1)
 ## v1.3

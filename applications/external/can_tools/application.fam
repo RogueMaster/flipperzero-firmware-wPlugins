@@ -1,0 +1,14 @@
+App(
+    appid="can_tools",
+    name="CAN Tools",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="cantools_app",
+    stack_size=4 * 1024,
+    fap_icon="cantools_app.png",
+    fap_icon_assets="icons",
+    fap_category="Tools",
+    fap_author="Matthew KuKanich",
+    fap_weburl="https://github.com/MatthewKuKanich/FlipperCANTools",
+    fap_version=(1, 1),
+    fap_description="CAN Tools, DBC creation, Data decoding",
+)

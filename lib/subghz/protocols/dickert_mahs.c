@@ -49,10 +49,12 @@ const SubGhzProtocolDecoder subghz_protocol_dickert_mahs_decoder = {
     .feed = subghz_protocol_decoder_dickert_mahs_feed,
     .reset = subghz_protocol_decoder_dickert_mahs_reset,
 
-    .get_hash_data = subghz_protocol_decoder_dickert_mahs_get_hash_data,
+    .get_hash_data = NULL,
+    .get_hash_data_long = subghz_protocol_decoder_dickert_mahs_get_hash_data,
     .serialize = subghz_protocol_decoder_dickert_mahs_serialize,
     .deserialize = subghz_protocol_decoder_dickert_mahs_deserialize,
     .get_string = subghz_protocol_decoder_dickert_mahs_get_string,
+    .get_string_brief = NULL,
 };
 
 const SubGhzProtocolEncoder subghz_protocol_dickert_mahs_encoder = {
@@ -132,7 +134,7 @@ void* subghz_protocol_encoder_dickert_mahs_alloc(SubGhzEnvironment* environment)
     instance->base.protocol = &subghz_protocol_dickert_mahs;
     instance->generic.protocol_name = instance->base.protocol->name;
 
-    instance->encoder.repeat = 10;
+    instance->encoder.repeat = 3;
     instance->encoder.size_upload = 128;
     instance->encoder.upload = malloc(instance->encoder.size_upload * sizeof(LevelDuration));
     instance->encoder.is_running = false;
@@ -207,7 +209,7 @@ SubGhzProtocolStatus
             ret = SubGhzProtocolStatusErrorValueBitCount;
             break;
         }
-        //optional parameter parameter
+        // Optional value
         flipper_format_read_uint32(
             flipper_format, "Repeat", (uint32_t*)&instance->encoder.repeat, 1);
 
@@ -237,7 +239,7 @@ LevelDuration subghz_protocol_encoder_dickert_mahs_yield(void* context) {
     LevelDuration ret = instance->encoder.upload[instance->encoder.front];
 
     if(++instance->encoder.front == instance->encoder.size_upload) {
-        instance->encoder.repeat--;
+        if(!subghz_block_generic_global.endless_tx) instance->encoder.repeat--;
         instance->encoder.front = 0;
     }
 
@@ -288,8 +290,9 @@ void subghz_protocol_decoder_dickert_mahs_feed(void* context, bool level, uint32
             instance->decoder.decode_count_bit = 0;
         }
 
-        if((!level) && (duration > 10 * subghz_protocol_dickert_mahs_const.te_short)) {
-            //Found header DICKERT_MAHS
+        if((!level) && (DURATION_DIFF(duration, subghz_protocol_dickert_mahs_const.te_long * 50) <
+                        subghz_protocol_dickert_mahs_const.te_delta * 70)) {
+            //Found header DICKERT_MAHS 44k us
             instance->decoder.parser_step = DickertMAHSDecoderStepInitial;
         }
         break;
@@ -341,10 +344,10 @@ void subghz_protocol_decoder_dickert_mahs_feed(void* context, bool level, uint32
     }
 }
 
-uint8_t subghz_protocol_decoder_dickert_mahs_get_hash_data(void* context) {
+uint32_t subghz_protocol_decoder_dickert_mahs_get_hash_data(void* context) {
     furi_assert(context);
     SubGhzProtocolDecoderDickertMAHS* instance = context;
-    return subghz_protocol_blocks_get_hash_data(
+    return subghz_protocol_blocks_get_hash_data_long(
         &instance->decoder, (instance->decoder.decode_count_bit / 8) + 1);
 }
 

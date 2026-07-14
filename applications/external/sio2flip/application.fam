@@ -1,0 +1,14 @@
+App(
+    appid="sio2flip",
+    name="Atari SIO Emulator",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="app_startup",
+    stack_size=4 * 1024,
+    fap_icon="images/sio2flip.png",
+    fap_icon_assets="images",
+    fap_category="GPIO",
+    fap_author="cepetr",
+    fap_weburl="https://github.com/cepetr/sio2flip",
+    fap_version="0.5",
+    fap_description="Atari 8-bit computer SIO peripheral emulator",
+)

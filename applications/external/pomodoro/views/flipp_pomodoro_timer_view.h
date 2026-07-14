@@ -28,3 +28,7 @@ void flipp_pomodoro_view_timer_set_on_ok_cb(
     FlippPomodoroTimerViewInputCb ok_cb);
 
 void flipp_pomodoro_view_timer_display_hint(View* view, char* hint);
+
+void flipp_pomodoro_view_timer_set_on_left_cb(
+    FlippPomodoroTimerView* timer,
+    FlippPomodoroTimerViewInputCb left_cb);

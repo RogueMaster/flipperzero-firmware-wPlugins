@@ -1,0 +1,14 @@
+App(
+    appid="canbus_attack_app",
+    name="CANBUS ATTACK",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="app_main",
+    stack_size=30 * 1024,
+    fap_icon="icon.png",
+    fap_icon_assets="assets",
+    fap_category="GPIO",
+    fap_author="jorgepnaranjo25",
+    fap_weburl="https://github.com/jorgepnaranjo25/CAN-Bus-Attack",
+    fap_version="1.0",
+    fap_description="Flipper Zero application for performing basic security testing on CAN Bus networks. It was developed as part of a university cybersecurity research project and is intended for educational and ethical use only.",
+)

@@ -1,0 +1,14 @@
+App(
+    appid="flip_telegram",
+    name="FlipTelegram",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flip_telegram_main",
+    stack_size=4 * 1024,
+    fap_icon="app.png",
+    fap_icon_assets="assets",
+    fap_category="GPIO",
+    fap_author="JBlanked",
+    fap_weburl="https://github.com/jblanked/FlipTelegram",
+    fap_version="1.0.1",
+    fap_description="Flipper Zero Telegram Client",
+)

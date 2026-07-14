@@ -1,6 +1,6 @@
 /***
  * Noptel LRF rangefinder sampler for the Flipper Zero
- * Version: 1.9
+ * Version: 2.4
  *
  * Main app
 ***/
@@ -14,6 +14,7 @@
 #include "config_view.h"
 #include "sample_view.h"
 #include "lrf_info_view.h"
+#include "test_boot_time_view.h"
 #include "save_diag_view.h"
 #include "test_laser_view.h"
 #include "test_pointer_view.h"
@@ -37,7 +38,6 @@ static App* noptel_lrf_sampler_app_init() {
     app->view_dispatcher = view_dispatcher_alloc();
 
     /* Configure the view dispatcher */
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 
@@ -62,6 +62,13 @@ static App* noptel_lrf_sampler_app_init() {
 
     submenu_add_item(
         app->submenu, submenu_item_names[submenu_lrfinfo], submenu_lrfinfo, submenu_callback, app);
+
+    submenu_add_item(
+        app->submenu,
+        submenu_item_names[submenu_testboottime],
+        submenu_testboottime,
+        submenu_callback,
+        app);
 
     submenu_add_item(
         app->submenu,
@@ -201,6 +208,33 @@ static App* noptel_lrf_sampler_app_init() {
 
     /* Add the LRF info view */
     view_dispatcher_add_view(app->view_dispatcher, view_lrfinfo, app->lrfinfo_view);
+
+    /* Setup the test boot time view */
+
+    /* Allocate space for the test boot time view */
+    app->testboottime_view = view_alloc();
+
+    /* Setup the draw callback for the test boot time view */
+    view_set_draw_callback(app->testboottime_view, testboottime_view_draw_callback);
+
+    /* Setup the input callback for the test boot time view */
+    view_set_input_callback(app->testboottime_view, testboottime_view_input_callback);
+
+    /* Configure the "previous" callback for the test boot time view */
+    view_set_previous_callback(app->testboottime_view, return_to_submenu_callback);
+
+    /* Configure the enter and exit callbacks for the test boot time view */
+    view_set_enter_callback(app->testboottime_view, testboottime_view_enter_callback);
+    view_set_exit_callback(app->testboottime_view, testboottime_view_exit_callback);
+
+    /* Set the context for the test boot time view callbacks */
+    view_set_context(app->testboottime_view, app);
+
+    /* Allocate space for the test boot time view model */
+    view_allocate_model(app->testboottime_view, ViewModelTypeLockFree, sizeof(TestBootTimeModel));
+
+    /* Add the test boot time view */
+    view_dispatcher_add_view(app->view_dispatcher, view_testboottime, app->testboottime_view);
 
     /* Setup the save diagnostic view */
 
@@ -431,6 +465,10 @@ static void noptel_lrf_sampler_app_free(App* app) {
     view_dispatcher_remove_view(app->view_dispatcher, view_lrfinfo);
     view_free(app->lrfinfo_view);
 
+    /* Remove the test boot time view */
+    view_dispatcher_remove_view(app->view_dispatcher, view_testboottime);
+    view_free(app->testboottime_view);
+
     /* Remove the sample view */
     view_dispatcher_remove_view(app->view_dispatcher, view_sample);
     view_free(app->sample_view);
@@ -461,7 +499,10 @@ int32_t noptel_lrf_sampler_app_entry(void* p) {
 
     /* Turn on the LRF */
     FURI_LOG_I(TAG, "LRF power on");
-    power_lrf(true);
+    power_lrf(true, NULL);
+
+    /* Wait a bit to let the LRF boot up and be ready to accept commands */
+    furi_delay_ms(300);
 
     /* Initialize the app */
     App* app = noptel_lrf_sampler_app_init();
@@ -475,7 +516,7 @@ int32_t noptel_lrf_sampler_app_entry(void* p) {
 
     /* Turn off the LRF */
     FURI_LOG_I(TAG, "LRF power off");
-    power_lrf(false);
+    power_lrf(false, NULL);
 
     return 0;
 }

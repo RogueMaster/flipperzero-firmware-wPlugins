@@ -71,19 +71,20 @@ static void generate_totp_code(
         size_t key_length;
         uint8_t* key = totp_crypto_decrypt(
             token_info->token, token_info->token_length, context->crypto_settings, &key_length);
-
         uint64_t otp_code;
+        size_t plain_key_length =
+            token_info->token_plain_length > 0 ? token_info->token_plain_length : key_length;
         if(token_info->type == TokenTypeTOTP) {
             otp_code = totp_at(
                 get_totp_algo_impl(token_info->algo),
                 key,
-                key_length,
+                plain_key_length,
                 current_ts,
                 context->timezone_offset,
                 token_info->duration);
         } else if(token_info->type == TokenTypeHOTP) {
             otp_code = hotp_at(
-                get_totp_algo_impl(token_info->algo), key, key_length, token_info->counter);
+                get_totp_algo_impl(token_info->algo), key, plain_key_length, token_info->counter);
         } else {
             furi_crash("Unknown token type");
         }

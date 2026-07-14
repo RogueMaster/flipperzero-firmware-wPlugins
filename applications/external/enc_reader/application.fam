@@ -1,0 +1,14 @@
+App(
+    appid="enc_reader",
+    name="Encoder Reader",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="enc_reader_app",
+    stack_size=1 * 1024,
+    fap_icon_assets="images",
+    fap_icon="images/enc_reader_logo_10px.png",
+    fap_category="GPIO",
+    fap_author="Engineegor",
+    fap_weburl="https://github.com/Engineegor/Enc_reader",
+    fap_version="0.1",
+    fap_description="This is a simple app for flipper that can read incremental quadrature encoders that show absolute and relative coordinate.",
+)

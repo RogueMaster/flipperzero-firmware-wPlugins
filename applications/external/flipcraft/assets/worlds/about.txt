@@ -1,0 +1,23 @@
+Flipcraft
+Tiny voxel sandbox for
+Flipper Zero.
+
+World controls:
+Up/Down - walk
+Left/Right - turn
+OK + Up/Down - look
+OK + Left/Right - hotbar
+OK short - place / use /
+  attack creature
+OK long - mine / tame wolf
+Back short - jump
+Back long - inventory
+OK + Back - quit
+
+Menus:
+Arrows - cursor
+OK - pick / place / craft
+OK + arrow - drop one
+Back - close
+
+by @apfxtech

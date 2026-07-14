@@ -8,26 +8,10 @@
 #include <src/scenes/include/fgp_scene.h>
 
 #include <protocols/printer/include/printer_proto.h>
+#include <gblink/include/gblink_pinconf.h>
 
-/* This is a bit of a hack to save some space and not have to refactor this scene.
-* We re-use the name and pin from the global gpio pin definition, but need to
-* skip the two debug pins in the row of header pins.
-*
-* This is hard-coded, not really portable, but saves a couple hundred bytes :D
-*
-* In the future, the right way to do this would be to build our own table of
-* non-debug pins from whatever the current platforms gpio pin definition is.
-*/
-#define NUM_PINS 8
-static const GpioPinRecord* named_pins[NUM_PINS] = {
-    &gpio_pins[0],
-    &gpio_pins[1],
-    &gpio_pins[2],
-    &gpio_pins[3],
-    &gpio_pins[4],
-    &gpio_pins[5],
-    &gpio_pins[10],
-    &gpio_pins[11]};
+/* When checking for custom pinout, need to pay attention to the actual index of the variable item. as opposed to only rlying on if the pinout is default or not. The get_default function will return true on a custom pinout that is set to one of the named pinouts. Which, when saving, this isn't custom and we can just save the mode name. But here, we need to know if the user selected custom and let them mess with the pins.
+ */
 
 /* This must match gblink's enum order */
 static const char* named_groups[] = {
@@ -37,121 +21,100 @@ static const char* named_groups[] = {
     "",
 };
 
-struct itemlist_builder {
-    VariableItem* named;
-    VariableItem* serin;
-    VariableItem* serout;
-    VariableItem* clk;
-    uint8_t named_index;
-    uint8_t serin_index;
-    uint8_t serout_index;
-    uint8_t clk_index;
-};
+static void select_pins_rebuild_list(struct fgp_app* fgp, int mode);
 
-/* Just make it a global, whatever */
-static struct itemlist_builder builder = {0};
-static void select_pins_rebuild_list(struct fgp_app* fgp);
-
-static void select_pins_set(struct fgp_app* fgp) {
-    printer_pin_set(fgp->printer_handle, PIN_SERIN, named_pins[builder.serin_index]->pin);
-    printer_pin_set(fgp->printer_handle, PIN_SEROUT, named_pins[builder.serout_index]->pin);
-    printer_pin_set(fgp->printer_handle, PIN_CLK, named_pins[builder.clk_index]->pin);
-}
-
-static void select_named_group_callback(VariableItem* item) {
-    uint8_t index = variable_item_get_current_value_index(item);
+static void select_pins_default_callback(VariableItem* item) {
     struct fgp_app* fgp = variable_item_get_context(item);
+    uint8_t index = variable_item_get_current_value_index(item);
 
     variable_item_set_current_value_text(item, named_groups[index]);
-    builder.named_index = index;
-    select_pins_rebuild_list(fgp);
-    variable_item_list_set_selected_item(fgp->variable_item_list, 0);
+    gblink_pin_set_default(printer_gblink_handle_get(fgp->printer_handle), index);
+    select_pins_rebuild_list(fgp, index);
 }
 
-static void select_pins_serin_callback(VariableItem* item) {
+static void select_pins_pin_callback(VariableItem* item) {
     uint8_t index = variable_item_get_current_value_index(item);
     struct fgp_app* fgp = variable_item_get_context(item);
+    uint8_t which = variable_item_list_get_selected_item_index(fgp->variable_item_list);
+    void* gblink = printer_gblink_handle_get(fgp->printer_handle);
+    gblink_bus_pins pin;
 
-    variable_item_set_current_value_text(item, named_pins[index]->name);
-    builder.serin_index = index;
-    select_pins_rebuild_list(fgp);
-    variable_item_list_set_selected_item(fgp->variable_item_list, 1);
-}
-
-static void select_pins_serout_callback(VariableItem* item) {
-    uint8_t index = variable_item_get_current_value_index(item);
-    struct fgp_app* fgp = variable_item_get_context(item);
-
-    variable_item_set_current_value_text(item, named_pins[index]->name);
-    builder.serout_index = index;
-    select_pins_rebuild_list(fgp);
-    variable_item_list_set_selected_item(fgp->variable_item_list, 2);
-}
-
-static void select_pins_clk_callback(VariableItem* item) {
-    uint8_t index = variable_item_get_current_value_index(item);
-    struct fgp_app* fgp = variable_item_get_context(item);
-
-    variable_item_set_current_value_text(item, named_pins[index]->name);
-    builder.clk_index = index;
-    select_pins_rebuild_list(fgp);
-    variable_item_list_set_selected_item(fgp->variable_item_list, 3);
-}
-
-static void select_pins_rebuild_list(struct fgp_app* fgp) {
-    int num;
-
-    /* HACK: TODO: It would be better to do this programmatically, but, I'm kind
-	* of done working on this feature so its going to be hardcoded for now.
-	*/
-    switch(builder.named_index) {
-    case 0: // Original
-        num = 1;
-        builder.serin_index = 5;
-        builder.serout_index = 3;
-        builder.clk_index = 4;
+    switch(which) {
+    case 1: // SI
+        pin = PIN_SERIN;
         break;
-    case 1: // MALVEKE
-        num = 1;
-        builder.serin_index = 1;
-        builder.serout_index = 0;
-        builder.clk_index = 3;
+    case 2: // SO
+        pin = PIN_SEROUT;
+        break;
+    case 3: // CLK
+        pin = PIN_CLK;
         break;
     default:
-        num = NUM_PINS;
+        furi_crash();
         break;
     }
 
-    select_pins_set(fgp);
+    if(index > gblink_pin_get(gblink, pin))
+        index = gblink_pin_get_next(index);
+    else
+        index = gblink_pin_get_prev(index);
+    variable_item_set_current_value_index(item, index);
+    variable_item_set_current_value_text(item, gpio_pins[index].name);
+    gblink_pin_set(gblink, pin, index);
+}
 
+static void select_pins_rebuild_list(struct fgp_app* fgp, int mode) {
+    int pinnum;
+    int pinmax = gblink_pin_count_max() + 1;
+    VariableItem* item;
+    void* gblink = printer_gblink_handle_get(fgp->printer_handle);
+
+    FURI_LOG_D("printer", "rebuild mode %d", mode);
+    FURI_LOG_D("printer", "pins count %d, max %d", gpio_pins_count, pinmax);
     variable_item_list_reset(fgp->variable_item_list);
 
-    builder.named = variable_item_list_add(
-        fgp->variable_item_list, "Mode", 3, select_named_group_callback, fgp);
-    builder.serin = variable_item_list_add(
-        fgp->variable_item_list, "SI:", num, select_pins_serin_callback, fgp);
-    builder.serout = variable_item_list_add(
-        fgp->variable_item_list, "SO:", num, select_pins_serout_callback, fgp);
-    builder.clk = variable_item_list_add(
-        fgp->variable_item_list, "CLK:", num, select_pins_clk_callback, fgp);
+    item = variable_item_list_add(
+        fgp->variable_item_list, "Mode", PINOUT_COUNT + 1, select_pins_default_callback, fgp);
+    variable_item_set_current_value_index(item, mode);
+    variable_item_set_current_value_text(item, named_groups[mode]);
 
-    variable_item_set_current_value_index(builder.named, builder.named_index);
-    variable_item_set_current_value_text(builder.named, named_groups[builder.named_index]);
+    item = variable_item_list_add(
+        fgp->variable_item_list,
+        "SI:",
+        (mode < PINOUT_COUNT) ? 1 : pinmax,
+        select_pins_pin_callback,
+        fgp);
+    pinnum = gblink_pin_get(gblink, PIN_SERIN);
+    variable_item_set_current_value_index(item, (mode < PINOUT_COUNT) ? 0 : pinnum);
+    variable_item_set_current_value_text(item, gpio_pins[pinnum].name);
 
-    variable_item_set_current_value_index(builder.serin, (num == 1 ? 0 : builder.serin_index));
-    variable_item_set_current_value_text(builder.serin, named_pins[builder.serin_index]->name);
+    item = variable_item_list_add(
+        fgp->variable_item_list,
+        "SO:",
+        (mode < PINOUT_COUNT) ? 1 : pinmax,
+        select_pins_pin_callback,
+        fgp);
+    pinnum = gblink_pin_get(gblink, PIN_SEROUT);
+    variable_item_set_current_value_index(item, (mode < PINOUT_COUNT) ? 0 : pinnum);
+    variable_item_set_current_value_text(item, gpio_pins[pinnum].name);
 
-    variable_item_set_current_value_index(builder.serout, (num == 1 ? 0 : builder.serout_index));
-    variable_item_set_current_value_text(builder.serout, named_pins[builder.serout_index]->name);
-
-    variable_item_set_current_value_index(builder.clk, (num == 1 ? 0 : builder.clk_index));
-    variable_item_set_current_value_text(builder.clk, named_pins[builder.clk_index]->name);
+    item = variable_item_list_add(
+        fgp->variable_item_list,
+        "CLK:",
+        (mode < PINOUT_COUNT) ? 1 : pinmax,
+        select_pins_pin_callback,
+        fgp);
+    pinnum = gblink_pin_get(gblink, PIN_CLK);
+    variable_item_set_current_value_index(item, (mode < PINOUT_COUNT) ? 0 : pinnum);
+    variable_item_set_current_value_text(item, gpio_pins[pinnum].name);
 }
 
 void fgp_scene_select_pins_on_enter(void* context) {
     struct fgp_app* fgp = (struct fgp_app*)context;
+    int def_mode = gblink_pin_get_default(printer_gblink_handle_get(fgp->printer_handle));
+    FURI_LOG_D("printer", "def_mode %d", def_mode);
 
-    select_pins_rebuild_list(fgp);
+    select_pins_rebuild_list(fgp, (def_mode < 0) ? PINOUT_COUNT : def_mode);
 
     variable_item_list_set_selected_item(fgp->variable_item_list, 0);
 
@@ -165,5 +128,7 @@ bool fgp_scene_select_pins_on_event(void* context, SceneManagerEvent event) {
 }
 
 void fgp_scene_select_pins_on_exit(void* context) {
-    UNUSED(context);
+    struct fgp_app* fgp = context;
+
+    gblink_pinconf_save(printer_gblink_handle_get(fgp->printer_handle));
 }

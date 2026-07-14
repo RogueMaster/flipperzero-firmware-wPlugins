@@ -309,6 +309,7 @@ typedef enum {
     ERROR_NOMSG = 5,
     ERROR_GET_TXB_FTIMEOUT = 6,
     ERROR_SEND_MSG_TIMEOUT = 7,
+    ERROR_WRONG_BITRATE = 8,
 } ERROR_CAN;
 
 // MCP2515 BITRATES VALUES
@@ -355,6 +356,9 @@ MCP2515* mcp_alloc(MCP_MODE mode, MCP_CLOCK clck, MCP_BITRATE bitrate);
 ERROR_CAN mcp2515_init(MCP2515* mcp_can);
 
 // To close the MCP2515
+void deinit_mcp2515(MCP2515* mcp_can);
+
+// free instance
 void free_mcp2515(MCP2515* mcp_can);
 
 // This is to get the status
@@ -385,6 +389,8 @@ ERROR_CAN check_error(MCP2515* mcp_can);
 ERROR_CAN check_receive(MCP2515* mcp_can);
 ERROR_CAN read_can_message(MCP2515* mcp_can,
                            CANFRAME* frame); // Read a CAN BUS message
+
+ERROR_CAN is_this_bitrate(MCP2515* mcp_can, MCP_BITRATE bitrate);
 
 ERROR_CAN send_can_frame(MCP2515* mcp_can,
                          CANFRAME* frame); // Send a CANBUS Frame

@@ -1,0 +1,583 @@
+namespace Levels {
+
+    include "levels/Invaders.txt"
+    include "levels/Level1.txt"
+    include "levels/Level2.txt"
+    include "levels/Level3.txt"
+    include "levels/Level4.txt"
+    include "levels/Level5.txt"
+    include "levels/Level6.txt"
+    include "levels/Level7.txt"
+    include "levels/Level8.txt"
+    include "levels/Level9.txt"
+    include "levels/Level10.txt"
+    include "levels/Level11.txt"
+    include "levels/Level12.txt"
+    include "levels/Level13.txt"
+
+    uint24_t level_FG[] = {
+        0,         // dummy
+        Level1_FG,
+        Level2_FG,
+        Level3_FG,
+        Level4_FG,
+        Level5_FG,
+        Level6_FG,
+        Level7_FG,
+        Level8_FG,
+        Level9_FG,
+        Level10_FG,
+        Level11_FG,
+        Level12_FG,
+        Level13_FG
+
+    };
+
+    uint24_t Level_BG[] = {
+        0,         // dummy
+        Level1_BG,
+        Level2_BG,
+        Level3_BG,
+        Level4_BG,
+        Level5_BG,
+        Level6_BG,
+        Level7_BG,
+        Level8_BG,
+        Level9_BG,
+        Level10_BG,
+        Level11_BG,
+        Level12_BG,
+        Level13_BG
+
+    };
+
+
+    uint24_t level_Data[] = {
+        0,         // dummy
+        level1_Data,
+        level2_Data,
+        level3_Data,
+        level4_Data,
+        level5_Data,
+        level6_Data,
+        level7_Data,
+        level8_Data,
+        level9_Data,
+        level10_Data,
+        level11_Data,
+        level12_Data,
+        level13_Data
+
+    };
+
+    uint24_t Level_Items[] = {
+        Invaders_Items,         // Invaders game
+        Level1_Items,
+        Level2_Items,
+        Level3_Items,
+        Level4_Items,
+        Level5_Items,
+        Level6_Items,
+        Level7_Items,
+        Level8_Items,
+        Level9_Items,
+        Level10_Items,
+        Level11_Items,
+        Level12_Items,
+        Level13_Items
+
+    };
+}
+
+namespace_end
+
+include "sounds.txt"
+include "images.txt"
+
+
+namespace Constants {
+
+    uint8_t StanceToImageXRefFX[] = {
+        0,
+include "movements_convert.txt"
+    };
+
+namespace_end
+
+
+include "movements2.txt"
+include "constants.txt"
+
+
+// Splashscreen animation ..
+
+splashScreen_Frame[] = {
+    int16_t  32, 16,
+    uint24_t PPOT,
+    uint8_t  0, dbmWhite_end,
+
+    int16_t  32, 16,
+    uint24_t PPOT,
+    uint8_t  1, dbmWhite_end
+
+    int16_t  32, 16,
+    uint24_t PPOT,
+    uint8_t  2, dbmWhite_end,
+
+    int16_t  32, 16,
+    uint24_t PPOT,
+    uint8_t  3, dbmWhite_last
+}
+
+Title_Main_Game_PoP_Frame_NC[] = {
+
+    int16_t  0,-24, uint24_t Title_Main_NC,   uint8_t 0, dbmNormal
+    int16_t  0,  0, uint24_t Title_PoP,    uint8_t 0, dbmMasked_last
+
+}
+
+Title_Main_Game_PoA_Frame_NC[] = {
+
+    int16_t  0,-24, uint24_t Title_Main_NC,   uint8_t 0, dbmNormal
+    int16_t  0,  0, uint24_t Title_PoA,    uint8_t 0, dbmMasked_last
+
+}
+
+Title_Main_Game_PoP_Frame_NCH[] = {
+
+    int16_t  0,-24, uint24_t Title_Main_NCH,   uint8_t 0, dbmNormal
+    int16_t  0,  0, uint24_t Title_PoP,    uint8_t 0, dbmMasked_last
+
+}
+
+Title_Main_Game_PoA_Frame_NCH[] = {
+
+    int16_t  0,-24, uint24_t Title_Main_NCH,   uint8_t 0, dbmNormal
+    int16_t  0,  0, uint24_t Title_PoA,    uint8_t 0, dbmMasked_last
+
+}
+
+Title_Main_Game_PoP_Frame_NRC[] = {
+
+    int16_t  0,-24, uint24_t Title_Main_NRC,   uint8_t 0, dbmNormal
+    int16_t  0,  0, uint24_t Title_PoP,    uint8_t 0, dbmMasked_last
+
+}
+
+Title_Main_Game_PoA_Frame_NRC[] = {
+
+    int16_t  0,-24, uint24_t Title_Main_NRC,   uint8_t 0, dbmNormal
+    int16_t  0,  0, uint24_t Title_PoA,    uint8_t 0, dbmMasked_last
+
+}
+
+Title_Main_Game_PoP_Frame_NRCH[] = {
+
+    int16_t  0,-24, uint24_t Title_Main_NRCH,   uint8_t 0, dbmNormal
+    int16_t  0,  0, uint24_t Title_PoP,    uint8_t 0, dbmMasked_last
+
+}
+
+Title_Main_Game_PoA_Frame_NRCH[] = {
+
+    int16_t  0,-24, uint24_t Title_Main_NRCH,   uint8_t 0, dbmNormal
+    int16_t  0,  0, uint24_t Title_PoA,    uint8_t 0, dbmMasked_last
+
+}
+
+Title_High_PoP_Frame[] = {
+    int16_t  38, 29, uint24_t HighScore,       uint8_t 0, dbmNormal
+    int16_t  62, 40, uint24_t Numbers_Divider, uint8_t 0, dbmNormal
+    int16_t  10, 40, uint24_t Torches,         uint8_t 0, dbmMasked
+    int16_t 114, 40, uint24_t Torches,         uint8_t 0, dbmMasked
+    int16_t   0, 59, uint24_t Saves,           uint8_t 0, dbmNormal
+    int16_t   0,  0, uint24_t Title_PoP,       uint8_t 0, dbmMasked_end
+
+    int16_t  38, 29, uint24_t HighScore,       uint8_t 0, dbmNormal
+    int16_t  62, 40, uint24_t Numbers_Divider, uint8_t 0, dbmNormal
+    int16_t  10, 40, uint24_t Torches,         uint8_t 1, dbmMasked
+    int16_t 114, 40, uint24_t Torches,         uint8_t 1, dbmMasked
+    int16_t   0, 59, uint24_t Saves,           uint8_t 0, dbmNormal
+    int16_t   0,  0, uint24_t Title_PoP,       uint8_t 0, dbmMasked_end
+
+    int16_t  38, 29, uint24_t HighScore,       uint8_t 0, dbmNormal
+    int16_t  62, 40, uint24_t Numbers_Divider, uint8_t 0, dbmNormal
+    int16_t  10, 40, uint24_t Torches,         uint8_t 2, dbmMasked
+    int16_t 114, 40, uint24_t Torches,         uint8_t 2, dbmMasked
+    int16_t   0, 59, uint24_t Saves,           uint8_t 0, dbmNormal
+    int16_t   0,  0, uint24_t Title_PoP,       uint8_t 0, dbmMasked_last
+}
+
+Title_High_PoA_Frame[] = {
+    int16_t  38, 29, uint24_t HighScore,       uint8_t 0, dbmNormal
+    int16_t  62, 42, uint24_t Numbers_Divider, uint8_t 0, dbmNormal
+    int16_t  10, 40, uint24_t Torches,         uint8_t 0, dbmMasked
+    int16_t 114, 40, uint24_t Torches,         uint8_t 0, dbmMasked
+    int16_t   0, 59, uint24_t Saves,           uint8_t 0, dbmNormal
+    int16_t   0,  0, uint24_t Title_PoA,       uint8_t 0, dbmMasked_end
+
+    int16_t  38, 29, uint24_t HighScore,       uint8_t 0, dbmNormal
+    int16_t  62, 42, uint24_t Numbers_Divider, uint8_t 0, dbmNormal
+    int16_t  10, 40, uint24_t Torches,         uint8_t 1, dbmMasked
+    int16_t 114, 40, uint24_t Torches,         uint8_t 1, dbmMasked
+    int16_t   0, 59, uint24_t Saves,           uint8_t 0, dbmNormal
+    int16_t   0,  0, uint24_t Title_PoA,       uint8_t 0, dbmMasked_end
+
+    int16_t  38, 29, uint24_t HighScore,       uint8_t 0, dbmNormal
+    int16_t  62, 42, uint24_t Numbers_Divider, uint8_t 0, dbmNormal
+    int16_t  10, 40, uint24_t Torches,         uint8_t 2, dbmMasked
+    int16_t 114, 40, uint24_t Torches,         uint8_t 2, dbmMasked
+    int16_t   0, 59, uint24_t Saves,           uint8_t 0, dbmNormal
+    int16_t   0,  0, uint24_t Title_PoA,       uint8_t 0, dbmMasked_last
+}
+
+uint8_t Title_Select_Option[] = {
+//  N     R     C     H
+    0,2,  0,0,  0,2,  0,0, // NC left, righ
+
+    0,2,  0,0,  0,3,  2,3, // NCH left, righ
+
+    1,2,  1,0,  0,2,  0,0, // NRC left, righ
+
+    1,2,  1,0,  0,3,  2,3,  // NRCH left, righ
+};
+
+uint8_t Title_Cursor_XPos[] = {
+//  N     R    C    H
+    33,   0,  62,   0,          // NC
+    20,   0,  48,  84,          // NCH
+    52,  20,  72,   0,          // NRC
+    41,  10,  60,  95,          // NRCH
+};
+
+uint8_t MenuControlDataTable[] = {
+
+    // up // down   // MenuStates (no save, not dead)
+
+    0,        2,    // 0 Resume
+   -1,       -1,    // 1 Load
+    0,        3,    // 2 Save
+    2,        4,    // 3 Sound
+    3,        4,    // 4 Main
+   -1,       -1,    // 5 Clear
+    6,        7,    // 6 sound_set_on
+    6,        7,    // 7 sound_set_off
+   -1,       -1,    // 8 clear_confirm_yes
+   -1,       -1,    // 9 clear_confirm_no
+
+    // up // down   // MenuStates (no save, dead)
+
+    0,        3,    // 0 Resume
+   -1,       -1,    // 1 Load
+   -1,       -1,    // 2 Save
+    0,        4,    // 3 Sound
+    3,        4,    // 4 Main
+   -1,       -1,    // 5 Clear
+    6,        7,    // 6 sound_set_on
+    6,        7,    // 7 sound_set_off
+   -1,       -1,    // 8 clear_confirm_yes
+   -1,       -1,    // 9 clear_confirm_no
+
+    // up // down   // MenuStates (save, not dead)
+
+    0,        1,     // 0 Resume
+    0,        2,     // 1 Load
+    1,        3,     // 2 Save
+    2,        4,     // 3 Sound
+    3,        5,     // 4 Main
+    4,        5,     // 5 Clear
+    6,        7,     // 6 sound_set_on
+    6,        7,     // 7 sound_set_off
+    8,        9,     // 8 clear_confirm_yes
+    8,        9,     // 9 clear_confirm_no
+
+    // up // Cursor  // MenuStates (save, dead)
+
+    0,        1,     // 0 Resume
+    0,        3,     // 1 Load
+   -1,       -1,     // 2 Save
+    1,        4,     // 3 Sound
+    3,        4,     // 4 Main
+   -1,       -1,     // 5 Clear
+    6,        7,     // 6 sound_set_on
+    6,        7,     // 7 sound_set_off
+   -1,       -1,     // 8 clear_confirm_yes
+   -1,       -1,     // 9 clear_confirm_no
+}
+
+uint8_t MenuRenderDataTable[] = {
+
+    //imageIndex // Cursor  // MenuStates (no save, not dead)
+
+    2,              22,     // 0 Resume
+   -1,              -1,     // 1 Load
+    2,              32,     // 2 Save
+    2,              42,     // 3 Sound
+    2,              52,     // 4 Main
+   -1,              -1,     // 5 Clear
+    6,              40,     // 6 sound_set_on
+    6,              50,     // 7 sound_set_off
+   -1,              -1,     // 8 clear_confirm_yes
+   -1,              -1,     // 9 clear_confirm_no
+
+    //imageIndex // Cursor  // MenuStates (no save, dead)
+
+    0,              22,     // 0 Resume
+   -1,              -1,     // 1 Load
+   -1,              -1,     // 2 Save
+    0,              32,     // 3 Sound
+    0,              42,     // 4 Main
+   -1,              -1,     // 5 Clear
+    6,              40,     // 6 sound_set_on
+    6,              50,     // 7 sound_set_off
+   -1,              -1,     // 8 clear_confirm_yes
+   -1,              -1,     // 9 clear_confirm_no
+
+    //imageIndex // Cursor  // MenuStates (save, not dead)
+
+    3,              22,     // 0 Resume
+    3,              32,     // 1 Load
+    3,              42,     // 2 Save
+    3,              52,     // 3 Sound
+    4,              52,     // 4 Main
+    5,              52,     // 5 Clear
+    6,              40,     // 6 sound_set_on
+    6,              50,     // 7 sound_set_off
+    7,              40,     // 8 clear_confirm_yes
+    7,              50,     // 9 clear_confirm_no
+
+    //imageIndex // Cursor  // MenuStates (save, dead)
+
+    1,              22,     // 0 Resume
+    1,              32,     // 1 Load
+   -1,              -1,     // 2 Save
+    1,              42,     // 3 Sound
+    1,              52,     // 4 Main
+   -1,              -1,     // 5 Clear
+    6,              40,     // 6 sound_set_on
+    6,              50,     // 7 sound_set_off
+   -1,              -1,     // 8 clear_confirm_yes
+   -1,              -1,     // 9 clear_confirm_no
+}
+
+Invaders_HUD_frame[] = {
+    int16_t 120,  0, uint24_t HUD_Backgrounds,  uint8_t 1, dbmNormal
+    int16_t 123, 40, uint24_t Numbers_Small,    uint8_t 0, dbmNormal_last
+}
+
+include 'cutscenes/Title_Intro_Frame.txt'
+include 'cutscenes/Title_Main_Frame.txt'
+include 'cutscenes/Title_Credits_Frame.txt'
+include 'cutscenes/Title_TimeOut_Frame.txt'
+include 'cutscenes/Title_IntroGame_1A_Frame.txt'
+include 'cutscenes/Title_CutScene_1_Frame.txt'
+include 'cutscenes/Title_IntroGame_1B_Frame.txt'
+include 'cutscenes/Title_CutScene_2_Frame.txt'
+include 'cutscenes/Title_CutScene_2B_Frame.txt'
+include 'cutscenes/Title_CutScene_3_Frame.txt'
+include 'cutscenes/Title_CutScene_4_Frame.txt'
+include 'cutscenes/Title_CutScene_5_Frame.txt'
+include 'cutscenes/Title_CutScene_6_Frame.txt'
+include 'cutscenes/Title_CutScene_7_Frame.txt'
+include 'cutscenes/Title_CutScene_8_Frame.txt'
+include 'cutscenes/Title_CutScene_End_Frame.txt'
+include 'cutscenes/Title_IntroGame_End_Frame.txt'
+
+TitleFrameIndexTable[] = {
+    uint24_t Title_Credits_PoA_Frame, uint8_t 4
+    uint24_t Title_Credits_PoP_Frame, uint8_t 4
+
+    uint24_t Title_High_PoA_Frame, uint8_t 4
+    uint24_t Title_High_PoP_Frame, uint8_t 4
+
+    uint24_t Title_Main_PoA_Frame_NC, uint8_t 1
+    uint24_t Title_Main_PoP_Frame_NC, uint8_t 1
+
+    uint24_t Title_Main_PoA_Frame_NCH, uint8_t 1
+    uint24_t Title_Main_PoP_Frame_NCH, uint8_t 1
+
+    uint24_t Title_Main_PoA_Frame_NRC, uint8_t 1
+    uint24_t Title_Main_PoP_Frame_NRC, uint8_t 1
+
+    uint24_t Title_Main_PoA_Frame_NRCH, uint8_t 1
+    uint24_t Title_Main_PoP_Frame_NRCH, uint8_t 1
+
+    uint24_t Title_Intro_Last_PoA_Frame_NC, uint8_t 0
+    uint24_t Title_Intro_Last_PoP_Frame_NC, uint8_t 0
+
+    uint24_t Title_Intro_Last_PoA_Frame_NCH, uint8_t 0
+    uint24_t Title_Intro_Last_PoP_Frame_NCH, uint8_t 0
+
+    uint24_t Title_Intro_Last_PoA_Frame_NRC, uint8_t 0
+    uint24_t Title_Intro_Last_PoP_Frame_NRC, uint8_t 0
+
+    uint24_t Title_Intro_Last_PoA_Frame_NRCH, uint8_t 0
+    uint24_t Title_Intro_Last_PoP_Frame_NRCH, uint8_t 0
+
+    uint24_t Title_Main_Game_PoA_Frame_NC, uint8_t 0
+    uint24_t Title_Main_Game_PoP_Frame_NC, uint8_t 0
+
+    uint24_t Title_Main_Game_PoA_Frame_NCH, uint8_t 0
+    uint24_t Title_Main_Game_PoP_Frame_NCH, uint8_t 0
+
+    uint24_t Title_Main_Game_PoA_Frame_NRC, uint8_t 0
+    uint24_t Title_Main_Game_PoP_Frame_NRC, uint8_t 0
+
+    uint24_t Title_Main_Game_PoA_Frame_NRCH, uint8_t 0
+    uint24_t Title_Main_Game_PoP_Frame_NRCH, uint8_t 0
+
+    uint24_t Title_IntroGame_End_PoA_Frame, uint8_t 4
+    uint24_t Title_IntroGame_End_PoP_Frame, uint8_t 4
+
+    uint24_t Title_Intro_PoA_Frame_NC, uint8_t 0
+    uint24_t Title_Intro_PoP_Frame_NC, uint8_t 0
+
+    uint24_t Title_Intro_PoA_Frame_NCH, uint8_t 0
+    uint24_t Title_Intro_PoP_Frame_NCH, uint8_t 0
+
+    uint24_t Title_Intro_PoA_Frame_NRC, uint8_t 0
+    uint24_t Title_Intro_PoP_Frame_NRC, uint8_t 0
+
+    uint24_t Title_Intro_PoA_Frame_NRCH, uint8_t 0
+    uint24_t Title_Intro_PoP_Frame_NRCH, uint8_t 0
+
+    uint24_t Title_TimeOut_PoA_Frame, uint8_t 4
+    uint24_t Title_TimeOut_PoP_Frame, uint8_t 4
+
+    uint24_t Title_IntroGame_1A_Frame, uint8_t 3
+    uint24_t Title_IntroGame_1A_Frame, uint8_t 3
+
+    uint24_t Title_CutScene_1_Frame, uint8_t 2
+    uint24_t Title_CutScene_1_Frame, uint8_t 2
+
+    uint24_t Title_IntroGame_1B_Frame, uint8_t 3
+    uint24_t Title_IntroGame_1B_Frame, uint8_t 3
+
+    uint24_t Title_CutScene_2_Frame, uint8_t 3
+    uint24_t Title_CutScene_2_Frame, uint8_t 3
+
+    uint24_t Title_CutScene_3_Frame, uint8_t 3
+    uint24_t Title_CutScene_3_Frame, uint8_t 3
+
+    uint24_t Title_CutScene_4_Frame, uint8_t 5
+    uint24_t Title_CutScene_4_Frame, uint8_t 5
+
+    uint24_t Title_CutScene_5_Frame, uint8_t 2
+    uint24_t Title_CutScene_5_Frame, uint8_t 2
+
+    uint24_t Title_CutScene_6_Frame, uint8_t 1
+    uint24_t Title_CutScene_6_Frame, uint8_t 1
+
+    uint24_t Title_CutScene_2B_Frame, uint8_t 1
+    uint24_t Title_CutScene_2B_Frame, uint8_t 1
+
+    uint24_t Title_CutScene_7_Frame, uint8_t 0
+    uint24_t Title_CutScene_7_Frame, uint8_t 0
+
+    uint24_t Title_CutScene_8_Frame, uint8_t 2
+    uint24_t Title_CutScene_8_Frame, uint8_t 2
+
+    uint24_t Title_CutScene_End_Frame, uint8_t 3
+    uint24_t Title_CutScene_End_Frame, uint8_t 3
+
+    // uint24_t Title_Main_Last_PoA_Frame_NC, uint8_t 0
+    // uint24_t Title_Main_Last_PoP_Frame_NC, uint8_t 0
+
+    // uint24_t Title_Main_Last_PoA_Frame_NCH, uint8_t 0
+    // uint24_t Title_Main_Last_PoP_Frame_NCH, uint8_t 0
+
+    // uint24_t Title_Main_Last_PoA_Frame_NRC, uint8_t 0
+    // uint24_t Title_Main_Last_PoP_Frame_NRC, uint8_t 0
+
+    // uint24_t Title_Main_Last_PoA_Frame_NRCH, uint8_t 0
+    // uint24_t Title_Main_Last_PoP_Frame_NRCH, uint8_t 0
+}
+
+
+uint16_t RunningJumpStances[] = {
+
+    // None                         Stance::Stopping_1_Start, Stance::Stopping_5_End, Stance::Upright, Stance::None, Stance::None, Stance::None, 
+                                    536,                      540,                    18,              0,            0,            0,                                                                                   0, 0,                                                                     
+    // Normal_Pos2                  Stance::Running_Jump_Short_2_1_Start, Stance::Running_Jump_Short_2_7_End, Stance::Run_Repeat_4, Stance::None, Stance::None, Stance::None, 
+                                    262,                                  268,                                13,                   0,            0,            0,                                                      0, 0, 
+    // Normal_Pos6                  Stance::Running_Jump_Short_6_1_Start, Stance::Running_Jump_Short_6_7_End, Stance::Run_Repeat_4, Stance::None, Stance::None, Stance::None, 
+                                    269,                                  275,                                13,                   0,            0,            0,                                                      0, 0,     
+    // Jump4_GrabLedge_Pos2         Stance::Running_Jump_4_GL_2_1_Start, Stance::Running_Jump_4_GL_2_16_End, Stance::Jump_Up_A_14_End, Stance::None, Stance::None, Stance::None, 
+                                    404,                                 419,                                32,                       0,            0,            0,                                                   1, 200,
+    // Jump4_GrabLedge_Pos6         Stance::Running_Jump_4_GL_6_1_Start, Stance::Running_Jump_4_GL_6_16_End, Stance::Jump_Up_A_14_End, Stance::None, Stance::None, Stance::None, 
+                                    420,                                 435,                                32,                       0,            0,            0,                                                   1, 200,
+    // Jump4_GrabLedge_Pos10        Stance::Running_Jump_4_GL_10_1_Start, Stance::Running_Jump_4_GL_10_16_End, Stance::Jump_Up_A_14_End, Stance::None, Stance::None, Stance::None, 
+                                    436,                                  451,                                 32,                       0,            0,            0,                                                 1, 200,
+    // Jump4_DropLevel              Stance::Crouch_Stand_1_Start, Stance::Crouch_Stand_12_End, Stance::Upright, Stance::Running_Jump_4_DropLvl_1_Start, Stance::Running_Jump_4_DropLvl_14_End, Stance::None, 
+                                    592,                          603,                         18,              452,                                    465,                                   0,                       1, 0, 
+    // Jump4_DropLevel_Pos10        Stance::Crouch_Stand_1_Start, Stance::Crouch_Stand_12_End, Stance::Upright, Stance::Running_Jump_4_DropLvl_10_1_Start, Stance::Running_Jump_4_DropLvl_10_13, Stance::None, 
+                                    592,                          603,                         18,              466,                                       479,                                  0,                     1, 0, 
+    // Jump3_Pos2                   Stance::Run_Repeat_5_Mid, Stance::Run_Repeat_8_End, Stance::None, Stance::Running_Jump_3_2_1_Start, Stance::Running_Jump_3_2_8_End, Stance::Run_Repeat_4, 
+                                    14,                       17,                       0,            352,                              359,                            13,                                             1, 0, 
+    // Jump3_Pos6                   Stance::Run_Repeat_5_Mid, Stance::Run_Repeat_8_End, Stance::None, Stance::Running_Jump_3_6_1_Start, Stance::Running_Jump_3_6_8_End, Stance::Run_Repeat_4, 
+                                    14,                       17,                       0,            360,                              367,                            13,                                             1, 0, 
+    // Jump3_Pos10                  Stance::Run_Repeat_5_Mid, Stance::Run_Repeat_8_End, Stance::None, Stance::Running_Jump_3_10_1_Start, Stance::Running_Jump_3_10_8_End, Stance::Run_Repeat_4, 
+                                    14,                       17,                       0,            368,                               375,                             13,                                           1, 0, 
+    // Jump3_DropLevel              Stance::Crouch_Stand_1_Start, Stance::Crouch_Stand_12_End, Stance::Upright, Stance::Running_Jump_3_DropLvl_1_Start, Stance::Running_Jump_3_DropLvl_14_End, Stance::None, 
+                                    592,                          603,                         18,              376,                                    389,                                   0,                       1, 0, 
+    // Jump3_DropLevel_Pos10        Stance::Crouch_Stand_1_Start, Stance::Crouch_Stand_12_End, Stance::Upright, Stance::Running_Jump_3_DropLvl_10_1_Start, Stance::Running_Jump_3_DropLvl_10_14_End, Stance::None, 
+                                    592,                          603,                         18,              390,                                       403,                                      0,                 1, 0, 
+    // Jump2_Pos2                   Stance::Running_Jump_2_2_1_Start, Stance::Running_Jump_2_2_7_End, Stance::Run_Repeat_4, Stance::None, Stance::None, Stance::None, 
+                                    303,                              309,                            13,                   0,            0,            0,                                                              0, 0,
+    // Jump2_Pos6                   Stance::Running_Jump_2_6_1_Start, Stance::Running_Jump_2_6_7_End, Stance::Run_Repeat_4, Stance::None, Stance::None, Stance::None, 
+                                    310,                              316,                            13,                   0,            0,            0,                                                      0, 0,
+    // Jump2_DropLevel_Pos6         Stance::Crouch_Stand_1_Start, Stance::Crouch_Stand_12_End, Stance::Upright, Stance::Running_Jump_2_DropLvl_6_1_Start, Stance::Running_Jump_2_DropLvl_6_14_End, Stance::None, 
+                                    592,                          603,                         18,              324,                                    337,                                   0,                       1, 0,
+    // Jump2_DropLevel_Pos10        Stance::Crouch_Stand_1_Start, Stance::Crouch_Stand_12_End, Stance::Upright, Stance::Running_Jump_2_DropLvl_10_1_Start, Stance::Running_Jump_2_DropLvl_10_14_End, Stance::None, 
+                                    592,                          603,                         18,              338,                                       351,                                      0,                 1, 0,
+    // Jump2_Pos10                  Stance::Running_Jump_2_10_1_Start, Stance::Running_Jump_2_10_7_End, Stance::Run_Repeat_4, Stance::None, Stance::None, Stance::None, 
+                                    317,                               323,                             13,                   0,            0,            0,                                                            0, 0,
+    // Jump1_Pos2                   Stance::Running_Jump_1_2_1_Start, Stance::Running_Jump_1_2_8_End, Stance::Upright, Stance::None, Stance::None, Stance::None, 
+                                    276,                              283,                            18,              0,            0,            0,                                                                   0, 0,
+    // Jump1_Pos6                   Stance::Running_Jump_1_6_1_Start, Stance::Running_Jump_1_6_9_End, Stance::Upright, Stance::None, Stance::None, Stance::None, 
+                                    284,                              292,                            18,              0,            0,            0,                                                                   0, 0,
+    // Jump1_Pos10                  Stance::Running_Jump_1_10_1_Start, Stance::Running_Jump_1_10_10_End, Stance::Upright, Stance::None, Stance::None, Stance::None, 
+                                    293,                               302,                              18,              0,            0,            0,                                                                0, 0,
+    // Jump3_GrabLedge_Pos2         Stance::Running_Jump_3_GL_2_1_Start, Stance::Running_Jump_3_GL_2_16_End, Stance::Jump_Up_A_14_End, Stance::None, Stance::None, Stance::None, 
+                                    480,                                 495,                                32,                       0,            0,            0,                                                   1, 200,
+    // Jump3_GrabLedge_Pos6         Stance::Running_Jump_3_GL_6_1_Start, Stance::Running_Jump_3_GL_6_16_End, Stance::Jump_Up_A_14_End, Stance::None, Stance::None, Stance::None, 
+                                    496,                                 511,                                32,                       0,            0,            0,                                                   1, 200,
+    // Jump3_GrabLedge_Pos10        Stance::Running_Jump_3_GL_10_1_Start, Stance::Running_Jump_3_GL_10_16_End, Stance::Jump_Up_A_14_End, Stance::None, Stance::None, Stance::None, 
+                                    512,                                  527,                                 32,                       0,            0,            0,                                                 1, 200,
+    // Jump2_DropLevel_Pos2         Stance::Crouch_Stand_1_Start, Stance::Crouch_Stand_12_End, Stance::Upright, Stance::Running_Jump_2_DropLvl_2_1_Start, Stance::Running_Jump_2_DropLvl_2_14_End, Stance::None, 
+                                    592,                          603,                         18,              846,                                      859,                                   0,                       1, 0,
+
+}
+
+
+
+uint16_t StandingJumpStances[] = {
+    // None                 Stance::None, Stance::None, Stance::None, Stance::None, Stance::None, Stance::None, 0, 0, 
+                            0,            0,            0,            0,            0,            0,                                                                                                                    0, 0, 
+    // Normal_20            Stance::Standing_Jump_20_1_Start, Stance::Standing_Jump_20_16_End, Stance::Upright, Stance::None, Stance::None, Stance::None, 0, 0,
+                            131,                              146,                             18,              0,            0,            0,                                                                          0, 0, 
+    // Normal_24            Stance::Standing_Jump_24_1_Start, Stance::Standing_Jump_24_16_End, Stance::Upright, Stance::None, Stance::None, Stance::None, 0, 0,
+                            115,                              130,                             18,              0,            0,            0,                                                                          0, 0, 
+    // Normal_28            Stance::Standing_Jump_28_1_Start, Stance::Standing_Jump_28_16_End, Stance::Upright, Stance::None, Stance::None, Stance::None, 0, 0,
+                            99,                               114,                             18,              0,            0,            0,                                                                          0, 0, 
+    // Normal_32            Stance::Standing_Jump_32_1_Start, Stance::Standing_Jump_32_16_End, Stance::Upright, Stance::None, Stance::None, Stance::None, 0, 0,
+                            83,                               98,                              18,              0,            0,            0,                                                                          0, 0, 
+    // Normal_36            Stance::Standing_Jump_36_1_Start, Stance::Standing_Jump_36_16_End, Stance::Upright, Stance::None, Stance::None, Stance::None, 0, 0,
+                            65,                               82,                              18,              0,            0,            0,                                                                          0, 0, 
+    // DropLevel_36         Stance::Crouch_Stand_1_Start, Stance::Crouch_Stand_12_End, Stance::Upright, Stance::Standing_Jump_DL_36_1_Start, Stance::Standing_Jump_DL_36_16_End, Stance::None, 1, 0
+                            592,                          603,                         18,              163,                                 178,                                0,                                     0, 0, 
+    // DropLevel_40         Stance::Crouch_Stand_1_Start, Stance::Crouch_Stand_12_End, Stance::Upright, Stance::Standing_Jump_DL_40_1_Start, Stance::Standing_Jump_DL_40_16_End, Stance::None, 1, 0
+                            592,                          603,                         18,              147,                                 162,                                0,                                     0, 0, 
+    // GrabLedge_28         Stance::Standing_Jump_GL_28_1_Start, Stance::Standing_Jump_GL_28_18_End, Stance::Jump_Up_A_14_End, Stance::None, Stance::None, Stance::None, 0, 200,
+                            233,                                 250,                                32,                       0,            0,            0,            0, 200, 
+    // GrabLedge_32         Stance::Standing_Jump_GL_32_1_Start, Stance::Standing_Jump_GL_32_18_End, Stance::Jump_Up_A_14_End, Stance::None, Stance::None, Stance::None, 0, 200,
+                            215,                                 232,                                32,                       0,            0,            0,            0, 200, 
+    // GrabLedge_36         Stance::Standing_Jump_GL_36_1_Start, Stance::Standing_Jump_GL_36_18_End, Stance::Jump_Up_A_14_End, Stance::None, Stance::None, Stance::None, 0, 200,
+                            197,                                 214,                                32,                       0,            0,            0,            0, 200, 
+    // GrabLedge_40         Stance::Standing_Jump_GL_40_1_Start, Stance::Standing_Jump_GL_40_18_End, Stance::Jump_Up_A_14_End, Stance::None, Stance::None, Stance::None, 0, 200,
+                            179,                                 196,                                32,                       0,            0,            0,            0, 200, 
+}
+
+savesection  // Anything below here will be stored in the save block
+
+uint16_t 0xFFFF // Save state  end marker

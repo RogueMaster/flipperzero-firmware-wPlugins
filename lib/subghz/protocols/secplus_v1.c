@@ -100,7 +100,7 @@ void* subghz_protocol_encoder_secplus_v1_alloc(SubGhzEnvironment* environment) {
     instance->base.protocol = &subghz_protocol_secplus_v1;
     instance->generic.protocol_name = instance->base.protocol->name;
 
-    instance->encoder.repeat = 10;
+    instance->encoder.repeat = 3;
     instance->encoder.size_upload = 128;
     instance->encoder.upload = malloc(instance->encoder.size_upload * sizeof(LevelDuration));
     instance->encoder.is_running = false;
@@ -220,17 +220,38 @@ static bool subghz_protocol_secplus_v1_encode(SubGhzProtocolEncoderSecPlus_v1* i
     uint32_t acc = 0;
 
     //increment the counter
-    rolling += 2;
+    //rolling += 2; - old way
+    // Experemental case - we dont know counter size exactly, so just will be think that it is in range of 0xE6000000 - 0xFFFFFFFF
+
+    // Check for OFEX (overflow experimental) mode
+    if(furi_hal_subghz_get_rolling_counter_mult() != -0x7FFFFFFF) {
+        // standart counter mode. PULL data from subghz_block_generic_global variables
+        if(!subghz_block_generic_global_counter_override_get(&rolling)) {
+            // if counter_override_get return FALSE then counter was not changed and we increase counter by standart mult value
+            if((rolling + furi_hal_subghz_get_rolling_counter_mult()) > 0xFFFFFFFF) {
+                rolling = 0xE6000000;
+            } else {
+                rolling += furi_hal_subghz_get_rolling_counter_mult();
+            }
+        }
+        if(rolling < 0xE6000000) rolling = 0xE6000000;
+    } else {
+        // OFEX (overflow experimental) mode
+        if((rolling + 0x1) > 0xFFFFFFFF) {
+            rolling = 0xE6000000;
+        } else if(rolling >= 0xE6000000 && rolling != 0xFFFFFFFE) {
+            rolling = 0xFFFFFFFE;
+        } else {
+            rolling++;
+        }
+    }
 
     //update data
     instance->generic.data &= 0xFFFFFFFF00000000;
     instance->generic.data |= rolling;
 
-    if(rolling == 0xFFFFFFFF) {
-        rolling = 0xE6000000;
-    }
     if(fixed > 0xCFD41B90) {
-        FURI_LOG_E("TAG", "Encode wrong fixed data");
+        FURI_LOG_E(TAG, "Encode wrong fixed data");
         return false;
     }
 
@@ -279,7 +300,7 @@ SubGhzProtocolStatus
         if(ret != SubGhzProtocolStatusOk) {
             break;
         }
-        //optional parameter parameter
+        // Optional value
         flipper_format_read_uint32(
             flipper_format, "Repeat", (uint32_t*)&instance->encoder.repeat, 1);
 
@@ -325,7 +346,7 @@ LevelDuration subghz_protocol_encoder_secplus_v1_yield(void* context) {
     LevelDuration ret = instance->encoder.upload[instance->encoder.front];
 
     if(++instance->encoder.front == instance->encoder.size_upload) {
-        instance->encoder.repeat--;
+        if(!subghz_block_generic_global.endless_tx) instance->encoder.repeat--;
         instance->encoder.front = 0;
     }
 
@@ -562,6 +583,16 @@ void subghz_protocol_decoder_secplus_v1_get_string(void* context, FuriString* ou
     uint8_t id1 = (fixed / 9) % 3;
     uint16_t pin = 0;
 
+    // push protocol data to global variable
+    subghz_block_generic_global.cnt_is_available = true;
+    subghz_block_generic_global.cnt_length_bit = 32;
+    subghz_block_generic_global.current_cnt = instance->generic.cnt;
+
+    subghz_block_generic_global.btn_is_available = false;
+    subghz_block_generic_global.current_btn = instance->generic.btn;
+    subghz_block_generic_global.btn_length_bit = 2;
+    //
+
     furi_string_cat_printf(
         output,
         "%s %db\r\n"
@@ -598,10 +629,11 @@ void subghz_protocol_decoder_secplus_v1_get_string(void* context, FuriString* ou
         } else {
             furi_string_cat_printf(output, "\r\n");
         }
+
         furi_string_cat_printf(
             output,
             "Sn:0x%08lX\r\n"
-            "Cnt:0x%03lX "
+            "Cnt:%08lX "
             "SwID:0x%X\r\n",
             instance->generic.serial,
             instance->generic.cnt,
@@ -620,7 +652,7 @@ void subghz_protocol_decoder_secplus_v1_get_string(void* context, FuriString* ou
         furi_string_cat_printf(
             output,
             "Sn:0x%08lX\r\n"
-            "Cnt:0x%03lX "
+            "Cnt:%08lX "
             "SwID:0x%X\r\n",
             instance->generic.serial,
             instance->generic.cnt,

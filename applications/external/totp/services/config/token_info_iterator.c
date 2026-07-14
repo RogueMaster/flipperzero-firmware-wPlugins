@@ -178,7 +178,13 @@ static bool
             break;
         }
 
-        uint32_t tmp_uint32 = token_info->algo;
+        uint32_t tmp_uint32 = token_info->token_plain_length;
+        if(!flipper_format_write_uint32(
+               temp_ff, TOTP_CONFIG_KEY_TOKEN_SECRET_LENGTH, &tmp_uint32, 1)) {
+            break;
+        }
+
+        tmp_uint32 = token_info->algo;
         if(!flipper_format_write_uint32(temp_ff, TOTP_CONFIG_KEY_TOKEN_ALGO, &tmp_uint32, 1)) {
             break;
         }
@@ -507,6 +513,7 @@ bool totp_token_info_iterator_go_to(TokenInfoIteratorContext* context, size_t to
         tokenInfo->token_length = 0;
     }
 
+    uint32_t temp_data32;
     if(secret_bytes_count == 1) { // Plain secret key
         FuriString* temp_str = furi_string_alloc();
 
@@ -526,6 +533,7 @@ bool totp_token_info_iterator_go_to(TokenInfoIteratorContext* context, size_t to
             } else {
                 tokenInfo->token = NULL;
                 tokenInfo->token_length = 0;
+                tokenInfo->token_plain_length = 0;
                 FURI_LOG_W(
                     LOGGING_TAG,
                     "Token \"%s\" has invalid secret",
@@ -534,6 +542,7 @@ bool totp_token_info_iterator_go_to(TokenInfoIteratorContext* context, size_t to
         } else {
             tokenInfo->token = NULL;
             tokenInfo->token_length = 0;
+            tokenInfo->token_plain_length = 0;
         }
 
         furi_string_free(temp_str);
@@ -554,9 +563,15 @@ bool totp_token_info_iterator_go_to(TokenInfoIteratorContext* context, size_t to
         } else {
             tokenInfo->token = NULL;
         }
+
+        if(flipper_format_read_uint32(
+               context->config_file, TOTP_CONFIG_KEY_TOKEN_SECRET_LENGTH, &temp_data32, 1)) {
+            tokenInfo->token_plain_length = temp_data32;
+        } else {
+            tokenInfo->token_plain_length = tokenInfo->token_length;
+        }
     }
 
-    uint32_t temp_data32;
     if(!flipper_format_read_uint32(
            context->config_file, TOTP_CONFIG_KEY_TOKEN_ALGO, &temp_data32, 1) ||
        !token_info_set_algo_from_int(tokenInfo, temp_data32)) {

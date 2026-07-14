@@ -1,0 +1,13 @@
+App(
+    appid="quadratic_solver",
+    name="Quadratic Solver",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="main_quadratic_solver_app",
+    stack_size=1 * 1024,
+    fap_icon="quadratic_solver.png",
+    fap_category="Tools",
+    fap_author="paul-sopin",
+    fap_weburl="https://github.com/paul-sopin/flipper-quadratic-solver",
+    fap_version="0.1",
+    fap_description="A simple quadratic equation solver app",
+)

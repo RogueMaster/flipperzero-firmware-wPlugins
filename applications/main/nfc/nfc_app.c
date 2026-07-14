@@ -1,8 +1,9 @@
 #include "nfc_app_i.h"
-#include "nfc_icons.h"
+#include "api/nfc_app_api_interface.h"
 #include "helpers/protocol_support/nfc_protocol_support.h"
 
 #include <dolphin/dolphin.h>
+#include <loader/firmware_api/firmware_api.h>
 #include <applications/main/archive/helpers/archive_helpers_ext.h>
 
 bool nfc_custom_event_callback(void* context, uint32_t event) {
@@ -43,7 +44,6 @@ NfcApp* nfc_app_alloc(void) {
 
     instance->view_dispatcher = view_dispatcher_alloc();
     instance->scene_manager = scene_manager_alloc(&nfc_scene_handlers, instance);
-    view_dispatcher_enable_queue(instance->view_dispatcher);
     view_dispatcher_set_event_callback_context(instance->view_dispatcher, instance);
     view_dispatcher_set_custom_event_callback(
         instance->view_dispatcher, nfc_custom_event_callback);
@@ -52,12 +52,16 @@ NfcApp* nfc_app_alloc(void) {
 
     instance->nfc = nfc_alloc();
 
+    instance->api_resolver = composite_api_resolver_alloc();
+    composite_api_resolver_add(instance->api_resolver, firmware_api_interface);
+    composite_api_resolver_add(instance->api_resolver, nfc_application_api_interface);
+
     instance->detected_protocols = nfc_detected_protocols_alloc();
     instance->felica_auth = felica_auth_alloc();
     instance->mf_ul_auth = mf_ultralight_auth_alloc();
     instance->slix_unlock = slix_unlock_alloc();
     instance->mfc_key_cache = mf_classic_key_cache_alloc();
-    instance->nfc_supported_cards = nfc_supported_cards_alloc();
+    instance->nfc_supported_cards = nfc_supported_cards_alloc(instance->api_resolver);
 
     // Nfc device
     instance->nfc_device = nfc_device_alloc();
@@ -95,10 +99,24 @@ NfcApp* nfc_app_alloc(void) {
     view_dispatcher_add_view(
         instance->view_dispatcher, NfcViewLoading, loading_get_view(instance->loading));
 
+    // Loading with label
+    instance->loading_label = loading_label_alloc();
+    view_dispatcher_add_view(
+        instance->view_dispatcher,
+        NfcViewLoadingLabel,
+        loading_label_get_view(instance->loading_label));
+
     // Text Input
     instance->text_input = text_input_alloc();
     view_dispatcher_add_view(
         instance->view_dispatcher, NfcViewTextInput, text_input_get_view(instance->text_input));
+
+    // NDEF Text Input (extended keyboard with punctuation)
+    instance->ndef_text_input = ndef_text_input_alloc();
+    view_dispatcher_add_view(
+        instance->view_dispatcher,
+        NfcViewNdefTextInput,
+        ndef_text_input_get_view(instance->ndef_text_input));
 
     // Byte Input
     instance->byte_input = byte_input_alloc();
@@ -132,6 +150,9 @@ NfcApp* nfc_app_alloc(void) {
     instance->file_path = furi_string_alloc_set(NFC_APP_FOLDER);
     instance->file_name = furi_string_alloc();
 
+    instance->ndef_write.primary = furi_string_alloc();
+    instance->ndef_write.secondary = furi_string_alloc();
+
     return instance;
 }
 
@@ -151,6 +172,10 @@ void nfc_app_free(NfcApp* instance) {
     slix_unlock_free(instance->slix_unlock);
     mf_classic_key_cache_free(instance->mfc_key_cache);
     nfc_supported_cards_free(instance->nfc_supported_cards);
+    composite_api_resolver_free(instance->api_resolver);
+    if(instance->protocol_support) {
+        nfc_protocol_support_free(instance);
+    }
 
     // Nfc device
     nfc_device_free(instance->nfc_device);
@@ -171,9 +196,17 @@ void nfc_app_free(NfcApp* instance) {
     view_dispatcher_remove_view(instance->view_dispatcher, NfcViewLoading);
     loading_free(instance->loading);
 
+    // Loading with label
+    view_dispatcher_remove_view(instance->view_dispatcher, NfcViewLoadingLabel);
+    loading_label_free(instance->loading_label);
+
     // TextInput
     view_dispatcher_remove_view(instance->view_dispatcher, NfcViewTextInput);
     text_input_free(instance->text_input);
+
+    // NDEF Text Input
+    view_dispatcher_remove_view(instance->view_dispatcher, NfcViewNdefTextInput);
+    ndef_text_input_free(instance->ndef_text_input);
 
     // ByteInput
     view_dispatcher_remove_view(instance->view_dispatcher, NfcViewByteInput);
@@ -214,6 +247,9 @@ void nfc_app_free(NfcApp* instance) {
     iso14443_3a_free(instance->iso14443_3a_edit_data);
     furi_string_free(instance->file_path);
     furi_string_free(instance->file_name);
+
+    furi_string_free(instance->ndef_write.primary);
+    furi_string_free(instance->ndef_write.secondary);
 
     free(instance);
 }
@@ -418,23 +454,38 @@ bool nfc_load_from_file_select(NfcApp* instance) {
         if(!dialog_file_browser_show(
                instance->dialogs, instance->file_path, instance->file_path, &browser_options))
             break;
+
+        nfc_show_loading_popup(instance, true);
+        nfc_supported_cards_load_cache(instance->nfc_supported_cards);
+        nfc_show_loading_popup(instance, false);
+
         success = nfc_load_file(instance, instance->file_path, true);
     } while(!success);
 
     return success;
 }
 
-void nfc_show_loading_popup(void* context, bool show) {
-    NfcApp* nfc = context;
-
+// Show a loading view (raising timer priority so its animation plays) or restore priority on hide.
+static void nfc_show_loading_view(NfcApp* nfc, NfcView view, bool show) {
     if(show) {
         // Raise timer priority so that animations can play
         furi_timer_set_thread_priority(FuriTimerThreadPriorityElevated);
-        view_dispatcher_switch_to_view(nfc->view_dispatcher, NfcViewLoading);
+        view_dispatcher_switch_to_view(nfc->view_dispatcher, view);
     } else {
         // Restore default timer priority
         furi_timer_set_thread_priority(FuriTimerThreadPriorityNormal);
     }
+}
+
+void nfc_show_loading_popup(void* context, bool show) {
+    NfcApp* nfc = context;
+    nfc_show_loading_view(nfc, NfcViewLoading, show);
+}
+
+void nfc_show_loading_label_popup(void* context, const char* text, bool show) {
+    NfcApp* nfc = context;
+    if(show) loading_label_set_text(nfc->loading_label, text);
+    nfc_show_loading_view(nfc, NfcViewLoadingLabel, show);
 }
 
 void nfc_append_filename_string_when_present(NfcApp* instance, FuriString* string) {
@@ -467,7 +518,7 @@ static bool nfc_is_hal_ready(void) {
 static void nfc_show_initial_scene_for_device(NfcApp* nfc) {
     NfcProtocol prot = nfc_device_get_protocol(nfc->nfc_device);
     uint32_t scene = nfc_protocol_support_has_feature(
-                         prot, NfcProtocolFeatureEmulateFull | NfcProtocolFeatureEmulateUid) ?
+                         prot, nfc, NfcProtocolFeatureEmulateFull | NfcProtocolFeatureEmulateUid) ?
                          NfcSceneEmulate :
                          NfcSceneSavedMenu;
     // Load plugins (parsers) in case if we are in the saved menu
@@ -477,6 +528,26 @@ static void nfc_show_initial_scene_for_device(NfcApp* nfc) {
         nfc_show_loading_popup(nfc, false);
     }
     scene_manager_next_scene(nfc->scene_manager, scene);
+}
+
+void nfc_app_run_external(NfcApp* nfc, const char* app_path) {
+    furi_assert(nfc);
+    furi_assert(app_path);
+
+    Loader* loader = furi_record_open(RECORD_LOADER);
+
+    loader_enqueue_launch(loader, app_path, NULL, LoaderDeferredLaunchFlagGui);
+
+    FuriString* self_path = furi_string_alloc();
+    furi_check(loader_get_application_launch_path(loader, self_path));
+
+    loader_enqueue_launch(
+        loader, furi_string_get_cstr(self_path), NULL, LoaderDeferredLaunchFlagGui);
+    furi_string_free(self_path);
+
+    furi_record_close(RECORD_LOADER);
+
+    view_dispatcher_stop(nfc->view_dispatcher);
 }
 
 int32_t nfc_app(void* p) {
@@ -498,7 +569,7 @@ int32_t nfc_app(void* p) {
                 nfc->view_dispatcher, nfc->gui, ViewDispatcherTypeFullscreen);
 
             furi_string_set(nfc->file_path, args);
-            if(nfc_load_file(nfc, nfc->file_path, false)) {
+            if(nfc_load_file(nfc, nfc->file_path, true)) {
                 nfc->fav_timeout = is_favorite;
                 nfc_show_initial_scene_for_device(nfc);
             } else {
@@ -508,11 +579,6 @@ int32_t nfc_app(void* p) {
     } else {
         view_dispatcher_attach_to_gui(
             nfc->view_dispatcher, nfc->gui, ViewDispatcherTypeFullscreen);
-        // Load plugins (parsers) one time in case if we running app normally
-        nfc_show_loading_popup(nfc, true);
-        nfc_supported_cards_load_cache(nfc->nfc_supported_cards);
-        nfc_show_loading_popup(nfc, false);
-        // Switch to the initial scene
         scene_manager_next_scene(nfc->scene_manager, NfcSceneStart);
     }
 

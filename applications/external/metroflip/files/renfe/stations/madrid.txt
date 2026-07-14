@@ -1,0 +1,353 @@
+# Madrid Region Stations - Metro, Cercanías, Metro Ligero
+# Format: station_code,station_name
+
+# Estaciones reales más comunes encontradas en dumps (PRIORITARIAS)
+0x0000,Unknown Station
+0x7000,Madrid-Atocha
+0x7001,Madrid-Chamartín
+0x7002,Madrid-Príncipe Pío
+0x7100,Sol
+0x7101,Gran Vía
+0x7102,Callao
+0x7200,Nuevos Ministerios
+0x7201,Santiago Bernabéu
+0x7300,Atocha Renfe
+0x7301,Recoletos
+0x7400,Méndez Álvaro
+0x7500,Cuatro Caminos
+0x7600,Moncloa
+
+# Metro de Madrid - Línea 1 (Azul claro)
+0x001,Pinar de Chamartín
+0x002,Bambú
+0x003,Chamartín
+0x004,Plaza de Castilla
+0x005,Valdeacederas
+0x006,Tetuán
+0x007,Estrecho
+0x008,Alvarado
+0x009,Cuatro Caminos
+0x00A,Ríos Rosas
+0x00B,Iglesia
+0x00C,Bilbao
+0x00D,Tribunal
+0x00E,Gran Vía
+0x00F,Sol
+0x010,Tirso de Molina
+0x011,Antón Martín
+0x012,Atocha-RENFE
+0x013,Menéndez Pelayo
+0x014,Pacífico
+0x015,Puente de Vallecas
+0x016,Nueva Numancia
+0x017,Portazgo
+0x018,Buenos Aires
+0x019,Alto del Arenal
+0x01A,Miguel Hernández
+0x01B,Sierra de Guadalupe
+0x01C,Villa de Vallecas
+0x01D,Congosto
+0x01E,La Gavia
+
+# Metro de Madrid - Línea 2 (Roja)
+0x020,Cuatro Caminos
+0x021,Canal
+0x022,Quevedo
+0x023,San Bernardo
+0x024,Noviciado
+0x025,Santo Domingo
+0x026,Ópera
+0x027,La Latina
+0x028,Embajadores
+0x029,Palos de la Frontera
+0x02A,Aluche
+0x02B,Eugenia de Montijo
+0x02C,Carabanchel
+0x02D,Vista Alegre
+0x02E,Puerta del Ángel
+0x02F,Las Rosas
+
+# Metro de Madrid - Línea 3 (Amarilla)
+0x030,Moncloa
+0x031,Argüelles
+0x032,Ventura Rodríguez
+0x033,Callao
+0x034,Sol
+0x035,Embajadores
+0x036,Lavapiés
+0x037,Delicias
+0x038,Palos de la Frontera
+0x039,Menéndez Pelayo
+0x03A,Pacífico
+0x03B,Puente de Vallecas
+0x03C,Nueva Numancia
+0x03D,Villa de Vallecas
+0x03E,San Fermín
+0x03F,Ciudad de los Ángeles
+0x040,Villaverde Alto
+
+# Metro de Madrid - Línea 4 (Marrón)
+0x041,Argüelles
+0x042,San Bernardo
+0x043,Bilbao
+0x044,Alonso Martínez
+0x045,Colón
+0x046,Serrano
+0x047,Velázquez
+0x048,Goya
+0x049,Lista
+0x04A,Diego de León
+0x04B,Avenida de América
+0x04C,Prosperidad
+0x04D,Alfonso XIII
+0x04E,Avenida de la Paz
+0x04F,Arturo Soria
+0x050,Esperanza
+0x051,Canillas
+0x052,Mar de Cristal
+0x053,San Lorenzo
+0x054,Parque de Santa María
+0x055,Hortaleza
+0x056,Manoteras
+0x057,Pinar de Chamartín
+
+# Metro de Madrid - Línea 5 (Verde)
+0x058,Alameda de Osuna
+0x059,El Capricho
+0x05A,Canillejas
+0x05B,Torre Arias
+0x05C,Suanzes
+0x05D,Ciudad Lineal
+0x05E,Pueblo Nuevo
+0x05F,Quintana
+0x060,El Carmen
+0x061,Ventas
+0x062,Manuel Becerra
+0x063,O'Donnell
+0x064,Retiro
+0x065,Banco de España
+0x066,Gran Vía
+0x067,Callao
+0x068,Ópera
+0x069,La Latina
+0x06A,Puerta de Toledo
+0x06B,Acacias
+0x06C,Pirámides
+0x06D,Marqués de Vadillo
+0x06E,Urgel
+0x06F,Oporto
+0x070,Vista Alegre
+0x071,Carabanchel
+0x072,Eugenia de Montijo
+0x073,Aluche
+0x074,Empalme
+0x075,Campamento
+0x076,Cuatro Vientos
+
+# Metro de Madrid - Línea 6 (Gris circular)
+0x077,Cuatro Caminos
+0x078,Nuevos Ministerios
+0x079,República Argentina
+0x07A,Diego de León
+0x07B,Manuel Becerra
+0x07C,O'Donnell
+0x07D,Pacífico
+0x07E,Menéndez Pelayo
+0x07F,Delicias
+0x080,Arganzuela-Planetario
+0x081,Legazpi
+0x082,Usera
+0x083,Opañel
+0x084,Plaza Elíptica
+0x085,Porta Coeli
+0x086,Orcasitas
+0x087,Orcasur
+0x088,San Fermín-Orcasur
+0x089,Brisas
+0x08A,Montecarmelo
+0x08B,Pitis
+0x08C,Reyes Católicos
+0x08D,Vicente Aleixandre
+0x08E,Francos Rodríguez
+0x08F,Guzmán el Bueno
+0x090,Moncloa
+0x091,Argüelles
+0x092,Príncipe Pío
+0x093,Puerta del Ángel
+0x094,Alto de Extremadura
+0x095,Lucero
+0x096,Aluche
+
+# Metro de Madrid - Línea 7 (Naranja)
+0x097,Hospital del Henares
+0x098,Rivas Vaciamadrid
+0x099,Rivas Urbanizaciones
+0x09A,La Poveda
+0x09B,Arganda del Rey
+0x09C,La Rambla
+0x09D,Coslada Central
+0x09E,Barrio del Puerto
+0x09F,Estadio Metropolitano
+0x0A0,Las Musas
+0x0A1,San Blas
+0x0A2,Simancas
+0x0A3,García Noblejas
+0x0A4,Ascao
+0x0A5,Pueblo Nuevo
+0x0A6,Quintana
+0x0A7,Avenida de América
+0x0A8,Gregorio Marañón
+0x0A9,Islas Filipinas
+0x0AA,Canal
+0x0AB,Pío XII
+
+# Metro de Madrid - Línea 8 (Rosa)
+0x0AC,Nuevos Ministerios
+0x0AD,Colombia
+0x0AE,Concha Espina
+0x0AF,Cruz del Rayo
+0x0B0,Prosperidad
+0x0B1,Mar de Cristal
+0x0B2,San Lorenzo
+0x0B3,Manoteras
+0x0B4,Pinar del Rey
+0x0B5,Sanchinarro
+0x0B6,Las Tablas
+0x0B7,Montecarmelo
+0x0B8,Aeropuerto T1-T2-T3
+0x0B9,Aeropuerto T4
+
+# Metro de Madrid - Línea 9 (Púrpura)
+0x0BA,Paco de Lucía
+0x0BB,Mirasierra
+0x0BC,Herrera Oria
+0x0BD,Barrio del Pilar
+0x0BE,Ventilla
+0x0BF,Plaza de Castilla
+0x0C0,Duque de Pastrana
+0x0C1,Pío XII
+0x0C2,Colombia
+0x0C3,Concha Espina
+0x0C4,Cruz del Rayo
+0x0C5,Avenida de América
+0x0C6,Núñez de Balboa
+0x0C7,Príncipe de Vergara
+0x0C8,Goya
+0x0C9,Sainz de Baranda
+0x0CA,Estrella
+0x0CB,Vinateros
+0x0CC,Artilleros
+0x0CD,Pavones
+0x0CE,Valdebernardo
+0x0CF,Vicálvaro
+0x0D0,San Cipriano
+0x0D1,Puerta de Arganda
+0x0D2,Rivas Vaciamadrid
+0x0D3,Arganda del Rey
+
+# Metro de Madrid - Línea 10 (Azul marino)
+0x0D4,Hospital Infanta Sofía
+0x0D5,Tres Olivos
+0x0D6,Fuencarral
+0x0D7,Begoña
+0x0D8,Chamartín
+0x0D9,Plaza de Castilla
+0x0DA,Cuzco
+0x0DB,Santiago Bernabéu
+0x0DC,Nuevos Ministerios
+0x0DD,Gregorio Marañón
+0x0DE,Alonso Martínez
+0x0DF,Chueca
+0x0E0,Gran Vía
+0x0E1,Tribunal
+0x0E2,Noviciado
+0x0E3,San Bernardo
+0x0E4,Plaza de España
+0x0E5,Príncipe Pío
+0x0E6,Lago
+0x0E7,Batán
+0x0E8,Casa de Campo
+0x0E9,Cuatro Vientos
+0x0EA,Joaquín Vilumbrales
+0x0EB,Puerta del Sur
+
+# Metro de Madrid - Línea 11 (Verde oscuro)
+0x0EC,Plaza Elíptica
+0x0ED,Abrantes
+0x0EE,Pan Bendito
+0x0EF,Carabanchel Alto
+0x0F0,Expósito
+0x0F1,San Francisco
+0x0F2,Peseta
+0x0F3,La Fortuna
+
+# Metro de Madrid - Línea 12 (MetroSur)
+0x100,Móstoles Central
+0x101,Pradillo
+0x102,Hospital de Móstoles
+0x103,Manuela Malasaña
+0x104,Loranca
+0x105,Hospital Severo Ochoa
+0x106,Parque Lisboa
+0x107,Parque de los Estados
+0x108,Universidad Rey Juan Carlos
+0x109,Fuenlabrada Central
+0x10A,Parque Europa
+0x10B,Humanes
+0x10C,Getafe Central
+0x10D,Juan de la Cierva
+0x10E,Conservatorio
+0x10F,Alonso de Mendoza
+0x110,Puerta del Sur
+
+# Cercanías RENFE Madrid - Principales estaciones
+0x200,Atocha
+0x201,Chamartín
+0x202,Príncipe Pío
+0x203,Nuevos Ministerios
+0x204,Recoletos
+0x205,Sol
+0x206,Delicias
+0x207,Méndez Álvaro
+
+# Cercanías - Líneas principales
+0x210,Fuencarral
+0x211,El Goloso
+0x212,Tres Cantos
+0x213,Colmenar Viejo
+0x220,Universidad Pontificia Comillas
+0x221,La Garena
+0x222,Alcalá de Henares Universidad
+0x223,Alcalá de Henares
+0x224,Meco
+0x225,Azuqueca de Henares
+0x226,Guadalajara
+0x230,Villaverde Alto
+0x231,San Cristóbal
+0x232,Villaverde Bajo
+0x233,El Casar
+0x234,Humanes
+0x235,Fuenlabrada
+0x236,Getafe Industrial
+0x237,Getafe Centro
+0x238,Las Margaritas
+0x239,Leganés
+0x23A,Zarzaquemada
+0x23B,Parla
+0x23C,Pinto
+0x23D,Valdemoro
+0x23E,Ciempozuelos
+0x23F,Seseña
+0x240,Aranjuez
+
+# Metro Ligero de Madrid
+0x300,Colonia Jardín
+0x301,Ciudad Universitaria
+0x302,Somosaguas Centro
+0x303,Somosaguas Sur
+0x304,Casa de Campo
+0x305,Estación de Aravaca
+0x310,Boadilla Centro
+0x311,Inf. Elena
+0x312,Casa del Reloj
+0x313,Puerta de Boadilla

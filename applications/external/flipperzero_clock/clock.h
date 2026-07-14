@@ -43,6 +43,7 @@ typedef struct {
     FaceType face_type;
     uint8_t ofs_x;
     ClockFace face;
+    bool show_battery;
 } ClockConfig;
 
 void calc_clock_face(ClockConfig* cfg);

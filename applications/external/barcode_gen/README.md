@@ -34,8 +34,8 @@ Note: Barcode save locations have been moved from `/barcodes` to `/apps_data/bar
 ## Building
 1) Clone the [flipperzero-firmware](https://github.com/flipperdevices/flipperzero-firmware) repository or a firmware of your choice
 2) Clone this repository and put it in the `applications_user` folder
-3) Build this app by using the command `./fbt fap_barcode_App`
-4) Copy the `.fap` from `build\f7-firmware-D\.extapps\Barcode_App.fap` to `apps\Tools` using the qFlipper app
+3) Build this app by using the command `./fbt fap_barcode_app`
+4) Copy the `.fap` from `build\f7-firmware-D\.extapps\Barcode_app.fap` to `apps\Tools` using the qFlipper app
 
 ## Usage
 
@@ -79,6 +79,7 @@ For example, if you wanted to represent `1234` as a barcode you will need to ent
 - [Kingal1337](https://github.com/Kingal1337) - Developer
 - [Z0wl](https://github.com/Z0wl) - Added Code128-C Support
 - [@teeebor](https://github.com/teeebor) - Menu Code Snippet
+- [thevan4](https://github.com/thevan4) - Added custom keyboard
 
 
 [1] - supports Set B (only the characters from 0-94). Also supports Set C

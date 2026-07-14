@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 3,
+  "title": "Wolfenduino 3D",
+  "description": "Wolfenduino 3D is a first person shooter demake of the popular id game Wolfenstein 3D",
+  "author": "James Howard",
+  "version": "1.0",
+  "date": "2023-11-29",
+  "genre": "Action",
+  "publisher": "",
+  "idea": "",
+  "code": "",
+  "art": "",
+  "sound": "",
+  "url": "https://github.com/jhhoward/WolfenduinoFX",
+  "sourceUrl": "https://github.com/jhhoward/WolfenduinoFX",
+  "email": "",
+  "companion": "",
+  "banner": "banner.png",
+  "screenshots": [
+    {
+      "title": "",
+      "filename": "screen1.png"
+    },
+    {
+      "title": "",
+      "filename": "screen2.png"
+    }
+  ],
+  "binaries": [
+    {
+      "title": "Wolfenduino 3D",
+      "filename": "Wolfenduino.hex",
+	  "flashdata": "Wolfenduino.bin",
+      "device": "ArduboyFX"
+    }
+  ],
+  "buttons": [
+    {
+      "control": "",
+      "action": ""
+    }
+  ]
+}

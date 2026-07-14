@@ -21,10 +21,10 @@
 #include "stm32_port.h"
 
 static UART_HandleTypeDef *uart;
-static GPIO_TypeDef* gpio_port_io0, *gpio_port_rst;
+static GPIO_TypeDef *gpio_port_io0, *gpio_port_rst;
 static uint16_t gpio_num_io0, gpio_num_rst;
 
-#ifdef SERIAL_FLASHER_DEBUG_TRACE
+#if SERIAL_FLASHER_DEBUG_TRACE
 static void transfer_debug_print(const uint8_t *data, uint16_t size, bool write)
 {
     static bool write_prev = false;
@@ -47,7 +47,7 @@ esp_loader_error_t loader_port_write(const uint8_t *data, uint16_t size, uint32_
     HAL_StatusTypeDef err = HAL_UART_Transmit(uart, (uint8_t *)data, size, timeout);
 
     if (err == HAL_OK) {
-#ifdef SERIAL_FLASHER_DEBUG_TRACE
+#if SERIAL_FLASHER_DEBUG_TRACE
         transfer_debug_print(data, size, true);
 #endif
         return ESP_LOADER_SUCCESS;
@@ -64,7 +64,7 @@ esp_loader_error_t loader_port_read(uint8_t *data, uint16_t size, uint32_t timeo
     HAL_StatusTypeDef err = HAL_UART_Receive(uart, data, size, timeout);
 
     if (err == HAL_OK) {
-#ifdef SERIAL_FLASHER_DEBUG_TRACE
+#if SERIAL_FLASHER_DEBUG_TRACE
         transfer_debug_print(data, size, false);
 #endif
         return ESP_LOADER_SUCCESS;
@@ -89,18 +89,18 @@ void loader_port_stm32_init(loader_stm32_config_t *config)
 // assert reset pin for 100 milliseconds.
 void loader_port_enter_bootloader(void)
 {
-    HAL_GPIO_WritePin(gpio_port_io0, gpio_num_io0, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(gpio_port_io0, gpio_num_io0, SERIAL_FLASHER_BOOT_INVERT ? GPIO_PIN_SET : GPIO_PIN_RESET);
     loader_port_reset_target();
     HAL_Delay(SERIAL_FLASHER_BOOT_HOLD_TIME_MS);
-    HAL_GPIO_WritePin(gpio_port_io0, gpio_num_io0, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(gpio_port_io0, gpio_num_io0, SERIAL_FLASHER_BOOT_INVERT ? GPIO_PIN_RESET : GPIO_PIN_SET);
 }
 
 
 void loader_port_reset_target(void)
 {
-    HAL_GPIO_WritePin(gpio_port_rst, gpio_num_rst, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(gpio_port_rst, gpio_num_rst, SERIAL_FLASHER_RESET_INVERT ? GPIO_PIN_SET : GPIO_PIN_RESET);
     HAL_Delay(SERIAL_FLASHER_RESET_HOLD_TIME_MS);
-    HAL_GPIO_WritePin(gpio_port_rst, gpio_num_rst, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(gpio_port_rst, gpio_num_rst, SERIAL_FLASHER_RESET_INVERT ? GPIO_PIN_RESET : GPIO_PIN_SET);
 }
 
 
@@ -125,14 +125,14 @@ uint32_t loader_port_remaining_time(void)
 
 void loader_port_debug_print(const char *str)
 {
-    printf("DEBUG: %s", str);
+    printf("DEBUG: %s\n", str);
 }
 
 esp_loader_error_t loader_port_change_transmission_rate(uint32_t baudrate)
 {
     uart->Init.BaudRate = baudrate;
 
-    if( HAL_UART_Init(uart) != HAL_OK ) {
+    if ( HAL_UART_Init(uart) != HAL_OK ) {
         return ESP_LOADER_ERROR_FAIL;
     }
 

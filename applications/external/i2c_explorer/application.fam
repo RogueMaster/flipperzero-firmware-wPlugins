@@ -1,0 +1,14 @@
+App(
+    appid="i2c_explorer",
+    name="I2C Explorer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="i2c_explorer_app",
+    stack_size=2 * 1024,
+    fap_icon="assets/i2c_explorer.png",
+    fap_icon_assets="assets",
+    fap_category="GPIO",
+    fap_author="4mb3rz",
+    fap_weburl="https://github.com/4mb3rz/Flipper-I2C-Explorer",
+    fap_version="0.9",
+    fap_description="This is a simple tool for interactive exploration of an I2C bus topology and modification of device register states.",
+)

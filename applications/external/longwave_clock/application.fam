@@ -1,0 +1,14 @@
+App(
+    appid="longwave_clock",
+    name="Longwave Clock",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="longwave_clock_app",
+    stack_size=2 * 1024,
+    fap_icon="lcw.png",
+    fap_icon_assets="images",
+    fap_category="GPIO",
+    fap_author="m7i-org",
+    fap_weburl="https://github.com/m7i-org/flipper_longwave_clock",
+    fap_version="0.1",
+    fap_description="Decode or demonstrate long wave time signals",
+)

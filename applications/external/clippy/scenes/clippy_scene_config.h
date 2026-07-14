@@ -1,0 +1,7 @@
+ADD_SCENE(clippy, copy_paste_sel, CopyPasteSel)
+ADD_SCENE(clippy, paste_item_sel, PasteItemSel)
+ADD_SCENE(clippy, usb_locked, UsbLocked)
+ADD_SCENE(clippy, mass_storage_work, MassStorageWork)
+ADD_SCENE(clippy, config, Config)
+ADD_SCENE(clippy, config_layout, ConfigLayout)
+ADD_SCENE(clippy, bad_usb_work, BadUsbWork)

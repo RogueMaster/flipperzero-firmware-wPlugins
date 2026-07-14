@@ -1,0 +1,18 @@
+NAME Countdown Timer
+DESCRIPTION Demo of variable arithmetic and WHILE loops
+CATEGORY recon
+PLATFORMS WIN,MAC,LINUX
+OPTION COUNT 5 "Countdown from"
+PLATFORM ALL
+DELAY 500
+OPEN_TERMINAL
+VAR $N = {{COUNT}}
+PRINT Counting down from $N
+WHILE $N != 0
+  STRINGLN echo Countdown: $N
+  DELAY 1000
+  VAR $N = $N - 1
+END_WHILE
+STRINGLN echo Liftoff!
+LED_COLOR GREEN
+PRINT Done!

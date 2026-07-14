@@ -1,0 +1,14 @@
+App(
+    appid="gemini_ia",
+    name="Gemini IA",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="gemini_app",
+    stack_size=2 * 1024,
+    fap_icon="gemini.png",
+    #  fap_file_assets="precompile_binaries",
+    fap_category="GPIO/ESP32",
+    fap_author="d4rks1d33 & jamisonderek",
+    fap_weburl="https://github.com/d4rks1d33/Gemini-Flipper",
+    fap_version="1.1",
+    fap_description="This is an app to interact with Google Gemini IA using the ESP32.",
+)

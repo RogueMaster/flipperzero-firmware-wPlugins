@@ -31,5 +31,6 @@ extern const SceneManagerHandlers uart_terminal_scene_handlers;
 #define UART_PINS_ITEM_IDX (0)
 #define BAUDRATE_ITEM_IDX  (1)
 #define HEX_MODE_ITEM_IDX  (2)
+#define CR_MODE_ITEM_IDX   (3)
 
 #define DEFAULT_BAUDRATE_OPT_IDX (18)

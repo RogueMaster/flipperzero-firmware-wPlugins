@@ -1,0 +1,17 @@
+sourcecode:
+  name: Ford Radio Codes
+  id: fordradiocode
+  category: Tools
+  version: 0.1
+  type: git
+  location:
+    origin: https://github.com/DavidB445/fz_fordradiocodes.git
+    commit_sha: c3e3aa7d8282515d5ddd7dc3cd738e68462a0e5e
+short_description: Ford Radio 'M' & 'V' Unlock Code Generator!
+description: |
+ Instantly generate unlock codes for for 'M' and 'V' series radios directly on your Flipper Zero!
+ Simply enter the radio's serial number using the UP and DOWN buttons and the 4-digit unlock code will be shown.
+changelog: "@changelog.md"
+author: '@DavidB445'
+screenshots:
+  - screenshots/mainscreen.png

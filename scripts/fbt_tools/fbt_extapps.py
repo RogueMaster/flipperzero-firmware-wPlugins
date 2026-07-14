@@ -57,6 +57,7 @@ class AppBuilder:
             FAP_WORK_DIR=self.app_work_dir,
         )
         self.app_env.Append(
+            CCFLAGS=self.app.cflags,
             CPPDEFINES=[
                 ("FAP_VERSION", f'\\"{".".join(map(str, self.app.fap_version))}\\"'),
                 *self.app.cdefines,
@@ -89,7 +90,8 @@ class AppBuilder:
         fap_icons = self.app_env.CompileIcons(
             self.app_work_dir,
             self.app._appdir.Dir(self.app.fap_icon_assets),
-            icon_bundle_name=f"{self.app.fap_icon_assets_symbol or self.app.appid }_icons",
+            icon_bundle_name=f"{self.app.fap_icon_assets_symbol or self.app.appid}_icons",
+            add_include=True,
         )
         self.app_env.Alias("_fap_icons", fap_icons)
         self.fw_env.Append(_APP_ICONS=[fap_icons])
@@ -290,34 +292,121 @@ def _validate_app_imports(target, source, env):
         for line in f:
             app_syms.add(line.split()[0])
     unresolved_syms = app_syms - sdk_cache.get_valid_names()
-    ignore_syms = [
-        sym
-        for sym in unresolved_syms
-        if sym.startswith(
-            (
-                # advanced_plugin
-                "app_api_accumulator_",
-                # js_
-                "js_delay_with_flags",
-                "js_flags_wait",
-                "js_flags_set",
-                # totp_
-                "totp_",
-                "token_info_",
-                "memset_s",
-            )
-        )
-        and any(
-            prefix in source[0].path
-            for prefix in [
-                "advanced_plugin",
-                "js_",
-                "totp_",
+    known_syms = {
+        # example_advanced_plugins app_api_table
+        ("advanced_plugin",): (
+            "app_api_accumulator_set",
+            "app_api_accumulator_get",
+            "app_api_accumulator_add",
+            "app_api_accumulator_sub",
+            "app_api_accumulator_mul",
+        ),
+        # js_app app_api_table, js_event_loop_api_table, js_gui_api_table
+        ("js_",): (
+            "js_delay_with_flags",
+            "js_flags_set",
+            "js_flags_wait",
+            "js_module_get",
+            "js_value_buffer_size",
+            "js_value_parse",
+            "js_event_loop_get_loop",
+            "js_gui_make_view_factory",
+            "js_gui_font_declaration",
+        ),
+        # metroflip_api_table
+        (
+            "atr_plugin",
+            "bip_plugin",
+            "calypso_plugin",
+            "charliecard_plugin",
+            "clipper_plugin",
+            "gocard_plugin",
+            "intertic_plugin",
+            "itso_plugin",
+            "metromoney_plugin",
+            "myki_plugin",
+            "nol_plugin",
+            "opal_plugin",
+            "renfe_regular_plugin",
+            "renfe_sum10_plugin",
+            "smartrider_plugin",
+            "suica_plugin",
+            "tmobilitat_plugin",
+            "tmoney_plugin",
+            "troika_plugin",
+            "trt_plugin",
+            "two_cities_plugin",
+        ): (
+            "metroflip_",
+            "bit_slice_to_dec",
+            "byte_to_binary",
+            "read_calypso_data",
+            "read_file",
+            "apdu_success",
+            "select_app",
+            "mf_classic_key_cache_",
+            "manage_keyfiles",
+            "uid_to_string",
+            "handle_keyfile_case",
+            "get_calypso_",
+            "get_network_",
+            "is_calypso_",
+            "free_calypso_",
+            "guess_card_type",
+            "get_intercode_",
+            "show_navigo_",
+            "get_opus_",
+            "show_opus_",
+            "get_ravkav_",
+            "show_ravkav_",
+            "mosgortrans_parse_transport_block",
+            "render_section_header",
+            "I_Suica_",
+        ),
+        # nfc_app_api_table
+        (
+            "nfc_",
+            "gallagher",
+            "social_moscow",
+            "troika",
+        ): (
+            "gallagher_deobfuscate_and_parse_credential",
+            "GALLAGHER_CARDAX_ASCII",
+            "mosgortrans_parse_transport_block",
+            "render_section_header",
+            "nfc_append_filename_string_when_present",
+            "nfc_protocol_support_common_submenu_callback",
+            "nfc_protocol_support_common_widget_callback",
+            "nfc_protocol_support_common_on_enter_empty",
+            "nfc_protocol_support_common_on_event_empty",
+            "nfc_unlock_helper_setup_from_state",
+            "nfc_unlock_helper_card_detected_handler",
+        ),
+        # totp app_api_table
+        ("totp_",): (
+            "totp_",
+            "memset_s",
+            "token_info_",
+        ),
+        # unit_tests_api_table
+        ("test_js",): (
+            "js_thread_run",
+            "js_thread_stop",
+            "js_value_buffer_size",
+            "js_value_parse",
+        ),
+    }
+    ignore_syms = []
+    for source_names, sym_prefixes in known_syms.items():
+        if any(source_name in source[0].path for source_name in source_names):
+            ignore_syms = [
+                unresolved_sym
+                for unresolved_sym in unresolved_syms
+                if unresolved_sym.startswith(sym_prefixes)
             ]
-        )
-    ]
-    for sym in ignore_syms:
-        unresolved_syms.remove(sym)
+            break
+    for ignore_sym in ignore_syms:
+        unresolved_syms.remove(ignore_sym)
     if unresolved_syms:
         warning_msg = fg.brightyellow(
             f"{source[0].path}: app may not be runnable. Symbols not resolved using firmware's API: "
@@ -332,7 +421,7 @@ def _validate_app_imports(target, source, env):
         if env.get("_CHECK_APP"):
             raise UserError(warning_msg)
         else:
-            SCons.Warnings.warn(SCons.Warnings.LinkWarning, warning_msg),
+            SCons.Warnings.warn(SCons.Warnings.LinkWarning, warning_msg)
 
 
 def GetExtAppByIdOrPath(env, app_dir):
@@ -484,7 +573,7 @@ def _gather_app_components(env, appname) -> AppDeploymentComponents:
             if host_app.apptype in [
                 FlipperAppType.EXTERNAL,
                 FlipperAppType.MENUEXTERNAL,
-                FlipperAppType.EXTSETTINGS,
+                FlipperAppType.SETTINGS,
             ]:
                 components.add_app(host_app)
             else:

@@ -1,0 +1,14 @@
+App(
+    appid="vl6180x",
+    name="VL6180X Distance Sensor [I2C]",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="vl6180x_app",
+    stack_size=2 * 1024,
+    fap_icon="images/vl6180x.png",
+    fap_icon_assets="images",
+    fap_category="GPIO/Sensors",
+    fap_author="Kyle Diller",
+    fap_weburl="https://github.com/kdiller713/public-FlipperApps/tree/main/vl6180x",
+    fap_version="0.1",
+    fap_description="This is a simple app the makes uses of the Adafruit VL6180X distance sensor. The code for configuring and reading from the VL6180X is a port of the Circuit Python code provided by Adafruit. There is also a C++ library for use with an Arduino.",
+)

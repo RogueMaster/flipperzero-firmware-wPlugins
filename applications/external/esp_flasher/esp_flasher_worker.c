@@ -169,13 +169,28 @@ static void _flash_all_files(EspFlasherApp* app) {
         {SelectedFlashBoot,
          "bootloader",
          app->bin_file_path_boot,
-         app->selected_flash_options[SelectedFlashS3Mode] ? ESP_ADDR_BOOT_S3 : ESP_ADDR_BOOT},
-        {SelectedFlashPart, "partition table", app->bin_file_path_part, ESP_ADDR_PART},
-        {SelectedFlashNvs, "NVS", app->bin_file_path_nvs, ESP_ADDR_NVS},
-        {SelectedFlashBootApp0, "boot_app0", app->bin_file_path_boot_app0, ESP_ADDR_BOOT_APP0},
-        {SelectedFlashAppA, "firmware A", app->bin_file_path_app_a, ESP_ADDR_APP_A},
-        {SelectedFlashAppB, "firmware B", app->bin_file_path_app_b, ESP_ADDR_APP_B},
-        {SelectedFlashCustom, "custom data", app->bin_file_path_custom, 0x0},
+         app->custom_slot_addrs[SelectedFlashBoot]},
+        {SelectedFlashPart,
+         "partition table",
+         app->bin_file_path_part,
+         app->custom_slot_addrs[SelectedFlashPart]},
+        {SelectedFlashNvs, "NVS", app->bin_file_path_nvs, app->custom_slot_addrs[SelectedFlashNvs]},
+        {SelectedFlashBootApp0,
+         "boot_app0",
+         app->bin_file_path_boot_app0,
+         app->custom_slot_addrs[SelectedFlashBootApp0]},
+        {SelectedFlashAppA,
+         "firmware A",
+         app->bin_file_path_app_a,
+         app->custom_slot_addrs[SelectedFlashAppA]},
+        {SelectedFlashAppB,
+         "firmware B",
+         app->bin_file_path_app_b,
+         app->custom_slot_addrs[SelectedFlashAppB]},
+        {SelectedFlashCustom,
+         "custom data",
+         app->bin_file_path_custom,
+         app->custom_slot_addrs[SelectedFlashCustom]},
         /* if you add more entries, update NUM_FLASH_ITEMS above! */
     };
 
@@ -287,18 +302,38 @@ static int32_t esp_flasher_flash_bin(void* context) {
 
 static void _initDTR(void) {
     furi_hal_gpio_init(&gpio_ext_pc3, GpioModeOutputPushPull, GpioPullDown, GpioSpeedVeryHigh);
+    //alternate DTR pin (15)
+    furi_hal_gpio_init(&gpio_ext_pc1, GpioModeOutputPushPull, GpioPullDown, GpioSpeedVeryHigh);
 }
 
 static void _initRTS(void) {
     furi_hal_gpio_init(&gpio_ext_pb2, GpioModeOutputPushPull, GpioPullDown, GpioSpeedVeryHigh);
+    //alternate RTS pin (16)
+    furi_hal_gpio_init(&gpio_ext_pc0, GpioModeOutputPushPull, GpioPullDown, GpioSpeedVeryHigh);
 }
 
 static void _setDTR(bool state) {
+    furi_hal_gpio_write(&gpio_ext_pc1, state);
+    //alternate DTR pin (15)
     furi_hal_gpio_write(&gpio_ext_pc3, state);
 }
 
 static void _setRTS(bool state) {
     furi_hal_gpio_write(&gpio_ext_pb2, state);
+    //alternate RTS pin (16)
+    furi_hal_gpio_write(&gpio_ext_pc0, state);
+}
+
+static void _deinitDTR(void) {
+    furi_hal_gpio_init(&gpio_ext_pc3, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
+    //alternate DTR pin (15)
+    furi_hal_gpio_init(&gpio_ext_pc1, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
+}
+
+static void _deinitRTS(void) {
+    furi_hal_gpio_init(&gpio_ext_pb2, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
+    //alternate RTS pin (16)
+    furi_hal_gpio_init(&gpio_ext_pc0, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
 }
 
 static int32_t esp_flasher_reset(void* context) {
@@ -331,6 +366,8 @@ static int32_t esp_flasher_reset(void* context) {
         esp_flasher_flash_bin(app);
     }
 
+    _deinitDTR();
+    _deinitRTS();
     return 0;
 }
 
@@ -381,12 +418,12 @@ void loader_port_enter_bootloader(void) {
     if(furi_hal_power_is_otg_enabled()) {
         furi_hal_power_disable_otg();
     }
-    loader_port_delay_ms(100);
+    loader_port_delay_ms(1000);
     if(!furi_hal_power_is_otg_enabled()) {
         furi_hal_power_enable_otg();
     }
     furi_hal_gpio_init_simple(&gpio_swclk, GpioModeAnalog);
-    loader_port_delay_ms(100);
+    loader_port_delay_ms(1000);
 
     // adapted from custom usb-jtag-serial reset in esptool
     // (works on official wifi dev board)

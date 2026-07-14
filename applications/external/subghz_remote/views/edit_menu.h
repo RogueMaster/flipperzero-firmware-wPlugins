@@ -24,6 +24,7 @@ void subrem_view_edit_menu_add_data_to_show(
     uint8_t index,
     FuriString* label,
     FuriString* path,
+    uint8_t button,
     SubRemLoadSubState state);
 
 uint8_t subrem_view_edit_menu_get_index(SubRemViewEditMenu* subrem_view_edit_remote);

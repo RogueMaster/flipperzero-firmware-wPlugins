@@ -12,6 +12,7 @@ App(
         "config_view.c",
         "led_control.c",
         "lrf_info_view.c",
+        "test_boot_time_view.c",
         "lrf_power_control.c",
         "lrf_serial_comm.c",
         "main.c",
@@ -28,6 +29,6 @@ App(
     fap_category="GPIO",
     fap_author="Giraut",
     fap_weburl="https://github.com/Giraut/flipper_zero_noptel_lrf_sampler",
-    fap_version="1.9",
+    fap_version="2.4",
     fap_description="Noptel LRF rangefinder sampler",
 )

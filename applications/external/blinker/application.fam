@@ -1,0 +1,13 @@
+App(
+    appid="blinker",
+    name="LED Blinker",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="blinker_main",
+    stack_size=1 * 1024,
+    fap_icon="blinker_10px.png",
+    fap_category="Tools",
+    fap_author="Cupprum",
+    fap_weburl="https://github.com/Cupprum/Blinker",
+    fap_version="1.0",
+    fap_description="Blinking LED light, which gradually slows down.",
+)

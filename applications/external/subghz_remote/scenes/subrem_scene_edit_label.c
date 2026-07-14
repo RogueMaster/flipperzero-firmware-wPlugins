@@ -19,7 +19,7 @@ void subrem_scene_edit_label_widget_callback(GuiButtonType result, InputType typ
     SubGhzRemoteApp* app = context;
     if((result == GuiButtonTypeCenter) && (type == InputTypeShort)) {
         view_dispatcher_send_custom_event(
-            app->view_dispatcher, SubRemCustomEventSceneEditLabelWidgetAcces);
+            app->view_dispatcher, SubRemCustomEventSceneEditLabelWidgetAccess);
     } else if((result == GuiButtonTypeLeft) && (type == InputTypeShort)) {
         view_dispatcher_send_custom_event(
             app->view_dispatcher, SubRemCustomEventSceneEditLabelWidgetBack);
@@ -107,7 +107,7 @@ bool subrem_scene_edit_label_on_event(void* context, SceneManagerEvent event) {
                 scene_manager_previous_scene(app->scene_manager);
             }
             return true;
-        } else if(event.event == SubRemCustomEventSceneEditLabelWidgetAcces) {
+        } else if(event.event == SubRemCustomEventSceneEditLabelWidgetAccess) {
             furi_string_set(label, app->file_name_tmp);
             app->map_not_saved = true;
             scene_manager_previous_scene(app->scene_manager);

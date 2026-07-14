@@ -1,0 +1,19 @@
+App(
+    appid="gnomishtool",
+    name="GnomishTool",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="gnomishtool_main",
+    stack_size=1 * 1024,
+    fap_icon="F0Icon.png",
+    fap_icon_assets="icons",
+    fap_category="Tools",
+    fap_author="Andreeved88",
+    fap_weburl="https://github.com/Andreeved88/GnomishTool",
+    fap_version="1.0",
+    fap_description="Gnomish army multitool. Assembled in Gnomeregan",
+    #  Ruler: 3 cm with a division of up to 0.25 mm (1 px). Inch and half-inch (0.50 or 1/2) marks for owners of uncalibrated eyeballs!
+    #  Counter: Counts the number of pulses from the naviblock. Built-in X5 repeater for speed!
+    #  Flashlight: Backlight with screen, external emitter, crystal notifier, and 3 built-in light filters!
+    #  Break detector: 2.4 kHz howl when shorted (and silence when open) between output 7 and 8 (C3-Gnd).
+    #  Voltmeter: Measures voltage between outputs 7 and 8, limit 2048 mV DC.
+)

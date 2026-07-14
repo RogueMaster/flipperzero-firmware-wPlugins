@@ -1,0 +1,15 @@
+#pragma once
+
+#define GIT_POPULATED      @GIT_RETRIEVED_STATE@
+
+#define GIT_DIRTY          @GIT_IS_DIRTY@
+#define GIT_AUTHOR_NAME    "@GIT_AUTHOR_NAME@"
+#define GIT_AUTHOR_EMAIL   "@GIT_AUTHOR_EMAIL@"
+#define GIT_COMMIT_SHA1    "@GIT_HEAD_SHA1@"
+#define GIT_COMMIT_DATE    "@GIT_COMMIT_DATE_ISO8601@"
+#define GIT_COMMIT_DAY     "@GIT_COMMIT_DAY@"
+#define GIT_COMMIT_SUBJECT "@GIT_COMMIT_SUBJECT@"
+#define GIT_COMMIT_BODY    "@GIT_COMMIT_BODY@"
+#define GIT_DESCRIBE       "@GIT_DESCRIBE@"
+#define GIT_BRANCH         "@GIT_BRANCH@"
+#define GIT_COUNT          "@GIT_COUNT@"

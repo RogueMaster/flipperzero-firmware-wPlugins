@@ -1,0 +1,14 @@
+App(
+    appid="flip_rpi",
+    name="FlipRPI",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="main_flip_rpi",
+    stack_size=4 * 1024,
+    fap_icon="app.png",
+    fap_icon_assets="assets",
+    fap_category="GPIO/ESP32",
+    fap_author="jblanked",
+    fap_weburl="https://github.com/jblanked/FlipRPI",
+    fap_version="1.0",
+    fap_description="Use your Flipper Zero to control your Raspberry Pi.",
+)

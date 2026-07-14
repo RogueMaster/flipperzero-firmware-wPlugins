@@ -1,0 +1,87 @@
+ATM1
+NAME Dark forest
+ENTRY 1 2 0 3
+
+TRACK # 0
+GOTO_ADVANCED 1 2 0 3
+DELAY 192 # ticks = 192 (VLE)
+VOLUME_SLIDE_ON -6 # steps = -6
+SET_VOLUME 16 # volume
+GOTO 8
+SET_VOLUME 32 # volume
+GOTO 8
+SET_VOLUME 48 # volume
+GOTO 8
+SET_TRANSPOSITION -1
+SET_VOLUME 32 # volume
+GOTO 8
+SET_VOLUME 16 # volume
+GOTO 8
+NOTE 59 # note = 59
+DELAY 4 # ticks = 4
+TRANSPOSITION_OFF
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 1
+SET_TEMPO 16
+REPEAT 3 4
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 2
+GOTO 5
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 3
+REPEAT 3 7
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 4
+SET_VOLUME 48 # volume
+VOLUME_SLIDE_ON -1 # steps = -1
+NOTE 2 # note = 2
+DELAY 64 # ticks = 64
+RETURN # return
+ENDTRACK
+
+TRACK # 5
+GOTO 6
+SET_TRANSPOSITION -4
+GOTO 6
+SET_TRANSPOSITION -5
+GOTO 6
+SET_TRANSPOSITION -7
+GOTO 6
+TRANSPOSITION_OFF
+RETURN # return
+ENDTRACK
+
+TRACK # 6
+DELAY 16 # ticks = 16
+SET_VOLUME 32 # volume
+VOLUME_SLIDE_ON -1 # steps = -1
+NOTE 21 # note = 21
+DELAY 48 # ticks = 48
+RETURN # return
+ENDTRACK
+
+TRACK # 7
+DELAY 48 # ticks = 48
+VOLUME_SLIDE_ON -8 # steps = -8
+SET_VOLUME 32 # volume
+DELAY 16 # ticks = 16
+RETURN # return
+ENDTRACK
+
+TRACK # 8
+NOTE 59 # note = 59
+DELAY 4 # ticks = 4
+NOTE 55 # note = 55
+DELAY 4 # ticks = 4
+RETURN # return
+ENDTRACK
+
+END

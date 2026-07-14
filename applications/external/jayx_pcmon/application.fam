@@ -1,0 +1,13 @@
+App(
+    appid="jayx",
+    name="JAYX PC Monitor",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="jayx_app",
+    stack_size=3 * 1024,
+    fap_icon="jayx.png",
+    fap_category="USB",
+    fap_author="Jay",
+    fap_weburl="https://github.com/contactjayclatty/JAYX",
+    fap_version="0.3",
+    fap_description="Live PC CPU/RAM/GPU stats, FPS, and system info over USB",
+)

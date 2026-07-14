@@ -1,0 +1,24 @@
+raw_t MapData = "Wolf/Generated/maps.bin"
+raw_t Data_audio = "Wolf/Generated/Data_Audio.bin"
+raw_t Data_pistolSprite = "Wolf/Generated/Data_Pistol.bin"
+raw_t Data_machinegunSprite = "Wolf/Generated/Data_Machinegun.bin"
+raw_t Data_chaingunSprite = "Wolf/Generated/Data_Chaingun.bin"
+raw_t Data_knifeSprite = "Wolf/Generated/Data_Knife.bin"
+raw_t Data_itemSprites = "Wolf/Generated/Data_Items.bin"
+raw_t Data_guardSprite = "Wolf/Generated/Data_Guard.bin"
+raw_t Data_dogSprite = "Wolf/Generated/Data_Dog.bin"
+raw_t Data_ssSprite = "Wolf/Generated/Data_SS.bin"
+raw_t Data_bossSprite = "Wolf/Generated/Data_Boss.bin"
+raw_t Data_decorations = "Wolf/Generated/Data_Decorations.bin"
+raw_t Data_blockingDecorations = "Wolf/Generated/Data_BlockingDecorations.bin"
+raw_t Data_wallTextures = "Wolf/Generated/Data_Walls.bin"
+raw_t Data_uiSprite = "Wolf/Generated/Data_UI.bin"
+raw_t Data_titleBG = "Wolf/Generated/Data_TitleBG.bin"
+raw_t Data_helpBG = "Wolf/Generated/Data_HelpBG.bin"
+raw_t Data_winBG = "Wolf/Generated/Data_WinBG.bin"
+raw_t Data_floorComplete1BG = "Wolf/Generated/Data_FloorCompleteBG1.bin"
+raw_t Data_floorComplete2BG = "Wolf/Generated/Data_FloorCompleteBG2.bin"
+
+savesection
+
+uint16_t  0x0000 //game state end marker / start of unused space

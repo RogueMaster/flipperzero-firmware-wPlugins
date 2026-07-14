@@ -1,0 +1,15 @@
+App(
+    appid="puck",
+    name="Puck Girl",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="puckgirl_main",
+    sources=["puck.c"],
+    stack_size=2 * 1024,
+    fap_icon="images/icon_10x10.png",
+    fap_icon_assets="images",
+    fap_category="Games",
+    fap_author="F Greil",
+    fap_weburl="https://github.com/fgreil/mitzi-puck",
+    fap_version=(0, 3, 0),
+    fap_description="A maze chase game where you control a little pie-shape girl to eat all the dots while avoiding be eaten by three ghosts",
+)

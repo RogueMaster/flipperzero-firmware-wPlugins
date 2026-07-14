@@ -1,0 +1,156 @@
+ATM1
+Name Arduventure
+ENTRY 7 1 0 14
+
+TRACK # 0
+SET_VOLUME 0 # volume
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 1
+SET_TEMPO 48
+SET_VOLUME 48 # volume
+REPEAT 15 2
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 2
+VOLUME_SLIDE_ON -2 # steps = -2
+ADD_TEMPO 2
+REPEAT 3 3
+ADD_TEMPO 2
+REPEAT 3 4
+ADD_TEMPO 2
+REPEAT 3 5
+ADD_TEMPO 2
+REPEAT 3 6
+RETURN # return
+ENDTRACK
+
+TRACK # 3
+NOTE 37 # note = 37
+DELAY 16 # ticks = 16
+NOTE 40 # note = 40
+DELAY 16 # ticks = 16
+NOTE 44 # note = 44
+DELAY 16 # ticks = 16
+RETURN # return
+ENDTRACK
+
+TRACK # 4
+NOTE 37 # note = 37
+DELAY 16 # ticks = 16
+NOTE 40 # note = 40
+DELAY 16 # ticks = 16
+NOTE 45 # note = 45
+DELAY 16 # ticks = 16
+RETURN # return
+ENDTRACK
+
+TRACK # 5
+NOTE 37 # note = 37
+DELAY 16 # ticks = 16
+NOTE 42 # note = 42
+DELAY 16 # ticks = 16
+NOTE 46 # note = 46
+DELAY 16 # ticks = 16
+RETURN # return
+ENDTRACK
+
+TRACK # 6
+NOTE 37 # note = 37
+DELAY 16 # ticks = 16
+NOTE 42 # note = 42
+DELAY 16 # ticks = 16
+NOTE 47 # note = 47
+DELAY 16 # ticks = 16
+RETURN # return
+ENDTRACK
+
+TRACK # 7
+SET_VOLUME 0 # volume
+REPEAT 15 8
+REPEAT 14 9
+NOTE_CUT_OFF
+SET_TEMPO 32
+SET_VOLUME 48 # volume
+VOLUME_SLIDE_ON -1 # steps = -1
+GOTO 10
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 8
+DELAY 48 # ticks = 48
+RETURN # return
+ENDTRACK
+
+TRACK # 9
+SET_VOLUME 32 # volume
+VOLUME_SLIDE_ON 1 # steps = 1
+SET_NOTE_CUT 3
+REPEAT 3 10
+REPEAT 3 11
+REPEAT 3 12
+REPEAT 3 13
+RETURN # return
+ENDTRACK
+
+TRACK # 10
+NOTE 1 # note = 1
+DELAY 48 # ticks = 48
+RETURN # return
+ENDTRACK
+
+TRACK # 11
+NOTE 4 # note = 4
+DELAY 48 # ticks = 48
+RETURN # return
+ENDTRACK
+
+TRACK # 12
+NOTE 6 # note = 6
+DELAY 48 # ticks = 48
+RETURN # return
+ENDTRACK
+
+TRACK # 13
+NOTE 11 # note = 11
+DELAY 48 # ticks = 48
+RETURN # return
+ENDTRACK
+
+TRACK # 14
+REPEAT 31 8
+REPEAT 55 15
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 15
+SET_VOLUME 48 # volume
+GOTO 16
+SET_VOLUME 32 # volume
+GOTO 16
+SET_VOLUME 32 # volume
+GOTO 17
+SET_VOLUME 32 # volume
+GOTO 16
+RETURN # return
+ENDTRACK
+
+TRACK # 16
+VOLUME_SLIDE_ON -8 # steps = -8
+DELAY 6 # ticks = 6
+VOLUME_SLIDE_OFF
+DELAY 42 # ticks = 42
+RETURN # return
+ENDTRACK
+
+TRACK # 17
+VOLUME_SLIDE_ON -1 # steps = -1
+DELAY 32 # ticks = 32
+VOLUME_SLIDE_OFF
+DELAY 16 # ticks = 16
+RETURN # return
+ENDTRACK
+
+END

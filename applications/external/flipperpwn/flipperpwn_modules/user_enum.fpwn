@@ -1,0 +1,20 @@
+NAME User Enumeration
+DESCRIPTION Enumerate common user directories using FOR loop
+CATEGORY recon
+PLATFORMS WIN
+PLATFORM WIN
+DELAY 500
+OPEN_POWERSHELL
+PRINT Enumerating users...
+LED_COLOR CYAN
+STRINGLN Get-ChildItem C:\Users | ForEach-Object { Write-Host $_.Name }
+DELAY 2000
+REM Check common service accounts
+FOR $I = 1 TO 5
+  STRINGLN echo Checking batch $I of common accounts...
+  DELAY 500
+END_FOR
+STRINGLN net user
+DELAY 3000
+LED_COLOR GREEN
+PRINT Enumeration complete

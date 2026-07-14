@@ -2,8 +2,8 @@
 
 #include "assets_icons.h"
 #include "subghz/types.h"
-#include <math.h>
 #include <furi.h>
+#include <furi/core/memmgr_heap.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
 #include <flipper_format/flipper_format.h>
@@ -34,6 +34,19 @@ bool subghz_tx_start(SubGhz* subghz, FlipperFormat* flipper_format) {
         subghz_dialog_message_freq_error(subghz, can_tx);
         break;
 
+    case SubGhzTxRxStartTxStateErrorMemory: {
+        FuriString* msg = furi_string_alloc();
+        furi_string_printf(
+            msg,
+            "Not enough memory\nFree %u B, block %u B\nNeed %u B",
+            (unsigned)memmgr_get_free_heap(),
+            (unsigned)memmgr_heap_get_max_free_block(),
+            (unsigned)subghz_txrx_get_tx_min_heap_required(subghz->txrx));
+        dialog_message_show_storage_error(subghz->dialogs, furi_string_get_cstr(msg));
+        furi_string_free(msg);
+        break;
+    }
+
     default:
         return true;
         break;
@@ -52,7 +65,7 @@ void subghz_dialog_message_freq_error(SubGhz* subghz, SubGhzTx can_tx) {
     default:
         return;
     case SubGhzTxBlockedRegionNotProvisioned:
-        message_text = "Region is not\nprovisioned.\nUpdate firmware\nor bypass region.";
+        message_text = "Missing region file.\nReinstall firmware\nwith Web/App\nor bypass region.";
         break;
     case SubGhzTxBlockedRegion:
         message_text = "Frequency outside\nof region range.\nCFW > Protocols\n> Bypass Region";
@@ -87,7 +100,8 @@ bool subghz_key_load(SubGhz* subghz, const char* file_path, bool show_dialog) {
     SubGhzLoadKeyState load_key_state = SubGhzLoadKeyStateParseErr;
     FuriString* temp_str = furi_string_alloc();
     uint32_t temp_data32;
-    float temp_lat = NAN; // NAN or 0.0?? because 0.0 is valid value
+    //Using NAN in order to avoid the null island problem
+    float temp_lat = NAN;
     float temp_lon = NAN;
     SubGhzTx can_tx = SubGhzTxUnsupported;
 
@@ -157,25 +171,47 @@ bool subghz_key_load(SubGhz* subghz, const char* file_path, bool show_dialog) {
             }
         }
 
-        //Load latitute and longitude if present, strict mode to avoid reading the whole file twice
+        //Load latitude and longitude if present
+        //Strict mode to fail if next key doesn't match, instead of reading whole file
         flipper_format_set_strict_mode(fff_data_file, true);
-        if(!flipper_format_read_float(fff_data_file, "Latitute", (float*)&temp_lat, 1) ||
-           !flipper_format_read_float(fff_data_file, "Longitude", (float*)&temp_lon, 1)) {
-            FURI_LOG_W(TAG, "Missing Latitude and Longitude (optional)");
-            flipper_format_rewind(fff_data_file);
+        //Save position and seek instead of rewinding whole file when keys aren't found
+        Stream* fff_raw_stream = flipper_format_get_raw_stream(fff_data_file);
+        size_t pos_before_lat_lon = stream_tell(fff_raw_stream);
+        if(!flipper_format_read_float(fff_data_file, "Lat", (float*)&temp_lat, 1) ||
+           !flipper_format_read_float(fff_data_file, "Lon", (float*)&temp_lon, 1)) {
+            stream_seek(fff_raw_stream, pos_before_lat_lon, StreamOffsetFromStart);
+            //Fallback to older keys "Latitute", "Longitude"
+            if(!flipper_format_read_float(fff_data_file, "Latitute", (float*)&temp_lat, 1) ||
+               !flipper_format_read_float(fff_data_file, "Longitude", (float*)&temp_lon, 1)) {
+                FURI_LOG_W(TAG, "Missing Lat and Lon (optional)");
+                stream_seek(fff_raw_stream, pos_before_lat_lon, StreamOffsetFromStart);
+            }
         }
         flipper_format_set_strict_mode(fff_data_file, false);
 
+        //Avoid null island when reading
+        if(temp_lat == 0.0 && temp_lon == 0.0) {
+            temp_lat = NAN;
+            temp_lon = NAN;
+        }
+
         size_t preset_index =
             subghz_setting_get_inx_preset_by_name(setting, furi_string_get_cstr(temp_str));
+
+        //Edit TX power, if necessary.
+        uint8_t* preset_data = subghz_setting_get_preset_data(setting, preset_index);
+        size_t preset_data_size = subghz_setting_get_preset_data_size(setting, preset_index);
+        subghz_txrx_set_tx_power(preset_data, preset_data_size, subghz->tx_power);
+
+        //Set the Updated Preset.
         subghz_txrx_set_preset(
             subghz->txrx,
             furi_string_get_cstr(temp_str),
             temp_data32,
             temp_lat,
             temp_lon,
-            subghz_setting_get_preset_data(setting, preset_index),
-            subghz_setting_get_preset_data_size(setting, preset_index));
+            preset_data,
+            preset_data_size);
 
         //Load protocol
         if(!flipper_format_read_string(fff_data_file, "Protocol", temp_str)) {

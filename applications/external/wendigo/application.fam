@@ -1,15 +1,15 @@
 App(
     appid="wendigo",
-    name="Wendigo Bluetooth Tracker [BLE]",
+    name="Wendigo BT+BLE+WiFi Monitor",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="wendigo_app",
     stack_size=1 * 1024,
     fap_icon="wendigo.png",
     fap_icon_assets="assets",
     fap_icon_assets_symbol="wendigo",
-    fap_category="Bluetooth",
+    fap_category="GPIO/ESP32",
     fap_author="Chris BC",
     fap_weburl="https://github.com/chris-bc/wendigo",
-    fap_version="0.1",
+    fap_version="0.5.1",
     fap_description="Monitor nearby radios and their signal strength, allowing a device of interest to be identified and located based on its RSSI.",
 )

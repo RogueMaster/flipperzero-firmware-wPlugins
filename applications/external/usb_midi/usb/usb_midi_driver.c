@@ -61,18 +61,18 @@ struct usb_midi_jacks_descriptor {
 } __attribute__((packed));
 
 struct MidiConfigDescriptor {
-    /* 
-        B.2 Configuration Descriptor 
+    /*
+        B.2 Configuration Descriptor
     */
     struct usb_config_descriptor config;
 
-    /* 
+    /*
         B.3 AudioControl Interface Descriptors
 
-        The AudioControl interface describes the device structure (audio function topology) 
-        and is used to manipulate the Audio Controls. This device has no audio function incorporated. 
-        However, the AudioControl interface is mandatory and therefore both the standard AC interface 
-        descriptor and the classspecific AC interface descriptor must be present. 
+        The AudioControl interface describes the device structure (audio function topology)
+        and is used to manipulate the Audio Controls. This device has no audio function incorporated.
+        However, the AudioControl interface is mandatory and therefore both the standard AC interface
+        descriptor and the classspecific AC interface descriptor must be present.
         The class-specific AC interface descriptor only contains the header descriptor.
     */
     // B.3.1 Standard AC Interface Descriptor

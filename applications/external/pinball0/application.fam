@@ -1,0 +1,15 @@
+App(
+    appid="pinball0",
+    name="Pinball0",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="pinball0_app",
+    stack_size=2 * 1024,
+    fap_icon="pinball0.png",
+    fap_file_assets="assets",
+    fap_icon_assets="images",
+    fap_category="Games",
+    fap_author="Roberto De Feo",
+    fap_weburl="https://github.com/rdefeo/pinball0",
+    fap_version="0.5.2",
+    fap_description="Pinball game with customizable JSON tables",
+)

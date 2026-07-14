@@ -12,13 +12,13 @@
 extern "C" {
 #endif
 
-#define NFC_DEV_NAME_MAX_LEN 22
+#define NFC_DEV_NAME_MAX_LEN     22
 #define NFC_READER_DATA_MAX_SIZE 64
-#define NFC_DICT_KEY_BATCH_SIZE 10
+#define NFC_DICT_KEY_BATCH_SIZE  10
 
-#define NFC_APP_FILENAME_PREFIX "NFC"
+#define NFC_APP_FILENAME_PREFIX    "NFC"
 #define NFC_APP_FILENAME_EXTENSION ".nfc"
-#define NFC_APP_SHADOW_EXTENSION ".shd"
+#define NFC_APP_SHADOW_EXTENSION   ".shd"
 
 typedef void (*NfcLoadingCallback)(void* context, bool state);
 

@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,389 +15,287 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+
 #include "unitemp.h"
-#include "interfaces/SingleWireSensor.h"
-#include "Sensors.h"
-#include "./views/UnitempViews.h"
-#include "math.h"
 
-#include <furi_hal_power.h>
+#include <stdlib.h>
 
-/* Переменные */
-//Данные приложения
-Unitemp* app;
+#include <core/thread.h>
+#include <core/kernel.h>
+#include <locale/locale.h>
+#include "flipper_format.h"
 
-void unitemp_celsiusToFahrenheit(Sensor* sensor) {
-    sensor->temp = sensor->temp * (9.0 / 5.0) + 32;
-    sensor->heat_index = sensor->heat_index * (9.0 / 5.0) + 32;
+bool unitemp_custom_event_callback(void* context, uint32_t event) {
+    furi_assert(context);
+    UnitempApp* app = context;
+    return scene_manager_handle_custom_event(app->scene_manager, event);
 }
 
-static float heat_index_consts[9] = {
-    -42.379f,
-    2.04901523f,
-    10.14333127f,
-    -0.22475541f,
-    -0.00683783f,
-    -0.05481717f,
-    0.00122874f,
-    0.00085282f,
-    -0.00000199f};
-void unitemp_calculate_heat_index(Sensor* sensor) {
-    // temp should be in Celsius, heat index will be in Celsius
-    float temp = sensor->temp * (9.0 / 5.0) + 32.0f;
-    float hum = sensor->hum;
-    sensor->heat_index =
-        (heat_index_consts[0] + heat_index_consts[1] * temp + heat_index_consts[2] * hum +
-         heat_index_consts[3] * temp * hum + heat_index_consts[4] * temp * temp +
-         heat_index_consts[5] * hum * hum + heat_index_consts[6] * temp * temp * hum +
-         heat_index_consts[7] * temp * hum * hum + heat_index_consts[8] * temp * temp * hum * hum -
-         32.0f) *
-        (5.0 / 9.0);
+bool unitemp_back_event_callback(void* context) {
+    furi_assert(context);
+    UnitempApp* app = context;
+    return scene_manager_handle_back_event(app->scene_manager);
 }
 
-float calculateDewPoint(float temperature, float relativeHumidity);
-
-void unitemp_rhToDewpointC(Sensor* sensor) {
-    sensor->hum = calculateDewPoint(sensor->temp, sensor->hum);
+void unitemp_tick_event_callback(void* context) {
+    furi_assert(context);
+    UnitempApp* app = context;
+    scene_manager_handle_tick_event(app->scene_manager);
 }
 
-void unitemp_rhToDewpointF(Sensor* sensor) {
-    sensor->hum = calculateDewPoint(sensor->temp, sensor->hum) * (9.0 / 5.0) + 32;
+void unitemp_submenu_callback(void* context, uint32_t index) {
+    UnitempApp* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, index);
 }
 
-float calculateDewPoint(float temperature, float relativeHumidity) {
-    float a = 17.27f;
-    float b = 237.7f;
-    float tempCalc = (a * temperature) / (b + temperature) + (float)log(relativeHumidity / 100.0f);
-    float dewPoint = (b * tempCalc) / (a - tempCalc);
-    return dewPoint;
-}
-
-void unitemp_pascalToMmHg(Sensor* sensor) {
-    sensor->pressure = sensor->pressure * 0.007500638;
-}
-void unitemp_pascalToKPa(Sensor* sensor) {
-    sensor->pressure = sensor->pressure / 1000.0f;
-}
-void unitemp_pascalToHPa(Sensor* sensor) {
-    sensor->pressure = sensor->pressure / 100.0f;
-}
-void unitemp_pascalToInHg(Sensor* sensor) {
-    sensor->pressure = sensor->pressure * 0.0002953007;
-}
-
-bool unitemp_saveSettings(void) {
-    //Выделение памяти для потока
-    app->file_stream = file_stream_alloc(app->storage);
-
-    //Переменная пути к файлу
-    FuriString* filepath = furi_string_alloc();
-    //Составление пути к файлу
-    furi_string_printf(filepath, "%s/%s", APP_PATH_FOLDER, APP_FILENAME_SETTINGS);
-    //Создание папки плагина
-    storage_common_mkdir(app->storage, APP_PATH_FOLDER);
-    //Открытие потока
-    if(!file_stream_open(
-           app->file_stream, furi_string_get_cstr(filepath), FSAM_READ_WRITE, FSOM_CREATE_ALWAYS)) {
-        // Free file path string if we got an error
-        furi_string_free(filepath);
-        FURI_LOG_E(
-            APP_NAME,
-            "An error occurred while saving the settings file: %d",
-            file_stream_get_error(app->file_stream));
-        //Закрытие потока и освобождение памяти
-        file_stream_close(app->file_stream);
-        stream_free(app->file_stream);
-        return false;
+void unitemp_widget_callback(GuiButtonType result, InputType type, void* context) {
+    UnitempApp* app = context;
+    if(type == InputTypeShort) {
+        view_dispatcher_send_custom_event(app->view_dispatcher, result);
     }
-
-    //Сохранение настроек
-    stream_write_format(
-        app->file_stream, "INFINITY_BACKLIGHT %d\n", app->settings.infinityBacklight);
-    stream_write_format(app->file_stream, "TEMP_UNIT %d\n", app->settings.temp_unit);
-    stream_write_format(app->file_stream, "HUMIDITY_UNIT %d\n", app->settings.humidity_unit);
-    stream_write_format(app->file_stream, "PRESSURE_UNIT %d\n", app->settings.pressure_unit);
-    stream_write_format(app->file_stream, "HEAT_INDEX %d\n", app->settings.heat_index);
-
-    //Закрытие потока и освобождение памяти
-    file_stream_close(app->file_stream);
-    stream_free(app->file_stream);
-    // Free file path string if we successfully opened the file
-    furi_string_free(filepath);
-
-    FURI_LOG_I(APP_NAME, "Settings have been successfully saved");
-    return true;
 }
+bool unitemp_settings_load(void* context) {
+    if(context == NULL) return false;
 
-bool unitemp_loadSettings(void) {
-    UNITEMP_DEBUG("Loading settings...");
-
-    //Выделение памяти на поток
-    app->file_stream = file_stream_alloc(app->storage);
-
-    //Переменная пути к файлу
-    FuriString* filepath = furi_string_alloc();
-    //Составление пути к файлу
-    furi_string_printf(filepath, "%s/%s", APP_PATH_FOLDER, APP_FILENAME_SETTINGS);
-
-    //Открытие потока к файлу настроек
-    if(!file_stream_open(
-           app->file_stream, furi_string_get_cstr(filepath), FSAM_READ_WRITE, FSOM_OPEN_EXISTING)) {
-        //Сохранение настроек по умолчанию в случае отсутствия файла
-        if(file_stream_get_error(app->file_stream) == FSE_NOT_EXIST) {
-            FURI_LOG_W(APP_NAME, "Missing settings file. Setting defaults and saving...");
-            //Закрытие потока и освобождение памяти
-            file_stream_close(app->file_stream);
-            stream_free(app->file_stream);
-            // Free file path string if we got an error
-            furi_string_free(filepath);
-            //Сохранение стандартного конфига
-            unitemp_saveSettings();
-            return false;
-        } else {
-            FURI_LOG_E(
-                APP_NAME,
-                "An error occurred while loading the settings file: %d. Standard values have been applied",
-                file_stream_get_error(app->file_stream));
-            //Закрытие потока и освобождение памяти
-            file_stream_close(app->file_stream);
-            stream_free(app->file_stream);
-            // Free file path string if we got an error
-            furi_string_free(filepath);
-            return false;
-        }
-    }
-    // Free file path string if we successfully opened the file
-    furi_string_free(filepath);
-
-    //Вычисление размера файла
-    uint8_t file_size = stream_size(app->file_stream);
-    //Если файл пустой, то:
-    if(file_size == (uint8_t)0) {
-        FURI_LOG_W(APP_NAME, "Settings file is empty");
-        //Закрытие потока и освобождение памяти
-        file_stream_close(app->file_stream);
-        stream_free(app->file_stream);
-        //Сохранение стандартного конфига
-        unitemp_saveSettings();
-        return false;
-    }
-    //Выделение памяти под загрузку файла
-    uint8_t* file_buf = malloc(file_size);
-    //Опустошение буфера файла
-    memset(file_buf, 0, file_size);
-    //Загрузка файла
-    if(stream_read(app->file_stream, file_buf, file_size) != file_size) {
-        //Выход при ошибке чтения
-        FURI_LOG_E(APP_NAME, "Error reading settings file");
-        //Закрытие потока и освобождение памяти
-        file_stream_close(app->file_stream);
-        stream_free(app->file_stream);
-        free(file_buf);
-        return false;
-    }
-    //Построчное чтение файла
-    //Указатель на начало строки
-    FuriString* file = furi_string_alloc_set_str((char*)file_buf);
-    //Сколько байт до конца строки
-    size_t line_end = 0;
-
-    while(line_end != ((size_t)-1) && line_end != (size_t)(file_size - 1)) {
-        char buff[20] = {0};
-        sscanf(((char*)(file_buf + line_end)), "%s", buff);
-
-        if(!strcmp(buff, "INFINITY_BACKLIGHT")) {
-            //Чтение значения параметра
-            int p = 0;
-            sscanf(((char*)(file_buf + line_end)), "INFINITY_BACKLIGHT %d", &p);
-            app->settings.infinityBacklight = p;
-        } else if(!strcmp(buff, "TEMP_UNIT")) {
-            //Чтение значения параметра
-            int p = 0;
-            sscanf(((char*)(file_buf + line_end)), "\nTEMP_UNIT %d", &p);
-            app->settings.temp_unit = p;
-        } else if(!strcmp(buff, "HUMIDITY_UNIT")) {
-            int p = 9;
-            sscanf(((char*)(file_buf + line_end)), "\nHUMIDITY_UNIT %d", &p);
-            app->settings.humidity_unit = p;
-        } else if(!strcmp(buff, "PRESSURE_UNIT")) {
-            //Чтение значения параметра
-            int p = 0;
-            sscanf(((char*)(file_buf + line_end)), "\nPRESSURE_UNIT %d", &p);
-            app->settings.pressure_unit = p;
-        } else if(!strcmp(buff, "HEAT_INDEX")) {
-            //Чтение значения параметра
-            int p = 0;
-            sscanf(((char*)(file_buf + line_end)), "\nHEAT_INDEX %d", &p);
-            app->settings.heat_index = p;
-        } else {
-            FURI_LOG_W(APP_NAME, "Unknown settings parameter: %s", buff);
-        }
-
-        //Вычисление конца строки
-        line_end = furi_string_search_char(file, '\n', line_end + 1);
-    }
-    free(file_buf);
-    file_stream_close(app->file_stream);
-    stream_free(app->file_stream);
-
-    FURI_LOG_I(APP_NAME, "Settings have been successfully loaded");
-    return true;
-}
-
-static void unitemp_sensors_update_callback(void* context) {
-    Unitemp* app = context;
-    if(!app->processing) {
-        view_dispatcher_stop(app->view_dispatcher);
-        return;
-    }
-    if(app->sensors_ready) {
-        unitemp_sensors_updateValues();
-    }
-    view_port_update(app->view_port);
-}
-
-/**
- * @brief Выделение места под переменные плагина
- * 
- * @return true Если всё прошло успешно
- * @return false Если в процессе загрузки произошла ошибка
- */
-static bool unitemp_alloc(void) {
-    //Выделение памяти под данные приложения
-    app = malloc(sizeof(Unitemp));
-    //Разрешение работы приложения
-    app->processing = true;
-
-    //Открытие хранилища (?)
-    app->storage = furi_record_open(RECORD_STORAGE);
-    storage_common_copy(app->storage, EXT_PATH("unitemp"), APP_PATH_FOLDER);
-    storage_common_remove(app->storage, EXT_PATH("unitemp"));
-
-    //Уведомления
-    app->notifications = furi_record_open(RECORD_NOTIFICATION);
+    UnitempApp* app = context;
+    FURI_LOG_I(APP_NAME, "Loading settings...");
 
     //Установка значений по умолчанию
-    app->settings.infinityBacklight = true; //Подсветка горит всегда
-    app->settings.temp_unit = UT_TEMP_CELSIUS; //Единица измерения температуры - градусы Цельсия
-    app->settings.humidity_unit = UT_HUMIDITY_RELATIVE;
-    app->settings.pressure_unit = UT_PRESSURE_MM_HG; //Единица измерения давления - мм рт. ст.
-    app->settings.heat_index = false;
+    app->settings->infinity_backlight = true;
+    LocaleMeasurementUnits lmu = locale_get_measurement_unit();
+    //Установка единиц измерения температуры в соответствии с системными настройками
+    if(lmu == LocaleMeasurementUnitsImperial) {
+        app->settings->temperature_unit = UT_TEMP_FAHRENHEIT;
+        app->settings->pressure_unit = UT_PRESSURE_IN_HG;
+    } else {
+        app->settings->temperature_unit = UT_TEMP_CELSIUS;
+        app->settings->pressure_unit = UT_PRESSURE_MM_HG;
+    }
+    app->settings->humidity_unit = UT_HUMIDITY_RELATIVE;
+    app->settings->heat_index = false;
+    app->settings->otg_auto_on = true;
+    app->settings->otg_latest_state = power_is_otg_enabled(app->power);
+    app->settings->environment_state_led_indication = true;
+    app->settings->environment_state_sound_and_vibro_indication = true;
 
-    app->gui = furi_record_open(RECORD_GUI);
-    //Диспетчер окон
-    app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
-    view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
-    view_dispatcher_set_tick_event_callback(
-        app->view_dispatcher, unitemp_sensors_update_callback, 100);
+    bool result = false;
+    FlipperFormat* file = flipper_format_file_alloc(app->storage);
 
-    app->view_port = view_port_alloc();
+    uint32_t uint32_value = 1;
+    FuriString* file_type;
+    file_type = furi_string_alloc();
+    do {
+        if(!flipper_format_file_open_existing(file, APP_DATA_PATH(APP_SETTINGS_FILENAME))) break;
 
-    app->sensors = NULL;
+        // Reading settings from a file. If any key is not read, the default value will be used
+        flipper_format_read_uint32(file, "infinity_backlight", &uint32_value, 1);
+        app->settings->infinity_backlight = (bool)uint32_value;
+        flipper_format_read_uint32(file, "temperature_unit", &uint32_value, 1);
+        app->settings->temperature_unit = uint32_value;
+        flipper_format_read_uint32(file, "humidity_unit", &uint32_value, 1);
+        app->settings->humidity_unit = uint32_value;
+        flipper_format_read_uint32(file, "pressure_unit", &uint32_value, 1);
+        app->settings->pressure_unit = uint32_value;
+        flipper_format_read_uint32(file, "heat_index", &uint32_value, 1);
+        app->settings->heat_index = (bool)uint32_value;
+        flipper_format_read_uint32(file, "otg_auto_on", &uint32_value, 1);
+        app->settings->otg_auto_on = (bool)uint32_value;
+        flipper_format_read_uint32(file, "environment_state_led_indication", &uint32_value, 1);
+        app->settings->environment_state_led_indication = (bool)uint32_value;
+        flipper_format_read_uint32(
+            file, "environment_state_sound_and_vibro_indication", &uint32_value, 1);
+        app->settings->environment_state_sound_and_vibro_indication = (bool)uint32_value;
+        result = true;
+    } while(0);
 
-    app->buff = malloc(BUFF_SIZE);
+    furi_string_free(file_type);
+    flipper_format_free(file);
+    UNITEMP_DEBUG("Loading settings %s", result ? "success" : "failed");
 
-    unitemp_General_alloc();
-
-    unitemp_MainMenu_alloc();
-    unitemp_Settings_alloc();
-    unitemp_SensorsList_alloc();
-    unitemp_SensorEdit_alloc();
-    unitemp_SensorNameEdit_alloc();
-    unitemp_SensorActions_alloc();
-    unitemp_widgets_alloc();
-
-    //Всплывающее окно
-    app->popup = popup_alloc();
-
-    gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
-
-    view_dispatcher_add_view(app->view_dispatcher, UnitempViewPopup, popup_get_view(app->popup));
-
-    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
-
-    return true;
+    return result;
 }
 
-/**
- * @brief Освыбождение памяти после работы приложения
- */
-static void unitemp_free(void) {
-    popup_free(app->popup);
-    //Удаление вида после обработки
+bool unitemp_settings_save(void* context) {
+    if(context == NULL) return false;
+    UnitempApp* app = context;
+    FURI_LOG_I(APP_NAME, "Saving settings...");
+    FlipperFormat* file = flipper_format_file_alloc(app->storage);
+
+    bool result = false;
+
+    do {
+        if(!flipper_format_file_open_always(file, APP_DATA_PATH(APP_SETTINGS_FILENAME))) break;
+
+        if(!flipper_format_write_comment_cstr(file, "Unitemp config file. Don't modify manually"))
+            break;
+        uint32_t buff = app->settings->infinity_backlight;
+        if(!flipper_format_write_uint32(file, "infinity_backlight", &buff, 1)) break;
+        buff = app->settings->temperature_unit;
+        if(!flipper_format_write_uint32(file, "temperature_unit", &buff, 1)) break;
+        buff = app->settings->humidity_unit;
+        if(!flipper_format_write_uint32(file, "humidity_unit", &buff, 1)) break;
+        buff = app->settings->pressure_unit;
+        if(!flipper_format_write_uint32(file, "pressure_unit", &buff, 1)) break;
+        buff = app->settings->heat_index;
+        if(!flipper_format_write_uint32(file, "heat_index", &buff, 1)) break;
+        buff = app->settings->otg_auto_on;
+        if(!flipper_format_write_uint32(file, "otg_auto_on", &buff, 1)) break;
+
+        result = true;
+    } while(0);
+
+    flipper_format_free(file);
+    if(!result) {
+        FURI_LOG_E(APP_NAME, "Failed to save settings");
+    }
+    UNITEMP_DEBUG("Saving settings  %s", result ? "success" : "failed");
+    return result;
+}
+
+static UnitempApp* unitemp_app_alloc(void) {
+    UnitempApp* app = malloc(sizeof(UnitempApp));
+
+    app->storage = furi_record_open(RECORD_STORAGE);
+    app->power = furi_record_open(RECORD_POWER);
+    app->notifications = furi_record_open(RECORD_NOTIFICATION);
+    app->dialogs = furi_record_open(RECORD_DIALOGS);
+
+    app->settings = malloc(sizeof(UnitempSettings));
+    app->txt_buff = malloc(TEXT_STORE_SIZE);
+
+    app->reader_thread = furi_thread_alloc();
+    furi_thread_set_priority(app->reader_thread, FuriThreadPriorityHigh);
+    furi_thread_set_name(app->reader_thread, "Sensors poller");
+    furi_thread_set_stack_size(app->reader_thread, 2048U);
+    furi_thread_set_context(app->reader_thread, app);
+    furi_thread_set_callback(app->reader_thread, unitemp_sensors_update_callback);
+
+    //GUI allocations
+    app->gui = furi_record_open(RECORD_GUI);
+    app->view_dispatcher = view_dispatcher_alloc();
+    app->scene_manager = scene_manager_alloc(&unitemp_scene_handlers, app);
+    view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
+
+    view_dispatcher_set_custom_event_callback(app->view_dispatcher, unitemp_custom_event_callback);
+    view_dispatcher_set_navigation_event_callback(
+        app->view_dispatcher, unitemp_back_event_callback);
+    view_dispatcher_set_tick_event_callback(
+        app->view_dispatcher, unitemp_tick_event_callback, 250);
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+
+    app->submenu = submenu_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, UnitempViewSubmenu, submenu_get_view(app->submenu));
+
+    app->popup = popup_alloc();
+    view_dispatcher_add_view(app->view_dispatcher, UnitempViewPopup, popup_get_view(app->popup));
+
+    app->widget = widget_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, UnitempViewWidget, widget_get_view(app->widget));
+
+    app->var_item_list = variable_item_list_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        UnitempViewVariableList,
+        variable_item_list_get_view(app->var_item_list));
+
+    app->text_input = text_input_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, UnitempViewTextInput, text_input_get_view(app->text_input));
+    app->no_sensors = no_sensors_alloc(app);
+    view_dispatcher_add_view(
+        app->view_dispatcher, UnitempViewNoSensors, no_sensors_get_view(app->no_sensors));
+    app->single_sensor = single_sensor_alloc(app);
+    view_dispatcher_add_view(
+        app->view_dispatcher, UnitempViewSingleSensor, single_sensor_get_view(app->single_sensor));
+    app->temp_overview = temp_overview_alloc(app);
+    view_dispatcher_add_view(
+        app->view_dispatcher, UnitempViewTempOverview, temp_overview_get_view(app->temp_overview));
+    app->sensor_info = sensor_info_alloc(app);
+    view_dispatcher_add_view(
+        app->view_dispatcher, UnitempViewSensorInfo, sensor_info_get_view(app->sensor_info));
+    return app;
+}
+
+static void unitemp_app_free(UnitempApp* app) {
+    furi_check(app);
+
+    unitemp_sensors_free();
+
+    view_dispatcher_remove_view(app->view_dispatcher, UnitempViewTextInput);
+    text_input_free(app->text_input);
+    view_dispatcher_remove_view(app->view_dispatcher, UnitempViewSensorInfo);
+    sensor_info_free(app->sensor_info);
+    view_dispatcher_remove_view(app->view_dispatcher, UnitempViewTempOverview);
+    temp_overview_free(app->temp_overview);
+    view_dispatcher_remove_view(app->view_dispatcher, UnitempViewSingleSensor);
+    single_sensor_free(app->single_sensor);
+    view_dispatcher_remove_view(app->view_dispatcher, UnitempViewNoSensors);
+    no_sensors_free(app->no_sensors);
+    view_dispatcher_remove_view(app->view_dispatcher, UnitempViewVariableList);
+    variable_item_list_free(app->var_item_list);
+    view_dispatcher_remove_view(app->view_dispatcher, UnitempViewWidget);
+    widget_free(app->widget);
     view_dispatcher_remove_view(app->view_dispatcher, UnitempViewPopup);
-    unitemp_widgets_free();
-
-    unitemp_SensorActions_free();
-    unitemp_SensorNameEdit_free();
-    unitemp_SensorEdit_free();
-    unitemp_SensorsList_free();
-    unitemp_Settings_free();
-    unitemp_MainMenu_free();
-    unitemp_General_free();
-
-    free(app->buff);
+    popup_free(app->popup);
+    view_dispatcher_remove_view(app->view_dispatcher, UnitempViewSubmenu);
+    submenu_free(app->submenu);
 
     view_dispatcher_free(app->view_dispatcher);
+    scene_manager_free(app->scene_manager);
 
-    view_port_enabled_set(app->view_port, false);
-    gui_remove_view_port(app->gui, app->view_port);
-    view_port_free(app->view_port);
+    furi_thread_free(app->reader_thread);
 
-    furi_record_close(RECORD_GUI);
-    //Очистка датчиков
-    //Высвыбождение данных датчиков
-    unitemp_sensors_free();
-    free(app->sensors);
-
-    //Закрытие уведомлений
     furi_record_close(RECORD_NOTIFICATION);
-    //Закрытие хранилища
+    app->notifications = NULL;
+    furi_record_close(RECORD_POWER);
+    app->power = NULL;
+    furi_record_close(RECORD_GUI);
+    app->gui = NULL;
     furi_record_close(RECORD_STORAGE);
-    //Удаление в самую последнюю очередь
+    app->storage = NULL;
+    furi_record_close(RECORD_DIALOGS);
+    app->dialogs = NULL;
+
+    free(app->txt_buff);
+    free(app->settings);
     free(app);
 }
 
+/* Starts the reader thread and handles the input */
+static void unitemp_run(UnitempApp* app) {
+    furi_check(app);
+    if(!unitemp_settings_load(app)) {
+        FURI_LOG_W(
+            APP_NAME, "Settings file not found or corrupted. Using defaults and saving them");
+        unitemp_settings_save(app);
+    }
+    unitemp_sensors_load(app);
+    unitemp_sensors_init(app);
+
+    scene_manager_next_scene(app->scene_manager, UnitempSceneMonitor);
+    view_dispatcher_run(app->view_dispatcher);
+}
+
+static void unitemp_stop(UnitempApp* app) {
+    furi_check(app);
+
+    unitemp_sensors_deinit(app);
+}
 /**
  * @brief Точка входа в приложение
  * 
  * @return Код ошибки
  */
 int32_t unitemp_app() {
-    //Выделение памяти под переменные
-    //Выход если произошла ошибка
-    if(unitemp_alloc() == false) {
-        //Освобождение памяти
-        unitemp_free();
-        //Выход
-        return 0;
-    }
+    UNITEMP_DEBUG("Unitemp application started");
+    UnitempApp* app = unitemp_app_alloc();
+    unitemp_run(app);
 
-    //Загрузка настроек из SD-карты
-    unitemp_loadSettings();
-    //Применение настроек
-    if(app->settings.infinityBacklight == true) {
-        //Постоянное свечение подсветки
-        notification_message(app->notifications, &sequence_display_backlight_enforce_on);
-    }
-    app->settings.lastOTGState = furi_hal_power_is_otg_enabled();
-    //Загрузка датчиков из SD-карты
-    unitemp_sensors_load();
-    //Инициализация датчиков
-    unitemp_sensors_init();
+    unitemp_stop(app);
+    unitemp_app_free(app);
 
-    unitemp_General_switch();
-
-    view_dispatcher_run(app->view_dispatcher);
-
-    //Деинициализация датчиков
-    unitemp_sensors_deInit();
-    //Автоматическое управление подсветкой
-    if(app->settings.infinityBacklight == true)
-        notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
-    //Освобождение памяти
-    unitemp_free();
-    //Выход
+    UNITEMP_DEBUG("Unitemp application finished");
     return 0;
 }

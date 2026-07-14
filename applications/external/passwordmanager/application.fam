@@ -1,0 +1,13 @@
+App(
+    appid="password_manager",
+    name="Password Manager",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="password_manager_app",
+    stack_size=2 * 1024,
+    fap_icon="key.png",
+    fap_category="Tools",
+    fap_author="Rrycbarm",
+    fap_weburl="https://github.com/Rrycbarm/flipperZeroPasswordManager",
+    fap_version="1.2",
+    fap_description="This app stores your usernames and password and can write them on your PC acting as a keyboard",
+)

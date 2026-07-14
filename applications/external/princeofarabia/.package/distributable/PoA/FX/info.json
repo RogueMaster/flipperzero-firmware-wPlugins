@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 3,
+  "binaries": [
+    {
+      "title": "Prince of Arabia FX",
+      "filename": "PrinceOfArabiaFX.hex",
+      "flashdata": "PrinceOfArabiaFX-data.bin",
+      "flashsave": "PrinceOfArabiaFX-save.bin",
+      "device": "ArduboyFX"
+    }
+  ]
+}

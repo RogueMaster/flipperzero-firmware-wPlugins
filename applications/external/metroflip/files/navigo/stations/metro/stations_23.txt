@@ -1,0 +1,16 @@
+0,Belleville
+1,Rosny-Bois-Perrier
+2,Porte des Lilas
+3,Mairie des Lilas
+4,Porte de Bagnolet
+5,Gallieni
+6,Coteaux Beauclair
+7,Serge Gainsbourg
+8,Place des Fetes
+9,Botzaris
+10,Danube
+11,Pre-Saint-Gervais
+12,Romainville-Carnot
+13,Buttes Chaumont
+14,Jourdain
+15,Telegraphe

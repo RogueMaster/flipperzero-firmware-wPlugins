@@ -1,0 +1,14 @@
+App(
+    appid="hhb_ir_app",
+    name="Hard Hat Brigade IR",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="basic_scenes_app",
+    stack_size=2 * 1024,
+    fap_icon_assets="assets",
+    fap_icon="hhbirapp.png",
+    fap_category="Infrared",
+    fap_author="Anomalous68",
+    fap_weburl="https://github.com/Anomalous68/HHB-Flipper-App",
+    fap_version="0.1",
+    fap_description="Type message, then point at reciever and press enter. The slight pause is when the message is transmitting, once Message sent appears, the hat should display it.",
+)

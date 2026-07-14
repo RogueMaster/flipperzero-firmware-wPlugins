@@ -1,0 +1,27 @@
+0,1,Haussmann Saint-Lazare
+1,1,Gare du Nord
+1,6,Magenta
+4,1,Stade de France Saint-Denis
+5,1,Saint-Denis
+5,2,Epinay - Villetaneuse
+5,4,Saint-Denis
+6,1,La Barre Ormesson
+7,1,Enghien-les-Bains
+7,2,Champ de Courses d'Enghien
+7,3,Champ de Courses d'Enghien
+8,1,Ermont - Eaubonne
+8,3,Gros Noyer Saint-Prix
+8,4,Ermont Halte
+9,1,Saint-Leu-la-Foret
+9,2,Vaucelles
+9,3,Taverny
+10,1,Bessancourt
+10,2,Frepillon
+10,3,Mery-sur-Oise
+11,1,Meriel
+11,2,Valmondois
+12,1,L'Isle-Adam - Parmain
+12,2,Champagne-sur-Oise
+12,3,Persan - Beaumont
+12,4,Persan - Beaumont
+12,5,Bruyeres-sur-Oise

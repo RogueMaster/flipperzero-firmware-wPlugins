@@ -10,8 +10,6 @@ typedef struct {
 
 struct TrackerView {
     View* view;
-    void* back_context;
-    TrackerViewCallback back_callback;
 };
 
 static Channel* get_current_channel(TrackerViewModel* model) {
@@ -126,25 +124,12 @@ static void tracker_view_draw_callback(Canvas* canvas, void* _model) {
     furi_string_free(buffer);
 }
 
-static bool tracker_view_input_callback(InputEvent* event, void* context) {
-    TrackerView* tracker_view = context;
-
-    if(tracker_view->back_callback) {
-        if(event->type == InputTypeShort && event->key == InputKeyBack) {
-            tracker_view->back_callback(tracker_view->back_context);
-            return true;
-        }
-    }
-    return false;
-}
-
 TrackerView* tracker_view_alloc() {
     TrackerView* tracker_view = malloc(sizeof(TrackerView));
     tracker_view->view = view_alloc();
     view_allocate_model(tracker_view->view, ViewModelTypeLocking, sizeof(TrackerViewModel));
     view_set_context(tracker_view->view, tracker_view);
-    view_set_draw_callback(tracker_view->view, (ViewDrawCallback)tracker_view_draw_callback);
-    view_set_input_callback(tracker_view->view, (ViewInputCallback)tracker_view_input_callback);
+    view_set_draw_callback(tracker_view->view, tracker_view_draw_callback);
     return tracker_view;
 }
 
@@ -155,14 +140,6 @@ void tracker_view_free(TrackerView* tracker_view) {
 
 View* tracker_view_get_view(TrackerView* tracker_view) {
     return tracker_view->view;
-}
-
-void tracker_view_set_back_callback(
-    TrackerView* tracker_view,
-    TrackerViewCallback callback,
-    void* context) {
-    tracker_view->back_callback = callback;
-    tracker_view->back_context = context;
 }
 
 void tracker_view_set_song(TrackerView* tracker_view, const Song* song) {

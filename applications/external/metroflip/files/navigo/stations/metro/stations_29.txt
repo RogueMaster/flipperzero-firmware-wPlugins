@@ -1,0 +1,12 @@
+0,Levallois
+4,Boulogne Jean Jaures
+5,Antony
+5,Boulogne Pont de Saint-Cloud
+8,Les Sablons
+9,Pont de Neuilly
+10,Esplanade de la Defense
+11,La Defense (Grande Arche)
+12,Porte de Champerret
+13,Louise Michel
+14,Anatole France
+15,Pont de Levallois - Becon

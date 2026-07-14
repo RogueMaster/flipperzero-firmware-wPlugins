@@ -1,0 +1,32 @@
+Tájak
+0-1.......2. szint háttérobjektumai
+2-7.......3. szint háttérobjektumai
+8-13......4. szint háttérobjektumai
+14-17.....5. és 6. szint háttérobjektumai
+
+Ellenségek, első csomag: a játék régebbi verziójából, teljesen pontos modellek
+18-19.....1. szint, 1. ellenség
+20-21.....1. szint, 2. ellenség
+22-23.....1. szint, 3. ellenség
+24-25.....1. szint, 4. ellenség
+26-27.....1. szint, főellenség
+28........2. szint, 1. ellenség
+29-30.....2. szint, főellenség
+31-32.....3. szint, 1. ellenség
+33........3. szint, 2. ellenség
+34........3. szint, 3. ellenség
+35-36.....3. szint, főellenség
+37-38.....4. szint, 1. ellenség
+39-40.....4. szint, főellenség
+41........5. szint, 1. ellenség
+42-43.....5. szint, főellenség
+
+Ellenségek, második csomag: a játék újabb verziójából, pontatlanok, mert nem volt jó mintám
+44........6. szint, 1. ellenség
+45........6. szint, 2. ellenség
+46-47.....6. szint, 3. ellenség
+48-49.....6. szint, főellenség
+
+Egyéb
+50-51.....Bónuszhordozó
+255.......Játékos

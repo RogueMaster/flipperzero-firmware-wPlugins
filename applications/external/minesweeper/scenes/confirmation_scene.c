@@ -1,4 +1,8 @@
-#include "../minesweeper.h"
+#include "minesweeper.h"
+#include "helpers/mine_sweeper_storage.h"
+#include "helpers/mine_sweeper_led.h"
+#include "helpers/mine_sweeper_config.h"
+#include "scenes/minesweeper_scene.h"
 
 static void confirmation_scene_dialog_callback(DialogExResult result, void* context) {
     furi_assert(context);
@@ -58,30 +62,22 @@ bool minesweeper_scene_confirmation_screen_on_event(void* context, SceneManagerE
             view_dispatcher_switch_to_view(app->view_dispatcher, MineSweeperLoadingView);
 
             // Commit changes to actual buffer for settings data
-            app->settings_info.board_width = app->t_settings_info.board_width;
-            app->settings_info.board_height = app->t_settings_info.board_height;
-            app->settings_info.difficulty = app->t_settings_info.difficulty;
-            app->settings_info.ensure_solvable_board = app->t_settings_info.ensure_solvable_board;
+            app->settings_committed.board_width = app->settings_draft.board_width;
+            app->settings_committed.board_height = app->settings_draft.board_height;
+            app->settings_committed.difficulty = app->settings_draft.difficulty;
+            app->settings_committed.ensure_solvable_board =
+                app->settings_draft.ensure_solvable_board;
 
             mine_sweeper_save_settings(app);
 
-            // This is used to let the settings view know it can save the main settings_info
+            // This is used to let the settings view know it can save the main settings_committed
             // to the temp one on the next on enter
             app->is_settings_changed = false;
 
             mine_sweeper_led_reset(app);
 
-            // Reset the game board
-            mine_sweeper_game_screen_reset(
-                app->game_screen,
-                app->settings_info.board_width,
-                app->settings_info.board_height,
-                app->settings_info.difficulty,
-                app->settings_info.ensure_solvable_board);
-
-            // Go to reset game view
-            scene_manager_search_and_switch_to_another_scene(
-                app->scene_manager, MineSweeperSceneGameScreen);
+            app->generation_origin = MineSweeperGenerationOriginSettings;
+            scene_manager_next_scene(app->scene_manager, MineSweeperSceneGenerating);
             break;
 
         case DialogExResultCenter:

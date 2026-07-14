@@ -1,0 +1,14 @@
+{
+  "components": [
+    {
+      "partno": "VCNL4010",
+      "desc": "Proximity and ambient light sensor",
+      "type": 22,
+      "manufacturer": "Vishay",
+      "date": "2013"
+    }
+  ],
+  "unique_types": [
+    22
+  ]
+}

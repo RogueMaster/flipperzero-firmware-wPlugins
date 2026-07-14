@@ -1,5 +1,5 @@
 # Noptel LRF rangefinder sampler app for the Flipper Zero
-### Version 1.9
+### Version 2.4
 
 * [Usage](#Usage)
 * [Installation](#Installation)
@@ -21,6 +21,10 @@ Flipper Zero app to get range measurements from a [Noptel](https://noptel.fi/) [
 - USB serial passthrough with serial traffic display
 
 https://github.com/Giraut/flipper_zero_noptel_lrf_sampler/assets/37288252/32f0bf66-ff2f-47e1-9552-5453781482de
+
+If you would like a dedicated case for your Flipper Zero with a portable power supply, selectable supply voltage and selectable UART-RS232 serial voltage levels, for easy use of any Noptel rangefinder in the field or on the shop floor, you may be interested in the [Noptel LRF rangefinder sampler 3D-printed case companion project](https://github.com/Giraut/flipper_zero_noptel_lrf_sampler_3d_printed_case).
+
+![Flipper Zero Noptel LRF case](images/flipper_zero_noptel_lrf_case.jpg)
 
 
 
@@ -133,6 +137,14 @@ Select the **LRF information** option to view the LRF's identification informati
 
 ![GPIO pin connections](screenshots/2-lrf_information.png)
 
+### Test boot time
+
+Select the **Test boot time** option to test the LRF's boot time, defined as the amount of time between power-up and the device sending out the bootup information string, indicating that it's ready to receive commands. Press the **OK** button to re-test the boot time.
+
+![GPIO pin connections](screenshots/18-boot_time_testing.png)
+
+*Note: the boot time testing function requires the LRF's power supply to be controlled by either pin #1 (+5V) or pin #15 (C1).
+
 ### Save LRF diagnostic
 
 Select the **Save LRF diagnostic** option to save the LRF's diagnostic data after a failed ot incorrect measurement. Press the **OK** button to save another set of diagnostic data or another LRF's.
@@ -149,11 +161,11 @@ DSP files inside the **noptel_lrf_diag** directory may be downloaded individuall
 
 ![Download DSP file](screenshots/16-download_dsp_file.png)
 
-### Test LRX laser
+### Test 905nm LRF laser
 
-Select the **Test LRX laser** option to test an LRX's transmitter laser.
+Select the **Test 905nm LRF laser** option to test the transmitter laser of a 905nm (near-infrared) LRF.
 
-*See note below*
+*Note: this may not be used to test a 1500nm (far infrared) LRF's laser, as the Flipper Zero is only equipped with a near-infrared sensor diode*
 
 ![Laser testing](screenshots/3-laser_testing.png)
 
@@ -325,15 +337,9 @@ Install this app from https://lab.flipper.net/apps/noptel_lrf_sampler
 
 ## Notes
 
-- Pin #15 (C1) may be used to control the LRF's power supply through a power MOSFET or a relay for example. If used, the app will turn on the rangefinder upon starting and turn it back off when exiting. This is useful if the LRF is battery-powered to keep the rangefinder connected to the Flipper Zero and conserve the battery when not in use. The use of this pin is entirely optional.
+- Pin #1 (+5V) or pin #15 (C1) may be used to control the LRF's power supply through a power MOSFET or a relay for example. If used, the app will turn on the rangefinder upon starting and turn it back off when exiting. This is useful if the LRF is battery-powered to keep the rangefinder connected to the Flipper Zero and conserve the battery when not in use. The use of this pin is entirely optional. It is however required to perform a boot time test.
 
-- LRX-series rangefinders may also be used with the app. However, they are usually configured as RS232 or RS422 serial devices, not as UART serial devices. Therefore, a UART-to-RS232 or UART-to-RS422 converter is usually required to connect the Flipper Zero's UART lines to an LRX rangefinder.
-
-- Only certain rangefinger models' lasers can be tested with the **Test LRX laser** function, most notably LRX-class rangefinders - hence the name of the function - but also certain LRF rangefinders. Depending on the particular model, despite nominally working in the far-infrared, 1.5 µm lasers can leak near-infrared light around 950 nm that can be picked up by the Flipper Zero's [infrared receiver](https://www.vishay.com/docs/82495/tsop753.pdf) at close range.
-
-    Your particular rangefinder may be detected by the Flipper Zero, but there is no guarantee that it will be, as this function exploits a side effect of the laser diode that the rangefinders' design doesn't account for. If your rangefinder's laser isn't detected, do not assume it is malfunctioning! If it is detected however, you can be quite sure it is functioning well.
-
-    LRF rangefinders such as the LRF125 that work in the near-infrared are easily detected by the Flipper Zero despite using a lower power laser diode, and can be reliably diagnosed using the Flipper Zero.
+- LRX-series rangefinders may also be used with the app. However, they are usually configured as RS232 or RS422 serial devices, not as UART serial devices. Therefore, a UART-to-RS232 or UART-to-RS422 converter is usually required to connect the Flipper Zero's UART lines to an LRX rangefinder. You may be interesting in building this [3D-printed case](https://github.com/Giraut/flipper_zero_noptel_lrf_sampler_3d_printed_case) specifically designed with a dual-voltage power supply and selectable UART or RS232 / RS422 serial line level, that can power and interface with any LRF or LRX device.
 
 - Some rangefinders are equipped with a low power, near-infrared pointer instead of a visible light pointer. Near-infrared pointers can be easily detected and reliably diagnosed by the Flipper Zero also, using the **Test IR pointer** function.
 

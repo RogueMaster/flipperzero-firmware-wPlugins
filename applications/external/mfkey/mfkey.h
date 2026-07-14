@@ -12,9 +12,14 @@
 struct Crypto1State {
     uint32_t odd, even;
 };
+
+#define MSB_BUCKET_CAPACITY 768
+
 struct Msb {
     int tail;
-    uint32_t states[768];
+    // Store 24-bit states packed into bytes (MSB is implicit from bucket index).
+    // CAPACITY * 3 bytes for data + 4 bytes padding for safe unaligned 32-bit write.
+    uint8_t states[MSB_BUCKET_CAPACITY * 3 + 4];
 };
 
 typedef enum {
@@ -41,6 +46,7 @@ typedef struct {
     int cracked;
     int unique_cracked;
     int num_completed;
+    int num_candidates;
     int total;
     int dict_count;
     int search;
@@ -49,14 +55,19 @@ typedef struct {
     int eta_round;
     bool mfkey32_present;
     bool nested_present;
-    bool is_thread_running;
     bool close_thread_please;
     FuriThread* mfkeythread;
+    KeysDict* cuid_dict;
+    MfClassicKey* key_buffer;
+    uint8_t* key_idx_buffer;
+    size_t key_buffer_size;
+    size_t key_buffer_count;
 } ProgramState;
 
 typedef enum {
     mfkey32,
-    static_nested
+    static_nested,
+    static_encrypted
 } AttackType;
 
 typedef struct {
@@ -67,20 +78,27 @@ typedef struct {
     uint32_t nt1; // tag challenge second
     uint32_t uid_xor_nt0; // uid ^ nt0
     uint32_t uid_xor_nt1; // uid ^ nt1
-    // Mfkey32
-    uint32_t p64; // 64th successor of nt0
-    uint32_t p64b; // 64th successor of nt1
-    uint32_t nr0_enc; // first encrypted reader challenge
-    uint32_t ar0_enc; // first encrypted reader response
-    uint32_t nr1_enc; // second encrypted reader challenge
-    uint32_t ar1_enc; // second encrypted reader response
-    // Nested
-    uint32_t ks1_1_enc; // first encrypted keystream
-    uint32_t ks1_2_enc; // second encrypted keystream
-    char par_1_str[5]; // first parity bits (string representation)
-    char par_2_str[5]; // second parity bits (string representation)
-    uint8_t par_1; // first parity bits
-    uint8_t par_2; // second parity bits
+    uint8_t key_idx; // key index (for static encrypted nonces)
+    union {
+        // Mfkey32
+        struct {
+            uint32_t p64; // 64th successor of nt0
+            uint32_t p64b; // 64th successor of nt1
+            uint32_t nr0_enc; // first encrypted reader challenge
+            uint32_t ar0_enc; // first encrypted reader response
+            uint32_t nr1_enc; // second encrypted reader challenge
+            uint32_t ar1_enc; // second encrypted reader response
+        };
+        // Nested
+        struct {
+            uint32_t ks1_1_enc; // first encrypted keystream
+            uint32_t ks1_2_enc; // second encrypted keystream
+            char par_1_str[5]; // first parity bits (string representation)
+            char par_2_str[5]; // second parity bits (string representation)
+            uint8_t par_1; // first parity bits
+            uint8_t par_2; // second parity bits
+        };
+    };
 } MfClassicNonce;
 
 typedef struct {

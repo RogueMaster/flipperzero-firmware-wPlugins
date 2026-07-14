@@ -1,0 +1,13 @@
+App(
+    appid="theme_manager",
+    name="Theme Manager",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="theme_manager_app",
+    stack_size=8 * 1024,
+    fap_icon="images/theme_manager.png",
+    fap_category="Settings",
+    fap_author="Hoasker",
+    fap_weburl="https://github.com/Hoasker/flipper-theme-manager",
+    fap_version="1.6",
+    fap_description="Manage dolphin animation themes from SD card",
+)

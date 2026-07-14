@@ -1,0 +1,15 @@
+App(
+    appid="atm",
+    name="ATM player",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipper_atm_app",
+    stack_size=6 * 1024,
+    fap_icon_assets="icon",
+    fap_file_assets="assets",
+    fap_icon="icon.png",
+    fap_category="Media",
+    fap_author="apfxtech",
+    fap_weburl="https://github.com/apfxtech/FlipperATM",
+    fap_version="1.0.8",
+    fap_description="ATM music player from Arduventure.",
+)

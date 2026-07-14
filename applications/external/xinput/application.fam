@@ -1,0 +1,15 @@
+App(
+    appid="xinput_controller",
+    name="XBox360 USB Game Controller",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="xinput_app",
+    stack_size=2 * 1024,
+    fap_icon="icon.png",
+    fap_icon_assets="images",
+    fap_category="USB",
+    fap_author="expected-ingot",  #  crapbass
+    fap_weburl="https://github.com/expected-ingot/flipper-xinput",
+    fap_version="0.2",
+    fap_description="An app that emulates XInput controllers. Simple Xbox 360 controller emulator for the Flipper Zero",
+    #  v0.2:  [USB Game Controller: Restore prev profile (By WillyJL)](https://github.com/Next-Flip/Momentum-Apps/commit/b83dbad6c635741953e6dc41556fbc046d2764ab)
+)

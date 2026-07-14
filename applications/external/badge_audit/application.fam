@@ -1,0 +1,14 @@
+App(
+    appid="badge_audit",
+    name="Badge Audit",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="badge_audit_app",
+    stack_size=4 * 1024,
+    fap_icon="icon.png",
+    fap_category="NFC",
+    fap_author="ViperDroid",
+    fap_weburl="https://github.com/ViperDroid/flipper-badge-audit",
+    fap_version="1.0",
+    fap_description="Defensive access-badge security auditor: identifies an NFC badge's protocol, reads its UID, tests MIFARE Classic default keys, and rates how clone-resistant it is.",
+)

@@ -528,7 +528,6 @@ static LifecounterApp* app_alloc() {
 
     FURI_LOG_T(TAG, "allocate dispatcher");
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 

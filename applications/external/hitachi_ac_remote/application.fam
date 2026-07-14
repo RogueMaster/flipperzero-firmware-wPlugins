@@ -1,0 +1,23 @@
+App(
+    appid="hitachi_ac_remote",
+    name="Hitachi AC Remote",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="ac_remote_app",
+    stack_size=1 * 2048,
+    fap_icon="ac_remote.png",
+    fap_icon_assets="assets",
+    fap_private_libs=[
+        Lib(
+            name="hvac_hitachi",
+            sources=[
+                "hvac_hitachi.c",
+            ],
+        ),
+    ],
+    fap_category="Infrared",
+    fap_author="dogtopus",
+    fap_weburl="https://github.com/dogtopus/flipperzero-hitachi-ac-remote",
+    fap_version="1.1",
+    fap_description="Hitachi Air Conditioner remote controller",
+)

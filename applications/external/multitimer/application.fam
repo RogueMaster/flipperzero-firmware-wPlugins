@@ -1,0 +1,14 @@
+App(
+    appid="multitimerext",
+    name="MultiTimer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="multitimer_app",
+    stack_size=8 * 1024,
+    fap_icon="multitimer.png",
+    fap_icon_assets="images",
+    fap_category="Tools",
+    fap_author="C0d3-5t3w",
+    fap_weburl="https://github.com/C0d3-5t3w/flipper-multitimer",
+    fap_version="1.1.0",
+    fap_description="Timer app with saved timers and external display support.",
+)

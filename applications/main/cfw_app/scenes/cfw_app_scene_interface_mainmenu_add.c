@@ -1,0 +1,103 @@
+#include "../cfw_app.h"
+
+enum SubmenuIndex {
+    SubmenuIndexMainApp,
+    SubmenuIndexExternalApp,
+    SubmenuIndexFileDirectory,
+};
+
+static bool fap_selector_item_callback(
+    FuriString* file_path,
+    void* context,
+    uint8_t** icon_ptr,
+    FuriString* item_name) {
+    UNUSED(context);
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    bool success = flipper_application_load_name_and_icon(file_path, storage, icon_ptr, item_name);
+    furi_record_close(RECORD_STORAGE);
+    return success;
+}
+
+static void cfw_app_scene_interface_mainmenu_add_submenu_callback(void* context, uint32_t index) {
+    CFWApp* app = context;
+    scene_manager_set_scene_state(app->scene_manager, CFWAppSceneInterfaceMainmenuAdd, index);
+
+    switch(index) {
+    case SubmenuIndexMainApp:
+        scene_manager_next_scene(app->scene_manager, CFWAppSceneInterfaceMainmenuAddMain);
+        break;
+    case SubmenuIndexExternalApp:
+    case SubmenuIndexFileDirectory: {
+        const bool is_file_dir = index == SubmenuIndexFileDirectory;
+        const DialogsFileBrowserOptions browser_options = {
+            .extension = is_file_dir ? "*" : ".fap",
+            .icon = &I_unknown_10px,
+            .skip_assets = true,
+            .hide_ext = !is_file_dir,
+            .item_loader_callback = fap_selector_item_callback,
+            .item_loader_context = app,
+            .base_path = is_file_dir ? STORAGE_EXT_PATH_PREFIX : EXT_PATH("apps"),
+            .select_right = is_file_dir,
+        };
+        FuriString* temp_path = furi_string_alloc_set_str(browser_options.base_path);
+
+        if(dialog_file_browser_show(app->dialogs, temp_path, temp_path, &browser_options)) {
+            cfw_app_push_mainmenu_app(app, temp_path);
+            app->mainmenu_app_index = CharList_size(app->mainmenu_app_labels) - 1;
+            app->save_mainmenu_apps = true;
+            scene_manager_search_and_switch_to_previous_scene(
+                app->scene_manager, CFWAppSceneInterfaceMainmenu);
+        }
+        furi_string_free(temp_path);
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+void cfw_app_scene_interface_mainmenu_add_on_enter(void* context) {
+    CFWApp* app = context;
+    Submenu* submenu = app->submenu;
+
+    submenu_set_header(submenu, "Add Menu Item:");
+
+    submenu_add_item(
+        submenu,
+        "Main App",
+        SubmenuIndexMainApp,
+        cfw_app_scene_interface_mainmenu_add_submenu_callback,
+        app);
+
+    submenu_add_item(
+        submenu,
+        "External App",
+        SubmenuIndexExternalApp,
+        cfw_app_scene_interface_mainmenu_add_submenu_callback,
+        app);
+
+    submenu_add_item(
+        submenu,
+        "File / Directory (right btn)",
+        SubmenuIndexFileDirectory,
+        cfw_app_scene_interface_mainmenu_add_submenu_callback,
+        app);
+
+    view_dispatcher_switch_to_view(app->view_dispatcher, CFWAppViewSubmenu);
+}
+
+bool cfw_app_scene_interface_mainmenu_add_on_event(void* context, SceneManagerEvent event) {
+    UNUSED(context);
+    bool consumed = false;
+
+    if(event.type == SceneManagerEventTypeCustom) {
+        consumed = true;
+    }
+
+    return consumed;
+}
+
+void cfw_app_scene_interface_mainmenu_add_on_exit(void* context) {
+    CFWApp* app = context;
+    submenu_reset(app->submenu);
+}

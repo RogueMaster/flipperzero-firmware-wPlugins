@@ -1,6 +1,6 @@
 /***
  * Noptel LRF rangefinder sampler for the Flipper Zero
- * Version: 1.9
+ * Version: 2.4
  *
  * Submenu
 ***/
@@ -52,6 +52,13 @@ void submenu_callback(void* ctx, uint32_t idx) {
         view_dispatcher_switch_to_view(app->view_dispatcher, view_lrfinfo);
         app->config.sitem = submenu_lrfinfo;
         FURI_LOG_D(TAG, "Switch to LRF info view");
+        break;
+
+    /* Switch to the LRF info view */
+    case submenu_testboottime:
+        view_dispatcher_switch_to_view(app->view_dispatcher, view_testboottime);
+        app->config.sitem = submenu_testboottime;
+        FURI_LOG_D(TAG, "Switch to test boot time view");
         break;
 
     /* Switch to the save diagnostic view */

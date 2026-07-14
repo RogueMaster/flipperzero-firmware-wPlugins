@@ -1,0 +1,14 @@
+App(
+    appid="math_wiz",
+    name="Math Wiz",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="math_wiz_main",
+    stack_size=2 * 1024,
+    fap_icon="math_wiz.png",
+    fap_icon_assets="images",
+    fap_category="Tools",
+    fap_author="Papa_Ghost",
+    fap_weburl="https://github.com/ImPapaGhost/math_wiz",
+    fap_version="1.1",
+    fap_description="Does some trig/calculus calculations",
+)

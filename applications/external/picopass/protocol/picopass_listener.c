@@ -752,7 +752,6 @@ void picopass_listener_start(
     instance->context = context;
 
     picopass_listener_reset(instance);
-    nfc_iso15693_force_1outof4(instance->nfc);
     nfc_start(instance->nfc, picopass_listener_start_callback, instance);
 }
 

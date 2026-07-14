@@ -2,14 +2,14 @@
 
 #include "eth_worker.h"
 #include "eth_worker_i.h"
-#include "finik_eth_icons.h"
+#include "eth_troubleshooter_icons.h"
+
+#include "ui_hacks_again/u8g2.h"
 
 #include <furi_hal.h>
 #include <gui/gui.h>
 #include <gui/canvas.h>
 #include <string.h>
-
-#include <u8g2.h>
 
 #define TAG "EthView"
 
@@ -129,7 +129,7 @@ static void draw_static_mode(Canvas* canvas, uint8_t mode) {
     }
 }
 
-static uint8_t* draw_static_get_current_adress(EthViewDrawStatic* evds) {
+static uint8_t* draw_static_get_current_address(EthViewDrawStatic* evds) {
     furi_assert(evds);
     if(evds->current_mode == EthViewDrawStaticModeIp) return evds->ip;
     if(evds->current_mode == EthViewDrawStaticModeMask) return evds->mask;
@@ -184,7 +184,8 @@ void ethernet_view_process_draw(EthViewProcess* process, Canvas* canvas) {
         canvas_draw_box(canvas, 29, 10, 97, 7);
         uint8_t mode = ((EthViewDrawStatic*)process->draw_struct)->current_mode;
         uint8_t current_digit = ((EthViewDrawStatic*)process->draw_struct)->current_digit;
-        uint8_t* adress = draw_static_get_current_adress((EthViewDrawStatic*)process->draw_struct);
+        uint8_t* address =
+            draw_static_get_current_address((EthViewDrawStatic*)process->draw_struct);
         uint8_t editing = ((EthViewDrawStatic*)process->draw_struct)->editing;
         for(uint8_t i = 0; i < 4; ++i) {
             if(i == mode && process->editing) {
@@ -197,7 +198,7 @@ void ethernet_view_process_draw(EthViewProcess* process, Canvas* canvas) {
         }
         for(uint8_t i = 0; i < 4; ++i) {
             uint8_t x = 33 + i * 24;
-            draw_dec_number(canvas, x, 27, adress[i]);
+            draw_dec_number(canvas, x, 27, address[i]);
             if(editing && (current_digit / 3 == i)) {
                 uint8_t x1 = x + 6 * (current_digit % 3);
                 canvas_draw_line(canvas, x1, 28, x1 + 4, 28);
@@ -210,10 +211,10 @@ void ethernet_view_process_draw(EthViewProcess* process, Canvas* canvas) {
         canvas_draw_frame(canvas, 83, 8, 21, 13);
         canvas_draw_frame(canvas, 107, 8, 21, 13);
         uint8_t current_digit = ((EthViewDrawPing*)process->draw_struct)->current_digit;
-        uint8_t* adress = ((EthViewDrawPing*)process->draw_struct)->ip;
+        uint8_t* address = ((EthViewDrawPing*)process->draw_struct)->ip;
         for(uint8_t i = 0; i < 4; ++i) {
             uint8_t x = 37 + i * 24;
-            draw_dec_number(canvas, x, 17, adress[i]);
+            draw_dec_number(canvas, x, 17, address[i]);
             if(process->editing && (current_digit / 3 == i)) {
                 uint8_t x1 = x + 6 * (current_digit % 3);
                 canvas_draw_line(canvas, x1, 18, x1 + 4, 18);
@@ -235,7 +236,7 @@ static void mac_change_hex_digit(uint8_t* mac, uint8_t octet, int8_t diff) {
     }
 }
 
-static void adress_change_dec_digit(uint8_t* ip, uint8_t digit, int8_t diff) {
+static void address_change_dec_digit(uint8_t* ip, uint8_t digit, int8_t diff) {
     {
         uint8_t k = 0;
         k = (digit % 3 == 0) ? 100 : k;
@@ -276,7 +277,8 @@ void ethernet_view_process_keyevent(EthViewProcess* process, InputKey key) {
     } else if(process->type == EthWorkerProcessStatic) {
         uint8_t digit = ((EthViewDrawStatic*)process->draw_struct)->current_digit;
         uint8_t mode = ((EthViewDrawStatic*)process->draw_struct)->current_mode;
-        uint8_t* adress = draw_static_get_current_adress((EthViewDrawStatic*)process->draw_struct);
+        uint8_t* address =
+            draw_static_get_current_address((EthViewDrawStatic*)process->draw_struct);
         uint8_t editing = ((EthViewDrawStatic*)process->draw_struct)->editing;
         if(editing) {
             if(key == InputKeyLeft) {
@@ -288,9 +290,9 @@ void ethernet_view_process_keyevent(EthViewProcess* process, InputKey key) {
             } else if(key == InputKeyRight) {
                 if(digit < 11) digit += 1;
             } else if(key == InputKeyUp) {
-                adress_change_dec_digit(adress, digit, 1);
+                address_change_dec_digit(address, digit, 1);
             } else if(key == InputKeyDown) {
-                adress_change_dec_digit(adress, digit, -1);
+                address_change_dec_digit(address, digit, -1);
             } else if(key == InputKeyOk || key == InputKeyBack) {
                 ((EthViewDrawStatic*)process->draw_struct)->editing = 0;
             }
@@ -318,7 +320,7 @@ void ethernet_view_process_keyevent(EthViewProcess* process, InputKey key) {
         ((EthViewDrawStatic*)process->draw_struct)->current_digit = digit;
     } else if(process->type == EthWorkerProcessPing) {
         uint8_t digit = ((EthViewDrawPing*)process->draw_struct)->current_digit;
-        uint8_t* adress = ((EthViewDrawPing*)process->draw_struct)->ip;
+        uint8_t* address = ((EthViewDrawPing*)process->draw_struct)->ip;
         if(key == InputKeyLeft) {
             if(digit > 0) {
                 digit -= 1;
@@ -328,9 +330,9 @@ void ethernet_view_process_keyevent(EthViewProcess* process, InputKey key) {
         } else if(key == InputKeyRight) {
             if(digit < 11) digit += 1;
         } else if(key == InputKeyUp) {
-            adress_change_dec_digit(adress, digit, 1);
+            address_change_dec_digit(address, digit, 1);
         } else if(key == InputKeyDown) {
-            adress_change_dec_digit(adress, digit, -1);
+            address_change_dec_digit(address, digit, -1);
         } else if(key == InputKeyOk || key == InputKeyBack) {
             process->editing = 0;
         }

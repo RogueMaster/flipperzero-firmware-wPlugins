@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,46 +19,46 @@
 #define UNITEMP_MAX31855
 
 #include "../unitemp.h"
-#include "../Sensors.h"
-#include "../interfaces/SPISensor.h"
+#include "../sensors.h"
+#include "../interfaces/spi_sensor.h"
 
-extern const SensorType MAX31855;
+extern const SensorModel MAX31855;
 
 /**
- * @brief Выделение памяти и установка начальных значений датчика MAX31855
+ * @brief Allocating memory and setting initial values ​​for the MAX31855 sensor
  *
- * @param sensor Указатель на создаваемый датчик
- * @return Истина при успехе
+ * @param sensor Pointer to the sensor to create
+ * @return The truth about success
  */
 bool unitemp_MAX31855_alloc(Sensor* sensor, char* args);
 
 /**
- * @brief Инициализации датчика MAX31855
+ * @brief Initializing the MAX31855 sensor
  *
- * @param sensor Указатель на датчик
- * @return Истина если инициализация упспешная
+ * @param sensor Pointer to sensor
+ * @return True if initialization is successful
  */
 bool unitemp_MAX31855_init(Sensor* sensor);
 
 /**
- * @brief Деинициализация датчика
+ * @brief Deinitializing the sensor
  *
- * @param sensor Указатель на датчик
+ * @param sensor Pointer to sensor
  */
 bool unitemp_MAX31855_deinit(Sensor* sensor);
 
 /**
- * @brief Обновление значений из датчика
+ * @brief Updating values ​​from sensor
  *
- * @param sensor Указатель на датчик
- * @return Статус обновления
+ * @param sensor Pointer to sensor
+ * @return Update status
  */
-UnitempStatus unitemp_MAX31855_update(Sensor* sensor);
+SensorStatus unitemp_MAX31855_update(Sensor* sensor);
 
 /**
- * @brief Высвободить память датчика
+ * @brief Free up sensor memory
  *
- * @param sensor Указатель на датчик
+ * @param sensor Pointer to sensor
  */
 bool unitemp_MAX31855_free(Sensor* sensor);
 

@@ -1,6 +1,6 @@
 /***
  * Noptel LRF rangefinder sampler for the Flipper Zero
- * Version: 1.9
+ * Version: 2.4
  *
  * LRF Serial communication app
 ***/
@@ -156,6 +156,19 @@ typedef struct {
 
 } LRFInfo;
 
+/** LRF boot information **/
+typedef struct {
+    /* Device ID */
+    char id[16];
+
+    /* Firmware version */
+    char fwversion[16];
+
+    /* Rx timestamp */
+    uint32_t boot_string_rx_tstamp;
+
+} LRFBootInfo;
+
 /** LRF diagnostic data **/
 typedef struct {
     /* Diagnostic data values */
@@ -186,6 +199,9 @@ void set_lrf_ident_handler(LRFSerialCommApp*, void (*)(LRFIdent*, void*), void*)
 
 /** Set the callback to handle one received LRF information frame **/
 void set_lrf_info_handler(LRFSerialCommApp*, void (*)(LRFInfo*, void*), void*);
+
+/** Set the callback to handle LRF boot information **/
+void set_lrf_boot_info_handler(LRFSerialCommApp*, void (*)(LRFBootInfo*, void*), void*);
 
 /** Set the callback to handle received diagnostic data **/
 void set_diag_data_handler(LRFSerialCommApp*, void (*)(LRFDiag*, void*), void*);

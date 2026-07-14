@@ -1,0 +1,15 @@
+App(
+    appid="mitzi_tyaid",
+    name="Mitzi Type Aid Demo",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="type_aid_main",
+    stack_size=1 * 1024,
+    fap_icon_assets="images",
+    fap_file_assets="data",
+    fap_icon="images/icon_10x10.png",
+    fap_category="Tools",
+    fap_author="F Greil",
+    fap_weburl="https://github.com/fgreil/mitzi-tyaid",
+    fap_version=(0, 1, 0),
+    fap_description="A type-aid for Flipper Zero",
+)

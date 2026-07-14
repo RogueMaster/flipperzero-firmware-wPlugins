@@ -20,12 +20,17 @@
 #define ITEMS_PER_SCREEN_LANDSCAPE 3
 #define ITEMS_PER_SCREEN_PORTRAIT  6
 
+#define SCROLL_INTERVAL 333
+#define SCROLL_DELAY    2
+
 static const Icon* ActionMenuIcons[] = {
     [ActionMenuItemTypeSubGHz] = &I_SubGHz_10px,
     [ActionMenuItemTypeRFID] = &I_RFID_10px,
     [ActionMenuItemTypeIR] = &I_IR_10px,
     [ActionMenuItemTypeNFC] = &I_NFC_10px,
     [ActionMenuItemTypeiButton] = &I_iButton_10px,
+    [ActionMenuItemTypePicopass] =
+        &I_NFC_10px, // Uses NFC icon; add Picopass_10px.png for custom icon
     [ActionMenuItemTypePlaylist] = &I_Playlist_10px,
     [ActionMenuItemTypeGroup] = &I_Directory_10px,
     [ActionMenuItemTypeSettings] = &I_Settings_10px,
@@ -38,6 +43,7 @@ struct ActionMenuItem {
     ActionMenuItemCallback callback;
     ActionMenuItemType type;
     void* callback_context;
+    bool is_link;
 };
 
 ARRAY_DEF(ActionMenuItemArray, ActionMenuItem, M_POD_OPLIST);
@@ -45,6 +51,7 @@ ARRAY_DEF(ActionMenuItemArray, ActionMenuItem, M_POD_OPLIST);
 
 struct ActionMenu {
     View* view;
+    FuriTimer* scroll_timer;
 };
 
 typedef struct {
@@ -55,7 +62,39 @@ typedef struct {
     ActionMenuLayout layout;
     bool show_icons;
     bool show_headers;
+    size_t scroll_counter;
 } ActionMenuModel;
+
+// Returns the adjusted scroll counter, accounting for the initial pause/delay
+// when an item is first selected
+size_t get_adjusted_scroll_counter(bool selected, size_t scroll_counter) {
+    if(selected) {
+        if(scroll_counter < SCROLL_DELAY) {
+            return 0;
+        }
+        return scroll_counter - SCROLL_DELAY;
+    }
+    return 0;
+}
+
+static void action_menu_scroll_timer_callback(void* context) {
+    furi_check(context);
+    ActionMenu* menu = context;
+    with_view_model(menu->view, ActionMenuModel * model, { model->scroll_counter++; }, true);
+}
+
+static void action_menu_view_enter_callback(void* context) {
+    furi_check(context);
+    ActionMenu* menu = context;
+    with_view_model(menu->view, ActionMenuModel * model, { model->scroll_counter = 0; }, true);
+    furi_timer_start(menu->scroll_timer, SCROLL_INTERVAL);
+}
+
+static void action_menu_view_exit_callback(void* context) {
+    furi_check(context);
+    ActionMenu* menu = context;
+    furi_timer_stop(menu->scroll_timer);
+}
 
 static void action_menu_draw_landscape(Canvas* canvas, ActionMenuModel* model) {
     const uint8_t item_height = 16;
@@ -79,9 +118,10 @@ static void action_menu_draw_landscape(Canvas* canvas, ActionMenuModel* model) {
     for(ActionMenuItemArray_it(it, model->items); !ActionMenuItemArray_end_p(it);
         ActionMenuItemArray_next(it)) {
         const size_t item_position = position - model->window_position;
+        bool selected = position == model->position;
 
         if(item_position < items_on_screen) {
-            if(position == model->position) {
+            if(selected) {
                 canvas_set_color(canvas, ColorBlack);
                 elements_slightly_rounded_box(
                     canvas,
@@ -103,16 +143,38 @@ static void action_menu_draw_landscape(Canvas* canvas, ActionMenuModel* model) {
                     ActionMenuIcons[item->type]);
             }
 
+            size_t scroll_counter = get_adjusted_scroll_counter(selected, model->scroll_counter);
+
             FuriString* disp_str;
             disp_str = furi_string_alloc_set(item->label);
-            elements_string_fit_width(canvas, disp_str, item_width - (6 * 2));
-
-            canvas_draw_str(
+            size_t width = item_width - x_txt_start - 2;
+            width -= item->is_link ? 2 : 0;
+            elements_scrollable_text_line(
                 canvas,
-                x_txt_start, // 6
+                x_txt_start,
                 y_offset + (item_position * item_height) + item_height - 4,
-                furi_string_get_cstr(disp_str));
+                width,
+                disp_str,
+                scroll_counter,
+                false);
             furi_string_free(disp_str);
+
+            // draw a link indicator/glyph/icon thing
+            if(item->is_link) {
+                // canvas_draw_line(
+                //     canvas,
+                //     item_width - 3,
+                //     y_offset + (item_position * item_height) + 3,
+                //     item_width - 3,
+                //     y_offset + (item_position * item_height) + item_height - 4);
+
+                canvas_draw_dot(
+                    canvas, item_width - 3, y_offset + (item_position * item_height) + 6);
+                canvas_draw_dot(
+                    canvas, item_width - 3, y_offset + (item_position * item_height) + 8);
+                canvas_draw_dot(
+                    canvas, item_width - 3, y_offset + (item_position * item_height) + 10);
+            }
         }
         position++;
     }
@@ -139,10 +201,16 @@ static void action_menu_draw_portrait(Canvas* canvas, ActionMenuModel* model) {
     }
 
     if(have_header) {
+        // Center the header if it fits, otherwise left-justify
         canvas_set_font(canvas, FontPrimary);
-        elements_string_fit_width(canvas, model->header, ITEM_WIDTH - 6);
-        canvas_draw_str_aligned(
-            canvas, 32, 10, AlignCenter, AlignCenter, furi_string_get_cstr(model->header));
+        uint16_t width = canvas_string_width(canvas, furi_string_get_cstr(model->header));
+        if(width <= ITEM_WIDTH) {
+            canvas_draw_str_aligned(
+                canvas, 32, 10, AlignCenter, AlignCenter, furi_string_get_cstr(model->header));
+        } else {
+            canvas_draw_str_aligned(
+                canvas, 0, 10, AlignLeft, AlignCenter, furi_string_get_cstr(model->header));
+        }
     }
     canvas_set_font(canvas, FontSecondary);
 
@@ -176,16 +244,37 @@ static void action_menu_draw_portrait(Canvas* canvas, ActionMenuModel* model) {
                 canvas_draw_icon(canvas, 3, item_y + 2, ActionMenuIcons[item->type]);
             }
 
+            size_t scroll_counter = get_adjusted_scroll_counter(selected, model->scroll_counter);
+
             FuriString* disp_str;
             disp_str = furi_string_alloc_set(item->label);
-            elements_string_fit_width(canvas, disp_str, ITEM_WIDTH - 6);
-
-            canvas_draw_str(
+            size_t width = ITEM_WIDTH - x_txt_start - 1;
+            width -= item->is_link ? 2 : 0;
+            elements_scrollable_text_line(
                 canvas,
                 x_txt_start,
                 item_y + (ITEM_HEIGHT / 2) + 3,
-                furi_string_get_cstr(disp_str));
+                width,
+                disp_str,
+                scroll_counter,
+                false);
             furi_string_free(disp_str);
+
+            // draw a link indicator/glyph/icon thing
+            if(item->is_link) {
+                // top-line, 2 rows
+                // canvas_draw_line(canvas, ITEM_WIDTH - 6, item_y, ITEM_WIDTH - 1, item_y);
+                // canvas_draw_line(canvas, ITEM_WIDTH - 6, item_y + 1, ITEM_WIDTH - 1, item_y + 1);
+
+                // single vertical line
+                // canvas_draw_line(
+                //     canvas, ITEM_WIDTH - 3, item_y + 2, ITEM_WIDTH - 3, item_y + ITEM_HEIGHT - 3);
+
+                // 3 vertical dots
+                canvas_draw_dot(canvas, ITEM_WIDTH - 3, item_y + 4);
+                canvas_draw_dot(canvas, ITEM_WIDTH - 3, item_y + 6);
+                canvas_draw_dot(canvas, ITEM_WIDTH - 3, item_y + 8);
+            }
         }
     }
 }
@@ -230,6 +319,7 @@ static void action_menu_process_up(ActionMenu* action_menu) {
                     }
                 }
             }
+            model->scroll_counter = 0;
         },
         true);
 }
@@ -261,6 +351,7 @@ static void action_menu_process_down(ActionMenu* action_menu) {
                     model->window_position = 0;
                 }
             }
+            model->scroll_counter = 0;
         },
         true);
 }
@@ -428,6 +519,11 @@ ActionMenu* action_menu_alloc(void) {
     view_allocate_model(action_menu->view, ViewModelTypeLocking, sizeof(ActionMenuModel));
     view_set_draw_callback(action_menu->view, action_menu_view_draw_callback);
     view_set_input_callback(action_menu->view, action_menu_view_input_callback);
+    view_set_enter_callback(action_menu->view, action_menu_view_enter_callback);
+    view_set_exit_callback(action_menu->view, action_menu_view_exit_callback);
+
+    action_menu->scroll_timer =
+        furi_timer_alloc(action_menu_scroll_timer_callback, FuriTimerTypePeriodic, action_menu);
 
     with_view_model(
         action_menu->view,
@@ -463,6 +559,7 @@ void action_menu_free(ActionMenu* action_menu) {
         },
         true);
     view_free(action_menu->view);
+    furi_timer_free(action_menu->scroll_timer);
     free(action_menu);
 }
 
@@ -526,4 +623,9 @@ void action_menu_set_selected_item(ActionMenu* action_menu, uint32_t index) {
             },
             true);
     }
+}
+
+void action_menu_item_set_link(ActionMenuItem* action_item, bool is_link) {
+    furi_assert(action_item);
+    action_item->is_link = is_link;
 }

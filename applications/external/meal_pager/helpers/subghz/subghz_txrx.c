@@ -30,7 +30,7 @@ static void subghz_txrx_radio_device_power_off(SubGhzTxRx* instance) {
 SubGhzTxRx* subghz_txrx_alloc() {
     SubGhzTxRx* instance = malloc(sizeof(SubGhzTxRx));
     instance->setting = subghz_setting_alloc();
-    subghz_setting_load(instance->setting, EXT_PATH("subghz/assets/setting_user"));
+    subghz_setting_load(instance->setting, EXT_PATH("subghz/assets/setting_user.txt"));
 
     instance->preset = malloc(sizeof(SubGhzRadioPreset));
     instance->preset->name = furi_string_alloc();
@@ -126,6 +126,8 @@ const char* subghz_txrx_get_preset_name(SubGhzTxRx* instance, const char* preset
         preset_name = "AM650";
     } else if(!strcmp(preset, "FuriHalSubGhzPreset2FSKDev238Async")) {
         preset_name = "FM238";
+    } else if(!strcmp(preset, "FuriHalSubGhzPreset2FSKDev12KAsync")) {
+        preset_name = "FM12K";
     } else if(!strcmp(preset, "FuriHalSubGhzPreset2FSKDev476Async")) {
         preset_name = "FM476";
     } else if(!strcmp(preset, "FuriHalSubGhzPresetCustom")) {

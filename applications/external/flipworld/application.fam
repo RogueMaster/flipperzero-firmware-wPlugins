@@ -1,0 +1,14 @@
+App(
+    appid="flip_world",
+    name="FlipWorld",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flip_world_main",
+    stack_size=4 * 1024,
+    fap_icon="app.png",
+    fap_icon_assets="assets",
+    fap_category="GPIO/ESP32",
+    fap_author="JBlanked",
+    fap_weburl="https://github.com/jblanked/FlipWorld",
+    fap_version="1.0.4",
+    fap_description="The first open-world multiplayer game, best played with the VGM.",
+)

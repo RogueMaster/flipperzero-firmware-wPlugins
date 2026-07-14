@@ -1,0 +1,16 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "extra-files": [
+        "include/version.h",
+        {
+          "type": "generic",
+          "path": "application.fam"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "components": [
+    {
+      "partno": "24CXX",
+      "desc": "EEPROM memory for data storage.",
+      "type": 18,
+      "manufacturer": "Microchip",
+      "date": "2005"
+    }
+  ],
+  "unique_types": [
+    18
+  ]
+}

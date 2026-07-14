@@ -6,7 +6,6 @@ App(
     stack_size=2 * 1024,
     fap_category="GPIO/Sensors",
     fap_icon="gas_sensor.png",
-    fap_icon_assets="images",
     fap_author="iancohee",
     fap_weburl="https://github.com/iancohee/gas_sensor_fap",
     fap_version="0.1",

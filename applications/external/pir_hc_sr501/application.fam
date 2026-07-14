@@ -1,0 +1,13 @@
+App(
+    appid="pir_hc_sr501_alarm",
+    name="PIR HC-SR501 Alarm",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="pir_alarm_app",
+    stack_size=2 * 1024,
+    fap_icon="pir_hcsr501.png",
+    fap_category="GPIO",
+    fap_author="ku6a-cj",
+    fap_weburl="https://github.com/ku6a-cj/-PIR-HC-SR501-Proximity-alarm-Flipper-zero",
+    fap_version="0.1",
+    fap_description="Simple proximity alarm app for Flipper Zero using HC-SR501 PIR sensor.",
+)

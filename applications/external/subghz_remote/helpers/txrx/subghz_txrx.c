@@ -41,6 +41,8 @@ SubGhzTxRx* subghz_txrx_alloc(void) {
     subghz_txrx_speaker_set_state(instance, SubGhzSpeakerStateDisable);
     subghz_txrx_set_debug_pin_state(instance, false);
 
+    instance->custom_button = 0;
+
     instance->worker = subghz_worker_alloc();
     instance->fff_data = flipper_format_string_alloc();
 
@@ -122,6 +124,8 @@ const char* subghz_txrx_get_preset_name(SubGhzTxRx* instance, const char* preset
         preset_name = "AM650";
     } else if(!strcmp(preset, "FuriHalSubGhzPreset2FSKDev238Async")) {
         preset_name = "FM238";
+    } else if(!strcmp(preset, "FuriHalSubGhzPreset2FSKDev12KAsync")) {
+        preset_name = "FM12K";
     } else if(!strcmp(preset, "FuriHalSubGhzPreset2FSKDev476Async")) {
         preset_name = "FM476";
     } else if(!strcmp(preset, "FuriHalSubGhzPresetCustom")) {
@@ -229,6 +233,31 @@ static bool subghz_txrx_tx(SubGhzTxRx* instance, uint32_t frequency) {
     return ret;
 }
 
+static SubGhzProtocolStatus subghz_txrx_deserialize_transmitter_set_button(
+    SubGhzTxRx* instance,
+    FlipperFormat* flipper_format) {
+    furi_assert(instance);
+    furi_assert(flipper_format);
+
+    // Call deserialize a first time to allow or not custom buttons
+    SubGhzProtocolStatus ret =
+        subghz_transmitter_deserialize(instance->transmitter, flipper_format);
+    if(ret != SubGhzProtocolStatusOk) {
+        return ret;
+    }
+
+#ifndef FW_ORIGIN_Official
+    uint8_t button = subghz_txrx_custom_button_get(instance);
+    if(subghz_custom_btn_is_allowed()) {
+        subghz_custom_btn_set(button);
+        // Call deserialize a second time to apply button changes.
+        ret = subghz_transmitter_deserialize(instance->transmitter, flipper_format);
+    }
+#endif
+
+    return ret;
+}
+
 SubGhzTxRxStartTxState subghz_txrx_tx_start(SubGhzTxRx* instance, FlipperFormat* flipper_format) {
     furi_assert(instance);
     furi_assert(flipper_format);
@@ -258,7 +287,7 @@ SubGhzTxRxStartTxState subghz_txrx_tx_start(SubGhzTxRx* instance, FlipperFormat*
             subghz_transmitter_alloc_init(instance->environment, furi_string_get_cstr(temp_str));
 
         if(instance->transmitter) {
-            if(subghz_transmitter_deserialize(instance->transmitter, flipper_format) ==
+            if(subghz_txrx_deserialize_transmitter_set_button(instance, flipper_format) ==
                SubGhzProtocolStatusOk) {
                 if(strcmp(furi_string_get_cstr(preset->name), "") != 0) {
                     subghz_txrx_begin(
@@ -440,6 +469,21 @@ void subghz_txrx_hopper_pause(SubGhzTxRx* instance) {
     if(instance->hopper_state == SubGhzHopperStateRunning) {
         instance->hopper_state = SubGhzHopperStatePause;
     }
+}
+
+uint8_t subghz_txrx_custom_button_get(SubGhzTxRx* instance) {
+    furi_assert(instance);
+    return instance->custom_button;
+}
+
+void subghz_txrx_custom_button_set(SubGhzTxRx* instance, uint8_t button) {
+    furi_assert(instance);
+    instance->custom_button = button;
+}
+
+void subghz_txrx_custom_button_reset(SubGhzTxRx* instance) {
+    furi_assert(instance);
+    instance->custom_button = 0;
 }
 
 void subghz_txrx_speaker_on(SubGhzTxRx* instance) {

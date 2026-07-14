@@ -1,0 +1,14 @@
+App(
+    appid="mind_probe",
+    name="Mind Probe",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="mind_probe_app",
+    stack_size=4 * 1024,
+    fap_icon="icon.png",
+    fap_file_assets=".db",
+    fap_category="Games",
+    fap_author="Miksang",
+    fap_weburl="https://github.com/Miksang/flipper_guessing_game",
+    fap_version="0.1",
+    fap_description="This is a simple version of the online game Akinator/20 Questions I first saw reddit user EscanorSensi asking if a 20 question style game could be implemented on the flipper and it got me thinking.",
+)

@@ -1,4 +1,5 @@
 #include "../u2f_app_i.h"
+#include <cfw/cfw.h>
 
 static void u2f_scene_error_event_callback(GuiButtonType result, InputType type, void* context) {
     furi_assert(context);
@@ -24,18 +25,6 @@ void u2f_scene_error_on_enter(void* context) {
             "No SD card or\napp data found.\nThis app will not\nwork without\nrequired files.");
         widget_add_button_element(
             app->widget, GuiButtonTypeLeft, "Back", u2f_scene_error_event_callback, app);
-    } else if(app->error == U2fAppErrorCloseRpc) {
-        widget_add_icon_element(app->widget, 78, 0, &I_ActiveConnection_50x64);
-        widget_add_string_multiline_element(
-            app->widget, 3, 2, AlignLeft, AlignTop, FontPrimary, "Connection\nIs Active!");
-        widget_add_string_multiline_element(
-            app->widget,
-            3,
-            30,
-            AlignLeft,
-            AlignTop,
-            FontSecondary,
-            "Disconnect from\nPC or phone to\nuse this function.");
     }
 
     view_dispatcher_switch_to_view(app->view_dispatcher, U2fAppViewError);

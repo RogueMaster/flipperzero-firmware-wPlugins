@@ -1,0 +1,22 @@
+{
+  "components": [
+    {
+      "partno": "24CXX",
+      "desc": "EEPROM memory for data storage.",
+      "type": 18,
+      "manufacturer": "Microchip",
+      "date": "2005"
+    },
+    {
+      "partno": "ADXL345",
+      "desc": "3-axis accelerometer.",
+      "type": 1,
+      "manufacturer": "Analog Dev.",
+      "date": "2007"
+    }
+  ],
+  "unique_types": [
+    18,
+    1
+  ]
+}

@@ -1,0 +1,65 @@
+Before entering the main menu, the Flipper tries to reset and auto-detect the MCP2515.
+
+Main menu:
+	- Read CAN messages
+	- View saved CAN message captures
+	- Send custom CAN messages
+	- OBD-II mode
+	- Setup
+	- Wiring Guide
+	- About
+
+Read CAN messages:
+	- TODO
+
+View saved CAN message captures:
+	- TODO
+
+Send custom CAN messages:
+	- TODO
+
+Config:
+	- Baud Rate: 125 / 250 / 500 kbps / 1 Mbps / auto-detect
+	- Crystal frequency: 16 MHz
+	- Sleep after timeout: never / 5 / 10 / 30 / 60 seconds
+	- Listen-Only mode (Rx): on / off
+	- Frame identifier type (Tx): standard (11 bit ID) / extended (29 bit ID)
+	- Number of data bytes: 8 / 7 / 6 / 5 / 4 / 3 / 2 / 1 / 0
+	- Send one-shot messages: on / off
+	- TO BE DONE LATER:
+		- Use Rx filters: on / off
+		- Filters (Rx)
+		- Loopback mode?
+
+SPI interface commands:
+	- RESET
+	- READ
+	- READ RX BUFFER
+	- WRITE
+	- LOAD TX BUFFER
+	- RTS
+	- READ STATUS
+	- RX STATUS
+	- BIT MODIFY
+SPI clock speed is max 10 MHz.
+
+Bitrate configuration on the MCP2515 seems a bit complex.
+This might help for the baudrate values, see _BAUD_RATES:
+	https://github.com/adafruit/Adafruit_CircuitPython_MCP2515/blob/main/adafruit_mcp2515/__init__.py
+It also references this bit timing calculator:
+	https://www.kvaser.com/support/calculators/bit-timing-calculator/
+The PiCowbell has a 16 MHz oscillator.
+
+If I intend to use the transceiver with an OBD-II connector, I need to cut the terminator jumper on the board.
+
+Transmit scene:
+	- Show the following:
+		- Frame ID
+		- Frame data
+		- Status
+	- Center - send message
+	- Up - edit frame ID
+	- Left - edit frame data
+	- Right - save frame
+	- Down - reset MCP2515
+

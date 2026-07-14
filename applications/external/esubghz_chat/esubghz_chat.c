@@ -675,8 +675,6 @@ int32_t esubghz_chat(const char* args) {
     view_port_input_callback_set(
         state->view_dispatcher->view_port, esubghz_hooked_input_callback, state);
 
-    view_dispatcher_enable_queue(state->view_dispatcher);
-
     /* set callbacks for view dispatcher */
     view_dispatcher_set_event_callback_context(state->view_dispatcher, state);
     view_dispatcher_set_custom_event_callback(

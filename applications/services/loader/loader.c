@@ -4,14 +4,13 @@
 #include <storage/storage.h>
 #include <furi_hal.h>
 #include <assets_icons.h>
+
 #include <dialogs/dialogs.h>
 #include <toolbox/path.h>
 #include <flipper_application/flipper_application.h>
 #include <loader/firmware_api/firmware_api.h>
-#include <toolbox/stream/file_stream.h>
-#include <core/dangerous_defines.h>
-#include <gui/icon_i.h>
-#include <cfw/cfw.h>
+
+#include <cfw/asset_packs.h>
 
 #define TAG "Loader"
 
@@ -19,19 +18,16 @@
 
 // helpers
 
-static const char*
-    loader_find_external_application_by_name(const char* app_name, FlipperApplicationFlag* flags) {
+static const char* loader_find_external_application_by_name(const char* app_name) {
     for(size_t i = 0; i < FLIPPER_EXTERNAL_APPS_COUNT; i++) {
         if(strcmp(FLIPPER_EXTERNAL_APPS[i].name, app_name) == 0) {
-            if(flags) *flags = FLIPPER_EXTERNAL_APPS[i].flags;
             return FLIPPER_EXTERNAL_APPS[i].path;
         }
     }
 
-    for(size_t i = 0; i < FLIPPER_EXTSETTINGS_APPS_COUNT; i++) {
-        if(strcmp(FLIPPER_EXTSETTINGS_APPS[i].name, app_name) == 0) {
-            if(flags) *flags = FLIPPER_EXTSETTINGS_APPS[i].flags;
-            return FLIPPER_EXTSETTINGS_APPS[i].path;
+    for(size_t i = 0; i < FLIPPER_SETTINGS_APPS_COUNT; i++) {
+        if(strcmp(FLIPPER_SETTINGS_APPS[i].name, app_name) == 0) {
+            return FLIPPER_SETTINGS_APPS[i].path;
         }
     }
 
@@ -76,9 +72,9 @@ static const LoaderError err_missing_imports =
     {"Missing Imports", "Update app or firmware", "err_04", &I_err_04};
 static const LoaderError err_hw_target_mismatch =
     {"HW Target\nMismatch", "App not supported", "err_05", &I_err_05};
-/*static const LoaderError err_outdated_app = {"Outdated App", "Update the app", "err_06", &I_err_06};
+static const LoaderError err_outdated_app = {"Outdated App", "Update the app", "err_06", &I_err_06};
 static const LoaderError err_outdated_firmware =
-    {"Outdated\nFirmware", "Update firmware", "err_07", &I_err_07};*/
+    {"Outdated\nFirmware", "Update firmware", "err_07", &I_err_07};
 
 static void loader_dialog_prepare_and_show(DialogsApp* dialogs, const LoaderError* err) {
     FuriString* header = furi_string_alloc_printf("Error: %s", err->error);
@@ -95,20 +91,32 @@ static void loader_dialog_prepare_and_show(DialogsApp* dialogs, const LoaderErro
     furi_string_free(header);
     furi_string_free(text);
 }
+
 static void loader_show_gui_error(
     LoaderMessageLoaderStatusResult status,
     const char* name,
     FuriString* error_message) {
+    furi_check(name);
     DialogsApp* dialogs = furi_record_open(RECORD_DIALOGS);
     DialogMessage* message = dialog_message_alloc();
 
     if(status.value == LoaderStatusErrorUnknownApp &&
-       loader_find_external_application_by_name(name, NULL) != NULL) {
+       loader_find_external_application_by_name(name) != NULL) {
         // Special case for external apps
-        dialog_message_set_header(message, "Update needed", 64, 3, AlignCenter, AlignTop);
+        const char* header = NULL;
+        const char* text = NULL;
+        Storage* storage = furi_record_open(RECORD_STORAGE);
+        if(storage_sd_status(storage) == FSE_OK) {
+            header = "Update needed";
+            text = "Reinstall firmware\nto run this app";
+        } else {
+            header = "SD card needed";
+            text = "Install SD card\nto run this app";
+        }
+        furi_record_close(RECORD_STORAGE);
+        dialog_message_set_header(message, header, 64, 3, AlignCenter, AlignTop);
         dialog_message_set_icon(message, &I_WarningDolphinFlip_45x42, 83, 22);
-        dialog_message_set_text(
-            message, "Update firmware\nto run this app", 3, 26, AlignLeft, AlignTop);
+        dialog_message_set_text(message, text, 3, 26, AlignLeft, AlignTop);
         dialog_message_show(dialogs, message);
     } else if(status.value == LoaderStatusErrorUnknownApp) {
         loader_dialog_prepare_and_show(dialogs, &err_app_not_found);
@@ -128,12 +136,12 @@ static void loader_show_gui_error(
         case LoaderStatusErrorHWMismatch:
             loader_dialog_prepare_and_show(dialogs, &err_hw_target_mismatch);
             break;
-        /*case LoaderStatusErrorOutdatedApp:
+        case LoaderStatusErrorOutdatedApp:
             loader_dialog_prepare_and_show(dialogs, &err_outdated_app);
             break;
         case LoaderStatusErrorOutdatedFirmware:
             loader_dialog_prepare_and_show(dialogs, &err_outdated_firmware);
-            break;*/
+            break;
         case LoaderStatusErrorOutOfMemory:
             dialog_message_set_header(
                 message, "Error: Out of Memory", 64, 0, AlignCenter, AlignTop);
@@ -166,6 +174,13 @@ static void loader_show_gui_error(
 
     dialog_message_free(message);
     furi_record_close(RECORD_DIALOGS);
+}
+
+static void loader_generic_synchronous_request(Loader* loader, LoaderMessage* message) {
+    furi_check(loader);
+    message->api_lock = api_lock_alloc_locked();
+    furi_message_queue_put(loader->queue, message, FuriWaitForever);
+    api_lock_wait_unlock_and_free(message->api_lock);
 }
 
 LoaderStatus
@@ -203,16 +218,12 @@ void loader_start_detached_with_gui_error(Loader* loader, const char* name, cons
 }
 
 bool loader_lock(Loader* loader) {
-    furi_check(loader);
-
-    LoaderMessage message;
     LoaderMessageBoolResult result;
-    message.type = LoaderMessageTypeLock;
-    message.api_lock = api_lock_alloc_locked();
-    message.bool_value = &result;
-    furi_message_queue_put(loader->queue, &message, FuriWaitForever);
-    api_lock_wait_unlock_and_free(message.api_lock);
-
+    LoaderMessage message = {
+        .type = LoaderMessageTypeLock,
+        .bool_value = &result,
+    };
+    loader_generic_synchronous_request(loader, &message);
     return result.value;
 }
 
@@ -226,16 +237,12 @@ void loader_unlock(Loader* loader) {
 }
 
 bool loader_is_locked(Loader* loader) {
-    furi_check(loader);
-
-    LoaderMessage message;
     LoaderMessageBoolResult result;
-    message.type = LoaderMessageTypeIsLocked;
-    message.api_lock = api_lock_alloc_locked();
-    message.bool_value = &result;
-    furi_message_queue_put(loader->queue, &message, FuriWaitForever);
-    api_lock_wait_unlock_and_free(message.api_lock);
-
+    LoaderMessage message = {
+        .type = LoaderMessageTypeIsLocked,
+        .bool_value = &result,
+    };
+    loader_generic_synchronous_request(loader, &message);
     return result.value;
 }
 
@@ -248,9 +255,12 @@ void loader_show_menu(Loader* loader) {
     furi_message_queue_put(loader->queue, &message, FuriWaitForever);
 }
 
-void loader_show_gamesmenu(Loader* loader) {
+void loader_show_settings(Loader* loader) {
+    furi_check(loader);
+
     LoaderMessage message;
-    message.type = LoaderMessageTypeShowGamesMenu;
+    message.type = LoaderMessageTypeShowSettings;
+
     furi_message_queue_put(loader->queue, &message, FuriWaitForever);
 }
 
@@ -262,51 +272,62 @@ FuriPubSub* loader_get_pubsub(Loader* loader) {
     return loader->pubsub;
 }
 
-MainMenuList_t* loader_get_mainmenu_apps(Loader* loader) {
-    furi_assert(loader);
-    return &loader->mainmenu_apps;
-}
-
-GamesMenuList_t* loader_get_gamesmenu_apps(Loader* loader) {
-    furi_assert(loader);
-    return &loader->gamesmenu_apps;
-}
-
 bool loader_signal(Loader* loader, uint32_t signal, void* arg) {
-    furi_check(loader);
-
     LoaderMessageBoolResult result;
-
     LoaderMessage message = {
         .type = LoaderMessageTypeSignal,
-        .api_lock = api_lock_alloc_locked(),
         .signal.signal = signal,
         .signal.arg = arg,
         .bool_value = &result,
     };
-
-    furi_message_queue_put(loader->queue, &message, FuriWaitForever);
-    api_lock_wait_unlock_and_free(message.api_lock);
-
+    loader_generic_synchronous_request(loader, &message);
     return result.value;
 }
 
 bool loader_get_application_name(Loader* loader, FuriString* name) {
-    furi_check(loader);
-
     LoaderMessageBoolResult result;
-
     LoaderMessage message = {
         .type = LoaderMessageTypeGetApplicationName,
-        .api_lock = api_lock_alloc_locked(),
         .application_name = name,
         .bool_value = &result,
     };
-
-    furi_message_queue_put(loader->queue, &message, FuriWaitForever);
-    api_lock_wait_unlock_and_free(message.api_lock);
-
+    loader_generic_synchronous_request(loader, &message);
     return result.value;
+}
+
+bool loader_get_application_launch_path(Loader* loader, FuriString* name) {
+    LoaderMessageBoolResult result;
+    LoaderMessage message = {
+        .type = LoaderMessageTypeGetApplicationLaunchPath,
+        .application_name = name,
+        .bool_value = &result,
+    };
+    loader_generic_synchronous_request(loader, &message);
+    return result.value;
+}
+
+void loader_enqueue_launch(
+    Loader* loader,
+    const char* name,
+    const char* args,
+    LoaderDeferredLaunchFlag flags) {
+    LoaderMessage message = {
+        .type = LoaderMessageTypeEnqueueLaunch,
+        .defer_start =
+            {
+                .name_or_path = strdup(name),
+                .args = args ? strdup(args) : NULL,
+                .flags = flags,
+            },
+    };
+    loader_generic_synchronous_request(loader, &message);
+}
+
+void loader_clear_launch_queue(Loader* loader) {
+    LoaderMessage message = {
+        .type = LoaderMessageTypeClearLaunchQueue,
+    };
+    loader_generic_synchronous_request(loader, &message);
 }
 
 // callbacks
@@ -325,282 +346,30 @@ static void loader_applications_closed_callback(void* context) {
     furi_message_queue_put(loader->queue, &message, FuriWaitForever);
 }
 
-static void loader_thread_state_callback(FuriThreadState thread_state, void* context) {
+static void
+    loader_thread_state_callback(FuriThread* thread, FuriThreadState thread_state, void* context) {
+    UNUSED(thread);
     furi_assert(context);
 
-    Loader* loader = context;
-
     if(thread_state == FuriThreadStateStopped) {
+        Loader* loader = context;
+
         LoaderMessage message;
         message.type = LoaderMessageTypeAppClosed;
         furi_message_queue_put(loader->queue, &message, FuriWaitForever);
     }
 }
 
-bool loader_menu_load_fap_meta(
-    Storage* storage,
-    FuriString* path,
-    FuriString* name,
-    const Icon** icon) {
-    *icon = NULL;
-    uint8_t* icon_buf = malloc(CUSTOM_ICON_MAX_SIZE);
-    if(!flipper_application_load_name_and_icon(path, storage, &icon_buf, name)) {
-        free(icon_buf);
-        icon_buf = NULL;
-        return false;
-    }
-    *icon = malloc(sizeof(Icon));
-    FURI_CONST_ASSIGN((*icon)->frame_count, 1);
-    FURI_CONST_ASSIGN((*icon)->frame_rate, 0);
-    FURI_CONST_ASSIGN((*icon)->width, 10);
-    FURI_CONST_ASSIGN((*icon)->height, 10);
-    FURI_CONST_ASSIGN_PTR((*icon)->frames, malloc(sizeof(const uint8_t*)));
-    FURI_CONST_ASSIGN_PTR((*icon)->frames[0], icon_buf);
-    return true;
-}
-
-static void loader_make_mainmenu_file(Storage* storage) {
-    Stream* new = file_stream_alloc(storage);
-    if(!storage_file_exists(storage, CFW_MENU_PATH)) {
-        if(file_stream_open(new, CFW_MENU_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-            stream_write_format(new, "MainMenuList Version %u\n", 0);
-            stream_write_format(new, "%s\n", LOADER_APPLICATIONS_NAME);
-            for(size_t i = 0; i < FLIPPER_APPS_COUNT; i++) {
-                stream_write_format(new, "%s\n", FLIPPER_APPS[i].name);
-            }
-            for(size_t i = 0; i < FLIPPER_EXTERNAL_APPS_COUNT; i++) {
-                stream_write_format(new, "%s\n", FLIPPER_EXTERNAL_APPS[i].name);
-            }
-            stream_write_format(new, "Settings\n");
-        }
-        file_stream_close(new);
-    }
-    file_stream_close(new);
-    stream_free(new);
-}
-
-static void loader_make_gamesmenu_file(Storage* storage) {
-    if(!storage_file_exists(storage, CFW_MENU_GAMESMODE_PATH) &&
-       storage_file_exists(storage, EXT_PATH("apps_assets/dab_timer/cfw_gamesmenu.default.txt"))) {
-        storage_common_copy(
-            storage,
-            EXT_PATH("apps_assets/dab_timer/cfw_gamesmenu.default.txt"),
-            CFW_MENU_GAMESMODE_PATH);
-    }
-}
+// implementation
 
 static Loader* loader_alloc(void) {
     Loader* loader = malloc(sizeof(Loader));
     loader->pubsub = furi_pubsub_alloc();
     loader->queue = furi_message_queue_alloc(1, sizeof(LoaderMessage));
-    loader->loader_menu = NULL;
-    loader->loader_applications = NULL;
-    loader->app.args = NULL;
-    loader->app.thread = NULL;
-    loader->app.insomniac = false;
-    loader->app.fap = NULL;
-    MainMenuList_init(loader->mainmenu_apps);
-    GamesMenuList_init(loader->gamesmenu_apps);
-
-    if(!furi_hal_is_normal_boot()) return loader;
-
-    //Populate main menu list from file
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    Stream* stream = file_stream_alloc(storage);
-    FuriString* line = furi_string_alloc();
-    FuriString* name = furi_string_alloc();
-    do {
-        if(!file_stream_open(stream, CFW_MENU_PATH, FSAM_READ_WRITE, FSOM_OPEN_EXISTING)) {
-            file_stream_close(stream);
-            loader_make_mainmenu_file(storage);
-            if(!file_stream_open(stream, CFW_MENU_PATH, FSAM_READ_WRITE, FSOM_OPEN_EXISTING))
-                break;
-        }
-
-        uint32_t version;
-        if(!stream_read_line(stream, line) ||
-           sscanf(furi_string_get_cstr(line), "MainMenuList Version %lu", &version) != 1 ||
-           version > 0) {
-            file_stream_close(stream);
-            storage_common_remove(storage, CFW_MENU_PATH);
-            loader_make_mainmenu_file(storage);
-            if(!file_stream_open(stream, CFW_MENU_PATH, FSAM_READ_WRITE, FSOM_OPEN_EXISTING))
-                break;
-            if(!stream_read_line(stream, line) ||
-               sscanf(furi_string_get_cstr(line), "MainMenuList Version %lu", &version) != 1 ||
-               version > 0)
-                break;
-        }
-
-        while(stream_read_line(stream, line)) {
-            furi_string_replace_all(line, "\r", "");
-            furi_string_replace_all(line, "\n", "");
-            const char* label = NULL;
-            const Icon* icon = NULL;
-            const char* path = NULL;
-            if(storage_file_exists(storage, furi_string_get_cstr(line))) {
-                if(loader_menu_load_fap_meta(storage, line, name, &icon)) {
-                    label = strdup(furi_string_get_cstr(name));
-                    path = strdup(furi_string_get_cstr(line));
-                }
-            } else {
-                for(size_t i = 0; !path && i < FLIPPER_APPS_COUNT; i++) {
-                    if(!strcmp(furi_string_get_cstr(line), FLIPPER_APPS[i].name)) {
-                        label = FLIPPER_APPS[i].name;
-                        icon = FLIPPER_APPS[i].icon;
-                        path = FLIPPER_APPS[i].name;
-                    }
-                }
-                for(size_t i = 0; !path && i < FLIPPER_EXTERNAL_APPS_COUNT; i++) {
-                    if(!strcmp(furi_string_get_cstr(line), FLIPPER_EXTERNAL_APPS[i].name)) {
-                        label = FLIPPER_EXTERNAL_APPS[i].name;
-                        icon = FLIPPER_EXTERNAL_APPS[i].icon;
-                        path = FLIPPER_EXTERNAL_APPS[i].name;
-                    }
-                }
-            }
-
-            if(!path && strcmp(furi_string_get_cstr(line), LOADER_APPLICATIONS_NAME) == 0) {
-                label = strdup(LOADER_APPLICATIONS_NAME);
-                icon = &A_Plugins_14;
-                path = strdup(LOADER_APPLICATIONS_NAME);
-            }
-
-            //Failsafe "Apps" in case of older config
-            if(!path && strcmp(furi_string_get_cstr(line), "Applications") == 0) {
-                label = strdup(LOADER_APPLICATIONS_NAME);
-                icon = &A_Plugins_14;
-                path = strdup(LOADER_APPLICATIONS_NAME);
-            }
-
-            if(!path && strcmp(furi_string_get_cstr(line), "Settings") == 0) {
-                label = "Settings";
-                icon = &A_Settings_14;
-                path = "Settings";
-            }
-
-            if(label && path && icon) {
-                MainMenuList_push_back(
-                    loader->mainmenu_apps,
-                    (MainMenuApp){.name = label, .path = path, .icon = icon});
-            }
-        }
-
-    } while(false);
-
-    //Manually add CFW Settings and Settings to the mainmenu if under 2 apps are present.
-    if(MainMenuList_size(loader->mainmenu_apps) < 2) {
-        for(size_t i = 0; i < FLIPPER_EXTERNAL_APPS_COUNT; i++) {
-            if(strcmp(FLIPPER_EXTERNAL_APPS[i].name, "CFW Settings") == 0) {
-                MainMenuList_push_back(
-                    loader->mainmenu_apps,
-                    (MainMenuApp){
-                        .name = FLIPPER_EXTERNAL_APPS[i].name,
-                        .icon = FLIPPER_EXTERNAL_APPS[i].icon,
-                        .path = FLIPPER_EXTERNAL_APPS[i].name});
-            }
-        }
-        MainMenuList_push_back(
-            loader->mainmenu_apps,
-            (MainMenuApp){.name = "Settings", .icon = &A_Settings_14, .path = "Settings"});
-    }
-    file_stream_close(stream);
-
-    //Populate game menu list from file
-    furi_string_set(line, "");
-    furi_string_set(name, "");
-    do {
-        if(!file_stream_open(
-               stream, CFW_MENU_GAMESMODE_PATH, FSAM_READ_WRITE, FSOM_OPEN_EXISTING)) {
-            file_stream_close(stream);
-            loader_make_gamesmenu_file(storage);
-            if(!file_stream_open(
-                   stream, CFW_MENU_GAMESMODE_PATH, FSAM_READ_WRITE, FSOM_OPEN_EXISTING))
-                break;
-        }
-
-        uint32_t version;
-        if(!stream_read_line(stream, line) ||
-           sscanf(furi_string_get_cstr(line), "GamesMenuList Version %lu", &version) != 1 ||
-           version > 0) {
-            file_stream_close(stream);
-            storage_common_remove(storage, CFW_MENU_GAMESMODE_PATH);
-            loader_make_mainmenu_file(storage);
-            if(!file_stream_open(
-                   stream, CFW_MENU_GAMESMODE_PATH, FSAM_READ_WRITE, FSOM_OPEN_EXISTING))
-                break;
-            if(!stream_read_line(stream, line) ||
-               sscanf(furi_string_get_cstr(line), "GamesMenuList Version %lu", &version) != 1 ||
-               version > 0)
-                break;
-        }
-
-        while(stream_read_line(stream, line)) {
-            furi_string_replace_all(line, "\r", "");
-            furi_string_replace_all(line, "\n", "");
-            const char* label = NULL;
-            const Icon* icon = NULL;
-            const char* path = NULL;
-            if(storage_file_exists(storage, furi_string_get_cstr(line))) {
-                if(loader_menu_load_fap_meta(storage, line, name, &icon)) {
-                    label = strdup(furi_string_get_cstr(name));
-                    path = strdup(furi_string_get_cstr(line));
-                }
-            }
-
-            if(label && path && icon) {
-                GamesMenuList_push_back(
-                    loader->gamesmenu_apps,
-                    (GamesMenuApp){.name = label, .path = path, .icon = icon});
-            }
-        }
-
-    } while(false);
-    file_stream_close(stream);
-    stream_free(stream);
-
-    //Manually add Dice and Snake to the gamesmenu if under 2 apps are present.
-    if(GamesMenuList_size(loader->gamesmenu_apps) < 2) {
-        //Dice
-        furi_string_set(line, "/ext/apps/Games/dice.fap");
-        furi_string_set(name, "");
-        const char* label = NULL;
-        const Icon* icon = NULL;
-        const char* path = NULL;
-        if(storage_file_exists(storage, furi_string_get_cstr(line))) {
-            if(loader_menu_load_fap_meta(storage, line, name, &icon)) {
-                label = strdup(furi_string_get_cstr(name));
-                path = strdup(furi_string_get_cstr(line));
-            }
-        }
-
-        if(label && path && icon) {
-            GamesMenuList_push_back(
-                loader->gamesmenu_apps, (GamesMenuApp){.name = label, .icon = icon, .path = path});
-        }
-
-        //Snake
-        furi_string_set(line, "/ext/apps/Games/snake.fap");
-        furi_string_set(name, "");
-        label = NULL;
-        icon = NULL;
-        path = NULL;
-        if(storage_file_exists(storage, furi_string_get_cstr(line))) {
-            if(loader_menu_load_fap_meta(storage, line, name, &icon)) {
-                label = strdup(furi_string_get_cstr(name));
-                path = strdup(furi_string_get_cstr(line));
-            }
-        }
-
-        if(label && path && icon) {
-            GamesMenuList_push_back(
-                loader->gamesmenu_apps, (GamesMenuApp){.name = label, .icon = icon, .path = path});
-        }
-    }
-
-    furi_string_free(name);
-    furi_string_free(line);
-    furi_record_close(RECORD_STORAGE);
+    loader->gui = furi_record_open(RECORD_GUI);
+    loader->view_holder = view_holder_alloc();
+    loader->loading = loading_alloc();
+    view_holder_attach_to_gui(loader->view_holder, loader->gui);
     return loader;
 }
 
@@ -622,7 +391,6 @@ static const FlipperInternalApplication* loader_find_application_by_name(const c
         const uint32_t count;
     } lists[] = {
         {FLIPPER_APPS, FLIPPER_APPS_COUNT},
-        {FLIPPER_SETTINGS_APPS, FLIPPER_SETTINGS_APPS_COUNT},
         {FLIPPER_SYSTEM_APPS, FLIPPER_SYSTEM_APPS_COUNT},
         {FLIPPER_DEBUG_APPS, FLIPPER_DEBUG_APPS_COUNT},
     };
@@ -668,9 +436,12 @@ static void loader_start_internal_app(
     const FlipperInternalApplication* app,
     const char* args) {
     FURI_LOG_I(TAG, "Starting %s", app->name);
-    LoaderEvent event;
-    event.type = LoaderEventTypeApplicationBeforeLoad;
-    furi_pubsub_publish(loader->pubsub, &event);
+    if(app->flags & FlipperApplicationFlagUnloadAssetPacks) {
+        loader->app.unloaded_asset_packs = true;
+        asset_packs_free();
+    } else {
+        loader->app.unloaded_asset_packs = false;
+    }
 
     // store args
     furi_assert(loader->app.args == NULL);
@@ -738,31 +509,25 @@ static LoaderStatusError
     }
 }
 
-// static LoaderStatusError
-// loader_status_error_from_load_status(FlipperApplicationLoadStatus status) {
-// switch(status) {
-// case FlipperApplicationLoadStatusMissingImports:
-// return LoaderStatusErrorMissingImports;
-// default:
-// return LoaderStatusErrorUnknown;
-// }
-// }
+static LoaderStatusError
+    loader_status_error_from_load_status(FlipperApplicationLoadStatus status) {
+    switch(status) {
+    case FlipperApplicationLoadStatusMissingImports:
+        return LoaderStatusErrorMissingImports;
+    default:
+        return LoaderStatusErrorUnknown;
+    }
+}
 
 static LoaderMessageLoaderStatusResult loader_start_external_app(
     Loader* loader,
     Storage* storage,
     const char* path,
     const char* args,
-    FuriString* error_message,
-    FlipperApplicationFlag flags,
-    bool ignore_mismatch) {
+    FuriString* error_message) {
     LoaderMessageLoaderStatusResult result;
     result.value = loader_make_success_status(error_message);
     result.error = LoaderStatusErrorUnknown;
-
-    LoaderEvent event;
-    event.type = LoaderEventTypeApplicationBeforeLoad;
-    furi_pubsub_publish(loader->pubsub, &event);
 
     do {
         loader->app.fap = flipper_application_alloc(storage, firmware_api_interface);
@@ -770,53 +535,76 @@ static LoaderMessageLoaderStatusResult loader_start_external_app(
 
         FURI_LOG_I(TAG, "Loading %s", path);
 
+        // Calling preload will load whole FAP file, so need to preload manifest first to
+        // get flags value, unload asset packs if requested by flags, then preload whole FAP
+        FlipperApplicationFlag flags = FlipperApplicationFlagDefault;
         FlipperApplicationPreloadStatus preload_res =
-            flipper_application_preload(loader->app.fap, path);
-        if(preload_res != FlipperApplicationPreloadStatusSuccess) {
-            if((preload_res == FlipperApplicationPreloadStatusApiTooOld) ||
-               (preload_res == FlipperApplicationPreloadStatusApiTooNew)) {
-                if(!ignore_mismatch) {
-                    DialogsApp* dialogs = furi_record_open(RECORD_DIALOGS);
-                    DialogMessage* message = dialog_message_alloc();
-                    dialog_message_set_header(
-                        message, "API Mismatch", 64, 0, AlignCenter, AlignTop);
-                    dialog_message_set_buttons(message, NULL, NULL, "Continue");
-                    dialog_message_set_text(
-                        message,
-                        "This app might not\nwork correctly\nContinue anyways?",
-                        64,
-                        32,
-                        AlignCenter,
-                        AlignCenter);
-                    const char* err_msg =
-                        flipper_application_preload_status_to_string(preload_res);
-                    if(dialog_message_show(dialogs, message) == DialogMessageButtonRight) {
-                        result.value = loader_make_status_error(
-                            LoaderStatusErrorInternal,
-                            error_message,
-                            "API Mismatch, %s: %s",
-                            path,
-                            err_msg);
-                        result.error = loader_status_error_from_preload_status(preload_res);
-                    } else {
-                        result.value = loader_make_status_error(
-                            LoaderStatusErrorInternal,
-                            error_message,
-                            "API Mismatch, %s: %s",
-                            path,
-                            err_msg);
-                        result.error = loader_status_error_from_preload_status(preload_res);
-                    }
-                    dialog_message_free(message);
-                    furi_record_close(RECORD_DIALOGS);
-                    break;
-                }
-            } else {
+            flipper_application_preload_manifest(loader->app.fap, path);
+        loader->app.unloaded_asset_packs = false;
+        if(preload_res != FlipperApplicationPreloadStatusInvalidFile &&
+           preload_res != FlipperApplicationPreloadStatusInvalidManifest) {
+            flags = flipper_application_get_manifest(loader->app.fap)->flags;
+            if(flags & FlipperApplicationFlagUnloadAssetPacks) {
+                loader->app.unloaded_asset_packs = true;
+                asset_packs_free();
+            }
+            preload_res = flipper_application_preload(loader->app.fap, path);
+        }
+
+        bool api_mismatch = false;
+        if(preload_res == FlipperApplicationPreloadStatusApiTooOld ||
+           preload_res == FlipperApplicationPreloadStatusApiTooNew) {
+            api_mismatch = true;
+        } else if(preload_res != FlipperApplicationPreloadStatusSuccess) {
+        api_mismatch_bypass_failed:
+            const char* err_msg = flipper_application_preload_status_to_string(preload_res);
+            result.value = loader_make_status_error(
+                LoaderStatusErrorInternal, error_message, "Preload failed, %s: %s", path, err_msg);
+            result.error = loader_status_error_from_preload_status(preload_res);
+            break;
+        }
+
+        FURI_LOG_I(TAG, "Mapping");
+        FlipperApplicationLoadStatus load_status =
+            flipper_application_map_to_memory(loader->app.fap);
+        FURI_LOG_I(TAG, "Loaded in %zums", (size_t)(furi_get_tick() - start));
+        if(load_status != FlipperApplicationLoadStatusSuccess) {
+            if(api_mismatch) goto api_mismatch_bypass_failed;
+            const char* err_msg = flipper_application_load_status_to_string(load_status);
+            result.value = loader_make_status_error(
+                LoaderStatusErrorInternal, error_message, "Load failed, %s: %s", path, err_msg);
+            result.error = loader_status_error_from_load_status(load_status);
+            break;
+        } else if(api_mismatch) {
+            // Successful map, but found api mismatch -> warn user
+            const FlipperApplicationManifest* manifest =
+                flipper_application_get_manifest(loader->app.fap);
+
+            bool app_newer = preload_res == FlipperApplicationPreloadStatusApiTooNew;
+            const char* header = app_newer ? "App Too New" : "App Too Old";
+            char text[63];
+            snprintf(
+                text,
+                sizeof(text),
+                "APP:%i %c FW:%i\nThis app might not work\nContinue anyways?",
+                manifest->base.api_version.major,
+                app_newer ? '>' : '<',
+                firmware_api_interface->api_version_major);
+
+            DialogMessage* message = dialog_message_alloc();
+            dialog_message_set_header(message, header, 64, 0, AlignCenter, AlignTop);
+            dialog_message_set_buttons(message, "Cancel", NULL, "Continue");
+            dialog_message_set_text(message, text, 64, 32, AlignCenter, AlignCenter);
+            DialogMessageButton res =
+                dialog_message_show(furi_record_open(RECORD_DIALOGS), message);
+            dialog_message_free(message);
+            furi_record_close(RECORD_DIALOGS);
+            if(res != DialogMessageButtonRight) {
                 const char* err_msg = flipper_application_preload_status_to_string(preload_res);
                 result.value = loader_make_status_error(
-                    LoaderStatusErrorInternal,
+                    LoaderStatusErrorApiMismatchCanceled, // Not LoaderStatusErrorInternal since it would show another popup
                     error_message,
-                    "Preload failed %s: %s",
+                    "Preload failed, %s: %s",
                     path,
                     err_msg);
                 result.error = loader_status_error_from_preload_status(preload_res);
@@ -824,17 +612,7 @@ static LoaderMessageLoaderStatusResult loader_start_external_app(
             }
         }
 
-        FlipperApplicationLoadStatus load_status =
-            flipper_application_map_to_memory(loader->app.fap);
-        if(load_status != FlipperApplicationLoadStatusSuccess) {
-            const char* err_msg = flipper_application_load_status_to_string(load_status);
-            result.value = loader_make_status_error(
-                LoaderStatusErrorInternal, error_message, "Load failed, %s: %s", path, err_msg);
-            result.error = loader_status_error_from_preload_status(preload_res);
-            break;
-        }
-
-        FURI_LOG_I(TAG, "Loaded in %zums", (size_t)(furi_get_tick() - start));
+        FURI_LOG_I(TAG, "Starting app");
 
         if(flipper_application_is_plugin(loader->app.fap)) {
             result.value = loader_make_status_error(
@@ -862,8 +640,12 @@ static LoaderMessageLoaderStatusResult loader_start_external_app(
     if(result.value != LoaderStatusOk) {
         flipper_application_free(loader->app.fap);
         loader->app.fap = NULL;
+        LoaderEvent event;
         event.type = LoaderEventTypeApplicationLoadFailed;
         furi_pubsub_publish(loader->pubsub, &event);
+        if(loader->app.unloaded_asset_packs) {
+            asset_packs_init();
+        }
     }
 
     return result;
@@ -871,15 +653,10 @@ static LoaderMessageLoaderStatusResult loader_start_external_app(
 
 // process messages
 
-static void loader_do_menu_show(Loader* loader) {
+static void loader_do_menu_show(Loader* loader, bool settings_only) {
     if(!loader->loader_menu) {
-        loader->loader_menu = loader_menu_alloc(loader_menu_closed_callback, loader);
-    }
-}
-
-static void loader_do_gamesmenu_show(Loader* loader) {
-    if(!loader->loader_menu) {
-        loader->loader_menu = loader_gamesmenu_alloc(loader_menu_closed_callback, loader);
+        loader->loader_menu =
+            loader_menu_alloc(loader_menu_closed_callback, loader, settings_only);
     }
 }
 
@@ -917,17 +694,41 @@ static LoaderMessageLoaderStatusResult loader_do_start_by_name(
     status.value = loader_make_success_status(error_message);
     status.error = LoaderStatusErrorUnknown;
 
+    if(name == NULL) return status;
+
     do {
         // check lock
         if(loader_do_is_locked(loader)) {
-            const char* current_thread_name =
-                furi_thread_get_name(furi_thread_get_id(loader->app.thread));
-            status.value = loader_make_status_error(
-                LoaderStatusErrorAppStarted,
-                error_message,
-                "Loader is locked, please close the \"%s\" first",
-                current_thread_name);
+            if(loader->app.thread == (FuriThread*)LOADER_MAGIC_THREAD_VALUE) {
+                status.value = loader_make_status_error(
+                    LoaderStatusErrorAppStarted, error_message, "Loader is locked");
+            } else {
+                const char* current_thread_name =
+                    furi_thread_get_name(furi_thread_get_id(loader->app.thread));
+
+                status.value = loader_make_status_error(
+                    LoaderStatusErrorAppStarted,
+                    error_message,
+                    "Loader is locked, please close the \"%s\" first",
+                    current_thread_name);
+            }
             break;
+        }
+
+        // check Applications
+        if(strcmp(name, LOADER_APPLICATIONS_NAME) == 0) {
+            loader_do_applications_show(loader);
+            status.value = loader_make_success_status(error_message);
+            break;
+        }
+
+        LoaderEvent event;
+        event.type = LoaderEventTypeApplicationBeforeLoad;
+        furi_pubsub_publish(loader->pubsub, &event);
+
+        // Translate app names (mainly for RPC)
+        if(!strncmp(name, "Bad USB", strlen("Bad USB"))) {
+            name = "Bad KB";
         }
 
         // check internal apps
@@ -940,17 +741,9 @@ static LoaderMessageLoaderStatusResult loader_do_start_by_name(
             }
         }
 
-        // check Applications
-        if(strcmp(name, LOADER_APPLICATIONS_NAME) == 0) {
-            loader_do_applications_show(loader);
-            status.value = loader_make_success_status(error_message);
-            break;
-        }
-
         // check External Applications
-        FlipperApplicationFlag flags = FlipperApplicationFlagDefault;
         {
-            const char* path = loader_find_external_application_by_name(name, &flags);
+            const char* path = loader_find_external_application_by_name(name);
             if(path) {
                 name = path;
             }
@@ -960,12 +753,7 @@ static LoaderMessageLoaderStatusResult loader_do_start_by_name(
         {
             Storage* storage = furi_record_open(RECORD_STORAGE);
             if(storage_file_exists(storage, name)) {
-                status = loader_start_external_app(
-                    loader, storage, name, args, error_message, flags, false);
-                if(status.value == LoaderStatusErrorApiMismatch) {
-                    status = loader_start_external_app(
-                        loader, storage, name, args, error_message, flags, true);
-                }
+                status = loader_start_external_app(loader, storage, name, args, error_message);
                 furi_record_close(RECORD_STORAGE);
                 break;
             }
@@ -975,6 +763,10 @@ static LoaderMessageLoaderStatusResult loader_do_start_by_name(
         status.value = loader_make_status_error(
             LoaderStatusErrorUnknownApp, error_message, "Application \"%s\" not found", name);
     } while(false);
+
+    if(status.value == LoaderStatusOk) {
+        loader->app.launch_path = furi_string_alloc_set_str(name);
+    }
 
     return status;
 }
@@ -991,6 +783,60 @@ static bool loader_do_lock(Loader* loader) {
 static void loader_do_unlock(Loader* loader) {
     furi_check(loader->app.thread == (FuriThread*)LOADER_MAGIC_THREAD_VALUE);
     loader->app.thread = NULL;
+}
+
+static void loader_do_emit_queue_empty_event(Loader* loader) {
+    if(loader_do_is_locked(loader)) return;
+    FURI_LOG_I(TAG, "Launch queue empty");
+    LoaderEvent event;
+    event.type = LoaderEventTypeNoMoreAppsInQueue;
+    furi_pubsub_publish(loader->pubsub, &event);
+}
+
+static bool loader_do_deferred_launch(Loader* loader, LoaderDeferredLaunchRecord* record);
+
+static void loader_do_next_deferred_launch_if_available(Loader* loader) {
+    LoaderDeferredLaunchRecord record;
+    if(loader_queue_pop(&loader->launch_queue, &record)) {
+        loader_do_deferred_launch(loader, &record);
+        loader_queue_item_clear(&record);
+    } else {
+        loader_do_emit_queue_empty_event(loader);
+    }
+}
+
+static bool loader_do_deferred_launch(Loader* loader, LoaderDeferredLaunchRecord* record) {
+    furi_assert(loader);
+    furi_assert(record);
+
+    bool is_successful = false;
+    FuriString* error_message = furi_string_alloc();
+    view_holder_set_view(loader->view_holder, loading_get_view(loader->loading));
+    view_holder_send_to_front(loader->view_holder);
+
+    do {
+        const char* app_name_str = record->name_or_path;
+        const char* app_args = record->args;
+        FURI_LOG_I(TAG, "Deferred launch: %s", app_name_str);
+
+        LoaderMessageLoaderStatusResult result =
+            loader_do_start_by_name(loader, app_name_str, app_args, error_message);
+        if(result.value == LoaderStatusOk) {
+            is_successful = true;
+            break;
+        }
+
+        if(record->flags & LoaderDeferredLaunchFlagGui)
+            loader_show_gui_error(result, app_name_str, error_message);
+
+        loader_do_next_deferred_launch_if_available(loader);
+    } while(false);
+
+    if(!loader->loader_menu) {
+        view_holder_set_view(loader->view_holder, NULL);
+    }
+    furi_string_free(error_message);
+    return is_successful;
 }
 
 static void loader_do_app_closed(Loader* loader) {
@@ -1017,11 +863,18 @@ static void loader_do_app_closed(Loader* loader) {
         loader->app.thread = NULL;
     }
 
+    furi_string_free(loader->app.launch_path);
+
     FURI_LOG_I(TAG, "Application stopped. Free heap: %zu", memmgr_get_free_heap());
 
     LoaderEvent event;
     event.type = LoaderEventTypeApplicationStopped;
     furi_pubsub_publish(loader->pubsub, &event);
+    if(loader->app.unloaded_asset_packs) {
+        asset_packs_init();
+    }
+
+    loader_do_next_deferred_launch_if_available(loader);
 }
 
 static bool loader_is_application_running(Loader* loader) {
@@ -1039,7 +892,16 @@ static bool loader_do_signal(Loader* loader, uint32_t signal, void* arg) {
 
 static bool loader_do_get_application_name(Loader* loader, FuriString* name) {
     if(loader_is_application_running(loader)) {
-        furi_string_set(name, furi_thread_get_name(loader->app.thread));
+        furi_string_set(name, furi_thread_get_name(furi_thread_get_id(loader->app.thread)));
+        return true;
+    }
+
+    return false;
+}
+
+static bool loader_do_get_application_launch_path(Loader* loader, FuriString* path) {
+    if(loader_is_application_running(loader)) {
+        furi_string_set(path, loader->app.launch_path);
         return true;
     }
 
@@ -1068,26 +930,33 @@ int32_t loader_srv(void* p) {
     while(true) {
         if(furi_message_queue_get(loader->queue, &message, FuriWaitForever) == FuriStatusOk) {
             switch(message.type) {
-            case LoaderMessageTypeStartByName:
-                *(message.status_value) = loader_do_start_by_name(
-                    loader, message.start.name, message.start.args, message.start.error_message);
+            case LoaderMessageTypeStartByName: {
+                LoaderMessageLoaderStatusResult status = loader_do_start_by_name(
+                    loader,
+                    message.start.name,
+                    message.start.args,
+                    message.start.error_message); //-V595
+                *(message.status_value) = status;
+                if(status.value != LoaderStatusOk) loader_do_emit_queue_empty_event(loader);
                 api_lock_unlock(message.api_lock);
                 break;
+            }
             case LoaderMessageTypeStartByNameDetachedWithGuiError: {
                 FuriString* error_message = furi_string_alloc();
                 LoaderMessageLoaderStatusResult status = loader_do_start_by_name(
-                    loader, message.start.name, message.start.args, error_message);
+                    loader, message.start.name, message.start.args, error_message); //-V595
                 loader_show_gui_error(status, message.start.name, error_message);
+                if(status.value != LoaderStatusOk) loader_do_emit_queue_empty_event(loader);
                 if(message.start.name) free((void*)message.start.name);
                 if(message.start.args) free((void*)message.start.args);
                 furi_string_free(error_message);
                 break;
             }
             case LoaderMessageTypeShowMenu:
-                loader_do_menu_show(loader);
+                loader_do_menu_show(loader, false);
                 break;
-            case LoaderMessageTypeShowGamesMenu:
-                loader_do_gamesmenu_show(loader);
+            case LoaderMessageTypeShowSettings:
+                loader_do_menu_show(loader, true);
                 break;
             case LoaderMessageTypeMenuClosed:
                 loader_do_menu_closed(loader);
@@ -1117,6 +986,19 @@ int32_t loader_srv(void* p) {
             case LoaderMessageTypeGetApplicationName:
                 message.bool_value->value =
                     loader_do_get_application_name(loader, message.application_name);
+                api_lock_unlock(message.api_lock);
+                break;
+            case LoaderMessageTypeGetApplicationLaunchPath:
+                message.bool_value->value =
+                    loader_do_get_application_launch_path(loader, message.application_name);
+                api_lock_unlock(message.api_lock);
+                break;
+            case LoaderMessageTypeEnqueueLaunch:
+                furi_check(loader_queue_push(&loader->launch_queue, &message.defer_start));
+                api_lock_unlock(message.api_lock);
+                break;
+            case LoaderMessageTypeClearLaunchQueue:
+                loader_queue_clear(&loader->launch_queue);
                 api_lock_unlock(message.api_lock);
                 break;
             }

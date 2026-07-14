@@ -10,6 +10,7 @@
 #include "esp_loader_io.h"
 
 #define ESP_ADDR_BOOT_S3   0x0
+#define ESP_ADDR_BOOT_C5   0x2000
 #define ESP_ADDR_BOOT      0x1000
 #define ESP_ADDR_PART      0x8000
 #define ESP_ADDR_NVS       0x9000

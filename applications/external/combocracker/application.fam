@@ -1,0 +1,14 @@
+App(
+    appid="combo_cracker",
+    name="Combo Cracker",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="combo_cracker_app",
+    stack_size=4 * 1024,
+    fap_icon="icons/app10x10.png",
+    fap_icon_assets="assets",
+    fap_category="Tools",
+    fap_author="CharlesTheGreat77",
+    fap_weburl="https://github.com/CharlesTheGreat77/ComboCracker-FZ",
+    fap_version="0.5",
+    fap_description="Crack combo locks in 8 attempts or less",
+)

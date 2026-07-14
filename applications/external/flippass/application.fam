@@ -1,0 +1,383 @@
+import os
+
+
+def flippass_build_flag(name, default):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+
+    normalized = value.strip().lower()
+    if normalized in ("0", "false", "no", "off", ""):
+        return 0
+    return 1
+
+
+def flippass_build_int(name, default):
+    value = os.environ.get(name)
+    if value is None or value.strip() == "":
+        return default
+
+    return int(value, 0)
+
+
+enable_logs = flippass_build_flag("FLIPPASS_BUILD_ENABLE_LOGS", 0)
+enable_system_trace_capture = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_SYSTEM_TRACE_CAPTURE", 1
+)
+enable_gzip_paged_trace = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_GZIP_PAGED_TRACE", 0
+)
+enable_parser_furi_trace = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_PARSER_FURI_TRACE", 0
+)
+enable_verbose_unlock_log = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_VERBOSE_UNLOCK_LOG", 0
+)
+enable_deep_diagnostics = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_DEEP_DIAGNOSTICS", 0
+)
+enable_memory_diagnostics = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_MEMORY_DIAGNOSTICS", 0
+)
+enable_xml_preflight = flippass_build_flag("FLIPPASS_BUILD_ENABLE_XML_PREFLIGHT", 0)
+enable_gzip_paged_ram = flippass_build_flag("FLIPPASS_BUILD_ENABLE_GZIP_PAGED_RAM", 0)
+gzip_paged_fast_lookup_bits = flippass_build_int(
+    "FLIPPASS_BUILD_GZIP_PAGED_FAST_LOOKUP_BITS", 8
+)
+enable_typing_actions = flippass_build_flag("FLIPPASS_BUILD_ENABLE_TYPING_ACTIONS", 1)
+enable_bluetooth_output = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_BLUETOOTH_OUTPUT", 1
+)
+enable_keyboard_layout = flippass_build_flag("FLIPPASS_BUILD_ENABLE_KEYBOARD_LAYOUT", 1)
+enable_debug_unlock_hook = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_DEBUG_UNLOCK_HOOK", 0
+)
+enable_debug_create_hook = flippass_build_flag(
+    "FLIPPASS_BUILD_ENABLE_DEBUG_CREATE_HOOK", 0
+)
+enable_debug_save_hook = flippass_build_flag("FLIPPASS_BUILD_ENABLE_DEBUG_SAVE_HOOK", 0)
+enable_app_rpc = flippass_build_flag("FLIPPASS_BUILD_ENABLE_APP_RPC", 0)
+stack_size_kib = flippass_build_int("FLIPPASS_BUILD_STACK_SIZE_KIB", 8)
+
+common_cdefines = [
+    "APP_FlipPass",
+    f"FLIPPASS_ENABLE_LOGS={enable_logs}",
+    f"FLIPPASS_ENABLE_SYSTEM_TRACE_CAPTURE={enable_system_trace_capture}",
+    f"FLIPPASS_ENABLE_GZIP_PAGED_TRACE={enable_gzip_paged_trace}",
+    f"FLIPPASS_ENABLE_PARSER_FURI_TRACE={enable_parser_furi_trace}",
+    f"FLIPPASS_ENABLE_VERBOSE_UNLOCK_LOG={enable_verbose_unlock_log}",
+    f"FLIPPASS_ENABLE_DEEP_DIAGNOSTICS={enable_deep_diagnostics}",
+    f"FLIPPASS_ENABLE_MEMORY_DIAGNOSTICS={enable_memory_diagnostics}",
+    f"FLIPPASS_ENABLE_XML_PREFLIGHT={enable_xml_preflight}",
+    f"FLIPPASS_ENABLE_GZIP_PAGED_RAM={enable_gzip_paged_ram}",
+    f"FLIPPASS_ENABLE_TYPING_ACTIONS={enable_typing_actions}",
+    f"FLIPPASS_ENABLE_BLUETOOTH_OUTPUT={enable_bluetooth_output}",
+    f"FLIPPASS_ENABLE_KEYBOARD_LAYOUT={enable_keyboard_layout}",
+    f"FLIPPASS_ENABLE_DEBUG_UNLOCK_HOOK={enable_debug_unlock_hook}",
+    f"FLIPPASS_ENABLE_DEBUG_CREATE_HOOK={enable_debug_create_hook}",
+    f"FLIPPASS_ENABLE_DEBUG_SAVE_HOOK={enable_debug_save_hook}",
+    f"FLIPPASS_ENABLE_APP_RPC={enable_app_rpc}",
+]
+
+App(
+    appid="flippass",
+    name="FlipPass",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flippass_app",
+    cdefines=common_cdefines + ["KDBX_PROTECTED_ENABLE_SALSA20=0"],
+    fap_icon="icons/icon.png",
+    fap_icon_assets="icons",
+    stack_size=stack_size_kib * 1024,
+    sources=[
+        "FlipPass.c",
+        "flippass_db_host.c",
+        "flippass_modules.c",
+        "flippass_open.c",
+        "flippass_otp.c",
+        "flippass_rpc.c",
+        "flippass_save.c",
+        "scenes/flippass_scene.c",
+        "scenes/flippass_db_browser_view.c",
+        "scenes/flippass_progress_view.c",
+        "scenes/flippass_scene_db_entries.c",
+        "scenes/flippass_scene_editor.c",
+        "scenes/flippass_scene_file_browser.c",
+        "scenes/flippass_scene_other_field_actions.c",
+        "scenes/flippass_scene_other_fields.c",
+        "scenes/flippass_scene_password_entry.c",
+        "scenes/flippass_scene_password_generator.c",
+        "scenes/flippass_scene_status.c",
+        "scenes/flippass_scene_text_view.c",
+        "scenes/flippass_scene_vault_fallback.c",
+        "kdbx/hmac.c",
+        "kdbx/kdbx_arena.c",
+        "kdbx/kdbx_data.c",
+        "kdbx/kdbx_open_profile.c",
+        "kdbx/kdbx_protected.c",
+        "kdbx/kdbx_vault.c",
+        "kdbx/memzero.c",
+        "kdbx/sha2.c",
+        "mntminput/text_input.c",
+        "mntminput/validators.c",
+    ]
+    + (
+        ["scenes/flippass_scene_keyboard_layout.c"]
+        if enable_keyboard_layout
+        else ["scenes/flippass_scene_keyboard_layout_stub.c"]
+    )
+    + (
+        ["scenes/flippass_scene_send_confirm.c"]
+        if enable_typing_actions
+        else ["scenes/flippass_scene_send_confirm_stub.c"]
+    )
+    + (
+        ["transport/flippass_output.c", "transport/flippass_output_transport_plugins.c"]
+        if enable_typing_actions
+        else ["transport/flippass_output_stub.c"]
+    ),
+    fap_category="USB",
+    fap_author="Arckanos",
+    fap_weburl="https://github.com/Arckanos/FlipPass",
+    fap_version="2.0",
+    fap_description="KeePass KDBX 4 vault browser with USB and Bluetooth HID typing.",
+)
+
+if enable_typing_actions:
+    App(
+        appid="flippass_output_usb",
+        apptype=FlipperAppType.PLUGIN,
+        entry_point="flippass_output_usb_plugin_ep",
+        requires=["flippass"],
+        fal_embedded=True,
+        sources=["plugins/flippass_output_usb_plugin.c"],
+    )
+
+    App(
+        appid="flippass_output_ble",
+        apptype=FlipperAppType.PLUGIN,
+        entry_point="flippass_output_ble_plugin_ep",
+        requires=["flippass"],
+        fal_embedded=True,
+        fap_libs=(["ble_profile"] if enable_bluetooth_output else []),
+        sources=["plugins/flippass_output_ble_plugin.c"],
+    )
+
+    App(
+        appid="flippass_output_action",
+        apptype=FlipperAppType.PLUGIN,
+        entry_point="flippass_output_action_plugin_ep",
+        requires=["flippass"],
+        fal_embedded=True,
+        sources=["plugins/flippass_output_action_plugin.c"],
+    )
+
+if enable_app_rpc:
+    App(
+        appid="flippass_rpc_commands",
+        apptype=FlipperAppType.PLUGIN,
+        entry_point="flippass_rpc_commands_plugin_ep",
+        requires=["flippass"],
+        fal_embedded=True,
+        sources=["plugins/flippass_rpc_commands_plugin.c"],
+    )
+
+App(
+    appid="flippass_open_acquire",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_open_acquire_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    cdefines=common_cdefines,
+    sources=[
+        "plugins/flippass_open_acquire_plugin.c",
+        "kdbx/aescrypt.c",
+        "kdbx/aeskey.c",
+        "kdbx/aestab.c",
+        "kdbx/kdbx_open_profile.c",
+        "kdbx/kdbx_parser.c",
+        "kdbx/memzero.c",
+        "kdbx/sha2.c",
+    ],
+)
+
+App(
+    appid="flippass_open_stream",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_open_stream_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    cdefines=common_cdefines
+    + ["KDBX_PROTECTED_ENABLE_KEY_DERIVE=0", "KDBX_PROTECTED_ENABLE_SALSA20=0"],
+    sources=[
+        "plugins/flippass_open_stream_plugin.c",
+        "kdbx/kdbx_open_profile.c",
+        "kdbx/kdbx_open_outer_payload.c",
+        "kdbx/kdbx_protected.c",
+        "kdbx/sha2.c",
+        "kdbx/hmac.c",
+        "kdbx/aescrypt.c",
+        "kdbx/aeskey.c",
+        "kdbx/aestab.c",
+        "kdbx/aes_modes.c",
+        "kdbx/memzero.c",
+    ],
+)
+
+App(
+    appid="flippass_open_inflate_nonpaged",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_open_inflate_nonpaged_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    cdefines=common_cdefines,
+    sources=[
+        "plugins/flippass_open_inflate_nonpaged_plugin.c",
+        "kdbx/miniz_tinfl.c",
+        "kdbx/memzero.c",
+    ],
+)
+
+App(
+    appid="flippass_open_inflate_paged",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_open_inflate_paged_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    cdefines=common_cdefines
+    + [
+        f"FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_RAM={enable_gzip_paged_ram}",
+        "FLIPPASS_OPEN_INFLATE_PAGED_ENABLE_FILE=1",
+        f"TINFL_PAGED_ENABLE_RAM={enable_gzip_paged_ram}",
+        "TINFL_PAGED_ENABLE_FILE=1",
+        "TINFL_FILE_PAGED_ENABLE_LOCAL_CRYPTO=0",
+        f"TINFL_FAST_LOOKUP_BITS={gzip_paged_fast_lookup_bits}",
+    ],
+    sources=[
+        "plugins/flippass_open_inflate_paged_plugin.c",
+        "kdbx/miniz_tinfl_paged.c",
+        "kdbx/memzero.c",
+    ],
+)
+
+App(
+    appid="flippass_open_model",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_open_model_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    cdefines=common_cdefines + ["KDBX_PROTECTED_ENABLE_KEY_DERIVE=0"],
+    sources=[
+        "plugins/flippass_open_model_plugin.c",
+        "kdbx/kdbx_protected.c",
+        "kdbx/memzero.c",
+        "kdbx/xml_parser.c",
+    ],
+)
+
+App(
+    appid="flippass_save_header",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_save_header_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    cdefines=common_cdefines,
+    sources=[
+        "plugins/flippass_save_header_plugin.c",
+        "kdbx/hmac.c",
+        "kdbx/sha2.c",
+        "kdbx/aescrypt.c",
+        "kdbx/aeskey.c",
+        "kdbx/aestab.c",
+        "kdbx/memzero.c",
+    ],
+)
+
+App(
+    appid="flippass_save_writer",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_save_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    cdefines=common_cdefines
+    + ["KDBX_PROTECTED_ENABLE_KEY_DERIVE=0", "KDBX_PROTECTED_ENABLE_SALSA20=0"],
+    sources=[
+        "plugins/flippass_save_plugin.c",
+        "kdbx/kdbx_protected.c",
+        "kdbx/hmac.c",
+        "kdbx/sha2.c",
+        "kdbx/aescrypt.c",
+        "kdbx/aeskey.c",
+        "kdbx/aestab.c",
+        "kdbx/aes_modes.c",
+        "kdbx/memzero.c",
+    ],
+)
+
+App(
+    appid="flippass_other_fields",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_other_fields_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    sources=["plugins/flippass_other_fields_plugin.c"],
+)
+
+App(
+    appid="flippass_file_ops",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_file_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    sources=["plugins/flippass_file_plugin.c"],
+)
+
+App(
+    appid="flippass_editor_crud",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_editor_crud_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    cdefines=common_cdefines,
+    sources=[
+        "plugins/flippass_editor_crud_plugin.c",
+        "kdbx/memzero.c",
+    ],
+)
+
+if enable_typing_actions and enable_keyboard_layout:
+    App(
+        appid="flippass_keyboard_layout",
+        apptype=FlipperAppType.PLUGIN,
+        entry_point="flippass_keyboard_layout_plugin_ep",
+        requires=["flippass"],
+        fal_embedded=True,
+        sources=["plugins/flippass_keyboard_layout_plugin.c"],
+    )
+
+App(
+    appid="flippass_otp",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_otp_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    sources=[
+        "plugins/flippass_otp_plugin.c",
+        "kdbx/hmac.c",
+        "kdbx/sha2.c",
+        "kdbx/memzero.c",
+    ],
+)
+
+App(
+    appid="flippass_password_gen",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="flippass_password_gen_plugin_ep",
+    requires=["flippass"],
+    fal_embedded=True,
+    sources=[
+        "plugins/flippass_password_gen_plugin.c",
+        "kdbx/hmac.c",
+        "kdbx/sha2.c",
+        "kdbx/memzero.c",
+    ],
+)

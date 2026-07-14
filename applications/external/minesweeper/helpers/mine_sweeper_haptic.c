@@ -1,57 +1,92 @@
-#include "mine_sweeper_haptic.h"
-#include "../minesweeper.h"
+#include "minesweeper.h"
+#include "helpers/mine_sweeper_haptic.h"
 
-void mine_sweeper_play_happy_bump(void* context) {
+static const NotificationSequence sequence_minesweeper_haptic_short = {
+    &message_vibro_on,
+    &message_delay_25,
+    &message_vibro_off,
+    NULL,
+};
+
+static const NotificationSequence sequence_minesweeper_haptic_double_short = {
+    &message_vibro_on,
+    &message_delay_25,
+    &message_vibro_off,
+    &message_delay_25,
+    &message_vibro_on,
+    &message_delay_25,
+    &message_vibro_off,
+    NULL,
+};
+
+static const NotificationSequence sequence_minesweeper_haptic_lose = {
+    &message_vibro_on,
+    &message_delay_100,
+    &message_vibro_off,
+    &message_delay_250,
+    &message_delay_100,
+    &message_delay_50,
+    NULL,
+};
+
+static const NotificationSequence sequence_minesweeper_haptic_win = {
+    &message_vibro_on,
+    &message_delay_50,
+    &message_vibro_off,
+    &message_delay_100,
+    &message_vibro_on,
+    &message_delay_50,
+    &message_vibro_off,
+    &message_delay_100,
+    &message_vibro_on,
+    &message_delay_50,
+    &message_vibro_off,
+    &message_delay_100,
+    &message_vibro_on,
+    &message_delay_50,
+    &message_vibro_off,
+    &message_delay_100,
+    NULL,
+};
+
+static inline MineSweeperApp* mine_sweeper_haptic_get_app(void* context) {
+    furi_assert(context);
+
     MineSweeperApp* app = context;
+    furi_assert(app->notification);
 
-    if(app->feedback_enabled) notification_message(app->notification, &sequence_set_vibro_on);
-    furi_thread_flags_wait(0, FuriFlagWaitAny, 20);
-    notification_message(app->notification, &sequence_reset_vibro);
+    return app;
 }
 
-void mine_sweeper_play_long_ok_bump(void* context) {
-    MineSweeperApp* app = context;
+static inline void
+    mine_sweeper_haptic_play_if_enabled(MineSweeperApp* app, const NotificationSequence* sequence) {
+    furi_assert(app);
+    furi_assert(sequence);
+    furi_assert(app->notification);
 
-    for(int i = 0; i < 2; i++) {
-        if(app->feedback_enabled) notification_message(app->notification, &sequence_set_vibro_on);
-        furi_thread_flags_wait(0, FuriFlagWaitAny, 20);
-        notification_message(app->notification, &sequence_reset_vibro);
-        furi_thread_flags_wait(0, FuriFlagWaitAny, 20);
+    if(!app->feedback_enabled) {
+        return;
     }
+
+    notification_message(app->notification, sequence);
 }
 
-void mine_sweeper_play_oob_bump(void* context) {
-    MineSweeperApp* app = context;
-
-    if(app->feedback_enabled) notification_message(app->notification, &sequence_set_vibro_on);
-    furi_thread_flags_wait(0, FuriFlagWaitAny, 20);
-    notification_message(app->notification, &sequence_reset_vibro);
+void mine_sweeper_play_haptic_short(void* context) {
+    MineSweeperApp* app = mine_sweeper_haptic_get_app(context);
+    mine_sweeper_haptic_play_if_enabled(app, &sequence_minesweeper_haptic_short);
 }
 
-void mine_sweeper_play_wrap_bump(void* context) {
-    MineSweeperApp* app = context;
-
-    if(app->feedback_enabled) notification_message(app->notification, &sequence_set_vibro_on);
-    furi_thread_flags_wait(0, FuriFlagWaitAny, 20);
-    notification_message(app->notification, &sequence_reset_vibro);
+void mine_sweeper_play_haptic_double_short(void* context) {
+    MineSweeperApp* app = mine_sweeper_haptic_get_app(context);
+    mine_sweeper_haptic_play_if_enabled(app, &sequence_minesweeper_haptic_double_short);
 }
 
-void mine_sweeper_play_lose_bump(void* context) {
-    MineSweeperApp* app = context;
-
-    if(app->feedback_enabled) notification_message(app->notification, &sequence_set_vibro_on);
-    furi_thread_flags_wait(0, FuriFlagWaitAny, 100);
-    notification_message(app->notification, &sequence_reset_vibro);
-    furi_thread_flags_wait(0, FuriFlagWaitAny, 400);
+void mine_sweeper_play_haptic_lose(void* context) {
+    MineSweeperApp* app = mine_sweeper_haptic_get_app(context);
+    mine_sweeper_haptic_play_if_enabled(app, &sequence_minesweeper_haptic_lose);
 }
 
-void mine_sweeper_play_win_bump(void* context) {
-    MineSweeperApp* app = context;
-
-    for(int i = 0; i < 4; i++) {
-        if(app->feedback_enabled) notification_message(app->notification, &sequence_set_vibro_on);
-        furi_thread_flags_wait(0, FuriFlagWaitAny, 50);
-        notification_message(app->notification, &sequence_reset_vibro);
-        furi_thread_flags_wait(0, FuriFlagWaitAny, 100);
-    }
+void mine_sweeper_play_haptic_win(void* context) {
+    MineSweeperApp* app = mine_sweeper_haptic_get_app(context);
+    mine_sweeper_haptic_play_if_enabled(app, &sequence_minesweeper_haptic_win);
 }

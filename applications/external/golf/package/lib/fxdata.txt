@@ -1,0 +1,14 @@
+raw_t LEVELS_DEFAULT = "levels/levels_default.bin"
+//raw_t LEVELS_SERENE = "levels/levels_serene.bin"
+//raw_t LEVELS_EXAMPLE = "levels/levels_example.bin"
+
+// 1. Use the editor to export a .bin file for a course.
+// 2. Declare it here:
+// 
+//     raw_t MY_COURSE = "path/to/course.bin"
+// 
+// 3. Add your course to fx_courses.hpp
+
+savesection
+
+raw_t SAVEDATA = "fxsave.bin"

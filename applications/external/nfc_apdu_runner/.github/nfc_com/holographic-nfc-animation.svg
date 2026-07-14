@@ -1,0 +1,461 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100%" height="300" viewBox="0 0 800 300">
+  <defs>
+    <!-- 动画定义 -->
+    <style>
+      @keyframes gridMove {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(20px, 20px); }
+      }
+      
+      @keyframes rotate3d {
+        0% { transform: rotateY(0deg) rotateX(10deg); }
+        100% { transform: rotateY(360deg) rotateX(10deg); }
+      }
+      
+      @keyframes pulse {
+        0% { 
+          transform: scale(0.95);
+          opacity: 0.7;
+        }
+        100% {
+          transform: scale(1.05);
+          opacity: 1;
+        }
+      }
+      
+      @keyframes glow {
+        0% { filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.8)); }
+        100% { filter: drop-shadow(0 0 20px rgba(56, 189, 248, 1)); }
+      }
+      
+      @keyframes movePacket {
+        0% {
+          cx: 0;
+          opacity: 0;
+          r: 1.5;
+        }
+        10% {
+          cx: 15;
+          opacity: 1;
+          r: 3;
+        }
+        90% {
+          cx: 135;
+          opacity: 1;
+          r: 3;
+        }
+        100% {
+          cx: 150;
+          opacity: 0;
+          r: 1.5;
+        }
+      }
+      
+      @keyframes float {
+        0% { transform: translate(0, 0); }
+        50% { transform: translate(10px, -10px); }
+        100% { transform: translate(-10px, 10px); }
+      }
+      
+      @keyframes scanMove {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(300px); }
+      }
+      
+      @keyframes progressPulse {
+        0% { width: 130px; }
+        100% { width: 170px; }
+      }
+      
+      @keyframes rowHighlight {
+        0%, 100% { fill: rgba(126, 231, 135, 0.8); }
+        10% { 
+          fill: rgba(255, 255, 255, 1);
+          filter: drop-shadow(0 0 5px rgba(126, 231, 135, 0.8));
+        }
+      }
+      
+      /* SVG元素样式 */
+      .container {
+        rx: 8;
+        ry: 8;
+      }
+      
+      .grid-background {
+        stroke: rgba(56, 189, 248, 0.1);
+        stroke-width: 1;
+        animation: gridMove 20s linear infinite;
+      }
+      
+      .nfc-logo {
+        animation: rotate3d 15s linear infinite;
+        transform-origin: center;
+        transform-box: fill-box;
+        transform-style: preserve-3d;
+      }
+      
+      .ring {
+        fill: none;
+        transform-origin: center center;
+      }
+      
+      .ring-1 {
+        stroke: rgba(56, 189, 248, 0.95);
+        stroke-width: 2.5;
+        animation: pulse 2s ease-in-out infinite alternate;
+        transform-origin: center;
+      }
+      
+      .ring-2 {
+        stroke: rgba(126, 231, 135, 0.85);
+        stroke-width: 2.5;
+        animation: pulse 3s ease-in-out infinite alternate;
+        transform-origin: center;
+      }
+      
+      .ring-3 {
+        stroke: rgba(137, 87, 229, 0.75);
+        stroke-width: 2.5;
+        animation: pulse 4s ease-in-out infinite alternate;
+        transform-origin: center;
+      }
+      
+      .nfc-symbol {
+        fill: rgba(255, 255, 255, 1);
+        font-size: 28px;
+        font-weight: bold;
+        text-anchor: middle;
+        dominant-baseline: central;
+        animation: glow 2s ease-in-out infinite alternate;
+      }
+      
+      .data-packet {
+        fill: rgba(56, 189, 248, 0.8);
+        animation-name: movePacket;
+        animation-duration: 4s;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
+      }
+      
+      .packet-1 { animation-delay: 0s; }
+      .packet-2 { animation-delay: 0.8s; }
+      .packet-3 { animation-delay: 1.6s; }
+      .packet-4 { animation-delay: 2.4s; }
+      .packet-5 { animation-delay: 3.2s; }
+      
+      .label-container {
+        animation: float 10s ease-in-out infinite alternate;
+      }
+      
+      .label {
+        fill: rgba(255, 255, 255, 0.9);
+        font-family: monospace;
+        font-size: 12px;
+      }
+      
+      .scan-line {
+        animation: scanMove 3s linear infinite;
+      }
+      
+      .tech-specs text, .attack-steps text, .hex-data text {
+        font-family: monospace;
+      }
+      
+      .tech-label {
+        fill: rgba(126, 231, 135, 0.8);
+        font-size: 10px;
+      }
+      
+      .tech-value {
+        fill: rgba(255, 255, 255, 0.9);
+        font-size: 11px;
+      }
+      
+      .attack-title {
+        fill: rgba(255, 123, 114, 0.9);
+        font-size: 12px;
+        text-anchor: middle;
+      }
+      
+      .step {
+        fill: rgba(255, 255, 255, 0.7);
+        font-size: 10px;
+      }
+      
+      .step-prefix {
+        fill: rgba(255, 123, 114, 0.8);
+      }
+      
+      .progress-fill {
+        fill: rgba(255, 123, 114, 0.8);
+        animation: progressPulse 2s ease-in-out infinite alternate;
+      }
+      
+      .hex-row {
+        fill: rgba(126, 231, 135, 0.8);
+        font-size: 10px;
+        font-family: monospace;
+        text-anchor: end;
+      }
+      
+      .hex-row-1 { animation: rowHighlight 0.9s infinite; }
+      .hex-row-2 { animation: rowHighlight 0.9s 0.3s infinite; }
+      .hex-row-3 { animation: rowHighlight 0.9s 0.6s infinite; }
+    </style>
+    
+    <!-- 渐变和滤镜定义 -->
+    <linearGradient id="scanGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(56, 189, 248, 0)" />
+      <stop offset="50%" stop-color="rgba(56, 189, 248, 0.8)" />
+      <stop offset="100%" stop-color="rgba(56, 189, 248, 0)" />
+    </linearGradient>
+    
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    
+    <pattern id="grid" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(56, 189, 248, 0.1)" stroke-width="1" />
+    </pattern>
+  </defs>
+  
+  <!-- 主容器背景 -->
+  <rect class="container" width="100%" height="100%" fill="rgba(13, 17, 23, 0.7)" />
+  
+  <!-- 背景网格 -->
+  <rect class="grid-background" width="100%" height="100%" fill="url(#grid)" opacity="0.5" />
+  
+  <!-- 中央NFC标志 -->
+  <g class="nfc-logo">
+    <circle class="ring ring-1" cx="400" cy="150" r="48" stroke-width="2" />
+    <circle class="ring ring-2" cx="400" cy="150" r="60" stroke-width="2" />
+    <circle class="ring ring-3" cx="400" cy="150" r="72" stroke-width="2" />
+    <text class="nfc-symbol" x="400" y="150">NFC</text>
+  </g>
+  
+  <!-- 数据流 -->
+  <g>
+    <!-- 0度 -->
+    <g transform="translate(400, 150) rotate(0)">
+      <line x1="0" y1="0" x2="150" y2="0" stroke="rgba(56, 189, 248, 0.2)" stroke-width="1" />
+      <circle class="data-packet packet-1" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-2" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-3" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-4" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-5" cx="0" cy="0" r="3" />
+    </g>
+    
+    <!-- 45度 -->
+    <g transform="translate(400, 150) rotate(45)">
+      <line x1="0" y1="0" x2="150" y2="0" stroke="rgba(56, 189, 248, 0.2)" stroke-width="1" />
+      <circle class="data-packet packet-1" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-2" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-3" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-4" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-5" cx="0" cy="0" r="3" />
+    </g>
+    
+    <!-- 90度 -->
+    <g transform="translate(400, 150) rotate(90)">
+      <line x1="0" y1="0" x2="150" y2="0" stroke="rgba(56, 189, 248, 0.2)" stroke-width="1" />
+      <circle class="data-packet packet-1" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-2" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-3" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-4" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-5" cx="0" cy="0" r="3" />
+    </g>
+    
+    <!-- 135度 -->
+    <g transform="translate(400, 150) rotate(135)">
+      <line x1="0" y1="0" x2="150" y2="0" stroke="rgba(56, 189, 248, 0.2)" stroke-width="1" />
+      <circle class="data-packet packet-1" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-2" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-3" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-4" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-5" cx="0" cy="0" r="3" />
+    </g>
+    
+    <!-- 180度 -->
+    <g transform="translate(400, 150) rotate(180)">
+      <line x1="0" y1="0" x2="150" y2="0" stroke="rgba(56, 189, 248, 0.2)" stroke-width="1" />
+      <circle class="data-packet packet-1" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-2" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-3" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-4" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-5" cx="0" cy="0" r="3" />
+    </g>
+    
+    <!-- 225度 -->
+    <g transform="translate(400, 150) rotate(225)">
+      <line x1="0" y1="0" x2="150" y2="0" stroke="rgba(56, 189, 248, 0.2)" stroke-width="1" />
+      <circle class="data-packet packet-1" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-2" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-3" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-4" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-5" cx="0" cy="0" r="3" />
+    </g>
+    
+    <!-- 270度 -->
+    <g transform="translate(400, 150) rotate(270)">
+      <line x1="0" y1="0" x2="150" y2="0" stroke="rgba(56, 189, 248, 0.2)" stroke-width="1" />
+      <circle class="data-packet packet-1" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-2" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-3" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-4" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-5" cx="0" cy="0" r="3" />
+    </g>
+    
+    <!-- 315度 -->
+    <g transform="translate(400, 150) rotate(315)">
+      <line x1="0" y1="0" x2="150" y2="0" stroke="rgba(56, 189, 248, 0.2)" stroke-width="1" />
+      <circle class="data-packet packet-1" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-2" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-3" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-4" cx="0" cy="0" r="3" />
+      <circle class="data-packet packet-5" cx="0" cy="0" r="3" />
+    </g>
+  </g>
+  
+  <!-- 浮动数据标签 -->
+  <g>
+    <g class="label-container" style="animation-delay: 0s">
+      <rect x="120" y="60" width="100" height="24" rx="4" ry="4" fill="rgba(22, 27, 34, 0.7)" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" />
+      <text class="label" x="130" y="76">TLV: 6F84A5</text>
+    </g>
+    
+    <g class="label-container" style="animation-delay: 2s">
+      <rect x="160" y="150" width="120" height="24" rx="4" ry="4" fill="rgba(22, 27, 34, 0.7)" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" />
+      <text class="label" x="170" y="166">UID: 04A5B9C2</text>
+    </g>
+    
+    <g class="label-container" style="animation-delay: 1s">
+      <rect x="560" y="90" width="140" height="24" rx="4" ry="4" fill="rgba(22, 27, 34, 0.7)" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" />
+      <text class="label" x="570" y="106">APDU: 00A4040007</text>
+    </g>
+    
+    <g class="label-container" style="animation-delay: 3s">
+      <rect x="520" y="180" width="80" height="24" rx="4" ry="4" fill="rgba(22, 27, 34, 0.7)" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" />
+      <text class="label" x="530" y="196">SW: 9000</text>
+    </g>
+    
+    <g class="label-container" style="animation-delay: 1.5s">
+      <rect x="320" y="45" width="160" height="24" rx="4" ry="4" fill="rgba(22, 27, 34, 0.7)" stroke="rgba(126, 231, 135, 0.6)" stroke-width="1" />
+      <text class="label" x="330" y="61">MIFARE Classic 1K</text>
+    </g>
+    
+    <g class="label-container" style="animation-delay: 2.5s">
+      <rect x="240" y="225" width="120" height="24" rx="4" ry="4" fill="rgba(22, 27, 34, 0.7)" stroke="rgba(255, 123, 114, 0.6)" stroke-width="1" />
+      <text class="label" x="250" y="241">Attack: Nested</text>
+    </g>
+    
+    <g class="label-container" style="animation-delay: 3.5s">
+      <rect x="600" y="120" width="135" height="24" rx="4" ry="4" fill="rgba(22, 27, 34, 0.7)" stroke="rgba(255, 123, 114, 0.6)" stroke-width="1" />
+      <text class="label" x="610" y="136">Attack: Darkside</text>
+    </g>
+    
+    <g class="label-container" style="animation-delay: 4s">
+      <rect x="410" y="225" width="145" height="24" rx="4" ry="4" fill="rgba(22, 27, 34, 0.7)" stroke="rgba(248, 227, 161, 0.6)" stroke-width="1" />
+      <text class="label" x="420" y="241">Key: FFFFFFFFFFFF</text>
+    </g>
+  </g>
+  
+  <!-- 扫描线效果 -->
+  <rect class="scan-line" x="0" y="0" width="100%" height="2" fill="url(#scanGradient)" />
+  
+  <!-- 技术参数 -->
+  <g class="tech-specs" transform="translate(15 265)">
+    <g transform="translate(0 0)">
+      <rect x="0" y="0" width="70" height="30" rx="4" ry="4" fill="rgba(22, 27, 34, 0.7)" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" />
+      <text class="tech-label" x="8" y="12">ISO/IEC</text>
+      <text class="tech-value" x="8" y="24">14443A</text>
+    </g>
+    
+    <g transform="translate(85 0)">
+      <rect x="0" y="0" width="70" height="30" rx="4" ry="4" fill="rgba(22, 27, 34, 0.7)" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" />
+      <text class="tech-label" x="8" y="12">Freq</text>
+      <text class="tech-value" x="8" y="24">13.56MHz</text>
+    </g>
+    
+    <g transform="translate(170 0)">
+      <rect x="0" y="0" width="70" height="30" rx="4" ry="4" fill="rgba(22, 27, 34, 0.7)" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" />
+      <text class="tech-label" x="8" y="12">Crypto</text>
+      <text class="tech-value" x="8" y="24">CRYPTO1</text>
+    </g>
+  </g>
+  
+  <!-- 破解算法可视化 -->
+  <g transform="translate(0, 0)">
+    <rect x="580" y="210" width="200" height="85" rx="4" ry="4" fill="rgba(22, 27, 34, 0.7)" stroke="rgba(255, 123, 114, 0.6)" stroke-width="1" />
+    <text class="attack-title" x="680" y="225">MIFARE Classic Attack</text>
+    
+    <g class="attack-steps">
+      <text x="592" y="240"><tspan class="step-prefix" opacity="0.4">></tspan><tspan class="step" dx="5">Collect nonces</tspan></text>
+      <text x="592" y="252"><tspan class="step-prefix" opacity="0.6">></tspan><tspan class="step" dx="5">Find key correlation</tspan></text>
+      <text x="592" y="264"><tspan class="step-prefix" opacity="0.8">></tspan><tspan class="step" dx="5">Brute force</tspan></text>
+      <text x="592" y="276"><tspan class="step-prefix" opacity="1">></tspan><tspan class="step" dx="5">Key recovery</tspan></text>
+    </g>
+    
+    <rect x="590" y="285" width="180" height="2" rx="1" ry="1" fill="rgba(22, 27, 34, 0.8)" />
+    <rect class="progress-fill" x="590" y="285" width="150" height="2" rx="1" ry="1" fill="rgba(255, 123, 114, 0.8)" />
+  </g>
+  
+  <!-- 十六进制数据流 -->
+  <g class="hex-data" transform="translate(780 15)">
+    <text class="hex-row hex-row-1" x="0" y="0">26 3F 7C 91 B4 5A 08 F2 E3 D7 C1</text>
+    <text class="hex-row hex-row-2" x="0" y="15">A0 4B 3D 7E 62 03 01 0C 06 01 02</text>
+    <text class="hex-row hex-row-3" x="0" y="30">D5 0F 2A 8C 5F 1B 9A 34 C7 E2 B8</text>
+  </g>
+  
+  <!-- JavaScript代码-更新十六进制数据 -->
+  <script type="text/ecmascript"><![CDATA[
+    // 十六进制数据集合
+    const hexDataSets = [
+      [
+        '26 3F 7C 91 B4 5A 08 F2 E3 D7 C1',
+        'A0 4B 3D 7E 62 03 01 0C 06 01 02',
+        'D5 0F 2A 8C 5F 1B 9A 34 C7 E2 B8'
+      ],
+      [
+        '04 A5 B9 C2 17 5B 80 39 FF 76 D1',
+        '90 AF 6D 8E 12 F3 7A 4C 2B 9D E5',
+        '6F 10 84 08 A0 3F 2E 5D 03 7C 4B'
+      ],
+      [
+        '00 A4 04 00 07 D2 76 9C 3E 85 01',
+        '6F 84 A5 BF 0C 61 4F 50 87 90 3A',
+        '9F 26 08 3E DC 16 79 53 C6 14 22'
+      ],
+      [
+        '60 7B 2C 4D 9E 5F FF FF FF FF FF',
+        '50 3A 11 22 33 44 55 66 77 88 99',
+        '08 77 8F 08 1A 2B 3C 4D 5E 6F 7A'
+      ],
+      [
+        'A0 B1 C2 D3 03 10 10 E4 F5 A6 B7',
+        '67 89 AB CD EF 12 34 56 78 9A BC',
+        'FF EE DD CC BB AA 08 04 F1 E2 D3'
+      ],
+      [
+        '00 84 00 00 08 7A 6B 5C 4D 3E 2F',
+        '90 AF 1A 2B 3C 4D 5E 6F 7A 8B 9C',
+        '4D 49 46 41 52 45 20 43 6C 61 73'
+      ]
+    ];
+    
+    // 获取十六进制行元素
+    const hexRows = document.querySelectorAll('.hex-row');
+    
+    // 快速切换效果
+    let rowIndex = 0;
+    setInterval(() => {
+      // 随机选择一个数据集
+      const randomSetIndex = Math.floor(Math.random() * hexDataSets.length);
+      // 更新单行数据
+      hexRows[rowIndex].textContent = hexDataSets[randomSetIndex][rowIndex];
+      // 循环切换行
+      rowIndex = (rowIndex + 1) % 3;
+    }, 300); // 每300毫秒更新一行
+  ]]></script>
+</svg> 

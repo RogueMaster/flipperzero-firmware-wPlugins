@@ -1,0 +1,320 @@
+# Islas Canarias Region Stations - Metro, Tranvía, Guaguas
+# Format: station_code,station_name
+
+# Estaciones reales más comunes encontradas en dumps (PRIORITARIAS)
+0x0000,Unknown Station
+0x0C00,Santa Cruz de Tenerife
+0x0C01,La Laguna
+0x0C02,Las Palmas de Gran Canaria
+0x0C03,Arrecife
+0x0C04,Puerto del Rosario
+0x0C05,Santa Cruz de La Palma
+0x0C06,San Sebastián de La Gomera
+0x0C07,Valverde
+
+# Metro de Tenerife - Línea 1
+0x0C10,Intercambiador de La Laguna
+0x0C11,Estadio Heliodoro
+0x0C12,Fundación
+0x0C13,La Higuerita
+0x0C14,Parque Marítimo
+0x0C15,Weyler
+0x0C16,Hospital Universitario
+0x0C17,Tíncer
+0x0C18,Cardonal
+0x0C19,Guajara
+0x0C1A,Universidad Fernando Pessoa
+0x0C1B,Campus de Guajara
+0x0C1C,Trinidad
+0x0C1D,El Cardonal
+0x0C1E,La Cuesta
+0x0C1F,Conservatorio
+
+# Metro de Tenerife - Línea 2
+0x0C20,Intercambiador de La Laguna
+0x0C21,Campus Anchieta
+0x0C22,Cueva Bermeja
+0x0C23,Miraflores
+0x0C24,Avenida Trinidad
+0x0C25,El Mayorazgo
+0x0C26,Gracia
+0x0C27,Fundación
+0x0C28,San Andrés
+
+# Tranvía de Las Palmas (MetroGuagua)
+0x0C30,Santa Catalina
+0x0C31,Parque San Telmo
+0x0C32,Alameda de Colón
+0x0C33,Teatro Pérez Galdós
+0x0C34,Bravo Murillo
+0x0C35,Rambla
+0x0C36,Alcalde Ramírez Bethencourt
+0x0C37,Juan XXIII
+0x0C38,Luis Doreste Silva
+0x0C39,Benemérita
+0x0C3A,El Colegio
+0x0C3B,Carolina Coronado
+0x0C3C,Campus Universitario
+
+# Principales intercambiadores de guaguas Tenerife
+0x0C40,Santa Cruz Intercambiador
+0x0C41,La Laguna Intercambiador
+0x0C42,Puerto de la Cruz
+0x0C43,Los Cristianos
+0x0C44,Playa de las Américas
+0x0C45,Costa Adeje
+0x0C46,Los Gigantes
+0x0C47,Icod de los Vinos
+0x0C48,Puerto de Santiago
+0x0C49,Garachico
+0x0C4A,Buenavista del Norte
+
+# Principales intercambiadores de guaguas Gran Canaria
+0x0C50,Las Palmas San Telmo
+0x0C51,Maspalomas
+0x0C52,Playa del Inglés
+0x0C53,Puerto Rico
+0x0C54,Mogán
+0x0C55,Agaete
+0x0C56,Gáldar
+0x0C57,Arucas
+0x0C58,Telde
+0x0C59,Vecindario
+0x0C5A,Ingenio
+0x0C5B,Agüimes
+0x0C5C,Santa Lucía
+
+# Lanzarote - Principales intercambiadores
+0x0C60,Arrecife Centro
+0x0C61,Costa Teguise
+0x0C62,Puerto del Carmen
+0x0C63,Playa Blanca
+0x0C64,Yaiza
+0x0C65,Tinajo
+0x0C66,Mancha Blanca
+0x0C67,Ye
+0x0C68,Órzola
+0x0C69,Haría
+0x0C6A,Teguise
+0x0C6B,San Bartolomé
+
+# Fuerteventura - Principales intercambiadores
+0x0C70,Puerto del Rosario Centro
+0x0C71,Corralejo
+0x0C72,El Cotillo
+0x0C73,Antigua
+0x0C74,Caleta de Fuste
+0x0C75,Gran Tarajal
+0x0C76,Morro Jable
+0x0C77,Costa Calma
+0x0C78,Betancuria
+0x0C79,Pájara
+0x0C7A,Tuineje
+
+# La Palma - Principales intercambiadores
+0x0C80,Santa Cruz de La Palma
+0x0C81,Los Llanos de Aridane
+0x0C82,Tazacorte
+0x0C83,Puerto Naos
+0x0C84,Fuencaliente
+0x0C85,Villa de Mazo
+0x0C86,Breña Alta
+0x0C87,Breña Baja
+0x0C88,Puntallana
+0x0C89,San Andrés y Sauces
+0x0C8A,Barlovento
+0x0C8B,Garafía
+0x0C8C,Puntagorda
+0x0C8D,Tijarafe
+
+# La Gomera - Principales intercambiadores
+0x0C90,San Sebastián de La Gomera
+0x0C91,Valle Gran Rey
+0x0C92,Playa de Santiago
+0x0C93,Vallehermoso
+0x0C94,Agulo
+0x0C95,Hermigua
+
+# El Hierro - Principales intercambiadores
+0x0CA0,Valverde
+0x0CA1,Frontera
+0x0CA2,El Pinar
+0x0CA3,La Restinga
+0x006=Weyler
+0x007=La Granja
+0x008=Hospital Universitario
+0x009=Tíncer
+0x00A=El Cardonal
+
+# Metro de Tenerife - Línea 2
+0x010=Intercambiador de La Laguna
+0x011=Trinidad
+0x012=Padre Anchieta
+0x013=El Cardonal
+0x014=Tíncer
+0x015=Hospital Universitario
+0x016=La Granja
+0x017=Weyler
+0x018=Parque Marítimo
+0x019=La Higuerita
+0x01A=Fundación
+0x01B=Estadio Heliodoro
+
+# Tranvía de Tenerife
+0x020=Intercambiador de Santa Cruz
+0x021=Fundación
+0x022=El Cardonal
+0x023=Tíncer
+0x024=Hospital Universitario
+0x025=La Cuesta
+0x026=Casa del Caminero
+0x027=El Mayorazgo
+0x028=Puente Zurita
+0x029=La Trinidad
+0x02A=Intercambiador de La Laguna
+
+# Guaguas Santa Cruz de Tenerife
+0x030=Intercambiador Santa Cruz
+0x031=Plaza España
+0x032=Castillo San Cristóbal
+0x033=Auditorio
+0x034=Parque Marítimo
+0x035=Rambla
+0x036=Plaza Weyler
+0x037=Hospital Universitario
+0x038=Ofra
+0x039=Añaza
+0x03A=García Escámez
+0x03B=Padre Anchieta
+0x03C=Duggi
+
+# Guaguas Las Palmas de Gran Canaria
+0x040=Estación San Telmo
+0x041=Teatro Pérez Galdós
+0x042=Parque Santa Catalina
+0x043=Muelle Santa Catalina
+0x044=Las Canteras
+0x045=Auditorio Alfredo Kraus
+0x046=Playa de Las Alcaravaneras
+0x047=Castillo de la Luz
+0x048=Puerto de la Luz
+0x049=Mesa y López
+0x04A=Triana
+0x04B=Vegueta
+0x04C=Pueblo Canario
+0x04D=Parque Doramas
+0x04E=Ciudad Jardín
+0x04F=Tafira
+
+# Metro Ligero de Las Palmas (proyecto)
+0x050=Estación San Telmo
+0x051=Alameda
+0x052=Bravo Murillo
+0x053=Schamann
+0x054=Pío XII
+0x055=Juan XXIII
+0x056=Granja
+0x057=Escaleritas
+0x058=Almatriche
+0x059=El Sebadal
+0x05A=Jinámar
+
+# Líneas interurbanas Tenerife
+0x060=Santa Cruz de Tenerife
+0x061=La Laguna
+0x062=Tacoronte
+0x063=El Sauzal
+0x064=Puerto de la Cruz
+0x065=La Orotava
+0x066=Los Realejos
+0x067=Icod de los Vinos
+0x068=Garachico
+0x069=Buenavista del Norte
+0x06A=Los Silos
+0x06B=El Tanque
+0x06C=Santiago del Teide
+0x06D=Adeje
+0x06E=Arona
+0x06F=Granadilla
+
+# Líneas interurbanas Gran Canaria
+0x070=Las Palmas de Gran Canaria
+0x071=Telde
+0x072=Ingenio
+0x073=Agüimes
+0x074=Santa Lucía
+0x075=Vecindario
+0x076=Maspalomas
+0x077=Playa del Inglés
+0x078=San Bartolomé de Tirajana
+0x079=Fataga
+0x07A=Mogán
+0x07B=Puerto Rico
+0x07C=Arguineguín
+0x07D=Gáldar
+0x07E=Guía
+0x07F=Agaete
+
+# Aeropuertos
+0x080=Aeropuerto Tenerife Norte
+0x081=Aeropuerto Tenerife Sur
+0x082=Aeropuerto Las Palmas
+0x083=Aeropuerto La Palma
+0x084=Aeropuerto Lanzarote
+0x085=Aeropuerto Fuerteventura
+0x086=Aeropuerto La Gomera
+0x087=Aeropuerto El Hierro
+
+# La Palma
+0x090=Santa Cruz de La Palma
+0x091=Breña Alta
+0x092=Breña Baja
+0x093=Villa de Mazo
+0x094=Fuencaliente
+0x095=Los Llanos de Aridane
+0x096=El Paso
+0x097=Puntagorda
+0x098=Tijarafe
+0x099=Garafía
+0x09A=Barlovento
+0x09B=San Andrés y Sauces
+0x09C=Puntallana
+
+# Lanzarote
+0x0A0=Arrecife
+0x0A1=Tinajo
+0x0A2=Yaiza
+0x0A3=Tías
+0x0A4=San Bartolomé
+0x0A5=Teguise
+0x0A6=Haría
+0x0A7=Puerto del Carmen
+0x0A8=Playa Blanca
+0x0A9=Costa Teguise
+0x0AA=Jameos del Agua
+0x0AB=Cueva de los Verdes
+
+# Fuerteventura
+0x0B0=Puerto del Rosario
+0x0B1=Antigua
+0x0B2=Tuineje
+0x0B3=Pájara
+0x0B4=Betancuria
+0x0B5=La Oliva
+0x0B6=Corralejo
+0x0B7=Morro Jable
+0x0B8=Costa Calma
+0x0B9=Caleta de Fuste
+
+# La Gomera
+0x0C0=San Sebastián de La Gomera
+0x0C1=Agulo
+0x0C2=Hermigua
+0x0C3=Vallehermoso
+0x0C4=Valle Gran Rey
+0x0C5=Alajeró
+
+# El Hierro
+0x0D0=Valverde
+0x0D1=La Frontera
+0x0D2=El Pinar

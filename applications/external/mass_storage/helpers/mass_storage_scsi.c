@@ -1,6 +1,7 @@
 #include "mass_storage_scsi.h"
 
 #include <core/log.h>
+#include <string.h>
 
 #define TAG "MassStorageSCSI"
 
@@ -14,6 +15,8 @@
 #define SCSI_PREVENT_MEDIUM_REMOVAL (0x1E)
 #define SCSI_START_STOP_UNIT        (0x1B)
 #define SCSI_WRITE_10               (0x2A)
+
+#define SCSI_MIN(a, b) ((a) < (b) ? (a) : (b))
 
 bool scsi_cmd_start(SCSISession* scsi, uint8_t* cmd, uint8_t len) {
     if(!len) {
@@ -121,9 +124,36 @@ bool scsi_cmd_tx_data(SCSISession* scsi, uint8_t* data, uint32_t* len, uint32_t 
             data[5] = 0; // flags
             data[6] = 0; // flags
             data[7] = 0; // flags
-            memcpy(data + 8, "Flipper ", 8); // vendor id
-            memcpy(data + 16, "Mass Storage    ", 16); // product id
-            memcpy(data + 32, "0001", 4); // product revision level
+
+            // Clear fields with spaces (SCSI standard padding)
+            memset(data + 8, ' ', 8); // vendor id
+            memset(data + 16, ' ', 16); // product id
+            memset(data + 32, ' ', 4); // revision
+
+            // Use configurable vendor ID
+            if(scsi->config && scsi->config->scsi_vendor_id) {
+                size_t vendor_len = SCSI_MIN(strlen(scsi->config->scsi_vendor_id), 8);
+                memcpy(data + 8, scsi->config->scsi_vendor_id, vendor_len);
+            } else {
+                memcpy(data + 8, "Flipper ", 8); // default
+            }
+
+            // Use configurable product ID
+            if(scsi->config && scsi->config->scsi_product_id) {
+                size_t product_len = SCSI_MIN(strlen(scsi->config->scsi_product_id), 16);
+                memcpy(data + 16, scsi->config->scsi_product_id, product_len);
+            } else {
+                memcpy(data + 16, "Mass Storage    ", 16); // default
+            }
+
+            // Use configurable revision
+            if(scsi->config && scsi->config->scsi_revision) {
+                size_t revision_len = SCSI_MIN(strlen(scsi->config->scsi_revision), 4);
+                memcpy(data + 32, scsi->config->scsi_revision, revision_len);
+            } else {
+                memcpy(data + 32, "0001", 4); // default
+            }
+
             *len = 36;
             scsi->tx_done = true;
             return true;
@@ -135,9 +165,19 @@ bool scsi_cmd_tx_data(SCSISession* scsi, uint8_t* data, uint32_t* len, uint32_t 
             data[0] = 0x00;
             data[1] = 0x80;
             data[2] = 0x00;
-            data[3] = 0x01; // Serial len
-            data[4] = '0';
-            *len = 5;
+
+            // Use configurable serial number
+            if(scsi->config && scsi->config->scsi_serial) {
+                size_t serial_len = strlen(scsi->config->scsi_serial);
+                data[3] = serial_len; // Serial len
+                memcpy(data + 4, scsi->config->scsi_serial, serial_len);
+                *len = 4 + serial_len;
+            } else {
+                data[3] = 0x01; // Serial len
+                data[4] = '0'; // default serial
+                *len = 5;
+            }
+
             scsi->tx_done = true;
             return true;
         }

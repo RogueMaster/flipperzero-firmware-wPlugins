@@ -1,3 +1,18 @@
+## v1.8
+- Add default remote and clear slot features by jknlsn
+
+## v1.7
+- Fixes for RAW files sending by WillyJL
+
+## v1.6
+- Support for custom buttons in UL FW by MrLego8-9
+
+## v1.5
+- Fixes for new API
+
+## v1.4
+- Various fixes
+
 ## v1.3
 - **New UI design**
 - New remote design by @Svaarich

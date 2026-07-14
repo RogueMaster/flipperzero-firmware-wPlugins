@@ -1,0 +1,13 @@
+App(
+    appid="c5_lab",
+    name="C5 Lab",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="Lab_C5_app",
+    stack_size=8 * 1024,
+    fap_icon="gfx/icon.png",
+    fap_category="GPIO",
+    fap_author="Lab_Team",
+    fap_weburl="https://github.com/C5Lab/projectZero",
+    fap_version="0.41",
+    fap_description="WiFi Deauther controller for Lab_C5 module via UART",
+)

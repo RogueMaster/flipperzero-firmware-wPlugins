@@ -1,6 +1,6 @@
 /***
  * Noptel LRF rangefinder sampler for the Flipper Zero
- * Version: 1.9
+ * Version: 2.4
  *
  * Test laser view
 ***/
@@ -198,5 +198,5 @@ void testlaser_view_draw_callback(Canvas* canvas, void* model) {
 
     /* Prompt the user to line up the LRF's laser transmitter and the Flipper's
      IR port at the bottom */
-    canvas_draw_str(canvas, 4, 61, "Aim LRX laser at IR port");
+    canvas_draw_str(canvas, 5, 61, "Aim LRF laser at IR port");
 }

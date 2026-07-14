@@ -1,0 +1,6 @@
+ADD_SCENE(start, Start)
+ADD_SCENE(main, Main)
+ADD_SCENE(custom, Custom)
+ADD_SCENE(custom_lights, CustomLights)
+ADD_SCENE(settings, Settings)
+ADD_SCENE(config, Config)

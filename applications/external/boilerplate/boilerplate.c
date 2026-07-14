@@ -29,7 +29,6 @@ Boilerplate* boilerplate_app_alloc() {
 
     //Scene additions
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     app->scene_manager = scene_manager_alloc(&boilerplate_scene_handlers, app);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
@@ -109,6 +108,7 @@ void boilerplate_app_free(Boilerplate* app) {
     view_dispatcher_remove_view(app->view_dispatcher, BoilerplateViewIdScene3);
     view_dispatcher_remove_view(app->view_dispatcher, BoilerplateViewIdSettings);
     view_dispatcher_remove_view(app->view_dispatcher, BoilerplateViewIdStartscreen);
+    button_menu_free(app->button_menu);
     submenu_free(app->submenu);
     variable_item_list_free(app->variable_item_list);
     boilerplate_scene_1_free(app->boilerplate_scene_1);

@@ -1,0 +1,14 @@
+App(
+    appid="fencing_testbox",
+    name="Fencing Test Box",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="fencing_testbox_main",
+    stack_size=2 * 1024,
+    fap_icon="assets/fencing_testbox_10px.png",
+    fap_icon_assets="assets",
+    fap_category="GPIO",
+    fap_author="Aaron Janeiro Stone",
+    fap_weburl="https://www.github.com/aarjaneiro/fencing_testbox",
+    fap_version="0.1",
+    fap_description="Test box for assessment of fencing blades and body wires.",
+)

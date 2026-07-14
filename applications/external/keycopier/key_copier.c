@@ -1,73 +1,12 @@
-#include <furi.h>
-#include <furi_hal.h>
-#include <gui/gui.h>
-#include <gui/view.h>
-#include <gui/view_dispatcher.h>
-#include <gui/modules/submenu.h>
-#include <gui/modules/text_input.h>
-#include <gui/modules/widget.h>
-#include <gui/modules/variable_item_list.h>
-#include <notification/notification.h>
-#include <notification/notification_messages.h>
-#include <applications/services/storage/storage.h>
-#include <applications/services/dialogs/dialogs.h>
-#include <stdbool.h>
-#include <math.h>
-#include <flipper_format.h>
-#include "key_copier_icons.h"
-#include "key_formats.h"
 #include "key_copier.h"
-#define TAG "KeyCopier"
 
-#define BACKLIGHT_ON 1
-
-typedef enum {
-    KeyCopierSubmenuIndexMeasure,
-    KeyCopierSubmenuIndexConfigure,
-    KeyCopierSubmenuIndexSave,
-    KeyCopierSubmenuIndexLoad,
-    KeyCopierSubmenuIndexAbout,
-} KeyCopierSubmenuIndex;
-
-typedef enum {
-    KeyCopierViewSubmenu,
-    KeyCopierViewTextInput,
-    KeyCopierViewConfigure_i,
-    KeyCopierViewConfigure_e,
-    KeyCopierViewSave,
-    KeyCopierViewLoad,
-    KeyCopierViewMeasure,
-    KeyCopierViewAbout,
-} KeyCopierView;
-
-typedef struct {
-    ViewDispatcher* view_dispatcher;
-    NotificationApp* notifications;
-    Submenu* submenu;
-    TextInput* text_input;
-    VariableItemList* variable_item_list_config;
-    View* view_measure;
-    View* view_config_e;
-    View* view_save;
-    View* view_load;
-    Widget* widget_about;
-    VariableItem* key_name_item;
-    VariableItem* format_item;
-    char* temp_buffer;
-    uint32_t temp_buffer_size;
-
-    DialogsApp* dialogs;
-    FuriString* file_path;
-} KeyCopierApp;
-
-typedef struct {
-    uint32_t format_index;
-    FuriString* key_name_str;
-    uint8_t pin_slc; // The pin that is being adjusted
-    uint8_t* depth; // The cutting depth
-    bool data_loaded;
-    KeyFormat format;
-} KeyCopierModel;
+void exit_widget_callback(GuiButtonType result, InputType type, void* context) {
+    KeyCopierApp* app = context;
+    UNUSED(result);
+    if(type == InputTypeShort) {
+        view_dispatcher_switch_to_view(app->view_dispatcher, KeyCopierViewSubmenu);
+    }
+}
 
 void initialize_model(KeyCopierModel* model) {
     if(model->depth != NULL) {
@@ -94,6 +33,11 @@ static uint32_t key_copier_navigation_submenu_callback(void* _context) {
     return KeyCopierViewSubmenu;
 }
 
+static uint32_t key_copier_navigation_manufacturer_list_callback(void* _context) {
+    UNUSED(_context);
+    return KeyCopierViewManufacturerList;
+}
+
 static void key_copier_submenu_callback(void* context, uint32_t index) {
     KeyCopierApp* app = (KeyCopierApp*)context;
     switch(index) {
@@ -112,6 +56,9 @@ static void key_copier_submenu_callback(void* context, uint32_t index) {
     case KeyCopierSubmenuIndexAbout:
         view_dispatcher_switch_to_view(app->view_dispatcher, KeyCopierViewAbout);
         break;
+    case KeyCopierSubmenuIndexQRCode:
+        view_dispatcher_switch_to_view(app->view_dispatcher, KeyCopierViewQRCode);
+        break;
     default:
         break;
     }
@@ -125,50 +72,41 @@ void initialize_manufacturers(char** manufacturers) {
     }
 }
 
-static void key_copier_format_change(VariableItem* item) {
-    KeyCopierApp* app = variable_item_get_context(item);
-    KeyCopierModel* model = view_get_model(app->view_measure);
-    if(model->data_loaded) {
-        variable_item_set_current_value_index(item, model->format_index);
-    }
-    uint8_t format_index = variable_item_get_current_value_index(item);
-    if(format_index != model->format_index) {
-        model->format_index = format_index;
-        model->format = all_formats[format_index];
-        if(model->depth != NULL) {
-            free(model->depth);
-        }
-        model->depth = (uint8_t*)malloc((model->format.pin_num + 1) * sizeof(uint8_t));
-        for(uint8_t i = 0; i <= model->format.pin_num; i++) {
-            model->depth[i] = model->format.min_depth_ind;
-        }
-        model->pin_slc = 1;
-    }
-    model->data_loaded = false;
-    variable_item_set_current_value_text(item, model->format.format_name);
-    model->format = all_formats[model->format_index];
-}
-static const char* format_config_label = "Key Format";
+static void manufacturer_selected_callback(void* context, uint32_t index);
+static void format_selected_callback(void* context, uint32_t index);
+
 static void key_copier_config_enter_callback(void* context) {
     KeyCopierApp* app = (KeyCopierApp*)context;
-    KeyCopierModel* my_model = view_get_model(app->view_measure);
-    variable_item_list_reset(app->variable_item_list_config);
-    // Recreate this view every time we enter it so that it's always updated
-    app->format_item = variable_item_list_add(
-        app->variable_item_list_config,
-        format_config_label,
-        COUNT_OF(all_formats),
-        key_copier_format_change,
-        app);
 
-    View* view_config_i = variable_item_list_get_view(app->variable_item_list_config);
-    variable_item_set_current_value_index(app->format_item, my_model->format_index);
-    key_copier_format_change(app->format_item);
-    view_set_previous_callback(view_config_i, key_copier_navigation_submenu_callback);
-    view_dispatcher_remove_view(
-        app->view_dispatcher, KeyCopierViewConfigure_i); // delete the last one
-    view_dispatcher_add_view(app->view_dispatcher, KeyCopierViewConfigure_i, view_config_i);
-    view_dispatcher_switch_to_view(app->view_dispatcher, KeyCopierViewConfigure_i); // recreate it
+    // Clear manufacturer list
+    submenu_reset(app->manufacturer_list);
+
+    // Track added manufacturers to avoid duplicates
+    char* added_manufacturers[COUNT_OF(all_formats)];
+    size_t added_count = 0;
+
+    // Add unique manufacturers
+    for(size_t i = 0; i < COUNT_OF(all_formats); i++) {
+        bool already_added = false;
+        for(size_t j = 0; j < added_count; j++) {
+            if(strcmp(all_formats[i].manufacturer, added_manufacturers[j]) == 0) {
+                already_added = true;
+                break;
+            }
+        }
+
+        if(!already_added) {
+            submenu_add_item(
+                app->manufacturer_list,
+                all_formats[i].manufacturer,
+                i,
+                manufacturer_selected_callback,
+                app);
+            added_manufacturers[added_count++] = all_formats[i].manufacturer;
+        }
+    }
+
+    view_dispatcher_switch_to_view(app->view_dispatcher, KeyCopierViewManufacturerList);
 }
 
 static const char* key_name_entry_text = "Enter name";
@@ -316,9 +254,18 @@ static void key_copier_view_measure_draw_callback(Canvas* canvas, void* model) {
     double drill_radians =
         (180 - my_format.drill_angle) / 2 / 180 * (double)M_PI; // Convert angle to radians
     double tangent = tan(drill_radians);
-    int top_contour_px = (int)round(63 - my_format.uncut_depth_inch / inches_per_px);
+    int top_contour_px = (int)round(62 - my_format.uncut_depth_inch / inches_per_px);
+    int bottom_contour_px = 0;
+
+    if(my_format.sides == 2)
+        bottom_contour_px =
+            top_contour_px + (int)round(my_format.uncut_depth_inch / inches_per_px);
     int post_extra_x_px = 0;
     int pre_extra_x_px = 0;
+    int bottom_post_extra_x_px = 0; // new
+    int bottom_pre_extra_x_px = 0; // new
+    int level_contour_px =
+        (int)round((my_format.last_pin_inch + my_format.elbow_inch) / inches_per_px);
     for(int current_pin = 1; current_pin <= my_model->format.pin_num; current_pin += 1) {
         double current_center_px =
             my_format.first_pin_inch + (current_pin - 1) * my_format.pin_increment_inch;
@@ -347,7 +294,98 @@ static void key_copier_view_measure_draw_callback(Canvas* canvas, void* model) {
             pin_center_px - pin_half_width_px,
             top_contour_px + current_depth_px,
             pin_center_px + pin_half_width_px,
-            top_contour_px + current_depth_px); // draw pin width horizontal line
+            top_contour_px + current_depth_px); // draw top pin width horizontal line
+
+        if(my_format.sides == 2) { // new
+            int last_depth = my_model->depth[current_pin - 2] - my_format.min_depth_ind;
+            int next_depth = my_model->depth[current_pin] - my_format.min_depth_ind;
+            int current_depth = my_model->depth[current_pin - 1] - my_format.min_depth_ind;
+            int current_depth_px =
+                (int)round(current_depth * my_format.depth_step_inch / inches_per_px);
+
+            // Draw horizontal line for bottom pin
+            canvas_draw_line(
+                canvas,
+                pin_center_px - pin_half_width_px,
+                bottom_contour_px - current_depth_px,
+                pin_center_px + pin_half_width_px,
+                bottom_contour_px - current_depth_px);
+
+            // Handle first pin for bottom
+            if(current_pin == 1) {
+                canvas_draw_line(
+                    canvas,
+                    0,
+                    bottom_contour_px,
+                    pin_center_px - pin_half_width_px - current_depth_px,
+                    bottom_contour_px);
+                last_depth = 0;
+                bottom_pre_extra_x_px = max(current_depth_px + pin_half_width_px, 0);
+            }
+
+            // Handle left side intersection for bottom
+            if((last_depth + current_depth) > my_format.clearance) {
+                if(current_pin != 1) {
+                    bottom_pre_extra_x_px =
+                        min(max(pin_step_px - bottom_post_extra_x_px, pin_half_width_px),
+                            pin_step_px - pin_half_width_px);
+                }
+                canvas_draw_line(
+                    canvas,
+                    pin_center_px - bottom_pre_extra_x_px,
+                    bottom_contour_px -
+                        max((int)round(
+                                (current_depth_px - (bottom_pre_extra_x_px - pin_half_width_px)) *
+                                tangent),
+                            0),
+                    pin_center_px - pin_half_width_px,
+                    bottom_contour_px - (int)round(current_depth_px * tangent));
+            } else {
+                int last_depth_px =
+                    (int)round(last_depth * my_format.depth_step_inch / inches_per_px);
+                int up_slope_start_x_px = pin_center_px - pin_half_width_px - current_depth_px;
+                canvas_draw_line(
+                    canvas,
+                    pin_center_px - pin_half_width_px - current_depth_px,
+                    bottom_contour_px,
+                    pin_center_px - pin_half_width_px,
+                    bottom_contour_px - (int)round(current_depth_px * tangent));
+                canvas_draw_line(
+                    canvas,
+                    min(pin_center_px - pin_step_px + pin_half_width_px + last_depth_px,
+                        up_slope_start_x_px),
+                    bottom_contour_px,
+                    up_slope_start_x_px,
+                    bottom_contour_px);
+            }
+
+            // Handle right side intersection for bottom
+            if((current_depth + next_depth) > my_format.clearance) {
+                double numerator = (double)current_depth;
+                double denominator = (double)(current_depth + next_depth);
+                double product = (numerator / denominator) * pin_step_px;
+                bottom_post_extra_x_px =
+                    (int)min(max(product, pin_half_width_px), pin_step_px - pin_half_width_px);
+                canvas_draw_line(
+                    canvas,
+                    pin_center_px + pin_half_width_px,
+                    bottom_contour_px - current_depth_px,
+                    pin_center_px + bottom_post_extra_x_px,
+                    bottom_contour_px -
+                        max(current_depth_px -
+                                (int)round((bottom_post_extra_x_px - pin_half_width_px) * tangent),
+                            0));
+            } else {
+                canvas_draw_line(
+                    canvas,
+                    pin_center_px + pin_half_width_px,
+                    bottom_contour_px - (int)round(current_depth_px * tangent),
+                    pin_center_px + pin_half_width_px + current_depth_px,
+                    bottom_contour_px);
+            }
+        }
+        // new end
+
         int last_depth = my_model->depth[current_pin - 2] - my_format.min_depth_ind;
         int next_depth = my_model->depth[current_pin] - my_format.min_depth_ind;
         if(current_pin == 1) {
@@ -356,14 +394,25 @@ static void key_copier_view_measure_draw_callback(Canvas* canvas, void* model) {
                 0,
                 top_contour_px,
                 pin_center_px - pin_half_width_px - current_depth_px,
-                top_contour_px);
+                top_contour_px); // draw top shoulder
             last_depth = 0;
             pre_extra_x_px = max(current_depth_px + pin_half_width_px, 0);
+            if(my_format.sides == 2) {
+                canvas_draw_line(
+                    canvas,
+                    0,
+                    bottom_contour_px,
+                    pin_center_px - pin_half_width_px - current_depth_px,
+                    bottom_contour_px); // draw bottom shoulder (hidden by level contour)
+            } else {
+                canvas_draw_line(canvas, 0, 62, level_contour_px, 62);
+            }
         }
         if(current_pin == my_model->format.pin_num) {
             next_depth = 0;
         }
-        if((last_depth + current_depth) > my_format.clearance) { //yes intersection
+        if((last_depth + current_depth) > my_format.clearance) { // yes
+            // intersection
 
             if(current_pin != 1) {
                 pre_extra_x_px =
@@ -421,11 +470,16 @@ static void key_copier_view_measure_draw_callback(Canvas* canvas, void* model) {
         }
     }
 
-    int level_contour_px =
-        (int)round((my_format.last_pin_inch + my_format.elbow_inch) / inches_per_px);
     int elbow_px = (int)round(my_format.elbow_inch / inches_per_px);
-    canvas_draw_line(canvas, 0, 62, level_contour_px, 62);
     canvas_draw_line(canvas, level_contour_px, 62, level_contour_px + elbow_px, 62 - elbow_px);
+    canvas_draw_line(canvas, 0, top_contour_px - 6, 0, top_contour_px);
+    if(my_format.stop == 2) {
+        // Draw a line using level_contour_px if stop equals 2 elbow must be firt pin inch
+        canvas_draw_line(canvas, level_contour_px, top_contour_px, level_contour_px, 63);
+        //  } else {
+        // Otherwise, draw a default line
+        //    canvas_draw_line(canvas, 0, top_contour_px, 0, 63); // too confusing but may want later
+    }
 
     int slc_pin_px = (int)round(
         (my_format.first_pin_inch + (my_model->pin_slc - 1) * my_format.pin_increment_inch) /
@@ -433,7 +487,7 @@ static void key_copier_view_measure_draw_callback(Canvas* canvas, void* model) {
     canvas_draw_icon(canvas, slc_pin_px - 2, top_contour_px - 25, &I_arrow_down);
 
     furi_string_printf(buffer, "%s", my_format.format_name);
-    canvas_draw_str(canvas, 110, 10, furi_string_get_cstr(buffer));
+    canvas_draw_str(canvas, 100, 10, furi_string_get_cstr(buffer));
     furi_string_free(buffer);
 }
 
@@ -478,9 +532,8 @@ static bool key_copier_view_measure_input_callback(InputEvent* event, void* cont
                             if(model->depth[model->pin_slc] - model->depth[model->pin_slc - 1] <
                                model->format.macs)
                                 model->depth[model->pin_slc - 1]--;
-                        } else if(
-                            model->pin_slc ==
-                            model->format.pin_num) { //last pin only limited by the previous one
+                        } else if(model->pin_slc == model->format.pin_num) { // last pin only limited by
+                            // the previous one
                             if(model->depth[model->pin_slc - 2] -
                                    model->depth[model->pin_slc - 1] <
                                model->format.macs) {
@@ -511,9 +564,8 @@ static bool key_copier_view_measure_input_callback(InputEvent* event, void* cont
                             if(model->depth[model->pin_slc - 1] - model->depth[model->pin_slc] <
                                model->format.macs)
                                 model->depth[model->pin_slc - 1]++;
-                        } else if(
-                            model->pin_slc ==
-                            model->format.pin_num) { //last pin only limited by the previous one
+                        } else if(model->pin_slc == model->format.pin_num) { // last pin only limited by
+                            // the previous one
                             if(model->depth[model->pin_slc - 1] -
                                    model->depth[model->pin_slc - 2] <
                                model->format.macs) {
@@ -542,28 +594,76 @@ static bool key_copier_view_measure_input_callback(InputEvent* event, void* cont
     return false;
 }
 
+static void manufacturer_selected_callback(void* context, uint32_t index) {
+    KeyCopierApp* app = context;
+    app->selected_manufacturer = all_formats[index].manufacturer;
+
+    // Clear and populate format list for selected manufacturer
+    submenu_reset(app->format_list);
+
+    // Add all formats for this manufacturer
+    for(size_t i = 0; i < COUNT_OF(all_formats); i++) {
+        if(strcmp(all_formats[i].manufacturer, app->selected_manufacturer) == 0) {
+            submenu_add_item(
+                app->format_list, all_formats[i].format_name, i, format_selected_callback, app);
+        }
+    }
+
+    view_dispatcher_switch_to_view(app->view_dispatcher, KeyCopierViewFormatList);
+}
+
+static void format_selected_callback(void* context, uint32_t index) {
+    KeyCopierApp* app = context;
+    KeyCopierModel* model = view_get_model(app->view_measure);
+
+    model->format_index = index;
+    model->format = all_formats[index];
+    if(model->depth != NULL) {
+        free(model->depth);
+    }
+    model->depth = malloc((model->format.pin_num + 1) * sizeof(uint8_t));
+    for(uint8_t i = 0; i <= model->format.pin_num; i++) {
+        model->depth[i] = model->format.min_depth_ind;
+    }
+    model->pin_slc = 1;
+    model->data_loaded = false;
+
+    view_dispatcher_switch_to_view(app->view_dispatcher, KeyCopierViewMeasure);
+}
+
 static KeyCopierApp* key_copier_app_alloc() {
     KeyCopierApp* app = (KeyCopierApp*)malloc(sizeof(KeyCopierApp));
 
     Gui* gui = furi_record_open(RECORD_GUI);
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     app->dialogs = furi_record_open(RECORD_DIALOGS);
     app->file_path = furi_string_alloc();
     app->submenu = submenu_alloc();
+    submenu_set_header(app->submenu, "Key Copier v1.5");
+    submenu_add_item(
+        app->submenu,
+        "Select Key Format",
+        KeyCopierSubmenuIndexConfigure,
+        key_copier_submenu_callback,
+        app);
     submenu_add_item(
         app->submenu, "Measure", KeyCopierSubmenuIndexMeasure, key_copier_submenu_callback, app);
-    submenu_add_item(
-        app->submenu, "Config", KeyCopierSubmenuIndexConfigure, key_copier_submenu_callback, app);
     submenu_add_item(
         app->submenu, "Save", KeyCopierSubmenuIndexSave, key_copier_submenu_callback, app);
     submenu_add_item(
         app->submenu, "Load", KeyCopierSubmenuIndexLoad, key_copier_submenu_callback, app);
     submenu_add_item(
-        app->submenu, "About", KeyCopierSubmenuIndexAbout, key_copier_submenu_callback, app);
+        app->submenu, "Help", KeyCopierSubmenuIndexAbout, key_copier_submenu_callback, app);
+    submenu_add_item(
+        app->submenu,
+        "Video Instruction",
+        KeyCopierSubmenuIndexQRCode,
+        key_copier_submenu_callback,
+        app);
+
     view_set_previous_callback(
         submenu_get_view(app->submenu), key_copier_navigation_exit_callback);
     view_dispatcher_add_view(
@@ -575,7 +675,6 @@ static KeyCopierApp* key_copier_app_alloc() {
         app->view_dispatcher, KeyCopierViewTextInput, text_input_get_view(app->text_input));
     app->temp_buffer_size = 32;
     app->temp_buffer = (char*)malloc(app->temp_buffer_size);
-    app->temp_buffer = "";
 
     app->view_measure = view_alloc();
     view_set_draw_callback(app->view_measure, key_copier_view_measure_draw_callback);
@@ -617,16 +716,53 @@ static KeyCopierApp* key_copier_app_alloc() {
         0,
         128,
         64,
-        "Key Maker App 1.0\nAuthor: @Torron\n\nTo measure your key:\n\n1. Place it on top of the screen.\n\n2. Use the contour to align your key.\n\n3. Adjust each pin's depth until they match. It's easier if you look with one eye closed.\n\nGithub: github.com/zinongli/KeyCopier \n\nSpecial thanks to Derek Jamison's Skeleton App Template.");
+        "Key Maker App 1.5\nAuthor: @Torron\n\nTo measure your key:\n\n1. Place "
+        "it on top of the screen.\n\n2. Use the contour to align your key.\n\n3. "
+        "Adjust each pin's depth until they match. It's easier if you look with "
+        "one eye closed.\n\nGithub: github.com/zinongli/KeyCopier \n\nSpecial "
+        "thanks to Derek Jamison's Skeleton App Template.");
     view_set_previous_callback(
         widget_get_view(app->widget_about), key_copier_navigation_submenu_callback);
     view_dispatcher_add_view(
         app->view_dispatcher, KeyCopierViewAbout, widget_get_view(app->widget_about));
 
+    app->widget_qr_code = widget_alloc();
+    widget_add_icon_element(app->widget_qr_code, 92, 7, &I_QR_Code);
+    widget_add_string_element(
+        app->widget_qr_code, 0, 10, AlignLeft, AlignBottom, FontSecondary, "Check out");
+    widget_add_string_element(
+        app->widget_qr_code, 0, 23, AlignLeft, AlignBottom, FontSecondary, "@TalkingSasquach's");
+    widget_add_string_element(
+        app->widget_qr_code, 0, 36, AlignLeft, AlignBottom, FontSecondary, "video from decoding");
+    widget_add_string_element(
+        app->widget_qr_code, 0, 49, AlignLeft, AlignBottom, FontSecondary, "a key to eventually");
+    widget_add_string_element(
+        app->widget_qr_code, 0, 62, AlignLeft, AlignBottom, FontSecondary, "3D-printing a copy!");
+    widget_add_button_element(
+        app->widget_qr_code, GuiButtonTypeRight, "Back", exit_widget_callback, app);
+    view_set_previous_callback(
+        widget_get_view(app->widget_qr_code), key_copier_navigation_submenu_callback);
+    view_dispatcher_add_view(
+        app->view_dispatcher, KeyCopierViewQRCode, widget_get_view(app->widget_qr_code));
+
+    app->manufacturer_list = submenu_alloc();
+    view_set_previous_callback(
+        submenu_get_view(app->manufacturer_list), key_copier_navigation_submenu_callback);
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        KeyCopierViewManufacturerList,
+        submenu_get_view(app->manufacturer_list));
+
+    app->format_list = submenu_alloc();
+    view_set_previous_callback(
+        submenu_get_view(app->format_list), key_copier_navigation_manufacturer_list_callback);
+    view_dispatcher_add_view(
+        app->view_dispatcher, KeyCopierViewFormatList, submenu_get_view(app->format_list));
+
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
 
 #ifdef BACKLIGHT_ON
-    notification_message(app->notifications, &sequence_display_backlight_enforce_on);
+    notification_message(app->notifications, &sequence_display_backlight_on);
 #endif
 
     return app;
@@ -643,6 +779,8 @@ static void key_copier_app_free(KeyCopierApp* app) {
     free(app->temp_buffer);
     view_dispatcher_remove_view(app->view_dispatcher, KeyCopierViewAbout);
     widget_free(app->widget_about);
+    view_dispatcher_remove_view(app->view_dispatcher, KeyCopierViewQRCode);
+    widget_free(app->widget_qr_code);
     view_dispatcher_remove_view(app->view_dispatcher, KeyCopierViewMeasure);
     with_view_model(
         app->view_measure,
@@ -661,6 +799,10 @@ static void key_copier_app_free(KeyCopierApp* app) {
     variable_item_list_free(app->variable_item_list_config);
     view_dispatcher_remove_view(app->view_dispatcher, KeyCopierViewSubmenu);
     submenu_free(app->submenu);
+    view_dispatcher_remove_view(app->view_dispatcher, KeyCopierViewManufacturerList);
+    submenu_free(app->manufacturer_list);
+    view_dispatcher_remove_view(app->view_dispatcher, KeyCopierViewFormatList);
+    submenu_free(app->format_list);
     view_dispatcher_free(app->view_dispatcher);
     furi_record_close(RECORD_GUI);
 

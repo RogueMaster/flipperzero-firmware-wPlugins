@@ -1,0 +1,11 @@
+8028a0 = 1000 0000 0010 1000 1010 0000
+84e8a0 = 1000 0100 1110 1000 1010 0000
+
+e6f810 = 1110 0110 1111 1000 0001 0000
+e6b810 = 1110 0110 1011 1000 0001 0000
+
+From https://dev.xcjs.com/r0073dl053r/flipper-playground/-/tree/main/Sub-GHz/Restaurant_Pagers/Retekess_Pagers/T111?ref_type=heads
+Pager1 = A21080 = 1010 0010 0001 0000 1000 0000
+Pager2 = A21040 = 1010 0010 0001 0000 0100 0000
+last 8 bits reversed seems to be number
+will name it L8R - Last 8 bits Reversed

@@ -21,9 +21,6 @@ typedef enum {
     ColorXOR = 0x02,
 } Color;
 
-/** Provide defines to permit checking if new are fonts available*/
-#define CANVAS_HAS_FONT_BATTERYPERCENT = 1
-
 /** Fonts enumeration */
 typedef enum {
     FontPrimary,
@@ -87,6 +84,22 @@ typedef enum {
 
 /** Canvas anonymous structure */
 typedef struct Canvas Canvas;
+
+/** Get canvas buffer.
+ *
+ * @param      canvas  Canvas instance
+ *
+ * @return     pointer to buffer
+ */
+uint8_t* canvas_get_buffer(Canvas* canvas);
+
+/** Get canvas buffer size.
+ *
+ * @param      canvas  Canvas instance
+ *
+ * @return     size of canvas in bytes
+ */
+size_t canvas_get_buffer_size(const Canvas* canvas);
 
 /** Reset canvas drawing tools configuration
  *
@@ -262,6 +275,9 @@ void canvas_draw_icon_ex(
 
 /** Draw animation at position defined by x,y.
  *
+ * This function is retained for backward compatibility and draws the animation
+ * at the specified position without scaling.
+ *
  * @param      canvas          Canvas instance
  * @param      x               x coordinate
  * @param      y               y coordinate
@@ -271,6 +287,26 @@ void canvas_draw_icon_animation(
     Canvas* canvas,
     int32_t x,
     int32_t y,
+    IconAnimation* icon_animation);
+
+/** Draw animation at position defined by x,y with scaling.
+ *
+ * This extended version allows scaling of the animation dimensions by percentage.
+ * The width and height are scaled independently.
+ *
+ * @param      canvas          Canvas instance
+ * @param      x               x coordinate
+ * @param      y               y coordinate
+ * @param      width_scale     Scaled (%) width of the icon (1–100%)
+ * @param      height_scale    Scaled (%) height of the icon (1–100%)
+ * @param      icon_animation  IconAnimation instance
+ */
+void canvas_draw_icon_animation_ex(
+    Canvas* canvas,
+    int32_t x,
+    int32_t y,
+    int32_t width_scale,
+    int32_t height_scale,
     IconAnimation* icon_animation);
 
 /** Draw icon at position defined by x,y.
@@ -299,6 +335,25 @@ void canvas_draw_xbm(
     size_t height,
     const uint8_t* bitmap);
 
+/** Draw rotated XBM bitmap
+ *
+ * @param      canvas       Canvas instance
+ * @param      x            x coordinate
+ * @param      y            y coordinate
+ * @param[in]  width        bitmap width
+ * @param[in]  height       bitmap height
+ * @param[in]  rotation     bitmap rotation
+ * @param      bitmap_data  pointer to XBM bitmap data
+ */
+void canvas_draw_xbm_ex(
+    Canvas* canvas,
+    int32_t x,
+    int32_t y,
+    size_t width,
+    size_t height,
+    IconRotation rotation,
+    const uint8_t* bitmap_data);
+
 /** Draw dot at x,y
  *
  * @param      canvas  Canvas instance
@@ -306,6 +361,12 @@ void canvas_draw_xbm(
  * @param      y       y coordinate
  */
 void canvas_draw_dot(Canvas* canvas, int32_t x, int32_t y);
+
+/** Draw overlay
+ *
+ * @param      canvas  Canvas instance
+ */
+void canvas_draw_overlay(Canvas* canvas);
 
 /** Draw box of width, height at x,y
  *
@@ -422,14 +483,6 @@ void canvas_draw_rbox(
     size_t width,
     size_t height,
     size_t radius);
-
-void canvas_draw_icon_bitmap(
-    Canvas* canvas,
-    uint8_t x,
-    uint8_t y,
-    int16_t w,
-    int16_t h,
-    const Icon* icon);
 
 #ifdef __cplusplus
 }

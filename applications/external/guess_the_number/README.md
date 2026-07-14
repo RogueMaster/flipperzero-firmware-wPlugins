@@ -1,36 +1,63 @@
-# Guess the Number Game for Flipper Zero
+# Guess The Number - Flipper Zero
 
-## Overview
-"Guess the Number" is a simple yet engaging game designed for the Flipper Zero device. This game challenges players to guess a randomly generated number within a specified range.
+> An enhanced number guessing game with progressive feedback, score tracking, and immersive multi-sensory experience.
 
-## Preview
-[Click me to see a brief video](https://streamable.com/rjfvdi)
+[![FAP: Build for multiple SDK sources](https://github.com/kWAYTV/guess-the-number-fz/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/kWAYTV/guess-the-number-fz/actions/workflows/build.yml)
 
-## Boilerplate
-[This app was created using leedave's boilerplate](https://github.com/leedave/flipper-zero-fap-boilerplate)
+## ✨ Features
 
-## Features
-- Random number generation using Flipper Zero's hardware capabilities.
-- Intuitive interface with up/down keys for guessing and back key to restart the game.
-- Immediate feedback on guesses – whether they're too high, too low, or correct.
-- Use of Flipper Zero's LED, vibration and speaker to enhance the game experience.
+- **Progressive Hint System** - Distance-based feedback (very close, close, far)
+- **Score Tracking** - Personal best score persistence across games
+- **Multi-Sensory Feedback** - Dynamic LED colors, haptic patterns, and sound effects
+- **Intuitive Controls** - Fine (+/-1) and coarse (+/-10) adjustment modes
+- **Professional UI** - Centered layout with visual emphasis and clear typography
 
-## Installation
-1. Clone this repository to your local machine.
-2. Use [uFBT](https://github.com/flipperdevices/flipperzero-ufbt) to compile the application.
-3. Transfer the compiled `.fap` file to your Flipper Zero or launch it with `ufbt launch`.
-4. Start playing!
+## 🎮 Gameplay
 
-## How to Play
-- Use the up/down buttons to increase or decrease your guess.
-- Press OK to submit your guess.
-- If your guess is incorrect, adjust it based on the feedback and try again.
-- Press the back button at any time to restart the game.
+Guess the secret number (0-99) in the fewest attempts possible. The game provides intelligent feedback based on your proximity to the target, with enhanced audio and visual cues.
 
-## Contributing
-Contributions to enhance the game or fix bugs are welcome. Please feel free to fork this repository, make changes, and create a pull request.
+**Controls:**
 
-## License
-This project is licensed under MIT License. Please click [here](LICENSE) for more details.
+- `↑/↓` Fine adjust (+/-1)
+- `←/→` Quick adjust (+/-10)
+- `OK` Submit guess
+- `BACK` Reset game (hold to exit)
 
-Enjoy the game on your Flipper Zero!
+## 🚀 Installation
+
+### Pre-built Releases (Recommended)
+
+Download the appropriate `.fap` file for your firmware from the [latest release](https://github.com/kWAYTV/guess-the-number-fz/releases/latest):
+
+- `guess_the_number_official-dev.fap` - Official Dev firmware
+- `guess_the_number_official-release.fap` - Official Release firmware
+- `guess_the_number_momentum-dev.fap` - Momentum Dev firmware
+- `guess_the_number_momentum-release.fap` - Momentum Release firmware
+
+Deploy the file to your Flipper Zero's `apps/Games` directory.
+
+## 🛠️ Development
+
+Built with Flipper Zero SDK using [leedave's boilerplate](https://github.com/leedave/flipper-zero-fap-boilerplate).
+
+**Build Requirements:**
+
+- [uFBT](https://github.com/flipperdevices/flipperzero-ufbt)
+- Flipper Zero firmware API v86.0+
+
+### Build from Source
+
+```bash
+git clone https://github.com/kWAYTV/guess-the-number-fz
+cd guess-the-number-fz
+ufbt update --index-url=https://up.momentum-fw.dev/firmware/directory.json --hw-target=f7 --channel=dev
+ufbt
+```
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+**Target:** 7 | **API:** 86.0 | **Category:** Games

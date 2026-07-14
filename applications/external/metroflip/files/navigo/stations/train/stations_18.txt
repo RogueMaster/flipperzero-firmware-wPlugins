@@ -1,0 +1,23 @@
+2,1,Gentilly
+2,2,Laplace
+2,3,Arcueil - Cachan
+3,1,Bagneux
+3,2,Bourg-la-Reine
+4,1,Parc de Sceaux
+4,2,La Croix de Berny
+5,1,Antony
+5,2,Fontaine Michalon
+5,3,Les Baconnets
+6,1,Massy - Verrieres
+6,2,Massy - Palaiseau
+6,3,Massy - Palaiseau
+7,1,Palaiseau
+7,2,Palaiseau - Villebon
+8,1,Lozere
+9,1,Le Guichet
+9,2,Orsay Ville
+10,1,Bures-sur-Yvette
+10,2,La Hacquiniere
+10,3,Gif-sur-Yvette
+10,4,Courcelle-sur-Yvette
+10,5,Saint-Remy-les-Chevreuse

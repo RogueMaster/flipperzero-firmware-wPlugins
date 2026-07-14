@@ -1,0 +1,6 @@
+# frame_id	pattern	description	applies_to	gate_rule
+F_PRON_AUX	{PRONOUN} {AUX}	pronoun + auxiliary (am/is/are/was/were/has/have/had)	any	always
+F_PRON_MODAL	{PRONOUN} {MODAL}	pronoun + modal (can/could/will/would/should/might/must)	any	always
+F_WH_AUX_PRON	{WH} {AUX} {PRONOUN}	wh-question frame (what/why/how + aux + pronoun)	any	question_context
+F_IT_COP	it {COPULA}	expletive-it copula (it is/was)	any	always
+F_THIS_REPORT	this {REPORT_VERB}	formal reporting frame (this suggests/indicates/means)	formal	formal_context

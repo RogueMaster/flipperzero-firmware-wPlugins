@@ -1,0 +1,339 @@
+    Title_CutScene_4_Frame[] = {
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 26, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 3, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 26, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 4, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 27, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 5, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 27, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 3, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 28, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 4, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 28, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 5, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 29, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 3, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 29, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 4, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 30, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 5, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 30, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 3, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 31, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 4, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 31, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 5, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 32, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 3, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 32, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 4, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 26, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 5, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 26, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 3, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 27, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 4, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 27, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 5, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 28, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 3, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 28, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 4, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 29, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 5, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 29, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 3, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 30, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 4, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 30, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 5, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 31, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 3, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 31, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 4, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 32, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 5, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 32, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 3, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 26, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 4, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 26, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 5, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 27, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 3, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 27, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 4, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 28, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 5, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 28, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 3, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 29, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 4, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 29, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 5, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 30, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 3, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 30, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 4, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 31, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 5, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 31, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 3, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 32, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 4, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 32, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 5, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 26, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 3, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 26, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 4, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 27, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 5, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 0, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 27, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 3, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 1, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 28, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 4, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_end
+
+        int16_t  0,   0, uint24_t Chambers_BG, uint8_t 0, dbmNormal
+        int16_t  10, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t 114, 37, uint24_t Torches,     uint8_t 2, dbmMasked
+        int16_t  67, 28, uint24_t Princess     uint8_t 28, dbmMasked
+        int16_t  54, 40, uint24_t HourGlasses  uint8_t 5, dbmMasked
+        int16_t  0,   0, uint24_t Chambers_FG, uint8_t 0, uint8_t dbmMasked_last
+
+    }

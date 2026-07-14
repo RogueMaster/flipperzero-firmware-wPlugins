@@ -1,0 +1,24 @@
+SIO DEFINITIONS IMPLICIT TAGS ::=
+BEGIN
+
+-- Black Hat Asia 25: Dismantling-the-seos-protocol.
+
+Key ::= SEQUENCE {
+  referenceId [1] OCTET STRING,
+  crypto OCTET STRING
+}
+
+PACS ::= SEQUENCE {
+  payload [5] OCTET STRING
+}
+
+SIO ::= SEQUENCE {
+  rid [1] OCTET STRING,
+  unknown3 [3] OCTET STRING OPTIONAL,
+  unknown5 [5] EXPLICIT NULL,
+  key [6] Key,
+  pacs [7] PACS,
+  unknown9 [9] EXPLICIT NULL
+}
+
+END

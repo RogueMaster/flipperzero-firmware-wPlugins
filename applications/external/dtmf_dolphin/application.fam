@@ -7,7 +7,9 @@ App(
     stack_size=8 * 1024,
     fap_category="Tools",
     fap_author="litui & xMasterX",
-    fap_version="1.4",
+    fap_weburl="https://github.com/xMasterX/all-the-plugins/tree/dev/base_pack/dtmf_dolphin",
+    fap_version="1.5",
     fap_description="DTMF (Dual-Tone Multi-Frequency) dialer, Bluebox, and Redbox.",
     #  [Add EAS tone #1086 (By JendrBendr)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1086)
+    #  [gpio output (By Dmitry422)](https://github.com/xMasterX/all-the-plugins/commit/b09aa5a3bb7b04ae2f44ed047f8dfebefbef9307)
 )

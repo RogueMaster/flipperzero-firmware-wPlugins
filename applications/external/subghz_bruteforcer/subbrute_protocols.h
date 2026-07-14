@@ -55,12 +55,14 @@ typedef enum {
     SMC5326FileProtocol,
     UNILARMFileProtocol,
     PT2260FileProtocol,
+    PT2262FileProtocol,
     HoneywellFileProtocol,
     HoltekFileProtocol,
     LegrandFileProtocol,
     HollarmileProtocol,
     GangQiFileProtocol,
     Marantec24FileProtocol,
+    FeronFileProtocol,
     UnknownFileProtocol,
     TotalFileProtocol,
 } SubBruteFileProtocol;
@@ -156,6 +158,11 @@ typedef enum {
     SubBruteAttackPT226024bit330,
     SubBruteAttackPT226024bit390,
     SubBruteAttackPT226024bit433,
+    SubBruteAttackPT226224bit315,
+    SubBruteAttackPT226224bit418,
+    SubBruteAttackPT226224bit430,
+    SubBruteAttackPT226224bit4305,
+    SubBruteAttackPT226224bit433,
     SubBruteAttackLoadFile,
     SubBruteAttackTotalCount,
 } SubBruteAttacks;
@@ -172,6 +179,7 @@ typedef struct {
     uint8_t bits;
     uint32_t te;
     uint8_t repeat;
+    uint8_t opencode;
     FuriHalSubGhzPreset preset;
     SubBruteFileProtocol file;
 } SubBruteProtocol;
@@ -271,7 +279,8 @@ void subbrute_protocol_default_payload(
     uint64_t step,
     uint8_t bits,
     uint32_t te,
-    uint8_t repeat);
+    uint8_t repeat,
+    uint8_t opencode);
 
 /**
  * @brief Performs a sub-brute force protocol operation with file payload.
@@ -321,7 +330,8 @@ void subbrute_protocol_default_generate_file(
     SubBruteFileProtocol file,
     uint64_t step,
     uint8_t bits,
-    uint32_t te);
+    uint32_t te,
+    uint8_t opencode);
 
 /**
  * @brief Generates a file for the SubBrute protocol with the given parameters.

@@ -162,6 +162,7 @@ void text_input_callback(void* ctx) {
         },
         true);
 
+    text_input_show_illegal_symbols(create_view_object->barcode_app->text_input, true);
     view_dispatcher_switch_to_view(
         create_view_object->barcode_app->view_dispatcher, CreateBarcodeView);
 }
@@ -233,7 +234,10 @@ static bool app_input_callback(InputEvent* input_event, void* ctx) {
                     false);
                 text_input_set_header_text(
                     create_view_object->barcode_app->text_input, "File Name");
-
+                text_input_show_illegal_symbols(
+                    create_view_object->barcode_app->text_input, false);
+                text_input_show_illegal_symbols(
+                    create_view_object->barcode_app->text_input, false);
                 view_dispatcher_switch_to_view(
                     create_view_object->barcode_app->view_dispatcher, TextInputView);
             }
@@ -256,7 +260,8 @@ static bool app_input_callback(InputEvent* input_event, void* ctx) {
                     false);
                 text_input_set_header_text(
                     create_view_object->barcode_app->text_input, "Barcode Data");
-
+                text_input_show_illegal_symbols(create_view_object->barcode_app->text_input, true);
+                text_input_show_illegal_symbols(create_view_object->barcode_app->text_input, true);
                 view_dispatcher_switch_to_view(
                     create_view_object->barcode_app->view_dispatcher, TextInputView);
             }

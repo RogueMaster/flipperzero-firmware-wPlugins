@@ -45,6 +45,7 @@ static void subrem_scene_edit_menu_update_data(SubGhzRemoteApp* app) {
         index,
         app->map_preset->subs_preset[index]->label,
         app->map_preset->subs_preset[index]->file_path,
+        app->map_preset->subs_preset[index]->button,
         app->map_preset->subs_preset[index]->load_state);
 }
 

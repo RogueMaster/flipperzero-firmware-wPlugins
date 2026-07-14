@@ -1,3 +1,24 @@
+## 3.4
+- Added contributed feature for an improved pause timer (Thanks to jxc)
+
+## 3.3
+- Added support for Favorites menu. 
+
+## 3.2
+- Added support for external IR GPIO boards, tested on IR Blaster & Masta-Blasta. 
+
+## 3.1
+- Bugfix to enable save on first use (thanks to WillyJL)
+- Bugfix for loop transmit when using RAW SubGHz transmissions
+
+## 3.0
+- Added loop transmit feature (thanks to miccayo)
+- Replaced transmission counter with animations
+- Refactored the transmission part to allow interruption of command chains
+
+## 2.8
+- Update SubGhz Protocoll to include flippers official rolling code support
+
 ## 2.7
 - Replaced custom keyboard for timing with new number_input from Firmware
 - Requires minimum OFW version 0.105.0 or custom firmware based on this

@@ -1,0 +1,16 @@
+App(
+    appid="panis",
+    name="Panis - A Grumpy Bread",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="panis_main",
+    sources=["bread.c"],
+    stack_size=2 * 1024,
+    fap_icon="images/icon_10x10.png",
+    fap_icon_assets="images",
+    fap_icon_assets_symbol="panis",
+    fap_category="Games",
+    fap_author="F Greil",
+    fap_weburl="https://github.com/fgreil/mitzi-panis",
+    fap_version=(0, 3, 0),
+    fap_description="A simple jump'n'run game where you control a grumpy bread",
+)

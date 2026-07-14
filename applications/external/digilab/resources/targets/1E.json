@@ -1,0 +1,66 @@
+{
+  "components": [
+    {
+      "partno": "ADXL355",
+      "desc": "3-axis accelerometer",
+      "type": 1,
+      "manufacturer": "Analog Dev.",
+      "date": "2017"
+    },
+    {
+      "partno": "HMC5883L",
+      "desc": "3-axis digital compass.",
+      "type": 22,
+      "manufacturer": "Honeywell",
+      "date": "2008"
+    },
+    {
+      "partno": "MAG3110",
+      "desc": "3-axis magnetometer.",
+      "type": 22,
+      "manufacturer": "NXP Semi",
+      "date": "2011"
+    },
+    {
+      "partno": "LSM303AGR",
+      "desc": "Accelerometer and magnetometer.",
+      "type": 22,
+      "manufacturer": "STMicro",
+      "date": "2016"
+    },
+    {
+      "partno": "LSM9DS0",
+      "desc": "9-axis IMU.",
+      "type": 15,
+      "manufacturer": "STMicro",
+      "date": "2014"
+    },
+    {
+      "partno": "LIS3MDL",
+      "desc": "Magnetometer.",
+      "type": 17,
+      "manufacturer": "STMicro",
+      "date": "2014"
+    },
+    {
+      "partno": "HMC5883",
+      "desc": "Magnetometer.",
+      "type": 17,
+      "manufacturer": "Honeywell",
+      "date": "2008"
+    },
+    {
+      "partno": "LIS2MDL",
+      "desc": "Magnetometer.",
+      "type": 17,
+      "manufacturer": "STMicro",
+      "date": "2018"
+    }
+  ],
+  "unique_types": [
+    1,
+    22,
+    15,
+    17
+  ]
+}

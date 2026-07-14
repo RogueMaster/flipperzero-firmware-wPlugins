@@ -1,0 +1,215 @@
+decision_tree:
+  name: "Tree Species Identification"
+  description: "Decision tree for identifying common European tree species"
+  
+  root_node:
+    question: "What type of leaves does the tree have?"
+    answers:
+      - "Needles": needle_node
+      - "Broad leaves": broadleaf_node
+      - "Scales": scale_node
+
+  nodes:
+    needle_node:
+      question: "How are the needles arranged?"
+      answers:
+        - "In clusters (2-5 needles together)": pine_cluster_node
+        - "Singularly along twig": single_needle_node
+        - "On short spur-like shoots": spur_needle_node
+
+    pine_cluster_node:
+      question: "How many needles per cluster and what's the cone like?"
+      answers:
+        - "2 needles, cones small and rounded": 
+            species: 
+              english: "Scots Pine"
+              german: "Waldkiefer"
+              latin: "Pinus sylvestris"
+        - "2 needles, cones asymmetrical, shrubby growth":
+            species:
+              english: "Mountain Pine"
+              german: "Bergkiefer"
+              latin: "Pinus mugo"
+        - "5 needles, cones large and upright":
+            species:
+              english: "Arolla Pine"
+              german: "Zirbelkiefer"
+              latin: "Pinus cembra"
+
+    single_needle_node:
+      question: "How are the needles attached and what's their shape?"
+      answers:
+        - "Needles on small woody pegs, 4-sided, sharp":
+            species:
+              english: "Norway Spruce"
+              german: "Gemeine Fichte"
+              latin: "Picea abies"
+        - "Needles with suction cup base, flat, two white stripes underneath":
+            species:
+              english: "European Silver Fir"
+              german: "Weißtanne"
+              latin: "Abies alba"
+        - "Needles soft, flat, no white stripes, cones with 3-pointed bracts":
+            species:
+              english: "Douglas Fir"
+              german: "Gewöhnliche Douglasie"
+              latin: "Pseudotsuga menziesii"
+        - "Needles dark green above, pale below, red berry-like fruit":
+            species:
+              english: "Yew"
+              german: "Eibe"
+              latin: "Taxus baccata"
+
+    spur_needle_node:
+      species:
+        english: "European Larch"
+        german: "Europäische Lärche"
+        latin: "Larix decidua"
+
+    scale_node:
+      species:
+        english: "Black Alder"
+        german: "Schwarzerle"
+        latin: "Alnus glutinosa"
+
+    broadleaf_node:
+      question: "What is the leaf arrangement on the twig?"
+      answers:
+        - "Opposite (leaves paired across from each other)": opposite_node
+        - "Alternate (leaves staggered along twig)": alternate_node
+
+    opposite_node:
+      question: "Describe the leaf shape and margin"
+      answers:
+        - "Palmately lobed (maple-like), pointed lobes":
+            species:
+              english: "Norway Maple"
+              german: "Spitzahorn"
+              latin: "Acer platanoides"
+        - "Palmately lobed, rounded lobes":
+            species:
+              english: "Field Maple"
+              german: "Feldahorn"
+              latin: "Acer campestre"
+        - "Palmately lobed, coarse teeth, hairy underside":
+            species:
+              english: "Sycamore"
+              german: "Bergahorn"
+              latin: "Acer pseudoplatanus"
+        - "Pinnately compound, 7-13 leaflets":
+            species:
+              english: "Ash"
+              german: "Gemeine Esche"
+              latin: "Fraxinus excelsior"
+
+    alternate_node:
+      question: "Are the leaves simple or compound?"
+      answers:
+        - "Simple (single leaf blade)": simple_leaf_node
+        - "Compound (multiple leaflets)": compound_leaf_node
+
+    simple_leaf_node:
+      question: "Describe the leaf margin and shape"
+      answers:
+        - "Entire margin, oval with pointed tip, smooth bark":
+            species:
+              english: "European Beech"
+              german: "Rotbuche"
+              latin: "Fagus sylvatica"
+        - "Lobed margin, irregular lobes":
+            oak_subnode:
+              question: "Describe the leaf base and acorn stalk"
+              answers:
+                - "Leaf base auricled, acorns on long stalks":
+                    species:
+                      english: "English Oak / Pedunculate Oak"
+                      german: "Stieleiche"
+                      latin: "Quercus robur"
+                - "Leaf base wedge-shaped, acorns sessile":
+                    species:
+                      english: "Sessile Oak"
+                      german: "Traubeneiche"
+                      latin: "Quercus petraea"
+        - "Doubly serrated margin, triangular shape":
+            species:
+              english: "Silver Birch"
+              german: "Sandbirke"
+              latin: "Betula pendula"
+        - "Serrated margin, heart-shaped":
+            lime_subnode:
+              question: "Size of leaves and hairiness"
+              answers:
+                - "Leaves 3-8cm, hairless except tufts in vein axils":
+                    species:
+                      english: "Small-leaved Lime"
+                      german: "Winterlinde"
+                      latin: "Tilia cordata"
+                - "Leaves 8-12cm, hairy underside":
+                    species:
+                      english: "Large-leaved Lime"
+                      german: "Sommerlinde"
+                      latin: "Tilia platyphyllos"
+        - "Deeply toothed margin, oval shape":
+            species:
+              english: "Sweet Chestnut"
+              german: "Edelkastanie"
+              latin: "Castanea sativa"
+        - "Serrated margin, elliptical, smooth bark with horizontal lines":
+            species:
+              english: "Wild Cherry"
+              german: "Vogelkirsche"
+              latin: "Prunus avium"
+        - "Doubly serrated, prominently veined, muscle-like bark":
+            species:
+              english: "European Hornbeam"
+              german: "Hainbuche"
+              latin: "Carpinus betulus"
+        - "Serrated, oval, bark with vertical fissures":
+            species:
+              english: "Hop Hornbeam"
+              german: "Gemeine Hopfenbuche"
+              latin: "Ostrya carpinifolia"
+        - "Coarsely toothed, nearly circular, flattened petiole":
+            species:
+              english: "Aspen"
+              german: "Zitterpappel"
+              latin: "Populus tremula"
+        - "Irregularly lobed, rough surface":
+            species:
+              english: "Wych Elm"
+              german: "Bergulme"
+              latin: "Ulmus glabra"
+        - "Pinnately compound appearance but actually simple, silvery underside":
+            species:
+              english: "Common Whitebeam"
+              german: "Echte Mehlbeere"
+              latin: "Sorbus aria"
+        - "Pinnately lobed, silvery underside":
+            species:
+              english: "Rowan"
+              german: "Vogelbeere"
+              latin: "Sorbus aucuparia"
+        - "Roundish, hairy, doubly toothed":
+            species:
+              english: "Common Hazel"
+              german: "Gemeine Hasel"
+              latin: "Corylus avellana"
+        - "Deeply lobed, thorny branches":
+            species:
+              english: "Common Hawthorn"
+              german: "Eingriffeliger Weißdorn"
+              latin: "Crataegus monogyna"
+        - "Small, elliptical, very thorny":
+            species:
+              english: "Blackthorn"
+              german: "Schlehe"
+              latin: "Prunus spinosa"
+
+    compound_leaf_node:
+      question: "Arrangement of leaflets and other characteristics"
+      answers:
+        - "Pinnately compound, oval leaflets, thorny branches":
+            species:
+              english: "Black Locust"
+              german: "Gewöhnliche Robinie"
+              latin: "Robinia pseudoacacia"

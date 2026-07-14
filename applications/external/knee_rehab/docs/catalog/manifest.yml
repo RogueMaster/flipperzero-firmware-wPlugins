@@ -1,0 +1,30 @@
+# Draft manifest for flipperdevices/flipper-application-catalog.
+# Intended final catalog path:
+# applications/Tools/kneeflip_rehab/manifest.yml
+#
+# Before opening a catalog PR:
+# - Replace sourcecode.location.origin with the final public GitHub clone URL.
+# - Replace sourcecode.location.commit_sha with the full commit SHA being submitted.
+# - Capture official qFlipper screenshots and update the screenshots list.
+# - Validate in a local flipper-application-catalog checkout with tools/bundle.py.
+
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/daryalok/KneeFlip-Rehab.git
+    commit_sha: REPLACE_WITH_FULL_COMMIT_SHA
+
+id: kneeflip_rehab
+name: KneeFlip Rehab
+category: Tools
+version: "0.1"
+author: Darya Lok
+icon: icons/kneeflip_rehab_10px.png
+short_description: Timer and counter for prescribed knee rehab routines
+description: "@README.md"
+changelog: "@changelog.md"
+screenshots:
+  - screenshots/main-menu.png
+  - screenshots/ice-timer.png
+  - screenshots/elevation-timer.png
+  - screenshots/quad-sets.png

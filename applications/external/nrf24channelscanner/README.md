@@ -39,7 +39,7 @@ Thanks for the image: [Sil333033](https://github.com/Sil333033)
 
 
 # Pinout from from NoComp/Frog
-<img src="https://media.discordapp.net/attachments/937479784726949900/994495234618687509/unknown.png?width=567&height=634">
+<img width="567" height="634" alt="image" src="https://github.com/user-attachments/assets/21f74f21-119d-4890-a736-ba4eda6ecb3a" />
 
 # Mousejacker / NRF24 pinout by UberGuidoZ
 2/A7 on FZ goes to MOSI/6 on nrf24l01<br>
@@ -64,4 +64,6 @@ The 3.3 uF to 10 uF will respond to slow freq changes while the 0.1 uF will resp
 
 ## Disclaimer
 Used images and some text from this repo: https://raw.githubusercontent.com/RogueMaster/flipperzero-firmware-wPlugins/420/documentation/NRF24.md
+Used some code from this repo: https://github.com/Flipper-XFW/Xtreme-Firmware
 Thanks for them for their work!
+

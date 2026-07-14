@@ -1,0 +1,14 @@
+App(
+    appid="mode7_demo",
+    name="Mode 7 Demo",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="mode7_demo_app",
+    stack_size=2 * 1024,
+    fap_icon="mode7_demo.png",
+    fap_file_assets="assets",
+    fap_category="Games",
+    fap_author="CookiePLMonster",
+    fap_weburl="https://github.com/CookiePLMonster/flipper-bakery/mode7_demo",
+    fap_version="0.1",
+    fap_description="A demo of pseudo-3D Mode 7 rendering",
+)

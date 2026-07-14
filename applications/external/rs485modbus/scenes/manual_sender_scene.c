@@ -44,7 +44,6 @@ void itemChangeCB(VariableItem* item) {
                     Value = Value % 8 ? Value / 8 + 1 : Value / 8;
                 else
                     Value = Value * 2;
-                item = variable_item_list_get(app->varList, 4);
                 snprintf(str, sizeof(str), "[ %d ]", Value);
                 variable_item_set_current_value_text(item, strdup(str));
                 if(BYTECOUNT != Value) {
@@ -115,9 +114,8 @@ void BuildSender(App* app, uint8_t* buf) {
     VariableItem* item;
     uint16_t Value = 0;
     char val[10];
-    SLAVE = MIN(SLAVE, 32);
     snprintf(val, sizeof(val), "%d", SLAVE);
-    item = variable_item_list_add(app->varList, "Peripheral ID", 32, itemChangeCB, app);
+    item = variable_item_list_add(app->varList, "Peripheral ID", 0xFF, itemChangeCB, app);
     variable_item_set_current_value_text(item, strdup(val));
     variable_item_set_current_value_index(item, SLAVE - 1);
     item = variable_item_list_add(app->varList, "Function", 8, itemChangeCB, app);

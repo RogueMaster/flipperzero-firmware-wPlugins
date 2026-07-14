@@ -12,6 +12,12 @@ void tpms_view_receiver_set_rssi(TPMSReceiver* instance, float rssi);
 
 void tpms_view_receiver_set_lock(TPMSReceiver* tpms_receiver, TPMSLock keyboard);
 
+void tpms_view_receiver_set_scan_mode(TPMSReceiver* tpms_receiver, TPMSScanMode scan_mode);
+
+void tpms_view_receiver_set_sweep_cycle(TPMSReceiver* tpms_receiver, uint8_t cycle);
+
+void tpms_view_receiver_set_sweep_countdown(TPMSReceiver* tpms_receiver, uint8_t seconds);
+
 void tpms_view_receiver_set_callback(
     TPMSReceiver* tpms_receiver,
     TPMSReceiverCallback callback,
@@ -40,3 +46,5 @@ uint16_t tpms_view_receiver_get_idx_menu(TPMSReceiver* tpms_receiver);
 void tpms_view_receiver_set_idx_menu(TPMSReceiver* tpms_receiver, uint16_t idx);
 
 void tpms_view_receiver_exit(void* context);
+
+void tpms_view_receiver_trigger_activation(TPMSReceiver* tpms_receiver);

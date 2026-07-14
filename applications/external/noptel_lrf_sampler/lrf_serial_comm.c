@@ -1,6 +1,6 @@
 /***
  * Noptel LRF rangefinder sampler for the Flipper Zero
- * Version: 1.9
+ * Version: 2.4
  *
  * LRF Serial communication app
 ***/
@@ -17,8 +17,9 @@
 
 #define UART_RX_STREAM_BUF_SIZE 1024
 
-#define CR    13
 #define LF    10
+#define CR    13
+#define SPACE 32
 #define SLASH 47
 
 /*** Parameters ***/
@@ -136,6 +137,11 @@ struct _LRFSerialCommApp {
     void (*lrf_info_handler)(LRFInfo*, void*);
     void* lrf_info_handler_ctx;
 
+    /* Callback to send a decoded LRF boot string and the context we should
+     pass it */
+    void (*lrf_boot_info_handler)(LRFBootInfo*, void*);
+    void* lrf_boot_info_handler_ctx;
+
     /* Callback to send diagnostic data to and the context we should pass it */
     void (*diag_data_handler)(LRFDiag*, void*);
     void* diag_data_handler_ctx;
@@ -181,6 +187,12 @@ void set_lrf_ident_handler(LRFSerialCommApp* app, void (*cb)(LRFIdent*, void*), 
 void set_lrf_info_handler(LRFSerialCommApp* app, void (*cb)(LRFInfo*, void*), void* ctx) {
     app->lrf_info_handler = cb;
     app->lrf_info_handler_ctx = ctx;
+}
+
+/** Set the callback to handle LRF boot information **/
+void set_lrf_boot_info_handler(LRFSerialCommApp* app, void (*cb)(LRFBootInfo*, void*), void* ctx) {
+    app->lrf_boot_info_handler = cb;
+    app->lrf_boot_info_handler_ctx = ctx;
 }
 
 /** Set the callback to handle received diagnostic data **/
@@ -260,6 +272,7 @@ static int32_t uart_rx_thread(void* ctx) {
     LRFSample lrf_sample;
     LRFIdent lrf_ident;
     LRFInfo lrf_info;
+    LRFBootInfo lrf_boot_info;
     uint8_t electronics;
     uint8_t fw_major, fw_minor, fw_micro, fw_build;
     LRFDiag lrf_diag = {NULL, 0, 0};
@@ -348,6 +361,130 @@ static int32_t uart_rx_thread(void* ctx) {
 
                 /* Process the data we're received */
                 for(i = 0; i < rx_buf_len; i++) {
+                    /* Are we waiting for a LRF boot string only? */
+                    if(app->lrf_boot_info_handler) {
+                        /* Handle receiving the boot string entirely separately, as the
+               boot process can send a lot of confusing garbage that may be
+               misconstrued as valid LRF communication frames */
+                        switch(app->nb_dec_buf) {
+                        /* We're waiting for a LF byte */
+                        case 0:
+                            if(app->rx_buf[i] == LF)
+                                app->dec_buf[app->nb_dec_buf++] = app->rx_buf[i];
+                            break;
+
+                        /* We're waiting for a CR byte */
+                        case 1:
+                            if(app->rx_buf[i] == CR) {
+                                lrf_boot_info.id[0] = 0;
+                                lrf_boot_info.fwversion[0] = 0;
+                                app->dec_buf[app->nb_dec_buf++] = app->rx_buf[i];
+                            }
+                            break;
+
+                        /* We're waiting for the end of the ID string marked by a space,
+                 of the end of the firmware string marked by a CR */
+                        default:
+
+                            /* What character did we get? */
+                            switch(app->rx_buf[i]) {
+                            /* Did we get a space? */
+                            case SPACE:
+
+                                /* If we already have a firmware version strings, the boot
+                       string is invalid: reset the decode buffer */
+                                if(lrf_boot_info.fwversion[0]) {
+                                    app->nb_dec_buf = 0;
+                                    break;
+                                }
+
+                                /* If we already have an ID, ignore the space */
+                                if(lrf_boot_info.id[0]) break;
+
+                                /* IF the ID is too short, the boot string is invalid:
+                       reset the decode buffer */
+                                if(app->nb_dec_buf == 2) {
+                                    app->nb_dec_buf = 0;
+                                    break;
+                                }
+
+                                /* Store the ID */
+                                app->dec_buf[app->nb_dec_buf] = 0;
+                                strcpy_rstrip(lrf_boot_info.id, app->dec_buf + 2);
+
+                                /* "Rewind" the decode buffer */
+                                app->nb_dec_buf = 2;
+                                break;
+
+                            /* Did we get a CR? */
+                            case CR:
+
+                                /* If we don't have an ID string, we already have a fiwmare
+                       version string or the firmware version is too short,
+                       the boot string is invalid: reset the decode buffer */
+                                if(!lrf_boot_info.id[0] || lrf_boot_info.fwversion[0] ||
+                                   app->nb_dec_buf == 2) {
+                                    app->nb_dec_buf = 0;
+                                    break;
+                                }
+
+                                /* Store the firmware version */
+                                app->dec_buf[app->nb_dec_buf] = 0;
+                                strcpy_rstrip(lrf_boot_info.fwversion, app->dec_buf + 2);
+
+                                /* "Rewind" the decode buffer */
+                                app->nb_dec_buf = 2;
+                                break;
+
+                            /* Did we get a LF? */
+                            case LF:
+
+                                /* If we don't have ID or a firmware version strings,
+                       the boot string is invalid: reset the decode buffer */
+                                if(!lrf_boot_info.id[0] || !lrf_boot_info.fwversion[0]) {
+                                    app->nb_dec_buf = 0;
+                                    break;
+                                }
+
+                                /* Mark the time we received the valid boot string */
+                                lrf_boot_info.boot_string_rx_tstamp = now_ms;
+
+                                /* Pass the decoded LRF boot information to the handler */
+                                app->lrf_boot_info_handler(
+                                    &lrf_boot_info, app->lrf_boot_info_handler_ctx);
+
+                                FURI_LOG_T(
+                                    TAG,
+                                    "LRF boot string received: "
+                                    "lrfid=%s, fwversion=%s",
+                                    lrf_boot_info.id,
+                                    lrf_boot_info.fwversion);
+                                break;
+
+                            /* We got another character */
+                            default:
+
+                                /* If the character isn't printable or the decode buffer is
+                       too full already, the boot string is invalid: reset the
+                       decode buffer */
+                                if(app->rx_buf[i] < 32 || app->rx_buf[i] >= 127 ||
+                                   app->nb_dec_buf >= 17) {
+                                    app->nb_dec_buf = 0;
+                                    break;
+                                }
+
+                                /* Store the character in the decode buffer */
+                                app->dec_buf[app->nb_dec_buf++] = app->rx_buf[i];
+                                break;
+                            }
+
+                            break;
+                        }
+
+                        continue;
+                    }
+
+                    /* We're waiting for normal LRF communication frames */
                     switch(app->nb_dec_buf) {
                     /* We're waiting for a sync byte */
                     case 0:

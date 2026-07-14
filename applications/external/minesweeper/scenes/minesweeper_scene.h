@@ -1,7 +1,12 @@
 #ifndef MINESWEEPER_SCENE_H
 #define MINESWEEPER_SCENE_H
 
+#include <stdbool.h>
 #include <gui/scene_manager.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
 
 // Generate scene id and total number
 #define ADD_SCENE(prefix, name, id) MineSweeperScene##id,
@@ -29,4 +34,8 @@ extern const SceneManagerHandlers minesweeper_scene_handlers;
 #include "minesweeper_scene_config.h"
 #undef ADD_SCENE
 
-#endif
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+
+#endif // MINESWEEPER_SCENE_H

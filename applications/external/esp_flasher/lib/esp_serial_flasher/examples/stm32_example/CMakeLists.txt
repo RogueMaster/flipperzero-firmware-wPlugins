@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 set(FLASHER_DIR ${CMAKE_CURRENT_LIST_DIR}/../..)
-set(CMAKE_TOOLCHAIN_FILE ${FLASHER_DIR}/submodules/stm32_cmake/cmake/stm32_gcc.cmake)
+set(CMAKE_TOOLCHAIN_FILE ${FLASHER_DIR}/submodules/stm32-cmake/cmake/stm32_gcc.cmake)
 
 project(stm32_flasher C ASM)
 
@@ -28,6 +28,12 @@ set(PORT STM32)
 set(STM32_CHIP STM32H743VI)
 set(CORE_USED M7)
 add_subdirectory(${FLASHER_DIR} ${CMAKE_BINARY_DIR}/flasher)
+
+target_compile_options(flasher
+PRIVATE
+    -Wunused-parameter
+    -Wshadow
+)
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
 PRIVATE

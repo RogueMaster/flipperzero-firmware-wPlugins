@@ -1,0 +1,43 @@
+{
+  "components": [
+    {
+      "partno": "PCF8574",
+      "desc": "8-bit I/O expander.",
+      "type": 16,
+      "manufacturer": "NXP Semi",
+      "date": "2004"
+    },
+    {
+      "partno": "MCP23017",
+      "desc": "16-bit I/O expander.",
+      "type": 16,
+      "manufacturer": "Microchip",
+      "date": "2009"
+    },
+    {
+      "partno": "PCA9536",
+      "desc": "4-bit I/O expander.",
+      "type": 16,
+      "manufacturer": "NXP Semi",
+      "date": "2005"
+    },
+    {
+      "partno": "MCP23008",
+      "desc": "8-bit I/O expander.",
+      "type": 16,
+      "manufacturer": "Microchip",
+      "date": "2008"
+    },
+    {
+      "partno": "Chirp!",
+      "desc": "Water sensor.",
+      "type": 22,
+      "manufacturer": "Catnip",
+      "date": "2015"
+    }
+  ],
+  "unique_types": [
+    16,
+    22
+  ]
+}

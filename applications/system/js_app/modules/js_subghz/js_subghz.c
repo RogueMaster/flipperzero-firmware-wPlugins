@@ -30,6 +30,8 @@ static FuriHalSubGhzPreset js_subghz_get_preset_name(const char* preset_name) {
         preset = FuriHalSubGhzPresetOok650Async;
     } else if(!strcmp(preset_name, "FuriHalSubGhzPreset2FSKDev238Async")) {
         preset = FuriHalSubGhzPreset2FSKDev238Async;
+    } else if(!strcmp(preset_name, "FuriHalSubGhzPreset2FSKDev12KAsync")) {
+        preset = FuriHalSubGhzPreset2FSKDev12KAsync;
     } else if(!strcmp(preset_name, "FuriHalSubGhzPreset2FSKDev476Async")) {
         preset = FuriHalSubGhzPreset2FSKDev476Async;
     } else if(!strcmp(preset_name, "FuriHalSubGhzPresetCustom")) {
@@ -223,7 +225,7 @@ static void js_subghz_transmit_file(struct mjs* mjs) {
     // - "repeat" as variable and loop in this code applies to RAW files only
     //   parsed files handle repeat in protocol layer instead
     // We keep 0 as default, or literal value if specified by user
-    // If user did not specify, -1 is detected below, and we use:
+    // If user did not specify, 0 is detected below, and we use:
     // - 1 repeat for RAW
     // - 10 repeats for parsed, which is passed to protocol, and we loop once here
     uint32_t repeat = 0;
@@ -484,7 +486,8 @@ static void js_subghz_end(struct mjs* mjs) {
     mjs_return(mjs, MJS_UNDEFINED);
 }
 
-static void* js_subghz_create(struct mjs* mjs, mjs_val_t* object) {
+static void* js_subghz_create(struct mjs* mjs, mjs_val_t* object, JsModules* modules) {
+    UNUSED(modules);
     JsSubghzInst* js_subghz = malloc(sizeof(JsSubghzInst));
     mjs_val_t subghz_obj = mjs_mk_object(mjs);
 
@@ -524,6 +527,7 @@ static const JsModuleDescriptor js_subghz_desc = {
     "subghz",
     js_subghz_create,
     js_subghz_destroy,
+    NULL,
 };
 
 static const FlipperAppPluginDescriptor plugin_descriptor = {

@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
- #pragma once
+#pragma once
 
 #include <stdint.h>
 #include "esp_loader.h"
@@ -22,10 +22,12 @@
 extern "C" {
 #endif
 
+#ifndef SERIAL_FLASHER_INTERFACE_SDIO
 /**
   * @brief Changes the transmission rate of the used peripheral.
   */
 esp_loader_error_t loader_port_change_transmission_rate(uint32_t transmission_rate);
+#endif
 
 /**
   * @brief Writes data over the io interface.
@@ -38,7 +40,12 @@ esp_loader_error_t loader_port_change_transmission_rate(uint32_t transmission_ra
   *     - ESP_LOADER_SUCCESS Success
   *     - ESP_LOADER_ERROR_TIMEOUT Timeout elapsed
   */
+#ifndef SERIAL_FLASHER_INTERFACE_SDIO
 esp_loader_error_t loader_port_write(const uint8_t *data, uint16_t size, uint32_t timeout);
+#else
+esp_loader_error_t loader_port_write(uint32_t function, uint32_t addr, const uint8_t *data,
+                                     uint16_t size, uint32_t timeout);
+#endif
 
 /**
   * @brief Reads data from the io interface.
@@ -51,7 +58,12 @@ esp_loader_error_t loader_port_write(const uint8_t *data, uint16_t size, uint32_
   *     - ESP_LOADER_SUCCESS Success
   *     - ESP_LOADER_ERROR_TIMEOUT Timeout elapsed
   */
+#ifndef SERIAL_FLASHER_INTERFACE_SDIO
 esp_loader_error_t loader_port_read(uint8_t *data, uint16_t size, uint32_t timeout);
+#else
+esp_loader_error_t loader_port_read(uint32_t function, uint32_t addr, uint8_t *data,
+                                    uint16_t size, uint32_t timeout);
+#endif
 
 /**
   * @brief Delay in milliseconds.
@@ -106,6 +118,10 @@ void loader_port_debug_print(const char *str);
   */
 void loader_port_spi_set_cs(uint32_t level);
 #endif /* SERIAL_FLASHER_INTERFACE_SPI */
+
+#ifdef SERIAL_FLASHER_INTERFACE_SDIO
+esp_loader_error_t loader_port_sdio_card_init(void);
+#endif /* SERIAL_FLASHER_INTERFACE_SDIO */
 
 #ifdef __cplusplus
 }

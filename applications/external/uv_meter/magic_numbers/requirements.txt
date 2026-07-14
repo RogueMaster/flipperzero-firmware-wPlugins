@@ -1,0 +1,15 @@
+-i https://pypi.org/simple
+contourpy==1.3.1; python_version >= '3.10'
+cycler==0.12.1; python_version >= '3.8'
+fonttools==4.56.0; python_version >= '3.8'
+kiwisolver==1.4.8; python_version >= '3.10'
+matplotlib==3.10.1; python_version >= '3.10'
+numpy==2.2.3; python_version >= '3.10'
+packaging==24.2; python_version >= '3.8'
+pandas==2.2.3; python_version >= '3.9'
+pillow==11.1.0; python_version >= '3.9'
+pyparsing==3.2.1; python_version >= '3.9'
+python-dateutil==2.9.0.post0; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2'
+pytz==2025.1
+six==1.17.0; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2'
+tzdata==2025.1; python_version >= '2'

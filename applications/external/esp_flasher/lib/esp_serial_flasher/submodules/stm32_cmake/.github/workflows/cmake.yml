@@ -11,7 +11,7 @@ jobs:
     uses: ./.github/workflows/create-matrix.yml
 
   test-ubuntu:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs: RetrieveTargetsMatrix
     strategy:
       matrix: ${{ fromJSON(needs.RetrieveTargetsMatrix.outputs.matrix) }}

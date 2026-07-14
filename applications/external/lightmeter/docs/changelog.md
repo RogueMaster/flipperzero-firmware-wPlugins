@@ -1,3 +1,7 @@
+## v1.3
+
+* Update EV compute logic (thanks to @bogdumi)
+
 ## v1.2
 
 * Lux only screen now has statistics

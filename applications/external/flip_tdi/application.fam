@@ -9,6 +9,6 @@ App(
     fap_category="USB",
     fap_author="SkorP",
     fap_weburl="https://github.com/flipperdevices/flipperzero-good-faps/tree/e1e8783dd02cddcdc95915f4fcc57cb1946de40e/flip_tdi",
-    fap_version="1.0",
+    fap_version="1.1",
     fap_description="Flipper FTDI232H emulator.",
 )

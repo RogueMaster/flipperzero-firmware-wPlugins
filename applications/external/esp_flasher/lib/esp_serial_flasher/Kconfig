@@ -9,13 +9,19 @@ menu "ESP serial flasher"
         prompt "Hardware interface to use for firmware download"
         default SERIAL_FLASHER_INTERFACE_UART
         help
-            esp_serial_flasher can work with UART and SPI interfaces.
+            esp-serial-flasher can work with UART and SPI interfaces.
 
         config SERIAL_FLASHER_INTERFACE_UART
             bool "UART"
 
         config SERIAL_FLASHER_INTERFACE_SPI
-            bool "SPI (Only supports downloading to RAM, experimental)"
+            bool "SPI (Only supports downloading to RAM)"
+
+        config SERIAL_FLASHER_INTERFACE_USB
+            bool "USB"
+
+        config SERIAL_FLASHER_INTERFACE_SDIO
+            bool "SDIO (Experimental)"
 
     endchoice
 
@@ -34,5 +40,21 @@ menu "ESP serial flasher"
     config SERIAL_FLASHER_WRITE_BLOCK_RETRIES
         int "Number of retries when writing blocks either to target flash or RAM"
         default 3
+
+    config SERIAL_FLASHER_RESET_INVERT
+        bool "Invert reset signal"
+        default n
+        depends on SERIAL_FLASHER_INTERFACE_UART
+        help
+           Enable this option if there is an inverting connection between
+           the output of the serial-flasher and the reset pin of the ESP chip.
+
+    config SERIAL_FLASHER_BOOT_INVERT
+        bool "Invert boot signal"
+        default n
+        depends on SERIAL_FLASHER_INTERFACE_UART
+        help
+           Enable this option if there is an inverting connection between
+           the output of the serial-flasher and the boot pin of the ESP chip.
 
 endmenu

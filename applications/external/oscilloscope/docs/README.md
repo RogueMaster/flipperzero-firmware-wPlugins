@@ -14,3 +14,8 @@ Oscilloscope application - apply signal to pin 16/PC0, with a voltage ranging fr
 
 * Setup screen also enables you to choose the capture mode, to save samples to the SD card (currently 128 samples).  You can
 parse this data using the Python script in the flipperscope repo.
+
+* Setup screen allows you to choose an FFT option, to display a simple spectrum analyser.  You can alter the size of
+the FFT window also.
+
+* Setup screen allows you to scale the size of a signal via software.

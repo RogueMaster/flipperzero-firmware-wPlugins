@@ -1,0 +1,32 @@
+App(
+    appid="arduventure",
+    name="Arduventure",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="arduboy_app",
+    cdefines=["ARDULIB_USE_ATM"],
+    sources=["main.cpp", "lib/scr/*.cpp", "game/*.cpp"],
+    stack_size=8 * 1024,
+    fap_icon="arduventure.png",
+    fap_icon_assets="assets",
+    fap_category="Games",
+    fap_author="apfxtech",
+    fap_weburl="https://github.com/apfxtech/FlipperArduventure",
+    fap_version="2.0",
+    fap_description="Play the port of Arduventure game on your Flipper Zero.",
+)
+
+App(
+    appid="arduventure_ex",
+    name="Arduventure experemental",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="arduboy_app",
+    cdefines=["ARDULIB_USE_ATM", "ARDULIB_USE_VIEW_PORT"],
+    sources=["main.cpp", "lib/scr/*.cpp", "game/*.cpp"],
+    stack_size=8 * 1024,
+    fap_category="Games",
+    fap_icon="arduventure.png",
+    fap_author="apfxtech",
+    fap_weburl="https://github.com/apfxtech/FlipperArduventure.git",
+    fap_version="2.0",
+    fap_description="A retro RPG adventure on your Flipper Zero!",
+)

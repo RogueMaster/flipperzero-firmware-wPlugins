@@ -1,0 +1,14 @@
+App(
+    appid="answer_book",
+    name="Answer Book",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="answer_book_app",
+    stack_size=6 * 1024,
+    fap_icon="answer_book.png",
+    fap_icon_assets="images",
+    fap_category="Tools/Educational",
+    fap_author="redbson",
+    fap_weburl="https://github.com/redbson/The-Book-of-Answers",
+    fap_version="0.1",
+    fap_description="A world-state book of answers",
+)

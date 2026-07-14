@@ -7,16 +7,15 @@
 #include "quac.h"
 #include "scenes.h"
 #include "scene_about.h"
-#include "../actions/action.h"
 #include "quac_icons.h"
 
 enum {
-    SceneActionRenameEvent,
+    SceneActionAboutEvent,
 };
 
 void scene_about_callback(void* context) {
     App* app = context;
-    view_dispatcher_send_custom_event(app->view_dispatcher, SceneActionRenameEvent);
+    view_dispatcher_send_custom_event(app->view_dispatcher, SceneActionAboutEvent);
 }
 
 void scene_about_on_enter(void* context) {

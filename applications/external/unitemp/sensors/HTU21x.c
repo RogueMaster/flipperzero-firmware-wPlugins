@@ -16,14 +16,35 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include "HTU21x.h"
-#include "../interfaces/I2CSensor.h"
+#include "../interfaces/i2c_sensor.h"
 
-const SensorType HTU21x = {
-    .typename = "HTU21x",
-    .altname = "HTU21x/SI70xx/SHT2x",
-    .interface = &I2C,
-    .datatype = UT_DATA_TYPE_TEMP_HUM,
-    .pollingInterval = 250,
+const SensorModel HTU21x = {
+    .modelname = "HTU21x",
+    .altname = "HTU21D(F)",
+    .interface = &unitemp_i2c,
+    .data_type = UT_DATA_TYPE_TEMP_HUM,
+    .polling_interval = 250,
+    .allocator = unitemp_HTU21x_alloc,
+    .mem_releaser = unitemp_HTU21x_free,
+    .initializer = unitemp_HTU21x_init,
+    .deinitializer = unitemp_HTU21x_deinit,
+    .updater = unitemp_HTU21x_update};
+const SensorModel SI7021 = {
+    .modelname = "SI7021",
+    .interface = &unitemp_i2c,
+    .data_type = UT_DATA_TYPE_TEMP_HUM,
+    .polling_interval = 250,
+    .allocator = unitemp_HTU21x_alloc,
+    .mem_releaser = unitemp_HTU21x_free,
+    .initializer = unitemp_HTU21x_init,
+    .deinitializer = unitemp_HTU21x_deinit,
+    .updater = unitemp_HTU21x_update};
+const SensorModel SHT2x = {
+    .modelname = "SHT2x",
+    .altname = "SHT20/21/25",
+    .interface = &unitemp_i2c,
+    .data_type = UT_DATA_TYPE_TEMP_HUM,
+    .polling_interval = 250,
     .allocator = unitemp_HTU21x_alloc,
     .mem_releaser = unitemp_HTU21x_free,
     .initializer = unitemp_HTU21x_init,
@@ -44,14 +65,14 @@ bool unitemp_HTU21x_alloc(Sensor* sensor, char* args) {
     UNUSED(args);
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
 
-    //Адреса на шине I2C (7 бит)
-    i2c_sensor->minI2CAdr = 0x40 << 1;
-    i2c_sensor->maxI2CAdr = 0x41 << 1;
+    //Addresses on the I2C bus (7 bits)
+    i2c_sensor->min_i2c_adress = 0x40 << 1;
+    i2c_sensor->max_i2c_adress = 0x41 << 1;
     return true;
 }
 
 bool unitemp_HTU21x_free(Sensor* sensor) {
-    //Нечего высвобождать, так как ничего не было выделено
+    //Nothing to release since nothing was allocated
     UNUSED(sensor);
     return true;
 }
@@ -69,39 +90,43 @@ bool unitemp_HTU21x_deinit(Sensor* sensor) {
     return true;
 }
 
-UnitempStatus unitemp_HTU21x_update(Sensor* sensor) {
+SensorStatus unitemp_HTU21x_update(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
 
-    //Датчик может быть всего один, так что норм
-    static bool temp_hum = false;
+    //There can be only one sensor, so it’s normal
+    static bool temp_hum = true;
+    static bool req_read = true;
 
     uint8_t data[3];
 
-    if(sensor->status == UT_SENSORSTATUS_POLLING) {
-        if(!unitemp_i2c_readArray(i2c_sensor, 3, data)) return UT_SENSORSTATUS_TIMEOUT;
+    if(req_read) {
+        if(temp_hum) {
+            //Request temperature
+            data[0] = 0xF3;
+            if(!unitemp_i2c_write_array(i2c_sensor, 1, data)) return UT_SENSORSTATUS_TIMEOUT;
+        } else {
+            //Humidity request
+            data[0] = 0xF5;
+            if(!unitemp_i2c_write_array(i2c_sensor, 1, data)) return UT_SENSORSTATUS_TIMEOUT;
+        }
+        req_read = !req_read;
+    } else {
+        req_read = !req_read;
+        if(!unitemp_i2c_read_array(i2c_sensor, 3, data)) return UT_SENSORSTATUS_TIMEOUT;
 
         uint16_t raw = ((uint16_t)data[0] << 8) | data[1];
         if(checkCRC(raw) != data[2]) return UT_SENSORSTATUS_BADCRC;
 
         if(temp_hum) {
-            sensor->temp = (0.002681f * raw - 46.85f);
+            sensor->temperature = (0.002681f * raw - 46.85f);
         } else {
-            sensor->hum = ((0.001907 * (raw ^ 0x02)) - 6);
+            sensor->humidity = ((0.001907 * (raw ^ 0x02)) - 6);
         }
         temp_hum = !temp_hum;
-        if(temp_hum) return UT_SENSORSTATUS_EARLYPOOL;
-        return UT_SENSORSTATUS_OK;
+    }
+    if(sensor->temperature == -128.0f || sensor->humidity == -128.0f) {
+        return UT_SENSORSTATUS_POLLING;
     }
 
-    if(temp_hum) {
-        //Запрос температуры
-        data[0] = 0xF3;
-        if(!unitemp_i2c_writeArray(i2c_sensor, 1, data)) return UT_SENSORSTATUS_TIMEOUT;
-    } else {
-        //Запрос влажности
-        data[0] = 0xF5;
-        if(!unitemp_i2c_writeArray(i2c_sensor, 1, data)) return UT_SENSORSTATUS_TIMEOUT;
-    }
-
-    return UT_SENSORSTATUS_POLLING;
+    return UT_SENSORSTATUS_OK;
 }

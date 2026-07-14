@@ -3,12 +3,13 @@ App(
     name="Radio Scanner",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="radio_scanner_app",
-    stack_size=4 * 1024,
+    stack_size=2 * 1024,
     fap_icon_assets="assets",
     fap_icon="icons/radio_scanner.png",
     fap_category="Sub-GHz",
     fap_author="RocketGod-git",
     fap_weburl="https://github.com/RocketGod-Git/Flipper-Zero-Radio-Scanner",
-    fap_version="0.1",
+    fap_version="0.3",
     fap_description="Scanner for Flipper",
+    #   v0.3: [Stealth Mode Sound Lock Bug Fix #8 (By forever45360)](https://github.com/RocketGod-git/Flipper-Zero-Radio-Scanner/pull/8)
 )

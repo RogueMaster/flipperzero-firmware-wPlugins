@@ -65,7 +65,7 @@ Iso14443_4aError iso14443_4a_poller_send_block(
     furi_check(rx_buffer);
 
     bit_buffer_reset(instance->tx_buffer);
-    iso14443_4_layer_encode_block(instance->iso14443_4_layer, tx_buffer, instance->tx_buffer);
+    iso14443_4_layer_encode_command(instance->iso14443_4_layer, tx_buffer, instance->tx_buffer);
 
     Iso14443_4aError error = Iso14443_4aErrorNone;
 
@@ -106,13 +106,44 @@ Iso14443_4aError iso14443_4a_poller_send_block(
             } while(bit_buffer_starts_with_byte(instance->rx_buffer, ISO14443_4A_SWTX));
         }
 
-        if(!iso14443_4_layer_decode_block(
+        if(!iso14443_4_layer_decode_response(
                instance->iso14443_4_layer, rx_buffer, instance->rx_buffer)) {
             error = Iso14443_4aErrorProtocol;
             break;
         }
     } while(false);
 
+    return error;
+}
+
+Iso14443_4aError iso14443_4a_poller_send_chain_block(
+    Iso14443_4aPoller* instance,
+    const BitBuffer* tx_buffer,
+    BitBuffer* rx_buffer) {
+    iso14443_4_layer_set_i_block(instance->iso14443_4_layer, true, false);
+    Iso14443_4aError error = iso14443_4a_poller_send_block(instance, tx_buffer, rx_buffer);
+    return error;
+}
+
+Iso14443_4aError iso14443_4a_poller_send_receive_ready_block(
+    Iso14443_4aPoller* instance,
+    bool acknowledged,
+    const BitBuffer* tx_buffer,
+    BitBuffer* rx_buffer) {
+    bool CID_present = bit_buffer_get_size_bytes(tx_buffer) != 0;
+    iso14443_4_layer_set_r_block(instance->iso14443_4_layer, acknowledged, CID_present);
+    Iso14443_4aError error = iso14443_4a_poller_send_block(instance, tx_buffer, rx_buffer);
+    return error;
+}
+
+Iso14443_4aError iso14443_4a_poller_send_supervisory_block(
+    Iso14443_4aPoller* instance,
+    bool deselect,
+    const BitBuffer* tx_buffer,
+    BitBuffer* rx_buffer) {
+    bool CID_present = bit_buffer_get_size_bytes(tx_buffer) != 0;
+    iso14443_4_layer_set_s_block(instance->iso14443_4_layer, deselect, CID_present);
+    Iso14443_4aError error = iso14443_4a_poller_send_block(instance, tx_buffer, rx_buffer);
     return error;
 }
 
@@ -124,7 +155,7 @@ Iso14443_4aError iso14443_4a_poller_send_block_pwt_ext(
 
     uint8_t attempts_left = ISO14443_4A_SEND_BLOCK_MAX_ATTEMPTS;
     bit_buffer_reset(instance->tx_buffer);
-    iso14443_4_layer_encode_block(instance->iso14443_4_layer, tx_buffer, instance->tx_buffer);
+    iso14443_4_layer_encode_command(instance->iso14443_4_layer, tx_buffer, instance->tx_buffer);
 
     Iso14443_4aError error = Iso14443_4aErrorNone;
 
@@ -149,7 +180,7 @@ Iso14443_4aError iso14443_4a_poller_send_block_pwt_ext(
             break;
 
         } else {
-            error = iso14443_4_layer_decode_block_pwt_ext(
+            error = iso14443_4_layer_decode_response_pwt_ext(
                 instance->iso14443_4_layer, rx_buffer, instance->rx_buffer);
             if(error == Iso14443_4aErrorSendExtra) {
                 if(--attempts_left == 0) break;

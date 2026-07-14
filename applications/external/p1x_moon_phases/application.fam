@@ -1,0 +1,15 @@
+App(
+    appid="moon_phases",
+    name="Moon Phases",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="p1x_moon_phases_app",
+    stack_size=2 * 1024,
+    fap_icon="p1x_moon_phases.png",
+    fap_icon_assets="images",
+    fap_category="Tools",
+    fap_author="w84death",
+    #  fap_author="Krzysztof Krystian Jankowski / P1X",
+    fap_weburl="https://github.com/w84death/flipper-zero-apps",
+    fap_version="1.0",
+    fap_description="A simple application to display the current phase of the moon",
+)

@@ -28,6 +28,12 @@ Set `ufbt` for the unleashed firmware, specifying the custom repository URL:
 > ufbt update --index-url=https://up.unleashedflip.com/directory.json
 ```
 
+**Momentum Firmware:**
+Configure `ufbt` to use the Momentum firmware index:
+```bash
+> ufbt update --index-url=https://up.momentum-fw.dev/firmware/directory.json
+```
+
 ### Build Your App
 Build your application:
 ```bash

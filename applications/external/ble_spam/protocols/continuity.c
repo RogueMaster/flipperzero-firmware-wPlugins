@@ -1,7 +1,7 @@
 #include "continuity.h"
 #include "_protocols.h"
 
-// Hacked together by @Willy-JL
+// Hacked together by @WillyJL
 // iOS 17 Crash by @ECTO-1A
 // Nearby Action IDs and Documentation at https://github.com/furiousMAC/continuity/
 // Proximity Pair IDs from https://github.com/ECTO-1A/AppleJuice/

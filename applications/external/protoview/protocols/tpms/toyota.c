@@ -70,7 +70,6 @@ static bool decode(uint8_t* bits, uint32_t numbytes, uint32_t numbits, ProtoView
 
     float psi = (float)((raw[4] & 0x7f) << 1 | raw[5] >> 7) * 0.25 - 7;
     int temp = ((raw[5] & 0x7f) << 1 | raw[6] >> 7) - 40;
-
     fieldset_add_bytes(info->fieldset, "Tire ID", raw, 4 * 2);
     fieldset_add_float(info->fieldset, "Pressure psi", psi, 2);
     fieldset_add_int(info->fieldset, "Temperature C", temp, 8);

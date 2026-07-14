@@ -1,15 +1,19 @@
 #include "../picopass_i.h"
 
 enum SubmenuIndex {
+    SubmenuIndexParse,
+    SubmenuIndexParseSIO,
+
     SubmenuIndexSave,
+    SubmenuIndexSaveLegacy,
     SubmenuIndexSaveAsLF,
     SubmenuIndexSaveAsSeader,
-    SubmenuIndexParse,
+    SubmenuIndexSavePartial,
+
     SubmenuIndexChangeKey,
     SubmenuIndexWrite,
     SubmenuIndexEmulate,
-    SubmenuIndexSavePartial,
-    SubmenuIndexSaveLegacy,
+    SubmenuIndexMax,
 };
 
 void picopass_scene_card_menu_submenu_callback(void* context, uint32_t index) {
@@ -18,13 +22,99 @@ void picopass_scene_card_menu_submenu_callback(void* context, uint32_t index) {
     view_dispatcher_send_custom_event(picopass->view_dispatcher, index);
 }
 
-void picopass_scene_card_menu_on_enter(void* context) {
+void picopass_scene_card_menu_add_items(void* context, bool included[]) {
     Picopass* picopass = context;
     Submenu* submenu = picopass->submenu;
+
+    // Clear the menu
+    submenu_reset(submenu);
+    if(included[SubmenuIndexParse]) {
+        submenu_add_item(
+            submenu,
+            "Parse",
+            SubmenuIndexParse,
+            picopass_scene_card_menu_submenu_callback,
+            picopass);
+    }
+    if(included[SubmenuIndexParseSIO]) {
+        submenu_add_item(
+            submenu,
+            "Parse SIO",
+            SubmenuIndexParseSIO,
+            picopass_scene_card_menu_submenu_callback,
+            picopass);
+    }
+    if(included[SubmenuIndexSave]) {
+        submenu_add_item(
+            submenu, "Save", SubmenuIndexSave, picopass_scene_card_menu_submenu_callback, picopass);
+    }
+    if(included[SubmenuIndexSaveLegacy]) {
+        submenu_add_item(
+            submenu,
+            "Save as Legacy",
+            SubmenuIndexSaveLegacy,
+            picopass_scene_card_menu_submenu_callback,
+            picopass);
+    }
+    if(included[SubmenuIndexSaveAsLF]) {
+        submenu_add_item(
+            submenu,
+            "Save as LFRFID",
+            SubmenuIndexSaveAsLF,
+            picopass_scene_card_menu_submenu_callback,
+            picopass);
+    }
+    if(included[SubmenuIndexSaveAsSeader]) {
+        submenu_add_item(
+            submenu,
+            "Save in Seader fmt",
+            SubmenuIndexSaveAsSeader,
+            picopass_scene_card_menu_submenu_callback,
+            picopass);
+    }
+    if(included[SubmenuIndexSavePartial]) {
+        submenu_add_item(
+            submenu,
+            "Save Partial",
+            SubmenuIndexSavePartial,
+            picopass_scene_card_menu_submenu_callback,
+            picopass);
+    }
+    if(included[SubmenuIndexChangeKey]) {
+        submenu_add_item(
+            submenu,
+            "Change Key",
+            SubmenuIndexChangeKey,
+            picopass_scene_card_menu_submenu_callback,
+            picopass);
+    }
+    if(included[SubmenuIndexWrite]) {
+        submenu_add_item(
+            submenu,
+            "Write",
+            SubmenuIndexWrite,
+            picopass_scene_card_menu_submenu_callback,
+            picopass);
+    }
+    if(included[SubmenuIndexEmulate]) {
+        submenu_add_item(
+            submenu,
+            "Emulate",
+            SubmenuIndexEmulate,
+            picopass_scene_card_menu_submenu_callback,
+            picopass);
+    }
+
+    submenu_set_selected_item(
+        picopass->submenu,
+        scene_manager_get_scene_state(picopass->scene_manager, PicopassSceneCardMenu));
+}
+
+void picopass_scene_card_menu_on_enter(void* context) {
+    Picopass* picopass = context;
     PicopassPacs* pacs = &picopass->dev->dev_data.pacs;
     PicopassBlock* card_data = picopass->dev->dev_data.card_data;
     PicopassDeviceAuthMethod auth = picopass->dev->dev_data.auth;
-    PluginWiegand* plugin = picopass->plugin_wiegand;
 
     bool SE = card_data[PICOPASS_ICLASS_PACS_CFG_BLOCK_INDEX].valid &&
               0x30 == card_data[PICOPASS_ICLASS_PACS_CFG_BLOCK_INDEX].data[0];
@@ -35,88 +125,52 @@ void picopass_scene_card_menu_on_enter(void* context) {
                    PICOPASS_FUSE_CRYPT0;
     bool no_credential = picopass_is_memset(pacs->credential, 0x00, sizeof(pacs->credential));
 
+    // To allow us to disconnect the order of the menu items from the order we determine what is valid
+    bool included[SubmenuIndexMax];
+    for(size_t i = 0; i < SubmenuIndexMax; i++) {
+        included[i] = false;
+    }
+
     if(auth == PicopassDeviceAuthMethodFailed) {
-        submenu_add_item(
-            submenu,
-            "Save Partial",
-            SubmenuIndexSavePartial,
-            picopass_scene_card_menu_submenu_callback,
-            picopass);
+        included[SubmenuIndexSavePartial] = true;
     } else {
-        submenu_add_item(
-            submenu, "Save", SubmenuIndexSave, picopass_scene_card_menu_submenu_callback, picopass);
+        included[SubmenuIndexSave] = true;
     }
 
     if(secured && has_sio) {
-        submenu_add_item(
-            submenu,
-            "Save in Seader fmt",
-            SubmenuIndexSaveAsSeader,
-            picopass_scene_card_menu_submenu_callback,
-            picopass);
+        included[SubmenuIndexParseSIO] = true;
+        included[SubmenuIndexSaveAsSeader] = true;
     }
 
     if(secured && !no_credential) {
-        submenu_add_item(
-            submenu,
-            "Save as LFRFID",
-            SubmenuIndexSaveAsLF,
-            picopass_scene_card_menu_submenu_callback,
-            picopass);
-
+        included[SubmenuIndexSaveAsLF] = true;
         if(SR) {
-            submenu_add_item(
-                submenu,
-                "Save as Legacy",
-                SubmenuIndexSaveLegacy,
-                picopass_scene_card_menu_submenu_callback,
-                picopass);
+            included[SubmenuIndexSaveLegacy] = true;
         }
 
-        if(plugin) {
-            // Convert from byte array to uint64_t
-            uint64_t credential = 0;
-            memcpy(&credential, pacs->credential, sizeof(uint64_t));
-            credential = __builtin_bswap64(credential);
-
-            size_t format_count = plugin->count(pacs->bitLength, credential);
-            if(format_count > 0) {
-                submenu_add_item(
-                    submenu,
-                    "Parse",
-                    SubmenuIndexParse,
-                    picopass_scene_card_menu_submenu_callback,
-                    picopass);
-            }
+        wiegand_message_t wiegand_msg = picopass_pacs_extract_wmo(pacs);
+        size_t format_count = picopass_wiegand_format_count(&wiegand_msg);
+        if(format_count > 0) {
+            included[SubmenuIndexParse] = true;
         }
     }
 
     if(auth == PicopassDeviceAuthMethodNone || auth == PicopassDeviceAuthMethodKey) {
-        submenu_add_item(
-            submenu,
-            "Write",
-            SubmenuIndexWrite,
-            picopass_scene_card_menu_submenu_callback,
-            picopass);
-        submenu_add_item(
-            submenu,
-            "Emulate",
-            SubmenuIndexEmulate,
-            picopass_scene_card_menu_submenu_callback,
-            picopass);
+        included[SubmenuIndexEmulate] = true;
+        if(!has_sio) {
+            included[SubmenuIndexWrite] = true;
+        }
         if(secured) {
-            submenu_add_item(
-                submenu,
-                "Change Key",
-                SubmenuIndexChangeKey,
-                picopass_scene_card_menu_submenu_callback,
-                picopass);
+            included[SubmenuIndexChangeKey] = true;
         }
     }
 
-    submenu_set_selected_item(
-        picopass->submenu,
-        scene_manager_get_scene_state(picopass->scene_manager, PicopassSceneCardMenu));
+    // It is possible (https://www.youtube.com/watch?v=Eef70bSRl_0)
+    if(auth == PicopassDeviceAuthMethodNrMac) {
+        included[SubmenuIndexEmulate] = true;
+    }
+
+    picopass_scene_card_menu_add_items(picopass, included);
 
     view_dispatcher_switch_to_view(picopass->view_dispatcher, PicopassViewMenu);
 }
@@ -137,6 +191,11 @@ bool picopass_scene_card_menu_on_event(void* context, SceneManagerEvent event) {
                 picopass->scene_manager, PicopassSceneCardMenu, SubmenuIndexSave);
             scene_manager_next_scene(picopass->scene_manager, PicopassSceneSaveName);
             picopass->dev->format = PicopassDeviceSaveFormatPartial;
+            consumed = true;
+        } else if(event.event == SubmenuIndexParseSIO) {
+            scene_manager_set_scene_state(
+                picopass->scene_manager, PicopassSceneCardMenu, event.event);
+            scene_manager_next_scene(picopass->scene_manager, PicopassSceneParseSIO);
             consumed = true;
         } else if(event.event == SubmenuIndexSaveAsSeader) {
             scene_manager_set_scene_state(

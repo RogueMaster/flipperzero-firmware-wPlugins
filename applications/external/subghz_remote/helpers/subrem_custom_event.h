@@ -13,14 +13,16 @@ typedef enum {
     SubmenuIndexSubRemOpenMapFile = 0,
     SubmenuIndexSubRemEditMapFile,
     SubmenuIndexSubRemNewMapFile,
+    SubmenuIndexSubRemSetDefault,
+    SubmenuIndexSubRemClearDefault,
 #ifdef FURI_DEBUG
     SubmenuIndexSubRemRemoteView,
 #endif
     // SubmenuIndexSubRemAbout,
 
-    // EditSubmenuIndex
-    EditSubmenuIndexEditLabel,
-    EditSubmenuIndexEditFile,
+    // Submenu enter selection
+    SubRemCustomEventEnterEditLabel,
+    SubRemCustomEventEnterEditFile,
 
     // SubRemCustomEvent
     SubRemCustomEventViewRemoteStartUP = 100,
@@ -38,10 +40,13 @@ typedef enum {
     SubRemCustomEventViewEditMenuEdit,
     SubRemCustomEventViewEditMenuSave,
 
-    SubRemCustomEventSceneEditsubmenu,
+    SubRemCustomEventSceneEditSubmenu,
     SubRemCustomEventSceneEditLabelInputDone,
-    SubRemCustomEventSceneEditLabelWidgetAcces,
+    SubRemCustomEventSceneEditLabelWidgetAccess,
     SubRemCustomEventSceneEditLabelWidgetBack,
+    SubRemCustomEventSceneEditButtonInputDone,
+    SubRemCustomEventSceneEditButtonWidgetAccess,
+    SubRemCustomEventSceneEditButtonWidgetBack,
 
     SubRemCustomEventSceneEditOpenSubErrorPopup,
 
@@ -56,3 +61,10 @@ typedef enum {
 #endif
 
 } SubRemCustomEvent;
+
+typedef enum {
+    EditSubmenuIndexEditLabel,
+    EditSubmenuIndexEditFile,
+    EditSubmenuIndexEditButton,
+    EditSubmenuIndexClearSlot,
+} SubRemEditSubmenuIndex;

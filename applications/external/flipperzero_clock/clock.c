@@ -16,7 +16,7 @@
 #define FACE_DEFAULT_WIDTH 54
 
 const char* WEEKDAYS[] =
-    {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
+    {"Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
 const char* MONTHS[] =
     {"JAN", "FEB", "MAR", "APR", "MAI", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
 
@@ -134,11 +134,26 @@ void draw_digital_clock(Canvas* canvas, ClockConfig* cfg, DateTime* dt, uint16_t
         char* pm = hour >= 12 ? "PM" : "AM";
         hour = hour % 12 == 0 ? 12 : hour % 12;
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, cfg->ofs_x, OFS_Y - 10, AlignCenter, AlignBottom, pm);
+        canvas_draw_str_aligned(
+            canvas,
+            cfg->ofs_x,
+            OFS_Y + (cfg->show_battery ? 10 : -10),
+            AlignCenter,
+            cfg->show_battery ? AlignTop : AlignBottom,
+            pm);
     }
     snprintf(buf, 6, "%2u:%02u", hour % 24, dt->minute % 60);
     canvas_set_font(canvas, FontBigNumbers);
     canvas_draw_str_aligned(canvas, cfg->ofs_x, OFS_Y, AlignCenter, AlignCenter, buf);
+
+    if(cfg->show_battery) {
+        static char batt_buf[5];
+        snprintf(batt_buf, 5, "%u%%", furi_hal_power_get_pct());
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(
+            canvas, cfg->ofs_x, OFS_Y - 10, AlignCenter, AlignBottom, batt_buf);
+    }
+
     if(cfg->face_type == DigitalRectangular) {
         for(uint8_t i = 0; i < 45; i++)
             draw_line(canvas, cfg->ofs_x, &cfg->face.minutes[(dt->second - i + 60) % 60], Normal);
@@ -190,16 +205,37 @@ void draw_analog_clock(Canvas* canvas, ClockConfig* cfg, DateTime* dt, uint16_t 
     canvas_draw_disc(canvas, cfg->ofs_x, OFS_Y, 2);
 }
 
-void draw_date(Canvas* canvas, DateTime* dt) {
+// Using Zeller's Congruence for the Julian calendar
+int get_weekday(int year, int month, int day) {
+    if(month < 3) {
+        month += 12;
+        year -= 1;
+    }
+    int K = year % 100;
+    int J = year / 100;
+    return (day + 13 * (month + 1) / 5 + K + K / 4 + J / 4 + 5 * J) % 7;
+}
+
+void draw_date(Canvas* canvas, DateTime* dt, ClockConfig* cfg) {
     static char day[3];
     snprintf(day, 3, "%2u", dt->day % 32);
     const char* month = MONTHS[(dt->month - 1) % 12];
-    const char* weekday = WEEKDAYS[(dt->weekday - 1) % 7];
+    const char* weekday = WEEKDAYS[get_weekday(dt->year, dt->month, dt->day) % 7];
     int8_t ofs_x = 2;
     Align d_align = AlignLeft;
     Align m_align = AlignRight;
     if(locale_get_date_format() == LocaleDateFormatDMY)
         ofs_x = -2, d_align = AlignRight, m_align = AlignLeft;
+
+    if(cfg->show_battery &&
+       (cfg->face_type != DigitalRectangular && cfg->face_type != DigitalRound)) {
+        static char batt_buf[5];
+        snprintf(batt_buf, 5, "%u%%", furi_hal_power_get_pct());
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(
+            canvas, OFS_RIGHT_X, OFS_Y - 10, AlignCenter, AlignBottom, batt_buf);
+    }
+
     canvas_set_font(canvas, FontBigNumbers);
     canvas_draw_str_aligned(canvas, OFS_RIGHT_X + ofs_x, OFS_Y, d_align, AlignCenter, day);
     canvas_set_font(canvas, FontPrimary);
@@ -214,7 +250,7 @@ void draw_clock(Canvas* canvas, ClockConfig* cfg, DateTime* dt, uint16_t ms) {
         draw_digital_clock(canvas, cfg, dt, ms);
     else
         draw_analog_clock(canvas, cfg, dt, ms);
-    if(cfg->split) draw_date(canvas, dt);
+    if(cfg->split) draw_date(canvas, dt, cfg);
 }
 
 void init_clock_config(ClockConfig* cfg) {
@@ -224,6 +260,7 @@ void init_clock_config(ClockConfig* cfg) {
     cfg->digits_mod = 3;
     cfg->face_type = Rectangular;
     cfg->ofs_x = OFS_MID_X;
+    cfg->show_battery = true;
 }
 
 void modify_clock_up(ClockConfig* cfg) {
@@ -248,7 +285,10 @@ void modify_clock_left(ClockConfig* cfg) {
 }
 
 void modify_clock_right(ClockConfig* cfg) {
-    if(!cfg->split) cfg->width = cfg->width >= OFS_MID_X ? OFS_MID_X : cfg->width + 1;
+    if(cfg->split)
+        cfg->show_battery = !cfg->show_battery;
+    else
+        cfg->width = cfg->width >= OFS_MID_X ? OFS_MID_X : cfg->width + 1;
 }
 
 void modify_clock_ok(ClockConfig* cfg) {

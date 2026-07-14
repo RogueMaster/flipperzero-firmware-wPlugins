@@ -1,48 +1,36 @@
 #include "../seader_i.h"
 enum SubmenuIndex {
-    SubmenuIndexReadPicopass,
-    SubmenuIndexRead14a,
-    SubmenuIndexReadMfc,
+    SubmenuIndexRead,
     SubmenuIndexSaved,
     SubmenuIndexAPDURunner,
+    SubmenuIndexReadConfigCard,
     SubmenuIndexSamInfo,
-    SubmenuIndexFwVersion,
 };
 
 static uint8_t fwChecks = 3;
 
-void seader_scene_sam_present_submenu_callback(void* context, uint32_t index) {
-    Seader* seader = context;
-    view_dispatcher_send_custom_event(seader->view_dispatcher, index);
-}
+void seader_scene_sam_present_submenu_callback(void* context, uint32_t index);
 
-void seader_scene_sam_present_on_update(void* context) {
-    Seader* seader = context;
-    SeaderWorker* seader_worker = seader->worker;
-
-    Submenu* submenu = seader->submenu;
+static void seader_scene_sam_present_rebuild_menu(Seader* seader, uint32_t selected_item) {
+    Submenu* submenu = seader_get_submenu(seader);
+    if(!submenu) {
+        return;
+    }
     submenu_reset(submenu);
 
     submenu_add_item(
-        submenu,
-        "Read Picopass",
-        SubmenuIndexReadPicopass,
-        seader_scene_sam_present_submenu_callback,
-        seader);
-    submenu_add_item(
-        submenu,
-        "Read 14443A",
-        SubmenuIndexRead14a,
-        seader_scene_sam_present_submenu_callback,
-        seader);
-    submenu_add_item(
-        submenu,
-        "Read MFC",
-        SubmenuIndexReadMfc,
-        seader_scene_sam_present_submenu_callback,
-        seader);
+        submenu, "Read HF", SubmenuIndexRead, seader_scene_sam_present_submenu_callback, seader);
     submenu_add_item(
         submenu, "Saved", SubmenuIndexSaved, seader_scene_sam_present_submenu_callback, seader);
+
+    if(seader->is_debug_enabled) {
+        submenu_add_item(
+            submenu,
+            "Read Config Card",
+            SubmenuIndexReadConfigCard,
+            seader_scene_sam_present_submenu_callback,
+            seader);
+    }
 
     if(apdu_log_check_presence(SEADER_APDU_RUNNER_FILE_NAME)) {
         submenu_add_item(
@@ -52,24 +40,30 @@ void seader_scene_sam_present_on_update(void* context) {
             seader_scene_sam_present_submenu_callback,
             seader);
     }
-    if(seader_worker->sam_version[0] != 0 && seader_worker->sam_version[1] != 0) {
-        FuriString* fw_str = furi_string_alloc();
-        furi_string_cat_printf(
-            fw_str, "FW %d.%d", seader_worker->sam_version[0], seader_worker->sam_version[1]);
-        submenu_add_item(
-            submenu,
-            furi_string_get_cstr(fw_str),
-            SubmenuIndexFwVersion,
-            seader_scene_sam_present_submenu_callback,
-            seader);
-        furi_string_free(fw_str);
+    submenu_add_item(
+        submenu,
+        seader->sam_key_label,
+        SubmenuIndexSamInfo,
+        seader_scene_sam_present_submenu_callback,
+        seader);
+
+    if(seader->sam_version[0] != 0 && seader->sam_version[1] != 0) {
         fwChecks = 0;
     }
 
-    submenu_set_selected_item(
-        submenu, scene_manager_get_scene_state(seader->scene_manager, SeaderSceneSamPresent));
-
+    submenu_set_selected_item(submenu, selected_item);
     view_dispatcher_switch_to_view(seader->view_dispatcher, SeaderViewMenu);
+}
+
+void seader_scene_sam_present_submenu_callback(void* context, uint32_t index) {
+    Seader* seader = context;
+    view_dispatcher_send_custom_event(seader->view_dispatcher, index);
+}
+
+void seader_scene_sam_present_on_update(void* context) {
+    Seader* seader = context;
+    seader_scene_sam_present_rebuild_menu(
+        seader, scene_manager_get_scene_state(seader->scene_manager, SeaderSceneSamPresent));
 }
 
 void seader_scene_sam_present_on_enter(void* context) {
@@ -81,42 +75,62 @@ bool seader_scene_sam_present_on_event(void* context, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
-        scene_manager_set_scene_state(seader->scene_manager, SeaderSceneSamPresent, event.event);
-
-        if(event.event == SubmenuIndexReadPicopass) {
-            scene_manager_next_scene(seader->scene_manager, SeaderSceneReadPicopass);
+        if(seader->sam_present_menu_guard_active &&
+           (event.event == SubmenuIndexRead || event.event == SubmenuIndexSaved ||
+            event.event == SubmenuIndexAPDURunner || event.event == SubmenuIndexReadConfigCard ||
+            event.event == SubmenuIndexSamInfo)) {
+            seader->sam_present_menu_guard_active = false;
             consumed = true;
-        } else if(event.event == SubmenuIndexRead14a) {
-            scene_manager_next_scene(seader->scene_manager, SeaderSceneRead14a);
+        } else if(event.event == SubmenuIndexRead) {
+            scene_manager_set_scene_state(
+                seader->scene_manager, SeaderSceneSamPresent, event.event);
+            scene_manager_next_scene(seader->scene_manager, SeaderSceneRead);
             consumed = true;
-        } else if(event.event == SubmenuIndexReadMfc) {
-            scene_manager_next_scene(seader->scene_manager, SeaderSceneReadMfc);
+        } else if(event.event == SubmenuIndexReadConfigCard) {
+            scene_manager_set_scene_state(
+                seader->scene_manager, SeaderSceneSamPresent, SubmenuIndexReadConfigCard);
+            scene_manager_next_scene(seader->scene_manager, SeaderSceneReadConfigCard);
             consumed = true;
         } else if(event.event == SubmenuIndexSamInfo) {
+            scene_manager_set_scene_state(
+                seader->scene_manager, SeaderSceneSamPresent, event.event);
             scene_manager_next_scene(seader->scene_manager, SeaderSceneSamInfo);
             consumed = true;
         } else if(event.event == SubmenuIndexSaved) {
+            scene_manager_set_scene_state(
+                seader->scene_manager, SeaderSceneSamPresent, event.event);
             scene_manager_next_scene(seader->scene_manager, SeaderSceneFileSelect);
             consumed = true;
-        } else if(event.event == SubmenuIndexFwVersion) {
-            consumed = true;
         } else if(event.event == SeaderWorkerEventSamMissing) {
+            seader->board_status = seader_board_status_on_sam_missing(seader->board_status);
             scene_manager_next_scene(seader->scene_manager, SeaderSceneSamMissing);
             consumed = true;
         } else if(event.event == SubmenuIndexAPDURunner) {
+            scene_manager_set_scene_state(
+                seader->scene_manager, SeaderSceneSamPresent, event.event);
             scene_manager_next_scene(seader->scene_manager, SeaderSceneAPDURunner);
+            consumed = true;
+        } else if(event.event == SeaderWorkerEventHfTeardownComplete) {
+            consumed = seader_hf_finish_teardown_action(seader);
+        } else if(event.event == SeaderCustomEventSamStatusUpdated) {
+            Submenu* submenu = seader_get_submenu(seader);
+            if(submenu) {
+                seader_scene_sam_present_rebuild_menu(seader, submenu_get_selected_item(submenu));
+            }
             consumed = true;
         }
     } else if(event.type == SceneManagerEventTypeBack) {
-        scene_manager_stop(seader->scene_manager);
-        view_dispatcher_stop(seader->view_dispatcher);
-        consumed = true;
+        consumed = seader_hf_request_teardown(seader, SeaderHfTeardownActionStopApp);
     } else if(event.type == SceneManagerEventTypeTick) {
-        SeaderWorker* seader_worker = seader->worker;
-        if(fwChecks > 0 && seader_worker->sam_version[0] != 0 &&
-           seader_worker->sam_version[1] != 0) {
+        if(seader->sam_present_menu_guard_active) {
+            seader->sam_present_menu_guard_active = false;
+        }
+        if(fwChecks > 0 && seader->sam_version[0] != 0 && seader->sam_version[1] != 0) {
             fwChecks--;
-            seader_scene_sam_present_on_update(context);
+            Submenu* submenu = seader_get_submenu(seader);
+            if(submenu) {
+                seader_scene_sam_present_rebuild_menu(seader, submenu_get_selected_item(submenu));
+            }
         }
     }
 
@@ -125,5 +139,7 @@ bool seader_scene_sam_present_on_event(void* context, SceneManagerEvent event) {
 
 void seader_scene_sam_present_on_exit(void* context) {
     Seader* seader = context;
-    submenu_reset(seader->submenu);
+    if(seader->submenu) {
+        submenu_reset(seader->submenu);
+    }
 }

@@ -1,0 +1,204 @@
+# La Rioja Region Stations - RENFE y transporte regional
+# Format: station_code,station_name
+
+# Estaciones reales más comunes encontradas en dumps (PRIORITARIAS)
+0x0000,Unknown Station
+0xF100,Logroño
+0xF101,Haro
+0xF102,Miranda de Ebro
+0xF103,Calahorra
+
+# Línea Madrid - Irún (por La Rioja)
+0xF110,Casalarreina
+0xF111,Briones
+0xF112,San Asensio
+0xF113,Fuenmayor
+0xF114,Navarrete
+0xF115,Villamediana de Iregua
+0xF116,Albelda de Iregua
+0xF117,Entrena
+0xF118,Medrano
+0xF119,Sotés
+0xF11A,Abalos
+0xF11B,San Vicente de la Sonsierra
+
+# Estaciones principales de cercanías
+0xF120,Logroño Central
+0xF121,Haro Estación
+0xF122,Calahorra Centro
+0xF123,Arnedo
+0xF124,Autol
+0xF125,Quel
+0xF126,Aldeanueva de Ebro
+0xF127,Rincon de Soto
+0xF128,Pradejón
+0xF129,Alcanadre
+
+# Conexiones con Navarra
+0xF130,Tudela (frontera)
+0xF131,Alfaro
+0xF132,Cervera del Río Alhama
+
+# Conexiones con País Vasco
+0xF140,Miranda de Ebro (frontera)
+0xF141,Labastida
+0xF142,Samaniego
+
+# Conexiones con Castilla y León
+0xF150,Santo Domingo de la Calzada
+0xF151,Belorado
+0xF152,Redecilla del Camino
+0xF153,Villafranca de Montes de Oca
+
+# Conexiones con Aragón
+0xF160,Soria (conexión)
+0xF161,Ágreda
+0xF162,Olvega
+0xF163,Almazán
+
+# Estaciones menores y apeaderos
+0xF170,Ezcaray
+0xF171,Santo Tomé
+0xF172,Matute
+0xF173,Baños de Río Tobía
+0xF174,Cordovín
+0xF175,Berceo
+0xF176,Mansilla de la Sierra
+0xF177,Ventrosa
+0xF178,Viniegra de Abajo
+0xF179,Viniegra de Arriba
+
+# Estaciones históricas del Camino de Santiago
+0xF180,Santo Domingo de la Calzada Santiago
+0xF181,Grañón
+0xF182,Redecilla del Camino Santiago
+0xF183,Castildelgado
+0xF184,Viloria de Rioja
+0xF185,Villamayor del Río
+0xF186,Belorado Santiago
+0xF187,Tosantos
+0xF188,Villambistia
+0xF189,Espinosa del Camino
+
+# Autobuses interurbanos principales
+0xF190,Logroño Estación de Autobuses
+0xF191,Haro Terminal
+0xF192,Calahorra Terminal
+0xF193,Arnedo Terminal
+0xF194,Nájera Terminal
+
+# Cercanías de Logroño
+0x010=Logroño
+0x011=Las Norias
+0x012=Villamediana de Iregua
+0x013=Albelda de Iregua
+0x014=Entrena
+0x015=Medrano
+0x016=Navarrete
+0x017=Ventosa
+0x018=Nájera
+0x019=Azofra
+0x01A=Cirueña
+0x01B=Santo Domingo de la Calzada
+0x01C=Grañón
+0x01D=Redecilla del Camino
+0x01E=Castildelgado
+
+# Línea Logroño - Zaragoza
+0x020=Logroño
+0x021=Alcanadre
+0x022=Rincón de Soto
+0x023=Alfaro
+0x024=Tudela
+0x025=Castejón
+0x026=Corella
+0x027=Cintruénigo
+
+# Autobuses urbanos de Logroño
+0x030=Estación Autobuses Logroño
+0x031=Plaza del Mercado
+0x032=Ayuntamiento
+0x033=Universidad de La Rioja
+0x034=Hospital San Pedro
+0x035=Parque de La Ribera
+0x036=Casco Antiguo
+0x037=Ensanche
+0x038=Los Lirios
+0x039=Valdegastea
+0x03A=Varea
+0x03B=El Cortijo
+0x03C=Residencial Lardero
+
+# Camino de Santiago - Estaciones principales
+0x040=Logroño
+0x041=Navarrete
+0x042=Nájera
+0x043=Santo Domingo de la Calzada
+0x044=Belorado
+0x045=Villafranca Montes de Oca
+0x046=San Juan de Ortega
+0x047=Burgos
+0x048=Redecilla del Camino
+0x049=Castildelgado
+0x04A=Viloria de Rioja
+0x04B=Villambistia
+0x04C=Espinosa del Camino
+
+# Valle del Ebro - Zona este
+0x050=Alfaro
+0x051=Rincón de Soto
+0x052=Aldeanueva de Ebro
+0x053=Alcanadre
+0x054=Calahorra
+0x055=Pradejón
+0x056=Milagro
+0x057=Corella
+0x058=Tudela
+
+# Rioja Alta - Zona oeste
+0x060=Haro
+0x061=Casalarreina
+0x062=Briones
+0x063=San Asensio
+0x064=Cenicero
+0x065=Fuenmayor
+0x066=Badarán
+0x067=Cárdenas
+0x068=San Millán de la Cogolla
+0x069=Berceo
+0x06A=Bobadilla
+0x06B=Matute
+0x06C=Torremontalbo
+0x06D=Cuzcurrita de Río Tirón
+
+# Sierra de La Rioja
+0x070=Ezcaray
+0x071=Zorraquin
+0x072=Valgañón
+0x073=Anguiano
+0x074=Matute
+0x075=Canales de la Sierra
+0x076=Mansilla de la Sierra
+0x077=Viniegra de Abajo
+0x078=Viniegra de Arriba
+0x079=Ventrosa
+0x07A=Montenegro de Cameros
+0x07B=Villanueva de Cameros
+0x07C=Torre en Cameros
+0x07D=Rabanera
+
+# Otras localidades importantes
+0x080=Arnedo
+0x081=Autol
+0x082=Quel
+0x083=Igea
+0x084=Cornago
+0x085=Cervera del Río Alhama
+0x086=Aguilar del Río Alhama
+0x087=Préjano
+0x088=Munilla
+0x089=Enciso
+0x08A=Muro en Cameros
+0x08B=Ortigosa de Cameros
+0x08C=San Román de Cameros
+0x08D=Soto en Cameros

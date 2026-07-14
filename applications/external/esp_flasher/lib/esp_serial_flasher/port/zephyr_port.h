@@ -36,4 +36,3 @@ esp_loader_error_t loader_port_zephyr_init(const loader_zephyr_config_t *config)
 #ifdef __cplusplus
 }
 #endif
-

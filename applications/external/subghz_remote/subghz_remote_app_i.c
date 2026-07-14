@@ -1,21 +1,22 @@
 #include "subghz_remote_app_i.h"
+#include "helpers/txrx/subghz_txrx_i.h"
 #include <lib/toolbox/path.h>
+#include <toolbox/strint.h>
 #include <flipper_format/flipper_format_i.h>
 
 #include "helpers/txrx/subghz_txrx.h"
-#include <lib/subghz/protocols/protocol_items.h>
 #ifndef FW_ORIGIN_Official
 #include <lib/subghz/blocks/custom_btn.h>
 #endif
 
 #define TAG "SubGhzRemote"
 
-static const char* map_file_labels[SubRemSubKeyNameMaxCount][2] = {
-    [SubRemSubKeyNameUp] = {"UP", "ULABEL"},
-    [SubRemSubKeyNameDown] = {"DOWN", "DLABEL"},
-    [SubRemSubKeyNameLeft] = {"LEFT", "LLABEL"},
-    [SubRemSubKeyNameRight] = {"RIGHT", "RLABEL"},
-    [SubRemSubKeyNameOk] = {"OK", "OKLABEL"},
+static const char* map_file_labels[SubRemSubKeyNameMaxCount][3] = {
+    [SubRemSubKeyNameUp] = {"UP", "ULABEL", "UBUTTON"},
+    [SubRemSubKeyNameDown] = {"DOWN", "DLABEL", "DBUTTON"},
+    [SubRemSubKeyNameLeft] = {"LEFT", "LLABEL", "LBUTTON"},
+    [SubRemSubKeyNameRight] = {"RIGHT", "RLABEL", "RBUTTON"},
+    [SubRemSubKeyNameOk] = {"OK", "OKLABEL", "OKBUTTON"},
 };
 
 void subrem_map_preset_reset(SubRemMapPreset* map_preset) {
@@ -36,13 +37,13 @@ static SubRemLoadMapState subrem_map_preset_check(
     bool all_loaded = true;
     SubRemLoadMapState ret = SubRemLoadMapStateErrorBrokenFile;
 
-    SubRemLoadSubState sub_loadig_state;
+    SubRemLoadSubState sub_loading_state;
     SubRemSubFilePreset* sub_preset;
 
     for(uint8_t i = 0; i < SubRemSubKeyNameMaxCount; i++) {
         sub_preset = map_preset->subs_preset[i];
 
-        sub_loadig_state = SubRemLoadSubStateErrorNoFile;
+        sub_loading_state = SubRemLoadSubStateErrorNoFile;
 
         if(furi_string_empty(sub_preset->file_path)) {
             // FURI_LOG_I(TAG, "Empty file path");
@@ -51,10 +52,10 @@ static SubRemLoadMapState subrem_map_preset_check(
             sub_preset->load_state = SubRemLoadSubStateErrorNoFile;
             FURI_LOG_W(TAG, "Error open file %s", furi_string_get_cstr(sub_preset->file_path));
         } else {
-            sub_loadig_state = subrem_sub_preset_load(sub_preset, txrx, fff_data_file);
+            sub_loading_state = subrem_sub_preset_load(sub_preset, txrx, fff_data_file);
         }
 
-        if(sub_loadig_state != SubRemLoadSubStateOK) {
+        if(sub_loading_state != SubRemLoadSubStateOK) {
             all_loaded = false;
         } else {
             ret = SubRemLoadMapStateNotAllOK;
@@ -96,16 +97,40 @@ static bool subrem_map_preset_load(SubRemMapPreset* map_preset, FlipperFormat* f
         } else {
             ret = true;
         }
+
+        FuriString* button_str = furi_string_alloc();
+        uint16_t button_code = 0;
+
+        // Block does not change ret, value is optional.
+        if(!flipper_format_rewind(fff_data_file)) {
+            // Rewind error
+        } else if(!flipper_format_read_string(fff_data_file, map_file_labels[i][2], button_str)) {
+#ifdef FURI_DEBUG
+            FURI_LOG_W(TAG, "No Button for %s", map_file_labels[i][0]);
+#endif
+        } else if(
+            strint_to_uint16(furi_string_get_cstr(button_str), NULL, &button_code, 16) !=
+            StrintParseNoError) {
+#ifdef FURI_DEBUG
+            FURI_LOG_W(TAG, "Invalid Button for %s: %s", map_file_labels[i][0], button_str);
+#endif
+        } else {
+            sub_preset->button = (uint8_t)button_code;
+        }
+
         if(ret) {
-            // Preload successful
+            // Preload seccesful
             FURI_LOG_I(
                 TAG,
-                "%-5s: %s %s",
+                "%-5s: %s %s - Btn %s",
                 map_file_labels[i][0],
                 furi_string_get_cstr(sub_preset->label),
-                furi_string_get_cstr(sub_preset->file_path));
+                furi_string_get_cstr(sub_preset->file_path),
+                furi_string_get_cstr(button_str));
             sub_preset->load_state = SubRemLoadSubStatePreloaded;
         }
+
+        furi_string_free(button_str);
 
         flipper_format_rewind(fff_data_file);
     }
@@ -215,7 +240,7 @@ bool subrem_tx_start_sub(SubGhzRemoteApp* app, SubRemSubFilePreset* sub_preset) 
         FURI_LOG_I(TAG, "Send %s", furi_string_get_cstr(sub_preset->label));
 
         subghz_txrx_load_decoder_by_name_protocol(
-            app->txrx, furi_string_get_cstr(sub_preset->protocaol_name));
+            app->txrx, furi_string_get_cstr(sub_preset->protocol_name));
 
         subghz_txrx_set_preset(
             app->txrx,
@@ -225,6 +250,9 @@ bool subrem_tx_start_sub(SubGhzRemoteApp* app, SubRemSubFilePreset* sub_preset) 
             0);
 #ifndef FW_ORIGIN_Official
         subghz_custom_btns_reset();
+        subghz_txrx_custom_button_reset(app->txrx);
+
+        subghz_txrx_custom_button_set(app->txrx, sub_preset->button);
 #endif
         if(subghz_txrx_tx_start(app->txrx, sub_preset->fff_data) == SubGhzTxRxStartTxStateOk) {
             ret = true;
@@ -239,6 +267,17 @@ bool subrem_tx_stop_sub(SubGhzRemoteApp* app, bool forced) {
     SubRemSubFilePreset* sub_preset = app->map_preset->subs_preset[app->chosen_sub];
 
     if(forced || (sub_preset->type != SubGhzProtocolTypeRAW)) {
+#ifndef FW_ORIGIN_Official
+        if(subghz_custom_btn_get() != SUBGHZ_CUSTOM_BTN_OK) {
+            subghz_custom_btn_set(SUBGHZ_CUSTOM_BTN_OK);
+            subghz_txrx_custom_button_reset(app->txrx);
+
+            // Call deserialize yet another time to restore the original button if a custom button was used
+            subghz_transmitter_deserialize(app->txrx->transmitter, sub_preset->fff_data);
+
+            subghz_custom_btns_reset();
+        }
+#endif
         subghz_txrx_stop(app->txrx);
 #ifndef FW_ORIGIN_Official
         if(sub_preset->type == SubGhzProtocolTypeDynamic) {
@@ -273,6 +312,63 @@ SubRemLoadMapState subrem_load_from_file(SubGhzRemoteApp* app) {
     return ret;
 }
 
+bool subrem_load_default_path(SubGhzRemoteApp* app) {
+    furi_assert(app);
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    FlipperFormat* ff = flipper_format_file_alloc(storage);
+    FuriString* default_path = furi_string_alloc();
+    bool success = false;
+
+    if(flipper_format_file_open_existing(ff, SUBREM_APP_CONFIG)) {
+        if(flipper_format_read_string(ff, "Default", default_path)) {
+            if(!furi_string_empty(default_path)) {
+                furi_string_set(app->file_path, default_path);
+                success = true;
+            }
+        }
+    }
+
+    furi_string_free(default_path);
+    flipper_format_free(ff);
+    furi_record_close(RECORD_STORAGE);
+    return success;
+}
+
+bool subrem_save_default_path(const char* path) {
+    furi_assert(path);
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    FlipperFormat* ff = flipper_format_file_alloc(storage);
+    bool success = false;
+
+    if(flipper_format_file_open_always(ff, SUBREM_APP_CONFIG)) {
+        if(flipper_format_write_header_cstr(ff, "SubGhzRemote Config", 1)) {
+            if(flipper_format_write_string_cstr(ff, "Default", path)) {
+                success = true;
+            }
+        }
+    }
+
+    flipper_format_free(ff);
+    furi_record_close(RECORD_STORAGE);
+    return success;
+}
+
+bool subrem_clear_default_path(void) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    bool success = storage_simply_remove(storage, SUBREM_APP_CONFIG);
+    furi_record_close(RECORD_STORAGE);
+    return success;
+}
+
+bool subrem_has_default_path(void) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    bool exists = storage_file_exists(storage, SUBREM_APP_CONFIG);
+    furi_record_close(RECORD_STORAGE);
+    return exists;
+}
+
 bool subrem_save_map_to_file(SubGhzRemoteApp* app) {
     furi_assert(app);
 
@@ -292,8 +388,15 @@ bool subrem_save_map_to_file(SubGhzRemoteApp* app) {
     }
     for(uint8_t i = 0; i < SubRemSubKeyNameMaxCount; i++) {
         sub_preset = app->map_preset->subs_preset[i];
-        if(!furi_string_empty(sub_preset->file_path)) {
+        if(!furi_string_empty(sub_preset->label)) {
             flipper_format_write_string(fff_data, map_file_labels[i][1], sub_preset->label);
+        }
+    }
+
+    for(uint8_t i = 0; i < SubRemSubKeyNameMaxCount; i++) {
+        sub_preset = app->map_preset->subs_preset[i];
+        if(sub_preset->button != 0) {
+            flipper_format_write_hex(fff_data, map_file_labels[i][2], &sub_preset->button, 1);
         }
     }
 

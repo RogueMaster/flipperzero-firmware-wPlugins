@@ -10,9 +10,10 @@ App(
             name="flipper_gblink",
         ),
     ],
+    fap_icon_assets="assets",
     fap_category="GPIO/MALVEKE",
     fap_author="kbembedded",
     fap_weburl="https://github.com/kbembedded/flipper-gb-printer",
-    fap_version="0.1",
+    fap_version="0.5",
     fap_description="Print photos from camera to flipper, saves are sequentially numbered and in a format meant for importing.",
 )

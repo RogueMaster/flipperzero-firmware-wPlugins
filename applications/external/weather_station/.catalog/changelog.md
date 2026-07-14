@@ -1,7 +1,12 @@
+## 2.0
+ - Add protocol Bresser-3CH
+ - Add protocol BL999
+ - Add protocol Solight TE44
+ - Add support for FM12K modulation
+ - Some changes in Vauno EN8822C
 ## 1.9
- - [Added Bressner 3CH Protocol (By m7i-org)](https://github.com/Next-Flip/Momentum-Firmware/pull/217)
+ - Add protocol Vauno EN8822C
 ## 1.8
- - [Solight TE44 recognition (By m7i-org)](https://github.com/Next-Flip/Momentum-Firmware/pull/183)
  - Removed call to legacy SDK API
 ## 1.7
  - Added external CC1101 radio modules support

@@ -1,0 +1,196 @@
+1,Q,"Is it a living thing?",2,200
+2,Q,"Is it an animal (or human)?",3,100
+3,Q,"Is it human?",4,50
+4,Q,"Is the person real?",5,30
+5,Q,"Is this person primarily known as a politician or world leader?",6,15
+6,Q,"Is this person a former U.S. President?",7,10
+7,Q,"Is the person Donald Trump?",1001,8
+8,Q,"Is the person Barack Obama?",1002,0
+10,Q,"Is this person associated with Russia?",11,12
+11,Q,"Is the person Vladimir Putin?",1003,0
+12,Q,"Is this person the current King of the United Kingdom?",1004,0
+15,Q,"Is this person known for their work in science or technology?",16,20
+16,Q,"Is this person famous for their theory of relativity?",1005,17
+17,Q,"Is this person the CEO of Tesla and SpaceX?",1006,0
+20,Q,"Is this person primarily known as an actor or entertainer?",21,25
+21,Q,"Is this person famous for playing Captain Jack Sparrow?",1007,22
+22,Q,"Did this person play The Terminator?",1008,0
+25,Q,"Is this person a musician?",26,0
+26,Q,"Was this person known as the 'King of Pop'?",1009,0
+30,Q,"Is your character from a video game?",31,40
+31,Q,"Is your character a plumber who saves a princess?",1010,32
+32,Q,"Is your character a blue hedgehog known for speed?",1011,0
+40,Q,"Is your character from a movie?",41,0
+41,Q,"Is this character a Jedi from Star Wars?",42,43
+42,Q,"Is the character Luke Skywalker?",1012,0
+43,Q,"Is this character from the wizarding world of Harry Potter?",1013,0
+50,Q,"Is it a mammal?",51,80
+51,Q,"Is it a common household pet?",52,60
+52,Q,"Does it bark?",1014,53
+53,Q,"Does it purr?",1015,54
+54,Q,"Is it a small rodent often kept in a cage?",1016,0
+60,Q,"Does it live in the ocean?",61,70
+61,Q,"Is it known for its intelligence and clicking sounds?",1017,1080
+62,Q,"Is it the largest animal on Earth?",63,63
+63,Q,"Does it have a shell?",64,65
+64,Q,"Does it live in a shell it can retract into?",1020,1021
+65,Q,"Is it known for its large size and slow movement?",1022,0
+70,Q,"Does it live on a farm?",71,75
+71,Q,"Does it say 'moo'?",1020,72
+72,Q,"Is it known for its wool?",1021,73
+73,Q,"Is it a horse?",1022,0
+75,Q,"Is it a large cat known as the 'King of the Jungle'?",1023,76
+76,Q,"Is it a bear?",1024,0
+80,Q,"Is it a bird?",81,90
+81,Q,"Is it a symbol of the United States?",1025,82
+82,Q,"Is it a large bird that cannot fly?",1026,0
+90,Q,"Is it a reptile?",91,95
+91,Q,"Is it a snake?",1027,92
+92,Q,"Is it a dinosaur?",1028,0
+95,Q,"Is it an insect?",96,0
+96,Q,"Does it fly and make honey?",1029,97
+97,Q,"Is it a spider?",1030,0
+100,Q,"Is it a plant?",101,150
+101,Q,"Is it a tree?",102,110
+102,Q,"Does it produce acorns?",1031,103
+103,Q,"Is it a pine tree?",1032,0
+110,Q,"Is it a flower?",111,120
+111,Q,"Is it typically red with thorns?",1033,0
+120,Q,"Is it a vegetable?",121,130
+121,Q,"Is it a root vegetable, often orange?",1034,122
+122,Q,"Is it a type of lettuce?",1035,0
+130,Q,"Is it a fruit?",131,0
+131,Q,"Is it typically yellow and curved?",1036,132
+132,Q,"Is it red and grows on a vine?",1037,133
+133,Q,"Is it an apple?",1038,0
+150,Q,"Is it a fungus?",151,0
+151,Q,"Is it a mushroom?",1039,0
+200,Q,"Is it man-made?",201,300
+201,Q,"Is it a form of technology?",202,250
+202,Q,"Is it electronic?",203,240
+203,Q,"Is it something you can hold in your hand?",204,220
+204,Q,"Is it a portable cybersecurity multitool?",1040,205
+205,Q,"Is it a smartphone?",1041,206
+206,Q,"Is it a remote control?",1042,210
+210,Q,"Is it primarily used for gaming?",1043,211
+211,Q,"Is it a digital camera?",1044,0
+220,Q,"Is it larger than a person?",221,230
+221,Q,"Is it a desktop computer?",1045,222
+222,Q,"Is it a television?",1046,223
+223,Q,"Is it a kitchen appliance?",1047,0
+230,Q,"Is it a form of transportation?",231,0
+231,Q,"Does it have four wheels?",1048,232
+232,Q,"Does it fly?",1049,233
+233,Q,"Is it a boat?",1050,0
+240,Q,"Is it a simple tool?",241,0
+241,Q,"Does it use a blade to cut?",1051,242
+242,Q,"Is it used to hit nails?",1052,243
+243,Q,"Is it a screwdriver?",1053,0
+250,Q,"Is it a piece of furniture?",251,270
+251,Q,"Is it used for sitting?",1054,252
+252,Q,"Is it used for sleeping?",1055,253
+253,Q,"Is it a table?",1056,0
+270,Q,"Is it an item of clothing?",271,280
+271,Q,"Is it worn on your feet?",1057,272
+272,Q,"Is it worn on your head?",1058,273
+273,Q,"Is it a shirt?",1059,0
+280,Q,"Is it a building?",281,290
+281,Q,"Is it a famous landmark?",282,0
+282,Q,"Is it the Eiffel Tower?",1060,283
+283,Q,"Is it the Statue of Liberty?",1061,0
+290,Q,"Is it a food item?",291,0
+291,Q,"Is it a pizza?",1062,292
+292,Q,"Is it a hamburger?",1063,0
+300,Q,"Is it a natural object?",301,400
+301,Q,"Is it found on a beach?",1064,302
+302,Q,"Is it a type of rock or mineral?",303,310
+303,Q,"Is it a precious gemstone?",1065,1066
+310,Q,"Is it related to weather?",311,320
+311,Q,"Is it a cloud?",1067,312
+312,Q,"Is it a snowflake?",1068,0
+320,Q,"Is it an astronomical object?",321,0
+321,Q,"Is it the star at the center of our solar system?",1069,322
+322,Q,"Is it Earth's natural satellite?",1070,323
+323,Q,"Is it a planet?",1071,0
+400,Q,"Is it a concept or idea?",401,0
+401,Q,"Is it 'love'?",1072,402
+402,Q,"Is it 'time'?",1073,0
+1001,A,"Donald Trump",0,0
+1002,A,"Barack Obama",0,0
+1003,A,"Vladimir Putin",0,0
+1004,A,"King Charles",0,0
+1005,A,"Albert Einstein",0,0
+1006,A,"Elon Musk",0,0
+1007,A,"Johnny Depp",0,0
+1008,A,"Arnold Schwarzenegger",0,0
+1009,A,"Michael Jackson",0,0
+1010,A,"Super Mario",0,0
+1011,A,"Sonic the Hedgehog",0,0
+1012,A,"Luke Skywalker",0,0
+1013,A,"Harry Potter",0,0
+1014,A,"A Dog",0,0
+1015,A,"A Cat",0,0
+1016,A,"A Hamster",0,0
+1017,A,"A Dolphin",0,0
+1018,A,"A Blue Whale",0,0
+1019,A,"A Sea Turtle",0,0
+1020,A,"A Cow",0,0
+1021,A,"A Sheep",0,0
+1022,A,"A Horse",0,0
+1023,A,"A Lion",0,0
+1024,A,"A Bear",0,0
+1025,A,"A Bald Eagle",0,0
+1026,A,"An Ostrich",0,0
+1027,A,"A Snake",0,0
+1028,A,"A T-Rex",0,0
+1029,A,"A Bee",0,0
+1030,A,"A Spider",0,0
+1031,A,"An Oak Tree",0,0
+1032,A,"A Pine Tree",0,0
+1033,A,"A Rose",0,0
+1034,A,"A Carrot",0,0
+1035,A,"Lettuce",0,0
+1036,A,"A Banana",0,0
+1037,A,"A Strawberry",0,0
+1038,A,"An Apple",0,0
+1039,A,"A Mushroom",0,0
+1040,A,"A Flipper Zero",0,0
+1041,A,"A Smartphone",0,0
+1042,A,"A TV Remote",0,0
+1043,A,"A Game Console",0,0
+1044,A,"A Camera",0,0
+1045,A,"A Desktop Computer",0,0
+1046,A,"A Television",0,0
+1047,A,"A Refrigerator",0,0
+1048,A,"A Car",0,0
+1049,A,"An Airplane",0,0
+1050,A,"A Boat",0,0
+1051,A,"A Knife",0,0
+1052,A,"A Hammer",0,0
+1053,A,"A Screwdriver",0,0
+1054,A,"A Chair",0,0
+1055,A,"A Bed",0,0
+1056,A,"A Table",0,0
+1057,A,"A Shoe",0,0
+1058,A,"A Hat",0,0
+1059,A,"A T-Shirt",0,0
+1060,A,"The Eiffel Tower",0,0
+1061,A,"The Statue of Liberty",0,0
+1062,A,"A Pizza",0,0
+1063,A,"A Hamburger",0,0
+1064,A,"Sand",0,0
+1065,A,"A Diamond",0,0
+1066,A,"A Rock",0,0
+1067,A,"A Cloud",0,0
+1068,A,"A Snowflake",0,0
+1069,A,"The Sun",0,0
+1070,A,"The Moon",0,0
+1071,A,"The Planet Mars",0,0
+1072,A,"Love",0,0
+1073,A,"Time",0,0
+1074,Q,"Does it live in a shell it can retract into?",1075,1076
+1075,A,"A Snail",0,0
+1076,A,"A Lobster",0,0
+1077,Q,"Is it known for its large size and slow movement?",1078,0
+1078,A,"A Manatee",0,0
+1080,Q,"Is it the largest animal on Earth?",1018,63

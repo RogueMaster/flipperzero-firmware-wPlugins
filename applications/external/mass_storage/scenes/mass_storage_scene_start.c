@@ -3,6 +3,7 @@
 enum VarItemListIndex {
     VarItemListIndexSelectDiskImage,
     VarItemListIndexCreateDiskImage,
+    VarItemListIndexEditUSBConfig,
 };
 
 static void mass_storage_scene_start_variable_item_list_callback(void* context, uint32_t index) {
@@ -17,6 +18,7 @@ void mass_storage_scene_start_on_enter(void* context) {
     variable_item_list_add(variable_item_list, "Select Disk Image", 0, NULL, app);
 
     variable_item_list_add(variable_item_list, "Create Disk Image", 0, NULL, app);
+    variable_item_list_add(variable_item_list, "Spoof USB Identity", 0, NULL, app);
 
     variable_item_list_set_enter_callback(
         variable_item_list, mass_storage_scene_start_variable_item_list_callback, app);
@@ -47,6 +49,9 @@ bool mass_storage_scene_start_on_event(void* context, SceneManagerEvent event) {
         case VarItemListIndexCreateDiskImage:
             scene_manager_set_scene_state(app->scene_manager, MassStorageSceneCreateImage, 0);
             scene_manager_next_scene(app->scene_manager, MassStorageSceneCreateImage);
+            break;
+        case VarItemListIndexEditUSBConfig:
+            scene_manager_next_scene(app->scene_manager, MassStorageSceneUSBConfig);
             break;
         default:
             break;

@@ -13,7 +13,7 @@
 #include <gui/icon.h>
 #include <infrared_transmit.h>
 
-#include <infrared/infrared_app.h>
+#include <infrared/infrared_settings.h>
 #include <toolbox/saved_struct.h>
 
 #include <input/input.h>
@@ -21,7 +21,7 @@
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
 
-#include "intervalometer_icons.h"
+#include <intervalometer_icons.h>
 
 // app ui scenes
 enum flipvalo_ui_scene {
@@ -40,7 +40,8 @@ enum flipvalo_trigger_variants {
     FvTrigSony = 0,
     FvTrigCanon = 1,
     FvTrigNikon = 2,
-    FvTrigMax = 2,
+    FvTrigPentax = 3,
+    FvTrigMax = 3,
 };
 
 // run config for intervalometer
@@ -162,6 +163,14 @@ static int nikon_ir_trigger_send(void* ctx) {
     return 0;
 }
 
+uint32_t pentax_ir_timings[] =
+    {13044, 3057, 965, 1023, 967, 1022, 968, 1023, 990, 1053, 966, 1023, 967, 1024, 989};
+static int pentax_ir_trigger_send(void* ctx) {
+    UNUSED(ctx);
+    infrared_send_raw_ext(pentax_ir_timings, 15, true, 38000, 0.33);
+    return 0;
+}
+
 struct flipvalo_trigger sony_ir_trigger = {.send = sony_ir_trigger_send, .display_name = "Sony IR"};
 
 struct flipvalo_trigger canon_ir_trigger = {
@@ -172,6 +181,10 @@ struct flipvalo_trigger nikon_ir_trigger = {
     .send = nikon_ir_trigger_send,
     .display_name = "Nikon IR"};
 
+struct flipvalo_trigger pentax_ir_trigger = {
+    .send = pentax_ir_trigger_send,
+    .display_name = "Pentax IR"};
+
 static struct flipvalo_trigger* flipvalo_get_trigger(enum flipvalo_trigger_variants variant) {
     switch(variant) {
     case FvTrigSony:
@@ -180,6 +193,8 @@ static struct flipvalo_trigger* flipvalo_get_trigger(enum flipvalo_trigger_varia
         return &canon_ir_trigger;
     case FvTrigNikon:
         return &nikon_ir_trigger;
+    case FvTrigPentax:
+        return &pentax_ir_trigger;
     }
     return NULL;
 }
@@ -478,9 +493,9 @@ static void flipvalo_run_state_init(struct flipvalo_run_state* fv_run_state) {
     fv_run_state->tick_cur = 0;
 }
 
-static void input_callback(InputEvent* input_event, void* ctx) {
-    furi_assert(ctx);
-    FuriMessageQueue* event_queue = ctx;
+static void input_callback(InputEvent* input_event, void* event_queue_void) {
+    FuriMessageQueue* event_queue = (FuriMessageQueue*)event_queue_void;
+    furi_assert(event_queue);
     struct plugin_event event = {.type = EventTypeKey, .input = *input_event};
     furi_message_queue_put(event_queue, &event, FuriWaitForever);
 }
@@ -634,12 +649,7 @@ int32_t flipvalo_app() {
 
     bool otg_was_enabled = furi_hal_power_is_otg_enabled();
     InfraredSettings settings = {0};
-    saved_struct_load(
-        INFRARED_SETTINGS_PATH,
-        &settings,
-        sizeof(InfraredSettings),
-        INFRARED_SETTINGS_MAGIC,
-        INFRARED_SETTINGS_VERSION);
+    infrared_settings_load(&settings);
     if(settings.tx_pin < FuriHalInfraredTxPinMax) {
         furi_hal_infrared_set_tx_output(settings.tx_pin);
         if(settings.otg_enabled != otg_was_enabled) {

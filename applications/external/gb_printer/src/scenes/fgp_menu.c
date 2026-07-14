@@ -22,8 +22,14 @@ void fgp_scene_menu_on_enter(void* context) {
     submenu_reset(fgp->submenu);
     submenu_set_header(fgp->submenu, "Game Boy Printer");
 
+    /* Init config variables here */
+    fgp->palette_idx = 0;
+
     submenu_add_item(
         fgp->submenu, "Receive from GB", fgpSceneReceiveConf, scene_change_from_main_cb, fgp);
+
+    submenu_add_item(
+        fgp->submenu, "Select Pinout", fgpSceneSelectPins, scene_change_from_main_cb, fgp);
 
     submenu_set_selected_item(
         fgp->submenu, scene_manager_get_scene_state(fgp->scene_manager, fgpSceneMenu));

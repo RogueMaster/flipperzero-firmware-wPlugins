@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 240" width="880" height="240" role="img" aria-label="Badge Audit">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10141c"/>
+      <stop offset="1" stop-color="#1c232f"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff8a00"/>
+      <stop offset="1" stop-color="#ff5e00"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="880" height="240" rx="22" fill="url(#bg)"/>
+  <rect x="2" y="2" width="876" height="236" rx="20" fill="none" stroke="#2c3543" stroke-width="2"/>
+
+  <!-- RFID signal arcs -->
+  <g fill="none" stroke="url(#orange)" stroke-width="6" stroke-linecap="round" opacity="0.9">
+    <path d="M120 120 m-44 -44 a62 62 0 0 1 0 88" transform="translate(0,0)"/>
+    <path d="M120 120 m-62 -62 a88 88 0 0 1 0 124"/>
+    <path d="M120 120 m-80 -80 a114 114 0 0 1 0 160"/>
+  </g>
+  <!-- contactless badge / card -->
+  <g transform="translate(150,70)">
+    <rect x="0" y="0" width="120" height="80" rx="12" fill="#222b38" stroke="url(#orange)" stroke-width="3"/>
+    <rect x="14" y="16" width="40" height="28" rx="4" fill="#ffae4d"/>
+    <rect x="14" y="54" width="92" height="6" rx="3" fill="#3a4658"/>
+    <rect x="14" y="66" width="64" height="6" rx="3" fill="#3a4658"/>
+    <!-- lock -->
+    <g transform="translate(82,12)">
+      <rect x="0" y="10" width="26" height="20" rx="4" fill="url(#orange)"/>
+      <path d="M5 10 v-5 a8 8 0 0 1 16 0 v5" fill="none" stroke="url(#orange)" stroke-width="3"/>
+    </g>
+  </g>
+
+  <!-- Title -->
+  <text x="320" y="105" font-family="Helvetica, Arial, sans-serif" font-size="58" font-weight="800" fill="#ffffff" letter-spacing="1">BADGE<tspan fill="url(#orange)"> AUDIT</tspan></text>
+  <text x="322" y="146" font-family="Helvetica, Arial, sans-serif" font-size="22" font-weight="500" fill="#aab4c2">NFC access-control security auditor for Flipper Zero</text>
+
+  <!-- byline -->
+  <g transform="translate(322,176)">
+    <rect x="0" y="0" width="172" height="34" rx="17" fill="#222b38" stroke="#3a4658" stroke-width="1.5"/>
+    <circle cx="22" cy="17" r="8" fill="url(#orange)"/>
+    <text x="40" y="23" font-family="Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#e7edf4">by ViperDroid</text>
+  </g>
+  <text x="516" y="199" font-family="Helvetica, Arial, sans-serif" font-size="16" font-weight="500" fill="#7f8b9b">defensive • read-only • authorized-use</text>
+</svg>

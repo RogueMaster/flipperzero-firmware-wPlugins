@@ -35,8 +35,8 @@ struct pokemon_fap {
      */
     PokemonData* pdata;
 
-    /* Pin definition to actual Game Link Cable interface */
-    struct gblink_pins pins;
+    /* gblink interface */
+    void* gblink_handle;
 };
 
 typedef struct pokemon_fap PokemonFap;

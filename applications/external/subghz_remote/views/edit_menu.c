@@ -1,5 +1,6 @@
 #include "edit_menu.h"
 #include "../subghz_remote_app_i.h"
+#include "../helpers/subrem_custom_button_info.h"
 
 #include <input/input.h>
 #include <gui/elements.h>
@@ -37,6 +38,7 @@ void subrem_view_edit_menu_add_data_to_show(
     uint8_t index,
     FuriString* label,
     FuriString* path,
+    uint8_t button,
     SubRemLoadSubState state) {
     furi_assert(subrem_view_edit_remote);
 
@@ -51,6 +53,9 @@ void subrem_view_edit_menu_add_data_to_show(
                 furi_string_set(model->label, "Empty label");
             }
             furi_string_set(model->file_path, path);
+            if(button != ButtonOK && !furi_string_empty(path)) {
+                furi_string_cat_printf(model->file_path, " (Btn. %s)", custom_button_text[button]);
+            }
             model->sub_state = state;
         },
         true);

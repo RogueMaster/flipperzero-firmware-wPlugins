@@ -1,13 +1,14 @@
 #include "../seader_i.h"
 #include <dolphin/dolphin.h>
 
-void seader_virtual_credential_worker_callback(SeaderWorkerEvent event, void* context) {
+void seader_virtual_credential_worker_callback(uint32_t event, void* context) {
     Seader* seader = context;
     view_dispatcher_send_custom_event(seader->view_dispatcher, event);
 }
 
 void seader_scene_virtual_credential_on_enter(void* context) {
     Seader* seader = context;
+    seader_worker_acquire(seader);
 
     // Setup view
     Popup* popup = seader->popup;
@@ -34,7 +35,7 @@ bool seader_scene_virtual_credential_on_event(void* context, SceneManagerEvent e
             seader->credential->type = SeaderCredentialTypeVirtual;
             scene_manager_next_scene(seader->scene_manager, SeaderSceneReadCardSuccess);
             consumed = true;
-        } else if(event.event == SeaderCustomEventPollerSuccess) {
+        } else if(event.event == SeaderWorkerEventSuccess) {
             seader->credential->type = SeaderCredentialTypeVirtual;
             scene_manager_next_scene(seader->scene_manager, SeaderSceneReadCardSuccess);
             consumed = true;
@@ -52,4 +53,5 @@ void seader_scene_virtual_credential_on_exit(void* context) {
 
     // Clear view
     popup_reset(seader->popup);
+    seader_worker_release(seader);
 }

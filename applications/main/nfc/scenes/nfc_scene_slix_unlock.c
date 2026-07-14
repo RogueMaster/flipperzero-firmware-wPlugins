@@ -1,5 +1,4 @@
 #include "../nfc_app_i.h"
-#include <nfc_icons.h>
 
 #include <nfc/protocols/slix/slix_poller.h>
 
@@ -36,6 +35,8 @@ void nfc_scene_slix_unlock_on_enter(void* context) {
         instance->popup, "Hold card next\nto Flipper's back", 94, 27, AlignCenter, AlignTop);
     view_dispatcher_switch_to_view(instance->view_dispatcher, NfcViewPopup);
 
+    notification_message(instance->notifications, &sequence_blink_start_yellow);
+
     instance->poller = nfc_poller_alloc(instance->nfc, NfcProtocolSlix);
     nfc_poller_start(instance->poller, nfc_scene_slix_unlock_worker_callback, instance);
 }
@@ -68,4 +69,7 @@ void nfc_scene_slix_unlock_on_exit(void* context) {
     nfc_poller_free(instance->poller);
 
     popup_reset(instance->popup);
+
+    // Stop notifications
+    nfc_blink_stop(instance);
 }

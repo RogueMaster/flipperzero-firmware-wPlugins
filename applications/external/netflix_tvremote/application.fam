@@ -1,0 +1,15 @@
+App(
+    appid="netflixtvremote",
+    name="Netflix TV Remote",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="netflixtvremote_app",
+    stack_size=2 * 1024,
+    fap_icon="netflixtvremote.png",
+    fap_icon_assets="images",
+    fap_category="Infrared",
+    fap_author="ablaran",
+    fap_weburl="https://github.com/ablaran/NetflixTvRemote",
+    fap_version="0.1",
+    fap_description="A simple IR TV remote for Netflix for Sony BRAVIA 4K VH2",
+)

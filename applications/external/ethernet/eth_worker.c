@@ -7,6 +7,9 @@
 #include "socket.h"
 #include <wizchip_conf.h>
 
+#define ETH_RESET_PIN (&gpio_ext_pc3)
+#define ETH_CS_PIN    (&gpio_ext_pa4)
+
 #define TAG "EthWorker"
 
 static EthWorker* static_worker = NULL;
@@ -21,6 +24,8 @@ EthWorker* eth_worker_alloc() {
     worker->dhcp_process = ethernet_view_process_malloc(EthWorkerProcessDHCP, worker->config);
     worker->stat_process = ethernet_view_process_malloc(EthWorkerProcessStatic, worker->config);
     worker->ping_process = ethernet_view_process_malloc(EthWorkerProcessPing, worker->config);
+    worker->traceroute_process =
+        ethernet_view_process_malloc(EthWorkerProcessTraceroute, worker->config);
     worker->reset_process = ethernet_view_process_malloc(EthWorkerProcessReset, worker->config);
     worker->active_process = worker->init_process;
 
@@ -48,6 +53,7 @@ void eth_worker_free(EthWorker* worker) {
     ethernet_view_process_free(worker->dhcp_process);
     ethernet_view_process_free(worker->stat_process);
     ethernet_view_process_free(worker->ping_process);
+    ethernet_view_process_free(worker->traceroute_process);
     ethernet_view_process_free(worker->reset_process);
     ethernet_save_process_free(worker->config);
 
@@ -225,15 +231,13 @@ void eth_run(EthWorker* worker, EthWorkerProcess process) {
 /************************** Ethernet Worker Thread *****************************/
 
 static uint8_t ip_assigned = 0;
-static GpioPin cspin = {.port = GPIOA, .pin = LL_GPIO_PIN_4};
-static GpioPin resetpin = {.port = GPIOC, .pin = LL_GPIO_PIN_3};
 
 static void W5500_Select(void) {
-    furi_hal_gpio_write(&cspin, false);
+    furi_hal_gpio_write(ETH_CS_PIN, false);
 }
 
 static void W5500_Unselect(void) {
-    furi_hal_gpio_write(&cspin, true);
+    furi_hal_gpio_write(ETH_CS_PIN, true);
 }
 
 static void Callback_IPAssigned(void) {
@@ -351,9 +355,10 @@ static void load_net_parameters(const EthernetSaveConfig* cfg) {
 int32_t eth_worker_task(void* context) {
     furi_assert(context);
     EthWorker* worker = (EthWorker*)context;
-    furi_hal_power_insomnia_enter();
 
+    furi_hal_spi_bus_handle_init(&furi_hal_spi_bus_handle_external);
     furi_hal_spi_acquire(&furi_hal_spi_bus_handle_external);
+
     uint8_t W5500FifoSize[2][8] = {{2, 2, 2, 2, 2, 2, 2, 2}, {2, 2, 2, 2, 2, 2, 2, 2}};
     uint8_t dhcp_buffer[2048];
 
@@ -361,10 +366,10 @@ int32_t eth_worker_task(void* context) {
     reg_wizchip_spiburst_cbfunc(W5500_ReadBuff, W5500_WriteBuff);
     reg_wizchip_cs_cbfunc(W5500_Select, W5500_Unselect);
 
-    furi_hal_gpio_write(&resetpin, true);
-    furi_hal_gpio_write(&cspin, true);
-    furi_hal_gpio_init(&resetpin, GpioModeOutputOpenDrain, GpioPullNo, GpioSpeedVeryHigh);
-    furi_hal_gpio_init(&cspin, GpioModeOutputOpenDrain, GpioPullNo, GpioSpeedVeryHigh);
+    //furi_hal_gpio_write(ETH_CS_PIN, true);
+    furi_hal_gpio_write(ETH_RESET_PIN, true);
+    furi_hal_gpio_init(ETH_RESET_PIN, GpioModeOutputPushPull, GpioPullUp, GpioSpeedVeryHigh);
+    //furi_hal_gpio_init(ETH_CS_PIN, GpioModeOutputPushPull, GpioPullUp, GpioSpeedVeryHigh);
 
     while(worker->state != EthWorkerStateStop) {
         if(worker->state == EthWorkerStateNotInited) {
@@ -385,18 +390,20 @@ int32_t eth_worker_task(void* context) {
         }
 
         if(worker->state == EthWorkerStateInit) {
-            furi_hal_power_enable_otg();
+            if(!furi_hal_power_is_otg_enabled()) {
+                furi_hal_power_enable_otg();
+            }
             furi_delay_ms(300);
-            furi_hal_gpio_write(&resetpin, false);
+            furi_hal_gpio_write(ETH_RESET_PIN, false);
             furi_delay_ms(50);
-            furi_hal_gpio_write(&resetpin, true);
+            furi_hal_gpio_write(ETH_RESET_PIN, true);
             if(ctlwizchip(CW_INIT_WIZCHIP, (void*)W5500FifoSize) == -1) {
                 eth_log(EthWorkerProcessInit, "[error] W5500 init fail");
                 eth_set_force_state(EthWorkerStateNotInited);
                 continue;
             }
             eth_log(EthWorkerProcessInit, "W5500 inited");
-            furi_delay_ms(50);
+            furi_delay_ms(90);
             update_WIZNETINFO(false);
             wizchip_setnetinfo(&gWIZNETINFO);
             wiz_NetInfo readed_net_info;
@@ -543,20 +550,20 @@ int32_t eth_worker_task(void* context) {
             ctlnetwork(CN_SET_NETINFO, (void*)&gWIZNETINFO);
             eth_set_force_state(EthWorkerStateOnline);
         } else if(worker->state == EthWorkerStatePing) {
-            uint8_t* adress = worker->config->ping_ip;
+            uint8_t* address = worker->config->ping_ip;
             eth_log(
                 EthWorkerProcessPing,
                 "ping %d.%d.%d.%d",
-                adress[0],
-                adress[1],
-                adress[2],
-                adress[3]);
-            const uint8_t tryes = 4;
+                address[0],
+                address[1],
+                address[2],
+                address[3]);
+            const uint8_t tries = 4;
             uint8_t try = 0;
-            while(try < tryes && worker->state == EthWorkerStatePing) {
+            while(try < tries && worker->state == EthWorkerStatePing) {
                 try++;
                 uint32_t start_time = furi_get_tick();
-                uint8_t res = ping_auto_interface(adress);
+                uint8_t res = ping_auto_interface(address);
                 uint32_t res_time = furi_get_tick();
                 if(res == 3) {
                     eth_log(EthWorkerProcessPing, "%d success %d ms", try, res_time - start_time);
@@ -575,8 +582,13 @@ int32_t eth_worker_task(void* context) {
     }
 
     furi_hal_spi_release(&furi_hal_spi_bus_handle_external);
-    furi_hal_power_disable_otg();
-    furi_hal_power_insomnia_exit();
+    furi_hal_spi_bus_handle_deinit(&furi_hal_spi_bus_handle_external);
+
+    furi_hal_gpio_init_simple(ETH_RESET_PIN, GpioModeAnalog);
+    //furi_hal_gpio_init_simple(ETH_CS_PIN, GpioModeAnalog);
+    if(furi_hal_power_is_otg_enabled()) {
+        furi_hal_power_disable_otg();
+    }
 
     return 0;
 }

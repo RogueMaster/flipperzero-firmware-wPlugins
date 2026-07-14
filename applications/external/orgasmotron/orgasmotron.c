@@ -8,8 +8,26 @@
 
 typedef struct {
     int mode;
+    int animation;
     FuriMutex* mutex;
 } PluginState;
+
+void render_awake(Canvas* canvas, void* ctx) {
+    const PluginState* plugin_state = ctx;
+    if(plugin_state->animation == 0) {
+        canvas_draw_icon(canvas, 30, 5, &I_eye_1_18x14);
+        canvas_draw_icon(canvas, 32, 40, &I_fin_1_20x21);
+        canvas_draw_icon(canvas, 1, 6, &I_nose_1_28x18);
+    } else if(plugin_state->animation == 1) {
+        canvas_draw_icon(canvas, 30, 5, &I_eye_2_18x14);
+        canvas_draw_icon(canvas, 32, 40, &I_fin_2_20x21);
+        canvas_draw_icon(canvas, 1, 6, &I_nose_2_28x18);
+    } else if(plugin_state->animation == 2) {
+        canvas_draw_icon(canvas, 30, 5, &I_eye_3_18x14);
+        canvas_draw_icon(canvas, 32, 40, &I_fin_3_20x21);
+        canvas_draw_icon(canvas, 1, 6, &I_nose_3_28x18);
+    }
+}
 
 void vibro_draw_callback(Canvas* canvas, void* ctx) {
     furi_assert(ctx);
@@ -31,6 +49,7 @@ void vibro_draw_callback(Canvas* canvas, void* ctx) {
     furi_mutex_release(plugin_state->mutex);
 
     if(plugin_state->mode == 0) {
+        canvas_draw_icon(canvas, 30, 5, &I_eye_closed_18x14);
         canvas_draw_box(canvas, 36, 23, 15, 18);
         canvas_invert_color(canvas);
         canvas_draw_str(canvas, 38, 39, "Off");
@@ -42,24 +61,28 @@ void vibro_draw_callback(Canvas* canvas, void* ctx) {
         canvas_draw_str(canvas, 61, 44, "Strong");
         canvas_draw_icon(canvas, 56, 37, &I_left_4x7);
         canvas_invert_color(canvas);
+        render_awake(canvas, ctx);
     } else if(plugin_state->mode == 2) {
         canvas_draw_box(canvas, 74, 20, 30, 16);
         canvas_invert_color(canvas);
         canvas_draw_str(canvas, 76, 33, "Pulsed");
         canvas_draw_icon(canvas, 85, 21, &I_up_7x4);
         canvas_invert_color(canvas);
+        render_awake(canvas, ctx);
     } else if(plugin_state->mode == 3) {
         canvas_draw_box(canvas, 95, 36, 28, 10);
         canvas_invert_color(canvas);
         canvas_draw_str(canvas, 97, 44, "Soft");
         canvas_draw_icon(canvas, 117, 37, &I_right_4x7);
         canvas_invert_color(canvas);
+        render_awake(canvas, ctx);
     } else if(plugin_state->mode == 4) {
         canvas_draw_box(canvas, 74, 47, 32, 16);
         canvas_invert_color(canvas);
         canvas_draw_str(canvas, 76, 56, "Combo");
         canvas_draw_icon(canvas, 85, 57, &I_down_7x4);
         canvas_invert_color(canvas);
+        render_awake(canvas, ctx);
     }
 }
 
@@ -99,7 +122,11 @@ int32_t orgasmotron_app(void* p) {
     InputEvent event;
     bool processing = true;
     notification_message(notification, &sequence_display_backlight_on);
+    plugin_state->animation = 0;
     while(processing) {
+        if(plugin_state->animation > 2) {
+            plugin_state->animation = 0;
+        }
         FuriStatus event_status = furi_message_queue_get(event_queue, &event, 100);
         furi_mutex_acquire(plugin_state->mutex, FuriWaitForever);
         if(event_status == FuriStatusOk) {
@@ -114,6 +141,7 @@ int32_t orgasmotron_app(void* p) {
             if(event.key == InputKeyOk &&
                (event.type == InputTypePress || event.type == InputTypeRelease)) {
                 plugin_state->mode = 0;
+                plugin_state->animation = 0;
             }
             if(event.key == InputKeyLeft &&
                (event.type == InputTypePress || event.type == InputTypeRelease)) {
@@ -141,18 +169,21 @@ int32_t orgasmotron_app(void* p) {
             //Full power
             notification_message(notification, &sequence_set_vibro_on);
             notification_message(notification, &sequence_set_green_255);
+            plugin_state->animation++;
         } else if(plugin_state->mode == 2) {
             //Pulsed Vibration
             notification_message(notification, &sequence_set_vibro_on);
             notification_message(notification, &sequence_set_red_255);
             delay(100);
             notification_message(notification, &sequence_reset_vibro);
+            plugin_state->animation++;
         } else if(plugin_state->mode == 3) {
             //Soft power
             notification_message(notification, &sequence_set_vibro_on);
             notification_message(notification, &sequence_set_blue_255);
             delay(50);
             notification_message(notification, &sequence_reset_vibro);
+            plugin_state->animation++;
         } else if(plugin_state->mode == 4) {
             //Special Sequence
             notification_message(notification, &sequence_solid_yellow);
@@ -168,6 +199,7 @@ int32_t orgasmotron_app(void* p) {
                 notification_message(notification, &sequence_reset_vibro);
                 delay(50);
             }
+            plugin_state->animation++;
         }
         furi_mutex_release(plugin_state->mutex);
     }

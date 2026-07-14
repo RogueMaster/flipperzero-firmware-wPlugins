@@ -45,7 +45,7 @@ void nrf24_deinit() {
 }
 
 void nrf24_spi_trx(
-    FuriHalSpiBusHandle* handle,
+    const FuriHalSpiBusHandle* handle,
     uint8_t* tx,
     uint8_t* rx,
     uint8_t size,
@@ -56,14 +56,14 @@ void nrf24_spi_trx(
     furi_hal_gpio_write(handle->cs, true);
 }
 
-uint8_t nrf24_write_reg(FuriHalSpiBusHandle* handle, uint8_t reg, uint8_t data) {
+uint8_t nrf24_write_reg(const FuriHalSpiBusHandle* handle, uint8_t reg, uint8_t data) {
     uint8_t tx[2] = {W_REGISTER | (REGISTER_MASK & reg), data};
     uint8_t rx[2] = {0};
     nrf24_spi_trx(handle, tx, rx, 2, nrf24_TIMEOUT);
     return rx[0];
 }
 
-uint8_t nrf24_read_reg(FuriHalSpiBusHandle* handle, uint8_t reg, uint8_t* data, uint8_t size) {
+uint8_t nrf24_read_reg(const FuriHalSpiBusHandle* handle, uint8_t reg, uint8_t* data, uint8_t size) {
     uint8_t tx[size + 1];
     uint8_t rx[size + 1];
     memset(rx, 0, size + 1);
@@ -74,27 +74,27 @@ uint8_t nrf24_read_reg(FuriHalSpiBusHandle* handle, uint8_t reg, uint8_t* data, 
     return rx[0];
 }
 
-uint8_t nrf24_flush_rx(FuriHalSpiBusHandle* handle) {
+uint8_t nrf24_flush_rx(const FuriHalSpiBusHandle* handle) {
     uint8_t tx[] = {FLUSH_RX};
     uint8_t rx[] = {0};
     nrf24_spi_trx(handle, tx, rx, 1, nrf24_TIMEOUT);
     return rx[0];
 }
 
-uint8_t nrf24_get_rdp(FuriHalSpiBusHandle* handle) {
+uint8_t nrf24_get_rdp(const FuriHalSpiBusHandle* handle) {
     uint8_t rdp;
     nrf24_read_reg(handle, REG_RDP, &rdp, 1);
     return rdp;
 }
 
-uint8_t nrf24_status(FuriHalSpiBusHandle* handle) {
+uint8_t nrf24_status(const FuriHalSpiBusHandle* handle) {
     uint8_t status;
     uint8_t tx[] = {R_REGISTER | (REGISTER_MASK & REG_STATUS)};
     nrf24_spi_trx(handle, tx, &status, 1, nrf24_TIMEOUT);
     return status;
 }
 
-uint8_t nrf24_set_idle(FuriHalSpiBusHandle* handle) {
+uint8_t nrf24_set_idle(const FuriHalSpiBusHandle* handle) {
     uint8_t status = 0;
     uint8_t cfg = 0;
     nrf24_read_reg(handle, REG_CONFIG, &cfg, 1);
@@ -104,7 +104,7 @@ uint8_t nrf24_set_idle(FuriHalSpiBusHandle* handle) {
     return status;
 }
 
-uint8_t nrf24_set_rx_mode(FuriHalSpiBusHandle* handle, bool nodelay) {
+uint8_t nrf24_set_rx_mode(const FuriHalSpiBusHandle* handle, bool nodelay) {
     uint8_t status = 0;
     uint8_t cfg = 0;
     nrf24_read_reg(handle, REG_CONFIG, &cfg, 1);
@@ -115,7 +115,7 @@ uint8_t nrf24_set_rx_mode(FuriHalSpiBusHandle* handle, bool nodelay) {
     return status;
 }
 
-bool nrf24_check_connected(FuriHalSpiBusHandle* handle) {
+bool nrf24_check_connected(const FuriHalSpiBusHandle* handle) {
     uint8_t status = nrf24_status(handle);
 
     if(status != 0x00) {

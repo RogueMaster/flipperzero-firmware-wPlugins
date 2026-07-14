@@ -17,12 +17,10 @@
 - Be sure you updated to latest official release before(if installing for the first time), and verify that microSD card is installed
 - Make sure qFlipper app is closed
 - Open latest release page - [Releases](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/releases/latest)
-- Connect your device and select `Install via Web Updater`
-after that on web updater page - press `Connect` button
-- Press `Install` button
-
-- And wait, if all flashed
- successfully - you will have all needed assets pre installed
+- Connect your device and select desired `Web Updater` build link, and press `Connect` button
+- Select RM firmware from `Update Channel` dropdown
+- Press `Reinstall` button
+- And wait, if all flashed  successfully - you will have all needed assets pre installed
 - Done
 ![web](https://user-images.githubusercontent.com/40743392/235005830-98ceda39-a143-47ef-ad4d-5489bc3df98b.png)
 

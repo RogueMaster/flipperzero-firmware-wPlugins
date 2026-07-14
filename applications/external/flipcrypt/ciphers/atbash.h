@@ -1,0 +1,1 @@
+char* atbash_encrypt_or_decrypt(const char* input);

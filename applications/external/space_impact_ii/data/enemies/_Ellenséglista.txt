@@ -1,0 +1,7 @@
+0-4.......1. szint
+5-9.......2. szinten újak
+10-14.....3. szinten újak
+15-21.....4. szinten újak
+22-29.....5. szinten újak
+30-40.....6. szinten újak
+255.......Bónuszhordozó

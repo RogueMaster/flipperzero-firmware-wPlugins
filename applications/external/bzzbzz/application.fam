@@ -1,0 +1,14 @@
+App(
+    appid="bzzbzz",
+    name="BzzBzz",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="bzzbzz_app",
+    stack_size=2 * 1024,
+    fap_icon="bzzbzz.png",
+    fap_icon_assets="images",
+    fap_category="Games",
+    fap_author="Koray Er",
+    fap_weburl="https://github.com/ikiruneo/BzzBzz",
+    fap_version="0.3",
+    fap_description="Haptic rhythm-matching game",
+)

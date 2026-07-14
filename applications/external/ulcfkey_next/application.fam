@@ -1,0 +1,17 @@
+App(
+    appid="ulcfkey_next",
+    name="ULCFKey",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ulcfkey_app",
+    targets=["f7"],
+    stack_size=2 * 1024,
+    fap_icon="ulcfkey.png",
+    fap_icon_assets="images",
+    fap_icon_assets_symbol="ulcfkey",
+    fap_category="NFC",
+    fap_author="noproto",
+    fap_weburl="https://github.com/noproto",
+    #  fap_weburl="https://github.com/zc-public/breakme-resources/tree/main/flipper_apps",
+    fap_version=(1, 0),
+    fap_description="Crack counterfeit ULC cards. With tearing support.",
+)

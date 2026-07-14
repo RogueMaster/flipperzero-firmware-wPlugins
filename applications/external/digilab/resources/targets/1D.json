@@ -1,0 +1,58 @@
+{
+  "components": [
+    {
+      "partno": "ADXL355",
+      "desc": "3-axis accelerometer",
+      "type": 1,
+      "manufacturer": "Analog Dev.",
+      "date": "2017"
+    },
+    {
+      "partno": "LSM303",
+      "desc": "Accelerometer and magnetometer.",
+      "type": 22,
+      "manufacturer": "STMicro",
+      "date": "2009"
+    },
+    {
+      "partno": "MPU9250",
+      "desc": "9-axis IMU.",
+      "type": 15,
+      "manufacturer": "InvenSense",
+      "date": "2013"
+    },
+    {
+      "partno": "FXOS8700",
+      "desc": "Accelerometer and magnetometer.",
+      "type": 22,
+      "manufacturer": "NXP Semi",
+      "date": "2012"
+    },
+    {
+      "partno": "LSM9DS0",
+      "desc": "9-axis IMU.",
+      "type": 15,
+      "manufacturer": "STMicro",
+      "date": "2014"
+    },
+    {
+      "partno": "ADXL345",
+      "desc": "3-axis accelerometer.",
+      "type": 1,
+      "manufacturer": "Analog Dev.",
+      "date": "2007"
+    },
+    {
+      "partno": "MMA7455L",
+      "desc": "3-axis accelerometer",
+      "type": 1,
+      "manufacturer": "NXP Semi",
+      "date": "2009"
+    }
+  ],
+  "unique_types": [
+    1,
+    22,
+    15
+  ]
+}

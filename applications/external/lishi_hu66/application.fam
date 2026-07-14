@@ -1,0 +1,13 @@
+App(
+    appid="lishi",
+    name="Lishi",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="lishiapp",
+    fap_icon="icons/icon.png",
+    fap_icon_assets="icons",
+    fap_category="Tools",
+    fap_author="evillero",
+    fap_weburl="https://github.com/evillero/lishi_hu66",
+    fap_version="0.3",
+    fap_description="App for saving obtained vaules from lishi tool.",
+)

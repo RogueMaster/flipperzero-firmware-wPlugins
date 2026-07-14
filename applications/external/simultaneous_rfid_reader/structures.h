@@ -120,6 +120,12 @@ static const NotificationSequence uhf_sequence_blink_stop = {
     &message_blink_stop,
     NULL,
 };
+
+//Structure to track the state of a variable item in a list and if it is locked
+typedef struct VariableItemLock {
+    bool locked;
+} VariableItemLock;
+
 //The main UHFReaderApp Struct
 typedef struct {
     ViewDispatcher* ViewDispatcher;
@@ -150,6 +156,11 @@ typedef struct {
     VariableItem* SettingLockApPwdItem;
     VariableItem* SettingLockResultItem;
     VariableItem* WriteSettingApPwdItem;
+    VariableItem* ModuleSelectionItem;
+    VariableItem* SavingSelectionItem;
+    VariableItem* BaudSelection;
+    VariableItem* RegionSelection;
+    VariableItem* AntennaSelection;
     Widget* WidgetAbout;
 
     View* ViewRead;
@@ -288,6 +299,10 @@ typedef struct {
     uint8_t* UserBytes;
     uint16_t* PcBytes;
     uint16_t* CrcBytes;
+
+    // Add tracking for locked items
+    VariableItemLock* item_locks;
+    size_t num_items;
 } UHFReaderApp;
 
 //The model for the configure/read screen
@@ -308,6 +323,7 @@ typedef struct {
     FuriString* Crc;
     uint32_t ScrollOffset;
     char* ScrollingText;
+    bool IsScrolling;
 } UHFReaderConfigModel;
 
 //Model for the write screen

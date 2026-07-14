@@ -1,9 +1,10 @@
 #include "../nfc_playlist.h"
 
-void nfc_playlist_error_playlist_already_exists_menu_callback(
+static void nfc_playlist_error_playlist_already_exists_scene_menu_callback(
     GuiButtonType result,
     InputType type,
     void* context) {
+    furi_assert(context);
     NfcPlaylist* nfc_playlist = context;
     if(type == InputTypeShort) {
         view_dispatcher_send_custom_event(nfc_playlist->view_dispatcher, result);
@@ -11,10 +12,11 @@ void nfc_playlist_error_playlist_already_exists_menu_callback(
 }
 
 void nfc_playlist_error_playlist_already_exists_scene_on_enter(void* context) {
+    furi_assert(context);
     NfcPlaylist* nfc_playlist = context;
 
     widget_add_text_box_element(
-        nfc_playlist->widget,
+        nfc_playlist->views.widget,
         0,
         0,
         128,
@@ -24,16 +26,16 @@ void nfc_playlist_error_playlist_already_exists_scene_on_enter(void* context) {
         "\e#A playlist with that name already exists\e#",
         false);
     widget_add_button_element(
-        nfc_playlist->widget,
+        nfc_playlist->views.widget,
         GuiButtonTypeLeft,
         "Try Again",
-        nfc_playlist_error_playlist_already_exists_menu_callback,
+        nfc_playlist_error_playlist_already_exists_scene_menu_callback,
         nfc_playlist);
     widget_add_button_element(
-        nfc_playlist->widget,
+        nfc_playlist->views.widget,
         GuiButtonTypeRight,
         "Main Menu",
-        nfc_playlist_error_playlist_already_exists_menu_callback,
+        nfc_playlist_error_playlist_already_exists_scene_menu_callback,
         nfc_playlist);
 
     view_dispatcher_switch_to_view(nfc_playlist->view_dispatcher, NfcPlaylistView_Widget);
@@ -42,6 +44,7 @@ void nfc_playlist_error_playlist_already_exists_scene_on_enter(void* context) {
 bool nfc_playlist_error_playlist_already_exists_scene_on_event(
     void* context,
     SceneManagerEvent event) {
+    furi_assert(context);
     NfcPlaylist* nfc_playlist = context;
     bool consumed = false;
     if(event.type == SceneManagerEventTypeCustom) {
@@ -62,6 +65,7 @@ bool nfc_playlist_error_playlist_already_exists_scene_on_event(
 }
 
 void nfc_playlist_error_playlist_already_exists_scene_on_exit(void* context) {
+    furi_assert(context);
     NfcPlaylist* nfc_playlist = context;
-    widget_reset(nfc_playlist->widget);
+    widget_reset(nfc_playlist->views.widget);
 }

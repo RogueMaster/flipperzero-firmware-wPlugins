@@ -1,0 +1,17 @@
+/* Hacker Green — classic terminal look */
+body{font-family:'Courier New',monospace;background:#0a0a0a;color:#00ff41;margin:0;padding:16px}
+h1{color:#00ff41;text-shadow:0 0 8px #00ff41;margin:0 0 4px}
+.p{color:#00cc33;margin-bottom:12px;word-break:break-all}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:6px 8px;border-bottom:2px solid #00ff41;color:#00ff41}
+td{padding:5px 8px;border-bottom:1px solid #0f3d0f}
+a{color:#39ff14;text-decoration:none}
+.d{color:#00ff41;font-weight:bold}
+.s{color:#00cc33;text-align:right}
+.a{white-space:nowrap}
+.a a{margin-left:8px;color:#ff3333}
+.b{display:inline-block;padding:6px 14px;background:#00ff41;color:#0a0a0a;border:none;font-weight:bold;text-decoration:none;margin:2px}
+.bs{padding:3px 8px}
+.uf{margin:12px 0;padding:10px;background:#0f1a0f;border:1px solid #00ff41}
+.mf{margin:8px 0}
+.ft{margin-top:16px;color:#00cc33}

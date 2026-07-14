@@ -1,0 +1,29 @@
+{
+  "components": [
+    {
+      "partno": "ADXL355",
+      "desc": "3-axis accelerometer",
+      "type": 1,
+      "manufacturer": "Analog Dev.",
+      "date": "2017"
+    },
+    {
+      "partno": "MAG3110",
+      "desc": "3-axis magnetometer.",
+      "type": 22,
+      "manufacturer": "NXP Semi",
+      "date": "2011"
+    },
+    {
+      "partno": "MCP9808",
+      "desc": "Digital temperature sensor.",
+      "type": 22,
+      "manufacturer": "Microchip",
+      "date": "2013"
+    }
+  ],
+  "unique_types": [
+    1,
+    22
+  ]
+}

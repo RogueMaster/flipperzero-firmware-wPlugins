@@ -1,0 +1,52 @@
+{
+  "components": [
+    {
+      "partno": "PCF8575",
+      "desc": "16-bit I/O expander.",
+      "type": 16,
+      "manufacturer": "NXP Semi",
+      "date": "2004"
+    },
+    {
+      "partno": "MCP23008",
+      "desc": "8-bit I/O expander.",
+      "type": 16,
+      "manufacturer": "Microchip",
+      "date": "2008"
+    },
+    {
+      "partno": "VL53L1X",
+      "desc": "Time-of-flight sensor.",
+      "type": 22,
+      "manufacturer": "STMicro",
+      "date": "2018"
+    },
+    {
+      "partno": "BNO055",
+      "desc": "9-axis IMU",
+      "type": 15,
+      "manufacturer": "Bosch",
+      "date": "2015"
+    },
+    {
+      "partno": "BNO055",
+      "desc": "9-axis IMU",
+      "type": 15,
+      "manufacturer": "Bosch",
+      "date": "2015"
+    },
+    {
+      "partno": "EM7180",
+      "desc": "Sensor fusion coprocessor",
+      "type": 7,
+      "manufacturer": "Hillcrest Labs",
+      "date": "2015"
+    }
+  ],
+  "unique_types": [
+    16,
+    22,
+    15,
+    7
+  ]
+}

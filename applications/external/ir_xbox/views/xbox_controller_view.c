@@ -1,3 +1,4 @@
+#include "xbox_controller.h"
 #include "xbox_controller_view.h"
 
 #include <infrared_worker.h>
@@ -98,49 +99,32 @@ static void xbox_controller_view_draw_callback(Canvas* canvas, void* context) {
         canvas, model->back_pressed, 0, buttons_post + 19, "B", &I_Pin_back_arrow_10x8);
 }
 
-const NotificationSequence sequence_blink_purple_50 = {
-    &message_red_255,
-    &message_blue_255,
-    &message_delay_50,
-    NULL,
-};
-
-void send_xbox_ir(uint32_t command, NotificationApp* notifications) {
-    InfraredMessage* message = malloc(sizeof(InfraredMessage));
-    message->protocol = InfraredProtocolNECext;
-    message->address = 0xD880;
-    message->command = command;
-    message->repeat = false;
-    notification_message(notifications, &sequence_blink_purple_50);
-    infrared_send(message, 2);
-    free(message);
-}
-
 static void
     xbox_controller_view_process(XboxControllerView* xbox_controller_view, InputEvent* event) {
     with_view_model(
         xbox_controller_view->view,
         XboxControllerViewModel * model,
         {
-            if(event->type == InputTypePress) {
+            if(event->type == InputTypePress || event->type == InputTypeRepeat) {
+                bool repeat = event->type == InputTypeRepeat;
                 if(event->key == InputKeyUp) {
                     model->up_pressed = true;
-                    send_xbox_ir(0xE11E, xbox_controller_view->notifications);
+                    send_xbox_ir(0xE11E, xbox_controller_view->notifications, repeat);
                 } else if(event->key == InputKeyDown) {
                     model->down_pressed = true;
-                    send_xbox_ir(0xE01F, xbox_controller_view->notifications);
+                    send_xbox_ir(0xE01F, xbox_controller_view->notifications, repeat);
                 } else if(event->key == InputKeyLeft) {
                     model->left_pressed = true;
-                    send_xbox_ir(0xDF20, xbox_controller_view->notifications);
+                    send_xbox_ir(0xDF20, xbox_controller_view->notifications, repeat);
                 } else if(event->key == InputKeyRight) {
                     model->right_pressed = true;
-                    send_xbox_ir(0xDE21, xbox_controller_view->notifications);
+                    send_xbox_ir(0xDE21, xbox_controller_view->notifications, repeat);
                 } else if(event->key == InputKeyOk) {
                     model->ok_pressed = true;
-                    send_xbox_ir(0x9966, xbox_controller_view->notifications);
+                    send_xbox_ir(0x9966, xbox_controller_view->notifications, repeat);
                 } else if(event->key == InputKeyBack) {
                     model->back_pressed = true;
-                    send_xbox_ir(0x9A65, xbox_controller_view->notifications);
+                    send_xbox_ir(0x9A65, xbox_controller_view->notifications, repeat);
                 }
             } else if(event->type == InputTypeRelease) {
                 if(event->key == InputKeyUp) {
@@ -155,13 +139,6 @@ static void
                     model->ok_pressed = false;
                 } else if(event->key == InputKeyBack) {
                     model->back_pressed = false;
-                }
-            } else if(event->type == InputTypeShort) {
-                if(event->key == InputKeyBack) {
-                    // furi_hal_hid_kb_press(HID_KEYBOARD_DELETE);
-                    // furi_hal_hid_kb_release(HID_KEYBOARD_DELETE);
-                    // furi_hal_hid_consumer_key_press(HID_CONSUMER_AC_BACK);
-                    // furi_hal_hid_consumer_key_release(HID_CONSUMER_AC_BACK);
                 }
             }
         },

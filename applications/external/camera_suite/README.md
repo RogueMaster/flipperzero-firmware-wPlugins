@@ -282,11 +282,12 @@ This project is licensed under the BSD 3-Clause license. See the [LICENSE](LICEN
 
 Thanks to all the people and projects that made this possible! I hope you enjoy this project as much as I enjoyed working on it. If you have any questions, please let me know by opening an issue [here][issues-link].
 
-| Type                                                           | Info                                                                               |
-| :------------------------------------------------------------- | :--------------------------------------------------------------------------------- |
-| <img width="48" src=".github/ng-icons/email.svg" />            | webmaster@codytolene.com                                                           |
-| <img width="48" src=".github/simple-icons/buymeacoffee.svg" /> | https://www.buymeacoffee.com/codytolene                                            |
-| <img width="48" src=".github/images/bitcoin-btc-logo.svg" />   | [bc1qfx3lvspkj0q077u3gnrnxqkqwyvcku2nml86wmudy7yf2u8edmqq0a5vnt][btc-address-link] |
+| Type                                                           | Info                                                           |
+| :------------------------------------------------------------- | :------------------------------------------------------------- |
+| <img width="48" src=".github/ng-icons/email.svg" />            | webmaster@codytolene.com                                       |
+| <img width="48" src=".github/simple-icons/github.svg" />       | https://github.com/sponsors/CodyTolene                         |
+| <img width="48" src=".github/simple-icons/buymeacoffee.svg" /> | https://www.buymeacoffee.com/codytolene                        |
+| <img width="48" src=".github/images/bitcoin-btc-logo.svg" />   | bc1qfx3lvspkj0q077u3gnrnxqkqwyvcku2nml86wmudy7yf2u8edmqq0a5vnt |
 
 Fin. Happy programming friend!
 
@@ -295,7 +296,6 @@ Cody Tolene
 <!-- LINKS -->
 
 [arduino-ide]: https://www.arduino.cc/en/software
-[btc-address-link]: https://explorer.btc.com/btc/address/bc1qfx3lvspkj0q077u3gnrnxqkqwyvcku2nml86wmudy7yf2u8edmqq0a5vnt
 [discord-squachtopia]: https://discord.gg/squachtopia
 [flipper-zero-apps]: https://docs.flipper.net/apps
 [flipper-zero-fap-boilerplate]: https://github.com/leedave/flipper-zero-fap-boilerplate
@@ -307,7 +307,7 @@ Cody Tolene
 [github-profile-roguemaster]: https://github.com/RogueMaster
 [github-profile-sbrin]: https://github.com/sbrin
 [github-profile-talkingsasquach]: https://github.com/skizzophrenic
-[github-profile-willyjl]: https://github.com/Willy-JL
+[github-profile-willyjl]: https://github.com/WillyJL
 [github-profile-z4urce]: https://github.com/Z4urce
 [issues-link]: https://github.com/CodyTolene/Flipper-Zero-Camera-Suite/issues
 [lopaka]: https://github.com/sbrin/lopaka

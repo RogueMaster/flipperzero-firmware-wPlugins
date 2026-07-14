@@ -1,0 +1,15 @@
+App(
+    appid="click_recorder",
+    name="Click Recorder",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="mouse_click_recorder_app",
+    stack_size=4 * 1024,
+    fap_icon="images/mouse_10x10.png",
+    fap_icon_assets="images",
+    fap_libs=["ble_profile"],
+    fap_category="USB",
+    fap_author="0x78f1935",
+    fap_weburl="https://github.com/0x78f1935/Click-Recorder",
+    fap_version="1.2",
+    fap_description="Record, shuffle, spam mouse clicks or use as a full mouse over USB or BLE HID",
+)

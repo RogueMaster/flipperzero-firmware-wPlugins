@@ -1,3 +1,5 @@
+## 1.5
+  - Updated for latest SDK API changes
 ## 1.4
  - Removed call to legacy SDK API
 ## 1.3

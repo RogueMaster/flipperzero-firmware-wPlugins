@@ -1,0 +1,42 @@
+{
+  "components": [
+    {
+      "partno": "ISL29125",
+      "desc": "RGB light sensor",
+      "type": 22,
+      "manufacturer": "Renesas",
+      "date": "2014"
+    },
+    {
+      "partno": "SHT31",
+      "desc": "Humidity and temperature sensor.",
+      "type": 22,
+      "manufacturer": "Sensirion",
+      "date": "2015"
+    },
+    {
+      "partno": "SHT30",
+      "desc": "Temperature and humidity sensor.",
+      "type": 22,
+      "manufacturer": "Sensirion",
+      "date": "2014"
+    },
+    {
+      "partno": "ISL29125",
+      "desc": "RGB light sensor",
+      "type": 22,
+      "manufacturer": "Renesas",
+      "date": "2014"
+    },
+    {
+      "partno": "INA260",
+      "desc": "Current and power sensor",
+      "type": 22,
+      "manufacturer": "Texas Inst.",
+      "date": "2018"
+    }
+  ],
+  "unique_types": [
+    22
+  ]
+}

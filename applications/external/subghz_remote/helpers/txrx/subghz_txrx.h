@@ -184,6 +184,29 @@ void subghz_txrx_hopper_unpause(SubGhzTxRx* instance);
 void subghz_txrx_hopper_pause(SubGhzTxRx* instance);
 
 /**
+ * Get button
+ *
+ * @param instance Pointer to a SubGhzTxRx
+ * @return Button id
+ */
+uint8_t subghz_txrx_custom_button_get(SubGhzTxRx* instance);
+
+/**
+ * Set button
+ *
+ * @param instance Pointer to a SubGhzTxRx
+ * @param button Button id
+ */
+void subghz_txrx_custom_button_set(SubGhzTxRx* instance, uint8_t button);
+
+/**
+ * Reset button
+ *
+ * @param instance Pointer to a SubGhzTxRx
+ */
+void subghz_txrx_custom_button_reset(SubGhzTxRx* instance);
+
+/**
  * Speaker on
  * 
  * @param instance Pointer to a SubGhzTxRx 

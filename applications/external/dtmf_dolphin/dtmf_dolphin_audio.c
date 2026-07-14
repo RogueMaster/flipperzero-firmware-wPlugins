@@ -2,6 +2,7 @@
 
 DTMFDolphinAudio* current_player;
 
+// Interrupt handler. Read DMA flag and put correspondint event to queue.
 static void dtmf_dolphin_audio_dma_isr(void* ctx) {
     FuriMessageQueue* event_queue = ctx;
 
@@ -216,8 +217,10 @@ bool dtmf_dolphin_audio_play_tones(
 
     dtmf_dolphin_dma_init((uint32_t)current_player->sample_buffer, current_player->buffer_length);
 
+    // Set interrupt handler.
     furi_hal_interrupt_set_isr(
         FuriHalInterruptIdDma1Ch1, dtmf_dolphin_audio_dma_isr, current_player->queue);
+
     if(furi_hal_speaker_acquire(1000)) {
         dtmf_dolphin_speaker_init();
         dtmf_dolphin_dma_start();
@@ -244,6 +247,10 @@ bool dtmf_dolphin_audio_stop_tones() {
     dtmf_dolphin_dma_stop();
     furi_hal_speaker_release();
 
+    // Reset GPIO pin and bus states
+    dtmf_dolphin_gpio_deinit();
+
+    //Release interrrupt
     furi_hal_interrupt_set_isr(FuriHalInterruptIdDma1Ch1, NULL, NULL);
 
     dtmf_dolphin_audio_free(current_player);

@@ -1,0 +1,20 @@
+App(
+    appid="flipper_printer",
+    name="Flipper Printer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipper_printer_main",
+    stack_size=2 * 1024,
+    sources=[
+        "flipper_printer.c",
+        "printer.c",
+        "coin_flip.c",
+        "menu.c",
+        "printer_setup.c",
+    ],
+    fap_icon="flipper_printer_icon.png",
+    fap_category="Tools",
+    fap_author="alxcrt",
+    fap_weburl="https://github.com/alxcrt/flipper-zero-thermal-printer",
+    fap_version="1.0",
+    fap_description="Thermal printer app with coin flip game and text printing",
+)

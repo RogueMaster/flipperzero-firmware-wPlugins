@@ -1,0 +1,13 @@
+App(
+    appid="ghostbook",
+    name="GhostBook",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ghostbook_app",
+    stack_size=8 * 1024,
+    fap_icon="images/icon.png",
+    fap_category="NFC",
+    fap_author="Digi",
+    fap_weburl="https://github.com/digitard/ghostbook",
+    fap_version=(0, 6),
+    fap_description="Encrypted tap-to-share contacts with passcode lock",
+)

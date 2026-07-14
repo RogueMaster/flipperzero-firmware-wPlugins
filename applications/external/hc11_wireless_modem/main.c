@@ -1,6 +1,6 @@
 /***
  * HC-11 wireless modem emulator for the Flipper Zero
- * Version: 0.1
+ * Version: 1.2
  *
  * Main app
 ***/
@@ -31,7 +31,6 @@ static App* hc11_modem_app_init() {
     app->view_dispatcher = view_dispatcher_alloc();
 
     /* Configure the view dispatcher */
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 

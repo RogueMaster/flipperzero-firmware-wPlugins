@@ -9,7 +9,7 @@ void esp_flasher_scene_about_widget_callback(GuiButtonType result, InputType typ
 
 #define ESP_FLASHER_APP_DESCRIPTION                     \
     "\e#Information\nVersion: " ESP_FLASHER_APP_VERSION \
-    "\nDeveloped by: 0xchocolate\n(@cococode on discord) using espressif's esp-serial-flasher library\nGithub: https://github.com/0xchocolate/flipperzero-esp-flasher\n\n\e#Description\nApp to flash ESP chips from\nthe flipper (over UART) using\nbin files on the sd card.\nReset the chip into bootloader\nmode before flashing.\n\n Supported targets:\n- ESP32\n- ESP8266\n- ESP32-S2\n- ESP32-S3\n- ESP32-C3\n- ESP32-C2\n- ESP32-H2"
+    "\nDeveloped by: 0xchocolate\n(@cococode on discord) using espressif's esp-serial-flasher library\nGithub: https://github.com/0xchocolate/flipperzero-esp-flasher\n\n\e#Description\nApp to flash ESP chips from\nthe flipper (over UART) using\nbin files on the sd card.\nReset the chip into bootloader\nmode before flashing.\n\n Supported targets:\n- ESP32\n- ESP8266\n- ESP32-S2\n- ESP32-S3\n- ESP32-C2\n- ESP32-C3\n- ESP32-C5\n- ESP32-H2"
 
 void esp_flasher_scene_about_on_enter(void* context) {
     EspFlasherApp* app = context;

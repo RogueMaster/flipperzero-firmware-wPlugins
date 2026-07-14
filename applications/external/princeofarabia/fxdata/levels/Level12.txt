@@ -1,0 +1,150 @@
+int8_t Level12_FG[] = {
+    include "../levels/Level12_FG_convert.csv"
+};
+
+int8_t Level12_BG[] = {
+    include "../levels/Level12_BG_convert.csv"
+};
+
+uint8_t level12_Data[] = {
+    // Prince
+    50,                         // Prince starting x pos
+    87,                         // Prince starting y pos (25, 56, 87)
+    2,                          // Prince starting direction, 1 Left and 2 Right
+    3,                          // Prince starting stance, 3 Crouch_3_End
+    // Level
+    80,                         // Width
+    21,                         // Height
+    50,                         // Level x starting position
+    18,                         // Level y starting position
+    // Enemy 1      
+    3,                          // Type 0 = Guard, 1 = Skeleton, 2 = Mirror, 3 MirrorAttackingL12, 4 NirrorL12          
+    50,                         // Enemy starting x tile
+    3,                          // Enemy starting y tile
+    82,                         // Enemy starting x pos (left entry)
+    22,                         // Enemy starting x pos (right entry)
+    18,                         // Enemy starting x pos (left extent)
+    86,                         // Enemy starting x pos (right extent)
+    25,                         // Enemy starting y pos (25, 56, 87)
+    4,                          // Enemy starting health
+    0,                          // Status 0 Alive, 1 Dead, 2 Dormant
+    // Enemy 2      
+    0,                          // Type 0 = Guard, 1 = Skeleton, 2 = Mirror          
+    10,                         // Enemy starting x tile
+    0,                          // Enemy starting y tile
+    110,                        // Enemy starting x pos pos (left entry)
+    42,                         // Enemy starting x pos (right entry)
+    38,                         // Enemy starting x pos (left extent)
+    114,                        // Enemy starting x pos (right extent)
+    25,                         // Enemy starting y pos (25, 56, 87)
+    6,                          // Enemy starting health
+    0,                          // Status 0 Alive, 1 Dead, 2 Dormant
+
+    0,200,0,0,0,0,0,0,0,1,
+    0,200,0,0,0,0,0,0,0,1,
+    0,200,0,0,0,0,0,0,0,1,
+
+    // End
+    255,
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+uint8_t Level12_Items[] = {
+    26,   4,   1,   1,   3,   0,   0,   0,           // Exit Gate, left position for open, right position, close button     
+    28,  54,  20,   0,   0,   0,   0,   0,           // Entry Gate   
+    17,  52,   6,   0,  64,  64, 255,   0,           // Gate #1
+     2,  51,   5,   1,   0,   0,   0,   0,           // Floor Button 1
+     2,  49,   6,   1,   0,   0,   0,   0,           // Floor Button 1
+     0,  36,   3,   0,   0,   0,   0,   0,           // Appearing Floor   
+     0,  37,   3,   0,   0,   0,   0,   0,           // Appearing Floor   
+     0,  38,   3,   0,   0,   0,   0,   0,           // Appearing Floor   
+     0,  39,   3,   0,   0,   0,   0,   0,           // Appearing Floor   
+     0,  40,   3,   0,   0,   0,   0,   0,           // Appearing Floor   
+     0,  41,   3,   0,   0,   0,   0,   0,           // Appearing Floor   
+     0,  42,   3,   0,   0,   0,   0,   0,           // Appearing Floor   
+     0,  43,   3,   0,   0,   0,   0,   0,           // Appearing Floor   
+     0,  44,   3,   0,   0,   0,   0,   0,           // Appearing Floor   
+     0,  45,   3,   0,   0,   0,   0,   0,           // Appearing Floor   
+     0,  46,   3,   0,   0,   0,   0,   0,           // Appearing Floor   
+     0,  47,   3,   0,   0,   0,   0,   0,           // Appearing Floor   
+    15,  77,  13,   0,   0,   0,   0,   0,           // Skeleton  
+     1,  59,  15, 148,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  60,  15, 148,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  61,  15,  55,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  60,   9, 148,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  61,   9, 148,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  62,   4,  55,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  63,   4,  24,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  64,   4,  24,  48,   0,   0,   0,           // CollapsingTile (dist to fall)     
+     1,  56,  13, 210,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  62,  13, 210,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  65,  13, 210,  48,   0,   0,   0,           // CollapsingTile (dist to fall)    
+     1,  56,   9, 254,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  59,   9, 254,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  60,   9, 254,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  61,   9, 254,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  62,   9, 254,  48,   0,   0,   0,           // CollapsingTile (dist to fall)    
+     1,  59,   6, 254,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  60,   6, 254,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  61,   6, 254,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  62,   6, 254,  48,   0,   0,   0,           // CollapsingTile (dist to fall)                                    
+     1,  63,   6, 254,  48,   0,   0,   0,           // CollapsingTile (dist to fall)    
+     1,  72,  11, 55,  48,   0,   0,   0,            // CollapsingTile (dist to fall)                                    
+     1,  12,   0, 117, 48,   0,   0,   0,            // CollapsingTile (dist to fall)                                    
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+}

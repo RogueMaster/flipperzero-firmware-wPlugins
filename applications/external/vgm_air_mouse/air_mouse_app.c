@@ -206,7 +206,6 @@ static AirMouseApp* air_mouse_alloc(void) {
 
     app->gui = furi_record_open(RECORD_GUI);
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     app->air_mouse_view = air_mouse_view_alloc(air_mouse_hid_deinit, app);

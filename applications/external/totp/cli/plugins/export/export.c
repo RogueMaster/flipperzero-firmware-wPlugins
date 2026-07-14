@@ -49,10 +49,10 @@ static void print_uri_component(const char* data, size_t length) {
     }
 }
 
-static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
+static void handle(PluginState* plugin_state, FuriString* args, PipeSide* pipe) {
     UNUSED(args);
     UNUSED(plugin_state);
-    if(!totp_cli_ensure_authenticated(plugin_state, cli)) {
+    if(!totp_cli_ensure_authenticated(plugin_state, pipe)) {
         return;
     }
 
@@ -78,7 +78,7 @@ static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
         return;
     }
 
-    if(!totp_cli_ensure_authenticated(plugin_state, cli)) {
+    if(!totp_cli_ensure_authenticated(plugin_state, pipe)) {
         return;
     }
 
@@ -90,7 +90,7 @@ static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
 
     size_t original_index = totp_token_info_iterator_get_current_token_index(iterator_context);
 
-    cli_nl(cli);
+    TOTP_CLI_NL();
     TOTP_CLI_PRINTF("# --- EXPORT LIST BEGIN ---\r\n");
 
     for(size_t i = 0; i < total_count; i++) {
@@ -106,7 +106,9 @@ static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
             token_info->token_length,
             &plugin_state->crypto_settings,
             &key_length);
-        print_as_base32(key, key_length);
+        size_t plain_key_length =
+            token_info->token_plain_length > 0 ? token_info->token_plain_length : key_length;
+        print_as_base32(key, plain_key_length);
         memset_s(key, key_length, 0, key_length);
         free(key);
         TOTP_CLI_PRINTF("&algorithm=%s", token_info_get_algo_as_cstr(token_info));
@@ -116,7 +118,7 @@ static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
         } else {
             TOTP_CLI_PRINTF("&period=%" PRIu8, token_info->duration);
         }
-        cli_nl(cli);
+        TOTP_CLI_NL();
     }
 
     TOTP_CLI_PRINTF("# --- EXPORT LIST END ---\r\n\r\n");

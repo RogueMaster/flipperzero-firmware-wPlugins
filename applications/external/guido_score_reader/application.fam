@@ -1,0 +1,17 @@
+App(
+    appid="guido",
+    name="Guido Music Score Reader",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="guido_main",
+    sources=["guido.c"],
+    stack_size=2 * 1024,
+    fap_icon="images/icon_10x10.png",
+    fap_icon_assets="images",
+    fap_file_assets="data",
+    fap_icon_assets_symbol="guido",
+    fap_category="Media",
+    fap_author="F Greil",
+    fap_weburl="https://github.com/fgreil/mitzi-guido",
+    fap_version=(0, 1, 0),
+    fap_description="A reader for Guido music score files",
+)

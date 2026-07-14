@@ -1,0 +1,14 @@
+0,Ivry - Villejuif
+3,Porte d'Ivry
+4,Pierre et Marie Curie
+5,Mairie d'Ivry
+6,Le Kremlin-Bicetre
+7,Villejuif Leo Lagrange
+8,Villejuif Paul Vaillant-Couturier
+9,Villejuif - Louis Aragon
+10,Hopital Bicetre
+11,Villejuif - Gustave Roussy
+12,L'Hay-les-Roses
+13,Chevilly-Larue  (Marche International )
+14,Thiais - Orly  (Pont de Rungis )
+15,Aeroport d'Orly

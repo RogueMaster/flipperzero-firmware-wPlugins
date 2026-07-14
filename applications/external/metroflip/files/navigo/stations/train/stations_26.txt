@@ -1,0 +1,12 @@
+5,1,Val de Fontenay
+6,1,Neuilly-Plaisance
+6,2,Bry-sur-Marne
+7,1,Noisy-le-Grand - Mont d'Est
+8,1,Noisy - Champs
+10,1,Noisiel
+10,2,Lognes
+10,3,Torcy
+11,1,Bussy-Saint-Georges
+12,1,Val d'Europe
+13,1,Marne-la-Vallee Chessy
+13,2,Marne-la-Vallee Chessy

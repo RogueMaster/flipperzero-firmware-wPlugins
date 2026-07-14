@@ -1,0 +1,6 @@
+0xD6,0x01,Keikyu Airport,Keikyu Kamata,11,0
+0xD6,0x02,Keikyu Airport,Kojiya,12,0
+0xD6,0x03,Keikyu Airport,Otorii,13,0
+0xD6,0x04,Keikyu Airport,Anamori-Inari,14,0
+0xD6,0x05,Keikyu Airport,Tenkubashi,15,0
+0xD6,0x06,Keikyu Airport,Haneda-Airport,16,0

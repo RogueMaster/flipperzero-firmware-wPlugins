@@ -1,13 +1,14 @@
 #ifndef KEY_FORMATS_H
 #define KEY_FORMATS_H
 
-#define FORMAT_NUM 2
+#define FORMAT_NUM 26
 
 typedef struct {
     char* manufacturer;
     char* format_name;
     char* format_link;
-
+    int sides;
+    int stop;
     double first_pin_inch;
     double last_pin_inch;
     double pin_increment_inch;

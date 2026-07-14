@@ -1,0 +1,87 @@
+{
+  "components": [
+    {
+      "partno": "MCP9800",
+      "desc": "Temperature sensor",
+      "type": 23,
+      "manufacturer": "Microchip",
+      "date": "2007"
+    },
+    {
+      "partno": "VEML6030",
+      "desc": "Ambient light sensor",
+      "type": 22,
+      "manufacturer": "Vishay",
+      "date": "2016"
+    },
+    {
+      "partno": "ADS1015",
+      "desc": "12-bit ADC",
+      "type": 2,
+      "manufacturer": "Texas Inst.",
+      "date": "2013"
+    },
+    {
+      "partno": "PCT2075",
+      "desc": "Temperature sensor",
+      "type": 23,
+      "manufacturer": "NXP Semi",
+      "date": "2015"
+    },
+    {
+      "partno": "LM75B",
+      "desc": "Temperature sensor",
+      "type": 23,
+      "manufacturer": "NXP Semi",
+      "date": "2010"
+    },
+    {
+      "partno": "TMP102",
+      "desc": "Temperature sensor.",
+      "type": 22,
+      "manufacturer": "Texas Inst.",
+      "date": "2008"
+    },
+    {
+      "partno": "ADS1115",
+      "desc": "16-bit ADC.",
+      "type": 2,
+      "manufacturer": "Texas Inst.",
+      "date": "2012"
+    },
+    {
+      "partno": "MCP9808",
+      "desc": "Digital temperature sensor.",
+      "type": 22,
+      "manufacturer": "Microchip",
+      "date": "2013"
+    },
+    {
+      "partno": "TMP117",
+      "desc": "Temperature sensor.",
+      "type": 22,
+      "manufacturer": "Texas Inst.",
+      "date": "2018"
+    },
+    {
+      "partno": "PN532",
+      "desc": "NFC/RFID reader.",
+      "type": 20,
+      "manufacturer": "NXP Semi",
+      "date": "2011"
+    },
+    {
+      "partno": "TCN75A",
+      "desc": "Temperature sensor",
+      "type": 22,
+      "manufacturer": "Microchip",
+      "date": "2010"
+    }
+  ],
+  "unique_types": [
+    23,
+    22,
+    2,
+    20
+  ]
+}

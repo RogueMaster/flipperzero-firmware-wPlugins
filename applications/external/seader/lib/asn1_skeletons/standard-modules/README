@@ -1,0 +1,2 @@
+All *.asn1 files in this directory will be automatically
+picked up by the asn1c during compilation of any user specified module.

@@ -27,10 +27,13 @@
 #define MAXAST                 32 /* Max asteroids on the screen. */
 #define MAXPOWERUPS            3 /* Max powerups allowed on screen */
 #define POWERUPSTTL            400 /* Max powerup time to live, in ticks. */
+#define MAXDRONES              1 /* Max drone buddies allowed */
+#define DRONE_TTL              300 /* Drone time to live, in ticks. */
+#define DRONE_FIRE_RATE        20 /* Drone fire rate in ticks. */
 #define SHIP_HIT_ANIMATION_LEN 15
-// Tick runs in thread, cant use APP_DATA_PATH()
-#define SAVING_DIRECTORY       EXT_PATH("apps_data/asteroids")
+#define SAVING_DIRECTORY       "/ext/apps_data/asteroids"
 #define SAVING_FILENAME        SAVING_DIRECTORY "/game_asteroids.save"
+#define SPLASH_SCREEN_DURATION 3000 /* Splash screen duration in milliseconds */
 #ifndef PI
 #define PI 3.14159265358979f
 #endif
@@ -42,6 +45,7 @@ typedef enum PowerUpType {
     PowerUpTypeFirePower, // Burst Fire power
     // PowerUpTypeRadialFire, // Radial Fire power
     PowerUpTypeNuke, // Nuke power
+    PowerUpTypeDroneBuddy, // Drone assistant
     // PowerUpTypeClone, // Clone ship
     // PowerUpTypeAssist, // Secondary ship
     Number_of_PowerUps // Used to count the number of powerups
@@ -80,6 +84,13 @@ typedef struct Asteroid {
     uint8_t shape_seed; /* Seed to give random shape. */
 } Asteroid;
 
+typedef struct Drone {
+    float x, y, vx, vy, rot; /* Fields like ship. */
+    uint32_t ttl; /* Time to live, in ticks. */
+    uint32_t last_fire_tick; /* Last time drone fired. */
+    bool active; /* Is the drone active? */
+} Drone;
+
 // @todo AsteroidsApp
 typedef struct AsteroidsApp {
     /* GUI */
@@ -92,6 +103,8 @@ typedef struct AsteroidsApp {
     int running; /* Once false exists the app. */
     bool gameover; /* Gameover status. */
     bool paused; /* Game paused status. */
+    bool splash_screen; /* Splash screen status. */
+    uint32_t splash_start_time; /* When splash screen started. */
     uint32_t ticks; /* Game ticks. Increments at each refresh. */
     uint32_t score; /* Game score. */
     uint32_t highscore; /* Highscore. Shown on Game Over Screen */
@@ -116,6 +129,10 @@ typedef struct AsteroidsApp {
     /* Asteroids state. */
     Asteroid asteroids[MAXAST]; /* Each asteroid state. */
     int asteroids_num; /* Active asteroids. */
+
+    /* Drone state. */
+    Drone drones[MAXDRONES]; /* Each drone state. */
+    int drones_num; /* Active drones. */
 
     uint32_t pressed[InputKeyMAX]; /* pressed[id] is true if pressed.
                                       Each array item contains the time
@@ -228,6 +245,7 @@ bool load_game(AsteroidsApp* app);
 void save_game(AsteroidsApp* app);
 void restart_game_after_gameover(AsteroidsApp* app);
 uint32_t key_pressed_time(AsteroidsApp* app, InputKey key);
+void spawn_drone_buddy(AsteroidsApp* app);
 
 /* ============================ 2D drawing ================================== */
 
@@ -245,6 +263,9 @@ typedef struct Poly {
 Poly ShipPoly = {{-3, 0, 3}, {-3, 6, -3}, 3};
 
 Poly ShipFirePoly = {{-1.5, 0, 1.5}, {-3, -6, -3}, 3};
+
+/* Smaller drone polygon - triangular shape */
+Poly DronePoly = {{-2, 0, 2}, {-2, 4, -2}, 3};
 
 /* Rotate the point of the poligon 'poly' and store the new rotated
  * polygon in 'rot'. The polygon is rotated by an angle 'a', with
@@ -273,8 +294,15 @@ void lfsr_next(unsigned char* prev) {
 
 /* ================================ Render ================================ */
 
+/* Safely clamp coordinate to valid canvas bounds */
+static inline int clamp_coordinate(float coord, int min_val, int max_val) {
+    if(coord < min_val) return min_val;
+    if(coord > max_val) return max_val;
+    return (int)coord;
+}
+
 /* Render the polygon 'poly' at x,y, rotated by the specified angle. */
-void draw_poly(Canvas* const canvas, Poly* poly, uint8_t x, uint8_t y, float a) {
+void draw_poly(Canvas* const canvas, Poly* poly, int x, int y, float a) {
     Poly rot;
     rotate_poly(&rot, poly, a);
     canvas_set_color(canvas, ColorBlack);
@@ -282,18 +310,44 @@ void draw_poly(Canvas* const canvas, Poly* poly, uint8_t x, uint8_t y, float a) 
         uint32_t a = j;
         uint32_t b = j + 1;
         if(b == rot.points) b = 0;
-        canvas_draw_line(canvas, x + rot.x[a], y + rot.y[a], x + rot.x[b], y + rot.y[b]);
+
+        /* Calculate final coordinates with bounds checking */
+        int x1 = clamp_coordinate(x + rot.x[a], 0, SCREEN_XRES - 1);
+        int y1 = clamp_coordinate(y + rot.y[a], 0, SCREEN_YRES - 1);
+        int x2 = clamp_coordinate(x + rot.x[b], 0, SCREEN_XRES - 1);
+        int y2 = clamp_coordinate(y + rot.y[b], 0, SCREEN_YRES - 1);
+
+        /* Only draw if coordinates are reasonable (prevent extreme off-screen rendering) */
+        if(abs(x - SCREEN_XRES / 2) < SCREEN_XRES * 2 &&
+           abs(y - SCREEN_YRES / 2) < SCREEN_YRES * 2) {
+            canvas_draw_line(canvas, x1, y1, x2, y2);
+        }
     }
+}
+
+/* Validate that coordinates are safe for drawing */
+static inline bool is_coordinate_safe(float x, float y) {
+    return (x >= -10 && x <= SCREEN_XRES + 10 && y >= -10 && y <= SCREEN_YRES + 10);
 }
 
 /* A bullet is just a + pixels pattern. A single pixel is not
  * visible enough. */
 void draw_bullet(Canvas* const canvas, Bullet* b) {
-    canvas_draw_dot(canvas, b->x - 1, b->y);
-    canvas_draw_dot(canvas, b->x + 1, b->y);
-    canvas_draw_dot(canvas, b->x, b->y);
-    canvas_draw_dot(canvas, b->x, b->y - 1);
-    canvas_draw_dot(canvas, b->x, b->y + 1);
+    /* Safety check to prevent drawing at invalid coordinates */
+    if(!is_coordinate_safe(b->x, b->y)) {
+        FURI_LOG_W(TAG, "Unsafe bullet coordinates: x=%.2f, y=%.2f", (double)b->x, (double)b->y);
+        return;
+    }
+
+    int x = clamp_coordinate(b->x, 0, SCREEN_XRES - 1);
+    int y = clamp_coordinate(b->y, 0, SCREEN_YRES - 1);
+
+    /* Draw bullet with bounds checking for each dot */
+    if(x > 0) canvas_draw_dot(canvas, x - 1, y);
+    if(x < SCREEN_XRES - 1) canvas_draw_dot(canvas, x + 1, y);
+    canvas_draw_dot(canvas, x, y);
+    if(y > 0) canvas_draw_dot(canvas, x, y - 1);
+    if(y < SCREEN_YRES - 1) canvas_draw_dot(canvas, x, y + 1);
 }
 
 /* Draw an asteroid. The asteroid shapes is computed on the fly and
@@ -302,6 +356,19 @@ void draw_bullet(Canvas* const canvas, Bullet* b) {
  * to the asteroid size, perturbate according to the asteroid shape
  * seed, and finally draw it rotated of the right amount. */
 void draw_asteroid(Canvas* const canvas, Asteroid* ast) {
+    /* Safety check for asteroid coordinates */
+    if(!is_coordinate_safe(ast->x, ast->y)) {
+        FURI_LOG_W(
+            TAG, "Unsafe asteroid coordinates: x=%.2f, y=%.2f", (double)ast->x, (double)ast->y);
+        return;
+    }
+
+    /* Validate asteroid size to prevent extreme shapes */
+    if(ast->size < 1 || ast->size > 50) {
+        FURI_LOG_W(TAG, "Invalid asteroid size: %.2f", (double)ast->size);
+        return;
+    }
+
     Poly ap;
 
     /* Start with what is kinda of a circle. Note that this could be
@@ -433,6 +500,10 @@ void draw_powerUps(Canvas* const canvas, PowerUp* const p) {
         // canvas_draw_str(canvas, p->x, p->y, "N");
         canvas_draw_icon(canvas, p->x, p->y, &I_nuke_10x10);
         break;
+    case PowerUpTypeDroneBuddy:
+        // Draw box with letter D inside for drone buddy
+        canvas_draw_str(canvas, p->x, p->y, "D");
+        break;
     // case PowerUpTypeRadialFire:
     //     // Draw box with letter R inside
     //     canvas_draw_str(canvas, p->x, p->y, "R");
@@ -457,14 +528,78 @@ void draw_powerUps(Canvas* const canvas, PowerUp* const p) {
 void draw_shield(Canvas* const canvas, AsteroidsApp* app) {
     if(isPowerUpActive(app, PowerUpTypeShield) == false) return;
 
+    /* Safety check for shield coordinates */
+    if(!is_coordinate_safe(app->ship.x, app->ship.y)) {
+        return; /* Skip drawing shield if ship coordinates are invalid */
+    }
+
     canvas_set_color(canvas, ColorXOR);
-    // canvas_draw_disc(canvas, app->ship.x, app->ship.y, 4);
-    canvas_draw_circle(canvas, app->ship.x, app->ship.y, 8);
+    int x = clamp_coordinate(app->ship.x, 8, SCREEN_XRES - 8);
+    int y = clamp_coordinate(app->ship.y, 8, SCREEN_YRES - 8);
+    // canvas_draw_disc(canvas, x, y, 4);
+    canvas_draw_circle(canvas, x, y, 8);
+}
+
+/* Draw a drone buddy */
+void draw_drone(Canvas* const canvas, Drone* drone) {
+    /* Safety check for drone coordinates */
+    if(!is_coordinate_safe(drone->x, drone->y)) {
+        FURI_LOG_W(
+            TAG, "Unsafe drone coordinates: x=%.2f, y=%.2f", (double)drone->x, (double)drone->y);
+        return;
+    }
+
+    /* Draw drone with a different color/style to distinguish from main ship */
+    canvas_set_color(canvas, ColorBlack);
+    draw_poly(canvas, &DronePoly, drone->x, drone->y, drone->rot);
+
+    /* Draw a small dot in the center to make it more visible */
+    int x = clamp_coordinate(drone->x, 0, SCREEN_XRES - 1);
+    int y = clamp_coordinate(drone->y, 0, SCREEN_YRES - 1);
+    canvas_draw_dot(canvas, x, y);
+}
+
+/* Render the splash screen with credits */
+void render_splash_screen(Canvas* const canvas, AsteroidsApp* app) {
+    UNUSED(app);
+
+    /* Clear screen */
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_box(canvas, 0, 0, SCREEN_XRES - 1, SCREEN_YRES - 1);
+
+    /* Set black color for text */
+    canvas_set_color(canvas, ColorBlack);
+
+    /* Draw main title */
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, SCREEN_XRES / 2, 12, AlignCenter, AlignCenter, "ASTEROIDS++");
+
+    /* Draw credits section */
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(
+        canvas, SCREEN_XRES / 2, 26, AlignCenter, AlignCenter, "Designed and Developed by");
+
+    /* Draw developer credits */
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(
+        canvas, SCREEN_XRES / 2, 38, AlignCenter, AlignCenter, "SimplyMinimal");
+    canvas_draw_str_aligned(canvas, SCREEN_XRES / 2, 48, AlignCenter, AlignCenter, "& AntiRez");
+
+    /* Draw skip instruction */
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(
+        canvas, SCREEN_XRES / 2, 60, AlignCenter, AlignCenter, "Press any key to skip");
 }
 
 /* Render the current game screen. */
 void render_callback(Canvas* const canvas, void* ctx) {
     AsteroidsApp* app = ctx;
+
+    /* Handle splash screen rendering */
+    if(app->splash_screen) {
+        render_splash_screen(canvas, app);
+        return;
+    }
 
     /* Clear screen. */
     canvas_set_color(canvas, ColorWhite);
@@ -481,6 +616,20 @@ void render_callback(Canvas* const canvas, void* ctx) {
     draw_left_lives(canvas, app);
 
     /* Draw ship, asteroids, bullets. */
+    /* Safety check for ship coordinates before rendering */
+    if(!is_coordinate_safe(app->ship.x, app->ship.y)) {
+        FURI_LOG_E(
+            TAG,
+            "Ship coordinate corruption detected: x=%.2f, y=%.2f",
+            (double)app->ship.x,
+            (double)app->ship.y);
+        /* Emergency reset ship to center */
+        app->ship.x = SCREEN_XRES / 2;
+        app->ship.y = SCREEN_YRES / 2;
+        app->ship.vx = 0;
+        app->ship.vy = 0;
+    }
+
     draw_poly(canvas, &ShipPoly, app->ship.x, app->ship.y, app->ship.rot);
 
     /* Draw shield if active. */
@@ -496,6 +645,13 @@ void render_callback(Canvas* const canvas, void* ctx) {
 
     for(int j = 0; j < app->asteroids_num; j++)
         draw_asteroid(canvas, &app->asteroids[j]);
+
+    /* Draw active drones */
+    for(int j = 0; j < app->drones_num; j++) {
+        if(app->drones[j].active) {
+            draw_drone(canvas, &app->drones[j]);
+        }
+    }
 
     for(int j = 0; j < app->powerUps_num; j++) {
         draw_powerUps(canvas, &app->powerUps[j]);
@@ -547,20 +703,43 @@ void render_callback(Canvas* const canvas, void* ctx) {
 
 /* ============================ Game logic ================================== */
 
+/* Safely wrap coordinate to screen bounds with proper modulo arithmetic */
+static inline float safe_wrap_coordinate(float coord, float max_val) {
+    /* Handle extreme negative values */
+    while(coord < 0) {
+        coord += max_val;
+    }
+    /* Handle extreme positive values */
+    while(coord >= max_val) {
+        coord -= max_val;
+    }
+    return coord;
+}
+
 /* Given the current position, update it according to the velocity and
  * wrap it back to the other side if the object went over the screen. */
 void update_pos_by_velocity(float* x, float* y, float vx, float vy) {
-    /* Return back from one side to the other of the screen. */
+    /* Update position */
     *x += vx;
     *y += vy;
-    if(*x >= SCREEN_XRES)
-        *x = 0;
-    else if(*x < 0)
-        *x = SCREEN_XRES - 1;
-    if(*y >= SCREEN_YRES)
-        *y = 0;
-    else if(*y < 0)
-        *y = SCREEN_YRES - 1;
+
+    /* Clamp velocity to prevent extreme jumps that could cause coordinate corruption */
+    const float MAX_VELOCITY = 10.0f;
+    if(vx > MAX_VELOCITY || vx < -MAX_VELOCITY || vy > MAX_VELOCITY || vy < -MAX_VELOCITY) {
+        FURI_LOG_W(TAG, "Extreme velocity detected: vx=%.2f, vy=%.2f", (double)vx, (double)vy);
+    }
+
+    /* Safely wrap coordinates using proper modulo arithmetic */
+    *x = safe_wrap_coordinate(*x, SCREEN_XRES);
+    *y = safe_wrap_coordinate(*y, SCREEN_YRES);
+
+    /* Additional safety check - ensure coordinates are within reasonable bounds */
+    if(*x < 0 || *x >= SCREEN_XRES || *y < 0 || *y >= SCREEN_YRES) {
+        FURI_LOG_E(TAG, "Coordinate corruption detected: x=%.2f, y=%.2f", (double)*x, (double)*y);
+        /* Emergency reset to center of screen */
+        *x = SCREEN_XRES / 2;
+        *y = SCREEN_YRES / 2;
+    }
 }
 
 float distance(float x1, float y1, float x2, float y2) {
@@ -851,11 +1030,159 @@ void powerUp_was_hit(AsteroidsApp* app, int id) {
         // Simulate nuke explosion
         remove_all_astroids_and_bullets(app);
         break;
+    case PowerUpTypeDroneBuddy:
+        // Spawn a drone buddy
+        spawn_drone_buddy(app);
+        remove_powerUp(app, id);
+        break;
     default:
         break;
     }
     p->display_ttl = 0;
     p->isPowerUpActive = true;
+}
+
+/* ================================ Drone Buddy ================================ */
+/* Spawn a drone buddy near the ship */
+void spawn_drone_buddy(AsteroidsApp* app) {
+    if(app->drones_num >= MAXDRONES) return; // Max drones reached
+
+    Drone* drone = &app->drones[app->drones_num++];
+
+    /* Position drone near the ship but not too close */
+    drone->x = app->ship.x + 15;
+    drone->y = app->ship.y + 10;
+    drone->vx = 0;
+    drone->vy = 0;
+    drone->rot = app->ship.rot;
+    drone->ttl = DRONE_TTL;
+    drone->last_fire_tick = 0;
+    drone->active = true;
+
+    FURI_LOG_I(TAG, "Drone buddy spawned at x=%.2f, y=%.2f", (double)drone->x, (double)drone->y);
+}
+
+/* Remove a drone */
+void remove_drone(AsteroidsApp* app, int id) {
+    if(id < 0 || id >= app->drones_num) return;
+
+    FURI_LOG_I(TAG, "Removing drone %d", id);
+
+    /* Replace with last drone to keep array dense */
+    int n = --app->drones_num;
+    if(n && id != n) app->drones[id] = app->drones[n];
+}
+
+/* Find the nearest asteroid to a drone */
+int find_nearest_asteroid(AsteroidsApp* app, Drone* drone) {
+    int nearest = -1;
+    float min_distance = 50.0f; /* Maximum targeting range */
+
+    for(int i = 0; i < app->asteroids_num; i++) {
+        float dist = distance(drone->x, drone->y, app->asteroids[i].x, app->asteroids[i].y);
+        if(dist < min_distance) {
+            min_distance = dist;
+            nearest = i;
+        }
+    }
+
+    return nearest;
+}
+
+/* Make drone fire at nearest asteroid */
+void drone_fire_bullet(AsteroidsApp* app, Drone* drone) {
+    if(app->bullets_num >= MAXBUL) return; /* No space for more bullets */
+
+    int target = find_nearest_asteroid(app, drone);
+    if(target == -1) return; /* No target in range */
+
+    Asteroid* ast = &app->asteroids[target];
+
+    /* Calculate direction to target */
+    float dx = ast->x - drone->x;
+    float dy = ast->y - drone->y;
+    float dist = sqrt(dx * dx + dy * dy);
+
+    if(dist > 0) {
+        Bullet* b = &app->bullets[app->bullets_num++];
+        b->x = drone->x;
+        b->y = drone->y;
+        b->vx = (dx / dist) * 3.0f; /* Bullet speed */
+        b->vy = (dy / dist) * 3.0f;
+        b->ttl = TTLBUL;
+
+        /* Update drone rotation to face target */
+        drone->rot = atan2(-dx, dy);
+
+        notification_message(furi_record_open(RECORD_NOTIFICATION), &sequence_bullet_fired);
+    }
+}
+
+/* Update drone positions and behavior */
+void update_drones(AsteroidsApp* app) {
+    for(int i = 0; i < app->drones_num; i++) {
+        Drone* drone = &app->drones[i];
+
+        if(!drone->active) continue;
+
+        /* Decrease TTL */
+        if(drone->ttl > 0) {
+            drone->ttl--;
+        } else {
+            /* Drone expired */
+            remove_drone(app, i);
+            i--; /* Process this index again */
+            continue;
+        }
+
+        /* Follow the ship at a distance */
+        float target_x = app->ship.x - 20;
+        float target_y = app->ship.y - 15;
+
+        /* Simple following behavior */
+        float dx = target_x - drone->x;
+        float dy = target_y - drone->y;
+        float dist = sqrt(dx * dx + dy * dy);
+
+        if(dist > 5.0f) {
+            /* Move towards target position */
+            drone->vx = (dx / dist) * 1.5f;
+            drone->vy = (dy / dist) * 1.5f;
+        } else {
+            /* Close enough, reduce velocity */
+            drone->vx *= 0.8f;
+            drone->vy *= 0.8f;
+        }
+
+        /* Update position */
+        update_pos_by_velocity(&drone->x, &drone->y, drone->vx, drone->vy);
+
+        /* Fire at asteroids */
+        uint32_t now = furi_get_tick();
+        if(now - drone->last_fire_tick >= DRONE_FIRE_RATE) {
+            drone_fire_bullet(app, drone);
+            drone->last_fire_tick = now;
+        }
+    }
+}
+
+/* Check drone collisions with asteroids */
+void check_drone_collisions(AsteroidsApp* app) {
+    for(int i = 0; i < app->drones_num; i++) {
+        Drone* drone = &app->drones[i];
+        if(!drone->active) continue;
+
+        for(int j = 0; j < app->asteroids_num; j++) {
+            Asteroid* ast = &app->asteroids[j];
+            if(objects_are_colliding(drone->x, drone->y, 3, ast->x, ast->y, ast->size, 1)) {
+                /* Drone was hit by asteroid */
+                FURI_LOG_I(TAG, "Drone destroyed by asteroid");
+                remove_drone(app, i);
+                i--; /* Process this index again */
+                break;
+            }
+        }
+    }
 }
 
 /* ================================ Game States ================================ */
@@ -891,6 +1218,7 @@ void restart_game(AsteroidsApp* app) {
     app->last_bullet_tick = 0;
     app->bullet_min_period = 200;
     app->asteroids_num = 0;
+    app->drones_num = 0;
     app->ship_hit = 0;
 }
 
@@ -1051,7 +1379,17 @@ void detect_collisions(AsteroidsApp* app) {
 void game_tick(void* ctx) {
     AsteroidsApp* app = ctx;
 
-    /* There are two special screens:
+    /* Handle splash screen timing */
+    if(app->splash_screen) {
+        uint32_t elapsed = furi_get_tick() - app->splash_start_time;
+        if(elapsed >= SPLASH_SCREEN_DURATION) {
+            app->splash_screen = false;
+        }
+        view_port_update(app->view_port);
+        return;
+    }
+
+    /* There are three special screens:
      *
      * 1. Ship was hit, we frozen the game as long as ship_hit isn't zero
      * again, and show an animation of a rotating ship. */
@@ -1125,7 +1463,9 @@ void game_tick(void* ctx) {
     update_asteroids_position(app);
     update_powerUp_status(app); //@todo update_powerUp_status
     update_powerUps_position(app);
+    update_drones(app);
     detect_collisions(app);
+    check_drone_collisions(app);
 
     /* From time to time, create a new asteroid. The more asteroids
      * already on the screen, the smaller probability of creating
@@ -1208,6 +1548,10 @@ AsteroidsApp* asteroids_app_alloc() {
 
     app->running = 1; /* Turns 0 when back is pressed. */
 
+    /* Initialize splash screen */
+    app->splash_screen = true;
+    app->splash_start_time = furi_get_tick();
+
     restart_game_after_gameover(app);
     memset(app->pressed, 0, sizeof(app->pressed));
     return app;
@@ -1267,6 +1611,13 @@ int32_t asteroids_app_entry(void* p) {
         if(qstat == FuriStatusOk) {
             // if(DEBUG_MSG)
             // FURI_LOG_E(TAG, "Main Loop - Input: type %d key %u", input.type, input.key);
+
+            /* Handle splash screen skip */
+            if(app->splash_screen && input.type == InputTypePress) {
+                app->splash_screen = false;
+                continue;
+            }
+
             /* Handle Pause */
             if(input.type == InputTypeShort && input.key == InputKeyBack) {
                 app->paused = !app->paused;

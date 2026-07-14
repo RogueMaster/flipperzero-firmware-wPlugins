@@ -1,16 +1,9 @@
 #ifndef MINESWEEPER_H
 #define MINESWEEPER_H
 
-#include <string.h> // memset
-#include <inttypes.h> // PRIu8 & SCNu8
+#include <stdint.h>
+#include <stdbool.h>
 
-#include <furi.h>
-#include <furi_hal.h>
-#include <input/input.h>
-
-#include <notification/notification_messages.h>
-
-#include <gui/gui.h>
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
 #include <gui/modules/loading.h>
@@ -18,13 +11,15 @@
 #include <gui/modules/variable_item_list.h>
 #include <gui/modules/text_box.h>
 
-#include "scenes/minesweeper_scene.h"
+#include <notification/notification_messages.h>
+
 #include "views/start_screen.h"
 #include "views/minesweeper_game_screen.h"
-#include "helpers/mine_sweeper_storage.h"
-#include "minesweeper_redux_icons.h"
+#include "views/minesweeper_generating_view.h"
 
-#define TAG "Mine Sweeper Application"
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
 
 // This is a helper struct for the settings view/scene
 typedef struct {
@@ -38,6 +33,12 @@ typedef struct {
     VariableItem* solvable_item;
 } MineSweeperAppSettings;
 
+typedef enum {
+    MineSweeperGenerationOriginStart = 0,
+    MineSweeperGenerationOriginGame,
+    MineSweeperGenerationOriginSettings,
+} MineSweeperGenerationOrigin;
+
 // Main MineSweeperApp
 typedef struct MineSweeperApp {
     SceneManager* scene_manager;
@@ -47,17 +48,22 @@ typedef struct MineSweeperApp {
 
     StartScreen* start_screen;
     Loading* loading;
+    MineSweeperGeneratingView* generating_view;
     MineSweeperGameScreen* game_screen;
     DialogEx* menu_screen;
     VariableItemList* settings_screen;
     DialogEx* confirmation_screen;
     TextBox* info_screen;
 
-    MineSweeperAppSettings settings_info;
-    MineSweeperAppSettings t_settings_info;
+    MineSweeperAppSettings settings_committed;
+    MineSweeperAppSettings settings_draft;
+
+    MineSweeperState game_state;
+    MineSweeperGenerationJob generation_job;
 
     uint8_t is_settings_changed;
-    bool ensure_map_solvable;
+    MineSweeperGenerationOrigin generation_origin;
+    bool generation_user_preempted;
 
     uint8_t feedback_enabled;
     uint8_t wrap_enabled;
@@ -67,6 +73,7 @@ typedef struct MineSweeperApp {
 typedef enum {
     MineSweeperStartScreenView,
     MineSweeperLoadingView,
+    MineSweeperGeneratingScreenView,
     MineSweeperGameScreenView,
     MineSweeperMenuView,
     MineSweeperSettingsView,
@@ -92,4 +99,8 @@ typedef enum {
     MineSweeperLedOn,
 } MineSweeperLedState;
 
-#endif
+#ifdef __cplusplus
+}
+#endif // __cplusplus
+
+#endif // MINESWEEPER_H

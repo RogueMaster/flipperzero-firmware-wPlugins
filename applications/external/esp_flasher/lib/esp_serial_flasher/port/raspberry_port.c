@@ -33,7 +33,7 @@
 #include <sys/stat.h>
 #include <sys/param.h>
 
-#ifdef SERIAL_FLASHER_DEBUG_TRACE
+#if SERIAL_FLASHER_DEBUG_TRACE
 static void transfer_debug_print(const uint8_t *data, uint16_t size, bool write)
 {
     static bool write_prev = false;
@@ -58,37 +58,37 @@ static int32_t s_gpio0_trigger_pin;
 static speed_t convert_baudrate(int baud)
 {
     switch (baud) {
-        case 50: return B50;
-        case 75: return B75;
-        case 110: return B110;
-        case 134: return B134;
-        case 150: return B150;
-        case 200: return B200;
-        case 300: return B300;
-        case 600: return B600;
-        case 1200: return B1200;
-        case 1800: return B1800;
-        case 2400: return B2400;
-        case 4800: return B4800;
-        case 9600: return B9600;
-        case 19200: return B19200;
-        case 38400: return B38400;
-        case 57600: return B57600;
-        case 115200: return B115200;
-        case 230400: return B230400;
-        case 460800: return B460800;
-        case 500000: return B500000;
-        case 576000: return B576000;
-        case 921600: return B921600;
-        case 1000000: return B1000000;
-        case 1152000: return B1152000;
-        case 1500000: return B1500000;
-        case 2000000: return B2000000;
-        case 2500000: return B2500000;
-        case 3000000: return B3000000;
-        case 3500000: return B3500000;
-        case 4000000: return B4000000;
-        default: return -1;
+    case 50: return B50;
+    case 75: return B75;
+    case 110: return B110;
+    case 134: return B134;
+    case 150: return B150;
+    case 200: return B200;
+    case 300: return B300;
+    case 600: return B600;
+    case 1200: return B1200;
+    case 1800: return B1800;
+    case 2400: return B2400;
+    case 4800: return B4800;
+    case 9600: return B9600;
+    case 19200: return B19200;
+    case 38400: return B38400;
+    case 57600: return B57600;
+    case 115200: return B115200;
+    case 230400: return B230400;
+    case 460800: return B460800;
+    case 500000: return B500000;
+    case 576000: return B576000;
+    case 921600: return B921600;
+    case 1000000: return B1000000;
+    case 1152000: return B1152000;
+    case 1500000: return B1500000;
+    case 2000000: return B2000000;
+    case 2500000: return B2500000;
+    case 3000000: return B3000000;
+    case 3500000: return B3500000;
+    case 4000000: return B4000000;
+    default: return -1;
     }
 }
 
@@ -109,7 +109,7 @@ static int serialOpen (const char *device, uint32_t baudrate)
     tcgetattr (fd, &options);
     speed_t baud = convert_baudrate(baudrate);
 
-    if(baud < 0) {
+    if (baud < 0) {
         printf("Invalid baudrate!\n");
         return -1;
     }
@@ -148,7 +148,7 @@ static esp_loader_error_t change_baudrate(int file_desc, int baudrate)
     struct termios options;
     speed_t baud = convert_baudrate(baudrate);
 
-    if(baud < 0) {
+    if (baud < 0) {
         return ESP_LOADER_ERROR_INVALID_PARAM;
     }
 
@@ -221,6 +221,11 @@ esp_loader_error_t loader_port_raspberry_init(const loader_raspberry_config_t *c
     return ESP_LOADER_SUCCESS;
 }
 
+void loader_port_deinit(void)
+{
+    close(serial);
+    gpioTerminate();
+}
 
 esp_loader_error_t loader_port_write(const uint8_t *data, uint16_t size, uint32_t timeout)
 {
@@ -229,12 +234,12 @@ esp_loader_error_t loader_port_write(const uint8_t *data, uint16_t size, uint32_
     if (written < 0) {
         return ESP_LOADER_ERROR_FAIL;
     } else if (written < size) {
-#ifdef SERIAL_FLASHER_DEBUG_TRACE
+#if SERIAL_FLASHER_DEBUG_TRACE
         transfer_debug_print(data, written, true);
 #endif
         return ESP_LOADER_ERROR_TIMEOUT;
     } else {
-#ifdef SERIAL_FLASHER_DEBUG_TRACE
+#if SERIAL_FLASHER_DEBUG_TRACE
         transfer_debug_print(data, written, true);
 #endif
         return ESP_LOADER_SUCCESS;
@@ -246,7 +251,7 @@ esp_loader_error_t loader_port_read(uint8_t *data, uint16_t size, uint32_t timeo
 {
     RETURN_ON_ERROR( read_data(data, size) );
 
-#ifdef SERIAL_FLASHER_DEBUG_TRACE
+#if SERIAL_FLASHER_DEBUG_TRACE
     transfer_debug_print(data, size, false);
 #endif
 
@@ -257,18 +262,18 @@ esp_loader_error_t loader_port_read(uint8_t *data, uint16_t size, uint32_t timeo
 // Set GPIO0 LOW, then assert reset pin for 50 milliseconds.
 void loader_port_enter_bootloader(void)
 {
-    gpioWrite(s_gpio0_trigger_pin, 0);
+    gpioWrite(s_gpio0_trigger_pin, SERIAL_FLASHER_BOOT_INVERT ? 1 : 0);
     loader_port_reset_target();
     loader_port_delay_ms(SERIAL_FLASHER_BOOT_HOLD_TIME_MS);
-    gpioWrite(s_gpio0_trigger_pin, 1);
+    gpioWrite(s_gpio0_trigger_pin, SERIAL_FLASHER_BOOT_INVERT ? 0 : 1);
 }
 
 
 void loader_port_reset_target(void)
 {
-    gpioWrite(s_reset_trigger_pin, 0);
+    gpioWrite(s_reset_trigger_pin, SERIAL_FLASHER_RESET_INVERT ? 1 : 0);
     loader_port_delay_ms(SERIAL_FLASHER_RESET_HOLD_TIME_MS);
-    gpioWrite(s_reset_trigger_pin, 1);
+    gpioWrite(s_reset_trigger_pin, SERIAL_FLASHER_RESET_INVERT ? 0 : 1);
 }
 
 

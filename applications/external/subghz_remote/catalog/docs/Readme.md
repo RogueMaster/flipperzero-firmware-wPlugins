@@ -12,7 +12,7 @@ After launching the application, you will see the MAP file selection screen (fil
     - On remote screen, use the navigation buttons(D-pad) to send a signal
 - Edit Map File - map file editor
     - Select map file 
-    - Up/Down - slot nafigation
+    - Up/Down - slot navigation
     - Ok - edit menu
     - Left - preview/save
 - New Map File - Creating a new map file

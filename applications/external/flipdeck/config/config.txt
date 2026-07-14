@@ -1,0 +1,20 @@
+# FlipDeck Config – Flipper Zero
+# Format: ACTION:Label:Symbol (max 6 per page)
+# Page header: # page:PageName
+# Available: PLAY NEXT PREV VOLUP VOLDN MUTE BRTUP BRTDN F13-F24
+
+# page:Media
+PLAY:Play:>
+NEXT:Next:>>
+PREV:Prev:<<
+VOLUP:Vol+:+
+VOLDN:Vol-:-
+MUTE:Mute:X
+
+# page:Custom
+F13:Term:$
+F14:Web:@
+F15:Shot:[]
+F16:Dark:*
+F17:Paste:P
+F18:Hook:!

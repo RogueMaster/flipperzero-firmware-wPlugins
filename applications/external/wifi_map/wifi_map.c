@@ -1,22 +1,21 @@
-#include <datetime/datetime.h>
 #include <furi.h>
 #include <furi_hal.h>
 #include <storage/storage.h>
-
-#define TAG       "WIFI_MAP"
-#define FILE_NAME "wifi_map_data.csv"
-
 #include <gui/gui.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
 #include <gui/elements.h>
 #include <gui/view_dispatcher.h>
 #include <gui/modules/dialog_ex.h>
+#include <datetime/datetime.h>
 #include <locale/locale.h>
 #include <expansion/expansion.h>
 
+#define TAG                "WIFI_MAP"
 #define MAX_AP_LIST        20
 #define WORKER_EVENTS_MASK (WorkerEventStop | WorkerEventRx)
+#define BAUD_RATE          115200
+#define RX_BUFFER_SIZE     1024
 
 // Screen is 128x64 px
 #define SCREEN_WIDTH  128
@@ -59,17 +58,32 @@ const NotificationSequence sequence_notification = {
     NULL,
 };
 
-File* open_file() {
+static File* open_file() {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
 
-    if(!storage_file_open(file, APP_DATA_PATH(FILE_NAME), FSAM_WRITE, FSOM_OPEN_APPEND)) {
+    DateTime rtc = {0};
+    furi_hal_rtc_get_datetime(&rtc);
+    FuriString* flnm = furi_string_alloc();
+    furi_string_printf(
+        flnm,
+        "/data/wifi_map_%d-%d-%d_%d_%d_%d.csv",
+        rtc.day,
+        rtc.month,
+        rtc.year,
+        rtc.hour,
+        rtc.minute,
+        rtc.second);
+    const char* filename = furi_string_get_cstr(flnm);
+
+    if(!storage_file_open(file, filename, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         FURI_LOG_E(TAG, "Failed to open file");
     }
+    furi_string_free(flnm);
     return file;
 }
 
-int32_t write_to_file(char data_line, File* file) {
+static int32_t write_to_file(char data_line, File* file) {
     char* data = (char*)malloc(sizeof(char) + 1);
     data[0] = data_line;
     if(!storage_file_write(file, data, (uint16_t)strlen(data))) {
@@ -79,7 +93,7 @@ int32_t write_to_file(char data_line, File* file) {
     return 0;
 }
 
-int32_t close_file(File* file) {
+static int32_t close_file(File* file) {
     storage_file_close(file);
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
@@ -108,8 +122,11 @@ static void uart_echo_view_draw_callback(Canvas* canvas, void* _model) {
     int cntr = 0;
     for(size_t i = 0; i < MAX_AP_LIST; i++) {
         const char* line = furi_string_get_cstr(model->lines[i]->line);
+        FURI_LOG_D(TAG, "raw_data:> %s", line);
         char apssid[2], dst[6];
         retrieve_ap_ssid_distance(line, apssid, dst);
+        FURI_LOG_D(TAG, "appssid:> %s", apssid);
+        FURI_LOG_D(TAG, "dist:> %s", dst);
         if(strlen(line) > 0) {
             int d = atoi(dst);
             canvas_draw_circle(canvas, 0, SCREEN_HEIGHT / 2, d);
@@ -119,7 +136,9 @@ static void uart_echo_view_draw_callback(Canvas* canvas, void* _model) {
                 canvas_draw_str(canvas, d, (SCREEN_HEIGHT / 2) - cntr, apssid);
                 cntr = cntr + 8;
             }
-            if(i > 8) cntr = 8;
+            if(i > 8) {
+                cntr = 8;
+            }
         }
     }
 
@@ -145,26 +164,36 @@ static uint32_t uart_echo_exit(void* context) {
 }
 
 static void
-    uart_echo_on_irq_cb(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* context) {
+    uart_echo_on_irq_cb(FuriHalSerialHandle* handle, FuriHalSerialRxEvent data, void* context) {
     furi_assert(context);
+    UNUSED(handle);
     WiFiMapApp* app = context;
+    volatile FuriHalSerialRxEvent event_copy = data;
+    UNUSED(event_copy);
 
-    if(event == FuriHalSerialRxEventData) {
+    WorkerEventFlags flag = 0;
+
+    if(data & FuriHalSerialRxEventData) {
         uint8_t data = furi_hal_serial_async_rx(handle);
         furi_stream_buffer_send(app->rx_stream, &data, 1, 0);
-        furi_thread_flags_set(furi_thread_get_id(app->worker_thread), WorkerEventRx);
+        flag |= WorkerEventRx;
     }
+
+    furi_thread_flags_set(furi_thread_get_id(app->worker_thread), flag);
 }
 
 static void uart_push_to_list(WifiMapModel* model, const char data, WiFiMapApp* app) {
     write_to_file((char)data, app->file);
     if(!model->rdy) {
-        if(data != '\n')
+        if(data != '\n') {
             furi_string_push_back(model->lines[model->cntr]->line, data);
-        else
+        } else {
             model->cntr++;
+        }
 
-        if(model->cntr == MAX_AP_LIST) model->rdy = 1;
+        if(model->cntr == MAX_AP_LIST) {
+            model->rdy = 1;
+        }
     }
 }
 
@@ -177,7 +206,9 @@ static int32_t wifi_map_worker(void* context) {
             furi_thread_flags_wait(WORKER_EVENTS_MASK, FuriFlagWaitAny, FuriWaitForever);
         furi_check((events & FuriFlagError) == 0);
 
-        if(events & WorkerEventStop) break;
+        if(events & WorkerEventStop) {
+            break;
+        }
         if(events & WorkerEventRx) {
             size_t length = 0;
             do {
@@ -215,7 +246,6 @@ static WiFiMapApp* wifi_map_app_alloc() {
 
     // View dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     // Views
@@ -242,14 +272,23 @@ static WiFiMapApp* wifi_map_app_alloc() {
     view_dispatcher_add_view(app->view_dispatcher, 0, app->view);
     view_dispatcher_switch_to_view(app->view_dispatcher, 0);
 
-    app->worker_thread = furi_thread_alloc_ex("UsbUartWorker", 1024, wifi_map_worker, app);
+    app->rx_stream = furi_stream_buffer_alloc(RX_BUFFER_SIZE, 1);
+    app->worker_thread = furi_thread_alloc();
+    furi_thread_set_name(app->worker_thread, "UsbUartWorker");
+    furi_thread_set_stack_size(app->worker_thread, 1024);
+    furi_thread_set_context(app->worker_thread, app);
+    furi_thread_set_callback(app->worker_thread, wifi_map_worker);
+
+    furi_check(app->worker_thread);
+
     furi_thread_start(app->worker_thread);
 
     // Enable uart listener
     app->serial_handle = furi_hal_serial_control_acquire(FuriHalSerialIdUsart);
     furi_check(app->serial_handle);
-    furi_hal_serial_init(app->serial_handle, 115200);
-    furi_hal_serial_async_rx_start(app->serial_handle, uart_echo_on_irq_cb, app, false);
+    uint32_t bdrt = BAUD_RATE;
+    furi_hal_serial_init(app->serial_handle, bdrt);
+    furi_hal_serial_async_rx_start(app->serial_handle, uart_echo_on_irq_cb, app, true);
 
     return app;
 }
@@ -257,6 +296,7 @@ static WiFiMapApp* wifi_map_app_alloc() {
 static void wifi_map_app_free(WiFiMapApp* app) {
     furi_assert(app);
 
+    // Serial free
     furi_hal_serial_deinit(app->serial_handle);
     furi_hal_serial_control_release(app->serial_handle);
 
@@ -295,37 +335,23 @@ static void wifi_map_app_free(WiFiMapApp* app) {
 
 int32_t wifi_map_app(void* p) {
     UNUSED(p);
-
     // Disable expansion protocol to avoid interference with UART Handle
     Expansion* expansion = furi_record_open(RECORD_EXPANSION);
     expansion_disable(expansion);
 
     FURI_LOG_I(TAG, "wifi_map_app starting...");
     WiFiMapApp* app = wifi_map_app_alloc();
-    DateTime* rtc = malloc(sizeof(DateTime));
-    furi_hal_rtc_get_datetime(rtc);
-    FuriString* datetime = furi_string_alloc();
-    furi_string_printf(
-        datetime,
-        "##### %d-%d-%d_%d:%d:%d #####\n",
-        rtc->day,
-        rtc->month,
-        rtc->year,
-        rtc->hour,
-        rtc->minute,
-        rtc->second);
-    if(!storage_file_write(app->file, furi_string_get_cstr(datetime), furi_string_size(datetime))) {
+
+    char* headers = "AP hash;Distance (meters);AP auth mode;Time from start (seconds)\n";
+
+    if(!storage_file_write(app->file, headers, (uint16_t)strlen(headers))) {
         FURI_LOG_E(TAG, "Failed to write to file");
     }
     view_dispatcher_run(app->view_dispatcher);
-    furi_string_free(datetime);
-    free(rtc);
     wifi_map_app_free(app);
-
     // Return previous state of expansion
     expansion_enable(expansion);
     furi_record_close(RECORD_EXPANSION);
-
     return 0;
 }
 

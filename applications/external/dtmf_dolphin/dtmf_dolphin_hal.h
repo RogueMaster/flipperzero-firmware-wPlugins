@@ -28,6 +28,8 @@ void dtmf_dolphin_dma_start();
 
 void dtmf_dolphin_dma_stop();
 
+void dtmf_dolphin_gpio_deinit();
+
 #ifdef __cplusplus
 }
 #endif

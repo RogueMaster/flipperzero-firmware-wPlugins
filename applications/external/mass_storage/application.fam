@@ -11,7 +11,7 @@ App(
     fap_icon_assets_symbol="mass_storage",
     fap_author="kevinwallace & nminaylov",
     fap_weburl="https://github.com/flipperdevices/flipperzero-good-faps/tree/nm/usb_mass_storage_app/mass_storage",
-    fap_version=(1, 4),
+    fap_version="1.5",
     fap_description="Implements a mass storage device over USB for disk images",
     #  fap_weburl="https://github.com/flipperdevices/flipperzero-firmware/pull/1060",
     #  [Based on OFW#1060 (By kevinwallace)](https://github.com/flipperdevices/flipperzero-firmware/pull/1060)

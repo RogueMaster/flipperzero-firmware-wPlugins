@@ -1,0 +1,12 @@
+App(
+    appid="switch_controller",
+    name="Switch Controller",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="switch_controller_app",
+    stack_size=8 * 1024,
+    fap_category="USB",
+    fap_author="Claude",
+    fap_weburl="https://github.com/ccyyturralde/Flipper-Zero-Joycon",
+    fap_version="1.0",
+    fap_description="Nintendo Switch controller emulator with macro recording/playback",
+)

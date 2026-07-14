@@ -2,102 +2,191 @@ App(
     appid="js_app",
     name="JS Runner",
     apptype=FlipperAppType.EXTERNAL,
+    cdefines=["JS_RUNNER_FAP"],
+    fap_icon="icon.png",
+    fap_category="Main",
+    fap_libs=["assets"],
     entry_point="js_app",
-    sources=[
-        "*.c*",
-        "!modules",
-        "modules/js_flipper.c",
-    ],
     stack_size=2 * 1024,
     resources="examples",
-    order=0,
-    fap_icon="icon.png",
-    fap_icon_assets="assets",
-    fap_category="Main",
-    fap_author="nminaylov & DrZlo13",
-    fap_weburl="https://github.com/flipperdevices/flipperzero-firmware/pull/3286",
-    fap_version=(1, 0),
-    fap_description="JS scripting engine based on MJS lib",
-    #  [Added ble beacon, math and keyboard to JavaScript API (By Spooks4576)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/41bb09492400026be66ef5f8b78f506f21361f1d)
-    #  [Many improvements (By Willy-JL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/9b00d0e37b304784cf8e0ac0bdabe6aa543a780e)
-    #  [Added Submenu support (By Spooks4576)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/6335d14c7498ab4b2e4b28fa707fe7f68d3843b5)
-    #  [Some SubGHz support and Radio Device Loader module (By Sil333033) + Also BLE Beacon Improvements (By Willy-JL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/ed2716fb48f37a62cc3baf5c7fc8ee9a2864badc)
-    #  [JS Script: BadUSB_Win_Exfil-GSHD.js (By Gas Station Hot Dog)](https://github.com/User84User/User84PublicUser/blob/main/Windows_Exfil-GSHD.js)
-    #  [JS: added GPIO module (By Sil333033)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/46a761605f0f7466551e8baa127dcc1b1a359a37)
-    #  [Updates to GPIO & Storage Append (By Willy-JL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/0cb1a859e7c67fc0ca0afa35320c2c823c164f4f)
-    #  [JS: Add dialog.pickFile() (By Willy-JL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/13cd004bf67e2a447b91f808dc2bbe64e246cd12)
-    #  [UL: JS Dialog fix to include file icon (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/71f1f3ef2ace90d7b22425ef688ee292bde035ff)
-    #  [Module BugFixes & TextBox Module (By oldip & Willy-JL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/61e5c69a6b983a3a9894546d6c2734ade3649a67)
-    #  [JS CLI command #3539 (By nminaylov)](https://github.com/flipperdevices/flipperzero-firmware/pull/3539)
-    #  [Add __filepath and __dirpath globals (By jamisonderek)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/463f50281a1536492cf9ee46c5e0ac6b30f72a7f)
-    #  [Add widget module (By jamisonderek)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/e6fe5e0b52ab3dfa9a3a4d5325ab63ba4789f7e3)
-    #  [JS App Updates and Fixes for CLI (By Willy-JL)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/b8843d481b36acaeeaa1a82eb3bcc715b626aac6)
-    #  [JS: BadUSB Demo, Speaker API and VGM Module (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/blob/main/js/)
-    #  [JS: Fix widget sometimes MemCrash on exit. (By jamisonderek)](https://github.com/Next-Flip/Momentum-Firmware/pull/103)
-    #  [JS: Math (By Spooks4576) (Updated By nminaylov & skotopes)](https://github.com/flipperdevices/flipperzero-firmware/pull/3598)
-    #  [JS: TextBox (By Willy-JL) (Updated By nminaylov & skotopes)](https://github.com/flipperdevices/flipperzero-firmware/pull/3598)
-)
-
-App(
-    appid="js_app_start",
-    apptype=FlipperAppType.STARTUP,
-    entry_point="js_app_on_system_start",
-    sources=["js_start.c"],
-    order=160,
-)
-
-App(
-    appid="js_badusb",
-    apptype=FlipperAppType.PLUGIN,
-    entry_point="js_badusb_ep",
-    requires=["js_app"],
-    sources=["modules/js_badusb.c"],
-)
-
-App(
-    appid="js_blebeacon",
-    apptype=FlipperAppType.PLUGIN,
-    entry_point="js_blebeacon_ep",
-    requires=["js_app"],
-    sources=["modules/js_blebeacon.c"],
-)
-
-App(
-    appid="js_cli",
-    targets=["f7"],
-    apptype=FlipperAppType.PLUGIN,
-    entry_point="js_cli_plugin_ep",
-    requires=["cli"],
+    order=10,
     sources=[
-        "*.c*",
-        "!modules",
+        "js_app.c",
+        "js_modules.c",
+        "js_thread.c",
+        "js_value.c",
+        "plugin_api/app_api_table.cpp",
+        "views/console_view.c",
         "modules/js_flipper.c",
+        "modules/js_tests.c",
     ],
 )
 
 App(
-    appid="js_dialog",
+    appid="cli_js",
+    targets=["f7"],
     apptype=FlipperAppType.PLUGIN,
-    entry_point="js_dialog_ep",
-    requires=["js_app"],
-    sources=["modules/js_dialog.c"],
+    entry_point="cli_js_ep",
+    requires=["cli"],
+    sources=[
+        "js_app.c",
+        "js_modules.c",
+        "js_thread.c",
+        "js_value.c",
+        "plugin_api/app_api_table.cpp",
+        "modules/js_flipper.c",
+        "modules/js_tests.c",
+    ],
     fap_libs=["assets"],
 )
 
 App(
-    appid="js_gpio",
+    appid="js_event_loop",
     apptype=FlipperAppType.PLUGIN,
-    entry_point="js_gpio_ep",
+    entry_point="js_event_loop_ep",
     requires=["js_app"],
-    sources=["modules/js_gpio.c"],
+    sources=[
+        "modules/js_event_loop/js_event_loop.c",
+        "modules/js_event_loop/js_event_loop_api_table.cpp",
+    ],
 )
 
 App(
-    appid="js_keyboard",
+    appid="js_gui",
     apptype=FlipperAppType.PLUGIN,
-    entry_point="js_keyboard_ep",
+    entry_point="js_gui_ep",
     requires=["js_app"],
-    sources=["modules/js_keyboard.c"],
+    sources=["modules/js_gui/js_gui.c", "modules/js_gui/js_gui_api_table.cpp"],
+)
+
+App(
+    appid="js_gui__loading",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_view_loading_ep",
+    requires=["js_app"],
+    sources=["modules/js_gui/loading.c"],
+)
+
+App(
+    appid="js_gui__empty_screen",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_view_empty_screen_ep",
+    requires=["js_app"],
+    sources=["modules/js_gui/empty_screen.c"],
+)
+
+App(
+    appid="js_gui__submenu",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_view_submenu_ep",
+    requires=["js_app"],
+    sources=["modules/js_gui/submenu.c"],
+)
+
+App(
+    appid="js_gui__text_input",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_view_text_input_ep",
+    requires=["js_app"],
+    sources=["modules/js_gui/text_input.c"],
+)
+
+App(
+    appid="js_gui__number_input",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_view_number_input_ep",
+    requires=["js_app"],
+    sources=["modules/js_gui/number_input.c"],
+)
+
+App(
+    appid="js_gui__button_panel",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_view_button_panel_ep",
+    requires=["js_app"],
+    sources=["modules/js_gui/button_panel.c"],
+)
+
+App(
+    appid="js_gui__popup",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_view_popup_ep",
+    requires=["js_app"],
+    sources=["modules/js_gui/popup.c"],
+)
+
+App(
+    appid="js_gui__button_menu",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_view_button_menu_ep",
+    requires=["js_app"],
+    sources=["modules/js_gui/button_menu.c"],
+)
+
+App(
+    appid="js_gui__menu",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_view_menu_ep",
+    requires=["js_app"],
+    sources=["modules/js_gui/menu.c"],
+)
+
+App(
+    appid="js_gui__vi_list",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_view_vi_list_ep",
+    requires=["js_app"],
+    sources=["modules/js_gui/vi_list.c"],
+)
+
+App(
+    appid="js_gui__byte_input",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_view_byte_input_ep",
+    requires=["js_app"],
+    sources=["modules/js_gui/byte_input.c"],
+)
+
+App(
+    appid="js_gui__text_box",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_view_text_box_ep",
+    requires=["js_app"],
+    sources=["modules/js_gui/text_box.c"],
+)
+
+App(
+    appid="js_gui__dialog",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_view_dialog_ep",
+    requires=["js_app"],
+    sources=["modules/js_gui/dialog.c"],
+)
+
+App(
+    appid="js_gui__file_picker",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_gui_file_picker_ep",
+    requires=["js_app"],
+    sources=["modules/js_gui/file_picker.c"],
+    fap_libs=[],
+)
+
+App(
+    appid="js_gui__widget",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_view_widget_ep",
+    requires=["js_app"],
+    sources=["modules/js_gui/widget.c"],
+)
+
+App(
+    appid="js_gui__icon",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_gui_icon_ep",
+    requires=["js_app"],
+    sources=["modules/js_gui/icon.c"],
+    fap_libs=["assets"],
 )
 
 App(
@@ -109,27 +198,11 @@ App(
 )
 
 App(
-    appid="js_subghz",
+    appid="js_badusb",
     apptype=FlipperAppType.PLUGIN,
-    entry_point="js_subghz_ep",
+    entry_point="js_badusb_ep",
     requires=["js_app"],
-    sources=["modules/js_subghz/*.c"],
-)
-
-App(
-    appid="js_textbox",
-    apptype=FlipperAppType.PLUGIN,
-    entry_point="js_textbox_ep",
-    requires=["js_app"],
-    sources=["modules/js_textbox.c"],
-)
-
-App(
-    appid="js_math",
-    apptype=FlipperAppType.PLUGIN,
-    entry_point="js_math_ep",
-    requires=["js_app"],
-    sources=["modules/js_math.c"],
+    sources=["modules/js_badusb.c"],
 )
 
 App(
@@ -141,27 +214,27 @@ App(
 )
 
 App(
+    appid="js_gpio",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_gpio_ep",
+    requires=["js_app"],
+    sources=["modules/js_gpio.c"],
+)
+
+App(
+    appid="js_math",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_math_ep",
+    requires=["js_app"],
+    sources=["modules/js_math.c"],
+)
+
+App(
     appid="js_storage",
     apptype=FlipperAppType.PLUGIN,
     entry_point="js_storage_ep",
     requires=["js_app"],
     sources=["modules/js_storage.c"],
-)
-
-App(
-    appid="js_submenu",
-    apptype=FlipperAppType.PLUGIN,
-    entry_point="js_submenu_ep",
-    requires=["js_app"],
-    sources=["modules/js_submenu.c"],
-)
-
-App(
-    appid="js_usbdisk",
-    apptype=FlipperAppType.PLUGIN,
-    entry_point="js_usbdisk_ep",
-    requires=["js_app"],
-    sources=["modules/js_usbdisk/*.c"],
 )
 
 App(
@@ -173,9 +246,49 @@ App(
 )
 
 App(
-    appid="js_widget",
+    appid="js_subghz",
     apptype=FlipperAppType.PLUGIN,
-    entry_point="js_widget_ep",
+    entry_point="js_subghz_ep",
     requires=["js_app"],
-    sources=["modules/js_widget.c"],
+    sources=["modules/js_subghz/*.c"],
+)
+
+App(
+    appid="js_infrared",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_infrared_ep",
+    requires=["js_app"],
+    sources=["modules/js_infrared/*.c"],
+)
+
+App(
+    appid="js_blebeacon",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_blebeacon_ep",
+    requires=["js_app"],
+    sources=["modules/js_blebeacon.c"],
+)
+
+App(
+    appid="js_usbdisk",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_usbdisk_ep",
+    requires=["js_app"],
+    sources=["modules/js_usbdisk/*.c"],
+)
+
+App(
+    appid="js_i2c",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_i2c_ep",
+    requires=["js_app"],
+    sources=["modules/js_i2c.c"],
+)
+
+App(
+    appid="js_spi",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="js_spi_ep",
+    requires=["js_app"],
+    sources=["modules/js_spi.c"],
 )

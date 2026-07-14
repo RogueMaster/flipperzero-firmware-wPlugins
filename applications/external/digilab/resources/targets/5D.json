@@ -1,0 +1,28 @@
+{
+  "components": [
+    {
+      "partno": "LPS35HW",
+      "desc": "Pressure sensor.",
+      "type": 22,
+      "manufacturer": "STMicro",
+      "date": "2018"
+    },
+    {
+      "partno": "LPS33HW",
+      "desc": "Pressure sensor.",
+      "type": 22,
+      "manufacturer": "STMicro",
+      "date": "2017"
+    },
+    {
+      "partno": "LPS25",
+      "desc": "Pressure sensor.",
+      "type": 22,
+      "manufacturer": "STMicro",
+      "date": "2013"
+    }
+  ],
+  "unique_types": [
+    22
+  ]
+}

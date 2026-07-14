@@ -3,8 +3,11 @@
 enum SubmenuIndex {
     SubmenuIndexReadCardType,
     SubmenuIndexMfClassicKeys,
+    SubmenuIndexMfUltralightCKeys,
+    SubmenuIndexMfPlusKeys,
     SubmenuIndexMfUltralightUnlock,
     SubmenuIndexSlixUnlock,
+    SubmenuIndexWriteNdef,
 };
 
 void nfc_scene_extra_actions_submenu_callback(void* context, uint32_t index) {
@@ -31,6 +34,18 @@ void nfc_scene_extra_actions_on_enter(void* context) {
         instance);
     submenu_add_item(
         submenu,
+        "MIFARE Plus Keys",
+        SubmenuIndexMfPlusKeys,
+        nfc_scene_extra_actions_submenu_callback,
+        instance);
+    submenu_add_item(
+        submenu,
+        "MIFARE Ultralight C Keys",
+        SubmenuIndexMfUltralightCKeys,
+        nfc_scene_extra_actions_submenu_callback,
+        instance);
+    submenu_add_item(
+        submenu,
         "Unlock NTAG/Ultralight",
         SubmenuIndexMfUltralightUnlock,
         nfc_scene_extra_actions_submenu_callback,
@@ -39,6 +54,12 @@ void nfc_scene_extra_actions_on_enter(void* context) {
         submenu,
         "Unlock SLIX-L",
         SubmenuIndexSlixUnlock,
+        nfc_scene_extra_actions_submenu_callback,
+        instance);
+    submenu_add_item(
+        submenu,
+        "Write NDEF Tag",
+        SubmenuIndexWriteNdef,
         nfc_scene_extra_actions_submenu_callback,
         instance);
     submenu_set_selected_item(
@@ -54,6 +75,12 @@ bool nfc_scene_extra_actions_on_event(void* context, SceneManagerEvent event) {
         if(event.event == SubmenuIndexMfClassicKeys) {
             scene_manager_next_scene(instance->scene_manager, NfcSceneMfClassicKeys);
             consumed = true;
+        } else if(event.event == SubmenuIndexMfUltralightCKeys) {
+            scene_manager_next_scene(instance->scene_manager, NfcSceneMfUltralightCKeys);
+            consumed = true;
+        } else if(event.event == SubmenuIndexMfPlusKeys) {
+            scene_manager_next_scene(instance->scene_manager, NfcSceneMfPlusKeys);
+            consumed = true;
         } else if(event.event == SubmenuIndexMfUltralightUnlock) {
             mf_ultralight_auth_reset(instance->mf_ul_auth);
             scene_manager_next_scene(instance->scene_manager, NfcSceneMfUltralightUnlockMenu);
@@ -63,6 +90,9 @@ bool nfc_scene_extra_actions_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         } else if(event.event == SubmenuIndexSlixUnlock) {
             scene_manager_next_scene(instance->scene_manager, NfcSceneSlixUnlockMenu);
+            consumed = true;
+        } else if(event.event == SubmenuIndexWriteNdef) {
+            scene_manager_next_scene(instance->scene_manager, NfcSceneWriteNdefType);
             consumed = true;
         }
         scene_manager_set_scene_state(instance->scene_manager, NfcSceneExtraActions, event.event);

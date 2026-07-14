@@ -9,12 +9,14 @@ struct XRemoteTransmit {
 typedef struct {
     int type;
     const char* name;
-    int time;
+    int time; // animation frame counter (0..2)
+    int remaining; // seconds left in the active pause (for the countdown)
 } XRemoteTransmitModel;
 
 static void xremote_transmit_model_init(XRemoteTransmitModel* const model) {
     model->type = XRemoteRemoteItemTypeInfrared;
     model->time = 1;
+    model->remaining = 0;
 }
 
 void xremote_transmit_model_set_name(XRemoteTransmit* instance, const char* name) {
@@ -30,6 +32,13 @@ void xremote_transmit_model_set_type(XRemoteTransmit* instance, int type) {
     model->time = 1;
     model->type = type;
     view_commit_model(instance->view, false);
+}
+
+void xremote_transmit_model_set_remaining(XRemoteTransmit* instance, int remaining) {
+    furi_assert(instance);
+    XRemoteTransmitModel* model = view_get_model(instance->view);
+    model->remaining = remaining;
+    view_commit_model(instance->view, true);
 }
 
 void xremote_transmit_set_callback(
@@ -50,12 +59,16 @@ void xremote_transmit_draw_ir(Canvas* canvas, XRemoteTransmitModel* model) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 74, 5, AlignLeft, AlignTop, "Sending");
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 74, 20, AlignLeft, AlignTop, "Infrared");
-    canvas_draw_str_aligned(canvas, 74, 30, AlignLeft, AlignTop, model->name);
+    canvas_draw_str_aligned(canvas, 74, 15, AlignLeft, AlignTop, "Infrared");
+    canvas_draw_str_aligned(canvas, 74, 25, AlignLeft, AlignTop, model->name);
 
-    char temp_str[18];
-    snprintf(temp_str, 18, "%u", model->time);
-    canvas_draw_str_aligned(canvas, 74, 40, AlignLeft, AlignTop, temp_str);
+    if(model->time == 0) {
+        canvas_draw_icon(canvas, 36, 2, &I_ir_ani_1_32x22);
+    } else if(model->time == 1) {
+        canvas_draw_icon(canvas, 36, 2, &I_ir_ani_2_32x22);
+    } else if(model->time == 2) {
+        canvas_draw_icon(canvas, 36, 2, &I_ir_ani_3_32x22);
+    }
 }
 
 void xremote_transmit_draw_pause(Canvas* canvas, XRemoteTransmitModel* model) {
@@ -66,12 +79,28 @@ void xremote_transmit_draw_pause(Canvas* canvas, XRemoteTransmitModel* model) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 74, 5, AlignLeft, AlignTop, "Waiting");
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 74, 20, AlignLeft, AlignTop, "Sequence");
-    canvas_draw_str_aligned(canvas, 74, 30, AlignLeft, AlignTop, model->name);
+    canvas_draw_str_aligned(canvas, 74, 15, AlignLeft, AlignTop, "Sequence");
+    canvas_draw_str_aligned(canvas, 74, 25, AlignLeft, AlignTop, model->name);
 
-    char temp_str[18];
-    snprintf(temp_str, 18, "%u", model->time);
-    canvas_draw_str_aligned(canvas, 74, 40, AlignLeft, AlignTop, temp_str);
+    // Live MM:SS countdown of the remaining pause time. Drawn on a white,
+    // framed box so it stays legible on top of the pause background artwork.
+    char countdown[24];
+    snprintf(
+        countdown, sizeof(countdown), "%02d:%02d", model->remaining / 60, model->remaining % 60);
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_box(canvas, 76, 34, 52, 16);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_frame(canvas, 76, 34, 52, 16);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 104, 42, AlignCenter, AlignCenter, countdown);
+
+    if(model->time == 0) {
+        canvas_draw_icon(canvas, 9, 28, &I_pause_ani_1_22x23);
+    } else if(model->time == 1) {
+        canvas_draw_icon(canvas, 9, 28, &I_pause_ani_2_22x23);
+    } else if(model->time == 2) {
+        canvas_draw_icon(canvas, 9, 28, &I_pause_ani_3_22x23);
+    }
 }
 
 void xremote_transmit_draw_subghz(Canvas* canvas, XRemoteTransmitModel* model) {
@@ -82,12 +111,16 @@ void xremote_transmit_draw_subghz(Canvas* canvas, XRemoteTransmitModel* model) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 74, 5, AlignLeft, AlignTop, "Sending");
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 74, 20, AlignLeft, AlignTop, "SubGhz");
-    canvas_draw_str_aligned(canvas, 74, 30, AlignLeft, AlignTop, model->name);
+    canvas_draw_str_aligned(canvas, 74, 15, AlignLeft, AlignTop, "SubGhz");
+    canvas_draw_str_aligned(canvas, 74, 25, AlignLeft, AlignTop, model->name);
 
-    char temp_str[18];
-    snprintf(temp_str, 18, "%u", model->time);
-    canvas_draw_str_aligned(canvas, 74, 40, AlignLeft, AlignTop, temp_str);
+    if(model->time == 0) {
+        canvas_draw_icon(canvas, 15, 1, &I_sg_ani_1_19x13);
+    } else if(model->time == 1) {
+        canvas_draw_icon(canvas, 15, 1, &I_sg_ani_2_19x13);
+    } else if(model->time == 2) {
+        canvas_draw_icon(canvas, 15, 1, &I_sg_ani_3_19x13);
+    }
 }
 
 void xremote_transmit_draw(Canvas* canvas, XRemoteTransmitModel* model) {
@@ -98,6 +131,11 @@ void xremote_transmit_draw(Canvas* canvas, XRemoteTransmitModel* model) {
     } else if(model->type == XRemoteRemoteItemTypePause) {
         xremote_transmit_draw_pause(canvas, model);
     }
+    if(model->time > 2) {
+        model->time = 0;
+    }
+    canvas_set_font(canvas, FontSecondary);
+    elements_button_right(canvas, "exit");
 }
 
 bool xremote_transmit_input(InputEvent* event, void* context) {
@@ -106,6 +144,7 @@ bool xremote_transmit_input(InputEvent* event, void* context) {
     if(event->type == InputTypeRelease) {
         switch(event->key) {
         case InputKeyBack:
+        case InputKeyRight:
             with_view_model(
                 instance->view,
                 XRemoteTransmitModel * model,
@@ -123,24 +162,6 @@ bool xremote_transmit_input(InputEvent* event, void* context) {
     return true;
 }
 
-XRemoteTransmit* xremote_transmit_alloc() {
-    XRemoteTransmit* instance = malloc(sizeof(XRemoteTransmit));
-    instance->view = view_alloc();
-    view_allocate_model(instance->view, ViewModelTypeLocking, sizeof(XRemoteTransmitModel));
-    view_set_context(instance->view, instance);
-    view_set_draw_callback(instance->view, (ViewDrawCallback)xremote_transmit_draw);
-    view_set_input_callback(instance->view, xremote_transmit_input);
-    view_set_enter_callback(instance->view, xremote_transmit_enter);
-
-    with_view_model(
-        instance->view,
-        XRemoteTransmitModel * model,
-        { xremote_transmit_model_init(model); },
-        true);
-
-    return instance;
-}
-
 void xremote_transmit_enter(void* context) {
     furi_assert(context);
     XRemoteTransmit* instance = (XRemoteTransmit*)context;
@@ -149,6 +170,24 @@ void xremote_transmit_enter(void* context) {
         XRemoteTransmitModel * model,
         { xremote_transmit_model_init(model); },
         true);
+}
+
+XRemoteTransmit* xremote_transmit_alloc() {
+    XRemoteTransmit* instance = malloc(sizeof(XRemoteTransmit));
+    instance->view = view_alloc();
+    view_allocate_model(instance->view, ViewModelTypeLocking, sizeof(XRemoteTransmitModel));
+    view_set_context(instance->view, instance);
+    view_set_draw_callback(instance->view, (ViewDrawCallback)xremote_transmit_draw);
+    view_set_input_callback(instance->view, xremote_transmit_input);
+    //view_set_enter_callback(instance->view, xremote_transmit_enter);
+
+    with_view_model(
+        instance->view,
+        XRemoteTransmitModel * model,
+        { xremote_transmit_model_init(model); },
+        true);
+
+    return instance;
 }
 
 void xremote_transmit_free(XRemoteTransmit* instance) {

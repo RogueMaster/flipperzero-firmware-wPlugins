@@ -1,0 +1,33 @@
+App(
+    appid="claude_remote_usb",
+    name="Agentic Remote USB",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="claude_remote_usb_app",
+    stack_size=4 * 1024,
+    fap_icon="claude_remote.png",
+    fap_icon_assets="images",
+    cdefines=["HID_TRANSPORT_USB"],
+    fap_category="USB",
+    fap_author="Kasen Sansonetti",
+    fap_weburl="https://github.com/Wet-wr-Labs/claupper",
+    fap_version="0.28",
+    fap_description="One-handed USB remote for AI coding agents (Claude Code). 5-button D-pad control, macros, offline manual + quiz.",
+)
+
+App(
+    appid="claude_remote_ble",
+    name="Agentic Remote",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="claude_remote_ble_app",
+    requires=["gui", "bt"],
+    stack_size=4 * 1024,
+    fap_icon="claude_remote.png",
+    fap_icon_assets="images",
+    cdefines=["HID_TRANSPORT_BLE"],
+    fap_libs=["ble_profile"],
+    fap_category="Bluetooth",
+    fap_author="Kasen Sansonetti",
+    fap_weburl="https://github.com/Wet-wr-Labs/claupper",
+    fap_version="0.28",
+    fap_description="One-handed Bluetooth remote for AI coding agents (Claude Code). 5-button D-pad control, macros, offline manual + quiz.",
+)

@@ -1,0 +1,14 @@
+App(
+    appid="subghz_scheduler",
+    name="Sub-GHz Scheduler",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="scheduler_app",
+    stack_size=3 * 1024,
+    fap_icon_assets="icons",
+    fap_icon="icons/icon.png",
+    fap_category="Sub-GHz",
+    fap_author="shalebridge / Patrick Edwards",
+    fap_weburl="https://github.com/shalebridge/flipper-subghz-scheduler",
+    fap_version="3.0",
+    fap_description="Send a single or repeated Sub-GHz signal at a given interval.",
+)

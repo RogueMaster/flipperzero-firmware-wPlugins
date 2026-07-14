@@ -1,0 +1,14 @@
+{
+  "components": [
+    {
+      "partno": "LIDAR-Lite",
+      "desc": "Distance sensor",
+      "type": 11,
+      "manufacturer": "Garmin",
+      "date": "2014"
+    }
+  ],
+  "unique_types": [
+    11
+  ]
+}

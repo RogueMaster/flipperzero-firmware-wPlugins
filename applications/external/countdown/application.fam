@@ -1,0 +1,14 @@
+App(
+    appid="countdown",
+    name="CountDown",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="countdown_app",
+    stack_size=2 * 1024,
+    fap_icon="countdown.png",
+    fap_icon_assets="images",
+    fap_category="Games",
+    fap_author="Oscar Rodriguez",
+    fap_weburl="https://github.com/sistemasorp/flipper-countdown",
+    fap_version="1.0",
+    fap_description="Solve target number from 6 numbers like the CountDown TV Show",
+)

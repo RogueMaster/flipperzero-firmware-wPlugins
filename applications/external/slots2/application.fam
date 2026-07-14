@@ -1,0 +1,21 @@
+App(
+    appid="slots",
+    name="Slots",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="slots_app",
+    sources=[
+        "src/icons.c",
+        "src/konami.c",
+        "src/main.c",
+        "src/pcg32.c",
+        "src/notify.c",
+        "src/slots.c",
+    ],
+    stack_size=2 * 1024,
+    fap_icon="xyz_vh8t_slots.png",
+    fap_category="Games",
+    fap_author="vh8t",
+    fap_weburl="https://github.com/vh8t/flipper-slots",
+    fap_version=(1, 0),
+    fap_description="81-way slot machine",
+)

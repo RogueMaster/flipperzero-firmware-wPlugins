@@ -1,6 +1,6 @@
 Space Invaders adaptaion for Flipper Zero.
 
-Check github actions to download or build your own with `ufbt`.
+Check github actions to download or build your own with [`ufbt`](https://github.com/flipperdevices/flipperzero-ufbt).
 
 TODO:
 
@@ -10,7 +10,7 @@ TODO:
  - [x] Score
  - [x] Pause
  - [x] Start state
- - [ ] Enemy speeding up, adjust starting speed
+ - [x] Enemy speeding up, adjust starting speed
+ - [x] Levels
  - [ ] Enemy shooting
- - [ ] Levels
  - [ ] Sound (?)

@@ -1,0 +1,10 @@
+explain this code in detail
+write comprehensive tests
+refactor for readability
+add error handling everywhere
+review for security issues
+optimize for performance
+add documentation comments
+fix all linting errors
+add type annotations
+create a PR description

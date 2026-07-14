@@ -7,6 +7,7 @@
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
 #include <notification/notification_app.h>
+#include <cfw/settings.h>
 
 #include "clock_app.h"
 
@@ -86,6 +87,7 @@ void handle_down() {
 static void clock_input_callback(InputEvent* input_event, void* ctx) {
     furi_assert(ctx);
     FuriMessageQueue* event_queue = ctx;
+
     PluginEvent event = {.type = EventTypeKey, .input = *input_event};
     furi_message_queue_put(event_queue, &event, FuriWaitForever);
 }
@@ -99,7 +101,8 @@ void elements_progress_bar_vertical(
     uint8_t height,
     float progress) {
     furi_assert(canvas);
-    furi_assert((progress >= 0) && (progress <= 1.0));
+    furi_assert(((float)progress >= 0.0f) && ((float)progress <= 1.0f));
+
     uint8_t width = 9;
 
     uint8_t progress_length = roundf((1.f - progress) * (height - 2));
@@ -119,7 +122,7 @@ static void clock_render_callback(Canvas* const canvas, void* ctx) {
     //canvas_set_color(canvas, ColorBlack);
 
     //avoids a bug with the brightness being reverted after the backlight-off period
-    set_backlight_brightness((float)(brightness / 100.f));
+    //set_backlight_brightness((float)(brightness / 100.f));
 
     if(dspBrightnessBarFrames > 0) {
         elements_progress_bar_vertical(canvas, 119, 1, 62, (float)(brightness / 100.f));
@@ -141,21 +144,27 @@ static void clock_render_callback(Canvas* const canvas, void* ctx) {
     char time_string[TIME_LEN];
     char date_string[DATE_LEN];
     char meridian_string[MERIDIAN_LEN];
+    char date_pct_string[DATE_PCT_LEN];
     char timer_string[20];
 
     if(state->time_format == LocaleTimeFormat24h) {
         snprintf(
             time_string, TIME_LEN, CLOCK_TIME_FORMAT, curr_dt.hour, curr_dt.minute, curr_dt.second);
     } else {
-        bool pm = curr_dt.hour > 12;
         bool pm12 = curr_dt.hour >= 12;
-        snprintf(
-            time_string,
-            TIME_LEN,
-            CLOCK_TIME_FORMAT,
-            pm ? curr_dt.hour - 12 : curr_dt.hour,
-            curr_dt.minute,
-            curr_dt.second);
+        uint8_t hour = curr_dt.hour;
+
+        LocaleTimeFormat time_format = locale_get_time_format();
+        if(time_format == LocaleTimeFormat12h) {
+            if(hour > 12) {
+                hour -= 12;
+            }
+            if(hour == 0) {
+                hour = cfw_settings.midnight_format_00 ? 0 : 12;
+            }
+        }
+
+        snprintf(time_string, TIME_LEN, CLOCK_TIME_FORMAT, hour, curr_dt.minute, curr_dt.second);
 
         snprintf(
             meridian_string,
@@ -187,18 +196,42 @@ static void clock_render_callback(Canvas* const canvas, void* ctx) {
         int32_t elapsed_secs = timer_running ? (curr_ts - timer_start_timestamp) :
                                                timer_stopped_seconds;
         snprintf(timer_string, 20, "%.2ld:%.2ld", elapsed_secs / 60, elapsed_secs % 60);
-        canvas_draw_str_aligned(canvas, 64, 8, AlignCenter, AlignCenter, time_string); // DRAW TIME
+        if(state->time_format == LocaleTimeFormat12h) {
+            canvas_draw_str_aligned(
+                canvas, 56, 8, AlignCenter, AlignCenter, time_string); // DRAW TIME
+        } else {
+            canvas_draw_str_aligned(
+                canvas, 64, 8, AlignCenter, AlignCenter, time_string); // DRAW TIME
+        }
         canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignTop, timer_string); // DRAW TIMER
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 20, AlignCenter, AlignTop, date_string); // DRAW DATE
+        if(state->time_format == LocaleTimeFormat12h) {
+            canvas_draw_str_aligned(canvas, 112, 8, AlignCenter, AlignCenter, meridian_string);
+        }
+
+        snprintf(
+            date_pct_string, sizeof(date_pct_string), "%s   %u%%", date_string, state->battery_pct);
+        canvas_draw_str_aligned(
+            canvas, 64, 20, AlignCenter, AlignTop, date_pct_string); // DRAW DATE + BATTERY
         elements_button_left(canvas, "Reset");
     } else {
         canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, time_string);
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 65, 17, AlignCenter, AlignCenter, date_string);
 
-        if(state->time_format == LocaleTimeFormat12h)
-            canvas_draw_str_aligned(canvas, 64, 47, AlignCenter, AlignCenter, meridian_string);
+        if(state->time_format == LocaleTimeFormat12h) {
+            snprintf(
+                date_pct_string,
+                sizeof(date_pct_string),
+                "%s   %u%%",
+                date_string,
+                state->battery_pct);
+            canvas_draw_str_aligned(canvas, 64, 17, AlignCenter, AlignCenter, date_pct_string);
+            canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignCenter, meridian_string);
+        } else {
+            canvas_draw_str_aligned(canvas, 64, 17, AlignCenter, AlignCenter, date_string);
+            snprintf(date_pct_string, sizeof(date_pct_string), "%u%%", state->battery_pct);
+            canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignCenter, date_pct_string);
+        }
     }
     if(timer_running) {
         elements_button_center(canvas, "Stop");
@@ -209,8 +242,8 @@ static void clock_render_callback(Canvas* const canvas, void* ctx) {
 
 static void clock_state_init(ClockState* const state) {
     state->time_format = locale_get_time_format();
-
     state->date_format = locale_get_date_format();
+    state->battery_pct = furi_hal_power_get_pct();
 
     //FURI_LOG_D(TAG, "Time format: %s", state->settings.time_format == H12 ? "12h" : "24h");
     //FURI_LOG_D(TAG, "Date format: %s", state->settings.date_format == Iso ? "ISO 8601" : "RFC 5322");
@@ -278,9 +311,14 @@ int32_t clock_app(void* p) {
 
     clock_state_init(plugin_state);
 
+    //save current user settings to Saved_, disable backlight delay and force dislay always on
     notif = furi_record_open(RECORD_NOTIFICATION);
-    float tmpBrightness = notif->settings.display_brightness;
-    brightness = tmpBrightness * 100; // Keep current brightness by default
+
+    float SavedBrightness = notif->settings.display_brightness;
+    brightness = SavedBrightness * 100; // Keep current brightness by default
+
+    uint32_t Saved_display_off_delay_ms = notif->settings.display_off_delay_ms;
+    notif->settings.display_off_delay_ms = 0;
 
     notification_message(notif, &sequence_display_backlight_enforce_on);
     notification_message(notif, &led_off);
@@ -343,9 +381,9 @@ int32_t clock_app(void* p) {
                     break;
                 }
             }
-        } /*else if(event.type == EventTypeTick) {
-            furi_hal_rtc_get_datetime(&plugin_state->datetime);
-        }*/
+        } else if(event.type == EventTypeTick) {
+            plugin_state->battery_pct = furi_hal_power_get_pct();
+        }
 
         furi_mutex_release(plugin_state->mutex);
         view_port_update(view_port);
@@ -361,8 +399,11 @@ int32_t clock_app(void* p) {
     furi_mutex_free(plugin_state->mutex);
     free(plugin_state);
 
-    set_backlight_brightness(tmpBrightness);
+    //restore display backlight timer settings;
+    notif->settings.display_off_delay_ms = Saved_display_off_delay_ms;
+
     notification_message(notif, &sequence_display_backlight_enforce_auto);
+    set_backlight_brightness(SavedBrightness);
     notification_message(notif, &led_reset);
 
     return 0;

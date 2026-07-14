@@ -1,0 +1,2 @@
+#define MAX_LABEL_LENGTH     20
+#define MAX_NOTES_PER_TUNING 20

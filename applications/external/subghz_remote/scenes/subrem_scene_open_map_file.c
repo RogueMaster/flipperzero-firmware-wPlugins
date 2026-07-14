@@ -10,6 +10,10 @@ void subrem_scene_open_map_file_on_enter(void* context) {
 
     if(load_state == SubRemLoadMapStateBack) {
         scene_manager_previous_scene(app->scene_manager);
+    } else if(start_scene_state == SubmenuIndexSubRemSetDefault) {
+        // Save selected file as default and go back
+        subrem_save_default_path(furi_string_get_cstr(app->file_path));
+        scene_manager_previous_scene(app->scene_manager);
     } else if(start_scene_state == SubmenuIndexSubRemEditMapFile) {
         scene_manager_set_scene_state(app->scene_manager, SubRemSceneEditMenu, SubRemSubKeyNameUp);
         scene_manager_next_scene(app->scene_manager, SubRemSceneEditMenu);

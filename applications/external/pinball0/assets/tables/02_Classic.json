@@ -1,0 +1,193 @@
+{
+    "name": "Classic",
+    "lives": {
+        "display": true,
+        "position": [ 20, 480 ],
+        "align": "VERTICAL"
+    },
+    "score": {
+        "display": true,
+        "position": [ 23, 0 ]
+    },
+    "balls": [
+        {
+            "position": [ 600, 1110 ],
+            "velocity": [ 0, -12.0 ]
+        }
+    ],
+    "flippers": [
+        {
+            "position": [ 130, 1200 ],
+            "side": "LEFT",
+            "size": 130
+        },
+        {
+            "position": [ 490, 1200 ],
+            "side": "RIGHT",
+            "size": 130
+        }
+    ],
+    "bumpers": [
+        {
+            "position": [ 200, 260 ],
+            "radius": 60
+        },
+        {
+            "position": [ 450, 200 ],
+            "radius": 60
+        },
+        {
+            "position": [ 280, 550 ],
+            "radius": 40
+        },
+        {
+            "position": [ 480, 500 ],
+            "radius": 40
+        },
+        // gutter guards - for Z,E,R,O rollover
+        {
+            "position": [ 310, 1265 ],
+            "radius": 20,
+            "physical": false,
+            "hidden": true,
+            "signal": {
+                "tx": 1,
+                "rx": 0,
+                "any": true
+            }
+        },
+        {
+            "position": [ 35, 900 ],
+            "radius": 20,
+            "physical": false,
+            "hidden": true,
+            "signal": {
+                "tx": 1,
+                "rx": 0,
+                "any": true
+            }
+        },
+        {
+            "position": [ 595, 900 ],
+            "radius": 20,
+            "physical": false,
+            "hidden": true,
+            "signal": {
+                "tx": 1,
+                "rx": 0,
+                "any": true
+            }
+        }
+    ],
+    "arcs": [
+        {
+            // top right curve
+            "position": [ 440, 200 ],
+            "radius": 200,
+            "start_angle": 0,
+            "end_angle": 95,
+            "surface": "INSIDE"
+        },
+        {
+            // top left curve
+            "position": [ 160, 240 ],
+            "radius": 160,
+            "start_angle": 95,
+            "end_angle": 180,
+            "surface": "INSIDE"
+        }
+    ],
+    "rails": [
+        // left wall
+        {
+            "start": [ 0, 240 ],
+            "end": [ 0, 400 ]
+        },
+        {
+            "start": [ 0, 740 ],
+            "end": [ 0, 1200 ]
+        },
+        // right wall
+        {
+            "start": [ 630, 1200 ],
+            "end": [ 630, 160 ]
+        },
+        // top roof
+        {
+            "start": [ 412, 1 ],
+            "end": [ 137, 81 ]
+        },
+        // left wall fixture
+        {
+            "start": [ 0, 400 ],
+            "end": [ 80, 480 ],
+            "bounce": 1.08
+        },
+        {
+            "start": [ 80, 480 ],
+            "end": [ 80, 660 ],
+            "bounce": 1.1
+        },
+        {
+            "start": [ 80, 660 ],
+            "end": [ 0, 740 ],
+            "bounce": 1.08
+        },
+        // left bottom rail
+        {
+            "start": [ 70, 900 ],
+            "end": [ 70, 1150 ],
+            "double_sided": true
+        },
+        {
+            "start": [ 70, 1150 ],
+            "end": [ 130, 1180 ],
+            "double_sided": true
+        },
+        // right bottom rail
+        {
+            "start": [ 560, 1150 ],
+            "end": [ 560, 900 ],
+            "double_sided": true
+        },
+        {
+            "start": [ 490, 1180 ],
+            "end": [ 560, 1150 ],
+            "double_sided": true
+        }
+    ],
+    "rollovers": [
+        {
+            "position": [ 200, 800 ],
+            "symbol": "Z",
+            "signal": {
+                "tx": 0,
+                "rx": 1
+            }
+        },
+        {
+            "position": [ 280, 770 ],
+            "symbol": "E",
+            "signal": {
+                "tx": 0,
+                "rx": 1
+            }
+        },
+        {
+            "position": [ 360, 770 ],
+            "symbol": "R",
+            "signal": {
+                "tx": 0,
+                "rx": 1
+            }
+        },
+        {
+            "position": [ 440, 800 ],
+            "symbol": "O",
+            "signal": {
+                "tx": 0,
+                "rx": 1
+            }
+        }
+    ]
+}

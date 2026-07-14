@@ -15,7 +15,10 @@
 
 The goal of this project is to see how much crypto functionality can be brought to the Flipper Zero.
 
-## How to install on Flipper Zero
+## How to install on Flipper Zero (from app store)
+- Install from here: https://lab.flipper.net/apps/flipbip
+
+## How to install on Flipper Zero (from source)
 - If you do not have one, download a Flipper Zero firmware to get the `fbt` build tool
 - Plug your Flipper Zero in via USB
 - Copy the contents of this folder into the `applications_user` folder of your firmware

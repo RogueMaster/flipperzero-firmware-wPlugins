@@ -1,0 +1,57 @@
+{
+  "components": [
+    {
+      "partno": "HTU21D",
+      "desc": "Humidity and temperature sensor.",
+      "type": 22,
+      "manufacturer": "TE Conn.",
+      "date": "2013"
+    },
+    {
+      "partno": "SI7021",
+      "desc": "Humidity and temperature sensor.",
+      "type": 22,
+      "manufacturer": "SiliconLabs",
+      "date": "2012"
+    },
+    {
+      "partno": "SI7051",
+      "desc": "Temperature sensor",
+      "type": 23,
+      "manufacturer": "SiliconLabs",
+      "date": "2014"
+    },
+    {
+      "partno": "AM2320",
+      "desc": "Temperature and humidity sensor.",
+      "type": 22,
+      "manufacturer": "Aosong",
+      "date": "2010"
+    },
+    {
+      "partno": "SHT30",
+      "desc": "Temperature and humidity sensor.",
+      "type": 22,
+      "manufacturer": "Sensirion",
+      "date": "2014"
+    },
+    {
+      "partno": "FT6x06",
+      "desc": "Capacitive touch sensor.",
+      "type": 22,
+      "manufacturer": "FocalTech",
+      "date": "2012"
+    },
+    {
+      "partno": "VEML6070",
+      "desc": "UV light sensor.",
+      "type": 22,
+      "manufacturer": "Vishay",
+      "date": "2012"
+    }
+  ],
+  "unique_types": [
+    22,
+    23
+  ]
+}

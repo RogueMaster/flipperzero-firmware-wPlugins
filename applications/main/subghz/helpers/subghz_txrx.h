@@ -17,7 +17,17 @@ typedef enum {
     SubGhzTxRxStartTxStateOk,
     SubGhzTxRxStartTxStateErrorOnlyRx,
     SubGhzTxRxStartTxStateErrorParserOthers,
+    SubGhzTxRxStartTxStateErrorMemory,
 } SubGhzTxRxStartTxState;
+
+#define SUBGHZ_TX_MIN_HEAP      (8u * 1024u)
+#define SUBGHZ_TX_MIN_BLOCK     (5u * 1024u)
+#define SUBGHZ_TX_MIN_HEAP_RAW  (14u * 1024u)
+// RAW streaming allocates two large contiguous buffers (stream ~4 KB and the
+// pre-reserved line buffer ~4.6 KB). Require the largest free block to hold both
+#define SUBGHZ_TX_MIN_BLOCK_RAW (9u * 1024u)
+
+size_t subghz_txrx_get_tx_min_heap_required(SubGhzTxRx* instance);
 
 /**
  * Allocate SubGhzTxRx
@@ -60,6 +70,15 @@ void subghz_txrx_set_preset(
     float longitude,
     uint8_t* preset_data,
     size_t preset_data_size);
+
+/**
+ * Set TX Power
+ * 
+ * @param preset_data Data of preset
+ * @param preset_data_size Size of preset data
+ * @param tx_power Menu Index of TX Power Setting. (Saves iterating in Config enter)
+ */
+uint8_t* subghz_txrx_set_tx_power(uint8_t* preset_data, size_t preset_data_size, uint8_t tx_power);
 
 /**
  * Get name of preset
@@ -390,7 +409,11 @@ void subghz_txrx_set_default_preset(SubGhzTxRx* instance, uint32_t frequency);
  * @param instance  - instance Pointer to a SubGhzTxRx
  * @param frequency - frequency of new preset
  * @param index - index of preset taken from SubGhzSetting
+ * @param tx_power - index of TX Power menu index option to use.
  * @return const char* -  name of preset
  */
-const char*
-    subghz_txrx_set_preset_internal(SubGhzTxRx* instance, uint32_t frequency, uint8_t index);
+const char* subghz_txrx_set_preset_internal(
+    SubGhzTxRx* instance,
+    uint32_t frequency,
+    uint8_t index,
+    uint8_t tx_power);

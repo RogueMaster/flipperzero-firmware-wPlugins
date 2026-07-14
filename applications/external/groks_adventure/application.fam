@@ -1,0 +1,13 @@
+App(
+    appid="grokadven",
+    name="Groks Adventure",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="grokadven_app",
+    stack_size=2 * 1024,
+    fap_icon="grokadven_icon.png",
+    fap_category="Games",
+    fap_author="DigiMancer3D",
+    fap_weburl="https://github.com/DigiMancer3D/Groks_Adventure",
+    fap_version="0.15",
+    fap_description="A Grok made micro-Adventure",
+)

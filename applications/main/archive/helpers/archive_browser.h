@@ -7,15 +7,14 @@
 #define TAB_DEFAULT       ArchiveTabFavorites // Start tab
 #define FILE_LIST_BUF_LEN 50
 
-static const char* tab_default_paths[] = {
+static const char* const tab_default_paths[] = {
     [ArchiveTabFavorites] = "/app:favorites",
     [ArchiveTabIButton] = EXT_PATH("ibutton"),
     [ArchiveTabNFC] = EXT_PATH("nfc"),
     [ArchiveTabSubGhz] = EXT_PATH("subghz"),
-    [ArchiveTabSubGhzRemote] = EXT_PATH("subghz/subghz_remote"),
     [ArchiveTabLFRFID] = EXT_PATH("lfrfid"),
     [ArchiveTabInfrared] = EXT_PATH("infrared"),
-    [ArchiveTabBadKb] = EXT_PATH("badusb"),
+    [ArchiveTabBadUsb] = EXT_PATH("badusb"),
     [ArchiveTabU2f] = "/app:u2f",
     [ArchiveTabApplications] = EXT_PATH("apps"),
     [ArchiveTabSearch] = "/app:search",
@@ -24,7 +23,7 @@ static const char* tab_default_paths[] = {
     [ArchiveTabBrowser] = STORAGE_EXT_PATH_PREFIX,
 };
 
-static const char* known_ext[] = {
+static const char* const known_ext[] = {
     // clang-format off
     [ArchiveFileTypeIButton] = ".ibtn",
     [ArchiveFileTypeNFC] = ".nfc",
@@ -34,9 +33,11 @@ static const char* known_ext[] = {
     [ArchiveFileTypeSubghzPlaylist] = ".txt",
     [ArchiveFileTypeSubghzRemote] = ".txt",
     [ArchiveFileTypeInfraredRemote] = ".txt",
-    [ArchiveFileTypeBadKb] = ".txt",
+    [ArchiveFileTypeBadUsb] = ".txt",
     [ArchiveFileTypeWAV] = ".wav",
     [ArchiveFileTypeMag] = ".mag",
+    [ArchiveFileTypeCrossRemote] = ".xr",
+    [ArchiveFileTypePicopass] = ".picopass",
     [ArchiveFileTypeU2f] = "?",
     [ArchiveFileTypeApplication] = ".fap",
     [ArchiveFileTypeJS] = ".js",
@@ -44,8 +45,10 @@ static const char* known_ext[] = {
     [ArchiveFileTypeUpdateManifest] = ".fuf",
     [ArchiveFileTypeDiskImage] = ".img",
     [ArchiveFileTypeFolder] = "?",
+    [ArchiveFileTypeProtoPirate] = ".psf",
     [ArchiveFileTypeUnknown] = "*",
     [ArchiveFileTypeAppOrJs] = ".fap|.js",
+    [ArchiveFileTypeSetting] = "?",
     // clang-format on
 };
 
@@ -54,10 +57,9 @@ static const ArchiveFileTypeEnum known_type[] = {
     [ArchiveTabIButton] = ArchiveFileTypeIButton,
     [ArchiveTabNFC] = ArchiveFileTypeNFC,
     [ArchiveTabSubGhz] = ArchiveFileTypeSubGhz,
-    [ArchiveTabSubGhzRemote] = ArchiveFileTypeSubghzRemote,
     [ArchiveTabLFRFID] = ArchiveFileTypeLFRFID,
     [ArchiveTabInfrared] = ArchiveFileTypeInfrared,
-    [ArchiveTabBadKb] = ArchiveFileTypeBadKb,
+    [ArchiveTabBadUsb] = ArchiveFileTypeBadUsb,
     [ArchiveTabU2f] = ArchiveFileTypeU2f,
     [ArchiveTabApplications] = ArchiveFileTypeAppOrJs,
     [ArchiveTabSearch] = ArchiveFileTypeSearch,
@@ -79,9 +81,16 @@ static inline const char* archive_get_default_path(ArchiveTabEnum tab) {
 }
 
 inline bool archive_is_known_app(ArchiveFileTypeEnum type) {
-    return (type < ArchiveFileTypeUnknown);
+    return type < ArchiveFileTypeUnknown;
 }
 
+void archive_file_browser_set_path(
+    ArchiveBrowserView* browser,
+    FuriString* path,
+    const char* filter_ext,
+    bool skip_assets,
+    bool hide_dot_files,
+    const char* override_home_path);
 bool archive_is_item_in_array(ArchiveBrowserViewModel* model, uint32_t idx);
 bool archive_is_file_list_load_required(ArchiveBrowserViewModel* model);
 void archive_update_offset(ArchiveBrowserView* browser);
@@ -106,6 +115,7 @@ void archive_add_file_item(ArchiveBrowserView* browser, bool is_folder, const ch
 void archive_show_file_menu(ArchiveBrowserView* browser, bool show, bool manage);
 void archive_favorites_move_mode(ArchiveBrowserView* browser, bool active);
 
+void archive_set_tab(ArchiveBrowserView* browser, ArchiveTabEnum tab);
 void archive_switch_tab(ArchiveBrowserView* browser, InputKey key);
 void archive_enter_dir(ArchiveBrowserView* browser, FuriString* name);
 void archive_leave_dir(ArchiveBrowserView* browser);

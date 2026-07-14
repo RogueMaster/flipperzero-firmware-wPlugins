@@ -20,6 +20,7 @@ static const ActionMenuItemType ItemToMenuItem[] = {
     [Item_IR] = ActionMenuItemTypeIR,
     [Item_NFC] = ActionMenuItemTypeNFC,
     [Item_iButton] = ActionMenuItemTypeiButton,
+    [Item_Picopass] = ActionMenuItemTypePicopass,
     [Item_Playlist] = ActionMenuItemTypePlaylist,
     [Item_Group] = ActionMenuItemTypeGroup,
     [Item_Settings] = ActionMenuItemTypeSettings,
@@ -67,9 +68,12 @@ void scene_items_on_enter(void* context) {
         int32_t index = 0;
         for(ItemArray_it(iter, items_view->items); !ItemArray_end_p(iter);
             ItemArray_next(iter), ++index) {
-            const char* label = furi_string_get_cstr(ItemArray_cref(iter)->name);
-            ActionMenuItemType type = ItemToMenuItem[ItemArray_cref(iter)->type];
-            action_menu_add_item(menu, label, index, scene_items_item_callback, type, app);
+            const Item* item = ItemArray_cref(iter);
+            const char* label = furi_string_get_cstr(item->name);
+            ActionMenuItemType type = ItemToMenuItem[item->type];
+            ActionMenuItem* menu_item =
+                action_menu_add_item(menu, label, index, scene_items_item_callback, type, app);
+            action_menu_item_set_link(menu_item, item->is_link);
         }
     } else {
         FURI_LOG_W(TAG, "No items for: %s", furi_string_get_cstr(items_view->path));
@@ -113,6 +117,11 @@ bool scene_items_on_event(void* context, SceneManagerEvent event) {
                     item_items_view_free(app->items_view);
                     app->items_view = new_items;
                     scene_manager_next_scene(app->scene_manager, QScene_Items);
+                } else if(item->type == Item_Picopass) {
+                    // Picopass uses a dedicated scene for continuous emulation
+                    FURI_LOG_I(
+                        TAG, "Starting picopass emulation: %s", furi_string_get_cstr(item->name));
+                    scene_manager_next_scene(app->scene_manager, QScene_PicopassEmulate);
                 } else {
                     FURI_LOG_I(
                         TAG, "Initiating item action: %s", furi_string_get_cstr(item->name));

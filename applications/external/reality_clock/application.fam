@@ -1,0 +1,13 @@
+App(
+    appid="reality_clock",
+    name="Reality Clock",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="reality_clock_app",
+    stack_size=8 * 1024,
+    fap_icon="icon.png",
+    fap_category="Tools",
+    fap_author="Eris-Margeta",
+    fap_weburl="https://github.com/Eris-Margeta/flipper-apps",
+    fap_version="4.1",
+    fap_description="Dimensional stability monitor using multi-band EM ratio analysis.",
+)

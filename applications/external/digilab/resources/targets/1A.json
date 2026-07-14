@@ -1,0 +1,14 @@
+{
+  "components": [
+    {
+      "partno": "MPU6050",
+      "desc": "6-axis IMU.",
+      "type": 15,
+      "manufacturer": "InvenSense",
+      "date": "2010"
+    }
+  ],
+  "unique_types": [
+    15
+  ]
+}

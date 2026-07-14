@@ -142,15 +142,11 @@ static bool fuzzer_worker_load_key(FuzzerWorker* instance, bool next) {
         break;
 
     case FuzzerWorkerAttackTypeLoadFileCustomUids: {
-        if(next) {
-            instance->index++;
-        }
         uint8_t str_len = protocol->data_size * 2 + 1;
         FuriString* data_str = furi_string_alloc();
         while(true) {
             furi_string_reset(data_str);
             if(!stream_read_line(instance->uids_stream, data_str)) {
-                stream_rewind(instance->uids_stream);
                 // TODO Check empty file & close stream and storage
                 break;
             } else if(furi_string_get_char(data_str, 0) == '#') {
@@ -173,6 +169,9 @@ static bool fuzzer_worker_load_key(FuzzerWorker* instance, bool next) {
                     }
                 }
                 res = parse_ok;
+                if(res && next) {
+                    instance->index++;
+                }
             }
             break;
         }
@@ -218,6 +217,22 @@ static bool fuzzer_worker_load_previous_key(FuzzerWorker* instance) {
                 protocol->data_size);
             res = true;
         }
+        break;
+
+    case FuzzerWorkerAttackTypeLoadFileCustomUids:
+        if(instance->index == 0 || instance->uids_stream == NULL) {
+            break;
+        }
+        instance->index--;
+        stream_rewind(instance->uids_stream);
+
+        bool ok = false;
+        uint16_t steps = (uint16_t)(instance->index + 1);
+        for(uint16_t i = 0; i < steps; i++) {
+            ok = fuzzer_worker_load_key(instance, false);
+            if(!ok) break;
+        }
+        res = ok;
         break;
 
     case FuzzerWorkerAttackTypeLoadFile:

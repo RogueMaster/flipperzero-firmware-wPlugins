@@ -67,6 +67,66 @@ def _dolphin_emitter(target, source, env):
     return target, source
 
 
+def _packs_emitter(target, source, env):
+    source_dir = source[0]
+    target_dir = target[0]
+    env.Replace(_PACKS_OUT_DIR=target_dir)
+    env.Replace(_PACKS_SRC_DIR=source_dir)
+    target = set()
+
+    # Animations
+    target.update(
+        source_dir.rel_path(node)
+        for node in env.GlobRecursive("*/Anims/manifest.txt", source_dir.srcnode())
+    )
+    target.update(
+        source_dir.rel_path(node)
+        for node in env.GlobRecursive("*/Anims/**/*.bm", source_dir.srcnode())
+    )
+    target.update(
+        source_dir.rel_path(node).removesuffix(".png") + ".bm"
+        for node in env.GlobRecursive("*/Anims/**/*.png", source_dir.srcnode())
+    )
+    # Animated icons
+    target.update(
+        source_dir.rel_path(node)
+        for node in env.GlobRecursive("*/Icons/*/*/meta", source_dir.srcnode())
+    )
+    target.update(
+        source_dir.rel_path(node).removesuffix("frame_rate") + "meta"
+        for node in env.GlobRecursive("*/Icons/*/*/frame_rate", source_dir.srcnode())
+    )
+    target.update(
+        source_dir.rel_path(node)
+        for node in env.GlobRecursive("*/Icons/*/*/*.bm", source_dir.srcnode())
+    )
+    target.update(
+        source_dir.rel_path(node).removesuffix(".png") + ".bm"
+        for node in env.GlobRecursive("*/Icons/*/*/*.png", source_dir.srcnode())
+    )
+    # Static icons
+    target.update(
+        source_dir.rel_path(node)
+        for node in env.GlobRecursive("*/Icons/*/*.bmx", source_dir.srcnode())
+    )
+    target.update(
+        source_dir.rel_path(node).removesuffix(".png") + ".bmx"
+        for node in env.GlobRecursive("*/Icons/*/*.png", source_dir.srcnode())
+    )
+    # Fonts
+    target.update(
+        source_dir.rel_path(node)
+        for node in env.GlobRecursive("*/Fonts/*.u8f", source_dir.srcnode())
+    )
+    target.update(
+        source_dir.rel_path(node).removesuffix(".c") + ".u8f"
+        for node in env.GlobRecursive("*/Fonts/*.c", source_dir.srcnode())
+    )
+
+    target = [target_dir.File(path) for path in target]
+    return target, source
+
+
 def __invoke_git(args, source_dir):
     cmd = ["git"]
     cmd.extend(args)
@@ -108,9 +168,12 @@ def _proto_ver_generator(target, source, env):
         git_describe = describe()
 
     if not git_describe:
-        raise StopError("Failed to process git tags for protobuf versioning")
+        # Use a fallback version when git tags are not available
+        print(fg.boldyellow("Using fallback protobuf version"))
+        git_major, git_minor = "0", "4"
+    else:
+        git_major, git_minor = git_describe.split(".")
 
-    git_major, git_minor = git_describe.split(".")
     version_file_data = (
         "#pragma once",
         f"#define PROTOBUF_MAJOR_VERSION {git_major}",
@@ -121,12 +184,26 @@ def _proto_ver_generator(target, source, env):
         file.write("\n".join(version_file_data))
 
 
-def CompileIcons(env, target_dir, source_dir, *, icon_bundle_name="assets_icons"):
+def CompileIcons(
+    env,
+    target_dir,
+    source_dir,
+    *,
+    icon_bundle_name="assets_icons",
+    fw_bundle=False,
+    add_include=False,
+):
+    try:
+        os.mkdir(str(source_dir))
+    except FileExistsError:
+        pass
     return env.IconBuilder(
         target_dir,
         None,
         ICON_SRC_DIR=source_dir,
         ICON_FILE_NAME=icon_bundle_name,
+        ICON_FW_BUNDLE=int(fw_bundle),
+        ICON_ADD_INCLUDE=int(add_include),
     )
 
 
@@ -142,6 +219,7 @@ def generate(env):
             ICONSCOMSTR="\tICONS\t${TARGET}",
             PROTOCOMSTR="\tPROTO\t${SOURCE}",
             DOLPHINCOMSTR="\tDOLPHIN\t${DOLPHIN_RES_TYPE}",
+            PACKSCOMSTR="\tPACKS\t${SOURCE}",
             PBVERCOMSTR="\tPBVER\t${TARGET}",
         )
 
@@ -158,6 +236,10 @@ def generate(env):
                             "${TARGET.dir}",
                             "--filename",
                             "${ICON_FILE_NAME}",
+                            "--fw-bundle",
+                            "${ICON_FW_BUNDLE}",
+                            "--add-include",
+                            "${ICON_ADD_INCLUDE}",
                         ],
                     ],
                     "${ICONSCOMSTR}",
@@ -213,6 +295,21 @@ def generate(env):
                     "${DOLPHINCOMSTR}",
                 ),
                 emitter=_dolphin_emitter,
+            ),
+            "AssetPacksBuilder": Builder(
+                action=Action(
+                    [
+                        [
+                            "${PYTHON3}",
+                            "${ASSETS_COMPILER}",
+                            "packs",
+                            "${_PACKS_SRC_DIR}",
+                            "${_PACKS_OUT_DIR}",
+                        ],
+                    ],
+                    "${PACKSCOMSTR}",
+                ),
+                emitter=_packs_emitter,
             ),
             "ProtoVerBuilder": Builder(
                 action=Action(

@@ -1,17 +1,18 @@
 #pragma once
 #include <toolbox/protocols/protocol.h>
 #include "../tools/t5577.h"
+#include "../tools/em4305.h"
+#include "../tools/hitagmicro.h"
 
 typedef enum {
     LFRFIDFeatureASK = 1 << 0, /** ASK Demodulation */
     LFRFIDFeaturePSK = 1 << 1, /** PSK Demodulation */
-    LFRFIDFeatureRTF = 1 << 2, /** Reader Talks First: ASK Demodulation with 2 way communication */
 } LFRFIDFeature;
 
 typedef enum {
     LFRFIDProtocolEM4100,
-    LFRFIDProtocolEM4100_32,
-    LFRFIDProtocolEM4100_16,
+    LFRFIDProtocolEM410032,
+    LFRFIDProtocolEM410016,
     LFRFIDProtocolElectra,
     LFRFIDProtocolH10301,
     LFRFIDProtocolIdteck,
@@ -30,23 +31,30 @@ typedef enum {
     LFRFIDProtocolPACStanley,
     LFRFIDProtocolKeri,
     LFRFIDProtocolGallagher,
-    LFRFIDProtocolHitag1,
     LFRFIDProtocolNexwatch,
-    LFRFIDProtocolInstafob,
     LFRFIDProtocolSecurakey,
     LFRFIDProtocolGProxII,
+    LFRFIDProtocolNoralsy,
+    LFRFIDProtocolInstaFob,
+
     LFRFIDProtocolMax,
 } LFRFIDProtocol;
 
-extern const ProtocolBase* lfrfid_protocols[];
+extern const ProtocolBase* const lfrfid_protocols[];
 
 typedef enum {
     LFRFIDWriteTypeT5577,
+    LFRFIDWriteTypeEM4305,
+    LFRFIDWriteTypeHitagMicro, // ID82xx / Hitag micro magic chips (EM4100 emulation)
+
+    LFRFIDWriteTypeMax,
 } LFRFIDWriteType;
 
 typedef struct {
     LFRFIDWriteType write_type;
     union {
         LFRFIDT5577 t5577;
+        LFRFIDEM4305 em4305;
+        LFRFIDHitagMicro hitagmicro;
     };
 } LFRFIDWriteRequest;

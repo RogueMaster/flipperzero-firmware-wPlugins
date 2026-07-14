@@ -1,0 +1,15 @@
+App(
+    appid="vk_thermo",
+    name="VK Thermo",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="vk_thermo_app",
+    stack_size=4 * 1024,
+    fap_icon="icons/vk_thermo_10px.png",
+    fap_icon_assets="icons",
+    fap_category="NFC",
+    fap_author="VivoKey Technologies",
+    fap_weburl="https://github.com/VivoKey/vkthermo-flipper",
+    #  fap_weburl="https://github.com/xMasterX/all-the-plugins/pull/207",
+    fap_version="1.0",
+    fap_description="Read temperature from your VivoKey Thermo via NFC. Multi-thermo tracking, history, and graph views.",
+)

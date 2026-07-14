@@ -1,10 +1,11 @@
 #pragma once
 
-#define UBLOX_VERSION_APP "0.3"
+#define UBLOX_VERSION_APP FAP_VERSION
 #define UBLOX_DEVELOPED   "liamhays"
 #define UBLOX_GITHUB      "https://github.com/liamhays/ublox"
 
 #define UBLOX_KML_EXTENSION ".kml"
+#define UBLOX_GPX_EXTENSION ".gpx"
 
 typedef enum {
     UbloxLogStateStartLogging,
@@ -46,12 +47,17 @@ typedef enum {
     UbloxPlatformModelWrist = 9,
 } UbloxPlatformModel;
 
+typedef enum {
+    UbloxLogFormatKML,
+    UbloxLogFormatGPX,
+} UbloxLogFormat;
+
 typedef struct UbloxDataDisplayState {
     UbloxDataDisplayViewMode view_mode;
     UbloxDataDisplayBacklightMode backlight_mode;
     UbloxDataDisplayRefreshRate refresh_rate;
     UbloxDataDisplayNotifyMode notify_mode;
-
+    UbloxLogFormat log_format;
 } UbloxDataDisplayState;
 
 typedef struct UbloxDeviceState {

@@ -26,6 +26,7 @@ typedef struct {
     size_t minimum_length;
     bool clear_default_text;
 
+    bool illegal_symbols;
     bool cursor_select;
     size_t cursor_pos;
 
@@ -247,6 +248,33 @@ static char char_to_uppercase(const char letter) {
     }
 }
 
+static char char_to_illegal_symbol(char original) {
+    switch(original) {
+    default:
+        return original;
+    case '0':
+        return '_';
+    case '1':
+        return '<';
+    case '2':
+        return '>';
+    case '3':
+        return ':';
+    case '4':
+        return '"';
+    case '5':
+        return '/';
+    case '6':
+        return '\\';
+    case '7':
+        return '|';
+    case '8':
+        return '?';
+    case '9':
+        return '*';
+    }
+}
+
 static void nfc_maker_text_input_backspace_cb(NFCMaker_TextInputModel* model) {
     if(model->clear_default_text) {
         model->text_buffer[0] = 0;
@@ -307,13 +335,15 @@ static void nfc_maker_text_input_view_draw_callback(Canvas* canvas, void* _model
         while(len && canvas_string_width(canvas, str) > needed_string_width) {
             str[len--] = '\0';
         }
-        strcat(str, "...");
+        strlcat(str, "...", sizeof(buf) - (str - buf));
     }
 
     canvas_draw_str(canvas, start_pos, 22, str);
 
     canvas_set_font(canvas, FontKeyboard);
 
+    bool uppercase = model->clear_default_text || text_length == 0;
+    bool symbols = model->selected_keyboard == symbol_keyboard.keyboard_index;
     for(uint8_t row = 0; row < keyboard_row_count; row++) {
         const uint8_t column_count = get_row_size(keyboards[model->selected_keyboard], row);
         const NFCMaker_TextInputKey* keys = get_row(keyboards[model->selected_keyboard], row);
@@ -338,27 +368,30 @@ static void nfc_maker_text_input_view_draw_callback(Canvas* canvas, void* _model
                     icon);
             } else {
                 if(selected) {
-                    canvas_draw_box(
+                    elements_slightly_rounded_box(
                         canvas,
-                        keyboard_origin_x + keys[column].x - 1,
-                        keyboard_origin_y + keys[column].y - 8,
-                        7,
-                        10);
+                        keyboard_origin_x + keys[column].x - 2,
+                        keyboard_origin_y + keys[column].y - 9,
+                        9,
+                        11);
                     canvas_set_color(canvas, ColorWhite);
                 }
 
-                if(model->clear_default_text || text_length == 0) {
+                char glyph = keys[column].text;
+                if(uppercase && !symbols) {
                     canvas_draw_glyph(
                         canvas,
                         keyboard_origin_x + keys[column].x,
                         keyboard_origin_y + keys[column].y,
-                        char_to_uppercase(keys[column].text));
+                        char_to_uppercase(glyph));
                 } else {
                     canvas_draw_glyph(
                         canvas,
                         keyboard_origin_x + keys[column].x,
-                        keyboard_origin_y + keys[column].y,
-                        keys[column].text);
+                        keyboard_origin_y + keys[column].y -
+                            (glyph == '_' || char_is_lowercase(glyph)),
+                        (symbols && model->illegal_symbols) ? char_to_illegal_symbol(glyph) :
+                                                              glyph);
                 }
             }
         }
@@ -483,8 +516,13 @@ static void nfc_maker_text_input_handle_ok(
                 text_length = 0;
             }
             if(text_length < (model->text_buffer_size - 1)) {
-                if(shift != (text_length == 0)) {
+                if(shift != (text_length == 0) &&
+                   model->selected_keyboard != symbol_keyboard.keyboard_index) {
                     selected = char_to_uppercase(selected);
+                }
+                if(model->selected_keyboard == symbol_keyboard.keyboard_index &&
+                   model->illegal_symbols) {
+                    selected = char_to_illegal_symbol(selected);
                 }
                 if(model->clear_default_text) {
                     model->text_buffer[0] = selected;
@@ -624,6 +662,7 @@ NFCMaker_TextInput* nfc_maker_text_input_alloc() {
         {
             model->validator_text = furi_string_alloc();
             model->minimum_length = 1;
+            model->illegal_symbols = false;
             model->cursor_pos = 0;
             model->cursor_select = false;
         },
@@ -663,6 +702,7 @@ void nfc_maker_text_input_reset(NFCMaker_TextInput* nfc_maker_text_input) {
             model->selected_column = 0;
             model->selected_keyboard = 0;
             model->minimum_length = 1;
+            model->illegal_symbols = false;
             model->clear_default_text = false;
             model->cursor_pos = 0;
             model->cursor_select = false;
@@ -720,6 +760,15 @@ void nfc_maker_text_input_set_minimum_length(
         nfc_maker_text_input->view,
         NFCMaker_TextInputModel * model,
         { model->minimum_length = minimum_length; },
+        true);
+}
+
+void nfc_maker_text_input_show_illegal_symbols(NFCMaker_TextInput* text_input, bool show) {
+    furi_check(text_input);
+    with_view_model(
+        text_input->view,
+        NFCMaker_TextInputModel * model,
+        { model->illegal_symbols = show; },
         true);
 }
 

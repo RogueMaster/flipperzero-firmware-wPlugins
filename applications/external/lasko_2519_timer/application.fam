@@ -1,0 +1,14 @@
+App(
+    appid="lasko_automator",
+    name="Lasko 2519 Timer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="lasko_automator_app",
+    stack_size=2 * 1024,
+    targets=["f7"],
+    fap_icon="icon.png",
+    fap_category="Infrared",
+    fap_author="LN4CY",
+    fap_weburl="https://github.com/LN4CY/lasko-2519-timer",
+    fap_version="1.0",
+    fap_description="Automates Lasko 2519 fans with a configurable ON/OFF timer cycle.",
+)

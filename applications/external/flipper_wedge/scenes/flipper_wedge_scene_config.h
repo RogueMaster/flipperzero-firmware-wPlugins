@@ -1,0 +1,6 @@
+ADD_SCENE(flipper_wedge, startscreen, Startscreen)
+ADD_SCENE(flipper_wedge, menu, Menu)
+ADD_SCENE(flipper_wedge, settings, Settings)
+ADD_SCENE(flipper_wedge, bt_pair, BtPair)
+// Deprecated: usb_debug_restart scene no longer needed (dynamic switching works without restart)
+// ADD_SCENE(flipper_wedge, usb_debug_restart, UsbDebugRestart)

@@ -6,6 +6,6 @@ void ping_wait_ms(int ms) {
     furi_delay_ms(ms);
 }
 
-uint8_t ping_auto_interface(uint8_t* adress) {
-    return ping_auto(PING_SOCKET, adress);
+uint8_t ping_auto_interface(uint8_t* address) {
+    return ping_auto(PING_SOCKET, address);
 }

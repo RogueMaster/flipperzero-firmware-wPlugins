@@ -1,0 +1,28 @@
+## LightMessenger - by Tixlegeek, brought to you by LAB401
+
+sourcecode:
+  type: git
+  location:
+    ## Specify the git URL of your repository
+    origin: https://github.com/lab-401/fzDigiLab
+    ## Put the full commit SHA of the commit with the app's code you want to submit
+    commit_sha: 469117c22037c15c57234ed771760edd2ae1b96b
+    ## (Optional) If your app is located in a subdirectory of the repository, specify it here
+    subdir: ./401DigiLabApp
+## If application.fam contains 'fap_description', it will be used as a short description
+short_description: Companion app for the Lab401 DigiLab
+## For 'description' and 'changelog', you can use limited markdown syntax
+## You can also specify a file from your app's repository as a source with @
+description: |
+  Companion app for Lab401's Digilab accessory. The Digilab is hardware module that allows you to explore electronic circuits with a strong emphasis on sensory feedback. It allows you to quickly probe and understand signals, and get a feel about what it looks like.
+  Requires a hardware component, which can be purchased at Lab401.com
+  Built with <3 by Lab401 and tixlegeek.
+changelog: "@CHANGELOG.md"
+## Unmodified screenshots from qFlipper
+screenshots:
+  - screenshots/sc01.png
+  - screenshots/sc02.png
+  - screenshots/sc03.png
+  - screenshots/sc04.png
+  - screenshots/sc05.png
+  - screenshots/sc06.png

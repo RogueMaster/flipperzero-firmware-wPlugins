@@ -1,0 +1,15 @@
+App(
+    appid="snowflake",
+    name="Snowflake",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="snowflake_main",
+    stack_size=4 * 1024,
+    fap_icon_assets="images",
+    fap_icon="images/icon_10x10.png",
+    fap_icon_assets_symbol="mitzi_snowflake",
+    fap_category="Media",
+    fap_author="F Greil",
+    fap_weburl="https://github.com/fgreil/mitzi-snowflake",
+    fap_version=(0, 1, 0),
+    fap_description="Simple app to show aesthetic images",
+)

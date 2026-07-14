@@ -1,0 +1,1 @@
+ACTION=="add", SUBSYSTEM=="rc", ATTR{protocols}="rc-6 nec"

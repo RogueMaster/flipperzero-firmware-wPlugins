@@ -1,0 +1,50 @@
+{
+  "components": [
+    {
+      "partno": "PCF8575",
+      "desc": "16-bit I/O expander.",
+      "type": 16,
+      "manufacturer": "NXP Semi",
+      "date": "2004"
+    },
+    {
+      "partno": "MCP23008",
+      "desc": "8-bit I/O expander.",
+      "type": 16,
+      "manufacturer": "Microchip",
+      "date": "2008"
+    },
+    {
+      "partno": "VL53L1X",
+      "desc": "Time-of-flight sensor.",
+      "type": 22,
+      "manufacturer": "STMicro",
+      "date": "2018"
+    },
+    {
+      "partno": "TSL2591",
+      "desc": "High-sensitivity light sensor.",
+      "type": 22,
+      "manufacturer": "ams AG",
+      "date": "2013"
+    },
+    {
+      "partno": "VL53L0x",
+      "desc": "Time-of-flight sensor.",
+      "type": 22,
+      "manufacturer": "STMicro",
+      "date": "2015"
+    },
+    {
+      "partno": "VL6180X",
+      "desc": "Time-of-flight sensor.",
+      "type": 22,
+      "manufacturer": "STMicro",
+      "date": "2014"
+    }
+  ],
+  "unique_types": [
+    16,
+    22
+  ]
+}

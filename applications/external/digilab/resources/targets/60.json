@@ -1,0 +1,74 @@
+{
+  "components": [
+    {
+      "partno": "SI1145",
+      "desc": "UV index and ambient light sensor",
+      "type": 22,
+      "manufacturer": "SiliconLabs",
+      "date": "2013"
+    },
+    {
+      "partno": "MPU6050",
+      "desc": "6-axis IMU.",
+      "type": 15,
+      "manufacturer": "InvenSense",
+      "date": "2010"
+    },
+    {
+      "partno": "Si5351A",
+      "desc": "Clock generator.",
+      "type": 5,
+      "manufacturer": "SiliconLabs",
+      "date": "2012"
+    },
+    {
+      "partno": "MCP4728",
+      "desc": "DAC.",
+      "type": 9,
+      "manufacturer": "Microchip",
+      "date": "2009"
+    },
+    {
+      "partno": "MPL115A2",
+      "desc": "Pressure sensor.",
+      "type": 22,
+      "manufacturer": "NXP Semi",
+      "date": "2009"
+    },
+    {
+      "partno": "MPL3115A2",
+      "desc": "Pressure sensor.",
+      "type": 22,
+      "manufacturer": "NXP Semi",
+      "date": "2011"
+    },
+    {
+      "partno": "VEML7700",
+      "desc": "Light sensor.",
+      "type": 22,
+      "manufacturer": "Vishay",
+      "date": "2015"
+    },
+    {
+      "partno": "VCNL4040",
+      "desc": "Proximity/light sensor.",
+      "type": 22,
+      "manufacturer": "Vishay",
+      "date": "2017"
+    },
+    {
+      "partno": "TEA5767",
+      "desc": "Radio receiver.",
+      "type": 21,
+      "manufacturer": "NXP Semi",
+      "date": "2008"
+    }
+  ],
+  "unique_types": [
+    22,
+    15,
+    5,
+    9,
+    21
+  ]
+}

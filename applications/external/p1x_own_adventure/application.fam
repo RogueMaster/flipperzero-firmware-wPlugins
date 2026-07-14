@@ -1,0 +1,15 @@
+App(
+    appid="p1x_your_own_adventure",
+    name="P1X Your Own Adventure",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="p1x_your_own_adventure_app",
+    stack_size=2 * 1024,
+    fap_icon="p1x_your_own_adventure.png",
+    #  fap_icon_assets="images",
+    fap_category="Games",
+    fap_author="w84death",
+    #  fap_author="Krzysztof Krystian Jankowski / P1X",
+    fap_weburl="https://github.com/w84death/flipper-zero-apps",
+    fap_version="0.1",
+    fap_description="Choose your own adventure text game",
+)

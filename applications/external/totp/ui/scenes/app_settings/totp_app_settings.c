@@ -16,9 +16,14 @@
 #include "../../../workers/bt_type_code/bt_type_code.h"
 #endif
 
+#include <assets_icons.h>
+
 #define FONT_TEST_STR_LENGTH (7)
 
 static const char* YES_NO_LIST[] = {"NO", "YES"};
+static const char* TOKEN_GROUPING_LIST[] = {"NO", "2", "3"};
+static const uint8_t TOKEN_GROUPING_LIST_VALUES[] = {0, 2, 3};
+static const uint8_t TOKEN_GROUPING_LIST_VALUES_INDEXES[] = {0, 0, 1, 2};
 static const char* AUTOMATION_LIST[] = {
     "None",
     "USB"
@@ -40,6 +45,7 @@ typedef enum {
     BadKeyboardLayoutSelect,
     AutomationDelaySelect,
     BadBtProfileSelect,
+    SplitTokenIntoGroupsSelect,
     ConfirmButton
 } Control;
 
@@ -62,6 +68,7 @@ typedef struct {
     uint8_t badbt_profile_index;
 #endif
     char automation_initial_delay_formatted[10];
+    uint8_t split_token_into_groups;
 } SceneState;
 
 static void two_digit_to_str(int8_t num, char* str) {
@@ -124,6 +131,9 @@ void totp_scene_app_settings_activate(PluginState* plugin_state) {
 
     update_formatted_automation_initial_delay(scene_state);
     update_formatted_automation_kb_layout_name(scene_state);
+
+    scene_state->split_token_into_groups =
+        TOKEN_GROUPING_LIST_VALUES_INDEXES[plugin_state->split_token_into_groups];
 }
 
 void totp_scene_app_settings_render(Canvas* const canvas, const PluginState* plugin_state) {
@@ -204,7 +214,7 @@ void totp_scene_app_settings_render(Canvas* const canvas, const PluginState* plu
             SCREEN_WIDTH - 36 - UI_CONTROL_VSCROLL_WIDTH,
             YES_NO_LIST[scene_state->notification_vibro],
             scene_state->selected_control == VibroSwitch);
-    } else {
+    } else if(scene_state->selected_control < SplitTokenIntoGroupsSelect) {
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(
             canvas, 0, 192 - scene_state->y_offset, AlignLeft, AlignTop, "Automation");
@@ -289,16 +299,26 @@ void totp_scene_app_settings_render(Canvas* const canvas, const PluginState* plu
                 scene_state->selected_control == BadBtProfileSelect);
         }
 #endif
+    } else {
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str_aligned(canvas, 0, 256 - scene_state->y_offset, AlignLeft, AlignTop, "UI");
+        canvas_set_font(canvas, FontSecondary);
+
+        canvas_draw_str_aligned(
+            canvas, 0, 273 - scene_state->y_offset, AlignLeft, AlignTop, "Digit grouping:");
+
+        ui_control_select_render(
+            canvas,
+            64,
+            266 - scene_state->y_offset,
+            SCREEN_WIDTH - 64 - UI_CONTROL_VSCROLL_WIDTH,
+            TOKEN_GROUPING_LIST[scene_state->split_token_into_groups],
+            scene_state->selected_control == SplitTokenIntoGroupsSelect);
 
         ui_control_button_render(
             canvas,
             SCREEN_WIDTH_CENTER - 24,
-#ifdef TOTP_BADBT_AUTOMATION_ENABLED
-            ((scene_state->automation_method & AutomationMethodBadBt) == 0 ? 260 : 278)
-#else
-            260
-#endif
-                - scene_state->y_offset - group_offset,
+            306 - scene_state->y_offset,
             48,
             13,
             "Confirm",
@@ -332,7 +352,16 @@ bool totp_scene_app_settings_handle_event(
                 scene_state->selected_control--;
             }
 #endif
-            if(scene_state->selected_control > VibroSwitch) {
+
+            if(scene_state->selected_control >
+#ifdef TOTP_BADBT_AUTOMATION_ENABLED
+               BadBtProfileSelect
+#else
+               AutomationDelaySelect
+#endif
+            ) {
+                scene_state->y_offset = SCREEN_HEIGHT * 4;
+            } else if(scene_state->selected_control > VibroSwitch) {
                 scene_state->y_offset = SCREEN_HEIGHT * 3;
             } else if(scene_state->selected_control > FontSelect) {
                 scene_state->y_offset = SCREEN_HEIGHT * 2;
@@ -355,7 +384,16 @@ bool totp_scene_app_settings_handle_event(
                 scene_state->selected_control++;
             }
 #endif
-            if(scene_state->selected_control > VibroSwitch) {
+
+            if(scene_state->selected_control >
+#ifdef TOTP_BADBT_AUTOMATION_ENABLED
+               BadBtProfileSelect
+#else
+               AutomationDelaySelect
+#endif
+            ) {
+                scene_state->y_offset = SCREEN_HEIGHT * 4;
+            } else if(scene_state->selected_control > VibroSwitch) {
                 scene_state->y_offset = SCREEN_HEIGHT * 3;
             } else if(scene_state->selected_control > FontSelect) {
                 scene_state->y_offset = SCREEN_HEIGHT * 2;
@@ -368,7 +406,7 @@ bool totp_scene_app_settings_handle_event(
         case InputKeyRight:
             if(scene_state->selected_control == HoursInput) {
                 totp_roll_value_int8_t(
-                    &scene_state->tz_offset_hours, 1, -12, 12, RollOverflowBehaviorStop);
+                    &scene_state->tz_offset_hours, 1, -12, 14, RollOverflowBehaviorStop);
             } else if(scene_state->selected_control == MinutesInput) {
                 totp_roll_value_uint8_t(
                     &scene_state->tz_offset_minutes, 15, 0, 45, RollOverflowBehaviorRoll);
@@ -415,11 +453,19 @@ bool totp_scene_app_settings_handle_event(
                     &scene_state->badbt_profile_index, 1, 0, UINT8_MAX, RollOverflowBehaviorRoll);
             }
 #endif
+            else if(scene_state->selected_control == SplitTokenIntoGroupsSelect) {
+                totp_roll_value_uint8_t(
+                    &scene_state->split_token_into_groups,
+                    1,
+                    0,
+                    COUNT_OF(TOKEN_GROUPING_LIST) - 1,
+                    RollOverflowBehaviorRoll);
+            }
             break;
         case InputKeyLeft:
             if(scene_state->selected_control == HoursInput) {
                 totp_roll_value_int8_t(
-                    &scene_state->tz_offset_hours, -1, -12, 12, RollOverflowBehaviorStop);
+                    &scene_state->tz_offset_hours, -1, -12, 14, RollOverflowBehaviorStop);
             } else if(scene_state->selected_control == MinutesInput) {
                 totp_roll_value_uint8_t(
                     &scene_state->tz_offset_minutes, -15, 0, 45, RollOverflowBehaviorRoll);
@@ -466,6 +512,14 @@ bool totp_scene_app_settings_handle_event(
                     &scene_state->badbt_profile_index, -1, 0, UINT8_MAX, RollOverflowBehaviorRoll);
             }
 #endif
+            else if(scene_state->selected_control == SplitTokenIntoGroupsSelect) {
+                totp_roll_value_uint8_t(
+                    &scene_state->split_token_into_groups,
+                    -1,
+                    0,
+                    COUNT_OF(TOKEN_GROUPING_LIST) - 1,
+                    RollOverflowBehaviorRoll);
+            }
             break;
         case InputKeyOk:
             if(scene_state->selected_control == ConfirmButton) {
@@ -482,6 +536,8 @@ bool totp_scene_app_settings_handle_event(
                 plugin_state->active_font_index = scene_state->active_font_index;
                 plugin_state->automation_kb_layout = scene_state->automation_kb_layout;
                 plugin_state->automation_initial_delay = scene_state->automation_initial_delay;
+                plugin_state->split_token_into_groups =
+                    TOKEN_GROUPING_LIST_VALUES[scene_state->split_token_into_groups];
 
 #ifdef TOTP_BADBT_AUTOMATION_ENABLED
                 if(((scene_state->automation_method & AutomationMethodBadBt) == 0 ||

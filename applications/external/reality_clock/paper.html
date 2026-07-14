@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Band Electromagnetic Ratio Analysis for Dimensional Constant Detection</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --text-color: #1a1a1a;
+            --bg-color: #ffffff;
+            --accent-color: #2c3e50;
+            --border-color: #dee2e6;
+            --code-bg: #f8f9fa;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            color: var(--text-color);
+            background: var(--bg-color);
+        }
+
+        h1 {
+            font-size: 16pt;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .authors {
+            text-align: center;
+            font-size: 11pt;
+            margin-bottom: 5px;
+        }
+
+        .affiliation {
+            text-align: center;
+            font-size: 10pt;
+            font-style: italic;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .abstract {
+            background: var(--code-bg);
+            padding: 20px;
+            margin: 30px 0;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .abstract-title {
+            font-weight: bold;
+            font-size: 11pt;
+            margin-bottom: 10px;
+        }
+
+        .abstract p {
+            font-size: 10pt;
+            text-align: justify;
+            margin: 0;
+        }
+
+        h2 {
+            font-size: 12pt;
+            font-weight: bold;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+
+        h3 {
+            font-size: 11pt;
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            text-align: justify;
+            margin-bottom: 12px;
+        }
+
+        .equation {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .equation-number {
+            float: right;
+            margin-right: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 10pt;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        th {
+            background: var(--code-bg);
+            font-weight: bold;
+        }
+
+        .figure {
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .figure pre {
+            display: inline-block;
+            text-align: left;
+            font-family: 'Courier New', monospace;
+            font-size: 9pt;
+            background: #1a1a2e;
+            color: #00ff88;
+            padding: 20px;
+            border-radius: 8px;
+            line-height: 1.4;
+        }
+
+        .figure-caption {
+            font-size: 10pt;
+            font-style: italic;
+            margin-top: 10px;
+            color: #666;
+        }
+
+        .references {
+            font-size: 10pt;
+        }
+
+        .references p {
+            text-indent: -20px;
+            padding-left: 20px;
+            margin-bottom: 8px;
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+            font-size: 10pt;
+            background: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .keywords {
+            font-size: 10pt;
+            margin-top: 15px;
+        }
+
+        .keywords strong {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Multi-Band Electromagnetic Ratio Analysis for Detection of<br>Variations in Fundamental Physical Constants</h1>
+
+<p class="authors">E. Margeta<sup>1</sup></p>
+<p class="affiliation"><sup>1</sup>Independent Research, 2026</p>
+
+<div class="abstract">
+    <p class="abstract-title">Abstract</p>
+    <p>
+        We propose a novel method for detecting variations in fundamental electromagnetic constants
+        using multi-band radio frequency analysis on portable embedded hardware. By measuring the
+        ratio of ambient electromagnetic properties across disparate frequency bands (125 kHz,
+        13.56 MHz, and 300-928 MHz), we can establish baseline signatures that would shift detectably
+        if the permittivity of free space (ε₀), permeability of free space (μ₀), or the speed of
+        light (c) were to vary. This approach circumvents the self-reference problem inherent in
+        absolute measurements by relying exclusively on dimensionless ratios. We present a practical
+        implementation using the Flipper Zero platform as a proof-of-concept "Reality Dimension Clock."
+    </p>
+    <p class="keywords"><strong>Keywords:</strong> fundamental constants, electromagnetic ratio analysis, dimensional detection, portable instrumentation, Flipper Zero</p>
+</div>
+
+<h2>1. Introduction</h2>
+
+<p>
+The measurement of fundamental physical constants has traditionally required sophisticated
+laboratory equipment and controlled environments. However, the question of whether such
+constants might vary across different regions of spacetime—or hypothetically, across
+different dimensional planes—presents unique challenges that laboratory measurement cannot address.
+</p>
+
+<p>
+The central problem is one of <em>self-reference</em>: any measuring instrument is itself
+constructed from matter whose properties depend on the very constants being measured. If the
+fine structure constant α were to change, both the phenomenon being measured and the ruler
+measuring it would be affected.
+</p>
+
+<p>
+We propose that this limitation can be partially circumvented by measuring <em>ratios</em>
+between different physical phenomena that depend on fundamental constants in different ways.
+Specifically, we exploit the distinct physics governing near-field inductive coupling versus
+far-field electromagnetic radiation.
+</p>
+
+<h2>2. Theoretical Framework</h2>
+
+<h3>2.1 Fundamental Constants and Electromagnetic Behavior</h3>
+
+<p>
+The speed of light in vacuum is related to the permittivity and permeability of free space by:
+</p>
+
+<div class="equation">
+    \[ c = \frac{1}{\sqrt{\varepsilon_0 \mu_0}} \]
+    <span class="equation-number">(1)</span>
+</div>
+
+<p>
+The characteristic impedance of free space is given by:
+</p>
+
+<div class="equation">
+    \[ Z_0 = \sqrt{\frac{\mu_0}{\varepsilon_0}} \approx 377 \, \Omega \]
+    <span class="equation-number">(2)</span>
+</div>
+
+<p>
+The transition between near-field and far-field electromagnetic behavior occurs at a distance
+proportional to the wavelength λ, which itself depends on frequency f and the speed of light:
+</p>
+
+<div class="equation">
+    \[ \lambda = \frac{c}{f} = \frac{1}{f\sqrt{\varepsilon_0 \mu_0}} \]
+    <span class="equation-number">(3)</span>
+</div>
+
+<h3>2.2 Multi-Band Ratio Analysis</h3>
+
+<p>
+Consider three frequency bands with vastly different wavelengths:
+</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Band</th>
+            <th>Frequency</th>
+            <th>Wavelength (λ)</th>
+            <th>Dominant Coupling</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>LF (RFID)</td>
+            <td>125 kHz</td>
+            <td>2,400 m</td>
+            <td>Near-field inductive</td>
+        </tr>
+        <tr>
+            <td>HF (NFC)</td>
+            <td>13.56 MHz</td>
+            <td>22.1 m</td>
+            <td>Near-field inductive</td>
+        </tr>
+        <tr>
+            <td>UHF (Sub-GHz)</td>
+            <td>433 MHz</td>
+            <td>0.69 m</td>
+            <td>Far-field radiative</td>
+        </tr>
+    </tbody>
+</table>
+
+<p>
+The ratio of signal behavior between these bands should remain constant in a universe with
+fixed electromagnetic constants. We define the <em>dimensional stability index</em> Φ as:
+</p>
+
+<div class="equation">
+    \[ \Phi = \frac{R_{LF/HF}}{R_{HF/UHF}} = \frac{S_{LF}/S_{HF}}{S_{HF}/S_{UHF}} \]
+    <span class="equation-number">(4)</span>
+</div>
+
+<p>
+where S<sub>x</sub> represents the measured signal characteristic (RSSI, noise floor, or
+coupling efficiency) at each frequency band. The value Φ should remain constant regardless
+of environmental factors, as these affect all bands similarly.
+</p>
+
+<h3>2.3 Sensitivity to Constant Variations</h3>
+
+<p>
+If ε₀ or μ₀ were to change by a factor δ, the wavelength at each frequency would scale accordingly:
+</p>
+
+<div class="equation">
+    \[ \lambda' = \frac{1}{f\sqrt{(\varepsilon_0 + \delta\varepsilon_0)(\mu_0 + \delta\mu_0)}} \]
+    <span class="equation-number">(5)</span>
+</div>
+
+<p>
+However, the near-field/far-field transition boundary would also shift, causing the UHF band
+to experience different relative behavior compared to LF and HF bands. This differential
+response is what makes Φ sensitive to variations in fundamental constants.
+</p>
+
+<h2>3. Implementation</h2>
+
+<h3>3.1 Hardware Platform</h3>
+
+<p>
+We implement the measurement system on the Flipper Zero, a portable multi-tool device
+containing the following relevant subsystems:
+</p>
+
+<ul>
+    <li><strong>CC1101</strong> — Sub-GHz transceiver (300-928 MHz) with RSSI measurement</li>
+    <li><strong>ST25R3916</strong> — NFC controller (13.56 MHz) with field strength detection</li>
+    <li><strong>Analog frontend</strong> — 125 kHz RFID with carrier detection</li>
+    <li><strong>Crystal oscillator</strong> — 32.768 kHz reference clock</li>
+</ul>
+
+<h3>3.2 Measurement Protocol</h3>
+
+<p>
+The device periodically samples all three RF subsystems and computes the dimensional
+stability index. A baseline calibration is performed in the "home" reference frame,
+and subsequent measurements are compared against this baseline.
+</p>
+
+<div class="figure">
+<pre>
+╔═══════════════════════════════════════╗
+║     REALITY DIMENSION CLOCK v0.1      ║
+╠═══════════════════════════════════════╣
+║                                       ║
+║   LF (125kHz)     ████████░░  -42dB   ║
+║   HF (13.56MHz)   ██████░░░░  -58dB   ║
+║   Sub-GHz         ███░░░░░░░  -71dB   ║
+║   IR ambient      █████░░░░░  -51dB   ║
+║                                       ║
+╠═══════════════════════════════════════╣
+║   LF/HF ratio:     0.7241             ║
+║   HF/UHF ratio:    0.8169             ║
+║   Baseline match:  99.7%              ║
+║                                       ║
+║   ██████████████████████████████████  ║
+║   HOME DIMENSION                      ║
+╚═══════════════════════════════════════╝
+</pre>
+<p class="figure-caption">Figure 1: Proposed user interface for the Reality Dimension Clock application,
+displaying multi-band signal levels, computed ratios, and dimensional stability assessment.</p>
+</div>
+
+<h3>3.3 Anomaly Detection</h3>
+
+<p>
+The baseline match percentage B is computed as:
+</p>
+
+<div class="equation">
+    \[ B = 100 \times \left(1 - \frac{|\Phi_{measured} - \Phi_{baseline}|}{\Phi_{baseline}}\right) \]
+    <span class="equation-number">(6)</span>
+</div>
+
+<p>
+Values of B significantly below 100% indicate a detectable shift in the ratios, suggesting
+a variation in the underlying physical constants.
+</p>
+
+<h2>4. Discussion</h2>
+
+<h3>4.1 Limitations</h3>
+
+<p>
+Several factors may introduce noise into the measurements:
+</p>
+
+<ul>
+    <li>Environmental RF interference varying by band</li>
+    <li>Temperature effects on crystal oscillator and antenna resonance</li>
+    <li>Orientation-dependent antenna coupling</li>
+    <li>Hardware component tolerances</li>
+</ul>
+
+<p>
+These can be partially mitigated through temporal averaging, statistical filtering, and
+multi-sample calibration protocols.
+</p>
+
+<h3>4.2 Theoretical Considerations</h3>
+
+<p>
+It should be noted that if fundamental constants change, the device's own components—being
+constructed of ordinary matter—would also be affected. However, the <em>differential</em>
+response across frequency bands provides a window of detectability, as the ratio of
+near-field to far-field behavior depends on constants in a non-linear fashion.
+</p>
+
+<p>
+The fine structure constant α, which governs electromagnetic interaction strength, is given by:
+</p>
+
+<div class="equation">
+    \[ \alpha = \frac{e^2}{4\pi\varepsilon_0\hbar c} \approx \frac{1}{137} \]
+    <span class="equation-number">(7)</span>
+</div>
+
+<p>
+Changes in α would affect atomic structure (and hence the device itself), but the
+electromagnetic ratio Φ provides a complementary measurement that may reveal such changes
+before catastrophic hardware failure occurs.
+</p>
+
+<h2>5. Conclusion</h2>
+
+<p>
+We have presented a theoretical framework and practical implementation for detecting
+variations in fundamental electromagnetic constants using portable multi-band RF hardware.
+While the method cannot provide absolute measurements of constants, the dimensionless
+ratio approach offers a novel pathway for detecting <em>relative</em> variations that would
+be invisible to conventional single-band instruments.
+</p>
+
+<p>
+Future work will include extensive baseline calibration across multiple environments,
+statistical analysis of measurement stability, and correlation studies with other potential
+indicators of dimensional or spacetime variation.
+</p>
+
+<h2>6. Testing Scenarios and Falsifiability</h2>
+
+<p>
+For any scientific instrument to be valid, it must be testable and falsifiable. We present
+several hypothetical scenarios to evaluate the Reality Dimension Clock's expected behavior,
+along with potential failure modes that could produce false readings.
+</p>
+
+<h3>6.1 Scenario A: Relativistic Velocity Approach</h3>
+
+<p>
+Consider an observer carrying the device while approaching relativistic velocities (v → c).
+According to special relativity, the measured speed of light remains constant in all inertial
+reference frames. However, other effects would manifest:
+</p>
+
+<div class="equation">
+    \[ \gamma = \frac{1}{\sqrt{1 - v^2/c^2}} \]
+    <span class="equation-number">(8)</span>
+</div>
+
+<p>
+<strong>Expected behavior:</strong> The device should show <em>no change</em> in Φ. The fundamental
+constants ε₀, μ₀, and c do not vary with velocity—this is a cornerstone of relativity.
+What does change is the <em>observed</em> frequency of external signals (Doppler shift) and
+time dilation effects on the crystal oscillator relative to an external observer.
+</p>
+
+<p>
+However, from the device's own reference frame, all internal ratios remain constant.
+The Reality Dimension Clock measures ratios between its own subsystems, all of which
+experience identical relativistic effects. <strong>Prediction: Φ remains at baseline.</strong>
+</p>
+
+<p>
+If Φ were to change during relativistic travel, this would suggest either:
+</p>
+<ul>
+    <li>A violation of special relativity (extraordinary claim requiring extraordinary evidence)</li>
+    <li>Hardware malfunction due to acceleration stress</li>
+    <li>Interaction with external EM fields Doppler-shifted into measurement bands</li>
+</ul>
+
+<h3>6.2 Scenario B: Alternate Dimensional Plane</h3>
+
+<p>
+Consider the hypothetical scenario where an observer transitions to an alternate dimension
+occupying the same spatial coordinates but with modified fundamental constants. We distinguish
+two sub-cases:
+</p>
+
+<p>
+<strong>Case B1: Constants differ by small perturbation (δ &lt; 1%)</strong>
+</p>
+
+<p>
+If ε₀ or μ₀ differ by a small amount, the device would likely still function. The wavelength
+ratios would shift according to:
+</p>
+
+<div class="equation">
+    \[ \frac{\lambda'_{UHF}}{\lambda'_{LF}} = \frac{\lambda_{UHF}}{\lambda_{LF}} \cdot \frac{\sqrt{\varepsilon_0 \mu_0}}{\sqrt{\varepsilon'_0 \mu'_0}} \]
+    <span class="equation-number">(9)</span>
+</div>
+
+<p>
+The near-field to far-field transition boundary scales with wavelength. Since UHF operates
+in the far-field regime while LF/HF operate in the near-field, their coupling efficiencies
+would scale differently. <strong>Prediction: Φ would deviate from baseline, magnitude proportional
+to δ.</strong>
+</p>
+
+<p>
+<strong>Case B2: Constants differ substantially (δ &gt; 10%)</strong>
+</p>
+
+<p>
+Large variations in electromagnetic constants would fundamentally alter atomic structure.
+The Bohr radius scales as:
+</p>
+
+<div class="equation">
+    \[ a_0 = \frac{4\pi\varepsilon_0\hbar^2}{m_e e^2} \]
+    <span class="equation-number">(10)</span>
+</div>
+
+<p>
+Significant changes to ε₀ would alter bond lengths in silicon, copper, and all materials
+comprising the device. The crystal oscillator frequency, antenna dimensions, and semiconductor
+behavior would all shift. <strong>Prediction: Device may malfunction entirely, or produce
+readings so anomalous that dimensional transition is unambiguous.</strong>
+</p>
+
+<h3>6.3 Scenario C: Gradual Dimensional Drift</h3>
+
+<p>
+If dimensional boundaries are not sharp but represent gradual transitions, the device should
+record a continuous drift in Φ as the observer moves through the transition zone. This would
+manifest as:
+</p>
+
+<div class="equation">
+    \[ \Phi(t) = \Phi_0 + \int_0^t \frac{\partial\Phi}{\partial x} \cdot v(t') \, dt' \]
+    <span class="equation-number">(11)</span>
+</div>
+
+<p>
+where x represents position along the dimensional gradient. <strong>Prediction: Smooth,
+monotonic deviation from baseline during transition, stabilizing at new value in target dimension.</strong>
+</p>
+
+<h2>7. Falsification Criteria and Edge Cases</h2>
+
+<p>
+To maintain scientific rigor, we must identify conditions under which the device would
+produce readings indistinguishable from genuine dimensional variation. These represent
+potential "bugs" in our methodology.
+</p>
+
+<h3>7.1 Environmental False Positives</h3>
+
+<table>
+    <thead>
+        <tr>
+            <th>Edge Case</th>
+            <th>Mechanism</th>
+            <th>Mitigation</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Strong local RF source</td>
+            <td>Saturates one band, skewing ratios</td>
+            <td>Multi-frequency sampling within each band; outlier rejection</td>
+        </tr>
+        <tr>
+            <td>Faraday cage / shielded room</td>
+            <td>Attenuates higher frequencies more than lower</td>
+            <td>Absolute threshold checks; "no signal" warning</td>
+        </tr>
+        <tr>
+            <td>Extreme temperature</td>
+            <td>Crystal oscillator drift; antenna detuning</td>
+            <td>Temperature compensation; on-board thermometer correlation</td>
+        </tr>
+        <tr>
+            <td>High humidity / water immersion</td>
+            <td>Dielectric constant of medium changes</td>
+            <td>Humidity sensor; waterproof enclosure calibration</td>
+        </tr>
+        <tr>
+            <td>Proximity to large metal structures</td>
+            <td>Antenna coupling and reflection patterns change</td>
+            <td>Orientation averaging; movement detection</td>
+        </tr>
+        <tr>
+            <td>Solar flare / geomagnetic storm</td>
+            <td>Ionospheric changes affect propagation</td>
+            <td>Cross-reference with space weather data</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>7.2 Hardware Failure Modes</h3>
+
+<ul>
+    <li><strong>Component aging:</strong> Gradual drift in oscillator frequency or antenna resonance over months/years. Requires periodic recalibration.</li>
+    <li><strong>Battery voltage sag:</strong> Low battery affects RF amplifier gain differently across bands. Monitor battery level.</li>
+    <li><strong>Physical damage:</strong> Cracked antenna, loose connector. Sudden discontinuous jump in readings.</li>
+    <li><strong>Firmware bug:</strong> Incorrect RSSI calculation or sampling timing. Validate against known RF sources.</li>
+</ul>
+
+<h3>7.3 Distinguishing True Positives from False Positives</h3>
+
+<p>
+A genuine dimensional shift should exhibit the following characteristics that distinguish it
+from environmental or hardware artifacts:
+</p>
+
+<ol>
+    <li><strong>Persistence:</strong> Environmental effects are typically transient. A true dimensional shift should produce stable, sustained deviation.</li>
+    <li><strong>Consistency across frequencies:</strong> Environmental interference typically affects narrow bands. Dimensional constant changes would shift all ratios systematically.</li>
+    <li><strong>Independence from orientation:</strong> Moving or rotating the device should not significantly alter a true dimensional signal.</li>
+    <li><strong>Correlation with subjective experience:</strong> If the observer reports dimensional transition, the device reading should correlate temporally.</li>
+    <li><strong>Return to baseline:</strong> Upon returning to the home dimension, readings should return to original calibration values.</li>
+</ol>
+
+<h3>7.4 The Null Hypothesis</h3>
+
+<p>
+The scientific null hypothesis is that <em>no dimensional variation exists</em>, and all
+deviations in Φ are attributable to known physical effects or measurement error. To reject
+this null hypothesis, we would require:
+</p>
+
+<ul>
+    <li>Statistically significant deviation (p &lt; 0.01) from baseline</li>
+    <li>Exclusion of all environmental factors listed in Section 7.1</li>
+    <li>Reproducibility across multiple devices</li>
+    <li>Correlation with independent measurement methods (if available)</li>
+</ul>
+
+<p>
+Failure to meet these criteria means the reading should be attributed to mundane causes,
+regardless of subjective experience.
+</p>
+
+<h2>8. Experimental Protocol</h2>
+
+<p>
+We propose the following testing protocol for validating the Reality Dimension Clock:
+</p>
+
+<h3>8.1 Baseline Establishment</h3>
+<ol>
+    <li>Perform 1000 measurements over 24-hour period in home location</li>
+    <li>Calculate mean and standard deviation of Φ</li>
+    <li>Establish "normal range" as μ ± 3σ</li>
+    <li>Repeat in multiple known locations to establish environmental variance</li>
+</ol>
+
+<h3>8.2 Controlled Interference Testing</h3>
+<ol>
+    <li>Expose device to known RF sources at each band</li>
+    <li>Test in Faraday cage at various attenuation levels</li>
+    <li>Temperature cycling from -10°C to +50°C</li>
+    <li>Document all false positive conditions</li>
+</ol>
+
+<h3>8.3 Field Testing</h3>
+<ol>
+    <li>Carry device during reported dimensional transition events</li>
+    <li>Log readings with timestamps</li>
+    <li>Correlate with subjective experience journal</li>
+    <li>Analyze for patterns distinguishable from noise</li>
+</ol>
+
+<h2>References</h2>
+
+<div class="references">
+    <p>[1] Mohr, P. J., Newell, D. B., & Taylor, B. N. (2016). CODATA recommended values of the fundamental physical constants: 2014. <em>Reviews of Modern Physics</em>, 88(3), 035009.</p>
+    <p>[2] Uzan, J. P. (2011). Varying constants, gravitation and cosmology. <em>Living Reviews in Relativity</em>, 14(1), 2.</p>
+    <p>[3] Webb, J. K., et al. (2011). Indications of a spatial variation of the fine structure constant. <em>Physical Review Letters</em>, 107(19), 191101.</p>
+    <p>[4] Flipper Devices. (2023). Flipper Zero Documentation. <em>https://docs.flipper.net/</em></p>
+    <p>[5] Pozar, D. M. (2011). <em>Microwave Engineering</em> (4th ed.). John Wiley & Sons.</p>
+    <p>[6] Einstein, A. (1905). On the electrodynamics of moving bodies. <em>Annalen der Physik</em>, 17(10), 891-921.</p>
+    <p>[7] Dirac, P. A. M. (1937). The cosmological constants. <em>Nature</em>, 139(3512), 323.</p>
+</div>
+
+<hr style="margin-top: 40px;">
+<p style="font-size: 9pt; color: #666; text-align: center;">
+    Preprint — Not peer reviewed<br>
+    Correspondence: github.com/Eris-Margeta
+</p>
+
+</body>
+</html>

@@ -14,6 +14,8 @@ void ws_block_generic_get_preset_name(const char* preset_name, FuriString* prese
         preset_name_temp = "FuriHalSubGhzPresetOok650Async";
     } else if(!strcmp(preset_name, "FM238")) {
         preset_name_temp = "FuriHalSubGhzPreset2FSKDev238Async";
+    } else if(!strcmp(preset_name, "FM12K")) {
+        preset_name_temp = "FuriHalSubGhzPreset2FSKDev12KAsync";
     } else if(!strcmp(preset_name, "FM476")) {
         preset_name_temp = "FuriHalSubGhzPreset2FSKDev476Async";
     } else {

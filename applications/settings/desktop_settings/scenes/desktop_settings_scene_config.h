@@ -1,5 +1,9 @@
 ADD_SCENE(desktop_settings, start, Start)
-ADD_SCENE(desktop_settings, favorite, Favorite)
+ADD_SCENE(desktop_settings, keybinds_type, KeybindsType)
+ADD_SCENE(desktop_settings, keybinds_key, KeybindsKey)
+ADD_SCENE(desktop_settings, keybinds_action_type, KeybindsActionType)
+ADD_SCENE(desktop_settings, keybinds_action, KeybindsAction)
+ADD_SCENE(desktop_settings, keybinds_reset, KeybindsReset)
 ADD_SCENE(desktop_settings, pin_menu, PinMenu)
 
 ADD_SCENE(desktop_settings, pin_auth, PinAuth)
@@ -9,3 +13,5 @@ ADD_SCENE(desktop_settings, pin_setup, PinSetup)
 ADD_SCENE(desktop_settings, pin_setup_howto, PinSetupHowto)
 ADD_SCENE(desktop_settings, pin_setup_howto2, PinSetupHowto2)
 ADD_SCENE(desktop_settings, pin_setup_done, PinSetupDone)
+
+ADD_SCENE(desktop_settings, happy_mode, HappyMode)

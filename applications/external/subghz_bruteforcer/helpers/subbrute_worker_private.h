@@ -1,3 +1,8 @@
+/*
+ * @LastEditors: SpenserCai
+ * @LastEditTime: 2025-03-04 14:21:29
+ * @Description: file content
+ */
 #pragma once
 
 #include "subbrute_worker.h"
@@ -43,6 +48,7 @@ struct SubBruteWorker {
     uint8_t load_index; /**< Index of group to bruteforce in loaded file */
     uint64_t file_key; /**< Key from file */
     uint64_t max_value; /**< Max step */
+    uint8_t opencode; /**< Opencode */
     bool two_bytes; /**< Two bytes key */
 
     // Manual transmit

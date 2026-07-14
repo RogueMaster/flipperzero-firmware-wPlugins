@@ -1,13 +1,14 @@
 App(
     appid="protoview",
-    name="Protocols Visualizer",
+    name="ProtoView",
     apptype=FlipperAppType.EXTERNAL,
     targets=["f7"],
     entry_point="protoview_app_entry",
     stack_size=8 * 1024,
     fap_icon="appicon.png",
     fap_category="Sub-GHz",
-    fap_author="antirez & (fixes by xMasterX)",
-    fap_version="1.2",
+    fap_author="antirez & (fixes by xMasterX) + TPMS history by Mascot68",
+    fap_version="1.3",
     fap_description="Digital signal detection, visualization, editing and reply tool",
+    #  v1.3: [Extra history page for TPMS detections (By Mascot68)](https://github.com/Mascot68/ProtoViewTPMS)
 )

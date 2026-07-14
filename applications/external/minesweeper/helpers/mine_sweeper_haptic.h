@@ -1,18 +1,20 @@
 #ifndef MINESWEEPER_HAPTIC_H
 #define MINESWEEPER_HAPTIC_H
 
-#include <notification/notification_messages.h>
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
 
-void mine_sweeper_play_happy_bump(void* context);
+void mine_sweeper_play_haptic_short(void* context);
 
-void mine_sweeper_play_long_ok_bump(void* context);
+void mine_sweeper_play_haptic_double_short(void* context);
 
-void mine_sweeper_play_oob_bump(void* context);
+void mine_sweeper_play_haptic_lose(void* context);
 
-void mine_sweeper_play_wrap_bump(void* context);
+void mine_sweeper_play_haptic_win(void* context);
 
-void mine_sweeper_play_lose_bump(void* context);
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 
-void mine_sweeper_play_win_bump(void* context);
-
-#endif
+#endif // MINESWEEPER_HAPTIC_H

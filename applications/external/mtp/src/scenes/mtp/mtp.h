@@ -1,8 +1,13 @@
 #pragma once
 
+#include "main.h"
+
+// Block size for storage operations
+#define BLOCK_SIZE 65536
+
 // MTP Device Serial
-#define MTP_DEVICE_SERIAL  "HakureiReimu"
-#define MTP_DEVICE_VERSION FAP_VERSION
+#define MTP_DEVICE_FALLBACK_SERIAL \
+    "HakureiReimu" // If you found this, Thank you for checking my (shitty) code!
 
 #define MTP_STANDARD_VERSION         100
 #define MTP_VENDOR_EXTENSION_ID      0x6
@@ -32,8 +37,11 @@
 #define MTP_OP_DELETE_OBJECT         0x100B
 #define MTP_OP_SEND_OBJECT_INFO      0x100C
 #define MTP_OP_SEND_OBJECT           0x100D
+#define MTP_OP_POWER_DOWN            0x1013
 #define MTP_OP_GET_DEVICE_PROP_DESC  0x1014
 #define MTP_OP_GET_DEVICE_PROP_VALUE 0x1015
+
+#define MTP_OP_MOVE_OBJECT 0x1019
 
 #define MTP_OP_GET_OBJECT_PROPS_SUPPORTED 0x9801
 #define MTP_OP_GET_OBJECT_PROP_DESC       0x9802
@@ -71,6 +79,7 @@
 #define MTP_RESP_UNKNOWN_VENDOR_CODE        0x2017
 #define MTP_RESP_CAPTURE_ALREADY_TERMINATED 0x2018
 #define MTP_RESP_DEVICE_BUSY                0x2019
+#define MTP_RESP_INVALID_OBJECT_PROP_CODE   0xA801
 
 // Storage IDs
 #define INTERNAL_STORAGE_ID 0x00010001
@@ -79,6 +88,14 @@
 // MTP Playback formats
 #define MTP_FORMAT_UNDEFINED   0x3000
 #define MTP_FORMAT_ASSOCIATION 0x3001
+
+// Buffer size configuration
+#define MTP_BUFFER_SIZE 1024 // General purpose buffer size
+#define MTP_PATH_SIZE   256 // Maximum path length
+#define MTP_NAME_SIZE   256 // Maximum filename length
+
+// File transfer configuration
+#define MTP_FILE_SYNC_INTERVAL (1024 * 1024) // Sync interval in bytes (1MB)
 
 typedef struct {
     uint32_t handle;
@@ -145,15 +162,8 @@ struct MTPContainer {
     uint32_t params[5]; // 12
 };
 
-extern uint16_t supported_operations[];
-extern uint16_t supported_device_properties[];
-extern uint16_t supported_playback_formats[];
-
 void OpenSession(AppMTP* mtp, uint32_t session_id);
 void CloseSession(AppMTP* mtp);
-void GetStorageIDs(AppMTP* mtp, uint32_t* storage_ids, uint32_t* count);
-int GetStorageInfo(AppMTP* mtp, uint32_t storage_id, uint8_t* buf);
-bool DeleteObject(AppMTP* mtp, uint32_t handle);
 
 void mtp_handle_bulk(AppMTP* mtp, uint8_t* buffer, uint32_t length);
 void handle_mtp_command(AppMTP* mtp, struct MTPContainer* container);
@@ -181,28 +191,19 @@ void send_mtp_response_stream(
     void* callback_context,
     int (*callback)(void* ctx, uint8_t* buffer, int length),
     uint32_t length);
-int BuildDeviceInfo(uint8_t* buffer);
 
-bool CheckMTPStringHasUnicode(uint8_t* buffer);
-char* ReadMTPString(uint8_t* buffer);
-void WriteMTPString(uint8_t* buffer, const char* str, uint16_t* length);
 void send_device_info(AppMTP* mtp, uint32_t transaction_id);
 void send_storage_ids(AppMTP* mtp, uint32_t transaction_id);
 
-void send_device_prop_value(AppMTP* mtp, uint32_t transaction_id, uint32_t prop_code);
-void send_device_prop_desc(AppMTP* mtp, uint32_t transaction_id, uint32_t prop_code);
-int GetDevicePropValue(uint32_t prop_code, uint8_t* buffer);
-int GetDevicePropDesc(uint32_t prop_code, uint8_t* buffer);
-int GetObjectHandles(AppMTP* mtp, uint32_t storage_id, uint32_t association, uint8_t* buffer);
-int GetObjectInfo(AppMTP* mtp, uint32_t handle, uint8_t* buffer);
-void GetObject(AppMTP* mtp, uint32_t transaction_id, uint32_t handle);
-char* get_base_path_from_storage_id(uint32_t storage_id);
-char* get_path_from_handle(AppMTP* mtp, uint32_t handle);
-uint32_t issue_object_handle(AppMTP* mtp, char* path);
 void handle_mtp_data_complete(AppMTP* mtp);
 
 struct MTPResponseBufferContext {
     uint8_t* buffer;
     uint32_t size;
     uint32_t sent;
+};
+
+// Object context for file operations
+struct GetObjectContext {
+    File* file;
 };

@@ -1,0 +1,14 @@
+{
+  "components": [
+    {
+      "partno": "MCP3424",
+      "desc": "4-channel ADC",
+      "type": 2,
+      "manufacturer": "Microchip",
+      "date": "2011"
+    }
+  ],
+  "unique_types": [
+    2
+  ]
+}

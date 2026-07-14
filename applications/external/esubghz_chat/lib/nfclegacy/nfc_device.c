@@ -6,8 +6,7 @@
 #include "protocols/nfc_util.h"
 #include <flipper_format/flipper_format.h>
 
-#define TAG "NfcDevice"
-
+#define TAG                       "NfcDevice"
 #define NFC_DEVICE_KEYS_FOLDER    EXT_PATH("nfc/.cache")
 #define NFC_DEVICE_KEYS_EXTENSION ".keys"
 

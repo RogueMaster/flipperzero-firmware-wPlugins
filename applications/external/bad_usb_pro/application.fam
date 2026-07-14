@@ -1,0 +1,14 @@
+App(
+    appid="badusb_pro",
+    name="BadUSB Pro",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="badusb_pro_app",
+    stack_size=4 * 1024,
+    fap_icon="badusb_pro.png",
+    fap_icon_assets="images",
+    fap_category="USB",
+    fap_author="PentestSuite & barkandbite",
+    fap_weburl="https://github.com/barkandbite/flipper_suite",
+    fap_version="1.0",
+    fap_description="Advanced USB HID keystroke injection with LED feedback",
+)

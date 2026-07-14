@@ -1,0 +1,42 @@
+{
+  "components": [
+    {
+      "partno": "TSL2561",
+      "desc": "Digital light sensor.",
+      "type": 22,
+      "manufacturer": "ams AG",
+      "date": "2009"
+    },
+    {
+      "partno": "TSL2671",
+      "desc": "Proximity detector",
+      "type": 22,
+      "manufacturer": "ams AG",
+      "date": "2010"
+    },
+    {
+      "partno": "TSL2591",
+      "desc": "High-sensitivity light sensor.",
+      "type": 22,
+      "manufacturer": "ams AG",
+      "date": "2013"
+    },
+    {
+      "partno": "FT6x06",
+      "desc": "Capacitive touch sensor.",
+      "type": 22,
+      "manufacturer": "FocalTech",
+      "date": "2012"
+    },
+    {
+      "partno": "APDS-9660",
+      "desc": "Proximity sensor.",
+      "type": 22,
+      "manufacturer": "Broadcom",
+      "date": "2010"
+    }
+  ],
+  "unique_types": [
+    22
+  ]
+}

@@ -7,8 +7,12 @@
 
 #include <flipper_format/flipper_format_i.h>
 #include <lib/toolbox/stream/stream.h>
+#include <furi/core/memmgr.h>
+#include <furi/core/memmgr_heap.h>
 
 #define TAG "SubGhzProtocolRaw"
+
+#define SUBGHZ_RAW_TX_MIN_HEAP (7u * 1024u)
 
 #define SUBGHZ_DOWNLOAD_MAX_SIZE 512
 
@@ -98,10 +102,6 @@ bool subghz_protocol_raw_save_to_file_init(
 
     do {
         // Create subghz folder directory if necessary
-        if(!storage_simply_mkdir(instance->storage, SUBGHZ_RAW_FOLDER)) {
-            break;
-        }
-        // Create saved directory if necessary
         if(!storage_simply_mkdir(instance->storage, SUBGHZ_RAW_FOLDER)) {
             break;
         }
@@ -293,9 +293,11 @@ void subghz_protocol_encoder_raw_stop(void* context) {
     furi_check(context);
     SubGhzProtocolEncoderRAW* instance = context;
     instance->is_running = false;
-    if(subghz_file_encoder_worker_is_running(instance->file_worker_encoder)) {
+    if(instance->file_worker_encoder &&
+       subghz_file_encoder_worker_is_running(instance->file_worker_encoder)) {
         subghz_file_encoder_worker_stop(instance->file_worker_encoder);
         subghz_file_encoder_worker_free(instance->file_worker_encoder);
+        instance->file_worker_encoder = NULL;
     }
 }
 
@@ -320,6 +322,13 @@ void subghz_protocol_raw_file_encoder_worker_set_callback_end(
 
 static bool subghz_protocol_encoder_raw_worker_init(SubGhzProtocolEncoderRAW* instance) {
     furi_assert(instance);
+    furi_check(!instance->file_worker_encoder);
+
+    if(memmgr_get_free_heap() < SUBGHZ_RAW_TX_MIN_HEAP ||
+       memmgr_heap_get_max_free_block() < SUBGHZ_RAW_TX_MIN_HEAP) {
+        FURI_LOG_E(TAG, "Not enough memory to start TX");
+        return false;
+    }
 
     instance->file_worker_encoder = subghz_file_encoder_worker_alloc();
     if(subghz_file_encoder_worker_start(

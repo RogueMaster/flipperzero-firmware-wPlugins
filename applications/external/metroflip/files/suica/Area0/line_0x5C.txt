@@ -1,0 +1,4 @@
+0x5C,0x02,Sakurajima,Nishikujo,14,0
+0x5C,0x02,Sakurajima,Ajikawaguchi,15,0
+0x5C,0x03,Sakurajima,Universal City,16,0
+0x5C,0x04,Sakurajima,Sakurajima,17,0

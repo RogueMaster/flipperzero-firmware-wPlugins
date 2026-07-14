@@ -8,6 +8,7 @@
 #include <toolbox/hex.h>
 #include <lfrfid/protocols/lfrfid_protocols.h>
 #include <lfrfid/lfrfid_dict_file.h>
+#include "picopass_keys.h"
 
 #define TAG "PicopassDevice"
 
@@ -60,21 +61,26 @@ static bool picopass_device_save_file_seader(
         if(!flipper_format_write_hex(file, "Credential", pacs->credential, PICOPASS_BLOCK_LEN))
             break;
 
-        // Seader only captures 64 byte SIO so I'm going to leave it at that
-        uint8_t sio[64];
+        uint8_t start_block = 0;
 
         // TODO: save SR vs SE more properly
         if(pacs->sio) { // SR
-            for(uint8_t i = 0; i < 8; i++) {
-                memcpy(sio + (i * 8), card_data[10 + i].data, PICOPASS_BLOCK_LEN);
-            }
-            if(!flipper_format_write_hex(file, "SIO", sio, sizeof(sio))) break;
+            start_block = 10;
         } else if(pacs->se_enabled) { //SE
-            for(uint8_t i = 0; i < 8; i++) {
-                memcpy(sio + (i * 8), card_data[6 + i].data, PICOPASS_BLOCK_LEN);
-            }
-            if(!flipper_format_write_hex(file, "SIO", sio, sizeof(sio))) break;
+            start_block = 6;
         }
+
+        uint8_t sio[128];
+        size_t sio_length = card_data[start_block].data[1];
+        size_t block_count = (sio_length + PICOPASS_BLOCK_LEN - 1) / PICOPASS_BLOCK_LEN;
+        for(uint8_t i = 0; i < block_count; i++) {
+            memcpy(
+                sio + (i * PICOPASS_BLOCK_LEN),
+                card_data[start_block + i].data,
+                PICOPASS_BLOCK_LEN);
+        }
+        if(!flipper_format_write_hex(file, "SIO", sio, block_count * PICOPASS_BLOCK_LEN)) break;
+
         if(!flipper_format_write_hex(
                file, "Diversifier", card_data[PICOPASS_CSN_BLOCK_INDEX].data, PICOPASS_BLOCK_LEN))
             break;
@@ -375,7 +381,6 @@ static bool picopass_device_load_data(PicopassDevice* dev, FuriString* path, boo
             FURI_LOG_D(TAG, "Skipping parsing: SE enabled");
         } else if(card_data[PICOPASS_ICLASS_PACS_CFG_BLOCK_INDEX].valid) {
             picopass_device_parse_credential(card_data, pacs);
-            picopass_device_parse_wiegand(pacs);
         }
 
         parsed = true;
@@ -397,6 +402,19 @@ static bool picopass_device_load_data(PicopassDevice* dev, FuriString* path, boo
     flipper_format_free(file);
 
     return parsed;
+}
+
+bool picopass_device_load(PicopassDevice* dev, FuriString* path) {
+    furi_string_set(dev->load_path, path);
+    FuriString* filename = furi_string_alloc();
+    path_extract_filename(dev->load_path, filename, true);
+    strlcpy(dev->dev_name, furi_string_get_cstr(filename), sizeof(dev->dev_name));
+    furi_string_free(filename);
+    bool res = picopass_device_load_data(dev, dev->load_path, true);
+    if(res) {
+        picopass_device_set_name(dev, dev->dev_name);
+    }
+    return res;
 }
 
 void picopass_device_clear(PicopassDevice* dev) {
@@ -424,7 +442,7 @@ bool picopass_file_select(PicopassDevice* dev) {
     picopass_app_folder = furi_string_alloc_set(STORAGE_APP_DATA_PATH_PREFIX);
 
     DialogsFileBrowserOptions browser_options;
-    dialog_file_browser_set_basic_options(&browser_options, PICOPASS_APP_EXTENSION, &I_Nfc_10px);
+    dialog_file_browser_set_basic_options(&browser_options, PICOPASS_APP_EXTENSION, &I_125_10px);
     browser_options.base_path = STORAGE_APP_DATA_PATH_PREFIX;
 
     bool res = dialog_file_browser_show(
@@ -432,15 +450,7 @@ bool picopass_file_select(PicopassDevice* dev) {
 
     furi_string_free(picopass_app_folder);
     if(res) {
-        FuriString* filename;
-        filename = furi_string_alloc();
-        path_extract_filename(dev->load_path, filename, true);
-        strlcpy(dev->dev_name, furi_string_get_cstr(filename), sizeof(dev->dev_name));
-        res = picopass_device_load_data(dev, dev->load_path, true);
-        if(res) {
-            picopass_device_set_name(dev, dev->dev_name);
-        }
-        furi_string_free(filename);
+        res = picopass_device_load(dev, dev->load_path);
     }
 
     return res;
@@ -503,41 +513,22 @@ void picopass_device_set_loading_callback(
 }
 
 void picopass_device_decrypt(uint8_t* enc_data, uint8_t* dec_data) {
-    uint8_t key[32] = {0};
-    memcpy(key, picopass_iclass_decryptionkey, sizeof(picopass_iclass_decryptionkey));
     mbedtls_des3_context ctx;
     mbedtls_des3_init(&ctx);
-    mbedtls_des3_set2key_dec(&ctx, key);
+    mbedtls_des3_set2key_dec(&ctx, picopass_iclass_decryptionkey);
     mbedtls_des3_crypt_ecb(&ctx, enc_data, dec_data);
     mbedtls_des3_free(&ctx);
 }
 
-void picopass_device_parse_credential(PicopassBlock* card_data, PicopassPacs* pacs) {
-    pacs->biometrics = card_data[6].data[4];
-    pacs->pin_length = card_data[6].data[6] & 0x0F;
-    pacs->encryption = card_data[6].data[7];
-
-    if(pacs->encryption == PicopassDeviceEncryption3DES) {
-        FURI_LOG_D(TAG, "3DES Encrypted");
-        picopass_device_decrypt(card_data[7].data, pacs->credential);
-
-        picopass_device_decrypt(card_data[8].data, pacs->pin0);
-
-        picopass_device_decrypt(card_data[9].data, pacs->pin1);
-    } else if(pacs->encryption == PicopassDeviceEncryptionNone) {
-        FURI_LOG_D(TAG, "No Encryption");
-        memcpy(pacs->credential, card_data[7].data, PICOPASS_BLOCK_LEN);
-        memcpy(pacs->pin0, card_data[8].data, PICOPASS_BLOCK_LEN);
-        memcpy(pacs->pin1, card_data[9].data, PICOPASS_BLOCK_LEN);
-    } else if(pacs->encryption == PicopassDeviceEncryptionDES) {
-        FURI_LOG_D(TAG, "DES Encrypted");
-    } else {
-        FURI_LOG_D(TAG, "Unknown encryption");
-    }
-
-    pacs->sio = (card_data[10].data[0] == 0x30); // rough check
+void picopass_device_encrypt(uint8_t* dec_data, uint8_t* enc_data) {
+    mbedtls_des3_context ctx;
+    mbedtls_des3_init(&ctx);
+    mbedtls_des3_set2key_enc(&ctx, picopass_iclass_decryptionkey);
+    mbedtls_des3_crypt_ecb(&ctx, dec_data, enc_data);
+    mbedtls_des3_free(&ctx);
 }
 
+// This function parses the Wiegand bit length and removes the sentinel bit
 void picopass_device_parse_wiegand(PicopassPacs* pacs) {
     uint8_t* credential = pacs->credential;
     uint32_t* halves = (uint32_t*)credential;
@@ -558,6 +549,72 @@ void picopass_device_parse_wiegand(PicopassPacs* pacs) {
     FURI_LOG_D(TAG, "PACS: (%d) %016llx", pacs->bitLength, swapped);
 }
 
+void picopass_device_parse_credential(PicopassBlock* card_data, PicopassPacs* pacs) {
+    pacs->biometrics = card_data[6].data[4];
+    pacs->pin_length = card_data[6].data[6] & 0x0F;
+    pacs->encryption = card_data[6].data[7];
+
+    if(pacs->encryption == PicopassDeviceEncryption3DES) {
+        FURI_LOG_D(TAG, "3DES Encrypted");
+        picopass_device_decrypt(card_data[7].data, pacs->credential);
+        picopass_device_parse_wiegand(pacs);
+        picopass_device_decrypt(card_data[8].data, pacs->pin0);
+        picopass_device_decrypt(card_data[9].data, pacs->pin1);
+    } else if(pacs->encryption == PicopassDeviceEncryptionNone) {
+        FURI_LOG_D(TAG, "No Encryption");
+        memcpy(pacs->credential, card_data[7].data, PICOPASS_BLOCK_LEN);
+        memcpy(pacs->pin0, card_data[8].data, PICOPASS_BLOCK_LEN);
+        memcpy(pacs->pin1, card_data[9].data, PICOPASS_BLOCK_LEN);
+        picopass_device_parse_wiegand(pacs);
+    } else if(pacs->encryption == PicopassDeviceEncryptionDES) {
+        FURI_LOG_D(TAG, "DES Encrypted");
+    } else {
+        FURI_LOG_D(TAG, "Unknown encryption");
+    }
+
+    pacs->sio = (card_data[10].data[0] == 0x30); // rough check
+}
+
+// inverse of picopass_device_parse_credential
+void picopass_device_build_credential(PicopassPacs* pacs, PicopassBlock* card_data) {
+    card_data[6].data[4] = pacs->biometrics;
+    card_data[6].data[6] = (card_data[6].data[6] & 0xF0) | (pacs->pin_length & 0x0F);
+    card_data[6].data[7] = pacs->encryption;
+
+    // The credential is stored without the sentinel bit, so we need to add it back before encryption
+    uint64_t sentinel = __builtin_bswap64(1ULL << pacs->bitLength);
+    FURI_LOG_D(TAG, "sentinel %016llx", sentinel);
+    uint64_t credential = 0;
+    memcpy(&credential, pacs->credential, sizeof(uint64_t));
+    FURI_LOG_D(TAG, "credential %016llx", credential);
+    credential |= sentinel;
+    FURI_LOG_D(TAG, "Adding sentinel back: (%d) %016llx", pacs->bitLength, credential);
+
+    uint8_t block_data[8];
+    memcpy(block_data, &credential, sizeof(uint64_t));
+
+    // When updating the credential, change the CSN to cause a new read
+    card_data[PICOPASS_CSN_BLOCK_INDEX].data[0]++;
+    uint8_t key[PICOPASS_BLOCK_LEN] = {};
+    loclass_iclass_calc_div_key(
+        card_data[PICOPASS_CSN_BLOCK_INDEX].data, picopass_iclass_key, key, false);
+    memcpy(card_data[PICOPASS_SECURE_KD_BLOCK_INDEX].data, key, PICOPASS_BLOCK_LEN);
+
+    if(pacs->encryption == PicopassDeviceEncryption3DES) {
+        picopass_device_encrypt(block_data, card_data[7].data);
+        picopass_device_encrypt(pacs->pin0, card_data[8].data);
+        picopass_device_encrypt(pacs->pin1, card_data[9].data);
+    } else if(pacs->encryption == PicopassDeviceEncryptionNone) {
+        memcpy(card_data[7].data, block_data, PICOPASS_BLOCK_LEN);
+        memcpy(card_data[8].data, pacs->pin0, PICOPASS_BLOCK_LEN);
+        memcpy(card_data[9].data, pacs->pin1, PICOPASS_BLOCK_LEN);
+    } else if(pacs->encryption == PicopassDeviceEncryptionDES) {
+        FURI_LOG_D(TAG, "DES Encryption not implemented");
+    } else {
+        FURI_LOG_D(TAG, "Unknown encryption");
+    }
+}
+
 bool picopass_device_hid_csn(PicopassDevice* dev) {
     furi_assert(dev);
     PicopassBlock* card_data = dev->dev_data.card_data;
@@ -566,4 +623,30 @@ bool picopass_device_hid_csn(PicopassDevice* dev) {
     bool isHidRange = (memcmp(csn + 5, "\xFF\x12\xE0", 3) == 0) && ((csn[4] & 0xF0) == 0xF0);
 
     return isHidRange;
+}
+
+wiegand_message_t picopass_pacs_extract_wmo(PicopassPacs* pacs) {
+    uint64_t credential = 0;
+    memcpy(&credential, pacs->credential, sizeof(uint64_t));
+    credential = __builtin_bswap64(credential);
+
+    uint32_t Bot = credential & 0xFFFFFFFF;
+    uint32_t Mid = (credential >> 32) & 0xFFFFFFFF;
+    uint32_t Top = 0; // H10301 only uses up to 64 bits
+    return picopass_initialize_wiegand_message_object(Top, Mid, Bot, pacs->bitLength);
+}
+
+void picopass_pacs_load_from_wmo(PicopassPacs* pacs, wiegand_message_t* packed) {
+    uint64_t credential = 0;
+    credential |= ((uint64_t)packed->Bot);
+    credential |= ((uint64_t)packed->Mid) << 32;
+    credential = __builtin_bswap64(credential);
+    if(pacs->bitLength > 64) {
+        FURI_LOG_W(TAG, "Warning: PACS bitLength exceeds 64 bits, truncating credential");
+    }
+    if(packed->Top != 0) {
+        FURI_LOG_W(TAG, "Warning: Packed credential Top field is non-zero, truncating upper bits");
+    }
+    FURI_LOG_D(TAG, "New credential: %016llx", credential);
+    memcpy(pacs->credential, &credential, sizeof(uint64_t));
 }

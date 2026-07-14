@@ -9,6 +9,6 @@ App(
     fap_icon="flipper95.png",
     fap_author="Silent / CookiePLMonster",
     fap_weburl="https://github.com/CookiePLMonster/flipper-bakery/flipper95",
-    fap_version="1.0",
+    fap_version="1.1",
     fap_description="Stress test your Flipper by crunching prime numbers",
 )

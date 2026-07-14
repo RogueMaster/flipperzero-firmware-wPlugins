@@ -4,15 +4,21 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     targets=["f7"],
     entry_point="picopass_app",
-    sources=[
-        "*.c",
-        "!plugin/*.c",
-    ],
-    stack_size=4 * 1024,
+    sources=["*.c"],
+    stack_size=5 * 1024,
     fap_icon="125_10px.png",
     fap_category="NFC",
     fap_libs=["mbedtls"],
     fap_private_libs=[
+        Lib(
+            name="asn1",
+            cflags=[
+                "-Wno-error",
+                "-DASN_EMIT_DEBUG=0",
+                "-Os",
+                "-DASN_DISABLE_PER_SUPPORT=1",
+            ],
+        ),
         Lib(
             name="loclass",
             cflags=["-O3"],
@@ -22,17 +28,8 @@ App(
     fap_file_assets="files",
     fap_author="bettse",
     fap_weburl="https://github.com/bettse/flipperzero-good-faps/tree/dev/picopass",
-    fap_version="1.18",
+    fap_version="1.22",
     fap_description="App to communicate with NFC tags using the PicoPass(iClass) format",
     #  [PicoPass Emulation (By nvx)](https://github.com/nvx/flipperzero-firmware/tree/picopass_emulation)
     #  [Force ISO15693 1OutOf4 mode (By aaronjamt)](https://github.com/Next-Flip/Momentum-Apps/pull/22)
-)
-
-App(
-    appid="picopass_plugin_wiegand",
-    apptype=FlipperAppType.PLUGIN,
-    entry_point="plugin_wiegand_ep",
-    requires=["picopass"],
-    sources=["plugin/wiegand.c"],
-    fal_embedded=True,
 )

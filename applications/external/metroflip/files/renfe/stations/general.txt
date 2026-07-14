@@ -1,0 +1,40 @@
+# Estaciones generales RENFE - Códigos comunes encontrados en tarjetas reales
+# Format: station_code,station_name
+
+# Códigos más frecuentes en dumps reales
+0x0000,Unknown Station
+0x0001,Estación Genérica 1
+0x0080,Xàtiva
+0x0100,Alameda
+0x1800,Àngel Guimerà
+0x1900,Bailén
+0x1A00,Colón
+0x2000,La Fonteta Sant Lluís
+0x2894,Sagunto
+0x3811,Valencia-Joaquín Sorolla
+0x3891,L'Eliana
+0x3C91,Benimamet
+0x6900,Túria
+0x6980,Alacant
+0x6A00,Russafa
+0x6F00,Pont de Fusta
+0x7000,Madrid-Atocha
+0x7001,Madrid-Chamartín
+0x7002,Cullera
+0x7069,Valencia-Nord
+0x7882,Xàtiva-Estació
+0x8000,Barcelona-Sants / Sevilla-Santa Justa
+0x8001,Barcelona-Passeig de Gràcia / Córdoba-Central
+0x8002,Barcelona-França / Málaga-María Zambrano
+0x9400,Jesús
+0xA002,Estació del Nord
+0xA46F,Alzira
+
+# Estaciones principales por región
+0x1000,Madrid-Centro
+0x2000,Valencia-Centro
+0x3000,Barcelona-Centro
+0x4000,Sevilla-Centro
+0x5000,Bilbao-Centro
+0x6000,Zaragoza-Centro
+0x7000,Málaga-Centro

@@ -42,7 +42,7 @@ DOXYFILE_ENCODING      = UTF-8
 # title of most generated pages and in a few other places.
 # The default value is: My Project.
 
-PROJECT_NAME           = "FlipperZero Firmware"
+PROJECT_NAME           = "Flipper Developer Docs"
 
 # The PROJECT_NUMBER tag can be used to enter a project or revision number. This
 # could be handy for archiving the generated documentation or if some version
@@ -178,7 +178,7 @@ INLINE_INHERITED_MEMB  = NO
 # shortest path that makes the file name unique will be used
 # The default value is: YES.
 
-FULL_PATH_NAMES        = YES
+FULL_PATH_NAMES        = NO
 
 # The STRIP_FROM_PATH tag can be used to strip a user-defined part of the path.
 # Stripping is only done if one of the specified strings matches the left-hand
@@ -502,7 +502,7 @@ LOOKUP_CACHE_SIZE      = 0
 # DOT_NUM_THREADS setting.
 # Minimum value: 0, maximum value: 32, default value: 1.
 
-NUM_PROC_THREADS       = 1
+NUM_PROC_THREADS       = 4
 
 # If the TIMESTAMP tag is set different from NO then each generated page will
 # contain the date or date and time when the page was generated. Setting this to
@@ -797,7 +797,7 @@ SHOW_FILES             = YES
 # Folder Tree View (if specified).
 # The default value is: YES.
 
-SHOW_NAMESPACES        = YES
+SHOW_NAMESPACES        = NO
 
 # The FILE_VERSION_FILTER tag can be used to specify a program or script that
 # doxygen should invoke to get the current version for each file (typically from
@@ -1004,7 +1004,9 @@ FILE_PATTERNS          = *.c \
                          *.hh \
                          *.hxx \
                          *.hpp \
-                         *.h++
+                         *.h++ \
+                         *.md \
+                         *.dox
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
 # be searched for input files as well.
@@ -1021,7 +1023,6 @@ RECURSIVE              = YES
 
 EXCLUDE                = $(DOXY_SRC_ROOT)/lib/mlib \
                          $(DOXY_SRC_ROOT)/lib/STM32CubeWB \
-                         $(DOXY_SRC_ROOT)/lib/littlefs \
                          $(DOXY_SRC_ROOT)/lib/nanopb \
                          $(DOXY_SRC_ROOT)/assets/protobuf \
                          $(DOXY_SRC_ROOT)/lib/libusb_stm32 \
@@ -1057,6 +1058,7 @@ EXCLUDE                = $(DOXY_SRC_ROOT)/lib/mlib \
                          $(DOXY_SRC_ROOT)/lib/cxxheaderparser \
                          $(DOXY_SRC_ROOT)/applications/external/dap_link/lib/free-dap \
                          $(DOXY_SRC_ROOT)/lib/heatshrink \
+                         $(DOXY_SRC_ROOT)/documentation/testing \
                          $(DOXY_CONFIG_DIR)/doxygen-awesome-css
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or

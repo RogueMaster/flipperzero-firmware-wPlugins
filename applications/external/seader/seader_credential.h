@@ -5,6 +5,7 @@
 #include <storage/storage.h>
 #include <dialogs/dialogs.h>
 #include "protocol/picopass_protocol.h"
+#include "seader_credential_type.h"
 #include <optimized_ikeys.h>
 #include <optimized_cipher.h>
 
@@ -16,13 +17,13 @@
 typedef void (*SeaderLoadingCallback)(void* context, bool state);
 
 typedef enum {
-    SeaderCredentialTypeNone,
-    SeaderCredentialTypePicopass,
-    SeaderCredentialType14A,
-    // Might need to make 14a into "javacard" and add Desfire
-    SeaderCredentialTypeMifareClassic,
-    SeaderCredentialTypeVirtual,
-} SeaderCredentialType;
+    SeaderPacsMediaTypeUnknown = 0,
+    SeaderPacsMediaTypeDesfire = 1,
+    SeaderPacsMediaTypeMifare = 2,
+    SeaderPacsMediaTypePicopass = 3,
+    SeaderPacsMediaTypeMifarePlus = 6,
+    SeaderPacsMediaTypeSeos = 7,
+} SeaderPacsMediaType;
 
 typedef enum {
     SeaderCredentialSaveFormatAgnostic,
@@ -41,7 +42,10 @@ typedef struct {
     uint8_t sio_len;
     uint8_t diversifier[8];
     uint8_t diversifier_len;
-    bool isDesfire;
+    uint8_t sio_start_block; // for iClass SE vs iClass SR
+    bool isDesfireEV2;
+    bool has_pacs_media_type;
+    SeaderPacsMediaType pacs_media_type;
     SeaderCredentialType type;
     SeaderCredentialSaveFormat save_format;
     char name[SEADER_CRED_NAME_MAX_LEN + 1];
@@ -68,3 +72,5 @@ bool seader_file_select(SeaderCredential* cred);
 void seader_credential_clear(SeaderCredential* cred);
 
 bool seader_credential_delete(SeaderCredential* cred, bool use_load_path);
+
+const char* seader_credential_get_type_label(const SeaderCredential* cred);

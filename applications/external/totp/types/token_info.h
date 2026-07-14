@@ -179,6 +179,11 @@ typedef struct {
     size_t token_length;
 
     /**
+     * @brief Plain token secret length 
+     */
+    size_t token_plain_length;
+
+    /**
      * @brief User-friendly token name 
      */
     FuriString* name;

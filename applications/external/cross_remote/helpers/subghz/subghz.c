@@ -9,6 +9,7 @@ SubGhz* subghz_alloc() {
 
     subghz->file_path = furi_string_alloc();
     subghz->txrx = subghz_txrx_alloc();
+    subghz_txrx_set_need_save_callback(subghz->txrx, subghz_save_to_file, subghz);
     subghz->dialogs = furi_record_open(RECORD_DIALOGS);
 
     return subghz;
@@ -27,13 +28,6 @@ void subghz_scene_transmit_callback_end_tx(void* context) {
     furi_assert(context);
     FURI_LOG_D(TAG, "callback end");
     XRemote* app = context;
-    view_dispatcher_send_custom_event(
-        app->view_dispatcher, XRemoteCustomEventViewTransmitterSendStop);
-
-    //app->state_notifications = SubGhzNotificationStateIDLE;
-    //subghz_txrx_stop(app->subghz->txrx);
-    //app->transmitting = false;
-    //xremote_scene_ir_notification_message(app, SubGhzNotificationMessageBlinkStop);
     xremote_cross_remote_set_transmitting(app->cross_remote, XRemoteTransmittingStopSubghz);
 }
 

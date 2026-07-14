@@ -1,0 +1,12 @@
+# PlatformIO build artifacts
+.pio/
+.vscode/
+.DS_Store
+
+# Build outputs
+*.bin
+*.elf
+*.map
+
+# IDE files
+*.code-workspace

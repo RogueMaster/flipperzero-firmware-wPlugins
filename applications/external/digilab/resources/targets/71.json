@@ -1,0 +1,22 @@
+{
+  "components": [
+    {
+      "partno": "HT16K33",
+      "desc": "LED matrix driver.",
+      "type": 12,
+      "manufacturer": "Holtek",
+      "date": "2010"
+    },
+    {
+      "partno": "TCA9548A",
+      "desc": "I2C multiplexer.",
+      "type": 19,
+      "manufacturer": "Texas Inst.",
+      "date": "2007"
+    }
+  ],
+  "unique_types": [
+    12,
+    19
+  ]
+}

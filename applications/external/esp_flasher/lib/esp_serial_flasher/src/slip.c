@@ -1,4 +1,4 @@
-/* Copyright 2020-2023 Espressif Systems (Shanghai) CO LTD
+/* Copyright 2020-2024 Espressif Systems (Shanghai) CO LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,32 +30,8 @@ static inline esp_loader_error_t peripheral_write(const uint8_t *buff, const siz
     return loader_port_write(buff, size, loader_port_remaining_time());
 }
 
-esp_loader_error_t SLIP_receive_data(uint8_t *buff, const size_t size)
-{
-    uint8_t ch;
 
-    for (uint32_t i = 0; i < size; i++) {
-        RETURN_ON_ERROR( peripheral_read(&ch, 1) );
-
-        if (ch == 0xDB) {
-            RETURN_ON_ERROR( peripheral_read(&ch, 1) );
-            if (ch == 0xDC) {
-                buff[i] = 0xC0;
-            } else if (ch == 0xDD) {
-                buff[i] = 0xDB;
-            } else {
-                return ESP_LOADER_ERROR_INVALID_RESPONSE;
-            }
-        } else {
-            buff[i] = ch;
-        }
-    }
-
-    return ESP_LOADER_SUCCESS;
-}
-
-
-esp_loader_error_t SLIP_receive_packet(uint8_t *buff, const size_t size)
+esp_loader_error_t SLIP_receive_packet(uint8_t *buff, const size_t max_size, size_t *recv_size)
 {
     uint8_t ch;
 
@@ -71,12 +47,34 @@ esp_loader_error_t SLIP_receive_packet(uint8_t *buff, const size_t size)
 
     buff[0] = ch;
 
-    RETURN_ON_ERROR( SLIP_receive_data(&buff[1], size - 1) );
+    // Receive either until either delimiter or maximum receive size
+    for (size_t i = 1; i < max_size; i++) {
+        RETURN_ON_ERROR( peripheral_read(&ch, 1) );
 
-    // Wait for delimiter
+        if (ch == 0xDB) {
+            RETURN_ON_ERROR( peripheral_read(&ch, 1) );
+            if (ch == 0xDC) {
+                buff[i] = 0xC0;
+            } else if (ch == 0xDD) {
+                buff[i] = 0xDB;
+            } else {
+                return ESP_LOADER_ERROR_INVALID_RESPONSE;
+            }
+        } else if (ch == DELIMITER) {
+            *recv_size = i;
+            return ESP_LOADER_SUCCESS;
+        } else {
+            buff[i] = ch;
+        }
+    }
+
+    // Wait for delimiter if we already reached max receive size
+    // This enables us to ignore unsupported or unecessary packet data instead of failing
     do {
         RETURN_ON_ERROR( peripheral_read(&ch, 1) );
     } while (ch != DELIMITER);
+
+    *recv_size = max_size;
 
     return ESP_LOADER_SUCCESS;
 }

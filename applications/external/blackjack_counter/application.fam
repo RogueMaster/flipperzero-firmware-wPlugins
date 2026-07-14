@@ -1,13 +1,13 @@
 App(
-    appid="blackjack_counter",
+    appid="blackjack_counter_21",
     name="BlackJack Counter",
     apptype=FlipperAppType.EXTERNAL,
-    entry_point="blackjack_counter_main",
+    entry_point="blackjack_counter_app",
     stack_size=2 * 1024,
-    fap_icon="ico_10x10.png",
+    fap_icon="blackjack_21.png",
     fap_category="Tools",
     fap_author="grugnoymeme",
     fap_weburl="https://github.com/grugnoymeme/flipperzero-blackjack_counter-fap",
-    fap_version=(1, 0),
+    fap_version="1.0",
     fap_description="Simple application to keep the count of blackjack cards during the game.",
 )

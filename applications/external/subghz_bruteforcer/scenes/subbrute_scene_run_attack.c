@@ -27,7 +27,7 @@ static void
 void subbrute_scene_run_attack_on_exit(void* context) {
     furi_assert(context);
     SubBruteState* instance = (SubBruteState*)context;
-
+    // FURI_LOG_W(TAG, "subbrute_scene_run_attack_on_exit");
     notification_message(instance->notifications, &sequence_blink_stop);
     subbrute_worker_stop(instance->worker);
 }

@@ -1,5 +1,6 @@
 /* Copyright (C) 2022-2023 Salvatore Sanfilippo -- All Rights Reserved
  * See the LICENSE file for information about the license. */
+
 #include "app.h"
 
 RawSamplesBuffer *RawSamples, *DetectedSamples;
@@ -30,6 +31,9 @@ static void render_callback(Canvas* const canvas, void* ctx) {
         break;
     case ViewInfo:
         render_view_info(canvas, app);
+        break;
+    case ViewInfoList:
+        render_list_view_info(canvas, app);
         break;
     case ViewFrequencySettings:
     case ViewModulationSettings:
@@ -82,11 +86,11 @@ static void app_switch_view(ProtoViewApp* app, ProtoViewCurrentView switchto) {
         app->current_view = switchto;
     }
     ProtoViewCurrentView new = app->current_view;
-
     /* Call the exit view callbacks. */
     if(old == ViewDirectSampling) view_exit_direct_sampling(app);
     if(old == ViewBuildMessage) view_exit_build_message(app);
     if(old == ViewInfo) view_exit_info(app);
+    if(old == ViewInfoList) info_list_view_exit_info(app);
     /* The frequency/modulation settings are actually a single view:
      * as long as the user stays between the two modes of this view we
      * don't need to call the exit-view callback. */
@@ -97,7 +101,6 @@ static void app_switch_view(ProtoViewApp* app, ProtoViewCurrentView switchto) {
     /* Reset the view private data each time, before calling the enter
      * callbacks that may want to setup some state. */
     memset(app->view_privdata, 0, PROTOVIEW_VIEW_PRIVDATA_LEN);
-
     /* Call the enter view callbacks after all the exit callback
      * of the old view was already executed. */
     if(new == ViewDirectSampling) view_enter_direct_sampling(app);
@@ -121,6 +124,8 @@ ProtoViewApp* protoview_app_alloc() {
 
     ProtoViewApp* app = malloc(sizeof(ProtoViewApp));
 
+    app->tyre_list_count = 0;
+
     // Init shared data structures
     RawSamples = raw_samples_alloc();
     DetectedSamples = raw_samples_alloc();
@@ -141,7 +146,8 @@ ProtoViewApp* protoview_app_alloc() {
     app->text_input = NULL;
     app->show_text_input = false;
     app->alert_dismiss_time = 0;
-    app->current_view = ViewRawPulses;
+    // app->current_view = ViewRawPulses;
+    app->current_view = ViewInfoList;
     app->view_updating_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     for(int j = 0; j < ViewLast; j++)
         app->current_subview[j] = 0;
@@ -167,7 +173,8 @@ ProtoViewApp* protoview_app_alloc() {
     app->txrx->last_g0_value = false;
 
     app->frequency = subghz_setting_get_default_frequency(app->setting);
-    app->modulation = 0; /* Defaults to ProtoViewModulations[0]. */
+    //app->modulation = 0; /* Defaults to ProtoViewModulations[0]. */
+    app->modulation = 4; /* Default to TPMS 1 (FSK) */
 
     // Init & set radio_device
     subghz_devices_init();
@@ -312,6 +319,9 @@ int32_t protoview_app_entry(void* p) {
                 case ViewInfo:
                     process_input_info(app, input);
                     break;
+                case ViewInfoList:
+                    tyre_list_process_input(app, input);
+                    break;
                 case ViewFrequencySettings:
                 case ViewModulationSettings:
                     process_input_settings(app, input);
@@ -344,7 +354,6 @@ int32_t protoview_app_entry(void* p) {
             /* Allocate a view dispatcher, add a text input view to it,
              * and activate it. */
             app->view_dispatcher = view_dispatcher_alloc();
-            view_dispatcher_enable_queue(app->view_dispatcher);
             /* We need to set a navigation callback for the view dispatcher
              * otherwise when the user presses back on the keyboard to
              * abort, the dispatcher will not stop. */

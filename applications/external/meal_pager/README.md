@@ -64,4 +64,4 @@ The application will be compiled and copied onto your device.
 - [Moeker](https://github.com/moeker) and his awesome [pagger tool](https://github.com/meoker/pagger), couldn't have done this without
 - [xb8](https://github.com/xb8/t119bruteforcer) for the useful data collected
 - [Xenobyte, ShotokanZH](https://twitter.com/xenobyte_/status/1558123251276070912) for their super interesting research
-- [WillyJL](https://github.com/Willy-JL) and [xMasterX](https://github.com/xMasterX) for code contributions/corrections
+- [WillyJL](https://github.com/WillyJL) and [xMasterX](https://github.com/xMasterX) for code contributions/corrections

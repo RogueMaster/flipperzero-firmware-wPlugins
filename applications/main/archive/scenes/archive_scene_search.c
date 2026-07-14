@@ -41,7 +41,8 @@ uint32_t archive_scene_search_dirwalk(void* context) {
     uint32_t count = 1;
     DirWalk* dir_walk = dir_walk_alloc(furi_record_open(RECORD_STORAGE));
     const char* ignore[] = {
-        "/ext/dolphin",
+        ASSET_PACKS_PATH,
+        BASE_ANIMATION_DIR,
     };
     dir_walk_set_recurse_filter(dir_walk, ignore, COUNT_OF(ignore));
     FuriString* path = furi_string_alloc();
@@ -97,15 +98,13 @@ bool archive_scene_search_on_event(void* context, SceneManagerEvent event) {
             archive_add_app_item(archive->browser, "/app:search/Cancel search");
             archive_set_item_count(archive->browser, 1);
 
-            // Thread here is fine because only the info pane uses it too,
-            // but only for directories, which are ignored for search
             scene_manager_set_scene_state(archive->scene_manager, ArchiveAppSceneSearch, true);
-            archive->thread = furi_thread_alloc_ex(
-                "ArchiveSearchDirWalk",
+            archive->search_thread = furi_thread_alloc_ex(
+                "ArchiveSearchWorker",
                 1024,
                 (FuriThreadCallback)archive_scene_search_dirwalk,
                 archive);
-            furi_thread_start(archive->thread);
+            furi_thread_start(archive->search_thread);
 
             scene_manager_previous_scene(archive->scene_manager);
             consumed = true;

@@ -1,5 +1,14 @@
 #include "../seader_i.h"
+#include "../credential_sio_label.h"
 #include <dolphin/dolphin.h>
+
+#define TAG "SeaderSceneReadCardSuccess"
+
+static bool seader_credential_is_picopass_sio_context(const SeaderCredential* credential) {
+    return credential && (credential->type == SeaderCredentialTypePicopass ||
+                          (credential->has_pacs_media_type &&
+                           credential->pacs_media_type == SeaderPacsMediaTypePicopass));
+}
 
 void seader_scene_read_card_success_widget_callback(
     GuiButtonType result,
@@ -16,13 +25,23 @@ void seader_scene_read_card_success_widget_callback(
 void seader_scene_read_card_success_on_enter(void* context) {
     Seader* seader = context;
     SeaderCredential* credential = seader->credential;
-    PluginWiegand* plugin = seader->plugin_wiegand;
-    Widget* widget = seader->widget;
+    PluginWiegand* plugin = seader_wiegand_plugin_acquire(seader) ? seader->plugin_wiegand : NULL;
+    Widget* widget = seader_get_widget(seader);
+    if(!widget) {
+        FURI_LOG_E(TAG, "Widget view unavailable");
+        return;
+    }
 
-    FuriString* type_str = furi_string_alloc();
-    FuriString* bitlength_str = furi_string_alloc();
-    FuriString* credential_str = furi_string_alloc();
-    FuriString* sio_str = furi_string_alloc();
+    if(!seader_temp_strings_ensure(seader, 4U)) {
+        FURI_LOG_E(TAG, "Temp string allocation failed");
+        seader_wiegand_plugin_release(seader);
+        return;
+    }
+    FuriString* type_str = seader->temp_string1;
+    FuriString* bitlength_str = seader->temp_string2;
+    FuriString* credential_str = seader->temp_string3;
+    FuriString* sio_str = seader->temp_string4;
+    char sio_label[SEADER_TEXT_STORE_SIZE + 1] = {0};
 
     dolphin_deed(DolphinDeedNfcReadSuccess);
 
@@ -35,40 +54,62 @@ void seader_scene_read_card_success_on_enter(void* context) {
     if(credential->bit_length > 0) {
         furi_string_cat_printf(bitlength_str, "%d bit", credential->bit_length);
         furi_string_cat_printf(credential_str, "0x%llX", credential->credential);
-
-        if(credential->type == SeaderCredentialTypeNone) {
-            furi_string_set(type_str, "Unknown");
-        } else if(credential->type == SeaderCredentialTypeVirtual) {
-            furi_string_set(type_str, "Virtual");
-        } else if(credential->type == SeaderCredentialType14A) {
-            furi_string_set(type_str, "14443A");
-        } else if(credential->type == SeaderCredentialTypePicopass) {
-            furi_string_set(type_str, "Picopass");
-        } else if(credential->type == SeaderCredentialTypeMifareClassic) {
-            furi_string_set(type_str, "Mifare Classic");
-        } else {
-            furi_string_set(type_str, "");
-        }
+        furi_string_set(type_str, seader_credential_get_type_label(credential));
     } else {
-        furi_string_set(type_str, "Read error");
+        if(seader->hf_read_failure_reason == SeaderHfReadFailureReasonSamKeysMissing &&
+           credential->has_pacs_media_type) {
+            furi_string_set(type_str, seader_credential_get_type_label(credential));
+        } else {
+            furi_string_set(type_str, "Read error");
+        }
+        furi_string_set(bitlength_str, seader->read_error[0] ? seader->read_error : "Read failed");
+
+        if(seader->hf_read_failure_reason == SeaderHfReadFailureReasonSamTimeout ||
+           seader->hf_read_failure_reason == SeaderHfReadFailureReasonProtocolError) {
+            seader_t_1_reset(seader->uart);
+            seader_ccid_check_for_sam(seader->uart);
+        }
     }
 
     widget_add_button_element(
         widget, GuiButtonTypeLeft, "Retry", seader_scene_read_card_success_widget_callback, seader);
 
-    widget_add_button_element(
-        widget, GuiButtonTypeRight, "More", seader_scene_read_card_success_widget_callback, seader);
+    if(credential->bit_length > 0) {
+        widget_add_button_element(
+            widget,
+            GuiButtonTypeRight,
+            "More",
+            seader_scene_read_card_success_widget_callback,
+            seader);
+    } else {
+        widget_add_button_element(
+            widget,
+            GuiButtonTypeRight,
+            "Back",
+            seader_scene_read_card_success_widget_callback,
+            seader);
+    }
 
-    if(plugin) {
-        size_t format_count = plugin->count(credential->bit_length, credential->credential);
-        if(format_count > 0) {
-            widget_add_button_element(
-                seader->widget,
-                GuiButtonTypeCenter,
-                "Parse",
-                seader_scene_read_card_success_widget_callback,
-                seader);
+    if(credential->bit_length > 0) {
+        if(plugin) {
+            size_t format_count = plugin->count(credential->bit_length, credential->credential);
+            FURI_LOG_D(
+                TAG,
+                "Plugin present, bit_length=%d, format_count=%zu",
+                credential->bit_length,
+                format_count);
+        } else {
+            FURI_LOG_D(
+                TAG, "Parse available without plugin bit_length=%d", credential->bit_length);
         }
+        widget_add_button_element(
+            seader->widget,
+            GuiButtonTypeCenter,
+            "Parse",
+            seader_scene_read_card_success_widget_callback,
+            seader);
+    } else if(!plugin) {
+        FURI_LOG_D(TAG, "Plugin=%p, bit_length=%d", plugin, credential->bit_length);
     }
 
     widget_add_string_element(
@@ -89,16 +130,21 @@ void seader_scene_read_card_success_on_enter(void* context) {
         AlignCenter,
         FontSecondary,
         furi_string_get_cstr(credential_str));
-    if(credential->sio[0] == 0x30) {
-        furi_string_set(sio_str, "+SIO");
+    if(seader_sio_label_format(
+           credential->sio[0] == 0x30,
+           seader_credential_is_picopass_sio_context(credential),
+           credential->sio_start_block,
+           sio_label,
+           sizeof(sio_label))) {
+        if(strcmp(sio_label, "+SIO(?)") == 0) {
+            FURI_LOG_E(TAG, "Unknown SIO start block: %d", credential->sio_start_block);
+        }
+        furi_string_set(sio_str, sio_label);
         widget_add_string_element(
             widget, 64, 48, AlignCenter, AlignCenter, FontSecondary, furi_string_get_cstr(sio_str));
     }
 
-    furi_string_free(credential_str);
-    furi_string_free(bitlength_str);
-    furi_string_free(type_str);
-    furi_string_free(sio_str);
+    // No need to free strings as they are reused from seader struct
 
     view_dispatcher_switch_to_view(seader->view_dispatcher, SeaderViewWidget);
 }
@@ -109,18 +155,24 @@ bool seader_scene_read_card_success_on_event(void* context, SceneManagerEvent ev
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == GuiButtonTypeLeft) {
-            consumed = scene_manager_previous_scene(seader->scene_manager);
+            consumed = seader_hf_request_teardown(seader, SeaderHfTeardownActionRestartRead);
         } else if(event.event == GuiButtonTypeRight) {
-            scene_manager_next_scene(seader->scene_manager, SeaderSceneCardMenu);
-            consumed = true;
+            if(seader->credential->bit_length > 0) {
+                scene_manager_next_scene(seader->scene_manager, SeaderSceneCardMenu);
+            } else {
+                consumed = seader_hf_request_teardown(seader, SeaderHfTeardownActionSamPresent);
+            }
+            if(seader->credential->bit_length > 0) {
+                consumed = true;
+            }
         } else if(event.event == GuiButtonTypeCenter) {
             scene_manager_next_scene(seader->scene_manager, SeaderSceneFormats);
             consumed = true;
+        } else if(event.event == SeaderWorkerEventHfTeardownComplete) {
+            consumed = seader_hf_finish_teardown_action(seader);
         }
     } else if(event.type == SceneManagerEventTypeBack) {
-        scene_manager_search_and_switch_to_previous_scene(
-            seader->scene_manager, SeaderSceneSamPresent);
-        consumed = true;
+        consumed = seader_hf_request_teardown(seader, SeaderHfTeardownActionSamPresent);
     }
     return consumed;
 }
@@ -129,5 +181,9 @@ void seader_scene_read_card_success_on_exit(void* context) {
     Seader* seader = context;
 
     // Clear view
-    widget_reset(seader->widget);
+    if(seader->widget) {
+        widget_reset(seader->widget);
+    }
+    seader_temp_strings_release(seader, 4U);
+    seader_wiegand_plugin_release(seader);
 }

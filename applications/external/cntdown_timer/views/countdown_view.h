@@ -11,7 +11,7 @@
 #define SCREEN_CENTER_X (SCREEN_WIDTH / 2)
 #define SCREEN_CENTER_Y (SCREEN_HEIGHT / 2)
 
-#define INIT_COUNT 10
+#define INIT_COUNT 60
 
 typedef enum {
     CountDownTimerMinuteUp,

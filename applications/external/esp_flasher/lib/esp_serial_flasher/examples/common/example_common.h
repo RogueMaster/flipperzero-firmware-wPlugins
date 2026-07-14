@@ -15,7 +15,8 @@
 
 #pragma once
 
-#define BIN_FIRST_SEGMENT_OFFSET    0x18
+#define BIN_HEADER_SIZE    0x8
+#define BIN_HEADER_EXT_SIZE 0x18
 // Maximum block sized for RAM and Flash writes, respectively.
 #define ESP_RAM_BLOCK               0x1800
 
@@ -23,6 +24,7 @@ typedef struct {
     const uint8_t *data;
     uint32_t size;
     uint32_t addr;
+    const uint8_t *md5;
 } partition_attr_t;
 
 typedef struct {
@@ -59,5 +61,7 @@ typedef struct example_bin_segment {
 void get_example_binaries(target_chip_t target, example_binaries_t *binaries);
 void get_example_ram_app_binary(target_chip_t target, example_ram_app_binary_t *bin);
 esp_loader_error_t connect_to_target(uint32_t higher_transmission_rate);
+esp_loader_error_t connect_to_target_with_stub(uint32_t current_transmission_rate,
+        uint32_t higher_transmission_rate);
 esp_loader_error_t flash_binary(const uint8_t *bin, size_t size, size_t address);
 esp_loader_error_t load_ram_binary(const uint8_t *bin);

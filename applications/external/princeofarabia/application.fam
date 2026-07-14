@@ -1,0 +1,45 @@
+SOURCES = [
+    "main.cpp",
+    "game/ArduboyFX.cpp",
+    "src/ArduboyTonesFX.cpp",
+    "src/utils/Arduboy2Ext.cpp",
+    "src/fonts/Font3x5.cpp",
+    "lib/scr/*.cpp",
+]
+
+CDEFINES_BASE = [
+    "ARDULIB_USE_FX",
+    "ARDULIB_USE_TONES",
+    "ARDULIB_SWAP_AB",
+]
+
+CDEFINES_EX = CDEFINES_BASE + ["ARDULIB_USE_VIEW_PORT"]
+
+COMMON_ARGS = {
+    "apptype": FlipperAppType.EXTERNAL,
+    "entry_point": "arduboy_app",
+    "sources": SOURCES,
+    "stack_size": 8 * 1024,
+    "fap_icon": "icon.png",
+    "fap_category": "Games",
+    "fap_author": "apfxtech",
+    "fap_weburl": "https://github.com/apfxtech/FlipperPrinceOfArabia.git",
+    "fap_version": "1.0",
+    "fap_description": "Escape the dungeons and free the princess!",
+}
+
+App(
+    appid="princeofarabia",
+    name="Prince Of Arabia",
+    cdefines=CDEFINES_BASE,
+    fap_file_assets="assets/POA",
+    **COMMON_ARGS
+)
+
+App(
+    appid="princeofarabia_ex",
+    name="Prince Of Arabia Experemental",
+    cdefines=CDEFINES_EX,
+    fap_file_assets="assets/POA",
+    **COMMON_ARGS
+)

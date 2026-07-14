@@ -4,7 +4,11 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="wifi_map_app",
     stack_size=2 * 1024,
-    fap_icon="CS.png",
-    fap_category="GPIO/ESP32",
+    fap_icon="icon.png",
     fap_icon_assets_symbol="wifi_map",
+    fap_category="GPIO/ESP32",
+    fap_author="carvilsi",
+    fap_weburl="https://github.com/carvilsi/flipper0-wifi-map",
+    fap_version="0.2",
+    fap_description="An ESP32 and FlipperZero wifi mapping. Check the ESP32 side at: esp32-wifi-map https://github.com/carvilsi/esp32-wifi-map",
 )

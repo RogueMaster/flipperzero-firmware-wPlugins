@@ -1,0 +1,16 @@
+App(
+    appid="p1x_network_defender",
+    name="Network Defender",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="system_defender_app",
+    stack_size=2 * 1024,
+    fap_icon="p1x_network_defender.png",
+    fap_icon_assets="images",
+    sources=["src/*.c"],
+    fap_category="Games",
+    fap_author="w84death",
+    #  fap_author="Krzysztof Krystian Jankowski / P1X",
+    fap_weburl="https://github.com/w84death/flipper_zero_apps",
+    fap_version="1.1",
+    fap_description="A Game & Watch style network security game for the Flipper Zero. Network Defender is a retro-style game inspired by the classic Nintendo Game & Watch handhelds. You play as a system administrator defending your network from incoming data packets and hacking attempts.",
+)

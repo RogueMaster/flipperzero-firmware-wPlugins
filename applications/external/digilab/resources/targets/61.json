@@ -1,0 +1,29 @@
+{
+  "components": [
+    {
+      "partno": "Si5351A",
+      "desc": "Clock generator.",
+      "type": 5,
+      "manufacturer": "SiliconLabs",
+      "date": "2012"
+    },
+    {
+      "partno": "SCD30",
+      "desc": "CO2 sensor.",
+      "type": 22,
+      "manufacturer": "Sensirion",
+      "date": "2018"
+    },
+    {
+      "partno": "SCD41",
+      "desc": "CO2 sensor",
+      "type": 22,
+      "manufacturer": "Sensirion",
+      "date": "2020"
+    }
+  ],
+  "unique_types": [
+    5,
+    22
+  ]
+}

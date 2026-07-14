@@ -1,0 +1,49 @@
+{
+  "components": [
+    {
+      "partno": "DHT12",
+      "desc": "Humidity and temperature sensor.",
+      "type": 22,
+      "manufacturer": "Aosong",
+      "date": "2013"
+    },
+    {
+      "partno": "AM2320",
+      "desc": "Temperature and humidity sensor.",
+      "type": 22,
+      "manufacturer": "Aosong",
+      "date": "2010"
+    },
+    {
+      "partno": "AM2315",
+      "desc": "Humidity and temperature sensor.",
+      "type": 22,
+      "manufacturer": "Aosong",
+      "date": "2011"
+    },
+    {
+      "partno": "LPS35HW",
+      "desc": "Pressure sensor.",
+      "type": 22,
+      "manufacturer": "STMicro",
+      "date": "2018"
+    },
+    {
+      "partno": "LPS33HW",
+      "desc": "Pressure sensor.",
+      "type": 22,
+      "manufacturer": "STMicro",
+      "date": "2017"
+    },
+    {
+      "partno": "LPS25",
+      "desc": "Pressure sensor.",
+      "type": 22,
+      "manufacturer": "STMicro",
+      "date": "2013"
+    }
+  ],
+  "unique_types": [
+    22
+  ]
+}

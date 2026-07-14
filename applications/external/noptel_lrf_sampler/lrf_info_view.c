@@ -1,6 +1,6 @@
 /***
  * Noptel LRF rangefinder sampler for the Flipper Zero
- * Version: 1.9
+ * Version: 2.4
  *
  * LRF information view
 ***/
@@ -66,6 +66,7 @@ void lrfinfo_view_enter_callback(void* ctx) {
 
             /* Send a send-identification-frame command */
             send_lrf_command(app->lrf_serial_comm_app, send_ident);
+
             /* Send a send-information-frame command */
             send_lrf_command(app->lrf_serial_comm_app, send_info);
         },

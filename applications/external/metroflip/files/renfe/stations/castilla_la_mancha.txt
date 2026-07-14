@@ -1,0 +1,189 @@
+# Castilla-La Mancha - RENFE y transporte regional
+# Códigos de estaciones del transporte público en Castilla-La Mancha
+# Formato: código=nombre_de_estación
+
+# RENFE Castilla-La Mancha - Principales estaciones
+0x8000=Ciudad Real
+0x8001=Albacete-Los Llanos
+0x8002=Toledo
+0x8003=Cuenca-Fernando Zóbel
+0x8004=Puertollano
+0x8005=Talavera de la Reina
+0x8006=Guadalajara
+
+# AVE Madrid-Sevilla (estaciones en CLM)
+0x001=Puertollano
+0x002=Ciudad Real
+0x003=Córdoba
+
+# AVE Madrid-Valencia (estaciones en CLM)
+0x010=Cuenca-Fernando Zóbel
+0x011=Albacete-Los Llanos
+0x012=Villena
+0x013=Alicante
+
+# Línea Madrid-Cáceres/Badajoz
+0x020=Talavera de la Reina
+0x021=Oropesa
+0x022=Navalmoral de la Mata
+0x023=Plasencia
+0x024=Cáceres
+0x025=Mérida
+0x026=Badajoz
+
+# Cercanías C5 Madrid-Toledo
+0x030=Madrid-Atocha
+0x031=Getafe Industrial
+0x032=Parla
+0x033=Pinto
+0x034=Valdemoro
+0x035=Ciempozuelos
+0x036=Seseña
+0x037=Añover de Tajo
+0x038=Algodor
+0x039=Castillejo
+0x03A=Toledo
+
+# Línea Madrid-Ciudad Real-Badajoz
+0x040=Madrid-Atocha
+0x041=Getafe Central
+0x042=Valdemoro
+0x043=Aranjuez
+0x044=Tembleque
+0x045=Consuegra
+0x046=Madridejos
+0x047=Puerto Lápice
+0x048=Ciudad Real
+0x049=Puertollano
+0x04A=Santa Elena
+0x04B=Linares-Baeza
+
+# Línea Madrid-Albacete-Cartagena
+0x050=Aranjuez
+0x051=Tembleque
+0x052=Alcázar de San Juan
+0x053=Manzanares
+0x054=Valdepeñas
+0x055=Santa Cruz de Mudela
+0x056=Viso del Marqués
+0x057=Almuradiel
+0x058=Las Navas de Tolosa
+0x059=Linares-Baeza
+0x05A=Úbeda
+0x05B=Baeza
+0x05C=Espeluy
+
+# Línea Alcázar-Cuenca
+0x060=Alcázar de San Juan
+0x061=Quintanar de la Orden
+0x062=El Toboso
+0x063=Mota del Cuervo
+0x064=Las Pedroñeras
+0x065=Belmonte
+0x066=Tarancón
+0x067=Cuenca
+
+# Línea Chinchilla-Cartagena
+0x070=Chinchilla
+0x071=Hellín
+0x072=Cieza
+0x073=Calasparra
+0x074=Caravaca
+0x075=Lorca
+0x076=Águilas
+0x077=Cartagena
+
+# Red de Guadalajara
+0x080=Guadalajara
+0x081=Azuqueca de Henares
+0x082=Alcalá de Henares
+0x083=Madrid-Chamartín
+
+# Estaciones del Campo de Montiel
+0x090=Villanueva de los Infantes
+0x091=Membrilla
+0x092=Valdepeñas
+0x093=Moral de Calatrava
+0x094=Miguelturra
+0x095=Ciudad Real
+
+# Red de Cuenca
+0x0A0=Cuenca-Fernando Zóbel
+0x0A1=Tarancón
+0x0A2=Huete
+0x0A3=Carrascosa del Campo
+0x0A4=Motilla del Palancar
+0x0A5=Minglanilla
+0x0A6=Carboneras de Guadazaón
+
+# Líneas históricas del Tajuña
+0x0B0=Aranjuez
+0x0B1=Colmenar de Oreja
+0x0B2=Chinchón
+0x0B3=Morata de Tajuña
+0x0B4=Arganda del Rey
+
+# Estaciones manchegas
+0x0C0=Tomelloso
+0x0C1=Socuéllamos
+0x0C2=Pedro Muñoz
+0x0C3=Alcázar de San Juan
+0x0C4=Herencia
+0x0C5=Villarta de San Juan
+
+# Red de Albacete
+0x0D0=Albacete-Los Llanos
+0x0D1=La Roda
+0x0D2=Minaya
+0x0D3=Munera
+0x0D4=Alcaraz
+0x0D5=Villarrobledo
+0x0D6=Balazote
+
+# Conexiones con Levante
+0x0E0=Almansa
+0x0E1=Yecla
+0x0E2=Villena
+0x0E3=Elda-Petrer
+0x0E4=Novelda
+0x0E5=Alicante
+0x050=Guadalajara
+0x051=Azuqueca de Henares
+0x052=Alcalá de Henares
+0x053=Sigüenza
+0x054=Arcos de Jalón
+0x055=Medinaceli
+0x056=Soria
+
+# Líneas regionales
+0x060=Cuenca
+0x061=Carboneras de Guadazaón
+0x062=Utiel
+0x063=Valencia
+0x064=Alcázar de San Juan
+0x065=Manzanares
+0x066=Santa Cruz de Mudela
+0x067=Valdepeñas
+0x068=Linares-Baeza
+0x069=Córdoba
+
+# Autobuses interurbanos principales
+0x070=Estación Autobuses Toledo
+0x071=Estación Autobuses Ciudad Real
+0x072=Estación Autobuses Albacete
+0x073=Estación Autobuses Cuenca
+0x074=Estación Autobuses Guadalajara
+0x075=Estación Autobuses Talavera
+0x076=Estación Autobuses Puertollano
+
+# Otras localidades importantes
+0x080=Hellín
+0x081=Almansa
+0x082=Villarrobledo
+0x083=Tomelloso
+0x084=Daimiel
+0x085=Consuegra
+0x086=Quintanar de la Orden
+0x087=Ocaña
+0x088=Illescas
+0x089=Torrijos

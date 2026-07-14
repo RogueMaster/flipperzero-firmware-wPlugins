@@ -1,0 +1,13 @@
+App(
+    appid="vgm_game_remote",
+    name="VGM Game Remote",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="vgm_game_remote_main",
+    stack_size=4 * 1024,
+    fap_icon="app.png",
+    fap_category="GPIO/VGM",
+    fap_author="JBlanked",
+    fap_weburl="https://github.com/jblanked/VGM-Library/tree/main/engine/app",
+    fap_version="1.1",
+    fap_description="Companion app for the VGM Game Engine",
+)

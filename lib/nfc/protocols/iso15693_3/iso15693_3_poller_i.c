@@ -100,10 +100,12 @@ Iso15693_3Error iso15693_3_poller_activate(Iso15693_3Poller* instance, Iso15693_
             break;
         }
 
-        if(system_info->block_count > 0) {
-            // Read blocks: Optional command
+        if(system_info->block_count > 0 && system_info->block_size > 0) {
             simple_array_init(
                 data->block_data, system_info->block_count * system_info->block_size);
+            simple_array_init(data->block_security, system_info->block_count);
+
+            // Read blocks: Optional command
             ret = iso15693_3_poller_read_blocks(
                 instance,
                 simple_array_get_data(data->block_data),
@@ -115,8 +117,6 @@ Iso15693_3Error iso15693_3_poller_activate(Iso15693_3Poller* instance, Iso15693_
             }
 
             // Get block security status: Optional command
-            simple_array_init(data->block_security, system_info->block_count);
-
             ret = iso15693_3_poller_get_blocks_security(
                 instance, simple_array_get_data(data->block_security), system_info->block_count);
             if(ret != Iso15693_3ErrorNone) {
@@ -228,6 +228,57 @@ Iso15693_3Error iso15693_3_poller_read_blocks(
 
     for(uint32_t i = 0; i < block_count; ++i) {
         ret = iso15693_3_poller_read_block(instance, &data[block_size * i], i, block_size);
+        if(ret != Iso15693_3ErrorNone) break;
+    }
+
+    return ret;
+}
+
+Iso15693_3Error iso15693_3_poller_write_block(
+    Iso15693_3Poller* instance,
+    const uint8_t* data,
+    uint8_t block_number,
+    uint8_t block_size) {
+    furi_assert(instance);
+    furi_assert(data);
+
+    bit_buffer_reset(instance->tx_buffer);
+    bit_buffer_reset(instance->rx_buffer);
+
+    bit_buffer_append_byte(
+        instance->tx_buffer, ISO15693_3_REQ_FLAG_SUBCARRIER_1 | ISO15693_3_REQ_FLAG_DATA_RATE_HI);
+    bit_buffer_append_byte(instance->tx_buffer, ISO15693_3_CMD_WRITE_BLOCK);
+    bit_buffer_append_byte(instance->tx_buffer, block_number);
+    bit_buffer_append_bytes(instance->tx_buffer, data, block_size);
+
+    Iso15693_3Error ret;
+
+    do {
+        ret = iso15693_3_poller_send_frame(
+            instance, instance->tx_buffer, instance->rx_buffer, ISO15693_3_FDT_WRITE_POLL_FC);
+        if(ret != Iso15693_3ErrorNone) break;
+
+        ret = iso15693_3_write_block_response_parse(instance->rx_buffer);
+    } while(false);
+
+    return ret;
+}
+
+Iso15693_3Error iso15693_3_poller_write_blocks(
+    Iso15693_3Poller* instance,
+    const uint8_t* data,
+    uint16_t block_count,
+    uint8_t block_size) {
+    furi_assert(instance);
+    furi_assert(data);
+    furi_assert(block_count);
+    furi_assert(block_size);
+
+    Iso15693_3Error ret = Iso15693_3ErrorNone;
+
+    for(uint32_t i = 0; i < block_count; ++i) {
+        ret =
+            iso15693_3_poller_write_block(instance, &data[block_size * i], (uint8_t)i, block_size);
         if(ret != Iso15693_3ErrorNone) break;
     }
 

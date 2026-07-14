@@ -20,44 +20,15 @@ static const NotificationSequence sequence_note_c = {
     NULL,
 };
 
-#define CONTRAST_COUNT 17
+#define CONTRAST_COUNT 29
 const char* const contrast_text[CONTRAST_COUNT] = {
-    "-8",
-    "-7",
-    "-6",
-    "-5",
-    "-4",
-    "-3",
-    "-2",
-    "-1",
-    "0",
-    "+1",
-    "+2",
-    "+3",
-    "+4",
-    "+5",
-    "+6",
-    "+7",
-    "+8",
+    "-10", "-9",  "-8",  "-7",  "-6",  "-5",  "-4",  "-3",  "-2",  "-1",
+    "0",   "+1",  "+2",  "+3",  "+4",  "+5",  "+6",  "+7",  "+8",  "+9",
+    "+10", "+11", "+12", "+13", "+14", "+15", "+16", "+17", "+18",
 };
 const int32_t contrast_value[CONTRAST_COUNT] = {
-    -8,
-    -7,
-    -6,
-    -5,
-    -4,
-    -3,
-    -2,
-    -1,
-    0,
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8,
+    -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0,  1,  2,  3,  4,
+    5,   6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18,
 };
 
 #define BACKLIGHT_COUNT 21
@@ -80,8 +51,9 @@ const float volume_value[VOLUME_COUNT] = {
     0.55f, 0.60f, 0.65f, 0.70f, 0.75f, 0.80f, 0.85f, 0.90f, 0.95f, 1.00f,
 };
 
-#define DELAY_COUNT 11
+#define DELAY_COUNT 12
 const char* const delay_text[DELAY_COUNT] = {
+    "Always ON",
     "1s",
     "5s",
     "10s",
@@ -95,7 +67,7 @@ const char* const delay_text[DELAY_COUNT] = {
     "30min",
 };
 const uint32_t delay_value[DELAY_COUNT] =
-    {1000, 5000, 10000, 15000, 30000, 60000, 90000, 120000, 300000, 600000, 1800000};
+    {0, 1000, 5000, 10000, 15000, 30000, 60000, 90000, 120000, 300000, 600000, 1800000};
 
 #define VIBRO_COUNT 2
 const char* const vibro_text[VIBRO_COUNT] = {
@@ -242,7 +214,6 @@ static NotificationAppSettings* alloc_settings(void) {
     }
 
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_add_view(app->view_dispatcher, 0, view);
     view_dispatcher_switch_to_view(app->view_dispatcher, 0);

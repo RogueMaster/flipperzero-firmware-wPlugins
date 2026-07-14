@@ -1,5 +1,4 @@
 #include "config.h"
-#include <datetime/datetime.h>
 #include <stdlib.h>
 #include <string.h>
 #include <flipper_format/flipper_format.h>
@@ -191,6 +190,8 @@ static bool totp_open_config_file(Storage* storage, FlipperFormat** file) {
 
         tmp_uint32 = 0; //-V1048
         flipper_format_write_uint32(fff_data_file, TOTP_CONFIG_KEY_FONT, &tmp_uint32, 1);
+        flipper_format_write_uint32(
+            fff_data_file, TOTP_CONFIG_KEY_UI_TOKEN_DIGIT_GROUPING, &tmp_uint32, 1);
 
         if(!flipper_format_rewind(fff_data_file)) {
             totp_close_config_file(fff_data_file);
@@ -337,6 +338,12 @@ bool totp_config_file_update_user_settings(const PluginState* plugin_state) {
         tmp_uint32 = plugin_state->automation_initial_delay;
         if(!flipper_format_insert_or_update_uint32(
                file, TOTP_CONFIG_KEY_AUTOMATION_INITIAL_DELAY, &tmp_uint32, 1)) {
+            break;
+        }
+
+        tmp_uint32 = plugin_state->split_token_into_groups;
+        if(!flipper_format_insert_or_update_uint32(
+               file, TOTP_CONFIG_KEY_UI_TOKEN_DIGIT_GROUPING, &tmp_uint32, 1)) {
             break;
         }
 
@@ -569,6 +576,17 @@ bool totp_config_file_load(PluginState* const plugin_state) {
         }
 
         plugin_state->active_font_index = tmp_uint32;
+
+        if(!flipper_format_rewind(fff_data_file)) {
+            break;
+        }
+
+        if(!flipper_format_read_uint32(
+               fff_data_file, TOTP_CONFIG_KEY_UI_TOKEN_DIGIT_GROUPING, &tmp_uint32, 1)) {
+            tmp_uint32 = 0;
+        }
+
+        plugin_state->split_token_into_groups = tmp_uint32;
 
         plugin_state->config_file_context = malloc(sizeof(ConfigFileContext));
         furi_check(plugin_state->config_file_context != NULL);

@@ -229,7 +229,7 @@ bool subrem_view_remote_input(InputEvent* event, void* context) {
             },
             true);
 
-        //Cant send this inside that with_model, locks the model and the app will hang and not unload!
+        //Cant send exit the app inside that with_model,locks the model and the app will hang and not unload!
         if(is_stopping)
             subrem_view_remote->callback(
                 SubRemCustomEventViewRemoteForcedStop, subrem_view_remote->context);

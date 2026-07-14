@@ -10,6 +10,11 @@
 
 #define SUBGHZ_FILE_ENCODER_LOAD 512
 
+// A RAW_Data line holds up to SUBGHZ_DOWNLOAD_MAX_SIZE durations, each up
+// to ~9 chars ("-1000000 "). Reserve the line buffer up front so stream_read_line
+// never has to realloc it while transmitting (realloc traps on OOM on Flipper)
+#define SUBGHZ_FILE_ENCODER_LINE_RESERVE (512u * 9u)
+
 struct SubGhzFileEncoderWorker {
     FuriThread* thread;
     FuriStreamBuffer* stream;
@@ -59,12 +64,22 @@ bool subghz_file_encoder_worker_data_parse(SubGhzFileEncoderWorker* instance, co
         // Parse next element
         int32_t duration;
         while(strint_to_int32(str, &str, &duration, 10) == StrintParseNoError) {
-            subghz_file_encoder_worker_add_level_duration(instance, duration);
+            if((duration < -1000000) || (duration > 1000000)) {
+                if(duration > 0) {
+                    subghz_file_encoder_worker_add_level_duration(instance, (int32_t)100);
+                } else {
+                    subghz_file_encoder_worker_add_level_duration(instance, (int32_t)-100);
+                }
+                //FURI_LOG_I("PARSE", "Number overflow - %d", duration);
+            } else {
+                subghz_file_encoder_worker_add_level_duration(instance, duration);
+            }
             if(*str == ',') str++; // could also be `\0`
         }
 
         res = true;
     }
+
     return res;
 }
 
@@ -182,12 +197,13 @@ SubGhzFileEncoderWorker* subghz_file_encoder_worker_alloc(void) {
 
     instance->thread =
         furi_thread_alloc_ex("SubGhzFEWorker", 2048, subghz_file_encoder_worker_thread, instance);
-    instance->stream = furi_stream_buffer_alloc(sizeof(int32_t) * 2048, sizeof(int32_t));
+    instance->stream = furi_stream_buffer_alloc(sizeof(int32_t) * 1024, sizeof(int32_t));
 
     instance->storage = furi_record_open(RECORD_STORAGE);
     instance->flipper_format = flipper_format_file_alloc(instance->storage);
 
     instance->str_data = furi_string_alloc();
+    furi_string_reserve(instance->str_data, SUBGHZ_FILE_ENCODER_LINE_RESERVE);
     instance->file_path = furi_string_alloc();
     instance->worker_stopping = true;
 

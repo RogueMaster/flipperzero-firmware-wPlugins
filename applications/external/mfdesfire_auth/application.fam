@@ -1,0 +1,14 @@
+App(
+    appid="mfdesfire_auth",
+    name="MFDesfire Auth",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="mfdesfire_auth_main",
+    stack_size=5 * 1024,
+    fap_icon="mfdesfire_auth_icon.png",
+    fap_category="NFC",
+    fap_author="Gatorixx / NullPageGh0st",
+    fap_weburl="https://github.com/Gatorixx/flipper-zero-legacy-authentication",
+    fap_version="1.0",
+    fap_description="Application for legacy authentication with Mifare Desfire cards",
+)

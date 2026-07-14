@@ -1,0 +1,55 @@
+ATM1
+NAME End
+ENTRY 1 2 0 2
+
+TRACK # 0
+SET_VOLUME 80 # volume
+SET_TEMPO 14
+VOLUME_SLIDE_ON -6 # steps = -6
+REPEAT 63 3
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 1
+SET_VOLUME 48 # volume
+VOLUME_SLIDE_ON -1 # steps = -1
+REPEAT 20 4
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 2
+SET_VOLUME 0 # volume
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 3
+NOTE 43 # note = 43
+DELAY 16 # ticks = 16
+NOTE 50 # note = 50
+DELAY 16 # ticks = 16
+NOTE 46 # note = 46
+DELAY 16 # ticks = 16
+NOTE 46 # note = 46
+DELAY 8 # ticks = 8
+NOTE 45 # note = 45
+DELAY 8 # ticks = 8
+RETURN # return
+ENDTRACK
+
+TRACK # 4
+GOTO 5
+SET_TRANSPOSITION -2
+GOTO 5
+SET_TRANSPOSITION 2
+GOTO 5
+TRANSPOSITION_OFF
+RETURN # return
+ENDTRACK
+
+TRACK # 5
+NOTE 5 # note = 5
+DELAY 64 # ticks = 64
+RETURN # return
+ENDTRACK
+
+END

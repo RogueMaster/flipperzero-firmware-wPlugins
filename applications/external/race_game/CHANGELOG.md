@@ -1,0 +1,14 @@
+v1.0:
+- 3-lane vertical scrolling racing game
+- Multiple obstacle types: motorcycle, sedan, boss truck
+- Power-ups: shield, magnet, fuel
+- Coin collection with combo multiplier
+- 3 lives system with invincibility frames
+- High score saved to SD card
+- Night mode (inverted colors)
+- Sound effects with toggle
+- Vibration feedback on crash
+- Difficulty selection (Easy/Normal/Hard)
+- Crash particle animation
+- Roadside scenery (trees and poles)
+- Pause functionality

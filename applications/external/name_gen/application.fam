@@ -1,0 +1,13 @@
+App(
+    appid="nickname_generator",
+    name="Nickname Generator",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="nickname_generator_app",
+    stack_size=1 * 1024,
+    fap_icon="icon.png",
+    fap_category="Tools",
+    fap_author="disaxq",
+    fap_weburl="https://github.com/disaxq/Nickname-Generator",
+    fap_version="0.2",
+    fap_description="Easily create unique names using this app for flipper zero.",
+)

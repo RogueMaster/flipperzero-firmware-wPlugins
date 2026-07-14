@@ -1,0 +1,14 @@
+{
+  "components": [
+    {
+      "partno": "IS31FL3731",
+      "desc": "LED driver.",
+      "type": 12,
+      "manufacturer": "ISSI",
+      "date": "2013"
+    }
+  ],
+  "unique_types": [
+    12
+  ]
+}

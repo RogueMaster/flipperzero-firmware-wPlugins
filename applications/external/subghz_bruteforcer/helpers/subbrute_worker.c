@@ -5,6 +5,8 @@
 #include <flipper_format.h>
 #include <flipper_format_i.h>
 #include <lib/subghz/subghz_protocol_registry.h>
+// use to clear custom_btn
+#include <lib/subghz/blocks/custom_btn.h>
 
 #define TAG                               "SubBruteWorker"
 #define SUBBRUTE_TX_TIMEOUT               6
@@ -19,6 +21,7 @@ SubBruteWorker* subbrute_worker_alloc(const SubGhzDevice* radio_device) {
     instance->initiated = false;
     instance->last_time_tx_data = 0;
     instance->load_index = 0;
+    instance->opencode = 0;
 
     instance->thread = furi_thread_alloc();
     furi_thread_set_name(instance->thread, "SubBruteAttackWorker");
@@ -82,6 +85,34 @@ bool subbrute_worker_set_step(SubBruteWorker* instance, uint64_t step) {
     return true;
 }
 
+void subbrute_worker_set_opencode(SubBruteWorker* instance, uint8_t opencode) {
+    // furi_assert(instance);
+    // if(!subbrute_worker_can_manual_transmit(instance)) {
+    //     FURI_LOG_W(TAG, "Cannot set opencode during running mode");
+    //
+    //     return false;
+    // }
+    instance->opencode = opencode;
+
+    // return true;
+}
+
+uint8_t subbrute_worker_get_opencode(SubBruteWorker* instance) {
+    return instance->opencode;
+}
+
+bool subbrute_worker_get_is_pt2262(SubBruteWorker* instance) {
+    if(instance->attack == SubBruteAttackPT226224bit315 ||
+       instance->attack == SubBruteAttackPT226224bit418 ||
+       instance->attack == SubBruteAttackPT226224bit430 ||
+       instance->attack == SubBruteAttackPT226224bit4305 ||
+       instance->attack == SubBruteAttackPT226224bit433) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 bool subbrute_worker_init_default_attack(
     SubBruteWorker* instance,
     SubBruteAttacks attack_type,
@@ -102,6 +133,7 @@ bool subbrute_worker_init_default_attack(
     instance->step = step;
     instance->bits = protocol->bits;
     instance->te = protocol->te;
+    instance->opencode = protocol->opencode;
     instance->repeat = repeats;
     instance->load_index = 0;
     instance->file_key = 0;
@@ -263,16 +295,21 @@ bool subbrute_worker_transmit_current_key(SubBruteWorker* instance, uint64_t ste
             instance->two_bytes);
     } else {
         subbrute_protocol_default_payload(
-            stream, instance->file, step, instance->bits, instance->te, instance->repeat);
+            stream,
+            instance->file,
+            step,
+            instance->bits,
+            instance->te,
+            instance->repeat,
+            instance->opencode);
     }
 
     subbrute_worker_subghz_transmit(instance, flipper_format);
 
     result = true;
 #ifdef FURI_DEBUG
-    FURI_LOG_D(TAG, "Manual transmit done");
+    FURI_LOG_W(TAG, "Manual transmit done");
 #endif
-
     flipper_format_free(flipper_format);
 
     return result;
@@ -315,6 +352,9 @@ void subbrute_worker_subghz_transmit(SubBruteWorker* instance, FlipperFormat* fl
         subghz_transmitter_free(instance->transmitter);
         instance->transmitter = NULL;
     }
+
+    // instance->protocol_name = subbrute_protocol_file(instance->file);
+
     instance->transmitter =
         subghz_transmitter_alloc_init(instance->environment, instance->protocol_name);
     subghz_transmitter_deserialize(instance->transmitter, flipper_format);
@@ -341,6 +381,12 @@ void subbrute_worker_subghz_transmit(SubBruteWorker* instance, FlipperFormat* fl
     instance->transmitter = NULL;
 
     instance->transmit_mode = false;
+
+    Stream* stream = flipper_format_get_raw_stream(flipper_format);
+    stream_rewind(stream);
+    //test_read_full_stream(stream, "Transmit data");
+
+    subghz_custom_btns_reset();
 }
 
 void subbrute_worker_send_callback(SubBruteWorker* instance) {
@@ -401,7 +447,8 @@ int32_t subbrute_worker_thread(void* context) {
                 instance->step,
                 instance->bits,
                 instance->te,
-                instance->repeat);
+                instance->repeat,
+                instance->opencode);
         }
 #ifdef FURI_DEBUG
         //FURI_LOG_I(TAG, "Payload: %s", furi_string_get_cstr(payload));
@@ -475,3 +522,21 @@ bool subbrute_worker_is_tx_allowed(SubBruteWorker* instance, uint32_t value) {
 
     return res;
 }
+
+/*
+void test_read_full_stream(Stream* stream, const char* msg) {
+    // read data
+    // 循环读取stream中的数据每次读取一个字节（uint8_t）
+    size_t size_2 = stream_size(stream);
+    // read data
+    // 循环读取stream中的数据每次读取一个字节（uint8_t）
+    char* data_2 = (char*)malloc(size_2 + 1);
+    for(size_t i = 0; i < size_2; i++) {
+        stream_read(stream, (uint8_t*)&data_2[i], 1);
+    }
+    data_2[size_2] = '\0';
+
+    FURI_LOG_W(TAG, "%s Transmit data: %s", msg, data_2);
+    free(data_2);
+}
+*/

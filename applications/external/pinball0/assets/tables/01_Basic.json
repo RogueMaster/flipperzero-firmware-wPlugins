@@ -1,0 +1,143 @@
+{
+    "name": "Basic",
+    "lives": {
+        "display": true
+    },
+    "score": {
+        "display": true
+    },
+    "balls": [
+        {
+            "position": [ 600, 1110 ],
+            "velocity": [ 0, -16.0 ]
+        }
+    ],
+    // "plunger": {
+    //     "position": [ 600, 1200 ],
+    //     "size": 100
+    // },
+    "flippers": [
+        {
+            "position": [ 130, 1200 ],
+            "side": "LEFT",
+            "size": 130
+        },
+        {
+            "position": [ 490, 1200 ],
+            "side": "RIGHT",
+            "size": 130
+        }
+    ],
+    "bumpers": [
+        {
+            "position": [ 180, 280 ],
+            "radius": 60
+        },
+        {
+            "position": [ 470, 280 ],
+            "radius": 60
+        },
+        {
+            "position": [ 320, 430 ],
+            "radius": 50
+        },
+        {
+            "position": [ 200, 600 ],
+            "radius": 25
+        },
+        {
+            "position": [ 440, 900 ],
+            "radius": 20
+        },
+        {
+            "position": [ 220, 920 ],
+            "radius": 30
+        }
+    ],
+    "arcs": [
+        {
+            // top dome
+            "position": [ 320, 320 ],
+            "radius": 310,
+            "start_angle": 0,
+            "end_angle": 180,
+            "surface": "INSIDE"
+        }
+    ],
+    "rails": [
+        // left wall
+        {
+            "start": [ 0, 320 ],
+            "end": [ 0, 1150 ]
+        },
+        // right wall
+        {
+            "start": [ 630, 1150 ],
+            "end": [ 630, 320 ]
+        },
+        // left bottom rail
+        {
+            "start": [ 70, 900 ],
+            "end": [ 70, 1150 ],
+            "double_sided": true
+        },
+        {
+            "start": [ 70, 1150 ],
+            "end": [ 130, 1180 ],
+            "double_sided": true
+        },
+        // right bottom rail
+        {
+            "start": [ 560, 1150 ],
+            "end": [ 560, 900 ],
+            "double_sided": true
+        },
+        {
+            "start": [ 490, 1180 ],
+            "end": [ 560, 1150 ],
+            "double_sided": true
+        },
+        {
+            // left shooter stopper
+            "start": [ 40, 180 ],
+            "end": [ 120, 240 ],
+            "bounce": 0.65
+        },
+        {
+            // right shooter pass-through
+            "start": [ 510, 240 ],
+            "end": [ 600, 180 ],
+            "bounce": 0.65
+        },
+        {
+            // top middle rail
+            "start": [ 320, 140 ],
+            "end": [ 320, 220 ],
+            "double_sided": true
+        },
+        {
+            // right side triangle thing 1/3
+            "start": [ 560, 390 ],
+            "end": [ 560, 700 ]
+        },
+        {
+            // right side triangle thing 2/3
+            "start": [ 560, 700 ],
+            "end": [ 490, 640 ]
+        },
+        {
+            // right side triangle thing 3/3
+            "start": [ 490, 640 ],
+            "end": [ 560, 390 ]
+        },
+        {
+            // left side thing 1/2
+            "start": [ 0, 430 ],
+            "end": [ 70, 570 ]
+        },
+        {
+            "start": [ 70, 570 ],
+            "end": [ 0, 750 ]
+        }
+    ]
+}

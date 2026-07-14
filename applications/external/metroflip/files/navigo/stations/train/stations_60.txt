@@ -1,0 +1,20 @@
+1,1,Gare Montparnasse
+4,1,Vanves - Malakoff
+4,2,Clamart
+5,1,Meudon
+5,2,Bellevue
+5,3,Sevres Rive Gauche
+6,1,Chaville Rive Gauche
+6,2,Viroflay Rive Gauche
+6,3,Viroflay Rive Gauche
+7,1,Versailles Chantiers
+10,1,Saint-Cyr
+11,1,Saint-Quentin en Yvelines - Montigny-le-Bretonneux
+11,2,Trappes
+12,1,La Verriere
+12,2,La Verriere
+12,3,Coignieres
+13,1,Les Essarts-le-Roi
+14,1,Le Perray
+14,2,Rambouillet
+15,1,Gazeran

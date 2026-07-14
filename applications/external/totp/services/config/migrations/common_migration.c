@@ -152,6 +152,17 @@ bool totp_config_migrate_to_latest(
                 fff_backup_data_file, TOTP_CONFIG_KEY_TOKEN_SECRET, temp_str);
             flipper_format_write_string(fff_data_file, TOTP_CONFIG_KEY_TOKEN_SECRET, temp_str);
 
+            if(current_version > 13) {
+                flipper_format_read_string(
+                    fff_backup_data_file, TOTP_CONFIG_KEY_TOKEN_SECRET_LENGTH, temp_str);
+                flipper_format_write_string(
+                    fff_data_file, TOTP_CONFIG_KEY_TOKEN_SECRET_LENGTH, temp_str);
+            } else {
+                const uint32_t default_secret_length = 0;
+                flipper_format_write_uint32(
+                    fff_data_file, TOTP_CONFIG_KEY_TOKEN_SECRET_LENGTH, &default_secret_length, 1);
+            }
+
             if(current_version > 1) {
                 flipper_format_read_string(
                     fff_backup_data_file, TOTP_CONFIG_KEY_TOKEN_ALGO, temp_str);

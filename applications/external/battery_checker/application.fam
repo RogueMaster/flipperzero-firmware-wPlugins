@@ -5,7 +5,6 @@ App(
     entry_point="battery_checker_app",
     stack_size=2 * 1024,
     fap_category="GPIO",
-    fap_icon_assets="images",
     fap_icon="battery_checker.png",
     fap_author="Programistich",
     fap_weburl="https://github.com/Programistich/battery_checker",

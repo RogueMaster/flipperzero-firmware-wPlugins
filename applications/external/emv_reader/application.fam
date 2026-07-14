@@ -1,0 +1,14 @@
+App(
+    appid="emv_reader",
+    name="EMV Reader",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="emv_reader_app",
+    targets=["f7"],
+    stack_size=4 * 1024,
+    sources=["*.c"],
+    fap_category="NFC",
+    fap_author="AmsaOne",
+    fap_weburl="https://github.com/AmsaOne/Flipper-EMV-Reader",
+    fap_version="0.1",
+    fap_description="Read & parse EMV contactless cards (own cards only)",
+)

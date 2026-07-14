@@ -1,0 +1,14 @@
+{
+    "source": "examples",
+    "target": "/ext/examples",
+    "orphans": "ignore",
+    "include": [
+        "*.py"
+    ],
+    "exclude": [
+        "**.git**"
+    ],
+    "run": [
+        "loader open /ext/apps/Tools/upython.fap"
+    ]
+}

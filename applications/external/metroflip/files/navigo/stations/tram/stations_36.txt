@@ -1,0 +1,10 @@
+7,1,Saint-Germain-en-Laye
+8,2,Camp des Loges
+9,9,Mareil-Marly
+9,10,Fourqueux - Bel Air
+9,11,Lisiere Pereire
+10,3,Bailly
+10,7,Noisy-le-Roi
+10,8,L'Etang - Les Sablons
+11,1,Les Portes de Saint-Cyr
+11,2,Allee Royale

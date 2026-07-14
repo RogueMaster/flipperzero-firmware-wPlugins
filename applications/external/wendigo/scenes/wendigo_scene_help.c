@@ -1,14 +1,18 @@
 #include "../wendigo_app_i.h"
 
 void wendigo_scene_help_widget_callback(GuiButtonType result, InputType type, void* context) {
+    FURI_LOG_T(WENDIGO_TAG, "Start wendigo_scene_help_widget_callback()");
     WendigoApp* app = context;
     if(type == InputTypeShort) {
         view_dispatcher_send_custom_event(app->view_dispatcher, result);
     }
+    FURI_LOG_T(WENDIGO_TAG, "End wendigo_scene_help_widget_callback()");
 }
 
 void wendigo_scene_help_on_enter(void* context) {
+    FURI_LOG_T(WENDIGO_TAG, "Start wendigo_scene_help_on_enter()");
     WendigoApp* app = context;
+    app->current_view = WendigoAppViewHelp;
 
     FuriString* temp_str;
     temp_str = furi_string_alloc();
@@ -41,18 +45,23 @@ void wendigo_scene_help_on_enter(void* context) {
     furi_string_free(temp_str);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, WendigoAppViewHelp);
+    FURI_LOG_T(WENDIGO_TAG, "End wendigo_scene_help_on_enter()");
 }
 
 bool wendigo_scene_help_on_event(void* context, SceneManagerEvent event) {
+    FURI_LOG_T(WENDIGO_TAG, "Start wendigo_scene_help_on_event()");
     WendigoApp* app = context;
     bool consumed = false;
     UNUSED(app);
     UNUSED(event);
+    FURI_LOG_T(WENDIGO_TAG, "End wendigo_scene_help_on_event()");
     return consumed;
 }
 
 void wendigo_scene_help_on_exit(void* context) {
+    FURI_LOG_T(WENDIGO_TAG, "Start wendigo_scene_help_on_exit()");
     WendigoApp* app = context;
     // Clear views
     widget_reset(app->widget);
+    FURI_LOG_T(WENDIGO_TAG, "End wendigo_scene_help_on_exit()");
 }

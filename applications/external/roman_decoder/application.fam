@@ -1,0 +1,13 @@
+App(
+    appid="roman_decoder",
+    name="Roman decoder",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="roman_decoder_main",
+    stack_size=2 * 1024,
+    fap_icon="romandec_icon.png",
+    fap_category="Tools",
+    fap_author="evillero",
+    fap_weburl="https://github.com/evillero/roman_decoder",
+    fap_version="0.2",
+    fap_description="An app that converts Roman numerals to decimal values.",
+)

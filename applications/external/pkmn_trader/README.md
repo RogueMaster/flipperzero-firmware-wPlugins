@@ -1,4 +1,4 @@
-# GAME BOY Pokemon Trading MALVEKE
+# Pokemon Trade Tool for Flipper
 
 ## Watch it in Action
 The video below trades a Bulbasaur from the Flipper to a Game Boy Color with Pokemon Silver. The Game Boy trades its Cyndaquil. The Flipper is then used to modify the Cyndaquil to infect it with Pokerus, modify its EVs and IVs, and have the Cyndaquil hold an Antidote before it is traded back to the Game Boy.

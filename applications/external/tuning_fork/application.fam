@@ -6,8 +6,8 @@ App(
     fap_icon="tuning_fork_icon.png",
     fap_category="Media",
     stack_size=2 * 1024,
-    fap_author="besya & (Fixes by Willy-JL)",
+    fap_author="besya & (Fixes by WillyJL)",
     fap_weburl="https://github.com/besya/flipperzero-tuning-fork",
-    fap_version="1.2",
-    fap_description="Tuning fork for tuning musical instruments",
+    fap_version="2.1",
+    fap_description="Tuning fork for tuning musical instruments and more",
 )

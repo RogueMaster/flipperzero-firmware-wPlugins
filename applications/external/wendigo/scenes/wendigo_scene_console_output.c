@@ -44,7 +44,9 @@ static uint8_t hex_char_to_byte(const char c) {
 }
 
 void wendigo_scene_console_output_on_enter(void* context) {
+    FURI_LOG_T(WENDIGO_TAG, "Start wendigo_scene_console_output_on_enter()");
     WendigoApp* app = context;
+    app->current_view = WendigoAppViewConsoleOutput;
 
     TextBox* text_box = app->text_box;
     text_box_reset(app->text_box);
@@ -124,9 +126,11 @@ void wendigo_scene_console_output_on_enter(void* context) {
             }
         }
     }
+    FURI_LOG_T(WENDIGO_TAG, "End wendigo_scene_console_output_on_enter()");
 }
 
 bool wendigo_scene_console_output_on_event(void* context, SceneManagerEvent event) {
+    FURI_LOG_T(WENDIGO_TAG, "Start wendigo_scene_console_output_on_event()");
     WendigoApp* app = context;
 
     bool consumed = false;
@@ -137,13 +141,15 @@ bool wendigo_scene_console_output_on_event(void* context, SceneManagerEvent even
     } else if(event.type == SceneManagerEventTypeTick) {
         consumed = true;
     }
-
+    FURI_LOG_T(WENDIGO_TAG, "End wendigo_scene_console_output_on_event()");
     return consumed;
 }
 
 void wendigo_scene_console_output_on_exit(void* context) {
+    FURI_LOG_T(WENDIGO_TAG, "Start wendigo_scene_console_output_on_exit()");
     WendigoApp* app = context;
 
     // Unregister rx callback
     wendigo_uart_set_handle_rx_data_cb(app->uart, NULL);
+    FURI_LOG_T(WENDIGO_TAG, "End wendigo_scene_console_output_on_exit()");
 }

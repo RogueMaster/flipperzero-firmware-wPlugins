@@ -1,0 +1,15 @@
+App(
+    appid="gameboy",
+    name="GameBoy Emu",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipgb_app",
+    stack_size=8 * 1024,
+    cdefines=[("GB_FB_ROWS", "64")],
+    fap_icon="flipgb_icon.png",
+    fap_icon_assets_symbol="flipgb",
+    fap_category="Games",
+    fap_author="D4C1-Labs & jgilchrist",
+    fap_weburl="https://github.com/D4C1-Labs/Flipper-ARF/tree/0d598b854c868067bf39111ae14bc8c2e195c26c/applications/system/FlipperGB",
+    fap_version="1.0",
+    fap_description="Game Boy (DMG) emulator. Loads .gb ROMs from the SD card, streams ROM banks, battery saves, adaptive frameskip.",
+)

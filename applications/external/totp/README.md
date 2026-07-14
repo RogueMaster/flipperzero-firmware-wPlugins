@@ -24,6 +24,6 @@ There is a companion app for desktop allowing you to interact with Flipper Authe
 
 ## SAST Tools
 
-[PVS-Studio](https://pvs-studio.com/en/pvs-studio/?utm_source=github&utm_medium=organic&utm_campaign=open_source) - static analyzer for C, C++, C#, and Java code.
+[PVS-Studio](https://pvs-studio.com/en/pvs-studio/?utm_source=website&utm_medium=github&utm_campaign=open_source) - static analyzer for C, C++, C#, and Java code.
 
 [SonarCloud](https://www.sonarsource.com/products/sonarcloud/) - cloud-based code quality and security service

@@ -19,31 +19,19 @@ static void button_callback(GuiButtonType result, InputType input, void* context
 
 static void draw_present_view(App* app) {
     widget_reset(app->widget);
-    widget_add_string_element(
-        app->widget, 65, 20, AlignCenter, AlignCenter, FontPrimary, "ELECTRONIC CATS");
-    widget_add_string_element(
-        app->widget, 65, 35, AlignCenter, AlignCenter, FontPrimary, "Presents:");
-
+    widget_add_icon_element(app->widget, 40, 1, &I_EC48x26);
+    widget_add_string_multiline_element(
+        app->widget, 65, 40, AlignCenter, AlignCenter, FontPrimary, "ELECTRONIC CATS \n Presents:");
     widget_add_button_element(app->widget, GuiButtonTypeRight, "Next", button_callback, app);
 }
 
 static void draw_can_app_view(App* app) {
     widget_reset(app->widget);
-    widget_add_string_element(
+    widget_add_string_multiline_element(
         app->widget, 65, 20, AlignCenter, AlignCenter, FontPrimary, "CANBUS APP");
     widget_add_string_element(
-        app->widget, 65, 35, AlignCenter, AlignCenter, FontSecondary, "By: Adonai Diaz");
+        app->widget, 65, 35, AlignCenter, AlignCenter, FontSecondary, PROGRAM_VERSION);
 
-    widget_add_button_element(app->widget, GuiButtonTypeRight, "Next", button_callback, app);
-    widget_add_button_element(app->widget, GuiButtonTypeLeft, "Prev", button_callback, app);
-}
-
-static void draw_version_view(App* app) {
-    widget_reset(app->widget);
-    widget_add_string_element(
-        app->widget, 65, 20, AlignCenter, AlignCenter, FontPrimary, "Version:");
-    widget_add_string_element(
-        app->widget, 65, 35, AlignCenter, AlignCenter, FontSecondary, "CANBUS APP V1.1.0.0");
     widget_add_button_element(app->widget, GuiButtonTypeRight, "Next", button_callback, app);
     widget_add_button_element(app->widget, GuiButtonTypeLeft, "Prev", button_callback, app);
 }
@@ -61,15 +49,8 @@ static void draw_license_view(App* app) {
 void draw_more_info_view(App* app) {
     widget_reset(app->widget);
     widget_add_string_element(
-        app->widget, 65, 10, AlignCenter, AlignCenter, FontPrimary, "More info:");
-    widget_add_string_element(
-        app->widget, 65, 25, AlignCenter, AlignCenter, FontSecondary, "https://github.com");
-
-    widget_add_string_element(
-        app->widget, 65, 35, AlignCenter, AlignCenter, FontSecondary, "/ElectronicCats");
-
-    widget_add_string_element(
-        app->widget, 65, 45, AlignCenter, AlignCenter, FontSecondary, "/flipper-MCP2515-CANBUS");
+        app->widget, 10, 5, AlignLeft, AlignCenter, FontPrimary, "More info:");
+    widget_add_icon_element(app->widget, 48, 15, &I_qrcode);
     widget_add_button_element(app->widget, GuiButtonTypeLeft, "Prev", button_callback, app);
 }
 
@@ -95,12 +76,9 @@ bool app_scene_about_us_on_event(void* context, SceneManagerEvent event) {
             draw_can_app_view(app);
             break;
         case 2:
-            draw_version_view(app);
-            break;
-        case 3:
             draw_license_view(app);
             break;
-        case 4:
+        case 3:
             draw_more_info_view(app);
             break;
         default:

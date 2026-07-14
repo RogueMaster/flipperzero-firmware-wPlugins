@@ -15,6 +15,7 @@
 #include <src/views/include/receive_view.h>
 
 #include <protocols/printer/include/printer_proto.h>
+#include <gblink/include/gblink_pinconf.h>
 
 bool fgp_custom_event_callback(void* context, uint32_t event) {
     furi_assert(context);
@@ -72,7 +73,9 @@ static struct fgp_app* fgp_alloc(void) {
 
     // Printer handling
     fgp->printer_handle = printer_alloc();
-    printer_pin_set_default(fgp->printer_handle, PINOUT_ORIGINAL);
+
+    // Load pinconf if saved
+    gblink_pinconf_load(printer_gblink_handle_get(fgp->printer_handle));
 
     return fgp;
 }

@@ -12,7 +12,7 @@ so we can deallocate em later
 */
 class FComState {
 public:
-    FComState(){};
+    FComState() {};
     Stream* stream;
     FlipperIndicator* led;
     FComOutput* output;

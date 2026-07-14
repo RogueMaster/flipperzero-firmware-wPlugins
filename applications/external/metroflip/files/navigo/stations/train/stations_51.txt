@@ -1,0 +1,18 @@
+4,1,La Plaine Stade de France
+4,2,La Courneuve - Aubervilliers
+4,3,La Courneuve - Aubervilliers
+4,5,La Plaine Stade de France
+5,1,Le Bourget
+5,2,Le Bourget
+7,1,Drancy
+7,2,Le Blanc-Mesnil
+8,1,Aulnay-sous-Bois
+9,1,Sevran - Livry
+9,2,Sevran - Livry
+9,3,Vert Galant
+10,1,Villeparisis - Mitry-le-Neuf
+11,1,Mitry - Claye
+11,2,Mitry - Claye
+11,3,Compans
+12,1,Thieux - Nantouillet
+12,2,Dammartin - Juilly - Saint-Mard

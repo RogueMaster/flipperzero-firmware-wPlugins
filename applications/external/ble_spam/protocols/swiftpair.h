@@ -1,7 +1,7 @@
 #pragma once
 #include "_base.h"
 
-// Hacked together by @Willy-JL and @Spooks4576
+// Hacked together by @WillyJL and @Spooks4576
 // Documentation at https://learn.microsoft.com/en-us/windows-hardware/design/component-guidelines/bluetooth-swift-pair
 
 typedef struct {

@@ -1,0 +1,14 @@
+10,1,Fontenay-le-Fleury
+11,1,Villepreux - Les Clayes
+12,1,Plaisir - Les Clayes
+12,2,Plaisir - Grignon
+13,1,Beynes
+13,2,Mareil-sur-Mauldre
+13,3,Maule
+13,4,Nezel - Aulnay
+15,1,Gare de Villiers Neauphle Pontchartrain
+15,2,Montfort-l'Amaury - Mere
+15,3,Garancieres - La Queue
+15,4,Orgerus - Behoust
+15,5,Tacoignieres - Richebourg
+16,1,Houdan

@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
- #pragma once
+#pragma once
 
 #include "esp_loader_io.h"
 #include "driver/spi_master.h"
@@ -22,8 +22,7 @@
 extern "C" {
 #endif
 
-typedef struct
-{
+typedef struct {
     spi_host_device_t spi_bus;
     uint32_t frequency;
     uint32_t spi_clk_pin;
@@ -37,6 +36,8 @@ typedef struct
     uint32_t strap_bit1_pin;
     uint32_t strap_bit2_pin;
     uint32_t strap_bit3_pin;
+    bool dont_initialize_bus; /* Use if the bus has already been initialized,
+                                 useful when sharing the bus with other devices. */
 } loader_esp32_spi_config_t;
 
 /**

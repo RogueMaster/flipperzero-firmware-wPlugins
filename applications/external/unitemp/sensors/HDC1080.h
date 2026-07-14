@@ -19,43 +19,43 @@
 #define UNITEMP_HDC1080
 
 #include "../unitemp.h"
-#include "../Sensors.h"
-extern const SensorType HDC1080;
+#include "../sensors.h"
+extern const SensorModel HDC1080;
 /**
- * @brief Выделение памяти и установка начальных значений датчика HDC1080
+ * @brief Allocating memory and setting initial values ​​for the HDC1080 sensor
  *
- * @param sensor Указатель на создаваемый датчик
- * @return Истина при успехе
+ * @param sensor Pointer to the sensor to create
+ * @return The truth about success
  */
 bool unitemp_HDC1080_alloc(Sensor* sensor, char* args);
 
 /**
- * @brief Инициализации датчика HDC1080
+ * @brief Initializing the HDC1080 sensor
  *
- * @param sensor Указатель на датчик
- * @return Истина если инициализация упспешная
+ * @param sensor Pointer to sensor
+ * @return True if initialization is successful
  */
 bool unitemp_HDC1080_init(Sensor* sensor);
 
 /**
- * @brief Деинициализация датчика
+ * @brief Deinitializing the sensor
  *
- * @param sensor Указатель на датчик
+ * @param sensor Pointer to sensor
  */
 bool unitemp_HDC1080_deinit(Sensor* sensor);
 
 /**
- * @brief Обновление значений из датчика
+ * @brief Updating values ​​from sensor
  *
- * @param sensor Указатель на датчик
- * @return Статус обновления
+ * @param sensor Pointer to sensor
+ * @return Update status
  */
-UnitempStatus unitemp_HDC1080_update(Sensor* sensor);
+SensorStatus unitemp_HDC1080_update(Sensor* sensor);
 
 /**
- * @brief Высвободить память датчика
+ * @brief Free up sensor memory
  *
- * @param sensor Указатель на датчик
+ * @param sensor Pointer to sensor
  */
 bool unitemp_HDC1080_free(Sensor* sensor);
 

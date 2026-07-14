@@ -1,0 +1,42 @@
+{
+  "components": [
+    {
+      "partno": "BMP280",
+      "desc": "Pressure and temperature sensor.",
+      "type": 22,
+      "manufacturer": "Bosch",
+      "date": "2013"
+    },
+    {
+      "partno": "BME680",
+      "desc": "Environmental sensor with gas, humidity, temperature, and pressure",
+      "type": 22,
+      "manufacturer": "Bosch",
+      "date": "2017"
+    },
+    {
+      "partno": "BME280",
+      "desc": "Environmental sensor.",
+      "type": 22,
+      "manufacturer": "Bosch",
+      "date": "2015"
+    },
+    {
+      "partno": "MS5611",
+      "desc": "Pressure sensor.",
+      "type": 22,
+      "manufacturer": "TE Conn.",
+      "date": "2011"
+    },
+    {
+      "partno": "MS5637",
+      "desc": "Pressure sensor",
+      "type": 22,
+      "manufacturer": "TE Conn.",
+      "date": "2014"
+    }
+  ],
+  "unique_types": [
+    22
+  ]
+}

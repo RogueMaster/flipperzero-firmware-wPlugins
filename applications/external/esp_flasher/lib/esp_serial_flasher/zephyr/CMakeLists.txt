@@ -13,7 +13,8 @@ if (CONFIG_ESP_SERIAL_FLASHER)
 
     zephyr_library_sources(${ZEPHYR_CURRENT_MODULE_DIR}/src/esp_loader.c
                 ${ZEPHYR_CURRENT_MODULE_DIR}/src/esp_targets.c
-                ${ZEPHYR_CURRENT_MODULE_DIR}/src/protocol_common.c
+                ${ZEPHYR_CURRENT_MODULE_DIR}/src/esp_stubs.c
+                ${ZEPHYR_CURRENT_MODULE_DIR}/src/protocol_serial.c
                 ${ZEPHYR_CURRENT_MODULE_DIR}/src/protocol_uart.c
                 ${ZEPHYR_CURRENT_MODULE_DIR}/src/slip.c
                 ${ZEPHYR_CURRENT_MODULE_DIR}/src/md5_hash.c
@@ -28,9 +29,25 @@ if (CONFIG_ESP_SERIAL_FLASHER)
         target_compile_definitions(esp_flasher INTERFACE -DMD5_ENABLED=1)
     endif()
 
+    if(DEFINED SERIAL_FLASHER_DEBUG_TRACE OR CONFIG_SERIAL_FLASHER_DEBUG_TRACE)
+        target_compile_definitions(esp_flasher INTERFACE SERIAL_FLASHER_DEBUG_TRACE=1)
+    endif()
+
     target_compile_definitions(esp_flasher
     INTERFACE
         SERIAL_FLASHER_WRITE_BLOCK_RETRIES=${CONFIG_SERIAL_FLASHER_WRITE_BLOCK_RETRIES}
     )
+
+    if((DEFINED SERIAL_FLASHER_RESET_INVERT AND SERIAL_FLASHER_RESET_INVERT) OR CONFIG_SERIAL_FLASHER_RESET_INVERT)
+        target_compile_definitions(esp_flasher INTERFACE SERIAL_FLASHER_RESET_INVERT=1)
+    else()
+        target_compile_definitions(esp_flasher INTERFACE SERIAL_FLASHER_RESET_INVERT=0)
+    endif()
+
+    if((DEFINED SERIAL_FLASHER_BOOT_INVERT AND SERIAL_FLASHER_BOOT_INVERT) OR CONFIG_SERIAL_FLASHER_BOOT_INVERT)
+        target_compile_definitions(esp_flasher INTERFACE SERIAL_FLASHER_BOOT_INVERT=1)
+    else()
+        target_compile_definitions(esp_flasher INTERFACE SERIAL_FLASHER_BOOT_INVERT=0)
+    endif()
 
 endif()

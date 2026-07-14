@@ -8,9 +8,10 @@ Flight Assault is a dynamic action game for flipperzero where players control a 
 2. Use the control keys to maneuver the spacecraft.
 3. Destroy as many enemy ships as possible to score points.
 4. Avoid collisions with enemy ships.
-5. Play for as long as you can and try to achieve the highest score!
+5. Play for as long as you can and try to achieve the highest score!!
 
 ## Version history
+- 0.4 - Bug fixes, added shield, enemy icon changed
 - 0.3 - Added bonus lives feature to the game
 - 0.2 - Added lives
 - 0.1 - Initial release by @evillero

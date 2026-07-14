@@ -30,6 +30,7 @@ typedef struct {
 } loader_raspberry_config_t;
 
 esp_loader_error_t loader_port_raspberry_init(const loader_raspberry_config_t *config);
+void loader_port_deinit(void);
 
 #ifdef __cplusplus
 }

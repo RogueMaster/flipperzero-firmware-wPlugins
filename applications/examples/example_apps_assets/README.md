@@ -4,7 +4,7 @@ This example shows how to use the Apps Assets folder to store data that is not p
 
 ## Source code
 
-Source code for this example can be found [here](https://github.com/flipperdevices/flipperzero-firmware/tree/dev/applications/examples/example_apps_assets).
+Source code for this example can be found [here](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/dev/applications/examples/example_apps_assets).
 
 ## What is the Apps Assets Folder?
 

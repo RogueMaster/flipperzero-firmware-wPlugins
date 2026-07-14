@@ -1,0 +1,15 @@
+App(
+    appid="htw_ac_remote",
+    name="HTW AC Remote",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="htw_ac_remote_app",
+    stack_size=4 * 1024,
+    fap_icon="htw_ac_remote.png",
+    fap_icon_assets="images",
+    fap_libs=["infrared"],
+    fap_category="Infrared",
+    fap_author="sokogen",
+    fap_weburl="https://github.com/sokogen/flipperzero-htw-ac-remote",
+    fap_version="1.1",
+    fap_description="IR remote control for HTW air conditioner",
+)

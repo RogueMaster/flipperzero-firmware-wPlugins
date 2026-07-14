@@ -1,0 +1,13 @@
+App(
+    appid="vl6180x_pong",
+    name="VL6180X Pong",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipper_pong_app",
+    stack_size=1 * 1024,
+    fap_icon="pong.png",
+    fap_category="GPIO/Games",
+    fap_author="Kyle Diller",
+    fap_weburl="https://github.com/kdiller713/public-FlipperApps/tree/main/vl6180x_pong",
+    fap_version="0.1",
+    fap_description="Simple pong game with control from a VL6180X",
+)

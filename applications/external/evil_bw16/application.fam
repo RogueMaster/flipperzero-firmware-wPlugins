@@ -1,0 +1,13 @@
+App(
+    appid="evil_bw16",
+    name="Evil BW16 Controller",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="evil_bw16_app",
+    stack_size=8 * 1024,
+    fap_icon="icon.png",
+    fap_category="GPIO",
+    fap_author="dagnazty",
+    fap_weburl="https://github.com/dagnazty/Flipper_Apps",
+    fap_version="1.0",
+    fap_description="WiFi Deauther controller for Evil-BW16 module via UART",
+)

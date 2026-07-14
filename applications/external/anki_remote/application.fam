@@ -1,0 +1,15 @@
+App(
+    appid="anki_remote",
+    name="Anki Remote",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="anki_remote_app",
+    stack_size=2 * 1024,
+    fap_icon="anki_remote.png",
+    fap_icon_assets="images",
+    fap_libs=["ble_profile"],
+    fap_category="Bluetooth",
+    fap_author="Blue5GD",
+    fap_weburl="https://github.com/Blue5GD/Anki-Remote",
+    fap_version="1.3",
+    fap_description="A customizable BLE keyboard remote",
+)

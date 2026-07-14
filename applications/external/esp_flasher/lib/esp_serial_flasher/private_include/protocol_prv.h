@@ -1,4 +1,4 @@
-/* Copyright 2020-2023 Espressif Systems (Shanghai) CO LTD
+/* Copyright 2020-2024 Espressif Systems (Shanghai) CO LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,20 @@
 #include "esp_loader.h"
 #include "protocol.h"
 
+typedef struct {
+    const void *cmd;
+    size_t cmd_size;
+    const void *data; // Set to NULL if the command has no data
+    size_t data_size;
+    void *resp_data; // Set to NULL if the response has no data
+    size_t resp_data_size;
+    uint32_t *resp_data_recv_size; /* Out parameter indicating actual size of the response read
+                                      for commands where response size can vary, in which
+                                      case resp_data_size is the maximum response data size allowed.
+                                      Set to NULL to require fixed response size of resp_data_size. */
+    uint32_t *reg_value; // Out parameter for the READ_REG command, will return zero otherwise
+} send_cmd_config;
+
 void log_loader_internal_error(error_code_t error);
 
-esp_loader_error_t send_cmd(const void *cmd_data, uint32_t size, uint32_t *reg_value);
-
-esp_loader_error_t send_cmd_with_data(const void *cmd_data, size_t cmd_size,
-                                      const void *data, size_t data_size);
-
-esp_loader_error_t send_cmd_md5(const void *cmd_data, size_t cmd_size, uint8_t md5_out[MD5_SIZE]);
+esp_loader_error_t send_cmd(const send_cmd_config *config);

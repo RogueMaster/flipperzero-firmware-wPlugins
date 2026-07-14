@@ -1,0 +1,14 @@
+App(
+    appid="ble_clicker",
+    name="BLE Clicker",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ble_clicker_app",
+    fap_libs=["ble_profile"],
+    stack_size=2 * 1024,
+    fap_icon="icon_10x10.png",
+    fap_category="Bluetooth",
+    fap_author="Roman",
+    fap_weburl="https://github.com/random1st/flipper-ble-clicker",
+    fap_version="1.0",
+    fap_description="BLE HID clicker for voice-driven Claude Code workflow on iTerm2",
+)

@@ -1,0 +1,80 @@
+ATM1
+NAME Swamp
+ENTRY 0 2 1 3
+
+TRACK # 0
+GOTO_ADVANCED 0 2 1 3
+SET_VOLUME 32 # volume
+VOLUME_SLIDE_ON -4 # steps = -4
+REPEAT 31 7
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 1
+SET_TEMPO 48
+REPEAT 7 4
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 2
+REPEAT 63 6
+NOTE 0 # note = 0
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 3
+SET_VOLUME 0 # volume
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 4
+REPEAT 1 5
+DB 0x4B
+NOTE 3 # note = 3
+REPEAT 1 5
+DB 0x4B
+DB 0xFF
+REPEAT 1 5
+DB 0x4B
+NOTE 3 # note = 3
+REPEAT 1 5
+DB 0x4B
+DB 0xFB
+RETURN # return
+ENDTRACK
+
+TRACK # 5
+NOTE 49 # note = 49
+SET_VOLUME 63 # volume
+VOLUME_SLIDE_ON -16 # steps = -16
+DELAY 16 # ticks = 16
+SET_VOLUME 16 # volume
+VOLUME_SLIDE_ON -4 # steps = -4
+DELAY 48 # ticks = 48
+RETURN # return
+ENDTRACK
+
+TRACK # 6
+NOTE 1 # note = 1
+SET_VOLUME 32 # volume
+SET_VIBRATO 1 31
+DELAY 64 # ticks = 64
+RETURN # return
+ENDTRACK
+
+TRACK # 7
+NOTE 25 # note = 25
+DELAY 16 # ticks = 16
+NOTE 32 # note = 32
+DELAY 16 # ticks = 16
+NOTE 28 # note = 28
+DELAY 8 # ticks = 8
+NOTE 27 # note = 27
+DELAY 8 # ticks = 8
+NOTE 25 # note = 25
+DELAY 16 # ticks = 16
+DELAY 64 # ticks = 64
+RETURN # return
+ENDTRACK
+
+END

@@ -1,0 +1,84 @@
+ATM1
+NAME Battle
+ENTRY 0 1 1 1
+
+TRACK # 0
+GOTO_ADVANCED 0 1 1 1
+SET_VOLUME 48 # volume
+VOLUME_SLIDE_ON -8 # steps = -8
+DB 0x50
+NOTE 5 # note = 5
+NOTE 1 # note = 1
+SET_TEMPO 24
+REPEAT 1 2
+SET_TRANSPOSITION -2
+REPEAT 1 2
+SET_TRANSPOSITION 0
+REPEAT 1 2
+SET_TRANSPOSITION -2
+REPEAT 1 2
+SET_TRANSPOSITION 0
+GOTO 3
+SET_TRANSPOSITION -4
+GOTO 3
+SET_TRANSPOSITION -2
+GOTO 3
+SET_TRANSPOSITION 0
+REPEAT 1 3
+SET_TRANSPOSITION -4
+GOTO 3
+SET_TRANSPOSITION -2
+GOTO 3
+SET_TRANSPOSITION 0
+GOTO 3
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 1
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 2
+NOTE 25 # note = 25
+DELAY 4 # ticks = 4
+NOTE 13 # note = 13
+DELAY 4 # ticks = 4
+NOTE 21 # note = 21
+DELAY 4 # ticks = 4
+NOTE 13 # note = 13
+DELAY 4 # ticks = 4
+NOTE 20 # note = 20
+DELAY 4 # ticks = 4
+NOTE 13 # note = 13
+DELAY 4 # ticks = 4
+NOTE 18 # note = 18
+DELAY 4 # ticks = 4
+NOTE 13 # note = 13
+DELAY 4 # ticks = 4
+NOTE 20 # note = 20
+DELAY 4 # ticks = 4
+NOTE 13 # note = 13
+DELAY 4 # ticks = 4
+NOTE 21 # note = 21
+DELAY 4 # ticks = 4
+NOTE 13 # note = 13
+DELAY 4 # ticks = 4
+RETURN # return
+ENDTRACK
+
+TRACK # 3
+NOTE 13 # note = 13
+DELAY 4 # ticks = 4
+NOTE 25 # note = 25
+DELAY 4 # ticks = 4
+DELAY 4 # ticks = 4
+NOTE 13 # note = 13
+DELAY 4 # ticks = 4
+NOTE 25 # note = 25
+DELAY 12 # ticks = 12
+DELAY 4 # ticks = 4
+RETURN # return
+ENDTRACK
+
+END
+# Music from Arduventure

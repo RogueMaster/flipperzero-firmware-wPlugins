@@ -5,6 +5,13 @@
 - Full screen 90 degree and 270 degree fill (#6).
 - WiFi streaming/connection support (#35).
 
+## v1.9
+
+- Updating the row and column iteration boundaries in the serial stream to cover the full 128×128 image.
+- Changing the camera configuration from QQVGA to 128×128 mode.
+- Adjusting buffer size macros and pixel offset calculations in the camera suite view to accommodate the new image dimensions.
+- New contributor "rnadyrshin", thank you!
+
 ## v1.8
 
 - Use new Flipper Zero "DateTime" type for image filenames as "YYYYMMDD-HHMMSS.bmp" (#52).

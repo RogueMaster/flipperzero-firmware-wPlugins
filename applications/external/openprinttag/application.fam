@@ -1,0 +1,14 @@
+App(
+    appid="openprinttag",
+    name="OpenPrintTag",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="openprinttag_app",
+    stack_size=2 * 1024,
+    fap_icon="openprinttag.png",
+    fap_icon_assets="assets",
+    fap_category="NFC",
+    fap_author="Houzvicka",
+    fap_weburl="https://github.com/Houzvicka/FlipperPrintTag",
+    fap_version="1.0",
+    fap_description="Read and write OpenPrintTag NFC tags for 3D printing materials",
+)

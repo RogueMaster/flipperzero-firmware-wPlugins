@@ -50,11 +50,13 @@ const NotificationSequence subghz_sequence_tx_beep = {
 static void subghz_scene_receiver_update_statusbar(void* context) {
     SubGhz* subghz = context;
     FuriString* history_stat_str = furi_string_alloc();
+    bool show_sats = subghz->gps && furi_hal_rtc_get_timestamp() % 2;
     if(!subghz_history_get_text_space_left(
            subghz->history,
            history_stat_str,
-           subghz->gps ? subghz->gps->satellites : 0,
-           subghz->last_settings->delete_old_signals)) {
+           subghz->last_settings->delete_old_signals,
+           show_sats,
+           show_sats ? subghz->gps->satellites : 0)) {
         FuriString* frequency_str = furi_string_alloc();
         FuriString* modulation_str = furi_string_alloc();
 
@@ -87,6 +89,7 @@ static void subghz_scene_receiver_update_statusbar(void* context) {
             furi_string_get_cstr(history_stat_str),
             subghz_txrx_hopper_get_state(subghz->txrx) != SubGhzHopperStateOFF,
             READ_BIT(subghz->filter, SubGhzProtocolFlag_BinRAW) > 0,
+            show_sats,
             subghz->repeater);
 
         furi_string_free(frequency_str);
@@ -94,11 +97,12 @@ static void subghz_scene_receiver_update_statusbar(void* context) {
     } else {
         subghz_view_receiver_add_data_statusbar(
             subghz->subghz_receiver,
+            "",
+            "",
             furi_string_get_cstr(history_stat_str),
-            "",
-            "",
             subghz_txrx_hopper_get_state(subghz->txrx) != SubGhzHopperStateOFF,
             READ_BIT(subghz->filter, SubGhzProtocolFlag_BinRAW) > 0,
+            show_sats,
             subghz->repeater);
     }
     furi_string_free(history_stat_str);
@@ -203,14 +207,12 @@ static void subghz_scene_add_to_history_callback(
             if(decoder_base->protocol->flag & SubGhzProtocolFlag_Save &&
                subghz->last_settings->autosave) {
                 // File name
-                FuriString* fileName = furi_string_alloc_set(item_name);
-                furi_string_replace_all(fileName, " ", "_");
                 char file[SUBGHZ_MAX_LEN_NAME] = {0};
                 const char* suf = subghz->last_settings->protocol_file_names ?
-                                      furi_string_get_cstr(fileName) :
+                                      decoder_base->protocol->name :
                                       SUBGHZ_APP_FILENAME_PREFIX;
                 DateTime time = subghz_history_get_datetime(history, idx);
-                name_generator_make_detailed_datetime(file, sizeof(file), suf, &time);
+                name_generator_make_detailed_datetime(file, sizeof(file), suf, &time, true);
                 // Dir name
                 FuriString* path = furi_string_alloc_set(SUBGHZ_APP_FOLDER "/Autosave");
                 char* dir = strdup(furi_string_get_cstr(path));
@@ -226,7 +228,6 @@ static void subghz_scene_add_to_history_callback(
                 subghz_save_protocol_to_file(
                     subghz, subghz_history_get_raw_data(history, idx), furi_string_get_cstr(path));
                 furi_string_free(path);
-                furi_string_free(fileName);
             }
 
             subghz_scene_receiver_update_statusbar(subghz);
@@ -237,10 +238,8 @@ static void subghz_scene_add_to_history_callback(
             } else {
                 subghz->state_notifications = SubGhzNotificationStateRxDone;
             }
-            subghz_rx_key_state_set(subghz, SubGhzRxKeyStateAddKey);
         }
-    } else {
-        FURI_LOG_D(TAG, "%s protocol ignored", decoder_base->protocol->name);
+        subghz_rx_key_state_set(subghz, SubGhzRxKeyStateAddKey);
     }
     subghz_receiver_reset(receiver);
     furi_string_free(item_name);
@@ -256,12 +255,16 @@ void subghz_scene_receiver_on_enter(void* context) {
 
     if(subghz_rx_key_state_get(subghz) == SubGhzRxKeyStateIDLE) {
         subghz_txrx_set_preset_internal(
-            subghz->txrx, subghz->last_settings->frequency, subghz->last_settings->preset_index);
+            subghz->txrx,
+            subghz->last_settings->frequency,
+            subghz->last_settings->preset_index,
+            subghz->last_settings->tx_power);
 
         subghz->filter = subghz->last_settings->filter;
         subghz_txrx_receiver_set_filter(subghz->txrx, subghz->filter);
         subghz->ignore_filter = subghz->last_settings->ignore_filter;
         subghz_txrx_receiver_set_ignore_filter(subghz->txrx, subghz->ignore_filter);
+        subghz->tx_power = subghz->last_settings->tx_power;
 
         subghz_history_reset(history);
         subghz_rx_key_state_set(subghz, SubGhzRxKeyStateStart);

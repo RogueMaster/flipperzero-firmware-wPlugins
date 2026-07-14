@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 3,
+  "binaries": [
+    {
+      "title": "Prince of Persia Mini",
+      "filename": "PrinceOfPersiaMini.hex",
+      "flashdata": "PrinceOfPersiaMini-data.bin",
+      "flashsave": "PrinceOfPersiaMini-save.bin",
+      "device": "ArduboyFX"
+    }
+  ]
+}

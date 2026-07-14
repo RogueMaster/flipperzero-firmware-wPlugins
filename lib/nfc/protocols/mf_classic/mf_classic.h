@@ -49,6 +49,9 @@ typedef enum {
     MfClassicTypeMini,
     MfClassicType1k,
     MfClassicType4k,
+    // Appended last on purpose: keeps Mini/1k/4k values stable for precompiled FAPs and any
+    // type-indexed array. Not a Classic product -- a MIFARE Plus 2K in SL1 (see the poller).
+    MfClassicType2k,
 
     MfClassicTypeNum,
 } MfClassicType;
@@ -212,6 +215,9 @@ void mf_classic_set_key_not_found(
     MfClassicData* data,
     uint8_t sector_num,
     MfClassicKeyType key_type);
+
+MfClassicKey
+    mf_classic_get_key(const MfClassicData* data, uint8_t sector_num, MfClassicKeyType key_type);
 
 bool mf_classic_is_block_read(const MfClassicData* data, uint8_t block_num);
 

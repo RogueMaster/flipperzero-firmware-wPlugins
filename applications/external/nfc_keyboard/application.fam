@@ -1,0 +1,13 @@
+App(
+    appid="nfc_keyboard",
+    name="NFC Keyboard",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="nfc_hid_app",
+    stack_size=2 * 1024,
+    fap_icon="usb_keyboard_10px.png",
+    fap_category="NFC",
+    fap_author="Patrick762",
+    fap_weburl="https://github.com/Patrick762/flipper-nfc-keyboard",
+    fap_version="1.0",
+    fap_description="Paste NFC card ids to keyboard input",
+)

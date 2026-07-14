@@ -1,0 +1,60 @@
+{
+    "balls": [
+        {
+            "position": [ 250, 50 ]
+        }
+    ],
+    "flippers": [
+        {
+            "position": [ 170, 1080 ],
+            "side": "LEFT",
+            "size": 120
+        },
+        {
+            "position": [ 470, 1080 ],
+            "side": "RIGHT",
+            "size": 120
+        }
+    ],
+    "bumpers": [
+        {
+            "position": [ 200, 260 ],
+            "radius": 60
+        },
+        {
+            "position": [ 450, 200 ],
+            "radius": 60
+        },
+        {
+            "position": [ 280, 550 ],
+            "radius": 80
+        },
+        {
+            "position": [ 480, 500 ],
+            "radius": 85
+        }
+    ],
+    "rails": [
+        // left wall
+        {
+            "start": [ 0, 0 ],
+            "end": [ 0, 1080 ]
+        },
+        // right wall
+        {
+            "start": [ 630, 1080 ],
+            "end": [ 630, 0 ]
+        },
+        // bottom left
+        {
+            "start": [ 0, 1080 ],
+            "end": [ 220, 1180 ]
+
+        },
+        // bottom right
+        {
+            "start": [ 420, 1180 ],
+            "end": [ 630, 1080 ]
+        }
+    ]
+}

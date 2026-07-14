@@ -1,0 +1,15 @@
+App(
+    appid="fart",
+    name="Fart Sound Generator",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="fart_main",
+    sources=["windbreak.c"],
+    stack_size=2 * 1024,
+    fap_icon="images/icon_10x10.png",
+    fap_icon_assets="images",
+    fap_category="Media",
+    fap_author="F. Greil",
+    fap_weburl="https://github.com/fgreil/mitzi-windbreak",
+    fap_version=(0, 2, 0),
+    fap_description="A simple app that produces a flatulent sound effect for light relief and to improve your morale during breaks.",
+)

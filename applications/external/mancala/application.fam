@@ -1,0 +1,15 @@
+App(
+    appid="mancala",
+    name="Mancala",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="mancala_main",
+    sources=["mancala.c"],
+    stack_size=1 * 1024,
+    fap_icon="images/icon_10x10.png",
+    fap_icon_assets="images",
+    fap_category="Games",
+    fap_author="F. Greil",
+    fap_weburl="https://github.com/fgreil/mitzi-mancala",
+    fap_version="0.1",
+    fap_description="Old strategy board game with 6 pits and 1 store per player and 4 stones per pit.",
+)

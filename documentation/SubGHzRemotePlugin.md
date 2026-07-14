@@ -1,5 +1,7 @@
 # Sub-GHz Remote
 
+Credit to [Unleashed Firmware](https://github.com/DarkFlippers/unleashed-firmware) team for documentation and the [app itself](https://github.com/DarkFlippers/SubGHz_Remote)!
+
 
 # UPDATE!!!!!!
 ## Now you can create and edit map files directly on flipper, go into Sub-GHz Remote and click back button
@@ -9,9 +11,9 @@
 <br>
 
 
-### The Sub-GHz Remote *requires* the creation of custom user map with `.txt` extension in the `/subghz/subghz_remote` folder on the SD card. 
+### The SubGHz Remote Tool *requires* the creation of custom user map with `.txt` extension in the `subghz/subghz_remote` folder on the sdcard. 
 
-#### If the mapped capture files do not exist or the parameters within are not configured properly, **you will receive an error each time you try to select wrong file**.
+#### If these files are not exist or not configured properly, **you will receive an error each time you try to select wrong file in the UniRF Tool**.
 
 ## You can add as many `.txt` map files as you want, file name doesn't matter!
 
@@ -30,7 +32,7 @@ Press Back to Exit
 
 
 
-## Setting up the `/ext/subghz/subghz_remote/example.txt` file:
+## Setting up the `subghz/subghz_remote/example.txt` file:
 
 ```
 UP: /ext/subghz/Up.sub

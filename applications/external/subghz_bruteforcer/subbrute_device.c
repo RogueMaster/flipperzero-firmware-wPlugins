@@ -30,7 +30,11 @@ void subbrute_device_free(SubBruteDevice* instance) {
     furi_assert(instance);
 
     // I don't know how to free this
-    instance->decoder_result = NULL;
+    // instance->decoder_result = NULL;
+    if(instance->decoder_result != NULL) {
+        free(instance->decoder_result);
+        instance->decoder_result = NULL;
+    }
 
     if(instance->receiver != NULL) {
         subghz_receiver_free(instance->receiver);
@@ -80,6 +84,7 @@ bool subbrute_device_save_file(SubBruteDevice* instance, const char* dev_file_na
 
 #ifdef FURI_DEBUG
     FURI_LOG_D(TAG, "subbrute_device_save_file: %s", dev_file_name);
+    FURI_LOG_D(TAG, "opencode: %d", instance->opencode);
 #endif
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
@@ -111,7 +116,8 @@ bool subbrute_device_save_file(SubBruteDevice* instance, const char* dev_file_na
                 instance->protocol_info->file,
                 instance->current_step,
                 instance->protocol_info->bits,
-                instance->protocol_info->te);
+                instance->protocol_info->te,
+                instance->opencode);
         }
 
         result = true;

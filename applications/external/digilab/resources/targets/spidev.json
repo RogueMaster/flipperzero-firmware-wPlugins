@@ -1,0 +1,132 @@
+{
+  "components": [
+    {
+      "partno": "25Q80",
+      "desc": "EEPROM memory for data storage.",
+      "type": 18,
+      "manufacturer": "Microchip",
+      "date": "----",
+      "tests": [
+        {
+          "type": "READN",
+          "reg": "9F",
+          "expect": [ "EF","40","14" ]
+        },
+        {
+          "type": "READ",
+          "reg": "05",
+          "expect": "00"
+        }
+      ]
+    },
+    {
+      "partno": "25LC256",
+      "desc": "EEPROM memory for data storage.",
+      "type": 18,
+      "manufacturer": "Microchip",
+      "date": "----",
+      "tests": [
+        {
+          "type": "WRITE",
+          "reg": "02",
+          "value": "AB"
+        },
+        {
+          "type": "READ",
+          "reg": "02",
+          "expect": "AB"
+        }
+      ]
+    }, {
+      "partno": "AT45DB1016",
+      "desc": "1MB Data Flash",
+      "type": 18,
+      "manufacturer": "Atmel",
+      "date": "----",
+      "tests": [
+        {
+          "type": "READ",
+          "reg": "00",
+          "expect": "80"
+        },
+        {
+          "type": "WRITE",
+          "reg": "01",
+          "value": "02"
+        },
+        {
+          "type": "READ",
+          "reg": "01",
+          "expect": "02"
+        }
+      ]
+    },
+    {
+      "partno": "MPU9250",
+      "desc": "9-axis IMU.",
+      "type": 15,
+      "manufacturer": "InvenSense",
+      "date": "----",
+      "tests": [
+        {
+          "type": "READ",
+          "reg": "75",
+          "expect": "71"
+        },
+        {
+          "type": "WRITE",
+          "reg": "6B",
+          "value": "00"
+        },
+        {
+          "type": "READ",
+          "reg": "3B",
+          "expect": "00"
+        }
+      ]
+    },
+    {
+      "partno": "MCP3008",
+      "desc": "Analog to digital converter",
+      "type": 2,
+      "manufacturer": "Microchip",
+      "date": "----",
+      "tests": [
+        {
+          "type": "WRITE",
+          "reg": "01",
+          "value": "80"
+        },
+        {
+          "type": "READ",
+          "reg": "02",
+          "expect": "FF"
+        }
+      ]
+    },
+    {
+      "partno": "TMP102",
+      "desc": "Digital temperature sensor",
+      "type": 23,
+      "manufacturer": "Texas Inst.",
+      "date": "----",
+      "tests": [
+        {
+          "type": "READ",
+          "reg": "00",
+          "expect": "1A"
+        },
+        {
+          "type": "WRITE",
+          "reg": "01",
+          "value": "60"
+        },
+        {
+          "type": "READ",
+          "reg": "01",
+          "expect": "60"
+        }
+      ]
+    }
+  ]
+}

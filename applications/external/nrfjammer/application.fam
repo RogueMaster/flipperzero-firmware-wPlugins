@@ -1,0 +1,28 @@
+App(
+    appid="nrf24_jammer",
+    name="NRF24 Jammer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="jammer_app",
+    stack_size=2 * 1024,
+    fap_icon="jammer_10px.png",
+    fap_icon_assets="images",
+    fap_private_libs=[
+        Lib(
+            name="nrf24",
+            sources=[
+                "nrf24.c",
+            ],
+        ),
+        Lib(
+            name="string_polyfill",
+            sources=[
+                "stringp.c",
+            ],
+        ),
+    ],
+    fap_category="GPIO/NRF24",
+    fap_author="huuck",
+    fap_weburl="https://github.com/huuck/FlipperZeroNRFJammer",
+    fap_version="1.0",
+    fap_description="2.4Ghz jammer leveraging NRF24",
+)

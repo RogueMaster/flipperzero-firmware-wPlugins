@@ -24,6 +24,7 @@ Also see [Derek Jamison's demonstration](https://www.youtube.com/watch?v=iC5fBGw
 
 * Measures frequency of waveform in hertz
 * Measures voltage: min, max, Vpp
+* FFT option provides simple spectrum analyser
 
 ![Signal Generator](photos/sig.jpg)
 
@@ -31,7 +32,12 @@ Also see [Derek Jamison's demonstration](https://www.youtube.com/watch?v=iC5fBGw
 
 ![Rigol](photos/rigol.jpg)
 
-![Flipper Zero running flipperscope](photos/volt.jpg)
+![Flipper Zero running flipperscope - showing voltage measurements](photos/volt.jpg)
+
+In the following photo attached a MAX9814 electret microphone module to the flipper zero and used the spectrum
+analyser functionality, with an FFT window size of 1024 and played a 3kHz sine wave tone from a computer.
+
+![Flipper Zero running flipperscope - showing spectrum analyser](photos/fft.jpg)
 
 ## Processing captures
 
@@ -62,8 +68,6 @@ plt.show()
 
 * Customisable input pin
 * Trigger type mode
-* FFT
-* ...
 
 ## Inspiration
 
@@ -71,3 +75,4 @@ plt.show()
 * STM32 DMA example
 * VREFBUF information - https://community.st.com/s/question/0D53W00001awIlMSAU/enable-and-use-vrefbuf-for-adc-measures
 * Relocating vector table - https://community.nxp.com/t5/i-MX-Processors/Relocate-vector-table-to-ITCM/m-p/1302304
+* Uses FFT algorithm from - https://www.algorithm-archive.org/contents/cooley_tukey/cooley_tukey.html

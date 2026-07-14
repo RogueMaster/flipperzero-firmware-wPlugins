@@ -10,9 +10,14 @@ uint32_t time_now() {
 }
 
 TimeDifference time_difference_seconds(uint32_t begin, uint32_t end) {
+    // Clamp negative durations to zero to avoid underflow (e.g., when timer should stop at 00:00)
+    if(end <= begin) {
+        return (TimeDifference){.total_seconds = 0, .minutes = 0, .seconds = 0};
+    }
+
     const uint32_t duration_seconds = end - begin;
 
-    uint32_t minutes = (duration_seconds / TIME_MINUTES_IN_HOUR) % TIME_MINUTES_IN_HOUR;
+    uint32_t minutes = (duration_seconds / TIME_SECONDS_IN_MINUTE) % TIME_MINUTES_IN_HOUR;
     uint32_t seconds = duration_seconds % TIME_SECONDS_IN_MINUTE;
 
     return (

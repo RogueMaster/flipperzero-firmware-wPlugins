@@ -1,0 +1,16 @@
+App(
+    appid="infrafi",
+    name="InfraFi",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="wi_fir_app",
+    stack_size=8 * 1024,
+    fap_icon="flipper/images/wifi_10px.png",
+    fap_icon_assets="flipper/images",
+    sources=["*.c*", "!daemon"],
+    fap_category="Infrared",
+    fap_author="amd989",
+    fap_weburl="https://github.com/amd989/InfraFi",
+    fap_version="1.2",
+    fap_description="Transmit WiFi credentials via IR to a Linux server",
+)

@@ -1,8 +1,11 @@
 #pragma once
 
 #include <math.h>
+#include <stdint.h>
 
-float lux2ev(float lux);
+#include "lightmeter_config.h"
+
+float lux2ev(float lux, LightMeterISONumbers iso);
 
 float getMinDistance(float x, float v1, float v2);
 

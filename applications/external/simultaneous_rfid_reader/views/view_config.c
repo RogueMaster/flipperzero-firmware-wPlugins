@@ -1,6 +1,38 @@
 #include "view_config.h"
 
 /**
+ * @brief      Callback for returning to the configuration screen.
+ * @details    This function is called when user press back button.
+ * @param      context  The context - unused
+*/
+static void locked_popup_back_callback(void* context) {
+    UHFReaderApp* app = context;
+    view_dispatcher_switch_to_view(app->ViewDispatcher, UHFReaderViewConfigure);
+}
+
+/**
+ * @brief      Shows a notification when the reader is not connected
+ * @details    This function shows a notification when the reader is not connected and the user tries to change a setting.
+ * @param      App  The UHFReaderApp - used to allocate app variables and views.
+*/
+static void show_locked_notification(UHFReaderApp* App) {
+    notification_message(App->Notifications, &sequence_error);
+
+    Popup* popup = App->LockPopup;
+    popup_reset(popup);
+    popup_set_header(popup, "Connect\nTo Reader\nFirst!", 68, 30, AlignLeft, AlignTop);
+    popup_set_icon(popup, 0, 3, &I_WarningDolphin_45x42);
+
+    // Set timeout for 2 seconds
+    popup_enable_timeout(popup);
+    popup_set_timeout(popup, 2000);
+    popup_set_context(popup, App);
+    popup_set_callback(popup, locked_popup_back_callback);
+
+    view_dispatcher_switch_to_view(App->ViewDispatcher, UHFReaderViewLockPopup);
+}
+
+/**
  * @brief      Callback for returning to submenu.
  * @details    This function is called when user press back button.
  * @param      context  The context - unused
@@ -28,8 +60,8 @@ void view_config_alloc(UHFReaderApp* App) {
     //Initializing configuration setting variables
     App->Setting1Values[0] = 1;
     App->Setting1Values[1] = 2;
-    App->Setting1Names[0] = "Connect";
-    App->Setting1Names[1] = "Disconnect";
+    App->Setting1Names[0] = "Disconnected";
+    App->Setting1Names[1] = "Connected";
     App->ReaderConnected = false;
     App->Setting1ConfigLabel = "Connection";
     App->Setting2ConfigLabel = "Power Level";
@@ -100,8 +132,8 @@ void view_config_alloc(UHFReaderApp* App) {
     variable_item_set_current_value_index(Item, App->Setting1Index);
     variable_item_set_current_value_text(Item, App->Setting1Names[App->Setting1Index]);
 
-    //Moving the module selection up
-    VariableItem* ModuleSelection = variable_item_list_add(
+    // Store module selection reference
+    App->ModuleSelectionItem = variable_item_list_add(
         App->VariableItemListConfig,
         App->SettingModuleConfigLabel,
         COUNT_OF(App->SettingModuleValues),
@@ -110,20 +142,28 @@ void view_config_alloc(UHFReaderApp* App) {
 
     //Default index for the module selection option
     App->SettingModuleIndex = 0;
-    variable_item_set_current_value_index(ModuleSelection, App->SettingModuleIndex);
+    variable_item_set_current_value_index(App->ModuleSelectionItem, App->SettingModuleIndex);
     variable_item_set_current_value_text(
-        ModuleSelection, App->SettingModuleNames[App->SettingModuleIndex]);
+        App->ModuleSelectionItem, App->SettingModuleNames[App->SettingModuleIndex]);
+
+    // Add other items and track them for locking
+    App->num_items = 5; // Adjust based on total number of lockable items
+    App->item_locks = malloc(sizeof(VariableItemLock) * 5);
+
+    // Initialize all items as locked except module and save
+    for(size_t i = 0; i < App->num_items; i++) {
+        App->item_locks[i].locked = true;
+    }
 
     //Creating the default power value
     App->Setting2PowerStr = furi_string_alloc_set(App->Setting2DefaultValue);
     App->Setting2Item = variable_item_list_add(
         App->VariableItemListConfig, App->Setting2ConfigLabel, 1, NULL, NULL);
-    variable_item_set_current_value_text(
-        App->Setting2Item, furi_string_get_cstr(App->Setting2PowerStr));
     variable_item_list_set_enter_callback(
         App->VariableItemListConfig, uhf_reader_setting_item_clicked, App);
+    variable_item_set_current_value_text(App->Setting2Item, "LOCKED");
 
-    VariableItem* BaudSelection = variable_item_list_add(
+    App->BaudSelection = variable_item_list_add(
         App->VariableItemListConfig,
         App->SettingBaudConfigLabel,
         COUNT_OF(App->SettingBaudValues),
@@ -131,12 +171,11 @@ void view_config_alloc(UHFReaderApp* App) {
         App);
 
     //Default index for the baud selection option
-    App->SettingBaudIndex = 1;
-    variable_item_set_current_value_index(BaudSelection, App->SettingBaudIndex);
-    variable_item_set_current_value_text(
-        BaudSelection, App->SettingBaudNames[App->SettingBaudIndex]);
+    App->SettingBaudIndex = 2;
+    variable_item_set_current_value_index(App->BaudSelection, App->SettingBaudIndex);
+    variable_item_set_current_value_text(App->BaudSelection, "LOCKED");
 
-    VariableItem* RegionSelection = variable_item_list_add(
+    App->RegionSelection = variable_item_list_add(
         App->VariableItemListConfig,
         App->SettingRegionConfigLabel,
         COUNT_OF(App->SettingRegionValues),
@@ -145,20 +184,15 @@ void view_config_alloc(UHFReaderApp* App) {
 
     //Default index for the baud selection option
     App->SettingRegionIndex = 0;
-    variable_item_set_current_value_index(RegionSelection, App->SettingRegionIndex);
-    variable_item_set_current_value_text(
-        RegionSelection, App->SettingRegionNames[App->SettingRegionIndex]);
-
+    variable_item_set_current_value_index(App->RegionSelection, App->SettingRegionIndex);
+    variable_item_set_current_value_text(App->RegionSelection, "LOCKED");
     //Default access password input for reading and writing to the tag, or locking
     App->DefaultAccessPwdStr = furi_string_alloc_set(App->DefaultAccessPassword);
     App->SettingApPwdItem = variable_item_list_add(
         App->VariableItemListConfig, App->ReadAccessPasswordLabel, 1, NULL, NULL);
-    variable_item_set_current_value_text(
-        App->SettingApPwdItem, furi_string_get_cstr(App->DefaultAccessPwdStr));
     variable_item_list_set_enter_callback(
         App->VariableItemListConfig, uhf_reader_setting_item_clicked, App);
-
-    //Moving the module selection up
+    variable_item_set_current_value_text(App->SettingApPwdItem, "LOCKED");
     VariableItem* SavingSelection = variable_item_list_add(
         App->VariableItemListConfig,
         App->SettingSavingConfigLabel,
@@ -173,7 +207,7 @@ void view_config_alloc(UHFReaderApp* App) {
         SavingSelection, App->SettingSavingNames[App->SettingSavingIndex]);
 
     // Add setting 3 to variable item list
-    VariableItem* AntennaSelection = variable_item_list_add(
+    App->AntennaSelection = variable_item_list_add(
         App->VariableItemListConfig,
         App->Setting3ConfigLabel,
         COUNT_OF(App->Setting3Values),
@@ -182,9 +216,8 @@ void view_config_alloc(UHFReaderApp* App) {
 
     //Default index for the antenna selection option
     App->Setting3Index = 0;
-    variable_item_set_current_value_index(AntennaSelection, App->Setting3Index);
-    variable_item_set_current_value_text(AntennaSelection, App->Setting3Names[App->Setting3Index]);
-
+    variable_item_set_current_value_index(App->AntennaSelection, App->Setting3Index);
+    variable_item_set_current_value_text(App->AntennaSelection, "LOCKED");
     //Setting previous callback
     view_set_previous_callback(
         variable_item_list_get_view(App->VariableItemListConfig),
@@ -224,12 +257,53 @@ void uhf_reader_setting_1_change(VariableItem* Item) {
         }
 
         App->ReaderConnected = true;
-        //TODO add ACK check to make sure that the connection was successful
+        // Unlock all items except module and save selection
+        for(size_t i = 0; i < App->num_items; i++) {
+            App->item_locks[i].locked = false;
+        }
+
+        // Update UI for all items to show unlocked state
+
+        //Default index for the baud selection option
+        App->SettingBaudIndex = 2;
+        App->SettingRegionIndex = 0;
+        App->Setting3Index = 0;
+        variable_item_set_current_value_index(App->RegionSelection, App->SettingRegionIndex);
+        variable_item_set_current_value_index(App->BaudSelection, App->SettingBaudIndex);
+        variable_item_set_current_value_index(App->AntennaSelection, App->Setting3Index);
+
+        variable_item_set_current_value_text(
+            App->Setting2Item, furi_string_get_cstr(App->Setting2PowerStr));
+        variable_item_list_set_enter_callback(
+            App->VariableItemListConfig, uhf_reader_setting_item_clicked, App);
+
+        variable_item_set_current_value_text(
+            App->BaudSelection, App->SettingBaudNames[App->SettingBaudIndex]);
+        variable_item_set_current_value_text(
+            App->RegionSelection, App->SettingRegionNames[App->SettingRegionIndex]);
+
+        variable_item_set_current_value_text(
+            App->SettingApPwdItem, furi_string_get_cstr(App->DefaultAccessPwdStr));
+        variable_item_list_set_enter_callback(
+            App->VariableItemListConfig, uhf_reader_setting_item_clicked, App);
+
+        variable_item_set_current_value_text(
+            App->AntennaSelection, App->Setting3Names[App->Setting3Index]);
+
     } else {
         if(App->UHFModuleType != YRM100X_MODULE) {
             uart_helper_send(App->UartHelper, "D\n", 2);
         }
         App->ReaderConnected = false;
+        // Lock all items except module and save
+        for(size_t i = 0; i < App->num_items; i++) {
+            App->item_locks[i].locked = true;
+        }
+        variable_item_set_current_value_text(App->Setting2Item, "LOCKED");
+        variable_item_set_current_value_text(App->BaudSelection, "LOCKED");
+        variable_item_set_current_value_text(App->RegionSelection, "LOCKED");
+        variable_item_set_current_value_text(App->SettingApPwdItem, "LOCKED");
+        variable_item_set_current_value_text(App->AntennaSelection, "LOCKED");
     }
 
     //Setting the current setting value for both the read and write screens
@@ -370,7 +444,10 @@ void uhf_reader_setting_6_text_updated(void* context) {
 void uhf_reader_setting_3_change(VariableItem* Item) {
     UHFReaderApp* App = variable_item_get_context(Item);
     uint8_t Index = variable_item_get_current_value_index(Item);
-
+    if(App->item_locks[4].locked) {
+        show_locked_notification(App);
+        return;
+    }
     if(Index == 1) {
         uart_helper_send(App->UartHelper, "External\n", 9);
         //TODO: ADD SUPPORT FOR DIFFERENT ANTENNA TYPES AFTER HARDWARE DEVELOPED!
@@ -475,7 +552,11 @@ void uhf_reader_save_setting_change(VariableItem* Item) {
 void uhf_reader_baud_setting_change(VariableItem* Item) {
     UHFReaderApp* App = variable_item_get_context(Item);
     uint8_t Index = variable_item_get_current_value_index(Item);
-
+    // Check if locked
+    if(App->item_locks[1].locked) {
+        show_locked_notification(App);
+        return;
+    }
     variable_item_set_current_value_text(Item, App->SettingBaudNames[Index]);
 
     if(Index == 1) {
@@ -505,7 +586,10 @@ void uhf_reader_baud_setting_change(VariableItem* Item) {
 void uhf_reader_region_setting_change(VariableItem* Item) {
     UHFReaderApp* App = variable_item_get_context(Item);
     uint8_t Index = variable_item_get_current_value_index(Item);
-
+    if(App->item_locks[2].locked) {
+        show_locked_notification(App);
+        return;
+    }
     if(App->ReaderConnected) {
         if(Index == 1) {
             //Mark EU as being used
@@ -572,9 +656,12 @@ void ap_menu_alloc(UHFReaderApp* App) {
 void uhf_reader_setting_item_clicked(void* context, uint32_t index) {
     UHFReaderApp* App = (UHFReaderApp*)context;
     index++;
-
     //Check if the power menu is being selected
     if(index == 3) {
+        if(App->item_locks[0].locked) {
+            show_locked_notification(App);
+            return;
+        }
         // Header to display on the power value input screen.
         text_input_set_header_text(App->TextInput, App->Setting2EntryText);
 
@@ -615,6 +702,10 @@ void uhf_reader_setting_item_clicked(void* context, uint32_t index) {
         view_dispatcher_switch_to_view(App->ViewDispatcher, UHFReaderViewSetPower);
     } else if(index == 6) {
         // Header to display on the AP value input screen.
+        if(App->item_locks[3].locked) {
+            show_locked_notification(App);
+            return;
+        }
         byte_input_set_header_text(App->ApInput, App->AccessPasswordPlaceHolder);
 
         //Modify the value of the AP for the read and write models
@@ -656,6 +747,7 @@ void view_config_free(UHFReaderApp* App) {
     view_dispatcher_remove_view(App->ViewDispatcher, UHFReaderViewSetReadAp);
     byte_input_free(App->ApInput);
     free(App->ApTempBuffer);
+    free(App->item_locks);
     view_dispatcher_remove_view(App->ViewDispatcher, UHFReaderViewConfigure);
     variable_item_list_free(App->VariableItemListConfig);
 }

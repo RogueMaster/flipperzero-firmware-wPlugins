@@ -1,0 +1,17 @@
+App(
+    appid="ulcrelay",
+    name="UL-C Relay",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ulc_relay_app",
+    targets=["f7"],
+    stack_size=2 * 1024,
+    fap_icon="ulcrelay.png",
+    fap_icon_assets="images",
+    fap_icon_assets_symbol="ulcrelay",
+    fap_category="NFC",
+    fap_author="noproto",
+    fap_weburl="https://github.com/noproto",
+    #  fap_weburl="https://github.com/zc-public/breakme-resources/tree/main/flipper_apps",
+    fap_version=(1, 0),
+    fap_description="Relay Ultralight C authentication. Implements the relay attack described in paper *Section 4: Relay Attack Against Ultralight C*",
+)

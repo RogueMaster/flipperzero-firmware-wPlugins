@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,43 +19,43 @@
 #define UNITEMP_BMP180
 
 #include "../unitemp.h"
-#include "../Sensors.h"
-extern const SensorType BMP180;
+#include "../sensors.h"
+extern const SensorModel BMP180;
 /**
- * @brief Выделение памяти и установка начальных значений датчика BMP180
+ * @brief Allocating memory and setting initial values ​​for the BMP180 sensor
  *
- * @param sensor Указатель на создаваемый датчик
- * @return Истина при успехе
+ * @param sensor Pointer to the sensor to create
+ * @return The truth about success
  */
 bool unitemp_BMP180_I2C_alloc(Sensor* sensor, char* args);
 
 /**
- * @brief Инициализации датчика BMP180
+ * @brief BMP180 sensor initialization
  *
- * @param sensor Указатель на датчик
- * @return Истина если инициализация упспешная
+ * @param sensor Pointer to sensor
+ * @return True if initialization is successful
  */
 bool unitemp_BMP180_init(Sensor* sensor);
 
 /**
- * @brief Деинициализация датчика
+ * @brief Deinitializing the sensor
  *
- * @param sensor Указатель на датчик
+ * @param sensor Pointer to sensor
  */
 bool unitemp_BMP180_I2C_deinit(Sensor* sensor);
 
 /**
- * @brief Обновление значений из датчика
+ * @brief Updating values ​​from sensor
  *
- * @param sensor Указатель на датчик
- * @return Статус обновления
+ * @param sensor Pointer to sensor
+ * @return Update status
  */
-UnitempStatus unitemp_BMP180_I2C_update(Sensor* sensor);
+SensorStatus unitemp_BMP180_I2C_update(Sensor* sensor);
 
 /**
- * @brief Высвободить память датчика
+ * @brief Free up sensor memory
  *
- * @param sensor Указатель на датчик
+ * @param sensor Pointer to sensor
  */
 bool unitemp_BMP180_I2C_free(Sensor* sensor);
 

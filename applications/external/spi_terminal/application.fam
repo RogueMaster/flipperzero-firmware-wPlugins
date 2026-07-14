@@ -1,0 +1,14 @@
+App(
+    appid="spi_terminal",
+    name="SPI Terminal",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipper_spi_terminal_main",
+    stack_size=1 * 1024,
+    fap_icon="flipper_spi_terminal_10px.png",
+    fap_icon_assets="assets",
+    fap_category="GPIO",
+    fap_author="Jan Wiesemann",
+    fap_weburl="https://github.com/janwiesemann/flipper-spi-terminal",
+    fap_version="0.4",
+    fap_description="A Terminal Application for full SPI access.",
+)

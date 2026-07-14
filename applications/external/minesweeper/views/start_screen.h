@@ -10,7 +10,7 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif // __cplusplus
 
 /** StartScreen anonymous structure */
 typedef struct StartScreen StartScreen;
@@ -28,7 +28,7 @@ typedef void (*StartScreenDrawCallback)(Canvas* canvas, void* _model);
  *
  * @return      StartScreen view instance 
  */
-StartScreen* start_screen_alloc();
+StartScreen* start_screen_alloc(void);
 
 /** Deinitialize and free Start Screen view
  *
@@ -152,6 +152,6 @@ void start_screen_set_icon_animation(
 
 #ifdef __cplusplus
 }
-#endif
+#endif // __cplusplus
 
-#endif
+#endif // START_SCREEN_H

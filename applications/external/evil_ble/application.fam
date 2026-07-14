@@ -1,0 +1,12 @@
+App(
+    appid="evil_ble",
+    name="Evil BLE",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="evil_ble_app",
+    stack_size=4 * 1024,
+    fap_category="GPIO/ESP32",
+    fap_author="PentestSuite / barkandbite",
+    fap_weburl="https://github.com/barkandbite/flipper_suite",
+    fap_version="1.0",
+    fap_description="BLE advertisement cloning — scans with ESP32, re-broadcasts as clone via Flipper BLE",
+)

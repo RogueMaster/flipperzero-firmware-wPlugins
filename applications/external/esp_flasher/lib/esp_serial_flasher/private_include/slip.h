@@ -1,4 +1,4 @@
-/* Copyright 2020-2023 Espressif Systems (Shanghai) CO LTD
+/* Copyright 2020-2024 Espressif Systems (Shanghai) CO LTD
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-esp_loader_error_t SLIP_receive_data(uint8_t *buff, size_t size);
-
-esp_loader_error_t SLIP_receive_packet(uint8_t *buff, size_t size);
+esp_loader_error_t SLIP_receive_packet(uint8_t *buff, size_t max_size, size_t *recv_size);
 
 esp_loader_error_t SLIP_send(const uint8_t *data, size_t size);
 

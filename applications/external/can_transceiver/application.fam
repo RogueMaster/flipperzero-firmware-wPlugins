@@ -1,0 +1,17 @@
+App(
+    appid="can_transceiver",
+    name="CAN Transceiver [MCP2515]",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="CANTransceiver_Main",
+    stack_size=2 * 1024,
+    fap_icon="icon.png",
+    fap_icon_assets="images",
+    fap_private_libs=[
+        Lib(name="mcp2515"),
+    ],
+    fap_category="GPIO",
+    fap_author="Chainmanner",
+    fap_weburl="https://github.com/Chainmanner/Flipper-CAN-Transceiver",
+    fap_version="0.1",
+    fap_description="This application allows a Flipper Zero to use an MCP2515 CAN transceiver to send and receive messages on a standard CAN bus. That includes those found in vehicles.",
+)

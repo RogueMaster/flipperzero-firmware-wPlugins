@@ -8,7 +8,7 @@
 * SerialNumber=flip_{Your Flipper name}
 
 ## Installation
-[![FAP Factory](https://fap.playmean.xyz/api/v1/polarikus/flipper-zero_bc_scanner_emulator/badge)](https://fap.playmean.xyz/polarikus/flipper-zero_bc_scanner_emulator)
+[Flipper APP Catalog](https://lab.flipper.net/apps/bc_scanner)
 
 1. Copy bc_scanner.fap file in Flipper SDCard (apps folder)
 2. Open bc_scanner app, for creating bcscanner folder, or create a folder manually via qFlipper 
@@ -16,11 +16,11 @@
 
 ## GUI
 ### App icon and name
-![Icon](https://gitlab.idcloud.space/flipper-zero/bc_scanner_e/-/wikis/uploads/4c4fabf431947ef31a6e4e8103154b0f/icon.png)
+![AppIcon](https://github.com/polarikus/flipper-zero_bc_scanner_emulator/assets/59930161/6800cb98-0cf7-4e97-ba0e-2c870c7b5d9b)
 ### File Select
 After open app - select bar code to be emulated
 
-![Catalog](https://gitlab.idcloud.space/flipper-zero/bc_scanner_e/-/wikis/uploads/a03a1fa3e8bea95510eca7e10af5b5cd/catalog.png)
+![BcFilemanage](https://github.com/polarikus/flipper-zero_bc_scanner_emulator/assets/59930161/93f5289f-1847-4b45-9684-ac2f99a27a88)
 ### Emulation
 1. Click "Run" Button
 
@@ -40,4 +40,4 @@ When sending completed You will see 100% on the display:
 3. Save file and change extension on .bc
 4. Copy file in Flipper SDCard, to "/bcscanner" folder
 
-File example [test_evotor.bc](https://gitlab.idcloud.space/flipper-zero/bc_scanner_e/-/wikis/uploads/bfcf94d5c6510ec051369b077b8e94a1/test_evotor.bc)
+File example (change the extension to .bc) [test_evotor.txt](https://github.com/polarikus/flipper-zero_bc_scanner_emulator/files/14998160/test_evotor.txt)

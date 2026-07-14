@@ -12,7 +12,6 @@
 #include <dialogs/dialogs.h>
 #include <storage/storage.h>
 #include <expansion/expansion.h>
-#include <expansion/expansion_settings.h>
 
 #include <stm32wbxx_ll_lpuart.h>
 #include <stm32wbxx_ll_usart.h>

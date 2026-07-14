@@ -21,7 +21,7 @@ static const MfClassicFeatures mf_classic_features[MfClassicTypeNum] = {
         {
             .sectors_total = 5,
             .blocks_total = 20,
-            .full_name = "Mifare Classic Mini 0.3K",
+            .full_name = "Mifare Mini 0.3K",
             .type_name = "MINI",
         },
     [MfClassicType1k] =
@@ -37,6 +37,14 @@ static const MfClassicFeatures mf_classic_features[MfClassicTypeNum] = {
             .blocks_total = 256,
             .full_name = "Mifare Classic 4K",
             .type_name = "4K",
+        },
+    [MfClassicType2k] =
+        {
+            // No Classic 2K product exists -- a MIFARE Plus 2K in SL1 (the lower half of a 4K).
+            .sectors_total = 32,
+            .blocks_total = 128,
+            .full_name = "Mifare Plus 2K (SL1)",
+            .type_name = "2K",
         },
 };
 
@@ -540,6 +548,22 @@ void mf_classic_set_key_not_found(
         FURI_BIT_CLEAR(data->key_a_mask, sector_num);
     } else if(key_type == MfClassicKeyTypeB) {
         FURI_BIT_CLEAR(data->key_b_mask, sector_num);
+    }
+}
+
+MfClassicKey
+    mf_classic_get_key(const MfClassicData* data, uint8_t sector_num, MfClassicKeyType key_type) {
+    furi_check(data);
+    furi_check(sector_num < mf_classic_get_total_sectors_num(data->type));
+    furi_check(key_type == MfClassicKeyTypeA || key_type == MfClassicKeyTypeB);
+
+    const MfClassicSectorTrailer* sector_trailer =
+        mf_classic_get_sector_trailer_by_sector(data, sector_num);
+
+    if(key_type == MfClassicKeyTypeA) {
+        return sector_trailer->key_a;
+    } else {
+        return sector_trailer->key_b;
     }
 }
 

@@ -1,0 +1,267 @@
+# Principado de Asturias Stations - RENFE, FEVE, Metrotranvía
+# Format: station_code,station_name
+
+# Estaciones reales más comunes encontradas en dumps (PRIORITARIAS)
+0x0000,Unknown Station
+0xC000,Oviedo
+0xC001,Gijón
+0xC002,Avilés
+0xC003,Mieres
+0xC004,Langreo
+0xC005,Cangas de Onís
+0xC006,Llanes
+0xC007,Ribadesella
+
+# Metrotranvía de Asturias
+0xC100,Soto del Barco
+0xC101,Muros del Nalón
+0xC102,Pravia
+0xC103,Candamo
+0xC104,Las Caldas
+0xC105,Olloniego
+0xC106,Trubia
+0xC107,Fuso de la Reina
+0xC108,Santa Eulalia de Manzaneda
+0xC109,Ujo
+0xC10A,Mieres del Camino
+0xC10B,Rebollada
+0xC10C,Figaredo
+0xC10D,Sotrondio
+0xC10E,Blimea
+0xC10F,La Felguera
+0xC110,Sama de Langreo
+0xC111,Pinzales
+0xC112,Villabona Asturias
+0xC113,Peñaflor
+0xC114,Gijón-Sanz Crespo
+0xC115,Gijón
+
+# FEVE (Línea costera)
+0xC200,Ferrol (conexión Galicia)
+0xC201,Viveiro
+0xC202,Ribadeo
+0xC203,Castropol
+0xC204,Vegadeo
+0xC205,Tol
+0xC206,Figueras
+0xC207,Colombres
+0xC208,Llanes
+0xC209,Nueva
+0xC20A,Ribadesella
+0xC20B,Colunga
+0xC20C,Arriondas
+0xC20D,Infiesto
+0xC20E,Nava
+0xC20F,Pola de Siero
+0xC210,Gijón FEVE
+0xC211,Avilés FEVE
+0xC212,San Esteban de Pravia
+0xC213,Cudillero
+0xC214,Ballota
+0xC215,Luarca
+0xC216,Navia
+0xC217,Tapia de Casariego
+
+# Línea Oviedo - Gijón (Cercanías)
+0xC300,Oviedo-Llamaquique
+0xC301,La Corredoria
+0xC302,Colloto
+0xC303,Bobes
+0xC304,Llanera
+0xC305,Lugo de Llanera
+0xC306,Pinzales
+0xC307,Lugones
+0xC308,Siero
+0xC309,Pola de Siero
+0xC30A,Noreña
+0xC30B,Gijón-El Berrón
+0xC30C,Gijón-Universidad Laboral
+
+# Línea del Nalón
+0xC400,Oviedo-Vasco
+0xC401,Olloniego
+0xC402,Las Caldas Villa Termal
+0xC403,Villabona-Zurea
+0xC404,Tudela Veguín
+0xC405,Figaredo
+0xC406,Mieres-Puente
+0xC407,Santa Cruz
+0xC408,Ujo
+0xC409,Bendición
+0xC40A,Cabañaquinta
+0xC40B,Moreda
+0xC40C,El Entrego
+0xC40D,Sotrondio
+
+# Estaciones de montaña y rurales
+0xC500,Cangas de Onís
+0xC501,Arenas de Cabrales
+0xC502,Potes (conexión Cantabria)
+0xC503,Covadonga
+0xC504,Cabrales
+0xC505,Panes
+0xC506,Unquera
+0xC507,Torrelavega (conexión Cantabria)
+0xC508,Santillana del Mar (conexión)
+0xC509,Comillas (conexión)
+
+# Puertos y costa
+0xC600,Gijón-Puerto
+0xC601,Avilés-Puerto
+0xC602,Cudillero-Puerto
+0xC603,Luarca-Puerto
+0xC604,Tapia-Puerto
+0xC605,Castropol-Puerto
+0xC606,Llanes-Puerto
+0xC607,Ribadesella-Puerto
+
+# Autobuses interurbanos principales
+0xC700,Oviedo Estación de Autobuses
+0xC701,Gijón Terminal
+0xC702,Avilés Terminal
+0xC703,Mieres Terminal
+0xC704,Langreo Terminal
+0xC705,Cangas de Onís Terminal
+0xC706,Llanes Terminal
+0xC707,Ribadesella Terminal
+0x8005=Llanes
+0x8006=Ribadesella
+
+# RENFE Cercanías Asturias - Línea C1 (Oviedo-Gijón)
+0x001=Oviedo
+0x002=Llamaquique
+0x003=El Berrón
+0x004=Noreña
+0x005=Gijón-Cercanías
+0x006=Gijón-Jovellanos
+
+# RENFE Cercanías Asturias - Línea C2 (Oviedo-Avilés)
+0x010=Oviedo
+0x011=Llamaquique
+0x012=Trubia
+0x013=Proaza
+0x014=Caranga de Abajo
+0x015=Pravia
+0x016=Avilés
+
+# FEVE Asturias - Línea Ferrol-Gijón-Santander
+0x020=Oviedo-FEVE
+0x021=Lugones
+0x022=Las Caldas
+0x023=Soto de Ribera
+0x024=Figaredo
+0x025=Mieres-FEVE
+0x026=Ujo
+0x027=Villablino
+0x028=Pola de Lena
+0x029=Campomanes
+0x02A=Busdongo
+0x02B=Pajares
+
+# FEVE - Línea Gijón-Laviana
+0x030=Gijón-FEVE
+0x031=Pinzales
+0x032=Sotrondio
+0x033=Blimea
+0x034=La Felguera
+0x035=Sama de Langreo
+0x036=Ciaño
+0x037=Cabañaquinta
+0x038=Pola de Laviana
+
+# Metrotranvía de Gijón
+0x040=Natahoyo
+0x041=Huerta
+0x042=Universidad Laboral
+0x043=Campus Universitario
+0x044=Viesques
+0x045=La Guía
+0x046=Puerta la Villa
+0x047=Plaza Mayor
+0x048=Museo del Ferrocarril
+
+# FEVE - Línea de la Costa (Gijón-Santander)
+0x050=Gijón-FEVE
+0x051=Villaviciosa
+0x052=Colunga
+0x053=Arriondas
+0x054=Ribadesella
+0x055=Llanes
+0x056=Bustio
+0x057=Unquera
+
+# FEVE - Línea Oviedo-Trubia
+0x060=Oviedo-FEVE
+0x061=Olloniego
+0x062=Tudela Veguín
+0x063=Trubia
+
+# Estaciones históricas del Vasco-Asturiano
+0x070=Boal
+0x071=Grandas de Salime
+0x072=Pola de Allande
+0x073=Berducedo
+0x074=Tineo
+
+# RENFE Larga Distancia
+0x080=León
+0x081=La Robla
+0x082=Matallana
+0x083=Busdongo
+0x084=Pajares
+0x085=Pola de Lena
+0x086=Mieres-del-Camino
+0x087=Oviedo
+
+# Estaciones del Langreo
+0x090=Laviana
+0x091=Pola de Laviana
+0x092=Villoria
+0x093=Rioseco
+0x094=Tiraña
+0x095=Barros
+0x096=Sama
+0x097=La Felguera
+0x098=Sotrondio
+0x099=Blimea
+
+# Estaciones portuarias
+0x0A0=Gijón-El Musel
+0x0A1=Avilés-Puerto
+0x0A2=Cudillero
+0x0A3=Luarca
+0x0A4=Castropol
+
+# Conexiones con León y resto de España
+0x0B0=Pajares-Túnel
+0x0B1=Puente de los Fierros
+0x0B2=Santa María de Redonda
+0x0B3=Pola de Gordón
+0x0B4=La Robla
+0x0B5=León
+0x035=Hospital Central de Asturias
+0x036=Recinto Ferial Luis Adaro
+
+# Otras estaciones importantes
+0x040=Cangas de Onís
+0x041=Arriondas
+0x042=Ribadesella
+0x043=Llanes
+0x044=Colombres
+0x045=Unquera
+0x046=Torrelavega
+0x047=Santander
+0x048=Cudillero
+0x049=Luarca
+0x04A=Navia
+0x04B=Castropol
+0x04C=Vegadeo
+0x04D=Ribadeo
+
+# Líneas de montaña
+0x050=Covadonga
+0x051=Lagos de Covadonga
+0x052=Cangas de Onís
+0x053=Arenas de Cabrales
+0x054=Potes
+0x055=Fuente Dé

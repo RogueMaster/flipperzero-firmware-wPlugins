@@ -14,7 +14,8 @@
 #include "stm32_sam.h"
 
 #define TAG "SAM"
-#define SAM_SAVE_PATH EXT_PATH("apps_data/sam.txt")
+
+#define SAM_SAVE_PATH    APP_DATA_PATH("message.txt")
 #define TEXT_BUFFER_SIZE 256
 STM32SAM voice;
 
@@ -89,8 +90,8 @@ static void save_message(FuriString* save_string) {
 
 static bool load_messages() {
     Storage* storage = (Storage*)furi_record_open(RECORD_STORAGE);
-    storage_common_copy(storage, EXT_PATH("sam.txt"), SAM_SAVE_PATH);
-    storage_common_remove(storage, EXT_PATH("sam.txt"));
+    storage_common_migrate(storage, EXT_PATH("apps_data/sam.txt"), SAM_SAVE_PATH);
+    storage_common_migrate(storage, EXT_PATH("sam.txt"), SAM_SAVE_PATH);
     File* file = storage_file_alloc(storage);
     uint16_t bytes_read = 0;
     if(storage_file_open(file, SAM_SAVE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
@@ -122,8 +123,6 @@ extern "C" int32_t sam_app(void* p) {
     text_input_set_header_text(app_state->text_input, "Input");
 
     Gui* gui = (Gui*)furi_record_open(RECORD_GUI);
-
-    view_dispatcher_enable_queue(app_state->view_dispatcher);
 
     FURI_LOG_D(TAG, "Adding text input view to dispatcher");
     view_dispatcher_add_view(

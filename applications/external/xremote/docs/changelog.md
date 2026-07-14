@@ -1,3 +1,11 @@
+## v1.4
+
+External infrared moddule
+
+- Added support for external infrared modules
+- Added dolphin deed on IR msg send
+- Fixed IR msg repeat bug with 0 value
+
 ## v1.3
 
 Alternative names

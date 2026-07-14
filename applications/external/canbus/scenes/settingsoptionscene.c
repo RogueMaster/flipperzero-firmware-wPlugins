@@ -1,13 +1,23 @@
 #include "../app_user.h"
 
+// To save the current clock
 static uint8_t currentClock = MCP_16MHZ;
+
+// To save the current Bitrate
 static uint8_t currentBitrate = MCP_500KBPS;
 
+// Texts for the bitrate
 static const char* bitratesValues[] = {"125KBPS", "250KBPS", "500KBPS", "1000KBPS"};
 
+// Text for the clocks
 static const char* clockValues[] = {"8MHz", "16MHz", "20MHz"};
 
+// Text to save the sniffing
 static const char* save_logs[] = {"No Save", "Save All", "Only Address"};
+
+/**
+ * Scene for the options
+ */
 
 void callback_options(VariableItem* item) {
     App* app = variable_item_get_context(item);
@@ -38,9 +48,12 @@ void callback_options(VariableItem* item) {
     }
 }
 
+// Scene on enter
 void app_scene_settings_on_enter(void* context) {
     App* app = context;
     VariableItem* item;
+
+    currentBitrate = app->mcp_can->bitRate;
 
     variable_item_list_reset(app->varList);
 
@@ -64,6 +77,7 @@ void app_scene_settings_on_enter(void* context) {
     view_dispatcher_switch_to_view(app->view_dispatcher, VarListView);
 }
 
+// Scene on event
 bool app_scene_settings_on_event(void* context, SceneManagerEvent event) {
     App* app = context;
     UNUSED(event);
@@ -72,6 +86,7 @@ bool app_scene_settings_on_event(void* context, SceneManagerEvent event) {
     return consumed;
 }
 
+// Scene on exit
 void app_scene_settings_on_exit(void* context) {
     App* app = context;
     variable_item_list_reset(app->varList);

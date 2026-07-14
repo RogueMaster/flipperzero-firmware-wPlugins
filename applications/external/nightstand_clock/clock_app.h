@@ -17,6 +17,8 @@
 #define TIME_LEN     12
 #define DATE_LEN     14
 #define MERIDIAN_LEN 3
+#define BATTERY_LEN  4
+#define DATE_PCT_LEN 21
 
 typedef enum {
     EventTypeTick,
@@ -37,4 +39,5 @@ typedef struct {
     uint32_t timer_start_timestamp;
     uint32_t timer_stopped_seconds;
     bool timer_running;
+    uint8_t battery_pct;
 } ClockState;

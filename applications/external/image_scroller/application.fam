@@ -1,0 +1,17 @@
+App(
+    appid="image_scroller",
+    name="Image Scroller",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="scroller_main",
+    sources=["scroller.c"],
+    stack_size=2 * 1024,
+    fap_icon="images/icon_10x10.png",
+    fap_icon_assets="images",
+    fap_file_assets="assets",
+    fap_icon_assets_symbol="scroller",
+    fap_category="Media",
+    fap_author="F Greil",
+    fap_weburl="https://github.com/fgreil/mitzi-scroller",
+    fap_version=(0, 1, 0),
+    fap_description="A image scroller where you navigate a cursor over a (large, tiled) background image",
+)

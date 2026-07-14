@@ -231,6 +231,7 @@ bool xremote_view_press_button(XRemoteView* rview, InfraredRemoteButton* button)
     InfraredSignal* signal = infrared_remote_button_get_signal(button);
     xremote_app_assert(signal, false);
 
+    dolphin_deed(DolphinDeedIrSend);
     infrared_signal_transmit_times(signal, settings->repeat_count);
     xremote_app_context_notify_led(rview->app_ctx);
 

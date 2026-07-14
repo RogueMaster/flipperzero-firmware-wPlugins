@@ -1,0 +1,14 @@
+App(
+    appid="stratahero",
+    name="Stratagem Hero",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="stratahero_main",
+    stack_size=2 * 1024,
+    fap_icon="stratahero.png",
+    fap_icon_assets="images",
+    fap_category="Games",
+    fap_author="Maxim Kulkin",
+    fap_weburl="https://github.com/maximkulkin/flipper-zero-stratagem-hero",
+    fap_version="1.0",
+    fap_description="Helldivers 2 Stratagem Hero game for Flipper Zero",
+)

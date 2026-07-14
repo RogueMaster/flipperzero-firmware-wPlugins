@@ -1,8 +1,8 @@
 #pragma once
 
 #include <furi.h>
-#include <gui/view_dispatcher_i.h>
-#include <gui/view_port_i.h>
+#include "ui_hacks_for_no_reason/view_dispatcher_i.h"
+#include "ui_hacks_for_no_reason/view_port_i.h"
 #include <gui/scene_manager.h>
 #include <gui/modules/byte_input.h>
 #include <gui/modules/dialog_ex.h>

@@ -18,8 +18,11 @@
 #include "../../../workers/bt_type_code/bt_type_code.h"
 #endif
 
+#include <assets_icons.h>
+
 #define PROGRESS_BAR_MARGIN (3)
 #define PROGRESS_BAR_HEIGHT (4)
+#define DIV_CEIL(a, b)      (((a) + (b) - 1) / (b))
 
 typedef struct {
     uint8_t progress_bar_x;
@@ -27,6 +30,7 @@ typedef struct {
     uint8_t code_total_length;
     uint8_t code_offset_x;
     uint8_t code_offset_y;
+    uint8_t group_space_width;
 } UiPrecalculatedDimensions;
 
 typedef struct {
@@ -121,13 +125,31 @@ static void draw_totp_code(Canvas* const canvas, const PluginState* const plugin
         totp_config_get_token_iterator_context(plugin_state);
     uint8_t code_length = totp_token_info_iterator_get_current_token(iterator_context)->digits;
 
-    canvas_draw_str_ex(
-        canvas,
-        scene_state->ui_precalculated_dimensions.code_offset_x,
-        scene_state->ui_precalculated_dimensions.code_offset_y,
-        scene_state->last_code,
-        code_length,
-        scene_state->active_font);
+    if(plugin_state->split_token_into_groups > 0) {
+        uint8_t offset_x = scene_state->ui_precalculated_dimensions.code_offset_x;
+        uint8_t char_width = scene_state->active_font->char_info[0].width;
+        uint8_t group_length = DIV_CEIL(code_length, plugin_state->split_token_into_groups);
+        for(uint8_t i = 0; i < code_length; i += group_length) {
+            canvas_draw_str_ex(
+                canvas,
+                offset_x,
+                scene_state->ui_precalculated_dimensions.code_offset_y,
+                &scene_state->last_code[i],
+                MIN(group_length, code_length - i),
+                scene_state->active_font);
+            offset_x +=
+                (group_length * (char_width + scene_state->active_font->space_width) +
+                 scene_state->ui_precalculated_dimensions.group_space_width);
+        }
+    } else {
+        canvas_draw_str_ex(
+            canvas,
+            scene_state->ui_precalculated_dimensions.code_offset_x,
+            scene_state->ui_precalculated_dimensions.code_offset_y,
+            scene_state->last_code,
+            code_length,
+            scene_state->active_font);
+    }
 }
 
 static void on_new_token_code_generated(bool time_left, void* context) {
@@ -142,10 +164,23 @@ static void on_new_token_code_generated(bool time_left, void* context) {
     const TokenInfo* current_token = totp_token_info_iterator_get_current_token(iterator_context);
 
     uint8_t char_width = scene_state->active_font->char_info[0].width;
+    uint8_t group_spaces =
+        plugin_state->split_token_into_groups > 0 ? plugin_state->split_token_into_groups - 1 : 0;
+    uint8_t group_space_width = char_width;
     scene_state->ui_precalculated_dimensions.code_total_length =
         current_token->digits * (char_width + scene_state->active_font->space_width);
+    uint8_t rest_available_width =
+        SCREEN_WIDTH -
+        MIN(SCREEN_WIDTH, scene_state->ui_precalculated_dimensions.code_total_length);
+    if(group_space_width * group_spaces > rest_available_width) {
+        group_space_width = rest_available_width / group_spaces;
+    }
+    scene_state->ui_precalculated_dimensions.code_total_length += group_space_width * group_spaces;
+    scene_state->ui_precalculated_dimensions.group_space_width = group_space_width;
     scene_state->ui_precalculated_dimensions.code_offset_x =
-        (SCREEN_WIDTH - scene_state->ui_precalculated_dimensions.code_total_length) >> 1;
+        (SCREEN_WIDTH -
+         MIN(SCREEN_WIDTH, scene_state->ui_precalculated_dimensions.code_total_length)) >>
+        1;
     scene_state->ui_precalculated_dimensions.code_offset_y =
         SCREEN_HEIGHT_CENTER - (scene_state->active_font->height >> 1);
 
@@ -427,13 +462,14 @@ bool totp_scene_generate_token_handle_event(
             break;
         }
         case InputKeyOk:
-            totp_scene_director_activate_scene(plugin_state, TotpSceneTokenMenu);
             break;
         case InputKeyBack:
             break;
         default:
             break;
         }
+    } else if(event->input.type == InputTypeShort && event->input.key == InputKeyOk) {
+        totp_scene_director_activate_scene(plugin_state, TotpSceneTokenMenu);
     }
 
     return true;

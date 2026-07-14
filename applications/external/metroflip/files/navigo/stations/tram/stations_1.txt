@@ -1,0 +1,107 @@
+2,0,Porte de Versailles - Parc des Expositions
+2,2,Porte d'Issy
+2,3,Suzanne Lenglen
+2,5,La Courneuve - Six Routes
+2,7,Porte de Versailles - Parc des Expositions
+3,11,Henri Farman
+4,9,Jean Rostand
+8,7,Viroflay - Rive Gauche
+10,0,Saint-Denis
+10,4,Asnieres - Quatre Routes
+10,8,Basilique de Saint-Denis
+10,9,Basilique de Saint-Denis
+10,12,Chemin des Reniers
+10,13,Pont du Garigliano
+10,14,Balard
+10,15,Desnouettes
+11,0,Porte de Versailles - Parc des Expositions
+11,1,Georges Brassens
+11,2,Porte de Vanves
+11,3,Didot
+11,4,Jean Moulin
+11,5,Porte d'Orleans
+11,6,Montsouris
+11,7,Cite Universitaire
+11,8,Stade Charlety - Porte de Gentilly
+11,9,Poterne des Peupliers
+11,10,Porte d'Italie
+11,11,Porte de Choisy
+11,12,Porte d'Ivry
+11,13,Saint-Denis
+11,14,Gaston Roulaud
+11,15,Gaston Roulaud
+12,0,Hopital Avicenne
+12,1,Hopital Avicenne
+12,2,Hopital Delafontaine
+12,3,Hopital Delafontaine
+12,6,Hotel de Ville de la Courneuve
+12,7,Hotel de Ville de la Courneuve
+12,10,L'Ile-Saint-Denis
+12,11,L'Ile-Saint-Denis
+12,12,La Courneuve - 8 Mai 1945
+12,13,La Courneuve - 8 Mai 1945
+12,14,La Courneuve - Six Routes
+13,2,La Noue
+13,3,La Noue
+13,4,Le Luth
+13,5,Le Luth
+13,6,Les Courtilles
+13,7,Les Courtilles
+13,8,Le Village
+13,9,Le Village
+13,12,Mairie de Villeneuve-la-Garenne
+13,13,Mairie de Villeneuve-la-Garenne
+13,14,Marche de Saint-Denis
+13,15,Marche de Saint-Denis
+14,0,Maurice Lachatre
+14,1,Maurice Lachatre
+14,2,Parc des Chanteraines
+14,3,Parc des Chanteraines
+14,8,Stade Geo Andre
+14,9,Stade Geo Andre
+14,10,Theatre Gerard Philipe
+14,11,Theatre Gerard Philipe
+14,12,Timbaud
+14,13,Timbaud
+15,3,Pont du Garigliano
+16,7,La Courneuve - 8 Mai 1945
+16,9,Saint-Denis
+16,13,Hopital Delafontaine
+17,6,Robert Wagner
+17,9,Les Courtilles
+28,14,Aeroport d'Orly (Terminal 4)
+28,15,Aeroport d'Orly (Terminal 4)
+29,0,Auguste Perret (Cimetiere Parisien)
+29,1,Auguste Perret (Cimetiere Parisien)
+29,2,Bretagne
+29,3,Bretagne
+29,4,Chatillon - Montrouge
+29,5,Caroline Aigle (Orlyfret)
+29,6,Vauban
+29,7,Coeur d'Orly
+29,8,Centre de Chatillon
+29,9,Domaine Cherioux
+29,10,Parc Andre Malraux
+29,11,Helene Boucher (Orlytech)
+29,12,La Belle Epine
+29,13,Division Leclerc
+29,14,La Fraternelle
+29,15,Soleil Levant
+30,0,Lamartine
+30,1,Hopital Beclere
+30,2,Moulin Vert
+30,3,Mail de la Plaine
+30,4,Place de la Logistique
+30,5,Place de la Logistique
+30,6,Porte de l'Essonne
+30,7,Porte de l'Essonne
+30,8,Porte de Rungis
+30,9,Porte de Rungis
+30,10,Chevilly-Larue
+30,11,Chevilly-Larue
+30,12,Robert Schuman (Parc Silic Centre)
+30,13,Robert Schuman (Parc Silic Centre)
+30,14,Saarinen
+30,15,Saarinen
+31,0,Villejuif - Louis Aragon
+31,1,Villejuif - Louis Aragon

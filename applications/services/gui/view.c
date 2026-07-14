@@ -2,7 +2,7 @@
 
 View* view_alloc(void) {
     View* view = malloc(sizeof(View));
-    view->orientation = ViewOrientationHorizontal;
+    view_init(view);
     return view;
 }
 
@@ -10,6 +10,10 @@ void view_free(View* view) {
     furi_check(view);
     view_free_model(view);
     free(view);
+}
+
+void view_init(View* view) {
+    view->orientation = ViewOrientationHorizontal;
 }
 
 void view_tie_icon_animation(View* view, IconAnimation* icon_animation) {
@@ -25,6 +29,11 @@ void view_set_draw_callback(View* view, ViewDrawCallback callback) {
 void view_set_input_callback(View* view, ViewInputCallback callback) {
     furi_check(view);
     view->input_callback = callback;
+}
+
+void view_set_ascii_callback(View* view, ViewAsciiCallback callback) {
+    furi_assert(view);
+    view->ascii_callback = callback;
 }
 
 void view_set_custom_callback(View* view, ViewCustomCallback callback) {
@@ -145,6 +154,15 @@ bool view_input(View* view, InputEvent* event) {
     furi_check(view);
     if(view->input_callback) {
         return view->input_callback(event, view->context);
+    } else {
+        return false;
+    }
+}
+
+bool view_ascii(View* view, AsciiEvent* event) {
+    furi_assert(view);
+    if(view->ascii_callback) {
+        return view->ascii_callback(event, view->context);
     } else {
         return false;
     }

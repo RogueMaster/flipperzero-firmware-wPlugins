@@ -24,6 +24,8 @@ bool ws_set_preset(WeatherStationApp* app, const char* preset) {
         furi_string_set(app->txrx->preset->name, "AM650");
     } else if(!strcmp(preset, "FuriHalSubGhzPreset2FSKDev238Async")) {
         furi_string_set(app->txrx->preset->name, "FM238");
+    } else if(!strcmp(preset, "FuriHalSubGhzPreset2FSKDev12KAsync")) {
+        furi_string_set(app->txrx->preset->name, "FM12K");
     } else if(!strcmp(preset, "FuriHalSubGhzPreset2FSKDev476Async")) {
         furi_string_set(app->txrx->preset->name, "FM476");
     } else if(!strcmp(preset, "FuriHalSubGhzPresetCustom")) {

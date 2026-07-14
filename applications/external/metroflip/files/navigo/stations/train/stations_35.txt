@@ -1,0 +1,22 @@
+4,1,Bois-Colombes
+5,1,Colombes
+5,2,Le Stade
+6,1,Argenteuil
+8,1,Val d'Argenteuil
+8,2,Cormeilles-en-Parisis
+9,1,La Frette - Montigny
+9,2,Herblay
+10,1,Conflans-Sainte-Honorine
+10,2,Conflans Fin d'Oise
+11,1,Maurecourt
+11,2,Andresy
+11,3,Chanteloup-les-Vignes
+12,1,Triel-sur-Seine
+12,2,Vaux-sur-Seine
+13,1,Thun le Paradis
+13,2,Meulan - Hardricourt
+14,1,Juziers
+14,2,Gargenville
+15,1,Issou - Porcheville
+15,2,Limay
+16,2,Breval

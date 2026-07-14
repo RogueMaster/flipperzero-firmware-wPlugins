@@ -3,12 +3,16 @@
 #include "../../cli_plugin_interface.h"
 #include "../../../version.h"
 
-static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
+static void handle(PluginState* plugin_state, FuriString* args, PipeSide* pipe) {
     UNUSED(args);
-    UNUSED(cli);
+    UNUSED(pipe);
     UNUSED(plugin_state);
     TOTP_CLI_PRINTF(
-        "%" PRIu8 ".%" PRIu8 ".%" PRIu8 "\r\n",
+        "%" PRIu8 ".%" PRIu8 ".%" PRIu8
+#ifdef TOTP_APP_VERSION_META
+        "+" TOTP_APP_VERSION_META
+#endif
+        "\r\n",
         TOTP_APP_VERSION_MAJOR,
         TOTP_APP_VERSION_MINOR,
         TOTP_APP_VERSION_PATCH);

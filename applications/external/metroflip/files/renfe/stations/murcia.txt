@@ -1,0 +1,247 @@
+# Región de Murcia Stations - RENFE, Tranvía, Cercanías
+# Format: station_code,station_name
+
+# Estaciones reales más comunes encontradas en dumps (PRIORITARIAS)
+0x0000,Unknown Station
+0x4000,Murcia-Estación
+0x4001,Cartagena
+0x4002,Lorca-Sutullena
+0x4003,Águilas
+0x4004,Totana
+0x4005,Alhama de Murcia
+0x4006,Librilla
+0x4007,Alcantarilla
+
+# Tranvía de Murcia
+0x4100,Universidad
+0x4101,Campus de la Salud
+0x4102,Hospital Reina Sofía
+0x4103,Espinardo
+0x4104,Biblioteca Luis Vives
+0x4105,Alfonso X el Sabio
+0x4106,Los Rectores
+0x4107,Plaza Circular
+0x4108,Juzgados
+0x4109,Alameda
+0x410A,Gran Vía
+0x410B,Alfonso X
+0x410C,San Andrés
+0x410D,Murcia Estación
+
+# Línea Murcia - Cartagena
+0x4200,Beniajan
+0x4201,Alquerías
+0x4202,Los Ramos
+0x4203,Balsicas-Mar Menor
+0x4204,Torre Pacheco
+0x4205,Dolores de Pacheco
+0x4206,San Javier
+0x4207,Los Alcázares
+0x4208,San Pedro del Pinatar
+0x4209,Cartagena
+
+# Línea Murcia - Lorca - Águilas
+0x4300,Alcantarilla-Los Romanos
+0x4301,Sangonera la Verde
+0x4302,Librilla
+0x4303,Alhama de Murcia
+0x4304,Totana
+0x4305,Lorca-San Diego
+0x4306,Lorca-Sutullena
+0x4307,Pulpí
+0x4308,Águilas
+
+# Cercanías Murcia (Futuro)
+0x4400,Murcia Centro
+0x4401,El Carmen
+0x4402,La Ñora
+0x4403,Alquerias
+0x4404,Beniaján
+0x4405,Torreagüera
+0x4406,Alguazas
+0x4407,Ceutí
+0x4408,Lorquí
+0x4409,Molina de Segura
+0x440A,Las Torres de Cotillas
+
+# Conexiones con Valencia
+0x4500,Cieza
+0x4501,Calasparra
+0x4502,Caravaca de la Cruz
+0x4503,Cehegín
+0x4504,Bullas
+0x4505,Mula
+0x4506,Archena
+0x4507,Ricote
+0x4508,Ojós
+0x4509,Villanueva del Río Segura
+
+# Conexiones con Andalucía
+0x4600,Huércal-Overa
+0x4601,Vera
+0x4602,Cuevas del Almanzora
+0x4603,Pulpí
+0x4604,Águilas Puerto
+0x4605,Mazarrón
+0x4606,Puerto de Mazarrón
+0x4607,Bolnuevo
+0x4608,Cartagena Puerto
+
+# Línea del Mar Menor
+0x4700,Los Alcázares Norte
+0x4701,San Javier Aeropuerto
+0x4702,Santiago de la Ribera
+0x4703,Lo Pagán
+0x4704,San Pedro del Pinatar Norte
+0x4705,Pilar de la Horadada
+0x4706,Torre de la Horadada
+
+# Estaciones secundarias
+0x4800,Yecla
+0x4801,Jumilla
+0x4802,Abanilla
+0x4803,Fortuna
+0x4804,Santomera
+0x4805,Beniel
+0x4806,Javalí Nuevo
+0x4807,Javalí Viejo
+0x4808,Alcantarilla Centro
+0x4809,Espinardo Centro
+0x480A,El Palmar
+0x480B,Sangonera la Seca
+0x480C,Corvera
+0x480D,Valladolises
+0x480E,Balsicas
+0x480F,Fuente Álamo
+
+# Autobuses interurbanos principales
+0x4900,Murcia Estación de Autobuses
+0x4901,Cartagena Terminal
+0x4902,Lorca Terminal
+0x4903,Molina de Segura Terminal
+0x4904,Cieza Terminal
+0x4905,Caravaca Terminal
+0x4906,Yecla Terminal
+0x4907,Jumilla Terminal
+0x4908,Águilas Terminal
+0x006=Córdoba
+0x007=Puente Genil
+0x008=Antequera-Santa Ana
+0x009=Bobadilla
+0x00A=Loja
+0x00B=Huéscar
+0x00C=Baza
+0x00D=Guadix
+0x00E=Almería
+0x00F=Pulpí
+0x010=Águilas
+0x011=Lorca
+0x012=Totana
+0x013=Alhama de Murcia
+0x014=Librilla
+0x015=Murcia
+0x016=Balsicas
+0x017=Torre Pacheco
+0x018=Los Nietos
+0x019=Cartagena
+
+# Cercanías de Murcia
+0x020=Murcia-del Carmen
+0x021=Nonduermas
+0x022=Beniaján
+0x023=Alquerías
+0x024=Puebla de Soto
+0x025=Blanca
+0x026=Ricote
+0x027=Archena-Fortuna
+0x028=Cieza
+
+# Línea Murcia - Alicante
+0x030=Murcia-del Carmen
+0x031=Beniel
+0x032=Orihuela
+0x033=Callosa de Segura
+0x034=Cox
+0x035=Albatera-Catral
+0x036=Crevillent
+0x037=Elche-Parque
+0x038=Elche-Carrús
+0x039=Torrellano
+0x03A=Alicante-Terminal
+
+# Tranvía de Murcia
+0x040=Campus de Espinardo
+0x041=Universidades
+0x042=Estadio de la Condomina
+0x043=Los Rectores
+0x044=Espinardo
+0x045=Juan de Borbón
+0x046=Atalayas
+0x047=Mercamurcia
+0x048=Escultor Salzillo
+0x049=Vistalegre
+0x04A=Cuarteles
+0x04B=San Basilio
+0x04C=Parque
+0x04D=Plaza de Armas
+0x04E=Catedral
+0x04F=Teatro Romea
+0x050=Belluga
+
+# Metro Ligero de Murcia (extensión)
+0x055=UCAM Campus de los Jerónimos
+0x056=Pinatar
+0x057=Benejúzar
+0x058=Jacarilla
+0x059=Los Montesinos
+
+# Autobuses urbanos de Murcia
+0x060=Estación Autobuses Murcia
+0x061=Plaza Circular
+0x062=Hospital Morales Meseguer
+0x063=Universidad de Murcia
+0x064=UCAM
+0x065=Hospital Virgen de la Arrixaca
+0x066=Nueva Condomina
+0x067=Atalayas
+0x068=El Palmar
+
+# Autobuses urbanos de Cartagena
+0x070=Estación Autobuses Cartagena
+0x071=Arsenal Militar
+0x072=Teatro Romano
+0x073=Universidad Politécnica
+0x074=Hospital Santa Lucía
+0x075=Los Dolores
+0x076=Barrio Peral
+0x077=Canteras
+
+# Otras estaciones importantes
+0x080=Lorca-Sutullena
+0x081=Águilas
+0x082=Mazarrón
+0x083=Puerto de Mazarrón
+0x084=Totana
+0x085=Alhama de Murcia
+0x086=Fortuna
+0x087=Abanilla
+0x088=Santomera
+0x089=Molina de Segura
+0x08A=Las Torres de Cotillas
+0x08B=Alguazas
+0x08C=Ceutí
+0x08D=Lorquí
+0x08E=Ulea
+0x08F=Ojós
+
+# Costa del Mar Menor
+0x090=Los Alcázares
+0x091=San Javier
+0x092=Santiago de la Ribera
+0x093=San Pedro del Pinatar
+0x094=Lo Pagán
+0x095=Cabo de Palos
+0x096=La Manga del Mar Menor
+0x097=Los Belones
+0x098=Portmán
+0x099=La Unión

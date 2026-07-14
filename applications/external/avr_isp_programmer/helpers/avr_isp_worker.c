@@ -1,10 +1,11 @@
 #include "avr_isp_worker.h"
-#include <furi_hal_pwm.h>
 #include "../lib/driver/avr_isp_prog.h"
 #include "../lib/driver/avr_isp_prog_cmd.h"
 #include "../lib/driver/avr_isp_chip_arr.h"
 
 #include <furi.h>
+#include <furi_hal_pwm.h>
+#include <cli/cli_vcp.h>
 
 #define TAG "AvrIspWorker"
 
@@ -26,6 +27,7 @@ struct AvrIspWorker {
     uint8_t connect_usb;
     AvrIspWorkerCallback callback;
     void* context;
+    CliVcp* cli_vcp;
 };
 
 #define AVR_ISP_WORKER_PROG_ALL_EVENTS (AvrIspWorkerEvtStop)
@@ -35,8 +37,6 @@ struct AvrIspWorker {
 
 //########################/* VCP CDC */#############################################
 #include "usb_cdc.h"
-#include <cli/cli_vcp.h>
-#include <cli/cli.h>
 #include <furi_hal_usb_cdc.h>
 
 #define AVR_ISP_VCP_CDC_CH           1
@@ -89,35 +89,26 @@ static void vcp_on_line_config(void* context, struct usb_cdc_line_coding* config
     UNUSED(config);
 }
 
-static void avr_isp_worker_vcp_cdc_init(void* context) {
-    furi_hal_usb_unlock();
-    Cli* cli = furi_record_open(RECORD_CLI);
-    //close cli
-    cli_session_close(cli);
-    //disable callbacks VCP_CDC=0
-    furi_hal_cdc_set_callbacks(0, NULL, NULL);
-    //set 2 cdc
-    furi_check(furi_hal_usb_set_config(&usb_cdc_dual, NULL) == true);
-    //open cli VCP_CDC=0
-    cli_session_open(cli, &cli_vcp);
-    furi_record_close(RECORD_CLI);
+static void avr_isp_worker_vcp_cdc_init(AvrIspWorker* worker) {
+    worker->cli_vcp = furi_record_open(RECORD_CLI_VCP);
 
-    furi_hal_cdc_set_callbacks(AVR_ISP_VCP_CDC_CH, (CdcCallbacks*)&cdc_cb, context);
+    cli_vcp_disable(worker->cli_vcp);
+    furi_check(furi_hal_usb_set_config(&usb_cdc_dual, NULL) == true);
+    furi_hal_usb_lock();
+    cli_vcp_enable(worker->cli_vcp);
+
+    furi_hal_cdc_set_callbacks(AVR_ISP_VCP_CDC_CH, (CdcCallbacks*)&cdc_cb, worker);
 }
 
-static void avr_isp_worker_vcp_cdc_deinit(void) {
-    //disable callbacks AVR_ISP_VCP_CDC_CH
+static void avr_isp_worker_vcp_cdc_deinit(AvrIspWorker* worker) {
     furi_hal_cdc_set_callbacks(AVR_ISP_VCP_CDC_CH, NULL, NULL);
 
-    Cli* cli = furi_record_open(RECORD_CLI);
-    //close cli
-    cli_session_close(cli);
+    cli_vcp_disable(worker->cli_vcp);
     furi_hal_usb_unlock();
-    //set 1 cdc
     furi_check(furi_hal_usb_set_config(&usb_cdc_single, NULL) == true);
-    //open cli VCP_CDC=0
-    cli_session_open(cli, &cli_vcp);
-    furi_record_close(RECORD_CLI);
+    cli_vcp_enable(worker->cli_vcp);
+
+    furi_record_close(RECORD_CLI_VCP);
 }
 
 //#################################################################################
@@ -209,7 +200,7 @@ static int32_t avr_isp_worker_thread(void* context) {
 
     avr_isp_prog_free(prog);
     furi_hal_pwm_stop(FuriHalPwmOutputIdLptim2PA4);
-    avr_isp_worker_vcp_cdc_deinit();
+    avr_isp_worker_vcp_cdc_deinit(instance);
     return 0;
 }
 

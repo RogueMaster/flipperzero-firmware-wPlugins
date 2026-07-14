@@ -15,6 +15,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <cfw/settings.h>
+
 typedef struct {
     int32_t x;
     int32_t y;
@@ -100,14 +102,17 @@ void elements_scrollbar_horizontal(
     size_t pos,
     size_t total) {
     furi_check(canvas);
+
     // prevent overflows
     canvas_set_color(canvas, ColorWhite);
     canvas_draw_box(canvas, x, y - 3, width, 3);
+
     // dot line
     canvas_set_color(canvas, ColorBlack);
     for(size_t i = x; i < width + x; i += 2) {
         canvas_draw_dot(canvas, i, y - 2);
     }
+
     // Position block
     if(total) {
         float block_w = ((float)width) / total;
@@ -669,12 +674,23 @@ void elements_string_fit_width(Canvas* canvas, FuriString* string, size_t width)
     }
 }
 
-void elements_scrollable_text_line_str(
+void elements_scrollable_text_line(
     Canvas* canvas,
     int32_t x,
     int32_t y,
     size_t width,
-    const char* string,
+    FuriString* string,
+    size_t scroll,
+    bool ellipsis) {
+    elements_scrollable_text_line_centered(canvas, x, y, width, string, scroll, ellipsis, false);
+}
+
+void elements_scrollable_text_line_centered(
+    Canvas* canvas,
+    int32_t x,
+    int32_t y,
+    size_t width,
+    FuriString* string,
     size_t scroll,
     bool ellipsis,
     bool centered) {
@@ -684,8 +700,9 @@ void elements_scrollable_text_line_str(
     FuriString* line = furi_string_alloc_set(string);
 
     size_t len_px = canvas_string_width(canvas, furi_string_get_cstr(line));
+    bool marquee = cfw_settings.scroll_marquee;
     if(len_px > width) {
-        if(centered) {
+        if(centered && !marquee) {
             centered = false;
             x -= width / 2;
         }
@@ -703,11 +720,31 @@ void elements_scrollable_text_line_str(
             scroll_size--;
             if(!scroll_size) break;
         }
+
         // Ensure that we have something to scroll
         if(scroll_size) {
-            scroll_size += 3;
-            scroll = scroll % scroll_size;
-            furi_string_right(line, scroll);
+            if(marquee) {
+                const size_t delay = 3; // positions before/after scroll to delay
+                size_t total_scroll = (scroll_size * 2) + (delay * 2);
+                size_t use_scroll = scroll % total_scroll;
+
+                if(use_scroll < scroll_size) {
+                    furi_string_right(line, use_scroll);
+                } else if(use_scroll < (scroll_size + delay)) {
+                    // Delay right
+                    furi_string_right(line, scroll_size);
+                } else if(use_scroll < (scroll_size * 2 + delay)) {
+                    size_t reverse_pos = scroll_size - (use_scroll - (scroll_size + delay));
+                    furi_string_right(line, reverse_pos);
+                } else {
+                    // Delay left
+                    furi_string_right(line, 0);
+                }
+            } else {
+                scroll_size += 3;
+                scroll = scroll % scroll_size;
+                furi_string_right(line, scroll);
+            }
         }
 
         len_px = canvas_string_width(canvas, furi_string_get_cstr(line));
@@ -728,19 +765,6 @@ void elements_scrollable_text_line_str(
         canvas_draw_str(canvas, x, y, furi_string_get_cstr(line));
     }
     furi_string_free(line);
-}
-
-void elements_scrollable_text_line(
-    Canvas* canvas,
-    int32_t x,
-    int32_t y,
-    size_t width,
-    FuriString* string,
-    size_t scroll,
-    bool ellipsis,
-    bool centered) {
-    elements_scrollable_text_line_str(
-        canvas, x, y, width, furi_string_get_cstr(string), scroll, ellipsis, centered);
 }
 
 void elements_text_box(
@@ -777,6 +801,16 @@ void elements_text_box(
     size_t i = 0;
     bool full_text_processed = false;
     size_t dots_width = canvas_string_width(canvas, "...");
+    // Word-wrap bookkeeping: the last space on the current line, so an overflow can push the whole
+    // word to the next line instead of breaking mid-word. Falls back to character wrap when a single
+    // word is itself wider than the box, or when the trailing word contains an inline font marker
+    // (\e#, \e*, \e!) -- rewinding across a marker would re-toggle the already-applied emphasis and
+    // corrupt the measurement, so those words char-wrap as before.
+    int last_space_i = -1;
+    size_t line_start_i = 0;
+    size_t line_width_at_space = 0;
+    size_t line_len_at_space = 0;
+    bool marker_since_space = false;
 
     canvas_set_font(canvas, FontSecondary);
 
@@ -797,6 +831,7 @@ void elements_text_box(
         if(text[i] == '\e' && text[i + 1]) {
             i++;
             line_len++;
+            marker_since_space = true; // a marker in the current word blocks word wrap (see above)
             if(text[i] == ELEMENTS_BOLD_MARKER) {
                 if(bold) {
                     current_font = FontSecondary;
@@ -823,11 +858,26 @@ void elements_text_box(
         if(text[i] != '\n') {
             line_width += canvas_glyph_width(canvas, text[i]);
         }
+        // Remember the last space so an overflow can wrap the whole trailing word.
+        if(text[i] == ' ') {
+            last_space_i = (int)i;
+            line_width_at_space = line_width - canvas_glyph_width(canvas, ' ');
+            line_len_at_space = line_len - 1;
+            marker_since_space = false;
+        }
         // Process new line
         if(text[i] == '\n' || text[i] == '\0' || line_width > width) {
             if(line_width > width) {
-                line_width -= canvas_glyph_width(canvas, text[i--]);
-                line_len--;
+                if(last_space_i > (int)line_start_i && !marker_since_space) {
+                    // Word wrap: break at the last space; its word moves to the next line.
+                    i = (size_t)last_space_i;
+                    line_width = line_width_at_space;
+                    line_len = line_len_at_space;
+                } else {
+                    // A single word wider than the box: fall back to character wrap.
+                    line_width -= canvas_glyph_width(canvas, text[i--]);
+                    line_len--;
+                }
             }
             if(text[i] == '\0') {
                 full_text_processed = true;
@@ -856,8 +906,16 @@ void elements_text_box(
             }
             line[line_num].y = total_height_min;
             line_num++;
+            // Never index past line[]: a near-full-height box can fit the last slot's leading yet
+            // still have text left, which would write line[ELEMENTS_MAX_LINES_NUM] otherwise.
+            if(line_num >= ELEMENTS_MAX_LINES_NUM) {
+                break;
+            }
             if(!full_text_processed) {
                 line[line_num].text = &text[i + 1];
+                line_start_i = i + 1;
+                last_space_i = -1;
+                marker_since_space = false;
             }
             line_leading_min = font_params->leading_min;
             line_height = font_params->height;
@@ -901,7 +959,7 @@ void elements_text_box(
     for(size_t i = 0; i < line_num; i++) {
         for(size_t j = 0; j < line[i].len; j++) {
             // Process format symbols
-            if(line[i].text[j] == '\e' && j < line[i].len - 1) {
+            if(line[i].text[j] == '\e' && j < line[i].len - 1) { //-V781
                 ++j;
                 if(line[i].text[j] == ELEMENTS_BOLD_MARKER) {
                     if(bold) {

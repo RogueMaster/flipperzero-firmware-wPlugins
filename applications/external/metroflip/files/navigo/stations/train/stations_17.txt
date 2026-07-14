@@ -1,0 +1,11 @@
+1,1,Charles de Gaulle - Etoile
+4,1,La Defense
+4,2,La Defense
+5,1,Nanterre Prefecture
+5,2,Nanterre Universite
+5,3,Nanterre Ville
+6,1,Rueil-Malmaison
+8,1,Chatou - Croissy
+9,1,Le Vesinet - Centre
+9,2,Le Vesinet - Le Pecq
+9,3,Saint-Germain-en-Laye

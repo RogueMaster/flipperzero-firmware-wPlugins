@@ -1,0 +1,31 @@
+Filetype: Flipper NFC device
+Version: 4
+Device type: NTAG/Ultralight
+UID: 04 18 36 62 49 11 90
+ATQA: 00 44
+SAK: 00
+Signature: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+Mifare version: 00 04 04 02 01 00 11 03
+Counter 0: 0
+Tearing 0: 00
+Counter 1: 0
+Tearing 1: 00
+Counter 2: 0
+Tearing 2: 00
+Pages total: 16
+Page 0: 04 18 36 B9
+Page 1: 62 49 11 90
+Page 2: 24 48 00 00
+Page 3: E1 10 06 00
+Page 4: 03 2B D2 20
+Page 5: 08 61 70 70
+Page 6: 6C 69 63 61
+Page 7: 74 69 6F 6E
+Page 8: 2F 76 6E 64
+Page 9: 2E 62 6C 75
+Page 10: 65 74 6F 6F
+Page 11: 74 68 2E 65
+Page 12: 70 2E 6F 6F
+Page 13: 62 08 00 66
+Page 14: 55 44 33 22
+Page 15: 11 FE 00 00

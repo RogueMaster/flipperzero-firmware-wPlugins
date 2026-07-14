@@ -1,0 +1,14 @@
+{
+  "components": [
+    {
+      "partno": "HMC6343",
+      "desc": "Compass module",
+      "type": 22,
+      "manufacturer": "Honeywell",
+      "date": "2008"
+    }
+  ],
+  "unique_types": [
+    22
+  ]
+}

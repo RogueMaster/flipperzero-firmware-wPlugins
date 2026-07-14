@@ -9,7 +9,7 @@ void nfc_maker_scene_start_on_enter(void* context) {
     NfcMaker* app = context;
     Submenu* submenu = app->submenu;
 
-    submenu_set_header(submenu, "NFC Tag Maker:");
+    submenu_set_header(submenu, "NFC Tag Maker v" FAP_VERSION);
 
     submenu_add_item(
         submenu,
@@ -24,6 +24,9 @@ void nfc_maker_scene_start_on_enter(void* context) {
         NfcMakerSceneContact,
         nfc_maker_scene_start_submenu_callback,
         app);
+
+    submenu_add_item(
+        submenu, "Empty", NfcMakerSceneSaveGenerate, nfc_maker_scene_start_submenu_callback, app);
 
     submenu_add_item(
         submenu, "HTTPS Link", NfcMakerSceneHttps, nfc_maker_scene_start_submenu_callback, app);

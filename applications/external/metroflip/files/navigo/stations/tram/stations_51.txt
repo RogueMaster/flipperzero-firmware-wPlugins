@@ -1,0 +1,8 @@
+5,4,Le Bourget
+5,5,Le Bourget
+5,6,Dugny - La Courneuve
+5,7,Dugny - La Courneuve
+6,1,Stains la Cerisaie
+6,2,Stains la Cerisaie
+8,6,Aulnay-sous-Bois
+9,4,Rougemont Chanteloup

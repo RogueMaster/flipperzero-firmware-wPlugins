@@ -32,9 +32,7 @@ typedef struct {
     ColorGuessPlay* color_guess_play;
     ColorGuessStartscreen* color_guess_startscreen;
     Submenu* color_guess_settings;
-    bool error;
     uint32_t haptic;
-    //uint32_t speaker;
     uint32_t led;
     uint32_t save_settings;
 } ColorGuess;
@@ -51,11 +49,6 @@ typedef enum {
     ColorGuessHapticOff,
     ColorGuessHapticOn,
 } ColorGuessHapticState;
-
-typedef enum {
-    ColorGuessSpeakerOff,
-    ColorGuessSpeakerOn,
-} ColorGuessSpeakerState;
 
 typedef enum {
     ColorGuessLedOff,

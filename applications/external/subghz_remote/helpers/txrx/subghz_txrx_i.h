@@ -19,6 +19,8 @@ struct SubGhzTxRx {
     bool is_database_loaded;
     SubGhzHopperState hopper_state;
 
+    uint8_t custom_button;
+
     SubGhzTxRxState txrx_state;
     SubGhzSpeakerState speaker_state;
     const SubGhzDevice* radio_device;

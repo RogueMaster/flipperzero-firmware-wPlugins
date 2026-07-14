@@ -21,8 +21,6 @@
 #include "esp_idf_version.h"
 #include <unistd.h>
 
-// #define SERIAL_DEBUG_ENABLE
-
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 3, 0)
 #define DMA_CHAN SPI_DMA_CH_AUTO
 #else
@@ -31,8 +29,7 @@
 
 #define WORD_ALIGNED(ptr) ((size_t)ptr % sizeof(size_t) == 0)
 
-#ifdef SERIAL_DEBUG_ENABLE
-
+#if SERIAL_FLASHER_DEBUG_TRACE
 static void dec_to_hex_str(const uint8_t dec, uint8_t hex_str[3])
 {
     static const uint8_t dec_to_hex[] = {
@@ -50,19 +47,16 @@ static void serial_debug_print(const uint8_t *data, uint16_t size, bool write)
     static bool write_prev = false;
     uint8_t hex_str[3];
 
-    if(write_prev != write) {
+    if (write_prev != write) {
         write_prev = write;
         printf("\n--- %s ---\n", write ? "WRITE" : "READ");
     }
 
-    for(uint32_t i = 0; i < size; i++) {
+    for (uint32_t i = 0; i < size; i++) {
         dec_to_hex_str(data[i], hex_str);
         printf("%s ", hex_str);
     }
 }
-
-#else
-static void serial_debug_print(const uint8_t *data, uint16_t size, bool write) { }
 #endif
 
 static spi_host_device_t s_spi_bus;
@@ -76,6 +70,7 @@ static uint32_t s_strap_bit1_pin;
 static uint32_t s_strap_bit2_pin;
 static uint32_t s_strap_bit3_pin;
 static uint32_t s_spi_cs_pin;
+static bool s_bus_needs_deinit;
 
 esp_loader_error_t loader_port_esp32_spi_init(const loader_esp32_spi_config_t *config)
 {
@@ -89,15 +84,19 @@ esp_loader_error_t loader_port_esp32_spi_init(const loader_esp32_spi_config_t *c
     s_spi_cs_pin = config->spi_cs_pin;
 
     /* Configure and initialize the SPI bus*/
-    s_spi_config.mosi_io_num = config->spi_mosi_pin;
-    s_spi_config.miso_io_num = config->spi_miso_pin;
-    s_spi_config.sclk_io_num = config->spi_clk_pin;
-    s_spi_config.quadwp_io_num = config->spi_quadwp_pin;
-    s_spi_config.quadhd_io_num = config->spi_quadhd_pin;
-    s_spi_config.max_transfer_sz = 4096 * 4;
+    if (!config->dont_initialize_bus) {
+        s_spi_config.mosi_io_num = config->spi_mosi_pin;
+        s_spi_config.miso_io_num = config->spi_miso_pin;
+        s_spi_config.sclk_io_num = config->spi_clk_pin;
+        s_spi_config.quadwp_io_num = config->spi_quadwp_pin;
+        s_spi_config.quadhd_io_num = config->spi_quadhd_pin;
+        s_spi_config.max_transfer_sz = 4096 * 4;
 
-    if (spi_bus_initialize(s_spi_bus, &s_spi_config, DMA_CHAN) != ESP_OK) {
-        return ESP_LOADER_ERROR_FAIL;
+        if (spi_bus_initialize(s_spi_bus, &s_spi_config, DMA_CHAN) != ESP_OK) {
+            return ESP_LOADER_ERROR_FAIL;
+        }
+
+        s_bus_needs_deinit = true;
     }
 
     /* Configure and add the device */
@@ -131,24 +130,25 @@ void loader_port_esp32_spi_deinit(void)
     gpio_reset_pin(s_reset_trigger_pin);
     gpio_reset_pin(s_spi_cs_pin);
     spi_bus_remove_device(s_device_h);
-    spi_bus_free(s_spi_bus);
+    if (s_bus_needs_deinit) {
+        spi_bus_free(s_spi_bus);
+    }
 }
 
 
-void loader_port_spi_set_cs(const uint32_t level) {
+void loader_port_spi_set_cs(const uint32_t level)
+{
     gpio_set_level(s_spi_cs_pin, level);
 }
 
 
 esp_loader_error_t loader_port_write(const uint8_t *data, const uint16_t size, const uint32_t timeout)
 {
-    /* Due to the fact that the SPI driver uses DMA for larger transfers,
-       and the DMA requirements, the buffer must be word aligned */
-    if (data == NULL || !WORD_ALIGNED(data)) {
+    (void) timeout;
+
+    if (data == NULL) {
         return ESP_LOADER_ERROR_INVALID_PARAM;
     }
-
-    serial_debug_print(data, size, true);
 
     spi_transaction_t transaction = {
         .tx_buffer = data,
@@ -160,7 +160,9 @@ esp_loader_error_t loader_port_write(const uint8_t *data, const uint16_t size, c
     esp_err_t err = spi_device_transmit(s_device_h, &transaction);
 
     if (err == ESP_OK) {
-        serial_debug_print(data, size, false);
+#if SERIAL_FLASHER_DEBUG_TRACE
+        serial_debug_print(data, size, true);
+#endif
         return ESP_LOADER_SUCCESS;
     } else if (err == ESP_ERR_TIMEOUT) {
         return ESP_LOADER_ERROR_TIMEOUT;
@@ -172,13 +174,12 @@ esp_loader_error_t loader_port_write(const uint8_t *data, const uint16_t size, c
 
 esp_loader_error_t loader_port_read(uint8_t *data, const uint16_t size, const uint32_t timeout)
 {
-    /* Due to the fact that the SPI driver uses DMA for larger transfers,
-       and the DMA requirements, the buffer must be word aligned */
+    (void) timeout;
+
+    /* The rx data buffer must be aligned to 32 bits due to DMA requirements */
     if (data == NULL || !WORD_ALIGNED(data)) {
         return ESP_LOADER_ERROR_INVALID_PARAM;
     }
-
-    serial_debug_print(data, size, true);
 
     spi_transaction_t transaction = {
         .tx_buffer = NULL,
@@ -189,7 +190,9 @@ esp_loader_error_t loader_port_read(uint8_t *data, const uint16_t size, const ui
     esp_err_t err = spi_device_transmit(s_device_h, &transaction);
 
     if (err == ESP_OK) {
+#if SERIAL_FLASHER_DEBUG_TRACE
         serial_debug_print(data, size, false);
+#endif
         return ESP_LOADER_SUCCESS;
     } else if (err == ESP_ERR_TIMEOUT) {
         return ESP_LOADER_ERROR_TIMEOUT;

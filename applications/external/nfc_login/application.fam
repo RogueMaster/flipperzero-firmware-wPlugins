@@ -1,0 +1,18 @@
+App(
+    appid="nfc_login",
+    name="NFC Login",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="nfc_login",
+    requires=["gui", "usb_hid", "storage", "notification", "bt", "cli"],
+    fap_libs=["ble_profile", "assets"],
+    stack_size=4 * 1024,
+    targets=["f7"],
+    fap_icon_assets="assets",
+    fap_icon_assets_symbol="nfc_login",
+    fap_icon="assets/icon.png",
+    fap_category="NFC",
+    fap_author="Play2BReal",
+    fap_weburl="https://github.com/Play2BReal/NFC-Login",
+    fap_version="1.1.2",
+    fap_description="NFC based desktop login using USB HID or BLE HID (BLE exit fix, OFW compatible)",
+)

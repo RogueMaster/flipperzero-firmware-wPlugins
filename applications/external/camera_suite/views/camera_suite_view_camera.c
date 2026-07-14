@@ -3,37 +3,56 @@
 #include <furi_hal.h>
 #include <input/input.h>
 #include <gui/elements.h>
-#include <datetime/datetime.h>
 #include <dolphin/dolphin.h>
 #include "../helpers/camera_suite_haptic.h"
 #include "../helpers/camera_suite_speaker.h"
 #include "../helpers/camera_suite_led.h"
 
-static void draw_pixel_by_orientation(Canvas* canvas, uint8_t x, uint8_t y, uint8_t orientation) {
+static uint8_t get_pixel(uint8_t* buf, uint8_t x, uint8_t y) {
+    uint32_t pix_cnt = (y * FRAME_WIDTH) + x;
+    uint32_t idx = pix_cnt / 8;
+    uint8_t bit = pix_cnt % 8;
+    return buf[idx] & (1 << (7 - bit)) ? 1 : 0;
+}
+
+static void draw_image(Canvas* canvas, uint8_t* cam_buf, uint8_t orientation) {
     furi_assert(canvas);
-    furi_assert(x);
-    furi_assert(y);
     furi_assert(orientation);
 
-    switch(orientation) {
-    default:
-    case 0: { // Camera rotated 0 degrees (right side up, default)
-        canvas_draw_dot(canvas, x, y);
-        break;
-    }
-    case 1: { // Camera rotated 90 degrees
+    for(size_t y = 0; y < FRAME_HEIGHT; y++) {
+        for(size_t x = 0; x < FRAME_WIDTH; x++) {
+            uint8_t x_cam;
+            uint8_t y_cam;
 
-        canvas_draw_dot(canvas, y, FRAME_WIDTH - 1 - x);
-        break;
-    }
-    case 2: { // Camera rotated 180 degrees (upside down)
-        canvas_draw_dot(canvas, x, FRAME_HEIGHT - 1 - y);
-        break;
-    }
-    case 3: { // Camera rotated 270 degrees
-        canvas_draw_dot(canvas, FRAME_HEIGHT - 1 - y, x);
-        break;
-    }
+            switch(orientation) {
+            default:
+            case 0: { // Camera rotated 0 degrees (right side up, default)
+                x_cam = x;
+                y_cam = y + 32;
+                break;
+            }
+            case 1: { // Camera rotated 90 degrees
+                x_cam = FRAME_WIDTH - y - 32 - 1;
+                y_cam = x;
+                break;
+            }
+            case 2: { // Camera rotated 180 degrees (upside down)
+                x_cam = FRAME_WIDTH - x - 1;
+                y_cam = FRAME_WIDTH - y - 32 - 1;
+                break;
+            }
+            case 3: { // Camera rotated 270 degrees
+                x_cam = y + 32;
+                y_cam = FRAME_WIDTH - x - 1;
+                break;
+            }
+            }
+
+            uint8_t pixel = get_pixel(cam_buf, x_cam, y_cam);
+            if(pixel) {
+                canvas_draw_dot(canvas, x, FRAME_HEIGHT - y - 1);
+            }
+        }
     }
 }
 
@@ -49,16 +68,8 @@ static void camera_suite_view_camera_draw(Canvas* canvas, void* model) {
     // Draw the frame.
     canvas_draw_frame(canvas, 0, 0, FRAME_WIDTH, FRAME_HEIGHT);
 
-    for(size_t p = 0; p < FRAME_BUFFER_LENGTH; ++p) {
-        uint8_t x = p % ROW_BUFFER_LENGTH; // 0 .. 15
-        uint8_t y = p / ROW_BUFFER_LENGTH; // 0 .. 63
-
-        for(uint8_t i = 0; i < 8; ++i) {
-            if((uartDumpModel->pixels[p] & (1 << (7 - i))) != 0) {
-                draw_pixel_by_orientation(canvas, (x * 8) + i, y, uartDumpModel->orientation);
-            }
-        }
-    }
+    // Draw the image
+    draw_image(canvas, uartDumpModel->pixels, uartDumpModel->orientation);
 
     // Draw the pinout guide if the camera is not initialized.
     if(!uartDumpModel->is_initialized) {
@@ -216,7 +227,7 @@ static void save_image_to_flipper_sd_card(void* model) {
         // @todo - Save image based on orientation.
         for(size_t i = 64; i > 0; --i) {
             for(size_t j = 0; j < ROW_BUFFER_LENGTH; ++j) {
-                row_buffer[j] = uartDumpModel->pixels[((i - 1) * ROW_BUFFER_LENGTH) + j];
+                row_buffer[j] = uartDumpModel->pixels[((i + 32 - 1) * ROW_BUFFER_LENGTH) + j];
             }
             storage_file_write(file, row_buffer, ROW_BUFFER_LENGTH);
         }

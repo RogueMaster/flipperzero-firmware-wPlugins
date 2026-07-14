@@ -27,5 +27,5 @@ void set_camera_config_defaults() {
   camera_config.pixel_format = PIXFORMAT_GRAYSCALE;
   camera_config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
   camera_config.fb_count = 1;
-  camera_config.frame_size = FRAMESIZE_QQVGA;
+  camera_config.frame_size = FRAMESIZE_128X128;
 }

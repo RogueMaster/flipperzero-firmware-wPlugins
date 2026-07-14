@@ -66,6 +66,13 @@ void nfc_maker_text_input_set_validator(
     NFCMaker_TextInputValidatorCallback callback,
     void* callback_context);
 
+/**
+ * @brief Show the 9 illegal (windows) symbols <>:"/\|?* in the symbols keyboard instead of the numbers
+ * @param [in] text_input TextInput
+ * @param [in] show Whether to show the illegal symbols or not
+ */
+void nfc_maker_text_input_show_illegal_symbols(NFCMaker_TextInput* text_input, bool show);
+
 void nfc_maker_text_input_set_minimum_length(NFCMaker_TextInput* text_input, size_t minimum_length);
 
 NFCMaker_TextInputValidatorCallback

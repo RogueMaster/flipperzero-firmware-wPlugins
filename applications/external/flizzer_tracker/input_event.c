@@ -2,6 +2,8 @@
 
 #include "diskop.h"
 
+#include <flizzer_tracker_icons.h>
+
 #define AUDIO_MODES_COUNT 2
 
 void return_from_keyboard_callback(void* ctx) {
@@ -62,8 +64,7 @@ void return_from_keyboard_callback(void* ctx) {
         }
 
         else {
-            FlizzerTrackerEvent event = {.type = EventTypeSaveSong, .input = {{0}}, .period = 0};
-            furi_message_queue_put(tracker->event_queue, &event, FuriWaitForever);
+            save_song(tracker, tracker->filepath);
         }
     }
 
@@ -85,9 +86,7 @@ void return_from_keyboard_callback(void* ctx) {
         }
 
         else {
-            FlizzerTrackerEvent event = {
-                .type = EventTypeSaveInstrument, .input = {{0}}, .period = 0};
-            furi_message_queue_put(tracker->event_queue, &event, FuriWaitForever);
+            save_instrument(tracker, tracker->filepath);
         }
     }
 }
@@ -100,10 +99,8 @@ void overwrite_file_widget_yes_input_callback(GuiButtonType result, InputType ty
     if(type == InputTypeShort) {
         tracker->is_saving = true;
         view_dispatcher_switch_to_view(tracker->view_dispatcher, VIEW_TRACKER);
-        // save_song(tracker, tracker->filepath);
-        static FlizzerTrackerEvent event = {
-            .type = EventTypeSaveSong, .input = {{0}}, .period = 0};
-        furi_message_queue_put(tracker->event_queue, &event, FuriWaitForever);
+
+        save_song(tracker, tracker->filepath);
     }
 }
 
@@ -170,15 +167,8 @@ void submenu_callback(void* context, uint32_t index) {
         switch(index) {
         case SUBMENU_PATTERN_EXIT: {
             tracker->quit = true;
-
-            static InputEvent inevent = {.sequence = 0, .key = InputKeyLeft, .type = InputTypeMAX};
-            FlizzerTrackerEvent event = {
-                .type = EventTypeInput,
-                .input = inevent,
-                .period =
-                    0}; // making an event so tracker does not wait for next keypress and exits immediately
-            furi_message_queue_put(tracker->event_queue, &event, FuriWaitForever);
             view_dispatcher_switch_to_view(tracker->view_dispatcher, VIEW_TRACKER);
+            view_dispatcher_stop(tracker->view_dispatcher);
             break;
         }
 
@@ -206,9 +196,41 @@ void submenu_callback(void* context, uint32_t index) {
         }
 
         case SUBMENU_PATTERN_LOAD_SONG: {
-            FlizzerTrackerEvent event = {.type = EventTypeLoadSong, .input = {{0}}, .period = 0};
-            furi_message_queue_put(tracker->event_queue, &event, FuriWaitForever);
             view_dispatcher_switch_to_view(tracker->view_dispatcher, VIEW_TRACKER);
+
+            stop_song(tracker);
+
+            tracker->tracker_engine.sequence_position = tracker->tracker_engine.pattern_position =
+                tracker->current_instrument = 0;
+
+            tracker->dialogs = furi_record_open(RECORD_DIALOGS);
+            tracker->is_loading = true;
+
+            FuriString* path;
+            path = furi_string_alloc();
+            furi_string_set(path, FLIZZER_TRACKER_FOLDER);
+
+            DialogsFileBrowserOptions browser_options;
+            dialog_file_browser_set_basic_options(
+                &browser_options, SONG_FILE_EXT, &I_flizzer_tracker_module);
+            browser_options.base_path = FLIZZER_TRACKER_FOLDER;
+            browser_options.hide_ext = false;
+
+            bool ret = dialog_file_browser_show(tracker->dialogs, path, path, &browser_options);
+
+            furi_record_close(RECORD_DIALOGS);
+
+            const char* cpath = furi_string_get_cstr(path);
+
+            if(ret && strcmp(&cpath[strlen(cpath) - 4], SONG_FILE_EXT) == 0) {
+                bool result = load_song_util(tracker, path);
+                UNUSED(result);
+            }
+
+            else {
+                furi_string_free(path);
+                tracker->is_loading = false;
+            }
             break;
         }
 
@@ -229,14 +251,8 @@ void submenu_callback(void* context, uint32_t index) {
         case SUBMENU_INSTRUMENT_EXIT: {
             tracker->quit = true;
 
-            static InputEvent inevent = {.sequence = 0, .key = InputKeyLeft, .type = InputTypeMAX};
-            FlizzerTrackerEvent event = {
-                .type = EventTypeInput,
-                .input = inevent,
-                .period =
-                    0}; // making an event so tracker does not wait for next keypress and exits immediately
-            furi_message_queue_put(tracker->event_queue, &event, FuriWaitForever);
             view_dispatcher_switch_to_view(tracker->view_dispatcher, VIEW_TRACKER);
+            view_dispatcher_stop(tracker->view_dispatcher);
             break;
         }
 
@@ -258,10 +274,38 @@ void submenu_callback(void* context, uint32_t index) {
         }
 
         case SUBMENU_INSTRUMENT_LOAD: {
-            FlizzerTrackerEvent event = {
-                .type = EventTypeLoadInstrument, .input = {{0}}, .period = 0};
-            furi_message_queue_put(tracker->event_queue, &event, FuriWaitForever);
             view_dispatcher_switch_to_view(tracker->view_dispatcher, VIEW_TRACKER);
+
+            stop_song(tracker);
+
+            tracker->dialogs = furi_record_open(RECORD_DIALOGS);
+            tracker->is_loading_instrument = true;
+
+            FuriString* path;
+            path = furi_string_alloc();
+            furi_string_set(path, FLIZZER_TRACKER_INSTRUMENTS_FOLDER);
+
+            DialogsFileBrowserOptions browser_options;
+            dialog_file_browser_set_basic_options(
+                &browser_options, INST_FILE_EXT, &I_flizzer_tracker_instrument);
+            browser_options.base_path = FLIZZER_TRACKER_FOLDER;
+            browser_options.hide_ext = false;
+
+            bool ret = dialog_file_browser_show(tracker->dialogs, path, path, &browser_options);
+
+            furi_record_close(RECORD_DIALOGS);
+
+            const char* cpath = furi_string_get_cstr(path);
+
+            if(ret && strcmp(&cpath[strlen(cpath) - 4], INST_FILE_EXT) == 0) {
+                bool result = load_instrument_util(tracker, path);
+                UNUSED(result);
+            }
+
+            else {
+                furi_string_free(path);
+                tracker->is_loading = false;
+            }
             break;
         }
 
@@ -345,13 +389,9 @@ void audio_output_changed_callback(VariableItem* item) {
 
         tracker->external_audio = audio_modes_values[(index > 1 ? 1 : index)];
 
-        // sound_engine_init(&tracker->sound_engine, tracker->sound_engine.sample_rate, tracker->external_audio, tracker->sound_engine.audio_buffer_size);
-        // sound_engine_init_hardware(tracker->sound_engine.sample_rate, tracker->external_audio, tracker->sound_engine.audio_buffer, tracker->sound_engine.audio_buffer_size);
+        sound_engine_PWM_timer_init(tracker->external_audio);
 
-        FlizzerTrackerEvent event = {.type = EventTypeSetAudioMode, .input = {{0}}, .period = 0};
-        furi_message_queue_put(tracker->event_queue, &event, FuriWaitForever);
-
-        UNUSED(event);
+        tracker->sound_engine.external_audio_output = tracker->external_audio;
     }
 }
 

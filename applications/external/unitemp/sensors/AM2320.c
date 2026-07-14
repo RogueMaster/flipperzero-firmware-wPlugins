@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,15 +15,29 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#include "AM2320.h"
-#include "../interfaces/I2CSensor.h"
 
-const SensorType AM2320_I2C = {
-    .typename = "AM2320_I2C",
+#include "AM2320.h"
+#include "interfaces/singlewire_sensor.h"
+#include "../interfaces/i2c_sensor.h"
+
+const SensorModel AM2320_SW = {
+    .modelname = "AM2320",
+    .altname = "AM2320 (single wire)",
+    .interface = &unitemp_singlewire,
+    .data_type = UT_DATA_TYPE_TEMP_HUM,
+    .polling_interval = 2000,
+    .allocator = unitemp_singlewire_alloc,
+    .mem_releaser = unitemp_singlewire_free,
+    .initializer = unitemp_singlewire_init,
+    .deinitializer = unitemp_singlewire_deinit,
+    .updater = unitemp_singlewire_update};
+
+const SensorModel AM2320_I2C = {
+    .modelname = "AM2320_I2C",
     .altname = "AM2320 (I2C)",
-    .interface = &I2C,
-    .datatype = UT_TEMPERATURE | UT_HUMIDITY,
-    .pollingInterval = 2000,
+    .interface = &unitemp_i2c,
+    .data_type = UT_DATA_TYPE_TEMP_HUM,
+    .polling_interval = 2000,
     .allocator = unitemp_AM2320_I2C_alloc,
     .mem_releaser = unitemp_AM2320_I2C_free,
     .initializer = unitemp_AM2320_init,
@@ -51,56 +65,56 @@ bool unitemp_AM2320_I2C_alloc(Sensor* sensor, char* args) {
     UNUSED(args);
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
 
-    //Адреса на шине I2C (7 бит)
-    i2c_sensor->minI2CAdr = 0x5C << 1;
-    i2c_sensor->maxI2CAdr = 0x5C << 1;
+    //Addresses on the I2C bus (7 bits)
+    i2c_sensor->min_i2c_adress = 0x5C << 1;
+    i2c_sensor->max_i2c_adress = 0x5C << 1;
     return true;
 }
 
 bool unitemp_AM2320_I2C_free(Sensor* sensor) {
-    //Нечего высвобождать, так как ничего не было выделено
+    //Nothing to release since nothing was allocated
     UNUSED(sensor);
     return true;
 }
 
 bool unitemp_AM2320_init(Sensor* sensor) {
-    //Нечего инициализировать
+    //Nothing to initialize
     UNUSED(sensor);
     return true;
 }
 
 bool unitemp_AM2320_I2C_deinit(Sensor* sensor) {
-    //Нечего деинициализировать
+    //Nothing to deinitialize
     UNUSED(sensor);
     return true;
 }
 
-UnitempStatus unitemp_AM2320_I2C_update(Sensor* sensor) {
+SensorStatus unitemp_AM2320_I2C_update(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
 
     uint8_t data[8] = {0x03, 0x00, 0x04};
 
     //Wake up
-    unitemp_i2c_isDeviceReady(i2c_sensor);
+    unitemp_i2c_is_device_ready(i2c_sensor);
     furi_delay_ms(1);
 
-    //Запрос
-    if(!unitemp_i2c_writeArray(i2c_sensor, 3, data)) return UT_SENSORSTATUS_TIMEOUT;
+    //Request
+    if(!unitemp_i2c_write_array(i2c_sensor, 3, data)) return UT_SENSORSTATUS_TIMEOUT;
     furi_delay_ms(2);
-    //Ответ
-    if(!unitemp_i2c_readArray(i2c_sensor, 8, data)) return UT_SENSORSTATUS_TIMEOUT;
+    //Answer
+    if(!unitemp_i2c_read_array(i2c_sensor, 8, data)) return UT_SENSORSTATUS_TIMEOUT;
 
     if(AM2320_calc_CRC(data, 6) != ((data[7] << 8) | data[6])) {
         return UT_SENSORSTATUS_BADCRC;
     }
 
-    sensor->hum = (float)(((uint16_t)data[2] << 8) | data[3]) / 10;
-    //Проверка на отрицательность температуры
+    sensor->humidity = (float)(((uint16_t)data[2] << 8) | data[3]) / 10;
+    //Checking for negative temperature
     if(!(data[4] & (1 << 7))) {
-        sensor->temp = (float)(((uint16_t)data[4] << 8) | data[5]) / 10;
+        sensor->temperature = (float)(((uint16_t)data[4] << 8) | data[5]) / 10;
     } else {
         data[4] &= ~(1 << 7);
-        sensor->temp = (float)(((uint16_t)data[4] << 8) | data[5]) / -10;
+        sensor->temperature = (float)(((uint16_t)data[4] << 8) | data[5]) / -10;
     }
     return UT_SENSORSTATUS_OK;
 }

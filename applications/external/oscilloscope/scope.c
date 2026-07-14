@@ -44,7 +44,6 @@ ScopeApp* scope_app_alloc() {
     // View Dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
     app->scene_manager = scene_manager_alloc(&scope_scene_handlers, app);
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
@@ -80,6 +79,8 @@ ScopeApp* scope_app_alloc() {
         app->view_dispatcher, ScopeViewSave, text_input_get_view(app->text_input));
 
     app->time = 0.001;
+    app->scale = 1.0f;
+    app->fft = 256;
     app->measurement = m_time;
 
     scene_manager_next_scene(app->scene_manager, ScopeSceneStart);

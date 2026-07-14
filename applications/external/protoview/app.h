@@ -21,7 +21,8 @@
 #include "raw_samples.h"
 #include "helpers/radio_device_loader.h"
 
-#define TAG                              "ProtoView"
+#define TAG "ProtoView"
+
 #define PROTOVIEW_RAW_VIEW_DEFAULT_SCALE 100 // 100us is 1 pixel by default
 #define BITMAP_SEEK_NOT_FOUND            UINT32_MAX // Returned by function as sentinel
 #define PROTOVIEW_VIEW_PRIVDATA_LEN      64 // View specific private data len
@@ -49,6 +50,7 @@ typedef enum {
 typedef enum {
     ViewRawPulses,
     ViewInfo,
+    ViewInfoList,
     ViewFrequencySettings,
     ViewModulationSettings,
     ViewBuildMessage,
@@ -99,6 +101,17 @@ typedef struct ProtoViewTxRx ProtoViewTxRx;
 /* ============================== Main app state ============================ */
 
 #define ALERT_MAX_LEN 32
+typedef struct {
+    char serial[11]; // These seem to always be 8, but playing it safe
+    char pressure[10];
+    char pressure_bar[5];
+    char temperature[10];
+    char uom[4];
+    char decoder[2];
+    bool favorite;
+    bool favorite_set;
+} Tyre;
+
 struct ProtoViewApp {
     /* GUI */
     Gui* gui;
@@ -160,6 +173,10 @@ struct ProtoViewApp {
     uint32_t frequency; /* Current frequency. */
     uint8_t modulation; /* Current modulation ID, array index in the
                                 ProtoViewModulations table. */
+    int tyre_list_count;
+    int favorites_count;
+    bool dirty; // Used to trigger recount of favorites
+    Tyre tyre_list[30]; // Static max for simplicity since I don't C
 };
 
 /* =========================== Protocols decoders =========================== */
@@ -312,7 +329,9 @@ void process_input_raw_pulses(ProtoViewApp* app, InputEvent input);
 void render_view_settings(Canvas* const canvas, ProtoViewApp* app);
 void process_input_settings(ProtoViewApp* app, InputEvent input);
 void render_view_info(Canvas* const canvas, ProtoViewApp* app);
+void render_list_view_info(Canvas* const canvas, ProtoViewApp* app);
 void process_input_info(ProtoViewApp* app, InputEvent input);
+void tyre_list_process_input(ProtoViewApp* app, InputEvent input);
 void render_view_direct_sampling(Canvas* const canvas, ProtoViewApp* app);
 void process_input_direct_sampling(ProtoViewApp* app, InputEvent input);
 void render_view_build_message(Canvas* const canvas, ProtoViewApp* app);
@@ -323,6 +342,7 @@ void view_enter_direct_sampling(ProtoViewApp* app);
 void view_exit_direct_sampling(ProtoViewApp* app);
 void view_exit_settings(ProtoViewApp* app);
 void view_exit_info(ProtoViewApp* app);
+void info_list_view_exit_info(ProtoViewApp* app);
 void adjust_raw_view_scale(ProtoViewApp* app, uint32_t short_pulse_dur);
 
 /* ui.c */

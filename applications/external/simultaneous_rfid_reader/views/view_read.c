@@ -127,14 +127,16 @@ void uhf_reader_view_read_timer_callback(void* context) {
         App->ViewRead,
         UHFReaderConfigModel * model,
         {
-            uint32_t Len = strlen(model->ScrollingText);
+            if(!model->IsScrolling) {
+                uint32_t Len = strlen(model->ScrollingText);
 
-            //Incrementing each offset
-            model->ScrollOffset++;
+                //Incrementing each offset
+                model->ScrollOffset++;
 
-            //Check the bounds of the offset and reset if necessary
-            if(model->ScrollOffset >= Len) {
-                model->ScrollOffset = 0;
+                //Check the bounds of the offset and reset if necessary
+                if(model->ScrollOffset >= Len) {
+                    model->ScrollOffset = 0;
+                }
             }
         },
         true);
@@ -266,9 +268,51 @@ void uhf_reader_save_text_updated(void* context) {
 */
 bool uhf_reader_view_read_input_callback(InputEvent* event, void* context) {
     UHFReaderApp* App = (UHFReaderApp*)context;
+    if(event->key == InputKeyUp && !App->IsReading) {
+        // Handle short press for save menu
+        if(event->type == InputTypeShort) {
+            //Setting the text input header
+            text_input_set_header_text(App->SaveInput, "Save EPC");
+            bool Redraw = false;
+            with_view_model(
+                App->ViewRead,
+                UHFReaderConfigModel * model,
+                {
+                    //Copy the name contents from the text input
+                    strncpy(
+                        App->TempSaveBuffer,
+                        furi_string_get_cstr(model->EpcName),
+                        App->TempBufferSaveSize);
+                },
+                Redraw);
 
+            //Set the text input result callback function
+            bool ClearPreviousText = false;
+            text_input_set_result_callback(
+                App->SaveInput,
+                uhf_reader_save_text_updated,
+                App,
+                App->TempSaveBuffer,
+                App->TempBufferSaveSize,
+                ClearPreviousText);
+            view_set_previous_callback(
+                text_input_get_view(App->SaveInput), uhf_reader_navigation_read_callback);
+            view_dispatcher_switch_to_view(App->ViewDispatcher, UHFReaderViewSaveInput);
+
+            return true;
+        }
+        // Handle press and release for scrolling pause
+        else if(event->type == InputTypePress || event->type == InputTypeRelease) {
+            with_view_model(
+                App->ViewRead,
+                UHFReaderConfigModel * model,
+                { model->IsScrolling = (event->type == InputTypePress); },
+                true);
+            return true;
+        }
+    }
     //Handles all short input types
-    if(event->type == InputTypeShort) {
+    else if(event->type == InputTypeShort) {
         //If the user presses the left button while the app is not reading
         //TODO CHANGE THIS LOGIC WHEN ADD SUPPORT FOR MULTIPLE TAGS YRM100
         if(event->key == InputKeyLeft && !App->IsReading && App->UHFModuleType != YRM100X_MODULE) {
@@ -364,47 +408,15 @@ bool uhf_reader_view_read_input_callback(InputEvent* event, void* context) {
             return true;
         }
 
-        //Handles the up key press that allows the user to save the currently selected UHF Tag
-        else if(event->key == InputKeyUp && !App->IsReading) {
-            //Setting the text input header
-            text_input_set_header_text(App->SaveInput, "Save EPC");
-            bool Redraw = false;
-            with_view_model(
-                App->ViewRead,
-                UHFReaderConfigModel * model,
-                {
-                    //Copy the name contents from the text input
-                    strncpy(
-                        App->TempSaveBuffer,
-                        furi_string_get_cstr(model->EpcName),
-                        App->TempBufferSaveSize);
-                },
-                Redraw);
-
-            //Set the text input result callback function
-            bool ClearPreviousText = false;
-            text_input_set_result_callback(
-                App->SaveInput,
-                uhf_reader_save_text_updated,
-                App,
-                App->TempSaveBuffer,
-                App->TempBufferSaveSize,
-                ClearPreviousText);
-            view_set_previous_callback(
-                text_input_get_view(App->SaveInput), uhf_reader_navigation_read_callback);
-            view_dispatcher_switch_to_view(App->ViewDispatcher, UHFReaderViewSaveInput);
-
-            return true;
-        }
         //If the down button is pressed, then show the view epc screen
         else if(event->key == InputKeyDown && !App->IsReading) {
             view_set_previous_callback(App->ViewEpc, uhf_reader_navigation_read_callback);
             view_dispatcher_switch_to_view(App->ViewDispatcher, UHFReaderViewEpcDump);
             return true;
         }
-    }
-    //Handles the ok button being pressed
-    else if(event->type == InputTypePress) {
+
+    } else if(event->type == InputTypePress) {
+        //Handles the start button being pressed
         if(event->key == InputKeyOk) {
             view_dispatcher_send_custom_event(App->ViewDispatcher, UHFReaderEventIdOkPressed);
 
@@ -688,6 +700,7 @@ void view_read_alloc(UHFReaderApp* App) {
     Model->EpcValue = EpcValueDefault;
     Model->CurEpcIndex = 1;
     Model->NumEpcsRead = 0;
+    Model->IsReading = false;
     view_dispatcher_add_view(App->ViewDispatcher, UHFReaderViewRead, App->ViewRead);
 }
 

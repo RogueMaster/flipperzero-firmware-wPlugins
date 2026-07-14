@@ -5,21 +5,25 @@
 #include <lib/subghz/devices/cc1101_int/cc1101_int_interconnect.h>
 #include <lib/subghz/blocks/custom_btn.h>
 
+#include <power/power_service/power.h>
+
+#include <furi/core/memmgr.h>
+#include <furi/core/memmgr_heap.h>
+
 #define TAG "SubGhzTxRx"
 
 static void subghz_txrx_radio_device_power_on(SubGhzTxRx* instance) {
     UNUSED(instance);
-    uint8_t attempts = 0;
-    while(!furi_hal_power_is_otg_enabled() && attempts++ < 5) {
-        furi_hal_power_enable_otg();
-        //CC1101 power-up time
-        furi_delay_ms(10);
-    }
+    Power* power = furi_record_open(RECORD_POWER);
+    power_enable_otg(power, true);
+    furi_record_close(RECORD_POWER);
 }
 
 static void subghz_txrx_radio_device_power_off(SubGhzTxRx* instance) {
     UNUSED(instance);
-    if(furi_hal_power_is_otg_enabled()) furi_hal_power_disable_otg();
+    Power* power = furi_record_open(RECORD_POWER);
+    power_enable_otg(power, false);
+    furi_record_close(RECORD_POWER);
 }
 
 SubGhzTxRx* subghz_txrx_alloc(void) {
@@ -58,11 +62,13 @@ SubGhzTxRx* subghz_txrx_alloc(void) {
         instance->worker, (SubGhzWorkerPairCallback)subghz_receiver_decode);
     subghz_worker_set_context(instance->worker, instance->receiver);
 
+#ifndef SUBGHZ_ADD_MANUALLY
     //set default device External
     subghz_devices_init();
     instance->radio_device_type = SubGhzRadioDeviceTypeInternal;
     instance->radio_device_type =
         subghz_txrx_radio_device_set(instance, SubGhzRadioDeviceTypeExternalCC1101);
+#endif
 
     return instance;
 }
@@ -70,12 +76,14 @@ SubGhzTxRx* subghz_txrx_alloc(void) {
 void subghz_txrx_free(SubGhzTxRx* instance) {
     furi_assert(instance);
 
+#ifndef SUBGHZ_ADD_MANUALLY
     if(instance->radio_device_type != SubGhzRadioDeviceTypeInternal) {
         subghz_txrx_radio_device_power_off(instance);
         subghz_devices_end(instance->radio_device);
     }
 
     subghz_devices_deinit();
+#endif
 
     subghz_worker_free(instance->worker);
     subghz_receiver_free(instance->receiver);
@@ -103,12 +111,72 @@ void subghz_txrx_set_preset(
     size_t preset_data_size) {
     furi_assert(instance);
     furi_string_set(instance->preset->name, preset_name);
+
     SubGhzRadioPreset* preset = instance->preset;
     preset->frequency = frequency;
     preset->latitude = latitude;
     preset->longitude = longitude;
     preset->data = preset_data;
     preset->data_size = preset_data_size;
+}
+
+uint8_t*
+    subghz_txrx_set_tx_power(uint8_t* preset_data, size_t preset_data_size, uint8_t tx_power) {
+#define PRESET_POWER_OFFSET_FM 8
+#define PRESET_POWER_OFFSET_AM 7
+#define TX_PATABLE_OFFSET_AM   8
+#define TX_PATABLE_COUNT       17
+
+    //I had to skip the +10dBM and -6dBm Values, use only ones AM/FM have in common.
+    //Highest Value is 12dBm for AM, 10 for FM. So Menu needs to reflect that.
+    static const uint8_t tx_pa_table[TX_PATABLE_COUNT] = {
+        0,
+        0xC0, //12dBm
+        0xCD, //7dBm
+        0x86, //5dBm
+        0x50, //0dBm
+        0x26, // -10dBm
+        0x1D, // -15dBm
+        0x17, //-20dBm
+        0x03, //-30dBm
+        0xC0, // 10dBm
+        0xC8, //7dBm
+        0x84, //5dBm
+        0x60, //0dBm
+        0x34, //-10dBm
+        0x1D, //-15dBm
+        0x0E, // -20dBm
+        0x12, //-30dBm
+    };
+
+    //Grab the AM and FM byte now, so we can do proper checks.
+    uint8_t fm_byte = preset_data[preset_data_size - PRESET_POWER_OFFSET_FM];
+    uint8_t am_byte = preset_data[preset_data_size - PRESET_POWER_OFFSET_AM];
+
+    //Set the TX Power Here in the CC1101 register...
+
+    //If we have both bytes 1st bytes set or none, this isnt a preset we can deal with here.
+    if(fm_byte && !am_byte) {
+        //Use FM Table
+        if(tx_power) {
+            preset_data[preset_data_size - PRESET_POWER_OFFSET_FM] =
+                tx_pa_table[TX_PATABLE_OFFSET_AM + tx_power];
+        } else {
+            preset_data[preset_data_size - PRESET_POWER_OFFSET_FM] =
+                tx_pa_table[1]; //Max Power 0xC0 10dBm
+        }
+    } else if(am_byte && !fm_byte) {
+        //Use AM Table
+        if(tx_power) {
+            preset_data[preset_data_size - PRESET_POWER_OFFSET_AM] = tx_pa_table[tx_power];
+        } else {
+            preset_data[preset_data_size - PRESET_POWER_OFFSET_AM] =
+                tx_pa_table[1]; //Max Power 0xC0 12dBm
+        }
+    }
+
+    //Pass back the preset_so we can call one liners.
+    return preset_data;
 }
 
 const char* subghz_txrx_get_preset_name(SubGhzTxRx* instance, const char* preset) {
@@ -120,6 +188,8 @@ const char* subghz_txrx_get_preset_name(SubGhzTxRx* instance, const char* preset
         preset_name = "AM650";
     } else if(!strcmp(preset, "FuriHalSubGhzPreset2FSKDev238Async")) {
         preset_name = "FM238";
+    } else if(!strcmp(preset, "FuriHalSubGhzPreset2FSKDev12KAsync")) {
+        preset_name = "FM12K";
     } else if(!strcmp(preset, "FuriHalSubGhzPreset2FSKDev476Async")) {
         preset_name = "FM476";
     } else if(!strcmp(preset, "FuriHalSubGhzPresetCustom")) {
@@ -246,7 +316,6 @@ SubGhzTxRxStartTxState subghz_txrx_tx_start(SubGhzTxRx* instance, FlipperFormat*
 
     SubGhzTxRxStartTxState ret = SubGhzTxRxStartTxStateErrorParserOthers;
     FuriString* temp_str = furi_string_alloc();
-    uint32_t repeat = 200;
     do {
         if(!flipper_format_rewind(flipper_format)) {
             FURI_LOG_E(TAG, "Rewind error");
@@ -256,10 +325,20 @@ SubGhzTxRxStartTxState subghz_txrx_tx_start(SubGhzTxRx* instance, FlipperFormat*
             FURI_LOG_E(TAG, "Missing Protocol");
             break;
         }
-        if(!flipper_format_insert_or_update_uint32(flipper_format, "Repeat", &repeat, 1)) {
-            FURI_LOG_E(TAG, "Unable Repeat");
+
+        size_t need_heap = SUBGHZ_TX_MIN_HEAP;
+        size_t need_block = SUBGHZ_TX_MIN_BLOCK;
+        if(furi_string_equal(temp_str, "RAW")) {
+            need_heap = SUBGHZ_TX_MIN_HEAP_RAW;
+            need_block = SUBGHZ_TX_MIN_BLOCK_RAW;
+        }
+        instance->tx_min_heap_required = need_heap;
+        if(memmgr_get_free_heap() < need_heap || memmgr_heap_get_max_free_block() < need_block) {
+            FURI_LOG_E(TAG, "Not enough memory to start TX");
+            ret = SubGhzTxRxStartTxStateErrorMemory;
             break;
         }
+
         ret = SubGhzTxRxStartTxStateOk;
 
         SubGhzRadioPreset* preset = instance->preset;
@@ -352,6 +431,11 @@ static void subghz_txrx_tx_stop(SubGhzTxRx* instance) {
 FlipperFormat* subghz_txrx_get_fff_data(SubGhzTxRx* instance) {
     furi_assert(instance);
     return instance->fff_data;
+}
+
+size_t subghz_txrx_get_tx_min_heap_required(SubGhzTxRx* instance) {
+    furi_assert(instance);
+    return instance->tx_min_heap_required;
 }
 
 SubGhzSetting* subghz_txrx_get_setting(SubGhzTxRx* instance) {
@@ -688,22 +772,28 @@ void subghz_txrx_set_default_preset(SubGhzTxRx* instance, uint32_t frequency) {
     subghz_txrx_set_preset(instance, default_modulation, frequency, NAN, NAN, NULL, 0);
 }
 
-const char*
-    subghz_txrx_set_preset_internal(SubGhzTxRx* instance, uint32_t frequency, uint8_t index) {
+const char* subghz_txrx_set_preset_internal(
+    SubGhzTxRx* instance,
+    uint32_t frequency,
+    uint8_t index,
+    uint8_t tx_power) {
     furi_assert(instance);
 
+    //Grab the prset name.
     SubGhzSetting* setting = subghz_txrx_get_setting(instance);
     const char* preset_name = subghz_setting_get_preset_name(setting, index);
     subghz_setting_set_default_frequency(setting, frequency);
 
+    //Get the preset data now so we can set TX power.
+    uint8_t* preset_data = subghz_setting_get_preset_data(setting, index);
+    size_t preset_data_size = subghz_setting_get_preset_data_size(setting, index);
+
+    //Edit TX power, if necessary.
+    subghz_txrx_set_tx_power(preset_data, preset_data_size, tx_power);
+
+    //Set the Updated Preset.
     subghz_txrx_set_preset(
-        instance,
-        preset_name,
-        frequency,
-        NAN,
-        NAN,
-        subghz_setting_get_preset_data(setting, index),
-        subghz_setting_get_preset_data_size(setting, index));
+        instance, preset_name, frequency, NAN, NAN, preset_data, preset_data_size);
 
     return preset_name;
 }

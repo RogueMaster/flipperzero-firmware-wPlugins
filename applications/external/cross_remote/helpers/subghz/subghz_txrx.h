@@ -221,10 +221,10 @@ SubGhzProtocolDecoderBase* subghz_txrx_get_decoder(SubGhzTxRx* instance);
  * @param callback Callback for save data
  * @param context Context for callback
  */
-/*void subghz_txrx_set_need_save_callback(
+void subghz_txrx_set_need_save_callback(
     SubGhzTxRx* instance,
     SubGhzTxRxNeedSaveCallback callback,
-    void* context);*/
+    void* context);
 
 /**
  * Get pointer to a load data key

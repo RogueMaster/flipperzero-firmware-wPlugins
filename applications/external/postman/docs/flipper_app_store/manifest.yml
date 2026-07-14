@@ -1,0 +1,28 @@
+## This is a sample manifest file for the Flipper Zero app catalog.
+## Create one for your app in a corresponding directory in the 'applications' folder.
+
+sourcecode:
+  type: git
+  location:
+    ## Specify the git URL of your repository here
+    origin: https://github.com/MassivDash/flipper-tracker.git
+    ## Put the fill commit SHA of the commit with the app's code you want to submit
+    commit_sha: 723ab84323ebc1b38cc232a0b37ecc180c164bd0
+    ## If your app is located in a subdirectory of the repository, specify it here
+    # subdir: .
+## If applicaion.fam contains 'fap_descriptiopn', it will be used as a short description
+# short_description: A short app description.
+## For description and changelog you can use limited markdown syntax.
+## you can also specify a file from your app's repository as a source with @
+description: |
+  Flipper Time Tracker is an application for flipperzero device that allows the user to track multiple tasks at the same time.
+author: "@MassivDash (https://spaceout.pl)"
+changelog: "@CHANGELOG.md"
+## Unmodified screenshots from qFlipper
+screenshots:
+  - screenshots/flipper-time-tracker-screenshot-1.png
+  - screenshots/flipper-time-tracker-screenshot-2.png
+  - screenshots/flipper-time-tracker-screenshot-3.png
+  - screenshots/flipper-time-tracker-screenshot-4.png
+  - screenshots/flipper-time-tracker-screenshot-5.png
+  - screenshots/flipper-time-tracker-screenshot-6.png

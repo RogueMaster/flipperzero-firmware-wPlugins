@@ -1,0 +1,13 @@
+App(
+    appid="eye_saver",
+    name="Eye Saver",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="main_eye_saver_app",
+    stack_size=1 * 1024,
+    fap_icon="eye_saver.png",
+    fap_category="Tools",
+    fap_author="paul-sopin",
+    fap_weburl="https://github.com/paul-sopin/flipper-eye-saver",
+    fap_version="0.1",
+    fap_description="Simple eye strain prevention tool using the 20-20-20 rule.",
+)

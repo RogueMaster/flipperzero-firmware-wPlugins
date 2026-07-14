@@ -1,0 +1,16 @@
+App(
+    appid="nfc_apdu_runner",
+    name="NFC APDU Runner",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="nfc_apdu_runner_app",
+    stack_size=2 * 1024,
+    targets=["f7"],
+    fap_icon="images/nfc_apdu_runner_10px.png",
+    fap_icon_assets="images",
+    fap_file_assets="apdu_script",
+    fap_category="NFC",
+    fap_author="SpenserCai",
+    fap_weburl="https://github.com/SpenserCai/nfc_apdu_runner",
+    fap_version="0.3",
+    fap_description="Run APDU commands from script files",
+)

@@ -228,13 +228,25 @@ uint8_t flipchess_turn(FlipChessScene1Model* model) {
             //     break;
 
             if(model->turnState == 0 && model->squareSelected != 255) {
-                model->squareFrom = model->squareSelected;
-                model->turnState = 1;
+                // Color check before allowing piece selection
+                char piece = model->game.board[model->squareSelected];
+                if(piece != '.' &&
+                   SCL_pieceIsWhite(piece) == SCL_boardWhitesTurn(model->game.board)) {
+                    model->squareFrom = model->squareSelected;
+                    model->turnState = 1;
+                }
             } else if(model->turnState == 1 && model->squareSelected != 255) {
-                model->squareTo = model->squareSelected;
-                model->turnState = 2;
-                model->squareSelectedLast = model->squareSelected;
-                //model->squareSelected = 255;
+                // Validate before executing
+                if(SCL_boardMoveIsLegal(
+                       model->game.board, model->squareFrom, model->squareSelected)) {
+                    model->squareTo = model->squareSelected;
+                    model->turnState = 2;
+                    model->squareSelectedLast = model->squareSelected;
+                } else {
+                    // Invalid move, reset state
+                    model->turnState = 0;
+                    SCL_squareSetClear(model->moveHighlight);
+                }
             }
 
             if(model->turnState == 1 && model->squareFrom != 255) {

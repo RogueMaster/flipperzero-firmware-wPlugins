@@ -17,8 +17,9 @@ typedef struct {
     FlipperFormat* fff_data;
     FreqPreset freq_preset;
     FuriString* file_path;
-    FuriString* protocaol_name;
+    FuriString* protocol_name;
     FuriString* label;
+    uint8_t button;
     SubGhzProtocolType type;
     SubRemLoadSubState load_state;
 } SubRemSubFilePreset;

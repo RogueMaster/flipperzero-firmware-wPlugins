@@ -3,11 +3,7 @@
 #include <bit_lib/bit_lib.h>
 #include "lfrfid_protocols.h"
 
-//----------------------------------------------------------------
-// Parameter Definitions
-//----------------------------------------------------------------
-
-#define INDALA224_PREAMBLE_BIT_SIZE  (32)
+#define INDALA224_PREAMBLE_BIT_SIZE  (30)
 #define INDALA224_PREAMBLE_DATA_SIZE (4)
 
 #define INDALA224_ENCODED_BIT_SIZE (224)
@@ -21,14 +17,9 @@
 #define INDALA224_US_PER_BIT             (255)
 #define INDALA224_ENCODER_PULSES_PER_BIT (16)
 
-//----------------------------------------------------------------
-// Struct Definitions
-//----------------------------------------------------------------
-
 typedef struct {
     uint8_t data_index;
     uint8_t bit_clock_index;
-    bool last_bit;
     bool current_polarity;
     bool pulse_phase;
 } ProtocolIndala224Encoder;
@@ -36,56 +27,10 @@ typedef struct {
 typedef struct {
     uint8_t encoded_data[INDALA224_ENCODED_DATA_SIZE];
     uint8_t negative_encoded_data[INDALA224_ENCODED_DATA_SIZE];
-    uint8_t corrupted_encoded_data[INDALA224_ENCODED_DATA_SIZE];
-    uint8_t corrupted_negative_encoded_data[INDALA224_ENCODED_DATA_SIZE];
 
     uint8_t data[INDALA224_DECODED_DATA_SIZE];
     ProtocolIndala224Encoder encoder;
 } ProtocolIndala224;
-
-//----------------------------------------------------------------
-// Utility Functions
-//----------------------------------------------------------------
-
-// Neater aliases for getting and setting bits
-
-bool gb(const uint8_t* data, size_t position) {
-    return bit_lib_get_bit(data, position);
-}
-
-void sb(uint8_t* data, size_t position, bool bit) {
-    bit_lib_set_bit(data, position, bit);
-}
-
-void psk1_to_psk2(uint8_t* data, size_t size) {
-    bool lastbit = gb(data, 0);
-    size_t num_bits = size * 8;
-
-    for(size_t i = 1; i < num_bits; i++) {
-        if(lastbit != gb(data, i)) {
-            lastbit = gb(data, i);
-            sb(data, i, 1);
-        } else {
-            sb(data, i, 0);
-        }
-    }
-}
-
-void psk2_to_psk1(uint8_t* data, size_t size) {
-    bool phase = 0;
-    size_t num_bits = size * 8;
-
-    for(size_t i = 0; i < num_bits; i++) {
-        if(gb(data, i) == 1) {
-            phase ^= 1;
-        }
-        sb(data, i, phase);
-    }
-}
-
-//----------------------------------------------------------------
-// Indala 224 Functions
-//----------------------------------------------------------------
 
 ProtocolIndala224* protocol_indala224_alloc(void) {
     ProtocolIndala224* protocol = malloc(sizeof(ProtocolIndala224));
@@ -103,27 +48,33 @@ uint8_t* protocol_indala224_get_data(ProtocolIndala224* protocol) {
 void protocol_indala224_decoder_start(ProtocolIndala224* protocol) {
     memset(protocol->encoded_data, 0, INDALA224_ENCODED_DATA_SIZE);
     memset(protocol->negative_encoded_data, 0, INDALA224_ENCODED_DATA_SIZE);
-    memset(protocol->corrupted_encoded_data, 0, INDALA224_ENCODED_DATA_SIZE);
-    memset(protocol->corrupted_negative_encoded_data, 0, INDALA224_ENCODED_DATA_SIZE);
 }
 
 static bool protocol_indala224_check_preamble(uint8_t* data, size_t bit_index) {
-    // Preamble 10000000__00000000__00000000__00000001
-    if(data[bit_index / 8] != 0b10000000) return false;
-    if(data[(bit_index + 1) / 8] != 0b00000000) return false;
-    if(data[(bit_index + 2) / 8] != 0b00000000) return false;
-    if(data[(bit_index + 3) / 8] != 0b00000001) return false;
+    // Normal preamble: 1 followed by 29 zeros
+    if(bit_lib_get_bits(data, bit_index, 8) != 0b10000000) return false;
+    if(bit_lib_get_bits(data, bit_index + 8, 8) != 0) return false;
+    if(bit_lib_get_bits(data, bit_index + 16, 8) != 0) return false;
+    if(bit_lib_get_bits(data, bit_index + 24, 6) != 0) return false;
+    return true;
+}
+
+static bool protocol_indala224_check_inverted_preamble(uint8_t* data, size_t bit_index) {
+    // Inverted preamble: 0 followed by 29 ones (phase-alternating PSK2 cards)
+    if(bit_lib_get_bits(data, bit_index, 8) != 0b01111111) return false;
+    if(bit_lib_get_bits(data, bit_index + 8, 8) != 0xFF) return false;
+    if(bit_lib_get_bits(data, bit_index + 16, 8) != 0xFF) return false;
+    if(bit_lib_get_bits(data, bit_index + 24, 6) != 0b111111) return false;
     return true;
 }
 
 static bool protocol_indala224_can_be_decoded(uint8_t* data) {
-    // Use PSK2 Demodulated version
-    uint8_t temp_data[INDALA224_ENCODED_DATA_SIZE];
-    memcpy(temp_data, data, INDALA224_ENCODED_DATA_SIZE);
-    psk1_to_psk2(temp_data, INDALA224_ENCODED_DATA_SIZE);
-
-    if(!protocol_indala224_check_preamble(temp_data, 0)) return false;
-    if(!protocol_indala224_check_preamble(temp_data, 224)) return false;
+    if(!protocol_indala224_check_preamble(data, 0)) return false;
+    // Second frame may have same or inverted preamble (PSK2 phase alternation)
+    if(!protocol_indala224_check_preamble(data, INDALA224_ENCODED_BIT_SIZE) &&
+       !protocol_indala224_check_inverted_preamble(data, INDALA224_ENCODED_BIT_SIZE)) {
+        return false;
+    }
     return true;
 }
 
@@ -147,16 +98,14 @@ static bool protocol_indala224_decoder_feed_internal(bool polarity, uint32_t tim
 }
 
 static void protocol_indala224_decoder_save(uint8_t* data_to, const uint8_t* data_from) {
-    bit_lib_copy_bits(data_to, 0, 32, data_from, 0); // UID 1
-    bit_lib_copy_bits(data_to, 32, 32, data_from, 0 + 32); // UID 2
-    bit_lib_copy_bits(data_to, 64, 32, data_from, 0 + 64); // UID 3
-    bit_lib_copy_bits(data_to, 96, 32, data_from, 0 + 96); // UID 4
-    bit_lib_copy_bits(data_to, 128, 32, data_from, 0 + 128); // UID 5
-    bit_lib_copy_bits(data_to, 160, 32, data_from, 0 + 160); // UID 6
-    bit_lib_copy_bits(data_to, 192, 32, data_from, 0 + 192); // UID 7
-
-    // Convert from PSK1 demodulation to PSK2 demodulation
-    psk1_to_psk2(data_to, INDALA224_DECODED_DATA_SIZE);
+    // PSK2 differential decode: the shift register contains phase values, not data.
+    // T5577 PSK2 encodes data as phase transitions: data[n] = phase[n] XOR phase[n+1].
+    // Bit 224 (start of second frame) provides phase[n+1] for the last data bit.
+    for(size_t i = 0; i < INDALA224_DECODED_BIT_SIZE; i++) {
+        bool phase_current = bit_lib_get_bit(data_from, i);
+        bool phase_next = bit_lib_get_bit(data_from, i + 1);
+        bit_lib_set_bit(data_to, i, phase_current ^ phase_next);
+    }
 }
 
 bool protocol_indala224_decoder_feed(ProtocolIndala224* protocol, bool level, uint32_t duration) {
@@ -179,54 +128,13 @@ bool protocol_indala224_decoder_feed(ProtocolIndala224* protocol, bool level, ui
         }
     }
 
-    if(duration > (INDALA224_US_PER_BIT / 4)) {
-        // Try to decode wrong phase synced data
-        if(level) {
-            duration += 120;
-        } else {
-            if(duration > 120) {
-                duration -= 120;
-            }
-        }
-
-        if(protocol_indala224_decoder_feed_internal(
-               level, duration, protocol->corrupted_encoded_data)) {
-            protocol_indala224_decoder_save(protocol->data, protocol->corrupted_encoded_data);
-            FURI_LOG_D("Indala224", "Positive Corrupted");
-
-            result = true;
-            return result;
-        }
-
-        if(protocol_indala224_decoder_feed_internal(
-               !level, duration, protocol->corrupted_negative_encoded_data)) {
-            protocol_indala224_decoder_save(
-                protocol->data, protocol->corrupted_negative_encoded_data);
-            FURI_LOG_D("Indala224", "Negative Corrupted");
-
-            result = true;
-            return result;
-        }
-    }
-
     return result;
 }
 
 bool protocol_indala224_encoder_start(ProtocolIndala224* protocol) {
-    memset(protocol->encoded_data, 0, INDALA224_ENCODED_DATA_SIZE);
-    bit_lib_copy_bits(protocol->encoded_data, 0, 32, protocol->data, 0); // UID 1
-    bit_lib_copy_bits(protocol->encoded_data, 0 + 32, 32, protocol->data, 32); // UID 2
-    bit_lib_copy_bits(protocol->encoded_data, 0 + 64, 32, protocol->data, 64); // UID 3
-    bit_lib_copy_bits(protocol->encoded_data, 0 + 96, 32, protocol->data, 96); // UID 4
-    bit_lib_copy_bits(protocol->encoded_data, 0 + 128, 32, protocol->data, 128); // UID 5
-    bit_lib_copy_bits(protocol->encoded_data, 0 + 160, 32, protocol->data, 160); // UID 6
-    bit_lib_copy_bits(protocol->encoded_data, 0 + 192, 32, protocol->data, 192); // UID 7
+    // Store raw data for PSK2 emulation - the yield function handles PSK2 modulation.
+    memcpy(protocol->encoded_data, protocol->data, INDALA224_DECODED_DATA_SIZE);
 
-    // Convert from PSK2 Demodulation to PSK1 Demodulation
-    psk2_to_psk1(protocol->encoded_data, INDALA224_ENCODED_DATA_SIZE);
-
-    protocol->encoder.last_bit =
-        bit_lib_get_bit(protocol->encoded_data, INDALA224_ENCODED_BIT_SIZE - 1);
     protocol->encoder.data_index = 0;
     protocol->encoder.current_polarity = true;
     protocol->encoder.pulse_phase = true;
@@ -250,13 +158,11 @@ LevelDuration protocol_indala224_encoder_yield(ProtocolIndala224* protocol) {
         if(encoder->bit_clock_index >= INDALA224_ENCODER_PULSES_PER_BIT) {
             encoder->bit_clock_index = 0;
 
+            // PSK2: carrier phase flips when data bit is 1
             bool current_bit = bit_lib_get_bit(protocol->encoded_data, encoder->data_index);
-
-            if(current_bit != encoder->last_bit) {
+            if(current_bit) {
                 encoder->current_polarity = !encoder->current_polarity;
             }
-
-            encoder->last_bit = current_bit;
 
             bit_lib_increment_index(encoder->data_index, INDALA224_ENCODED_BIT_SIZE);
         }
@@ -265,36 +171,65 @@ LevelDuration protocol_indala224_encoder_yield(ProtocolIndala224* protocol) {
     return level_duration;
 }
 
-void protocol_indala224_render_data_internal(
+static void protocol_indala224_render_data_internal(
     ProtocolIndala224* protocol,
     FuriString* result,
     bool brief) {
-    const uint32_t uid1 = bit_lib_get_bits_32(protocol->data, 0, 32);
-    const uint32_t uid2 = bit_lib_get_bits_32(protocol->data, 32, 32);
-    const uint32_t uid3 = bit_lib_get_bits_32(protocol->data, 64, 32);
-    const uint32_t uid4 = bit_lib_get_bits_32(protocol->data, 96, 32);
-    const uint32_t uid5 = bit_lib_get_bits_32(protocol->data, 128, 32);
-    const uint32_t uid6 = bit_lib_get_bits_32(protocol->data, 160, 32);
-    const uint32_t uid7 = bit_lib_get_bits_32(protocol->data, 192, 32);
-
     if(brief) {
-        furi_string_printf(result, "UID: %u%u...", (unsigned int)uid1, (unsigned int)uid2);
+        furi_string_printf(
+            result,
+            "Raw: %02X%02X%02X%02X\n"
+            "     %02X%02X%02X%02X...",
+            protocol->data[0],
+            protocol->data[1],
+            protocol->data[2],
+            protocol->data[3],
+            protocol->data[4],
+            protocol->data[5],
+            protocol->data[6],
+            protocol->data[7]);
     } else {
         furi_string_printf(
             result,
-            "UID: %u%u%u%u%u%u%u",
-            (unsigned int)uid1,
-            (unsigned int)uid2,
-            (unsigned int)uid3,
-            (unsigned int)uid4,
-            (unsigned int)uid5,
-            (unsigned int)uid6,
-            (unsigned int)uid7);
+            "Raw: %02X%02X%02X%02X %02X%02X%02X%02X\n"
+            "%02X%02X%02X%02X %02X%02X%02X%02X\n"
+            "%02X%02X%02X%02X %02X%02X%02X%02X\n"
+            "%02X%02X%02X%02X",
+            protocol->data[0],
+            protocol->data[1],
+            protocol->data[2],
+            protocol->data[3],
+            protocol->data[4],
+            protocol->data[5],
+            protocol->data[6],
+            protocol->data[7],
+            protocol->data[8],
+            protocol->data[9],
+            protocol->data[10],
+            protocol->data[11],
+            protocol->data[12],
+            protocol->data[13],
+            protocol->data[14],
+            protocol->data[15],
+            protocol->data[16],
+            protocol->data[17],
+            protocol->data[18],
+            protocol->data[19],
+            protocol->data[20],
+            protocol->data[21],
+            protocol->data[22],
+            protocol->data[23],
+            protocol->data[24],
+            protocol->data[25],
+            protocol->data[26],
+            protocol->data[27]);
     }
 }
+
 void protocol_indala224_render_data(ProtocolIndala224* protocol, FuriString* result) {
     protocol_indala224_render_data_internal(protocol, result, false);
 }
+
 void protocol_indala224_render_brief_data(ProtocolIndala224* protocol, FuriString* result) {
     protocol_indala224_render_data_internal(protocol, result, true);
 }
@@ -304,24 +239,22 @@ bool protocol_indala224_write_data(ProtocolIndala224* protocol, void* data) {
     bool result = false;
 
     if(request->write_type == LFRFIDWriteTypeT5577) {
+        // Config: PSK2, RF/32, 7 data blocks (matches Proxmark3 T55X7_INDALA_224_CONFIG_BLOCK)
+        // T5577 data blocks contain raw data bits; the chip handles PSK2 modulation.
         request->t5577.block[0] = LFRFID_T5577_BITRATE_RF_32 | LFRFID_T5577_MODULATION_PSK2 |
                                   (7 << LFRFID_T5577_MAXBLOCK_SHIFT);
         request->t5577.block[1] = bit_lib_get_bits_32(protocol->data, 0, 32);
         request->t5577.block[2] = bit_lib_get_bits_32(protocol->data, 32, 32);
-        request->t5577.block[3] = bit_lib_get_bits_32(protocol->data, 32, 32);
-        request->t5577.block[4] = bit_lib_get_bits_32(protocol->data, 32, 32);
-        request->t5577.block[5] = bit_lib_get_bits_32(protocol->data, 32, 32);
-        request->t5577.block[6] = bit_lib_get_bits_32(protocol->data, 32, 32);
-        request->t5577.block[7] = bit_lib_get_bits_32(protocol->data, 32, 32);
+        request->t5577.block[3] = bit_lib_get_bits_32(protocol->data, 64, 32);
+        request->t5577.block[4] = bit_lib_get_bits_32(protocol->data, 96, 32);
+        request->t5577.block[5] = bit_lib_get_bits_32(protocol->data, 128, 32);
+        request->t5577.block[6] = bit_lib_get_bits_32(protocol->data, 160, 32);
+        request->t5577.block[7] = bit_lib_get_bits_32(protocol->data, 192, 32);
         request->t5577.blocks_to_write = 8;
         result = true;
     }
     return result;
 }
-
-//----------------------------------------------------------------
-// Indala 224 Protocol
-//----------------------------------------------------------------
 
 const ProtocolBase protocol_indala224 = {
     .name = "Indala224",

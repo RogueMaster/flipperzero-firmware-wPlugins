@@ -1,6 +1,6 @@
 /***
  * Noptel LRF rangefinder sampler for the Flipper Zero
- * Version: 1.9
+ * Version: 2.4
  *
  * Parameters
 ***/
@@ -24,8 +24,9 @@ const char* submenu_item_names[] = {
     "Sample",
     "Pointer ON/OFF",
     "LRF information",
+    "Test boot time",
     "Save LRF diagnostic",
-    "Test LRX laser",
+    "Test 905nm LRF laser",
     "Test IR pointer",
     "USB serial passthrough",
     "About"};

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Hub — WiFi Setup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f0f4f8;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .card {
+    background: #fff;
+    width: 100%;
+    max-width: 380px;
+    border-radius: 16px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+    overflow: hidden;
+  }
+  .header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 28px 24px 22px;
+    text-align: center;
+    color: #fff;
+  }
+  .device-icon { font-size: 44px; margin-bottom: 10px; }
+  .brand { font-size: 13px; font-weight: 700; opacity: 0.85; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px; }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .header-sub { font-size: 13px; opacity: 0.8; }
+  .progress {
+    padding: 14px 24px;
+    background: #fafafa;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 6px; font-weight: 600; }
+  .progress-bar { background: #e9ecef; border-radius: 4px; height: 6px; overflow: hidden; }
+  .progress-fill { background: linear-gradient(90deg, #667eea, #764ba2); height: 100%; width: 66%; border-radius: 4px; }
+  .steps-mini {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot.done { background: #667eea; }
+  .dot.active { background: #764ba2; box-shadow: 0 0 0 3px rgba(118,75,162,0.2); }
+  .dot.pending { background: #e0e0e0; }
+  .body { padding: 22px 24px 20px; }
+  .step-title { font-size: 15px; font-weight: 700; color: #222; margin-bottom: 4px; }
+  .step-desc { font-size: 13px; color: #666; margin-bottom: 20px; line-height: 1.5; }
+  .network-detected {
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #166534;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 5px; }
+  input[type=text], input[type=password] {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 14px;
+    margin-bottom: 14px;
+    outline: none;
+    color: #111;
+    background: #f9fafb;
+  }
+  input:focus { border-color: #667eea; background: #fff; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+  .wifi-hint {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #9a3412;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .wifi-hint strong { display: block; margin-bottom: 2px; }
+  .btn {
+    width: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border: none;
+    padding: 13px;
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: 10px;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+  }
+  .btn:hover { opacity: 0.9; }
+  .skip { text-align: center; margin-top: 12px; font-size: 12px; color: #999; }
+  .footer {
+    background: #f9fafb;
+    padding: 14px 24px;
+    text-align: center;
+    font-size: 11px;
+    color: #aaa;
+    border-top: 1px solid #f0f0f0;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="device-icon">&#x1F3E0;</div>
+    <div class="brand">OmniHome</div>
+    <h1>Smart Hub Setup</h1>
+    <p class="header-sub">Connect your hub to get started</p>
+  </div>
+  <div class="progress">
+    <div class="progress-label"><span>Step 2 of 3 — WiFi Connection</span><span>66%</span></div>
+    <div class="progress-bar"><div class="progress-fill"></div></div>
+    <div class="steps-mini">
+      <div class="dot done"></div>
+      <div class="dot active"></div>
+      <div class="dot pending"></div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="step-title">Connect to your home WiFi</div>
+    <p class="step-desc">Your Smart Hub needs your home WiFi credentials to reach the OmniHome cloud.</p>
+
+    <div class="network-detected">&#x2705; Hub located — ID: OMH-A3F2-19CC</div>
+
+    <form method="POST" action="/">
+      <label for="ssid">WiFi Network Name (SSID)</label>
+      <input type="text" id="ssid" name="ssid" placeholder="Your network name" autocomplete="off">
+
+      <label for="wifipass">WiFi Password</label>
+      <input type="password" id="wifipass" name="wifipass" placeholder="Enter your WiFi password" autocomplete="current-password">
+
+      <div class="wifi-hint">
+        <strong>&#x26A0; Note:</strong>
+        Your password is transmitted directly to the hub over Bluetooth LE and is not stored by OmniHome servers.
+      </div>
+
+      <button type="submit" class="btn">Connect Hub &#x279C;</button>
+    </form>
+    <div class="skip">Having trouble? <a href="#" style="color:#667eea">Use WPS instead</a></div>
+  </div>
+  <div class="footer">OmniHome v4.1 &bull; Secure BLE Provisioning &bull; <a href="#" style="color:#667eea">Privacy</a></div>
+</div>
+</body>
+</html>

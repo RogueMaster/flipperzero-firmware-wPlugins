@@ -1,0 +1,11 @@
+Import("env")
+
+# Include all lib directories in the include path
+env.Append(
+    CPPPATH=[
+        Dir("lib/uart_handler"),
+        Dir("lib/ble_handler"),
+        Dir("lib/chameleon_protocol"),
+    ]
+)
+

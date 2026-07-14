@@ -1,0 +1,13 @@
+App(
+    appid="loradar_app",
+    name="LoRadar",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="lora_app_main",
+    stack_size=1 * 1024,
+    fap_icon="lora_10px.png",
+    fap_category="GPIO",
+    fap_author="baptleduc",
+    fap_weburl="https://github.com/baptleduc/flipper-loradar-app",
+    fap_version="0.1",
+    fap_description="LoRadar - The Flipper Application to localize stratospheric ballon via LoRa",
+)

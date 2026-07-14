@@ -1,0 +1,13 @@
+App(
+    appid="sub_analyzer",
+    name="Sub Analyzer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="sub_analyzer_app",
+    stack_size=8 * 1024,
+    fap_icon="sub_analyzer.png",
+    fap_category="Sub-GHz",
+    fap_author="RocketGod",
+    fap_weburl="https://github.com/RocketGod-git/Flipper-Zero-SUB-Analyzer",
+    fap_version="1.0",
+    fap_description="Analyze SubGhz .sub files to extract all signal properties",
+)

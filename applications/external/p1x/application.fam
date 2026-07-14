@@ -1,0 +1,15 @@
+App(
+    appid="p1x_adventure",
+    name="P1X Adventure",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="p1x_adventure_main",
+    stack_size=2 * 1024,
+    fap_icon="images/p1x_adventure.png",
+    fap_icon_assets="images",
+    fap_category="Games",
+    fap_author="w84death",
+    #  fap_author="Krzysztof Krystian Jankowski / P1X",
+    fap_weburl="https://github.com/w84death/flipper_zero_apps/p1x_adventure",
+    fap_version="0.1",
+    fap_description="Adventure game from P1X",
+)

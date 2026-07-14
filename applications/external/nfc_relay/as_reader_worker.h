@@ -25,6 +25,11 @@ typedef struct AsReaderWorker {
     NfcRelay* nfc_relay;
     AsReaderWorkerCallback callback;
     bool running;
+    uint32_t transaction_count;
+
+    // APDU日志缓存
+    FuriString* apdu_log_buffer;
+    bool has_apdu_logs;
 } AsReaderWorker;
 
 AsReaderWorker* as_reader_worker_alloc();

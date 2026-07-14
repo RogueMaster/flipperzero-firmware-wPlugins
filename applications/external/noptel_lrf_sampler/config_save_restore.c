@@ -1,6 +1,6 @@
 /***
  * Noptel LRF rangefinder sampler for the Flipper Zero
- * Version: 1.9
+ * Version: 2.4
  *
  * Configuration saving / restoring
 ***/
@@ -306,7 +306,7 @@ void save_configuration(App* app) {
     bool file_written = false;
     uint16_t bytes_written = 0;
 
-    /* Open storage and allocate space for the file*/
+    /* Open storage and allocate space for the file */
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);
 

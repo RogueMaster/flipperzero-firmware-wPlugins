@@ -1,0 +1,14 @@
+App(
+    appid="fdxb_maker",
+    name="FDX-B Maker",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="fdxb_maker",
+    stack_size=2 * 1024,
+    fap_icon="icons/FdxbMaker_10px.png",
+    fap_icon_assets="icons",
+    fap_category="RFID",
+    fap_author="snowsign / Skye Gibbs",
+    fap_weburl="https://github.com/snowsign/fdxb-maker",
+    fap_version="1.0",
+    fap_description="FDX-B format file maker for animal microchips",
+)

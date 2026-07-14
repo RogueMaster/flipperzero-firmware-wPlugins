@@ -8,6 +8,7 @@ App(
     fap_category="GPIO/ESP32",
     fap_author="H4lo",
     fap_weburl="https://github.com/H4lo/flipper_zero_ble_killer",
-    fap_version="1.0",
+    fap_version="1.1",
     fap_description="A Bluetooth expansion board based on flipper zero to scan surrounding low-power Bluetooth devices and Bluetooth device controllers",
+    #  v1.1: [UART Changes (By ZhaiRenGaiZaoJia)](https://github.com/ZhaiRenGaiZaoJia/H4lo_BLE-Killer)
 )

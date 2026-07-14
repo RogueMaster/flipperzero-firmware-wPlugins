@@ -1,0 +1,29 @@
+{
+  "components": [
+    {
+      "partno": "BQ27441",
+      "desc": "Battery fuel gauge",
+      "type": 13,
+      "manufacturer": "Texas Inst.",
+      "date": "2013"
+    },
+    {
+      "partno": "24CXX",
+      "desc": "EEPROM memory for data storage.",
+      "type": 18,
+      "manufacturer": "Microchip",
+      "date": "2005"
+    },
+    {
+      "partno": "MB85RC",
+      "desc": "Ferroelectric RAM.",
+      "type": 18,
+      "manufacturer": "Fujitsu",
+      "date": "2009"
+    }
+  ],
+  "unique_types": [
+    13,
+    18
+  ]
+}

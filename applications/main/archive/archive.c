@@ -1,4 +1,5 @@
 #include "archive_i.h"
+#include "helpers/archive_browser.h"
 
 static bool archive_custom_event_callback(void* context, uint32_t event) {
     furi_assert(context);
@@ -30,7 +31,6 @@ static ArchiveApp* archive_alloc(void) {
     archive->view_dispatcher = view_dispatcher_alloc();
 
     ViewDispatcher* view_dispatcher = archive->view_dispatcher;
-    view_dispatcher_enable_queue(view_dispatcher);
     view_dispatcher_set_event_callback_context(view_dispatcher, archive);
     view_dispatcher_set_custom_event_callback(view_dispatcher, archive_custom_event_callback);
     view_dispatcher_set_navigation_event_callback(view_dispatcher, archive_back_event_callback);
@@ -71,10 +71,15 @@ void archive_free(ArchiveApp* archive) {
 
     scene_manager_set_scene_state(archive->scene_manager, ArchiveAppSceneInfo, false);
     scene_manager_set_scene_state(archive->scene_manager, ArchiveAppSceneSearch, false);
-    if(archive->thread) {
-        furi_thread_join(archive->thread);
-        furi_thread_free(archive->thread);
-        archive->thread = NULL;
+    if(archive->info_thread) {
+        furi_thread_join(archive->info_thread);
+        furi_thread_free(archive->info_thread);
+        archive->info_thread = NULL;
+    }
+    if(archive->search_thread) {
+        furi_thread_join(archive->search_thread);
+        furi_thread_free(archive->search_thread);
+        archive->search_thread = NULL;
     }
 
     if(archive->browser->disk_image) {
@@ -132,11 +137,26 @@ void archive_show_loading_popup(ArchiveApp* context, bool show) {
 }
 
 int32_t archive_app(void* p) {
-    UNUSED(p);
+    FuriString* path = (FuriString*)p;
 
     ArchiveApp* archive = archive_alloc();
     view_dispatcher_attach_to_gui(
         archive->view_dispatcher, archive->gui, ViewDispatcherTypeFullscreen);
+
+    // If we are sent a path from context, set it in the browser
+    if(path && !furi_string_empty(path)) {
+        archive_set_tab(archive->browser, ArchiveTabBrowser);
+        furi_string_set(archive->browser->path, path);
+        archive->browser->is_root = true;
+        archive_file_browser_set_path(
+            archive->browser,
+            archive->browser->path,
+            archive_get_tab_ext(ArchiveTabBrowser),
+            false,
+            !cfw_settings.show_hidden_files,
+            furi_string_get_cstr(path));
+    }
+
     scene_manager_next_scene(archive->scene_manager, ArchiveAppSceneBrowser);
     view_dispatcher_run(archive->view_dispatcher);
 

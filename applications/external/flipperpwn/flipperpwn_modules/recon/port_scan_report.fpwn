@@ -1,0 +1,65 @@
+# FlipperPwn Module: Port Scan Report
+# Joins a WiFi network via ESP32, performs a ping sweep to find hosts,
+# then port scans the target and types the results on the target machine.
+# Requires: ESP32 WiFi Dev Board with Marauder firmware
+
+NAME port_scan_report
+DESCRIPTION Join WiFi, scan network, type port scan results to target
+CATEGORY recon
+PLATFORMS WIN,MAC,LINUX
+
+OPTION SSID TargetNetwork "WiFi network SSID to join"
+OPTION PASSWORD password123 "WiFi password"
+OPTION TARGET_IP 192.168.1.1 "IP address to port scan"
+
+PLATFORM WIN
+  DELAY 500
+  GUI r
+  DELAY 300
+  STRING notepad
+  ENTER
+  DELAY 800
+  STRING === Port Scan Report ===
+  ENTER
+  WIFI_JOIN {{SSID}} {{PASSWORD}}
+  WIFI_WAIT 3000
+  PING_SCAN
+  PORT_SCAN {{TARGET_IP}}
+  WIFI_RESULT
+  STRING === End of Report ===
+  ENTER
+
+PLATFORM MAC
+  DELAY 500
+  GUI SPACE
+  DELAY 400
+  STRING TextEdit
+  ENTER
+  DELAY 1200
+  STRING === Port Scan Report ===
+  ENTER
+  WIFI_JOIN {{SSID}} {{PASSWORD}}
+  WIFI_WAIT 3000
+  PING_SCAN
+  PORT_SCAN {{TARGET_IP}}
+  WIFI_RESULT
+  STRING === End of Report ===
+  ENTER
+
+PLATFORM LINUX
+  DELAY 500
+  CTRL ALT t
+  DELAY 1000
+  STRING cat << 'PORTSCAN'
+  ENTER
+  STRING === Port Scan Report ===
+  ENTER
+  WIFI_JOIN {{SSID}} {{PASSWORD}}
+  WIFI_WAIT 3000
+  PING_SCAN
+  PORT_SCAN {{TARGET_IP}}
+  WIFI_RESULT
+  STRING === End of Report ===
+  ENTER
+  STRING PORTSCAN
+  ENTER

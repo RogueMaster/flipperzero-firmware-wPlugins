@@ -14,7 +14,7 @@
  */
 
 #warning Please replace serial_io.h with esp_loader_io.h and change the function names \
-         to match the new API
+to match the new API
 
 /* Defines used to avoid breaking existing ports */
 #define loader_port_change_baudrate loader_port_change_transmission_rate

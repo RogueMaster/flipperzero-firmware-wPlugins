@@ -61,6 +61,7 @@ void subrem_scene_enter_new_name_on_exit(void* context) {
 
     SubGhzRemoteApp* app = context;
     submenu_reset(app->submenu);
+    variable_item_list_reset(app->var_item_list);
 
     // Clear validator & view
     void* validator_context = text_input_get_validator_callback_context(app->text_input);

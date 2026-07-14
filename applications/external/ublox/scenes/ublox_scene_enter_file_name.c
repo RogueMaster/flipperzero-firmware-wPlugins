@@ -10,21 +10,33 @@ void ublox_text_input_callback(void* context) {
     view_dispatcher_send_custom_event(ublox->view_dispatcher, UbloxCustomEventTextInputDone);
 }
 
-FuriString* ublox_scene_enter_file_name_get_timename() {
+FuriString* ublox_scene_enter_file_name_get_timename(bool gpx) {
     DateTime datetime;
     furi_hal_rtc_get_datetime(&datetime);
     FuriString* s = furi_string_alloc();
 
-    // YMD sorts better
-    furi_string_printf(
-        s,
-        "ublox-%.4d%.2d%.2d-%.2d%.2d%.2d.kml",
-        datetime.year,
-        datetime.month,
-        datetime.day,
-        datetime.hour,
-        datetime.minute,
-        datetime.second);
+    if(gpx) {
+        // YMD sorts better
+        furi_string_printf(
+            s,
+            "ublox-%.4d%.2d%.2d-%.2d%.2d%.2d.gpx",
+            datetime.year,
+            datetime.month,
+            datetime.day,
+            datetime.hour,
+            datetime.minute,
+            datetime.second);
+    } else {
+        furi_string_printf(
+            s,
+            "ublox-%.4d%.2d%.2d-%.2d%.2d%.2d.kml",
+            datetime.year,
+            datetime.month,
+            datetime.day,
+            datetime.hour,
+            datetime.minute,
+            datetime.second);
+    }
     return s;
 }
 
@@ -36,7 +48,11 @@ void ublox_scene_enter_file_name_on_enter(void* context) {
     text_input_set_result_callback(
         text_input, ublox_text_input_callback, context, ublox->text_store, 100, false);
 
-    FuriString* fname = ublox_scene_enter_file_name_get_timename();
+    bool gpx = false;
+    if((ublox->data_display_state).log_format == UbloxLogFormatGPX) {
+        gpx = true;
+    }
+    FuriString* fname = ublox_scene_enter_file_name_get_timename(gpx);
     strcpy(ublox->text_store, furi_string_get_cstr(fname));
 
     ValidatorIsFile* validator_is_file =

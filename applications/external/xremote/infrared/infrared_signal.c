@@ -335,6 +335,10 @@ void infrared_signal_transmit_times(InfraredSignal* signal, int times) {
             raw_signal->duty_cycle);
     } else {
         InfraredMessage* message = &signal->payload.message;
-        infrared_send(message, times);
+        if(times < 1) {
+            infrared_send(message, 1);
+        } else {
+            infrared_send(message, times);
+        }
     }
 }

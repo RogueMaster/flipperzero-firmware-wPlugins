@@ -1,5 +1,4 @@
 #include "../lfrfid_i.h"
-#include <lfrfid_icons.h>
 
 static void lfrfid_write_block_t5577_password_and_config_to_EM(LfRfid* app) {
     Popup* popup = app->popup;
@@ -57,8 +56,8 @@ void lfrfid_scene_write_block_t5577_on_enter(void* context) {
     lfrfid_write_block_t5577_password_and_config_to_EM(app);
 
     notification_message(app->notifications, &sequence_success);
-    popup_set_header(popup, "Done!", 102, 10, AlignCenter, AlignTop);
-    popup_set_icon(popup, 0, 7, &I_RFIDDolphinSuccess_108x57);
+    popup_set_header(popup, "Done!", 75, 10, AlignCenter, AlignTop);
+    popup_set_icon(popup, 0, 9, &I_DolphinSuccess_91x55);
     popup_set_context(popup, app);
     popup_set_callback(popup, lfrfid_popup_timeout_callback);
     popup_set_timeout(popup, 1500);

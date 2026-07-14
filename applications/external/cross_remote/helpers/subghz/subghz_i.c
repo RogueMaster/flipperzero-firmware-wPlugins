@@ -188,6 +188,60 @@ SubGhzLoadTypeFile subghz_get_load_type_file(SubGhz* subghz) {
     return subghz->load_type_file;
 }
 
+bool subghz_save_protocol_to_file(
+    SubGhz* subghz,
+    FlipperFormat* flipper_format,
+    const char* dev_file_name) {
+    furi_assert(subghz);
+    furi_assert(flipper_format);
+    furi_assert(dev_file_name);
+
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    Stream* flipper_format_stream = flipper_format_get_raw_stream(flipper_format);
+
+    bool saved = false;
+    FuriString* file_dir = furi_string_alloc();
+
+    path_extract_dirname(dev_file_name, file_dir);
+    do {
+        //removing additional fields
+        flipper_format_delete_key(flipper_format, "Repeat");
+        flipper_format_delete_key(flipper_format, "Manufacture");
+
+        // Create subghz folder directory if necessary
+        if(!storage_simply_mkdir(storage, furi_string_get_cstr(file_dir))) {
+            dialog_message_show_storage_error(subghz->dialogs, "Cannot create\nfolder");
+            break;
+        }
+
+        if(!storage_simply_remove(storage, dev_file_name)) {
+            break;
+        }
+        stream_seek(flipper_format_stream, 0, StreamOffsetFromStart);
+        stream_save_to_file(flipper_format_stream, storage, dev_file_name, FSOM_CREATE_ALWAYS);
+
+        if(storage_common_stat(storage, dev_file_name, NULL) != FSE_OK) {
+            break;
+        }
+
+        saved = true;
+    } while(0);
+    furi_string_free(file_dir);
+    furi_record_close(RECORD_STORAGE);
+    return saved;
+}
+
+void subghz_save_to_file(void* context) {
+    furi_assert(context);
+    SubGhz* subghz = context;
+    if(subghz_path_is_file(subghz->file_path)) {
+        subghz_save_protocol_to_file(
+            subghz,
+            subghz_txrx_get_fff_data(subghz->txrx),
+            furi_string_get_cstr(subghz->file_path));
+    }
+}
+
 bool subghz_load_protocol_from_file(SubGhz* subghz, const char* path) {
     furi_assert(subghz);
 
@@ -214,9 +268,9 @@ bool subghz_load_protocol_from_file(SubGhz* subghz, const char* path) {
     return ret;
 }*/
 
-/*bool subghz_path_is_file(FuriString* path) {
+bool subghz_path_is_file(FuriString* path) {
     return furi_string_end_with(path, SUBGHZ_APP_FILENAME_EXTENSION);
-}*/
+}
 
 /*void subghz_lock(SubGhz* subghz) {
     furi_assert(subghz);

@@ -1,0 +1,44 @@
+{
+  "components": [
+    {
+      "partno": "TPA2016",
+      "desc": "Amplifier.",
+      "type": 3,
+      "manufacturer": "Texas Inst.",
+      "date": "2012"
+    },
+    {
+      "partno": "SGP30",
+      "desc": "Gas sensor.",
+      "type": 22,
+      "manufacturer": "Sensirion",
+      "date": "2016"
+    },
+    {
+      "partno": "DRV2605",
+      "desc": "Motor driver.",
+      "type": 12,
+      "manufacturer": "Texas Inst.",
+      "date": "2014"
+    },
+    {
+      "partno": "MLX9061x",
+      "desc": "IR temperature sensor.",
+      "type": 22,
+      "manufacturer": "Melexis",
+      "date": "2007"
+    },
+    {
+      "partno": "CCS811",
+      "desc": "VOC sensor.",
+      "type": 22,
+      "manufacturer": "AMS AG",
+      "date": "2016"
+    }
+  ],
+  "unique_types": [
+    3,
+    22,
+    12
+  ]
+}

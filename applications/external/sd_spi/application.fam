@@ -8,6 +8,6 @@ App(
     fap_icon="sd_spi_app_10px.png",
     fap_author="Gl1tchub",
     fap_weburl="https://github.com/Gl1tchub/Flipperzero-SD-SPI",
-    fap_version=(0, 2),
+    fap_version="0.5",
     fap_description="SD SPI Lock Management",
 )

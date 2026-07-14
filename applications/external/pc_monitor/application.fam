@@ -5,10 +5,11 @@ App(
     entry_point="pc_monitor_app",
     stack_size=1 * 1024,
     fap_category="Bluetooth",
-    fap_icon="icons/icon_10px.png",
+    fap_icon_assets="assets",
+    fap_icon="assets/icon_10px.png",
     fap_author="Olejka",  # A.K.A. TheSainEyereg
     fap_weburl="https://github.com/TheSainEyereg/flipper-pc-monitor",
     # fap_weburl="https://github.com/TheSainEyereg/flipper-pc-monitor-backend",
-    fap_version=(1, 1),
+    fap_version="1.1.3",
     fap_description="Application for monitoring PC resources",
 )

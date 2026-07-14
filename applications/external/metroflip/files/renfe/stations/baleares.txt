@@ -1,0 +1,175 @@
+# Islas Baleares - Transporte público de Palma y alrededores
+# Códigos de estaciones del transporte público en Baleares
+# Formato: código=nombre_de_estación
+
+# Metro de Palma - Línea M1
+0x001=Estació Intermodal
+0x002=Jacinto Verdaguer
+0x003=Son Sardina
+0x004=Son Cladera
+0x005=Verge de Lluc
+0x006=Pere Garau
+0x007=Plaça Espanya
+0x008=Estacions
+0x009=Pont d'Inca
+0x00A=Pont d'Inca Nou
+0x00B=Marratxí
+0x00C=Universitària
+0x00D=UIB
+
+# Metro de Palma - Línea M2
+0x010=Estació Intermodal
+0x011=Plaça Espanya
+0x012=Son Costa-Son Fortesa
+0x013=Son Fuster
+0x014=Arxiduc Lluís Salvador
+0x015=Sa Pobla
+
+# Tren de Sóller (histórico)
+0x020=Palma
+0x021=Son Sardina
+0x022=Santa Maria
+0x023=Consell
+0x024=Binissalem
+0x025=Lloseta
+0x026=Inca
+0x027=Enllaç
+0x028=Caimari
+0x029=Selva
+0x02A=Moscari
+0x02B=Lluc
+0x02C=Sóller
+
+# Tranvía de Sóller
+0x030=Sóller
+0x031=Pont de Ca'n Tamany
+0x032=Can Prunera
+0x033=L'Horta
+0x034=Mirador de Ses Barques
+0x035=Port de Sóller
+
+# Autobuses urbanos EMT Palma
+0x040=Estación Intermodal
+0x041=Plaza España
+0x042=Avenidas
+0x043=Born
+0x044=Catedral
+0x045=Almudaina
+0x046=Castell de Bellver
+0x047=Son Armadams
+0x048=Génova
+0x049=Cala Major
+0x04A=Illetes
+0x04B=Portals Nous
+0x04C=Costa de la Calma
+0x04D=Santa Ponça
+0x04E=Paguera
+0x04F=Camp de Mar
+
+# Líneas interurbanas principales
+0x050=Inca
+0x051=Binissalem
+0x052=Santa Maria del Camí
+0x053=Consell
+0x054=Alaró
+0x055=Lloseta
+0x056=Selva
+0x057=Caimari
+0x058=Búger
+0x059=Sa Pobla
+0x05A=Muro
+0x05B=Can Picafort
+0x05C=Artà
+0x05D=Capdepera
+0x05E=Cala Rajada
+0x05F=Cala Millor
+
+# Costa este y sureste
+0x060=Manacor
+0x061=Petra
+0x062=Ariany
+0x063=Santa Margalida
+0x064=Sineu
+0x065=Lloret de Vistalegre
+0x066=Montuïri
+0x067=Porreres
+0x068=Vilafranca de Bonany
+0x069=Campos
+0x06A=Santanyí
+0x06B=Ses Salines
+0x06C=Colònia de Sant Jordi
+0x06D=Llucmajor
+0x06E=Capocorb Vell
+
+# Costa suroeste
+0x070=Calvià
+0x071=Magaluf
+0x072=Palma Nova
+0x073=Son Caliu
+0x074=Portals Nous
+0x075=Costa d'en Blanes
+0x076=Santa Ponça
+0x077=El Toro
+0x078=Port Adriano
+0x079=Paguera
+0x07A=Camp de Mar
+0x07B=Port d'Andratx
+0x07C=Andratx
+0x07D=S'Arracó
+0x07E=Sant Elm
+
+# Norte de la isla
+0x080=Alcúdia
+0x081=Port d'Alcúdia
+0x082=Platja de Muro
+0x083=Can Picafort
+0x084=Colònia de Sant Pere
+0x085=Betlem
+0x086=Pollença
+0x087=Port de Pollença
+0x088=Cala Sant Vicenç
+0x089=Formentor
+0x08A=Lluc
+0x08B=Escorca
+0x08C=Sa Calobra
+0x08D=Valldemossa
+0x08E=Deià
+0x08F=Sóller
+
+# Aeropuerto y conexiones
+0x090=Aeropuerto de Palma
+0x091=Can Pastilla
+0x092=Playa de Palma
+0x093=S'Arenal
+0x094=Llucmajor
+0x095=Cala Blava
+0x096=Cala Pi
+
+# Menorca (códigos aproximados)
+0x0A0=Mahón
+0x0A1=Es Castell
+0x0A2=Sant Lluís
+0x0A3=Punta Prima
+0x0A4=Binibeca
+0x0A5=Ciutadella
+0x0A6=Cala en Turqueta
+0x0A7=Son Bou
+0x0A8=Alaior
+0x0A9=Es Mercadal
+0x0AA=Fornells
+
+# Ibiza (códigos aproximados)
+0x0B0=Ibiza Ciudad
+0x0B1=San Antonio
+0x0B2=Playa d'en Bossa
+0x0B3=Santa Eulària
+0x0B4=Portinatx
+0x0B5=Sant Joan
+0x0B6=Es Vedra
+
+# Formentera (códigos aproximados)
+0x0C0=La Savina
+0x0C1=Es Pujols
+0x0C2=Sant Francesc
+0x0C3=Platja de Migjorn
+0x0C4=Es Caló

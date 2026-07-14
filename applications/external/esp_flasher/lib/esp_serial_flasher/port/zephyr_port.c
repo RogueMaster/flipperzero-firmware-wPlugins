@@ -26,7 +26,7 @@ static struct tty_serial tty;
 static char tty_rx_buf[CONFIG_ESP_SERIAL_FLASHER_UART_BUFSIZE];
 static char tty_tx_buf[CONFIG_ESP_SERIAL_FLASHER_UART_BUFSIZE];
 
-#ifdef SERIAL_FLASHER_DEBUG_TRACE
+#if SERIAL_FLASHER_DEBUG_TRACE
 static void transfer_debug_print(const uint8_t *data, uint16_t size, bool write)
 {
     static bool write_prev = false;
@@ -45,8 +45,8 @@ static void transfer_debug_print(const uint8_t *data, uint16_t size, bool write)
 esp_loader_error_t configure_tty()
 {
     if (tty_init(&tty, uart_dev) < 0 ||
-        tty_set_rx_buf(&tty, tty_rx_buf, sizeof(tty_rx_buf)) < 0 ||
-        tty_set_tx_buf(&tty, tty_tx_buf, sizeof(tty_tx_buf)) < 0) {
+            tty_set_rx_buf(&tty, tty_rx_buf, sizeof(tty_rx_buf)) < 0 ||
+            tty_set_tx_buf(&tty, tty_tx_buf, sizeof(tty_tx_buf)) < 0) {
         return ESP_LOADER_ERROR_FAIL;
     }
 
@@ -65,12 +65,12 @@ esp_loader_error_t loader_port_read(uint8_t *data, const uint16_t size, const ui
     tty_set_rx_timeout(&tty, timeout);
     while (remaining > 0) {
         const uint16_t chunk_size = remaining < CONFIG_ESP_SERIAL_FLASHER_UART_BUFSIZE ?
-            remaining : CONFIG_ESP_SERIAL_FLASHER_UART_BUFSIZE;
+                                    remaining : CONFIG_ESP_SERIAL_FLASHER_UART_BUFSIZE;
         ssize_t read = tty_read(&tty, &data[total_read], chunk_size);
         if (read < 0) {
             return ESP_LOADER_ERROR_TIMEOUT;
         }
-#ifdef SERIAL_FLASHER_DEBUG_TRACE
+#if SERIAL_FLASHER_DEBUG_TRACE
         transfer_debug_print(data, read, false);
 #endif
         total_read += read;
@@ -92,12 +92,12 @@ esp_loader_error_t loader_port_write(const uint8_t *data, const uint16_t size, c
     tty_set_tx_timeout(&tty, timeout);
     while (remaining > 0) {
         const uint16_t chunk_size = remaining < CONFIG_ESP_SERIAL_FLASHER_UART_BUFSIZE ?
-            remaining : CONFIG_ESP_SERIAL_FLASHER_UART_BUFSIZE;
+                                    remaining : CONFIG_ESP_SERIAL_FLASHER_UART_BUFSIZE;
         ssize_t written = tty_write(&tty, &data[total_written], chunk_size);
         if (written < 0) {
             return ESP_LOADER_ERROR_TIMEOUT;
         }
-#ifdef SERIAL_FLASHER_DEBUG_TRACE
+#if SERIAL_FLASHER_DEBUG_TRACE
         transfer_debug_print(data, written, true);
 #endif
         total_written += written;
@@ -117,17 +117,17 @@ esp_loader_error_t loader_port_zephyr_init(const loader_zephyr_config_t *config)
 
 void loader_port_reset_target(void)
 {
-    gpio_pin_set_dt(&enable_spec, false);
+    gpio_pin_set_dt(&enable_spec, SERIAL_FLASHER_RESET_INVERT ? true : false);
     loader_port_delay_ms(CONFIG_SERIAL_FLASHER_RESET_HOLD_TIME_MS);
-    gpio_pin_set_dt(&enable_spec, true);
+    gpio_pin_set_dt(&enable_spec, SERIAL_FLASHER_RESET_INVERT ? false : true);
 }
 
 void loader_port_enter_bootloader(void)
 {
-    gpio_pin_set_dt(&boot_spec, false);
+    gpio_pin_set_dt(&boot_spec, SERIAL_FLASHER_BOOT_INVERT ? true : false);
     loader_port_reset_target();
     loader_port_delay_ms(CONFIG_SERIAL_FLASHER_BOOT_HOLD_TIME_MS);
-    gpio_pin_set_dt(&boot_spec, true);
+    gpio_pin_set_dt(&boot_spec, SERIAL_FLASHER_BOOT_INVERT ? false : true);
 }
 
 void loader_port_delay_ms(uint32_t ms)

@@ -25,7 +25,6 @@ BFApp* brainfuck_alloc() {
     brainfuck->dataSize = 0;
     brainfuck->view_dispatcher = view_dispatcher_alloc();
     brainfuck->scene_manager = scene_manager_alloc(&brainfuck_scene_handlers, brainfuck);
-    view_dispatcher_enable_queue(brainfuck->view_dispatcher);
     view_dispatcher_set_event_callback_context(brainfuck->view_dispatcher, brainfuck);
     view_dispatcher_set_custom_event_callback(
         brainfuck->view_dispatcher, brainfuck_custom_event_callback);

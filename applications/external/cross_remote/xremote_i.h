@@ -54,7 +54,7 @@
 #define XREMOTE_VERSION                FAP_VERSION
 
 #define INFRARED_APP_EXTENSION ".ir"
-#define INFRARED_APP_FOLDER    ANY_PATH("infrared")
+#define INFRARED_APP_FOLDER    EXT_PATH("infrared")
 
 #define SUBGHZ_APP_EXTENSION ".sub"
 

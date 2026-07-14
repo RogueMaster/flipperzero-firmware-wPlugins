@@ -1,0 +1,13 @@
+App(
+    appid="fighterjet",
+    name="Fighter Jet",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="fighterjet_app",
+    stack_size=2 * 1024,
+    fap_icon="fighterjet.png",
+    fap_category="Games",
+    fap_author="Erbonator3000",
+    fap_weburl="https://github.com/Erbonator3000/flipper-fighter-jet",
+    fap_version="0.1.1",
+    fap_description="Fighter jet simulator",
+)

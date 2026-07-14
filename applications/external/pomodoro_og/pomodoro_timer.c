@@ -9,25 +9,19 @@ const NotificationSequence sequence_finish = {
     &message_display_backlight_on,
     &message_green_255,
     &message_vibro_on,
+    &message_note_c4,
+    &message_delay_100,
+    &message_vibro_off,
+    &message_note_e4,
+    &message_delay_100,
+    &message_note_g4,
+    &message_vibro_on,
+    &message_delay_100,
+    &message_vibro_off,
+    &message_note_b4,
+    &message_delay_100,
     &message_note_c5,
-    &message_delay_100,
-    &message_vibro_off,
-    &message_vibro_on,
-    &message_note_e5,
-    &message_delay_100,
-    &message_vibro_off,
-    &message_vibro_on,
-    &message_note_g5,
-    &message_delay_100,
-    &message_vibro_off,
-    &message_vibro_on,
-    &message_note_b5,
     &message_delay_250,
-    &message_vibro_off,
-    &message_vibro_on,
-    &message_note_c6,
-    &message_delay_250,
-    &message_vibro_off,
     &message_sound_off,
     NULL,
 };
@@ -36,25 +30,19 @@ const NotificationSequence sequence_rest = {
     &message_display_backlight_on,
     &message_red_255,
     &message_vibro_on,
-    &message_note_c6,
-    &message_delay_100,
-    &message_vibro_off,
-    &message_vibro_on,
-    &message_note_b5,
-    &message_delay_100,
-    &message_vibro_off,
-    &message_vibro_on,
-    &message_note_g5,
-    &message_delay_100,
-    &message_vibro_off,
-    &message_vibro_on,
-    &message_note_e5,
-    &message_delay_100,
-    &message_vibro_off,
-    &message_vibro_on,
     &message_note_c5,
-    &message_delay_250,
+    &message_delay_100,
     &message_vibro_off,
+    &message_note_b4,
+    &message_delay_100,
+    &message_note_g4,
+    &message_vibro_on,
+    &message_delay_100,
+    &message_vibro_off,
+    &message_note_e4,
+    &message_delay_50,
+    &message_note_c4,
+    &message_delay_250,
     &message_sound_off,
     NULL,
 };
@@ -199,8 +187,16 @@ void pomodoro_draw_callback(Canvas* canvas, void* context, int max_seconds, int 
     // Time to rest
     if(model->rest_running && !model->timer_running) {
         canvas_set_font(canvas, FontBigNumbers);
+
+        // Determine rest duration
+        int rest_duration = max_seconds_rest;
+        if(model->counter % 3 == 0) {
+            rest_duration = max_seconds + (5 * 60); // Pomodoro time + 5 minutes
+        }
+
+        // Calculate time left
         int rest_passed = current_timestamp - model->rest_start_timestamp;
-        int rest_total_time_left = (max_seconds_rest - rest_passed);
+        int rest_total_time_left = (rest_duration - rest_passed);
         int rest_minutes_left = rest_total_time_left / 60;
         int rest_seconds_left = rest_total_time_left % 60;
 

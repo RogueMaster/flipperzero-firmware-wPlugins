@@ -1,0 +1,14 @@
+App(
+    appid="pc_monitor_usb",
+    name="PC Monitor USB",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="pc_monitor_app",
+    stack_size=1 * 1024,
+    fap_icon_assets="assets",
+    fap_icon="assets/icon_10px.png",
+    fap_category="USB",
+    fap_author="DonJulve & TheSainEyereg",
+    fap_weburl="https://github.com/DonJulve/Flipper-Zero-PC-Monitor-USB",
+    fap_version="1.0",
+    fap_description="Application for monitoring PC resources via USB",
+)

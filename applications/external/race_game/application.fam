@@ -1,0 +1,13 @@
+App(
+    appid="race_game",
+    name="Race Game",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="race_game_app",
+    stack_size=4 * 1024,
+    fap_icon="icon.png",
+    fap_category="Games",
+    fap_author="mrc19056",
+    fap_weburl="https://github.com/mrc19056/flipper-race-game",
+    fap_version=(1, 0),
+    fap_description="3-lane racing game with power-ups, combos, and night mode",
+)

@@ -4,7 +4,7 @@ void wiegand_add_info_4bit_8bit(FuriString* buffer) {
     if(bit_count == 8) {
         for(int i = 0; i < 4; i++) {
             furi_string_cat_printf(
-                buffer, "\nbit %d: %d %d (bit %d)", i, data[i], data[i + 4], i + 4);
+                buffer, "bit %d: %d %d (bit %d)", i, data[i], data[i + 4], i + 4);
             if(data[i] == data[i + 4]) {
                 furi_string_cat_printf(buffer, " - ERROR");
             } else {
@@ -20,11 +20,11 @@ void wiegand_add_info_4bit_8bit(FuriString* buffer) {
             code += data[i + offset] ? 1 : 0;
         }
         if(code <= 9) {
-            furi_string_cat_printf(buffer, "\nButton: %d", code);
+            furi_string_cat_printf(buffer, "Button: %d", code);
         } else if(code == 10) {
-            furi_string_cat_printf(buffer, "\nButton: Escape");
+            furi_string_cat_printf(buffer, "Button: Escape");
         } else if(code == 11) {
-            furi_string_cat_printf(buffer, "\nButton: Enter");
+            furi_string_cat_printf(buffer, "Button: Enter");
         }
     }
 }
@@ -35,7 +35,7 @@ void wiegand_add_info_26bit(FuriString* buffer) {
     // be even.
     // After the parity bit, the next 8 bits are the facility code.
     // Then the next 16 bits are the card id .
-    furi_string_cat_printf(buffer, "\nFacility: ");
+    furi_string_cat_printf(buffer, "Facility: ");
     int code = 0;
     int count = 0;
     uint32_t dec = 0;
@@ -97,7 +97,7 @@ void wiegand_add_info_24bit(FuriString* buffer) {
 
     // The First 8 bits are the facility code.
     // Then the next 16 bits are the card id.
-    furi_string_cat_printf(buffer, "\nFacility: 0x");
+    furi_string_cat_printf(buffer, "Facility: 0x");
     int code = 0;
     int count = 0;
     uint32_t dec = 0;
@@ -134,7 +134,7 @@ void wiegand_add_info_48bit(FuriString* buffer) {
         code = code << 1;
         code |= data[i] ? 1 : 0;
     }
-    furi_string_cat_printf(buffer, "\nFacility: %lX (%ld)", code, code);
+    furi_string_cat_printf(buffer, "Facility: %lX (%ld)", code, code);
 
     // 23 bit card id (bits 25-47; data[24..46]).
     code = 0;
@@ -156,7 +156,7 @@ void wiegand_add_info_35bit(FuriString* buffer) {
         code = code << 1;
         code |= data[i] ? 1 : 0;
     }
-    furi_string_cat_printf(buffer, "\nFacility: %lX (%ld)", code, code);
+    furi_string_cat_printf(buffer, "Facility: %lX (%ld)", code, code);
 
     // 20 bit card id
     code = 0;
@@ -175,7 +175,7 @@ void wiegand_add_info_36bit(FuriString* buffer) {
     for(int i = 1; i <= 10; i++) {
         oem = (oem << 1) | (data[i] ? 1 : 0);
     }
-    furi_string_cat_printf(buffer, "\nOEM: %lX (%ld)", oem, oem);
+    furi_string_cat_printf(buffer, "OEM: %lX (%ld)", oem, oem);
 
     // 8 bits facility code
     uint32_t facilityCode = 0;

@@ -1,0 +1,13 @@
+App(
+    appid="qrcode_generator",
+    name="QRCode Generator",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="qrcode_generator_app",
+    stack_size=4 * 1024,
+    fap_icon="qrcode_generator.png",
+    fap_category="Tools",
+    fap_author="Thomas Schwarz (aka qw3rtty)",
+    fap_weburl="https://github.com/qw3rtty/flipperzero-qrcode-generator",
+    fap_version="0.1",
+    fap_description="Generates and displays QRCodes on flipper zero.",
+)

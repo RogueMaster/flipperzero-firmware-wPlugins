@@ -1,0 +1,1 @@
+# Original Flipper Zero screenshots

@@ -1,0 +1,111 @@
+#pragma once
+
+#include <furi.h>
+#include <furi_hal.h>
+#include <furi_hal_usb_hid.h>
+#include <furi_hal_usb.h>
+#include <gui/gui.h>
+#include <gui/view.h>
+#include <gui/view_dispatcher.h>
+#include <gui/modules/text_input.h>
+#include <storage/storage.h>
+#include <input/input.h>
+
+#define MAX_ENTRIES      15
+#define MAX_NAME_LEN     32
+#define MAX_TEXT_LEN     128
+#define MAX_PASSWORD_LEN 4
+
+#define GATEKEEPER_STORAGE_PATH APP_DATA_PATH("gatekeeper.dat")
+
+#define GK_BTN_UP    0x01
+#define GK_BTN_DOWN  0x02
+#define GK_BTN_LEFT  0x03
+#define GK_BTN_RIGHT 0x04
+
+#define GK_EVENT_START_DEPLOY   0x01
+#define GK_EVENT_REPAINT        0x02
+#define GK_EVENT_NO_HID_TIMEOUT 0x03
+
+typedef enum {
+    VIEW_ID_COMBO = 0,
+    VIEW_ID_MENU = 1,
+    VIEW_ID_DEPLOY = 2,
+    VIEW_ID_NAME_INPUT = 3,
+    VIEW_ID_TEXT_INPUT = 4,
+    VIEW_ID_DELETE_CONFIRM = 5,
+    VIEW_ID_ICON_PICK = 6,
+} GkViewId;
+
+typedef enum {
+    STATE_SET_PASSWORD,
+    STATE_SET_PASSWORD_CONFIRM,
+    STATE_UNLOCK,
+    STATE_MAIN_MENU,
+    STATE_DEPLOY,
+    STATE_DELETE_CONFIRM,
+    STATE_ICON_PICK,
+} GkState;
+
+typedef struct {
+    char name[MAX_NAME_LEN];
+    char text[MAX_TEXT_LEN];
+    uint8_t icon; // 0..GK_ICON_COUNT-1
+} GkEntry;
+
+static void on_name_done(void* ctx);
+static void on_text_done(void* ctx);
+static void icon_pick_draw_cb(Canvas* canvas, void* model);
+static bool icon_pick_input_cb(InputEvent* event, void* context);
+
+typedef struct {
+    Gui* gui;
+    ViewDispatcher* view_dispatcher;
+
+    View* view_combo;
+    View* view_menu;
+    View* view_deploy;
+    View* view_delete_confirm;
+    View* view_icon_pick;
+
+    TextInput* name_input;
+    TextInput* text_input;
+
+    GkState state;
+
+    // Combo lock
+    uint8_t password[MAX_PASSWORD_LEN];
+    uint8_t password_len;
+    uint8_t password_temp[MAX_PASSWORD_LEN];
+    uint8_t input_buf[MAX_PASSWORD_LEN];
+    uint8_t input_len;
+    bool unlock_failed;
+
+    // Entries
+    GkEntry entries[MAX_ENTRIES];
+    uint8_t entry_count;
+
+    // Menu navigation  (-1 = "+ Add", 0..N-1 = entry row)
+    int menu_cursor;
+    int menu_scroll;
+
+    // TextInput buffers
+    char edit_name[MAX_NAME_LEN];
+    char edit_text[MAX_TEXT_LEN];
+
+    // Deploy
+    int selected_entry;
+    float deploy_progress;
+    bool deploy_not_connected;
+    FuriThread* deploy_thread;
+    FuriTimer* deploy_no_hid_timer;
+
+    // Delete confirmation
+    int delete_entry_index;
+    bool delete_failed;
+
+    // Icon picker
+    uint8_t icon_cursor;
+} GkApp;
+
+int32_t gatekeeper_app(void* p);

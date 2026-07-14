@@ -1,0 +1,16 @@
+{
+    "balls": [
+        {
+            // oh noes! we don't have a position!
+        }
+    ],
+    "arcs": [
+        {
+            "position": [ 320, 800 ],
+            "radius": 310,
+            "start_angle": 90,
+            "end_angle": 360,
+            "surface": "INSIDE"
+        }
+    ]
+}

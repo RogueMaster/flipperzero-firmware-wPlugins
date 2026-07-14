@@ -116,7 +116,6 @@ FlipBip* flipbip_app_alloc() {
 
     // Scene additions
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     app->scene_manager = scene_manager_alloc(&flipbip_scene_handlers, app);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
@@ -132,7 +131,7 @@ FlipBip* flipbip_app_alloc() {
     app->passphrase = FlipBipPassphraseOff;
 
     // Main menu
-    app->bip44_coin = FlipBipCoinBTC0; // 0 (BTC)
+    app->coin_type = CoinTypeBTC0; // 0 (BTC)
     app->overwrite_saved_seed = 0;
     app->import_from_mnemonic = 0;
     app->mnemonic_menu_text = MNEMONIC_MENU_DEFAULT;

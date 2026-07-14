@@ -2,9 +2,9 @@
 
 #include "DMComm.h"
 
-#define DMCOMM_INDICATE_NEW 0
+#define DMCOMM_INDICATE_NEW       0
 #define DMCOMM_INDICATE_NEW_ERROR 1
-#define DMCOMM_INDICATE_EXECUTED 2
+#define DMCOMM_INDICATE_EXECUTED  2
 
 namespace DMComm {
 

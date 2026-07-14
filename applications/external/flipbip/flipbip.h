@@ -14,14 +14,9 @@
 #include <gui/modules/text_input.h>
 #include "scenes/flipbip_scene.h"
 #include "views/flipbip_scene_1.h"
+#include "flipbip_coins.h"
 
-#define FLIPBIP_VERSION FAP_VERSION
-
-#define COIN_BTC  0
-#define COIN_DOGE 3
-#define COIN_ETH  60
-#define COIN_ZEC  133
-
+#define FLIPBIP_VERSION  FAP_VERSION
 #define TEXT_BUFFER_SIZE 256
 
 typedef struct {
@@ -39,7 +34,7 @@ typedef struct {
     int bip39_strength;
     int passphrase;
     // Main menu options
-    int bip44_coin;
+    int coin_type;
     int overwrite_saved_seed;
     int import_from_mnemonic;
     // Text input
@@ -72,13 +67,6 @@ typedef enum {
 } FlipBipPassphraseState;
 
 typedef enum {
-    FlipBipCoinBTC0,
-    FlipBipCoinETH60,
-    FlipBipCoinDOGE3,
-    FlipBipCoinZEC133,
-} FlipBipCoin;
-
-typedef enum {
     FlipBipTextInputDefault,
     FlipBipTextInputPassphrase,
     FlipBipTextInputMnemonic
@@ -92,12 +80,9 @@ typedef enum {
     FlipBipStatusMnemonicCheckError = 13,
 } FlipBipStatus;
 
+// There's a scene ID for each coin, then these scenes are after so need to offset the first entry by at least NUM_COINS
 typedef enum {
-    SubmenuIndexScene1BTC = 10,
-    SubmenuIndexScene1ETH,
-    SubmenuIndexScene1DOGE,
-    SubmenuIndexScene1ZEC,
-    SubmenuIndexScene1New,
+    SubmenuIndexScene1New = NUM_COINS + 1,
     SubmenuIndexScene1Renew,
     SubmenuIndexScene1Import,
     SubmenuIndexSettings,

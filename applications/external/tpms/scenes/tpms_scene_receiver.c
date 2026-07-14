@@ -1,5 +1,99 @@
 #include "../tpms_app_i.h"
 #include "../views/tpms_receiver.h"
+#include "../protocols/schrader_gg4.h"
+#include "../protocols/schrader_smd3ma4.h"
+#include "../protocols/schrader_eg53ma4.h"
+#include "../protocols/abarth_124.h"
+#include <string.h>
+
+// Sweep mode configuration
+// Ticks per combo is calculated from app->sweep_seconds_per_combo * 10
+// Max cycles is from app->sweep_max_cycles
+
+static const uint32_t sweep_frequencies[] = {
+    433920000, // 433.92 MHz - most common TPMS frequency
+    315000000, // 315 MHz - US TPMS frequency
+};
+#define SWEEP_FREQUENCY_COUNT (sizeof(sweep_frequencies) / sizeof(sweep_frequencies[0]))
+
+static const char* sweep_presets[] = {
+    "AM650",
+    "AM270",
+    "FM238",
+    "FM12K",
+    "FM476",
+};
+#define SWEEP_PRESET_COUNT (sizeof(sweep_presets) / sizeof(sweep_presets[0]))
+
+// Forward declaration
+static void tpms_scene_receiver_sweep_next_combo(TPMSApp* app);
+
+// Check if the decoded protocol matches the current filter
+static bool tpms_protocol_filter_match(TPMSApp* app, SubGhzProtocolDecoderBase* decoder_base) {
+    if(app->protocol_filter == TPMSProtocolFilterAll) {
+        return true;
+    }
+
+    const char* protocol_name = decoder_base->protocol->name;
+
+    switch(app->protocol_filter) {
+    case TPMSProtocolFilterSchraderGG4:
+        return strcmp(protocol_name, TPMS_PROTOCOL_SCHRADER_GG4_NAME) == 0;
+    case TPMSProtocolFilterSchraderSMD3MA4:
+        return strcmp(protocol_name, TPMS_PROTOCOL_SCHRADER_SMD3MA4_NAME) == 0;
+    case TPMSProtocolFilterSchraderEG53MA4:
+        return strcmp(protocol_name, TPMS_PROTOCOL_SCHRADER_EG53MA4_NAME) == 0;
+    case TPMSProtocolFilterAbarth124:
+        return strcmp(protocol_name, TPMS_PROTOCOL_ABARTH_124_NAME) == 0;
+    default:
+        return true;
+    }
+}
+
+// Advance to next sweep combination
+static void tpms_scene_receiver_sweep_next_combo(TPMSApp* app) {
+    // Move to next preset
+    app->sweep_preset_index++;
+
+    // If we've tried all presets for this frequency, move to next frequency
+    if(app->sweep_preset_index >= SWEEP_PRESET_COUNT) {
+        app->sweep_preset_index = 0;
+        app->sweep_frequency_index++;
+
+        // If we've tried all frequencies, increment cycle count
+        if(app->sweep_frequency_index >= SWEEP_FREQUENCY_COUNT) {
+            app->sweep_frequency_index = 0;
+            app->sweep_cycle_count++;
+        }
+    }
+
+    app->sweep_tick_count = 0;
+}
+
+// Apply current sweep settings and start receiving
+static void tpms_scene_receiver_sweep_apply(TPMSApp* app) {
+    // Stop current RX
+    if(app->txrx->txrx_state == TPMSTxRxStateRx) {
+        tpms_rx_end(app);
+    }
+
+    // Get current sweep settings
+    uint32_t frequency = sweep_frequencies[app->sweep_frequency_index];
+    const char* preset = sweep_presets[app->sweep_preset_index];
+
+    // Initialize with new preset and frequency
+    tpms_preset_init(app, preset, frequency, NULL, 0);
+
+    // Start receiving with new settings
+    if((app->txrx->txrx_state == TPMSTxRxStateIDLE) ||
+       (app->txrx->txrx_state == TPMSTxRxStateSleep)) {
+        tpms_begin(
+            app,
+            subghz_setting_get_preset_data_by_name(
+                app->setting, furi_string_get_cstr(app->txrx->preset->name)));
+        tpms_rx(app, app->txrx->preset->frequency);
+    }
+}
 
 static const NotificationSequence subghz_sequence_rx = {
     &message_green_255,
@@ -76,6 +170,13 @@ static void tpms_scene_receiver_add_to_history_callback(
     void* context) {
     furi_assert(context);
     TPMSApp* app = context;
+
+    // Check if the protocol matches the current filter
+    if(!tpms_protocol_filter_match(app, decoder_base)) {
+        subghz_receiver_reset(receiver);
+        return;
+    }
+
     FuriString* str_buff;
     str_buff = furi_string_alloc();
 
@@ -98,6 +199,18 @@ static void tpms_scene_receiver_add_to_history_callback(
         } else {
             notification_message(app->notifications, &subghz_sequence_rx_locked);
         }
+
+        // Mark signal found for sweep mode and store result info
+        if(app->scan_mode == TPMSScanModeSweep) {
+            app->sweep_found_signal = true;
+            // Store the successful frequency and modulation
+            app->sweep_result_frequency = app->txrx->preset->frequency;
+            strncpy(
+                app->sweep_result_preset,
+                furi_string_get_cstr(app->txrx->preset->name),
+                sizeof(app->sweep_result_preset) - 1);
+            app->sweep_result_preset[sizeof(app->sweep_result_preset) - 1] = '\0';
+        }
     }
     subghz_receiver_reset(receiver);
     furi_string_free(str_buff);
@@ -111,13 +224,28 @@ void tpms_scene_receiver_on_enter(void* context) {
     str_buff = furi_string_alloc();
 
     if(app->txrx->rx_key_state == TPMSRxKeyStateIDLE) {
-        tpms_preset_init(
-            app, "AM650", subghz_setting_get_default_frequency(app->setting), NULL, 0);
+        // For sweep mode, use first sweep combo; otherwise use defaults
+        if(app->scan_mode == TPMSScanModeSweep) {
+            tpms_preset_init(
+                app,
+                sweep_presets[app->sweep_preset_index],
+                sweep_frequencies[app->sweep_frequency_index],
+                NULL,
+                0);
+        } else {
+            tpms_preset_init(
+                app, "AM650", subghz_setting_get_default_frequency(app->setting), NULL, 0);
+        }
         tpms_history_reset(app->txrx->history);
         app->txrx->rx_key_state = TPMSRxKeyStateStart;
     }
 
     tpms_view_receiver_set_lock(app->tpms_receiver, app->lock);
+    tpms_view_receiver_set_scan_mode(app->tpms_receiver, app->scan_mode);
+    if(app->scan_mode == TPMSScanModeSweep) {
+        tpms_view_receiver_set_sweep_cycle(app->tpms_receiver, app->sweep_cycle_count);
+        tpms_view_receiver_set_sweep_countdown(app->tpms_receiver, app->sweep_seconds_per_combo);
+    }
 
     //Load history to receiver
     tpms_view_receiver_exit(app->tpms_receiver);
@@ -205,6 +333,56 @@ bool tpms_scene_receiver_on_event(void* context, SceneManagerEvent event) {
             tpms_hopper_update(app);
             tpms_scene_receiver_update_statusbar(app);
         }
+
+        // Sweep mode logic
+        if(app->scan_mode == TPMSScanModeSweep) {
+            // Check if signal was found - navigate to result
+            if(app->sweep_found_signal) {
+                if(app->txrx->txrx_state == TPMSTxRxStateRx) {
+                    tpms_rx_end(app);
+                    tpms_sleep(app);
+                }
+                app->scan_mode = TPMSScanModeScanOnly;
+                scene_manager_next_scene(app->scene_manager, TPMSSceneSweepResult);
+                consumed = true;
+            } else {
+                app->sweep_tick_count++;
+
+                // Update countdown display
+                uint8_t remaining = app->sweep_seconds_per_combo - (app->sweep_tick_count / 10);
+                tpms_view_receiver_set_sweep_countdown(app->tpms_receiver, remaining);
+
+                // Trigger 125kHz at start of each combo (tick 0 and 1)
+                if(app->sweep_tick_count == 1) {
+                    // Trigger 125kHz activation via the view's relearn function
+                    tpms_view_receiver_trigger_activation(app->tpms_receiver);
+                }
+
+                // Time to move to next combo? (seconds * 10 ticks per second)
+                if(app->sweep_tick_count >= (app->sweep_seconds_per_combo * 10)) {
+                    // Check if we've completed all cycles
+                    if(app->sweep_cycle_count >= app->sweep_max_cycles) {
+                        // Sweep complete - no signal found, go to result screen
+                        if(app->txrx->txrx_state == TPMSTxRxStateRx) {
+                            tpms_rx_end(app);
+                            tpms_sleep(app);
+                        }
+                        app->scan_mode = TPMSScanModeScanOnly;
+                        scene_manager_next_scene(app->scene_manager, TPMSSceneSweepResult);
+                        consumed = true;
+                    } else {
+                        // Advance to next combo
+                        tpms_scene_receiver_sweep_next_combo(app);
+                        tpms_scene_receiver_sweep_apply(app);
+                        tpms_scene_receiver_update_statusbar(app);
+                        // Update cycle display
+                        tpms_view_receiver_set_sweep_cycle(
+                            app->tpms_receiver, app->sweep_cycle_count);
+                    }
+                }
+            }
+        }
+
         // Get current RSSI
         float rssi = furi_hal_subghz_get_rssi();
         tpms_view_receiver_set_rssi(app->tpms_receiver, rssi);

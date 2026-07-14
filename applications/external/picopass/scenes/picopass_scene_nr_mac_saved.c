@@ -12,7 +12,7 @@ void picopass_scene_nr_mac_saved_on_enter(void* context) {
 
     // Setup view
     Popup* popup = picopass->popup;
-    popup_set_icon(popup, 32, 5, &I_DolphinNice_96x59);
+    popup_set_icon(popup, 36, 5, &I_DolphinDone_80x58);
     popup_set_header(popup, "NR-MAC\nSaved!", 13, 22, AlignLeft, AlignBottom);
     popup_set_timeout(popup, 1500);
     popup_set_context(popup, picopass);
@@ -27,10 +27,16 @@ bool picopass_scene_nr_mac_saved_on_event(void* context, SceneManagerEvent event
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == PicopassCustomEventViewExit) {
-            scene_manager_set_scene_state(
-                picopass->scene_manager, PicopassSceneStart, 0); // Set back to "read card"
-            consumed = scene_manager_search_and_switch_to_previous_scene(
-                picopass->scene_manager, PicopassSceneStart);
+            if(picopass->nr_mac_type == AutoNRMAC) {
+                consumed = scene_manager_search_and_switch_to_previous_scene(
+                    picopass->scene_manager, PicopassSceneEliteDictAttack);
+                picopass->nr_mac_type = ManualNRMAC;
+            } else {
+                scene_manager_set_scene_state(
+                    picopass->scene_manager, PicopassSceneStart, 0); // Set back to "read card"
+                consumed = scene_manager_search_and_switch_to_previous_scene(
+                    picopass->scene_manager, PicopassSceneStart);
+            }
         }
     }
     return consumed;

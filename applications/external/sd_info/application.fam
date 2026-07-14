@@ -1,0 +1,14 @@
+App(
+    appid="sd_info",
+    name="SD Info",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="sd_card_info_app",
+    stack_size=2 * 1024,
+    fap_icon="icon.png",
+    sources=["main.c"],
+    fap_category="Tools",
+    fap_author="sergo",
+    fap_weburl="https://github.com/Sladkisnovraper/SD-Info-For-Flipper-Zero",
+    fap_version="0.1",
+    fap_description="The application shows information about the SD card",
+)

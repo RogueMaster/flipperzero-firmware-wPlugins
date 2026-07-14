@@ -42,7 +42,7 @@ NfcCommand nfc_dict_attack_worker_callback(NfcGenericEvent event, void* context)
         }
 
         FURI_LOG_D(TAG, "MFC type: %d", mfc_data->type);
-        mfc_event->data->poller_mode.mode = MfClassicPollerModeDictAttack;
+        mfc_event->data->poller_mode.mode = MfClassicPollerModeDictAttackStandard;
         mfc_event->data->poller_mode.data = mfc_data;
         instance->nfc_dict_context.sectors_total =
             mf_classic_get_total_sectors_num(mfc_data->type);

@@ -1,0 +1,13 @@
+App(
+    appid="big_clock",
+    name="Big Clock",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="big_clock_app",
+    stack_size=2 * 1024,
+    fap_icon="icon.png",
+    fap_category="Tools",
+    fap_author="Eris-Margeta",
+    fap_weburl="https://github.com/Eris-Margeta/flipper-apps",
+    fap_version="1.3",
+    fap_description="Bedside clock with adjustable brightness (0-100%). UP/DOWN to adjust.",
+)

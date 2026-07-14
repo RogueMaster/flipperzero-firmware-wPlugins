@@ -1,0 +1,14 @@
+App(
+    appid="pocket_battle",
+    name="Pocket Battle+",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="pocket_battle_main",
+    stack_size=4 * 1024,
+    fap_icon="pokemon_10px.png",
+    fap_icon_assets="sprites",
+    fap_category="Games",
+    fap_author="HermeticCode",
+    fap_weburl="https://github.com/HermeticCode/showdown-current",
+    fap_version="2.0",
+    fap_description="Enhanced Pokemon Battle Game with authentic pokeyellow data",
+)

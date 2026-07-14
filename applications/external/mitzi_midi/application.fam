@@ -1,0 +1,16 @@
+App(
+    appid="usb_midi_capturing",
+    name="USB Midi Capturing",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="midi_main",
+    sources=["midi.c"],
+    stack_size=2 * 1024,
+    fap_icon="images/icon_10x10.png",
+    fap_icon_assets="images",
+    fap_icon_assets_symbol="midi",
+    fap_category="USB",
+    fap_author="F Greil",
+    fap_weburl="https://github.com/fgreil/mitzi-midi",
+    fap_version=(0, 1, 0),
+    fap_description="A simple Flipper Zero USB Midi capturing app",
+)

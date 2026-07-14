@@ -1,0 +1,14 @@
+App(
+    appid="disn3y_toolbox",
+    name="Disn3y Toolbox",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="disn3y_toolbox_app",
+    stack_size=2 * 1024,
+    fap_icon="images/icon_10x.png",
+    fap_icon_assets="images",
+    fap_category="Tools",
+    fap_author="Nathaniel Belles",
+    fap_weburl="https://gitlab.com/Nathaniel.Belles/flipper-disney-toolbox",
+    fap_version="0.1",
+    fap_description="Toolbox for Disn3y park tech, including Kyber crystal writer, MagicBand+ beacon emulator, and Galaxy's Edge droid controller.",
+)

@@ -8,7 +8,7 @@
 
 #include <gui/gui.h>
 #include <gui/view.h>
-#include <infrared_icons.h>
+#include <assets_icons.h>
 #include <gui/view_stack.h>
 #include <gui/view_dispatcher.h>
 #include <gui/scene_manager.h>
@@ -31,7 +31,7 @@
 
 #include "infrared_app.h"
 #include "infrared_remote.h"
-#include "infrared_brute_force.h"
+#include <lib/infrared/signal/infrared_brute_force.h>
 #include "infrared_custom_event.h"
 
 #include "scenes/infrared_scene.h"
@@ -43,14 +43,18 @@
 #define INFRARED_TEXT_STORE_NUM  2
 #define INFRARED_TEXT_STORE_SIZE 128
 
-#define INFRARED_MAX_BUTTON_NAME_LENGTH 22
-#define INFRARED_MAX_REMOTE_NAME_LENGTH 22
+#define INFRARED_MAX_BUTTON_NAME_LENGTH 23
+#define INFRARED_MAX_REMOTE_NAME_LENGTH 23
 
 #define INFRARED_APP_FOLDER    EXT_PATH("infrared")
 #define INFRARED_APP_EXTENSION ".ir"
 
 #define INFRARED_DEFAULT_REMOTE_NAME "Remote"
 #define INFRARED_LOG_TAG             "InfraredApp"
+
+/* Button names for easy mode */
+extern const char* const easy_mode_button_names[];
+extern const size_t easy_mode_button_count; // Number of buttons in the array
 
 /**
  * @brief Enumeration of invalid remote button indices.
@@ -85,9 +89,13 @@ typedef struct {
     bool is_debug_enabled; /**< Whether to enable or disable debugging features. */
     bool is_transmitting; /**< Whether a signal is currently being transmitted. */
     bool is_otg_enabled; /**< Whether OTG power (external 5V) is enabled. */
+    bool is_easy_mode; /**< Whether easy learning mode is enabled. */
+    bool is_decode_enabled; /**< Whether signal decoding is enabled. */
+    bool is_decode_forced; /**< Whether signal decoding is forced. */
     InfraredEditTarget edit_target : 8; /**< Selected editing target (a remote or a button). */
     InfraredEditMode edit_mode     : 8; /**< Selected editing operation (rename or delete). */
     int32_t current_button_index; /**< Selected button index (move destination). */
+    int32_t existing_remote_button_index; /**< Existing remote's current button index (easy mode). */
     int32_t prev_button_index; /**< Previous button index (move source). */
     uint32_t last_transmit_time; /**< Lat time a signal was transmitted. */
     FuriHalInfraredTxPin tx_pin;
@@ -207,9 +215,9 @@ void infrared_tx_start(InfraredApp* infrared);
  *
  * @param[in,out] infrared pointer to the application instance.
  * @param[in] button_index index of the signal to be loaded.
- * @returns true if the signal could be loaded, false otherwise.
+ * @returns InfraredErrorCodeNone if the signal could be loaded, otherwise error code.
  */
-void infrared_tx_start_button_index(InfraredApp* infrared, size_t button_index);
+InfraredErrorCode infrared_tx_start_button_index(InfraredApp* infrared, size_t button_index);
 
 /**
  * @brief Stop transmission of the currently loaded signal.
@@ -217,6 +225,20 @@ void infrared_tx_start_button_index(InfraredApp* infrared, size_t button_index);
  * @param[in,out] infrared pointer to the application instance.
  */
 void infrared_tx_stop(InfraredApp* infrared);
+
+/**
+ * @brief Transmit the currently loaded signal once.
+ * 
+ * @param[in,out] infrared pointer to the application instance.
+ */
+void infrared_tx_send_once(InfraredApp* infrared);
+
+/**
+ * @brief Load the signal under the given index and transmit it once.
+ *
+ * @param[in,out] infrared pointer to the application instance.
+ */
+InfraredErrorCode infrared_tx_send_once_button_index(InfraredApp* infrared, size_t button_index);
 
 /**
  * @brief Start a blocking task in a separate thread.

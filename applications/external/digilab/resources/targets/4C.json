@@ -1,0 +1,44 @@
+{
+  "components": [
+    {
+      "partno": "MCP9800",
+      "desc": "Temperature sensor",
+      "type": 23,
+      "manufacturer": "Microchip",
+      "date": "2007"
+    },
+    {
+      "partno": "PCT2075",
+      "desc": "Temperature sensor",
+      "type": 23,
+      "manufacturer": "NXP Semi",
+      "date": "2015"
+    },
+    {
+      "partno": "LM75B",
+      "desc": "Temperature sensor",
+      "type": 23,
+      "manufacturer": "NXP Semi",
+      "date": "2010"
+    },
+    {
+      "partno": "TCN75A",
+      "desc": "Temperature sensor",
+      "type": 22,
+      "manufacturer": "Microchip",
+      "date": "2010"
+    },
+    {
+      "partno": "MMA7660FC",
+      "desc": "3-axis accelerometer",
+      "type": 1,
+      "manufacturer": "NXP Semi",
+      "date": "2011"
+    }
+  ],
+  "unique_types": [
+    23,
+    22,
+    1
+  ]
+}

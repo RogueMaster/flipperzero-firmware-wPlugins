@@ -1,0 +1,21 @@
+{
+  "components": [
+    {
+      "partno": "SGP30",
+      "desc": "Gas sensor.",
+      "type": 22,
+      "manufacturer": "Sensirion",
+      "date": "2016"
+    },
+    {
+      "partno": "CCS811",
+      "desc": "VOC sensor.",
+      "type": 22,
+      "manufacturer": "AMS AG",
+      "date": "2016"
+    }
+  ],
+  "unique_types": [
+    22
+  ]
+}

@@ -4,6 +4,8 @@
 
 #define PICOPASS_SCENE_DICT_ATTACK_KEYS_BATCH_UPDATE (10)
 
+#define TAG "PicopassSceneEliteDictAttack"
+
 enum {
     PicopassSceneEliteDictAttackDictEliteUser,
     PicopassSceneEliteDictAttackDictStandard,
@@ -175,6 +177,7 @@ void picopass_scene_elite_dict_attack_on_enter(void* context) {
 bool picopass_scene_elite_dict_attack_on_event(void* context, SceneManagerEvent event) {
     Picopass* picopass = context;
     bool consumed = false;
+    PicopassDeviceAuthMethod auth = picopass->dev->dev_data.auth;
 
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == PicopassCustomEventPollerSuccess) {
@@ -184,7 +187,40 @@ bool picopass_scene_elite_dict_attack_on_event(void* context, SceneManagerEvent 
                    PICOPASS_BLOCK_LEN) == 0) {
                 scene_manager_next_scene(picopass->scene_manager, PicopassSceneReadFactorySuccess);
             } else {
-                scene_manager_next_scene(picopass->scene_manager, PicopassSceneReadCardSuccess);
+                if(auth == PicopassDeviceAuthMethodFailed && picopass->nr_mac_type == AutoNRMAC) {
+                    // save partial as <CSN>-partial
+                    picopass->dev->format = PicopassDeviceSaveFormatPartial;
+                    uint8_t* csn =
+                        picopass->dev->dev_data.card_data[PICOPASS_CSN_BLOCK_INDEX].data;
+                    for(size_t i = 0; i < PICOPASS_BLOCK_LEN; i++) {
+                        snprintf(
+                            picopass->text_store + 2 * i,
+                            sizeof(picopass->text_store),
+                            "%02X",
+                            csn[i]);
+                    }
+                    snprintf(
+                        picopass->text_store + 2 * PICOPASS_BLOCK_LEN,
+                        sizeof(picopass->text_store),
+                        "-partial");
+                    strlcpy(
+                        picopass->dev->dev_name,
+                        picopass->text_store,
+                        strlen(picopass->text_store) + 1);
+                    FURI_LOG_D(TAG, "Saving name: %s", picopass->text_store);
+
+                    picopass_device_delete(picopass->dev, true);
+                    if(picopass_device_save(picopass->dev, picopass->text_store)) {
+                        scene_manager_next_scene(picopass->scene_manager, PicopassSceneEmulate);
+                    } else {
+                        FURI_LOG_W(TAG, "Failed to save partial file");
+                        scene_manager_next_scene(
+                            picopass->scene_manager, PicopassSceneReadCardSuccess);
+                    }
+                } else {
+                    scene_manager_next_scene(
+                        picopass->scene_manager, PicopassSceneReadCardSuccess);
+                }
             }
             consumed = true;
         } else if(event.event == PicopassCustomEventDictAttackUpdateView) {

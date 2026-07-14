@@ -48,5 +48,5 @@ Many thanks to everyone who has helped in addition to those above, most notably:
 - davethepirate for EE insight and acting as a sounding board
 - [cool4uma](https://github.com/cool4uma) for their work on custom text_input scenes 
 - [hummusec](https://github.com/hummusec) for testing of UART RX
-- [xMasterX](https://github.com/xMasterX) and [WillyJL](https://github.com/Willy-JL) for keeping the app updated across API changes while I was away!
+- [xMasterX](https://github.com/xMasterX) and [WillyJL](https://github.com/WillyJL) for keeping the app updated across API changes while I was away!
 - Everyone else I've had the pleasure of chatting with!

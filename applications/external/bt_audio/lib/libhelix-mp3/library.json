@@ -1,0 +1,18 @@
+{
+    "name": "libhelix-mp3",
+    "version": "1.0.0",
+    "description": "Fixed-point MP3 decoder from RealNetworks Helix project",
+    "keywords": "mp3, decoder, audio, helix",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/chmorgan/libhelix-mp3.git"
+    },
+    "license": "RPSL-1.0",
+    "frameworks": "*",
+    "platforms": "*",
+    "build": {
+        "srcFilter": ["+<*.c>"],
+        "includeDir": "src",
+        "srcDir": "src"
+    }
+}

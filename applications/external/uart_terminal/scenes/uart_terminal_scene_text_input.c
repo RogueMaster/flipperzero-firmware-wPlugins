@@ -26,10 +26,13 @@ void uart_terminal_scene_text_input_on_enter(void* context) {
     UART_TextInput* text_input = app->text_input;
     // Add help message to header
     if(0 == strncmp("AT", app->selected_tx_string, strlen("AT"))) {
-        app->TERMINAL_MODE = 1;
+        if(app->TERMINAL_MODE == 0) {
+            app->old_term_mode = app->TERMINAL_MODE;
+            app->TERMINAL_MODE = 1;
+            app->atmode_was_set = true;
+        }
         uart_text_input_set_header_text(text_input, "Send AT command to UART");
     } else {
-        app->TERMINAL_MODE = 0;
         uart_text_input_set_header_text(text_input, "Send command to UART");
     }
     uart_text_input_set_result_callback(

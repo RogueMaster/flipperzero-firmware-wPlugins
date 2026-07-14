@@ -2,6 +2,12 @@
 
 #include <stdio.h>
 
+#if __has_include(<cli/cli_ansi.h>)
+#include <cli/cli_ansi.h>
+#else
+#include "../lib/polyfills/cli_ansi.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -26,6 +32,8 @@ extern "C" {
     TOTP_CLI_PRINTF_COLORFUL(TOTP_CLI_COLOR_SUCCESS, format, ##__VA_ARGS__)
 #define TOTP_CLI_PRINTF_INFO(format, ...) \
     TOTP_CLI_PRINTF_COLORFUL(TOTP_CLI_COLOR_INFO, format, ##__VA_ARGS__)
+
+#define TOTP_CLI_NL() TOTP_CLI_PRINTF("\r\n")
 
 #define TOTP_CLI_LOCK_UI(plugin_state)                                  \
     Scene __previous_scene = plugin_state->current_scene;               \

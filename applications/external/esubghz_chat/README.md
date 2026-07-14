@@ -4,9 +4,6 @@ This is a plugin for the Flipper Zero that reimplements the Sub-GHz chat
 feature that is available on the CLI. In addition it allows for basic
 encryption of messages.
 
-The plugin has been tested on the official firmware (version 0.93.0) and on
-Unleashed (version unlshd-065).
-
 ## Warning
 
 This plugin is in the early stages of development. It will inevitably have
@@ -79,18 +76,27 @@ expect to gain any security by using encryption.
 
 ## Acknowledgements
 
+App was made by [twisted-pear](https://github.com/twisted-pear).
+
+Support for the external radio, 
+backporting NFC support due to NFC refactoring, 
+keeping app compatible with latest API, 
+support for ufbt builds by
+[xMasterX](https://github.com/xMasterX).
+
 The implementations of AES and GCM are taken directly from
 https://github.com/mko-x/SharedAES-GCM. They were released to the public domain
 by Markus Kosmal.
 
-The app icon was made by [xMasterX](https://github.com/xMasterX). The icon for
+The app icon was made by [xMasterX](https://github.com/xMasterX). 
+The icon for
 the hexadecimal key input was taken from [QtRoS](https://github.com/QtRoS) hex
 viewer app, which can be found here:
-https://github.com/QtRoS/flipper-zero-hex-viewer. Other icons and graphics were
+https://github.com/QtRoS/flipper-zero-hex-viewer. 
+Other icons and graphics were
 taken from the Flipper Zero firmware.
 
 The icons used in the key input method menu were picked by
-[Willy-JL](https://github.com/Willy-JL).
+[WillyJL](https://github.com/WillyJL).
 
-Support for the external radio was also contributed by
-[xMasterX](https://github.com/xMasterX).
+

@@ -88,7 +88,7 @@ void app_main(void)
             ESP_LOGI(TAG, "********************************************");
             ESP_LOGI(TAG, "*** Logs below are print from slave .... ***");
             ESP_LOGI(TAG, "********************************************");
-            xTaskCreate(slave_monitor, "slave_monitor", 2048, NULL, configMAX_PRIORITIES, NULL);
+            xTaskCreate(slave_monitor, "slave_monitor", 2048, NULL, configMAX_PRIORITIES - 1, NULL);
         } else {
             ESP_LOGE(TAG, "Loading to RAM failed ...");
         }

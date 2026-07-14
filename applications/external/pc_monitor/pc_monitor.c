@@ -4,106 +4,18 @@ static void render_callback(Canvas* canvas, void* ctx) {
     furi_assert(ctx);
     PcMonitorApp* app = ctx;
 
-    if(app->bt_state == BtStateRecieving) {
-        canvas_clear(canvas);
-        canvas_set_color(canvas, ColorBlack);
-        canvas_set_font(canvas, FontKeyboard);
+    switch(app->bt_state) {
+    case BtStateWaiting:
+        draw_connect_view(canvas);
+        break;
 
-        uint8_t line = 0;
-        uint8_t spacing = app->lines_count ? SCREEN_HEIGHT / app->lines_count : 0;
-        uint8_t margin_top = spacing ? (spacing - LINE_HEIGHT) / 2 : 0;
-        char str[32];
+    case BtStateRecieving:
+        draw_bars_view(canvas, app);
+        break;
 
-        if(app->data.cpu_usage <= 100) {
-            if(app->lines_count) {
-                canvas_draw_str(canvas, 1, margin_top + line * spacing + 9, "CPU");
-                snprintf(str, 32, "%d%%", app->data.cpu_usage);
-                elements_progress_bar_with_text(
-                    canvas,
-                    BAR_X,
-                    margin_top + line * spacing,
-                    BAR_WIDTH,
-                    app->data.cpu_usage / 100.0f,
-                    str);
-            }
-
-            line++;
-        }
-
-        if(app->data.ram_usage <= 100) {
-            if(app->lines_count) {
-                canvas_draw_str(canvas, 1, margin_top + line * spacing + 9, "RAM");
-                snprintf(
-                    str,
-                    32,
-                    "%.1f/%.1f %s",
-                    (double)(app->data.ram_max * 0.1f * app->data.ram_usage * 0.01f),
-                    (double)(app->data.ram_max * 0.1f),
-                    app->data.ram_unit);
-                elements_progress_bar_with_text(
-                    canvas,
-                    BAR_X,
-                    margin_top + line * spacing,
-                    BAR_WIDTH,
-                    app->data.ram_usage * 0.01f,
-                    str);
-            }
-
-            line++;
-        }
-
-        if(app->data.gpu_usage <= 100) {
-            if(app->lines_count) {
-                canvas_draw_str(canvas, 1, margin_top + line * spacing + 9, "GPU");
-                snprintf(str, 32, "%d%%", app->data.gpu_usage);
-                elements_progress_bar_with_text(
-                    canvas,
-                    BAR_X,
-                    margin_top + line * spacing,
-                    BAR_WIDTH,
-                    app->data.gpu_usage / 100.0f,
-                    str);
-            }
-
-            line++;
-        }
-
-        if(app->data.vram_usage <= 100) {
-            if(app->lines_count) {
-                canvas_draw_str(canvas, 1, margin_top + line * spacing + 9, "VRAM");
-                snprintf(
-                    str,
-                    32,
-                    "%.1f/%.1f %s",
-                    (double)(app->data.vram_max * 0.1f * app->data.vram_usage * 0.01f),
-                    (double)(app->data.vram_max * 0.1f),
-                    app->data.vram_unit);
-                elements_progress_bar_with_text(
-                    canvas,
-                    BAR_X,
-                    margin_top + line * spacing,
-                    BAR_WIDTH,
-                    app->data.vram_usage * 0.01f,
-                    str);
-            }
-
-            line++;
-        }
-
-        if(line == 0) app->bt_state = BtStateNoData;
-        app->lines_count = line;
-    } else {
-        canvas_draw_str_aligned(
-            canvas,
-            64,
-            32,
-            AlignCenter,
-            AlignCenter,
-            app->bt_state == BtStateChecking ? "Checking BLE..." :
-            app->bt_state == BtStateInactive ? "BLE inactive!" :
-            app->bt_state == BtStateWaiting  ? "Waiting for data..." :
-            app->bt_state == BtStateLost     ? "Connection lost!" :
-                                               "No data!");
+    default:
+        draw_status_view(canvas, app);
+        break;
     }
 }
 
@@ -129,6 +41,11 @@ static uint16_t bt_serial_callback(SerialServiceEvent event, void* ctx) {
             memcpy(&app->data, event.data.buffer, sizeof(DataStruct));
             app->bt_state = BtStateRecieving;
             app->last_packet = furi_hal_rtc_get_timestamp();
+
+            // Elegant solution, the backlight is only on when there is continuous communication
+            notification_message(app->notification, &sequence_display_backlight_on);
+
+            notification_message(app->notification, &sequence_blink_blue_10);
         }
     }
 

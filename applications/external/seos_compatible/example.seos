@@ -1,0 +1,12 @@
+Filetype: Flipper Seos Credential
+Version: 1
+Diversifier Length: 8
+Diversifier: 00 00 00 00 00 00 00 00
+SIO Length: 54
+SIO: 30 34 ...
+# Optional
+Priv Key: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+Auth Key: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+ADF Response: cd 02 ....
+ADF OID Length: 9
+ADF OID: 03 01 07 09 00 00 00 00 00

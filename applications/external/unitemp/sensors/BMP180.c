@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include "BMP180.h"
-#include "../interfaces/I2CSensor.h"
+#include "../interfaces/i2c_sensor.h"
 
 typedef struct {
     int16_t AC1;
@@ -33,15 +33,15 @@ typedef struct {
 } BMP180_cal;
 
 typedef struct {
-    //Калибровочные значения
+    //Calibration values
     BMP180_cal bmp180_cal;
 } BMP180_instance;
 
-const SensorType BMP180 = {
-    .typename = "BMP180",
-    .interface = &I2C,
-    .datatype = UT_TEMPERATURE | UT_PRESSURE,
-    .pollingInterval = 1000,
+const SensorModel BMP180 = {
+    .modelname = "BMP180",
+    .interface = &unitemp_i2c,
+    .data_type = UT_DATA_TYPE_TEMP_PRESS,
+    .polling_interval = 1000,
     .allocator = unitemp_BMP180_I2C_alloc,
     .mem_releaser = unitemp_BMP180_I2C_free,
     .initializer = unitemp_BMP180_init,
@@ -52,43 +52,43 @@ bool unitemp_BMP180_I2C_alloc(Sensor* sensor, char* args) {
     UNUSED(args);
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
 
-    //Адреса на шине I2C (7 бит)
-    i2c_sensor->minI2CAdr = 0x77 << 1;
-    i2c_sensor->maxI2CAdr = 0x77 << 1;
+    //Addresses on the I2C bus (7 bits)
+    i2c_sensor->min_i2c_adress = 0x77 << 1;
+    i2c_sensor->max_i2c_adress = 0x77 << 1;
 
-    BMP180_instance* bmx180_instance = malloc(sizeof(BMP180_instance));
-    i2c_sensor->sensorInstance = bmx180_instance;
+    BMP180_instance* bmx280_instance = malloc(sizeof(BMP180_instance));
+    i2c_sensor->sensor_instance = bmx280_instance;
     return true;
 }
 
 bool unitemp_BMP180_I2C_free(Sensor* sensor) {
     UNUSED(sensor);
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
-    free(i2c_sensor->sensorInstance);
+    free(i2c_sensor->sensor_instance);
     return true;
 }
 
 bool unitemp_BMP180_init(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
 
-    //Перезагрузка
-    if(!unitemp_i2c_writeReg(i2c_sensor, 0xE0, 0xB6)) return false;
+    //Reboot
+    if(!unitemp_i2c_write_reg(i2c_sensor, 0xE0, 0xB6)) return false;
     furi_delay_ms(100);
 
-    //Проверка ID
-    uint8_t id = unitemp_i2c_readReg(i2c_sensor, 0xD0);
+    //ID verification
+    uint8_t id = unitemp_i2c_read_reg(i2c_sensor, 0xD0);
     if(id != 0x55) {
         FURI_LOG_E(
             APP_NAME, "Sensor %s returned wrong ID 0x%02X, expected 0x55", sensor->name, id);
         return false;
     }
 
-    BMP180_instance* bmp180_instance = i2c_sensor->sensorInstance;
+    BMP180_instance* bmp180_instance = i2c_sensor->sensor_instance;
 
     uint8_t buff[22] = {0};
 
-    //Чтение калибровочных значений
-    if(!unitemp_i2c_readRegArray(i2c_sensor, 0xAA, 22, buff)) return false;
+    //Reading calibration values
+    if(!unitemp_i2c_read_reg_array(i2c_sensor, 0xAA, 22, buff)) return false;
     bmp180_instance->bmp180_cal.AC1 = (buff[0] << 8) | buff[1];
     bmp180_instance->bmp180_cal.AC2 = (buff[2] << 8) | buff[3];
     bmp180_instance->bmp180_cal.AC3 = (buff[4] << 8) | buff[5];
@@ -103,7 +103,7 @@ bool unitemp_BMP180_init(Sensor* sensor) {
 
     UNITEMP_DEBUG(
         "Sensor BMP180 (0x%02X) calibration values: %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d",
-        i2c_sensor->currentI2CAdr,
+        i2c_sensor->current_i2c_adress,
         bmp180_instance->bmp180_cal.AC1,
         bmp180_instance->bmp180_cal.AC2,
         bmp180_instance->bmp180_cal.AC3,
@@ -119,30 +119,31 @@ bool unitemp_BMP180_init(Sensor* sensor) {
 }
 
 bool unitemp_BMP180_I2C_deinit(Sensor* sensor) {
-    //Нечего деинициализировать
+    //Nothing to deinitialize
     UNUSED(sensor);
     return true;
 }
 
-UnitempStatus unitemp_BMP180_I2C_update(Sensor* sensor) {
+SensorStatus unitemp_BMP180_I2C_update(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
-    BMP180_instance* bmp180_instance = i2c_sensor->sensorInstance;
+    BMP180_instance* bmp180_instance = i2c_sensor->sensor_instance;
 
-    //Чтение температуры
-    if(!unitemp_i2c_writeReg(i2c_sensor, 0xF4, 0x2E)) return UT_SENSORSTATUS_TIMEOUT;
+    //Temperature reading
+    if(!unitemp_i2c_write_reg(i2c_sensor, 0xF4, 0x2E)) return UT_SENSORSTATUS_TIMEOUT;
     furi_delay_ms(5);
     uint8_t buff[3] = {0};
-    if(!unitemp_i2c_readRegArray(i2c_sensor, 0xF6, 2, buff)) return UT_SENSORSTATUS_TIMEOUT;
+    if(!unitemp_i2c_read_reg_array(i2c_sensor, 0xF6, 2, buff)) return UT_SENSORSTATUS_TIMEOUT;
     int32_t UT = ((uint16_t)buff[0] << 8) + buff[1];
     int32_t X1 = (UT - bmp180_instance->bmp180_cal.AC6) * bmp180_instance->bmp180_cal.AC5 >> 15;
     int32_t X2 = (bmp180_instance->bmp180_cal.MC << 11) / (X1 + bmp180_instance->bmp180_cal.MD);
     int32_t B5 = X1 + X2;
-    sensor->temp = ((B5 + 8) / 16) * 0.1f;
+    sensor->temperature = ((B5 + 8) / 16) * 0.1f;
 
-    //Чтение давления
-    if(!unitemp_i2c_writeReg(i2c_sensor, 0xF4, 0x34 + (0b11 << 6))) return UT_SENSORSTATUS_TIMEOUT;
+    //Pressure reading
+    if(!unitemp_i2c_write_reg(i2c_sensor, 0xF4, 0x34 + (0b11 << 6)))
+        return UT_SENSORSTATUS_TIMEOUT;
     furi_delay_ms(26);
-    if(!unitemp_i2c_readRegArray(i2c_sensor, 0xF6, 3, buff)) return UT_SENSORSTATUS_TIMEOUT;
+    if(!unitemp_i2c_read_reg_array(i2c_sensor, 0xF6, 3, buff)) return UT_SENSORSTATUS_TIMEOUT;
     uint32_t UP = ((buff[0] << 16) + (buff[1] << 8) + buff[2]) >> (8 - 0b11);
 
     int32_t B6, X3, B3, P;

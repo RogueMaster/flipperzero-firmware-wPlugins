@@ -1,0 +1,85 @@
+ATM1
+NAME Canyon
+ENTRY 0 1 2 3
+
+TRACK # 0
+GOTO_ADVANCED 0 1 2 3
+SET_VOLUME 24 # volume
+SET_TEMPO 26
+SET_VIBRATO 6 11
+REPEAT 3 5
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 1
+SET_VOLUME 24 # volume
+VOLUME_SLIDE_ON -6 # steps = -6
+REPEAT 3 5
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 2
+SET_VOLUME 48 # volume
+VOLUME_SLIDE_ON -12 # steps = -12
+REPEAT 6 8
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 3
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 4
+NOTE 18 # note = 18
+DELAY 64 # ticks = 64
+DELAY 64 # ticks = 64
+RETURN # return
+ENDTRACK
+
+TRACK # 5
+SET_TRANSPOSITION 0
+REPEAT 3 6
+SET_TRANSPOSITION 3
+REPEAT 3 6
+SET_TRANSPOSITION 0
+REPEAT 3 6
+SET_TRANSPOSITION 5
+REPEAT 2 6
+GOTO 7
+RETURN # return
+ENDTRACK
+
+TRACK # 6
+NOTE 6 # note = 6
+DELAY 8 # ticks = 8
+NOTE 18 # note = 18
+DELAY 8 # ticks = 8
+RETURN # return
+ENDTRACK
+
+TRACK # 7
+NOTE 16 # note = 16
+DELAY 4 # ticks = 4
+NOTE 15 # note = 15
+DELAY 4 # ticks = 4
+NOTE 13 # note = 13
+DELAY 8 # ticks = 8
+RETURN # return
+ENDTRACK
+
+TRACK # 8
+DELAY 64 # ticks = 64
+REPEAT 2 9
+DELAY 40 # ticks = 40
+NOTE 0 # note = 0
+RETURN # return
+ENDTRACK
+
+TRACK # 9
+NOTE 42 # note = 42
+DELAY 8 # ticks = 8
+RETURN # return
+ENDTRACK
+
+END
+# Music from Arduventure

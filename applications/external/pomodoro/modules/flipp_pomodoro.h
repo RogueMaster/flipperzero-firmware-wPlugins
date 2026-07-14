@@ -2,6 +2,7 @@
 
 #include <furi_hal.h>
 #include "../helpers/time.h"
+#include "flipp_pomodoro_settings.h"
 
 /// @brief Options of pomodoro stages
 typedef enum {
@@ -24,6 +25,11 @@ FlippPomodoroState* flipp_pomodoro__new();
 /// @param state - pointer to the state of pomorodo
 /// @returns Current stage value
 PomodoroStage flipp_pomodoro__get_stage(FlippPomodoroState* state);
+
+/// @brief Get stage by index
+/// @param index - stage index in the sequence
+/// @returns Stage value at the given index
+PomodoroStage flipp_pomodoro__stage_by_index(int index);
 
 /// @brief Destroys state of timer and it's dependencies
 void flipp_pomodoro__destroy(FlippPomodoroState* state);
@@ -51,3 +57,8 @@ bool flipp_pomodoro__is_stage_expired(FlippPomodoroState* state);
 /// @brief Rotate stage of the timer
 /// @param state - pointer to the state of pomorodo.
 void flipp_pomodoro__toggle_stage(FlippPomodoroState* state);
+
+const char* flipp_pomodoro__settings_button_label();
+
+/// @brief Apply settings (minutes) to active durations (no persistence)
+void flipp_pomodoro__apply_settings(const FlippPomodoroSettings* settings);

@@ -8,7 +8,7 @@
 
 #define SUBGHZ_LAST_SETTING_FREQUENCY_ANALYZER_TRIGGER        (-93.0f)
 // 1 = "AM650"
-// "AM270", "AM650", "FM238", "FM476",
+// "AM270", "AM650", "FM238", "FM12K", "FM476",
 #define SUBGHZ_LAST_SETTING_DEFAULT_PRESET                    1
 #define SUBGHZ_LAST_SETTING_DEFAULT_FREQUENCY                 433920000
 #define SUBGHZ_LAST_SETTING_FREQUENCY_ANALYZER_FEEDBACK_LEVEL 2
@@ -31,6 +31,7 @@ typedef struct {
     bool enable_sound;
     bool autosave;
     float hopping_threshold;
+    uint8_t tx_power;
 } SubGhzLastSettings;
 
 SubGhzLastSettings* subghz_last_settings_alloc(void);

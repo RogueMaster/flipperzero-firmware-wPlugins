@@ -1,0 +1,15 @@
+App(
+    appid="geometry_dash",
+    name="Geometry Dash",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="geometry_dash_app",
+    stack_size=2 * 1024,
+    fap_icon="geometry_flip.png",
+    fap_icon_assets="images",
+    fap_file_assets="resources",
+    fap_category="Games",
+    fap_author="goosedev72-projects",
+    fap_weburl="https://github.com/goosedev72-projects/flipperzero-geometryflip",
+    fap_version="0.1",
+    fap_description="Geometry Dash Demake with level system, basic physics engine, coyote time physics and basic UI.",
+)

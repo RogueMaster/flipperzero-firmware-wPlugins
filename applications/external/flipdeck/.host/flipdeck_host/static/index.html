@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlipDeck</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #0c0c0e;
+  --surface: #16161a;
+  --surface2: #1e1e24;
+  --border: #2a2a32;
+  --text: #e8e6e3;
+  --text2: #8b8994;
+  --accent: #ff6b2b;
+  --accent2: #ff8f5e;
+  --green: #3dd68c;
+  --red: #f05252;
+  --yellow: #f0c040;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'DM Sans', system-ui, sans-serif;
+  --radius: 8px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── Header ──────────────────────────────── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.5px;
+}
+
+.logo-icon {
+  width: 28px; height: 28px;
+  background: var(--accent);
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text2);
+}
+
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.status-dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.status-dot.off { background: var(--red); }
+
+/* ── Layout ──────────────────────────────── */
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+
+.tab {
+  padding: 10px 20px;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text2);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Cards ───────────────────────────────── */
+.section { display: none; }
+.section.active { display: block; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.card-header:hover { background: var(--surface2); }
+
+.card-key {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--surface2);
+  padding: 3px 10px;
+  border-radius: 4px;
+  color: var(--accent);
+  min-width: 42px;
+  text-align: center;
+}
+
+.card-name {
+  font-weight: 600;
+  font-size: 14px;
+  flex: 1;
+  margin-left: 14px;
+}
+
+.card-type {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text2);
+  background: var(--bg);
+  padding: 2px 8px;
+  border-radius: 3px;
+  margin-left: 10px;
+}
+
+.card-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: 12px;
+}
+
+.card-body {
+  display: none;
+  padding: 0 18px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.card.open .card-body { display: block; padding-top: 14px; }
+
+/* ── Buttons ─────────────────────────────── */
+.btn {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  background: var(--surface2);
+  color: var(--text);
+  transition: all 0.15s;
+}
+
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn.primary:hover { background: var(--accent2); }
+.btn.danger { border-color: var(--red); color: var(--red); }
+.btn.danger:hover { background: var(--red); color: #fff; }
+.btn.sm { padding: 3px 8px; font-size: 11px; }
+
+.toggle {
+  width: 36px; height: 20px;
+  background: var(--border);
+  border-radius: 10px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+  border: none;
+}
+
+.toggle.on { background: var(--green); }
+
+.toggle::after {
+  content: '';
+  position: absolute;
+  width: 16px; height: 16px;
+  background: white;
+  border-radius: 50%;
+  top: 2px; left: 2px;
+  transition: transform 0.2s;
+}
+
+.toggle.on::after { transform: translateX(16px); }
+
+/* ── Forms ────────────────────────────────── */
+.form-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.form-row label {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text2);
+}
+
+input, select, textarea {
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  width: 100%;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+textarea { min-height: 80px; resize: vertical; }
+
+/* ── Config editor ───────────────────────── */
+.config-editor {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2px;
+}
+
+.config-editor textarea {
+  border: none;
+  background: transparent;
+  min-height: 280px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.config-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+/* ── Toast ────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  background: var(--surface);
+  border: 1px solid var(--green);
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--green);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s;
+  z-index: 100;
+}
+
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.error { border-color: var(--red); color: var(--red); }
+
+/* ── Empty state ─────────────────────────── */
+.empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text2);
+}
+
+.empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+/* ── Responsive ──────────────────────────── */
+@media (max-width: 640px) {
+  .container { padding: 16px; }
+  .form-row { grid-template-columns: 1fr; }
+  .card-type { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">\u25a0</div>
+    FlipDeck
+  </div>
+  <div class="status-bar">
+    <span id="flipper-status">
+      <span class="status-dot off" id="status-dot"></span>
+      <span id="status-text">Checking...</span>
+    </span>
+    <button class="btn sm" onclick="reloadConfig()">\u21bb Reload</button>
+  </div>
+</header>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('actions')">Actions</button>
+    <button class="tab" onclick="switchTab('config')">Flipper Config</button>
+    <button class="tab" onclick="switchTab('new')">+ New Action</button>
+  </div>
+
+  <!-- ── Actions Tab ──────────────────────── -->
+  <div class="section active" id="tab-actions">
+    <div id="actions-list"></div>
+  </div>
+
+  <!-- ── Config Tab ───────────────────────── -->
+  <div class="section" id="tab-config">
+    <div class="card" style="overflow:visible">
+      <div style="padding:16px 18px">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">
+          Edit the Flipper-side <code style="color:var(--accent)">config.txt</code> and upload it to the SD card.
+          Media keys (PLAY, VOLUP, etc.) work without the host. F13-F24 trigger host-side actions below.
+        </p>
+        <div class="config-editor">
+          <textarea id="config-text" spellcheck="false"># page:Media
+PLAY:Play:>
+NEXT:Next:>>
+PREV:Prev:<<
+VOLUP:Vol+:+
+VOLDN:Vol-:-
+MUTE:Mute:X
+
+# page:Custom
+F13:Term:$
+F14:Web:@
+F15:Shot:[]
+F16:Dark:*
+F17:Paste:P
+F18:Hook:!</textarea>
+          <div class="config-toolbar">
+            <button class="btn primary" onclick="uploadConfig()">Upload to Flipper</button>
+            <button class="btn" onclick="downloadConfig()">Download .txt</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── New Action Tab ───────────────────── -->
+  <div class="section" id="tab-new">
+    <div class="card" style="overflow:visible">
+      <div style="padding:18px">
+        <h3 style="margin-bottom:16px;font-size:15px">Add New Action</h3>
+        <div class="form-row">
+          <label>Key</label>
+          <select id="new-key">
+            <option value="">Select F-key...</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Name</label>
+          <input id="new-name" placeholder="My Action">
+        </div>
+        <div class="form-row">
+          <label>Type</label>
+          <select id="new-type" onchange="updateNewFields()">
+            <option value="shell">shell</option>
+            <option value="open">open</option>
+            <option value="keypress">keypress</option>
+            <option value="paste">paste</option>
+            <option value="http">http</option>
+            <option value="osascript">osascript</option>
+            <option value="shortcut">shortcut</option>
+            <option value="python">python</option>
+            <option value="bash">bash</option>
+          </select>
+        </div>
+        <div id="new-fields"></div>
+        <div style="margin-top:16px">
+          <button class="btn primary" onclick="createAction()">Create Action</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+let actions = {};
+let types = {};
+
+// ── Tab switching ──────────────────────────
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', t.textContent.includes(
+      name === 'actions' ? 'Actions' : name === 'config' ? 'Config' : 'New'
+    ));
+  });
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+// ── Toast ──────────────────────────────────
+
+function toast(msg, error = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (error ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+// ── Fetch helpers ──────────────────────────
+
+async function api(path, opts = {}) {
+  const r = await fetch(API + path, {
+    headers: {'Content-Type': 'application/json'},
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  return r.json();
+}
+
+// ── Load actions ───────────────────────────
+
+async function loadActions() {
+  actions = await api('/api/actions');
+  renderActions();
+}
+
+async function loadTypes() {
+  types = await api('/api/types');
+}
+
+function renderActions() {
+  const list = document.getElementById('actions-list');
+  const keys = Object.keys(actions);
+
+  if (keys.length === 0) {
+    list.innerHTML = `<div class="empty">
+      <div class="empty-icon">\u2328</div>
+      <p>No actions configured yet.</p>
+      <p style="margin-top:8px">Click <b>+ New Action</b> to add one.</p>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = keys.map(key => {
+    const a = actions[key];
+    const enabled = a.enabled !== false;
+    return `<div class="card" id="card-${key}">
+      <div class="card-header" onclick="toggleCard('${key}')">
+        <span class="card-key">${key.toUpperCase()}</span>
+        <span class="card-name">${esc(a.name || key)}</span>
+        <span class="card-type">${esc(a.type || '?')}</span>
+        <div class="card-actions">
+          <button class="toggle ${enabled ? 'on' : ''}" onclick="event.stopPropagation();toggleEnabled('${key}')"></button>
+          <button class="btn sm" onclick="event.stopPropagation();testAction('${key}')" title="Test">\u25b6</button>
+          <button class="btn sm danger" onclick="event.stopPropagation();deleteAction('${key}')" title="Delete">\u2715</button>
+        </div>
+      </div>
+      <div class="card-body">
+        ${renderEditForm(key, a)}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Populate new-key dropdown excluding existing
+  const sel = document.getElementById('new-key');
+  sel.innerHTML = '<option value="">Select F-key...</option>';
+  for (let i = 13; i <= 24; i++) {
+    const k = `f${i}`;
+    if (!actions[k]) {
+      sel.innerHTML += `<option value="${k}">F${i}</option>`;
+    }
+  }
+}
+
+function renderEditForm(key, a) {
+  const fields = getFieldsForType(a.type, a);
+  return `<form onsubmit="event.preventDefault();saveAction('${key}')">
+    <div class="form-row">
+      <label>Name</label>
+      <input id="edit-${key}-name" value="${esc(a.name || '')}">
+    </div>
+    <div class="form-row">
+      <label>Type</label>
+      <select id="edit-${key}-type" onchange="updateEditFields('${key}')">
+        ${Object.keys(types).map(t =>
+          `<option value="${t}" ${t === a.type ? 'selected' : ''}>${t}</option>`
+        ).join('')}
+      </select>
+    </div>
+    <div id="edit-${key}-fields">${fields}</div>
+    <div style="margin-top:12px">
+      <button type="submit" class="btn primary">Save</button>
+    </div>
+  </form>`;
+}
+
+function getFieldsForType(type, data = {}) {
+  const f = (label, field, value, tag = 'input') => {
+    const v = esc(value || '');
+    if (tag === 'textarea') {
+      return `<div class="form-row"><label>${label}</label><textarea data-field="${field}">${v}</textarea></div>`;
+    }
+    return `<div class="form-row"><label>${label}</label><input data-field="${field}" value="${v}"></div>`;
+  };
+
+  switch (type) {
+    case 'shell': return f('Command', 'command', data.command);
+    case 'open': return f('Target', 'target', data.target) + f('App (opt)', 'app', data.app);
+    case 'keypress': return f('Keys', 'keys', data.keys) +
+      '<div class="form-row"><label></label><span style="font-size:11px;color:var(--text2)">e.g. cmd+shift+4, ctrl+c</span></div>';
+    case 'paste': return f('Text', 'text', data.text, 'textarea');
+    case 'http': return f('URL', 'url', data.url) + f('Method', 'method', data.method || 'GET') +
+      f('Body', 'body', data.body, 'textarea');
+    case 'osascript': return f('Script', 'script', data.script, 'textarea');
+    case 'shortcut': return f('Shortcut Name', 'name', data.shortcut_name || data.name);
+    case 'python': return f('Script Path', 'script', data.script);
+    case 'bash': return f('Script Path', 'script', data.script);
+    default: return '<p style="color:var(--text2);font-size:12px">No config fields for this type.</p>';
+  }
+}
+
+// ── Card interactions ──────────────────────
+
+function toggleCard(key) {
+  document.getElementById(`card-${key}`).classList.toggle('open');
+}
+
+async function toggleEnabled(key) {
+  await api(`/api/actions/${key}/toggle`, {method: 'POST'});
+  await loadActions();
+}
+
+async function testAction(key) {
+  toast(`Testing ${key.toUpperCase()}...`);
+  const r = await api(`/api/actions/${key}/test`, {method: 'POST'});
+  toast(r.result ? `\u2713 ${key.toUpperCase()} executed` : `\u2717 ${key.toUpperCase()} failed`, !r.result);
+}
+
+async function deleteAction(key) {
+  if (!confirm(`Delete action ${key.toUpperCase()}?`)) return;
+  await api(`/api/actions/${key}`, {method: 'DELETE'});
+  await loadActions();
+  toast(`Deleted ${key.toUpperCase()}`);
+}
+
+async function saveAction(key) {
+  const card = document.getElementById(`card-${key}`);
+  const name = card.querySelector(`#edit-${key}-name`).value;
+  const type = card.querySelector(`#edit-${key}-type`).value;
+  const data = {name, type, enabled: actions[key]?.enabled !== false};
+
+  card.querySelectorAll(`#edit-${key}-fields [data-field]`).forEach(el => {
+    data[el.dataset.field] = el.value;
+  });
+
+  await api(`/api/actions/${key}`, {method: 'PUT', body: data});
+  await loadActions();
+  toast(`\u2713 Saved ${key.toUpperCase()}`);
+}
+
+function updateEditFields(key) {
+  const type = document.getElementById(`edit-${key}-type`).value;
+  document.getElementById(`edit-${key}-fields`).innerHTML = getFieldsForType(type);
+}
+
+// ── New action ─────────────────────────────
+
+function updateNewFields() {
+  const type = document.getElementById('new-type').value;
+  document.getElementById('new-fields').innerHTML = getFieldsForType(type);
+}
+
+async function createAction() {
+  const key = document.getElementById('new-key').value;
+  const name = document.getElementById('new-name').value;
+  const type = document.getElementById('new-type').value;
+
+  if (!key) { toast('Select a key first', true); return; }
+  if (!name) { toast('Enter a name', true); return; }
+
+  const data = {name, type, enabled: true};
+  document.querySelectorAll('#new-fields [data-field]').forEach(el => {
+    data[el.dataset.field] = el.value;
+  });
+
+  await api(`/api/actions/${key}`, {method: 'PUT', body: data});
+  await loadActions();
+  switchTab('actions');
+  toast(`\u2713 Created ${key.toUpperCase()}`);
+
+  document.getElementById('new-key').value = '';
+  document.getElementById('new-name').value = '';
+}
+
+// ── Config upload ──────────────────────────
+
+async function uploadConfig() {
+  const text = document.getElementById('config-text').value;
+  try {
+    const r = await api('/api/flipper/upload', {method: 'POST', body: {config: text}});
+    if (r.ok) toast('\u2713 Config uploaded to Flipper!');
+    else toast(r.error || 'Upload failed', true);
+  } catch (e) {
+    toast('Upload failed: ' + e.message, true);
+  }
+}
+
+function downloadConfig() {
+  const text = document.getElementById('config-text').value;
+  const blob = new Blob([text], {type: 'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'config.txt';
+  a.click();
+}
+
+// ── Reload ─────────────────────────────────
+
+async function reloadConfig() {
+  await api('/api/reload', {method: 'POST'});
+  await loadActions();
+  toast('\u2713 Config reloaded');
+}
+
+// ── Flipper status polling ─────────────────
+
+async function checkFlipper() {
+  try {
+    const r = await api('/api/flipper/status');
+    const dot = document.getElementById('status-dot');
+    const text = document.getElementById('status-text');
+    dot.className = 'status-dot ' + (r.connected ? 'on' : 'off');
+    text.textContent = r.connected ? `Flipper \u2022 ${r.port}` : 'Flipper disconnected';
+  } catch (e) {
+    document.getElementById('status-text').textContent = 'API offline';
+  }
+}
+
+// ── Escape HTML ────────────────────────────
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ── Init ───────────────────────────────────
+
+(async () => {
+  await loadTypes();
+  await loadActions();
+  updateNewFields();
+  checkFlipper();
+  setInterval(checkFlipper, 5000);
+})();
+</script>
+</body>
+</html>

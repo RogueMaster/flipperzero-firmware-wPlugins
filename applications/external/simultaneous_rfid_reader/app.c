@@ -78,10 +78,10 @@ static UHFReaderApp* uhf_reader_app_alloc() {
     App->EpcIndexFile = IndexFile;
 
     //Initializing the arrays for storing all tag information from the read screen
-    App->EpcValues = (char**)malloc(150 * 26);
-    App->TidValues = (char**)malloc(150 * 41);
-    App->ResValues = (char**)malloc(150 * 17);
-    App->MemValues = (char**)malloc(150 * 33);
+    App->EpcValues = (char**)malloc(50 * 26);
+    App->TidValues = (char**)malloc(50 * 41);
+    App->ResValues = (char**)malloc(50 * 17);
+    App->MemValues = (char**)malloc(50 * 33);
     App->EpcToSave = (char*)malloc(25);
     App->NumberOfEpcsToRead = 0;
 
@@ -97,7 +97,6 @@ static UHFReaderApp* uhf_reader_app_alloc() {
     //Creating the initial GUI
     Gui* Gui = furi_record_open(RECORD_GUI);
     App->ViewDispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(App->ViewDispatcher);
     view_dispatcher_attach_to_gui(App->ViewDispatcher, Gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(App->ViewDispatcher, App);
 

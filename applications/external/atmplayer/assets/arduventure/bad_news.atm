@@ -1,0 +1,59 @@
+ATM1
+NAME Bad news
+ENTRY 0 1 2 2
+
+TRACK # 0
+SET_VOLUME 48 # volume
+VOLUME_SLIDE_ON -1 # steps = -1
+SET_TEMPO 24
+REPEAT 63 3
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 1
+SET_VOLUME 24 # volume
+VOLUME_SLIDE_ON -3 # steps = -3
+REPEAT 63 4
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 2
+SET_VOLUME 0 # volume
+STOP # stop current channel
+ENDTRACK
+
+TRACK # 3
+NOTE 1 # note = 1
+DELAY 48 # ticks = 48
+NOTE 6 # note = 6
+DELAY 48 # ticks = 48
+NOTE 5 # note = 5
+DELAY 48 # ticks = 48
+NOTE 10 # note = 10
+DELAY 48 # ticks = 48
+RETURN # return
+ENDTRACK
+
+TRACK # 4
+REPEAT 2 6
+REPEAT 2 5
+RETURN # return
+ENDTRACK
+
+TRACK # 5
+NOTE 45 # note = 45
+DELAY 8 # ticks = 8
+NOTE 42 # note = 42
+DELAY 8 # ticks = 8
+RETURN # return
+ENDTRACK
+
+TRACK # 6
+NOTE 45 # note = 45
+DELAY 8 # ticks = 8
+NOTE 41 # note = 41
+DELAY 8 # ticks = 8
+RETURN # return
+ENDTRACK
+
+END

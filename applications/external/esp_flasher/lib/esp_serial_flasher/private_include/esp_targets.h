@@ -29,5 +29,10 @@ typedef struct {
 } target_registers_t;
 
 esp_loader_error_t loader_detect_chip(target_chip_t *target, const target_registers_t **regs);
-esp_loader_error_t loader_read_spi_config(target_chip_t target_chip, uint32_t *spi_config);
+esp_loader_error_t loader_read_mac(target_chip_t target_code, uint8_t *mac);
 bool encryption_in_begin_flash_cmd(target_chip_t target);
+
+#ifndef SERIAL_FLASHER_INTERFACE_SDIO
+esp_loader_error_t loader_read_spi_config(target_chip_t target_chip, uint32_t *spi_config);
+target_chip_t target_from_chip_id(uint32_t chip_id);
+#endif

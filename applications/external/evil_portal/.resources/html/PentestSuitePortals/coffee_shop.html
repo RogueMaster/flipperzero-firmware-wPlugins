@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Grind Free WiFi</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #1c0a00;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .card {
+    background: #fff;
+    width: 100%;
+    max-width: 380px;
+    border-radius: 12px;
+    box-shadow: 0 12px 50px rgba(0,0,0,0.6);
+    overflow: hidden;
+  }
+  .hero {
+    background: linear-gradient(180deg, #3d1a00 0%, #5c2800 100%);
+    padding: 28px 24px 20px;
+    text-align: center;
+  }
+  .cup { font-size: 48px; line-height: 1; }
+  .brand-name {
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.5px;
+    margin-top: 8px;
+  }
+  .brand-sub {
+    font-size: 12px;
+    color: #f0bb88;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .tag {
+    display: inline-block;
+    background: #f0bb88;
+    color: #3d1a00;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-top: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .body { padding: 24px 22px 20px; }
+  h2 { font-size: 17px; color: #222; font-weight: 700; margin-bottom: 4px; }
+  .sub { font-size: 13px; color: #777; margin-bottom: 20px; line-height: 1.4; }
+  label { display: block; font-size: 12px; color: #555; font-weight: 600; margin-bottom: 5px; }
+  input[type=text], input[type=email] {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 14px;
+    outline: none;
+    color: #333;
+    background: #fafafa;
+  }
+  input:focus { border-color: #5c2800; background: #fff; }
+  .checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .checkbox-row input[type=checkbox] {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    accent-color: #5c2800;
+  }
+  .checkbox-row label {
+    font-size: 12px;
+    color: #666;
+    font-weight: normal;
+    margin-bottom: 0;
+    line-height: 1.4;
+  }
+  .btn {
+    width: 100%;
+    background: #5c2800;
+    color: #fff;
+    border: none;
+    padding: 13px;
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+  }
+  .btn:hover { background: #3d1a00; }
+  .perks {
+    display: flex;
+    justify-content: space-around;
+    padding: 14px 16px;
+    background: #fdf6f0;
+    border-top: 1px solid #f0e0d0;
+  }
+  .perk { text-align: center; font-size: 11px; color: #888; }
+  .perk span { display: block; font-size: 18px; margin-bottom: 3px; }
+  .footer {
+    padding: 12px 22px;
+    font-size: 10px;
+    color: #bbb;
+    text-align: center;
+    border-top: 1px solid #f0e0d0;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="hero">
+    <div class="cup">&#9749;</div>
+    <div class="brand-name">Daily Grind</div>
+    <div class="brand-sub">Coffee &amp; Café</div>
+    <div class="tag">&#x2714; Free WiFi</div>
+  </div>
+  <div class="body">
+    <h2>Get Connected</h2>
+    <p class="sub">Free WiFi for all guests. Just share your email to get online &mdash; no credit card needed.</p>
+    <form method="POST" action="/">
+      <label for="name">Your Name</label>
+      <input type="text" id="name" name="name" placeholder="First name" autocomplete="given-name">
+
+      <label for="email">Email Address</label>
+      <input type="email" id="email" name="email" placeholder="you@email.com" autocomplete="email">
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="offers" name="offers" value="yes" checked>
+        <label for="offers">Send me exclusive offers, free drink rewards, and new menu updates.</label>
+      </div>
+
+      <button type="submit" class="btn">Connect Me &rarr;</button>
+    </form>
+  </div>
+  <div class="perks">
+    <div class="perk"><span>&#x26A1;</span>Fast Speed</div>
+    <div class="perk"><span>&#x23F0;</span>Unlimited Time</div>
+    <div class="perk"><span>&#x1F512;</span>Secure</div>
+  </div>
+  <div class="footer">
+    By connecting, you agree to our Terms of Service. WiFi for paying guests only.
+  </div>
+</div>
+</body>
+</html>

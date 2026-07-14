@@ -1,0 +1,560 @@
+#include "lesson_view.h"
+
+#include <furi.h>
+#include <furi_hal_random.h>
+#include <gui/elements.h>
+#include <string.h>
+
+#include "../helpers/pocketlab_fonts.h"
+#include "../helpers/pocketlab_labtext.h"
+#include "../helpers/pocketlab_sound.h"
+
+#define LESSON_ANIM_PERIOD_MS 90
+
+// Body paragraph layout for the Universal font. The text never reaches the
+// bottom bar (page dots + chevron); overflow scrolls with a scrollbar.
+#define LESSON_BODY_TOP     27 // baseline of the first body line
+#define LESSON_BODY_LH      11 // line pitch
+#define LESSON_BODY_VISIBLE 3 // lines that fit above the bottom bar
+#define LESSON_BODY_W       120 // wrap width (leaves room for the scrollbar)
+
+// Greedy word-wrap over `text`. Returns the total line count. When draw is true,
+// the lines whose index falls in [from, from + VISIBLE) are rendered. Uses only
+// small stack buffers (no per-line array) since draw runs on the tiny GUI stack.
+static size_t lesson_wrap(Canvas* canvas, const char* text, bool draw, uint8_t from) {
+    char cur[64] = {0};
+    char word[48];
+    char trial[120];
+    size_t n = 0;
+    const char* p = text;
+    while(*p) {
+        while(*p == ' ')
+            p++;
+        size_t wi = 0;
+        while(*p && *p != ' ' && wi < sizeof(word) - 1)
+            word[wi++] = *p++;
+        word[wi] = '\0';
+        if(!wi) break;
+
+        if(cur[0]) {
+            snprintf(trial, sizeof(trial), "%s %s", cur, word);
+        } else {
+            snprintf(trial, sizeof(trial), "%s", word);
+        }
+        if(canvas_string_width(canvas, trial) <= LESSON_BODY_W) {
+            strncpy(cur, trial, sizeof(cur) - 1);
+            cur[sizeof(cur) - 1] = '\0';
+        } else {
+            if(cur[0]) {
+                if(draw && n >= from && n < (size_t)(from + LESSON_BODY_VISIBLE)) {
+                    canvas_draw_str(
+                        canvas, 2, LESSON_BODY_TOP + (uint8_t)(n - from) * LESSON_BODY_LH, cur);
+                }
+                n++;
+            }
+            strncpy(cur, word, sizeof(cur) - 1);
+            cur[sizeof(cur) - 1] = '\0';
+        }
+    }
+    if(cur[0]) {
+        if(draw && n >= from && n < (size_t)(from + LESSON_BODY_VISIBLE)) {
+            canvas_draw_str(
+                canvas, 2, LESSON_BODY_TOP + (uint8_t)(n - from) * LESSON_BODY_LH, cur);
+        }
+        n++;
+    }
+    return n;
+}
+
+// Draw a lab body paragraph. English keeps the stock text box unchanged. Other
+// languages wrap in the Universal font, clamped to LESSON_BODY_VISIBLE lines
+// with a scrollbar when the text is longer; body_scroll picks the window.
+static void
+    lesson_draw_body(Canvas* canvas, uint8_t* body_scroll, uint8_t* body_max, const char* text) {
+    if(!pocketlab_font_is_universal()) {
+        *body_max = 0;
+        canvas_set_font(canvas, FontSecondary);
+        elements_text_box(canvas, 2, 18, 124, 36, AlignLeft, AlignTop, text, false);
+        return;
+    }
+
+    pocketlab_font_apply_small(canvas);
+    const size_t count = lesson_wrap(canvas, text, false, 0); // pass 1: count lines
+    const uint8_t max_scroll =
+        count > LESSON_BODY_VISIBLE ? (uint8_t)(count - LESSON_BODY_VISIBLE) : 0;
+    *body_max = max_scroll;
+    if(*body_scroll > max_scroll) *body_scroll = max_scroll;
+
+    lesson_wrap(canvas, text, true, *body_scroll); // pass 2: draw the window
+
+    if(count > LESSON_BODY_VISIBLE) {
+        // Minimal scrollbar in the right margin of the body area.
+        const uint8_t track_y = 18, track_h = 36;
+        uint8_t thumb_h = (uint8_t)(track_h * LESSON_BODY_VISIBLE / count);
+        if(thumb_h < 4) thumb_h = 4;
+        const uint8_t thumb_y =
+            max_scroll ? (uint8_t)(track_y + (track_h - thumb_h) * *body_scroll / max_scroll) :
+                         track_y;
+        canvas_draw_line(canvas, 126, track_y, 126, track_y + track_h);
+        canvas_draw_box(canvas, 125, thumb_y, 2, thumb_h);
+    }
+}
+
+struct LessonView {
+    View* view;
+    FuriTimer* timer;
+    NotificationApp* notifications;
+    bool sound_enabled;
+    LessonViewDoneCallback done_callback;
+    void* done_context;
+};
+
+typedef struct {
+    const PocketLabLab* lab;
+    bool already_completed;
+    size_t step;
+    uint8_t quiz_sel;
+    bool feedback;
+    bool last_right;
+    uint32_t anim;
+    uint8_t shake; // countdown for the wrong-answer shake
+    uint32_t xp_shown;
+    const char* quiz_options[POCKETLAB_QUIZ_OPTIONS];
+    uint8_t quiz_answer;
+    uint8_t body_scroll; // first visible body line
+    uint8_t body_max_scroll; // set by the draw pass, used to clamp scrolling
+} LessonModel;
+
+static uint32_t lesson_view_rand(uint32_t max) {
+    return furi_hal_random_get() % max;
+}
+
+// When the current step is a quiz, pick the correct answer plus two random
+// distractors and shuffle them, so the layout differs every time.
+static void lesson_view_prepare_quiz(LessonModel* model) {
+    const PocketLabStep* step = &model->lab->steps[model->step];
+    if(step->type != PocketLabStepQuiz) {
+        return;
+    }
+
+    const uint8_t count = step->distractor_count;
+    uint8_t first = lesson_view_rand(count);
+    uint8_t second = lesson_view_rand(count - 1);
+    if(second >= first) {
+        second++;
+    }
+
+    const char* options[POCKETLAB_QUIZ_OPTIONS] = {
+        step->correct,
+        step->distractors[first],
+        step->distractors[second],
+    };
+    uint8_t correct = 0;
+
+    for(uint8_t i = POCKETLAB_QUIZ_OPTIONS - 1; i > 0; i--) {
+        const uint8_t j = lesson_view_rand(i + 1);
+        const char* tmp = options[i];
+        options[i] = options[j];
+        options[j] = tmp;
+        if(correct == i) {
+            correct = j;
+        } else if(correct == j) {
+            correct = i;
+        }
+    }
+
+    for(uint8_t i = 0; i < POCKETLAB_QUIZ_OPTIONS; i++) {
+        model->quiz_options[i] = options[i];
+    }
+    model->quiz_answer = correct;
+    model->quiz_sel = 0;
+    model->feedback = false;
+}
+
+// Step progress dots, pinned to the bottom-left corner next to the chevron.
+static void lesson_view_draw_dots(Canvas* canvas, const LessonModel* model) {
+    const uint8_t count = model->lab->step_count;
+    const uint8_t cy = 58;
+    for(uint8_t i = 0; i < count; i++) {
+        const uint8_t x = 5 + i * 6;
+        if(i < model->step) {
+            canvas_draw_disc(canvas, x, cy, 1);
+        } else if(i == model->step) {
+            canvas_draw_disc(canvas, x, cy, 2);
+        } else {
+            canvas_draw_circle(canvas, x, cy, 1);
+        }
+    }
+}
+
+static void lesson_view_draw_icon(Canvas* canvas, const uint16_t* rows, uint8_t x, uint8_t y) {
+    for(uint8_t r = 0; r < 12; r++) {
+        for(uint8_t c = 0; c < 12; c++) {
+            if(rows[r] & (1u << c)) {
+                canvas_draw_dot(canvas, x + c, y + r);
+            }
+        }
+    }
+}
+
+static void lesson_view_draw_chevron(Canvas* canvas, uint32_t anim) {
+    if((anim / 5) % 2 != 0) {
+        return;
+    }
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, ">");
+}
+
+// Draw the title at x=15. If it is wider than the bar it ping-pong scrolls so
+// the whole (often longer Russian) title can be read; the icon is repainted on
+// top after so the scrolled text never spills over it.
+static void lesson_draw_title(Canvas* canvas, const LessonModel* model, const char* title) {
+    pocketlab_font_apply(canvas, true);
+    const int x0 = 17; // a touch more air from the icon
+    const int avail = 128 - x0;
+    const int tw = canvas_string_width(canvas, title);
+    if(tw <= avail) {
+        canvas_draw_str(canvas, x0, 12, title);
+        return;
+    }
+
+    const int span = tw - avail;
+    const int hold = 10; // frames paused at each end
+    const int total = 2 * (span + hold);
+    const int t = (int)(model->anim % (uint32_t)total);
+    int off;
+    if(t < hold) {
+        off = 0;
+    } else if(t < hold + span) {
+        off = t - hold;
+    } else if(t < 2 * hold + span) {
+        off = span;
+    } else {
+        off = span - (t - 2 * hold - span);
+    }
+
+    canvas_draw_str(canvas, x0 - off, 12, title);
+    // Hide the part scrolled under the icon and repaint the icon on top.
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_box(canvas, 0, 0, x0, 16);
+    canvas_set_color(canvas, ColorBlack);
+    lesson_view_draw_icon(canvas, model->lab->icon, 2, 3);
+}
+
+static void
+    lesson_view_draw_text_step(Canvas* canvas, LessonModel* model, const PocketLabStep* step) {
+    lesson_view_draw_icon(canvas, model->lab->icon, 2, 3);
+    lesson_draw_title(canvas, model, pocketlab_tr(step->title));
+    lesson_draw_body(
+        canvas, &model->body_scroll, &model->body_max_scroll, pocketlab_tr(step->body));
+    lesson_view_draw_chevron(canvas, model->anim);
+}
+
+static void
+    lesson_view_draw_quiz(Canvas* canvas, const LessonModel* model, const PocketLabStep* step) {
+    lesson_view_draw_icon(canvas, model->lab->icon, 2, 3);
+    lesson_draw_title(canvas, model, pocketlab_tr(step->title));
+
+    pocketlab_font_apply_small(canvas);
+    for(uint8_t i = 0; i < POCKETLAB_QUIZ_OPTIONS; i++) {
+        const uint8_t y = 28 + i * 11;
+        if(i == model->quiz_sel) {
+            canvas_draw_box(canvas, 0, y - 9, 128, 11);
+            canvas_set_color(canvas, ColorWhite);
+        }
+        canvas_draw_str(canvas, 4, y, pocketlab_tr(model->quiz_options[i]));
+        canvas_set_color(canvas, ColorBlack);
+    }
+}
+
+// A bold check mark with its lower tip at (x, y).
+static void lesson_view_draw_check(Canvas* canvas, uint8_t x, uint8_t y) {
+    canvas_draw_line(canvas, x - 3, y - 3, x, y);
+    canvas_draw_line(canvas, x, y, x + 6, y - 6);
+    canvas_draw_line(canvas, x - 3, y - 4, x, y - 1); // thickness
+    canvas_draw_line(canvas, x, y - 1, x + 6, y - 7);
+}
+
+static void
+    lesson_view_draw_feedback(Canvas* canvas, LessonModel* model, const PocketLabStep* step) {
+    // On a wrong answer the title jitters left/right for a few frames.
+    const int dx = (model->shake > 0) ? ((model->shake & 1) ? 3 : -3) : 0;
+    pocketlab_font_apply(canvas, true);
+    if(model->last_right) {
+        lesson_view_draw_check(canvas, 5, 11);
+        canvas_draw_str(canvas, 15, 12, pocketlab_text(PocketLabTextCorrect));
+    } else {
+        canvas_draw_str(canvas, 2 + dx, 12, pocketlab_text(PocketLabTextTryAgain));
+    }
+    lesson_draw_body(
+        canvas,
+        &model->body_scroll,
+        &model->body_max_scroll,
+        pocketlab_tr(model->last_right ? step->feedback_ok : step->feedback_no));
+    lesson_view_draw_chevron(canvas, model->anim);
+}
+
+static void lesson_view_draw_medal(Canvas* canvas, uint8_t cx, uint8_t cy, uint32_t anim) {
+    const uint8_t radius = 6 + (anim % 3);
+    canvas_draw_disc(canvas, cx, cy, radius);
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_disc(canvas, cx, cy, 2);
+    canvas_set_color(canvas, ColorBlack);
+}
+
+static void lesson_view_draw_reward(Canvas* canvas, const LessonModel* model) {
+    pocketlab_font_apply(canvas, true);
+    canvas_draw_str_aligned(
+        canvas, 64, 14, AlignCenter, AlignBottom, pocketlab_text(PocketLabTextLabComplete));
+
+    char xp_line[16];
+    const char* line1;
+    const char* line2;
+    if(model->already_completed) {
+        line1 = pocketlab_tr("Reviewed!");
+        line2 = pocketlab_tr("Nice work!");
+    } else {
+        snprintf(xp_line, sizeof(xp_line), "+%lu XP", (unsigned long)model->xp_shown);
+        line1 = xp_line;
+        line2 = pocketlab_tr(model->lab->badge);
+    }
+
+    // Center the medal + two text lines as one group, whatever the text length.
+    pocketlab_font_apply_small(canvas);
+    const uint16_t width_1 = canvas_string_width(canvas, line1);
+    const uint16_t width_2 = canvas_string_width(canvas, line2);
+    const uint16_t text_width = width_1 > width_2 ? width_1 : width_2;
+
+    const uint8_t medal_slot = 18;
+    const uint8_t gap = 6;
+    const uint8_t start_x = (128 - (medal_slot + gap + text_width)) / 2;
+    const uint8_t text_x = start_x + medal_slot + gap;
+
+    lesson_view_draw_medal(canvas, start_x + medal_slot / 2, 37, model->anim);
+    canvas_draw_str(canvas, text_x, 35, line1);
+    canvas_draw_str(canvas, text_x, 45, line2);
+
+    lesson_view_draw_chevron(canvas, model->anim);
+}
+
+static void lesson_view_draw_callback(Canvas* canvas, void* context) {
+    LessonModel* model = context;
+    if(model->lab == NULL) {
+        return;
+    }
+
+    canvas_clear(canvas);
+    lesson_view_draw_dots(canvas, model);
+
+    const PocketLabStep* step = &model->lab->steps[model->step];
+    switch(step->type) {
+    case PocketLabStepQuiz:
+        if(model->feedback) {
+            lesson_view_draw_feedback(canvas, model, step);
+        } else {
+            lesson_view_draw_quiz(canvas, model, step);
+        }
+        break;
+    case PocketLabStepReward:
+        lesson_view_draw_reward(canvas, model);
+        break;
+    default:
+        lesson_view_draw_text_step(canvas, model, step);
+        break;
+    }
+}
+
+static bool lesson_view_input_callback(InputEvent* event, void* context) {
+    LessonView* instance = context;
+    if(event->type != InputTypeShort && event->type != InputTypeRepeat) {
+        return false;
+    }
+
+    bool consumed = false;
+    bool finished = false;
+    bool play_sound = false;
+    PocketLabSoundId sound = PocketLabSoundClick;
+
+    with_view_model(
+        instance->view,
+        LessonModel * model,
+        {
+            const PocketLabStep* step = &model->lab->steps[model->step];
+
+            if(step->type == PocketLabStepQuiz && !model->feedback) {
+                if(event->key == InputKeyUp) {
+                    model->quiz_sel =
+                        (model->quiz_sel + POCKETLAB_QUIZ_OPTIONS - 1) % POCKETLAB_QUIZ_OPTIONS;
+                    consumed = true;
+                } else if(event->key == InputKeyDown) {
+                    model->quiz_sel = (model->quiz_sel + 1) % POCKETLAB_QUIZ_OPTIONS;
+                    consumed = true;
+                } else if(event->key == InputKeyOk) {
+                    model->feedback = true;
+                    model->body_scroll = 0;
+                    model->last_right = model->quiz_sel == model->quiz_answer;
+                    if(!model->last_right) model->shake = 6;
+                    play_sound = true;
+                    sound = model->last_right ? PocketLabSoundCorrect : PocketLabSoundWrong;
+                    consumed = true;
+                }
+            } else if(step->type == PocketLabStepQuiz && model->feedback) {
+                if(event->key == InputKeyUp) {
+                    if(model->body_scroll > 0) model->body_scroll--;
+                    consumed = true;
+                } else if(event->key == InputKeyDown) {
+                    if(model->body_scroll < model->body_max_scroll) model->body_scroll++;
+                    consumed = true;
+                } else if(event->key == InputKeyOk || event->key == InputKeyRight) {
+                    if(model->last_right) {
+                        model->step++;
+                        model->feedback = false;
+                        model->quiz_sel = 0;
+                        model->body_scroll = 0;
+                        lesson_view_prepare_quiz(model);
+                        play_sound = true;
+                        sound = model->lab->steps[model->step].type == PocketLabStepReward ?
+                                    PocketLabSoundComplete :
+                                    PocketLabSoundClick;
+                    } else {
+                        model->feedback = false;
+                        model->body_scroll = 0;
+                    }
+                    consumed = true;
+                }
+            } else if(step->type == PocketLabStepReward) {
+                if(event->key == InputKeyOk || event->key == InputKeyRight) {
+                    finished = true;
+                    consumed = true;
+                }
+            } else {
+                if(event->key == InputKeyUp) {
+                    if(model->body_scroll > 0) model->body_scroll--;
+                    consumed = true;
+                } else if(event->key == InputKeyDown) {
+                    if(model->body_scroll < model->body_max_scroll) model->body_scroll++;
+                    consumed = true;
+                } else if(event->key == InputKeyOk || event->key == InputKeyRight) {
+                    model->step++;
+                    model->body_scroll = 0;
+                    lesson_view_prepare_quiz(model);
+                    play_sound = true;
+                    sound = model->lab->steps[model->step].type == PocketLabStepReward ?
+                                PocketLabSoundComplete :
+                                PocketLabSoundClick;
+                    consumed = true;
+                }
+            }
+        },
+        true);
+
+    if(play_sound) {
+        pocketlab_sound_play(instance->notifications, instance->sound_enabled, sound);
+    }
+    if(finished && instance->done_callback) {
+        instance->done_callback(instance->done_context);
+    }
+
+    return consumed;
+}
+
+static void lesson_view_timer_callback(void* context) {
+    LessonView* instance = context;
+    with_view_model(
+        instance->view,
+        LessonModel * model,
+        {
+            model->anim++;
+            if(model->shake > 0) model->shake--;
+            const PocketLabStep* step = &model->lab->steps[model->step];
+            if(step->type == PocketLabStepReward && !model->already_completed &&
+               model->xp_shown < model->lab->xp) {
+                const uint32_t remaining = model->lab->xp - model->xp_shown;
+                model->xp_shown += (remaining + 5) / 6;
+            }
+        },
+        true);
+}
+
+static void lesson_view_enter_callback(void* context) {
+    LessonView* instance = context;
+    furi_timer_start(instance->timer, furi_ms_to_ticks(LESSON_ANIM_PERIOD_MS));
+}
+
+static void lesson_view_exit_callback(void* context) {
+    LessonView* instance = context;
+    furi_timer_stop(instance->timer);
+}
+
+LessonView* lesson_view_alloc(void) {
+    LessonView* instance = malloc(sizeof(LessonView));
+    instance->view = view_alloc();
+    instance->notifications = NULL;
+    instance->sound_enabled = false;
+    instance->done_callback = NULL;
+    instance->done_context = NULL;
+
+    view_set_context(instance->view, instance);
+    view_allocate_model(instance->view, ViewModelTypeLocking, sizeof(LessonModel));
+    view_set_draw_callback(instance->view, lesson_view_draw_callback);
+    view_set_input_callback(instance->view, lesson_view_input_callback);
+    view_set_enter_callback(instance->view, lesson_view_enter_callback);
+    view_set_exit_callback(instance->view, lesson_view_exit_callback);
+
+    instance->timer =
+        furi_timer_alloc(lesson_view_timer_callback, FuriTimerTypePeriodic, instance);
+
+    return instance;
+}
+
+void lesson_view_free(LessonView* instance) {
+    furi_assert(instance);
+    furi_timer_stop(instance->timer);
+    furi_timer_free(instance->timer);
+    view_free(instance->view);
+    free(instance);
+}
+
+View* lesson_view_get_view(LessonView* instance) {
+    furi_assert(instance);
+    return instance->view;
+}
+
+void lesson_view_set_done_callback(
+    LessonView* instance,
+    LessonViewDoneCallback callback,
+    void* context) {
+    furi_assert(instance);
+    instance->done_callback = callback;
+    instance->done_context = context;
+}
+
+void lesson_view_configure(
+    LessonView* instance,
+    const PocketLabLab* lab,
+    bool already_completed,
+    bool sound_enabled,
+    NotificationApp* notifications) {
+    furi_assert(instance);
+    instance->notifications = notifications;
+    instance->sound_enabled = sound_enabled;
+
+    with_view_model(
+        instance->view,
+        LessonModel * model,
+        {
+            model->lab = lab;
+            model->already_completed = already_completed;
+            model->step = 0;
+            model->quiz_sel = 0;
+            model->feedback = false;
+            model->last_right = false;
+            model->anim = 0;
+            model->shake = 0;
+            model->xp_shown = 0;
+            model->body_scroll = 0;
+            model->body_max_scroll = 0;
+            lesson_view_prepare_quiz(model);
+        },
+        true);
+}

@@ -1,0 +1,14 @@
+App(
+    appid="free_roam",
+    name="Free Roam",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="free_roam_main",
+    stack_size=4 * 1024,
+    fap_icon="app.png",
+    fap_icon_assets="assets",
+    fap_category="GPIO/ESP32",
+    fap_author="JBlanked",
+    fap_weburl="https://github.com/jblanked/Free-Roam",
+    fap_version="0.6",
+    fap_description="3D Open World Multiplayer Game",
+)

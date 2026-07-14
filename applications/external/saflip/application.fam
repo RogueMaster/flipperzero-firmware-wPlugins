@@ -1,0 +1,15 @@
+App(
+    appid="saflip",
+    name="SaFlip",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="saflip_app",
+    stack_size=2 * 1024,
+    fap_icon="icon.png",
+    fap_icon_assets="images",
+    fap_libs=["assets"],
+    fap_category="NFC",
+    fap_author="Aaronjamt",
+    fap_weburl="https://github.com/aaronjamt/saflip",
+    fap_version="0.1",
+    fap_description="SaFlip Hospitality Tool for Flipper Zero",
+)

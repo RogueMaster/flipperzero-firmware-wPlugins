@@ -372,16 +372,32 @@ static NfcCommand gen4_poller_write_mf_ultralight(Gen4Poller* instance) {
             instance->config.data_parsed.protocol = Gen4ProtocolMfUltralight;
             switch(mfu_data->type) {
             case MfUltralightTypeNTAG203:
+                FURI_LOG_D(TAG, "NTAG203 type");
+                instance->config.data_parsed.mfu_mode = Gen4UltralightModeNTAG;
+                instance->total_blocks = 42;
+                break;
             case MfUltralightTypeNTAG213:
+                FURI_LOG_D(TAG, "NTAG213 type");
+                instance->config.data_parsed.mfu_mode = Gen4UltralightModeNTAG;
+                instance->total_blocks = 45;
+                break;
             case MfUltralightTypeNTAG215:
+                FURI_LOG_D(TAG, "NTAG215 type");
+                instance->config.data_parsed.mfu_mode = Gen4UltralightModeNTAG;
+                instance->total_blocks = 135;
+                break;
             case MfUltralightTypeNTAG216:
+                FURI_LOG_D(TAG, "NTAG216 type");
+                instance->config.data_parsed.mfu_mode = Gen4UltralightModeNTAG;
+                instance->total_blocks = 231;
+                break;
             case MfUltralightTypeNTAGI2C1K:
             case MfUltralightTypeNTAGI2C2K:
             case MfUltralightTypeNTAGI2CPlus1K:
             case MfUltralightTypeNTAGI2CPlus2K:
                 FURI_LOG_D(TAG, "NTAG type");
                 instance->config.data_parsed.mfu_mode = Gen4UltralightModeNTAG;
-                instance->total_blocks = 64 * 2;
+                instance->total_blocks = 128;
                 break;
 
             case MfUltralightTypeOrigin:

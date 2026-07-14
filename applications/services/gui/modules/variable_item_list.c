@@ -5,6 +5,7 @@
 #include <assets_icons.h>
 #include <m-array.h>
 #include <stdint.h>
+#include <cfw/settings.h>
 
 struct VariableItem {
     FuriString* label;
@@ -18,7 +19,7 @@ struct VariableItem {
     FuriString* locked_message;
 };
 
-ARRAY_DEF(VariableItemArray, VariableItem, M_POD_OPLIST);
+ARRAY_DEF(VariableItemArray, VariableItem, M_POD_OPLIST); //-V658
 
 struct VariableItemList {
     View* view;
@@ -115,8 +116,7 @@ static void variable_item_list_draw_callback(Canvas* canvas, void* _model) {
                 label_width,
                 item->label,
                 scroll_counter,
-                (position != model->position),
-                false);
+                (position != model->position));
 
             if(item->locked) {
                 canvas_draw_icon(canvas, value_pos_x, item_text_y - 8, &I_Lock_7x8);
@@ -125,7 +125,7 @@ static void variable_item_list_draw_callback(Canvas* canvas, void* _model) {
                     canvas_draw_str(canvas, value_pos_x, item_text_y, "<");
                 }
 
-                elements_scrollable_text_line(
+                elements_scrollable_text_line_centered(
                     canvas,
                     (115 + value_pos_x) / 2 + 1,
                     item_text_y,
@@ -147,6 +147,9 @@ static void variable_item_list_draw_callback(Canvas* canvas, void* _model) {
     elements_scrollbar(canvas, model->position, VariableItemArray_size(model->items));
 
     if(model->locked_message_visible) {
+        if(cfw_settings.popup_overlay) {
+            canvas_draw_overlay(canvas);
+        }
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_box(canvas, 8, 10, 110, 48);
         canvas_set_color(canvas, ColorBlack);

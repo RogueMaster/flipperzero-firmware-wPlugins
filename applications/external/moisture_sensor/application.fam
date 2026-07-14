@@ -1,0 +1,14 @@
+App(
+    appid="moisture_sensor",
+    name="Moisture Sensor",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="moisture_sensor_app",
+    stack_size=2 * 1024,
+    fap_icon="assets/icons/icon.png",
+    fap_icon_assets="assets/icons",
+    fap_category="GPIO",
+    fap_author="smallwat3r",
+    fap_weburl="https://github.com/smallwat3r/flipperzero-moisture-sensor",
+    fap_version="1.0",
+    fap_description="Read values from a capacitive moisture sensor v1.2",
+)

@@ -1,0 +1,14 @@
+App(
+    appid="timer_app",
+    name="Timer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="timer_app_main",
+    stack_size=1 * 1024,
+    fap_icon="timer_app.png",
+    fap_icon_assets="images",
+    fap_category="Tools",
+    fap_author="nagamine-git",
+    fap_weburl="https://github.com/nagamine-git/flipperzero_timer_app",
+    fap_version="0.1",
+    fap_description="A pomodoro style timer app with 30 minutes of break and 20 minutes of work",
+)

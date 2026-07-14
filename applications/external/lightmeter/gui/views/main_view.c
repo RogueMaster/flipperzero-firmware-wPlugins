@@ -8,7 +8,7 @@
 
 #define WORKER_TAG "Main View"
 
-static const int iso_numbers[] = {
+const int iso_numbers[] = {
     [ISO_6] = 6,
     [ISO_12] = 12,
     [ISO_25] = 25,
@@ -363,7 +363,7 @@ void draw_top_row(Canvas* canvas, MainViewModel* context) {
         canvas_draw_line(canvas, 0, 10, 128, 10);
 
         canvas_set_font(canvas, FontPrimary);
-        // metering mode A – ambient, F – flash
+        // metering mode A ÔÇô ambient, F ÔÇô flash
         // canvas_draw_str_aligned(canvas, 1, 1, AlignLeft, AlignTop, "A");
 
         snprintf(str, sizeof(str), "ISO: %d", iso_numbers[model->iso]);

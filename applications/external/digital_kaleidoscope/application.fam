@@ -1,0 +1,14 @@
+App(
+    appid="digital_kaleidoscope",
+    name="Digital Kaleidoscope",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="digital_kaleidoscope_app",
+    stack_size=2 * 1024,
+    fap_icon="digital_kaleidoscope.png",
+    fap_icon_assets="images",
+    fap_category="Games",
+    fap_author="J. Randall jr3d.co.uk",
+    fap_weburl="https://github.com/JamesR555/digital_kaleidoscope",
+    fap_version="0.1",
+    fap_description="A Digital Kaleidoscope Visualiser",
+)

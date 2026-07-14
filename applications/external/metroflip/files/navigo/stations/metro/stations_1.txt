@@ -1,0 +1,10 @@
+0,Cite
+1,Saint-Michel
+4,Odeon
+6,Maubert - Mutualite
+8,Chatelet
+9,Les Halles
+12,Louvre - Rivoli
+13,Pont Neuf
+14,Cite
+15,Hotel de Ville

@@ -57,6 +57,22 @@ struct TPMSApp {
     SubGhzSetting* setting;
     TPMSRelearn relearn;
     TPMSRelearnType relearn_type;
+    TPMSScanMode scan_mode;
+    TPMSProtocolFilter protocol_filter;
+    // Sweep mode state
+    uint8_t sweep_frequency_index; // 0=433.92MHz, 1=315MHz
+    uint8_t sweep_preset_index; // Current modulation preset index
+    uint8_t sweep_cycle_count; // Current cycle (0-2, stops at 3)
+    uint8_t sweep_tick_count; // Ticks on current combo
+    bool sweep_found_signal; // True if signal was detected
+    // Sweep configuration (user settings)
+    uint8_t sweep_start_frequency; // Starting frequency index
+    uint8_t sweep_start_preset; // Starting modulation index
+    uint8_t sweep_max_cycles; // Number of cycles (default 3)
+    uint8_t sweep_seconds_per_combo; // Seconds per combo (default 4)
+    // Sweep result (for summary display)
+    uint32_t sweep_result_frequency; // Frequency where signal was found
+    char sweep_result_preset[16]; // Modulation where signal was found
 };
 
 void tpms_preset_init(

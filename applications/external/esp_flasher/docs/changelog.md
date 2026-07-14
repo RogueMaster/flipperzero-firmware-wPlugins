@@ -1,3 +1,10 @@
+## v1.7
+
+Adds C5 support thanks to app changes by @Play2BReal and espressif library changes by @Dzarda7 !
+
+<3 @0xchocolate (cococode)
+
+
 ## v1.6
 
 No functional changes, just fixing the build after apparent toolchain updates on dev.
@@ -7,7 +14,7 @@ No functional changes, just fixing the build after apparent toolchain updates on
 
 ## v1.5
 
-Fixes app to build with the new API. Thanks @Willy-JL for doing the hard part!
+Fixes app to build with the new API. Thanks @WillyJL for doing the hard part!
 
 
 ## v1.4

@@ -1,0 +1,14 @@
+App(
+    appid="wave",
+    name="Wave",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="wave_app",
+    stack_size=1 * 1024,
+    sources=["*.c"],
+    fap_icon="icon.png",
+    fap_category="Games",
+    fap_author="sergo",
+    fap_weburl="https://github.com/Sladkisnovraper/Wave-game-for-Flipper-Zero",
+    fap_version="0.2",
+    fap_description="Game about a wave that avoids obstacles, it's cool",
+)

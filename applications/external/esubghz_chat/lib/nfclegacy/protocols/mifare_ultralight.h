@@ -11,25 +11,25 @@ extern "C" {
 
 #define MF_UL_TEARING_FLAG_DEFAULT (0xBD)
 
-#define MF_UL_HALT_START (0x50)
+#define MF_UL_HALT_START      (0x50)
 #define MF_UL_GET_VERSION_CMD (0x60)
-#define MF_UL_READ_CMD (0x30)
-#define MF_UL_FAST_READ_CMD (0x3A)
-#define MF_UL_WRITE (0xA2)
-#define MF_UL_FAST_WRITE (0xA6)
-#define MF_UL_COMP_WRITE (0xA0)
-#define MF_UL_READ_CNT (0x39)
-#define MF_UL_INC_CNT (0xA5)
-#define MF_UL_AUTHENTICATE_1 (0x1A)
-#define MF_UL_PWD_AUTH (0x1B)
-#define MF_UL_READ_SIG (0x3C)
-#define MF_UL_CHECK_TEARING (0x3E)
-#define MF_UL_READ_VCSL (0x4B)
-#define MF_UL_SECTOR_SELECT (0xC2)
+#define MF_UL_READ_CMD        (0x30)
+#define MF_UL_FAST_READ_CMD   (0x3A)
+#define MF_UL_WRITE           (0xA2)
+#define MF_UL_FAST_WRITE      (0xA6)
+#define MF_UL_COMP_WRITE      (0xA0)
+#define MF_UL_READ_CNT        (0x39)
+#define MF_UL_INC_CNT         (0xA5)
+#define MF_UL_AUTHENTICATE_1  (0x1A)
+#define MF_UL_PWD_AUTH        (0x1B)
+#define MF_UL_READ_SIG        (0x3C)
+#define MF_UL_CHECK_TEARING   (0x3E)
+#define MF_UL_READ_VCSL       (0x4B)
+#define MF_UL_SECTOR_SELECT   (0xC2)
 
-#define MF_UL_ACK (0xa)
+#define MF_UL_ACK                  (0xa)
 #define MF_UL_NAK_INVALID_ARGUMENT (0x0)
-#define MF_UL_NAK_AUTHLIM_REACHED (0x4)
+#define MF_UL_NAK_AUTHLIM_REACHED  (0x4)
 
 #define MF_UL_NTAG203_COUNTER_PAGE (41)
 
@@ -145,10 +145,10 @@ typedef struct __attribute__((packed)) {
     union {
         uint8_t value;
         struct {
-            uint8_t rfui1 : 2;
-            bool strg_mod_en : 1;
-            bool rfui2 : 1;
-            uint8_t mirror_byte : 2;
+            uint8_t rfui1                      : 2;
+            bool strg_mod_en                   : 1;
+            bool rfui2                         : 1;
+            uint8_t mirror_byte                : 2;
             MfUltralightMirrorConf mirror_conf : 2;
         };
     } mirror;
@@ -158,12 +158,12 @@ typedef struct __attribute__((packed)) {
     union {
         uint8_t value;
         struct {
-            uint8_t authlim : 3;
+            uint8_t authlim       : 3;
             bool nfc_cnt_pwd_prot : 1;
-            bool nfc_cnt_en : 1;
-            bool nfc_dis_sec1 : 1; // NTAG I2C Plus only
-            bool cfglck : 1;
-            bool prot : 1;
+            bool nfc_cnt_en       : 1;
+            bool nfc_dis_sec1     : 1; // NTAG I2C Plus only
+            bool cfglck           : 1;
+            bool prot             : 1;
         };
     } access;
     uint8_t vctid;

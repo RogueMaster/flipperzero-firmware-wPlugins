@@ -1,13 +1,17 @@
 #include "../wendigo_app_i.h"
 
 void wendigo_scene_text_input_callback(void* context) {
+    FURI_LOG_T(WENDIGO_TAG, "Start wendigo_scene_text_input_callback()");
     WendigoApp* app = context;
 
     view_dispatcher_send_custom_event(app->view_dispatcher, Wendigo_EventStartConsole);
+    FURI_LOG_T(WENDIGO_TAG, "End wendigo_scene_text_input_callback()");
 }
 
 void wendigo_scene_text_input_on_enter(void* context) {
+    FURI_LOG_T(WENDIGO_TAG, "Start wendigo_scene_text_input_on_enter()");
     WendigoApp* app = context;
+    app->current_view = WendigoAppViewTextInput;
 
     if(false == app->is_custom_tx_string) {
         // Fill text input with selected string so that user can add to it
@@ -17,6 +21,7 @@ void wendigo_scene_text_input_on_enter(void* context) {
         strncpy(app->text_input_store, app->selected_tx_string, length);
 
         // Add space - because flipper keyboard currently doesn't have a space
+        // TODO: Why is the following line commented out?
         //app->text_input_store[length] = ' ';
         app->text_input_store[length + 1] = '\0';
         app->is_custom_tx_string = true;
@@ -44,12 +49,14 @@ void wendigo_scene_text_input_on_enter(void* context) {
     //       from UART_Terminal to determine whether the
     //       function should be ported from the module to
     //       Wendigo.
-    //text_input_add_illegal_symbols(text_input);
+    // text_input_show_illegal_symbols(text_input, true);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, WendigoAppViewTextInput);
+    FURI_LOG_T(WENDIGO_TAG, "End wendigo_scene_text_input_on_enter()");
 }
 
 bool wendigo_scene_text_input_on_event(void* context, SceneManagerEvent event) {
+    FURI_LOG_T(WENDIGO_TAG, "Start wendigo_scene_text_input_on_event()");
     WendigoApp* app = context;
     bool consumed = false;
 
@@ -61,12 +68,14 @@ bool wendigo_scene_text_input_on_event(void* context, SceneManagerEvent event) {
             consumed = true;
         }
     }
-
+    FURI_LOG_T(WENDIGO_TAG, "End wendigo_scene_text_input_on_event()");
     return consumed;
 }
 
 void wendigo_scene_text_input_on_exit(void* context) {
+    FURI_LOG_T(WENDIGO_TAG, "Start wendigo_scene_text_input_on_exit()");
     WendigoApp* app = context;
 
     text_input_reset(app->text_input);
+    FURI_LOG_T(WENDIGO_TAG, "End wendigo_scene_text_input_on_exit()");
 }

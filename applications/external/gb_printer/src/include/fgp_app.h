@@ -18,11 +18,10 @@
 #include <storage/storage.h>
 #include <src/include/fgp_palette.h>
 
-struct plte {
-    uint32_t data_len; // Longitud de los datos de la paleta (en bytes)
-    uint8_t type[4]; // Tipo de chunk PLTE ('P', 'L', 'T', 'E')
-    uint8_t color[4][3]; // Colores en formato RGB, 4 colores con 3 bytes cada uno
-};
+#define OPT_SAVE_BIN     (1 << 0)
+#define OPT_SAVE_BIN_HDR (1 << 1)
+#define OPT_SAVE_PNG     (1 << 2)
+#define RECV_OPTS        (OPT_SAVE_BIN | OPT_SAVE_BIN_HDR | OPT_SAVE_PNG)
 
 struct fgp_app {
     ViewDispatcher* view_dispatcher;
@@ -37,7 +36,7 @@ struct fgp_app {
 
     void* printer_handle;
 
-    bool add_header;
+    unsigned int options;
     unsigned int palette_idx;
 };
 

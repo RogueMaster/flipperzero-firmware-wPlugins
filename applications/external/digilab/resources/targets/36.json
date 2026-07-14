@@ -1,0 +1,14 @@
+{
+  "components": [
+    {
+      "partno": "MAX17055",
+      "desc": "Fuel gauge",
+      "type": 13,
+      "manufacturer": "Maxim",
+      "date": "2017"
+    }
+  ],
+  "unique_types": [
+    13
+  ]
+}

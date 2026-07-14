@@ -1,0 +1,14 @@
+App(
+    appid="freestyle_libre_cgm",
+    name="FreeStyle Libre CGM",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipncgm_app",
+    stack_size=4 * 1024,
+    targets=["f7"],
+    fap_icon="images/flipncgm_icon.png",
+    fap_category="NFC",
+    fap_author="Daren Darrow",
+    fap_weburl="https://github.com/darendarrow/flipnCGM",
+    fap_version="1.1",
+    fap_description="Read Abbott FreeStyle Libre CGM serial numbers via NFC",
+)

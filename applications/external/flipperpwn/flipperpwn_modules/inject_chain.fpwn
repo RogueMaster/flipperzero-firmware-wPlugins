@@ -1,0 +1,28 @@
+NAME Modular Payload Chain
+DESCRIPTION Chains multiple modules together via INJECT
+CATEGORY exploit
+PLATFORMS WIN,MAC,LINUX
+OPTION DELAY 2000 "Initial delay (ms)"
+PLATFORM WIN
+DELAY {{DELAY}}
+LED_COLOR YELLOW
+REM Phase 1: Inject system info recon
+INJECT sysinfo.fpwn
+DELAY 2000
+LED_COLOR GREEN
+REM Phase 2: Lock screen when done
+INJECT lock_screen.fpwn
+PLATFORM MAC
+DELAY {{DELAY}}
+LED_COLOR YELLOW
+INJECT sysinfo.fpwn
+DELAY 2000
+LED_COLOR GREEN
+INJECT lock_screen.fpwn
+PLATFORM LINUX
+DELAY {{DELAY}}
+LED_COLOR YELLOW
+INJECT sysinfo.fpwn
+DELAY 2000
+LED_COLOR GREEN
+INJECT lock_screen.fpwn

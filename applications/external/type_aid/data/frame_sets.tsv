@@ -1,0 +1,7 @@
+# set	items
+PRONOUN	I,you,he,she,we,they,it,this,that,there
+AUX	am,is,are,was,were,has,have,had,do,does,did
+MODAL	can,could,will,would,should,may,might,must
+WH	what,why,how,when,where,who,which
+COPULA	is,was,are,were
+REPORT_VERB	means,suggests,indicates,implies,shows,proves

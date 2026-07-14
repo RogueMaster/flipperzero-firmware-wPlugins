@@ -1,0 +1,4 @@
+0,0x35,0x42,Seto-Ohashi,Uematsu,9,0
+0,0x35,0x43,Seto-Ohashi,Kimi,10,0
+0,0x35,0x45,Seto-Ohashi,Kaminocho,11,0
+0,0x35,0x47,Seto-Ohashi,Kojima,12,0

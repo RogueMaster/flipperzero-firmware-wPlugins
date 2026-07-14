@@ -1,0 +1,17 @@
+NAME Random Password Gen
+DESCRIPTION Types a batch of random passwords into any text field
+CATEGORY post
+PLATFORMS WIN,MAC,LINUX
+OPTION COUNT 5 "Number of passwords to generate"
+OPTION LENGTH 16 "Password length"
+OPTION DELAY 500 "Initial delay (ms)"
+PLATFORM ALL
+DELAY {{DELAY}}
+LED_COLOR CYAN
+REPEAT_BLOCK {{COUNT}}
+STRING Password: 
+RANDOM_STRING {{LENGTH}}
+ENTER
+DELAY 100
+END_REPEAT
+LED_COLOR GREEN

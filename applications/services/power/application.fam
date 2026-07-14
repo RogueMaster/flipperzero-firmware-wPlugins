@@ -10,26 +10,17 @@ App(
     ],
     provides=[
         "power_settings",
-        "power_start",
     ],
     stack_size=1 * 1024,
     order=110,
-    sdk_headers=["power_service/power.h", "power_settings.h"],
+    sdk_headers=["power_service/power.h"],
 )
 
 App(
-    appid="power_cli",
+    appid="cli_power",
     targets=["f7"],
     apptype=FlipperAppType.PLUGIN,
-    entry_point="power_cli_plugin_ep",
+    entry_point="cli_power_ep",
     requires=["cli"],
     sources=["power_cli.c"],
-)
-
-App(
-    appid="power_start",
-    apptype=FlipperAppType.STARTUP,
-    entry_point="power_on_system_start",
-    requires=["power"],
-    order=80,
 )

@@ -1,0 +1,11 @@
+0xFA,0x01,Tokyo Monorail,Monorail Hamamatsucho,1,0
+0xFA,0x03,Tokyo Monorail,Tennozu Isle,2,0
+0xFA,0x04,Tokyo Monorail,Oi Keibajo Mae,3,0
+0xFA,0x05,Tokyo Monorail,Ryutsu Center,4,0
+0xFA,0x06,Tokyo Monorail,Showajima,5,0
+0xFA,0x07,Tokyo Monorail,Seibijo,6,0
+0xFA,0x09,Tokyo Monorail,Tenkubashi,7,0
+0xFA,0x0A,Tokyo Monorail,Haneda Airport T3,8,0
+0xFA,0x0B,Tokyo Monorail,Shinseibijo,9,0
+0xFA,0x0C,Tokyo Monorail,Haneda Airport T1,10,0
+0xFA,0x0D,Tokyo Monorail,Haneda Airport T2,11,0

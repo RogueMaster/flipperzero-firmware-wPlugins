@@ -7,8 +7,9 @@ SubRemSubFilePreset* subrem_sub_file_preset_alloc(void) {
 
     sub_preset->fff_data = flipper_format_string_alloc();
     sub_preset->file_path = furi_string_alloc();
-    sub_preset->protocaol_name = furi_string_alloc();
+    sub_preset->protocol_name = furi_string_alloc();
     sub_preset->label = furi_string_alloc();
+    sub_preset->button = 0;
 
     sub_preset->freq_preset.name = furi_string_alloc();
 
@@ -22,7 +23,7 @@ void subrem_sub_file_preset_free(SubRemSubFilePreset* sub_preset) {
     furi_assert(sub_preset);
 
     furi_string_free(sub_preset->label);
-    furi_string_free(sub_preset->protocaol_name);
+    furi_string_free(sub_preset->protocol_name);
     furi_string_free(sub_preset->file_path);
     flipper_format_free(sub_preset->fff_data);
 
@@ -35,8 +36,9 @@ void subrem_sub_file_preset_reset(SubRemSubFilePreset* sub_preset) {
     furi_assert(sub_preset);
 
     furi_string_set_str(sub_preset->label, "");
-    furi_string_reset(sub_preset->protocaol_name);
+    furi_string_reset(sub_preset->protocol_name);
     furi_string_reset(sub_preset->file_path);
+    sub_preset->button = 0;
 
     Stream* fff_data_stream = flipper_format_get_raw_stream(sub_preset->fff_data);
     stream_clean(fff_data_stream);
@@ -168,7 +170,7 @@ SubRemLoadSubState subrem_sub_preset_load(
                 break;
             }
 
-            furi_string_set(sub_preset->protocaol_name, temp_str);
+            furi_string_set(sub_preset->protocol_name, temp_str);
         } else {
             FURI_LOG_E(TAG, "Protocol does not support transmission");
             break;

@@ -11,13 +11,16 @@
 #endif /* CMSIS_device_header */
 
 #include CMSIS_device_header
+#include <stm32wb55_linker.h>
 
 #define configENABLE_FPU 1
 #define configENABLE_MPU 0
 
 #define configUSE_PREEMPTION             1
 #define configSUPPORT_STATIC_ALLOCATION  1
-#define configSUPPORT_DYNAMIC_ALLOCATION 0
+#define configSUPPORT_DYNAMIC_ALLOCATION 1
+#define configENABLE_HEAP_PROTECTOR      1
+#define configHEAP_CLEAR_MEMORY_ON_FREE  1
 #define configUSE_MALLOC_FAILED_HOOK     0
 #define configUSE_IDLE_HOOK              0
 #define configUSE_TICK_HOOK              0
@@ -30,7 +33,7 @@
 #define configUSE_POSIX_ERRNO            1
 
 /* Heap size determined automatically by linker */
-// #define configTOTAL_HEAP_SIZE                    ((size_t)0)
+#define configTOTAL_HEAP_SIZE   ((uint32_t) & __heap_end__ - (uint32_t) & __heap_start__)
 #define configMAX_TASK_NAME_LEN (32)
 
 #define configGENERATE_RUN_TIME_STATS    1
@@ -84,6 +87,7 @@ to exclude the API function. */
 #define INCLUDE_xTaskGetCurrentTaskHandle   1
 #define INCLUDE_xTaskGetSchedulerState      1
 #define INCLUDE_xTimerPendFunctionCall      1
+#define INCLUDE_xTaskGetIdleTaskHandle      1
 
 /* Workaround for various notification issues:
  * - First one used by system primitives
@@ -129,24 +133,10 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY \
     (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 
-/* Normal assert() semantics without relying on the provision of an assert.h
-header file. */
-#ifdef DEBUG
-#include <core/check.h>
-#define configASSERT(x)                \
-    if((x) == 0) {                     \
-        furi_crash("FreeRTOS Assert"); \
-    }
-#endif
-
 /* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS
 standard names. */
 #define vPortSVCHandler    SVC_Handler
 #define xPortPendSVHandler PendSV_Handler
-
-#define USE_CUSTOM_SYSTICK_HANDLER_IMPLEMENTATION 1
-#define configOVERRIDE_DEFAULT_TICK_CONFIGURATION \
-    1 /* required only for Keil but does not hurt otherwise */
 
 #define traceTASK_SWITCHED_IN()                                          \
     extern void furi_hal_mpu_set_stack_protection(uint32_t* stack);      \
@@ -157,6 +147,14 @@ standard names. */
 // referencing `FreeRTOS_errno' here   vvvvv    because FreeRTOS calls our hook _before_ copying the value into the TCB, hence a manual write to the TCB would get overwritten
 #define traceTASK_SWITCHED_OUT() FreeRTOS_errno = errno
 
-#define portCLEAN_UP_TCB(pxTCB)                                   \
-    extern void furi_thread_cleanup_tcb_event(TaskHandle_t task); \
-    furi_thread_cleanup_tcb_event(pxTCB)
+/* Normal assert() semantics without relying on the provision of an assert.h
+header file. */
+#ifdef FURI_DEBUG
+#define configASSERT(x)                \
+    if((x) == 0) {                     \
+        furi_crash("FreeRTOS Assert"); \
+    }
+#endif
+
+// Must be last line of config because of recursion
+#include <core/check.h>

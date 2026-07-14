@@ -1,0 +1,53 @@
+[project]
+name = "trivia-pack"
+version = "0.1.0"
+description = "Off-Flipper data pipeline for Trivia Zero. Pulls Open Trivia DB, filters, translates, emits the TSV+IDX packs the FAP consumes."
+requires-python = ">=3.11"
+authors = [{ name = "Endika" }]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "ANN401",
+    "S101",
+    "D",
+    "TRY003",
+    "EM101",
+    "EM102",
+    "COM812",
+    "ISC001",
+    "PLR0913",
+    "T201",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "PLR2004", "ARG", "ANN", "INP001", "PT018", "PT011", "TC003"]
+"tests/test_e2e_with_c_parser.py" = ["S603", "S607"]
+"build_pack.py" = ["INP001", "TC003"]
+"trivia_pack/blacklist.py" = ["TC003"]
+"trivia_pack/opentdb.py" = ["TC003"]
+"trivia_pack/translate.py" = ["TC003"]
+"trivia_pack/pack_writer.py" = ["TC003", "TC001", "RUF001", "RUF003"]
+"trivia_pack/pipeline.py" = ["TC003", "TC001"]
+"tests/test_opentdb.py" = ["TC003"]
+"tests/test_translate.py" = ["TC003"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = ["-ra", "--strict-markers", "--tb=short"]

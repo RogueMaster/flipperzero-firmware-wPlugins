@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <ble/ble.h>
+
 #include <cfw/cfw.h>
 
 #define TAG "FuriHalVersion"
@@ -108,7 +109,7 @@ void furi_hal_version_set_name(const char* name) {
             "x%s", // Someone tell me why that X is needed - it's for BLE adv name type (6 lines below)
             furi_hal_version.name);
     } else {
-        snprintf(furi_hal_version.device_name, FURI_HAL_VERSION_DEVICE_NAME_LENGTH, "xFlipper");
+        strlcpy(furi_hal_version.device_name, "xFlipper", FURI_HAL_VERSION_DEVICE_NAME_LENGTH);
     }
 
     furi_hal_version.device_name[0] = AD_TYPE_COMPLETE_LOCAL_NAME;
@@ -136,11 +137,7 @@ static void furi_hal_version_load_otp_v0(void) {
     furi_hal_version.board_body = otp->board_body;
     furi_hal_version.board_connect = otp->board_connect;
 
-    if(version_get_custom_name(NULL) != NULL) {
-        furi_hal_version_set_name(version_get_custom_name(NULL));
-    } else {
-        furi_hal_version_set_name(otp->name);
-    }
+    furi_hal_version_set_name(otp->name);
 }
 
 static void furi_hal_version_load_otp_v1(void) {
@@ -154,11 +151,7 @@ static void furi_hal_version_load_otp_v1(void) {
     furi_hal_version.board_color = otp->board_color;
     furi_hal_version.board_region = otp->board_region;
 
-    if(version_get_custom_name(NULL) != NULL) {
-        furi_hal_version_set_name(version_get_custom_name(NULL));
-    } else {
-        furi_hal_version_set_name(otp->name);
-    }
+    furi_hal_version_set_name(otp->name);
 }
 
 static void furi_hal_version_load_otp_v2(void) {
@@ -178,11 +171,7 @@ static void furi_hal_version_load_otp_v2(void) {
     if(otp->board_color != 0xFF) {
         furi_hal_version.board_color = otp->board_color;
         furi_hal_version.board_region = otp->board_region;
-        if(version_get_custom_name(NULL) != NULL) {
-            furi_hal_version_set_name(version_get_custom_name(NULL));
-        } else {
-            furi_hal_version_set_name(otp->name);
-        }
+        furi_hal_version_set_name(otp->name);
     } else {
         furi_hal_version.board_color = 0;
         furi_hal_version.board_region = 0;

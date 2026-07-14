@@ -3,12 +3,18 @@ App(
     name="Quac!",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="quac_app",
-    stack_size=2 * 1024,
-    fap_category="Tools",
+    stack_size=4 * 1024,
     fap_icon="images/quac.png",
     fap_icon_assets="images",
+    fap_private_libs=[
+        Lib(
+            name="loclass",
+            cflags=["-O3"],
+        ),
+    ],
+    fap_category="Tools",
     fap_author="Roberto De Feo",
     fap_weburl="https://github.com/rdefeo/quac",
-    fap_version="0.7",
+    fap_version="0.9.1",
     fap_description="Quick Action remote control app",
 )

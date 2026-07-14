@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 3,
+  "title": "ArduGolf FX",
+  "description": "Play miniature golf on the Arduboy!",
+  "author": "brow1067",
+  "version": "1.0",
+  "genre": "Sports",
+  "sourceUrl": "https://github.com/tiberiusbrown/arduboy_minigolf",
+  "banner": "img/banner700x192.png",
+  "screenshots": [
+    {
+      "title": "Title Banner",
+      "filename": "img/banner_128x64.png"
+    }
+  ],
+  "binaries": [
+    {
+      "title": "ArduGolf FX",
+      "filename": "ardugolf_fx.hex",
+      "flashdata": "fxdata-data.bin",
+      "flashsave": "fxdata-save.bin",
+      "device": "ArduboyFX"
+    }
+  ]
+}

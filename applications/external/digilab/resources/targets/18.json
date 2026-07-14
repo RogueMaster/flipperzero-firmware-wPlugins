@@ -1,0 +1,44 @@
+{
+  "components": [
+    {
+      "partno": "LIS2DW12",
+      "desc": "3-axis accelerometer",
+      "type": 1,
+      "manufacturer": "STMicro",
+      "date": "2018"
+    },
+    {
+      "partno": "ADS1115",
+      "desc": "16-bit ADC.",
+      "type": 2,
+      "manufacturer": "Texas Inst.",
+      "date": "2012"
+    },
+    {
+      "partno": "INA219",
+      "desc": "Current and power sensor.",
+      "type": 22,
+      "manufacturer": "Texas Inst.",
+      "date": "2010"
+    },
+    {
+      "partno": "MCP9808",
+      "desc": "Digital temperature sensor.",
+      "type": 22,
+      "manufacturer": "Microchip",
+      "date": "2013"
+    },
+    {
+      "partno": "LIS3DH",
+      "desc": "3-axis accelerometer.",
+      "type": 1,
+      "manufacturer": "STMicro",
+      "date": "2011"
+    }
+  ],
+  "unique_types": [
+    1,
+    2,
+    22
+  ]
+}

@@ -1,0 +1,14 @@
+App(
+    appid="mizip_balance_editor",
+    name="MiZip Balance Editor",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="mizip_balance_editor_app",
+    stack_size=2 * 1024,
+    fap_icon="mizip_balance_editor.png",
+    fap_icon_assets="images",
+    fap_category="NFC",
+    fap_author="Téo Humeau",
+    fap_weburl="https://github.com/teohumeau/MiZipBalanceEditor",
+    fap_version="0.2",
+    fap_description="Easily modify your MiZip tags balance",
+)

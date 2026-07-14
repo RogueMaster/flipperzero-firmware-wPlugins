@@ -135,7 +135,6 @@ static DataTransferApp* dataTransferApp_alloc() {
     instance->view_dispatcher = view_dispatcher_alloc();
 
     instance->gui = furi_record_open(RECORD_GUI);
-    view_dispatcher_enable_queue(instance->view_dispatcher);
     view_dispatcher_attach_to_gui(
         instance->view_dispatcher, instance->gui, ViewDispatcherTypeFullscreen);
 

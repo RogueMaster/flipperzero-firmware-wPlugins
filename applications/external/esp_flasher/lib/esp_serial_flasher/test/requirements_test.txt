@@ -1,0 +1,9 @@
+idf-build-apps>=2.4.1
+pytest>=8.2.2
+pytest-rerunfailures>=14.0
+pytest-embedded>=1.10.3
+pytest-embedded-idf>=1.10.3
+pytest-embedded-serial>=1.10.3
+pytest-embedded-serial-esp>=1.10.3
+pexpect>=4.8.0
+stm32loader>=0.7.1

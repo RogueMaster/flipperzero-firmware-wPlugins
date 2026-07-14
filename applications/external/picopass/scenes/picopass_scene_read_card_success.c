@@ -73,12 +73,6 @@ void picopass_scene_read_card_success_on_enter(void* context) {
 
         widget_add_button_element(
             widget,
-            GuiButtonTypeCenter,
-            "Menu",
-            picopass_scene_read_card_success_widget_callback,
-            picopass);
-        widget_add_button_element(
-            widget,
             GuiButtonTypeRight,
             "More",
             picopass_scene_read_card_success_widget_callback,
@@ -97,13 +91,6 @@ void picopass_scene_read_card_success_on_enter(void* context) {
         furi_string_cat_printf(credential_str, "Config Card");
     } else if(empty) {
         furi_string_cat_printf(credential_str, "Empty");
-
-        widget_add_button_element(
-            widget,
-            GuiButtonTypeCenter,
-            "Menu",
-            picopass_scene_read_card_success_widget_callback,
-            picopass);
     } else if(pacs->bitLength == 0 || pacs->bitLength == 255) {
         // Neither of these are valid.  Indicates the block was all 0x00 or all 0xff
         if(SE) {
@@ -219,9 +206,6 @@ bool picopass_scene_read_card_success_on_event(void* context, SceneManagerEvent 
             picopass_device_set_name(picopass->dev, "");
             scene_manager_next_scene(picopass->scene_manager, PicopassSceneCardMenu);
             consumed = true;
-        } else if(event.event == GuiButtonTypeCenter) {
-            consumed = scene_manager_search_and_switch_to_another_scene(
-                picopass->scene_manager, PicopassSceneStart);
         }
     } else if(event.type == SceneManagerEventTypeBack) {
         scene_manager_search_and_switch_to_previous_scene(

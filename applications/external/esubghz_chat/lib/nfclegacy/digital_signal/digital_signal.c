@@ -47,22 +47,22 @@ struct DigitalSignalInternals {
 
 #define TAG "DigitalSignal"
 
-#define F_TIM (64000000.0)
-#define T_TIM 1562 /* 15.625 ns *100 */
+#define F_TIM      (64000000.0)
+#define T_TIM      1562 /* 15.625 ns *100 */
 #define T_TIM_DIV2 781 /* 15.625 ns / 2 *100 */
 
 /* end marker in DMA ringbuffer, will get written into timer register at the end */
 #define SEQ_TIMER_MAX 0xFFFFFFFF
 
 /* time to wait in loops before returning */
-#define SEQ_LOCK_WAIT_MS 10UL
+#define SEQ_LOCK_WAIT_MS    10UL
 #define SEQ_LOCK_WAIT_TICKS (SEQ_LOCK_WAIT_MS * 1000 * 64)
 
 /* maximum entry count of the sequence dma ring buffer */
 #define RINGBUFFER_SIZE 128
 
 /* maximum number of DigitalSignals in a sequence */
-#define SEQUENCE_SIGNALS_SIZE 32
+#define SEQUENCE_SIGNALS_SIZE              32
 /*
  * if sequence size runs out from the initial value passed to digital_sequence_alloc
  * the size will be increased by this amount and reallocated

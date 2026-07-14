@@ -9,173 +9,102 @@
 #include <stdint.h>
 
 #include <gblink/include/gblink.h>
+#include <gblink/include/gblink_pinconf.h>
+
+#include "gblink_i.h"
 #include "exti_workaround_i.h"
 #include "clock_timer_i.h"
 
-const struct gblink_pins common_pinouts[PINOUT_COUNT] = {
-	/* Original */
-	{
-		&gpio_ext_pc3,
-		&gpio_ext_pb3,
-		&gpio_ext_pb2,
-		&gpio_ext_pa4,
-	},
-	/* MALVEKE EXT1 */
-	{
-		&gpio_ext_pa6,
-		&gpio_ext_pa7,
-		&gpio_ext_pb3,
-		&gpio_ext_pa4,
-	},
-};
-
-struct gblink {
-	const GpioPin *serin;
-	const GpioPin *serout;
-	const GpioPin *clk;
-	const GpioPin *sd;
-	gblink_mode mode;
-	void (*callback)(void* cb_context, uint8_t in);
-	void *cb_context;
-
-	/* These two semaphores serve similar but distinct purposes. */
-	/* The transfer semaphore is taken as soon as a transfer() request
-	 * has been started. This is used in the function to wait until the
-	 * transfer has been completed.
-	 */
-	FuriSemaphore *transfer_sem;
-	/* The out byte semaphore is used to indicate that a byte transfer
-	 * is in progress. This is used in the transfer function to not allow
-	 * a transfer request if we're in the middle of sending a byte.
-	 * The transfer semaphore is not used for that purpose since if the
-	 * Flipper is in EXT clk mode, once a transfer() is started, there
-	 * would be no way to both prevent transfer() from being called again
-	 * as well as cancelling/changing what we're wanting to send. Using
-	 * out byte semaphore means a transfer() can be called at any time,
-	 * waited on synchronously for a timeout, and then re-called at a
-	 * later time; while blocking that update if a byte is actually
-	 * in the middle of being transmitted.
-	 */
-	FuriSemaphore *out_byte_sem;
-
-	/* Used to lock out changing things after a certain point. Pinout,
-	 * mode, etc.
-	 * XXX: Might make more sense to use the mutex to protect a flag?
-	 * Maybe a semaphore? Though I think that is the wrong use.
-	 */
-	FuriMutex *start_mutex;
-
-	/* 
-	 * The following should probably have the world stopped around them
-	 * if not modified in an interrupt context.
-	 */
-	uint8_t in;
-	uint8_t out;
-	uint8_t shift;
-	uint8_t nobyte;
-
-	/* Should only be changed when not in middle of tx, will affect a lot */
-	gblink_clk_source source;
-
-	/* Can be changed at any time, will only take effect on the next
-	 * transfer.
-	 */
-	gblink_speed speed;
-
-
-	/* 
-	 * The following is based on observing Pokemon trade data
-	 *
-	 * Clocks idle between bytes is nominally 430 us long for burst data,
-	 * 15 ms for idle polling (e.g. waiting for menu selection), some oddball
-	 * 2 ms gaps that appears between one 0xFE byte from the Game Boy every trade;
-	 * clock period is nominally 122 us.
-	 *
-	 * Therefore, if we haven't seen a clock in 500 us, reset our bit counter.
-	 * Note that, this should never actually be a concern, but it is an additional
-	 * safeguard against desyncing.
-	 */
-	uint32_t time;
-	uint32_t bitclk_timeout_us;
-
-	void *exti_workaround_handle;
-};
+//#define PERF_TEST 1
+/* If enabled, the PERF_TEST will setup PC0 and PC1 for testing IRQ and bottom-
+ * half latency testing.
+ *
+ * PC0 is set high at the start of the hardware interrupt, and set low just before
+ * returning.
+ *
+ * PC1 is set high by the bottom-half thread once a message is read out of the
+ * mqueue, and set low again just before looping back to the top to sleep waiting
+ * for the next message.
+ */
 
 static inline bool gblink_transfer_in_progress(struct gblink *gblink)
 {
 	return !(furi_semaphore_get_count(gblink->out_byte_sem));
 }
 
-static void gblink_shift_in_isr(struct gblink *gblink)
+/* NOTE:
+ * The start_mutex must be held by gblink (probably via gblink_start()) before
+ * this thread is running. It accesses variables that are protected by the
+ * start_mutex.
+ */
+static int32_t gblink_thread(void *context)
 {
-	const uint32_t time_ticks = furi_hal_cortex_instructions_per_microsecond() * gblink->bitclk_timeout_us;
+	struct gblink *gblink = context;
+	uint8_t msg;
 
-	if (gblink->source == GBLINK_CLK_INT)
-		furi_hal_gpio_write(gblink->clk, 1);
+	/* Clear all flags as a precaution */
+	furi_thread_flags_clear(0xffffffff);
 
-	/* If we exceeded the bit clock timeout, reset all counters */
-	if ((DWT->CYCCNT - gblink->time) > time_ticks) {
-		gblink->in = 0;
-		gblink->shift = 0;
-	}
-	gblink->time = DWT->CYCCNT;
-
-	gblink->in <<= 1;
-	gblink->in |= furi_hal_gpio_read(gblink->serin);
-	gblink->shift++;
-	/* If 8 bits transfered, reset shift counter, call registered
-	 * callback, re-set nobyte in output buffer.
-	 */
-	if (gblink->shift == 8) {
-	 	if (gblink->source == GBLINK_CLK_INT)
-			clock_timer_stop();
-
-		gblink->shift = 0;
-
-		/* 
-		 * Set up next out byte before calling the callback.
-		 * This is in case the callback itself sets a new out
-		 * byte which it will in most cases.
+	while(1) {
+		/* This is the bottom half of the interrupt handler. Currently
+		 * this is only intended to handle RX data, regardless of if gblink
+		 * is configured for internal or external clock. This thread spins
+		 * waiting for data on the mqueue. A byte received is considered
+		 * to be the next incoming byte; that is, there are no control
+		 * bytes or messages, only data.
 		 *
-		 * The nobyte value is set in place as the next output byte,
-		 * in case the flipper does not set a real byte before the next
-		 * transfer starts.
+		 * The thread flags are used as control. Currently, only an EXIT
+		 * command is implemented. In order to cause the thread to exit,
+		 * a flag of any value is set, and then a byte of any value is
+		 * sent via the mqueue.
 		 */
-		gblink->out = gblink->nobyte;
-		furi_semaphore_release(gblink->out_byte_sem);
+		if (furi_message_queue_get(gblink->mqueue, &msg, FuriWaitForever) == FuriStatusOk) {
+#ifdef PERF_TEST
+			furi_hal_gpio_write(&gpio_ext_pc1, true);
+#endif
+			/* Right now, any flag set means close down the thread */
+			if (furi_thread_flags_get())
+				break;
 
-		/* 
-		 * Call the callback, if set, and then release the semaphore
-		 * in case a thread is waiting on TX to complete.
-		 */
-		if (gblink->callback)
-			gblink->callback(gblink->cb_context, gblink->in);
+			/* Set up next out byte before calling the callback.
+			 * This is in case the callback itself sets a new out
+			 * byte which it will in most cases.
+			 *
+			 * The nobyte value is set in place as the next output byte,
+			 * in case the flipper does not set a real byte before the next
+			 * transfer starts.
+			 */
+			gblink->out = gblink->nobyte;
+			furi_semaphore_release(gblink->out_byte_sem);
 
-		furi_semaphore_release(gblink->transfer_sem);
+			/* Call the callback, if set, and then release the semaphore
+			 * in case a thread is waiting on TX to complete.
+			 */
+			if (gblink->callback)
+				gblink->callback(gblink->cb_context, msg);
+
+			furi_semaphore_release(gblink->transfer_sem);
+#ifdef PERF_TEST
+			furi_hal_gpio_write(&gpio_ext_pc1, false);
+#endif
+		}
 	}
-}
 
-static void gblink_shift_out_isr(struct gblink *gblink)
-{
-	furi_semaphore_acquire(gblink->out_byte_sem, 0);
-	furi_hal_gpio_write(gblink->serout, !!(gblink->out & 0x80));
-	gblink->out <<= 1;
-
-	/* XXX: TODO: Check that this is the correct thing with open drain.
-	 * does 0 value actually drive the line low, or high?
-	 */
-	if (gblink->source == GBLINK_CLK_INT)
-		furi_hal_gpio_write(gblink->clk, 0);
+	return 0;
 }
 
 static void gblink_clk_isr(void *context)
 {
 	furi_assert(context);
 	struct gblink *gblink = context;
+	const uint32_t time_ticks = furi_hal_cortex_instructions_per_microsecond() * gblink->bitclk_timeout_us;
 	bool out = false;
 
-	/* 
-	 * Whether we're shifting in or out is dependent on the clock source.
+#ifdef PERF_TEST
+	furi_hal_gpio_write(&gpio_ext_pc0, true);
+#endif
+
+	/* Whether we're shifting in or out is dependent on the clock source.
 	 * If external, and the clock line is high, that means a posedge just
 	 * occurred and we need to shift data in.
 	 *
@@ -188,14 +117,48 @@ static void gblink_clk_isr(void *context)
 	out = (furi_hal_gpio_read(gblink->clk) ==
 	      (gblink->source == GBLINK_CLK_INT));
 
-	if (out)
-		gblink_shift_out_isr(gblink);
-	else
-		gblink_shift_in_isr(gblink);
+	if (out) {
+		furi_semaphore_acquire(gblink->out_byte_sem, 0);
+		furi_hal_gpio_write(gblink->serout, !!(gblink->out & 0x80));
+		gblink->out <<= 1;
+
+		if (gblink->source == GBLINK_CLK_INT)
+			furi_hal_gpio_write(gblink->clk, 0);
+	} else {
+
+		if (gblink->source == GBLINK_CLK_INT)
+			furi_hal_gpio_write(gblink->clk, 1);
+
+		/* If we exceeded the bit clock timeout, reset all counters */
+		if ((DWT->CYCCNT - gblink->time) > time_ticks) {
+			gblink->shift = 0;
+		}
+		gblink->time = DWT->CYCCNT;
+
+		gblink->in <<= 1;
+		gblink->in |= furi_hal_gpio_read(gblink->serin);
+		gblink->shift++;
+		/* If 8 bits transfered, reset shift counter, call registered
+		 * callback, re-set nobyte in output buffer.
+		 */
+		if (gblink->shift == 8) {
+			/* TODO: Should this get moved to bottom half? */
+			if (gblink->source == GBLINK_CLK_INT)
+				clock_timer_stop();
+
+			gblink->shift = 0;
+
+			/* Send message to bottom half for processing */
+			furi_message_queue_put(gblink->mqueue, &gblink->in, 0);
+		}
+	}
+
+#ifdef PERF_TEST
+	furi_hal_gpio_write(&gpio_ext_pc0, false);
+#endif
 }
 
-/* 
- * Call to set up the clk pin modes to do the right thing based on if INT or
+/* Call to set up the clk pin modes to do the right thing based on if INT or
  * EXT clock source is configured.
  */
 static void gblink_clk_configure(struct gblink *gblink)
@@ -209,7 +172,7 @@ static void gblink_clk_configure(struct gblink *gblink)
 	} else {
 		/* This will disable the EXTI interrupt for us */
 		furi_hal_gpio_init(gblink->clk, GpioModeOutputOpenDrain, GpioPullUp, GpioSpeedVeryHigh);
-	};
+	}
 }
 
 void gblink_clk_source_set(void *handle, gblink_clk_source source)
@@ -220,8 +183,7 @@ void gblink_clk_source_set(void *handle, gblink_clk_source source)
 	if (source == gblink->source)
 		return;
 	
-	/*
-	 * NOTE:
+	/* NOTE:
 	 * I'm not sure the best way to handle this at the moment. In theory,
 	 * it should be safe to check that we're just not in the middle of a
 	 * transfer and not worry about getting stuck.
@@ -245,8 +207,7 @@ void gblink_speed_set(void *handle, gblink_speed speed)
 	furi_assert(handle);
 	struct gblink *gblink = handle;
 
-	/*
-	 * This does not need any protection, it will take effect at the start
+	/* This does not need any protection, it will take effect at the start
 	 * of the next byte.
 	 */
 	gblink->speed = speed;
@@ -259,78 +220,6 @@ void gblink_timeout_set(void *handle, uint32_t us)
 	struct gblink *gblink = handle;
 
 	gblink->bitclk_timeout_us = us;
-}
-
-int gblink_pin_set(void *handle, gblink_bus_pins pin, const GpioPin *gpio)
-{
-	furi_assert(handle);
-	struct gblink *gblink = handle;
-
-	if (furi_mutex_acquire(gblink->start_mutex, 0) != FuriStatusOk)
-		return 1;
-
-	switch (pin) {
-	case PIN_SERIN:
-		gblink->serin = gpio;
-		break;
-	case PIN_SEROUT:
-		gblink->serout = gpio;
-		break;
-	case PIN_CLK:
-		gblink->clk = gpio;
-		break;
-	case PIN_SD:
-		gblink->sd = gpio;
-		break;
-	default:
-		furi_crash();
-		break;
-	}
-
-	furi_mutex_release(gblink->start_mutex);
-
-	return 0;
-}
-
-int gblink_pin_set_default(void *handle, gblink_pinouts pinout)
-{
-	furi_assert(handle);
-	struct gblink *gblink = handle;
-
-	if (furi_mutex_acquire(gblink->start_mutex, 0) != FuriStatusOk)
-		return 1;
-
-	gblink->serin = common_pinouts[pinout].serin;
-	gblink->serout = common_pinouts[pinout].serout;
-	gblink->clk = common_pinouts[pinout].clk;
-	gblink->sd = common_pinouts[pinout].sd;
-
-	furi_mutex_release(gblink->start_mutex);
-
-	return 0;
-}
-
-
-const GpioPin *gblink_pin_get(void *handle, gblink_bus_pins pin)
-{
-	furi_assert(handle);
-	struct gblink *gblink = handle;
-
-	switch (pin) {
-	case PIN_SERIN:
-		return gblink->serin;
-	case PIN_SEROUT:
-		return gblink->serout;
-	case PIN_CLK:
-		return gblink->clk;
-	case PIN_SD:
-		return gblink->sd;
-	default:
-		furi_crash();
-		break;
-	}
-
-	return NULL;
 }
 
 int gblink_callback_set(void *handle, void (*callback)(void* cb_context, uint8_t in), void *cb_context)
@@ -362,7 +251,7 @@ int gblink_mode_set(void *handle, gblink_mode mode)
 	return 0;
 }
 
-
+/* XXX: TODO: This doesn't check for start! */
 bool gblink_transfer(void *handle, uint8_t val)
 {
 	furi_assert(handle);
@@ -371,8 +260,7 @@ bool gblink_transfer(void *handle, uint8_t val)
 
 
 	/* Stop the world, this is to ensure we can safely set the next out byte */
-	/*
-	 * The reason for and therefore issue of setting the next byte has a few
+	/* The reason for and therefore issue of setting the next byte has a few
 	 * points to keep in mind.
 	 *
 	 * First, with EXT clock source, the first hint of the external device
@@ -392,8 +280,7 @@ bool gblink_transfer(void *handle, uint8_t val)
 		gblink->out = val;
 		ret = true;
 
-		/*
-		 * Now that we're this far, this means the byte we set will be
+		/* Now that we're this far, this means the byte we set will be
 		 * transferred one way or another. Because of that, take the
 		 * transfer semaphore. This gets released once a full byte has
 		 * been transferred. This is for the TX wait function. We cannot
@@ -406,8 +293,7 @@ bool gblink_transfer(void *handle, uint8_t val)
 
 	FURI_CRITICAL_EXIT();
 
-	/* 
-	 * If the out byte was successfully set, and we're driving the clock,
+	/* If the out byte was successfully set, and we're driving the clock,
 	 * turn on our timer for byte transfer.
 	 */
 	if (ret && gblink->source == GBLINK_CLK_INT)
@@ -438,8 +324,7 @@ void gblink_nobyte_set(void *handle, uint8_t val)
 {
 	struct gblink *gblink = handle;
 
-	/*
-	 * This is safe to run at any time. It is only copied in after a byte
+	/* This is safe to run at any time. It is only copied in after a byte
 	 * transfer is completed.
 	 */
 	gblink->nobyte = val;
@@ -450,8 +335,7 @@ void gblink_int_enable(void *handle)
 	furi_assert(handle);
 	struct gblink *gblink = handle;
 
-	/*
-	 * NOTE: This is currently safe to run even with the exti workaround
+	/* NOTE: This is currently safe to run even with the exti workaround
 	 * in effect. It just enables the root EXTI interrupt source of the
 	 * given pin.
 	 */
@@ -463,8 +347,7 @@ void gblink_int_disable(void *handle)
 	furi_assert(handle);
 	struct gblink *gblink = handle;
 
-	/*
-	 * NOTE: This is currently safe to run even with the exti workaround
+	/* NOTE: This is currently safe to run even with the exti workaround
 	 * in effect. It just disables the root EXTI interrupt source of the
 	 * given pin.
 	 */
@@ -477,11 +360,24 @@ void *gblink_alloc(void)
 
 	/* Allocate and zero struct */
 	gblink = malloc(sizeof(struct gblink));
-	//gblink->spec = malloc(sizeof(struct gblink_spec));
 
 	gblink->transfer_sem = furi_semaphore_alloc(1, 1);
 	gblink->out_byte_sem = furi_semaphore_alloc(1, 1);
 	gblink->start_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+
+	/* Empirical testing has found that under 8/16 kHz clock, 16 bytes is
+	 * more than enough.
+	 */
+	gblink->mqueue = furi_message_queue_alloc(16, sizeof(uint8_t));
+
+	/* Start the bottom half handler thread */
+	/* TODO: Test to see how large of a stack makes sense here */
+	gblink->thread = furi_thread_alloc_ex("GBLinkRX",
+						1024,
+						gblink_thread,
+						gblink);
+	/* Run it at a really high priority, but still let interrupts run */
+	furi_thread_set_priority(gblink->thread, FuriThreadPriorityHighest);
 
 	/* Set defaults */
 	gblink_pin_set_default(gblink, PINOUT_ORIGINAL);
@@ -518,9 +414,16 @@ void gblink_start(void *handle)
 	furi_hal_gpio_init(gblink->serout, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
 	furi_hal_gpio_write(gblink->serin, false);
 	furi_hal_gpio_init(gblink->serin, GpioModeInput, GpioPullUp, GpioSpeedVeryHigh);
+#ifdef PERF_TEST
+	furi_hal_gpio_write(&gpio_ext_pc0, false);
+	furi_hal_gpio_init(&gpio_ext_pc0, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
+	furi_hal_gpio_write(&gpio_ext_pc1, false);
+	furi_hal_gpio_init(&gpio_ext_pc1, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
+#endif
+
 
 	/* Set up interrupt on clock pin */
-	if (gblink->clk == &gpio_ext_pb3) {
+	if (gblink->clk == &gpio_ext_pb3 || gblink->clk == &gpio_ext_pc3) {
 		/* The clock pin is on a pin that is not safe to set an interrupt
 		 * on, so we do a gross workaround to get an interrupt enabled
 		 * on that pin in a way that can be undone safely later with
@@ -539,12 +442,16 @@ void gblink_start(void *handle)
 	gblink_int_disable(gblink);
 
 	gblink_clk_configure(gblink);
+
+	/* Start our bottom half handler */
+	furi_thread_start(gblink->thread);
 }
 
 void gblink_stop(void *handle)
 {
 	furi_assert(handle);
 	struct gblink *gblink = handle;
+	uint8_t msg = 123;
 
 	/* If we can acquire the mutex, that means start was never actually
 	 * called. Crash.
@@ -556,7 +463,7 @@ void gblink_stop(void *handle)
 		return;
 	}
 
-	if (gblink->clk == &gpio_ext_pb3) {
+	if (gblink->clk == &gpio_ext_pb3 || gblink->clk == &gpio_ext_pc3) {
 		/* This handles switching the IVT back and putting the EXTI
 		 * regs and pin regs in a valid state for normal use.
 		 */
@@ -568,6 +475,17 @@ void gblink_stop(void *handle)
 	furi_hal_gpio_init_simple(gblink->serin, GpioModeAnalog);
 	furi_hal_gpio_init_simple(gblink->serout, GpioModeAnalog);
 	furi_hal_gpio_init_simple(gblink->clk, GpioModeAnalog);
+#ifdef PERF_TEST
+	furi_hal_gpio_init_simple(&gpio_ext_pc0, GpioModeAnalog);
+	furi_hal_gpio_init_simple(&gpio_ext_pc1, GpioModeAnalog);
+#endif
+
+	/* Shut down the bottom half. We need to send a nonzero flag, then a message
+	 * start the thread shutdown process.
+	 */
+	furi_thread_flags_set(gblink->thread, 1);
+	furi_message_queue_put(gblink->mqueue, &msg, FuriWaitForever);
+	furi_thread_join(gblink->thread);
 
 	furi_mutex_release(gblink->start_mutex);
 }
@@ -585,9 +503,12 @@ void gblink_free(void *handle)
 		furi_crash();
 		return;
 	}
+
+	furi_message_queue_free(gblink->mqueue);
 	furi_mutex_release(gblink->start_mutex);
 	furi_mutex_free(gblink->start_mutex);
 	furi_semaphore_free(gblink->transfer_sem);
 	furi_semaphore_free(gblink->out_byte_sem);
+	furi_thread_free(gblink->thread);
 	free(gblink);
 }

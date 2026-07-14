@@ -5,9 +5,9 @@
 
 #define NFCA_CRC_INIT (0x6363)
 
-#define NFCA_F_SIG (13560000.0)
-#define T_SIG 7374 //73.746ns*100
-#define T_SIG_x8 58992 //T_SIG*8
+#define NFCA_F_SIG  (13560000.0)
+#define T_SIG       7374 //73.746ns*100
+#define T_SIG_x8    58992 //T_SIG*8
 #define T_SIG_x8_x8 471936 //T_SIG*8*8
 #define T_SIG_x8_x9 530928 //T_SIG*8*9
 

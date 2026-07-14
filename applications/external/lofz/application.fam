@@ -1,0 +1,14 @@
+App(
+    appid="lofz",
+    name="Lights Out Flipper Zero",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="lofz_app",
+    stack_size=2 * 1024,
+    fap_icon="lofz.png",
+    fap_icon_assets="images",
+    fap_category="Games",
+    fap_author="DigiMancer3D",
+    fap_weburl="https://github.com/DigiMancer3D/LOFZ",
+    fap_version="1.1",
+    fap_description="Turn off the lights on the sith lor...*coughs*...",
+)

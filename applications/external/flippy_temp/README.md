@@ -2,6 +2,13 @@
 
 flippy sensor is a WIP multi-sensor board for the flipper zero. It includes a SHT30 for temperature and humidity, a LSM6DS3TR-C for gyro and accelerometer and a PA1010D for GPS. A first batch is currently in production at JLCPCB.
 
+It comes with an application to visualise data and log them on the SD card 💾 !
+
+## The application
+![App](assets/flippy_sensors_app.jpg)
+**video demo :** [here](https://x.com/rqjdupont/status/1815095288660656223)
+
+## PCB renders
 ![Front](assets/flippy_multisensor.png)
 ![Back](assets/flippy_multisensor2.png)
 

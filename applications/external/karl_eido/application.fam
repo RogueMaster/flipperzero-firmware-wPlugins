@@ -1,0 +1,16 @@
+App(
+    appid="karl_edio",
+    name="Karl Eido",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="karl_main",
+    sources=["karl_eido.c"],
+    stack_size=1 * 1024,
+    fap_icon="images/icon_10x10.png",
+    fap_icon_assets="images",
+    fap_icon_assets_symbol="karl-eido",
+    fap_category="Media",
+    fap_author="F Greil",
+    fap_weburl="https://github.com/fgreil/mitzi-karl-eido",
+    fap_version=(0, 1, 0),
+    fap_description="An app that mimics an optical instrument to generate beautiful patterns by using 3 mirrors.",
+)

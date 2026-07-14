@@ -1,0 +1,21 @@
+{
+  "components": [
+    {
+      "partno": "SHT31",
+      "desc": "Humidity and temperature sensor.",
+      "type": 22,
+      "manufacturer": "Sensirion",
+      "date": "2015"
+    },
+    {
+      "partno": "SHT30",
+      "desc": "Temperature and humidity sensor.",
+      "type": 22,
+      "manufacturer": "Sensirion",
+      "date": "2014"
+    }
+  ],
+  "unique_types": [
+    22
+  ]
+}

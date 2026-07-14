@@ -1,0 +1,94 @@
+{
+  "components": [
+    {
+      "partno": "DS3231",
+      "desc": "Real-time clock.",
+      "type": 5,
+      "manufacturer": "Maxim",
+      "date": "2005"
+    },
+    {
+      "partno": "MPU6050",
+      "desc": "6-axis IMU.",
+      "type": 15,
+      "manufacturer": "InvenSense",
+      "date": "2010"
+    },
+    {
+      "partno": "ITG3205",
+      "desc": "3-axis gyroscope.",
+      "type": 14,
+      "manufacturer": "InvenSense",
+      "date": "2009"
+    },
+    {
+      "partno": "MPU9250",
+      "desc": "9-axis IMU.",
+      "type": 15,
+      "manufacturer": "InvenSense",
+      "date": "2013"
+    },
+    {
+      "partno": "LSM9DS0",
+      "desc": "9-axis IMU.",
+      "type": 15,
+      "manufacturer": "STMicro",
+      "date": "2014"
+    },
+    {
+      "partno": "MPU-60X0",
+      "desc": "6-axis IMU.",
+      "type": 15,
+      "manufacturer": "InvenSense",
+      "date": "2011"
+    },
+    {
+      "partno": "ICM-20649",
+      "desc": "6-axis IMU.",
+      "type": 15,
+      "manufacturer": "TDK InvenSense",
+      "date": "2017"
+    },
+    {
+      "partno": "ITG3200",
+      "desc": "3-axis gyroscope.",
+      "type": 14,
+      "manufacturer": "InvenSense",
+      "date": "2009"
+    },
+    {
+      "partno": "AMG8831",
+      "desc": "IR thermal camera.",
+      "type": 4,
+      "manufacturer": "Panasonic",
+      "date": "2013"
+    },
+    {
+      "partno": "AMG8833",
+      "desc": "IR thermal camera.",
+      "type": 4,
+      "manufacturer": "Panasonic",
+      "date": "2017"
+    },
+    {
+      "partno": "DS1307",
+      "desc": "Real-time clock.",
+      "type": 5,
+      "manufacturer": "Maxim",
+      "date": "2000"
+    },
+    {
+      "partno": "PCF8523",
+      "desc": "Real-time clock.",
+      "type": 5,
+      "manufacturer": "NXP Semi",
+      "date": "2011"
+    }
+  ],
+  "unique_types": [
+    5,
+    15,
+    14,
+    4
+  ]
+}

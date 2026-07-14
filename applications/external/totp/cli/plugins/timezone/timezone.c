@@ -6,10 +6,10 @@
 #include "../../cli_plugin_interface.h"
 #include "../../cli_shared_methods.h"
 
-static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
+static void handle(PluginState* plugin_state, FuriString* args, PipeSide* pipe) {
     UNUSED(args);
     UNUSED(plugin_state);
-    if(!totp_cli_ensure_authenticated(plugin_state, cli)) {
+    if(!totp_cli_ensure_authenticated(plugin_state, pipe)) {
         return;
     }
 
@@ -17,7 +17,7 @@ static void handle(PluginState* plugin_state, FuriString* args, Cli* cli) {
     if(args_read_string_and_trim(args, temp_str)) {
         char* strtof_endptr;
         float tz = strtof(furi_string_get_cstr(temp_str), &strtof_endptr);
-        if(*strtof_endptr == 0 && tz >= -12.75f && tz <= 12.75f) {
+        if(*strtof_endptr == 0 && tz >= -12.75f && tz <= 14.75f) {
             TOTP_CLI_LOCK_UI(plugin_state);
             plugin_state->timezone_offset = tz;
             if(totp_config_file_update_timezone_offset(plugin_state)) {

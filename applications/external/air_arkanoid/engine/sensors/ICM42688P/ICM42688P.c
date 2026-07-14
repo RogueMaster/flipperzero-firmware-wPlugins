@@ -6,7 +6,7 @@
 #define ICM42688P_TIMEOUT 100
 
 struct ICM42688P {
-    FuriHalSpiBusHandle* spi_bus;
+    const FuriHalSpiBusHandle* spi_bus;
     const GpioPin* irq_pin;
     float accel_scale;
     float gyro_scale;
@@ -36,7 +36,7 @@ static const struct GyroFullScale {
     [GyroFullScale15_625DPS] = {15.625f, ICM42688_GFS_15_625DPS},
 };
 
-static bool icm42688p_write_reg(FuriHalSpiBusHandle* spi_bus, uint8_t addr, uint8_t value) {
+static bool icm42688p_write_reg(const FuriHalSpiBusHandle* spi_bus, uint8_t addr, uint8_t value) {
     bool res = false;
     furi_hal_spi_acquire(spi_bus);
     do {
@@ -48,7 +48,7 @@ static bool icm42688p_write_reg(FuriHalSpiBusHandle* spi_bus, uint8_t addr, uint
     return res;
 }
 
-static bool icm42688p_read_reg(FuriHalSpiBusHandle* spi_bus, uint8_t addr, uint8_t* value) {
+static bool icm42688p_read_reg(const FuriHalSpiBusHandle* spi_bus, uint8_t addr, uint8_t* value) {
     bool res = false;
     furi_hal_spi_acquire(spi_bus);
     do {
@@ -61,8 +61,11 @@ static bool icm42688p_read_reg(FuriHalSpiBusHandle* spi_bus, uint8_t addr, uint8
     return res;
 }
 
-static bool
-    icm42688p_read_mem(FuriHalSpiBusHandle* spi_bus, uint8_t addr, uint8_t* data, uint8_t len) {
+static bool icm42688p_read_mem(
+    const FuriHalSpiBusHandle* spi_bus,
+    uint8_t addr,
+    uint8_t* data,
+    uint8_t len) {
     bool res = false;
     furi_hal_spi_acquire(spi_bus);
     do {
@@ -231,7 +234,7 @@ bool icm42688_fifo_read(ICM42688P* icm42688p, ICM42688PFifoPacket* data) {
     return (data->header) & (1 << 7);
 }
 
-ICM42688P* icm42688p_alloc(FuriHalSpiBusHandle* spi_bus, const GpioPin* irq_pin) {
+ICM42688P* icm42688p_alloc(const FuriHalSpiBusHandle* spi_bus, const GpioPin* irq_pin) {
     ICM42688P* icm42688p = malloc(sizeof(ICM42688P));
     icm42688p->spi_bus = spi_bus;
     icm42688p->irq_pin = irq_pin;

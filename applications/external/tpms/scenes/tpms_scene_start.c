@@ -1,7 +1,9 @@
 #include "../tpms_app_i.h"
 
 typedef enum {
-    SubmenuIndexTPMSReceiver,
+    SubmenuIndexActivateThenScan,
+    SubmenuIndexScanOnly,
+    SubmenuIndexSweep,
     SubmenuIndexTPMSRelearn,
     SubmenuIndexTPMSAbout,
 } SubmenuIndex;
@@ -17,10 +19,17 @@ void tpms_scene_start_on_enter(void* context) {
     Submenu* submenu = app->submenu;
 
     submenu_add_item(
-        submenu, "Read TPMS", SubmenuIndexTPMSReceiver, tpms_scene_start_submenu_callback, app);
+        submenu,
+        "Activate + Scan",
+        SubmenuIndexActivateThenScan,
+        tpms_scene_start_submenu_callback,
+        app);
     submenu_add_item(
-        submenu, "Relearn", SubmenuIndexTPMSRelearn, tpms_scene_start_submenu_callback, app);
-    // Help
+        submenu, "Scan Only", SubmenuIndexScanOnly, tpms_scene_start_submenu_callback, app);
+    submenu_add_item(
+        submenu, "Sweep (Discovery)", SubmenuIndexSweep, tpms_scene_start_submenu_callback, app);
+    submenu_add_item(
+        submenu, "Relearn Config", SubmenuIndexTPMSRelearn, tpms_scene_start_submenu_callback, app);
     submenu_add_item(
         submenu, "About", SubmenuIndexTPMSAbout, tpms_scene_start_submenu_callback, app);
 
@@ -43,8 +52,17 @@ bool tpms_scene_start_on_event(void* context, SceneManagerEvent event) {
         if(event.event == SubmenuIndexTPMSAbout) {
             scene_manager_next_scene(app->scene_manager, TPMSSceneAbout);
             consumed = true;
-        } else if(event.event == SubmenuIndexTPMSReceiver) {
-            scene_manager_next_scene(app->scene_manager, TPMSSceneReceiver);
+        } else if(event.event == SubmenuIndexActivateThenScan) {
+            app->scan_mode = TPMSScanModeActivateThenScan;
+            scene_manager_next_scene(app->scene_manager, TPMSSceneSelectSensor);
+            consumed = true;
+        } else if(event.event == SubmenuIndexScanOnly) {
+            app->scan_mode = TPMSScanModeScanOnly;
+            scene_manager_next_scene(app->scene_manager, TPMSSceneSelectSensor);
+            consumed = true;
+        } else if(event.event == SubmenuIndexSweep) {
+            // Go to sweep configuration
+            scene_manager_next_scene(app->scene_manager, TPMSSceneSweepConfig);
             consumed = true;
         } else if(event.event == SubmenuIndexTPMSRelearn) {
             scene_manager_next_scene(app->scene_manager, TPMSSceneRelearn);

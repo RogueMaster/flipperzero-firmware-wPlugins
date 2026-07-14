@@ -11,15 +11,22 @@ extern "C" {
 
 #define FELICA_POLLER_POLLING_FWT (200000U)
 
+// FeliCa spec section 4.4.3: 1 ≤ n ≤ 32
+#define FELICA_REQUEST_SERVICE_MAX_NODES (32U)
+
 #define FELICA_POLLER_CMD_POLLING_REQ_CODE  (0x00U)
 #define FELICA_POLLER_CMD_POLLING_RESP_CODE (0x01U)
 
 typedef enum {
     FelicaPollerStateIdle,
     FelicaPollerStateActivated,
+    FelicaPollerStateListSystem,
+    FelicaPollerStateSelectSystemIndex,
     FelicaPollerStateAuthenticateInternal,
     FelicaPollerStateAuthenticateExternal,
-    FelicaPollerStateReadBlocks,
+    FelicaPollerStateTraverseStandardSystem,
+    FelicaPollerStateReadStandardBlocks,
+    FelicaPollerStateReadLiteBlocks,
     FelicaPollerStateReadSuccess,
     FelicaPollerStateReadFailed,
 
@@ -40,6 +47,15 @@ struct FelicaPoller {
     FelicaPollerEventData felica_event_data;
     NfcGenericCallback callback;
     uint8_t block_index;
+    uint8_t systems_read;
+    uint8_t systems_total;
+    // IDm/PMm obtained from the initial (wildcard) activation Polling - this is the
+    // card's own identity, distinct from whatever System is currently selected via
+    // instance->data->idm while traversing. Restored into instance->data on success/
+    // failure so the saved/displayed IDm always reflects the card, not the last
+    // System visited.
+    FelicaIDm card_idm;
+    FelicaPMm card_pmm;
     void* context;
 };
 
@@ -55,6 +71,10 @@ typedef struct {
     uint8_t request_data[2];
 } FelicaPollerPollingResponse;
 
+typedef union {
+    FelicaData* data;
+} FelicaPollerContextData;
+
 const FelicaData* felica_poller_get_data(FelicaPoller* instance);
 
 /**
@@ -69,21 +89,6 @@ FelicaError felica_poller_polling(
     FelicaPoller* instance,
     const FelicaPollerPollingCommand* cmd,
     FelicaPollerPollingResponse* resp);
-
-/**
- * @brief Performs felica read operation for blocks provided as parameters
- * 
- * @param[in, out] instance pointer to the instance to be used in the transaction.
- * @param[in] block_count Amount of blocks involved in reading procedure
- * @param[in] block_numbers Array with block indexes according to felica docs
- * @param[out] response_ptr Pointer to the response structure
- * @return FelicaErrorNone on success, an error code on failure.
-*/
-FelicaError felica_poller_read_blocks(
-    FelicaPoller* instance,
-    const uint8_t block_count,
-    const uint8_t* const block_numbers,
-    FelicaPollerReadCommandResponse** const response_ptr);
 
 /**
  * @brief Performs felica write operation with data provided as parameters
@@ -119,6 +124,21 @@ FelicaError felica_poller_frame_exchange(
     const BitBuffer* tx_buffer,
     BitBuffer* rx_buffer,
     uint32_t fwt);
+
+FelicaError felica_poller_list_service_by_cursor(
+    FelicaPoller* instance,
+    uint16_t cursor,
+    FelicaListServiceCommandResponse** response_ptr);
+
+FelicaError felica_poller_list_system_code(
+    FelicaPoller* instance,
+    FelicaListSystemCodeCommandResponse** response_ptr);
+
+FelicaError felica_poller_request_service(
+    FelicaPoller* instance,
+    const uint16_t* codes,
+    uint8_t code_count,
+    uint16_t* key_versions_out);
 
 #ifdef __cplusplus
 }

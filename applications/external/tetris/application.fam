@@ -9,8 +9,9 @@ App(
     fap_category="Games",
     fap_author="jeffplang & xMasterX & noiob",
     fap_weburl="https://github.com/jeffplang/flipperzero-firmware/tree/tetris_game/applications/tetris_game",
-    fap_version="1.4",
+    fap_version="1.5",
     fap_description="Tetris Game",
     # [Changes By xMasterX](https://github.com/xMasterX/all-the-plugins/tree/dev/base_pack/tetris_game)
     # [Improved tetris app (By noiob)](https://github.com/xMasterX/all-the-plugins/pull/25)
+    # v1.5: [added piece hard-dropping (By GGORG0)](https://github.com/xMasterX/all-the-plugins/pull/186)
 )

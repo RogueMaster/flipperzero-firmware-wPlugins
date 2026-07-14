@@ -1,0 +1,318 @@
+# Trivia Zero blacklist — keywords that drop a question on either side.
+# Lines starting with '#' are comments. Empty lines are ignored.
+# Match is case-insensitive and whole-word.
+# Multi-word entries are matched as exact phrases.
+# Goal: keep "classic Trivial Pursuit" feel — universal, board-game-ish trivia.
+# Drop hyper-anglo niche content (US politics, US sports leagues, UK royals,
+# Anglo-only TV/celebs). Keep big-tent pop culture (Star Wars, Disney, etc.)
+# because those are universal.
+
+# US sports leagues and teams
+NFL
+NBA
+MLB
+NHL
+NCAA
+MLS
+Super Bowl
+World Series
+Stanley Cup
+Yankees
+Red Sox
+Lakers
+Celtics
+Cubs
+Cowboys
+Patriots
+Bulls
+Knicks
+Heat
+Warriors
+
+# UK / British-specific
+Premier League
+royal
+royalty
+Tudor
+Tudors
+House of Commons
+House of Lords
+Buckingham
+Westminster
+Brexit
+Tory
+Tories
+Whig
+Whigs
+Margaret Thatcher
+Winston Churchill
+Margaret Bonney
+
+# US politics (presidents, scandals, US-only events)
+Watergate
+Whitewater
+Iran-Contra
+Reaganomics
+
+# UK / Commonwealth politics
+MP for
+parliamentary by-election
+
+# Anglo-only TV / radio
+Saturday Night Live
+BBC One
+BBC Two
+ITV
+Coronation Street
+EastEnders
+Doctor Who
+
+# US-only food / chains (rarely universal)
+Hershey
+Twinkie
+Pop-Tart
+Cracker Jack
+
+# Hollywood / very-anglo pop culture
+Hollywood
+Oscars
+Grammys
+Emmys
+Tony Awards
+Pulitzer
+
+# State-specific (US states alone, when they appear as the whole subject)
+# (handled by phrase: e.g. "Florida state" or specific governors)
+governor of
+state capital of
+
+# Niche British music / culture
+Glastonbury
+Eurovision
+
+# Video games (titles, franchises, platforms, jargon)
+# These leak into Entertainment: Film/Music/TV via crossover questions.
+Pokemon
+Pokémon
+Pikachu
+Mario
+Luigi
+Bowser
+Zelda
+Hyrule
+Ganon
+Hyrulean
+Sonic the Hedgehog
+Minecraft
+Fortnite
+Roblox
+Final Fantasy
+Tetris
+Doom
+Quake
+Halo
+Skyrim
+Morrowind
+Oblivion
+World of Warcraft
+StarCraft
+Warcraft
+Overwatch
+Witcher
+Bioshock
+Borderlands
+Assassin's Creed
+Grand Theft Auto
+GTA
+Call of Duty
+Battlefield
+Counter-Strike
+Team Fortress
+Half-Life
+Portal
+Aperture Science
+Cave Johnson
+Undertale
+Touhou
+Starbound
+Terraria
+Stardew Valley
+Animal Crossing
+Splatoon
+Smash Bros
+Kirby
+Metroid
+Resident Evil
+Silent Hill
+Dark Souls
+Elden Ring
+Cyberpunk 2077
+Persona
+Kingdom Hearts
+Game Dev Tycoon
+Buddyfight
+Dragowizard
+DLC
+NPC
+MMORPG
+RPG
+FPS
+speedrun
+respawn
+PlayStation
+PS1
+PS2
+PS3
+PS4
+PS5
+Xbox
+Nintendo
+Sega
+Game Boy
+GameCube
+Wii
+Nintendo Switch
+
+# Anime / manga
+anime
+manga
+otaku
+Akihabara
+shonen
+shoujo
+seinen
+Naruto
+Sasuke
+Goku
+Vegeta
+Saiyan
+One Piece
+Luffy
+Bleach
+Dragon Ball
+Sailor Moon
+Studio Ghibli
+Miyazaki
+Evangelion
+Death Note
+Attack on Titan
+Demon Slayer
+Jujutsu Kaisen
+My Hero Academia
+Cowboy Bebop
+Fullmetal Alchemist
+Yu-Gi-Oh
+Digimon
+
+# Comics / superhero deep cuts (Marvel/DC iconic chars stay; deep lore goes)
+Aperture
+Stark Industries
+Wakanda
+Krypton
+Asgardian
+Multiverse
+
+# Niche music — specific obscure artists, songs, or albums (added 2026-05-07
+# after manual review; mainstream artists like The Beatles, Pink Floyd, Madonna,
+# Kanye, Ozzy stay — only the deep-cut album/song titles are blocked).
+TheFatRat
+Tatsuro Yamashita
+MC Frontalot
+Nerdcore
+Death Grips
+MC Ride
+Stefan Burnett
+The Front Bottoms
+Twin Size Mattress
+Drum Corps International
+White City: A Novel
+Andrew Gold
+Lonely Boy
+Brownsville Station
+Madchester
+Haçienda
+Hacienda
+Björk
+Bjork
+STRFKR
+Pyramiddd
+Huun Huur Tu
+Altai Sayan
+The Piper at the Gates of Dawn
+Plastic Beach
+On Melancholy Hill
+Raekwon
+Cuban Linx
+Deltron
+Dan the Automater
+Yeezus
+Watch the Throne
+Hung Up
+Sir Robert Bryson Hall
+Build God
+Hubba Bubba
+
+# Niche TV / film references — too inside-baseball for classic Trivial.
+# Star Trek and Walking Dead are iconic IPs but their OpenTDB trivia goes way
+# too deep into episode/character lore.
+Star Trek
+Klingons
+Klingon
+Starfleet
+Family Guy
+Megatron Griffin
+Walking Dead
+Gilligan's Island
+Tower Heist
+Hardcore Henry
+The Wraith
+Dodge M4S
+Spongebob
+SpongeBob
+Tamagotchi
+Chris Jericho
+Animalympics
+Battle Cats
+Moneko
+Mean Girls
+Russian Ark
+
+# Corporate / brand trivia (year-of-founding, original-name, niche brands)
+BackRub
+Panda Express
+Oculus VR
+Andrew Scott Reisse
+Electronic Arts
+
+# Niche literature / fandom deep cuts (mainstream authors stay)
+Sir Handel
+Wyrd Sisters
+Locke Lamora
+Throne Therin
+Maximum Ride
+
+# US-specific political / regional niche
+Deez Nuts
+Yomba Shoshone
+
+# Niche sports / regional teams
+Toronto Marlies
+Bluebell Railway
+Stepney
+Hull City
+Gheorghe Hagi
+Pelle
+
+# Late additions after second-pass review
+Netflix
+Pat Cashman
+Lockjaw EP
+ALF
+Gordon Shumway
+Sakamoto Kyu
+Sukiyaki
+Slipknot
+Smash Brothers
+Smash Bros
+Major Lazer
+Tron: Legacy

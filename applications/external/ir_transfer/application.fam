@@ -1,0 +1,21 @@
+App(
+    appid="ir_transfer",
+    name="IR Transfer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="main_app",
+    stack_size=1 * 1024,
+    fap_icon_assets="images",
+    fap_icon="images/icon_10x10.png",
+    sources=[
+        "ir_main.c",
+        "views/*.c",
+        "infrared/*.c",
+        "utils/*.c",
+    ],
+    sdk_headers=["."],
+    fap_category="Infrared",
+    fap_author="WBP20",
+    fap_weburl="https://github.com/WBP20/ir_transfer",
+    fap_version="0.1",
+    fap_description="File transfer over infrared between two Flipper Zero devices using the NEC protocol for both control and data.",
+)

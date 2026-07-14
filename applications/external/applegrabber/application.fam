@@ -10,5 +10,5 @@ App(
     fap_author="d7d8 / Julio Rodriguez",
     fap_weburl="https://github.com/d7d8/apple-grabber",
     fap_version="0.1",
-    fap_description="Apple grabber game",
+    fap_description="Apple grabber game, default mode is vertical",
 )

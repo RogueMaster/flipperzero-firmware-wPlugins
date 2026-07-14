@@ -32,4 +32,4 @@ The application will be compiled and copied onto your device.
 This code is open-source under the conditions of GNU GENERAL PUBLIC LICENSE. 
 
 ## Credits
-Thanks to [Willy-JL](https://github.com/Willy-JL) for assisting in the fine-tuning of the app
+Thanks to [WillyJL](https://github.com/WillyJL) for assisting in the fine-tuning of the app

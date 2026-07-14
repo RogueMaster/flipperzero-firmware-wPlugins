@@ -40,9 +40,17 @@ static bool flipp_pomodoro_app_custom_event_callback(void* ctx, uint32_t event) 
         };
 
         flipp_pomodoro__toggle_stage(app->state);
-        notification_message(
-            app->notification_app,
-            stage_start_notification_sequence_map[flipp_pomodoro__get_stage(app->state)]);
+
+        PomodoroStage next_stage = flipp_pomodoro__get_stage(app->state);
+        FlippPomodoroSettings settings;
+        flipp_pomodoro_settings_load(&settings);
+        // Keep flash mode completely silent regardless of target stage.
+        bool skip_beep = (settings.buzz_mode == FlippPomodoroBuzzFlash);
+
+        if(!skip_beep) {
+            notification_message(
+                app->notification_app, stage_start_notification_sequence_map[next_stage]);
+        }
         view_dispatcher_send_custom_event(
             app->view_dispatcher, FlippPomodoroAppCustomEventStateUpdated);
         return CustomEventConsumed;
@@ -59,11 +67,11 @@ FlippPomodoroApp* flipp_pomodoro_app_alloc() {
     app->scene_manager = scene_manager_alloc(&flipp_pomodoro_scene_handlers, app);
     app->gui = furi_record_open(RECORD_GUI);
     app->notification_app = furi_record_open(RECORD_NOTIFICATION);
+    app->notification_manager = notification_manager_alloc();
 
     app->view_dispatcher = view_dispatcher_alloc();
     app->statistics = flipp_pomodoro_statistics__new();
 
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
         app->view_dispatcher, flipp_pomodoro_app_custom_event_callback);
@@ -73,6 +81,7 @@ FlippPomodoroApp* flipp_pomodoro_app_alloc() {
     view_dispatcher_set_navigation_event_callback(
         app->view_dispatcher, flipp_pomodoro_app_back_event_callback);
 
+    app->config_view = flipp_pomodoro_view_config_alloc();
     app->timer_view = flipp_pomodoro_view_timer_alloc();
     app->info_view = flipp_pomodoro_info_view_alloc();
 
@@ -86,6 +95,11 @@ FlippPomodoroApp* flipp_pomodoro_app_alloc() {
         FlippPomodoroAppViewInfo,
         flipp_pomodoro_info_view_get_view(app->info_view));
 
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        FlippPomodoroAppViewConfig,
+        flipp_pomodoro_view_config_get_view(app->config_view));
+
     scene_manager_next_scene(app->scene_manager, FlippPomodoroSceneTimer);
     FURI_LOG_I(TAG, "Alloc complete");
     return app;
@@ -94,12 +108,15 @@ FlippPomodoroApp* flipp_pomodoro_app_alloc() {
 void flipp_pomodoro_app_free(FlippPomodoroApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, FlippPomodoroAppViewTimer);
     view_dispatcher_remove_view(app->view_dispatcher, FlippPomodoroAppViewInfo);
+    view_dispatcher_remove_view(app->view_dispatcher, FlippPomodoroAppViewConfig);
     view_dispatcher_free(app->view_dispatcher);
     scene_manager_free(app->scene_manager);
     flipp_pomodoro_view_timer_free(app->timer_view);
+    flipp_pomodoro_view_config_free(app->config_view);
     flipp_pomodoro_info_view_free(app->info_view);
     flipp_pomodoro_statistics__destroy(app->statistics);
     flipp_pomodoro__destroy(app->state);
+    notification_manager_free(app->notification_manager);
     free(app);
     furi_record_close(RECORD_GUI);
     furi_record_close(RECORD_NOTIFICATION);
@@ -111,6 +128,7 @@ int32_t flipp_pomodoro_app(void* p) {
     FlippPomodoroApp* app = flipp_pomodoro_app_alloc();
 
     FURI_LOG_I(TAG, "Run deed added");
+    dolphin_deed(DolphinDeedPluginGameStart);
 
     view_dispatcher_run(app->view_dispatcher);
 

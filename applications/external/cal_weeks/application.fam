@@ -1,0 +1,14 @@
+App(
+    appid="cal_weeks",
+    name="Calendar of weeks",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="cal_weeks_main",
+    stack_size=1 * 1024,
+    fap_icon_assets="images",
+    fap_icon="images/icon_10x10.png",
+    fap_category="Tools",
+    fap_author="F. Greil",
+    fap_weburl="https://github.com/fgreil/mitzi-cal-weeks",
+    fap_version="0.2.0",
+    fap_description="Simple app to organize your week",
+)

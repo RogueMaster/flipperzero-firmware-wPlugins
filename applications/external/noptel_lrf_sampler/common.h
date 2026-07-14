@@ -1,6 +1,6 @@
 /***
  * Noptel LRF rangefinder sampler for the Flipper Zero
- * Version: 1.9
+ * Version: 2.4
  *
  * Main app
 ***/
@@ -17,13 +17,13 @@
 #include "lrf_serial_comm.h"
 
 /*** Defines ***/
-#define VERSION FAP_VERSION
+#define VERSION "2.4"
 #define TAG     "noptel_lrf_sampler"
 
 #define CONFIG_FILE                       "noptel_lrf_sampler.save"
 #define SMM_PREFIX_CONFIG_DEFINITION_FILE "smm_prefix_config.def"
 
-//#define USE_5V_PIN		/* As well as PC1, for power control */
+#define USE_5V_PIN /* As well as PC1, for power control */
 
 #define NO_AVERAGE \
     -1 /* This distance will be displayed as
@@ -124,23 +124,26 @@ typedef enum {
     /* LRF info view */
     submenu_lrfinfo = 3,
 
+    /* Test boot time view */
+    submenu_testboottime = 4,
+
     /* Save diagnostic view */
-    submenu_savediag = 4,
+    submenu_savediag = 5,
 
     /* Test laser view */
-    submenu_testlaser = 5,
+    submenu_testlaser = 6,
 
     /* Test pointer view */
-    submenu_testpointer = 6,
+    submenu_testpointer = 7,
 
     /* USB passthrough view */
-    submenu_passthru = 7,
+    submenu_passthru = 8,
 
     /* About view */
-    submenu_about = 8,
+    submenu_about = 9,
 
     /* Total number of items */
-    total_submenu_items = 9,
+    total_submenu_items = 10,
 
 } SubmenuIndex;
 
@@ -248,6 +251,28 @@ typedef struct {
     char spstr[8];
 
 } LRFInfoModel;
+
+/** Test boot time view model **/
+typedef struct {
+    /* Time at which the LRF was powered on */
+    uint32_t power_on_tstamp;
+
+    /* Whether we're waiting for a boot string */
+    bool await_boot_info;
+
+    /* Boot time in milliseconds */
+    uint32_t boot_time_ms;
+
+    /* Boot information from the boot string */
+    LRFBootInfo boot_info;
+
+    /* Whether we have valid boot information */
+    bool has_boot_info;
+
+    /* Scratchpad string */
+    char spstr[8];
+
+} TestBootTimeModel;
 
 /** Save diagnostic model **/
 typedef struct {
@@ -437,6 +462,9 @@ typedef struct {
 
     /* LRF info view */
     View* lrfinfo_view;
+
+    /* Test boot time view */
+    View* testboottime_view;
 
     /* Save diagnostic view */
     View* savediag_view;

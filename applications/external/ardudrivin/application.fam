@@ -1,0 +1,14 @@
+App(
+    appid="arddrivin",
+    name="Ardudrivin",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="arduboy3d_app",
+    cdefines=["FLIPPER_INVERT_OK_GAS"],
+    stack_size=8 * 1024,
+    fap_icon="Drivin.png",
+    fap_category="Games",
+    fap_author="apfxtech",
+    fap_weburl="https://github.com/apfxtech/FlipperDrivin",
+    fap_version="1.0.3",
+    fap_description="Race game ported to Flipper Zero.",
+)

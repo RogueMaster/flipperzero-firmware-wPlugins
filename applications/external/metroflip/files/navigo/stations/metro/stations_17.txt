@@ -1,0 +1,12 @@
+0,Passy
+2,Porte Dauphine
+4,La Motte-Picquet - Grenelle
+5,Commerce
+6,Avenue Emile Zola
+7,Dupleix
+8,Passy
+9,Ranelagh
+11,La Muette
+13,Rue de la Pompe
+14,Boissiere
+15,Trocadero

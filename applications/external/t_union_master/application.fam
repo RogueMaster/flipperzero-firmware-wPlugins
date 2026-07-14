@@ -1,0 +1,18 @@
+App(
+    appid="t_union_master",
+    name="T-Union Master (China)",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="tum_app",
+    stack_size=4 * 1024,
+    fap_file_assets="resources",
+    fap_icon="icon.png",
+    fap_icon_assets="images",
+    sources=[
+        "*.c",
+    ],
+    fap_category="NFC",
+    fap_author="SocialSisterYi",
+    fap_weburl="https://github.com/SocialSisterYi/T-Union_Master",
+    fap_version="0.1",
+    fap_description="A tool for query T-Union card and show travel logs",
+)

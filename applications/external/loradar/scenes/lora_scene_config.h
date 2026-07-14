@@ -1,0 +1,5 @@
+ADD_SCENE(lora, start, Start)
+ADD_SCENE(lora, receive_mode, ReceiveMode)
+ADD_SCENE(lora, receive_mode_cfg, ReceiveModeCfg)
+// ADD_SCENE(lora, lorawan, Lorawan)
+// ADD_SCENE(lora, lorawan_cfg, LorawanCfg)

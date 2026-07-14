@@ -31,6 +31,7 @@ void action_qpl_tx(void* context, const FuriString* action_path, FuriString* err
     App* app = context;
 
     // Save the current durations, in case the are changed during playback
+    uint32_t orig_subghz_duration = app->settings.subghz_duration;
     uint32_t orig_rfid_duration = app->settings.rfid_duration;
     uint32_t orig_nfc_duration = app->settings.nfc_duration;
     uint32_t orig_ibutton_duration = app->settings.ibutton_duration;
@@ -97,7 +98,14 @@ void action_qpl_tx(void* context, const FuriString* action_path, FuriString* err
 
                 // FURI_LOG_I(TAG, " - Found extension of %s", ext);
 
-                if(!strcmp(ext, ".rfid")) {
+                if(!strcmp(ext, ".sub")) {
+                    uint32_t subghz_duration = 0;
+                    // FURI_LOG_I(TAG, "SubGhz file with duration");
+                    if(sscanf(furi_string_get_cstr(buffer), "%lu", &subghz_duration) == 1) {
+                        FURI_LOG_I(TAG, "SubGhz duration = %lu", subghz_duration);
+                        app->settings.subghz_duration = subghz_duration;
+                    }
+                } else if(!strcmp(ext, ".rfid")) {
                     uint32_t rfid_duration = 0;
                     // FURI_LOG_I(TAG, "RFID file with duration");
                     if(sscanf(furi_string_get_cstr(buffer), "%lu", &rfid_duration) == 1) {
@@ -142,6 +150,8 @@ void action_qpl_tx(void* context, const FuriString* action_path, FuriString* err
             path_extract_extension(buffer, ext, MAX_EXT_LEN);
             if(!strcmp(ext, ".sub")) {
                 action_subghz_tx(context, buffer, error);
+                // Reset our default duration back - in case it was changed during playback
+                app->settings.subghz_duration = orig_subghz_duration;
             } else if(!strcmp(ext, ".rfid")) {
                 action_rfid_tx(context, buffer, error);
                 // Reset our default duration back - in case it was changed during playback

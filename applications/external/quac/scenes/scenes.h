@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gui/scene_manager.h>
 typedef enum {
     QScene_Items,
     QScene_Settings,
@@ -8,6 +9,7 @@ typedef enum {
     QScene_ActionCreateGroup,
     QScene_ActionIRList,
     QScene_About,
+    QScene_PicopassEmulate,
     QScene_count
 } appScenes;
 

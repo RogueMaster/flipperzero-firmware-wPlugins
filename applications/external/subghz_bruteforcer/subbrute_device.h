@@ -65,7 +65,7 @@ typedef struct {
     uint64_t key_from_file; /**< Key from file */
     uint64_t current_key_from_file; /**< Current key from file */
     bool two_bytes; /**< Two bytes key */
-
+    uint8_t opencode; /**< Opencode */
     uint8_t bit_index; /**< Index of a group to bruteforce in loaded file */
 } SubBruteDevice;
 

@@ -1,0 +1,150 @@
+int8_t Level1_FG[] = {
+    include "../levels/Level1_FG_convert.csv"
+};
+
+int8_t Level1_BG[] = {
+    include "../levels/Level1_BG_convert.csv"
+};
+
+uint8_t level1_Data[] = {
+    // Prince
+    10,                         // Prince starting x pos
+    56,                         // Prince starting y pos (25, 56, 87)
+    2,                          // Prince starting direction, 1 Left and 2 Right
+    3,                          // Prince starting stance, 3 Crouch_3_End
+    // Level
+    90,                         // Width
+    9,                          // Height
+    60,                         // Level x starting position
+    0,                          // Level y starting position
+    // Enemy 1          
+    0,                          // Type 0 = Guard, 1 = Skeleton, 2 = Mirror          
+    70,                         // Enemy starting x tile
+    3,                          // Enemy starting y tile
+    92,                         // Enemy starting x pos (left entry)
+    22,                         // Enemy starting x pos (right entry)
+    18,                          // Enemy starting x pos (left extent)
+    108,                        // Enemy starting x pos (right extent)
+    56,                         // Enemy starting y pos (25, 56, 87)
+    3,                          // Enemy starting health
+    0,                          // Status 0 Alive, 1 Dead, 2 Dormant
+    // Enemy 2          
+    0,                          // Type 0 = Guard, 1 = Skeleton, 2 = Mirror          
+    40,                         // Enemy starting x tile
+    0,                          // Enemy starting y tile
+    80,                         // Enemy starting x pos (left entry)
+    22,                         // Enemy starting x pos (right entry)
+    18,                          // Enemy starting x pos (left extent)
+    108,                        // Enemy starting x pos (right extent)
+    25,                         // Enemy starting y pos (25, 56, 87)
+    3,                          // Enemy starting health
+    0,                          // Status 0 Alive, 1 Dead, 2 Dormant
+
+    0,200,0,0,0,0,0,0,0,1,
+    0,200,0,0,0,0,0,0,0,1,
+    0,200,0,0,0,0,0,0,0,1,
+
+    // End
+    255,
+};
+
+uint8_t Level1_Items[] = {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    26,  84,   4,  82,  86,   0,   0,   0,      // Exit Gate, let position for open, right position                                                        
+     5,  80,   3,   0,   0,   0,   0,   0,      // Exit Button 
+    17,  50,   3,   0,  64,  64, 255,   0,      // Gate #1
+     2,  46,   3,   1,   0,   0,   0,   0,      // Floor Button 1 
+     2,  52,   3,   1,   0,   0,   0,   0,      // Floor Button 1     
+    17,  40,   3,   0,  64,  64, 255,   0,      // Gate #2
+     2,  32,   3,   2,   0,   0,   0,   0,      // Floor Button 1 
+     2,  47,   4,   2,   0,   0,   0,   0,      // Floor Button 1     
+    17,  20,   3,   0,  64,  64, 255,   0,      // Gate #3
+     2,  27,   4,   3,   0,   0,   0,   0,      // Floor Button 1 
+     3,  24,   4,   3,   0,   0,   0,   0,      // Floor Button 2 
+     2,  13,   3,   3,   0,   0,   0,   0,      // Floor Button 1     
+    17,  56,   0,   0,  64,  64, 255,   0,      // Gate #4     
+     3,  54,   0,   4,   0,   0,   0,   0,      // Floor Button 2 
+     2,  52,   0,   4,   0,   0,   0,   0,      // Floor Button 1     
+    17,  60,   0,   9,  58,  58, 255,   2,      // Gate #5    
+     2,  56,   0,   5,   0,   0,   0,   0,      // Floor Button 1 
+    20,   6,   0,   0,   0,   0,   0,   0,      // Potion Small                              
+    20,  35,   6,   0,   0,   0,   0,   0,      // Potion Small                              
+    20,  53,   2,   0,   0,   0,   0,   0,      // Potion Small                              
+    20,  33,   2,   0,   0,   0,   0,   0,      // Potion Small                              
+    27,   2,   5,   0,   0,   0,   0,   0,      // Sword
+    15,   3,   5,   0,   0,   0,   0,   0,      // Skeleton
+     4,  53,   5,   1,   3,   0,   0,   0,      // Spikes x,y, imageType = Fullview, RHS truncated, position
+     4,  54,   5,   2,   3,   0,   0,   0,      // Spikes
+     4,   1,   8,   1,   3,   0,   0,   0,      // Spikes
+     4,   2,   8,   2,   3,   0,   0,   0,      // Spikes
+     4,  14,   5,   1,   3,   0,   0,   0,      // Spikes
+     4,  15,   2,   1,   0,   0,   0,   0,      // Spikes
+     4,  15,   7,   1,   0,   0,   0,   0,      // Spikes
+     4,  37,   8,   1,   3,   0,   0,   0,      // Spikes
+     4,  38,   8,   1,   3,   0,   0,   0,      // Spikes
+     1,  35,   3,  55,  24,   0,   0,   0,      // CollapsingTile (dist to fall)                                    
+     1,  36,   3,  55,  24,   0,   0,   0,      // CollapsingTile (dist to fall)                                    
+     1,  25,   4, 117,  24,   0,   0,   0,      // CollapsingTile (dist to fall)                                    
+     1,  18,   2,  24,  24,   0,   0,   0,      // CollapsingTile (dist to fall)                                    
+     1,  33,   5,  24,  24,   0,   0,   0,      // CollapsingTile (dist to fall)                                    
+     1,  66,   2,  55,  24,   0,   0,   0,      // CollapsingTile (dist to fall, 24 + 31 + 31 ..)                   
+     1,  55,   2,  24,  24,   0,   0,   0,      // CollapsingTile (dist to fall, 24 + 31 + 31 ..)                   
+     1,  35,   1,  24,  24,   0,   0,   0,      // CollapsingTile (dist to fall)                                    
+     1,  36,   1,  24,  24,   0,   0,   0,      // CollapsingTile (dist to fall)                                    
+     1,  43,   4, 117,  24,   0,   0,   0,      // CollapsingTile (dist to fall)                                    
+     1,  11,   3,  24,  24,   0,   0,   0,      // CollapsingTile (dist to fall)                                    
+     1,  12,   3,  24,  24,   0,   0,   0,      // CollapsingTile (dist to fall) 
+    96,   0,   0,   0,   0,   0,   0,   0,      // Nothing!
+    96,   0,   0,   0,   0,   0,   0,   0,      // Nothing!
+    96,   0,   0,   0,   0,   0,   0,   0,      // Nothing!
+    96,   0,   0,   0,   0,   0,   0,   0,      // Nothing!
+    96,   0,   0,   0,   0,   0,   0,   0,      // Nothing!
+}    

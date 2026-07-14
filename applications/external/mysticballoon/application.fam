@@ -1,0 +1,15 @@
+App(
+    appid="myblab",
+    name="Mystic Balloon",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="mybl_app",
+    stack_size=8 * 1024,
+    fap_icon="mybl_ab_icon.png",
+    fap_icon_assets="assets",
+    fap_icon_assets_symbol="apfx_myblab",
+    fap_category="Games",
+    fap_author="apfxtech",
+    fap_weburl="https://github.com/apfxtech/FlipperMysticBalloon",
+    fap_version="2.0",
+    fap_description="Play the port of Mystic Balloon game on your Flipper Zero.",
+)

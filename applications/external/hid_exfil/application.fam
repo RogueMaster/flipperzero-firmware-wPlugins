@@ -1,0 +1,14 @@
+App(
+    appid="hid_exfil",
+    name="HID Exfil",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="hid_exfil_app",
+    stack_size=4 * 1024,
+    fap_icon="hid_exfil.png",
+    fap_icon_assets="images",
+    fap_category="USB",
+    fap_author="PentestSuite & barkandbite",
+    fap_weburl="https://github.com/barkandbite/flipper_suite",
+    fap_version="1.0",
+    fap_description="HID-based data exfiltration via keyboard LED feedback channel",
+)

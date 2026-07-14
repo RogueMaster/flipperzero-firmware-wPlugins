@@ -1,0 +1,50 @@
+{
+  "components": [
+    {
+      "partno": "HDC1008",
+      "desc": "Humidity and temperature sensor.",
+      "type": 22,
+      "manufacturer": "Texas Inst.",
+      "date": "2014"
+    },
+    {
+      "partno": "PCA9685",
+      "desc": "PWM driver.",
+      "type": 12,
+      "manufacturer": "NXP Semi",
+      "date": "2010"
+    },
+    {
+      "partno": "INA219",
+      "desc": "Current and power sensor.",
+      "type": 22,
+      "manufacturer": "Texas Inst.",
+      "date": "2010"
+    },
+    {
+      "partno": "TMP006",
+      "desc": "IR temperature sensor.",
+      "type": 22,
+      "manufacturer": "Texas Inst.",
+      "date": "2011"
+    },
+    {
+      "partno": "TMP007",
+      "desc": "IR temperature sensor.",
+      "type": 22,
+      "manufacturer": "Texas Inst.",
+      "date": "2014"
+    },
+    {
+      "partno": "INA260",
+      "desc": "Current and power sensor",
+      "type": 22,
+      "manufacturer": "Texas Inst.",
+      "date": "2018"
+    }
+  ],
+  "unique_types": [
+    22,
+    12
+  ]
+}

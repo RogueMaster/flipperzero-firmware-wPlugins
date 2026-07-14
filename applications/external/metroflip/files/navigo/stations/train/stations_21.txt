@@ -1,0 +1,29 @@
+5,1,Rosny Bois Perrier
+5,2,Rosny-sous-Bois
+5,3,Val de Fontenay
+6,1,Nogent - Le Perreux
+7,1,Les Boullereaux Champigny
+7,2,Les Boullereaux Champigny
+8,1,Villiers-sur-Marne - Le Plessis-Trevise
+9,1,Les Yvris Noisy-le-Grand
+10,1,Emerainville - Pontault-Combault
+10,2,Roissy-en-Brie
+11,1,Ozoir-la-Ferriere
+12,1,Gretz-Armainvilliers
+12,2,Tournan
+15,1,Marles-en-Brie
+15,2,Mortcerf
+15,3,Guerard - La Celle-sur-Morin
+15,4,Faremoutiers - Pommeuse
+15,5,Mouroux
+15,6,Verneuil-l'Etang
+15,7,Mormant
+16,1,Coulommiers
+16,2,Gare de Chailly Boissy le Chatel
+16,3,Saint-Simeon
+16,5,Nangis
+17,1,Longueville
+17,2,Sainte-Colombe Septveilles
+17,3,Champbenoist Poigny
+17,4,Provins
+17,5,La Ferte-Gaucher

@@ -1,6 +1,6 @@
 /*
     Unitemp - Universal temperature reader
-    Copyright (C) 2022-2023  Victor Nikitchuk (https://github.com/quen0n)
+    Copyright (C) 2022-2026  Victor Nikitchuk (https://github.com/quen0n)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #include "LM75.h"
-#include "../interfaces/I2CSensor.h"
+#include "../interfaces/i2c_sensor.h"
 
 #define LM75_REG_TEMP   0x00
 #define LM75_REG_CONFIG 0x01
@@ -31,11 +31,11 @@
 #define LM75_CONFIG_FAULTQUEUE_4    0b00010000
 #define LM75_CONFIG_FAULTQUEUE_6    0b00011000
 
-const SensorType LM75 = {
-    .typename = "LM75",
-    .interface = &I2C,
-    .datatype = UT_DATA_TYPE_TEMP,
-    .pollingInterval = 500,
+const SensorModel LM75 = {
+    .modelname = "LM75",
+    .interface = &unitemp_i2c,
+    .data_type = UT_DATA_TYPE_TEMP,
+    .polling_interval = 500,
     .allocator = unitemp_LM75_alloc,
     .mem_releaser = unitemp_LM75_free,
     .initializer = unitemp_LM75_init,
@@ -46,14 +46,14 @@ bool unitemp_LM75_alloc(Sensor* sensor, char* args) {
     UNUSED(args);
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
 
-    //Адреса на шине I2C (7 бит)
-    i2c_sensor->minI2CAdr = 0b1001000 << 1;
-    i2c_sensor->maxI2CAdr = 0b1001111 << 1;
+    //Addresses on the I2C bus (7 bits)
+    i2c_sensor->min_i2c_adress = 0b1001000 << 1;
+    i2c_sensor->max_i2c_adress = 0b1001111 << 1;
     return true;
 }
 
 bool unitemp_LM75_free(Sensor* sensor) {
-    //Нечего высвобождать, так как ничего не было выделено
+    //Nothing to release since nothing was allocated
     UNUSED(sensor);
     return true;
 }
@@ -61,27 +61,27 @@ bool unitemp_LM75_free(Sensor* sensor) {
 bool unitemp_LM75_init(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
 
-    //Выход если не удалось записать значение в датчик
-    if(!unitemp_i2c_writeReg(i2c_sensor, LM75_REG_CONFIG, LM75_CONFIG_FAULTQUEUE_1)) return false;
+    //Exit if it was not possible to write a value to the sensor
+    if(!unitemp_i2c_write_reg(i2c_sensor, LM75_REG_CONFIG, LM75_CONFIG_FAULTQUEUE_1)) return false;
 
     return true;
 }
 
 bool unitemp_LM75_deinit(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
-    if(!unitemp_i2c_writeReg(
+    if(!unitemp_i2c_write_reg(
            i2c_sensor, LM75_REG_CONFIG, LM75_CONFIG_FAULTQUEUE_1 | LM75_CONFIG_SHUTDOWN))
         return false;
     return true;
 }
 
-UnitempStatus unitemp_LM75_update(Sensor* sensor) {
+SensorStatus unitemp_LM75_update(Sensor* sensor) {
     I2CSensor* i2c_sensor = (I2CSensor*)sensor->instance;
 
     uint8_t buff[2];
-    if(!unitemp_i2c_readRegArray(i2c_sensor, LM75_REG_TEMP, 2, buff))
+    if(!unitemp_i2c_read_reg_array(i2c_sensor, LM75_REG_TEMP, 2, buff))
         return UT_SENSORSTATUS_TIMEOUT;
     int16_t raw = (((uint16_t)buff[0] << 8) | buff[1]);
-    sensor->temp = raw / 32 * 0.125;
+    sensor->temperature = raw / 32 * 0.125;
     return UT_SENSORSTATUS_OK;
 }

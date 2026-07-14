@@ -32,6 +32,12 @@ typedef void (*ViewPortDrawCallback)(Canvas* canvas, void* context);
  */
 typedef void (*ViewPortInputCallback)(InputEvent* event, void* context);
 
+/** ViewPort Ascii callback
+ * @return     true if event handled, false if event ignored
+ * @warning    called from GUI thread
+ */
+typedef bool (*ViewPortAsciiCallback)(AsciiEvent* event, void* context);
+
 /** ViewPort allocator
  *
  * always returns view_port or stops system if not enough memory.
@@ -77,16 +83,31 @@ uint8_t view_port_get_height(const ViewPort* view_port);
 void view_port_enabled_set(ViewPort* view_port, bool enabled);
 bool view_port_is_enabled(const ViewPort* view_port);
 
-/** ViewPort event callbacks
+/** Set the ViewPort draw callback
+ *
+ * @warning @p callback will be invoked on the GUI thread.
  *
  * @param      view_port  ViewPort instance
- * @param      callback   appropriate callback function
+ * @param      callback   the draw callback function
  * @param      context    context to pass to callback
  */
 void view_port_draw_callback_set(ViewPort* view_port, ViewPortDrawCallback callback, void* context);
+
+/** Set the ViewPort input callback.
+ *
+ * @warning @p callback will be invoked on the GUI thread.
+ *
+ * @param      view_port  ViewPort instance
+ * @param      callback   the input callback function
+ * @param      context    context to pass to callback
+ */
 void view_port_input_callback_set(
     ViewPort* view_port,
     ViewPortInputCallback callback,
+    void* context);
+void view_port_ascii_callback_set(
+    ViewPort* view_port,
+    ViewPortAsciiCallback callback,
     void* context);
 
 /** Emit update signal to GUI system.

@@ -221,7 +221,6 @@ struct trade_ctx {
     PokemonData* input_pdata;
     struct patch_list* patch_list;
     void* gblink_handle;
-    struct gblink_pins* gblink_pins;
     PokemonData* pdata;
     NotificationApp* notifications;
 };
@@ -860,7 +859,6 @@ void trade_enter_callback(void* context) {
     furi_assert(context);
     struct trade_ctx* trade = (struct trade_ctx*)context;
     struct trade_model* model;
-    struct gblink_def gblink_def = {0};
 
     model = view_get_model(trade->view);
 
@@ -875,12 +873,10 @@ void trade_enter_callback(void* context) {
 
     view_commit_model(trade->view, true);
 
-    gblink_def.pins = trade->gblink_pins;
-    gblink_def.callback = transferBit;
-    gblink_def.cb_context = trade;
-
-    trade->gblink_handle = gblink_alloc(&gblink_def);
+    gblink_callback_set(trade->gblink_handle, transferBit, trade);
     gblink_nobyte_set(trade->gblink_handle, SERIAL_NO_DATA_BYTE);
+
+    gblink_start(trade->gblink_handle);
 
     /* Every 250 ms, trigger a draw update. 250 ms was chosen so that during
      * the trade process, each update can flip the LED and screen to make the
@@ -911,8 +907,8 @@ void trade_exit_callback(void* context) {
     furi_timer_free(trade->draw_timer);
     trade->draw_timer = NULL;
 
-    /* Unset the pin settings */
-    gblink_free(trade->gblink_handle);
+    /* Stop the game boy link */
+    gblink_stop(trade->gblink_handle);
 
     /* Destroy the patch list, it is allocated on the enter callback */
     plist_free(trade->patch_list);
@@ -921,7 +917,7 @@ void trade_exit_callback(void* context) {
 
 void* trade_alloc(
     PokemonData* pdata,
-    struct gblink_pins* gblink_pins,
+    void* gblink_handle,
     ViewDispatcher* view_dispatcher,
     uint32_t view_id) {
     furi_assert(pdata);
@@ -933,8 +929,8 @@ void* trade_alloc(
     trade->pdata = pdata;
     trade->input_pdata = pokemon_data_alloc(pdata->gen);
     trade->patch_list = NULL;
-    trade->gblink_pins = gblink_pins;
     trade->notifications = furi_record_open(RECORD_NOTIFICATION);
+    trade->gblink_handle = gblink_handle;
 
     view_set_context(trade->view, trade);
     view_allocate_model(trade->view, ViewModelTypeLockFree, sizeof(struct trade_model));

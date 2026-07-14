@@ -1,0 +1,14 @@
+App(
+    appid="banana",
+    name="Banana",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="banana_main",
+    stack_size=1 * 1024,
+    fap_icon="banana_10px.png",
+    fap_icon_assets="images",
+    fap_category="Games",
+    fap_author="DrEverr",
+    fap_weburl="https://github.com/DrEverr/FlipperApps",
+    fap_version="0.4",
+    fap_description="Banana. Everyone loves bananas.",
+)

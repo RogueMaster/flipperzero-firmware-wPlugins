@@ -1,16 +1,26 @@
 #include "../subghz_i.h"
+#include <furi/core/memmgr.h>
+#include <furi/core/memmgr_heap.h>
 
-#define TAG                      "SubGhzDecodeRaw"
+#define TAG "SubGhzDecodeRaw"
+
+#define SUBGHZ_DECODE_RAW_MIN_HEAP  (12u * 1024u)
+// The decode worker allocates two large contiguous buffers (stream ~4 KB and the
+// pre-reserved line buffer ~4.6 KB). Require the largest free block to hold both,
+#define SUBGHZ_DECODE_RAW_MIN_BLOCK (9u * 1024u)
+
 #define SAMPLES_TO_READ_PER_TICK 400
 
 static void subghz_scene_receiver_update_statusbar(void* context) {
     SubGhz* subghz = context;
     FuriString* history_stat_str = furi_string_alloc();
+    bool show_sats = subghz->gps && furi_hal_rtc_get_timestamp() % 2;
     if(!subghz_history_get_text_space_left(
            subghz->history,
            history_stat_str,
-           subghz->gps ? subghz->gps->satellites : 0,
-           subghz->last_settings->delete_old_signals)) {
+           subghz->last_settings->delete_old_signals,
+           show_sats,
+           show_sats ? subghz->gps->satellites : 0)) {
         FuriString* frequency_str = furi_string_alloc();
         FuriString* modulation_str = furi_string_alloc();
 
@@ -24,6 +34,7 @@ static void subghz_scene_receiver_update_statusbar(void* context) {
             furi_string_get_cstr(history_stat_str),
             subghz_txrx_hopper_get_state(subghz->txrx) != SubGhzHopperStateOFF,
             READ_BIT(subghz->filter, SubGhzProtocolFlag_BinRAW) > 0,
+            show_sats,
             subghz->repeater);
 
         furi_string_free(frequency_str);
@@ -36,6 +47,7 @@ static void subghz_scene_receiver_update_statusbar(void* context) {
             "",
             subghz_txrx_hopper_get_state(subghz->txrx) != SubGhzHopperStateOFF,
             READ_BIT(subghz->filter, SubGhzProtocolFlag_BinRAW) > 0,
+            show_sats,
             subghz->repeater);
     }
     furi_string_free(history_stat_str);
@@ -140,6 +152,14 @@ bool subghz_scene_decode_raw_start(SubGhz* subghz) {
     } while(false);
 
     if(success) {
+        if(memmgr_get_free_heap() < SUBGHZ_DECODE_RAW_MIN_HEAP ||
+           memmgr_heap_get_max_free_block() < SUBGHZ_DECODE_RAW_MIN_BLOCK) {
+            FURI_LOG_E(TAG, "Not enough memory to decode");
+            subghz->decode_raw_file_worker_encoder = NULL;
+            furi_string_free(file_name);
+            return false;
+        }
+
         //FURI_LOG_I(TAG, "Listening at \033[0;33m%s\033[0m.", furi_string_get_cstr(file_name));
 
         subghz->decode_raw_file_worker_encoder = subghz_file_encoder_worker_alloc();
@@ -155,6 +175,7 @@ bool subghz_scene_decode_raw_start(SubGhz* subghz) {
 
         if(!success) {
             subghz_file_encoder_worker_free(subghz->decode_raw_file_worker_encoder);
+            subghz->decode_raw_file_worker_encoder = NULL;
         }
     }
 
@@ -169,13 +190,29 @@ bool subghz_scene_decode_raw_next(SubGhz* subghz) {
         level_duration =
             subghz_file_encoder_worker_get_level_duration(subghz->decode_raw_file_worker_encoder);
         if(!level_duration_is_reset(level_duration)) {
+            if(level_duration_is_wait(level_duration)) {
+                FURI_LOG_W(TAG, "LD tells wait!");
+                return true;
+            }
             bool level = level_duration_get_level(level_duration);
             uint32_t duration = level_duration_get_duration(level_duration);
+            if(duration > 1000000) {
+                FURI_LOG_E(TAG, "LD came with overflow: %ld", duration);
+                return true;
+            }
             subghz_receiver_decode(receiver, level, duration);
         } else {
             scene_manager_set_scene_state(
                 subghz->scene_manager, SubGhzSceneDecodeRAW, SubGhzDecodeRawStateLoaded);
             subghz->state_notifications = SubGhzNotificationStateIDLE;
+
+            if(subghz->decode_raw_file_worker_encoder) {
+                if(subghz_file_encoder_worker_is_running(subghz->decode_raw_file_worker_encoder)) {
+                    subghz_file_encoder_worker_stop(subghz->decode_raw_file_worker_encoder);
+                }
+                subghz_file_encoder_worker_free(subghz->decode_raw_file_worker_encoder);
+                subghz->decode_raw_file_worker_encoder = NULL;
+            }
 
             subghz_view_receiver_add_data_progress(subghz->subghz_receiver, "Done!");
             return false; // No more samples available
@@ -256,10 +293,13 @@ bool subghz_scene_decode_raw_on_event(void* context, SceneManagerEvent event) {
 
             subghz_txrx_set_rx_callback(subghz->txrx, NULL, subghz);
 
-            if(subghz_file_encoder_worker_is_running(subghz->decode_raw_file_worker_encoder)) {
-                subghz_file_encoder_worker_stop(subghz->decode_raw_file_worker_encoder);
+            if(subghz->decode_raw_file_worker_encoder) {
+                if(subghz_file_encoder_worker_is_running(subghz->decode_raw_file_worker_encoder)) {
+                    subghz_file_encoder_worker_stop(subghz->decode_raw_file_worker_encoder);
+                }
+                subghz_file_encoder_worker_free(subghz->decode_raw_file_worker_encoder);
+                subghz->decode_raw_file_worker_encoder = NULL;
             }
-            subghz_file_encoder_worker_free(subghz->decode_raw_file_worker_encoder);
 
             subghz->state_notifications = SubGhzNotificationStateIDLE;
             scene_manager_set_scene_state(

@@ -1,0 +1,15 @@
+App(
+    appid="nfc_sniffer",
+    name="NFC Sniffer",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="nfc_sniffer_app",
+    stack_size=2 * 1024,
+    fap_icon_assets="assets",
+    fap_icon="assets/nfc_sniffer.png",
+    fap_category="NFC",
+    fap_author="Kyle Diller",
+    fap_weburl="https://github.com/kdiller713/public-FlipperApps/tree/main/nfc_sniffer",
+    fap_version="0.2",
+    fap_description="A simple app to log NFC commands",
+)

@@ -3,7 +3,7 @@
 #include "battery_checker.h"
 #include "adc/adc.h"
 
-#include <battery_checker_icons.h>
+// #include <battery_checker_icons.h>
 
 #define TAG "BatteryChecker"
 

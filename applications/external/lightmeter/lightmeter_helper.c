@@ -1,11 +1,11 @@
 #include "lightmeter_helper.h"
-#include "lightmeter_config.h"
 
+extern const int iso_numbers[];
 extern const float aperture_numbers[];
 extern const float speed_numbers[];
 
-float lux2ev(float lux) {
-    return log2(lux / 2.5);
+float lux2ev(float lux, LightMeterISONumbers iso) {
+    return log2(lux / 2.5) + log2(iso_numbers[iso] / 100.0);
 }
 
 float getMinDistance(float x, float v1, float v2) {

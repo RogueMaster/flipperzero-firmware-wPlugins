@@ -1,0 +1,3 @@
+name: 黄埔有轨电车
+len: 8
+type: trm

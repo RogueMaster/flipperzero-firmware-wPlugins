@@ -4,6 +4,7 @@ This app combines your IR and SubGhz commands into a playlist that can be run wi
 
 ## Features
 - Read out commands you recorded in the IR app
+- Supports external GPIO Boards like IR Blaster or Masta-Blasta
 - Read out commands you saved as .sub files
 - Combine commands to a chain/playlist 
 - Add pauses inbetween commands 
@@ -11,6 +12,8 @@ This app combines your IR and SubGhz commands into a playlist that can be run wi
 - Disable LED effects if not wanted
 - Configure duration of IR Signals
 - Configure default duration of Encoded SubGhz Signals
+- Loop Transmissions until quit
+- Pin to Favorites menu (if supported by Firmware)
 
 ## What good is this?
 

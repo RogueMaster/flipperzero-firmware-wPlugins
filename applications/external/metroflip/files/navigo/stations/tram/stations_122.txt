@@ -1,0 +1,40 @@
+28,11,Porte de Choisy
+28,12,Chateaudun - Barbes
+28,13,Cimetiere Parisien d'Ivry
+28,14,La Briqueterie
+28,15,Germaine Tailleferre
+29,0,Beethoven - Concorde
+29,1,Musee MAC VAL
+29,2,Mairie de Vitry-sur-Seine
+29,3,Camille Groult
+29,4,Constant Coquelin
+29,5,Watteau - Rondenay
+29,6,Trois Communes
+29,7,Verdun - Hoche
+29,8,Rouget de Lisle
+29,9,Carle - Darthe
+29,10,Four - Peary
+29,11,Christophe Colomb
+29,12,Les Saules
+29,13,Orly - Gaston Viens
+29,14,Orly - Gaston Viens
+29,15,Les Saules
+30,0,Christophe Colomb
+30,1,Les Saules
+30,2,Christophe Colomb
+30,3,Four - Peary
+30,4,Carle - Darthe
+30,5,Rouget de Lisle
+30,6,Verdun - Hoche
+30,7,Trois Communes
+30,8,Watteau - Rondenay
+30,9,Constant Coquelin
+30,10,Camille Groult
+30,11,Mairie de Vitry-sur-Seine
+30,12,Musee MAC VAL
+30,13,Beethoven - Concorde
+30,14,Germaine Tailleferre
+30,15,La Briqueterie
+31,0,Cimetiere Parisien d'Ivry
+31,1,Chateaudun - Barbes
+31,2,Porte de Choisy

@@ -2,38 +2,18 @@
 
 #include <stdint.h>
 #include <gui/view.h>
+#include <lib/nfc/protocols/mf_classic/mf_classic_poller.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef enum {
+    DictAttackTypeMfClassic,
+    DictAttackTypeMfUltralightC,
+} DictAttackType;
+
 typedef struct DictAttack DictAttack;
-
-typedef enum {
-    MfClassicNestedPhaseNone,
-    MfClassicNestedPhaseAnalyzePRNG,
-    MfClassicNestedPhaseDictAttack,
-    MfClassicNestedPhaseDictAttackResume,
-    MfClassicNestedPhaseCalibrate,
-    MfClassicNestedPhaseRecalibrate,
-    MfClassicNestedPhaseCollectNtEnc,
-    MfClassicNestedPhaseFinished,
-} MfClassicNestedPhase;
-
-typedef enum {
-    MfClassicPrngTypeUnknown, // Tag not yet tested
-    MfClassicPrngTypeNoTag, // No tag detected during test
-    MfClassicPrngTypeWeak, // Weak PRNG, standard Nested
-    MfClassicPrngTypeHard, // Hard PRNG, Hardnested
-} MfClassicPrngType;
-
-typedef enum {
-    MfClassicBackdoorUnknown, // Tag not yet tested
-    MfClassicBackdoorNone, // No observed backdoor
-    MfClassicBackdoorAuth1, // Tag responds to v1 auth backdoor
-    MfClassicBackdoorAuth2, // Tag responds to v2 auth backdoor
-    MfClassicBackdoorAuth3, // Tag responds to v3 auth backdoor (static encrypted nonce)
-} MfClassicBackdoor;
 
 typedef enum {
     DictAttackEventSkipPressed,
@@ -71,15 +51,23 @@ void dict_attack_set_key_attack(DictAttack* instance, uint8_t sector);
 
 void dict_attack_reset_key_attack(DictAttack* instance);
 
-void dict_attack_set_nested_phase(DictAttack* instance, uint8_t nested_phase);
+void dict_attack_set_nested_phase(DictAttack* instance, MfClassicNestedPhase nested_phase);
 
-void dict_attack_set_prng_type(DictAttack* instance, uint8_t prng_type);
+void dict_attack_set_prng_type(DictAttack* instance, MfClassicPrngType prng_type);
 
-void dict_attack_set_backdoor(DictAttack* instance, uint8_t backdoor);
+void dict_attack_set_backdoor(DictAttack* instance, MfClassicBackdoor backdoor);
 
 void dict_attack_set_nested_target_key(DictAttack* instance, uint16_t target_key);
 
 void dict_attack_set_msb_count(DictAttack* instance, uint16_t msb_count);
+
+void dict_attack_set_type(DictAttack* instance, DictAttackType type);
+
+void dict_attack_set_pages_total(DictAttack* instance, uint8_t pages_total);
+
+void dict_attack_set_pages_read(DictAttack* instance, uint8_t pages_read);
+
+void dict_attack_set_key_found(DictAttack* instance, bool key_found);
 
 #ifdef __cplusplus
 }

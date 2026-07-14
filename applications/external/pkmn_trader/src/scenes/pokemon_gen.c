@@ -60,8 +60,8 @@ void pokemon_scene_gen_on_enter(void* context) {
 
         // Trade View
         /* Allocates its own view and adds it to the main view_dispatcher */
-        pokemon_fap->trade =
-            trade_alloc(pdata, &pokemon_fap->pins, pokemon_fap->view_dispatcher, AppViewTrade);
+        pokemon_fap->trade = trade_alloc(
+            pdata, pokemon_fap->gblink_handle, pokemon_fap->view_dispatcher, AppViewTrade);
     }
 
     pkmn_num = pokemon_stat_get(pdata, STAT_NUM, NONE);

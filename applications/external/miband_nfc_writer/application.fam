@@ -1,0 +1,16 @@
+App(
+    appid="miband_nfc",
+    name="Mi Band NFC",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="miband_nfc_app",
+    stack_size=8 * 1024,
+    fap_icon="miband_nfc.png",
+    fap_icon_assets="icons",
+    sources=["*.c"],
+    fap_category="NFC",
+    fap_author="LucaTomei",
+    fap_weburl="https://github.com/LucaTomei/flipper-miband-nfc-writer",
+    fap_version="1.0",
+    fap_description="NFC writer for Mi Band with 0xFF keys",
+)

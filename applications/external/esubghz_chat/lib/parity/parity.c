@@ -19,10 +19,8 @@ static const uint8_t g_odd_byte_parity[256] = {
     0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1,
     1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1};
 
-#define ODD_PARITY8(x) \
-    { g_odd_byte_parity[x] }
-#define EVEN_PARITY8(x) \
-    { !g_odd_byte_parity[x] }
+#define ODD_PARITY8(x)  {g_odd_byte_parity[x]}
+#define EVEN_PARITY8(x) {!g_odd_byte_parity[x]}
 
 uint8_t oddparity8(const uint8_t x) {
     return g_odd_byte_parity[x];

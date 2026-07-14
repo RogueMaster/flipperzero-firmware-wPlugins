@@ -1,0 +1,15 @@
+App(
+    appid="postman",
+    name="Postman",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="app",
+    stack_size=2 * 1024,
+    fap_icon="flipper-postman.png",
+    fap_icon_assets="images",
+    fap_icon_assets_symbol="postmanflipx",
+    fap_category="GPIO/ESP32",
+    fap_author="MassivDash",
+    fap_weburl="https://github.com/MassivDash/flipper-postman",
+    fap_version="0.1",
+    fap_description="Flipper Postman can be used to send HTTP requests from a flipper device using the the esp32s2 postman firmware.",
+)

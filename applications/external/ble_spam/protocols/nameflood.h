@@ -1,7 +1,7 @@
 #pragma once
 #include "_base.h"
 
-// Hacked together by @Willy-JL
+// Hacked together by @WillyJL
 
 typedef struct {
     char name[20];

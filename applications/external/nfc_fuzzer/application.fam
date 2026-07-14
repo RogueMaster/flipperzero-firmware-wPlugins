@@ -1,0 +1,14 @@
+App(
+    appid="nfc_fuzzer",
+    name="NFC Fuzzer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="nfc_fuzzer_app",
+    stack_size=4 * 1024,
+    fap_icon="nfc_fuzzer.png",
+    fap_icon_assets="images",
+    fap_category="NFC",
+    fap_author="PentestSuite & barkandbite",
+    fap_weburl="https://github.com/barkandbite/flipper_suite",
+    fap_version="1.0",
+    fap_description="NFC protocol fuzzer for testing reader/tag robustness",
+)

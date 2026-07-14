@@ -12,21 +12,23 @@ static void nfc_maker_scene_contact_mail_text_input_callback(void* context) {
 
 void nfc_maker_scene_contact_mail_on_enter(void* context) {
     NfcMaker* app = context;
-    NFCMaker_TextInput* text_input = app->text_input;
+    TextInput* text_input = app->text_input;
 
-    nfc_maker_text_input_set_header_text(text_input, "Enter Email Address:");
+    text_input_set_header_text(text_input, "Enter Mail Address:");
 
-    strlcpy(app->mail_buf, "ben.dover@example.com", MAIL_INPUT_LEN);
+    strlcpy(app->mail_buf, "johnsmith@email.com", sizeof(app->mail_buf));
 
-    nfc_maker_text_input_set_result_callback(
+    text_input_set_result_callback(
         text_input,
         nfc_maker_scene_contact_mail_text_input_callback,
         app,
         app->mail_buf,
-        MAIL_INPUT_LEN,
+        sizeof(app->mail_buf),
         true);
 
-    nfc_maker_text_input_set_minimum_length(text_input, 0);
+    text_input_set_minimum_length(text_input, 0);
+
+    text_input_show_illegal_symbols(text_input, true);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, NfcMakerViewTextInput);
 }
@@ -51,5 +53,5 @@ bool nfc_maker_scene_contact_mail_on_event(void* context, SceneManagerEvent even
 
 void nfc_maker_scene_contact_mail_on_exit(void* context) {
     NfcMaker* app = context;
-    nfc_maker_text_input_reset(app->text_input);
+    text_input_reset(app->text_input);
 }

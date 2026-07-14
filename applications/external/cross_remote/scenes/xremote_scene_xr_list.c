@@ -11,12 +11,7 @@ void xremote_scene_xr_list_on_enter(void* context) {
     path = furi_string_alloc();
     furi_string_set(path, XREMOTE_APP_FOLDER);
 
-    bool success = dialog_file_browser_show(
-        //app->dialogs, app->file_path, app->file_path, &browser_options);
-        app->dialogs,
-        app->file_path,
-        path,
-        &browser_options);
+    bool success = dialog_file_browser_show(app->dialogs, app->file_path, path, &browser_options);
     furi_string_free(path);
 
     if(success) {

@@ -26,7 +26,6 @@ class FlipperAppType(Enum):
     STARTUP = "StartupHook"
     EXTERNAL = "External"
     MENUEXTERNAL = "MenuExternal"
-    EXTSETTINGS = "ExtSettings"
     METAPACKAGE = "Package"
     PLUGIN = "Plugin"
 
@@ -69,6 +68,7 @@ class FlipperApplication:
 
     # .fap-specific
     sources: List[str] = field(default_factory=lambda: ["*.c*"])
+    cflags: List[str] = field(default_factory=list)
     fap_version: Union[str, Tuple[int]] = "0.1"
     fap_icon: Optional[str] = None
     fap_libs: List[str] = field(default_factory=list)
@@ -159,23 +159,20 @@ class AppManager:
                     f"App {kw.get('appid')} cannot have fal_embedded set"
                 )
 
-        if apptype in AppBuildset.dist_app_types:
+        if apptype in AppBuildset.DIST_APP_TYPES:
             # For distributing .fap's resources, there's "fap_file_assets"
-            # for app_property in ("resources",):
             for app_property in ():
                 if kw.get(app_property):
                     raise FlipperManifestException(
                         f"App {kw.get('appid')} of type {apptype} cannot have '{app_property}' in manifest"
                     )
         else:
-            for app_property in (
-                "fap_extbuild",
-                "fap_private_libs",
-            ):  # , "fap_icon_assets"): TODO: Find a workaround for subghz_remote app
+            for app_property in ("fap_extbuild", "fap_private_libs"):
                 if kw.get(app_property):
                     raise FlipperManifestException(
                         f"App {kw.get('appid')} of type {apptype} must not have '{app_property}' in manifest"
                     )
+            # for app_property in ("fap_extbuild", "fap_private_libs", "fap_icon_assets"):
 
     def load_manifest(self, app_manifest_path: str, app_dir_node: object):
         if not os.path.exists(app_manifest_path):
@@ -233,12 +230,14 @@ class AppManager:
         applist: List[str],
         ext_applist: List[str],
         hw_target: str,
+        skip_external: bool = False,
     ):
         return AppBuildset(
             self,
             hw_target=hw_target,
             appnames=applist,
             extra_ext_appnames=ext_applist,
+            skip_external=skip_external,
         )
 
 
@@ -253,7 +252,6 @@ class AppBuildset:
         FlipperAppType.APP,
         FlipperAppType.DEBUG,
         FlipperAppType.ARCHIVE,
-        FlipperAppType.SETTINGS,
         FlipperAppType.STARTUP,
     )
     EXTERNAL_APP_TYPES_MAP = {
@@ -262,16 +260,14 @@ class AppBuildset:
         FlipperAppType.PLUGIN: True,
         FlipperAppType.DEBUG: True,
         FlipperAppType.MENUEXTERNAL: False,
-        FlipperAppType.EXTSETTINGS: False,
+        FlipperAppType.SETTINGS: False,
     }
-
-    @classmethod
-    @property
-    def dist_app_types(cls):
-        """Applications that are installed on SD card"""
-        return list(
-            entry[0] for entry in cls.EXTERNAL_APP_TYPES_MAP.items() if entry[1]
-        )
+    DIST_APP_TYPES = list(
+        # Applications that are installed on SD card
+        entry[0]
+        for entry in EXTERNAL_APP_TYPES_MAP.items()
+        if entry[1]
+    )
 
     @staticmethod
     def print_writer(message):
@@ -284,12 +280,14 @@ class AppBuildset:
         appnames: List[str],
         *,
         extra_ext_appnames: List[str],
+        skip_external: bool = False,
         message_writer: Callable | None = None,
     ):
         self.appmgr = appmgr
         self.appnames = set(appnames)
         self.incompatible_extapps, self.extapps = [], []
         self._extra_ext_appnames = extra_ext_appnames
+        self._skip_external = skip_external
         self._orig_appnames = appnames
         self.hw_target = hw_target
         self._writer = message_writer if message_writer else self.print_writer
@@ -316,6 +314,7 @@ class AppBuildset:
 
     def _get_app_depends(self, app_name: str) -> List[str]:
         app_def = self.appmgr.get(app_name)
+
         # Skip app if its target is not supported by the target we are building for
         if not self._check_if_app_target_supported(app_name):
             self._writer(
@@ -345,7 +344,11 @@ class AppBuildset:
         extapps = [
             app
             for (apptype, global_lookup) in self.EXTERNAL_APP_TYPES_MAP.items()
-            for app in self.get_apps_of_type(apptype, global_lookup)
+            for app in self.get_apps_of_type(
+                apptype,
+                global_lookup
+                and not (self._skip_external and apptype is FlipperAppType.EXTERNAL),
+            )
         ]
         extapps.extend(map(self.appmgr.get, self._extra_ext_appnames))
 
@@ -414,7 +417,10 @@ class AppBuildset:
                     if (
                         parent_app.apptype in self.BUILTIN_APP_TYPES
                         and parent_app_id in self.appnames
-                    ) or parent_app.apptype not in self.BUILTIN_APP_TYPES:
+                    ) or (
+                        parent_app.apptype not in self.BUILTIN_APP_TYPES
+                        and parent_app in self.extapps
+                    ):
                         keep_app |= True
 
                 except FlipperManifestException:

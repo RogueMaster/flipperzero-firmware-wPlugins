@@ -1,0 +1,149 @@
+int8_t Level6_FG[] = {
+    include "../levels/Level6_FG_convert.csv"
+};
+
+int8_t Level6_BG[] = {
+    include "../levels/Level6_BG_convert.csv"
+};
+
+uint8_t level6_Data[] = {
+    // Prince
+    32,                         // Prince starting x pos
+    56,                         // Prince starting y pos (25, 56, 87)
+    1,                          // Prince starting direction, 1 Left and 2 Right
+    3,                          // Prince starting stance, 3 Crouch_3_End
+    // Level
+    70,                         // Width
+    9,                          // Height
+    50,                         // Level x starting position
+    0,                          // Level y starting position
+    // Enemy 1 (Mirror)         
+    2,                          // Type 0 = Guard, 1 = Skeleton, 2 = Mirror          
+    0,                          // Enemy starting x tile
+    0,                          // Enemy starting y tile
+    10,                         // Enemy starting x pos (left entry)
+    10,                         // Enemy starting x pos (right entry)
+    2,                          // Enemy starting x pos (left extent)
+    34,                         // Enemy starting x pos (right extent)
+    56,                         // Enemy starting y pos (25, 56, 87)
+    3,                          // Enemy starting health
+    0,                          // Status 0 Alive, 1 Dead, 2 Dormant
+    // Enemy 2     
+    0,                          // Type 0 = Guard, 1 = Skeleton, 2 = Mirror          
+    20,                         // Enemy starting x tile
+    0,                          // Enemy starting y tile
+    14,                         // Enemy starting x pos (left entry)
+    22,                         // Enemy starting x pos (right entry)
+    18,                         // Enemy starting x pos (left extent)
+    74,                         // Enemy starting x pos (right extent)
+    56,                         // Enemy starting y pos (25, 56, 87)
+    3,                          // Enemy starting health
+    0,                          // Status 0 Alive, 1 Dead, 2 Dormant
+
+    0,200,0,0,0,0,0,0,0,1,
+    0,200,0,0,0,0,0,0,0,1,
+    0,200,0,0,0,0,0,0,0,1,
+
+    // End
+    255,
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+uint8_t Level6_Items[] = {
+    32,  15,   1,   0,   0,   0,   0,   0,          // Decorative Gate
+    28,  52,   1,   0,   0,   0,   0,   0,          // Entry Gate   
+    17,  50,   1,   0,  64,  64, 255,   0,          // Gate #1
+     2,  47,   1,   1,   0,   0,   0,   0,          // Floor Button 1
+     2,  54,   1,   1,   0,   0,   0,   0,          // Floor Button 1
+    17,  30,   1,   0,  64,  64, 255,   0,          // Gate #2
+     2,  37,   1,   2,   0,   0,   0,   0,          // Floor Button 1    
+    17,  20,   1,   0,   0,   0, 255,   0,          // Gate #3
+     2,  27,   5,   3,   0,   0,   0,   0,          // Floor Button 1
+    17,   3,   1,   0,   0,   0, 255,   1,          // Gate #4          - Gate Type: Level 6
+     2,   7,   1,   4,   0,   0,   0,   0,          // Floor Button 1
+     3,   1,   1,   4,   0,   0,   0,   0,          // Floor Button 2    
+     1,  27,   1, 181,  24,   0,   0,   0,          // CollapsingTile (dist to fall)                                    
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+    96,   0,   0,   0,   0,   0,   0,   0,          // Nothing! 
+}

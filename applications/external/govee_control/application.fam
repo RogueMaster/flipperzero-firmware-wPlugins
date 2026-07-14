@@ -1,0 +1,13 @@
+App(
+    appid="govee_control",
+    name="Govee Control",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="govee_control_app",
+    stack_size=4 * 1024,
+    fap_icon="hid_ble_10px.png",
+    fap_category="Bluetooth",
+    fap_author="devdotbo",
+    fap_weburl="https://github.com/devdotbo/GlowFin",
+    fap_version="0.1",
+    fap_description="Control Govee BLE LED devices",
+)

@@ -1,0 +1,13 @@
+0,Etoile
+1,Iena
+3,Alma - Marceau
+4,Miromesnil
+5,Saint-Philippe-du-Roule
+7,Franklin D. Roosevelt
+8,George V
+9,Kleber
+10,Victor Hugo
+11,Argentine
+12,Charles de Gaulle - Etoile
+14,Ternes
+15,Courcelles

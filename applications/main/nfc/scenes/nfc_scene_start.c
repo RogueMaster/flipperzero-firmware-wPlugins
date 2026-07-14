@@ -30,7 +30,7 @@ void nfc_scene_start_on_enter(void* context) {
     submenu_add_item(submenu, "Read", SubmenuIndexRead, nfc_scene_start_submenu_callback, nfc);
     submenu_add_item(
         submenu,
-        "Extract MF Keys",
+        "Extract MFC Keys",
         SubmenuIndexDetectReader,
         nfc_scene_start_submenu_callback,
         nfc);
@@ -47,7 +47,10 @@ void nfc_scene_start_on_enter(void* context) {
         nfc_scene_start_submenu_callback,
         nfc,
         !furi_hal_rtc_is_flag_set(FuriHalRtcFlagDebug),
-        "Enable\nDebug!");
+        "Enable\n"
+        "Settings >\n"
+        "System >\n"
+        "Debug");
 
     submenu_set_selected_item(
         submenu, scene_manager_get_scene_state(nfc->scene_manager, NfcSceneStart));
@@ -60,37 +63,25 @@ bool nfc_scene_start_on_event(void* context, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeCustom) {
+        consumed = true;
         if(event.event == SubmenuIndexRead) {
-            scene_manager_set_scene_state(nfc->scene_manager, NfcSceneStart, SubmenuIndexRead);
             scene_manager_next_scene(nfc->scene_manager, NfcSceneDetect);
             dolphin_deed(DolphinDeedNfcRead);
-            consumed = true;
         } else if(event.event == SubmenuIndexDetectReader) {
-            scene_manager_set_scene_state(
-                nfc->scene_manager, NfcSceneStart, SubmenuIndexDetectReader);
             scene_manager_next_scene(nfc->scene_manager, NfcSceneMfClassicDetectReader);
-            consumed = true;
         } else if(event.event == SubmenuIndexSaved) {
-            // Save the scene state explicitly in each branch, so that
-            // if the user cancels loading a file, the Saved menu item
-            // is properly reselected.
-            scene_manager_set_scene_state(nfc->scene_manager, NfcSceneStart, SubmenuIndexSaved);
             scene_manager_next_scene(nfc->scene_manager, NfcSceneFileSelect);
-            consumed = true;
         } else if(event.event == SubmenuIndexExtraAction) {
-            scene_manager_set_scene_state(
-                nfc->scene_manager, NfcSceneStart, SubmenuIndexExtraAction);
             scene_manager_next_scene(nfc->scene_manager, NfcSceneExtraActions);
-            consumed = true;
         } else if(event.event == SubmenuIndexAddManually) {
-            scene_manager_set_scene_state(
-                nfc->scene_manager, NfcSceneStart, SubmenuIndexAddManually);
             scene_manager_next_scene(nfc->scene_manager, NfcSceneSetType);
-            consumed = true;
         } else if(event.event == SubmenuIndexDebug) {
-            scene_manager_set_scene_state(nfc->scene_manager, NfcSceneStart, SubmenuIndexDebug);
             scene_manager_next_scene(nfc->scene_manager, NfcSceneDebug);
-            consumed = true;
+        } else {
+            consumed = false;
+        }
+        if(consumed) {
+            scene_manager_set_scene_state(nfc->scene_manager, NfcSceneStart, event.event);
         }
     }
     return consumed;

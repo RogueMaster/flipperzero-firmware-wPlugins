@@ -1,3 +1,5 @@
+// This file is where the magic happens. It's also big and complicated :(
+
 #include "ublox_worker_i.h"
 
 #define TAG "UbloxWorker"
@@ -58,8 +60,14 @@ void ublox_worker_stop(UbloxWorker* ublox_worker) {
     // function because of state.
     if(ublox->log_state == UbloxLogStateLogging) {
         FURI_LOG_I(TAG, "closing file in worker_stop()");
-        if(!kml_close_file(&(ublox->kmlfile))) {
-            FURI_LOG_E(TAG, "failed to close KML file!");
+        if((ublox->data_display_state).log_format == UbloxLogFormatKML) {
+            if(!kml_close_file(&(ublox->kmlfile))) {
+                FURI_LOG_E(TAG, "failed to close KML file!");
+            }
+        } else if((ublox->data_display_state).log_format == UbloxLogFormatGPX) {
+            if(!gpx_close_file(&(ublox->gpxfile))) {
+                FURI_LOG_E(TAG, "failed to close GPX file!");
+            }
         }
         // and revert the state
         ublox->log_state = UbloxLogStateNone;
@@ -145,11 +153,20 @@ void ublox_worker_read_nav_messages(void* context) {
         path_concat(furi_string_get_cstr(ublox->logfile_folder), ublox->text_store, fullname);
         FURI_LOG_I(TAG, "fullname is %s", furi_string_get_cstr(fullname));
 
-        if(!kml_open_file(ublox->storage, &(ublox->kmlfile), furi_string_get_cstr(fullname))) {
-            FURI_LOG_E(TAG, "failed to open KML file %s!", furi_string_get_cstr(fullname));
-            ublox->log_state = UbloxLogStateNone;
-            ublox_worker->callback(UbloxWorkerEventLogStateChanged, ublox_worker->context);
-            return;
+        if((ublox->data_display_state).log_format == UbloxLogFormatKML) {
+            if(!kml_open_file(ublox->storage, &(ublox->kmlfile), furi_string_get_cstr(fullname))) {
+                FURI_LOG_E(TAG, "failed to open KML file %s!", furi_string_get_cstr(fullname));
+                ublox->log_state = UbloxLogStateNone;
+                ublox_worker->callback(UbloxWorkerEventLogStateChanged, ublox_worker->context);
+                return;
+            }
+        } else if((ublox->data_display_state).log_format == UbloxLogFormatGPX) {
+            if(!gpx_open_file(ublox->storage, &(ublox->gpxfile), furi_string_get_cstr(fullname))) {
+                FURI_LOG_E(TAG, "failed to open GPX file %s!", furi_string_get_cstr(fullname));
+                ublox->log_state = UbloxLogStateNone;
+                ublox_worker->callback(UbloxWorkerEventLogStateChanged, ublox_worker->context);
+                return;
+            }
         }
         ublox->log_state = UbloxLogStateLogging;
         furi_string_free(fullname);
@@ -207,13 +224,23 @@ void ublox_worker_read_nav_messages(void* context) {
             if(ublox->log_state == UbloxLogStateLogging) {
                 // only add points if there's a fix (even if it's only dead reckoning)
                 if(ublox->nav_pvt.fixType != 0) {
-                    if(!kml_add_path_point(
-                           &(ublox->kmlfile),
-                           // ublox returns values as floats * 1e7 in int form
-                           (double)(ublox->nav_pvt.lat) / (double)1e7,
-                           (double)(ublox->nav_pvt.lon) / (double)1e7,
-                           ublox->nav_pvt.hMSL / 1e3)) { // convert altitude to meters
-                        FURI_LOG_E(TAG, "failed to write line to file");
+                    if((ublox->data_display_state).log_format == UbloxLogFormatKML) {
+                        if(!kml_add_path_point(
+                               &(ublox->kmlfile),
+                               // ublox returns values as floats * 1e7 in int form
+                               (double)(ublox->nav_pvt.lat) / (double)1e7,
+                               (double)(ublox->nav_pvt.lon) / (double)1e7,
+                               ublox->nav_pvt.hMSL / 1e3)) { // convert altitude to meters
+                            FURI_LOG_E(TAG, "failed to write line to KML file");
+                        }
+                    } else if((ublox->data_display_state).log_format == UbloxLogFormatGPX) {
+                        if(!gpx_add_path_point(
+                               &(ublox->gpxfile),
+                               (double)(ublox->nav_pvt.lat) / (double)1e7,
+                               (double)(ublox->nav_pvt.lon) / (double)1e7,
+                               ublox->nav_pvt.hMSL / 1e3)) {
+                            FURI_LOG_E(TAG, "failed to write line to GPX file");
+                        }
                     }
                 }
             }
@@ -233,8 +260,14 @@ void ublox_worker_read_nav_messages(void* context) {
             // if logging stop is requested, do it
             if(ublox->log_state == UbloxLogStateStopLogging) {
                 FURI_LOG_I(TAG, "stop logging in tick loop");
-                if(!kml_close_file(&(ublox->kmlfile))) {
-                    FURI_LOG_E(TAG, "failed to close KML file!");
+                if((ublox->data_display_state).log_format == UbloxLogFormatKML) {
+                    if(!kml_close_file(&(ublox->kmlfile))) {
+                        FURI_LOG_E(TAG, "failed to close KML file!");
+                    }
+                } else if((ublox->data_display_state).log_format == UbloxLogFormatGPX) {
+                    if(!gpx_close_file(&(ublox->gpxfile))) {
+                        FURI_LOG_E(TAG, "failed to close GPX file!");
+                    }
                 }
                 ublox->log_state = UbloxLogStateNone;
                 ublox_worker->callback(UbloxWorkerEventLogStateChanged, ublox_worker->context);

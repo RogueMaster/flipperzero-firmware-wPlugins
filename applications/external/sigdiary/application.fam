@@ -1,0 +1,14 @@
+App(
+    appid="sigdiary",
+    name="Sig Diary",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="sigdiary_app",
+    stack_size=2 * 1024,
+    fap_icon="sigdiary.png",
+    fap_icon_assets="images",
+    fap_category="Tools",
+    fap_author="C0d3-5t3w",
+    fap_weburl="https://github.com/C0d3-5t3w/flipper-sigdiary",
+    fap_version="0.1",
+    fap_description="Background scanner that logs signals and annotates them",
+)

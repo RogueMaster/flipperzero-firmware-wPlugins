@@ -7,7 +7,6 @@
 #include "quac.h"
 #include "scenes.h"
 #include "scene_action_rename.h"
-#include "../actions/action.h"
 
 #include <lib/toolbox/path.h>
 
@@ -29,7 +28,9 @@ void scene_action_rename_on_enter(void* context) {
     text_input_set_header_text(text, "Enter new name:");
 
     FuriString* file_name = furi_string_alloc();
-    path_extract_filename_no_ext(furi_string_get_cstr(item->path), file_name);
+    char ext[MAX_EXT_LEN] = {0};
+    bool is_link;
+    item_path_extract_filename(item->path, file_name, &ext, &is_link);
     strncpy(app->temp_cstr, furi_string_get_cstr(file_name), MAX_NAME_LEN);
 
     text_input_set_result_callback(
@@ -45,14 +46,16 @@ bool scene_action_rename_on_event(void* context, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeCustom) {
         if(event.event == SceneActionRenameEvent) {
             // FURI_LOG_I(TAG, "Attempting rename to %s", app->temp_cstr);
-            if(!strcmp(app->temp_cstr, "")) {
+            if(!strcmp(app->temp_cstr, "") || !path_contains_only_ascii(app->temp_cstr)) {
                 return false;
             }
             Item* item = ItemArray_get(app->items_view->items, app->selected_item);
             const char* old_path = furi_string_get_cstr(item->path);
 
             FuriString* file_name = furi_string_alloc();
-            path_extract_filename(item->path, file_name, true);
+            char ext[MAX_EXT_LEN] = {0};
+            bool is_link;
+            item_path_extract_filename(item->path, file_name, &ext, &is_link);
             // FURI_LOG_I(TAG, "Original name is %s", furi_string_get_cstr(file_name));
             if(!furi_string_cmp_str(file_name, app->temp_cstr)) {
                 FURI_LOG_W(TAG, "Rename: File names are the same!");
@@ -65,6 +68,9 @@ bool scene_action_rename_on_event(void* context, SceneManagerEvent event) {
             path_extract_dirname(old_path, dir_name);
             FuriString* new_path = furi_string_alloc_printf(
                 "%s/%s%s", furi_string_get_cstr(dir_name), app->temp_cstr, item->ext);
+            if(is_link) {
+                furi_string_cat_str(new_path, ".ql");
+            }
 
             FURI_LOG_I(TAG, "Rename: %s to %s", old_path, furi_string_get_cstr(new_path));
             FS_Error fs_result =

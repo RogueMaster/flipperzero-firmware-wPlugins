@@ -1,0 +1,40 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Wolf", "Wolf.vcxproj", "{C8815259-2E14-47A3-9727-567FAE19FC48}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MapCompressor", "Tools\MapCompressor\MapCompressor.vcxproj", "{81B7DFB4-37D9-4102-9A17-7A2CF86CABC8}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImageEncoder", "Tools\ImageEncoder\ImageEncoder.vcxproj", "{D7DF0A68-0C89-4908-8E6E-12BD0B0D7838}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AudioEncoder", "Tools\AudioEncoder\AudioEncoder.vcxproj", "{F235DD72-0508-4A1D-AF9D-3FB8841BB4F8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C8815259-2E14-47A3-9727-567FAE19FC48}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C8815259-2E14-47A3-9727-567FAE19FC48}.Debug|Win32.Build.0 = Debug|Win32
+		{C8815259-2E14-47A3-9727-567FAE19FC48}.Release|Win32.ActiveCfg = Release|Win32
+		{C8815259-2E14-47A3-9727-567FAE19FC48}.Release|Win32.Build.0 = Release|Win32
+		{81B7DFB4-37D9-4102-9A17-7A2CF86CABC8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{81B7DFB4-37D9-4102-9A17-7A2CF86CABC8}.Debug|Win32.Build.0 = Debug|Win32
+		{81B7DFB4-37D9-4102-9A17-7A2CF86CABC8}.Release|Win32.ActiveCfg = Release|Win32
+		{81B7DFB4-37D9-4102-9A17-7A2CF86CABC8}.Release|Win32.Build.0 = Release|Win32
+		{D7DF0A68-0C89-4908-8E6E-12BD0B0D7838}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D7DF0A68-0C89-4908-8E6E-12BD0B0D7838}.Debug|Win32.Build.0 = Debug|Win32
+		{D7DF0A68-0C89-4908-8E6E-12BD0B0D7838}.Release|Win32.ActiveCfg = Release|Win32
+		{D7DF0A68-0C89-4908-8E6E-12BD0B0D7838}.Release|Win32.Build.0 = Release|Win32
+		{F235DD72-0508-4A1D-AF9D-3FB8841BB4F8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F235DD72-0508-4A1D-AF9D-3FB8841BB4F8}.Debug|Win32.Build.0 = Debug|Win32
+		{F235DD72-0508-4A1D-AF9D-3FB8841BB4F8}.Release|Win32.ActiveCfg = Release|Win32
+		{F235DD72-0508-4A1D-AF9D-3FB8841BB4F8}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

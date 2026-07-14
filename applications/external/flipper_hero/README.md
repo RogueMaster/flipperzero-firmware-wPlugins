@@ -18,15 +18,20 @@ Welcome to **Flipper Hero**, an engaging typing practice game ported for the Fli
 
 ## Screenshots
 
-![1](./screenshots/flipper_hero_1.png)
+![1](./screenshots/Screenshot-1.png)
 
-![2](./screenshots/flipper_hero_2.png)
+![2](./screenshots/Screenshot-2.png)
 
-![3](./screenshots/flipper_hero_3.png)
+![3](./screenshots/Screenshot-3.png)
 
+![4](./screenshots/Screenshot-4.png)
 ## Introduction
 
 **Flipper Hero** is inspired by the beloved minigame "Stratagem Hero, " found in the "Helldivers 2" universe. Situated on your Ship, this game becomes a crucial part of your journey, allowing you to practice typing Stratagem Codes flawlessly. The better you perform, the higher your score!
+Flipper Hero has been updated to more closely resemble its inspiration, Stratagem Hero from Helldivers 2.
+A pause menu has been added with a few settings. It can be accessed by pressing the "BACK" button. Settings can be saved by pressing the "OK" button in the settings menu.
+The "New Strgms:" option in the settings menu enables the inclusion of stratagems not in Stratagem Hero. This includes stratagems from warbonds, and mission-specific stratagems.
+
 
 ## Features
 
@@ -63,6 +68,6 @@ Encounter a bug or have a question? Please open an issue on our GitHub repositor
 Flipper Hero is released under the ``MIT license``, which allows for personal use, modification, and distribution.
 
 ## Acknowledgements
-
+* A huge thank you to [@bigb4321](https://github.com/bigb4321) for the substantial work on Flipper Hero.[@bigb4321](https://github.com/bigb4321) brought full Helldivers 2 stratagem support (with icons, names, and a visible queue), proper round structure with bonuses and special rounds, new audio/jingles, and persistent high scores and settings.
 * A special thanks to Arrowhead for creating "Helldivers 2" and inspiring this project. Flipper Hero is a fan-made project intended for practice and entertainment purposes only.
 * Huge thanks to [u/theblackhole08](https://www.reddit.com/user/theblackhole08/) ([@theblackhole](https://github.com/theblackhole/) on github)  for tips to fix api mismatch.

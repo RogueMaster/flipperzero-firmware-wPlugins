@@ -10,17 +10,18 @@ The app does not provide any recording functionality - you can use the existing 
 
 ## Features
 
-* Playback of rfid, sub-ghz, IR, NFC, and iButton signals
+* Playback of sub-ghz, rfid, IR, NFC, and iButton signals
 * Easy navigation
 * Flexible signal organization
 * In-app file management
 * Playlist support
 * Flexible naming/sorting, hidden file/folder support
+* File linking
 * Customizable UI
 
 ## Signal playback
 
-The signal files are played back as recorded. During playback/transmit, the LED light will flash blue until the action is complete. For RFID, NFC, anbd iButton signals, they are continuously played back for the durations specified in the Settings.
+The signal files are played back as recorded. During playback/transmit, the LED light will flash blue until the action is complete. For SubGhz (non-RAW), RFID, NFC, and iButton signals, they are continuously played back for the durations specified in the Settings.
 
 ## Signal Organization
 
@@ -43,10 +44,10 @@ The settings menu will appear as the last item when you are viewing the "root" d
 * Layout: Switch between Horizontal and Vertical layout
 * Show Icons: Toggles display of all icons
 * Show Headers: Toggles display of header/folder text at the top, giving you room for one more item on screen!
+* SubGhz Duration: Changes the length of time a non-RAW SubGhz signal is transmitted. Can be overridden, per SubGhz file in a Playlist
 * RFID Duration: Changes the length of time a RFID signal is transmitted. Can be overridden, per RFID file in a Playlist
 * NFC Duration: Changes the length of time a NFC signal is transmitted. Can be overridden, per NFC file in a Playlist
 * iButton Duration: Changes the length of time a iButton signal is transmitted. Can be overridden, per iButton file in a Playlist
-* SubGhz Ext Ant: Enables / Disables use of external sub-ghz antenna
 * IR Ext Ant: Enables / Disables use of external IR antenna
 * Show Hidden: Toggles display of files/folders that start with a period.
 

@@ -1,6 +1,8 @@
-## USB Midi Instructions [Thanks to ESurge](https://github.com/ESurge)
+# USB-MIDI
 
-- To use Flipper USB MIDI app, make sure you have the FlipperZero connected to your computer and qFlipper is not running.
+This is a simple Flipper app, that turns it into a monophonic MIDI instrument.
+
+Launch the app, connect to computer via USB, use in music software.
 
 - If you have any audio software that supports MIDI devices, you can use the FZ as an output source.
 

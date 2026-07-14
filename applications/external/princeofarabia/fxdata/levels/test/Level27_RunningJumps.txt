@@ -1,0 +1,150 @@
+int8_t Level27_RunningJumps_FG[] = {
+    include "../levels/Level20_RunningJumps_FG_convert.csv"
+};
+
+int8_t Level27_RunningJumps_BG[] = {
+    include "../levels/Level20_RunningJumps_BG_convert.csv"
+};
+
+uint8_t Level27_RunningJumps_Data[] = {
+    // Prince
+    50,                         // Prince starting x pos
+    56,                         // Prince starting y pos (25, 56, 87)
+    2,                          // Prince starting direction, 1 Left and 2 Right
+    3,                          // Prince starting stance, 3 Crouch_3_End
+    // Level
+    30,                         // Width
+    27,                         // Height
+    10,                         // Level x starting position
+    21,                         // Level y starting position
+    // End
+    255,
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+uint8_t Level27_RunningJumps_Items[] = {
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!   
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!   
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!      
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!   
+    96,   0,   0,   0,   0,   0,   0,   0,           // Nothing!  
+}

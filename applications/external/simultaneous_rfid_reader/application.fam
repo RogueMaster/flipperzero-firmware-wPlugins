@@ -10,6 +10,6 @@ App(
     fap_icon_assets_symbol="simultaneous_rfid_reader",
     fap_author="RileyHaffner",
     fap_weburl="https://github.com/haffnerriley/Simultaneous-UHF-RFID-FlipperZero",
-    fap_version="1.1",
+    fap_version="1.1.2",
     fap_description="Simultaneous UHF RFID Reader that supports the M6E Nano, M7E Hecto, and YRM1000 series Readers. Read up to 150 UHF tags per second [Using ThingMagic Readers]!",
 )

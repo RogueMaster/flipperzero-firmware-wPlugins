@@ -9,12 +9,11 @@
 #include "plugin_interface.h"
 #include <flipper_application/flipper_application.h>
 
+#define TAG "MFKey"
+
 // TODO: Remove defines that are not needed
-#define KEYS_DICT_SYSTEM_PATH        EXT_PATH("nfc/assets/mf_classic_dict.nfc")
-#define KEYS_DICT_USER_PATH          EXT_PATH("nfc/assets/mf_classic_dict_user.nfc")
 #define MF_CLASSIC_NONCE_PATH        EXT_PATH("nfc/.mfkey32.log")
-#define MF_CLASSIC_NESTED_NONCE_PATH EXT_PATH("nfc/.nested")
-#define TAG                          "MFKey"
+#define MF_CLASSIC_NESTED_NONCE_PATH EXT_PATH("nfc/.nested.log")
 #define MAX_NAME_LEN                 32
 #define MAX_PATH_LEN                 64
 
@@ -30,6 +29,7 @@
     ((x) = ((x) >> 8 & 0xff00ff) | ((x) & 0xff00ff) << 8, (x) = (x) >> 16 | (x) << 16)
 
 bool key_already_found_for_nonce_in_dict(KeysDict* dict, MfClassicNonce* nonce) {
+    // This function must not be passed the CUID dictionary
     bool found = false;
     uint8_t key_bytes[sizeof(MfClassicKey)];
     keys_dict_rewind(dict);
@@ -47,7 +47,7 @@ bool key_already_found_for_nonce_in_dict(KeysDict* dict, MfClassicNonce* nonce) 
                 found = true;
                 break;
             }
-        } else if(nonce->attack == static_nested) {
+        } else if(nonce->attack == static_nested || nonce->attack == static_encrypted) {
             uint32_t expected_ks1 = crypt_word_ret(&temp, nonce->uid_xor_nt0, 0);
             if(nonce->ks1_1_enc == expected_ks1) {
                 found = true;
@@ -68,59 +68,30 @@ bool napi_mf_classic_mfkey32_nonces_check_presence() {
     return nonces_present;
 }
 
-bool distance_in_nonces_file(const char* file_path, const char* file_name) {
-    char full_path[MAX_PATH_LEN];
-    snprintf(full_path, sizeof(full_path), "%s/%s", file_path, file_name);
-    bool distance_present = false;
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    Stream* file_stream = buffered_file_stream_alloc(storage);
-    FuriString* line_str;
-    line_str = furi_string_alloc();
-
-    if(buffered_file_stream_open(file_stream, full_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        while(true) {
-            if(!stream_read_line(file_stream, line_str)) break;
-            if(furi_string_search_str(line_str, "distance") != FURI_STRING_FAILURE) {
-                distance_present = true;
-                break;
-            }
-        }
-    }
-
-    buffered_file_stream_close(file_stream);
-    stream_free(file_stream);
-    furi_string_free(line_str);
-    furi_record_close(RECORD_STORAGE);
-
-    return distance_present;
-}
-
 bool napi_mf_classic_nested_nonces_check_presence() {
     Storage* storage = furi_record_open(RECORD_STORAGE);
-
-    if(!(storage_dir_exists(storage, MF_CLASSIC_NESTED_NONCE_PATH))) {
-        furi_record_close(RECORD_STORAGE);
-        return false;
-    }
-
+    Stream* stream = buffered_file_stream_alloc(storage);
     bool nonces_present = false;
-    File* dir = storage_file_alloc(storage);
-    char filename_buffer[MAX_NAME_LEN];
-    FileInfo file_info;
+    FuriString* line = furi_string_alloc();
 
-    if(storage_dir_open(dir, MF_CLASSIC_NESTED_NONCE_PATH)) {
-        while(storage_dir_read(dir, &file_info, filename_buffer, MAX_NAME_LEN)) {
-            // We only care about Static Nested files
-            if(!(file_info.flags & FSF_DIRECTORY) && strstr(filename_buffer, ".nonces") &&
-               !(distance_in_nonces_file(MF_CLASSIC_NESTED_NONCE_PATH, filename_buffer))) {
+    do {
+        if(!buffered_file_stream_open(
+               stream, MF_CLASSIC_NESTED_NONCE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+            break;
+        }
+
+        while(stream_read_line(stream, line)) {
+            if(furi_string_search_str(line, "dist 0") != FURI_STRING_FAILURE) {
                 nonces_present = true;
                 break;
             }
         }
-    }
 
-    storage_dir_close(dir);
-    storage_file_free(dir);
+    } while(false);
+
+    furi_string_free(line);
+    buffered_file_stream_close(stream);
+    stream_free(stream);
     furi_record_close(RECORD_STORAGE);
 
     return nonces_present;
@@ -247,7 +218,6 @@ bool load_mfkey32_nonces(
         }
         furi_string_free(next_line);
         buffered_file_stream_close(nonce_array->stream);
-        //stream_free(nonce_array->stream);
 
         array_loaded = true;
         //FURI_LOG_I(TAG, "Loaded %lu Mfkey32 nonces", nonce_array->total_nonces);
@@ -262,89 +232,77 @@ bool load_nested_nonces(
     KeysDict* system_dict,
     bool system_dict_exists,
     KeysDict* user_dict) {
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    File* dir = storage_file_alloc(storage);
-    char filename_buffer[MAX_NAME_LEN];
-    FileInfo file_info;
-    FuriString* next_line = furi_string_alloc();
-
-    if(!storage_dir_open(dir, MF_CLASSIC_NESTED_NONCE_PATH)) {
-        storage_dir_close(dir);
-        storage_file_free(dir);
-        furi_record_close(RECORD_STORAGE);
-        furi_string_free(next_line);
+    if(!buffered_file_stream_open(
+           nonce_array->stream, MF_CLASSIC_NESTED_NONCE_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
         return false;
     }
 
-    while(storage_dir_read(dir, &file_info, filename_buffer, MAX_NAME_LEN)) {
-        if(!(file_info.flags & FSF_DIRECTORY) && strstr(filename_buffer, ".nonces") &&
-           !(distance_in_nonces_file(MF_CLASSIC_NESTED_NONCE_PATH, filename_buffer))) {
-            char full_path[MAX_PATH_LEN];
-            snprintf(
-                full_path,
-                sizeof(full_path),
-                "%s/%s",
-                MF_CLASSIC_NESTED_NONCE_PATH,
-                filename_buffer);
+    FuriString* next_line = furi_string_alloc();
+    bool array_loaded = false;
 
-            // TODO: We should only need READ_WRITE here if we plan on adding a newline to the end of the file if has none
-            if(!buffered_file_stream_open(
-                   nonce_array->stream, full_path, FSAM_READ_WRITE, FSOM_OPEN_EXISTING)) {
-                buffered_file_stream_close(nonce_array->stream);
+    while(stream_read_line(nonce_array->stream, next_line)) {
+        const char* line = furi_string_get_cstr(next_line);
+
+        // Only process lines ending with "dist 0"
+        if(!strstr(line, "dist 0")) {
+            continue;
+        }
+
+        MfClassicNonce res = {0};
+        res.attack = static_encrypted;
+
+        int sector_num = 0;
+        char key_type = 'A';
+        int parsed = sscanf(
+            line,
+            "Sec %d key %c cuid %" PRIx32 " nt0 %" PRIx32 " ks0 %" PRIx32
+            " par0 %4[01] nt1 %" PRIx32 " ks1 %" PRIx32 " par1 %4[01]",
+            &sector_num,
+            &key_type,
+            &res.uid,
+            &res.nt0,
+            &res.ks1_1_enc,
+            res.par_1_str,
+            &res.nt1,
+            &res.ks1_2_enc,
+            res.par_2_str);
+
+        // Calculate key_idx from sector and key type (for static encrypted: key_idx = sector * 2 + key_offset)
+        res.key_idx = (uint8_t)(sector_num * 2 + (key_type == 'B' ? 1 : 0));
+
+        if(parsed >= 6) { // At least one nonce is present (sector, key, uid, nt0, ks0, par0)
+            res.par_1 = binaryStringToInt(res.par_1_str);
+            res.uid_xor_nt0 = res.uid ^ res.nt0;
+
+            if(parsed == 9) { // Both nonces are present
+                res.attack = static_nested;
+                res.par_2 = binaryStringToInt(res.par_2_str);
+                res.uid_xor_nt1 = res.uid ^ res.nt1;
+            }
+
+            (program_state->total)++;
+            if((system_dict_exists && key_already_found_for_nonce_in_dict(system_dict, &res)) ||
+               (key_already_found_for_nonce_in_dict(user_dict, &res))) {
+                (program_state->cracked)++;
+                (program_state->num_completed)++;
                 continue;
             }
 
-            while(stream_read_line(nonce_array->stream, next_line)) {
-                if(furi_string_search_str(next_line, "Nested:") != FURI_STRING_FAILURE) {
-                    MfClassicNonce res = {0};
-                    res.attack = static_nested;
-                    int parsed = sscanf(
-                        furi_string_get_cstr(next_line),
-                        "Nested: %*s %*s cuid 0x%" PRIx32 " nt0 0x%" PRIx32 " ks0 0x%" PRIx32
-                        " par0 %4[01] nt1 0x%" PRIx32 " ks1 0x%" PRIx32 " par1 %4[01]",
-                        &res.uid,
-                        &res.nt0,
-                        &res.ks1_1_enc,
-                        res.par_1_str,
-                        &res.nt1,
-                        &res.ks1_2_enc,
-                        res.par_2_str);
-
-                    if(parsed != 7) continue;
-                    res.par_1 = binaryStringToInt(res.par_1_str);
-                    res.par_2 = binaryStringToInt(res.par_2_str);
-                    res.uid_xor_nt0 = res.uid ^ res.nt0;
-                    res.uid_xor_nt1 = res.uid ^ res.nt1;
-
-                    (program_state->total)++;
-                    if((system_dict_exists &&
-                        key_already_found_for_nonce_in_dict(system_dict, &res)) ||
-                       (key_already_found_for_nonce_in_dict(user_dict, &res))) {
-                        (program_state->cracked)++;
-                        (program_state->num_completed)++;
-                        continue;
-                    }
-
-                    nonce_array->remaining_nonce_array = realloc(
-                        nonce_array->remaining_nonce_array,
-                        sizeof(MfClassicNonce) * (nonce_array->remaining_nonces + 1));
-                    nonce_array->remaining_nonce_array[nonce_array->remaining_nonces] = res;
-                    nonce_array->remaining_nonces++;
-                    nonce_array->total_nonces++;
-                }
-            }
-
-            buffered_file_stream_close(nonce_array->stream);
+            nonce_array->remaining_nonce_array = realloc(
+                nonce_array->remaining_nonce_array,
+                sizeof(MfClassicNonce) * (nonce_array->remaining_nonces + 1));
+            nonce_array->remaining_nonce_array[nonce_array->remaining_nonces] = res;
+            nonce_array->remaining_nonces++;
+            nonce_array->total_nonces++;
+            array_loaded = true;
         }
     }
 
-    storage_dir_close(dir);
-    storage_file_free(dir);
-    furi_record_close(RECORD_STORAGE);
     furi_string_free(next_line);
+    buffered_file_stream_close(nonce_array->stream);
 
     //FURI_LOG_I(TAG, "Loaded %lu Static Nested nonces", nonce_array->total_nonces);
-    return true;
+    return array_loaded;
 }
 
 MfClassicNonceArray* napi_mf_classic_nonce_array_alloc(
@@ -359,21 +317,13 @@ MfClassicNonceArray* napi_mf_classic_nonce_array_alloc(
     nonce_array->stream = buffered_file_stream_alloc(storage);
     furi_record_close(RECORD_STORAGE);
 
-    bool array_loaded = false;
-
     if(program_state->mfkey32_present) {
-        array_loaded = load_mfkey32_nonces(
+        load_mfkey32_nonces(
             nonce_array, program_state, system_dict, system_dict_exists, user_dict);
     }
 
     if(program_state->nested_present) {
-        array_loaded |= load_nested_nonces(
-            nonce_array, program_state, system_dict, system_dict_exists, user_dict);
-    }
-
-    if(!array_loaded) {
-        free(nonce_array);
-        nonce_array = NULL;
+        load_nested_nonces(nonce_array, program_state, system_dict, system_dict_exists, user_dict);
     }
 
     return nonce_array;
@@ -384,6 +334,7 @@ void napi_mf_classic_nonce_array_free(MfClassicNonceArray* nonce_array) {
     furi_assert(nonce_array);
     furi_assert(nonce_array->stream);
 
+    // TODO: Already closed?
     buffered_file_stream_close(nonce_array->stream);
     stream_free(nonce_array->stream);
     free(nonce_array);

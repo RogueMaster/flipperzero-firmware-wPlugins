@@ -1,0 +1,2 @@
+0x70,0x22,Kansai Airport,Rinku Town,46,0
+0x70,0x24,Kansai Airport,Kansai Airport,47,0

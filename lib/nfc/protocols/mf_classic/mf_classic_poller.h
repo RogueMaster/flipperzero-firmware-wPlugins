@@ -44,8 +44,46 @@ typedef enum {
 typedef enum {
     MfClassicPollerModeRead, /**< Poller reading mode. */
     MfClassicPollerModeWrite, /**< Poller writing mode. */
-    MfClassicPollerModeDictAttack, /**< Poller dictionary attack mode. */
+    MfClassicPollerModeDictAttackStandard, /**< Poller dictionary attack mode. */
+    MfClassicPollerModeDictAttackCUID, /**< Poller CUID dictionary attack mode. */
+    MfClassicPollerModeDictAttackEnhanced, /**< Poller enhanced dictionary attack mode. */
 } MfClassicPollerMode;
+
+/**
+ * @brief MfClassic poller nested attack phase.
+ */
+typedef enum {
+    MfClassicNestedPhaseNone, /**< No nested attack has taken place yet. */
+    MfClassicNestedPhaseAnalyzePRNG, /**< Analyze nonces produced by the PRNG to determine if they fit a weak PRNG */
+    MfClassicNestedPhaseDictAttack, /**< Search keys which match the expected PRNG properties and parity for collected nonces */
+    MfClassicNestedPhaseDictAttackVerify, /**< Verify candidate keys by authenticating to the sector with the key */
+    MfClassicNestedPhaseDictAttackResume, /**< Resume nested dictionary attack from the last tested (invalid) key */
+    MfClassicNestedPhaseCalibrate, /**< Perform necessary calculations to recover the plaintext nonce during later collection phase (weak PRNG tags only) */
+    MfClassicNestedPhaseRecalibrate, /**< Collect the next plaintext static encrypted nonce for backdoor static encrypted nonce nested attack */
+    MfClassicNestedPhaseCollectNtEnc, /**< Log nonces collected during nested authentication for key recovery */
+    MfClassicNestedPhaseFinished, /**< Nested attack has finished */
+} MfClassicNestedPhase;
+
+/**
+ * @brief MfClassic pseudorandom number generator (PRNG) type.
+ */
+typedef enum {
+    MfClassicPrngTypeUnknown, // Tag not yet tested
+    MfClassicPrngTypeNoTag, // No tag detected during test
+    MfClassicPrngTypeWeak, // Weak PRNG, standard Nested
+    MfClassicPrngTypeHard, // Hard PRNG, Hardnested
+} MfClassicPrngType;
+
+/**
+ * @brief MfClassic authentication backdoor type.
+ */
+typedef enum {
+    MfClassicBackdoorUnknown, // Tag not yet tested
+    MfClassicBackdoorNone, // No observed backdoor
+    MfClassicBackdoorAuth1, // Tag responds to v1 auth backdoor
+    MfClassicBackdoorAuth2, // Tag responds to v2 auth backdoor (sometimes static encrypted)
+    MfClassicBackdoorAuth3, // Tag responds to v3 auth backdoor (static encrypted nonce)
+} MfClassicBackdoor;
 
 /**
  * @brief MfClassic poller request mode event data.
@@ -77,9 +115,9 @@ typedef struct {
     uint8_t sectors_read; /**< Number of sectors read. */
     uint8_t keys_found; /**< Number of keys found. */
     uint8_t current_sector; /**< Current sector number. */
-    uint8_t nested_phase; /**< Nested attack phase. */
-    uint8_t prng_type; /**< PRNG (weak or hard). */
-    uint8_t backdoor; /**< Backdoor type. */
+    MfClassicNestedPhase nested_phase; /**< Nested attack phase. */
+    MfClassicPrngType prng_type; /**< PRNG (weak or hard). */
+    MfClassicBackdoor backdoor; /**< Backdoor type. */
     uint16_t nested_target_key; /**< Target key for nested attack. */
     uint16_t
         msb_count; /**< Number of unique most significant bytes seen during Hardnested attack. */
@@ -92,6 +130,7 @@ typedef struct {
  */
 typedef struct {
     MfClassicKey key; /**< Key to be used by poller. */
+    MfClassicKeyType key_type; /**< Key type (A or B) for CUID dict attack mode. */
     bool key_provided; /**< Flag indicating if key is provided. */
 } MfClassicPollerEventDataKeyRequest;
 

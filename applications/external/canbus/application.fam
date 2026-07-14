@@ -5,9 +5,45 @@ App(
     entry_point="app_main",
     stack_size=30 * 1024,
     fap_icon="icon.png",
+    fap_icon_assets="assets",
+    fap_private_libs=[
+        Lib(
+            name="frame_can",
+            sources=[
+                "frame_can.c",
+            ],
+        ),
+        Lib(
+            name="files_scaner",
+            sources=[
+                "dir_walker.c",
+                "files_scaner.c",
+                "frame_extractor.c",
+            ],
+        ),
+        Lib(
+            name="SLCAN_serial",
+            sources=[
+                "SLCAN_serial.c",
+                "SLCAN_writer.c",
+            ],
+        ),
+        Lib(
+            name="log_exporter",
+            sources=[
+                "exporter_csv.c",
+            ],
+        ),
+        Lib(
+            name="hex_converter",
+            sources=[
+                "hex_converter.c",
+            ],
+        ),
+    ],
     fap_category="GPIO",
     fap_author="ElectronicCats",
     fap_weburl="https://github.com/ElectronicCats/flipper-MCP2515-CANBUS",
-    fap_version="1.1.2",
+    fap_version="1.1.6",
     fap_description="This app allows you to interact with CAN Bus networks. Now you can interact with CAN Bus transmissions using the Flipper Zero. Basic tasks such as sniffing and injection are available, making it easy to perform activities such as analysis, error detection and peripherals control in a CAN Bus network.",
 )

@@ -11,6 +11,7 @@
 #include <optimized_ikeys.h>
 #include <optimized_cipher.h>
 #include "helpers/iclass_elite_dict.h"
+#include "picopass_wiegand.h"
 
 #define LOCLASS_NUM_CSNS 9
 #ifndef LOCLASS_NUM_PER_CSN
@@ -146,6 +147,8 @@ void picopass_device_set_name(PicopassDevice* dev, const char* name);
 
 bool picopass_device_save(PicopassDevice* dev, const char* dev_name);
 
+bool picopass_device_load(PicopassDevice* dev, FuriString* path);
+
 bool picopass_file_select(PicopassDevice* dev);
 
 void picopass_device_data_clear(PicopassDeviceData* dev_data);
@@ -160,5 +163,7 @@ void picopass_device_set_loading_callback(
     void* context);
 
 void picopass_device_parse_credential(PicopassBlock* card_data, PicopassPacs* pacs);
-void picopass_device_parse_wiegand(PicopassPacs* pacs);
+void picopass_device_build_credential(PicopassPacs* pacs, PicopassBlock* card_data);
 bool picopass_device_hid_csn(PicopassDevice* dev);
+wiegand_message_t picopass_pacs_extract_wmo(PicopassPacs* pacs);
+void picopass_pacs_load_from_wmo(PicopassPacs* pacs, wiegand_message_t* wmo);

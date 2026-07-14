@@ -16,6 +16,7 @@ typedef enum {
     ActionSettingsRename, // Rename file or folder
     ActionSettingsDelete, // Delete file or folder on SDcard
     ActionSettingsImport, // Copy a remote file into "current" folder
+    ActionSettingsImportLink, // Create a link to a remote file into "current" folder
     ActionSettingsCreateGroup, // Create new empty folder in "current" folder
     ActionSettingsCreatePlaylist, // Turn this folder into a playlist
     ActionSettingsAddToPlaylist, // Append a remote file to this playlist
@@ -83,6 +84,8 @@ static bool scene_action_settings_import_file_browser_callback(
         memcpy(*icon, icon_get_frame_data(&I_IR_10px, 0), 32);
     } else if(!strcmp(ext, ".nfc")) {
         memcpy(*icon, icon_get_frame_data(&I_NFC_10px, 0), 32);
+    } else if(!strcmp(ext, ".ibtn")) {
+        memcpy(*icon, icon_get_frame_data(&I_iButton_10px, 0), 32);
     } else if(!strcmp(ext, ".qpl")) {
         memcpy(*icon, icon_get_frame_data(&I_Playlist_10px, 0), 32);
     } else {
@@ -132,7 +135,6 @@ bool scene_action_settings_import(App* app) {
 
     if(dialog_file_browser_show(app->dialog, app->temp_str, app->temp_str, &fb_options)) {
         // FURI_LOG_I(TAG, "Selected file is %s", furi_string_get_cstr(app->temp_str));
-        // TODO: this should be a method
         FuriString* file_name = furi_string_alloc();
         path_extract_filename(app->temp_str, file_name, false);
         // FURI_LOG_I(TAG, "Importing file %s", furi_string_get_cstr(file_name));
@@ -199,6 +201,8 @@ void scene_action_settings_on_enter(void* context) {
     submenu_add_item(
         menu, "Import Here", ActionSettingsImport, scene_action_settings_callback, app);
     submenu_add_item(
+        menu, "Import Link Here", ActionSettingsImportLink, scene_action_settings_callback, app);
+    submenu_add_item(
         menu, "Create Group", ActionSettingsCreateGroup, scene_action_settings_callback, app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, QView_SubMenu);
@@ -219,7 +223,7 @@ bool scene_action_settings_on_event(void* context, SceneManagerEvent event) {
                 scene_manager_previous_scene(app->scene_manager);
             }
             break;
-        case ActionSettingsImport:
+        case ActionSettingsImport: {
             consumed = true;
             // get the filename to import
             FuriString* import_file = scene_action_get_file_to_import_alloc(app);
@@ -285,7 +289,79 @@ bool scene_action_settings_on_event(void* context, SceneManagerEvent event) {
             // if(scene_action_settings_import(app)) {
             //     scene_manager_previous_scene(app->scene_manager);
             // }
-            break;
+        } break;
+        case ActionSettingsImportLink: {
+            consumed = true;
+            // get the filename to import as a link
+            FuriString* import_file = scene_action_get_file_to_import_alloc(app);
+            if(import_file) {
+                FURI_LOG_I(TAG, "Importing as link %s", furi_string_get_cstr(import_file));
+                char ext[MAX_EXT_LEN] = {0};
+
+                path_extract_extension(import_file, ext, MAX_EXT_LEN);
+                if(!strcmp(ext, ".ir")) {
+                    dialog_message_show_storage_error(
+                        app->dialog, "Can't import IR file as link at this time");
+                } else if(!strcmp(ext, ".ql")) {
+                    FURI_LOG_E(TAG, "Can't import link file as a link!");
+                    dialog_message_show_storage_error(
+                        app->dialog, "Can't import link file as a link!");
+                } else {
+                    FuriString* current_path = furi_string_alloc();
+                    if(app->selected_item != EMPTY_ACTION_INDEX) {
+                        Item* item = ItemArray_get(app->items_view->items, app->selected_item);
+                        path_extract_dirname(furi_string_get_cstr(item->path), current_path);
+                    } else {
+                        furi_string_set(current_path, app->items_view->path);
+                    }
+                    FuriString* file_name = furi_string_alloc();
+                    path_extract_filename(import_file, file_name, false);
+
+                    FuriString* full_path;
+                    full_path = furi_string_alloc_printf(
+                        "%s/%s.ql", // path/filename.ext.ql
+                        furi_string_get_cstr(current_path),
+                        furi_string_get_cstr(file_name));
+                    FURI_LOG_I(
+                        TAG,
+                        "Copy as link: %s to %s",
+                        furi_string_get_cstr(import_file),
+                        furi_string_get_cstr(full_path));
+
+                    File* file_link = storage_file_alloc(app->storage);
+                    if(storage_file_open(
+                           file_link,
+                           furi_string_get_cstr(full_path),
+                           FSAM_WRITE,
+                           FSOM_CREATE_NEW)) {
+                        const char* cimport_file = furi_string_get_cstr(import_file);
+                        size_t bytes_written =
+                            storage_file_write(file_link, cimport_file, strlen(cimport_file));
+                        if(bytes_written != strlen(cimport_file)) {
+                            FURI_LOG_E(
+                                TAG,
+                                "Copy as link failure: incorrect bytes written. Expected %d, wrote %d",
+                                strlen(cimport_file),
+                                bytes_written);
+                        }
+                    } else {
+                        dialog_message_show_storage_error(app->dialog, "Error writing link file!");
+                        FURI_LOG_E(
+                            TAG,
+                            "Copy file as link failed! File %s already exists",
+                            furi_string_get_cstr(full_path));
+                    }
+                    storage_file_close(file_link);
+                    storage_file_free(file_link);
+
+                    furi_string_free(file_name);
+                    furi_string_free(full_path);
+                }
+                furi_string_free(import_file);
+            } else {
+                scene_manager_previous_scene(app->scene_manager);
+            }
+        } break;
         case ActionSettingsCreateGroup:
             consumed = true;
             scene_manager_next_scene(app->scene_manager, QScene_ActionCreateGroup);

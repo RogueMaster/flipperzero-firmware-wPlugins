@@ -31,7 +31,6 @@ TPMSApp* tpms_app_alloc() {
     // View Dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
     app->scene_manager = scene_manager_alloc(&tpms_scene_handlers, app);
-    view_dispatcher_enable_queue(app->view_dispatcher);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
@@ -78,7 +77,7 @@ TPMSApp* tpms_app_alloc() {
     app->setting = subghz_setting_alloc();
 
     //ToDo FIX  file name setting
-    subghz_setting_load(app->setting, EXT_PATH("subghz/assets/setting_user"));
+    subghz_setting_load(app->setting, EXT_PATH("subghz/assets/setting_user.txt"));
 
     //init Worker & Protocol & History
     app->lock = TPMSLockOff;
@@ -112,7 +111,17 @@ TPMSApp* tpms_app_alloc() {
 
     furi_hal_power_suppress_charge_enter();
 
-    scene_manager_next_scene(app->scene_manager, TPMSSceneReceiver);
+    // Initialize scan mode defaults
+    app->scan_mode = TPMSScanModeScanOnly;
+    app->protocol_filter = TPMSProtocolFilterAll;
+
+    // Initialize sweep config defaults
+    app->sweep_start_frequency = 0; // 433.92 MHz
+    app->sweep_start_preset = 0; // AM650
+    app->sweep_max_cycles = 3;
+    app->sweep_seconds_per_combo = 4;
+
+    scene_manager_next_scene(app->scene_manager, TPMSSceneSplash);
 
     return app;
 }

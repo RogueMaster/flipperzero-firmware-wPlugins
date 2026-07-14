@@ -1,9 +1,16 @@
 # Picopass
 
+This application allows you to read, write, create, save, and emulate legacy HID iClass cards and fobs (based on the picopass chipset).  Also supports saving the credential to the Flipper Zero LFRFID data format, changing the keys on the card, performing dictionary attack, and performing the 'online' part of the loclass attack.
 
-This application allows you to read, write, save, and emulate legacy HID iClass cards and fobs (based on the picopass chipset).  Also supports saving the credential to the Flipper Zero LFRFID data format, changing the keys on the card, performing dictionary attack, and performing the 'online' part of the loclass attack.
+# Create (manual credential)
 
-# Loclass
+Use _Create_ from the main menu when you want to build a credential without first reading a card.
+
+1. Select _Create_ and choose the Wiegand format, facility code, and card number (numeric keypad).
+2. Pick an action: _Emulate_ to start field emulation, _Write_ to program a presented card, or _Save_ to store the file for later.
+3. Defaults target iClass Legacy using standard keys and 3DES; CSN is pre-filled with a typical HID value. Values persist if you back out and return.
+
+# Loclass (HID Only)
 
 The loclass attack emulates specific CSN and collects responses from the reader which can be used to calculate the elite or (some) custom key configured for that reader.  This key is then used to read data on the cards used with that reader.
 
@@ -70,3 +77,9 @@ Due to the nature of how secure mode picopass works, it is possible to emulate s
 Background: https://youtu.be/MKSXSKQHz6o?si=DEKkW60x858pUI0a&t=600
 
 The keys used for early Elite systems used the VB6 (yes, as in Visual Basic) RNG to generate the keys.  This attack uses the known VB6 RNG to generate the keys.  This attack is only useful for early Elite systems, as later systems are keyed in some other manor.  Since this can generate an insanely large number of values (and eventually loop), by default it is limited to the first 2000 keys.  Please provide feedback if you would like this increased.  Also, the leaked iCopyX dictionary included 700ish of these, so the first 700 are redundant to the System Elite Dictionary attack run during "Read".  This attack is not useful for iClass SE systems.
+
+# Incrementing CN during emulation
+
+**beta**
+
+While emulating certain formats (such as H10301), you will see options for "-1", "0", "+1".  These options will decrement, set to zero, or increment the Card Number (CN) field of the emulated card.  The FC, where applicable, will not be impacted.

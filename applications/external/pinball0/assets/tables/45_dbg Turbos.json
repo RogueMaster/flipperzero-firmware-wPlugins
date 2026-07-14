@@ -1,0 +1,82 @@
+{
+    "lives": 3,
+    "balls": [
+        {
+            "position": [ 110, 200 ]
+        },
+        {
+            "position": [ 610, 900 ]
+        }
+    ],
+    "flippers": [
+        {
+            "position": [ 130, 1180 ],
+            "side": "LEFT",
+            "size": 120
+        },
+        {
+            "position": [ 490, 1180 ],
+            "side": "RIGHT",
+            "size": 120
+        }
+    ],
+    "rails": [
+        // left wall
+        {
+            "start": [ 0, 0 ],
+            "end": [ 0, 1080 ]
+        },
+        // bottom left
+        {
+            "start": [ 0, 1080 ],
+            "end": [ 130, 1160 ]
+        },
+        // bottom right
+        {
+            "start": [ 490, 1160 ],
+            "end": [ 630, 1080 ]
+        },
+        // right wall
+        {
+            "start": [ 630, 1080 ],
+            "end": [ 630, 0 ]
+        }
+    ],
+    "turbos": [
+        // rect
+        {
+            "position": [ 100, 400 ],
+            "angle": 0
+        },
+        {
+            "position": [ 300, 400 ],
+            "angle": 270
+        },
+        {
+            "position": [ 300, 600 ],
+            "angle": 180
+        },
+        {
+            "position": [ 100, 600 ],
+            "angle": 90
+        },
+        // loop
+        {
+            "position": [ 440, 740 ],
+            "angle": 0
+        },
+        {
+            "position": [ 440, 1050 ],
+            "angle": 180
+        }
+    ],
+    "arcs": [
+        {
+            "position": [ 440, 900 ],
+            "radius": 180,
+            "surface": "INSIDE",
+            "start_angle": 0,
+            "end_angle": 360
+        }
+    ]
+}

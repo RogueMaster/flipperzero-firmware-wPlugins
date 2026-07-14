@@ -1,0 +1,14 @@
+App(
+    appid="flip_gemini",
+    name="FlipGemini",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flip_gemini_main",
+    stack_size=4 * 1024,
+    fap_icon="app.png",
+    fap_icon_assets="assets",
+    fap_category="GPIO",
+    fap_author="JBlanked",
+    fap_weburl="https://github.com/jblanked/FlipGemini",
+    fap_version="1.0",
+    fap_description="Chat with Google's Gemini AI on your Flipper Zero",
+)

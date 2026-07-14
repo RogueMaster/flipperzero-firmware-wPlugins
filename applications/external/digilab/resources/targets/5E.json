@@ -1,0 +1,14 @@
+{
+  "components": [
+    {
+      "partno": "TLV493D",
+      "desc": "Magnetometer.",
+      "type": 17,
+      "manufacturer": "Infineon",
+      "date": "2016"
+    }
+  ],
+  "unique_types": [
+    17
+  ]
+}

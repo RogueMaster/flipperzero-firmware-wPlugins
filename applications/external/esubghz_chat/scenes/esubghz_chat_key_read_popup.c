@@ -138,7 +138,7 @@ static void key_read_popup_set_state(ESubGhzChatState* state, KeyReadPopupState 
         popup_reset(state->nfc_popup);
         popup_set_header(state->nfc_popup, "Failure!", 64, 2, AlignCenter, AlignTop);
         popup_set_text(state->nfc_popup, "Failed\nto read\nkey.", 78, 16, AlignLeft, AlignTop);
-        popup_set_icon(state->nfc_popup, 15, 15, &I_Cry_dolph_55x52);
+        popup_set_icon(state->nfc_popup, 21, 13, &I_Cry_dolph_55x52);
 
         popup_set_timeout(state->nfc_popup, KEY_READ_POPUP_MS);
         popup_set_context(state->nfc_popup, state);
@@ -151,7 +151,7 @@ static void key_read_popup_set_state(ESubGhzChatState* state, KeyReadPopupState 
 
         popup_reset(state->nfc_popup);
         popup_set_header(state->nfc_popup, "Key\nread!", 13, 22, AlignLeft, AlignBottom);
-        popup_set_icon(state->nfc_popup, 20, 4, &I_DolphinNice_96x59);
+        popup_set_icon(state->nfc_popup, 32, 5, &I_DolphinNice_96x59);
 
         popup_set_timeout(state->nfc_popup, KEY_READ_POPUP_MS);
         popup_set_context(state->nfc_popup, state);

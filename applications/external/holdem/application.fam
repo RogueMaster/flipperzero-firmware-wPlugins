@@ -1,0 +1,13 @@
+App(
+    appid="holdem",
+    name="Hold 'em",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="holdem_main",
+    stack_size=8 * 1024,
+    fap_icon="holdem.png",
+    fap_category="Games",
+    fap_author="code-phreak",
+    fap_weburl="https://github.com/code-phreak/flipper-holdem",
+    fap_version="1.1",
+    fap_description="Single-player Texas Hold'em with smart bots",
+)

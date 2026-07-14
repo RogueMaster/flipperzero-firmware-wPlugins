@@ -31,7 +31,7 @@
 #define CLOCK_TIME_FORMAT     "%.2d:%.2d:%.2d"
 #define CLOCK_ISO_DATE_FORMAT "%.4d-%.2d-%.2d"
 
-static FuriHalSpiBusHandle* spi = &furi_hal_spi_bus_handle_external;
+//static const FuriHalSpiBusHandle* spi = &furi_hal_spi_bus_handle_external;
 
 const GpioPin* const pin_led = &gpio_swclk;
 const GpioPin* const pin_back = &gpio_button_back;
@@ -53,6 +53,7 @@ bool configSetFrequency(long frequencyInHz);
 bool configSetBandwidth(int bw);
 bool configSetSpreadingFactor(int sf);
 bool configSetCodingRate(int cr);
+bool configSetSyncWord(uint16_t sw);
 void setPacketParams(
     uint16_t packetParam1,
     uint8_t packetParam2,
@@ -132,6 +133,7 @@ typedef struct {
     uint32_t config_bw_index; // Bandwidth setting index
     uint32_t config_sf_index; // Spread Factor setting index
     uint32_t config_cr_index; // Coding Rate setting index
+    uint32_t config_sw_index; // Coding Rate setting index
 
     uint32_t config_header_type_index; // Header Type setting index
     uint32_t config_crc_index; // CRC setting index
@@ -323,6 +325,17 @@ const char* const config_cr_names[] = {
     "4/6",
     "4/7",
     "4/8",
+};
+
+// Sync Word configuration
+const uint16_t config_sw_values[] = {
+    0x1424, // Private
+    0x3444, // Public (LoRaWAN/TTN)
+};
+
+const char* const config_sw_names[] = {
+    "Private (0x1424)",
+    "Public (0x3444)",
 };
 
 const uint8_t config_region_values[] = {
@@ -556,6 +569,18 @@ static void lora_config_cr_change(VariableItem* item) {
     configSetCodingRate(config_cr_values[index]);
 }
 
+static const char* config_sw_label = "Sync Word";
+
+static void lora_config_sw_change(VariableItem* item) {
+    LoRaApp* app = variable_item_get_context(item);
+    uint8_t index = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, config_sw_names[index]);
+    LoRaSnifferModel* model = view_get_model(app->view_sniffer);
+    model->config_sw_index = index;
+
+    configSetSyncWord(config_sw_values[index]);
+}
+
 static const char* config_header_type_label = "Header Type";
 
 static void lora_config_header_type_change(VariableItem* item) {
@@ -656,7 +681,7 @@ static void lora_config_eu_dr_change(VariableItem* item) {
         variable_item_set_current_value_text(alt_item, config_bw_names[7]);
         model->config_bw_index = 7;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 6);
         variable_item_set_current_value_text(alt_item, config_sf_names[6]);
@@ -667,13 +692,13 @@ static void lora_config_eu_dr_change(VariableItem* item) {
         configSetSpreadingFactor(0x0A);
         configSetBandwidth(0x04);
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 1);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 1);
         variable_item_list_set_selected_item(app->variable_item_list_config, 1);
         variable_item_set_current_value_index(alt_item, 7);
         variable_item_set_current_value_text(alt_item, config_bw_names[7]);
         model->config_bw_index = 7;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 5);
         variable_item_set_current_value_text(alt_item, config_sf_names[5]);
@@ -684,13 +709,13 @@ static void lora_config_eu_dr_change(VariableItem* item) {
         configSetSpreadingFactor(0x09);
         configSetBandwidth(0x04);
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 1);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 1);
         variable_item_list_set_selected_item(app->variable_item_list_config, 1);
         variable_item_set_current_value_index(alt_item, 7);
         variable_item_set_current_value_text(alt_item, config_bw_names[7]);
         model->config_bw_index = 7;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 4);
         variable_item_set_current_value_text(alt_item, config_sf_names[4]);
@@ -701,13 +726,13 @@ static void lora_config_eu_dr_change(VariableItem* item) {
         configSetSpreadingFactor(0x08);
         configSetBandwidth(0x04);
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 1);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 1);
         variable_item_list_set_selected_item(app->variable_item_list_config, 1);
         variable_item_set_current_value_index(alt_item, 7);
         variable_item_set_current_value_text(alt_item, config_bw_names[7]);
         model->config_bw_index = 7;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 3);
         variable_item_set_current_value_text(alt_item, config_sf_names[3]);
@@ -718,13 +743,13 @@ static void lora_config_eu_dr_change(VariableItem* item) {
         configSetSpreadingFactor(0x07);
         configSetBandwidth(0x04);
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 1);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 1);
         variable_item_list_set_selected_item(app->variable_item_list_config, 1);
         variable_item_set_current_value_index(alt_item, 7);
         variable_item_set_current_value_text(alt_item, config_bw_names[7]);
         model->config_bw_index = 7;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 2);
         variable_item_set_current_value_text(alt_item, config_sf_names[2]);
@@ -735,13 +760,13 @@ static void lora_config_eu_dr_change(VariableItem* item) {
         configSetSpreadingFactor(0x07);
         configSetBandwidth(0x06);
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 1);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 1);
         variable_item_list_set_selected_item(app->variable_item_list_config, 1);
         variable_item_set_current_value_index(alt_item, 9);
         variable_item_set_current_value_text(alt_item, config_bw_names[9]);
         model->config_bw_index = 9;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 1);
         variable_item_set_current_value_text(alt_item, config_sf_names[1]);
@@ -767,13 +792,13 @@ static void lora_config_us_dr_change(VariableItem* item) {
         configSetSpreadingFactor(0x0A);
         configSetBandwidth(0x04);
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 1);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 1);
         variable_item_list_set_selected_item(app->variable_item_list_config, 1);
         variable_item_set_current_value_index(alt_item, 7);
         variable_item_set_current_value_text(alt_item, config_bw_names[7]);
         model->config_bw_index = 7;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 5);
         variable_item_set_current_value_text(alt_item, config_sf_names[5]);
@@ -784,13 +809,13 @@ static void lora_config_us_dr_change(VariableItem* item) {
         configSetSpreadingFactor(0x09);
         configSetBandwidth(0x04);
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 1);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 1);
         variable_item_list_set_selected_item(app->variable_item_list_config, 1);
         variable_item_set_current_value_index(alt_item, 7);
         variable_item_set_current_value_text(alt_item, config_bw_names[7]);
         model->config_bw_index = 7;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 4);
         variable_item_set_current_value_text(alt_item, config_sf_names[4]);
@@ -801,13 +826,13 @@ static void lora_config_us_dr_change(VariableItem* item) {
         configSetSpreadingFactor(0x08);
         configSetBandwidth(0x04);
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 1);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 1);
         variable_item_list_set_selected_item(app->variable_item_list_config, 1);
         variable_item_set_current_value_index(alt_item, 7);
         variable_item_set_current_value_text(alt_item, config_bw_names[7]);
         model->config_bw_index = 7;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 3);
         variable_item_set_current_value_text(alt_item, config_sf_names[3]);
@@ -818,13 +843,13 @@ static void lora_config_us_dr_change(VariableItem* item) {
         configSetSpreadingFactor(0x07);
         configSetBandwidth(0x04);
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 1);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 1);
         variable_item_list_set_selected_item(app->variable_item_list_config, 1);
         variable_item_set_current_value_index(alt_item, 7);
         variable_item_set_current_value_text(alt_item, config_bw_names[7]);
         model->config_bw_index = 7;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 2);
         variable_item_set_current_value_text(alt_item, config_sf_names[2]);
@@ -835,13 +860,13 @@ static void lora_config_us_dr_change(VariableItem* item) {
         configSetSpreadingFactor(0x08);
         configSetBandwidth(0x06);
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 1);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 1);
         variable_item_list_set_selected_item(app->variable_item_list_config, 1);
         variable_item_set_current_value_index(alt_item, 9);
         variable_item_set_current_value_text(alt_item, config_bw_names[9]);
         model->config_bw_index = 9;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 3);
         variable_item_set_current_value_text(alt_item, config_sf_names[3]);
@@ -852,13 +877,13 @@ static void lora_config_us_dr_change(VariableItem* item) {
         configSetSpreadingFactor(0x0C);
         configSetBandwidth(0x06);
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 1);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 1);
         variable_item_list_set_selected_item(app->variable_item_list_config, 1);
         variable_item_set_current_value_index(alt_item, 9);
         variable_item_set_current_value_text(alt_item, config_bw_names[9]);
         model->config_bw_index = 9;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 7);
         variable_item_set_current_value_text(alt_item, config_sf_names[7]);
@@ -869,13 +894,13 @@ static void lora_config_us_dr_change(VariableItem* item) {
         configSetSpreadingFactor(0x0B);
         configSetBandwidth(0x06);
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 1);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 1);
         variable_item_list_set_selected_item(app->variable_item_list_config, 1);
         variable_item_set_current_value_index(alt_item, 9);
         variable_item_set_current_value_text(alt_item, config_bw_names[9]);
         model->config_bw_index = 9;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 6);
         variable_item_set_current_value_text(alt_item, config_sf_names[6]);
@@ -886,13 +911,13 @@ static void lora_config_us_dr_change(VariableItem* item) {
         configSetSpreadingFactor(0x0A);
         configSetBandwidth(0x06);
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 1);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 1);
         variable_item_list_set_selected_item(app->variable_item_list_config, 1);
         variable_item_set_current_value_index(alt_item, 9);
         variable_item_set_current_value_text(alt_item, config_bw_names[9]);
         model->config_bw_index = 9;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 5);
         variable_item_set_current_value_text(alt_item, config_sf_names[5]);
@@ -903,13 +928,13 @@ static void lora_config_us_dr_change(VariableItem* item) {
         configSetSpreadingFactor(0x09);
         configSetBandwidth(0x06);
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 1);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 1);
         variable_item_list_set_selected_item(app->variable_item_list_config, 1);
         variable_item_set_current_value_index(alt_item, 9);
         variable_item_set_current_value_text(alt_item, config_bw_names[9]);
         model->config_bw_index = 9;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 4);
         variable_item_set_current_value_text(alt_item, config_sf_names[4]);
@@ -920,13 +945,13 @@ static void lora_config_us_dr_change(VariableItem* item) {
         configSetSpreadingFactor(0x08);
         configSetBandwidth(0x06);
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 1);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 1);
         variable_item_list_set_selected_item(app->variable_item_list_config, 1);
         variable_item_set_current_value_index(alt_item, 9);
         variable_item_set_current_value_text(alt_item, config_bw_names[9]);
         model->config_bw_index = 9;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 3);
         variable_item_set_current_value_text(alt_item, config_sf_names[3]);
@@ -937,13 +962,13 @@ static void lora_config_us_dr_change(VariableItem* item) {
         configSetSpreadingFactor(0x07);
         configSetBandwidth(0x06);
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 1);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 1);
         variable_item_list_set_selected_item(app->variable_item_list_config, 1);
         variable_item_set_current_value_index(alt_item, 9);
         variable_item_set_current_value_text(alt_item, config_bw_names[9]);
         model->config_bw_index = 9;
 
-        alt_item = variable_item_list_get(app->variable_item_list_config, 2);
+        alt_item = (VariableItem*)variable_item_list_get(app->variable_item_list_config, 2);
         variable_item_list_set_selected_item(app->variable_item_list_config, 2);
         variable_item_set_current_value_index(alt_item, 2);
         variable_item_set_current_value_text(alt_item, config_sf_names[2]);
@@ -1951,7 +1976,6 @@ static LoRaApp* lora_app_alloc() {
     Gui* gui = furi_record_open(RECORD_GUI);
 
     app->view_dispatcher = view_dispatcher_alloc();
-    //view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
 
@@ -2039,6 +2063,17 @@ static LoRaApp* lora_app_alloc() {
     uint8_t config_cr_index = 0;
     variable_item_set_current_value_index(item, config_cr_index);
     variable_item_set_current_value_text(item, config_cr_names[config_cr_index]);
+
+    // sw
+    item = variable_item_list_add(
+        app->variable_item_list_config,
+        config_sw_label,
+        COUNT_OF(config_sw_values),
+        lora_config_sw_change,
+        app);
+    uint8_t config_sw_index = 0;
+    variable_item_set_current_value_index(item, config_sw_index);
+    variable_item_set_current_value_text(item, config_sw_names[config_sw_index]);
 
     // Payload length
     item = variable_item_list_add(
@@ -2312,7 +2347,12 @@ static void lora_app_free(LoRaApp* app) {
 int32_t main_lora_app(void* _p) {
     UNUSED(_p);
 
-    spi->cs = &gpio_ext_pc0;
+    static FuriHalSpiBusHandle spi_handle;
+    const FuriHalSpiBusHandle* spi;
+
+    memcpy(&spi_handle, &furi_hal_spi_bus_handle_external, sizeof(FuriHalSpiBusHandle));
+    spi_handle.cs = &gpio_ext_pc0;
+    spi = &spi_handle;
 
     furi_hal_spi_bus_handle_init(spi);
 
@@ -2347,7 +2387,10 @@ int32_t main_lora_app(void* _p) {
     lora_app_free(app);
 
     furi_hal_spi_bus_handle_deinit(spi);
-    spi->cs = &gpio_ext_pa4;
+
+    memcpy(&spi_handle, &furi_hal_spi_bus_handle_external, sizeof(FuriHalSpiBusHandle));
+    spi_handle.cs = &gpio_ext_pa4;
+    spi = &spi_handle;
 
     // Typically when a pin is no longer in use, it is set to analog mode.
     furi_hal_gpio_init_simple(pin_led, GpioModeAnalog);

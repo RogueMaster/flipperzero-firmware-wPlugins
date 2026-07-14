@@ -1,0 +1,17 @@
+App(
+    appid="24cxxprog",
+    name="24Cxx Programmer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="eeprom_app_24cxx",
+    sources=[
+        "i2c_24c02_app.cpp",
+        "i2c_24c02.cpp",
+    ],
+    stack_size=2 * 1024,
+    fap_icon="icons/ikon.png",
+    fap_category="GPIO",
+    fap_author="Dr.Mosfet",
+    fap_weburl="https://github.com/kamylwnb/24cxxprog",
+    fap_version="2.1",
+    fap_description="EEPROM 24Cxx programmer via I2C with read, write, erase and dump/restore options.",
+)

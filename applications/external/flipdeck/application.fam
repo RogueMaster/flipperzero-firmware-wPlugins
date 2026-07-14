@@ -1,0 +1,14 @@
+App(
+    appid="flipdeck",
+    name="FlipDeck",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flipdeck_main",
+    stack_size=4 * 1024,
+    fap_icon="icon.png",
+    fap_file_assets="config",
+    fap_category="USB",
+    fap_author="FlipDeck / ismail-oe",
+    fap_version="3.0",
+    fap_weburl="https://github.com/ismail-oe/flipdeck",
+    fap_description="USB HID Macro Pad with configurable pages",
+)

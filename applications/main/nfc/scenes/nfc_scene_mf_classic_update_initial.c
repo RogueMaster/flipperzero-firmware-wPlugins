@@ -1,5 +1,4 @@
 #include "../nfc_app_i.h"
-#include <nfc_icons.h>
 
 #include <nfc/protocols/mf_classic/mf_classic_poller.h>
 
@@ -35,7 +34,7 @@ NfcCommand nfc_mf_classic_update_initial_worker_callback(NfcGenericEvent event, 
         uint8_t sector_num = 0;
         MfClassicKey key = {};
         MfClassicKeyType key_type = MfClassicKeyTypeA;
-        if(mf_classic_key_cahce_get_next_key(
+        if(mf_classic_key_cache_get_next_key(
                instance->mfc_key_cache, &sector_num, &key, &key_type)) {
             mfc_event->data->read_sector_request_data.sector_num = sector_num;
             mfc_event->data->read_sector_request_data.key = key;

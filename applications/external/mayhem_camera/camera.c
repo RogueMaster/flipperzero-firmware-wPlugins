@@ -44,7 +44,7 @@ void get_timefilename(FuriString* name) {
     furi_hal_rtc_get_datetime(&datetime);
     furi_string_printf(
         name,
-        APP_DATA_PATH("%.4d%.2d%.2d-%.2d%.2d%.2d.bmp"),
+        APP_DATA_PATH("DCIM/%.4d%.2d%.2d-%.2d%.2d%.2d.bmp"),
         datetime.year,
         datetime.month,
         datetime.day,
@@ -230,7 +230,6 @@ static UartEchoApp* camera_app_alloc() {
 
     // View dispatcher
     app->view_dispatcher = view_dispatcher_alloc();
-    view_dispatcher_enable_queue(app->view_dispatcher);
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     // Views

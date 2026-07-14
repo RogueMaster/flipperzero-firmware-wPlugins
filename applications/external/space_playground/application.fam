@@ -1,0 +1,13 @@
+App(
+    appid="space_playground",
+    name="Space Playground",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="fzspground_app",
+    stack_size=2 * 1024,
+    fap_icon="fzspground.png",
+    fap_category="Media",
+    fap_author="Alan Silva",
+    fap_weburl="https://github.com/alanfortlink/fzspground",
+    fap_version="0.1",
+    fap_description="A simple space simulation playground for Flipper Zero",
+)

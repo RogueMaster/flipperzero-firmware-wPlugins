@@ -1,0 +1,266 @@
+namespace Images {
+
+    // PPoT Splash Screen ..
+
+    image_t PPOT                    = "../images/PPOT_65x31_1.png"
+
+
+    // Title Screen ..
+
+    image_t Title_PoP               = "../images/title/Title_PoP.png"
+    image_t Title_PoA               = "../images/title/Title_PoA.png"
+    image_t Title_Main_NC           = "../images/title/Title_Main_NC.png"
+    image_t Title_Main_NRC          = "../images/title/Title_Main_NRC.png"
+    image_t Title_Main_NCH          = "../images/title/Title_Main_NCH.png"
+    image_t Title_Main_NRCH         = "../images/title/Title_Main_NRCH.png"
+    image_t Title_Cursor            = "../images/title/Title_Cursor.png"
+    image_t Title_SoundIcon         = "../images/title/SoundIcon_8x8_1.png"
+    image_t Title_Credits           = "../images/title/Title_Credits.png"
+    image_t Saves                   = "../images/title/Saves.png"
+
+
+    // Cut scenes ..
+
+    image_t TimeRemaining           = "../images/title/TimeRemaining.png"
+    image_t LevelNumber             = "../images/title/LevelNumber.png"
+    //image_t GameOver                = "../images/title/GameOver.png"
+    image_t PressA                  = "../images/title/PressA.png"
+    image_t TimeOut_PoP             = "../images/title/TimeOut_PoP.png"
+    image_t TimeOut_PoA             = "../images/title/TimeOut_PoA.png"
+
+    image_t IntroGame_1A            = "../images/title/IntroGame_1A.png"
+    image_t IntroGame_1B            = "../images/title/IntroGame_1B.png"
+    image_t IntroGame_9_PoP         = "../images/title/IntroGame_9_PoP.png"
+    image_t IntroGame_9_PoA         = "../images/title/IntroGame_9_PoA.png"
+    image_t Chambers_BG             = "../images/title/Chambers_BG.png"
+    image_t Chambers_BG_01          = "../images/title/Chambers_BG_01.png"
+    image_t Chambers_BG_02          = "../images/title/Chambers_BG_02.png"
+    image_t Chambers_FG             = "../images/title/Chambers_FG.png"
+    image_t Credits_BG              = "../images/title/Credits_BG.png"
+    image_t Eeek                    = "../images/title/Eeek.png"
+    image_t LevelRect               = "../images/title/LevelRect.png"
+
+    image_t Mouse                   = "../images/Mouse_16x16.png"
+    image_t HourGlasses             = "../images/HourGlasses_19x23.png"
+
+
+    // HUD
+
+    image_t Menu                    = "../images/hud/Menu_42x64.png"
+    image_t Sword_Cursor            = "../images/hud/Sword.png"
+    image_t HUD_Backgrounds         = "../images/hud/HUD_Background_8x64_1.png"
+    image_t Numbers_Upright         = "../images/title/Numbers_Upright_7x5_1.png"
+    image_t Numbers                 = "../images/hud/Numbers_11x7_1.png"
+    image_t Numbers_Large           = "../images/hud/Numbers_22x14_2.png"    
+    image_t Numbers_Small           = "../images/hud/Numbers_Small_5x7_1.png"
+    image_t Numbers_Divider         = "../images/hud/Numbers_Divider.png"
+    image_t Healths                 = "../images/hud/Health_5x3_1.png"
+    image_t Sword_HUD               = "../images/hud/Sword_HUD.png"
+    image_t Potion_Float_HUD        = "../images/hud/Float.png"
+    image_t HighScore               = "../images/title/HighScore.png"
+
+    image_t Sword                   = "../images/items/sword.png"
+    image_t Skeleton                = "../images/items/Skeleton.png"
+    image_t Gates                   = "../images/items/Gates_9x28_1.png"
+
+
+    // Game Play items and tiles
+
+    image_t Blades                  = "../images/items/Blades_9x28_1.png"
+    image_t ExitDoors               = "../images/items/ExitDoors_25x33_1.png"
+    image_t Potions_Small           = "../images/items/Potions_Small_6x15_1.png"
+    image_t Potions_Large           = "../images/items/Potions_Large_6x15_1.png"
+    image_t Potions_Poison          = "../images/items/Potions_Poison_6x15_1.png"
+    image_t Potions_Float           = "../images/items/Potions_Float_6x15_1.png"
+
+    image_t DecorativeDoor          = "../images/items/DecorativeDoor.png"
+    image_t CollapsedFloor          = "../images/items/CollapsedTile.png"
+    image_t CollapsingFloors        = "../images/items/CollapsingTiles_21x31_1.png"
+    image_t FloorButtons_0and1      = "../images/items/FloorButtons_0and1_21x32_1.png"
+    image_t FloorButtons_2          = "../images/items/FloorButtons_2_12x31_1.png"
+
+    image_t CollapsingFloors_FG     = "../images/items/CollapsingTiles_FG_21x31_1.png"
+    image_t FloorButtons_0and1_FG   = "../images/items/FloorButtons_0and1_FG_21x32_1.png"
+    image_t FloorButtons_2_FG       = "../images/items/FloorButtons_2_FG_12x31_1.png"
+
+    image_t Torches                 = "../images/items/Torches_3x11_1.png"
+    image_t Mirrors                 = "../images/items/Mirrors_12x31_1.png"
+
+    image_t Spikes_FG_Full          = "../images/items/Spikes_FG_19x18_1.png"
+    image_t Spikes_BG_Full          = "../images/items/Spikes_BG_19x18_1.png"
+    image_t Spikes_FG_Half          = "../images/items/Spikes_FG_11x18_1.png"
+    image_t Spikes_BG_Half          = "../images/items/Spikes_BG_11x18_1.png"
+
+    image_t Flashes                 = "../images/hud/Flash_22x20_1.png"
+    image_t Tiles_Dungeon           = "../images/tiles_dungeon_12x31.png"
+    image_t Tile_Dungeon_97         = "../images/tiles/tile_dungeon_97.png"
+    image_t Tile_Dungeon_98         = "../images/tiles/tile_dungeon_98.png"
+    image_t Tile_Dungeon_98_FG      = "../images/tiles/tile_dungeon_98_FG.png"
+    image_t Tiles_Dungeon_Torch     = "../images/tiles_dungeon_torch_12x31.png"
+
+
+    // Princess Images
+
+    image_t Princess                = "../images/Princess_32x32_0.png"
+    image_t Princess_Bounce         = "../images/Princess_Bounce_48x32_0.png"
+    image_t Hearts                  = "../images/Hearts_7x6_0.png"
+
+
+    // Jaffar Images 
+
+    image_t Jaffar                  = "../images/Jaffar_32x32.png"
+
+
+    // Prince Images
+
+    image_t Prince_Left             = "../images/Prince_Left_36x36_0.png"
+    image_t Prince_Right            = "../images/Prince_Right_36x36_0.png"
+
+
+    // Mirror images
+
+    image_t Mirror_Right            = "../images/Mirror_Right_36x36_0.png"
+    image_t Mirror_Left             = "../images/Mirror_Left_36x36_0.png"
+
+
+    // Enemy images
+
+    image_t Enemy_Right             = "../images/Enemy_Right_36x36_0.png"
+    image_t Enemy_Left              = "../images/Enemy_Left_36x36_0.png"
+    image_t Skeleton_Right          = "../images/Skeleton_Right_36x36_0.png"
+    image_t Skeleton_Left           = "../images/Skeleton_Left_36x36_0.png"
+
+
+    // Invaders
+
+    image_t Invaders                = "../images/invaders/Enemies_25x23_1.png"
+    image_t Barriers                = "../images/invaders/Barrier_4x2_1.png"
+    image_t Barrier                = "../images/invaders/Barrier_Whole.png"
+    image_t Player                  = "../images/invaders/Player_25x25_1.png"
+    image_t Bullet                  = "../images/invaders/Bullet.png"
+    image_t HUD_Spaceship           = "../images/invaders/HUD_lives_4x17.png"
+    image_t Levels                  = "../images/invaders/Levels_57x13_1.png"
+
+
+    // Falling Man
+
+    image_t Falling_000            = "../images/falling/Falling_000.png"
+    image_t Falling_001            = "../images/falling/Falling_001.png"
+    image_t Falling_002            = "../images/falling/Falling_002.png"
+    image_t Falling_003            = "../images/falling/Falling_003.png"
+    image_t Falling_004            = "../images/falling/Falling_004.png"
+    image_t Falling_005            = "../images/falling/Falling_005.png"
+    image_t Falling_006            = "../images/falling/Falling_006.png"
+    image_t Falling_007            = "../images/falling/Falling_007.png"
+    image_t Falling_008            = "../images/falling/Falling_008.png"
+    image_t Falling_009            = "../images/falling/Falling_009.png"
+    image_t Falling_010            = "../images/falling/Falling_010.png"
+    image_t Falling_011            = "../images/falling/Falling_011.png"
+    image_t Falling_012            = "../images/falling/Falling_012.png"
+    image_t Falling_013            = "../images/falling/Falling_013.png"
+    image_t Falling_014            = "../images/falling/Falling_014.png"
+    image_t Falling_015            = "../images/falling/Falling_015.png"
+    image_t Falling_016            = "../images/falling/Falling_016.png"
+    image_t Falling_017            = "../images/falling/Falling_017.png"
+    image_t Falling_018            = "../images/falling/Falling_018.png"
+    image_t Falling_019            = "../images/falling/Falling_019.png"
+    image_t Falling_020            = "../images/falling/Falling_020.png"
+    image_t Falling_021            = "../images/falling/Falling_021.png"
+    image_t Falling_022            = "../images/falling/Falling_022.png"
+    image_t Falling_023            = "../images/falling/Falling_023.png"
+    image_t Falling_024            = "../images/falling/Falling_024.png"
+    image_t Falling_025            = "../images/falling/Falling_025.png"
+    image_t Falling_026            = "../images/falling/Falling_026.png"
+    image_t Falling_027            = "../images/falling/Falling_027.png"
+    image_t Falling_028            = "../images/falling/Falling_028.png"
+    image_t Falling_029            = "../images/falling/Falling_029.png"
+    image_t Falling_030            = "../images/falling/Falling_030.png"
+    image_t Falling_031            = "../images/falling/Falling_031.png"
+    image_t Falling_032            = "../images/falling/Falling_032.png"
+    image_t Falling_033            = "../images/falling/Falling_033.png"
+    image_t Falling_034            = "../images/falling/Falling_034.png"
+    image_t Falling_035            = "../images/falling/Falling_035.png"
+    image_t Falling_036            = "../images/falling/Falling_036.png"
+    image_t Falling_037            = "../images/falling/Falling_037.png"
+    image_t Falling_038            = "../images/falling/Falling_038.png"
+    image_t Falling_039            = "../images/falling/Falling_039.png"
+    image_t Falling_040            = "../images/falling/Falling_040.png"
+    image_t Falling_041            = "../images/falling/Falling_041.png"
+    image_t Falling_042            = "../images/falling/Falling_042.png"
+    image_t Falling_043            = "../images/falling/Falling_043.png"
+    image_t Falling_044            = "../images/falling/Falling_044.png"
+    image_t Falling_045            = "../images/falling/Falling_045.png"
+    image_t Falling_046            = "../images/falling/Falling_046.png"
+    image_t Falling_047            = "../images/falling/Falling_047.png"
+    image_t Falling_048            = "../images/falling/Falling_048.png"
+    image_t Falling_049            = "../images/falling/Falling_049.png"
+    image_t Falling_050            = "../images/falling/Falling_050.png"
+    image_t Falling_051            = "../images/falling/Falling_051.png"
+    image_t Falling_052            = "../images/falling/Falling_052.png"
+    image_t Falling_053            = "../images/falling/Falling_053.png"
+    image_t Falling_054            = "../images/falling/Falling_054.png"
+    image_t Falling_055            = "../images/falling/Falling_055.png"
+    image_t Falling_056            = "../images/falling/Falling_056.png"
+    image_t Falling_057            = "../images/falling/Falling_057.png"
+    image_t Falling_058            = "../images/falling/Falling_058.png"
+    image_t Falling_059            = "../images/falling/Falling_059.png"
+    image_t Falling_060            = "../images/falling/Falling_060.png"
+    image_t Falling_061            = "../images/falling/Falling_061.png"
+    image_t Falling_062            = "../images/falling/Falling_062.png"
+    image_t Falling_063            = "../images/falling/Falling_063.png"
+    image_t Falling_064            = "../images/falling/Falling_064.png"
+    image_t Falling_065            = "../images/falling/Falling_065.png"
+    image_t Falling_066            = "../images/falling/Falling_066.png"
+    image_t Falling_067            = "../images/falling/Falling_067.png"
+    image_t Falling_068            = "../images/falling/Falling_068.png"
+    image_t Falling_069            = "../images/falling/Falling_069.png"
+    image_t Falling_070            = "../images/falling/Falling_070.png"
+    image_t Falling_071            = "../images/falling/Falling_071.png"
+    image_t Falling_072            = "../images/falling/Falling_072.png"
+    image_t Falling_073            = "../images/falling/Falling_073.png"
+    image_t Falling_074            = "../images/falling/Falling_074.png"
+    image_t Falling_075            = "../images/falling/Falling_075.png"
+    image_t Falling_076            = "../images/falling/Falling_076.png"
+    image_t Falling_077            = "../images/falling/Falling_077.png"
+    image_t Falling_078            = "../images/falling/Falling_078.png"
+    image_t Falling_079            = "../images/falling/Falling_079.png"
+    image_t Falling_080            = "../images/falling/Falling_080.png"
+    image_t Falling_081            = "../images/falling/Falling_081.png"
+    image_t Falling_082            = "../images/falling/Falling_082.png"
+    image_t Falling_083            = "../images/falling/Falling_083.png"
+    image_t Falling_084            = "../images/falling/Falling_084.png"
+    image_t Falling_085            = "../images/falling/Falling_085.png"
+    image_t Falling_086            = "../images/falling/Falling_086.png"
+    image_t Falling_087            = "../images/falling/Falling_087.png"
+    image_t Falling_088            = "../images/falling/Falling_088.png"
+    image_t Falling_089            = "../images/falling/Falling_089.png"
+    image_t Falling_090            = "../images/falling/Falling_090.png"
+    image_t Falling_091            = "../images/falling/Falling_091.png"
+    image_t Falling_092            = "../images/falling/Falling_092.png"
+    image_t Falling_093            = "../images/falling/Falling_093.png"
+    image_t Falling_094            = "../images/falling/Falling_094.png"
+    image_t Falling_095            = "../images/falling/Falling_095.png"
+    image_t Falling_096            = "../images/falling/Falling_096.png"
+    image_t Falling_097            = "../images/falling/Falling_097.png"
+    image_t Falling_098            = "../images/falling/Falling_098.png"
+    image_t Falling_099            = "../images/falling/Falling_099.png"
+    image_t Falling_100            = "../images/falling/Falling_100.png"
+    image_t Falling_101            = "../images/falling/Falling_101.png"
+    image_t Falling_102            = "../images/falling/Falling_102.png"
+    image_t Falling_103            = "../images/falling/Falling_103.png"
+    image_t Falling_104            = "../images/falling/Falling_104.png"
+    image_t Falling_105            = "../images/falling/Falling_105.png"
+    image_t Falling_106            = "../images/falling/Falling_106.png"
+    image_t Falling_107            = "../images/falling/Falling_107.png"
+    image_t Falling_108            = "../images/falling/Falling_108.png"
+    image_t Falling_109            = "../images/falling/Falling_109.png"
+    image_t Falling_110            = "../images/falling/Falling_110.png"
+    image_t Falling_111            = "../images/falling/Falling_111.png"
+    image_t Falling_112            = "../images/falling/Falling_112.png"
+    image_t Falling_113            = "../images/falling/Falling_113.png"
+    image_t Falling_114            = "../images/falling/Falling_114.png"
+    image_t Falling_115            = "../images/falling/Falling_115.png"
+
+}
+
+namespace_end
