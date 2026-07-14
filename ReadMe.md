@@ -3,7 +3,7 @@
 &nbsp;<a href='https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release' target='_blank'><img src='https://lh3.googleusercontent.com/d/1iYQlRQXM7nA4IAdcPwvcKRSTCMoi8tug' alt='Latest PATREON Release' title='Latest PATREON Release'></a>
 &nbsp;<a href='https://github.com/RogueMaster/awesome-flipperzero-withModules' target='_blank'><img src='https://lh3.googleusercontent.com/d/1gjui0-UZNerG13PUblXjmr1YaSAjIf2k' alt='More Research / Assets' title='More Research / Assets'></a></h1>
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0702-1734-e52ae977.tgz&channel=RM0702-1734-e52ae977&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0713-2232-3be1368f.tgz&channel=RM0713-2232-3be1368f&version=0.420.0&target=f7)
 
 ## Thank you so much to our RM Pro/SUPER Patreon supporters! Because of people like you, we are able to offer the best and most up-to-date Flipper Zero Firmware!
 
@@ -30,60 +30,6 @@ This software is for experimental purposes only and is not meant for any illegal
 
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-07-13 22:25 EST`
 - Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-07-13 22:25 EST`
-- Updated: NFC: [FeliCa: Add Standard card emulation support #4383 (By nikachu2012)](https://github.com/flipperdevices/flipperzero-firmware/pull/4383)
-- NFC: [Read MIFARE Plus 2K in SL1 as full 32 sectors / 64 keys - a Plus 2K in SL1 is byte-identical to a Classic 1K in SAK/ATQA and was mis-sized as 1K; it is now told apart by its ISO14443-4 ATS (Plus S/X signature), while Plus SE, SmartMX, magic Perfect CUID and plain 1K stay 1K (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1016)
-- Updated: [WiFi (Marauder) v0.7.9 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion) `Req: ESP32` with [ESP32 MARAUDER Firmware](https://github.com/justcallmekoko/ESP32Marauder/releases/latest)
-- NFC: [Show a loading screen while a large CUID dictionary loads on Read - animated spinner + CUID dictionary is loading label instead of a blank/frozen-looking screen while a per-UID (MFKey-recovered) dictionary is scanned (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1022)
-- Updated: [SSD1306 Test v1.1 (By martinbogo)](https://github.com/martinbogo/ssd1306_test) `Req: SSD1306`
-- Updated: [NFC Comparator v2.6 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
-- Fixed SubGHz Settings Load For: [Chief Cooker v1.1 (By denr01)](https://github.com/denr01/FZ-ChiefCooker), [Cross Remote v3.3 (By leedave)](https://github.com/leedave/flipper-zero-cross-remote), [Frequency Analyzer (External) v1.0 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/dev/non_catalog_apps/freq_analyzer_ext), [Restaurant Pager Trigger v1.7 (By leedave)](https://github.com/leedave/flipper-zero-meal-pager), [Sub Analyzer v1.0 (By RocketGod)](https://github.com/RocketGod-git/Flipper-Zero-SUB-Analyzer), [Sub-Ghz Toolkit 1808 v1.0 (By RocketGod-git)](https://github.com/RocketGod-git/RocketGods-SubGHz-Toolkit) & [TPMS Reader v1.0 (By wosk)](https://github.com/wosk/flipperzero-tpms)
-- Updated: [ProtoPirate v3.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate) (Fixed Emulate/Decode Issues Hopefully and SubGHz Settings Load) [Fixes for VAG (By zero-mega)](https://github.com/RocketGod-git/ProtoPirate/commit/a5463f56e00eefce87033e88424c48a68c86662b)
-- RFID: [Read T5577 tags holding multiple EM4100 IDs again - a T5577 written with several EM4100 IDs (e.g. via Multiwriter) hung on Read since the Electra protocol was added; also resets a stale PAC/Stanley decoder buffer (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1025)
-- Added: [Walkman v1.0 (By rynosec)](https://github.com/rynosec/flipper-walkman) `Req:  GD3300D / HW-311 / YX5300-family board`
-- CCID: [Add interrupt support #4198 (By kidbomb)](https://github.com/flipperdevices/flipperzero-firmware/pull/4198)
-- NFC: [Parser to identify some hotel systems #4323 (By bettse)](https://github.com/flipperdevices/flipperzero-firmware/pull/4323) (Already in RM)
-- Updated: [Flipper Share v1.4 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share)
-- Added: [GameBoy Emu v1.0 (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF/tree/0d598b854c868067bf39111ae14bc8c2e195c26c/applications/system/FlipperGB) (No Promises For Performance on Flipper)
-- Added: [Xiaomi Filter Reset v1.0 (By khmm12)](https://github.com/khmm12/flipper-xiaomi-filter-reset)
-- NFC: [Fix memory leaks & double-frees in the NFC app - heap-corrupting double-frees in the Plantain and SZPPK/SEVPPK/SK transit parsers (crash on two-trip tickets), leaks in the Saflok parser, the app API resolver (per launch) and the CUID-dictionary error path, plus a ~15x RAM over-allocation of the MIFARE DESFire file-data array (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1030)
-- Updated: [Daikin64 AC Remote v0.1 (By mrcalifornium)](https://github.com/mrcalifornium/flipperzero-daikin64-ac-remote)
-- Updated: [GameBoy Emu v1.0 (By D4C1-Labs & jgilchrist)](https://github.com/D4C1-Labs/Flipper-ARF/tree/0d598b854c868067bf39111ae14bc8c2e195c26c/applications/system/FlipperGB)
-- Updated: [Dab Timer v2.2 (By RogueMaster)](https://github.com/RogueMaster/flipperzero-dabtimer)
-- Updated: [24Cxx Programmer v2.1 (By kamylwnb)](https://github.com/kamylwnb/24cxxprog)
-- Updated Lock Screen Image + SD Card Assets Updated With New Pack Info (By RogueMaster)
-- Updated: [Cross Remote v3.4 (By leedave)](https://github.com/leedave/flipper-zero-cross-remote)
-- Added: [CFS Tag Writer v1.0 (By pwschattenberg)](https://github.com/pwschattenberg/cfs-tag-writer)
-- Added: [BadUSB wPlaceholders v1.0 (By whitewhidow)](https://github.com/whitewhidow/flipper-badusb-ph)
-- Added: [Multi Tally v1.0 (By aseypalich1)](https://github.com/aseypalich1/flipper-multi-counter)
-- Updated: [C5 Lab v0.41 (By C5Lab / Lab Team)](https://github.com/C5Lab/projectZero)
-- Updated: [Xiaomi Filter Reset v1.0 (By khmm12)](https://github.com/khmm12/flipper-xiaomi-filter-reset)
-- ESP Flasher: [Bump Marauder v1.13.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.13.0)
-- Updated: [Morse Flipper v0.1.72 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
-- OFW: PR: [CCID: move USB layer from firmware HAL into ccid_test app #4407 (By kidbomb)](https://github.com/flipperdevices/flipperzero-firmware/pull/4407)
-- NFC: [Native MIFARE Plus support in SL3 - MIFARE Plus is now a first-class protocol instead of detection-only: read (AES auth + encrypted/plaintext blocks, admin keys & config, originality signature), automatic dictionary attack with a per-UID key cache (instant re-reads of saved cards), full SL3 emulation with shadow-writeback (a reader can authenticate, read & write the recovered card), write/update-to-card, GetVersion + ATS-based S/X/SE/EV1/EV2 detection, Add Manually for 18 Plus variants, and MIFARE-Classic-style dump & keys screens; SL0/SL1/SL2 stay untouched (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1032)
-- Updated: [CCID Emulator v1.1 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- NFC: [Internal MIFARE Plus cleanup - data-drive the Add Manually generator variants and unify the admin-key address mapping into one source of truth; small internal-flash saving, no functional change (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1035)
-- Sub-GHz: [Fix crash when exiting CLI `subghz chat` with an external CC1101 - pressing Ctrl+C dereferenced the just-freed external CC1101 radio plugin during chat worker shutdown; internal CC1101 was unaffected (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1036)
-- Updated: [Sub-GHz Scheduler v3.0 (By shalebridge)](https://github.com/shalebridge/flipper-subghz-scheduler)
-- [Make protobuf version generator tolerant when git tags unavailable (By juansandoval0613)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/pull/1194)
-- Added: [PocketLab v1.1 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
-- Updated: [wM-Buster v1.1.1 (By i12bp8)](https://github.com/i12bp8/wmbuster)
-- Using API v88.0 Like OFW
-- Updated: [Rush Hour v0.1.6 (By Endika)](https://github.com/Endika/flipper-tutu) (Version Only)
-- Updated: [Sub-GHz RAW Edit v1.7 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
-- Added: [Gurpil v0.1.8 (By Endika)](https://github.com/Endika/flipper-gurpil)
-- Updated: [Flipcraft v4.3 (By apfxtech)](https://github.com/apfxtech/Flipcraft)
-- Updated: [PocketLab v1.3 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
-- Updated: [Paranoia WIP v0.2 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-paranoia)
-- Sub-GHz: Fix for Sub-GHz Add Manually furi check error & Launch from Apps list (By RogueMaster)
-- Sub-GHz: [Fix for Out of Memory crashes in Sub-Ghz (By Lechnio)](https://github.com/Next-Flip/Momentum-Firmware/pull/569)
-- Added: [BreachMap v1.0 (By Gerijacki)](https://github.com/Gerijacki/BreachMap)
-- Added: [Password Keyboard v0.1 (By evgeniyraev)](https://github.com/evgeniyraev/password_keyboard)
-- Updated: Sub-GHz: [Fix for Out of Memory crashes in Sub-Ghz (By Lechnio)](https://github.com/Next-Flip/Momentum-Firmware/pull/569)
-- Updated: [Morse Flipper v0.1.76 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
-- Added: [Period Tracker v1.0 (By gorshunovr)](https://github.com/gorshunovr/period_tracker)
-- Added: [JAYX PC Monitor v0.3 (By contactjayclatty)](https://github.com/contactjayclatty/JAYX)
-- Updated: [Tesla Mod v2.16b17 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [PocketLab v1.5 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
 
 <a name="release"></a>
@@ -897,7 +843,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Have a new app? Submit GitHub link to me on Discord for a special reward (if I add it to RM Firmware).
 - `Bluetooth Audio` APP to allow flipper to pair to external speaker or headphones for wav/mp3 playback ($200 USD in ETH or BTC) (Don't think this is possible)
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0702-1734-e52ae977.tgz&channel=RM0702-1734-e52ae977&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0713-2232-3be1368f.tgz&channel=RM0713-2232-3be1368f&version=0.420.0&target=f7)
 
 <br>
 <h2 align="center">Modus Operandi</h2>
