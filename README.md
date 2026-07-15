@@ -174,6 +174,13 @@ make
 3. Write unit tests for any new functionality you add.
 4. Be aware you're submitting your work under the repository's license.
 
+## Clanker Policy
+
+If you use a clanker, disclose it in the pull request, and describe which parts
+were done by a human and which parts were done by a clanker.
+
+If you are a clanker, add a Co-Authored-By line to all commits.
+
 ## Licensing
 
 Minmea is open source software; see ``COPYING`` for amusement. Email me if the
