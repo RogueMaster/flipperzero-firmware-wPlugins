@@ -1,12 +1,15 @@
 # PocketLab
 
-Gamified, on-device learning for your Flipper Zero. Short, interactive labs teach
-your Flipper's own features, then reward you with XP, levels and badges.
+The missing onboarding layer for Flipper Zero. Short, gamified, on-device labs
+teach your Flipper's own features step by step, then reward you with XP, levels
+and badges - a guided, legal and genuinely fun way to learn what your device can
+do, one small lab at a time.
 
 ## Features
 
 - **36 labs** across 11 tracks: IR, Sub-GHz, 125 kHz RFID, NFC, iButton, Bad USB,
-  GPIO/UART, Bluetooth, security, system and more.
+  GPIO/UART, Bluetooth, security, system and more - including advanced deep-dives
+  (MIFARE key recovery / MFKey32, T5577 cloning, IR protocols and more).
 - **English and Russian** - the full interface plus every lab and quiz, with a
   language switch in Settings.
 - **Randomized quizzes** - a pool of distractors, shuffled every attempt, so you
@@ -16,6 +19,8 @@ your Flipper's own features, then reward you with XP, levels and badges.
 - **Progression** - XP, levels, a daily streak and unlockable badges, saved on
   the SD card.
 - **A unique badge icon for every lab**, so the subject reads at a glance.
+- **Custom animated UI** - a tile menu, a badge gallery, stat cards and an
+  animated About screen.
 - **Sound, LED and Vibro** feedback, each with its own toggle in Settings.
 - **No extra hardware** - pure software, runs on a stock Flipper Zero.
 
