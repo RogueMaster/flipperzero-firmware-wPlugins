@@ -61,12 +61,6 @@ static void build_nfc_annot(const NfcReading* r, CaptureAnnot* a) {
         r->atqa[1],
         r->atqa[0]);
 
-    snprintf(
-        a->lines[a->nline++],
-        CAPTURE_LINE_LEN,
-        "UID is %d bytes long",
-        (int)r->uid_len);
-
     /* Tie the read straight back into the walkthrough. */
     if(r->uid_len == 4) {
         snprintf(a->verdict, CAPTURE_VERDICT_LEN, "4-byte UID: cloneable");
