@@ -63,6 +63,8 @@ Three settings in **Settings** control Auto Test behavior:
 | Setting | Values | Default | Description |
 |---------|--------|---------|-------------|
 | AT DNS host | hostname | `google.com` | Hostname resolved during the DNS step |
+| AT Internet IP | IP address | `1.1.1.1` | Target for the Internet reachability step (ping, then TCP if ping is filtered) |
+| AT TCP port | 1-65535 | 443 | Port used for the Internet step's TCP fallback |
 | AT LLDP wait | 10 / 20 / 30 / 60 s | 30 | How long to listen for LLDP/CDP frames |
 | AT ARP scan | ON / OFF | ON | Whether to include the ARP scan step |
 
@@ -244,6 +246,21 @@ Real-time ping with a live RTT graph.
 
 Runs continuously until **Back** is pressed.
 
+### TCP Ping
+
+Tests reachability with a TCP handshake instead of ICMP. Useful when a firewall
+filters ping but normal traffic still passes.
+
+**Input**: target IP (default: DHCP gateway), then port (default: 443).
+
+**Result per attempt:**
+- `open` -- the port accepted the connection
+- `RST` -- the host refused the connection. It still answered, so it is reachable
+- `timeout` -- no response: host unreachable, or the port is silently dropped
+
+Repeats **Count** times using the Ping **Timeout** and **Interval** from Settings,
+then reports how many attempts answered with min/avg/max round-trip.
+
 ### DNS Lookup
 
 Resolves a hostname to an IP address via UDP DNS.
@@ -354,6 +371,8 @@ Access via the main menu → **Settings**. The **About** screen (app version, au
 | Ping Timeout | 500-10000 ms | 3000 | Per-packet reply timeout |
 | Cont. Ping Interval | 200-5000 ms | 1000 | Interval between pings in Continuous Ping |
 | AT DNS host | hostname | `google.com` | Hostname resolved during Auto Test DNS step |
+| AT Internet IP | IP address | `1.1.1.1` | Target for the Auto Test Internet step (ping, then TCP if ping is filtered) |
+| AT TCP port | 1-65535 | 443 | Port used for the Auto Test Internet step's TCP fallback |
 | AT LLDP wait | 10 / 20 / 30 / 60 s | 30 | How long Auto Test listens for LLDP/CDP frames |
 | AT ARP scan | ON / OFF | ON | Whether Auto Test includes the ARP scan step |
 | Clear History | action | -- | Delete all saved result files |

@@ -1,6 +1,8 @@
 #include "ntp_diag.h"
 #include <furi.h>
-#include <socket.h>
+/* Compiled into a category plugin — the socket subset comes from the
+ * API-table shim instead of the private ioLibrary headers. */
+#include "../api/lan_tester_ioshim.h"
 #include <string.h>
 #include <stdio.h>
 

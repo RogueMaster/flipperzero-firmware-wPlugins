@@ -75,6 +75,10 @@ bool w5500_hal_init(void) {
     return true;
 }
 
+bool w5500_hal_is_acquired(void) {
+    return spi_acquired;
+}
+
 void w5500_hal_deinit(void) {
     FURI_LOG_I(TAG, "Deinitializing W5500 HAL");
 
