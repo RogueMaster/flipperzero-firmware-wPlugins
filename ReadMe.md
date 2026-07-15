@@ -30,12 +30,13 @@ This software is for experimental purposes only and is not meant for any illegal
 
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-07-13 22:25 EST`
 - Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-07-13 22:25 EST`
-- Updated: [PocketLab v1.5 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
 - Updated: [ProtoPirate v3.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [JAYX PC Monitor v0.4 (By contactjayclatty)](https://github.com/contactjayclatty/JAYX)
 - Updated: [Weather Station v2.0.1 (By Skorpionm)-OFW](https://github.com/flipperdevices/flipperzero-good-faps/tree/dev/weather_station) [Weather Station: add Auriol HG02832/HG05124A protocol (By kjoxa)](https://github.com/Next-Flip/Momentum-Apps/pull/81)
 - Added: [Pocket Chords v0.1 (By rvonsch)](https://github.com/rvonsch/flipper-pocket-chords)
 - Updated: [LAN Tester v2.10 (By dok2d)](https://github.com/dok2d/fz-W5500-lan-analyse)
+- Updated: [PocketLab v1.5 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
+- Updated: [Smoke Free v0.1 (By kamylwnb)](https://github.com/kamylwnb/smoke_free)
 
 <a name="release"></a>
 
