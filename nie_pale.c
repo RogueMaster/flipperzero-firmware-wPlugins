@@ -8,10 +8,12 @@
 #include <datetime/datetime.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
-#define TAG        "SmokeFree"
-#define START_FILE "/ext/apps/Health/nie_pale_start.bin"
-#define LOG_FILE   "/ext/apps/Health/nie_pale_log.txt"
+#define TAG "SmokeFree"
+
+#define START_FILE APP_DATA_PATH("nie_pale_start.bin")
+#define LOG_FILE   APP_DATA_PATH("nie_pale_log.txt")
 
 typedef enum {
     NiePaleModeNoSmoke = 0,
@@ -28,6 +30,7 @@ typedef struct {
     bool napewno;
     NiePaleMode menu_index;
     Storage* storage;
+    ViewPort* view_port; // Przechowujemy tu wskaźnik do natychmiastowego odświeżania UI
     uint32_t start_timestamp;
     uint32_t last_milestone;
     char status[96];
@@ -127,14 +130,28 @@ static void format_elapsed(uint32_t elapsed, char* buffer, size_t size) {
     const uint32_t minutes = (elapsed % 3600) / 60;
     const uint32_t seconds = elapsed % 60;
 
+    // Rzutowanie na (unsigned long) zapobiega ostrzeżeniom kompilatora na niektórych architekturach ARM
     if(days > 0) {
-        snprintf(buffer, size, "%lud %luh %lum %lus", days, hours, minutes, seconds);
+        snprintf(
+            buffer,
+            size,
+            "%lud %luh %lum %lus",
+            (unsigned long)days,
+            (unsigned long)hours,
+            (unsigned long)minutes,
+            (unsigned long)seconds);
     } else if(hours > 0) {
-        snprintf(buffer, size, "%luh %lum %lus", hours, minutes, seconds);
+        snprintf(
+            buffer,
+            size,
+            "%luh %lum %lus",
+            (unsigned long)hours,
+            (unsigned long)minutes,
+            (unsigned long)seconds);
     } else if(minutes > 0) {
-        snprintf(buffer, size, "%lum %lus", minutes, seconds);
+        snprintf(buffer, size, "%lum %lus", (unsigned long)minutes, (unsigned long)seconds);
     } else {
-        snprintf(buffer, size, "%lus", seconds);
+        snprintf(buffer, size, "%lus", (unsigned long)seconds);
     }
 }
 
@@ -193,7 +210,6 @@ static void draw(Canvas* canvas, void* context) {
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, app->zegnaj);
         canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignCenter, app->logo);
-
         return;
     }
 
@@ -320,7 +336,8 @@ static void input_callback(InputEvent* event, void* context) {
                     app->confirm_active = false;
                 }
             }
-
+            // Odświeżamy natychmiast ekran po akcji użytkownika
+            if(app->view_port) view_port_update(app->view_port);
             return;
         }
 
@@ -347,6 +364,8 @@ static void input_callback(InputEvent* event, void* context) {
             app->menu_active = false;
             snprintf(app->saved_text, sizeof(app->saved_text), "Selection cancelled");
         }
+        // Odświeżamy natychmiast ekran po akcji użytkownika
+        if(app->view_port) view_port_update(app->view_port);
         return;
     }
 
@@ -354,95 +373,123 @@ static void input_callback(InputEvent* event, void* context) {
         app->menu_active = true;
         app->menu_index = NiePaleModeNoSmoke;
     }
+
+    // Odświeżamy natychmiast ekran po akcji użytkownika
+    if(app->view_port) view_port_update(app->view_port);
 }
 
 int32_t nie_pale(void* p) {
     UNUSED(p);
 
-    NiePaleApp app = {
-        .running = true,
-        .is_exit = false,
-        .menu_active = true,
-        .menu_index = NiePaleModeNoSmoke,
-        .storage = NULL,
-        .start_timestamp = 0,
-        .last_milestone = 0,
-        .status = "",
-        .elapsed = "",
-        .next_goal = "",
-        .saved_text = "Press OK to select",
-        .current_date = "",
-        .current_time = "",
-        .confirm_active = false,
-        .napewno = false,
-        .zegnaj = "NOT WORTH IT !!!",
-        .logo = " Dr.Mosfet"};
-
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    if(!storage) {
-        app.storage = NULL;
-        strncpy(app.saved_text, "Error: cannot open Storage", sizeof(app.saved_text) - 1);
-    } else {
-        app.storage = storage;
-        uint32_t start_ts = 0;
-
-        if(load_start_timestamp(storage, &start_ts)) {
-            app.start_timestamp = start_ts;
-            snprintf(app.saved_text, sizeof(app.saved_text), "Loaded previous start from SD");
-        } else {
-            app.start_timestamp = furi_hal_rtc_get_timestamp();
-            save_start_timestamp(storage, app.start_timestamp);
-
-            char time_text[64];
-            format_datetime(app.start_timestamp, time_text, sizeof(time_text));
-            char log_line[128];
-            snprintf(log_line, sizeof(log_line), "%s - Started new smoke-free session", time_text);
-            append_log(storage, log_line);
-            snprintf(app.saved_text, sizeof(app.saved_text), "New session saved to SD");
-        }
+    // Dynamiczna alokacja całej struktury na stercie (zabezpieczenie przed Stack Overflow)
+    NiePaleApp* app = malloc(sizeof(NiePaleApp));
+    if(!app) {
+        FURI_LOG_E(TAG, "Failed to allocate memory");
+        return -1;
     }
 
-    Gui* gui = furi_record_open(RECORD_GUI);
-    ViewPort* view_port = view_port_alloc();
+    app->running = true;
+    app->is_exit = false;
+    app->menu_active = true;
+    app->menu_index = NiePaleModeNoSmoke;
+    app->storage = NULL;
+    app->view_port = NULL;
+    app->start_timestamp = 0;
+    app->last_milestone = 0;
+    app->status[0] = '\0';
+    app->elapsed[0] = '\0';
+    app->next_goal[0] = '\0';
+    strcpy(app->saved_text, "Press OK to select");
+    app->current_date[0] = '\0';
+    app->current_time[0] = '\0';
+    app->confirm_active = false;
+    app->napewno = false;
+    strcpy(app->zegnaj, "NOT WORTH IT !!!");
+    strcpy(app->logo, " Dr.Mosfet");
 
-    view_port_draw_callback_set(view_port, draw, &app);
-    view_port_input_callback_set(view_port, input_callback, &app);
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    Gui* gui = furi_record_open(RECORD_GUI);
+
+    if(!storage || !gui) {
+        FURI_LOG_E(TAG, "Failed to open critical system records");
+        if(storage) furi_record_close(RECORD_STORAGE);
+        if(gui) furi_record_close(RECORD_GUI);
+        free(app);
+        return -1;
+    }
+
+    app->storage = storage;
+    uint32_t start_ts = 0;
+
+    if(load_start_timestamp(storage, &start_ts)) {
+        app->start_timestamp = start_ts;
+        snprintf(app->saved_text, sizeof(app->saved_text), "Loaded previous start from SD");
+
+        // ROZWIĄZANIE PROBLEMU LOGÓW: Inicjalizacja kamienia milowego bez wywoływania logowania
+        uint32_t now = furi_hal_rtc_get_timestamp();
+        uint32_t elapsed = (now > app->start_timestamp) ? (now - app->start_timestamp) : 0;
+        const uint32_t thresholds[] = {604800, 86400, 43200, 3600};
+        for(size_t i = 0; i < sizeof(thresholds) / sizeof(thresholds[0]); i++) {
+            if(elapsed >= thresholds[i]) {
+                app->last_milestone = thresholds[i];
+                break;
+            }
+        }
+    } else {
+        app->start_timestamp = furi_hal_rtc_get_timestamp();
+        save_start_timestamp(storage, app->start_timestamp);
+
+        char time_text[64];
+        format_datetime(app->start_timestamp, time_text, sizeof(time_text));
+        char log_line[128];
+        snprintf(log_line, sizeof(log_line), "%s - Started new smoke-free session", time_text);
+        append_log(storage, log_line);
+        snprintf(app->saved_text, sizeof(app->saved_text), "New session saved to SD");
+    }
+
+    ViewPort* view_port = view_port_alloc();
+    app->view_port = view_port; // Zapisujemy wskaźnik do struktury aplikacji
+
+    view_port_draw_callback_set(view_port, draw, app);
+    view_port_input_callback_set(view_port, input_callback, app);
 
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
-    while(app.running) {
+    while(app->running) {
         uint32_t now = furi_hal_rtc_get_timestamp();
-        format_date_only(now, app.current_date, sizeof(app.current_date));
-        format_time_only(now, app.current_time, sizeof(app.current_time));
+        format_date_only(now, app->current_date, sizeof(app->current_date));
+        format_time_only(now, app->current_time, sizeof(app->current_time));
 
-        if(app.is_exit) {
+        if(app->is_exit) {
             view_port_update(view_port);
             furi_delay_ms(3000);
-            app.running = false;
+            app->running = false;
             continue;
         }
 
-        if(!app.menu_active) {
-            if(now < app.start_timestamp) {
-                now = app.start_timestamp;
+        if(!app->menu_active) {
+            if(now < app->start_timestamp) {
+                now = app->start_timestamp;
             }
-            uint32_t elapsed = now - app.start_timestamp;
-            format_elapsed(elapsed, app.elapsed, sizeof(app.elapsed));
-            update_next_goal(elapsed, app.next_goal, sizeof(app.next_goal));
+            uint32_t elapsed = now - app->start_timestamp;
+            format_elapsed(elapsed, app->elapsed, sizeof(app->elapsed));
+            update_next_goal(elapsed, app->next_goal, sizeof(app->next_goal));
             check_milestone(
-                app.storage, elapsed, &app.last_milestone, app.status, sizeof(app.status));
+                app->storage, elapsed, &app->last_milestone, app->status, sizeof(app->status));
         }
 
         view_port_update(view_port);
-        furi_delay_ms(200);
+        // Zwiększamy opóźnienie do 500 ms – oszczędza procesor, a kliknięcia i tak reagują od razu!
+        furi_delay_ms(500);
     }
 
     gui_remove_view_port(gui, view_port);
     view_port_free(view_port);
     furi_record_close(RECORD_GUI);
-    if(storage) {
-        furi_record_close(RECORD_STORAGE);
-    }
+    furi_record_close(RECORD_STORAGE);
+
+    // Zwalniamy pamięć alokowaną na stercie
+    free(app);
 
     return 0;
 }
