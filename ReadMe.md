@@ -37,6 +37,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [LAN Tester v2.10 (By dok2d)](https://github.com/dok2d/fz-W5500-lan-analyse)
 - Updated: [PocketLab v1.5 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
 - Updated: [Smoke Free v0.1 (By kamylwnb)](https://github.com/kamylwnb/smoke_free)
+- NFC: [Fix MIFARE Plus 2K SL1 transit parsers - Troika, Plantain, SevPPK, SZPPK and Two Cities stopped parsing once Plus 2K SL1 cards began reporting as the new `2K` type: the parsers only knew `1K`/`4K` and required a full-card read. They now treat 2K as the 1K these cards present and accept a partial read (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1038)
 
 <a name="release"></a>
 
