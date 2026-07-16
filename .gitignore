@@ -1,0 +1,14 @@
+dist/
+build/
+.ufbt/
+*.fap
+*.pyc
+__pycache__/
+.DS_Store
+
+# host test artefacts
+test/host_autobaud_test
+*.dSYM/
+
+# generated, and full of absolute paths from whoever built last
+.vscode/

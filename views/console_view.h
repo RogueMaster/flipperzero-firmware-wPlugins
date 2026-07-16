@@ -1,0 +1,29 @@
+#pragma once
+
+#include <gui/view.h>
+#include "../helpers/term.h"
+
+typedef enum {
+    ConsoleEventTypeText, // user wants the keyboard
+    ConsoleEventTypeCtrl, // user wants the control-key palette
+    ConsoleEventTypeEnter, // user pressed OK long: send the Enter sequence
+} ConsoleEventType;
+
+typedef struct ConsoleView ConsoleView;
+
+typedef void (*ConsoleViewCallback)(void* context, ConsoleEventType type);
+
+ConsoleView* console_view_alloc(void);
+void console_view_free(ConsoleView* cv);
+View* console_view_get_view(ConsoleView* cv);
+
+void console_view_set_callback(ConsoleView* cv, ConsoleViewCallback cb, void* context);
+
+/** The terminal to render. Borrowed, not owned; must outlive the view's use. */
+void console_view_set_term(ConsoleView* cv, Term* term);
+
+/** Status line contents. */
+void console_view_set_link(ConsoleView* cv, uint32_t baud, const char* framing, bool tx_enabled);
+
+/** Nudge the view after feeding the term, so it follows new output. */
+void console_view_notify_rx(ConsoleView* cv);

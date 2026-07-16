@@ -1,0 +1,23 @@
+App(
+    appid="hermes",
+    name="Hermes",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="hermes_app",
+    stack_size=4 * 1024,
+    fap_category="GPIO",
+    fap_icon="icons/hermes_10px.png",
+    fap_icon_assets="icons",
+    fap_author="at0m-b0mb",
+    fap_weburl="https://github.com/at0m-b0mb/Hermes-FlipperZero",
+    fap_version="1.0",
+    # Explicit, so the recursive default does not sweep test/ (host-only code,
+    # stubbed HAL) into the firmware build.
+    sources=[
+        "hermes.c",
+        "helpers/*.c",
+        "views/*.c",
+        "scenes/*.c",
+    ],
+    fap_description="UART baud detector and console tap. Clip onto an unknown serial line and Hermes measures the bit time with the CPU cycle counter, fits it against the standard rates, then re-opens the line as a real UART to verify the guess with hardware framing errors - so it reports 115200 8N1, not just a number. Detects 8N1/8E1/8O1/7E1 framing, ranks runner-up candidates, then drops you into an interactive console with scrollback, hex view and a Ctrl-key palette. For your own dev boards.",
+    requires=["gui"],
+)
