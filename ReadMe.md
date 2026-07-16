@@ -38,6 +38,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [PocketLab v1.5 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
 - Updated: [Smoke Free v0.1 (By kamylwnb)](https://github.com/kamylwnb/smoke_free)
 - NFC: [Fix MIFARE Plus 2K SL1 transit parsers - Troika, Plantain, SevPPK, SZPPK and Two Cities stopped parsing once Plus 2K SL1 cards began reporting as the new `2K` type: the parsers only knew `1K`/`4K` and required a full-card read. They now treat 2K as the 1K these cards present and accept a partial read (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1038)
+- Updated: [ZeroMesh v2.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
 
 <a name="release"></a>
 
@@ -844,7 +845,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [XRemote v1.4 (By kala13x)](https://github.com/kala13x/flipper-xremote)
 - [YuriCable Pro Max v0.4 (By arag0re)](https://github.com/arag0re/fz-yuricable-pro-max)
 - [ZeroFIDO v0.7 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido)
-- [ZeroMesh v2.0 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
+- [ZeroMesh v2.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
 
 ## Current Bounties $$ (Sorted By Difficulty - Easiest to Hardest)
 
