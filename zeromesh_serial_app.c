@@ -64,12 +64,18 @@ int32_t zeromesh_serial_app(void* p) {
     request_info(app);
 
     uint32_t last_render = furi_get_tick();
+    uint32_t last_heartbeat = furi_get_tick();
+    const uint32_t HEARTBEAT_INTERVAL_MS = 30000;
     const uint32_t frame_delays[] = {
         1000, 500, 333, 250, 200,
         166, 142, 125, 111, 100
     };
 
     while(!app->stop_thread) {
+        if(furi_get_tick() - last_heartbeat >= HEARTBEAT_INTERVAL_MS) {
+            send_heartbeat(app);
+            last_heartbeat = furi_get_tick();
+        }
         if(app->show_keyboard) {
             gui_remove_view_port(app->gui, app->vp);
 

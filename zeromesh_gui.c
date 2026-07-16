@@ -300,6 +300,18 @@ static void draw_message_bubble(Canvas* canvas, int x, int y, int max_w, const c
     canvas_set_color(canvas, ColorBlack);
 }
 
+#define MSG_FEED_INNER_W 116
+static int message_block_height(Canvas* canvas, ZeroMeshApp* app, const Message* msg) {
+    if(app->lmh_mode == LMH_Wrap) {
+        int text_w = canvas_string_width(canvas, msg->text);
+        if(text_w > MSG_FEED_INNER_W) {
+            int lines = calculate_wrapped_lines(canvas, msg->text, MSG_FEED_INNER_W);
+            return lines * 9 + 14;
+        }
+    }
+    return 22;
+}
+
 static void render_messages(Canvas* canvas, ZeroMeshApp* app) {
     char title[32];
     if(app->num_channels > 1) {
@@ -335,17 +347,9 @@ static void render_messages(Canvas* canvas, ZeroMeshApp* app) {
     for(int i = broadcast_count - 1; i >= 0; i--) {
         uint8_t idx = broadcast_indices[i];
         Message* msg = &app->history.msgs[idx];
-        
-        int msg_height = 16;
-        if(app->lmh_mode == LMH_Wrap) {
-            int text_w = canvas_string_width(canvas, msg->text);
-            int inner_w = 116;
-            if(text_w > inner_w) {
-                int lines = calculate_wrapped_lines(canvas, msg->text, inner_w);
-                msg_height = 8 + (lines * 9) + 2;
-            }
-        }
-        
+
+        int msg_height = message_block_height(canvas, app, msg);
+
         if(y + msg_height <= available_height + 18) {
             visible_count++;
             y += msg_height;
@@ -371,19 +375,8 @@ static void render_messages(Canvas* canvas, ZeroMeshApp* app) {
         Message* msg = &app->history.msgs[history_idx];
         
         draw_message_bubble(canvas, 2, y, 124, msg->text, msg->is_tx, msg->from, (uint32_t)history_idx * 977u, app);
-        
-        if(app->lmh_mode == LMH_Wrap) {
-            int text_w = canvas_string_width(canvas, msg->text);
-            int inner_w = 116;
-            if(text_w > inner_w) {
-                int lines = calculate_wrapped_lines(canvas, msg->text, inner_w);
-                y += 8 + (lines * 9) + 2;
-            } else {
-                y += 16;
-            }
-        } else {
-            y += 16;
-        }
+
+        y += message_block_height(canvas, app, msg);
     }
 
     if(app->msg_scroll_offset > 0) {
