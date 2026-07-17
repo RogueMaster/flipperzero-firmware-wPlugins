@@ -1,4 +1,4 @@
-# KeeLoq Keystore Decryptor for Flipper Zero
+# Sub-GHz Keystore Decryptor for Flipper Zero
 As the name suggests, if you've made it this far, you already know what the purpose of all this is.\
 I'm not gonna share decrypted database here, at least build it by yourself.\
 Decrypted keys will be stored on your SD Card under `/ext/keystore_decrypted.txt`.
