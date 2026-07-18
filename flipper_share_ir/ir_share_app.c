@@ -39,7 +39,7 @@ _Bool file_browser_callback(FuriString* path, void* context, unsigned char** ico
 
 void show_file_info_scene(IrShareApp* app) {
     furi_assert(app);
-    dialog_ex_set_header(app->dialog_show_file, "File Info", 64, 0, AlignCenter, AlignTop);
+    dialog_ex_set_header(app->dialog_show_file, "File Info", 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop);
     dialog_ex_set_text(app->dialog_show_file, app->selected_file_path, 64, 32, AlignCenter, AlignCenter);
     view_dispatcher_switch_to_view(app->view_dispatcher, IrShareViewIdShowFile);
 }
@@ -65,7 +65,7 @@ static void submenu_callback(void* context, uint32_t index) {
     } else if(index == 1) { // Receive
         scene_manager_next_scene(app->scene_manager, IrShareSceneReceive);
     } else if(index == 2) { // About
-        dialog_ex_set_header(app->dialog_about, "About", 64, 0, AlignCenter, AlignTop);
+        dialog_ex_set_header(app->dialog_about, "About", 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop);
         dialog_ex_set_text(
             app->dialog_about,
             // FAP_VERSION is a string literal injected by fbt/ufbt from

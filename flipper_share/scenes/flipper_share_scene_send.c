@@ -77,7 +77,7 @@ void flipper_share_scene_send_on_enter(void* context) {
     app->file_reading_state = state;
 
     // Setup dialog to show progress
-    dialog_ex_set_header(app->dialog_show_file, "Sending...", 64, 10, AlignCenter, AlignCenter);
+    dialog_ex_set_header(app->dialog_show_file, "Sending...", 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop);
     dialog_ex_set_text(app->dialog_show_file, "Starting...", 64, 32, AlignCenter, AlignCenter);
     dialog_ex_set_left_button_text(app->dialog_show_file, "Cancel");
     dialog_ex_set_right_button_text(app->dialog_show_file, NULL); // Skip right button

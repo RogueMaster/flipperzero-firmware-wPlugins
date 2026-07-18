@@ -2,6 +2,9 @@
 
 #include <gui/scene_manager.h>
 
+// Settings
+#define SCENE_HEADER_POSITION_Y 0
+
 // Generate scene id and total number
 #define ADD_SCENE(prefix, name, id) FlipperShareScene##id,
 typedef enum {

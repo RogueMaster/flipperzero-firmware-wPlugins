@@ -27,7 +27,7 @@ void ir_share_scene_show_file_on_enter(void* context) {
     const char* file_path = app->selected_file_path[0] ? app->selected_file_path : "No file selected";
 
     // Configure dialog with file information
-    dialog_ex_set_header(app->dialog_show_file, "File Selected", 64, 10, AlignCenter, AlignCenter);
+    dialog_ex_set_header(app->dialog_show_file, "File Selected", 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop);
     dialog_ex_set_text(app->dialog_show_file, file_path, 64, 32, AlignCenter, AlignCenter);
     dialog_ex_set_left_button_text(app->dialog_show_file, "Back");
     dialog_ex_set_right_button_text(app->dialog_show_file, "OK");
