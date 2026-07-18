@@ -9,6 +9,7 @@
 #include <gui/modules/variable_item_list.h>
 #include <gui/modules/widget.h>
 #include <gui/modules/text_input.h>
+#include <gui/modules/number_input.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
 
@@ -19,15 +20,28 @@
 #include "helpers/verifier.h"
 #include "helpers/term.h"
 #include "helpers/uart_tap.h"
+#include "helpers/session_log.h"
+#include "helpers/selftest.h"
 
 #include "views/detect_view.h"
 #include "views/result_view.h"
 #include "views/console_view.h"
 #include "views/wiring_view.h"
+#include "views/selftest_view.h"
 
 #include "scenes/hermes_scene.h"
 
-#define HERMES_VERSION "1.0"
+#define HERMES_VERSION "1.1"
+
+/* Bounds for the custom-rate entry. Below 50 the timing is absurd; above
+ * 2 Mbaud the LPUART cannot follow and the USART is at its limit. */
+#define HERMES_BAUD_MIN (50)
+#define HERMES_BAUD_MAX (2000000)
+
+/* How long the autoboot interrupt hammers the key for. Bootloader countdowns
+ * are typically 1-3 seconds, so this covers one with margin. */
+#define HERMES_AUTOBOOT_MS (4000u)
+#define HERMES_AUTOBOOT_INTERVAL_MS (20u)
 
 /* Give up on a quiet line rather than listening forever. A busy console fills
  * the buffer in milliseconds; this is purely the patience for a silent one. */
@@ -40,10 +54,12 @@ typedef enum {
     HermesViewSettings,
     HermesViewWidget,
     HermesViewTextInput,
+    HermesViewNumberInput,
     HermesViewDetect,
     HermesViewResult,
     HermesViewConsole,
     HermesViewWiring,
+    HermesViewSelfTest,
 } HermesViewId;
 
 typedef enum {
@@ -53,6 +69,9 @@ typedef enum {
     HermesCustomEventConsoleCtrl,
     HermesCustomEventConsoleEnter,
     HermesCustomEventResultRetry,
+    HermesCustomEventSelfTestTick,
+    HermesCustomEventSelfTestDone,
+    HermesCustomEventBaudEntered,
 
     /* Something else holds the port. Raised from an on_enter, which cannot
      * navigate directly without nesting a scene transition inside itself, so
@@ -90,18 +109,22 @@ typedef struct {
     VariableItemList* var_item_list;
     Widget* widget;
     TextInput* text_input;
+    NumberInput* number_input;
 
     /* custom views */
     DetectView* detect_view;
     ResultView* result_view;
     ConsoleView* console_view;
     WiringView* wiring_view;
+    SelfTestView* selftest_view;
 
     /* engines */
     Autobaud* autobaud;
     Verifier* verifier;
     UartTap* tap;
     Term* term;
+    SessionLog* log;
+    SelfTest* selftest;
 
     /* state carried between scenes */
     AutobaudResult detect_result;
@@ -114,8 +137,15 @@ typedef struct {
     UartTapEnter enter_mode;
     bool tx_enabled;
     bool local_echo;
+    bool logging; // capture console sessions to the SD card
     bool sound;
     bool led;
+
+    int32_t custom_baud; // remembered between visits to Manual Console
+
+    /* Tick deadline for the autoboot burst; 0 when idle. Driven from the
+     * console tick so the UI stays live while it hammers. */
+    uint32_t autoboot_until;
 } HermesApp;
 
 /* feedback (defined in hermes.c), all gated by settings */

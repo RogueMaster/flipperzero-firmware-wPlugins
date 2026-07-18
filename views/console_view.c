@@ -17,6 +17,8 @@ typedef struct {
     uint32_t baud;
     char framing[6];
     bool tx_enabled;
+    bool logging;
+    uint32_t autoboot_left; // seconds remaining in a key burst, 0 when idle
 
     bool hex_mode;
     /* Lines scrolled back from the newest. 0 means live-follow, which is what
@@ -40,12 +42,23 @@ static void console_draw_status(Canvas* canvas, const ConsoleViewModel* m) {
     canvas_set_color(canvas, ColorWhite);
 
     canvas_set_font(canvas, FontSecondary);
-    snprintf(buf, sizeof(buf), "%lu %s", m->baud, m->framing);
-    canvas_draw_str(canvas, 2, 7, buf);
 
-    /* Right side: mode, live/scrolled, and whether we can talk back. */
+    /* A filled dot before the rate means the session is being written to the
+     * card - the one piece of state you would hate to be wrong about. */
+    int x = 2;
+    if(m->logging) {
+        canvas_draw_disc(canvas, x + 2, 4, 2);
+        x += 7;
+    }
+    snprintf(buf, sizeof(buf), "%lu %s", m->baud, m->framing);
+    canvas_draw_str(canvas, x, 7, buf);
+
+    /* Right side: the burst countdown outranks everything while it runs, since
+     * it is the only transient state here and the user is waiting on it. */
     const char* mode = m->hex_mode ? "HEX" : "TXT";
-    if(m->scroll_back > 0) {
+    if(m->autoboot_left > 0) {
+        snprintf(buf, sizeof(buf), "BREAKING %lus", m->autoboot_left);
+    } else if(m->scroll_back > 0) {
         snprintf(buf, sizeof(buf), "%s  -%u", mode, m->scroll_back);
     } else {
         snprintf(buf, sizeof(buf), "%s  %s", mode, m->tx_enabled ? "RW" : "RO");
@@ -261,6 +274,16 @@ void console_view_set_link(ConsoleView* cv, uint32_t baud, const char* framing, 
             m->tx_enabled = tx_enabled;
         },
         true);
+}
+
+void console_view_set_logging(ConsoleView* cv, bool logging) {
+    furi_assert(cv);
+    with_view_model(cv->view, ConsoleViewModel * m, { m->logging = logging; }, true);
+}
+
+void console_view_set_autoboot(ConsoleView* cv, uint32_t seconds_left) {
+    furi_assert(cv);
+    with_view_model(cv->view, ConsoleViewModel * m, { m->autoboot_left = seconds_left; }, true);
 }
 
 void console_view_notify_rx(ConsoleView* cv) {

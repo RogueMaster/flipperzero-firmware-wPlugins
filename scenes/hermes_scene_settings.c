@@ -26,6 +26,12 @@ static void hermes_settings_echo_changed(VariableItem* item) {
     variable_item_set_current_value_text(item, bool_names[app->local_echo ? 1 : 0]);
 }
 
+static void hermes_settings_logging_changed(VariableItem* item) {
+    HermesApp* app = variable_item_get_context(item);
+    app->logging = variable_item_get_current_value_index(item);
+    variable_item_set_current_value_text(item, bool_names[app->logging ? 1 : 0]);
+}
+
 static void hermes_settings_sound_changed(VariableItem* item) {
     HermesApp* app = variable_item_get_context(item);
     app->sound = variable_item_get_current_value_index(item);
@@ -61,6 +67,10 @@ void hermes_scene_settings_on_enter(void* context) {
     item = variable_item_list_add(list, "Local echo", 2, hermes_settings_echo_changed, app);
     variable_item_set_current_value_index(item, app->local_echo ? 1 : 0);
     variable_item_set_current_value_text(item, bool_names[app->local_echo ? 1 : 0]);
+
+    item = variable_item_list_add(list, "Log to SD", 2, hermes_settings_logging_changed, app);
+    variable_item_set_current_value_index(item, app->logging ? 1 : 0);
+    variable_item_set_current_value_text(item, bool_names[app->logging ? 1 : 0]);
 
     item = variable_item_list_add(list, "Sound", 2, hermes_settings_sound_changed, app);
     variable_item_set_current_value_index(item, app->sound ? 1 : 0);

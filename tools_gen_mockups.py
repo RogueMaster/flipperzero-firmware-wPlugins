@@ -133,7 +133,7 @@ def m_menu():
     ctext(d, 64, 9, "Hermes", PRIM)
     d.line([(0, 12), (128, 12)], fill=INK)
 
-    items = ["Detect Baud", "Manual Console", "Wiring Guide", "Settings"]
+    items = ["Detect Baud", "Manual Console", "Self Test", "Wiring Guide"]
     y = 15
     for i, it in enumerate(items):
         if i == 0:
@@ -204,7 +204,9 @@ def m_console():
     d = ImageDraw.Draw(img)
 
     d.rectangle([0, 0, 128, 9], fill=INK)
-    ltext(d, 2, 7, "115200 8N1", SEC, fill=ORANGE)
+    # REC dot: a capture is being written to the card
+    d.ellipse([2, 2, 6, 6], fill=ORANGE)
+    ltext(d, 9, 7, "115200 8N1", SEC, fill=ORANGE)
     rtext(d, 126, 7, "TXT  RW", SEC, fill=ORANGE)
 
     # CONSOLE_TOP=11, CONSOLE_ROW_H=9, drawn at (1, y + 7)
@@ -268,6 +270,36 @@ def m_wiring():
     return finish(img, "screen_wiring.png")
 
 
+def m_selftest():
+    """The result state: which rates survived the cable."""
+    img = screen()
+    d = ImageDraw.Draw(img)
+
+    ltext(d, 2, 8, "Self Test", PRIM)
+    rtext(d, 126, 8, "loopback", SEC)
+    d.line([(0, 10), (127, 10)], fill=INK)
+
+    ltext(d, 2, 22, "Marginal at speed", PRIM)
+
+    # per-rate rows at SELFTEST_ROW_TOP + i*SELFTEST_ROW_H, as the C does
+    rows = [(9600, True), (115200, True), (460800, False), (921600, False)]
+    for i, (baud, ok) in enumerate(rows):
+        y = 30 + i * 8
+        ltext(d, 8, y, str(baud), SEC)
+        if ok:
+            d.line([(2, y - 3), (4, y - 1)], fill=INK)
+            d.line([(4, y - 1), (6, y - 5)], fill=INK)
+            ltext(d, 60, y, "echoed", SEC)
+        else:
+            d.line([(2, y - 5), (6, y - 1)], fill=INK)
+            d.line([(6, y - 5), (2, y - 1)], fill=INK)
+            ltext(d, 60, y, "0/10 back", SEC)
+
+    ltext(d, 2, 62, "Shorten the wires", SEC)
+    rtext(d, 126, 62, "OK: retry", SEC)
+    return finish(img, "screen_selftest.png")
+
+
 def m_rules():
     img = screen()
     d = ImageDraw.Draw(img)
@@ -310,6 +342,11 @@ if __name__ == "__main__":
     console = m_console()
     wiring = m_wiring()
     rules = m_rules()
+    selftest = m_selftest()
 
     strip([detect, result, console], "screens.png")
-    strip([menu, detect, result, console, wiring, rules], "screens_all.png", cols=3)
+    strip(
+        [menu, detect, result, console, selftest, wiring],
+        "screens_all.png",
+        cols=3,
+    )

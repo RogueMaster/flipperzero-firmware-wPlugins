@@ -3,6 +3,7 @@
 typedef enum {
     StartIndexDetect,
     StartIndexManual,
+    StartIndexSelfTest,
     StartIndexWiring,
     StartIndexSettings,
     StartIndexAbout,
@@ -24,6 +25,7 @@ void hermes_scene_start_on_enter(void* context) {
         submenu, "Detect Baud", StartIndexDetect, hermes_scene_start_callback, app);
     submenu_add_item(
         submenu, "Manual Console", StartIndexManual, hermes_scene_start_callback, app);
+    submenu_add_item(submenu, "Self Test", StartIndexSelfTest, hermes_scene_start_callback, app);
     submenu_add_item(submenu, "Wiring Guide", StartIndexWiring, hermes_scene_start_callback, app);
     submenu_add_item(submenu, "Settings", StartIndexSettings, hermes_scene_start_callback, app);
     submenu_add_item(submenu, "About", StartIndexAbout, hermes_scene_start_callback, app);
@@ -46,6 +48,9 @@ bool hermes_scene_start_on_event(void* context, SceneManagerEvent event) {
             return true;
         case StartIndexManual:
             scene_manager_next_scene(app->scene_manager, HermesSceneManual);
+            return true;
+        case StartIndexSelfTest:
+            scene_manager_next_scene(app->scene_manager, HermesSceneSelfTest);
             return true;
         case StartIndexWiring:
             scene_manager_next_scene(app->scene_manager, HermesSceneWiring);

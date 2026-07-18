@@ -25,5 +25,11 @@ void console_view_set_term(ConsoleView* cv, Term* term);
 /** Status line contents. */
 void console_view_set_link(ConsoleView* cv, uint32_t baud, const char* framing, bool tx_enabled);
 
+/** Whether a capture is running, for the REC dot in the status bar. */
+void console_view_set_logging(ConsoleView* cv, bool logging);
+
+/** Seconds left in an autoboot burst, 0 when idle. */
+void console_view_set_autoboot(ConsoleView* cv, uint32_t seconds_left);
+
 /** Nudge the view after feeding the term, so it follows new output. */
 void console_view_notify_rx(ConsoleView* cv);

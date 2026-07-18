@@ -92,13 +92,17 @@ static HermesApp* hermes_app_alloc(void) {
     app->enter_mode = UartTapEnterCr;
     app->tx_enabled = true;
     app->local_echo = false;
+    app->logging = false; // opt-in: writing to the SD card is the user's call
     app->sound = true;
     app->led = true;
+    app->custom_baud = 115200;
 
     app->autobaud = autobaud_alloc();
     app->verifier = verifier_alloc();
     app->tap = uart_tap_alloc();
     app->term = term_alloc();
+    app->log = session_log_alloc();
+    app->selftest = selftest_alloc();
 
     app->submenu = submenu_alloc();
     view_dispatcher_add_view(
@@ -114,6 +118,10 @@ static HermesApp* hermes_app_alloc(void) {
     app->text_input = text_input_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, HermesViewTextInput, text_input_get_view(app->text_input));
+
+    app->number_input = number_input_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, HermesViewNumberInput, number_input_get_view(app->number_input));
 
     app->detect_view = detect_view_alloc();
     view_dispatcher_add_view(
@@ -131,6 +139,10 @@ static HermesApp* hermes_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, HermesViewWiring, wiring_view_get_view(app->wiring_view));
 
+    app->selftest_view = selftest_view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, HermesViewSelfTest, selftest_view_get_view(app->selftest_view));
+
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
     return app;
 }
@@ -138,28 +150,35 @@ static HermesApp* hermes_app_alloc(void) {
 static void hermes_app_free(HermesApp* app) {
     furi_assert(app);
 
-    /* Hand the hardware back before anything that owns it goes away. */
+    /* Hand the hardware back before anything that owns it goes away, and close
+     * the capture so the file on the card is complete. */
     autobaud_stop(app->autobaud);
     verifier_stop(app->verifier);
+    selftest_stop(app->selftest);
     uart_tap_close(app->tap);
+    session_log_close(app->log);
 
     view_dispatcher_remove_view(app->view_dispatcher, HermesViewSubmenu);
     view_dispatcher_remove_view(app->view_dispatcher, HermesViewSettings);
     view_dispatcher_remove_view(app->view_dispatcher, HermesViewWidget);
     view_dispatcher_remove_view(app->view_dispatcher, HermesViewTextInput);
+    view_dispatcher_remove_view(app->view_dispatcher, HermesViewNumberInput);
     view_dispatcher_remove_view(app->view_dispatcher, HermesViewDetect);
     view_dispatcher_remove_view(app->view_dispatcher, HermesViewResult);
     view_dispatcher_remove_view(app->view_dispatcher, HermesViewConsole);
     view_dispatcher_remove_view(app->view_dispatcher, HermesViewWiring);
+    view_dispatcher_remove_view(app->view_dispatcher, HermesViewSelfTest);
 
     submenu_free(app->submenu);
     variable_item_list_free(app->var_item_list);
     widget_free(app->widget);
     text_input_free(app->text_input);
+    number_input_free(app->number_input);
     detect_view_free(app->detect_view);
     result_view_free(app->result_view);
     console_view_free(app->console_view);
     wiring_view_free(app->wiring_view);
+    selftest_view_free(app->selftest_view);
 
     view_dispatcher_free(app->view_dispatcher);
     scene_manager_free(app->scene_manager);
@@ -168,6 +187,8 @@ static void hermes_app_free(HermesApp* app) {
     verifier_free(app->verifier);
     uart_tap_free(app->tap);
     term_free(app->term);
+    session_log_free(app->log);
+    selftest_free(app->selftest);
 
     furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_GUI);

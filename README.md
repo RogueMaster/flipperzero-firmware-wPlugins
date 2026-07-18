@@ -112,12 +112,40 @@ A real terminal, not a byte dump. Boot logs are full of ANSI colour codes, so He
 |---|---|
 | **Up / Down** | Scroll back. New output never yanks you away while you're reading. |
 | **Right** | ASCII ⇄ hex (hex has an ASCII gutter, so a familiar string still jumps out) |
-| **Left** | Ctrl-key palette — **Ctrl+C**, Ctrl+D, Ctrl+Z, Esc, Tab |
+| **Left** | Ctrl-key palette — **Ctrl+C**, Ctrl+D, Ctrl+Z, Esc, Tab, **Stop autoboot** |
 | **OK** | Type a line and send it |
 | **OK (long)** | Send Enter on its own |
 | **Back** | Drop the link |
 
 RX runs on DMA, so a full boot log at 921600 arrives without holes in the middle.
+
+### Stop autoboot
+
+`Hit any key to stop autoboot: 3` gives you about a second, and by the time you've read it and reached for a key it's usually gone. **Left → Stop autoboot** hammers Enter for four seconds so you can arm it *before* powering the board and let it catch the window for you. The status bar counts down while it runs, and it's driven from the UI tick rather than a blocking loop, so the screen keeps updating and the incoming boot log still renders.
+
+### Logging
+
+Turn on **Settings → Log to SD** and every console session is written to `/apps_data/hermes/` as `hermes_YYYYMMDD_HHMMSS.log`, with a header recording the rate, framing and port — so a file you find months later still says what it came from.
+
+The file gets the **raw** bytes, escape sequences and all. The screen strips ANSI to stay readable, but a log you'll later grep, diff or replay should be exactly what the wire said. A filled dot appears at the left of the status bar while a capture is running.
+
+---
+
+## Is it me or them?
+
+<div align="center">
+<img src="images/screen_selftest.png" alt="The self test: 9600 and 115200 echoed, 460800 and 921600 failed, verdict 'Marginal at speed'" width="46%">
+</div>
+
+The worst half-hour in hardware work is the one spent debugging a target that was fine, because a jumper wasn't. **Self Test** ends that argument: bridge TX to RX with a single wire and Hermes sends a pattern out and checks it comes back.
+
+It runs at four rates from 9600 to 921600, because the failure modes are different and worth telling apart:
+
+- **All four echo** → the Flipper, its pins and your wire are all good. The silence is the target's.
+- **Slow rates pass, fast ones don't** → the link works but not at speed. Long dupont leads and breadboards do this. Shorten them.
+- **Nothing comes back** → the jumper isn't making contact, or it's not on the pins you think it is.
+
+The pattern starts with `0x55 0xAA 0x00 0xFF` — alternating bits, then all-low and all-high — so a wire that only passes certain levels gets caught rather than flattered.
 
 ---
 
@@ -208,14 +236,17 @@ Hermes-FlipperZero/
 │  ├─ verifier.[ch]           # the second opinion: real UART, real framing errors
 │  ├─ uart_tap.[ch]           # the live link (DMA rx, gated tx)
 │  ├─ term.[ch]               # terminal model + the ANSI parser
+│  ├─ session_log.[ch]        # capture to the SD card, raw bytes kept
+│  ├─ selftest.[ch]           # loopback prover: is it me or them?
 │  └─ baud_table.[ch]         # standard rates, framings, pin profiles
 ├─ views/
 │  ├─ detect_view.[ch]        # the live square-wave scope
 │  ├─ result_view.[ch]        # verdict card + candidate ladder
 │  ├─ console_view.[ch]       # the terminal
+│  ├─ selftest_view.[ch]      # the loopback report
 │  └─ wiring_view.[ch]        # animated wiring + the safety rules
-├─ scenes/                    # start · detect · result · console · ctrl ·
-│                             # keyboard · manual · wiring · settings · about
+├─ scenes/                    # start · detect · result · console · ctrl · keyboard ·
+│                             # manual · custombaud · selftest · wiring · settings · about
 ├─ test/                      # host test for the fit (stubbed HAL)
 └─ tools_gen_*.py             # Pillow asset generators
 ```
@@ -224,15 +255,17 @@ Hermes-FlipperZero/
 
 ## FAQ
 
-**It says "no edges yet".** Ground, or the cross-over. Flipper **RX (14)** goes to target **TX** — not TX to TX. If you're sure of both, the pad may simply be idle; many boards only talk during boot, so power-cycle the target while Hermes listens.
+**It says "no edges yet".** Ground, or the cross-over. Flipper **RX (14)** goes to target **TX** — not TX to TX. If you're sure of both, the pad may simply be idle; many boards only talk during boot, so power-cycle the target while Hermes listens. If you want to rule your own side out first, run **Self Test**.
 
 **It found the rate but the text is garbage.** The framing is probably not 8N1. Hermes tries 8E1/8O1/7E1 automatically *if there was traffic during verification* — if the board went quiet, pick the framing yourself in **Manual Console**.
 
 **Can it detect 921600?** The rate, yes — via the UART sweep, which is hardware-accurate. The *edge timing* gives up around 230400, because the interrupt can't be entered fast enough to catch edges 4 µs apart. Hermes falls back automatically; you'll see it sweep.
 
-**My device runs at a non-standard rate.** Hermes only names rates from its table. Something like 100000 baud will come back with low confidence rather than a confident wrong answer — that's deliberate. Use **Manual Console** if you already know it.
+**My device runs at a non-standard rate.** Detection only *names* rates from its table, so something like 100000 baud comes back with low confidence rather than a confident wrong answer — that's deliberate. To open one anyway, use **Manual Console → Custom rate…** and type it in (50 – 2,000,000). Hermes asks the hardware whether a divider actually exists for that rate and refuses it if not, rather than opening a link that can't work.
 
-**Does it write to my board?** Not during detection — the TX pin is actively released. In the console it transmits only what you type. **Settings → Transmit: OFF** makes the whole session read-only.
+**Does it write to my board?** Not during detection — the TX pin is actively released. In the console it transmits only what you type (or the autoboot burst, which you have to ask for). **Settings → Transmit: OFF** makes the whole session read-only.
+
+**Where do the logs go?** `/apps_data/hermes/` on the SD card — reachable over qFlipper, or on the Flipper itself via the Archive app. One file per session, named by timestamp.
 
 **Why is my 80-column log wrapping?** 128 pixels is 21 characters. Wrapping is honest; truncating would hide things.
 

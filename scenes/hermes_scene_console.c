@@ -51,6 +51,12 @@ void hermes_scene_console_on_enter(void* context) {
             view_dispatcher_send_custom_event(app->view_dispatcher, HermesCustomEventPortBusy);
             return;
         }
+
+        /* Start the capture with the link, so the file covers the whole
+         * session including whatever the board says first. */
+        if(app->logging) {
+            session_log_open(app->log, app->link.baud, app->link.framing, app->port);
+        }
     }
 
     console_view_set_term(app->console_view, app->term);
@@ -59,6 +65,7 @@ void hermes_scene_console_on_enter(void* context) {
         app->link.baud,
         hermes_framing_name(app->link.framing),
         uart_tap_tx_enabled(app->tap));
+    console_view_set_logging(app->console_view, session_log_is_open(app->log));
     console_view_set_callback(app->console_view, hermes_scene_console_callback, app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, HermesViewConsole);
@@ -68,12 +75,30 @@ bool hermes_scene_console_on_event(void* context, SceneManagerEvent event) {
     HermesApp* app = context;
 
     if(event.type == SceneManagerEventTypeTick) {
+        /* Autoboot burst: one key per tick (~16 ms) for the armed window. A
+         * bootloader polls its input far slower than that, so this cannot miss
+         * the countdown, and the UI keeps drawing throughout. */
+        if(app->autoboot_until) {
+            const uint32_t now = furi_get_tick();
+            if(now < app->autoboot_until) {
+                uart_tap_send_enter(app->tap, app->enter_mode);
+                console_view_set_autoboot(
+                    app->console_view, (app->autoboot_until - now) / furi_ms_to_ticks(1000) + 1);
+            } else {
+                app->autoboot_until = 0;
+                console_view_set_autoboot(app->console_view, 0);
+                hermes_notify_blip(app);
+            }
+        }
+
         uint8_t chunk[CONSOLE_DRAIN_CHUNK];
         size_t got;
         bool any = false;
 
         while((got = uart_tap_read(app->tap, chunk, sizeof(chunk))) > 0) {
             term_feed(app->term, chunk, got);
+            /* The file gets the raw bytes; the screen gets the cooked ones. */
+            session_log_write(app->log, chunk, got);
             any = true;
         }
         if(any) console_view_notify_rx(app->console_view);
@@ -108,5 +133,8 @@ void hermes_scene_console_on_exit(void* context) {
     HermesApp* app = context;
 
     const uint32_t state = scene_manager_get_scene_state(app->scene_manager, HermesSceneConsole);
-    if(state != ConsoleStateSuspended) uart_tap_close(app->tap);
+    if(state != ConsoleStateSuspended) {
+        uart_tap_close(app->tap);
+        session_log_close(app->log); // flushes the trailer, so the file is complete
+    }
 }

@@ -6,6 +6,7 @@
 typedef enum {
     ManualItemBaud,
     ManualItemFraming,
+    ManualItemCustom,
     ManualItemOpen,
 } ManualItem;
 
@@ -31,6 +32,8 @@ static void hermes_scene_manual_enter_callback(void* context, uint32_t index) {
     HermesApp* app = context;
     if(index == ManualItemOpen) {
         view_dispatcher_send_custom_event(app->view_dispatcher, HermesCustomEventResultPicked);
+    } else if(index == ManualItemCustom) {
+        view_dispatcher_send_custom_event(app->view_dispatcher, HermesCustomEventBaudEntered);
     }
 }
 
@@ -53,6 +56,11 @@ void hermes_scene_manual_on_enter(void* context) {
     variable_item_set_current_value_index(item, manual_framing_index);
     variable_item_set_current_value_text(item, hermes_framing_name(manual_framing_index));
 
+    /* Escape hatch for rates the table does not carry. */
+    item = variable_item_list_add(list, "Custom rate...", 0, NULL, app);
+    snprintf(text, sizeof(text), "%ld", (long)app->custom_baud);
+    variable_item_set_current_value_text(item, text);
+
     variable_item_list_add(list, "Open console", 0, NULL, app);
 
     variable_item_list_set_enter_callback(list, hermes_scene_manual_enter_callback, app);
@@ -64,12 +72,20 @@ void hermes_scene_manual_on_enter(void* context) {
 bool hermes_scene_manual_on_event(void* context, SceneManagerEvent event) {
     HermesApp* app = context;
 
-    if(event.type == SceneManagerEventTypeCustom &&
-       event.event == HermesCustomEventResultPicked) {
+    if(event.type != SceneManagerEventTypeCustom) return false;
+
+    if(event.event == HermesCustomEventResultPicked) {
         app->link.baud = hermes_baud_table[manual_baud_index].baud;
         app->link.framing = manual_framing_index;
         app->link.verified = false;
         scene_manager_next_scene(app->scene_manager, HermesSceneConsole);
+        return true;
+    }
+
+    if(event.event == HermesCustomEventBaudEntered) {
+        /* The custom-rate scene reuses the framing picked here. */
+        app->link.framing = manual_framing_index;
+        scene_manager_next_scene(app->scene_manager, HermesSceneCustomBaud);
         return true;
     }
 
