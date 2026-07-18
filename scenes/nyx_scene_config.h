@@ -1,0 +1,5 @@
+ADD_SCENE(nyx, start, Start)
+ADD_SCENE(nyx, sweep, Sweep)
+ADD_SCENE(nyx, probe, Probe)
+ADD_SCENE(nyx, settings, Settings)
+ADD_SCENE(nyx, about, About)
