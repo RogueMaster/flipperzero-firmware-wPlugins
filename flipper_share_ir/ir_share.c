@@ -9,15 +9,14 @@
 #include <furi_hal.h>
 #include <storage/storage.h>
 
-#include <toolbox/md5_calc.h>
-
 #include <applications/services/notification/notification.h>    // NotificationApp
 #include <notification/notification_messages.h>
 
-#define TAG "IrShare"
+#define TAG "FlipperShareIR"
 
 #include "ir_share.h"
 #include "ir_transport.h"
+#include "md5_hash.h"
 
 #define ISH_RECEIVER_DIRECTORY "inbox"
 
@@ -81,6 +80,69 @@ void ish_unlock(void) {
 
 bool ish_try_lock_ms(uint32_t timeout_ms) {
     return g_lock && (furi_mutex_acquire(g_lock, furi_ms_to_ticks(timeout_ms)) == FuriStatusOk);
+}
+
+// ===== Chunked MD5 with progress =====
+// Bytes hashed / total for the MD5 currently computed by
+// ish_md5_calc_file_progress (sender init and receiver finalization). File-scope
+// statics (not fields of `g`) so memset(&g, 0) does not clobber a running hash.
+static uint32_t g_hash_done = 0;
+static uint32_t g_hash_total = 0;
+
+bool ish_hash_progress_get(uint32_t* done, uint32_t* total) {
+    if(!ish_try_lock_ms(10)) return false;
+    *done = g_hash_done;
+    *total = g_hash_total;
+    ish_unlock();
+    return true;
+}
+
+// Same contract as toolbox md5_calc_file(), plus:
+//  - publishes progress for the GUI after every ISH_HASH_CHUNK_SIZE bytes;
+//  - checks the worker stop flag between chunks and aborts (returns false),
+//    so Cancel/Back while hashing a big file does not block in thread join.
+static bool ish_md5_calc_file_progress(
+    File* file,
+    const char* path,
+    unsigned char output[16],
+    FS_Error* file_error) {
+    if(!storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        if(file_error) *file_error = storage_file_get_error(file);
+        return false;
+    }
+
+    ish_lock();
+    g_hash_done = 0;
+    g_hash_total = storage_file_size(file);
+    ish_unlock();
+
+    uint8_t* data = malloc(ISH_HASH_CHUNK_SIZE);
+    Md5Context md5_ctx;
+    md5_hash_init(&md5_ctx);
+
+    bool result = true;
+    while(true) {
+        if(furi_thread_flags_get() & ISH_WORKER_STOP_FLAG) {
+            result = false;
+            break;
+        }
+        size_t read_size = storage_file_read(file, data, ISH_HASH_CHUNK_SIZE);
+        if(storage_file_get_error(file) != FSE_OK) {
+            result = false;
+            break;
+        }
+        if(read_size == 0) break;
+        md5_hash_update(&md5_ctx, data, read_size);
+        ish_lock();
+        g_hash_done += read_size;
+        ish_unlock();
+    }
+    md5_hash_finish(&md5_ctx, output);
+    free(data);
+
+    if(file_error) *file_error = storage_file_get_error(file);
+    storage_file_close(file);
+    return result;
 }
 
 void ish_notify_success(void) {
@@ -712,7 +774,7 @@ bool ish_init(const ish_init_params_t* p) {
         }
 
         // Read size + compute MD5 on LOCAL handles (no shared g.storage/g.file),
-        // BEFORE touching `g`. md5_calc_file() opens the file by path itself.
+        // BEFORE touching `g`. ish_md5_calc_file_progress() opens the file by path itself.
         uint32_t file_size = 0;
         unsigned char md5[16];
         memset(md5, 0, sizeof(md5));
@@ -734,10 +796,17 @@ bool ish_init(const ish_init_params_t* p) {
         storage_file_close(file);
 
         FS_Error err = 0;
-        md5_calc_file(file, p->s_file_path, md5, &err);
+        bool md5_ok = ish_md5_calc_file_progress(file, p->s_file_path, md5, &err);
 
         storage_file_free(file);
         furi_record_close(RECORD_STORAGE);
+
+        // Abort only on cancellation; a plain read error keeps the old
+        // md5_calc_file behavior (proceed, receiver detects the mismatch).
+        if(!md5_ok && (furi_thread_flags_get() & ISH_WORKER_STOP_FLAG)) {
+            FURI_LOG_I(TAG, "ish_init: hashing cancelled");
+            return false;
+        }
 
         // #3: open ONE persistent read handle for the whole session. Done AFTER
         // md5 released its handle on the same path (per-path FSE_ALREADY_OPEN).
@@ -823,6 +892,10 @@ void ish_deinit(void) {
 
     // zero whole context after resources freed
     memset(&g, 0, sizeof(g));
+
+    // reset hash progress so the next session's GUI doesn't see stale values
+    g_hash_done = 0;
+    g_hash_total = 0;
     ish_unlock();
 
     // destroy the lock last, once no thread can use it anymore
@@ -988,7 +1061,7 @@ void ish_idle(void) {
             g.r_blocks_received = 0;
             // Close the persistent write handle BEFORE hashing: flushes the last
             // partial sector + dir-entry and frees the path (per-path
-            // FSE_ALREADY_OPEN) so md5_calc_file can reopen it for read.
+            // FSE_ALREADY_OPEN) so the MD5 pass can reopen it for read.
             ish_close_session_file();
             ish_map_deinit();
             ish_parts_deinit();
@@ -1022,13 +1095,13 @@ void ish_idle(void) {
             FS_Error err = 0;
             bool md5_ok = false;
             if (file) {
-                md5_ok = md5_calc_file(file, g.r_file_path, real_md5, &err);
+                md5_ok = ish_md5_calc_file_progress(file, g.r_file_path, real_md5, &err);
                 storage_file_free(file);
             }
             furi_record_close(RECORD_STORAGE);
 
             if (!md5_ok || err != 0) {
-                FURI_LOG_E(TAG, "ish_idle: md5_calc_file error %d", err);
+                FURI_LOG_E(TAG, "ish_idle: MD5 error %d", err);
             }
 
             bool success = md5_ok && (err == 0) && (memcmp(real_md5, g.r_md5, 16) == 0);
@@ -1043,8 +1116,11 @@ void ish_idle(void) {
             g.r_is_finished = true; // reception finished flag
             ish_unlock();
 
-            if (success) ish_notify_success();
-            else ish_notify_error();
+            // No notification if verification was aborted by user cancel
+            if(!(furi_thread_flags_get() & ISH_WORKER_STOP_FLAG)) {
+                if (success) ish_notify_success();
+                else ish_notify_error();
+            }
         }
         return;
     }

@@ -14,6 +14,9 @@
 
 #define FS_SUBGHZ_RETRY_DELAY_MS 1000                       // For Retry On error
 
+#define FS_HASH_CHUNK_SIZE 4096                             // bytes per MD5 chunk (hash progress granularity)
+#define FS_WORKER_STOP_FLAG 0x1u                            // FuriThread flag: stop worker (also aborts in-progress hashing)
+
 #define FS_PAYLOAD_THROUGHPUT_BPS 700                       // nominal payload throughput for ETA, bytes/sec
 #define FS_ETA_WARMUP_MS 10000                               // below this elapsed, ETA uses the constant fallback
 #define FS_STALL_MS 10000                                   // no new block for this long -> show "stalled"
@@ -167,6 +170,10 @@ void fs_receive_callback(const uint8_t* buf, size_t size);
 
 // Format a duration adaptively: "M:SS" under 1h, "H:MM:SS" from 1h (for GUI).
 void fs_fmt_duration(uint32_t secs, char* buf, size_t n);
+
+// Snapshot of the in-progress chunked MD5 (bytes done / total) for the GUI.
+// Returns false if the shared-state lock is contended — skip the tick then.
+bool fs_hash_progress_get(uint32_t* done, uint32_t* total);
 
 // Parts for progress bar in GUI
 

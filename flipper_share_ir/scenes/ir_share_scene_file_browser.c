@@ -3,13 +3,10 @@
 void ir_share_scene_file_browser_on_enter(void* context) {
     IrShareApp* app = context;
 
-    // Reset selected file path
-    app->selected_file_path[0] = '\0';
-
-    // Start file browser
-    FuriString* path = furi_string_alloc_set_str("/ext");
-    file_browser_start(app->file_browser, path);
-    furi_string_free(path);
+    // result_path keeps the previous selection for the whole app session, so
+    // the browser reopens in the same folder with that file highlighted
+    // (selected_file_path is overwritten by the selection callback).
+    file_browser_start(app->file_browser, app->result_path);
 
     // Show file browser view
     view_dispatcher_switch_to_view(app->view_dispatcher, IrShareViewIdFileBrowser);
@@ -42,5 +39,8 @@ bool ir_share_scene_file_browser_on_event(void* context, SceneManagerEvent event
 }
 
 void ir_share_scene_file_browser_on_exit(void* context) {
-    UNUSED(context);
+    IrShareApp* app = context;
+    // Each file_browser_start allocates a new browser worker; stop it here so
+    // repeated scene entries do not leak worker threads.
+    file_browser_stop(app->file_browser);
 }

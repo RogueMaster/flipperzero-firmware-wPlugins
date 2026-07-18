@@ -73,7 +73,7 @@ static int32_t file_read_worker_thread(void* context) {
         }
 
         // Check if we should stop
-        if(furi_thread_flags_get() & 0x1) {
+        if(furi_thread_flags_get() & ISH_WORKER_STOP_FLAG) {
             is_running = false;
         }
     }
@@ -97,6 +97,7 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     char fname[ISH_FILENAME_LENGTH];
     uint32_t fsize = 0;
     uint32_t rcv = 0, need = 0, start = 0, last_progress = 0;
+    bool finalizing = false;
     uint8_t levels[ISH_PARTS_COUNT];
     if(ish_try_lock_ms(10)) {
         memcpy(fname, g.r_file_name, sizeof(fname));
@@ -106,6 +107,7 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
         need = g.r_blocks_needed;
         start = g.r_start_ms;
         last_progress = g.r_last_progress_ms;
+        finalizing = g.r_finalizing;
         ish_parts_levels_copy(levels);
         ish_unlock();
     } else {
@@ -140,7 +142,19 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
                    ((now - last_progress) > ISH_STALL_MS);
 
     char info[48];
-    if(stalled) {
+    if(finalizing) {
+        // All blocks are in; the engine runs a chunked MD5 over the written file
+        uint32_t hash_done, hash_total;
+        if(ish_hash_progress_get(&hash_done, &hash_total) && hash_total > 0) {
+            snprintf(
+                info,
+                sizeof(info),
+                "Verifying... %lu%%",
+                (unsigned long)(((uint64_t)hash_done * 100u) / hash_total));
+        } else {
+            snprintf(info, sizeof(info), "Verifying...");
+        }
+    } else if(stalled) {
         snprintf(
             info,
             sizeof(info),
@@ -201,7 +215,8 @@ static bool progress_view_input_callback(InputEvent* event, void* context) {
             FileReadingState* state = (FileReadingState*)app->file_reading_state;
             if(state && state->worker_thread) {
                 FURI_LOG_I(TAG, "Stopping worker thread from input handler");
-                furi_thread_flags_set(furi_thread_get_id(state->worker_thread), 0x1);
+                furi_thread_flags_set(
+                    furi_thread_get_id(state->worker_thread), ISH_WORKER_STOP_FLAG);
                 furi_thread_join(state->worker_thread);
             }
             
@@ -277,7 +292,7 @@ void ir_share_scene_receive_on_enter(void* context) {
 
     // Start timer for updating display
     app->timer = furi_timer_alloc(update_timer_callback, FuriTimerTypePeriodic, app);
-    furi_timer_start(app->timer, 250);
+    furi_timer_start(app->timer, SCENE_UI_UPDATE_PERIOD_MS);
 
     ir_transport_init(); // TODO Move to thread?
 }
@@ -295,6 +310,7 @@ static void update_timer_callback(void* context) {
     bool complete = state->reading_complete;
     bool is_success = false;
     bool is_locked = false;
+    bool is_finalizing = false;
 
     if(!ish_try_lock_ms(20)) return; // skip this tick on contention
     if(complete) {
@@ -315,7 +331,10 @@ static void update_timer_callback(void* context) {
             tbuf);
     } else {
         is_locked = g.r_locked;
-        if(is_locked) {
+        // finalization drops r_locked, but the progress view must stay up
+        // while the engine verifies the file hash
+        is_finalizing = g.r_finalizing;
+        if(is_locked || is_finalizing) {
             snprintf(
                 progress_text,
                 sizeof(progress_text),
@@ -339,7 +358,7 @@ static void update_timer_callback(void* context) {
             view_dispatcher_switch_to_view(app->view_dispatcher, IrShareViewIdShowFile);
             progress_view_active = false;
         }
-    } else if(is_locked) {
+    } else if(is_locked || is_finalizing) {
         // If locked and not finished, show graphical progress view instead of dialog
         if(!progress_view) {
             progress_view_init(app);
@@ -387,7 +406,8 @@ bool ir_share_scene_receive_on_event(void* context, SceneManagerEvent event) {
             FileReadingState* state = (FileReadingState*)app->file_reading_state;
             if(state && state->worker_thread) {
                 FURI_LOG_I(TAG, "Stopping worker thread");
-                furi_thread_flags_set(furi_thread_get_id(state->worker_thread), 0x1);
+                furi_thread_flags_set(
+                    furi_thread_get_id(state->worker_thread), ISH_WORKER_STOP_FLAG);
                 furi_thread_join(state->worker_thread);
             }
 
@@ -424,7 +444,8 @@ bool ir_share_scene_receive_on_event(void* context, SceneManagerEvent event) {
         FileReadingState* state = (FileReadingState*)app->file_reading_state;
         if(state && state->worker_thread) {
             FURI_LOG_I(TAG, "Stopping worker thread");
-            furi_thread_flags_set(furi_thread_get_id(state->worker_thread), 0x1);
+            furi_thread_flags_set(
+                furi_thread_get_id(state->worker_thread), ISH_WORKER_STOP_FLAG);
             furi_thread_join(state->worker_thread);
         }
 

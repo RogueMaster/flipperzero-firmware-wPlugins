@@ -42,7 +42,10 @@ static int32_t file_read_worker_thread(void* context) {
 
     bool is_running = true;
 
-    ish_init_from_external_transmit(app->selected_file_path);
+    if(!ish_init_from_external_transmit(app->selected_file_path)) {
+        // cancelled while hashing or failed to open — nothing to send
+        return 0;
+    }
 
     state->counter = g.s_file_size;
 
@@ -52,7 +55,7 @@ static int32_t file_read_worker_thread(void* context) {
         furi_delay_ms(ISH_IDLE_OPERATION);
 
         // Check if we should stop
-        if(furi_thread_flags_get() & 0x1) {
+        if(furi_thread_flags_get() & ISH_WORKER_STOP_FLAG) {
             is_running = false;
         }
     }
@@ -96,7 +99,7 @@ void ir_share_scene_send_on_enter(void* context) {
 
     // Start timer for updating display
     app->timer = furi_timer_alloc(update_timer_callback, FuriTimerTypePeriodic, app);
-    furi_timer_start(app->timer, 250);
+    furi_timer_start(app->timer, SCENE_UI_UPDATE_PERIOD_MS);
 
     ir_transport_init(); // TODO Move to thread?
 }
@@ -123,6 +126,20 @@ static void update_timer_callback(void* context) {
         snprintf(progress_text, sizeof(progress_text), "Complete! %lu bytes read", state->counter);
         dialog_ex_set_right_button_text(app->dialog_show_file, "OK");
     } else {
+        // While ish_init hashes the file (chunked MD5) show its progress; the
+        // regular name/size/ETA text takes over once the hash completes.
+        uint32_t hash_done, hash_total;
+        if(!ish_hash_progress_get(&hash_done, &hash_total)) return;
+        if(hash_total > 0 && hash_done < hash_total) {
+            snprintf(
+                progress_text,
+                sizeof(progress_text),
+                "Calc checksum...%lu%%",
+                (unsigned long)(((uint64_t)hash_done * 100u) / hash_total));
+            dialog_ex_set_text(app->dialog_show_file, progress_text, 64, 32, AlignCenter, AlignCenter);
+            return;
+        }
+
         // Filename on line 1, size on line 2 (bytes if < 1 KB, else KB).
         // s_file_name/s_file_size are set once in ish_init and stable, but snapshot
         // under the lock for consistency; skip this tick on contention.
@@ -133,6 +150,10 @@ static void update_timer_callback(void* context) {
         fname[sizeof(fname) - 1] = '\0';
         fsize = g.s_file_size;
         ish_unlock();
+
+        // ish_init has not published state yet (hashing not started or init
+        // failed) — keep the "Starting..." text from on_enter.
+        if(fsize == 0) return;
 
         // Rough ETA by the nominal constant only (the sender has no receiver-side
         // progress). Pure division by a nonzero constant; clamp for a sane display.
@@ -164,7 +185,8 @@ bool ir_share_scene_send_on_event(void* context, SceneManagerEvent event) {
             // Cancel button pressed - stop reading and return to file info
             FileReadingState* state = (FileReadingState*)app->file_reading_state;
             if(state && state->worker_thread) {
-                furi_thread_flags_set(furi_thread_get_id(state->worker_thread), 0x1);
+                furi_thread_flags_set(
+                    furi_thread_get_id(state->worker_thread), ISH_WORKER_STOP_FLAG);
                 furi_thread_join(state->worker_thread);
             }
 
@@ -195,7 +217,8 @@ bool ir_share_scene_send_on_event(void* context, SceneManagerEvent event) {
         // Back button - same as Cancel
         FileReadingState* state = (FileReadingState*)app->file_reading_state;
         if(state && state->worker_thread) {
-            furi_thread_flags_set(furi_thread_get_id(state->worker_thread), 0x1);
+            furi_thread_flags_set(
+                furi_thread_get_id(state->worker_thread), ISH_WORKER_STOP_FLAG);
             furi_thread_join(state->worker_thread);
         }
 

@@ -4,6 +4,10 @@
 
 #define TAG "IrShare"
 
+// About screen title bar (\e#/\e! markup: bold/inverted, see widget.h)
+#define ISH_ABOUT_NAME "\e#\e!        Flipper Share IR        \e!\n"
+#define ISH_ABOUT_BLANK_INV "\e#\e!                                                      \e!\n"
+
 // Callback when a file is selected in the file browser
 static void file_browser_select_callback(void* context) {
     if(!context) return;
@@ -65,19 +69,27 @@ static void submenu_callback(void* context, uint32_t index) {
     } else if(index == 1) { // Receive
         scene_manager_next_scene(app->scene_manager, IrShareSceneReceive);
     } else if(index == 2) { // About
-        dialog_ex_set_header(app->dialog_about, "About", 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop);
-        dialog_ex_set_text(
-            app->dialog_about,
-            // FAP_VERSION is a string literal injected by fbt/ufbt from
-            // application.fam's fap_version — single source of truth, no duplication.
-            "\nFlipper Share IR v" FAP_VERSION "\n"
-            "File transfer over Infrared\n"
-            "Developed by @lomalkin\n"
-            "github.com/lomalkin",
-            0,
-            0,
-            AlignLeft,
-            AlignTop);
+        // Inverted title bar + scrollable body, same layout as official apps
+        // (see good-faps spi_mem_manager about scene).
+        widget_reset(app->widget_about);
+        widget_add_text_box_element(
+            app->widget_about, 0, 0, 128, 14, AlignCenter, AlignBottom, ISH_ABOUT_BLANK_INV, false);
+        widget_add_text_box_element(
+            app->widget_about, 0, 2, 128, 14, AlignCenter, AlignBottom, ISH_ABOUT_NAME, false);
+
+        FuriString* about_text = furi_string_alloc();
+        furi_string_printf(about_text, "\e#%s\n", "Information");
+        // FAP_VERSION is a string literal injected by fbt/ufbt from
+        // application.fam's fap_version — single source of truth, no duplication.
+        furi_string_cat_printf(about_text, "Version: %s\n", FAP_VERSION);
+        furi_string_cat_printf(about_text, "Developed by: %s\n", "@lomalkin");
+        furi_string_cat_printf(about_text, "Github: %s\n\n", "github.com/lomalkin");
+        furi_string_cat_printf(about_text, "\e#%s\n", "Description");
+        furi_string_cat_printf(about_text, "%s\n", "File transfer over Infrared");
+        widget_add_text_scroll_element(
+            app->widget_about, 0, 16, 128, 50, furi_string_get_cstr(about_text));
+        furi_string_free(about_text);
+
         view_dispatcher_switch_to_view(app->view_dispatcher, IrShareViewIdAbout);
     }
 }
@@ -182,8 +194,10 @@ static IrShareApp* ir_share_alloc() {
     view_dispatcher_add_view(
         app->view_dispatcher, IrShareViewIdMenu, submenu_get_view(app->submenu));
 
-    // Create file browser with result_path for selected file retrieval
-    FuriString* result_path = furi_string_alloc();
+    // Create file browser with result_path for selected file retrieval.
+    // Seeded with the base path; then it keeps the last selection for the
+    // whole session, so the browser reopens where the user left off.
+    FuriString* result_path = furi_string_alloc_set(SCENE_FILE_BROWSER_BASE_PATH);
     // Allocate file browser once
     app->file_browser = file_browser_alloc(result_path);
 
@@ -191,7 +205,7 @@ static IrShareApp* ir_share_alloc() {
     file_browser_configure(
         app->file_browser,
         "*", // all extensions
-        "/ext", // initial path - use /ext where files are located
+        SCENE_FILE_BROWSER_BASE_PATH, // initial path - where files are located
         false, // do not skip assets
         false, // do not hide dot files
         NULL, // default file icon
@@ -228,12 +242,12 @@ static IrShareApp* ir_share_alloc() {
     app->file_reading_state = NULL;
     app->timer = NULL;
 
-    // Create dialog for About
-    app->dialog_about = dialog_ex_alloc();
+    // Create widget for About (scrollable text)
+    app->widget_about = widget_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher, IrShareViewIdAbout, dialog_ex_get_view(app->dialog_about));
+        app->view_dispatcher, IrShareViewIdAbout, widget_get_view(app->widget_about));
     // Ensure Back from About returns to Menu
-    view_set_previous_callback(dialog_ex_get_view(app->dialog_about), ir_share_about_previous);
+    view_set_previous_callback(widget_get_view(app->widget_about), ir_share_about_previous);
 
     return app;
 }
@@ -250,7 +264,7 @@ static void ir_share_free(IrShareApp* app) {
 
     dialog_ex_free(app->dialog_show_file);
     dialog_ex_free(app->dialog_receive);
-    dialog_ex_free(app->dialog_about);
+    widget_free(app->widget_about);
 
     file_browser_free(app->file_browser);
     if(app->result_path) {
