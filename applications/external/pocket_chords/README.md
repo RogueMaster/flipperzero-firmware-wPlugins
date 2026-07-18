@@ -2,19 +2,21 @@
 
 For beginner to intermediate guitar players, the Flipper Pocket Chords app can now be a chord reference diagram right in your pocket. All you need is a guitar and a Flipper Zero device.
 
-## 🚀 Features
-* **Core Feature 1** - Displays all major root chords from C to B.
-* **Core Feature 2** - In portrait mode, using the up/down keys cycle through chord variations.
-* **Core Feature 3** - For right handed guitar players, the Flipper sits in front of guitar to help visualizing the chord on the guitar neck.
+## 🚀 Features 
+* **Root Chords First** - Displays all major root chords from C to B.
+* **Easy to Use for Beginner Guitar Players** - In portrait mode, using the up/down keys cycle through chord variations.
+* **Practical and Helpful** - For right handed guitar players, the Flipper sits in front of guitar to help visualizing the chord on the guitar neck.
 
-
+## Screenshots
+![Screenshot of C Major Guitar Chord](./screenshots/ss0.png)
+![Screenshot of D Major Guitar Chord](./screenshots/ss1.png)
+![Screenshot of E Minor Guitar Chord](./screenshots/ss2.png)
 
 ## 📋 Prerequisites & Requirements
 Before installing, ensure your environment meets these specifications:
 * **Hardware:** Flipper Zero by Flipper Devices Inc.
 * **Firmware:** Compatible with Official Firmware 1.4.3.
 * **Software Tools:** qFlipper desktop application or mobile device with Flipper app installed.
-
 
 
 ## 🛠️ Installation
@@ -39,6 +41,11 @@ Provide step-by-step instructions on how to use your tool once loaded onto the F
    * **Up/Down:** Displays popular chord variations such as minor, major7 and more.
    * **OK Button:** n/a.
    * **BACK Button:** Exits the application.
+
+## 💡 Future Plans
+1. Find a purpose for Center Button (currently useless).
+2. Consider building start menu or other options menu (e.g. choose portrait or landscape mode).
+3. Center button could cycle through displaying each note per chord.
 
 
 ## 🤝 Contributing
