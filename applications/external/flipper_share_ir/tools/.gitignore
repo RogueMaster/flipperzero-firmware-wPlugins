@@ -1,0 +1,6 @@
+# Local device config with real Flipper serial ports — never commit.
+ports_local.py
+
+# Python cruft
+__pycache__/
+*.pyc

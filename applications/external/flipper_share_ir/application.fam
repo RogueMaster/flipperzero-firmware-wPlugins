@@ -1,0 +1,13 @@
+App(
+    appid="flipper_share_ir",
+    name="Flipper Share IR",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ir_share_app",
+    stack_size=2 * 1024,
+    fap_icon="ir_share.png",
+    fap_category="Infrared",
+    fap_author="lomalkin",
+    fap_weburl="https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_ir",
+    fap_version="1.5",
+    fap_description="Direct file transfer between flippers via IR",
+)

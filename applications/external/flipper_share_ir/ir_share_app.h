@@ -17,20 +17,20 @@
 #include <stream/stream.h>
 #include <stream/buffered_file_stream.h>
 
-#include "scenes/flipper_share_scene.h"
+#include "scenes/ir_share_scene.h"
 
-typedef struct FlipperShareApp FlipperShareApp;
+typedef struct IrShareApp IrShareApp;
 
 typedef enum {
-    FlipperShareViewIdMenu,
-    FlipperShareViewIdFileBrowser,
-    FlipperShareViewIdShowFile,
-    FlipperShareViewIdProgress,
-    FlipperShareViewIdReceive,
-    FlipperShareViewIdAbout,
-} FlipperShareViewId;
+    IrShareViewIdMenu,
+    IrShareViewIdFileBrowser,
+    IrShareViewIdShowFile,
+    IrShareViewIdProgress,
+    IrShareViewIdReceive,
+    IrShareViewIdAbout,
+} IrShareViewId;
 
-struct FlipperShareApp {
+struct IrShareApp {
     Gui* gui;
     SceneManager* scene_manager;
     ViewDispatcher* view_dispatcher;
@@ -50,4 +50,4 @@ struct FlipperShareApp {
     FuriTimer* timer;
 };
 
-void show_file_info_scene(FlipperShareApp* app); // Correct declaration
+void show_file_info_scene(IrShareApp* app); // Correct declaration
