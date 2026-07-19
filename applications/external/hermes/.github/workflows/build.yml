@@ -1,0 +1,48 @@
+name: Build FAP
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # The baud fit is the whole product and the one part a screenshot cannot
+  # vouch for, so it gets checked against synthetic waveforms on every push.
+  test:
+    runs-on: ubuntu-latest
+    name: autobaud engine
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run host tests
+        run: make -C test
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [release, dev]
+    name: ufbt (${{ matrix.channel }})
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ufbt
+        run: python3 -m pip install --upgrade ufbt
+
+      - name: Sync SDK (${{ matrix.channel }})
+        run: ufbt update --channel=${{ matrix.channel }}
+
+      - name: Build Hermes
+        run: ufbt
+
+      - name: Upload .fap
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermes-fap-${{ matrix.channel }}
+          path: dist/*.fap
+          if-no-files-found: error
