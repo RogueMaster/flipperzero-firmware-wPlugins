@@ -1,0 +1,28 @@
+ADD_SCENE(trident, start, Start)
+/* ---- ESP32 (Wi-Fi / BT / GPS) over the Marauder serial CLI ---- */
+ADD_SCENE(trident, esp32, Esp32)
+ADD_SCENE(trident, wifi, Wifi)
+ADD_SCENE(trident, attacks, Attacks)
+ADD_SCENE(trident, ssidlist, Ssidlist)
+ADD_SCENE(trident, bluetooth, Bluetooth)
+ADD_SCENE(trident, blespam, Blespam)
+ADD_SCENE(trident, gps, Gps)
+ADD_SCENE(trident, device, Device)
+ADD_SCENE(trident, target, Target)
+ADD_SCENE(trident, select, Select)
+ADD_SCENE(trident, input, Input)
+ADD_SCENE(trident, confirm, Confirm)
+ADD_SCENE(trident, console, Console)
+ADD_SCENE(trident, send, Send)
+/* ---- NRF24 2.4 GHz radio ---- */
+ADD_SCENE(trident, nrf24, Nrf24)
+ADD_SCENE(trident, nrf24scan, Nrf24scan)
+ADD_SCENE(trident, nrf24find, Nrf24find)
+ADD_SCENE(trident, nrf24sniff, Nrf24sniff)
+/* ---- CC1101 Sub-GHz radio ---- */
+ADD_SCENE(trident, subghz, Subghz)
+ADD_SCENE(trident, subghzscan, Subghzscan)
+ADD_SCENE(trident, subghzfind, Subghzfind)
+/* ---- shared ---- */
+ADD_SCENE(trident, settings, Settings)
+ADD_SCENE(trident, about, About)
