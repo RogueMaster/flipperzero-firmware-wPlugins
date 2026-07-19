@@ -163,7 +163,7 @@ git clone https://github.com/hypery11/flipper-tesla-fsd.git applications_user/te
 |------|------|
 | **Abort Guard**（ESP32） | Steer-jerk 緩解（[#108](https://github.com/hypery11/flipper-tesla-fsd/issues/108)）。啟動瞬間的方向盤抽動其實是車自己**中止**接管（`DAS_autopilotState` → `8 ABORTING` → `9 ABORTED`）。開啟後一偵測到 abort 狀態就立刻切掉所有 activation 注入，並維持到乾淨脫離。**已上車驗證：** 在寬／直路上消除了抽動（數百次循環 0 次，原本約 1/25–30）。侷限：部分窄路會直接跳到 `FAULT (9)`、沒有前導訊號，擋不住。 |
 | **Soft Engage** | Steer-jerk 緩解（[#108](https://github.com/hypery11/flipper-tesla-fsd/issues/108)）。把啟動邊緣的注入壓住，直到方向盤回到中心 ±5° 內。需要匯流排上有 `0x129`（方向盤角度）；沒有就退化成只有 AP-First。直路抽動已大致被 Abort Guard 取代。 |
-| **Nag Burst** | 以爆發／暫停方式回放 `0x370`（約 1 秒開 / 1.5 秒關），而非連續（[#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)）。休息期被認為是 TSL6P 類裝置能躲過更嚴格 14.x nag 偵測的原因。搭配 ±1.8 Nm 轉向扭力上限。 |
+| **Nag Burst** | 以爆發／暫停方式回放 `0x370`（約 1 秒開 / 1.5 秒關），而非連續（[#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)）。休息期被認為是一些在野裝置能躲過更嚴格 14.x nag 偵測的原因。搭配 ±1.8 Nm 轉向扭力上限。 |
 | **EPAS-faithful（Mode-C）** | 模擬真實 EPAS 的 demand-state 扭力模型，不去翻 `handsOnLevel`（[#100](https://github.com/hypery11/flipper-tesla-fsd/issues/100)）。用於標準 nag 抑制會觸發 preflight 的車。**尚未上車確認。** |
 | **Signal Map**（ESP32 → 進階） | 自訂 nag 抑制讀取 AP-state／hands-on／方向盤的位置：`id + byte/shift/mask`（[#122](https://github.com/hypery11/flipper-tesla-fsd/issues/122)）。用於 `0x39B`/`0x399` 佈局不同的車型變體。有新鮮度閘門 — 設錯會 fail-closed。DAS id 留 `0` 為自動偵測。 |
 

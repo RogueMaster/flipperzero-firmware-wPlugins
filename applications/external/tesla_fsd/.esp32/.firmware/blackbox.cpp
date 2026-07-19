@@ -28,23 +28,26 @@
 #ifndef BLACKBOX_POST_MS
 #define BLACKBOX_POST_MS   5000u   // post-roll recorded after the trigger
 #endif
-// Ring capacity in frames @ 18 B/frame. PSRAM (runtime-detected) holds a full
-// ~15 s window at a busy bus rate. The internal-RAM fallback must cover the
-// window on its own — PSRAM is never required and no build enables it:
-//   - S3-class (512 KB SRAM): 6000 frames ≈ 108 KB → ≥15 s even at ~400 f/s.
+// Ring capacity in frames @ 19 B/frame (BBFrame carries a 1-byte RX/TX tag).
+// PSRAM (runtime-detected) holds a full ~15 s window at a busy bus rate. The
+// internal-RAM fallback must cover the window on its own — PSRAM is never
+// required and no build enables it:
+//   - S3-class (512 KB SRAM): 6000 frames ≈ 114 KB → ≥15 s even at ~400 f/s.
 //     Only paired with the persistent disk backends here, which stream the ring
 //     straight to file (no frozen copy), so the ring is the whole footprint.
-//   - Classic ESP32: 3000 frames ≈ 54 KB safety cap. These are the volatile
+//   - Classic ESP32: 3000 frames ≈ 57 KB safety cap. These are the volatile
 //     RAM-backend boards (default OFF) and a flush also frees+allocs a frozen
 //     copy of the in-window frames, so the cap bounds the transient peak.
+// All allocation/heap-guard math uses sizeof(BBFrame), so the byte figures track
+// the struct automatically — only these comments need the 18→19 B update.
 #ifndef BLACKBOX_FRAMES_PSRAM
-#define BLACKBOX_FRAMES_PSRAM    40000u   // ~720 KB
+#define BLACKBOX_FRAMES_PSRAM    40000u   // ~760 KB
 #endif
 #ifndef BLACKBOX_FRAMES_INTERNAL
 #if defined(CONFIG_IDF_TARGET_ESP32S3)
-#define BLACKBOX_FRAMES_INTERNAL  6000u   // ~108 KB (S3, 512 KB SRAM)
+#define BLACKBOX_FRAMES_INTERNAL  6000u   // ~114 KB (S3, 512 KB SRAM)
 #else
-#define BLACKBOX_FRAMES_INTERNAL  3000u   // ~54 KB  (classic ESP32)
+#define BLACKBOX_FRAMES_INTERNAL  3000u   // ~57 KB  (classic ESP32)
 #endif
 #endif
 
@@ -58,6 +61,7 @@ struct __attribute__((packed)) BBFrame {
     uint32_t id;
     uint8_t  bus;
     uint8_t  dlc;
+    uint8_t  is_tx;    // 0 = RX (bus frame), 1 = TX (our injected/echoed frame)
     uint8_t  data[8];
 };
 
@@ -107,6 +111,16 @@ static const char* trig_name_uc(BBTrigger t) {
 }
 
 static inline uint32_t ring_next(uint32_t i) { return (i + 1u) % g_cap; }
+
+// candump interface field for a stored frame. RX keeps the plain can0/can1 so
+// existing parsers (CRC cracker, candump tools) read the .log unchanged; TX (our
+// injected frames) get a can0TX/can1TX suffix — a greppable, ID-preserving
+// direction tag. candump has no standard direction column, so the interface
+// field carries it; the ID/data fields stay in their usual positions.
+static inline const char* bb_iface_name(const BBFrame& f) {
+    if (f.is_tx) return f.bus == CAN_BUS_SECONDARY ? "can1TX" : "can0TX";
+    return f.bus == CAN_BUS_SECONDARY ? "can1" : "can0";
+}
 
 // Event basenames are device-generated as [A-Za-z0-9_]; reject anything else so
 // a crafted ?name= can't escape BLACKBOX_DIR (no '/', '.', etc.).
@@ -368,7 +382,7 @@ static bool backend_size(const char* name, bool json, size_t* out) {
     for (uint32_t i = 0; i < g_slot_n; i++) {
         const BBFrame& f = g_slot_frames[i];
         total += tesla_format_candump_line(line, sizeof(line), f.ts_ms - g_slot_window_start,
-                                           f.bus == CAN_BUS_SECONDARY ? "can1" : "can0",
+                                           bb_iface_name(f),
                                            f.id, f.data, f.dlc);
     }
     if (out) *out = total;
@@ -382,7 +396,7 @@ static void backend_stream_body(WiFiClient& client, const char* name, bool json)
     for (uint32_t i = 0; i < g_slot_n; i++) {
         const BBFrame& f = g_slot_frames[i];
         int n = tesla_format_candump_line(line, sizeof(line), f.ts_ms - g_slot_window_start,
-                                          f.bus == CAN_BUS_SECONDARY ? "can1" : "can0",
+                                          bb_iface_name(f),
                                           f.id, f.data, f.dlc);
         client.write((const uint8_t*)line, n);
     }
@@ -471,7 +485,11 @@ void blackbox_init(FSDState* state, portMUX_TYPE* state_mux) {
                                                : BLACKBOX_FRAMES_INTERNAL));
 }
 
-void blackbox_record(CanBusId bus, const CanFrame& frame, uint32_t now_ms) {
+// Common ring-write path shared by the RX and TX entry points. `is_tx` tags the
+// stored frame; everything else — id filter, eviction, memcpy — is identical, so
+// TX frames pass the SAME key-id filter as RX and can't flood the ring with the
+// high-rate nag echo.
+static void bb_record(CanBusId bus, const CanFrame& frame, uint32_t now_ms, uint8_t is_tx) {
     if (g_cap == 0 || g_state == nullptr || !g_state->blackbox_enabled) return;
     // Store only the key diagnostic IDs (fsd_blackbox_filter.h). On a busy full
     // bus (~3300 f/s) recording everything fills the ring in ~1.8 s, truncating
@@ -484,9 +502,18 @@ void blackbox_record(CanBusId bus, const CanFrame& frame, uint32_t now_ms) {
     s.id    = frame.id;
     s.bus   = (uint8_t)bus;
     s.dlc   = frame.dlc > 8 ? 8 : frame.dlc;
+    s.is_tx = is_tx;
     memcpy(s.data, frame.data, s.dlc);
     if (s.dlc < 8) memset(s.data + s.dlc, 0, 8 - s.dlc);
     g_head = ring_next(g_head);
+}
+
+void blackbox_record(CanBusId bus, const CanFrame& frame, uint32_t now_ms) {
+    bb_record(bus, frame, now_ms, 0);   // RX (bus) frame
+}
+
+void blackbox_record_tx(CanBusId bus, const CanFrame& frame, uint32_t now_ms) {
+    bb_record(bus, frame, now_ms, 1);   // TX (our injected/echoed) frame
 }
 
 void blackbox_note_ap_state(uint8_t ap_state, uint32_t now_ms) {
@@ -598,7 +625,7 @@ static void disk_emit(File& f) {
         if (fr.ts_ms > g_emit_hi) break;
         if (!started) { g_emit_start = fr.ts_ms; started = true; }
         int n = tesla_format_candump_line(line, sizeof(line), fr.ts_ms - g_emit_start,
-                                          fr.bus == CAN_BUS_SECONDARY ? "can1" : "can0",
+                                          bb_iface_name(fr),
                                           fr.id, fr.data, fr.dlc);
         f.write((const uint8_t*)line, n);
     }
@@ -609,8 +636,8 @@ static void do_flush() {
     uint32_t lo = (g_trig_ms >= BLACKBOX_PRE_MS) ? g_trig_ms - BLACKBOX_PRE_MS : 0u;
     uint32_t hi = g_trig_ms + BLACKBOX_POST_MS;
 
-    // Pass 1: window start + per-bus counts.
-    uint32_t count = 0, bus0 = 0, bus1 = 0, window_start = 0;
+    // Pass 1: window start + per-bus counts + injected (TX) frame count.
+    uint32_t count = 0, bus0 = 0, bus1 = 0, window_start = 0, txc = 0;
     bool started = false;
     for (uint32_t i = g_tail; i != g_head; i = ring_next(i)) {
         const BBFrame& fr = g_ring[i];
@@ -618,6 +645,7 @@ static void do_flush() {
         if (fr.ts_ms > hi) break;
         if (!started) { window_start = fr.ts_ms; started = true; }
         count++;
+        if (fr.is_tx) txc++;
         if (fr.bus == CAN_BUS_SECONDARY) bus1++; else bus0++;
     }
     if (!started) window_start = g_trig_ms;
@@ -627,6 +655,18 @@ static void do_flush() {
 
     char json[640];
     build_summary(json, sizeof(json), count, window_start, bus0, bus1);
+
+    // The shared summary formatter (fsd_logic, pure) is a per-event summary, not
+    // a per-frame record list, so direction is reported here as a count: splice a
+    // "tx_frames" field in before the closing brace so a decoded summary tells you
+    // how many of the frames were ours. Per-frame direction lives in the .log via
+    // the can0TX/can1TX interface tag.
+    {
+        size_t jl = strlen(json);
+        if (jl > 0 && json[jl - 1] == '}' && jl + 24 < sizeof(json))
+            snprintf(json + jl - 1, sizeof(json) - (jl - 1),
+                     ",\"tx_frames\":%lu}", (unsigned long)txc);
+    }
 
 #if defined(BLACKBOX_BACKEND_LITTLEFS) || defined(BLACKBOX_BACKEND_SD)
     g_emit_lo = lo; g_emit_hi = hi;

@@ -177,7 +177,14 @@ static CanDriver *can_for_bus(CanBusId bus) {
 
 static bool send_on_bus(CanBusId bus, const CanFrame &frame) {
     CanDriver *driver = can_for_bus(bus);
-    return driver ? driver->send(frame) : false;
+    bool ok = driver ? driver->send(frame) : false;
+    // Single TX chokepoint: every injected/modified frame (0x3EE, 0x3FD, the
+    // 0x370 nag echo, generated + modified wrappers) routes through here. Record
+    // the ones we actually put on the bus as TX so the black-box capture shows
+    // our frames alongside the RX bus — same id filter as RX, cheap ring write,
+    // no-op when the recorder is off. Recording never gates the send.
+    if (ok) blackbox_record_tx(bus, frame, millis());
+    return ok;
 }
 
 static bool send_generated_frame(CanBusId bus, const CanFrame &frame) {
