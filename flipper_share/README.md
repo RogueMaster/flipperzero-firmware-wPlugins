@@ -24,6 +24,19 @@ Features:
 
 Please feel free to open an issues and PRs if you have any ideas or found bugs.
 
+# Usage
+
+1. On the receiving Flipper: open Flipper Share → **Receive**.
+2. On the sending Flipper: open Flipper Share → **Send** → pick a file → **OK**.
+3. Wait for the transfer to complete. The receiver shows a progress bar and
+   verifies the MD5 hash at the end; the file is saved to `/ext/inbox/`.
+
+| Sender                                                                     | Receiver                                                                                 |
+|:--------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------:|
+| <img src="screenshots/1.png" width="256" alt="Main menu"/>                 | <img src="screenshots/4.png" width="256" alt="Receiving via Sub-GHz: waiting for announce"/> |
+| <img src="screenshots/2.png" width="256" alt="File selected"/>             | <img src="screenshots/5.png" width="256" alt="Receiving via Sub-GHz: progress"/>         |
+| <img src="screenshots/3.png" width="256" alt="Sending via Sub-GHz"/>       | <img src="screenshots/6.png" width="256" alt="Success: file saved to /ext/inbox/"/>      |
+
 # Credits
 
 Special thanks to [@Skorpionm](https://github.com/Skorpionm/) for building a solid foundation with the Sub-GHz packet abstraction layer API — it made this app possible, convenient, and reliable.

@@ -31,6 +31,12 @@ IR is directional and unregulated; aim the two units at each other, fairly close
    The receiver shows a progress bar and verifies the MD5 hash at the end; the
    file is saved to `/ext/inbox/`.
 
+| Sender                                                               | Receiver                                                                          |
+|:--------------------------------------------------------------------:|:----------------------------------------------------------------------------------:|
+| <img src="screenshots/1.png" width="256" alt="Main menu"/>           | <img src="screenshots/4.png" width="256" alt="Receiving via IR: waiting for announce"/> |
+| <img src="screenshots/2.png" width="256" alt="File selected"/>       | <img src="screenshots/5.png" width="256" alt="Receiving via IR: progress"/>       |
+| <img src="screenshots/3.png" width="256" alt="Sending via IR"/>      | <img src="screenshots/6.png" width="256" alt="Success: file saved to /ext/inbox/"/> |
+
 ---
 
 # Flipper Share IR protocol
