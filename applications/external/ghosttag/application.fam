@@ -1,0 +1,15 @@
+App(
+    appid="ghosttag",
+    name="GhostTag",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ghosttag_app",
+    stack_size=8 * 1024,
+    fap_category="Bluetooth",
+    fap_icon="icons/ghosttag_10px.png",
+    fap_icon_assets="icons",
+    fap_author="at0m-b0mb",
+    fap_weburl="https://github.com/at0m-b0mb/GhostTag-FlipperZero",
+    fap_version="1.0",
+    fap_description="Anti-stalking BLE tracker hunter: detect unknown AirTags, Tiles & Samsung SmartTags following you. Needs the WiFi/BLE devboard (ESP32).",
+    requires=["gui"],
+)

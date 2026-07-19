@@ -1,0 +1,18 @@
+# Flipper / ufbt build artifacts
+.ufbt/
+dist/
+build/
+*.fap
+*.fap.dSYM
+
+# ufbt SDK state
+.vscode/
+.idea/
+
+# Python tooling
+__pycache__/
+*.pyc
+
+# OS noise
+.DS_Store
+Thumbs.db
