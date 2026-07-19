@@ -171,11 +171,19 @@ def render(path, W, H, layout="wide"):
     td.text((x0 + 4 * SS, title_y + 4 * SS), "SPECTER", font=f_title, fill=(MAG[0], MAG[1], MAG[2], 160))
     td.text((x0, title_y), "SPECTER", font=f_title, fill=WHITE)
 
+    # version pill, sitting on the title's baseline
+    f_ver = font(BOLD, 26 * SS)
+    title_w = td.textlength("SPECTER", font=f_title)
+    px, py = x0 + title_w + 22 * SS, title_y + title_px - 46 * SS
+    pw, ph = 84 * SS, 38 * SS
+    td.rounded_rectangle([px, py, px + pw, py + ph], radius=10 * SS, fill=MAG)
+    td.text((px + pw / 2, py + ph / 2), "v2.0", font=f_ver, fill=BG_TOP, anchor="mm")
+
     # tagline + subtitle
     tag_y = title_y + title_px + 14 * SS
     td.text((x0, tag_y), "Sweep for the readers you can't see.", font=f_tag, fill=CYAN)
     td.text((x0, tag_y + 50 * SS),
-            "Passive 13.56 MHz reader / skimmer detector — no extra hardware.",
+            "Find it · fingerprint its polling cadence · survey the room. No extra hardware.",
             font=f_sub, fill=GRAY)
 
     img.alpha_composite(tx)

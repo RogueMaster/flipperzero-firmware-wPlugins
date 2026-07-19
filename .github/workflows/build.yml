@@ -7,7 +7,18 @@ on:
   workflow_dispatch:
 
 jobs:
+  # The pure decision layers - "what kind of emitter is this", "is this room
+  # clean" - build and run anywhere, so they gate the firmware build.
+  test:
+    runs-on: ubuntu-latest
+    name: host tests
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run host tests
+        run: make -C test
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
