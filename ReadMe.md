@@ -56,6 +56,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Rosetta v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Rosetta-FlipperZero)
 - Added: [Trident v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Trident-FlipperZero)
 - Added: [Warden v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Warden-FlipperZero)
+- Added: [Android KB Bridge v0.5.1 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD)
 
 <a name="release"></a>
 
@@ -337,6 +338,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Amusement IC v0.1 (By object-Object)](https://github.com/object-Object/flip_aic)
 - [Analog Clock v1.2 (By scrolltex)](https://github.com/scrolltex/flipper_analog_clock)
 - [Analog Output v0.1 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio/dac)
+- [Android KB Bridge v0.5.1 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD)
 - [Anki Remote v1.3 (By Blue5GD)](https://github.com/Blue5GD/Anki-Remote)
 - [Anim Previewer v1.0 (By H4W9)](https://github.com/H4W9/AnimationPreviewerFlipperApp)
 - [Animation Switcher v1.1 (By lsalik2)](https://github.com/lsalik2/FlipperAnimationSwitcher)

@@ -123,8 +123,7 @@ void akb_screenshot_free(AndroidKeyboardBridge* app) {
 
 void akb_screenshot_on_down_short(AndroidKeyboardBridge* app) {
     const uint32_t now = furi_get_tick();
-    if(app->down_press_count == 0 ||
-       (now - app->down_first_tick) > AKB_SHOT_TRIPLE_MS) {
+    if(app->down_press_count == 0 || (now - app->down_first_tick) > AKB_SHOT_TRIPLE_MS) {
         app->down_press_count = 1;
         app->down_first_tick = now;
         return;

@@ -68,10 +68,7 @@ static void akb_draw_callback(Canvas* canvas, void* ctx) {
     canvas_draw_str(canvas, 2, 18, app->status_line);
     canvas_draw_str(canvas, 2, 30, app->usb_connected ? "USB: connected" : "USB: waiting");
     canvas_draw_str(
-        canvas,
-        2,
-        42,
-        app->ble_phone_connected ? "Phone: connected" : "Phone: waiting");
+        canvas, 2, 42, app->ble_phone_connected ? "Phone: connected" : "Phone: waiting");
 
     char counter[32];
     snprintf(
@@ -89,10 +86,7 @@ static void akb_draw_callback(Canvas* canvas, void* ctx) {
         app->backlight_forced ? "Up=light* Dn3=shot Back" : "Up=light Dn3=shot Back");
 #else
     canvas_draw_str(
-        canvas,
-        2,
-        62,
-        app->backlight_forced ? "Up=light* Back=exit" : "Up=light  Back=exit");
+        canvas, 2, 62, app->backlight_forced ? "Up=light* Back=exit" : "Up=light  Back=exit");
 #endif
     furi_mutex_release(app->mutex);
 }
@@ -125,26 +119,13 @@ static void akb_apply_hid_cmd(AndroidKeyboardBridge* app, const AkbHidCmd* cmd) 
     furi_check(furi_mutex_acquire(app->mutex, FuriWaitForever) == FuriStatusOk);
     app->hid_applied++;
     if(cmd->type == AkbHidCmdKeyDown) {
-        snprintf(
-            app->status_line,
-            sizeof(app->status_line),
-            "HID down key=%02X",
-            cmd->keycode);
+        snprintf(app->status_line, sizeof(app->status_line), "HID down key=%02X", cmd->keycode);
     } else if(cmd->type == AkbHidCmdKeyUp) {
-        snprintf(
-            app->status_line,
-            sizeof(app->status_line),
-            "HID up key=%02X",
-            cmd->keycode);
+        snprintf(app->status_line, sizeof(app->status_line), "HID up key=%02X", cmd->keycode);
     } else if(cmd->type == AkbHidCmdMouseMove) {
         snprintf(app->status_line, sizeof(app->status_line), "Mouse %+d,%+d", cmd->dx, cmd->dy);
-    } else if(
-        cmd->type == AkbHidCmdMouseButtonDown || cmd->type == AkbHidCmdMouseButtonUp) {
-        snprintf(
-            app->status_line,
-            sizeof(app->status_line),
-            "Mouse btn %02X",
-            cmd->mouse_button);
+    } else if(cmd->type == AkbHidCmdMouseButtonDown || cmd->type == AkbHidCmdMouseButtonUp) {
+        snprintf(app->status_line, sizeof(app->status_line), "Mouse btn %02X", cmd->mouse_button);
     } else if(cmd->type == AkbHidCmdMouseScroll) {
         snprintf(app->status_line, sizeof(app->status_line), "Scroll %+d", cmd->scroll);
     }
@@ -233,7 +214,8 @@ static uint16_t akb_serial_callback(SerialServiceEvent event, void* context) {
         furi_check(furi_mutex_acquire(app->mutex, FuriWaitForever) == FuriStatusOk);
         app->ble_phone_connected = true;
         app->ble_need_buffer_notify = true;
-        app->frames_received += akb_protocol_feed(&app->parser, event.data.buffer, event.data.size);
+        app->frames_received +=
+            akb_protocol_feed(&app->parser, event.data.buffer, event.data.size);
         snprintf(app->status_line, sizeof(app->status_line), "Last RX: %u bytes", event.data.size);
         furi_mutex_release(app->mutex);
     }
@@ -344,8 +326,8 @@ int32_t android_keyboard_bridge_app(void* p) {
         }
 
         if(furi_message_queue_get(app->hid_queue, &hid_cmd, 0) == FuriStatusOk) {
-            const bool needs_gap = (hid_cmd.type == AkbHidCmdKeyDown ||
-                                    hid_cmd.type == AkbHidCmdKeyUp);
+            const bool needs_gap =
+                (hid_cmd.type == AkbHidCmdKeyDown || hid_cmd.type == AkbHidCmdKeyUp);
             akb_apply_hid_cmd(app, &hid_cmd);
             if(needs_gap) {
                 for(uint8_t i = 0; i < AKB_HID_EVENT_GAP_MS && !app->exit_requested; i++) {

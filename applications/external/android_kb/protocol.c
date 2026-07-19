@@ -72,9 +72,8 @@ size_t akb_protocol_feed(AkbProtocolParser* parser, const uint8_t* data, size_t 
 
         while(parser->length >= 3) {
             size_t sync = 0;
-            while(sync + 1 < parser->length &&
-                  (parser->buffer[sync] != AKB_MAGIC_0 ||
-                   parser->buffer[sync + 1] != AKB_MAGIC_1)) {
+            while(sync + 1 < parser->length && (parser->buffer[sync] != AKB_MAGIC_0 ||
+                                                parser->buffer[sync + 1] != AKB_MAGIC_1)) {
                 sync++;
             }
 

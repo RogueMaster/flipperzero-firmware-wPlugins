@@ -11,11 +11,11 @@
 #define AKB_FRAME_PAYLOAD_LEN 3
 #define AKB_FRAME_TOTAL_LEN   6
 
-#define AKB_EVENT_KEY_DOWN    0x01
-#define AKB_EVENT_KEY_UP      0x02
-#define AKB_EVENT_MOUSE_MOVE  0x10
-#define AKB_EVENT_MOUSE_DOWN  0x11
-#define AKB_EVENT_MOUSE_UP    0x12
+#define AKB_EVENT_KEY_DOWN     0x01
+#define AKB_EVENT_KEY_UP       0x02
+#define AKB_EVENT_MOUSE_MOVE   0x10
+#define AKB_EVENT_MOUSE_DOWN   0x11
+#define AKB_EVENT_MOUSE_UP     0x12
 #define AKB_EVENT_MOUSE_SCROLL 0x13
 
 typedef enum {
