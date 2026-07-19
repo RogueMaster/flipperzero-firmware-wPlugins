@@ -1,6 +1,6 @@
-# ir_share — hardware & host test tools
+# Flipper Share IR — hardware & host test tools
 
-Helper scripts used to bring up and validate IR Share on two real Flipper Zeros.
+Helper scripts used to bring up and validate Flipper Share IR on two real Flipper Zeros.
 They are kept here for future debugging and tuning; they are not part of the app.
 
 ## Host unit test (no hardware)
@@ -27,7 +27,7 @@ Device ports are NOT committed: copy `ports_local.example.py` to `ports_local.py
 ports (or export `IR_RX_PORT` / `IR_TX_PORT`).
 
 - `capture_logs.py [seconds]` — read-only live `log` capture from **both** devices,
-  filtered to IR Share / transport lines. Start it, then drive the transfer by
+  filtered to Flipper Share IR / transport lines. Start it, then drive the transfer by
   hand and watch the output.
 - `run_send.py` — drive the sender into the send scene and observe the announce log.
 - `run_transfer.py [seconds]` — full end-to-end attempt (Flipper_First=RX, Flipper_Second=TX) that

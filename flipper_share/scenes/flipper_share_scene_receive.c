@@ -120,7 +120,7 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     // Header
     canvas_set_font(canvas, FontPrimary);
     canvas_set_color(canvas, ColorBlack);
-    elements_multiline_text_aligned(canvas, 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop, "Receiving...");
+    elements_multiline_text_aligned(canvas, 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop, "Receiving via Sub-GHz...");
 
     // Filename on its own line (as-is; long names may overflow — accepted).
     canvas_set_font(canvas, FontSecondary);
@@ -275,7 +275,7 @@ void flipper_share_scene_receive_on_enter(void* context) {
     app->file_reading_state = state;
 
     // Setup dialog to show progress (use same UI as send scene so buttons appear)
-    dialog_ex_set_header(app->dialog_show_file, "Receiving...", 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop);
+    dialog_ex_set_header(app->dialog_show_file, "Receiving via Sub-GHz...", 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop);
     dialog_ex_set_text(app->dialog_show_file, "Waiting for announce...", 64, 32, AlignCenter, AlignCenter);
     dialog_ex_set_left_button_text(app->dialog_show_file, "Back");
     dialog_ex_set_right_button_text(app->dialog_show_file, NULL);

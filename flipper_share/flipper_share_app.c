@@ -3,7 +3,7 @@
 #include <stream/buffered_file_stream.h>
 
 // About screen title bar (\e#/\e! markup: bold/inverted, see widget.h)
-#define FS_ABOUT_NAME "\e#\e!        Flipper Share        \e!\n"
+#define FS_ABOUT_NAME "\e#\e! Flipper Share - SubGHz  \e!\n"
 #define FS_ABOUT_BLANK_INV "\e#\e!                                                      \e!\n"
 
 // Callback when a file is selected in the file browser
@@ -75,14 +75,15 @@ static void submenu_callback(void* context, uint32_t index) {
             app->widget_about, 0, 2, 128, 14, AlignCenter, AlignBottom, FS_ABOUT_NAME, false);
 
         FuriString* about_text = furi_string_alloc();
-        furi_string_printf(about_text, "\e#%s\n", "Information");
+        // furi_string_printf(about_text, "\e#%s\n", "Information");
         // FAP_VERSION is a string literal injected by fbt/ufbt from
         // application.fam's fap_version — single source of truth, no duplication.
         furi_string_cat_printf(about_text, "Version: %s\n", FAP_VERSION);
         furi_string_cat_printf(about_text, "Developed by: %s\n", "@lomalkin");
         furi_string_cat_printf(about_text, "Github: %s\n\n", "github.com/lomalkin");
         furi_string_cat_printf(about_text, "\e#%s\n", "Description");
-        furi_string_cat_printf(about_text, "%s\n", "A file sharing app via Sub-GHz");
+        furi_string_cat_printf(about_text, "%s\n\n", "A file sharing app via Sub-GHz");
+        furi_string_cat_printf(about_text, "See also: Flipper Share IR to transfer via Infrared.\n");
         widget_add_text_scroll_element(
             app->widget_about, 0, 16, 128, 50, furi_string_get_cstr(about_text));
         furi_string_free(about_text);

@@ -2,10 +2,15 @@
 
 ## Overview
 
-Flipper Share is a wireless-enabled file sharing application for Flipper Zero.
+**Flipper Share** is a wireless-enabled file sharing application for Flipper Zero.
 
 It allows to send any file over a Sub-GHz via internal transmitter directly from one Flipper Zero to another without any additional hardware, cables, smartphones, computers, internet connection and magic needed.
-File size tested is 16 MB (6.5 hours), but the protocol itself can support up to 4 GB (uint32_t file size).
+
+Actual file transfer speed via **Flipper Share** is around 700 Bytes/sec (42 KB/min), that allows to transfer average .fap file from one Flipper to another in less than 1 minute.
+
+File size tested is 32 MB (~13 hours), but the protocol itself can support up to 4 GB (uint32_t file size). Maximum file size is limited by the Flipper Zero's free RAM on receiver side, actually should be not more than 35MB.
+
+If you prefer to use the **Infrared** channel instead of Sub-GHz, consider using **Flipper Share IR** app for that ([link](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_ir/README.md)).
 
 Features:
 
@@ -13,7 +18,6 @@ Features:
 - Multiple receivers supported simultaneously and works just fine (broadcast)
 - Continuation of download / auto retries in case of packet loss is guaranteed at the protocol level
 - Integrity check with MD5 hash after file reception
-- Actual speed is around 700 Bytes/sec (42 KB/min), that allows to transfer average .fap file from one Flipper to another in less than 1 minute
 - No pairing or explicit session establishment needed
 - No encryption, anyone nearby can receive the file, please don't send sensitive data
 - Fun torrent-like progress bar showing completely received parts of the file instead of boring usual percentage scale

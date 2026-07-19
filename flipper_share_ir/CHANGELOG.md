@@ -1,4 +1,9 @@
-v1.0: IR Share — file transfer over the infrared channel
+v1.5: First public release of **Flipper Share IR**
+- Async chunked md5 hash calculation for large files on Send / Receive.
+- UI: fixed layout on long names
+- File manager now memorizes the last file used
+
+v1.0: Flipper Share IR — file transfer over the infrared channel
 - New app derived from Flipper Share: the transport is now fully infrared
   (onboard IR LED + TSOP receiver) instead of Sub-GHz.
 - Custom half-duplex IR modem: fixed-mark + multi-level-space PPM at a 38 kHz
