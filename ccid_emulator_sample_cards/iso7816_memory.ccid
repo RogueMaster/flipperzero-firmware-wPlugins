@@ -1,0 +1,36 @@
+# Generic ISO 7816-4 File-System Card — CCID Emulator profile
+#
+# A minimal, standards-only card with a classic MF/DF/EF file structure. No
+# vendor applet — just ISO 7816-4 SELECT / READ BINARY / VERIFY, so it's the
+# best starting point for learning the emulator and for testing a reader's raw
+# APDU handling (e.g. `opensc-tool -s 00:a4:00:00:02:3f:00`).
+#
+# All values are illustrative test data.
+# Copy to /ext/ccid_emulator/cards/ on your Flipper Zero SD card.
+
+[card]
+name = ISO7816 Memory Card
+description = Generic ISO 7816-4 card: SELECT / READ BINARY / VERIFY
+atr = 3B 88 80 01 00 00 00 00 00 00 00 00 00
+
+[rules]
+# SELECT MF (Master File, 3F00)
+00 A4 00 00 02 3F 00 = 6F 0F 82 01 38 83 02 3F 00 84 06 4D 41 53 54 45 52 90 00
+
+# SELECT EF by identifier (0002) under MF — an elementary transparent file
+00 A4 02 00 02 00 02 = 6F 0A 82 01 01 83 02 00 02 80 01 20 90 00
+
+# READ BINARY — first 16 bytes (wildcard offset in P2)
+00 B0 00 ?? 10 = 48 65 6C 6C 6F 20 46 6C 69 70 70 65 72 21 00 00 90 00
+
+# VERIFY PIN (P2=01, "0000") — succeeds
+00 20 00 01 04 30 30 30 30 = 90 00
+
+# GET CHALLENGE — 8 random bytes (fixed here for reproducibility)
+00 84 00 00 08 = DE AD BE EF CA FE BA BE 90 00
+
+# GET RESPONSE (wildcard Le)
+00 C0 00 00 ?? = 90 00
+
+[default]
+response = 6A 82

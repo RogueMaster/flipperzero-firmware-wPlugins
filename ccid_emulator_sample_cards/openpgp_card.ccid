@@ -1,0 +1,43 @@
+# OpenPGP Smart Card — CCID Emulator profile
+#
+# Emulates the OpenPGP card application (as used by GnuPG, YubiKey OpenPGP,
+# Nitrokey, etc.). With this loaded, running `gpg --card-status` against the
+# Flipper's emulated USB CCID card on a PC will SELECT the OpenPGP AID and
+# read the cardholder / application-related data objects below.
+#
+# AID and the 4F application-identifier object are REAL, from the GnuPG OpenPGP
+# smart-card application spec (v2.1, manufacturer 0006 = Yubico). Cardholder
+# fields use placeholder test data.
+#
+# Source: gnupg.org OpenPGP-smart-card-application spec; public gpg card dumps.
+# Copy to /ext/ccid_emulator/cards/ on your Flipper Zero SD card.
+
+[card]
+name = OpenPGP Card
+description = OpenPGP applet (SELECT + GET DATA cardholder/AID objects)
+atr = 3B DA 18 FF 81 B1 FE 75 1F 03 00 31 C5 73 C0 01 40 00 90 00 0C
+
+[rules]
+# SELECT OpenPGP application (AID D2 76 00 01 24 01)
+00 A4 04 00 06 D2 76 00 01 24 01 = 90 00
+
+# GET DATA — Application Identifier (tag 4F): version 2.1, manuf 0006, serial
+00 CA 00 4F 00 = D2 76 00 01 24 01 02 01 00 06 08 69 10 62 00 00 90 00
+
+# GET DATA — Login data (tag 5E)
+00 CA 00 5E 00 = 74 65 73 74 75 73 65 72 90 00
+
+# GET DATA — Cardholder Related Data (tag 65): name (5B) + language (5F2D) + sex (5F35)
+00 CA 00 65 00 = 65 1A 5B 0E 54 45 53 54 3C 3C 43 41 52 44 48 4F 4C 44 5F 2D 02 65 6E 5F 35 01 39 90 00
+
+# GET DATA — Application Related Data (tag 6E): AID + extended caps (abbreviated)
+00 CA 00 6E 00 = 6E 12 4F 10 D2 76 00 01 24 01 02 01 00 06 08 69 10 62 00 00 90 00
+
+# GET DATA — URL of public key (tag 5F50) — empty
+00 CA 5F 50 00 = 90 00
+
+# VERIFY PW1 (user PIN "123456") — succeeds
+00 20 00 81 06 31 32 33 34 35 36 = 90 00
+
+[default]
+response = 6A 88

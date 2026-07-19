@@ -1,0 +1,40 @@
+# EMV Contactless Payment Card (Visa) — CCID Emulator profile
+#
+# Emulates a contactless EMV payment card's application-selection flow as seen
+# by a PC/SC reader (pcsc_scan, opensc-tool, or an EMV analysis tool talking to
+# the Flipper's emulated USB CCID card).
+#
+# The PPSE response below is REAL, publicly-documented data captured from a
+# dual-application Visa Debit card (advertises Visa Debit A0000000031010 and
+# US Common Debit A0000000980840). Everything downstream uses EMV test values —
+# NOT a real card number — so this is safe to share and use for reader testing.
+#
+# Source: openscdp.org EMV application-selection tutorial and public PPSE dumps.
+# Copy to /ext/ccid_emulator/cards/ on your Flipper Zero SD card.
+
+[card]
+name = EMV Visa (Contactless)
+description = Contactless Visa payment card, application selection + GPO
+atr = 3B 6F 00 00 80 31 E0 6B 04 21 00 00 00 00 00 90 00
+
+[rules]
+# SELECT PPSE — 2PAY.SYS.DDF01 (contactless entry point)
+00 A4 04 00 0E 32 50 41 59 2E 53 59 53 2E 44 44 46 30 31 = 6F 6A 84 0E 32 50 41 59 2E 53 59 53 2E 44 44 46 30 31 A5 58 BF 0C 55 61 26 4F 07 A0 00 00 00 03 10 10 50 0A 56 69 73 61 20 44 65 62 69 74 87 01 01 9F 2A 01 03 5F 55 02 55 53 42 03 46 50 98 61 2B 4F 07 A0 00 00 00 98 08 40 50 0F 55 53 20 43 6F 6D 6D 6F 6E 20 44 65 62 69 74 87 01 02 9F 2A 01 03 5F 55 02 55 53 42 03 46 50 98 90 00
+
+# SELECT Visa Debit application (AID A0000000031010)
+00 A4 04 00 07 A0 00 00 00 03 10 10 = 6F 2B 84 07 A0 00 00 00 03 10 10 A5 20 50 0A 56 69 73 61 20 44 65 62 69 74 87 01 01 9F 38 09 9F 66 04 9F 02 06 9F 37 04 5F 2D 02 65 6E 90 00
+
+# GET PROCESSING OPTIONS (empty PDOL) — returns AIP + AFL
+80 A8 00 00 02 83 00 = 77 0E 82 02 20 00 94 08 08 01 01 00 10 01 04 00 90 00
+
+# READ RECORD — SFI 1, record 1 (wildcard on P1/P2 so any record answers)
+00 B2 ?? ?? 00 = 70 0C 5A 08 41 11 11 11 11 11 11 11 5F 24 03 30 12 31 90 00
+
+# GET DATA — PIN Try Counter (9F17)
+80 CA 9F 17 00 = 9F 17 01 03 90 00
+
+# GET DATA — Application Transaction Counter (9F36)
+80 CA 9F 36 00 = 9F 36 02 00 1A 90 00
+
+[default]
+response = 6A 82

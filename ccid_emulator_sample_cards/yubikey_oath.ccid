@@ -1,0 +1,33 @@
+# YubiKey OATH Applet — CCID Emulator profile
+#
+# Emulates the YKOATH (OATH TOTP/HOTP) applet exposed over CCID. A PC tool such
+# as `ykman oath accounts list` or any YKOATH client selecting AID
+# A0 00 00 05 27 21 01 will get the SELECT/LIST responses below.
+#
+# The AID is the real Yubico OATH AID. Credential names/keys are test data.
+#
+# Source: Yubico YKOATH protocol specification (developers.yubico.com).
+# Copy to /ext/ccid_emulator/cards/ on your Flipper Zero SD card.
+
+[card]
+name = YubiKey OATH
+description = YKOATH applet — SELECT + LIST credentials (no password)
+atr = 3B FD 13 00 00 81 31 FE 15 80 73 C0 21 C0 57 59 75 62 69 4B 65 79 40
+
+[rules]
+# SELECT OATH applet (AID A0 00 00 05 27 21 01)
+# Response: 79 (version 5.4.3) + 71 (8-byte device id/name salt)
+00 A4 04 00 07 A0 00 00 05 27 21 01 = 79 03 05 04 03 71 08 01 02 03 04 05 06 07 08 90 00
+
+# LIST credentials (INS A1) — two accounts, each: 72 <len> <algo><name>
+# algo byte 0x21 = TOTP + SHA1
+00 A1 00 00 00 = 72 0F 21 41 43 4D 45 3A 61 6C 69 63 65 40 61 63 6D 65 72 0D 21 47 69 74 48 75 62 3A 62 6F 62 90 00
+
+# CALCULATE (INS A2) for a credential — truncated 4-byte response (76)
+00 A2 00 01 ?? = 76 05 04 07 5B CD 15 90 00
+
+# RESET (INS 04) — wipe (test acknowledges)
+00 04 DE AD 00 = 90 00
+
+[default]
+response = 69 84

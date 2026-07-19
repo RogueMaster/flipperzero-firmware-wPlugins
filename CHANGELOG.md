@@ -6,6 +6,17 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ---
 
+## 2026-07-19 — sample cards & CI trigger
+
+### feat
+- **ccid_emulator_sample_cards**: Added five real-world `.ccid` card profiles for on-device reader testing, each validated to parse within the post-#59 bounds against the actual `card_parser.c`: `emv_visa_contactless.ccid` (PPSE / 2PAY.SYS.DDF01 + Visa AID + GPO — its PPSE response is 110 bytes, which the old 32-byte cap would have truncated), `emv_mastercard_contact.ccid` (PSE / 1PAY.SYS.DDF01 + Mastercard AID), `openpgp_card.ccid` (`gpg --card-status` flow), `yubikey_oath.ccid` (YKOATH SELECT/LIST), and `iso7816_memory.ccid` (generic ISO 7816-4 SELECT/READ BINARY/VERIFY). Real published AIDs with illustrative test data — not dumps of real cards. Added a `README.md` documenting the format, each card, and how to drive them from a PC (`pcsc_scan`, `opensc-tool`, `gpg`).
+
+### chore
+- **CI**: Changed `.github/workflows/build.yml` to `workflow_dispatch` (manual-only) so the build/lint matrix no longer fires on every bot-pushed branch; run it from the Actions tab or via the API. Verified the whole 13-FAP suite builds and lints cleanly against the OFW SDK before this change.
+- **examples audit**: Confirmed the other file-driven apps already ship runnable examples (badusb_pro `.ds` scripts, evil_portal portals + `.fpwn` scripts, flipperpwn modules; hid_exfil payloads are built in by design), so no additional example files were needed there.
+
+---
+
 ## 2026-07-19
 
 ### fix

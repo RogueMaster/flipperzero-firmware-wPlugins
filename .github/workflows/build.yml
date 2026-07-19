@@ -1,10 +1,10 @@
 name: Build All FAPs
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  # Manual-only: run from the Actions tab (or the API/gh) via "Run workflow".
+  # Automatic push/pull_request triggers were removed intentionally so CI does
+  # not fire on every bot-pushed branch; re-add them here if you want that back.
+  workflow_dispatch:
 
 jobs:
   build:
