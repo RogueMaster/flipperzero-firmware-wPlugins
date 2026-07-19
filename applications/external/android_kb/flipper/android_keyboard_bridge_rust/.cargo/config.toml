@@ -1,0 +1,14 @@
+# Same target flags as flipperzero-rs template: Cortex-M4, size-optimized relocatable FAP.
+[target.thumbv7em-none-eabihf]
+rustflags = [
+    "-C", "target-cpu=cortex-m4",
+    "-C", "panic=abort",
+    "-C", "debuginfo=0",
+    "-C", "opt-level=z",
+    "-C", "embed-bitcode=yes",
+    "-C", "lto=yes",
+    "-C", "link-args=--script=flipperzero-rt.ld --Bstatic --relocatable --discard-all --strip-all --lto-O3 --lto-whole-program-visibility",
+]
+
+[build]
+target = "thumbv7em-none-eabihf"

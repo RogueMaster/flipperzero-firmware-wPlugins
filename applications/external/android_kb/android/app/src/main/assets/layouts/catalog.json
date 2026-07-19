@@ -1,0 +1,11 @@
+{
+  "layouts": [
+    {"id": "macos_en", "title": "macOS EN", "file": "layouts/macos_en.json"},
+    {"id": "macos_ru", "title": "macOS RU", "file": "layouts/macos_ru.json"},
+    {"id": "macos_ua", "title": "macOS UA", "file": "layouts/macos_ua.json"},
+    {"id": "number", "title": "Number", "file": "layouts/number.json"},
+    {"id": "mx_mini_en", "title": "Logitech MX Keys Mini EN", "file": "layouts/mx_mini_en.json"},
+    {"id": "mx_mini_ru", "title": "Logitech MX Keys Mini RU", "file": "layouts/mx_mini_ru.json"},
+    {"id": "mx_mini_ua", "title": "Logitech MX Keys Mini UA", "file": "layouts/mx_mini_ua.json"}
+  ]
+}

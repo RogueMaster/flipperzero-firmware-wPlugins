@@ -1,0 +1,27 @@
+[package]
+name = "android_keyboard_bridge_rust"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85.0"
+description = "Rust port of Android KB Bridge FAP (BLE Serial → USB HID)"
+publish = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+
+[[bin]]
+name = "android_keyboard_bridge_rust"
+path = "src/main.rs"
+bench = false
+test = false
+
+[dependencies]
+# High-level helpers (sleep, records wrappers where available).
+flipperzero = { version = "0.16.0", features = ["alloc"] }
+# Global allocator required when using `alloc` on Flipper (no std).
+flipperzero-alloc = "0.16.0"
+# Panic handler + FAP entry / manifest macros.
+flipperzero-rt = "0.16.0"
+# Raw C FFI for BT Serial, USB HID, GUI, pubsub — most of the port lives here.
+flipperzero-sys = "0.16.0"

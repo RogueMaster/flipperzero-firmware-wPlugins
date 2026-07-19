@@ -1,0 +1,34 @@
+import os
+
+# Optional on-device screenshot (triple short Down).
+# Enable: AKB_SCREENSHOT=1 make flipper-build / flipper-launch
+# Catalog / default CI builds leave this off.
+_screenshot = os.environ.get("AKB_SCREENSHOT", "").strip().lower() in (
+    "1",
+    "y",
+    "yes",
+    "true",
+    "on",
+)
+
+App(
+    appid="android_keyboard_bridge",
+    name="Android KB Bridge",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="android_keyboard_bridge_app",
+    stack_size=(5 * 1024) if _screenshot else (4 * 1024),
+    cdefines=["AKB_SCREENSHOT"] if _screenshot else [],
+    requires=[
+        "bt",
+        "gui",
+        "notification",
+    ]
+    + (["storage"] if _screenshot else []),
+    fap_version="0.5",
+    fap_category="Bluetooth",
+    fap_icon="icon.png",
+    fap_author="andybeg",
+    fap_weburl="https://github.com/andybeg/AndroidFlipperZeroKBD",
+    fap_description="BLE Serial bridge: Android phone keyboard/touchpad → USB HID on PC",
+    order=90,
+)
