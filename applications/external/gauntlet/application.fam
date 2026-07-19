@@ -1,0 +1,14 @@
+App(
+    appid="gauntlet",
+    name="Gauntlet",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="gauntlet_app",
+    stack_size=4 * 1024,
+    fap_category="Games",
+    fap_icon="icons/gauntlet_10px.png",
+    fap_icon_assets="icons",
+    fap_author="at0m-b0mb",
+    fap_weburl="https://github.com/at0m-b0mb/Gauntlet-FlipperZero",
+    fap_version="1.0",
+    fap_description="An on-device Capture-The-Flag box for your Flipper Zero. Load challenge packs from the SD card and solve RFID, infrared and cipher puzzles right on the device - no laptop required. A built-in decoder Toolkit (ROT/Caesar, Base64, hex, binary, Morse, Atbash, reverse) lets you crack cipher tasks on-screen, flags are checked against a hash so answers stay secret, and your score, rank and solved count are saved across sessions. Perfect for workshops, classrooms and CTF practice - just drop a .pack file in apps_data/gauntlet/packs and run the gauntlet.",
+)
