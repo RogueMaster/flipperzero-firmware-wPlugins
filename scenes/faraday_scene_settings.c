@@ -54,5 +54,8 @@ bool faraday_scene_settings_on_event(void* context, SceneManagerEvent event) {
 
 void faraday_scene_settings_on_exit(void* context) {
     FaradayApp* app = context;
+    /* Persist as soon as the user leaves, not just at app exit, so a battery
+     * pull on the next screen doesn't lose the change. */
+    fdy_store_settings_save(&app->settings);
     variable_item_list_reset(app->var_item_list);
 }

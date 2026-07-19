@@ -61,6 +61,8 @@ bool faraday_scene_nfc_on_event(void* context, SceneManagerEvent event) {
                 t->rating = (uint8_t)fdy_grade_pct((uint8_t)blocked);
                 t->phase = FdyPhaseVerdict;
 
+                faraday_log_result(app, true, 0);
+
                 faraday_notify_verdict(app, t->rating);
             } else { // verdict -> run it again
                 fdy_test_reset(t);

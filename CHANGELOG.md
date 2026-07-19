@@ -3,6 +3,26 @@
 All notable changes to Faraday are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1] — 2026-07-18
+
+### Added
+
+- **Leak Hunt** — a sweep mode that finds *where* a pouch leaks, not just that it does. Seal the fob,
+  hold its button, and sweep the seams: a live meter, a `COLD → BLAZING` warmer/colder word, a
+  rolling trace of the sweep you just made, and geiger clicks that speed up as you close in. OK
+  resets the peak to re-sweep a spot. Everything is measured against the tracked noise floor, so it
+  reads the same for a strong or a weak fob.
+- **Saved results** — every finished test is appended to `/ext/apps_data/faraday/results.csv` with a
+  timestamp, band, both raw levels and the grade. The newest 20 are browsable on-device; pull the
+  CSV off with qFlipper to compare pouches properly.
+- **Persistent settings** — band, sound and LED survive a reboot, stored with a magic/version/checksum
+  so a stale or corrupt file falls back to defaults instead of loading garbage.
+
+### Notes
+
+- The result log is plain CSV and may be hand-edited; unparseable lines are skipped rather than
+  displayed as garbage, and a saved band index is range-checked before it is used to index anything.
+
 ## [1.0] — 2026-07-18
 
 First public release.

@@ -1,5 +1,7 @@
 ADD_SCENE(faraday, start, Start)
 ADD_SCENE(faraday, subghz, SubGhz)
 ADD_SCENE(faraday, nfc, Nfc)
+ADD_SCENE(faraday, hunt, Hunt)
+ADD_SCENE(faraday, results, Results)
 ADD_SCENE(faraday, settings, Settings)
 ADD_SCENE(faraday, about, About)

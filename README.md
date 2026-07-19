@@ -39,12 +39,20 @@
   &nbsp;
   <img src="images/screen_nfc.png"      width="30%" alt="NFC field capture">
   &nbsp;
+  <img src="images/screen_hunt.png"     width="30%" alt="Leak Hunt — sweeping onto the leak">
+</p>
+<p align="center">
+  <img src="images/screen_results.png"  width="30%" alt="Saved results log">
+  &nbsp;
   <img src="images/screen_menu.png"     width="30%" alt="Menu">
+  &nbsp;
+  <img src="images/screen_settings.png" width="30%" alt="Settings">
 </p>
 <p align="center">
   <sub><b>1. Baseline</b> — open air &nbsp;·&nbsp; <b>2. Shielded</b> — in the pouch &nbsp;·&nbsp;
   <b>3. Verdict</b> — the dB drop, graded &nbsp;·&nbsp; a pouch that <b>fails</b> &nbsp;·&nbsp;
-  <b>NFC</b> mode &nbsp;·&nbsp; <b>Menu</b></sub>
+  <b>NFC</b> mode &nbsp;·&nbsp; <b>Leak Hunt</b> &nbsp;·&nbsp; <b>Saved results</b> &nbsp;·&nbsp;
+  <b>Menu</b> &nbsp;·&nbsp; <b>Settings</b></sub>
 </p>
 
 ---
@@ -59,6 +67,12 @@
   868.35 / 915 MHz). **NFC** for the 13.56 MHz reader field that skims contactless cards.
 - 🎯 **Two taps, start to finish.** Capture baseline → seal the pouch → capture again. The peak-hold
   does the work; you just press **OK** twice.
+- 🔦 **Leak Hunt finds *where* it leaks.** A grade tells you a pouch is bad. Leak Hunt tells you the
+  seam. Seal your fob, hold its button, sweep the Flipper along the edges — the meter, the
+  `COLD → COOL → WARM → HOT → BLAZING` word and the geiger clicks all peak over the escaping spot.
+- 💾 **Saved results.** Every finished test is appended to a CSV on the SD card with a timestamp, so
+  you can measure three pouches in a shop and compare them properly instead of trusting memory.
+- ⚙️ **Settings stick.** Band, sound and LED survive a reboot.
 - 🧾 **It admits what it can't see.** If the shielded signal falls **below the noise floor**, Faraday
   reports **`>= 54 dB`** rather than pretending to a precision it doesn't have.
 - 🚫 **It refuses bad data.** Press OK before your fob has actually transmitted and it buzzes and
@@ -163,6 +177,23 @@ make -C test    # run the grading-engine unit tests on your machine
 > the fob 20 cm further away for the second capture, you'll measure the inverse-square law, not
 > the pouch. When in doubt, tape the fob and the Flipper down.
 
+### Finding the leak (Leak Hunt)
+
+Once you know a pouch leaks, this tells you where — usually the seam, the fold, or a worn corner.
+
+1. Seal the fob in the pouch and **hold its button down** so it keeps transmitting.
+2. **Leak hunt (Sub-GHz)**, then sweep the Flipper slowly along the pouch: every edge, the zip or
+   fold, each corner.
+3. Follow the word and the clicks: `COLD → COOL → WARM → HOT → BLAZING`. The rolling trace at the
+   bottom shows the shape of the sweep you just made, so a spike tells you to go back a centimetre.
+4. Press **OK** to reset the peak and re-sweep a spot cleanly.
+
+### Comparing pouches (Saved results)
+
+Every finished test is written to `/ext/apps_data/faraday/results.csv` with a timestamp.
+**Saved results** shows the most recent 20 on-device, newest first. Pull the CSV off with qFlipper
+to compare pouches in a spreadsheet — or delete the file there to start a fresh log.
+
 ---
 
 ## 🔬 Honest limitations
@@ -182,6 +213,11 @@ make -C test    # run the grading-engine unit tests on your machine
   will report *NFC busy*.
 - **A pouch can pass here and still fail elsewhere.** A bag that blocks 433 MHz beautifully may leak
   at 868 MHz or at 13.56 MHz. Test the band you actually care about.
+- **Leak Hunt is comparative, and needs a fob that keeps transmitting.** It shows you where the
+  signal is *strongest*, relative to the noise floor — not an absolute leak rating. Most fobs stop
+  transmitting after a few seconds, so tap the button repeatedly as you sweep. And RF is reflective:
+  a "hot spot" can occasionally be a reflection off something nearby rather than the seam itself,
+  so confirm a find by sweeping it twice from different angles.
 
 ---
 
@@ -195,11 +231,17 @@ clones and never reads a card. Use it on **your own** keys, cards and pouches, o
 
 ## 🗺️ Roadmap
 
-- [ ] Persist band / sound / LED across reboots
-- [ ] Save test results to the SD card (CSV) to compare pouches over time
-- [ ] Sweep every Sub-GHz band in one run for a per-band shielding profile
-- [ ] A "leak hunt" mode that finds *where* on the seam a pouch leaks
+- [x] Persist band / sound / LED across reboots — *v1.1*
+- [x] Save test results to the SD card (CSV) to compare pouches over time — *v1.1*
+- [x] A "leak hunt" mode that finds *where* on the seam a pouch leaks — *v1.1*
 - [ ] Optional averaged multi-press capture for a tighter baseline
+- [ ] On-device comparison of two logged results side by side
+- [ ] Investigate an LF (125 kHz) coil-based sense as a separate mode
+
+> **Dropped:** *"sweep every Sub-GHz band in one run for a per-band profile."* It sounds good and
+> isn't physically meaningful — your fob transmits on **one** band, so the other three would just
+> measure ambient noise and report a flattering, meaningless attenuation. To profile a pouch across
+> bands you need a different transmitter per band, which is a separate test each time.
 
 ---
 
@@ -212,10 +254,12 @@ Faraday-FlipperZero/
 ├── helpers/
 │   ├── fdy_subghz.{c,h}         # CC1101 RSSI probe (dBm, peak-hold, noise floor)
 │   ├── fdy_nfc.{c,h}            # ST25R3916 field-detect probe (carrier duty-cycle)
+│   ├── fdy_store.{c,h}          # settings persistence + CSV result log
 │   └── fdy_grade.{c,h}          # pure grading engine — no Flipper deps, host-tested
 ├── views/
-│   └── meter_view.{c,h}         # capture meter + verdict card (both radios)
-├── scenes/                      # start · subghz · nfc · settings · about
+│   ├── meter_view.{c,h}         # capture meter + verdict card (both radios)
+│   └── hunt_view.{c,h}          # leak-hunt sweep meter + rolling trace
+├── scenes/                      # start · subghz · nfc · hunt · results · settings · about
 ├── test/                        # host unit tests for the grading engine
 ├── icons/                       # 1-bit Flipper icons (generated)
 ├── images/                      # banner + screen mockups (generated)

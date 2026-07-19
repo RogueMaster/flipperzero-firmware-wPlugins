@@ -16,27 +16,24 @@
 #include "helpers/fdy_subghz.h"
 #include "helpers/fdy_nfc.h"
 #include "helpers/fdy_grade.h"
+#include "helpers/fdy_store.h" // also defines FaradaySettings
 #include "views/meter_view.h"
+#include "views/hunt_view.h"
 #include "scenes/faraday_scene.h"
 
-#define FARADAY_VERSION "1.0"
+#define FARADAY_VERSION "1.1"
 
 typedef enum {
     FaradayViewSubmenu,
     FaradayViewMeter,
+    FaradayViewHunt,
     FaradayViewSettings,
     FaradayViewAbout,
 } FaradayViewId;
 
 typedef enum {
-    FaradayCustomEventOk = 100, // OK pressed on the meter screen
+    FaradayCustomEventOk = 100, // OK pressed on the meter / hunt screen
 } FaradayCustomEvent;
-
-typedef struct {
-    uint8_t band_index; // index into fdy_bands
-    bool sound;
-    bool led;
-} FaradaySettings;
 
 /** State of the running two-step test, shared by both radio scenes. */
 typedef struct {
@@ -64,12 +61,15 @@ typedef struct {
     Widget* widget;
 
     MeterView* meter_view;
+    HuntView* hunt_view;
 
     FdySubGhz* subghz;
     FdyNfc* nfc;
 
     FaradaySettings settings;
     FdyTest test;
+
+    uint32_t last_click_tick; // paces the leak-hunt geiger clicks
 } FaradayApp;
 
 /* test-flow helpers (defined in faraday.c) */
@@ -79,3 +79,7 @@ void fdy_test_reset(FdyTest* t);
 void faraday_notify_lock(FaradayApp* app); // a reference was captured
 void faraday_notify_reject(FaradayApp* app); // nothing to capture yet
 void faraday_notify_verdict(FaradayApp* app, uint8_t rating);
+void faraday_notify_click(FaradayApp* app); // single leak-hunt geiger tick
+
+/* Log a finished test (defined in faraday.c). */
+void faraday_log_result(FaradayApp* app, bool is_nfc, uint32_t frequency);

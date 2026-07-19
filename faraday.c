@@ -52,6 +52,12 @@ static const NotificationSequence seq_led_fail = {
     &message_red_0,
     NULL,
 };
+static const NotificationSequence seq_snd_click = {
+    &message_note_c7,
+    &message_delay_10,
+    &message_sound_off,
+    NULL,
+};
 
 void faraday_notify_lock(FaradayApp* app) {
     furi_assert(app);
@@ -82,6 +88,28 @@ void faraday_notify_verdict(FaradayApp* app, uint8_t rating) {
         else
             notification_message(app->notifications, &seq_snd_fail);
     }
+}
+
+void faraday_notify_click(FaradayApp* app) {
+    furi_assert(app);
+    if(app->settings.sound) notification_message(app->notifications, &seq_snd_click);
+}
+
+/* ---------------- result log ---------------- */
+void faraday_log_result(FaradayApp* app, bool is_nfc, uint32_t frequency) {
+    furi_assert(app);
+    const FdyTest* t = &app->test;
+
+    FdyResult r = {
+        .is_nfc = is_nfc,
+        .frequency = frequency,
+        .base_value = t->base_value,
+        .shield_value = t->shield_value,
+        .atten = t->atten,
+        .floored = t->atten_floored,
+        .rating = t->rating,
+    };
+    fdy_store_result_append(&r);
 }
 
 /* ---------------- test state ---------------- */
@@ -124,10 +152,12 @@ static FaradayApp* faraday_app_alloc(void) {
         app->view_dispatcher, faraday_back_event_callback);
     view_dispatcher_set_tick_event_callback(app->view_dispatcher, faraday_tick_event_callback, 100);
 
-    // defaults
+    // defaults, then whatever was saved last run (load leaves these alone if
+    // there is no valid file)
     app->settings.band_index = 1; // 433.92 MHz
     app->settings.sound = true;
     app->settings.led = true;
+    fdy_store_settings_load(&app->settings);
     fdy_test_reset(&app->test);
 
     app->subghz = fdy_subghz_alloc(app->view_dispatcher);
@@ -150,6 +180,11 @@ static FaradayApp* faraday_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, FaradayViewMeter, meter_view_get_view(app->meter_view));
 
+    // the leak-hunt screen
+    app->hunt_view = hunt_view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, FaradayViewHunt, hunt_view_get_view(app->hunt_view));
+
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     return app;
@@ -161,15 +196,19 @@ static void faraday_app_free(FaradayApp* app) {
     fdy_subghz_stop(app->subghz);
     fdy_nfc_stop(app->nfc);
 
+    fdy_store_settings_save(&app->settings);
+
     view_dispatcher_remove_view(app->view_dispatcher, FaradayViewSubmenu);
     view_dispatcher_remove_view(app->view_dispatcher, FaradayViewSettings);
     view_dispatcher_remove_view(app->view_dispatcher, FaradayViewAbout);
     view_dispatcher_remove_view(app->view_dispatcher, FaradayViewMeter);
+    view_dispatcher_remove_view(app->view_dispatcher, FaradayViewHunt);
 
     submenu_free(app->submenu);
     variable_item_list_free(app->var_item_list);
     widget_free(app->widget);
     meter_view_free(app->meter_view);
+    hunt_view_free(app->hunt_view);
 
     view_dispatcher_free(app->view_dispatcher);
     scene_manager_free(app->scene_manager);

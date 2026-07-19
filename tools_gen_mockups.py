@@ -187,11 +187,77 @@ def render_verdict(
     save(img, name)
 
 
+def render_hunt(name, *, band, rssi, floor, level, peak_norm, history):
+    """Mirrors views/hunt_view.c."""
+    img, d = canvas()
+    text(d, 2, 9, "LEAK HUNT", f_sec)
+    text(d, 126, 9, band, f_sec, anchor="rs")
+    line(d, 0, 11, 127, 11)
+
+    margin = max(0, rssi - floor)
+    word = (
+        "BLAZING" if margin >= 30
+        else "HOT" if margin >= 18
+        else "WARM" if margin >= 10
+        else "COOL" if margin >= 4
+        else "COLD"
+    )
+    d.text((L(64), L(20)), word, font=f_pri, fill=FG, anchor="mm")
+    if margin >= 30:
+        w = tw(word, f_pri)
+        frame(d, 64 - w / 2 - 4, 13, w + 8, 14)
+
+    # live bar + peak tick
+    frame(d, 2, 29, 124, 11)
+    fw = (120 * min(level, 100)) // 100
+    if fw > 0:
+        box(d, 4, 31, fw, 7)
+    px = 4 + (120 * min(peak_norm, 100)) // 100
+    line(d, px, 28, px, 40)
+
+    # rolling trace
+    for k in range(62):
+        v = history[(len(history) - 1 - k) % len(history)]
+        x = 126 - k * 2
+        y = 51 - (v * 11) // 100
+        if y < 51:
+            line(d, x, 51, x, y, FG, w=S)
+        else:
+            d.rectangle([L(x), L(51), L(x) + S - 1, L(51) + S - 1], fill=FG)
+
+    box(d, 0, 53, 128, 11)
+    text(d, 3, 62, f"{rssi} dBm  +{margin}", f_sec, BG)
+    text(d, 125, 62, "OK reset", f_sec, BG, anchor="rs")
+    save(img, name)
+
+
+def render_results():
+    """The stock text-scroll widget, showing the saved log."""
+    img, d = canvas()
+    rows = [
+        ("A  >=54 dB", True),
+        ("433.92", False),
+        ("07-18 14:32  (-42 to -96)", False),
+        ("F  7 dB", True),
+        ("433.92", False),
+        ("07-18 14:29  (-42 to -49)", False),
+        ("A+  99 %", True),
+    ]
+    y = 9
+    for txt, bold in rows:
+        text(d, 2, y, txt, f_pri if bold else f_sec)
+        y += 8
+    # scrollbar
+    box(d, 125, 0, 3, 64, (200, 100, 0))
+    box(d, 125, 0, 3, 26)
+    save(img, "screen_results.png")
+
+
 def render_menu():
     img, d = canvas()
     text(d, 4, 11, "Faraday", f_pri)
     line(d, 0, 14, 127, 14)
-    items = ["Test Sub-GHz (key fob)", "Test NFC (card)", "Settings", "About"]
+    items = ["Test Sub-GHz (key fob)", "Test NFC (card)", "Leak hunt (Sub-GHz)", "Saved results"]
     ROW_H = 12
     for i, it in enumerate(items):
         y = 15 + i * ROW_H
@@ -270,6 +336,22 @@ if __name__ == "__main__":
     render_capture(
         "screen_nfc.png", is_nfc=True, phase=0, level=86, peak=91, live=86, signal_ok=True
     )
+    # Leak hunt: swept onto the seam where the pouch is escaping
+    HUNT_HIST = [
+        4, 6, 3, 8, 5, 2, 7, 4, 9, 6, 3, 8, 5, 11, 7, 4, 9, 6, 14, 8, 5, 12, 18, 9,
+        6, 15, 22, 11, 7, 19, 28, 14, 9, 24, 35, 17, 11, 30, 44, 21, 13, 38, 55, 26,
+        16, 47, 68, 32, 20, 58, 82, 39, 24, 71, 95, 47, 29, 84, 99, 56, 34, 92, 100, 62,
+    ]
+    render_hunt(
+        "screen_hunt.png",
+        band="433.92 MHz",
+        rssi=-58,
+        floor=-96,
+        level=62,
+        peak_norm=78,
+        history=HUNT_HIST,
+    )
+    render_results()
     render_menu()
     render_settings()
 
@@ -279,6 +361,8 @@ if __name__ == "__main__":
         "screen_verdict.png",
         "screen_fail.png",
         "screen_nfc.png",
+        "screen_hunt.png",
+        "screen_results.png",
         "screen_menu.png",
         "screen_settings.png",
     )

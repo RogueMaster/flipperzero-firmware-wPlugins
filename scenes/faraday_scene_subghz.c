@@ -70,6 +70,10 @@ bool faraday_scene_subghz_on_event(void* context, SceneManagerEvent event) {
                 t->rating = (uint8_t)fdy_grade_db(t->atten);
                 t->phase = FdyPhaseVerdict;
 
+                uint8_t bi = app->settings.band_index;
+                if(bi >= FDY_BAND_COUNT) bi = 1;
+                faraday_log_result(app, false, fdy_bands[bi].frequency);
+
                 faraday_notify_verdict(app, t->rating);
             } else { // verdict -> run it again
                 fdy_test_reset(t);

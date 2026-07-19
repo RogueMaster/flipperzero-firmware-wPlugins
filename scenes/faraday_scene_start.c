@@ -3,6 +3,8 @@
 typedef enum {
     StartIndexSubGhz,
     StartIndexNfc,
+    StartIndexHunt,
+    StartIndexResults,
     StartIndexSettings,
     StartIndexAbout,
 } StartIndex;
@@ -22,6 +24,10 @@ void faraday_scene_start_on_enter(void* context) {
         submenu, "Test Sub-GHz (key fob)", StartIndexSubGhz, faraday_scene_start_submenu_cb, app);
     submenu_add_item(
         submenu, "Test NFC (card)", StartIndexNfc, faraday_scene_start_submenu_cb, app);
+    submenu_add_item(
+        submenu, "Leak hunt (Sub-GHz)", StartIndexHunt, faraday_scene_start_submenu_cb, app);
+    submenu_add_item(
+        submenu, "Saved results", StartIndexResults, faraday_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Settings", StartIndexSettings, faraday_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "About", StartIndexAbout, faraday_scene_start_submenu_cb, app);
 
@@ -44,6 +50,14 @@ bool faraday_scene_start_on_event(void* context, SceneManagerEvent event) {
             break;
         case StartIndexNfc:
             scene_manager_next_scene(app->scene_manager, FaradaySceneNfc);
+            consumed = true;
+            break;
+        case StartIndexHunt:
+            scene_manager_next_scene(app->scene_manager, FaradaySceneHunt);
+            consumed = true;
+            break;
+        case StartIndexResults:
+            scene_manager_next_scene(app->scene_manager, FaradaySceneResults);
             consumed = true;
             break;
         case StartIndexSettings:
