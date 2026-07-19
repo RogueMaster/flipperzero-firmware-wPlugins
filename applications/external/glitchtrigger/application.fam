@@ -1,0 +1,15 @@
+App(
+    appid="glitch_trigger",
+    name="Glitch Trigger",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="glitch_trigger_app",
+    stack_size=4 * 1024,
+    fap_category="GPIO",
+    fap_icon="icons/glitch_10px.png",
+    fap_icon_assets="icons",
+    fap_author="at0m-b0mb",
+    fap_weburl="https://github.com/at0m-b0mb/GlitchTrigger-FlipperZero",
+    fap_version="1.0",
+    fap_description="A precise, configurable GPIO pulse generator for voltage-glitch / fault-injection study on your own dev boards. Set the trigger-to-glitch delay, pulse width, burst count/gap and polarity, then fire manually, from a hardware edge (external trigger, interrupt-driven), or free-running. Timing is cycle-accurate (Cortex-M4 DWT, interrupts masked). A width Sweep mode walks the pulse across a range to hunt the fault window, and an on-device Wiring diagram shows the MOSFET-crowbar hook-up. Educational hardware-security tool - for boards you own and are authorised to test.",
+    requires=["gui"],
+)

@@ -1,0 +1,7 @@
+ADD_SCENE(glitch, start, Start)
+ADD_SCENE(glitch, params, Params)
+ADD_SCENE(glitch, trigger, Trigger)
+ADD_SCENE(glitch, sweep, Sweep)
+ADD_SCENE(glitch, wiring, Wiring)
+ADD_SCENE(glitch, settings, Settings)
+ADD_SCENE(glitch, about, About)
