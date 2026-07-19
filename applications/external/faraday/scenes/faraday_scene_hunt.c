@@ -7,7 +7,7 @@
 /* Click pacing: fastest when the leak is blazing, slowest when barely warm. */
 #define FDY_CLICK_SLOW_MS 420
 #define FDY_CLICK_FAST_MS 70
-#define FDY_CLICK_PER_DB 11
+#define FDY_CLICK_PER_DB  11
 
 static char hunt_band_label[16]; // static: HuntData holds the pointer
 

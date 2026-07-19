@@ -4,11 +4,11 @@
 #include <stdio.h>
 
 #define RADAR_MAX_BLIPS 24
-#define RADAR_2PI 6.28318530718f
+#define RADAR_2PI       6.28318530718f
 
 #define CX 32
 #define CY 35
-#define R 20
+#define R  20
 
 struct RadarView {
     View* view;
@@ -158,7 +158,8 @@ void radar_view_set_data(
         RadarModel * m,
         {
             size_t n = blip_count < RADAR_MAX_BLIPS ? blip_count : RADAR_MAX_BLIPS;
-            for(size_t i = 0; i < n; i++) m->blips[i] = blips[i];
+            for(size_t i = 0; i < n; i++)
+                m->blips[i] = blips[i];
             m->blip_count = n;
             m->seen = seen;
             m->following = following;

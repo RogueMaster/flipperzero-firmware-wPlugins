@@ -6,7 +6,7 @@ static const char* const follow_labels[] = {"1 min", "3 min", "5 min", "10 min"}
 static const uint32_t follow_minutes[] = {1, 3, 5, 10};
 static const char* const on_off[] = {"OFF", "ON"};
 
-#define SENS_COUNT 3
+#define SENS_COUNT   3
 #define FOLLOW_COUNT 4
 
 int8_t ghosttag_settings_rssi_cutoff(const GhostTagSettings* s) {

@@ -40,7 +40,9 @@ def line(d, x0, y0, x1, y1, col=FG, w=2):
 
 
 def circle(d, cx, cy, r, col=FG, w=2):
-    d.ellipse([L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], outline=col, width=w)
+    d.ellipse(
+        [L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], outline=col, width=w
+    )
 
 
 def disc(d, cx, cy, r, col=FG):
@@ -229,7 +231,12 @@ if __name__ == "__main__":
     render_log()
 
     # combined strip for the README
-    names = ("screen_watch.png", "screen_attack.png", "screen_twins.png", "screen_log.png")
+    names = (
+        "screen_watch.png",
+        "screen_attack.png",
+        "screen_twins.png",
+        "screen_log.png",
+    )
     imgs = [Image.open(os.path.join(OUT, n)) for n in names]
     pad = 18
     strip = Image.new(

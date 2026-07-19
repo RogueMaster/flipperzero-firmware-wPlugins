@@ -8,10 +8,10 @@
 #define WAVE_PX_PER_BIT (3)
 #define WAVE_MAX_SEG_PX (30) // stop idle stretches from eating the window
 
-#define WAVE_X0 (4)
-#define WAVE_X1 (123)
+#define WAVE_X0     (4)
+#define WAVE_X1     (123)
 #define WAVE_Y_HIGH (17)
-#define WAVE_Y_LOW (33)
+#define WAVE_Y_LOW  (33)
 
 typedef struct {
     DetectPhase phase;

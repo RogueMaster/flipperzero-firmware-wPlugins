@@ -49,7 +49,7 @@ void trident_link_ensure(TridentApp* app) {
     marauder_uart_set_channel(
         app->uart,
         app->settings.uart_channel == TridentUartLpuart ? MarauderUartChannelLpuart :
-                                                           MarauderUartChannelUsart);
+                                                          MarauderUartChannelUsart);
     app->last_rx_tick = 0;
     marauder_uart_start(app->uart);
 }
@@ -109,8 +109,7 @@ void trident_prompt(
         after_title ? after_title : "",
         sizeof(app->input_after_title) - 1);
     app->input_after_title[sizeof(app->input_after_title) - 1] = '\0';
-    strncpy(
-        app->input_after_cmd, after_cmd ? after_cmd : "", sizeof(app->input_after_cmd) - 1);
+    strncpy(app->input_after_cmd, after_cmd ? after_cmd : "", sizeof(app->input_after_cmd) - 1);
     app->input_after_cmd[sizeof(app->input_after_cmd) - 1] = '\0';
     scene_manager_next_scene(app->scene_manager, TridentSceneInput);
 }
@@ -180,9 +179,7 @@ static TridentApp* trident_app_alloc(void) {
 
     app->var_item_list = variable_item_list_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher,
-        TridentViewVarList,
-        variable_item_list_get_view(app->var_item_list));
+        app->view_dispatcher, TridentViewVarList, variable_item_list_get_view(app->var_item_list));
 
     app->text_input = text_input_alloc();
     view_dispatcher_add_view(

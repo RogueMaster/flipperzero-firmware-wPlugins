@@ -13,7 +13,7 @@
 #define GLITCH_CRIT_CAP_US 1000u
 /* From an ISR we cannot furi_delay for the coarse part, so cap the whole
  * in-interrupt fine delay. External-trigger campaigns use small delays anyway. */
-#define GLITCH_ISR_MAX_US 1000u
+#define GLITCH_ISR_MAX_US  1000u
 
 /* Index -> GpioPin*. Order MUST match glitch_pins[] in glitch_config.c. */
 static const GpioPin* const glitch_gpio[] = {
@@ -180,8 +180,8 @@ void glitch_engine_arm_external(GlitchEngine* e, const GlitchParams* p) {
     const bool active = (p->polarity == GlitchPolarityActiveHigh);
     if(e->out) furi_hal_gpio_write(e->out, !active);
 
-    const GpioMode mode =
-        (p->ext_edge == GlitchEdgeRising) ? GpioModeInterruptRise : GpioModeInterruptFall;
+    const GpioMode mode = (p->ext_edge == GlitchEdgeRising) ? GpioModeInterruptRise :
+                                                              GpioModeInterruptFall;
     const GpioPull pull = (p->ext_edge == GlitchEdgeRising) ? GpioPullDown : GpioPullUp;
 
     furi_hal_gpio_init(e->in, mode, pull, GpioSpeedVeryHigh);

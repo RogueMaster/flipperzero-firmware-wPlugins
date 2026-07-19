@@ -141,7 +141,8 @@ void glitch_scene_params_on_enter(void* context) {
 
     idx = glitch_ladder_nearest_u32(
         glitch_ladder_width_ns, glitch_ladder_width_len, p->sweep_from_ns);
-    item = variable_item_list_add(list, "Sweep from", glitch_ladder_width_len, item_sweep_from, app);
+    item =
+        variable_item_list_add(list, "Sweep from", glitch_ladder_width_len, item_sweep_from, app);
     variable_item_set_current_value_index(item, idx);
     glitch_fmt_ns(glitch_ladder_width_ns[idx], b, sizeof(b));
     variable_item_set_current_value_text(item, b);
@@ -155,7 +156,8 @@ void glitch_scene_params_on_enter(void* context) {
 
     idx = glitch_ladder_nearest_u32(
         glitch_ladder_width_ns, glitch_ladder_width_len, p->sweep_step_ns);
-    item = variable_item_list_add(list, "Sweep step", glitch_ladder_width_len, item_sweep_step, app);
+    item =
+        variable_item_list_add(list, "Sweep step", glitch_ladder_width_len, item_sweep_step, app);
     variable_item_set_current_value_index(item, idx);
     glitch_fmt_ns(glitch_ladder_width_ns[idx], b, sizeof(b));
     variable_item_set_current_value_text(item, b);

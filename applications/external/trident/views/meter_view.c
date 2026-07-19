@@ -11,12 +11,12 @@
  *   y 50..57  sub label (frequency / channel)
  *   y 58..63  footer hint
  */
-#define METER_SEGS   24
-#define METER_X0     3
-#define METER_SEG_W  4
+#define METER_SEGS    24
+#define METER_X0      3
+#define METER_SEG_W   4
 #define METER_SEG_GAP 1
-#define METER_Y      39
-#define METER_H      9
+#define METER_Y       39
+#define METER_H       9
 
 struct MeterView {
     View* view;
@@ -124,8 +124,7 @@ MeterView* meter_view_alloc(void) {
     view_set_draw_callback(v->view, meter_view_draw);
     view_set_input_callback(v->view, meter_view_input);
     view_allocate_model(v->view, ViewModelTypeLocking, sizeof(MeterModel));
-    with_view_model(
-        v->view, MeterModel * m, { memset(m, 0, sizeof(MeterModel)); }, false);
+    with_view_model(v->view, MeterModel * m, { memset(m, 0, sizeof(MeterModel)); }, false);
     return v;
 }
 

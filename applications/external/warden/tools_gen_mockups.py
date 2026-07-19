@@ -44,8 +44,12 @@ def finish(img, name):
     pad = 20
     canvas = Image.new("RGB", (W * SCALE + pad * 2, H * SCALE + pad * 2), BEZEL)
     d = ImageDraw.Draw(canvas)
-    d.rounded_rectangle([6, 6, canvas.width - 6, canvas.height - 6], radius=16,
-                        outline=BEZEL_HI, width=3)
+    d.rounded_rectangle(
+        [6, 6, canvas.width - 6, canvas.height - 6],
+        radius=16,
+        outline=BEZEL_HI,
+        width=3,
+    )
     canvas.paste(up, (pad, pad))
     path = os.path.join(OUT, name)
     canvas.save(path)
@@ -100,7 +104,12 @@ def m_grade(fname, title, letter, band, score):
     ctext(d, 82, 15, band, SEC, fill=ORANGE)
     # score
     d.text((40, 27), str(score), font=BIG, fill=INK)
-    d.text((40 + int(d.textlength(str(score), font=BIG)) + 3, 34), "/100", font=SEC, fill=INK)
+    d.text(
+        (40 + int(d.textlength(str(score), font=BIG)) + 3, 34),
+        "/100",
+        font=SEC,
+        fill=INK,
+    )
     # meter
     d.rectangle([2, 50, 125, 55], outline=INK, width=1)
     fillw = int(120 * score / 100)

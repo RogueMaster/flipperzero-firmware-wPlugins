@@ -150,7 +150,8 @@ static FaradayApp* faraday_app_alloc(void) {
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, faraday_custom_event_callback);
     view_dispatcher_set_navigation_event_callback(
         app->view_dispatcher, faraday_back_event_callback);
-    view_dispatcher_set_tick_event_callback(app->view_dispatcher, faraday_tick_event_callback, 100);
+    view_dispatcher_set_tick_event_callback(
+        app->view_dispatcher, faraday_tick_event_callback, 100);
 
     // defaults, then whatever was saved last run (load leaves these alone if
     // there is no valid file)
@@ -170,7 +171,9 @@ static FaradayApp* faraday_app_alloc(void) {
 
     app->var_item_list = variable_item_list_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher, FaradayViewSettings, variable_item_list_get_view(app->var_item_list));
+        app->view_dispatcher,
+        FaradayViewSettings,
+        variable_item_list_get_view(app->var_item_list));
 
     app->widget = widget_alloc();
     view_dispatcher_add_view(app->view_dispatcher, FaradayViewAbout, widget_get_view(app->widget));

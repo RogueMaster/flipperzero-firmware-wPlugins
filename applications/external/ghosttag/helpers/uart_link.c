@@ -6,10 +6,10 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define UART_BAUD 115200
+#define UART_BAUD           115200
 #define UART_RX_STREAM_SIZE 512
-#define UART_LINE_MAX 96
-#define UART_WORKER_STACK 1536
+#define UART_LINE_MAX       96
+#define UART_WORKER_STACK   1536
 
 #define WORKER_FLAG_STOP (1u << 0)
 #define WORKER_FLAG_DATA (1u << 1)
@@ -135,10 +135,8 @@ static int32_t uart_link_worker(void* context) {
     return 0;
 }
 
-static void uart_link_rx_isr(
-    FuriHalSerialHandle* handle,
-    FuriHalSerialRxEvent event,
-    void* context) {
+static void
+    uart_link_rx_isr(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* context) {
     UartLink* link = context;
     if(event == FuriHalSerialRxEventData) {
         uint8_t data = furi_hal_serial_async_rx(handle);

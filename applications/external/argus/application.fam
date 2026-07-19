@@ -4,12 +4,11 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="argus_app",
     stack_size=8 * 1024,
-    fap_category="GPIO",
     fap_icon="icons/argus_10px.png",
     fap_icon_assets="icons",
+    fap_category="GPIO",
     fap_author="at0m-b0mb",
     fap_weburl="https://github.com/at0m-b0mb/Argus-FlipperZero",
     fap_version="1.0",
     fap_description="Wi-Fi guardian: watches your network for deauth/disassoc attacks and rogue evil-twin APs cloning your SSID. Needs the WiFi devboard (ESP32) over GPIO/UART.",
-    requires=["gui"],
 )

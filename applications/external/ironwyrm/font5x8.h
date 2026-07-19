@@ -2,8 +2,8 @@
 
 #include <stdint.h>
 
-#define FONT5X8_WIDTH 5
-#define FONT5X8_HEIGHT 8
+#define FONT5X8_WIDTH       5
+#define FONT5X8_HEIGHT      8
 #define FONT5X8_GLYPH_COUNT 45
 
 static const uint8_t font5x8[FONT5X8_GLYPH_COUNT][FONT5X8_HEIGHT] = {
@@ -68,15 +68,25 @@ static inline int Font5x8GlyphIndex(char character) {
     }
 
     switch((unsigned char)character) {
-    case ':': return 36;
-    case ',': return 37;
-    case '-': return 38;
-    case '!': return 39;
-    case 0xA3: return 40;
-    case '.': return 41;
-    case '?': return 42;
-    case '\'': return 43;
-    case '\xA2': return 44;
-    default: return -1;
+    case ':':
+        return 36;
+    case ',':
+        return 37;
+    case '-':
+        return 38;
+    case '!':
+        return 39;
+    case 0xA3:
+        return 40;
+    case '.':
+        return 41;
+    case '?':
+        return 42;
+    case '\'':
+        return 43;
+    case '\xA2':
+        return 44;
+    default:
+        return -1;
     }
 }

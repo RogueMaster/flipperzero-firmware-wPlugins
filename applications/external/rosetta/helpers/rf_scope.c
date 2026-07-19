@@ -7,10 +7,10 @@
 #include <lib/subghz/devices/cc1101_int/cc1101_int_interconnect.h>
 #include <string.h>
 
-#define RF_FLOOR_DBM (-95) // maps to level 0
-#define RF_CEIL_DBM  (-40) // maps to RF_SCOPE_MAX
-#define RF_SETTLE_US 250u // PLL settle after parking on the frequency
-#define RF_SAMPLE_US 350u // per-sample dwell
+#define RF_FLOOR_DBM    (-95) // maps to level 0
+#define RF_CEIL_DBM     (-40) // maps to RF_SCOPE_MAX
+#define RF_SETTLE_US    250u // PLL settle after parking on the frequency
+#define RF_SAMPLE_US    350u // per-sample dwell
 #define RF_WORKER_STACK (2 * 1024)
 
 typedef struct {
@@ -60,7 +60,8 @@ static int32_t rf_worker(void* context) {
         s->snap.present = false;
         s->snap.freq_hz = freq;
         furi_mutex_release(s->mutex);
-        while(s->running) furi_delay_ms(100);
+        while(s->running)
+            furi_delay_ms(100);
         subghz_devices_deinit();
         return 0;
     }

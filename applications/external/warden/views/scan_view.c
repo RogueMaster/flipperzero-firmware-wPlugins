@@ -36,7 +36,8 @@ static void scan_view_draw(Canvas* canvas, void* model) {
     canvas_set_font(canvas, FontSecondary);
     char dots[4] = {0};
     int nd = (m->phase / 3) % 4;
-    for(int i = 0; i < nd; i++) dots[i] = '.';
+    for(int i = 0; i < nd; i++)
+        dots[i] = '.';
     char buf[20];
     snprintf(buf, sizeof(buf), "Reading NFC%s", dots);
     canvas_draw_str_aligned(canvas, cx, 49, AlignCenter, AlignTop, buf);

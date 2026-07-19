@@ -28,8 +28,7 @@ void hermes_scene_custombaud_on_enter(void* context) {
 bool hermes_scene_custombaud_on_event(void* context, SceneManagerEvent event) {
     HermesApp* app = context;
 
-    if(event.type == SceneManagerEventTypeCustom &&
-       event.event == HermesCustomEventBaudEntered) {
+    if(event.type == SceneManagerEventTypeCustom && event.event == HermesCustomEventBaudEntered) {
         /* The hardware has the final say on whether a divider exists for this
          * rate, so ask it rather than opening a link that cannot work. */
         FuriHalSerialHandle* handle =

@@ -7,8 +7,8 @@
 
 #define TAG "Faraday"
 
-#define FDY_SETTLE_US 1500 // RSSI settle after retuning
-#define FDY_SAMPLE_US 2000 // gap between RSSI reads (~500 Hz)
+#define FDY_SETTLE_US    1500 // RSSI settle after retuning
+#define FDY_SAMPLE_US    2000 // gap between RSSI reads (~500 Hz)
 #define FDY_WORKER_STACK (2 * 1024)
 
 /* Meter scale. -100 dBm reads empty (bare noise floor), -30 dBm pegs it - the

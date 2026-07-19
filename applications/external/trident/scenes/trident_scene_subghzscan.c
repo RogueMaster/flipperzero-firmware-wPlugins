@@ -19,8 +19,10 @@ void trident_scene_subghzscan_on_enter(void* context) {
     boot.running = true;
     strncpy(boot.title, "CC1101 Sub-GHz", sizeof(boot.title) - 1);
     strncpy(boot.peak_label, "starting...", sizeof(boot.peak_label) - 1);
-    const char* lo = trident_subghz_bands[app->settings.subghz_band % TRIDENT_SUBGHZ_BAND_COUNT].lo_label;
-    const char* hi = trident_subghz_bands[app->settings.subghz_band % TRIDENT_SUBGHZ_BAND_COUNT].hi_label;
+    const char* lo =
+        trident_subghz_bands[app->settings.subghz_band % TRIDENT_SUBGHZ_BAND_COUNT].lo_label;
+    const char* hi =
+        trident_subghz_bands[app->settings.subghz_band % TRIDENT_SUBGHZ_BAND_COUNT].hi_label;
     strncpy(boot.lo_label, lo, sizeof(boot.lo_label) - 1);
     strncpy(boot.hi_label, hi, sizeof(boot.hi_label) - 1);
     spectrum_view_set_snapshot(app->spectrum_view, &boot);

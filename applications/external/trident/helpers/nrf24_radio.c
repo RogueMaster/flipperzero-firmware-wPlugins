@@ -7,34 +7,34 @@
 #include <stdio.h>
 
 /* ---- nRF24L01+ SPI command / register map ---- */
-#define NRF_CMD_R_REGISTER  0x00
-#define NRF_CMD_W_REGISTER  0x20
+#define NRF_CMD_R_REGISTER   0x00
+#define NRF_CMD_W_REGISTER   0x20
 #define NRF_CMD_R_RX_PAYLOAD 0x61
-#define NRF_CMD_FLUSH_RX    0xE2
-#define NRF_CMD_FLUSH_TX    0xE1
-#define NRF_CMD_NOP         0xFF
+#define NRF_CMD_FLUSH_RX     0xE2
+#define NRF_CMD_FLUSH_TX     0xE1
+#define NRF_CMD_NOP          0xFF
 
-#define NRF_REG_CONFIG    0x00
-#define NRF_REG_EN_AA     0x01
-#define NRF_REG_EN_RXADDR 0x02
-#define NRF_REG_SETUP_AW  0x03
-#define NRF_REG_RF_CH     0x05
-#define NRF_REG_RF_SETUP  0x06
-#define NRF_REG_STATUS    0x07
-#define NRF_REG_RPD       0x09 // bit0 = carrier detected
+#define NRF_REG_CONFIG     0x00
+#define NRF_REG_EN_AA      0x01
+#define NRF_REG_EN_RXADDR  0x02
+#define NRF_REG_SETUP_AW   0x03
+#define NRF_REG_RF_CH      0x05
+#define NRF_REG_RF_SETUP   0x06
+#define NRF_REG_STATUS     0x07
+#define NRF_REG_RPD        0x09 // bit0 = carrier detected
 #define NRF_REG_RX_ADDR_P0 0x0A
-#define NRF_REG_RX_PW_P0  0x11
+#define NRF_REG_RX_PW_P0   0x11
 
-#define NRF_CONFIG_RX     0x03 // PWR_UP | PRIM_RX (CRC on by default bit3=0 here)
-#define NRF_CONFIG_SNIFF  0x03 // CRC disabled for promiscuous capture
-#define NRF_RF_SETUP_2M   0x0E // 2 Mbps, 0 dBm
+#define NRF_CONFIG_RX    0x03 // PWR_UP | PRIM_RX (CRC on by default bit3=0 here)
+#define NRF_CONFIG_SNIFF 0x03 // CRC disabled for promiscuous capture
+#define NRF_RF_SETUP_2M  0x0E // 2 Mbps, 0 dBm
 
-#define NRF_CHANNELS      126 // 0..125 -> 2400..2525 MHz
-#define NRF_DWELL_US      240 // sweep dwell per channel
-#define NRF_HIT_GAIN      26
-#define NRF_CAMP_SAMPLES  40 // RPD samples per camp publish
-#define NRF_SNIFF_PW      32 // promiscuous payload width
-#define NRF_WORKER_STACK  2048
+#define NRF_CHANNELS     126 // 0..125 -> 2400..2525 MHz
+#define NRF_DWELL_US     240 // sweep dwell per channel
+#define NRF_HIT_GAIN     26
+#define NRF_CAMP_SAMPLES 40 // RPD samples per camp publish
+#define NRF_SNIFF_PW     32 // promiscuous payload width
+#define NRF_WORKER_STACK 2048
 
 #define NRF_CE_PIN (&gpio_ext_pb2) // pin 6
 #define NRF_SPI    (&furi_hal_spi_bus_handle_external)
@@ -208,7 +208,8 @@ static int32_t nrf24_worker(void* context) {
 
     if(!nrf_present()) {
         nrf_mark_absent(radio);
-        while(radio->running) furi_delay_ms(100);
+        while(radio->running)
+            furi_delay_ms(100);
         furi_hal_gpio_init_simple(NRF_CE_PIN, GpioModeAnalog);
         return 0;
     }

@@ -9,7 +9,7 @@
 #include <nfc/protocols/iso14443_4a/iso14443_4a_poller.h>
 #include <bit_buffer.h>
 
-#define TAG "Warden"
+#define TAG     "Warden"
 #define POLL_MS 20u
 
 struct CardReader {
@@ -78,7 +78,8 @@ static NfcCommand card_reader_iso3a_cb(NfcGenericEvent event, void* context) {
 
         cr_lock(cr);
         if(uid_len > WARDEN_UID_MAX) uid_len = WARDEN_UID_MAX;
-        for(size_t i = 0; i < uid_len; i++) cr->tmp_uid[i] = uid[i];
+        for(size_t i = 0; i < uid_len; i++)
+            cr->tmp_uid[i] = uid[i];
         cr->tmp_uid_len = uid_len;
         cr->tmp_sak = sak;
         cr->tmp_atqa[0] = atqa[0];
@@ -101,9 +102,9 @@ static NfcCommand card_reader_iso3a_cb(NfcGenericEvent event, void* context) {
  * (SELECT PPSE, "2PAY.SYS.DDF01"). A card that answers 0x9000 is an EMV bank
  * card. We only SELECT the directory — we never read the PAN or any card data. */
 static bool card_reader_probe_emv(Iso14443_4aPoller* poller) {
-    static const uint8_t ppse_select[] = {
-        0x00, 0xA4, 0x04, 0x00, 0x0E, 0x32, 0x50, 0x41, 0x59, 0x2E, 0x53,
-        0x59, 0x53, 0x2E, 0x44, 0x44, 0x46, 0x30, 0x31, 0x00};
+    static const uint8_t ppse_select[] = {0x00, 0xA4, 0x04, 0x00, 0x0E, 0x32, 0x50,
+                                          0x41, 0x59, 0x2E, 0x53, 0x59, 0x53, 0x2E,
+                                          0x44, 0x44, 0x46, 0x30, 0x31, 0x00};
 
     BitBuffer* tx = bit_buffer_alloc(sizeof(ppse_select));
     BitBuffer* rx = bit_buffer_alloc(256);
@@ -150,7 +151,8 @@ static NfcCommand card_reader_iso4a_cb(NfcGenericEvent event, void* context) {
 
         cr_lock(cr);
         if(uid_len > WARDEN_UID_MAX) uid_len = WARDEN_UID_MAX;
-        for(size_t i = 0; i < uid_len; i++) cr->tmp_uid[i] = uid[i];
+        for(size_t i = 0; i < uid_len; i++)
+            cr->tmp_uid[i] = uid[i];
         cr->tmp_uid_len = uid_len;
         cr->tmp_sak = sak;
         cr->tmp_atqa[0] = atqa[0];
@@ -268,13 +270,15 @@ static int32_t card_reader_worker(void* context) {
     cr_lock(cr);
     size_t num = cr->scan_num;
     NfcProtocol stack[NfcProtocolNum];
-    for(size_t i = 0; i < num; i++) stack[i] = cr->scan_stack[i];
+    for(size_t i = 0; i < num; i++)
+        stack[i] = cr->scan_stack[i];
     cr_unlock(cr);
 
     CardReading r;
     memset(&r, 0, sizeof(r));
     r.protocol_num = num;
-    for(size_t i = 0; i < num; i++) r.stack[i] = stack[i];
+    for(size_t i = 0; i < num; i++)
+        r.stack[i] = stack[i];
     r.top = pick_top(stack, num);
     r.base = pick_base(stack, num);
 
@@ -294,7 +298,8 @@ static int32_t card_reader_worker(void* context) {
         if(cr->poll_ok) {
             r.has_iso3a = true;
             r.uid_len = cr->tmp_uid_len;
-            for(size_t i = 0; i < r.uid_len; i++) r.uid[i] = cr->tmp_uid[i];
+            for(size_t i = 0; i < r.uid_len; i++)
+                r.uid[i] = cr->tmp_uid[i];
             r.sak = cr->tmp_sak;
             r.atqa[0] = cr->tmp_atqa[0];
             r.atqa[1] = cr->tmp_atqa[1];
@@ -353,8 +358,7 @@ void card_reader_start(CardReader* cr) {
     cr->poll_done = false;
     cr_unlock(cr);
 
-    cr->thread =
-        furi_thread_alloc_ex("WardenReader", 4 * 1024, card_reader_worker, cr);
+    cr->thread = furi_thread_alloc_ex("WardenReader", 4 * 1024, card_reader_worker, cr);
     furi_thread_start(cr->thread);
 }
 

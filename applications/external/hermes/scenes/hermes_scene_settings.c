@@ -51,7 +51,8 @@ void hermes_scene_settings_on_enter(void* context) {
 
     variable_item_list_reset(list);
 
-    item = variable_item_list_add(list, "Port", HermesPortCount, hermes_settings_port_changed, app);
+    item =
+        variable_item_list_add(list, "Port", HermesPortCount, hermes_settings_port_changed, app);
     variable_item_set_current_value_index(item, app->port);
     variable_item_set_current_value_text(item, hermes_port_pins(app->port));
 

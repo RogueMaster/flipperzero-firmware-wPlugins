@@ -84,21 +84,12 @@ static int TextWidth(Canvas* canvas, const char* text, TextFont font) {
         return TextWidth5x8(text);
     }
 
-    canvas_set_font(
-        canvas,
-        font == TextFontPrimary ? FontPrimary : FontSecondary
-    );
+    canvas_set_font(canvas, font == TextFontPrimary ? FontPrimary : FontSecondary);
 
     return canvas_string_width(canvas, text);
 }
 
-static void DrawText(
-    Canvas* canvas,
-    int x,
-    int y,
-    const char* text,
-    TextFont font
-) {
+static void DrawText(Canvas* canvas, int x, int y, const char* text, TextFont font) {
     if(font == TextFont3x5) {
         while(*text != '\0') {
             if(*text != ' ') {
@@ -135,53 +126,20 @@ static void DrawText(
         return;
     }
 
-    canvas_set_font(
-        canvas,
-        font == TextFontPrimary ? FontPrimary : FontSecondary
-    );
+    canvas_set_font(canvas, font == TextFontPrimary ? FontPrimary : FontSecondary);
     canvas_draw_str(canvas, x, y, text);
 }
 
-static void DrawTextCentered(
-    Canvas* canvas,
-    int centreX,
-    int y,
-    const char* text,
-    TextFont font
-) {
-    DrawText(
-        canvas,
-        centreX - TextWidth(canvas, text, font) / 2,
-        y,
-        text,
-        font
-    );
+static void DrawTextCentered(Canvas* canvas, int centreX, int y, const char* text, TextFont font) {
+    DrawText(canvas, centreX - TextWidth(canvas, text, font) / 2, y, text, font);
 }
 
-static void DrawTextRight(
-    Canvas* canvas,
-    int rightX,
-    int y,
-    const char* text,
-    TextFont font
-) {
-    DrawText(
-        canvas,
-        rightX - TextWidth(canvas, text, font),
-        y,
-        text,
-        font
-    );
+static void DrawTextRight(Canvas* canvas, int rightX, int y, const char* text, TextFont font) {
+    DrawText(canvas, rightX - TextWidth(canvas, text, font), y, text, font);
 }
 
-static void DrawTextClipped(
-    Canvas* canvas,
-    int x,
-    int y,
-    const char* text,
-    int maximumX,
-    TextFont font
-) {
+static void
+    DrawTextClipped(Canvas* canvas, int x, int y, const char* text, int maximumX, TextFont font) {
     if(font == TextFont3x5) {
         while(*text != '\0' && x + FONT3X5_WIDTH - 1 <= maximumX) {
             if(*text != ' ') {
@@ -200,23 +158,12 @@ static void DrawTextClipped(
     }
 }
 
-static void DrawIntegerCentered(
-    Canvas* canvas,
-    int centreX,
-    int y,
-    int value
-) {
+static void DrawIntegerCentered(Canvas* canvas, int centreX, int y, int value) {
     char buffer[12];
 
     snprintf(buffer, sizeof(buffer), "%d", value);
 
-    DrawTextCentered(
-        canvas,
-        centreX,
-        y,
-        buffer,
-        TextFont3x5
-    );
+    DrawTextCentered(canvas, centreX, y, buffer, TextFont3x5);
 }
 
 static void DrawIntroParagraph(Canvas* canvas, const char* paragraph) {
@@ -265,13 +212,9 @@ static void DrawIntroParagraph(Canvas* canvas, const char* paragraph) {
         word[wordLength] = '\0';
 
         int wordWidth = TextWidth3x5(word);
-        int separatorWidth =
-            lineLength > 0 ? FONT3X5_WIDTH + 1 : 0;
+        int separatorWidth = lineLength > 0 ? FONT3X5_WIDTH + 1 : 0;
 
-        if(
-            lineLength > 0 &&
-            TextWidth3x5(line) + separatorWidth + wordWidth > ScreenWidth
-        ) {
+        if(lineLength > 0 && TextWidth3x5(line) + separatorWidth + wordWidth > ScreenWidth) {
             DrawText(canvas, 0, y, line, TextFont3x5);
 
             y += FONT3X5_HEIGHT + 1;
@@ -284,11 +227,7 @@ static void DrawIntroParagraph(Canvas* canvas, const char* paragraph) {
             line[lineLength++] = ' ';
         }
 
-        memcpy(
-            &line[lineLength],
-            word,
-            (size_t)wordLength + 1
-        );
+        memcpy(&line[lineLength], word, (size_t)wordLength + 1);
 
         lineLength += wordLength;
     }
@@ -298,30 +237,14 @@ static void DrawIntroParagraph(Canvas* canvas, const char* paragraph) {
     }
 }
 
-static void DrawIntroScreen(
-    Canvas* canvas,
-    const GameState* gameState
-) {
-    DrawIntroParagraph(
-        canvas,
-        introParagraphs[gameState->introParagraph]
-    );
+static void DrawIntroScreen(Canvas* canvas, const GameState* gameState) {
+    DrawIntroParagraph(canvas, introParagraphs[gameState->introParagraph]);
 
-    DrawTextRight(
-        canvas,
-        ScreenWidth,
-        59,
-        "PRESS OK TO CONTINUE",
-        TextFont3x5
-    );
+    DrawTextRight(canvas, ScreenWidth, 59, "PRESS OK TO CONTINUE", TextFont3x5);
 }
 
-static void GetPlateName(
-    const Plate* plate,
-    char* buffer,
-    size_t bufferSize,
-    bool includePlateWord
-) {
+static void
+    GetPlateName(const Plate* plate, char* buffer, size_t bufferSize, bool includePlateWord) {
     const Modifier* modifier = &modifiers[plate->modifierIndex];
     const Material* material = &materials[plate->materialIndex];
 
@@ -330,8 +253,7 @@ static void GetPlateName(
         bufferSize,
         includePlateWord ? "%s %s Plate" : "%s %s",
         modifier->name,
-        material->name
-    );
+        material->name);
 }
 
 static int GetPlateX(int coreX, int direction, int plateIndex) {
@@ -357,8 +279,7 @@ static void DrawWyrm(
     bool showAttackSelectors,
     int selectedPlate,
     int minimumSelectablePlate,
-    int boxY
-) {
+    int boxY) {
     canvas_draw_icon(canvas, coreX, iconY, &I_core);
 
     DrawText(
@@ -366,22 +287,16 @@ static void DrawWyrm(
         coreX + (CoreWidth - FONT3X5_WIDTH) / 2 + statLabelOffsetX,
         integrityY,
         "I",
-        TextFont3x5
-    );
+        TextFont3x5);
 
     DrawText(
         canvas,
         coreX + (CoreWidth - FONT3X5_WIDTH) / 2 + statLabelOffsetX,
         powerY,
         "P",
-        TextFont3x5
-    );
+        TextFont3x5);
 
-    for(
-        int plateIndex = 0;
-        plateIndex < wyrm->length + destroyedPlateCount;
-        plateIndex++
-    ) {
+    for(int plateIndex = 0; plateIndex < wyrm->length + destroyedPlateCount; plateIndex++) {
         int plateX = GetPlateX(coreX, direction, plateIndex);
 
         if(plateIndex >= wyrm->length) {
@@ -393,19 +308,9 @@ static void DrawWyrm(
 
         canvas_draw_icon(canvas, plateX, iconY, plateIcon);
 
-        DrawIntegerCentered(
-            canvas,
-            plateX + PlateWidth / 2,
-            integrityY,
-            plate->integrity
-        );
+        DrawIntegerCentered(canvas, plateX + PlateWidth / 2, integrityY, plate->integrity);
 
-        DrawIntegerCentered(
-            canvas,
-            plateX + PlateWidth / 2,
-            powerY,
-            plate->power
-        );
+        DrawIntegerCentered(canvas, plateX + PlateWidth / 2, powerY, plate->power);
 
         if(showAttackSelectors && plateIndex >= minimumSelectablePlate) {
             int boxX = plateX + (PlateWidth - BoxWidth) / 2;
@@ -413,21 +318,13 @@ static void DrawWyrm(
             canvas_draw_icon(canvas, boxX, boxY, &I_box);
 
             if(plateIndex == selectedPlate) {
-                canvas_draw_icon(
-                    canvas,
-                    boxX + 1,
-                    boxY + 1,
-                    &I_selector
-                );
+                canvas_draw_icon(canvas, boxX + 1, boxY + 1, &I_selector);
             }
         }
     }
 }
 
-static void DrawCombatStatus(
-    Canvas* canvas,
-    const GameState* gameState
-) {
+static void DrawCombatStatus(Canvas* canvas, const GameState* gameState) {
     char status[32];
 
     switch(gameState->mode) {
@@ -437,20 +334,10 @@ static void DrawCombatStatus(
 
     case GameModePlayerAttackResult:
         if(gameState->latestAttack.defenderDestroyed) {
-            DrawText(
-                canvas,
-                0,
-                56,
-                "ENEMY DESTROYED",
-                TextFont5x8
-            );
+            DrawText(canvas, 0, 56, "ENEMY DESTROYED", TextFont5x8);
         } else {
             snprintf(
-                status,
-                sizeof(status),
-                "DEALT %u DMG",
-                gameState->latestAttack.initialDamage
-            );
+                status, sizeof(status), "DEALT %u DMG", gameState->latestAttack.initialDamage);
 
             DrawText(canvas, 0, 56, status, TextFont5x8);
         }
@@ -458,20 +345,9 @@ static void DrawCombatStatus(
 
     case GameModeEnemyAttackResult:
         if(gameState->latestAttack.defenderDestroyed) {
-            DrawText(
-                canvas,
-                0,
-                56,
-                "WYRM DESTROYED",
-                TextFont5x8
-            );
+            DrawText(canvas, 0, 56, "WYRM DESTROYED", TextFont5x8);
         } else {
-            snprintf(
-                status,
-                sizeof(status),
-                "TOOK %u DMG",
-                gameState->latestAttack.initialDamage
-            );
+            snprintf(status, sizeof(status), "TOOK %u DMG", gameState->latestAttack.initialDamage);
 
             DrawText(canvas, 0, 56, status, TextFont5x8);
         }
@@ -482,41 +358,28 @@ static void DrawCombatStatus(
     }
 }
 
-static void DrawCombatScreen(
-    Canvas* canvas,
-    const GameState* gameState
-) {
+static void DrawCombatScreen(Canvas* canvas, const GameState* gameState) {
     DrawText(canvas, 0, PlayerLabelY, "PLAYER", TextFont5x8);
 
     if(gameState->player.length > 0) {
-        const Plate* selectedPlate =
-            &gameState->player.plates[
-                gameState->selectedPlayerPlate
-            ];
+        const Plate* selectedPlate = &gameState->player.plates[gameState->selectedPlayerPlate];
 
         DrawTextRight(
             canvas,
             ScreenWidth,
             PlayerLabelY,
             modifiers[selectedPlate->modifierIndex].name,
-            TextFont5x8
-        );
+            TextFont5x8);
 
         DrawTextRight(
             canvas,
             ScreenWidth,
             PlayerLabelY + FONT5X8_HEIGHT + 1,
             materials[selectedPlate->materialIndex].name,
-            TextFont5x8
-        );
+            TextFont5x8);
 
         DrawTextRight(
-            canvas,
-            ScreenWidth,
-            PlayerLabelY + 2 * (FONT5X8_HEIGHT + 1),
-            "Plate",
-            TextFont5x8
-        );
+            canvas, ScreenWidth, PlayerLabelY + 2 * (FONT5X8_HEIGHT + 1), "Plate", TextFont5x8);
     }
 
     DrawWyrm(
@@ -524,8 +387,7 @@ static void DrawCombatScreen(
         &gameState->player,
         &I_plate,
         &I_destroyed,
-        gameState->mode == GameModeEnemyAttackResult ?
-            gameState->latestAttack.platesDestroyed : 0,
+        gameState->mode == GameModeEnemyAttackResult ? gameState->latestAttack.platesDestroyed : 0,
         PlayerCoreX,
         PlayerIconY,
         PlayerIntegrityY,
@@ -535,24 +397,17 @@ static void DrawCombatScreen(
         true,
         gameState->selectedPlayerPlate,
         GetMinimumAttackingPlateIndex(gameState),
-        PlayerBoxY
-    );
+        PlayerBoxY);
 
-    DrawTextRight(
-        canvas,
-        ScreenWidth,
-        EnemyLabelY,
-        "ENEMY",
-        TextFont5x8
-    );
+    DrawTextRight(canvas, ScreenWidth, EnemyLabelY, "ENEMY", TextFont5x8);
 
     DrawWyrm(
         canvas,
         &gameState->enemy,
         &I_plate2,
         &I_destroyed2,
-        gameState->mode == GameModePlayerAttackResult ?
-            gameState->latestAttack.platesDestroyed : 0,
+        gameState->mode == GameModePlayerAttackResult ? gameState->latestAttack.platesDestroyed :
+                                                        0,
         EnemyCoreX,
         EnemyIconY,
         EnemyPowerY,
@@ -562,8 +417,7 @@ static void DrawCombatScreen(
         false,
         0,
         0,
-        0
-    );
+        0);
 
     DrawCombatStatus(canvas, gameState);
 }
@@ -585,36 +439,16 @@ static const char* GetShopMessageText(ShopMessage message) {
     }
 }
 
-static void DrawShopScreen(
-    Canvas* canvas,
-    const GameState* gameState
-) {
+static void DrawShopScreen(Canvas* canvas, const GameState* gameState) {
     char coinsText[32];
 
-    snprintf(
-        coinsText,
-        sizeof(coinsText),
-        "SHOP - %d\xA2",
-        gameState->coins
-    );
+    snprintf(coinsText, sizeof(coinsText), "SHOP - %d\xA2", gameState->coins);
 
     DrawText(canvas, 40, 1, coinsText, TextFont5x8);
 
-    DrawText(
-        canvas,
-        8,
-        10,
-        GetShopMessageText(gameState->shopMessage),
-        TextFont3x5
-    );
+    DrawText(canvas, 8, 10, GetShopMessageText(gameState->shopMessage), TextFont3x5);
 
-    DrawTextRight(
-        canvas,
-        ScreenWidth - 2,
-        10,
-        "I P \xA2",
-        TextFont3x5
-    );
+    DrawTextRight(canvas, ScreenWidth - 2, 10, "I P \xA2", TextFont3x5);
 
     int totalItems = gameState->shopLength + 1;
 
@@ -624,85 +458,37 @@ static void DrawShopScreen(
         canvas_draw_icon(canvas, 2, rowY, &I_box);
 
         if(itemIndex == gameState->selectedShopItem) {
-            canvas_draw_icon(
-                canvas,
-                3,
-                rowY + 1,
-                &I_selector
-            );
+            canvas_draw_icon(canvas, 3, rowY + 1, &I_selector);
         }
 
         if(itemIndex == gameState->shopLength) {
-            DrawText(
-                canvas,
-                8,
-                rowY,
-                "LEAVE SHOP",
-                TextFont3x5
-            );
+            DrawText(canvas, 8, rowY, "LEAVE SHOP", TextFont3x5);
 
             continue;
         }
 
-        const Plate* plate =
-            &gameState->shopPlates[itemIndex];
+        const Plate* plate = &gameState->shopPlates[itemIndex];
 
         char plateName[40];
         char stats[24];
 
-        GetPlateName(
-            plate,
-            plateName,
-            sizeof(plateName),
-            false
-        );
+        GetPlateName(plate, plateName, sizeof(plateName), false);
 
-        snprintf(
-            stats,
-            sizeof(stats),
-            "%u %u %u",
-            plate->integrity,
-            plate->power,
-            plate->price
-        );
+        snprintf(stats, sizeof(stats), "%u %u %u", plate->integrity, plate->power, plate->price);
 
-        DrawTextClipped(
-            canvas,
-            8,
-            rowY,
-            plateName,
-            92,
-            TextFont3x5
-        );
+        DrawTextClipped(canvas, 8, rowY, plateName, 92, TextFont3x5);
 
-        DrawTextRight(
-            canvas,
-            ScreenWidth - 2,
-            rowY,
-            stats,
-            TextFont3x5
-        );
+        DrawTextRight(canvas, ScreenWidth - 2, rowY, stats, TextFont3x5);
     }
 }
 
-static void DrawPlacementScreen(
-    Canvas* canvas,
-    const GameState* gameState
-) {
-    const Plate* pendingPlate =
-        &gameState->shopPlates[
-            gameState->pendingShopIndex
-        ];
+static void DrawPlacementScreen(Canvas* canvas, const GameState* gameState) {
+    const Plate* pendingPlate = &gameState->shopPlates[gameState->pendingShopIndex];
 
     char plateName[48];
     char details[32];
 
-    GetPlateName(
-        pendingPlate,
-        plateName,
-        sizeof(plateName),
-        true
-    );
+    GetPlateName(pendingPlate, plateName, sizeof(plateName), true);
 
     snprintf(
         details,
@@ -710,17 +496,9 @@ static void DrawPlacementScreen(
         "I%u P%u \xA2%u",
         pendingPlate->integrity,
         pendingPlate->power,
-        pendingPlate->price
-    );
+        pendingPlate->price);
 
-    DrawTextClipped(
-        canvas,
-        0,
-        0,
-        plateName,
-        ScreenWidth,
-        TextFont3x5
-    );
+    DrawTextClipped(canvas, 0, 0, plateName, ScreenWidth, TextFont3x5);
 
     DrawText(canvas, 0, 7, details, TextFont3x5);
 
@@ -758,66 +536,25 @@ static void DrawPlacementScreen(
         false,
         0,
         0,
-        0
-    );
+        0);
 }
 
-static void DrawTitleScreen(
-    Canvas* canvas
-) {
-    DrawTextCentered(
-        canvas,
-        ScreenWidth / 2,
-        20,
-        "IRONWYRM",
-        TextFont5x8
-    );
+static void DrawTitleScreen(Canvas* canvas) {
+    DrawTextCentered(canvas, ScreenWidth / 2, 20, "IRONWYRM", TextFont5x8);
 
-    DrawTextCentered(
-        canvas,
-        ScreenWidth / 2,
-        35,
-        "PRESS OK TO START",
-        TextFont3x5
-    );
+    DrawTextCentered(canvas, ScreenWidth / 2, 35, "PRESS OK TO START", TextFont3x5);
 
-    DrawTextCentered(
-        canvas,
-        ScreenWidth / 2,
-        59,
-        "(c) Henry Gurney 2026",
-        TextFont3x5
-    );
+    DrawTextCentered(canvas, ScreenWidth / 2, 59, "(c) Henry Gurney 2026", TextFont3x5);
 }
 
-static void DrawGameOverScreen(
-    Canvas* canvas,
-    const GameState* gameState
-) {
+static void DrawGameOverScreen(Canvas* canvas, const GameState* gameState) {
     char scoreText[24];
 
-    snprintf(
-        scoreText,
-        sizeof(scoreText),
-        "SCORE: %d",
-        gameState->round
-    );
+    snprintf(scoreText, sizeof(scoreText), "SCORE: %d", gameState->round);
 
-    DrawTextCentered(
-        canvas,
-        ScreenWidth / 2,
-        24,
-        "GAME OVER",
-        TextFont5x8
-    );
+    DrawTextCentered(canvas, ScreenWidth / 2, 24, "GAME OVER", TextFont5x8);
 
-    DrawTextCentered(
-        canvas,
-        ScreenWidth / 2,
-        37,
-        scoreText,
-        TextFont3x5
-    );
+    DrawTextCentered(canvas, ScreenWidth / 2, 37, scoreText, TextFont3x5);
 
     /*DrawText(
         canvas,
@@ -827,13 +564,7 @@ static void DrawGameOverScreen(
         TextFont3x5
     );*/
 
-    DrawTextCentered(
-        canvas,
-        ScreenWidth / 2,
-        59,
-        "PRESS OK TO RESTART",
-        TextFont3x5
-    );
+    DrawTextCentered(canvas, ScreenWidth / 2, 59, "PRESS OK TO RESTART", TextFont3x5);
 }
 
 void DrawGame(Canvas* canvas, const GameState* gameState) {

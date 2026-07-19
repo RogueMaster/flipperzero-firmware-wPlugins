@@ -30,11 +30,11 @@ typedef enum {
  * Samsung SmartTag : Service Data UUID 0xFD5A (SmartThings Find) or Company ID 0x0075.
  * Chipolo          : ONE Spot rides Apple Find My; classic uses Company ID 0x0157.
  */
-#define GHOSTTAG_APPLE_COMPANY_ID 0x004C
-#define GHOSTTAG_APPLE_TYPE_FINDMY 0x12
-#define GHOSTTAG_APPLE_TYPE_NEARBY 0x07
-#define GHOSTTAG_TILE_UUID 0xFEED
-#define GHOSTTAG_SAMSUNG_UUID 0xFD5A
+#define GHOSTTAG_APPLE_COMPANY_ID   0x004C
+#define GHOSTTAG_APPLE_TYPE_FINDMY  0x12
+#define GHOSTTAG_APPLE_TYPE_NEARBY  0x07
+#define GHOSTTAG_TILE_UUID          0xFEED
+#define GHOSTTAG_SAMSUNG_UUID       0xFD5A
 #define GHOSTTAG_SAMSUNG_COMPANY_ID 0x0075
 #define GHOSTTAG_CHIPOLO_COMPANY_ID 0x0157
 

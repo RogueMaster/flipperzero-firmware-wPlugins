@@ -3,11 +3,11 @@
 #include <furi.h>
 #include "ble_signatures.h"
 
-#define TRACKER_DB_MAX 48
+#define TRACKER_DB_MAX            48
 /* A record must be seen at least this many times before it can be flagged as
  * "following" - filters out one-off passers-by. */
 #define TRACKER_DB_MIN_DETECTIONS 4
-#define TRACKER_NAME_LEN 20
+#define TRACKER_NAME_LEN          20
 
 typedef struct {
     uint8_t mac[6];

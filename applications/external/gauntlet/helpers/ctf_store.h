@@ -16,9 +16,9 @@
 extern "C" {
 #endif
 
-#define GAUNTLET_BASE_DIR     EXT_PATH("apps_data/gauntlet")
-#define GAUNTLET_PACKS_DIR    EXT_PATH("apps_data/gauntlet/packs")
-#define GAUNTLET_PROGRESS     EXT_PATH("apps_data/gauntlet/progress.save")
+#define GAUNTLET_BASE_DIR  EXT_PATH("apps_data/gauntlet")
+#define GAUNTLET_PACKS_DIR EXT_PATH("apps_data/gauntlet/packs")
+#define GAUNTLET_PROGRESS  EXT_PATH("apps_data/gauntlet/progress.save")
 
 #define CTF_MAX_PACKS  24
 #define CTF_MAX_SOLVED 256

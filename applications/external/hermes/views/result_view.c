@@ -26,10 +26,10 @@ struct ResultView {
  *   51..62  candidate ladder, and the OK hint beside it
  * The ladder's tallest chip stops at 51 so it cannot strike through the line
  * above it. */
-#define RESULT_BAR_Y (32)
+#define RESULT_BAR_Y           (32)
 #define RESULT_DETAIL_BASELINE (48)
-#define RESULT_LADDER_BASE (62)
-#define RESULT_LADDER_MAX_H (11)
+#define RESULT_LADDER_BASE     (62)
+#define RESULT_LADDER_MAX_H    (11)
 
 static void result_draw_confidence(Canvas* canvas, uint8_t confidence) {
     const int x = 2, y = RESULT_BAR_Y, w = 88, h = 7;
@@ -95,7 +95,8 @@ static void result_view_draw(Canvas* canvas, void* model) {
     canvas_draw_str(canvas, 2, 30, buf);
 
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 126, 30, AlignRight, AlignBottom, hermes_framing_name(e->framing));
+    canvas_draw_str_aligned(
+        canvas, 126, 30, AlignRight, AlignBottom, hermes_framing_name(e->framing));
 
     result_draw_confidence(canvas, e->confidence);
 

@@ -25,8 +25,7 @@ bool warden_scene_scan_on_event(void* context, SceneManagerEvent event) {
             grader_evaluate(&app->reading, &app->grade);
             app->have_result = true;
             warden_notify_graded(app, app->grade.band);
-            view_dispatcher_send_custom_event(
-                app->view_dispatcher, WardenCustomEventCardRead);
+            view_dispatcher_send_custom_event(app->view_dispatcher, WardenCustomEventCardRead);
         }
         consumed = true;
     }

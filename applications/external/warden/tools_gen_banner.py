@@ -63,8 +63,14 @@ def rrect(d, box, r, **kw):
 def draw_grade_stamp(d, cx, cy, s, letter, ring=VIOLET):
     """A rounded-square grade badge with a big letter."""
     half = s // 2
-    rrect(d, [cx - half, cy - half, cx + half, cy + half], r=s // 6,
-          fill=(14, 16, 28), outline=ring, width=6 * SS)
+    rrect(
+        d,
+        [cx - half, cy - half, cx + half, cy + half],
+        r=s // 6,
+        fill=(14, 16, 28),
+        outline=ring,
+        width=6 * SS,
+    )
     # corner ticks
     for dx, dy in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
         px = cx + dx * (half - 14 * SS)
@@ -87,8 +93,10 @@ def draw_meter(d, x, y, w, h, segs=12, marker=0.16):
         rrect(d, [sx, y, sx + sw, y + h], r=int(h * 0.28), fill=col)
     # marker
     mx = int(x + marker * w)
-    d.polygon([(mx - 9 * SS, y - 16 * SS), (mx + 9 * SS, y - 16 * SS), (mx, y - 3 * SS)],
-              fill=WHITE)
+    d.polygon(
+        [(mx - 9 * SS, y - 16 * SS), (mx + 9 * SS, y - 16 * SS), (mx, y - 3 * SS)],
+        fill=WHITE,
+    )
 
 
 def draw_shield(d, cx, cy, w, col, lw):
@@ -104,7 +112,9 @@ def draw_shield(d, cx, cy, w, col, lw):
     d.line(pts + [pts[0]], fill=col, width=lw, joint="curve")
     # keyhole
     kr = w // 9
-    d.ellipse([cx - kr, cy - kr - h // 12, cx + kr, cy + kr - h // 12], outline=col, width=lw)
+    d.ellipse(
+        [cx - kr, cy - kr - h // 12, cx + kr, cy + kr - h // 12], outline=col, width=lw
+    )
     d.line([cx, cy - h // 12, cx, cy + h // 6], fill=col, width=lw)
 
 
@@ -131,13 +141,34 @@ def render(path, W, H, layout="wide"):
         gx, gy = int(w * 0.5), int(h * 0.30)
         stamp = int(h * 0.22)
 
-    field_arcs(gd, gx, gy, (VIOLET[0], VIOLET[1], VIOLET[2], 60),
-               n=4, base=int(stamp * 0.7), step=int(stamp * 0.5), lw=5 * SS)
-    draw_shield(gd, int(gx - stamp * 1.15), gy, int(stamp * 0.7),
-                (VIOLET[0], VIOLET[1], VIOLET[2], 130), 4 * SS)
+    field_arcs(
+        gd,
+        gx,
+        gy,
+        (VIOLET[0], VIOLET[1], VIOLET[2], 60),
+        n=4,
+        base=int(stamp * 0.7),
+        step=int(stamp * 0.5),
+        lw=5 * SS,
+    )
+    draw_shield(
+        gd,
+        int(gx - stamp * 1.15),
+        gy,
+        int(stamp * 0.7),
+        (VIOLET[0], VIOLET[1], VIOLET[2], 130),
+        4 * SS,
+    )
     draw_grade_stamp(gd, gx, gy, stamp, "A+")
-    draw_meter(gd, int(gx - stamp * 0.62), int(gy + stamp * 0.72),
-               int(stamp * 1.25), 12 * SS, segs=12, marker=0.14)
+    draw_meter(
+        gd,
+        int(gx - stamp * 0.62),
+        int(gy + stamp * 0.72),
+        int(stamp * 1.25),
+        12 * SS,
+        segs=12,
+        marker=0.14,
+    )
 
     blur = glow.filter(ImageFilter.GaussianBlur(9 * SS))
     img.alpha_composite(blur)
@@ -158,21 +189,52 @@ def render(path, W, H, layout="wide"):
     f_sub = font(REG, 24 * SS)
     f_foot = font(MONO, 21 * SS)
 
-    td.text((x0, kick_y), "FLIPPER ZERO  ·  NFC ACCESS-CARD GRADER", font=f_kick, fill=VIOLET)
-    td.text((x0 + 4 * SS, title_y + 4 * SS), "WARDEN", font=f_title, fill=(VIOLET[0], VIOLET[1], VIOLET[2], 150))
+    td.text(
+        (x0, kick_y),
+        "FLIPPER ZERO  ·  NFC ACCESS-CARD GRADER",
+        font=f_kick,
+        fill=VIOLET,
+    )
+    td.text(
+        (x0 + 4 * SS, title_y + 4 * SS),
+        "WARDEN",
+        font=f_title,
+        fill=(VIOLET[0], VIOLET[1], VIOLET[2], 150),
+    )
     td.text((x0, title_y), "WARDEN", font=f_title, fill=WHITE)
 
     tag_y = title_y + title_px + 12 * SS
-    td.text((x0, tag_y), "Grade your access badges. See what a cloner sees.", font=f_tag, fill=GREEN)
-    td.text((x0, tag_y + 48 * SS),
-            "Hold a badge to the Flipper — get an A+ to F security grade in plain English.",
-            font=f_sub, fill=GRAY)
+    td.text(
+        (x0, tag_y),
+        "Grade your access badges. See what a cloner sees.",
+        font=f_tag,
+        fill=GREEN,
+    )
+    td.text(
+        (x0, tag_y + 48 * SS),
+        "Hold a badge to the Flipper — get an A+ to F security grade in plain English.",
+        font=f_sub,
+        fill=GRAY,
+    )
     img.alpha_composite(tx)
 
     fd = ImageDraw.Draw(img)
-    fd.line([(70 * SS, h - 54 * SS), (w - 70 * SS, h - 54 * SS)], fill=DIM, width=2 * SS)
-    fd.text((70 * SS, h - 44 * SS), "github.com/at0m-b0mb/Warden-FlipperZero", font=f_foot, fill=GRAY)
-    fd.text((w - 70 * SS, h - 44 * SS), "MIT · by at0m-b0mb", font=f_foot, fill=GRAY, anchor="ra")
+    fd.line(
+        [(70 * SS, h - 54 * SS), (w - 70 * SS, h - 54 * SS)], fill=DIM, width=2 * SS
+    )
+    fd.text(
+        (70 * SS, h - 44 * SS),
+        "github.com/at0m-b0mb/Warden-FlipperZero",
+        font=f_foot,
+        fill=GRAY,
+    )
+    fd.text(
+        (w - 70 * SS, h - 44 * SS),
+        "MIT · by at0m-b0mb",
+        font=f_foot,
+        fill=GRAY,
+        anchor="ra",
+    )
 
     out = img.convert("RGB").resize((W, H), Image.LANCZOS)
     out.save(path)

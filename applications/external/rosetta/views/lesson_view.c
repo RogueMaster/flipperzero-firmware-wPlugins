@@ -43,7 +43,8 @@ static void draw_actor(Canvas* c, int x, int y, int w, int h, const char* label)
 }
 
 /* A message travelling along the bus between two x positions. */
-static void draw_packet(Canvas* c, int lx, int rx, int y, bool going_right, float frac, const char* label) {
+static void
+    draw_packet(Canvas* c, int lx, int rx, int y, bool going_right, float frac, const char* label) {
     canvas_draw_line(c, lx, y, rx, y);
     int px = going_right ? (lx + (int)((rx - lx) * frac)) : (rx - (int)((rx - lx) * frac));
     canvas_draw_box(c, px - 2, y - 2, 5, 5);
@@ -134,7 +135,11 @@ static const uint8_t k_bits[] = {1, 0, 1, 1, 0, 1, 0, 0};
 #define NBITS (int)(sizeof(k_bits))
 #define BITW  16
 
-typedef enum { WaveCarrier, WaveOok, WavePsk } WaveMode;
+typedef enum {
+    WaveCarrier,
+    WaveOok,
+    WavePsk
+} WaveMode;
 
 static void draw_wave(Canvas* c, int mid, int amp, uint32_t scroll, WaveMode mode) {
     int prevy = mid;
@@ -214,7 +219,8 @@ static int bus_level_at(const Seg* segs, int nseg, int rel) {
 
 static void draw_bus(Canvas* c, int x0, int y_hi, int y_lo, const Seg* segs, int nseg) {
     int total = 0;
-    for(int i = 0; i < nseg; i++) total += segs[i].len;
+    for(int i = 0; i < nseg; i++)
+        total += segs[i].len;
     int prevy = y_hi;
     for(int i = 0; i <= total; i++) {
         int lvl = bus_level_at(segs, nseg, i >= total ? total - 1 : i);
@@ -227,11 +233,20 @@ static void draw_bus(Canvas* c, int x0, int y_hi, int y_lo, const Seg* segs, int
 }
 
 /* A scope-style playhead sweeping across the static trace. */
-static void draw_playhead(Canvas* c, int x0, int total, int y_hi, int y_lo, const Seg* segs, int nseg, float frac) {
+static void draw_playhead(
+    Canvas* c,
+    int x0,
+    int total,
+    int y_hi,
+    int y_lo,
+    const Seg* segs,
+    int nseg,
+    float frac) {
     int rel = (int)(total * frac);
     if(rel >= total) rel = total - 1;
     int x = x0 + rel;
-    for(int y = DIAG_Y0; y < DIAG_Y1; y += 3) canvas_draw_dot(c, x, y);
+    for(int y = DIAG_Y0; y < DIAG_Y1; y += 3)
+        canvas_draw_dot(c, x, y);
     int lvl = bus_level_at(segs, nseg, rel);
     canvas_draw_disc(c, x, lvl ? y_hi : y_lo, 2);
 }
@@ -274,7 +289,8 @@ static void draw_onewire(Canvas* c, LessonModel* m) {
         int fillw = (int)((bw - 2) * saw(m->anim, 90));
         canvas_draw_box(c, bx + 1, byy + 1, fillw, bh - 2);
         canvas_draw_str(c, bx + 1, byy + bh + 9, "FAM");
-        canvas_draw_str_aligned(c, (d1 + d2) / 2, byy + bh + 9, AlignCenter, AlignBottom, "SERIAL");
+        canvas_draw_str_aligned(
+            c, (d1 + d2) / 2, byy + bh + 9, AlignCenter, AlignBottom, "SERIAL");
         canvas_draw_str_aligned(c, d2 + 8, byy + bh + 9, AlignCenter, AlignBottom, "CRC");
         return;
     }
@@ -297,7 +313,8 @@ static void draw_onewire(Canvas* c, LessonModel* m) {
         nseg = (int)(sizeof(read_segs) / sizeof(Seg));
     }
     int total = 0;
-    for(int i = 0; i < nseg; i++) total += segs[i].len;
+    for(int i = 0; i < nseg; i++)
+        total += segs[i].len;
 
     draw_bus(c, x0, y_hi, y_lo, segs, nseg);
     draw_playhead(c, x0, total, y_hi, y_lo, segs, nseg, saw(m->anim, 80));

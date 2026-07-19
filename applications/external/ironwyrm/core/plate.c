@@ -25,10 +25,8 @@ Plate MakePlate(MaterialId materialId, ModifierId modifierId) {
 }
 
 Plate MakeRandomPlate(RandomGenerator* randomGenerator) {
-    MaterialId materialId =
-        (MaterialId)RandomRange(randomGenerator, 0, MaterialIdCount - 1);
-    ModifierId modifierId =
-        (ModifierId)RandomRange(randomGenerator, 0, ModifierIdCount - 1);
+    MaterialId materialId = (MaterialId)RandomRange(randomGenerator, 0, MaterialIdCount - 1);
+    ModifierId modifierId = (ModifierId)RandomRange(randomGenerator, 0, ModifierIdCount - 1);
 
     return MakePlate(materialId, modifierId);
 }

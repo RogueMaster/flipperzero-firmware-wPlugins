@@ -112,8 +112,7 @@ int main(void) {
     for(int r = 0; r < FdyRatingCount; r++) {
         checks++;
         if(fdy_rating_letter((FdyRating)r)[0] == '\0' ||
-           fdy_rating_word((FdyRating)r)[0] == '\0' ||
-           fdy_rating_blurb((FdyRating)r)[0] == '\0') {
+           fdy_rating_word((FdyRating)r)[0] == '\0' || fdy_rating_blurb((FdyRating)r)[0] == '\0') {
             failures++;
             printf("  FAIL  rating %d has empty copy\n", r);
         }

@@ -41,8 +41,7 @@ static void threat_log_view_draw(Canvas* canvas, void* model) {
     canvas_draw_line(canvas, 0, 12, 127, 12);
 
     if(m->count == 0) {
-        const char* msg = m->esp_connected ? "All quiet. No threats." :
-                                             "Connect ESP32 board...";
+        const char* msg = m->esp_connected ? "All quiet. No threats." : "Connect ESP32 board...";
         canvas_draw_str_aligned(canvas, 64, 38, AlignCenter, AlignCenter, msg);
         return;
     }
@@ -141,18 +140,15 @@ View* threat_log_view_get_view(ThreatLogView* v) {
     return v->view;
 }
 
-void threat_log_view_update(
-    ThreatLogView* v,
-    const LogRow* rows,
-    size_t count,
-    bool esp_connected) {
+void threat_log_view_update(ThreatLogView* v, const LogRow* rows, size_t count, bool esp_connected) {
     furi_assert(v);
     with_view_model(
         v->view,
         ThreatLogModel * m,
         {
             size_t n = count < LOG_MAX ? count : LOG_MAX;
-            for(size_t i = 0; i < n; i++) m->rows[i] = rows[i];
+            for(size_t i = 0; i < n; i++)
+                m->rows[i] = rows[i];
             m->count = n;
             m->esp_connected = esp_connected;
             if(m->selected >= n) m->selected = n ? n - 1 : 0;

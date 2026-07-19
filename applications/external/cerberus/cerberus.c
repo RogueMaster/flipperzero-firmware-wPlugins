@@ -211,8 +211,7 @@ static Cerberus* cerberus_app_alloc(void) {
         app->view_dispatcher, cerberus_back_event_callback);
     view_dispatcher_set_tick_event_callback(
         app->view_dispatcher, cerberus_tick_event_callback, 100);
-    view_dispatcher_attach_to_gui(
-        app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     app->submenu = submenu_alloc();
     view_dispatcher_add_view(
@@ -230,9 +229,7 @@ static Cerberus* cerberus_app_alloc(void) {
 
     app->monitor = cerberus_monitor_view_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher,
-        CerberusViewMonitor,
-        cerberus_monitor_view_get_view(app->monitor));
+        app->view_dispatcher, CerberusViewMonitor, cerberus_monitor_view_get_view(app->monitor));
 
     app->log_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     app->log_count = 0;

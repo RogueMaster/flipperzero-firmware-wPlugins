@@ -10,8 +10,4 @@ typedef struct {
     bool defenderDestroyed;
 } AttackResult;
 
-AttackResult ResolveAttack(
-    const Wyrm* attacker,
-    int attackingPlateIndex,
-    Wyrm* defender
-);
+AttackResult ResolveAttack(const Wyrm* attacker, int attackingPlateIndex, Wyrm* defender);

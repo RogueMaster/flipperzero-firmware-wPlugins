@@ -41,8 +41,7 @@ void gauntlet_notify_correct(GauntletApp* app) {
 
 void gauntlet_notify_wrong(GauntletApp* app) {
     furi_assert(app);
-    if(app->sound || app->vibro || app->led)
-        notification_message(app->notifications, &seq_wrong);
+    if(app->sound || app->vibro || app->led) notification_message(app->notifications, &seq_wrong);
 }
 
 void gauntlet_notify_blip(GauntletApp* app) {
@@ -123,9 +122,7 @@ static GauntletApp* gauntlet_app_alloc(void) {
     /* showpiece views */
     app->challenge_view = challenge_view_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher,
-        GauntletViewChallenge,
-        challenge_view_get_view(app->challenge_view));
+        app->view_dispatcher, GauntletViewChallenge, challenge_view_get_view(app->challenge_view));
 
     app->result_view = result_view_alloc();
     view_dispatcher_add_view(
@@ -135,8 +132,7 @@ static GauntletApp* gauntlet_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, GauntletViewToolkit, toolkit_view_get_view(app->toolkit_view));
 
-    view_dispatcher_attach_to_gui(
-        app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
     return app;
 }
 

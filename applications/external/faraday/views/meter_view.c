@@ -23,7 +23,8 @@ typedef struct {
 
 /* Right-aligned FontBigNumbers value with a hand-drawn minus (the big-number
  * font has no '-' glyph) and a small unit label sitting above the last digit. */
-static void draw_big_value(Canvas* canvas, int x_right, int baseline, int value, const char* unit) {
+static void
+    draw_big_value(Canvas* canvas, int x_right, int baseline, int value, const char* unit) {
     char buf[12]; // worst-case int, not worst-case RSSI: -Werror=format-truncation
     int mag = value < 0 ? -value : value;
     snprintf(buf, sizeof(buf), "%d", mag);
@@ -43,8 +44,7 @@ static void draw_big_value(Canvas* canvas, int x_right, int baseline, int value,
 }
 
 /* A framed horizontal bar with a proportional fill and a peak-hold tick. */
-static void
-    draw_bar(Canvas* canvas, int x, int y, int w, int h, uint8_t fill_pct, int peak_pct) {
+static void draw_bar(Canvas* canvas, int x, int y, int w, int h, uint8_t fill_pct, int peak_pct) {
     canvas_draw_frame(canvas, x, y, w, h);
     int inner = w - 4;
     int fw = (inner * (fill_pct > 100 ? 100 : fill_pct)) / 100;

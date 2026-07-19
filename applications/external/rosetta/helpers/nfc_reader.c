@@ -76,7 +76,8 @@ static NfcCommand iso3a_cb(NfcGenericEvent event, void* context) {
 
         lock(r);
         if(uid_len > NFC_READER_UID_MAX) uid_len = NFC_READER_UID_MAX;
-        for(size_t i = 0; i < uid_len; i++) r->tmp_uid[i] = uid[i];
+        for(size_t i = 0; i < uid_len; i++)
+            r->tmp_uid[i] = uid[i];
         r->tmp_uid_len = uid_len;
         r->tmp_sak = sak;
         r->tmp_atqa[0] = atqa[0];
@@ -169,7 +170,8 @@ static int32_t nfc_reader_worker(void* context) {
     lock(r);
     size_t num = r->scan_num;
     NfcProtocol stack[NfcProtocolNum];
-    for(size_t i = 0; i < num; i++) stack[i] = r->scan_stack[i];
+    for(size_t i = 0; i < num; i++)
+        stack[i] = r->scan_stack[i];
     unlock(r);
 
     NfcReading res;
@@ -186,7 +188,8 @@ static int32_t nfc_reader_worker(void* context) {
         if(r->poll_ok) {
             res.has_iso3a = true;
             res.uid_len = r->tmp_uid_len;
-            for(size_t i = 0; i < res.uid_len; i++) res.uid[i] = r->tmp_uid[i];
+            for(size_t i = 0; i < res.uid_len; i++)
+                res.uid[i] = r->tmp_uid[i];
             res.sak = r->tmp_sak;
             res.atqa[0] = r->tmp_atqa[0];
             res.atqa[1] = r->tmp_atqa[1];

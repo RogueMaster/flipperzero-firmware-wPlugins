@@ -29,8 +29,7 @@ bool warden_scene_result_on_event(void* context, SceneManagerEvent event) {
             break;
         case WardenCustomEventRescan:
             /* pop back to the (transient) scan scene and re-arm the field */
-            scene_manager_search_and_switch_to_previous_scene(
-                app->scene_manager, WardenSceneScan);
+            scene_manager_search_and_switch_to_previous_scene(app->scene_manager, WardenSceneScan);
             consumed = true;
             break;
         default:
@@ -38,8 +37,7 @@ bool warden_scene_result_on_event(void* context, SceneManagerEvent event) {
         }
     } else if(event.type == SceneManagerEventTypeBack) {
         /* skip the transient scan scene, land back on the main menu */
-        scene_manager_search_and_switch_to_previous_scene(
-            app->scene_manager, WardenSceneStart);
+        scene_manager_search_and_switch_to_previous_scene(app->scene_manager, WardenSceneStart);
         consumed = true;
     }
     return consumed;

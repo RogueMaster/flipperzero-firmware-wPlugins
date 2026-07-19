@@ -13,18 +13,18 @@
  *   20..56  the two boxes, with the wires strung between them
  *   63      footer
  */
-#define WIRE_BOX_Y (20)
-#define WIRE_BOX_H (36)
+#define WIRE_BOX_Y            (20)
+#define WIRE_BOX_H            (36)
 #define WIRE_CAPTION_BASELINE (18)
 
-#define WIRE_X_LEFT (28) // right edge of the Flipper box
+#define WIRE_X_LEFT  (28) // right edge of the Flipper box
 #define WIRE_X_RIGHT (100) // left edge of the target box
-#define WIRE_Y_RX (28)
-#define WIRE_Y_TX (38)
-#define WIRE_Y_GND (48)
+#define WIRE_Y_RX    (28)
+#define WIRE_Y_TX    (38)
+#define WIRE_Y_GND   (48)
 
-#define WIRE_LABEL_L (26) // pin numbers, right-aligned inside the Flipper box
-#define WIRE_LABEL_R (102) // signal names, left-aligned inside the target box
+#define WIRE_LABEL_L   (26) // pin numbers, right-aligned inside the Flipper box
+#define WIRE_LABEL_R   (102) // signal names, left-aligned inside the target box
 #define WIRE_TEXT_DROP (3) // baseline offset that centres text on its wire
 
 typedef struct {
@@ -118,7 +118,8 @@ static void wiring_view_draw(Canvas* canvas, void* model) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str(canvas, 2, 8, (m->page == 0) ? "Wiring" : "Rules");
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 126, 8, AlignRight, AlignBottom, (m->page == 0) ? "1/2" : "2/2");
+    canvas_draw_str_aligned(
+        canvas, 126, 8, AlignRight, AlignBottom, (m->page == 0) ? "1/2" : "2/2");
     canvas_draw_line(canvas, 0, 10, 127, 10);
 
     if(m->page == 0) {

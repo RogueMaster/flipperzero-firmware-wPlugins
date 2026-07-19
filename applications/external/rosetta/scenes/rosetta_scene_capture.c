@@ -95,11 +95,7 @@ static void build_onewire_annot(const OneWireReading* r, CaptureAnnot* a) {
         r->rom[1]);
 
     snprintf(
-        a->lines[a->nline++],
-        CAPTURE_LINE_LEN,
-        "CRC %02X  calc %02X",
-        r->rom[7],
-        r->crc_calc);
+        a->lines[a->nline++], CAPTURE_LINE_LEN, "CRC %02X  calc %02X", r->rom[7], r->crc_calc);
 
     if(r->crc_ok) {
         snprintf(a->verdict, CAPTURE_VERDICT_LEN, "CRC valid: genuine ROM");

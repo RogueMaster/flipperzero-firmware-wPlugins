@@ -44,7 +44,8 @@ static void do_atbash(const char* in, char* out, size_t out_sz) {
 static void do_reverse(const char* in, char* out, size_t out_sz) {
     size_t len = strlen(in);
     if(len > out_sz - 1) len = out_sz - 1;
-    for(size_t i = 0; i < len; i++) out[i] = in[len - 1 - i];
+    for(size_t i = 0; i < len; i++)
+        out[i] = in[len - 1 - i];
     out[len] = '\0';
 }
 
@@ -128,9 +129,9 @@ static void do_base64(const char* in, char* out, size_t out_sz) {
 /* -------------------------------------------------------------------- Morse */
 /* index by A..Z then 0..9 */
 static const char* const MORSE[] = {
-    ".-",   "-...", "-.-.", "-..",  ".",    "..-.", "--.",  "....", "..", /* A-I */
-    ".---", "-.-",  ".-..", "--",   "-.",   "---",  ".--.", "--.-", ".-.", /* J-R */
-    "...",  "-",    "..-",  "...-", ".--",  "-..-", "-.--", "--..", /* S-Z */
+    ".-",    "-...",  "-.-.",  "-..",   ".",     "..-.", "--.",  "....", "..", /* A-I */
+    ".---",  "-.-",   ".-..",  "--",    "-.",    "---",  ".--.", "--.-", ".-.", /* J-R */
+    "...",   "-",     "..-",   "...-",  ".--",   "-..-", "-.--", "--..", /* S-Z */
     "-----", ".----", "..---", "...--", "....-", /* 0-4 */
     ".....", "-....", "--...", "---..", "----.", /* 5-9 */
 };
@@ -201,26 +202,49 @@ const char* codec_name(CodecId id, int param) {
         }
         return rotbuf;
     }
-    case CodecBase64: return "Base64";
-    case CodecHex: return "Hex -> Text";
-    case CodecBinary: return "Binary -> Text";
-    case CodecMorse: return "Morse -> Text";
-    case CodecAtbash: return "Atbash";
-    case CodecReverse: return "Reverse";
-    default: return "?";
+    case CodecBase64:
+        return "Base64";
+    case CodecHex:
+        return "Hex -> Text";
+    case CodecBinary:
+        return "Binary -> Text";
+    case CodecMorse:
+        return "Morse -> Text";
+    case CodecAtbash:
+        return "Atbash";
+    case CodecReverse:
+        return "Reverse";
+    default:
+        return "?";
     }
 }
 
 void codec_apply(CodecId id, const char* in, int param, char* out, size_t out_sz) {
     if(out_sz == 0) return;
     switch(id) {
-    case CodecRot: do_rot(in, param, out, out_sz); break;
-    case CodecBase64: do_base64(in, out, out_sz); break;
-    case CodecHex: do_hex(in, out, out_sz); break;
-    case CodecBinary: do_binary(in, out, out_sz); break;
-    case CodecMorse: do_morse(in, out, out_sz); break;
-    case CodecAtbash: do_atbash(in, out, out_sz); break;
-    case CodecReverse: do_reverse(in, out, out_sz); break;
-    default: out[0] = '\0'; break;
+    case CodecRot:
+        do_rot(in, param, out, out_sz);
+        break;
+    case CodecBase64:
+        do_base64(in, out, out_sz);
+        break;
+    case CodecHex:
+        do_hex(in, out, out_sz);
+        break;
+    case CodecBinary:
+        do_binary(in, out, out_sz);
+        break;
+    case CodecMorse:
+        do_morse(in, out, out_sz);
+        break;
+    case CodecAtbash:
+        do_atbash(in, out, out_sz);
+        break;
+    case CodecReverse:
+        do_reverse(in, out, out_sz);
+        break;
+    default:
+        out[0] = '\0';
+        break;
     }
 }

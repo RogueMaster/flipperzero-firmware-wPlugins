@@ -68,7 +68,9 @@ def line(d, x0, y0, x1, y1, col=FG, w=2):
 
 
 def circle(d, cx, cy, r, col=FG, w=2):
-    d.ellipse([L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], outline=col, width=w)
+    d.ellipse(
+        [L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], outline=col, width=w
+    )
 
 
 def disc(d, cx, cy, r, col=FG):
@@ -88,7 +90,8 @@ def glyph(d, rows, ox, oy, col=FG):
         for gx, ch in enumerate(row):
             if ch == "#":
                 d.rectangle(
-                    [L(ox + gx), L(oy + gy), L(ox + gx) + S - 1, L(oy + gy) + S - 1], fill=col
+                    [L(ox + gx), L(oy + gy), L(ox + gx) + S - 1, L(oy + gy) + S - 1],
+                    fill=col,
                 )
 
 
@@ -195,7 +198,15 @@ def meter(title, value, unit, level, peak, sub, foot, running=True):
         elif i == peak_seg and peak > 0:
             d.rectangle([L(x), L(y), L(x + w), L(y + h)], outline=FG, width=2)
         else:
-            d.rectangle([L(x + w // 2), L(y + h - 1), L(x + w // 2) + S - 1, L(y + h - 1) + S - 1], fill=FG)
+            d.rectangle(
+                [
+                    L(x + w // 2),
+                    L(y + h - 1),
+                    L(x + w // 2) + S - 1,
+                    L(y + h - 1) + S - 1,
+                ],
+                fill=FG,
+            )
 
     text(d, 64, 53, sub, fnt=f_sec, anchor="mm")
     text(d, 64, 61, foot, fnt=f_sec, anchor="mm")
@@ -228,7 +239,11 @@ def confirm(op):
     img, d = canvas()
     glyph(d, SKULL, 2, 2)
     text(d, 16, 8, "Start: " + op, fnt=f_pri, anchor="lm")
-    body = ["This transmits and can", "disrupt nearby devices.", "Test only what you own."]
+    body = [
+        "This transmits and can",
+        "disrupt nearby devices.",
+        "Test only what you own.",
+    ]
     y = 24
     for b in body:
         text(d, 2, y, b, fnt=f_key, anchor="lm")
@@ -241,11 +256,12 @@ def confirm(op):
 def synth(n, peaks, floor=6, seed=1):
     """Fake but plausible spectrum: low noise floor with a few peaks."""
     import random
+
     random.seed(seed)
     out = []
     for i in range(n):
         v = floor + random.randint(0, 8)
-        for (c, amp, wdt) in peaks:
+        for c, amp, wdt in peaks:
             v += int(amp * math.exp(-((i - c) ** 2) / (2 * wdt * wdt)))
         out.append(min(100, v))
     return out
@@ -284,7 +300,9 @@ def main():
         spectrum(
             "NRF24 2.4GHz",
             synth(126, [(11, 78, 4), (52, 92, 3), (76, 60, 5)], seed=4),
-            "2400", "2525", "Ch52 2452MHz",
+            "2400",
+            "2525",
+            "Ch52 2452MHz",
         ),
         "screen_nrf24.png",
     )
@@ -292,7 +310,9 @@ def main():
         spectrum(
             "CC1101 int",
             synth(60, [(24, 88, 2), (41, 55, 3)], seed=9),
-            "387", "464", "433.9M -47dBm",
+            "387",
+            "464",
+            "433.9M -47dBm",
         ),
         "screen_subghz.png",
     )
@@ -324,7 +344,12 @@ def main():
         "screen_settings.png",
     )
 
-    heroes = ["screen_home.png", "screen_nrf24.png", "screen_finder.png", "screen_sniffer.png"]
+    heroes = [
+        "screen_home.png",
+        "screen_nrf24.png",
+        "screen_finder.png",
+        "screen_sniffer.png",
+    ]
     imgs = [Image.open(os.path.join(OUT, n)) for n in heroes]
     pad = 12
     total_w = sum(i.width for i in imgs) + pad * (len(imgs) + 1)

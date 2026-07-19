@@ -69,7 +69,8 @@ static void log_push(ArgusDb* db, const ArgusThreat* t) {
 static size_t reclassify_twins(ArgusDb* db) {
     size_t twins = 0;
     if(db->guard[0] == '\0') {
-        for(size_t i = 0; i < db->ap_count; i++) db->aps[i].clone = false;
+        for(size_t i = 0; i < db->ap_count; i++)
+            db->aps[i].clone = false;
         return 0;
     }
 
@@ -304,7 +305,8 @@ size_t argus_db_copy_aps(ArgusDb* db, ArgusAp* out, size_t max) {
     furi_assert(db);
     furi_mutex_acquire(db->mutex, FuriWaitForever);
     size_t n = db->ap_count < max ? db->ap_count : max;
-    for(size_t i = 0; i < n; i++) out[i] = db->aps[i];
+    for(size_t i = 0; i < n; i++)
+        out[i] = db->aps[i];
     furi_mutex_release(db->mutex);
     return n;
 }

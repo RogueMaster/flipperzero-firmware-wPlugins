@@ -74,7 +74,8 @@ static int wrap_body(Canvas* canvas, const char* text, int max_w, char lines[][L
             continue;
         }
         size_t wl = 0; /* read a word */
-        while(*p && *p != ' ' && *p != '\n' && wl < LINE_CAP - 1) word[wl++] = *p++;
+        while(*p && *p != ' ' && *p != '\n' && wl < LINE_CAP - 1)
+            word[wl++] = *p++;
         word[wl] = '\0';
 
         char cand[LINE_CAP * 2];
@@ -187,14 +188,21 @@ static bool challenge_view_input(InputEvent* event, void* context) {
     if(event->type == InputTypePress || event->type == InputTypeRepeat) {
         if(event->key == InputKeyUp) {
             with_view_model(
-                v->view, ChallengeModel * m, { if(m->scroll > 0) m->scroll--; }, true);
+                v->view,
+                ChallengeModel * m,
+                {
+                    if(m->scroll > 0) m->scroll--;
+                },
+                true);
             return true;
         }
         if(event->key == InputKeyDown) {
             with_view_model(
                 v->view,
                 ChallengeModel * m,
-                { if(m->scroll < m->total_lines - (int)VISIBLE) m->scroll++; },
+                {
+                    if(m->scroll < m->total_lines - (int)VISIBLE) m->scroll++;
+                },
                 true);
             return true;
         }

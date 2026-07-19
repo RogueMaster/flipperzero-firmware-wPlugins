@@ -32,7 +32,11 @@ void capture_view_set_callback(CaptureView* v, CaptureViewCallback cb, void* con
 void capture_view_set_config(CaptureView* v, const char* band, const char* mod, uint8_t target);
 
 /** Update the live progress after each registered press. */
-void capture_view_set_progress(CaptureView* v, uint8_t count, const char* protocol, RcCodeClass cls);
+void capture_view_set_progress(
+    CaptureView* v,
+    uint8_t count,
+    const char* protocol,
+    RcCodeClass cls);
 
 void capture_view_reset(CaptureView* v);
 void capture_view_tick(CaptureView* v);

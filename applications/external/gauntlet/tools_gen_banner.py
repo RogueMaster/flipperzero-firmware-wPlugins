@@ -62,27 +62,40 @@ def soft(size):
 
 def draw_flag(d, x, y, h, col, lw):
     """A pennant flag planted on a pole."""
-    d.line([(x, y - h), (x, y + h)], fill=col, width=lw)          # pole
+    d.line([(x, y - h), (x, y + h)], fill=col, width=lw)  # pole
     d.line([(x - h // 3, y + h), (x + h // 3, y + h)], fill=col, width=lw)  # base
     # triangular pennant
     fw = int(h * 1.15)
-    d.polygon([(x + lw, y - h), (x + lw + fw, y - int(h * 0.6)),
-               (x + lw, y - int(h * 0.2))], fill=col)
+    d.polygon(
+        [(x + lw, y - h), (x + lw + fw, y - int(h * 0.6)), (x + lw, y - int(h * 0.2))],
+        fill=col,
+    )
 
 
 def draw_burst(d, cx, cy, r0, r1, col, lw, n=12):
     for i in range(n):
         a = i * (2 * math.pi / n)
-        d.line([(cx + math.cos(a) * r0, cy + math.sin(a) * r0),
-                (cx + math.cos(a) * r1, cy + math.sin(a) * r1)], fill=col, width=lw)
+        d.line(
+            [
+                (cx + math.cos(a) * r0, cy + math.sin(a) * r0),
+                (cx + math.cos(a) * r1, cy + math.sin(a) * r1),
+            ],
+            fill=col,
+            width=lw,
+        )
 
 
 def chip(d, x, y, text, col, fnt):
     bb = d.textbbox((0, 0), text, font=fnt)
     tw, th = bb[2] - bb[0], bb[3] - bb[1]
     padx, pady = 15 * SS, 8 * SS
-    rrect(d, [x, y, x + tw + padx * 2, y + th + pady * 2], r=(th + pady * 2) // 2,
-          outline=col, width=3 * SS)
+    rrect(
+        d,
+        [x, y, x + tw + padx * 2, y + th + pady * 2],
+        r=(th + pady * 2) // 2,
+        outline=col,
+        width=3 * SS,
+    )
     d.text((x + padx - bb[0], y + pady - bb[1]), text, font=fnt, fill=col)
     return x + tw + padx * 2
 
@@ -116,10 +129,23 @@ def render(path, W, H, layout="wide"):
         gx, gy, scale = int(w * 0.5), int(h * 0.20), int(h * 0.52)
 
     # starburst + planted flag
-    draw_burst(gd, gx, gy, int(scale * 0.14), int(scale * 0.26),
-               (GREEN[0], GREEN[1], GREEN[2], 120), 4 * SS)
-    draw_flag(gd, gx - int(scale * 0.02), gy + int(scale * 0.08), int(scale * 0.17),
-              (GREEN[0], GREEN[1], GREEN[2], 230), 6 * SS)
+    draw_burst(
+        gd,
+        gx,
+        gy,
+        int(scale * 0.14),
+        int(scale * 0.26),
+        (GREEN[0], GREEN[1], GREEN[2], 120),
+        4 * SS,
+    )
+    draw_flag(
+        gd,
+        gx - int(scale * 0.02),
+        gy + int(scale * 0.08),
+        int(scale * 0.17),
+        (GREEN[0], GREEN[1], GREEN[2], 230),
+        6 * SS,
+    )
 
     blur = glow.filter(ImageFilter.GaussianBlur(7 * SS))
     img.alpha_composite(blur)
@@ -147,22 +173,41 @@ def render(path, W, H, layout="wide"):
     f_foot = font(MONO, 21 * SS)
 
     td.text((x0, kick_y), "FLIPPER ZERO  ·  ON-DEVICE CTF BOX", font=f_kick, fill=GREEN)
-    td.text((x0 + 4 * SS, title_y + 4 * SS), "GAUNTLET", font=f_title,
-            fill=(GREEN[0], GREEN[1], GREEN[2], 130))
+    td.text(
+        (x0 + 4 * SS, title_y + 4 * SS),
+        "GAUNTLET",
+        font=f_title,
+        fill=(GREEN[0], GREEN[1], GREEN[2], 130),
+    )
     td.text((x0, title_y), "GAUNTLET", font=f_title, fill=WHITE)
 
     tag_y = title_y + title_px + 14 * SS
     td.text((x0, tag_y), "Run the gauntlet. Capture the flags.", font=f_tag, fill=AMBER)
-    td.text((x0, tag_y + 48 * SS),
-            "Load challenge packs and solve RFID, IR & cipher puzzles on the device.",
-            font=f_sub, fill=GRAY)
+    td.text(
+        (x0, tag_y + 48 * SS),
+        "Load challenge packs and solve RFID, IR & cipher puzzles on the device.",
+        font=f_sub,
+        fill=GRAY,
+    )
     img.alpha_composite(tx)
 
     fd = ImageDraw.Draw(img)
-    fd.line([(70 * SS, h - 54 * SS), (w - 70 * SS, h - 54 * SS)], fill=DIM, width=2 * SS)
-    fd.text((70 * SS, h - 44 * SS), "github.com/at0m-b0mb/Gauntlet-FlipperZero",
-            font=f_foot, fill=GRAY)
-    fd.text((w - 70 * SS, h - 44 * SS), "MIT · by at0m-b0mb", font=f_foot, fill=GRAY, anchor="ra")
+    fd.line(
+        [(70 * SS, h - 54 * SS), (w - 70 * SS, h - 54 * SS)], fill=DIM, width=2 * SS
+    )
+    fd.text(
+        (70 * SS, h - 44 * SS),
+        "github.com/at0m-b0mb/Gauntlet-FlipperZero",
+        font=f_foot,
+        fill=GRAY,
+    )
+    fd.text(
+        (w - 70 * SS, h - 44 * SS),
+        "MIT · by at0m-b0mb",
+        font=f_foot,
+        fill=GRAY,
+        anchor="ra",
+    )
 
     out = img.convert("RGB").resize((W, H), Image.LANCZOS)
     out.save(path)

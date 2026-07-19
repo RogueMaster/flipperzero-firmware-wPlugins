@@ -21,8 +21,7 @@ void hermes_scene_start_on_enter(void* context) {
     submenu_reset(submenu);
     submenu_set_header(submenu, "Hermes");
 
-    submenu_add_item(
-        submenu, "Detect Baud", StartIndexDetect, hermes_scene_start_callback, app);
+    submenu_add_item(submenu, "Detect Baud", StartIndexDetect, hermes_scene_start_callback, app);
     submenu_add_item(
         submenu, "Manual Console", StartIndexManual, hermes_scene_start_callback, app);
     submenu_add_item(submenu, "Self Test", StartIndexSelfTest, hermes_scene_start_callback, app);

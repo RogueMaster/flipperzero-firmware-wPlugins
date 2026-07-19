@@ -79,7 +79,8 @@ static void spectrum_view_draw(Canvas* canvas, void* model) {
     canvas_draw_line(canvas, 0, 52, 127, 52);
     canvas_set_font(canvas, FontSecondary);
     if(s->lo_label[0]) canvas_draw_str(canvas, 0, 63, s->lo_label);
-    if(s->hi_label[0]) canvas_draw_str_aligned(canvas, 127, 63, AlignRight, AlignBottom, s->hi_label);
+    if(s->hi_label[0])
+        canvas_draw_str_aligned(canvas, 127, 63, AlignRight, AlignBottom, s->hi_label);
     if(s->peak_label[0])
         canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, s->peak_label);
 }
@@ -102,8 +103,7 @@ SpectrumView* spectrum_view_alloc(void) {
     view_set_draw_callback(v->view, spectrum_view_draw);
     view_set_input_callback(v->view, spectrum_view_input);
     view_allocate_model(v->view, ViewModelTypeLocking, sizeof(SpectrumModel));
-    with_view_model(
-        v->view, SpectrumModel * m, { memset(m, 0, sizeof(SpectrumModel)); }, false);
+    with_view_model(v->view, SpectrumModel * m, { memset(m, 0, sizeof(SpectrumModel)); }, false);
     return v;
 }
 

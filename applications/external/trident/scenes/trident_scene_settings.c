@@ -83,10 +83,11 @@ void trident_scene_settings_on_enter(void* context) {
     variable_item_set_current_value_index(item, app->settings.cc1101_device);
     variable_item_set_current_value_text(item, cc1101_labels[app->settings.cc1101_device]);
 
-    item = variable_item_list_add(
-        list, "Sub-GHz band", TRIDENT_SUBGHZ_BAND_COUNT, band_changed, app);
+    item =
+        variable_item_list_add(list, "Sub-GHz band", TRIDENT_SUBGHZ_BAND_COUNT, band_changed, app);
     variable_item_set_current_value_index(item, app->settings.subghz_band);
-    variable_item_set_current_value_text(item, trident_subghz_band_label(app->settings.subghz_band));
+    variable_item_set_current_value_text(
+        item, trident_subghz_band_label(app->settings.subghz_band));
 
     item = variable_item_list_add(list, "Autoscroll", 2, autoscroll_changed, app);
     variable_item_set_current_value_index(item, app->settings.autoscroll ? 1 : 0);

@@ -2,8 +2,8 @@
 
 static const char* const on_off[] = {"OFF", "ON"};
 
-#define RC_TARGET_MIN 2
-#define RC_TARGET_MAX 6
+#define RC_TARGET_MIN   2
+#define RC_TARGET_MAX   6
 #define RC_TARGET_COUNT (RC_TARGET_MAX - RC_TARGET_MIN + 1)
 
 static void settings_band_cb(VariableItem* item) {

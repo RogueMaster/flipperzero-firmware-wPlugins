@@ -327,8 +327,9 @@ static void probe_sample_burst(
         }
     }
     /* Two crossings per cycle. Only meaningful if there is ripple to cross. */
-    *freq_hz =
-        (*ripple_mv > PROBE_RIPPLE_FLOOR_MV) ? (uint16_t)((crossings * 1000u) / (2u * PROBE_BURST_MS)) : 0u;
+    *freq_hz = (*ripple_mv > PROBE_RIPPLE_FLOOR_MV) ?
+                   (uint16_t)((crossings * 1000u) / (2u * PROBE_BURST_MS)) :
+                   0u;
 }
 
 static int32_t ir_sense_worker_probe(IrSense* s) {

@@ -84,8 +84,7 @@ static const char* mf_classic_name_from_sak(uint8_t sak) {
  * systems that decide on UID alone inherit that weakness whatever the tech. */
 static void note_uid(CardGrade* g, const CardReading* r) {
     if(r->uid_len == 4) {
-        finding_add(
-            g, FindingWarn, "4-byte UID: copyable to a magic card in one tap");
+        finding_add(g, FindingWarn, "4-byte UID: copyable to a magic card in one tap");
     } else if(r->uid_len == 7) {
         finding_add(g, FindingInfo, "7-byte UID (harder to spoof, not secret)");
     } else if(r->uid_len > 0) {

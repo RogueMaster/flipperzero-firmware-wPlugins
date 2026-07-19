@@ -17,10 +17,8 @@ void warden_scene_start_on_enter(void* context) {
 
     submenu_reset(submenu);
     submenu_set_header(submenu, "Warden");
-    submenu_add_item(
-        submenu, "Grade a Card", StartIndexGrade, warden_scene_start_submenu_cb, app);
-    submenu_add_item(
-        submenu, "Settings", StartIndexSettings, warden_scene_start_submenu_cb, app);
+    submenu_add_item(submenu, "Grade a Card", StartIndexGrade, warden_scene_start_submenu_cb, app);
+    submenu_add_item(submenu, "Settings", StartIndexSettings, warden_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "About", StartIndexAbout, warden_scene_start_submenu_cb, app);
 
     submenu_set_selected_item(

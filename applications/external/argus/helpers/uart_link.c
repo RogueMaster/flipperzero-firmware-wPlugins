@@ -6,10 +6,10 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define UART_BAUD            115200
-#define UART_RX_STREAM_SIZE  1024
-#define UART_LINE_MAX        128
-#define UART_WORKER_STACK    2048
+#define UART_BAUD           115200
+#define UART_RX_STREAM_SIZE 1024
+#define UART_LINE_MAX       128
+#define UART_WORKER_STACK   2048
 
 struct UartLink {
     FuriThread* thread;
@@ -102,8 +102,7 @@ static void uart_link_parse_line(UartLink* link, char* line) {
         int8_t rssi = (int8_t)atoi(tok[3]);
         uint8_t reason = (uint8_t)atoi(tok[4]);
         ArgusThreatKind kind = (atoi(tok[5]) == 1) ? ArgusThreatDisassoc : ArgusThreatDeauth;
-        if(link->deauth_cb)
-            link->deauth_cb(link->cb_context, kind, src, bssid, ch, rssi, reason);
+        if(link->deauth_cb) link->deauth_cb(link->cb_context, kind, src, bssid, ch, rssi, reason);
 
     } else if(strncmp(line, "AXAP,", 5) == 0) {
         char* tok[5];

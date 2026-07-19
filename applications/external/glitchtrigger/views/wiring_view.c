@@ -84,7 +84,8 @@ static void wiring_view_draw(Canvas* canvas, void* model) {
     canvas_draw_str(canvas, 52, by + bh + 2, "GND");
 
     /* rotating safety tip */
-    elements_multiline_text_aligned(canvas, 64, 55, AlignCenter, AlignTop, tips[m->tip % TIP_COUNT]);
+    elements_multiline_text_aligned(
+        canvas, 64, 55, AlignCenter, AlignTop, tips[m->tip % TIP_COUNT]);
 }
 
 static bool wiring_view_input(InputEvent* event, void* context) {

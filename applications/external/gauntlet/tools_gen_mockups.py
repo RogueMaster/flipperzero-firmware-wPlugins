@@ -50,8 +50,12 @@ def finish(img, name):
     pad = 20
     canvas = Image.new("RGB", (W * SCALE + pad * 2, H * SCALE + pad * 2), BEZEL)
     d = ImageDraw.Draw(canvas)
-    d.rounded_rectangle([6, 6, canvas.width - 6, canvas.height - 6], radius=16,
-                        outline=BEZEL_HI, width=3)
+    d.rounded_rectangle(
+        [6, 6, canvas.width - 6, canvas.height - 6],
+        radius=16,
+        outline=BEZEL_HI,
+        width=3,
+    )
     canvas.paste(up, (pad, pad))
     path = os.path.join(OUT, name)
     canvas.save(path)
@@ -127,8 +131,14 @@ def m_result():
     cx, cy = 64, 18
     for i in range(12):
         a = i * (2 * math.pi / 12)
-        d.line([(cx + math.cos(a) * 15, cy + math.sin(a) * 15),
-                (cx + math.cos(a) * 26, cy + math.sin(a) * 26)], fill=INK, width=1)
+        d.line(
+            [
+                (cx + math.cos(a) * 15, cy + math.sin(a) * 15),
+                (cx + math.cos(a) * 26, cy + math.sin(a) * 26),
+            ],
+            fill=INK,
+            width=1,
+        )
     # flag on a pole
     d.line([(cx - 2, cy - 9), (cx - 2, cy + 9)], fill=INK, width=2)
     for i in range(8):

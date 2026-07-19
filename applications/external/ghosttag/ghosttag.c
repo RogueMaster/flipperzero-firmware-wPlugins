@@ -140,8 +140,7 @@ static GhostTagApp* ghosttag_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, GhostTagViewAlert, alert_view_get_view(app->alert_view));
 
-    view_dispatcher_attach_to_gui(
-        app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     return app;
 }

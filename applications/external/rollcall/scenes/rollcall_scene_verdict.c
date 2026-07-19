@@ -38,8 +38,7 @@ bool rollcall_scene_verdict_on_event(void* context, SceneManagerEvent event) {
         }
     } else if(event.type == SceneManagerEventTypeBack) {
         /* skip the capture scene, land back on the main menu */
-        scene_manager_search_and_switch_to_previous_scene(
-            app->scene_manager, RollCallSceneStart);
+        scene_manager_search_and_switch_to_previous_scene(app->scene_manager, RollCallSceneStart);
         consumed = true;
     }
     return consumed;

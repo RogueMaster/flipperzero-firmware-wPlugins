@@ -1,19 +1,11 @@
 #include "combat.h"
 #include <stddef.h>
 
-AttackResult ResolveAttack(
-    const Wyrm* attacker,
-    int attackingPlateIndex,
-    Wyrm* defender
-) {
+AttackResult ResolveAttack(const Wyrm* attacker, int attackingPlateIndex, Wyrm* defender) {
     AttackResult result = {0};
 
-    if(
-        attacker == NULL ||
-        defender == NULL ||
-        attackingPlateIndex < 0 ||
-        attackingPlateIndex >= attacker->length
-    ) {
+    if(attacker == NULL || defender == NULL || attackingPlateIndex < 0 ||
+       attackingPlateIndex >= attacker->length) {
         return result;
     }
 
@@ -36,8 +28,7 @@ AttackResult ResolveAttack(
     result.defenderDestroyed = defender->length == 0;
 
     if(!result.defenderDestroyed) {
-        result.remainingOuterIntegrity =
-            defender->plates[defender->length - 1].integrity;
+        result.remainingOuterIntegrity = defender->plates[defender->length - 1].integrity;
     }
 
     return result;

@@ -5,8 +5,8 @@
 #include <stdio.h>
 
 #define VISIBLE_ROWS 4
-#define ROW_H 13
-#define LIST_TOP 13
+#define ROW_H        13
+#define LIST_TOP     13
 
 struct DeviceListView {
     View* view;
@@ -134,7 +134,8 @@ static bool device_list_view_input(InputEvent* event, void* context) {
             {
                 if(m->count && m->selected + 1 < m->count) {
                     m->selected++;
-                    if(m->selected >= m->top + VISIBLE_ROWS) m->top = m->selected - VISIBLE_ROWS + 1;
+                    if(m->selected >= m->top + VISIBLE_ROWS)
+                        m->top = m->selected - VISIBLE_ROWS + 1;
                 }
             },
             true);
@@ -178,7 +179,8 @@ void device_list_view_set_records(DeviceListView* dlv, const TrackerRecord* recs
         DeviceListModel * m,
         {
             size_t n = count < TRACKER_DB_MAX ? count : TRACKER_DB_MAX;
-            for(size_t i = 0; i < n; i++) m->records[i] = recs[i];
+            for(size_t i = 0; i < n; i++)
+                m->records[i] = recs[i];
             m->count = n;
             if(m->selected >= n) m->selected = n ? n - 1 : 0;
             if(m->top > m->selected) m->top = m->selected;

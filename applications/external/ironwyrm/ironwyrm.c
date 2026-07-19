@@ -30,9 +30,8 @@ static void InputCallback(InputEvent* inputEvent, void* context) {
 }
 
 static GameAction TranslateInput(const InputEvent* inputEvent) {
-    bool isDirectionalEvent =
-        inputEvent->type == InputTypeShort ||
-        inputEvent->type == InputTypeRepeat;
+    bool isDirectionalEvent = inputEvent->type == InputTypeShort ||
+                              inputEvent->type == InputTypeRepeat;
 
     if(isDirectionalEvent) {
         switch(inputEvent->key) {
@@ -84,22 +83,17 @@ int32_t ironwyrm_app(void* context) {
     while(!shouldExit) {
         InputEvent inputEvent;
 
-        if(
-            furi_message_queue_get(
-                app->inputQueue,
-                &inputEvent,
-                FuriWaitForever
-            ) != FuriStatusOk
-        ) {
+        if(furi_message_queue_get(app->inputQueue, &inputEvent, FuriWaitForever) != FuriStatusOk) {
             continue;
         }
 
         if(inputEvent.key == InputKeyBack && inputEvent.type == InputTypeShort) {
             furi_mutex_acquire(app->gameMutex, FuriWaitForever);
 
-            if(app->gameState.mode == GameModeShopPlacement || app->gameState.mode == GameModeIntro) {
+            if(app->gameState.mode == GameModeShopPlacement ||
+               app->gameState.mode == GameModeIntro) {
                 HandleGameAction(&app->gameState, GameActionCancel);
-                
+
             } else {
                 shouldExit = true;
             }

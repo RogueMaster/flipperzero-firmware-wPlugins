@@ -15,13 +15,15 @@ uint32_t ctf_hash(const char* s) {
 uint32_t ctf_answer_hash(const char* s, bool exact) {
     char buf[96];
     size_t n = 0;
-    while(*s == ' ' || *s == '\t') s++; /* trim leading */
+    while(*s == ' ' || *s == '\t')
+        s++; /* trim leading */
     while(*s && n < sizeof(buf) - 1) {
         char c = *s++;
         if(!exact && c >= 'A' && c <= 'Z') c = (char)(c - 'A' + 'a');
         buf[n++] = c;
     }
-    while(n > 0 && (buf[n - 1] == ' ' || buf[n - 1] == '\t')) n--; /* trim trailing */
+    while(n > 0 && (buf[n - 1] == ' ' || buf[n - 1] == '\t'))
+        n--; /* trim trailing */
     buf[n] = '\0';
     return ctf_hash(buf);
 }
@@ -33,7 +35,8 @@ bool ctf_check_answer(const CtfChallenge* c, const char* attempt) {
 /* --------------------------------------------------------------- helpers */
 static void str_set(char* dst, size_t sz, const char* src) {
     size_t i = 0;
-    for(; src[i] && i < sz - 1; i++) dst[i] = src[i];
+    for(; src[i] && i < sz - 1; i++)
+        dst[i] = src[i];
     dst[i] = '\0';
 }
 
@@ -42,7 +45,8 @@ static void str_append_line(char* dst, size_t sz, const char* src) {
     size_t len = strlen(dst);
     if(len && len < sz - 1) dst[len++] = '\n';
     size_t i = 0;
-    while(src[i] && len < sz - 1) dst[len++] = src[i++];
+    while(src[i] && len < sz - 1)
+        dst[len++] = src[i++];
     dst[len] = '\0';
 }
 
@@ -62,21 +66,31 @@ static bool key_is(const char* key, const char* want) {
 /* ----------------------------------------------------------------- labels */
 const char* ctf_category_label(CtfCategory c) {
     switch(c) {
-    case CtfCatCipher: return "Cipher";
-    case CtfCatRfid: return "RFID";
-    case CtfCatInfrared: return "Infrared";
-    case CtfCatRadio: return "Sub-GHz";
-    default: return "Misc";
+    case CtfCatCipher:
+        return "Cipher";
+    case CtfCatRfid:
+        return "RFID";
+    case CtfCatInfrared:
+        return "Infrared";
+    case CtfCatRadio:
+        return "Sub-GHz";
+    default:
+        return "Misc";
     }
 }
 
 const char* ctf_category_tag(CtfCategory c) {
     switch(c) {
-    case CtfCatCipher: return "CIPHER";
-    case CtfCatRfid: return "RFID";
-    case CtfCatInfrared: return "IR";
-    case CtfCatRadio: return "RF";
-    default: return "MISC";
+    case CtfCatCipher:
+        return "CIPHER";
+    case CtfCatRfid:
+        return "RFID";
+    case CtfCatInfrared:
+        return "IR";
+    case CtfCatRadio:
+        return "RF";
+    default:
+        return "MISC";
     }
 }
 
@@ -90,10 +104,14 @@ CtfCategory ctf_category_from_str(const char* s) {
 
 const char* ctf_difficulty_label(CtfDifficulty d) {
     switch(d) {
-    case CtfDiffMedium: return "Medium";
-    case CtfDiffHard: return "Hard";
-    case CtfDiffInsane: return "Insane";
-    default: return "Easy";
+    case CtfDiffMedium:
+        return "Medium";
+    case CtfDiffHard:
+        return "Hard";
+    case CtfDiffInsane:
+        return "Insane";
+    default:
+        return "Easy";
     }
 }
 
@@ -138,7 +156,8 @@ static bool next_line(const char** pp, char* line, size_t sz) {
         p++;
     }
     if(*p == '\n') p++;
-    while(n > 0 && (line[n - 1] == '\r' || line[n - 1] == ' ' || line[n - 1] == '\t')) n--;
+    while(n > 0 && (line[n - 1] == '\r' || line[n - 1] == ' ' || line[n - 1] == '\t'))
+        n--;
     line[n] = '\0';
     *pp = p;
     return true;
@@ -148,11 +167,13 @@ static bool next_line(const char** pp, char* line, size_t sz) {
 static void split_kv(char* line, char** key, char** val) {
     *key = line;
     char* sp = line;
-    while(*sp && *sp != ' ' && *sp != '\t') sp++;
+    while(*sp && *sp != ' ' && *sp != '\t')
+        sp++;
     if(*sp) {
         *sp = '\0';
         char* v = sp + 1;
-        while(*v == ' ' || *v == '\t') v++;
+        while(*v == ' ' || *v == '\t')
+            v++;
         *val = v;
     } else {
         *val = sp; /* points at the NUL: empty value */

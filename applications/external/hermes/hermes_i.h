@@ -40,7 +40,7 @@
 
 /* How long the autoboot interrupt hammers the key for. Bootloader countdowns
  * are typically 1-3 seconds, so this covers one with margin. */
-#define HERMES_AUTOBOOT_MS (4000u)
+#define HERMES_AUTOBOOT_MS          (4000u)
 #define HERMES_AUTOBOOT_INTERVAL_MS (20u)
 
 /* Give up on a quiet line rather than listening forever. A busy console fills

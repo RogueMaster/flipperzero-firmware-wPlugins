@@ -9,8 +9,8 @@
  * = high, carrier gone = low - the modulation the walkthrough describes, live.
  * Receive-only; it never transmits. */
 
-#define RF_SCOPE_SAMPLES 128 // ring-buffer width (one per screen column-ish)
-#define RF_SCOPE_MAX     48 // top of the normalised level range
+#define RF_SCOPE_SAMPLES    128 // ring-buffer width (one per screen column-ish)
+#define RF_SCOPE_MAX        48 // top of the normalised level range
 #define RF_SCOPE_FREQ_COUNT 4
 
 typedef struct {

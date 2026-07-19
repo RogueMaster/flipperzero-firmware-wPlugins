@@ -83,7 +83,8 @@ static HermesApp* hermes_app_alloc(void) {
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, hermes_custom_event_callback);
-    view_dispatcher_set_navigation_event_callback(app->view_dispatcher, hermes_back_event_callback);
+    view_dispatcher_set_navigation_event_callback(
+        app->view_dispatcher, hermes_back_event_callback);
     /* ~60 fps: the detect scope and the console both want to feel live. */
     view_dispatcher_set_tick_event_callback(app->view_dispatcher, hermes_tick_event_callback, 16);
 

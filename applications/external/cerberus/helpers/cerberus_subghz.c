@@ -7,9 +7,9 @@
 
 #define TAG "Cerberus"
 
-#define CERBERUS_DWELL_MS 140 // time camped on a band before hopping
-#define CERBERUS_SETTLE_US 1500 // RSSI settle time after retuning
-#define CERBERUS_SAMPLE_US 2000 // gap between RSSI reads (~500 Hz)
+#define CERBERUS_DWELL_MS     140 // time camped on a band before hopping
+#define CERBERUS_SETTLE_US    1500 // RSSI settle time after retuning
+#define CERBERUS_SAMPLE_US    2000 // gap between RSSI reads (~500 Hz)
 #define CERBERUS_WORKER_STACK (2 * 1024)
 
 // The three heads. 433.92 / 868.35 / 915.00 MHz - the common ISM bands a

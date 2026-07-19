@@ -7,11 +7,11 @@
  * result it shows the decoded fields as annotated lines plus a verdict banner.
  * OK / Right re-scans (via the rescan callback); Back propagates to the scene. */
 
-#define CAPTURE_LINE_LEN 26
+#define CAPTURE_LINE_LEN    26
 #define CAPTURE_VERDICT_LEN 26
 /* Exactly the number of rows that fit between the header and the verdict
  * banner (y=24,34,44 vs banner at y=52). Keep the builders within this. */
-#define CAPTURE_MAX_LINES 3
+#define CAPTURE_MAX_LINES   3
 
 typedef enum {
     CaptureVerdictNeutral,

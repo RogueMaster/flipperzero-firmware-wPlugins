@@ -5,7 +5,7 @@
 
 /* Written straight through to the SD card, so the log survives a battery pull
  * or a target that browns out the moment you get the interesting line. */
-#define SESSION_LOG_DIR "/ext/apps_data/hermes"
+#define SESSION_LOG_DIR      "/ext/apps_data/hermes"
 #define SESSION_LOG_PATH_MAX (96u)
 
 typedef struct SessionLog SessionLog;

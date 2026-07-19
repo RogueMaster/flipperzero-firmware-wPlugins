@@ -1,11 +1,11 @@
 #include "cerberus_detector.h"
 
-#define FLOOR_MIN   (-120.0f)
-#define FLOOR_MAX   (-50.0f)
-#define JAM_OCC     (0.82f) // occupancy above this == channel "held"
-#define FLOOR_DROP  (0.30f) // how fast the floor follows a lower reading
-#define FLOOR_RISE  (0.001f) // how slowly the floor creeps back up
-#define OCC_ALPHA   (0.05f) // occupancy EMA smoothing
+#define FLOOR_MIN  (-120.0f)
+#define FLOOR_MAX  (-50.0f)
+#define JAM_OCC    (0.82f) // occupancy above this == channel "held"
+#define FLOOR_DROP (0.30f) // how fast the floor follows a lower reading
+#define FLOOR_RISE (0.001f) // how slowly the floor creeps back up
+#define OCC_ALPHA  (0.05f) // occupancy EMA smoothing
 
 const char* cerberus_threat_name(CerberusThreat threat) {
     switch(threat) {

@@ -4,8 +4,8 @@
 
 /* 21 columns is what FontKeyboard fits across 128 px. Real consoles assume 80,
  * so long lines wrap - honest, and better than truncating. */
-#define TERM_COLS (21u)
-#define TERM_LINES (96u)
+#define TERM_COLS      (21u)
+#define TERM_LINES     (96u)
 #define TERM_RAW_BYTES (512u)
 
 typedef struct Term Term;

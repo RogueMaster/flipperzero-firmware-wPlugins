@@ -4,8 +4,8 @@
 
 /* ~2 ms per sample, 48 samples per window => ~10 strength updates/s: fast
  * enough to catch a reader's polling bursts, smooth enough to read. */
-#define FDY_SAMPLE_PERIOD_US 2000u
-#define FDY_WINDOW_SAMPLES 48u
+#define FDY_SAMPLE_PERIOD_US  2000u
+#define FDY_WINDOW_SAMPLES    48u
 #define FDY_PRESENT_THRESHOLD 4u // duty % that counts as "a field is here"
 
 struct FdyNfc {

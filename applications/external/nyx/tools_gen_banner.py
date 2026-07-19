@@ -104,15 +104,25 @@ def render(path, W, H, layout="wide"):
 
     # IR beams behind the lens, faint crimson
     draw_beams(
-        gd, lx, ly, (IRRED[0], IRRED[1], IRRED[2], 90),
-        n=9, r0=int(R * 0.9), r1=int(R * 5.2), lw=5 * SS,
-        spread=150, tilt=-140,
+        gd,
+        lx,
+        ly,
+        (IRRED[0], IRRED[1], IRRED[2], 90),
+        n=9,
+        r0=int(R * 0.9),
+        r1=int(R * 5.2),
+        lw=5 * SS,
+        spread=150,
+        tilt=-140,
     )
     # crescent moon up and to the side
     draw_crescent(gd, mx, my, mr, (VIOLET[0], VIOLET[1], VIOLET[2], 235))
     # the watching lens
     draw_lens(
-        gd, lx, ly, R,
+        gd,
+        lx,
+        ly,
+        R,
         ring=(VIOLET[0], VIOLET[1], VIOLET[2], 255),
         iris=(IRRED[0], IRRED[1], IRRED[2], 255),
     )
@@ -133,34 +143,48 @@ def render(path, W, H, layout="wide"):
     f_sub = font(REG, 24 * SS)
     f_foot = font(MONO, 21 * SS)
 
-    td.text((x0, kicker_y), "FLIPPER ZERO  ·  IR CAMERA SWEEP", font=f_kick, fill=VIOLET)
+    td.text(
+        (x0, kicker_y), "FLIPPER ZERO  ·  IR CAMERA SWEEP", font=f_kick, fill=VIOLET
+    )
 
     # title with an IR-crimson offset, like a heat ghost
     td.text(
-        (x0 + 4 * SS, title_y + 4 * SS), "NYX", font=f_title,
+        (x0 + 4 * SS, title_y + 4 * SS),
+        "NYX",
+        font=f_title,
         fill=(IRRED[0], IRRED[1], IRRED[2], 150),
     )
     td.text((x0, title_y), "NYX", font=f_title, fill=WHITE)
 
     tag_y = title_y + title_px + 14 * SS
-    td.text((x0, tag_y), "See the light they hoped you couldn't.", font=f_tag, fill=VIOLET)
+    td.text(
+        (x0, tag_y), "See the light they hoped you couldn't.", font=f_tag, fill=VIOLET
+    )
     td.text(
         (x0, tag_y + 50 * SS),
         "Counter-surveillance IR sweep for covert night-vision cameras.",
-        font=f_sub, fill=GRAY,
+        font=f_sub,
+        fill=GRAY,
     )
 
     img.alpha_composite(tx)
 
     fd = ImageDraw.Draw(img)
-    fd.line([(70 * SS, h - 54 * SS), (w - 70 * SS, h - 54 * SS)], fill=DIM, width=2 * SS)
-    fd.text(
-        (70 * SS, h - 44 * SS), "github.com/at0m-b0mb/Nyx-FlipperZero",
-        font=f_foot, fill=GRAY,
+    fd.line(
+        [(70 * SS, h - 54 * SS), (w - 70 * SS, h - 54 * SS)], fill=DIM, width=2 * SS
     )
     fd.text(
-        (w - 70 * SS, h - 44 * SS), "MIT · by at0m-b0mb",
-        font=f_foot, fill=GRAY, anchor="ra",
+        (70 * SS, h - 44 * SS),
+        "github.com/at0m-b0mb/Nyx-FlipperZero",
+        font=f_foot,
+        fill=GRAY,
+    )
+    fd.text(
+        (w - 70 * SS, h - 44 * SS),
+        "MIT · by at0m-b0mb",
+        font=f_foot,
+        fill=GRAY,
+        anchor="ra",
     )
 
     out = img.convert("RGB").resize((W, H), Image.LANCZOS)

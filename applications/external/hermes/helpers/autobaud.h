@@ -6,7 +6,7 @@
 
 /* 512 edges is roughly 60 bytes of 8N1 traffic - plenty for a stable fit, and
  * small enough that the whole capture stays in a 2 KB buffer. */
-#define AUTOBAUD_MAX_EDGES (512u)
+#define AUTOBAUD_MAX_EDGES  (512u)
 #define AUTOBAUD_CANDIDATES (4u)
 
 /* Widest square wave the scope view can show at once. */

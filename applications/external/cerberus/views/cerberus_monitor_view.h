@@ -36,10 +36,7 @@ void cerberus_monitor_view_set_callback(
 void cerberus_monitor_view_update(CerberusMonitorView* view, const CerberusSnapshot* snap);
 
 /** Update the title-bar status (armed/silent + lifetime alert count). */
-void cerberus_monitor_view_set_status(
-    CerberusMonitorView* view,
-    bool armed,
-    uint32_t alert_total);
+void cerberus_monitor_view_set_status(CerberusMonitorView* view, bool armed, uint32_t alert_total);
 
 #ifdef __cplusplus
 }

@@ -74,11 +74,16 @@ def wave_1wire(d, x, y, w, col, lw):
     amp = int(w * 0.16)
     hi, lo = y - amp, y + amp
     pts = [
-        (x, hi), (x + w * 0.08, hi),
-        (x + w * 0.08, lo), (x + w * 0.42, lo),  # long reset low
-        (x + w * 0.42, hi), (x + w * 0.52, hi),
-        (x + w * 0.52, lo), (x + w * 0.74, lo),  # presence low
-        (x + w * 0.74, hi), (x + w, hi),
+        (x, hi),
+        (x + w * 0.08, hi),
+        (x + w * 0.08, lo),
+        (x + w * 0.42, lo),  # long reset low
+        (x + w * 0.42, hi),
+        (x + w * 0.52, hi),
+        (x + w * 0.52, lo),
+        (x + w * 0.74, lo),  # presence low
+        (x + w * 0.74, hi),
+        (x + w, hi),
     ]
     d.line(pts, fill=col, width=lw, joint="curve")
 
@@ -86,15 +91,27 @@ def wave_1wire(d, x, y, w, col, lw):
 def chip_row(d, cx, y, chip_w, label, chip, accent):
     """A centered field chip + caption (used on the social card, no waveform)."""
     ch = 40 * SS
-    rrect(d, [cx - chip_w // 2, y - ch // 2, cx + chip_w // 2, y + ch // 2], r=9 * SS,
-          fill=(16, 24, 30), outline=accent, width=3 * SS)
+    rrect(
+        d,
+        [cx - chip_w // 2, y - ch // 2, cx + chip_w // 2, y + ch // 2],
+        r=9 * SS,
+        fill=(16, 24, 30),
+        outline=accent,
+        width=3 * SS,
+    )
     f_chip = font(MONO, 22 * SS)
     bb = d.textbbox((0, 0), chip, font=f_chip)
-    d.text((cx - (bb[2] - bb[0]) / 2 - bb[0], y - (bb[3] - bb[1]) / 2 - bb[1]),
-           chip, font=f_chip, fill=WHITE)
+    d.text(
+        (cx - (bb[2] - bb[0]) / 2 - bb[0], y - (bb[3] - bb[1]) / 2 - bb[1]),
+        chip,
+        font=f_chip,
+        fill=WHITE,
+    )
     f_lab = font(MONO, 16 * SS)
     lb = d.textbbox((0, 0), label, font=f_lab)
-    d.text((cx - (lb[2] - lb[0]) / 2, y + ch // 2 + 7 * SS), label, font=f_lab, fill=GRAY)
+    d.text(
+        (cx - (lb[2] - lb[0]) / 2, y + ch // 2 + 7 * SS), label, font=f_lab, fill=GRAY
+    )
 
 
 def decode_row(d, x, y, w, drawer, label, chip, accent):
@@ -109,12 +126,22 @@ def decode_row(d, x, y, w, drawer, label, chip, accent):
     # chip
     cx0 = x + int(w * 0.50)
     ch = 34 * SS
-    rrect(d, [cx0, y - ch // 2, x + w, y + ch // 2], r=8 * SS,
-          fill=(16, 24, 30), outline=accent, width=3 * SS)
+    rrect(
+        d,
+        [cx0, y - ch // 2, x + w, y + ch // 2],
+        r=8 * SS,
+        fill=(16, 24, 30),
+        outline=accent,
+        width=3 * SS,
+    )
     f_chip = font(MONO, 20 * SS)
     bb = d.textbbox((0, 0), chip, font=f_chip)
-    d.text((cx0 + (x + w - cx0 - (bb[2] - bb[0])) / 2, y - (bb[3] - bb[1]) / 2 - bb[1]),
-           chip, font=f_chip, fill=WHITE)
+    d.text(
+        (cx0 + (x + w - cx0 - (bb[2] - bb[0])) / 2, y - (bb[3] - bb[1]) / 2 - bb[1]),
+        chip,
+        font=f_chip,
+        fill=WHITE,
+    )
     f_lab = font(MONO, 15 * SS)
     d.text((x, y + ch // 2 + 6 * SS), label, font=f_lab, fill=GRAY)
 
@@ -136,7 +163,9 @@ def render(path, W, H, layout="wide"):
     else:
         gx, gy = int(w * 0.5), int(h * 0.66)
         rw = int(w * 0.42)
-    gd.ellipse([gx - rw, gy - rw, gx + rw, gy + rw], fill=(CYAN[0], CYAN[1], CYAN[2], 26))
+    gd.ellipse(
+        [gx - rw, gy - rw, gx + rw, gy + rw], fill=(CYAN[0], CYAN[1], CYAN[2], 26)
+    )
     img.alpha_composite(glow.filter(ImageFilter.GaussianBlur(28 * SS)))
 
     # the three decode rows
@@ -146,16 +175,32 @@ def render(path, W, H, layout="wide"):
         mx = int(w * 0.63)
         mw = int(w * 0.33)
         rows_y = [int(h * 0.28), int(h * 0.52), int(h * 0.76)]
-        decode_row(md, mx, rows_y[0], mw, wave_nfc, "NFC  ANTICOLLISION", "SAK 08", CYAN)
+        decode_row(
+            md, mx, rows_y[0], mw, wave_nfc, "NFC  ANTICOLLISION", "SAK 08", CYAN
+        )
         decode_row(md, mx, rows_y[1], mw, wave_ook, "SUB-GHZ  OOK/PSK", "1011", GOLD)
-        decode_row(md, mx, rows_y[2], mw, wave_1wire, "1-WIRE  ROM + CRC", "CRC OK", GREEN)
+        decode_row(
+            md, mx, rows_y[2], mw, wave_1wire, "1-WIRE  ROM + CRC", "CRC OK", GREEN
+        )
     else:
         cx = int(w * 0.5)
         chip_w = int(w * 0.5)
         rows_y = [int(h * 0.48), int(h * 0.65), int(h * 0.82)]
-        chip_row(md, cx, rows_y[0], chip_w, "NFC  ANTICOLLISION  ·  SAK / ATQA", "SAK 08", CYAN)
-        chip_row(md, cx, rows_y[1], chip_w, "SUB-GHZ  ·  OOK / PSK ENVELOPE", "1011", GOLD)
-        chip_row(md, cx, rows_y[2], chip_w, "1-WIRE  ·  ROM + MAXIM CRC-8", "CRC OK", GREEN)
+        chip_row(
+            md,
+            cx,
+            rows_y[0],
+            chip_w,
+            "NFC  ANTICOLLISION  ·  SAK / ATQA",
+            "SAK 08",
+            CYAN,
+        )
+        chip_row(
+            md, cx, rows_y[1], chip_w, "SUB-GHZ  ·  OOK / PSK ENVELOPE", "1011", GOLD
+        )
+        chip_row(
+            md, cx, rows_y[2], chip_w, "1-WIRE  ·  ROM + MAXIM CRC-8", "CRC OK", GREEN
+        )
     img.alpha_composite(motif)
 
     # text block
@@ -175,21 +220,41 @@ def render(path, W, H, layout="wide"):
     f_foot = font(MONO, 21 * SS)
 
     td.text((x0, kick_y), "FLIPPER ZERO  ·  PROTOCOL EXPLAINER", font=f_kick, fill=CYAN)
-    td.text((x0 + 4 * SS, title_y + 4 * SS), "ROSETTA", font=f_title,
-            fill=(CYAN[0], CYAN[1], CYAN[2], 130))
+    td.text(
+        (x0 + 4 * SS, title_y + 4 * SS),
+        "ROSETTA",
+        font=f_title,
+        fill=(CYAN[0], CYAN[1], CYAN[2], 130),
+    )
     td.text((x0, title_y), "ROSETTA", font=f_title, fill=WHITE)
 
     tag_y = title_y + title_px + 16 * SS
     td.text((x0, tag_y), "Learn it, then watch it happen.", font=f_tag, fill=GOLD)
-    td.text((x0, tag_y + 46 * SS),
-            "Mifare auth  ·  OOK/PSK  ·  1-Wire, live.",
-            font=f_sub, fill=GRAY)
+    td.text(
+        (x0, tag_y + 46 * SS),
+        "Mifare auth  ·  OOK/PSK  ·  1-Wire, live.",
+        font=f_sub,
+        fill=GRAY,
+    )
     img.alpha_composite(tx)
 
     fd = ImageDraw.Draw(img)
-    fd.line([(70 * SS, h - 54 * SS), (w - 70 * SS, h - 54 * SS)], fill=DIM, width=2 * SS)
-    fd.text((70 * SS, h - 44 * SS), "github.com/at0m-b0mb/Rosetta-FlipperZero", font=f_foot, fill=GRAY)
-    fd.text((w - 70 * SS, h - 44 * SS), "MIT · by at0m-b0mb", font=f_foot, fill=GRAY, anchor="ra")
+    fd.line(
+        [(70 * SS, h - 54 * SS), (w - 70 * SS, h - 54 * SS)], fill=DIM, width=2 * SS
+    )
+    fd.text(
+        (70 * SS, h - 44 * SS),
+        "github.com/at0m-b0mb/Rosetta-FlipperZero",
+        font=f_foot,
+        fill=GRAY,
+    )
+    fd.text(
+        (w - 70 * SS, h - 44 * SS),
+        "MIT · by at0m-b0mb",
+        font=f_foot,
+        fill=GRAY,
+        anchor="ra",
+    )
 
     out = img.convert("RGB").resize((W, H), Image.LANCZOS)
     out.save(path)

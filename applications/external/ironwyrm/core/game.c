@@ -27,11 +27,7 @@ static void StartEnemy(GameState* gameState) {
 }
 
 static void StartShop(GameState* gameState) {
-    FillShop(
-        gameState->shopPlates,
-        &gameState->shopLength,
-        &gameState->randomGenerator
-    );
+    FillShop(gameState->shopPlates, &gameState->shopLength, &gameState->randomGenerator);
 
     gameState->selectedShopItem = 0;
     gameState->pendingShopIndex = 0;
@@ -60,17 +56,11 @@ static void HandlePlayerSelection(GameState* gameState, GameAction action) {
 
     if(action == GameActionLeft && gameState->selectedPlayerPlate > minimumIndex) {
         gameState->selectedPlayerPlate--;
-    } else if(
-        action == GameActionRight &&
-        gameState->selectedPlayerPlate < maximumIndex
-    ) {
+    } else if(action == GameActionRight && gameState->selectedPlayerPlate < maximumIndex) {
         gameState->selectedPlayerPlate++;
     } else if(action == GameActionConfirm) {
-        gameState->latestAttack = ResolveAttack(
-            &gameState->player,
-            gameState->selectedPlayerPlate,
-            &gameState->enemy
-        );
+        gameState->latestAttack =
+            ResolveAttack(&gameState->player, gameState->selectedPlayerPlate, &gameState->enemy);
 
         gameState->mode = GameModePlayerAttackResult;
     }
@@ -86,11 +76,8 @@ static void AdvanceAfterPlayerAttack(GameState* gameState) {
 
     int enemyAttackingPlate = gameState->enemy.length - 1;
 
-    gameState->latestAttack = ResolveAttack(
-        &gameState->enemy,
-        enemyAttackingPlate,
-        &gameState->player
-    );
+    gameState->latestAttack =
+        ResolveAttack(&gameState->enemy, enemyAttackingPlate, &gameState->player);
 
     gameState->mode = GameModeEnemyAttackResult;
 }
@@ -111,10 +98,7 @@ static void HandleShopSelection(GameState* gameState, GameAction action) {
     if(action == GameActionUp && gameState->selectedShopItem > 0) {
         gameState->selectedShopItem--;
         gameState->shopMessage = ShopMessageNone;
-    } else if(
-        action == GameActionDown &&
-        gameState->selectedShopItem < leaveShopIndex
-    ) {
+    } else if(action == GameActionDown && gameState->selectedShopItem < leaveShopIndex) {
         gameState->selectedShopItem++;
         gameState->shopMessage = ShopMessageNone;
     } else if(action == GameActionConfirm) {
@@ -123,8 +107,7 @@ static void HandleShopSelection(GameState* gameState, GameAction action) {
             return;
         }
 
-        const Plate* selectedPlate =
-            &gameState->shopPlates[gameState->selectedShopItem];
+        const Plate* selectedPlate = &gameState->shopPlates[gameState->selectedShopItem];
 
         if(gameState->player.length >= MAX_PLATES) {
             gameState->shopMessage = ShopMessageWyrmFull;
@@ -195,16 +178,13 @@ void HandleGameAction(GameState* gameState, GameAction action) {
 
     case GameModeIntro:
         if(action == GameActionConfirm) {
-            if(
-                gameState->introParagraph <
-                GetIntroParagraphCount() - 1
-            ) {
+            if(gameState->introParagraph < GetIntroParagraphCount() - 1) {
                 gameState->introParagraph++;
             } else {
                 gameState->mode = GameModePlayerSelect;
             }
         }
-        if (action == GameActionCancel) {
+        if(action == GameActionCancel) {
             gameState->mode = GameModePlayerSelect;
         }
         break;

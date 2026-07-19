@@ -209,7 +209,8 @@ void monitor_view_update(
         MonitorModel * m,
         {
             size_t n = blip_count < MONITOR_MAX_BLIPS ? blip_count : MONITOR_MAX_BLIPS;
-            for(size_t i = 0; i < n; i++) m->blips[i] = blips[i];
+            for(size_t i = 0; i < n; i++)
+                m->blips[i] = blips[i];
             m->blip_count = n;
             m->deauth_total = deauth_total;
             m->deauth_rate = deauth_rate;

@@ -48,8 +48,12 @@ def finish(img, name):
     pad = 20
     canvas = Image.new("RGB", (W * SCALE + pad * 2, H * SCALE + pad * 2), BEZEL)
     d = ImageDraw.Draw(canvas)
-    d.rounded_rectangle([6, 6, canvas.width - 6, canvas.height - 6], radius=16,
-                        outline=BEZEL_HI, width=3)
+    d.rounded_rectangle(
+        [6, 6, canvas.width - 6, canvas.height - 6],
+        radius=16,
+        outline=BEZEL_HI,
+        width=3,
+    )
     canvas.paste(up, (pad, pad))
     path = os.path.join(OUT, name)
     canvas.save(path)
@@ -149,6 +153,7 @@ def m_scope():
         d.point((x, ty), fill=INK)
     # envelope: noise floor with a couple of OOK bursts
     import random
+
     random.seed(7)
     pattern = []
     x = 0

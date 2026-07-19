@@ -20,8 +20,7 @@ void gauntlet_scene_start_on_enter(void* context) {
     submenu_reset(submenu);
     submenu_set_header(submenu, "Gauntlet");
     submenu_add_item(submenu, "Play", StartIndexPlay, gauntlet_scene_start_submenu_cb, app);
-    submenu_add_item(
-        submenu, "Toolkit", StartIndexToolkit, gauntlet_scene_start_submenu_cb, app);
+    submenu_add_item(submenu, "Toolkit", StartIndexToolkit, gauntlet_scene_start_submenu_cb, app);
     submenu_add_item(
         submenu, "Progress", StartIndexProgress, gauntlet_scene_start_submenu_cb, app);
     submenu_add_item(

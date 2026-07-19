@@ -43,7 +43,9 @@ def line(d, x0, y0, x1, y1, col=FG, w=2):
 
 
 def circle(d, cx, cy, r, col=FG, w=2):
-    d.ellipse([L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], outline=col, width=w)
+    d.ellipse(
+        [L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], outline=col, width=w
+    )
 
 
 def disc(d, cx, cy, r, col=FG):
@@ -67,11 +69,25 @@ def dot(d, x, y, col=FG):
 
 
 def tri_up(d, x, y, base, height, col=FG):
-    d.polygon([(L(x), L(y)), (L(x - base / 2), L(y + height)), (L(x + base / 2), L(y + height))], fill=col)
+    d.polygon(
+        [
+            (L(x), L(y)),
+            (L(x - base / 2), L(y + height)),
+            (L(x + base / 2), L(y + height)),
+        ],
+        fill=col,
+    )
 
 
 def tri_down(d, x, y, base, height, col=FG):
-    d.polygon([(L(x), L(y)), (L(x - base / 2), L(y - height)), (L(x + base / 2), L(y - height))], fill=col)
+    d.polygon(
+        [
+            (L(x), L(y)),
+            (L(x - base / 2), L(y - height)),
+            (L(x + base / 2), L(y - height)),
+        ],
+        fill=col,
+    )
 
 
 def save(img, name):
@@ -81,7 +97,9 @@ def save(img, name):
 
 
 def proximity_word(s):
-    return "STRONG" if s >= 70 else "CLOSE" if s >= 45 else "NEAR" if s >= 20 else "FAINT"
+    return (
+        "STRONG" if s >= 70 else "CLOSE" if s >= 45 else "NEAR" if s >= 20 else "FAINT"
+    )
 
 
 def draw_header(d, mode_word, present):
@@ -122,7 +140,9 @@ def draw_trace(d, trace, peak):
             x += 4
 
 
-def render_sweep(name, level, peak, hits, trend, kind, present, mode_word, trace, hint=None):
+def render_sweep(
+    name, level, peak, hits, trend, kind, present, mode_word, trace, hint=None
+):
     img, d = canvas()
     draw_header(d, mode_word, present)
 
@@ -246,8 +266,12 @@ def render_settings():
     img, d = canvas()
     text(d, 4, 8, "Settings", f_pri)
     line(d, 0, 14, 127, 14)
-    rows = [("Mode", "Auto", True), ("Sensitivity", "Medium", False),
-            ("Probe pin", "PC0", False), ("Sound", "ON", False)]
+    rows = [
+        ("Mode", "Auto", True),
+        ("Sensitivity", "Medium", False),
+        ("Probe pin", "PC0", False),
+        ("Sound", "ON", False),
+    ]
     ROW_H = 12
     for i, (k, v, sel) in enumerate(rows):
         y = 15 + i * ROW_H
@@ -262,18 +286,151 @@ def render_settings():
 
 
 # recent-level ring buffers for the trace
-CLEAR = [3, 5, 2, 8, 4, 1, 6, 3, 9, 5, 2, 7, 4, 11, 6, 3, 8, 5, 2, 10, 6, 4, 9,
-         5, 3, 7, 12, 6, 4, 8, 5, 14, 7, 4, 9, 6, 3, 8, 5, 11, 6, 4, 7, 3, 9, 5,
-         2, 8, 13, 6, 4, 7, 5, 10, 6, 3, 8, 5, 2, 7, 4, 9]
-HOT = [4, 6, 5, 9, 8, 12, 15, 18, 22, 20, 26, 30, 28, 35, 40, 38, 44, 50, 48, 55,
-       60, 58, 64, 68, 66, 72, 76, 74, 80, 78, 82, 85, 83, 86, 88, 84, 87, 85, 82,
-       86, 88, 90, 87, 85, 88, 84, 86, 89, 85, 83, 87, 84, 86, 88, 85, 82, 86, 88,
-       84, 87, 85, 83, 86, 88]
+CLEAR = [
+    3,
+    5,
+    2,
+    8,
+    4,
+    1,
+    6,
+    3,
+    9,
+    5,
+    2,
+    7,
+    4,
+    11,
+    6,
+    3,
+    8,
+    5,
+    2,
+    10,
+    6,
+    4,
+    9,
+    5,
+    3,
+    7,
+    12,
+    6,
+    4,
+    8,
+    5,
+    14,
+    7,
+    4,
+    9,
+    6,
+    3,
+    8,
+    5,
+    11,
+    6,
+    4,
+    7,
+    3,
+    9,
+    5,
+    2,
+    8,
+    13,
+    6,
+    4,
+    7,
+    5,
+    10,
+    6,
+    3,
+    8,
+    5,
+    2,
+    7,
+    4,
+    9,
+]
+HOT = [
+    4,
+    6,
+    5,
+    9,
+    8,
+    12,
+    15,
+    18,
+    22,
+    20,
+    26,
+    30,
+    28,
+    35,
+    40,
+    38,
+    44,
+    50,
+    48,
+    55,
+    60,
+    58,
+    64,
+    68,
+    66,
+    72,
+    76,
+    74,
+    80,
+    78,
+    82,
+    85,
+    83,
+    86,
+    88,
+    84,
+    87,
+    85,
+    82,
+    86,
+    88,
+    90,
+    87,
+    85,
+    88,
+    84,
+    86,
+    89,
+    85,
+    83,
+    87,
+    84,
+    86,
+    88,
+    85,
+    82,
+    86,
+    88,
+    84,
+    87,
+    85,
+    83,
+    86,
+    88,
+]
 
 
 if __name__ == "__main__":
-    render_sweep("screen_clear.png", 4, 9, 0, 0, "--", False, "ONBOARD", CLEAR,
-                 hint="Onboard: pulsed IR only")
+    render_sweep(
+        "screen_clear.png",
+        4,
+        9,
+        0,
+        0,
+        "--",
+        False,
+        "ONBOARD",
+        CLEAR,
+        hint="Onboard: pulsed IR only",
+    )
     render_sweep("screen_emitter.png", 84, 90, 3, 1, "STEADY", True, "PROBE", HOT)
     render_nulling("screen_nulling.png")
     render_menu()
@@ -281,8 +438,12 @@ if __name__ == "__main__":
     render_probe_check()
     render_settings()
 
-    names = ("screen_clear.png", "screen_emitter.png", "screen_probe_wiring.png",
-             "screen_probe_check.png")
+    names = (
+        "screen_clear.png",
+        "screen_emitter.png",
+        "screen_probe_wiring.png",
+        "screen_probe_check.png",
+    )
     imgs = [Image.open(os.path.join(OUT, n)) for n in names]
     pad = 18
     strip = Image.new(

@@ -62,7 +62,7 @@ static void selftest_draw_running(Canvas* canvas, const SelfTestViewModel* m) {
  *   63      footer (AlignBottom, so it occupies roughly 56..63)
  * Starting the rows any lower runs the last one through the footer. */
 #define SELFTEST_ROW_TOP (30)
-#define SELFTEST_ROW_H (8)
+#define SELFTEST_ROW_H   (8)
 
 static void selftest_draw_result(Canvas* canvas, const SelfTestViewModel* m) {
     const SelfTestResult* r = &m->result;

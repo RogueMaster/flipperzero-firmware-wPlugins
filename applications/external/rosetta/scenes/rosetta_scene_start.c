@@ -25,10 +25,8 @@ void rosetta_scene_start_on_enter(void* context) {
         submenu, "Mifare Auth", StartIndexMifare, rosetta_scene_start_submenu_cb, app);
     submenu_add_item(
         submenu, "OOK & PSK", StartIndexModulation, rosetta_scene_start_submenu_cb, app);
-    submenu_add_item(
-        submenu, "1-Wire", StartIndexOneWire, rosetta_scene_start_submenu_cb, app);
-    submenu_add_item(
-        submenu, "Settings", StartIndexSettings, rosetta_scene_start_submenu_cb, app);
+    submenu_add_item(submenu, "1-Wire", StartIndexOneWire, rosetta_scene_start_submenu_cb, app);
+    submenu_add_item(submenu, "Settings", StartIndexSettings, rosetta_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "About", StartIndexAbout, rosetta_scene_start_submenu_cb, app);
 
     submenu_set_selected_item(

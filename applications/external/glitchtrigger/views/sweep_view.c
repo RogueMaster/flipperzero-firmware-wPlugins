@@ -74,7 +74,12 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
         glitch_fmt_ns(m->last_hit_ns, h, sizeof(h));
         snprintf(line, sizeof(line), "hit @ %s (%lu)", h, (unsigned long)m->hits);
     } else {
-        snprintf(line, sizeof(line), "shots %lu  hits %lu", (unsigned long)m->shots, (unsigned long)m->hits);
+        snprintf(
+            line,
+            sizeof(line),
+            "shots %lu  hits %lu",
+            (unsigned long)m->shots,
+            (unsigned long)m->hits);
     }
     canvas_draw_str(canvas, 2, 56, line);
 

@@ -38,8 +38,7 @@ void warden_scene_details_on_enter(void* context) {
     }
 
     if(r->has_iso3a) {
-        furi_string_cat_printf(
-            s, "SAK: %02X   ATQA: %02X %02X\n", r->sak, r->atqa[0], r->atqa[1]);
+        furi_string_cat_printf(s, "SAK: %02X   ATQA: %02X %02X\n", r->sak, r->atqa[0], r->atqa[1]);
     }
     if(r->protocol_num > 1) {
         furi_string_cat_str(s, "Stack:");

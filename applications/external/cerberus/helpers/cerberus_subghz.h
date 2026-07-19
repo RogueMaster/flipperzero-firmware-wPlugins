@@ -26,8 +26,9 @@ extern "C" {
 #define CERBERUS_ALERT_EVENT_BASE 0x1000U
 #define CERBERUS_ALERT_EVENT(threat, band) \
     (CERBERUS_ALERT_EVENT_BASE | ((uint32_t)(threat) << 4) | ((uint32_t)(band) & 0xF))
-#define CERBERUS_ALERT_EVENT_THREAT(ev) ((CerberusThreat)((((ev) - CERBERUS_ALERT_EVENT_BASE) >> 4) & 0xF))
-#define CERBERUS_ALERT_EVENT_BAND(ev)   ((uint8_t)(((ev) - CERBERUS_ALERT_EVENT_BASE) & 0xF))
+#define CERBERUS_ALERT_EVENT_THREAT(ev) \
+    ((CerberusThreat)((((ev) - CERBERUS_ALERT_EVENT_BASE) >> 4) & 0xF))
+#define CERBERUS_ALERT_EVENT_BAND(ev) ((uint8_t)(((ev) - CERBERUS_ALERT_EVENT_BASE) & 0xF))
 
 /** One watched band. The three heads of Cerberus. */
 typedef struct {

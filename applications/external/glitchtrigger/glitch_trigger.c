@@ -82,7 +82,8 @@ static GlitchApp* glitch_app_alloc(void) {
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, glitch_custom_event_callback);
-    view_dispatcher_set_navigation_event_callback(app->view_dispatcher, glitch_back_event_callback);
+    view_dispatcher_set_navigation_event_callback(
+        app->view_dispatcher, glitch_back_event_callback);
     // ~30 fps: smooth enough for the armed blink, repeat firing and sweep bar.
     view_dispatcher_set_tick_event_callback(app->view_dispatcher, glitch_tick_event_callback, 32);
 

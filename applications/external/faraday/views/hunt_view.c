@@ -7,9 +7,9 @@
 
 /* Warmer/colder bands, in dB above the tracked noise floor. */
 #define HUNT_BLAZING 30
-#define HUNT_HOT 18
-#define HUNT_WARM 10
-#define HUNT_COOL 4
+#define HUNT_HOT     18
+#define HUNT_WARM    10
+#define HUNT_COOL    4
 
 struct HuntView {
     View* view;

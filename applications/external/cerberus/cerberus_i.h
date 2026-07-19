@@ -23,9 +23,9 @@
 #include "helpers/cerberus_subghz.h"
 #include "helpers/cerberus_detector.h"
 
-#define CERBERUS_VERSION  "1.1"
-#define CERBERUS_GITHUB   "github.com/at0m-b0mb/flipper-cerberus"
-#define CERBERUS_LOG_MAX  32
+#define CERBERUS_VERSION "1.1"
+#define CERBERUS_GITHUB  "github.com/at0m-b0mb/flipper-cerberus"
+#define CERBERUS_LOG_MAX 32
 
 // Settings rows - the order here must match the order they're added in the
 // settings scene, since each row carries a context tagged with its field id.

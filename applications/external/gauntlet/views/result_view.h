@@ -27,12 +27,7 @@ View* result_view_get_view(ResultView* v);
 void result_view_set_callback(ResultView* v, ResultViewCallback cb, void* context);
 
 /** Configure the screen. `points`/`score`/`rank` are only shown when correct. */
-void result_view_set(
-    ResultView* v,
-    bool correct,
-    uint16_t points,
-    uint32_t score,
-    const char* rank);
+void result_view_set(ResultView* v, bool correct, uint16_t points, uint32_t score, const char* rank);
 
 /** Advance the animation one frame (call from the scene tick). */
 void result_view_tick(ResultView* v);

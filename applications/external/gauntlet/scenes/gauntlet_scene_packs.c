@@ -40,8 +40,7 @@ void gauntlet_scene_packs_on_enter(void* context) {
     submenu_set_header(submenu, "Challenge Packs");
     for(uint8_t i = 0; i < app->pack_count; i++) {
         char label[64]; /* full pack title + " (NNN)" */
-        snprintf(
-            label, sizeof(label), "%s  (%u)", app->packs[i].title, app->packs[i].count);
+        snprintf(label, sizeof(label), "%s  (%u)", app->packs[i].title, app->packs[i].count);
         submenu_add_item(submenu, label, i, gauntlet_scene_packs_submenu_cb, app);
     }
     submenu_set_selected_item(

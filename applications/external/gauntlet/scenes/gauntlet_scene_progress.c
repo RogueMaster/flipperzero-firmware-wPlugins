@@ -44,11 +44,9 @@ void gauntlet_scene_progress_on_enter(void* context) {
         snprintf(nextbuf, sizeof(nextbuf), "%lu pts to %s", (unsigned long)need, nextname);
 
     widget_add_string_element(widget, 64, 2, AlignCenter, AlignTop, FontPrimary, "Your Gauntlet");
-    widget_add_string_element(
-        widget, 64, 38, AlignCenter, AlignBottom, FontBigNumbers, scorebuf);
+    widget_add_string_element(widget, 64, 38, AlignCenter, AlignBottom, FontBigNumbers, scorebuf);
     widget_add_string_element(widget, 64, 47, AlignCenter, AlignBottom, FontSecondary, rankbuf);
-    widget_add_string_element(
-        widget, 64, 56, AlignCenter, AlignBottom, FontSecondary, solvedbuf);
+    widget_add_string_element(widget, 64, 56, AlignCenter, AlignBottom, FontSecondary, solvedbuf);
     widget_add_string_element(widget, 64, 64, AlignCenter, AlignBottom, FontSecondary, nextbuf);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, GauntletViewWidget);

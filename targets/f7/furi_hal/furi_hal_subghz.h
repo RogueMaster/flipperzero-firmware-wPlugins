@@ -41,6 +41,10 @@ typedef enum {
  */
 void furi_hal_subghz_set_async_mirror_pin(const GpioPin* pin);
 
+bool furi_hal_subghz_get_extended_range(void);
+
+bool furi_hal_subghz_get_bypass_region(void);
+
 /** Get data GPIO
  *
  * @return     pointer to the gpio pin structure

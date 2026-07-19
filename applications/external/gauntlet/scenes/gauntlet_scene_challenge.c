@@ -8,20 +8,25 @@ static void build_body(GauntletApp* app, CtfChallenge* c, char* out, size_t sz) 
     size_t len = 0;
 
     /* prompt */
-    for(const char* p = c->prompt; *p && len < sz - 1; p++) out[len++] = *p;
+    for(const char* p = c->prompt; *p && len < sz - 1; p++)
+        out[len++] = *p;
 
     /* payload */
     if(c->has_data) {
         const char* hdr = "\n\n>> DATA\n";
-        for(const char* p = hdr; *p && len < sz - 1; p++) out[len++] = *p;
-        for(const char* p = c->data; *p && len < sz - 1; p++) out[len++] = *p;
+        for(const char* p = hdr; *p && len < sz - 1; p++)
+            out[len++] = *p;
+        for(const char* p = c->data; *p && len < sz - 1; p++)
+            out[len++] = *p;
     }
 
     /* hint (only once revealed) */
     if(app->hint_shown && c->has_hint) {
         const char* hdr = "\n\n>> HINT\n";
-        for(const char* p = hdr; *p && len < sz - 1; p++) out[len++] = *p;
-        for(const char* p = c->hint; *p && len < sz - 1; p++) out[len++] = *p;
+        for(const char* p = hdr; *p && len < sz - 1; p++)
+            out[len++] = *p;
+        for(const char* p = c->hint; *p && len < sz - 1; p++)
+            out[len++] = *p;
     }
     out[len] = '\0';
 }

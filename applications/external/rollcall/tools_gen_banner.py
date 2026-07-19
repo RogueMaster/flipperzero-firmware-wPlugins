@@ -64,8 +64,14 @@ def rrect(d, box, r, **kw):
 def draw_grade_stamp(d, cx, cy, s, letter, ring=TEAL):
     """A rounded-square grade badge with a big letter."""
     half = s // 2
-    rrect(d, [cx - half, cy - half, cx + half, cy + half], r=s // 6,
-          fill=(12, 18, 26), outline=ring, width=6 * SS)
+    rrect(
+        d,
+        [cx - half, cy - half, cx + half, cy + half],
+        r=s // 6,
+        fill=(12, 18, 26),
+        outline=ring,
+        width=6 * SS,
+    )
     for dx, dy in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
         px = cx + dx * (half - 14 * SS)
         py = cy + dy * (half - 14 * SS)
@@ -86,18 +92,29 @@ def draw_meter(d, x, y, w, h, segs=12, marker=0.9):
         sx = x + i * (sw + gap)
         rrect(d, [sx, y, sx + sw, y + h], r=int(h * 0.28), fill=col)
     mx = int(x + marker * w)
-    d.polygon([(mx - 9 * SS, y - 16 * SS), (mx + 9 * SS, y - 16 * SS), (mx, y - 3 * SS)],
-              fill=WHITE)
+    d.polygon(
+        [(mx - 9 * SS, y - 16 * SS), (mx + 9 * SS, y - 16 * SS), (mx, y - 3 * SS)],
+        fill=WHITE,
+    )
 
 
 def draw_fob(d, cx, cy, w, col, lw):
     """A rounded key-fob remote with two buttons."""
     h = int(w * 1.5)
-    rrect(d, [cx - w // 2, cy - h // 2, cx + w // 2, cy + h // 2], r=w // 3,
-          outline=col, width=lw)
+    rrect(
+        d,
+        [cx - w // 2, cy - h // 2, cx + w // 2, cy + h // 2],
+        r=w // 3,
+        outline=col,
+        width=lw,
+    )
     br = w // 6
-    d.ellipse([cx - br, cy - h // 5 - br, cx + br, cy - h // 5 + br], outline=col, width=lw)
-    d.ellipse([cx - br, cy + h // 6 - br, cx + br, cy + h // 6 + br], outline=col, width=lw)
+    d.ellipse(
+        [cx - br, cy - h // 5 - br, cx + br, cy - h // 5 + br], outline=col, width=lw
+    )
+    d.ellipse(
+        [cx - br, cy + h // 6 - br, cx + br, cy + h // 6 + br], outline=col, width=lw
+    )
 
 
 def roll_arrow(d, cx, cy, r, col, lw):
@@ -106,8 +123,14 @@ def roll_arrow(d, cx, cy, r, col, lw):
     # arrowhead at the gap end (~ -60 deg)
     a = math.radians(-60)
     hx, hy = cx + r * math.cos(a), cy + r * math.sin(a)
-    d.polygon([(hx - 6 * SS, hy - 12 * SS), (hx + 14 * SS, hy - 2 * SS),
-               (hx - 2 * SS, hy + 12 * SS)], fill=col)
+    d.polygon(
+        [
+            (hx - 6 * SS, hy - 12 * SS),
+            (hx + 14 * SS, hy - 2 * SS),
+            (hx - 2 * SS, hy + 12 * SS),
+        ],
+        fill=col,
+    )
 
 
 def field_arcs(d, cx, cy, col, n=4, base=60, step=44, lw=4, a=(200, 340)):
@@ -134,16 +157,35 @@ def render(path, W, H, layout="wide"):
         stamp = int(h * 0.22)
 
     # signal rings behind the badge
-    field_arcs(gd, gx, gy, (TEAL[0], TEAL[1], TEAL[2], 70),
-               n=4, base=int(stamp * 0.72), step=int(stamp * 0.5), lw=5 * SS)
+    field_arcs(
+        gd,
+        gx,
+        gy,
+        (TEAL[0], TEAL[1], TEAL[2], 70),
+        n=4,
+        base=int(stamp * 0.72),
+        step=int(stamp * 0.5),
+        lw=5 * SS,
+    )
     # a fob to the left of the badge, wrapped in a rolling arrow
     fob_cx = int(gx - stamp * 1.2)
-    draw_fob(gd, fob_cx, gy, int(stamp * 0.42), (TEAL[0], TEAL[1], TEAL[2], 150), 4 * SS)
-    roll_arrow(gd, fob_cx, gy, int(stamp * 0.6), (GREEN[0], GREEN[1], GREEN[2], 150), 5 * SS)
+    draw_fob(
+        gd, fob_cx, gy, int(stamp * 0.42), (TEAL[0], TEAL[1], TEAL[2], 150), 4 * SS
+    )
+    roll_arrow(
+        gd, fob_cx, gy, int(stamp * 0.6), (GREEN[0], GREEN[1], GREEN[2], 150), 5 * SS
+    )
     # the hero grade + resistance meter
     draw_grade_stamp(gd, gx, gy, stamp, "A")
-    draw_meter(gd, int(gx - stamp * 0.62), int(gy + stamp * 0.72),
-               int(stamp * 1.25), 12 * SS, segs=12, marker=0.92)
+    draw_meter(
+        gd,
+        int(gx - stamp * 0.62),
+        int(gy + stamp * 0.72),
+        int(stamp * 1.25),
+        12 * SS,
+        segs=12,
+        marker=0.92,
+    )
 
     blur = glow.filter(ImageFilter.GaussianBlur(9 * SS))
     img.alpha_composite(blur)
@@ -164,22 +206,47 @@ def render(path, W, H, layout="wide"):
     f_sub = font(REG, 24 * SS)
     f_foot = font(MONO, 21 * SS)
 
-    td.text((x0, kick_y), "FLIPPER ZERO  ·  ROLLING-CODE HEALTH CHECK", font=f_kick, fill=TEAL)
-    td.text((x0 + 4 * SS, title_y + 4 * SS), "RollCall", font=f_title,
-            fill=(TEAL[0], TEAL[1], TEAL[2], 150))
+    td.text(
+        (x0, kick_y),
+        "FLIPPER ZERO  ·  ROLLING-CODE HEALTH CHECK",
+        font=f_kick,
+        fill=TEAL,
+    )
+    td.text(
+        (x0 + 4 * SS, title_y + 4 * SS),
+        "RollCall",
+        font=f_title,
+        fill=(TEAL[0], TEAL[1], TEAL[2], 150),
+    )
     td.text((x0, title_y), "RollCall", font=f_title, fill=WHITE)
 
     tag_y = title_y + title_px + 12 * SS
     td.text((x0, tag_y), "Does your remote actually roll?", font=f_tag, fill=GREEN)
-    td.text((x0, tag_y + 48 * SS),
-            "Press your fob a few times to prove the code actually rolls.",
-            font=f_sub, fill=GRAY)
+    td.text(
+        (x0, tag_y + 48 * SS),
+        "Press your fob a few times to prove the code actually rolls.",
+        font=f_sub,
+        fill=GRAY,
+    )
     img.alpha_composite(tx)
 
     fd = ImageDraw.Draw(img)
-    fd.line([(70 * SS, h - 54 * SS), (w - 70 * SS, h - 54 * SS)], fill=DIM, width=2 * SS)
-    fd.text((70 * SS, h - 44 * SS), "github.com/at0m-b0mb/RollCall-FlipperZero", font=f_foot, fill=GRAY)
-    fd.text((w - 70 * SS, h - 44 * SS), "MIT · by at0m-b0mb", font=f_foot, fill=GRAY, anchor="ra")
+    fd.line(
+        [(70 * SS, h - 54 * SS), (w - 70 * SS, h - 54 * SS)], fill=DIM, width=2 * SS
+    )
+    fd.text(
+        (70 * SS, h - 44 * SS),
+        "github.com/at0m-b0mb/RollCall-FlipperZero",
+        font=f_foot,
+        fill=GRAY,
+    )
+    fd.text(
+        (w - 70 * SS, h - 44 * SS),
+        "MIT · by at0m-b0mb",
+        font=f_foot,
+        fill=GRAY,
+        anchor="ra",
+    )
 
     out = img.convert("RGB").resize((W, H), Image.LANCZOS)
     out.save(path)

@@ -6,47 +6,61 @@ import math, os
 
 S = 6  # scale
 W, H = 128, 64
-BG = (255, 130, 0)      # flipper backlight orange
-FG = (10, 8, 4)         # near-black pixels
+BG = (255, 130, 0)  # flipper backlight orange
+FG = (10, 8, 4)  # near-black pixels
 OUT = os.path.join(os.path.dirname(__file__), "images")
 
 MONO = "/System/Library/Fonts/Supplemental/Andale Mono.ttf"
 BOLD = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
 
+
 def font(path, px):
     return ImageFont.truetype(path, px)
 
-f_sec = font(MONO, 7 * S - 2)      # FontSecondary ~ small
-f_pri = font(BOLD, 8 * S)          # FontPrimary
-f_big = font(BOLD, 22 * S)         # FontBigNumbers
+
+f_sec = font(MONO, 7 * S - 2)  # FontSecondary ~ small
+f_pri = font(BOLD, 8 * S)  # FontPrimary
+f_big = font(BOLD, 22 * S)  # FontBigNumbers
+
 
 def canvas():
     img = Image.new("RGB", (W * S, H * S), BG)
     return img, ImageDraw.Draw(img)
 
+
 def L(v):
     return v * S
+
 
 def line(d, x0, y0, x1, y1, col=FG, w=2):
     d.line([L(x0), L(y0), L(x1), L(y1)], fill=col, width=w)
 
+
 def circle(d, cx, cy, r, col=FG, w=2):
-    d.ellipse([L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], outline=col, width=w)
+    d.ellipse(
+        [L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], outline=col, width=w
+    )
+
 
 def disc(d, cx, cy, r, col=FG):
     d.ellipse([L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], fill=col)
 
+
 def box(d, x, y, w, h, col=FG):
     d.rectangle([L(x), L(y), L(x + w), L(y + h)], fill=col)
+
 
 def frame(d, x, y, w, h, col=FG, lw=2):
     d.rectangle([L(x), L(y), L(x + w), L(y + h)], outline=col, width=lw)
 
+
 def text(d, x, y, s, fnt=f_sec, col=FG, anchor="lm"):
     d.text((L(x), L(y)), s, font=fnt, fill=col, anchor=anchor)
 
+
 def dot(d, x, y, col=FG):
     d.rectangle([L(x), L(y), L(x) + S - 1, L(y) + S - 1], fill=col)
+
 
 def save(img, name):
     p = os.path.join(OUT, name)
@@ -130,7 +144,7 @@ def render_list():
     for i, (label, bars, foll) in enumerate(rows):
         y = 13 + i * ROW_H
         baseline = y + 6
-        sel = (i == 0)
+        sel = i == 0
         col = FG
         if sel:
             box(d, 0, y, 122, ROW_H)
@@ -186,11 +200,16 @@ if __name__ == "__main__":
     render_alert()
 
     # combined strip for the README
-    imgs = [Image.open(os.path.join(OUT, n)) for n in
-            ("screen_radar.png", "screen_list.png", "screen_alert.png")]
+    imgs = [
+        Image.open(os.path.join(OUT, n))
+        for n in ("screen_radar.png", "screen_list.png", "screen_alert.png")
+    ]
     pad = 18
-    strip = Image.new("RGB", (sum(i.width for i in imgs) + pad * (len(imgs) + 1),
-                              imgs[0].height + pad * 2), (12, 16, 20))
+    strip = Image.new(
+        "RGB",
+        (sum(i.width for i in imgs) + pad * (len(imgs) + 1), imgs[0].height + pad * 2),
+        (12, 16, 20),
+    )
     x = pad
     for im in imgs:
         strip.paste(im, (x, pad))

@@ -92,8 +92,11 @@ def draw_scope(md, x, y, w, h):
     md.line([(xg1, yhi), (x1, yhi)], fill=AMBER, width=lw)  # rail recovers
 
     # trigger marker
-    md.line([(xtrig, yhi - int(h * 0.16)), (xtrig, ylo + int(h * 0.14))],
-            fill=STEEL, width=3 * SS)
+    md.line(
+        [(xtrig, yhi - int(h * 0.16)), (xtrig, ylo + int(h * 0.14))],
+        fill=STEEL,
+        width=3 * SS,
+    )
     caret(md, xtrig, yhi - int(h * 0.16), STEEL, 6 * SS)
 
     # delay bracket (dashed, trigger -> glitch)
@@ -106,10 +109,18 @@ def draw_scope(md, x, y, w, h):
     # labels
     f_lab = font(MONO, 17 * SS)
     f_small = font(MONO, 15 * SS)
-    md.text((xtrig, ylo + int(h * 0.16)), "TRIGGER", font=f_small, fill=STEEL, anchor="ma")
+    md.text(
+        (xtrig, ylo + int(h * 0.16)), "TRIGGER", font=f_small, fill=STEEL, anchor="ma"
+    )
     mid = (xtrig + xg0) // 2
     md.text((mid, ymark - 22 * SS), "DELAY", font=f_small, fill=STEEL, anchor="ma")
-    md.text(((xg0 + xg1) // 2, ylo + int(h * 0.06)), "GLITCH", font=f_lab, fill=RED, anchor="ma")
+    md.text(
+        ((xg0 + xg1) // 2, ylo + int(h * 0.06)),
+        "GLITCH",
+        font=f_lab,
+        fill=RED,
+        anchor="ma",
+    )
 
 
 def chips(md, x, y, items, accent):
@@ -120,8 +131,14 @@ def chips(md, x, y, items, accent):
     for label in items:
         bb = md.textbbox((0, 0), label, font=f)
         cw = (bb[2] - bb[0]) + 20 * SS
-        rrect(md, [cx, y, cx + cw, y + ch], r=8 * SS, fill=(20, 24, 30),
-              outline=accent, width=2 * SS)
+        rrect(
+            md,
+            [cx, y, cx + cw, y + ch],
+            r=8 * SS,
+            fill=(20, 24, 30),
+            outline=accent,
+            width=2 * SS,
+        )
         md.text((cx + 10 * SS, y + ch // 2), label, font=f, fill=WHITE, anchor="lm")
         cx += cw + 12 * SS
 
@@ -137,7 +154,9 @@ def render(path, W, H, layout="wide"):
         gx, gy, rw = int(w * 0.74), int(h * 0.46), int(w * 0.24)
     else:
         gx, gy, rw = int(w * 0.5), int(h * 0.60), int(w * 0.40)
-    gd.ellipse([gx - rw, gy - rw, gx + rw, gy + rw], fill=(AMBER[0], AMBER[1], AMBER[2], 30))
+    gd.ellipse(
+        [gx - rw, gy - rw, gx + rw, gy + rw], fill=(AMBER[0], AMBER[1], AMBER[2], 30)
+    )
     # a hot red core
     rr = rw // 2
     gd.ellipse([gx - rr, gy - rr, gx + rr, gy + rr], fill=(RED[0], RED[1], RED[2], 22))
@@ -147,12 +166,16 @@ def render(path, W, H, layout="wide"):
     md = ImageDraw.Draw(motif)
     if layout == "wide":
         draw_scope(md, int(w * 0.55), int(h * 0.15), int(w * 0.40), int(h * 0.48))
-        chips(md, int(w * 0.55), int(h * 0.75),
-              ["DELAY 100us", "WIDTH 500ns", "x1"], AMBER)
+        chips(
+            md,
+            int(w * 0.55),
+            int(h * 0.75),
+            ["DELAY 100us", "WIDTH 500ns", "x1"],
+            AMBER,
+        )
     else:
         draw_scope(md, int(w * 0.14), int(h * 0.52), int(w * 0.72), int(h * 0.30))
-        chips(md, int(w * 0.34), int(h * 0.85),
-              ["MANUAL", "EXTERNAL", "SWEEP"], AMBER)
+        chips(md, int(w * 0.34), int(h * 0.85), ["MANUAL", "EXTERNAL", "SWEEP"], AMBER)
     img.alpha_composite(motif)
 
     tx = soft((w, h))
@@ -171,17 +194,26 @@ def render(path, W, H, layout="wide"):
         line2_y = line1_y + line_gap
         f_title = font(BLACK_F, title_px)
 
-        td.text((x0, kick_y), "FLIPPER ZERO  ·  FAULT INJECTION", font=f_kick, fill=AMBER)
-        td.text((x0 + 3 * SS, line1_y + 3 * SS), "GLITCH", font=f_title,
-                fill=(RED[0], RED[1], RED[2], 120))
+        td.text(
+            (x0, kick_y), "FLIPPER ZERO  ·  FAULT INJECTION", font=f_kick, fill=AMBER
+        )
+        td.text(
+            (x0 + 3 * SS, line1_y + 3 * SS),
+            "GLITCH",
+            font=f_title,
+            fill=(RED[0], RED[1], RED[2], 120),
+        )
         td.text((x0, line1_y), "GLITCH", font=f_title, fill=WHITE)
         td.text((x0, line2_y), "TRIGGER", font=f_title, fill=AMBER)
 
         tag_y = line2_y + title_px + 20 * SS
         td.text((x0, tag_y), "Drop the rail. Catch the fault.", font=f_tag, fill=WHITE)
-        td.text((x0, tag_y + 40 * SS),
-                "Cycle-accurate GPIO glitch pulses  ·  manual / external / sweep.",
-                font=f_sub, fill=GRAY)
+        td.text(
+            (x0, tag_y + 40 * SS),
+            "Cycle-accurate GPIO glitch pulses  ·  manual / external / sweep.",
+            font=f_sub,
+            fill=GRAY,
+        )
     else:
         kick_y = 54 * SS
         title_px = 92 * SS
@@ -190,9 +222,15 @@ def render(path, W, H, layout="wide"):
         line2_y = line1_y + line_gap
         f_title = font(BLACK_F, title_px)
 
-        td.text((x0, kick_y), "FLIPPER ZERO  ·  FAULT INJECTION", font=f_kick, fill=AMBER)
-        td.text((x0 + 3 * SS, line1_y + 3 * SS), "GLITCH", font=f_title,
-                fill=(RED[0], RED[1], RED[2], 120))
+        td.text(
+            (x0, kick_y), "FLIPPER ZERO  ·  FAULT INJECTION", font=f_kick, fill=AMBER
+        )
+        td.text(
+            (x0 + 3 * SS, line1_y + 3 * SS),
+            "GLITCH",
+            font=f_title,
+            fill=(RED[0], RED[1], RED[2], 120),
+        )
         td.text((x0, line1_y), "GLITCH", font=f_title, fill=WHITE)
         td.text((x0, line2_y), "TRIGGER", font=f_title, fill=AMBER)
 
@@ -201,10 +239,22 @@ def render(path, W, H, layout="wide"):
     img.alpha_composite(tx)
 
     fd = ImageDraw.Draw(img)
-    fd.line([(70 * SS, h - 54 * SS), (w - 70 * SS, h - 54 * SS)], fill=DIM, width=2 * SS)
-    fd.text((70 * SS, h - 44 * SS),
-            "github.com/at0m-b0mb/GlitchTrigger-FlipperZero", font=f_foot, fill=GRAY)
-    fd.text((w - 70 * SS, h - 44 * SS), "MIT · by at0m-b0mb", font=f_foot, fill=GRAY, anchor="ra")
+    fd.line(
+        [(70 * SS, h - 54 * SS), (w - 70 * SS, h - 54 * SS)], fill=DIM, width=2 * SS
+    )
+    fd.text(
+        (70 * SS, h - 44 * SS),
+        "github.com/at0m-b0mb/GlitchTrigger-FlipperZero",
+        font=f_foot,
+        fill=GRAY,
+    )
+    fd.text(
+        (w - 70 * SS, h - 44 * SS),
+        "MIT · by at0m-b0mb",
+        font=f_foot,
+        fill=GRAY,
+        anchor="ra",
+    )
 
     out = img.convert("RGB").resize((W, H), Image.LANCZOS)
     out.save(path)

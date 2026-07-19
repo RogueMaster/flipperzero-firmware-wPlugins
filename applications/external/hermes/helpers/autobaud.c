@@ -14,7 +14,7 @@
 /* Longest run of identical bits that can live inside one frame. A low run is
  * bounded by the start bit and the stop bit - start plus eight zero data bits
  * is nine. High runs get one more, since the stop bit extends them. */
-#define AUTOBAUD_K_MAX_LOW (9u)
+#define AUTOBAUD_K_MAX_LOW  (9u)
 #define AUTOBAUD_K_MAX_HIGH (10u)
 
 /* How far a segment may sit from a whole number of bits and still count.
@@ -176,8 +176,7 @@ size_t autobaud_trace(const Autobaud* ab, AutobaudSegment* out, size_t max) {
  * Every stretch of a UART line is a whole number of bit times. A candidate that
  * turns the measurements into near-integers is a candidate that fits.
  */
-static bool
-    autobaud_explains(const AutobaudSegment* seg, uint32_t bit_time, uint32_t* k_out) {
+static bool autobaud_explains(const AutobaudSegment* seg, uint32_t bit_time, uint32_t* k_out) {
     const uint32_t k = (seg->delta + bit_time / 2) / bit_time; // nearest whole bit count
     const uint32_t k_max = seg->high ? AUTOBAUD_K_MAX_HIGH : AUTOBAUD_K_MAX_LOW;
     if(k < 1 || k > k_max) return false;
@@ -218,7 +217,8 @@ static uint32_t autobaud_refine(uint32_t bit_time, const AutobaudSegment* seg, s
     return (uint32_t)(sum_delta / sum_k);
 }
 
-static uint8_t autobaud_confidence(uint32_t raw, uint32_t std, uint8_t fit_percent, uint32_t edges) {
+static uint8_t
+    autobaud_confidence(uint32_t raw, uint32_t std, uint8_t fit_percent, uint32_t edges) {
     const uint32_t diff = (raw > std) ? (raw - std) : (std - raw);
     const uint32_t err_tenths = (uint32_t)(((uint64_t)diff * 1000u) / std); // 0.1% units
 
@@ -240,8 +240,7 @@ static uint8_t autobaud_confidence(uint32_t raw, uint32_t std, uint8_t fit_perce
  * second guess offered rather than being told the wrong answer with a
  * straight face.
  */
-static void
-    autobaud_rank_candidates(AutobaudResult* out, const uint32_t* inliers, size_t n) {
+static void autobaud_rank_candidates(AutobaudResult* out, const uint32_t* inliers, size_t n) {
     uint8_t conf[HERMES_BAUD_COUNT];
     bool taken[HERMES_BAUD_COUNT];
 
@@ -266,7 +265,8 @@ static void
         AutobaudCandidate* c = &out->candidates[out->candidate_count++];
         c->baud = std;
         c->confidence = conf[best];
-        c->error_ppm = (int32_t)((((int64_t)out->baud_raw - (int64_t)std) * 1000000) / (int64_t)std);
+        c->error_ppm =
+            (int32_t)((((int64_t)out->baud_raw - (int64_t)std) * 1000000) / (int64_t)std);
     }
 }
 

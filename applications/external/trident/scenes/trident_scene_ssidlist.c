@@ -44,16 +44,24 @@ bool trident_scene_ssidlist_on_event(void* context, SceneManagerEvent event) {
             trident_launch(app, "SSID List", MARAUDER_CMD_LIST_SSID, false);
             break;
         case SsidGen:
-            trident_prompt(app, "How many random SSIDs?", MARAUDER_PFX_SSID_GEN, "SSID List",
-                          MARAUDER_CMD_LIST_SSID);
+            trident_prompt(
+                app,
+                "How many random SSIDs?",
+                MARAUDER_PFX_SSID_GEN,
+                "SSID List",
+                MARAUDER_CMD_LIST_SSID);
             break;
         case SsidNamed:
-            trident_prompt(app, "SSID name", MARAUDER_PFX_SSID_NAME, "SSID List",
-                          MARAUDER_CMD_LIST_SSID);
+            trident_prompt(
+                app, "SSID name", MARAUDER_PFX_SSID_NAME, "SSID List", MARAUDER_CMD_LIST_SSID);
             break;
         case SsidRemove:
-            trident_prompt(app, "Remove SSID index", MARAUDER_PFX_SSID_REMOVE, "SSID List",
-                          MARAUDER_CMD_LIST_SSID);
+            trident_prompt(
+                app,
+                "Remove SSID index",
+                MARAUDER_PFX_SSID_REMOVE,
+                "SSID List",
+                MARAUDER_CMD_LIST_SSID);
             break;
         case SsidClear: {
             trident_link_ensure(app);

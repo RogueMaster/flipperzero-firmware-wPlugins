@@ -17,8 +17,7 @@ bool gauntlet_scene_toolkit_on_event(void* context, SceneManagerEvent event) {
     GauntletApp* app = context;
     bool consumed = false;
 
-    if(event.type == SceneManagerEventTypeCustom &&
-       event.event == GauntletEventChallengeTools) {
+    if(event.type == SceneManagerEventTypeCustom && event.event == GauntletEventChallengeTools) {
         /* OK = use the decoded output as the flag (only meaningful in a challenge) */
         if(app->tool_from_challenge) {
             toolkit_view_get_output(app->toolkit_view, app->text_buf, sizeof(app->text_buf));

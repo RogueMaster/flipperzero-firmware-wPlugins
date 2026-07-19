@@ -21,14 +21,12 @@ void cerberus_scene_start_on_enter(void* context) {
     submenu_set_header(submenu, "C E R B E R U S");
     submenu_add_item(
         submenu, "Watch", StartItemMonitor, cerberus_scene_start_submenu_callback, app);
-    submenu_add_item(
-        submenu, "Stats", StartItemStats, cerberus_scene_start_submenu_callback, app);
+    submenu_add_item(submenu, "Stats", StartItemStats, cerberus_scene_start_submenu_callback, app);
     submenu_add_item(
         submenu, "Alert Log", StartItemAlerts, cerberus_scene_start_submenu_callback, app);
     submenu_add_item(
         submenu, "Settings", StartItemSettings, cerberus_scene_start_submenu_callback, app);
-    submenu_add_item(
-        submenu, "About", StartItemAbout, cerberus_scene_start_submenu_callback, app);
+    submenu_add_item(submenu, "About", StartItemAbout, cerberus_scene_start_submenu_callback, app);
 
     submenu_set_selected_item(
         submenu, scene_manager_get_scene_state(app->scene_manager, CerberusSceneStart));

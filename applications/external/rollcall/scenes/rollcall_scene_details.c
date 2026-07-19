@@ -35,7 +35,13 @@ void rollcall_scene_details_on_enter(void* context) {
             uint32_t hi = (uint32_t)(c->fingerprint >> 32);
             uint32_t lo = (uint32_t)(c->fingerprint & 0xFFFFFFFF);
             furi_string_cat_printf(
-                s, "%d. %s  %08lX%08lX (%s)\n", i + 1, c->protocol, (unsigned long)hi, (unsigned long)lo, mark);
+                s,
+                "%d. %s  %08lX%08lX (%s)\n",
+                i + 1,
+                c->protocol,
+                (unsigned long)hi,
+                (unsigned long)lo,
+                mark);
         }
     }
 

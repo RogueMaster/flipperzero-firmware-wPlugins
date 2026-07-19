@@ -44,11 +44,13 @@ static void wrap2(Canvas* canvas, const char* src, int max_w, char* l1, char* l2
     char cand[96];
 
     while(*p) {
-        while(*p == ' ') p++; // skip leading spaces
+        while(*p == ' ')
+            p++; // skip leading spaces
         if(!*p) break;
 
         size_t wl = 0; // read one word
-        while(*p && *p != ' ' && wl < sizeof(word) - 1) word[wl++] = *p++;
+        while(*p && *p != ' ' && wl < sizeof(word) - 1)
+            word[wl++] = *p++;
         word[wl] = '\0';
 
         /* try to extend line 1 while line 2 hasn't started */

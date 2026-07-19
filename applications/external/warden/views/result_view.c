@@ -62,8 +62,7 @@ static void result_view_draw(Canvas* canvas, void* model) {
     canvas_draw_rbox(canvas, 38, 14, 88, 11, 2);
     canvas_set_color(canvas, ColorWhite);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(
-        canvas, 82, 20, AlignCenter, AlignCenter, grader_band_label(g->band));
+    canvas_draw_str_aligned(canvas, 82, 20, AlignCenter, AlignCenter, grader_band_label(g->band));
     canvas_set_color(canvas, ColorBlack);
 
     /* --- score (big, y28..47, clear of the band bar) --- */

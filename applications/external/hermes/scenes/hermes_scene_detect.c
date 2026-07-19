@@ -87,7 +87,8 @@ static bool hermes_detect_build_results(HermesApp* app) {
     }
 
     char detail[28];
-    snprintf(detail, sizeof(detail), "%u edges - %u%% fit", (unsigned)d->edges_used, d->fit_percent);
+    snprintf(
+        detail, sizeof(detail), "%u edges - %u%% fit", (unsigned)d->edges_used, d->fit_percent);
     result_view_set_detail(app->result_view, detail);
     result_view_set_unverified(app->result_view, true);
     return true;
@@ -157,8 +158,8 @@ static void hermes_detect_tick_listening(HermesApp* app) {
     }
 
     const bool full = autobaud_is_full(app->autobaud);
-    const bool timed_out =
-        (now - app->detect_rt.started_tick) >= furi_ms_to_ticks(HERMES_LISTEN_TIMEOUT_MS);
+    const bool timed_out = (now - app->detect_rt.started_tick) >=
+                           furi_ms_to_ticks(HERMES_LISTEN_TIMEOUT_MS);
 
     if(full || timed_out) hermes_detect_begin_verify(app);
 }
@@ -174,7 +175,8 @@ void hermes_scene_detect_on_enter(void* context) {
     app->detect_rt.last_fit_tick = furi_get_tick();
 
     detect_view_reset(app->detect_view);
-    detect_view_set_port(app->detect_view, hermes_port_name(app->port), hermes_port_pins(app->port));
+    detect_view_set_port(
+        app->detect_view, hermes_port_name(app->port), hermes_port_pins(app->port));
     detect_view_set_phase(app->detect_view, DetectPhaseListening);
 
     scene_manager_set_scene_state(app->scene_manager, HermesSceneDetect, DetectStateListening);
@@ -192,7 +194,8 @@ bool hermes_scene_detect_on_event(void* context, SceneManagerEvent event) {
     HermesApp* app = context;
 
     if(event.type == SceneManagerEventTypeTick) {
-        const uint32_t state = scene_manager_get_scene_state(app->scene_manager, HermesSceneDetect);
+        const uint32_t state =
+            scene_manager_get_scene_state(app->scene_manager, HermesSceneDetect);
         if(state == DetectStateListening) hermes_detect_tick_listening(app);
         return true;
     }

@@ -91,7 +91,8 @@ static uint8_t
     return (uint8_t)((score > 100u) ? 100u : score);
 }
 
-static void verifier_measure(Verifier* v, uint32_t baud, HermesFraming framing, VerifierEntry* out) {
+static void
+    verifier_measure(Verifier* v, uint32_t baud, HermesFraming framing, VerifierEntry* out) {
     v->current_baud = baud;
 
     furi_hal_serial_async_rx_stop(v->serial);

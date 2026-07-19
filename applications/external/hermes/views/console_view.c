@@ -5,10 +5,10 @@
 
 /* FontKeyboard is 5x7 on a 6px pitch: 21 columns, and 6 rows once the status
  * bar has had its say. */
-#define CONSOLE_ROWS (6u)
+#define CONSOLE_ROWS   (6u)
 #define CONSOLE_CHAR_W (6)
-#define CONSOLE_ROW_H (9)
-#define CONSOLE_TOP (11)
+#define CONSOLE_ROW_H  (9)
+#define CONSOLE_TOP    (11)
 
 #define HEX_BYTES_PER_ROW (5u)
 

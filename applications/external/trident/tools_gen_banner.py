@@ -77,14 +77,31 @@ def trident(d, cx, cy, s, col, w):
         d.line([(px, bar_y), (px, tip_y)], fill=col, width=w)
         # spearhead tip
         d.polygon(
-            [(px, tip_y - int(0.5 * s)), (px - int(0.28 * s), tip_y), (px + int(0.28 * s), tip_y)],
+            [
+                (px, tip_y - int(0.5 * s)),
+                (px - int(0.28 * s), tip_y),
+                (px + int(0.28 * s), tip_y),
+            ],
             fill=col,
         )
     # decorative base cross + finial
-    d.line([(cx - int(0.5 * s), bot_y - int(0.4 * s)),
-            (cx + int(0.5 * s), bot_y - int(0.4 * s))], fill=col, width=w)
-    d.ellipse([cx - int(0.28 * s), bot_y - int(0.28 * s),
-               cx + int(0.28 * s), bot_y + int(0.28 * s)], fill=col)
+    d.line(
+        [
+            (cx - int(0.5 * s), bot_y - int(0.4 * s)),
+            (cx + int(0.5 * s), bot_y - int(0.4 * s)),
+        ],
+        fill=col,
+        width=w,
+    )
+    d.ellipse(
+        [
+            cx - int(0.28 * s),
+            bot_y - int(0.28 * s),
+            cx + int(0.28 * s),
+            bot_y + int(0.28 * s),
+        ],
+        fill=col,
+    )
 
 
 def glow(size, fn):
@@ -103,7 +120,9 @@ def compose(w, h, title_px, tag_px, chip_px, wm_y, tag_y, chips_y, emblem):
     for _ in range(110):
         x, y = random.randint(0, W), random.randint(0, H)
         r = random.choice([1, 1, 2]) * SS
-        d.ellipse([x - r, y - r, x + r, y + r], fill=lerp(DIM, WHITE, random.random() * 0.3))
+        d.ellipse(
+            [x - r, y - r, x + r, y + r], fill=lerp(DIM, WHITE, random.random() * 0.3)
+        )
 
     ex, ey = int(emblem[0] * SS), int(emblem[1] * SS)
     es = int(46 * SS)
@@ -134,8 +153,12 @@ def compose(w, h, title_px, tag_px, chip_px, wm_y, tag_y, chips_y, emblem):
     tx = 74 * SS
     d.text((tx + 3 * SS, wm_y * SS + 3 * SS), "TRIDENT", font=f_title, fill=(0, 0, 0))
     d.text((tx, wm_y * SS), "TRIDENT", font=f_title, fill=WHITE)
-    d.text((tx + 2 * SS, tag_y * SS), "3-in-1 RF controller for Flipper Zero",
-           font=f_tag, fill=CYAN)
+    d.text(
+        (tx + 2 * SS, tag_y * SS),
+        "3-in-1 RF controller for Flipper Zero",
+        font=f_tag,
+        fill=CYAN,
+    )
 
     chips = ["ESP32 Wi-Fi/BT", "NRF24 2.4GHz", "CC1101 Sub-GHz"]
     cx = tx + 2 * SS
@@ -145,7 +168,9 @@ def compose(w, h, title_px, tag_px, chip_px, wm_y, tag_y, chips_y, emblem):
         padx = 12 * SS
         d.rounded_rectangle(
             [cx, chips_y * SS, cx + cw + padx * 2, chips_y * SS + (chip_px + 12) * SS],
-            radius=8 * SS, outline=GOLD, width=2 * SS,
+            radius=8 * SS,
+            outline=GOLD,
+            width=2 * SS,
         )
         d.text((cx + padx, (chips_y + 6) * SS), c, font=f_chip, fill=WHITE)
         cx += cw + padx * 2 + 12 * SS
@@ -155,10 +180,12 @@ def compose(w, h, title_px, tag_px, chip_px, wm_y, tag_y, chips_y, emblem):
 
 def main():
     compose(1280, 360, 100, 28, 16, 106, 214, 262, (1058, 200)).save(
-        os.path.join(OUT, "banner.png"))
+        os.path.join(OUT, "banner.png")
+    )
     print("wrote banner.png")
     compose(1280, 640, 128, 34, 19, 236, 388, 452, (1040, 356)).save(
-        os.path.join(OUT, "social-preview.png"))
+        os.path.join(OUT, "social-preview.png")
+    )
     print("wrote social-preview.png")
 
 

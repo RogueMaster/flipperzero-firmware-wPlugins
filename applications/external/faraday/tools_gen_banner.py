@@ -81,7 +81,9 @@ def render(path, W, H, layout="wide"):
     cx, cy = bx + bw // 2, by + bh // 2
 
     # ---- carrier arcs, split by the pouch boundary ----
-    arcs = build_arcs((w, h), cx, cy, n=9, base=int(bw * 0.22), step=int(bw * 0.20), lw=4 * SS)
+    arcs = build_arcs(
+        (w, h), cx, cy, n=9, base=int(bw * 0.22), step=int(bw * 0.20), lw=4 * SS
+    )
 
     mask = Image.new("L", (w, h), 0)
     draw_pouch_path(ImageDraw.Draw(mask), bx, by, bw, bh, radius, fill=255)
@@ -109,11 +111,18 @@ def render(path, W, H, layout="wide"):
     # folded top flap + seam
     flap_h = int(bh * 0.16)
     sd.rounded_rectangle(
-        [bx, by, bx + bw, by + flap_h], radius=int(radius * 0.6), outline=SHIELD + (255,), width=4 * SS
+        [bx, by, bx + bw, by + flap_h],
+        radius=int(radius * 0.6),
+        outline=SHIELD + (255,),
+        width=4 * SS,
     )
     for i in range(1, 6):  # seal teeth
         tx = bx + int(bw * i / 6)
-        sd.line([tx, by + int(flap_h * 0.25), tx, by + int(flap_h * 0.75)], fill=SHIELD + (200,), width=3 * SS)
+        sd.line(
+            [tx, by + int(flap_h * 0.25), tx, by + int(flap_h * 0.75)],
+            fill=SHIELD + (200,),
+            width=3 * SS,
+        )
 
     # the fob inside
     fw, fh = int(bw * 0.20), int(bw * 0.30)
@@ -123,7 +132,8 @@ def render(path, W, H, layout="wide"):
         fill=SIGNAL + (255,),
     )
     sd.ellipse(
-        [cx - fw // 6, cy - fh // 6, cx + fw // 6, cy + fh // 6], fill=(BG_TOP[0], BG_TOP[1], BG_TOP[2], 255)
+        [cx - fw // 6, cy - fh // 6, cx + fw // 6, cy + fh // 6],
+        fill=(BG_TOP[0], BG_TOP[1], BG_TOP[2], 255),
     )
 
     img.alpha_composite(shell.filter(ImageFilter.GaussianBlur(6 * SS)))
@@ -144,12 +154,18 @@ def render(path, W, H, layout="wide"):
     f_sub = font(REG, 23 * SS)
     f_foot = font(MONO, 21 * SS)
 
-    td.text((x0, kicker_y), "FLIPPER ZERO  ·  SHIELDING TESTER", font=f_kick, fill=SHIELD)
-    td.text((x0 + 4 * SS, title_y + 4 * SS), "FARADAY", font=f_title, fill=SIGNAL + (150,))
+    td.text(
+        (x0, kicker_y), "FLIPPER ZERO  ·  SHIELDING TESTER", font=f_kick, fill=SHIELD
+    )
+    td.text(
+        (x0 + 4 * SS, title_y + 4 * SS), "FARADAY", font=f_title, fill=SIGNAL + (150,)
+    )
     td.text((x0, title_y), "FARADAY", font=f_title, fill=WHITE)
 
     tag_y = title_y + title_px + 16 * SS
-    td.text((x0, tag_y), "Prove your signal-blocking pouch works.", font=f_tag, fill=SHIELD)
+    td.text(
+        (x0, tag_y), "Prove your signal-blocking pouch works.", font=f_tag, fill=SHIELD
+    )
     td.text(
         (x0, tag_y + 48 * SS),
         "Measures real dB attenuation on Sub-GHz + NFC — no extra hardware.",
@@ -160,14 +176,22 @@ def render(path, W, H, layout="wide"):
     img.alpha_composite(tx)
 
     fd = ImageDraw.Draw(img)
-    fd.line([(70 * SS, h - 54 * SS), (w - 70 * SS, h - 54 * SS)], fill=DIM, width=2 * SS)
+    fd.line(
+        [(70 * SS, h - 54 * SS), (w - 70 * SS, h - 54 * SS)], fill=DIM, width=2 * SS
+    )
     fd.text(
         (70 * SS, h - 44 * SS),
         "github.com/at0m-b0mb/Faraday-FlipperZero",
         font=f_foot,
         fill=GRAY,
     )
-    fd.text((w - 70 * SS, h - 44 * SS), "MIT · by at0m-b0mb", font=f_foot, fill=GRAY, anchor="ra")
+    fd.text(
+        (w - 70 * SS, h - 44 * SS),
+        "MIT · by at0m-b0mb",
+        font=f_foot,
+        fill=GRAY,
+        anchor="ra",
+    )
 
     img.convert("RGB").resize((W, H), Image.LANCZOS).save(path)
     print("wrote", path)

@@ -53,7 +53,8 @@ static int wrap_out(Canvas* canvas, const char* text, int max_w, char lines[][TK
             continue;
         }
         size_t wl = 0;
-        while(*p && *p != ' ' && *p != '\n' && wl < TK_LINE_CAP - 1) word[wl++] = *p++;
+        while(*p && *p != ' ' && *p != '\n' && wl < TK_LINE_CAP - 1)
+            word[wl++] = *p++;
         word[wl] = '\0';
         char cand[TK_LINE_CAP * 2];
         if(cur[0] == '\0')
@@ -86,8 +87,10 @@ static void draw_src_preview(Canvas* canvas, const char* src) {
     /* "in: " + as much of src as fits, built by hand to dodge -Wformat-truncation */
     size_t n = 0;
     const char* pfx = "in: ";
-    while(*pfx && n < sizeof(buf) - 1) buf[n++] = *pfx++;
-    while(*src && n < sizeof(buf) - 1) buf[n++] = *src++;
+    while(*pfx && n < sizeof(buf) - 1)
+        buf[n++] = *pfx++;
+    while(*src && n < sizeof(buf) - 1)
+        buf[n++] = *src++;
     buf[n] = '\0';
     /* fit to width with a trailing ellipsis */
     while(n > 4 && canvas_string_width(canvas, buf) > 122) {
@@ -112,8 +115,7 @@ static void toolkit_view_draw(Canvas* canvas, void* model) {
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 3, 9, "<");
     canvas_draw_str_aligned(canvas, 122, 9, AlignRight, AlignBottom, ">");
-    canvas_draw_str_aligned(
-        canvas, 64, 9, AlignCenter, AlignBottom, codec_name(m->codec, m->rot));
+    canvas_draw_str_aligned(canvas, 64, 9, AlignCenter, AlignBottom, codec_name(m->codec, m->rot));
 
     /* source preview */
     canvas_set_color(canvas, ColorBlack);

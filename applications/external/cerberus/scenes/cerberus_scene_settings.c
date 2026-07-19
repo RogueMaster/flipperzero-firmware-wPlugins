@@ -102,7 +102,12 @@ void cerberus_scene_settings_on_enter(void* context) {
     cerberus_add_choice(
         app, CerberusSettingLogCsv, "Log to SD", 2, app->config.log_csv, onoff_text);
     cerberus_add_choice(
-        app, CerberusSettingKeepScreen, "Keep Screen On", 2, app->config.keep_screen_on, onoff_text);
+        app,
+        CerberusSettingKeepScreen,
+        "Keep Screen On",
+        2,
+        app->config.keep_screen_on,
+        onoff_text);
 
     variable_item_list_set_selected_item(
         list, scene_manager_get_scene_state(app->scene_manager, CerberusSceneSettings));

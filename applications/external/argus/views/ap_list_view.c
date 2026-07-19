@@ -38,8 +38,7 @@ static void ap_list_view_draw(Canvas* canvas, void* model) {
 
     if(m->count == 0) {
         canvas_set_font(canvas, FontSecondary);
-        const char* msg = m->esp_connected ? "No matching APs yet..." :
-                                              "Connect ESP32 board...";
+        const char* msg = m->esp_connected ? "No matching APs yet..." : "Connect ESP32 board...";
         canvas_draw_str_aligned(canvas, 64, 38, AlignCenter, AlignCenter, msg);
         return;
     }
@@ -169,7 +168,8 @@ void ap_list_view_update(ApListView* v, const ApRow* rows, size_t count, bool es
         ApListModel * m,
         {
             size_t n = count < LIST_MAX ? count : LIST_MAX;
-            for(size_t i = 0; i < n; i++) m->rows[i] = rows[i];
+            for(size_t i = 0; i < n; i++)
+                m->rows[i] = rows[i];
             m->count = n;
             m->esp_connected = esp_connected;
             if(m->selected >= n) m->selected = n ? n - 1 : 0;

@@ -63,7 +63,9 @@ def callout(d, right, baseline, num, framing, sub):
     x0 = right - box_w
     y0 = baseline - box_h
 
-    d.rounded_rectangle([x0, y0, x0 + box_w, y0 + box_h], radius=10, outline=AMBER_DIM, width=2)
+    d.rounded_rectangle(
+        [x0, y0, x0 + box_w, y0 + box_h], radius=10, outline=AMBER_DIM, width=2
+    )
     d.text((x0 + pad, y0 + 52), num, font=f_num, fill=AMBER, anchor="ls")
     d.text((x0 + pad + nw + gap, y0 + 52), framing, font=f_fr, fill=WHITE, anchor="ls")
     d.text((x0 + pad, y0 + 72), sub, font=f_sub, fill=GREY, anchor="ls")
@@ -139,15 +141,28 @@ def banner(w=1280, h=420, name="banner.png"):
     # the answer, boxed on the right; the trace runs up to it
     box_x = callout(d, w - 64, 296, "115200", "8N1", "verified on the wire")
 
-    end = draw_wave(d, uart_bits("root@"), 64, 232, 276, 11, AMBER, width=3, x_max=box_x - 48)
+    end = draw_wave(
+        d, uart_bits("root@"), 64, 232, 276, 11, AMBER, width=3, x_max=box_x - 48
+    )
     d.line([(64, 300), (end, 300)], fill=AMBER_FAINT, width=1)
     d.text((64, 322), "measured on the pin", font=f(FMONO, 14), fill=GREY, anchor="ls")
 
     x = 64
-    for label in ("Auto-baud", "Framing detect", "Live console", "Read-only by default"):
+    for label in (
+        "Auto-baud",
+        "Framing detect",
+        "Live console",
+        "Read-only by default",
+    ):
         x = chip(d, x, 354, label, f(FB, 15), AMBER, AMBER_DIM) + 12
 
-    d.text((w - 64, 376), "FLIPPER ZERO  ·  GPIO", font=f(FB, 15), fill=AMBER_DIM, anchor="rs")
+    d.text(
+        (w - 64, 376),
+        "FLIPPER ZERO  ·  GPIO",
+        font=f(FB, 15),
+        fill=AMBER_DIM,
+        anchor="rs",
+    )
 
     img = scanlines(img)
     path = os.path.join(OUT, name)
@@ -163,8 +178,12 @@ def social(w=1280, h=640, name="social-preview.png"):
     d = ImageDraw.Draw(img)
 
     # Long enough to run the full width; the lower one stops short of the box.
-    draw_wave(d, uart_bits("HERMES HERMES"), -20, 150, 190, 11, AMBER_FAINT, width=3, x_max=w)
-    draw_wave(d, uart_bits("UART UART"), -60, 470, 510, 13, AMBER_FAINT, width=3, x_max=470)
+    draw_wave(
+        d, uart_bits("HERMES HERMES"), -20, 150, 190, 11, AMBER_FAINT, width=3, x_max=w
+    )
+    draw_wave(
+        d, uart_bits("UART UART"), -60, 470, 510, 13, AMBER_FAINT, width=3, x_max=470
+    )
 
     d.text((w // 2, 300), "HERMES", font=f(FBLK, 128), fill=AMBER, anchor="ms")
     d.text(
@@ -191,11 +210,22 @@ def social(w=1280, h=640, name="social-preview.png"):
 
     # centred: size the box first, then place it about the midline
     probe = ImageDraw.Draw(Image.new("RGB", (1, 1)))
-    box_w = 20 + probe.textlength("115200", font=f(FBLK, 46)) + 16 + \
-        probe.textlength("8N1", font=f(FB, 26)) + 20
+    box_w = (
+        20
+        + probe.textlength("115200", font=f(FBLK, 46))
+        + 16
+        + probe.textlength("8N1", font=f(FB, 26))
+        + 20
+    )
     callout(d, int(w // 2 + box_w // 2), 524, "115200", "8N1", "verified on the wire")
 
-    d.text((w // 2, 592), "Flipper Zero  ·  at0m-b0mb", font=f(FB, 20), fill=AMBER_DIM, anchor="ms")
+    d.text(
+        (w // 2, 592),
+        "Flipper Zero  ·  at0m-b0mb",
+        font=f(FB, 20),
+        fill=AMBER_DIM,
+        anchor="ms",
+    )
 
     img = scanlines(img)
     path = os.path.join(OUT, name)

@@ -177,7 +177,11 @@ static void cerberus_draw_meters(Canvas* canvas, CerberusMonitorModel* m) {
         char left[16];
         uint32_t up = s->uptime_s;
         snprintf(
-            left, sizeof(left), "UP %02lu:%02lu", (unsigned long)(up / 60), (unsigned long)(up % 60));
+            left,
+            sizeof(left),
+            "UP %02lu:%02lu",
+            (unsigned long)(up / 60),
+            (unsigned long)(up % 60));
         canvas_draw_str(canvas, 2, 61, left);
 
         if(m->alert_total > 0) {
@@ -210,7 +214,8 @@ static uint8_t cerberus_scope_y(int16_t rssi, uint8_t gy0, uint8_t gh) {
 }
 
 static void cerberus_draw_dotted_h(Canvas* canvas, uint8_t x0, uint8_t x1, uint8_t y) {
-    for(uint8_t x = x0; x <= x1; x += 3) canvas_draw_dot(canvas, x, y);
+    for(uint8_t x = x0; x <= x1; x += 3)
+        canvas_draw_dot(canvas, x, y);
 }
 
 static void cerberus_draw_scope(Canvas* canvas, CerberusMonitorModel* m) {
@@ -261,13 +266,18 @@ static void cerberus_monitor_draw(Canvas* canvas, void* model) {
     } else if(m->snap.hop) {
         snprintf(mode_txt, sizeof(mode_txt), "HOP");
     } else {
-        snprintf(mode_txt, sizeof(mode_txt), "PIN %u", (unsigned)cerberus_bands[m->snap.active_band].mhz);
+        snprintf(
+            mode_txt,
+            sizeof(mode_txt),
+            "PIN %u",
+            (unsigned)cerberus_bands[m->snap.active_band].mhz);
     }
     cerberus_draw_title(canvas, m, mode_txt);
 
     if(!m->has_data || !m->snap.running) {
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 36, AlignCenter, AlignCenter, "waking the watchdog...");
+        canvas_draw_str_aligned(
+            canvas, 64, 36, AlignCenter, AlignCenter, "waking the watchdog...");
         return;
     }
 
@@ -291,7 +301,9 @@ static bool cerberus_monitor_input(InputEvent* event, void* context) {
             with_view_model(
                 view->view,
                 CerberusMonitorModel * m,
-                { m->mode = (m->mode == MonitorModeScope) ? MonitorModeMeters : MonitorModeScope; },
+                {
+                    m->mode = (m->mode == MonitorModeScope) ? MonitorModeMeters : MonitorModeScope;
+                },
                 true);
             return true;
         case InputKeyUp:
@@ -300,8 +312,8 @@ static bool cerberus_monitor_input(InputEvent* event, void* context) {
                 CerberusMonitorModel * m,
                 {
                     if(m->mode == MonitorModeScope)
-                        m->scope_band =
-                            (uint8_t)((m->scope_band + CERBERUS_BAND_COUNT - 1) % CERBERUS_BAND_COUNT);
+                        m->scope_band = (uint8_t)((m->scope_band + CERBERUS_BAND_COUNT - 1) %
+                                                  CERBERUS_BAND_COUNT);
                 },
                 true);
             return true;
@@ -346,7 +358,8 @@ CerberusMonitorView* cerberus_monitor_view_alloc(void) {
             model->scope_band = 0;
             model->armed = true;
             for(uint8_t b = 0; b < CERBERUS_BAND_COUNT; b++) {
-                for(uint16_t c = 0; c < SCOPE_W; c++) model->hist[b][c] = RSSI_FLOOR_VIEW;
+                for(uint16_t c = 0; c < SCOPE_W; c++)
+                    model->hist[b][c] = RSSI_FLOOR_VIEW;
             }
         },
         true);
@@ -393,10 +406,7 @@ void cerberus_monitor_view_update(CerberusMonitorView* view, const CerberusSnaps
         true);
 }
 
-void cerberus_monitor_view_set_status(
-    CerberusMonitorView* view,
-    bool armed,
-    uint32_t alert_total) {
+void cerberus_monitor_view_set_status(CerberusMonitorView* view, bool armed, uint32_t alert_total) {
     furi_assert(view);
     with_view_model(
         view->view,

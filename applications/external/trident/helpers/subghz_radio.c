@@ -11,17 +11,29 @@
 // name; declared literally so we don't depend on the applications/ include path.
 #define TRIDENT_CC1101_EXT_NAME "cc1101_ext"
 
-#define SUBGHZ_BINS       60 // frequency steps across the band (sweep)
-#define SUBGHZ_SETTLE_US  700 // PLL settle before reading RSSI
-#define SUBGHZ_CAMP_US    20000 // sample gap while camped (~50 Hz)
-#define SUBGHZ_FLOOR_DBM  (-100) // maps to level 0
-#define SUBGHZ_CEIL_DBM   (-30) // maps to level 100
+#define SUBGHZ_BINS         60 // frequency steps across the band (sweep)
+#define SUBGHZ_SETTLE_US    700 // PLL settle before reading RSSI
+#define SUBGHZ_CAMP_US      20000 // sample gap while camped (~50 Hz)
+#define SUBGHZ_FLOOR_DBM    (-100) // maps to level 0
+#define SUBGHZ_CEIL_DBM     (-30) // maps to level 100
 #define SUBGHZ_WORKER_STACK (2 * 1024)
 
 const SubghzBand trident_subghz_bands[TRIDENT_SUBGHZ_BAND_COUNT] = {
-    {.lo_hz = 300000000, .hi_hz = 348000000, .label = "300-348", .lo_label = "300", .hi_label = "348"},
-    {.lo_hz = 387000000, .hi_hz = 464000000, .label = "387-464", .lo_label = "387", .hi_label = "464"},
-    {.lo_hz = 779000000, .hi_hz = 928000000, .label = "779-928", .lo_label = "779", .hi_label = "928"},
+    {.lo_hz = 300000000,
+     .hi_hz = 348000000,
+     .label = "300-348",
+     .lo_label = "300",
+     .hi_label = "348"},
+    {.lo_hz = 387000000,
+     .hi_hz = 464000000,
+     .label = "387-464",
+     .lo_label = "387",
+     .hi_label = "464"},
+    {.lo_hz = 779000000,
+     .hi_hz = 928000000,
+     .label = "779-928",
+     .lo_label = "779",
+     .hi_label = "928"},
 };
 
 const SubghzPreset trident_subghz_presets[TRIDENT_SUBGHZ_PRESET_COUNT] = {
@@ -57,7 +69,8 @@ struct SubghzRadio {
 static uint8_t subghz_level_from_dbm(int16_t dbm) {
     if(dbm <= SUBGHZ_FLOOR_DBM) return 0;
     if(dbm >= SUBGHZ_CEIL_DBM) return 100;
-    return (uint8_t)(((int32_t)dbm - SUBGHZ_FLOOR_DBM) * 100 / (SUBGHZ_CEIL_DBM - SUBGHZ_FLOOR_DBM));
+    return (uint8_t)(((int32_t)dbm - SUBGHZ_FLOOR_DBM) * 100 /
+                     (SUBGHZ_CEIL_DBM - SUBGHZ_FLOOR_DBM));
 }
 
 /* ---------------- sweep publish ---------------- */
@@ -177,7 +190,8 @@ static int32_t subghz_worker(void* context) {
         strncpy(radio->snap.title, title, sizeof(radio->snap.title) - 1);
         strncpy(radio->meter.title, title, sizeof(radio->meter.title) - 1);
         furi_mutex_release(radio->mutex);
-        while(radio->running) furi_delay_ms(100);
+        while(radio->running)
+            furi_delay_ms(100);
         subghz_devices_deinit();
         return 0;
     }

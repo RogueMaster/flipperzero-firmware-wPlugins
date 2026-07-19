@@ -68,7 +68,10 @@ bool trident_scene_wifi_on_event(void* context, SceneManagerEvent event) {
             break;
         case WifiSetChannel:
             trident_prompt(
-                app, "Wi-Fi channel (e.g. 6, 36)", MARAUDER_PFX_CHANNEL, "Channel",
+                app,
+                "Wi-Fi channel (e.g. 6, 36)",
+                MARAUDER_PFX_CHANNEL,
+                "Channel",
                 MARAUDER_CMD_CHANNEL);
             break;
         case WifiTarget:

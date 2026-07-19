@@ -25,10 +25,7 @@ void rollcall_scene_capture_on_enter(void* context) {
 
     capture_view_reset(app->capture_view);
     capture_view_set_config(
-        app->capture_view,
-        rc_bands[app->band_idx].label,
-        rc_mods[app->mod_idx].label,
-        app->target);
+        app->capture_view, rc_bands[app->band_idx].label, rc_mods[app->mod_idx].label, app->target);
     capture_view_set_callback(app->capture_view, rollcall_scene_capture_view_cb, app);
 
     rc_radio_start(app->radio);

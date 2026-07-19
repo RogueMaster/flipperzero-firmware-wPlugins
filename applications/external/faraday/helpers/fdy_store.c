@@ -10,9 +10,9 @@
 #include <datetime/datetime.h>
 #include <stdio.h>
 
-#define FDY_SETTINGS_PATH APP_DATA_PATH("settings.bin")
-#define FDY_RESULTS_PATH APP_DATA_PATH("results.csv")
-#define FDY_SETTINGS_MAGIC 0xFD
+#define FDY_SETTINGS_PATH    APP_DATA_PATH("settings.bin")
+#define FDY_RESULTS_PATH     APP_DATA_PATH("results.csv")
+#define FDY_SETTINGS_MAGIC   0xFD
 #define FDY_SETTINGS_VERSION 1
 
 /* How many logged tests we keep in memory while scanning the file. The log
@@ -41,11 +41,7 @@ void fdy_store_settings_save(const FaradaySettings* s) {
     furi_assert(s);
     fdy_store_ensure_dir();
     saved_struct_save(
-        FDY_SETTINGS_PATH,
-        s,
-        sizeof(FaradaySettings),
-        FDY_SETTINGS_MAGIC,
-        FDY_SETTINGS_VERSION);
+        FDY_SETTINGS_PATH, s, sizeof(FaradaySettings), FDY_SETTINGS_MAGIC, FDY_SETTINGS_VERSION);
 }
 
 void fdy_store_settings_load(FaradaySettings* s) {

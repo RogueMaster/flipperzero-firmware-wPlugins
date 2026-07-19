@@ -111,7 +111,13 @@ static void argus_uart_deauth(
     ArgusApp* app = ctx;
     app->last_rx_tick = furi_get_tick();
     argus_db_on_deauth(
-        app->db, kind, src, bssid, channel, rssi, reason,
+        app->db,
+        kind,
+        src,
+        bssid,
+        channel,
+        rssi,
+        reason,
         argus_settings_storm_threshold(&app->settings));
 }
 
@@ -169,8 +175,7 @@ static ArgusApp* argus_app_alloc(void) {
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(app->view_dispatcher, argus_custom_event_callback);
-    view_dispatcher_set_navigation_event_callback(
-        app->view_dispatcher, argus_back_event_callback);
+    view_dispatcher_set_navigation_event_callback(app->view_dispatcher, argus_back_event_callback);
     view_dispatcher_set_tick_event_callback(app->view_dispatcher, argus_tick_event_callback, 100);
 
     // default settings
@@ -182,8 +187,7 @@ static ArgusApp* argus_app_alloc(void) {
 
     app->db = argus_db_alloc();
     app->uart = uart_link_alloc();
-    uart_link_set_callbacks(
-        app->uart, argus_uart_deauth, argus_uart_ap, argus_uart_status, app);
+    uart_link_set_callbacks(app->uart, argus_uart_deauth, argus_uart_ap, argus_uart_status, app);
 
     // shared GUI modules
     app->submenu = submenu_alloc();

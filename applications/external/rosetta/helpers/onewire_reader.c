@@ -8,7 +8,7 @@
 #include <string.h>
 
 #define ONEWIRE_CMD_READ_ROM 0x33
-#define POLL_MS 60u
+#define POLL_MS              60u
 
 struct OneWireReader {
     OneWireHost* host;

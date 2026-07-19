@@ -23,7 +23,7 @@ static const HermesCtrlKey hermes_ctrl_keys[] = {
  * hand means watching for a prompt that has already gone. This hammers the key
  * across the whole window instead. */
 #define HERMES_CTRL_AUTOBOOT_INDEX (HERMES_CTRL_KEY_COUNT)
-#define HERMES_CTRL_TOTAL (HERMES_CTRL_KEY_COUNT + 1u)
+#define HERMES_CTRL_TOTAL          (HERMES_CTRL_KEY_COUNT + 1u)
 
 /** Arm the burst and let the console tick actually send it.
  *
@@ -49,15 +49,10 @@ void hermes_scene_ctrl_on_enter(void* context) {
     submenu_set_header(submenu, uart_tap_tx_enabled(app->tap) ? "Send key" : "TX is off");
 
     for(uint32_t i = 0; i < HERMES_CTRL_KEY_COUNT; i++) {
-        submenu_add_item(
-            submenu, hermes_ctrl_keys[i].label, i, hermes_scene_ctrl_callback, app);
+        submenu_add_item(submenu, hermes_ctrl_keys[i].label, i, hermes_scene_ctrl_callback, app);
     }
     submenu_add_item(
-        submenu,
-        "Stop autoboot (4s)",
-        HERMES_CTRL_AUTOBOOT_INDEX,
-        hermes_scene_ctrl_callback,
-        app);
+        submenu, "Stop autoboot (4s)", HERMES_CTRL_AUTOBOOT_INDEX, hermes_scene_ctrl_callback, app);
 
     submenu_set_selected_item(
         submenu, scene_manager_get_scene_state(app->scene_manager, HermesSceneCtrl));

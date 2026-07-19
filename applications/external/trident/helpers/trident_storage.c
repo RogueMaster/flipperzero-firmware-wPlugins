@@ -4,10 +4,10 @@
 #include <storage/storage.h>
 #include <string.h>
 
-#define TRIDENT_SETTINGS_DIR  "/ext/apps_data/trident"
-#define TRIDENT_SETTINGS_PATH TRIDENT_SETTINGS_DIR "/trident.settings"
+#define TRIDENT_SETTINGS_DIR   "/ext/apps_data/trident"
+#define TRIDENT_SETTINGS_PATH  TRIDENT_SETTINGS_DIR "/trident.settings"
 #define TRIDENT_SETTINGS_MAGIC 0x54524431UL // "TRD1"
-#define TRIDENT_SETTINGS_VER 1
+#define TRIDENT_SETTINGS_VER   1
 
 typedef struct {
     uint32_t magic;

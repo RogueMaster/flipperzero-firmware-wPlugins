@@ -3,12 +3,12 @@
 #include <furi.h>
 #include <string.h>
 
-#define CONSOLE_LINES   64 // ring-buffer depth
-#define CONSOLE_COLS    48 // stored chars per line (screen clips the rest)
-#define VISIBLE_ROWS    5
-#define BODY_TOP        20 // baseline of the first body row
-#define ROW_PITCH       8
-#define BODY_DIVIDER    54
+#define CONSOLE_LINES 64 // ring-buffer depth
+#define CONSOLE_COLS  48 // stored chars per line (screen clips the rest)
+#define VISIBLE_ROWS  5
+#define BODY_TOP      20 // baseline of the first body row
+#define ROW_PITCH     8
+#define BODY_DIVIDER  54
 
 struct ConsoleView {
     View* view;
@@ -117,8 +117,7 @@ static bool console_view_input(InputEvent* event, void* context) {
 
     if(event->type == InputTypeShort || event->type == InputTypeRepeat) {
         if(event->key == InputKeyUp) {
-            with_view_model(
-                v->view, ConsoleModel * m, { m->scroll++; }, true);
+            with_view_model(v->view, ConsoleModel * m, { m->scroll++; }, true);
             consumed = true;
         } else if(event->key == InputKeyDown) {
             with_view_model(
@@ -296,18 +295,15 @@ void console_view_set_channel(ConsoleView* v, const char* chan) {
 
 void console_view_set_live(ConsoleView* v, bool live) {
     furi_assert(v);
-    with_view_model(
-        v->view, ConsoleModel * m, { m->live = live; }, false);
+    with_view_model(v->view, ConsoleModel * m, { m->live = live; }, false);
 }
 
 void console_view_set_autoscroll(ConsoleView* v, bool autoscroll) {
     furi_assert(v);
-    with_view_model(
-        v->view, ConsoleModel * m, { m->autoscroll = autoscroll; }, false);
+    with_view_model(v->view, ConsoleModel * m, { m->autoscroll = autoscroll; }, false);
 }
 
 void console_view_tick(ConsoleView* v) {
     furi_assert(v);
-    with_view_model(
-        v->view, ConsoleModel * m, { m->anim++; }, true);
+    with_view_model(v->view, ConsoleModel * m, { m->anim++; }, true);
 }

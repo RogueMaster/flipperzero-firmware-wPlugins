@@ -23,7 +23,8 @@ bool hermes_scene_result_on_event(void* context, SceneManagerEvent event) {
     if(event.type != SceneManagerEventTypeCustom) return false;
 
     if(event.event == HermesCustomEventResultRetry) {
-        scene_manager_previous_scene(app->scene_manager); // back to detect, which restarts on enter
+        scene_manager_previous_scene(
+            app->scene_manager); // back to detect, which restarts on enter
         return true;
     }
 

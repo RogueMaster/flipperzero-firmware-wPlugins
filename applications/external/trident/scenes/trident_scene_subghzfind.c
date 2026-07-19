@@ -30,7 +30,8 @@ static const char* find_step_label(uint8_t i) {
 
 static void trident_scene_subghzfind_input(void* context, InputKey key) {
     TridentApp* app = context;
-    uint8_t step_i = (uint8_t)scene_manager_get_scene_state(app->scene_manager, TridentSceneSubghzfind);
+    uint8_t step_i =
+        (uint8_t)scene_manager_get_scene_state(app->scene_manager, TridentSceneSubghzfind);
     uint32_t step = find_steps[step_i % FIND_STEP_COUNT];
     uint32_t f = subghz_radio_get_camp_freq(app->subghz);
 
@@ -75,8 +76,7 @@ void trident_scene_subghzfind_on_enter(void* context) {
     strncpy(boot.sub, "tuning...", sizeof(boot.sub) - 1);
     meter_view_set_snapshot(app->meter_view, &boot);
 
-    subghz_radio_configure(
-        app->subghz, 0, app->settings.cc1101_device == TridentCc1101External);
+    subghz_radio_configure(app->subghz, 0, app->settings.cc1101_device == TridentCc1101External);
     subghz_radio_set_mode(app->subghz, SubghzModeCamp);
     subghz_radio_start(app->subghz);
 

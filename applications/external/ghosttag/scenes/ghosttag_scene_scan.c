@@ -1,7 +1,7 @@
 #include "../ghosttag_i.h"
 
 #define SCAN_RADAR_BLIPS 24
-#define ESP_TIMEOUT_MS 4000
+#define ESP_TIMEOUT_MS   4000
 
 static void ghosttag_scene_scan_ok_cb(void* context) {
     GhostTagApp* app = context;

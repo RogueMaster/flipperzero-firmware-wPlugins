@@ -115,7 +115,8 @@ void ctf_store_progress_load(Storage* storage, CtfProgress* p) {
         if(nl) *nl = '\0';
         if(line[0] == 'S' && line[1] == 'C') { /* "SCORE n" */
             const char* v = line + 2;
-            while(*v && (*v < '0' || *v > '9')) v++;
+            while(*v && (*v < '0' || *v > '9'))
+                v++;
             p->score = (uint32_t)strtoul(v, NULL, 10);
         } else if(line[0] == 'S' && line[1] == ' ') { /* "S <hex>" solved id */
             if(p->solved_count < CTF_MAX_SOLVED) {

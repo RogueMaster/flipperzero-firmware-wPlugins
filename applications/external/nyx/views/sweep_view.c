@@ -58,12 +58,15 @@ static void draw_error(Canvas* canvas, const SweepModel* m) {
     if(m->error == IrSenseErrorIrBusy) {
         canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignCenter, "IR receiver busy");
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignCenter, "Close any other IR app,");
-        canvas_draw_str_aligned(canvas, 64, 50, AlignCenter, AlignCenter, "then re-open the sweep.");
+        canvas_draw_str_aligned(
+            canvas, 64, 40, AlignCenter, AlignCenter, "Close any other IR app,");
+        canvas_draw_str_aligned(
+            canvas, 64, 50, AlignCenter, AlignCenter, "then re-open the sweep.");
     } else if(m->error == IrSenseErrorNoProbe) {
         canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignCenter, "No probe on the pin");
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignCenter, "Check Probe Setup wiring,");
+        canvas_draw_str_aligned(
+            canvas, 64, 40, AlignCenter, AlignCenter, "Check Probe Setup wiring,");
         canvas_draw_str_aligned(canvas, 64, 50, AlignCenter, AlignCenter, "or set Mode to Auto.");
     } else {
         canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignCenter, "ADC unavailable");
@@ -76,7 +79,8 @@ static void draw_nulling(Canvas* canvas, const SweepModel* m) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignCenter, "Nulling ambient");
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignCenter, "Hold still, aim at the room");
+    canvas_draw_str_aligned(
+        canvas, 64, 40, AlignCenter, AlignCenter, "Hold still, aim at the room");
     /* three dots filling in, so the wait reads as progress not a hang */
     for(uint8_t i = 0; i < 3; i++) {
         int x = 56 + i * 8;
@@ -112,7 +116,8 @@ static void draw_trace(Canvas* canvas, const SweepModel* m) {
     /* peak-hold: the line to beat while you hunt for the hot spot */
     if(m->peak > 0) {
         int py = TRACE_BASE_Y - (m->peak * TRACE_H) / 100;
-        for(int x = 0; x < 128; x += 4) canvas_draw_dot(canvas, x, py);
+        for(int x = 0; x < 128; x += 4)
+            canvas_draw_dot(canvas, x, py);
     }
 }
 

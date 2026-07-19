@@ -24,8 +24,7 @@ void argus_scene_start_on_enter(void* context) {
     submenu_add_item(
         submenu, "Evil Twin Scan", StartIndexTwins, argus_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Threat Log", StartIndexLog, argus_scene_start_submenu_cb, app);
-    submenu_add_item(
-        submenu, "Guarded SSID", StartIndexGuard, argus_scene_start_submenu_cb, app);
+    submenu_add_item(submenu, "Guarded SSID", StartIndexGuard, argus_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Settings", StartIndexSettings, argus_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "About", StartIndexAbout, argus_scene_start_submenu_cb, app);
 

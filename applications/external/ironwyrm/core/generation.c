@@ -21,8 +21,7 @@ Wyrm MakeEnemy(int round, RandomGenerator* randomGenerator) {
 void FillShop(
     Plate shopPlates[SHOP_CAPACITY],
     uint8_t* shopLength,
-    RandomGenerator* randomGenerator
-) {
+    RandomGenerator* randomGenerator) {
     *shopLength = SHOP_CAPACITY;
 
     for(int plateIndex = 0; plateIndex < SHOP_CAPACITY; plateIndex++) {

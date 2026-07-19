@@ -17,4 +17,7 @@ void device_list_view_set_records(DeviceListView* dlv, const TrackerRecord* recs
 bool device_list_view_get_selected(DeviceListView* dlv, TrackerRecord* out);
 
 /** Called on OK press (open detail). */
-void device_list_view_set_ok_callback(DeviceListView* dlv, DeviceListViewCallback cb, void* context);
+void device_list_view_set_ok_callback(
+    DeviceListView* dlv,
+    DeviceListViewCallback cb,
+    void* context);

@@ -36,8 +36,8 @@ bool trident_scene_select_on_event(void* context, SceneManagerEvent event) {
         trident_link_ensure(app);
         trident_link_send(app, cmd);
 
-        const char* list_cmd =
-            (app->select_kind == 's') ? MARAUDER_CMD_LIST_STA : MARAUDER_CMD_LIST_AP;
+        const char* list_cmd = (app->select_kind == 's') ? MARAUDER_CMD_LIST_STA :
+                                                           MARAUDER_CMD_LIST_AP;
         const char* title = (app->select_kind == 's') ? "Station List" : "AP List";
 
         // Drop the input scene, then open the console over the target menu so a

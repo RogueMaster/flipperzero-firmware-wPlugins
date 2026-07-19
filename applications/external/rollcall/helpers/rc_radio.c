@@ -146,8 +146,7 @@ RcRadio* rc_radio_alloc(ViewDispatcher* view_dispatcher) {
     /* Decoder stack. The registry gives us every built-in protocol; the
      * classification we care about (static vs dynamic) needs no keystore. */
     radio->environment = subghz_environment_alloc();
-    subghz_environment_set_protocol_registry(
-        radio->environment, (void*)&subghz_protocol_registry);
+    subghz_environment_set_protocol_registry(radio->environment, (void*)&subghz_protocol_registry);
 
     radio->receiver = subghz_receiver_alloc_init(radio->environment);
     subghz_receiver_set_filter(radio->receiver, SubGhzProtocolFlag_Decodable);
@@ -208,8 +207,7 @@ void rc_radio_start(RcRadio* radio) {
 
     subghz_receiver_reset(radio->receiver);
     subghz_worker_start(radio->worker);
-    subghz_devices_start_async_rx(
-        radio->device, (void*)subghz_worker_rx_callback, radio->worker);
+    subghz_devices_start_async_rx(radio->device, (void*)subghz_worker_rx_callback, radio->worker);
 
     radio->running = true;
 }
@@ -246,7 +244,8 @@ uint8_t rc_radio_snapshot(RcRadio* radio, RcCapture* out, uint8_t max) {
     furi_assert(radio);
     furi_mutex_acquire(radio->mutex, FuriWaitForever);
     uint8_t n = radio->count < max ? radio->count : max;
-    for(uint8_t i = 0; i < n; i++) out[i] = radio->captures[i];
+    for(uint8_t i = 0; i < n; i++)
+        out[i] = radio->captures[i];
     furi_mutex_release(radio->mutex);
     return n;
 }

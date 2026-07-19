@@ -27,8 +27,7 @@ void hermes_scene_keyboard_on_enter(void* context) {
 bool hermes_scene_keyboard_on_event(void* context, SceneManagerEvent event) {
     HermesApp* app = context;
 
-    if(event.type == SceneManagerEventTypeCustom &&
-       event.event == HermesCustomEventConsoleText) {
+    if(event.type == SceneManagerEventTypeCustom && event.event == HermesCustomEventConsoleText) {
         const size_t len = strlen(app->text_buffer);
         if(len > 0) {
             uart_tap_send(app->tap, (const uint8_t*)app->text_buffer, len);

@@ -21,7 +21,8 @@ void ghosttag_scene_start_on_enter(void* context) {
     submenu_add_item(submenu, "Hunt (Scan)", StartIndexHunt, ghosttag_scene_start_submenu_cb, app);
     submenu_add_item(
         submenu, "Detections", StartIndexDetections, ghosttag_scene_start_submenu_cb, app);
-    submenu_add_item(submenu, "Settings", StartIndexSettings, ghosttag_scene_start_submenu_cb, app);
+    submenu_add_item(
+        submenu, "Settings", StartIndexSettings, ghosttag_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "About", StartIndexAbout, ghosttag_scene_start_submenu_cb, app);
 
     submenu_set_selected_item(

@@ -36,7 +36,8 @@ static void draw_waiting(Canvas* canvas, CaptureModel* m) {
     canvas_set_font(canvas, FontSecondary);
     char dots[4] = {0};
     int nd = (m->anim / 12) % 4;
-    for(int i = 0; i < nd; i++) dots[i] = '.';
+    for(int i = 0; i < nd; i++)
+        dots[i] = '.';
     char buf[20];
     snprintf(buf, sizeof(buf), "listening%s", dots);
     canvas_draw_str(canvas, 4, 30, buf);

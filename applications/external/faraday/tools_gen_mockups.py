@@ -144,14 +144,29 @@ def render_capture(name, *, is_nfc, phase, level, peak, live, signal_ok, base=No
 
     # action strip
     box(d, 0, 53, 128, 11)
-    hint = "Peak captured" if signal_ok else ("In reader field" if is_nfc else "Press remote")
+    hint = (
+        "Peak captured"
+        if signal_ok
+        else ("In reader field" if is_nfc else "Press remote")
+    )
     text(d, 3, 62, hint, f_sec, BG)
     text(d, 125, 62, "OK lock", f_sec, BG, anchor="rs")
     save(img, name)
 
 
 def render_verdict(
-    name, *, is_nfc, base_v, shield_v, base_n, shield_n, atten, floored, letter, word, pips
+    name,
+    *,
+    is_nfc,
+    base_v,
+    shield_v,
+    base_n,
+    shield_n,
+    atten,
+    floored,
+    letter,
+    word,
+    pips,
 ):
     img, d = canvas()
     band = "13.56 MHz" if is_nfc else "433.92 MHz"
@@ -196,11 +211,13 @@ def render_hunt(name, *, band, rssi, floor, level, peak_norm, history):
 
     margin = max(0, rssi - floor)
     word = (
-        "BLAZING" if margin >= 30
-        else "HOT" if margin >= 18
-        else "WARM" if margin >= 10
-        else "COOL" if margin >= 4
-        else "COLD"
+        "BLAZING"
+        if margin >= 30
+        else (
+            "HOT"
+            if margin >= 18
+            else "WARM" if margin >= 10 else "COOL" if margin >= 4 else "COLD"
+        )
     )
     d.text((L(64), L(20)), word, font=f_pri, fill=FG, anchor="mm")
     if margin >= 30:
@@ -257,7 +274,12 @@ def render_menu():
     img, d = canvas()
     text(d, 4, 11, "Faraday", f_pri)
     line(d, 0, 14, 127, 14)
-    items = ["Test Sub-GHz (key fob)", "Test NFC (card)", "Leak hunt (Sub-GHz)", "Saved results"]
+    items = [
+        "Test Sub-GHz (key fob)",
+        "Test NFC (card)",
+        "Leak hunt (Sub-GHz)",
+        "Saved results",
+    ]
     ROW_H = 12
     for i, it in enumerate(items):
         y = 15 + i * ROW_H
@@ -274,7 +296,11 @@ def render_settings():
     img, d = canvas()
     text(d, 4, 11, "Settings", f_pri)
     line(d, 0, 14, 127, 14)
-    rows = [("Sub-GHz band", "433.92", True), ("Sound", "ON", False), ("LED", "ON", False)]
+    rows = [
+        ("Sub-GHz band", "433.92", True),
+        ("Sound", "ON", False),
+        ("LED", "ON", False),
+    ]
     ROW_H = 12
     for i, (k, v, sel) in enumerate(rows):
         y = 15 + i * ROW_H
@@ -291,7 +317,13 @@ def render_settings():
 if __name__ == "__main__":
     # Sub-GHz: fob in the open, carrier landing hard
     render_capture(
-        "screen_baseline.png", is_nfc=False, phase=0, level=72, peak=78, live=-42, signal_ok=True
+        "screen_baseline.png",
+        is_nfc=False,
+        phase=0,
+        level=72,
+        peak=78,
+        live=-42,
+        signal_ok=True,
     )
     # Sub-GHz: fob sealed in the pouch, barely anything left
     render_capture(
@@ -334,13 +366,80 @@ if __name__ == "__main__":
     )
     # NFC capture against a reader field
     render_capture(
-        "screen_nfc.png", is_nfc=True, phase=0, level=86, peak=91, live=86, signal_ok=True
+        "screen_nfc.png",
+        is_nfc=True,
+        phase=0,
+        level=86,
+        peak=91,
+        live=86,
+        signal_ok=True,
     )
     # Leak hunt: swept onto the seam where the pouch is escaping
     HUNT_HIST = [
-        4, 6, 3, 8, 5, 2, 7, 4, 9, 6, 3, 8, 5, 11, 7, 4, 9, 6, 14, 8, 5, 12, 18, 9,
-        6, 15, 22, 11, 7, 19, 28, 14, 9, 24, 35, 17, 11, 30, 44, 21, 13, 38, 55, 26,
-        16, 47, 68, 32, 20, 58, 82, 39, 24, 71, 95, 47, 29, 84, 99, 56, 34, 92, 100, 62,
+        4,
+        6,
+        3,
+        8,
+        5,
+        2,
+        7,
+        4,
+        9,
+        6,
+        3,
+        8,
+        5,
+        11,
+        7,
+        4,
+        9,
+        6,
+        14,
+        8,
+        5,
+        12,
+        18,
+        9,
+        6,
+        15,
+        22,
+        11,
+        7,
+        19,
+        28,
+        14,
+        9,
+        24,
+        35,
+        17,
+        11,
+        30,
+        44,
+        21,
+        13,
+        38,
+        55,
+        26,
+        16,
+        47,
+        68,
+        32,
+        20,
+        58,
+        82,
+        39,
+        24,
+        71,
+        95,
+        47,
+        29,
+        84,
+        99,
+        56,
+        34,
+        92,
+        100,
+        62,
     ]
     render_hunt(
         "screen_hunt.png",

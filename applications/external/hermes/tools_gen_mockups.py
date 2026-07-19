@@ -61,7 +61,10 @@ def finish(img, name):
     canvas = Image.new("RGB", (W * SCALE + pad * 2, H * SCALE + pad * 2), BEZEL)
     d = ImageDraw.Draw(canvas)
     d.rounded_rectangle(
-        [6, 6, canvas.width - 6, canvas.height - 6], radius=16, outline=BEZEL_HI, width=3
+        [6, 6, canvas.width - 6, canvas.height - 6],
+        radius=16,
+        outline=BEZEL_HI,
+        width=3,
     )
     canvas.paste(up, (pad, pad))
     path = os.path.join(OUT, name)
