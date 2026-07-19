@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    name: Build & publish .fap
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ufbt
+        run: python3 -m pip install --upgrade ufbt
+
+      - name: Sync SDK (release channel)
+        run: ufbt update --channel=release
+
+      - name: Build Cerberus
+        run: ufbt
+
+      - name: Stage artifacts
+        run: |
+          mkdir -p out
+          cp dist/*.fap out/cerberus.fap
+          cp dist/*.fap "out/cerberus-${GITHUB_REF_NAME}.fap"
+          ls -la out
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Cerberus ${{ github.ref_name }}"
+          files: out/*.fap
+          generate_release_notes: true
+          body: |
+            ## 🐺 Cerberus ${{ github.ref_name }} — Sub-GHz RF Watchdog
+
+            Passive watchdog for the 433 / 868 / 915 MHz bands — alerts on jamming,
+            floods and replays. Built for current official firmware (release channel).
+
+            ### Install
+            1. Download **`cerberus.fap`** below.
+            2. Copy it to your SD card at **`apps/Sub-GHz/`**
+               (`/ext/apps/Sub-GHz/cerberus.fap`) — qFlipper drag-and-drop works.
+            3. On the Flipper: **Apps → Sub-GHz → Cerberus**.
+
+            > A `.fap` is tied to its firmware API. If it won't launch, rebuild with
+            > `ufbt` matched to your firmware (see the README).
