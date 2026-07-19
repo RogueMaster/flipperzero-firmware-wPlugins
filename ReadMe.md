@@ -44,19 +44,20 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Flipper Share v1.5 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share)
 - Added: [Flipper Share IR v1.5 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share_ir)
 - Added: [IRONWYRM v1.0 (By Atompunk78)](https://github.com/Atompunk78/IRONWYRM)
-- Added: [Argus v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Argus-FlipperZero)
+- Added: [Argus v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Argus-FlipperZero) `Req: ESP32`
 - Added: [Cerberus v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/flipper-cerberus)
 - Added: [Faraday v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Faraday-FlipperZero)
 - Added: [Gauntlet v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Gauntlet-FlipperZero)
-- Added: [GhostTag v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/GhostTag-FlipperZero)
+- Added: [GhostTag v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/GhostTag-FlipperZero) `Req: ESP32`
 - Added: [GlitchTrigger v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/GlitchTrigger-FlipperZero)
 - Added: [Hermes v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Hermes-FlipperZero)
 - Added: [Nyx v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Nyx-FlipperZero)
 - Added: [RollCall v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/RollCall-FlipperZero)
 - Added: [Rosetta v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Rosetta-FlipperZero)
-- Added: [Trident v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Trident-FlipperZero)
+- Added: [Trident v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Trident-FlipperZero) `Req: 3-in-1 ESP32 + NRF24 + CC1101`
 - Added: [Warden v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Warden-FlipperZero)
 - Added: [Android KB Bridge v0.5.1 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD)
+- Added: [LGT ISP (SWD) v0.7 (By mkrasem / SimonE)](https://github.com/mkrasem/flipper_lgt_isp) `Req: LGT8F328P`
 
 <a name="release"></a>
 
@@ -344,7 +345,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Animation Switcher v1.1 (By lsalik2)](https://github.com/lsalik2/FlipperAnimationSwitcher)
 - [Answer Book v0.1 (By redbson)](https://github.com/redbson/The-Book-of-Answers)
 - [APRS TX v1.3.20 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
-- [Argus v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Argus-FlipperZero)
+- [Argus v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Argus-FlipperZero) `Req: ESP32`
 - [ASCII Table v1.0 (By x10102)](https://github.com/x10102/flipper_ascii)
 - [Atari SIO Emulator v0.5 (By cepetr)](https://github.com/cepetr/sio2flip)
 - [ATM Player v1.0.8 (By apfxtech)](https://github.com/apfxtech/FlipperATM)
@@ -525,7 +526,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Genie Recorder v3.1 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/subghz/apps/genie-recorder)
 - [Ghost ESP v1.8.0 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app) `Req: ESP32` with [Ghost ESP Firmware](https://github.com/Spooks4576/Ghost_ESP)
 - [GhostBook v0.6 (By digitard)](https://github.com/digitard/ghostbook)
-- [GhostTag v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/GhostTag-FlipperZero)
+- [GhostTag v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/GhostTag-FlipperZero) `Req: ESP32`
 - [GlitchTrigger v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/GlitchTrigger-FlipperZero)
 - [GnomishTool v1.0 (By Andreeved88)](https://github.com/Andreeved88/GnomishTool)
 - [Govee Control v0.1 (By devdotbo)](https://github.com/devdotbo/GlowFin)
@@ -595,6 +596,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [LED Ring & Matrix Studio v0.1 (By xfwluna)](https://github.com/xfwluna/led_ring_matrix_studio) `Req: WS2812B / SK6812 NeoPixel`
 - [LEGO Dimensions Toy Pad v0.5 (By SegerEnd)](https://github.com/SegerEnd/Flipper-Zero-LD-Toypad-Emulator)
 - [Letter Beacon v1.0 (By nmrr)](https://github.com/nmrr/flipperzero-rfidbeacon)
+- [LGT ISP (SWD) v0.7 (By mkrasem / SimonE)](https://github.com/mkrasem/flipper_lgt_isp) `Req: LGT8F328P`
 - [LIDAR Emulator v0.2 (By regaly)](https://github.com/regaly/flipperzero-lidar_emulator)
 - [Lightmeter v1.3 (By oleksiikutuzov)](https://github.com/oleksiikutuzov/flipperzero-lightmeter) `Req: BH1750/MAX44009`
 - [Lightning Distance v0.1 (By HyperMuffin12)](https://github.com/HyperMuffin12/Flipper-Lightning-Distance)
@@ -818,7 +820,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Tone Generator v1.0 (By GEMISIS)](https://github.com/GEMISIS/tone_gen)
 - [TonUINO Writer v2.0 (By Bastelsaal)](https://github.com/Bastelsaal/tonuino-flipper-zero)
 - [Tree Identification v0.0.5 (By fgreil)](https://github.com/fgreil/mitzi-tree-ident)
-- [Trident v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Trident-FlipperZero)
+- [Trident v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Trident-FlipperZero) `Req: 3-in-1 ESP32 + NRF24 + CC1101`
 - [TPMS Reader v1.0 (By wosk)](https://github.com/wosk/flipperzero-tpms)
 - [TuLlave v0.1 (By zqu4rtz)](https://github.com/zqu4rtz/FlipperApp-TuLlave)
 - [Tuning Fork v2.0 (By besya)](https://github.com/besya/flipperzero-tuning-fork)
