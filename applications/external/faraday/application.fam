@@ -1,0 +1,23 @@
+App(
+    appid="faraday",
+    name="Faraday",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="faraday_app",
+    stack_size=4 * 1024,
+    fap_category="Tools",
+    fap_icon="icons/faraday_10px.png",
+    fap_icon_assets="icons",
+    fap_author="at0m-b0mb",
+    fap_weburl="https://github.com/at0m-b0mb/Faraday-FlipperZero",
+    fap_version="1.1",
+    # Explicit, so the recursive default does not sweep test/ (host-only code)
+    # into the firmware build.
+    sources=[
+        "faraday.c",
+        "helpers/*.c",
+        "views/*.c",
+        "scenes/*.c",
+    ],
+    fap_description="Faraday-bag tester. Measures how much a signal-blocking pouch actually attenuates your key fob and your contactless cards, instead of trusting the label. Two captures and a grade: record the signal in the open, seal it in the pouch, record again. Sub-GHz is measured in real dBm on the internal CC1101 (315/433/868/915 MHz); NFC measures how much of a 13.56 MHz reader field the pouch keeps out. Reports the attenuation with an A+ to F verdict. Leak Hunt then sweeps a sealed pouch to find exactly where it leaks, and every test is logged to the SD card so you can compare pouches. Listen-only, never transmits.",
+    requires=["gui", "storage"],
+)
