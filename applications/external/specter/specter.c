@@ -105,8 +105,7 @@ static SpecterApp* specter_app_alloc(void) {
     app->scene_manager = scene_manager_alloc(&specter_scene_handlers, app);
 
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
-    view_dispatcher_set_custom_event_callback(
-        app->view_dispatcher, specter_custom_event_callback);
+    view_dispatcher_set_custom_event_callback(app->view_dispatcher, specter_custom_event_callback);
     view_dispatcher_set_navigation_event_callback(
         app->view_dispatcher, specter_back_event_callback);
     view_dispatcher_set_tick_event_callback(
@@ -132,16 +131,14 @@ static SpecterApp* specter_app_alloc(void) {
         variable_item_list_get_view(app->var_item_list));
 
     app->widget = widget_alloc();
-    view_dispatcher_add_view(
-        app->view_dispatcher, SpecterViewAbout, widget_get_view(app->widget));
+    view_dispatcher_add_view(app->view_dispatcher, SpecterViewAbout, widget_get_view(app->widget));
 
     // custom view
     app->sweep_view = sweep_view_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, SpecterViewSweep, sweep_view_get_view(app->sweep_view));
 
-    view_dispatcher_attach_to_gui(
-        app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
+    view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     return app;
 }

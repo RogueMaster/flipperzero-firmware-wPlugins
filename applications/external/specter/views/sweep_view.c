@@ -52,8 +52,7 @@ static void draw_error(Canvas* canvas) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 22, AlignCenter, AlignCenter, "NFC unavailable");
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(
-        canvas, 64, 38, AlignCenter, AlignCenter, "Close any other NFC app,");
+    canvas_draw_str_aligned(canvas, 64, 38, AlignCenter, AlignCenter, "Close any other NFC app,");
     canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignCenter, "then re-open the sweep.");
 }
 
@@ -65,8 +64,8 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 2, 9, "SPECTER");
 
-    const char* state = m->error ? "NFC BUSY" :
-                        !m->armed ? "IDLE" :
+    const char* state = m->error   ? "NFC BUSY" :
+                        !m->armed  ? "IDLE" :
                         m->present ? "READER" :
                                      "SCANNING";
     canvas_draw_str_aligned(canvas, 116, 9, AlignRight, AlignBottom, state);
@@ -163,8 +162,10 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
             int v = m->history[idx];
             int x = 126 - k * 2;
             int y = 63 - (v * 9) / 100;
-            if(y < 63) canvas_draw_line(canvas, x, 63, x, y);
-            else canvas_draw_dot(canvas, x, 63);
+            if(y < 63)
+                canvas_draw_line(canvas, x, 63, x, y);
+            else
+                canvas_draw_dot(canvas, x, 63);
         }
     }
 }

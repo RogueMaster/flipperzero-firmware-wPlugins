@@ -40,6 +40,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Fix MIFARE Plus 2K SL1 transit parsers - Troika, Plantain, SevPPK, SZPPK and Two Cities stopped parsing once Plus 2K SL1 cards began reporting as the new `2K` type: the parsers only knew `1K`/`4K` and required a full-card read. They now treat 2K as the 1K these cards present and accept a partial read (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1038)
 - Updated: [ZeroMesh v2.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
 - Updated: [Sub-GHz Keystore Decryptor v1.1 (By Lechnio)](https://github.com/Lechnio/KeeLoq-Keystore-Decryptor)
+- Added: [Specter v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
 
 <a name="release"></a>
 
@@ -747,6 +748,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Sonic Head ID v0.9 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
 - [Space PLayground v0.1 (By alanfortlink)](https://github.com/alanfortlink/fzspground)
 - [Space Travel Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
+- [Specter v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
 - [Spectrum Analyzer v1.4 (By jolcese)](https://github.com/jolcese/flipperzero-firmware/tree/spectrum/applications/spectrum_analyzer)
 - [Spindle Calculator v1.0 (By Minto97)](https://github.com/Minto97/spindle-calc-flipper)
 - [SPI Flash Dump v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)

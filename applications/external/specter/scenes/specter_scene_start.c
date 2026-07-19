@@ -18,8 +18,7 @@ void specter_scene_start_on_enter(void* context) {
     submenu_reset(submenu);
     submenu_set_header(submenu, "Specter");
     submenu_add_item(submenu, "Sweep", StartIndexSweep, specter_scene_start_submenu_cb, app);
-    submenu_add_item(
-        submenu, "Settings", StartIndexSettings, specter_scene_start_submenu_cb, app);
+    submenu_add_item(submenu, "Settings", StartIndexSettings, specter_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "About", StartIndexAbout, specter_scene_start_submenu_cb, app);
 
     submenu_set_selected_item(

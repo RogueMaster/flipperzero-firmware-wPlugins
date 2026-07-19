@@ -42,7 +42,9 @@ def line(d, x0, y0, x1, y1, col=FG, w=2):
 
 
 def circle(d, cx, cy, r, col=FG, w=2):
-    d.ellipse([L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], outline=col, width=w)
+    d.ellipse(
+        [L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], outline=col, width=w
+    )
 
 
 def disc(d, cx, cy, r, col=FG):
@@ -78,7 +80,9 @@ def gauge_point(value, radius):
 
 
 def proximity_word(s):
-    return "STRONG" if s >= 70 else "CLOSE" if s >= 45 else "NEAR" if s >= 20 else "FAINT"
+    return (
+        "STRONG" if s >= 70 else "CLOSE" if s >= 45 else "NEAR" if s >= 20 else "FAINT"
+    )
 
 
 def draw_header(d, state, present):
@@ -182,8 +186,12 @@ def render_settings():
     img, d = canvas()
     text(d, 4, 8, "Settings", f_pri)
     line(d, 0, 14, 127, 14)
-    rows = [("Sensitivity", "Medium", True), ("Sound", "ON", False),
-            ("Vibrate", "ON", False), ("LED", "ON", False)]
+    rows = [
+        ("Sensitivity", "Medium", True),
+        ("Sound", "ON", False),
+        ("Vibrate", "ON", False),
+        ("LED", "ON", False),
+    ]
     ROW_H = 12
     for i, (k, v, sel) in enumerate(rows):
         y = 15 + i * ROW_H
@@ -197,9 +205,70 @@ def render_settings():
     save(img, "screen_settings.png")
 
 
-CLEAR_HIST = [3, 5, 2, 8, 4, 1, 6, 3, 9, 5, 2, 7, 4, 11, 6, 3, 8, 5, 2, 10, 6, 4, 9,
-              5, 3, 7, 12, 6, 4, 8, 5, 14, 7, 4, 9, 6, 3, 8, 5, 11, 6, 4, 7, 3, 9, 5,
-              2, 8, 13, 6, 4, 7, 5, 10, 6, 3, 8, 5, 2, 7, 4, 9]
+CLEAR_HIST = [
+    3,
+    5,
+    2,
+    8,
+    4,
+    1,
+    6,
+    3,
+    9,
+    5,
+    2,
+    7,
+    4,
+    11,
+    6,
+    3,
+    8,
+    5,
+    2,
+    10,
+    6,
+    4,
+    9,
+    5,
+    3,
+    7,
+    12,
+    6,
+    4,
+    8,
+    5,
+    14,
+    7,
+    4,
+    9,
+    6,
+    3,
+    8,
+    5,
+    11,
+    6,
+    4,
+    7,
+    3,
+    9,
+    5,
+    2,
+    8,
+    13,
+    6,
+    4,
+    7,
+    5,
+    10,
+    6,
+    3,
+    8,
+    5,
+    2,
+    7,
+    4,
+    9,
+]
 
 
 if __name__ == "__main__":
@@ -208,7 +277,12 @@ if __name__ == "__main__":
     render_menu()
     render_settings()
 
-    names = ("screen_clear.png", "screen_reader.png", "screen_menu.png", "screen_settings.png")
+    names = (
+        "screen_clear.png",
+        "screen_reader.png",
+        "screen_menu.png",
+        "screen_settings.png",
+    )
     imgs = [Image.open(os.path.join(OUT, n)) for n in names]
     pad = 18
     strip = Image.new(
