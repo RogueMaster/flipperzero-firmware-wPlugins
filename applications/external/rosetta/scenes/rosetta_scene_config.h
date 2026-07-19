@@ -1,0 +1,6 @@
+ADD_SCENE(rosetta, start, Start)
+ADD_SCENE(rosetta, protocol, Protocol)
+ADD_SCENE(rosetta, lesson, Lesson)
+ADD_SCENE(rosetta, capture, Capture)
+ADD_SCENE(rosetta, settings, Settings)
+ADD_SCENE(rosetta, about, About)
