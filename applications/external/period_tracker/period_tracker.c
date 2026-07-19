@@ -85,11 +85,10 @@ static bool period_tracker_custom_event_callback(void* context, uint32_t event) 
     return scene_manager_handle_custom_event(app->scene_manager, event);
 }
 
-// Create data directory if it doesn't exist
+// Create app data directory if it doesn't exist (SDK APP_DATA_PATH → /ext/apps_data/<appid>/)
 void period_tracker_create_data_dir(PeriodTrackerApp* app) {
     Storage* storage = app->storage;
 
-    // Check if SD card is mounted
     FS_Error sd_status = storage_sd_status(storage);
     FURI_LOG_I(TAG, "SD card status: %d (0=OK)", sd_status);
 
@@ -98,23 +97,11 @@ void period_tracker_create_data_dir(PeriodTrackerApp* app) {
         return;
     }
 
-    FURI_LOG_I(TAG, "SD card is mounted, creating app directories");
+    FS_Error err = storage_common_mkdir(storage, APP_DATA_PATH(""));
+    FURI_LOG_I(TAG, "mkdir APP_DATA_PATH result: %d (2=already exists is OK)", err);
 
-    // Create /ext/apps_data if it doesn't exist
-    FS_Error err = storage_common_mkdir(storage, "/ext/apps_data");
-    FURI_LOG_I(TAG, "mkdir /ext/apps_data result: %d (2=already exists is OK)", err);
-
-    // Use storage_common_migrate to ensure the app data directory structure is created
-    // This creates /ext/apps_data/period_tracker and all parent directories
-    // The first parameter is a legacy path (where data might have been before)
-    // The second parameter is the new path where data should be
-    // storage_common_migrate creates the target directory and migrates any old data
-    // IMPORTANT: No trailing slash on directory paths
-    storage_common_migrate(storage, "/ext/period_tracker", "/ext/apps_data/period_tracker");
-
-    // Verify the directory was created
-    if(storage_common_exists(storage, "/ext/apps_data/period_tracker")) {
-        FURI_LOG_I(TAG, "App data directory created successfully");
+    if(storage_common_exists(storage, APP_DATA_PATH(""))) {
+        FURI_LOG_I(TAG, "App data directory ready");
     } else {
         FURI_LOG_E(TAG, "Failed to create app data directory!");
     }

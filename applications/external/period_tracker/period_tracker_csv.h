@@ -3,13 +3,6 @@
 #include "period_tracker_models.h"
 #include <storage/storage.h>
 
-// Force our own APP_DATA_PATH definition
-// The build system may be providing an incorrect one
-#ifdef APP_DATA_PATH
-#undef APP_DATA_PATH
-#endif
-#define APP_DATA_PATH(path) "/ext/apps_data/period_tracker/" path
-
 // CSV field escaping
 void csv_escape_field(const char* input, char* output, size_t output_size);
 bool csv_unescape_field(const char* input, char* output, size_t output_size);

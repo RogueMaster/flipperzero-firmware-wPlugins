@@ -21,13 +21,6 @@
 // scene that requested a date. Value is far away from menu item indexes.
 #define PERIOD_TRACKER_EVENT_DATE_SELECTED 0xDA7Eu
 
-// Force our own APP_DATA_PATH definition
-// The build system provides one but it seems to be incorrect
-#ifdef APP_DATA_PATH
-#undef APP_DATA_PATH
-#endif
-#define APP_DATA_PATH(path) "/ext/apps_data/period_tracker/" path
-
 // Forward declarations
 typedef struct PeriodTrackerApp PeriodTrackerApp;
 
