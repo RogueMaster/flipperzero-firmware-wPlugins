@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    name: Build & publish .fap
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ufbt
+        run: python3 -m pip install --upgrade ufbt
+
+      - name: Sync SDK (release channel)
+        run: ufbt update --channel=release
+
+      - name: Build RollCall
+        run: ufbt
+
+      - name: Stage artifacts
+        run: |
+          mkdir -p out
+          cp dist/*.fap out/rollcall.fap
+          cp dist/*.fap "out/rollcall-${GITHUB_REF_NAME}.fap"
+          ls -la out
+          sha256sum out/rollcall.fap
+
+      # Only publish for real tag pushes; a manual dispatch just proves it builds.
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "RollCall ${{ github.ref_name }}"
+          files: out/*.fap
+          generate_release_notes: true
+          body: |
+            ## 🔑 RollCall ${{ github.ref_name }} — Rolling-Code Health Check
+
+            Press your own key fob, garage or gate remote a few times. RollCall decodes
+            each press, tells you whether it's a **rolling code** or a **static fixed
+            code**, and proves on the air whether the code actually advances between
+            presses — then hands back a plain-English grade.
+
+            **Listen-only.** It never transmits, replays, jams or clones. No extra
+            hardware — just the Flipper's built-in Sub-GHz radio.
+
+            ### Install
+            1. Download **`rollcall.fap`** below.
+            2. Copy it to your SD card at **`apps/Sub-GHz/`**
+               (`/ext/apps/Sub-GHz/rollcall.fap`) — qFlipper drag-and-drop works.
+            3. On the Flipper: **Apps → Sub-GHz → RollCall**.
+
+            ### Using it
+            1. **Settings** → pick your **Band** (315 US / 433.92 EU) and
+               **Modulation** (start with AM650).
+            2. **Run Health Check**, then press your remote a few times, pausing
+               ~1s between presses.
+            3. Read the grade — **OK** opens the per-press ledger showing each code
+               fingerprint (`new` vs `same`).
+
+            | Grade | Meaning |
+            |:---:|---|
+            | **A** | ✅ Rolling, and every press produced a different code |
+            | **B** | 🟢 Rolling; needs another press or two to confirm |
+            | **C** | 🟡 Rolling protocol, but the code didn't change — retest |
+            | **F** | 🔴 Fixed code — identical every press, replayable |
+            | **?** | ⚪ Decoded but unclassified — try another band/modulation |
+
+            > A `.fap` is tied to its firmware API. If it won't launch, rebuild with
+            > `ufbt` matched to your firmware (see the README).
+
+            ---
+            Built from `${{ github.ref_name }}` on the **release** firmware channel.
+            MIT · by [at0m-b0mb](https://github.com/at0m-b0mb)
