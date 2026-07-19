@@ -302,7 +302,6 @@ static bool app_custom_event_cb(void* ctx, uint32_t event) {
     case 100: {
         /* Start verify */
         if(app->worker_running) return true; /* ignore if worker still active */
-        app->worker_state = SpiWorkerStateVerifying;
         app->worker_running = true;
         app->verify_match = 0;
         app->verify_mismatch = 0;
@@ -333,6 +332,10 @@ static bool app_custom_event_cb(void* ctx, uint32_t event) {
             app,
             &app->verify_match,
             &app->verify_mismatch);
+        /* Set the polled state only after the worker thread is actually
+           running (see the read path above for the start-up race this
+           avoids). */
+        app->worker_state = SpiWorkerStateVerifying;
         return true;
     }
 
@@ -517,7 +520,6 @@ static bool chip_info_input_cb(InputEvent* event, void* ctx) {
 
         /* Prepare progress view */
         app->progress_start_tick = furi_get_tick();
-        app->worker_state = SpiWorkerStateReading;
         app->worker_running = true;
 
         with_view_model(
@@ -546,6 +548,11 @@ static bool chip_info_input_cb(InputEvent* event, void* ctx) {
             spi_speed_delay(app->spi_speed),
             read_progress_cb,
             app);
+        /* Set the polled state only after the worker thread is actually
+           running. Otherwise worker_poll_timer_cb can observe
+           (!spi_worker_is_running && state==Reading) during the start-up
+           window and falsely flag the operation as finished-with-error. */
+        app->worker_state = SpiWorkerStateReading;
         return true;
     }
 

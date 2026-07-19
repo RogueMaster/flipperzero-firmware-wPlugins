@@ -83,8 +83,8 @@ static void apdu_monitor_draw(Canvas* canvas, void* model_ptr) {
     if(app->log_count > CCID_EMU_LOG_MAX_ENTRIES) {
         /* Ring buffer has wrapped. The oldest stored entry index in the
            ring is (app->log_count % CCID_EMU_LOG_MAX_ENTRIES). */
-        start_entry_idx =
-            (uint16_t)((app->log_count - total + model->scroll_offset) % (uint32_t)CCID_EMU_LOG_MAX_ENTRIES);
+        start_entry_idx = (uint16_t)((app->log_count - total + model->scroll_offset) %
+                                     (uint32_t)CCID_EMU_LOG_MAX_ENTRIES);
     } else {
         start_entry_idx = model->scroll_offset;
     }
@@ -189,7 +189,8 @@ static bool ccid_emulator_export_log(CcidEmulatorApp* app) {
     furi_mutex_acquire(app->log_mutex, FuriWaitForever);
 
     uint32_t total = app->log_count;
-    uint16_t stored = (total > CCID_EMU_LOG_MAX_ENTRIES) ? CCID_EMU_LOG_MAX_ENTRIES : (uint16_t)total;
+    uint16_t stored = (total > CCID_EMU_LOG_MAX_ENTRIES) ? CCID_EMU_LOG_MAX_ENTRIES :
+                                                           (uint16_t)total;
 
     if(stored == 0) {
         furi_mutex_release(app->log_mutex);

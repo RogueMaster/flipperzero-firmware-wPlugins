@@ -35,10 +35,10 @@ for app in "${APPS[@]}"; do
     printf "%-24s " "$app"
     if (cd "$SCRIPT_DIR/$app" && ufbt "$TASK" 2>&1 | tail -1) ; then
         echo "  OK"
-        ((PASS++))
+        PASS=$((PASS + 1))
     else
         echo "  FAIL"
-        ((FAIL++))
+        FAIL=$((FAIL + 1))
         FAILED_APPS+=("$app")
     fi
 done

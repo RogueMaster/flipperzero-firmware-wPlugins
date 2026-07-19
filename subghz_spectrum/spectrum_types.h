@@ -2,12 +2,12 @@
 
 #include <furi.h>
 
-#define SPECTRUM_NUM_BINS         128
-#define SPECTRUM_WATERFALL_ROWS   48
-#define SPECTRUM_RSSI_MIN         (-100.0f)
-#define SPECTRUM_RSSI_MAX         (-30.0f)
-#define SPECTRUM_HEADER_HEIGHT    10
-#define SPECTRUM_GRAPH_HEIGHT     54
+#define SPECTRUM_NUM_BINS       128
+#define SPECTRUM_WATERFALL_ROWS 48
+#define SPECTRUM_RSSI_MIN       (-100.0f)
+#define SPECTRUM_RSSI_MAX       (-30.0f)
+#define SPECTRUM_HEADER_HEIGHT  10
+#define SPECTRUM_GRAPH_HEIGHT   54
 
 typedef enum {
     SpectrumViewBar,

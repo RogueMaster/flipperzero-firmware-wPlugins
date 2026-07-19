@@ -305,4 +305,4 @@ When contributing code, please ensure it builds cleanly with `ufbt` and passes `
 
 ## License
 
-See the repository for license details. All code in this repository is provided for educational and research purposes.
+This project is licensed under the [MIT License](LICENSE). All code in this repository is provided for educational and research purposes.

@@ -344,7 +344,6 @@ static UartSniffApp* uart_sniff_app_alloc(void) {
 
     /* ---- Settings (VariableItemList) ---- */
     app->settings_list = variable_item_list_alloc();
-    variable_item_list_set_header(app->settings_list, "Settings");
     settings_list_setup(app);
     view_set_previous_callback(variable_item_list_get_view(app->settings_list), settings_back_cb);
     view_dispatcher_add_view(

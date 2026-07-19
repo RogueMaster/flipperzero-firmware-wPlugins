@@ -5,7 +5,7 @@ App(
     entry_point="flipperpwn_app",
     stack_size=8 * 1024,
     fap_category="Tools",
-    fap_version=(1, 6),
+    fap_version=(1, 7),
     fap_icon="flipperpwn.png",
     fap_description="Modular pentest payload framework with CDC OS detection, USB CDC exfil, ATTACKMODE, and WiFi Dev Board support",
     fap_author="PentestSuite",

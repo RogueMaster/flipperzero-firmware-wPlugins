@@ -28,6 +28,10 @@ static bool s_wifi_first_connect_notified = false;
 /* Forward declaration — saves all WiFi results to SD card. */
 static void fpwn_wifi_save_results(FPwnApp* app);
 
+/* Forward declaration — password entry result callback (used from scan input
+ * before its definition appears later in the file). */
+static void fpwn_wifi_password_done(void* ctx);
+
 /* =========================================================================
  * WiFi menu — item indices
  * ========================================================================= */
@@ -1034,8 +1038,7 @@ static void fpwn_wifi_save_results(FPwnApp* app) {
                         "%s  %s\n",
                         hosts[i].ip,
                         hosts[i].alive ? "UP" : "down");
-                    if(n > 0 && n < (int)sizeof(line))
-                        storage_file_write(file, line, (uint16_t)n);
+                    if(n > 0 && n < (int)sizeof(line)) storage_file_write(file, line, (uint16_t)n);
                 }
                 storage_file_write(file, "\n", 1);
             }
@@ -1047,8 +1050,7 @@ static void fpwn_wifi_save_results(FPwnApp* app) {
     {
         FPwnPortResult* ports = malloc(FPWN_MAX_PORTS * sizeof(FPwnPortResult));
         if(ports) {
-            uint32_t port_count =
-                fpwn_marauder_copy_ports(app->marauder, ports, FPWN_MAX_PORTS);
+            uint32_t port_count = fpwn_marauder_copy_ports(app->marauder, ports, FPWN_MAX_PORTS);
             if(port_count > 0) {
                 const char* hdr = "=== Ports ===\n";
                 storage_file_write(file, hdr, strlen(hdr));
@@ -1060,8 +1062,7 @@ static void fpwn_wifi_save_results(FPwnApp* app) {
                         "%u/tcp  open  %s\n",
                         (unsigned)ports[i].port,
                         ports[i].service);
-                    if(n > 0 && n < (int)sizeof(line))
-                        storage_file_write(file, line, (uint16_t)n);
+                    if(n > 0 && n < (int)sizeof(line)) storage_file_write(file, line, (uint16_t)n);
                 }
                 storage_file_write(file, "\n", 1);
             }
@@ -1086,8 +1087,7 @@ static void fpwn_wifi_save_results(FPwnApp* app) {
                         stations[i].mac,
                         (int)stations[i].rssi,
                         stations[i].ap_ssid);
-                    if(n > 0 && n < (int)sizeof(line))
-                        storage_file_write(file, line, (uint16_t)n);
+                    if(n > 0 && n < (int)sizeof(line)) storage_file_write(file, line, (uint16_t)n);
                 }
                 storage_file_write(file, "\n", 1);
             }
@@ -1099,16 +1099,14 @@ static void fpwn_wifi_save_results(FPwnApp* app) {
     {
         FPwnCapturedCred* creds = malloc(FPWN_MAX_CREDS * sizeof(FPwnCapturedCred));
         if(creds) {
-            uint32_t cred_count =
-                fpwn_marauder_copy_creds(app->marauder, creds, FPWN_MAX_CREDS);
+            uint32_t cred_count = fpwn_marauder_copy_creds(app->marauder, creds, FPWN_MAX_CREDS);
             if(cred_count > 0) {
                 const char* hdr = "=== Captured Credentials ===\n";
                 storage_file_write(file, hdr, strlen(hdr));
                 for(uint32_t i = 0; i < cred_count; i++) {
                     int n = snprintf(
                         line, sizeof(line), "[%lu] %s\n", (unsigned long)i, creds[i].data);
-                    if(n > 0 && n < (int)sizeof(line))
-                        storage_file_write(file, line, (uint16_t)n);
+                    if(n > 0 && n < (int)sizeof(line)) storage_file_write(file, line, (uint16_t)n);
                 }
                 storage_file_write(file, "\n", 1);
             }
@@ -1511,10 +1509,17 @@ void fpwn_wifi_views_free(FPwnApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, FPwnViewStationScan);
     view_dispatcher_remove_view(app->view_dispatcher, FPwnViewCredentials);
 
-    /* Deregister the log callback before freeing the string/mutex it uses,
-     * otherwise a late UART line could invoke fpwn_wifi_rx_callback on
-     * freed resources. */
+    /* Deregister the marauder log callback to prevent late calls into
+     * wifi_status_text/mutex after they are freed below. */
     fpwn_marauder_set_log_callback(app->marauder, NULL, NULL);
+
+    /* Stop the UART worker BEFORE freeing marauder.  We must drain any
+     * in-flight fpwn_marauder_rx_cb (which holds marauder->mutex) before
+     * fpwn_marauder_free tears that mutex down.  set_rx_callback(NULL) only
+     * blocks NEW dispatches; freeing the UART joins the worker thread, which
+     * guarantees the current dispatch (if any) has fully returned. */
+    fpwn_wifi_uart_set_rx_callback(app->wifi_uart, NULL, NULL);
+    fpwn_wifi_uart_free(app->wifi_uart);
 
     submenu_free(app->wifi_menu);
     view_free(app->wifi_scan_view);
@@ -1528,9 +1533,8 @@ void fpwn_wifi_views_free(FPwnApp* app) {
     furi_string_free(app->wifi_status_text);
     furi_mutex_free(app->wifi_status_mutex);
 
-    /* Free Marauder before UART (marauder holds a reference to uart) */
+    /* Safe — worker is gone, no concurrent rx_cb can be in flight. */
     fpwn_marauder_free(app->marauder);
-    fpwn_wifi_uart_free(app->wifi_uart);
 
     app->marauder = NULL;
     app->wifi_uart = NULL;

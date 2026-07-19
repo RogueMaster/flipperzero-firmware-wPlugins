@@ -80,7 +80,13 @@ typedef struct {
  * UART RX callback — do not register another callback after this. */
 FPwnMarauder* fpwn_marauder_alloc(FPwnWifiUart* uart);
 
-/* Release mutex and free the struct.  Does not free the uart. */
+/* Release mutex and free the struct.  Does not free the uart.
+ *
+ * The caller MUST guarantee no in-flight UART rx callback is still running
+ * before invoking this — typically by calling
+ * fpwn_wifi_uart_set_rx_callback(uart, NULL, NULL) followed by
+ * fpwn_wifi_uart_free(uart), which joins the worker thread.  Otherwise the
+ * worker may still be holding marauder->mutex when this function frees it. */
 void fpwn_marauder_free(FPwnMarauder* marauder);
 
 /* --------------------------------------------------------------------------

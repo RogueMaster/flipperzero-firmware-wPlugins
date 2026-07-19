@@ -105,8 +105,7 @@ static void fuzz_run_view_draw_callback(Canvas* canvas, void* model) {
     uint8_t bar_h = 6;
     canvas_draw_frame(canvas, bar_x, bar_y, bar_width, bar_h);
     if(m->total_tests > 0 && m->total_tests != UINT32_MAX) {
-        uint32_t fill =
-            (uint32_t)(((uint64_t)m->current_test * bar_width) / m->total_tests);
+        uint32_t fill = (uint32_t)(((uint64_t)m->current_test * bar_width) / m->total_tests);
         if(fill > bar_width) fill = bar_width;
         canvas_draw_box(canvas, bar_x, bar_y, (uint8_t)fill, bar_h);
     }
@@ -198,7 +197,8 @@ static void nfc_fuzzer_worker_progress_cb(
                             response_hex);
                         if(len >= line_size) len = line_size - 1;
                         if(len > 0) {
-                            storage_file_write(file, line, (uint16_t)(len > 0xFFFF ? 0xFFFF : len));
+                            storage_file_write(
+                                file, line, (uint16_t)(len > 0xFFFF ? 0xFFFF : len));
                         }
                         free(line);
                     }

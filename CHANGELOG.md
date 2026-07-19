@@ -6,6 +6,29 @@ Format: grouped by date, categorized as **fix**, **feat**, **refactor**, **chore
 
 ---
 
+## 2026-07-19
+
+### fix
+- **ccid_emulator**: Fixed APDU command/response rules being silently truncated at 32 bytes (issue #59). `CCID_EMU_MAX_APDU_LEN` (32) capped both `CcidRule.command[]` and `CcidRule.response[]`. `parse_hex_string`/`parse_hex_pattern` stopped at the cap and returned a **non-zero** count, so `parse_rule_line` still stored the rule as valid (`rule_count++`) — dropping the tail bytes, which for a response include the trailing status word (e.g. `90 00`), with no diagnostic. The shipped `ccid_emulator_sample_cards/piv_emulator.ccid` CHUID response (62 bytes) triggered this and could not be emulated correctly. Fix: split the bound into `CCID_EMU_MAX_CMD_LEN` (64) and `CCID_EMU_MAX_RESP_LEN` (128); both hex parsers now return 0 (error) on overflow instead of a partial count; `parse_rule_line` skips the rule and logs `FURI_LOG_W` instead of storing a truncated one; the rule-line read buffer in `ccid_card_load` was enlarged to fit a full command+response line so long responses are no longer re-truncated before parsing. 128 (rather than a full 256-byte data block) was chosen deliberately: the on-device 4 KB app stack and rule-line buffer make 256 impractical, and 128 covers every response the sample cards and typical EMV/PIV cards produce.
+
+- **ble_scanner / rayhunter_client / uart_sniff**: Removed calls to `variable_item_list_set_header()`, which does not exist in the OFW SDK the CI (`flipperzero-ufbt-action`, official release channel) builds against — the call raised `-Werror=implicit-function-declaration` and those three apps did not compile. The header was cosmetic (a settings-screen title); no behavioral change. Verified against `lib/nfc`/`gui` headers in `flipperdevices/flipperzero-firmware`.
+- **flipperpwn**: Added a forward declaration for the `static` `fpwn_wifi_password_done()` callback, which was referenced ~20 lines before its definition — an implicit-declaration `-Werror` build failure. Also fixed a teardown race in `fpwn_wifi_views_free`: marauder was freed before the UART worker was joined, so an in-flight `fpwn_marauder_rx_cb` (holding `marauder->mutex`) could race `furi_mutex_free`. The UART is now freed (joining the worker) before marauder; `fpwn_marauder_free` no longer deregisters the callback itself (documented as caller responsibility). Bumped `fap_version` (1,6)→(1,7) and the About-screen string.
+- **rayhunter_client**: Fixed a use-after-free in `rh_app_free` — `rh_worker_stop()` only nulls the RX callback pointer; it does not join the UART worker. Views were freed before `rh_uart_free()` (which joins the worker), so an in-flight `rh_worker_rx_line()` could touch freed views. The UART is now freed before the views.
+- **rogue_ap_detector**: Re-run `rogue_detect()` before the RSSI-filter early-return in `rogue_uart_line_cb`, so a threat flag (e.g. EVIL TWIN) doesn't linger in the UI after `rogue_prune_stale()` removed the entries that raised it.
+- **spi_flash_dump**: Fixed a start-up race where `worker_state` was set to Reading/Verifying *before* the worker thread started; `worker_poll_timer_cb` could observe `(!running && state==Reading)` during the window and falsely report the operation as finished-with-error. The state is now set after the worker starts.
+- **build_all.sh**: Replaced `((PASS++))`/`((FAIL++))` with `PASS=$((PASS+1))`; under `set -e` the post-increment returns non-zero when the value is 0 and aborted the script on the first passing app.
+
+### docs
+- **LICENSE**: Added an MIT `LICENSE` file (issue #12). The repository previously had no license file; the README now points to it.
+- **README.md**: Updated the License section to reference the new MIT `LICENSE` file instead of the placeholder "See the repository for license details."
+
+### chore
+- **Build & lint verified**: bootstrapped the OFW SDK (release channel, f7, API 87.1 — the same SDK the CI `flipperzero-ufbt-action` uses) and confirmed all 13 FAPs build (`ufbt`) and lint (`ufbt lint`) cleanly with the fixes in this changeset.
+- **clang-format**: applied `ufbt format` to `ccid_emulator`, `flipperpwn`, `nfc_fuzzer`, and `subghz_spectrum`, which carried pre-existing formatting drift that failed the CI lint job independently of this changeset. No behavioral change; whitespace/wrapping only.
+- Reviewed the backlog of open draft maintenance PRs and consolidated the genuinely-unmerged, verified fixes here: the three-app `variable_item_list_set_header` build break (from PR #65), flipperpwn forward-decl + teardown race, rayhunter UAF, rogue_ap stale-threat, spi_flash_dump start-up race, and `build_all.sh` (from PRs #26/#44/#58). Two build claims from an earlier consolidation pass were corrected after verifying the OFW SDK headers directly: `nfc_listener_tx()` takes an `Nfc*` (not an `NfcListener*`), so nfc_fuzzer's pristine call is correct and was left unchanged; and `variable_item_list_set_header()` is genuinely absent from OFW, so the three settings-header calls were removed rather than kept. The remainder are being closed as stale or superseded: PRs based on an outdated `main` that would revert merged work (#11, #13–#21), and the ccid_emulator cluster whose fixes already landed on `main` (PIV CHUID TLV, use-after-free-on-Back) or are superseded by the issue #59 fix above. Cosmetic ccid APDU-monitor display tweaks are deferred to a dedicated ccid_emulator session.
+
+---
+
 ## 2026-05-20
 
 ### fix
