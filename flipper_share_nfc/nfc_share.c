@@ -964,7 +964,9 @@ void nsh_send_data() {
     uint8_t data52[NSH_DATA_LENGTH];
     uint32_t valid = g.cb_read_block(block_number, data52); // fill and zero‑pad if valid<NSH_DATA_LENGTH
 
-    nsh_notify_led_green();
+    // blink only each Nth block to avoid excessive LED activity on a fast transfer
+    if (block_number % 10 == 0)
+        nsh_notify_led_green();
 
     (void)valid; // receiver computes final length using file_size
 
@@ -1241,7 +1243,7 @@ static void nsh_handle_announce(uint8_t tx_id, const NSH_pl_announce_t* ann) {
 static void nsh_handle_request(uint8_t tx_id, const NSH_pl_request_t* rq) {
     if (g.mode != NSH_MODE_SENDER) return;
 
-    FURI_LOG_I(TAG, "nsh_handle_request: tx_id=%d, range_start=%lu, range_end=%lu",
+    FURI_LOG_D(TAG, "nsh_handle_request: tx_id=%d, range_start=%lu, range_end=%lu",
              tx_id, rq->range_start, rq->range_end);
 
     bool notify_cyan = false;
@@ -1280,7 +1282,7 @@ static void nsh_handle_request(uint8_t tx_id, const NSH_pl_request_t* rq) {
     notify_cyan = true;
     nsh_unlock();
 
-    FURI_LOG_I(TAG, "nsh_handle_request: tx_id=%d, bytes (%lu, %lu), blocks (%lu, %lu)",
+    FURI_LOG_D(TAG, "nsh_handle_request: tx_id=%d, bytes (%lu, %lu), blocks (%lu, %lu)",
              tx_id, start, end, first_block, last_block);
 
     if (notify_cyan) nsh_notify_led_cyan();
@@ -1327,7 +1329,9 @@ static void nsh_handle_data(uint8_t tx_id, const NSH_pl_data_t* d) {
     uint32_t needed = g.r_blocks_needed;
     nsh_unlock();
 
-    nsh_notify_led_green();
+    if (d->block_number % 10 == 0) {
+        nsh_notify_led_green();
+    }
 
     FURI_LOG_I(TAG, "nsh_handle_data[txid=%d]: block %lu written, valid_len=%lu, "
              "blocks_received: %lu/%lu", tx_id,
@@ -1345,13 +1349,15 @@ void nsh_receive_callback(const uint8_t* buf, size_t size) {
 
     switch ((nsh_pkt_type_t)pkt_type) {
         case NSH_PKT_ANNOUNCE: {
-            FURI_LOG_I(TAG, "Received ANNOUNCE, tx_id %d", tx_id);
+            // LOG_D: this runs on the NfcWorker thread before the NFC reply is
+            // sent; a CDC-blocked log here can push the reply past the FWT.
+            FURI_LOG_D(TAG, "Received ANNOUNCE, tx_id %d", tx_id);
             NSH_pl_announce_t ann;
             nsh_pl_announce_unpack(payload, &ann);
             nsh_handle_announce(tx_id, &ann);
         } break;
         case NSH_PKT_REQUEST: {
-            FURI_LOG_I(TAG, "Received REQUEST, tx_id %d", tx_id);
+            FURI_LOG_D(TAG, "Received REQUEST, tx_id %d", tx_id);
             NSH_pl_request_t rq;
             nsh_pl_request_unpack(payload, &rq);
             nsh_handle_request(tx_id, &rq);

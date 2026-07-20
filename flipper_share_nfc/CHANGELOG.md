@@ -11,6 +11,11 @@ v1.5: Flipper Share NFC — file transfer over the NFC channel
 - Automatic retransmission of lost/corrupted packets and resume after field loss:
   the poller re-activates the card and the block bitmap re-requests only the
   missing blocks.
+- Reliable (re)connection: the poller cycles its RF field off on every failed
+  activation attempt, resetting an emulator left stranded mid-anticollision (in
+  that state the emulated card ignores polling and only a field-off recovers
+  it — previously the link could stay dead until the devices were pulled far
+  apart and re-touched).
 - Builds with ufbt against the official firmware (no firmware modification); all
   NFC access goes through the official external app API.
 - Transport parameters (emulated card identity, poll pacing, frame wait time,

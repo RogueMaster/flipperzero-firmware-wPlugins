@@ -53,9 +53,14 @@ protocol is identical to the other Flipper Share builds; only the transport diff
   small queue; the poller drains one per command, the listener drains one per
   response. This bridges the protocol's fire-and-forget send with the synchronous
   NFC exchange, and provides natural backpressure for the DATA stream.
-- **Resume:** field loss simply stalls the exchange loop; the poller keeps
-  re-activating the card and the protocol's block bitmap re-requests only the
-  missing blocks, so the transfer continues after re-touching the devices.
+- **Resume:** field loss simply stalls the exchange loop; on every failed
+  activation or exchange the poller cycles its RF field off (~100 ms) and
+  retries. The field-off is essential, not just a retry pause: it is what
+  resets the emulating side back to the answerable IDLE state if it was left
+  mid-anticollision (in the ACTIVE state the emulated card ignores polling
+  entirely, and only a field-off clears it). The protocol's block bitmap then
+  re-requests only the missing blocks, so the transfer continues after
+  re-touching the devices.
 - Frame size is capped by the firmware's 256-byte NFC buffer; the DATA block size
   (`NSH_DATA_LENGTH`, default 240) is sized to fill one frame. All transport
   parameters live in `nfc_transport_config.h` (recompile to tune).

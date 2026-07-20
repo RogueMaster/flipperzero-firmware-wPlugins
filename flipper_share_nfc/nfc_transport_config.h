@@ -22,11 +22,14 @@
 // The firmware NFC transport buffer is 256 bytes including the 2-byte CRC-A.
 #define NFC_TP_FRAME_PAYLOAD_MAX 254u
 
-// Poller frame wait time, in 13.56 MHz carrier cycles (~37 ms): must cover the
+// Poller frame wait time, in 13.56 MHz carrier cycles (~74 ms): must cover the
 // listener's software response latency plus the ~21 ms air time of a full-size
 // response frame. Official pollers use 60000 fc for hardware cards; the
-// emulated listener answers from a thread, so give it ample headroom.
-#define NFC_TP_FWT_FC 500000u
+// emulated listener answers from a thread whose reply can be tail-delayed by
+// logging/notifications/scheduling, so give it ample headroom — a too-short FWT
+// turns that jitter into spurious exchange errors and ~100 ms field-reset
+// cycles. Only genuinely lost exchanges pay the full wait.
+#define NFC_TP_FWT_FC 1000000u
 
 // Pacing delay between poller exchanges, ms (0 = back-to-back). Each exchange
 // carries at most one packet each way, so this directly bounds throughput.

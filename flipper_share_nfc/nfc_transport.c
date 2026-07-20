@@ -89,8 +89,18 @@ static NfcCommand nfc_tp_listener_callback(NfcGenericEvent event, void* context)
 // ===== Poller (receiver) side ================================================
 // Runs on the NfcWorker thread: the stack calls back with a Ready event in a
 // loop while the card stays activated; each callback performs one exchange.
-// Any exchange error forces re-activation (NfcCommandReset), which the stack
-// retries indefinitely — this is what makes the link resume after separation.
+//
+// EVERY error path here must return NfcCommandReset. Reset is the only command
+// that makes the firmware drop the RF field (~100 ms off in
+// nfc_worker_poller_reset_handler) — and that field-off is the only thing that
+// resets the emulating side. Rationale: after a partial anticollision the
+// listener's ST25R3916 is left in the passive-target ACTIVE state with hardware
+// auto-collision-resolution disabled, where it answers neither REQA nor WUPA;
+// the sole automatic exit is the field-off (EOF) interrupt, which returns it to
+// the SENSE/IDLE state. Returning Continue keeps the field energized, so a
+// stranded listener stays invisible FOREVER (until the user separates the
+// devices far enough to drop the coupled field). Do not downgrade to Continue.
+// This mirrors the stock NFC scanner, which cycles the field on every attempt.
 static NfcCommand nfc_tp_poller_callback(NfcGenericEvent event, void* context) {
     furi_assert(event.protocol == NfcProtocolIso14443_3a);
     NfcTransport* tp = context;
@@ -98,19 +108,15 @@ static NfcCommand nfc_tp_poller_callback(NfcGenericEvent event, void* context) {
     Iso14443_3aPollerEvent* e = event.event_data;
 
     if(e->type == Iso14443_3aPollerEventTypeError) {
-        return NfcCommandContinue; // no card in field yet — keep trying
+        // Activation failed (no card, or a card stuck mid-anticollision):
+        // cycle the field so the next attempt starts from a fresh listener.
+        return NfcCommandReset;
     }
 
     nfc_tp_build_tx_frame(tp);
     Iso14443_3aError err = iso14443_3a_poller_send_standard_frame(
         poller, tp->tx_frame, tp->rx_frame, NFC_TP_FWT_FC);
     if(err != Iso14443_3aErrorNone) {
-        // Reset (re-activate) on ANY error, not just field-off. Once the card
-        // leaves the field the poller stays "activated" but every exchange
-        // fails; only re-activation recovers it, so a bare timeout MUST reset
-        // to resume the transfer when the devices are re-touched. This costs a
-        // ~100 ms field cycle per glitch under marginal coupling — an accepted
-        // trade for reliable resume. Do not downgrade to Continue.
         FURI_LOG_D(TAG, "exchange failed: %d, re-activating", err);
         return NfcCommandReset;
     }
