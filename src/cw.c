@@ -1,5 +1,6 @@
 #include "cw.h"
 
+// clang-format off
 const uint8_t cw_ascii[127] = {
     [0 ... 31] = 0xFF,
 
@@ -16,16 +17,13 @@ const uint8_t cw_ascii[127] = {
     0x16, 0x1B, 0x0A, 0x08, 0x03, 0x0C, 0x18, 0x0E, // pqrstuvw
     0x19, 0x1D, 0x13, 0xFF, 0xFF, 0xFF, 0xFF,       // xyz{|}~
 };
+// clang-format on
 
-uint8_t cw(char c)
-{
+uint8_t cw(char c) {
     uint8_t a;
 
     a = (uint8_t)c;
-    if (a >= sizeof(cw_ascii))
-        return CW_INVALID;
-
-
+    if(a >= sizeof(cw_ascii)) return CW_INVALID;
 
     return cw_ascii[a];
 }
