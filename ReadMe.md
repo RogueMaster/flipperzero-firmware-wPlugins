@@ -66,6 +66,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Period Tracker v1.0 (By gorshunovr)](https://github.com/gorshunovr/period_tracker)
 - Added: [MP3 Player v2.12 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-mp3-player)
 - Added: [Hotspot Arcade v0.2 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32`
+- Removed some ESP32 assets from ESP Flasher & Hotspot Arcade that can be added directly to the SD Card if needed.
 
 <a name="release"></a>
 
