@@ -68,7 +68,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Hotspot Arcade v0.42 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32`
 - Removed some ESP32 assets from ESP Flasher & Hotspot Arcade that can be added directly to the SD Card if needed.
 - Added: [DeFlock v0.2 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
-- Updated: [FM Radio v2.2 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-fm-radio) `Req: TEA5767`
+- Updated: [FM Radio v2.2 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-fm-radio) `Req: TEA5767/Si4703`
+- Added: [Walkie Talkie v1.1 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-walkie-talkie)
 
 <a name="release"></a>
 
@@ -438,6 +439,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [DCF77 Clock Spoof v1.4 (By mdaskalov & molodos)](https://github.com/mdaskalov/dcf77-clock-sync)
 - [DCF77 Transmitter v2.0 (By arha)](https://github.com/arha/flipper-dcf77)
 - [Deauther PWNDTOOLS V2.6.0 (By HEX0DAYS)](https://github.com/HEX0DAYS/FlipperZero-PWNDTOOLS) `Req: ESP8266` [Original](https://github.com/SpacehuhnTech/esp8266_deauther)
+- [DeFlock v0.2 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - [DelfiRTL v0.1 (By gorebrau)](https://github.com/gorebrau/delfyRTL) `Req: RTL8720DN`
 - [Device Info (By hedger)](https://github.com/hedger/flipperdevinfo)
 - [Digimon F-Com v1.5 (By TylerWilley)](https://github.com/TylerWilley/flipper-f-com)
@@ -521,7 +523,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FlipTDI v1.1 (By Skorpionm)](https://github.com/flipperdevices/flipperzero-good-faps/pull/234)
 - [Flizzer Tracker v0.11 (By LTVA1)](https://github.com/LTVA1/flizzer_tracker)
 - [Flo Tracker v1.0 (By harimwoo)](https://github.com/harimwoo/flipper-flo-tracker)
-- [FM Radio v2.2 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-fm-radio) `Req: TEA5767`
+- [FM Radio v2.2 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-fm-radio) `Req: TEA5767/Si4703`
 - [FM Radio w Vol v0.10 (By coolshrimp & pchmielewski1)](https://github.com/pchmielewski1/tea5767-pt2257-fm-radio-with-volume-control) `Req: TEA5767+PT2257`
 - [FM Transmitter KT0803 v1.0 (By goosedev72-projects)](https://github.com/goosedev72-projects/flipperzero-kt0803-transmitter) `Req: KT0803`
 - [FMF2USBMIDI v0.1 (By crackerjacques)](https://github.com/crackerjacques/Flipper_Zero_FMF2USBMIDI)
@@ -869,6 +871,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [VL6180X Distance Sensor I2C v0.1 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/vl6180x) `Req: Adafruit VL6180X`
 - [Voltage Calculator v1.0 (By HappyAmos)](https://github.com/HappyAmos/Flipper_FAPS)
 - [Voyah Password v0.2 (By bolknote)](https://github.com/bolknote/Flipper-Zero-Voyah-Password)
+- [Walkie Talkie v1.1 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-walkie-talkie)
 - [Walkman v1.0 (By rynosec)](https://github.com/rynosec/flipper-walkman) `Req:  GD3300D / HW-311 / YX5300-family board`
 - [Warden v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Warden-FlipperZero)
 - [Wardriver GPS v1.0 (By Sil333033)](https://github.com/Next-Flip/Momentum-Apps/tree/dev/wardriver)
