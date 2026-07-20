@@ -13,8 +13,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "subghz_jammer_detect.h"
-#include "subghz_jammer_detect_worker.h"
+#include "subghz_jammer.h"
+#include "subghz_jammer_worker.h"
 
 #define TAG "SubGhzJammer"
 
@@ -409,7 +409,7 @@ static void jammer_app_free(JammerApp* app) {
 
 /* ── Entry point ── */
 
-int32_t subghz_jammer_detect_app(void* p) {
+int32_t subghz_jammer_app(void* p) {
     UNUSED(p);
 
     JammerApp* app = jammer_app_alloc();
