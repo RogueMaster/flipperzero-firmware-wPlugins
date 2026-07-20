@@ -1,0 +1,30 @@
+menu "AsyncTCP Configuration"
+
+choice ASYNC_TCP_RUNNING_CORE
+    bool "Core on which AsyncTCP's thread is running"
+    default ASYNC_TCP_RUN_CORE1
+    help
+        Select on which core AsyncTCP is running
+
+    config ASYNC_TCP_RUN_CORE0
+        bool "CORE 0"
+    config ASYNC_TCP_RUN_CORE1
+        bool "CORE 1"
+    config ASYNC_TCP_RUN_NO_AFFINITY
+        bool "BOTH"
+
+endchoice
+
+config ASYNC_TCP_RUNNING_CORE
+    int
+    default 0 if ASYNC_TCP_RUN_CORE0
+    default 1 if ASYNC_TCP_RUN_CORE1
+    default -1 if ASYNC_TCP_RUN_NO_AFFINITY
+
+config ASYNC_TCP_USE_WDT
+    bool "Enable WDT for the AsyncTCP task"
+    default "y"
+    help
+        Enable WDT for the AsyncTCP task, so it will trigger if a handler is locking the thread.
+
+endmenu

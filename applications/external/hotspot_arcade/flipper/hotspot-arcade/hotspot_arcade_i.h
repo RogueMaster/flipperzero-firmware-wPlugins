@@ -1,0 +1,155 @@
+#pragma once
+
+#include <furi.h>
+#include <furi_hal_rtc.h>
+#include <datetime/datetime.h>
+#include <gui/gui.h>
+#include <gui/view_dispatcher.h>
+#include <gui/scene_manager.h>
+#include <gui/modules/submenu.h>
+#include <gui/modules/text_input.h>
+#include <gui/modules/widget.h>
+#include <gui/modules/variable_item_list.h>
+#include <dialogs/dialogs.h>
+#include <storage/storage.h>
+#include <notification/notification.h>
+#include <notification/notification_messages.h>
+
+#include "ha_uart.h"
+#include "ha_proto.h"
+#include "ha_custom_event.h"
+#include "scenes/ha_scene.h"
+
+#define HA_SSID_MAX             (33) // 32 + NUL
+#define HA_MAX_PLAYERS          (12)
+#define HA_NICK_LEN             (20)
+#define HA_MAX_ASSETS           (8)
+#define HA_ASSET_PATH           (40)
+#define HA_ASSET_MIME           (32)
+#define HA_LINE_MAX             (512)
+#define HA_LINK_TIMEOUT_MS      (5000)
+#define HA_HANDSHAKE_TIMEOUT_MS (4000) // no ack progress -> board isn't our firmware
+#define HA_CONSOLE_MAX          (3072)
+#define HA_FILE_MAX             (60000) // max single web asset streamed to the ESP
+
+#define HA_DATA_DIR      EXT_PATH("apps_data/hotspot_arcade")
+#define HA_WEB_DIR       HA_DATA_DIR "/web"
+#define HA_TRIVIA_DIR    HA_DATA_DIR "/trivia"
+#define HA_LOGS_DIR      HA_DATA_DIR "/logs"
+// Firmware bundle ships inside the fap (fap_file_assets) and the loader extracts it
+// to apps_assets on launch, so the default flasher bundle lives there (read-only-ish,
+// re-synced from the fap each launch) — no SD setup needed for a fresh install.
+#define HA_FIRMWARE_DIR  EXT_PATH("apps_assets/hotspot_arcade/firmware")
+#define HA_DEFAULT_FW    HA_FIRMWARE_DIR "/flash.txt"
+#define HA_CONFIG_PATH   HA_DATA_DIR "/config.txt"
+#define HA_MANIFEST_PATH HA_WEB_DIR "/manifest.json"
+
+typedef enum {
+    HaViewSubmenu,
+    HaViewTextInput,
+    HaViewWidget,
+    HaViewVarItemList,
+} HaView;
+
+// A web bundle file, parsed from manifest.json, streamed to the ESP at start.
+typedef struct {
+    char path[HA_ASSET_PATH]; // URL path the ESP serves at ("/")
+    char file[HA_ASSET_PATH]; // filename on SD in HA_WEB_DIR
+    char mime[HA_ASSET_MIME];
+    bool gzip;
+} HaAsset;
+
+// A connected player, mirrored from the ESP (JOIN/LEAVE/SCORE).
+typedef struct {
+    bool used;
+    uint8_t pid;
+    char nick[HA_NICK_LEN];
+    int32_t score;
+} HaPlayer;
+
+// Handshake sequence at session start (driven by ESP STATUS acks).
+typedef enum {
+    HaHsIdle,
+    HaHsClear, // sent CLEAR_FILES, waiting "cleared"
+    HaHsFiles, // streaming files, waiting "fok" per file
+    HaHsSetAp, // sent SET_AP, waiting "ap_set"
+    HaHsStart, // sent START, waiting "up"
+    HaHsUp, // portal live
+    HaHsErr,
+} HaHandshake;
+
+typedef struct HotspotArcadeApp {
+    Gui* gui;
+    ViewDispatcher* view_dispatcher;
+    SceneManager* scene_manager;
+    DialogsApp* dialogs;
+    NotificationApp* notifications;
+
+    Submenu* submenu;
+    TextInput* text_input;
+    Widget* widget;
+    VariableItemList* var_item_list;
+
+    HaUart* uart;
+
+    // Config (persisted)
+    FuriString* ssid;
+    char ssid_buf[HA_SSID_MAX];
+    bool sound_on;
+    bool vibro_on;
+
+    // Web bundle (from manifest.json)
+    HaAsset assets[HA_MAX_ASSETS];
+    uint8_t asset_count;
+
+    // Live roster
+    HaPlayer players[HA_MAX_PLAYERS];
+
+    // Active game (HA_GAME_*)
+    uint8_t active_game;
+
+    // Event feed / console
+    FuriString* console; // scrollable raw event log
+    FuriString* last_event; // most recent host-facing event line
+
+    // RX frame parser (ESP -> Flipper)
+    uint8_t rx_state;
+    uint8_t rx_type;
+    uint16_t rx_len;
+    uint16_t rx_idx;
+    uint8_t rx_crc;
+    uint8_t rx_buf[HA_MAX_PAYLOAD + 1];
+
+    // Status / lifecycle
+    FuriString* status;
+    bool portal_running;
+    bool session_active;
+    bool menu_shows_active;
+    HaHandshake hs;
+    uint8_t file_idx; // during HaHsFiles
+    uint32_t last_handshake_tick; // rate-limits auto-reconnect so a brownout-reboot
+        // loop can't tight-loop the handshake
+
+    // Board liveness
+    uint32_t last_rx_tick;
+    uint32_t last_ping_tick; // last valid PING frame = our firmware is present
+    uint16_t board_fw_version; // firmware version reported in the beacon (0 = unknown)
+    bool link_lost;
+    bool awaiting_board;
+
+    // --- ESP flasher (added for the on-device firmware installer) ---
+    // The flash worker runs off the GUI thread and posts progress/done events;
+    // `flashing` blocks Back while a write is in progress (can't be aborted safely).
+    FuriThread* flash_thread;
+    FuriString* flash_manifest; // selected flash.txt path
+    volatile bool flashing; // true once connected (blocks Back mid-write)
+    volatile bool flash_cancel; // set on exit to stop the download-mode poll
+    volatile uint8_t flash_img, flash_cnt, flash_pct;
+    char flash_stage[40];
+    char flash_msg[80];
+    bool flash_ok;
+    uint8_t flash_phase; // 0=waiting for download mode, 1=flashing, 2=done
+    // --- end ESP flasher ---
+
+    volatile bool closing;
+} HotspotArcadeApp;

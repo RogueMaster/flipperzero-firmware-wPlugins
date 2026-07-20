@@ -1,0 +1,11 @@
+{
+  "name": "hotspot-arcade-web",
+  "version": "1.0.0",
+  "description": "Phone-facing web client for Hotspot Arcade, served offline from an ESP32-S2.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "mock": "node mock-server.mjs"
+  }
+}

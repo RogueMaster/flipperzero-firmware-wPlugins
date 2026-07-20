@@ -1,0 +1,22 @@
+Language: Cpp
+BasedOnStyle: LLVM
+
+AccessModifierOffset: -2
+AlignConsecutiveMacros: true
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLambdasOnASingleLine: Inline
+BinPackArguments: false
+ColumnLimit: 0
+ContinuationIndentWidth: 2
+FixNamespaceComments: false
+IndentAccessModifiers: true
+IndentCaseLabels: true
+IndentPPDirectives: BeforeHash
+IndentWidth: 2
+NamespaceIndentation: All
+PointerAlignment: Left
+ReferenceAlignment: Left
+TabWidth: 2
+UseTab: Never

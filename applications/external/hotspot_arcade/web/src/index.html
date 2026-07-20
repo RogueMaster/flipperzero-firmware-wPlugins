@@ -1,0 +1,268 @@
+<!-- Hotspot Arcade phone client. Single-file at build time: build.mjs inlines
+     core/style.css into <style> and the core/games JS into <script>. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="theme-color" content="#0B0B0C">
+<title>Hotspot Arcade</title>
+<style>/*__CSS__*/</style>
+
+<!-- Faint CRT scanline overlay -->
+<div class="scan" aria-hidden="true"></div>
+
+<!-- Sticky header: wordmark + blinking cursor, status dot + nick -->
+<header class="hdr">
+  <span class="wordmark">Hotspot Arcade<span class="cur" aria-hidden="true">&#9616;</span></span>
+  <span class="hdr-right">
+    <button id="mute" class="mute" type="button" aria-label="Mute" aria-pressed="false">&#9834;</button>
+    <span id="dot" class="dot warn" title="connection"></span>
+    <span id="hdr-nick"></span>
+  </span>
+</header>
+
+<!-- Reconnect banner -->
+<div id="netbar" class="netbar hide">Reconnecting...</div>
+
+<!-- Shared collapsible live leaderboard, pinned under the header. Any group-score
+     game (trivia / scramble / reaction) mounts it via A.showLead(board). -->
+<div id="lead" class="lead hide">
+  <button id="lead-bar" class="lead-bar" type="button" aria-expanded="false">
+    <span id="lead-sum" class="lead-sum"></span>
+    <span class="lead-hint">Board</span>
+    <span id="lead-caret" class="lead-caret">&#9660;</span>
+  </button>
+  <ol id="lead-full" class="lead-full hide"></ol>
+</div>
+
+<!-- 1. Landing / nickname -->
+<section id="landing" class="screen">
+  <div class="brand">
+    <div class="pixmark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <p class="tag">Local multiplayer. No internet needed.</p>
+  </div>
+  <label class="field">
+    <span class="sub">Your nickname</span>
+    <input id="nick" maxlength="12" autocomplete="off" autocapitalize="off"
+           spellcheck="false" placeholder="e.g. Nova">
+  </label>
+  <div class="field">
+    <span class="sub">Pick an avatar</span>
+    <div id="avatars" class="avatars"></div>
+  </div>
+  <button id="play" class="btn big">Play</button>
+  <a id="openbrowser" class="hint-link" href="http://192.168.4.1/">Open in browser</a>
+  <p class="hint">If this page closes, rejoin the WiFi and open
+     <b>192.168.4.1</b> in your browser.</p>
+</section>
+
+<!-- 2. Lobby -->
+<section id="lobby" class="screen hide">
+  <header class="bar"><h2>Lobby</h2><span id="lobby-me" class="me"></span></header>
+  <div id="lobby-game" class="game-state">Waiting for the host to pick a game.</div>
+  <ul id="players" class="players"></ul>
+  <p class="sub">Chat</p>
+  <div id="lobby-chat" class="chat"></div>
+  <form id="lobby-form" class="guess-row" autocomplete="off">
+    <input id="lobby-input" maxlength="100" autocomplete="off" autocapitalize="sentences"
+           spellcheck="false" placeholder="Say something">
+    <button class="btn sm" type="submit">Send</button>
+  </form>
+</section>
+
+<!-- 3. Trivia — fully phone-driven, self-organizing (lobby/countdown/
+     question/reveal/final sub-states, all driven by {t:"trivia"} messages). -->
+<section id="trivia" class="screen hide">
+
+  <!-- Lobby: ready toggle + topic vote -->
+  <div id="tv-lobby" class="hide">
+    <header class="bar"><h2>Trivia</h2><span id="tv-lobby-me" class="me"></span></header>
+    <ul id="tv-players" class="players"></ul>
+    <button id="tv-ready" class="btn big">I'm ready</button>
+    <p class="sub">Vote a topic</p>
+    <div id="tv-topics" class="topics"></div>
+  </div>
+
+  <!-- Countdown -->
+  <div id="tv-count" class="hide count">
+    <div id="tv-count-topic" class="count-topic"></div>
+    <div id="tv-count-num" class="count-num">5</div>
+    <div class="sub">Starting</div>
+  </div>
+
+  <!-- Question / reveal share this block -->
+  <div id="tv-play" class="hide">
+    <div class="bar tv-head">
+      <span id="tv-qmeta" class="me"></span>
+      <span id="tv-answered" class="me"></span>
+    </div>
+    <div id="tv-bar" class="timebar hide"><i></i></div>
+    <h3 id="tv-q" class="question"></h3>
+    <div id="tv-opts" class="opts"></div>
+  </div>
+
+  <!-- Final leaderboard -->
+  <div id="tv-final" class="hide">
+    <header class="bar"><h2>Final</h2></header>
+    <ol id="tv-podium" class="podium"></ol>
+    <button id="tv-again" class="btn big">Play again</button>
+  </div>
+</section>
+
+<!-- 4. Duel (Connect 4 / Tic-Tac-Toe / Dots & Boxes) -->
+<section id="duel" class="screen hide">
+  <header class="bar"><h2 id="duel-title">Duel</h2><button id="duel-leave" class="btn ghost sm hide">Leave</button></header>
+
+  <div id="duel-lobby">
+    <div id="duel-incoming" class="challenges"></div>
+    <p class="sub">Challenge a player</p>
+    <ul id="duel-players" class="players"></ul>
+  </div>
+
+  <div id="duel-match" class="hide">
+    <div id="duel-turn" class="turn"></div>
+    <div id="duel-score" class="dscore hide"></div>
+    <div id="duel-board" class="board"></div>
+  </div>
+
+  <div id="duel-over" class="hide over">
+    <div id="duel-result" class="result"></div>
+    <div class="over-actions">
+      <button id="duel-rematch" class="btn big">Rematch</button>
+      <button id="duel-back" class="btn ghost big">Back to lobby</button>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Draw & Guess -->
+<section id="draw" class="screen hide">
+  <header class="bar"><h2>Draw &amp; Guess</h2><span id="draw-status" class="me"></span></header>
+  <div id="draw-bar" class="timebar hide"><i></i></div>
+  <div id="draw-word" class="draw-word"></div>
+  <canvas id="draw-canvas" class="draw-canvas"></canvas>
+  <div id="draw-tools" class="draw-tools hide">
+    <button id="draw-clear" class="btn ghost sm">Clear</button>
+  </div>
+  <div id="draw-guess" class="hide">
+    <div id="draw-chat" class="chat"></div>
+    <form id="draw-form" class="guess-row" autocomplete="off">
+      <input id="draw-input" maxlength="24" autocomplete="off" autocapitalize="off"
+             spellcheck="false" placeholder="Your guess">
+      <button class="btn sm" type="submit">Send</button>
+    </form>
+  </div>
+  <div id="draw-reveal" class="game-state hide"></div>
+  <div id="draw-final" class="hide">
+    <ol id="draw-podium" class="podium"></ol>
+    <button id="draw-again" class="btn big">Play again</button>
+  </div>
+</section>
+
+<!-- 6. Pong -->
+<section id="pong" class="screen hide">
+  <header class="bar"><h2>Pong</h2><button id="pong-leave" class="btn ghost sm hide">Leave</button></header>
+
+  <div id="pong-lobby">
+    <div id="pong-incoming" class="challenges"></div>
+    <p class="sub">Challenge a player</p>
+    <ul id="pong-players" class="players"></ul>
+  </div>
+
+  <div id="pong-match" class="hide">
+    <div id="pong-score" class="pong-score"></div>
+    <canvas id="pong-canvas" class="pong-canvas"></canvas>
+    <div class="pong-pads">
+      <button id="pong-up" class="btn ghost pad" aria-label="Up">&#9650;</button>
+      <button id="pong-dn" class="btn ghost pad" aria-label="Down">&#9660;</button>
+    </div>
+  </div>
+
+  <div id="pong-over" class="hide over">
+    <div id="pong-result" class="result"></div>
+    <button id="pong-back" class="btn big">Back to lobby</button>
+  </div>
+</section>
+
+<!-- 7. Would You Rather — whole-group live A/B poll -->
+<section id="wyr" class="screen hide">
+  <div id="wyr-lobby" class="hide">
+    <header class="bar"><h2>Would You Rather</h2><span id="wyr-me" class="me"></span></header>
+    <ul id="wyr-players" class="players"></ul>
+    <button id="wyr-ready" class="btn big">I'm ready</button>
+  </div>
+  <div id="wyr-count" class="hide count">
+    <div class="count-topic">Would you rather</div>
+    <div id="wyr-count-num" class="count-num">5</div>
+    <div class="sub">Starting</div>
+  </div>
+  <div id="wyr-play" class="hide">
+    <div class="bar"><span id="wyr-meta" class="me"></span><span id="wyr-tally" class="me"></span></div>
+    <div id="wyr-opts" class="wyr-opts"></div>
+  </div>
+  <div id="wyr-final" class="hide">
+    <header class="bar"><h2>That's a wrap</h2></header>
+    <div class="game-state">Thanks for playing. Ready up for another round.</div>
+    <button id="wyr-again" class="btn big">Play again</button>
+  </div>
+</section>
+
+<!-- 8. Word Scramble race -->
+<section id="scramble" class="screen hide">
+  <div id="scr-lobby" class="hide">
+    <header class="bar"><h2>Word Scramble</h2><span id="scr-me" class="me"></span></header>
+    <ul id="scr-players" class="players"></ul>
+    <button id="scr-ready" class="btn big">I'm ready</button>
+  </div>
+  <div id="scr-count" class="hide count">
+    <div class="count-topic">Unscramble</div>
+    <div id="scr-count-num" class="count-num">5</div>
+    <div class="sub">Starting</div>
+  </div>
+  <div id="scr-play" class="hide">
+    <div class="bar"><span id="scr-meta" class="me"></span><span id="scr-status" class="me"></span></div>
+    <div id="scr-bar" class="timebar hide"><i></i></div>
+    <div id="scr-letters" class="scr-letters"></div>
+    <form id="scr-form" class="guess-row" autocomplete="off">
+      <input id="scr-input" maxlength="24" autocomplete="off" autocapitalize="off"
+             spellcheck="false" placeholder="Type the word">
+      <button class="btn sm" type="submit">Go</button>
+    </form>
+  </div>
+  <div id="scr-final" class="hide">
+    <header class="bar"><h2>Final</h2></header>
+    <ol id="scr-podium" class="podium"></ol>
+    <button id="scr-again" class="btn big">Play again</button>
+  </div>
+</section>
+
+<!-- 9. Reaction Duel (fastest finger) -->
+<section id="react" class="screen hide">
+  <div id="rc-lobby" class="hide">
+    <header class="bar"><h2>Reaction Duel</h2><span id="rc-me" class="me"></span></header>
+    <ul id="rc-players" class="players"></ul>
+    <button id="rc-ready" class="btn big">I'm ready</button>
+  </div>
+  <div id="rc-count" class="hide count">
+    <div class="count-topic">Get ready</div>
+    <div id="rc-count-num" class="count-num">5</div>
+    <div class="sub">Starting</div>
+  </div>
+  <div id="rc-arena" class="hide">
+    <div class="bar"><span id="rc-meta" class="me"></span></div>
+    <div id="rc-pad" class="rc-pad wait"><span class="rc-big">Wait...</span></div>
+  </div>
+  <div id="rc-final" class="hide">
+    <header class="bar"><h2>Final</h2></header>
+    <ol id="rc-podium" class="podium"></ol>
+    <button id="rc-again" class="btn big">Play again</button>
+  </div>
+</section>
+
+<!-- Emoji reactions: floating layer + a corner button that opens the emoji row -->
+<div id="react-layer" class="react-layer" aria-hidden="true"></div>
+<div id="react-bar" class="react-bar hide">
+  <div id="react-row" class="react-row"></div>
+  <button id="react-fab" class="react-fab" type="button" aria-label="React">😀</button>
+</div>
+
+<div id="toast" class="toast hide"></div>
+
+<script>/*__JS__*/</script>

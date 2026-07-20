@@ -1,0 +1,95 @@
+name: Async TCP CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-arduino:
+    name: ${{ matrix.config }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [arduino-cli.yaml, arduino-cli-dev.yaml]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v1
+      - name: Download board
+        run: |
+          arduino-cli --config-file ${{ matrix.config }} core update-index
+          arduino-cli --config-file ${{ matrix.config }} board listall
+          arduino-cli --config-file ${{ matrix.config }} core install esp32:esp32
+      - name: Compile Sketch
+        run: arduino-cli --config-file ${{ matrix.config }} --library ./src/ compile --fqbn esp32:esp32:esp32 ./examples/Client/Client.ino
+      - name: Compile Sketch with IPv6
+        env:
+          LWIP_IPV6: true
+        run: arduino-cli --config-file ${{ matrix.config }} --library ./src/ compile --fqbn esp32:esp32:esp32 ./examples/Client/Client.ino
+
+  platformio:
+    name: "pio:${{ matrix.env }}:${{ matrix.board }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - env: ci-arduino-2
+            board: esp32dev
+          - env: ci-arduino-2
+            board: esp32-s2-saola-1
+          - env: ci-arduino-2
+            board: esp32-s3-devkitc-1
+          - env: ci-arduino-2
+            board: esp32-c3-devkitc-02
+
+          - env: ci-arduino-3
+            board: esp32dev
+          - env: ci-arduino-3
+            board: esp32-s2-saola-1
+          - env: ci-arduino-3
+            board: esp32-s3-devkitc-1
+          - env: ci-arduino-3
+            board: esp32-c3-devkitc-02
+          - env: ci-arduino-3
+            board: esp32-c6-devkitc-1
+
+          - env: ci-arduino-311
+            board: esp32dev
+          - env: ci-arduino-311
+            board: esp32-s2-saola-1
+          - env: ci-arduino-311
+            board: esp32-s3-devkitc-1
+          - env: ci-arduino-311
+            board: esp32-c3-devkitc-02
+          - env: ci-arduino-311
+            board: esp32-c6-devkitc-1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-pio
+          path: |
+            ~/.cache/pip
+            ~/.platformio
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Build
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade platformio
+
+      - run: PLATFORMIO_SRC_DIR=examples/Client PIO_BOARD=${{ matrix.board }} pio run -e ${{ matrix.env }}

@@ -1,0 +1,9 @@
+tasks:
+  - command: pip install --upgrade pip && pip install -U platformio && platformio run
+
+image:
+  file: .gitpod.Dockerfile
+
+vscode:
+  extensions:
+    - shardulm94.trailing-spaces

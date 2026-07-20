@@ -1,0 +1,15 @@
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/tarikbc/hotspot-arcade.git
+    commit_sha: 62aa6d0585787d2a18259d8b243ce75c6347476c
+    subdir: flipper/hotspot-arcade
+id: hotspot_arcade
+category: GPIO
+short_description: Offline multiplayer party games on the ESP32-S2 WiFi board; friends join your WiFi and play in their phone browser.
+description: "@catalog/DESCRIPTION.md"
+changelog: "@catalog/changelog.md"
+screenshots:
+  - catalog/screenshots/menu.png
+  - catalog/screenshots/dashboard.png
+  - catalog/screenshots/gameselect.png
