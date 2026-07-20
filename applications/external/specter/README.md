@@ -8,8 +8,9 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Flipper%20Zero-FF8200?style=for-the-badge&logo=flipper&logoColor=white" alt="Flipper Zero">
+  <img src="https://img.shields.io/badge/version-2.0-FF3DAE?style=for-the-badge" alt="Version 2.0">
   <img src="https://img.shields.io/badge/radio-13.56%20MHz%20NFC%20(onboard)-26E8CA?style=for-the-badge" alt="Onboard NFC">
-  <img src="https://img.shields.io/badge/hardware-none%20required-FF3DAE?style=for-the-badge" alt="No extra hardware">
+  <img src="https://img.shields.io/badge/hardware-none%20required-9B5DE5?style=for-the-badge" alt="No extra hardware">
   <img src="https://img.shields.io/badge/build-ufbt-2da0ff?style=for-the-badge" alt="ufbt">
   <img src="https://img.shields.io/badge/license-MIT-3ad17a?style=for-the-badge" alt="MIT">
 </p>
@@ -18,8 +19,8 @@
   <b>Specter</b> turns your Flipper Zero into a pocket <b>counter-surveillance bug-sweep</b> for
   <b>active 13.56 MHz NFC readers</b>. It <i>passively listens</i> for the RF field that a powered-on
   reader is constantly emitting — a hidden card skimmer slipped into a payment terminal, a covert
-  reader behind a door panel, a rogue logger taped under a desk — and turns it into a live
-  <b>EMF-style meter</b> with geiger clicks that climb as you close in. It never transmits.
+  reader behind a door panel, a rogue logger taped under a desk — then tells you <b>where it is</b>,
+  <b>what kind of thing it is</b>, and <b>whether the room is clean</b>. It never transmits.
 </p>
 
 <p align="center"><sub>The readers are invisible. Specter makes them visible.</sub></p>
@@ -29,28 +30,110 @@
 ## 📟 On the Flipper
 
 <p align="center">
-  <img src="images/screen_clear.png"    width="24%" alt="Sweep — all clear">
-  &nbsp;
-  <img src="images/screen_reader.png"   width="24%" alt="Sweep — active reader found">
-  &nbsp;
-  <img src="images/screen_menu.png"     width="24%" alt="Menu">
-  &nbsp;
-  <img src="images/screen_settings.png" width="24%" alt="Settings">
+  <img src="images/screens_all.png" width="100%" alt="Specter screens">
 </p>
 <p align="center">
-  <sub><b>Sweep</b> — quiet, scanning &nbsp;·&nbsp; <b>Reader!</b> — active field locked on &nbsp;·&nbsp; <b>Menu</b> &nbsp;·&nbsp; <b>Settings</b></sub>
+  <sub>
+    <b>Sweep</b> (quiet) &nbsp;·&nbsp; <b>Sweep</b> (reader locked) &nbsp;·&nbsp; <b>Fingerprint</b> &nbsp;·&nbsp; <b>Survey</b> (running)<br>
+    <b>Survey</b> (verdict) &nbsp;·&nbsp; <b>Logbook</b> &nbsp;·&nbsp; <b>Calibrate</b> &nbsp;·&nbsp; <b>Settings</b>
+  </sub>
 </p>
 
 ---
 
-## ✨ Features
+## ✨ What it does
 
-- 📟 **The EMF gauge** — a beautiful analog-style sweep meter. The needle rides the **FIELD %** in real time, a peak-hold marker remembers the strongest hit, and the top of the dial is a **red "hot zone"**. A live waveform traces the noise floor while it's quiet.
-- 👻 **Reader lock** — the instant an active reader's carrier is sensed, the screen frames itself in an **alarm border**, a throb ring pulses around the dial, and the strip flips to **`● ACTIVE READER`** with a proximity readout (`FAINT → NEAR → CLOSE → STRONG`).
-- 🔊 **Geiger feedback** — optional clicks that **speed up as the field gets stronger**, so you can sweep a surface with the Flipper in your pocket and *hear* yourself getting warmer. Plus magenta LED + vibe on contact.
-- 🎚️ **Tunable sensitivity** — **High / Medium / Low** noise floor, so you can chase faint distant readers or only flag strong ones right under your nose.
-- 🔌 **Zero extra hardware** — uses the Flipper's **onboard ST25R3916 NFC chip**. Nothing to flash, nothing to wire, no devboard. Just install and sweep.
-- 🕶️ **Listen-only & private** — Specter **never emits a field** and never talks to the reader. It only senses that one is *there*. Nothing is transmitted, logged off-device, or phoned home.
+Specter answers three different questions, and each one has its own screen.
+
+### 🔍 Sweep — *where is it?*
+
+<img src="images/screen_reader.png" width="42%" align="right" alt="Sweep — active reader found">
+
+The showpiece: an **analog-style EMF gauge**. The needle rides the **FIELD %** in real time, a
+peak-hold marker remembers the strongest hit, and the top of the dial is a **hot zone**. A live
+waveform traces the noise floor while it's quiet.
+
+The instant a reader's carrier is sensed the screen frames itself in an **alarm border**, a throb
+ring pulses around the dial, and the strip flips to **`● ACTIVE READER`** with a proximity readout
+(`FAINT → NEAR → CLOSE → STRONG`). Optional **geiger clicks speed up as the field gets stronger**, so
+you can sweep a surface with the Flipper in your pocket and *hear* yourself getting warmer.
+
+`OK` resets peak/contacts · `hold OK` logs the reading · `LEFT` calibrates to the room you're in.
+
+<br clear="right">
+
+### 🔬 Fingerprint — *what is it?* &nbsp;<sub>`NEW in 2.0`</sub>
+
+<img src="images/screen_fingerprint.png" width="42%" align="right" alt="Fingerprint — polling reader identified">
+
+Found something? Hold still on it. Specter stops chasing proximity and starts **timing the carrier's
+on/off edges**, then tells you what kind of emitter you're looking at:
+
+| Class | What it means |
+|---|---|
+| **CONTINUOUS** | Carrier held permanently up |
+| **POLLING** | Fixed poll cycle — the period is shown in ms |
+| **INTERMITTENT** | Bursty but irregular |
+
+You get the **polling period**, **burst width**, **jitter**, **duty-cycle** and a **confidence bar** —
+plus a **logic-analyser pulse train** of the raw carrier along the bottom, so the verdict is never
+asked to be believed on its own. A reader's polling loop is crystal-timed, so a genuine poll shows up
+as an unmistakable square wave.
+
+`OK` saves the finding to the logbook · `hold OK` restarts the measurement.
+
+<br clear="right">
+
+### 🗺️ Site Survey — *is this room clean?* &nbsp;<sub>`NEW in 2.0`</sub>
+
+<img src="images/screen_survey_done.png" width="42%" align="right" alt="Site Survey — verdict">
+
+A **timed sweep** of a whole space. Start it, walk the room, and get **one verdict** at the end
+instead of having to watch a needle the entire time:
+
+- **`CLEAN`** — nothing crossed the noise floor
+- **`TRACE`** — brief or faint hits, worth a second pass
+- **`ACTIVE READER`** — something was up and emitting for real
+
+…with max/average field, contact count, and **how much of the survey a carrier was actually up**.
+Runs for 30 s, 60 s or 2 min, and auto-logs the result.
+
+<br clear="right">
+
+### 📖 Logbook &nbsp;<sub>`NEW in 2.0`</sub>
+
+Findings are appended with an **RTC timestamp** to `apps_data/specter/logbook.txt` on the SD card and
+are readable on-device *and* in any text editor — no export step, no proprietary format:
+
+```
+2026-07-18 14:35:11
+  SURVEY 60s
+  ACTIVE READER
+  mx74% av21% f38% h5
+2026-07-18 14:32:07
+  READER POLLING
+  204ms b20 d10% c88%
+```
+
+Nothing leaves the device.
+
+### 🎯 Auto-calibration &nbsp;<sub>`NEW in 2.0`</sub>
+
+Press **LEFT** on the Sweep screen and Specter listens to the **ambient noise floor for 3 seconds**,
+then sets the detection threshold just above whatever it measured — saved as your **Custom**
+sensitivity. Every room has a different RF floor; this tunes to the one you're standing in rather
+than a number baked in at build time.
+
+### 🕶️ Stealth mode &nbsp;<sub>`NEW in 2.0`</sub>
+
+Keeps the **screen and LED dark** for the whole sweep, so the Flipper doesn't glow while you're the
+one doing the looking. Sound and vibration keep working — the point isn't to disable the feedback
+you're sweeping by.
+
+### 💾 Everything persists &nbsp;<sub>`NEW in 2.0`</sub>
+
+Sensitivity, survey length, sound, vibe, LED, stealth and logging are **saved to the SD card** the
+moment you change them. A sweep kit that forgets its setup is worse than no persistence at all.
 
 ---
 
@@ -60,7 +143,9 @@ Every powered-on NFC reader continuously **pings the air with a 13.56 MHz carrie
 to wake up. You can't see it, but the Flipper's NFC chip can: the **ST25R3916** has a hardware
 **external-field detector** (the same circuit that lets the Flipper emulate a card and know when a reader
 is talking to it). Specter parks the chip in detect-only mode and **samples that "field present?" bit
-hundreds of times a second** — without ever switching on its own carrier.
+~500 times a second** — without ever switching on its own carrier.
+
+That single bit, sampled fast enough, carries two independent signals:
 
 ```mermaid
 flowchart LR
@@ -68,16 +153,34 @@ flowchart LR
 
     subgraph FLIP["Flipper Zero — Specter.fap"]
       A["ST25R3916 NFC chip<br/>external-field detector"] --> S["Sampler thread<br/>~500 samples/s"]
-      S --> M["Field strength = carrier duty-cycle<br/>+ peak-hold + contact count"]
-      M --> G["EMF gauge + live waveform"]
-      M --> K["Geiger clicks · LED · vibe"]
+      S --> M["<b>How much?</b><br/>carrier duty-cycle<br/>peak · average · contacts"]
+      S --> C["<b>What rhythm?</b><br/>burst / gap edge timing<br/>period · jitter"]
+      M --> G["EMF gauge · waveform<br/>geiger clicks · LED · vibe"]
+      M --> V["Survey verdict<br/>CLEAN / TRACE / ACTIVE"]
+      C --> K["Emitter class<br/>CONTINUOUS / POLLING /<br/>INTERMITTENT + pulse train"]
+      V --> L["📖 SD logbook"]
+      K --> L
     end
 ```
 
-**Strength = duty-cycle.** Over a short window Specter measures *what fraction of the time* a carrier is
-present and smooths it into the **FIELD %**. A reader sitting right on top of the Flipper pegs the meter; a
-weaker or intermittently-polling one further away nudges it. That percentage drives the needle, the
-proximity word, and the click rate — so it behaves like a **bug detector / geiger counter for readers**.
+**How much → strength.** Over a short window Specter measures *what fraction of the time* a carrier is
+present and smooths it into the **FIELD %**. A reader sitting right on top of the Flipper pegs the meter;
+a weaker or further one nudges it. That drives the needle, the proximity word and the click rate.
+
+**What rhythm → identity.** Separately, every transition of that bit is timed. A reader that wakes for
+20 ms every 200 ms produces a burst/gap pattern with almost no jitter, because its polling loop is
+driven by a crystal-timed state machine. Hand movement and RF noise are not that steady. That
+difference is what separates **POLLING** from **INTERMITTENT**.
+
+### The decision layers are tested on a real computer
+
+The two places where Specter turns numbers into a *claim* — "this is a polling reader", "this room is
+clean" — are pure C with no hardware dependencies, and they're pinned down by host tests rather than
+discovered on the device:
+
+```bash
+make -C test     # 64 checks across the classifier and the survey verdict
+```
 
 ---
 
@@ -100,6 +203,7 @@ python3 -m pip install --upgrade ufbt
 # from the repo root, with your Flipper plugged in over USB:
 ufbt            # build specter.fap into ./dist
 ufbt launch     # build, upload to the Flipper and open it
+make -C test    # run the host tests for the pure logic
 ```
 
 The `.fap` lands in `dist/specter.fap`; `ufbt launch` copies it to `apps/NFC/` and starts it for you.
@@ -111,19 +215,36 @@ The `.fap` lands in `dist/specter.fap`; `ufbt launch` copies it to `apps/NFC/` a
 
 ## 🎮 Using it
 
-1. Launch **Specter** and open **Sweep**.
-2. Hold the Flipper flat and move it **slowly** across the thing you're checking — a card terminal, a door
-   reader, the underside of an ATM lip, a parcel, a desk.
-3. Watch the **FIELD %** and listen to the clicks:
-   - **Quiet / flat waveform** → no active reader in range. You're clean.
-   - **Needle climbing, clicks speeding up** → you're approaching an emitter. Keep moving toward the peak.
-   - **`● ACTIVE READER` + alarm border** → an active 13.56 MHz reader is right here. The proximity word
-     (`FAINT → STRONG`) tells you how close.
-4. Press **OK** any time to **reset** the peak-hold and contact counter and start a fresh sweep.
-5. Tune it in **Settings** — raise sensitivity to chase faint readers, lower it to ignore weak background.
+**A sweep, end to end:**
+
+1. Launch **Specter**. On the **Sweep** screen, press **LEFT** and hold still for 3 seconds to
+   calibrate to the room's noise floor.
+2. Hold the Flipper flat and move it **slowly** across the thing you're checking — a card terminal, a
+   door reader, the underside of an ATM lip, a parcel, a desk.
+   - **Quiet / flat waveform** → no active reader in range.
+   - **Needle climbing, clicks speeding up** → you're approaching an emitter. Keep going toward the peak.
+   - **`● ACTIVE READER` + alarm border** → an active reader is right here.
+3. Found something? Back out and open **Fingerprint**. Hold the Flipper still against it and let the
+   cadence settle — a few seconds is usually enough. Press **OK** to save the finding.
+4. Clearing a whole room instead? Open **Site Survey**, walk the space until the bar fills, and read
+   the verdict.
+5. Check **Logbook** for everything you've saved, timestamped.
 
 > 💡 Sweep a known-good reader first (your own phone doing NFC, or a contactless terminal you trust) to
-> see what a strong, legitimate field looks like on the meter. Then go hunting.
+> see what a strong, legitimate field looks like on the meter — and what its fingerprint reads as. Then
+> go hunting.
+
+### Controls
+
+| Screen | Key | Action |
+|---|---|---|
+| **Sweep** | `OK` | Reset peak / contacts |
+| | `hold OK` | Log the current reading |
+| | `LEFT` | Calibrate the noise floor (3 s) |
+| **Fingerprint** | `OK` | Save the finding to the logbook |
+| | `hold OK` | Restart the measurement |
+| **Site Survey** | `OK` | Run the survey again |
+| *anywhere* | `BACK` | Up a level |
 
 ---
 
@@ -132,12 +253,17 @@ The `.fap` lands in `dist/specter.fap`; `ufbt launch` copies it to `apps/NFC/` a
 - **13.56 MHz (HF) only.** Specter senses the **NFC band** — the one used by contactless payment skimmers,
   most modern access readers, transit and hotel readers. It **cannot** see **125 kHz (LF)** readers
   (older HID Prox / EM4100 door panels); the Flipper's LF path has no equivalent field-detect bit.
-- **It senses a reader's *carrier*, not what it reads.** Specter tells you *an active reader is here and
-  roughly how close* — it does not decode, identify, or capture anything the reader does.
+- **It senses a reader's *carrier*, not what it reads.** Specter tells you *an active reader is here,
+  roughly how close, and what rhythm it polls on* — it does not decode, identify, or capture anything
+  the reader does.
 - **Strength is relative, not calibrated.** `FIELD %` and the proximity words are a comparative "warmer /
   colder" guide for sweeping, not a measured distance in cm.
-- **A reader must be powered and polling.** A dormant skimmer that only wakes on a real tap, or one that's
-  shielded, may stay quiet. Absence of a reading isn't a guarantee of absence.
+- **Cadence resolves to ~2 ms.** That's the sampling period. Timings anywhere near it are shown with a
+  **`~`** and the confidence is discounted accordingly — Specter would rather flag its own resolution
+  floor than quote a precise-looking number it can't stand behind.
+- **`CLEAN` means clean at the sensitivity you chose.** A dormant skimmer that only wakes on a real tap,
+  or one that's shielded, stays invisible at *any* threshold. Absence of a reading isn't a guarantee of
+  absence.
 - **One radio at a time.** Specter takes over the NFC chip while sweeping, so close any other NFC app first
   (it'll say *NFC unavailable* if something else holds the radio).
 
@@ -153,10 +279,14 @@ authorised** to assess. You are responsible for how you use it. Know your local 
 
 ## 🗺️ Roadmap
 
-- [ ] Persist sensitivity / sound / vibe / LED across reboots
-- [ ] "Logbook" of detections with timestamps to the SD card
-- [ ] Background sweep with screen off + buzzer-only "tricorder" mode
-- [ ] Adjustable detector hardware threshold for finer range control
+- [x] Persist sensitivity / sound / vibe / LED across reboots
+- [x] "Logbook" of detections with timestamps to the SD card
+- [x] Background sweep with the screen off — *stealth mode*
+- [x] Adjustable threshold for finer range control — *auto-calibration + Custom sensitivity*
+- [x] Fingerprint an emitter by its polling cadence
+- [x] Timed site survey with a room verdict
+- [ ] Export the logbook as CSV for reporting
+- [ ] Long-run unattended watch mode with a wake-on-detection alarm
 - [ ] Investigate an LF (125 kHz) coil-based reader sense as a separate mode
 
 ---
@@ -165,16 +295,24 @@ authorised** to assess. You are responsible for how you use it. Know your local 
 
 ```
 Specter-FlipperZero/
-├── application.fam            # Flipper app manifest (category: NFC)
-├── specter.c / specter_i.h    # app entry, wiring, alert feedback
+├── application.fam               # Flipper app manifest (category: NFC)
+├── specter.c / specter_i.h       # app entry, wiring, alert feedback, stealth
 ├── helpers/
-│   └── field_detector.{c,h}   # worker thread: samples the NFC field-present bit
+│   ├── field_detector.{c,h}      # worker thread: samples the field-present bit,
+│   │                             #   duty-cycle + edge timing + calibration
+│   ├── emitter_classify.{c,h}    # pure: cadence -> CONTINUOUS/POLLING/INTERMITTENT
+│   ├── survey_verdict.{c,h}      # pure: survey stats -> CLEAN/TRACE/ACTIVE
+│   ├── specter_settings.{c,h}    # persisted settings (saved_struct)
+│   └── specter_log.{c,h}         # SD logbook, RTC-stamped
 ├── views/
-│   └── sweep_view.{c,h}       # the EMF gauge / waveform / alarm screen
-├── scenes/                    # scene-manager navigation (start · sweep · settings · about)
-├── icons/                     # 1-bit Flipper icons (generated)
-├── images/                    # banner + screen mockups (generated)
-└── tools_gen_*.py             # regenerate icons / mockups / banner
+│   ├── sweep_view.{c,h}          # the EMF gauge / waveform / alarm screen
+│   ├── fingerprint_view.{c,h}    # classification card + pulse-train trace
+│   └── survey_view.{c,h}         # progress + verdict card
+├── scenes/                       # scene-manager navigation
+├── test/                         # host tests for the pure decision layers
+├── icons/                        # 1-bit Flipper icons (generated)
+├── images/                       # banner + screen mockups (generated)
+└── tools_gen_*.py                # regenerate icons / mockups / banner
 ```
 
 ---

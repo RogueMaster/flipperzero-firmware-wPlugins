@@ -53,17 +53,32 @@ static const NotificationSequence seq_snd_click = {
     &message_sound_off,
     NULL,
 };
+static const NotificationSequence seq_snd_saved = {
+    &message_note_e6,
+    &message_delay_50,
+    &message_note_a6,
+    &message_delay_50,
+    &message_sound_off,
+    NULL,
+};
+
+/* Stealth darkens the screen and the LED but leaves sound and vibration to
+ * their own settings: the point is not to glow while you are the one doing the
+ * looking, not to disable the feedback you are sweeping by. */
+static bool specter_lights_allowed(const SpecterApp* app) {
+    return app->settings.led && !app->settings.stealth;
+}
 
 void specter_notify_found(SpecterApp* app) {
     furi_assert(app);
-    if(app->settings.led) notification_message(app->notifications, &seq_led_magenta);
+    if(specter_lights_allowed(app)) notification_message(app->notifications, &seq_led_magenta);
     if(app->settings.vibro) notification_message(app->notifications, &seq_vibro_short);
     if(app->settings.sound) notification_message(app->notifications, &seq_snd_found);
 }
 
 void specter_notify_gone(SpecterApp* app) {
     furi_assert(app);
-    if(app->settings.led) notification_message(app->notifications, &seq_led_green_blip);
+    if(specter_lights_allowed(app)) notification_message(app->notifications, &seq_led_green_blip);
     if(app->settings.sound) notification_message(app->notifications, &seq_snd_gone);
 }
 
@@ -74,7 +89,36 @@ void specter_notify_click(SpecterApp* app) {
 
 void specter_notify_present_led(SpecterApp* app) {
     furi_assert(app);
-    if(app->settings.led) notification_message(app->notifications, &seq_led_magenta_blink);
+    if(specter_lights_allowed(app))
+        notification_message(app->notifications, &seq_led_magenta_blink);
+}
+
+void specter_notify_saved(SpecterApp* app) {
+    furi_assert(app);
+    if(app->settings.sound) notification_message(app->notifications, &seq_snd_saved);
+    if(app->settings.vibro) notification_message(app->notifications, &seq_vibro_short);
+}
+
+/* ---------------- stealth ---------------- */
+void specter_stealth_enter(SpecterApp* app) {
+    furi_assert(app);
+    if(!app->settings.stealth || app->stealth_engaged) return;
+    notification_message(app->notifications, &sequence_display_backlight_off);
+    app->stealth_engaged = true;
+}
+
+void specter_stealth_exit(SpecterApp* app) {
+    furi_assert(app);
+    if(!app->stealth_engaged) return;
+    /* Hand the backlight back to the system's own timeout rather than forcing
+     * it on - leaving it pinned would outlive the app. */
+    notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
+    app->stealth_engaged = false;
+}
+
+void specter_apply_threshold(SpecterApp* app) {
+    furi_assert(app);
+    field_detector_set_threshold(app->detector, specter_settings_threshold(&app->settings));
 }
 
 /* ---------------- view dispatcher plumbing ---------------- */
@@ -111,13 +155,10 @@ static SpecterApp* specter_app_alloc(void) {
     view_dispatcher_set_tick_event_callback(
         app->view_dispatcher, specter_tick_event_callback, 100);
 
-    // default settings
-    app->settings.sensitivity_index = 1; // Medium
-    app->settings.sound = true;
-    app->settings.vibro = true;
-    app->settings.led = true;
+    specter_settings_load(&app->settings);
 
     app->detector = field_detector_alloc();
+    specter_apply_threshold(app);
 
     // shared GUI modules
     app->submenu = submenu_alloc();
@@ -131,12 +172,28 @@ static SpecterApp* specter_app_alloc(void) {
         variable_item_list_get_view(app->var_item_list));
 
     app->widget = widget_alloc();
-    view_dispatcher_add_view(app->view_dispatcher, SpecterViewAbout, widget_get_view(app->widget));
+    view_dispatcher_add_view(
+        app->view_dispatcher, SpecterViewWidget, widget_get_view(app->widget));
 
-    // custom view
+    app->text_box = text_box_alloc();
+    app->text_box_store = furi_string_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, SpecterViewTextBox, text_box_get_view(app->text_box));
+
+    // custom views
     app->sweep_view = sweep_view_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, SpecterViewSweep, sweep_view_get_view(app->sweep_view));
+
+    app->fingerprint_view = fingerprint_view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher,
+        SpecterViewFingerprint,
+        fingerprint_view_get_view(app->fingerprint_view));
+
+    app->survey_view = survey_view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, SpecterViewSurvey, survey_view_get_view(app->survey_view));
 
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
@@ -147,16 +204,25 @@ static void specter_app_free(SpecterApp* app) {
     furi_assert(app);
 
     field_detector_stop(app->detector);
+    specter_stealth_exit(app);
+    specter_settings_save(&app->settings);
 
     view_dispatcher_remove_view(app->view_dispatcher, SpecterViewSubmenu);
     view_dispatcher_remove_view(app->view_dispatcher, SpecterViewSettings);
-    view_dispatcher_remove_view(app->view_dispatcher, SpecterViewAbout);
+    view_dispatcher_remove_view(app->view_dispatcher, SpecterViewWidget);
+    view_dispatcher_remove_view(app->view_dispatcher, SpecterViewTextBox);
     view_dispatcher_remove_view(app->view_dispatcher, SpecterViewSweep);
+    view_dispatcher_remove_view(app->view_dispatcher, SpecterViewFingerprint);
+    view_dispatcher_remove_view(app->view_dispatcher, SpecterViewSurvey);
 
     submenu_free(app->submenu);
     variable_item_list_free(app->var_item_list);
     widget_free(app->widget);
+    text_box_free(app->text_box);
+    furi_string_free(app->text_box_store);
     sweep_view_free(app->sweep_view);
+    fingerprint_view_free(app->fingerprint_view);
+    survey_view_free(app->survey_view);
 
     view_dispatcher_free(app->view_dispatcher);
     scene_manager_free(app->scene_manager);

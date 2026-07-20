@@ -1,4 +1,8 @@
 ADD_SCENE(specter, start, Start)
 ADD_SCENE(specter, sweep, Sweep)
+ADD_SCENE(specter, fingerprint, Fingerprint)
+ADD_SCENE(specter, survey, Survey)
+ADD_SCENE(specter, logbook, Logbook)
+ADD_SCENE(specter, logclear, LogClear)
 ADD_SCENE(specter, settings, Settings)
 ADD_SCENE(specter, about, About)

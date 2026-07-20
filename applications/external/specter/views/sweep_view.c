@@ -14,10 +14,16 @@
 #define R_NDL 23
 #define R_SCN 19
 
+#define FLASH_TICKS 12 // ~1.2 s at the 100 ms UI tick
+
 struct SweepView {
     View* view;
     SweepViewCallback ok_cb;
     void* ok_ctx;
+    SweepViewCallback log_cb;
+    void* log_ctx;
+    SweepViewCallback left_cb;
+    void* left_ctx;
 };
 
 typedef struct {
@@ -31,6 +37,10 @@ typedef struct {
     uint8_t history_head;
     uint8_t anim;
     char sens[10];
+    bool calibrating;
+    uint8_t calib_progress; // 0..100
+    uint8_t flash; // ticks left to show flash_msg
+    char flash_msg[12];
 } SweepModel;
 
 static const char* proximity_word(uint8_t s) {
@@ -64,15 +74,24 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 2, 9, "SPECTER");
 
-    const char* state = m->error   ? "NFC BUSY" :
-                        !m->armed  ? "IDLE" :
-                        m->present ? "READER" :
-                                     "SCANNING";
-    canvas_draw_str_aligned(canvas, 116, 9, AlignRight, AlignBottom, state);
-    if(m->present) {
-        canvas_draw_disc(canvas, 123, 5, 2);
+    if(m->flash) {
+        /* a confirmation takes over the right of the header for a beat */
+        canvas_draw_box(canvas, 74, 0, 54, 11);
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_str_aligned(canvas, 125, 9, AlignRight, AlignBottom, m->flash_msg);
+        canvas_set_color(canvas, ColorBlack);
     } else {
-        canvas_draw_circle(canvas, 123, 5, 2);
+        const char* state = m->error       ? "NFC BUSY" :
+                            m->calibrating ? "CALIBRATE" :
+                            !m->armed      ? "IDLE" :
+                            m->present     ? "READER" :
+                                             "SCANNING";
+        canvas_draw_str_aligned(canvas, 116, 9, AlignRight, AlignBottom, state);
+        if(m->present) {
+            canvas_draw_disc(canvas, 123, 5, 2);
+        } else {
+            canvas_draw_circle(canvas, 123, 5, 2);
+        }
     }
     canvas_draw_line(canvas, 0, 11, 127, 11);
 
@@ -144,7 +163,13 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
 
     /* ---------- bottom strip ---------- */
     canvas_draw_line(canvas, 0, 52, 127, 52);
-    if(m->present) {
+    if(m->calibrating) {
+        /* Learning the room's own noise floor, right where you are standing. */
+        canvas_draw_str(canvas, 2, 59, "SAMPLING NOISE FLOOR");
+        canvas_draw_frame(canvas, 0, 60, 128, 4);
+        uint32_t fill = ((uint32_t)m->calib_progress * 126u) / 100u;
+        if(fill) canvas_draw_box(canvas, 1, 61, (int)fill, 2);
+    } else if(m->present) {
         canvas_draw_box(canvas, 0, 53, 128, 11);
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_disc(canvas, 4, 58, 1);
@@ -172,8 +197,22 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
 
 static bool sweep_view_input(InputEvent* event, void* context) {
     SweepView* v = context;
-    if(event->type == InputTypeShort && event->key == InputKeyOk) {
-        if(v->ok_cb) v->ok_cb(v->ok_ctx);
+
+    if(event->key == InputKeyOk) {
+        if(event->type == InputTypeShort) {
+            if(v->ok_cb) v->ok_cb(v->ok_ctx);
+            return true;
+        }
+        if(event->type == InputTypeLong) {
+            if(v->log_cb) v->log_cb(v->log_ctx);
+            return true;
+        }
+        /* Swallow press/release so a long OK does not also fire the short one. */
+        return event->type == InputTypePress || event->type == InputTypeRelease;
+    }
+
+    if(event->key == InputKeyLeft && event->type == InputTypeShort) {
+        if(v->left_cb) v->left_cb(v->left_ctx);
         return true;
     }
     return false;
@@ -181,8 +220,7 @@ static bool sweep_view_input(InputEvent* event, void* context) {
 
 SweepView* sweep_view_alloc(void) {
     SweepView* v = malloc(sizeof(SweepView));
-    v->ok_cb = NULL;
-    v->ok_ctx = NULL;
+    memset(v, 0, sizeof(SweepView));
     v->view = view_alloc();
     view_set_context(v->view, v);
     view_set_draw_callback(v->view, sweep_view_draw);
@@ -208,6 +246,18 @@ void sweep_view_set_ok_callback(SweepView* v, SweepViewCallback cb, void* contex
     v->ok_ctx = context;
 }
 
+void sweep_view_set_log_callback(SweepView* v, SweepViewCallback cb, void* context) {
+    furi_assert(v);
+    v->log_cb = cb;
+    v->log_ctx = context;
+}
+
+void sweep_view_set_left_callback(SweepView* v, SweepViewCallback cb, void* context) {
+    furi_assert(v);
+    v->left_cb = cb;
+    v->left_ctx = context;
+}
+
 void sweep_view_update(SweepView* v, const FieldStats* stats, const char* sens_label) {
     furi_assert(v);
     with_view_model(
@@ -222,6 +272,8 @@ void sweep_view_update(SweepView* v, const FieldStats* stats, const char* sens_l
             m->contacts = stats->contacts;
             memcpy(m->history, stats->history, sizeof(m->history));
             m->history_head = stats->history_head;
+            m->calibrating = stats->calibrating;
+            m->calib_progress = stats->calibration_progress;
             if(sens_label) {
                 strncpy(m->sens, sens_label, sizeof(m->sens) - 1);
                 m->sens[sizeof(m->sens) - 1] = '\0';
@@ -230,7 +282,27 @@ void sweep_view_update(SweepView* v, const FieldStats* stats, const char* sens_l
         true);
 }
 
+void sweep_view_flash(SweepView* v, const char* msg) {
+    furi_assert(v);
+    with_view_model(
+        v->view,
+        SweepModel * m,
+        {
+            strncpy(m->flash_msg, msg ? msg : "", sizeof(m->flash_msg) - 1);
+            m->flash_msg[sizeof(m->flash_msg) - 1] = '\0';
+            m->flash = FLASH_TICKS;
+        },
+        true);
+}
+
 void sweep_view_tick(SweepView* v) {
     furi_assert(v);
-    with_view_model(v->view, SweepModel * m, { m->anim++; }, true);
+    with_view_model(
+        v->view,
+        SweepModel * m,
+        {
+            m->anim++;
+            if(m->flash) m->flash--;
+        },
+        true);
 }

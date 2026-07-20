@@ -2,6 +2,9 @@
 
 typedef enum {
     StartIndexSweep,
+    StartIndexFingerprint,
+    StartIndexSurvey,
+    StartIndexLogbook,
     StartIndexSettings,
     StartIndexAbout,
 } StartIndex;
@@ -18,6 +21,11 @@ void specter_scene_start_on_enter(void* context) {
     submenu_reset(submenu);
     submenu_set_header(submenu, "Specter");
     submenu_add_item(submenu, "Sweep", StartIndexSweep, specter_scene_start_submenu_cb, app);
+    submenu_add_item(
+        submenu, "Fingerprint", StartIndexFingerprint, specter_scene_start_submenu_cb, app);
+    submenu_add_item(
+        submenu, "Site Survey", StartIndexSurvey, specter_scene_start_submenu_cb, app);
+    submenu_add_item(submenu, "Logbook", StartIndexLogbook, specter_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Settings", StartIndexSettings, specter_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "About", StartIndexAbout, specter_scene_start_submenu_cb, app);
 
@@ -36,6 +44,18 @@ bool specter_scene_start_on_event(void* context, SceneManagerEvent event) {
         switch(event.event) {
         case StartIndexSweep:
             scene_manager_next_scene(app->scene_manager, SpecterSceneSweep);
+            consumed = true;
+            break;
+        case StartIndexFingerprint:
+            scene_manager_next_scene(app->scene_manager, SpecterSceneFingerprint);
+            consumed = true;
+            break;
+        case StartIndexSurvey:
+            scene_manager_next_scene(app->scene_manager, SpecterSceneSurvey);
+            consumed = true;
+            break;
+        case StartIndexLogbook:
+            scene_manager_next_scene(app->scene_manager, SpecterSceneLogbook);
             consumed = true;
             break;
         case StartIndexSettings:

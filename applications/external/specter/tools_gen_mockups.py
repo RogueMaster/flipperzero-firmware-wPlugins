@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """Render Flipper-style mock screenshots (128x64, orange theme) for the README.
-These mirror the on-device draw code in views/sweep_view.c and the scenes."""
+
+These mirror the on-device draw code in views/*.c and the scenes. Text is placed
+by BASELINE (anchor "ls"/"rs"/"ms"), because canvas_draw_str() takes y as the
+baseline - drawing these any other way quietly hides real layout collisions.
+Layout constants below are copied from the C, so if a screen looks wrong here it
+looks wrong on the device too.
+"""
 from PIL import Image, ImageDraw, ImageFont
 import math, os
 
@@ -14,9 +20,23 @@ os.makedirs(OUT, exist_ok=True)
 MONO = "/System/Library/Fonts/Supplemental/Andale Mono.ttf"
 BOLD = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
 
-# Gauge geometry (matches views/sweep_view.c)
+# --- geometry, copied from the C ------------------------------------------
+# views/sweep_view.c
 PCX, PCY = 32, 48
 R_ARC, R_OUT, R_IN, R_NDL, R_SCN = 26, 26, 22, 23, 19
+# views/fingerprint_view.c
+FP_CLASS, FP_BLURB, FP_STAT1, FP_STAT2 = 22, 31, 40, 48
+FP_COL_R = 66
+CONF_X, CONF_Y, CONF_W, CONF_H = 88, 15, 38, 8
+FP_DIV, TRACE_HI, TRACE_LO = 50, 53, 61
+# views/survey_view.c
+BAR_X, BAR_Y, BAR_W, BAR_H = 4, 15, 120, 11
+RUN_S1, RUN_S2, RUN_WAVE_TOP, RUN_WAVE_BASE = 35, 45, 50, 63
+BANNER_X, BANNER_Y, BANNER_W, BANNER_H = 2, 14, 124, 14
+DONE_V, DONE_A, DONE_S1, DONE_S2 = 25, 37, 50, 60
+SV_COL_R = 66
+# helpers/field_detector.c: TRACE_SLICE_SAMPLES * SAMPLE_PERIOD_US
+TRACE_MS_PER_COL = 8
 
 
 def font(path, px):
@@ -63,6 +83,11 @@ def text(d, x, y, s, fnt=f_sec, col=FG, anchor="lm"):
     d.text((L(x), L(y)), s, font=fnt, fill=col, anchor=anchor)
 
 
+def tb(d, x, y, s, fnt=f_sec, col=FG, anchor="ls"):
+    """Baseline-anchored text - y is the baseline, exactly like canvas_draw_str."""
+    d.text((L(x), L(y)), s, font=fnt, fill=col, anchor=anchor)
+
+
 def dot(d, x, y, col=FG):
     d.rectangle([L(x), L(y), L(x) + S - 1, L(y) + S - 1], fill=col)
 
@@ -85,18 +110,39 @@ def proximity_word(s):
     )
 
 
-def draw_header(d, state, present):
-    text(d, 2, 7, "SPECTER", f_sec)
-    text(d, 116, 7, state, f_sec, anchor="rm")
-    if present:
-        disc(d, 123, 5, 2)
+# --------------------------------------------------------------------------
+# shared chrome
+# --------------------------------------------------------------------------
+def draw_header(d, title, state, present, flash=None, state_x=116):
+    tb(d, 2, 9, title, f_sec)
+    if flash:
+        box(d, 74, 0, 54, 11)
+        tb(d, 125, 9, flash, f_sec, BG, anchor="rs")
     else:
-        circle(d, 123, 5, 2)
+        tb(d, state_x, 9, state, f_sec, anchor="rs")
+        if present:
+            disc(d, 123, 5, 2)
+        else:
+            circle(d, 123, 5, 2)
     line(d, 0, 11, 127, 11)
 
 
+def draw_waveform(d, history, base, span):
+    for k in range(62):
+        idx = (len(history) - 1 - k) % len(history)
+        val = history[idx]
+        x = 126 - k * 2
+        y = base - (val * span) // 100
+        if y < base:
+            line(d, x, base, x, y, FG, w=S)
+        else:
+            dot(d, x, base)
+
+
+# --------------------------------------------------------------------------
+# Sweep (views/sweep_view.c)
+# --------------------------------------------------------------------------
 def draw_gauge(d, strength, peak, present, anim, scan=40):
-    # arc
     px = py = None
     v = 0
     while v <= 100:
@@ -105,7 +151,6 @@ def draw_gauge(d, strength, peak, present, anim, scan=40):
             line(d, px, py, ax, ay)
         px, py = ax, ay
         v += 3
-    # ticks
     for i in range(11):
         vv = i * 10
         hot = i >= 8
@@ -114,19 +159,15 @@ def draw_gauge(d, strength, peak, present, anim, scan=40):
         line(d, ix, iy, ox, oy)
         if hot:
             line(d, ix + 1, iy, ox + 1, oy)
-    # scanner bug (idle scanning)
     if not present:
         sx, sy = gauge_point(scan, R_SCN)
         circle(d, sx, sy, 1)
-    # needle
     tx, ty = gauge_point(strength, R_NDL)
     line(d, PCX, PCY, tx, ty)
     line(d, PCX - 1, PCY, tx, ty)
     disc(d, tx, ty, 1)
-    # peak marker
     kx, ky = gauge_point(peak, R_OUT - 1)
     disc(d, kx, ky, 1)
-    # hub
     disc(d, PCX, PCY, 3)
     if present:
         circle(d, PCX, PCY, R_OUT + 1 + (anim % 3))
@@ -134,75 +175,216 @@ def draw_gauge(d, strength, peak, present, anim, scan=40):
 
 def draw_readout(d, strength, peak, contacts):
     line(d, 64, 13, 64, 51)
-    text(d, 68, 18, "FIELD", f_sec)
-    text(d, 112, 38, str(strength), f_big, anchor="rs")
-    text(d, 114, 41, "%", f_sec)
-    text(d, 68, 49, f"PK{peak} C{contacts}", f_sec)
+    tb(d, 68, 20, "FIELD", f_sec)
+    tb(d, 112, 45, str(strength), f_big, anchor="rs")
+    tb(d, 114, 43, "%", f_sec)
+    tb(d, 68, 51, f"PK{peak} C{contacts}", f_sec)
 
 
-def render_sweep(name, strength, peak, contacts, present, state, history, anim=1):
+def render_sweep(
+    name,
+    strength,
+    peak,
+    contacts,
+    present,
+    state,
+    history,
+    anim=1,
+    calibrating=False,
+    calib_pct=0,
+    flash=None,
+):
     img, d = canvas()
-    draw_header(d, state, present)
+    draw_header(d, "SPECTER", state, present, flash)
     draw_gauge(d, strength, peak, present, anim)
     draw_readout(d, strength, peak, contacts)
     line(d, 0, 52, 127, 52)
-    if present:
+    if calibrating:
+        tb(d, 2, 59, "SAMPLING NOISE FLOOR", f_sec)
+        frame(d, 0, 60, 128, 4)
+        fill = (calib_pct * 126) // 100
+        if fill:
+            box(d, 1, 61, fill, 2)
+    elif present:
         box(d, 0, 53, 128, 11)
         disc(d, 4, 58, 1, BG)
-        text(d, 9, 59, "ACTIVE READER", f_sec, BG)
-        text(d, 125, 59, proximity_word(strength), f_sec, BG, anchor="rm")
+        tb(d, 9, 62, "ACTIVE READER", f_sec, BG)
+        tb(d, 125, 62, proximity_word(strength), f_sec, BG, anchor="rs")
         frame(d, 0, 0, 127, 63, FG, lw=2)
     else:
-        for k in range(62):
-            idx = (len(history) - 1 - k) % len(history)
-            val = history[idx]
-            x = 126 - k * 2
-            y = 63 - (val * 9) // 100
-            if y < 63:
-                line(d, x, 63, x, y, FG, w=S)
-            else:
-                dot(d, x, 63)
+        draw_waveform(d, history, 63, 9)
     save(img, name)
 
 
+# --------------------------------------------------------------------------
+# Fingerprint (views/fingerprint_view.c)
+# --------------------------------------------------------------------------
+def pulse_train(period_ms, burst_ms, columns=W):
+    """Reproduce what the detector's trace buffer would hold for this cadence."""
+    per = max(1, round(period_ms / TRACE_MS_PER_COL))
+    bst = max(1, round(burst_ms / TRACE_MS_PER_COL))
+    return [1 if (i % per) < bst else 0 for i in range(columns)]
+
+
+def draw_trace(d, bits):
+    prev = None
+    for i, hi in enumerate(bits):
+        y = TRACE_HI if hi else TRACE_LO
+        dot(d, i, y)
+        if prev is not None and hi != prev:
+            line(d, i, TRACE_HI, i, TRACE_LO)
+        prev = hi
+
+
+def render_fingerprint(
+    name,
+    klass,
+    blurb,
+    conf,
+    period,
+    burst,
+    jitter,
+    duty,
+    present=True,
+    state="LISTENING",
+    approx="",
+    flash=None,
+    has_cadence=True,
+):
+    img, d = canvas()
+    draw_header(d, "FINGERPRINT", state, present, flash)
+
+    tb(d, 2, FP_CLASS, klass, f_pri)
+    frame(d, CONF_X, CONF_Y, CONF_W, CONF_H)
+    fill = (conf * (CONF_W - 2)) // 100
+    if fill:
+        box(d, CONF_X + 1, CONF_Y + 1, fill, CONF_H - 2)
+
+    tb(d, 2, FP_BLURB, blurb, f_sec)
+    tb(d, 126, FP_BLURB, f"{conf}%", f_sec, anchor="rs")
+
+    if has_cadence:
+        tb(d, 2, FP_STAT1, f"PER {approx}{period}ms", f_sec)
+        tb(d, FP_COL_R, FP_STAT1, f"BST {approx}{burst}ms", f_sec)
+        tb(d, 2, FP_STAT2, f"JIT {approx}{jitter}ms", f_sec)
+    else:
+        tb(d, 2, FP_STAT1, "PER --", f_sec)
+        tb(d, FP_COL_R, FP_STAT1, "BST --", f_sec)
+        tb(d, 2, FP_STAT2, "JIT --", f_sec)
+    tb(d, FP_COL_R, FP_STAT2, f"DUTY {duty}%", f_sec)
+
+    line(d, 0, FP_DIV, 127, FP_DIV)
+    draw_trace(d, pulse_train(period, burst) if has_cadence else [0] * W)
+    save(img, name)
+
+
+# --------------------------------------------------------------------------
+# Site Survey (views/survey_view.c)
+# --------------------------------------------------------------------------
+def render_survey_running(name, pct, left_s, field, peak, hits, present, history):
+    img, d = canvas()
+    mins, secs = divmod(left_s, 60)
+    draw_header(d, "SITE SURVEY", f"{mins}:{secs:02d}", present)
+
+    frame(d, BAR_X, BAR_Y, BAR_W, BAR_H)
+    fill = (pct * (BAR_W - 2)) // 100
+    if fill:
+        box(d, BAR_X + 1, BAR_Y + 1, fill, BAR_H - 2)
+
+    tb(d, 2, RUN_S1, f"FIELD {field}%", f_sec)
+    tb(d, SV_COL_R, RUN_S1, f"PEAK {peak}%", f_sec)
+    tb(d, 2, RUN_S2, f"HITS {hits}", f_sec)
+    tb(d, SV_COL_R, RUN_S2, "sweep slowly", f_sec)
+
+    line(d, 0, RUN_WAVE_TOP - 2, 127, RUN_WAVE_TOP - 2)
+    draw_waveform(d, history, RUN_WAVE_BASE, RUN_WAVE_BASE - RUN_WAVE_TOP)
+    save(img, name)
+
+
+def render_survey_verdict(name, verdict, advice, mx, av, field, hits):
+    img, d = canvas()
+    alarm = verdict == "ACTIVE READER"
+    draw_header(d, "SITE SURVEY", "OK=again", False, state_x=126)
+    # the header dot is not drawn in the finished state
+    box(d, 118, 0, 10, 10, BG)
+    tb(d, 126, 9, "OK=again", f_sec, anchor="rs")
+
+    if alarm:
+        box(d, BANNER_X, BANNER_Y, BANNER_W, BANNER_H)
+    else:
+        frame(d, BANNER_X, BANNER_Y, BANNER_W, BANNER_H)
+    tb(d, 64, DONE_V, verdict, f_pri, BG if alarm else FG, anchor="ms")
+
+    tb(d, 64, DONE_A, advice, f_sec, anchor="ms")
+    line(d, 0, DONE_A + 3, 127, DONE_A + 3)
+
+    tb(d, 2, DONE_S1, f"MAX {mx}%", f_sec)
+    tb(d, SV_COL_R, DONE_S1, f"AVG {av}%", f_sec)
+    tb(d, 2, DONE_S2, f"HITS {hits}", f_sec)
+    tb(d, SV_COL_R, DONE_S2, f"FIELD {field}%", f_sec)
+
+    if alarm:
+        frame(d, 0, 0, 127, 63, FG, lw=2)
+    save(img, name)
+
+
+# --------------------------------------------------------------------------
+# Menus, settings, logbook
+# --------------------------------------------------------------------------
 def render_menu():
     img, d = canvas()
-    text(d, 4, 8, "Specter", f_pri)
+    tb(d, 4, 11, "Specter", f_pri)
     line(d, 0, 14, 127, 14)
-    items = ["Sweep", "Settings", "About"]
-    ROW_H = 16
+    items = ["Sweep", "Fingerprint", "Site Survey", "Logbook"]
+    ROW_H = 12
     for i, it in enumerate(items):
         y = 15 + i * ROW_H
         col = FG
         if i == 0:
             box(d, 0, y, 124, ROW_H)
             col = BG
-        text(d, 6, y + 8, it, f_sec, col)
-    box(d, 125, 15, 3, 16)
+        tb(d, 6, y + 9, it, f_sec, col)
+    box(d, 125, 15, 3, 24)
     save(img, "screen_menu.png")
 
 
 def render_settings():
     img, d = canvas()
-    text(d, 4, 8, "Settings", f_pri)
-    line(d, 0, 14, 127, 14)
     rows = [
-        ("Sensitivity", "Medium", True),
+        ("Sensitivity", "Custom", True),
+        ("Survey time", "60 s", False),
         ("Sound", "ON", False),
         ("Vibrate", "ON", False),
-        ("LED", "ON", False),
+        ("Stealth", "ON", False),
     ]
     ROW_H = 12
     for i, (k, v, sel) in enumerate(rows):
-        y = 15 + i * ROW_H
+        y = 2 + i * ROW_H
         col = FG
         if sel:
             box(d, 0, y, 124, ROW_H)
             col = BG
-        text(d, 4, y + 7, k, f_sec, col)
-        text(d, 121, y + 7, v, f_sec, col, anchor="rm")
-    box(d, 125, 15, 3, 12)
+        tb(d, 4, y + 9, k, f_sec, col)
+        tb(d, 121, y + 9, v, f_sec, col, anchor="rs")
+    box(d, 125, 2, 3, 22)
     save(img, "screen_settings.png")
+
+
+def render_logbook():
+    img, d = canvas()
+    lines = [
+        "2026-07-18 14:35:11",
+        "  SURVEY 60s",
+        "  ACTIVE READER",
+        "  mx74% av21% f38% h5",
+        "2026-07-18 14:32:07",
+        "  READER POLLING",
+        "  204ms b20 d10% c88%",
+    ]
+    for i, s in enumerate(lines):
+        tb(d, 2, 9 + i * 9, s, f_sec)
+    box(d, 125, 20, 3, 30)  # scrollbar, parked near the end
+    save(img, "screen_logbook.png")
 
 
 CLEAR_HIST = [
@@ -270,29 +452,153 @@ CLEAR_HIST = [
     9,
 ]
 
+SURVEY_HIST = [
+    4,
+    6,
+    3,
+    9,
+    5,
+    2,
+    7,
+    12,
+    22,
+    38,
+    51,
+    44,
+    30,
+    18,
+    9,
+    5,
+    3,
+    8,
+    4,
+    6,
+    11,
+    7,
+    4,
+    9,
+    5,
+    3,
+    8,
+    15,
+    28,
+    41,
+    36,
+    24,
+    13,
+    7,
+    4,
+    9,
+    5,
+    2,
+    8,
+    6,
+    3,
+    10,
+    5,
+    7,
+    4,
+    9,
+    6,
+    3,
+    8,
+    5,
+    12,
+    7,
+    4,
+    10,
+    6,
+    3,
+    9,
+    5,
+    8,
+    4,
+    7,
+    3,
+]
+
+
+def strip(names, out, cols=None):
+    imgs = [Image.open(os.path.join(OUT, n)) for n in names]
+    cols = cols or len(imgs)
+    rows = (len(imgs) + cols - 1) // cols
+    pad = 18
+    cw, ch = imgs[0].width, imgs[0].height
+    sheet = Image.new(
+        "RGB",
+        (cw * cols + pad * (cols + 1), ch * rows + pad * (rows + 1)),
+        (12, 14, 20),
+    )
+    for i, im in enumerate(imgs):
+        r, c = divmod(i, cols)
+        sheet.paste(im, (pad + c * (cw + pad), pad + r * (ch + pad)))
+    sheet.save(os.path.join(OUT, out))
+    print("wrote", os.path.join(OUT, out))
+
 
 if __name__ == "__main__":
     render_sweep("screen_clear.png", 7, 18, 0, False, "SCANNING", CLEAR_HIST, anim=2)
     render_sweep("screen_reader.png", 78, 86, 3, True, "READER", CLEAR_HIST, anim=1)
+    render_sweep(
+        "screen_calibrate.png",
+        4,
+        9,
+        0,
+        False,
+        "CALIBRATE",
+        CLEAR_HIST,
+        anim=2,
+        calibrating=True,
+        calib_pct=62,
+    )
+
+    render_fingerprint(
+        "screen_fingerprint.png", "POLLING", "Fixed poll cycle", 88, 204, 24, 2, 11
+    )
+    render_fingerprint(
+        "screen_fingerprint_cw.png",
+        "CONTINUOUS",
+        "Carrier held up",
+        100,
+        0,
+        0,
+        0,
+        98,
+        has_cadence=False,
+    )
+
+    render_survey_running("screen_survey_run.png", 62, 23, 9, 51, 2, False, SURVEY_HIST)
+    render_survey_verdict(
+        "screen_survey_done.png", "ACTIVE READER", "Fingerprint it", 74, 21, 38, 5
+    )
+    render_survey_verdict(
+        "screen_survey_clean.png", "CLEAN", "Nothing emitting here", 6, 2, 0, 0
+    )
+
     render_menu()
     render_settings()
+    render_logbook()
 
-    names = (
-        "screen_clear.png",
-        "screen_reader.png",
-        "screen_menu.png",
-        "screen_settings.png",
+    strip(
+        (
+            "screen_clear.png",
+            "screen_reader.png",
+            "screen_fingerprint.png",
+            "screen_survey_done.png",
+        ),
+        "screens.png",
     )
-    imgs = [Image.open(os.path.join(OUT, n)) for n in names]
-    pad = 18
-    strip = Image.new(
-        "RGB",
-        (sum(i.width for i in imgs) + pad * (len(imgs) + 1), imgs[0].height + pad * 2),
-        (12, 14, 20),
+    strip(
+        (
+            "screen_clear.png",
+            "screen_reader.png",
+            "screen_fingerprint.png",
+            "screen_survey_run.png",
+            "screen_survey_done.png",
+            "screen_logbook.png",
+            "screen_calibrate.png",
+            "screen_settings.png",
+        ),
+        "screens_all.png",
+        cols=4,
     )
-    x = pad
-    for im in imgs:
-        strip.paste(im, (x, pad))
-        x += im.width + pad
-    strip.save(os.path.join(OUT, "screens.png"))
-    print("wrote", os.path.join(OUT, "screens.png"))
