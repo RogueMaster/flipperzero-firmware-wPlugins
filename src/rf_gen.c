@@ -298,6 +298,7 @@ void txstart(FlipperHamApp* app) {
 
     app->tx_done = false;
     app->tx_ok = false;
+    app->tx_missing_ext = false;
     app->wave_i = 0;
     app->level = true;
     app->wave_len = 0;
@@ -437,6 +438,11 @@ static void flipperham_radio_fail(FlipperHamApp* app) {
     app->tx_done = true;
 }
 
+static void flipperham_radio_ext_missing(FlipperHamApp* app) {
+    app->tx_missing_ext = true;
+    flipperham_radio_fail(app);
+}
+
 static bool flipperham_ext_vbus_on(void) {
     const float vbus = furi_hal_power_get_usb_voltage();
 
@@ -530,7 +536,7 @@ void flipperham_radio_start_ext(FlipperHamApp* app) {
 
     if(!subghz_devices_is_connect(flipperham_ext_device)) {
         flipperham_ext_close();
-        flipperham_radio_fail(app);
+        flipperham_radio_ext_missing(app);
         return;
     }
 

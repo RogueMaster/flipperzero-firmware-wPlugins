@@ -46,7 +46,7 @@ static void cfg_defaults(FlipperHamApp* app) {
     app->aprs_path_index = 0;
     app->aprs_path_edit[0] = 0;
     app->debug_tx = false;
-    app->radio_backend = FlipperHamRadioInternal;
+    app->radio_backend = FlipperHamRadioAuto;
 
     /* Seed one valid entry of each type so a fresh install is immediately testable. */
     snprintf(app->bulletin[0], sizeof(app->bulletin[0]), "flipper bulletin");
@@ -236,7 +236,7 @@ void cfgload(FlipperHamApp* app) {
 
     if(app->dst_ssid > 15) app->dst_ssid = 0;
     if(app->aprs_path_index > 7) app->aprs_path_index = 0;
-    if(app->radio_backend > FlipperHamRadioExternal) app->radio_backend = FlipperHamRadioInternal;
+    if(app->radio_backend > FlipperHamRadioAuto) app->radio_backend = FlipperHamRadioAuto;
     if(!app->repeat_n || app->repeat_n > 5) app->repeat_n = 1;
     if(app->leadin_ms > 1000) app->leadin_ms = 1000;
     if(app->preamble_ms > 1000) app->preamble_ms = 1000;

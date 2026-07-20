@@ -64,6 +64,7 @@ typedef struct {
 enum {
     FlipperHamRadioInternal = 0,
     FlipperHamRadioExternal,
+    FlipperHamRadioAuto,
 };
 
 enum {

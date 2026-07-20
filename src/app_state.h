@@ -46,6 +46,7 @@ typedef struct FlipperHamApp {
     volatile bool tx_done;
     volatile bool tx_allowed;
     bool tx_ok;
+    bool tx_missing_ext;
     bool show_done;
     bool send_requested;
     bool ham_ok;
@@ -55,6 +56,7 @@ typedef struct FlipperHamApp {
     uint8_t dbg_mod;
     uint8_t dbg_dev;
     uint8_t radio_backend;
+    uint8_t tx_radio_backend;
     uint8_t repeat_n;
     uint16_t leadin_ms;
     uint16_t preamble_ms;

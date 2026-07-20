@@ -208,7 +208,7 @@ static void status_input(InputEvent* event, void* context) {
 
     app->repeat_cancel = true;
     if(app->tx_started && !app->tx_done) {
-        if(app->radio_backend == FlipperHamRadioExternal)
+        if(app->tx_radio_backend == FlipperHamRadioExternal)
             flipperham_radio_stop_ext(app);
         else
             flipperham_radio_stop(app);
@@ -222,6 +222,30 @@ static void tx_blink_green(void) {
     furi_hal_light_set(LightBlue, 0);
     furi_hal_light_set(LightRed, 255);
     furi_hal_light_set(LightGreen, 72);
+}
+
+static void tx_radio_start(FlipperHamApp* app) {
+    app->tx_radio_backend = app->radio_backend;
+    if(app->tx_radio_backend > FlipperHamRadioAuto) app->tx_radio_backend = FlipperHamRadioAuto;
+
+    if(app->tx_radio_backend == FlipperHamRadioAuto) {
+        app->tx_radio_backend = FlipperHamRadioExternal;
+        flipperham_radio_start_ext(app);
+        if(app->tx_allowed) return;
+
+        app->tx_missing_ext = false;
+        app->tx_done = false;
+        app->tx_started = false;
+        app->tx_allowed = true;
+        app->tx_radio_backend = FlipperHamRadioInternal;
+        flipperham_radio_start(app);
+        return;
+    }
+
+    if(app->tx_radio_backend == FlipperHamRadioExternal)
+        flipperham_radio_start_ext(app);
+    else
+        flipperham_radio_start(app);
 }
 
 uint32_t repeat_scale(FlipperHamApp* app) {
@@ -265,6 +289,8 @@ FlipperHamApp* flipperham_app_alloc(void) {
     app->tx_started = false;
     app->tx_allowed = true;
     app->tx_done = false;
+    app->tx_missing_ext = false;
+    app->tx_radio_backend = FlipperHamRadioAuto;
     app->show_done = false;
     app->send_requested = false;
     app->ham_ok = false;
@@ -310,7 +336,7 @@ FlipperHamApp* flipperham_app_alloc(void) {
     app->aprs_path_index = 0;
     app->aprs_path_edit[0] = 0;
     app->debug_tx = false;
-    app->radio_backend = FlipperHamRadioInternal;
+    app->radio_backend = FlipperHamRadioAuto;
     app->return_view = FlipperHamViewMenu;
     app->splash_mode = 0;
     app->splash_next_view = FlipperHamViewMenu;
@@ -547,27 +573,24 @@ again:
         app->show_done = false;
 
         tx_blink_green();
-        view_port_update(app->view_port);
         furi_delay_ms(100);
 
-        if(app->radio_backend == FlipperHamRadioExternal)
-            flipperham_radio_start_ext(app);
-        else
-            flipperham_radio_start(app);
+        tx_radio_start(app);
+        view_port_update(app->view_port);
 
         while(!app->tx_done) {
             view_port_update(app->view_port);
             furi_delay_ms(50);
         }
 
-        while(app->tx_started && !((app->radio_backend == FlipperHamRadioExternal) ?
+        while(app->tx_started && !((app->tx_radio_backend == FlipperHamRadioExternal) ?
                                        flipperham_radio_ext_is_complete() :
                                        furi_hal_subghz_is_async_tx_complete())) {
             view_port_update(app->view_port);
             furi_delay_ms(20);
         }
 
-        if(app->radio_backend == FlipperHamRadioExternal)
+        if(app->tx_radio_backend == FlipperHamRadioExternal)
             flipperham_radio_stop_ext(app);
         else
             flipperham_radio_stop(app);
