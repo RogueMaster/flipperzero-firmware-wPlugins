@@ -59,7 +59,7 @@ App(
     stack_size=2 * 1024,
     fap_icon="flipperham.png",
     fap_category="Sub-GHz",
-    fap_version="1.3.21",
+    fap_version="1.3.23",
     fap_author="@yo3gnd",
     fap_weburl="https://github.com/yo3gnd/flipper-zero-aprs-tx/",
     fap_description="An APRS transmitter using the internal or external Sub-GHz CC1101",

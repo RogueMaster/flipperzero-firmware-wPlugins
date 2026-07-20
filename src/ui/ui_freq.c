@@ -22,7 +22,6 @@ typedef struct {
 static uint32_t freq_min_hz(void);
 static uint32_t freq_max_hz(void);
 static bool freq_band(uint32_t a, uint32_t* lo, uint32_t* hi);
-static uint32_t freq_next_band(uint32_t a);
 static void freq_input_draw(Canvas* canvas, void* model);
 static bool freq_input_do(InputEvent* event, void* context);
 static void freq_input_commit(FlipperHamApp* app);
@@ -99,24 +98,6 @@ static bool freq_band(uint32_t a, uint32_t* lo, uint32_t* hi) {
     *hi = b;
 
     return true;
-}
-
-static uint32_t freq_next_band(uint32_t a) {
-    uint32_t c;
-    uint32_t e;
-    uint32_t b;
-    uint32_t message_pick;
-
-    message_pick = freq_max_hz();
-    if(!freq_band(a, &c, &e)) return freq_min_hz();
-
-    b = e;
-    while(b <= message_pick - 2500UL) {
-        b += 2500UL;
-        if(freq_tx_allowed_hz(b)) return b;
-    }
-
-    return freq_min_hz();
 }
 
 void freq_show(char* o, uint16_t n, uint32_t a) {
@@ -212,8 +193,8 @@ void freq_edit_menu_build(FlipperHamApp* app) {
 
     variable_item_list_reset(app->freq_edit_menu);
 
-    it = variable_item_list_add(app->freq_edit_menu, "Frequency", 201, freq_change, app);
-    variable_item_set_current_value_index(it, 100);
+    it = variable_item_list_add(app->freq_edit_menu, "Frequency", 1, NULL, NULL);
+    variable_item_set_current_value_index(it, 0);
     fsh2(app->f_edit, sizeof(app->f_edit), app->freq_edit_hz);
     variable_item_set_current_value_text(it, app->f_edit);
 
@@ -240,16 +221,7 @@ void freq_edit_enter(void* context, uint32_t index) {
         if(app->freq_index < FREQ_N)
             if(app->freq_used[app->freq_index]) a = true;
 
-    if(index == 0) {
-        app->freq_sel = FlipperHamFreqIndexBase + app->freq_index;
-        app->freq_edit_hz = freq_next_band(app->freq_edit_hz);
-        app->f_bad = !freq_tx_allowed_hz(app->freq_edit_hz);
-        freq_edit_menu_build(app);
-        view_dispatcher_switch_to_view(app->view_dispatcher, FlipperHamViewFreqEdit);
-        return;
-    }
-
-    if(index == 1) {
+    if(index == 0 || index == 1) {
         app->freq_sel = FlipperHamFreqIndexBase + app->freq_index;
         freq_input_start(app);
         view_dispatcher_switch_to_view(app->view_dispatcher, FlipperHamViewFreqInput);
@@ -487,7 +459,7 @@ static void freq_input_commit(FlipperHamApp* app) {
     if(!freq_vfo_valid_hz(hz))
         app->freq_edit_hz = freq_input_old_hz;
     else if(!freq_tx_allowed_hz(hz))
-        app->freq_edit_hz = freq_default_hz();
+        app->freq_edit_hz = freq_input_old_hz;
     else
         app->freq_edit_hz = hz;
 
