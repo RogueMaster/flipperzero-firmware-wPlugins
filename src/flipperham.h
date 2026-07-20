@@ -18,9 +18,9 @@
 
 #define CFG_DIR "/ext/apps_data/aprstx"
 #define CFG_FILE "/ext/apps_data/aprstx/cfg.bin"
-#define CALLBOOK_DIR "/ext/ham"
-#define CALLBOOK_FILE "/ext/ham/callbook.txt"
-#define MY_CALLS_FILE "/ext/ham/my-callsigns.txt"
+#define CALLBOOK_DIR CFG_DIR
+#define CALLBOOK_FILE CFG_DIR "/callbook.txt"
+#define MY_CALLS_FILE CFG_DIR "/my-callsigns.txt"
 
 typedef struct
 {

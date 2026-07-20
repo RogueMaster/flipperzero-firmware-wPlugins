@@ -67,6 +67,7 @@ static const FlipperHamPreset *flipperham_preset = &flipperham_presets[FlipperHa
 static const SubGhzDevice *flipperham_ext_device = NULL;
 static bool flipperham_ext_started = false;
 static bool flipperham_devices_started = false;
+static bool flipperham_ext_power_started = false;
 
 static bool wave_flag(FlipperHamApp *app);
 static bool wave_put(FlipperHamApp *app, uint8_t bit);
@@ -76,6 +77,9 @@ static uint16_t round_u16_even(double value);
 static const char *aprs_path_pick(FlipperHamApp *app);
 static void presetpick(uint8_t mod, uint8_t dev);
 static void flipperham_radio_fail(FlipperHamApp *app);
+static bool flipperham_ext_vbus_on(void);
+static bool flipperham_ext_power_on(void);
+static void flipperham_ext_power_off(void);
 static void flipperham_ext_close(void);
 
 FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d00_async_regs, 0x04, 0x83, 0x68, 0x00)
@@ -503,6 +507,47 @@ static void flipperham_radio_fail(FlipperHamApp *app)
     app->tx_done = true;
 }
 
+static bool flipperham_ext_vbus_on(void)
+{
+    const float vbus = furi_hal_power_get_usb_voltage();
+
+
+    return vbus > 4.0f;
+}
+
+static bool flipperham_ext_power_on(void)
+{
+    uint8_t i;
+
+    if (furi_hal_power_is_otg_enabled()) return true;
+    if (flipperham_ext_vbus_on()) return true;
+
+    for (i = 0; i < 5; i++)
+    {
+        furi_hal_power_enable_otg();
+        furi_delay_ms(10);
+        if (furi_hal_power_is_otg_enabled())
+        {
+            flipperham_ext_power_started = true;
+
+
+            return true;
+        }
+        if (flipperham_ext_vbus_on()) return true;
+    }
+
+
+    return false;
+}
+
+static void flipperham_ext_power_off(void)
+{
+    if (flipperham_ext_power_started && furi_hal_power_is_otg_enabled())
+        furi_hal_power_disable_otg();
+
+    flipperham_ext_power_started = false;
+}
+
 void flipperham_radio_start(FlipperHamApp *app)
 {
     furi_hal_subghz_reset();
@@ -539,10 +584,18 @@ static void flipperham_ext_close(void)
         subghz_devices_deinit();
         flipperham_devices_started = false;
     }
+
+    flipperham_ext_power_off();
 }
 
 void flipperham_radio_start_ext(FlipperHamApp *app)
 {
+    if (!flipperham_ext_power_on())
+    {
+        flipperham_radio_fail(app);
+        return;
+    }
+
     subghz_devices_init();
     flipperham_devices_started = true;
     flipperham_ext_device = subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_EXT_NAME);
@@ -557,11 +610,7 @@ void flipperham_radio_start_ext(FlipperHamApp *app)
     {
         subghz_devices_end(flipperham_ext_device);
         flipperham_ext_device = NULL;
-        if (flipperham_devices_started)
-        {
-            subghz_devices_deinit();
-            flipperham_devices_started = false;
-        }
+        flipperham_ext_close();
         flipperham_radio_fail(app);
         return;
     }
