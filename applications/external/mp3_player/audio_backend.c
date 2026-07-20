@@ -14,6 +14,8 @@
 #define MAX98357_SAMPLE_RATE    16000U
 #define MAX98357_BITS_PER_FRAME 32U
 #define MAX98357_BCLK_RATE      (MAX98357_SAMPLE_RATE * MAX98357_BITS_PER_FRAME)
+#define PAM8403_OVERSAMPLE      32U
+#define PAM8403_BIT_RATE        (INTERNAL_SAMPLE_RATE * PAM8403_OVERSAMPLE)
 #define AUDIO_RING_SAMPLES      4096U
 #define AUDIO_RING_MASK         (AUDIO_RING_SAMPLES - 1U)
 #define AUDIO_PRIME_SAMPLES     512U
@@ -36,6 +38,8 @@ struct AudioBackend {
     volatile bool draining;
 
     uint32_t max_gpio_bits[MAX98357_BUFFER_BITS];
+    uint32_t pam_accumulator;
+    uint32_t pam_dither;
     AudioBackendError error;
     bool tim2_owned;
     bool speaker_acquired;
@@ -74,6 +78,22 @@ static int16_t audio_scale(const AudioBackend* backend, int16_t sample) {
     return (int16_t)(((int32_t)sample * backend->volume) / 100);
 }
 
+static int16_t audio_pam_scale(const AudioBackend* backend, int16_t sample) {
+    /* Preserve a true mute at V0, then spend more of the displayed range on
+     the PAM8403 board's clearer upper gain levels. These segments exactly
+     map new V10/V50/V100 to the old V40/V70/V100 respectively. */
+    const uint32_t displayed = backend->volume;
+    uint32_t volume;
+    if(displayed <= 10U) {
+        volume = displayed * 4U;
+    } else if(displayed <= 50U) {
+        volume = 40U + ((displayed - 10U) * 30U) / 40U;
+    } else {
+        volume = 70U + ((displayed - 50U) * 30U) / 50U;
+    }
+    return (int16_t)(((int32_t)sample * (int32_t)volume) / 100);
+}
+
 static int16_t audio_internal_scale(const AudioBackend* backend, int16_t sample) {
     int32_t magnitude = sample < 0 ? -(int32_t)sample : sample;
 
@@ -91,15 +111,32 @@ static int16_t audio_internal_scale(const AudioBackend* backend, int16_t sample)
     return (int16_t)((magnitude * backend->volume) / 100);
 }
 
-static void audio_internal_isr(void* context) {
+static void audio_pwm_isr(void* context) {
     AudioBackend* backend = context;
     if(LL_TIM_IsActiveFlag_UPDATE(TIM2)) LL_TIM_ClearFlag_UPDATE(TIM2);
 
-    const int32_t sample = audio_internal_scale(backend, audio_pop(backend));
+    const int16_t pcm = audio_pop(backend);
+    const int32_t sample = backend->output == AudioOutputInternal ?
+                               audio_internal_scale(backend, pcm) :
+                               audio_scale(backend, pcm);
     /* Convert signed 16-bit PCM to the full 10-bit PWM duty range. A zero
      sample becomes 50% duty, which is electrical silence after the piezo's
      carrier is averaged. */
     TIM16->CCR1 = (uint16_t)(sample + 32768) >> 6U;
+}
+
+static bool audio_enable_5v(AudioBackend* backend) {
+    /* Pin 1 already carries USB 5 V when VBUS is present. Only own the OTG
+     boost rail when the Flipper is running from its battery. */
+    const bool usb_powered = furi_hal_power_get_usb_voltage() >= 4.0f;
+    if(!usb_powered && !furi_hal_power_is_otg_enabled()) {
+        if(!furi_hal_power_enable_otg()) {
+            backend->error = AudioBackendErrorPowerUnavailable;
+            return false;
+        }
+        backend->otg_owned = true;
+    }
+    return true;
 }
 
 static void audio_max_fill(AudioBackend* backend, uint16_t offset) {
@@ -134,6 +171,52 @@ static void audio_max_dma_isr(void* context) {
     if(LL_DMA_IsActiveFlag_TC3(DMA1)) {
         LL_DMA_ClearFlag_TC3(DMA1);
         audio_max_fill(backend, MAX98357_HALF_BITS);
+    }
+    if(LL_DMA_IsActiveFlag_TE3(DMA1)) LL_DMA_ClearFlag_TE3(DMA1);
+}
+
+static void audio_pam_fill(AudioBackend* backend, uint16_t offset) {
+    const uint16_t samples = MAX98357_HALF_BITS / PAM8403_OVERSAMPLE;
+    uint16_t cursor = offset;
+
+    for(uint16_t frame = 0; frame < samples; frame++) {
+        int32_t pcm = audio_pam_scale(backend, audio_pop(backend));
+        if(pcm != 0) {
+            backend->pam_dither ^= backend->pam_dither << 13U;
+            backend->pam_dither ^= backend->pam_dither >> 17U;
+            backend->pam_dither ^= backend->pam_dither << 5U;
+            pcm += (int32_t)((backend->pam_dither >> 24U) & 0xFU) -
+                   (int32_t)((backend->pam_dither >> 20U) & 0xFU);
+        }
+        if(pcm > 32767) pcm = 32767;
+        if(pcm < -32768) pcm = -32768;
+
+        /* A first-order accumulator is intentionally used here. The DMA refill
+       runs in an interrupt, so keeping this loop light leaves enough CPU for
+       MP3 decoding and the UI. Dither prevents repetitive idle patterns from
+       turning into obvious tones during quiet passages. */
+        const uint32_t level = (uint32_t)(pcm + 32768);
+        for(uint8_t bit = 0; bit < PAM8403_OVERSAMPLE; bit++) {
+            backend->pam_accumulator += level;
+            if(backend->pam_accumulator >= 65536U) {
+                backend->pam_accumulator -= 65536U;
+                backend->max_gpio_bits[cursor++] = 1UL << 6U;
+            } else {
+                backend->max_gpio_bits[cursor++] = 1UL << (6U + 16U);
+            }
+        }
+    }
+}
+
+static void audio_pam_dma_isr(void* context) {
+    AudioBackend* backend = context;
+    if(LL_DMA_IsActiveFlag_HT3(DMA1)) {
+        LL_DMA_ClearFlag_HT3(DMA1);
+        audio_pam_fill(backend, 0);
+    }
+    if(LL_DMA_IsActiveFlag_TC3(DMA1)) {
+        LL_DMA_ClearFlag_TC3(DMA1);
+        audio_pam_fill(backend, MAX98357_HALF_BITS);
     }
     if(LL_DMA_IsActiveFlag_TE3(DMA1)) LL_DMA_ClearFlag_TE3(DMA1);
 }
@@ -175,9 +258,71 @@ static bool audio_internal_start(AudioBackend* backend) {
     TIM2->EGR = TIM_EGR_UG;
     TIM2->SR = 0;
     furi_hal_interrupt_set_isr_ex(
-        FuriHalInterruptIdTIM2, FuriHalInterruptPriorityHighest, audio_internal_isr, backend);
+        FuriHalInterruptIdTIM2, FuriHalInterruptPriorityHighest, audio_pwm_isr, backend);
     TIM2->DIER = TIM_DIER_UIE;
     TIM2->CR1 = TIM_CR1_CEN | TIM_CR1_ARPE;
+    return true;
+}
+
+static bool audio_pam_start(AudioBackend* backend) {
+    if(furi_hal_bus_is_enabled(FuriHalBusTIM2)) {
+        backend->error = AudioBackendErrorResourceBusy;
+        return false;
+    }
+    if(!audio_enable_5v(backend)) return false;
+
+    /* Generate a 500 kHz, first-order pulse-density stream on PA6 (external
+     pin 3). DMA publishes each GPIO state, avoiding TIM16 and therefore any
+     conflict with the system speaker service. A two-stage RC filter converts
+     this stream to the PAM8403's analog input. */
+    furi_hal_bus_enable(FuriHalBusTIM2);
+    backend->tim2_owned = true;
+    furi_hal_gpio_init(&gpio_ext_pa6, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
+    backend->pam_accumulator = 0;
+    backend->pam_dither = 0x6D2B79F5U;
+    audio_pam_fill(backend, 0);
+    audio_pam_fill(backend, MAX98357_HALF_BITS);
+
+    LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_3);
+    LL_DMA_ClearFlag_GI3(DMA1);
+    LL_DMA_SetPeriphRequest(DMA1, LL_DMA_CHANNEL_3, LL_DMAMUX_REQ_TIM2_UP);
+    LL_DMA_SetDataTransferDirection(DMA1, LL_DMA_CHANNEL_3, LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
+    LL_DMA_SetChannelPriorityLevel(DMA1, LL_DMA_CHANNEL_3, LL_DMA_PRIORITY_VERYHIGH);
+    LL_DMA_SetMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MODE_CIRCULAR);
+    LL_DMA_SetPeriphIncMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_PERIPH_NOINCREMENT);
+    LL_DMA_SetMemoryIncMode(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MEMORY_INCREMENT);
+    LL_DMA_SetPeriphSize(DMA1, LL_DMA_CHANNEL_3, LL_DMA_PDATAALIGN_WORD);
+    LL_DMA_SetMemorySize(DMA1, LL_DMA_CHANNEL_3, LL_DMA_MDATAALIGN_WORD);
+    LL_DMA_SetPeriphAddress(DMA1, LL_DMA_CHANNEL_3, (uint32_t)&GPIOA->BSRR);
+    LL_DMA_SetMemoryAddress(DMA1, LL_DMA_CHANNEL_3, (uint32_t)backend->max_gpio_bits);
+    LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_3, MAX98357_BUFFER_BITS);
+    LL_DMA_EnableIT_HT(DMA1, LL_DMA_CHANNEL_3);
+    LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_3);
+    LL_DMA_EnableIT_TE(DMA1, LL_DMA_CHANNEL_3);
+    furi_hal_interrupt_set_isr_ex(
+        FuriHalInterruptIdDma1Ch3, FuriHalInterruptPriorityHigh, audio_pam_dma_isr, backend);
+
+    TIM2->CR1 = 0;
+    TIM2->CR2 = 0;
+    TIM2->DIER = 0;
+    TIM2->CCER = 0;
+    TIM2->PSC = 0;
+    TIM2->ARR = (SystemCoreClock / PAM8403_BIT_RATE) - 1U;
+    TIM2->CNT = 0;
+    TIM2->CR1 = TIM_CR1_ARPE;
+    TIM2->EGR = TIM_EGR_UG;
+    TIM2->SR = 0;
+
+    LL_DMA_EnableChannel(DMA1, LL_DMA_CHANNEL_3);
+    TIM2->DIER = TIM_DIER_UDE;
+    TIM2->EGR = TIM_EGR_UG;
+    TIM2->SR = 0;
+    for(uint16_t wait = 0;
+        wait < 1024U && LL_DMA_GetDataLength(DMA1, LL_DMA_CHANNEL_3) == MAX98357_BUFFER_BITS;
+        wait++) {
+        __NOP();
+    }
+    TIM2->CR1 |= TIM_CR1_CEN;
     return true;
 }
 
@@ -187,17 +332,7 @@ static bool audio_max_start(AudioBackend* backend) {
         return false;
     }
 
-    /* Pin 1 is already supplied by USB when VBUS is present. Enabling battery
-     boost in that state fails, so only request OTG power when running from the
-     battery and no other service already owns it. */
-    const bool usb_powered = furi_hal_power_get_usb_voltage() >= 4.0f;
-    if(!usb_powered && !furi_hal_power_is_otg_enabled()) {
-        if(!furi_hal_power_enable_otg()) {
-            backend->error = AudioBackendErrorPowerUnavailable;
-            return false;
-        }
-        backend->otg_owned = true;
-    }
+    if(!audio_enable_5v(backend)) return false;
 
     furi_hal_bus_enable(FuriHalBusTIM2);
     backend->tim2_owned = true;
@@ -296,8 +431,13 @@ bool audio_backend_start(AudioBackend* backend, AudioOutput output, uint8_t volu
     backend->running = true;
     furi_hal_power_insomnia_enter();
 
-    const bool started = output == AudioOutputInternal ? audio_internal_start(backend) :
-                                                         audio_max_start(backend);
+    bool started;
+    if(output == AudioOutputInternal)
+        started = audio_internal_start(backend);
+    else if(output == AudioOutputPam8403)
+        started = audio_pam_start(backend);
+    else
+        started = audio_max_start(backend);
     if(!started) {
         backend->running = false;
         furi_hal_power_insomnia_exit();
@@ -320,6 +460,21 @@ void audio_backend_stop(AudioBackend* backend) {
         if(backend->speaker_acquired) {
             furi_hal_speaker_release();
             backend->speaker_acquired = false;
+        }
+    } else if(backend->output == AudioOutputPam8403) {
+        TIM2->CR1 = 0;
+        TIM2->DIER = 0;
+        LL_DMA_DisableChannel(DMA1, LL_DMA_CHANNEL_3);
+        LL_DMA_ClearFlag_GI3(DMA1);
+        furi_hal_interrupt_set_isr(FuriHalInterruptIdDma1Ch3, NULL, NULL);
+        furi_hal_gpio_init(&gpio_ext_pa6, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
+        if(backend->tim2_owned) {
+            furi_hal_bus_disable(FuriHalBusTIM2);
+            backend->tim2_owned = false;
+        }
+        if(backend->otg_owned) {
+            furi_hal_power_disable_otg();
+            backend->otg_owned = false;
         }
     } else {
         /* Stop BCLK before changing LRCLK or DIN. */

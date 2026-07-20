@@ -21,6 +21,9 @@
 #define MAX_SCAN_TIME_MS      5000U
 #define SEEK_STEP_MS          5000U
 #define VISIBLE_ROWS          4
+#define ABOUT_VISIBLE_ROWS    5
+#define ABOUT_ROW_PITCH       10
+#define ABOUT_FIRST_BASELINE  22
 #define MP3_SETTINGS_PATH     APP_DATA_PATH("settings.bin")
 #define MP3_LIBRARY_PATH_FILE APP_DATA_PATH("music_path.txt")
 #define MP3_SETTINGS_MAGIC    0x4DU
@@ -43,6 +46,7 @@ typedef enum {
 typedef enum {
     Mp3OutputInternal,
     Mp3OutputMax98357a,
+    Mp3OutputPam8403,
 } Mp3Output;
 
 typedef struct {
@@ -68,6 +72,7 @@ typedef struct {
     uint8_t settings_selection;
     uint8_t song_selection;
     uint8_t song_offset;
+    uint8_t about_offset;
 
     Mp3Song songs[MAX_SONGS];
     char music_directory[MAX_MUSIC_PATH];
@@ -102,7 +107,7 @@ static void mp3_load_settings(Mp3App* app) {
     furi_string_free(path);
 
     if(loaded && settings.volume <= 100 && settings.repeat <= Mp3RepeatAll &&
-       settings.output <= Mp3OutputMax98357a) {
+       settings.output <= Mp3OutputPam8403) {
         app->volume = settings.volume;
         app->repeat = (Mp3RepeatMode)settings.repeat;
         app->output = (Mp3Output)settings.output;
@@ -271,7 +276,9 @@ static const char* mp3_repeat_name(Mp3RepeatMode repeat) {
 static const char* mp3_output_name(Mp3Output output) {
     switch(output) {
     case Mp3OutputMax98357a:
-        return "External";
+        return "MAX98357A";
+    case Mp3OutputPam8403:
+        return "PAM8403";
     default:
         return "Internal";
     }
@@ -342,15 +349,57 @@ static void mp3_draw_settings(Canvas* canvas, const Mp3App* app) {
     mp3_draw_row(canvas, 61, "Rescan library", app->settings_selection == 3);
 }
 
-static void mp3_draw_about(Canvas* canvas) {
+/* The full pinout is longer than the screen, so About scrolls with Up/Down.
+   A NULL entry draws a horizontal separator rule instead of text; every text
+   line is kept short enough to fit the 128px width in FontSecondary. */
+static const char* const about_lines[] = {
+    "MP3 Player v3.4",
+    "Created by Coolshrimp",
+    NULL,
+    "MAX98357A:",
+    "LRC  = pin 4 / PA4",
+    "BCLK = pin 5 / PB3",
+    "DIN  = pin 2 / PA7",
+    "VIN  = 3V or 5V",
+    "GND  = GND",
+    NULL,
+    "PAM8403:",
+    "L/R in via 2.2k to",
+    "   pin 3 / PA6",
+    "VIN  = 3V or 5V",
+    "GND  = GND",
+};
+
+static uint8_t mp3_about_max_offset(void) {
+    const uint8_t total = COUNT_OF(about_lines);
+    return total > ABOUT_VISIBLE_ROWS ? total - ABOUT_VISIBLE_ROWS : 0;
+}
+
+static void mp3_draw_about(Canvas* canvas, const Mp3App* app) {
     mp3_draw_header(canvas, "About");
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 4, 21, "MP3 Player v2.12");
-    canvas_draw_str(canvas, 4, 29, "Created by Coolshrimp");
-    canvas_draw_str(canvas, 4, 37, "External MAX98357A:");
-    canvas_draw_str(canvas, 4, 45, "BCLK 5/PB3  DIN 2/PA7");
-    canvas_draw_str(canvas, 4, 53, "LRC 4/PA4   VIN 1/5V");
-    canvas_draw_str(canvas, 4, 61, "GND -> any GND pin");
+
+    const uint8_t total = COUNT_OF(about_lines);
+    for(uint8_t row = 0; row < ABOUT_VISIBLE_ROWS; row++) {
+        const uint8_t index = app->about_offset + row;
+        if(index >= total) break;
+        const uint8_t y = ABOUT_FIRST_BASELINE + row * ABOUT_ROW_PITCH;
+        const char* text = about_lines[index];
+        if(text == NULL)
+            canvas_draw_line(canvas, 4, y - 3, 123, y - 3);
+        else
+            canvas_draw_str(canvas, 4, y, text);
+    }
+
+    /* Chevrons at the right edge hint that more lines exist off-screen. */
+    if(app->about_offset) {
+        canvas_draw_line(canvas, 118, 19, 121, 16);
+        canvas_draw_line(canvas, 124, 19, 121, 16);
+    }
+    if(app->about_offset < mp3_about_max_offset()) {
+        canvas_draw_line(canvas, 118, 60, 121, 63);
+        canvas_draw_line(canvas, 124, 60, 121, 63);
+    }
 }
 
 static void mp3_draw_battery(Canvas* canvas) {
@@ -457,7 +506,7 @@ static void mp3_draw_callback(Canvas* canvas, void* context) {
         mp3_draw_settings(canvas, app);
         break;
     case Mp3ScreenAbout:
-        mp3_draw_about(canvas);
+        mp3_draw_about(canvas, app);
         break;
     case Mp3ScreenNowPlaying:
         mp3_draw_now_playing(canvas, app);
@@ -489,12 +538,17 @@ static bool mp3_build_song_path(const Mp3App* app, char* path, size_t path_size)
     return length >= 0 && (size_t)length < path_size;
 }
 
+static AudioOutput mp3_audio_output(Mp3Output output) {
+    if(output == Mp3OutputMax98357a) return AudioOutputMax98357a;
+    if(output == Mp3OutputPam8403) return AudioOutputPam8403;
+    return AudioOutputInternal;
+}
+
 static bool mp3_start_current(Mp3App* app) {
     char path[MAX_MUSIC_PATH];
     if(!mp3_build_song_path(app, path, sizeof(path))) return false;
 
-    const AudioOutput output = app->output == Mp3OutputInternal ? AudioOutputInternal :
-                                                                  AudioOutputMax98357a;
+    const AudioOutput output = mp3_audio_output(app->output);
     app->playing = mp3_playback_start(app->playback, path, output, app->volume);
     if(!app->playing) {
         const char* error = mp3_playback_get_error(app->playback);
@@ -507,8 +561,7 @@ static bool mp3_start_current_at(Mp3App* app, uint32_t position_ms, uint32_t dur
     char path[MAX_MUSIC_PATH];
     if(!mp3_build_song_path(app, path, sizeof(path))) return false;
 
-    const AudioOutput output = app->output == Mp3OutputInternal ? AudioOutputInternal :
-                                                                  AudioOutputMax98357a;
+    const AudioOutput output = mp3_audio_output(app->output);
     app->playing =
         mp3_playback_start_at(app->playback, path, output, app->volume, position_ms, duration_ms);
     if(!app->playing) {
@@ -581,11 +634,24 @@ static bool mp3_handle_main(Mp3App* app, InputKey key) {
             Mp3ScreenAbout,
         };
         app->screen = screens[app->main_selection];
-        if(app->screen == Mp3ScreenSongs && !app->library_loaded) mp3_scan_songs(app);
+        if(app->screen == Mp3ScreenSongs && !app->library_loaded)
+            mp3_scan_songs(app);
+        else if(app->screen == Mp3ScreenAbout)
+            app->about_offset = 0;
     } else if(key == InputKeyBack) {
         return false;
     }
     return true;
+}
+
+static void mp3_handle_about(Mp3App* app, InputKey key) {
+    if(key == InputKeyBack) {
+        app->screen = Mp3ScreenMain;
+    } else if(key == InputKeyUp && app->about_offset) {
+        app->about_offset--;
+    } else if(key == InputKeyDown && app->about_offset < mp3_about_max_offset()) {
+        app->about_offset++;
+    }
 }
 
 static void mp3_handle_songs(Mp3App* app, InputKey key) {
@@ -629,7 +695,7 @@ static void mp3_handle_settings(Mp3App* app, InputKey key) {
     } else if(app->settings_selection == 2 && (key == InputKeyLeft || key == InputKeyRight)) {
         mp3_playback_stop(app->playback);
         app->playing = false;
-        app->output = app->output == Mp3OutputInternal ? Mp3OutputMax98357a : Mp3OutputInternal;
+        app->output = (app->output + (key == InputKeyRight ? 1U : 2U)) % 3U;
         app->settings_dirty = true;
     } else if(app->settings_selection == 3 && key == InputKeyOk) {
         mp3_playback_stop(app->playback);
@@ -735,7 +801,7 @@ static bool mp3_handle_input(Mp3App* app, const InputEvent* event) {
         mp3_handle_settings(app, event->key);
         break;
     case Mp3ScreenAbout:
-        if(event->key == InputKeyBack) app->screen = Mp3ScreenMain;
+        mp3_handle_about(app, event->key);
         break;
     case Mp3ScreenNowPlaying:
         mp3_handle_now_playing(app, event);

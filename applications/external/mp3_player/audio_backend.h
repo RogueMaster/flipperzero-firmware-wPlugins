@@ -5,6 +5,7 @@
 typedef enum {
     AudioOutputInternal,
     AudioOutputMax98357a,
+    AudioOutputPam8403,
 } AudioOutput;
 
 typedef enum {

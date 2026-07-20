@@ -1,3 +1,10 @@
+## 3.4
+
+* Added a third output, PAM8403, driving a 500 kHz pulse-density stream on pin 3 (PA6) through an external RC filter.
+* Volume control now applies to every output, with a custom PAM8403 curve so its fixed noise floor no longer overwhelms quiet settings.
+* Rebuilt the About screen so it scrolls with Up and Down and lists the full MAX98357A and PAM8403 pinout, one pin per line.
+* README documents the pin 3 (PA6) pulse-density output and the required RC filter.
+
 ## 2.12
 
 * Added a "Created by Coolshrimp" credit to the About screen.
