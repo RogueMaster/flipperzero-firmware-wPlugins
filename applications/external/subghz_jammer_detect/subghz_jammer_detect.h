@@ -67,6 +67,8 @@ typedef struct {
     float threshold_suspicious;
     float threshold_jammer;
     AlertMode alert_mode;
+    /* Hardware error — set by worker if CC1101 init fails */
+    bool hw_error;
 } JammerState;
 
 /* ── View model (copied into view for draw callback) ── */
@@ -77,4 +79,5 @@ typedef struct {
     int8_t alert_freq_idx;
     float threshold_suspicious;
     float threshold_jammer;
+    bool hw_error;
 } JammerViewModel;

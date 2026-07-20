@@ -342,6 +342,10 @@ static void rogue_uart_line_cb(const char* line, void* ctx) {
 
     /* Apply user-configured RSSI filter. */
     if(rssi_raw < (int)r->min_rssi) {
+        /* rogue_prune_stale() above may have removed aged-out entries. Re-run
+           detection before bailing so a threat flag (e.g. EVIL TWIN) doesn't
+           persist in the UI after the entries that caused it were pruned. */
+        rogue_detect(r);
         furi_mutex_release(r->mutex);
         return;
     }

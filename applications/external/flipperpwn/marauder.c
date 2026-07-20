@@ -583,8 +583,10 @@ FPwnMarauder* fpwn_marauder_alloc(FPwnWifiUart* uart) {
 
 void fpwn_marauder_free(FPwnMarauder* marauder) {
     furi_assert(marauder);
-    /* Deregister callback so no stale calls fire after free. */
-    fpwn_wifi_uart_set_rx_callback(marauder->uart, NULL, NULL);
+    /* Caller is responsible for stopping the UART worker before this point
+     * (see marauder.h).  We do NOT call fpwn_wifi_uart_set_rx_callback here
+     * because that only blocks future dispatches — an in-flight rx_cb still
+     * holds marauder->mutex and would race with furi_mutex_free below. */
     furi_mutex_free(marauder->mutex);
     free(marauder);
 }

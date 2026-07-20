@@ -1,5 +1,8 @@
-#include "subghz_jammer_detect_worker.h"
-#include "subghz_jammer_detect.h"
+/* subghz_jammer_worker.c — Background worker thread for Sub-GHz Jammer.
+ * Manages CC1101 TX state and continuous carrier transmission. */
+
+#include "subghz_jammer_worker.h"
+#include "subghz_jammer.h"
 
 #include <furi.h>
 #include <furi_hal.h>
@@ -52,6 +55,11 @@ static int32_t jammer_worker_thread(void* context) {
     const SubGhzDevice* device = subghz_devices_get_by_name(SUBGHZ_DEVICE_CC1101_INT_NAME);
     if(!device) {
         FURI_LOG_E(TAG, "CC1101 device not found");
+        if(furi_mutex_acquire(worker->mutex, FuriWaitForever) == FuriStatusOk) {
+            worker->state->hw_error = true;
+            furi_mutex_release(worker->mutex);
+        }
+        worker->running = false;
         subghz_devices_deinit();
         furi_record_close(RECORD_NOTIFICATION);
         return -1;
@@ -59,6 +67,11 @@ static int32_t jammer_worker_thread(void* context) {
 
     if(!subghz_devices_begin(device)) {
         FURI_LOG_E(TAG, "subghz_devices_begin failed");
+        if(furi_mutex_acquire(worker->mutex, FuriWaitForever) == FuriStatusOk) {
+            worker->state->hw_error = true;
+            furi_mutex_release(worker->mutex);
+        }
+        worker->running = false;
         subghz_devices_deinit();
         furi_record_close(RECORD_NOTIFICATION);
         return -1;
@@ -106,7 +119,7 @@ static int32_t jammer_worker_thread(void* context) {
                 /* Consecutive cycle accounting — only count upgrades and holds */
                 if(s->status[i] >= FreqStatusSuspicious) {
                     if(s->status[i] >= prev_status) {
-                        s->consecutive[i]++;
+                        if(s->consecutive[i] < UINT8_MAX) s->consecutive[i]++;
                     }
                 } else {
                     s->consecutive[i] = 0;
@@ -179,6 +192,7 @@ static int32_t jammer_worker_thread(void* context) {
 
 JammerWorker* jammer_worker_alloc(JammerState* state, FuriMutex* mutex) {
     JammerWorker* worker = malloc(sizeof(JammerWorker));
+    furi_assert(worker);
     worker->thread = furi_thread_alloc_ex(TAG, 4096, jammer_worker_thread, worker);
     worker->running = false;
     worker->state = state;

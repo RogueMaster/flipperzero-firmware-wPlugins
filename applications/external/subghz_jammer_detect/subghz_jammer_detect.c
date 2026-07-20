@@ -1,3 +1,6 @@
+/* subghz_jammer.c — Main application and UI for Sub-GHz Jammer.
+ * Transmits continuous noise on a selected Sub-GHz frequency via CC1101. */
+
 #include <furi.h>
 #include <furi_hal.h>
 #include <gui/gui.h>
@@ -83,6 +86,14 @@ static void jammer_main_draw_callback(Canvas* canvas, void* model) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str(canvas, 0, 9, "SubGHz Jammer Detect");
     canvas_draw_line(canvas, 0, 11, 127, 11);
+
+    /* ── Hardware error screen ── */
+    if(vm->hw_error) {
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "CC1101 radio error");
+        canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignCenter, "Check hardware");
+        return;
+    }
 
     /* ── Frequency rows ──
    * Layout per row (row height = 10 px, starting at y=21):
@@ -188,6 +199,7 @@ static void jammer_refresh_timer_callback(void* context) {
         snapshot.alert_freq_idx = s->alert_freq_idx;
         snapshot.threshold_suspicious = s->threshold_suspicious;
         snapshot.threshold_jammer = s->threshold_jammer;
+        snapshot.hw_error = s->hw_error;
         furi_mutex_release(app->state_mutex);
     } else {
         return;
@@ -262,10 +274,12 @@ static uint32_t jammer_nav_to_main(void* context) {
 
 static JammerApp* jammer_app_alloc(void) {
     JammerApp* app = malloc(sizeof(JammerApp));
+    furi_assert(app);
     memset(app, 0, sizeof(JammerApp));
 
     /* Shared detection state — heap-allocated, never on the FAP stack */
     app->state = malloc(sizeof(JammerState));
+    furi_assert(app->state);
     memset(app->state, 0, sizeof(JammerState));
 
     /* Initialise RSSI windows to a floor value so the bar starts at zero */
@@ -316,6 +330,7 @@ static JammerApp* jammer_app_alloc(void) {
             vm->alert_freq_idx = -1;
             vm->threshold_suspicious = app->state->threshold_suspicious;
             vm->threshold_jammer = app->state->threshold_jammer;
+            vm->hw_error = false;
         },
         false);
 
@@ -358,6 +373,7 @@ static JammerApp* jammer_app_alloc(void) {
 
     /* Worker */
     app->worker = jammer_worker_alloc(app->state, app->state_mutex);
+    furi_assert(app->worker);
     jammer_worker_set_callback(app->worker, jammer_alert_callback, app);
 
     return app;

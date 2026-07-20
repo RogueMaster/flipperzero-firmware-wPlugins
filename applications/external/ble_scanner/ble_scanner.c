@@ -395,7 +395,6 @@ static void settings_log_changed(VariableItem* item) {
 
 static void ble_settings_build(BleScanApp* app) {
     variable_item_list_reset(app->settings_list);
-    variable_item_list_set_header(app->settings_list, "BLE Scanner Settings");
 
     /* Min RSSI */
     VariableItem* item;

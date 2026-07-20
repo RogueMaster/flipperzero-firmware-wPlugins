@@ -2,6 +2,7 @@ App(
     appid="nfc_fuzzer",
     name="NFC Fuzzer",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="nfc_fuzzer_app",
     stack_size=4 * 1024,
     fap_icon="nfc_fuzzer.png",
