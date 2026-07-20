@@ -39,6 +39,10 @@ void glitch_engine_arm_external(GlitchEngine* e, const GlitchParams* p);
 void glitch_engine_disarm(GlitchEngine* e);
 bool glitch_engine_is_armed(const GlitchEngine* e);
 
+/* Sample the target feedback pin. Returns true when it reads the "success"
+ * level (active_high => HIGH is success). False if no feedback pin is set. */
+bool glitch_engine_feedback_hit(GlitchEngine* e, bool active_high);
+
 /* Live counters (updated from both thread and interrupt context). */
 uint32_t glitch_engine_shots(const GlitchEngine* e);
 void glitch_engine_reset_shots(GlitchEngine* e);

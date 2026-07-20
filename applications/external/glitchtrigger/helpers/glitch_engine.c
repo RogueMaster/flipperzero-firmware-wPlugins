@@ -28,7 +28,9 @@ static const GpioPin* const glitch_gpio[] = {
 struct GlitchEngine {
     const GpioPin* out;
     const GpioPin* in;
+    const GpioPin* fb; // target feedback input (NULL if unused)
     bool out_configured;
+    bool fb_configured;
     bool armed_external;
     GlitchParams armed; // snapshot the ISR fires from
 
@@ -126,7 +128,9 @@ GlitchEngine* glitch_engine_alloc(void) {
     GlitchEngine* e = malloc(sizeof(GlitchEngine));
     e->out = NULL;
     e->in = NULL;
+    e->fb = NULL;
     e->out_configured = false;
+    e->fb_configured = false;
     e->armed_external = false;
     e->shots = 0;
     e->last_fire_tick = 0;
@@ -155,6 +159,18 @@ void glitch_engine_configure(GlitchEngine* e, const GlitchParams* p) {
     furi_hal_gpio_init(e->out, GpioModeOutputPushPull, GpioPullNo, GpioSpeedVeryHigh);
     furi_hal_gpio_write(e->out, !active); // sit at idle level
     e->out_configured = true;
+
+    /* Feedback input for auto-hit. Only claim it if it is a different pin from
+     * the output; pull toward the inactive level so a floating line is quiet. */
+    if(p->fb_pin != p->out_pin) {
+        e->fb = glitch_pin_for(p->fb_pin);
+        furi_hal_gpio_init(
+            e->fb, GpioModeInput, p->fb_active_high ? GpioPullDown : GpioPullUp, GpioSpeedLow);
+        e->fb_configured = true;
+    } else {
+        e->fb = NULL;
+        e->fb_configured = false;
+    }
 }
 
 void glitch_engine_release(GlitchEngine* e) {
@@ -164,6 +180,17 @@ void glitch_engine_release(GlitchEngine* e) {
         furi_hal_gpio_init_simple(e->out, GpioModeAnalog); // high-Z, safe
         e->out_configured = false;
     }
+    if(e->fb_configured && e->fb) {
+        furi_hal_gpio_init_simple(e->fb, GpioModeAnalog);
+        e->fb_configured = false;
+    }
+}
+
+bool glitch_engine_feedback_hit(GlitchEngine* e, bool active_high) {
+    furi_assert(e);
+    if(!e->fb) return false;
+    bool level = furi_hal_gpio_read(e->fb);
+    return level == active_high;
 }
 
 void glitch_engine_fire(GlitchEngine* e, const GlitchParams* p) {

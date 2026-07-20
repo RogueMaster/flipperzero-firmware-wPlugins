@@ -8,6 +8,7 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/variable_item_list.h>
 #include <gui/modules/widget.h>
+#include <gui/modules/text_input.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
 
@@ -15,17 +16,19 @@
 
 #include "helpers/glitch_config.h"
 #include "helpers/glitch_engine.h"
+#include "helpers/glitch_storage.h"
 #include "views/trigger_view.h"
 #include "views/sweep_view.h"
 #include "views/wiring_view.h"
 #include "scenes/glitch_scene.h"
 
-#define GLITCH_VERSION "1.0"
+#define GLITCH_VERSION "1.1"
 
 typedef enum {
     GlitchViewSubmenu,
     GlitchViewVarList,
     GlitchViewWidget,
+    GlitchViewTextInput,
     GlitchViewTrigger,
     GlitchViewSweep,
     GlitchViewWiring,
@@ -41,6 +44,7 @@ typedef struct {
     Submenu* submenu;
     VariableItemList* var_item_list;
     Widget* widget;
+    TextInput* text_input;
 
     /* custom views */
     TriggerView* trigger_view;
@@ -50,6 +54,10 @@ typedef struct {
     /* the instrument */
     GlitchEngine* engine;
     GlitchParams params;
+
+    /* profiles */
+    char name_buf[GLITCH_PROFILE_NAME_MAX]; // text-input scratch
+    char selected_profile[GLITCH_PROFILE_NAME_MAX]; // profile picked in the list
 
     /* settings */
     bool sound;

@@ -58,12 +58,8 @@ def finish(img, name):
     pad = 20
     canvas = Image.new("RGB", (W * SCALE + pad * 2, H * SCALE + pad * 2), BEZEL)
     d = ImageDraw.Draw(canvas)
-    d.rounded_rectangle(
-        [6, 6, canvas.width - 6, canvas.height - 6],
-        radius=16,
-        outline=BEZEL_HI,
-        width=3,
-    )
+    d.rounded_rectangle([6, 6, canvas.width - 6, canvas.height - 6], radius=16,
+                        outline=BEZEL_HI, width=3)
     canvas.paste(up, (pad, pad))
     path = os.path.join(OUT, name)
     canvas.save(path)
@@ -77,7 +73,7 @@ def m_menu():
     d = ImageDraw.Draw(img)
     ctext(d, 64, 0, "Glitch Trigger", PRIM)
     d.line([(0, 13), (128, 13)], fill=INK)
-    items = ["Trigger", "Configure", "Sweep", "Wiring"]
+    items = ["Trigger", "Configure", "Sweep", "Profiles"]
     y = 16
     for i, it in enumerate(items):
         if i == 0:
@@ -143,19 +139,46 @@ def m_sweep():
     img = screen()
     d = ImageDraw.Draw(img)
     d.text((2, 1), "Sweep", font=PRIM, fill=INK)
+    # right-aligned chips: RUN, A (auto-hit), 2D
+    rx = 126
     cw = d.textlength("RUN", font=SEC) + 6
-    chip(d, 126 - cw, 1, "RUN", SEC, True)
+    chip(d, rx - cw, 1, "RUN", SEC, True)
+    rx -= cw + 3
+    chip(d, rx - (d.textlength("A", font=SEC) + 6), 1, "A", SEC, False)
+    rx -= d.textlength("A", font=SEC) + 6 + 3
+    chip(d, rx - (d.textlength("2D", font=SEC) + 6), 1, "2D", SEC, False)
     d.line([(0, 14), (128, 14)], fill=INK)
-    d.text((2, 16), "width", font=PRIM, fill=INK)
-    rtext(d, 126, 16, "2.0 us", PRIM)
+    # current point: width + delay
+    d.text((2, 16), "w", font=PRIM, fill=INK)
+    d.text((12, 16), "2.0 us", font=PRIM, fill=INK)
+    d.text((72, 16), "d", font=PRIM, fill=INK)
+    d.text((82, 16), "100 us", font=PRIM, fill=INK)
     # progress bar
     d.rounded_rectangle([2, 31, 126, 38], radius=2, outline=INK, width=1)
-    d.rectangle([3, 32, 3 + 68, 37], fill=INK)
+    d.rectangle([3, 32, 3 + 74, 37], fill=INK)
     d.text((2, 40), "125 ns..5.0 us", font=SEC, fill=INK)
-    rtext(d, 126, 40, "15/40", SEC)
-    d.text((2, 48), "hit @ 2.0 us (1)", font=SEC, fill=INK)
+    rtext(d, 126, 40, "150/400", SEC)
+    d.text((2, 48), "hit 2.0us@100us (3)", font=SEC, fill=INK)
     ctext(d, 64, 55, "OK:hit  <:pause  >:restart", SEC)
     return finish(img, "screen_sweep.png")
+
+
+# -------------------------------------------------------------- 6. profiles
+def m_profiles():
+    img = screen()
+    d = ImageDraw.Draw(img)
+    ctext(d, 64, 0, "Profiles", PRIM)
+    d.line([(0, 13), (128, 13)], fill=INK)
+    items = ["[+] Save current...", "stm32-vcc-1", "atmega-fast", "rpi-pico-drop"]
+    y = 16
+    for i, it in enumerate(items):
+        if i == 1:
+            d.rounded_rectangle([2, y - 1, 125, y + 11], radius=3, fill=INK)
+            d.text((7, y + 1), it, font=SEC, fill=ORANGE)
+        else:
+            d.text((7, y + 1), it, font=SEC, fill=INK)
+        y += 12
+    return finish(img, "screen_profiles.png")
 
 
 # ---------------------------------------------------------------- 4. wiring
@@ -196,13 +219,8 @@ def m_wiring():
 def m_params():
     img = screen()
     d = ImageDraw.Draw(img)
-    rows = [
-        ("Delay", "100 us"),
-        ("Width", "500 ns"),
-        ("Pulses", "1"),
-        ("Gap", "10 us"),
-        ("Polarity", "Active-High"),
-    ]
+    rows = [("Delay", "100 us"), ("Width", "500 ns"), ("Pulses", "1"),
+            ("Gap", "10 us"), ("Polarity", "Active-High")]
     y = 2
     for i, (k, v) in enumerate(rows):
         if i == 1:
@@ -217,13 +235,8 @@ def m_params():
 
 
 def strip():
-    names = [
-        "screen_menu.png",
-        "screen_trigger.png",
-        "screen_sweep.png",
-        "screen_wiring.png",
-        "screen_params.png",
-    ]
+    names = ["screen_menu.png", "screen_trigger.png", "screen_sweep.png",
+             "screen_profiles.png", "screen_wiring.png", "screen_params.png"]
     imgs = [Image.open(os.path.join(OUT, n)) for n in names]
     gap = 16
     tw = sum(i.width for i in imgs) + gap * (len(imgs) - 1)
@@ -242,6 +255,7 @@ if __name__ == "__main__":
     m_menu()
     m_trigger()
     m_sweep()
+    m_profiles()
     m_wiring()
     m_params()
     strip()

@@ -23,6 +23,33 @@ static void set_in_pin(VariableItem* item) {
     pin_label(v, b, sizeof(b));
     variable_item_set_current_value_text(item, b);
 }
+static void set_fb_pin(VariableItem* item) {
+    GlitchApp* app = variable_item_get_context(item);
+    uint8_t v = variable_item_get_current_value_index(item);
+    app->params.fb_pin = v;
+    char b[12];
+    pin_label(v, b, sizeof(b));
+    variable_item_set_current_value_text(item, b);
+}
+static const char* const level_lbl[] = {"LOW", "HIGH"};
+static void set_fb_level(VariableItem* item) {
+    GlitchApp* app = variable_item_get_context(item);
+    uint8_t v = variable_item_get_current_value_index(item);
+    app->params.fb_active_high = v;
+    variable_item_set_current_value_text(item, level_lbl[v]);
+}
+static void set_auto_hit(VariableItem* item) {
+    GlitchApp* app = variable_item_get_context(item);
+    uint8_t v = variable_item_get_current_value_index(item);
+    app->params.auto_hit = v;
+    variable_item_set_current_value_text(item, on_off[v]);
+}
+static void set_log_hits(VariableItem* item) {
+    GlitchApp* app = variable_item_get_context(item);
+    uint8_t v = variable_item_get_current_value_index(item);
+    app->params.log_hits = v;
+    variable_item_set_current_value_text(item, on_off[v]);
+}
 static void set_sound(VariableItem* item) {
     GlitchApp* app = variable_item_get_context(item);
     uint8_t v = variable_item_get_current_value_index(item);
@@ -58,6 +85,23 @@ void glitch_scene_settings_on_enter(void* context) {
     variable_item_set_current_value_index(item, app->params.in_pin);
     pin_label(app->params.in_pin, b, sizeof(b));
     variable_item_set_current_value_text(item, b);
+
+    item = variable_item_list_add(list, "Feedback pin", glitch_pins_len, set_fb_pin, app);
+    variable_item_set_current_value_index(item, app->params.fb_pin);
+    pin_label(app->params.fb_pin, b, sizeof(b));
+    variable_item_set_current_value_text(item, b);
+
+    item = variable_item_list_add(list, "Success lvl", 2, set_fb_level, app);
+    variable_item_set_current_value_index(item, app->params.fb_active_high);
+    variable_item_set_current_value_text(item, level_lbl[app->params.fb_active_high]);
+
+    item = variable_item_list_add(list, "Auto-hit", 2, set_auto_hit, app);
+    variable_item_set_current_value_index(item, app->params.auto_hit);
+    variable_item_set_current_value_text(item, on_off[app->params.auto_hit]);
+
+    item = variable_item_list_add(list, "Log hits", 2, set_log_hits, app);
+    variable_item_set_current_value_index(item, app->params.log_hits);
+    variable_item_set_current_value_text(item, on_off[app->params.log_hits]);
 
     item = variable_item_list_add(list, "Sound", 2, set_sound, app);
     variable_item_set_current_value_index(item, app->sound);

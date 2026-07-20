@@ -48,11 +48,26 @@ typedef struct {
 
     /* Parameter sweep: walk width_ns from `sweep_from` to `sweep_to` in
      * `sweep_step` increments, firing at each point. The classic way to hunt
-     * for the width that faults a given target. */
+     * for the width that faults a given target. When `sweep_2d` is set, delay
+     * is swept too, so the sweep covers a delay x width grid. `sweep_dwell` is
+     * the number of shots fired at each grid point before advancing. */
     bool sweep_enabled;
     uint32_t sweep_from_ns;
     uint32_t sweep_to_ns;
     uint32_t sweep_step_ns;
+    bool sweep_2d;
+    uint32_t sweep_delay_from_us;
+    uint32_t sweep_delay_to_us;
+    uint32_t sweep_delay_step_us;
+    uint16_t sweep_dwell;
+
+    /* Feedback / auto-hit: sample a target "success" line after each shot. When
+     * `auto_hit` is on, a sweep marks a hit automatically the moment the
+     * feedback pin reaches its success level. */
+    uint8_t fb_pin; // index into glitch_pins[]  (target feedback input)
+    bool fb_active_high; // success = feedback HIGH (true) / LOW (false)
+    bool auto_hit; // auto-mark sweep hits from the feedback pin
+    bool log_hits; // append hits to a CSV on the SD card
 
     uint8_t out_pin; // index into glitch_pins[]  (trigger output)
     uint8_t in_pin; // index into glitch_pins[]  (external trigger input)
@@ -76,6 +91,8 @@ extern const uint16_t glitch_ladder_pulses[];
 extern const size_t glitch_ladder_pulses_len;
 extern const uint32_t glitch_ladder_repeat_ms[];
 extern const size_t glitch_ladder_repeat_len;
+extern const uint16_t glitch_ladder_dwell[];
+extern const size_t glitch_ladder_dwell_len;
 
 size_t glitch_ladder_nearest_u32(const uint32_t* tbl, size_t len, uint32_t v);
 size_t glitch_ladder_nearest_u16(const uint16_t* tbl, size_t len, uint16_t v);

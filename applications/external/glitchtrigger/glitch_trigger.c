@@ -104,6 +104,10 @@ static GlitchApp* glitch_app_alloc(void) {
     app->widget = widget_alloc();
     view_dispatcher_add_view(app->view_dispatcher, GlitchViewWidget, widget_get_view(app->widget));
 
+    app->text_input = text_input_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, GlitchViewTextInput, text_input_get_view(app->text_input));
+
     app->trigger_view = trigger_view_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, GlitchViewTrigger, trigger_view_get_view(app->trigger_view));
@@ -128,6 +132,7 @@ static void glitch_app_free(GlitchApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, GlitchViewSubmenu);
     view_dispatcher_remove_view(app->view_dispatcher, GlitchViewVarList);
     view_dispatcher_remove_view(app->view_dispatcher, GlitchViewWidget);
+    view_dispatcher_remove_view(app->view_dispatcher, GlitchViewTextInput);
     view_dispatcher_remove_view(app->view_dispatcher, GlitchViewTrigger);
     view_dispatcher_remove_view(app->view_dispatcher, GlitchViewSweep);
     view_dispatcher_remove_view(app->view_dispatcher, GlitchViewWiring);
@@ -135,6 +140,7 @@ static void glitch_app_free(GlitchApp* app) {
     submenu_free(app->submenu);
     variable_item_list_free(app->var_item_list);
     widget_free(app->widget);
+    text_input_free(app->text_input);
     trigger_view_free(app->trigger_view);
     sweep_view_free(app->sweep_view);
     wiring_view_free(app->wiring_view);

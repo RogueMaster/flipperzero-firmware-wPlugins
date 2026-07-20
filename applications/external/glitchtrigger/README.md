@@ -60,23 +60,33 @@ triggered, and the Flipper does the timing.
   - **External** — an edge on the trigger-in pin fires a shot from a GPIO
     **interrupt**, for lowest latency (arm it to a target's reset/UART/GPIO).
   - **Repeat** — free-running, one shot every interval.
-- **Width Sweep** — walk the pulse width across a range (`from … to`, `step`) to
-  hunt the fault window. When the target faults, press **OK** to mark the width
-  in play.
+- **Sweep the fault window** — walk the pulse **width** across a range
+  (`from … to`, `step`), or turn on **2D** to sweep a **delay × width grid** — the
+  real parameter search space. **Dwell** fires *N* shots at each point for
+  statistics, and a progress bar tracks position across the grid.
+- **Auto-hit detection** — wire a target **feedback pin** (a success/status line)
+  and the sweep marks a hit *automatically* the moment it reaches the success
+  level, turning a sweep into a hands-off campaign. Or just press **OK** to mark
+  the point in play yourself.
+- **Profiles** — save, load and delete named parameter sets on the SD card, with
+  on-device name entry. Recall your `stm32-vcc` or `rp2040-drop` setup instantly.
+- **CSV hit log** — every hit (manual or auto) is appended to
+  `apps_data/glitch_trigger/hits.csv` with its delay, width, pulses and timestamp,
+  ready to graph off-device.
 - **On-device Wiring diagram** — a labelled hook-up sketch (Flipper → MOSFET
   crowbar → target) with rotating safety reminders, so you don't need the README
   on the bench.
 - **Live feedback** — an animated pulse timeline, an ARM/FIRE state badge, a shot
   counter, and gated LED / sound / vibro on every shot.
-- **Selectable pins** — pick the glitch-out and trigger-in header pins.
+- **Selectable pins** — pick the glitch-out, trigger-in and feedback header pins.
 
 ---
 
 ## Screens
 
-| Menu | Trigger | Sweep | Wiring | Configure |
-|---|---|---|---|---|
-| Pick a mode | Fire screen with a live pulse timeline | Hunt the fault window | Hook-up + safety | Every parameter |
+| Menu | Trigger | Sweep | Profiles | Wiring | Configure |
+|---|---|---|---|---|---|
+| Pick a mode | Fire screen with a live pulse timeline | Hunt the fault window (2D + auto-hit) | Save / load setups | Hook-up + safety | Every parameter |
 
 <p align="center"><img src="images/screen_trigger.png" width="360" alt="Trigger screen"></p>
 
@@ -139,21 +149,27 @@ The in-app **Wiring** screen redraws this with your currently-selected pins.
 A shot runs as:
 
 ```
-FURI_CRITICAL_ENTER();          // interrupts masked → no jitter
-  drive idle level
-  busy-wait  delay   (DWT cycles)
-  repeat pulses:
-    drive active
-    busy-wait width  (DWT cycles)
-    drive idle
-    busy-wait gap    (DWT cycles)
+drive idle level
+coarse-delay (interrupts ON)     // bulk of a long arm delay
+
+FURI_CRITICAL_ENTER();           // masked → no jitter on the glitch edge
+  busy-wait  fine delay  (DWT cycles)
+  drive active
+  busy-wait  width       (DWT cycles)
+  drive idle
 FURI_CRITICAL_EXIT();
+
+repeat for remaining burst pulses:
+  gap (interrupts ON)
+  FURI_CRITICAL_ENTER(); pulse (DWT cycles); FURI_CRITICAL_EXIT();
 ```
 
 Delays are converted straight to CPU cycles from `SystemCoreClock` (64 MHz) and
 timed against `DWT->CYCCNT`, giving **~15.6 ns** granularity. For long arm delays
-(> 2 ms) the coarse part runs with interrupts enabled so the system isn't frozen,
-and only the final, precision-critical slice is masked. In **External** mode the
+the coarse part runs with interrupts enabled so the system isn't frozen, and only
+the final, precision-critical slice (the fine delay + the glitch edge) is masked —
+each masked window is bounded to **~1 ms**. In a burst, the inter-pulse gaps run
+with interrupts on and only each short pulse is masked. In **External** mode the
 shot is fired directly from the GPIO interrupt for the lowest possible
 trigger-to-pulse latency.
 
@@ -176,9 +192,23 @@ trigger-to-pulse latency.
 | **Ext Edge** | Rising / Falling | which edge fires in External mode |
 | **Repeat** | 10 ms – 5 s | interval in Repeat mode |
 | **Sweep from / to / step** | 62 ns – 500 µs | width range for the sweep hunter |
+| **Sweep 2D** | On / Off | also sweep delay → a delay × width grid |
+| **Dwell** | 1 – 100 | shots fired at each sweep point |
+| **2D delay from / to / step** | 0 – 100 ms | delay range for a 2D sweep |
+| **Feedback pin / Success lvl** | pin · HIGH/LOW | target line + level that counts as a hit |
+| **Auto-hit / Log hits** | On / Off | auto-mark from feedback · append hits to CSV |
 
 All values move along 1-2-5 "nice number" ladders, so one knob spans the whole
 range and the readout is always in friendly units.
+
+### Sweep campaigns
+
+A single `width` sweep is the quick hunt; **2D** is the real one. Turn on
+**Sweep 2D** and set the delay range, and the runner walks a full **delay × width**
+grid, firing **Dwell** shots at each cell. Wire the target's success line to the
+**Feedback pin**, set the **Success level**, enable **Auto-hit**, and the sweep
+records — and (with **Log hits**) logs — every cell that faults, unattended. Pull
+`hits.csv` off the SD card afterwards to plot the fault window.
 
 ---
 
@@ -211,12 +241,13 @@ glitch_trigger.c / _i.h      app lifecycle, view dispatcher, notifications
 application.fam              FAP manifest (category: GPIO)
 helpers/
   glitch_config.c/.h         parameter model, value ladders, formatters, pin table
-  glitch_engine.c/.h         the pulse engine — DWT timing, GPIO, external-trigger ISR
+  glitch_engine.c/.h         the pulse engine — DWT timing, GPIO, external-trigger ISR, feedback read
+  glitch_storage.c/.h        SD profiles (save/load/delete) + CSV hit log
 views/
   trigger_view.c/.h          the fire screen (pulse timeline + state machine)
-  sweep_view.c/.h            the width-sweep hunter
+  sweep_view.c/.h            the sweep hunter (1D/2D, progress, auto-hit)
   wiring_view.c/.h           the hook-up diagram + safety tips
-scenes/                      start · params · trigger · sweep · wiring · settings · about
+scenes/                      start · params · trigger · sweep · profiles(+name/act) · wiring · settings · about
 icons/  images/              app icon, banner, social card, screen mockups
 tools_gen_*.py               regenerate the icon / banner / mockups
 ```

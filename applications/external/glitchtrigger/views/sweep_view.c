@@ -11,56 +11,77 @@ struct SweepView {
 };
 
 typedef struct {
-    uint32_t from_ns, to_ns, step_ns;
-    uint32_t current_ns;
+    uint32_t from_ns, to_ns;
+    uint32_t width_ns, delay_us;
+    bool is_2d;
     uint32_t index, total;
     uint32_t shots, hits;
-    uint32_t last_hit_ns;
+    uint32_t last_hit_ns, last_hit_delay_us;
     bool running;
+    bool auto_on;
 } SweepModel;
+
+static void draw_chip(Canvas* canvas, int x, int y, const char* txt, bool filled) {
+    int w = canvas_string_width(canvas, txt) + 6;
+    if(filled) {
+        canvas_draw_rbox(canvas, x, y, w, 11, 2);
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_str(canvas, x + 3, y + 9, txt);
+        canvas_set_color(canvas, ColorBlack);
+    } else {
+        canvas_draw_rframe(canvas, x, y, w, 11, 2);
+        canvas_draw_str(canvas, x + 3, y + 9, txt);
+    }
+}
 
 static void sweep_view_draw(Canvas* canvas, void* model) {
     SweepModel* m = model;
     canvas_clear(canvas);
 
-    /* header */
+    /* header: title + optional 2D / A markers + run state */
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str(canvas, 2, 10, "Sweep");
+
     canvas_set_font(canvas, FontSecondary);
+    int rx = 126;
     const char* st = m->running ? "RUN" : "PAUSE";
-    int w = canvas_string_width(canvas, st) + 6;
-    if(m->running) {
-        canvas_draw_rbox(canvas, 126 - w, 1, w, 11, 2);
-        canvas_set_color(canvas, ColorWhite);
-        canvas_draw_str(canvas, 126 - w + 3, 10, st);
-        canvas_set_color(canvas, ColorBlack);
-    } else {
-        canvas_draw_rframe(canvas, 126 - w, 1, w, 11, 2);
-        canvas_draw_str(canvas, 126 - w + 3, 10, st);
+    int sw = canvas_string_width(canvas, st) + 6;
+    draw_chip(canvas, rx - sw, 1, st, m->running);
+    rx -= sw + 3;
+    if(m->auto_on) {
+        draw_chip(canvas, rx - 14, 1, "A", false);
+        rx -= 17;
+    }
+    if(m->is_2d) {
+        draw_chip(canvas, rx - 18, 1, "2D", false);
     }
     canvas_draw_line(canvas, 0, 13, 128, 13);
 
-    /* current width, prominent */
-    char val[24];
-    glitch_fmt_ns(m->current_ns, val, sizeof(val));
+    /* current point: width (+ delay when 2D) */
+    char w[16], d[16];
+    glitch_fmt_ns(m->width_ns, w, sizeof(w));
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 2, 27, "width");
-    canvas_draw_str_aligned(canvas, 126, 27, AlignRight, AlignBottom, val);
+    canvas_draw_str(canvas, 2, 25, "w");
+    canvas_draw_str(canvas, 12, 25, w);
+    if(m->is_2d) {
+        glitch_fmt_us(m->delay_us, d, sizeof(d));
+        canvas_draw_str_aligned(canvas, 78, 25, AlignLeft, AlignBottom, "d");
+        canvas_draw_str_aligned(canvas, 88, 25, AlignLeft, AlignBottom, d);
+    }
 
     /* progress bar */
-    int bx = 2, by = 31, bw = 124, bh = 7;
+    int bx = 2, by = 30, bw = 124, bh = 7;
     canvas_draw_rframe(canvas, bx, by, bw, bh, 2);
     if(m->total > 0) {
-        int fill = (int)(((uint64_t)(m->index) * (bw - 2)) / m->total);
+        int fill = (int)(((uint64_t)m->index * (bw - 2)) / m->total);
         if(fill > 0) canvas_draw_box(canvas, bx + 1, by + 1, fill, bh - 2);
     }
 
-    /* range + step line */
-    char range[40];
-    char a[16], b[16];
+    /* range + index */
+    canvas_set_font(canvas, FontSecondary);
+    char a[16], b[16], range[40];
     glitch_fmt_ns(m->from_ns, a, sizeof(a));
     glitch_fmt_ns(m->to_ns, b, sizeof(b));
-    canvas_set_font(canvas, FontSecondary);
     snprintf(range, sizeof(range), "%s..%s", a, b);
     canvas_draw_str(canvas, 2, 47, range);
     char idx[24];
@@ -72,14 +93,16 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
     if(m->last_hit_ns > 0) {
         char h[16];
         glitch_fmt_ns(m->last_hit_ns, h, sizeof(h));
-        snprintf(line, sizeof(line), "hit @ %s (%lu)", h, (unsigned long)m->hits);
+        if(m->is_2d) {
+            char hd[16];
+            glitch_fmt_us(m->last_hit_delay_us, hd, sizeof(hd));
+            snprintf(line, sizeof(line), "hit %s@%s (%lu)", h, hd, (unsigned long)m->hits);
+        } else {
+            snprintf(line, sizeof(line), "hit @ %s  (%lu)", h, (unsigned long)m->hits);
+        }
     } else {
         snprintf(
-            line,
-            sizeof(line),
-            "shots %lu  hits %lu",
-            (unsigned long)m->shots,
-            (unsigned long)m->hits);
+            line, sizeof(line), "shots %lu  hits %lu", (unsigned long)m->shots, (unsigned long)m->hits);
     }
     canvas_draw_str(canvas, 2, 56, line);
 
@@ -134,24 +157,34 @@ void sweep_view_set_callback(SweepView* v, SweepViewCallback cb, void* ctx) {
     v->ctx = ctx;
 }
 
-void sweep_view_set_range(SweepView* v, uint32_t from_ns, uint32_t to_ns, uint32_t step_ns) {
+void sweep_view_set_width_range(SweepView* v, uint32_t from_ns, uint32_t to_ns) {
     with_view_model(
         v->view,
         SweepModel * m,
         {
             m->from_ns = from_ns;
             m->to_ns = to_ns;
-            m->step_ns = step_ns;
         },
         true);
 }
 
-void sweep_view_set_progress(SweepView* v, uint32_t current_ns, uint32_t index, uint32_t total) {
+void sweep_view_set_point(SweepView* v, uint32_t width_ns, uint32_t delay_us, bool is_2d) {
     with_view_model(
         v->view,
         SweepModel * m,
         {
-            m->current_ns = current_ns;
+            m->width_ns = width_ns;
+            m->delay_us = delay_us;
+            m->is_2d = is_2d;
+        },
+        true);
+}
+
+void sweep_view_set_progress(SweepView* v, uint32_t index, uint32_t total) {
+    with_view_model(
+        v->view,
+        SweepModel * m,
+        {
             m->index = index;
             m->total = total;
         },
@@ -173,6 +206,17 @@ void sweep_view_set_running(SweepView* v, bool running) {
     with_view_model(v->view, SweepModel * m, { m->running = running; }, true);
 }
 
-void sweep_view_set_last_hit(SweepView* v, uint32_t hit_ns) {
-    with_view_model(v->view, SweepModel * m, { m->last_hit_ns = hit_ns; }, true);
+void sweep_view_set_auto(SweepView* v, bool auto_on) {
+    with_view_model(v->view, SweepModel * m, { m->auto_on = auto_on; }, true);
+}
+
+void sweep_view_set_last_hit(SweepView* v, uint32_t hit_ns, uint32_t hit_delay_us) {
+    with_view_model(
+        v->view,
+        SweepModel * m,
+        {
+            m->last_hit_ns = hit_ns;
+            m->last_hit_delay_us = hit_delay_us;
+        },
+        true);
 }

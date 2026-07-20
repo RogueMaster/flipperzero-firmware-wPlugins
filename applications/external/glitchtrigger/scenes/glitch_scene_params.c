@@ -86,6 +86,45 @@ static void item_sweep_step(VariableItem* item) {
     glitch_fmt_ns(app->params.sweep_step_ns, b, sizeof(b));
     variable_item_set_current_value_text(item, b);
 }
+static const char* const off_on[] = {"OFF", "ON"};
+static void item_sweep_2d(VariableItem* item) {
+    GlitchApp* app = variable_item_get_context(item);
+    uint8_t i = variable_item_get_current_value_index(item);
+    app->params.sweep_2d = i;
+    variable_item_set_current_value_text(item, off_on[i]);
+}
+static void item_dwell(VariableItem* item) {
+    GlitchApp* app = variable_item_get_context(item);
+    uint8_t i = variable_item_get_current_value_index(item);
+    app->params.sweep_dwell = glitch_ladder_dwell[i];
+    char b[8];
+    snprintf(b, sizeof(b), "%u", app->params.sweep_dwell);
+    variable_item_set_current_value_text(item, b);
+}
+static void item_sweep_dfrom(VariableItem* item) {
+    GlitchApp* app = variable_item_get_context(item);
+    uint8_t i = variable_item_get_current_value_index(item);
+    app->params.sweep_delay_from_us = glitch_ladder_delay_us[i];
+    char b[16];
+    glitch_fmt_us(app->params.sweep_delay_from_us, b, sizeof(b));
+    variable_item_set_current_value_text(item, b);
+}
+static void item_sweep_dto(VariableItem* item) {
+    GlitchApp* app = variable_item_get_context(item);
+    uint8_t i = variable_item_get_current_value_index(item);
+    app->params.sweep_delay_to_us = glitch_ladder_delay_us[i];
+    char b[16];
+    glitch_fmt_us(app->params.sweep_delay_to_us, b, sizeof(b));
+    variable_item_set_current_value_text(item, b);
+}
+static void item_sweep_dstep(VariableItem* item) {
+    GlitchApp* app = variable_item_get_context(item);
+    uint8_t i = variable_item_get_current_value_index(item);
+    app->params.sweep_delay_step_us = glitch_ladder_delay_us[i];
+    char b[16];
+    glitch_fmt_us(app->params.sweep_delay_step_us, b, sizeof(b));
+    variable_item_set_current_value_text(item, b);
+}
 
 void glitch_scene_params_on_enter(void* context) {
     GlitchApp* app = context;
@@ -160,6 +199,37 @@ void glitch_scene_params_on_enter(void* context) {
         variable_item_list_add(list, "Sweep step", glitch_ladder_width_len, item_sweep_step, app);
     variable_item_set_current_value_index(item, idx);
     glitch_fmt_ns(glitch_ladder_width_ns[idx], b, sizeof(b));
+    variable_item_set_current_value_text(item, b);
+
+    item = variable_item_list_add(list, "Sweep 2D", 2, item_sweep_2d, app);
+    variable_item_set_current_value_index(item, p->sweep_2d);
+    variable_item_set_current_value_text(item, p->sweep_2d ? "ON" : "OFF");
+
+    idx = glitch_ladder_nearest_u16(glitch_ladder_dwell, glitch_ladder_dwell_len, p->sweep_dwell);
+    item = variable_item_list_add(list, "Dwell", glitch_ladder_dwell_len, item_dwell, app);
+    variable_item_set_current_value_index(item, idx);
+    snprintf(b, sizeof(b), "%u", glitch_ladder_dwell[idx]);
+    variable_item_set_current_value_text(item, b);
+
+    idx = glitch_ladder_nearest_u32(
+        glitch_ladder_delay_us, glitch_ladder_delay_len, p->sweep_delay_from_us);
+    item = variable_item_list_add(list, "2D delay from", glitch_ladder_delay_len, item_sweep_dfrom, app);
+    variable_item_set_current_value_index(item, idx);
+    glitch_fmt_us(glitch_ladder_delay_us[idx], b, sizeof(b));
+    variable_item_set_current_value_text(item, b);
+
+    idx = glitch_ladder_nearest_u32(
+        glitch_ladder_delay_us, glitch_ladder_delay_len, p->sweep_delay_to_us);
+    item = variable_item_list_add(list, "2D delay to", glitch_ladder_delay_len, item_sweep_dto, app);
+    variable_item_set_current_value_index(item, idx);
+    glitch_fmt_us(glitch_ladder_delay_us[idx], b, sizeof(b));
+    variable_item_set_current_value_text(item, b);
+
+    idx = glitch_ladder_nearest_u32(
+        glitch_ladder_delay_us, glitch_ladder_delay_len, p->sweep_delay_step_us);
+    item = variable_item_list_add(list, "2D delay step", glitch_ladder_delay_len, item_sweep_dstep, app);
+    variable_item_set_current_value_index(item, idx);
+    glitch_fmt_us(glitch_ladder_delay_us[idx], b, sizeof(b));
     variable_item_set_current_value_text(item, b);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, GlitchViewVarList);

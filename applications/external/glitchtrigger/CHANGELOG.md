@@ -3,6 +3,42 @@
 All notable changes to Glitch Trigger are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1] — 2026-07-20
+
+The **campaign** update — turns the single-shot tool into a fault-injection
+workbench.
+
+### Sweep
+- **2D sweep** — optionally sweep a **delay × width grid**, not just width, to
+  cover the real parameter search space; progress tracks position across the grid.
+- **Dwell** — fire *N* shots at each sweep point for statistics before advancing.
+- **Auto-hit** — sample a target **feedback pin** after each shot and mark a hit
+  automatically when it reaches the configured **success level** (HIGH/LOW), so a
+  sweep can run unattended. Manual **OK** marking still works.
+- Sweep screen now shows the live **width + delay**, `2D` / `A` (auto) chips, and
+  a `width @ delay` last-hit readout.
+
+### Profiles & logging
+- **Profiles** — save / load / delete named parameter sets on the SD card under
+  `apps_data/glitch_trigger/profiles`, with on-device name entry.
+- **CSV hit log** — hits (manual or auto) append to
+  `apps_data/glitch_trigger/hits.csv` with delay, width, pulses, gap, shot index
+  and timestamp. Toggleable.
+- New `helpers/glitch_storage` module (binary profile blobs + CSV append).
+
+### Engine
+- **Feedback read** — a third selectable GPIO, sampled for the success level and
+  pulled to the inactive level so a floating line stays quiet; skipped if it
+  collides with the output pin.
+- Tightened masked-window bound to **~1 ms**: only the fine delay + glitch edge is
+  masked, and burst inter-pulse gaps now run with interrupts on.
+
+### UI
+- New **Profiles** menu entry and scenes (list · name entry · load/delete).
+- **Settings** gains Feedback pin, Success level, Auto-hit and Log-hits.
+- **Configure** gains Sweep 2D, Dwell and the 2D delay from/to/step range.
+- About text, screen mockups and README updated for the new features.
+
 ## [1.0] — 2026-07-17
 
 First public release.
