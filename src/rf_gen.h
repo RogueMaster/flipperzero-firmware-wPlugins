@@ -13,7 +13,7 @@ enum {
     FlipperHamPresetDefault = 16,
 };
 
-#define FHMP_DIRECT_FSK 1
+#define FHMP_DIRECT_FSK       1
 #define FHMP_SCRAMBLING_G3RUH 2
 
 typedef struct {

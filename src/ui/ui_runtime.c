@@ -467,7 +467,8 @@ FlipperHamApp* flipperham_app_alloc(void) {
         app->view_dispatcher, FlipperHamViewHamTx, variable_item_list_get_view(app->ham_tx_menu));
     view_dispatcher_add_view(
         app->view_dispatcher, FlipperHamViewTextInput, text_input_get_view(app->text_input));
-    view_dispatcher_add_view(app->view_dispatcher, FlipperHamViewCoordInput, app->coord_input_view);
+    view_dispatcher_add_view(
+        app->view_dispatcher, FlipperHamViewCoordInput, app->coord_input_view);
     view_dispatcher_add_view(
         app->view_dispatcher, FlipperHamViewReadme, widget_get_view(app->readme_widget));
     view_dispatcher_switch_to_view(app->view_dispatcher, FlipperHamViewMenu);
@@ -559,10 +560,9 @@ again:
             furi_delay_ms(50);
         }
 
-        while(app->tx_started &&
-              !((app->radio_backend == FlipperHamRadioExternal) ?
-                    flipperham_radio_ext_is_complete() :
-                    furi_hal_subghz_is_async_tx_complete())) {
+        while(app->tx_started && !((app->radio_backend == FlipperHamRadioExternal) ?
+                                       flipperham_radio_ext_is_complete() :
+                                       furi_hal_subghz_is_async_tx_complete())) {
             view_port_update(app->view_port);
             furi_delay_ms(20);
         }

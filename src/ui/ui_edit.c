@@ -143,8 +143,7 @@ static void positionActionDo(void* context, uint32_t index) {
         title = "Edit name";
 
     app->text_view = FlipperHamViewPosAction;
-    if (app->text_mode == 7 || app->text_mode == 8)
-    {
+    if(app->text_mode == 7 || app->text_mode == 8) {
         UNUSED(title);
         UNUSED(out);
         UNUSED(n);

@@ -440,7 +440,6 @@ static void flipperham_radio_fail(FlipperHamApp* app) {
 static bool flipperham_ext_vbus_on(void) {
     const float vbus = furi_hal_power_get_usb_voltage();
 
-
     return vbus > 4.0f;
 }
 
