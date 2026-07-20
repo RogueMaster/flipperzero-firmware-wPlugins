@@ -1,7 +1,7 @@
 App(
     appid="esp32_wifi_marauder",
     name="[ESP32] WiFi Marauder",
-    fap_version=(7, 8),
+    fap_version=(7, 9),
     apptype=FlipperAppType.EXTERNAL,
     entry_point="wifi_marauder_app",
     requires=["gui"],
