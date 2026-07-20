@@ -31,5 +31,14 @@ void console_view_set_logging(ConsoleView* cv, bool logging);
 /** Seconds left in an autoboot burst, 0 when idle. */
 void console_view_set_autoboot(ConsoleView* cv, uint32_t seconds_left);
 
+/** Link health: framing errors, and how many times a watch has matched. */
+void console_view_set_health(ConsoleView* cv, uint32_t errors, uint32_t trigger_hits);
+
+/** The armed watch pattern, or "" when disarmed. */
+void console_view_set_watch(ConsoleView* cv, const char* pattern);
+
+/** Script playback progress. */
+void console_view_set_script(ConsoleView* cv, bool running, uint16_t sent, uint16_t total);
+
 /** Nudge the view after feeding the term, so it follows new output. */
 void console_view_notify_rx(ConsoleView* cv);

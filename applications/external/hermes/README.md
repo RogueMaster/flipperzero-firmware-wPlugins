@@ -112,12 +112,28 @@ A real terminal, not a byte dump. Boot logs are full of ANSI colour codes, so He
 |---|---|
 | **Up / Down** | Scroll back. New output never yanks you away while you're reading. |
 | **Right** | ASCII ⇄ hex (hex has an ASCII gutter, so a familiar string still jumps out) |
-| **Left** | Ctrl-key palette — **Ctrl+C**, Ctrl+D, Ctrl+Z, Esc, Tab, **Stop autoboot** |
+| **Left** | Ctrl-key palette — **Ctrl+C**, Ctrl+D, Ctrl+Z, Esc, Tab, plus break / autoboot / watch / script (below) |
 | **OK** | Type a line and send it |
 | **OK (long)** | Send Enter on its own |
 | **Back** | Drop the link |
 
-RX runs on DMA, so a full boot log at 921600 arrives without holes in the middle.
+RX runs on DMA, so a full boot log at 921600 arrives without holes in the middle. And the status bar earns its keep: a `●` when a capture is recording, **`ERR n`** when the line is throwing framing errors — the surest sign the *framing* is wrong even though the rate is right — and a live **`SCRIPT n/m`** or **`BREAKING 3s`** while either of those is running.
+
+### Watch for a string, and look away
+
+<div align="center">
+<img src="images/screen_watch.png" alt="The console with a watch armed for 'login:', shown as an inverted strip along the bottom, and ERR 3 in the status bar" width="46%">
+</div>
+
+A slow boot is a bad thing to babysit. **Left → Watch for…** arms a string; when it appears in the stream, the Flipper **buzzes and flashes** — so you can set `login:` (or `Password`, or a panic string you're hunting) and go do something else. An armed watch shows as an inverted strip along the bottom, with a running hit count, so you can confirm at a glance that it's live. Matching is case-insensitive and works even when the pattern straddles two DMA chunks or is wrapped in colour codes — it watches the raw stream, not the cooked screen. The matcher is [KMP with a precomputed failure table, and it's unit-tested](test/host_trigger_test.c) against overlaps and byte-at-a-time delivery.
+
+### Send a break
+
+Some bootloaders, and the Linux magic SysRq, listen for a **UART break** — the line held low past the end of a frame. That's a deliberate framing violation, so it can't be sent as a byte. **Left → Send break** takes the TX pin off the UART, holds it low by hand for 25 ms, and hands it back idle-high, all without disturbing RX.
+
+### Replay a script
+
+**Left → Run script…** picks a `.txt` off the SD card and sends it line by line — a login, a set of U-Boot commands, a recovery sequence you'd otherwise peck out one Flipper-keyboard character at a time. Lines are paced ~250 ms apart so the target keeps up, blank lines and `#` comments are skipped, and playback runs off the UI tick, so the target's replies keep scrolling in between your lines. Progress shows as `SCRIPT n/m` in the status bar. There's a commented [`example_login.txt`](scripts/example_login.txt) to copy across and adapt.
 
 ### Stop autoboot
 
@@ -204,13 +220,15 @@ Drop-in compatible with the app-catalog layout used by **Momentum** / **Unleashe
 
 ## Tests
 
-The detector is the whole product, and it's the one part a screenshot can't vouch for. So it's tested:
+The two parts a screenshot can't vouch for — the baud fit and the string matcher — are the two parts with real tests:
 
 ```bash
 make -C test
 ```
 
-This compiles the **real** `autobaud.c` for the host against a stubbed HAL, synthesises 8N1 waveforms at known rates, and drives the **actual interrupt handler** edge by edge — then asks the real fit what it saw. 21 checks, under ASan and UBSan, run in CI on every push:
+Both compile the **real** engine code for the host against a stubbed HAL, and both run under ASan and UBSan in CI on every push.
+
+**The autobaud fit** synthesises 8N1 waveforms at known rates and drives the **actual interrupt handler** edge by edge, then asks the real fit what it saw:
 
 ```
 clean signal        1200 · 9600 · 19200 · 38400 · 57600 · 74880 · 115200
@@ -221,7 +239,15 @@ binary payload      random bytes, not text
 degenerate          non-standard rate must not be named confidently · silent line
 ```
 
-The jitter and harmonic cases aren't decoration — both caught real bugs during development.
+**The watch matcher** is fed patterns that overlap themselves and streams split at every byte boundary — the cases a naive matcher gets wrong:
+
+```
+overlaps            'aab' in 'aaab'; 'aaa' in 'aaaa' counts 2; 'abab' in 'abababab' counts 3
+split delivery      pattern found when fed one byte at a time, or split mid-word
+case + counting     case-insensitive, every occurrence counted, empty = disarmed
+```
+
+The jitter and harmonic cases aren't decoration — both caught real bugs during development, and the overlap cases are why the matcher is KMP rather than the naive version I wrote first.
 
 ---
 
@@ -238,16 +264,18 @@ Hermes-FlipperZero/
 │  ├─ term.[ch]               # terminal model + the ANSI parser
 │  ├─ session_log.[ch]        # capture to the SD card, raw bytes kept
 │  ├─ selftest.[ch]           # loopback prover: is it me or them?
+│  ├─ trigger.[ch]            # KMP string watch over the RX stream
+│  ├─ script.[ch]             # replay a .txt into the console, paced
 │  └─ baud_table.[ch]         # standard rates, framings, pin profiles
 ├─ views/
 │  ├─ detect_view.[ch]        # the live square-wave scope
 │  ├─ result_view.[ch]        # verdict card + candidate ladder
-│  ├─ console_view.[ch]       # the terminal
+│  ├─ console_view.[ch]       # the terminal (+ health, watch strip, script)
 │  ├─ selftest_view.[ch]      # the loopback report
 │  └─ wiring_view.[ch]        # animated wiring + the safety rules
-├─ scenes/                    # start · detect · result · console · ctrl · keyboard ·
-│                             # manual · custombaud · selftest · wiring · settings · about
-├─ test/                      # host test for the fit (stubbed HAL)
+├─ scenes/                    # start · detect · result · console · ctrl · keyboard · manual ·
+│                             # custombaud · watch · script · selftest · wiring · settings · about
+├─ test/                      # host tests: the fit and the matcher (stubbed HAL)
 └─ tools_gen_*.py             # Pillow asset generators
 ```
 
@@ -257,7 +285,9 @@ Hermes-FlipperZero/
 
 **It says "no edges yet".** Ground, or the cross-over. Flipper **RX (14)** goes to target **TX** — not TX to TX. If you're sure of both, the pad may simply be idle; many boards only talk during boot, so power-cycle the target while Hermes listens. If you want to rule your own side out first, run **Self Test**.
 
-**It found the rate but the text is garbage.** The framing is probably not 8N1. Hermes tries 8E1/8O1/7E1 automatically *if there was traffic during verification* — if the board went quiet, pick the framing yourself in **Manual Console**.
+**It found the rate but the text is garbage.** The framing is probably not 8N1. Hermes tries 8E1/8O1/7E1 automatically *if there was traffic during verification* — if the board went quiet, pick the framing yourself in **Manual Console**. Once you're in the console, a climbing **`ERR n`** in the status bar is the confirmation: it counts hardware framing errors, and a count that grows with the traffic means the framing is wrong even though the rate is right.
+
+**What format is a script file?** A plain `.txt`, one command per line. Blank lines and lines starting with `#` are ignored, so you can comment it. Each line is sent with your configured Enter key (CR / LF / CRLF), paced ~250 ms apart. Put it anywhere on the SD card; the picker opens in `/apps_data/hermes/`.
 
 **Can it detect 921600?** The rate, yes — via the UART sweep, which is hardware-accurate. The *edge timing* gives up around 230400, because the interrupt can't be entered fast enough to catch edges 4 µs apart. Hermes falls back automatically; you'll see it sweep.
 

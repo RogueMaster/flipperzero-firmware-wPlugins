@@ -52,6 +52,26 @@ void hermes_notify_blip(HermesApp* app) {
     if(app->led) notification_message(app->notifications, &seq_blip);
 }
 
+/* The point of a watch is that you are not looking at the screen, so this one
+ * vibrates as well as flashing - it has to carry across a bench. */
+static const NotificationSequence seq_trigger = {
+    &message_blue_255,
+    &message_vibro_on,
+    &message_note_e5,
+    &message_delay_100,
+    &message_note_b5,
+    &message_delay_100,
+    &message_sound_off,
+    &message_vibro_off,
+    &message_blue_0,
+    NULL,
+};
+
+void hermes_notify_trigger(HermesApp* app) {
+    furi_assert(app);
+    notification_message(app->notifications, &seq_trigger);
+}
+
 /* ------------------------------------------------ view dispatcher glue ---- */
 
 static bool hermes_custom_event_callback(void* context, uint32_t event) {
@@ -104,6 +124,8 @@ static HermesApp* hermes_app_alloc(void) {
     app->term = term_alloc();
     app->log = session_log_alloc();
     app->selftest = selftest_alloc();
+    app->trigger = trigger_alloc();
+    app->script = script_alloc();
 
     app->submenu = submenu_alloc();
     view_dispatcher_add_view(
@@ -190,6 +212,8 @@ static void hermes_app_free(HermesApp* app) {
     term_free(app->term);
     session_log_free(app->log);
     selftest_free(app->selftest);
+    trigger_free(app->trigger);
+    script_free(app->script);
 
     furi_record_close(RECORD_NOTIFICATION);
     furi_record_close(RECORD_GUI);

@@ -60,6 +60,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [LGT ISP (SWD) v0.7 (By mkrasem / SimonE)](https://github.com/mkrasem/flipper_lgt_isp) `Req: LGT8F328P`
 - Updated: [Period Tracker v1.0 (By gorshunovr)](https://github.com/gorshunovr/period_tracker)
 - Updated: [Specter v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
+- Updated: [Hermes v1.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Hermes-FlipperZero)
 
 <a name="release"></a>
 
@@ -548,7 +549,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Ham Scanner v1.1 (By Clawzman)](https://github.com/Clawzman/Flipper-HAM-Scanner)
 - [Hard Hat Brigade IR v0.1 (By Anomalous68)](https://github.com/Anomalous68/HHB-Flipper-App) `Req: Hard Hat Brigade Hat`
 - [HC-11 Modem v1.3 (By Giraut)](https://github.com/Giraut/flipper_zero_hc11_wireless_modem) `Req: HC-11`
-- [Hermes v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Hermes-FlipperZero)
+- [Hermes v1.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Hermes-FlipperZero)
 - [HEX Editor v1.4 (By dunaevai135)](https://github.com/dunaevai135/flipper-zero-hex_editor)
 - [HEX Viewer v2.0 (By QtRoS)](https://github.com/QtRoS/flipperzero-firmware)
 - [HID Exfil v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)

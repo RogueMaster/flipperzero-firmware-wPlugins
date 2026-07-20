@@ -1,4 +1,5 @@
 #include "../hermes_i.h"
+#include <string.h>
 
 /* Drained on the GUI thread every tick. Because only this thread ever touches
  * the Term, the terminal model needs no lock at all. */
@@ -42,6 +43,10 @@ void hermes_scene_console_on_enter(void* context) {
      * scrollback or re-open the port mid-session. */
     if(!uart_tap_is_open(app->tap)) {
         term_reset(app->term);
+        /* Fresh session: the old hit count belonged to the old link. The
+         * pattern itself stays armed, since that is the user's choice. */
+        trigger_reset(app->trigger);
+        script_clear(app->script);
 
         if(!uart_tap_open(
                app->tap, app->port, app->link.baud, app->link.framing, app->tx_enabled)) {
@@ -66,6 +71,16 @@ void hermes_scene_console_on_enter(void* context) {
         hermes_framing_name(app->link.framing),
         uart_tap_tx_enabled(app->tap));
     console_view_set_logging(app->console_view, session_log_is_open(app->log));
+    /* Re-assert on every entry, so returning from the Ctrl palette or the
+     * keyboard shows the same watch and progress the user left behind. */
+    console_view_set_watch(app->console_view, trigger_pattern(app->trigger));
+    console_view_set_health(
+        app->console_view, uart_tap_errors(app->tap), trigger_hits(app->trigger));
+    console_view_set_script(
+        app->console_view,
+        script_is_running(app->script),
+        script_position(app->script),
+        script_line_count(app->script));
     console_view_set_callback(app->console_view, hermes_scene_console_callback, app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, HermesViewConsole);
@@ -91,17 +106,50 @@ bool hermes_scene_console_on_event(void* context, SceneManagerEvent event) {
             }
         }
 
+        /* Script playback paces itself, so this just asks each tick whether a
+         * line is due. Same reasoning as the autoboot burst: no blocking, so
+         * the target's replies keep rendering between our lines. */
+        const char* line = script_next_line(app->script);
+        if(line) {
+            uart_tap_send(app->tap, (const uint8_t*)line, strlen(line));
+            uart_tap_send_enter(app->tap, app->enter_mode);
+            if(app->local_echo) {
+                for(const char* p = line; *p; p++) {
+                    term_feed_echo(app->term, (uint8_t)*p);
+                }
+                term_feed_echo(app->term, '\n');
+            }
+            console_view_set_script(
+                app->console_view,
+                script_is_running(app->script),
+                script_position(app->script),
+                script_line_count(app->script));
+        }
+
         uint8_t chunk[CONSOLE_DRAIN_CHUNK];
         size_t got;
         bool any = false;
+        bool hit = false;
 
         while((got = uart_tap_read(app->tap, chunk, sizeof(chunk))) > 0) {
             term_feed(app->term, chunk, got);
             /* The file gets the raw bytes; the screen gets the cooked ones. */
             session_log_write(app->log, chunk, got);
+            /* Watch the raw stream too, so a pattern is still found when it is
+             * wrapped in colour codes the terminal has stripped. */
+            if(trigger_feed(app->trigger, chunk, got)) hit = true;
             any = true;
         }
-        if(any) console_view_notify_rx(app->console_view);
+
+        if(hit) {
+            session_log_note(app->log, "trigger matched");
+            hermes_notify_trigger(app);
+        }
+        if(any) {
+            console_view_notify_rx(app->console_view);
+            console_view_set_health(
+                app->console_view, uart_tap_errors(app->tap), trigger_hits(app->trigger));
+        }
         return true;
     }
 

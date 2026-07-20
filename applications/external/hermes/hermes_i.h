@@ -22,6 +22,8 @@
 #include "helpers/uart_tap.h"
 #include "helpers/session_log.h"
 #include "helpers/selftest.h"
+#include "helpers/trigger.h"
+#include "helpers/script.h"
 
 #include "views/detect_view.h"
 #include "views/result_view.h"
@@ -31,7 +33,7 @@
 
 #include "scenes/hermes_scene.h"
 
-#define HERMES_VERSION "1.1"
+#define HERMES_VERSION "1.2"
 
 /* Bounds for the custom-rate entry. Below 50 the timing is absurd; above
  * 2 Mbaud the LPUART cannot follow and the USART is at its limit. */
@@ -72,6 +74,7 @@ typedef enum {
     HermesCustomEventSelfTestTick,
     HermesCustomEventSelfTestDone,
     HermesCustomEventBaudEntered,
+    HermesCustomEventTriggerSet,
 
     /* Something else holds the port. Raised from an on_enter, which cannot
      * navigate directly without nesting a scene transition inside itself, so
@@ -125,6 +128,8 @@ typedef struct {
     Term* term;
     SessionLog* log;
     SelfTest* selftest;
+    Trigger* trigger;
+    Script* script;
 
     /* state carried between scenes */
     AutobaudResult detect_result;
@@ -151,3 +156,7 @@ typedef struct {
 /* feedback (defined in hermes.c), all gated by settings */
 void hermes_notify_found(HermesApp* app, bool good);
 void hermes_notify_blip(HermesApp* app);
+
+/** A watched string appeared. Deliberately not gated by the sound/LED
+ *  settings: you armed a watch precisely so it would interrupt you. */
+void hermes_notify_trigger(HermesApp* app);
