@@ -30,16 +30,17 @@ void period_tracker_scene_cycle_stats_on_enter(void* context) {
     furi_string_cat_printf(
         app->text_box_store, "Cycle Statistics\n%s\n\n", app->current_girl_name);
 
-    // Check if sufficient data
+    // Check if sufficient data (3 complete cycles = 4 period start dates)
     if(!stats.has_sufficient_data) {
         furi_string_cat_printf(
             app->text_box_store,
             "Getting Started\n\n"
             "Not enough data yet for\n"
             "statistical analysis.\n\n"
-            "Cycles logged: %u\n"
-            "Minimum needed: 3\n\n"
-            "Keep logging your periods!\n"
+            "Complete cycles: %u\n"
+            "Minimum needed: 3\n"
+            "(4 period start dates)\n\n"
+            "Keep logging period starts!\n"
             "More data = better predictions.\n\n"
             "Current profile settings:\n"
             "  Cycle length: %u days\n"

@@ -54,6 +54,10 @@ void period_tracker_scene_alert_settings_on_enter(void* context) {
     // Save button
     variable_item_list_add(variable_item_list, "Save", 0, NULL, NULL);
 
+    // Reset selection: list is shared with other scenes that may leave a
+    // higher selected index, which would show a blank screen until input.
+    variable_item_list_set_selected_item(variable_item_list, 0);
+
     view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewVariableItemList);
 }
 

@@ -1,6 +1,7 @@
 #include "period_tracker_alert.h"
 #include "period_tracker_predictions.h"
 #include "period_tracker_csv.h"
+#include "period_tracker_models.h"
 #include <furi_hal.h>
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
@@ -75,18 +76,22 @@ void period_tracker_alert_stop(void) {
     // Not needed in simplified version
 }
 
-// Check if there are alerts for today (for showing badge/notification)
+// Check if there are alerts in the configured lead window
 bool period_tracker_has_alerts_today(Storage* storage) {
-    // Allocate on heap - too large for stack (~3KB)
+    AppSettings settings;
+    app_settings_init(&settings);
+    settings_load(storage, &settings);
+    uint8_t lead_days = settings.alert_lead_days;
+    if(lead_days == 0) lead_days = 1;
+
     Prediction* predictions = malloc(sizeof(Prediction) * MAX_ALERT_PREDICTIONS);
     if(!predictions) {
         FURI_LOG_E(TAG, "Failed to allocate memory for alert check");
         return false;
     }
 
-    // Note: No shared buffer available here - this is a standalone function
-    // Called outside of app context. Pass NULL to use fallback malloc.
-    uint16_t count = get_today_predictions(storage, predictions, MAX_ALERT_PREDICTIONS, NULL, 0);
+    uint16_t count = get_alert_predictions(
+        storage, predictions, MAX_ALERT_PREDICTIONS, NULL, 0, lead_days);
 
     free(predictions);
     return count > 0;

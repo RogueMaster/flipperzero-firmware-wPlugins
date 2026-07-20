@@ -60,57 +60,44 @@ bool period_tracker_scene_add_girl_on_event(void* context, SceneManagerEvent eve
             // break the storage path
             if(app->current_girl_name[0] == '\0' ||
                add_girl_name_has_invalid_chars(app->current_girl_name)) {
-                widget_reset(app->widget);
-                widget_add_string_multiline_element(
-                    app->widget,
-                    64,
-                    32,
-                    AlignCenter,
-                    AlignCenter,
-                    FontPrimary,
-                    "Invalid name!\nAvoid / \\ : * ? \" < > |\nPress Back");
-                view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewWidget);
+                period_tracker_widget_show_message(
+                    app,
+                    "Invalid name!\nAvoid / \\ : * ? \" < > |",
+                    FontPrimary);
             } else if(profile_exists(app->storage, app->current_girl_name)) {
-                // Show error
-                widget_reset(app->widget);
-                widget_add_string_multiline_element(
-                    app->widget,
-                    64,
-                    32,
-                    AlignCenter,
-                    AlignCenter,
-                    FontPrimary,
-                    "Profile already exists!\nPress Back");
-                view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewWidget);
+                period_tracker_widget_show_message(
+                    app, "Profile already exists!", FontPrimary);
             } else {
-                // For now, create profile with default values
+                // Create profile with default values
                 GirlProfile profile;
                 girl_profile_init(&profile);
                 strncpy(profile.name, app->current_girl_name, MAX_NAME_LENGTH - 1);
 
-                // Save profile
                 if(profile_save(app->storage, &profile)) {
                     FURI_LOG_I(
                         TAG, "Profile created: %s, navigating to Edit Profile", profile.name);
-                    // Navigate to Edit Profile to let user customize settings.
-                    // State 1 = entered from Add Girl (back goes to Main Menu)
+                    // State 1 = entered from Add Girl (then seed history after save)
                     scene_manager_set_scene_state(
                         app->scene_manager, PeriodTrackerSceneEditProfile, 1);
                     scene_manager_next_scene(app->scene_manager, PeriodTrackerSceneEditProfile);
                 } else {
-                    // Show error
-                    widget_reset(app->widget);
-                    widget_add_string_multiline_element(
-                        app->widget,
-                        64,
-                        32,
-                        AlignCenter,
-                        AlignCenter,
-                        FontPrimary,
-                        "Failed to save profile!\nPress Back");
-                    view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewWidget);
+                    period_tracker_widget_show_message(
+                        app, "Failed to save profile!", FontPrimary);
                 }
             }
+            consumed = true;
+        } else if(event.event == PERIOD_TRACKER_EVENT_WIDGET_DISMISS) {
+            // OK on error — return to name entry
+            text_input_reset(app->text_input);
+            text_input_set_header_text(app->text_input, "Enter profile name:");
+            text_input_set_result_callback(
+                app->text_input,
+                period_tracker_scene_add_girl_text_input_callback,
+                app,
+                app->text_buffer,
+                MAX_NAME_LENGTH,
+                true);
+            view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewTextInput);
             consumed = true;
         }
     }

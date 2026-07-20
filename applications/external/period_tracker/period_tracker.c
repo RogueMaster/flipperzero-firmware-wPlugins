@@ -1,6 +1,8 @@
 #include "period_tracker.h"
 #include "period_tracker_alert.h"
 #include <furi_hal.h>
+#include <input/input.h>
+#include <gui/modules/widget_elements/widget_element.h>
 
 // Scene handlers array
 void (*const period_tracker_scene_on_enter_handlers[])(void*) = {
@@ -21,6 +23,7 @@ void (*const period_tracker_scene_on_enter_handlers[])(void*) = {
     period_tracker_scene_alert_settings_on_enter,
     period_tracker_scene_pin_settings_on_enter,
     period_tracker_scene_pin_setup_on_enter,
+    period_tracker_scene_seed_history_on_enter,
 };
 
 bool (*const period_tracker_scene_on_event_handlers[])(void*, SceneManagerEvent) = {
@@ -41,6 +44,7 @@ bool (*const period_tracker_scene_on_event_handlers[])(void*, SceneManagerEvent)
     period_tracker_scene_alert_settings_on_event,
     period_tracker_scene_pin_settings_on_event,
     period_tracker_scene_pin_setup_on_event,
+    period_tracker_scene_seed_history_on_event,
 };
 
 void (*const period_tracker_scene_on_exit_handlers[])(void*) = {
@@ -61,6 +65,7 @@ void (*const period_tracker_scene_on_exit_handlers[])(void*) = {
     period_tracker_scene_alert_settings_on_exit,
     period_tracker_scene_pin_settings_on_exit,
     period_tracker_scene_pin_setup_on_exit,
+    period_tracker_scene_seed_history_on_exit,
 };
 
 // Scene manager configuration
@@ -85,7 +90,29 @@ static bool period_tracker_custom_event_callback(void* context, uint32_t event) 
     return scene_manager_handle_custom_event(app->scene_manager, event);
 }
 
-// Create app data directory if it doesn't exist (SDK APP_DATA_PATH → /ext/apps_data/<appid>/)
+static void period_tracker_widget_ok_callback(GuiButtonType result, InputType type, void* context) {
+    UNUSED(result);
+    if(type != InputTypeShort) {
+        return;
+    }
+    PeriodTrackerApp* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, PERIOD_TRACKER_EVENT_WIDGET_DISMISS);
+}
+
+void period_tracker_widget_show_message(PeriodTrackerApp* app, const char* text, Font font) {
+    furi_assert(app);
+    furi_assert(text);
+    widget_reset(app->widget);
+    widget_add_string_multiline_element(
+        app->widget, 64, 26, AlignCenter, AlignCenter, font, text);
+    widget_add_button_element(
+        app->widget, GuiButtonTypeCenter, "OK", period_tracker_widget_ok_callback, app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewWidget);
+}
+
+// Ensure app data directory exists.
+// APP_DATA_PATH("") expands to "/data/" (trailing slash) which is FSE_INVALID_NAME.
+// Use STORAGE_APP_DATA_PATH_PREFIX ("/data") for directory ops; file paths use APP_DATA_PATH("name").
 void period_tracker_create_data_dir(PeriodTrackerApp* app) {
     Storage* storage = app->storage;
 
@@ -97,13 +124,16 @@ void period_tracker_create_data_dir(PeriodTrackerApp* app) {
         return;
     }
 
-    FS_Error err = storage_common_mkdir(storage, APP_DATA_PATH(""));
-    FURI_LOG_I(TAG, "mkdir APP_DATA_PATH result: %d (2=already exists is OK)", err);
-
-    if(storage_common_exists(storage, APP_DATA_PATH(""))) {
+    FS_Error err = storage_common_mkdir(storage, STORAGE_APP_DATA_PATH_PREFIX);
+    // FSE_EXIST means the directory is already there — not a failure.
+    if(err == FSE_OK || err == FSE_EXIST) {
         FURI_LOG_I(TAG, "App data directory ready");
     } else {
-        FURI_LOG_E(TAG, "Failed to create app data directory!");
+        FURI_LOG_E(
+            TAG,
+            "Failed to create app data directory: %s (%d)",
+            filesystem_api_error_get_desc(err),
+            err);
     }
 }
 
@@ -166,12 +196,17 @@ static PeriodTrackerApp* period_tracker_app_alloc() {
         PeriodTrackerViewVariableItemList,
         variable_item_list_get_view(app->variable_item_list));
 
-    // Number Input
+    // Number Input (dates / numeric settings — not used for PIN)
     app->number_input = number_input_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher,
         PeriodTrackerViewNumberInput,
         number_input_get_view(app->number_input));
+
+    // Custom 4-digit PIN entry (empty start, masked)
+    app->pin_input = pin_input_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, PeriodTrackerViewPinInput, pin_input_get_view(app->pin_input));
 
     // Text Box
     app->text_box = text_box_alloc();
@@ -230,6 +265,7 @@ static void period_tracker_app_free(PeriodTrackerApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, PeriodTrackerViewWidget);
     view_dispatcher_remove_view(app->view_dispatcher, PeriodTrackerViewVariableItemList);
     view_dispatcher_remove_view(app->view_dispatcher, PeriodTrackerViewNumberInput);
+    view_dispatcher_remove_view(app->view_dispatcher, PeriodTrackerViewPinInput);
     view_dispatcher_remove_view(app->view_dispatcher, PeriodTrackerViewTextBox);
 
     // Free views
@@ -238,6 +274,7 @@ static void period_tracker_app_free(PeriodTrackerApp* app) {
     widget_free(app->widget);
     variable_item_list_free(app->variable_item_list);
     number_input_free(app->number_input);
+    pin_input_free(app->pin_input);
     text_box_free(app->text_box);
     furi_string_free(app->text_box_store);
 

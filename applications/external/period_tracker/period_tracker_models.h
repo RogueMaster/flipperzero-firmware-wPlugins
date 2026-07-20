@@ -73,8 +73,8 @@ typedef struct {
     uint8_t max_cycle_length; // Longest observed cycle
     uint16_t cycle_variability; // Coefficient of variation * 1000 (fixed-point)
     CycleRegularity regularity; // Regularity classification
-    uint8_t num_cycles_analyzed; // Number of cycles used for statistics
-    bool has_sufficient_data; // At least 3 cycles needed
+    uint8_t num_cycles_analyzed; // Complete cycles (gaps between period starts)
+    bool has_sufficient_data; // At least 3 complete cycles (4 period starts)
 } CycleStatistics;
 
 // Prediction structure with confidence intervals

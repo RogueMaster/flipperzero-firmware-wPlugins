@@ -144,35 +144,42 @@ uint16_t generate_predictions(
             }
         }
 
-        // PMS window: Day -3 to -1 before period
+        // PMS window: Day -3 to -1 before period (3 days).
+        // Include if the window overlaps [today, end_date], even when PMS
+        // started before today (still ongoing today / in lead window).
         SimpleDate pms_start = current_period;
         add_days_to_date(&pms_start, -3);
-        if(compare_dates(&pms_start, &today) >= 0 && compare_dates(&pms_start, &end_date) <= 0 &&
+        SimpleDate pms_end = pms_start;
+        add_days_to_date(&pms_end, 2);
+        if(compare_dates(&pms_end, &today) >= 0 && compare_dates(&pms_start, &end_date) <= 0 &&
            pred_count < max_predictions) {
             Prediction* pred = &predictions[pred_count++];
             pred->date = pms_start;
             pred->type = PredictionTypePMS;
+            pred->period_length_days = 3;
             strncpy(pred->girl_name, girl_name, MAX_NAME_LENGTH - 1);
             strcpy(pred->description, "PMS starts (lasts 3 days)");
-            // PMS has same confidence as period prediction
-            pred->earliest_date = pred->date;
-            pred->latest_date = pred->date;
+            pred->earliest_date = pms_start;
+            pred->latest_date = pms_end;
             pred->confidence_level = 60;
         }
 
-        // Pain window: Day -1 to +1 around period start
+        // Pain window: Day -1 to +1 around period start (3 days).
+        // Same overlap rule as PMS so mid-window days are not dropped.
         SimpleDate pain_start = current_period;
         add_days_to_date(&pain_start, -1);
-        if(compare_dates(&pain_start, &today) >= 0 && compare_dates(&pain_start, &end_date) <= 0 &&
+        SimpleDate pain_end = pain_start;
+        add_days_to_date(&pain_end, 2);
+        if(compare_dates(&pain_end, &today) >= 0 && compare_dates(&pain_start, &end_date) <= 0 &&
            pred_count < max_predictions) {
             Prediction* pred = &predictions[pred_count++];
             pred->date = pain_start;
             pred->type = PredictionTypePain;
+            pred->period_length_days = 3;
             strncpy(pred->girl_name, girl_name, MAX_NAME_LENGTH - 1);
             strcpy(pred->description, "Pain/cramps likely (3 days)");
-            // Pain has same confidence as period prediction
-            pred->earliest_date = pred->date;
-            pred->latest_date = pred->date;
+            pred->earliest_date = pain_start;
+            pred->latest_date = pain_end;
             pred->confidence_level = 60;
         }
 
@@ -257,62 +264,100 @@ uint16_t generate_all_predictions(
     return total_predictions;
 }
 
-// Get predictions for today only
+// True if prediction window overlaps any day in [window_start, window_end] inclusive.
+static bool prediction_overlaps_date_range(
+    const Prediction* pred,
+    const SimpleDate* window_start,
+    const SimpleDate* window_end) {
+    SimpleDate d = *window_start;
+    // Cap scan: lead time is 1–7 days; include a small margin for multi-day windows
+    for(uint8_t i = 0; i < 16; i++) {
+        if(compare_dates(&d, window_end) > 0) {
+            break;
+        }
+        if(is_date_in_prediction(pred, &d)) {
+            return true;
+        }
+        add_days_to_date(&d, 1);
+    }
+    return false;
+}
+
+// Predictions in the alert lead window (same horizon as Daily Digest)
+uint16_t get_alert_predictions(
+    Storage* storage,
+    Prediction* predictions,
+    uint16_t max_predictions,
+    Prediction* shared_buffer,
+    uint16_t shared_buffer_size,
+    uint8_t lead_days) {
+    if(lead_days == 0) {
+        lead_days = 1;
+    }
+    if(lead_days > 7) {
+        lead_days = 7;
+    }
+
+    // Buffer large enough for multi-day multi-profile predictions
+    uint16_t alloc_size = max_predictions + 10;
+    if(alloc_size > 40) alloc_size = 40;
+    if(alloc_size < 20) alloc_size = 20;
+
+    Prediction* all_predictions = NULL;
+    bool using_shared_buffer = false;
+
+    if(shared_buffer && shared_buffer_size >= alloc_size) {
+        all_predictions = shared_buffer;
+        using_shared_buffer = true;
+        FURI_LOG_D(TAG, "get_alert_predictions: shared buffer (%u)", alloc_size);
+    } else {
+        all_predictions = malloc(sizeof(Prediction) * alloc_size);
+        if(!all_predictions) {
+            FURI_LOG_E(TAG, "get_alert_predictions: malloc failed");
+            return 0;
+        }
+        FURI_LOG_D(TAG, "get_alert_predictions: malloc (%u)", alloc_size);
+    }
+
+    // Same generation window as Daily Digest
+    uint16_t count =
+        generate_all_predictions(storage, all_predictions, alloc_size, lead_days);
+
+    SimpleDate today;
+    get_today(&today);
+    SimpleDate window_end = today;
+    add_days_to_date(&window_end, lead_days);
+
+    uint16_t alert_count = 0;
+    for(uint16_t i = 0; i < count && alert_count < max_predictions; i++) {
+        // Keep predictions that touch any day in [today, today+lead_days]
+        if(prediction_overlaps_date_range(&all_predictions[i], &today, &window_end)) {
+            predictions[alert_count++] = all_predictions[i];
+        }
+    }
+
+    if(!using_shared_buffer) {
+        free(all_predictions);
+    }
+
+    FURI_LOG_I(
+        TAG,
+        "get_alert_predictions: %u alerts in next %u day(s) (generated %u)",
+        alert_count,
+        lead_days,
+        count);
+    return alert_count;
+}
+
 uint16_t get_today_predictions(
     Storage* storage,
     Prediction* predictions,
     uint16_t max_predictions,
     Prediction* shared_buffer,
     uint16_t shared_buffer_size) {
-    // For 7 days, each girl generates ~3-4 predictions (period, PMS, ovulation, pain)
-    // Max 10 girls = 40 predictions worst case. Use max_predictions + small buffer.
-    uint16_t alloc_size = max_predictions + 10; // Small buffer for filtering overhead
-    if(alloc_size > 40) alloc_size = 40; // Cap at 40 (enough for 10 girls)
-    if(alloc_size < 20) alloc_size = 20; // Minimum 20
-
-    // Try to use shared buffer first (eliminates malloc/free on hot path!)
-    Prediction* all_predictions = NULL;
-    bool using_shared_buffer = false;
-
-    if(shared_buffer && shared_buffer_size >= alloc_size) {
-        // Use shared buffer - ZERO heap allocation!
-        all_predictions = shared_buffer;
-        using_shared_buffer = true;
-        FURI_LOG_D(TAG, "get_today_predictions: using shared buffer (%u predictions)", alloc_size);
-    } else {
-        // Fall back to malloc
-        all_predictions = malloc(sizeof(Prediction) * alloc_size);
-        if(!all_predictions) {
-            FURI_LOG_E(TAG, "Failed to allocate memory for predictions");
-            return 0;
-        }
-        FURI_LOG_D(TAG, "get_today_predictions: using malloc (%u predictions)", alloc_size);
-    }
-
-    // Generate predictions for next 7 days
-    uint16_t count = generate_all_predictions(storage, all_predictions, alloc_size, 7);
-
-    SimpleDate today;
-    get_today(&today);
-
-    uint16_t today_count = 0;
-
-    // Filter predictions for today
-    if(count > 0) {
-        for(uint16_t i = 0; i < count && today_count < max_predictions; i++) {
-            if(is_date_in_prediction(&all_predictions[i], &today)) {
-                predictions[today_count++] = all_predictions[i];
-            }
-        }
-    }
-
-    // Only free if we malloc'd (not using shared buffer)
-    if(!using_shared_buffer) {
-        free(all_predictions);
-    }
-
-    FURI_LOG_I(TAG, "get_today_predictions: returning %u predictions for today", today_count);
-    return today_count;
+    // lead_days=1: today through tomorrow (matches default alert lead)
+    return get_alert_predictions(
+        storage, predictions, max_predictions, shared_buffer, shared_buffer_size, 1);
 }
 
 // Check if a date falls within a prediction window

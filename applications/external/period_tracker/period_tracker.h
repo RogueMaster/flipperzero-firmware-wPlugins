@@ -14,12 +14,19 @@
 #include <datetime/datetime.h>
 #include <notification/notification_messages.h>
 #include "period_tracker_models.h"
+#include "period_tracker_pin_input.h"
 
 #define TAG "PeriodTracker"
 
 // Custom event sent by the date picker scene (after popping itself) to the
 // scene that requested a date. Value is far away from menu item indexes.
 #define PERIOD_TRACKER_EVENT_DATE_SELECTED 0xDA7Eu
+
+// Center OK button on result widgets
+#define PERIOD_TRACKER_EVENT_WIDGET_DISMISS 0xDA80u
+
+// Max period-start dates offered during new-profile onboarding
+#define PERIOD_TRACKER_SEED_MAX_PERIODS 3
 
 // Forward declarations
 typedef struct PeriodTrackerApp PeriodTrackerApp;
@@ -31,6 +38,7 @@ typedef enum {
     PeriodTrackerViewWidget,
     PeriodTrackerViewVariableItemList,
     PeriodTrackerViewNumberInput,
+    PeriodTrackerViewPinInput,
     PeriodTrackerViewTextBox,
 } PeriodTrackerView;
 
@@ -53,6 +61,7 @@ typedef enum {
     PeriodTrackerSceneAlertSettings,
     PeriodTrackerScenePinSettings,
     PeriodTrackerScenePinSetup,
+    PeriodTrackerSceneSeedHistory,
     PeriodTrackerSceneCount,
 } PeriodTrackerScene;
 
@@ -66,6 +75,7 @@ struct PeriodTrackerApp {
     Widget* widget;
     VariableItemList* variable_item_list;
     NumberInput* number_input;
+    PinInput* pin_input;
     TextBox* text_box;
     FuriString* text_box_store;
     Storage* storage;
@@ -74,7 +84,8 @@ struct PeriodTrackerApp {
     // App state
     char text_buffer[128];
     uint32_t pin_code;
-    uint32_t pin_first_entry;
+    uint32_t pin_first_entry; // first of two entries during PIN setup
+    uint32_t pin_draft; // last PIN submitted from PinInput view
     uint8_t pin_fails;
     bool pin_locked;
     bool pin_set;
@@ -91,6 +102,9 @@ struct PeriodTrackerApp {
     // Log event state
     bool log_event_is_period; // true = period start, false = symptom
     uint8_t log_event_date_type; // 0=today, 1=yesterday, 2=custom
+
+    // New-profile period history seeding
+    uint8_t seed_period_count;
 
     // Shared prediction buffer to avoid repeated malloc/free cycles
     // Used by get_today_predictions, Daily Digest, and View Predictions
@@ -168,6 +182,10 @@ void period_tracker_scene_pin_setup_on_enter(void* context);
 bool period_tracker_scene_pin_setup_on_event(void* context, SceneManagerEvent event);
 void period_tracker_scene_pin_setup_on_exit(void* context);
 
+void period_tracker_scene_seed_history_on_enter(void* context);
+bool period_tracker_scene_seed_history_on_event(void* context, SceneManagerEvent event);
+void period_tracker_scene_seed_history_on_exit(void* context);
+
 // Utility functions
 bool period_tracker_load_pin(PeriodTrackerApp* app);
 bool period_tracker_check_pin_locked(PeriodTrackerApp* app);
@@ -175,3 +193,6 @@ void period_tracker_create_data_dir(PeriodTrackerApp* app);
 uint8_t period_tracker_load_pin_fails(PeriodTrackerApp* app);
 bool period_tracker_save_pin_fails(PeriodTrackerApp* app, uint8_t fails);
 void period_tracker_reset_pin_fails(PeriodTrackerApp* app);
+
+/** Show a message widget with a center OK button (sends PERIOD_TRACKER_EVENT_WIDGET_DISMISS). */
+void period_tracker_widget_show_message(PeriodTrackerApp* app, const char* text, Font font);

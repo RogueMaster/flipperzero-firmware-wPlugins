@@ -101,10 +101,10 @@ bool profile_save(Storage* storage, const GirlProfile* profile) {
         return false;
     }
 
-    // Ensure the data directory exists
+    // Ensure the data directory exists ("/data", not APP_DATA_PATH("") → "/data/")
     FURI_LOG_I(TAG, "profile_save: creating data directory");
-    FS_Error err = storage_common_mkdir(storage, APP_DATA_PATH(""));
-    FURI_LOG_I(TAG, "mkdir APP_DATA_PATH result: %d", err);
+    FS_Error err = storage_common_mkdir(storage, STORAGE_APP_DATA_PATH_PREFIX);
+    FURI_LOG_I(TAG, "mkdir data dir result: %d", err);
 
     char path[128];
     build_profile_path(profile->name, path, sizeof(path));
@@ -312,7 +312,7 @@ bool profile_list_all(
     FURI_LOG_I(TAG, "profile_list_all: starting");
 
     // Ensure the data directory exists
-    storage_common_mkdir(storage, APP_DATA_PATH(""));
+    storage_common_mkdir(storage, STORAGE_APP_DATA_PATH_PREFIX);
 
     // Try to read from index file (workaround for FAP apps)
     File* index_file = storage_file_alloc(storage);
@@ -441,7 +441,7 @@ bool events_load_all(
 // Append event to events file
 bool event_append(Storage* storage, const char* girl_name, const CycleEvent* event) {
     // Ensure the data directory exists
-    storage_common_mkdir(storage, APP_DATA_PATH(""));
+    storage_common_mkdir(storage, STORAGE_APP_DATA_PATH_PREFIX);
 
     char path[128];
     build_events_path(girl_name, path, sizeof(path));
@@ -541,7 +541,7 @@ bool events_get_last_period_start(Storage* storage, const char* girl_name, Simpl
 // Save settings
 bool settings_save(Storage* storage, const AppSettings* settings) {
     // Ensure the data directory exists
-    storage_common_mkdir(storage, APP_DATA_PATH(""));
+    storage_common_mkdir(storage, STORAGE_APP_DATA_PATH_PREFIX);
 
     File* file = storage_file_alloc(storage);
     bool success = false;

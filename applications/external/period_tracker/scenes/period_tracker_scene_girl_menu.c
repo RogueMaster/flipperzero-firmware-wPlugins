@@ -127,7 +127,33 @@ bool period_tracker_scene_girl_menu_on_event(void* context, SceneManagerEvent ev
                     furi_string_cat_printf(
                         app->text_box_store, "Current State: %s\n\n", profile.name);
 
-                    // Profile settings
+                    // Most important first: cycle status
+                    furi_string_cat_printf(app->text_box_store, "=== Cycle Data ===\n");
+                    if(has_period_data) {
+                        SimpleDate today;
+                        get_today(&today);
+                        int32_t days_since = days_between(&last_period, &today);
+                        int32_t days_until_next = profile.cycle_length_days - days_since;
+
+                        char last_period_str[16];
+                        format_date_string(&last_period, last_period_str, sizeof(last_period_str));
+
+                        furi_string_cat_printf(
+                            app->text_box_store,
+                            "Next Expected:\n  ~%ld days from now\n\n",
+                            (long)days_until_next);
+                        furi_string_cat_printf(
+                            app->text_box_store, "Last Period:\n  %s\n", last_period_str);
+                        furi_string_cat_printf(
+                            app->text_box_store, "  (%ld days ago)\n\n", (long)days_since);
+                    } else {
+                        furi_string_cat_printf(
+                            app->text_box_store,
+                            "No period data logged yet.\n\n"
+                            "Log your first period start to begin tracking!\n\n");
+                    }
+
+                    // Profile settings (secondary)
                     furi_string_cat_printf(app->text_box_store, "=== Profile ===\n");
                     furi_string_cat_printf(
                         app->text_box_store, "Cycle Length: %d days\n", profile.cycle_length_days);
@@ -143,38 +169,13 @@ bool period_tracker_scene_girl_menu_on_event(void* context, SceneManagerEvent ev
                         app->text_box_store, "Has PCOS: %s\n", profile.has_pcos ? "Yes" : "No");
                     furi_string_cat_printf(
                         app->text_box_store,
-                        "Menopausal: %s\n\n",
+                        "Menopausal: %s\n",
                         profile.is_menopausal ? "Yes" : "No");
 
                     // Notes if present
                     if(strlen(profile.notes) > 0) {
                         furi_string_cat_printf(
-                            app->text_box_store, "=== Notes ===\n%s\n\n", profile.notes);
-                    }
-
-                    // Period tracking data
-                    furi_string_cat_printf(app->text_box_store, "=== Cycle Data ===\n");
-                    if(has_period_data) {
-                        SimpleDate today;
-                        get_today(&today);
-                        int32_t days_since = days_between(&last_period, &today);
-                        int32_t days_until_next = profile.cycle_length_days - days_since;
-
-                        char last_period_str[16];
-                        format_date_string(&last_period, last_period_str, sizeof(last_period_str));
-
-                        furi_string_cat_printf(
-                            app->text_box_store, "Last Period:\n  %s\n", last_period_str);
-                        furi_string_cat_printf(
-                            app->text_box_store, "  (%ld days ago)\n\n", (long)days_since);
-                        furi_string_cat_printf(
-                            app->text_box_store,
-                            "Next Expected:\n  ~%ld days from now\n",
-                            (long)days_until_next);
-                    } else {
-                        furi_string_cat_printf(
-                            app->text_box_store,
-                            "No period data logged yet.\n\nLog your first period start to begin tracking!");
+                            app->text_box_store, "\n=== Notes ===\n%s\n", profile.notes);
                     }
 
                     // Configure text box for scrolling

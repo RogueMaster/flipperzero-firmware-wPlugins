@@ -42,7 +42,8 @@ bool calculate_cycle_statistics(
     // Open file for streaming
     File* file = storage_file_alloc(storage);
     if(!storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        FURI_LOG_E(TAG, "Failed to open events file for %s", girl_name);
+        // No events file yet (new profile) — not an error
+        FURI_LOG_I(TAG, "No events file yet for %s", girl_name);
         storage_file_free(file);
         return false;
     }
@@ -80,29 +81,88 @@ bool calculate_cycle_statistics(
     storage_file_close(file);
     storage_file_free(file);
 
-    // Need at least 3 cycles (4 period starts) for meaningful statistics
+    // Sort by date so CSV row order does not affect cycle pairing.
+    // Simple insertion sort (n ≤ 32).
+    for(uint8_t i = 1; i < period_count; i++) {
+        SimpleDate key = period_starts[i];
+        int8_t j = (int8_t)i - 1;
+        while(j >= 0 && compare_dates(&period_starts[j], &key) > 0) {
+            period_starts[j + 1] = period_starts[j];
+            j--;
+        }
+        period_starts[j + 1] = key;
+    }
+
+    // Drop duplicate / same-day period starts (keep one)
+    if(period_count > 1) {
+        uint8_t w = 1;
+        for(uint8_t r = 1; r < period_count; r++) {
+            if(compare_dates(&period_starts[r], &period_starts[w - 1]) != 0) {
+                period_starts[w++] = period_starts[r];
+            }
+        }
+        period_count = w;
+    }
+
+    // Complete cycles = gaps between consecutive period starts (chronological).
+    // Need at least 3 usable cycles ⇒ typically 4 period start dates.
     if(period_count < 4) {
         stats->has_sufficient_data = false;
-        FURI_LOG_W(TAG, "Insufficient data: only %u period starts", period_count);
+        stats->num_cycles_analyzed = (period_count > 0) ? (uint8_t)(period_count - 1) : 0;
+        FURI_LOG_W(
+            TAG,
+            "Insufficient data: %u period starts (%u gaps); need 4 starts / 3 cycles",
+            period_count,
+            stats->num_cycles_analyzed);
         return false;
     }
 
     stats->has_sufficient_data = true;
 
-    // Calculate cycle lengths (use most recent max_cycles)
+    // Calculate cycle lengths (most recent max_cycles after sort)
     uint8_t start_idx = period_count > max_cycles + 1 ? period_count - max_cycles - 1 : 0;
     uint8_t cycle_lengths[32];
     uint8_t num_cycles = 0;
+    uint8_t skipped_short = 0;
+    uint8_t skipped_long = 0;
 
     for(uint8_t i = start_idx; i < period_count - 1; i++) {
         int32_t cycle_len = days_between(&period_starts[i], &period_starts[i + 1]);
-        if(cycle_len > 0 && cycle_len <= 60) { // Sanity check: 1-60 days
+        // Sanity: real cycles are ~20–45 days in this app; drop junk pairs
+        // (e.g. 2026-06-19 and 2026-06-22 as two "starts" for the same period).
+        if(cycle_len >= 15 && cycle_len <= 60) {
             cycle_lengths[num_cycles++] = (uint8_t)cycle_len;
+        } else if(cycle_len > 0 && cycle_len < 15) {
+            skipped_short++;
+            FURI_LOG_W(
+                TAG,
+                "Skipping implausibly short cycle (%ld days) between consecutive starts",
+                (long)cycle_len);
+        } else if(cycle_len > 60) {
+            skipped_long++;
+            FURI_LOG_W(
+                TAG,
+                "Skipping implausibly long cycle (%ld days) between consecutive starts",
+                (long)cycle_len);
+        } else {
+            // cycle_len <= 0 should not happen after sort+dedupe
+            FURI_LOG_W(TAG, "Skipping non-positive cycle length %ld", (long)cycle_len);
         }
     }
 
-    if(num_cycles == 0) {
+    if(skipped_short || skipped_long) {
+        FURI_LOG_I(
+            TAG,
+            "Cycle filter: kept %u, skipped short=%u long=%u",
+            num_cycles,
+            skipped_short,
+            skipped_long);
+    }
+
+    if(num_cycles < 3) {
+        // Had enough starts but not enough plausible gaps
         stats->has_sufficient_data = false;
+        stats->num_cycles_analyzed = num_cycles;
         return false;
     }
 
