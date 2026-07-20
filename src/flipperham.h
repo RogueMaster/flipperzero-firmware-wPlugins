@@ -12,7 +12,7 @@
 #define FREQ_N        4
 #define HAM_N         8
 
-#define CARRIER_HZ 433250000UL
+#define CARRIER_HZ 432500000UL
 #define MY_CALL    "FL1PER"
 #define MY_TOCALL  "APZFLP"
 
@@ -84,6 +84,7 @@ enum {
     FlipperHamViewCoordInput,
     FlipperHamViewFreq,
     FlipperHamViewFreqEdit,
+    FlipperHamViewFreqInput,
     FlipperHamViewPosEdit,
     FlipperHamViewPosAction,
     FlipperHamViewHam,

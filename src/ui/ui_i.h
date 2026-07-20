@@ -31,6 +31,9 @@ uint32_t flipperham_text_exit_callback(void* context);
 void coord_input_alloc(FlipperHamApp* app);
 void coord_input_free(FlipperHamApp* app);
 void coord_input_start(FlipperHamApp* app, uint8_t lon);
+void freq_input_alloc(FlipperHamApp* app);
+void freq_input_free(FlipperHamApp* app);
+void freq_input_start(FlipperHamApp* app);
 
 void flipperham_menu_callback(void* context, uint32_t index);
 void flipperham_send_callback(void* context, uint32_t index);

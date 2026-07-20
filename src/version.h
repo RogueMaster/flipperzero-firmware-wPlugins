@@ -2,7 +2,7 @@
 
 #define APP_VER_MAJOR 1
 #define APP_VER_MINOR 3
-#define APP_VER_REV   20
+#define APP_VER_REV   21
 
 #define APP_VER_S2(x) #x
 #define APP_VER_S(x)  APP_VER_S2(x)

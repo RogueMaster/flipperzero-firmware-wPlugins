@@ -69,6 +69,17 @@ static bool flipperham_ext_started = false;
 static bool flipperham_devices_started = false;
 static bool flipperham_ext_power_started = false;
 
+typedef struct {
+    uint32_t lo;
+    uint32_t hi;
+} FlipperHamRfBand;
+
+static const FlipperHamRfBand flipperham_vfo_bands[] = {
+    {300000000UL, 348000000UL},
+    {387000000UL, 464000000UL},
+    {779000000UL, 928000000UL},
+};
+
 static bool wave_flag(FlipperHamApp* app);
 static bool wave_put(FlipperHamApp* app, uint8_t bit);
 static bool wave_add(FlipperHamApp* app, double value);
@@ -81,6 +92,7 @@ static bool flipperham_ext_vbus_on(void);
 static bool flipperham_ext_power_on(void);
 static void flipperham_ext_power_off(void);
 static void flipperham_ext_close(void);
+static uint32_t freq_band_default_hz(void);
 
 FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d00_async_regs, 0x04, 0x83, 0x68, 0x00)
 FLIPPERHAM_ASYNC_PRESET(flipperham_preset_2fsk_d01_async_regs, 0x04, 0x83, 0x68, 0x01)
@@ -161,12 +173,73 @@ void preset_fix(FlipperHamApp* app) {
     presetpick(app->rf_mod, app->rf_dev);
 }
 
+bool freq_vfo_valid_hz(uint32_t hz) {
+    uint8_t i;
+
+    for(i = 0; i < sizeof(flipperham_vfo_bands) / sizeof(flipperham_vfo_bands[0]); i++)
+        if(hz >= flipperham_vfo_bands[i].lo && hz <= flipperham_vfo_bands[i].hi) return true;
+
+    return false;
+}
+
+bool freq_valid_hz(uint32_t hz) {
+    return freq_vfo_valid_hz(hz) && furi_hal_subghz_is_frequency_valid(hz);
+}
+
+bool freq_tx_allowed_hz(uint32_t hz) {
+    return freq_valid_hz(hz) && furi_hal_region_is_frequency_allowed(hz);
+}
+
+static uint32_t freq_band_default_hz(void) {
+    const FuriHalRegion* region;
+    uint16_t i;
+    uint8_t j;
+
+    region = furi_hal_region_get();
+    if(region) {
+        for(i = 0; i < region->bands_count; i++) {
+            uint32_t rlo = ((region->bands[i].start + 999UL) / 1000UL) * 1000UL;
+            uint32_t rhi = (region->bands[i].end / 1000UL) * 1000UL;
+
+            for(j = 0; j < sizeof(flipperham_vfo_bands) / sizeof(flipperham_vfo_bands[0]); j++) {
+                uint32_t lo = rlo > flipperham_vfo_bands[j].lo ? rlo : flipperham_vfo_bands[j].lo;
+                uint32_t hi = rhi < flipperham_vfo_bands[j].hi ? rhi : flipperham_vfo_bands[j].hi;
+                uint32_t hz;
+
+                if(lo > hi) continue;
+
+                hz = lo + ((hi - lo) / 2000UL) * 1000UL;
+                if(freq_tx_allowed_hz(hz)) return hz;
+            }
+        }
+    }
+
+    return CARRIER_HZ;
+}
+
+uint32_t freq_default_hz(void) {
+    static const uint32_t candidates[] = {
+        CARRIER_HZ,
+        433800000UL,
+        315000000UL,
+        868350000UL,
+        915000000UL,
+        920500000UL,
+    };
+    uint8_t i;
+
+    for(i = 0; i < sizeof(candidates) / sizeof(candidates[0]); i++)
+        if(freq_tx_allowed_hz(candidates[i])) return candidates[i];
+
+    return freq_band_default_hz();
+}
+
 uint32_t tx_freq_get(FlipperHamApp* app) {
     if(app->tx_freq_index < FREQ_N)
         if(app->freq_used[app->tx_freq_index])
             if(app->freq[app->tx_freq_index]) return app->freq[app->tx_freq_index];
 
-    return CARRIER_HZ;
+    return freq_default_hz();
 }
 
 static bool wave_add(FlipperHamApp* app, double value) {
@@ -299,6 +372,7 @@ void txstart(FlipperHamApp* app) {
     app->tx_done = false;
     app->tx_ok = false;
     app->tx_missing_ext = false;
+    app->tx_unavailable = false;
     app->wave_i = 0;
     app->level = true;
     app->wave_len = 0;
@@ -443,6 +517,11 @@ static void flipperham_radio_ext_missing(FlipperHamApp* app) {
     flipperham_radio_fail(app);
 }
 
+static void flipperham_radio_unavailable(FlipperHamApp* app) {
+    app->tx_unavailable = true;
+    flipperham_radio_fail(app);
+}
+
 static bool flipperham_ext_vbus_on(void) {
     const float vbus = furi_hal_power_get_usb_voltage();
 
@@ -477,6 +556,11 @@ static void flipperham_ext_power_off(void) {
 }
 
 void flipperham_radio_start(FlipperHamApp* app) {
+    if(!freq_tx_allowed_hz(tx_freq_get(app))) {
+        flipperham_radio_unavailable(app);
+        return;
+    }
+
     furi_hal_subghz_reset();
     furi_hal_subghz_idle();
     furi_hal_subghz_load_custom_preset(flipperham_preset->regs);
@@ -511,6 +595,11 @@ static void flipperham_ext_close(void) {
 }
 
 void flipperham_radio_start_ext(FlipperHamApp* app) {
+    if(!freq_tx_allowed_hz(tx_freq_get(app))) {
+        flipperham_radio_unavailable(app);
+        return;
+    }
+
     if(!flipperham_ext_power_on()) {
         flipperham_radio_fail(app);
         return;

@@ -35,6 +35,7 @@ typedef struct FlipperHamApp {
     VariableItemList* pos_edit_menu;
     TextInput* text_input;
     View* coord_input_view;
+    View* freq_input_view;
     Widget* readme_widget;
     View* splash_view;
     FuriTimer* splash_timer;
@@ -47,6 +48,7 @@ typedef struct FlipperHamApp {
     volatile bool tx_allowed;
     bool tx_ok;
     bool tx_missing_ext;
+    bool tx_unavailable;
     bool show_done;
     bool send_requested;
     bool ham_ok;
@@ -138,6 +140,7 @@ typedef struct FlipperHamApp {
     uint8_t text_mode;
     uint8_t text_view;
     uint8_t coord_key;
+    uint8_t freq_focus;
     char b_edit[TXT_LEN];
     char st_edit[TXT_LEN];
     char m_edit[TXT_LEN];

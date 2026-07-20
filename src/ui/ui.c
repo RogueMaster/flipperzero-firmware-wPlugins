@@ -178,6 +178,10 @@ void flipperham_draw_callback(Canvas* canvas, void* context) {
     canvas_set_font(canvas, FontPrimary);
 
     if(!app->tx_allowed) {
+        if(app->tx_unavailable) {
+            canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "TX unavailable");
+            return;
+        }
         if(app->tx_missing_ext) {
             canvas_draw_str_aligned(canvas, 64, 29, AlignCenter, AlignCenter, "Missing external");
             canvas_draw_str_aligned(canvas, 64, 41, AlignCenter, AlignCenter, "radio");
@@ -1081,6 +1085,7 @@ void freq_change(VariableItem* item) {
         a++;
     }
 
+    app->f_bad = !freq_tx_allowed_hz(app->freq_edit_hz);
     fsh2(app->f_edit, sizeof(app->f_edit), app->freq_edit_hz);
     variable_item_set_current_value_text(item, app->f_edit);
     variable_item_set_current_value_index(item, 100);
