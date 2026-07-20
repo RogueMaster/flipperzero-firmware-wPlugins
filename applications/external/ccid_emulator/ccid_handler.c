@@ -205,9 +205,6 @@ void ccid_handler_start(CcidEmulatorApp* app) {
     /* Now register callbacks (CCID mode is active) */
     ccid_usb_set_callbacks(&app->ccid_callbacks, app);
 
-    /* Now register callbacks (CCID mode is active) */
-    furi_hal_usb_ccid_set_callbacks(&app->ccid_callbacks, app);
-
     /* Insert virtual smartcard */
     ccid_usb_insert_smartcard();
 
@@ -227,11 +224,6 @@ void ccid_handler_stop(CcidEmulatorApp* app) {
      * after the USB interface has been switched away from CCID triggers
      * furi_check on Momentum firmware. */
     ccid_usb_set_callbacks(NULL, NULL);
-
-    /* Clear callbacks BEFORE switching USB mode — calling CCID functions
-     * after the USB interface has been switched away from CCID triggers
-     * furi_check on Momentum firmware. */
-    furi_hal_usb_ccid_set_callbacks(NULL, NULL);
 
     /* Restore previous USB interface */
     furi_hal_usb_unlock();
