@@ -145,7 +145,7 @@ trivia packs to `.../trivia/`.
 
 ### Flashing the ESP from the Flipper (no computer)
 
-The app embeds Espressif's `esp-serial-flasher` **and bundles the ESP firmware inside the
+The app embeds Espressif's `esp_serial_flasher` **and bundles the ESP firmware inside the
 .fap**, so a fresh install needs no SD setup: use **Install Firmware** in the main menu,
 or accept the prompt the lobby shows when it does not see a board. Put the ESP in download
 mode when asked (**hold BOOT, tap RESET, release BOOT**); it verifies with MD5 and reboots

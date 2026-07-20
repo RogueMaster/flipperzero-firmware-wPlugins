@@ -1764,7 +1764,8 @@ static void mp3d_synth(float* xl, mp3d_sample_t* dstl, int nch, float* lins) {
             zlin[4 * i - 64 + 3] = xr[18 * (1 + i)];
 
             V0(0)
-            V2(1) V1(2) V2(3) V1(4) V2(5) V1(6) V2(7)
+            V2(1)
+            V1(2) V2(3) V1(4) V2(5) V1(6) V2(7)
 
             {
 #ifndef MINIMP3_FLOAT_OUTPUT
@@ -1873,7 +1874,8 @@ static void mp3d_synth(float* xl, mp3d_sample_t* dstl, int nch, float* lins) {
         zlin[4 * (i - 16) + 3] = xr[18 * (1 + i)];
 
         S0(0)
-        S2(1) S1(2) S2(3) S1(4) S2(5) S1(6) S2(7)
+        S2(1)
+        S1(2) S2(3) S1(4) S2(5) S1(6) S2(7)
 
             dstr[(15 - i) * nch] = mp3d_scale_pcm(a[1]);
         dstr[(17 + i) * nch] = mp3d_scale_pcm(b[1]);

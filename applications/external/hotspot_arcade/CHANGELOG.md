@@ -37,7 +37,7 @@ versioning. Firmware **v6**.
 - **Phone feel**: WebAudio sound effects, `navigator.vibrate` haptics, and micro-animations
   across the web client. Unified duel renderer (`web/games/duel.js`).
 - **On-device ESP flasher**: flash the bundled firmware straight from the Flipper over the
-  GPIO UART (Espressif `esp-serial-flasher`, Apache-2.0, S2-trimmed). Firmware ships inside
+  GPIO UART (Espressif `esp_serial_flasher`, Apache-2.0, S2-trimmed). Firmware ships inside
   the fap via `fap_file_assets`, so a fresh install needs no SD setup. Auto-reboots after
   flashing.
 - **Firmware identity + versioning**: the beacon carries a project magic and version, so a

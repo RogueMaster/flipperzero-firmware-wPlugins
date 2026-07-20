@@ -6,7 +6,7 @@ App(
     stack_size=8 * 1024,
     fap_icon="icons/ghosttag_10px.png",
     fap_icon_assets="icons",
-    fap_category="Bluetooth",
+    fap_category="GPIO/ESP32",
     fap_author="at0m-b0mb",
     fap_weburl="https://github.com/at0m-b0mb/GhostTag-FlipperZero",
     fap_version="1.0",
