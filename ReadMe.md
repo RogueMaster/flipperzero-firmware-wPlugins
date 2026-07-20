@@ -63,6 +63,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Hermes v1.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Hermes-FlipperZero)
 - Updated: [GlitchTrigger v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/GlitchTrigger-FlipperZero)
 - Updated: [WiFi (Marauder) v0.7.9 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion)
+- NFC: [Fix transit parsers skipping key recovery on a partial read - Troika, Plantain, SevPPK, SZPPK and Two Cities reported a read as successful on any partial read (needed for Plus 2K SL1), so a card whose data sector wasn't actually read skipped the dictionary/nested attack instead of recovering its keys; a partial read is now accepted only when the sector the parser needs is read (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1043)
 
 <a name="release"></a>
 
