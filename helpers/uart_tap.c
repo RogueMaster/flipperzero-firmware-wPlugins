@@ -3,12 +3,20 @@
 #include <furi_hal_serial.h>
 #include <string.h>
 
+/* A break must outlast a whole frame to be a break rather than a stray zero
+ * byte. 25 ms clears ten bits at 400 baud, so it is unambiguous at every rate
+ * Hermes supports. */
+#define UART_TAP_BREAK_MS (25u)
+
 struct UartTap {
     FuriHalSerialHandle* serial;
     FuriStreamBuffer* rx;
+    HermesPort port;
     bool open;
     bool tx_enabled;
     volatile uint32_t dropped;
+    volatile uint32_t errors;
+    volatile uint32_t rx_total;
 };
 
 const char* uart_tap_enter_name(UartTapEnter mode) {
@@ -32,6 +40,15 @@ static void uart_tap_rx_isr(
     void* ctx) {
     UartTap* tap = ctx;
 
+    /* The line disagreeing with our framing. Counted rather than discarded:
+     * a count that climbs with the traffic is how you learn the parity is
+     * wrong while the rate is right. Overruns are our own fault, so they stay
+     * in `dropped` and out of this. */
+    if(event & (FuriHalSerialRxEventFrameError | FuriHalSerialRxEventNoiseError |
+                FuriHalSerialRxEventParityError)) {
+        tap->errors++;
+    }
+
     if(!(event & (FuriHalSerialRxEventData | FuriHalSerialRxEventIdle))) return;
     if(data_len == 0) return;
 
@@ -41,6 +58,8 @@ static void uart_tap_rx_isr(
         const size_t got = furi_hal_serial_dma_rx(handle, chunk, want);
         if(got == 0) break;
         data_len -= got;
+
+        tap->rx_total += (uint32_t)got;
 
         const size_t sent = furi_stream_buffer_send(tap->rx, chunk, got, 0);
         if(sent < got) tap->dropped += (uint32_t)(got - sent);
@@ -75,6 +94,9 @@ bool uart_tap_open(
 
     furi_stream_buffer_reset(tap->rx);
     tap->dropped = 0;
+    tap->errors = 0;
+    tap->rx_total = 0;
+    tap->port = port;
 
     furi_hal_serial_init(tap->serial, baud);
     hermes_framing_apply(tap->serial, framing);
@@ -146,4 +168,36 @@ bool uart_tap_tx_enabled(const UartTap* tap) {
 uint32_t uart_tap_dropped(const UartTap* tap) {
     furi_assert(tap);
     return tap->dropped;
+}
+
+uint32_t uart_tap_errors(const UartTap* tap) {
+    furi_assert(tap);
+    return tap->errors;
+}
+
+uint32_t uart_tap_rx_total(const UartTap* tap) {
+    furi_assert(tap);
+    return tap->rx_total;
+}
+
+void uart_tap_send_break(UartTap* tap) {
+    furi_assert(tap);
+    if(!tap->open || !tap->tx_enabled) return;
+
+    /* There is no break in the serial HAL, and there cannot be a byte for it:
+     * a break is a deliberate framing violation - the line held low past the
+     * stop bit. So take the pin off the UART, hold it low by hand, and give it
+     * back. RX is untouched throughout, so nothing is missed. */
+    const GpioPin* tx = furi_hal_serial_get_gpio_pin(tap->serial, FuriHalSerialDirectionTx);
+    if(!tx) return;
+
+    furi_hal_serial_tx_wait_complete(tap->serial); // do not truncate a pending write
+    furi_hal_serial_disable_direction(tap->serial, FuriHalSerialDirectionTx);
+
+    furi_hal_gpio_init(tx, GpioModeOutputPushPull, GpioPullNo, GpioSpeedLow);
+    furi_hal_gpio_write(tx, false);
+    furi_delay_ms(UART_TAP_BREAK_MS);
+    furi_hal_gpio_write(tx, true); // idle high before handing back, so no stray edge
+
+    furi_hal_serial_enable_direction(tap->serial, FuriHalSerialDirectionTx);
 }

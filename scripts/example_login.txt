@@ -1,0 +1,16 @@
+# Hermes script - one command per line.
+# Blank lines and lines starting with '#' are ignored.
+# Each line is sent with your configured Enter key, ~250 ms apart.
+#
+# Copy this to your Flipper at:  SD Card / apps_data / hermes /
+# then in the console:  Left -> Run script...
+#
+# This one logs into a typical busybox / OpenWrt prompt and looks around.
+
+root
+
+uname -a
+cat /proc/version
+cat /proc/cpuinfo
+ls -la /
+cat /etc/os-release

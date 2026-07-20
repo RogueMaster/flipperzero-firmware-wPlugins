@@ -3,6 +3,51 @@
 All notable changes to Hermes are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2] - 2026-07-19
+
+Five additions, all aimed at the live session — the part of the workflow v1.1
+still left you doing by hand.
+
+### Added
+
+- **Watch for a string.** `Ctrl palette → Watch for…` arms a pattern; when it
+  appears in the stream, the Flipper buzzes and flashes, so you can set `login:`
+  and walk away during a long boot instead of watching the screen. Shown as an
+  inverted strip along the bottom with a live hit count. Case-insensitive, finds
+  matches that straddle DMA chunks or sit inside colour codes (it watches the
+  raw stream, not the cooked screen). Implemented as KMP with a precomputed
+  failure table and unit-tested against self-overlapping patterns and
+  byte-at-a-time delivery.
+- **Link health.** The console status bar now shows `ERR n` — hardware framing,
+  parity and noise errors counted since the link opened. A count that climbs
+  with the traffic is the surest sign the framing is wrong even though the rate
+  is right. (Overruns stay excluded: those are the Flipper being slow, not the
+  line being wrong.)
+- **Send break.** `Ctrl palette → Send break` holds TX low past a full frame —
+  a real UART break, which some bootloaders and the Linux magic SysRq listen
+  for and which cannot be expressed as a byte. Done by taking the pin off the
+  UART, driving it low by hand for 25 ms and handing it back, without disturbing
+  RX.
+- **Script replay.** `Ctrl palette → Run script…` picks a `.txt` off the SD
+  card and sends it line by line — a login, a set of U-Boot commands, a recovery
+  sequence. Lines are paced ~250 ms apart, blank lines and `#` comments skipped,
+  and playback runs off the UI tick so the target's replies keep scrolling in
+  between. Progress shows as `SCRIPT n/m`.
+
+### Fixed
+
+- The armed-watch strip drew its text at a baseline that clipped descenders
+  (the `g`/`p` in patterns like `login:`); nudged up one pixel. Caught, again,
+  by rendering the mockups from the real layout constants.
+
+### Notes
+
+- The break, watch, script and autoboot actions all run off the UI tick or a
+  brief bounded hold — none of them blocks the GUI thread, so the incoming boot
+  log keeps rendering throughout.
+- An armed watch shrinks the terminal from six rows to five to make room for its
+  strip; the terminal genuinely gives up the row rather than being drawn over.
+
 ## [1.1] - 2026-07-18
 
 Four additions, each closing a gap v1.0 left open.
@@ -86,5 +131,6 @@ against the dev SDK (API 88.0).
   confidence rather than a confident wrong answer; use Manual Console if you
   already know the rate.
 
+[1.2]: https://github.com/at0m-b0mb/Hermes-FlipperZero/releases/tag/v1.2
 [1.1]: https://github.com/at0m-b0mb/Hermes-FlipperZero/releases/tag/v1.1
 [1.0]: https://github.com/at0m-b0mb/Hermes-FlipperZero/releases/tag/v1.0

@@ -22,8 +22,6 @@ static const HermesCtrlKey hermes_ctrl_keys[] = {
 /* "Hit any key to stop autoboot" gives you a second or two, and doing it by
  * hand means watching for a prompt that has already gone. This hammers the key
  * across the whole window instead. */
-#define HERMES_CTRL_AUTOBOOT_INDEX (HERMES_CTRL_KEY_COUNT)
-#define HERMES_CTRL_TOTAL (HERMES_CTRL_KEY_COUNT + 1u)
 
 /** Arm the burst and let the console tick actually send it.
  *
@@ -35,6 +33,16 @@ static void hermes_ctrl_arm_autoboot(HermesApp* app) {
     session_log_note(app->log, "autoboot interrupt");
     app->autoboot_until = furi_get_tick() + furi_ms_to_ticks(HERMES_AUTOBOOT_MS);
 }
+
+/* The actions below are not single bytes, so they live past the key table. */
+typedef enum {
+    HermesCtrlActionAutoboot = HERMES_CTRL_KEY_COUNT,
+    HermesCtrlActionBreak,
+    HermesCtrlActionWatch,
+    HermesCtrlActionScript,
+
+    HermesCtrlActionCount,
+} HermesCtrlAction;
 
 static void hermes_scene_ctrl_callback(void* context, uint32_t index) {
     HermesApp* app = context;
@@ -53,11 +61,17 @@ void hermes_scene_ctrl_on_enter(void* context) {
             submenu, hermes_ctrl_keys[i].label, i, hermes_scene_ctrl_callback, app);
     }
     submenu_add_item(
+        submenu, "Stop autoboot (4s)", HermesCtrlActionAutoboot, hermes_scene_ctrl_callback, app);
+    submenu_add_item(
+        submenu, "Send break", HermesCtrlActionBreak, hermes_scene_ctrl_callback, app);
+    submenu_add_item(
         submenu,
-        "Stop autoboot (4s)",
-        HERMES_CTRL_AUTOBOOT_INDEX,
+        trigger_is_armed(app->trigger) ? "Watch for... (armed)" : "Watch for...",
+        HermesCtrlActionWatch,
         hermes_scene_ctrl_callback,
         app);
+    submenu_add_item(
+        submenu, "Run script...", HermesCtrlActionScript, hermes_scene_ctrl_callback, app);
 
     submenu_set_selected_item(
         submenu, scene_manager_get_scene_state(app->scene_manager, HermesSceneCtrl));
@@ -69,16 +83,36 @@ bool hermes_scene_ctrl_on_event(void* context, SceneManagerEvent event) {
     HermesApp* app = context;
 
     if(event.type != SceneManagerEventTypeCustom) return false;
-    if(event.event >= HERMES_CTRL_TOTAL) return false;
+    if(event.event >= HermesCtrlActionCount) return false;
 
     scene_manager_set_scene_state(app->scene_manager, HermesSceneCtrl, event.event);
 
-    if(event.event == HERMES_CTRL_AUTOBOOT_INDEX) {
+    switch(event.event) {
+    case HermesCtrlActionAutoboot:
         hermes_ctrl_arm_autoboot(app);
-    } else {
+        break;
+
+    case HermesCtrlActionBreak:
+        session_log_note(app->log, "break sent");
+        uart_tap_send_break(app->tap);
+        break;
+
+    /* These two open a picker, so they hand off rather than returning to the
+     * console themselves. */
+    case HermesCtrlActionWatch:
+        scene_manager_next_scene(app->scene_manager, HermesSceneWatch);
+        return true;
+
+    case HermesCtrlActionScript:
+        scene_manager_next_scene(app->scene_manager, HermesSceneScript);
+        return true;
+
+    default: {
         const uint8_t byte = hermes_ctrl_keys[event.event].byte;
         uart_tap_send_byte(app->tap, byte);
         if(app->local_echo) term_feed_echo(app->term, byte);
+        break;
+    }
     }
 
     hermes_notify_blip(app);

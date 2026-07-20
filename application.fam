@@ -9,7 +9,7 @@ App(
     fap_icon_assets="icons",
     fap_author="at0m-b0mb",
     fap_weburl="https://github.com/at0m-b0mb/Hermes-FlipperZero",
-    fap_version="1.1",
+    fap_version="1.2",
     # Explicit, so the recursive default does not sweep test/ (host-only code,
     # stubbed HAL) into the firmware build.
     sources=[
@@ -18,6 +18,6 @@ App(
         "views/*.c",
         "scenes/*.c",
     ],
-    fap_description="UART baud detector and console tap. Clip onto an unknown serial line and Hermes measures the bit time with the CPU cycle counter, fits it against the standard rates, then re-opens the line as a real UART to verify the guess with hardware framing errors - so it reports 115200 8N1, not just a number. Detects 8N1/8E1/8O1/7E1 framing, ranks runner-up candidates, then drops you into an interactive console with scrollback, hex view and a Ctrl-key palette. For your own dev boards.",
+    fap_description="UART baud detector and console tap. Clip onto an unknown serial line and Hermes measures the bit time with the CPU cycle counter, then re-opens the line as a real UART to verify the guess against hardware framing errors - so it reports 115200 8N1, not just a number. Detects 8N1/8E1/8O1/7E1, ranks runner-up candidates, then drops you into an interactive console with scrollback, hex view, a Ctrl-key palette, SD logging, a string watch that buzzes when your pattern appears, script replay, break and autoboot-interrupt. A loopback self test proves your own wiring before you blame the target. For your own dev boards.",
     requires=["gui"],
 )

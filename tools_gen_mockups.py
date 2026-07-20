@@ -270,6 +270,34 @@ def m_wiring():
     return finish(img, "screen_wiring.png")
 
 
+def m_watch():
+    """Console with a watch armed: five terminal rows, strip on the sixth."""
+    img = screen()
+    d = ImageDraw.Draw(img)
+
+    d.rectangle([0, 0, 128, 9], fill=INK)
+    d.ellipse([2, 2, 6, 6], fill=ORANGE)
+    ltext(d, 9, 7, "115200 8N1", SEC, fill=ORANGE)
+    rtext(d, 126, 7, "ERR 3", SEC, fill=ORANGE)
+
+    # CONSOLE_ROWS_WATCH = 5 while the strip is up
+    lines = [
+        "Starting kernel ...",
+        "[  0.000000] Linux",
+        "[  1.204000] usbcore",
+        "random: crng init done",
+        "buildroot login: _",
+    ]
+    for r, line in enumerate(lines):
+        ltext(d, 1, 11 + r * 9 + 7, line, MONO)
+
+    # the watch strip, inverted along the bottom
+    d.rectangle([0, 55, 128, 64], fill=INK)
+    ltext(d, 2, 61, "watch: login:", SEC, fill=ORANGE)
+    rtext(d, 126, 61, "x1", SEC, fill=ORANGE)
+    return finish(img, "screen_watch.png")
+
+
 def m_selftest():
     """The result state: which rates survived the cable."""
     img = screen()
@@ -343,10 +371,11 @@ if __name__ == "__main__":
     wiring = m_wiring()
     rules = m_rules()
     selftest = m_selftest()
+    watch = m_watch()
 
     strip([detect, result, console], "screens.png")
     strip(
-        [menu, detect, result, console, selftest, wiring],
+        [menu, detect, result, console, watch, selftest, wiring, rules],
         "screens_all.png",
-        cols=3,
+        cols=4,
     )

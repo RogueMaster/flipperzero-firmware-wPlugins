@@ -45,3 +45,24 @@ bool uart_tap_tx_enabled(const UartTap* tap);
 
 /** Bytes the interrupt had to drop because the buffer was full. */
 uint32_t uart_tap_dropped(const UartTap* tap);
+
+/* ---------------------------------------------------------------- health -- */
+
+/** Frame, parity and noise errors seen since the link opened.
+ *
+ * The single most useful number in the app after the baud itself: a healthy
+ * link sits at zero, and a count that climbs with the traffic means the
+ * framing is wrong even though the rate is right.
+ */
+uint32_t uart_tap_errors(const UartTap* tap);
+
+/** Total bytes received since the link opened. */
+uint32_t uart_tap_rx_total(const UartTap* tap);
+
+/** Send a UART break: hold TX low for longer than one frame.
+ *
+ * Some bootloaders and the Linux magic SysRq listen for this, and it cannot be
+ * expressed as a byte - a break is by definition a framing violation. No-op
+ * when TX is disabled.
+ */
+void uart_tap_send_break(UartTap* tap);
