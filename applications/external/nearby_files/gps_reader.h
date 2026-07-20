@@ -3,7 +3,7 @@
 #include <furi_hal.h>
 
 // Define GPS_UART_CH per firmware origin
-#ifdef FW_ORIGIN_Momentum
+#if __has_include(<cfw/cfw.h>)
 #include <cfw/cfw.h>
 #define GPS_UART_CH (cfw_settings.uart_nmea_channel)
 #else

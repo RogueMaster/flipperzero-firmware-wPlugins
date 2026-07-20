@@ -1887,7 +1887,7 @@ static void mp3d_synth(float* xl, mp3d_sample_t* dstl, int nch, float* lins) {
         S1(6)
         S2(7)
 
-            dstr[(15 - i) * nch] = mp3d_scale_pcm(a[1]);
+        dstr[(15 - i) * nch] = mp3d_scale_pcm(a[1]);
         dstr[(17 + i) * nch] = mp3d_scale_pcm(b[1]);
         dstl[(15 - i) * nch] = mp3d_scale_pcm(a[0]);
         dstl[(17 + i) * nch] = mp3d_scale_pcm(b[0]);
