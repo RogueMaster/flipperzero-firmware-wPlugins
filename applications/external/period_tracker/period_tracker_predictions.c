@@ -320,8 +320,7 @@ uint16_t get_alert_predictions(
     }
 
     // Same generation window as Daily Digest
-    uint16_t count =
-        generate_all_predictions(storage, all_predictions, alloc_size, lead_days);
+    uint16_t count = generate_all_predictions(storage, all_predictions, alloc_size, lead_days);
 
     SimpleDate today;
     get_today(&today);

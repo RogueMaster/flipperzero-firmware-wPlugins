@@ -90,7 +90,8 @@ static bool period_tracker_custom_event_callback(void* context, uint32_t event) 
     return scene_manager_handle_custom_event(app->scene_manager, event);
 }
 
-static void period_tracker_widget_ok_callback(GuiButtonType result, InputType type, void* context) {
+static void
+    period_tracker_widget_ok_callback(GuiButtonType result, InputType type, void* context) {
     UNUSED(result);
     if(type != InputTypeShort) {
         return;
@@ -103,8 +104,7 @@ void period_tracker_widget_show_message(PeriodTrackerApp* app, const char* text,
     furi_assert(app);
     furi_assert(text);
     widget_reset(app->widget);
-    widget_add_string_multiline_element(
-        app->widget, 64, 26, AlignCenter, AlignCenter, font, text);
+    widget_add_string_multiline_element(app->widget, 64, 26, AlignCenter, AlignCenter, font, text);
     widget_add_button_element(
         app->widget, GuiButtonTypeCenter, "OK", period_tracker_widget_ok_callback, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewWidget);

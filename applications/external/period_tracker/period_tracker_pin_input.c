@@ -53,8 +53,7 @@ static void pin_input_draw_callback(Canvas* canvas, void* model_ptr) {
     const int slot_w = 16;
     const int slot_h = 14;
     const int slot_gap = 6;
-    const int total_w =
-        PIN_INPUT_DIGIT_COUNT * slot_w + (PIN_INPUT_DIGIT_COUNT - 1) * slot_gap;
+    const int total_w = PIN_INPUT_DIGIT_COUNT * slot_w + (PIN_INPUT_DIGIT_COUNT - 1) * slot_gap;
     int slot_x0 = (128 - total_w) / 2;
     const int slot_y = 16;
 
@@ -75,7 +74,8 @@ static void pin_input_draw_callback(Canvas* canvas, void* model_ptr) {
     } else if(model->auto_submit) {
         canvas_draw_str_aligned(canvas, 64, 36, AlignCenter, AlignCenter, "Checking...");
     } else {
-        canvas_draw_str_aligned(canvas, 64, 36, AlignCenter, AlignCenter, "OK: confirm  Back: del");
+        canvas_draw_str_aligned(
+            canvas, 64, 36, AlignCenter, AlignCenter, "OK: confirm  Back: del");
     }
 
     // Keypad (fits under y=63)

@@ -35,8 +35,12 @@ static void seed_history_show_menu(PeriodTrackerApp* app) {
             app->submenu, "Skip for now", SEED_ITEM_SKIP_DONE, seed_history_submenu_callback, app);
     } else if(app->seed_period_count < PERIOD_TRACKER_SEED_MAX_PERIODS) {
         char header[32];
-        snprintf(header, sizeof(header), "Logged %u date%s", app->seed_period_count,
-                 app->seed_period_count == 1 ? "" : "s");
+        snprintf(
+            header,
+            sizeof(header),
+            "Logged %u date%s",
+            app->seed_period_count,
+            app->seed_period_count == 1 ? "" : "s");
         submenu_set_header(app->submenu, header);
         submenu_add_item(
             app->submenu,

@@ -61,12 +61,9 @@ bool period_tracker_scene_add_girl_on_event(void* context, SceneManagerEvent eve
             if(app->current_girl_name[0] == '\0' ||
                add_girl_name_has_invalid_chars(app->current_girl_name)) {
                 period_tracker_widget_show_message(
-                    app,
-                    "Invalid name!\nAvoid / \\ : * ? \" < > |",
-                    FontPrimary);
+                    app, "Invalid name!\nAvoid / \\ : * ? \" < > |", FontPrimary);
             } else if(profile_exists(app->storage, app->current_girl_name)) {
-                period_tracker_widget_show_message(
-                    app, "Profile already exists!", FontPrimary);
+                period_tracker_widget_show_message(app, "Profile already exists!", FontPrimary);
             } else {
                 // Create profile with default values
                 GirlProfile profile;

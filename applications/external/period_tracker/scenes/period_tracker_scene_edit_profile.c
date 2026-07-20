@@ -3,10 +3,10 @@
 #include "../period_tracker_csv.h"
 
 // Scene state: entry path and whether a result TextBox is showing
-#define EDIT_PROFILE_STATE_FROM_MENU      0
-#define EDIT_PROFILE_STATE_FROM_ADD_GIRL  1
-#define EDIT_PROFILE_STATE_RESULT_MENU    2
-#define EDIT_PROFILE_STATE_RESULT_ADD     3
+#define EDIT_PROFILE_STATE_FROM_MENU     0
+#define EDIT_PROFILE_STATE_FROM_ADD_GIRL 1
+#define EDIT_PROFILE_STATE_RESULT_MENU   2
+#define EDIT_PROFILE_STATE_RESULT_ADD    3
 
 typedef enum {
     EditProfileItemCycleLength,
@@ -108,8 +108,7 @@ void period_tracker_scene_edit_profile_on_enter(void* context) {
 
     // Load current profile
     if(!profile_load(app->storage, app->current_girl_name, &temp_profile)) {
-        period_tracker_widget_show_message(
-            app, "Error!\n\nFailed to load profile.", FontPrimary);
+        period_tracker_widget_show_message(app, "Error!\n\nFailed to load profile.", FontPrimary);
         return;
     }
 

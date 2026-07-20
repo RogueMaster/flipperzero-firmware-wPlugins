@@ -90,8 +90,8 @@ bool period_tracker_has_alerts_today(Storage* storage) {
         return false;
     }
 
-    uint16_t count = get_alert_predictions(
-        storage, predictions, MAX_ALERT_PREDICTIONS, NULL, 0, lead_days);
+    uint16_t count =
+        get_alert_predictions(storage, predictions, MAX_ALERT_PREDICTIONS, NULL, 0, lead_days);
 
     free(predictions);
     return count > 0;
