@@ -1,0 +1,10 @@
+# ufbt build output
+dist/
+.ufbt/
+
+# Generated IDE config (recreate with `ufbt vscode_dist`)
+.vscode/
+
+# OS junk
+Thumbs.db
+.DS_Store

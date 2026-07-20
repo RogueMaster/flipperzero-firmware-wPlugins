@@ -1,0 +1,84 @@
+name: Catalog PR
+
+# On every version tag (v*), opens a PR to the official Flipper Apps Catalog
+# with a manifest pinned to the tagged commit.
+#
+# Requirements:
+#   - Repo secret CATALOG_PAT: a GitHub personal access token (classic,
+#     public_repo scope) that can push to your catalog fork and open PRs.
+#   - Bump fap_version in application.fam BEFORE tagging — the catalog
+#     rejects resubmissions of an already-published version.
+#   - Edit .catalog/PR_BODY.md — it becomes the pull request body.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  APP_ID: walkie_talkie
+  APP_NAME: Walkie Talkie
+  CATALOG_CATEGORY: Sub-GHz
+  FORK_REPO: coolshrimp/flipper-application-catalog
+  UPSTREAM_REPO: flipperdevices/flipper-application-catalog
+  GIT_USER: Coolshrimp
+  GIT_EMAIL: coolshrimpmodz@gmail.com
+
+jobs:
+  catalog-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check CATALOG_PAT secret
+        run: |
+          if [ -z "${{ secrets.CATALOG_PAT }}" ]; then
+            echo "::error::Repo secret CATALOG_PAT is not set (classic PAT with public_repo scope)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: Read app version and commit
+        id: meta
+        run: |
+          echo "version=$(grep -oP 'fap_version="\K[0-9]+\.[0-9]+' application.fam)" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Clone catalog fork and branch from upstream main
+        run: |
+          git clone --depth 1 "https://x-access-token:${{ secrets.CATALOG_PAT }}@github.com/${FORK_REPO}.git" catalog
+          cd catalog
+          git remote add upstream "https://github.com/${UPSTREAM_REPO}.git"
+          git fetch --depth 1 upstream main
+          git checkout -B "coolshrimp/${APP_ID}_${{ steps.meta.outputs.version }}" upstream/main
+
+      - name: Add manifest pinned to tagged commit
+        run: |
+          mkdir -p "catalog/applications/${CATALOG_CATEGORY}/${APP_ID}"
+          sed -E "s/commit_sha: [0-9a-f]+/commit_sha: ${{ steps.meta.outputs.sha }}/" \
+            .catalog/manifest.yml > "catalog/applications/${CATALOG_CATEGORY}/${APP_ID}/manifest.yml"
+
+      - name: Validate manifest (catalog bundler)
+        run: |
+          cd catalog
+          pip install -r tools/requirements.txt
+          python tools/bundle.py --nolint "applications/${CATALOG_CATEGORY}/${APP_ID}/manifest.yml" bundle.zip
+          rm -f bundle.zip
+
+      - name: Commit and push to fork
+        run: |
+          cd catalog
+          git config user.name "${GIT_USER}"
+          git config user.email "${GIT_EMAIL}"
+          git add applications
+          git commit -m "${APP_NAME} ${{ steps.meta.outputs.version }}"
+          git push -f origin "coolshrimp/${APP_ID}_${{ steps.meta.outputs.version }}"
+
+      - name: Open PR to the Apps Catalog
+        env:
+          GH_TOKEN: ${{ secrets.CATALOG_PAT }}
+        run: |
+          gh pr create --repo "${UPSTREAM_REPO}" --base main \
+            --head "coolshrimp:coolshrimp/${APP_ID}_${{ steps.meta.outputs.version }}" \
+            --title "${APP_NAME} ${{ steps.meta.outputs.version }}" \
+            --body-file .catalog/PR_BODY.md \
+            || echo "::notice::PR not created (it may already exist for this branch)."
