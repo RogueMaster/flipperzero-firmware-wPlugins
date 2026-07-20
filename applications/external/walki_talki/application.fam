@@ -1,0 +1,15 @@
+App(
+    appid="walki_talki",
+    name="Walki-Talki",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="walkie_talkie_main",
+    requires=[
+        "gui",
+    ],
+    stack_size=2 * 1024,
+    fap_category="Sub-GHz",       
+    fap_icon_assets="images",
+    fap_author="coolshrimp",
+    fap_description="Walki-Talki App",    
+    fap_version=(1, 1),
+)
