@@ -510,8 +510,7 @@ void recon_app_watchscore_tick(ReconApp* app) {
     // recon_app_attacks_detected exactly.
     uint8_t flip_n = 0;
     for(size_t i = 0; i < app->ble_count; i++) {
-        if(app->ble[i].cat == BleCatFlipper &&
-           (now - app->ble[i].last_tick) <= WATCH_BLE_FRESH_MS)
+        if(app->ble[i].cat == BleCatFlipper && (now - app->ble[i].last_tick) <= WATCH_BLE_FRESH_MS)
             flip_n++;
     }
     uint8_t atk_n = 0;

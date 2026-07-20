@@ -38,7 +38,7 @@ def draw_frame(i):
 
     # --- HUD frame + corner ticks ---
     d.rectangle([0, 0, W - 1, H - 1], outline=0)
-    for (cx, cy) in [(0, 0), (W - 1, 0), (0, H - 1), (W - 1, H - 1)]:
+    for cx, cy in [(0, 0), (W - 1, 0), (0, H - 1), (W - 1, H - 1)]:
         sx = 1 if cx == 0 else -1
         sy = 1 if cy == 0 else -1
         d.line([(cx, cy), (cx + sx * 6, cy)], fill=0)
@@ -69,7 +69,7 @@ def draw_frame(i):
         d.point((xx, midy), fill=0)
 
     # blips: light up once the sweep has passed them this cycle
-    for (bx, by) in BLIPS:
+    for bx, by in BLIPS:
         if sweep >= bx:
             d.ellipse([bx - 2, by - 2, bx + 2, by + 2], outline=0)
             d.point((bx, by), fill=0)
@@ -101,7 +101,7 @@ def draw_frame(i):
 
 def hud_frame(d):
     d.rectangle([0, 0, W - 1, H - 1], outline=0)
-    for (cx, cy) in [(0, 0), (W - 1, 0), (0, H - 1), (W - 1, H - 1)]:
+    for cx, cy in [(0, 0), (W - 1, 0), (0, H - 1), (W - 1, H - 1)]:
         sx = 1 if cx == 0 else -1
         sy = 1 if cy == 0 else -1
         d.line([(cx, cy), (cx + sx * 6, cy)], fill=0)
@@ -131,7 +131,7 @@ def build_lockscreen():
     d.text((64, 41), "secure", font=f_small, fill=0)
 
     # scanner accents (right side blips + a dotted sweep column)
-    for (bx, by) in [(110, 24), (118, 36), (104, 46)]:
+    for bx, by in [(110, 24), (118, 36), (104, 46)]:
         d.ellipse([bx - 2, by - 2, bx + 2, by + 2], outline=0)
         d.point((bx, by), fill=0)
     for yy in range(16, 56, 4):

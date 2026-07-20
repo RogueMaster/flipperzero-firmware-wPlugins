@@ -60,14 +60,23 @@ def build_logo():
     # --- emblem: a CCTV camera with a slash, drawn big on the left ---
     cx, cy = 130, 130
     # camera body (rounded rect)
-    d.rounded_rectangle([cx - 70, cy - 38, cx + 50, cy + 38], radius=10,
-                        outline=WHITE, width=7)
+    d.rounded_rectangle(
+        [cx - 70, cy - 38, cx + 50, cy + 38], radius=10, outline=WHITE, width=7
+    )
     # lens
     d.ellipse([cx - 34, cy - 22, cx + 10, cy + 22], outline=WHITE, width=7)
     d.ellipse([cx - 18, cy - 6, cx - 6, cy + 6], fill=WHITE)
     # barrel/front toward right
-    d.polygon([(cx + 50, cy - 18), (cx + 78, cy - 30),
-               (cx + 78, cy + 30), (cx + 50, cy + 18)], outline=WHITE, width=7)
+    d.polygon(
+        [
+            (cx + 50, cy - 18),
+            (cx + 78, cy - 30),
+            (cx + 78, cy + 30),
+            (cx + 50, cy + 18),
+        ],
+        outline=WHITE,
+        width=7,
+    )
     # mount stem + base
     d.rectangle([cx - 8, cy + 38, cx + 8, cy + 60], fill=WHITE)
     d.rectangle([cx - 34, cy + 60, cx + 34, cy + 72], fill=WHITE)
@@ -89,8 +98,9 @@ def build_logo():
     for text, color in parts:
         d.text((x, 70), text, font=bold, fill=color)
         x += d.textlength(text, font=bold)
-    d.text((tx + 2, 162), "Flock / ALPR detection for Flipper Zero",
-           font=sub, fill=GREY)
+    d.text(
+        (tx + 2, 162), "Flock / ALPR detection for Flipper Zero", font=sub, fill=GREY
+    )
 
     img.save(os.path.join(HERE, "logo.png"))
     print("logo.png:", img.size)

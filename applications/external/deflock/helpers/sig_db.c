@@ -32,7 +32,7 @@
 #define SIG_MAX_FILE     8192u /**< largest signatures.json we will read */
 #define SIG_MAX_TOKENS   512u /**< jsmn token budget (bounds parse RAM) */
 #define SIG_MAX_NEEDLE   48u /**< longest SSID substring we keep (lowercased) */
-#define SIG_MAX_DEPTH    16  /**< max JSON nesting we recurse (schema is flat) -> bounds stack */
+#define SIG_MAX_DEPTH    16 /**< max JSON nesting we recurse (schema is flat) -> bounds stack */
 
 struct SigDb {
     uint8_t (*ouis)[3]; /**< owned OUI table, NULL if none */

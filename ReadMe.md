@@ -65,8 +65,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Fix transit parsers skipping key recovery on a partial read - Troika, Plantain, SevPPK, SZPPK and Two Cities reported a read as successful on any partial read (needed for Plus 2K SL1), so a card whose data sector wasn't actually read skipped the dictionary/nested attack instead of recovering its keys; a partial read is now accepted only when the sector the parser needs is read (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1043)
 - Updated: [Period Tracker v1.0 (By gorshunovr)](https://github.com/gorshunovr/period_tracker)
 - Added: [MP3 Player v2.12 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-mp3-player)
-- Added: [Hotspot Arcade v0.2 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32`
+- Added: [Hotspot Arcade v0.42 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32`
 - Removed some ESP32 assets from ESP Flasher & Hotspot Arcade that can be added directly to the SD Card if needed.
+- Added: [DeFlock v0.2 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 
 <a name="release"></a>
 

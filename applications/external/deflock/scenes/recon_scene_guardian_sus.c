@@ -64,10 +64,17 @@ void recon_scene_guardian_sus_on_enter(void* context) {
             if(d->name[0])
                 snprintf(buf, sizeof(buf), "Flipper %s", d->name);
             else
-                snprintf(buf, sizeof(buf), "Flipper %02X%02X%02X", d->addr[3], d->addr[4], d->addr[5]);
+                snprintf(
+                    buf, sizeof(buf), "Flipper %02X%02X%02X", d->addr[3], d->addr[4], d->addr[5]);
         } else {
             snprintf(
-                buf, sizeof(buf), "Unknown %02X%02X%02X %ddB", d->addr[3], d->addr[4], d->addr[5], d->rssi);
+                buf,
+                sizeof(buf),
+                "Unknown %02X%02X%02X %ddB",
+                d->addr[3],
+                d->addr[4],
+                d->addr[5],
+                d->rssi);
         }
         sus_add(d->addr, 'b', 0, buf, 0, (uint16_t)i);
     }
@@ -77,7 +84,8 @@ void recon_scene_guardian_sus_on_enter(void* context) {
         if(a->ssid[0])
             snprintf(buf, sizeof(buf), "Rogue AP %s", a->ssid);
         else
-            snprintf(buf, sizeof(buf), "Rogue AP %02X%02X%02X", a->bssid[3], a->bssid[4], a->bssid[5]);
+            snprintf(
+                buf, sizeof(buf), "Rogue AP %02X%02X%02X", a->bssid[3], a->bssid[4], a->bssid[5]);
         sus_add(a->bssid, 'w', a->channel, buf, 1, (uint16_t)i);
     }
     furi_mutex_release(app->mutex);
