@@ -213,21 +213,24 @@ void glitch_scene_params_on_enter(void* context) {
 
     idx = glitch_ladder_nearest_u32(
         glitch_ladder_delay_us, glitch_ladder_delay_len, p->sweep_delay_from_us);
-    item = variable_item_list_add(list, "2D delay from", glitch_ladder_delay_len, item_sweep_dfrom, app);
+    item = variable_item_list_add(
+        list, "2D delay from", glitch_ladder_delay_len, item_sweep_dfrom, app);
     variable_item_set_current_value_index(item, idx);
     glitch_fmt_us(glitch_ladder_delay_us[idx], b, sizeof(b));
     variable_item_set_current_value_text(item, b);
 
     idx = glitch_ladder_nearest_u32(
         glitch_ladder_delay_us, glitch_ladder_delay_len, p->sweep_delay_to_us);
-    item = variable_item_list_add(list, "2D delay to", glitch_ladder_delay_len, item_sweep_dto, app);
+    item =
+        variable_item_list_add(list, "2D delay to", glitch_ladder_delay_len, item_sweep_dto, app);
     variable_item_set_current_value_index(item, idx);
     glitch_fmt_us(glitch_ladder_delay_us[idx], b, sizeof(b));
     variable_item_set_current_value_text(item, b);
 
     idx = glitch_ladder_nearest_u32(
         glitch_ladder_delay_us, glitch_ladder_delay_len, p->sweep_delay_step_us);
-    item = variable_item_list_add(list, "2D delay step", glitch_ladder_delay_len, item_sweep_dstep, app);
+    item = variable_item_list_add(
+        list, "2D delay step", glitch_ladder_delay_len, item_sweep_dstep, app);
     variable_item_set_current_value_index(item, idx);
     glitch_fmt_us(glitch_ladder_delay_us[idx], b, sizeof(b));
     variable_item_set_current_value_text(item, b);

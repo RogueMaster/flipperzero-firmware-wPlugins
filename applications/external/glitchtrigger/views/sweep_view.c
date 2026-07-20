@@ -102,7 +102,11 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
         }
     } else {
         snprintf(
-            line, sizeof(line), "shots %lu  hits %lu", (unsigned long)m->shots, (unsigned long)m->hits);
+            line,
+            sizeof(line),
+            "shots %lu  hits %lu",
+            (unsigned long)m->shots,
+            (unsigned long)m->hits);
     }
     canvas_draw_str(canvas, 2, 56, line);
 

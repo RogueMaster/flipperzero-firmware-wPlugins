@@ -58,8 +58,12 @@ def finish(img, name):
     pad = 20
     canvas = Image.new("RGB", (W * SCALE + pad * 2, H * SCALE + pad * 2), BEZEL)
     d = ImageDraw.Draw(canvas)
-    d.rounded_rectangle([6, 6, canvas.width - 6, canvas.height - 6], radius=16,
-                        outline=BEZEL_HI, width=3)
+    d.rounded_rectangle(
+        [6, 6, canvas.width - 6, canvas.height - 6],
+        radius=16,
+        outline=BEZEL_HI,
+        width=3,
+    )
     canvas.paste(up, (pad, pad))
     path = os.path.join(OUT, name)
     canvas.save(path)
@@ -219,8 +223,13 @@ def m_wiring():
 def m_params():
     img = screen()
     d = ImageDraw.Draw(img)
-    rows = [("Delay", "100 us"), ("Width", "500 ns"), ("Pulses", "1"),
-            ("Gap", "10 us"), ("Polarity", "Active-High")]
+    rows = [
+        ("Delay", "100 us"),
+        ("Width", "500 ns"),
+        ("Pulses", "1"),
+        ("Gap", "10 us"),
+        ("Polarity", "Active-High"),
+    ]
     y = 2
     for i, (k, v) in enumerate(rows):
         if i == 1:
@@ -235,8 +244,14 @@ def m_params():
 
 
 def strip():
-    names = ["screen_menu.png", "screen_trigger.png", "screen_sweep.png",
-             "screen_profiles.png", "screen_wiring.png", "screen_params.png"]
+    names = [
+        "screen_menu.png",
+        "screen_trigger.png",
+        "screen_sweep.png",
+        "screen_profiles.png",
+        "screen_wiring.png",
+        "screen_params.png",
+    ]
     imgs = [Image.open(os.path.join(OUT, n)) for n in names]
     gap = 16
     tw = sum(i.width for i in imgs) + gap * (len(imgs) - 1)

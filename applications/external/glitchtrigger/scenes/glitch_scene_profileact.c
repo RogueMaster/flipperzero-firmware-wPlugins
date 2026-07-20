@@ -8,7 +8,8 @@ typedef enum {
     ProfileActDelete,
 } ProfileActEvent;
 
-static void glitch_scene_profileact_button_cb(GuiButtonType result, InputType type, void* context) {
+static void
+    glitch_scene_profileact_button_cb(GuiButtonType result, InputType type, void* context) {
     GlitchApp* app = context;
     if(type != InputTypeShort) return;
     if(result == GuiButtonTypeRight) {

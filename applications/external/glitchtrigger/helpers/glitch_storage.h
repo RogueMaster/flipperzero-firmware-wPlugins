@@ -7,7 +7,7 @@
  * just fails cleanly, never crashes. */
 
 #define GLITCH_PROFILE_NAME_MAX 33 // 32 chars + NUL
-#define GLITCH_PROFILE_MAX 40 // most profiles we list
+#define GLITCH_PROFILE_MAX      40 // most profiles we list
 
 bool glitch_storage_save_profile(const char* name, const GlitchParams* p);
 bool glitch_storage_load_profile(const char* name, GlitchParams* p);

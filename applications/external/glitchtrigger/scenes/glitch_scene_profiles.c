@@ -5,7 +5,7 @@
  * jumps to the name-entry scene; picking a profile opens the load/delete
  * action scene. */
 
-#define PROFILE_INDEX_SAVE 0
+#define PROFILE_INDEX_SAVE  0
 #define PROFILE_INDEX_FIRST 1
 
 static char s_names[GLITCH_PROFILE_MAX][GLITCH_PROFILE_NAME_MAX];

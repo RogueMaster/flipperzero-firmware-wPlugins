@@ -5,13 +5,13 @@
 #include <stdio.h>
 #include <string.h>
 
-#define GLITCH_DIR "/ext/apps_data/glitch_trigger"
+#define GLITCH_DIR         "/ext/apps_data/glitch_trigger"
 #define GLITCH_PROFILE_DIR GLITCH_DIR "/profiles"
 #define GLITCH_PROFILE_EXT ".gt"
-#define GLITCH_HITS_PATH GLITCH_DIR "/hits.csv"
+#define GLITCH_HITS_PATH   GLITCH_DIR "/hits.csv"
 
 #define GLITCH_PROFILE_MAGIC 0x47543031UL // "GT01"
-#define GLITCH_PROFILE_VER 2
+#define GLITCH_PROFILE_VER   2
 
 typedef struct {
     uint32_t magic;

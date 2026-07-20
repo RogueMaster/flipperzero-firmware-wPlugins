@@ -16,12 +16,7 @@ void glitch_scene_profilename_on_enter(void* context) {
     text_input_set_header_text(ti, "Profile name");
     text_input_set_minimum_length(ti, 1);
     text_input_set_result_callback(
-        ti,
-        glitch_scene_profilename_cb,
-        app,
-        app->name_buf,
-        GLITCH_PROFILE_NAME_MAX,
-        true);
+        ti, glitch_scene_profilename_cb, app, app->name_buf, GLITCH_PROFILE_NAME_MAX, true);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, GlitchViewTextInput);
 }
