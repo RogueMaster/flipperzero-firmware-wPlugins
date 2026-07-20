@@ -1,0 +1,51 @@
+name: "FAP: Release"
+
+# On a pushed tag matching v* (e.g. v1.2.0): build the FAP with the SAME
+# ufbt-action as build.yml and attach flipdeflock.fap to that tag's GitHub
+# Release.
+#
+# Resilient by design: the maintainer currently creates releases MANUALLY (via
+# the GitHub API) before/after tagging. So this workflow must NOT fail if a
+# release already exists, and must NOT create a conflicting duplicate.
+# softprops/action-gh-release attaches to an existing release for the tag if one
+# is present (and creates one only if it is absent), and we set
+# fail_on_unmatched_files: false so a transient miss won't turn the run red.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # required to create/update the Release and upload assets
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    name: "Build .fap and attach to release"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build with ufbt
+        id: build-app
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        with:
+          # Mirror build.yml: floating official release SDK. Kept identical so a
+          # tagged build matches what CI builds on main. (See the API drift guard
+          # in build.yml if the SDK ever moves off API 87.1.)
+          sdk-channel: release
+
+      # Attach the built .fap to the Release for this tag.
+      # - If the maintainer already created the release manually, this updates it
+      #   (does not create a duplicate).
+      # - fail_on_unmatched_files: false keeps the job green if the glob misses.
+      # - The maintainer may also upload/release manually; this just automates it.
+      - name: Attach .fap to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # fap-artifacts is a path/glob to the built .fap(s); appid is
+          # "flipdeflock" so the asset is flipdeflock.fap.
+          files: ${{ steps.build-app.outputs.fap-artifacts }}
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

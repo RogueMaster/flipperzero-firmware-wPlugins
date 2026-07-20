@@ -1,0 +1,53 @@
+App(
+    appid="flipdeflock",
+    name="FlipDeFlock",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="recon_site_survey_app",
+    stack_size=4 * 1024,
+    requires=["gui", "storage", "notification"],
+    fap_icon="icon.png",
+    fap_category="Tools",
+    fap_author="@ReconGrunt",
+    fap_version="0.42",
+    fap_description="FlipDeFlock: detect Flock/ALPR surveillance cameras via any "
+    "ESP32 (Marauder or companion FW), with NFC/RFID credential audit, GPS "
+    "geotagging and DeFlock-compatible reports.",
+    fap_private_libs=[
+        # Espressif esp-serial-flasher (Apache-2.0), vendored under
+        # lib/esp-serial-flasher. Our port/worker/UI is original (GPL-3.0-or-later).
+        Lib(
+            name="esp-serial-flasher",
+            fap_include_paths=["include"],
+            sources=[
+                "src/esp_loader.c",
+                "src/esp_targets.c",
+                "src/md5_hash.c",
+                "src/protocol_serial.c",
+                "src/protocol_uart.c",
+                "src/slip.c",
+                "src/esp_stubs.c",
+            ],
+            cincludes=["lib/esp-serial-flasher/private_include"],
+            cdefines=[
+                "SERIAL_FLASHER_INTERFACE_UART=1",
+                "MD5_ENABLED=1",
+                "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
+            ],
+            cflags=["-Wno-sign-compare"],
+        ),
+        # Nayuki QR Code generator (MIT), vendored under lib/qrcodegen.
+        # Used by the passive DeFlock phone-handoff (renders a QR locally; no
+        # network). Upstream verbatim — see the MIT header in the sources.
+        Lib(
+            name="qrcodegen",
+            sources=["qrcodegen.c"],
+            cflags=["-Wno-sign-compare", "-Wno-unused-parameter"],
+        ),
+    ],
+    cdefines=[
+        "SERIAL_FLASHER_INTERFACE_UART=1",
+        "MD5_ENABLED=1",
+        "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
+    ],
+)
