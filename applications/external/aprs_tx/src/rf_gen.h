@@ -34,6 +34,10 @@ void flipperham_radio_start_ext(FlipperHamApp* app);
 bool flipperham_radio_ext_is_complete(void);
 void preset_fix(FlipperHamApp* app);
 uint32_t tx_freq_get(FlipperHamApp* app);
+uint32_t freq_default_hz(void);
+bool freq_vfo_valid_hz(uint32_t hz);
+bool freq_valid_hz(uint32_t hz);
+bool freq_tx_allowed_hz(uint32_t hz);
 
 void txstart(FlipperHamApp* app);
 void flipperham_radio_stop(FlipperHamApp* app);

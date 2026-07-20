@@ -46,7 +46,7 @@ static void cfg_defaults(FlipperHamApp* app) {
     app->aprs_path_index = 0;
     app->aprs_path_edit[0] = 0;
     app->debug_tx = false;
-    app->radio_backend = FlipperHamRadioInternal;
+    app->radio_backend = FlipperHamRadioAuto;
 
     /* Seed one valid entry of each type so a fresh install is immediately testable. */
     snprintf(app->bulletin[0], sizeof(app->bulletin[0]), "flipper bulletin");
@@ -75,9 +75,9 @@ static void cfg_defaults(FlipperHamApp* app) {
     app->message_n = 1;
     app->calls_n = 2;
     app->pos_n = 2;
-    app->freq[0] = CARRIER_HZ;
-    app->freq_used[0] = 1;
-    app->freq_n = 1;
+    app->freq[0] = freq_default_hz();
+    app->freq_used[0] = freq_tx_allowed_hz(app->freq[0]) ? 1 : 0;
+    app->freq_n = app->freq_used[0] ? 1 : 0;
 
     preset_fix(app);
 }
@@ -236,7 +236,7 @@ void cfgload(FlipperHamApp* app) {
 
     if(app->dst_ssid > 15) app->dst_ssid = 0;
     if(app->aprs_path_index > 7) app->aprs_path_index = 0;
-    if(app->radio_backend > FlipperHamRadioExternal) app->radio_backend = FlipperHamRadioInternal;
+    if(app->radio_backend > FlipperHamRadioAuto) app->radio_backend = FlipperHamRadioAuto;
     if(!app->repeat_n || app->repeat_n > 5) app->repeat_n = 1;
     if(app->leadin_ms > 1000) app->leadin_ms = 1000;
     if(app->preamble_ms > 1000) app->preamble_ms = 1000;
@@ -348,7 +348,7 @@ void freq_fix(FlipperHamApp* app) {
     app->freq_n = 0;
 
     for(i = 0; i < FREQ_N; i++) {
-        if(app->freq[i] && furi_hal_subghz_is_frequency_valid(app->freq[i]))
+        if(app->freq[i] && freq_tx_allowed_hz(app->freq[i]))
             app->freq_used[i] = 1;
         else
             app->freq_used[i] = 0;
@@ -357,9 +357,9 @@ void freq_fix(FlipperHamApp* app) {
     }
 
     if(!app->freq_n) {
-        app->freq[0] = CARRIER_HZ;
-        app->freq_used[0] = 1;
-        app->freq_n = 1;
+        app->freq[0] = freq_default_hz();
+        app->freq_used[0] = freq_tx_allowed_hz(app->freq[0]) ? 1 : 0;
+        app->freq_n = app->freq_used[0] ? 1 : 0;
         app->tx_freq_index = 0;
         return;
     }
