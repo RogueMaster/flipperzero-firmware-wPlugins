@@ -59,7 +59,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Android KB Bridge v0.5.1 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD)
 - Added: [LGT ISP (SWD) v0.7 (By mkrasem / SimonE)](https://github.com/mkrasem/flipper_lgt_isp) `Req: LGT8F328P`
 - Updated: [Period Tracker v1.0 (By gorshunovr)](https://github.com/gorshunovr/period_tracker)
-- Updated: [Specter v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
+- Updated: [Specter v2.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
 - Updated: [Hermes v1.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Hermes-FlipperZero)
 
 <a name="release"></a>
