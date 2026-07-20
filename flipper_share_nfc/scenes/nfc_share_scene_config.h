@@ -1,0 +1,5 @@
+ADD_SCENE(nfc_share, menu, Menu)
+ADD_SCENE(nfc_share, file_browser, FileBrowser)
+ADD_SCENE(nfc_share, show_file, ShowFile)
+ADD_SCENE(nfc_share, send, Send)
+ADD_SCENE(nfc_share, receive, Receive)
