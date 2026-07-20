@@ -33,8 +33,7 @@ void hermes_scene_watch_on_enter(void* context) {
 bool hermes_scene_watch_on_event(void* context, SceneManagerEvent event) {
     HermesApp* app = context;
 
-    if(event.type == SceneManagerEventTypeCustom &&
-       event.event == HermesCustomEventTriggerSet) {
+    if(event.type == SceneManagerEventTypeCustom && event.event == HermesCustomEventTriggerSet) {
         trigger_set(app->trigger, app->text_buffer);
         console_view_set_watch(app->console_view, trigger_pattern(app->trigger));
 
@@ -46,8 +45,7 @@ bool hermes_scene_watch_on_event(void* context, SceneManagerEvent event) {
 
         /* Back past the Ctrl palette to the console, which is where the user
          * was and where the watch takes effect. */
-        scene_manager_search_and_switch_to_previous_scene(
-            app->scene_manager, HermesSceneConsole);
+        scene_manager_search_and_switch_to_previous_scene(app->scene_manager, HermesSceneConsole);
         return true;
     }
 

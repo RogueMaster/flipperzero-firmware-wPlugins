@@ -51,8 +51,7 @@ void hermes_scene_script_on_enter(void* context) {
         session_log_note(app->log, note);
 
         script_start(app->script);
-        console_view_set_script(
-            app->console_view, true, 0, script_line_count(app->script));
+        console_view_set_script(app->console_view, true, 0, script_line_count(app->script));
     } else if(picked) {
         /* Picked something we could not use: empty, too big, or all comments. */
         hermes_notify_found(app, false);

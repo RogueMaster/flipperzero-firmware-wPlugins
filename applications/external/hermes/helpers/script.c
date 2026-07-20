@@ -41,11 +41,13 @@ static void script_split(Script* sc, size_t len) {
 
     while(i < len && sc->count < SCRIPT_MAX_LINES) {
         /* skip any leading line breaks */
-        while(i < len && (sc->buf[i] == '\r' || sc->buf[i] == '\n')) i++;
+        while(i < len && (sc->buf[i] == '\r' || sc->buf[i] == '\n'))
+            i++;
         if(i >= len) break;
 
         char* start = &sc->buf[i];
-        while(i < len && sc->buf[i] != '\r' && sc->buf[i] != '\n') i++;
+        while(i < len && sc->buf[i] != '\r' && sc->buf[i] != '\n')
+            i++;
         sc->buf[i] = '\0'; // safe: buf has one spare byte past len
         i++;
 
