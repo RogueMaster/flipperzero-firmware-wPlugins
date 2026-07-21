@@ -78,14 +78,14 @@ thirteen on demand — handy before a session, or to re-anchor after a bad run.
 - **Tune hints** — show the mnemonic on the answer screen
 - **Vibro on miss**, **LED feedback**
 
-Progress and settings live in `apps_data/ear_trainer/` and survive reboots.
+Progress and settings live in apps_data/ear_trainer on the SD card and survive reboots.
 
 ## Notes on the build
 
 Tones come out of the piezo on a dedicated worker thread with its own message
 queue, so playback never blocks the UI and a replay can cut off whatever is
 already sounding. Note frequencies are a fixed-point table from C4 to C6 rather
-than `powf` at runtime.
+than computing powers at runtime.
 
 The saved files carry a magic number and a version, and anything unexpected
 resets to defaults instead of crashing — a corrupt progress file shouldn't cost
@@ -93,16 +93,11 @@ you the app.
 
 ## Building
 
-Install [ufbt](https://github.com/flipperdevices/flipperzero-ufbt) and run from
-the project root:
+Install [ufbt](https://github.com/flipperdevices/flipperzero-ufbt), then from the
+project root run ufbt update --channel=release followed by ufbt.
 
-```
-ufbt update --channel=release
-ufbt
-```
-
-`ufbt launch` uploads and starts it on a Flipper over USB. The built `.fap`
-lands in `dist/` (SD card folder: apps/Media).
+Run ufbt launch instead to upload and start it on a Flipper over USB. The built
+app lands in the dist folder (SD card folder: apps/Media).
 
 ## Screenshots
 
