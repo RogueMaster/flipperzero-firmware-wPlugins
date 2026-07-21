@@ -1008,8 +1008,21 @@ void nsh_idle(void) {
         bool do_announce = (now - g.last_announce_ms >= ann_iv);
         if (do_announce) g.last_announce_ms = now;
         bool do_data = (now - g.last_rx_ms > NSH_TX_TIMEOUT_MS) && (g.s_is_blocks_requested == 1);
+        // Snapshot for the periodic diagnostic log below (state lives in `g`).
+        int dbg_state = (int)g.state;
+        uint8_t dbg_req = g.s_is_blocks_requested;
+        uint32_t dbg_first = g.s_block_needed_first, dbg_last = g.s_block_needed_last;
+        uint32_t dbg_rx_age = now - g.last_rx_ms;
         g.last_tick_ms = now;
         nsh_unlock();
+
+        // Once/sec sender status for serial-log diagnosis of stuck transfers.
+        static uint32_t s_dbg_last_ms = 0;
+        if (now - s_dbg_last_ms >= 1000u) {
+            s_dbg_last_ms = now;
+            FURI_LOG_I(TAG, "sender: state=%d req=%u blk=%lu..%lu rx_age=%lums",
+                     dbg_state, dbg_req, dbg_first, dbg_last, dbg_rx_age);
+        }
 
         if (do_announce) nsh_send_announce();
         if (do_data) nsh_send_data(); // takes the lock internally for bookkeeping
@@ -1257,11 +1270,11 @@ static void nsh_handle_request(uint8_t tx_id, const NSH_pl_request_t* rq) {
         nsh_notify_led_red();
         return;
     }
-    if (g.s_is_blocks_requested == 1) {
-        nsh_unlock();
-        FURI_LOG_W(TAG, "nsh_handle_request: tx_id=%d, already have blocks requested", tx_id);
-        return;
-    }
+    // Latest REQUEST wins: even if we are mid-serving a range, adopt the new one.
+    // The receiver only re-requests on its RX timeout (i.e. it is NOT receiving
+    // data), so a fresh REQUEST reflects what it actually needs now — ignoring it
+    // and clinging to a stale range is exactly what could wedge the transfer.
+    // (Its requests exclude already-received blocks, so this does not thrash.)
 
     // Normalize to blocks (uneven tail == file_size allowed)
     uint32_t start = rq->range_start;

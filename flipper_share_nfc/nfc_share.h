@@ -34,7 +34,7 @@
 #define NSH_PACKET_MAX (NSH_PAYLOAD_MAX + NSH_OVERHEAD_LENGTH)
 
 // ===== Behaviour tunables ====================================================
-#define NSH_PAYLOAD_THROUGHPUT_BPS 7344                      // nominal NFC payload throughput for ETA, bytes/sec
+#define NSH_PAYLOAD_THROUGHPUT_BPS 7330                      // nominal NFC payload throughput for ETA, bytes/sec
 #define NSH_ETA_WARMUP_MS 3000                               // below this elapsed, ETA uses the constant fallback
 #define NSH_STALL_MS 5000                                    // no new block for this long -> show "stalled"
 #define NSH_ETA_MAX_SEC (99u*3600u + 59u*60u + 59u)          // clamp ETA display (avoid uint32 overflow / garbage)

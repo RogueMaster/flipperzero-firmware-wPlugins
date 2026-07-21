@@ -30,7 +30,15 @@ typedef struct {
     Nfc* nfc;
     NfcListener* listener;
     NfcPoller* poller;
-    FuriMessageQueue* tx_queue; // NfcTpPacket items waiting to go out
+    FuriMessageQueue* tx_queue; // DATA packets waiting to go out (FIFO, paced)
+    // Latest pending control packet (ANNOUNCE / REQUEST). Kept OUT of tx_queue
+    // and always sent first, so a DATA stream can never starve control traffic —
+    // otherwise a receiver that lost lock could never see an ANNOUNCE (nor the
+    // sender a REQUEST) and the link would never recover. Latest-wins: a newer
+    // control packet supersedes an older unsent one.
+    FuriMutex* ctrl_mutex;
+    NfcTpPacket ctrl_pkt;
+    bool ctrl_valid;
     BitBuffer* tx_frame;
     BitBuffer* rx_frame;
 } NfcTransport;
@@ -40,10 +48,23 @@ typedef struct {
 static NfcTransport* nfc_tp = NULL;
 
 // Fill tx_frame with the next pending packet, or an empty poll frame.
+// Control packets (ANNOUNCE / REQUEST) take priority over queued DATA.
 static void nfc_tp_build_tx_frame(NfcTransport* tp) {
     NfcTpPacket pkt;
+    bool have = false;
+
+    furi_mutex_acquire(tp->ctrl_mutex, FuriWaitForever);
+    if(tp->ctrl_valid) {
+        pkt = tp->ctrl_pkt;
+        tp->ctrl_valid = false;
+        have = true;
+    }
+    furi_mutex_release(tp->ctrl_mutex);
+
+    if(!have) have = (furi_message_queue_get(tp->tx_queue, &pkt, 0) == FuriStatusOk);
+
     bit_buffer_reset(tp->tx_frame);
-    if(furi_message_queue_get(tp->tx_queue, &pkt, 0) == FuriStatusOk) {
+    if(have) {
         bit_buffer_append_byte(tp->tx_frame, NFC_TP_HDR_PKT);
         bit_buffer_append_bytes(tp->tx_frame, pkt.data, pkt.len);
     } else {
@@ -138,6 +159,8 @@ void nfc_transport_init(NfcTransportMode mode) {
     tp->mode = mode;
     tp->nfc = nfc_alloc();
     tp->tx_queue = furi_message_queue_alloc(NFC_TP_QUEUE_LEN, sizeof(NfcTpPacket));
+    tp->ctrl_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    tp->ctrl_valid = false;
     tp->tx_frame = bit_buffer_alloc(NFC_TP_FRAME_PAYLOAD_MAX + 2u);
     tp->rx_frame = bit_buffer_alloc(NFC_TP_FRAME_PAYLOAD_MAX + 2u);
 
@@ -178,6 +201,7 @@ void nfc_transport_deinit(void) {
     bit_buffer_free(tp->tx_frame);
     bit_buffer_free(tp->rx_frame);
     furi_message_queue_free(tp->tx_queue);
+    furi_mutex_free(tp->ctrl_mutex);
     free(tp);
     FURI_LOG_I(TAG, "stopped");
 }
@@ -185,8 +209,20 @@ void nfc_transport_deinit(void) {
 void nfc_transport_send(const uint8_t* buf, size_t len) {
     NfcTransport* tp = nfc_tp;
     if(!tp) return; // transport not running — drop, ARQ recovers
-    if(len == 0 || len > NSH_PACKET_MAX) {
+    if(len <= NSH_HEADER_LENGTH || len > NSH_PACKET_MAX) {
         FURI_LOG_E(TAG, "bad packet length %zu", len);
+        return;
+    }
+
+    // ANNOUNCE / REQUEST go to the priority control slot (latest-wins, never
+    // dropped by a full DATA queue); DATA goes to the paced FIFO. packet_type is
+    // the 3rd header byte.
+    if(buf[NSH_HEADER_LENGTH - 1] != NSH_PKT_DATA) {
+        furi_mutex_acquire(tp->ctrl_mutex, FuriWaitForever);
+        tp->ctrl_pkt.len = len;
+        memcpy(tp->ctrl_pkt.data, buf, len);
+        tp->ctrl_valid = true;
+        furi_mutex_release(tp->ctrl_mutex);
         return;
     }
 
@@ -195,6 +231,6 @@ void nfc_transport_send(const uint8_t* buf, size_t len) {
     memcpy(pkt.data, buf, len);
     if(furi_message_queue_put(tp->tx_queue, &pkt, furi_ms_to_ticks(NFC_TP_SEND_TIMEOUT_MS)) !=
        FuriStatusOk) {
-        FURI_LOG_W(TAG, "TX mailbox full, packet dropped");
+        FURI_LOG_W(TAG, "TX mailbox full, DATA packet dropped");
     }
 }

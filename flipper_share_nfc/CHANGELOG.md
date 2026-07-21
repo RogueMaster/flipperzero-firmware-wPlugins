@@ -16,6 +16,11 @@ v1.5: Flipper Share NFC — file transfer over the NFC channel
   that state the emulated card ignores polling and only a field-off recovers
   it — previously the link could stay dead until the devices were pulled far
   apart and re-touched).
+- Control traffic (ANNOUNCE / REQUEST) now has priority over DATA in the transport
+  mailbox (a separate latest-wins slot), so a DATA stream can no longer starve it;
+  and the sender adopts the receiver's latest REQUEST even while mid-serving. Fixes
+  a rare stuck transfer where the receiver could never (re)lock because ANNOUNCE
+  packets were being dropped from a DATA-saturated queue.
 - Builds with ufbt against the official firmware (no firmware modification); all
   NFC access goes through the official external app API.
 - Transport parameters (emulated card identity, poll pacing, frame wait time,
