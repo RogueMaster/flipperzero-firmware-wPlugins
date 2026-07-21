@@ -19,6 +19,7 @@ typedef enum {
     ArchiveFileTypeSubghzRemote,
     ArchiveFileTypeInfraredRemote,
     ArchiveFileTypeBadUsb,
+    ArchiveFileTypeMP3,
     ArchiveFileTypeWAV,
     ArchiveFileTypeMag,
     ArchiveFileTypeCrossRemote,

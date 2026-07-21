@@ -34,6 +34,7 @@ static const char* const known_ext[] = {
     [ArchiveFileTypeSubghzRemote] = ".txt",
     [ArchiveFileTypeInfraredRemote] = ".txt",
     [ArchiveFileTypeBadUsb] = ".txt",
+    [ArchiveFileTypeMP3] = ".mp3",
     [ArchiveFileTypeWAV] = ".wav",
     [ArchiveFileTypeMag] = ".mag",
     [ArchiveFileTypeCrossRemote] = ".xr",

@@ -14,7 +14,7 @@
 
 #define TAG                   "Mp3Player"
 #define MUSIC_DIRECTORY       EXT_PATH("music")
-#define MAX_SONGS             250
+#define MAX_SONGS             200
 #define MAX_FILENAME          128
 #define MAX_MUSIC_PATH        256
 #define MAX_SCAN_ENTRIES      1024
@@ -66,6 +66,8 @@ typedef struct {
     Gui* gui;
     Storage* storage;
     Mp3Playback* playback;
+
+    char current_path[MAX_MUSIC_PATH];
 
     Mp3Screen screen;
     uint8_t main_selection;
@@ -353,7 +355,7 @@ static void mp3_draw_settings(Canvas* canvas, const Mp3App* app) {
    A NULL entry draws a horizontal separator rule instead of text; every text
    line is kept short enough to fit the 128px width in FontSecondary. */
 static const char* const about_lines[] = {
-    "MP3 Player v3.4",
+    "MP3 Player v" FAP_VERSION,
     "Created by Coolshrimp",
     NULL,
     "MAX98357A:",
@@ -437,7 +439,7 @@ static void mp3_draw_now_playing(Canvas* canvas, const Mp3App* app) {
     canvas_draw_str(canvas, 5, 10, "MP3");
     mp3_draw_battery(canvas);
 
-    if(app->current_song < 0 || app->song_count == 0) {
+    if((app->current_song < 0 || app->song_count == 0) && strlen(app->current_path) == 0) {
         canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignBottom, "Nothing selected");
         canvas_draw_str_aligned(canvas, 64, 45, AlignCenter, AlignBottom, "Choose a song first");
         return;
@@ -455,9 +457,14 @@ static void mp3_draw_now_playing(Canvas* canvas, const Mp3App* app) {
     snprintf(volume, sizeof(volume), "V%u", app->volume);
     canvas_draw_str_aligned(canvas, 106, 10, AlignRight, AlignBottom, volume);
 
-    const Mp3Song* song = &app->songs[app->current_song];
     char title[MAX_FILENAME];
-    mp3_make_title(song->filename, title, sizeof(title));
+    if(app->current_song >= 0) {
+        const Mp3Song* song = &app->songs[app->current_song];
+        mp3_make_title(song->filename, title, sizeof(title));
+    } else {
+        const char* name = strrchr(app->current_path, '/');
+        mp3_make_title(name ? name + 1 : app->current_path, title, sizeof(title));
+    }
     canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignBottom, title);
 
     const uint32_t position = app->seeking ? app->seek_target_ms :
@@ -550,6 +557,15 @@ static bool mp3_start_current(Mp3App* app) {
 
     const AudioOutput output = mp3_audio_output(app->output);
     app->playing = mp3_playback_start(app->playback, path, output, app->volume);
+    if(!app->playing) {
+        const char* error = mp3_playback_get_error(app->playback);
+        mp3_set_status(app, *error ? error : "Could not start player");
+    }
+    return app->playing;
+}
+
+static bool mp3_start_current_path(Mp3App* app) {
+    app->playing = mp3_playback_start(app->playback, app->current_path, mp3_audio_output(app->output), app->volume);
     if(!app->playing) {
         const char* error = mp3_playback_get_error(app->playback);
         mp3_set_status(app, *error ? error : "Could not start player");
@@ -841,19 +857,29 @@ static void mp3_app_free(Mp3App* app) {
     free(app);
 }
 
-int32_t app_main(void* parameter) {
-    UNUSED(parameter);
+int32_t mp3_main(void* p) {
+    const char* args = p;
     Mp3App* app = mp3_app_alloc();
     bool running = true;
     InputEvent event;
 
+    if(args && strlen(args)) {
+		strlcpy(app->current_path, args, sizeof(app->current_path));
+		app->screen = Mp3ScreenNowPlaying;
+		furi_delay_ms(100);
+        mp3_start_current_path(app);
+    }
     while(running) {
-        if(furi_message_queue_get(app->input_queue, &event, furi_ms_to_ticks(250)) ==
+        bool redraw = false;
+        if(furi_message_queue_get(app->input_queue, &event, furi_ms_to_ticks(500)) ==
            FuriStatusOk) {
             running = mp3_handle_input(app, &event);
+            redraw = true;
         }
         mp3_poll_playback(app);
-        view_port_update(app->view_port);
+        if(redraw) {
+            view_port_update(app->view_port);
+        }
     }
 
     mp3_app_free(app);
