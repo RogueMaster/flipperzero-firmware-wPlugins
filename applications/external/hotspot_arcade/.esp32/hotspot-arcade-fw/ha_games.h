@@ -11,6 +11,16 @@
 #define HA_MAX_PLAYERS 12
 #define HA_NICK_LEN 20
 
+// Nicknames are uppercased once, here at the door, so every downstream consumer
+// (phone UI, Flipper roster, and the strings this engine composes like "A vs B")
+// is consistent without each one having to remember. ASCII only on purpose:
+// bytes >= 0x80 are UTF-8 continuation/lead bytes and are left untouched, so an
+// accented or emoji nickname survives intact.
+static inline void ha_upper(char* s) {
+    for(; s && *s; s++)
+        if(*s >= 'a' && *s <= 'z') *s -= 32;
+}
+
 // Duels (connect4 / tic-tac-toe / dots-and-boxes) share one match + challenge
 // system, parameterized by the active game's kind. Only one game is active at a
 // time, so all live matches are the active kind.
@@ -223,11 +233,15 @@ public:
             _p[pid].used = true;
             _p[pid].wsId = wsId;
             _p[pid].score = 0;
-            strlcpy(_p[pid].nick, (nick && nick[0]) ? nick : "Player", HA_NICK_LEN);
+            strlcpy(_p[pid].nick, (nick && nick[0]) ? nick : "PLAYER", HA_NICK_LEN);
+            ha_upper(_p[pid].nick);
             strlcpy(_p[pid].avatar, (avatar && avatar[0]) ? avatar : "\xF0\x9F\x99\x82", sizeof(_p[pid].avatar));
             haUartJoin(pid, _p[pid].nick);
         } else {
-            if(nick && nick[0]) strlcpy(_p[pid].nick, nick, HA_NICK_LEN);
+            if(nick && nick[0]) {
+                strlcpy(_p[pid].nick, nick, HA_NICK_LEN);
+                ha_upper(_p[pid].nick);
+            }
             if(avatar && avatar[0]) strlcpy(_p[pid].avatar, avatar, sizeof(_p[pid].avatar));
         }
         String w = String("{\"t\":\"welcome\",\"pid\":") + pid + ",\"nick\":\"" +

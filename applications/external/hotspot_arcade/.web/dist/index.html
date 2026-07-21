@@ -28,8 +28,8 @@
 </div>
 <label class="field">
 <span class="sub">Your nickname</span>
-<input id="nick" maxlength="12" autocomplete="off" autocapitalize="off"
-spellcheck="false" placeholder="e.g. Nova">
+<input id="nick" maxlength="12" autocomplete="off" autocapitalize="characters"
+spellcheck="false" placeholder="e.g. NOVA" style="text-transform:uppercase">
 </label>
 <div class="field">
 <span class="sub">Pick an avatar</span>
@@ -457,7 +457,7 @@ if (A.handlers[m.t]) A.handlers[m.t](m);
 }
 function nickOf(pid) {
 var p = (A.players || []).find(function (x) { return x.pid === pid; });
-return p ? p.nick : "Player";
+return p ? p.nick : "PLAYER";
 }
 function lobbyView(incEl, listEl, challenges) {
 challenges = challenges || [];
@@ -530,7 +530,7 @@ if (g === "none" && A.view !== "landing") route("lobby");
 else if (g !== "none" && A.view === "lobby" && GAME_SCREEN[g]) route(GAME_SCREEN[g]);
 }
 function startPlay() {
-var n = $("nick").value.trim().slice(0, 12);
+var n = $("nick").value.trim().slice(0, 12).toUpperCase();
 if (!n) { $("nick").focus(); return; }
 A.nick = n;
 A.joined = true;
@@ -602,7 +602,7 @@ if (m.pid !== A.pid) A.vibe(8);
 function initApp() {
 var saved = "";
 try {
-saved = localStorage.getItem("ha_nick") || "";
+saved = (localStorage.getItem("ha_nick") || "").toUpperCase();
 A.avatar = localStorage.getItem("ha_avatar") || A.avatar;
 } catch (e) {}
 A.nick = saved;

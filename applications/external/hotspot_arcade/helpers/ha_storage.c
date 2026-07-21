@@ -14,8 +14,9 @@ void ha_timestamp(FuriString* out) {
 void ha_storage_ensure_dirs(void) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     storage_simply_mkdir(storage, HA_DATA_DIR);
-    storage_simply_mkdir(storage, HA_WEB_DIR);
-    storage_simply_mkdir(storage, HA_TRIVIA_DIR);
+    // The bundled copies come from the fap; these are the optional user drop-in dirs.
+    storage_simply_mkdir(storage, HA_USER_WEB_DIR);
+    storage_simply_mkdir(storage, HA_USER_TRIVIA_DIR);
     storage_simply_mkdir(storage, HA_LOGS_DIR);
     furi_record_close(RECORD_STORAGE);
 }
@@ -104,7 +105,14 @@ static void slice_to(const char* start, const char* end, char* out, size_t n) {
 bool ha_storage_load_manifest(HotspotArcadeApp* app) {
     app->asset_count = 0;
     FuriString* man = furi_string_alloc();
-    bool ok = ha_storage_read_file(HA_MANIFEST_PATH, man, 4096);
+    // A user bundle in apps_data wins outright (all-or-nothing, so a hand-built bundle
+    // is never half-served from the fap's copy); otherwise use the bundled one.
+    app->web_dir = HA_USER_WEB_DIR;
+    bool ok = ha_storage_read_file(HA_USER_WEB_DIR "/manifest.json", man, 4096);
+    if(!ok) {
+        app->web_dir = HA_BUNDLED_WEB_DIR;
+        ok = ha_storage_read_file(HA_BUNDLED_WEB_DIR "/manifest.json", man, 4096);
+    }
     if(ok) {
         const char* s = furi_string_get_cstr(man);
         const char* p = s;

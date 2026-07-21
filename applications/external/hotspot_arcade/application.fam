@@ -38,18 +38,22 @@ App(
         "MD5_ENABLED=1",
         "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
     ],
-    # Bundle the ESP firmware images in the fap. The loader streams this tree to
-    # /ext/apps_assets/hotspot_arcade/ on launch (to SD, NOT RAM — so the ~0.8 MB of
-    # images grow the .fap on disk but don't bloat the RAM-loaded code/rodata). The
-    # on-device flasher reads its default bundle from there, so a fresh install of
-    # just the .fap makes "Install Firmware" work with no SD setup. Populate
-    # assets/firmware/*.bin at build time via tools/build-fap.sh (flash.txt is the
-    # committed source of truth; the .bin images are git-ignored build artifacts).
-    # fap_file_assets="assets",
+    # Bundle everything the app serves: the ESP firmware images, the phone web bundle,
+    # and the trivia packs. The loader streams this tree to
+    # /ext/apps_assets/hotspot_arcade/ on launch (to SD, NOT RAM — so the ~0.85 MB grows
+    # the .fap on disk but doesn't bloat the RAM-loaded code/rodata), which is why a
+    # fresh install of just the .fap is playable with no SD setup at all.
+    #
+    # These are build outputs, but they are COMMITTED on purpose: the app catalog builds
+    # flipper/hotspot-arcade/ on its own and never runs tools/build-fap.sh, so anything
+    # not in git is simply missing from the catalog's .fap. Refresh them with
+    # tools/build-fap.sh whenever the ESP firmware or the web client changes — nothing
+    # else will notice that they've gone stale.
+    fap_file_assets="assets",
     fap_icon="icons/icon_10px.png",
     fap_category="GPIO/ESP32",
     fap_author="Tarik Caramanico",
     fap_weburl="https://github.com/tarikbc/hotspot-arcade",
-    fap_version="0.2",
+    fap_version="0.3",
     fap_description="Host an offline multiplayer game hotspot on the ESP32-S2 WiFi board. People nearby join your WiFi and play in their phone browser, no internet needed: trivia, Would You Rather, Word Scramble, Reaction Duel, Connect Four, Tic-Tac-Toe, Dots & Boxes, Reversi, drawing, and Pong, with emoji avatars and reactions. The Flipper shows the lobby and scoreboard, and can flash the ESP board on-device.",
 )

@@ -16,7 +16,7 @@
 #define HA_FW_MAGIC_1 0x41
 #define HA_FW_MAGIC_2 0x52
 #define HA_FW_MAGIC_3 0x43
-#define HA_FW_VERSION 6 // the version this app requires; older board -> offer update
+#define HA_FW_VERSION 7 // the version this app requires; older board -> offer update
 
 // Flipper -> ESP
 #define HA_MSG_CLEAR_FILES  0x10

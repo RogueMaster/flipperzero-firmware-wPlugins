@@ -35,11 +35,13 @@ static int32_t ha_flash_worker(void* ctx) {
         err,
         sizeof(err));
     app->flash_ok = ok;
-    // flash_finish(reboot=true) reboots the ESP into the new firmware automatically;
-    // if the S2 doesn't auto-start from download mode, a RESET tap runs it.
+    // flash_finish(reboot=true) asks the ESP to reboot, but in practice the S2 stays
+    // in download mode and needs a physical RESET tap, so say so unconditionally.
+    // Two lines max: the done screen has a Continue button along the bottom, so a
+    // third line would render underneath it.
     strncpy(
         app->flash_msg,
-        ok ? "Rebooting into new fw.\nTap RESET on the board\nif it does not start." : err,
+        ok ? "Tap RESET on the board\nto start the new fw." : err, // continues on its own
         sizeof(app->flash_msg) - 1);
     app->flash_msg[sizeof(app->flash_msg) - 1] = '\0';
     app->flashing = false;
@@ -114,6 +116,7 @@ void hotspot_arcade_scene_flasher_on_enter(void* context) {
     app->flash_stage[0] = '\0';
     app->flashing = false;
     app->flash_cancel = false;
+    app->flash_await_boot = false;
     ha_flash_render(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, HaViewWidget);
     // Auto-detect: the worker polls for download mode and flashes when it appears.
@@ -136,6 +139,9 @@ bool hotspot_arcade_scene_flasher_on_event(void* context, SceneManagerEvent even
         return true;
     case HaEventFlashDone:
         app->flash_phase = 2;
+        // Only after a success: a failed flash can leave the board in download mode,
+        // where there's no beacon to wait for, so that path stays manual.
+        app->flash_await_boot = app->flash_ok;
         if(app->flash_thread) {
             furi_thread_join(app->flash_thread);
             furi_thread_free(app->flash_thread);
@@ -144,6 +150,7 @@ bool hotspot_arcade_scene_flasher_on_event(void* context, SceneManagerEvent even
         ha_flash_render(app);
         return true;
     case HaEventFlashContinue:
+        app->flash_await_boot = false;
         // Return to whoever pushed us: the menu (standalone flash) or the Lobby
         // scene (started with no board — it re-detects the now-flashed board and
         // continues the session start). The ESP just rebooted into the new firmware
@@ -163,6 +170,7 @@ void hotspot_arcade_scene_flasher_on_exit(void* context) {
     // Stop the poll (if still waiting) and reap the worker. Back is blocked while
     // flashing, so this only runs before connect or after done.
     app->flash_cancel = true;
+    app->flash_await_boot = false;
     if(app->flash_thread) {
         furi_thread_join(app->flash_thread);
         furi_thread_free(app->flash_thread);

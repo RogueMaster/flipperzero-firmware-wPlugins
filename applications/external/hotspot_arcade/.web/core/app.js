@@ -308,7 +308,7 @@ function dispatch(m) {
 /* Look up a player's nick from the last lobby snapshot. */
 function nickOf(pid) {
   var p = (A.players || []).find(function (x) { return x.pid === pid; });
-  return p ? p.nick : "Player";
+  return p ? p.nick : "PLAYER";
 }
 
 /* Shared 1v1 challenge lobby, used by both the duel screen and pong. Renders
@@ -398,7 +398,9 @@ function onLobby(m) {
 
 /* Landing flow */
 function startPlay() {
-  var n = $("nick").value.trim().slice(0, 12);
+  // Uppercase to match how every name is shown (the ESP does the same on hello,
+  // so this is just to avoid a flash of the typed casing before the echo lands).
+  var n = $("nick").value.trim().slice(0, 12).toUpperCase();
   if (!n) { $("nick").focus(); return; }
   A.nick = n;
   A.joined = true;
@@ -479,7 +481,7 @@ A.handlers.emoji = function (m) {
 function initApp() {
   var saved = "";
   try {
-    saved = localStorage.getItem("ha_nick") || "";
+    saved = (localStorage.getItem("ha_nick") || "").toUpperCase();
     A.avatar = localStorage.getItem("ha_avatar") || A.avatar;
   } catch (e) {}
   A.nick = saved;

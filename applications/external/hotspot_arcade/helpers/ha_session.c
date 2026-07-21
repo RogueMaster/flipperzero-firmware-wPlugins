@@ -52,6 +52,14 @@ static int player_find(HotspotArcadeApp* app, uint8_t pid) {
     return -1;
 }
 
+// Nicknames are shown uppercase everywhere. The ESP already uppercases on hello,
+// but a board running older firmware doesn't, and the roster is on every screen
+// here. ASCII only, so UTF-8 nicknames pass through untouched.
+static void nick_upper(char* s) {
+    for(; s && *s; s++)
+        if(*s >= 'a' && *s <= 'z') *s -= 32;
+}
+
 static void player_join(HotspotArcadeApp* app, uint8_t pid, const char* nick) {
     int idx = player_find(app, pid);
     if(idx < 0) {
@@ -66,7 +74,8 @@ static void player_join(HotspotArcadeApp* app, uint8_t pid, const char* nick) {
     HaPlayer* p = &app->players[idx];
     p->used = true;
     p->pid = pid;
-    strlcpy(p->nick, (nick && nick[0]) ? nick : "Player", HA_NICK_LEN);
+    strlcpy(p->nick, (nick && nick[0]) ? nick : "PLAYER", HA_NICK_LEN);
+    nick_upper(p->nick);
     p->score = 0;
 }
 
@@ -206,39 +215,61 @@ static void trivia_stream_pack(HotspotArcadeApp* app, const char* content, const
     furi_string_free(tmp);
 }
 
-// Stream every .txt pack in the trivia dir to the ESP as votable topics.
-static void ha_trivia_stream_packs(HotspotArcadeApp* app) {
-    ha_proto_send(app->uart, HA_MSG_TRIVIA_CLEAR, NULL, 0);
-    furi_delay_ms(2);
-    Storage* storage = furi_record_open(RECORD_STORAGE);
+#define HA_MAX_TOPICS (6)
+
+// Stream every .txt pack in one dir as votable topics, skipping names already streamed.
+// `seen` holds the filenames taken so far; *topics is the running total across dirs.
+static void ha_trivia_stream_dir(
+    HotspotArcadeApp* app,
+    Storage* storage,
+    const char* dir_path,
+    char seen[HA_MAX_TOPICS][80],
+    int* topics) {
     File* dir = storage_file_alloc(storage);
-    if(storage_dir_open(dir, HA_TRIVIA_DIR)) {
+    if(storage_dir_open(dir, dir_path)) {
         FileInfo info;
         char name[80];
-        int topics = 0;
-        while(topics < 6 && storage_dir_read(dir, &info, name, sizeof(name))) {
+        while(*topics < HA_MAX_TOPICS && storage_dir_read(dir, &info, name, sizeof(name))) {
             if(info.flags & FSF_DIRECTORY) continue;
             size_t nl = strlen(name);
             const char* e = name + (nl >= 4 ? nl - 4 : 0);
             if(nl < 5 || e[0] != '.' || (e[1] | 32) != 't' || (e[2] | 32) != 'x' ||
                (e[3] | 32) != 't')
                 continue;
+            bool dup = false;
+            for(int i = 0; i < *topics && !dup; i++)
+                dup = (strcmp(seen[i], name) == 0);
+            if(dup) continue; // same filename in apps_data already won
             FuriString* path = furi_string_alloc();
-            furi_string_printf(path, "%s/%s", HA_TRIVIA_DIR, name);
+            furi_string_printf(path, "%s/%s", dir_path, name);
             FuriString* content = furi_string_alloc();
             if(ha_storage_read_file(furi_string_get_cstr(path), content, 16384)) {
                 FuriString* fb = furi_string_alloc_set_str(name);
                 furi_string_left(fb, nl - 4); // drop ".txt"
                 trivia_stream_pack(app, furi_string_get_cstr(content), furi_string_get_cstr(fb));
                 furi_string_free(fb);
-                topics++;
+                strlcpy(seen[*topics], name, sizeof(seen[0]));
+                (*topics)++;
             }
             furi_string_free(content);
             furi_string_free(path);
         }
+        storage_dir_close(dir);
     }
-    storage_dir_close(dir);
     storage_file_free(dir);
+}
+
+// Stream the trivia packs to the ESP as votable topics. User packs in apps_data go
+// first so they win both the name clash and the HA_MAX_TOPICS cap, then the packs
+// bundled in the fap fill whatever room is left.
+static void ha_trivia_stream_packs(HotspotArcadeApp* app) {
+    ha_proto_send(app->uart, HA_MSG_TRIVIA_CLEAR, NULL, 0);
+    furi_delay_ms(2);
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    char seen[HA_MAX_TOPICS][80];
+    int topics = 0;
+    ha_trivia_stream_dir(app, storage, HA_USER_TRIVIA_DIR, seen, &topics);
+    ha_trivia_stream_dir(app, storage, HA_BUNDLED_TRIVIA_DIR, seen, &topics);
     furi_record_close(RECORD_STORAGE);
 }
 
@@ -278,7 +309,7 @@ static void send_next_file(HotspotArcadeApp* app) {
     }
     HaAsset* a = &app->assets[app->file_idx];
     FuriString* path = furi_string_alloc();
-    furi_string_printf(path, "%s/%s", HA_WEB_DIR, a->file);
+    furi_string_printf(path, "%s/%s", app->web_dir, a->file);
     FuriString* content = furi_string_alloc();
     bool ok = ha_storage_read_file(furi_string_get_cstr(path), content, HA_FILE_MAX);
     furi_string_free(path);
@@ -423,6 +454,7 @@ static void dispatch_frame(HotspotArcadeApp* app) {
             size_t nl = len - 1 < HA_NICK_LEN - 1 ? (size_t)(len - 1) : HA_NICK_LEN - 1;
             memcpy(nick, p + 1, nl);
             nick[nl] = '\0';
+            nick_upper(nick);
             player_join(app, p[0], nick);
             FuriString* c = furi_string_alloc();
             furi_string_printf(c, "JOIN %s", nick);

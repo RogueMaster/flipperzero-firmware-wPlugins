@@ -114,13 +114,47 @@ Every game is phone-driven, so the Flipper just selects the game and watches the
   framed UART protocol, then orchestrates rounds. Real-time game traffic stays on the
   ESP and never crosses the slow UART. Protocol: [docs/PROTOCOL.md](docs/PROTOCOL.md).
 
-## Install & flash
+## Install
 
-Three parts: flash the ESP firmware, build+install the Flipper app, and put the web
-bundle + trivia packs on the SD card. Full commands and gotchas are in
-[CLAUDE.md](CLAUDE.md); the short version:
+**You only need `hotspot_arcade.fap`.** Grab it from the
+[latest release](https://github.com/tarikbc/hotspot-arcade/releases/latest) and drop it in
+`/ext/apps/GPIO/` on the SD card (qFlipper, or the Flipper's own file manager). No SD
+setup, no separate downloads: the ESP firmware, the phone game bundle, and the trivia
+packs all ship inside the .fap.
 
-**1. Build the web bundle**
+> **First launch takes a few seconds.** The .fap carries ~850 KB of bundled content and
+> the Flipper unpacks it to the SD card the first time you open the app (and again after
+> an update). The hourglass is the system loader doing that, not a hang. Every launch
+> after that is instant.
+
+Then, on the Flipper: **Apps → GPIO → [ESP32] Hotspot Arcade**.
+
+### Flashing the ESP board (no computer)
+
+The app embeds Espressif's `esp-serial-flasher` and carries the ESP firmware, so the board
+is flashed from the Flipper itself: use **Install Firmware** in the main menu, or accept
+the prompt the lobby shows when it doesn't see a board (or sees one on older firmware).
+Put the ESP in download mode when asked (**hold BOOT, tap RESET, release BOOT**); it
+verifies with MD5, then asks you to **tap RESET** to boot the new firmware, and continues
+on its own once the board comes back.
+
+Prefer a computer? `firmware-merged.bin` on the release flashes at `0x0` with esptool
+(**never `--erase-all` on the S2**).
+
+### Custom content
+
+The bundled web bundle and trivia packs live in `/ext/apps_assets/hotspot_arcade/`, which
+the loader rewrites from the .fap on every launch. To add your own, use
+`/ext/apps_data/hotspot_arcade/` instead, which is never touched:
+
+- `trivia/*.txt` — your packs are offered alongside the bundled ones (yours win a name clash).
+- `web/` — a `manifest.json` here replaces the bundled game client entirely.
+
+## Build from source
+
+Full commands and gotchas are in [CLAUDE.md](CLAUDE.md); the short version:
+
+**1. Web bundle** (Node)
 ```sh
 cd web && node build.mjs        # -> web/dist/{index.html.gz, manifest.json}
 ```
@@ -129,34 +163,23 @@ cd web && node build.mjs        # -> web/dist/{index.html.gz, manifest.json}
 ```sh
 arduino-cli compile --fqbn esp32:esp32:esp32s2:PartitionScheme=huge_app \
   --libraries esp32/libs --output-dir esp32/hotspot-arcade-fw/build esp32/hotspot-arcade-fw
-# then esptool write-flash the four images (see CLAUDE.md; never --erase-all on the S2)
 ```
-Or skip the computer entirely and **flash the ESP from the Flipper** (see below).
 
-**3. Flipper app + SD content**
+**3. Flipper app** — use the wrapper, not bare `ufbt`: it refreshes the bundled firmware
+images, web bundle, and trivia packs inside `assets/` before packaging.
 ```sh
-tools/build-fap.sh                         # -> dist/hotspot_arcade.fap (bundles the ESP firmware)
+tools/build-fap.sh                         # -> dist/hotspot_arcade.fap
 python3 tools/deploy-to-flipper.py --port /dev/cu.usbmodemflip_XXXX
 ```
-`build-fap.sh` bundles the ESP firmware images into the fap (falls back to bare `ufbt`
-if you don't need on-device flashing). The deploy script pushes the fap to
-`/ext/apps/GPIO/`, the web bundle to `/ext/apps_data/hotspot_arcade/web/`, and the
-trivia packs to `.../trivia/`.
-
-### Flashing the ESP from the Flipper (no computer)
-
-The app embeds Espressif's `esp_serial_flasher` **and bundles the ESP firmware inside the
-.fap**, so a fresh install needs no SD setup: use **Install Firmware** in the main menu,
-or accept the prompt the lobby shows when it does not see a board. Put the ESP in download
-mode when asked (**hold BOOT, tap RESET, release BOOT**); it verifies with MD5 and reboots
-into the new firmware. (The firmware ships via `fap_file_assets`, extracted to
-`/ext/apps_assets/hotspot_arcade/firmware/` on launch.)
+The deploy script pushes the fap to `/ext/apps/GPIO/` and your working copies of the web
+bundle and trivia packs to `/ext/apps_data/hotspot_arcade/`, where they override the
+bundled ones — so you can iterate on the web client without rebuilding the fap.
 
 ## Usage
 
 On the Flipper: **Apps → GPIO → [ESP32] Hotspot Arcade**.
 
-1. **Set the SSID** (optional). Trivia packs are picked up automatically from the SD card.
+1. **Set the SSID** (optional). Trivia packs are picked up automatically.
 2. **Start Session** — the ESP brings up the AP; the dashboard shows **Broadcasting**.
 3. People **join the WiFi** and open `192.168.4.1`, pick a nickname, and land in the lobby.
 4. **Games** → pick a game. Everything is player-driven from the phones: the whole-group
@@ -168,7 +191,8 @@ On the Flipper: **Apps → GPIO → [ESP32] Hotspot Arcade**.
 ## Trivia packs
 
 Simple text files under `trivia-packs/` (`Pack:` / `Q:` / `A:`-`D:` / `Answer:`, blocks
-split by `---`). Drop your own into the SD `trivia/` folder. See
+split by `---`). Three ship inside the .fap; drop your own into
+`/ext/apps_data/hotspot_arcade/trivia/` to add to them. See
 [trivia-packs/README.md](trivia-packs/README.md).
 
 ## Responsible use

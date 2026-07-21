@@ -32,17 +32,23 @@
 #define HA_CONSOLE_MAX          (3072)
 #define HA_FILE_MAX             (60000) // max single web asset streamed to the ESP
 
-#define HA_DATA_DIR      EXT_PATH("apps_data/hotspot_arcade")
-#define HA_WEB_DIR       HA_DATA_DIR "/web"
-#define HA_TRIVIA_DIR    HA_DATA_DIR "/trivia"
-#define HA_LOGS_DIR      HA_DATA_DIR "/logs"
-// Firmware bundle ships inside the fap (fap_file_assets) and the loader extracts it
-// to apps_assets on launch, so the default flasher bundle lives there (read-only-ish,
-// re-synced from the fap each launch) — no SD setup needed for a fresh install.
-#define HA_FIRMWARE_DIR  EXT_PATH("apps_assets/hotspot_arcade/firmware")
-#define HA_DEFAULT_FW    HA_FIRMWARE_DIR "/flash.txt"
-#define HA_CONFIG_PATH   HA_DATA_DIR "/config.txt"
-#define HA_MANIFEST_PATH HA_WEB_DIR "/manifest.json"
+#define HA_DATA_DIR    EXT_PATH("apps_data/hotspot_arcade")
+#define HA_LOGS_DIR    HA_DATA_DIR "/logs"
+#define HA_CONFIG_PATH HA_DATA_DIR "/config.txt"
+
+// Content (ESP firmware, web bundle, trivia packs) ships inside the fap via
+// fap_file_assets; the loader extracts it to apps_assets on launch, so a fresh install
+// of just the .fap is playable with no SD setup. apps_assets is re-synced from the fap
+// every launch, so anything a user drops there is lost: user content lives in apps_data
+// instead, which the loader never touches. Both are read, apps_data winning on a clash.
+#define HA_ASSETS_DIR   EXT_PATH("apps_assets/hotspot_arcade")
+#define HA_FIRMWARE_DIR HA_ASSETS_DIR "/firmware"
+#define HA_DEFAULT_FW   HA_FIRMWARE_DIR "/flash.txt"
+
+#define HA_BUNDLED_WEB_DIR    HA_ASSETS_DIR "/web"
+#define HA_USER_WEB_DIR       HA_DATA_DIR "/web"
+#define HA_BUNDLED_TRIVIA_DIR HA_ASSETS_DIR "/trivia"
+#define HA_USER_TRIVIA_DIR    HA_DATA_DIR "/trivia"
 
 typedef enum {
     HaViewSubmenu,
@@ -54,7 +60,7 @@ typedef enum {
 // A web bundle file, parsed from manifest.json, streamed to the ESP at start.
 typedef struct {
     char path[HA_ASSET_PATH]; // URL path the ESP serves at ("/")
-    char file[HA_ASSET_PATH]; // filename on SD in HA_WEB_DIR
+    char file[HA_ASSET_PATH]; // filename on SD, relative to app->web_dir
     char mime[HA_ASSET_MIME];
     bool gzip;
 } HaAsset;
@@ -101,6 +107,9 @@ typedef struct HotspotArcadeApp {
     // Web bundle (from manifest.json)
     HaAsset assets[HA_MAX_ASSETS];
     uint8_t asset_count;
+    // Dir the loaded manifest came from (user bundle if present, else the bundled one).
+    // Asset files are read from here, so a user bundle is never mixed with bundled files.
+    const char* web_dir;
 
     // Live roster
     HaPlayer players[HA_MAX_PLAYERS];
@@ -149,6 +158,10 @@ typedef struct HotspotArcadeApp {
     char flash_msg[80];
     bool flash_ok;
     uint8_t flash_phase; // 0=waiting for download mode, 1=flashing, 2=done
+    // Set on the done screen after a successful flash: the tick poll watches for the
+    // freshly-reset board's PING beacon and continues on its own, so the user doesn't
+    // have to tap RESET and then also confirm. Continue stays as the manual fallback.
+    volatile bool flash_await_boot;
     // --- end ESP flasher ---
 
     volatile bool closing;

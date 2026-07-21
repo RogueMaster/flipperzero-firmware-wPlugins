@@ -26,6 +26,15 @@ static bool ha_back_event_callback(void* context) {
 
 static void ha_tick_callback(void* context) {
     HotspotArcadeApp* app = context;
+    // Just-flashed board rebooted (RESET tapped) and its beacon is back: leave the
+    // done screen for the caller without waiting on a Continue press.
+    if(app->flash_await_boot) {
+        if(furi_get_tick() - app->last_ping_tick < 2500) {
+            app->flash_await_boot = false;
+            scene_manager_handle_custom_event(app->scene_manager, HaEventFlashContinue);
+        }
+        return;
+    }
     if(app->awaiting_board) {
         if(furi_get_tick() - app->last_ping_tick < 2500) {
             app->awaiting_board = false;

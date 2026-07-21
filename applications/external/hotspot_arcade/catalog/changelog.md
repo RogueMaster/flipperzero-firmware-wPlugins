@@ -1,3 +1,14 @@
+## 0.3
+
+- Everything ships inside the app: the phone game bundle and trivia packs are bundled
+  alongside the ESP firmware, so there is no SD card setup at all.
+- Your own trivia packs and web bundle still work: drop them in
+  /ext/apps_data/hotspot_arcade/ and they take precedence over the bundled ones.
+- Nicknames are shown in all caps everywhere, for consistency across the phones and the
+  Flipper.
+- Flashing the board continues on its own once it reboots, so tapping RESET is the only step.
+- Firmware v7.
+
 ## 0.2
 
 - Ten games: Trivia, Would You Rather, Word Scramble, Reaction Duel, Connect Four,
