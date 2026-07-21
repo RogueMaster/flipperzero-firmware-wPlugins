@@ -5,8 +5,8 @@
 #include <gui/elements.h>
 
 #define ATTACK_SCENE_MAX_UID_LENGTH 25
-#define UID_MAX_DISPLAYED_LEN (8U)
-#define LEFT_RIGHT_OFFSET (3U)
+#define UID_MAX_DISPLAYED_LEN       (8U)
+#define LEFT_RIGHT_OFFSET           (3U)
 
 #define LINE_1_Y (12U)
 #define LINE_2_Y (24U)
