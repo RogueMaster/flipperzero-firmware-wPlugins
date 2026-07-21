@@ -59,6 +59,7 @@ typedef struct FlipperHamApp {
     uint8_t dbg_dev;
     uint8_t radio_backend;
     uint8_t tx_radio_backend;
+    uint8_t tx_radio_display;
     uint8_t repeat_n;
     uint16_t leadin_ms;
     uint16_t preamble_ms;

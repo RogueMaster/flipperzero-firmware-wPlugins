@@ -1,4 +1,4 @@
-An experimental APRS / AX.25 transmitter for Flipper Zero. Install it from the [Flipper App Catalog](https://lab.flipper.net/apps/aprstx), or sideload the [1.3.21 `.fap` from GitHub releases](https://github.com/yo3gnd/flipper-zero-aprs-tx/releases/download/1.3.21/aprstx-1.3.21.fap).
+An experimental APRS / AX.25 transmitter for Flipper Zero. Install it from the [Flipper App Catalog](https://lab.flipper.net/apps/aprstx), or sideload the [1.3.23 .fap from GitHub releases](https://github.com/yo3gnd/flipper-zero-aprs-tx/releases/download/1.3.23/aprstx-1.3.23.fap).
 
 [![master](https://img.shields.io/github/actions/workflow/status/yo3gnd/flipper-zero-aprs-tx/master.yml?branch=master&label=master&logo=githubactions)](https://github.com/yo3gnd/flipper-zero-aprs-tx/actions/workflows/master.yml)
 [![tests](https://img.shields.io/github/actions/workflow/status/yo3gnd/flipper-zero-aprs-tx/tests.yml?branch=master&label=tests&logo=githubactions)](https://github.com/yo3gnd/flipper-zero-aprs-tx/actions/workflows/tests.yml)

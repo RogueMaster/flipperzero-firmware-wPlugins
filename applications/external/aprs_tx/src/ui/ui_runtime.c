@@ -229,11 +229,15 @@ static void tx_blink_green(void) {
 static void tx_radio_start(FlipperHamApp* app) {
     app->tx_radio_backend = app->radio_backend;
     if(app->tx_radio_backend > FlipperHamRadioAuto) app->tx_radio_backend = FlipperHamRadioAuto;
+    app->tx_radio_display = FlipperHamRadioAuto;
 
     if(app->tx_radio_backend == FlipperHamRadioAuto) {
         app->tx_radio_backend = FlipperHamRadioExternal;
         flipperham_radio_start_ext(app);
-        if(app->tx_allowed) return;
+        if(app->tx_allowed) {
+            app->tx_radio_display = FlipperHamRadioExternal;
+            return;
+        }
         if(app->tx_unavailable) return;
 
         app->tx_missing_ext = false;
@@ -241,10 +245,12 @@ static void tx_radio_start(FlipperHamApp* app) {
         app->tx_started = false;
         app->tx_allowed = true;
         app->tx_radio_backend = FlipperHamRadioInternal;
+        app->tx_radio_display = FlipperHamRadioInternal;
         flipperham_radio_start(app);
         return;
     }
 
+    app->tx_radio_display = app->tx_radio_backend;
     if(app->tx_radio_backend == FlipperHamRadioExternal)
         flipperham_radio_start_ext(app);
     else
@@ -297,6 +303,7 @@ FlipperHamApp* flipperham_app_alloc(void) {
     app->tx_missing_ext = false;
     app->tx_unavailable = false;
     app->tx_radio_backend = FlipperHamRadioAuto;
+    app->tx_radio_display = FlipperHamRadioAuto;
     app->show_done = false;
     app->send_requested = false;
     app->ham_ok = false;
@@ -580,6 +587,7 @@ again:
         }
         app->tx_started = false;
         app->tx_allowed = true;
+        app->tx_radio_display = FlipperHamRadioAuto;
         app->repeat_wait = false;
         app->show_done = false;
 

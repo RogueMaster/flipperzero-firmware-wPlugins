@@ -14,6 +14,7 @@ void callbook_save_txt(FlipperHamApp* app) {
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);
 
+    storage_common_mkdir(storage, "/ext/apps_data");
     storage_common_mkdir(storage, CALLBOOK_DIR);
 
     if(storage_file_open(file, CALLBOOK_FILE, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
@@ -39,27 +40,34 @@ void callbook_load_txt(FlipperHamApp* app) {
     char c;
     uint8_t i;
     uint8_t j;
+    bool migrated;
 
     memset(app->calls, 0, sizeof(app->calls));
     memset(app->calls_used, 0, sizeof(app->calls_used));
     app->calls_n = 0;
+    migrated = false;
 
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);
 
+    storage_common_mkdir(storage, "/ext/apps_data");
     storage_common_mkdir(storage, CALLBOOK_DIR);
 
     if(!storage_file_open(file, CALLBOOK_FILE, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        storage_file_free(file);
-        furi_record_close(RECORD_STORAGE);
-        /* Fall back to a tiny default callbook if the file is missing. */
-        snprintf(app->calls[0], sizeof(app->calls[0]), "FL1PER");
-        snprintf(app->calls[1], sizeof(app->calls[1]), "YO3GND-12");
-        app->calls_used[0] = 1;
-        app->calls_used[1] = 1;
-        app->calls_n = 2;
-        callbook_save_txt(app);
-        return;
+        if(storage_file_open(file, LEGACY_CALLBOOK_FILE, FSAM_READ, FSOM_OPEN_EXISTING))
+            migrated = true;
+        else {
+            storage_file_free(file);
+            furi_record_close(RECORD_STORAGE);
+            /* Fall back to a tiny default callbook if the file is missing. */
+            snprintf(app->calls[0], sizeof(app->calls[0]), "FL1PER");
+            snprintf(app->calls[1], sizeof(app->calls[1]), "YO3GND-12");
+            app->calls_used[0] = 1;
+            app->calls_used[1] = 1;
+            app->calls_n = 2;
+            callbook_save_txt(app);
+            return;
+        }
     }
 
     i = 0;
@@ -109,4 +117,5 @@ void callbook_load_txt(FlipperHamApp* app) {
     furi_record_close(RECORD_STORAGE);
 
     calls_fix(app);
+    if(migrated) callbook_save_txt(app);
 }

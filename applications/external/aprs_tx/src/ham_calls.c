@@ -69,6 +69,7 @@ void ham_load_txt(FlipperHamApp* app) {
     uint8_t i;
     uint8_t j;
     bool ok;
+    bool migrated;
 
     memset(app->ham_calls, 0, sizeof(app->ham_calls));
     memset(app->ham_ssid, 0, sizeof(app->ham_ssid));
@@ -76,14 +77,22 @@ void ham_load_txt(FlipperHamApp* app) {
     memset(app->ham_pass, 0, sizeof(app->ham_pass));
     app->ham_n = 0;
     app->ham_ok = false;
+    migrated = false;
 
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);
 
+    storage_common_mkdir(storage, "/ext/apps_data");
+    storage_common_mkdir(storage, CFG_DIR);
+
     if(!storage_file_open(file, MY_CALLS_FILE, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        storage_file_free(file);
-        furi_record_close(RECORD_STORAGE);
-        return;
+        if(storage_file_open(file, LEGACY_MY_CALLS_FILE, FSAM_READ, FSOM_OPEN_EXISTING))
+            migrated = true;
+        else {
+            storage_file_free(file);
+            furi_record_close(RECORD_STORAGE);
+            return;
+        }
     }
 
     i = 0;
@@ -116,6 +125,7 @@ void ham_load_txt(FlipperHamApp* app) {
     app->ham_ok = ok && j;
     if(app->ham_index >= app->ham_n) app->ham_index = 0;
     if(app->ham_tx_index >= app->ham_n) app->ham_tx_index = 0;
+    if(migrated && app->ham_ok) ham_save_txt(app);
 }
 
 void ham_save_txt(FlipperHamApp* app) {
@@ -128,14 +138,14 @@ void ham_save_txt(FlipperHamApp* app) {
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);
 
-    if(!storage_file_open(file, MY_CALLS_FILE, FSAM_WRITE, FSOM_OPEN_EXISTING)) {
+    storage_common_mkdir(storage, "/ext/apps_data");
+    storage_common_mkdir(storage, CFG_DIR);
+
+    if(!storage_file_open(file, MY_CALLS_FILE, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         storage_file_free(file);
         furi_record_close(RECORD_STORAGE);
         return;
     }
-
-    storage_file_seek(file, 0, true);
-    storage_file_truncate(file);
 
     for(i = 0; i < app->ham_n; i++) {
         if(!app->ham_calls[i][0]) continue;

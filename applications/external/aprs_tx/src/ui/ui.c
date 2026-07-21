@@ -164,6 +164,7 @@ static void txdbgdraw(Canvas* canvas, FlipperHamApp* app) {
 void flipperham_draw_callback(Canvas* canvas, void* context) {
     FlipperHamApp* app = context;
     char a[16];
+    const char* s;
     uint32_t n, w, m, x;
 
     if(app->debug_tx && app->tx_allowed && app->pkt) {
@@ -196,33 +197,19 @@ void flipperham_draw_callback(Canvas* canvas, void* context) {
         return;
     }
 
-    if(app->repeat_n >= 4)
-        canvas_draw_str_aligned(
-            canvas,
-            64,
-            24,
-            AlignCenter,
-            AlignCenter,
-            app->tx_radio_backend == FlipperHamRadioExternal ? "Sending (ext)..." :
-                                                               "Sending (int)...");
-    else if(app->repeat_n > 1)
-        canvas_draw_str_aligned(
-            canvas,
-            64,
-            26,
-            AlignCenter,
-            AlignCenter,
-            app->tx_radio_backend == FlipperHamRadioExternal ? "Sending (ext)..." :
-                                                               "Sending (int)...");
+    if(app->tx_radio_display == FlipperHamRadioExternal)
+        s = "Sending (ext)...";
+    else if(app->tx_radio_display == FlipperHamRadioInternal)
+        s = "Sending (int)...";
     else
-        canvas_draw_str_aligned(
-            canvas,
-            64,
-            32,
-            AlignCenter,
-            AlignCenter,
-            app->tx_radio_backend == FlipperHamRadioExternal ? "Sending (ext)..." :
-                                                               "Sending (int)...");
+        s = "Sending...";
+
+    if(app->repeat_n >= 4)
+        canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignCenter, s);
+    else if(app->repeat_n > 1)
+        canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignCenter, s);
+    else
+        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, s);
 
     if(app->repeat_n > 1) {
         snprintf(a, sizeof(a), "%u/%u", app->repeat_i, app->repeat_n);
