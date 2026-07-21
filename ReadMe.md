@@ -85,6 +85,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [APRS TX v1.3.23 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
 - Updated: [Tasks v1.3 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
 - Added: [Ear Trainer v1.0 (By barismert98)](https://github.com/barismert98/flipper-ear-trainer)
+- Updated: [Calculator v1.4 (By n-o-T-I-n-s-a-n-e)](https://github.com/n-o-T-I-n-s-a-n-e)
 
 <a name="release"></a>
 
@@ -408,7 +409,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [BTHome v0.1 (By ghedo)](https://github.com/ghedo/flipper-bthome)
 - [BunnyConnect v1.0 (By C0d3-5t3w)](https://github.com/C0d3-5t3w/flipper-bunnyconnect) `Req: BashBunny`
 - [C5 Lab v0.41 (By C5Lab / Lab Team)](https://github.com/C5Lab/projectZero)
-- [Calculator v1.3 (By n-o-T-I-n-s-a-n-e)](https://github.com/n-o-T-I-n-s-a-n-e)
+- [Calculator v1.4 (By n-o-T-I-n-s-a-n-e)](https://github.com/n-o-T-I-n-s-a-n-e)
 - [Calendar (By Adiras)](https://github.com/Adiras/flipperzero-calendar)
 - [Calendar of weeks v0.1 (By fgreil)](https://github.com/fgreil/mitzi-cal-weeks)
 - [Calendar TECHART v1.1 (By techartdev)](https://github.com/techartdev/Calendar)

@@ -8,6 +8,6 @@ App(
     fap_category="Tools",
     fap_author="n-o-T-I-n-s-a-n-e",
     fap_weburl="https://github.com/n-o-T-I-n-s-a-n-e",
-    fap_version="1.3",
-    fap_description="Calculator, that can calculate simple expressions",
+    fap_version="1.4",
+    fap_description="Calculator for simple expressions, powers and roots. Long-press X for ^ (power), / for sqrt(, ( for ).",
 )
