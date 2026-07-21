@@ -14,7 +14,7 @@
 
 #define TAG                   "Mp3Player"
 #define MUSIC_DIRECTORY       EXT_PATH("music")
-#define MAX_SONGS             100
+#define MAX_SONGS             250
 #define MAX_FILENAME          128
 #define MAX_MUSIC_PATH        256
 #define MAX_SCAN_ENTRIES      1024

@@ -70,7 +70,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [DeFlock v0.2 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [FM Radio v2.2 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-fm-radio) `Req: TEA5767/Si4703`
 - Added: [Walkie Talkie v1.1 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-walkie-talkie)
-- Updated: [MP3 Player v3.4 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-mp3-player)
 - Updated: [BLE Scanner v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
 - Updated: [CCID Emulator v1.1 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Updated: [FlipperPwn v1.7 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
@@ -81,6 +80,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Sub-GHz Jammer Detect v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Updated: [UART Sniff v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Updated: [APRS TX v1.3.21 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
+- Updated: [MP3 Player v3.4 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-mp3-player)
 
 <a name="release"></a>
 
