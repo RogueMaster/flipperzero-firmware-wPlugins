@@ -86,9 +86,12 @@ void ham_load_txt(FlipperHamApp* app) {
     storage_common_mkdir(storage, CFG_DIR);
 
     if(!storage_file_open(file, MY_CALLS_FILE, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        storage_file_close(file);
+
         if(storage_file_open(file, LEGACY_MY_CALLS_FILE, FSAM_READ, FSOM_OPEN_EXISTING))
             migrated = true;
         else {
+            storage_file_close(file);
             storage_file_free(file);
             furi_record_close(RECORD_STORAGE);
             return;
@@ -142,6 +145,7 @@ void ham_save_txt(FlipperHamApp* app) {
     storage_common_mkdir(storage, CFG_DIR);
 
     if(!storage_file_open(file, MY_CALLS_FILE, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        storage_file_close(file);
         storage_file_free(file);
         furi_record_close(RECORD_STORAGE);
         return;

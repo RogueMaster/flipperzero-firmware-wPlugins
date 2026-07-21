@@ -54,9 +54,12 @@ void callbook_load_txt(FlipperHamApp* app) {
     storage_common_mkdir(storage, CALLBOOK_DIR);
 
     if(!storage_file_open(file, CALLBOOK_FILE, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        storage_file_close(file);
+
         if(storage_file_open(file, LEGACY_CALLBOOK_FILE, FSAM_READ, FSOM_OPEN_EXISTING))
             migrated = true;
         else {
+            storage_file_close(file);
             storage_file_free(file);
             furi_record_close(RECORD_STORAGE);
             /* Fall back to a tiny default callbook if the file is missing. */
