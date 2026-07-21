@@ -14,6 +14,13 @@ public:
         const char* path,
         FS_AccessMode accessMode,
         FS_OpenMode openMode) noexcept;
+
+    // Owns a raw ::File* freed in the destructor; copying would double-close it.
+    // Declaring the copy operations deleted also suppresses the implicit moves,
+    // so a File cannot be copied or moved (the app only uses scoped locals).
+    File(const File&) = delete;
+    File& operator=(const File&) = delete;
+
     bool open(
         const UFZ::Filesystem& store,
         const char* path,
@@ -25,24 +32,39 @@ public:
 
     size_t read(void* buffer, size_t bytesToRead) const noexcept;
 
+    // Appends the file contents to buffer, growing it chunkSize elements at a time.
+    // chunkSize is a count of T elements; each iteration reads up to that many
+    // elements and stops on the first short read (end of file). Returns bytes read.
     template <typename T>
-    size_t read(std::vector<T>& buffer, size_t chunkSize = 128) noexcept {
-        size_t sz = 0;
-        buffer.resize(buffer.size() + chunkSize);
+    size_t read(std::vector<T>& buffer, size_t chunkSize = 128) const noexcept {
+        // A zero chunk never advances the read cursor; the loop below would spin forever.
+        if(chunkSize == 0) return 0;
 
-        while(const size_t a = read(buffer.data() + sz, chunkSize) != 0) {
-            sz += a;
-            buffer.resize(buffer.size() + chunkSize);
-        }
-        buffer.shrink_to_fit();
-        return sz;
+        const size_t start = buffer.size();
+        const size_t chunkBytes = chunkSize * sizeof(T);
+        size_t elementsRead = 0;
+        size_t bytesRead = 0;
+        size_t bytes;
+
+        do {
+            buffer.resize(start + elementsRead + chunkSize);
+            bytes = read(buffer.data() + start + elementsRead, chunkBytes);
+            bytesRead += bytes;
+            elementsRead += bytes / sizeof(T);
+        } while(bytes == chunkBytes);
+
+        // Only whole elements fit in a vector<T>; a trailing partial element (file size
+        // not a multiple of sizeof(T)) is dropped, but the returned byte count reflects
+        // everything read, so the caller can detect it (bytesRead % sizeof(T) != 0).
+        buffer.resize(start + elementsRead);
+        return bytesRead;
     }
 
     size_t write(const void* buffer, size_t bytesToWrite) const noexcept;
 
     template <typename T>
-    size_t write(const std::vector<T>& buffer) noexcept {
-        return write(buffer.data(), buffer.size());
+    size_t write(const std::vector<T>& buffer) const noexcept {
+        return write(buffer.data(), buffer.size() * sizeof(T));
     }
 
     [[nodiscard]] bool seek(uint32_t offset, bool bFromStart) const noexcept;
@@ -65,6 +87,11 @@ private:
 
     ::File* file = nullptr;
     Filesystem* storage = nullptr;
+
+    // True while `file` is open as a directory (via Directory::open): selects
+    // storage_dir_close over storage_file_close at teardown so the handle is not
+    // closed as the wrong stream type. Reset by free().
+    bool bDirectory = false;
 
     void init() noexcept;
     void free() noexcept;

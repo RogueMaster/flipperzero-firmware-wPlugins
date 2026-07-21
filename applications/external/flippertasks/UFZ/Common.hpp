@@ -6,11 +6,14 @@
 #include <gui/gui.h>
 #include <gui/icon_i.h>
 #include <gui/view_dispatcher.h>
+#include <gui/scene_manager.h>
 
 // Only frees if memory is allocated
-#define FREE_GUARD(x, y)     \
-    if((y) != nullptr) x(y); \
-    (y) = nullptr;
+#define FREE_GUARD(x, y) \
+    if((y) != nullptr) { \
+        x(y);            \
+        (y) = nullptr;   \
+    }
 
 #define SEND_CUSTOM_EVENT(x, y) (x)->getViewDispatcher().sendCustomEvent(y)
 
@@ -65,7 +68,8 @@ public:
     [[nodiscard]] bool hasPreviousScene(uint32_t id) const noexcept;
 
     [[nodiscard]] bool searchAndSwitchToPreviousScene(uint32_t id) const noexcept;
-    bool searchAndSwitchToPreviousSceneOneOf(const uint32_t* ids, size_t idsSize) const noexcept;
+    [[nodiscard]] bool
+        searchAndSwitchToPreviousSceneOneOf(const uint32_t* ids, size_t idsSize) const noexcept;
     [[nodiscard]] bool searchAndSwitchToAnotherScene(uint32_t id) const noexcept;
 
     void stop() const noexcept;
@@ -133,18 +137,36 @@ class Application {
 public:
     Application() = default;
     explicit Application(
-        const std::vector<UWidget*>& widgetsRef,
+        std::vector<UWidget*> widgetsRef,
         void* userPointer,
         const std::function<void(Application&)>& begin = [](Application&) -> void {},
         uint32_t tickPeriod = 0) noexcept;
+
+    // Self-referential: run() stores `this` into every widget, the view dispatcher's
+    // event-callback context, and the scene manager context. A copy would leave those
+    // pointing at the original and double-free the raw handles on destruction. Delete
+    // the copy operations (this also suppresses the implicit moves) — construct a fresh
+    // Application rather than copying one.
+    Application(const Application&) = delete;
+    Application& operator=(const Application&) = delete;
+
+    // Safety net over the explicit destroy(): idempotent via bDestroyed, so an explicit
+    // destroy() after run() still runs cleanup exactly once.
+    ~Application() noexcept;
+
+    // Single-use: call run() (or the constructor that forwards to it) exactly once per
+    // Application instance. The harvested callback vectors are appended to, not reset, so a
+    // second run() would leave the SceneManagerHandlers pointing at the previous run's stale
+    // callbacks. Create a fresh Application instead of reusing one.
     void run(
-        const std::vector<UWidget*>& widgetsRef,
+        std::vector<UWidget*> widgetsRef,
         void* userPointer,
         const std::function<void(Application&)>& begin = [](Application&) -> void {},
         uint32_t tickPeriod = 0) noexcept;
 
     template <typename T>
     T* getWidget(const size_t i) noexcept {
+        furi_assert(i < widgets.size());
         return static_cast<T*>(widgets[i]);
     }
 
@@ -184,6 +206,6 @@ private:
 
     void freeSceneManager() noexcept;
     void freeViewDispatcher() noexcept;
-    static void freeGUI() noexcept;
+    void freeGUI() noexcept;
 };
 }

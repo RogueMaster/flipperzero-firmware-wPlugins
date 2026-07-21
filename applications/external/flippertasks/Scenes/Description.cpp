@@ -7,12 +7,7 @@ void FTasks::Description::enter(void* context) noexcept {
     UNUSED(popup->setContext(popup->application)
                .setHeader("Description:", 64, 4, AlignCenter, AlignTop)
                .setIcon(-1, -1, nullptr)
-               .setText(
-                   (*ctx->currentContainer)[ctx->currentNoteIndex].second.c_str(),
-                   4,
-                   16,
-                   AlignLeft,
-                   AlignTop));
+               .setText(CURRENT_NOTE(ctx).second.c_str(), 4, 16, AlignLeft, AlignTop));
     RENDER_VIEW(popup->application, Scenes::DESCRIPTION);
 }
 
