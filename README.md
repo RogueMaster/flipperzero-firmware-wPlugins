@@ -101,10 +101,19 @@ app lands in the dist folder (SD card folder: apps/Media).
 
 ## Screenshots
 
-<img src="screenshots/ss0.png" width="256"> <img src="screenshots/ss1.png" width="256">
-<img src="screenshots/ss2.png" width="256"> <img src="screenshots/ss3.png" width="256">
-<img src="screenshots/ss4.png" width="256"> <img src="screenshots/ss5.png" width="256">
-<img src="screenshots/ss6.png" width="256">
+![screenshot 0](screenshots/ss0.png)
+
+![screenshot 1](screenshots/ss1.png)
+
+![screenshot 2](screenshots/ss2.png)
+
+![screenshot 3](screenshots/ss3.png)
+
+![screenshot 4](screenshots/ss4.png)
+
+![screenshot 5](screenshots/ss5.png)
+
+![screenshot 6](screenshots/ss6.png)
 
 ## License
 
