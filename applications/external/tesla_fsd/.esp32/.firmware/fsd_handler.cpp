@@ -86,13 +86,20 @@ bool fsd_can_transmit(const FSDState *state) {
 }
 
 // AP-First gate (parity with the Flipper). When ap_first is on, hold AP/FSD/nag
-// injection until AP is engaged (das_ap_state >= 2) AND has held stable for
-// AP_FIRST_STABLE_MS — injecting on the activation edge is what trips the
-// 2026.14.x preflight (steer-jerk + AP disengage). now_ms = millis(),
-// ap_unstable_tick_ms is stamped whenever das_ap_state < 2.
+// injection until AP is engaged AND has held stable for AP_FIRST_STABLE_MS.
+// 2 = AVAILABLE (AP offered, NOT engaged); DAS_APSTATE_ENGAGED (3) is the first
+// genuinely-engaged state — gating at 2 fired 0x3EE while AP was off (#108).
+// now_ms = millis(); ap_unstable_tick_ms is stamped whenever das_ap_state < 3.
+//
+// Instant Engage / Minimal Inject skip the debounce (#108): the 1 s wait pushes
+// the first inject ~1 s past the engage onset, landing it on the car's abort
+// window instead of ahead of it (@dunckencn's TX capture measured the injected
+// frame arriving 1.3–1.8 s after DAS 3, i.e. 0.2–0.3 s before the abort). A
+// burst that is meant to fire at engage onset must not be delayed at all.
 bool fsd_ap_first_allows(const FSDState *state, uint32_t now_ms) {
     if (!state->ap_first) return true;             // gate off -> always allow
-    if (state->das_ap_state < 2u) return false;    // AP not engaged yet
+    if (state->das_ap_state < DAS_APSTATE_ENGAGED) return false;  // AP not engaged yet
+    if (state->ap_first_edge || state->ap_first_minimal) return true;  // inject at onset
     return (now_ms - state->ap_unstable_tick_ms) >= AP_FIRST_STABLE_MS;
 }
 

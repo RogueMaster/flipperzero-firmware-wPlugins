@@ -81,6 +81,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [UART Sniff v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - Updated: [APRS TX v1.3.21 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
 - Updated: [MP3 Player v3.5 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-mp3-player) [Direct File Launch from Archive Browser for MP3s (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/adbb8f652bef7869d152c77e2357738b9a87a224)
+- Updated: [Tesla Mod v2.16b17 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 
 <a name="release"></a>
 
