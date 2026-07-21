@@ -82,6 +82,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [APRS TX v1.3.21 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
 - Updated: [MP3 Player v3.5 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-mp3-player) [Direct File Launch from Archive Browser for MP3s (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/adbb8f652bef7869d152c77e2357738b9a87a224)
 - Updated: [Tesla Mod v2.16b17 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- Updated: [Android KB Bridge v0.5.4 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD) (Version Only)
 
 <a name="release"></a>
 
@@ -364,7 +365,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Amusement IC v0.1 (By object-Object)](https://github.com/object-Object/flip_aic)
 - [Analog Clock v1.2 (By scrolltex)](https://github.com/scrolltex/flipper_analog_clock)
 - [Analog Output v0.1 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio/dac)
-- [Android KB Bridge v0.5.1 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD)
+- [Android KB Bridge v0.5.4 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD)
 - [Anki Remote v1.3 (By Blue5GD)](https://github.com/Blue5GD/Anki-Remote)
 - [Anim Previewer v1.0 (By H4W9)](https://github.com/H4W9/AnimationPreviewerFlipperApp)
 - [Animation Switcher v1.1 (By lsalik2)](https://github.com/lsalik2/FlipperAnimationSwitcher)
