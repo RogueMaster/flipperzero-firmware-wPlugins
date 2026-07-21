@@ -452,7 +452,8 @@ static void mp3_draw_now_playing(Canvas* canvas, const Mp3App* app) {
         "%u/%u",
         (unsigned)(app->current_song + 1),
         (unsigned)app->song_count);
-    canvas_draw_str_aligned(canvas, 52, 10, AlignCenter, AlignBottom, track);
+    if(app->song_count != 0)
+        canvas_draw_str_aligned(canvas, 52, 10, AlignCenter, AlignBottom, track);
     char volume[10];
     snprintf(volume, sizeof(volume), "V%u", app->volume);
     canvas_draw_str_aligned(canvas, 106, 10, AlignRight, AlignBottom, volume);
@@ -565,7 +566,8 @@ static bool mp3_start_current(Mp3App* app) {
 }
 
 static bool mp3_start_current_path(Mp3App* app) {
-    app->playing = mp3_playback_start(app->playback, app->current_path, mp3_audio_output(app->output), app->volume);
+    app->playing = mp3_playback_start(
+        app->playback, app->current_path, mp3_audio_output(app->output), app->volume);
     if(!app->playing) {
         const char* error = mp3_playback_get_error(app->playback);
         mp3_set_status(app, *error ? error : "Could not start player");
@@ -864,9 +866,9 @@ int32_t mp3_main(void* p) {
     InputEvent event;
 
     if(args && strlen(args)) {
-		strlcpy(app->current_path, args, sizeof(app->current_path));
-		app->screen = Mp3ScreenNowPlaying;
-		furi_delay_ms(100);
+        strlcpy(app->current_path, args, sizeof(app->current_path));
+        app->screen = Mp3ScreenNowPlaying;
+        furi_delay_ms(100);
         mp3_start_current_path(app);
     }
     while(running) {
