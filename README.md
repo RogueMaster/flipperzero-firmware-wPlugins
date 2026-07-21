@@ -99,22 +99,6 @@ project root run ufbt update --channel=release followed by ufbt.
 Run ufbt launch instead to upload and start it on a Flipper over USB. The built
 app lands in the dist folder (SD card folder: apps/Media).
 
-## Screenshots
-
-![screenshot 0](screenshots/ss0.png)
-
-![screenshot 1](screenshots/ss1.png)
-
-![screenshot 2](screenshots/ss2.png)
-
-![screenshot 3](screenshots/ss3.png)
-
-![screenshot 4](screenshots/ss4.png)
-
-![screenshot 5](screenshots/ss5.png)
-
-![screenshot 6](screenshots/ss6.png)
-
 ## License
 
 MIT — see [LICENSE](LICENSE).
