@@ -1,0 +1,6 @@
+dist/
+.ufbt/
+build/
+*.fap
+.vscode/
+.claude/
