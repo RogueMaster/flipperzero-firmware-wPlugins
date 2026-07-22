@@ -2,7 +2,7 @@
 // Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
 #include "../recon_app_i.h"
 #include "../helpers/esp_link.h"
-#include "../helpers/gps_link.h"
+#include "../helpers/scan_session.h"
 
 typedef enum {
     FlockCustomOpenDetail = 100,
@@ -29,29 +29,18 @@ void recon_scene_flock_on_enter(void* context) {
     app->esp_rebase = true; // ...and rebase off the companion's lifetime total
     furi_mutex_release(app->mutex);
 
-    // ESP first so it claims its UART (and disables the expansion manager)
-    // before GPS. GPS only starts if it's on a *different* port -- otherwise it
-    // would steal the ESP's UART and silently kill detection.
-    // Re-entry guard: scene_manager_next_scene (opening a detail view) SUSPENDS
-    // this scene without calling on_exit, and pressing Back re-runs on_enter.
-    // Re-allocating over the still-live link would leak it (heap + worker stack)
-    // and orphan the UART, so the replacement can't acquire it and scanning dies.
-    // Alloc only when there is no live link; on_exit frees and NULLs it.
-    if(!app->esp) {
-        app->esp = esp_link_alloc(app);
-        esp_link_start(app->esp);
+    // ESP first so it claims its UART (and disables the expansion manager) before
+    // GPS. scan_session_start is idempotent across a detail-view Back re-entry
+    // (see scan_session.h / bug B1) and returns true only on a FRESH start, so the
+    // dual-band kickoff is sent exactly once.
+    if(scan_session_start(app)) {
         // On the companion firmware, run dual-band (WiFi + BLE) Flock detection.
         // Marauder can't do this -> it stays WiFi-only via the generic backend.
         if(app->settings.backend == EspBackendCompanion) {
             esp_link_send(app->esp, "flockcombo");
         }
     }
-    if(app->settings.gps_enabled && app->settings.gps_uart != app->settings.esp_uart) {
-        if(!app->gps) { // same re-entry guard as the ESP link above
-            app->gps = gps_link_alloc(app);
-            gps_link_start(app->gps);
-        }
-    }
+    scan_session_gps_start(app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewFlock);
 }
@@ -79,14 +68,5 @@ bool recon_scene_flock_on_event(void* context, SceneManagerEvent event) {
 
 void recon_scene_flock_on_exit(void* context) {
     ReconApp* app = context;
-    if(app->esp) {
-        esp_link_stop(app->esp);
-        esp_link_free(app->esp);
-        app->esp = NULL;
-    }
-    if(app->gps) {
-        gps_link_stop(app->gps);
-        gps_link_free(app->gps);
-        app->gps = NULL;
-    }
+    scan_session_stop(app);
 }

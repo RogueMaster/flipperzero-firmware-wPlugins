@@ -2,6 +2,8 @@
 // Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
 #include "../recon_app_i.h"
 #include "../helpers/esp_link.h"
+#include "../helpers/scan_session.h"
+#include "../helpers/scene_util.h"
 #include "../helpers/recon_report.h"
 
 #include <string.h>
@@ -14,9 +16,6 @@
 
 #define BLE_RESCAN_GAP_MS   4000
 #define BLE_SCAN_TIMEOUT_MS 12000
-
-static bool s_pending; // a blescan is in flight (awaiting BEND)
-static uint32_t s_mark; // tick of last state transition
 
 // Action-row labels (static lifetime; the view keeps the pointers).
 static const char* const BLE_ACTIONS[] = {"Save Report"};
@@ -43,8 +42,8 @@ static void ble_trigger(ReconApp* app) {
     app->ble_done = false;
     furi_mutex_release(app->mutex);
     if(app->esp) esp_link_send(app->esp, "blescan");
-    s_pending = true;
-    s_mark = furi_get_tick();
+    app->ble_pending = true;
+    app->ble_mark = furi_get_tick();
 }
 
 static void ble_show_scanning(ReconApp* app) {
@@ -95,30 +94,18 @@ static void ble_show_results(ReconApp* app) {
     ble_list_view_refresh(app->ble_list_view);
 }
 
-static bool s_ble_blocked; // companion-only feature opened in Marauder mode
-
-static void ble_show_guard(ReconApp* app) {
-    widget_reset(app->widget);
-    widget_add_text_scroll_element(
-        app->widget,
-        0,
-        0,
-        128,
-        64,
-        "BLE / Tracker Scan needs\nthe FlipDeFlock companion\nFW.\n\nYou're in Marauder mode\n(Flock detect only).\nFlash via 'ESP32 Firmware'\nor switch Board Mode in\nSettings.");
-}
-
 void recon_scene_ble_on_enter(void* context) {
     ReconApp* app = context;
     // BLE scan needs the companion firmware protocol; explain in Marauder mode.
     app->saved_backend = app->settings.backend;
     if(app->settings.backend != EspBackendCompanion) {
-        s_ble_blocked = true;
-        ble_show_guard(app);
-        view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewWidget);
+        app->ble_blocked = true;
+        scene_show_companion_guard(
+            app,
+            "BLE / Tracker Scan needs\nthe FlipDeFlock companion\nFW.\n\nYou're in Marauder mode\n(Flock detect only).\nFlash via 'ESP32 Firmware'\nor switch Board Mode in\nSettings.");
         return;
     }
-    s_ble_blocked = false;
+    app->ble_blocked = false;
 
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     app->ble_count = 0;
@@ -128,12 +115,9 @@ void recon_scene_ble_on_enter(void* context) {
 
     ble_list_view_set_ok_callback(app->ble_list_view, ble_view_ok_cb, app);
 
-    // Re-entry guard: keep the live link across a detail-view round-trip
-    // (see recon_scene_flock_on_enter for the full rationale).
-    if(!app->esp) {
-        app->esp = esp_link_alloc(app);
-        esp_link_start(app->esp);
-    }
+    // scan_session_start keeps the live link across a detail-view round-trip
+    // (idempotent; see scan_session.h / bug B1).
+    scan_session_start(app);
 
     ble_show_scanning(app);
     ble_trigger(app);
@@ -144,21 +128,21 @@ bool recon_scene_ble_on_event(void* context, SceneManagerEvent event) {
     ReconApp* app = context;
     bool consumed = false;
 
-    if(s_ble_blocked) return false; // Marauder mode guard screen; let Back exit
+    if(app->ble_blocked) return false; // Marauder mode guard screen; let Back exit
 
     if(event.type == SceneManagerEventTypeTick) {
         furi_mutex_acquire(app->mutex, FuriWaitForever);
         bool done = app->ble_done;
         furi_mutex_release(app->mutex);
         uint32_t now = furi_get_tick();
-        if(s_pending && done) {
+        if(app->ble_pending && done) {
             ble_show_results(app);
-            s_pending = false;
-            s_mark = now;
-        } else if(s_pending && now - s_mark > BLE_SCAN_TIMEOUT_MS) {
-            s_pending = false;
-            s_mark = now; // give up; allow a rescan
-        } else if(!s_pending && now - s_mark > BLE_RESCAN_GAP_MS) {
+            app->ble_pending = false;
+            app->ble_mark = now;
+        } else if(app->ble_pending && now - app->ble_mark > BLE_SCAN_TIMEOUT_MS) {
+            app->ble_pending = false;
+            app->ble_mark = now; // give up; allow a rescan
+        } else if(!app->ble_pending && now - app->ble_mark > BLE_RESCAN_GAP_MS) {
             ble_trigger(app); // continuous monitoring -> "following" detection
         }
         // Keep the live view ticking (counts, bars, following flag).
@@ -169,9 +153,7 @@ bool recon_scene_ble_on_event(void* context, SceneManagerEvent event) {
         if(id == BLE_EV_SAVE) {
             char path[128] = {0};
             bool ok = recon_report_save_ble(app, path, sizeof(path));
-            if(app->settings.sound) {
-                notification_message(app->notifications, ok ? &sequence_success : &sequence_error);
-            }
+            scene_report_notify(app, ok);
             consumed = true;
         } else if(id >= BLE_EV_DEVICE) {
             int idx = (int)id - BLE_EV_DEVICE;
@@ -190,10 +172,6 @@ bool recon_scene_ble_on_event(void* context, SceneManagerEvent event) {
 
 void recon_scene_ble_on_exit(void* context) {
     ReconApp* app = context;
-    if(app->esp) {
-        esp_link_stop(app->esp);
-        esp_link_free(app->esp);
-        app->esp = NULL;
-    }
+    scan_session_stop(app);
     app->settings.backend = app->saved_backend;
 }

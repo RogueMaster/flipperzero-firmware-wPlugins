@@ -3,6 +3,7 @@
 #include "esp_link.h"
 #include "../recon_app_i.h"
 #include "flock_db.h"
+#include "esp_parser.h"
 
 #include <expansion/expansion.h>
 #include <stdlib.h>
@@ -28,34 +29,19 @@ struct EspLink {
     volatile bool running;
     char line[ESP_LINE_MAX];
     size_t line_len;
+    bool skip_line; /**< dropping the remainder of an overlong (overflowed) line */
     uint32_t lines; /**< total completed RX lines (heartbeat) */
+    uint32_t dropped; /**< overlong lines dropped whole (wire-protocol health metric) */
 };
 
 // ---- parsing helpers -----------------------------------------------------
 
-static int hexval(char c) {
-    if(c >= '0' && c <= '9') return c - '0';
-    if(c >= 'a' && c <= 'f') return c - 'a' + 10;
-    if(c >= 'A' && c <= 'F') return c - 'A' + 10;
-    return -1;
-}
-
-/** Parse "aabbccddeeff" (no separators, 12 hex chars) into 6 bytes. */
-static bool parse_mac_compact(const char* s, uint8_t mac[6]) {
-    for(int i = 0; i < 6; i++) {
-        int hi = hexval(s[i * 2]);
-        int lo = hexval(s[i * 2 + 1]);
-        if(hi < 0 || lo < 0) return false;
-        mac[i] = (uint8_t)((hi << 4) | lo);
-    }
-    return true;
-}
-
-/** Try to read a "hh:hh:hh:hh:hh:hh" MAC starting at p. */
+/** Try to read a "hh:hh:hh:hh:hh:hh" MAC starting at p. (Marauder/generic path;
+ *  the companion path's compact-MAC + field parsing live in esp_parser.c.) */
 static bool parse_mac_colon(const char* p, uint8_t mac[6]) {
     for(int i = 0; i < 6; i++) {
-        int hi = hexval(p[i * 3]);
-        int lo = hexval(p[i * 3 + 1]);
+        int hi = esp_hexval(p[i * 3]);
+        int lo = esp_hexval(p[i * 3 + 1]);
         if(hi < 0 || lo < 0) return false;
         if(i < 5 && p[i * 3 + 2] != ':') return false;
         mac[i] = (uint8_t)((hi << 4) | lo);
@@ -63,258 +49,94 @@ static bool parse_mac_colon(const char* p, uint8_t mac[6]) {
     return true;
 }
 
-static FlockConfidence conf_from_int(int c) {
-    switch(c) {
-    case 3:
-        return FlockConfidenceConfirmed;
-    case 2:
-        return FlockConfidenceLikely;
-    case 1:
-        return FlockConfidencePossible;
+// ---- companion protocol --------------------------------------------------
+
+// Apply one already-parsed companion record to the app. This is the ONLY place
+// the companion path mutates ReconApp; esp_parser.c does the pure line -> record
+// decoding (parse != mutate), which is what makes the wire protocol host-testable.
+static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
+    ReconApp* app = esp->app;
+    switch(m->type) {
+    case EspMsgBanner:
+        recon_app_set_esp_status(app, 0, 0, 0, true);
+        // Version gate: flag (don't refuse) if the companion speaks a different
+        // wire-protocol version than we do, so a mismatch surfaces instead of
+        // silently mis-parsing. Version 0 = old FW with no version field = OK.
+        recon_app_set_esp_proto(
+            app,
+            m->u.banner.version,
+            m->u.banner.version != 0 && m->u.banner.version != ESP_PROTO_VERSION);
+        break;
+    case EspMsgWifiBegin:
+        recon_app_wifi_begin(app);
+        break;
+    case EspMsgWifiEnd:
+        recon_app_wifi_end(app);
+        break;
+    case EspMsgWifiAp:
+        recon_app_wifi_add(
+            app,
+            m->u.wifi.bssid,
+            m->u.wifi.ssid,
+            m->u.wifi.rssi,
+            m->u.wifi.channel,
+            m->u.wifi.auth,
+            m->u.wifi.pairwise,
+            m->u.wifi.wps);
+        break;
+    case EspMsgBleBegin:
+        recon_app_ble_begin(app);
+        break;
+    case EspMsgBleEnd:
+        recon_app_ble_end(app);
+        break;
+    case EspMsgBleDev:
+        recon_app_ble_add(
+            app,
+            m->u.ble.addr,
+            m->u.ble.name,
+            m->u.ble.rssi,
+            m->u.ble.cat,
+            m->u.ble.company,
+            m->u.ble.mfg_len ? m->u.ble.mfg : NULL,
+            m->u.ble.mfg_len,
+            m->u.ble.raven_gatt);
+        break;
+    case EspMsgFlock:
+        recon_app_report_flock(
+            app,
+            m->u.flock.mac,
+            m->u.flock.ssid,
+            m->u.flock.rssi,
+            m->u.flock.channel,
+            m->u.flock.ftype,
+            m->u.flock.conf,
+            m->u.flock.fp);
+        break;
+    case EspMsgDeauthTarget:
+        recon_app_add_deauth_target(app, m->u.deauth.bssid, m->u.deauth.channel);
+        break;
+    case EspMsgAttack:
+        recon_app_set_attack(app, m->u.attack.kind, m->u.attack.value);
+        break;
+    case EspMsgLocate:
+        recon_app_set_locate_rssi(app, m->u.locate.rssi);
+        break;
+    case EspMsgStatus:
+        recon_app_set_esp_status(
+            app, m->u.status.frames, m->u.status.hits, m->u.status.channel, true);
+        if(m->u.status.have_deauths) recon_app_set_deauths(app, m->u.status.deauths);
+        break;
+    case EspMsgIgnore:
     default:
-        return FlockConfidenceNone;
+        break;
     }
 }
 
-// ---- companion protocol --------------------------------------------------
-
 static void esp_parse_companion(EspLink* esp, char* line) {
-    if(strncmp(line, "FLOCKCO", 7) == 0) {
-        recon_app_set_esp_status(esp->app, 0, 0, 0, true);
-        return;
-    }
-    // ---- WiFi security scan: WBEGIN / W,... / WEND ----
-    if(strncmp(line, "WBEGIN", 6) == 0) {
-        recon_app_wifi_begin(esp->app);
-        return;
-    }
-    if(strncmp(line, "WEND", 4) == 0) {
-        recon_app_wifi_end(esp->app);
-        return;
-    }
-    if(strncmp(line, "DA,", 3) == 0) {
-        // DA,<bssid>,<ch>  deauth/disassoc attack target attribution
-        char* f[3];
-        int n = 0;
-        char* p = line;
-        f[n++] = p;
-        while(*p && n < 3) {
-            if(*p == ',') {
-                *p = '\0';
-                f[n++] = p + 1;
-            }
-            p++;
-        }
-        if(n >= 3) {
-            uint8_t bssid[6];
-            if(strlen(f[1]) >= 12 && parse_mac_compact(f[1], bssid)) {
-                recon_app_add_deauth_target(esp->app, bssid, (uint8_t)atoi(f[2]));
-            }
-        }
-        return;
-    }
-    if(strncmp(line, "ATK,", 4) == 0) {
-        // ATK,<kind>,<value>  active attack-tool signature from the companion:
-        //   blespam     a flood of impersonation BLE adverts (Flipper/ESP spam)
-        //   beaconflood a flood of distinct beaconing APs (Marauder / Pineapple)
-        //   probeflood  an abnormal probe-request rate
-        // <value> is the count/rate the companion measured. Older app builds
-        // simply ignore this unknown line; older firmware never sends it.
-        char* f[3];
-        int n = 0;
-        char* p = line;
-        f[n++] = p;
-        while(*p && n < 3) {
-            if(*p == ',') {
-                *p = '\0';
-                f[n++] = p + 1;
-            }
-            p++;
-        }
-        if(n >= 2) {
-            recon_app_set_attack(esp->app, f[1], (n >= 3) ? strtoul(f[2], NULL, 10) : 0);
-        }
-        return;
-    }
-    if(strncmp(line, "LOC,", 4) == 0) {
-        // LOC,<rssi>[,<mac>]  live signal strength for the active Locator target.
-        // The kind/label live app-side, so we only need the rssi here.
-        recon_app_set_locate_rssi(esp->app, (int8_t)atoi(line + 4));
-        return;
-    }
-    // ---- BLE scan: BBEGIN / BLE,... / BEND ----
-    if(strncmp(line, "BBEGIN", 6) == 0) {
-        recon_app_ble_begin(esp->app);
-        return;
-    }
-    if(strncmp(line, "BEND", 4) == 0) {
-        recon_app_ble_end(esp->app);
-        return;
-    }
-    if(strncmp(line, "BLE,", 4) == 0) {
-        // BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1]
-        // Up to two trailing fields follow <name>: mfghex (pure hex, NO '=') and
-        // rv=1 (Raven GATT flag, contains '='). They can appear in either order
-        // and either may be absent (older firmware omits both). 8 slots hold the
-        // 6 base fields (BLE..name) plus both optional trailers, so neither
-        // trailer gets folded back into <name>.
-        char* f[8];
-        int n = 0;
-        char* p = line;
-        f[n++] = p;
-        while(*p && n < 8) {
-            if(*p == ',') {
-                *p = '\0';
-                f[n++] = p + 1;
-            }
-            p++;
-        }
-        if(n < 5) return;
-        uint8_t addr[6];
-        if(strlen(f[1]) < 12 || !parse_mac_compact(f[1], addr)) return;
-        // Walk the trailing fields after <name> (f[6], f[7], ...). Each is
-        // either the raw mfg-data hex (Flock 0x09C8) -- decoded here for the
-        // serial extractor -- or the rv=1 Raven-GATT flag. Distinguish them by
-        // the presence of '=': rv=1 has one, mfghex (pure hex) never does.
-        uint8_t mfg[32];
-        size_t mfg_len = 0;
-        bool raven_gatt = false;
-        for(int fi = 6; fi < n; fi++) {
-            const char* t = f[fi];
-            if(strchr(t, '=')) {
-                // Keyed flag field. Today the only one is rv=1 (Raven GATT).
-                if(strcmp(t, "rv=1") == 0) raven_gatt = true;
-            } else if(mfg_len == 0) {
-                // Pure-hex mfg blob. Decode to bytes (only the first one wins).
-                for(size_t i = 0; mfg_len < sizeof(mfg); i += 2) {
-                    int hi = hexval(t[i]);
-                    if(hi < 0) break;
-                    int lo = hexval(t[i + 1]);
-                    if(lo < 0) break;
-                    mfg[mfg_len++] = (uint8_t)((hi << 4) | lo);
-                }
-            }
-        }
-        recon_app_ble_add(
-            esp->app,
-            addr,
-            (n >= 6) ? f[5] : "",
-            (int8_t)atoi(f[2]),
-            (uint8_t)atoi(f[3]),
-            (uint16_t)atoi(f[4]),
-            mfg_len ? mfg : NULL,
-            mfg_len,
-            raven_gatt);
-        return;
-    }
-    if(line[0] == 'W' && line[1] == ',') {
-        // W,<bssid>,<rssi>,<ch>,<auth>,<pair>,<grp>,<wps>,<ssid>
-        char* f[9];
-        int n = 0;
-        char* p = line;
-        f[n++] = p;
-        while(*p && n < 9) {
-            if(*p == ',') {
-                *p = '\0';
-                f[n++] = p + 1;
-            }
-            p++;
-        }
-        if(n < 8) return;
-        uint8_t bssid[6];
-        if(strlen(f[1]) < 12 || !parse_mac_compact(f[1], bssid)) return;
-        recon_app_wifi_add(
-            esp->app,
-            bssid,
-            (n >= 9) ? f[8] : "",
-            (int8_t)atoi(f[2]),
-            (uint8_t)atoi(f[3]),
-            (uint8_t)atoi(f[4]),
-            (uint8_t)atoi(f[5]),
-            atoi(f[7]) != 0);
-        return;
-    }
-    if(line[0] == 'S' && line[1] == ',') {
-        // S,<frames>,<hits>,<ch>[,<deauths>]
-        char* f[5];
-        int n = 0;
-        char* p = line;
-        f[n++] = p;
-        while(*p && n < 5) {
-            if(*p == ',') {
-                *p = '\0';
-                f[n++] = p + 1;
-            }
-            p++;
-        }
-        if(n >= 4) {
-            recon_app_set_esp_status(
-                esp->app,
-                strtoul(f[1], NULL, 10),
-                strtoul(f[2], NULL, 10),
-                (uint8_t)atoi(f[3]),
-                true);
-        }
-        if(n >= 5) {
-            recon_app_set_deauths(esp->app, strtoul(f[4], NULL, 10));
-        }
-        return;
-    }
-    if(line[0] == 'D' && line[1] == ',') {
-        // D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>]
-        char* f[8];
-        int n = 0;
-        char* p = line;
-        f[n++] = p;
-        while(*p && n < 8) {
-            if(*p == ',') {
-                *p = '\0';
-                f[n++] = p + 1;
-            }
-            p++;
-        }
-        if(n < 6) return;
-        uint8_t mac[6];
-        if(strlen(f[1]) < 12 || !parse_mac_compact(f[1], mac)) return;
-        int8_t rssi = (int8_t)atoi(f[2]);
-        uint8_t ch = (uint8_t)atoi(f[3]);
-        char ftype = f[4][0] ? f[4][0] : 'O';
-        FlockConfidence conf = conf_from_int(atoi(f[5]));
-        const char* ssid = (n >= 7) ? f[6] : "";
-
-        // B1: trailing IE-fingerprint field "fp=<hex32>" (probe requests only).
-        // Older firmware omits it; backward-compatible. The fp is a
-        // MAC-independent device-CLASS signature -- if it matches the curated
-        // (currently empty) Flock table we can rescue a detection whose MAC was
-        // randomized, and label its source "probe-fp" (ftype 'F').
-        uint32_t fp = 0;
-        // fp= is a trailing field AFTER the ssid (f[6]); start at f[7] so an SSID
-        // that literally begins "fp=" can't be misread as the IE-fingerprint.
-        for(int i = 7; i < n; i++) {
-            if(strncmp(f[i], "fp=", 3) == 0) {
-                fp = (uint32_t)strtoul(f[i] + 3, NULL, 16);
-                break;
-            }
-        }
-        FlockIeFp fp_src = flock_ie_fp_match(fp);
-        if(fp_src == FlockIeFpBuiltin) {
-            // Verified compiled-in class fp. + Flock OUI -> CONFIRMED; otherwise
-            // (e.g. a wildcard probe from a randomized/unknown MAC) -> a candidate
-            // device-CLASS match. Never weaker than the ESP's own score.
-            FlockConfidence fp_conf = flock_oui_match(mac) ? FlockConfidenceConfirmed :
-                                                             FlockConfidenceProbeFp;
-            if(fp_conf > conf) conf = fp_conf;
-            ftype = 'F'; // source label "probe-fp" in the detail scene
-        } else if(fp_src == FlockIeFpUser) {
-            // UNVERIFIED user fp (signatures.json): a candidate device-CLASS match
-            // ONLY -- capped at "Class?", never Confirmed even with a Flock OUI.
-            if(FlockConfidenceProbeFp > conf) conf = FlockConfidenceProbeFp;
-            ftype = 'F';
-        }
-
-        // Pass the raw fp through so the detail screen can show it (for seeding),
-        // whether or not it matched a known fingerprint yet.
-        recon_app_report_flock(esp->app, mac, ssid, rssi, ch, ftype, conf, fp);
+    EspMsg msg;
+    if(esp_parse_companion_line(line, &msg) != EspMsgIgnore) {
+        esp_apply_companion(esp, &msg);
     }
 }
 
@@ -421,7 +243,12 @@ static int32_t esp_worker(void* context) {
         if(evt & EspEvtRx) {
             while(furi_stream_buffer_receive(esp->rx_stream, &byte, 1, 0) == 1) {
                 if(byte == '\n' || byte == '\r') {
-                    if(esp->line_len > 0) {
+                    if(esp->skip_line) {
+                        // End of an overlong line -- drop it whole (don't parse the
+                        // tail as a spurious record); resume on the next line.
+                        esp->skip_line = false;
+                        esp->line_len = 0;
+                    } else if(esp->line_len > 0) {
                         esp->line[esp->line_len] = '\0';
                         // Every completed line counts as RX activity.
                         esp->lines++;
@@ -433,10 +260,18 @@ static int32_t esp_worker(void* context) {
                         }
                         esp->line_len = 0;
                     }
+                } else if(esp->skip_line) {
+                    // still discarding the remainder of the overlong line
                 } else if(esp->line_len < ESP_LINE_MAX - 1) {
                     esp->line[esp->line_len++] = (char)byte;
                 } else {
+                    // Overflow: drop this whole line instead of re-parsing its tail
+                    // as a new (injectable) record. Count it as a health metric so a
+                    // chronic line-length mismatch between firmware and app is visible.
+                    esp->skip_line = true;
                     esp->line_len = 0;
+                    esp->dropped++;
+                    recon_app_set_esp_dropped(esp->app, esp->dropped);
                 }
             }
         }
@@ -490,11 +325,15 @@ void esp_link_start(EspLink* esp) {
         Expansion* exp = furi_record_open(RECORD_EXPANSION);
         expansion_enable(exp);
         furi_record_close(RECORD_EXPANSION);
+        // UART acquire failed -- another owner holds it (commonly the GPS port).
+        // Surface it so scenes render "UART busy" instead of a dead "connecting...".
+        recon_app_set_esp_link_state(app, EspLinkPortBusy);
         return;
     }
     furi_hal_serial_init(esp->serial, app->settings.esp_baud);
     furi_hal_serial_async_rx_start(esp->serial, esp_rx_isr, esp, false);
     esp->running = true;
+    recon_app_set_esp_link_state(app, EspLinkRunning);
 
     // Kick the board into reporting.
     if(app->settings.backend == EspBackendCompanion) {
@@ -540,6 +379,7 @@ void esp_link_stop(EspLink* esp) {
         esp->rx_stream = NULL;
     }
     esp->running = false;
+    recon_app_set_esp_link_state(esp->app, EspLinkStopped);
 
     Expansion* expansion = furi_record_open(RECORD_EXPANSION);
     expansion_enable(expansion);

@@ -1,7 +1,7 @@
 # FlipDeFlock Roadmap
 
 A living plan, ordered by rough priority rather than a schedule. Current release:
-v0.42. The principles at the bottom constrain everything above them.
+v0.43. The principles at the bottom constrain everything above them.
 
 For the full per-version history see [changelog.md](changelog.md).
 
@@ -45,7 +45,9 @@ RSSI-homing HUD (v0.41), the **Raven vs Falcon split** (v0.25, positive Raven ID
 via its 0x3100–0x3500 GATT services; Falcon never asserted by elimination), the
 **updatable signature database** (v0.25, extra OUIs/SSID patterns from
 `signatures.json`), and **field-updatable IE fingerprints** (v0.42, `"ie_fps"` in
-`signatures.json` + the on-screen `IE-fp:` readout, to catch MAC-randomizing units).
+`signatures.json` + the on-screen `IE-fp:` readout, to catch MAC-randomizing units),
+and a **precision/correctness pass** (v0.43: stricter `Flock-XXXXXX` Confirm gate,
+NFC/GPS/report-escaping fixes, and a 291-check host test suite wired into CI).
 
 ## Later
 

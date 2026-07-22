@@ -2,41 +2,32 @@
 // Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
 #include "../recon_app_i.h"
 #include "../helpers/esp_link.h"
-#include "../helpers/gps_link.h"
+#include "../helpers/scan_session.h"
+#include "../helpers/scene_util.h"
 
 // Locator step 2: the homing HUD. Tells the companion to stream live RSSI for
 // the selected target (`locate <w|b> <mac> <ch>`) and shows the hot/cold meter.
 // Companion-only: the generic/Marauder backend has no `locate` command.
 
-static bool s_blocked;
-
-static void locator_home_show_guard(ReconApp* app) {
-    widget_reset(app->widget);
-    widget_add_text_scroll_element(
-        app->widget,
-        0,
-        0,
-        128,
-        64,
-        "Locator needs the\nFlipDeFlock companion FW\n(live signal homing).\n\nYou're in Marauder mode.\nFlash via 'ESP32 Firmware'\nor switch Board Mode in\nSettings.");
-    view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewWidget);
-}
-
 void recon_scene_locator_home_on_enter(void* context) {
     ReconApp* app = context;
 
     if(app->settings.backend != EspBackendCompanion) {
-        s_blocked = true;
-        locator_home_show_guard(app);
+        app->locator_blocked = true;
+        scene_show_companion_guard(
+            app,
+            "Locator needs the\nFlipDeFlock companion FW\n(live signal homing).\n\nYou're in Marauder mode.\nFlash via 'ESP32 Firmware'\nor switch Board Mode in\nSettings.");
         return;
     }
-    s_blocked = false;
+    app->locator_blocked = false;
 
     // Fresh reading state, and snapshot the target out of the lock.
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     app->locate_have = false;
     app->locate_rssi = 0;
     app->locate_tick = 0;
+    app->locate_init = false; // reset the peak-hold fold (now lives in ReconApp)
+    app->locate_peak = -128;
     app->esp_connected = false;
     uint8_t kind = app->locate_kind;
     uint8_t ch = app->locate_ch;
@@ -48,13 +39,10 @@ void recon_scene_locator_home_on_enter(void* context) {
 
     // ESP first so it claims its UART; GPS only if on a different port (the
     // homing meter works without it -- GPS only adds the "strongest here" note).
-    // Re-entry guard for consistency with the scan scenes; the target `locate`
-    // command below is (re)sent every enter so the companion always homes the
-    // currently selected device.
-    if(!app->esp) {
-        app->esp = esp_link_alloc(app);
-        esp_link_start(app->esp);
-    }
+    // scan_session_start is idempotent across re-entry (see scan_session.h); the
+    // target `locate` command below is (re)sent every enter regardless, so the
+    // companion always homes the currently selected device.
+    scan_session_start(app);
     char cmd[40];
     snprintf(
         cmd,
@@ -70,19 +58,14 @@ void recon_scene_locator_home_on_enter(void* context) {
         ch);
     esp_link_send(app->esp, cmd);
 
-    if(app->settings.gps_enabled && app->settings.gps_uart != app->settings.esp_uart) {
-        if(!app->gps) {
-            app->gps = gps_link_alloc(app);
-            gps_link_start(app->gps);
-        }
-    }
+    scan_session_gps_start(app);
 
     view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewLocator);
 }
 
 bool recon_scene_locator_home_on_event(void* context, SceneManagerEvent event) {
     ReconApp* app = context;
-    if(s_blocked) return false; // guard screen: let Back exit
+    if(app->locator_blocked) return false; // guard screen: let Back exit
     if(event.type == SceneManagerEventTypeTick) {
         locator_view_refresh(app->locator_view);
         return true;
@@ -92,16 +75,7 @@ bool recon_scene_locator_home_on_event(void* context, SceneManagerEvent event) {
 
 void recon_scene_locator_home_on_exit(void* context) {
     ReconApp* app = context;
-    if(app->esp) {
-        esp_link_send(app->esp, "stop"); // end locate mode on the companion
-        esp_link_stop(app->esp);
-        esp_link_free(app->esp);
-        app->esp = NULL;
-    }
-    if(app->gps) {
-        gps_link_stop(app->gps);
-        gps_link_free(app->gps);
-        app->gps = NULL;
-    }
+    if(app->esp) esp_link_send(app->esp, "stop"); // end locate mode on the companion
+    scan_session_stop(app);
     widget_reset(app->widget);
 }

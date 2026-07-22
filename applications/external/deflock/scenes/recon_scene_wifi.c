@@ -2,6 +2,8 @@
 // Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
 #include "../recon_app_i.h"
 #include "../helpers/esp_link.h"
+#include "../helpers/scan_session.h"
+#include "../helpers/scene_util.h"
 #include "../helpers/wifi_audit.h"
 #include "../helpers/recon_report.h"
 
@@ -17,35 +19,26 @@
 #define WIFI_SCAN_TIMEOUT_MS 9000
 
 // GUI-thread-only scene state (one WiFi-audit scene at a time).
-static int s_state; // 0 = scanning, 1 = results, 2 = timeout
-static uint32_t s_start;
-static bool s_blocked; // companion-only feature opened in Marauder mode
 
 // Action-row labels (static lifetime; the view keeps the pointers).
 static const char* const WIFI_ACTIONS_SCAN[] = {"Rescan"};
 static const char* const WIFI_ACTIONS_RESULTS[] = {"Rescan", "Save Report"};
 
-static void recon_scene_wifi_show_guard(ReconApp* app) {
-    widget_reset(app->widget);
-    widget_add_text_scroll_element(
-        app->widget,
-        0,
-        0,
-        128,
-        64,
-        "WiFi Audit needs the\nFlipDeFlock companion FW.\n\nYou're in Marauder mode\n(Flock detect only).\nFlash via 'ESP32 Firmware'\nor switch Board Mode in\nSettings.");
-}
-
 // The list view reports the raw selected row index; map it to a custom event.
 static void wifi_view_ok_cb(void* context, int selected_index) {
     ReconApp* app = context;
+    // Action rows come first, then AP rows. The action-row count is state-
+    // dependent: scanning/timeout show only [0]=Rescan; results also has [1]=Save.
+    // Using the fixed WIFI_ACTION_COUNT put every AP row off by one whenever fewer
+    // than two actions were shown.
+    int actions = (app->wifi_ui_state == 1) ? 2 : 1; // results state has Save; others don't
     uint32_t ev;
-    if(selected_index == WIFI_EV_RESCAN) {
-        ev = WIFI_EV_RESCAN; // [0] Rescan
-    } else if(selected_index == WIFI_EV_SAVE) {
-        ev = WIFI_EV_SAVE; // [1] Save Report (only present in results state)
+    if(selected_index == 0) {
+        ev = WIFI_EV_RESCAN;
+    } else if(actions == 2 && selected_index == 1) {
+        ev = WIFI_EV_SAVE;
     } else {
-        ev = WIFI_EV_AP + (uint32_t)(selected_index - WIFI_ACTION_COUNT);
+        ev = WIFI_EV_AP + (uint32_t)(selected_index - actions);
     }
     view_dispatcher_send_custom_event(app->view_dispatcher, ev);
 }
@@ -139,8 +132,8 @@ static void recon_scene_wifi_trigger(ReconApp* app) {
     app->wifi_scanning = false;
     furi_mutex_release(app->mutex);
     if(app->esp) esp_link_send(app->esp, "wifiscan");
-    s_state = 0;
-    s_start = furi_get_tick();
+    app->wifi_ui_state = 0;
+    app->wifi_scan_start = furi_get_tick();
     recon_scene_wifi_show_scanning(app);
 }
 
@@ -152,12 +145,13 @@ void recon_scene_wifi_on_enter(void* context) {
     // showing a dead screen.
     app->saved_backend = app->settings.backend;
     if(app->settings.backend != EspBackendCompanion) {
-        s_blocked = true;
-        recon_scene_wifi_show_guard(app);
-        view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewWidget);
+        app->wifi_blocked = true;
+        scene_show_companion_guard(
+            app,
+            "WiFi Audit needs the\nFlipDeFlock companion FW.\n\nYou're in Marauder mode\n(Flock detect only).\nFlash via 'ESP32 Firmware'\nor switch Board Mode in\nSettings.");
         return;
     }
-    s_blocked = false;
+    app->wifi_blocked = false;
 
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     app->esp_connected = false;
@@ -165,12 +159,9 @@ void recon_scene_wifi_on_enter(void* context) {
 
     wifi_list_view_set_ok_callback(app->wifi_list_view, wifi_view_ok_cb, app);
 
-    // Re-entry guard: keep the live link across a detail-view round-trip
-    // (see recon_scene_flock_on_enter for the full rationale).
-    if(!app->esp) {
-        app->esp = esp_link_alloc(app);
-        esp_link_start(app->esp);
-    }
+    // scan_session_start keeps the live link across a detail-view round-trip
+    // (idempotent; see scan_session.h / bug B1).
+    scan_session_start(app);
 
     recon_scene_wifi_trigger(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewWifiList);
@@ -180,19 +171,19 @@ bool recon_scene_wifi_on_event(void* context, SceneManagerEvent event) {
     ReconApp* app = context;
     bool consumed = false;
 
-    if(s_blocked) return false; // Marauder mode guard screen; let Back exit
+    if(app->wifi_blocked) return false; // Marauder mode guard screen; let Back exit
 
     if(event.type == SceneManagerEventTypeTick) {
-        if(s_state == 0) {
+        if(app->wifi_ui_state == 0) {
             furi_mutex_acquire(app->mutex, FuriWaitForever);
             bool done = app->wifi_done;
             furi_mutex_release(app->mutex);
             if(done) {
                 recon_scene_wifi_show_results(app);
-                s_state = 1;
-            } else if(furi_get_tick() - s_start > WIFI_SCAN_TIMEOUT_MS) {
+                app->wifi_ui_state = 1;
+            } else if(furi_get_tick() - app->wifi_scan_start > WIFI_SCAN_TIMEOUT_MS) {
                 recon_scene_wifi_show_timeout(app);
-                s_state = 2;
+                app->wifi_ui_state = 2;
             }
         }
         // Keep the live view ticking (bars, selection redraw).
@@ -206,9 +197,7 @@ bool recon_scene_wifi_on_event(void* context, SceneManagerEvent event) {
         } else if(id == WIFI_EV_SAVE) {
             char path[128] = {0};
             bool ok = recon_report_save_wifi(app, path, sizeof(path));
-            if(app->settings.sound) {
-                notification_message(app->notifications, ok ? &sequence_success : &sequence_error);
-            }
+            scene_report_notify(app, ok);
             consumed = true;
         } else if(id >= WIFI_EV_AP) {
             int idx = (int)id - WIFI_EV_AP;
@@ -227,10 +216,6 @@ bool recon_scene_wifi_on_event(void* context, SceneManagerEvent event) {
 
 void recon_scene_wifi_on_exit(void* context) {
     ReconApp* app = context;
-    if(app->esp) {
-        esp_link_stop(app->esp);
-        esp_link_free(app->esp);
-        app->esp = NULL;
-    }
+    scan_session_stop(app);
     app->settings.backend = app->saved_backend; // restore Flock backend choice
 }

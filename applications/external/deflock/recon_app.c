@@ -5,21 +5,17 @@
 #include "helpers/gps_link.h"
 #include "helpers/recon_report.h"
 #include "helpers/sig_db.h"
+#include "helpers/detect_rules.h"
 
 #include <math.h>
 #include <string.h>
 
 #define RECON_TICK_MS 250
 
-// Anti-stalking "following" gate. A real tracker following you clears all four
-// of these easily; stationary shop Tiles and a single drive-by past a fixed
-// beacon do not. All tunable; this only TIGHTENS precision (never flags more
-// loosely than the old single >100 m gate).
-#define FOLLOW_MIN_COUNT     4 /**< seen at least this many scans */
-#define FOLLOW_MIN_MS        90000 /**< over at least this long a window (90 s) */
-#define FOLLOW_MIN_WAYPOINTS 3 /**< at this many distinct observer waypoints */
-#define WAYPOINT_GAP_M       50.0f /**< min separation to count a new waypoint */
-#define FOLLOW_MIN_SPAN_M    150.0f /**< max span between counted waypoints */
+// Anti-stalking "following" gate + geotag hysteresis live as pure, host-tested
+// rules in helpers/detect_rules.h (FOLLOW_MIN_*, WAYPOINT_GAP_M, the track fold
+// and the AND-gate). recon_app.c below is the thin lock+array shell that
+// snapshots inputs, calls those rules, and writes the results back.
 
 // ---- shared data updates (called from worker threads) --------------------
 
@@ -70,10 +66,10 @@ void recon_app_report_flock(
             strncpy(entry->ssid, ssid, RECON_SSID_LEN - 1);
             entry->ssid[RECON_SSID_LEN - 1] = '\0';
         }
-        // Geotag with the current fix if we have one and haven't tagged yet, or
-        // refresh only to a meaningfully stronger sighting. RSSI oscillates
-        // +/-5-10 dB scan-to-scan, so a 6 dB hysteresis stops the tag jittering.
-        if(app->gps_valid && (isnan(entry->lat) || rssi > entry->geotag_rssi + 6)) {
+        // Geotag with the current fix per the hysteresis rule (haven't tagged yet,
+        // or a meaningfully stronger sighting) -- see detect_rules.h.
+        if(flock_geotag_should_update(
+               app->gps_valid, !isnan(entry->lat), rssi, entry->geotag_rssi)) {
             entry->lat = app->gps_lat;
             entry->lon = app->gps_lon;
             entry->heading = app->gps_course;
@@ -124,11 +120,23 @@ void recon_app_set_deauths(ReconApp* app, uint32_t deauths) {
     furi_mutex_release(app->mutex);
 }
 
-/** Rough planar distance in metres (good enough for a >100 m "moved" test). */
-static float recon_dist_m(float lat1, float lon1, float lat2, float lon2) {
-    float dlat = (lat2 - lat1) * 111320.0f;
-    float dlon = (lon2 - lon1) * 111320.0f * cosf(lat1 * (float)M_PI / 180.0f);
-    return sqrtf(dlat * dlat + dlon * dlon);
+void recon_app_set_esp_proto(ReconApp* app, uint8_t version, bool mismatch) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->esp_proto_version = version;
+    app->esp_proto_mismatch = mismatch;
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_set_esp_dropped(ReconApp* app, uint32_t dropped) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->esp_dropped_lines = dropped;
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_set_esp_link_state(ReconApp* app, EspLinkState state) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->esp_link_state = (uint8_t)state;
+    furi_mutex_release(app->mutex);
 }
 
 void recon_app_ble_begin(ReconApp* app) {
@@ -211,31 +219,26 @@ void recon_app_ble_add(
             e->last_lat = app->gps_lat;
             e->last_lon = app->gps_lon;
             e->last_tick = now;
-            // First fix may arrive after creation (created with no GPS): seed the
-            // first counted waypoint here so the span/waypoint logic can start.
-            if(isnan(e->last_wp_lat)) {
-                e->last_wp_lat = app->gps_lat;
-                e->last_wp_lon = app->gps_lon;
-                if(e->inrange_wp_count == 0) e->inrange_wp_count = 1;
-            } else if(
-                recon_dist_m(e->last_wp_lat, e->last_wp_lon, app->gps_lat, app->gps_lon) >=
-                WAYPOINT_GAP_M) {
-                // We've moved a fresh waypoint's distance and the device is still
-                // in range: count it, advance the marker, grow the track span.
-                e->inrange_wp_count++;
-                e->last_wp_lat = app->gps_lat;
-                e->last_wp_lon = app->gps_lon;
-                if(!isnan(e->first_lat)) {
-                    float span =
-                        recon_dist_m(e->first_lat, e->first_lon, app->gps_lat, app->gps_lon);
-                    if(span > e->max_span_m) e->max_span_m = span;
-                }
-            }
-            // "Following": a tracker seen across many scans, over a real time
-            // window, at several distinct observer waypoints, spanning real
-            // ground is the anti-stalking signal. AND of all four (latched).
-            if(e->count >= FOLLOW_MIN_COUNT && (now - e->first_tick) >= FOLLOW_MIN_MS &&
-               e->inrange_wp_count >= FOLLOW_MIN_WAYPOINTS && e->max_span_m >= FOLLOW_MIN_SPAN_M) {
+            // Fold this fix into the waypoint/span track (pure rule; the first fix
+            // may arrive after a no-GPS creation, so the track seeds itself lazily).
+            BleTrack track = {
+                .first_lat = e->first_lat,
+                .first_lon = e->first_lon,
+                .last_wp_lat = e->last_wp_lat,
+                .last_wp_lon = e->last_wp_lon,
+                .waypoints = e->inrange_wp_count,
+                .max_span_m = e->max_span_m,
+            };
+            ble_track_fold_fix(&track, app->gps_lat, app->gps_lon);
+            e->last_wp_lat = track.last_wp_lat;
+            e->last_wp_lon = track.last_wp_lon;
+            e->inrange_wp_count = track.waypoints;
+            e->max_span_m = track.max_span_m;
+            // "Following": the anti-stalking coincidence gate -- seen across many
+            // scans, over a real time window, at several distinct waypoints,
+            // spanning real ground (all four, latched). See detect_rules.h.
+            if(ble_following_gate(
+                   e->count, now - e->first_tick, e->inrange_wp_count, e->max_span_m)) {
                 e->following = true;
             }
         }
@@ -398,12 +401,31 @@ bool recon_ble_is_anomaly(const BleDevice* e, uint32_t now) {
            (now - e->last_tick) <= WATCH_BLE_FRESH_MS;
 }
 
+#define LOCATE_TREND_DB 2 /**< dB vs the smoothed average before we call it warmer/colder */
+
 void recon_app_set_locate_rssi(ReconApp* app, int8_t rssi) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     app->locate_rssi = rssi;
     app->locate_tick = furi_get_tick();
     app->locate_have = true;
     app->esp_connected = true;
+    // Fold peak/EMA/trend on EVERY LOC line, not just on redraw -- LOC arrives
+    // faster than the display ticks, so folding in the draw callback dropped
+    // transient peaks between frames. rssi >= 0 is the reset/invalid sentinel.
+    if(rssi < 0) {
+        if(!app->locate_init) {
+            app->locate_peak = rssi;
+            app->locate_ema = (float)rssi;
+            app->locate_trend = 0;
+            app->locate_init = true;
+        } else {
+            if(rssi > app->locate_peak) app->locate_peak = rssi;
+            float d = (float)rssi - app->locate_ema;
+            app->locate_trend =
+                (int8_t)((d >= LOCATE_TREND_DB) ? 1 : (d <= -LOCATE_TREND_DB ? -1 : 0));
+            app->locate_ema = app->locate_ema * 0.7f + (float)rssi * 0.3f;
+        }
+    }
     furi_mutex_release(app->mutex);
 }
 
@@ -431,7 +453,7 @@ void recon_app_watchscore_tick(ReconApp* app) {
         in.flock_confirmed = true;
         if(e->ftype == 'L') in.flock_via_ble = true;
         if(gps_valid && !isnan(e->lat)) {
-            float d = recon_dist_m(e->lat, e->lon, gps_lat, gps_lon);
+            float d = detect_dist_m(e->lat, e->lon, gps_lat, gps_lon);
             if(isnan(best_dist) || d < best_dist) best_dist = d;
         }
     }

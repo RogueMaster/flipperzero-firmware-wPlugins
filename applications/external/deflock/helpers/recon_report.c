@@ -3,14 +3,12 @@
 #include "recon_report.h"
 #include "../recon_app_i.h"
 #include "wifi_audit.h"
+#include "report_escape.h" // csv/json/md/xml field escapers (pure, host-tested)
+#include "report_fmt.h" // fmt_mac / fmt_coord field emitters (pure, host-tested)
 
 #include <math.h>
 #include <string.h>
 #include <stdarg.h>
-
-static void csv_field_escape(const char* in, char* out, size_t out_len); // RFC-4180
-static void json_escape(const char* in, char* out, size_t out_len); // JSON string content
-static void xml_escape(const char* in, char* out, size_t out_len); // XML/KML text + attrs
 
 // Shared WigleWifi-1.4 pre-header + column header (WiFi and BLE writers).
 #define WIGLE_HEADER                                                    \
@@ -158,27 +156,24 @@ bool recon_report_save_flock(void* _app, char* out_path_md, size_t out_len) {
         char lat_s[16];
         char lon_s[16];
         bool has_coords = !isnan(e->lat) && !isnan(e->lon);
-        if(has_coords) {
-            snprintf(lat_s, sizeof(lat_s), "%.6f", (double)e->lat);
-            snprintf(lon_s, sizeof(lon_s), "%.6f", (double)e->lon);
-        } else {
-            snprintf(lat_s, sizeof(lat_s), "-");
-            snprintf(lon_s, sizeof(lon_s), "-");
-        }
+        // Both-or-nothing: a partial fix shows "-" for both cells.
+        fmt_coord(lat_s, sizeof(lat_s), has_coords ? e->lat : NAN, "-");
+        fmt_coord(lon_s, sizeof(lon_s), has_coords ? e->lon : NAN, "-");
+
+        char mac_s[18];
+        fmt_mac(mac_s, sizeof(mac_s), e->mac);
+
+        char ssid_md[80];
+        md_escape(e->ssid[0] ? e->ssid : "(hidden)", ssid_md, sizeof(ssid_md));
 
         rfile_printf(
             &md,
             line,
-            "| %d | %s | %02X:%02X:%02X:%02X:%02X:%02X | %s | %d | %u | %lu | %s | %s |\n",
+            "| %d | %s | %s | %s | %d | %u | %lu | %s | %s |\n",
             marked,
             flock_confidence_str(e->confidence),
-            e->mac[0],
-            e->mac[1],
-            e->mac[2],
-            e->mac[3],
-            e->mac[4],
-            e->mac[5],
-            e->ssid[0] ? e->ssid : "(hidden)",
+            mac_s,
+            ssid_md,
             e->rssi,
             e->channel,
             (unsigned long)e->count,
@@ -214,7 +209,7 @@ bool recon_report_save_flock(void* _app, char* out_path_md, size_t out_len) {
                 "        \"manufacturer\": \"Flock Safety\",\n"
                 "        \"flipdeflock:confidence\": \"%s\",\n"
                 "        \"flipdeflock:heading\": %s,\n"
-                "        \"flipdeflock:mac\": \"%02X:%02X:%02X:%02X:%02X:%02X\",\n"
+                "        \"flipdeflock:mac\": \"%s\",\n"
                 "        \"flipdeflock:ssid\": \"%s\"\n"
                 "      }\n"
                 "    }",
@@ -222,27 +217,17 @@ bool recon_report_save_flock(void* _app, char* out_path_md, size_t out_len) {
                 lat_s,
                 flock_confidence_str(e->confidence),
                 head_s,
-                e->mac[0],
-                e->mac[1],
-                e->mac[2],
-                e->mac[3],
-                e->mac[4],
-                e->mac[5],
+                mac_s,
                 ssid_json);
 
             rfile_printf(
                 &kml,
                 line,
                 "<Placemark><name>Flock %s</name>"
-                "<description>%02X:%02X:%02X:%02X:%02X:%02X %s</description>"
+                "<description>%s %s</description>"
                 "<Point><coordinates>%s,%s,0</coordinates></Point></Placemark>\n",
                 flock_confidence_str(e->confidence),
-                e->mac[0],
-                e->mac[1],
-                e->mac[2],
-                e->mac[3],
-                e->mac[4],
-                e->mac[5],
+                mac_s,
                 ssid_xml,
                 lon_s,
                 lat_s);
@@ -358,11 +343,13 @@ bool recon_report_save_ble(void* _app, char* out_path_md, size_t out_len) {
     for(size_t i = 0; i < n; i++) {
         BleDevice* d = &app->ble[i];
         char fl[16], fo[16], ll[16], lo[16];
-        fl[0] = fo[0] = ll[0] = lo[0] = '\0';
-        if(!isnan(d->first_lat)) snprintf(fl, sizeof(fl), "%.6f", (double)d->first_lat);
-        if(!isnan(d->first_lon)) snprintf(fo, sizeof(fo), "%.6f", (double)d->first_lon);
-        if(!isnan(d->last_lat)) snprintf(ll, sizeof(ll), "%.6f", (double)d->last_lat);
-        if(!isnan(d->last_lon)) snprintf(lo, sizeof(lo), "%.6f", (double)d->last_lon);
+        fmt_coord(fl, sizeof(fl), d->first_lat, "");
+        fmt_coord(fo, sizeof(fo), d->first_lon, "");
+        fmt_coord(ll, sizeof(ll), d->last_lat, "");
+        fmt_coord(lo, sizeof(lo), d->last_lon, "");
+
+        char addr_s[18];
+        fmt_mac(addr_s, sizeof(addr_s), d->addr);
 
         char name_esc[72];
         csv_field_escape(d->name[0] ? d->name : "", name_esc, sizeof(name_esc));
@@ -376,13 +363,8 @@ bool recon_report_save_ble(void* _app, char* out_path_md, size_t out_len) {
         rfile_printf(
             &csv,
             line,
-            "%02X:%02X:%02X:%02X:%02X:%02X,%s,%s,%s,%s,0x%04X,%d,%lu,%s,%s,%s,%s,%s,%s\n",
-            d->addr[0],
-            d->addr[1],
-            d->addr[2],
-            d->addr[3],
-            d->addr[4],
-            d->addr[5],
+            "%s,%s,%s,%s,%s,0x%04X,%d,%lu,%s,%s,%s,%s,%s,%s\n",
+            addr_s,
             name_esc,
             ble_cat_name(d->cat),
             ble_model_token(d->model),
@@ -415,7 +397,7 @@ bool recon_report_save_ble(void* _app, char* out_path_md, size_t out_len) {
                 "      \"geometry\": { \"type\": \"Point\", \"coordinates\": [%s, %s] },\n"
                 "      \"properties\": { \"type\": \"%s\", \"model\": \"%s\", \"serial\": \"%s\", "
                 "\"following\": %s, "
-                "\"addr\": \"%02X:%02X:%02X:%02X:%02X:%02X\", \"name\": \"%s\" }\n"
+                "\"addr\": \"%s\", \"name\": \"%s\" }\n"
                 "    }",
                 lo,
                 ll,
@@ -423,12 +405,7 @@ bool recon_report_save_ble(void* _app, char* out_path_md, size_t out_len) {
                 ble_model_token(d->model),
                 serial_json,
                 d->following ? "true" : "false",
-                d->addr[0],
-                d->addr[1],
-                d->addr[2],
-                d->addr[3],
-                d->addr[4],
-                d->addr[5],
+                addr_s,
                 name_json);
         }
 
@@ -439,13 +416,8 @@ bool recon_report_save_ble(void* _app, char* out_path_md, size_t out_len) {
             rfile_printf(
                 &wigle,
                 line,
-                "%02X:%02X:%02X:%02X:%02X:%02X,%s,%s,%s,0,%d,%.6f,%.6f,0,0,BLE\n",
-                d->addr[0],
-                d->addr[1],
-                d->addr[2],
-                d->addr[3],
-                d->addr[4],
-                d->addr[5],
+                "%s,%s,%s,%s,0,%d,%.6f,%.6f,0,0,BLE\n",
+                addr_s,
                 wname,
                 d->cat != BleCatUnknown ? "[BLE][Tracker]" : "[BLE]",
                 ble_seen,
@@ -552,125 +524,6 @@ static void wigle_auth(uint8_t authmode, bool wps, char* buf, size_t len) {
     snprintf(buf, len, "%s%s", wps ? "[WPS]" : "", base);
 }
 
-// RFC-4180 CSV field: quote if it contains comma/quote/CR/LF; double quotes.
-// Prevents an SSID with a comma/quote from breaking the column count.
-static void csv_field_escape(const char* in, char* out, size_t out_len) {
-    if(out_len == 0) return;
-    bool needs = false;
-    for(const char* p = in; *p; p++) {
-        if(*p == ',' || *p == '"' || *p == '\n' || *p == '\r') {
-            needs = true;
-            break;
-        }
-    }
-    if(!needs) {
-        snprintf(out, out_len, "%s", in);
-        return;
-    }
-    // Quoted field. Reserve room for the opening quote, closing quote and NUL, and
-    // never split a doubled "" across the truncation boundary -- so even a field
-    // truncated to fit the buffer stays well-formed (properly closed) CSV.
-    if(out_len < 3) {
-        out[0] = '\0';
-        return;
-    }
-    size_t j = 0;
-    out[j++] = '"';
-    for(const char* p = in; *p; p++) {
-        size_t need = (*p == '"') ? 2 : 1; // a literal quote is written doubled
-        if(j + need > out_len - 2) break; // leave room for the closing quote + NUL
-        if(*p == '"') out[j++] = '"';
-        out[j++] = *p;
-    }
-    out[j++] = '"';
-    out[j] = '\0';
-}
-
-// JSON string-content escape (the surrounding quotes live in the format string).
-// Escapes \ " and control chars so an odd SSID or a user-set BLE tracker name
-// can't produce invalid JSON that downstream tools (geojson.io, QGIS) reject.
-// Truncation-safe: never emits a partial escape sequence.
-static void json_escape(const char* in, char* out, size_t out_len) {
-    if(out_len == 0) return;
-    size_t j = 0;
-    for(const char* p = in; *p; p++) {
-        unsigned char c = (unsigned char)*p;
-        char seq[8];
-        size_t need;
-        switch(c) {
-        case '"':
-            seq[0] = '\\', seq[1] = '"', need = 2;
-            break;
-        case '\\':
-            seq[0] = '\\', seq[1] = '\\', need = 2;
-            break;
-        case '\n':
-            seq[0] = '\\', seq[1] = 'n', need = 2;
-            break;
-        case '\r':
-            seq[0] = '\\', seq[1] = 'r', need = 2;
-            break;
-        case '\t':
-            seq[0] = '\\', seq[1] = 't', need = 2;
-            break;
-        default:
-            if(c < 0x20) {
-                snprintf(seq, sizeof(seq), "\\u%04x", c);
-                need = 6;
-            } else {
-                seq[0] = (char)c, need = 1;
-            }
-            break;
-        }
-        if(j + need > out_len - 1) break; // leave room for NUL; don't split a seq
-        memcpy(out + j, seq, need);
-        j += need;
-    }
-    out[j] = '\0';
-}
-
-// XML/KML escape for element text and attribute values. Same goal as json_escape
-// but for the KML reports (which are XML). Truncation-safe.
-static void xml_escape(const char* in, char* out, size_t out_len) {
-    if(out_len == 0) return;
-    size_t j = 0;
-    for(const char* p = in; *p; p++) {
-        unsigned char c = (unsigned char)*p;
-        const char* rep = NULL;
-        switch(c) {
-        case '&':
-            rep = "&amp;";
-            break;
-        case '<':
-            rep = "&lt;";
-            break;
-        case '>':
-            rep = "&gt;";
-            break;
-        case '"':
-            rep = "&quot;";
-            break;
-        case '\'':
-            rep = "&apos;";
-            break;
-        default:
-            break;
-        }
-        if(rep) {
-            size_t need = strlen(rep);
-            if(j + need > out_len - 1) break;
-            memcpy(out + j, rep, need);
-            j += need;
-        } else if(c < 0x20 && c != '\t' && c != '\n' && c != '\r') {
-            continue; // drop other control chars
-        } else {
-            if(j + 1 > out_len - 1) break;
-            out[j++] = (char)c;
-        }
-    }
-    out[j] = '\0';
-}
-
 bool recon_report_save_wifi(void* _app, char* out_path_md, size_t out_len) {
     ReconApp* app = _app;
 
@@ -744,19 +597,20 @@ bool recon_report_save_wifi(void* _app, char* out_path_md, size_t out_len) {
         // Flatten reasons (newline -> "; ") for a single table/CSV cell.
         furi_string_replace_all(reasons, "\n", "; ");
 
+        char ssid_md[80];
+        md_escape(a->ssid[0] ? a->ssid : "(hidden)", ssid_md, sizeof(ssid_md));
+
+        char bssid_s[18];
+        fmt_mac(bssid_s, sizeof(bssid_s), a->bssid);
+
         rfile_printf(
             &md,
             line,
-            "| %u | %s | %s | %02X:%02X:%02X:%02X:%02X:%02X | %s | %u | %d | %s | %s |\n",
+            "| %u | %s | %s | %s | %s | %u | %d | %s | %s |\n",
             (unsigned)(i + 1),
             wifi_grade_str(g),
-            a->ssid[0] ? a->ssid : "(hidden)",
-            a->bssid[0],
-            a->bssid[1],
-            a->bssid[2],
-            a->bssid[3],
-            a->bssid[4],
-            a->bssid[5],
+            ssid_md,
+            bssid_s,
             wifi_auth_str(a->authmode),
             a->channel,
             a->rssi,
@@ -772,15 +626,10 @@ bool recon_report_save_wifi(void* _app, char* out_path_md, size_t out_len) {
         rfile_printf(
             &csv,
             line,
-            "%s,%s,%02X:%02X:%02X:%02X:%02X:%02X,%s,%u,%d,%s,%s\n",
+            "%s,%s,%s,%s,%u,%d,%s,%s\n",
             wifi_grade_str(g),
             ssid_esc,
-            a->bssid[0],
-            a->bssid[1],
-            a->bssid[2],
-            a->bssid[3],
-            a->bssid[4],
-            a->bssid[5],
+            bssid_s,
             wifi_auth_str(a->authmode),
             a->channel,
             a->rssi,
@@ -797,13 +646,8 @@ bool recon_report_save_wifi(void* _app, char* out_path_md, size_t out_len) {
             rfile_printf(
                 &wigle,
                 line,
-                "%02X:%02X:%02X:%02X:%02X:%02X,%s,%s,%s,%u,%d,%.6f,%.6f,0,0,WIFI\n",
-                a->bssid[0],
-                a->bssid[1],
-                a->bssid[2],
-                a->bssid[3],
-                a->bssid[4],
-                a->bssid[5],
+                "%s,%s,%s,%s,%u,%d,%.6f,%.6f,0,0,WIFI\n",
+                bssid_s,
                 wssid,
                 authw,
                 first_seen,

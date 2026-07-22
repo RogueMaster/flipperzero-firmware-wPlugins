@@ -46,6 +46,10 @@ struct ReconNfc {
     FuriThread* probe_thread;
     volatile bool probing;
     volatile bool probe_dirty; /**< status changed -> scene re-renders */
+    volatile bool probe_abort; /**< set by recon_nfc_stop to cancel the key sweep */
+    volatile bool mfc_expect_redetect; /**< absorb the scanner's own re-detect of the
+                                          just-deep-checked card once, so a fresh verdict
+                                          survives the worker's scanner restart */
 };
 
 /** Depth of a protocol in its parent hierarchy (more parents = more specific). */
@@ -134,7 +138,14 @@ static void recon_nfc_grade_mfc(
     char* detail,
     size_t detail_len) {
     *grade = "WEAK";
-    if(r->default_keyed == 0) {
+    if(r->aborted && r->default_keyed == 0) {
+        // Card left the field before any sector opened -- we can't claim "no
+        // default keys", only that the check didn't finish.
+        snprintf(
+            detail,
+            detail_len,
+            "MIFARE Classic\nCheck INCOMPLETE (card\nremoved). Hold still and\nre-run the deep check.");
+    } else if(r->default_keyed == 0) {
         snprintf(
             detail,
             detail_len,
@@ -158,6 +169,16 @@ static void recon_nfc_scanner_cb(NfcScannerEvent event, void* context) {
             n->protos[i] = event.data.protocols[i];
         }
         n->detected = (n->proto_num > 0);
+        // A new card presentation invalidates any previous MIFARE Classic deep-check
+        // verdict -- NfcScannerEvent carries no UID to identity-match on, so a fresh
+        // detection edge is our only "different card" signal. The one-shot flag (set by
+        // the probe worker just before it restarts the scanner) absorbs the scanner's own
+        // re-detection of the just-checked card so its fresh result isn't wiped here.
+        if(n->mfc_expect_redetect) {
+            n->mfc_expect_redetect = false;
+        } else {
+            n->mfc.valid = false;
+        }
         furi_mutex_release(n->lock);
     }
 }
@@ -181,6 +202,8 @@ void recon_nfc_start(ReconNfc* n) {
     if(n->running) return;
     n->detected = false;
     n->proto_num = 0;
+    memset(&n->mfc, 0, sizeof(n->mfc)); // no stale deep-check result across sessions
+    n->mfc_expect_redetect = false;
     n->nfc = nfc_alloc();
     n->scanner = nfc_scanner_alloc(n->nfc);
     nfc_scanner_start(n->scanner, recon_nfc_scanner_cb, n);
@@ -192,6 +215,7 @@ void recon_nfc_stop(ReconNfc* n) {
     // A running deep check owns the radio + scanner; let it finish and reap it
     // before we tear the scanner/nfc down underneath it.
     if(n->probe_thread) {
+        n->probe_abort = true; // cancel a running key sweep so the join returns fast
         furi_thread_join(n->probe_thread);
         furi_thread_free(n->probe_thread);
         n->probe_thread = NULL;
@@ -252,8 +276,13 @@ static bool recon_nfc_try_key(
     bool* cracked_a,
     bool* cracked_b,
     ReconMfcResult* r,
-    bool* removed) {
+    bool* removed,
+    const volatile bool* abort) {
     for(uint8_t s = 0; s < total_sectors; s++) {
+        if(*abort) { // cooperative cancel: bail like the card left the field
+            *removed = true;
+            return false;
+        }
         if(cracked_a[s] && cracked_b[s]) continue;
         uint8_t block = mf_classic_get_sector_trailer_num_by_sector(s);
         bool sector_was_open = cracked_a[s] || cracked_b[s];
@@ -339,6 +368,7 @@ static int32_t recon_nfc_probe_worker(void* ctx) {
         res.valid = true;
         furi_mutex_acquire(n->lock, FuriWaitForever);
         n->mfc = res;
+        n->mfc_expect_redetect = !res.aborted; // aborted here -> false: let the next card clear it
         n->probe_dirty = true;
         furi_mutex_release(n->lock);
         if(n->scanner) nfc_scanner_start(n->scanner, recon_nfc_scanner_cb, n);
@@ -368,6 +398,7 @@ static int32_t recon_nfc_probe_worker(void* ctx) {
     if(!removed && dict) {
         MfClassicKey key;
         while(keys_dict_get_next_key(dict, key.data, MF_CLASSIC_KEY_SIZE)) {
+            if(n->probe_abort) break; // cooperative cancel (scene exit)
             if(!recon_nfc_try_key(
                    n->nfc,
                    &key,
@@ -377,13 +408,15 @@ static int32_t recon_nfc_probe_worker(void* ctx) {
                    cracked_a,
                    cracked_b,
                    &res,
-                   &removed)) {
+                   &removed,
+                   &n->probe_abort)) {
                 break;
             }
         }
     } else if(!removed) {
         size_t num = sizeof(recon_nfc_default_keys) / MF_CLASSIC_KEY_SIZE;
         for(size_t i = 0; i < num; i++) {
+            if(n->probe_abort) break; // cooperative cancel (scene exit)
             MfClassicKey key;
             memcpy(key.data, recon_nfc_default_keys[i], MF_CLASSIC_KEY_SIZE);
             if(!recon_nfc_try_key(
@@ -395,7 +428,8 @@ static int32_t recon_nfc_probe_worker(void* ctx) {
                    cracked_a,
                    cracked_b,
                    &res,
-                   &removed)) {
+                   &removed,
+                   &n->probe_abort)) {
                 break;
             }
         }
@@ -412,6 +446,10 @@ static int32_t recon_nfc_probe_worker(void* ctx) {
 
     furi_mutex_acquire(n->lock, FuriWaitForever);
     n->mfc = res;
+    // The scanner restart below immediately re-detects this still-present card; absorb that
+    // one event so it doesn't clear the fresh verdict. If the card already left (aborted),
+    // don't expect it -> the next card detected clears the result instead.
+    n->mfc_expect_redetect = !res.aborted;
     n->probe_dirty = true;
     furi_mutex_release(n->lock);
 
@@ -432,6 +470,7 @@ void recon_nfc_deep_check_start(ReconNfc* n) {
         n->probe_thread = NULL;
     }
     n->probing = true;
+    n->probe_abort = false;
     n->probe_dirty = true;
     n->probe_thread = furi_thread_alloc_ex("FlipDeFlockMfc", 2048, recon_nfc_probe_worker, n);
     furi_thread_start(n->probe_thread);

@@ -44,41 +44,38 @@ static void locator_view_draw_callback(Canvas* canvas, void* _model) {
     // Snapshot everything shared under the lock (same discipline as guardian_view).
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     bool connected = app->esp_connected;
+    bool port_busy = (app->esp_link_state == EspLinkPortBusy);
     bool have = app->locate_have;
     int rssi = app->locate_rssi;
     uint32_t tick = app->locate_tick;
     uint8_t kind = app->locate_kind;
     bool gps_valid = app->gps_valid;
+    // Peak/EMA/trend are folded in recon_app_set_locate_rssi now (every LOC line,
+    // not just on redraw, so transient peaks aren't dropped); mirror the result
+    // into the model so the render below is unchanged.
+    model->peak = app->locate_peak;
+    model->trend = app->locate_trend;
+    model->init = app->locate_init;
     char label[28];
     snprintf(label, sizeof(label), "%s", app->locate_label);
     furi_mutex_release(app->mutex);
 
     uint32_t now = furi_get_tick();
-    bool fresh = have && (now - tick) <= LOC_FRESH_MS;
+    // rssi >= 0 is the reset/invalid sentinel (or atoi of a bad LOC line), never a
+    // real reading (valid RSSI is negative dBm) -- treat it as no reading.
+    bool fresh = have && (now - tick) <= LOC_FRESH_MS && rssi < 0;
 
-    // Fold a NEW reading into peak/trend exactly once (dedupe repeat redraws).
-    if(fresh && tick != model->last_tick) {
-        model->last_tick = tick;
-        if(!model->init) {
-            model->peak = (int8_t)rssi;
-            model->ema = (float)rssi;
-            model->trend = 0;
-            model->init = true;
-        } else {
-            if(rssi > model->peak) model->peak = (int8_t)rssi;
-            float d = rssi - model->ema;
-            model->trend = (d >= LOC_TREND_DB) ? 1 : (d <= -LOC_TREND_DB ? -1 : 0);
-            model->ema = model->ema * 0.7f + rssi * 0.3f;
-        }
-    }
+    // (peak/EMA/trend are folded in recon_app_set_locate_rssi and mirrored above)
 
     canvas_clear(canvas);
     ui_title_bar(canvas, "LOCATOR", kind == 'b' ? "BLE" : "WiFi");
 
     if(!connected) {
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 2, 30, "connecting ESP32...");
-        canvas_draw_str(canvas, 2, 42, "hold BOOT, tap RESET");
+        canvas_draw_str(
+            canvas, 2, 30, port_busy ? "UART busy - check port" : "connecting ESP32...");
+        canvas_draw_str(
+            canvas, 2, 42, port_busy ? "free the GPS UART/port" : "hold BOOT, tap RESET");
         return;
     }
 

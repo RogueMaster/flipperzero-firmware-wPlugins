@@ -43,6 +43,7 @@ struct SigDb {
     size_t likely_count;
     uint32_t* ie_fps; /**< owned IE-fingerprint table, NULL if none */
     size_t ie_fp_count;
+    FlockDbExtras extras; /**< caller-owned view registered with flock_db (points at the above) */
 };
 
 /** ASCII lower-case (no locale), matching flock_db.c's matcher contract. */
@@ -351,14 +352,20 @@ SigDb* sig_db_load(Storage* storage) {
         int val_idx = i + 1;
         if(val_idx >= count) break;
 
+        // Guard each assignment so a duplicate top-level key can't overwrite (and
+        // leak) the array we already parsed -- keep the first, ignore the rest.
         if(sig_tok_eq(js, key, "ouis")) {
-            db->ouis = sig_parse_ouis(js, tokens, count, val_idx, &db->oui_count);
+            if(!db->ouis) db->ouis = sig_parse_ouis(js, tokens, count, val_idx, &db->oui_count);
         } else if(sig_tok_eq(js, key, "ssid_confirmed")) {
-            db->confirmed = sig_parse_patterns(js, tokens, count, val_idx, &db->confirmed_count);
+            if(!db->confirmed)
+                db->confirmed =
+                    sig_parse_patterns(js, tokens, count, val_idx, &db->confirmed_count);
         } else if(sig_tok_eq(js, key, "ssid_likely")) {
-            db->likely = sig_parse_patterns(js, tokens, count, val_idx, &db->likely_count);
+            if(!db->likely)
+                db->likely = sig_parse_patterns(js, tokens, count, val_idx, &db->likely_count);
         } else if(sig_tok_eq(js, key, "ie_fps")) {
-            db->ie_fps = sig_parse_ie_fps(js, tokens, count, val_idx, &db->ie_fp_count);
+            if(!db->ie_fps)
+                db->ie_fps = sig_parse_ie_fps(js, tokens, count, val_idx, &db->ie_fp_count);
         }
 
         // Advance past key + its (possibly nested/unknown) value.
@@ -374,14 +381,19 @@ SigDb* sig_db_load(Storage* storage) {
         return NULL;
     }
 
-    // Register the owned arrays with flock_db (caller-owned for db's lifetime).
-    flock_db_set_extra_ouis((const uint8_t(*)[3])db->ouis, db->ouis ? db->oui_count : 0);
-    flock_db_set_extra_ssid_patterns(
-        (const char* const*)db->confirmed,
-        db->confirmed ? db->confirmed_count : 0,
-        (const char* const*)db->likely,
-        db->likely ? db->likely_count : 0);
-    flock_db_set_extra_ie_fps(db->ie_fps, db->ie_fps ? db->ie_fp_count : 0);
+    // Register the owned arrays with flock_db as one caller-owned context (lives
+    // in db, so it outlives the registration; cleared before free in sig_db_free).
+    db->extras = (FlockDbExtras){
+        .ouis = (const uint8_t(*)[3])db->ouis,
+        .oui_count = db->ouis ? db->oui_count : 0,
+        .ssid_confirmed = (const char* const*)db->confirmed,
+        .ssid_confirmed_count = db->confirmed ? db->confirmed_count : 0,
+        .ssid_likely = (const char* const*)db->likely,
+        .ssid_likely_count = db->likely ? db->likely_count : 0,
+        .ie_fps = db->ie_fps,
+        .ie_fp_count = db->ie_fps ? db->ie_fp_count : 0,
+    };
+    flock_db_set_extras(&db->extras);
 
     return db;
 }
@@ -389,8 +401,6 @@ SigDb* sig_db_load(Storage* storage) {
 void sig_db_free(SigDb* db) {
     if(!db) return;
     // Deregister FIRST so the matchers stop reading our arrays before we free.
-    flock_db_set_extra_ouis(NULL, 0);
-    flock_db_set_extra_ssid_patterns(NULL, 0, NULL, 0);
-    flock_db_set_extra_ie_fps(NULL, 0);
+    flock_db_set_extras(NULL);
     sig_db_destroy(db);
 }

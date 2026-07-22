@@ -3,6 +3,9 @@ App(
     name="DeFlock",
     apptype=FlipperAppType.EXTERNAL,
     targets=["f7"],
+    # Default glob (*.c*) minus the host-only unit tests, which include host
+    # mocks + gcc-only headers and must not be pulled into the .fap build.
+    sources=["*.c*", "!test"],
     entry_point="recon_site_survey_app",
     stack_size=4 * 1024,
     fap_icon_assets_symbol="flipdeflock",
@@ -47,7 +50,7 @@ App(
     fap_category="GPIO/ESP32",
     fap_author="ReconGrunt",
     fap_weburl="https://github.com/ReconGrunt/FlipDeFlock",
-    fap_version="0.42",
+    fap_version="0.43",
     fap_description="FlipDeFlock: detect Flock/ALPR surveillance cameras via any "
     "ESP32 (Marauder or companion FW), with NFC/RFID credential audit, GPS "
     "geotagging and DeFlock-compatible reports.",

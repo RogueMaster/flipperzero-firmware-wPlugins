@@ -171,12 +171,24 @@ static bool flock_map_view_input_callback(InputEvent* event, void* context) {
 
     if(event->type == InputTypeShort || event->type == InputTypeRepeat) {
         if(event->key == InputKeyLeft) {
-            // Zoom out (larger mpp).
-            with_view_model(fmv->view, FlockMapModel * model, { model->zoom--; }, true);
+            // Zoom out (larger mpp). Clamp so a held key can't wrap the int8_t.
+            with_view_model(
+                fmv->view,
+                FlockMapModel * model,
+                {
+                    if(model->zoom > -12) model->zoom--;
+                },
+                true);
             handled = true;
         } else if(event->key == InputKeyRight) {
             // Zoom in (smaller mpp).
-            with_view_model(fmv->view, FlockMapModel * model, { model->zoom++; }, true);
+            with_view_model(
+                fmv->view,
+                FlockMapModel * model,
+                {
+                    if(model->zoom < 12) model->zoom++;
+                },
+                true);
             handled = true;
         } else if(event->key == InputKeyOk && event->type == InputTypeShort) {
             with_view_model(fmv->view, FlockMapModel * model, { model->zoom = 0; }, true);

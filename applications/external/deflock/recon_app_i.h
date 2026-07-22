@@ -75,6 +75,14 @@ typedef enum {
     EspBackendCount,
 } EspBackend;
 
+/** Queryable ESP-link lifecycle state, so scenes can tell "waiting for data" from
+ *  "the UART is busy" (R6) instead of showing a dead "connecting ESP32..." forever. */
+typedef enum {
+    EspLinkStopped = 0, /**< not started (or torn down) */
+    EspLinkRunning, /**< UART acquired + worker running (may not have data yet) */
+    EspLinkPortBusy, /**< UART acquire failed -- another owner holds it (e.g. the GPS port) */
+} EspLinkState;
+
 typedef struct {
     EspBackend backend;
     uint8_t esp_uart; /**< FuriHalSerialId for the ESP32. */
@@ -212,6 +220,10 @@ typedef struct {
     uint8_t esp_channel;
     uint32_t esp_lines; /**< RX line heartbeat (generic mode liveness) */
     uint32_t esp_deauths; /**< deauth/disassoc frames seen (attack indicator) */
+    uint8_t esp_proto_version; /**< companion wire-protocol version (FLOCKCO banner; 0 = unknown) */
+    bool esp_proto_mismatch; /**< companion speaks a different protocol version than the app */
+    uint32_t esp_dropped_lines; /**< overlong RX lines dropped whole (wire-protocol health metric) */
+    uint8_t esp_link_state; /**< EspLinkState: Stopped / Running / PortBusy (R6 error surface) */
 
     // Active attack-tool signature reported by the companion (ATK line): BLE-spam
     // advert flood, beacon-spam (Marauder / Pineapple), or probe-request flood.
@@ -239,6 +251,18 @@ typedef struct {
     WatchScore watch; /**< fused "am I being watched?" scorer (C1) */
     uint32_t guardian_since; /**< tick the Net Guardian session started (uptime) */
     uint8_t guardian_phase; /**< current rotating-sweep phase (0=flockcombo,1=ble,2=wifi) */
+    // Scan-scene UI state, moved out of per-scene file-scope statics (R4-tail) so
+    // the scene layer holds no module-global mutable state. Semantics are
+    // identical (ReconApp is single-instance and app-lifetime, like the statics).
+    uint32_t guardian_phase_mark; /**< guardian: tick of the last rotating-sweep phase switch */
+    bool guardian_blocked; /**< guardian: opened in Marauder mode -> guard screen shown */
+    int wifi_ui_state; /**< wifi: 0 scanning / 1 results / 2 timeout */
+    uint32_t wifi_scan_start; /**< wifi: tick the current scan started */
+    bool wifi_blocked; /**< wifi: opened in Marauder mode -> guard screen */
+    bool ble_pending; /**< ble: a blescan is in flight (awaiting BEND) */
+    uint32_t ble_mark; /**< ble: tick of the last state transition */
+    bool ble_blocked; /**< ble: opened in Marauder mode -> guard screen */
+    bool locator_blocked; /**< locator: opened in Marauder mode -> guard screen */
     uint8_t guardian_flip_n; /**< cached nearby-Flipper count for the HUD (set each
                               *   watchscore tick, so the view needn't re-lock). */
     uint8_t guardian_atk_n; /**< cached active-attack count for the HUD. */
@@ -251,6 +275,10 @@ typedef struct {
     int8_t locate_rssi; /**< latest live RSSI from the companion LOC line */
     uint32_t locate_tick; /**< furi tick of that reading (0 = none yet) */
     bool locate_have; /**< a reading has arrived this session */
+    int8_t locate_peak; /**< strongest RSSI folded from every LOC line (peak-hold) */
+    float locate_ema; /**< smoothed RSSI for the warmer/colder trend */
+    int8_t locate_trend; /**< +1 warmer / -1 colder / 0 steady */
+    bool locate_init; /**< first valid reading folded yet */
 
     // ESP32 firmware flasher
     uint8_t fw_op; /**< 0 = backup, 1 = flash */
@@ -291,6 +319,16 @@ void recon_app_set_esp_lines(ReconApp* app, uint32_t lines);
 
 /** Update the deauth/disassoc frame counter (thread-safe). */
 void recon_app_set_deauths(ReconApp* app, uint32_t deauths);
+
+/** Record the companion's announced wire-protocol version + whether it mismatches
+ *  what this app speaks (thread-safe). See ESP_PROTO_VERSION in esp_parser.h. */
+void recon_app_set_esp_proto(ReconApp* app, uint8_t version, bool mismatch);
+
+/** Update the count of overlong RX lines dropped whole (health metric; thread-safe). */
+void recon_app_set_esp_dropped(ReconApp* app, uint32_t dropped);
+
+/** Update the queryable ESP-link state (thread-safe). See EspLinkState. */
+void recon_app_set_esp_link_state(ReconApp* app, EspLinkState state);
 
 /** Record a deauth attack target BSSID (thread-safe); dedups by BSSID. */
 void recon_app_add_deauth_target(ReconApp* app, const uint8_t bssid[6], uint8_t channel);

@@ -112,8 +112,12 @@ WifiGrade wifi_audit_grade(
         if(reasons) furi_string_cat(reasons, "OWE: encrypted but open auth\n");
         break;
     default:
-        grade = WifiGradeInfo;
-        if(reasons) furi_string_cat(reasons, "Unrecognised auth mode\n");
+        // An unrecognised-but-present auth mode is almost always a newer, stronger
+        // scheme (e.g. WPA3-Ent-192, WPA3-EXT). Grade it neutral (Ok), not INFO --
+        // INFO is a higher enum value, so it would sort a strong network as *worse*
+        // than WPA2/WPA3. Open/WEP/WPA1 are still caught by the explicit cases above.
+        grade = WifiGradeOk;
+        if(reasons) furi_string_cat(reasons, "Modern auth (mode not labelled)\n");
         break;
     }
 

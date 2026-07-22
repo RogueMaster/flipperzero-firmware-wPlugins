@@ -181,10 +181,12 @@ void watchscore_eval(WatchScore* ws, const WatchInputs* in) {
 
     switch(ws->state) {
     case WatchStateClear:
-        if(elevated_ok) {
-            ws->dwell++;
-            if(ws->dwell >= WS_DWELL_ELEVATED) ws->state = WatchStateElevated;
-        } else if(ws->score >= WS_WATCHFUL_ON) {
+        // Evaluate WATCHFUL independently of elevated_ok so a strong 2-radio signal
+        // passes THROUGH watchful instead of snapping CLEAR->ELEVATED. The climb to
+        // ELEVATED happens from WatchStateWatchful below; the shared dwell counter
+        // isn't reset on the CLEAR->WATCHFUL hop, so time-to-ELEVATED is unchanged --
+        // watchful is just shown during the ramp.
+        if(ws->score >= WS_WATCHFUL_ON) {
             ws->dwell++;
             if(ws->dwell >= WS_DWELL_WATCHFUL) ws->state = WatchStateWatchful;
         } else {

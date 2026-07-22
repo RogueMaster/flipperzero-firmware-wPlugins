@@ -1,5 +1,47 @@
 # Changelog
 
+## v0.43
+A precision, correctness & reliability release — a full internal audit turned
+into fixes and a real test safety net. No new screens; the app just lies to you
+less and can't silently regress.
+- **Fewer false "confirmed camera" alarms.**
+  - **Strict `Flock-XXXXXX` naming.** Only the real provisioning-AP name
+    ("Flock-" + 6 hex) Confirms now; benign names like `Flock-Guest`, Flock
+    Freight or the Flock chat app drop to "Likely" instead of a false Confirmed.
+  - **OUI + wildcard probe capped at "Likely."** The Flock OUI list includes
+    shared silicon-vendor ranges (Espressif, etc.), so any ESP32 gadget spraying
+    a broadcast probe no longer reads as a confirmed camera — Confirmed now needs
+    an SSID-name or IE-fingerprint corroboration.
+- **Correctness fixes across NFC, GPS and reports.**
+  - **NFC deep check no longer mis-grades a swapped card** — presenting a second
+    card after checking a first previously showed the first card's "cloneable"
+    verdict, UID and logged row for it; the verdict is now bound to the card
+    actually checked.
+  - **GPS: no stale location, verified sentences, sane counts.** A lost fix (RMC
+    void / GGA fix-quality 0) stops tagging detections with the last known spot;
+    NMEA sentences are checksum-verified before they're trusted; the satellite
+    count is clamped; a garbled `0,0` is rejected.
+  - **Reports can't be corrupted by a hostile SSID/BLE name** — CSV / JSON / KML /
+    Markdown fields are escaped so a comma, quote, `|`, `<` or newline can't break
+    a column, close a JSON string or inject a KML element.
+  - Plus: WiFi list rows map to the right AP again; newer WiFi security modes no
+    longer sort as "worse than WPA2"; map zoom can't wrap to a garbage scale bar;
+    the Net Guardian ramps *through* WATCHFUL instead of snapping to ELEVATED; and
+    assorted buffer / overflow / out-of-RAM guards.
+- **Reliability & diagnostics.** When the ESP UART is busy (e.g. GPS shares the
+  port) scenes now say **"UART busy — check port"** instead of a dead
+  "connecting…". The companion advertises a **wire-protocol version** (a mismatch
+  is flagged, not silently mis-parsed), overlong serial lines are dropped whole
+  and **counted** as a health metric, and the ESP32 companion emits each line
+  atomically so fast bursts can't interleave and corrupt the feed.
+- **Under the hood: a safety net (no behaviour change).** The app now ships a
+  **host unit-test suite (291 checks)** — detection/scoring truth tables, the
+  anti-stalking "following" gate, WiFi grading, report-escaping vs injection, and
+  the ESP + GPS line parsers — wired into **CI** so these precision rules can't
+  silently regress. The wire parsers and decision logic were split into small,
+  tested pure modules; the scan-scene UART lifecycle was unified (closing a latent
+  link-leak on Back); and the first-party tree is now clang-format clean.
+
 ## v0.42
 - **Catch cameras that randomize their MAC — with field-updatable "class"
   fingerprints.** Flock's fielded cameras have moved to phoning home as ordinary

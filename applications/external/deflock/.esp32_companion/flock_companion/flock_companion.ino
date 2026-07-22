@@ -186,12 +186,16 @@ static int ssid_score(const char* s, int len) {
     return 0;
 }
 
-// Strip ',' and control chars so the SSID can't break the line protocol.
-static void emit_ssid(const char* s, int len) {
-    for(int i = 0; i < len && i < 48; i++) {
+// Append up to `max` bytes of `s` into buf[*pos], stripping ',', CR, LF and control chars
+// to '.' so the payload can't break the line protocol. Bounds-checked; advances *pos.
+// Callers assemble a whole line in one buffer and emit it with a SINGLE Serial.write, so a
+// line built in promisc_cb (WiFi task) can't interleave on the UART with loop()'s status
+// lines -- a single HardwareSerial::write() is atomic w.r.t. the other task's writes.
+static void buf_append_escaped(char* buf, size_t bufsz, size_t* pos, const char* s, int len, int max) {
+    for(int i = 0; i < len && i < max && *pos + 1 < bufsz; i++) {
         char c = s[i];
         if(c == ',' || c == '\r' || c == '\n' || (uint8_t)c < 0x20) c = '.';
-        Serial.write(c);
+        buf[(*pos)++] = c;
     }
 }
 
@@ -364,7 +368,9 @@ static void promisc_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
     if(s_score == 3)
         conf = 3; // confirmed Flock SSID name
     else if(oui_tx && wildcard)
-        conf = 3; // a Flock OUI spraying a wildcard probe is high-confidence
+        conf = 2; // OUI + wildcard probe -> only "likely": FLOCK_OUIS includes shared
+                  // silicon-vendor ranges (e.g. Espressif), so any ESP32 device
+                  // probing hits this. Reserve conf=3 for an SSID-name / IE-fp match.
     else if((oui_tx || oui_rx) && is_probe)
         conf = 2; // OUI (sender or silent receiver) + probe behaviour
     else if(s_score == 2)
@@ -407,12 +413,18 @@ static void promisc_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
         mac[4],
         mac[5]);
 
-    Serial.printf("D,%s,%d,%u,%c,%d,", macstr, pkt->rx_ctrl.rssi, frame_channel, ftype, conf);
-    if(ssid && ssid_len > 0) emit_ssid(ssid, ssid_len);
+    // Build the whole D-line in one buffer + single write: promisc_cb runs in the WiFi
+    // task, so a multi-call line could be split on the UART by loop()'s status lines.
+    char line[160];
+    size_t pos =
+        snprintf(line, sizeof(line), "D,%s,%d,%u,%c,%d,", macstr, pkt->rx_ctrl.rssi, frame_channel, ftype, conf);
+    if(ssid && ssid_len > 0) buf_append_escaped(line, sizeof(line), &pos, ssid, ssid_len, 48);
     // B1: trailing IE-fingerprint field (probe requests only). Older parsers
     // ignore it; the Flipper matches it against a curated Flock IE-fp table.
-    if(ie_fp != 0) Serial.printf(",fp=%08x", ie_fp);
-    Serial.print('\n');
+    if(ie_fp != 0) pos += snprintf(line + pos, sizeof(line) - pos, ",fp=%08x", ie_fp);
+    if(pos > sizeof(line) - 1) pos = sizeof(line) - 1;
+    line[pos++] = '\n';
+    Serial.write((const uint8_t*)line, pos);
 }
 
 static void set_channel(uint8_t ch) {
@@ -465,17 +477,18 @@ static void wifi_security_scan() {
                         "%02x%02x%02x%02x%02x%02x",
                         r->bssid[0], r->bssid[1], r->bssid[2],
                         r->bssid[3], r->bssid[4], r->bssid[5]);
-                    Serial.printf(
-                        "W,%s,%d,%u,%d,%d,%d,%d,",
+                    char line[160];
+                    size_t pos = snprintf(
+                        line, sizeof(line), "W,%s,%d,%u,%d,%d,%d,%d,",
                         bss, r->rssi, r->primary, (int)r->authmode,
                         (int)r->pairwise_cipher, (int)r->group_cipher, r->wps ? 1 : 0);
                     const char* s = (const char*)r->ssid;
-                    for(int k = 0; k < 32 && s[k]; k++) {
-                        char c = s[k];
-                        if(c == ',' || c == '\r' || c == '\n' || (uint8_t)c < 0x20) c = '.';
-                        Serial.write(c);
-                    }
-                    Serial.print('\n');
+                    int sl = 0;
+                    while(sl < 32 && s[sl]) sl++; // r->ssid is NUL-terminated
+                    buf_append_escaped(line, sizeof(line), &pos, s, sl, 32);
+                    if(pos > sizeof(line) - 1) pos = sizeof(line) - 1;
+                    line[pos++] = '\n';
+                    Serial.write((const uint8_t*)line, pos);
                 }
             }
             free(recs);
@@ -578,29 +591,34 @@ static void ble_do_scan(int seconds) {
         }
         addr[k] = 0;
 
-        Serial.printf("BLE,%s,%d,%d,%d,", addr, d.getRSSI(), cat, company);
+        // One buffer + single write (same rationale as the D-line) so the multi-field
+        // BLE line is emitted atomically.
+        char line[176];
+        size_t pos =
+            snprintf(line, sizeof(line), "BLE,%s,%d,%d,%d,", addr, d.getRSSI(), cat, company);
         if(d.haveName()) {
             std::string nm = d.getName();
-            for(size_t j = 0; j < nm.size() && j < 32; j++) {
-                char c = nm[j];
-                if(c == ',' || c == '\r' || c == '\n' || (uint8_t)c < 0x20) c = '.';
-                Serial.write(c);
-            }
+            buf_append_escaped(line, sizeof(line), &pos, nm.c_str(), (int)nm.size(), 32);
         }
         // Trailing field: raw mfg-data hex for Flock (0x09C8) only, so the
         // Flipper can decode the device serial. Capped so the line stays well
         // under the Flipper's RX line limit; only Flock units carry it.
         if(cat == 1 && company == 0x09C8 && d.haveManufacturerData()) {
             std::string md = d.getManufacturerData();
-            Serial.write(',');
-            for(size_t j = 0; j < md.length() && j < 31; j++) {
-                Serial.printf("%02x", (uint8_t)md[j]);
+            if(pos + 1 < sizeof(line)) line[pos++] = ',';
+            for(size_t j = 0; j < md.length() && j < 31 && pos + 2 < sizeof(line); j++) {
+                pos += snprintf(line + pos, sizeof(line) - pos, "%02x", (uint8_t)md[j]);
             }
         }
         // Raven GATT flag, emitted LAST so it follows the optional mfghex field.
         // The '=' lets the Flipper distinguish it from the pure-hex mfghex token.
-        if(raven) Serial.print(",rv=1");
-        Serial.print('\n');
+        if(raven && pos + 5 < sizeof(line)) {
+            memcpy(line + pos, ",rv=1", 5);
+            pos += 5;
+        }
+        if(pos > sizeof(line) - 1) pos = sizeof(line) - 1;
+        line[pos++] = '\n';
+        Serial.write((const uint8_t*)line, pos);
     }
     Serial.printf("BEND,%d\n", count);
 
@@ -644,6 +662,9 @@ static void ble_locate_scan() {
 
 void setup() {
     Serial.begin(115200);
+    // Short RX timeout so loop()'s readStringUntil('\n') can't stall channel-hop /
+    // heartbeat for the default 1 s when a command arrives without a trailing newline.
+    Serial.setTimeout(20);
     delay(200);
 
     nvs_flash_init();

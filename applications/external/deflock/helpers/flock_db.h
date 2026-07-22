@@ -70,56 +70,37 @@ const uint8_t* flock_oui_get(size_t index);
 bool flock_oui_match(const uint8_t* mac);
 
 /**
- * Register an OPTIONAL, user-supplied set of extra OUI prefixes that
- * `flock_oui_match` scans IN ADDITION to the compiled-in table. Loaded at
- * runtime from the SD card (see sig_db.h) and merged OVER the built-ins: the
- * extras can only ADD matches, never remove a built-in. Pass `ouis == NULL` or
- * `count == 0` to clear the registration (the fail-safe / default state, in
- * which only the built-ins are consulted).
+ * OPTIONAL, user-supplied extra signatures the matchers consult IN ADDITION to
+ * the compiled-in tables (merged OVER them -- extras can only ADD matches, never
+ * remove a built-in). Loaded at runtime from the SD card by sig_db.c.
  *
- * Ownership: the array is CALLER-OWNED and must outlive every call into the
- * matcher (i.e. for the whole app lifetime, until cleared). This keeps
- * flock_db.c firmware-free / host-testable -- it merely holds the pointer.
+ * All arrays (and the strings they point at) are CALLER-OWNED and must outlive
+ * the registration. SSID needles MUST already be lower-case (the matcher
+ * lowercases only the haystack; sig_db.c lowercases before registering).
  *
- * PRECISION NOTE: user signatures are LOAD-ONLY and UNVERIFIED. A false
- * positive is worse than a missed detection, so OUI-only hits (built-in OR
- * extra) stay scored "possible", never "confirmed".
+ * PRECISION: user signatures are LOAD-ONLY and UNVERIFIED. A false positive is
+ * worse than a missed detection, so an OUI-only hit (built-in OR extra) stays
+ * "possible" and a user IE-fp is capped at "Class?" (FlockConfidenceProbeFp) --
+ * never Confirmed.
  */
-void flock_db_set_extra_ouis(const uint8_t (*ouis)[3], size_t count);
+typedef struct {
+    const uint8_t (*ouis)[3]; /**< extra OUI prefixes (3 bytes each) -> flock_oui_match */
+    size_t oui_count;
+    const char* const* ssid_confirmed; /**< lower-case substrings -> Confirmed */
+    size_t ssid_confirmed_count;
+    const char* const* ssid_likely; /**< lower-case substrings -> Likely */
+    size_t ssid_likely_count;
+    const uint32_t* ie_fps; /**< extra IE-fingerprint hashes -> FlockIeFpUser */
+    size_t ie_fp_count;
+} FlockDbExtras;
 
 /**
- * Register OPTIONAL, user-supplied SSID substrings that
- * `flock_ssid_confidence` tests IN ADDITION to the built-in patterns: a
- * `confirmed` hit yields FlockConfidenceConfirmed, a `likely` hit yields
- * FlockConfidenceLikely. Merged OVER the built-ins (extras can only ADD
- * matches). Pass NULL/0 lists to clear (the fail-safe default).
- *
- * CONTRACT: the needles MUST already be lower-case -- the matcher lowercases
- * only the haystack and assumes a lowercase needle (see ci_contains). The
- * caller (sig_db.c) lowercases before registering.
- *
- * Ownership: both arrays and the strings they point at are CALLER-OWNED and
- * must outlive use. LOAD-ONLY / UNVERIFIED, same precision posture as above.
+ * Register (or clear, with `extras == NULL`) the caller-owned extra signatures.
+ * A SINGLE atomic pointer swap: there is no partial-registration window, and
+ * clearing before the caller frees the backing store is one call -- so there is
+ * no deregister-order footgun. The struct and its arrays must outlive use.
  */
-void flock_db_set_extra_ssid_patterns(
-    const char* const* confirmed,
-    size_t confirmed_count,
-    const char* const* likely,
-    size_t likely_count);
-
-/**
- * Register OPTIONAL, user-supplied IE-fingerprint hashes (FNV-1a uint32 of the
- * probe IE skeleton, as emitted in the companion `,fp=` field) that
- * `flock_ie_fp_match` tests IN ADDITION to the compiled-in table, reporting them
- * as FlockIeFpUser. Loaded at runtime from signatures.json and merged OVER the
- * built-ins (can only ADD matches). Pass NULL/0 to clear (the fail-safe default).
- *
- * Ownership: the array is CALLER-OWNED and must outlive use. LOAD-ONLY /
- * UNVERIFIED: because a false positive is worse than a missed detection, a user
- * fingerprint match is capped at FlockConfidenceProbeFp ("Class?") by the caller
- * -- it can never, even with a Flock OUI, assert a Confirmed detection.
- */
-void flock_db_set_extra_ie_fps(const uint32_t* fps, size_t count);
+void flock_db_set_extras(const FlockDbExtras* extras);
 
 /**
  * Confidence contributed by an SSID string alone (may be NULL/empty for hidden

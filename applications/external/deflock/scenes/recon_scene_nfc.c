@@ -95,7 +95,9 @@ static void recon_scene_nfc_render(
     }
 
     widget_add_button_element(widget, GuiButtonTypeCenter, "Log", recon_scene_nfc_button_cb, app);
-    if(is_mfc && !have_mfc) {
+    // Keep "Deep" available even after a result exists, so a newly presented card
+    // can always be re-checked instead of inheriting the previous card's verdict.
+    if(is_mfc) {
         widget_add_button_element(
             widget, GuiButtonTypeRight, "Deep", recon_scene_nfc_button_cb, app);
     }
