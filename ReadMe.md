@@ -3,7 +3,7 @@
 &nbsp;<a href='https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release' target='_blank'><img src='https://lh3.googleusercontent.com/d/1iYQlRQXM7nA4IAdcPwvcKRSTCMoi8tug' alt='Latest PATREON Release' title='Latest PATREON Release'></a>
 &nbsp;<a href='https://github.com/RogueMaster/awesome-flipperzero-withModules' target='_blank'><img src='https://lh3.googleusercontent.com/d/1gjui0-UZNerG13PUblXjmr1YaSAjIf2k' alt='More Research / Assets' title='More Research / Assets'></a></h1>
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0713-2232-3be1368f.tgz&channel=RM0713-2232-3be1368f&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0722-1811-ff9f4fe.tgz&channel=RM0722-1811-ff9f4fe&version=0.420.0&target=f7)
 
 ## Thank you so much to our RM Pro/SUPER Patreon supporters! Because of people like you, we are able to offer the best and most up-to-date Flipper Zero Firmware!
 
@@ -30,71 +30,6 @@ This software is for experimental purposes only and is not meant for any illegal
 
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-07-22 16:20 EST`
 - Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-07-22 16:20 EST`
-- Updated: [ProtoPirate v3.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
-- Updated: [JAYX PC Monitor v0.4 (By contactjayclatty)](https://github.com/contactjayclatty/JAYX)
-- Updated: [Weather Station v2.0.1 (By Skorpionm)-OFW](https://github.com/flipperdevices/flipperzero-good-faps/tree/dev/weather_station) [Weather Station: add Auriol HG02832/HG05124A protocol (By kjoxa)](https://github.com/Next-Flip/Momentum-Apps/pull/81)
-- Added: [Pocket Chords v0.1 (By rvonsch)](https://github.com/rvonsch/flipper-pocket-chords)
-- Updated: [LAN Tester v2.10 (By dok2d)](https://github.com/dok2d/fz-W5500-lan-analyse)
-- Updated: [PocketLab v1.5 (By PerfectoWeb)](https://github.com/PerfectoWeb/flipper-pocketlab)
-- Updated: [Smoke Free v0.1 (By kamylwnb)](https://github.com/kamylwnb/smoke_free)
-- NFC: [Fix MIFARE Plus 2K SL1 transit parsers - Troika, Plantain, SevPPK, SZPPK and Two Cities stopped parsing once Plus 2K SL1 cards began reporting as the new `2K` type: the parsers only knew `1K`/`4K` and required a full-card read. They now treat 2K as the 1K these cards present and accept a partial read (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1038)
-- Updated: [ZeroMesh v2.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
-- Updated: [Sub-GHz Keystore Decryptor v1.1 (By Lechnio)](https://github.com/Lechnio/KeeLoq-Keystore-Decryptor)
-- Added: [Specter v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
-- Updated: [Flipper Share v1.5 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share)
-- Added: [Flipper Share IR v1.5 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share_ir)
-- Added: [IRONWYRM v1.0 (By Atompunk78)](https://github.com/Atompunk78/IRONWYRM)
-- Added: [Argus v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Argus-FlipperZero) `Req: ESP32`
-- Added: [Cerberus v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/flipper-cerberus)
-- Added: [Faraday v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Faraday-FlipperZero)
-- Added: [Gauntlet v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Gauntlet-FlipperZero)
-- Added: [GhostTag v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/GhostTag-FlipperZero) `Req: ESP32`
-- Added: [GlitchTrigger v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/GlitchTrigger-FlipperZero)
-- Added: [Hermes v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Hermes-FlipperZero)
-- Added: [Nyx v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Nyx-FlipperZero)
-- Added: [RollCall v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/RollCall-FlipperZero)
-- Added: [Rosetta v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Rosetta-FlipperZero)
-- Added: [Trident v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Trident-FlipperZero) `Req: 3-in-1 ESP32 + NRF24 + CC1101`
-- Added: [Warden v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Warden-FlipperZero)
-- Added: [Android KB Bridge v0.5.1 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD)
-- Added: [LGT ISP (SWD) v0.7 (By mkrasem / SimonE)](https://github.com/mkrasem/flipper_lgt_isp) `Req: LGT8F328P`
-- Updated: [Specter v2.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
-- Updated: [Hermes v1.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Hermes-FlipperZero)
-- Updated: [WiFi (Marauder) v0.7.9 (By 0xchocolate & tcpassos)](https://github.com/0xchocolate/flipperzero-firmware-with-wifi-marauder-companion)
-- NFC: [Fix transit parsers skipping key recovery on a partial read - Troika, Plantain, SevPPK, SZPPK and Two Cities reported a read as successful on any partial read (needed for Plus 2K SL1), so a card whose data sector wasn't actually read skipped the dictionary/nested attack instead of recovering its keys; a partial read is now accepted only when the sector the parser needs is read (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1043)
-- Updated: [Period Tracker v1.0 (By gorshunovr)](https://github.com/gorshunovr/period_tracker)
-- Added: [MP3 Player v2.12 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-mp3-player)
-- Added: [Hotspot Arcade v0.2 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32`
-- Removed some ESP32 assets from ESP Flasher & Hotspot Arcade that can be added directly to the SD Card if needed.
-- Added: [DeFlock v0.2 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
-- Updated: [FM Radio v2.2 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-fm-radio) `Req: TEA5767/Si4703`
-- Added: [Walkie Talkie v1.1 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-walkie-talkie)
-- Updated: [BLE Scanner v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
-- Updated: [CCID Emulator v1.1 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [FlipperPwn v1.7 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [NFC Fuzzer v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [Ray Hunter Client v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
-- Updated: [Rogue AP Detector v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
-- Updated: [SPI Flash Dump v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [Sub-GHz Jammer Detect v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [UART Sniff v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
-- Updated: [MP3 Player v3.5 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-mp3-player) [Direct File Launch from Archive Browser for MP3s (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/adbb8f652bef7869d152c77e2357738b9a87a224)
-- Updated: [Android KB Bridge v0.5.4 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD) (Version Only)
-- Updated: [Tasks v1.3 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
-- Added: [Ear Trainer v1.0 (By barismert98)](https://github.com/barismert98/flipper-ear-trainer)
-- Updated: [Calculator v1.4 (By n-o-T-I-n-s-a-n-e)](https://github.com/n-o-T-I-n-s-a-n-e)
-- Updated: [iButton Fuzzer v1.8 (By gid9798)](https://github.com/DarkFlippers/unleashed-firmware/pull/507)
-- Updated: [RFID Fuzzer v1.8 (By gid9798)](https://github.com/DarkFlippers/unleashed-firmware/pull/507)
-- Updated: [APRS TX v1.3.24 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
-- Updated: [GlitchTrigger v1.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/GlitchTrigger-FlipperZero)
-- Updated: [DeFlock v0.43 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
-- Updated: [Tesla Mod v2.16b20 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
-- ESP Flasher: [Bump Marauder v1.14.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.14.0)
-- [Many apps updated with naming and stability improvements (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/de090ac427f7113fd5136faa1fd7d865ac035382)
-- Updated: [NFC Login v1.1.2 (By Play2BReal)](https://github.com/Play2BReal/NFC-Login)
-- Updated: [VK Thermo v1.1 (By VivoKey)](https://github.com/VivoKey/vkthermo-flipper)
-- [Fix quick flash in ESP Flasher (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/392f176f7ed12bc27dcc58c5c458a995b431c9f2)
-- Updated: [Hotspot Arcade v1.1.1 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32` [Hotspot Arcade flasher, add support for autoboot, fix freeze on exit (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/5d6a16c77c2a17c4aca3cb9f9ab4ab511f1d4f64)
 
 <a name="release"></a>
 
@@ -925,7 +860,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [ZeroFIDO v0.7 (By MinorGlitch)](https://github.com/MinorGlitch/zerofido)
 - [ZeroMesh v2.1 (By SAMS0N1TE)](https://github.com/SAMS0N1TE/ZeroMesh) `Req: Meshtastic`
 
-# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0713-2232-3be1368f.tgz&channel=RM0713-2232-3be1368f&version=0.420.0&target=f7)
+# Install GitHub Version With [WEB INSTALLER](https://lab.flipper.net/?url=https%3A%2F%2Frogue-master.net%2F%3Ffile%3DRM0722-1811-ff9f4fe.tgz&channel=RM0722-1811-ff9f4fe&version=0.420.0&target=f7)
 
 - Have a new app? Submit GitHub link to me on Discord for a special reward (if I add it to RM Firmware).
 
