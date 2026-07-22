@@ -26,15 +26,17 @@
 
 #define TAG "uhf_expansion"
 
-#define UHF_BAUD_RATE_LOW     9600U
-#define UHF_BAUD_RATE_HIGH    115200U
+#define UHF_BAUD_RATE     115200U
 #define UHF_FRAME_START       0xA0U
 #define UHF_DEFAULT_ADDR      0x00U
 #define UHF_CMD_GET_VERSION   0x72U
+#define UHF_CMD_RESET         0x70U
+#define UHF_CMD_SET_POWER     0x76U
 #define UHF_CMD_START_INV     0x89U
 #define UHF_CMD_STOP_INV      0x8CU
 #define UHF_CMD_INV_ALT       0x8AU
 #define UHF_PAYLOAD_START_INV 0x01U
+#define UHF_DEFAULT_POWER_DBM 20U
 #define UHF_PROBE_TIMEOUT_MS  240U
 
 #define UHF_SOFT_UART_BIT_US         104U
@@ -71,12 +73,6 @@ typedef struct {
     ViewDispatcher* dispatcher;
     bool submitted;
 } UhfFilenameInputCtx;
-
-typedef struct {
-    ViewDispatcher* dispatcher;
-    uint32_t selected;
-    bool submitted;
-} UhfListMenuCtx;
 
 typedef enum {
     UhfListMenuItemSoundToggle = 0,
@@ -143,6 +139,7 @@ typedef struct {
     uint32_t last_inv_cmd_tick;
     uint32_t last_tag_beep_tick;
     bool tag_beep_enabled;
+    bool baud_probed;
     UhfPage page;
     UhfPage about_return_page;
     size_t list_top_index;
@@ -158,6 +155,15 @@ typedef struct {
     uint8_t startup_dots;
     uint32_t last_redraw_tick;
 } UhfApp;
+
+typedef struct {
+    ViewDispatcher* dispatcher;
+    ViewPort* view_port;
+    UhfApp* app;
+    uint32_t selected;
+    bool submitted;
+    bool back_pressed;
+} UhfListMenuCtx;
 
 typedef struct {
     char epc[UHF_EPC_HEX_MAX + 1];
@@ -348,14 +354,6 @@ static const NotificationSequence uhf_sequence_tag_found = {
     &message_note_c6,
     &message_delay_10,
     &message_sound_off,
-    &message_delay_10,
-    &message_note_c6,
-    &message_delay_10,
-    &message_sound_off,
-    &message_delay_10,
-    &message_note_c6,
-    &message_delay_10,
-    &message_sound_off,
     NULL,
 };
 
@@ -507,7 +505,7 @@ static void uhf_force_direct_a6_a4(UhfApp* app) {
         return;
     }
 
-    app->baud_rate = UHF_BAUD_RATE_LOW;
+    app->baud_rate = UHF_BAUD_RATE;
     furi_hal_serial_set_br(app->serial, app->baud_rate);
 
     app->frame_buffer_len = 0;
@@ -548,11 +546,17 @@ static void uhf_set_status(UhfApp* app, const char* fmt, ...) {
     }
 }
 
+#define UHF_TAG_BEEP_COOLDOWN_MS 50U
+
 static void uhf_notify_tag_found(UhfApp* app) {
     if(!app || !app->notifications) return;
     if(!app->tag_beep_enabled) return;
 
-    app->last_tag_beep_tick = furi_get_tick();
+    /* Throttle: only beep if enough time has passed since last beep */
+    const uint32_t now = furi_get_tick();
+    if((now - app->last_tag_beep_tick) < UHF_TAG_BEEP_COOLDOWN_MS) return;
+
+    app->last_tag_beep_tick = now;
     notification_message(app->notifications, &uhf_sequence_tag_found);
 }
 
@@ -858,6 +862,14 @@ static void uhf_about_scroll(UhfApp* app, bool down) {
     app->about_top_line = top;
 }
 
+/* Forward declarations */
+static void uhf_draw_centered_text(Canvas* canvas, int y, const char* text);
+static void uhf_list_menu_submenu_callback(void* context, uint32_t index);
+static void uhf_run_startup_sequence(UhfApp* app);
+static bool uhf_ensure_hardware(UhfApp* app);
+static void uhf_clear_version(UhfApp* app);
+static void uhf_apply_baud(UhfApp* app, uint32_t baud_rate);
+
 static void uhf_list_menu_execute(UhfApp* app, uint32_t item) {
     if(!app) return;
 
@@ -877,91 +889,194 @@ static void uhf_list_menu_execute(UhfApp* app, uint32_t item) {
     }
 }
 
-static void uhf_list_menu_submenu_callback(void* context, uint32_t index) {
+/* submenu callbacks — kept for compatibility, marked unused */
+static void __attribute__((unused)) uhf_list_menu_submenu_callback(void* context, uint32_t index) {
     UhfListMenuCtx* menu_ctx = context;
     if(!menu_ctx) return;
-
     menu_ctx->selected = index;
     menu_ctx->submitted = true;
-    if(menu_ctx->dispatcher) {
-        view_dispatcher_stop(menu_ctx->dispatcher);
+    if(menu_ctx->dispatcher) view_dispatcher_stop(menu_ctx->dispatcher);
+}
+
+static bool __attribute__((unused)) uhf_list_menu_back_callback(void* context) {
+    UhfListMenuCtx* menu_ctx = context;
+    if(!menu_ctx) return true;
+    menu_ctx->submitted = false;
+    if(menu_ctx->dispatcher) view_dispatcher_stop(menu_ctx->dispatcher);
+    return true;
+}
+
+static void uhf_menu_draw_callback(Canvas* canvas, void* context) {
+    UhfListMenuCtx* ctx = context;
+    if(!canvas || !ctx || !ctx->app) return;
+
+    UhfApp* app = ctx->app;
+    const size_t e2_count = uhf_count_e2_tags(app);
+    const bool show_save = (e2_count > 1);
+
+    /* Build dynamic menu: items[id] = {label, is_adjustable} */
+    struct { const char* label; bool adj; } items[4];
+    uint32_t item_count = 0;
+
+    if(show_save) {
+        items[item_count].label = "Save to CSV";
+        items[item_count].adj = false;
+        item_count++;
+    }
+    items[item_count].label = "Sound";
+    items[item_count].adj = true;
+    item_count++;
+    items[item_count].label = "About";
+    items[item_count].adj = false;
+    item_count++;
+
+    /* Clamp selected */
+    if(ctx->selected >= item_count) ctx->selected = item_count - 1;
+
+    canvas_clear(canvas);
+    canvas_set_font(canvas, FontPrimary);
+    uhf_draw_centered_text(canvas, 10, "UHF Expansion");
+
+    canvas_set_font(canvas, FontSecondary);
+    const int row_h = 12;
+    int y = 24;
+
+    for(uint32_t i = 0; i < item_count; i++) {
+        const int text_y = y + 2; /* push text down 2px for better centering in 12px row */
+
+        /* Draw selected background */
+        if(i == ctx->selected) {
+            canvas_set_color(canvas, ColorBlack);
+            canvas_draw_box(canvas, 0, y - 7, 128, row_h);
+            canvas_set_color(canvas, ColorWhite);
+        }
+
+        canvas_draw_str(canvas, 4, text_y, items[i].label);
+
+        /* Value area for adjustable items */
+        if(items[i].adj) {
+            char val[16];
+            snprintf(val, sizeof(val), "%s", app->tag_beep_enabled ? "ON" : "OFF");
+
+            /* Value area: right half = x 66..124 */
+            const int va_left = 66;
+            const int va_right = 124;
+            const int val_w = canvas_string_width(canvas, val);
+            const int val_x = va_left + ((va_right - va_left - val_w) / 2);
+
+            canvas_draw_str(canvas, va_left, text_y, "<");
+            canvas_draw_str(canvas, val_x, text_y, val);
+            canvas_draw_str(canvas, va_right, text_y, ">");
+        }
+
+        if(i == ctx->selected) {
+            canvas_set_color(canvas, ColorBlack);
+        }
+
+        y += row_h;
     }
 }
 
-static bool uhf_list_menu_back_callback(void* context) {
-    UhfListMenuCtx* menu_ctx = context;
-    if(!menu_ctx) return true;
-
-    menu_ctx->submitted = false;
-    if(menu_ctx->dispatcher) {
-        view_dispatcher_stop(menu_ctx->dispatcher);
+/* Map menu visual position to UhfListMenuItem action.
+   Visual order: [Save to CSV?] [Sound] [About] */
+static uint32_t uhf_menu_visual_to_action(bool show_save, uint32_t vis) {
+    if(show_save) {
+        if(vis == 0) return UhfListMenuItemSave;
+        if(vis == 1) return UhfListMenuItemSoundToggle;
+        return UhfListMenuItemAbout;
     }
-    return true;
+    if(vis == 0) return UhfListMenuItemSoundToggle;
+    return UhfListMenuItemAbout;
+}
+
+static uint32_t uhf_menu_count(bool show_save) {
+    return show_save ? 3 : 2;
+}
+
+static void uhf_menu_input_callback(InputEvent* event, void* context) {
+    UhfListMenuCtx* ctx = context;
+    if(!ctx || !event || !ctx->app) return;
+
+    /* Accept Short (tap) for all keys. Also accept Press for Back only. */
+    if(event->type == InputTypePress && event->key != InputKeyBack) return;
+    if(event->type != InputTypeShort && event->type != InputTypePress) return;
+
+    /* Back: exit and save, return to main screen */
+    if(event->key == InputKeyBack) {
+        ctx->submitted = true;
+        ctx->back_pressed = true;
+        return;
+    }
+
+    const bool show_save = (uhf_count_e2_tags(ctx->app) > 1);
+    const uint32_t max_idx = uhf_menu_count(show_save) - 1;
+
+    switch(event->key) {
+    case InputKeyUp:
+        if(ctx->selected > 0) ctx->selected--;
+        break;
+    case InputKeyDown:
+        if(ctx->selected < max_idx) ctx->selected++;
+        break;
+    case InputKeyLeft:
+    case InputKeyRight: {
+        const uint32_t action = uhf_menu_visual_to_action(show_save, ctx->selected);
+        if(action == UhfListMenuItemSoundToggle) {
+            ctx->app->tag_beep_enabled = !ctx->app->tag_beep_enabled;
+            /* Sound setting is not persisted — defaults to ON each launch */
+        }
+        break;
+    }
+    case InputKeyOk:
+        ctx->submitted = true;
+        if(ctx->dispatcher) view_dispatcher_stop(ctx->dispatcher);
+        return;
+    default:
+        break;
+    }
+
+    if(ctx->view_port) view_port_update(ctx->view_port);
 }
 
 static void uhf_show_list_menu(UhfApp* app) {
     if(!app || !app->gui || !app->view_port) return;
 
-    for(;;) {
-        Submenu* submenu = submenu_alloc();
-        ViewDispatcher* dispatcher = view_dispatcher_alloc();
-        if(!submenu || !dispatcher) {
-            if(submenu) submenu_free(submenu);
-            if(dispatcher) view_dispatcher_free(dispatcher);
-            return;
-        }
+    ViewPort* menu_vp = view_port_alloc();
+    if(!menu_vp) return;
 
-        UhfListMenuCtx menu_ctx = {
-            .dispatcher = dispatcher,
-            .selected = UhfListMenuItemSoundToggle,
-            .submitted = false,
-        };
+    UhfListMenuCtx ctx = {
+        .dispatcher = NULL,
+        .view_port = menu_vp,
+        .app = app,
+        .selected = 0,
+        .submitted = false,
+    };
 
-        submenu_set_header(submenu, "UHF Expansion");
-        submenu_add_item(
-            submenu,
-            app->tag_beep_enabled ? "Sound: ON" : "Sound: OFF",
-            UhfListMenuItemSoundToggle,
-            uhf_list_menu_submenu_callback,
-            &menu_ctx);
-        submenu_add_item(
-            submenu,
-            "Save",
-            UhfListMenuItemSave,
-            uhf_list_menu_submenu_callback,
-            &menu_ctx);
-        submenu_add_item(
-            submenu,
-            "About",
-            UhfListMenuItemAbout,
-            uhf_list_menu_submenu_callback,
-            &menu_ctx);
+    view_port_draw_callback_set(menu_vp, uhf_menu_draw_callback, &ctx);
+    view_port_input_callback_set(menu_vp, uhf_menu_input_callback, &ctx);
 
-        view_dispatcher_set_event_callback_context(dispatcher, &menu_ctx);
-        view_dispatcher_set_navigation_event_callback(dispatcher, uhf_list_menu_back_callback);
-        view_dispatcher_add_view(dispatcher, 0, submenu_get_view(submenu));
+    gui_remove_view_port(app->gui, app->view_port);
+    gui_add_view_port(app->gui, menu_vp, GuiLayerFullscreen);
+    view_port_update(menu_vp);
 
-        gui_remove_view_port(app->gui, app->view_port);
-        view_dispatcher_attach_to_gui(dispatcher, app->gui, ViewDispatcherTypeFullscreen);
-        view_dispatcher_switch_to_view(dispatcher, 0);
-        view_dispatcher_run(dispatcher);
+    ctx.submitted = false;
+    ctx.back_pressed = false;
 
-        view_dispatcher_remove_view(dispatcher, 0);
-        view_dispatcher_free(dispatcher);
-        submenu_free(submenu);
-
-        if(!menu_ctx.submitted) break;
-
-        if(menu_ctx.selected == UhfListMenuItemSoundToggle) {
-            app->tag_beep_enabled = !app->tag_beep_enabled;
-            uhf_set_status(app, app->tag_beep_enabled ? "Sound: ON" : "Sound: OFF");
-            continue;
-        }
-
-        uhf_list_menu_execute(app, menu_ctx.selected);
-        break;
+    while(!ctx.submitted && !app->exit_requested) {
+        furi_delay_ms(30);
+        view_port_update(menu_vp);
     }
 
+    bool exited_by_back = ctx.back_pressed;
+
+    if(!exited_by_back && ctx.submitted && !app->exit_requested) {
+        const bool show_save = (uhf_count_e2_tags(app) > 1);
+        const uint32_t action = uhf_menu_visual_to_action(show_save, ctx.selected);
+        uhf_list_menu_execute(app, action);
+    }
+
+    gui_remove_view_port(app->gui, menu_vp);
+    view_port_free(menu_vp);
     gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
 }
 
@@ -984,39 +1099,55 @@ static void uhf_run_startup_sequence(UhfApp* app) {
     if(!app) return;
 
     app->startup_active = true;
-    for(uint8_t i = 0; i < 6; i++) {
-        uhf_set_startup_text(app, "Loading", "Preparing UHF Expansion", (uint8_t)(i % 4U));
-        furi_delay_ms(100);
-    }
+    uhf_set_startup_text(app, "Loading", "Preparing UHF Expansion", 0);
 
-    bool requested = false;
+    /* Open serial at 115200 */
     bool got_version = false;
-    for(uint8_t i = 0; i < 12; i++) {
-        uhf_set_startup_text(app, "Getting version", "Checking module", (uint8_t)(i % 4U));
-
-        if(!requested) {
-            uhf_request_version(app);
-            requested = true;
-        }
-
-        uhf_process_rx(app);
-        if(uhf_has_version(app)) {
-            got_version = true;
-            break;
-        }
-        furi_delay_ms(80);
+    app->baud_rate = UHF_BAUD_RATE;
+    if(!uhf_open_bridge_uart(app)) {
+        goto startup_done;
     }
+    app->hardware_ready = true;
+
+    /* Start version detection without resetting the attached module. */
+    if(app->rx_stream) furi_stream_buffer_reset(app->rx_stream);
+    app->frame_buffer_len = 0;
+
+    /* Send version requests */
+    uhf_clear_version(app);
+    /* A reader that was already powered, or has only just been plugged in, can
+       take a couple of seconds to become responsive after reset. Keep probing
+       throughout that interval instead of relying on a short hot-plug window. */
+    for(uint8_t attempt = 0; attempt < 10 && !got_version; attempt++) {
+        uhf_set_startup_text(
+            app, "Initializing", "UHF Expansion", (uint8_t)(attempt % 4U));
+
+        uhf_request_version(app);
+
+        for(uint8_t w = 0; w < 15 && !got_version; w++) {
+            uhf_process_rx(app);
+            if(uhf_has_version(app)) {
+                got_version = true;
+                app->baud_probed = true;
+                break;
+            }
+            furi_delay_ms(20);
+        }
+    }
+
+startup_done:
 
     if(got_version) {
         char line[40];
-        snprintf(line, sizeof(line), "Version %s", app->version);
+        snprintf(line, sizeof(line), "Version %s @ %lu",
+            app->version, (unsigned long)app->baud_rate);
         uhf_set_startup_text(app, "Ready", line, 0);
         uhf_set_status(app, "Ready");
         furi_delay_ms(650);
     } else {
-        uhf_set_startup_text(app, "Version not found", "Please replug module", 0);
-        uhf_set_status(app, "No version, replug module");
-        furi_delay_ms(900);
+        uhf_set_startup_text(app, "Please replug", "UHF Expansion", 0);
+        uhf_set_status(app, "Please replug UHF Expansion");
+        furi_delay_ms(1000);
     }
 
     app->startup_active = false;
@@ -1060,9 +1191,13 @@ static bool uhf_bytes_to_hex(const uint8_t* data, size_t len, char* out, size_t 
 }
 
 static UhfTagEntry* uhf_find_or_add_tag(UhfApp* app, const char* epc_hex, bool* is_new_tag) {
+    const uint32_t now = furi_get_tick();
+
     for(size_t i = 0; i < UHF_MAX_TAGS; i++) {
         if(app->tags[i].used && strcmp(app->tags[i].epc, epc_hex) == 0) {
-            if(is_new_tag) *is_new_tag = false;
+            /* Deduplicate: if this same EPC was seen very recently, don't count as new */
+            const bool recent = (now - app->tags[i].last_seen) < 800U;
+            if(is_new_tag) *is_new_tag = !recent;
             return &app->tags[i];
         }
     }
@@ -1076,6 +1211,7 @@ static UhfTagEntry* uhf_find_or_add_tag(UhfApp* app, const char* epc_hex, bool* 
             strncpy(app->tags[i].epc, epc_hex, sizeof(app->tags[i].epc) - 1);
             app->tags[i].epc[sizeof(app->tags[i].epc) - 1] = '\0';
             app->tags[i].used = true;
+            app->tags[i].last_seen = 0; /* will be set by caller */
             app->tag_count++;
             if(is_new_tag) *is_new_tag = true;
             return &app->tags[i];
@@ -1150,9 +1286,15 @@ static bool uhf_send_command(UhfApp* app, uint8_t cmd, const uint8_t* payload, s
 }
 
 static bool uhf_ensure_hardware(UhfApp* app) {
-    if(app->hardware_ready) return true;
+    /* hardware_ready means the UART is configured. Reader presence is tracked
+       independently by the version response and retried from the main loop. */
+    if(app->hardware_ready && (app->serial || app->soft_uart_enabled)) return true;
 
-    uhf_force_direct_a6_a4(app);
+    const uint32_t desired_baud = app->baud_rate;
+
+    if(!app->serial && !app->soft_uart_enabled) {
+        uhf_force_direct_a6_a4(app);
+    }
     if(!app->serial) {
         uhf_set_status(app, "UART 13/14 open failed");
         return false;
@@ -1160,7 +1302,18 @@ static bool uhf_ensure_hardware(UhfApp* app) {
 
     app->hardware_ready = true;
 
-    bool probe_ok = uhf_probe_current_serial(app, UHF_BAUD_RATE_LOW);
+    bool probe_ok = false;
+
+    /* Try the desired baud rate */
+    if(desired_baud != 0) {
+        probe_ok = uhf_probe_current_serial(app, desired_baud);
+    }
+
+    /* Fall back to 115200 */
+    if(!probe_ok) {
+        probe_ok = uhf_probe_current_serial(app, UHF_BAUD_RATE);
+    }
+
     if(!probe_ok && app->serial) {
         const FuriHalSerialId current_id = app->serial_id;
         const FuriHalSerialId other_id =
@@ -1169,7 +1322,13 @@ static bool uhf_ensure_hardware(UhfApp* app) {
         uhf_diag_log(app, "Probe fail on %u, try %u", (unsigned)current_id, (unsigned)other_id);
         uhf_close_serial(app);
         if(uhf_open_serial(app, other_id)) {
-            probe_ok = uhf_probe_current_serial(app, UHF_BAUD_RATE_LOW);
+            /* Try desired baud first on the alternate serial port */
+            if(desired_baud != 0) {
+                probe_ok = uhf_probe_current_serial(app, desired_baud);
+            }
+            if(!probe_ok) {
+                probe_ok = uhf_probe_current_serial(app, UHF_BAUD_RATE);
+            }
         }
     }
 
@@ -1179,8 +1338,15 @@ static bool uhf_ensure_hardware(UhfApp* app) {
             uhf_set_status(app, "UART reopen failed");
             return false;
         }
-        app->baud_rate = UHF_BAUD_RATE_LOW;
+        app->baud_rate = UHF_BAUD_RATE;
         furi_hal_serial_set_br(app->serial, app->baud_rate);
+        /* Try the desired baud rate on the bridge UART */
+        if(desired_baud != 0) {
+            probe_ok = uhf_probe_current_serial(app, desired_baud);
+        }
+        if(!probe_ok) {
+            probe_ok = uhf_probe_current_serial(app, UHF_BAUD_RATE);
+        }
     }
 
     if(probe_ok && uhf_has_version(app)) {
@@ -1200,8 +1366,7 @@ static bool uhf_ensure_hardware(UhfApp* app) {
 
 static void uhf_apply_baud(UhfApp* app, uint32_t baud_rate) {
     if(app->soft_uart_enabled) {
-        app->baud_rate = UHF_BAUD_RATE_LOW;
-        uhf_set_status(app, "Soft UART fixed 9600");
+        app->baud_rate = UHF_BAUD_RATE;
         return;
     }
 
@@ -1224,17 +1389,20 @@ static void uhf_apply_baud(UhfApp* app, uint32_t baud_rate) {
     uhf_set_status(app, "Baud: %lu", (unsigned long)baud_rate);
 }
 
-static void __attribute__((unused)) uhf_toggle_baud(UhfApp* app) {
-    if(!uhf_ensure_hardware(app)) return;
-    uhf_apply_baud(app, UHF_BAUD_RATE_LOW);
-    uhf_set_status(app, "Baud fixed: 9600");
-}
+
+
+ static void __attribute__((unused)) uhf_apply_saved_baud(UhfApp* app) {
+     (void)app;
+ }
 
 static void uhf_stop_inventory(UhfApp* app) {
     static const uint8_t stop_frame[] = {0xA0, 0x03, 0x00, 0x8C, 0xD1};
     app->inventory_running = false;
     if(app->hardware_ready) {
-        (void)uhf_send_raw_frame(app, stop_frame, sizeof(stop_frame));
+        for(uint8_t i = 0; i < 3; i++) {
+            (void)uhf_send_raw_frame(app, stop_frame, sizeof(stop_frame));
+            furi_delay_ms(5);
+        }
     }
 }
 
@@ -2019,7 +2187,7 @@ static bool __attribute__((unused)) uhf_pick_and_open_serial(UhfApp* app) {
 }
 
 static bool __attribute__((unused)) uhf_probe_reader_startup(UhfApp* app) {
-    const uint32_t bauds[2] = {UHF_BAUD_RATE_LOW, UHF_BAUD_RATE_HIGH};
+    const uint32_t bauds[1] = {UHF_BAUD_RATE};
     char tx_label[12] = "N/A";
     char rx_label[12] = "N/A";
 
@@ -2027,7 +2195,7 @@ static bool __attribute__((unused)) uhf_probe_reader_startup(UhfApp* app) {
         return false;
     }
 
-    for(size_t i = 0; i < 2; i++) {
+    for(size_t i = 0; i < 1; i++) {
         if(uhf_probe_current_serial(app, bauds[i])) {
             uhf_format_pin_label(app->tx_ext_pin, tx_label, sizeof(tx_label));
             uhf_format_pin_label(app->rx_ext_pin, rx_label, sizeof(rx_label));
@@ -2048,7 +2216,7 @@ static bool __attribute__((unused)) uhf_probe_reader_startup(UhfApp* app) {
 
         uhf_close_serial(app);
         if(uhf_open_serial(app, other_id)) {
-            for(size_t i = 0; i < 2; i++) {
+            for(size_t i = 0; i < 1; i++) {
                 if(uhf_probe_current_serial(app, bauds[i])) {
                     uhf_format_pin_label(app->tx_ext_pin, tx_label, sizeof(tx_label));
                     uhf_format_pin_label(app->rx_ext_pin, rx_label, sizeof(rx_label));
@@ -2065,7 +2233,7 @@ static bool __attribute__((unused)) uhf_probe_reader_startup(UhfApp* app) {
 
         uhf_close_serial(app);
         (void)uhf_pick_and_open_serial(app);
-        uhf_apply_baud(app, UHF_BAUD_RATE_LOW);
+        uhf_apply_baud(app, UHF_BAUD_RATE);
     }
 
     uhf_set_status(app, "No version. Check or swap A6/A4");
@@ -2077,7 +2245,7 @@ static void uhf_toggle_serial_port(UhfApp* app) {
 
     // Keep LEFT-long as a deterministic recovery action: always re-apply fixed direct wiring.
     uhf_force_direct_a6_a4(app);
-    uhf_set_status(app, "UART reset 9600");
+    uhf_set_status(app, "UART reset 115200");
 }
 
 static void uhf_toggle_page(UhfApp* app) {
@@ -2113,10 +2281,11 @@ static UhfApp* uhf_app_alloc(void) {
     memset(app, 0, sizeof(UhfApp));
 
     app->tag_beep_enabled = true;
+    app->baud_probed = false;
     app->tx_ext_pin = -1;
     app->rx_ext_pin = -1;
     app->serial_id = FuriHalSerialIdUsart;
-    app->baud_rate = UHF_BAUD_RATE_LOW;
+    app->baud_rate = UHF_BAUD_RATE;
     uhf_set_status(app, "Init");
 
     app->data_mutex = furi_mutex_alloc(FuriMutexTypeRecursive);
@@ -2160,6 +2329,12 @@ static void uhf_app_free(UhfApp* app) {
 
     if(app->hardware_ready && (app->serial || app->soft_uart_enabled)) {
         uhf_stop_inventory(app);
+        /* Flush any remaining RX data so the module's state is clean */
+        if(app->rx_stream) {
+            furi_stream_buffer_reset(app->rx_stream);
+        }
+        app->frame_buffer_len = 0;
+        furi_delay_ms(20);
     }
 
     if(app->serial) {
@@ -2323,6 +2498,7 @@ int32_t uhf_expansion_app(void* p) {
         }
 
         const uint32_t now = furi_get_tick();
+
         if(now - app->last_redraw_tick > 180U) {
             app->last_redraw_tick = now;
             view_port_update(app->view_port);
