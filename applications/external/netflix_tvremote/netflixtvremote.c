@@ -227,7 +227,7 @@ int32_t netflixtvremote_app(void* p) {
     FURI_LOG_I("TEST", "Hello world");
     FURI_LOG_I("TEST", "I'm netflixtvremote!");
 
-    Gui* gui = furi_record_open("gui");
+    Gui* gui = furi_record_open(RECORD_GUI);
 
     // Allocate viewports for main grid and D-pad UI
     ViewPort* main_viewport = view_port_alloc();
@@ -264,7 +264,7 @@ int32_t netflixtvremote_app(void* p) {
     gui_remove_view_port(gui, main_viewport);
     view_port_free(main_viewport);
     view_port_free(dpad_viewport);
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
 
     return 0;
 }

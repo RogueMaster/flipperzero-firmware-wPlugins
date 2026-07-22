@@ -225,7 +225,7 @@ int main() {
     ViewPort* view_port = view_port_alloc();
     view_port_draw_callback_set(view_port, draw_callback, NULL);
     view_port_input_callback_set(view_port, input_callback, queue);
-    Gui* gui = (Gui*)furi_record_open("gui");
+    Gui* gui = (Gui*)furi_record_open(RECORD_GUI);
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
     dolphin_deed(DolphinDeedPluginGameStart);
     InputEvent event;

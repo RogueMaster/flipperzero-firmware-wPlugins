@@ -223,7 +223,7 @@ static void drifter_game_init_game(DrifterState* const drifter_state) {
     drifter_state->timer = furi_timer_alloc(
         drifter_game_update_timer_callback, FuriTimerTypePeriodic, drifter_state->event_queue);
     drifter_state->view_port = view_port_alloc();
-    drifter_state->gui = furi_record_open("gui");
+    drifter_state->gui = furi_record_open(RECORD_GUI);
 
     drifter_game_init_state(drifter_state);
     drifter_state->highscore = load_highscore();

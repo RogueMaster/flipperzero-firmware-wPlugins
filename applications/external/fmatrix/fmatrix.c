@@ -450,7 +450,7 @@ static void matrix_app_free(MatrixApp* app) {
     }
 
     if(app->gui != NULL) {
-        furi_record_close("gui");
+        furi_record_close(RECORD_GUI);
     }
 
     if(app->matrix_ctx.char_pool != NULL) {
@@ -471,7 +471,7 @@ int32_t matrix_app(void* p) {
 
     init_matrix_context(&app->matrix_ctx);
 
-    app->gui = furi_record_open("gui");
+    app->gui = furi_record_open(RECORD_GUI);
     app->viewport = view_port_alloc();
     view_port_input_callback_set(app->viewport, matrix_input_callback, app);
     view_port_draw_callback_set(app->viewport, matrix_render, app);

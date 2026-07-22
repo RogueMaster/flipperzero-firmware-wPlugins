@@ -107,7 +107,7 @@ static void hexlify(uint8_t* in, uint8_t size, char* out) {
 }
 
 static bool open_ducky_script(Stream* stream, PluginState* plugin_state) {
-    DialogsApp* dialogs = furi_record_open("dialogs");
+    DialogsApp* dialogs = furi_record_open(RECORD_DIALOGS);
     bool result = false;
     FuriString* path;
     path = furi_string_alloc();
@@ -120,7 +120,7 @@ static bool open_ducky_script(Stream* stream, PluginState* plugin_state) {
 
     bool ret = dialog_file_browser_show(dialogs, path, path, &browser_options);
 
-    furi_record_close("dialogs");
+    furi_record_close(RECORD_DIALOGS);
     if(ret) {
         if(!file_stream_open(stream, furi_string_get_cstr(path), FSAM_READ, FSOM_OPEN_EXISTING)) {
             FURI_LOG_D(TAG, "Cannot open file \"%s\"", furi_string_get_cstr(path));
@@ -136,7 +136,7 @@ static bool open_ducky_script(Stream* stream, PluginState* plugin_state) {
 }
 
 static bool open_addrs_file(Stream* stream) {
-    DialogsApp* dialogs = furi_record_open("dialogs");
+    DialogsApp* dialogs = furi_record_open(RECORD_DIALOGS);
     bool result = false;
     FuriString* path;
     path = furi_string_alloc();
@@ -149,7 +149,7 @@ static bool open_addrs_file(Stream* stream) {
 
     bool ret = dialog_file_browser_show(dialogs, path, path, &browser_options);
 
-    furi_record_close("dialogs");
+    furi_record_close(RECORD_DIALOGS);
     if(ret) {
         if(!file_stream_open(stream, furi_string_get_cstr(path), FSAM_READ, FSOM_OPEN_EXISTING)) {
             FURI_LOG_D(TAG, "Cannot open file \"%s\"", furi_string_get_cstr(path));

@@ -492,7 +492,7 @@ int32_t tree_ident_main(void* p) {
     view_port_input_callback_set(app.view_port, input_callback, &app);
 
     // Initialize GUI
-    app.gui = furi_record_open("gui");
+    app.gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(app.gui, app.view_port, GuiLayerFullscreen);
 
     // Input handling
@@ -768,7 +768,7 @@ int32_t tree_ident_main(void* p) {
     // Cleanup: Free all allocated resources
     view_port_enabled_set(app.view_port, false);
     gui_remove_view_port(app.gui, app.view_port);
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
     view_port_free(app.view_port);
 
     return 0;

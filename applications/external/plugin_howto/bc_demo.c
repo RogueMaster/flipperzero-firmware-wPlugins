@@ -548,7 +548,7 @@ int32_t bc_demo(void) {
     // ===== Create GUI Interface =====
 
     // 2. Create a GUI interface
-    if(!(gui = furi_record_open("gui"))) {
+    if(!(gui = furi_record_open(RECORD_GUI))) {
         ERROR(errs[(error = ERR_NO_GUI)]);
         goto bail;
     }
@@ -739,7 +739,7 @@ bail:
     }
 
     // 2. Close the GUI
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
 
     // 1. Destroy the message queue
     if(queue) {

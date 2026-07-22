@@ -187,18 +187,18 @@ void start_screen_blink(PomodoroApp* app, uint32_t duration_ms) {
     show_dialog(app, "Timer Alarm", "Time's Up!", 5000, ALARM_TYPE_NONE);
 
     // 2. Run the time-up sequence with fast blue LED blinking and beeps.
-    NotificationApp* notif = furi_record_open("notification");
+    NotificationApp* notif = furi_record_open(RECORD_NOTIFICATION);
     notification_message(notif, &sequence_timeup);
 
     // Wait for the sequence to complete (~1000ms should be sufficient)
     furi_delay_ms(1000);
 
     // Close the notification safely
-    furi_record_close("notification");
+    furi_record_close(RECORD_NOTIFICATION);
 }
 
 void toggle_backlight_with_vibro(PomodoroApp* app) {
-    NotificationApp* notif = furi_record_open("notification");
+    NotificationApp* notif = furi_record_open(RECORD_NOTIFICATION);
     if(app->backlight_on) {
         notification_message(notif, &sequence_display_backlight_off);
         app->backlight_on = false;
@@ -209,7 +209,7 @@ void toggle_backlight_with_vibro(PomodoroApp* app) {
     notification_message(notif, &sequence_single_vibro);
     furi_delay_ms(50);
     notification_message(notif, &sequence_single_vibro);
-    furi_record_close("notification");
+    furi_record_close(RECORD_NOTIFICATION);
 }
 
 void show_dialog(

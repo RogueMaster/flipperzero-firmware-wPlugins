@@ -73,7 +73,7 @@ int32_t fzspground_app(void* p) {
 
     srand(furi_get_tick() & 0xFFFFFFFF);
 
-    Gui* gui = furi_record_open("gui");
+    Gui* gui = furi_record_open(RECORD_GUI);
 
     view_dispatcher = view_dispatcher_alloc();
 
@@ -117,7 +117,7 @@ int32_t fzspground_app(void* p) {
 
     view_dispatcher_free(view_dispatcher);
 
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
 
     planet_clear();
     asteroid_clear();

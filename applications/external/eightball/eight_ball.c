@@ -86,7 +86,7 @@ int32_t eight_ball_app(void* p) {
     view_port_draw_callback_set(view_port, draw_scene, &context);
     view_port_input_callback_set(view_port, input_callback, &context);
 
-    Gui* gui = furi_record_open("gui");
+    Gui* gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
     while(1) {
@@ -110,7 +110,7 @@ int32_t eight_ball_app(void* p) {
 
     gui_remove_view_port(gui, view_port);
     view_port_free(view_port);
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
     furi_message_queue_free(context.event_queue);
 
     return 0;

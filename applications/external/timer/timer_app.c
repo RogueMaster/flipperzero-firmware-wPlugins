@@ -26,7 +26,7 @@ int32_t timer_app_main(void* p) {
         app->current_daily_record.fail_count = 0;
     }
 
-    app->gui = furi_record_open("gui");
+    app->gui = furi_record_open(RECORD_GUI);
     app->view_port = view_port_alloc();
     view_port_draw_callback_set(app->view_port, draw_callback, app);
     view_port_input_callback_set(app->view_port, input_callback, app);
@@ -57,7 +57,7 @@ int32_t timer_app_main(void* p) {
     save_daily_records(app);
     gui_remove_view_port(app->gui, app->view_port);
     view_port_free(app->view_port);
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
     free(app);
     return 0;
 }

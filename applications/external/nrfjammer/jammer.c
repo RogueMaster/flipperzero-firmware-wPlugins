@@ -351,7 +351,7 @@ int32_t jammer_app(void* p) {
                         break;
                     case InputKeyRight:
                         if(plugin_state->jam_type == 4 && !plugin_state->is_thread_running) {
-                            DialogsApp* dialogs = furi_record_open("dialogs");
+                            DialogsApp* dialogs = furi_record_open(RECORD_DIALOGS);
                             Storage* storage = furi_record_open(RECORD_STORAGE);
                             plugin_state->select_file_on_next_render = true;
                             Stream* file_stream = file_stream_alloc(storage);
@@ -367,7 +367,7 @@ int32_t jammer_app(void* p) {
                             furi_delay_ms(1000);
                             bool ret =
                                 dialog_file_browser_show(dialogs, path, path, &browser_options);
-                            furi_record_close("dialogs");
+                            furi_record_close(RECORD_DIALOGS);
                             if(ret) {
                                 if(!file_stream_open(
                                        file_stream,

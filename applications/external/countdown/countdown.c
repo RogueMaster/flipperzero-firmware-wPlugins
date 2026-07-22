@@ -624,7 +624,7 @@ int32_t countdown_app(void* p) {
     app.running = true;
     reset_game(&app);
 
-    app.gui = furi_record_open("gui");
+    app.gui = furi_record_open(RECORD_GUI);
     app.view_port = view_port_alloc();
 
     view_port_draw_callback_set(app.view_port, countdown_draw, &app);
@@ -665,7 +665,7 @@ int32_t countdown_app(void* p) {
 
     gui_remove_view_port(app.gui, app.view_port);
     view_port_free(app.view_port);
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
 
     return 0;
 }
