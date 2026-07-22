@@ -55,6 +55,8 @@ static int32_t file_read_worker_thread(void* context) {
 
     nsh_init_from_external_receive();
 
+    bool field_stopped = false;
+
     while(is_running) {
         nsh_idle();
         furi_delay_ms(NSH_IDLE_OPERATION);
@@ -70,6 +72,16 @@ static int32_t file_read_worker_thread(void* context) {
         state->counter = needed ? (received * 100) / needed : 0;
         if(finished) {
             state->reading_complete = true;
+            // Reception is over (Success or Hash failed): drop the RF field
+            // right away so it is off while the result screen waits for the
+            // user. Only signals the scheduler (the poller/field is torn down
+            // there); the full nfc_free stays in on_exit on the scene thread —
+            // calling it from this worker thread would fail furi_hal_nfc's
+            // owner check (furi_hal_nfc_is_mine) and crash.
+            if(!field_stopped) {
+                nfc_transport_stop_field();
+                field_stopped = true;
+            }
         }
 
         // Check if we should stop

@@ -35,6 +35,21 @@
 // carries at most one packet each way, so this directly bounds throughput.
 #define NFC_TP_POLL_PERIOD_MS 2u
 
+// SEARCH mode: period between single detect probes while no peer is linked.
+// One probe keeps the field on for only ~6 ms (5 ms guard time + one WUPA;
+// detect drops the field itself), so at 500 ms the field duty is ~1% — the
+// antenna stays cold — while discovery latency stays under the period. A
+// free-running poller cannot do better than ~50% duty: its failed activation
+// holds the field for a hardcoded ~105 ms (firmware error-path delay).
+#define NFC_TP_SEARCH_PERIOD_MS 500u
+
+// LINKED mode: how long after the last successful exchange the full poller
+// keeps fast-retrying (NfcCommandReset cycles, ~50% field duty) before the
+// link is declared lost and the transport falls back to duty-cycled SEARCH.
+// Short separations resume instantly; longer ones cost ~1% field duty and
+// resume on re-touch. Aligned with the engine's NSH_CONNECTED_IDLE_MS.
+#define NFC_TP_LINK_GRACE_MS 5000u
+
 // TX mailbox depth (packets) and how long nfc_transport_send() may block
 // waiting for a free slot. In normal operation this is the backpressure that
 // paces the sender's block stream (put unblocks within one exchange); the

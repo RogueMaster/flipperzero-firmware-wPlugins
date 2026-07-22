@@ -29,7 +29,13 @@ typedef struct {
     NfcTransportMode mode;
     Nfc* nfc;
     NfcListener* listener;
+    // Poller role: the poller instance is owned EXCLUSIVELY by the scheduler
+    // thread, which duty-cycles the RF field (see nfc_tp_scheduler_thread).
     NfcPoller* poller;
+    FuriThread* scheduler;
+    volatile bool scheduler_stop;
+    volatile bool dormant; // set by nfc_transport_stop_field(): drop the field, stay idle
+    volatile uint32_t last_success_ms; // last successful exchange (NfcWorker -> scheduler)
     FuriMessageQueue* tx_queue; // DATA packets waiting to go out (FIFO, paced)
     // Latest pending control packet (ANNOUNCE / REQUEST). Kept OUT of tx_queue
     // and always sent first, so a DATA stream can never starve control traffic —
@@ -145,8 +151,70 @@ static NfcCommand nfc_tp_poller_callback(NfcGenericEvent event, void* context) {
     nfc_tp_dispatch_rx(
         bit_buffer_get_data(tp->rx_frame), bit_buffer_get_size_bytes(tp->rx_frame));
 
+    tp->last_success_ms = furi_get_tick(); // link is alive — scheduler keeps the poller
+
     if(NFC_TP_POLL_PERIOD_MS) furi_delay_ms(NFC_TP_POLL_PERIOD_MS);
     return NfcCommandContinue;
+}
+
+// ===== Poller scheduler ======================================================
+// Duty-cycles the RF field so the receiver stays cold while there is no peer.
+//
+// SEARCH: one nfc_poller_detect() probe (field on only ~6 ms: 5 ms guard time +
+// one WUPA; detect drops the field itself via its internal nfc_stop) every
+// NFC_TP_SEARCH_PERIOD_MS — ~1% field duty vs ~50% of a free-running poller,
+// whose failed activation cannot take less than ~105 ms of field time (the
+// firmware holds the field through a hardcoded 100 ms delay on the error path).
+// The probe is alloc/detect/free each time, mirroring the stock nfc_scanner.
+//
+// LINKED: the full poller runs continuously (exchange errors fast-retry via
+// NfcCommandReset). When no exchange has succeeded for NFC_TP_LINK_GRACE_MS the
+// link is considered lost and we fall back to SEARCH — so a transfer separated
+// for minutes or hours costs ~1% field duty and still resumes on re-touch (the
+// protocol state lives in the engine and is untouched by these transitions).
+static int32_t nfc_tp_scheduler_thread(void* context) {
+    NfcTransport* tp = context;
+
+    while(!tp->scheduler_stop) {
+        // Dormant (transfer finished): field stays off, just idle until deinit.
+        if(tp->dormant) {
+            furi_delay_ms(50);
+            continue;
+        }
+
+        // ---- SEARCH ----
+        NfcPoller* probe = nfc_poller_alloc(tp->nfc, NfcProtocolIso14443_3a);
+        bool found = nfc_poller_detect(probe);
+        nfc_poller_free(probe);
+
+        if(!found || tp->dormant || tp->scheduler_stop) {
+            // Sleep out the period in slices so Back / stop-field act promptly.
+            for(uint32_t s = 0; s < NFC_TP_SEARCH_PERIOD_MS && !tp->scheduler_stop &&
+                                !tp->dormant;
+                s += 50) {
+                furi_delay_ms(50);
+            }
+            continue;
+        }
+
+        // ---- LINKED ----
+        FURI_LOG_I(TAG, "peer detected, starting poller");
+        tp->last_success_ms = furi_get_tick();
+        tp->poller = nfc_poller_alloc(tp->nfc, NfcProtocolIso14443_3a);
+        nfc_poller_start(tp->poller, nfc_tp_poller_callback, tp);
+
+        while(!tp->scheduler_stop && !tp->dormant &&
+              (furi_get_tick() - tp->last_success_ms) < NFC_TP_LINK_GRACE_MS) {
+            furi_delay_ms(100);
+        }
+
+        nfc_poller_stop(tp->poller);
+        nfc_poller_free(tp->poller);
+        tp->poller = NULL;
+        if(!tp->scheduler_stop && !tp->dormant) FURI_LOG_I(TAG, "link stale, back to search");
+    }
+
+    return 0;
 }
 
 // ===== Public API ============================================================
@@ -176,8 +244,11 @@ void nfc_transport_init(NfcTransportMode mode) {
         iso14443_3a_free(card); // nfc_listener_alloc stores its own copy
         nfc_listener_start(tp->listener, nfc_tp_listener_callback, tp);
     } else {
-        tp->poller = nfc_poller_alloc(tp->nfc, NfcProtocolIso14443_3a);
-        nfc_poller_start(tp->poller, nfc_tp_poller_callback, tp);
+        // The scheduler thread owns the poller and duty-cycles the field.
+        tp->scheduler_stop = false;
+        tp->dormant = false;
+        tp->scheduler = furi_thread_alloc_ex("NfcTpScheduler", 2048, nfc_tp_scheduler_thread, tp);
+        furi_thread_start(tp->scheduler);
     }
 
     nfc_tp = tp; // publish only when fully started
@@ -189,13 +260,16 @@ void nfc_transport_deinit(void) {
     if(!tp) return;
     nfc_tp = NULL; // sends become no-ops first
 
+    if(tp->scheduler) {
+        // The scheduler tears down the poller (if running) on its way out.
+        tp->scheduler_stop = true;
+        furi_thread_join(tp->scheduler);
+        furi_thread_free(tp->scheduler);
+        furi_assert(tp->poller == NULL);
+    }
     if(tp->listener) {
         nfc_listener_stop(tp->listener);
         nfc_listener_free(tp->listener);
-    }
-    if(tp->poller) {
-        nfc_poller_stop(tp->poller);
-        nfc_poller_free(tp->poller);
     }
     nfc_free(tp->nfc);
     bit_buffer_free(tp->tx_frame);
@@ -204,6 +278,15 @@ void nfc_transport_deinit(void) {
     furi_mutex_free(tp->ctrl_mutex);
     free(tp);
     FURI_LOG_I(TAG, "stopped");
+}
+
+void nfc_transport_stop_field(void) {
+    // Only sets a flag observed by the scheduler thread, so it is safe to call
+    // from any thread (unlike nfc_transport_deinit, whose nfc_free must run on
+    // the thread that allocated the Nfc instance). The scheduler stops the
+    // poller -> RF field off; the instance is fully freed later in deinit.
+    NfcTransport* tp = nfc_tp;
+    if(tp) tp->dormant = true;
 }
 
 void nfc_transport_send(const uint8_t* buf, size_t len) {

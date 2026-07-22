@@ -64,6 +64,15 @@ protocol is identical to the other Flipper Share builds; only the transport diff
 - Frame size is capped by the firmware's 256-byte NFC buffer; the DATA block size
   (`NSH_DATA_LENGTH`, default 240) is sized to fill one frame. All transport
   parameters live in `nfc_transport_config.h` (recompile to tune).
+- **Field management:** the reader's RF field is only kept up while a peer is
+  linked. While waiting for a sender (and after a link has been lost for more
+  than a short grace window), the receiver duty-cycles the field: one ~6 ms
+  detect probe every 500 ms (~1% duty) — the antenna stays cold and the battery
+  drain is negligible, at the cost of a sub-second discovery latency. A transfer
+  interrupted for minutes or hours therefore costs almost nothing while the
+  devices are apart, and resumes automatically when the antennas re-touch. Once
+  reception completes (Success / Hash failed screen) the field is switched off
+  entirely.
 
 ## Packet structure
 

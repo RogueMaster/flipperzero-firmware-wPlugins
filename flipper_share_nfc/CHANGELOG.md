@@ -21,6 +21,12 @@ v1.5: Flipper Share NFC — file transfer over the NFC channel
   and the sender adopts the receiver's latest REQUEST even while mid-serving. Fixes
   a rare stuck transfer where the receiver could never (re)lock because ANNOUNCE
   packets were being dropped from a DATA-saturated queue.
+- Power/field management on the receiver: while no peer is linked (waiting for a
+  sender, or a transfer separated for longer than a 5 s grace window) the RF field
+  is duty-cycled — one ~6 ms detect probe every 500 ms (~1% duty) instead of a
+  free-running poller (~50%), so the antenna stays cold and the battery lasts;
+  the transfer still resumes automatically on re-touch. The field is switched off
+  entirely once reception completes (result screen).
 - Builds with ufbt against the official firmware (no firmware modification); all
   NFC access goes through the official external app API.
 - Transport parameters (emulated card identity, poll pacing, frame wait time,

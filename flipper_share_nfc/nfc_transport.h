@@ -38,3 +38,8 @@ void nfc_transport_deinit(void);
 // packet if the transport is not running or the timeout expires — the
 // protocol's ARQ recovers from any loss.
 void nfc_transport_send(const uint8_t* buf, size_t len);
+
+// Stop energizing the RF field once the transfer is finished, without tearing
+// the transport down (that stays with nfc_transport_deinit on the scene thread).
+// Thread-safe: only signals the scheduler. No-op for the listener role.
+void nfc_transport_stop_field(void);
