@@ -168,6 +168,7 @@ void cfgload(FlipperHamApp* app) {
     storage_common_mkdir(storage, CFG_DIR);
 
     if(!storage_file_open(file, CFG_FILE, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        storage_file_close(file);
         storage_file_free(file);
         furi_record_close(RECORD_STORAGE);
         free(c);

@@ -82,13 +82,13 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [MP3 Player v3.5 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-mp3-player) [Direct File Launch from Archive Browser for MP3s (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/adbb8f652bef7869d152c77e2357738b9a87a224)
 - Updated: [Tesla Mod v2.16b17 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - Updated: [Android KB Bridge v0.5.4 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD) (Version Only)
-- Updated: [APRS TX v1.3.23 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
 - Updated: [Tasks v1.3 (By MadLadSquad)](https://github.com/MadLadSquad/FlipperTasks)
 - Added: [Ear Trainer v1.0 (By barismert98)](https://github.com/barismert98/flipper-ear-trainer)
 - Updated: [Calculator v1.4 (By n-o-T-I-n-s-a-n-e)](https://github.com/n-o-T-I-n-s-a-n-e)
 - Updated: [iButton Fuzzer v1.8 (By gid9798)](https://github.com/DarkFlippers/unleashed-firmware/pull/507)
 - Updated: [RFID Fuzzer v1.8 (By gid9798)](https://github.com/DarkFlippers/unleashed-firmware/pull/507)
 - Updated: [Hotspot Arcade v1.0.1 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32`
+- Updated: [APRS TX v1.3.24 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
 
 <a name="release"></a>
 
@@ -376,7 +376,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Anim Previewer v1.0 (By H4W9)](https://github.com/H4W9/AnimationPreviewerFlipperApp)
 - [Animation Switcher v1.1 (By lsalik2)](https://github.com/lsalik2/FlipperAnimationSwitcher)
 - [Answer Book v0.1 (By redbson)](https://github.com/redbson/The-Book-of-Answers)
-- [APRS TX v1.3.23 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
+- [APRS TX v1.3.24 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
 - [Argus v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Argus-FlipperZero) `Req: ESP32`
 - [ASCII Table v1.0 (By x10102)](https://github.com/x10102/flipper_ascii)
 - [Atari SIO Emulator v0.5 (By cepetr)](https://github.com/cepetr/sio2flip)
