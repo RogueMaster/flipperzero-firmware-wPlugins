@@ -19,9 +19,12 @@ typedef void (*HaFlashProgress)(
 // answers or `*cancel` goes true. On connect it calls `on_connected(cb_ctx)` (so
 // the caller can lock the UI), then flashes each image with MD5 verify.
 // Blocking — call from a worker thread. Returns true on success.
+// With `auto_boot` the DTR/RTS lines are pulsed once up front to drop the board
+// into download mode; otherwise the user does the BOOT/RESET dance by hand.
 bool ha_flasher_run(
     HaUart* uart,
     const char* manifest_path,
+    bool auto_boot,
     HaFlashProgress cb,
     void* cb_ctx,
     volatile bool* cancel,

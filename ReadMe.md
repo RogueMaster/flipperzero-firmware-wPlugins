@@ -93,7 +93,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Many apps updated with naming and stability improvements (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/de090ac427f7113fd5136faa1fd7d865ac035382)
 - Updated: [NFC Login v1.1.2 (By Play2BReal)](https://github.com/Play2BReal/NFC-Login)
 - Updated: [VK Thermo v1.1 (By VivoKey)](https://github.com/VivoKey/vkthermo-flipper)
-- Updated: [Hotspot Arcade v1.1 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32`
+- [Fix quick flash in ESP Flasher (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/392f176f7ed12bc27dcc58c5c458a995b431c9f2)
+- Updated: [Hotspot Arcade v1.1.1 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32` [Hotspot Arcade flasher, add support for autoboot, fix freeze on exit (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/5d6a16c77c2a17c4aca3cb9f9ab4ab511f1d4f64)
 
 <a name="release"></a>
 

@@ -28,6 +28,7 @@ static int32_t ha_flash_worker(void* ctx) {
     bool ok = ha_flasher_run(
         app->uart,
         furi_string_get_cstr(app->flash_manifest),
+        app->flash_auto_boot,
         ha_flash_progress_cb,
         app,
         &app->flash_cancel,
@@ -72,7 +73,9 @@ static void ha_flash_render(HotspotArcadeApp* app) {
             AlignCenter,
             AlignTop,
             FontSecondary,
-            "On the board: hold BOOT,\ntap RESET, release BOOT.\nWaiting for it...");
+            app->flash_auto_boot ?
+                "Putting the board into\ndownload mode...\nWaiting for it..." :
+                "On the board: hold BOOT,\ntap RESET, release BOOT.\nWaiting for it...");
     } else if(app->flash_phase == 1) {
         widget_add_string_element(
             app->widget, 64, 6, AlignCenter, AlignTop, FontPrimary, "Flashing...");

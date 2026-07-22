@@ -128,6 +128,7 @@ static esp_loader_error_t flash_image(
 bool ha_flasher_run(
     HaUart* uart,
     const char* manifest_path,
+    bool auto_boot,
     HaFlashProgress cb,
     void* ctx,
     volatile bool* cancel,
@@ -154,6 +155,12 @@ bool ha_flasher_run(
     // Take the serial line from the session worker, at the flash baud.
     ha_uart_suspend(uart);
     ha_esp_port_start(ha_uart_serial(uart), FLASH_BAUD);
+    // Let the port abort its waits as soon as Back is pressed, so the scene's
+    // on_exit join returns promptly instead of sitting through a library timeout.
+    ha_esp_port_set_cancel(cancel);
+
+    // Pulse the reset lines once (not per attempt) when the board supports it.
+    if(auto_boot && !(cancel && *cancel)) ha_esp_port_enter_bootloader();
 
     // Poll until the board answers in download mode. The stub loader is used
     // (esptool's default) — the bare ROM path fails flashing the ESP32-S2.
@@ -186,6 +193,7 @@ bool ha_flasher_run(
     }
 
 release:
+    ha_esp_port_set_cancel(NULL);
     ha_esp_port_stop();
     ha_uart_resume(uart);
 
