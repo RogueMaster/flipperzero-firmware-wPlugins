@@ -1,0 +1,61 @@
+Pack: Classic
+
+Word: planet
+---
+Word: guitar
+---
+Word: picture
+---
+Word: monster
+---
+Word: rainbow
+---
+Word: diamond
+---
+Word: kitchen
+---
+Word: bicycle
+---
+Word: dolphin
+---
+Word: penguin
+---
+Word: volcano
+---
+Word: pyramid
+---
+Word: compass
+---
+Word: blanket
+---
+Word: cactus
+---
+Word: harbor
+---
+Word: jungle
+---
+Word: magnet
+---
+Word: puzzle
+---
+Word: rocket
+---
+Word: sunset
+---
+Word: tiger
+---
+Word: violin
+---
+Word: wizard
+---
+Word: anchor
+---
+Word: bridge
+---
+Word: castle
+---
+Word: forest
+---
+Word: island
+---
+Word: orbit

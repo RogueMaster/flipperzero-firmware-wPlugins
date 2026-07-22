@@ -2,7 +2,7 @@
 // (no ArduinoJson): incoming messages are small and flat, so a shallow scan is
 // enough. Not a general JSON parser; good for `{"t":"answer","c":2}`-shaped data.
 #pragma once
-#include <Arduino.h>
+// #include <Arduino.h>
 
 // Find `"key"` then the following `:` and return a pointer just past the colon
 // (skipping spaces), or nullptr. Only scans the top level well enough for our

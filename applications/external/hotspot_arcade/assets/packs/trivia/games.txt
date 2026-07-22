@@ -1,0 +1,70 @@
+Pack: Player One
+Q: What color is Sonic the Hedgehog?
+A: Red
+B: Green
+C: Blue
+D: Yellow
+Answer: C
+---
+Q: In Minecraft, which creature explodes next to you?
+A: Zombie
+B: Creeper
+C: Skeleton
+D: Spider
+Answer: B
+---
+Q: Which company makes the PlayStation?
+A: Microsoft
+B: Nintendo
+C: Sony
+D: Sega
+Answer: C
+---
+Q: In Super Mario, which item gives an extra life?
+A: Coin
+B: Fire Flower
+C: Star
+D: 1-Up Mushroom
+Answer: D
+---
+Q: Pikachu is which type of Pokemon?
+A: Fire
+B: Water
+C: Electric
+D: Grass
+Answer: C
+---
+Q: What is the best-selling video game of all time?
+A: Tetris
+B: Minecraft
+C: GTA V
+D: Wii Sports
+Answer: B
+---
+Q: Which princess does Mario usually rescue?
+A: Zelda
+B: Peach
+C: Daisy
+D: Rosalina
+Answer: B
+---
+Q: In Pac-Man, what does Pac-Man eat to chase ghosts?
+A: Cherries
+B: Power Pellets
+C: Keys
+D: Bells
+Answer: B
+---
+Q: Which game popularized "battle royale" with 100 players?
+A: Halo
+B: Fortnite
+C: Doom
+D: Pong
+Answer: B
+---
+Q: Tetris pieces are made of how many blocks each?
+A: 3
+B: 4
+C: 5
+D: 6
+Answer: B

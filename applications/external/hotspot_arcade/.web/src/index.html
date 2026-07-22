@@ -15,9 +15,24 @@
   <span class="hdr-right">
     <button id="mute" class="mute" type="button" aria-label="Mute" aria-pressed="false">&#9834;</button>
     <span id="dot" class="dot warn" title="connection"></span>
-    <span id="hdr-nick"></span>
+    <button id="hdr-nick" class="hdr-id hide" type="button" aria-label="Change name and avatar"></button>
   </span>
 </header>
+
+<!-- Identity editor: tap the header name to change your nickname / avatar mid-game. -->
+<div id="id-edit" class="sheet hide">
+  <div class="sheet-card">
+    <p class="sub">Your nickname</p>
+    <input id="id-nick" maxlength="12" autocomplete="off" autocapitalize="characters"
+           spellcheck="false" placeholder="e.g. NOVA" style="text-transform:uppercase">
+    <p class="sub">Your avatar</p>
+    <div id="id-avatars" class="avatars"></div>
+    <div class="sheet-actions">
+      <button id="id-save" class="btn big">Save</button>
+      <button id="id-cancel" class="btn ghost big">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <!-- Reconnect banner -->
 <div id="netbar" class="netbar hide">Reconnecting...</div>
@@ -35,9 +50,11 @@
 
 <!-- 1. Landing / nickname -->
 <section id="landing" class="screen">
+  <!-- Logo, matching the README banner: pixel invader + wordmark + tagline. -->
   <div class="brand">
-    <div class="pixmark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-    <p class="tag">Local multiplayer. No internet needed.</p>
+    <svg class="logo-invader" viewBox="0 0 11 8" width="88" aria-hidden="true" shape-rendering="crispEdges" fill="currentColor"><rect x="2" y="0" width="1" height="1"/><rect x="8" y="0" width="1" height="1"/><rect x="3" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="2" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="4" y="2" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="7" y="2" width="1" height="1"/><rect x="8" y="2" width="1" height="1"/><rect x="1" y="3" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="4" y="3" width="1" height="1"/><rect x="5" y="3" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="8" y="3" width="1" height="1"/><rect x="9" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="1" y="4" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="3" y="4" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="6" y="4" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="4" width="1" height="1"/><rect x="9" y="4" width="1" height="1"/><rect x="10" y="4" width="1" height="1"/><rect x="0" y="5" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="3" y="5" width="1" height="1"/><rect x="4" y="5" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="5" width="1" height="1"/><rect x="7" y="5" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/><rect x="10" y="5" width="1" height="1"/><rect x="0" y="6" width="1" height="1"/><rect x="2" y="6" width="1" height="1"/><rect x="8" y="6" width="1" height="1"/><rect x="10" y="6" width="1" height="1"/><rect x="3" y="7" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="6" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/></svg>
+    <h1 class="wordmark-big"><span>HOTSPOT</span><span class="accent">ARCADE</span></h1>
+    <p class="tag">Offline · Multiplayer · No signal</p>
   </div>
   <label class="field">
     <span class="sub">Your nickname</span>
@@ -49,7 +66,6 @@
     <div id="avatars" class="avatars"></div>
   </div>
   <button id="play" class="btn big">Play</button>
-  <a id="openbrowser" class="hint-link" href="http://192.168.4.1/">Open in browser</a>
   <p class="hint">If this page closes, rejoin the WiFi and open
      <b>192.168.4.1</b> in your browser.</p>
 </section>
@@ -84,7 +100,7 @@
   <!-- Countdown -->
   <div id="tv-count" class="hide count">
     <div id="tv-count-topic" class="count-topic"></div>
-    <div id="tv-count-num" class="count-num">5</div>
+    <div id="tv-count-num" class="count-num">3</div>
     <div class="sub">Starting</div>
   </div>
 
@@ -187,14 +203,17 @@
     <header class="bar"><h2>Would You Rather</h2><span id="wyr-me" class="me"></span></header>
     <ul id="wyr-players" class="players"></ul>
     <button id="wyr-ready" class="btn big">I'm ready</button>
+    <p class="sub">Vote a pack</p>
+    <div id="wyr-topics" class="topics"></div>
   </div>
   <div id="wyr-count" class="hide count">
     <div class="count-topic">Would you rather</div>
-    <div id="wyr-count-num" class="count-num">5</div>
+    <div id="wyr-count-num" class="count-num">3</div>
     <div class="sub">Starting</div>
   </div>
   <div id="wyr-play" class="hide">
     <div class="bar"><span id="wyr-meta" class="me"></span><span id="wyr-tally" class="me"></span></div>
+    <div id="wyr-bar" class="timebar hide"><i></i></div>
     <div id="wyr-opts" class="wyr-opts"></div>
   </div>
   <div id="wyr-final" class="hide">
@@ -210,10 +229,12 @@
     <header class="bar"><h2>Word Scramble</h2><span id="scr-me" class="me"></span></header>
     <ul id="scr-players" class="players"></ul>
     <button id="scr-ready" class="btn big">I'm ready</button>
+    <p class="sub">Vote a pack</p>
+    <div id="scr-topics" class="topics"></div>
   </div>
   <div id="scr-count" class="hide count">
     <div class="count-topic">Unscramble</div>
-    <div id="scr-count-num" class="count-num">5</div>
+    <div id="scr-count-num" class="count-num">3</div>
     <div class="sub">Starting</div>
   </div>
   <div id="scr-play" class="hide">
@@ -242,7 +263,7 @@
   </div>
   <div id="rc-count" class="hide count">
     <div class="count-topic">Get ready</div>
-    <div id="rc-count-num" class="count-num">5</div>
+    <div id="rc-count-num" class="count-num">3</div>
     <div class="sub">Starting</div>
   </div>
   <div id="rc-arena" class="hide">
@@ -264,5 +285,28 @@
 </div>
 
 <div id="toast" class="toast hide"></div>
+
+<!-- Captive-browser handoff. iOS/Android open a Wi-Fi "captive" mini-browser that
+     can't hold a WebSocket, so the game just loops on "Reconnecting...". When we
+     detect that (only outside the real browser), this overlay tells the player how
+     to move to their full browser, with the address as a copiable field (a link
+     button can't hand off out of the captive window, so we don't pretend it can). -->
+<div id="captive" class="captive hide" role="dialog" aria-modal="true" aria-labelledby="captive-title">
+  <div class="captive-card">
+    <div id="captive-title" class="captive-title">Open in your browser</div>
+    <p class="captive-body">This Wi-Fi popup can&rsquo;t keep the game connected. To play,
+       leave it and open the game in your phone&rsquo;s browser:</p>
+    <ol class="captive-steps">
+      <li>Tap <b>Cancel</b>, then <b>Use Without Internet</b></li>
+      <li>Open your browser and go to this address:</li>
+    </ol>
+    <div class="captive-copy">
+      <input id="captive-url" class="captive-url" readonly value="192.168.4.1"
+             aria-label="Game address" spellcheck="false">
+      <button id="captive-copy" class="btn sm" type="button">Copy</button>
+    </div>
+    <button id="captive-dismiss" class="captive-dismiss" type="button">Dismiss</button>
+  </div>
+</div>
 
 <script>/*__JS__*/</script>

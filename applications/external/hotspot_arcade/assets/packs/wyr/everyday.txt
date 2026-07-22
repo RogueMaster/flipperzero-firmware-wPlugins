@@ -1,0 +1,37 @@
+Pack: Everyday
+
+A: Be able to fly
+B: Be invisible
+---
+A: Read minds
+B: See the future
+---
+A: Always be 10 min early
+B: Always be 5 min late
+---
+A: Never use the internet again
+B: Never watch films again
+---
+A: Fight one horse-sized duck
+B: 100 duck-sized horses
+---
+A: Live without music
+B: Live without TV
+---
+A: Have unlimited pizza
+B: Have unlimited tacos
+---
+A: Teleport anywhere
+B: Time travel
+---
+A: Talk to animals
+B: Speak every language
+---
+A: Always be too hot
+B: Always be too cold
+---
+A: No phone for a week
+B: No coffee for a month
+---
+A: Explore space
+B: Explore the deep ocean

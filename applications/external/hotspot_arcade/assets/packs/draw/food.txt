@@ -1,0 +1,41 @@
+Pack: Yum
+
+Word: pizza
+---
+Word: banana
+---
+Word: cupcake
+---
+Word: hotdog
+---
+Word: donut
+---
+Word: egg
+---
+Word: cherry
+---
+Word: carrot
+---
+Word: mushroom
+---
+Word: pineapple
+---
+Word: taco
+---
+Word: burger
+---
+Word: cheese
+---
+Word: grapes
+---
+Word: lollipop
+---
+Word: watermelon
+---
+Word: cookie
+---
+Word: popcorn
+---
+Word: strawberry
+---
+Word: sundae

@@ -122,107 +122,109 @@ static void json_escape_cat(FuriString* out, const char* s) {
     }
 }
 
-// Send one parsed question to the ESP as TRIVIA_Q {q,o[4],c}.
-static void trivia_send_q(HotspotArcadeApp* app, FuriString* q, FuriString* o[4], int correct) {
-    FuriString* j = furi_string_alloc();
-    furi_string_set(j, "{\"q\":\"");
-    json_escape_cat(j, furi_string_get_cstr(q));
-    furi_string_cat_str(j, "\",\"o\":[");
-    for(int k = 0; k < 4; k++) {
-        if(k) furi_string_cat_str(j, ",");
-        furi_string_cat_str(j, "\"");
-        json_escape_cat(j, furi_string_get_cstr(o[k]));
-        furi_string_cat_str(j, "\"");
-    }
-    furi_string_cat_printf(j, "],\"c\":%d}", correct);
+// Stream one pack file as generic blocks. The grammar is the whole contract:
+// "Key: value" lines; a line of "---", or a blank line, ends a block. A "Pack:" key
+// names the pack and is not part of an item. Everything else is shipped verbatim as
+// a JSON object of the file's own (lowercased) keys — this app deliberately does not
+// know what a question, prompt or word is. The ESP owns all of that.
+static void content_send_item(HotspotArcadeApp* app, FuriString* obj, bool* any) {
+    if(!*any) return; // nothing accumulated
+    furi_string_cat_str(obj, "}");
     ha_proto_send(
-        app->uart, HA_MSG_TRIVIA_Q, (const uint8_t*)furi_string_get_cstr(j), furi_string_size(j));
-    furi_string_free(j);
-    furi_delay_ms(2); // let the ESP drain its RX between messages
+        app->uart,
+        HA_MSG_CONTENT_ITEM,
+        (const uint8_t*)furi_string_get_cstr(obj),
+        furi_string_size(obj));
+    furi_string_set(obj, "{");
+    *any = false;
 }
 
-// Parse a pack file's text and stream it as a topic + its questions.
-static void trivia_stream_pack(HotspotArcadeApp* app, const char* content, const char* fallback) {
-    FuriString* name = furi_string_alloc();
-    FuriString* q = furi_string_alloc();
-    FuriString* o[4];
-    for(int k = 0; k < 4; k++)
-        o[k] = furi_string_alloc();
-    FuriString* tmp = furi_string_alloc();
-    int correct = 0, gotOpts = 0;
-    bool inQ = false, gotAns = false;
-
-    // topic name = the "Pack:" line if present, else the filename
-    const char* line = content;
-    while(*line) {
-        const char* eol = line;
-        while(*eol && *eol != '\n')
-            eol++;
-        const char* t = line;
-        while(t < eol && (*t == ' ' || *t == '\t'))
-            t++;
-        if(strncmp(t, "Pack:", 5) == 0) {
-            copy_trim(t + 5, eol, name);
+static void content_stream_pack(
+    HotspotArcadeApp* app,
+    uint8_t game,
+    const char* content,
+    const char* fallback) {
+    // Pass one: find the pack name so CONTENT_PACK can go first.
+    FuriString* name = furi_string_alloc_set_str(fallback);
+    for(const char* p = content; p && *p;) {
+        const char* eol = strchr(p, '\n');
+        if(!eol) eol = p + strlen(p);
+        if(strncmp(p, "Pack:", 5) == 0) {
+            FuriString* v = furi_string_alloc();
+            copy_trim(p + 5, eol, v);
+            if(furi_string_size(v)) furi_string_set(name, v);
+            furi_string_free(v);
             break;
         }
-        line = (*eol == '\n') ? eol + 1 : eol;
+        p = (*eol) ? eol + 1 : eol;
     }
-    if(furi_string_empty(name)) furi_string_set(name, fallback);
-    ha_proto_send_str(app->uart, HA_MSG_TRIVIA_TOPIC, furi_string_get_cstr(name));
-    furi_delay_ms(2);
 
-    // stream each question block
-    line = content;
-    while(*line) {
-        const char* eol = line;
-        while(*eol && *eol != '\n')
-            eol++;
-        const char* t = line;
-        while(t < eol && (*t == ' ' || *t == '\t'))
-            t++;
+    uint8_t hdr[1 + 64];
+    hdr[0] = game;
+    size_t nl = furi_string_size(name);
+    if(nl > sizeof(hdr) - 1) nl = sizeof(hdr) - 1;
+    memcpy(hdr + 1, furi_string_get_cstr(name), nl);
+    ha_proto_send(app->uart, HA_MSG_CONTENT_PACK, hdr, 1 + nl);
+    furi_string_free(name);
 
-        if(t[0] == 'Q' && t[1] == ':') {
-            if(inQ && gotOpts >= 4 && gotAns) trivia_send_q(app, q, o, correct);
-            inQ = true;
-            gotOpts = 0;
-            gotAns = false;
-            correct = 0;
-            copy_trim(t + 2, eol, q);
-            for(int k = 0; k < 4; k++)
-                furi_string_set(o[k], "");
-        } else if(inQ) {
-            if((t[0] >= 'A' && t[0] <= 'D') && t[1] == ':') {
-                copy_trim(t + 2, eol, o[t[0] - 'A']);
-                gotOpts++;
-            } else if(strncmp(t, "Answer:", 7) == 0) {
-                copy_trim(t + 7, eol, tmp);
-                char c = furi_string_size(tmp) ? furi_string_get_char(tmp, 0) : 'A';
-                if(c >= 'a') c = c - 'a' + 'A';
-                if(c >= 'A' && c <= 'D') {
-                    correct = c - 'A';
-                    gotAns = true;
+    // Pass two: blocks.
+    FuriString* obj = furi_string_alloc_set_str("{");
+    FuriString* key = furi_string_alloc();
+    FuriString* val = furi_string_alloc();
+    bool any = false;
+    for(const char* p = content; p && *p;) {
+        const char* eol = strchr(p, '\n');
+        if(!eol) eol = p + strlen(p);
+
+        // Trim the line to decide whether it is a separator.
+        const char* s = p;
+        const char* e = eol;
+        while(s < e && (*s == ' ' || *s == '\t' || *s == '\r'))
+            s++;
+        while(e > s && (e[-1] == ' ' || e[-1] == '\t' || e[-1] == '\r'))
+            e--;
+
+        bool sep = (s == e) || (e - s == 3 && strncmp(s, "---", 3) == 0);
+        if(sep) {
+            content_send_item(app, obj, &any);
+        } else {
+            const char* colon = memchr(s, ':', (size_t)(e - s));
+            if(colon) {
+                copy_trim(s, colon, key);
+                copy_trim(colon + 1, e, val);
+                // Keys are case-insensitive on the wire; "Pack:" is metadata, already
+                // consumed above, so it never becomes part of an item.
+                char* k = (char*)furi_string_get_cstr(key);
+                for(char* c = k; *c; c++)
+                    if(*c >= 'A' && *c <= 'Z') *c += 32;
+                if(furi_string_size(key) && strcmp(k, "pack") != 0) {
+                    if(any) furi_string_cat_str(obj, ",");
+                    furi_string_cat_str(obj, "\"");
+                    json_escape_cat(obj, k);
+                    furi_string_cat_str(obj, "\":\"");
+                    json_escape_cat(obj, furi_string_get_cstr(val));
+                    furi_string_cat_str(obj, "\"");
+                    any = true;
                 }
             }
         }
-        line = (*eol == '\n') ? eol + 1 : eol;
+        p = (*eol) ? eol + 1 : eol;
     }
-    if(inQ && gotOpts >= 4 && gotAns) trivia_send_q(app, q, o, correct);
-
-    furi_string_free(name);
-    furi_string_free(q);
-    for(int k = 0; k < 4; k++)
-        furi_string_free(o[k]);
-    furi_string_free(tmp);
+    content_send_item(app, obj, &any);
+    furi_string_free(obj);
+    furi_string_free(key);
+    furi_string_free(val);
 }
 
 #define HA_MAX_TOPICS (6)
 
 // Stream every .txt pack in one dir as votable topics, skipping names already streamed.
 // `seen` holds the filenames taken so far; *topics is the running total across dirs.
-static void ha_trivia_stream_dir(
+static void ha_content_stream_dir(
     HotspotArcadeApp* app,
     Storage* storage,
     const char* dir_path,
+    uint8_t game,
     char seen[HA_MAX_TOPICS][80],
     int* topics) {
     File* dir = storage_file_alloc(storage);
@@ -246,7 +248,8 @@ static void ha_trivia_stream_dir(
             if(ha_storage_read_file(furi_string_get_cstr(path), content, 16384)) {
                 FuriString* fb = furi_string_alloc_set_str(name);
                 furi_string_left(fb, nl - 4); // drop ".txt"
-                trivia_stream_pack(app, furi_string_get_cstr(content), furi_string_get_cstr(fb));
+                content_stream_pack(
+                    app, game, furi_string_get_cstr(content), furi_string_get_cstr(fb));
                 furi_string_free(fb);
                 strlcpy(seen[*topics], name, sizeof(seen[0]));
                 (*topics)++;
@@ -259,17 +262,51 @@ static void ha_trivia_stream_dir(
     storage_file_free(dir);
 }
 
-// Stream the trivia packs to the ESP as votable topics. User packs in apps_data go
-// first so they win both the name clash and the HA_MAX_TOPICS cap, then the packs
-// bundled in the fap fill whatever room is left.
-static void ha_trivia_stream_packs(HotspotArcadeApp* app) {
-    ha_proto_send(app->uart, HA_MSG_TRIVIA_CLEAR, NULL, 0);
+// Stream every pack to the ESP. User packs go first so they win both a name clash and
+// the topic cap, then the bundled ones fill what is left, then the legacy trivia-only
+// directories are swept for anything a user left there before the packs/ layout.
+static void ha_content_stream_packs(HotspotArcadeApp* app) {
+    ha_proto_send(app->uart, HA_MSG_CONTENT_CLEAR, NULL, 0);
     furi_delay_ms(2);
     Storage* storage = furi_record_open(RECORD_STORAGE);
+    // `seen`/`topics` de-duplicate and cap packs PER GAME (each game stores its own
+    // set on the ESP), so every game restarts `topics` at 0. The streaming itself is
+    // generic — only the directory it reads and the game byte it tags differ.
     char seen[HA_MAX_TOPICS][80];
+    FuriString* dir = furi_string_alloc();
+
+    // Trivia: packs/trivia (user, then bundled) plus the legacy trivia-only dirs, all
+    // under one cap so a pack appearing in several is streamed once. User wins a clash.
     int topics = 0;
-    ha_trivia_stream_dir(app, storage, HA_USER_TRIVIA_DIR, seen, &topics);
-    ha_trivia_stream_dir(app, storage, HA_BUNDLED_TRIVIA_DIR, seen, &topics);
+    furi_string_printf(dir, "%s/trivia", HA_USER_PACKS_DIR);
+    ha_content_stream_dir(app, storage, furi_string_get_cstr(dir), HA_GAME_TRIVIA, seen, &topics);
+    furi_string_printf(dir, "%s/trivia", HA_BUNDLED_PACKS_DIR);
+    ha_content_stream_dir(app, storage, furi_string_get_cstr(dir), HA_GAME_TRIVIA, seen, &topics);
+    ha_content_stream_dir(app, storage, HA_USER_TRIVIA_DIR, HA_GAME_TRIVIA, seen, &topics);
+    ha_content_stream_dir(app, storage, HA_BUNDLED_TRIVIA_DIR, HA_GAME_TRIVIA, seen, &topics);
+
+    // The other pack games. Same user-before-bundled precedence; each its own cap.
+    // Without this the packs bundled for wyr/scramble/draw never reach the ESP and
+    // those games start empty.
+    static const struct {
+        uint8_t game;
+        const char* sub;
+    } more[] = {
+        {HA_GAME_WYR, "wyr"},
+        {HA_GAME_SCRAMBLE, "scramble"},
+        {HA_GAME_DRAW, "draw"},
+    };
+    for(unsigned g = 0; g < sizeof(more) / sizeof(more[0]); g++) {
+        topics = 0;
+        furi_string_printf(dir, "%s/%s", HA_USER_PACKS_DIR, more[g].sub);
+        ha_content_stream_dir(
+            app, storage, furi_string_get_cstr(dir), more[g].game, seen, &topics);
+        furi_string_printf(dir, "%s/%s", HA_BUNDLED_PACKS_DIR, more[g].sub);
+        ha_content_stream_dir(
+            app, storage, furi_string_get_cstr(dir), more[g].game, seen, &topics);
+    }
+
+    furi_string_free(dir);
     furi_record_close(RECORD_STORAGE);
 }
 
@@ -300,9 +337,9 @@ static void send_config(HotspotArcadeApp* app) {
 // Stream file asset[file_idx], or advance to SET_AP when all files are sent.
 static void send_next_file(HotspotArcadeApp* app) {
     if(app->file_idx >= app->asset_count) {
-        // All files streamed: stream the trivia packs (as votable topics), then
+        // All files streamed: stream the content packs (as votable topics), then
         // name the AP and start.
-        ha_trivia_stream_packs(app);
+        ha_content_stream_packs(app);
         ha_proto_send_str(app->uart, HA_MSG_SET_AP, furi_string_get_cstr(app->ssid));
         app->hs = HaHsSetAp;
         return;
@@ -488,6 +525,8 @@ static void dispatch_frame(HotspotArcadeApp* app) {
            ha_json_str((const char*)p, "draw", ev, sizeof(ev))) {
             furi_string_set_str(app->last_event, ev);
             console_add(app, ev);
+        } else if(ha_json_str((const char*)p, "chat", ev, sizeof(ev))) {
+            console_add(app, ev); // lobby chatter, not a game status line
         }
         break;
     }

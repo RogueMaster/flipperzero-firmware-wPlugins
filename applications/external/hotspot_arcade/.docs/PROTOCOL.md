@@ -58,6 +58,15 @@ All control messages are framed so the link can resync after noise:
 | 0x19 | ROUND_END    | (none) — back to lobby for the active game |
 | 0x1A | CONFIG       | JSON: `{"max":8}` optional tuning |
 | 0x1B | RESET_SCORES | (none) — zero the ESP live score mirror |
+| 0x1C | CONTENT_CLEAR | (none) — drop all packs, for every game |
+| 0x1D | CONTENT_PACK | game byte + pack name — begin a pack for that game |
+| 0x1E | CONTENT_ITEM | JSON object of the file's own keys — append one item to the current pack |
+
+> Content is opaque to the Flipper. It parses only `Key: value` blocks and ships them
+> verbatim; every game's interpretation of those keys lives in the ESP firmware, so a new
+> content game needs no protocol change. Per-game item shapes (no new opcodes, just what
+> the ESP expects in each `CONTENT_ITEM` JSON object): trivia `{q,a,b,c,d,answer}`, wyr
+> `{a,b}` (the two options), scramble and draw `{word}` (a single plain word).
 
 **ESP -> Flipper**
 

@@ -1,0 +1,37 @@
+Pack: Superpowers
+
+A: Be able to fly
+B: Teleport anywhere
+---
+A: Be invisible
+B: Read minds
+---
+A: Have super strength
+B: Have super speed
+---
+A: Talk to animals
+B: Speak every language
+---
+A: Freeze time
+B: Rewind time
+---
+A: Breathe underwater
+B: Survive in space
+---
+A: Heal any wound instantly
+B: Never feel pain
+---
+A: Control fire
+B: Control water
+---
+A: Walk through walls
+B: Turn invisible
+---
+A: See one day into the future
+B: Change one thing in your past
+---
+A: Shrink to ant size
+B: Grow to giant size
+---
+A: Have telekinesis
+B: Have telepathy

@@ -28,8 +28,10 @@ reactions that float up on everyone's screen mid-game.
   in the lobby; an all-ready 5-second countdown starts it; phones buzz in A/B/C/D with
   points for correct and fast; a collapsible leaderboard rides along and a podium ends
   it. Topics are the trivia packs on the SD card.
-- **Would You Rather** — a live A/B poll; tap your pick, watch the split reveal.
+- **Would You Rather** — a live A/B poll; tap your pick, watch the split reveal. Prompts
+  are the wyr packs on the SD card, votable in the lobby.
 - **Word Scramble** — unscramble the word and type it first; fastest correct scores most.
+  Words are the scramble packs on the SD card, votable in the lobby.
 - **Reaction Duel** — fastest finger: wait for green, tap first to win, false-start and
   you're out for the round.
 
@@ -43,6 +45,8 @@ the Flipper leaderboard):
 
 - **Drawing & guessing** — one player draws on their phone canvas, everyone else guesses
   in a chat; points for the drawer and the first correct guess; rounds rotate the drawer.
+  Words are the draw packs on the SD card (no vote strip — the first pack streamed is
+  the one played).
 
 All games run on one pluggable engine on the ESP (the real-time referee), and the web
 client shares one implementation of the lobby, countdown, timer, leaderboard, and podium,
@@ -61,15 +65,15 @@ Pick a nickname and an emoji avatar, then land in the lobby:
   <img src="docs/img/web-trivia-final.png" alt="Trivia final podium" width="19%">
 </p>
 
-The whole-group party games (Would You Rather, Word Scramble, Reaction Duel) share the
-ready-up lobby, countdown, and the collapsible live leaderboard:
+The other phone games — the shared-lobby party games (Would You Rather, Word Scramble,
+Reaction Duel), Draw &amp; Guess, and a real-time Pong (animated below):
 
 <p align="center">
-  <img src="docs/img/web-wyr.png" alt="Would You Rather: A/B poll with the live vote split" width="19%">
+  <img src="docs/img/web-wyr.gif" alt="Would You Rather: A/B poll with the live vote split" width="19%">
   <img src="docs/img/web-scramble.png" alt="Word Scramble: unscramble the letters and type the word" width="19%">
   <img src="docs/img/web-react.png" alt="Reaction Duel: fastest finger with reaction time and leaderboard" width="19%">
-  <img src="docs/img/web-draw.png" alt="Draw &amp; Guess: shared canvas with a live guess chat" width="19%">
-  <img src="docs/img/web-pong.png" alt="Pong: real-time 1v1 rally with on-screen paddles" width="19%">
+  <img src="docs/img/web-draw.gif" alt="Draw &amp; Guess: the drawer's canvas with strokes forming and the secret word" width="19%">
+  <img src="docs/img/web-pong.gif" alt="Pong: real-time 1v1 rally with on-screen paddle controls" width="19%">
 </p>
 
 The 1v1 board duels (Connect Four, Tic-Tac-Toe, Dots &amp; Boxes, Reversi):
@@ -78,7 +82,7 @@ The 1v1 board duels (Connect Four, Tic-Tac-Toe, Dots &amp; Boxes, Reversi):
   <img src="docs/img/web-connect4.png" alt="Connect Four: 7x6 board mid-game, your turn" width="19%">
   <img src="docs/img/web-ttt.png" alt="Tic-Tac-Toe: 3x3 duel, your turn" width="19%">
   <img src="docs/img/web-dots.png" alt="Dots &amp; Boxes: claimed boxes and live score" width="19%">
-  <img src="docs/img/web-reversi.png" alt="Reversi/Othello: 8x8 board with legal-move hints and disc counts" width="19%">
+  <img src="docs/img/web-reversi.gif" alt="Reversi/Othello: 8x8 board with legal-move hints and disc counts" width="19%">
 </p>
 
 **On the Flipper** — the host device shows the app menu, the live broadcasting dashboard
@@ -110,7 +114,7 @@ Every game is phone-driven, so the Flipper just selects the game and watches the
 - The captive page hands off to the game web app at `http://192.168.4.1` (captive
   mini-browsers are too limited for WebSockets, so it is a "tap to open in your browser"
   handoff).
-- The Flipper streams the (gzipped) web bundle and trivia content to the ESP over a
+- The Flipper streams the (gzipped) web bundle and content packs to the ESP over a
   framed UART protocol, then orchestrates rounds. Real-time game traffic stays on the
   ESP and never crosses the slow UART. Protocol: [docs/PROTOCOL.md](docs/PROTOCOL.md).
 
@@ -119,7 +123,7 @@ Every game is phone-driven, so the Flipper just selects the game and watches the
 **You only need `hotspot_arcade.fap`.** Grab it from the
 [latest release](https://github.com/tarikbc/hotspot-arcade/releases/latest) and drop it in
 `/ext/apps/GPIO/` on the SD card (qFlipper, or the Flipper's own file manager). No SD
-setup, no separate downloads: the ESP firmware, the phone game bundle, and the trivia
+setup, no separate downloads: the ESP firmware, the phone game bundle, and the content
 packs all ship inside the .fap.
 
 > **First launch takes a few seconds.** The .fap carries ~850 KB of bundled content and
@@ -143,11 +147,12 @@ Prefer a computer? `firmware-merged.bin` on the release flashes at `0x0` with es
 
 ### Custom content
 
-The bundled web bundle and trivia packs live in `/ext/apps_assets/hotspot_arcade/`, which
+The bundled web bundle and content packs live in `/ext/apps_assets/hotspot_arcade/`, which
 the loader rewrites from the .fap on every launch. To add your own, use
 `/ext/apps_data/hotspot_arcade/` instead, which is never touched:
 
-- `trivia/*.txt` — your packs are offered alongside the bundled ones (yours win a name clash).
+- `packs/<game>/*.txt` — your packs are offered alongside the bundled ones (yours win a
+  name clash). One directory per game, e.g. `packs/trivia/`.
 - `web/` — a `manifest.json` here replaces the bundled game client entirely.
 
 ## Build from source
@@ -166,20 +171,40 @@ arduino-cli compile --fqbn esp32:esp32:esp32s2:PartitionScheme=huge_app \
 ```
 
 **3. Flipper app** — use the wrapper, not bare `ufbt`: it refreshes the bundled firmware
-images, web bundle, and trivia packs inside `assets/` before packaging.
+images, web bundle, and content packs inside `assets/` before packaging.
 ```sh
 tools/build-fap.sh                         # -> dist/hotspot_arcade.fap
 python3 tools/deploy-to-flipper.py --port /dev/cu.usbmodemflip_XXXX
 ```
 The deploy script pushes the fap to `/ext/apps/GPIO/` and your working copies of the web
-bundle and trivia packs to `/ext/apps_data/hotspot_arcade/`, where they override the
+bundle and content packs to `/ext/apps_data/hotspot_arcade/`, where they override the
 bundled ones — so you can iterate on the web client without rebuilding the fap.
+
+## Development
+
+You don't need a Flipper or an ESP board to work on the games. `sim/` compiles the
+**real** ESP game engine (`esp32/hotspot-arcade-fw/ha_games.h`) to WebAssembly and runs it
+in a browser page, with 2–8 phone panels (each an iframe of the real phone client) plus a
+data-faithful Flipper panel — enough to play and design games solo. It exists because an
+earlier JS reimplementation of the game rules drifted four games behind the firmware;
+running the real engine means it can't drift.
+
+```sh
+brew install emscripten     # one-time
+cd web && node build.mjs     # build the phone client
+cd .. && sim/engine/build.sh # build the engine
+sim/serve.sh                 # -> http://localhost:8123/sim/web/
+```
+
+Headless tests: `sim/test/all.sh`. Memory-bug hunting: `sim/engine/build.sh --asan &&
+sim/test/all.sh`. Full docs, including caveats and what still has to be hand-kept in sync
+with the firmware, in [sim/README.md](sim/README.md).
 
 ## Usage
 
 On the Flipper: **Apps → GPIO → [ESP32] Hotspot Arcade**.
 
-1. **Set the SSID** (optional). Trivia packs are picked up automatically.
+1. **Set the SSID** (optional). Content packs are picked up automatically.
 2. **Start Session** — the ESP brings up the AP; the dashboard shows **Broadcasting**.
 3. People **join the WiFi** and open `192.168.4.1`, pick a nickname, and land in the lobby.
 4. **Games** → pick a game. Everything is player-driven from the phones: the whole-group
@@ -188,12 +213,15 @@ On the Flipper: **Apps → GPIO → [ESP32] Hotspot Arcade**.
    **Pong** organize themselves too. The dashboard **Feed** watches events.
 5. **Leaderboard** shows live scores; **Console** shows the raw event log.
 
-## Trivia packs
+## Content packs
 
-Simple text files under `trivia-packs/` (`Pack:` / `Q:` / `A:`-`D:` / `Answer:`, blocks
-split by `---`). Three ship inside the .fap; drop your own into
-`/ext/apps_data/hotspot_arcade/trivia/` to add to them. See
-[trivia-packs/README.md](trivia-packs/README.md).
+Four games are content-driven from plain-text files under `packs/`, one directory per
+game (`trivia/`, `wyr/`, `scramble/`, `draw/`). Format: `Key: value` lines, blocks split
+by `---` or a blank line, `Pack:` names the pack. The keys are per game — Trivia uses
+`Q:`, `A:`-`D:` and `Answer:`; Would You Rather uses `A:` / `B:`; Word Scramble and
+Draw &amp; Guess use `Word:`. Six packs per game ship inside the .fap; drop your own into
+`/ext/apps_data/hotspot_arcade/packs/<game>/` to add to them (yours win a name clash). See
+[packs/README.md](packs/README.md).
 
 ## Responsible use
 
@@ -210,7 +238,8 @@ flipper/hotspot-arcade/   Flipper app (C, ufbt/Momentum) — host + scoreboard
 esp32/hotspot-arcade-fw/  ESP32-S2 firmware (Arduino) — AP + web + WebSocket referee
 esp32/libs/               vendored AsyncTCP + ESPAsyncWebServer
 web/                      phone game client (vanilla JS, gzipped bundle)
-trivia-packs/             sample trivia content
+packs/                    content packs, one dir per game (trivia, wyr, scramble, draw)
+sim/                      browser simulator — real engine compiled to WASM, no hardware
 tools/deploy-to-flipper.py
 docs/                     ARCHITECTURE.md, PROTOCOL.md
 ```

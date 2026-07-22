@@ -1,0 +1,70 @@
+Pack: Sound Check
+Q: Which band released "Bohemian Rhapsody"?
+A: The Beatles
+B: Queen
+C: Led Zeppelin
+D: Pink Floyd
+Answer: B
+---
+Q: How many strings does a standard guitar have?
+A: 4
+B: 5
+C: 6
+D: 7
+Answer: C
+---
+Q: Who is known as the "King of Pop"?
+A: Elvis Presley
+B: Prince
+C: Michael Jackson
+D: Freddie Mercury
+Answer: C
+---
+Q: Which instrument has 88 keys?
+A: Piano
+B: Harp
+C: Accordion
+D: Organ
+Answer: A
+---
+Q: "Purple Rain" is by which artist?
+A: David Bowie
+B: Prince
+C: Jimi Hendrix
+D: Lenny Kravitz
+Answer: B
+---
+Q: What does "forte" mean in music?
+A: Slow
+B: Fast
+C: Loud
+D: Soft
+Answer: C
+---
+Q: Which decade is most associated with disco?
+A: 1960s
+B: 1970s
+C: 1980s
+D: 1990s
+Answer: B
+---
+Q: The Beatles formed in which city?
+A: London
+B: Manchester
+C: Liverpool
+D: Birmingham
+Answer: C
+---
+Q: A group of four musicians is called a?
+A: Trio
+B: Quartet
+C: Quintet
+D: Duo
+Answer: B
+---
+Q: Who sang "Rolling in the Deep"?
+A: Adele
+B: Beyonce
+C: Rihanna
+D: Lady Gaga
+Answer: A

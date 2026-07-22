@@ -171,6 +171,31 @@ A.readyLobby = function (cfg) {
   return mine;
 };
 
+// Shared pack-vote strip for the party games (Would You Rather, Word Scramble).
+// Mirrors trivia's own inline topic-vote block (see trivia.js renderLobby),
+// just generalized: `cfg` names the container element, the packs list
+// ({name,votes}), the caller's current vote index, and a send callback, so
+// every pack-driven game votes the same way trivia already votes topics.
+A.packVote = function (cfg) {
+  var box = $(cfg.boxId);
+  if (!box) return;
+  box.innerHTML = "";
+  (cfg.packs || []).forEach(function (p, i) {
+    var b = document.createElement("button");
+    b.className = "topic" + (cfg.myvote === i ? " mine" : "");
+    // Pack names are committed content, not player input, but esc() anyway --
+    // cheap, and it keeps "never build innerHTML from an unescaped string" uniform.
+    b.innerHTML =
+      '<span class="txt">' + esc(p.name) + "</span>" +
+      '<span class="votes">' + (p.votes || 0) + "</span>";
+    b.addEventListener("click", function () {
+      A.sfx("buzz"); A.vibe(12);
+      cfg.onVote(i);
+    });
+    box.appendChild(b);
+  });
+};
+
 // Countdown number with a per-second tick + pop animation.
 A.countdown = function (numId, sec) {
   var n = $(numId);
@@ -235,7 +260,13 @@ function send(obj) {
 
 /* Header status dot: "" connected (orange), "warn" reconnecting, "bad" down. */
 function setDot(cls) { $("dot").className = "dot" + (cls ? " " + cls : ""); }
-function setNick() { $("hdr-nick").textContent = A.nick || ""; }
+function setNick() {
+  var el = $("hdr-nick");
+  if (!el) return;
+  // Show avatar + name, and only reveal (and enable tapping) once the player has one.
+  el.textContent = A.nick ? (A.avatar + " " + A.nick) : "";
+  el.classList.toggle("hide", !A.nick);
+}
 
 /* WebSocket URL derives from the host so a local mock server also works.
    On the ESP this resolves to ws://192.168.4.1/ws. */
@@ -245,10 +276,34 @@ function wsUrl() {
   return proto + "//" + host + "/ws";
 }
 
+/* The local simulator (sim/) runs the real ESP engine in WASM inside the parent
+   page, where there is no server to open a socket against. With "?harness=<id>"
+   the client asks the parent for a duck-typed socket instead. The client pulls
+   rather than the parent pushing, so this can't depend on script ordering.
+   Dead code in production: no query param and no parent harness, no change. */
+function harnessSocket() {
+  var q = new URLSearchParams(location.search);
+  if (!q.has("harness")) return null;
+  if (window.parent === window || !window.parent.HA_HARNESS) return null;
+  return window.parent.HA_HARNESS.connect(q.get("harness"));
+}
+
+/* Saved-identity key. Real phones are separate devices with separate storage, but
+   the simulator's panels are iframes on one origin sharing one localStorage, so
+   without this every panel would rejoin as whoever saved last. Namespacing by the
+   harness id also makes "returning player auto-rejoins" testable per panel, which
+   it otherwise isn't. Unchanged in production: no "?harness=", no suffix. */
+function storeKey(name) {
+  var h = new URLSearchParams(location.search).get("harness");
+  return h ? name + "_" + h : name;
+}
+
 function connect() {
-  var ws;
-  try { ws = new WebSocket(wsUrl()); }
-  catch (e) { scheduleReconnect(); return; }
+  var ws = harnessSocket();
+  if (!ws) {
+    try { ws = new WebSocket(wsUrl()); }
+    catch (e) { scheduleReconnect(); return; }
+  }
   A.ws = ws;
 
   ws.onopen = function () {
@@ -278,7 +333,26 @@ function scheduleReconnect() {
   }
   var wait = Math.min(1000 * Math.pow(1.6, A.retry), 8000);
   A.retry++;
+  maybeCaptive();
   setTimeout(connect, wait);
+}
+
+/* Captive-browser handoff. iOS/Android open a Wi-Fi "captive" mini-browser that
+   can't hold a WebSocket, so the socket just loops on reconnect. We only surface
+   the handoff overlay when we're NOT already in the real browser: in the mini
+   browser the page host is a probe domain (captive.apple.com, connectivitycheck…),
+   while a real browser is at the AP's 192.168.4.1. Never fires under the simulator
+   harness (its socket connects fine). */
+var captiveSnoozeUntil = 0;   // don't re-show until A.retry passes this (after a dismiss)
+function captiveEligible() {
+  if (new URLSearchParams(location.search).has("harness")) return false;
+  var h = location.hostname;
+  return !!h && h !== "192.168.4.1";
+}
+function maybeCaptive() {
+  // A couple of failed reconnects in a captive context means the socket won't hold.
+  if (!captiveEligible() || A.retry < 2 || A.retry < captiveSnoozeUntil) return;
+  show("captive");
 }
 
 /* Core message routing. Game-specific messages hand off to registered
@@ -340,7 +414,9 @@ function lobbyView(incEl, listEl, challenges) {
   });
 
   var iChallenged = challenges.some(function (c) { return c.from === A.pid; });
-  var others = (A.players || []).filter(function (p) { return p.pid !== A.pid; });
+  // Exclude yourself and anyone currently in a 1v1 match (playing or still on their
+  // over screen) — they can't be challenged until they come back to the lobby.
+  var others = (A.players || []).filter(function (p) { return p.pid !== A.pid && !p.busy; });
   listEl.innerHTML = "";
   if (!others.length) {
     var empty = document.createElement("li");
@@ -401,13 +477,21 @@ function startPlay() {
   // Uppercase to match how every name is shown (the ESP does the same on hello,
   // so this is just to avoid a flash of the typed casing before the echo lands).
   var n = $("nick").value.trim().slice(0, 12).toUpperCase();
-  if (!n) { $("nick").focus(); return; }
+  // Nobody should be stuck on the landing screen because they didn't want to think
+  // of a name. Give them one, and an avatar to match, rather than blocking on the
+  // empty field.
+  if (!n) {
+    n = randomNick();
+    A.avatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
+    $("nick").value = n;
+    buildAvatarPicker();
+  }
   A.nick = n;
   A.joined = true;
   setNick();
   A.initAudio();          // first gesture: unlock audio for the session
   A.sfx("start"); A.vibe(30);
-  try { localStorage.setItem("ha_nick", n); localStorage.setItem("ha_avatar", A.avatar); } catch (e) {}
+  try { localStorage.setItem(storeKey("ha_nick"), n); localStorage.setItem(storeKey("ha_avatar"), A.avatar); } catch (e) {}
   send({ t: "hello", nick: n, avatar: A.avatar });
   screen("lobby");
 }
@@ -422,28 +506,68 @@ A.avatarOf = avatarOf;
 // ---- avatar picker (landing) --------------------------------------------
 var AVATARS = ["🙂", "😎", "🤖", "👾", "🐱", "🐶", "🦊", "🐸",
                "🦄", "🐙", "🐼", "🐯", "🍕", "🌮", "👻", "🚀"];
-function buildAvatarPicker() {
-  var wrap = $("avatars");
+
+/* Fallback nickname for players who hit Play with the field empty. Kept to 12
+   chars (the input's maxlength) and picked from short words that read well in a
+   leaderboard row. The number keeps two silent players from colliding. */
+var NICK_WORDS = ["NOVA", "PIXEL", "TURBO", "GHOST", "MANGO", "COMET", "NINJA",
+                  "VOLT", "ZEBRA", "ROCKET", "TIGER", "DISCO", "FUZZY", "BANDIT"];
+function randomNick() {
+  var w = NICK_WORDS[Math.floor(Math.random() * NICK_WORDS.length)];
+  return w + (10 + Math.floor(Math.random() * 90));
+}
+/* Render the emoji grid into `wrap`, highlighting `current` and calling onPick(em)
+   on each tap. Shared by the landing picker and the header identity editor. */
+function renderAvatarPicker(wrap, current, onPick) {
   if (!wrap) return;
   wrap.innerHTML = "";
   AVATARS.forEach(function (em) {
     var b = document.createElement("button");
     b.type = "button";
-    b.className = "av-pick" + (em === A.avatar ? " on" : "");
+    b.className = "av-pick" + (em === current ? " on" : "");
     b.textContent = em;
     b.addEventListener("click", function () {
-      A.avatar = em;
       A.sfx("tick"); A.vibe(10);
       Array.prototype.forEach.call(wrap.children, function (c) {
         c.classList.toggle("on", c.textContent === em);
       });
+      onPick(em);
     });
     wrap.appendChild(b);
   });
 }
+// Landing picker: commits straight to A.avatar as before.
+function buildAvatarPicker() {
+  renderAvatarPicker($("avatars"), A.avatar, function (em) { A.avatar = em; });
+}
+
+/* Header identity editor. Tap the header name to change nickname/avatar mid-game;
+   Save re-sends `hello` (the ESP updates the player in place) and persists locally.
+   Edits are held in temporaries so Cancel changes nothing. */
+var editAvatar = "";
+function openIdEdit() {
+  if (!A.joined) return;
+  editAvatar = A.avatar;
+  $("id-nick").value = A.nick || "";
+  renderAvatarPicker($("id-avatars"), A.avatar, function (em) { editAvatar = em; });
+  show("id-edit");
+  $("id-nick").focus();
+}
+function closeIdEdit() { hide("id-edit"); }
+function saveIdEdit() {
+  var n = $("id-nick").value.trim().slice(0, 12).toUpperCase();
+  if (!n) { $("id-nick").focus(); return; }   // keep the old name rather than blanking it
+  A.nick = n;
+  A.avatar = editAvatar || A.avatar;
+  setNick();
+  A.sfx("start"); A.vibe(20);
+  try { localStorage.setItem(storeKey("ha_nick"), n); localStorage.setItem(storeKey("ha_avatar"), A.avatar); } catch (e) {}
+  send({ t: "hello", nick: n, avatar: A.avatar });
+  closeIdEdit();
+}
 
 // ---- emoji reactions (float up, in any screen) --------------------------
-var REACTS = ["👍", "😂", "🔥", "😮", "🎉", "❤️"];
+var REACTS = ["👍", "😂", "🔥", "😮", "🎉", "❤️", "😠"];
 function buildReactBar() {
   var row = $("react-row");
   if (!row) return;
@@ -463,26 +587,36 @@ function buildReactBar() {
 }
 // Float one emoji from the bottom; server echoes our own back so we don't
 // render locally (keeps every phone in sync, avoids a double).
-function floatReact(emoji, nick) {
+function floatReact(emoji, nick, avatar) {
   var layer = $("react-layer");
   if (!layer) return;
   var el = document.createElement("div");
   el.className = "float";
-  el.textContent = emoji;
-  el.style.left = (8 + Math.random() * 78) + "vw";
+  // Nicknames are player-typed, so these go in as text nodes. Never build this
+  // row by concatenating innerHTML.
+  var who = document.createElement("span");
+  who.className = "who";
+  who.textContent = (avatar || "") + " " + (nick || "");
+  var em = document.createElement("span");
+  em.className = "em";
+  em.textContent = emoji;
+  el.appendChild(who);
+  el.appendChild(em);
+  // Keep the whole pill on screen: it is wider than a bare glyph was.
+  el.style.left = (6 + Math.random() * 40) + "vw";
   layer.appendChild(el);
   setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 2200);
 }
 A.handlers.emoji = function (m) {
-  floatReact(m.emoji, m.nick);
+  floatReact(m.emoji, m.nick, m.avatar);
   if (m.pid !== A.pid) A.vibe(8);
 };
 
 function initApp() {
   var saved = "";
   try {
-    saved = (localStorage.getItem("ha_nick") || "").toUpperCase();
-    A.avatar = localStorage.getItem("ha_avatar") || A.avatar;
+    saved = (localStorage.getItem(storeKey("ha_nick")) || "").toUpperCase();
+    A.avatar = localStorage.getItem(storeKey("ha_avatar")) || A.avatar;
   } catch (e) {}
   A.nick = saved;
   A.joined = !!saved;   // returning player: rejoin automatically on connect
@@ -491,6 +625,13 @@ function initApp() {
   setDot("warn");       // not connected yet
   buildAvatarPicker();
   buildReactBar();
+
+  // Header identity: tap your name to change nickname/avatar mid-game.
+  $("hdr-nick").addEventListener("click", openIdEdit);
+  $("id-save").addEventListener("click", saveIdEdit);
+  $("id-cancel").addEventListener("click", closeIdEdit);
+  // Tap the dimmed backdrop (outside the card) to dismiss.
+  $("id-edit").addEventListener("click", function (e) { if (e.target === $("id-edit")) closeIdEdit(); });
 
   // Reactions FAB: tap to reveal the emoji row; the bar is hidden on landing.
   $("react-fab").addEventListener("click", function () {
@@ -507,6 +648,28 @@ function initApp() {
   $("play").addEventListener("click", startPlay);
   $("nick").addEventListener("keydown", function (e) {
     if (e.key === "Enter") startPlay();
+  });
+
+  // Captive handoff overlay: copy the address (execCommand works on the captive
+  // http page where the async clipboard API is blocked), or dismiss to peek at the
+  // lobby — it reappears if the socket keeps dropping.
+  $("captive-copy").addEventListener("click", function () {
+    var inp = $("captive-url");
+    inp.focus(); inp.select();
+    try { inp.setSelectionRange(0, inp.value.length); } catch (e) {}
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) {}
+    if (!ok && navigator.clipboard) {
+      try { navigator.clipboard.writeText(inp.value); ok = true; } catch (e) {}
+    }
+    var btn = $("captive-copy"), was = btn.getAttribute("data-label") || btn.textContent;
+    btn.setAttribute("data-label", was);
+    btn.textContent = ok ? "Copied!" : "Select & copy";
+    setTimeout(function () { btn.textContent = was; }, 1600);
+  });
+  $("captive-dismiss").addEventListener("click", function () {
+    hide("captive");
+    captiveSnoozeUntil = A.retry + 4;   // re-show only if it keeps dropping
   });
 
   // Lobby chat: emit {t:"say"}; the server broadcasts it back as {t:"chat"}.

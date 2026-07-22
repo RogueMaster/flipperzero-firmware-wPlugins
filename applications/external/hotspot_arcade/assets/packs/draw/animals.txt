@@ -1,0 +1,41 @@
+Pack: Critters
+
+Word: elephant
+---
+Word: penguin
+---
+Word: giraffe
+---
+Word: octopus
+---
+Word: snail
+---
+Word: spider
+---
+Word: turtle
+---
+Word: rabbit
+---
+Word: whale
+---
+Word: owl
+---
+Word: frog
+---
+Word: snake
+---
+Word: crab
+---
+Word: butterfly
+---
+Word: shark
+---
+Word: dolphin
+---
+Word: hedgehog
+---
+Word: kangaroo
+---
+Word: flamingo
+---
+Word: dinosaur

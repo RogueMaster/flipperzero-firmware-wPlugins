@@ -52,8 +52,10 @@
 
   // ---- question / reveal shared option rendering ----------------------------
   function head(m) {
+    // Question number first so it's never the part that gets truncated; the topic
+    // name follows and ellipsises if the row is tight.
     $("tv-qmeta").textContent =
-      (m.topic ? m.topic + " . " : "") + "Q" + ((m.i || 0) + 1) + " / " + (m.n || 0);
+      "Q" + ((m.i || 0) + 1) + " / " + (m.n || 0) + (m.topic ? " · " + m.topic : "");
   }
 
   function renderOpts(m, reveal, mine) {

@@ -262,19 +262,26 @@ static void dispatchFrame() {
             ENGINE_UNLOCK();
         }
         break;
-    case HA_MSG_TRIVIA_CLEAR:
+    case HA_MSG_CONTENT_CLEAR:
         ENGINE_LOCK();
-        engine.triviaTopicsClear();
+        engine.contentClear();
         ENGINE_UNLOCK();
         break;
-    case HA_MSG_TRIVIA_TOPIC:
-        ENGINE_LOCK();
-        engine.triviaAddTopic((const char*)rxBuf);
-        ENGINE_UNLOCK();
+    case HA_MSG_CONTENT_PACK:
+        // payload: game byte, then the pack name (not NUL-terminated on the wire).
+        if(rxLen >= 2) {
+            char name[64];
+            size_t n = rxLen - 1 < sizeof(name) - 1 ? (size_t)(rxLen - 1) : sizeof(name) - 1;
+            memcpy(name, rxBuf + 1, n);
+            name[n] = '\0';
+            ENGINE_LOCK();
+            engine.contentPack(rxBuf[0], name);
+            ENGINE_UNLOCK();
+        }
         break;
-    case HA_MSG_TRIVIA_Q:
+    case HA_MSG_CONTENT_ITEM:
         ENGINE_LOCK();
-        engine.triviaAddQ((const char*)rxBuf);
+        engine.contentItem((const char*)rxBuf);
         ENGINE_UNLOCK();
         break;
     case HA_MSG_ROUND_END:

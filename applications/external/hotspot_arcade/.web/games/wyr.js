@@ -11,13 +11,22 @@
     });
   }
 
+  function stopBar() { A.timebarStop("wyr-bar"); hide("wyr-bar"); }
+
   function renderLobby(m) {
     sub("lobby");
+    stopBar();
     myready = A.readyLobby({ players: m.players, listId: "wyr-players", readyId: "wyr-ready", meId: "wyr-me" });
+    A.packVote({
+      boxId: "wyr-topics",
+      packs: m.packs, myvote: m.myvote,
+      onVote: function (i) { send({ t: "vote", pack: i }); },
+    });
   }
 
   function renderCount(m) {
     sub("count");
+    stopBar();
     A.countdown("wyr-count-num", m.sec);
   }
 
@@ -26,6 +35,10 @@
     sub("play");
     var reveal = m.phase === "reveal";
     $("wyr-meta").textContent = "Would you rather... (" + m.round + " / " + m.rounds + ")";
+    // Countdown bar: the vote window while asking, the pause before the next prompt
+    // while revealing. Both carry deadline+dur, so the shared timebar drives both.
+    noteDeadline(m.deadline, m.dur);
+    A.timebar("wyr-bar", m.deadline, m.dur, true);
     var counts = m.counts || [0, 0];
     var total = counts[0] + counts[1];
     var mine = (typeof m.myvote === "number") ? m.myvote : -1;
@@ -33,6 +46,10 @@
     var wrap = $("wyr-opts");
     wrap.innerHTML = "";
     var locked = reveal || mine >= 0;
+    // Reflect THIS prompt's lock state on the container. Rebuilding innerHTML clears
+    // the children but not the wrap's own class, so without this a "locked" set on an
+    // earlier vote sticks forever and every later prompt silently ignores taps.
+    wrap.classList.toggle("locked", locked);
     [0, 1].forEach(function (i) {
       var pct = total ? Math.round((counts[i] / total) * 100) : 0;
       // A div (not <button>): form-control flex sizing mishandles the absolute
@@ -69,6 +86,7 @@
 
   function renderFinal() {
     sub("final");
+    stopBar();
     A.sfx("win"); A.vibe([20, 40, 20]);
   }
 

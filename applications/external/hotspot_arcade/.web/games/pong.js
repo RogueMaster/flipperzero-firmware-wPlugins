@@ -8,6 +8,8 @@
   var st = null;                 // latest server state
   var render = { bx: 0.5, by: 0.5 };  // smoothed ball for drawing
   var dir = 0;                   // current input direction
+  var lastServerX = 0.5;         // previous server ball x, to spot a bounce
+  var lastServerDir = 0;         // which way the server ball was last travelling
   var prevPhase = "";
   var prevS1 = 0, prevS2 = 0;
 
@@ -22,9 +24,22 @@
   function loop() {
     raf = requestAnimationFrame(loop);
     if (!st) return;
-    // Ease the drawn ball toward the latest server position.
-    render.bx += (st.ball.x - render.bx) * 0.4;
-    render.by += (st.ball.y - render.by) * 0.4;
+    // Ease the drawn ball toward the latest server position. The easing means the
+    // drawn ball trails the real one by roughly a frame and a half, which is fine
+    // mid-court but reads as "the ball bounced off nothing" at a paddle: the server
+    // has already reversed while the drawing is still short of the wall. So snap
+    // instead of easing on the frame the server reverses direction.
+    var sdir = st.ball.x > lastServerX ? 1 : (st.ball.x < lastServerX ? -1 : 0);
+    var reversed = sdir !== 0 && lastServerDir !== 0 && sdir !== lastServerDir;
+    if (sdir !== 0) lastServerDir = sdir;
+    lastServerX = st.ball.x;
+    if (reversed) {
+      render.bx = st.ball.x;
+      render.by = st.ball.y;
+    } else {
+      render.bx += (st.ball.x - render.bx) * 0.4;
+      render.by += (st.ball.y - render.by) * 0.4;
+    }
     paint();
   }
 
@@ -36,6 +51,9 @@
     cx.beginPath(); cx.moveTo(W / 2, 0); cx.lineTo(W / 2, H); cx.stroke();
     cx.setLineDash([]);
 
+    // PAD_W / BALL_R mirror PONG_PAD_W / PONG_BALL_R in ha_games.h, which places
+    // the engine's bounce plane. If they drift apart the ball reverses off empty
+    // space. The floors only bind on absurdly narrow canvases.
     var padW = Math.max(4, W * 0.02), padH = H * 0.22;
     var mine = st.me;   // 1 -> left paddle p1, 2 -> right paddle p2
     // Left paddle (p1).
@@ -44,7 +62,7 @@
     // Right paddle (p2).
     cx.fillStyle = mine === 2 ? "#FF8200" : "#EDEDE6";
     cx.fillRect(W - padW, st.p2 * H - padH / 2, padW, padH);
-    // Ball.
+    // Ball (half width mirrors PONG_BALL_R).
     var br = Math.max(3, W * 0.018);
     cx.fillStyle = "#F2F2EE";
     cx.fillRect(render.bx * W - br, render.by * H - br, br * 2, br * 2);

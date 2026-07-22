@@ -33,8 +33,6 @@ static void ha_lobby_button_cb(GuiButtonType result, InputType type, void* conte
     if(type != InputTypeShort) return;
     if(result == GuiButtonTypeLeft) {
         view_dispatcher_send_custom_event(app->view_dispatcher, HaEventPickGame);
-    } else if(result == GuiButtonTypeCenter) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, HaEventHostGame);
     } else if(result == GuiButtonTypeRight) {
         view_dispatcher_send_custom_event(app->view_dispatcher, HaEventShowLeaderboard);
     }
@@ -138,15 +136,9 @@ static void ha_dashboard(HotspotArcadeApp* app) {
     widget_add_string_element(
         app->widget, 127, 40, AlignRight, AlignTop, FontSecondary, game_name(app->active_game));
 
-    // Left picks the game; Right shows scores; Center hosts the active game
-    // (drive trivia questions, or watch the match feed).
+    // Left picks the game; Right shows scores. Games are player-driven, so there is no
+    // host-side game screen — the main menu's Console shows the live event feed.
     widget_add_button_element(app->widget, GuiButtonTypeLeft, "Games", ha_lobby_button_cb, app);
-    // Trivia runs itself (players ready up + vote on their phones); the other games
-    // are player-driven too but get a host feed view.
-    if(app->active_game != HA_GAME_NONE && app->active_game != HA_GAME_TRIVIA) {
-        widget_add_button_element(
-            app->widget, GuiButtonTypeCenter, "Feed", ha_lobby_button_cb, app);
-    }
     widget_add_button_element(app->widget, GuiButtonTypeRight, "Scores", ha_lobby_button_cb, app);
 
     furi_string_free(tmp);
@@ -240,10 +232,6 @@ bool hotspot_arcade_scene_lobby_on_event(void* context, SceneManagerEvent event)
         return true;
     case HaEventPickGame:
         scene_manager_next_scene(app->scene_manager, HaSceneGameSelect);
-        return true;
-    case HaEventHostGame:
-        if(app->active_game != HA_GAME_NONE && app->active_game != HA_GAME_TRIVIA)
-            scene_manager_next_scene(app->scene_manager, HaSceneHostDuel);
         return true;
     case HaEventShowLeaderboard:
         scene_manager_next_scene(app->scene_manager, HaSceneLeaderboard);

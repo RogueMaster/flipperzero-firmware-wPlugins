@@ -1,3 +1,19 @@
+## 1.0
+
+- Four games are now driven by plain-text content packs: Trivia, Would You Rather,
+  Word Scramble, and Draw & Guess. Six packs per game ship inside the app, and your own
+  packs in /ext/apps_data/hotspot_arcade/packs/<game>/ still take precedence.
+- New angry reaction emoji. Reactions are scoped to the people sharing your screen and
+  now show who sent them.
+- Lobby chat appears on the Flipper's Console, so the host can follow the chatter.
+- Boards render correctly in phone browsers, including on iOS/Safari (Reversi, Connect
+  Four, Tic-Tac-Toe).
+- Rematch after an opponent leaves returns you to the lobby, and you can't challenge
+  someone who is still on their win/lose screen.
+- A captive-Wi-Fi popup now points you to open the game in your real browser, where the
+  multiplayer connection is reliable.
+- Firmware v11.
+
 ## 0.3
 
 - Everything ships inside the app: the phone game bundle and trivia packs are bundled

@@ -16,6 +16,11 @@
     sub("lobby");
     A.hideLead();
     myready = A.readyLobby({ players: m.players, listId: "scr-players", readyId: "scr-ready", meId: "scr-me" });
+    A.packVote({
+      boxId: "scr-topics",
+      packs: m.packs, myvote: m.myvote,
+      onVote: function (i) { send({ t: "vote", pack: i }); },
+    });
   }
 
   function renderCount(m) {

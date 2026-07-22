@@ -45,8 +45,14 @@
 #define HA_FIRMWARE_DIR HA_ASSETS_DIR "/firmware"
 #define HA_DEFAULT_FW   HA_FIRMWARE_DIR "/flash.txt"
 
-#define HA_BUNDLED_WEB_DIR    HA_ASSETS_DIR "/web"
-#define HA_USER_WEB_DIR       HA_DATA_DIR "/web"
+#define HA_BUNDLED_WEB_DIR HA_ASSETS_DIR "/web"
+#define HA_USER_WEB_DIR    HA_DATA_DIR "/web"
+
+#define HA_BUNDLED_PACKS_DIR  HA_ASSETS_DIR "/packs"
+#define HA_USER_PACKS_DIR     HA_DATA_DIR "/packs"
+// Compatibility: packs used to live in a trivia-only directory. Still read so a
+// user's existing SD content does not vanish. Remove one release after the packs/
+// layout ships.
 #define HA_BUNDLED_TRIVIA_DIR HA_ASSETS_DIR "/trivia"
 #define HA_USER_TRIVIA_DIR    HA_DATA_DIR "/trivia"
 

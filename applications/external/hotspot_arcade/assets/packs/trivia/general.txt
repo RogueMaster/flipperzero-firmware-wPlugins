@@ -1,0 +1,106 @@
+Pack: General Knowledge
+Q: What is the capital of France?
+A: Paris
+B: London
+C: Berlin
+D: Madrid
+Answer: A
+---
+Q: How many continents are there on Earth?
+A: 5
+B: 6
+C: 7
+D: 8
+Answer: C
+---
+Q: What is the largest ocean on Earth?
+A: Atlantic
+B: Indian
+C: Arctic
+D: Pacific
+Answer: D
+---
+Q: Which country is home to the kangaroo?
+A: Brazil
+B: Australia
+C: India
+D: Kenya
+Answer: B
+---
+Q: How many sides does a hexagon have?
+A: 5
+B: 6
+C: 7
+D: 8
+Answer: B
+---
+Q: What is the tallest mountain above sea level?
+A: K2
+B: Mount Kilimanjaro
+C: Mount Everest
+D: Denali
+Answer: C
+---
+Q: Which language has the most native speakers?
+A: English
+B: Spanish
+C: Hindi
+D: Mandarin Chinese
+Answer: D
+---
+Q: What is the currency used in Japan?
+A: Yen
+B: Won
+C: Yuan
+D: Ringgit
+Answer: A
+---
+Q: How many colors are in a standard rainbow?
+A: 5
+B: 6
+C: 7
+D: 8
+Answer: C
+---
+Q: Which planet is known as the Red Planet?
+A: Venus
+B: Mars
+C: Jupiter
+D: Saturn
+Answer: B
+---
+Q: What is the longest river in the world?
+A: Amazon
+B: Yangtze
+C: Mississippi
+D: Nile
+Answer: D
+---
+Q: Which instrument has 88 keys?
+A: Guitar
+B: Piano
+C: Violin
+D: Harp
+Answer: B
+---
+Q: In which country would you find the Eiffel Tower?
+A: Italy
+B: Spain
+C: France
+D: Germany
+Answer: C
+---
+Q: How many minutes are in a full hour?
+A: 30
+B: 60
+C: 90
+D: 100
+Answer: B
+---
+Q: What is the largest country by land area?
+A: Canada
+B: China
+C: United States
+D: Russia
+Answer: D
+---

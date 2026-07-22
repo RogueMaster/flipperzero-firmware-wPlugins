@@ -2,7 +2,7 @@
 // Must stay byte-for-byte identical to the Flipper side (flipper/.../ha_proto.h)
 // and docs/PROTOCOL.md. Framed control messages + a raw-bulk escape for files.
 #pragma once
-#include <Arduino.h>
+// #include <Arduino.h>
 
 #define HA_UART_BAUD 921600
 #define HA_SYNC 0xA5
@@ -16,7 +16,7 @@
 #define HA_FW_MAGIC_1 0x41 // 'A'
 #define HA_FW_MAGIC_2 0x52 // 'R'
 #define HA_FW_MAGIC_3 0x43 // 'C'  ("HARC" = Hotspot ARCade)
-#define HA_FW_VERSION 7 // v7: nicknames uppercased on hello, so every screen shows them the same
+#define HA_FW_VERSION 11 // v11: 3s countdowns; WYR vote/reveal countdown bar
 
 // Flipper -> ESP
 enum {
@@ -32,9 +32,9 @@ enum {
     HA_MSG_ROUND_END = 0x19,
     HA_MSG_CONFIG = 0x1A,
     HA_MSG_RESET_SCORES = 0x1B,
-    HA_MSG_TRIVIA_CLEAR = 0x1C, // drop stored topics (start of pack streaming)
-    HA_MSG_TRIVIA_TOPIC = 0x1D, // payload = topic name; creates a topic
-    HA_MSG_TRIVIA_Q = 0x1E, // payload = JSON {q,o[4],c}; appends to the last topic
+    HA_MSG_CONTENT_CLEAR = 0x1C, // drop all packs, for every game
+    HA_MSG_CONTENT_PACK = 0x1D, // payload = game byte + pack name; begins a pack
+    HA_MSG_CONTENT_ITEM = 0x1E, // payload = JSON object of the file's own keys
 };
 
 // ESP -> Flipper

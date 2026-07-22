@@ -1,0 +1,37 @@
+Pack: Spooky
+
+A: Be chased by a ghost
+B: Be chased by a zombie
+---
+A: Live in a haunted house
+B: Live in a graveyard
+---
+A: Meet a vampire
+B: Meet a werewolf
+---
+A: Hear footsteps behind you
+B: Hear whispers in an empty room
+---
+A: Sleep in a haunted hotel
+B: Sleep in an abandoned asylum
+---
+A: Find a cursed doll
+B: Find a cursed mirror
+---
+A: Trick or treat in a storm
+B: Trick or treat in total silence
+---
+A: Be a witch
+B: Be a wizard
+---
+A: Get lost in a corn maze at midnight
+B: Get lost in the woods at midnight
+---
+A: Have a black cat cross your path
+B: Break a mirror
+---
+A: Watch a horror movie alone
+B: Tell ghost stories around a campfire
+---
+A: Wake up in a coffin
+B: Wake up in a fog-filled cemetery

@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Hotspot Arcade — simulator</title>
+<link rel="stylesheet" href="style.css">
+<header>
+  <strong>Hotspot Arcade simulator</strong>
+  <span class="hint">real engine (WASM) · phones are the real client</span>
+  <span class="spacer"></span>
+  <button id="add">+ phone</button>
+  <button id="remove">− phone</button>
+</header>
+<main>
+  <section id="phones"></section>
+  <aside id="flipper">
+    <h2>Flipper</h2>
+    <div id="flipper-body"></div>
+  </aside>
+</main>
+<script type="module">
+  import { addPhone, removePhone } from "./harness.js";
+  import { mountFlipper } from "./flipper.js";
+  document.getElementById("add").onclick = addPhone;
+  document.getElementById("remove").onclick = removePhone;
+  mountFlipper(document.getElementById("flipper-body"));
+</script>
