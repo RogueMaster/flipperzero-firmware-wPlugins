@@ -91,9 +91,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [DeFlock v0.43 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [Tesla Mod v2.16b20 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - ESP Flasher: [Bump Marauder v1.14.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.14.0)
-- Many apps updated with naming and stability improvements (By xMasterX)
+- [Many apps updated with naming and stability improvements (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/de090ac427f7113fd5136faa1fd7d865ac035382)
 - Updated: [NFC Login v1.1.2 (By Play2BReal)](https://github.com/Play2BReal/NFC-Login)
-- Updated: [VK Thermo v1.0 (By VivoKey)](https://github.com/VivoKey/vkthermo-flipper)
+- Updated: [VK Thermo v1.1 (By VivoKey)](https://github.com/VivoKey/vkthermo-flipper)
 
 <a name="release"></a>
 
@@ -892,7 +892,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Video Game Module Console v1.0 (By jblanked)](https://github.com/jblanked/Video-Game-Module-Console)
 - [Video Player v0.4 (By LTVA1)](https://github.com/LTVA1/flipper-zero-video-player)
 - [VIN Decoder v0.2 (By evillero)](https://github.com/evillero/vin_decoder)
-- [VK Thermo v1.0 (By VivoKey)](https://github.com/VivoKey/vkthermo-flipper)
+- [VK Thermo v1.1 (By VivoKey)](https://github.com/VivoKey/vkthermo-flipper)
 - [VL6180X Distance Sensor I2C v0.1 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/vl6180x) `Req: Adafruit VL6180X`
 - [Voltage Calculator v1.0 (By HappyAmos)](https://github.com/HappyAmos/Flipper_FAPS)
 - [Voyah Password v0.2 (By bolknote)](https://github.com/bolknote/Flipper-Zero-Voyah-Password)

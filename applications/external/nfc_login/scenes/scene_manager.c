@@ -5,6 +5,7 @@
 #include "cards/cards_scene.h"
 #include "cards/edit_callbacks.h"
 #include "../settings/nfc_login_settings.h"
+#include "../settings/nfc_login_notify.h"
 #include "../storage/nfc_login_card_storage.h"
 #include "../scan/nfc_login_scan.h"
 #include "../hid/nfc_login_hid.h"
@@ -195,9 +196,9 @@ static void app_file_browser_callback(void* context) {
         if(strstr(filename, ".kl") != NULL) {
             STRNCPY_SAFE(app->keyboard_layout, filename, sizeof(app->keyboard_layout));
             app_save_settings(app);
-            notification_message(app->notification, &sequence_success);
+            nfc_login_notify(app, NfcLoginNotifySuccess);
         } else {
-            notification_message(app->notification, &sequence_error);
+            nfc_login_notify(app, NfcLoginNotifyError);
         }
 
         app->selecting_keyboard_layout = false;
@@ -229,7 +230,7 @@ static void app_file_browser_callback(void* context) {
 #endif
         app_switch_to_view(app, ViewTextInput);
     } else {
-        notification_message(app->notification, &sequence_error);
+        nfc_login_notify(app, NfcLoginNotifyError);
         app_switch_to_view(app, ViewWidget);
     }
 }
@@ -366,7 +367,7 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                 } else if(app->settings_menu_index == 3) {
                     app->append_enter = !app->append_enter;
                     app_save_settings(app);
-                    notification_message(app->notification, &sequence_success);
+                    nfc_login_notify(app, NfcLoginNotifySuccess);
                     app_render_settings(app);
                     return true;
                 } else if(app->settings_menu_index == 4) {
@@ -388,19 +389,31 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                     app->passcode_sequence_len = 0;
                     memset(app->passcode_sequence, 0, sizeof(app->passcode_sequence));
                     app_switch_to_view(app, ViewPasscodeCanvas);
-                    notification_message(app->notification, &sequence_success);
+                    nfc_login_notify(app, NfcLoginNotifySuccess);
                     return true;
                 } else if(app->settings_menu_index == 5) {
                     bool current_state = get_passcode_disabled();
                     if(set_passcode_disabled(!current_state)) {
                         app_save_settings(app);
-                        notification_message(app->notification, &sequence_success);
+                        nfc_login_notify(app, NfcLoginNotifySuccess);
                     } else {
-                        notification_message(app->notification, &sequence_error);
+                        nfc_login_notify(app, NfcLoginNotifyError);
                     }
                     app_render_settings(app);
                     return true;
                 } else if(app->settings_menu_index == 6) {
+                    app->sound_enabled = !app->sound_enabled;
+                    app_save_settings(app);
+                    nfc_login_notify(app, NfcLoginNotifySuccess);
+                    app_render_settings(app);
+                    return true;
+                } else if(app->settings_menu_index == 7) {
+                    app->vibro_enabled = !app->vibro_enabled;
+                    app_save_settings(app);
+                    nfc_login_notify(app, NfcLoginNotifySuccess);
+                    app_render_settings(app);
+                    return true;
+                } else if(app->settings_menu_index == 8) {
                     app->widget_state = 5;
                     app->credits_page = 0;
                     widget_reset(app->widget);
@@ -419,7 +432,7 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                     }
 
                     app_save_settings(app);
-                    notification_message(app->notification, &sequence_success);
+                    nfc_login_notify(app, NfcLoginNotifySuccess);
                 } else if(app->settings_menu_index == 1) {
                     Storage* storage = furi_record_open(RECORD_STORAGE);
                     File* dir = storage_file_alloc(storage);
@@ -479,7 +492,7 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                             layouts[current_index],
                             sizeof(app->keyboard_layout));
                         app_save_settings(app);
-                        notification_message(app->notification, &sequence_success);
+                        nfc_login_notify(app, NfcLoginNotifySuccess);
                     }
                 } else if(app->settings_menu_index == 2) {
                     const uint16_t delays[] = {10, 50, 100, 200};
@@ -497,19 +510,27 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                     }
                     app->input_delay_ms = delays[current_idx];
                     app_save_settings(app);
-                    notification_message(app->notification, &sequence_success);
+                    nfc_login_notify(app, NfcLoginNotifySuccess);
                 } else if(app->settings_menu_index == 3) {
                     app->append_enter = !app->append_enter;
                     app_save_settings(app);
-                    notification_message(app->notification, &sequence_success);
+                    nfc_login_notify(app, NfcLoginNotifySuccess);
                 } else if(app->settings_menu_index == 5) {
                     bool current_state = get_passcode_disabled();
                     if(set_passcode_disabled(!current_state)) {
                         app_save_settings(app);
-                        notification_message(app->notification, &sequence_success);
+                        nfc_login_notify(app, NfcLoginNotifySuccess);
                     } else {
-                        notification_message(app->notification, &sequence_error);
+                        nfc_login_notify(app, NfcLoginNotifyError);
                     }
+                } else if(app->settings_menu_index == 6) {
+                    app->sound_enabled = !app->sound_enabled;
+                    app_save_settings(app);
+                    nfc_login_notify(app, NfcLoginNotifySuccess);
+                } else if(app->settings_menu_index == 7) {
+                    app->vibro_enabled = !app->vibro_enabled;
+                    app_save_settings(app);
+                    nfc_login_notify(app, NfcLoginNotifySuccess);
                 }
             }
             app_render_settings(app);
@@ -596,14 +617,14 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                             AlignTop,
                             FontSecondary,
                             "Press any button");
-                        notification_message(app->notification, &sequence_error);
+                        nfc_login_notify(app, NfcLoginNotifyError);
                         app->passcode_sequence_len = 0;
                         memset(app->passcode_sequence, 0, sizeof(app->passcode_sequence));
                         return true;
                     }
 
                     if(set_passcode_sequence(app->passcode_sequence)) {
-                        notification_message(app->notification, &sequence_success);
+                        nfc_login_notify(app, NfcLoginNotifySuccess);
 
                         furi_delay_ms(100);
 
@@ -624,7 +645,7 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                         app_switch_to_view(app, ViewSubmenu);
                         return true;
                     } else {
-                        notification_message(app->notification, &sequence_error);
+                        nfc_login_notify(app, NfcLoginNotifyError);
                         widget_reset(app->widget);
                         widget_add_string_element(
                             app->widget, 0, 0, AlignLeft, AlignTop, FontPrimary, "Setup Passcode");
@@ -668,7 +689,7 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                         }
                     } else {
                         // Max buttons reached - show notification
-                        notification_message(app->notification, &sequence_error);
+                        nfc_login_notify(app, NfcLoginNotifyError);
                     }
                 }
 
@@ -706,7 +727,7 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                         if(verify_passcode_sequence(app->passcode_sequence)) {
                             app->passcode_failed_attempts = 0;
                             app_load_cards(app);
-                            notification_message(app->notification, &sequence_success);
+                            nfc_login_notify(app, NfcLoginNotifySuccess);
 
                             app->passcode_sequence_len = 0;
                             memset(app->passcode_sequence, 0, sizeof(app->passcode_sequence));
@@ -760,11 +781,11 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                                     FontSecondary,
                                     "Press OK to continue");
                                 app_switch_to_view(app, ViewWidget);
-                                notification_message(app->notification, &sequence_error);
+                                nfc_login_notify(app, NfcLoginNotifyError);
                             } else {
                                 app->passcode_sequence_len = 0;
                                 memset(app->passcode_sequence, 0, sizeof(app->passcode_sequence));
-                                notification_message(app->notification, &sequence_error);
+                                nfc_login_notify(app, NfcLoginNotifyError);
 
                                 if(app->current_view != ViewPasscodeCanvas) {
                                     app_switch_to_view(app, ViewPasscodeCanvas);
@@ -795,7 +816,7 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                             app->passcode_sequence_len += name_len;
                         }
                     } else {
-                        notification_message(app->notification, &sequence_error);
+                        nfc_login_notify(app, NfcLoginNotifyError);
                     }
 
                     if(app->current_view != ViewPasscodeCanvas) {
@@ -830,7 +851,7 @@ bool app_widget_view_input_handler(InputEvent* event, void* context) {
                 app->has_active_selection = true;
                 app->active_card_index = app->selected_card;
                 app_save_settings(app);
-                notification_message(app->notification, &sequence_success);
+                nfc_login_notify(app, NfcLoginNotifySuccess);
             }
             app_render_card_list(app);
             return true;
@@ -870,9 +891,9 @@ static void app_delete_card_at_index(App* app, size_t index) {
     }
 
     if(app_save_cards(app)) {
-        notification_message(app->notification, &sequence_success);
+        nfc_login_notify(app, NfcLoginNotifySuccess);
     } else {
-        notification_message(app->notification, &sequence_error);
+        nfc_login_notify(app, NfcLoginNotifyError);
         FURI_LOG_E(TAG, "Failed to save after card deletion");
     }
 }
