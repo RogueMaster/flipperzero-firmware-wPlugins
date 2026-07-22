@@ -31,6 +31,6 @@ void fuzzer_view_attack_set_uid(FuzzerViewAttack* view, const FuzzerPayload* uid
 
 void fuzzer_view_update_state(FuzzerViewAttack* view, FuzzerAttackState state);
 
-uint8_t fuzzer_view_attack_get_time_delay(FuzzerViewAttack* view);
+uint16_t fuzzer_view_attack_get_time_delay(FuzzerViewAttack* view);
 
-uint8_t fuzzer_view_attack_get_emu_time(FuzzerViewAttack* view);
+uint16_t fuzzer_view_attack_get_emu_time(FuzzerViewAttack* view);

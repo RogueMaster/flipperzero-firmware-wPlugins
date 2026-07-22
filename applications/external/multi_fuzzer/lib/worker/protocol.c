@@ -630,6 +630,14 @@ uint8_t fuzzer_proto_get_def_idle_time() {
     return PROTOCOL_DEF_IDLE_TIME;
 }
 
+uint8_t fuzzer_proto_get_min_idle_time() {
+    return PROTOCOL_MIN_IDLE_TIME;
+}
+
+uint8_t fuzzer_proto_get_min_emu_time() {
+    return PROTOCOL_MIN_EMU_TIME;
+}
+
 const char* fuzzer_proto_get_menu_label(uint8_t index) {
     return fuzzer_menu_items[index].menu_label;
 }
