@@ -12,6 +12,14 @@ UHF RFID Reader/Writer expansion for Flipper Zero, communicating over UART bridg
 - **Save CSV Records** — Export scanned tags to CSV file on SD card
 - **About Page** — Version info and project links
 
+## Screenshots
+
+| Inventory | Tag List |
+|:--:|:--:|
+| ![Inventory screen](images/01.png) | ![Tag list screen](images/02.png) |
+| **Tag Details** | **Menu** |
+| ![Tag details screen](images/03.png) | ![Menu screen](images/04.png) |
+
 ## Hardware Setup
 
 ### Wiring (UART bridge mode)
