@@ -26,7 +26,7 @@ This software is for experimental purposes only and is not meant for any illegal
 
 <a name="latest"></a> 
 
-## Latest Updates - [PATREON: Latest Release RM0720-1735-f5b58d7b-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
+## Latest Updates - [PATREON: Latest Release RM0722-1620-e97e7c5c-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
 - Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-07-22 16:20 EST`
 - Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-07-22 16:20 EST`
