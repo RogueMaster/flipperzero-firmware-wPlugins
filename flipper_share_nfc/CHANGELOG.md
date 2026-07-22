@@ -26,7 +26,15 @@ v1.5: Flipper Share NFC — file transfer over the NFC channel
   is duty-cycled — one ~6 ms detect probe every 500 ms (~1% duty) instead of a
   free-running poller (~50%), so the antenna stays cold and the battery lasts;
   the transfer still resumes automatically on re-touch. The field is switched off
-  entirely once reception completes (result screen).
+  entirely once reception completes (result screen). The field is turned off from
+  the scene thread that owns the NFC HAL (a flag hands the actual teardown to the
+  scheduler), avoiding a cross-thread furi_hal_nfc ownership crash.
+- Sender-side card-emulation watchdog: the emulated card can rarely wedge (stop
+  answering activation) after many field on/off cycles, becoming invisible to any
+  reader while still "announcing". A watchdog now restarts the emulation whenever
+  no frame has completed for 5 s — it never fires during an active transfer (frames
+  flow continuously) and clears a stuck emulation otherwise, so the sender recovers
+  on its own instead of needing an app restart.
 - Builds with ufbt against the official firmware (no firmware modification); all
   NFC access goes through the official external app API.
 - Transport parameters (emulated card identity, poll pacing, frame wait time,

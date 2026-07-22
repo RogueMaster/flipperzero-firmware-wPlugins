@@ -32,10 +32,14 @@ typedef struct {
     // Poller role: the poller instance is owned EXCLUSIVELY by the scheduler
     // thread, which duty-cycles the RF field (see nfc_tp_scheduler_thread).
     NfcPoller* poller;
+    // Poller role: `scheduler` runs nfc_tp_scheduler_thread (duty-cycles the field).
+    // Listener role: `scheduler` runs nfc_tp_listener_watchdog_thread (restarts a
+    // wedged card emulation). A transport is one role only, so the field is reused.
     FuriThread* scheduler;
     volatile bool scheduler_stop;
     volatile bool dormant; // set by nfc_transport_stop_field(): drop the field, stay idle
     volatile uint32_t last_success_ms; // last successful exchange (NfcWorker -> scheduler)
+    volatile uint32_t last_frame_ms; // listener: last completed RX frame (NfcWorker -> watchdog)
     FuriMessageQueue* tx_queue; // DATA packets waiting to go out (FIFO, paced)
     // Latest pending control packet (ANNOUNCE / REQUEST). Kept OUT of tx_queue
     // and always sent first, so a DATA stream can never starve control traffic —
@@ -86,6 +90,32 @@ static void nfc_tp_dispatch_rx(const uint8_t* data, size_t len) {
 }
 
 // ===== Listener (sender) side ================================================
+
+static NfcCommand nfc_tp_listener_callback(NfcGenericEvent event, void* context);
+
+// Build the emulated card and start answering polls. Also used by the watchdog
+// to recover a wedged emulation; re-running nfc_config resets the ST25R3916
+// target automaton (GOTO_SENSE + auto-collision-resolution re-enabled).
+static void nfc_tp_listener_bringup(NfcTransport* tp) {
+    const uint8_t uid[NFC_TP_UID_LEN] = NFC_TP_UID;
+    const uint8_t atqa[2] = NFC_TP_ATQA;
+    Iso14443_3aData* card = iso14443_3a_alloc();
+    iso14443_3a_set_uid(card, uid, NFC_TP_UID_LEN);
+    iso14443_3a_set_atqa(card, atqa);
+    iso14443_3a_set_sak(card, NFC_TP_SAK);
+    tp->listener = nfc_listener_alloc(tp->nfc, NfcProtocolIso14443_3a, (const NfcDeviceData*)card);
+    iso14443_3a_free(card); // nfc_listener_alloc stores its own copy
+    nfc_listener_start(tp->listener, nfc_tp_listener_callback, tp);
+}
+
+static void nfc_tp_listener_teardown(NfcTransport* tp) {
+    if(tp->listener) {
+        nfc_listener_stop(tp->listener);
+        nfc_listener_free(tp->listener);
+        tp->listener = NULL;
+    }
+}
+
 // Runs on the NfcWorker thread. Every valid frame from the poller gets exactly
 // one response: the next pending packet or an empty poll frame. Frames that
 // don't carry the transport header (a foreign reader) are left unanswered.
@@ -95,6 +125,10 @@ static NfcCommand nfc_tp_listener_callback(NfcGenericEvent event, void* context)
     Iso14443_3aListenerEvent* e = event.event_data;
 
     if(e->type == Iso14443_3aListenerEventTypeReceivedStandardFrame) {
+        // A completed standard frame proves the emulation is answering — feed
+        // the watchdog so it only restarts a genuinely wedged/idle listener.
+        tp->last_frame_ms = furi_get_tick();
+
         const uint8_t* rx = bit_buffer_get_data(e->data->buffer);
         size_t rx_len = bit_buffer_get_size_bytes(e->data->buffer);
 
@@ -217,6 +251,34 @@ static int32_t nfc_tp_scheduler_thread(void* context) {
     return 0;
 }
 
+// ===== Listener watchdog =====================================================
+// The card emulation (ST25R3916 passive-target automaton) can, rarely, get
+// stuck after many rapid field on/off cycles: it stops answering activation, so
+// no reader — not even a fresh one — can see it, while our protocol worker keeps
+// producing announces. The listener has no self-recovery for this. This thread
+// restarts the emulation whenever no standard frame has completed for
+// NFC_TP_LISTENER_WATCHDOG_MS: during an active transfer frames arrive
+// continuously (so it never fires), and while idle/lost/wedged a restart is free
+// and clears the stuck state. Protocol state lives in the engine and is
+// untouched, so a transfer resumes after recovery.
+static int32_t nfc_tp_listener_watchdog_thread(void* context) {
+    NfcTransport* tp = context;
+
+    while(!tp->scheduler_stop) {
+        furi_delay_ms(250); // slice so deinit exits promptly
+        if(tp->scheduler_stop) break;
+
+        if((furi_get_tick() - tp->last_frame_ms) > NFC_TP_LISTENER_WATCHDOG_MS) {
+            FURI_LOG_I(TAG, "listener idle/wedged, restarting emulation");
+            nfc_tp_listener_teardown(tp);
+            nfc_tp_listener_bringup(tp);
+            tp->last_frame_ms = furi_get_tick();
+        }
+    }
+
+    return 0;
+}
+
 // ===== Public API ============================================================
 
 void nfc_transport_init(NfcTransportMode mode) {
@@ -232,21 +294,17 @@ void nfc_transport_init(NfcTransportMode mode) {
     tp->tx_frame = bit_buffer_alloc(NFC_TP_FRAME_PAYLOAD_MAX + 2u);
     tp->rx_frame = bit_buffer_alloc(NFC_TP_FRAME_PAYLOAD_MAX + 2u);
 
+    tp->scheduler_stop = false;
+    tp->dormant = false;
     if(mode == NfcTransportModeListener) {
-        const uint8_t uid[NFC_TP_UID_LEN] = NFC_TP_UID;
-        const uint8_t atqa[2] = NFC_TP_ATQA;
-        Iso14443_3aData* card = iso14443_3a_alloc();
-        iso14443_3a_set_uid(card, uid, NFC_TP_UID_LEN);
-        iso14443_3a_set_atqa(card, atqa);
-        iso14443_3a_set_sak(card, NFC_TP_SAK);
-        tp->listener =
-            nfc_listener_alloc(tp->nfc, NfcProtocolIso14443_3a, (const NfcDeviceData*)card);
-        iso14443_3a_free(card); // nfc_listener_alloc stores its own copy
-        nfc_listener_start(tp->listener, nfc_tp_listener_callback, tp);
+        tp->last_frame_ms = furi_get_tick();
+        nfc_tp_listener_bringup(tp);
+        // Watchdog restarts the emulation if it ever stops answering.
+        tp->scheduler =
+            furi_thread_alloc_ex("NfcTpLisWd", 2048, nfc_tp_listener_watchdog_thread, tp);
+        furi_thread_start(tp->scheduler);
     } else {
         // The scheduler thread owns the poller and duty-cycles the field.
-        tp->scheduler_stop = false;
-        tp->dormant = false;
         tp->scheduler = furi_thread_alloc_ex("NfcTpScheduler", 2048, nfc_tp_scheduler_thread, tp);
         furi_thread_start(tp->scheduler);
     }
@@ -261,16 +319,17 @@ void nfc_transport_deinit(void) {
     nfc_tp = NULL; // sends become no-ops first
 
     if(tp->scheduler) {
-        // The scheduler tears down the poller (if running) on its way out.
+        // Stop the role thread first: the poller scheduler frees its poller on
+        // exit; the listener watchdog leaves the listener running for us.
         tp->scheduler_stop = true;
         furi_thread_join(tp->scheduler);
         furi_thread_free(tp->scheduler);
-        furi_assert(tp->poller == NULL);
     }
-    if(tp->listener) {
-        nfc_listener_stop(tp->listener);
-        nfc_listener_free(tp->listener);
+    if(tp->poller) { // defensive: poller scheduler normally leaves this NULL
+        nfc_poller_stop(tp->poller);
+        nfc_poller_free(tp->poller);
     }
+    nfc_tp_listener_teardown(tp);
     nfc_free(tp->nfc);
     bit_buffer_free(tp->tx_frame);
     bit_buffer_free(tp->rx_frame);

@@ -43,6 +43,13 @@
 // holds the field for a hardcoded ~105 ms (firmware error-path delay).
 #define NFC_TP_SEARCH_PERIOD_MS 500u
 
+// Listener watchdog (sender): restart the card emulation if no standard frame
+// has completed for this long. Must exceed the longest gap between frames of a
+// healthy active transfer (frames flow every few ms), so it only fires while
+// idle / disconnected / wedged — where a restart is free and clears a stuck
+// ST25R3916 target automaton that would otherwise make the sender invisible.
+#define NFC_TP_LISTENER_WATCHDOG_MS 5000u
+
 // LINKED mode: how long after the last successful exchange the full poller
 // keeps fast-retrying (NfcCommandReset cycles, ~50% field duty) before the
 // link is declared lost and the transport falls back to duty-cycled SEARCH.
