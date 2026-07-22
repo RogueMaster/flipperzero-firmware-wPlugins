@@ -36,6 +36,7 @@ static int32_t nfc_comparator_finder_reader_worker_task(void* context) {
             furi_delay_ms(100);
          }
          nfc_scanner_stop(nfc_scanner);
+         nfc_scanner_free(nfc_scanner);
          break;
       }
       case NfcComparatorFinderReaderWorkerState_Polling: {

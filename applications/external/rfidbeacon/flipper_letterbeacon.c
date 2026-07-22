@@ -483,6 +483,7 @@ int32_t flipper_letterbeacon_app() {
     gui_remove_view_port(gui, view_port);
     view_port_free(view_port);
     furi_record_close(RECORD_GUI);
+    furi_mutex_free(mutexVal.mutex);
 
     return 0;
 }

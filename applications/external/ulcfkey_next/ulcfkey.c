@@ -1320,6 +1320,7 @@ NfcCommand ulcfkey_listener_callback(NfcGenericEvent event, void* context) {
             if(error != NfcErrorNone) {
                 FURI_LOG_E(TAG, "Tx error");
             }
+            bit_buffer_free(auth1_buffer);
         } else if(data_len == 17 && data[0] == 0xAF) {
             FURI_LOG_I(TAG, "Received AUTH2 response from reader");
             app->auth2_received = true;
