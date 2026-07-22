@@ -36,6 +36,12 @@ typedef enum {
     GlitchEdgeCount,
 } GlitchEdge;
 
+typedef enum {
+    GlitchSearchLinear, // step through the grid in order
+    GlitchSearchRandom, // pick grid points at random
+    GlitchSearchCount,
+} GlitchSearchMode;
+
 typedef struct {
     uint32_t delay_us; // trigger -> first pulse offset
     uint32_t width_ns; // pulse width (the glitch itself)
@@ -60,6 +66,7 @@ typedef struct {
     uint32_t sweep_delay_to_us;
     uint32_t sweep_delay_step_us;
     uint16_t sweep_dwell;
+    GlitchSearchMode search_mode; // linear or random grid traversal
 
     /* Feedback / auto-hit: sample a target "success" line after each shot. When
      * `auto_hit` is on, a sweep marks a hit automatically the moment the
@@ -107,6 +114,7 @@ void glitch_fmt_ms(uint32_t ms, char* buf, size_t n);
 const char* glitch_polarity_label(GlitchPolarity p);
 const char* glitch_trigger_label(GlitchTriggerMode m);
 const char* glitch_edge_label(GlitchEdge e);
+const char* glitch_search_label(GlitchSearchMode m);
 
 /* ---- output/input pin catalogue ---------------------------------------- */
 typedef struct {

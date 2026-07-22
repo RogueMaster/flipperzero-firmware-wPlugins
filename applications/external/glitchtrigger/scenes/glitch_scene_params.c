@@ -93,6 +93,12 @@ static void item_sweep_2d(VariableItem* item) {
     app->params.sweep_2d = i;
     variable_item_set_current_value_text(item, off_on[i]);
 }
+static void item_search(VariableItem* item) {
+    GlitchApp* app = variable_item_get_context(item);
+    uint8_t i = variable_item_get_current_value_index(item);
+    app->params.search_mode = (GlitchSearchMode)i;
+    variable_item_set_current_value_text(item, glitch_search_label(app->params.search_mode));
+}
 static void item_dwell(VariableItem* item) {
     GlitchApp* app = variable_item_get_context(item);
     uint8_t i = variable_item_get_current_value_index(item);
@@ -204,6 +210,10 @@ void glitch_scene_params_on_enter(void* context) {
     item = variable_item_list_add(list, "Sweep 2D", 2, item_sweep_2d, app);
     variable_item_set_current_value_index(item, p->sweep_2d);
     variable_item_set_current_value_text(item, p->sweep_2d ? "ON" : "OFF");
+
+    item = variable_item_list_add(list, "Search", GlitchSearchCount, item_search, app);
+    variable_item_set_current_value_index(item, p->search_mode);
+    variable_item_set_current_value_text(item, glitch_search_label(p->search_mode));
 
     idx = glitch_ladder_nearest_u16(glitch_ladder_dwell, glitch_ladder_dwell_len, p->sweep_dwell);
     item = variable_item_list_add(list, "Dwell", glitch_ladder_dwell_len, item_dwell, app);

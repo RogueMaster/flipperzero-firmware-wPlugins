@@ -3,6 +3,33 @@
 All notable changes to Glitch Trigger are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2] — 2026-07-21
+
+The **fault map** update — see the fault window take shape and take it with you.
+
+### Fault Map
+- New **Fault Map** screen: every sweep hit is plotted on a **delay × width
+  heatmap**. A movable cursor reads out any cell's exact width/delay and whether
+  it hit.
+- **CSV export** — press OK to write the grid to
+  `apps_data/glitch_trigger/faultmap.csv` (ranges in the header, one row per delay).
+- New `helpers/glitch_map` (packed bit-grid, up to 100×44 cells) and
+  `views/faultmap_view`.
+
+### Sweep
+- **Search strategy** — Linear (in-order) or **Random** grid traversal, to dodge
+  periodic aliasing with a target's own timing.
+- Hits now populate the shared fault map as they happen.
+
+### Persistence
+- The **last-used config** and feedback/Sound/Vibro/LED settings are saved on exit
+  and restored on the next launch (`glitch.settings` blob).
+- Profile format version bumped (3) as `GlitchParams` grew a field.
+
+### UI
+- New **Fault Map** menu entry and scene; **Configure** gains **Search**.
+- About text, screen mockups and README updated for the new features.
+
 ## [1.1] — 2026-07-20
 
 The **campaign** update — turns the single-shot tool into a fault-injection

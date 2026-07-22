@@ -60,6 +60,7 @@ void glitch_params_default(GlitchParams* p) {
     p->sweep_delay_to_us = 500;
     p->sweep_delay_step_us = 50;
     p->sweep_dwell = 1;
+    p->search_mode = GlitchSearchLinear;
     p->fb_pin = 5; // PC3 / header pin 7 (distinct from out & trig-in)
     p->fb_active_high = true;
     p->auto_hit = false;
@@ -155,6 +156,17 @@ const char* glitch_edge_label(GlitchEdge e) {
         return "Rising";
     case GlitchEdgeFalling:
         return "Falling";
+    default:
+        return "?";
+    }
+}
+
+const char* glitch_search_label(GlitchSearchMode m) {
+    switch(m) {
+    case GlitchSearchLinear:
+        return "Linear";
+    case GlitchSearchRandom:
+        return "Random";
     default:
         return "?";
     }

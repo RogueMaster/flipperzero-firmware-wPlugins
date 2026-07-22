@@ -91,6 +91,8 @@ static GlitchApp* glitch_app_alloc(void) {
     app->vibro = true;
     app->led = true;
     glitch_params_default(&app->params);
+    /* restore the last-used config + feedback settings, if any */
+    glitch_storage_load_last(&app->params, &app->sound, &app->vibro, &app->led);
     app->engine = glitch_engine_alloc();
 
     app->submenu = submenu_alloc();
@@ -120,12 +122,19 @@ static GlitchApp* glitch_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, GlitchViewWiring, wiring_view_get_view(app->wiring_view));
 
+    app->faultmap_view = faultmap_view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, GlitchViewFaultmap, faultmap_view_get_view(app->faultmap_view));
+
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
     return app;
 }
 
 static void glitch_app_free(GlitchApp* app) {
     furi_assert(app);
+
+    /* remember this session's config for next launch */
+    glitch_storage_save_last(&app->params, app->sound, app->vibro, app->led);
 
     glitch_engine_release(app->engine);
 
@@ -136,6 +145,7 @@ static void glitch_app_free(GlitchApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, GlitchViewTrigger);
     view_dispatcher_remove_view(app->view_dispatcher, GlitchViewSweep);
     view_dispatcher_remove_view(app->view_dispatcher, GlitchViewWiring);
+    view_dispatcher_remove_view(app->view_dispatcher, GlitchViewFaultmap);
 
     submenu_free(app->submenu);
     variable_item_list_free(app->var_item_list);
@@ -144,6 +154,7 @@ static void glitch_app_free(GlitchApp* app) {
     trigger_view_free(app->trigger_view);
     sweep_view_free(app->sweep_view);
     wiring_view_free(app->wiring_view);
+    faultmap_view_free(app->faultmap_view);
 
     view_dispatcher_free(app->view_dispatcher);
     scene_manager_free(app->scene_manager);

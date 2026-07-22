@@ -17,12 +17,14 @@
 #include "helpers/glitch_config.h"
 #include "helpers/glitch_engine.h"
 #include "helpers/glitch_storage.h"
+#include "helpers/glitch_map.h"
 #include "views/trigger_view.h"
 #include "views/sweep_view.h"
 #include "views/wiring_view.h"
+#include "views/faultmap_view.h"
 #include "scenes/glitch_scene.h"
 
-#define GLITCH_VERSION "1.1"
+#define GLITCH_VERSION FAP_VERSION
 
 typedef enum {
     GlitchViewSubmenu,
@@ -32,6 +34,7 @@ typedef enum {
     GlitchViewTrigger,
     GlitchViewSweep,
     GlitchViewWiring,
+    GlitchViewFaultmap,
 } GlitchViewId;
 
 typedef struct {
@@ -50,10 +53,12 @@ typedef struct {
     TriggerView* trigger_view;
     SweepView* sweep_view;
     WiringView* wiring_view;
+    FaultmapView* faultmap_view;
 
     /* the instrument */
     GlitchEngine* engine;
     GlitchParams params;
+    GlitchFaultMap map; // last sweep's fault map (kept across scenes)
 
     /* profiles */
     char name_buf[GLITCH_PROFILE_NAME_MAX]; // text-input scratch

@@ -20,3 +20,8 @@ size_t glitch_storage_list_profiles(char names[][GLITCH_PROFILE_NAME_MAX], size_
 /* Append one hit row to hits.csv (writes the header if the file is new).
  * `source` is a short tag, e.g. "auto" or "mark". */
 void glitch_storage_log_hit(const GlitchParams* p, uint32_t shot_index, const char* source);
+
+/* Persist / restore the "last used" config + feedback settings across runs.
+ * load returns false (leaving the args untouched) if there is nothing valid. */
+void glitch_storage_save_last(const GlitchParams* p, bool sound, bool vibro, bool led);
+bool glitch_storage_load_last(GlitchParams* p, bool* sound, bool* vibro, bool* led);

@@ -58,12 +58,8 @@ def finish(img, name):
     pad = 20
     canvas = Image.new("RGB", (W * SCALE + pad * 2, H * SCALE + pad * 2), BEZEL)
     d = ImageDraw.Draw(canvas)
-    d.rounded_rectangle(
-        [6, 6, canvas.width - 6, canvas.height - 6],
-        radius=16,
-        outline=BEZEL_HI,
-        width=3,
-    )
+    d.rounded_rectangle([6, 6, canvas.width - 6, canvas.height - 6], radius=16,
+                        outline=BEZEL_HI, width=3)
     canvas.paste(up, (pad, pad))
     path = os.path.join(OUT, name)
     canvas.save(path)
@@ -77,7 +73,7 @@ def m_menu():
     d = ImageDraw.Draw(img)
     ctext(d, 64, 0, "Glitch Trigger", PRIM)
     d.line([(0, 13), (128, 13)], fill=INK)
-    items = ["Trigger", "Configure", "Sweep", "Profiles"]
+    items = ["Trigger", "Configure", "Sweep", "Fault Map"]
     y = 16
     for i, it in enumerate(items):
         if i == 0:
@@ -185,6 +181,34 @@ def m_profiles():
     return finish(img, "screen_profiles.png")
 
 
+# -------------------------------------------------------------- 7. fault map
+def m_faultmap():
+    img = screen()
+    d = ImageDraw.Draw(img)
+    d.text((2, 1), "Fault Map", font=PRIM, fill=INK)
+    rtext(d, 126, 2, "hits 7", SEC)
+    # plot frame
+    PX, PY, PW, PH = 12, 13, 114, 37
+    d.rectangle([PX, PY, PX + PW, PY + PH], outline=INK)
+    d.text((PX - 10, PY + 1), "d", font=SEC, fill=INK)
+    d.text((PX + PW - 8, PY + PH + 1), "w", font=SEC, fill=INK)
+    # a cluster of hit dots forming a rough fault window
+    hits = [(40, 22), (46, 20), (52, 24), (48, 26), (58, 22),
+            (44, 30), (54, 30), (62, 28)]
+    for (hx, hy) in hits:
+        d.rectangle([hx, hy, hx + 1, hy + 1], fill=INK)
+    # cursor crosshair at (52, 24)
+    cx, cy = 52, 24
+    for y in range(PY + 1, PY + PH - 1, 2):
+        d.point((cx, y), fill=INK)
+    for x in range(PX + 1, PX + PW - 1, 2):
+        d.point((x, cy), fill=INK)
+    d.rectangle([cx - 1, cy - 1, cx + 1, cy + 1], outline=INK)
+    d.text((2, PY + PH + 1), "w 1.0us d 60us HIT", font=SEC, fill=INK)
+    rtext(d, 126, 63, "OK:save", SEC)
+    return finish(img, "screen_faultmap.png")
+
+
 # ---------------------------------------------------------------- 4. wiring
 def m_wiring():
     img = screen()
@@ -223,13 +247,8 @@ def m_wiring():
 def m_params():
     img = screen()
     d = ImageDraw.Draw(img)
-    rows = [
-        ("Delay", "100 us"),
-        ("Width", "500 ns"),
-        ("Pulses", "1"),
-        ("Gap", "10 us"),
-        ("Polarity", "Active-High"),
-    ]
+    rows = [("Delay", "100 us"), ("Width", "500 ns"), ("Pulses", "1"),
+            ("Gap", "10 us"), ("Polarity", "Active-High")]
     y = 2
     for i, (k, v) in enumerate(rows):
         if i == 1:
@@ -244,14 +263,9 @@ def m_params():
 
 
 def strip():
-    names = [
-        "screen_menu.png",
-        "screen_trigger.png",
-        "screen_sweep.png",
-        "screen_profiles.png",
-        "screen_wiring.png",
-        "screen_params.png",
-    ]
+    names = ["screen_menu.png", "screen_trigger.png", "screen_sweep.png",
+             "screen_faultmap.png", "screen_profiles.png", "screen_wiring.png",
+             "screen_params.png"]
     imgs = [Image.open(os.path.join(OUT, n)) for n in names]
     gap = 16
     tw = sum(i.width for i in imgs) + gap * (len(imgs) - 1)
@@ -270,6 +284,7 @@ if __name__ == "__main__":
     m_menu()
     m_trigger()
     m_sweep()
+    m_faultmap()
     m_profiles()
     m_wiring()
     m_params()

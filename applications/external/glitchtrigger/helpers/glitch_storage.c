@@ -9,9 +9,12 @@
 #define GLITCH_PROFILE_DIR GLITCH_DIR "/profiles"
 #define GLITCH_PROFILE_EXT ".gt"
 #define GLITCH_HITS_PATH   GLITCH_DIR "/hits.csv"
+#define GLITCH_LAST_PATH   GLITCH_DIR "/glitch.settings"
 
 #define GLITCH_PROFILE_MAGIC 0x47543031UL // "GT01"
-#define GLITCH_PROFILE_VER   2
+#define GLITCH_PROFILE_VER   3 // bumped when GlitchParams layout changes
+#define GLITCH_LAST_MAGIC    0x47544C53UL // "GTLS"
+#define GLITCH_LAST_VER      1
 
 typedef struct {
     uint32_t magic;
@@ -113,6 +116,61 @@ size_t glitch_storage_list_profiles(char names[][GLITCH_PROFILE_NAME_MAX], size_
     storage_file_free(dir);
     furi_record_close(RECORD_STORAGE);
     return count;
+}
+
+typedef struct {
+    uint32_t magic;
+    uint16_t version;
+    uint16_t size;
+    GlitchParams params;
+    uint8_t sound, vibro, led;
+} GlitchLastBlob;
+
+void glitch_storage_save_last(const GlitchParams* p, bool sound, bool vibro, bool led) {
+    furi_assert(p);
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    storage_common_mkdir(storage, GLITCH_DIR);
+
+    GlitchLastBlob blob = {
+        .magic = GLITCH_LAST_MAGIC,
+        .version = GLITCH_LAST_VER,
+        .size = sizeof(GlitchParams),
+        .params = *p,
+        .sound = sound,
+        .vibro = vibro,
+        .led = led,
+    };
+
+    File* file = storage_file_alloc(storage);
+    if(storage_file_open(file, GLITCH_LAST_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        storage_file_write(file, &blob, sizeof(blob));
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+}
+
+bool glitch_storage_load_last(GlitchParams* p, bool* sound, bool* vibro, bool* led) {
+    furi_assert(p);
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    File* file = storage_file_alloc(storage);
+    GlitchLastBlob blob;
+    bool ok = false;
+    if(storage_file_open(file, GLITCH_LAST_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        size_t read = storage_file_read(file, &blob, sizeof(blob));
+        if(read == sizeof(blob) && blob.magic == GLITCH_LAST_MAGIC &&
+           blob.version == GLITCH_LAST_VER && blob.size == sizeof(GlitchParams)) {
+            *p = blob.params;
+            if(sound) *sound = blob.sound;
+            if(vibro) *vibro = blob.vibro;
+            if(led) *led = blob.led;
+            ok = true;
+        }
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+    furi_record_close(RECORD_STORAGE);
+    return ok;
 }
 
 void glitch_storage_log_hit(const GlitchParams* p, uint32_t shot_index, const char* source) {

@@ -4,6 +4,7 @@ typedef enum {
     StartIndexTrigger,
     StartIndexConfigure,
     StartIndexSweep,
+    StartIndexFaultmap,
     StartIndexProfiles,
     StartIndexWiring,
     StartIndexSettings,
@@ -25,6 +26,7 @@ void glitch_scene_start_on_enter(void* context) {
     submenu_add_item(
         submenu, "Configure", StartIndexConfigure, glitch_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Sweep", StartIndexSweep, glitch_scene_start_submenu_cb, app);
+    submenu_add_item(submenu, "Fault Map", StartIndexFaultmap, glitch_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Profiles", StartIndexProfiles, glitch_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Wiring", StartIndexWiring, glitch_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Settings", StartIndexSettings, glitch_scene_start_submenu_cb, app);
@@ -53,6 +55,10 @@ bool glitch_scene_start_on_event(void* context, SceneManagerEvent event) {
             break;
         case StartIndexSweep:
             scene_manager_next_scene(app->scene_manager, GlitchSceneSweep);
+            consumed = true;
+            break;
+        case StartIndexFaultmap:
+            scene_manager_next_scene(app->scene_manager, GlitchSceneFaultmap);
             consumed = true;
             break;
         case StartIndexProfiles:

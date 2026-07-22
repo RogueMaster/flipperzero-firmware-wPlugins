@@ -68,11 +68,18 @@ triggered, and the Flipper does the timing.
   and the sweep marks a hit *automatically* the moment it reaches the success
   level, turning a sweep into a hands-off campaign. Or just press **OK** to mark
   the point in play yourself.
+- **Live fault map** — every hit is plotted on a **delay × width heatmap** you can
+  scroll a cursor across to read any cell's parameters, then **export to CSV** —
+  watch the fault window take shape and take the grid with you.
+- **Linear or Random search** — step the grid in order, or sample it at random to
+  dodge periodic aliasing with the target's own timing.
 - **Profiles** — save, load and delete named parameter sets on the SD card, with
   on-device name entry. Recall your `stm32-vcc` or `rp2040-drop` setup instantly.
 - **CSV hit log** — every hit (manual or auto) is appended to
   `apps_data/glitch_trigger/hits.csv` with its delay, width, pulses and timestamp,
   ready to graph off-device.
+- **Remembers your setup** — the last-used config and feedback settings are
+  restored automatically on the next launch.
 - **On-device Wiring diagram** — a labelled hook-up sketch (Flipper → MOSFET
   crowbar → target) with rotating safety reminders, so you don't need the README
   on the bench.
@@ -84,9 +91,9 @@ triggered, and the Flipper does the timing.
 
 ## Screens
 
-| Menu | Trigger | Sweep | Profiles | Wiring | Configure |
-|---|---|---|---|---|---|
-| Pick a mode | Fire screen with a live pulse timeline | Hunt the fault window (2D + auto-hit) | Save / load setups | Hook-up + safety | Every parameter |
+| Menu | Trigger | Sweep | Fault Map | Profiles | Wiring | Configure |
+|---|---|---|---|---|---|---|
+| Pick a mode | Fire screen with a live pulse timeline | Hunt the fault window (2D + auto-hit) | Heatmap of hits + CSV export | Save / load setups | Hook-up + safety | Every parameter |
 
 <p align="center"><img src="images/screen_trigger.png" width="360" alt="Trigger screen"></p>
 
@@ -193,6 +200,7 @@ trigger-to-pulse latency.
 | **Repeat** | 10 ms – 5 s | interval in Repeat mode |
 | **Sweep from / to / step** | 62 ns – 500 µs | width range for the sweep hunter |
 | **Sweep 2D** | On / Off | also sweep delay → a delay × width grid |
+| **Search** | Linear / Random | step the grid in order, or sample it at random |
 | **Dwell** | 1 – 100 | shots fired at each sweep point |
 | **2D delay from / to / step** | 0 – 100 ms | delay range for a 2D sweep |
 | **Feedback pin / Success lvl** | pin · HIGH/LOW | target line + level that counts as a hit |
@@ -207,8 +215,13 @@ A single `width` sweep is the quick hunt; **2D** is the real one. Turn on
 **Sweep 2D** and set the delay range, and the runner walks a full **delay × width**
 grid, firing **Dwell** shots at each cell. Wire the target's success line to the
 **Feedback pin**, set the **Success level**, enable **Auto-hit**, and the sweep
-records — and (with **Log hits**) logs — every cell that faults, unattended. Pull
-`hits.csv` off the SD card afterwards to plot the fault window.
+records — and (with **Log hits**) logs — every cell that faults, unattended. Set
+**Search** to *Random* to sample the grid out of order.
+
+Every hit also lands on the **Fault Map** — a live delay × width heatmap. Open it
+from the menu, scroll the cursor to read any cell's exact width/delay, and press
+**OK** to write the whole grid to `faultmap.csv`. Pull `hits.csv` / `faultmap.csv`
+off the SD card afterwards to plot the fault window.
 
 ---
 
@@ -242,12 +255,14 @@ application.fam              FAP manifest (category: GPIO)
 helpers/
   glitch_config.c/.h         parameter model, value ladders, formatters, pin table
   glitch_engine.c/.h         the pulse engine — DWT timing, GPIO, external-trigger ISR, feedback read
-  glitch_storage.c/.h        SD profiles (save/load/delete) + CSV hit log
+  glitch_storage.c/.h        SD profiles, CSV hit log, last-config persistence
+  glitch_map.c/.h            the fault-map grid + CSV export
 views/
   trigger_view.c/.h          the fire screen (pulse timeline + state machine)
   sweep_view.c/.h            the sweep hunter (1D/2D, progress, auto-hit)
+  faultmap_view.c/.h         the delay × width heatmap + cursor
   wiring_view.c/.h           the hook-up diagram + safety tips
-scenes/                      start · params · trigger · sweep · profiles(+name/act) · wiring · settings · about
+scenes/                      start · params · trigger · sweep · faultmap · profiles(+name/act) · wiring · settings · about
 icons/  images/              app icon, banner, social card, screen mockups
 tools_gen_*.py               regenerate the icon / banner / mockups
 ```

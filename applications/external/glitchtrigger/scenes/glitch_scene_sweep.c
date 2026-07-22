@@ -1,9 +1,11 @@
 #include "../glitch_trigger_i.h"
+#include <furi_hal.h>
 
 /* Sweep runner. Fires `dwell` shots at each point of a width range - or, in 2D,
- * a delay x width grid - then advances, looping at the end. A hit is recorded
- * when the user presses OK, or automatically when Auto-hit sees the feedback
- * pin reach its success level. Hits can be logged to CSV. */
+ * a delay x width grid - then advances (Linear or Random), looping at the end.
+ * A hit is recorded when the user presses OK, or automatically when Auto-hit
+ * sees the feedback pin reach its success level. Every hit is also plotted onto
+ * the shared fault map, and can be logged to CSV. */
 
 typedef enum {
     SweepEvtMark = 20,
@@ -13,7 +15,7 @@ typedef enum {
 
 static uint32_t s_wfrom, s_wto, s_wstep; // width axis
 static uint32_t s_dfrom, s_dto, s_dstep; // delay axis (2D)
-static bool s_2d, s_auto, s_log;
+static bool s_2d, s_auto, s_log, s_random;
 static uint16_t s_dwell, s_dwell_i;
 static uint32_t s_cur_w, s_cur_d;
 static uint32_t s_wsteps, s_dsteps;
@@ -22,6 +24,16 @@ static uint32_t s_index, s_total;
 static uint32_t s_hits, s_last_hit_w, s_last_hit_d;
 static bool s_point_hit; // one auto-mark per point
 static bool s_running;
+
+/* Map the current grid position (s_wi/s_di) onto the fault-map cell grid. */
+static uint16_t sweep_map_col(const GlitchFaultMap* m) {
+    if(s_wsteps <= 1 || m->cols <= 1) return 0;
+    return (uint16_t)((uint32_t)s_wi * (m->cols - 1) / (s_wsteps - 1));
+}
+static uint16_t sweep_map_row(const GlitchFaultMap* m) {
+    if(!s_2d || s_dsteps <= 1 || m->rows <= 1) return 0;
+    return (uint16_t)((uint32_t)s_di * (m->rows - 1) / (s_dsteps - 1));
+}
 
 static void glitch_sweep_view_cb(SweepViewEvent event, void* ctx) {
     GlitchApp* app = ctx;
@@ -46,6 +58,7 @@ static void glitch_sweep_reset(GlitchApp* app) {
     s_2d = p->sweep_2d;
     s_auto = p->auto_hit;
     s_log = p->log_hits;
+    s_random = (p->search_mode == GlitchSearchRandom);
     s_dwell = p->sweep_dwell ? p->sweep_dwell : 1;
 
     s_wfrom = p->sweep_from_ns;
@@ -74,11 +87,28 @@ static void glitch_sweep_reset(GlitchApp* app) {
     s_cur_d = s_2d ? s_dfrom : p->delay_us;
     s_dwell_i = 0;
     s_point_hit = false;
+
+    /* fresh fault map over this grid */
+    uint16_t cols = s_wsteps > GLITCH_MAP_W ? GLITCH_MAP_W : (uint16_t)s_wsteps;
+    uint16_t rows = 1;
+    if(s_2d) rows = s_dsteps > GLITCH_MAP_H ? GLITCH_MAP_H : (uint16_t)s_dsteps;
+    glitch_map_reset(&app->map, cols, rows, s_2d, s_wfrom, s_wto, s_dfrom, s_dto);
 }
 
 static void glitch_sweep_advance(void) {
     s_dwell_i = 0;
     s_point_hit = false;
+
+    if(s_random) {
+        /* pick a random cell anywhere in the grid */
+        s_wi = furi_hal_random_get() % s_wsteps;
+        s_di = s_2d ? (furi_hal_random_get() % s_dsteps) : 0;
+        s_cur_w = s_wfrom + s_wi * s_wstep;
+        if(s_2d) s_cur_d = s_dfrom + s_di * s_dstep;
+        s_index = (s_index + 1) % s_total;
+        return;
+    }
+
     s_index++;
     if(s_index >= s_total) { // wrap to the start of the grid
         s_index = 0;
@@ -113,6 +143,7 @@ static void glitch_sweep_record_hit(GlitchApp* app, const char* source) {
     s_hits++;
     s_last_hit_w = s_cur_w;
     s_last_hit_d = s_cur_d;
+    glitch_map_set(&app->map, sweep_map_col(&app->map), sweep_map_row(&app->map));
     glitch_notify_hit(app);
     if(s_log) {
         GlitchParams hit = app->params;
