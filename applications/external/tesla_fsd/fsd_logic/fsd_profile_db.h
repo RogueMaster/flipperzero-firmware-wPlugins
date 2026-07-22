@@ -11,11 +11,13 @@
  * auto-apply: a false profile is worse than no profile, so the bar is exactly one
  * qualifying profile or nothing.
  *
- * The real gap this earns its keep on: ssw0209's byte0 HI-nibble (0x39B, shift4).
- * The standard fsd_handle_das_status_hw4 parser already auto-adapts to Highland's
- * byte0 LOW-nibble via its das_hw4_use_byte0 latch (#116) — that variant is NOT a
- * gap and its profile is present only as a disambiguation candidate. A match
- * against a std / auto-handled profile means the parser is fine: no suggestion.
+ * The standard fsd_handle_das_status_hw4 parser auto-adapts to the HW4 byte0
+ * LOW-nibble layout (byte1[7:4] pinned at 1, byte0 low carrying the live state)
+ * via its das_hw4_use_byte0 latch (#116) — including ssw0209's 2026.20 Highland,
+ * whose 0x39B matches that signature exactly (confirmed from his engaged logs).
+ * So that variant is NOT a gap: its profile is present only as a disambiguation
+ * candidate. A match against a std / auto-handled profile means the parser is
+ * fine, so no suggestion is made.
  *
  * Pure / header-only (static inline), mirroring fsd_capability.h — the match
  * logic lives in ONE place the host tests exercise directly.
@@ -51,7 +53,6 @@ static const FSDProfile FSD_PROFILE_DB[] = {
     // name                     das_id  apstate{b,s,m}   handson{b,s,m}   needs_override
     {"Standard HW3/Legacy", 0x399, {0, 0, 0x0F}, {5, 2, 0x0F}, false},
     {"Standard HW4", 0x39B, {1, 4, 0x0F}, {5, 2, 0x0F}, false},
-    {"ssw0209 (byte0 hi)", 0x39B, {0, 4, 0x0F}, {5, 2, 0x0F}, true},
     {"Highland (byte0 lo)", 0x39B, {0, 0, 0x0F}, {5, 2, 0x0F}, false},
 };
 
