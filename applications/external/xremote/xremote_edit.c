@@ -146,6 +146,7 @@ static XRemoteEditContext* xremote_edit_context_alloc(XRemoteAppButtons* buttons
 void xremote_edit_context_clear_callback(void* context) {
     XRemoteEditContext* ctx = (XRemoteEditContext*)context;
     variable_item_list_free(ctx->item_list);
+    free(ctx);
 }
 
 void xremote_edit_view_alloc(XRemoteApp* app, uint32_t view_id, XRemoteAppButtons* buttons) {

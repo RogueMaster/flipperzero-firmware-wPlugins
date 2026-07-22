@@ -71,6 +71,7 @@ void app_free(App* app) {
     variable_item_list_free(app->vil_settings);
     submenu_free(app->sub_menu);
     text_input_free(app->text_input);
+    popup_free(app->popup);
 
     scene_manager_free(app->scene_manager);
     view_dispatcher_free(app->view_dispatcher);

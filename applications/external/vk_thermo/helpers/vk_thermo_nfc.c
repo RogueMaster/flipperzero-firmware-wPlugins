@@ -60,6 +60,13 @@ static bool vk_thermo_nfc_write_config(
     uint8_t address,
     const uint8_t* block_data);
 
+// Sensor detection result
+typedef struct {
+    uint8_t address;
+    VkThermoSensorType sensor_type;
+    bool detected;
+} SensorDetection;
+
 // Convert Flipper NFC layer error to human-readable string
 // These are transport-level errors from iso15693_3_poller_send_frame()
 static const char* vk_thermo_nfc_error_str(Iso15693_3Error error) {
@@ -132,6 +139,12 @@ static float vk_thermo_tmp117_raw_to_celsius(int16_t raw) {
 static float vk_thermo_tmp112_raw_to_celsius(int16_t raw) {
     int16_t temp_12bit = raw >> 4;
     return (float)temp_12bit * 0.0625f;
+}
+
+// Convert raw TMP119 value to Celsius
+// TMP119: 16-bit signed value, 0.0078125°C per LSB (identical to TMP117)
+static float vk_thermo_tmp119_raw_to_celsius(int16_t raw) {
+    return (float)raw * 0.0078125f;
 }
 
 // Send NXP custom command via ISO15693
@@ -736,57 +749,199 @@ static bool vk_thermo_nfc_i2c_read(
     return false;
 }
 
-// Identify sensor by reading TMP117 Device ID register (0x0F).
-// TMP117 returns 0x0117; TMP112 only has registers 0x00-0x03 so this will NAK or return garbage.
-static VkThermoSensorType
-    vk_thermo_nfc_identify_sensor(Iso15693_3Poller* poller, const uint8_t* uid) {
+// Identify sensor at specific I2C address by reading TMP117/119 Device ID register (0x0F)
+// Returns sensor type, or VkThermoSensorUnknown if detection fails
+static VkThermoSensorType vk_thermo_nfc_identify_sensor_at_address(
+    Iso15693_3Poller* poller,
+    const uint8_t* uid,
+    uint8_t i2c_addr) {
     // Set register pointer to Device ID (0x0F)
     uint8_t reg_ptr[1] = {TMP117_REG_DEVICE_ID};
-    if(!vk_thermo_nfc_i2c_write(poller, uid, TEMP_SENSOR_I2C_ADDR, reg_ptr, 1)) {
-        FURI_LOG_I(TAG, "Device ID register write failed — assuming TMP112");
-        return VkThermoSensorTmp112;
+    if(!vk_thermo_nfc_i2c_write(poller, uid, i2c_addr, reg_ptr, 1)) {
+        FURI_LOG_D(TAG, "Device ID register write failed at 0x%02X — likely TMP112", i2c_addr);
+        // TMP112 only has registers 0x00-0x03, so 0x0F write fails
+        return (i2c_addr == 0x48) ? VkThermoSensorTmp112 : VkThermoSensorUnknown;
     }
 
     // Read 2 bytes
     uint8_t id_data[4];
     size_t id_len = 0;
-    if(!vk_thermo_nfc_i2c_read(poller, uid, TEMP_SENSOR_I2C_ADDR, 2, id_data, &id_len)) {
-        FURI_LOG_I(TAG, "Device ID register read failed — assuming TMP112");
-        return VkThermoSensorTmp112;
+    if(!vk_thermo_nfc_i2c_read(poller, uid, i2c_addr, 2, id_data, &id_len)) {
+        FURI_LOG_D(TAG, "Device ID register read failed at 0x%02X — likely TMP112", i2c_addr);
+        return (i2c_addr == 0x48) ? VkThermoSensorTmp112 : VkThermoSensorUnknown;
     }
 
     if(id_len >= 2) {
         uint16_t device_id = (uint16_t)((id_data[0] << 8) | id_data[1]);
-        FURI_LOG_I(TAG, "Device ID register: 0x%04X", device_id);
-        if((device_id & TMP117_DEVICE_ID_MASK) == TMP117_DEVICE_ID) {
-            FURI_LOG_I(TAG, "Sensor identified: TMP117");
+        FURI_LOG_D(TAG, "Device ID at 0x%02X: 0x%04X", i2c_addr, device_id);
+
+        if((device_id & TMP117_DEVICE_ID_MASK) == TMP119_DEVICE_ID) {
+            FURI_LOG_I(TAG, "Sensor identified: TMP119 at 0x%02X", i2c_addr);
+            return VkThermoSensorTmp119;
+        } else if((device_id & TMP117_DEVICE_ID_MASK) == TMP117_DEVICE_ID) {
+            FURI_LOG_I(TAG, "Sensor identified: TMP117 at 0x%02X", i2c_addr);
             return VkThermoSensorTmp117;
         }
     }
 
-    FURI_LOG_I(TAG, "Device ID not TMP117 — assuming TMP112");
-    return VkThermoSensorTmp112;
+    FURI_LOG_D(TAG, "Device ID not recognized at 0x%02X — assuming TMP112", i2c_addr);
+    return (i2c_addr == 0x48) ? VkThermoSensorTmp112 : VkThermoSensorUnknown;
+}
+
+// Configure TMP112 for one-shot conversion and poll until complete
+// Returns true if conversion successful, false on error or timeout
+static bool
+    vk_thermo_nfc_oneshot_tmp112(Iso15693_3Poller* poller, const uint8_t* uid, uint8_t i2c_addr) {
+    // Step 1: Write config register with SD=1, OS=1
+    uint8_t config_write[3] = {TMP112_CONFIG_REG, 0x81, 0x00}; // SD=1, OS=1
+    if(!vk_thermo_nfc_i2c_write(poller, uid, i2c_addr, config_write, 3)) {
+        FURI_LOG_E(TAG, "TMP112 one-shot config write failed");
+        return false;
+    }
+
+    // Step 2: Poll config register until OS bit = 0 (conversion complete)
+    uint8_t config_ptr[1] = {TMP112_CONFIG_REG};
+    uint8_t config_read[4];
+    size_t config_len = 0;
+
+    for(uint8_t i = 0; i < 50; i++) { // Max 50 attempts (500ms timeout)
+        furi_delay_ms(10);
+
+        // Set register pointer
+        if(!vk_thermo_nfc_i2c_write(poller, uid, i2c_addr, config_ptr, 1)) continue;
+
+        // Read config register
+        if(!vk_thermo_nfc_i2c_read(poller, uid, i2c_addr, 2, config_read, &config_len)) continue;
+
+        if(config_len >= 2) {
+            // Check OS bit (bit 7 of first byte)
+            if(!(config_read[0] & 0x80)) {
+                FURI_LOG_D(TAG, "TMP112 conversion complete after %dms", (i + 1) * 10);
+                return true;
+            }
+        }
+    }
+
+    FURI_LOG_E(TAG, "TMP112 one-shot timeout");
+    return false;
+}
+
+// Configure TMP117/119 for one-shot conversion and poll until complete
+// Returns true if conversion successful, false on error or timeout
+static bool
+    vk_thermo_nfc_oneshot_tmp117(Iso15693_3Poller* poller, const uint8_t* uid, uint8_t i2c_addr) {
+    // Step 1: Write config register with MOD[1:0]=11 (one-shot)
+    uint8_t config_write[3] = {TMP117_CONFIG_REG, 0x0C, 0x00}; // 0xC00
+    if(!vk_thermo_nfc_i2c_write(poller, uid, i2c_addr, config_write, 3)) {
+        FURI_LOG_E(TAG, "TMP117/119 one-shot config write failed");
+        return false;
+    }
+
+    // Step 2: Poll config register until Data_Ready = 1 (bit 13)
+    uint8_t config_ptr[1] = {TMP117_CONFIG_REG};
+    uint8_t config_read[4];
+    size_t config_len = 0;
+
+    for(uint8_t i = 0; i < 50; i++) { // Max 50 attempts (500ms timeout)
+        furi_delay_ms(10);
+
+        // Set register pointer
+        if(!vk_thermo_nfc_i2c_write(poller, uid, i2c_addr, config_ptr, 1)) continue;
+
+        // Read config register
+        if(!vk_thermo_nfc_i2c_read(poller, uid, i2c_addr, 2, config_read, &config_len)) continue;
+
+        if(config_len >= 2) {
+            uint16_t config_word = (config_read[0] << 8) | config_read[1];
+            // Check Data_Ready bit (bit 13)
+            if(config_word & TMP117_CONFIG_DATA_READY) {
+                FURI_LOG_D(TAG, "TMP117/119 conversion complete after %dms", (i + 1) * 10);
+                return true;
+            }
+        }
+    }
+
+    FURI_LOG_E(TAG, "TMP117/119 one-shot timeout");
+    return false;
+}
+
+// Detect all sensors and determine device type
+// Probes addresses 0x48, 0x49, 0x4A
+static void vk_thermo_nfc_detect_sensors(
+    Iso15693_3Poller* poller,
+    const uint8_t* uid,
+    DeviceType* device_type,
+    VkThermoSensorType* sensor_type) {
+    // Probe all three addresses
+    SensorDetection detections[3];
+    uint8_t addresses[] = {0x48, 0x49, 0x4A};
+
+    for(uint8_t i = 0; i < 3; i++) {
+        detections[i].address = addresses[i];
+        detections[i].sensor_type =
+            vk_thermo_nfc_identify_sensor_at_address(poller, uid, addresses[i]);
+        detections[i].detected = (detections[i].sensor_type != VkThermoSensorUnknown);
+    }
+
+    // Determine device type based on which addresses responded
+    bool sensor_at_0x48 = detections[0].detected;
+    bool sensor_at_0x49 = detections[1].detected;
+    bool sensor_at_0x4A = detections[2].detected;
+
+    if(sensor_at_0x49 && sensor_at_0x4A) {
+        // Temptress: dual TMP117 at 0x49 and 0x4A
+        *device_type = DeviceTypeTemptress;
+        *sensor_type = VkThermoSensorTmp117; // Both are TMP117
+        FURI_LOG_I(TAG, "Device detected: Temptress (dual TMP117)");
+    } else if(sensor_at_0x48) {
+        // VK Thermo: single sensor at 0x48
+        *device_type = DeviceTypeVkThermo;
+        *sensor_type = detections[0].sensor_type;
+        FURI_LOG_I(
+            TAG,
+            "Device detected: VK Thermo (%s)",
+            *sensor_type == VkThermoSensorTmp112 ? "TMP112" :
+            *sensor_type == VkThermoSensorTmp117 ? "TMP117" :
+                                                   "TMP119");
+    } else {
+        // No compatible sensor found
+        *device_type = DeviceTypeVkThermo;
+        *sensor_type = VkThermoSensorUnknown;
+        FURI_LOG_E(TAG, "No compatible sensor found");
+    }
 }
 
 // Read temperature from sensor (identifies sensor via Device ID register)
 // Flow: check busy → identify sensor (read 0x0F) → read temp (0x00) → convert
-static bool vk_thermo_nfc_read_temperature(
+// Read temperature from single sensor with one-shot conversion
+static bool vk_thermo_nfc_read_temperature_single(
     Iso15693_3Poller* poller,
     const uint8_t* uid,
-    float* temperature,
-    VkThermoSensorType* sensor_type) {
+    uint8_t i2c_addr,
+    VkThermoSensorType sensor_type,
+    float* temperature) {
     // Wait for I2C bus to be free
     if(!vk_thermo_nfc_i2c_wait_ready(poller, uid)) {
         FURI_LOG_W(TAG, "I2C bus busy, trying anyway");
     }
 
-    // Identify sensor type by reading TMP117 Device ID register (0x0F)
-    // TMP117 returns 0x0117; TMP112 has no register 0x0F so this will fail
-    VkThermoSensorType sensor = vk_thermo_nfc_identify_sensor(poller, uid);
+    // Configure for one-shot conversion based on sensor type
+    bool oneshot_ok = false;
+    if(sensor_type == VkThermoSensorTmp112) {
+        oneshot_ok = vk_thermo_nfc_oneshot_tmp112(poller, uid, i2c_addr);
+    } else {
+        // TMP117 and TMP119 use same configuration
+        oneshot_ok = vk_thermo_nfc_oneshot_tmp117(poller, uid, i2c_addr);
+    }
 
-    // Set register pointer to temperature result (0x00) — same for both sensors
+    if(!oneshot_ok) {
+        FURI_LOG_E(TAG, "One-shot conversion failed");
+        return false;
+    }
+
+    // Set register pointer to temperature result (0x00)
     uint8_t reg_ptr[1] = {TEMP_SENSOR_REG_RESULT};
-    if(!vk_thermo_nfc_i2c_write(poller, uid, TEMP_SENSOR_I2C_ADDR, reg_ptr, 1)) {
+    if(!vk_thermo_nfc_i2c_write(poller, uid, i2c_addr, reg_ptr, 1)) {
         FURI_LOG_E(TAG, "Failed to set temperature register pointer");
         return false;
     }
@@ -794,7 +949,7 @@ static bool vk_thermo_nfc_read_temperature(
     // Read 2 bytes of temperature data via I2C → SRAM
     uint8_t temp_data[4];
     size_t temp_len = 0;
-    if(!vk_thermo_nfc_i2c_read(poller, uid, TEMP_SENSOR_I2C_ADDR, 2, temp_data, &temp_len)) {
+    if(!vk_thermo_nfc_i2c_read(poller, uid, i2c_addr, 2, temp_data, &temp_len)) {
         FURI_LOG_E(TAG, "Failed to read temperature sensor");
         return false;
     }
@@ -803,26 +958,135 @@ static bool vk_thermo_nfc_read_temperature(
         int16_t raw = (int16_t)((temp_data[0] << 8) | temp_data[1]);
         float celsius;
 
-        if(sensor == VkThermoSensorTmp117) {
+        // Apply conversion based on sensor type
+        if(sensor_type == VkThermoSensorTmp117) {
             celsius = vk_thermo_tmp117_raw_to_celsius(raw);
+        } else if(sensor_type == VkThermoSensorTmp119) {
+            celsius = vk_thermo_tmp119_raw_to_celsius(raw);
         } else {
             celsius = vk_thermo_tmp112_raw_to_celsius(raw);
         }
 
-        FURI_LOG_I(
-            TAG,
-            "Sensor: %s, Raw: 0x%04X, Temp: %.2f C",
-            sensor == VkThermoSensorTmp117 ? "TMP117" : "TMP112",
-            (uint16_t)raw,
-            (double)celsius);
+        FURI_LOG_I(TAG, "Raw: 0x%04X, Temp: %.2f°C", (uint16_t)raw, (double)celsius);
 
         *temperature = celsius;
-        *sensor_type = sensor;
         return true;
     }
 
     FURI_LOG_E(TAG, "Insufficient temperature data: %zu bytes", temp_len);
     return false;
+}
+
+// Read temperatures from both sensors (Temptress device)
+// Configures both in parallel, polls both, reads with same timestamp
+static bool vk_thermo_nfc_read_temperature_dual(
+    Iso15693_3Poller* poller,
+    const uint8_t* uid,
+    float* temperature1,
+    float* temperature2) {
+    // Wait for I2C bus to be free
+    if(!vk_thermo_nfc_i2c_wait_ready(poller, uid)) {
+        FURI_LOG_W(TAG, "I2C bus busy, trying anyway");
+    }
+
+    // Step 1: Configure both sensors for one-shot (no wait between writes)
+    uint8_t config_write[3] = {TMP117_CONFIG_REG, 0x0C, 0x00};
+
+    if(!vk_thermo_nfc_i2c_write(poller, uid, 0x49, config_write, 3)) {
+        FURI_LOG_E(TAG, "Temptress sensor 1 (0x49) config failed");
+        return false;
+    }
+
+    if(!vk_thermo_nfc_i2c_write(poller, uid, 0x4A, config_write, 3)) {
+        FURI_LOG_E(TAG, "Temptress sensor 2 (0x4A) config failed");
+        return false;
+    }
+
+    // Step 2: Poll both sensors until Data_Ready
+    uint8_t config_ptr[1] = {TMP117_CONFIG_REG};
+    bool sensor1_ready = false;
+    bool sensor2_ready = false;
+
+    for(uint8_t i = 0; i < 50; i++) { // Max 500ms timeout
+        furi_delay_ms(10);
+
+        // Check sensor 1 (0x49)
+        if(!sensor1_ready) {
+            uint8_t config_read[4];
+            size_t config_len = 0;
+            if(vk_thermo_nfc_i2c_write(poller, uid, 0x49, config_ptr, 1) &&
+               vk_thermo_nfc_i2c_read(poller, uid, 0x49, 2, config_read, &config_len) &&
+               config_len >= 2) {
+                uint16_t config_word = (config_read[0] << 8) | config_read[1];
+                if(config_word & TMP117_CONFIG_DATA_READY) {
+                    sensor1_ready = true;
+                }
+            }
+        }
+
+        // Check sensor 2 (0x4A)
+        if(!sensor2_ready) {
+            uint8_t config_read[4];
+            size_t config_len = 0;
+            if(vk_thermo_nfc_i2c_write(poller, uid, 0x4A, config_ptr, 1) &&
+               vk_thermo_nfc_i2c_read(poller, uid, 0x4A, 2, config_read, &config_len) &&
+               config_len >= 2) {
+                uint16_t config_word = (config_read[0] << 8) | config_read[1];
+                if(config_word & TMP117_CONFIG_DATA_READY) {
+                    sensor2_ready = true;
+                }
+            }
+        }
+
+        // Both ready?
+        if(sensor1_ready && sensor2_ready) {
+            FURI_LOG_D(TAG, "Temptress both sensors ready after %dms", (i + 1) * 10);
+            break;
+        }
+    }
+
+    if(!sensor1_ready || !sensor2_ready) {
+        FURI_LOG_E(
+            TAG,
+            "Temptress timeout: sensor1=%s sensor2=%s",
+            sensor1_ready ? "ready" : "not ready",
+            sensor2_ready ? "ready" : "not ready");
+        return false;
+    }
+
+    // Step 3: Read both temperatures
+    uint8_t temp_ptr[1] = {TEMP_SENSOR_REG_RESULT};
+    uint8_t temp1_data[4], temp2_data[4];
+    size_t temp1_len = 0, temp2_len = 0;
+
+    // Read sensor 1
+    if(!vk_thermo_nfc_i2c_write(poller, uid, 0x49, temp_ptr, 1) ||
+       !vk_thermo_nfc_i2c_read(poller, uid, 0x49, 2, temp1_data, &temp1_len) || temp1_len < 2) {
+        FURI_LOG_E(TAG, "Failed to read Temptress sensor 1");
+        return false;
+    }
+
+    // Read sensor 2
+    if(!vk_thermo_nfc_i2c_write(poller, uid, 0x4A, temp_ptr, 1) ||
+       !vk_thermo_nfc_i2c_read(poller, uid, 0x4A, 2, temp2_data, &temp2_len) || temp2_len < 2) {
+        FURI_LOG_E(TAG, "Failed to read Temptress sensor 2");
+        return false;
+    }
+
+    // Convert both readings
+    int16_t raw1 = (int16_t)((temp1_data[0] << 8) | temp1_data[1]);
+    int16_t raw2 = (int16_t)((temp2_data[0] << 8) | temp2_data[1]);
+
+    *temperature1 = vk_thermo_tmp117_raw_to_celsius(raw1);
+    *temperature2 = vk_thermo_tmp117_raw_to_celsius(raw2);
+
+    FURI_LOG_I(
+        TAG,
+        "Temptress: Sensor1=%.2f°C, Sensor2=%.2f°C",
+        (double)*temperature1,
+        (double)*temperature2);
+
+    return true;
 }
 
 // Scanner callback - tag detected
@@ -938,30 +1202,98 @@ static NfcCommand vk_thermo_nfc_poller_callback(NfcGenericEvent event, void* con
             return NfcCommandStop;
         }
 
-        // Read temperature (auto-detects TMP117 vs TMP112)
-        float temperature = 0.0f;
-        VkThermoSensorType sensor_type = VkThermoSensorUnknown;
-        if(vk_thermo_nfc_read_temperature(poller, iso_data->uid, &temperature, &sensor_type)) {
-            instance->last_data.temperature_celsius = temperature;
-            instance->last_data.sensor_type = sensor_type;
-            instance->last_data.valid = true;
-            instance->state = VkThermoNfcStateSuccess;
-            FURI_LOG_I(TAG, "Read success: %.2f C", (double)temperature);
-        } else if(!instance->stop_requested) {
-            // Retry with longer delay
-            furi_delay_ms(VK_THERMO_EH_DELAY_MS * 2);
-            if(!instance->stop_requested &&
-               vk_thermo_nfc_read_temperature(poller, iso_data->uid, &temperature, &sensor_type)) {
-                instance->last_data.temperature_celsius = temperature;
+        // Detect sensors and determine device type
+        DeviceType device_type;
+        VkThermoSensorType sensor_type;
+        vk_thermo_nfc_detect_sensors(poller, iso_data->uid, &device_type, &sensor_type);
+
+        if(sensor_type == VkThermoSensorUnknown) {
+            FURI_LOG_E(TAG, "No compatible sensor found");
+            instance->last_data.valid = false;
+            instance->state = VkThermoNfcStateError;
+            return NfcCommandStop;
+        }
+
+        // Read temperature(s) based on device type
+        float temp1 = 0.0f, temp2 = 0.0f;
+        bool read_success = false;
+
+        if(device_type == DeviceTypeTemptress) {
+            // Dual-sensor device
+            read_success =
+                vk_thermo_nfc_read_temperature_dual(poller, iso_data->uid, &temp1, &temp2);
+            if(read_success) {
+                // Store average in primary field, second reading in secondary
+                instance->last_data.temperature_celsius = (temp1 + temp2) / 2.0f;
+                instance->last_data.temperature2_celsius = temp2;
+                instance->last_data.has_dual_temps = true;
+                instance->last_data.device_type = DeviceTypeTemptress;
+                instance->last_data.sensor_type = VkThermoSensorTmp117;
+                instance->last_data.valid = true;
+                instance->state = VkThermoNfcStateSuccess;
+                FURI_LOG_I(
+                    TAG,
+                    "Temptress read success: avg=%.2f°C (%.2f°C, %.2f°C)",
+                    (double)instance->last_data.temperature_celsius,
+                    (double)temp1,
+                    (double)temp2);
+            }
+        } else {
+            // Single-sensor device (VK Thermo)
+            read_success = vk_thermo_nfc_read_temperature_single(
+                poller, iso_data->uid, 0x48, sensor_type, &temp1);
+            if(read_success) {
+                instance->last_data.temperature_celsius = temp1;
+                instance->last_data.temperature2_celsius = 0.0f;
+                instance->last_data.has_dual_temps = false;
+                instance->last_data.device_type = DeviceTypeVkThermo;
                 instance->last_data.sensor_type = sensor_type;
                 instance->last_data.valid = true;
                 instance->state = VkThermoNfcStateSuccess;
-                FURI_LOG_I(TAG, "Read success (retry): %.2f C", (double)temperature);
-            } else {
-                instance->last_data.valid = false;
-                instance->state = VkThermoNfcStateError;
-                FURI_LOG_E(TAG, "Failed to read temperature");
+                FURI_LOG_I(TAG, "VK Thermo read success: %.2f°C", (double)temp1);
             }
+        }
+
+        // If read failed, try retry with delay
+        if(!read_success && !instance->stop_requested) {
+            furi_delay_ms(VK_THERMO_EH_DELAY_MS * 2);
+
+            if(device_type == DeviceTypeTemptress) {
+                read_success =
+                    vk_thermo_nfc_read_temperature_dual(poller, iso_data->uid, &temp1, &temp2);
+                if(read_success) {
+                    instance->last_data.temperature_celsius = (temp1 + temp2) / 2.0f;
+                    instance->last_data.temperature2_celsius = temp2;
+                    instance->last_data.has_dual_temps = true;
+                    instance->last_data.device_type = DeviceTypeTemptress;
+                    instance->last_data.sensor_type = VkThermoSensorTmp117;
+                    instance->last_data.valid = true;
+                    instance->state = VkThermoNfcStateSuccess;
+                    FURI_LOG_I(
+                        TAG,
+                        "Temptress read success (retry): avg=%.2f°C",
+                        (double)instance->last_data.temperature_celsius);
+                }
+            } else {
+                read_success = vk_thermo_nfc_read_temperature_single(
+                    poller, iso_data->uid, 0x48, sensor_type, &temp1);
+                if(read_success) {
+                    instance->last_data.temperature_celsius = temp1;
+                    instance->last_data.temperature2_celsius = 0.0f;
+                    instance->last_data.has_dual_temps = false;
+                    instance->last_data.device_type = DeviceTypeVkThermo;
+                    instance->last_data.sensor_type = sensor_type;
+                    instance->last_data.valid = true;
+                    instance->state = VkThermoNfcStateSuccess;
+                    FURI_LOG_I(TAG, "VK Thermo read success (retry): %.2f°C", (double)temp1);
+                }
+            }
+        }
+
+        if(!read_success) {
+            instance->last_data.valid = false;
+            instance->state = VkThermoNfcStateError;
+            FURI_LOG_E(TAG, "Failed to read temperature");
         }
 
         return NfcCommandStop;

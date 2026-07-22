@@ -687,6 +687,11 @@ int32_t xinput_app(void* p) {
     view_port_free(view_port);
     furi_message_queue_free(event_queue);
 
+    if(hid_semaphore != NULL) {
+        furi_semaphore_free(hid_semaphore);
+        hid_semaphore = NULL;
+    }
+
     furi_record_close(RECORD_GUI);
 
     return 0;

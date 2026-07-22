@@ -383,7 +383,7 @@ int32_t ghost_esp_app(void* p) {
     show_main_menu(state);
 
     // Set up and run GUI
-    Gui* gui = furi_record_open("gui");
+    Gui* gui = furi_record_open(RECORD_GUI);
     if(gui && state->view_dispatcher) {
         // Reset any pending custom events that might be in the queue
         view_dispatcher_send_custom_event(state->view_dispatcher, 0);
@@ -553,7 +553,7 @@ cleanup:
     if(state && state->main_menu) main_menu_free(state->main_menu);
     FURI_LOG_I("Ghost_ESP", "UI components freed.");
     // Close GUI record after all GUI-related components are freed
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
     FURI_LOG_I("Ghost_ESP", "GUI record closed.");
     if(state && state->dialogs) {
         furi_record_close(RECORD_DIALOGS);

@@ -2,6 +2,9 @@
 #include <furi.h>
 #include <furi_hal.h>
 #include <storage/storage.h>
+#include <lib/toolbox/path.h>
+#include <expansion/expansion.h>
+
 #define TAG        "BarCodeScanner"
 #define WORKER_TAG TAG "App"
 

@@ -45,8 +45,31 @@ static void vk_thermo_scene_scan_nfc_callback(
         // Update the scan view with temperature
         vk_thermo_scan_view_set_temperature(app->scan_view, data->temperature_celsius, data->uid);
 
+        // Determine device type string
+        const char* device_type_str;
+        if(data->device_type == DeviceTypeTemptress) {
+            device_type_str = "temptress";
+        } else {
+            // VK Thermo - use sensor type
+            if(data->sensor_type == VkThermoSensorTmp112) {
+                device_type_str = "thermo112";
+            } else if(data->sensor_type == VkThermoSensorTmp117) {
+                device_type_str = "thermo117";
+            } else if(data->sensor_type == VkThermoSensorTmp119) {
+                device_type_str = "thermo119";
+            } else {
+                device_type_str = "unknown";
+            }
+        }
+
         // Log the reading
-        vk_thermo_log_add_entry(&app->log, data->uid, data->temperature_celsius);
+        vk_thermo_log_add_entry(
+            &app->log,
+            data->uid,
+            device_type_str,
+            data->temperature_celsius,
+            data->temperature2_celsius,
+            data->has_dual_temps);
 
         // Play success feedback
         vk_thermo_play_happy_bump(app);

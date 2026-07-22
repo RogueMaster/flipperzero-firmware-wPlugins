@@ -173,6 +173,10 @@ static void uhf_reader_app_free(UHFReaderApp* App) {
     submenu_free(App->Submenu);
     view_dispatcher_free(App->ViewDispatcher);
 
+    //Freeing the flipper format files
+    flipper_format_free(App->EpcFile);
+    flipper_format_free(App->EpcIndexFile);
+
     //Freeing variables used in app
     furi_string_free(App->EpcName);
     furi_string_free(App->EpcDelete);

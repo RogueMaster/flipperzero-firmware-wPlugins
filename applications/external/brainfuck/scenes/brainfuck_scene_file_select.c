@@ -1,9 +1,10 @@
 #include "../brainfuck_i.h"
+#include <dialogs/dialogs.h>
 
 void brainfuck_scene_file_select_on_enter(void* context) {
     BFApp* app = context;
 
-    DialogsApp* dialogs = furi_record_open("dialogs");
+    DialogsApp* dialogs = furi_record_open(RECORD_DIALOGS);
     FuriString* path;
     path = furi_string_alloc();
     furi_string_set(path, "/ext/apps_data/brainfuck");

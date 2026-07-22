@@ -461,10 +461,10 @@ static void scorched_tanks_fire(Game* game_state) {
 
         game_state->isShooting = true;
 
-        NotificationApp* notification = furi_record_open("notification");
+        NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
         notification_message(notification, &sequence_long_vibro);
         notification_message(notification, &sequence_blink_white_100);
-        furi_record_close("notification");
+        furi_record_close(RECORD_NOTIFICATION);
     }
 }
 

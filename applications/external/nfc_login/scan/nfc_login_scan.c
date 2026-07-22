@@ -2,6 +2,7 @@
 #include "../scenes/enroll/enroll_scene.h"
 #include "../hid/nfc_login_hid.h"
 #include "../hid/nfc_login_hid_ble.h"
+#include "../settings/nfc_login_notify.h"
 #include <nfc/nfc.h>
 #include <nfc/nfc_poller.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a.h>
@@ -64,7 +65,7 @@ int32_t app_scan_thread(void* context) {
                 if(match_index >= 0) {
                     if(!app->scanning) break;
 
-                    notification_message(app->notification, &sequence_success);
+                    nfc_login_notify(app, NfcLoginNotifySuccess);
 
                     HidMode effective_mode = app->hid_mode;
 
@@ -130,11 +131,11 @@ int32_t app_scan_thread(void* context) {
                         }
                         furi_delay_ms(HID_POST_TYPE_DELAY_MS);
                     } else {
-                        notification_message(app->notification, &sequence_error);
+                        nfc_login_notify(app, NfcLoginNotifyError);
                     }
                 } else {
                     if(app->has_active_selection) {
-                        notification_message(app->notification, &sequence_error);
+                        nfc_login_notify(app, NfcLoginNotifyError);
                         furi_delay_ms(ERROR_NOTIFICATION_DELAY_MS);
                     }
                 }

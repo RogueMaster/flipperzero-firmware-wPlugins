@@ -3,6 +3,8 @@
 
 #include <furi.h>
 #include <furi_hal.h>
+#include <notification/notification_messages.h>
+
 #include <stdint.h>
 
 #include <gblink/include/gblink.h>
@@ -43,6 +45,11 @@ struct gblink {
 	 */
 	FuriMutex *start_mutex;
 
+	/* Bottom half handler for incoming data */
+	FuriThread *thread;
+	/* Message queue for the bottom half handler */
+	FuriMessageQueue *mqueue;
+
 	/*
 	 * The following should probably have the world stopped around them
 	 * if not modified in an interrupt context.
@@ -77,4 +84,11 @@ struct gblink {
 	uint32_t bitclk_timeout_us;
 
 	void *exti_workaround_handle;
+
+	FuriSemaphore *led_sem;
+	bool led_blink;
+
+	NotificationApp *notifications;
+	FuriSemaphore *backlight_sem;
+	bool backlight_on;
 };

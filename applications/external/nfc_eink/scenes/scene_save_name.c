@@ -68,5 +68,8 @@ bool nfc_eink_scene_save_name_on_event(void* context, SceneManagerEvent event) {
 }
 
 void nfc_eink_scene_save_name_on_exit(void* context) {
-    UNUSED(context);
+    NfcEinkApp* instance = context;
+    void* validator_context = text_input_get_validator_callback_context(instance->text_input);
+    text_input_set_validator(instance->text_input, NULL, NULL);
+    validator_is_file_free(validator_context);
 }

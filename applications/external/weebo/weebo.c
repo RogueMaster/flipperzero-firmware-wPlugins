@@ -48,6 +48,7 @@ bool weebo_load_key_retail(Weebo* weebo) {
     } while(false);
 
     file_stream_close(stream);
+    stream_free(stream);
     furi_record_close(RECORD_STORAGE);
     furi_string_free(path);
 

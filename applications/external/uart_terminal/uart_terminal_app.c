@@ -105,9 +105,13 @@ void uart_terminal_app_free(UART_TerminalApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, UART_TerminalAppViewTextInput);
     view_dispatcher_remove_view(app->view_dispatcher, UART_TerminalAppViewHexInput);
 
+    variable_item_list_free(app->var_item_list);
+    variable_item_list_free(app->setup_var_item_list);
+    widget_free(app->widget);
     text_box_free(app->text_box);
     furi_string_free(app->text_box_store);
     uart_text_input_free(app->text_input);
+    uart_hex_input_free(app->hex_input);
 
     // View dispatcher
     view_dispatcher_free(app->view_dispatcher);

@@ -130,7 +130,7 @@ int32_t ir_scope_app(void* p) {
     view_port_draw_callback_set(view_port, render_callback, &state);
     view_port_input_callback_set(view_port, input_callback, event_queue);
 
-    Gui* gui = furi_record_open("gui");
+    Gui* gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
     InfraredWorker* worker = infrared_worker_alloc();
@@ -176,7 +176,7 @@ int32_t ir_scope_app(void* p) {
 
     view_port_enabled_set(view_port, false);
     gui_remove_view_port(gui, view_port);
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
     view_port_free(view_port);
     furi_message_queue_free(event_queue);
     furi_mutex_free(state.mutex);

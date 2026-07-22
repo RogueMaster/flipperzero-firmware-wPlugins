@@ -2,6 +2,7 @@
 #include "scenes/cards/cards_scene.h"
 #include "scenes/settings/settings_scene.h"
 #include "../../storage/nfc_login_card_storage.h"
+#include "../../settings/nfc_login_notify.h"
 
 #include <ctype.h>
 
@@ -75,7 +76,7 @@ int32_t app_enroll_scan_thread(void* context) {
             if(uid && uid_len > 0 && uid_len <= MAX_UID_LEN) {
                 app->enrollment_card.uid_len = uid_len;
                 memcpy(app->enrollment_card.uid, uid, uid_len);
-                notification_message(app->notification, &sequence_success);
+                nfc_login_notify(app, NfcLoginNotifySuccess);
                 app->enrollment_scanning = false;
                 if(app->widget_state == 3) {
                     view_dispatcher_send_custom_event(app->view_dispatcher, EventEditUidDone);
@@ -108,16 +109,16 @@ void app_text_input_result_callback(void* context) {
                 memcpy(&app->cards[app->card_count], &app->enrollment_card, sizeof(NfcCard));
                 app->card_count++;
                 if(app_save_cards(app)) {
-                    notification_message(app->notification, &sequence_success);
+                    nfc_login_notify(app, NfcLoginNotifySuccess);
                 } else {
                     FURI_LOG_E(TAG, "app_text_input_result_callback: Save failed, removing card");
                     app->card_count--;
-                    notification_message(app->notification, &sequence_error);
+                    nfc_login_notify(app, NfcLoginNotifyError);
                 }
             } else {
                 FURI_LOG_E(
                     TAG, "app_text_input_result_callback: Max cards reached (%d)", MAX_CARDS);
-                notification_message(app->notification, &sequence_error);
+                nfc_login_notify(app, NfcLoginNotifyError);
             }
         } else {
             FURI_LOG_E(
@@ -328,7 +329,7 @@ void app_enroll_uid_byte_input_done(void* context) {
         // Proceed to password entry
         view_dispatcher_send_custom_event(app->view_dispatcher, EventPromptPassword);
     } else {
-        notification_message(app->notification, &sequence_error);
+        nfc_login_notify(app, NfcLoginNotifyError);
         app->enrollment_state = EnrollmentStateNone;
         app_switch_to_view(app, ViewSubmenu);
     }

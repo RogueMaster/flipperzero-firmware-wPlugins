@@ -154,7 +154,10 @@ static void dataTransferApp_free(DataTransferApp* instance) {
     view_dispatcher_free(instance->view_dispatcher);
     furi_record_close(RECORD_GUI);
 
-    if(instance->model->stream) buffered_file_stream_close(instance->model->stream);
+    if(instance->model->stream) {
+        buffered_file_stream_close(instance->model->stream);
+        stream_free(instance->model->stream);
+    }
 
     free(instance->model);
     free(instance);
@@ -284,7 +287,7 @@ static void dispatch_view(void* contextd, uint32_t index) {
         stopSendingData();
 
         buffered_file_stream_close(fs);
-        free(fs);
+        stream_free(fs);
         furi_string_free(browser_path);
         furi_string_free(selected_path);
         view_dispatcher_switch_to_view(context->view_dispatcher, VIEW_DISPATCHER_MENU);
@@ -356,7 +359,7 @@ static void dispatch_view(void* contextd, uint32_t index) {
         }
 
         buffered_file_stream_close(fs);
-        free(fs);
+        stream_free(fs);
         free((void*)metadataMsg->fileName);
         free(metadataMsg);
         furi_string_free(filePath);

@@ -45,13 +45,13 @@ static bool flipp_pomodoro_settings_try_load_from(
 }
 
 bool flipp_pomodoro_settings_load(FlippPomodoroSettings* settings) {
-    Storage* storage = furi_record_open("storage");
+    Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
 
     bool ok = flipp_pomodoro_settings_try_load_from(file, SETTINGS_PATH, settings);
 
     storage_file_free(file);
-    furi_record_close("storage");
+    furi_record_close(RECORD_STORAGE);
 
     if(!ok) {
         flipp_pomodoro_settings_set_default(settings);
@@ -60,7 +60,7 @@ bool flipp_pomodoro_settings_load(FlippPomodoroSettings* settings) {
 }
 
 bool flipp_pomodoro_settings_save(const FlippPomodoroSettings* settings) {
-    Storage* storage = furi_record_open("storage");
+    Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
 
     // ensure the dir exist
@@ -75,6 +75,6 @@ bool flipp_pomodoro_settings_save(const FlippPomodoroSettings* settings) {
         storage_file_close(file);
     }
     storage_file_free(file);
-    furi_record_close("storage");
+    furi_record_close(RECORD_STORAGE);
     return ok;
 }

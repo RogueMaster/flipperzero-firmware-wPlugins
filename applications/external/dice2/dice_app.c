@@ -373,8 +373,9 @@ int32_t dice_dnd_app(void* p) {
                         roll(state);
                     }
                 }
+
                 // back button handlers
-                else if(event.input.key == InputKeyBack) {
+                if(event.input.key == InputKeyBack) {
                     // switch states
                     if(event.input.type == InputTypeShort) {
                         if(state->app_state == SelectState) {

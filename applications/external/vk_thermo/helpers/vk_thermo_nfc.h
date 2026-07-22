@@ -40,10 +40,30 @@
 #define TMP117_DEVICE_ID      0x0117
 #define TMP117_DEVICE_ID_MASK 0x0FFF
 
+// TMP119 Device ID (same register as TMP117)
+#define TMP119_DEVICE_ID 0x0119
+
+// TMP112 Configuration Register bits
+#define TMP112_CONFIG_REG 0x01
+#define TMP112_CONFIG_SD  (1 << 8) // Shutdown bit
+#define TMP112_CONFIG_OS  (1 << 7) // One-shot bit
+
+// TMP117/119 Configuration Register bits
+#define TMP117_CONFIG_REG         0x01
+#define TMP117_CONFIG_MOD_ONESHOT 0x0C00 // MOD[1:0]=11 (bits 10-11)
+#define TMP117_CONFIG_DATA_READY  (1 << 13) // Data ready flag
+
+// Device types
+typedef enum {
+    DeviceTypeVkThermo, // VivoKey Thermo (single sensor)
+    DeviceTypeTemptress, // Temptress (dual TMP117) - NOT a VivoKey product
+} DeviceType;
+
 // Temperature sensor types
 typedef enum {
     VkThermoSensorTmp117, // TMP117: raw * 0.0078125
     VkThermoSensorTmp112, // TMP112: (raw >> 4) * 0.0625
+    VkThermoSensorTmp119, // NEW
     VkThermoSensorUnknown, // Neither formula gave valid temp
 } VkThermoSensorType;
 
@@ -57,8 +77,12 @@ typedef enum {
 
 typedef struct {
     uint8_t uid[VK_THERMO_NFC_UID_LEN];
-    float temperature_celsius;
+    DeviceType device_type; // NEW
     VkThermoSensorType sensor_type;
+
+    float temperature_celsius; // Primary or average
+    float temperature2_celsius; // NEW - Secondary (Temptress only)
+    bool has_dual_temps; // NEW - true for Temptress
     bool valid;
 } VkThermoNfcData;
 

@@ -77,6 +77,8 @@ static App* cli_get_app(void) {
     app->layout_loaded = false;
     app->selecting_keyboard_layout = false;
     app->passcode_disabled = false;
+    app->sound_enabled = true;
+    app->vibro_enabled = true;
     app->hid_mode = HidModeUsb;
 
     strncpy(app->keyboard_layout, "en-US.kl", sizeof(app->keyboard_layout) - 1);
@@ -111,6 +113,10 @@ static App* cli_get_app(void) {
                         app->active_card_index = (size_t)atoi(line + 18);
                     } else if(strncmp(line, "passcode_disabled=", 18) == 0) {
                         app->passcode_disabled = (atoi(line + 18) != 0);
+                    } else if(strncmp(line, "sound_enabled=", 14) == 0) {
+                        app->sound_enabled = (atoi(line + 14) != 0);
+                    } else if(strncmp(line, "vibro_enabled=", 14) == 0) {
+                        app->vibro_enabled = (atoi(line + 14) != 0);
                     } else if(strncmp(line, "hid_mode=", 9) == 0) {
 #if HAS_BLE_HID_API
                         int value = atoi(line + 9);
@@ -142,6 +148,40 @@ static void cli_free_app(App* app) {
         return;
     }
     free(app);
+}
+
+static const char* cli_next_token(const char* str, FuriString* out) {
+    furi_string_reset(out);
+    while(*str == ' ' || *str == '\t') {
+        str++;
+    }
+    if(*str == '\0') {
+        return str;
+    }
+
+    const char* start = str;
+    const char* end = str;
+    if(*str == '"') {
+        start = str + 1;
+        end = start;
+        while(*end != '\0' && *end != '"') {
+            end++;
+        }
+        furi_string_set_strn(out, start, end - start);
+        if(*end == '"') {
+            end++;
+        }
+    } else {
+        while(*end != '\0' && *end != ' ' && *end != '\t') {
+            end++;
+        }
+        furi_string_set_strn(out, start, end - start);
+    }
+
+    while(*end == ' ' || *end == '\t') {
+        end++;
+    }
+    return end;
 }
 static void nfc_login_cli_list(PipeSide* pipe, FuriString* args, void* context) {
     UNUSED(pipe);
@@ -210,31 +250,18 @@ static void nfc_login_cli_add(PipeSide* pipe, FuriString* args, void* context) {
         cli_free_app(app);
         return;
     }
-    int arg_count = 0;
-    const char* start = args_cstr;
-    const char* end = args_cstr;
 
-    while(*end != '\0' && arg_count < 3) {
-        while(*end != '\0' && *end != ' ')
-            end++;
-
-        if(arg_count == 0) {
-            furi_string_set_strn(name_str, start, end - start);
-        } else if(arg_count == 1) {
-            furi_string_set_strn(uid_str, start, end - start);
-        } else if(arg_count == 2) {
-            furi_string_set_strn(password_str, start, strlen(start));
-            break;
-        }
-
-        arg_count++;
-        if(*end == ' ') {
-            end++;
-            start = end;
-        }
+    const char* ptr = cli_next_token(args_cstr, name_str);
+    ptr = cli_next_token(ptr, uid_str);
+    while(*ptr == ' ' || *ptr == '\t') {
+        ptr++;
+    }
+    if(*ptr != '\0') {
+        furi_string_set_str(password_str, ptr);
     }
 
-    if(arg_count < 3) {
+    if(furi_string_empty(name_str) || furi_string_empty(uid_str) ||
+       furi_string_empty(password_str)) {
         printf("Error: Missing arguments\r\n");
         printf("Usage: nfc_login add <name> <uid_hex> <password>\r\n");
         furi_string_free(name_str);
@@ -402,6 +429,8 @@ static void nfc_login_cli_settings(PipeSide* pipe, FuriString* args, void* conte
     printf(
         "  Keyboard Layout: %s\r\n", app->keyboard_layout[0] ? app->keyboard_layout : "default");
     printf("  Passcode Disabled: %s\r\n", app->passcode_disabled ? "Yes" : "No");
+    printf("  Sound Enabled: %s\r\n", app->sound_enabled ? "Yes" : "No");
+    printf("  Vibro Enabled: %s\r\n", app->vibro_enabled ? "Yes" : "No");
 
     if(app->has_active_selection && app->selected_card < app->card_count) {
         printf("  Active Card: %s\r\n", app->cards[app->selected_card].name);
@@ -427,7 +456,7 @@ static void nfc_login_cli_set(PipeSide* pipe, FuriString* args, void* context) {
         printf("Error: Missing arguments\r\n");
         printf("Usage: nfc_login set <setting> <value>\r\n");
         printf(
-            "Settings: hid_mode, append_enter, input_delay, keyboard_layout, passcode_disabled\r\n");
+            "Settings: hid_mode, append_enter, input_delay, keyboard_layout, passcode_disabled, sound_enabled, vibro_enabled\r\n");
         cli_free_app(app);
         return;
     }
@@ -520,6 +549,24 @@ static void nfc_login_cli_set(PipeSide* pipe, FuriString* args, void* context) {
             snprintf(error_msg, sizeof(error_msg), "Invalid value. Use 0 or 1");
             error = true;
         }
+    } else if(strcmp(setting, "sound_enabled") == 0) {
+        int value = atoi(value_start);
+        if(value == 0 || value == 1) {
+            app->sound_enabled = (value == 1);
+            setting_changed = true;
+        } else {
+            snprintf(error_msg, sizeof(error_msg), "Invalid value. Use 0 or 1");
+            error = true;
+        }
+    } else if(strcmp(setting, "vibro_enabled") == 0) {
+        int value = atoi(value_start);
+        if(value == 0 || value == 1) {
+            app->vibro_enabled = (value == 1);
+            setting_changed = true;
+        } else {
+            snprintf(error_msg, sizeof(error_msg), "Invalid value. Use 0 or 1");
+            error = true;
+        }
     } else {
         snprintf(error_msg, sizeof(error_msg), "Unknown setting: %s", setting);
         error = true;
@@ -529,7 +576,7 @@ static void nfc_login_cli_set(PipeSide* pipe, FuriString* args, void* context) {
         printf("Error: %s\r\n", error_msg);
         printf("Usage: nfc_login set <setting> <value>\r\n");
         printf(
-            "Settings: hid_mode, append_enter, input_delay, keyboard_layout, passcode_disabled\r\n");
+            "Settings: hid_mode, append_enter, input_delay, keyboard_layout, passcode_disabled, sound_enabled, vibro_enabled\r\n");
     } else if(setting_changed) {
         app_save_settings(app);
         printf("Setting '%s' updated successfully\r\n", setting);
@@ -558,6 +605,8 @@ static void nfc_login_cli_help(PipeSide* pipe, FuriString* args, void* context) 
     printf("  input_delay <ms>        - Set input delay (10, 50, 100, 200)\r\n");
     printf("  keyboard_layout <name>  - Set keyboard layout file name\r\n");
     printf("  passcode_disabled <0|1> - Disable passcode for NFC Login app\r\n");
+    printf("  sound_enabled <0|1>    - Enable scan/UI beeps\r\n");
+    printf("  vibro_enabled <0|1>   - Enable scan/UI vibration\r\n");
     printf("\r\n");
     printf("Examples:\r\n");
     printf("  login list\r\n");

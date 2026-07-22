@@ -96,6 +96,7 @@ void bf_save_changes() {
         stream, furi_string_get_cstr(appDev->BF_file_path), FSAM_WRITE, FSOM_CREATE_ALWAYS);
     stream_write(stream, (const uint8_t*)appDev->dataBuffer, appDev->dataSize);
     buffered_file_stream_close(stream);
+    stream_free(stream);
 }
 
 static void bf_dev_draw_callback(Canvas* canvas, void* _model) {
@@ -309,6 +310,10 @@ static bool bf_dev_process_ok(BFDevEnv* devEnv, InputEvent* event) {
             killThread();
             furi_thread_join(workerThread);
         }
+        if(workerThread) {
+            furi_thread_free(workerThread);
+            workerThread = NULL;
+        }
 
         bf_save_changes();
 
@@ -355,6 +360,10 @@ static void bf_dev_enter_callback(void* context) {
         killThread();
         furi_thread_join(workerThread);
     }
+    if(workerThread) {
+        furi_thread_free(workerThread);
+        workerThread = NULL;
+    }
 
     //clear the bf instruction buffer
     memset(appDev->dataBuffer, 0x00, BF_INST_BUFFER_SIZE * sizeof(char));
@@ -373,6 +382,7 @@ static void bf_dev_enter_callback(void* context) {
 
     stream_read(stream, (uint8_t*)appDev->dataBuffer, appDev->dataSize);
     buffered_file_stream_close(stream);
+    stream_free(stream);
 
     //replaces any invalid characters with an underscore. strips out newlines, comments, etc
     for(int i = 0; i < appDev->dataSize; i++) {
@@ -416,6 +426,10 @@ void bf_dev_env_free(BFDevEnv* devEnv) {
     if(getStatus() != 0) {
         killThread();
         furi_thread_join(workerThread);
+    }
+    if(workerThread) {
+        furi_thread_free(workerThread);
+        workerThread = NULL;
     }
 
     furi_assert(devEnv);

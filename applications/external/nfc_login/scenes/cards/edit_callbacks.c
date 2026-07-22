@@ -2,15 +2,16 @@
 #include "cards_scene.h"
 #include "../../storage/nfc_login_card_storage.h"
 #include "../scene_manager.h"
+#include "../../settings/nfc_login_notify.h"
 #include <ctype.h>
 
 void app_edit_text_result_callback(void* context) {
     App* app = context;
     if(app->edit_state == EditStateName || app->edit_state == EditStatePassword) {
         if(app_save_cards(app)) {
-            notification_message(app->notification, &sequence_success);
+            nfc_login_notify(app, NfcLoginNotifySuccess);
         } else {
-            notification_message(app->notification, &sequence_error);
+            nfc_login_notify(app, NfcLoginNotifyError);
             FURI_LOG_E(TAG, "Failed to save card after edit");
         }
         app->edit_state = EditStateNone;
@@ -44,13 +45,13 @@ void app_edit_text_result_callback(void* context) {
             app->cards[app->edit_card_index].uid_len = idx;
             memcpy(app->cards[app->edit_card_index].uid, uid, idx);
             if(app_save_cards(app)) {
-                notification_message(app->notification, &sequence_success);
+                nfc_login_notify(app, NfcLoginNotifySuccess);
             } else {
-                notification_message(app->notification, &sequence_error);
+                nfc_login_notify(app, NfcLoginNotifyError);
                 FURI_LOG_E(TAG, "Failed to save card after UID edit");
             }
         } else {
-            notification_message(app->notification, &sequence_error);
+            nfc_login_notify(app, NfcLoginNotifyError);
         }
         app->edit_state = EditStateNone;
         // Return to edit menu
@@ -80,13 +81,13 @@ void app_edit_uid_byte_input_done(void* context) {
         app->cards[app->edit_card_index].uid_len = actual_len;
         memcpy(app->cards[app->edit_card_index].uid, app->edit_uid_bytes, actual_len);
         if(app_save_cards(app)) {
-            notification_message(app->notification, &sequence_success);
+            nfc_login_notify(app, NfcLoginNotifySuccess);
         } else {
-            notification_message(app->notification, &sequence_error);
+            nfc_login_notify(app, NfcLoginNotifyError);
             FURI_LOG_E(TAG, "Failed to save card after UID byte edit");
         }
     } else {
-        notification_message(app->notification, &sequence_error);
+        nfc_login_notify(app, NfcLoginNotifyError);
     }
     app->edit_state = EditStateNone;
     // Return to edit menu

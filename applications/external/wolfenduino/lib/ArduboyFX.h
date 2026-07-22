@@ -68,6 +68,9 @@ public:
     static void saveGameState(const uint8_t* gameState, size_t size);
 
     static void warmUpData(uint32_t address, size_t length);
+    static void waitWhileBusy();
+    static void writeSavePage(uint16_t page, const uint8_t* buffer);
+
 
 private:
     enum class Domain : uint8_t { Data, Save };

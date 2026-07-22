@@ -258,5 +258,7 @@ void mifare_fuzzer_scene_emulator_on_exit(void* context) {
         furi_string_reset(app->uid_str);
         stream_rewind(app->uids_stream);
         buffered_file_stream_close(app->uids_stream);
+        stream_free(app->uids_stream);
+        app->uids_stream = NULL;
     }
 }

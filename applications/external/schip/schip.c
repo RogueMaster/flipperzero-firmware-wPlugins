@@ -437,6 +437,7 @@ int32_t schip_main(void* p) {
     gui_remove_view_port(gui, view_port);
     view_port_free(view_port);
     furi_message_queue_free(event_queue);
+    furi_string_free(file_path);
 
     furi_record_close(RECORD_GUI);
 

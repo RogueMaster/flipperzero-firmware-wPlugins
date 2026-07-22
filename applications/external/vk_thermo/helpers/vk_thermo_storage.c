@@ -141,12 +141,22 @@ void vk_thermo_log_init(VkThermoLog* log) {
     log->head = 0;
 }
 
-void vk_thermo_log_add_entry(VkThermoLog* log, const uint8_t* uid, float temperature) {
-    VkThermoLogEntry* entry = &log->entries[log->head];
+void vk_thermo_log_add_entry(
+    VkThermoLog* log,
+    const uint8_t* uid,
+    const char* device_type,
+    float temperature,
+    float temperature2,
+    bool has_dual_temps) {
+    furi_assert(log);
 
+    VkThermoLogEntry* entry = &log->entries[log->head];
     memcpy(entry->uid, uid, VK_THERMO_UID_LENGTH);
     entry->timestamp = furi_hal_rtc_get_timestamp();
+    snprintf(entry->device_type, sizeof(entry->device_type), "%s", device_type);
     entry->temperature_celsius = temperature;
+    entry->temperature2_celsius = temperature2;
+    entry->has_dual_temps = has_dual_temps;
     entry->valid = true;
 
     log->head = (log->head + 1) % VK_THERMO_LOG_MAX_ENTRIES;
@@ -183,10 +193,10 @@ static void vk_thermo_log_save_uid_csv(Storage* storage, VkThermoLog* log, const
     }
 
     // No uid column - the filename IS the uid
-    const char* header = "timestamp,celsius,fahrenheit\n";
+    const char* header = "timestamp,device_type,celsius,fahrenheit,celsius2,fahrenheit2\n";
     storage_file_write(file, header, strlen(header));
 
-    char line[96];
+    char line[128];
     uint8_t written = 0;
 
     for(uint8_t i = 0; i < log->count; i++) {
@@ -201,14 +211,18 @@ static void vk_thermo_log_save_uid_csv(Storage* storage, VkThermoLog* log, const
         if(!entry->valid) continue;
         if(memcmp(entry->uid, uid, VK_THERMO_UID_LENGTH) != 0) continue;
 
-        float fahrenheit = vk_thermo_celsius_to_fahrenheit(entry->temperature_celsius);
         int len = snprintf(
             line,
             sizeof(line),
-            "%lu,%.2f,%.2f\n",
+            "%lu,%s,%.2f,%.2f,%.2f,%.2f\n",
             (unsigned long)entry->timestamp,
+            entry->device_type,
             (double)entry->temperature_celsius,
-            (double)fahrenheit);
+            (double)vk_thermo_celsius_to_fahrenheit(entry->temperature_celsius),
+            entry->has_dual_temps ? (double)entry->temperature2_celsius : (double)0.0,
+            entry->has_dual_temps ?
+                (double)vk_thermo_celsius_to_fahrenheit(entry->temperature2_celsius) :
+                (double)0.0);
 
         storage_file_write(file, line, len);
         written++;
@@ -319,25 +333,51 @@ static void vk_thermo_log_load_uid_csv(
             continue;
         }
 
-        // Parse: timestamp,celsius,fahrenheit
+        // Parse CSV line with backwards compatibility
         const char* line_cstr = furi_string_get_cstr(line_str);
         strncpy(line, line_cstr, sizeof(line) - 1);
         line[sizeof(line) - 1] = '\0';
 
-        char* timestamp_str = line;
-        char* comma1 = strchr(timestamp_str, ',');
-        if(!comma1) continue;
-        *comma1 = '\0';
+        // Try newest format first (6 columns with device_type)
+        uint32_t timestamp;
+        char device_type[16] = "unknown";
+        float celsius, fahrenheit, celsius2 = 0.0f, fahrenheit2 = 0.0f;
+        int fields = sscanf(
+            line,
+            "%lu,%15[^,],%f,%f,%f,%f",
+            (unsigned long*)&timestamp,
+            device_type,
+            &celsius,
+            &fahrenheit,
+            &celsius2,
+            &fahrenheit2);
 
-        char* celsius_str = comma1 + 1;
-        char* comma2 = strchr(celsius_str, ',');
-        if(comma2) *comma2 = '\0';
+        if(fields < 3) {
+            // Try old format without device_type (5 columns)
+            fields = sscanf(
+                line,
+                "%lu,%f,%f,%f,%f",
+                (unsigned long*)&timestamp,
+                &celsius,
+                &fahrenheit,
+                &celsius2,
+                &fahrenheit2);
+            // Infer device type from has_dual_temps
+            if(fields >= 5 && celsius2 != 0.0f) {
+                snprintf(device_type, sizeof(device_type), "temptress");
+            } else {
+                snprintf(device_type, sizeof(device_type), "unknown");
+            }
+        }
 
-        if(timestamp_str[0] && celsius_str[0]) {
+        if(fields >= 3) { // At least old format (3 columns: timestamp,celsius,fahrenheit)
             VkThermoLogEntry* entry = &log->entries[log->head];
             memcpy(entry->uid, uid, VK_THERMO_UID_LENGTH);
-            entry->timestamp = (uint32_t)strtoul(timestamp_str, NULL, 10);
-            entry->temperature_celsius = strtof(celsius_str, NULL);
+            entry->timestamp = timestamp;
+            snprintf(entry->device_type, sizeof(entry->device_type), "%s", device_type);
+            entry->temperature_celsius = celsius;
+            entry->temperature2_celsius = (fields >= 5 || fields >= 6) ? celsius2 : 0.0f;
+            entry->has_dual_temps = (celsius2 != 0.0f);
             entry->valid = true;
 
             log->head = (log->head + 1) % VK_THERMO_LOG_MAX_ENTRIES;

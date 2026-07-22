@@ -363,6 +363,7 @@ int32_t race_app(void* p) {
     gui_remove_view_port(gui, view_port);
     view_port_free(view_port);
     furi_record_close(RECORD_GUI);
+    furi_mutex_free(state_mutex);
 
     return 0;
 }

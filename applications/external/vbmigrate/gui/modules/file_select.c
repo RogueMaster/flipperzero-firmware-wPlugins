@@ -187,7 +187,7 @@ static bool file_select_init_inner(FileSelect* file_select) {
 FileSelect* file_select_alloc() {
     FileSelect* file_select = malloc(sizeof(FileSelect));
     file_select->view = view_alloc();
-    file_select->fs_api = furi_record_open("storage");
+    file_select->fs_api = furi_record_open(RECORD_STORAGE);
 
     view_set_context(file_select->view, file_select);
     view_allocate_model(file_select->view, ViewModelTypeLockFree, sizeof(FileSelectModel));
@@ -223,7 +223,7 @@ void file_select_free(FileSelect* file_select) {
         false);
     view_free(file_select->view);
     free(file_select);
-    furi_record_close("storage");
+    furi_record_close(RECORD_STORAGE);
 }
 
 View* file_select_get_view(FileSelect* file_select) {

@@ -91,6 +91,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [DeFlock v0.43 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [Tesla Mod v2.16b20 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
 - ESP Flasher: [Bump Marauder v1.14.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.14.0)
+- Many apps updated with naming and stability improvements (By xMasterX)
+- Updated: [NFC Login v1.1.2 (By Play2BReal)](https://github.com/Play2BReal/NFC-Login)
+- Updated: [VK Thermo v1.0 (By VivoKey)](https://github.com/VivoKey/vkthermo-flipper)
 
 <a name="release"></a>
 

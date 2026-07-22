@@ -754,6 +754,7 @@ static void t5577_writer_app_free(T5577WriterApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, T5577WriterViewConfigure_i);
     view_dispatcher_remove_view(app->view_dispatcher, T5577WriterViewConfigure_e);
     view_dispatcher_remove_view(app->view_dispatcher, T5577WriterViewByteInput);
+    byte_input_free(app->byte_input);
     variable_item_list_free(app->variable_item_list_config);
     view_dispatcher_remove_view(app->view_dispatcher, T5577WriterViewSave);
     view_free(app->view_save);

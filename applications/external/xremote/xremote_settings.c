@@ -160,6 +160,7 @@ static void xremote_settings_context_clear_callback(void* context) {
     ViewDispatcher* view_disp = ctx->app_ctx->view_dispatcher;
     view_dispatcher_remove_view(view_disp, XRemoteViewSettings);
     variable_item_list_free(ctx->item_list);
+    free(ctx);
 }
 
 XRemoteApp* xremote_settings_alloc(XRemoteAppContext* app_ctx) {
