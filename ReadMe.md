@@ -90,6 +90,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [GlitchTrigger v1.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/GlitchTrigger-FlipperZero)
 - Updated: [DeFlock v0.43 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [Tesla Mod v2.16b20 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd)
+- ESP Flasher: [Bump Marauder v1.14.0 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.14.0)
 
 <a name="release"></a>
 
