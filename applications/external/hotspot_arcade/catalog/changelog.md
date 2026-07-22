@@ -1,3 +1,12 @@
+## 1.1
+
+- Flash more than one ESP board: "Install Firmware" now opens a board picker for the
+  official Flipper WiFi Dev Board (ESP32-S2) or an ESP32 WROOM board. Each board's firmware
+  is bundled, so it stays an offline, no-computer flash.
+- Note: the first launch (and each update) can take up to 2 minutes while the app unpacks
+  its bundled firmware and game files to the SD card. The hourglass is the loader working.
+- Firmware v11.
+
 ## 1.0
 
 - Four games are now driven by plain-text content packs: Trivia, Would You Rather,

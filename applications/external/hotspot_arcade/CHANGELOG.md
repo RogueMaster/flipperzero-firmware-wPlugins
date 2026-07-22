@@ -6,6 +6,28 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-22
+
+Multi-board support. Firmware **v11** (no protocol change).
+
+### Added
+
+- **Flash more than one ESP board.** "Install Firmware" now opens a board picker — the
+  official Flipper WiFi Dev Board (ESP32-S2) or an ESP32 WROOM board. Each board's
+  firmware is bundled, so it's still an offline, no-computer flash. Adding a board later is
+  one picker row plus one asset folder. Thanks to @Tyl3rA (#2) for the WROOM support this
+  builds on.
+
+### Changed
+
+- `tools/build-fap.sh` and CI now build the firmware once per board, so the bundled images
+  can't silently go stale.
+- The fap grows to ~1.9 MB (a second full firmware is bundled). Assets stream to SD, so
+  it's RAM-neutral, but the **first launch can take up to 2 minutes** while the Flipper
+  unpacks everything. Docs and the release notes say so.
+- Docs describe multi-board support (README, catalog listing), and drop the "Feed" screen
+  removed in 1.0.1.
+
 ## [1.0.1] - 2026-07-22
 
 Post-1.0 fixes from on-device testing. Firmware **v11** (no protocol change).
@@ -216,7 +238,8 @@ an official ESP32-S2 WiFi dev board. No internet and no app install required.
   for previewing the web client through lobby, trivia, and Connect Four in a desktop browser.
 - **CI**: a build workflow that compiles all three parts on every push and pull request.
 
-[Unreleased]: https://github.com/tarikbc/hotspot-arcade/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/tarikbc/hotspot-arcade/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/tarikbc/hotspot-arcade/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/tarikbc/hotspot-arcade/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/tarikbc/hotspot-arcade/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/tarikbc/hotspot-arcade/compare/v0.2.1...v0.3.0

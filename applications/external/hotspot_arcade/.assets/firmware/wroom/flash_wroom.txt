@@ -1,0 +1,11 @@
+# Hotspot Arcade ESP32-WROOM firmware  —  <flash offset>  <file>
+# The default bundle the on-device flasher installs. Committed as the source of
+# truth; the .bin images beside it are build artifacts populated by
+# tools/build-fap.sh and git-ignored. Bundled into the fap via fap_file_assets and
+# extracted to /ext/apps_assets/hotspot_arcade/firmware/ on launch.
+# Filenames are relative to this file's folder, so all four images sit here.
+# Offsets per the repo CLAUDE.md (huge_app layout; boot_app0 selects the app partition).
+0x1000  hotspot-arcade-fw.ino.bootloader.bin
+0x8000  hotspot-arcade-fw.ino.partitions.bin
+0xe000  boot_app0.bin
+0x10000 hotspot-arcade-fw.ino.bin

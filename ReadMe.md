@@ -28,8 +28,8 @@ This software is for experimental purposes only and is not meant for any illegal
 
 ## Latest Updates - [PATREON: Latest Release RM0720-1735-f5b58d7b-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
-- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-07-20 17:35 EST`
-- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-07-20 17:35 EST`
+- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-07-22 16:20 EST`
+- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-07-22 16:20 EST`
 - Updated: [ProtoPirate v3.2 (By RocketGod-git)](https://protopirate.net/ProtoPirate/ProtoPirate)
 - Updated: [JAYX PC Monitor v0.4 (By contactjayclatty)](https://github.com/contactjayclatty/JAYX)
 - Updated: [Weather Station v2.0.1 (By Skorpionm)-OFW](https://github.com/flipperdevices/flipperzero-good-faps/tree/dev/weather_station) [Weather Station: add Auriol HG02832/HG05124A protocol (By kjoxa)](https://github.com/Next-Flip/Momentum-Apps/pull/81)
@@ -85,7 +85,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Calculator v1.4 (By n-o-T-I-n-s-a-n-e)](https://github.com/n-o-T-I-n-s-a-n-e)
 - Updated: [iButton Fuzzer v1.8 (By gid9798)](https://github.com/DarkFlippers/unleashed-firmware/pull/507)
 - Updated: [RFID Fuzzer v1.8 (By gid9798)](https://github.com/DarkFlippers/unleashed-firmware/pull/507)
-- Updated: [Hotspot Arcade v1.0.1 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32`
 - Updated: [APRS TX v1.3.24 (By yo3gnd)](https://github.com/yo3gnd/flipper-zero-aprs-tx)
 - Updated: [GlitchTrigger v1.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/GlitchTrigger-FlipperZero)
 - Updated: [DeFlock v0.43 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
@@ -94,6 +93,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Many apps updated with naming and stability improvements (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/de090ac427f7113fd5136faa1fd7d865ac035382)
 - Updated: [NFC Login v1.1.2 (By Play2BReal)](https://github.com/Play2BReal/NFC-Login)
 - Updated: [VK Thermo v1.1 (By VivoKey)](https://github.com/VivoKey/vkthermo-flipper)
+- Updated: [Hotspot Arcade v1.1 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32`
 
 <a name="release"></a>
 
@@ -271,7 +271,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Heap Defence v1.4 (By xMasterX)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/fc776446de9fdd553b221c02668b925b689378d8)
 - [Hirn - Crack Color Codes v0.2 (By fgreil)](https://github.com/fgreil/mitzi-hirn)
 - [Hold em v1.1 (By code-phreak)](https://github.com/code-phreak/flipper-holdem)
-- [Hotspot Arcade v1.0.1 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32`
+- [Hotspot Arcade v1.1 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32`
 - [Hunter Killer v1.0 (By josephburnett)](https://github.com/josephburnett/hunter-flipper)
 - [Impostor v0.1.3 (By Endika)](https://github.com/Endika/flipper-impostor-game)
 - [Infinite Tic Tac Toe v0.1 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/infinite_tic_tac_toe)

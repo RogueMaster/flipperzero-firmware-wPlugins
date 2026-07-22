@@ -104,11 +104,9 @@ bool hotspot_arcade_scene_main_menu_on_event(void* context, SceneManagerEvent ev
         scene_manager_next_scene(app->scene_manager, HaSceneSsidInput);
         return true;
     case MenuFlashFirmware:
-        // The firmware ships bundled in the fap (extracted to apps_assets), so just
-        // flash the default - no file picker. The flasher polls for download mode;
-        // its Continue returns here (previous_scene) since we pushed it.
-        furi_string_set(app->flash_manifest, HA_DEFAULT_FW);
-        scene_manager_next_scene(app->scene_manager, HaSceneFlasher);
+        // Pick which board to flash; the picker sets the manifest and pushes the
+        // flasher, then pops back here. Firmware ships bundled per board, no file picker.
+        scene_manager_next_scene(app->scene_manager, HaSceneBoardSelect);
         return true;
     case MenuSettings:
         scene_manager_next_scene(app->scene_manager, HaSceneSettings);

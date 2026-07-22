@@ -43,7 +43,9 @@
 // instead, which the loader never touches. Both are read, apps_data winning on a clash.
 #define HA_ASSETS_DIR   EXT_PATH("apps_assets/hotspot_arcade")
 #define HA_FIRMWARE_DIR HA_ASSETS_DIR "/firmware"
-#define HA_DEFAULT_FW   HA_FIRMWARE_DIR "/flash.txt"
+// One flash manifest per supported board; the board picker chooses which to flash.
+#define HA_OFFICIAL_FW  HA_FIRMWARE_DIR "/official_devboard/flash_official.txt"
+#define HA_WROOM_FW     HA_FIRMWARE_DIR "/wroom/flash_wroom.txt"
 
 #define HA_BUNDLED_WEB_DIR HA_ASSETS_DIR "/web"
 #define HA_USER_WEB_DIR    HA_DATA_DIR "/web"

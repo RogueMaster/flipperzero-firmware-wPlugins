@@ -8,7 +8,7 @@
 [![latest release](https://img.shields.io/github/v/release/tarikbc/hotspot-arcade?sort=semver)](https://github.com/tarikbc/hotspot-arcade/releases/latest)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Offline multiplayer party games hosted from a Flipper Zero + ESP32-S2 WiFi board.**
+**Offline multiplayer party games hosted from a Flipper Zero + ESP32 WiFi board.**
 No internet, no app install. You host an open WiFi network from the Flipper; people
 nearby join it, a captive page hands them into a game in their phone browser, and
 everyone plays together over the local network. Built for dead zones: buses, planes,
@@ -86,8 +86,9 @@ The 1v1 board duels (Connect Four, Tic-Tac-Toe, Dots &amp; Boxes, Reversi):
 </p>
 
 **On the Flipper** — the host device shows the app menu, the live broadcasting dashboard
-(join info + players + active game + event feed), and the game selector on its 1-bit screen.
-Every game is phone-driven, so the Flipper just selects the game and watches the feed:
+(join info + players + active game), and the game selector on its 1-bit screen. Every game
+is phone-driven, so the Flipper selects the game and keeps score (a Console in the menu
+carries the live event log):
 
 <p align="center">
   <img src="docs/img/flipper-menu.png" alt="Flipper app menu: Start Session, SSID, Install Firmware" width="31%">
@@ -99,13 +100,14 @@ Every game is phone-driven, so the Flipper just selects the game and watches the
 
 - **Flipper Zero** (developed on **Momentum** firmware; other forks work with a matching
   `ufbt` SDK).
-- **Official Flipper WiFi Dev Board (ESP32-S2)** — mounts on the GPIO header, wiring the
-  two together over UART.
+- **An ESP32 WiFi board** on the GPIO header, wired to the Flipper over UART — either the
+  **official Flipper WiFi Dev Board (ESP32-S2)** or an **ESP32 WROOM** board. You pick your
+  board when flashing from the Flipper.
 
 ## How it works
 
 ```
- Phones (browser)  <-- WebSocket -->  ESP32-S2  <-- UART 921600 -->  Flipper Zero
+ Phones (browser)  <-- WebSocket -->  ESP32     <-- UART 921600 -->  Flipper Zero
    play the game                     AP + web + referee              host / scoreboard
 ```
 
@@ -126,18 +128,20 @@ Every game is phone-driven, so the Flipper just selects the game and watches the
 setup, no separate downloads: the ESP firmware, the phone game bundle, and the content
 packs all ship inside the .fap.
 
-> **First launch takes a few seconds.** The .fap carries ~850 KB of bundled content and
-> the Flipper unpacks it to the SD card the first time you open the app (and again after
-> an update). The hourglass is the system loader doing that, not a hang. Every launch
-> after that is instant.
+> **First launch can take up to 2 minutes.** The .fap carries about 1.9 MB of bundled
+> content (two board firmwares, the web bundle, the packs) and the Flipper unpacks it to
+> the SD card the first time you open the app (and again after an update). The hourglass is
+> the system loader doing that, not a hang, so give it a minute or two. Every launch after
+> that is instant.
 
 Then, on the Flipper: **Apps → GPIO → [ESP32] Hotspot Arcade**.
 
 ### Flashing the ESP board (no computer)
 
 The app embeds Espressif's `esp-serial-flasher` and carries the ESP firmware, so the board
-is flashed from the Flipper itself: use **Install Firmware** in the main menu, or accept
-the prompt the lobby shows when it doesn't see a board (or sees one on older firmware).
+is flashed from the Flipper itself: use **Install Firmware** in the main menu (then pick
+your board — the official S2 dev board or an ESP32 WROOM), or accept the prompt the lobby
+shows when it doesn't see a board (or sees one on older firmware).
 Put the ESP in download mode when asked (**hold BOOT, tap RESET, release BOOT**); it
 verifies with MD5, then asks you to **tap RESET** to boot the new firmware, and continues
 on its own once the board comes back.
@@ -164,10 +168,15 @@ Full commands and gotchas are in [CLAUDE.md](CLAUDE.md); the short version:
 cd web && node build.mjs        # -> web/dist/{index.html.gz, manifest.json}
 ```
 
-**2. ESP32-S2 firmware** (arduino-cli, esp32 core 2.0.17, vendored libs in `esp32/libs`)
+**2. ESP32 firmware** (arduino-cli, esp32 core 2.0.17, vendored libs in `esp32/libs`). One
+sketch, built once per supported board — `tools/build-fap.sh` does both for you, or by hand:
 ```sh
+# Official dev board (ESP32-S2)
 arduino-cli compile --fqbn esp32:esp32:esp32s2:PartitionScheme=huge_app \
-  --libraries esp32/libs --output-dir esp32/hotspot-arcade-fw/build esp32/hotspot-arcade-fw
+  --libraries esp32/libs --output-dir esp32/hotspot-arcade-fw/build/official_devboard esp32/hotspot-arcade-fw
+# ESP32 WROOM
+arduino-cli compile --fqbn esp32:esp32:esp32 \
+  --libraries esp32/libs --output-dir esp32/hotspot-arcade-fw/build/wroom esp32/hotspot-arcade-fw
 ```
 
 **3. Flipper app** — use the wrapper, not bare `ufbt`: it refreshes the bundled firmware
@@ -235,7 +244,7 @@ serves only the bundled game.
 
 ```
 flipper/hotspot-arcade/   Flipper app (C, ufbt/Momentum) — host + scoreboard
-esp32/hotspot-arcade-fw/  ESP32-S2 firmware (Arduino) — AP + web + WebSocket referee
+esp32/hotspot-arcade-fw/  ESP32 firmware (Arduino) — AP + web + WebSocket referee
 esp32/libs/               vendored AsyncTCP + ESPAsyncWebServer
 web/                      phone game client (vanilla JS, gzipped bundle)
 packs/                    content packs, one dir per game (trivia, wyr, scramble, draw)

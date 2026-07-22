@@ -221,11 +221,10 @@ bool hotspot_arcade_scene_lobby_on_event(void* context, SceneManagerEvent event)
         ha_lobby_render(app);
         return true;
     case HaEventInstallFirmware:
-        // Go flash the bundled firmware; on return this scene re-enters, re-detects
-        // the now-flashed board, and continues the start. Stop watching while away.
+        // Pick a board, then flash; on return this scene re-enters, re-detects the
+        // now-flashed board, and continues the start. Stop watching while away.
         app->awaiting_board = false;
-        furi_string_set(app->flash_manifest, HA_DEFAULT_FW);
-        scene_manager_next_scene(app->scene_manager, HaSceneFlasher);
+        scene_manager_next_scene(app->scene_manager, HaSceneBoardSelect);
         return true;
     case HaEventRefreshView:
         ha_lobby_render(app);
