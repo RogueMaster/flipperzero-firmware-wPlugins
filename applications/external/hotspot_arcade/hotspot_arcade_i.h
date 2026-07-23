@@ -46,6 +46,8 @@
 // One flash manifest per supported board; the board picker chooses which to flash.
 #define HA_OFFICIAL_FW  HA_FIRMWARE_DIR "/official_devboard/flash_official.txt"
 #define HA_WROOM_FW     HA_FIRMWARE_DIR "/wroom/flash_wroom.txt"
+// The C5 boots from 0x2000 rather than 0x1000; the offsets live in its manifest.
+#define HA_C5_FW        HA_FIRMWARE_DIR "/c5/flash_c5.txt"
 
 #define HA_BUNDLED_WEB_DIR HA_ASSETS_DIR "/web"
 #define HA_USER_WEB_DIR    HA_DATA_DIR "/web"

@@ -100,9 +100,9 @@ carries the live event log):
 
 - **Flipper Zero** (developed on **Momentum** firmware; other forks work with a matching
   `ufbt` SDK).
-- **An ESP32 WiFi board** on the GPIO header, wired to the Flipper over UART — either the
-  **official Flipper WiFi Dev Board (ESP32-S2)** or an **ESP32 WROOM** board. You pick your
-  board when flashing from the Flipper.
+- **An ESP32 WiFi board** on the GPIO header, wired to the Flipper over UART — the
+  **official Flipper WiFi Dev Board (ESP32-S2)**, an **ESP32 WROOM** board, or an
+  **ESP32-C5** board. You pick your board when flashing from the Flipper.
 
 ## How it works
 
@@ -128,8 +128,8 @@ carries the live event log):
 setup, no separate downloads: the ESP firmware, the phone game bundle, and the content
 packs all ship inside the .fap.
 
-> **First launch can take up to 2 minutes.** The .fap carries about 1.9 MB of bundled
-> content (two board firmwares, the web bundle, the packs) and the Flipper unpacks it to
+> **First launch can take up to 3 minutes.** The .fap carries about 3 MB of bundled
+> content (three board firmwares, the web bundle, the packs) and the Flipper unpacks it to
 > the SD card the first time you open the app (and again after an update). The hourglass is
 > the system loader doing that, not a hang, so give it a minute or two. Every launch after
 > that is instant.
@@ -140,7 +140,7 @@ Then, on the Flipper: **Apps → GPIO → [ESP32] Hotspot Arcade**.
 
 The app embeds Espressif's `esp-serial-flasher` and carries the ESP firmware, so the board
 is flashed from the Flipper itself: use **Install Firmware** in the main menu (then pick
-your board — the official S2 dev board or an ESP32 WROOM), or accept the prompt the lobby
+your board — the official S2 dev board, an ESP32 WROOM, or an ESP32-C5), or accept the prompt the lobby
 shows when it doesn't see a board (or sees one on older firmware).
 Put the ESP in download mode when asked (**hold BOOT, tap RESET, release BOOT**); it
 verifies with MD5, then asks you to **tap RESET** to boot the new firmware, and continues
@@ -168,8 +168,9 @@ Full commands and gotchas are in [CLAUDE.md](CLAUDE.md); the short version:
 cd web && node build.mjs        # -> web/dist/{index.html.gz, manifest.json}
 ```
 
-**2. ESP32 firmware** (arduino-cli, esp32 core 2.0.17, vendored libs in `esp32/libs`). One
-sketch, built once per supported board — `tools/build-fap.sh` does both for you, or by hand:
+**2. ESP32 firmware** (arduino-cli, esp32 core 2.0.17 for S2/WROOM and 3.x for the C5,
+vendored libs in `esp32/libs`). One sketch, built once per supported board —
+`tools/build-fap.sh` does them all for you, or by hand:
 ```sh
 # Official dev board (ESP32-S2)
 arduino-cli compile --fqbn esp32:esp32:esp32s2:PartitionScheme=huge_app \
@@ -177,6 +178,9 @@ arduino-cli compile --fqbn esp32:esp32:esp32s2:PartitionScheme=huge_app \
 # ESP32 WROOM
 arduino-cli compile --fqbn esp32:esp32:esp32 \
   --libraries esp32/libs --output-dir esp32/hotspot-arcade-fw/build/wroom esp32/hotspot-arcade-fw
+# ESP32-C5 (needs the 3.x core: arduino-cli core install esp32:esp32@3.3.11)
+arduino-cli compile --fqbn esp32:esp32:esp32c5:PartitionScheme=huge_app,CDCOnBoot=default \
+  --libraries esp32/libs --output-dir esp32/hotspot-arcade-fw/build/c5 esp32/hotspot-arcade-fw
 ```
 
 **3. Flipper app** — use the wrapper, not bare `ufbt`: it refreshes the bundled firmware

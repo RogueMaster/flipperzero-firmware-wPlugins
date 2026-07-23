@@ -6,6 +6,45 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-07-22
+
+Third board: **ESP32-C5**. From @xMasterX, tested on C5 hardware. Firmware **v11**
+(no protocol change).
+
+### Added
+
+- **ESP32-C5 support.** Same sketch builds for the C5 (against a 3.x esp32 core; S2/WROOM
+  stay pinned to 2.0.17), with C5 rows in the board picker and a `c5-merged.bin` on the
+  release for computer flashing. The bootloader sits at 0x2000 on this chip.
+- The flasher falls back to the plain ROM protocol for chips the stub loader doesn't cover
+  (C5/P4), skipping the `FLASH_END` the C5 ROM rejects and rebooting with a DTR pulse. The
+  S2/WROOM stub path is unchanged. Flash errors now name the stage, image, and route.
+
+### Changed
+
+- Bundled firmware images use short names (`ha-boot-<board>.bin`, etc.) so they fit the
+  Flipper's screen while flashing.
+- The fap grows to ~3 MB (a third firmware is bundled), so the **first launch can take up
+  to 3 minutes** while the Flipper unpacks it. Docs and the release notes say so.
+
+## [1.1.1] - 2026-07-22
+
+On-device flashing improvements from @xMasterX, who tested on an ESP32 WROOM board.
+Firmware **v11** (no protocol change).
+
+### Added
+
+- **One-click flashing.** The board picker now offers an "(auto boot)" row for each board
+  that pulses the DTR/RTS reset lines (and power-cycles over OTG) to drop the board into
+  download mode on its own — so a board with no reset button flashes in a single tap. The
+  manual "hold BOOT, tap RESET" rows stay as the fallback for boards wired differently.
+
+### Fixed
+
+- Pressing Back in the flasher no longer freezes the UI. A cancel flag is threaded into the
+  loader's blocking waits (chunked to 50 ms) so the scene's exit unwinds promptly instead of
+  sitting through a multi-second library timeout.
+
 ## [1.1.0] - 2026-07-22
 
 Multi-board support. Firmware **v11** (no protocol change).
@@ -177,7 +216,7 @@ versioning. Firmware **v6**.
 - **Phone feel**: WebAudio sound effects, `navigator.vibrate` haptics, and micro-animations
   across the web client. Unified duel renderer (`web/games/duel.js`).
 - **On-device ESP flasher**: flash the bundled firmware straight from the Flipper over the
-  GPIO UART (Espressif `esp_serial_flasher`, Apache-2.0, S2-trimmed). Firmware ships inside
+  GPIO UART (Espressif `esp-serial-flasher`, Apache-2.0, S2-trimmed). Firmware ships inside
   the fap via `fap_file_assets`, so a fresh install needs no SD setup. Auto-reboots after
   flashing.
 - **Firmware identity + versioning**: the beacon carries a project magic and version, so a
@@ -238,7 +277,9 @@ an official ESP32-S2 WiFi dev board. No internet and no app install required.
   for previewing the web client through lobby, trivia, and Connect Four in a desktop browser.
 - **CI**: a build workflow that compiles all three parts on every push and pull request.
 
-[Unreleased]: https://github.com/tarikbc/hotspot-arcade/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/tarikbc/hotspot-arcade/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/tarikbc/hotspot-arcade/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/tarikbc/hotspot-arcade/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/tarikbc/hotspot-arcade/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/tarikbc/hotspot-arcade/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/tarikbc/hotspot-arcade/compare/v0.3.0...v1.0.0

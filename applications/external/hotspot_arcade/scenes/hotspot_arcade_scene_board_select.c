@@ -16,6 +16,8 @@ typedef enum {
     BoardOfficial,
     BoardWroomBoot,
     BoardWroom,
+    BoardC5Boot,
+    BoardC5,
 } BoardIndex;
 
 static void ha_board_cb(void* context, uint32_t index) {
@@ -37,6 +39,8 @@ void hotspot_arcade_scene_board_select_on_enter(void* context) {
     submenu_add_item(app->submenu, "Official Dev Board", BoardOfficial, ha_board_cb, app);
     submenu_add_item(app->submenu, "WROOM (auto boot)", BoardWroomBoot, ha_board_cb, app);
     submenu_add_item(app->submenu, "ESP32 WROOM", BoardWroom, ha_board_cb, app);
+    submenu_add_item(app->submenu, "C5 (auto boot)", BoardC5Boot, ha_board_cb, app);
+    submenu_add_item(app->submenu, "ESP32 C5", BoardC5, ha_board_cb, app);
     view_dispatcher_switch_to_view(app->view_dispatcher, HaViewSubmenu);
 }
 
@@ -57,6 +61,12 @@ bool hotspot_arcade_scene_board_select_on_event(void* context, SceneManagerEvent
         /* fallthrough */
     case BoardWroom:
         manifest = HA_WROOM_FW;
+        break;
+    case BoardC5Boot:
+        auto_boot = true;
+        /* fallthrough */
+    case BoardC5:
+        manifest = HA_C5_FW;
         break;
     default:
         return false;

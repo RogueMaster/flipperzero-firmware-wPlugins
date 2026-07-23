@@ -82,7 +82,7 @@ static void ha_flash_render(HotspotArcadeApp* app) {
         widget_add_line_element(app->widget, 0, 20, 127, 20);
         if(app->flash_cnt)
             furi_string_printf(
-                t, "Image %u/%u: %s", app->flash_img + 1, app->flash_cnt, app->flash_stage);
+                t, "Img %u/%u: %s", app->flash_img + 1, app->flash_cnt, app->flash_stage);
         else
             furi_string_set(t, app->flash_stage);
         widget_add_string_element(

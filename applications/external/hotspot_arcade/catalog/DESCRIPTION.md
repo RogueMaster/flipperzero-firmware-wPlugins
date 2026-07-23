@@ -12,16 +12,17 @@ phones, and keeps the real-time game state.
 
 ## Requires an ESP32 WiFi board
 
-This app needs an ESP32 WiFi board on the GPIO header. Two are supported:
+This app needs an ESP32 WiFi board on the GPIO header. Three are supported:
 
 - The **official Flipper WiFi Dev Board (ESP32-S2)**
 - An **ESP32 WROOM** board
+- An **ESP32-C5** board
 
 The board must run the Hotspot Arcade firmware. Flash it **straight from the Flipper**
 with the built-in **Install Firmware** option (no computer needed) — pick your board from
 the list — or flash it from a computer with esptool.
 
-**First launch can take up to 2 minutes** (and again after each update): the app unpacks
+**First launch can take up to 3 minutes** (and again after each update): the app unpacks
 its bundled firmware and game files to the SD card. The hourglass is the loader working,
 not a hang. Every launch after that is instant.
 

@@ -6,7 +6,7 @@
 #include <furi_hal_power.h>
 #include <furi_hal_resources.h>
 
-#include "esp_loader_io.h" // from the vendored esp_serial_flasher (Apache-2.0)
+#include "esp_loader_io.h" // from the vendored esp-serial-flasher (Apache-2.0)
 
 // DTR/RTS hold times, same values esptool uses for the classic reset dance.
 #define HA_RESET_HOLD_TIME_MS 100
@@ -58,7 +58,7 @@ void ha_esp_port_flush(void) {
     if(s_rx) furi_stream_buffer_reset(s_rx);
 }
 
-// ---- esp_serial_flasher port interface (loader_port_*) ----
+// ---- esp-serial-flasher port interface (loader_port_*) ----
 
 esp_loader_error_t loader_port_write(const uint8_t* data, uint16_t size, uint32_t timeout) {
     UNUSED(timeout); // tx is buffered by the UART peripheral; we just wait for it
@@ -169,6 +169,17 @@ void ha_esp_port_enter_bootloader(void) {
 
     ha_dtr_deinit();
     ha_rts_deinit();
+}
+
+void ha_esp_port_reset_target(void) {
+    // Plain reset: pulse DTR without holding IO0, so the chip comes up running
+    // the firmware we just wrote instead of back in the bootloader.
+    ha_dtr_set(false);
+    ha_dtr_init();
+    ha_dtr_set(true);
+    loader_port_delay_ms(HA_RESET_HOLD_TIME_MS);
+    ha_dtr_set(false);
+    ha_dtr_deinit();
 }
 
 // The library calls these itself on every connect attempt. Driving the reset

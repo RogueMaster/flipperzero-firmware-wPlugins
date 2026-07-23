@@ -5,7 +5,7 @@
 # extracted to /ext/apps_assets/hotspot_arcade/firmware/ on launch.
 # Filenames are relative to this file's folder, so all four images sit here.
 # Offsets per the repo CLAUDE.md (huge_app layout; boot_app0 selects the app partition).
-0x1000  hotspot-arcade-fw.ino.bootloader.bin
-0x8000  hotspot-arcade-fw.ino.partitions.bin
-0xe000  boot_app0.bin
-0x10000 hotspot-arcade-fw.ino.bin
+0x1000  ha-boot-s2.bin
+0x8000  ha-part-s2.bin
+0xe000  ha-app0-s2.bin
+0x10000 ha-fw-s2.bin

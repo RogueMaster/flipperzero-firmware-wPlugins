@@ -1,0 +1,15 @@
+# Hotspot Arcade ESP32-C5 firmware  —  <flash offset>  <file>
+# Filenames are relative to this file's folder, like the other boards.
+#
+# NOTE the bootloader offset: the C5 boots from 0x2000, not the 0x1000 the ESP32
+# and ESP32-S2 bundles use. That is the core's own esp32c5.build.bootloader_addr,
+# not a guess. The rest matches the Arduino huge_app layout the other boards use.
+#
+# Built with arduino-cli against the esp32 3.x core (the C5 does not exist in the
+# 2.0.17 core the S2/WROOM images are pinned to), fqbn:
+#   esp32:esp32:esp32c5:PartitionScheme=huge_app,CDCOnBoot=default
+# CDCOnBoot stays disabled so Serial is UART0 — the pins the Flipper talks to.
+0x2000  ha-boot-c5.bin
+0x8000  ha-part-c5.bin
+0xe000  ha-app0-c5.bin
+0x10000 ha-fw-c5.bin
