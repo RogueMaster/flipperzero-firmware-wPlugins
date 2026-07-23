@@ -6,7 +6,7 @@ This is worth repeating: __if you want to learn CW, learn to decode early on__. 
 
 From the main menu, use `Training → Listening` to run the trainer. Use `Settings → Listening` to change the lesson, speed, spacing, and session length. The idle screen says `Listening`; press `OK` to start. With external key input selected, pressing the key can also start the session.
 
-<img align="right" src="../docs/images/ss7.png" alt="Listening result example" height="256">
+<img align="right" src="images/ss7.png" alt="Listening result example" height="256">
 
 In this example the question was PWRU, four letters. The answer entered was RWRU, so the first answer cell is black: R was the mistake. The other three letters still count, because scoring is by letter position, not all-or-nothing. The session score is now 50%. This is question 2 of 4; at four letters per question, that means 4 correct letters out of 8 so far. Since this group missed only one letter, the previous group must have missed three. The centre `3` is the pause countdown, so the next group starts in 3 seconds. We are currently at lesson 12, letter I. The triangle on the right means the Flipper buttons are being used as paddle input. Back is a paddle here, not an exit. Hold Left to leave.
 

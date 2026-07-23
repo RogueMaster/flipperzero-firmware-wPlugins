@@ -20,7 +20,7 @@ Keep character speed high. You want sound-to-letter reflex, not a little warehou
 
 Use Farnsworth for breathing room. It changes gaps, not the letter sound. If K becomes "dash dot dash" in your head, you are counting. Make the exercise harder.
 
-Do not let sending outrun listening. The straight trainer and groups-of-five drills are useful, but only after you can hear the lesson properly.
+Do not let sending outrun listening. The straight key trainer and groups-of-five drills are useful, but only after you can hear the lesson properly.
 
 ## Using A Paddle
 
@@ -36,12 +36,12 @@ After the first few Koch listening lessons, the Flipper buttons may start feelin
 - [Keyers and paddle settings](101-keyers-and-paddle-settings.md)
 - [Audio sidetone](102-audio-sidetone.md)
 - [Listening practice](200-koch-listening-practice.md)
-- Straight-key practice
+- [Straight key trainer](210-straight-key-practice.md)
 - Groups-of-five drills
 - [Free Practice mode](220-free-practice.md)
 - [Flipper as a Morse transceiver](300-transceiver.md)
+- [Ham keyer and logger](301-ham-keyer-and-logger.md)
 - [USB adapters](310-usb-adapters.md)
-- Ham keyer and logger
 - [Custom lessons and character sets](201-custom-lessons-and-character-sets.md)
 - Troubleshooting
 - [Resources](910-resources.md)

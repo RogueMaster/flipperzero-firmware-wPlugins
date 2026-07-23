@@ -1,6 +1,6 @@
 /*
- * Purpose: Bridge straight trainer model state into app runtime.
- * Owns: straight trainer resets, playback ticks, answer capture, and scoring.
+ * Purpose: Bridge straight key trainer model state into app runtime.
+ * Owns: straight key trainer resets, playback ticks, answer capture, and scoring.
  * Depends on: morse_flipper_app_i.h and morse_flipper_straight_trainer.h.
  * Tests: tests/test_straight_trainer.c covers the host trainer model.
  */

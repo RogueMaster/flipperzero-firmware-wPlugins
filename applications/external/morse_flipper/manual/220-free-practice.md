@@ -36,4 +36,4 @@ The lower rows show current WPM, input source, keyer mode, USB state, and a shor
 
 ## How To Use It
 
-Use Free Practice for short checks: paddle feel, speed, sidetone, USB output, and whether your sending is roughly copyable. For learning new letters, use Listening practice first. For measuring straight-key accuracy, use the straight trainer. Free Practice is a workbench, not a curriculum. It is also the mode you use when the Flipper is emulating a Morse adapter.
+Use Free Practice for short checks: paddle feel, speed, sidetone, USB output, and whether your sending is roughly copyable. For learning new letters, use Listening practice first. For measuring straight-key accuracy, use the straight key trainer. Free Practice is a workbench, not a curriculum. It is also the mode you use when the Flipper is emulating a Morse adapter.

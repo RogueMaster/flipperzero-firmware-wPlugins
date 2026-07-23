@@ -58,7 +58,7 @@ What you may see is the RX indicator, usually a green LED, lighting in time with
 
 With normal squelch enabled, the handheld may open its receiver during the carrier and play little or nothing. Squelch is the circuit that mutes speaker noise until the radio thinks a real signal is present. Disable squelch and the radio plays its background hiss all the time; when the Flipper transmits, the carrier can quiet that hiss, so the "Morse" becomes interruptions of noise by silence. Technically interesting, awful to copy.
 
-<img align="right" src="../docs/images/ss1.png" alt="First Flipper RX test using a handheld FM transceiver" height="256">
+<img align="right" src="images/ss1.png" alt="First Flipper RX test using a handheld FM transceiver" height="256">
 
 You can also use an FM handheld as the transmitter for Flipper's `Receive monitor`. There is enough RF energy for the Flipper radio circuit to detect. Hold the handheld PTT or side button and key it by hand, but expect pain: many handhelds keep transmitting for roughly half a second after you lift your finger, partly because humans are fond of lifting that finger too early. In practice, that makes usable hand-keyed carrier tests about 2-3 WPM. The screenshot here is from my first RX test with a UV-5R because it was what I had on the bench. Notice how uneven the G is. That tiny test took about three minutes to key and roughly five attempts to get right, which is a useful warning label.
 

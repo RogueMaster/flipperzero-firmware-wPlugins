@@ -15,13 +15,13 @@ Morse Flipper also includes a fairly extensive help manual on the Flipper itself
 - Built-in help for setup, hardware, practice, portable operating, contests, and CW operating notes.
 - GPIO key and paddle input using a simple jack adapter, with configurable pins and startup checks for suspicious wiring.
 - Ham keyer mode with rig keying on P15 and PTT on P16.
-- High-quality sidetone on P2/A7, with internal buzzer and vibration fallback.
+- Smoother internal Soft Buzz sidetone, high-quality sidetone on P2/A7, and vibration fallback.
 - Field keyer/logger for portable operating and canned replies.
 - Saved settings, compact run history, custom training character files on SD, and a small CW decoder.
 
 ## Hardware
 
-No extra hardware is required. The app works with the Flipper buttons and internal buzzer.
+No extra hardware is required. The app works with the Flipper buttons and internal speaker.
 
 For a real key or paddle, use a simple jack adapter wired to the GPIO header. The default wiring is P7 for dit or straight key, P5 for dah, and P3 as the software-controlled ground. A real GND pin can also be used.
 

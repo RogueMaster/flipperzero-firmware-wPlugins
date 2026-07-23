@@ -172,7 +172,7 @@ void morse_flipper_update_sidetone(MorseFlipperApp* app) {
 
     if(use_pwm) {
         furi_hal_vibro_on(false);
-        if(app->speaker_owned || app->tone_on) {
+        if(app->speaker_owned) {
             morse_flipper_tone_stop(app);
         }
 

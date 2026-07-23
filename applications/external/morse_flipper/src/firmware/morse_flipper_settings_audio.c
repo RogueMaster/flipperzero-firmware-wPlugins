@@ -1,11 +1,43 @@
 /*
- * Purpose: Handle tone, output path, and P2 volume settings rows.
+ * Purpose: Handle tone, output path, PWM volume, and buzzer waveform settings rows.
  * Owns: audio setting callbacks and preview/persistence side effects.
  * Depends on: morse_flipper_app_i.h and audio route/PWM state.
  * Tests: firmware build; settings UI is hardware-only.
  */
 
 #include "morse_flipper_app_i.h"
+
+#define MORSE_FLIPPER_AUDIO_PATH_VISIBLE_COUNT 3U
+#define MORSE_FLIPPER_AUDIO_WAVEFORM_COUNT     2U
+#define MORSE_FLIPPER_AUDIO_WAVEFORM_SQUARE    0U
+#define MORSE_FLIPPER_AUDIO_WAVEFORM_SINE      1U
+
+static const char* const morse_flipper_audio_waveform_names[] = {
+    "Square",
+    "Sine",
+};
+
+static void morse_flipper_audio_menu_refresh(MorseFlipperApp* app);
+static void morse_flipper_audio_menu_rebuild(MorseFlipperApp* app, uint8_t selected);
+static void morse_flipper_settings_audio_path_changed(VariableItem* item);
+static void morse_flipper_settings_p2_volume_changed(VariableItem* item);
+static void morse_flipper_settings_waveform_changed(VariableItem* item);
+
+static bool morse_flipper_audio_path_uses_waveform(uint8_t audio_path) {
+    return audio_path == MorseFlipperAudioPathBuzzer ||
+           audio_path == MorseFlipperAudioPathSoftBuzz;
+}
+
+static uint8_t morse_flipper_audio_path_visible_idx(uint8_t audio_path) {
+    if(audio_path == MorseFlipperAudioPathSoftBuzz) return MorseFlipperAudioPathBuzzer;
+    if(audio_path < MORSE_FLIPPER_AUDIO_PATH_VISIBLE_COUNT) return audio_path;
+    return MorseFlipperAudioPathBuzzer;
+}
+
+static uint8_t morse_flipper_audio_waveform_idx(uint8_t audio_path) {
+    return audio_path == MorseFlipperAudioPathBuzzer ? MORSE_FLIPPER_AUDIO_WAVEFORM_SQUARE :
+                                                       MORSE_FLIPPER_AUDIO_WAVEFORM_SINE;
+}
 
 void morse_flipper_settings_tone_changed(VariableItem* item) {
     MorseFlipperApp* app = variable_item_get_context(item);
@@ -43,9 +75,11 @@ static void morse_flipper_audio_menu_refresh(MorseFlipperApp* app) {
 
     item = app->audio_cfg_items[MorseFlipperAudioSettingPath];
     if(item) {
-        variable_item_set_current_value_index(item, app->audio_path);
-        variable_item_set_current_value_text(
-            item, morse_flipper_audio_path_names[app->audio_path]);
+        if(app->audio_path >= MorseFlipperAudioPathCount)
+            app->audio_path = MorseFlipperAudioPathSoftBuzz;
+        uint8_t idx = morse_flipper_audio_path_visible_idx(app->audio_path);
+        variable_item_set_current_value_index(item, idx);
+        variable_item_set_current_value_text(item, morse_flipper_audio_path_names[idx]);
     }
 
     item = app->audio_cfg_items[MorseFlipperAudioSettingTone];
@@ -71,16 +105,77 @@ static void morse_flipper_audio_menu_refresh(MorseFlipperApp* app) {
         snprintf(txt, sizeof(txt), "%u%%", (unsigned)morse_flipper_p2_volume_pct(app));
         variable_item_set_current_value_text(item, txt);
     }
+
+    item = app->audio_cfg_items[MorseFlipperAudioSettingWaveform];
+    if(item) {
+        uint8_t idx = morse_flipper_audio_waveform_idx(app->audio_path);
+        variable_item_set_current_value_index(item, idx);
+        variable_item_set_current_value_text(item, morse_flipper_audio_waveform_names[idx]);
+    }
+}
+
+static void morse_flipper_audio_menu_rebuild(MorseFlipperApp* app, uint8_t selected) {
+    VariableItem* item;
+    uint8_t max_selected = MorseFlipperAudioSettingP2Volume;
+
+    if(app == NULL) return;
+
+    variable_item_list_reset(app->settings_list);
+    memset(app->audio_cfg_items, 0, sizeof(app->audio_cfg_items));
+    variable_item_list_set_enter_callback(
+        app->settings_list, morse_flipper_settings_noop_enter, app);
+
+    item = variable_item_list_add(
+        app->settings_list,
+        "Audio path",
+        MORSE_FLIPPER_AUDIO_PATH_VISIBLE_COUNT,
+        morse_flipper_settings_audio_path_changed,
+        app);
+    app->audio_cfg_items[MorseFlipperAudioSettingPath] = item;
+
+    item = variable_item_list_add(
+        app->settings_list,
+        "Frequency",
+        COUNT_OF(morse_flipper_tones),
+        morse_flipper_settings_tone_changed,
+        app);
+    app->audio_cfg_items[MorseFlipperAudioSettingTone] = item;
+
+    item = variable_item_list_add(
+        app->settings_list, "PWM Volume", 19U, morse_flipper_settings_p2_volume_changed, app);
+    app->audio_cfg_items[MorseFlipperAudioSettingP2Volume] = item;
+
+    if(morse_flipper_audio_path_uses_waveform(app->audio_path)) {
+        item = variable_item_list_add(
+            app->settings_list,
+            "Waveform",
+            MORSE_FLIPPER_AUDIO_WAVEFORM_COUNT,
+            morse_flipper_settings_waveform_changed,
+            app);
+        app->audio_cfg_items[MorseFlipperAudioSettingWaveform] = item;
+        max_selected = MorseFlipperAudioSettingWaveform;
+    }
+
+    if(selected > max_selected) selected = max_selected;
+    morse_flipper_audio_menu_refresh(app);
+    variable_item_list_set_selected_item(app->settings_list, selected);
 }
 
 static void morse_flipper_settings_audio_path_changed(VariableItem* item) {
     MorseFlipperApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
 
-    if(idx > MorseFlipperAudioPathVibration) idx = MorseFlipperAudioPathBuzzer;
-    app->audio_path = idx;
-    variable_item_set_current_value_text(item, morse_flipper_audio_path_names[idx]);
-    morse_flipper_audio_menu_refresh(app);
+    if(idx == MorseFlipperAudioPathBuzzer) {
+        app->audio_path = morse_flipper_audio_path_uses_waveform(app->audio_path) ?
+                              app->audio_path :
+                              MorseFlipperAudioPathSoftBuzz;
+    } else if(idx < MORSE_FLIPPER_AUDIO_PATH_VISIBLE_COUNT) {
+        app->audio_path = idx;
+    } else {
+        app->audio_path = MorseFlipperAudioPathSoftBuzz;
+    }
+
+    morse_flipper_audio_menu_rebuild(app, MorseFlipperAudioSettingPath);
     morse_flipper_sync_audio_output(app);
     morse_flipper_save_config(app);
 }
@@ -97,36 +192,25 @@ static void morse_flipper_settings_p2_volume_changed(VariableItem* item) {
     morse_flipper_save_config(app);
 }
 
+static void morse_flipper_settings_waveform_changed(VariableItem* item) {
+    MorseFlipperApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+
+    app->audio_path = idx == MORSE_FLIPPER_AUDIO_WAVEFORM_SQUARE ? MorseFlipperAudioPathBuzzer :
+                                                                   MorseFlipperAudioPathSoftBuzz;
+    variable_item_set_current_value_text(
+        item,
+        morse_flipper_audio_waveform_names[morse_flipper_audio_waveform_idx(app->audio_path)]);
+    morse_flipper_sync_audio_output(app);
+    morse_flipper_save_config(app);
+}
+
 void morse_flipper_scene_audio_cfg_on_enter(void* context) {
     MorseFlipperApp* app = context;
     uint32_t sel = scene_manager_get_scene_state(app->scene_manager, MorseFlipperSceneAudioCfg);
-    VariableItem* item;
 
     morse_flipper_ensure_view(app, MorseFlipperViewSettings);
-    variable_item_list_reset(app->settings_list);
-    memset(app->audio_cfg_items, 0, sizeof(app->audio_cfg_items));
-    variable_item_list_set_enter_callback(
-        app->settings_list, morse_flipper_settings_noop_enter, app);
-
-    item = variable_item_list_add(
-        app->settings_list, "Audio path", 3U, morse_flipper_settings_audio_path_changed, app);
-    app->audio_cfg_items[MorseFlipperAudioSettingPath] = item;
-
-    item = variable_item_list_add(
-        app->settings_list,
-        "Frequency",
-        COUNT_OF(morse_flipper_tones),
-        morse_flipper_settings_tone_changed,
-        app);
-    app->audio_cfg_items[MorseFlipperAudioSettingTone] = item;
-
-    item = variable_item_list_add(
-        app->settings_list, "P2 Volume", 19U, morse_flipper_settings_p2_volume_changed, app);
-    app->audio_cfg_items[MorseFlipperAudioSettingP2Volume] = item;
-
-    if((sel & 0xffU) > MorseFlipperAudioSettingP2Volume) sel = 0U;
-    morse_flipper_audio_menu_refresh(app);
-    morse_flipper_settings_list_restore(app->settings_list, sel);
+    morse_flipper_audio_menu_rebuild(app, (uint8_t)(sel & 0xffU));
     morse_flipper_scene_enter_now(app, MorseFlipperSceneAudioCfg);
 }
 

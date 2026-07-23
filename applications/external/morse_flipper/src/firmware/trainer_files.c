@@ -31,34 +31,82 @@ const char* morse_trainer_custom_chars_path(void) {
 }
 
 #ifdef MORSE_FLIPPER_FAP
-static bool morse_trainer_read_custom_text(char* buf, size_t buf_sz) {
+static bool morse_trainer_write_custom_defaults(Storage* storage) {
+    File* file = storage_file_alloc(storage);
+    bool ok = false;
+
+    if(file == NULL) {
+        return false;
+    }
+
+    if(storage_file_open(file, morse_trainer_custom_path_value, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        ok = storage_file_write(
+                 file, morse_trainer_custom_defaults, strlen(morse_trainer_custom_defaults)) ==
+             strlen(morse_trainer_custom_defaults);
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+    return ok;
+}
+
+void morse_trainer_ensure_custom_chars_file(void) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+
+    if(storage == NULL) {
+        return;
+    }
+
+    if(!storage_file_exists(storage, morse_trainer_custom_path_value)) {
+        storage_common_mkdir(storage, MORSE_FLIPPER_APP_DATA_DIR);
+        morse_trainer_write_custom_defaults(storage);
+    }
+
+    furi_record_close(RECORD_STORAGE);
+}
+
+static bool morse_trainer_read_custom_text(char* buf, size_t buf_sz, bool create_defaults) {
     Storage* storage;
     File* file;
     uint16_t got = 0U;
     bool opened;
+    bool file_needs_close;
 
     if(buf == NULL || buf_sz == 0U) {
         return false;
     }
 
     storage = furi_record_open(RECORD_STORAGE);
+    if(storage == NULL) {
+        buf[0] = '\0';
+        return false;
+    }
+
     file = storage_file_alloc(storage);
+    if(file == NULL) {
+        buf[0] = '\0';
+        furi_record_close(RECORD_STORAGE);
+        return false;
+    }
 
     opened =
         storage_file_open(file, morse_trainer_custom_path_value, FSAM_READ, FSOM_OPEN_EXISTING);
+    file_needs_close = true;
     if(!opened) {
-        if(storage_file_open(
-               file, morse_trainer_custom_path_value, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-            storage_file_write(
-                file, morse_trainer_custom_defaults, strlen(morse_trainer_custom_defaults));
-        }
         storage_file_close(file);
-        opened = storage_file_open(
-            file, morse_trainer_custom_path_value, FSAM_READ, FSOM_OPEN_EXISTING);
+        file_needs_close = false;
+        if(create_defaults) {
+            storage_common_mkdir(storage, MORSE_FLIPPER_APP_DATA_DIR);
+            morse_trainer_write_custom_defaults(storage);
+            opened = storage_file_open(
+                file, morse_trainer_custom_path_value, FSAM_READ, FSOM_OPEN_EXISTING);
+            file_needs_close = true;
+        }
     }
 
     if(opened) {
         got = storage_file_read(file, buf, buf_sz - 1U);
+    }
+    if(file_needs_close) {
         storage_file_close(file);
     }
 
@@ -68,7 +116,25 @@ static bool morse_trainer_read_custom_text(char* buf, size_t buf_sz) {
     return got != 0U;
 }
 #else
-static bool morse_trainer_read_custom_text(char* buf, size_t buf_sz) {
+void morse_trainer_ensure_custom_chars_file(void) {
+    FILE* f = fopen(morse_trainer_custom_path_value, "rb");
+
+    if(f != NULL) {
+        fclose(f);
+        return;
+    }
+
+    mkdir("ext", 0777);
+    mkdir("ext/apps_data", 0777);
+    mkdir(MORSE_FLIPPER_APP_DATA_DIR, 0777);
+    f = fopen(morse_trainer_custom_path_value, "wb");
+    if(f != NULL) {
+        fwrite(morse_trainer_custom_defaults, 1, strlen(morse_trainer_custom_defaults), f);
+        fclose(f);
+    }
+}
+
+static bool morse_trainer_read_custom_text(char* buf, size_t buf_sz, bool create_defaults) {
     FILE* f;
     size_t got;
 
@@ -77,7 +143,7 @@ static bool morse_trainer_read_custom_text(char* buf, size_t buf_sz) {
     }
 
     f = fopen(morse_trainer_custom_path_value, "rb");
-    if(f == NULL) {
+    if(f == NULL && create_defaults) {
         mkdir("ext", 0777);
         mkdir("ext/apps_data", 0777);
         mkdir(MORSE_FLIPPER_APP_DATA_DIR, 0777);
@@ -100,7 +166,8 @@ static bool morse_trainer_read_custom_text(char* buf, size_t buf_sz) {
 }
 #endif
 
-bool morse_trainer_load_custom_sets(MorseTrainerCustomSets* sets) {
+static bool
+    morse_trainer_load_custom_sets_inner(MorseTrainerCustomSets* sets, bool create_defaults) {
     char* buf;
     char* line;
     char* next;
@@ -117,7 +184,7 @@ bool morse_trainer_load_custom_sets(MorseTrainerCustomSets* sets) {
         return false;
     }
 
-    if(!morse_trainer_read_custom_text(buf, MORSE_TRAINER_CUSTOM_TEXT_CAP)) {
+    if(!morse_trainer_read_custom_text(buf, MORSE_TRAINER_CUSTOM_TEXT_CAP, create_defaults)) {
         free(buf);
         return false;
     }
@@ -145,4 +212,12 @@ bool morse_trainer_load_custom_sets(MorseTrainerCustomSets* sets) {
     loaded = sets->count != 0U;
     free(buf);
     return loaded;
+}
+
+bool morse_trainer_load_custom_sets(MorseTrainerCustomSets* sets) {
+    return morse_trainer_load_custom_sets_inner(sets, true);
+}
+
+bool morse_trainer_try_load_custom_sets(MorseTrainerCustomSets* sets) {
+    return morse_trainer_load_custom_sets_inner(sets, false);
 }

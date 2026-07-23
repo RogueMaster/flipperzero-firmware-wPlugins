@@ -28,7 +28,7 @@ There is one awkward rule: when `Back` is acting as a paddle, it cannot also be 
 
 ## Straight Key
 
-<img align="right" src="100-3--straight-key.webp" alt="Straight key" height="192">
+<img align="right" src="images/100-3--straight-key.webp" alt="Straight key" height="192">
 
 A straight key is one contact. Close it and the app keys; open it and it stops. All timing is yours, including the mistakes. That is the point. On the right is a straight key. You hold the knob and press down; the mechanism only sets travel, spring tension, and contact feel. Electrically, it is still just a switch closing.
 
@@ -39,11 +39,11 @@ External straight-key input uses the `dit/SK` GPIO pin and ground. With the defa
 
 You can also use one of the Flipper's normal ground pins instead of the virtual gnd. In that case set virtual gnd to `None`, or leave it unused and make sure your wiring really does have ground. A key with one wire is a brick, not an input device. You do not need to wire any pull-up or pull-down resistors; Flipper does it internally. Idle is Hi-Z; active is short to ground.
 
-Straight keying is used by Free Practice, Straight trainer, groups-of-five sending drills, USB adapters, and transmit screens.
+Straight keying is used by Free Practice, Straight key trainer, groups-of-five sending drills, USB adapters, and transmit screens.
 
 ## Paddle
 
-<img align="right" src="100-4--paddle.webp" alt="Dual-lever paddle" height="192">
+<img align="right" src="images/100-4--paddle.webp" alt="Dual-lever paddle" height="192">
 
 A paddle has separate dit and dah contacts. It is still just switches, but now the app can generate the timing for you. For most users, `iambic b` is the sensible default and the one to settle on early. The boring reason is compatibility: if a cheap rig says it has a keyer and does not say which one, assume `iambic b` until proven otherwise. On the right is a dual-lever paddle. Each side closes its own contact; the adjustments set travel, spacing, and spring feel. The keyer, the electronics rather than the paddle, makes the dits and dahs tidy.
 
@@ -107,5 +107,5 @@ Start with the least interesting setup and add complexity only after it works.
 
 | What to check | Screen |
 |---|---|
-| Open `Settings → Keying` to choose the input source and keyer. This is where button, straight-key, and paddle input are selected before the practice or transmit screen uses them. | <img src="100-1--input-settings.png" alt="Keying settings with input and keyer options"> |
-| Open `Settings → Keying → GPIO` to confirm the pin mapping. The default wiring uses `P7` for `dit/SK`, `P5` for `dah`, and `P3` for `Virtual gnd`. | <img src="100-2--gpio-settings.png" alt="GPIO settings with dit, dah, and virtual ground pins"> |
+| Open `Settings → Keying` to choose the input source and keyer. This is where button, straight-key, and paddle input are selected before the practice or transmit screen uses them. | <img src="images/100-1--input-settings.png" alt="Keying settings with input and keyer options"> |
+| Open `Settings → Keying → GPIO` to confirm the pin mapping. The default wiring uses `P7` for `dit/SK`, `P5` for `dah`, and `P3` for `Virtual gnd`. | <img src="images/100-2--gpio-settings.png" alt="GPIO settings with dit, dah, and virtual ground pins"> |

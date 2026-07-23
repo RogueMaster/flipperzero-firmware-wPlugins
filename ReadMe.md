@@ -38,6 +38,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Barcode App v1.5 (By Kingal1337)](https://github.com/Kingal1337/flipper-barcode-generator)
 - Updated: [Frequency Analyzer (External) v1.2 (By xMasterX)](https://github.com/xMasterX/all-the-plugins/tree/dev/non_catalog_apps/freq_analyzer_ext)
 - Updated: [Spectrum Analyzer v1.5 (By jolcese)](https://github.com/jolcese/flipperzero-firmware/tree/spectrum/applications/spectrum_analyzer)
+- Updated: [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 
 <a name="release"></a>
 
@@ -626,7 +627,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Moisture Sensor v1.0 (By smallwat3r)](https://github.com/smallwat3r/flipperzero-moisture-sensor)
 - [Moon Phases v1.0 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [Morse Code v1.3 (By wh00hw)](https://github.com/wh00hw/MorseCodeFAP)
-- [Morse Flipper v0.1.76 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
+- [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - [Mouse Jacker v1.2 (By mothball187)](https://github.com/mothball187/flipperzero-nrf24/tree/main/mousejacker) [Pin Out from nocomp/Frog/UberGuidoZ](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/mousejacker) `Req: NRF24`
 - [Mouse Jacker for MS Mouse v1.2 (Remixed By coded-with-claws)](https://github.com/coded-with-claws/flipperzero-tools/tree/main/applications_user/mousejacker_ms) `Req: NRF24`
 - [Mouse Jiggler v1.2 (By Jacob-Tate & ozgunawesome)](https://github.com/Jacob-Tate/flipperzero-firmware/blob/dev/applications/mouse_jiggler/mouse_jiggler.c)

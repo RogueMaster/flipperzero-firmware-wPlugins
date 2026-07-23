@@ -1,5 +1,5 @@
 /*
- * Purpose: Generate optional high-definition PWM sidetone on GPIO P2.
+ * Purpose: Generate optional sampled PWM sidetone on GPIO P2 or the internal speaker.
  * Owns: PWM buffers, fade/ramp state, and Flipper FAP timer/DMA setup.
  * Depends on: morse_flipper_audio_pwm.h and Flipper HAL PWM resources.
  * Tests: tests/test_audio_pwm.c plus firmware build for HAL integration.
@@ -43,6 +43,22 @@ static uint16_t morse_flipper_audio_pwm_clamp_fade_len(uint32_t samples) {
 static uint16_t morse_flipper_audio_pwm_progress_q15(uint16_t idx, uint16_t len) {
     if(len <= 1U) return MORSE_FLIPPER_AUDIO_PWM_Q15;
     return (uint16_t)(((uint32_t)idx * MORSE_FLIPPER_AUDIO_PWM_Q15) / (uint32_t)(len - 1U));
+}
+
+static int32_t morse_flipper_audio_pwm_clip_q15(int32_t sample) {
+    if(sample > (int32_t)MORSE_FLIPPER_AUDIO_PWM_Q15) return (int32_t)MORSE_FLIPPER_AUDIO_PWM_Q15;
+    if(sample < -(int32_t)MORSE_FLIPPER_AUDIO_PWM_Q15)
+        return -(int32_t)MORSE_FLIPPER_AUDIO_PWM_Q15;
+    return sample;
+}
+
+static int32_t
+    morse_flipper_audio_pwm_drive_mix_q15(const MorseFlipperAudioPwm* audio, int32_t mixed_q15) {
+    if(audio != NULL && audio->target == MorseFlipperAudioPwmTargetSoftBuzz) {
+        mixed_q15 = morse_flipper_audio_pwm_clip_q15(mixed_q15 * 2);
+    }
+
+    return mixed_q15;
 }
 
 static uint16_t morse_flipper_audio_pwm_current_env_q15(const MorseFlipperAudioPwm* audio) {
@@ -123,6 +139,7 @@ static uint16_t morse_flipper_audio_pwm_next_sample(MorseFlipperAudioPwm* audio)
     if(env_q15 != 0U) {
         sine_idx = (uint8_t)(audio->phase_q32 >> (32U - 6U));
         mixed_q15 = (morse_flipper_audio_pwm_sine_q15[sine_idx] * (int32_t)env_q15) >> 15;
+        mixed_q15 = morse_flipper_audio_pwm_drive_mix_q15(audio, mixed_q15);
         delta = (mixed_q15 * (int32_t)audio->pwm_amplitude) >> 15;
         sample = (uint16_t)((int32_t)audio->pwm_midpoint + delta);
     }
@@ -152,8 +169,9 @@ void morse_flipper_audio_pwm_reset(MorseFlipperAudioPwm* audio) {
     memset(audio, 0, sizeof(*audio));
 }
 
-void morse_flipper_audio_pwm_prepare(
+void morse_flipper_audio_pwm_prepare_target(
     MorseFlipperAudioPwm* audio,
+    MorseFlipperAudioPwmTarget target,
     uint32_t carrier_hz,
     uint32_t sample_rate_hz,
     uint32_t tone_hz,
@@ -166,13 +184,22 @@ void morse_flipper_audio_pwm_prepare(
 
     if(audio == NULL) return;
 
-    carrier_hz = carrier_hz == 0U ? MORSE_FLIPPER_AUDIO_PWM_CARRIER_HZ : carrier_hz;
-    sample_rate_hz = sample_rate_hz == 0U ? MORSE_FLIPPER_AUDIO_PWM_SAMPLE_RATE_HZ :
-                                            sample_rate_hz;
+    if(target != MorseFlipperAudioPwmTargetSoftBuzz) target = MorseFlipperAudioPwmTargetP2;
+    if(carrier_hz == 0U) {
+        carrier_hz = target == MorseFlipperAudioPwmTargetSoftBuzz ?
+                         MORSE_FLIPPER_AUDIO_PWM_SOFT_BUZZ_CARRIER_HZ :
+                         MORSE_FLIPPER_AUDIO_PWM_P2_CARRIER_HZ;
+    }
+    if(sample_rate_hz == 0U) {
+        sample_rate_hz = target == MorseFlipperAudioPwmTargetSoftBuzz ?
+                             MORSE_FLIPPER_AUDIO_PWM_SOFT_BUZZ_SAMPLE_RATE_HZ :
+                             MORSE_FLIPPER_AUDIO_PWM_P2_SAMPLE_RATE_HZ;
+    }
     tone_hz = tone_hz == 0U ? MORSE_FLIPPER_AUDIO_PWM_TONE_HZ : tone_hz;
     if(volume_pct < 10U) volume_pct = 10U;
     if(volume_pct > 100U) volume_pct = 100U;
 
+    audio->target = target;
     audio->sample_rate_hz = sample_rate_hz;
     audio->carrier_hz = carrier_hz;
     audio->tone_hz = tone_hz;
@@ -211,6 +238,25 @@ void morse_flipper_audio_pwm_prepare(
     }
 
     audio->prepared = true;
+}
+
+void morse_flipper_audio_pwm_prepare(
+    MorseFlipperAudioPwm* audio,
+    uint32_t carrier_hz,
+    uint32_t sample_rate_hz,
+    uint32_t tone_hz,
+    uint8_t volume_pct,
+    uint16_t attack_ms,
+    uint16_t release_ms) {
+    morse_flipper_audio_pwm_prepare_target(
+        audio,
+        MorseFlipperAudioPwmTargetP2,
+        carrier_hz,
+        sample_rate_hz,
+        tone_hz,
+        volume_pct,
+        attack_ms,
+        release_ms);
 }
 
 void morse_flipper_audio_pwm_set_tone_hz(MorseFlipperAudioPwm* audio, uint32_t tone_hz) {
@@ -310,7 +356,23 @@ static void morse_flipper_audio_pwm_dma_isr(void* context) {
 #endif
 }
 
-bool morse_flipper_audio_pwm_start(MorseFlipperAudioPwm* audio) {
+static void morse_flipper_audio_pwm_clear_runtime(MorseFlipperAudioPwm* audio) {
+    if(audio == NULL) return;
+
+    audio->running = false;
+    audio->gate_requested = false;
+    audio->gate_applied = false;
+    audio->env_state = MorseFlipperAudioPwmEnvIdle;
+    audio->env_idx = 0U;
+    audio->env_anchor_q15 = 0U;
+    audio->own_bus_tim1 = false;
+    audio->own_bus_tim16 = false;
+    audio->own_bus_dma1 = false;
+    audio->own_bus_dmamux1 = false;
+    audio->own_speaker = false;
+}
+
+static bool morse_flipper_audio_pwm_start_p2(MorseFlipperAudioPwm* audio) {
     LL_DMA_InitTypeDef dma_cfg = {0};
 
     if(audio == NULL || !audio->prepared) return false;
@@ -321,8 +383,10 @@ bool morse_flipper_audio_pwm_start(MorseFlipperAudioPwm* audio) {
      * Bring buses and midpoint ramp up before the circular DMA starts scribbling.
      */
     audio->own_bus_tim1 = false;
+    audio->own_bus_tim16 = false;
     audio->own_bus_dma1 = false;
     audio->own_bus_dmamux1 = false;
+    audio->own_speaker = false;
 
     if(!furi_hal_bus_is_enabled(FuriHalBusDMA1)) {
         furi_hal_bus_enable(FuriHalBusDMA1);
@@ -401,18 +465,11 @@ bool morse_flipper_audio_pwm_start(MorseFlipperAudioPwm* audio) {
     return true;
 }
 
-void morse_flipper_audio_pwm_stop(MorseFlipperAudioPwm* audio) {
+static void morse_flipper_audio_pwm_stop_p2(MorseFlipperAudioPwm* audio) {
     if(audio == NULL) return;
     if(!audio->prepared) return;
     if(!audio->running) {
-        audio->gate_requested = false;
-        audio->gate_applied = false;
-        audio->env_state = MorseFlipperAudioPwmEnvIdle;
-        audio->env_idx = 0U;
-        audio->env_anchor_q15 = 0U;
-        audio->own_bus_tim1 = false;
-        audio->own_bus_dma1 = false;
-        audio->own_bus_dmamux1 = false;
+        morse_flipper_audio_pwm_clear_runtime(audio);
         return;
     }
 
@@ -442,15 +499,165 @@ void morse_flipper_audio_pwm_stop(MorseFlipperAudioPwm* audio) {
     if(audio->own_bus_dma1) furi_hal_bus_disable(FuriHalBusDMA1);
     if(audio->own_bus_dmamux1) furi_hal_bus_disable(FuriHalBusDMAMUX1);
 
-    audio->running = false;
-    audio->gate_requested = false;
-    audio->gate_applied = false;
-    audio->env_state = MorseFlipperAudioPwmEnvIdle;
-    audio->env_idx = 0U;
-    audio->env_anchor_q15 = 0U;
+    morse_flipper_audio_pwm_clear_runtime(audio);
+}
+
+static void morse_flipper_audio_pwm_stop_soft_buzz(MorseFlipperAudioPwm* audio);
+
+static bool morse_flipper_audio_pwm_start_soft_buzz(MorseFlipperAudioPwm* audio) {
+    LL_DMA_InitTypeDef dma_cfg = {0};
+    uint32_t sample_div;
+
+    if(audio == NULL || !audio->prepared) return false;
+    if(audio->running) return true;
+
     audio->own_bus_tim1 = false;
+    audio->own_bus_tim16 = false;
     audio->own_bus_dma1 = false;
     audio->own_bus_dmamux1 = false;
+    audio->own_speaker = false;
+
+    if(!furi_hal_speaker_acquire(30U)) return false;
+    audio->own_speaker = true;
+    if(!furi_hal_speaker_is_mine()) {
+        morse_flipper_audio_pwm_stop_soft_buzz(audio);
+        return false;
+    }
+
+    if(!furi_hal_bus_is_enabled(FuriHalBusDMA1)) {
+        furi_hal_bus_enable(FuriHalBusDMA1);
+        audio->own_bus_dma1 = true;
+    }
+    if(!furi_hal_bus_is_enabled(FuriHalBusDMAMUX1)) {
+        furi_hal_bus_enable(FuriHalBusDMAMUX1);
+        audio->own_bus_dmamux1 = true;
+    }
+    if(!furi_hal_bus_is_enabled(FuriHalBusTIM16)) {
+        furi_hal_bus_enable(FuriHalBusTIM16);
+        audio->own_bus_tim16 = true;
+    }
+
+    furi_hal_gpio_init_ex(
+        &gpio_speaker,
+        GpioModeAltFunctionPushPull,
+        GpioPullNo,
+        GpioSpeedVeryHigh,
+        GpioAltFn14TIM16);
+
+    sample_div = audio->sample_rate_hz > 0U ? (audio->carrier_hz / audio->sample_rate_hz) : 0U;
+    if(sample_div == 0U) sample_div = MORSE_FLIPPER_AUDIO_PWM_SOFT_BUZZ_SAMPLE_DIV;
+
+    LL_TIM_DisableCounter(TIM16);
+    LL_TIM_DisableAllOutputs(TIM16);
+    LL_TIM_DisableDMAReq_UPDATE(TIM16);
+    LL_TIM_DisableIT_UPDATE(TIM16);
+    LL_TIM_SetCounterMode(TIM16, LL_TIM_COUNTERMODE_UP);
+    LL_TIM_SetClockDivision(TIM16, LL_TIM_CLOCKDIVISION_DIV1);
+    LL_TIM_SetClockSource(TIM16, LL_TIM_CLOCKSOURCE_INTERNAL);
+    LL_TIM_SetPrescaler(TIM16, 0U);
+    LL_TIM_SetCounter(TIM16, 0U);
+    LL_TIM_SetAutoReload(TIM16, audio->pwm_period - 1U);
+    LL_TIM_SetRepetitionCounter(TIM16, sample_div - 1U);
+    LL_TIM_DisableMasterSlaveMode(TIM16);
+    LL_TIM_EnableARRPreload(TIM16);
+    LL_TIM_OC_EnablePreload(TIM16, LL_TIM_CHANNEL_CH1);
+    LL_TIM_OC_SetMode(TIM16, LL_TIM_CHANNEL_CH1, LL_TIM_OCMODE_PWM1);
+    LL_TIM_OC_SetPolarity(TIM16, LL_TIM_CHANNEL_CH1, LL_TIM_OCPOLARITY_HIGH);
+    LL_TIM_OC_DisableFast(TIM16, LL_TIM_CHANNEL_CH1);
+    LL_TIM_OC_SetCompareCH1(TIM16, audio->pwm_midpoint);
+    LL_TIM_CC_EnableChannel(TIM16, LL_TIM_CHANNEL_CH1);
+    LL_TIM_EnableAllOutputs(TIM16);
+
+    morse_flipper_audio_pwm_render(
+        audio, audio->dma_buffer, MORSE_FLIPPER_AUDIO_PWM_BUFFER_SAMPLES);
+
+    LL_DMA_DisableChannel(MORSE_FLIPPER_AUDIO_PWM_DMA_DEF);
+    dma_cfg.PeriphOrM2MSrcAddress = (uint32_t)&TIM16->CCR1;
+    dma_cfg.MemoryOrM2MDstAddress = (uint32_t)audio->dma_buffer;
+    dma_cfg.Direction = LL_DMA_DIRECTION_MEMORY_TO_PERIPH;
+    dma_cfg.Mode = LL_DMA_MODE_CIRCULAR;
+    dma_cfg.PeriphOrM2MSrcIncMode = LL_DMA_PERIPH_NOINCREMENT;
+    dma_cfg.MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
+    dma_cfg.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_HALFWORD;
+    dma_cfg.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_HALFWORD;
+    dma_cfg.NbData = MORSE_FLIPPER_AUDIO_PWM_BUFFER_SAMPLES;
+    dma_cfg.PeriphRequest = LL_DMAMUX_REQ_TIM16_UP;
+    dma_cfg.Priority = LL_DMA_PRIORITY_HIGH;
+    LL_DMA_Init(MORSE_FLIPPER_AUDIO_PWM_DMA_DEF, &dma_cfg);
+
+    morse_flipper_audio_pwm_clear_dma_flags();
+    LL_DMA_EnableIT_HT(MORSE_FLIPPER_AUDIO_PWM_DMA_DEF);
+    LL_DMA_EnableIT_TC(MORSE_FLIPPER_AUDIO_PWM_DMA_DEF);
+    LL_DMA_EnableIT_TE(MORSE_FLIPPER_AUDIO_PWM_DMA_DEF);
+    furi_hal_interrupt_set_isr_ex(
+        MORSE_FLIPPER_AUDIO_PWM_DMA_IRQ,
+        FuriHalInterruptPriorityKamiSama,
+        morse_flipper_audio_pwm_dma_isr,
+        audio);
+
+    LL_TIM_ClearFlag_UPDATE(TIM16);
+    LL_TIM_EnableDMAReq_UPDATE(TIM16);
+    LL_DMA_EnableChannel(MORSE_FLIPPER_AUDIO_PWM_DMA_DEF);
+    furi_delay_us(5U);
+    LL_TIM_GenerateEvent_UPDATE(TIM16);
+    furi_delay_us(5U);
+    LL_TIM_EnableCounter(TIM16);
+
+    audio->running = true;
+    return true;
+}
+
+static void morse_flipper_audio_pwm_stop_soft_buzz(MorseFlipperAudioPwm* audio) {
+    if(audio == NULL) return;
+    if(!audio->prepared) return;
+    if(!audio->running && !audio->own_speaker && !audio->own_bus_tim16 && !audio->own_bus_dma1 &&
+       !audio->own_bus_dmamux1) {
+        morse_flipper_audio_pwm_clear_runtime(audio);
+        return;
+    }
+
+    furi_hal_interrupt_set_isr(MORSE_FLIPPER_AUDIO_PWM_DMA_IRQ, NULL, NULL);
+    LL_DMA_DisableIT_HT(MORSE_FLIPPER_AUDIO_PWM_DMA_DEF);
+    LL_DMA_DisableIT_TC(MORSE_FLIPPER_AUDIO_PWM_DMA_DEF);
+    LL_DMA_DisableIT_TE(MORSE_FLIPPER_AUDIO_PWM_DMA_DEF);
+    LL_DMA_DisableChannel(MORSE_FLIPPER_AUDIO_PWM_DMA_DEF);
+    morse_flipper_audio_pwm_clear_dma_flags();
+
+    LL_TIM_DisableDMAReq_UPDATE(TIM16);
+    LL_TIM_CC_DisableChannel(TIM16, LL_TIM_CHANNEL_CH1);
+    LL_TIM_DisableAllOutputs(TIM16);
+    LL_TIM_DisableCounter(TIM16);
+    LL_TIM_OC_SetCompareCH1(TIM16, audio->pwm_midpoint);
+    LL_TIM_SetRepetitionCounter(TIM16, 0U);
+    furi_hal_gpio_init(&gpio_speaker, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
+
+    if(audio->own_speaker && furi_hal_speaker_is_mine()) furi_hal_speaker_release();
+    if(audio->own_bus_tim16) furi_hal_bus_disable(FuriHalBusTIM16);
+    if(audio->own_bus_dma1) furi_hal_bus_disable(FuriHalBusDMA1);
+    if(audio->own_bus_dmamux1) furi_hal_bus_disable(FuriHalBusDMAMUX1);
+
+    morse_flipper_audio_pwm_clear_runtime(audio);
+}
+
+bool morse_flipper_audio_pwm_start(MorseFlipperAudioPwm* audio) {
+    if(audio == NULL || !audio->prepared) return false;
+
+    if(audio->target == MorseFlipperAudioPwmTargetSoftBuzz) {
+        return morse_flipper_audio_pwm_start_soft_buzz(audio);
+    }
+
+    return morse_flipper_audio_pwm_start_p2(audio);
+}
+
+void morse_flipper_audio_pwm_stop(MorseFlipperAudioPwm* audio) {
+    if(audio == NULL || !audio->prepared) return;
+
+    if(audio->target == MorseFlipperAudioPwmTargetSoftBuzz) {
+        morse_flipper_audio_pwm_stop_soft_buzz(audio);
+        return;
+    }
+
+    morse_flipper_audio_pwm_stop_p2(audio);
 }
 
 #endif
