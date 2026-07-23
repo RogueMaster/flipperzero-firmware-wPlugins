@@ -87,6 +87,8 @@ static uint8_t morse_flipper_scene_screen(uint32_t scene) {
         return MorseFlipperScreenProgress;
     case MorseFlipperSceneStreakIntro:
         return MorseFlipperScreenStreakIntro;
+    case MorseFlipperSceneIcr:
+        return MorseFlipperScreenIcr;
     default:
         return MorseFlipperScreenMenu;
     }

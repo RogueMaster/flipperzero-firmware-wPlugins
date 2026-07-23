@@ -33,6 +33,7 @@
 #include "morse_flipper_gpio.h"
 #include "morse_flipper_gpio_probe.h"
 #include "morse_flipper_ham_keyer.h"
+#include "morse_flipper_icr.h"
 #include "morse_flipper_paths.h"
 #include "morse_flipper_progress.h"
 #include "morse_flipper_radio.h"
@@ -92,12 +93,18 @@
 #define MORSE_FLIPPER_RF_FREQ_DIGITS                6U
 #define MORSE_FLIPPER_TONE_OFF_IDX                  0xFFU
 #define MORSE_FLIPPER_DEFAULT_TONE_IDX              20U
+#define MORSE_FLIPPER_ICR_WAIT_MS                   1000U
+#define MORSE_FLIPPER_ICR_RESULT_MS                 1000U
+#define MORSE_FLIPPER_ICR_GUARD_MS                  100U
+#define MORSE_FLIPPER_ICR_TIMEOUT_MS                5000U
+#define MORSE_FLIPPER_ICR_WPM                       25U
 
 #define MORSE_SOURCE_STRAIGHT_GPIO (1UL << 0)
 #define MORSE_SOURCE_STRAIGHT_BTN  (1UL << 1)
 #define MORSE_SOURCE_KEYER_DIT     (1UL << 2)
 #define MORSE_SOURCE_KEYER_DAH     (1UL << 3)
 #define MORSE_SOURCE_HAM_MACRO     (1UL << 4)
+#define MORSE_SOURCE_ICR_PLAYBACK  (1UL << 5)
 
 #define MORSE_PADDLE_SOURCE_GPIO_DIT (1UL << 0)
 #define MORSE_PADDLE_SOURCE_GPIO_DAH (1UL << 1)
@@ -168,6 +175,7 @@ typedef enum {
     MorseFlipperScreenOnboarding = 23,
     MorseFlipperScreenProgress = 24,
     MorseFlipperScreenStreakIntro = 25,
+    MorseFlipperScreenIcr = 26,
 } MorseFlipperScreen;
 
 typedef enum {
@@ -217,8 +225,18 @@ typedef enum {
     MorseFlipperSceneOnboarding,
     MorseFlipperSceneProgress,
     MorseFlipperSceneStreakIntro,
+    MorseFlipperSceneIcr,
     MorseFlipperSceneNum,
 } MorseFlipperScene;
+
+typedef enum {
+    MorseFlipperIcrPhaseGraphWait = 0,
+    MorseFlipperIcrPhasePlayback,
+    MorseFlipperIcrPhaseRecognition,
+    MorseFlipperIcrPhaseAnswerGuard,
+    MorseFlipperIcrPhaseAnswer,
+    MorseFlipperIcrPhaseResult,
+} MorseFlipperIcrPhase;
 
 typedef enum {
     MorseFlipperHamMenuStart = 1,
@@ -363,6 +381,7 @@ typedef struct MorseFlipperApp {
     FuriString* help_text;
     MorseFlipperProgress* session_progress;
     MorseFlipperProgress* view_progress;
+    MorseFlipperIcrStats* icr_stats;
     volatile bool exit_requested;
 
     /*
@@ -480,6 +499,11 @@ typedef struct MorseFlipperApp {
     uint8_t p2_volume_pct;
     uint8_t preview_ticks;
     uint8_t input_mask;
+    uint8_t icr_phase;
+    uint8_t icr_target;
+    uint8_t icr_choices[MORSE_FLIPPER_ICR_CHOICE_COUNT];
+    uint8_t icr_choice;
+    uint8_t icr_mark_idx;
 
     /* Millisecond deadlines. Zero means idle unless the owning module says otherwise. */
     uint32_t trainer_next_at;
@@ -523,6 +547,12 @@ typedef struct MorseFlipperApp {
     uint32_t gpio_edge_at;
     uint32_t gpio_probe_notice_until;
     uint32_t ptt_tail_until;
+    uint32_t icr_rng_state;
+    uint32_t icr_next_at;
+    uint32_t icr_reaction_started_at;
+    uint32_t icr_pending_reaction_ms;
+    uint32_t icr_guard_until;
+    uint32_t icr_result_until;
     uint32_t rf_edit_khz;
     int32_t rf_rssi_sum_dbm;
     uint32_t paddle_sources[MorseKeyerPaddleCount];
@@ -558,6 +588,9 @@ typedef struct MorseFlipperApp {
     bool rf_monitor_tone;
     bool rf_rx_audio_enabled;
     bool audio_wait_active;
+    bool icr_playback_mark;
+    bool icr_stats_dirty;
+    bool icr_answer_correct;
     bool ptt_level;
     bool gpio_level;
     bool gpio_gap_flushed;
@@ -712,6 +745,11 @@ bool morse_flipper_ensure_session_progress_loaded(MorseFlipperApp* app);
 bool morse_flipper_ensure_view_progress_loaded(MorseFlipperApp* app);
 void morse_flipper_release_session_progress(MorseFlipperApp* app, bool save);
 void morse_flipper_release_view_progress(MorseFlipperApp* app);
+bool morse_flipper_ensure_icr_stats_loaded(MorseFlipperApp* app);
+void morse_flipper_release_icr_stats(MorseFlipperApp* app, bool save);
+void morse_flipper_enter_icr(MorseFlipperApp* app, uint32_t now_ms);
+void morse_flipper_leave_icr(MorseFlipperApp* app, uint32_t now_ms);
+void morse_flipper_reset_icr_runtime(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_drop_live_keying_for_playback(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_begin_group_playback(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_start_session(MorseFlipperApp* app, uint32_t now_ms);
@@ -820,6 +858,7 @@ void morse_flipper_draw_tx_history_screen_custom(
 void morse_flipper_draw_trainer_setup(Canvas* canvas, MorseFlipperApp* app);
 void morse_flipper_draw_progress(Canvas* canvas, MorseFlipperApp* app);
 void morse_flipper_draw_streak_intro(Canvas* canvas, MorseFlipperApp* app);
+void morse_flipper_draw_icr(Canvas* canvas, MorseFlipperApp* app);
 void morse_flipper_draw_straight_screen(Canvas* canvas, MorseFlipperApp* app);
 void morse_flipper_draw_tx_groups_screen(Canvas* canvas, MorseFlipperApp* app);
 void morse_flipper_draw_rf_tx_blocked(Canvas* canvas, const MorseFlipperApp* app);

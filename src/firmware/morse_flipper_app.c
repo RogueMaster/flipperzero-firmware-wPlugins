@@ -28,6 +28,7 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .help_text = NULL,
         .session_progress = NULL,
         .view_progress = NULL,
+        .icr_stats = NULL,
         .exit_requested = false,
         .previous_usb_config = NULL,
         .hid_cfg =
@@ -146,6 +147,11 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .p2_volume_pct = 100U,
         .preview_ticks = 0U,
         .input_mask = 0U,
+        .icr_phase = MorseFlipperIcrPhaseGraphWait,
+        .icr_target = MORSE_FLIPPER_ICR_NO_CHOICE,
+        .icr_choices = {0},
+        .icr_choice = MORSE_FLIPPER_ICR_NO_CHOICE,
+        .icr_mark_idx = 0U,
         .trainer_next_at = 0U,
         .straight_next_at = 0U,
         .straight_wait_started_at = 0U,
@@ -185,6 +191,12 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .gpio_edge_at = 0U,
         .gpio_probe_notice_until = 0U,
         .ptt_tail_until = 0U,
+        .icr_rng_state = 0U,
+        .icr_next_at = 0U,
+        .icr_reaction_started_at = 0U,
+        .icr_pending_reaction_ms = 0U,
+        .icr_guard_until = 0U,
+        .icr_result_until = 0U,
         .rf_edit_khz = MORSE_FLIPPER_RF_DEFAULT_FREQUENCY_KHZ,
         .rf_rssi_sum_dbm = 0,
         .paddle_sources = {0U, 0U},
@@ -216,6 +228,9 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .rf_carrier_present = false,
         .rf_monitor_tone = false,
         .rf_rx_audio_enabled = true,
+        .icr_playback_mark = false,
+        .icr_stats_dirty = false,
+        .icr_answer_correct = false,
         .ptt_level = false,
         .gpio_level = false,
         .gpio_gap_flushed = true,
@@ -369,6 +384,7 @@ void morse_flipper_shutdown(MorseFlipperApp* app) {
     morse_flipper_unload_custom_sets(app);
     morse_flipper_release_session_progress(app, false);
     morse_flipper_release_view_progress(app);
+    morse_flipper_release_icr_stats(app, false);
     mf_tlm_deinit();
 
     morse_flipper_gpio_deinit();
