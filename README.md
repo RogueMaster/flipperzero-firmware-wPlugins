@@ -26,6 +26,15 @@ with the online
 - Show Xbox One and Xbox Series wiring directly in the app.
 - Display an offline QR code for opening the decoder on a phone.
 
+## Screenshots
+
+Captured from the Flipper simulator because the app enters USB UART mode during
+live capture, which prevents on-device screenshots.
+
+| Main Menu | Reader | Known Codes | Wiring |
+| --- | --- | --- | --- |
+| ![Main menu](screenshots/MainMenu.png) | ![Reader](screenshots/Reader.png) | ![Known Codes](screenshots/KnowCodes.png) | ![Wiring](screenshots/wiring.png) |
+
 ## Install the FAP
 
 1. Download `xbox_postcode_reader.fap` from `dist/` or from the
