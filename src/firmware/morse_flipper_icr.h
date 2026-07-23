@@ -11,11 +11,17 @@
 #include <stdint.h>
 
 #define MORSE_FLIPPER_ICR_CHAR_COUNT        40U
-#define MORSE_FLIPPER_ICR_RECENT_COUNT      5U
 #define MORSE_FLIPPER_ICR_CHOICE_COUNT      5U
+#define MORSE_FLIPPER_ICR_CONFUSION_BITS     2U
+#define MORSE_FLIPPER_ICR_CONFUSION_ROW_BYTES \
+    ((MORSE_FLIPPER_ICR_CHAR_COUNT * MORSE_FLIPPER_ICR_CONFUSION_BITS) / 8U)
+#define MORSE_FLIPPER_ICR_CONFUSION_BYTES \
+    (MORSE_FLIPPER_ICR_CHAR_COUNT * MORSE_FLIPPER_ICR_CONFUSION_ROW_BYTES)
+/* Each target's mutable confusion row loses one level every 16 attempts. */
+#define MORSE_FLIPPER_ICR_CONFUSION_DECAY_INTERVAL 16U
 #define MORSE_FLIPPER_ICR_MAGIC             0x4943U
-#define MORSE_FLIPPER_ICR_VERSION           1U
-#define MORSE_FLIPPER_ICR_STATS_SIZE        2084U
+#define MORSE_FLIPPER_ICR_VERSION           2U
+#define MORSE_FLIPPER_ICR_STATS_SIZE        604U
 #define MORSE_FLIPPER_ICR_TIMEOUT_BUCKET    250U
 #define MORSE_FLIPPER_ICR_NO_CHOICE         0xFFU
 #define MORSE_FLIPPER_ICR_INSTANT_BUCKET    30U
@@ -26,11 +32,10 @@ typedef struct {
     uint16_t version;
     uint16_t attempts[MORSE_FLIPPER_ICR_CHAR_COUNT];
     uint16_t correct[MORSE_FLIPPER_ICR_CHAR_COUNT];
-    uint8_t recent_ms20[MORSE_FLIPPER_ICR_CHAR_COUNT][MORSE_FLIPPER_ICR_RECENT_COUNT];
-    uint8_t recent_count[MORSE_FLIPPER_ICR_CHAR_COUNT];
-    uint8_t recent_pos[MORSE_FLIPPER_ICR_CHAR_COUNT];
     uint8_t avg_ms20[MORSE_FLIPPER_ICR_CHAR_COUNT];
-    uint8_t confusion_weight[MORSE_FLIPPER_ICR_CHAR_COUNT][MORSE_FLIPPER_ICR_CHAR_COUNT];
+    /* 40 directed rows x 40 packed 2-bit answer levels = 400 bytes. */
+    uint8_t confusion_levels[MORSE_FLIPPER_ICR_CHAR_COUNT]
+                            [MORSE_FLIPPER_ICR_CONFUSION_ROW_BYTES];
 } MorseFlipperIcrStats;
 
 _Static_assert(
@@ -45,6 +50,10 @@ bool morse_flipper_icr_stats_save(const MorseFlipperIcrStats* stats);
 char morse_flipper_icr_char_at(uint8_t index);
 uint8_t morse_flipper_icr_char_index(char ch);
 uint8_t morse_flipper_icr_reaction_bucket(uint32_t reaction_ms);
+uint8_t morse_flipper_icr_confusion_level(
+    const MorseFlipperIcrStats* stats,
+    uint8_t target,
+    uint8_t candidate);
 uint8_t morse_flipper_icr_target_weight(const MorseFlipperIcrStats* stats, uint8_t index);
 uint8_t morse_flipper_icr_pick_target(const MorseFlipperIcrStats* stats, uint32_t* rng_state);
 uint8_t morse_flipper_icr_pick_target_except(

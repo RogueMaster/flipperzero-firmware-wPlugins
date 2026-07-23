@@ -20,57 +20,73 @@
 
 #define MORSE_FLIPPER_ICR_COUNT_OF(a) (sizeof(a) / sizeof((a)[0]))
 
+#define MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK 0x03U
+#define MORSE_FLIPPER_ICR_PACK_LEVELS(a, b, c, d)                                  \
+    ((uint8_t)(((a) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) |                    \
+               (((b) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << 2U) |            \
+               (((c) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << 4U) |            \
+               (((d) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << 6U)))
+
+/*
+ * The seed is used only when stats are created or reset.  Each byte stores
+ * four 2-bit levels, matching the four candidate characters in its row.
+ */
+
 typedef struct {
-    char target;
     char candidate[4];
-    uint8_t weight[4];
+    uint8_t levels;
 } MorseFlipperIcrSeedRow;
 
 static const char morse_flipper_icr_chars[MORSE_FLIPPER_ICR_CHAR_COUNT + 1U] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,/?";
 
 static const MorseFlipperIcrSeedRow morse_flipper_icr_seed_rows[] = {
-    {'A', {'I', 'N', 'R', 'U'}, {9U, 5U, 4U, 4U}},
-    {'B', {'6', 'D', 'X', 'L'}, {14U, 11U, 11U, 8U}},
-    {'C', {'Y', 'P', 'Q', 'K'}, {11U, 7U, 5U, 5U}},
-    {'D', {'B', 'K', '6', 'L'}, {11U, 11U, 8U, 8U}},
-    {'E', {'T', 'I', 'S', 'H'}, {7U, 5U, 5U, 5U}},
-    {'F', {'L', 'Y', 'Q', 'P'}, {9U, 9U, 8U, 7U}},
-    {'G', {'O', 'W', '6', 'Q'}, {9U, 9U, 5U, 4U}},
-    {'H', {'5', 'S', 'V', 'I'}, {13U, 11U, 8U, 6U}},
-    {'I', {'A', 'S', 'H', 'E'}, {9U, 6U, 6U, 5U}},
-    {'J', {'P', '1', 'W', 'Q'}, {11U, 8U, 6U, 5U}},
-    {'K', {'D', 'X', 'R', 'C'}, {11U, 8U, 6U, 5U}},
-    {'L', {'F', 'Q', 'Y', 'B'}, {9U, 9U, 8U, 8U}},
-    {'M', {'N', 'G', 'O', 'T'}, {9U, 4U, 3U, 3U}},
-    {'N', {'M', 'A', 'D', 'K'}, {9U, 5U, 4U, 4U}},
-    {'O', {'G', 'Q', '0', 'M'}, {9U, 5U, 4U, 3U}},
-    {'P', {'J', 'Q', 'L', 'C'}, {11U, 8U, 7U, 7U}},
-    {'Q', {'Y', 'Z', 'L', 'F'}, {12U, 10U, 9U, 8U}},
-    {'R', {'W', 'K', 'L', 'A'}, {9U, 6U, 5U, 4U}},
-    {'S', {'H', '5', 'I', 'E'}, {11U, 8U, 6U, 5U}},
-    {'T', {'E', 'M', 'N', 'O'}, {7U, 3U, 3U, 3U}},
-    {'U', {'S', 'V', 'D', 'A'}, {9U, 7U, 4U, 4U}},
-    {'V', {'4', 'H', 'U', '5'}, {13U, 8U, 7U, 7U}},
-    {'W', {'G', 'R', 'J', 'A'}, {9U, 9U, 6U, 4U}},
-    {'X', {'B', 'Y', '6', 'K'}, {11U, 9U, 8U, 8U}},
-    {'Y', {'Q', 'C', 'F', 'L'}, {12U, 11U, 9U, 8U}},
-    {'Z', {'Q', '7', 'L', 'G'}, {10U, 8U, 8U, 5U}},
-    {'0', {'9', '1', '8', 'O'}, {11U, 8U, 5U, 4U}},
-    {'1', {'2', 'J', '0', '9'}, {10U, 8U, 8U, 8U}},
-    {'2', {'3', '1', 'S', 'H'}, {10U, 10U, 5U, 5U}},
-    {'3', {'2', '4', 'H', 'S'}, {10U, 8U, 6U, 5U}},
-    {'4', {'V', '5', '3', 'H'}, {13U, 9U, 8U, 5U}},
-    {'5', {'H', '4', 'S', 'I'}, {13U, 9U, 8U, 5U}},
-    {'6', {'B', '7', 'D', 'X'}, {14U, 10U, 8U, 8U}},
-    {'7', {'6', '8', 'Z', 'B'}, {10U, 10U, 8U, 7U}},
-    {'8', {'7', '9', 'Z', 'Q'}, {10U, 9U, 7U, 7U}},
-    {'9', {'0', '8', '1', 'O'}, {11U, 9U, 8U, 4U}},
-    {'.', {',', '/', '?', 'Z'}, {8U, 8U, 8U, 4U}},
-    {',', {'.', '/', '?', 'Z'}, {8U, 8U, 8U, 4U}},
-    {'/', {'.', ',', '?', 'X'}, {8U, 8U, 8U, 4U}},
-    {'?', {'/', '.', ',', 'Q'}, {8U, 8U, 8U, 4U}},
+    {{'I', 'N', 'R', 'U'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 2U, 1U, 1U)},
+    {{'6', 'D', 'X', 'L'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 3U, 2U)},
+    {{'Y', 'P', 'Q', 'K'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 2U, 2U, 2U)},
+    {{'B', 'K', '6', 'L'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 2U, 2U)},
+    {{'T', 'I', 'S', 'H'}, MORSE_FLIPPER_ICR_PACK_LEVELS(2U, 2U, 2U, 2U)},
+    {{'L', 'Y', 'Q', 'P'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 2U, 2U)},
+    {{'O', 'W', '6', 'Q'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 2U, 1U)},
+    {{'5', 'S', 'V', 'I'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 2U, 2U)},
+    {{'A', 'S', 'H', 'E'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 2U, 2U, 2U)},
+    {{'P', '1', 'W', 'Q'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 2U, 2U, 2U)},
+    {{'D', 'X', 'R', 'C'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 2U, 2U, 2U)},
+    {{'F', 'Q', 'Y', 'B'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 2U, 2U)},
+    {{'N', 'G', 'O', 'T'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 1U, 1U, 1U)},
+    {{'M', 'A', 'D', 'K'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 2U, 1U, 1U)},
+    {{'G', 'Q', '0', 'M'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 2U, 1U, 1U)},
+    {{'J', 'Q', 'L', 'C'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 2U, 2U, 2U)},
+    {{'Y', 'Z', 'L', 'F'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 3U, 2U)},
+    {{'W', 'K', 'L', 'A'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 2U, 2U, 1U)},
+    {{'H', '5', 'I', 'E'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 2U, 2U, 2U)},
+    {{'E', 'M', 'N', 'O'}, MORSE_FLIPPER_ICR_PACK_LEVELS(2U, 1U, 1U, 1U)},
+    {{'S', 'V', 'D', 'A'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 2U, 1U, 1U)},
+    {{'4', 'H', 'U', '5'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 2U, 2U, 2U)},
+    {{'G', 'R', 'J', 'A'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 2U, 1U)},
+    {{'B', 'Y', '6', 'K'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 2U, 2U)},
+    {{'Q', 'C', 'F', 'L'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 3U, 2U)},
+    {{'Q', '7', 'L', 'G'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 2U, 2U, 2U)},
+    {{'9', '1', '8', 'O'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 2U, 2U, 1U)},
+    {{'2', 'J', '0', '9'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 2U, 2U, 2U)},
+    {{'3', '1', 'S', 'H'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 2U, 2U)},
+    {{'2', '4', 'H', 'S'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 2U, 2U, 2U)},
+    {{'V', '5', '3', 'H'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 2U, 2U)},
+    {{'H', '4', 'S', 'I'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 2U, 2U)},
+    {{'B', '7', 'D', 'X'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 2U, 2U)},
+    {{'6', '8', 'Z', 'B'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 2U, 2U)},
+    {{'7', '9', 'Z', 'Q'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 2U, 2U)},
+    {{'0', '8', '1', 'O'}, MORSE_FLIPPER_ICR_PACK_LEVELS(3U, 3U, 2U, 1U)},
+    {{',', '/', '?', 'Z'}, MORSE_FLIPPER_ICR_PACK_LEVELS(2U, 2U, 2U, 1U)},
+    {{'.', '/', '?', 'Z'}, MORSE_FLIPPER_ICR_PACK_LEVELS(2U, 2U, 2U, 1U)},
+    {{'.', ',', '?', 'X'}, MORSE_FLIPPER_ICR_PACK_LEVELS(2U, 2U, 2U, 1U)},
+    {{'/', '.', ',', 'Q'}, MORSE_FLIPPER_ICR_PACK_LEVELS(2U, 2U, 2U, 1U)},
 };
+
+_Static_assert(
+    MORSE_FLIPPER_ICR_COUNT_OF(morse_flipper_icr_seed_rows) ==
+        MORSE_FLIPPER_ICR_CHAR_COUNT,
+    "ICR seed rows must match the character table");
 
 static uint32_t morse_flipper_icr_rng_next(uint32_t* state) {
     uint32_t next = state != NULL && *state != 0U ? *state : 0x6d2b79f5U;
@@ -85,24 +101,86 @@ static uint32_t morse_flipper_icr_rng_bounded(uint32_t* state, uint32_t limit) {
     return morse_flipper_icr_rng_next(state) % limit;
 }
 
+uint8_t morse_flipper_icr_confusion_level(
+    const MorseFlipperIcrStats* stats,
+    uint8_t target,
+    uint8_t candidate) {
+    uint8_t packed;
+
+    if(stats == NULL || target >= MORSE_FLIPPER_ICR_CHAR_COUNT ||
+       candidate >= MORSE_FLIPPER_ICR_CHAR_COUNT)
+        return 0U;
+
+    packed = stats->confusion_levels[target][candidate / 4U];
+    return (uint8_t)((packed >> ((candidate % 4U) * MORSE_FLIPPER_ICR_CONFUSION_BITS)) &
+                     MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK);
+}
+
+static void morse_flipper_icr_set_confusion_level(
+    MorseFlipperIcrStats* stats,
+    uint8_t target,
+    uint8_t candidate,
+    uint8_t level) {
+    uint8_t* packed;
+    uint8_t shift;
+
+    if(stats == NULL || target >= MORSE_FLIPPER_ICR_CHAR_COUNT ||
+       candidate >= MORSE_FLIPPER_ICR_CHAR_COUNT)
+        return;
+
+    packed = &stats->confusion_levels[target][candidate / 4U];
+    shift = (uint8_t)((candidate % 4U) * MORSE_FLIPPER_ICR_CONFUSION_BITS);
+    *packed = (uint8_t)(*packed & ~(MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK << shift));
+    *packed = (uint8_t)(*packed | ((level & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << shift));
+}
+
 static void morse_flipper_icr_seed_confusions(MorseFlipperIcrStats* stats) {
     if(stats == NULL) return;
 
-    memset(stats->confusion_weight, 0, sizeof(stats->confusion_weight));
-    for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_COUNT_OF(morse_flipper_icr_seed_rows); i++) {
-        uint8_t target = morse_flipper_icr_char_index(morse_flipper_icr_seed_rows[i].target);
+    for(uint8_t target = 0U; target < MORSE_FLIPPER_ICR_CHAR_COUNT; target++) {
+        const MorseFlipperIcrSeedRow* row = &morse_flipper_icr_seed_rows[target];
 
-        if(target == MORSE_FLIPPER_ICR_NO_CHOICE) continue;
-        for(uint8_t n = 0U;
-            n < MORSE_FLIPPER_ICR_COUNT_OF(morse_flipper_icr_seed_rows[i].candidate);
-            n++) {
-            uint8_t candidate =
-                morse_flipper_icr_char_index(morse_flipper_icr_seed_rows[i].candidate[n]);
+        for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_COUNT_OF(row->candidate); i++) {
+            uint8_t candidate = morse_flipper_icr_char_index(row->candidate[i]);
+            uint8_t level =
+                (uint8_t)((row->levels >> (i * MORSE_FLIPPER_ICR_CONFUSION_BITS)) &
+                          MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK);
 
-            if(candidate == MORSE_FLIPPER_ICR_NO_CHOICE || candidate == target) continue;
-            stats->confusion_weight[target][candidate] = morse_flipper_icr_seed_rows[i].weight[n];
+            if(candidate != MORSE_FLIPPER_ICR_NO_CHOICE && candidate != target)
+                morse_flipper_icr_set_confusion_level(stats, target, candidate, level);
         }
     }
+}
+
+static uint8_t morse_flipper_icr_confusion_weight(uint8_t level) {
+    static const uint8_t weights[] = {0U, 2U, 6U, 12U};
+
+    return weights[level & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK];
+}
+
+static void morse_flipper_icr_decay_confusions(MorseFlipperIcrStats* stats, uint8_t target) {
+    if(stats == NULL || target >= MORSE_FLIPPER_ICR_CHAR_COUNT) return;
+
+    for(uint8_t candidate = 0U; candidate < MORSE_FLIPPER_ICR_CHAR_COUNT; candidate++) {
+        uint8_t level = morse_flipper_icr_confusion_level(stats, target, candidate);
+
+        if(level > 0U) morse_flipper_icr_set_confusion_level(stats, target, candidate, level - 1U);
+    }
+}
+
+static void morse_flipper_icr_learn_confusion(
+    MorseFlipperIcrStats* stats,
+    uint8_t target,
+    uint8_t candidate) {
+    uint8_t level;
+
+    if(stats == NULL || target >= MORSE_FLIPPER_ICR_CHAR_COUNT ||
+       candidate >= MORSE_FLIPPER_ICR_CHAR_COUNT || candidate == target)
+        return;
+
+    level = morse_flipper_icr_confusion_level(stats, target, candidate);
+    if(level < MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK)
+        morse_flipper_icr_set_confusion_level(stats, target, candidate, level + 1U);
 }
 
 static bool morse_flipper_icr_choice_used(
@@ -129,13 +207,15 @@ static bool morse_flipper_icr_pick_confusion(
 
     for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_CHAR_COUNT; i++) {
         if(i != target && !morse_flipper_icr_choice_used(choices, count, i))
-            total = (uint16_t)(total + stats->confusion_weight[target][i]);
+            total = (uint16_t)(total + morse_flipper_icr_confusion_weight(
+                                         morse_flipper_icr_confusion_level(stats, target, i)));
     }
     if(total == 0U) return false;
 
     pick = (uint16_t)morse_flipper_icr_rng_bounded(rng_state, total);
     for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_CHAR_COUNT; i++) {
-        uint8_t weight = stats->confusion_weight[target][i];
+        uint8_t weight = morse_flipper_icr_confusion_weight(
+            morse_flipper_icr_confusion_level(stats, target, i));
 
         if(i == target || weight == 0U || morse_flipper_icr_choice_used(choices, count, i))
             continue;
@@ -149,7 +229,8 @@ static bool morse_flipper_icr_pick_confusion(
     return false;
 }
 
-static uint8_t morse_flipper_icr_random_unused_choice(
+static uint8_t morse_flipper_icr_random_exploration_choice(
+    const MorseFlipperIcrStats* stats,
     uint8_t target,
     const uint8_t choices[MORSE_FLIPPER_ICR_CHOICE_COUNT],
     uint8_t count,
@@ -159,10 +240,18 @@ static uint8_t morse_flipper_icr_random_unused_choice(
     for(uint8_t attempts = 0U; attempts < 80U; attempts++) {
         candidate =
             (uint8_t)morse_flipper_icr_rng_bounded(rng_state, MORSE_FLIPPER_ICR_CHAR_COUNT);
-        if(candidate != target && !morse_flipper_icr_choice_used(choices, count, candidate))
+        if(candidate != target && !morse_flipper_icr_choice_used(choices, count, candidate) &&
+           morse_flipper_icr_confusion_level(stats, target, candidate) == 0U)
             return candidate;
     }
 
+    for(candidate = 0U; candidate < MORSE_FLIPPER_ICR_CHAR_COUNT; candidate++) {
+        if(candidate != target && !morse_flipper_icr_choice_used(choices, count, candidate) &&
+           morse_flipper_icr_confusion_level(stats, target, candidate) == 0U)
+            return candidate;
+    }
+
+    /* A fully populated row is unlikely, but still yields five unique answers. */
     for(candidate = 0U; candidate < MORSE_FLIPPER_ICR_CHAR_COUNT; candidate++) {
         if(candidate != target && !morse_flipper_icr_choice_used(choices, count, candidate))
             return candidate;
@@ -183,23 +272,9 @@ static void morse_flipper_icr_shuffle_choices(
     }
 }
 
-static void morse_flipper_icr_recompute_average(MorseFlipperIcrStats* stats, uint8_t target) {
-    uint16_t total = 0U;
-    uint8_t count;
-
-    if(stats == NULL || target >= MORSE_FLIPPER_ICR_CHAR_COUNT) return;
-
-    count = stats->recent_count[target];
-    if(count > MORSE_FLIPPER_ICR_RECENT_COUNT) count = MORSE_FLIPPER_ICR_RECENT_COUNT;
-    if(count == 0U) {
-        stats->avg_ms20[target] = 0U;
-        return;
-    }
-
-    for(uint8_t i = 0U; i < count; i++) {
-        total = (uint16_t)(total + stats->recent_ms20[target][i]);
-    }
-    stats->avg_ms20[target] = (uint8_t)((total + (count / 2U)) / count);
+static uint8_t morse_flipper_icr_update_average(uint8_t average, uint8_t sample) {
+    if(average == 0U) return sample;
+    return (uint8_t)((((uint16_t)average * 4U) + sample + 2U) / 5U);
 }
 
 void morse_flipper_icr_stats_reset(MorseFlipperIcrStats* stats) {
@@ -216,10 +291,10 @@ bool morse_flipper_icr_stats_valid(const MorseFlipperIcrStats* stats) {
     if(stats->magic != MORSE_FLIPPER_ICR_MAGIC || stats->version != MORSE_FLIPPER_ICR_VERSION)
         return false;
 
-    for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_CHAR_COUNT; i++) {
-        if(stats->recent_count[i] > MORSE_FLIPPER_ICR_RECENT_COUNT) return false;
-        if(stats->recent_pos[i] >= MORSE_FLIPPER_ICR_RECENT_COUNT) return false;
-        if(stats->correct[i] > stats->attempts[i]) return false;
+    for(uint8_t target = 0U; target < MORSE_FLIPPER_ICR_CHAR_COUNT; target++) {
+        if(stats->correct[target] > stats->attempts[target]) return false;
+
+        if(morse_flipper_icr_confusion_level(stats, target, target) != 0U) return false;
     }
 
     return true;
@@ -256,7 +331,9 @@ bool morse_flipper_icr_stats_load(MorseFlipperIcrStats* stats) {
         if(storage_file_open(file, MORSE_FLIPPER_ICR_STATS_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
             got = storage_file_read(file, stats, sizeof(*stats));
             if(got != sizeof(*stats)) ok = false;
-            if(ok && !morse_flipper_icr_stats_valid(stats)) morse_flipper_icr_stats_reset(stats);
+            if(ok && !morse_flipper_icr_stats_valid(stats)) {
+                morse_flipper_icr_stats_reset(stats);
+            }
         } else {
             ok = false;
         }
@@ -415,7 +492,7 @@ void morse_flipper_icr_build_choices(
     if(stats == NULL || target >= MORSE_FLIPPER_ICR_CHAR_COUNT) return;
 
     choices[count++] = target;
-    while(count < 4U) {
+    while(count < 3U) {
         uint8_t candidate = MORSE_FLIPPER_ICR_NO_CHOICE;
 
         if(!morse_flipper_icr_pick_confusion(stats, target, choices, count, rng_state, &candidate))
@@ -424,8 +501,8 @@ void morse_flipper_icr_build_choices(
     }
 
     while(count < MORSE_FLIPPER_ICR_CHOICE_COUNT) {
-        uint8_t candidate =
-            morse_flipper_icr_random_unused_choice(target, choices, count, rng_state);
+        uint8_t candidate = morse_flipper_icr_random_exploration_choice(
+            stats, target, choices, count, rng_state);
 
         if(candidate == MORSE_FLIPPER_ICR_NO_CHOICE) break;
         choices[count++] = candidate;
@@ -439,7 +516,6 @@ void morse_flipper_icr_note_answer(
     uint8_t target,
     uint8_t choice,
     uint32_t reaction_ms) {
-    uint8_t pos;
     uint8_t bucket;
     bool correct;
 
@@ -451,17 +527,11 @@ void morse_flipper_icr_note_answer(
 
     if(stats->attempts[target] < UINT16_MAX) stats->attempts[target]++;
     if(correct && stats->correct[target] < UINT16_MAX) stats->correct[target]++;
-    if(!correct && choice < MORSE_FLIPPER_ICR_CHAR_COUNT) {
-        uint8_t old = stats->confusion_weight[target][choice];
-
-        stats->confusion_weight[target][choice] = old > 251U ? 255U : (uint8_t)(old + 4U);
-    }
-
-    pos = stats->recent_pos[target];
-    if(pos >= MORSE_FLIPPER_ICR_RECENT_COUNT) pos = 0U;
-    stats->recent_ms20[target][pos] = bucket;
-    pos = (uint8_t)((pos + 1U) % MORSE_FLIPPER_ICR_RECENT_COUNT);
-    stats->recent_pos[target] = pos;
-    if(stats->recent_count[target] < MORSE_FLIPPER_ICR_RECENT_COUNT) stats->recent_count[target]++;
-    morse_flipper_icr_recompute_average(stats, target);
+    /* Decay before learning so the answer that triggered this interval survives it. */
+    if(stats->attempts[target] != 0U &&
+       stats->attempts[target] % MORSE_FLIPPER_ICR_CONFUSION_DECAY_INTERVAL == 0U)
+        morse_flipper_icr_decay_confusions(stats, target);
+    if(!correct) morse_flipper_icr_learn_confusion(stats, target, choice);
+    stats->avg_ms20[target] =
+        morse_flipper_icr_update_average(stats->avg_ms20[target], bucket);
 }
