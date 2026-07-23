@@ -101,20 +101,22 @@ void period_tracker_scene_start_on_enter(void* context) {
             view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewTextBox);
         } else {
             free(names); // Free names array before checking alerts
-            // Normal startup - check for today's alerts
-            FURI_LOG_I(TAG, "Start: Profiles exist, checking for alerts");
+            // Normal startup - alerts use the same lead-time window as Daily Digest
+            uint8_t lead_days = settings.alert_lead_days;
+            if(lead_days == 0) lead_days = 1;
+            FURI_LOG_I(
+                TAG, "Start: Profiles exist, checking for alerts (lead_days=%u)", lead_days);
 
-            // Allocate output buffer on heap (20 predictions = ~3KB, too large for stack)
-            Prediction* today_predictions = malloc(sizeof(Prediction) * 20);
-            if(today_predictions) {
-                // Pass shared buffer to eliminate malloc/free inside get_today_predictions
-                uint16_t alert_count = get_today_predictions(
+            Prediction* alert_predictions = malloc(sizeof(Prediction) * 20);
+            if(alert_predictions) {
+                uint16_t alert_count = get_alert_predictions(
                     app->storage,
-                    today_predictions,
+                    alert_predictions,
                     20,
                     app->prediction_buffer,
-                    app->prediction_buffer_size);
-                free(today_predictions);
+                    app->prediction_buffer_size,
+                    lead_days);
+                free(alert_predictions);
 
                 // Navigate to Main Menu first (so back button works correctly)
                 scene_manager_next_scene(app->scene_manager, PeriodTrackerSceneMainMenu);
@@ -122,17 +124,19 @@ void period_tracker_scene_start_on_enter(void* context) {
                 if(alert_count > 0) {
                     FURI_LOG_I(
                         TAG,
-                        "Start: %u alerts for today, playing notification and navigating to Daily Digest",
-                        alert_count);
-                    // Play period alert notification (simple beeps, no LCD flash)
+                        "Start: %u alert(s) in next %u day(s), notifying and opening Daily Digest",
+                        alert_count,
+                        lead_days);
                     period_tracker_alert_notify_if_today(app->storage);
-                    // Navigate to Daily Digest (on top of Main Menu)
                     scene_manager_next_scene(app->scene_manager, PeriodTrackerSceneDailyDigest);
                 } else {
-                    FURI_LOG_I(TAG, "Start: no alerts for today, staying on Main Menu");
+                    FURI_LOG_I(
+                        TAG,
+                        "Start: no alerts in next %u day(s), staying on Main Menu",
+                        lead_days);
                 }
             } else {
-                FURI_LOG_E(TAG, "Start: failed to allocate memory for today predictions");
+                FURI_LOG_E(TAG, "Start: failed to allocate memory for alert predictions");
                 scene_manager_next_scene(app->scene_manager, PeriodTrackerSceneMainMenu);
             }
         }

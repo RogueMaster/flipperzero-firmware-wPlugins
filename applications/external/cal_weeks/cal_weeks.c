@@ -592,7 +592,7 @@ int32_t cal_weeks_main(void* p) {
 
     view_port_draw_callback_set(app.view_port, draw_callback, &app);
     view_port_input_callback_set(app.view_port, input_callback, &app);
-    app.gui = furi_record_open("gui"); // Initialize GUI
+    app.gui = furi_record_open(RECORD_GUI); // Initialize GUI
     gui_add_view_port(app.gui, app.view_port, GuiLayerFullscreen);
 
     // Input handling
@@ -802,7 +802,7 @@ int32_t cal_weeks_main(void* p) {
     // Cleanup: Free all allocated resources
     view_port_enabled_set(app.view_port, false);
     gui_remove_view_port(app.gui, app.view_port);
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
     view_port_free(app.view_port);
     furi_message_queue_free(app.input_queue);
     furi_string_free(app.selected_file_path);

@@ -1,5 +1,6 @@
 #include "cw.h"
 
+// clang-format off
 const uint8_t cw_ascii[127] = {
     [0 ... 31] = 0xFF,
 
@@ -99,6 +100,7 @@ const uint8_t cw_ascii[127] = {
     0xFF,
     0xFF, // xyz{|}~
 };
+// clang-format on
 
 uint8_t cw(char c) {
     uint8_t a;

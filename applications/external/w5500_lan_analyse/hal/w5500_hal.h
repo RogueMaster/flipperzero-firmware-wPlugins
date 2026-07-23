@@ -46,6 +46,13 @@ bool w5500_hal_init(void);
 void w5500_hal_deinit(void);
 
 /**
+ * True while the external SPI bus is acquired (between init and deinit).
+ * Callers must not issue W5500 socket ops (e.g. close()) when this is false —
+ * the SPI bus is released and the transfer would trip a furi_check.
+ */
+bool w5500_hal_is_acquired(void);
+
+/**
  * Perform hardware reset of W5500 via RST pin (C3).
  * Waits for the chip to become ready.
  */

@@ -587,6 +587,7 @@ void lwc_msf_scene_on_exit(void* context) {
         break;
     case GPIO:
         gpio_stop_listening(app->state->gpio);
+        app->state->gpio = NULL;
         break;
     default:
         break;

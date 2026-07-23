@@ -391,7 +391,7 @@ int32_t nickname_generator_app(void* p) {
     view_port_draw_callback_set(view_port, draw_callback, view_port);
     view_port_input_callback_set(view_port, input_callback, event_queue);
 
-    Gui* gui = furi_record_open("gui");
+    Gui* gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
     InputEvent event;
@@ -416,7 +416,7 @@ int32_t nickname_generator_app(void* p) {
     view_port_free(view_port);
     furi_message_queue_free(event_queue);
 
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
 
     return 0;
 }

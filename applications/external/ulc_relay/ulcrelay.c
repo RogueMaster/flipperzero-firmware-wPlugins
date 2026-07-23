@@ -462,6 +462,7 @@ static bool send_auth1_command(FuriHalSpiBusHandle* handle, AppContext* app) {
         subghz_tx_rx_worker_stop(app->subghz_txrx);
     }
     subghz_tx_rx_worker_free(app->subghz_txrx);
+    app->subghz_txrx = NULL;
     subghz_devices_deinit();
     furi_hal_power_suppress_charge_exit();
 
@@ -512,6 +513,7 @@ static bool send_auth2_command(AppContext* app) {
         subghz_tx_rx_worker_stop(app->subghz_txrx);
     }
     subghz_tx_rx_worker_free(app->subghz_txrx);
+    app->subghz_txrx = NULL;
     subghz_devices_deinit();
     furi_hal_power_suppress_charge_exit();
 
@@ -730,6 +732,7 @@ NfcCommand ulcrelay_listener_callback(NfcGenericEvent event, void* context) {
             if(error != NfcErrorNone) {
                 FURI_LOG_E(TAG, "Tx error");
             }
+            bit_buffer_free(auth1_buffer);
         } else if(data_len == 17 && data[0] == 0xAF) {
             FURI_LOG_I(TAG, "Received AUTH2 response from reader");
             app->auth2_received = true;
@@ -767,6 +770,9 @@ static NfcDevice* ultralight_c_nfc_device_alloc_full(
     iso14443_3a_set_atqa(iso14443_3a_edit_data, atqa);
 
     MfUltralightData* mf_ultralight_edit_data = mf_ultralight_alloc();
+    // mf_ultralight_alloc() already made one; release it before taking ours,
+    // otherwise it is orphaned by the assignment below.
+    iso14443_3a_free(mf_ultralight_edit_data->iso14443_3a_data);
     mf_ultralight_edit_data->iso14443_3a_data = iso14443_3a_edit_data;
     mf_ultralight_edit_data->type = MfUltralightTypeMfulC;
 
@@ -781,6 +787,9 @@ static NfcDevice* ultralight_c_nfc_device_alloc_full(
     NfcDevice* nfc_device = nfc_device_alloc();
     nfc_device_set_data(nfc_device, NfcProtocolMfUltralight, mf_ultralight_edit_data);
 
+    // nfc_device_set_data() copies, so ownership stays here -- same as the
+    // iso14443_3a_free() in ultralight_c_nfc_device_alloc() above.
+    mf_ultralight_free(mf_ultralight_edit_data);
     return nfc_device;
 }
 
@@ -924,6 +933,25 @@ int32_t ulc_relay_app(void* p) {
                     default:
                         break;
                     }
+                } else if(event.input.key == InputKeyBack) {
+                    // Every other state is an in-progress relay/emulation, and
+                    // none of them handled Back, so the app could not be exited
+                    // once started. Tear down whatever is live and quit.
+                    do_shutdown(app);
+                    if(app->listener) {
+                        nfc_listener_stop(app->listener);
+                        nfc_listener_free(app->listener);
+                        app->listener = NULL;
+                    }
+                    if(app->nfc) {
+                        nfc_free(app->nfc);
+                        app->nfc = NULL;
+                    }
+                    if(app->device) {
+                        nfc_device_free(app->device);
+                        app->device = NULL;
+                    }
+                    running = false;
                 }
             } else if(event.type == EventTypeRx) {
                 handle_rx(app);
@@ -1007,6 +1035,7 @@ int32_t ulc_relay_app(void* p) {
                     subghz_tx_rx_worker_stop(app->subghz_txrx);
                 }
                 subghz_tx_rx_worker_free(app->subghz_txrx);
+                app->subghz_txrx = NULL;
                 subghz_devices_deinit();
 
                 // Resume charging
@@ -1199,6 +1228,7 @@ int32_t ulc_relay_app(void* p) {
                 subghz_tx_rx_worker_stop(app->subghz_txrx);
             }
             subghz_tx_rx_worker_free(app->subghz_txrx);
+            app->subghz_txrx = NULL;
             subghz_devices_deinit();
 
             // Create an NFC listener using the iso14443_3a listener
@@ -1215,6 +1245,9 @@ int32_t ulc_relay_app(void* p) {
             nfc_listener_free(app->listener);
             nfc_free(app->nfc);
             nfc_device_free(app->device);
+            app->listener = NULL;
+            app->nfc = NULL;
+            app->device = NULL;
 
             send_auth2_command(app);
 
@@ -1231,6 +1264,7 @@ int32_t ulc_relay_app(void* p) {
             subghz_tx_rx_worker_stop(app->subghz_txrx);
         }
         subghz_tx_rx_worker_free(app->subghz_txrx);
+        app->subghz_txrx = NULL;
         subghz_devices_deinit();
     }
 

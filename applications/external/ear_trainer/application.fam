@@ -1,0 +1,13 @@
+App(
+    appid="ear_trainer",
+    name="Ear Trainer",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ear_trainer_app",
+    stack_size=2 * 1024,
+    fap_icon="icon.png",
+    fap_category="Media",
+    fap_author="Baris Mert",
+    fap_weburl="https://github.com/barismert98/flipper-ear-trainer",
+    fap_version="1.0",
+    fap_description="Learn to recognise musical intervals by ear",
+)

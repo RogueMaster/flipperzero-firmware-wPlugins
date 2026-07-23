@@ -7,8 +7,8 @@ import argparse
 import threading
 import time
 
-from metrics import collect
-from protocol import pack_live, pack_specs_section
+from metrics import collect, collect_net
+from protocol import pack_live, pack_net, pack_specs_section
 from specs import collect_spec_sections
 
 SPECS_EVERY_S = 30.0
@@ -75,7 +75,8 @@ def make_packets() -> list[bytes]:
     _ensure_specs_thread()
 
     live = pack_live(**collect())
-    packets: list[bytes] = [live]
+    net = pack_net(**collect_net())
+    packets: list[bytes] = [live, net]
 
     global _last_specs_send
     now = time.monotonic()

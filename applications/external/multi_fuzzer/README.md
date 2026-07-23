@@ -47,5 +47,8 @@ This is a completely remade app, visual style inspired by [iButton fuzzer](https
 - **2nd line**
     - **Time delay (TD)** - idle time between UID submissions
     - **Emulation time (EmT)** - transmission time of one UID
+    - Both are adjustable in `0.01s` steps from `0.00` to `8.00s` (shown as `X.XX`). Short press = `±0.01s`, long press = `±0.10s`. A value of `0.00` uses the smallest possible non-zero delay.
 - **3rd line** - Prtocol name
 - **4th line** - Current UID
+
+> **Note on timing:** RFID emulation drives the `furi_hal_rfid` hardware directly rather than going through the firmware's `lfrfid_worker`, which has a ~`0.1s` restart floor (and crashes below it on recent firmware). This lets you push TD/EmT to the real hardware limits on stock firmware. Very low values are intended for vulnerability discovery - a reader may stop reading once the field is on too briefly.

@@ -4,21 +4,8 @@
 - I likely won't have time to cover all these items.
 - Some of these would make great sample projects to learn how to make apps for flipper.
 - I tried to organize them in terms of difficulty.
-- [EMPTY]
 
 ## WISH LIST ITEMS:
-- `Bluetooth Audio` APP to allow flipper to pair to external speaker or headphones for mp3 playback
-- - Also can possible pair to speaker via NFC tap, here are some possible resources:
-- - - https://github.com/urish/circuitpython-mp3-ble
-- - - https://github.com/averyling82/wifi-bt-audio
-- - - https://github.com/YetAnotherElectronicsChannel/ESP32_Bluetooth_Audio_Receiver
-- - - https://github.com/redchenjs/bluetooth_visual_speaker_esp32
-- - - https://github.com/cefali9154/BluetoothPlayer
-- - - https://github.com/jujax/lyrat_passthru
-- - Also can support playlists / playlist files
-- `Bluetooth OpenHayStack` for Flipper, changes current bluetooth configuration to transmit Bluetooth Open Haystack packet as needed for the device to be findable when settings for Bluetooth is set to ON in settings and OpenHayStack is set to ON in settings.
-- - Not sure if could possiblt also serve to find devices
-- - Example resource of OpenHayStack as an alternative to Bluetooth On/Off: https://github.com/AlexStrNik/flipperzero-firmware/tree/dev
 - Skip to next or previous SubGHz scan file from emulation screen using UP/DOWN
 
 # 

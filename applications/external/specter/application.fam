@@ -1,0 +1,22 @@
+App(
+    appid="specter",
+    name="Specter",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="specter_app",
+    stack_size=4 * 1024,
+    fap_icon="icons/specter_10px.png",
+    fap_icon_assets="icons",
+    # Explicit sources: the glob is recursive, and test/ is host-only C that must
+    # not be dragged into the firmware build.
+    sources=[
+        "specter.c",
+        "helpers/*.c",
+        "views/*.c",
+        "scenes/*.c",
+    ],
+    fap_category="NFC",
+    fap_author="at0m-b0mb",
+    fap_weburl="https://github.com/at0m-b0mb/Specter-FlipperZero",
+    fap_version="2.0",
+    fap_description="Counter-surveillance bug-sweep: passively senses active 13.56 MHz NFC reader/skimmer fields nearby (hidden POS skimmers, rogue door readers) using the onboard NFC chip. Sweep to find one, fingerprint its polling cadence to identify it, survey a whole room for a verdict, and keep a timestamped logbook on the SD card. No extra hardware, never transmits.",
+)

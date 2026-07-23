@@ -680,7 +680,7 @@ int32_t flipvalo_app() {
     fv_priv->timer = furi_timer_alloc(timer_callback, FuriTimerTypePeriodic, fv_priv);
     furi_timer_start(
         fv_priv->timer, (uint32_t)furi_kernel_get_tick_frequency() / fv_priv->config.tickrate);
-    gui = furi_record_open("gui");
+    gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
     while(true) {
@@ -759,7 +759,7 @@ cleanup:
         view_port_enabled_set(view_port, false);
         if(gui) {
             gui_remove_view_port(gui, view_port);
-            furi_record_close("gui");
+            furi_record_close(RECORD_GUI);
         }
         view_port_free(view_port);
     }

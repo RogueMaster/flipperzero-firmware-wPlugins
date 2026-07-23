@@ -22,9 +22,11 @@
 
 #define JAYX_MSG_LIVE          0
 #define JAYX_MSG_SPECS_SECTION 1
+#define JAYX_MSG_NET           2
 
 #define JAYX_LIVE_SIZE          44
 #define JAYX_SPECS_SECTION_SIZE 126
+#define JAYX_NET_SIZE           16
 #define JAYX_MAX_PACKET         JAYX_SPECS_SECTION_SIZE
 
 #define JAYX_GAME_NAME_LEN 20
@@ -37,8 +39,10 @@
 #define JAYX_RX_STREAM_SIZE 1024
 #define JAYX_LINK_TIMEOUT_S 5
 #define JAYX_FPS_STICKY_S   3
+#define JAYX_FPS_TARGET     240
+#define JAYX_VAL_NA         0xFF
 
-#define JAYX_PAGE_COUNT 4
+#define JAYX_PAGE_COUNT 5
 #define JAYX_DOT_Y      60
 
 /* Specs card layout */
@@ -61,8 +65,9 @@ typedef enum {
 typedef enum {
     JayxPageSystem = 0,
     JayxPageGame = 1,
-    JayxPageSpecs = 2,
-    JayxPageAbout = 3,
+    JayxPageNetwork = 2,
+    JayxPageSpecs = 3,
+    JayxPageAbout = 4,
 } JayxPage;
 
 #pragma pack(push, 1)
@@ -95,10 +100,21 @@ typedef struct {
     char line1[JAYX_SPEC_LINE_LEN];
     char line2[JAYX_SPEC_LINE_LEN];
 } JayxSpecsSectionPacket;
+
+typedef struct {
+    uint16_t magic;
+    uint8_t version;
+    uint8_t msg_type;
+    uint16_t up_val;
+    char up_unit[4];
+    uint16_t down_val;
+    char down_unit[4];
+} JayxNetPacket;
 #pragma pack(pop)
 
 _Static_assert(sizeof(JayxLivePacket) == JAYX_LIVE_SIZE, "JayxLivePacket size");
 _Static_assert(sizeof(JayxSpecsSectionPacket) == JAYX_SPECS_SECTION_SIZE, "specs section size");
+_Static_assert(sizeof(JayxNetPacket) == JAYX_NET_SIZE, "JayxNetPacket size");
 
 typedef struct {
     char title[JAYX_SPEC_TITLE_LEN + 1];
@@ -129,6 +145,12 @@ struct JayxApp {
     uint16_t sticky_fps;
     uint32_t sticky_fps_ts;
 
+    uint16_t net_up_val;
+    char net_up_unit[4];
+    uint16_t net_down_val;
+    char net_down_unit[4];
+    bool net_valid;
+
     uint8_t rx_scratch[JAYX_MAX_PACKET * 2];
     size_t rx_len;
     FuriStreamBuffer* rx_stream;
@@ -147,6 +169,13 @@ void jayx_process_rx(JayxApp* app);
 void jayx_draw_page_dots(Canvas* canvas, JayxPage page);
 void jayx_copy_field(char* dst, size_t dst_len, const char* src, size_t src_len);
 void jayx_specs_clamp_scroll(JayxApp* app);
+void jayx_unit_cstr(char* out, size_t n, const char unit[4]);
+void jayx_draw_metric_row(
+    Canvas* canvas,
+    uint8_t row,
+    const char* label,
+    const char* value,
+    float percent);
 
 void jayx_transport_start(JayxApp* app, JayxTransport t);
 void jayx_transport_stop(JayxApp* app);
@@ -157,3 +186,4 @@ void draw_game_view(Canvas* canvas, JayxApp* app);
 void draw_specs_view(Canvas* canvas, JayxApp* app);
 void draw_about_view(Canvas* canvas, JayxApp* app);
 void draw_status_view(Canvas* canvas, JayxApp* app);
+void draw_network_view(Canvas* canvas, JayxApp* app);

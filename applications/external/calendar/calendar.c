@@ -98,6 +98,7 @@ void calendar_app_free(CalendarApp* app) {
     furi_record_close(RECORD_GUI);
     app->gui = NULL;
 
+    free(app->variable_shared_context);
     free(app);
 }
 

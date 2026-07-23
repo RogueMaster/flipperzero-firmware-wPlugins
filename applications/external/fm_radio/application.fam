@@ -1,15 +1,15 @@
 App(
     appid="fm_radio",
-    name="FM Radio [TEA5767]",
+    name="FM Radio [TEA5767/Si4703]",
     apptype=FlipperAppType.EXTERNAL,
-    entry_point="my_fm_radio",
-    stack_size=1 * 1024,
+    targets=["f7"],
+    entry_point="fm_radio_app",
+    stack_size=4 * 1024,
     fap_category="GPIO",
-    fap_icon="images/radio.png",
+    fap_icon="radio.png",
     fap_icon_assets="images",
     fap_author="coolshrimp",
-    fap_weburl="https://github.com/coolshrimp/flipperzero-firmware-wPlugins/tree/420/applications/external/FM_Radio",
-    fap_version="1.1.1",
-    fap_description="FM Radio App",
-    #  v1.1.1: [Fix icon, use API buttons (By WillyJL)](https://github.com/Next-Flip/Momentum-Apps/commit/83d9bd743905904c6413fc762d1bfbb6202172b0)
+    fap_weburl="https://github.com/coolshrimp/flipperzero-fm-radio",
+    fap_version="2.2",
+    fap_description="FM Radio app for TEA5767 and Si4703 chips with auto-detection, SD card station lists, and settings",
 )

@@ -84,5 +84,8 @@ bool ublox_scene_enter_file_name_on_event(void* context, SceneManagerEvent event
 }
 
 void ublox_scene_enter_file_name_on_exit(void* context) {
-    UNUSED(context);
+    Ublox* ublox = context;
+    void* validator_context = text_input_get_validator_callback_context(ublox->text_input);
+    text_input_set_validator(ublox->text_input, NULL, NULL);
+    validator_is_file_free(validator_context);
 }

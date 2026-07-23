@@ -1,24 +1,28 @@
 #include "Common.hpp"
 #include "UI.hpp"
+#include <new>
+#include <utility>
 
 UFZ::Application::Application(
-    const std::vector<UWidget*>& widgetsRef,
+    std::vector<UWidget*> widgetsRef,
     void* userPointer,
     const std::function<void(Application&)>& begin,
     const uint32_t tickPeriod) noexcept {
-    run(widgetsRef, userPointer, begin, tickPeriod);
+    run(std::move(widgetsRef), userPointer, begin, tickPeriod);
 }
 
+// Single-use per Application instance: the callback vectors below are appended to, not cleared,
+// so calling run() a second time would build handlers from the previous run's stale callbacks.
 void UFZ::Application::run(
-    const std::vector<UWidget*>& widgetsRef,
+    std::vector<UWidget*> widgetsRef,
     void* userPointer,
     const std::function<void(Application&)>& begin,
     const uint32_t tickPeriod) noexcept {
-    widgets = widgetsRef;
+    widgets = std::move(widgetsRef);
     tickInterval = tickPeriod;
     ctx = userPointer;
 
-    uint32_t size = widgets.size();
+    uint32_t size = static_cast<uint32_t>(widgets.size());
     enterCallbacks.reserve(size);
     eventCallbacks.reserve(size);
     exitCallbacks.reserve(size);
@@ -29,10 +33,10 @@ void UFZ::Application::run(
         exitCallbacks.push_back(a->exit);
     }
 
-    handlers.on_enter_handlers = enterCallbacks.data();
-    handlers.on_event_handlers = eventCallbacks.data();
-    handlers.on_exit_handlers = exitCallbacks.data();
-    memcpy((void*)&handlers.scene_num, (void*)&size, sizeof(uint32_t));
+    // SceneManagerHandlers::scene_num is const, so the struct cannot be assigned field-by-field.
+    // Construct it in place with placement new instead of casting away const (which is UB).
+    new(&handlers) SceneManagerHandlers{
+        enterCallbacks.data(), eventCallbacks.data(), exitCallbacks.data(), size};
 
     filesystem.init();
     begin(*this);
@@ -91,8 +95,18 @@ void UFZ::Application::initGUI() noexcept {
         viewDispatcher.viewDispatcher, gui, ViewDispatcherTypeFullscreen);
 }
 
+UFZ::Application::~Application() noexcept {
+    destroy();
+}
+
 void UFZ::Application::destroy() noexcept {
     if(!bDestroyed) {
+        // Fire the current scene's on_exit handler before teardown. Neither EXIT_APPLICATION
+        // nor backing out of the entry scene pops that scene off the stack, so without this
+        // its exit callback would never run. Done while the views still exist so exit
+        // handlers may safely touch widgets. Safe if run() never allocated the manager:
+        // SceneManager::stop() null-checks.
+        sceneManager.stop();
         freeSceneManager();
         freeViewDispatcher();
         freeGUI();
@@ -110,7 +124,10 @@ void UFZ::Application::freeViewDispatcher() noexcept {
 }
 
 void UFZ::Application::freeGUI() noexcept {
-    furi_record_close(RECORD_GUI);
+    if(gui != nullptr) {
+        furi_record_close(RECORD_GUI);
+        gui = nullptr;
+    }
 }
 
 const UFZ::ViewDispatcher& UFZ::Application::getViewDispatcher() const noexcept {
@@ -140,7 +157,7 @@ void UFZ::ViewDispatcher::init() noexcept {
 void UFZ::ViewDispatcher::free() noexcept {
     if(viewDispatcher != nullptr) {
         for(size_t i = 0; i < application->widgets.size(); i++) {
-            view_dispatcher_remove_view(application->viewDispatcher.viewDispatcher, i);
+            view_dispatcher_remove_view(viewDispatcher, i);
             application->widgets[i]->destroy();
         }
         view_dispatcher_free(viewDispatcher);
@@ -219,7 +236,7 @@ bool UFZ::SceneManager::searchAndSwitchToAnotherScene(const uint32_t id) const n
 }
 
 void UFZ::SceneManager::stop() const noexcept {
-    scene_manager_stop(sceneManager);
+    if(sceneManager != nullptr) scene_manager_stop(sceneManager);
 }
 
 void UFZ::SceneManager::alloc(const SceneManagerHandlers& handlers, Application& app) noexcept {

@@ -91,12 +91,6 @@ struct packet {
 	uint32_t time;
 };
 
-#define THREAD_FLAGS_EXIT	(1 << 0)
-#define THREAD_FLAGS_DATA	(1 << 1)
-#define THREAD_FLAGS_PRINT	(1 << 2)
-#define THREAD_FLAGS_COMPLETE	(1 << 3)
-#define THREAD_FLAGS_ALL	(THREAD_FLAGS_EXIT | THREAD_FLAGS_DATA | THREAD_FLAGS_PRINT | THREAD_FLAGS_COMPLETE)
-
 struct printer_proto {
 	void *gblink_handle;
 
@@ -106,8 +100,6 @@ struct printer_proto {
 	struct packet *packet; //packet data used by send()/receive() for tracking
 
 	struct gb_image *image; // Details of the current image being sent/received
-
-	FuriThread *thread;
 };
 
 #endif // PRINTER_I_H

@@ -13,7 +13,7 @@ PLATFORM WIN
   # Open a hidden PowerShell window via Run dialog
   DELAY 500
   GUI r
-  DELAY 300
+  DELAY 500
   STRING powershell -w h -nop -ep bypass
   ENTER
   DELAY 1000

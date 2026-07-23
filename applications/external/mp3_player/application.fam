@@ -1,0 +1,14 @@
+App(
+    appid="mp3_player",
+    name="MP3 Player",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="mp3_main",
+    stack_size=8 * 1024,
+    fap_icon="music_icon.png",
+    fap_category="Media",
+    fap_author="coolshrimp",
+    fap_weburl="https://github.com/coolshrimp/flipperzero-mp3-player",
+    fap_version="3.5",
+    fap_description="Play any MP3 through the internal speaker, a MAX98357A I2S amplifier, or a filtered PAM8403.",
+)

@@ -57,6 +57,11 @@ void period_tracker_scene_pin_settings_on_enter(void* context) {
         variable_item_list_add(variable_item_list, "Set New PIN", 0, NULL, app);
     }
 
+    // Shared VariableItemList may still hold a selected index from a longer
+    // previous screen (e.g. Edit Profile). With only one item that leaves the
+    // view blank until the user moves the joystick.
+    variable_item_list_set_selected_item(variable_item_list, 0);
+
     view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewVariableItemList);
 }
 

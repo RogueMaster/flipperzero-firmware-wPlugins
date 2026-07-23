@@ -134,7 +134,7 @@ static void kia_v1_check_remote_controller(SubGhzProtocolDecoderKiaV1* instance)
     char_data[6] = cnt_high;
     uint8_t crc = kia_v1_crc4(char_data, 7, 1);
 
-    instance->crc = cnt_high << 4 | crc;
+    instance->crc = crc;
     instance->crc_check = (crc == (instance->generic.data & 0xF));
 }
 

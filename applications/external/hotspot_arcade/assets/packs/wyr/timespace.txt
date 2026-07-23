@@ -1,0 +1,37 @@
+Pack: Time & Space
+
+A: Visit the distant past
+B: Visit the far future
+---
+A: Live on Mars
+B: Live under the ocean
+---
+A: Meet your ancestors
+B: Meet your descendants
+---
+A: Explore deep space
+B: Explore the deep sea
+---
+A: Ride a real dinosaur
+B: Ride a rocket to the moon
+---
+A: Have a robot butler
+B: Have a flying car
+---
+A: Teleport to any year
+B: Teleport to any place
+---
+A: Restart your life from age 10
+B: Fast-forward 10 years
+---
+A: Be famous 300 years ago
+B: Be forgotten but comfortable today
+---
+A: Own a working time machine
+B: Own a working teleporter
+---
+A: Discover a new planet
+B: Discover a new species
+---
+A: Know how the world ends
+B: Know how the world began

@@ -1,0 +1,7 @@
+ADD_SCENE(argus, start, Start)
+ADD_SCENE(argus, monitor, Monitor)
+ADD_SCENE(argus, twins, Twins)
+ADD_SCENE(argus, log, Log)
+ADD_SCENE(argus, guard, Guard)
+ADD_SCENE(argus, settings, Settings)
+ADD_SCENE(argus, about, About)

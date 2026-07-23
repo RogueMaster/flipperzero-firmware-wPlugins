@@ -21,7 +21,7 @@ static void debug_change(VariableItem* item);
 static void aprs_path_custom_save(void* context);
 static const char* aprs_paths[] =
     {"None", "RFONLY", "NOGATE", "W1-1", "W2-2", "ARISS", "APRSAT", "Custom"};
-static const char* radio_backends[] = {"Internal", "External"};
+static const char* radio_backends[] = {"Internal", "External", "Auto"};
 FlipperHamApp* gapp;
 static bool call_copy(FlipperHamApp* app);
 
@@ -164,6 +164,7 @@ static void txdbgdraw(Canvas* canvas, FlipperHamApp* app) {
 void flipperham_draw_callback(Canvas* canvas, void* context) {
     FlipperHamApp* app = context;
     char a[16];
+    const char* s;
     uint32_t n, w, m, x;
 
     if(app->debug_tx && app->tx_allowed && app->pkt) {
@@ -178,6 +179,15 @@ void flipperham_draw_callback(Canvas* canvas, void* context) {
     canvas_set_font(canvas, FontPrimary);
 
     if(!app->tx_allowed) {
+        if(app->tx_unavailable) {
+            canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "TX unavailable");
+            return;
+        }
+        if(app->tx_missing_ext) {
+            canvas_draw_str_aligned(canvas, 64, 29, AlignCenter, AlignCenter, "Missing external");
+            canvas_draw_str_aligned(canvas, 64, 41, AlignCenter, AlignCenter, "radio");
+            return;
+        }
         canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "TX blocked");
         return;
     }
@@ -187,12 +197,19 @@ void flipperham_draw_callback(Canvas* canvas, void* context) {
         return;
     }
 
-    if(app->repeat_n >= 4)
-        canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignCenter, "Sending...");
-    else if(app->repeat_n > 1)
-        canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignCenter, "Sending...");
+    if(app->tx_radio_display == FlipperHamRadioExternal)
+        s = "Sending (ext)...";
+    else if(app->tx_radio_display == FlipperHamRadioInternal)
+        s = "Sending (int)...";
     else
-        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "Sending...");
+        s = "Sending...";
+
+    if(app->repeat_n >= 4)
+        canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignCenter, s);
+    else if(app->repeat_n > 1)
+        canvas_draw_str_aligned(canvas, 64, 26, AlignCenter, AlignCenter, s);
+    else
+        canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, s);
 
     if(app->repeat_n > 1) {
         snprintf(a, sizeof(a), "%u/%u", app->repeat_i, app->repeat_n);
@@ -707,8 +724,13 @@ void settings_menu_build(FlipperHamApp* app) {
     variable_item_set_current_value_index(it, 0);
     variable_item_set_current_value_text(it, a);
 
-    it = variable_item_list_add(app->settings_menu, "Radio", 2, radio_change, app);
-    if(app->radio_backend > FlipperHamRadioExternal) app->radio_backend = FlipperHamRadioInternal;
+    it = variable_item_list_add(
+        app->settings_menu,
+        "Radio",
+        sizeof(radio_backends) / sizeof(radio_backends[0]),
+        radio_change,
+        app);
+    if(app->radio_backend > FlipperHamRadioAuto) app->radio_backend = FlipperHamRadioAuto;
     variable_item_set_current_value_index(it, app->radio_backend);
     variable_item_set_current_value_text(it, radio_backends[app->radio_backend]);
 
@@ -970,7 +992,7 @@ static void radio_change(VariableItem* item) {
     FlipperHamApp* app = variable_item_get_context(item);
 
     app->radio_backend = variable_item_get_current_value_index(item);
-    if(app->radio_backend > FlipperHamRadioExternal) app->radio_backend = FlipperHamRadioInternal;
+    if(app->radio_backend > FlipperHamRadioAuto) app->radio_backend = FlipperHamRadioAuto;
 
     variable_item_set_current_value_text(item, radio_backends[app->radio_backend]);
     cfgsave(app);
@@ -1050,6 +1072,7 @@ void freq_change(VariableItem* item) {
         a++;
     }
 
+    app->f_bad = !freq_tx_allowed_hz(app->freq_edit_hz);
     fsh2(app->f_edit, sizeof(app->f_edit), app->freq_edit_hz);
     variable_item_set_current_value_text(item, app->f_edit);
     variable_item_set_current_value_index(item, 100);

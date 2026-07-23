@@ -6,8 +6,6 @@
 #include <furi.h>
 #include <furi/core/thread.h>
 #include <furi_hal.h>
-#include <toolbox/cli/cli_command.h>
-#include <cli/cli_main_commands.h>
 #include <gui/gui.h>
 #include "furi_hal_rtc.h"
 

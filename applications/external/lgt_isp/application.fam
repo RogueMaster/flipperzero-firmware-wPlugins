@@ -1,0 +1,13 @@
+App(
+    appid="lgt_isp",
+    name="LGT ISP (SWD)",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="lgt_isp_app",
+    stack_size=2 * 1024,
+    fap_icon="lgt_isp_10px.png",
+    fap_category="GPIO",
+    fap_author="SimonE / ft2232_lgtisp port",
+    fap_weburl="https://github.com/mkrasem/flipper_lgt_isp",
+    fap_version=(0, 7),
+    fap_description="LGT8F328P programmer over its proprietary SWD (GPIO bit-bang). Flash/verify from SD, dump/crack read-protected parts (sacrifices the first 1 KB), or use avrdude over USB or BLE-serial. Bilingual DE/EN.",
+)

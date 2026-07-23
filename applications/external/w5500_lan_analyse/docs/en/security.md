@@ -50,7 +50,7 @@ When Auto Test runs with **AT ARP scan** enabled (the default), it sends approxi
 
 Auto Test resolves a hostname (default: `google.com`) to verify DNS functionality and then pings the resolved address to confirm internet connectivity. On closed or air-gapped networks where external DNS names are unreachable, the DNS and Internet Ping steps will always fail.
 
-**Recommendation**: change **AT DNS host** in Settings to a hostname that is resolvable within the local network (e.g., an internal server or domain controller) so the DNS and Internet Ping steps produce meaningful results.
+**Recommendation**: change **AT DNS host** in Settings to a hostname that is resolvable within the local network (e.g., an internal server or domain controller), and point **AT Internet IP** at a reachable internal host, so the DNS and Internet steps produce meaningful results.
 
 ## What is NOT Protected
 

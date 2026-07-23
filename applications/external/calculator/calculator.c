@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h> // isnan / isinf guards for the result
 
 const short MAX_TEXT_LENGTH = 20;
 
@@ -21,8 +22,9 @@ typedef struct {
 typedef struct {
     FuriMutex* mutex;
     selectedPosition position;
-    //string with the inputted calculator text
-    char text[20];
+    // Holds both the typed expression (capped at MAX_TEXT_LENGTH) and the
+    // formatted result, which can be longer, so keep some headroom.
+    char text[32];
     short textLength;
     char log[20];
 } Calculator;
@@ -91,56 +93,6 @@ char getKeyAtPosition(short x, short y) {
     return ' ';
 }
 
-short calculateStringWidth(const char* str, short lenght) {
-    /* widths:
-        1 = 2
-        2, 3, 4, 5, 6, 7, 8, 9, 0, X, -, +, . =  = 5
-        %, / = 7
-        S = 5
-        (, ) = 3
-
-    */
-    short width = 0;
-    for(short i = 0; i < lenght; i++) {
-        switch(str[i]) {
-        case '1':
-            width += 2;
-            break;
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-        case '6':
-        case '7':
-        case '8':
-        case '9':
-        case '0':
-        case '*':
-        case '-':
-        case '+':
-        case '.':
-            width += 5;
-            break;
-        case '%':
-        case '/':
-            width += 7;
-            break;
-        case 'S':
-            width += 5;
-            break;
-        case '(':
-        case ')':
-            width += 3;
-            break;
-        default:
-            break;
-        }
-        width += 1;
-    }
-
-    return width;
-}
-
 void generate_calculator_layout(Canvas* canvas) {
     //draw dotted lines
     for(int i = 0; i <= 64; i++) {
@@ -170,13 +122,13 @@ void generate_calculator_layout(Canvas* canvas) {
     canvas_draw_box(canvas, 63, 43, 1, 80);
 
     //draw buttons
-    //row 1 (C, ;, %, ÷)
+    //row 1 (C, <-, %, /)   long-press / for sqrt(
     canvas_draw_str(canvas, 5, 54, "C");
     canvas_draw_str(canvas, 19, 54, " <-");
     canvas_draw_str(canvas, 35, 54, " %");
     canvas_draw_str(canvas, 51, 54, " /");
 
-    //row 2 (1, 2, 3, X)
+    //row 2 (1, 2, 3, X)    long-press X (*) for ^ (power)
     canvas_draw_str(canvas, 5, 70, " 1");
     canvas_draw_str(canvas, 19, 70, " 2");
     canvas_draw_str(canvas, 35, 70, " 3");
@@ -194,7 +146,7 @@ void generate_calculator_layout(Canvas* canvas) {
     canvas_draw_str(canvas, 35, 102, " 9");
     canvas_draw_str(canvas, 51, 102, " +");
 
-    //row 5 (+/-, 0, ., =)
+    //row 5 (( ), 0, ., =)   long-press ( for )
     canvas_draw_str(canvas, 3, 118, "( )");
     canvas_draw_str(canvas, 19, 118, " 0");
     canvas_draw_str(canvas, 35, 118, "   .");
@@ -230,8 +182,8 @@ void calculator_draw_callback(Canvas* canvas, void* ctx) {
     canvas_set_color(canvas, ColorBlack);
     generate_calculator_layout(canvas);
 
-    //draw text
-    short stringWidth = calculateStringWidth(calculator_state->text, calculator_state->textLength);
+    //draw text (measure with the active font so the cursor/scroll track exactly)
+    short stringWidth = (short)canvas_string_width(canvas, calculator_state->text);
     short startingPosition = 5;
     if(stringWidth > 60) {
         startingPosition += 60 - (stringWidth + 5);
@@ -240,8 +192,8 @@ void calculator_draw_callback(Canvas* canvas, void* ctx) {
     canvas_draw_str(canvas, startingPosition, 28, calculator_state->text);
     //canvas_draw_str(canvas, 10, 10, calculator_state->log);
 
-    //draw cursor
-    canvas_draw_box(canvas, stringWidth + 5, 29, 5, 1);
+    //draw cursor at the end of the text (follows the scroll offset)
+    canvas_draw_box(canvas, startingPosition + stringWidth, 29, 5, 1);
 
     furi_mutex_release(calculator_state->mutex);
 }
@@ -252,62 +204,102 @@ void calculator_input_callback(InputEvent* input_event, void* ctx) {
     furi_message_queue_put(event_queue, input_event, FuriWaitForever);
 }
 
+// Number of fractional digits kept in the displayed result.
+#define CALC_DECIMALS   6
+// Index of the last byte of `text`, reserved for the terminating '\0';
+// character writes stay strictly below it (textLength < CALC_RESULT_MAX).
+#define CALC_RESULT_MAX ((short)(sizeof(((Calculator*)0)->text) - 1))
+
 void calculate(Calculator* calculator_state) {
     double result;
     result = te_interp(calculator_state->text, 0);
 
     calculator_state->textLength = 0;
     calculator_state->text[0] = '\0';
-    // sprintf(calculator_state->text, "%f", result);
 
-    //invert sign if negative
-    if(result < 0) {
-        calculator_state->text[calculator_state->textLength++] = '-';
+    // te_interp returns NaN on a malformed expression and +/-inf on things
+    // like division by zero. Also reject finite results too large for the
+    // integer-based formatter below (now reachable via the '^' key), which
+    // would otherwise overflow (long long) and print a wrong number. The
+    // limit ~9.0e18 stays safely under LLONG_MAX (~9.22e18); the literal is
+    // an integer cast to double so it isn't demoted to float by the toolchain.
+    const double CALC_MAX = (double)9000000000000000000LL;
+    if(isnan(result) || isinf(result) || result > CALC_MAX || result < -CALC_MAX) {
+        const char* err = "Error";
+        while(*err && calculator_state->textLength < CALC_RESULT_MAX) {
+            calculator_state->text[calculator_state->textLength++] = *err++;
+        }
+        calculator_state->text[calculator_state->textLength] = '\0';
+        return;
+    }
+
+    // remember the sign; the '-' is only emitted once we know the rounded
+    // value is non-zero, so a tiny negative that rounds to 0 shows "0" not "-0"
+    bool negative = result < 0;
+    if(negative) {
         result = -result;
     }
 
-    //get numbers before and after decimal
-    int beforeDecimal = result;
-    int afterDecimal = (result - beforeDecimal) * 100;
+    // Split into integer and fractional parts. The fraction is rounded to
+    // CALC_DECIMALS places, carrying into the integer part when it rounds up
+    // (e.g. 0.9999995 -> 1). scale is 10^CALC_DECIMALS.
+    long long scale = 1;
+    for(int d = 0; d < CALC_DECIMALS; d++) {
+        scale *= 10;
+    }
+    long long beforeDecimal = (long long)result;
+    // llround avoids a floating-point literal, which the firmware would treat
+    // as a float (-fsingle-precision-constant) and reject (-Wdouble-promotion).
+    long long afterDecimal = llround((result - (double)beforeDecimal) * (double)scale);
+    if(afterDecimal >= scale) {
+        beforeDecimal += 1;
+        afterDecimal -= scale;
+    }
 
-    char beforeDecimalString[10];
-    char afterDecimalString[10];
+    if(negative && (beforeDecimal != 0 || afterDecimal != 0)) {
+        calculator_state->text[calculator_state->textLength++] = '-';
+    }
+
+    char beforeDecimalString[24];
+    char afterDecimalString[CALC_DECIMALS];
     int i = 0;
-    //parse to a string
-    while(beforeDecimal > 0) {
-        beforeDecimalString[i++] = beforeDecimal % 10 + '0';
-        beforeDecimal /= 10;
+    //parse the integer part to a string (digits come out least-significant
+    //first; always produce at least a single '0')
+    if(beforeDecimal == 0) {
+        beforeDecimalString[i++] = '0';
+    } else {
+        while(beforeDecimal > 0 && i < (int)sizeof(beforeDecimalString)) {
+            beforeDecimalString[i++] = beforeDecimal % 10 + '0';
+            beforeDecimal /= 10;
+        }
     }
-    // invert string
-    for(int j = 0; j < i / 2; j++) {
-        char temp = beforeDecimalString[j];
-        beforeDecimalString[j] = beforeDecimalString[i - j - 1];
-        beforeDecimalString[i - j - 1] = temp;
-    }
-    //add it to the answer
-    for(int j = 0; j < i; j++) {
+    //copy it to the answer most-significant digit first (no separate reversal)
+    for(int j = i - 1; j >= 0 && calculator_state->textLength < CALC_RESULT_MAX; j--) {
         calculator_state->text[calculator_state->textLength++] = beforeDecimalString[j];
     }
 
-    i = 0;
     if(afterDecimal > 0) {
-        while(afterDecimal > 0) {
-            afterDecimalString[i++] = afterDecimal % 10 + '0';
+        // Write the fraction as a fixed-width field so leading zeros survive
+        // (0.083 must not collapse to .83), then trim trailing zeros.
+        for(int j = CALC_DECIMALS - 1; j >= 0; j--) {
+            afterDecimalString[j] = afterDecimal % 10 + '0';
             afterDecimal /= 10;
         }
-        // invert string
-        for(int j = 0; j < i / 2; j++) {
-            char temp = afterDecimalString[j];
-            afterDecimalString[j] = afterDecimalString[i - j - 1];
-            afterDecimalString[i - j - 1] = temp;
+        // afterDecimal > 0 guarantees a non-zero digit survives the trim,
+        // so frLen is always >= 1 here.
+        int frLen = CALC_DECIMALS;
+        while(frLen > 0 && afterDecimalString[frLen - 1] == '0') {
+            frLen--;
         }
 
-        //add decimal point
-        calculator_state->text[calculator_state->textLength++] = '.';
+        if(calculator_state->textLength < CALC_RESULT_MAX) {
+            //add decimal point
+            calculator_state->text[calculator_state->textLength++] = '.';
 
-        //add numbers after decimal
-        for(int j = 0; j < i; j++) {
-            calculator_state->text[calculator_state->textLength++] = afterDecimalString[j];
+            //add numbers after decimal
+            for(int j = 0; j < frLen && calculator_state->textLength < CALC_RESULT_MAX; j++) {
+                calculator_state->text[calculator_state->textLength++] = afterDecimalString[j];
+            }
         }
     }
     calculator_state->text[calculator_state->textLength] = '\0';
@@ -318,6 +310,9 @@ int32_t calculator_app(void* p) {
     FuriMessageQueue* event_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
 
     Calculator* calculator_state = malloc(sizeof(Calculator));
+    // malloc does not zero memory: clear position, textLength and the text
+    // buffer so the first draw shows an empty display instead of garbage.
+    memset(calculator_state, 0, sizeof(Calculator));
     calculator_state->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     if(!calculator_state->mutex) {
         //FURI_LOG_E("calculator", "cannot create mutex\r\n");
@@ -430,18 +425,29 @@ int32_t calculator_app(void* p) {
         }
 
         if(event.type == InputTypeLong) {
-            switch(event.key) {
-            case InputKeyOk:
-                if(calculator_state->position.x == 0 && calculator_state->position.y == 4) {
-                    if(calculator_state->textLength < MAX_TEXT_LENGTH) {
-                        calculator_state->text[calculator_state->textLength++] = ')';
+            if(event.key == InputKeyOk) {
+                // Long-press inserts the "secondary" symbol of the focused key:
+                //   (  ->  )        *  ->  ^ (power)        /  ->  sqrt(
+                char key =
+                    getKeyAtPosition(calculator_state->position.x, calculator_state->position.y);
+                const char* insert = NULL;
+                if(key == '(') {
+                    insert = ")";
+                } else if(key == '*') {
+                    insert = "^";
+                } else if(key == '/') {
+                    insert = "sqrt(";
+                }
+                if(insert != NULL) {
+                    // insert the whole token or nothing, so no partial "sqrt(" is left
+                    short len = (short)strlen(insert);
+                    if(calculator_state->textLength + len <= MAX_TEXT_LENGTH) {
+                        memcpy(&calculator_state->text[calculator_state->textLength], insert, len);
+                        calculator_state->textLength += len;
                         calculator_state->text[calculator_state->textLength] = '\0';
                     }
                     view_port_update(view_port);
                 }
-                break;
-            default:
-                break;
             }
         }
     }

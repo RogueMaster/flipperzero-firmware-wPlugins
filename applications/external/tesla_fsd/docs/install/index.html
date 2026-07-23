@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tesla FSD — ESP32 Web Flasher</title>
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    max-width: 720px; margin: 0 auto; padding: 24px 20px 64px;
+    background: #0d1117; color: #e6edf3; line-height: 1.55;
+  }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  .sub { color: #8b949e; margin: 0 0 24px; }
+  .note {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 14px 16px; margin: 0 0 28px; font-size: .93rem;
+  }
+  .note b { color: #58a6ff; }
+  .board {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+    border: 1px solid #30363d; border-radius: 8px;
+    padding: 14px 16px; margin: 0 0 12px; background: #161b22;
+  }
+  .board .name { font-weight: 600; }
+  .board .chip { color: #8b949e; font-size: .82rem; font-weight: 400; }
+  esp-web-install-button { --esp-tools-button-color: #238636; }
+  a { color: #58a6ff; }
+  ol { padding-left: 20px; }
+  footer { margin-top: 40px; color: #8b949e; font-size: .85rem; }
+</style>
+</head>
+<body>
+<h1>Tesla FSD — ESP32 Web Flasher</h1>
+<p class="sub">Flash a blank ESP32 board from your browser — no build tools, nothing to install.</p>
+
+<div class="note">
+  <b>Before you start:</b>
+  <ol>
+    <li>Use <b>Chrome, Edge, or Opera on a desktop</b> (these support Web Serial — Safari and Firefox don't).</li>
+    <li>Connect your ESP32 board to the computer with a <b>USB data cable</b>.</li>
+    <li>Find your board below and press <b>Install</b>, then pick the serial port that appears.</li>
+    <li>After flashing, the board creates its own Wi-Fi network. Connect to it and open <b>http://192.168.4.1</b> to control it.</li>
+  </ol>
+  The board boots in <b>Listen-Only mode</b> (it cannot transmit) until you switch it to Active in the dashboard, so first-flash is safe.
+</div>
+
+<div class="board">
+  <span class="name">M5Stack ATOM Lite (+ ATOMIC CAN) <span class="chip">· ESP32</span></span>
+  <esp-web-install-button manifest="manifest-m5stack-atom.json"></esp-web-install-button>
+</div>
+<div class="board">
+  <span class="name">M5Stack ATOM Matrix <span class="chip">· ESP32</span></span>
+  <esp-web-install-button manifest="manifest-m5stack-atom-matrix.json"></esp-web-install-button>
+</div>
+<div class="board">
+  <span class="name">M5Stack ATOM (swapped CAN pins) <span class="chip">· ESP32</span></span>
+  <esp-web-install-button manifest="manifest-m5stack-atom-swap-pins.json"></esp-web-install-button>
+</div>
+<div class="board">
+  <span class="name">ESP32 DevKit + MCP2515 <span class="chip">· ESP32</span></span>
+  <esp-web-install-button manifest="manifest-esp32-mcp2515.json"></esp-web-install-button>
+</div>
+<div class="board">
+  <span class="name">LilyGo ESP32 + CAN <span class="chip">· ESP32</span></span>
+  <esp-web-install-button manifest="manifest-esp32-lilygo.json"></esp-web-install-button>
+</div>
+<div class="board">
+  <span class="name">TTGO T-Display <span class="chip">· ESP32</span></span>
+  <esp-web-install-button manifest="manifest-ttgo-tdisplay.json"></esp-web-install-button>
+</div>
+<div class="board">
+  <span class="name">LilyGo T-2CAN (dual CAN) <span class="chip">· ESP32-S3</span></span>
+  <esp-web-install-button manifest="manifest-lilygo-t2can.json"></esp-web-install-button>
+</div>
+<div class="board">
+  <span class="name">Waveshare ESP32-S3-CAN <span class="chip">· ESP32-S3</span></span>
+  <esp-web-install-button manifest="manifest-waveshare-s3-can.json"></esp-web-install-button>
+</div>
+
+<footer>
+  Not sure which board you have, or need the wiring to your car? Open an issue on
+  <a href="https://github.com/hypery11/flipper-tesla-fsd">GitHub</a>.
+  Each Install flashes the latest release build for that board.
+</footer>
+</body>
+</html>

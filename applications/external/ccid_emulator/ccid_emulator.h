@@ -23,11 +23,20 @@
  * --------------------------------------------------------------------------- */
 
 #define CCID_EMU_MAX_ATR_LEN     33
-#define CCID_EMU_MAX_RULES       24 /* was 64; 24 × ~100 B = 2.4 KB    */
-#define CCID_EMU_MAX_APDU_LEN    32 /* was 64; covers most smart-card   */
+#define CCID_EMU_MAX_RULES       24 /* was 64; 24 × ~230 B ≈ 5.5 KB      */
+/* Command patterns are short (CLA/INS/P1/P2/Lc + a small AID or data field),
+ * so they get a tight bound.  Responses carry FCI templates, GET DATA objects
+ * (e.g. a 62-byte PIV CHUID) and their trailing status word, so they get a
+ * much larger one.  Splitting the two keeps the per-rule footprint reasonable
+ * while no longer silently dropping real card data (see issue #59).
+ * 128 rather than a full 256-byte data block is a deliberate cap: the on-device
+ * rule-line buffer and 4 KB app stack make 256 impractical, and 128 covers
+ * every response the shipped sample cards and typical EMV/PIV cards produce. */
+#define CCID_EMU_MAX_CMD_LEN     64
+#define CCID_EMU_MAX_RESP_LEN    128
 #define CCID_EMU_MAX_NAME_LEN    64
 #define CCID_EMU_MAX_DESC_LEN    128
-#define CCID_EMU_MAX_HEX_STR     (CCID_EMU_MAX_APDU_LEN * 3)
+#define CCID_EMU_MAX_HEX_STR     (CCID_EMU_MAX_RESP_LEN * 3)
 #define CCID_EMU_LOG_MAX_ENTRIES 10 /* was 20; ring buffer for monitor  */
 #define CCID_EMU_CARDS_DIR       EXT_PATH("ccid_emulator/cards")
 #define CCID_EMU_LOGS_DIR        EXT_PATH("ccid_emulator/logs")
@@ -62,11 +71,11 @@ typedef enum {
  * --------------------------------------------------------------------------- */
 
 typedef struct {
-    uint8_t command[CCID_EMU_MAX_APDU_LEN]; /* expected command bytes          */
-    uint8_t mask[CCID_EMU_MAX_APDU_LEN]; /* 0xFF = exact, 0x00 = wildcard   */
+    uint8_t command[CCID_EMU_MAX_CMD_LEN]; /* expected command bytes          */
+    uint8_t mask[CCID_EMU_MAX_CMD_LEN]; /* 0xFF = exact, 0x00 = wildcard   */
     uint16_t command_len;
 
-    uint8_t response[CCID_EMU_MAX_APDU_LEN];
+    uint8_t response[CCID_EMU_MAX_RESP_LEN];
     uint16_t response_len;
 } CcidRule;
 
@@ -84,7 +93,7 @@ typedef struct {
     CcidRule rules[CCID_EMU_MAX_RULES];
     uint16_t rule_count;
 
-    uint8_t default_response[CCID_EMU_MAX_APDU_LEN];
+    uint8_t default_response[CCID_EMU_MAX_RESP_LEN];
     uint16_t default_response_len;
 } CcidCard;
 

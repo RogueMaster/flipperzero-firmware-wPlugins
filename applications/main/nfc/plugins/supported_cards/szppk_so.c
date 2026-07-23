@@ -372,7 +372,10 @@ static bool szppk_so_read(Nfc* nfc, NfcDevice* device) {
         error = mf_classic_poller_sync_read(nfc, &keys, data);
         if(error != MfClassicErrorNotPresent) {
             nfc_device_set_data(device, NfcProtocolMfClassic, data);
-            is_read = (error == MfClassicErrorNone);
+            // Accept a partial read only if the ticket sector the parser needs was actually read;
+            // otherwise report "not handled" so the app runs the nested/dict-attack tail.
+            is_read = (error == MfClassicErrorNone) ||
+                      (error == MfClassicErrorPartialRead && mf_classic_is_sector_read(data, 19));
         }
     }
 

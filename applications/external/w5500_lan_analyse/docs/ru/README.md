@@ -30,6 +30,7 @@
 | Continuous Ping | Diagnostics | График RTT с min/max/avg и процентом потерь |
 | DNS Lookup | Diagnostics | Разрешение имён через UDP DNS |
 | Traceroute | Diagnostics | ICMP-трассировка до 30 хопов |
+| TCP Ping | Diagnostics | TCP-проверка доступности по IP и порту — работает там, где ICMP заблокирован |
 | Packet Capture | Traffic | Автономный PCAP-дамп на SD-карту |
 | ETH Bridge | Traffic | USB-Ethernet мост через CDC-ECM с записью PCAP |
 | Statistics | Traffic | Счётчики фреймов по типам и EtherType (10с) |
@@ -51,7 +52,7 @@
 | TFTP Client | Utilities | Скачивание конфигов с оборудования |
 | IPMI Query | Utilities | Статус шасси BMC, версия прошивки |
 | History | -- | Автосохранение результатов с метками времени |
-| Settings | -- | Автосохранение, звук, DNS, пинг, сохранение целей, MAC Changer, About |
+| Settings | -- | Автосохранение, звук, DNS, статический IP (ручная сеть), пинг, сохранение целей, MAC Changer, About |
 
 ## Документация
 

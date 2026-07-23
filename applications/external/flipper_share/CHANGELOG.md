@@ -1,3 +1,8 @@
+v1.5: Async md5, UI layout, misc, docs
+- Async chunked md5 hash calculation for large files on Send / Receive.
+- UI: fixed layout on long names
+- File manager now memorizes the last file used
+
 v1.4: Enhanced UI/UX
 - Fine-grained progress bar (useful for large files bigger than 100 KB).
 - Calculation of ETA on the receiver side and time to deliver on the sender side.

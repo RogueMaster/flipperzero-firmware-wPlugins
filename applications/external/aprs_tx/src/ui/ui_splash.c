@@ -5,7 +5,7 @@
 #include <gui/elements.h>
 #include <storage/storage.h>
 
-#define SPLASH_META_FILE "/ext/ham/aprstx.meta"
+#define SPLASH_META_FILE CFG_DIR "/aprstx.meta"
 
 enum {
     SplashModeStartup = 0,

@@ -3,7 +3,9 @@
 
 #include <furi.h>
 #include <furi_hal_random.h>
-#include <socket.h>
+/* Compiled into a category plugin — the socket subset comes from the
+ * API-table shim instead of the private ioLibrary headers. */
+#include "../api/lan_tester_ioshim.h"
 #include <string.h>
 
 #define DHCP_SOCK         1

@@ -1,0 +1,41 @@
+Pack: Blast Off
+
+Word: planet
+---
+Word: galaxy
+---
+Word: comet
+---
+Word: meteor
+---
+Word: rocket
+---
+Word: asteroid
+---
+Word: nebula
+---
+Word: gravity
+---
+Word: saturn
+---
+Word: jupiter
+---
+Word: eclipse
+---
+Word: cosmos
+---
+Word: satellite
+---
+Word: telescope
+---
+Word: astronaut
+---
+Word: crater
+---
+Word: stardust
+---
+Word: universe
+---
+Word: orbit
+---
+Word: launch

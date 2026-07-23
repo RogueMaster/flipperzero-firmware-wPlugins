@@ -259,7 +259,7 @@ static int32_t ducky_fnc_string_from_file(BadUsbScript* bad_usb, const char* lin
     UNUSED(param);
     char buffer[254];
     size_t read_bytes;
-    Storage* storage = furi_record_open("storage");
+    Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
 
     line = &line[ducky_get_command_len(line) + 1];

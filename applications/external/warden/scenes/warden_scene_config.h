@@ -1,0 +1,6 @@
+ADD_SCENE(warden, start, Start)
+ADD_SCENE(warden, scan, Scan)
+ADD_SCENE(warden, result, Result)
+ADD_SCENE(warden, details, Details)
+ADD_SCENE(warden, settings, Settings)
+ADD_SCENE(warden, about, About)

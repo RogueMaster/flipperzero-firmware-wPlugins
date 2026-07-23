@@ -95,27 +95,15 @@ static void log_event_log_period(PeriodTrackerApp* app) {
     strcpy(new_event.value, "1");
 
     if(event_append(app->storage, app->current_girl_name, &new_event)) {
-        widget_reset(app->widget);
         char msg[128];
         char date_str[16];
         format_date_string(&new_event.date, date_str, sizeof(date_str));
         snprintf(
             msg, sizeof(msg), "Period start logged!\n\n%s\n%s", app->current_girl_name, date_str);
-        widget_add_string_multiline_element(
-            app->widget, 64, 32, AlignCenter, AlignCenter, FontPrimary, msg);
-        view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewWidget);
+        period_tracker_widget_show_message(app, msg, FontPrimary);
         FURI_LOG_I(TAG, "Period start logged for %s (%s)", app->current_girl_name, date_str);
     } else {
-        widget_reset(app->widget);
-        widget_add_string_multiline_element(
-            app->widget,
-            64,
-            32,
-            AlignCenter,
-            AlignCenter,
-            FontPrimary,
-            "Error!\n\nFailed to save event.");
-        view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewWidget);
+        period_tracker_widget_show_message(app, "Error!\n\nFailed to save event.", FontPrimary);
     }
 }
 
@@ -152,11 +140,20 @@ bool period_tracker_scene_log_event_on_event(void* context, SceneManagerEvent ev
     furi_assert(app);
     bool consumed = false;
 
+    if(event.type == SceneManagerEventTypeBack) {
+        // If showing a result widget, Back also dismisses
+        return false;
+    }
+
     if(event.type != SceneManagerEventTypeCustom) {
         return false;
     }
 
-    if(event.event == PERIOD_TRACKER_EVENT_DATE_SELECTED) {
+    if(event.event == PERIOD_TRACKER_EVENT_WIDGET_DISMISS) {
+        // OK on success/error — return to girl menu
+        scene_manager_previous_scene(app->scene_manager);
+        consumed = true;
+    } else if(event.event == PERIOD_TRACKER_EVENT_DATE_SELECTED) {
         // Returned from date picker with a custom date in temp_year/month/day
         app->log_event_date_type = 2;
         if(app->log_event_is_period) {
@@ -204,7 +201,6 @@ bool period_tracker_scene_log_event_on_event(void* context, SceneManagerEvent ev
                         MAX_SYMPTOM_NAME_LENGTH - 1);
 
                     if(event_append(app->storage, app->current_girl_name, &new_event)) {
-                        widget_reset(app->widget);
                         char msg[256];
                         char date_str[16];
                         format_date_string(&new_event.date, date_str, sizeof(date_str));
@@ -215,10 +211,7 @@ bool period_tracker_scene_log_event_on_event(void* context, SceneManagerEvent ev
                             app->current_girl_name,
                             date_str,
                             new_event.value);
-                        widget_add_string_multiline_element(
-                            app->widget, 64, 32, AlignCenter, AlignCenter, FontSecondary, msg);
-                        view_dispatcher_switch_to_view(
-                            app->view_dispatcher, PeriodTrackerViewWidget);
+                        period_tracker_widget_show_message(app, msg, FontSecondary);
                         FURI_LOG_I(
                             TAG,
                             "Symptom logged: %s for %s",

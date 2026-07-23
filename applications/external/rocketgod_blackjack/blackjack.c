@@ -147,13 +147,13 @@ int32_t blackjack_rg_app(void* p) {
     app.view_port = view_port_alloc();
     view_port_draw_callback_set(app.view_port, render_callback, &app);
     view_port_input_callback_set(app.view_port, input_callback, &app);
-    app.gui = furi_record_open("gui");
+    app.gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(app.gui, app.view_port, GuiLayerFullscreen);
     while(!app.exit) {
         furi_delay_ms(100);
     }
     gui_remove_view_port(app.gui, app.view_port);
     view_port_free(app.view_port);
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
     return 0;
 }

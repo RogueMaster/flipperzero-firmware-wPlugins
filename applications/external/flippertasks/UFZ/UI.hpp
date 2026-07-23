@@ -56,8 +56,8 @@ private:                                                         \
         FREE_GUARD(FROM_PREFIX(y, free), y);                     \
     }
 
-#define GET_WIDGET_P(x, y, z) ((UFZ::Application*)(x))->getWidget<y>(z)
-#define RENDER_VIEW(x, y)     ((UFZ::Application*)(x))->getViewDispatcher().switchToView(y)
+#define GET_WIDGET_P(x, y, z) (static_cast<UFZ::Application*>(x))->getWidget<y>(z)
+#define RENDER_VIEW(x, y)     (static_cast<UFZ::Application*>(x))->getViewDispatcher().switchToView(y)
 
 namespace UFZ {
 class Application;
@@ -98,7 +98,7 @@ private:
     friend class UWidget;
     bool bAllocated = false;
 
-    std::function<void(View&)> deferredSetupCallback{};
+    std::function<void(View&)> deferredSetupCallback = [](View&) -> void {};
 
     ::View* view = nullptr;
 };
@@ -116,6 +116,12 @@ public:
         , exit(onExit)
         , views(additionalViews) {
     }
+
+    // Owns a ViewStack and the underlying module handle, both freed in destroy();
+    // copying would double-free them and duplicate the view registrations. Widgets are
+    // only ever handled by pointer, so delete the copies (this also suppresses moves).
+    UWidget(const UWidget&) = delete;
+    UWidget& operator=(const UWidget&) = delete;
 
     void destroy() noexcept;
 
@@ -175,7 +181,7 @@ public:
         ButtonMenuItemCallback callback,
         ButtonMenuItemType type,
         void* context) const noexcept;
-    void setHeader(const char* header) const;
+    void setHeader(const char* header) const noexcept;
     void setSelectedItem(uint32_t index) const noexcept;
 };
 
@@ -200,7 +206,7 @@ public:
     const ButtonPanel& addIcon(uint16_t x, uint16_t y, const Icon* icon) const noexcept;
 };
 
-class ByteInput : public UWidget {
+class ByteInput final : public UWidget {
 public:
     ByteInput() = default;
 
@@ -218,9 +224,10 @@ private:
     virtual void alloc() noexcept override;
     virtual void free() noexcept override;
     virtual View getWidgetView() noexcept override;
+    virtual void reset() noexcept override;
 };
 
-class NumberInput : public UWidget {
+class NumberInput final : public UWidget {
 public:
     NumberInput() = default;
 
@@ -230,7 +237,7 @@ public:
         int32_t currentNumber,
         int32_t min,
         int32_t max) const noexcept;
-    void setHeaderText(const char* text) noexcept;
+    void setHeaderText(const char* text) const noexcept;
 
 private:
     ::NumberInput* number_input = nullptr;
@@ -238,6 +245,7 @@ private:
     virtual void alloc() noexcept override;
     virtual void free() noexcept override;
     virtual View getWidgetView() noexcept override;
+    virtual void reset() noexcept override;
 };
 
 class DialogEx final : public UWidget {
@@ -260,7 +268,7 @@ public:
     void disableExtendedEvents() const noexcept;
 };
 
-class EmptyScreen : public UWidget {
+class EmptyScreen final : public UWidget {
 public:
     EmptyScreen() = default;
 
@@ -270,9 +278,10 @@ private:
     virtual void free() noexcept override;
     virtual void alloc() noexcept override;
     virtual View getWidgetView() noexcept override;
+    virtual void reset() noexcept override;
 };
 
-class Loading : public UWidget {
+class Loading final : public UWidget {
 public:
     Loading() = default;
 
@@ -282,6 +291,7 @@ private:
     virtual void free() noexcept override;
     virtual void alloc() noexcept override;
     virtual View getWidgetView() noexcept override;
+    virtual void reset() noexcept override;
 };
 
 class Popup final : public UWidget {
@@ -296,21 +306,21 @@ public:
     const Popup& setText(const char* text, uint8_t x, uint8_t y, Align horizontal, Align vertical)
         const noexcept;
     const Popup& setIcon(uint8_t x, uint8_t y, const Icon* icon) const noexcept;
-    [[nodiscard]] const Popup& setTimeout(uint32_t milliseconds) const noexcept;
+    const Popup& setTimeout(uint32_t milliseconds) const noexcept;
 
     void enableTimeout() const noexcept;
-    void disableTimout() const noexcept;
+    void disableTimeout() const noexcept;
 };
 
 class Submenu final : public UWidget {
     UFZ_COMPONENT(Submenu, submenu);
 
 public:
-    [[nodiscard]] const Submenu&
+    const Submenu&
         addItem(const char* label, uint32_t index, SubmenuItemCallback callback, void* context)
             const noexcept;
-    [[nodiscard]] const Submenu& setSelectedItem(uint32_t index) const noexcept;
-    [[nodiscard]] const Submenu& setHeader(const char* header) const noexcept;
+    const Submenu& setSelectedItem(uint32_t index) const noexcept;
+    const Submenu& setHeader(const char* header) const noexcept;
 };
 
 class TextBox final : public UWidget {
@@ -318,8 +328,8 @@ class TextBox final : public UWidget {
 
 public:
     const TextBox& setText(const char* text) const noexcept;
-    [[nodiscard]] const TextBox& setFont(TextBoxFont font) const noexcept;
-    [[nodiscard]] const TextBox& setFocus(TextBoxFocus focus) const noexcept;
+    const TextBox& setFont(TextBoxFont font) const noexcept;
+    const TextBox& setFocus(TextBoxFocus focus) const noexcept;
 };
 
 class TextInput final : public UWidget {
@@ -333,7 +343,7 @@ public:
         size_t textBufferSize,
         bool clearDefaultText) const noexcept;
     void setValidator(TextInputValidatorCallback callback, void* context) const noexcept;
-    void getValidatorCallbackContext() const noexcept;
+    [[nodiscard]] void* getValidatorCallbackContext() const noexcept;
     void setHeaderText(const char* text) const noexcept;
 };
 
@@ -387,7 +397,7 @@ public:
         ButtonCallback callback,
         void* context) const noexcept;
     const Widget& addIconElement(uint8_t x, uint8_t y, const Icon* icon) const noexcept;
-    [[nodiscard]] const Widget&
+    const Widget&
         addFrameElement(uint8_t x, uint8_t y, uint8_t width, uint8_t height, uint8_t radius)
             const noexcept;
 };

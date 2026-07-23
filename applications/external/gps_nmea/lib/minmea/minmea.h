@@ -237,6 +237,7 @@ int minmea_gettime(struct timespec *ts, const struct minmea_date *date, const st
 
 /**
  * Rescale a fixed-point value to a different scale. Rounds towards zero.
+ * new_scale cannot be zero.
  */
 static inline int_least32_t minmea_rescale(const struct minmea_float *f, int_least32_t new_scale)
 {

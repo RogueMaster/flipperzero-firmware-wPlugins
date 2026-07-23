@@ -52,6 +52,8 @@ void gpio_stop_listening(GPIOContext* context) {
     furi_hal_gpio_disable_int_callback(context->pin);
     furi_hal_gpio_remove_int_callback(context->pin);
     furi_hal_gpio_init_simple(context->pin, GpioModeAnalog);
+    furi_message_queue_free(context->queue);
+    free(context);
 }
 
 bool gpio_callback_with_event(GPIOContext* context, void (*callback)(GPIOEvent, void*)) {

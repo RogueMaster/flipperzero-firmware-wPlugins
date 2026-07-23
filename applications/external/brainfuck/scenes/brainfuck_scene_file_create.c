@@ -37,6 +37,7 @@ bool brainfuck_scene_file_create_on_event(void* context, SceneManagerEvent event
                 stream, furi_string_get_cstr(app->BF_file_path), FSAM_WRITE, FSOM_CREATE_ALWAYS);
             stream_write(stream, (const uint8_t*)empty, 1);
             buffered_file_stream_close(stream);
+            stream_free(stream);
 
             //scene_manager_next_scene(app->scene_manager, brainfuckSceneFileSelect);
             scene_manager_next_scene(app->scene_manager, brainfuckSceneDevEnv);

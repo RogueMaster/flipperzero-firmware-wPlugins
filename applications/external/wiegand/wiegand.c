@@ -121,6 +121,7 @@ int wiegand_app(void* p) {
     scene_manager_next_scene(app->scene_manager, WiegandMainMenuScene);
     view_dispatcher_run(app->view_dispatcher);
     app_free(app);
+    if(furi_hal_power_is_otg_enabled()) furi_hal_power_disable_otg();
     expansion_enable(expansion);
     furi_record_close(RECORD_EXPANSION);
     return 0;

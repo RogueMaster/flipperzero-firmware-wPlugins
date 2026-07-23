@@ -1,0 +1,13 @@
+{
+  "name": "Tesla FSD (m5stack-atom)",
+  "version": "latest",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        { "path": "https://github.com/hypery11/flipper-tesla-fsd/releases/latest/download/tesla-fsd-m5stack-atom-merged.bin", "offset": 0 }
+      ]
+    }
+  ]
+}

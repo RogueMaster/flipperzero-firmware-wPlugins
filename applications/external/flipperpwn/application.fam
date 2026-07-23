@@ -10,6 +10,6 @@ App(
     fap_category="Tools",
     fap_author="PentestSuite & barkandbite",
     fap_weburl="https://github.com/barkandbite/flipper_suite",
-    fap_version="1.6",
-    fap_description="Modular pentest payload framework with OS detection and WiFi Dev Board support",
+    fap_version="1.7",
+    fap_description="Modular pentest payload framework with CDC OS detection, USB CDC exfil, ATTACKMODE, and WiFi Dev Board support",
 )

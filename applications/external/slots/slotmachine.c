@@ -261,7 +261,7 @@ SlotMachineApp* slotmachine_app_alloc() {
         x += 30;
     }
 
-    app->gui = furi_record_open("gui"); // start gui and adding viewport
+    app->gui = furi_record_open(RECORD_GUI); // start gui and adding viewport
     gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
 
     return app;
@@ -270,7 +270,8 @@ SlotMachineApp* slotmachine_app_alloc() {
 void slotmachine_app_free(SlotMachineApp* app) {
     gui_remove_view_port(app->gui, app->view_port);
     view_port_free(app->view_port);
-    furi_record_close("gui"); // free memory
+    furi_record_close(RECORD_GUI); // free memory
+    furi_message_queue_free(app->input_queue);
     furi_mutex_free(app->model_mutex);
     for(int i = 0; i < COLUMNS_COUNT; i++) {
         free(app->columns[i]);

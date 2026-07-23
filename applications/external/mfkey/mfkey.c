@@ -339,10 +339,10 @@ bool key_already_found_for_nonce_in_solved(
 #pragma GCC optimize("Os")
 static void finished_beep() {
     // Beep to indicate completion
-    NotificationApp* notification = furi_record_open("notification");
+    NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
     notification_message(notification, &sequence_audiovisual_alert);
     notification_message(notification, &sequence_display_backlight_on);
-    furi_record_close("notification");
+    furi_record_close(RECORD_NOTIFICATION);
 }
 
 void mfkey(ProgramState* program_state) {

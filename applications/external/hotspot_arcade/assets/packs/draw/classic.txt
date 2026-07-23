@@ -1,0 +1,61 @@
+Pack: Classic
+
+Word: apple
+---
+Word: house
+---
+Word: car
+---
+Word: tree
+---
+Word: cat
+---
+Word: dog
+---
+Word: sun
+---
+Word: star
+---
+Word: boat
+---
+Word: fish
+---
+Word: clock
+---
+Word: flower
+---
+Word: book
+---
+Word: phone
+---
+Word: chair
+---
+Word: heart
+---
+Word: cloud
+---
+Word: key
+---
+Word: shoe
+---
+Word: smile
+---
+Word: pizza
+---
+Word: robot
+---
+Word: ghost
+---
+Word: snake
+---
+Word: crown
+---
+Word: guitar
+---
+Word: rocket
+---
+Word: cake
+---
+Word: moon
+---
+Word: ladder

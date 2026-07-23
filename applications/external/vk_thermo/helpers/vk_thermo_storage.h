@@ -26,7 +26,10 @@
 typedef struct {
     uint8_t uid[VK_THERMO_UID_LENGTH]; // ISO15693 UID is 8 bytes
     uint32_t timestamp;
+    char device_type[16]; // "thermo112", "thermo117", "thermo119", "temptress"
     float temperature_celsius;
+    float temperature2_celsius; // Secondary temp (0.0 if N/A)
+    bool has_dual_temps; // true for Temptress
     bool valid;
 } VkThermoLogEntry;
 
@@ -42,7 +45,13 @@ void vk_thermo_read_settings(void* context);
 
 // Log functions
 void vk_thermo_log_init(VkThermoLog* log);
-void vk_thermo_log_add_entry(VkThermoLog* log, const uint8_t* uid, float temperature);
+void vk_thermo_log_add_entry(
+    VkThermoLog* log,
+    const uint8_t* uid,
+    const char* device_type,
+    float temperature,
+    float temperature2,
+    bool has_dual_temps);
 void vk_thermo_log_clear(VkThermoLog* log);
 void vk_thermo_log_save_csv(VkThermoLog* log);
 void vk_thermo_log_load_csv(VkThermoLog* log);

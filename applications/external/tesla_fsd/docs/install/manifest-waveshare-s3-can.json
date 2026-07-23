@@ -1,0 +1,13 @@
+{
+  "name": "Tesla FSD (waveshare-s3-can)",
+  "version": "latest",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        { "path": "https://github.com/hypery11/flipper-tesla-fsd/releases/latest/download/tesla-fsd-waveshare-s3-can-merged.bin", "offset": 0 }
+      ]
+    }
+  ]
+}

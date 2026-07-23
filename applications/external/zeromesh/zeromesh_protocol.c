@@ -199,6 +199,8 @@ static void decode_fromradio(ZeroMeshApp* app, const uint8_t* frame, size_t len)
             } else {
                 log_line(app, "RX Port: %d", (int)d->portnum);
             }
+        } else if(p->which_payload_variant == meshtastic_MeshPacket_encrypted_tag) {
+            log_line(app, "RX encrypted from %08lX", (unsigned long)sender_id);
         }
     } else if(from.which_payload_variant == meshtastic_FromRadio_my_info_tag) {
         const meshtastic_MyNodeInfo* info = &from.payload_variant.my_info;
@@ -261,6 +263,17 @@ void request_info(ZeroMeshApp* app) {
     if(pb_encode(&os, meshtastic_ToRadio_fields, &to)) {
         send_frame(app, buf, os.bytes_written);
         log_line(app, "Info Request Sent");
+    }
+}
+
+void send_heartbeat(ZeroMeshApp* app) {
+    if(!app || !app->serial) return;
+    meshtastic_ToRadio to = meshtastic_ToRadio_init_default;
+    to.which_payload_variant = meshtastic_ToRadio_heartbeat_tag;
+    uint8_t buf[32];
+    pb_ostream_t os = pb_ostream_from_buffer(buf, sizeof(buf));
+    if(pb_encode(&os, meshtastic_ToRadio_fields, &to)) {
+        send_frame(app, buf, os.bytes_written);
     }
 }
 

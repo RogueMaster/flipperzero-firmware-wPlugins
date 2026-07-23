@@ -139,7 +139,7 @@ int32_t lightning_distance_app(void* p) {
         .temperature_C = 20.0f, // Default temperature
     };
 
-    Gui* gui = furi_record_open("gui");
+    Gui* gui = furi_record_open(RECORD_GUI);
     ViewPort* view_port = view_port_alloc();
     view_port_draw_callback_set(view_port, (ViewPortDrawCallback)lightning_draw, &app);
     view_port_input_callback_set(view_port, lightning_input_callback, &app);
@@ -152,7 +152,7 @@ int32_t lightning_distance_app(void* p) {
 
     gui_remove_view_port(gui, view_port);
     view_port_free(view_port);
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
 
     return 0;
 }

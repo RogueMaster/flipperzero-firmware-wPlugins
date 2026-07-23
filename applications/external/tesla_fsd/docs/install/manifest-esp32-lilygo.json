@@ -1,0 +1,13 @@
+{
+  "name": "Tesla FSD (esp32-lilygo)",
+  "version": "latest",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        { "path": "https://github.com/hypery11/flipper-tesla-fsd/releases/latest/download/tesla-fsd-esp32-lilygo-merged.bin", "offset": 0 }
+      ]
+    }
+  ]
+}

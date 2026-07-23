@@ -15,6 +15,8 @@ static void render_callback(Canvas* canvas, void* ctx) {
             draw_system_view(canvas, app);
         } else if(app->page == JayxPageGame) {
             draw_game_view(canvas, app);
+        } else if(app->page == JayxPageNetwork) {
+            draw_network_view(canvas, app);
         } else if(app->page == JayxPageSpecs) {
             draw_specs_view(canvas, app);
         } else {
@@ -88,19 +90,12 @@ static void jayx_merge_live(JayxApp* app, const JayxLivePacket* pkt) {
     d->ram_usage = pkt->ram_usage;
     memcpy(d->ram_unit, pkt->ram_unit, 4);
 
-    if(pkt->gpu_usage <= 100) {
-        d->gpu_usage = pkt->gpu_usage;
-        d->gpu_temp_c = pkt->gpu_temp_c;
-    } else if(d->gpu_usage > 100) {
+    if(pkt->gpu_usage <= 100 || d->gpu_usage > 100) {
         d->gpu_usage = pkt->gpu_usage;
         d->gpu_temp_c = pkt->gpu_temp_c;
     }
 
-    if(pkt->vram_usage <= 100) {
-        d->vram_usage = pkt->vram_usage;
-        d->vram_max = pkt->vram_max;
-        memcpy(d->vram_unit, pkt->vram_unit, 4);
-    } else if(d->vram_usage > 100) {
+    if(pkt->vram_usage <= 100 || d->vram_usage > 100) {
         d->vram_usage = pkt->vram_usage;
         d->vram_max = pkt->vram_max;
         memcpy(d->vram_unit, pkt->vram_unit, 4);
@@ -147,9 +142,18 @@ static void jayx_store_specs_section(JayxApp* app, const JayxSpecsSectionPacket*
     jayx_specs_clamp_scroll(app);
 }
 
+static void jayx_store_net(JayxApp* app, const JayxNetPacket* pkt) {
+    app->net_up_val = pkt->up_val;
+    memcpy(app->net_up_unit, pkt->up_unit, 4);
+    app->net_down_val = pkt->down_val;
+    memcpy(app->net_down_unit, pkt->down_unit, 4);
+    app->net_valid = true;
+}
+
 static size_t jayx_packet_size_for_type(uint8_t msg_type) {
     if(msg_type == JAYX_MSG_LIVE) return JAYX_LIVE_SIZE;
     if(msg_type == JAYX_MSG_SPECS_SECTION) return JAYX_SPECS_SECTION_SIZE;
+    if(msg_type == JAYX_MSG_NET) return JAYX_NET_SIZE;
     return 0;
 }
 
@@ -196,6 +200,11 @@ static bool jayx_try_parse_packet(JayxApp* app) {
         memcpy(&pkt, app->rx_scratch, JAYX_SPECS_SECTION_SIZE);
         jayx_store_specs_section(app, &pkt);
         app->last_packet_ts = furi_hal_rtc_get_timestamp();
+    } else if(msg_type == JAYX_MSG_NET) {
+        JayxNetPacket pkt;
+        memcpy(&pkt, app->rx_scratch, JAYX_NET_SIZE);
+        jayx_store_net(app, &pkt);
+        app->last_packet_ts = furi_hal_rtc_get_timestamp();
     }
 
     memmove(app->rx_scratch, app->rx_scratch + need, app->rx_len - need);
@@ -236,10 +245,10 @@ static JayxApp* jayx_alloc(void) {
     app->select_cursor = JayxTransportUsb;
     app->transport = JayxTransportNone;
     app->page = JayxPageSystem;
-    app->data.gpu_usage = 0xFF;
-    app->data.vram_usage = 0xFF;
-    app->data.gpu_temp_c = 0xFF;
-    app->data.cpu_temp_c = 0xFF;
+    app->data.gpu_usage = JAYX_VAL_NA;
+    app->data.vram_usage = JAYX_VAL_NA;
+    app->data.gpu_temp_c = JAYX_VAL_NA;
+    app->data.cpu_temp_c = JAYX_VAL_NA;
 
     gui_add_view_port(app->gui, app->view_port, GuiLayerFullscreen);
     view_port_draw_callback_set(app->view_port, render_callback, app);
@@ -279,7 +288,9 @@ static void jayx_handle_input(JayxApp* app, InputEvent* event) {
             view_port_update(app->view_port);
         } else if(event->key == InputKeyOk) {
             if(app->select_cursor == JayxTransportBt) {
-                /* Bluetooth not ready — show WIP message, do not start transport */
+                /* Bluetooth not ready — show WIP message, do not start transport.
+                   jayx_transport_start() is intentionally never called for
+                   JayxTransportBt; don't wire it up here without removing this gate. */
                 app->ui_state = JayxUiBtDev;
             } else {
                 jayx_transport_start(app, JayxTransportUsb);

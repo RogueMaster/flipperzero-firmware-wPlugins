@@ -1,3 +1,28 @@
+# 2.10.0
+
+## Added
+- **TCP Ping** in Diagnostics — checks whether a host answers on a given port instead of using ping. Useful on networks where a firewall blocks ping: both an accepted connection and a refusal prove the host is reachable, and only a timeout means it is not. Enter the target IP and port; it repeats using the Count, Timeout and Interval from Settings and reports min, average and max response time
+- **AT Internet IP** setting — choose which address Auto Test uses for its Internet check (default 1.1.1.1)
+- **AT TCP port** setting — choose the port Auto Test uses when it falls back to a TCP check (default 443)
+
+## Fixed
+- Out of memory crash when launching the app or opening tools — each tool category (Port Info, Scan, Diagnostics, Utilities, Security, PXE, File Manager) now loads only while it is in use, so the app needs far less free memory at any one time
+- File Manager no longer crashes when you leave it while no W5500 module is connected
+- Tools no longer show "Getting IP via DHCP" when Static IP is enabled in Settings — they now show "Applying static IP". The static address was already being applied correctly; only the on screen message was misleading
+- Static IP, Subnet Mask and Gateway values in Settings now refresh immediately after you edit them, instead of only updating the next time you open Settings
+- Auto Test no longer reports a false "Internet: FAIL" when the connection works. It checks the address set in AT Internet IP instead of a website that may ignore ping, and reports ping and TCP separately — so a network that filters ping now shows "Inet ICMP: no reply" next to a successful "Inet TCP" line instead of claiming there is no Internet. Internet is only FAIL when neither answers
+- TCP Ping now reports why it cannot run (no module, no link, DHCP failed) instead of leaving a blank screen with only an error beep
+- Auto Test labels the address line "Stat" instead of "DHCP" when Static IP is enabled
+
+## Changed
+- Internal restructure into on demand modules to keep memory use low. Each tool category, and the protocols only that category uses, are now loaded when you open the tool and freed when you leave — cutting the memory the app occupies at all times by roughly 45 percent. All tools work exactly as before, with no change to features or on screen layout
+
+# 2.9.0
+
+## Added
+- **Manual network settings** — new Static IP option in Settings lets you enter IP address, subnet mask and gateway by hand for use when no DHCP server is available (issue #230)
+- **Full symbol keyboard** for Traceroute and Nslookup — the on-screen keyboard now has a second page with punctuation, so you can type the dot in IP addresses and hostnames (issue #229)
+
 # 2.8.0
 
 ## Added

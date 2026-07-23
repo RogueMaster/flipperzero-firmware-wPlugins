@@ -7,7 +7,7 @@ App(
     fap_icon="flipper_share.png",
     fap_category="Sub-GHz",
     fap_author="lomalkin",
-    fap_weburl="https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share",
-    fap_version="1.4",
+    fap_weburl="https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share",
+    fap_version="1.5",
     fap_description="Direct file transfer between flippers via Sub-GHz",
 )

@@ -13,9 +13,8 @@
 #include <nrf24.h>
 #include <u8g2.h>
 
-#define TAG "nrf24batch"
-
-#define VERSION "1.9"
+#define TAG     "nrf24batch"
+#define VERSION FAP_VERSION
 
 #define SCAN_APP_PATH_FOLDER  STORAGE_APP_DATA_PATH_PREFIX
 #define LOG_FILEEXT           ".txt"
@@ -373,7 +372,7 @@ void check_en_power_5V(void) {
 }
 
 static bool select_settings_file() {
-    DialogsApp* dialogs = furi_record_open("dialogs");
+    DialogsApp* dialogs = furi_record_open(RECORD_DIALOGS);
     bool result = false;
     FuriString* path;
     path = furi_string_alloc();
@@ -382,7 +381,7 @@ static bool select_settings_file() {
     dialog_file_browser_set_basic_options(&browser_options, ".txt", NULL);
     browser_options.hide_ext = false;
     bool ret = dialog_file_browser_show(dialogs, path, path, &browser_options);
-    furi_record_close("dialogs");
+    furi_record_close(RECORD_DIALOGS);
     if(ret) {
         if(!file_stream_open(
                file_stream, furi_string_get_cstr(path), FSAM_READ_WRITE, FSOM_OPEN_EXISTING)) {

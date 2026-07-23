@@ -233,6 +233,8 @@ void flipper_spi_terminal_scene_terminal_on_exit(void* context) {
     flipper_spi_terminal_scene_terminal_deinit_spi_dma(app);
 
     furi_timer_stop(app->terminal_screen.recv_timer);
+    furi_timer_free(app->terminal_screen.recv_timer);
+    app->terminal_screen.recv_timer = NULL;
 
     free(app->terminal_screen.rx_dma_buffer);
     app->terminal_screen.rx_dma_buffer = NULL;

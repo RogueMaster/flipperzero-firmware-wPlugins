@@ -1,0 +1,86 @@
+:root {
+  color-scheme: dark;
+  /* Render each phone at a real handset's logical viewport, then scale the whole
+     thing down to fit the panel. Sizing the iframe to the panel instead would give
+     the client a ~300x616 viewport — shorter than any real phone — which clipped
+     the bottom of the landing screen (content wanted 683px). Scaling keeps the
+     client's own responsive layout honest and just shows it smaller. */
+  --phone-w: 390px;   /* iPhone 14-ish logical width */
+  --phone-h: 844px;
+  --phone-scale: 0.72;
+
+  /* Hotspot Arcade design system (see web/core/style.css / DESIGN.md). The sim is a
+     desktop dev console, not a phone skin, but it should read as the same system. */
+  --orange: #FF8200; --orange-bright: #FF9E29; --orange-dim: #B85E06;
+  --bg: #0B0B0C; --surface: #161618; --surface-2: #202024; --line: #2E2E33;
+  --text: #F2F2EE; --text-dim: #9A9A94; --text-mute: #5E5E5A; --on-orange: #0B0B0C;
+  --good: #46D369; --bad: #FF4D4D; --info: #34C6DE;
+  --font: ui-monospace, "SF Mono", "Menlo", "Consolas", "Roboto Mono", monospace;
+  --radius: 2px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 13px var(--font);
+       background: var(--bg); color: var(--text); }
+
+header { display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+         background: var(--surface); border-bottom: 2px solid var(--line); }
+header strong { font-size: 13px; text-transform: uppercase; letter-spacing: .1em;
+                font-weight: 700; color: var(--text); }
+.hint { color: var(--text-dim); font-size: 12px; }
+.spacer { flex: 1; }
+
+button { font: inherit; background: var(--surface-2); color: var(--text);
+         border: 2px solid var(--line); border-radius: var(--radius);
+         padding: 7px 14px; cursor: pointer; text-transform: uppercase;
+         letter-spacing: .05em; font-weight: 700; font-size: 11px;
+         transition: border-color .1s ease-out, background .1s ease-out, transform .1s ease-out; }
+button:hover { border-color: var(--orange-dim); }
+button:active { border-color: var(--orange); background: var(--surface);
+                transform: translateY(1px); }
+
+main { display: flex; gap: 14px; padding: 14px; align-items: flex-start; }
+#phones { display: flex; flex-wrap: wrap; gap: 14px; flex: 1; }
+
+/* Phone bezel — a frame around the real client's own render, restyled to the
+   system's palette only; the iframe's sizing/scale behaviour is untouched. */
+.phone { width: calc(var(--phone-w) * var(--phone-scale));
+         height: calc(var(--phone-h) * var(--phone-scale));
+         border: 2px solid var(--line); border-radius: 22px;
+         overflow: hidden; background: var(--bg); }
+.phone iframe { width: var(--phone-w); height: var(--phone-h); border: 0;
+                transform: scale(var(--phone-scale)); transform-origin: top left; }
+
+#flipper { width: 380px; background: var(--surface); border: 2px solid var(--line);
+           border-radius: var(--radius); padding: 14px; position: sticky; top: 14px; }
+#flipper h2 { margin: 0 0 12px; padding-bottom: 8px; font-size: 13px;
+              text-transform: uppercase; letter-spacing: .1em; font-weight: 700;
+              color: var(--orange); border-bottom: 2px solid var(--line); }
+
+.row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+
+select { font: inherit; background: var(--surface-2); color: var(--text);
+         border: 2px solid var(--line); border-radius: var(--radius);
+         padding: 6px 8px; text-transform: uppercase; letter-spacing: .04em;
+         font-size: 11px; }
+select:hover { border-color: var(--orange-dim); }
+select:focus { outline: none; border-color: var(--orange); }
+
+.muted { color: var(--text-mute); font-size: 11px; text-transform: uppercase;
+         letter-spacing: .04em; }
+
+table.roster { width: 100%; border-collapse: collapse; margin: 8px 0 4px;
+               font-variant-numeric: tabular-nums; }
+table.roster th { text-align: left; padding: 0 0 5px; font-size: 10px;
+                   text-transform: uppercase; letter-spacing: .08em;
+                   color: var(--text-dim); font-weight: 700;
+                   border-bottom: 2px solid var(--line); }
+table.roster td { padding: 4px 4px; border-top: 1px solid var(--line); font-size: 12px; }
+
+#flipper h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .1em;
+              font-weight: 700; color: var(--text-dim); margin: 14px 0 6px; }
+
+.feed { height: 260px; overflow-y: auto; background: var(--bg);
+        border: 2px solid var(--line); border-radius: var(--radius); padding: 8px;
+        font-size: 11px; }
+.feed .line { padding: 2px 0; border-bottom: 1px solid var(--surface-2);
+              color: var(--text-dim); white-space: pre-wrap; word-break: break-all; }

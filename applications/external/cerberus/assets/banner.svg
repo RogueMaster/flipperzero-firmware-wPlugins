@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="0.55" stop-color="#070a14"/>
+      <stop offset="1" stop-color="#04060c"/>
+    </linearGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="0.5" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#f472b6"/>
+    </linearGradient>
+    <radialGradient id="vign" cx="0.28" cy="0.5" r="0.75">
+      <stop offset="0" stop-color="#0e3a4a" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#9fd8ff" stroke-opacity="0.05" stroke-width="1"/>
+    </pattern>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="400" fill="url(#bg)"/>
+  <rect width="1280" height="400" fill="url(#grid)"/>
+  <rect width="1280" height="400" fill="url(#vign)"/>
+  <rect x="6" y="6" width="1268" height="388" rx="14" fill="none" stroke="#22d3ee" stroke-opacity="0.20" stroke-width="2"/>
+
+  <!-- sonar emblem: three heads watching three bands -->
+  <g filter="url(#glow)" fill="none" stroke-width="7" stroke-linecap="round">
+    <path d="M 215 145 A 60 60 0 0 1 215 265"  stroke="#34d399"/>
+    <path d="M 215 105 A 100 100 0 0 1 215 305" stroke="#22d3ee"/>
+    <path d="M 215 65 A 140 140 0 0 1 215 345" stroke="#f472b6"/>
+  </g>
+  <line x1="215" y1="205" x2="215" y2="35" stroke="#9fb4ff" stroke-opacity="0.5" stroke-width="3" filter="url(#softglow)"/>
+  <circle cx="215" cy="35" r="6" fill="#e6f6ff" filter="url(#glow)"/>
+  <circle cx="215" cy="205" r="13" fill="#04060c" stroke="#22d3ee" stroke-width="3" filter="url(#glow)"/>
+  <circle cx="215" cy="205" r="4" fill="#22d3ee"/>
+  <!-- scanning blip on the outer arc -->
+  <circle cx="355" cy="205" r="5" fill="#f472b6" filter="url(#glow)"/>
+
+  <!-- wordmark -->
+  <text x="432" y="178" font-size="118" font-weight="bold" letter-spacing="6"
+        fill="url(#title)" filter="url(#glow)">CERBERUS</text>
+  <text x="438" y="224" font-size="25" letter-spacing="9" font-family="'Courier New', monospace"
+        fill="#7fe7ff">SUB-GHZ &#183; RF WATCHDOG</text>
+
+  <!-- band pills -->
+  <g font-family="'Courier New', monospace" font-size="20" font-weight="bold" text-anchor="middle">
+    <g>
+      <rect x="438" y="250" width="128" height="34" rx="17" fill="#0c2a22" stroke="#34d399" stroke-width="2"/>
+      <text x="502" y="273" fill="#34d399">433 MHz</text>
+    </g>
+    <g>
+      <rect x="582" y="250" width="128" height="34" rx="17" fill="#082230" stroke="#22d3ee" stroke-width="2"/>
+      <text x="646" y="273" fill="#22d3ee">868 MHz</text>
+    </g>
+    <g>
+      <rect x="726" y="250" width="128" height="34" rx="17" fill="#2a1326" stroke="#f472b6" stroke-width="2"/>
+      <text x="790" y="273" fill="#f472b6">915 MHz</text>
+    </g>
+  </g>
+
+  <!-- top-right tech tag -->
+  <text x="1230" y="48" text-anchor="end" font-family="'Courier New', monospace" font-size="18"
+        letter-spacing="3" fill="#f59e0b" fill-opacity="0.92">CC1101 &#183; FLIPPER ZERO</text>
+
+  <!-- RF spectrum trace -->
+  <path d="M 70.0 356.4 L 75.0 358.2 L 80.0 355.2 L 85.0 359.9 L 90.0 357.2 L 95.0 358.9 L 100.0 361.5 L 105.0 358.8 L 110.0 362.4 L 115.0 359.8 L 120.0 362.5 L 125.0 362.4 L 130.0 359.9 L 135.0 356.9 L 140.0 361.5 L 145.0 360.4 L 150.0 357.1 L 155.0 354.3 L 160.0 356.3 L 165.0 357.0 L 170.0 352.4 L 175.0 358.4 L 180.0 352.2 L 185.0 355.8 L 190.0 356.4 L 195.0 356.4 L 200.0 354.9 L 205.0 351.3 L 210.0 355.8 L 215.0 353.2 L 220.0 353.1 L 225.0 355.3 L 230.0 354.5 L 235.0 358.4 L 240.0 359.0 L 245.0 358.6 L 250.0 355.8 L 255.0 358.1 L 260.0 359.4 L 265.0 358.0 L 270.0 359.3 L 275.0 360.6 L 280.0 357.3 L 285.0 358.1 L 290.0 361.2 L 295.0 358.7 L 300.0 358.6 L 305.0 355.5 L 310.0 355.7 L 315.0 357.6 L 320.0 351.2 L 325.0 355.3 L 330.0 350.8 L 335.0 345.8 L 340.0 347.2 L 345.0 342.2 L 350.0 343.1 L 355.0 337.1 L 360.0 335.8 L 365.0 337.4 L 370.0 336.6 L 375.0 342.5 L 380.0 342.2 L 385.0 345.5 L 390.0 348.1 L 395.0 351.2 L 400.0 350.5 L 405.0 351.3 L 410.0 355.9 L 415.0 355.5 L 420.0 360.6 L 425.0 356.7 L 430.0 357.6 L 435.0 355.6 L 440.0 357.0 L 445.0 361.0 L 450.0 360.3 L 455.0 358.2 L 460.0 362.6 L 465.0 359.2 L 470.0 360.9 L 475.0 360.8 L 480.0 360.7 L 485.0 355.2 L 490.0 359.1 L 495.0 357.7 L 500.0 356.1 L 505.0 352.3 L 510.0 357.4 L 515.0 354.4 L 520.0 353.4 L 525.0 350.9 L 530.0 351.3 L 535.0 351.0 L 540.0 355.2 L 545.0 354.5 L 550.0 355.3 L 555.0 352.0 L 560.0 352.0 L 565.0 358.2 L 570.0 358.6 L 575.0 358.7 L 580.0 359.3 L 585.0 358.0 L 590.0 357.7 L 595.0 360.1 L 600.0 361.9 L 605.0 358.5 L 610.0 357.9 L 615.0 355.0 L 620.0 350.2 L 625.0 349.7 L 630.0 348.7 L 635.0 346.1 L 640.0 344.8 L 645.0 349.1 L 650.0 344.0 L 655.0 346.2 L 660.0 347.1 L 665.0 349.1 L 670.0 353.0 L 675.0 353.6 L 680.0 356.0 L 685.0 352.4 L 690.0 356.4 L 695.0 356.5 L 700.0 355.6 L 705.0 356.1 L 710.0 355.1 L 715.0 357.5 L 720.0 358.3 L 725.0 357.8 L 730.0 358.7 L 735.0 357.4 L 740.0 360.4 L 745.0 355.0 L 750.0 357.3 L 755.0 361.0 L 760.0 360.7 L 765.0 360.3 L 770.0 360.4 L 775.0 362.1 L 780.0 357.0 L 785.0 355.9 L 790.0 359.3 L 795.0 358.8 L 800.0 361.2 L 805.0 360.6 L 810.0 358.4 L 815.0 358.4 L 820.0 353.8 L 825.0 357.9 L 830.0 358.4 L 835.0 351.4 L 840.0 354.0 L 845.0 356.3 L 850.0 353.3 L 855.0 356.8 L 860.0 353.3 L 865.0 350.3 L 870.0 351.3 L 875.0 352.8 L 880.0 356.2 L 885.0 355.9 L 890.0 357.9 L 895.0 354.2 L 900.0 356.4 L 905.0 355.3 L 910.0 359.0 L 915.0 360.2 L 920.0 356.5 L 925.0 355.7 L 930.0 356.8 L 935.0 357.3 L 940.0 357.3 L 945.0 357.7 L 950.0 361.2 L 955.0 358.8 L 960.0 359.6 L 965.0 361.5 L 970.0 360.9 L 975.0 358.6 L 980.0 358.2 L 985.0 354.6 L 990.0 352.2 L 995.0 355.3 L 1000.0 351.4 L 1005.0 350.6 L 1010.0 350.6 L 1015.0 354.5 L 1020.0 355.5 L 1025.0 355.4 L 1030.0 355.8 L 1035.0 356.0 L 1040.0 353.4 L 1045.0 351.9 L 1050.0 352.8 L 1055.0 355.9 L 1060.0 355.2 L 1065.0 354.8 L 1070.0 360.3 L 1075.0 356.8 L 1080.0 355.6 L 1085.0 356.9 L 1090.0 357.4 L 1095.0 359.5 L 1100.0 361.7 L 1105.0 357.5 L 1110.0 360.6 L 1115.0 357.1 L 1120.0 355.6 L 1125.0 359.2 L 1130.0 358.7 L 1135.0 354.3 L 1140.0 355.3 L 1145.0 358.6 L 1150.0 358.4 L 1155.0 357.7 L 1160.0 351.9 L 1165.0 352.2 L 1170.0 356.4 L 1175.0 351.4 L 1180.0 350.2 L 1185.0 352.4 L 1190.0 354.6 L 1195.0 353.4 L 1200.0 356.6 L 1205.0 357.8 L 1210.0 351.5" fill="none" stroke="#22d3ee" stroke-width="2" stroke-opacity="0.85" filter="url(#softglow)"/>
+  <path d="M 930.0 353.2 L 933.0 354.1 L 936.0 349.6 L 939.0 353.8 L 942.0 348.2 L 945.0 347.0 L 948.0 350.7 L 951.0 346.9 L 954.0 342.2 L 957.0 337.5 L 960.0 327.9 L 963.0 324.4 L 966.0 315.8 L 969.0 312.0 L 972.0 298.3 L 975.0 299.5 L 978.0 295.9 L 981.0 294.3 L 984.0 292.9 L 987.0 301.6 L 990.0 302.0 L 993.0 312.7 L 996.0 319.3 L 999.0 326.3 L 1002.0 337.7 L 1005.0 339.1 L 1008.0 346.3 L 1011.0 351.7 L 1014.0 346.5 L 1017.0 354.7 L 1020.0 353.1 L 1023.0 351.4 L 1026.0 353.7 L 1029.0 356.3 L 1032.0 354.6" fill="none" stroke="#ef4444" stroke-width="3" filter="url(#glow)"/>
+  <circle cx="980" cy="300" r="4" fill="#ef4444" filter="url(#glow)"/>
+  <text x="980" y="292" text-anchor="middle" font-family="'Courier New', monospace" font-size="17"
+        font-weight="bold" fill="#ef4444" filter="url(#softglow)">&#9888; JAM</text>
+  <line x1="70" y1="366" x2="1210" y2="366" stroke="#22d3ee" stroke-opacity="0.18" stroke-width="1"/>
+</svg>

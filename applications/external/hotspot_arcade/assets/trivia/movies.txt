@@ -1,0 +1,106 @@
+Pack: Movies
+Q: Who directed the 1975 film Jaws?
+A: George Lucas
+B: Steven Spielberg
+C: Martin Scorsese
+D: Ridley Scott
+Answer: B
+---
+Q: In The Wizard of Oz, what color are Dorothy's slippers?
+A: Silver
+B: Gold
+C: Ruby red
+D: Emerald green
+Answer: C
+---
+Q: Which animated film features a clownfish named Nemo?
+A: Shark Tale
+B: Finding Nemo
+C: The Little Mermaid
+D: Moana
+Answer: B
+---
+Q: What is the name of the hobbit who carries the ring to Mordor?
+A: Samwise Gamgee
+B: Bilbo Baggins
+C: Frodo Baggins
+D: Peregrin Took
+Answer: C
+---
+Q: In Toy Story, what kind of toy is Woody?
+A: An astronaut
+B: A cowboy
+C: A dinosaur
+D: A soldier
+Answer: B
+---
+Q: Which movie features the quote "May the Force be with you"?
+A: Star Trek
+B: Star Wars
+C: Guardians of the Galaxy
+D: Interstellar
+Answer: B
+---
+Q: What fictional metal is Wolverine's skeleton bonded with?
+A: Vibranium
+B: Titanium
+C: Adamantium
+D: Mithril
+Answer: C
+---
+Q: In The Lion King, what is the name of Simba's father?
+A: Scar
+B: Mufasa
+C: Rafiki
+D: Zazu
+Answer: B
+---
+Q: Which film series features a wizard school called Hogwarts?
+A: The Chronicles of Narnia
+B: Harry Potter
+C: Percy Jackson
+D: His Dark Materials
+Answer: B
+---
+Q: Who plays the character Jack in the 1997 film Titanic?
+A: Brad Pitt
+B: Matt Damon
+C: Leonardo DiCaprio
+D: Tom Cruise
+Answer: C
+---
+Q: What is the name of the fictional African nation in Black Panther?
+A: Zamunda
+B: Genovia
+C: Wakanda
+D: Sokovia
+Answer: C
+---
+Q: In Jurassic Park, what kind of creatures are brought back to life?
+A: Mammoths
+B: Dinosaurs
+C: Dragons
+D: Sabertooth cats
+Answer: B
+---
+Q: Which movie features a character named Forrest Gump?
+A: Cast Away
+B: Forrest Gump
+C: The Green Mile
+D: Big
+Answer: B
+---
+Q: What is the highest honor awarded at the Academy Awards?
+A: Golden Globe
+B: Best Picture
+C: Palme d'Or
+D: BAFTA
+Answer: B
+---
+Q: In Frozen, what is the name of Elsa's younger sister?
+A: Anna
+B: Rapunzel
+C: Merida
+D: Belle
+Answer: A
+---

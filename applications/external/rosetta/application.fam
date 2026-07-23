@@ -1,0 +1,14 @@
+App(
+    appid="rosetta",
+    name="Rosetta",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="rosetta_app",
+    stack_size=4 * 1024,
+    fap_icon="icons/rosetta_10px.png",
+    fap_icon_assets="icons",
+    fap_category="Tools",
+    fap_author="at0m-b0mb",
+    fap_weburl="https://github.com/at0m-b0mb/Rosetta-FlipperZero",
+    fap_version="1.0",
+    fap_description="The Rosetta Stone for hacking protocols. Interactive, animated walkthroughs that show how Mifare Classic authentication, OOK/PSK modulation, and 1-Wire actually work on the wire - then a live capture-and-annotate mode that reads a real iButton ROM (with on-device CRC check), a real NFC card's anticollision (UID/SAK/ATQA), or a live Sub-GHz RF envelope, and labels every field against the lesson. Learn the protocol, then watch it happen. Read-only.",
+)

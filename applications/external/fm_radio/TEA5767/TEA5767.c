@@ -36,9 +36,27 @@ static void release_i2c() {
 }
 
 bool tea5767_is_device_ready() {
-    bool result = acquire_i2c();
-    release_i2c();
-    return result;
+    uint8_t buf[5] = {0};
+    bool ready = false;
+
+    furi_hal_i2c_acquire(&furi_hal_i2c_handle_external);
+
+    // First check that the chip ACKs its address
+    if(furi_hal_i2c_is_device_ready(&furi_hal_i2c_handle_external, TEA5767_ADR, 5)) {
+        // Validate by reading 5 status bytes — bus stuck high/low or I2C glitch
+        // produces all-0x00 or all-0xFF; a live chip always has some variation
+        if(furi_hal_i2c_rx(&furi_hal_i2c_handle_external, TEA5767_ADR, buf, 5, TIMEOUT_MS)) {
+            bool all_zero =
+                (buf[0] == 0 && buf[1] == 0 && buf[2] == 0 && buf[3] == 0 && buf[4] == 0);
+            bool all_ff =
+                (buf[0] == 0xFF && buf[1] == 0xFF && buf[2] == 0xFF && buf[3] == 0xFF &&
+                 buf[4] == 0xFF);
+            ready = !all_zero && !all_ff;
+        }
+    }
+
+    furi_hal_i2c_release(&furi_hal_i2c_handle_external);
+    return ready;
 }
 
 bool tea5767_read_registers(uint8_t* buffer) {
@@ -171,11 +189,9 @@ bool tea5767_get_radio_info(uint8_t* buffer, struct RADIO_INFO* info) {
 
     // Error handling: Check if buffer and info are not NULL
     if(buffer && info && tea5767_read_registers(buffer)) {
-        if(buffer[REG_3] & REG_3_MS) {
-            info->stereo = true;
-        } else {
-            info->stereo = false;
-        }
+        // STATUS byte 2 (index 2) bit 7 is the STEREO indicator from the chip
+        // (NOT the MS mono-force bit from the write register — different layouts)
+        info->stereo = (buffer[2] & 0x80) != 0;
 
         info->signalLevel = buffer[REG_4] >> 4;
 

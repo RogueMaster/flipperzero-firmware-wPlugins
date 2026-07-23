@@ -30,6 +30,7 @@ Turn your **Flipper Zero + W5500** Ethernet module into a professional-grade por
 | Continuous Ping | Diagnostics | Real-time RTT graph with min/max/avg and loss tracking |
 | DNS Lookup | Diagnostics | Hostname resolution via UDP DNS |
 | Traceroute | Diagnostics | ICMP hop-by-hop path discovery (up to 30 hops) |
+| TCP Ping | Diagnostics | TCP connect test to any IP and port — works where ICMP is filtered |
 | Packet Capture | Traffic | Standalone PCAP dump to SD card |
 | ETH Bridge | Traffic | USB-to-Ethernet bridge via CDC-ECM with PCAP recording |
 | Statistics | Traffic | Frame counters by type and EtherType (10s capture) |
@@ -51,7 +52,7 @@ Turn your **Flipper Zero + W5500** Ethernet module into a professional-grade por
 | TFTP Client | Utilities | Download config files from network equipment |
 | IPMI Query | Utilities | BMC chassis status, device ID, firmware version |
 | History | -- | Timestamped auto-saved results, browsable and deletable |
-| Settings | -- | Auto-save, sound/vibro, custom DNS, ping config, target persistence, MAC Changer, About |
+| Settings | -- | Auto-save, sound/vibro, custom DNS, static IP (manual network), ping config, target persistence, MAC Changer, About |
 
 ## Documentation
 

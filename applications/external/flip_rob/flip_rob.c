@@ -114,6 +114,8 @@ int flip_rob_app(void* p) {
 
     /* Clean up GUI and bail */
     gui_remove_view_port(gui, view_port);
+    view_port_free(view_port);
+    furi_record_close(RECORD_GUI);
 
     return 0;
 }

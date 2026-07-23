@@ -338,6 +338,7 @@ bool gblink_pinconf_load(void *gblink)
 
 out:
 	flipper_format_file_close(data_file);
+	flipper_format_free(data_file);
 	furi_string_free(string);
 	furi_record_close(RECORD_STORAGE);
 	return ret;
@@ -417,6 +418,7 @@ bool gblink_pinconf_save(void *gblink)
 
 out:
 	flipper_format_file_close(data_file);
+	flipper_format_free(data_file);
 	furi_string_free(string);
 	furi_record_close(RECORD_STORAGE);
 	return ret;

@@ -39,7 +39,7 @@ static void keystore_draw_callback(Canvas* canvas, void* context) {
 
     canvas_clear(canvas);
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str(canvas, 0, 10, "KeeLoq Keystore Decryptor");
+    canvas_draw_str(canvas, 0, 10, "Sub-GHz Keystore Decryptor");
 
     canvas_set_font(canvas, FontSecondary);
 
@@ -166,23 +166,9 @@ static bool decrypt_keystore(KeystoreDecryptApp* app) {
     }
 
     if(encrypted) {
-        uint32_t* iv32 = (uint32_t*)iv;
-        for(int i = 0; i < 4; i++) {
-            uint32_t val = iv32[i];
-            uint32_t rotated = (val << 8) | (val >> 24);
-
-            uint32_t result = 0;
-            for(int j = 0; j < 4; j++) {
-                uint8_t a = (rotated >> (j * 8)) & 0xFF;
-                uint8_t b = (val >> (j * 8)) & 0xFF;
-                uint16_t sum = a + b;
-
-                if(sum > 255) sum = 255;
-
-                result |= (sum << (j * 8));
-            }
-
-            iv32[i] = result;
+        for(int i = 15; i >= 1; i--) {
+            uint16_t sum = (uint16_t)iv[i] + (uint16_t)iv[i - 1];
+            iv[i] = (sum > 255) ? 255 : (uint8_t)sum;
         }
 
         if(!furi_hal_crypto_enclave_load_key(KEY_ENCLAVE_ID, iv)) {

@@ -198,6 +198,7 @@ void flipbip_app_free(FlipBip* app) {
     view_dispatcher_remove_view(app->view_dispatcher, FlipBipViewIdSettings);
     view_dispatcher_remove_view(app->view_dispatcher, FlipBipViewIdTextInput);
     submenu_free(app->submenu);
+    variable_item_list_free(app->variable_item_list);
 
     view_dispatcher_remove_view(app->view_dispatcher, FlipBipViewRenewConfirm);
     dialog_ex_free(app->renew_dialog);

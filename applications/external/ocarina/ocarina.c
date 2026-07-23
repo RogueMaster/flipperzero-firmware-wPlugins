@@ -183,7 +183,7 @@ Ocarina* ocarina_alloc() {
     instance->view_port = view_port_alloc();
     view_port_draw_callback_set(instance->view_port, draw_callback, instance);
     view_port_input_callback_set(instance->view_port, input_callback, instance);
-    instance->gui = furi_record_open("gui");
+    instance->gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(instance->gui, instance->view_port, GuiLayerFullscreen);
     instance->start_index = 0;
     memset(
@@ -194,7 +194,7 @@ Ocarina* ocarina_alloc() {
 void ocarina_free(Ocarina* instance) {
     view_port_enabled_set(instance->view_port, false);
     gui_remove_view_port(instance->gui, instance->view_port);
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
     view_port_free(instance->view_port);
     furi_message_queue_free(instance->event_queue);
     furi_mutex_free(instance->model_mutex);

@@ -1,4 +1,4 @@
-An experimental APRS / AX.25 transmitter for Flipper Zero. Download it from the Releases section or [click here for 1.3.17](https://github.com/yo3gnd/flipper-zero-aprs-tx/releases/download/1.3.17/aprstx-1.3.17.fap). Grab it from the [Flipper market](https://lab.flipper.net/apps/aprstx).
+An experimental APRS / AX.25 transmitter for Flipper Zero. Install it from the [Flipper App Catalog](https://lab.flipper.net/apps/aprstx), or sideload the [1.3.24 .fap from GitHub releases](https://github.com/yo3gnd/flipper-zero-aprs-tx/releases/download/1.3.24/aprstx-1.3.24.fap).
 
 [![master](https://img.shields.io/github/actions/workflow/status/yo3gnd/flipper-zero-aprs-tx/master.yml?branch=master&label=master&logo=githubactions)](https://github.com/yo3gnd/flipper-zero-aprs-tx/actions/workflows/master.yml)
 [![tests](https://img.shields.io/github/actions/workflow/status/yo3gnd/flipper-zero-aprs-tx/tests.yml?branch=master&label=tests&logo=githubactions)](https://github.com/yo3gnd/flipper-zero-aprs-tx/actions/workflows/tests.yml)
@@ -12,7 +12,7 @@ An experimental APRS / AX.25 transmitter for Flipper Zero. Download it from the 
 
 Idea and prototype by [Richard YO3GND](https://www.qrz.com/db/YO3GND) - [Read tech post](https://yo3gnd.ro/blog/2604a--flipper-zero-aprs-tx)
 
-There are plenty of audio APRS hacks that feed a handheld with audio from Flipper. This is not that. This is a SubGHZ hack that allows you to send something APRS-like using only the FZ. Decode success is still inconsistent; the signal is unconventional, imperfect, and heavily dependent on the receiver. Software seems to do fine with it (direwolf, qtmm). Some hardware decoders struggled. An UV878 works. It is malformed badly enough, losing phase information and bending the encoding to keep up with what the Flipper can do, that I am still surprised it works.
+There are plenty of audio APRS hacks that feed a handheld with audio from Flipper. This is not that. This is a SubGHZ hack that allows you to send something APRS-like through the Flipper radio path instead of audio. Decode success is still inconsistent; the signal is unconventional, imperfect, and heavily dependent on the receiver. Software seems to do fine with it (direwolf, qtmm). Some hardware decoders struggled. An UV878 works. It is malformed badly enough, losing phase information and bending the encoding to keep up with what the Flipper can do, that I am still surprised it works.
 
 <table>
 <tr>
@@ -31,7 +31,7 @@ This app can send:
 - bulletins
 - fixed position packets
 
-It lets you manage each packet type, keep a small destination callbook, and tune a few radio-side parameters to improve decoding. However, at its core, this is a deliberately rough FSK hack pretending to be FM, and it relies heavily on the receiver's discriminator and filters.
+It lets you manage each packet type, keep a small destination callbook, use 1200 or 9600 bps, choose the internal radio or an external radio module, and tune a few radio-side parameters to improve decoding. However, at its core, this is a deliberately rough FSK hack pretending to be FM, and it relies heavily on the receiver's discriminator and filters.
 
 <p align="center">
 <img src="docs/pics/Screenshot-20231015-082113.png" alt="Settings" width="25%">
@@ -69,4 +69,6 @@ To reduce the chance of accidental traffic on the live APRS network, the default
 - Only transmit where you are legally allowed to do so.
 
 ## Ham Usage
-- Update `/ext/ham/my-callsigns.txt` on the SD card with one callsign per line. Each callsign may have an optional standard SSID; the SSID can be updated in the app. Each callsign must be followed by a comma and the IS passcode.
+- Update `my-callsigns.txt` on the SD card with one callsign per line. Each callsign may have an optional standard SSID; the SSID can be updated in the app. Each callsign must be followed by a comma and the IS passcode.
+
+  The file is in `/ext/apps_data/aprstx/my-callsigns.txt`.

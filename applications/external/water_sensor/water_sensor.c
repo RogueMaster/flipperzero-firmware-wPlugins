@@ -53,7 +53,7 @@ int32_t water_sensor_main(void* p) {
 
     WaterSensorApp app;
     app.view_port = view_port_alloc();
-    app.gui = furi_record_open("gui");
+    app.gui = furi_record_open(RECORD_GUI);
     app.raw = 0;
     app.mv = 0.0f;
     app.running = true;
@@ -81,7 +81,7 @@ int32_t water_sensor_main(void* p) {
     furi_hal_adc_release(app.adc);
     gui_remove_view_port(app.gui, app.view_port);
     view_port_free(app.view_port);
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
 
     return 0;
 }

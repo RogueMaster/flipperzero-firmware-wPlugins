@@ -712,6 +712,7 @@ void scope_scene_run_on_enter(void* context) {
         view_port_enabled_set(view_port, false);
         gui_remove_view_port(gui, view_port);
         view_port_free(view_port);
+        furi_message_queue_free(event_queue);
 
         free_all();
 
@@ -723,10 +724,12 @@ void scope_scene_run_on_enter(void* context) {
         view_port_enabled_set(view_port, false);
         gui_remove_view_port(gui, view_port);
         view_port_free(view_port);
+        furi_message_queue_free(event_queue);
 
         app->data = malloc(sizeof(uint16_t) * adc_buffer);
         memcpy(app->data, (uint16_t*)mvoltDisplay, sizeof(uint16_t) * adc_buffer);
         free_all();
+        furi_record_close(RECORD_GUI);
         scene_manager_next_scene(app->scene_manager, ScopeSceneSave);
     }
 }

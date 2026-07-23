@@ -8,6 +8,6 @@ App(
     fap_category="USB",
     fap_author="Jay",
     fap_weburl="https://github.com/contactjayclatty/JAYX",
-    fap_version="0.3",
+    fap_version="0.4",
     fap_description="Live PC CPU/RAM/GPU stats, FPS, and system info over USB",
 )

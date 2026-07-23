@@ -5,9 +5,9 @@
 #include <furi_hal_version.h>
 #include <furi_hal_random.h>
 #include <storage/storage.h>
-#include <socket.h>
-#include <wizchip_conf.h>
-#include <w5500.h>
+/* Compiled into the File Manager plugin, which cannot include the private
+ * ioLibrary headers — the socket subset comes from the API-table shim. */
+#include "../api/lan_tester_ioshim.h"
 
 #include <string.h>
 #include <stdio.h>

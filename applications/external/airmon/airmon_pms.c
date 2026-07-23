@@ -246,6 +246,7 @@ AirmonPmsContext* airmon_pms_context_alloc() {
 void airmon_pms_context_free(AirmonPmsContext* pms_context) {
     furi_assert(pms_context);
     furi_thread_free(pms_context->thread);
+    furi_mutex_free(pms_context->mutex);
     furi_record_close(RECORD_NOTIFICATION);
     free(pms_context);
 }

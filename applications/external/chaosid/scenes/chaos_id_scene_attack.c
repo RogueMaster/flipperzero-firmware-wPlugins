@@ -160,7 +160,7 @@ static void show_final_result(ChaosIdApp* app) {
 
     if(ctx->failed) {
         popup_reset(app->popup);
-        popup_set_header(app->popup, "Falha", 64, 12, AlignCenter, AlignTop);
+        popup_set_header(app->popup, "Failed", 64, 12, AlignCenter, AlignTop);
         popup_set_text(
             app->popup, "Card not detected.\nReposition and retry.", 64, 32, AlignCenter, AlignTop);
         return;
@@ -191,7 +191,7 @@ static void show_final_result(ChaosIdApp* app) {
 
     // List recovered keys
     if(ctx->keys_found > 0) {
-        furi_string_cat_str(text, "\nChaves:\n");
+        furi_string_cat_str(text, "\nKeys:\n");
         for(uint8_t s = 0; s < ctx->total_sectors; s++) {
             if(ctx->sector_a_found[s]) {
                 furi_string_cat_printf(

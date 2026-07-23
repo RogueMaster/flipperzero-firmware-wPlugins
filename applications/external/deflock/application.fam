@@ -1,0 +1,57 @@
+App(
+    appid="deflock",
+    name="DeFlock",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    # Default glob (*.c*) minus the host-only unit tests, which include host
+    # mocks + gcc-only headers and must not be pulled into the .fap build.
+    sources=["*.c*", "!test"],
+    entry_point="recon_site_survey_app",
+    stack_size=4 * 1024,
+    fap_icon_assets_symbol="flipdeflock",
+    fap_icon="icon.png",
+    fap_private_libs=[
+        # Espressif esp-serial-flasher (Apache-2.0), vendored under
+        # lib/esp-serial-flasher. Our port/worker/UI is original (GPL-3.0-or-later).
+        Lib(
+            name="esp_serial_flasher",
+            fap_include_paths=["include"],
+            sources=[
+                "src/esp_loader.c",
+                "src/esp_targets.c",
+                "src/md5_hash.c",
+                "src/protocol_serial.c",
+                "src/protocol_uart.c",
+                "src/slip.c",
+                "src/esp_stubs.c",
+            ],
+            cincludes=["lib/esp_serial_flasher/private_include"],
+            cdefines=[
+                "SERIAL_FLASHER_INTERFACE_UART=1",
+                "MD5_ENABLED=1",
+                "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
+            ],
+            cflags=["-Wno-sign-compare"],
+        ),
+        # Nayuki QR Code generator (MIT), vendored under lib/qrcodegen.
+        # Used by the passive DeFlock phone-handoff (renders a QR locally; no
+        # network). Upstream verbatim — see the MIT header in the sources.
+        Lib(
+            name="qrcodegen",
+            sources=["qrcodegen.c"],
+            cflags=["-Wno-sign-compare", "-Wno-unused-parameter"],
+        ),
+    ],
+    cdefines=[
+        "SERIAL_FLASHER_INTERFACE_UART=1",
+        "MD5_ENABLED=1",
+        "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
+    ],
+    fap_category="GPIO/ESP32",
+    fap_author="ReconGrunt",
+    fap_weburl="https://github.com/ReconGrunt/FlipDeFlock",
+    fap_version="0.43",
+    fap_description="FlipDeFlock: detect Flock/ALPR surveillance cameras via any "
+    "ESP32 (Marauder or companion FW), with NFC/RFID credential audit, GPS "
+    "geotagging and DeFlock-compatible reports.",
+)

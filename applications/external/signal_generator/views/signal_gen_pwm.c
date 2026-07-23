@@ -12,7 +12,7 @@ typedef enum {
     LineIndexTotalCount
 } LineIndex;
 
-static const char* const pwm_ch_names[] = {"", "2(A7)", "4(A4)"};
+static const char* const pwm_ch_names[] = {"2(A7)", "4(A4)"};
 
 struct SignalGenPwm {
     View* view;
@@ -62,11 +62,11 @@ static void pwm_set_config(SignalGenPwm* pwm) {
 
 static void pwm_channel_change(SignalGenPwmViewModel* model, InputEvent* event) {
     if(event->key == InputKeyLeft) {
-        if(model->channel_id > 1) {
+        if(model->channel_id > 0) {
             model->channel_id--;
         }
     } else if(event->key == InputKeyRight) {
-        if(model->channel_id < (COUNT_OF(pwm_ch_names))) {
+        if(model->channel_id < (COUNT_OF(pwm_ch_names) - 1)) {
             model->channel_id++;
         }
     }
@@ -151,11 +151,11 @@ static void signal_gen_pwm_draw_callback(Canvas* canvas, void* _model) {
         if(line == LineIndexChannel) {
             snprintf(val_text, sizeof(val_text), "%s", pwm_ch_names[model->channel_id]);
             canvas_draw_str_aligned(canvas, VALUE_X, text_y, AlignCenter, AlignCenter, val_text);
-            if(model->channel_id != 1) {
+            if(model->channel_id != 0) {
                 canvas_draw_str_aligned(
                     canvas, VALUE_X - VALUE_W / 2, text_y, AlignCenter, AlignCenter, "<");
             }
-            if(model->channel_id != (COUNT_OF(pwm_ch_names))) {
+            if(model->channel_id != (COUNT_OF(pwm_ch_names) - 1)) {
                 canvas_draw_str_aligned(
                     canvas, VALUE_X + VALUE_W / 2, text_y, AlignCenter, AlignCenter, ">");
             }

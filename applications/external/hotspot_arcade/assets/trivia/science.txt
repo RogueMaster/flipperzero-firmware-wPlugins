@@ -1,0 +1,106 @@
+Pack: Science
+Q: What gas do plants absorb from the air for photosynthesis?
+A: Oxygen
+B: Nitrogen
+C: Carbon dioxide
+D: Hydrogen
+Answer: C
+---
+Q: What is the chemical symbol for water?
+A: H2O
+B: CO2
+C: O2
+D: NaCl
+Answer: A
+---
+Q: How many bones are in the adult human body?
+A: 186
+B: 206
+C: 226
+D: 246
+Answer: B
+---
+Q: Which planet is closest to the Sun?
+A: Earth
+B: Venus
+C: Mercury
+D: Mars
+Answer: C
+---
+Q: What is the powerhouse of the cell?
+A: Nucleus
+B: Ribosome
+C: Mitochondrion
+D: Vacuole
+Answer: C
+---
+Q: What force pulls objects toward the Earth?
+A: Magnetism
+B: Gravity
+C: Friction
+D: Tension
+Answer: B
+---
+Q: What is the chemical symbol for gold?
+A: Go
+B: Gd
+C: Ag
+D: Au
+Answer: D
+---
+Q: At what temperature does water freeze in Celsius?
+A: 0 degrees
+B: 10 degrees
+C: 32 degrees
+D: 100 degrees
+Answer: A
+---
+Q: Which gas makes up most of Earth's atmosphere?
+A: Oxygen
+B: Nitrogen
+C: Carbon dioxide
+D: Argon
+Answer: B
+---
+Q: What organ pumps blood through the body?
+A: Lungs
+B: Liver
+C: Heart
+D: Kidney
+Answer: C
+---
+Q: What is the speed of light approximately?
+A: 300,000 km per second
+B: 30,000 km per second
+C: 3,000 km per second
+D: 300 km per second
+Answer: A
+---
+Q: Which scientist proposed the theory of general relativity?
+A: Isaac Newton
+B: Albert Einstein
+C: Galileo Galilei
+D: Niels Bohr
+Answer: B
+---
+Q: What is the hardest known natural material?
+A: Quartz
+B: Iron
+C: Diamond
+D: Granite
+Answer: C
+---
+Q: How many chambers does a human heart have?
+A: 2
+B: 3
+C: 4
+D: 5
+Answer: C
+---
+Q: What type of animal is a dolphin?
+A: Fish
+B: Mammal
+C: Reptile
+D: Amphibian
+Answer: B
+---

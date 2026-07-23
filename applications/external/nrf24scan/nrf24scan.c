@@ -15,7 +15,7 @@
 
 #define TAG "nrf24scan"
 
-#define VERSION     "2.2"
+#define VERSION     FAP_VERSION
 #define MAX_CHANNEL 125
 #define MAX_ADDR    6
 
@@ -309,7 +309,7 @@ void write_to_log_file(Storage* storage, bool f_settings) {
 }
 
 static bool select_settings_file(Stream* stream) {
-    DialogsApp* dialogs = furi_record_open("dialogs");
+    DialogsApp* dialogs = furi_record_open(RECORD_DIALOGS);
     bool result = false;
     FuriString* path;
     path = furi_string_alloc();
@@ -321,7 +321,7 @@ static bool select_settings_file(Stream* stream) {
 
     bool ret = dialog_file_browser_show(dialogs, path, path, &browser_options);
 
-    furi_record_close("dialogs");
+    furi_record_close(RECORD_DIALOGS);
     if(ret) {
         if(!file_stream_open(stream, furi_string_get_cstr(path), FSAM_READ, FSOM_OPEN_EXISTING)) {
             FURI_LOG_D(TAG, "Cannot open file \"%s\"", furi_string_get_cstr(path));

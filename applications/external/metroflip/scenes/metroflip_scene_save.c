@@ -51,5 +51,8 @@ bool metroflip_scene_save_on_event(void* context, SceneManagerEvent event) {
 
 void metroflip_scene_save_on_exit(void* context) {
     Metroflip* app = context;
+    void* validator_context = text_input_get_validator_callback_context(app->text_input);
+    text_input_set_validator(app->text_input, NULL, NULL);
+    validator_is_file_free(validator_context);
     text_input_reset(app->text_input);
 }

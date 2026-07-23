@@ -96,6 +96,10 @@ void app_save_settings(App* app) {
         snprintf(line, sizeof(line), "hid_mode=%d\n", (int)app->hid_mode);
         FURI_LOG_D(TAG, "app_save_settings: Writing hid_mode=%d", (int)app->hid_mode);
         storage_file_write(file, line, strlen(line));
+        snprintf(line, sizeof(line), "sound_enabled=%d\n", app->sound_enabled ? 1 : 0);
+        storage_file_write(file, line, strlen(line));
+        snprintf(line, sizeof(line), "vibro_enabled=%d\n", app->vibro_enabled ? 1 : 0);
+        storage_file_write(file, line, strlen(line));
         if(app->has_active_selection && app->active_card_index < app->card_count) {
             snprintf(line, sizeof(line), "active_card_index=%zu\n", app->active_card_index);
             storage_file_write(file, line, strlen(line));
@@ -117,6 +121,8 @@ void app_load_settings(App* app) {
     app->layout_loaded = false;
     app->has_active_selection = false;
     app->active_card_index = 0;
+    app->sound_enabled = true;
+    app->vibro_enabled = true;
 // passcode_disabled is now stored encrypted in cards.enc header, not in settings.txt
 // Default to USB, or force USB if BLE HID not available
 #if HAS_BLE_HID_API
@@ -225,6 +231,16 @@ void app_load_settings(App* app) {
                 app->active_card_index = index;
             } else if(strncmp(line, "passcode_disabled=", 18) == 0) {
                 // passcode_disabled is now stored encrypted in cards.enc header, ignore this line
+            } else if(strncmp(line, "sound_enabled=", 14) == 0) {
+                const char* value_str = line + 14;
+                while(*value_str == ' ' || *value_str == '\t')
+                    value_str++;
+                app->sound_enabled = (atoi(value_str) != 0);
+            } else if(strncmp(line, "vibro_enabled=", 14) == 0) {
+                const char* value_str = line + 14;
+                while(*value_str == ' ' || *value_str == '\t')
+                    value_str++;
+                app->vibro_enabled = (atoi(value_str) != 0);
             } else if(strncmp(line, "hid_mode=", 9) == 0) {
                 found_hid_mode = true;
                 const char* value_str = line + 9;

@@ -1,0 +1,5 @@
+ADD_SCENE(ir_share, menu, Menu)
+ADD_SCENE(ir_share, file_browser, FileBrowser)
+ADD_SCENE(ir_share, show_file, ShowFile)
+ADD_SCENE(ir_share, send, Send)
+ADD_SCENE(ir_share, receive, Receive)

@@ -123,6 +123,8 @@ bool mifare_fuzzer_scene_attack_on_event(void* context, SceneManagerEvent event)
                     scene_manager_next_scene(app->scene_manager, MifareFuzzerSceneEmulator);
                 } else {
                     buffered_file_stream_close(app->uids_stream);
+                    stream_free(app->uids_stream);
+                    app->uids_stream = NULL;
                 }
             }
             consumed = true;

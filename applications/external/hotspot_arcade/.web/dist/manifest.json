@@ -1,0 +1,8 @@
+[
+  {
+    "path": "/",
+    "file": "index.html.gz",
+    "mime": "text/html",
+    "gzip": true
+  }
+]

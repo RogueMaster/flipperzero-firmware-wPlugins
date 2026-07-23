@@ -36,11 +36,17 @@ static uint16_t parse_hex_string(const char* hex_str, uint8_t* out, uint16_t out
     uint16_t count = 0;
     const char* p = hex_str;
 
-    while(*p && count < out_max) {
+    while(*p) {
         /* skip whitespace */
         while(*p == ' ' || *p == '\t')
             p++;
         if(*p == '\0' || *p == '\n' || *p == '\r') break;
+
+        /* Overflow: there is more data than the buffer can hold.  Signal an
+           error rather than returning a truncated-but-valid-looking count —
+           dropping bytes (e.g. a response's trailing 90 00 status word) would
+           silently corrupt the emulated card (issue #59). */
+        if(count >= out_max) return 0;
 
         int hi = hex_char_to_nibble(*p);
         if(hi < 0) return 0;
@@ -68,10 +74,13 @@ static uint16_t
     uint16_t count = 0;
     const char* p = hex_str;
 
-    while(*p && count < out_max) {
+    while(*p) {
         while(*p == ' ' || *p == '\t')
             p++;
         if(*p == '\0' || *p == '\n' || *p == '\r') break;
+
+        /* Overflow: signal an error instead of silently truncating (issue #59). */
+        if(count >= out_max) return 0;
 
         if(p[0] == '?' && p[1] == '?') {
             out[count] = 0x00;
@@ -179,11 +188,23 @@ static void parse_rule_line(CcidCard* card, const char* line) {
     CcidRule* rule = &card->rules[card->rule_count];
 
     rule->command_len =
-        parse_hex_pattern(cmd_stripped, rule->command, rule->mask, CCID_EMU_MAX_APDU_LEN);
-    if(rule->command_len == 0) return;
+        parse_hex_pattern(cmd_stripped, rule->command, rule->mask, CCID_EMU_MAX_CMD_LEN);
+    if(rule->command_len == 0) {
+        FURI_LOG_W(
+            "CcidParser",
+            "Skipping rule: command empty, malformed, or over %d bytes",
+            CCID_EMU_MAX_CMD_LEN);
+        return;
+    }
 
-    rule->response_len = parse_hex_string(resp_stripped, rule->response, CCID_EMU_MAX_APDU_LEN);
-    if(rule->response_len == 0) return;
+    rule->response_len = parse_hex_string(resp_stripped, rule->response, CCID_EMU_MAX_RESP_LEN);
+    if(rule->response_len == 0) {
+        FURI_LOG_W(
+            "CcidParser",
+            "Skipping rule: response empty, malformed, or over %d bytes",
+            CCID_EMU_MAX_RESP_LEN);
+        return;
+    }
 
     card->rule_count++;
 }
@@ -192,7 +213,7 @@ static void parse_rule_line(CcidCard* card, const char* line) {
 static void parse_default_kv(CcidCard* card, const char* key, const char* value) {
     if(strcmp(key, "response") == 0) {
         card->default_response_len =
-            parse_hex_string(value, card->default_response, CCID_EMU_MAX_APDU_LEN);
+            parse_hex_string(value, card->default_response, CCID_EMU_MAX_RESP_LEN);
     }
 }
 
@@ -225,7 +246,12 @@ CcidCard* ccid_card_load(Storage* storage, const char* path) {
     Section section = SectionNone;
 
     while(stream_read_line(stream, line_buf)) {
-        char line[256];
+        /* Must hold a full "COMMAND = RESPONSE" rule line: the command and
+           response halves are each capped at CCID_EMU_MAX_HEX_STR by
+           parse_rule_line, so size the line buffer to fit both plus the
+           separator.  Sizing it smaller would re-truncate long responses
+           before the parser ever sees them (issue #59). */
+        char line[CCID_EMU_MAX_HEX_STR * 2];
         size_t line_len = furi_string_size(line_buf);
         if(line_len >= sizeof(line)) line_len = sizeof(line) - 1;
         memcpy(line, furi_string_get_cstr(line_buf), line_len);

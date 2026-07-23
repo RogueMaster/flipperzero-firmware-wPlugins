@@ -1,0 +1,136 @@
+<svg width="1280" height="400" viewBox="0 0 1280 400" xmlns="http://www.w3.org/2000/svg" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#080b11"/>
+      <stop offset="0.55" stop-color="#0b1018"/>
+      <stop offset="1" stop-color="#05070b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.2" cy="0.5" r="0.62">
+      <stop offset="0" stop-color="#3a2a06" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#3a2a06" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="iris" cx="0.5" cy="0.45" r="0.6">
+      <stop offset="0" stop-color="#ffe6a3"/>
+      <stop offset="0.45" stop-color="#ffb000"/>
+      <stop offset="1" stop-color="#7a4d00"/>
+    </radialGradient>
+    <radialGradient id="sweepGrad" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffd166" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ffd166" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="wordGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#ffe1a6"/>
+    </linearGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softbig" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="16" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="eyeclip">
+      <path d="M-150 0 Q0 -190 150 0 Q0 190 -150 0 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- background -->
+  <rect width="1280" height="400" fill="url(#bg)"/>
+  <rect width="1280" height="400" fill="url(#glow)"/>
+
+  <!-- faint grid -->
+  <g stroke="#ffb000" stroke-opacity="0.05" stroke-width="1">
+    <path d="M0 50 H1280 M0 100 H1280 M0 150 H1280 M0 200 H1280 M0 250 H1280 M0 300 H1280 M0 350 H1280"/>
+    <path d="M50 0 V400 M120 0 V400 M190 0 V400 M520 0 V400 M590 0 V400 M660 0 V400 M730 0 V400 M800 0 V400 M870 0 V400 M940 0 V400 M1010 0 V400 M1080 0 V400 M1150 0 V400 M1220 0 V400"/>
+  </g>
+  <!-- scanlines -->
+  <g fill="#000000" fill-opacity="0.10">
+    <rect y="0" width="1280" height="2"/><rect y="6" width="1280" height="2"/><rect y="12" width="1280" height="2"/>
+    <rect y="386" width="1280" height="2"/><rect y="392" width="1280" height="2"/>
+  </g>
+
+  <!-- ===== THE EYE / RADAR ===== -->
+  <g transform="translate(250,200)">
+    <!-- iris fill (clipped to the eye lens) -->
+    <g clip-path="url(#eyeclip)">
+      <circle r="150" fill="#0c0f15"/>
+      <circle r="78" fill="url(#iris)" opacity="0.95"/>
+      <!-- range rings -->
+      <g fill="none" stroke="#ffb000" stroke-opacity="0.35">
+        <circle r="120" stroke-opacity="0.16"/>
+        <circle r="92" stroke-opacity="0.22"/>
+        <circle r="62" stroke-opacity="0.30"/>
+        <circle r="34" stroke-opacity="0.40"/>
+      </g>
+      <!-- crosshair -->
+      <g stroke="#ffce5a" stroke-opacity="0.18" stroke-width="1">
+        <path d="M-150 0 H150 M0 -150 V150"/>
+      </g>
+      <!-- sweep wedge -->
+      <g transform="rotate(-32)">
+        <path d="M0 0 L150 0 A150 150 0 0 0 122 -86 Z" fill="url(#sweepGrad)"/>
+        <line x1="0" y1="0" x2="150" y2="0" stroke="#ffd166" stroke-width="2" stroke-opacity="0.9"/>
+      </g>
+      <!-- blips -->
+      <circle cx="96" cy="-54" r="4" fill="#ffe6a3" filter="url(#soft)"/>
+      <circle cx="-66" cy="62" r="3" fill="#ffd166" filter="url(#soft)"/>
+      <circle cx="60" cy="74" r="3" fill="#ffd166" filter="url(#soft)"/>
+      <!-- EVIL TWIN blip (red) -->
+      <circle cx="44" cy="34" r="6" fill="#ff3b5c" filter="url(#soft)"/>
+      <circle cx="44" cy="34" r="13" fill="none" stroke="#ff3b5c" stroke-opacity="0.65" stroke-width="2"/>
+      <!-- pupil -->
+      <circle r="20" fill="#0a0c11"/>
+      <circle r="20" fill="none" stroke="#1a1208" stroke-width="3"/>
+      <circle cx="-6" cy="-6" r="4" fill="#fff3d6" opacity="0.85"/>
+    </g>
+
+    <!-- eyelid outline on top -->
+    <path d="M-150 0 Q0 -190 150 0 Q0 190 -150 0 Z" fill="none" stroke="#ffb000" stroke-width="4" filter="url(#softbig)"/>
+    <path d="M-150 0 Q0 -190 150 0 Q0 190 -150 0 Z" fill="none" stroke="#ffe6a3" stroke-width="1.5"/>
+
+    <!-- little Wi-Fi mark above the eye -->
+    <g transform="translate(0,-150)" stroke="#ffd166" fill="none" stroke-width="3" stroke-linecap="round" opacity="0.85">
+      <path d="M-26 6 A38 38 0 0 1 26 6" stroke-opacity="0.5"/>
+      <path d="M-16 14 A24 24 0 0 1 16 14" stroke-opacity="0.75"/>
+      <circle cx="0" cy="24" r="2.4" fill="#ffd166" stroke="none"/>
+    </g>
+  </g>
+
+  <!-- ===== WORDMARK + COPY ===== -->
+  <g transform="translate(520,0)">
+    <text x="0" y="178" font-size="118" font-weight="800" letter-spacing="6"
+          fill="url(#wordGrad)" filter="url(#soft)">ARGUS</text>
+    <text x="6" y="224" font-size="27" font-weight="500" letter-spacing="1.5"
+          fill="#ffce5a" font-family="'SF Mono','Menlo','Consolas','Courier New',monospace">A hundred eyes on your Wi-Fi.</text>
+
+    <line x1="6" y1="250" x2="710" y2="250" stroke="#ffb000" stroke-opacity="0.25" stroke-width="1"/>
+
+    <text x="6" y="280" font-size="17" letter-spacing="3" fill="#8a94a6"
+          font-family="'SF Mono','Menlo','Consolas','Courier New',monospace">DEAUTH &amp; EVIL-TWIN DETECTOR &#183; FLIPPER ZERO + ESP32</text>
+
+    <!-- chips -->
+    <g font-family="'SF Mono','Menlo','Consolas','Courier New',monospace" font-size="16" font-weight="600">
+      <g transform="translate(6,306)">
+        <rect width="132" height="30" rx="15" fill="#241a06" stroke="#ffb000" stroke-opacity="0.55"/>
+        <text x="66" y="20" text-anchor="middle" fill="#ffe6a3">Deauth</text>
+      </g>
+      <g transform="translate(148,306)">
+        <rect width="150" height="30" rx="15" fill="#241a06" stroke="#ffb000" stroke-opacity="0.55"/>
+        <text x="75" y="20" text-anchor="middle" fill="#ffe6a3">Evil Twin</text>
+      </g>
+      <g transform="translate(308,306)">
+        <rect width="100" height="30" rx="15" fill="#241a06" stroke="#ffb000" stroke-opacity="0.55"/>
+        <text x="50" y="20" text-anchor="middle" fill="#ffe6a3">ESP32</text>
+      </g>
+      <g transform="translate(418,306)">
+        <rect width="92" height="30" rx="15" fill="#241a06" stroke="#ffb000" stroke-opacity="0.55"/>
+        <text x="46" y="20" text-anchor="middle" fill="#ffe6a3">ufbt</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- footer credit -->
+  <text x="1262" y="384" text-anchor="end" font-size="14" letter-spacing="1" fill="#5a6678"
+        font-family="'SF Mono','Menlo','Consolas','Courier New',monospace">github.com/at0m-b0mb &#183; v1.0</text>
+</svg>

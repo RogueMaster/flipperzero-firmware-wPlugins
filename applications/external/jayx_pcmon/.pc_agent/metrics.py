@@ -28,6 +28,7 @@ FPS_HOLD_S = 3.0
 
 _last_gpu: dict | None = None  # util, vram_total, vram_used, temp, ts
 _last_fps: tuple[int, float] = (0, 0.0)  # fps, ts
+_last_net: tuple[int, int, float] | None = None  # bytes_sent, bytes_recv, ts
 
 user32 = ctypes.windll.user32
 kernel32 = ctypes.windll.kernel32
@@ -377,6 +378,39 @@ def _process_name_for_hwnd(hwnd) -> str:
         return psutil.Process(pid.value).name()
     except Exception:
         return ""
+
+
+def read_net_throughput() -> tuple[int, int]:
+    """Returns (up_Bps, down_Bps), diffed against the previous call."""
+    global _last_net
+    counters = psutil.net_io_counters()
+    now = time.monotonic()
+
+    if _last_net is None:
+        _last_net = (counters.bytes_sent, counters.bytes_recv, now)
+        return 0, 0
+
+    prev_sent, prev_recv, prev_ts = _last_net
+    dt = now - prev_ts
+    _last_net = (counters.bytes_sent, counters.bytes_recv, now)
+    if dt <= 0:
+        return 0, 0
+
+    up_bps = max(0, int((counters.bytes_sent - prev_sent) / dt))
+    down_bps = max(0, int((counters.bytes_recv - prev_recv) / dt))
+    return up_bps, down_bps
+
+
+def collect_net() -> dict:
+    up_bps, down_bps = read_net_throughput()
+    up_val, up_unit = scaled_value_and_unit(up_bps)
+    down_val, down_unit = scaled_value_and_unit(down_bps)
+    return {
+        "up_val": up_val,
+        "up_unit": up_unit,
+        "down_val": down_val,
+        "down_unit": down_unit,
+    }
 
 
 def collect() -> dict:

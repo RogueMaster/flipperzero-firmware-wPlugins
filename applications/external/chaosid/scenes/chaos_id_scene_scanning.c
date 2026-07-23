@@ -79,7 +79,7 @@ static void start_phase_lf(ChaosIdApp* app) {
 
     popup_reset(app->popup);
     popup_set_header(app->popup, "Place the card", 64, 10, AlignCenter, AlignTop);
-    popup_set_text(app->popup, "Lendo LF (125 kHz)...", 64, 35, AlignCenter, AlignTop);
+    popup_set_text(app->popup, "Reading LF (125 kHz)...", 64, 35, AlignCenter, AlignTop);
 
     // lf_dict e lf_worker ja alocados em chaos_id_app_alloc (app-lifetime)
     lfrfid_worker_start_thread(app->lf_worker);
@@ -125,7 +125,7 @@ static void start_phase_hf(ChaosIdApp* app) {
 
     popup_reset(app->popup);
     popup_set_header(app->popup, "Place the card", 64, 10, AlignCenter, AlignTop);
-    popup_set_text(app->popup, "Lendo HF (13.56 MHz)...", 64, 35, AlignCenter, AlignTop);
+    popup_set_text(app->popup, "Reading HF (13.56 MHz)...", 64, 35, AlignCenter, AlignTop);
 
     // app->nfc ja alocado em chaos_id_app_alloc (app-lifetime)
     app->nfc_scanner = nfc_scanner_alloc(app->nfc);

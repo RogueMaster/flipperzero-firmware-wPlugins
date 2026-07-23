@@ -112,8 +112,8 @@ panel behind the rear armrest. Two versions exist:
 > 13/14 is Chassis CAN, which is why `0x370 EPAS3P` shows there at 100 Hz with full
 > counter continuity (EPAS lives on Chassis) — it was never a gateway-forwarded
 > subset. **`0x370` is on Chassis CAN, not Vehicle CAN** — if you tap Vehicle CAN
-> (9/10) you will not see `0x370`. The Feifan commander is a 3-CAN device
-> (CAN1/2/3) matching X179's three pairs.
+> (9/10) you will not see `0x370`. Aftermarket 3-CAN commanders are wired
+> to X179's three pairs (CAN1/2/3).
 >
 > **For the nag killer, tap Party CAN (pins 2/3).** @SkyRaax runs the nag killer on
 > 2/3 on an M3 HW4 2026.20 with all other features on 13/14 (via a dual-CAN LilyGO
@@ -147,7 +147,7 @@ panel behind the rear armrest. Two versions exist:
 | **20** | **GND** | Ground |
 
 **4 separate CAN bus pairs** on one connector. Pin 13/14 (bus 6) is
-what aftermarket products (Feifan Commander, enhauto, etc.) connect to.
+what aftermarket products connect to.
 
 #### 26-pin rear connector — two variants
 
@@ -300,8 +300,7 @@ And these "Vehicle CAN" signals are also writable on bus 6:
 
 **One bus, one connection, reads and writes almost everything.**
 
-This is how the 非凡指揮官 (Feifan Commander, 69K+ sales in China)
-achieves its full feature set with just 4 wires:
+This is how a single-bus commander reaches its full feature set with just 4 wires:
 
 ```
 X179 Pin 13 → CAN-H ──┐
@@ -655,8 +654,7 @@ For any module that stays plugged in:
 3. Wake on MCP2515 INT pin (frame received = car woke up) or on a
    timer (check every 60 seconds).
 
-This is how commercial products (Feifan Commander, enhauto Commander)
-handle permanent installation without draining the 12V battery.
+This is how commercial products handle permanent installation without draining the 12V battery.
 
 ---
 

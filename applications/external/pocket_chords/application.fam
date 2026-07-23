@@ -1,0 +1,13 @@
+App(
+    appid="pocket_chords",
+    name="Pocket Chords",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="pocket_chords_app",
+    stack_size=2 * 1024,
+    fap_icon="icon.png",
+    fap_category="Tools",
+    fap_author="Ryan von Schwedler",
+    fap_weburl="https://github.com/rvonsch/flipper-pocket-chords",
+    fap_version="0.1",
+    fap_description="Quick reference for guitar chords. Navigate keys with L/R, variations with U/D.",
+)

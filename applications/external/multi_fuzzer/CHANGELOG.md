@@ -1,3 +1,7 @@
+## v1.8
+- Time Delay (TD) and Emulation Time (EmT) are now tunable in 0.01s steps (range 0.00–8.00s, shown as X.XX), down from the old 0.1s steps
+- Both TD and EmT can now go to 0.00 (the worker substitutes a tiny non-zero real delay), for bleeding-edge timing
+- RFID emulation now drives `furi_hal_rfid` directly instead of going through `lfrfid_worker`. This removes the crash/0.1s restart floor introduced upstream when `lfrfid_worker_emulate_start`'s idle guard became a `furi_check` (firmware #3507), letting RFID fuzz below 0.1s on stock firmware (no custom firmware required)
 ## v1.7
 - Fix Fixed prev navigation for AttackTypeLoadFileCustomUids
 ## v1.6

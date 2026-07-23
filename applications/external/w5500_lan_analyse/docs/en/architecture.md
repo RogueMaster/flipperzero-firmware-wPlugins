@@ -117,6 +117,12 @@ The app runs with a 4 KB application stack (defined in `application.fam`). All l
 
 The worker thread has its own 8 KB stack, which is sufficient for the deepest protocol parser call chains.
 
+### On-demand tool plugins
+
+Because the `.fap` binary is loaded into the same heap, its code size directly reduces the memory available at runtime. To keep the resident footprint small, each tool category is compiled into its own embedded plugin (a `.fal` bundled inside the `.fap` via `fal_embedded=True`) under `plugins/`. The host loads a category's plugin when one of its tools starts (`plugin_manager_load_single` from `/ext/apps_assets/lan_tester/plugins/<appid>.fal`), runs it, and frees it on exit, so only the active category's code occupies the heap.
+
+Plugins cannot include the private ioLibrary headers, so they call the shared W5500 driver, protocol helpers, and app functions through the host's API table (`api/`), built on `HashtableApiInterface` and resolved at load time by a composite resolver (firmware API + the app's own table). The socket subset used by plugins is declared in `api/lan_tester_ioshim.h`. Protocols that only a single category uses (e.g. the File Manager HTTP server, the PXE server, the iPXE downloader) are compiled directly into that category's plugin rather than the host, so their code is resident only while that tool runs.
+
 ### Auto Test LLDP Thread (3 KB stack)
 
 During Auto Test, a dedicated LLDP listener thread is spawned with a 3 KB stack. It opens Socket 0 in MACRAW mode and passively listens for LLDP/CDP frames while the main Auto Test sequence continues with subsequent steps (the LLDP listen runs in parallel with ARP scan sequencing on the worker thread). The LLDP thread uses a private `malloc` buffer for frame reception to avoid conflicts with the worker thread's frame buffer.

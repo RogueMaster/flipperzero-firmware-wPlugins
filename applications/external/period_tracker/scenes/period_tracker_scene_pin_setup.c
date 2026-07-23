@@ -4,55 +4,47 @@
 
 #define PIN_SETUP_STATE_FIRST_ENTRY   0
 #define PIN_SETUP_STATE_CONFIRM_ENTRY 1
+#define PIN_SETUP_STATE_RESULT_OK     2
+#define PIN_SETUP_STATE_RESULT_ERR    3
 
-// Store state in scene state
-#define SCENE_STATE_KEY 0
+#define PIN_SETUP_EVENT_SUCCESS   102
+#define PIN_SETUP_EVENT_MISMATCH  103
+#define PIN_SETUP_EVENT_SUBMITTED 104
 
-static void pin_setup_callback(void* context, int32_t number) {
+static void pin_setup_done_callback(void* context, uint16_t pin) {
     PeriodTrackerApp* app = context;
+    app->pin_draft = pin;
+    view_dispatcher_send_custom_event(app->view_dispatcher, PIN_SETUP_EVENT_SUBMITTED);
+}
 
-    uint32_t state = scene_manager_get_scene_state(app->scene_manager, PeriodTrackerScenePinSetup);
+static void pin_setup_show_first(PeriodTrackerApp* app) {
+    scene_manager_set_scene_state(
+        app->scene_manager, PeriodTrackerScenePinSetup, PIN_SETUP_STATE_FIRST_ENTRY);
+    app->pin_first_entry = 0;
 
-    if(state == PIN_SETUP_STATE_FIRST_ENTRY) {
-        // First entry - store PIN and ask for confirmation
-        app->pin_first_entry = (uint32_t)number;
-        scene_manager_set_scene_state(
-            app->scene_manager, PeriodTrackerScenePinSetup, PIN_SETUP_STATE_CONFIRM_ENTRY);
-        view_dispatcher_send_custom_event(app->view_dispatcher, PIN_SETUP_STATE_CONFIRM_ENTRY);
-    } else {
-        // Second entry - verify match
-        uint32_t second_entry = (uint32_t)number;
+    pin_input_reset(app->pin_input);
+    pin_input_set_header(app->pin_input, "Set new PIN");
+    // Setup: require OK after 4 digits so the user can still Backspace the last one
+    pin_input_set_auto_submit(app->pin_input, false);
+    pin_input_set_result_callback(app->pin_input, pin_setup_done_callback, app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewPinInput);
+}
 
-        if(second_entry == app->pin_first_entry) {
-            // PINs match - save to file
-            view_dispatcher_send_custom_event(app->view_dispatcher, 2); // Success event
-        } else {
-            // PINs don't match - show error
-            view_dispatcher_send_custom_event(app->view_dispatcher, 3); // Error event
-        }
-    }
+static void pin_setup_show_confirm(PeriodTrackerApp* app) {
+    scene_manager_set_scene_state(
+        app->scene_manager, PeriodTrackerScenePinSetup, PIN_SETUP_STATE_CONFIRM_ENTRY);
+
+    pin_input_reset(app->pin_input);
+    pin_input_set_header(app->pin_input, "Confirm PIN");
+    pin_input_set_auto_submit(app->pin_input, false);
+    pin_input_set_result_callback(app->pin_input, pin_setup_done_callback, app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewPinInput);
 }
 
 void period_tracker_scene_pin_setup_on_enter(void* context) {
     PeriodTrackerApp* app = context;
     furi_assert(app);
-
-    // Initialize state
-    scene_manager_set_scene_state(
-        app->scene_manager, PeriodTrackerScenePinSetup, PIN_SETUP_STATE_FIRST_ENTRY);
-    app->pin_first_entry = 0;
-
-    // Setup number input for first entry
-    number_input_set_header_text(app->number_input, "Enter new PIN (0000-9999):");
-    number_input_set_result_callback(
-        app->number_input,
-        pin_setup_callback,
-        app,
-        0, // Start at 0
-        0, // Min value
-        9999); // Max value (4 digits)
-
-    view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewNumberInput);
+    pin_setup_show_first(app);
 }
 
 bool period_tracker_scene_pin_setup_on_event(void* context, SceneManagerEvent event) {
@@ -61,29 +53,36 @@ bool period_tracker_scene_pin_setup_on_event(void* context, SceneManagerEvent ev
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeBack) {
-        // Allow canceling PIN setup - go back to previous scene
-        consumed = false; // Let scene manager handle the back navigation
+        // Cancel setup — scene manager pops
+        consumed = false;
     } else if(event.type == SceneManagerEventTypeCustom) {
-        if(event.event == PIN_SETUP_STATE_CONFIRM_ENTRY) {
-            // Show second entry screen
-            number_input_set_header_text(app->number_input, "Confirm PIN:");
-            number_input_set_result_callback(
-                app->number_input,
-                pin_setup_callback,
-                app,
-                0, // Start at 0
-                0, // Min value
-                9999); // Max value
-            view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewNumberInput);
-            consumed = true;
-        } else if(event.event == 2) {
-            // Success - save PIN to file
+        if(event.event == PIN_SETUP_EVENT_SUBMITTED) {
+            uint32_t pin = app->pin_draft;
+            uint32_t state =
+                scene_manager_get_scene_state(app->scene_manager, PeriodTrackerScenePinSetup);
+
+            if(state == PIN_SETUP_STATE_FIRST_ENTRY) {
+                app->pin_first_entry = pin;
+                pin_setup_show_confirm(app);
+                consumed = true;
+            } else {
+                if(pin == app->pin_first_entry) {
+                    view_dispatcher_send_custom_event(
+                        app->view_dispatcher, PIN_SETUP_EVENT_SUCCESS);
+                } else {
+                    view_dispatcher_send_custom_event(
+                        app->view_dispatcher, PIN_SETUP_EVENT_MISMATCH);
+                }
+                consumed = true;
+            }
+        } else if(event.event == PIN_SETUP_EVENT_SUCCESS) {
             File* file = storage_file_alloc(app->storage);
             bool saved = false;
 
             if(storage_file_open(file, APP_DATA_PATH("pin.txt"), FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-                char pin_str[16];
-                snprintf(pin_str, sizeof(pin_str), "%04lu", app->pin_first_entry);
+                char pin_str[8];
+                // Always store as 4 digits so leading zeros are preserved
+                snprintf(pin_str, sizeof(pin_str), "%04lu", (unsigned long)app->pin_first_entry);
                 if(storage_file_write(file, pin_str, strlen(pin_str))) {
                     saved = true;
                 }
@@ -92,56 +91,47 @@ bool period_tracker_scene_pin_setup_on_event(void* context, SceneManagerEvent ev
             storage_file_free(file);
 
             if(saved) {
-                // Update app state
                 app->pin_code = app->pin_first_entry;
                 app->pin_set = true;
 
-                // Enable PIN protection in settings
                 AppSettings settings;
                 settings_load(app->storage, &settings);
                 settings.pin_enabled = true;
                 settings_save(app->storage, &settings);
 
-                // Show success message
-                widget_reset(app->widget);
-                widget_add_string_multiline_element(
-                    app->widget,
-                    64,
-                    32,
-                    AlignCenter,
-                    AlignCenter,
-                    FontPrimary,
+                scene_manager_set_scene_state(
+                    app->scene_manager, PeriodTrackerScenePinSetup, PIN_SETUP_STATE_RESULT_OK);
+                period_tracker_widget_show_message(
+                    app,
                     "PIN Saved!\n\n"
                     "Your PIN has been\n"
-                    "set successfully.");
+                    "set successfully.",
+                    FontPrimary);
             } else {
-                widget_reset(app->widget);
-                widget_add_string_multiline_element(
-                    app->widget,
-                    64,
-                    32,
-                    AlignCenter,
-                    AlignCenter,
-                    FontPrimary,
-                    "Error!\n\n"
-                    "Failed to save PIN.");
+                scene_manager_set_scene_state(
+                    app->scene_manager, PeriodTrackerScenePinSetup, PIN_SETUP_STATE_RESULT_ERR);
+                period_tracker_widget_show_message(
+                    app, "Error!\n\nFailed to save PIN.", FontPrimary);
             }
-            view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewWidget);
             consumed = true;
-        } else if(event.event == 3) {
-            // Error - PINs don't match
-            widget_reset(app->widget);
-            widget_add_string_multiline_element(
-                app->widget,
-                64,
-                32,
-                AlignCenter,
-                AlignCenter,
-                FontPrimary,
+        } else if(event.event == PIN_SETUP_EVENT_MISMATCH) {
+            scene_manager_set_scene_state(
+                app->scene_manager, PeriodTrackerScenePinSetup, PIN_SETUP_STATE_RESULT_ERR);
+            period_tracker_widget_show_message(
+                app,
                 "Error!\n\n"
                 "PINs do not match.\n\n"
-                "Press Back to try again.");
-            view_dispatcher_switch_to_view(app->view_dispatcher, PeriodTrackerViewWidget);
+                "OK to try again.",
+                FontPrimary);
+            consumed = true;
+        } else if(event.event == PERIOD_TRACKER_EVENT_WIDGET_DISMISS) {
+            uint32_t state =
+                scene_manager_get_scene_state(app->scene_manager, PeriodTrackerScenePinSetup);
+            if(state == PIN_SETUP_STATE_RESULT_OK) {
+                scene_manager_previous_scene(app->scene_manager);
+            } else {
+                pin_setup_show_first(app);
+            }
             consumed = true;
         }
     }
@@ -152,6 +142,7 @@ bool period_tracker_scene_pin_setup_on_event(void* context, SceneManagerEvent ev
 void period_tracker_scene_pin_setup_on_exit(void* context) {
     PeriodTrackerApp* app = context;
     furi_assert(app);
+    pin_input_reset(app->pin_input);
     widget_reset(app->widget);
     app->pin_first_entry = 0;
 }

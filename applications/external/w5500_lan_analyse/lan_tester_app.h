@@ -17,6 +17,7 @@
 #include "bridge/eth_bridge.h"
 #include "bridge/pcap_dump.h"
 #include "ip_keyboard.h"
+#include "lan_tester_text_input.h"
 
 /* Forward declarations */
 typedef struct LanTesterApp LanTesterApp;
@@ -47,6 +48,7 @@ typedef enum {
     LanTesterViewToolInput, /* shared TextInput for all tools */
     LanTesterViewToolByteInput, /* shared ByteInput for MAC entry */
     LanTesterViewNumberInput, /* shared NumberInput */
+    LanTesterViewHostInput, /* shared symbol keyboard for hostnames/IPs */
 } LanTesterView;
 
 /* Main menu item indices */
@@ -65,6 +67,7 @@ typedef enum {
     LanTesterMenuItemPortScanFull,
     LanTesterMenuItemMacChanger,
     LanTesterMenuItemTraceroute,
+    LanTesterMenuItemTcpPing,
     LanTesterMenuItemPortScanCustom,
     LanTesterMenuItemPingSweep,
     LanTesterMenuItemDiscovery,
@@ -133,6 +136,15 @@ struct LanTesterApp {
     uint8_t dns_custom_server[4]; /* custom DNS IP (default 8.8.8.8) */
     char dns_custom_ip_input[16]; /* text input buffer for DNS IP */
 
+    /* Manual (static) network config — used when DHCP is unavailable (#230) */
+    bool net_manual_enabled; /* use manual IP/mask/gateway instead of DHCP */
+    uint8_t manual_ip[4]; /* static IP address */
+    uint8_t manual_mask[4]; /* static subnet mask */
+    uint8_t manual_gw[4]; /* static gateway */
+    char manual_ip_input[16]; /* text input buffer for IP */
+    char manual_mask_input[16]; /* text input buffer for mask */
+    char manual_gw_input[16]; /* text input buffer for gateway */
+
     /* Ping settings */
     uint8_t ping_count; /* packets for normal ping (1-100, default 4) */
     uint16_t ping_timeout_ms; /* reply timeout (500-10000, step 500, default 3000) */
@@ -191,6 +203,12 @@ struct LanTesterApp {
     uint16_t port_scan_custom_end; /* default 1024 */
     char port_scan_start_input[6]; /* text buffer "xxxxx" */
     char port_scan_end_input[6];
+
+    /* TCP Ping state (Diagnostics) — connect test for ICMP-filtered networks */
+    char tcp_ping_ip_input[16]; /* text input buffer */
+    char tcp_ping_port_input[6]; /* text buffer "xxxxx" */
+    uint8_t tcp_ping_target[4]; /* parsed target IP */
+    uint16_t tcp_ping_port; /* target port (default 443) */
 
     /* MAC changer state */
     uint8_t mac_changer_input[6]; /* byte input buffer for custom MAC */
@@ -252,6 +270,10 @@ struct LanTesterApp {
 
     /* Auto Test settings */
     char autotest_dns_host[64];
+    char autotest_inet_ip_input[16]; /* text input buffer for the Internet target */
+    uint8_t autotest_inet_ip[4]; /* Internet reachability target (default 1.1.1.1) */
+    char autotest_tcp_port_input[6]; /* text buffer "xxxxx" */
+    uint16_t autotest_tcp_port; /* TCP fallback port for the Internet step (default 443) */
     uint8_t autotest_lldp_wait_s;
     bool autotest_arp_enabled;
 
@@ -259,6 +281,7 @@ struct LanTesterApp {
     TextBox* text_box_tool;
     FuriString* tool_text;
     TextInput* text_input_tool;
+    LanTesterTextInput* host_input; /* symbol keyboard for hostnames/IPs (has ".") */
     ByteInput* byte_input_tool;
     NumberInput* number_input_tool;
     LanTesterView tool_back_view; /* navigation target when pressing Back */
@@ -287,3 +310,45 @@ struct LanTesterApp {
     /* Security category submenu */
     Submenu* submenu_cat_security;
 };
+
+/* Frame receive buffer size (also used by category plugins) */
+#define FRAME_BUF_SIZE 1600
+
+/* Worker ops + custom events (also used by category plugins) */
+#define WORKER_OP_PING_SWEEP_DETECT   100
+#define CUSTOM_EVENT_PING_SWEEP_READY 1
+#define CUSTOM_EVENT_HISTORY_DELETE   2
+#define CUSTOM_EVENT_CONT_PING_BACK   3
+#define CUSTOM_EVENT_SHOW_HOST_LIST   4
+
+/* AutoTest state (used by the util plugin) */
+typedef enum {
+    AutoTestStateIdle,
+    AutoTestStateTesting,
+    AutoTestStateDone,
+} AutoTestState;
+
+/* ===== Helpers exposed to category plugins via the API resolver (api/) ===== */
+bool lan_tester_ensure_w5500(LanTesterApp* app);
+bool lan_tester_check_w5500(LanTesterApp* app);
+bool lan_tester_check_dhcp(LanTesterApp* app);
+void lan_tester_update_view(TextBox* tb, FuriString* text);
+void lan_tester_count_frame(LanTesterApp* app, const uint8_t* frame, uint16_t len);
+void lan_tester_save_and_notify(LanTesterApp* app, const char* type, FuriString* text);
+void lan_tester_progress_bar(char* buf, uint8_t bar_len, uint16_t current, uint16_t total);
+void scan_results_clear(void);
+bool scan_results_open_writer(void);
+void scan_results_close_writer(void);
+void scan_results_add(const uint8_t ip[4], const uint8_t* mac);
+bool parse_cidr(const char* str, uint8_t base_ip[4], uint8_t* prefix);
+void lan_tester_get_dns_server(LanTesterApp* app, uint8_t out_ip[4]);
+bool lan_tester_ensure_dhcp(LanTesterApp* app);
+
+/* Progress text shown while a tool brings up the network, so it reflects the
+ * mode lan_tester_ensure_dhcp() will actually use: manual static IP (#230) or
+ * DHCP. Header-inline so plugins can use it without an API-table entry. */
+static inline const char* lan_tester_net_acquire_msg(const LanTesterApp* app) {
+    return app->net_manual_enabled ? "Applying static IP..." : "Getting IP via DHCP...";
+}
+
+bool lan_tester_save_results(const char* type, const char* content);

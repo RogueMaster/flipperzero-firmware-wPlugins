@@ -239,8 +239,25 @@ void gblink_start(void *handle);
  */
 void gblink_stop(void *handle);
 
-// void gblink_blink_led_on_byte(handle, color?)
-// get blink?
+/**
+ * Set LED blink on byte transferred
+ *
+ * @param handle Pointer to the gblink handle
+ * @param enable True to enable blink on byte transfer
+ */
+void gblink_led_blink_on_byte(void *handle, bool enable);
+
+/**
+ * Turn on backlight on byte transferred
+ *
+ * For each byte transferred, send a notice to the backlight handler to turn
+ * on the backlight. The backlight will only stay on for as long as the backlight
+ * is configured for in system settings.
+ *
+ * @param handle Pointer to the gblink handle
+ * @param enable True to enable backlight on byte transfer
+ */
+void gblink_backlight_on_byte(void *handle, bool enable);
 
 #ifdef __cplusplus
 }

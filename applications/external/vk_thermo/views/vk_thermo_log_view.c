@@ -230,6 +230,33 @@ static void vk_thermo_log_view_draw(Canvas* canvas, VkThermoLogViewModel* model)
         }
         canvas_draw_str(canvas, tx, y, unit_letter);
 
+        // If dual temps, show individual sensor readings on next line
+        if(entry->has_dual_temps) {
+            // Calculate temp1 from average and temp2
+            float temp1_c = 2.0f * entry->temperature_celsius - entry->temperature2_celsius;
+            float temp2_c = entry->temperature2_celsius;
+
+            // Convert to selected unit
+            float temp1, temp2;
+            if(model->temp_unit == VkThermoTempUnitFahrenheit) {
+                temp1 = vk_thermo_celsius_to_fahrenheit(temp1_c);
+                temp2 = vk_thermo_celsius_to_fahrenheit(temp2_c);
+            } else if(model->temp_unit == VkThermoTempUnitKelvin) {
+                temp1 = vk_thermo_celsius_to_kelvin(temp1_c);
+                temp2 = vk_thermo_celsius_to_kelvin(temp2_c);
+            } else {
+                temp1 = temp1_c;
+                temp2 = temp2_c;
+            }
+
+            // Format and draw second line
+            char dual_str[24];
+            snprintf(dual_str, sizeof(dual_str), "(%.2f / %.2f)", (double)temp1, (double)temp2);
+            canvas_draw_str(canvas, 67, y + 8, dual_str);
+
+            y += 8; // Extra spacing for dual-temp entry
+        }
+
         y += 10;
         displayed++;
     }

@@ -54,7 +54,7 @@ void free_apple_game(AppleGame* AP) {
 
     view_port_enabled_set(AP->view_port, false);
     gui_remove_view_port(AP->gui, AP->view_port);
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
     view_port_free(AP->view_port);
     furi_message_queue_free(AP->event_queue);
 
@@ -88,7 +88,7 @@ AppleGame* apple_allocation() {
     AP->timer = furi_timer_alloc(timer_cb, FuriTimerTypePeriodic, AP);
     furi_timer_start(AP->timer, furi_kernel_get_tick_frequency() / 4);
 
-    AP->gui = furi_record_open("gui");
+    AP->gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(AP->gui, AP->view_port, GuiLayerFullscreen);
 
     AP->game_speed = GAME_SPEED;

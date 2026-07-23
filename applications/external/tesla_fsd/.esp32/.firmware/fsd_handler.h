@@ -75,6 +75,10 @@ bool fsd_das_ctx_fresh(const FSDState *state, uint32_t now_ms);
  *  of centre (latches it on). Mutates soft_engage_latched; reset it when AP drops. */
 bool fsd_soft_engage_allows(FSDState *state);
 
+// DAS_autopilotState: 2 = AVAILABLE (offered, not engaged), 3 = first genuinely
+// engaged state. AP-First gates injection at >= ENGAGED so it never fires while
+// AP is merely available (#108).
+#define DAS_APSTATE_ENGAGED  3u
 // Abort Guard (#108): DAS_autopilotState values meaning the car is aborting.
 #define DAS_APSTATE_ABORTING 8u
 #define DAS_APSTATE_ABORTED  9u

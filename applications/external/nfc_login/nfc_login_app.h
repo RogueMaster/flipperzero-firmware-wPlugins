@@ -55,7 +55,7 @@
 
 #if !defined(HAS_MOMENTUM_SUPPORT)
 #ifdef __has_include
-#if __has_include(<cfw/cfw.h>) || __has_include(<firmware/momentum.h>)
+#if __has_include(<cfw/cfw.h>) || __has_include(<firmware/cfw.h>)
 #define HAS_MOMENTUM_SUPPORT
 #elif defined(FIRMWARE_MOMENTUM) || defined(MOMENTUM_FIRMWARE) || defined(__MOMENTUM__) || \
     defined(MOMENTUM) || defined(HAS_MOMENTUM) || defined(MOMENTUM_FW)
@@ -78,7 +78,7 @@
 #define MAX_UID_LEN                   10
 #define MAX_PASSWORD_LEN              64
 #define MAX_LAYOUT_PATH               256
-#define SETTINGS_MENU_ITEMS           7
+#define SETTINGS_MENU_ITEMS           9
 #define SETTINGS_VISIBLE_ITEMS        3
 #define SETTINGS_HELP_Y_POS           54
 #define CREDITS_PAGES                 2
@@ -213,6 +213,8 @@ typedef struct {
     bool passcode_needed;
     bool passcode_disabled; // Disable passcode for NFC Login app only
     uint8_t passcode_failed_attempts; // Track failed passcode attempts
+    bool sound_enabled;
+    bool vibro_enabled;
 
     HidMode hid_mode; // USB or BLE HID mode
 } App;

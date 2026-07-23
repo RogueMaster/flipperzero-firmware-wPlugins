@@ -1,0 +1,14 @@
+App(
+    appid="walkie_talkie",
+    name="Walkie Talkie",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="walkie_talkie_app",
+    stack_size=4 * 1024,
+    fap_icon="walkie_talkie.png",
+    fap_category="Sub-GHz",
+    fap_author="coolshrimp",
+    fap_weburl="https://github.com/coolshrimp/flipperzero-walkie-talkie",
+    fap_version="1.1",
+    fap_description="Receive-only FRS channel activity and RSSI scanner",
+)

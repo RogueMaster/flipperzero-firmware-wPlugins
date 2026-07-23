@@ -1,0 +1,7 @@
+# Name   ,Type ,SubType  ,Offset ,Size  ,Flags
+nvs      ,data ,nvs      ,36K    ,20K   ,
+otadata  ,data ,ota      ,56K    ,8K    ,
+app0     ,app  ,ota_0    ,64K    ,1856K  ,
+app1     ,app  ,ota_1    ,1920K  ,1856K ,
+spiffs   ,data ,spiffs   ,3776K  ,256K   ,
+coredump ,data ,coredump ,4032K  ,64K   ,

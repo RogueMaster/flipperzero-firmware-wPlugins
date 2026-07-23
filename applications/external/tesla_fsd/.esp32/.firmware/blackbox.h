@@ -66,6 +66,12 @@ void blackbox_init(FSDState* state, portMUX_TYPE* state_mux);
 // disabled or when the id isn't a key diagnostic id (see fsd_blackbox_filter.h).
 void blackbox_record(CanBusId bus, const CanFrame& frame, uint32_t now_ms);
 
+// Record one injected TX frame into the ring — same id filter and ring path as
+// blackbox_record, tagged TX so the capture distinguishes our frames from the
+// bus. Called centrally from send_on_bus() so every injection (0x3EE / 0x3FD /
+// the 0x370 nag echo) is captured without touching each call site.
+void blackbox_record_tx(CanBusId bus, const CanFrame& frame, uint32_t now_ms);
+
 // Note the current das_ap_state for the mini-timeline (call once per frame).
 void blackbox_note_ap_state(uint8_t ap_state, uint32_t now_ms);
 

@@ -26,43 +26,45 @@ void period_tracker_scene_event_history_on_enter(void* context) {
 
     uint16_t event_count = 0;
 
-    // Load only up to HISTORY_BUFFER_SIZE events (reduces memory from 20KB to 4KB)
-    if(events_load_all(
-           app->storage, app->current_girl_name, events, &event_count, HISTORY_BUFFER_SIZE)) {
-        if(event_count == 0) {
-            furi_string_cat_printf(app->text_box_store, "No events logged yet.\n\n");
+    // Load only up to HISTORY_BUFFER_SIZE events (reduces memory from 20KB to 4KB).
+    // Missing events file (new profile) is a normal empty state, not an error.
+    bool loaded = events_load_all(
+        app->storage, app->current_girl_name, events, &event_count, HISTORY_BUFFER_SIZE);
+
+    if(!loaded || event_count == 0) {
+        furi_string_cat_printf(
+            app->text_box_store,
+            "No period data logged yet.\n\n"
+            "Log your first period start to begin tracking!\n\n");
+    } else {
+        // Show note if there are more events than we loaded
+        if(event_count >= HISTORY_BUFFER_SIZE) {
+            furi_string_cat_printf(
+                app->text_box_store,
+                "Showing %u most recent events\n(file has more)\n\n",
+                HISTORY_BUFFER_SIZE);
         } else {
-            // Show note if there are more events than we loaded
-            if(event_count >= HISTORY_BUFFER_SIZE) {
-                furi_string_cat_printf(
-                    app->text_box_store,
-                    "Showing %u most recent events\n(file has more)\n\n",
-                    HISTORY_BUFFER_SIZE);
-            } else {
-                furi_string_cat_printf(app->text_box_store, "Total events: %u\n\n", event_count);
+            furi_string_cat_printf(app->text_box_store, "Total events: %u\n\n", event_count);
+        }
+
+        // Display events in reverse chronological order (newest first)
+        for(int i = event_count - 1; i >= 0; i--) {
+            // Check string size to prevent overflow
+            if(furi_string_size(app->text_box_store) > 2000) {
+                furi_string_cat_printf(app->text_box_store, "\n... (more events)\n");
+                break;
             }
 
-            // Display events in reverse chronological order (newest first)
-            for(int i = event_count - 1; i >= 0; i--) {
-                // Check string size to prevent overflow
-                if(furi_string_size(app->text_box_store) > 2000) {
-                    furi_string_cat_printf(app->text_box_store, "\n... (more events)\n");
-                    break;
-                }
+            char date_str[16];
+            format_date_string(&events[i].date, date_str, sizeof(date_str));
 
-                char date_str[16];
-                format_date_string(&events[i].date, date_str, sizeof(date_str));
-
-                if(events[i].type == EventTypePeriodStart) {
-                    furi_string_cat_printf(app->text_box_store, "%s - Period Start\n", date_str);
-                } else if(events[i].type == EventTypeSymptom) {
-                    furi_string_cat_printf(
-                        app->text_box_store, "%s - %s\n", date_str, events[i].value);
-                }
+            if(events[i].type == EventTypePeriodStart) {
+                furi_string_cat_printf(app->text_box_store, "%s - Period Start\n", date_str);
+            } else if(events[i].type == EventTypeSymptom) {
+                furi_string_cat_printf(
+                    app->text_box_store, "%s - %s\n", date_str, events[i].value);
             }
         }
-    } else {
-        furi_string_cat_printf(app->text_box_store, "Error loading events.\n\n");
     }
 
     // Free events array

@@ -19,9 +19,18 @@ uint16_t generate_all_predictions(
     uint16_t max_predictions,
     uint16_t num_days);
 
-// Get predictions for today only (for daily digest)
-// If shared_buffer is provided, uses it to avoid malloc (pass app->prediction_buffer)
-// Otherwise falls back to local malloc
+// Predictions that should alert the user on app open / PIN unlock.
+// Uses the same horizon as Daily Digest (alert lead time in days from today).
+// If shared_buffer is provided, uses it to avoid malloc (pass app->prediction_buffer).
+uint16_t get_alert_predictions(
+    Storage* storage,
+    Prediction* predictions,
+    uint16_t max_predictions,
+    Prediction* shared_buffer,
+    uint16_t shared_buffer_size,
+    uint8_t lead_days);
+
+// Legacy name: same as get_alert_predictions with lead_days=1 (today-focused).
 uint16_t get_today_predictions(
     Storage* storage,
     Prediction* predictions,

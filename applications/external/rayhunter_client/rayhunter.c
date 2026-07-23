@@ -346,7 +346,6 @@ static void rh_settings_interval_cb(VariableItem* item) {
 
 static void rh_settings_setup(RhApp* app) {
     variable_item_list_reset(app->settings_view);
-    variable_item_list_set_header(app->settings_view, "Settings");
 
     /* --- Host --- */
     VariableItem* host_item = variable_item_list_add(
@@ -485,7 +484,16 @@ static void rh_app_free(RhApp* app) {
     /* Stop worker (unregisters UART callback). */
     rh_worker_stop(app);
 
-    /* Remove views before freeing underlying objects. */
+    /* Free the UART *before* the views. rh_worker_stop() only nulls the RX
+       callback pointer; it does not join the UART worker thread — that join
+       happens inside rh_uart_free(). If the views were freed first, a UART
+       line already in flight could still be running rh_worker_rx_line() and
+       touch the freed main_view / view_dispatcher (use-after-free). Joining
+       the worker here guarantees no callback can fire once views are freed. */
+    rh_uart_free(app->uart);
+    app->uart = NULL;
+
+    /* Remove views (safe now: the UART worker is joined and dead). */
     view_dispatcher_remove_view(app->view_dispatcher, RhViewMain);
     view_dispatcher_remove_view(app->view_dispatcher, RhViewSettings);
     view_dispatcher_remove_view(app->view_dispatcher, RhViewAbout);
@@ -495,10 +503,6 @@ static void rh_app_free(RhApp* app) {
     view_free(app->main_view);
     variable_item_list_free(app->settings_view);
     widget_free(app->about_widget);
-
-    /* Free UART after removing all views (no callbacks can fire now). */
-    rh_uart_free(app->uart);
-    app->uart = NULL;
 
     furi_mutex_free(app->config_mutex);
 

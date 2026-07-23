@@ -600,11 +600,13 @@ int app_entry(void* p) {
     }
 
     furi_timer_stop(timer);
+    furi_timer_free(timer);
     view_port_enabled_set(view_port, false);
     gui_remove_view_port(gui, view_port);
     furi_record_close(RECORD_GUI);
     view_port_free(view_port);
     furi_message_queue_free(event_queue);
+    furi_mutex_free(mutex);
     /** Kilépés **/
     EmptyEnemyList(&Enemies); /* Megmaradt ellenségek felszabadítása */
     EmptyScenery(&Scene); /* Megmaradt pályaelemek felszabadítása */

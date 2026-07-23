@@ -8,7 +8,7 @@ Turn your **Flipper Zero + W5500 Lite** module into a professional-grade portabl
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Language](https://img.shields.io/badge/language-C99-green)
 ![Build](https://img.shields.io/badge/build-ufbt-yellow)
-![Version](https://img.shields.io/badge/version-2.7.0-brightgreen)
+![Version](https://img.shields.io/badge/version-2.10.0-brightgreen)
 
 **[English docs](docs/en/README.md)** | **[Документация на русском](docs/ru/README.md)**
 
@@ -28,6 +28,7 @@ Turn your **Flipper Zero + W5500 Lite** module into a professional-grade portabl
 | **Continuous Ping** | Real-time RTT graph with min/max/avg and packet loss, configurable interval |
 | **DNS Lookup** | Resolve hostnames via UDP DNS, supports custom DNS server |
 | **Traceroute** | ICMP-based hop-by-hop path discovery, accepts IPs and hostnames with DNS resolve |
+| **TCP Ping** | TCP connect test to any IP and port — reachability check for networks that filter ICMP |
 | **Ping Sweep** | ICMP sweep of an entire subnet with interactive host list — click to ping, scan, or WOL |
 | **Port Scanner** | TCP connect scan: Top-20, Top-100 presets, or custom port range (1-65535) |
 | **LLDP/CDP** | Passive IEEE 802.1AB & Cisco CDP neighbor discovery with full TLV parsing |
@@ -54,7 +55,7 @@ Turn your **Flipper Zero + W5500 Lite** module into a professional-grade portabl
 | **TFTP Client** | Download config files from network equipment via TFTP, save to SD card |
 | **IPMI v1.5** | Query BMC: chassis power status, device ID, firmware version |
 | **History** | All scan results auto-saved with timestamps, browsable and deletable |
-| **Settings** | Auto-save, sound/vibro, custom DNS, ping config, target persistence, MAC Changer |
+| **Settings** | Auto-save, sound/vibro, custom DNS, static IP (manual network), ping config, target persistence, MAC Changer |
 
 ### UX Highlights
 
@@ -167,12 +168,30 @@ The compiled `.fap` file will appear in `dist/`. You can also copy it manually t
 │   ├── oui_lookup.c / .h       # MAC → Vendor (top ~120 OUI prefixes)
 │   └── packet_utils.c / .h     # Endian helpers, checksums, formatters
 │
+├── plugins/                     # Per-category tool code, built as embedded .fal
+│   ├── lan_tester_portinfo.c   #   loaded on demand and freed on exit
+│   ├── lan_tester_scan.c
+│   ├── lan_tester_diag.c
+│   ├── lan_tester_util.c / _util2.c
+│   ├── lan_tester_security.c
+│   ├── lan_tester_pxe.c        # PXE server + iPXE download
+│   └── lan_tester_filemgr.c    # Web-based file manager
+│
+├── api/                         # Host API table exposing shared helpers to plugins
+│   ├── lan_tester_api_table*    # HashtableApiInterface (functions + variables)
+│   ├── lan_tester_ioshim.h      # W5500 socket subset the plugins call
+│   └── lan_tester_exports.h
+│
 ├── assets/
 │   └── icon.png                 # 10x10 FAP icon
 │
 └── lib/
     └── ioLibrary_Driver/        # WIZnet W5500 driver
 ```
+
+### On-demand tool modules
+
+To keep memory use low on the Flipper's limited heap, each tool category is compiled into its own embedded plugin (a `.fal` bundled inside the `.fap`). The host app loads a category's plugin only while one of its tools is running and frees it on the way out, so only the code you are actively using is resident in RAM. Plugins reach the shared W5500 driver and app helpers through the host's API table (`api/`). This replaced an earlier single-binary layout that could run out of memory at launch on tighter builds.
 
 ## Usage
 
@@ -201,6 +220,7 @@ The compiled `.fap` file will appear in `dist/`. You can also copy it manually t
 - **Continuous Ping** — live RTT graph with loss tracking, runs until Back.
 - **DNS Lookup** — resolves a hostname via the DHCP-provided DNS server.
 - **Traceroute** — hop-by-hop ICMP path discovery up to 30 hops.
+- **TCP Ping** — TCP connect test to any IP and port. Use when ICMP is filtered: an accepted connection or a refusal (RST) both prove the host is reachable.
 - **NTP Diagnostics** — stratum, root delay, reference ID, RTT, UTC time and clock diff.
 - **Apply NTP Sync** — apply cached NTP time to Flipper clock (run NTP Diagnostics first).
 - **DNS Poison Check** — compare local vs public DNS responses.
@@ -228,6 +248,8 @@ The compiled `.fap` file will appear in `dist/`. You can also copy it manually t
 ### Settings
 - **Auto-save results** — ON/OFF, controls automatic history saving.
 - **Sound & vibro** — ON/OFF, controls LED/vibro notifications.
+- **Custom DNS** — ON/OFF plus a DNS Server IP, used instead of the DHCP-provided one.
+- **Static IP** — ON/OFF plus IP Address / Subnet Mask / Gateway, used instead of DHCP when no DHCP server is available.
 - **Clear History** — delete all saved result files.
 - **MAC Changer** — generate random MAC or enter custom, saved to SD.
 - **Target persistence** — last-used IP/hostname per tool saved to settings.conf, restored on next launch.
@@ -316,7 +338,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 | **TFTP Client** | Скачивание конфигурационных файлов с оборудования по TFTP на SD-карту |
 | **IPMI v1.5** | Запрос BMC: статус питания шасси, ID устройства, версия прошивки |
 | **История** | Все результаты автосохраняются с метками времени, просмотр и удаление |
-| **Настройки** | Автосохранение, звук/вибрация, DNS, пинг, сохранение целей, MAC Changer |
+| **Настройки** | Автосохранение, звук/вибрация, DNS, статический IP (ручная сеть), пинг, сохранение целей, MAC Changer |
 
 ### UX-особенности
 
@@ -461,6 +483,7 @@ ufbt install            # установка .fap на SD-карту Flipper
 - **Continuous Ping** — график RTT с отслеживанием потерь.
 - **DNS Lookup** — разрешение имён через DNS.
 - **Traceroute** — ICMP-трассировка до 30 хопов.
+- **TCP Ping** — TCP-проверка доступности по IP и порту. Полезно, когда ICMP заблокирован: и успешное соединение, и отказ (RST) означают, что хост доступен.
 - **NTP Diagnostics** — stratum, root delay, reference ID, RTT, UTC-время и расхождение.
 - **Apply NTP Sync** — применение NTP-времени к часам Flipper (сначала запустите NTP Diagnostics).
 - **DNS Poison Check** — сравнение локального и публичного DNS.

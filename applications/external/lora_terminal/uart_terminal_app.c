@@ -74,6 +74,7 @@ void uart_terminal_app_free(UART_TerminalApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, UART_TerminalAppViewVarItemList);
     view_dispatcher_remove_view(app->view_dispatcher, UART_TerminalAppViewConsoleOutput);
     view_dispatcher_remove_view(app->view_dispatcher, UART_TerminalAppViewTextInput);
+    variable_item_list_free(app->var_item_list);
     text_box_free(app->text_box);
     furi_string_free(app->text_box_store);
     uart_text_input_free(app->text_input);

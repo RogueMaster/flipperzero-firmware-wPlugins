@@ -1,0 +1,70 @@
+Pack: Around the World
+Q: What is the capital of Australia?
+A: Sydney
+B: Canberra
+C: Melbourne
+D: Perth
+Answer: B
+---
+Q: Which is the largest country by land area?
+A: China
+B: USA
+C: Russia
+D: Canada
+Answer: C
+---
+Q: The Nile river flows mainly through which country?
+A: Egypt
+B: Brazil
+C: India
+D: Congo
+Answer: A
+---
+Q: Mount Everest sits on the border of Nepal and which country?
+A: India
+B: China
+C: Bhutan
+D: Pakistan
+Answer: B
+---
+Q: What is the smallest country in the world?
+A: Monaco
+B: Nauru
+C: Malta
+D: Vatican City
+Answer: D
+---
+Q: Which is the largest ocean on Earth?
+A: Atlantic
+B: Pacific
+C: Indian
+D: Arctic
+Answer: B
+---
+Q: The Sahara Desert is on which continent?
+A: Africa
+B: Asia
+C: Australia
+D: South America
+Answer: A
+---
+Q: Which is the largest US state by area?
+A: Texas
+B: Alaska
+C: California
+D: Montana
+Answer: B
+---
+Q: The Great Barrier Reef lies off the coast of which country?
+A: Brazil
+B: Thailand
+C: Australia
+D: Mexico
+Answer: C
+---
+Q: Which country has the most time zones?
+A: France
+B: Russia
+C: USA
+D: China
+Answer: A

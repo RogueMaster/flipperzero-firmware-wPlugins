@@ -3,9 +3,8 @@
 
 #include <furi.h>
 #include <storage/storage.h>
-#include <socket.h>
-#include <wizchip_conf.h>
-#include <w5500.h>
+/* Compiled into the PXE plugin — socket subset comes from the API-table shim. */
+#include "../api/lan_tester_ioshim.h"
 
 #include <string.h>
 #include <stdio.h>

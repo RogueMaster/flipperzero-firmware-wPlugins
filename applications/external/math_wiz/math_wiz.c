@@ -272,7 +272,7 @@ int32_t math_wiz_main(void* p) {
     view_port_draw_callback_set(view_port, math_wiz_render_callback, app);
     view_port_input_callback_set(view_port, math_wiz_input_callback, app);
 
-    Gui* gui = furi_record_open("gui");
+    Gui* gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
     // Main loop
@@ -283,7 +283,7 @@ int32_t math_wiz_main(void* p) {
     // Cleanup
     gui_remove_view_port(gui, view_port);
     view_port_free(view_port);
-    furi_record_close("gui");
+    furi_record_close(RECORD_GUI);
     free(app);
 
     return 0;

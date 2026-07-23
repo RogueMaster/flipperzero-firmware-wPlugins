@@ -12,15 +12,17 @@
 #define FREQ_N        4
 #define HAM_N         8
 
-#define CARRIER_HZ 433250000UL
+#define CARRIER_HZ 432500000UL
 #define MY_CALL    "FL1PER"
 #define MY_TOCALL  "APZFLP"
 
-#define CFG_DIR       "/ext/apps_data/aprstx"
-#define CFG_FILE      "/ext/apps_data/aprstx/cfg.bin"
-#define CALLBOOK_DIR  "/ext/ham"
-#define CALLBOOK_FILE "/ext/ham/callbook.txt"
-#define MY_CALLS_FILE "/ext/ham/my-callsigns.txt"
+#define CFG_DIR              "/ext/apps_data/aprstx"
+#define CFG_FILE             "/ext/apps_data/aprstx/cfg.bin"
+#define CALLBOOK_DIR         CFG_DIR
+#define CALLBOOK_FILE        CFG_DIR "/callbook.txt"
+#define MY_CALLS_FILE        CFG_DIR "/my-callsigns.txt"
+#define LEGACY_CALLBOOK_FILE "/ext/ham/callbook.txt"
+#define LEGACY_MY_CALLS_FILE "/ext/ham/my-callsigns.txt"
 
 typedef struct {
     uint8_t encoding_index;
@@ -64,6 +66,7 @@ typedef struct {
 enum {
     FlipperHamRadioInternal = 0,
     FlipperHamRadioExternal,
+    FlipperHamRadioAuto,
 };
 
 enum {
@@ -83,6 +86,7 @@ enum {
     FlipperHamViewCoordInput,
     FlipperHamViewFreq,
     FlipperHamViewFreqEdit,
+    FlipperHamViewFreqInput,
     FlipperHamViewPosEdit,
     FlipperHamViewPosAction,
     FlipperHamViewHam,

@@ -469,6 +469,7 @@ NfcCommand passy_reader_read_dg2_or_dg7(PassyReader* passy_reader) {
     } while(passy->offset < body_size);
 
     file_stream_close(stream);
+    stream_free(stream);
     furi_record_close(RECORD_STORAGE);
     furi_string_free(path);
 
@@ -522,6 +523,7 @@ NfcCommand passy_reader_read_dg_generic(PassyReader* passy_reader) {
     } while(passy->offset < body_size);
 
     file_stream_close(stream);
+    stream_free(stream);
     furi_record_close(RECORD_STORAGE);
     furi_string_free(path);
 

@@ -120,6 +120,8 @@ bool UFZ::File::open(
     const char* path,
     const FS_AccessMode accessMode,
     const FS_OpenMode openMode) noexcept {
+    // Release any handle from a previous open() so re-opening does not leak it.
+    free();
     storage = const_cast<Filesystem*>(&store);
     init();
     return storage_file_open(file, path, accessMode, openMode);
@@ -170,8 +172,17 @@ bool UFZ::File::copyToFile(const File& source, const File& destination, const si
 }
 
 void UFZ::File::close() noexcept {
-    storage_file_close(file);
-    free();
+    // Guard against a never-opened or already-closed File: storage_file_close(nullptr)
+    // trips furi_check. free() nulls the handle, so a second close() is a no-op.
+    if(file != nullptr) {
+        // A handle opened as a directory must be closed with storage_dir_close, not
+        // storage_file_close — closing it as the wrong stream type is a mismatched close.
+        if(bDirectory)
+            storage_dir_close(file);
+        else
+            storage_file_close(file);
+        free();
+    }
 }
 
 UFZ::File::~File() noexcept {
@@ -184,6 +195,7 @@ void UFZ::File::init() noexcept {
 
 void UFZ::File::free() noexcept {
     FREE_GUARD(storage_file_free, file);
+    bDirectory = false;
 }
 
 // =====================================================================================================================
@@ -196,17 +208,26 @@ UFZ::Directory::Directory(File& f) noexcept {
 
 bool UFZ::Directory::open(UFZ::File& f, const char* path) noexcept {
     file = &f;
+    // Mark the File as a directory so its teardown (here or in ~File) closes it as one.
+    file->bDirectory = true;
     return storage_dir_open(file->file, path);
 }
 
 bool UFZ::Directory::close() const noexcept {
-    return storage_dir_close(file->file);
+    if(file == nullptr || file->file == nullptr) return false;
+    const bool result = storage_dir_close(file->file);
+    // Release the handle now so the owning File's destructor does not close it a second
+    // time; free() also clears bDirectory.
+    file->free();
+    return result;
 }
 
 bool UFZ::Directory::read(FileInfo* info, char* name, const uint16_t nameLength) const noexcept {
+    if(file == nullptr) return false;
     return storage_dir_read(file->file, info, name, nameLength);
 }
 
 bool UFZ::Directory::rewind() const noexcept {
+    if(file == nullptr) return false;
     return storage_dir_rewind(file->file);
 }

@@ -1,0 +1,157 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  arduino:
+    name: Arduino
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - core: esp32:esp32
+            board: esp32:esp32:esp32
+            index_url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          # - core: esp32:esp32
+          #   board: esp32:esp32:esp32
+          #   index_url: https://espressif.github.io/arduino-esp32/package_esp32_dev_index.json
+          - core: esp8266:esp8266
+            board: esp8266:esp8266:huzzah
+            index_url: https://arduino.esp8266.com/stable/package_esp8266com_index.json
+          - name: package_rp2040_index.json
+            core: rp2040:rp2040
+            board: rp2040:rp2040:rpipicow
+            index_url: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Arduino Lint
+        uses: arduino/arduino-lint-action@v2
+        with:
+          library-manager: update
+
+      - name: Install arduino-cli
+        run: curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh
+
+      - name: Update core index
+        run: arduino-cli core update-index --additional-urls "${{ matrix.index_url }}"
+
+      - name: Install core
+        run: arduino-cli core install --additional-urls "${{ matrix.index_url }}" ${{ matrix.core }}
+
+      - name: Install ArduinoJson
+        run: arduino-cli lib install ArduinoJson
+
+      - name: Install AsyncTCP (ESP32)
+        if: ${{ matrix.core == 'esp32:esp32' }}
+        run: ARDUINO_LIBRARY_ENABLE_UNSAFE_INSTALL=true arduino-cli lib install --git-url https://github.com/ESP32Async/AsyncTCP#v3.3.2
+
+      - name: Install ESPAsyncTCP (ESP8266)
+        if: ${{ matrix.core == 'esp8266:esp8266' }}
+        run: ARDUINO_LIBRARY_ENABLE_UNSAFE_INSTALL=true arduino-cli lib install --git-url https://github.com/ESP32Async/ESPAsyncTCP#v2.0.0
+
+      - name: Install AsyncTCP (RP2040)
+        if: ${{ matrix.core == 'rp2040:rp2040' }}
+        run: ARDUINO_LIBRARY_ENABLE_UNSAFE_INSTALL=true arduino-cli lib install --git-url https://github.com/khoih-prog/AsyncTCP_RP2040W#v1.2.0
+
+      - name: Build CaptivePortal
+        run: arduino-cli compile --library . --warnings none -b ${{ matrix.board }} "examples/CaptivePortal/CaptivePortal.ino"
+
+      - name: Build SimpleServer
+        run: arduino-cli compile --library . --warnings none -b ${{ matrix.board }} "examples/SimpleServer/SimpleServer.ino"
+
+      - name: Build Filters
+        run: arduino-cli compile --library . --warnings none -b ${{ matrix.board }} "examples/Filters/Filters.ino"
+
+      - name: Build StreamFiles
+        run: arduino-cli compile --library . --warnings none -b ${{ matrix.board }} "examples/StreamFiles/StreamFiles.ino"
+
+  platformio:
+    name: "pio:${{ matrix.env }}:${{ matrix.board }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - env: ci-arduino-2
+            board: esp32dev
+          - env: ci-arduino-2
+            board: esp32-s2-saola-1
+          - env: ci-arduino-2
+            board: esp32-s3-devkitc-1
+          - env: ci-arduino-2
+            board: esp32-c3-devkitc-02
+
+          - env: ci-arduino-3
+            board: esp32dev
+          - env: ci-arduino-3
+            board: esp32-s2-saola-1
+          - env: ci-arduino-3
+            board: esp32-s3-devkitc-1
+          - env: ci-arduino-3
+            board: esp32-c3-devkitc-02
+          - env: ci-arduino-3
+            board: esp32-c6-devkitc-1
+          - env: ci-arduino-3
+            board: esp32-h2-devkitm-1
+
+          - env: ci-arduino-3-no-json
+            board: esp32dev
+
+          - env: ci-arduino-311
+            board: esp32dev
+          - env: ci-arduino-311
+            board: esp32-s2-saola-1
+          - env: ci-arduino-311
+            board: esp32-s3-devkitc-1
+          - env: ci-arduino-311
+            board: esp32-c3-devkitc-02
+          - env: ci-arduino-311
+            board: esp32-c6-devkitc-1
+          - env: ci-arduino-311
+            board: esp32-h2-devkitm-1
+
+          - env: ci-esp8266
+            board: huzzah
+          - env: ci-esp8266
+            board: d1_mini
+
+          - env: ci-raspberrypi
+            board: rpipicow
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-pio
+          path: |
+            ~/.cache/pip
+            ~/.platformio
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Build
+        run: |
+          python -m pip install --upgrade pip
+          pip install --upgrade platformio
+      
+      - run: PLATFORMIO_SRC_DIR=examples/CaptivePortal PIO_BOARD=${{ matrix.board }} pio run -e ${{ matrix.env }}
+      - run: PLATFORMIO_SRC_DIR=examples/SimpleServer PIO_BOARD=${{ matrix.board }} pio run -e ${{ matrix.env }}
+      - run: PLATFORMIO_SRC_DIR=examples/Filters PIO_BOARD=${{ matrix.board }} pio run -e ${{ matrix.env }}
+      - run: PLATFORMIO_SRC_DIR=examples/StreamFiles PIO_BOARD=${{ matrix.board }} pio run -e ${{ matrix.env }}

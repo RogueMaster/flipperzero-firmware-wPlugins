@@ -2,7 +2,7 @@ App(
     appid="subghz_jammer_detect",
     name="Sub-GHz Jammer Detect",
     apptype=FlipperAppType.EXTERNAL,
-    entry_point="subghz_jammer_detect_app",
+    entry_point="subghz_jammer_app",
     stack_size=4 * 1024,
     fap_category="Sub-GHz",
     fap_author="PentestSuite / barkandbite",

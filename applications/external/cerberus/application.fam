@@ -1,0 +1,15 @@
+App(
+    appid="cerberus",
+    name="Cerberus",
+    apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
+    entry_point="cerberus_app",
+    stack_size=4 * 1024,
+    fap_icon="images/cerberus_10px.png",
+    fap_libs=["subghz"],
+    fap_category="Sub-GHz",
+    fap_author="at0m-b0mb",
+    fap_version="1.1",
+    fap_weburl="https://github.com/at0m-b0mb/flipper-cerberus",
+    fap_description="Cerberus - a passive Sub-GHz RF watchdog. Guards the 433/868/915 MHz bands and alerts on jamming, signal floods and replay attacks against your own space.",
+)

@@ -13,6 +13,8 @@ UFZ::View::operator ::View*() const noexcept {
 }
 
 UFZ::View& UFZ::View::allocate() noexcept {
+    // Releasing any previously owned view first; overwriting it would orphan the handle.
+    free();
     view = view_alloc();
     bAllocated = true;
     return *this;
@@ -170,7 +172,7 @@ ButtonMenuItem* UFZ::ButtonMenu::addItem(
     return button_menu_add_item(button_menu, label, index, callback, type, context);
 }
 
-void UFZ::ButtonMenu::setHeader(const char* header) const {
+void UFZ::ButtonMenu::setHeader(const char* header) const noexcept {
     button_menu_set_header(button_menu, header);
 }
 
@@ -255,6 +257,10 @@ void UFZ::ByteInput::free() noexcept {
     FREE_GUARD(byte_input_free, byte_input);
 }
 
+// The C module exposes no byte_input_reset(); nothing to forward to.
+void UFZ::ByteInput::reset() noexcept {
+}
+
 // =====================================================================================================================
 // =================================================== Number Input ====================================================
 // =====================================================================================================================
@@ -267,6 +273,26 @@ void UFZ::NumberInput::setResultCallback(
     const int32_t max) const noexcept {
     number_input_set_result_callback(
         number_input, inputCallback, context, currentNumber, min, max);
+}
+
+void UFZ::NumberInput::setHeaderText(const char* text) const noexcept {
+    number_input_set_header_text(number_input, text);
+}
+
+UFZ::View UFZ::NumberInput::getWidgetView() noexcept {
+    return UFZ::View(number_input_get_view(number_input));
+}
+
+void UFZ::NumberInput::alloc() noexcept {
+    number_input = number_input_alloc();
+}
+
+void UFZ::NumberInput::free() noexcept {
+    FREE_GUARD(number_input_free, number_input);
+}
+
+// The C module exposes no number_input_reset(); nothing to forward to.
+void UFZ::NumberInput::reset() noexcept {
 }
 
 // =====================================================================================================================
@@ -342,11 +368,15 @@ void UFZ::EmptyScreen::free() noexcept {
 }
 
 void UFZ::EmptyScreen::alloc() noexcept {
-    empty_screen_alloc();
+    empty_screen = empty_screen_alloc();
 }
 
 UFZ::View UFZ::EmptyScreen::getWidgetView() noexcept {
     return UFZ::View(empty_screen_get_view(empty_screen));
+}
+
+// The C module exposes no empty_screen_reset(); nothing to forward to.
+void UFZ::EmptyScreen::reset() noexcept {
 }
 
 // =====================================================================================================================
@@ -363,6 +393,10 @@ void UFZ::Loading::alloc() noexcept {
 
 UFZ::View UFZ::Loading::getWidgetView() noexcept {
     return UFZ::View(loading_get_view(loading));
+}
+
+// The C module exposes no loading_reset(); nothing to forward to.
+void UFZ::Loading::reset() noexcept {
 }
 
 // =====================================================================================================================
@@ -414,7 +448,7 @@ void UFZ::Popup::enableTimeout() const noexcept {
     popup_enable_timeout(popup);
 }
 
-void UFZ::Popup::disableTimout() const noexcept {
+void UFZ::Popup::disableTimeout() const noexcept {
     popup_disable_timeout(popup);
 }
 
@@ -479,8 +513,8 @@ void UFZ::TextInput::setValidator(const TextInputValidatorCallback callback, voi
     text_input_set_validator(text_input, callback, context);
 }
 
-void UFZ::TextInput::getValidatorCallbackContext() const noexcept {
-    text_input_get_validator_callback_context(text_input);
+void* UFZ::TextInput::getValidatorCallbackContext() const noexcept {
+    return text_input_get_validator_callback_context(text_input);
 }
 
 void UFZ::TextInput::setHeaderText(const char* text) const noexcept {

@@ -192,7 +192,8 @@ static void render_callback(Canvas *const canvas, void *ctx) {
 
   if (runTime - gameState.roundStartTs < ROUND_TITLE_TIME) {
     char roundStr[] = "ROUND    ";
-    snprintf(roundStr + 6 * sizeof(char), 4, "%d", (uint8_t) gameState.round + 1); // round 0 -> print round 1
+    snprintf(roundStr + 6 * sizeof(char), 4, "%d",
+             (uint8_t) gameState.round + 1); // round 0 -> print round 1
     canvas_draw_str_aligned(canvas, 64, 25, AlignCenter, AlignCenter, roundStr);
   }
   if (gameState.health <= 0) {
