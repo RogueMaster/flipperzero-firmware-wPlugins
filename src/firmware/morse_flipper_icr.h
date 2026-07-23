@@ -46,9 +46,7 @@ char morse_flipper_icr_char_at(uint8_t index);
 uint8_t morse_flipper_icr_char_index(char ch);
 uint8_t morse_flipper_icr_reaction_bucket(uint32_t reaction_ms);
 uint8_t morse_flipper_icr_target_weight(const MorseFlipperIcrStats* stats, uint8_t index);
-uint8_t morse_flipper_icr_pick_target(
-    const MorseFlipperIcrStats* stats,
-    uint32_t* rng_state);
+uint8_t morse_flipper_icr_pick_target(const MorseFlipperIcrStats* stats, uint32_t* rng_state);
 void morse_flipper_icr_build_choices(
     const MorseFlipperIcrStats* stats,
     uint8_t target,

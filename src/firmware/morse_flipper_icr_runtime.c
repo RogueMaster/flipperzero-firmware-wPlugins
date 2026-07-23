@@ -158,10 +158,7 @@ static void morse_flipper_icr_finish_timeout(MorseFlipperApp* app, uint32_t now_
     if(app->icr_target >= MORSE_FLIPPER_ICR_CHAR_COUNT) return;
 
     morse_flipper_icr_note_answer(
-        app->icr_stats,
-        app->icr_target,
-        MORSE_FLIPPER_ICR_NO_CHOICE,
-        MORSE_FLIPPER_ICR_TIMEOUT_MS);
+        app->icr_stats, app->icr_target, MORSE_FLIPPER_ICR_NO_CHOICE, MORSE_FLIPPER_ICR_TIMEOUT_MS);
     app->icr_stats_dirty = true;
     app->icr_choice = MORSE_FLIPPER_ICR_NO_CHOICE;
     app->icr_answer_correct = false;
@@ -373,11 +370,7 @@ static uint8_t morse_flipper_icr_bar_height(uint8_t bucket) {
     return 8U;
 }
 
-static void morse_flipper_icr_draw_bar(
-    Canvas* canvas,
-    uint8_t x,
-    uint8_t base_y,
-    uint8_t bucket) {
+static void morse_flipper_icr_draw_bar(Canvas* canvas, uint8_t x, uint8_t base_y, uint8_t bucket) {
     uint8_t h = morse_flipper_icr_bar_height(bucket);
     uint8_t top = (uint8_t)(base_y - h + 1U);
 
@@ -433,11 +426,7 @@ static void morse_flipper_icr_draw_graph(Canvas* canvas, MorseFlipperApp* app) {
     }
 }
 
-static void morse_flipper_icr_draw_choice(
-    Canvas* canvas,
-    int32_t x,
-    int32_t y,
-    uint8_t choice) {
+static void morse_flipper_icr_draw_choice(Canvas* canvas, int32_t x, int32_t y, uint8_t choice) {
     char text[2];
 
     if(canvas == NULL) return;

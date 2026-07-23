@@ -256,8 +256,7 @@ bool morse_flipper_icr_stats_load(MorseFlipperIcrStats* stats) {
         if(storage_file_open(file, MORSE_FLIPPER_ICR_STATS_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
             got = storage_file_read(file, stats, sizeof(*stats));
             if(got != sizeof(*stats)) ok = false;
-            if(ok && !morse_flipper_icr_stats_valid(stats))
-                morse_flipper_icr_stats_reset(stats);
+            if(ok && !morse_flipper_icr_stats_valid(stats)) morse_flipper_icr_stats_reset(stats);
         } else {
             ok = false;
         }
@@ -371,9 +370,7 @@ uint8_t morse_flipper_icr_target_weight(const MorseFlipperIcrStats* stats, uint8
     return (uint8_t)weight;
 }
 
-uint8_t morse_flipper_icr_pick_target(
-    const MorseFlipperIcrStats* stats,
-    uint32_t* rng_state) {
+uint8_t morse_flipper_icr_pick_target(const MorseFlipperIcrStats* stats, uint32_t* rng_state) {
     uint16_t total = 0U;
     uint16_t pick;
 
@@ -456,7 +453,6 @@ void morse_flipper_icr_note_answer(
     stats->recent_ms20[target][pos] = bucket;
     pos = (uint8_t)((pos + 1U) % MORSE_FLIPPER_ICR_RECENT_COUNT);
     stats->recent_pos[target] = pos;
-    if(stats->recent_count[target] < MORSE_FLIPPER_ICR_RECENT_COUNT)
-        stats->recent_count[target]++;
+    if(stats->recent_count[target] < MORSE_FLIPPER_ICR_RECENT_COUNT) stats->recent_count[target]++;
     morse_flipper_icr_recompute_average(stats, target);
 }

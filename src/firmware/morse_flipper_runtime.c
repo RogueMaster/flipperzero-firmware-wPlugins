@@ -592,8 +592,7 @@ static void morse_flipper_tick_markdown_scroll(MorseFlipperApp* app) {
         changed = cwmd_scroll_tick(&app->onboarding_md);
     } else if(app->screen == MorseFlipperScreenHelp) {
         changed = cwmd_scroll_tick(&app->help_md);
-    } else if(
-        app->screen == MorseFlipperScreenAbout && app->about_mode == MorseFlipperAboutModeText) {
+    } else if(app->screen == MorseFlipperScreenAbout && app->about_mode == MorseFlipperAboutModeText) {
         changed = cwmd_scroll_tick(&app->about_md);
     }
 
