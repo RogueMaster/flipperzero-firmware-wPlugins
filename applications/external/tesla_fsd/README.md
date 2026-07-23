@@ -199,6 +199,23 @@ See [`esp32/README.md`](https://github.com/hypery11/flipper-tesla-fsd/tree/main/
 
 ## Installation
 
+### Getting Started (no build tools needed)
+
+New to this and not very technical? Pick your hardware — both paths avoid the command line:
+
+**Flipper Zero**
+1. Open [Releases](https://github.com/hypery11/flipper-tesla-fsd/releases) and download `tesla_mod.fap` from the latest release.
+2. Connect the Flipper and open [qFlipper](https://flipperzero.one/update) (the official desktop app).
+3. Copy `tesla_mod.fap` onto the SD card into `apps/GPIO/`.
+4. On the Flipper: **Apps → GPIO → Tesla Mod**.
+
+**ESP32** — flash it straight from your browser, nothing to install:
+1. Open the **[Web Flasher](https://hypery11.github.io/flipper-tesla-fsd/install/)** in Chrome, Edge, or Opera on a desktop.
+2. Plug the board in over USB, press **Install** next to your board, and pick the serial port.
+3. When it finishes, connect to the board's Wi-Fi network and open `http://192.168.4.1` to control it.
+
+The board starts in **Listen-Only mode** (it can't transmit) until you enable Active in the dashboard. The wiring to your car depends on your Tesla model/year — see [HARDWARE.md](HARDWARE.md) or open an issue.
+
 ### Option 1: Download Pre-built FAP
 
 1. Go to [Releases](https://github.com/hypery11/flipper-tesla-fsd/releases)
@@ -215,6 +232,8 @@ ufbt
 ```
 
 ### ESP32
+
+> Prefer not to build? Flash a pre-built image from the **[Web Flasher](https://hypery11.github.io/flipper-tesla-fsd/install/)** — one click, no toolchain.
 
 ```bash
 git clone https://github.com/hypery11/flipper-tesla-fsd.git

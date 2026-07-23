@@ -1,3 +1,8 @@
+## 2.16-beta.21 — one-click browser flasher + beginner Getting Started guide
+
+- **Browser-based ESP32 flasher (no toolchain).** Flash a blank board straight from Chrome / Edge / Opera at the [Web Flasher](https://hypery11.github.io/flipper-tesla-fsd/install/) — pick your board, press Install. Built on ESP Web Tools. Each release now also ships a **full-flash merged image per board** (`tesla-fsd-<board>-merged.bin`) next to the existing app-only `.bin` (which the in-device dashboard OTA updater still uses).
+- **README "Getting Started (no build tools)" section** for non-technical users: Flipper drag-and-drop, and the ESP32 web flasher. No behaviour changes to the firmware.
+
 ## 2.16-beta.20 — HW4 detection fix for taps without 0x398 (HW3 misdetect broke AP/NAG)
 
 - **HW4 cars are no longer misdetected as HW3 when the tap has no `0x398` (#122).** On a bus without `GTW_carConfig` (`0x398`) — e.g. @ssw0209-sys's dual-CAN Highland tap — HW detection fell back to `0x399` and locked in HW3, even though the HW4 DAS frame `0x39B` was also present. Because the HW4 DAS parser is HW4-gated, it never ran, so AP-state was never read: AP status stuck on "Waiting" and the NAG killer couldn't gate. Now a valid `0x39B` **upgrades a prior HW3 guess to HW4**, so the HW4 parser runs — and its byte0-low-nibble auto-latch (#116) then reads his 2026.20 Highland layout automatically (his `0x39B` matches that signature exactly: `byte1[7:4]` pinned at 1, AP-state in `byte0` low nibble). Thanks @ssw0209-sys for the wiring correction and the engaged-AP logs that pinned it.

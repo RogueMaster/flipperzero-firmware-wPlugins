@@ -1,0 +1,13 @@
+{
+  "name": "Tesla FSD (ttgo-tdisplay)",
+  "version": "latest",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        { "path": "https://github.com/hypery11/flipper-tesla-fsd/releases/latest/download/tesla-fsd-ttgo-tdisplay-merged.bin", "offset": 0 }
+      ]
+    }
+  ]
+}
