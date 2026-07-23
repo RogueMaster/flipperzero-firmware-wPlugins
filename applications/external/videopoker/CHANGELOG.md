@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5
+
+- Fix a winning hand at a very large bet overflowing the bank, which could pay out the wrong amount or end the game on the "You have run out of money!" screen
+- Cap the bank at $1,000,000,000 so the bet controls cannot overflow either
+
 ## 1.4
 
 - Add Up/Down press to double or halve the bet (replaces Up = all-in; all-in is still reachable by doubling past half the bank or wrapping Left at the minimum)

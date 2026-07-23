@@ -23,6 +23,10 @@ Sometimes duplicate cards will show up. there is a function to test this. I shou
 
 #define TAG "Video Poker"
 
+/* Bank ceiling, at roughly half of INT_MAX so the bet arithmetic (+/-10 steps
+and doubling) stays inside int - a larger multiplier would need a lower cap */
+#define MAX_BANK 1000000000
+
 static void Shake(void) {
     NotificationApp* notification = furi_record_open(RECORD_NOTIFICATION);
     notification_message(notification, &sequence_single_vibro);
@@ -785,9 +789,16 @@ int32_t video_poker_app(void* p) {
                                  ->held[poker_player->selected]; //cursed and bad pls replace
                     } else if(poker_player->GameState == 3) {
                         /* accept your fate */
-                        if(recognize(poker_player) != 9) {
-                            poker_player->score +=
-                                poker_player->bet * paytable[recognize(poker_player)];
+                        int hand_rank = recognize(poker_player);
+                        if(hand_rank != 9) {
+                            /* Both the payout and the new bank total overflow int at very
+                            large bets - as reported that corrupted the score and dropped a
+                            winning hand on the game-over screen. Work the total out in 64
+                            bits and saturate: a bank this large is already meaningless, and
+                            widening score would ripple through every %d */
+                            int64_t total = (int64_t)poker_player->score +
+                                            (int64_t)poker_player->bet * paytable[hand_rank];
+                            poker_player->score = total > MAX_BANK ? MAX_BANK : (int)total;
                         }
                         poker_player->GameState = 1;
                         clamp_bet(poker_player);
