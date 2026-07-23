@@ -24,18 +24,18 @@
 #define MAX6958_REG_DIGIT3           0x23U
 #define MAX6958_REG_SEGMENTS         0x24U
 
-#define POST_HISTORY_SIZE 128U
-#define INPUT_QUEUE_SIZE  16U
-#define POST_QUEUE_SIZE   128U
-#define SERIAL_QUEUE_SIZE 64U
-#define MENU_ITEM_COUNT   6U
-#define MENU_VISIBLE_ROWS 5U
-#define KNOWN_LIST_ROWS   3U
-#define SERIAL_VCP_CHANNEL 0U
-#define SAVED_LOG_ROWS    4U
+#define POST_HISTORY_SIZE     128U
+#define INPUT_QUEUE_SIZE      16U
+#define POST_QUEUE_SIZE       128U
+#define SERIAL_QUEUE_SIZE     64U
+#define MENU_ITEM_COUNT       6U
+#define MENU_VISIBLE_ROWS     5U
+#define KNOWN_LIST_ROWS       3U
+#define SERIAL_VCP_CHANNEL    0U
+#define SAVED_LOG_ROWS        4U
 #define SAVED_LOG_BUFFER_SIZE 4096U
-#define SAVED_LOG_MAX_NUMBER 999U
-#define SAVED_LOG_DIRECTORY APP_DATA_PATH("logs")
+#define SAVED_LOG_MAX_NUMBER  999U
+#define SAVED_LOG_DIRECTORY   APP_DATA_PATH("logs")
 
 typedef struct {
     uint16_t code;
@@ -210,8 +210,7 @@ static void post_serial_process_rx(XboxPostSerial* serial) {
     uint8_t input[CDC_DATA_SZ + 1U];
     serial->rx_pending = false;
     furi_check(furi_mutex_acquire(serial->usb_mutex, FuriWaitForever) == FuriStatusOk);
-    const int32_t length =
-        furi_hal_cdc_receive(SERIAL_VCP_CHANNEL, input, CDC_DATA_SZ);
+    const int32_t length = furi_hal_cdc_receive(SERIAL_VCP_CHANNEL, input, CDC_DATA_SZ);
     furi_check(furi_mutex_release(serial->usb_mutex) == FuriStatusOk);
     if(length <= 0) return;
 
@@ -301,8 +300,7 @@ static bool post_serial_start(XboxPostSerial* serial) {
     serial->queue = furi_message_queue_alloc(SERIAL_QUEUE_SIZE, sizeof(PostEntry));
     serial->tx_sem = furi_semaphore_alloc(1U, 1U);
     serial->usb_mutex = furi_mutex_alloc(FuriMutexTypeNormal);
-    serial->thread =
-        furi_thread_alloc_ex("XboxPostUsb", 1024U, post_serial_worker, serial);
+    serial->thread = furi_thread_alloc_ex("XboxPostUsb", 1024U, post_serial_worker, serial);
     serial->cli_vcp = furi_record_open(RECORD_CLI_VCP);
 
     furi_hal_usb_unlock();
@@ -318,8 +316,7 @@ static bool post_serial_start(XboxPostSerial* serial) {
         return false;
     }
 
-    furi_hal_cdc_set_callbacks(
-        SERIAL_VCP_CHANNEL, (CdcCallbacks*)&post_serial_callbacks, serial);
+    furi_hal_cdc_set_callbacks(SERIAL_VCP_CHANNEL, (CdcCallbacks*)&post_serial_callbacks, serial);
     serial->running = true;
     furi_thread_start(serial->thread);
     return true;
@@ -650,7 +647,8 @@ static bool wrap_next_line(
     size_t line_size,
     size_t max_chars) {
     const size_t length = strlen(text);
-    while(*cursor < length && (text[*cursor] == ' ' || text[*cursor] == '\n')) (*cursor)++;
+    while(*cursor < length && (text[*cursor] == ' ' || text[*cursor] == '\n'))
+        (*cursor)++;
     if(*cursor >= length) return false;
 
     const size_t remaining = length - *cursor;
@@ -716,13 +714,7 @@ static void draw_reader_decode(Canvas* canvas, const XboxPostApp* app) {
     snprintf(title, sizeof(title), "Decode: %04X", entry->code);
     draw_header(canvas, title);
     const bool known = postcode_db_format(
-        entry->code,
-        entry->segment,
-        app->console,
-        name,
-        sizeof(name),
-        &description,
-        &is_error);
+        entry->code, entry->segment, app->console, name, sizeof(name), &description, &is_error);
 
     canvas_set_font(canvas, FontSecondary);
     snprintf(
@@ -776,8 +768,7 @@ static void draw_reader(Canvas* canvas, const XboxPostApp* app) {
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(canvas, 64, 31, AlignCenter, AlignCenter, "SD Log");
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(
-            canvas, 64, 43, AlignCenter, AlignCenter, app->save_notice_text);
+        canvas_draw_str_aligned(canvas, 64, 43, AlignCenter, AlignCenter, app->save_notice_text);
     }
 }
 
@@ -829,15 +820,12 @@ static uint16_t known_category_count(KnownCategory category) {
     return count;
 }
 
-static bool known_category_record_at(
-    KnownCategory category,
-    uint16_t position,
-    PostcodeDbRecord* output) {
+static bool
+    known_category_record_at(KnownCategory category, uint16_t position, PostcodeDbRecord* output) {
     uint16_t matched = 0U;
     PostcodeDbRecord record;
     for(uint16_t index = 0U; index < POSTCODE_DB_RECORD_COUNT; index++) {
-        if(!postcode_db_record_at(index, &record) ||
-           !known_category_matches(&record, category)) {
+        if(!postcode_db_record_at(index, &record) || !known_category_matches(&record, category)) {
             continue;
         }
         if(matched++ == position) {
@@ -875,8 +863,7 @@ static void draw_known_codes(Canvas* canvas, const XboxPostApp* app) {
         (unsigned int)record_count);
     canvas_draw_str_aligned(canvas, 64, 23, AlignCenter, AlignBottom, category_text);
 
-    const uint16_t first =
-        (uint16_t)((app->known_index / KNOWN_LIST_ROWS) * KNOWN_LIST_ROWS);
+    const uint16_t first = (uint16_t)((app->known_index / KNOWN_LIST_ROWS) * KNOWN_LIST_ROWS);
     for(uint8_t row = 0; row < KNOWN_LIST_ROWS; row++) {
         const uint16_t position = first + row;
         if(position >= record_count) break;
@@ -928,8 +915,8 @@ static void draw_known_detail(Canvas* canvas, const XboxPostApp* app) {
     draw_wrapped_identifier(canvas, record.name);
     canvas_draw_line(canvas, 2, 43, 125, 43);
 
-    const char* detail =
-        record.description && record.description[0] ? record.description : "No repair notes yet.";
+    const char* detail = record.description && record.description[0] ? record.description :
+                                                                       "No repair notes yet.";
     draw_description_lines(canvas, detail, app->known_scroll, 3U, 49, 7U);
     const uint8_t detail_lines = wrapped_line_count(detail, 21U);
     if(detail_lines > 3U) elements_scrollbar(canvas, app->known_scroll, detail_lines - 2U);
@@ -951,18 +938,16 @@ static void app_refresh_saved_logs(XboxPostApp* app) {
             unsigned int number;
             char extra;
             if(file_info_is_dir(&file_info) ||
-               sscanf(name, "post_log_%u.txt%c", &number, &extra) != 1 ||
-               number == 0U || number > SAVED_LOG_MAX_NUMBER) {
+               sscanf(name, "post_log_%u.txt%c", &number, &extra) != 1 || number == 0U ||
+               number > SAVED_LOG_MAX_NUMBER) {
                 continue;
             }
 
             /* Insert in numeric order once. Drawing and scrolling then use only
                this RAM cache and never block on SD-card operations. */
             uint16_t position = app->saved_log_count;
-            while(position > 0U &&
-                  app->saved_log_numbers[position - 1U] > number) {
-                app->saved_log_numbers[position] =
-                    app->saved_log_numbers[position - 1U];
+            while(position > 0U && app->saved_log_numbers[position - 1U] > number) {
+                app->saved_log_numbers[position] = app->saved_log_numbers[position - 1U];
                 position--;
             }
             app->saved_log_numbers[position] = (uint16_t)number;
@@ -1030,9 +1015,9 @@ static bool app_save_history(XboxPostApp* app) {
     }
 
     for(uint8_t offset = 0U; success && offset < app->history_count; offset++) {
-        const uint8_t index = (uint8_t)(
-            (app->history_head + POST_HISTORY_SIZE - app->history_count + offset) %
-            POST_HISTORY_SIZE);
+        const uint8_t index =
+            (uint8_t)((app->history_head + POST_HISTORY_SIZE - app->history_count + offset) %
+                      POST_HISTORY_SIZE);
         const PostEntry* entry = &app->history[index];
         snprintf(
             line,
@@ -1085,9 +1070,8 @@ static bool app_load_saved_log(XboxPostApp* app) {
     size_t length = 0U;
     if(success) {
         const uint64_t file_size = storage_file_size(file);
-        length =
-            file_size < (SAVED_LOG_BUFFER_SIZE - 1U) ? (size_t)file_size :
-                                                       SAVED_LOG_BUFFER_SIZE - 1U;
+        length = file_size < (SAVED_LOG_BUFFER_SIZE - 1U) ? (size_t)file_size :
+                                                            SAVED_LOG_BUFFER_SIZE - 1U;
         length = storage_file_read(file, app->saved_log_buffer, length);
         app->saved_log_buffer[length] = '\0';
     }
@@ -1114,8 +1098,7 @@ static void draw_saved_logs(Canvas* canvas, const XboxPostApp* app) {
         return;
     }
 
-    const uint16_t first =
-        (uint16_t)((app->saved_log_index / SAVED_LOG_ROWS) * SAVED_LOG_ROWS);
+    const uint16_t first = (uint16_t)((app->saved_log_index / SAVED_LOG_ROWS) * SAVED_LOG_ROWS);
     for(uint8_t row = 0U; row < SAVED_LOG_ROWS; row++) {
         const uint16_t position = first + row;
         if(position >= app->saved_log_count) break;
@@ -1161,8 +1144,7 @@ static void draw_saved_log_view(Canvas* canvas, const XboxPostApp* app) {
         cursor = end + 1;
     }
     if(app->saved_log_line_count > 5U) {
-        elements_scrollbar(
-            canvas, app->saved_log_scroll, app->saved_log_line_count - 4U);
+        elements_scrollbar(canvas, app->saved_log_scroll, app->saved_log_line_count - 4U);
     }
 }
 
@@ -1333,8 +1315,8 @@ static void app_handle_input(XboxPostApp* app, const InputEvent* input) {
     if(!short_press && !long_press && !nav_press) return;
     /* A held Up generates Repeat events after Long. Keep the save result visible
        and do not let those repeats immediately move the history selection. */
-    if(app->save_notice && app->page == AppPageReader &&
-       input->key == InputKeyUp && input->type == InputTypeRepeat) {
+    if(app->save_notice && app->page == AppPageReader && input->key == InputKeyUp &&
+       input->type == InputTypeRepeat) {
         return;
     }
     if(app->save_notice) app->save_notice = false;
@@ -1362,12 +1344,9 @@ static void app_handle_input(XboxPostApp* app, const InputEvent* input) {
             return;
         }
 
-        if(long_press && input->key == InputKeyUp &&
-           app->reader_view != ReaderViewDecode) {
+        if(long_press && input->key == InputKeyUp && app->reader_view != ReaderViewDecode) {
             app_save_history(app);
-        } else if(
-            long_press && input->key == InputKeyLeft &&
-            app->reader_view != ReaderViewDecode) {
+        } else if(long_press && input->key == InputKeyLeft && app->reader_view != ReaderViewDecode) {
             if(app->history_count > 0U) app->confirm_clear = true;
         } else if(short_press && input->key == InputKeyOk) {
             app_set_listening(app, !app->listening);
@@ -1465,13 +1444,12 @@ static void app_handle_input(XboxPostApp* app, const InputEvent* input) {
             const uint16_t count = known_category_count(app->known_category);
             if(app->known_index + 1U < count) app->known_index++;
         } else if(short_press && input->key == InputKeyLeft) {
-            app->known_category = (KnownCategory)(
-                (app->known_category + KnownCategoryCount - 1U) % KnownCategoryCount);
+            app->known_category = (KnownCategory)((app->known_category + KnownCategoryCount - 1U) %
+                                                  KnownCategoryCount);
             app->known_index = 0U;
             app->known_scroll = 0U;
         } else if(short_press && input->key == InputKeyRight) {
-            app->known_category =
-                (KnownCategory)((app->known_category + 1U) % KnownCategoryCount);
+            app->known_category = (KnownCategory)((app->known_category + 1U) % KnownCategoryCount);
             app->known_index = 0U;
             app->known_scroll = 0U;
         } else if(short_press && input->key == InputKeyOk) {
@@ -1489,12 +1467,12 @@ static void app_handle_input(XboxPostApp* app, const InputEvent* input) {
         PostcodeDbRecord record;
         if(nav_press && input->key == InputKeyUp) {
             if(app->known_scroll > 0U) app->known_scroll--;
-        } else if(nav_press && input->key == InputKeyDown &&
-                  known_category_record_at(
-                      app->known_category, app->known_index, &record)) {
-            const char* detail =
-                record.description && record.description[0] ? record.description :
-                                                               "No repair notes yet.";
+        } else if(
+            nav_press && input->key == InputKeyDown &&
+            known_category_record_at(app->known_category, app->known_index, &record)) {
+            const char* detail = record.description && record.description[0] ?
+                                     record.description :
+                                     "No repair notes yet.";
             const uint8_t lines = wrapped_line_count(detail, 21U);
             if(app->known_scroll + 3U < lines) app->known_scroll++;
         } else if(short_press && input->key == InputKeyBack) {
@@ -1504,8 +1482,8 @@ static void app_handle_input(XboxPostApp* app, const InputEvent* input) {
     }
 
     if(app->page == AppPageWiring && nav_press && input->key == InputKeyLeft) {
-        app->console = (PostcodeConsole)(
-            (app->console + PostcodeConsoleCount - 1U) % PostcodeConsoleCount);
+        app->console =
+            (PostcodeConsole)((app->console + PostcodeConsoleCount - 1U) % PostcodeConsoleCount);
     } else if(app->page == AppPageWiring && nav_press && input->key == InputKeyRight) {
         app->console = (PostcodeConsole)((app->console + 1U) % PostcodeConsoleCount);
     } else if(short_press && input->key == InputKeyBack) {

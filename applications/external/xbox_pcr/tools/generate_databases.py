@@ -130,7 +130,9 @@ def normalized_masks(rows: list[dict[str, str]]) -> list[dict[str, object]]:
     return records
 
 
-def generate_header(postcodes: list[dict[str, object]], masks: list[dict[str, object]]) -> str:
+def generate_header(
+    postcodes: list[dict[str, object]], masks: list[dict[str, object]]
+) -> str:
     exact = sum(1 for record in postcodes if record["bitmask"] == 0xFFFF)
     masked = len(postcodes) - exact
     return f"""#pragma once
@@ -185,7 +187,9 @@ bool postcode_db_format(
 """
 
 
-def generate_c(postcodes: list[dict[str, object]], masks: list[dict[str, object]], digest: str) -> str:
+def generate_c(
+    postcodes: list[dict[str, object]], masks: list[dict[str, object]], digest: str
+) -> str:
     rows = []
     for record in postcodes:
         rows.append(

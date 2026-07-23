@@ -4,9 +4,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define POSTCODE_DB_RECORD_COUNT 452U
-#define POSTCODE_DB_EXACT_COUNT  191U
-#define POSTCODE_DB_MASKED_COUNT 261U
+#define POSTCODE_DB_RECORD_COUNT   452U
+#define POSTCODE_DB_EXACT_COUNT    191U
+#define POSTCODE_DB_MASKED_COUNT   261U
 #define POSTCODE_DB_FALLBACK_COUNT 5U
 
 typedef enum {
