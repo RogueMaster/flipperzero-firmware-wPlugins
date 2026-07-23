@@ -1,6 +1,6 @@
 /*
- * Purpose: Handle tone, output path, PWM volume, and buzzer waveform settings rows.
- * Owns: audio setting callbacks and preview/persistence side effects.
+ * Purpose: Handle tone, output path, PWM volume, and buzzer waveform settings
+ * rows. Owns: audio setting callbacks and preview/persistence side effects.
  * Depends on: morse_flipper_app_i.h and audio route/PWM state.
  * Tests: firmware build; settings UI is hardware-only.
  */
@@ -196,9 +196,8 @@ static void morse_flipper_settings_waveform_changed(VariableItem* item) {
     MorseFlipperApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
 
-    app->audio_path = idx == MORSE_FLIPPER_AUDIO_WAVEFORM_SQUARE ?
-                          MorseFlipperAudioPathBuzzer :
-                          MorseFlipperAudioPathSoftBuzz;
+    app->audio_path = idx == MORSE_FLIPPER_AUDIO_WAVEFORM_SQUARE ? MorseFlipperAudioPathBuzzer :
+                                                                   MorseFlipperAudioPathSoftBuzz;
     variable_item_set_current_value_text(
         item,
         morse_flipper_audio_waveform_names[morse_flipper_audio_waveform_idx(app->audio_path)]);

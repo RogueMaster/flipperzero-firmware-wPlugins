@@ -1,6 +1,6 @@
 /*
- * Purpose: Generate optional sampled PWM sidetone on GPIO P2 or the internal speaker.
- * Owns: PWM buffers, fade/ramp state, and Flipper FAP timer/DMA setup.
+ * Purpose: Generate optional sampled PWM sidetone on GPIO P2 or the internal
+ * speaker. Owns: PWM buffers, fade/ramp state, and Flipper FAP timer/DMA setup.
  * Depends on: morse_flipper_audio_pwm.h and Flipper HAL PWM resources.
  * Tests: tests/test_audio_pwm.c plus firmware build for HAL integration.
  */
@@ -46,16 +46,14 @@ static uint16_t morse_flipper_audio_pwm_progress_q15(uint16_t idx, uint16_t len)
 }
 
 static int32_t morse_flipper_audio_pwm_clip_q15(int32_t sample) {
-    if(sample > (int32_t)MORSE_FLIPPER_AUDIO_PWM_Q15)
-        return (int32_t)MORSE_FLIPPER_AUDIO_PWM_Q15;
+    if(sample > (int32_t)MORSE_FLIPPER_AUDIO_PWM_Q15) return (int32_t)MORSE_FLIPPER_AUDIO_PWM_Q15;
     if(sample < -(int32_t)MORSE_FLIPPER_AUDIO_PWM_Q15)
         return -(int32_t)MORSE_FLIPPER_AUDIO_PWM_Q15;
     return sample;
 }
 
-static int32_t morse_flipper_audio_pwm_drive_mix_q15(
-    const MorseFlipperAudioPwm* audio,
-    int32_t mixed_q15) {
+static int32_t
+    morse_flipper_audio_pwm_drive_mix_q15(const MorseFlipperAudioPwm* audio, int32_t mixed_q15) {
     if(audio != NULL && audio->target == MorseFlipperAudioPwmTargetSoftBuzz) {
         mixed_q15 = morse_flipper_audio_pwm_clip_q15(mixed_q15 * 2);
     }
@@ -94,7 +92,8 @@ static uint16_t morse_flipper_audio_pwm_current_env_q15(const MorseFlipperAudioP
 static void morse_flipper_audio_pwm_apply_gate(MorseFlipperAudioPwm* audio) {
     if(audio == NULL || audio->gate_applied == audio->gate_requested) return;
 
-    /* Restart fades from the current envelope value, avoiding clicks when keying fast. */
+    /* Restart fades from the current envelope value, avoiding clicks when keying
+   * fast. */
     if(audio->gate_requested) {
         if(audio->env_state == MorseFlipperAudioPwmEnvIdle) {
             audio->phase_q32 = 0U;
@@ -129,7 +128,8 @@ static uint16_t morse_flipper_audio_pwm_next_sample(MorseFlipperAudioPwm* audio)
 
     if(audio == NULL || !audio->prepared) return 0U;
 
-    /* Q15 envelope over a Q32 phase accumulator: fixed point, because this is not a DAW. */
+    /* Q15 envelope over a Q32 phase accumulator: fixed point, because this is not
+   * a DAW. */
     morse_flipper_audio_pwm_apply_gate(audio);
     env_q15 = morse_flipper_audio_pwm_current_env_q15(audio);
 
@@ -381,9 +381,9 @@ static bool morse_flipper_audio_pwm_start_p2(MorseFlipperAudioPwm* audio) {
     if(audio->running) return true;
 
     /*
-     * TIM1 supplies the PWM carrier; DMA feeds CCR1 at the audio sample rate.
-     * Bring buses and midpoint ramp up before the circular DMA starts scribbling.
-     */
+   * TIM1 supplies the PWM carrier; DMA feeds CCR1 at the audio sample rate.
+   * Bring buses and midpoint ramp up before the circular DMA starts scribbling.
+   */
     audio->own_bus_tim1 = false;
     audio->own_bus_tim16 = false;
     audio->own_bus_dma1 = false;
@@ -612,8 +612,8 @@ static bool morse_flipper_audio_pwm_start_soft_buzz(MorseFlipperAudioPwm* audio)
 static void morse_flipper_audio_pwm_stop_soft_buzz(MorseFlipperAudioPwm* audio) {
     if(audio == NULL) return;
     if(!audio->prepared) return;
-    if(!audio->running && !audio->own_speaker && !audio->own_bus_tim16 &&
-       !audio->own_bus_dma1 && !audio->own_bus_dmamux1) {
+    if(!audio->running && !audio->own_speaker && !audio->own_bus_tim16 && !audio->own_bus_dma1 &&
+       !audio->own_bus_dmamux1) {
         morse_flipper_audio_pwm_clear_runtime(audio);
         return;
     }
