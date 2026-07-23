@@ -86,6 +86,8 @@ enum Views {
 
 void submenu_callback(void* context, uint32_t index);
 
+bool init_folder();
+
 uint32_t main_menu_callback(void* context);
 
 uint32_t exit_callback(void* context);

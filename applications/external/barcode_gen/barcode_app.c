@@ -96,17 +96,19 @@ bool get_file_name_from_path(FuriString* file_path, FuriString* file_name, bool 
 }
 
 /**
- * Creates the barcode folder
+ * Creates the barcode folder if it does not exist
+ * @returns true if the folder exists or was created
 */
-void init_folder() {
+bool init_folder() {
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    FURI_LOG_I(TAG, "Creating barcodes folder");
-    if(storage_simply_mkdir(storage, DEFAULT_USER_BARCODES)) {
-        FURI_LOG_I(TAG, "Barcodes folder successfully created!");
-    } else {
-        FURI_LOG_I(TAG, "Barcodes folder already exists.");
+    //simply_mkdir also returns true when the folder already exists,
+    //false is a real failure, e.g. a missing SD card
+    bool folder_ready = storage_simply_mkdir(storage, DEFAULT_USER_BARCODES);
+    if(!folder_ready) {
+        FURI_LOG_E(TAG, "Could not create the barcodes folder");
     }
     furi_record_close(RECORD_STORAGE);
+    return folder_ready;
 }
 
 void select_barcode_item(BarcodeApp* app) {
@@ -181,15 +183,7 @@ void edit_barcode_item(BarcodeApp* app) {
         reason = read_raw_data(file_path, raw_type, raw_data);
         if(reason != OKCode) {
             FURI_LOG_E(TAG, "Could not read data correctly");
-            with_view_model(
-                app->message_view->view,
-                MessageViewModel * model,
-                { model->message = get_error_code_message(reason); },
-                true);
-
-            view_dispatcher_switch_to_view(
-                create_view_object->barcode_app->view_dispatcher, MessageErrorView);
-
+            message_view_show(app->message_view, get_error_code_message(reason), MainMenuView);
         } else {
             BarcodeTypeObj* type_obj = get_type(raw_type);
             if(type_obj->type == UNKNOWN) {
@@ -276,7 +270,6 @@ uint32_t exit_callback(void* context) {
 void free_app(BarcodeApp* app) {
     FURI_LOG_I(TAG, "Freeing Data");
 
-    init_folder();
     free_types();
 
     view_dispatcher_remove_view(app->view_dispatcher, TextInputView);
@@ -321,6 +314,7 @@ int32_t barcode_main(void* p) {
     UNUSED(p);
     BarcodeApp* app = malloc(sizeof(BarcodeApp));
     init_types();
+    init_folder();
     app->event_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
 
     // Register view port in GUI

@@ -24,6 +24,7 @@ struct SpectrumAnalyzerWorker {
     float max_rssi;
     uint8_t max_rssi_dec;
     uint8_t max_rssi_channel;
+    uint32_t max_rssi_frequency;
 
     uint8_t channel_ss[NUM_CHANNELS];
 };
@@ -211,13 +212,10 @@ static int32_t spectrum_analyzer_worker_thread(void* context) {
         for(uint8_t ch_offset = 0, chunk = 0; ch_offset < CHUNK_SIZE;
             ++chunk >= NUM_CHUNKS && ++ch_offset && (chunk = 0)) {
             uint8_t ch = chunk * CHUNK_SIZE + ch_offset;
+            uint32_t frequency = instance->channel0_frequency + (ch * instance->spacing);
 
-            if(subghz_devices_is_frequency_valid(
-                   instance->radio_device,
-                   instance->channel0_frequency + (ch * instance->spacing)))
-                subghz_devices_set_frequency(
-                    instance->radio_device,
-                    instance->channel0_frequency + (ch * instance->spacing));
+            if(subghz_devices_is_frequency_valid(instance->radio_device, frequency))
+                subghz_devices_set_frequency(instance->radio_device, frequency);
 
             subghz_devices_set_rx(instance->radio_device);
             furi_delay_ms(3);
@@ -233,6 +231,9 @@ static int32_t spectrum_analyzer_worker_thread(void* context) {
                 instance->max_rssi_dec = instance->channel_ss[ch];
                 instance->max_rssi = (instance->channel_ss[ch] / 2) - 138;
                 instance->max_rssi_channel = ch;
+                // Capture the frequency this channel was measured at, so a
+                // concurrent retune cannot mislabel the peak
+                instance->max_rssi_frequency = frequency;
             }
 
             subghz_devices_idle(instance->radio_device);
@@ -247,6 +248,7 @@ static int32_t spectrum_analyzer_worker_thread(void* context) {
                 instance->max_rssi,
                 instance->max_rssi_dec,
                 instance->max_rssi_channel,
+                instance->max_rssi_frequency,
                 instance->callback_context);
         }
     }

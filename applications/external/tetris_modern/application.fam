@@ -8,6 +8,6 @@ App(
     fap_icon_assets="assets",
     fap_category="Games",
     fap_author="xMasterX & jeffplang & noiob & Alloy-Lou",
-    fap_version="1.6",
+    fap_version="1.5",
     fap_description="Tetris Game",
 )

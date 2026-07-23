@@ -7,6 +7,7 @@ typedef void (*SpectrumAnalyzerWorkerCallback)(
     float max_rssi,
     uint8_t max_rssi_dec,
     uint8_t max_rssi_channel,
+    uint32_t max_rssi_frequency,
     void* context);
 
 typedef struct SpectrumAnalyzerWorker SpectrumAnalyzerWorker;

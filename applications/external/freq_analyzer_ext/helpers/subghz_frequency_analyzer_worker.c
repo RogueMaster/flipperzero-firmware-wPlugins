@@ -275,6 +275,11 @@ static int32_t subghz_frequency_analyzer_worker_thread(void* context) {
     // furi_hal_subghz_idle();
     // furi_hal_subghz_sleep();
     subghz_devices_idle(radio_device);
+    // Reset drops the analyzer's custom AGC/BW config, which SPWD would
+    // otherwise retain; SRES reverts the internal radio's IOCFG2, so re-park
+    // the RF switch - leaves the radio in the same state as after boot
+    subghz_devices_reset(radio_device);
+    furi_hal_subghz_set_path(FuriHalSubGhzPathIsolate);
     subghz_devices_sleep(radio_device);
 
     return 0;
