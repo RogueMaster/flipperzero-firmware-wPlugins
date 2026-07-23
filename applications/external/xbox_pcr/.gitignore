@@ -1,0 +1,5 @@
+.vscode/
+dist/debug/
+*.elf
+__pycache__/
+*.pyc

@@ -1,0 +1,6 @@
+"Console","Type","Bitmask","Code","Name","Description"
+"XOP,XOS,XOX","SMC","0xFF00","0xE000","FATAL","FATAL SMC error"
+"XOP,XOS,XOX","SMC","0xFF00","0xE400","THERMAL","THERMAL SMC error"
+"XOP,XOS,XOX","SMC","0xFF00","0xEA00","RESET","RESET SMC error"
+"XOP,XOS,XOX","SMC","0xFF00","0xEB00","BOOT","BOOT SMC error"
+"XOP,XOS,XOX","SMC","0xFF00","0xEC00","RUNTIME","RUNTIME SMC error"
