@@ -337,12 +337,165 @@ bool morse_flipper_icr_input(MorseFlipperApp* app, const InputEvent* event, uint
     return true;
 }
 
-void morse_flipper_draw_icr(Canvas* canvas, MorseFlipperApp* app) {
-    UNUSED(app);
+static const char* morse_flipper_icr_phase_label(const MorseFlipperApp* app) {
+    if(app == NULL) return "";
 
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignCenter, "ICR");
+    switch(app->icr_phase) {
+    case MorseFlipperIcrPhaseGraphWait:
+        return "Wait";
+    case MorseFlipperIcrPhasePlayback:
+        return "Listen";
+    case MorseFlipperIcrPhaseRecognition:
+        return "React";
+    case MorseFlipperIcrPhaseRecognizedHold:
+        return "Hold";
+    case MorseFlipperIcrPhaseAnswerGuard:
+    case MorseFlipperIcrPhaseAnswer:
+        return "Pick";
+    case MorseFlipperIcrPhaseResult:
+        return app->icr_choice == MORSE_FLIPPER_ICR_NO_CHOICE ?
+                   "Time" :
+                   (app->icr_answer_correct ? "OK" : "No");
+    default:
+        return "";
+    }
+}
+
+static void morse_flipper_icr_char_text(uint8_t index, char out[2]) {
+    out[0] = index < MORSE_FLIPPER_ICR_CHAR_COUNT ? morse_flipper_icr_char_at(index) : '?';
+    out[1] = '\0';
+}
+
+static uint8_t morse_flipper_icr_bar_height(uint8_t bucket) {
+    if(bucket == 0U) return 4U;
+    if(bucket <= MORSE_FLIPPER_ICR_INSTANT_BUCKET) return 36U;
+    if(bucket <= MORSE_FLIPPER_ICR_RECOGNIZED_BUCKET) return 25U;
+    if(bucket < MORSE_FLIPPER_ICR_TIMEOUT_BUCKET) return 15U;
+    return 8U;
+}
+
+static void
+    morse_flipper_icr_draw_bar(Canvas* canvas, uint8_t x, uint8_t base_y, uint8_t bucket) {
+    uint8_t h = morse_flipper_icr_bar_height(bucket);
+    uint8_t top = (uint8_t)(base_y - h + 1U);
+
+    if(bucket == 0U) {
+        canvas_draw_dot(canvas, x, base_y);
+        canvas_draw_dot(canvas, x + 1U, base_y);
+    } else if(bucket <= MORSE_FLIPPER_ICR_INSTANT_BUCKET) {
+        canvas_draw_box(canvas, x, top, 2U, h);
+    } else if(bucket <= MORSE_FLIPPER_ICR_RECOGNIZED_BUCKET) {
+        for(uint8_t y = top; y <= base_y; y = (uint8_t)(y + 2U)) {
+            canvas_draw_box(canvas, x, y, 2U, 1U);
+        }
+    } else if(bucket < MORSE_FLIPPER_ICR_TIMEOUT_BUCKET) {
+        canvas_draw_line(canvas, x, top, x, base_y);
+        canvas_draw_line(canvas, x + 1U, top, x + 1U, base_y);
+        canvas_draw_line(canvas, x, base_y, x + 1U, base_y);
+    } else {
+        canvas_draw_box(canvas, x, top, 2U, h);
+        if(top > 2U) canvas_draw_line(canvas, x, top - 2U, x + 1U, top - 2U);
+    }
+}
+
+static void morse_flipper_icr_draw_graph(Canvas* canvas, MorseFlipperApp* app) {
+    enum {
+        X0 = 4U,
+        Step = 3U,
+        BaseY = 55U,
+    };
+    uint8_t target;
+
+    if(canvas == NULL || app == NULL) return;
+
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 34, AlignCenter, AlignCenter, "Preparing practice");
-    canvas_draw_str_aligned(canvas, 64, 57, AlignCenter, AlignBottom, "Back exits");
+    canvas_draw_str(canvas, 1, 8, "ICR");
+    canvas_draw_str_aligned(
+        canvas, 127, 8, AlignRight, AlignBottom, morse_flipper_icr_phase_label(app));
+
+    if(app->icr_stats == NULL) {
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str_aligned(canvas, 64, 34, AlignCenter, AlignCenter, "ICR unavailable");
+        return;
+    }
+
+    for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_CHAR_COUNT; i++) {
+        uint8_t x = (uint8_t)(X0 + (i * Step));
+        morse_flipper_icr_draw_bar(canvas, x, BaseY, app->icr_stats->avg_ms20[i]);
+    }
+
+    target = app->icr_target;
+    if(target < MORSE_FLIPPER_ICR_CHAR_COUNT) {
+        uint8_t x = (uint8_t)(X0 + (target * Step));
+        canvas_draw_box(canvas, x, 58U, 2U, 2U);
+    }
+}
+
+static void morse_flipper_icr_draw_choice(
+    Canvas* canvas,
+    int32_t x,
+    int32_t y,
+    uint8_t choice) {
+    char text[2];
+
+    if(canvas == NULL) return;
+    morse_flipper_icr_char_text(choice, text);
+    canvas_draw_frame(canvas, x - 7, y - 6, 15U, 13U);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, x, y + 1, AlignCenter, AlignCenter, text);
+}
+
+static void morse_flipper_icr_draw_choices(Canvas* canvas, MorseFlipperApp* app) {
+    if(canvas == NULL || app == NULL) return;
+
+    morse_flipper_icr_draw_choice(canvas, 27, 12, app->icr_choices[0]);
+    morse_flipper_icr_draw_choice(canvas, 27, 51, app->icr_choices[1]);
+    morse_flipper_icr_draw_choice(canvas, 10, 32, app->icr_choices[2]);
+    morse_flipper_icr_draw_choice(canvas, 44, 32, app->icr_choices[3]);
+    morse_flipper_icr_draw_choice(canvas, 27, 32, app->icr_choices[4]);
+}
+
+static void morse_flipper_icr_draw_answer(Canvas* canvas, MorseFlipperApp* app) {
+    const char* title;
+    uint8_t target;
+
+    if(canvas == NULL || app == NULL) return;
+
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str(canvas, 1, 8, "ICR");
+    canvas_draw_str_aligned(
+        canvas, 127, 8, AlignRight, AlignBottom, morse_flipper_icr_phase_label(app));
+
+    if(app->icr_choice != MORSE_FLIPPER_ICR_NO_CHOICE ||
+       app->icr_phase != MorseFlipperIcrPhaseResult) {
+        morse_flipper_icr_draw_choices(canvas, app);
+    }
+
+    canvas_draw_line(canvas, 57, 0, 57, 63);
+    if(app->icr_phase != MorseFlipperIcrPhaseResult) return;
+
+    target = app->icr_target;
+    title = app->icr_choice == MORSE_FLIPPER_ICR_NO_CHOICE ?
+                "Time" :
+                (app->icr_answer_correct ? "OK" : "No");
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, 92, 16, AlignCenter, AlignCenter, title);
+    morse_flipper_draw_straight_prompt(
+        canvas,
+        92,
+        39,
+        target < MORSE_FLIPPER_ICR_CHAR_COUNT ? morse_flipper_icr_char_at(target) : '?');
+}
+
+void morse_flipper_draw_icr(Canvas* canvas, MorseFlipperApp* app) {
+    if(app == NULL) return;
+
+    if(app->icr_phase == MorseFlipperIcrPhaseAnswerGuard ||
+       app->icr_phase == MorseFlipperIcrPhaseAnswer ||
+       app->icr_phase == MorseFlipperIcrPhaseResult) {
+        morse_flipper_icr_draw_answer(canvas, app);
+        return;
+    }
+
+    morse_flipper_icr_draw_graph(canvas, app);
 }
