@@ -5,8 +5,7 @@ reader. It captures POST traffic directly from a supported Xbox motherboard,
 keeps a live history, decodes known codes offline, saves sessions to the SD
 card, and can stream codes over USB to the companion browser tool.
 
-This is a Flipper Zero port of
-[coolshrimp/Xbox-POST-tool](https://github.com/coolshrimp/Xbox-POST-tool), paired
+This is a Flipper Zero adaptation of the PicoDurangoPOST project, paired
 with the online
 [WebXboxPOSTTool](https://demo.coolshrimpmodz.com/WebXboxPOSTTool/).
 
@@ -56,6 +55,8 @@ Only connect SDA, SCL, and a shared ground.
 Xbox One, One S, and One X use the FACET connection. Xbox Series S and Series X
 use AARDVARK. Connector orientation and populated components can vary between
 motherboard revisions, so locate pin 1 from the board markings before soldering.
+
+![Xbox POST header wiring across board revisions](screenshots/all_revs_wire_diagram.jpg)
 
 ## Read POST codes
 
@@ -216,11 +217,8 @@ From a full Flipper firmware tree, place this directory at
 
 ## Credits
 
-- Flipper Zero port and WebXboxPOSTTool: [coolshrimp](https://github.com/coolshrimp)
-- Original RP2040 tool:
-  [coolshrimp/Xbox-POST-tool](https://github.com/coolshrimp/Xbox-POST-tool)
-- Earlier reader work:
-  [XboxOneResearch/PicoDurangoPOST](https://github.com/xboxoneresearch/PicoDurangoPOST)
+- Flipper Zero adaptation and WebXboxPOSTTool: [coolshrimp](https://github.com/coolshrimp)
+- Adapted from the PicoDurangoPOST project by XboxOneResearch
 
 Use this project only on hardware you own or are authorized to repair. Xbox and
 related names are trademarks of Microsoft. This independent community project
