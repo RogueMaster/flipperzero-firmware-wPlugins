@@ -10,6 +10,14 @@
 
 #include <stdlib.h>
 
+#define MORSE_FLIPPER_ICR_1000MS_BUCKET 50U
+#define MORSE_FLIPPER_ICR_GRAPH_MAX_H 44U
+#define MORSE_FLIPPER_ICR_GRAPH_Q_H 11U
+#define MORSE_FLIPPER_ICR_GRAPH_MIN_H 4U
+#define MORSE_FLIPPER_ICR_GRAPH_SOLID_H (MORSE_FLIPPER_ICR_GRAPH_Q_H * 3U)
+#define MORSE_FLIPPER_ICR_FLASH_STEP_MS 250U
+#define MORSE_FLIPPER_ICR_FLASH_MS (MORSE_FLIPPER_ICR_FLASH_STEP_MS * 5U)
+
 bool morse_flipper_ensure_icr_stats_loaded(MorseFlipperApp* app) {
     if(app == NULL) return false;
     if(app->icr_stats != NULL) return true;
@@ -84,9 +92,14 @@ static uint16_t morse_flipper_icr_dit_ms(void) {
 }
 
 static void morse_flipper_icr_begin_prompt(MorseFlipperApp* app, uint32_t now_ms) {
+    uint8_t previous;
+
     if(app == NULL || app->icr_stats == NULL) return;
 
-    app->icr_target = morse_flipper_icr_pick_target(app->icr_stats, &app->icr_rng_state);
+    previous = app->icr_target < MORSE_FLIPPER_ICR_CHAR_COUNT ? app->icr_target :
+                                                              MORSE_FLIPPER_ICR_NO_CHOICE;
+    app->icr_target =
+        morse_flipper_icr_pick_target_except(app->icr_stats, &app->icr_rng_state, previous);
     app->icr_choice = MORSE_FLIPPER_ICR_NO_CHOICE;
     app->icr_mark_idx = 0U;
     app->icr_playback_mark = false;
@@ -102,13 +115,17 @@ static void morse_flipper_icr_begin_wait(MorseFlipperApp* app, uint32_t now_ms) 
 
     app->icr_playback_mark = false;
     app->icr_phase = MorseFlipperIcrPhaseGraphWait;
-    app->icr_target = MORSE_FLIPPER_ICR_NO_CHOICE;
     app->icr_choice = MORSE_FLIPPER_ICR_NO_CHOICE;
     app->icr_mark_idx = 0U;
-    app->icr_next_at = now_ms + MORSE_FLIPPER_ICR_WAIT_MS;
+    if(app->icr_target < MORSE_FLIPPER_ICR_CHAR_COUNT) {
+        app->icr_next_at = now_ms + MORSE_FLIPPER_ICR_FLASH_MS;
+        app->icr_guard_until = now_ms + MORSE_FLIPPER_ICR_FLASH_STEP_MS;
+    } else {
+        app->icr_next_at = now_ms + MORSE_FLIPPER_ICR_WAIT_MS;
+        app->icr_guard_until = 0U;
+    }
     app->icr_reaction_started_at = 0U;
     app->icr_pending_reaction_ms = 0U;
-    app->icr_guard_until = 0U;
     app->icr_result_until = 0U;
     app->icr_answer_correct = false;
     morse_flipper_update_sidetone(app);
@@ -268,8 +285,18 @@ void morse_flipper_tick_icr(MorseFlipperApp* app, uint32_t now_ms) {
         if(app->icr_stats == NULL) return;
     }
 
-    if(app->icr_phase == MorseFlipperIcrPhaseGraphWait && now_ms >= app->icr_next_at) {
-        morse_flipper_icr_begin_prompt(app, now_ms);
+    if(app->icr_phase == MorseFlipperIcrPhaseGraphWait) {
+        if(now_ms >= app->icr_next_at) {
+            morse_flipper_icr_begin_prompt(app, now_ms);
+            return;
+        }
+        if(app->icr_target < MORSE_FLIPPER_ICR_CHAR_COUNT && app->icr_guard_until != 0U &&
+           now_ms >= app->icr_guard_until) {
+            do {
+                app->icr_guard_until += MORSE_FLIPPER_ICR_FLASH_STEP_MS;
+            } while(app->icr_guard_until <= now_ms && app->icr_guard_until < app->icr_next_at);
+            morse_flipper_view_dirty(app);
+        }
         return;
     }
 
@@ -349,11 +376,9 @@ static const char* morse_flipper_icr_phase_label(const MorseFlipperApp* app) {
         return "Hold";
     case MorseFlipperIcrPhaseAnswerGuard:
     case MorseFlipperIcrPhaseAnswer:
-        return "Pick";
+        return "";
     case MorseFlipperIcrPhaseResult:
-        return app->icr_choice == MORSE_FLIPPER_ICR_NO_CHOICE ?
-                   "Time" :
-                   (app->icr_answer_correct ? "OK" : "No");
+        return app->icr_answer_correct ? "OK" : "Fail";
     default:
         return "";
     }
@@ -364,49 +389,109 @@ static void morse_flipper_icr_char_text(uint8_t index, char out[2]) {
     out[1] = '\0';
 }
 
+static uint8_t morse_flipper_icr_scale_bar_height(
+    uint8_t bucket,
+    uint8_t fast_bucket,
+    uint8_t slow_bucket,
+    uint8_t tall_h,
+    uint8_t short_h) {
+    uint16_t span;
+    uint16_t pos;
+
+    if(bucket <= fast_bucket) return tall_h;
+    if(bucket >= slow_bucket) return short_h;
+
+    span = (uint16_t)(slow_bucket - fast_bucket);
+    pos = (uint16_t)(slow_bucket - bucket);
+    return (uint8_t)(short_h + ((pos * (uint16_t)(tall_h - short_h)) / span));
+}
+
 static uint8_t morse_flipper_icr_bar_height(uint8_t bucket) {
-    if(bucket == 0U) return 4U;
-    if(bucket <= MORSE_FLIPPER_ICR_INSTANT_BUCKET) return 36U;
-    if(bucket <= MORSE_FLIPPER_ICR_RECOGNIZED_BUCKET) return 25U;
-    if(bucket < MORSE_FLIPPER_ICR_TIMEOUT_BUCKET) return 15U;
-    return 8U;
+    if(bucket == 0U) return 0U;
+    if(bucket <= MORSE_FLIPPER_ICR_INSTANT_BUCKET) {
+        return morse_flipper_icr_scale_bar_height(
+            bucket,
+            1U,
+            MORSE_FLIPPER_ICR_INSTANT_BUCKET,
+            MORSE_FLIPPER_ICR_GRAPH_MAX_H,
+            MORSE_FLIPPER_ICR_GRAPH_SOLID_H + 1U);
+    }
+    if(bucket <= MORSE_FLIPPER_ICR_1000MS_BUCKET) {
+        return morse_flipper_icr_scale_bar_height(
+            bucket,
+            MORSE_FLIPPER_ICR_INSTANT_BUCKET,
+            MORSE_FLIPPER_ICR_1000MS_BUCKET,
+            MORSE_FLIPPER_ICR_GRAPH_SOLID_H,
+            MORSE_FLIPPER_ICR_GRAPH_Q_H + 1U);
+    }
+    return morse_flipper_icr_scale_bar_height(
+        bucket,
+        MORSE_FLIPPER_ICR_1000MS_BUCKET,
+        MORSE_FLIPPER_ICR_TIMEOUT_BUCKET,
+        MORSE_FLIPPER_ICR_GRAPH_Q_H,
+        MORSE_FLIPPER_ICR_GRAPH_MIN_H);
+}
+
+static void morse_flipper_icr_draw_checker(
+    Canvas* canvas,
+    uint8_t x,
+    uint8_t top,
+    uint8_t bottom) {
+    for(uint8_t y = top; y <= bottom; y++) {
+        canvas_draw_dot(canvas, x + ((y - top) & 1U), y);
+    }
 }
 
 static void morse_flipper_icr_draw_bar(Canvas* canvas, uint8_t x, uint8_t base_y, uint8_t bucket) {
     uint8_t h = morse_flipper_icr_bar_height(bucket);
-    uint8_t top = (uint8_t)(base_y - h + 1U);
+    uint8_t top;
 
     if(bucket == 0U) {
         canvas_draw_dot(canvas, x, base_y);
         canvas_draw_dot(canvas, x + 1U, base_y);
-    } else if(bucket <= MORSE_FLIPPER_ICR_INSTANT_BUCKET) {
-        canvas_draw_box(canvas, x, top, 2U, h);
-    } else if(bucket <= MORSE_FLIPPER_ICR_RECOGNIZED_BUCKET) {
-        for(uint8_t y = top; y <= base_y; y = (uint8_t)(y + 2U)) {
-            canvas_draw_box(canvas, x, y, 2U, 1U);
-        }
-    } else if(bucket < MORSE_FLIPPER_ICR_TIMEOUT_BUCKET) {
-        canvas_draw_line(canvas, x, top, x, base_y);
-        canvas_draw_line(canvas, x + 1U, top, x + 1U, base_y);
-        canvas_draw_line(canvas, x, base_y, x + 1U, base_y);
-    } else {
-        canvas_draw_box(canvas, x, top, 2U, h);
-        if(top > 2U) canvas_draw_line(canvas, x, top - 2U, x + 1U, top - 2U);
+        return;
     }
+
+    top = (uint8_t)(base_y - h + 1U);
+    if(h > MORSE_FLIPPER_ICR_GRAPH_SOLID_H) {
+        uint8_t solid_top = (uint8_t)(base_y - MORSE_FLIPPER_ICR_GRAPH_SOLID_H + 1U);
+
+        morse_flipper_icr_draw_checker(canvas, x, top, (uint8_t)(solid_top - 1U));
+        canvas_draw_box(canvas, x, solid_top, 2U, MORSE_FLIPPER_ICR_GRAPH_SOLID_H);
+        return;
+    }
+
+    canvas_draw_box(canvas, x, top, 2U, h);
+}
+
+static bool morse_flipper_icr_flash_visible(const MorseFlipperApp* app, uint32_t now_ms) {
+    uint32_t remaining;
+    uint32_t elapsed;
+
+    if(app == NULL || app->icr_phase != MorseFlipperIcrPhaseGraphWait) return true;
+    if(app->icr_target >= MORSE_FLIPPER_ICR_CHAR_COUNT) return true;
+    if(now_ms >= app->icr_next_at) return true;
+
+    remaining = app->icr_next_at - now_ms;
+    elapsed = remaining >= MORSE_FLIPPER_ICR_FLASH_MS ? 0U :
+                                                       MORSE_FLIPPER_ICR_FLASH_MS - remaining;
+    return ((elapsed / MORSE_FLIPPER_ICR_FLASH_STEP_MS) & 1U) == 0U;
 }
 
 static void morse_flipper_icr_draw_graph(Canvas* canvas, MorseFlipperApp* app) {
     enum {
         X0 = 4U,
         Step = 3U,
-        BaseY = 55U,
+        BaseY = 59U,
+        DotY = 62U,
     };
+    uint32_t now_ms;
     uint8_t target;
+    bool flash_visible;
 
     if(canvas == NULL || app == NULL) return;
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 1, 8, "ICR");
     canvas_draw_str_aligned(
         canvas, 127, 8, AlignRight, AlignBottom, morse_flipper_icr_phase_label(app));
 
@@ -416,15 +501,22 @@ static void morse_flipper_icr_draw_graph(Canvas* canvas, MorseFlipperApp* app) {
         return;
     }
 
+    now_ms = furi_get_tick();
+    target = app->icr_target;
+    flash_visible = morse_flipper_icr_flash_visible(app, now_ms);
+
     for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_CHAR_COUNT; i++) {
         uint8_t x = (uint8_t)(X0 + (i * Step));
+
+        if(app->icr_phase == MorseFlipperIcrPhaseGraphWait && i == target && !flash_visible)
+            continue;
         morse_flipper_icr_draw_bar(canvas, x, BaseY, app->icr_stats->avg_ms20[i]);
     }
 
-    target = app->icr_target;
-    if(target < MORSE_FLIPPER_ICR_CHAR_COUNT) {
+    if(app->icr_phase == MorseFlipperIcrPhaseGraphWait && target < MORSE_FLIPPER_ICR_CHAR_COUNT &&
+       flash_visible) {
         uint8_t x = (uint8_t)(X0 + (target * Step));
-        canvas_draw_box(canvas, x, 58U, 2U, 2U);
+        canvas_draw_box(canvas, x, DotY, 2U, 2U);
     }
 }
 
@@ -433,7 +525,6 @@ static void morse_flipper_icr_draw_choice(Canvas* canvas, int32_t x, int32_t y, 
 
     if(canvas == NULL) return;
     morse_flipper_icr_char_text(choice, text);
-    canvas_draw_frame(canvas, x - 7, y - 6, 15U, 13U);
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, x, y + 1, AlignCenter, AlignCenter, text);
 }
@@ -449,13 +540,11 @@ static void morse_flipper_icr_draw_choices(Canvas* canvas, MorseFlipperApp* app)
 }
 
 static void morse_flipper_icr_draw_answer(Canvas* canvas, MorseFlipperApp* app) {
-    const char* title;
     uint8_t target;
 
     if(canvas == NULL || app == NULL) return;
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 1, 8, "ICR");
     canvas_draw_str_aligned(
         canvas, 127, 8, AlignRight, AlignBottom, morse_flipper_icr_phase_label(app));
 
@@ -468,15 +557,10 @@ static void morse_flipper_icr_draw_answer(Canvas* canvas, MorseFlipperApp* app) 
     if(app->icr_phase != MorseFlipperIcrPhaseResult) return;
 
     target = app->icr_target;
-    title = app->icr_choice == MORSE_FLIPPER_ICR_NO_CHOICE ?
-                "Time" :
-                (app->icr_answer_correct ? "OK" : "No");
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 92, 16, AlignCenter, AlignCenter, title);
     morse_flipper_draw_straight_prompt(
         canvas,
         92,
-        39,
+        36,
         target < MORSE_FLIPPER_ICR_CHAR_COUNT ? morse_flipper_icr_char_at(target) : '?');
 }
 

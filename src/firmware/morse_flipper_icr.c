@@ -370,13 +370,17 @@ uint8_t morse_flipper_icr_target_weight(const MorseFlipperIcrStats* stats, uint8
     return (uint8_t)weight;
 }
 
-uint8_t morse_flipper_icr_pick_target(const MorseFlipperIcrStats* stats, uint32_t* rng_state) {
+uint8_t morse_flipper_icr_pick_target_except(
+    const MorseFlipperIcrStats* stats,
+    uint32_t* rng_state,
+    uint8_t excluded) {
     uint16_t total = 0U;
     uint16_t pick;
 
     if(stats == NULL) return 0U;
 
     for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_CHAR_COUNT; i++) {
+        if(i == excluded) continue;
         total = (uint16_t)(total + morse_flipper_icr_target_weight(stats, i));
     }
     if(total == 0U) return 0U;
@@ -385,11 +389,16 @@ uint8_t morse_flipper_icr_pick_target(const MorseFlipperIcrStats* stats, uint32_
     for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_CHAR_COUNT; i++) {
         uint8_t weight = morse_flipper_icr_target_weight(stats, i);
 
+        if(i == excluded) continue;
         if(pick < weight) return i;
         pick = (uint16_t)(pick - weight);
     }
 
     return 0U;
+}
+
+uint8_t morse_flipper_icr_pick_target(const MorseFlipperIcrStats* stats, uint32_t* rng_state) {
+    return morse_flipper_icr_pick_target_except(stats, rng_state, MORSE_FLIPPER_ICR_NO_CHOICE);
 }
 
 void morse_flipper_icr_build_choices(
