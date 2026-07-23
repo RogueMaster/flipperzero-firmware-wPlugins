@@ -2,7 +2,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/coolshrimp/flipperzero-xbox-post-code-reader.git
-    commit_sha: cd94266a27514c14cafd336808c7903d44047997
+    commit_sha: 1fd63daca75580a8df8fbf009db1c30e970d7717
 short_description: Read Xbox boot POST codes over I2C and decode them offline
 description: |
   Turn a Flipper Zero into a portable Xbox boot diagnostic reader. It emulates
