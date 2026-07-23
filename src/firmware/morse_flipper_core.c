@@ -62,7 +62,7 @@ uint8_t morse_flipper_backlight_mode(const MorseFlipperApp* app) {
        app->screen == MorseFlipperScreenHamRun || app->screen == MorseFlipperScreenStraight ||
        app->screen == MorseFlipperScreenTxGroups ||
        app->screen == MorseFlipperScreenTxGroupsResult ||
-       app->screen == MorseFlipperScreenTxGroupsFinal)
+       app->screen == MorseFlipperScreenTxGroupsFinal || app->screen == MorseFlipperScreenIcr)
         return MorseFlipperBacklightHold;
 
     if(app->screen == MorseFlipperScreenRf || app->screen == MorseFlipperScreenRfRx)
@@ -347,6 +347,7 @@ void morse_flipper_toggle_source(MorseFlipperApp* app) {
 bool morse_flipper_training_playback_active(const MorseFlipperApp* app) {
     if(app == NULL) return false;
     if(app->screen == MorseFlipperScreenStraight) return app->straight_playback_active;
+    if(app->screen == MorseFlipperScreenIcr) return app->icr_phase == MorseFlipperIcrPhasePlayback;
     return app->screen == MorseFlipperScreenSession && app->trainer_playback_active;
 }
 

@@ -750,6 +750,7 @@ void morse_flipper_release_icr_stats(MorseFlipperApp* app, bool save);
 void morse_flipper_enter_icr(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_leave_icr(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_reset_icr_runtime(MorseFlipperApp* app, uint32_t now_ms);
+void morse_flipper_tick_icr(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_drop_live_keying_for_playback(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_begin_group_playback(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_start_session(MorseFlipperApp* app, uint32_t now_ms);

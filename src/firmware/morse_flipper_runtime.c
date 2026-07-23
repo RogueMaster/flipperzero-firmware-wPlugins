@@ -559,6 +559,9 @@ void morse_flipper_active_mode_tick(MorseFlipperApp* app, uint32_t now_ms) {
     case MorseFlipperScreenStraight:
         morse_flipper_tick_straight(app, now_ms);
         break;
+    case MorseFlipperScreenIcr:
+        morse_flipper_tick_icr(app, now_ms);
+        break;
     case MorseFlipperScreenTxGroups:
     case MorseFlipperScreenTxGroupsResult:
         morse_flipper_tick_tx_groups(app, now_ms);
@@ -589,7 +592,8 @@ static void morse_flipper_tick_markdown_scroll(MorseFlipperApp* app) {
         changed = cwmd_scroll_tick(&app->onboarding_md);
     } else if(app->screen == MorseFlipperScreenHelp) {
         changed = cwmd_scroll_tick(&app->help_md);
-    } else if(app->screen == MorseFlipperScreenAbout && app->about_mode == MorseFlipperAboutModeText) {
+    } else if(
+        app->screen == MorseFlipperScreenAbout && app->about_mode == MorseFlipperAboutModeText) {
         changed = cwmd_scroll_tick(&app->about_md);
     }
 

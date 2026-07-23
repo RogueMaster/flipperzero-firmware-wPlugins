@@ -80,7 +80,8 @@ static bool morse_flipper_signal_led_level(const MorseFlipperApp* app, bool want
        furi_get_tick() < app->session_result_until)
         return true;
     if(app->session_result_tone) return true;
-    if(app->trainer_playback_mark || app->straight_playback_mark) return true;
+    if(app->trainer_playback_mark || app->straight_playback_mark || app->icr_playback_mark)
+        return true;
 
     if(app->screen == MorseFlipperScreenRf && app->rf_live_active) {
         return app->radio.tx_level;
@@ -139,7 +140,8 @@ void morse_flipper_update_sidetone(MorseFlipperApp* app) {
     bool force_buzzer = morse_flipper_ham_force_buzzer(app);
     bool want_tx_tone = morse_flipper_any_active_notes(app) || (app->preview_ticks > 0U);
     bool want_aux_tone = app->trainer_playback_mark || app->straight_playback_mark ||
-                         app->session_result_tone || app->rf_monitor_tone;
+                         app->icr_playback_mark || app->session_result_tone ||
+                         app->rf_monitor_tone;
     bool want_signal = want_tx_tone || want_aux_tone;
     bool want_speaker;
     bool want_vibro;
