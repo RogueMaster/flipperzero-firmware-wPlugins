@@ -2,7 +2,7 @@
  * Purpose: Publish ICR training stats and adaptive selection helpers.
  * Owns: ICR character pool, stats blob layout, target weighting, and choices.
  * Depends on: host-safe integer types plus storage paths in the implementation.
- * Tests: firmware build; private host tests can cover this on master-prv.
+ * Tests: firmware build.
  */
 
 #pragma once

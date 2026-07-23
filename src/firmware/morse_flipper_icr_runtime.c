@@ -2,7 +2,7 @@
  * Purpose: Manage ICR runtime lifetime and first-screen drawing.
  * Owns: ICR stats allocation, scene reset, and ICR canvas rendering.
  * Depends on: morse_flipper_app_i.h and morse_flipper_icr.h.
- * Tests: firmware build; ICR model tests stay private.
+ * Tests: firmware build.
  */
 
 #include "morse_flipper_app_i.h"
@@ -164,6 +164,7 @@ static void morse_flipper_icr_finish_timeout(MorseFlipperApp* app, uint32_t now_
     app->icr_answer_correct = false;
     app->icr_phase = MorseFlipperIcrPhaseResult;
     app->icr_result_until = now_ms + MORSE_FLIPPER_ICR_RESULT_MS;
+    app->session_result_good = false;
     morse_flipper_feedback_timeout(app);
     morse_flipper_view_dirty(app);
 }
@@ -217,6 +218,7 @@ static void morse_flipper_icr_answer(MorseFlipperApp* app, uint8_t choice_pos, u
     if(app->icr_answer_correct) {
         morse_flipper_icr_correct_feedback(app, now_ms);
     } else {
+        app->session_result_good = false;
         morse_flipper_feedback_fail(app);
     }
     morse_flipper_view_dirty(app);

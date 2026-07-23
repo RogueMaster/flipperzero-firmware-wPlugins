@@ -2,7 +2,7 @@
  * Purpose: Implement ICR training stats and adaptive selection helpers.
  * Owns: ICR persistence, confusion priors, target weights, and answer choices.
  * Depends on: morse_flipper_icr.h, morse_flipper_paths.h, and storage APIs.
- * Tests: firmware build; private host tests can cover this on master-prv.
+ * Tests: firmware build.
  */
 
 #include "morse_flipper_icr.h"
