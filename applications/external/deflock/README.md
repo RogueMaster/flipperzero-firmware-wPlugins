@@ -2,6 +2,8 @@
   <img src="assets/logo.png" width="560" alt="FlipDeFlock">
 </p>
 
+<p align="center"><em>Snoop onto them as they snoop onto us.</em></p>
+
 FlipDeFlock is a Flipper Zero app that pairs the Flipper with an ESP32 board to
 survey the radio around you for surveillance hardware: Flock Safety / ALPR
 cameras, Bluetooth trackers that follow you, weak or spoofed Wi-Fi, and active
