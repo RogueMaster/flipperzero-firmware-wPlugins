@@ -233,6 +233,7 @@ typedef enum {
     MorseFlipperIcrPhaseGraphWait = 0,
     MorseFlipperIcrPhasePlayback,
     MorseFlipperIcrPhaseRecognition,
+    MorseFlipperIcrPhaseRecognizedHold,
     MorseFlipperIcrPhaseAnswerGuard,
     MorseFlipperIcrPhaseAnswer,
     MorseFlipperIcrPhaseResult,
@@ -751,6 +752,7 @@ void morse_flipper_enter_icr(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_leave_icr(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_reset_icr_runtime(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_tick_icr(MorseFlipperApp* app, uint32_t now_ms);
+bool morse_flipper_icr_input(MorseFlipperApp* app, const InputEvent* event, uint32_t now_ms);
 void morse_flipper_drop_live_keying_for_playback(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_begin_group_playback(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_start_session(MorseFlipperApp* app, uint32_t now_ms);
