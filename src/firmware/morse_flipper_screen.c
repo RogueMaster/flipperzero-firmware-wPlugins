@@ -155,6 +155,12 @@ void morse_flipper_enter_screen(
 
     app->screen = screen;
     app->scene = scene;
+    if(old_screen == MorseFlipperScreenRfRx && screen != MorseFlipperScreenRfRx) {
+        /* The RX ticker shares this storage with Terminus.  Once the screen
+         * changes, RF ticks no longer use it; clear stale ticker bytes before
+         * any prompt screen prepares its glyph cache. */
+        app->terminus24 = (MorseFlipperTerminus24Cache){0};
+    }
     if(morse_flipper_gpio_probe_screen(app)) {
         morse_flipper_gpio_probe_prepare(app, now_ms);
     } else if(!morse_flipper_gpio_probe_keep_state(screen)) {

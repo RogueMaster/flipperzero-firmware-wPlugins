@@ -10,6 +10,7 @@
 void morse_flipper_view_dirty(MorseFlipperApp* app) {
     if(app == NULL || app->live_view == NULL) return;
 
+    morse_flipper_terminus24_prepare(app);
     with_view_model(app->live_view, MorseFlipperLiveModel * m, { m->bump++; }, true);
 }
 
@@ -126,6 +127,7 @@ void morse_flipper_scene_enter_now(MorseFlipperApp* app, uint32_t scene) {
     morse_flipper_ensure_view(app, view);
 
     morse_flipper_enter_screen(app, morse_flipper_scene_screen(scene), scene, furi_get_tick());
+    if(view == MorseFlipperViewLive) morse_flipper_terminus24_prepare(app);
     view_dispatcher_switch_to_view(app->view_dispatcher, view);
     if(view == MorseFlipperViewLive) morse_flipper_view_dirty(app);
 }

@@ -27,6 +27,7 @@
 #include <string.h>
 
 #include "cw_markdown_widget.h"
+#include "fonts/morse_flipper_terminus24.h"
 #include "keyer.h"
 #include "morse_flipper_audio_pwm.h"
 #include "morse_flipper_cw_decoder.h"
@@ -383,6 +384,7 @@ typedef struct MorseFlipperApp {
     MorseFlipperProgress* view_progress;
     MorseFlipperIcrStats* icr_stats;
     volatile bool exit_requested;
+    bool terminus24_active;
 
     /*
      * Hardware and transport mirrors. These track what we last asked the outside
@@ -619,7 +621,11 @@ typedef struct MorseFlipperApp {
     MorseFlipperAudioPwm audio_pwm;
     MorseFlipperStraightFilter straight_filter;
     MorseFlipperRf rf;
-    MorseFlipperRfTicker rf_rx_ticker;
+    union {
+        /* RX ticker is live only on RfRx; Terminus cache only on its prompt screens. */
+        MorseFlipperRfTicker rf_rx_ticker;
+        MorseFlipperTerminus24Cache terminus24;
+    };
     MorseFlipperRadio radio;
     MorseFlipperCwDecoder rf_decoder;
     MorseFlipperCwDecoder tx_decoder;
@@ -627,6 +633,10 @@ typedef struct MorseFlipperApp {
     MorseFlipperStraightTrainer straight_trainer;
     MorseFlipperTxGroup tx_group;
 } MorseFlipperApp;
+
+_Static_assert(
+    sizeof(MorseFlipperRfTicker) >= sizeof(MorseFlipperTerminus24Cache),
+    "RF ticker must cover Terminus cache");
 
 typedef struct {
     MorseFlipperApp* app;
@@ -838,7 +848,12 @@ uint8_t morse_flipper_star_anim_cols(
     uint8_t target_stars);
 uint16_t morse_flipper_star_anim_duration(uint8_t target_stars);
 void morse_flipper_draw_run_text(Canvas* canvas, int32_t x, int32_t y, const char* text);
-void morse_flipper_draw_straight_prompt(Canvas* canvas, int32_t cx, int32_t cy, uint8_t ch);
+void morse_flipper_draw_straight_prompt(
+    Canvas* canvas,
+    const MorseFlipperApp* app,
+    int32_t cx,
+    int32_t cy,
+    uint8_t ch);
 void morse_flipper_about_reset(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_tick_about(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_draw_about(Canvas* canvas, MorseFlipperApp* app);

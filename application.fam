@@ -63,6 +63,7 @@ App(
         "src/firmware/morse_flipper_rf_live.c",
         "src/firmware/morse_flipper_about.c",
         "src/firmware/morse_flipper_live_view.c",
+        "src/firmware/morse_flipper_terminus24.c",
         "src/firmware/morse_flipper_live_view_common.c",
         "src/firmware/morse_flipper_live_view_run.c",
         "src/firmware/morse_flipper_live_view_training.c",

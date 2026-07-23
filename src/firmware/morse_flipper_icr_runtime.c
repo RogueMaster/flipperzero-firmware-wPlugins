@@ -559,6 +559,7 @@ static void morse_flipper_icr_draw_answer(Canvas* canvas, MorseFlipperApp* app) 
     target = app->icr_target;
     morse_flipper_draw_straight_prompt(
         canvas,
+        app,
         92,
         36,
         target < MORSE_FLIPPER_ICR_CHAR_COUNT ? morse_flipper_icr_char_at(target) : '?');

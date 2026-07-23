@@ -5,7 +5,6 @@
  * Tests: trainer host tests cover data; rendering is hardware-only.
  */
 
-#include "fonts/morse_flipper_terminus24.h"
 #include "morse_flipper_app_i.h"
 
 static void morse_flipper_txg_score_line(const MorseFlipperApp* app, char* out, size_t out_sz) {
@@ -35,7 +34,8 @@ static void morse_flipper_txg_score_pct(const MorseFlipperApp* app, char* out, s
     snprintf(out, out_sz, "%u%%", pct);
 }
 
-static void morse_flipper_draw_txg_big_slots(Canvas* canvas, int32_t cy, const char* text) {
+static void
+    morse_flipper_draw_txg_big_slots(Canvas* canvas, const MorseFlipperApp* app, int32_t cy, const char* text) {
     const int32_t gap = 3;
     const int32_t cell = (int32_t)MORSE_FLIPPER_TERMINUS24_WIDTH;
     const int32_t total = (cell * 5) + (gap * 4);
@@ -45,7 +45,8 @@ static void morse_flipper_draw_txg_big_slots(Canvas* canvas, int32_t cy, const c
 
     for(uint8_t i = 0U; i < MORSE_FLIPPER_TX_GROUP_LEN; i++) {
         if(text[i] == '\0') break;
-        morse_flipper_draw_straight_prompt(canvas, cx + ((cell + gap) * (int32_t)i), cy, text[i]);
+        morse_flipper_draw_straight_prompt(
+            canvas, app, cx + ((cell + gap) * (int32_t)i), cy, text[i]);
     }
 }
 
@@ -82,10 +83,10 @@ static void morse_flipper_draw_tx_groups_practice(Canvas* canvas, MorseFlipperAp
 
     if(canvas == NULL || app == NULL) return;
 
-    morse_flipper_draw_txg_big_slots(canvas, 18, app->tx_group.target);
+    morse_flipper_draw_txg_big_slots(canvas, app, 18, app->tx_group.target);
     morse_flipper_draw_tx_history_divider(canvas, morse_flipper_live_left_hint(app));
     morse_flipper_txg_answer_with_preview(app, answer, sizeof(answer));
-    morse_flipper_draw_txg_big_slots(canvas, 49, answer);
+    morse_flipper_draw_txg_big_slots(canvas, app, 49, answer);
 
     canvas_set_font(canvas, FontSecondary);
     morse_flipper_txg_score_pct(app, score, sizeof(score));
@@ -579,7 +580,11 @@ void morse_flipper_draw_straight_screen(Canvas* canvas, MorseFlipperApp* app) {
     }
 
     morse_flipper_draw_straight_prompt(
-        canvas, 19, 18, morse_flipper_straight_trainer_target_char(&app->straight_trainer));
+        canvas,
+        app,
+        19,
+        18,
+        morse_flipper_straight_trainer_target_char(&app->straight_trainer));
 
     dit_ms = morse_flipper_current_straight_dit_ms(app);
 
