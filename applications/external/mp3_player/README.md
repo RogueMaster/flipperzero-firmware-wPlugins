@@ -1,6 +1,6 @@
 # MP3 Player for Flipper Zero
 
-Current version: **v3.4**
+Current version: **v3.5**
 
 Created by **Coolshrimp**.
 
@@ -10,7 +10,7 @@ A real MP3 player FAP for the Flipper Zero with three selectable outputs. Only o
 - **MAX98357A** decodes the same MP3 stream and sends 15-bit mono I2S audio to a MAX98357A amplifier module at an exact 16 kHz. TIM2 generates the 512 kHz BCLK while DMA updates LRCLK and DIN before each rising edge.
 - **PAM8403** generates a 500 kHz, 32x first-order pulse-density stream on pin 3/PA6 at a 15.625 kHz audio rate. Light dither suppresses tonal idle patterns during quiet passages, while the deliberately lightweight modulator leaves CPU time for smooth MP3 decoding and UI controls. An external RC low-pass filter converts this to the analog input required by the pictured PAM8403 board.
 
-The app includes a main menu, song list, Now Playing controls, volume, repeat/output settings, and an About/pinout screen. The default library is `/ext/music` on the microSD card.
+The app includes a main menu, song list, Now Playing controls, volume, repeat/output settings, a built-in folder picker for the music library, and an About/pinout screen. The default library is `/ext/music` on the microSD card. On firmwares whose file browser can open an MP3 with an app, the player also accepts a file path at launch and starts playing it directly.
 
 ## Screenshots
 
@@ -76,7 +76,8 @@ Seeking resumes only if the song was playing before the hold; a paused song stay
 - **Output** — select `Internal`, `MAX98357A`, or `PAM8403`.
 - **Repeat** — `Repeat One` restarts the current track; `Repeat All` advances and continues at the end of a track.
 - **Volume** — same level used by Now Playing.
-- **Rescan library** — re-reads the folder named in `music_path.txt`.
+- **Music folder** — opens the folder picker described below.
+- **Rescan library** — re-reads the currently selected music folder.
 
 ### About
 
@@ -84,23 +85,24 @@ The About screen shows the version, credit, and the full pinout for both amplifi
 
 ## Configurable music folder
 
-During launch, before any library scan, the app creates this editable text file on the SD card if it does not already exist:
+The default library is `/ext/music`. To change it, choose **Settings > Music folder**. A directory browser opens on the SD card:
 
-```text
-/ext/apps_data/mp3_player/music_path.txt
-```
+| Selection | Action |
+|---|---|
+| A folder name + **OK** | Enter that folder |
+| `[..]` + **OK** | Go up one level |
+| `[Use this folder]` + **OK** | Save the current location and rescan the library |
+| **Back** | Leave the browser without changing the folder |
 
-Its default contents are:
+The chosen folder is stored in the app's settings file and restored on the next launch. Versions before 3.5 read the folder from `/ext/apps_data/mp3_player/music_path.txt`; if that file exists it is imported automatically the first time 3.5 runs, after which the file is no longer used or created.
 
-```text
-/ext/music
-```
+The scan begins only when Song List is first opened. It reads only MP3 files directly inside the selected folder; subfolders are ignored. It stops after five seconds, 1,024 directory entries, or 100 songs. Keeping the library flat substantially reduces RAM use and leaves enough memory for the decoder and audio backends.
 
-Replace that single line with any folder below `/ext`, for example `/ext/Music/Albums`. Choose **Settings > Rescan library** after editing it; restarting the app is not required. Invalid paths safely fall back to `/ext/music`.
+Volume, repeat mode, output selection, and the music folder are stored in the app's versioned settings file and restored on the next launch. Missing or damaged settings safely fall back to `50%`, `Repeat Off`, `Internal`, and `/ext/music`.
 
-The scan begins only when Song List is first opened. It reads only MP3 files directly inside the directory named in `music_path.txt`; subfolders are ignored. It stops after five seconds, 1,024 directory entries, or 100 songs. Keeping the library flat substantially reduces RAM use and leaves enough memory for the decoder and audio backends.
+## Open from the file browser
 
-Volume, repeat mode, and output selection are stored in the app's versioned settings file and restored on the next launch. Missing or damaged settings safely fall back to `50%`, `Repeat Off`, and `Internal`.
+On firmwares whose file browser or Archive can open an MP3 with this app, the player starts directly on Now Playing and plays that file without loading the library. Repeat One and seeking work as usual; Repeat All repeats the file. Thanks to RogueMaster for the pull request that contributed this feature.
 
 ## Now Playing screen
 
@@ -182,7 +184,7 @@ The project vendors [minimp3](https://github.com/lieff/minimp3) under its CC0 li
 ## Practical limitations
 
 - Internal output is quiet and buzzy by nature; MAX98357A or PAM8403 with the required filter is recommended. See [Internal vs External output](#internal-vs-external-output).
-- Folder recursion is intentionally disabled. Put MP3 files directly in the directory selected by `music_path.txt`.
+- Folder recursion is intentionally disabled. Put MP3 files directly in the folder chosen under **Settings > Music folder**.
 - The decoder uses an 8 KB compressed-data window and a 24 KB thread stack to fit alongside a 100-song filename index.
 - Output is mono and converted with a weighted anti-alias resampler: 15.625 kHz for Internal/PAM8403 or an exact 16 kHz for MAX98357A.
 - Playback prebuffers 512 samples and cleanly re-primes after a decoder underrun.

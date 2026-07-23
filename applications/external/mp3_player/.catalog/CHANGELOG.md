@@ -1,3 +1,10 @@
+## 3.5
+
+* Replaced music_path.txt with a built-in folder picker: Settings, Music folder opens a directory browser and "Use this folder" saves the choice and rescans. An existing music_path.txt is imported automatically on first run.
+* The music folder now persists in the app settings file alongside volume, repeat and output.
+* The app accepts a file path as a launch argument and plays it directly, so firmwares with "open in app" file browsers can start playback from the Archive. Thanks to RogueMaster for the pull request that contributed this feature.
+* Settings screen now scrolls to fit the new entry.
+
 ## 3.4
 
 * Added a third output, PAM8403, driving a 500 kHz pulse-density stream on pin 3 (PA6) through an external RC filter.
