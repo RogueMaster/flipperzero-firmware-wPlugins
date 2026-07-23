@@ -10,5 +10,5 @@ App(
     fap_author="coolshrimp",
     fap_weburl="https://github.com/coolshrimp/flipperzero-mp3-player",
     fap_version="3.5",
-    fap_description="Plays any MP3 bitrate through the internal speaker or an external MAX98357A I2S amplifier.",
+    fap_description="Play any MP3 through the internal speaker, a MAX98357A I2S amplifier, or a filtered PAM8403.",
 )
