@@ -26,7 +26,7 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="morse_flipper_fap",
     requires=["gui"],
-    stack_size=4 * 1024,
+    stack_size=3 * 1024,
     cdefines=[
         "MORSE_FLIPPER_FAP=1",
         f'APP_BUILD_COMMIT=\\"{git_commit}\\"',
@@ -96,7 +96,7 @@ App(
     ],
     targets=["f7"],
     fap_category="Tools",
-    fap_version="0.1.86",
+    fap_version="0.1.87",
     fap_author="@yo3gnd",
     fap_weburl="https://github.com/yo3gnd/morse-flipper/",
     fap_description="Learn, practise, send, and experiment with Morse code on Flipper Zero.",
