@@ -65,7 +65,6 @@ void morse_flipper_enter_icr(MorseFlipperApp* app, uint32_t now_ms) {
 
     morse_flipper_ensure_icr_stats_loaded(app);
     if(app->icr_rng_state == 0U) app->icr_rng_state = now_ms ^ 0x49435231UL;
-    morse_flipper_reset_icr_runtime(app, now_ms);
 }
 
 void morse_flipper_leave_icr(MorseFlipperApp* app, uint32_t now_ms) {
@@ -374,8 +373,11 @@ static uint8_t morse_flipper_icr_bar_height(uint8_t bucket) {
     return 8U;
 }
 
-static void
-    morse_flipper_icr_draw_bar(Canvas* canvas, uint8_t x, uint8_t base_y, uint8_t bucket) {
+static void morse_flipper_icr_draw_bar(
+    Canvas* canvas,
+    uint8_t x,
+    uint8_t base_y,
+    uint8_t bucket) {
     uint8_t h = morse_flipper_icr_bar_height(bucket);
     uint8_t top = (uint8_t)(base_y - h + 1U);
 
