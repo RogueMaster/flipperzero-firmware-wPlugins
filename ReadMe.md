@@ -44,6 +44,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Mandelbrot Set v1.4 (By Possibly-Matt)](https://github.com/Possibly-Matt/flipperzero-firmware-wPlugins) [fix the hang, centre the zoom, add held-key panning (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/241)
 - Updated: [Paint v1.4 (By n-o-T-I-n-s-a-n-e)](https://github.com/n-o-T-I-n-s-a-n-e) [fix stuck pen, add Move/Draw/Erase modes and canvas persistence (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/238)
 - Updated: [Video Poker v1.5 (By PixlEmly)](https://github.com/PixlEmly/flipperzero-firmware-testing/blob/420/applications/VideoPoker/poker.c) [saturate the payout so a big win cannot overflow the bank (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/240)
+- Updated: [DeFlock v0.43 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- Updated: [Sub-GHz RAW Edit v1.7 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 
 <a name="release"></a>
 

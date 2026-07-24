@@ -2,8 +2,8 @@
 // Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
 #include "../recon_app_i.h"
 
-#define RECON_ABOUT_TEXT              \
-    "FlipDeFlock\n"                   \
+#define RECON_ABOUT_TEXT             \
+    "FlipDeFlock\n"                  \
     "Snoop onto them as\n"           \
     "they snoop onto us.\n \n"       \
     "Passive site-survey tool.\n"    \

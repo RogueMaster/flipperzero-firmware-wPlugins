@@ -12,6 +12,7 @@
 #include <gui/modules/submenu.h>
 #include <gui/modules/widget.h>
 #include <gui/modules/text_input.h>
+#include <gui/modules/number_input.h>
 #include <gui/modules/variable_item_list.h>
 
 #include <lib/toolbox/level_duration.h>
@@ -35,7 +36,7 @@
 #define GAP_KEEP_MAX_US 1500
 
 #define MERGE_GAP_DEFAULT_MS 100
-#define MERGE_GAP_MIN_MS     1
+#define MERGE_GAP_MIN_MS     0
 // A single sample is int16_t clamped to DUR_CLAMP (32000 us = 32 ms), so gaps
 // longer than that are emitted as several consecutive silence samples.
 #define MERGE_GAP_MAX_MS     1000
@@ -807,6 +808,8 @@ static void merge_separator(SubData* dst) {
     // Absorb the previous signal's trailing silence so the gap isn't added on
     // top of it, then emit the gap via push_duration (which splits it into
     // several samples when it exceeds the per-sample clamp).
+    if(g_merge_gap_ms == 0) return;
+
     while(dst->count > 0 && dst->data[dst->count - 1] < 0)
         dst->count--;
 
@@ -2045,10 +2048,9 @@ typedef struct {
     Submenu* submenu;
     Widget* widget;
     VariableItemList* config_list;
-    TextInput* num_input;
+    NumberInput* num_input;
     VariableItem* gap_item;
     VariableItem* repeat_item;
-    char num_text[8];
     int editing;
     Storage* storage;
     DialogsApp* dialogs;
@@ -2125,9 +2127,8 @@ static void config_repeat_changed_cb(VariableItem* item) {
     config_repeat_sync_item(item);
 }
 
-static void config_num_input_cb(void* context) {
+static void config_num_input_cb(void* context, int32_t v) {
     Menu* menu = context;
-    int32_t v = atoi(menu->num_text);
 
     if(menu->editing == ConfigItemGap) {
         if(v < MERGE_GAP_MIN_MS) v = MERGE_GAP_MIN_MS;
@@ -2151,27 +2152,30 @@ static uint32_t config_num_input_back_cb(void* context) {
     return MenuViewConfig;
 }
 
-// OK on a numeric config item opens a keyboard for a manual value.
+// OK on a numeric config item opens a number picker.
 static void config_enter_cb(void* context, uint32_t index) {
     Menu* menu = context;
 
     const char* header;
-    int32_t current;
+    int32_t current, min_val, max_val;
     if(index == ConfigItemGap) {
-        header = "Merge gap [ms] (1-1000)";
+        header = "Merge gap [ms]";
         current = g_merge_gap_ms;
+        min_val = MERGE_GAP_MIN_MS;
+        max_val = MERGE_GAP_MAX_MS;
     } else if(index == ConfigItemRepeat) {
-        header = "Repeat each (1-64)";
+        header = "Repeat each";
         current = g_merge_repeat;
+        min_val = MERGE_REPEAT_MIN;
+        max_val = MERGE_REPEAT_MAX;
     } else {
         return; // non-numeric item (e.g. Normalize jitter)
     }
 
     menu->editing = index;
-    snprintf(menu->num_text, sizeof(menu->num_text), "%ld", (long)current);
-    text_input_set_header_text(menu->num_input, header);
-    text_input_set_result_callback(
-        menu->num_input, config_num_input_cb, menu, menu->num_text, sizeof(menu->num_text), false);
+    number_input_set_header_text(menu->num_input, header);
+    number_input_set_result_callback(
+        menu->num_input, config_num_input_cb, menu, current, min_val, max_val);
     view_dispatcher_switch_to_view(menu->view_dispatcher, MenuViewGapInput);
 }
 
@@ -2250,7 +2254,7 @@ int32_t subghz_raw_edit_app(void* p) {
     menu->submenu = submenu_alloc();
     menu->widget = widget_alloc();
     menu->config_list = variable_item_list_alloc();
-    menu->num_input = text_input_alloc();
+    menu->num_input = number_input_alloc();
 
     submenu_set_header(menu->submenu, APP_NAME);
     submenu_add_item(menu->submenu, "Select .sub file", MenuItemSelectFile, menu_submenu_cb, menu);
@@ -2264,7 +2268,7 @@ int32_t subghz_raw_edit_app(void* p) {
     view_set_previous_callback(submenu_get_view(menu->submenu), submenu_back_cb);
     view_set_previous_callback(widget_get_view(menu->widget), about_back_cb);
     view_set_previous_callback(variable_item_list_get_view(menu->config_list), config_back_cb);
-    view_set_previous_callback(text_input_get_view(menu->num_input), config_num_input_back_cb);
+    view_set_previous_callback(number_input_get_view(menu->num_input), config_num_input_back_cb);
 
     view_dispatcher_attach_to_gui(menu->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
     view_dispatcher_add_view(
@@ -2273,7 +2277,7 @@ int32_t subghz_raw_edit_app(void* p) {
     view_dispatcher_add_view(
         menu->view_dispatcher, MenuViewConfig, variable_item_list_get_view(menu->config_list));
     view_dispatcher_add_view(
-        menu->view_dispatcher, MenuViewGapInput, text_input_get_view(menu->num_input));
+        menu->view_dispatcher, MenuViewGapInput, number_input_get_view(menu->num_input));
 
     bool running = true;
     while(running) {
@@ -2297,7 +2301,7 @@ int32_t subghz_raw_edit_app(void* p) {
     submenu_free(menu->submenu);
     widget_free(menu->widget);
     variable_item_list_free(menu->config_list);
-    text_input_free(menu->num_input);
+    number_input_free(menu->num_input);
     view_dispatcher_free(menu->view_dispatcher);
 
     furi_record_close(RECORD_GUI);
