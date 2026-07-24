@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mf_callsign_gen.h"
+#include "../common/mf_callsign_gen.h"
 #include "morse_flipper_rx_practice_types.h"
 
 typedef struct MfRxPracticeState {
