@@ -2,7 +2,7 @@
 
 14-key 2-octave mini piano application for **Flipper Zero**. 
 
-<img src="docs/flipperPianoIcon.png" alt="FlipPiano Screen 3" width="20%" />
+<img src="docs/flipperPianoIcon.png" alt="FlipPiano Screen 3" width="30%" />
 play any song you want with a simple, handy mini piano app
 
 ---
@@ -11,12 +11,16 @@ play any song you want with a simple, handy mini piano app
 
 <p align="center">
   <img src="docs/FlipPiano.png" alt="FlipPiano Screen 1" width="30%" />
+----------
   <img src="docs/FlipPiano2.png" alt="FlipPiano Screen 2" width="30%" />
 </p>
 
 ---
 
-
+<!-- Badges -->
+[![GitHub Release](https://img.shields.io/github/v/release/bergr22/FlipPiano?color=blue&label=LATEST%20VERSION)](https://github.com/bergr22/FlipPiano/releases)
+[![GitHub Downloads (all assets)](https://img.shields.io/github/downloads/bergr22/FlipPiano/total?color=brightgreen&label=DOWNLOADS)](https://github.com/bergr22/FlipPiano/releases)
+[![License: MIT](https://img.shields.io/badge/LICENSE-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
@@ -31,11 +35,4 @@ play any song you want with a simple, handy mini piano app
 
 ---
 
-## 🛠️ How to Build & Install
 
-If you want to compile and install manually using `ufbt`:
-
-1. Clone this repository:
-   ```bash
-   git clone [https://github.com/bergr22/FlipPiano.git](https://github.com/bergr22/FlipPiano.git)
-   cd FlipPiano
