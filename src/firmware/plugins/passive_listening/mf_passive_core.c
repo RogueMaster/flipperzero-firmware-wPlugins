@@ -105,7 +105,12 @@ static bool mf_passive_start_voice(MfPassiveState* state) {
 bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfPassiveResult* result) {
     if(state == NULL || result == NULL || args == NULL || args->struct_size != sizeof(*args) ||
        args->services == NULL || args->services->struct_size != sizeof(MfPassiveHostServices) ||
-       args->services->command == NULL || args->dit_ms == 0U ||
+       args->services->command == NULL || args->dit_ms == 0U || args->answer_delay_ms < 1000U ||
+       args->answer_delay_ms > 5000U || args->mode > 1U || args->prompt_length < 3U ||
+       args->prompt_length > 6U || (args->mode == 0U && args->prompt_length < 4U) ||
+       args->lesson_charset_len > MF_PASSIVE_LESSON_CHARSET_CAP ||
+       (args->mode == 1U && args->lesson_charset_len == 0U) || args->vibrate > 1U ||
+       args->repeat_after_answer > 1U ||
        args->char_gap_ms == 0U || args->tone_hz == 0U || args->output_target > MfPassiveOutputP2 ||
        args->volume_pct < 10U || args->volume_pct > 100U)
         return false;
@@ -114,6 +119,13 @@ bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfP
     state->dit_ms = args->dit_ms;
     state->char_gap_ms = args->char_gap_ms;
     state->tone_hz = args->tone_hz;
+    state->answer_delay_ms = args->answer_delay_ms;
+    state->mode = args->mode;
+    state->prompt_length = args->prompt_length;
+    state->lesson_charset_len = args->lesson_charset_len;
+    state->vibrate = args->vibrate;
+    state->repeat_after_answer = args->repeat_after_answer;
+    memcpy(state->lesson_charset, args->lesson_charset, sizeof(state->lesson_charset));
     /* Hardware audition selected 70% before SoftBuzz's doubled internal drive. */
     state->voice_gain_pct = args->output_target == MfPassiveOutputInternal ? 70U : 100U;
     mf_rx_rng_init(&state->rng, args->rng_seed);

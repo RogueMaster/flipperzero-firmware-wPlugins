@@ -9,6 +9,8 @@
 #include "../common/mf_callsign_gen.h"
 #include "mf_passive_audio_pipe.h"
 
+#define MF_PASSIVE_LESSON_CHARSET_CAP 40U
+
 typedef enum {
     MfPassiveOutputInternal = 0,
     MfPassiveOutputP2 = 1,
@@ -58,8 +60,15 @@ typedef struct {
     uint16_t dit_ms;
     uint16_t char_gap_ms;
     uint16_t tone_hz;
+    uint16_t answer_delay_ms;
     uint8_t output_target;
     uint8_t volume_pct;
+    uint8_t mode;
+    uint8_t prompt_length;
+    uint8_t lesson_charset_len;
+    uint8_t vibrate;
+    uint8_t repeat_after_answer;
+    char lesson_charset[MF_PASSIVE_LESSON_CHARSET_CAP];
     const MfPassiveHostServices* services;
 } MfPassiveEnterArgs;
 

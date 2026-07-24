@@ -78,6 +78,7 @@ bool morse_flipper_passive_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
     MfPassiveEnterArgs args;
     bool entered;
     MfPassiveOutputTarget target;
+    const char* lesson_charset;
     if(app == NULL || app->plugin_slot.mutex == NULL) return false;
     morse_flipper_drop_live_keying_for_playback(app, now_ms);
     morse_flipper_release_all_notes(app);
@@ -85,19 +86,30 @@ bool morse_flipper_passive_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
     morse_flipper_sync_ptt(app, now_ms);
     target = app->audio_path == MorseFlipperAudioPathGpioP2Hd ? MfPassiveOutputP2 :
                                                                MfPassiveOutputInternal;
+    morse_flipper_clamp_passive_settings(app);
+    lesson_charset = morse_flipper_passive_lesson_charset(app->passive_lesson);
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     args = (MfPassiveEnterArgs){
         .struct_size = sizeof(args),
         .now_ms = now_ms,
         .rng_seed = furi_hal_random_get(),
-        .dit_ms = morse_flipper_current_dit_ms(app),
+        .dit_ms = app->passive_dit_ms,
         .char_gap_ms = morse_flipper_training_char_gap_ms(
-            morse_flipper_current_dit_ms(app), morse_flipper_local_wpm(app), app->trainer_farnsworth_wpm),
+            app->passive_dit_ms,
+            morse_flipper_passive_wpm(app),
+            app->passive_farnsworth_wpm),
         .tone_hz = (uint16_t)(morse_flipper_active_tone_hz(app) + 0.5f),
+        .answer_delay_ms = (uint16_t)(app->passive_answer_delay_s * 1000U),
         .output_target = target,
         .volume_pct = morse_flipper_p2_volume_pct(app),
+        .mode = app->passive_mode,
+        .prompt_length = app->passive_length,
+        .lesson_charset_len = app->passive_lesson,
+        .vibrate = app->passive_vibrate,
+        .repeat_after_answer = app->passive_repeat_after_answer,
         .services = &mf_passive_services,
     };
+    memcpy(args.lesson_charset, lesson_charset, args.lesson_charset_len);
     mf_passive_services.context = app;
     entered = morse_flipper_plugin_runtime_open_mapped_locked(
         app,

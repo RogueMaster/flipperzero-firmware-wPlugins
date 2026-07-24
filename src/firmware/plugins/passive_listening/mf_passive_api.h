@@ -6,7 +6,7 @@
 #include "mf_passive_types.h"
 
 #define MF_PASSIVE_API_MAGIC 0x4D46504CUL
-#define MF_PASSIVE_API_VERSION 2U
+#define MF_PASSIVE_API_VERSION 3U
 
 typedef struct {
     MorseFlipperMappedFalApi mapped;
