@@ -55,6 +55,7 @@ App(
         "src/firmware/morse_flipper_settings_audio.c",
         "src/firmware/morse_flipper_settings_gpio.c",
         "src/firmware/morse_flipper_settings_training.c",
+        "src/firmware/morse_flipper_settings_passive.c",
         "src/firmware/morse_flipper_settings_usb.c",
         "src/firmware/morse_flipper_keying.c",
         "src/firmware/morse_flipper_transport.c",

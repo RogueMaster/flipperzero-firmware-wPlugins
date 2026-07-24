@@ -233,6 +233,7 @@ typedef enum {
     MorseFlipperSceneStreakIntro,
     MorseFlipperSceneIcr,
     MorseFlipperSceneRxCallsigns,
+    MorseFlipperScenePassiveCfg,
     MorseFlipperScenePassive,
     MorseFlipperSceneNum,
 } MorseFlipperScene;
@@ -330,6 +331,17 @@ typedef enum {
 } MorseFlipperTrainerSettingIndex;
 
 typedef enum {
+    MorseFlipperPassiveSettingMode = 0,
+    MorseFlipperPassiveSettingLength,
+    MorseFlipperPassiveSettingLesson,
+    MorseFlipperPassiveSettingWpm,
+    MorseFlipperPassiveSettingFarnsworth,
+    MorseFlipperPassiveSettingVibrate,
+    MorseFlipperPassiveSettingAnswerDelay,
+    MorseFlipperPassiveSettingRepeat,
+} MorseFlipperPassiveSettingIndex;
+
+typedef enum {
     MorseFlipperPcModeOff = 0,
     MorseFlipperPcModeKeyboard = 1,
     MorseFlipperPcModeMouse = 2,
@@ -377,6 +389,7 @@ typedef struct MorseFlipperApp {
     VariableItemList* settings_list;
     VariableItem* audio_cfg_items[MorseFlipperAudioSettingWaveform + 1U];
     VariableItem* trainer_items[MorseFlipperTrainerSettingChars + 1U];
+    VariableItem* passive_items[MorseFlipperPassiveSettingRepeat + 1U];
     VariableItem* straight_cfg_items[3];
     View* live_view;
     Gui* gui;
@@ -941,6 +954,8 @@ bool morse_flipper_scene_gpio_on_event(void* context, SceneManagerEvent event);
 void morse_flipper_scene_gpio_on_exit(void* context);
 void morse_flipper_scene_trainer_on_enter(void* context);
 void morse_flipper_scene_trainer_on_exit(void* context);
+void morse_flipper_scene_passive_cfg_on_enter(void* context);
+void morse_flipper_scene_passive_cfg_on_exit(void* context);
 void morse_flipper_scene_straight_cfg_on_enter(void* context);
 void morse_flipper_scene_straight_cfg_on_exit(void* context);
 void morse_flipper_scene_tx_groups_cfg_on_enter(void* context);
