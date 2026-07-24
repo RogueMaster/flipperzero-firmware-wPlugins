@@ -205,6 +205,25 @@ static uint32_t run_cw_to_post(MfPassiveState* state) {
     return now;
 }
 
+static void test_initial_delay(void) {
+    MemoryFile file;
+    MfPassiveState state;
+    FakeServices fake;
+
+    make_pack(&file);
+    setup(&state, &fake, &file);
+    state.phase = MfPassivePhasePrepare;
+    CHECK(fake.tones == 0U);
+    mf_passive_tick(&state, 500U);
+    CHECK(state.phase == MfPassivePhasePrepare && state.next_at == 1500U);
+    mf_passive_tick(&state, 1499U);
+    CHECK(state.phase == MfPassivePhasePrepare && fake.tones == 0U);
+    mf_passive_tick(&state, 1500U);
+    CHECK(state.phase == MfPassivePhaseCw && state.cw_mark && fake.tones == 1U);
+    CHECK(state.next_at > 1500U);
+    mf_passive_leave(&state);
+}
+
 static void drain_voice(MfPassiveState* state, uint32_t now) {
     state->pipe.read_pos = state->pipe.write_pos;
     state->pipe.drained = true;
@@ -375,6 +394,8 @@ static void test_gesture_and_rounds(void) {
 }
 
 int main(void) {
+    CHECK(sizeof(MfPassiveState) <= 3584U);
+    test_initial_delay();
     test_sequence_and_timing();
     test_delayed_tick_and_failures();
     test_gesture_and_rounds();

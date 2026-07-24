@@ -5,6 +5,7 @@
 
 #include "../../cw.h"
 
+#define MF_PASSIVE_INITIAL_CW_MS    1000U
 #define MF_PASSIVE_POST_CW_MS       3000U
 #define MF_PASSIVE_BETWEEN_TOKEN_MS 100U
 #define MF_PASSIVE_POST_VOICE_MS    1000U
@@ -122,8 +123,7 @@ bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfP
         return false;
     }
     state->audio_claimed = true;
-    state->phase = MfPassivePhaseCw;
-    if(!mf_passive_start_mark(state, args->now_ms)) mf_passive_fail(state);
+    state->phase = MfPassivePhasePrepare;
     *result = mf_passive_result(state, true);
     return state->error == 0U;
 }
@@ -159,6 +159,17 @@ MfPassiveResult mf_passive_input(MfPassiveState* state, const InputEvent* event,
 MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
     bool redraw = false;
     if(state == NULL) return (MfPassiveResult){0};
+    if(state->phase == MfPassivePhasePrepare) {
+        if(!state->prepare_armed) {
+            state->prepare_armed = true;
+            state->next_at = now_ms + MF_PASSIVE_INITIAL_CW_MS;
+        } else if(mf_passive_reached(now_ms, state->next_at)) {
+            state->prepare_armed = false;
+            state->phase = MfPassivePhaseCw;
+            if(!mf_passive_start_mark(state, now_ms)) mf_passive_fail(state);
+        }
+        return mf_passive_result(state, false);
+    }
     if(state->phase == MfPassivePhaseCw && mf_passive_reached(now_ms, state->next_at)) {
         uint8_t symbol = cw(state->callsign.text[state->char_index]);
         if(state->cw_mark) {

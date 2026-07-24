@@ -24,6 +24,7 @@ typedef struct {
     uint8_t error;
     bool cw_mark;
     bool audio_claimed;
+    bool prepare_armed;
 } MfPassiveState;
 
 bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfPassiveResult* result);

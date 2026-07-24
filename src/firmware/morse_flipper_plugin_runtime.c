@@ -233,7 +233,9 @@ void morse_flipper_plugin_runtime_draw(MorseFlipperApp* app, Canvas* canvas, uin
        app->plugin_slot.state != NULL) {
         api = app->plugin_slot.api;
         api->draw(app->plugin_slot.state, canvas, now_ms);
-    } else {
+    } else if(
+        app->plugin_slot.error != MorseFlipperPluginErrorNone ||
+        app->plugin_slot.owner != MorseFlipperPluginOwnerNone) {
         morse_flipper_draw_plugin_unavailable(canvas);
     }
     furi_mutex_release(app->plugin_slot.mutex);
