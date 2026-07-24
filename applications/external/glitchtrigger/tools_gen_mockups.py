@@ -162,7 +162,7 @@ def m_sweep():
     d.rectangle([3, 32, 3 + 74, 37], fill=INK)
     d.text((2, 40), "125 ns..5.0 us", font=SEC, fill=INK)
     rtext(d, 126, 40, "150/400", SEC)
-    d.text((2, 48), "hit 2.0us@100us (3)", font=SEC, fill=INK)
+    d.text((2, 48), "hit 2.0us@100us 2%", font=SEC, fill=INK)
     ctext(d, 64, 55, "OK:hit  <:pause  >:restart", SEC)
     return finish(img, "screen_sweep.png")
 

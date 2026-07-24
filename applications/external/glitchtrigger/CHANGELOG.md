@@ -3,6 +3,33 @@
 All notable changes to Glitch Trigger are documented here.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3] — 2026-07-23
+
+The **serial** update — close the glitch loop over UART.
+
+### UART auto-hit
+- **Feedback source** — Auto-hit can now read a **GPIO Pin** (as before) *or*
+  watch the target's **UART** (USART, pins 13 TX / 14 RX) for a **success
+  string**. When the substring appears after a shot, that shot glitched.
+- New **UART baud** (9600–230400) and **Success str** settings (on-device text
+  entry). The matcher is an always-correct sliding-window substring search fed
+  from an interrupt-driven RX ring buffer.
+- New `helpers/glitch_serial` (acquire/init USART, async RX in ISR → stream
+  buffer, drained and matched on the UI thread).
+
+### Campaign stats
+- The Sweep screen now shows a live **hit-rate %** alongside the shot/hit counts.
+
+### Persistence
+- `success_str`, `uart_baud` and `fb_source` are part of the saved config, so they
+  ride along in profiles and the restored last-config.
+- Profile format bumped to v4 and last-config to v2 (GlitchParams grew).
+
+### UI
+- **Settings** gains **FB source**, **UART baud** and a **Success str** editor
+  (press OK on the row to type it); new `successstr` scene.
+- About text and README updated; UART hook-up added to the pin table.
+
 ## [1.2] — 2026-07-21
 
 The **fault map** update — see the fault window take shape and take it with you.

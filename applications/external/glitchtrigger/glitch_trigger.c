@@ -94,6 +94,7 @@ static GlitchApp* glitch_app_alloc(void) {
     /* restore the last-used config + feedback settings, if any */
     glitch_storage_load_last(&app->params, &app->sound, &app->vibro, &app->led);
     app->engine = glitch_engine_alloc();
+    app->serial = glitch_serial_alloc();
 
     app->submenu = submenu_alloc();
     view_dispatcher_add_view(
@@ -159,6 +160,7 @@ static void glitch_app_free(GlitchApp* app) {
     view_dispatcher_free(app->view_dispatcher);
     scene_manager_free(app->scene_manager);
 
+    glitch_serial_free(app->serial);
     glitch_engine_free(app->engine);
 
     furi_record_close(RECORD_NOTIFICATION);

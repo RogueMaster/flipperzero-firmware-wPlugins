@@ -18,6 +18,7 @@
 #include "helpers/glitch_engine.h"
 #include "helpers/glitch_storage.h"
 #include "helpers/glitch_map.h"
+#include "helpers/glitch_serial.h"
 #include "views/trigger_view.h"
 #include "views/sweep_view.h"
 #include "views/wiring_view.h"
@@ -57,6 +58,7 @@ typedef struct {
 
     /* the instrument */
     GlitchEngine* engine;
+    GlitchSerial* serial; // UART success-string watcher
     GlitchParams params;
     GlitchFaultMap map; // last sweep's fault map (kept across scenes)
 

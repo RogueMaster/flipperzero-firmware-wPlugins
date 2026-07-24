@@ -1,5 +1,6 @@
 #include "glitch_config.h"
 #include <stdio.h>
+#include <string.h>
 
 /* Ladders: 1-2-5 per decade so one knob spans a wide range with round stops. */
 const uint32_t glitch_ladder_delay_us[] =
@@ -29,6 +30,9 @@ const size_t glitch_ladder_repeat_len =
 const uint16_t glitch_ladder_dwell[] = {1, 2, 3, 5, 10, 20, 50, 100};
 const size_t glitch_ladder_dwell_len =
     sizeof(glitch_ladder_dwell) / sizeof(glitch_ladder_dwell[0]);
+
+const uint32_t glitch_ladder_baud[] = {9600, 19200, 38400, 57600, 115200, 230400};
+const size_t glitch_ladder_baud_len = sizeof(glitch_ladder_baud) / sizeof(glitch_ladder_baud[0]);
 
 /* Output pins are 3V3-tolerant GPIO on the top header. These four avoid the
  * SPI/UART/I2C lines apps commonly want, so they are safe to bit-bang. */
@@ -61,8 +65,12 @@ void glitch_params_default(GlitchParams* p) {
     p->sweep_delay_step_us = 50;
     p->sweep_dwell = 1;
     p->search_mode = GlitchSearchLinear;
+    p->fb_source = GlitchFbPin;
     p->fb_pin = 5; // PC3 / header pin 7 (distinct from out & trig-in)
     p->fb_active_high = true;
+    p->uart_baud = 115200;
+    strncpy(p->success_str, "root@", GLITCH_SUCCESS_MAX - 1);
+    p->success_str[GLITCH_SUCCESS_MAX - 1] = '\0';
     p->auto_hit = false;
     p->log_hits = false;
     p->out_pin = 0; // PA7 / header pin 2
@@ -167,6 +175,17 @@ const char* glitch_search_label(GlitchSearchMode m) {
         return "Linear";
     case GlitchSearchRandom:
         return "Random";
+    default:
+        return "?";
+    }
+}
+
+const char* glitch_fb_source_label(GlitchFeedbackSource s) {
+    switch(s) {
+    case GlitchFbPin:
+        return "Pin";
+    case GlitchFbUart:
+        return "UART";
     default:
         return "?";
     }

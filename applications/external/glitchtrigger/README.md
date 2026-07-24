@@ -64,10 +64,13 @@ triggered, and the Flipper does the timing.
   (`from … to`, `step`), or turn on **2D** to sweep a **delay × width grid** — the
   real parameter search space. **Dwell** fires *N* shots at each point for
   statistics, and a progress bar tracks position across the grid.
-- **Auto-hit detection** — wire a target **feedback pin** (a success/status line)
-  and the sweep marks a hit *automatically* the moment it reaches the success
-  level, turning a sweep into a hands-off campaign. Or just press **OK** to mark
-  the point in play yourself.
+- **Auto-hit detection** — mark hits *automatically* from a target **feedback
+  source**, turning a sweep into a hands-off campaign:
+  - **Pin** — a GPIO success/status line at a chosen level, or
+  - **UART** — watch the target's serial output (pins 13 TX / 14 RX) for a
+    **success string** you set (e.g. `root@`, `uart:~$`, `Uncompressing`).
+  Or just press **OK** to mark the point in play yourself. A live **hit-rate %**
+  tracks how the campaign is going.
 - **Live fault map** — every hit is plotted on a **delay × width heatmap** you can
   scroll a cursor across to read any cell's parameters, then **export to CSV** —
   watch the fault window take shape and take the grid with you.
@@ -141,6 +144,8 @@ wire anything.
 |---|---|---|---|
 | Glitch out | `PA7` | **2** | drives the crowbar gate |
 | Trigger in | `PB2` | **6** | external-trigger edge input |
+| Feedback | `PC3` | **7** | Auto-hit GPIO success line (Pin source) |
+| UART RX | `PB7` | **14** | Auto-hit UART watch — to target TX (UART source) |
 | Ground | `GND` | **8 / 11 / 18** | shared with the target |
 
 Selectable output/input pins: `PA7` (2), `PA6` (3), `PA4` (4), `PB3` (5),
@@ -204,6 +209,8 @@ trigger-to-pulse latency.
 | **Dwell** | 1 – 100 | shots fired at each sweep point |
 | **2D delay from / to / step** | 0 – 100 ms | delay range for a 2D sweep |
 | **Feedback pin / Success lvl** | pin · HIGH/LOW | target line + level that counts as a hit |
+| **FB source** | Pin / UART | read a GPIO level, or watch the UART for a string |
+| **UART baud / Success str** | 9600–230400 · text | serial speed + the substring that means "glitched" |
 | **Auto-hit / Log hits** | On / Off | auto-mark from feedback · append hits to CSV |
 
 All values move along 1-2-5 "nice number" ladders, so one knob spans the whole
@@ -214,9 +221,10 @@ range and the readout is always in friendly units.
 A single `width` sweep is the quick hunt; **2D** is the real one. Turn on
 **Sweep 2D** and set the delay range, and the runner walks a full **delay × width**
 grid, firing **Dwell** shots at each cell. Wire the target's success line to the
-**Feedback pin**, set the **Success level**, enable **Auto-hit**, and the sweep
-records — and (with **Log hits**) logs — every cell that faults, unattended. Set
-**Search** to *Random* to sample the grid out of order.
+**Feedback pin** (or point **FB source** at the target **UART** and set a
+**Success string** like `root@`), enable **Auto-hit**, and the sweep records —
+and (with **Log hits**) logs — every cell that faults, unattended, tracking a live
+**hit-rate**. Set **Search** to *Random* to sample the grid out of order.
 
 Every hit also lands on the **Fault Map** — a live delay × width heatmap. Open it
 from the menu, scroll the cursor to read any cell's exact width/delay, and press
@@ -255,6 +263,7 @@ application.fam              FAP manifest (category: GPIO)
 helpers/
   glitch_config.c/.h         parameter model, value ladders, formatters, pin table
   glitch_engine.c/.h         the pulse engine — DWT timing, GPIO, external-trigger ISR, feedback read
+  glitch_serial.c/.h         the UART success-string watcher (ISR RX + substring matcher)
   glitch_storage.c/.h        SD profiles, CSV hit log, last-config persistence
   glitch_map.c/.h            the fault-map grid + CSV export
 views/
@@ -262,7 +271,7 @@ views/
   sweep_view.c/.h            the sweep hunter (1D/2D, progress, auto-hit)
   faultmap_view.c/.h         the delay × width heatmap + cursor
   wiring_view.c/.h           the hook-up diagram + safety tips
-scenes/                      start · params · trigger · sweep · faultmap · profiles(+name/act) · wiring · settings · about
+scenes/                      start · params · trigger · sweep · faultmap · profiles(+name/act) · wiring · settings(+successstr) · about
 icons/  images/              app icon, banner, social card, screen mockups
 tools_gen_*.py               regenerate the icon / banner / mockups
 ```
