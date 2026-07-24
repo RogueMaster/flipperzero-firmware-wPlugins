@@ -45,6 +45,13 @@ VOICE_FILTER = (
     "acompressor=threshold=-24dB:ratio=3:attack=5:release=80:makeup=6dB,"
     "loudnorm=I=-18:LRA=7:TP=-2"
 )
+MASTERING_PROFILES = {
+    "balanced": VOICE_FILTER,
+    "passive-hot": (
+        f"{VOICE_FILTER},volume=11dB,"
+        "alimiter=limit=0.944:level=false:attack=1:release=20:latency=true"
+    ),
+}
 SOURCE_RATE = 16000
 VOICE_ID = "Amy"
 LANGUAGE_CODE = "en-GB"
@@ -74,6 +81,12 @@ def parse_args() -> argparse.Namespace:
         "--encode-only",
         action="store_true",
         help="reuse existing source WAVs without contacting Polly",
+    )
+    parser.add_argument(
+        "--mastering-profile",
+        choices=tuple(MASTERING_PROFILES),
+        default="balanced",
+        help="voice mastering profile (default: balanced)",
     )
     parser.add_argument(
         "--force",
@@ -256,7 +269,7 @@ def synthesize(client: Any, spoken_text: str, rate: str | None) -> tuple[bytes, 
     }
 
 
-def make_voice_reference(source: Path, destination: Path) -> None:
+def make_voice_reference(source: Path, destination: Path, voice_filter: str) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     run(
         [
@@ -269,7 +282,7 @@ def make_voice_reference(source: Path, destination: Path) -> None:
             "-i",
             str(source),
             "-af",
-            VOICE_FILTER,
+            voice_filter,
             "-ar",
             str(SOURCE_RATE),
             "-ac",
@@ -423,6 +436,7 @@ def main() -> int:
     require_command("ffmpeg")
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
+    voice_filter = MASTERING_PROFILES[args.mastering_profile]
 
     client = None
     if not args.encode_only:
@@ -439,7 +453,8 @@ def main() -> int:
             "region": args.region,
             "source_format": "pcm_s16le",
             "source_sample_rate": SOURCE_RATE,
-            "processing_filter": VOICE_FILTER,
+            "mastering_profile": args.mastering_profile,
+            "processing_filter": voice_filter,
         },
         "tokens": {},
         "totals": {},
@@ -478,7 +493,7 @@ def main() -> int:
 
             cleaned, clean_metadata = clean_source_pcm(source_pcm)
             write_pcm16_wave(clean_path, cleaned, SOURCE_RATE)
-            make_voice_reference(clean_path, reference_path)
+            make_voice_reference(clean_path, reference_path, voice_filter)
             reference_samples = decode_pcm(reference_path, SOURCE_RATE)
 
             token_entry: dict[str, Any] = {
