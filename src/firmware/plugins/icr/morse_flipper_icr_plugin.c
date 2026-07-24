@@ -8,19 +8,21 @@ bool morse_flipper_icr_runtime_enter(void* state, const MorseFlipperIcrEnterArgs
 void morse_flipper_icr_runtime_leave(void* state);
 MorseFlipperIcrResult morse_flipper_icr_runtime_input(void* state, const InputEvent* event, uint32_t now_ms);
 MorseFlipperIcrResult morse_flipper_icr_runtime_tick(void* state, uint32_t now_ms);
-MorseFlipperIcrDrawResult morse_flipper_icr_runtime_draw(void* state, Canvas* canvas, uint32_t now_ms);
+void morse_flipper_icr_runtime_draw(void* state, Canvas* canvas, uint32_t now_ms);
 
 static const MorseFlipperIcrApi morse_flipper_icr_api = {
-    .magic = MORSE_FLIPPER_ICR_API_MAGIC,
-    .api_version = MORSE_FLIPPER_ICR_API_VERSION,
-    .struct_size = sizeof(MorseFlipperIcrApi),
-    .alloc = morse_flipper_icr_runtime_alloc,
-    .free = morse_flipper_icr_runtime_free,
+    .mapped = {
+        .magic = MORSE_FLIPPER_ICR_API_MAGIC,
+        .api_version = MORSE_FLIPPER_ICR_API_VERSION,
+        .struct_size = sizeof(MorseFlipperIcrApi),
+        .alloc = morse_flipper_icr_runtime_alloc,
+        .free = morse_flipper_icr_runtime_free,
+        .leave = morse_flipper_icr_runtime_leave,
+        .tick = morse_flipper_icr_runtime_tick,
+        .draw = morse_flipper_icr_runtime_draw,
+    },
     .enter = morse_flipper_icr_runtime_enter,
-    .leave = morse_flipper_icr_runtime_leave,
     .input = morse_flipper_icr_runtime_input,
-    .tick = morse_flipper_icr_runtime_tick,
-    .draw = morse_flipper_icr_runtime_draw,
 };
 
 static const FlipperAppPluginDescriptor morse_flipper_icr_descriptor = {

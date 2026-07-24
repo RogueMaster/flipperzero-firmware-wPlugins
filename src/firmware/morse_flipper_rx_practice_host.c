@@ -5,36 +5,21 @@
     (MF_RX_START_STRAIGHT | MF_RX_START_DIT | MF_RX_START_DAH)
 
 static bool mf_rx_api_valid(const MfRxPracticeApi* api) {
-    return api != NULL && api->magic == MORSE_FLIPPER_RX_PRACTICE_API_MAGIC &&
-           api->api_version == MORSE_FLIPPER_RX_PRACTICE_API_VERSION &&
-           api->struct_size >= sizeof(*api) && api->alloc != NULL && api->free != NULL &&
-           api->enter != NULL && api->leave != NULL && api->input != NULL &&
+    return api != NULL && api->mapped.magic == MORSE_FLIPPER_RX_PRACTICE_API_MAGIC &&
+           api->mapped.api_version == MORSE_FLIPPER_RX_PRACTICE_API_VERSION &&
+           api->mapped.struct_size >= sizeof(*api) && api->mapped.alloc != NULL && api->mapped.free != NULL &&
+           api->enter != NULL && api->mapped.leave != NULL && api->input != NULL &&
            api->command != NULL &&
-           api->feed_text != NULL && api->tick != NULL && api->draw != NULL;
+           api->feed_text != NULL && api->mapped.tick != NULL && api->mapped.draw != NULL;
 }
 
 static void mf_rx_apply_locked(
     MorseFlipperApp* app,
     MfRxPracticeResult result,
     uint32_t now_ms) {
-    app->plugin_slot.phase = result.phase;
-    app->plugin_slot.playback_active = result.phase == MfRxPracticePhasePlayback;
-    app->plugin_slot.playback_mark = result.playback_mark;
-    morse_flipper_plugin_feedback_locked(app, result.feedback, now_ms);
+    result.playback_active = result.phase == MfRxPracticePhasePlayback;
+    morse_flipper_plugin_runtime_apply_result_locked(app, result, now_ms);
     if(result.redraw) morse_flipper_view_dirty(app);
-}
-
-void morse_flipper_rx_practice_host_unload_locked(MorseFlipperApp* app) {
-    const MfRxPracticeApi* api;
-    if(app == NULL || app->plugin_slot.owner != MorseFlipperPluginOwnerRxPractice) return;
-    api = app->plugin_slot.api;
-    app->plugin_slot.playback_active = false;
-    app->plugin_slot.playback_mark = false;
-    morse_flipper_plugin_runtime_detach_locked(
-        app,
-        MorseFlipperPluginOwnerRxPractice,
-        api == NULL ? NULL : api->leave,
-        api == NULL ? NULL : api->free);
 }
 
 bool morse_flipper_rx_practice_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
@@ -63,7 +48,7 @@ bool morse_flipper_rx_practice_host_enter(MorseFlipperApp* app, uint32_t now_ms)
         app->plugin_slot.error = MorseFlipperPluginErrorTable;
         goto done;
     }
-    state = api->alloc();
+    state = api->mapped.alloc();
     if(state == NULL) {
         app->plugin_slot.error = MorseFlipperPluginErrorState;
         goto done;
@@ -101,8 +86,8 @@ bool morse_flipper_rx_practice_host_enter(MorseFlipperApp* app, uint32_t now_ms)
 
 done:
     if(!published) {
-        if(entered) api->leave(state);
-        if(state != NULL) api->free(state);
+        if(entered) api->mapped.leave(state);
+        if(state != NULL) api->mapped.free(state);
         if(manager != NULL) plugin_manager_free(manager);
     }
     furi_mutex_release(app->plugin_slot.mutex);
@@ -212,8 +197,8 @@ bool morse_flipper_rx_practice_host_tick(
         command = MfRxPracticeCommandHurry;
     }
     if(command == MfRxPracticeCommandNone)
-        result = ((const MfRxPracticeApi*)app->plugin_slot.api)
-                     ->tick(app->plugin_slot.state, now_ms);
+        morse_flipper_plugin_runtime_tick_locked(
+            app, MorseFlipperPluginOwnerRxPractice, now_ms, &result);
     else
         result = ((const MfRxPracticeApi*)app->plugin_slot.api)
                      ->command(app->plugin_slot.state, command, now_ms);
@@ -225,20 +210,4 @@ done:
     furi_mutex_release(app->plugin_slot.mutex);
     if(result.decoder_reset) morse_flipper_reset_answer_decoder(app);
     return live;
-}
-
-void morse_flipper_rx_practice_host_draw(
-    MorseFlipperApp* app,
-    Canvas* canvas) {
-    if(app == NULL || canvas == NULL || app->plugin_slot.mutex == NULL) return;
-    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
-    if(app->plugin_slot.owner == MorseFlipperPluginOwnerRxPractice &&
-       app->plugin_slot.error == MorseFlipperPluginErrorNone &&
-       app->plugin_slot.api != NULL && app->plugin_slot.state != NULL) {
-        ((const MfRxPracticeApi*)app->plugin_slot.api)
-            ->draw(app->plugin_slot.state, canvas);
-    } else {
-        morse_flipper_draw_plugin_unavailable(canvas);
-    }
-    furi_mutex_release(app->plugin_slot.mutex);
 }

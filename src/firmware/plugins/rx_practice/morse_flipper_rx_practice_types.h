@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "../../morse_flipper_mapped_fal.h"
+
 #define MF_RX_PRACTICE_FEED_MAX 96U
 
 typedef uint8_t MfRxPracticePhase;
@@ -48,12 +50,4 @@ typedef struct {
     bool physical_key_can_start;
 } MfRxPracticeEnterArgs;
 
-typedef struct {
-    bool handled;
-    bool redraw;
-    bool decoder_reset;
-    bool request_exit;
-    MfRxPracticePhase phase;
-    bool playback_mark;
-    MfRxPracticeFeedback feedback;
-} MfRxPracticeResult;
+typedef MorseFlipperMappedFalResult MfRxPracticeResult;

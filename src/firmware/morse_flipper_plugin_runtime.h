@@ -5,6 +5,8 @@
 
 #include <flipper_application/plugins/plugin_manager.h>
 
+#include "morse_flipper_mapped_fal.h"
+
 typedef struct MorseFlipperApp MorseFlipperApp;
 
 typedef enum {
@@ -35,8 +37,6 @@ typedef struct {
     uint8_t phase;
     bool playback_active;
     bool playback_mark;
-    bool prompt_visible;
-    uint8_t prompt_char;
     uint8_t start_hold_mask;
 } MorseFlipperPluginSlot;
 
@@ -47,12 +47,8 @@ typedef struct {
     bool active;
     bool playback_active;
     bool playback_mark;
-    bool prompt_visible;
-    uint8_t prompt_char;
     bool start_holdoff;
 } MorseFlipperPluginSnapshot;
-
-typedef void (*MorseFlipperPluginStateFn)(void* state);
 
 /* Own the app-lifetime lock shared by all embedded FAL hosts. */
 bool morse_flipper_plugin_runtime_init(MorseFlipperApp* app);
@@ -77,9 +73,17 @@ void morse_flipper_plugin_runtime_release_claim_locked(
     MorseFlipperPluginOwner owner);
 void morse_flipper_plugin_runtime_detach_locked(
     MorseFlipperApp* app,
+    MorseFlipperPluginOwner owner);
+bool morse_flipper_plugin_runtime_tick_locked(
+    MorseFlipperApp* app,
     MorseFlipperPluginOwner owner,
-    MorseFlipperPluginStateFn leave,
-    MorseFlipperPluginStateFn free_state);
+    uint32_t now_ms,
+    MorseFlipperMappedFalResult* result);
+void morse_flipper_plugin_runtime_apply_result_locked(
+    MorseFlipperApp* app,
+    MorseFlipperMappedFalResult result,
+    uint32_t now_ms);
+void morse_flipper_plugin_runtime_draw(MorseFlipperApp* app, Canvas* canvas, uint32_t now_ms);
 void morse_flipper_plugin_feedback_locked(
     MorseFlipperApp* app,
     uint8_t feedback,

@@ -5,23 +5,11 @@
 #define MORSE_FLIPPER_ICR_PLUGIN_PATH APP_ASSETS_PATH("plugins/morse_flipper_icr.fal")
 
 static bool morse_flipper_icr_api_valid(const MorseFlipperIcrApi* api) {
-    return api != NULL && api->magic == MORSE_FLIPPER_ICR_API_MAGIC &&
-           api->api_version == MORSE_FLIPPER_ICR_API_VERSION &&
-           api->struct_size >= sizeof(MorseFlipperIcrApi) && api->alloc != NULL &&
-           api->free != NULL && api->enter != NULL && api->leave != NULL &&
-           api->input != NULL && api->tick != NULL && api->draw != NULL;
-}
-
-/* Caller holds plugin_mutex, so no stale plugin result can re-enable a gate. */
-static void morse_flipper_icr_host_clear_locked(MorseFlipperApp* app) {
-    if(app == NULL) return;
-    app->plugin_slot.playback_active = false;
-    app->plugin_slot.playback_mark = false;
-    app->plugin_slot.prompt_visible = false;
-    app->plugin_slot.prompt_char = 0U;
-    app->session_result_tone = false;
-    app->session_result_good = false;
-    app->session_result_until = 0U;
+    return api != NULL && api->mapped.magic == MORSE_FLIPPER_ICR_API_MAGIC &&
+           api->mapped.api_version == MORSE_FLIPPER_ICR_API_VERSION &&
+           api->mapped.struct_size >= sizeof(MorseFlipperIcrApi) && api->mapped.alloc != NULL &&
+           api->mapped.free != NULL && api->enter != NULL && api->mapped.leave != NULL &&
+           api->input != NULL && api->mapped.tick != NULL && api->mapped.draw != NULL;
 }
 
 /* Caller holds plugin_mutex.  Result mirrors are snapshots, not edge events. */
@@ -30,32 +18,12 @@ static void morse_flipper_icr_host_apply_locked(
     MorseFlipperIcrResult result,
     uint32_t now_ms) {
     if(app == NULL) return;
-    app->plugin_slot.playback_active = result.playback_active;
-    app->plugin_slot.playback_mark = result.playback_mark;
-    app->plugin_slot.prompt_visible = result.prompt_visible;
-    app->plugin_slot.prompt_char = result.prompt_char;
-    morse_flipper_plugin_feedback_locked(app, result.feedback, now_ms);
-}
-
-void morse_flipper_icr_host_unload_locked(MorseFlipperApp* app) {
-    const MorseFlipperIcrApi* api;
-
-    if(app == NULL || app->plugin_slot.owner != MorseFlipperPluginOwnerIcr) return;
-    api = app->plugin_slot.api;
-    morse_flipper_icr_host_clear_locked(app);
-    morse_flipper_plugin_runtime_detach_locked(
-        app,
-        MorseFlipperPluginOwnerIcr,
-        api == NULL ? NULL : api->leave,
-        api == NULL ? NULL : api->free);
+    morse_flipper_plugin_runtime_apply_result_locked(app, result, now_ms);
 }
 
 void morse_flipper_icr_host_unload(MorseFlipperApp* app) {
     if(app == NULL || app->plugin_slot.mutex == NULL) return;
-    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
-    morse_flipper_icr_host_unload_locked(app);
-    furi_mutex_release(app->plugin_slot.mutex);
-    morse_flipper_update_sidetone(app);
+    morse_flipper_plugin_runtime_unload_current(app);
 }
 
 bool morse_flipper_icr_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
@@ -78,7 +46,7 @@ bool morse_flipper_icr_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
         app->plugin_slot.error = MorseFlipperPluginErrorTable;
         goto cleanup;
     }
-    state = api->alloc();
+    state = api->mapped.alloc();
     if(state == NULL) {
         app->plugin_slot.error = MorseFlipperPluginErrorState;
         goto cleanup;
@@ -104,8 +72,8 @@ bool morse_flipper_icr_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
     return true;
 
 cleanup:
-    if(entered && api != NULL && state != NULL) api->leave(state);
-    if(api != NULL && state != NULL) api->free(state);
+    if(entered && api != NULL && state != NULL) api->mapped.leave(state);
+    if(api != NULL && state != NULL) api->mapped.free(state);
     if(manager != NULL) plugin_manager_free(manager);
     furi_mutex_release(app->plugin_slot.mutex);
     morse_flipper_update_sidetone(app);
@@ -119,8 +87,7 @@ bool morse_flipper_icr_host_input(MorseFlipperApp* app, const InputEvent* event,
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     if(app->plugin_slot.owner == MorseFlipperPluginOwnerIcr && app->plugin_slot.api != NULL &&
        app->plugin_slot.state != NULL) {
-        result = ((const MorseFlipperIcrApi*)app->plugin_slot.api)
-                     ->input(app->plugin_slot.state, event, now_ms);
+        result = ((const MorseFlipperIcrApi*)app->plugin_slot.api)->input(app->plugin_slot.state, event, now_ms);
         if(result.handled) morse_flipper_icr_host_apply_locked(app, result, now_ms);
     }
     furi_mutex_release(app->plugin_slot.mutex);
@@ -134,7 +101,7 @@ bool morse_flipper_icr_host_input(MorseFlipperApp* app, const InputEvent* event,
         }
         return false;
     }
-    if(result.request_back) morse_flipper_scene_back(app);
+    if(result.request_exit) morse_flipper_scene_back(app);
     return true;
 }
 
@@ -145,24 +112,11 @@ void morse_flipper_icr_host_tick(MorseFlipperApp* app, uint32_t now_ms) {
     morse_flipper_plugin_feedback_expire_locked(app, now_ms);
     if(app->plugin_slot.owner == MorseFlipperPluginOwnerIcr && app->plugin_slot.api != NULL &&
        app->plugin_slot.state != NULL) {
-        result = ((const MorseFlipperIcrApi*)app->plugin_slot.api)->tick(app->plugin_slot.state, now_ms);
+        morse_flipper_plugin_runtime_tick_locked(
+            app, MorseFlipperPluginOwnerIcr, now_ms, &result);
         if(result.handled) morse_flipper_icr_host_apply_locked(app, result, now_ms);
     }
     furi_mutex_release(app->plugin_slot.mutex);
     morse_flipper_update_sidetone(app);
     if(result.handled && result.redraw) morse_flipper_view_dirty(app);
-}
-
-void morse_flipper_icr_host_draw(MorseFlipperApp* app, Canvas* canvas) {
-    if(app == NULL || canvas == NULL || app->plugin_slot.mutex == NULL) return;
-    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
-    if(app->plugin_slot.owner == MorseFlipperPluginOwnerIcr && app->plugin_slot.api != NULL &&
-       app->plugin_slot.state != NULL) {
-        ((const MorseFlipperIcrApi*)app->plugin_slot.api)
-            ->draw(app->plugin_slot.state, canvas, furi_get_tick());
-        furi_mutex_release(app->plugin_slot.mutex);
-        return;
-    }
-    morse_flipper_draw_plugin_unavailable(canvas);
-    furi_mutex_release(app->plugin_slot.mutex);
 }

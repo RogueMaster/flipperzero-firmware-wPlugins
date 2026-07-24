@@ -6,7 +6,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MORSE_FLIPPER_ICR_API_VERSION 1U
+#include "../../morse_flipper_mapped_fal.h"
+
+#define MORSE_FLIPPER_ICR_API_VERSION 2U
 #define MORSE_FLIPPER_ICR_API_MAGIC 0x4D464943UL
 
 typedef enum {
@@ -17,23 +19,7 @@ typedef enum {
     MorseFlipperIcrFeedbackTimeout,
 } MorseFlipperIcrFeedback;
 
-typedef struct {
-    bool handled;
-    bool redraw;
-    bool request_back;
-    bool playback_active;
-    bool playback_mark;
-    bool prompt_visible;
-    uint8_t prompt_char;
-    MorseFlipperIcrFeedback feedback;
-} MorseFlipperIcrResult;
-
-typedef struct {
-    bool draw_prompt;
-    uint8_t prompt_char;
-    int16_t prompt_cx;
-    int16_t prompt_cy;
-} MorseFlipperIcrDrawResult;
+typedef MorseFlipperMappedFalResult MorseFlipperIcrResult;
 
 typedef struct {
     uint32_t now_ms;
@@ -41,14 +27,7 @@ typedef struct {
 } MorseFlipperIcrEnterArgs;
 
 typedef struct {
-    uint32_t magic;
-    uint32_t api_version;
-    uint32_t struct_size;
-    void* (*alloc)(void);
-    void (*free)(void* state);
+    MorseFlipperMappedFalApi mapped;
     bool (*enter)(void* state, const MorseFlipperIcrEnterArgs* args, MorseFlipperIcrResult* initial);
-    void (*leave)(void* state);
     MorseFlipperIcrResult (*input)(void* state, const InputEvent* event, uint32_t now_ms);
-    MorseFlipperIcrResult (*tick)(void* state, uint32_t now_ms);
-    MorseFlipperIcrDrawResult (*draw)(void* state, Canvas* canvas, uint32_t now_ms);
 } MorseFlipperIcrApi;

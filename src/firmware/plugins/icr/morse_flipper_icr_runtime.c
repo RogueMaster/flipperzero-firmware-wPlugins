@@ -67,10 +67,9 @@ static MorseFlipperIcrResult morse_flipper_icr_result(
     return (MorseFlipperIcrResult){
         .handled = true,
         .redraw = redraw,
+        .phase = state->phase,
         .playback_active = state->phase == MorseFlipperIcrPhasePlayback,
         .playback_mark = state->playback_mark,
-        .prompt_visible = state->phase == MorseFlipperIcrPhaseResult,
-        .prompt_char = morse_flipper_icr_char_at(state->target),
         .feedback = state->feedback,
     };
 }
@@ -240,7 +239,7 @@ MorseFlipperIcrResult morse_flipper_icr_runtime_input(
     if(event->key == InputKeyBack &&
        (event->type == InputTypeShort || event->type == InputTypeLong)) {
         MorseFlipperIcrResult result = morse_flipper_icr_result(state, false);
-        result.request_back = true;
+        result.request_exit = true;
         return result;
     }
 
@@ -484,16 +483,16 @@ static void morse_flipper_icr_draw_prompt(Canvas* canvas, uint8_t ch) {
     }
 }
 
-MorseFlipperIcrDrawResult morse_flipper_icr_runtime_draw(
+void morse_flipper_icr_runtime_draw(
     void* value,
     Canvas* canvas,
     uint32_t now_ms) {
     MorseFlipperIcrState* state = value;
 
-    if(state == NULL || canvas == NULL) return (MorseFlipperIcrDrawResult){0};
+    if(state == NULL || canvas == NULL) return;
     if(state->phase < MorseFlipperIcrPhaseAnswerGuard) {
         morse_flipper_icr_draw_graph(canvas, state, now_ms);
-        return (MorseFlipperIcrDrawResult){0};
+        return;
     }
 
     canvas_set_font(canvas, FontSecondary);
@@ -506,5 +505,4 @@ MorseFlipperIcrDrawResult morse_flipper_icr_runtime_draw(
     canvas_draw_line(canvas, 57, 0, 57, 63);
     if(state->phase == MorseFlipperIcrPhaseResult)
         morse_flipper_icr_draw_prompt(canvas, morse_flipper_icr_char_at(state->target));
-    return (MorseFlipperIcrDrawResult){0};
 }

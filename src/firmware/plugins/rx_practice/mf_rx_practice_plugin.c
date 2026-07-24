@@ -60,21 +60,26 @@ static MfRxPracticeResult mf_rx_feed(void* state, const char* text, size_t len, 
 static MfRxPracticeResult mf_rx_tick(void* state, uint32_t now_ms) {
     return mf_rx_practice_tick(state, now_ms);
 }
-static void mf_rx_draw(const void* state, Canvas* canvas) { mf_rx_practice_draw(state, canvas); }
+static void mf_rx_draw(void* state, Canvas* canvas, uint32_t now_ms) {
+    UNUSED(now_ms);
+    mf_rx_practice_draw(state, canvas);
+}
 
 static const MfRxPracticeApi mf_rx_api = {
-    .magic = MORSE_FLIPPER_RX_PRACTICE_API_MAGIC,
-    .api_version = MORSE_FLIPPER_RX_PRACTICE_API_VERSION,
-    .struct_size = sizeof(MfRxPracticeApi),
-    .alloc = mf_rx_alloc,
-    .free = mf_rx_free,
+    .mapped = {
+        .magic = MORSE_FLIPPER_RX_PRACTICE_API_MAGIC,
+        .api_version = MORSE_FLIPPER_RX_PRACTICE_API_VERSION,
+        .struct_size = sizeof(MfRxPracticeApi),
+        .alloc = mf_rx_alloc,
+        .free = mf_rx_free,
+        .leave = mf_rx_leave,
+        .tick = mf_rx_tick,
+        .draw = mf_rx_draw,
+    },
     .enter = mf_rx_enter,
-    .leave = mf_rx_leave,
     .input = mf_rx_input,
     .command = mf_rx_command,
     .feed_text = mf_rx_feed,
-    .tick = mf_rx_tick,
-    .draw = mf_rx_draw,
 };
 
 static const FlipperAppPluginDescriptor mf_rx_descriptor = {
