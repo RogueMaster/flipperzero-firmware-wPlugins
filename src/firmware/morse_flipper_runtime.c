@@ -584,20 +584,6 @@ void morse_flipper_active_mode_tick(MorseFlipperApp* app, uint32_t now_ms) {
     }
 }
 
-static void morse_flipper_tick_markdown_scroll(MorseFlipperApp* app) {
-    bool changed = false;
-
-    if(app == NULL) return;
-    if(app->screen == MorseFlipperScreenOnboarding) {
-        changed = cwmd_scroll_tick(&app->onboarding_md);
-    } else if(app->screen == MorseFlipperScreenHelp) {
-        changed = cwmd_scroll_tick(&app->help_md);
-    } else if(app->screen == MorseFlipperScreenAbout && app->about_mode == MorseFlipperAboutModeText) {
-        changed = cwmd_scroll_tick(&app->about_md);
-    }
-
-    if(changed) morse_flipper_view_dirty(app);
-}
 
 static bool morse_flipper_star_animation_active(const MorseFlipperApp* app, uint32_t now_ms) {
     uint32_t elapsed;
@@ -777,8 +763,7 @@ void morse_flipper_tick_callback(void* context) {
 
     morse_flipper_poll(app);
     morse_flipper_tick_trainer_playback(app, now_ms);
-    morse_flipper_tick_about(app, now_ms);
-    morse_flipper_tick_markdown_scroll(app);
+    morse_flipper_content_host_tick(app, now_ms);
     morse_flipper_tick_progress_history_scroll(app, now_ms);
 
     if(app->preview_ticks > 0U) {

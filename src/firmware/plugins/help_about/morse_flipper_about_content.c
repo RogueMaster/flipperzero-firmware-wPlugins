@@ -5,18 +5,13 @@
  * Tests: firmware build; layout is hardware-only.
  */
 
-#include "morse_flipper_app_i.h"
+#include "morse_flipper_help_about_internal.h"
 
 #include <gui/elements.h>
 #include <string.h>
 
-#define MORSE_FLIPPER_ABOUT_OK_FAST_MS 500U
 #define MORSE_FLIPPER_ABOUT_ALLOW_MS   1000U
 #define MORSE_FLIPPER_ABOUT_CYCLE_MS   1500U
-
-#ifndef FAP_VERSION
-#define FAP_VERSION "unknown"
-#endif
 
 typedef struct {
     const uint8_t* data;
@@ -159,15 +154,6 @@ static const uint8_t morse_flipper_about_request_seq[] = {
     MorseFlipperAboutEntryYoutube,
 };
 
-static const char morse_flipper_about_body[] =
-    "Version: " FAP_VERSION "\n"
-    "Built: " APP_BUILD_TIME "\n"
-    "Commit: " APP_BUILD_COMMIT "\n"
-    "Host: " APP_BUILD_HOST "\n\n"
-    "Morse Flipper started as a small personal project to turn the FZ into a portable CW "
-    "training tool. Along the way it picked up the more ambitious goal of nudging "
-    "tech-minded, RF-oriented geeks toward Morse and ham radio. It now has enough features "
-    "to be dangerous on its own - if you take the dolphin seriously, anyway.";
 
 static uint8_t morse_flipper_about_request_start(uint8_t day) {
     return day % COUNT_OF(morse_flipper_about_request_seq);
@@ -188,13 +174,13 @@ static void morse_flipper_about_footer_draw(Canvas* canvas, uint8_t footer_i) {
     canvas_draw_xbm(canvas, x, y + f->a->h + 2 + f->b->y, f->b->w, f->b->h, f->b->data);
 }
 
-void morse_flipper_about_reset(MorseFlipperApp* app, uint32_t now_ms) {
+void morse_flipper_about_reset(MorseFlipperHelpAboutState* app, uint32_t now_ms) {
     DateTime dt;
 
     if(app == NULL) return;
 
     furi_hal_rtc_get_datetime(&dt);
-    app->about_mode = MorseFlipperAboutModeLanding;
+    app->about_mode = 0U;
     app->about_md = (CwmdState){0};
     app->about_ok_count = 0U;
     app->about_last_ok_ms = 0U;
@@ -204,10 +190,8 @@ void morse_flipper_about_reset(MorseFlipperApp* app, uint32_t now_ms) {
     app->about_social_next_ms = now_ms + MORSE_FLIPPER_ABOUT_ALLOW_MS;
 }
 
-void morse_flipper_tick_about(MorseFlipperApp* app, uint32_t now_ms) {
-    if(app == NULL || app->screen != MorseFlipperScreenAbout) return;
-    if(app->about_mode != MorseFlipperAboutModeLanding) return;
-    if(now_ms < app->about_social_next_ms) return;
+bool morse_flipper_tick_about(MorseFlipperHelpAboutState* app, uint32_t now_ms) {
+    if(app == NULL || app->about_mode != 0U || now_ms < app->about_social_next_ms) return false;
 
     if(!app->about_show_next) {
         app->about_show_next = true;
@@ -219,7 +203,7 @@ void morse_flipper_tick_about(MorseFlipperApp* app, uint32_t now_ms) {
     }
 
     app->about_social_next_ms = now_ms + MORSE_FLIPPER_ABOUT_CYCLE_MS;
-    morse_flipper_view_dirty(app);
+    return true;
 }
 
 static void morse_flipper_about_text_cfg(CwmdConfig* cfg) {
@@ -232,14 +216,14 @@ static void morse_flipper_about_text_cfg(CwmdConfig* cfg) {
     cfg->right_label = NULL;
 }
 
-int16_t morse_flipper_about_max_scroll(Canvas* canvas) {
+int16_t morse_flipper_about_max_scroll(Canvas* canvas, const MorseFlipperHelpAboutState* state) {
     CwmdConfig cfg;
 
     morse_flipper_about_text_cfg(&cfg);
-    return cwmd_max_scroll_px(canvas, &cfg, morse_flipper_about_body);
+    return cwmd_max_scroll_px(canvas, &cfg, state->about_body);
 }
 
-static void morse_flipper_draw_about_landing(Canvas* canvas, const MorseFlipperApp* app) {
+static void morse_flipper_draw_about_landing(Canvas* canvas, const MorseFlipperHelpAboutState* app) {
     canvas_clear(canvas);
     canvas_draw_xbm(canvas, 4, 16, 32, 32, morse_flipper_about_left_icon);
     canvas_draw_xbm(canvas, 45, 8, 70, 16, morse_flipper_about_yo3gnd);
@@ -248,18 +232,18 @@ static void morse_flipper_draw_about_landing(Canvas* canvas, const MorseFlipperA
     if(app->about_show_next) elements_button_right(canvas, "Next");
 }
 
-static void morse_flipper_draw_about_text_view(Canvas* canvas, MorseFlipperApp* app) {
+static void morse_flipper_draw_about_text_view(Canvas* canvas, MorseFlipperHelpAboutState* app) {
     CwmdConfig cfg;
 
     canvas_clear(canvas);
     morse_flipper_about_text_cfg(&cfg);
-    cwmd_draw(canvas, &cfg, &app->about_md, morse_flipper_about_body);
+    cwmd_draw(canvas, &cfg, &app->about_md, app->about_body);
 }
 
-void morse_flipper_draw_about(Canvas* canvas, MorseFlipperApp* app) {
+void morse_flipper_draw_about(Canvas* canvas, MorseFlipperHelpAboutState* app) {
     if(canvas == NULL || app == NULL) return;
 
-    if(app->about_mode == MorseFlipperAboutModeText) {
+    if(app->about_mode == 1U) {
         morse_flipper_draw_about_text_view(canvas, app);
         return;
     }

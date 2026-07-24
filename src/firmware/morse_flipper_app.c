@@ -25,11 +25,17 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .gui = furi_record_open(RECORD_GUI),
         .dialogs = furi_record_open(RECORD_DIALOGS),
         .notifications = furi_record_open(RECORD_NOTIFICATION),
-        .help_text = NULL,
         .session_progress = NULL,
         .view_progress = NULL,
         .icr_stats = NULL,
         .exit_requested = false,
+        .content_mutex = NULL,
+        .content_manager = NULL,
+        .content_api = NULL,
+        .content_state = NULL,
+        .content_active = false,
+        .content_mode = MorseFlipperContentModeHelp,
+        .content_error = MorseFlipperContentErrorNone,
         .previous_usb_config = NULL,
         .hid_cfg =
             {
@@ -57,8 +63,6 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .session_result_tone = false,
         .session_result_good = false,
         .session_start_holdoff = false,
-        .about_show_next = false,
-        .help_chapter_card = false,
         .onboarding_seen = false,
         .midi_rx_pending = false,
         .screen = MorseFlipperScreenMenu,
@@ -85,33 +89,21 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .straight_answer_timeout_s = MORSE_FLIPPER_STRAIGHT_TIMEOUT_DEFAULT_S,
         .straight_next_delay_s = MORSE_FLIPPER_STRAIGHT_NEXT_DEFAULT_S,
         .trainer_row = 0U,
-        .help_card_count = 1U,
-        .onboarding_page = 0U,
-        .onboarding_card_count = 1U,
         .trainer_char_idx = 0U,
         .trainer_mark_idx = 0U,
         .session_wait_draw_s = 0xFFU,
         .session_answer_flash_phase = 0xFFU,
-        .about_mode = 0U,
-        .about_ok_count = 0U,
-        .about_social_idx = 0U,
-        .about_footer_seq_i = 0U,
         .progress_row_count = 0U,
         .progress_row_offset = 0U,
         .progress_row_cursor = 0U,
         .progress_scroll_key = 0xFFU,
         .progress_debug_prev_lesson = 1U,
         .progress_debug_prev_groups = 10U,
-        .about_last_ok_ms = 0U,
-        .about_social_next_ms = 0U,
         .progress_scroll_started_ms = 0U,
         .progress_scroll_next_ms = 0U,
         .star_anim_started_at = 0U,
         .star_anim_next_redraw_ms = 0U,
         .streak_intro_until_ms = 0U,
-        .onboarding_md = {0},
-        .help_md = {0},
-        .about_md = {0},
         .progress_page = MorseFlipperProgressPageStats,
         .ham =
             {
@@ -271,6 +263,10 @@ MorseFlipperApp* morse_flipper_boot(void) {
     morse_flipper_straight_trainer_set_seed(&app->straight_trainer, furi_hal_random_get());
     morse_flipper_tx_group_set_seed(&app->tx_group, furi_hal_random_get());
     morse_flipper_load_config(app);
+    if(!morse_flipper_content_host_init(app)) {
+        morse_flipper_shutdown(app);
+        return NULL;
+    }
     mf_tlm_init(app);
     morse_trainer_ensure_custom_chars_file();
     app->onboarding_seen = morse_flipper_onboarding_seen();
@@ -396,7 +392,7 @@ void morse_flipper_shutdown(MorseFlipperApp* app) {
         if(app->live_view) view_dispatcher_remove_view(app->view_dispatcher, MorseFlipperViewLive);
         if(app->submenu) view_dispatcher_remove_view(app->view_dispatcher, MorseFlipperViewMenu);
     }
-    if(app->help_text) furi_string_free(app->help_text);
+    morse_flipper_content_host_deinit(app);
     if(app->text_input) text_input_free(app->text_input);
     if(app->settings_list) variable_item_list_free(app->settings_list);
     if(app->live_view) view_free(app->live_view);

@@ -21,17 +21,17 @@ void morse_flipper_draw(Canvas* canvas, void* ctx) {
     }
 
     if(app->screen == MorseFlipperScreenOnboarding) {
-        morse_flipper_draw_onboarding(canvas, app);
+        morse_flipper_content_host_draw(app, canvas);
         return;
     }
 
     if(app->screen == MorseFlipperScreenAbout) {
-        morse_flipper_draw_about(canvas, app);
+        morse_flipper_content_host_draw(app, canvas);
         return;
     }
 
     if(app->screen == MorseFlipperScreenHelp) {
-        morse_flipper_draw_help(canvas, app);
+        morse_flipper_content_host_draw(app, canvas);
         return;
     }
 

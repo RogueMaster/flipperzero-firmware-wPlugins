@@ -319,10 +319,6 @@ static bool morse_flipper_scene_menu_help_on_event(void* context, SceneManagerEv
     }
 
     if(event.type == SceneManagerEventTypeCustom) {
-        app->help_topic = event.event;
-        app->help_page = 0U;
-        app->help_md = (CwmdState){0};
-        app->help_chapter_card = false;
         scene_manager_set_scene_state(app->scene_manager, MorseFlipperSceneMenuHelp, event.event);
         scene_manager_next_scene(app->scene_manager, MorseFlipperSceneHelp);
         return true;
@@ -682,6 +678,11 @@ static void morse_flipper_scene_live_on_exit(void* context) {
     UNUSED(context);
 }
 
+static void morse_flipper_scene_content_on_exit(void* context) {
+    MorseFlipperApp* app = context;
+    morse_flipper_content_host_unload(app);
+}
+
 static void morse_flipper_scene_run_on_enter(void* context) {
     MorseFlipperApp* app = context;
     morse_flipper_scene_enter_now(app, MorseFlipperSceneRun);
@@ -848,21 +849,23 @@ static void morse_flipper_scene_trace_on_enter(void* context) {
 
 static void morse_flipper_scene_help_on_enter(void* context) {
     MorseFlipperApp* app = context;
+    morse_flipper_content_host_enter(
+        app,
+        MorseFlipperContentModeHelp,
+        scene_manager_get_scene_state(app->scene_manager, MorseFlipperSceneMenuHelp));
     morse_flipper_scene_enter_now(app, MorseFlipperSceneHelp);
-    morse_flipper_help_open(app);
 }
 
 static void morse_flipper_scene_onboarding_on_enter(void* context) {
     MorseFlipperApp* app = context;
+    morse_flipper_content_host_enter(app, MorseFlipperContentModeOnboarding, 0U);
     morse_flipper_scene_enter_now(app, MorseFlipperSceneOnboarding);
-    morse_flipper_onboarding_open(app);
 }
 
 static void morse_flipper_scene_about_on_enter(void* context) {
     MorseFlipperApp* app = context;
+    morse_flipper_content_host_enter(app, MorseFlipperContentModeAbout, 0U);
     morse_flipper_scene_enter_now(app, MorseFlipperSceneAbout);
-    morse_flipper_about_reset(app, furi_get_tick());
-    morse_flipper_about_open(app);
 }
 
 static void morse_flipper_scene_startup_probe_on_enter(void* context) {
@@ -902,38 +905,13 @@ static void morse_flipper_scene_ham_delete_confirm_on_enter(void* context) {
 
 static bool morse_flipper_scene_help_on_event(void* context, SceneManagerEvent event) {
     MorseFlipperApp* app = context;
-    uint8_t n;
 
     if(event.type == SceneManagerEventTypeBack) {
         morse_flipper_scene_back(app);
+        morse_flipper_content_host_unload(app);
         return true;
     }
-
-    if(event.type != SceneManagerEventTypeCustom) return false;
-    n = morse_flipper_help_card_count(app);
-    if(event.event == MorseFlipperCustomHelpPrev) {
-        if(!morse_flipper_help_is_chapter_card(app) && app->help_page > 0U) {
-            app->help_page--;
-            app->help_md = (CwmdState){0};
-            morse_flipper_help_open(app);
-        }
-        return true;
-    }
-
-    if(event.event == MorseFlipperCustomHelpNext) {
-        if(morse_flipper_help_is_chapter_card(app)) {
-            morse_flipper_help_enter_chapter(app);
-        } else if(app->help_page + 1U < n) {
-            app->help_page++;
-            app->help_md = (CwmdState){0};
-            morse_flipper_help_open(app);
-        } else {
-            morse_flipper_help_show_next_chapter(app);
-        }
-        return true;
-    }
-
-    return false;
+    return event.type == SceneManagerEventTypeCustom;
 }
 
 static bool morse_flipper_scene_about_on_event(void* context, SceneManagerEvent event) {
@@ -941,6 +919,7 @@ static bool morse_flipper_scene_about_on_event(void* context, SceneManagerEvent 
 
     if(event.type == SceneManagerEventTypeBack) {
         morse_flipper_scene_back(app);
+        morse_flipper_content_host_unload(app);
         return true;
     }
 
@@ -966,6 +945,7 @@ static bool morse_flipper_scene_onboarding_on_event(void* context, SceneManagerE
 
     if(event.type == SceneManagerEventTypeBack) {
         morse_flipper_onboarding_finish(app);
+        morse_flipper_content_host_unload(app);
         return true;
     }
 
@@ -1049,7 +1029,7 @@ static const AppSceneOnExitCallback morse_flipper_scene_on_exit_handlers[MorseFl
     morse_flipper_scene_audio_cfg_on_exit,     morse_flipper_scene_trainer_on_exit,
     morse_flipper_scene_straight_cfg_on_exit,  morse_flipper_scene_pc_on_exit,
     morse_flipper_scene_live_on_exit,          morse_flipper_scene_gpio_on_exit,
-    morse_flipper_scene_live_on_exit,          morse_flipper_scene_live_on_exit,
+    morse_flipper_scene_content_on_exit,       morse_flipper_scene_content_on_exit,
     morse_flipper_scene_live_on_exit,          morse_flipper_scene_live_on_exit,
     morse_flipper_scene_live_on_exit,          morse_flipper_scene_ham_configure_on_exit,
     morse_flipper_scene_ham_actions_on_exit,   morse_flipper_scene_ham_text_input_on_exit,
@@ -1057,7 +1037,7 @@ static const AppSceneOnExitCallback morse_flipper_scene_on_exit_handlers[MorseFl
     morse_flipper_scene_live_on_exit,          morse_flipper_scene_live_on_exit,
     morse_flipper_scene_live_on_exit,          morse_flipper_scene_live_on_exit,
     morse_flipper_scene_live_on_exit,          morse_flipper_scene_tx_groups_cfg_on_exit,
-    morse_flipper_scene_live_on_exit,          morse_flipper_scene_progress_on_exit,
+    morse_flipper_scene_content_on_exit,       morse_flipper_scene_progress_on_exit,
     morse_flipper_scene_streak_intro_on_exit,  morse_flipper_scene_icr_on_exit,
 };
 
