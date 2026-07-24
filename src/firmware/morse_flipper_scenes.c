@@ -773,6 +773,23 @@ static void morse_flipper_scene_icr_on_exit(void* context) {
     morse_flipper_icr_host_unload(app);
 }
 
+static void morse_flipper_scene_rx_callsigns_on_enter(void* context) {
+    MorseFlipperApp* app = context;
+    morse_flipper_rx_practice_host_enter(app, MfRxPracticeModeCallsigns, furi_get_tick());
+    morse_flipper_scene_enter_now(app, MorseFlipperSceneRxCallsigns);
+}
+
+static void morse_flipper_scene_rx_groups5_on_enter(void* context) {
+    MorseFlipperApp* app = context;
+    morse_flipper_rx_practice_host_enter(app, MfRxPracticeModeGroups5, furi_get_tick());
+    morse_flipper_scene_enter_now(app, MorseFlipperSceneRxGroups5);
+}
+
+static void morse_flipper_scene_rx_practice_on_exit(void* context) {
+    MorseFlipperApp* app = context;
+    morse_flipper_rx_practice_host_unload(app);
+}
+
 static void morse_flipper_scene_session_end_on_enter(void* context) {
     MorseFlipperApp* app = context;
     if(!app->progress_debug_result) morse_flipper_record_session_progress(app);
@@ -993,6 +1010,8 @@ static const AppSceneOnEnterCallback morse_flipper_scene_on_enter_handlers[Morse
     morse_flipper_scene_progress_on_enter,
     morse_flipper_scene_streak_intro_on_enter,
     morse_flipper_scene_icr_on_enter,
+    morse_flipper_scene_rx_callsigns_on_enter,
+    morse_flipper_scene_rx_groups5_on_enter,
 };
 
 static const AppSceneOnEventCallback morse_flipper_scene_on_event_handlers[MorseFlipperSceneNum] = {
@@ -1016,6 +1035,7 @@ static const AppSceneOnEventCallback morse_flipper_scene_on_event_handlers[Morse
     morse_flipper_scene_live_on_event,          morse_flipper_scene_tx_groups_cfg_on_event,
     morse_flipper_scene_onboarding_on_event,    morse_flipper_scene_progress_on_event,
     morse_flipper_scene_streak_intro_on_event,  morse_flipper_scene_live_on_event,
+    morse_flipper_scene_live_on_event,          morse_flipper_scene_live_on_event,
 };
 
 static const AppSceneOnExitCallback morse_flipper_scene_on_exit_handlers[MorseFlipperSceneNum] = {
@@ -1039,6 +1059,7 @@ static const AppSceneOnExitCallback morse_flipper_scene_on_exit_handlers[MorseFl
     morse_flipper_scene_live_on_exit,          morse_flipper_scene_tx_groups_cfg_on_exit,
     morse_flipper_scene_content_on_exit,       morse_flipper_scene_progress_on_exit,
     morse_flipper_scene_streak_intro_on_exit,  morse_flipper_scene_icr_on_exit,
+    morse_flipper_scene_rx_practice_on_exit,   morse_flipper_scene_rx_practice_on_exit,
 };
 
 const SceneManagerHandlers morse_flipper_scene_handlers = {

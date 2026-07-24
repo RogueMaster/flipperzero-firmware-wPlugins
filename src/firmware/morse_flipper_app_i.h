@@ -172,6 +172,7 @@ typedef enum {
     MorseFlipperScreenProgress = 24,
     MorseFlipperScreenStreakIntro = 25,
     MorseFlipperScreenIcr = 26,
+    MorseFlipperScreenRxPractice = 27,
 } MorseFlipperScreen;
 
 typedef enum {
@@ -222,6 +223,8 @@ typedef enum {
     MorseFlipperSceneProgress,
     MorseFlipperSceneStreakIntro,
     MorseFlipperSceneIcr,
+    MorseFlipperSceneRxCallsigns,
+    MorseFlipperSceneRxGroups5,
     MorseFlipperSceneNum,
 } MorseFlipperScene;
 

@@ -90,6 +90,9 @@ static uint8_t morse_flipper_scene_screen(uint32_t scene) {
         return MorseFlipperScreenStreakIntro;
     case MorseFlipperSceneIcr:
         return MorseFlipperScreenIcr;
+    case MorseFlipperSceneRxCallsigns:
+    case MorseFlipperSceneRxGroups5:
+        return MorseFlipperScreenRxPractice;
     default:
         return MorseFlipperScreenMenu;
     }

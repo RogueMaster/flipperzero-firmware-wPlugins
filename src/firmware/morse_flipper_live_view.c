@@ -108,6 +108,11 @@ void morse_flipper_draw(Canvas* canvas, void* ctx) {
         return;
     }
 
+    if(app->screen == MorseFlipperScreenRxPractice) {
+        morse_flipper_rx_practice_host_draw(app, canvas);
+        return;
+    }
+
     if(app->screen == MorseFlipperScreenStraight) {
         morse_flipper_draw_straight_screen(canvas, app);
         return;
