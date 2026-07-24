@@ -43,6 +43,7 @@ App(
         "src/firmware/morse_flipper_icr_host.c",
         "src/firmware/morse_flipper_rx_practice_host.c",
         "src/firmware/morse_flipper_passive_host.c",
+        "src/firmware/morse_flipper_passive_loading.c",
         "src/firmware/morse_flipper_plugin_runtime.c",
         "src/firmware/morse_flipper_training_timing.c",
         "src/firmware/morse_flipper_app.c",

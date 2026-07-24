@@ -37,6 +37,7 @@
 #include "morse_flipper_ham_keyer.h"
 #include "morse_flipper_icr_host.h"
 #include "morse_flipper_passive_host.h"
+#include "morse_flipper_passive_loading.h"
 #include "morse_flipper_plugin_runtime.h"
 #include "morse_flipper_rx_practice_host.h"
 #include "plugins/icr/morse_flipper_icr_api.h"
@@ -381,6 +382,7 @@ typedef struct MorseFlipperApp {
     volatile bool exit_requested;
     bool terminus24_active;
     MorseFlipperPluginSlot plugin_slot;
+    MorseFlipperPassiveLoading passive_loading;
 
     /*
      * Hardware and transport mirrors. These track what we last asked the outside

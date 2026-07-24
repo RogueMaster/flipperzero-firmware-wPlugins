@@ -802,7 +802,14 @@ static void morse_flipper_scene_passive_on_enter(void* context) {
     MorseFlipperApp* app = context;
     morse_flipper_plugin_runtime_unload_current(app);
     morse_flipper_scene_enter_now(app, MorseFlipperScenePassive);
-    morse_flipper_passive_host_enter(app, furi_get_tick());
+    morse_flipper_passive_loading_start(&app->passive_loading, furi_get_tick());
+    morse_flipper_view_dirty(app);
+}
+
+static void morse_flipper_scene_passive_on_exit(void* context) {
+    MorseFlipperApp* app = context;
+    morse_flipper_passive_loading_clear(&app->passive_loading);
+    morse_flipper_plugin_runtime_unload_current(app);
 }
 
 static void morse_flipper_scene_session_end_on_enter(void* context) {
@@ -1074,7 +1081,7 @@ static const AppSceneOnExitCallback morse_flipper_scene_on_exit_handlers[MorseFl
     morse_flipper_scene_live_on_exit,          morse_flipper_scene_tx_groups_cfg_on_exit,
     morse_flipper_scene_content_on_exit,       morse_flipper_scene_progress_on_exit,
     morse_flipper_scene_streak_intro_on_exit,  morse_flipper_scene_icr_on_exit,
-    morse_flipper_scene_rx_practice_on_exit,   morse_flipper_scene_rx_practice_on_exit,
+    morse_flipper_scene_rx_practice_on_exit,   morse_flipper_scene_passive_on_exit,
 };
 
 const SceneManagerHandlers morse_flipper_scene_handlers = {

@@ -600,6 +600,16 @@ void morse_flipper_active_mode_tick(MorseFlipperApp* app, uint32_t now_ms) {
         break;
     case MorseFlipperScreenPassive: {
         MorseFlipperMappedFalResult result = {0};
+        uint8_t loading_frame = app->passive_loading.frame;
+        if(app->passive_loading.active) {
+            if(morse_flipper_passive_loading_tick(&app->passive_loading, now_ms)) {
+                morse_flipper_passive_host_enter(app, now_ms);
+                morse_flipper_view_dirty(app);
+            } else if(loading_frame != app->passive_loading.frame) {
+                morse_flipper_view_dirty(app);
+            }
+            break;
+        }
         furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
         if(morse_flipper_plugin_runtime_tick_locked(
                app, MorseFlipperPluginOwnerPassive, now_ms, &result)) {

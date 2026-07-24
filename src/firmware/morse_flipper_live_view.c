@@ -103,6 +103,16 @@ void morse_flipper_draw(Canvas* canvas, void* ctx) {
         return;
     }
 
+    if(app->screen == MorseFlipperScreenPassive && app->passive_loading.active) {
+        canvas_draw_str(canvas, 31, 34, "Loading");
+        canvas_draw_str(
+            canvas,
+            80,
+            34,
+            morse_flipper_passive_loading_suffix(app->passive_loading.frame));
+        return;
+    }
+
     if(app->screen == MorseFlipperScreenIcr || app->screen == MorseFlipperScreenPassive) {
         morse_flipper_plugin_runtime_draw(app, canvas, furi_get_tick());
         return;
