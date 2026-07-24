@@ -41,7 +41,10 @@ static bool mf_passive_command(
         morse_flipper_audio_pwm_stop(&app->audio_pwm);
         return true;
     }
-    if(command != MfPassiveHostCommandClaim || pipe == NULL || app->audio_pwm.running) return false;
+    if(command != MfPassiveHostCommandClaim || pipe == NULL) return false;
+    if(app->audio_pwm.running) morse_flipper_audio_pwm_stop(&app->audio_pwm);
+    if(app->speaker_owned || app->tone_on) morse_flipper_tone_stop(app);
+    furi_hal_vibro_on(false);
     if((uint8_t)(value >> 8U) == MfPassiveOutputP2) {
         pwm_target = MorseFlipperAudioPwmTargetP2;
         carrier_hz = MORSE_FLIPPER_AUDIO_PWM_P2_CARRIER_HZ;
@@ -76,6 +79,10 @@ bool morse_flipper_passive_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
     bool entered;
     MfPassiveOutputTarget target;
     if(app == NULL || app->plugin_slot.mutex == NULL) return false;
+    morse_flipper_drop_live_keying_for_playback(app, now_ms);
+    morse_flipper_release_all_notes(app);
+    morse_flipper_reset_answer_decoder(app);
+    morse_flipper_sync_ptt(app, now_ms);
     target = app->audio_path == MorseFlipperAudioPathGpioP2Hd ? MfPassiveOutputP2 :
                                                                MfPassiveOutputInternal;
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);

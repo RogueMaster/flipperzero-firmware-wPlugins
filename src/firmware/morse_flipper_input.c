@@ -1155,15 +1155,19 @@ bool morse_flipper_active_mode_input(MorseFlipperApp* app, InputEvent* event, ui
         return morse_flipper_rx_practice_host_input(app, event, now_ms);
     case MorseFlipperScreenPassive: {
         MorseFlipperMappedFalResult result = {0};
+        bool active = false;
         furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
         if(app->plugin_slot.owner == MorseFlipperPluginOwnerPassive &&
            app->plugin_slot.error == MorseFlipperPluginErrorNone && app->plugin_slot.api != NULL &&
            app->plugin_slot.state != NULL) {
             const MorseFlipperMappedFalApi* api = app->plugin_slot.api;
+            active = true;
             result = api->input(app->plugin_slot.state, event, now_ms);
         }
         furi_mutex_release(app->plugin_slot.mutex);
-        if(result.request_exit)
+        if(result.request_exit ||
+           (!active && event->key == InputKeyBack &&
+            (event->type == InputTypeShort || event->type == InputTypeLong)))
             scene_manager_search_and_switch_to_another_scene(
                 app->scene_manager, MorseFlipperSceneMenuTraining);
         return true;

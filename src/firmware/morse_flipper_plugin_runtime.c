@@ -2,6 +2,30 @@
 
 #include "morse_flipper_app_i.h"
 
+static bool morse_flipper_plugin_runtime_typed_api_valid(
+    MorseFlipperPluginOwner owner,
+    const void* entry) {
+    if(entry == NULL) return false;
+    if(owner == MorseFlipperPluginOwnerContent) {
+        const MorseFlipperHelpAboutApi* api = entry;
+        return api->enter != NULL && api->input != NULL;
+    }
+    if(owner == MorseFlipperPluginOwnerIcr) {
+        const MorseFlipperIcrApi* api = entry;
+        return api->enter != NULL && api->input != NULL;
+    }
+    if(owner == MorseFlipperPluginOwnerRxPractice) {
+        const MfRxPracticeApi* api = entry;
+        return api->enter != NULL && api->input != NULL && api->command != NULL &&
+               api->feed_text != NULL;
+    }
+    if(owner == MorseFlipperPluginOwnerPassive) {
+        const MfPassiveApi* api = entry;
+        return api->enter != NULL && api->input != NULL;
+    }
+    return false;
+}
+
 static void morse_flipper_plugin_runtime_clear_locked(MorseFlipperApp* app) {
     if(app == NULL) return;
     app->plugin_slot.manager = NULL;
@@ -91,8 +115,8 @@ bool morse_flipper_plugin_runtime_open_mapped_locked(
     if(app->plugin_slot.error != MorseFlipperPluginErrorNone) goto cleanup;
     if(api == NULL || api->magic != api_magic || api->api_version != api_version ||
        api->struct_size != minimum_api_size || api->alloc == NULL || api->free == NULL ||
-       api->enter == NULL || api->leave == NULL || api->input == NULL || api->tick == NULL ||
-       api->draw == NULL) {
+       api->enter == NULL || api->leave == NULL || api->tick == NULL || api->draw == NULL ||
+       !morse_flipper_plugin_runtime_typed_api_valid(owner, api)) {
         app->plugin_slot.error = MorseFlipperPluginErrorTable;
         goto cleanup;
     }
