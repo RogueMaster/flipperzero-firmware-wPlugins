@@ -120,6 +120,15 @@ static bool mf_passive_start_voice(MfPassiveState* state) {
     return true;
 }
 
+static bool mf_passive_start_cue(MfPassiveState* state, uint32_t now_ms) {
+    if(!mf_passive_host_command(state->services, MfPassiveHostCommandTone, state->tone_hz)) return false;
+    if(state->vibrate)
+        mf_passive_host_command(state->services, MfPassiveHostCommandVibration, 1U);
+    state->phase = MfPassivePhaseCue;
+    state->next_at = now_ms + MF_PASSIVE_CUE_MS;
+    return true;
+}
+
 bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfPassiveResult* result) {
     if(state == NULL || result == NULL || args == NULL || args->struct_size != sizeof(*args) ||
        args->services == NULL || args->services->struct_size != sizeof(MfPassiveHostServices) ||
@@ -217,7 +226,8 @@ MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
         }
         return mf_passive_result(state, false);
     }
-    if(state->phase == MfPassivePhaseCw && mf_passive_reached(now_ms, state->next_at)) {
+    if((state->phase == MfPassivePhaseCw || state->phase == MfPassivePhaseRepeatCw) &&
+       mf_passive_reached(now_ms, state->next_at)) {
         uint8_t symbol = cw(state->prompt[state->char_index]);
         if(state->cw_mark) {
             if(!mf_passive_silence(state)) mf_passive_fail(state);
@@ -227,8 +237,12 @@ MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
                 state->next_at = now_ms + state->dit_ms;
             else if(state->phase != MfPassivePhaseError &&
                     state->char_index + 1U == state->prompt_len) {
-                state->phase = MfPassivePhasePostCw;
-                state->next_at = now_ms + state->answer_delay_ms;
+                if(state->phase == MfPassivePhaseRepeatCw) {
+                    if(!mf_passive_start_cue(state, now_ms)) mf_passive_fail(state);
+                } else {
+                    state->phase = MfPassivePhasePostCw;
+                    state->next_at = now_ms + state->answer_delay_ms;
+                }
             } else if(state->phase != MfPassivePhaseError) {
                 state->char_index++;
                 state->mark_index = 0U;
@@ -283,12 +297,16 @@ MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
         return mf_passive_result(state, redraw);
     }
     if(state->phase == MfPassivePhasePostVoice && mf_passive_reached(now_ms, state->next_at)) {
-        if(!mf_passive_host_command(state->services, MfPassiveHostCommandTone, state->tone_hz)) {
+        if(state->repeat_after_answer) {
+            state->char_index = 0U;
+            state->mark_index = 0U;
+            state->cw_mark = false;
+            state->phase = MfPassivePhaseRepeatCw;
+            if(!mf_passive_start_mark(state, now_ms)) mf_passive_fail(state);
+        } else if(!mf_passive_start_cue(state, now_ms)) {
             mf_passive_fail(state);
         } else {
-            mf_passive_host_command(state->services, MfPassiveHostCommandVibration, 1U);
-            state->phase = MfPassivePhaseCue;
-            state->next_at = now_ms + MF_PASSIVE_CUE_MS;
+            /* Cue state is set by mf_passive_start_cue. */
         }
         return mf_passive_result(state, false);
     }

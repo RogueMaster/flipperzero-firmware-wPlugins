@@ -189,6 +189,7 @@ static void setup(MfPassiveState* state, FakeServices* fake, MemoryFile* file) {
     state->prompt_length = 4U;
     state->prompt_len = 4U;
     state->answer_delay_ms = 3000U;
+    state->vibrate = 1U;
     mf_rx_rng_init(&state->rng, 0x12345678U);
     mf_callsign_gen_init(&state->callsign_gen);
     memcpy(state->callsign.text, "A1A1", 5U);
@@ -419,12 +420,48 @@ static void test_gesture_and_rounds(void) {
     CHECK(fake.releases == 1U && state.services == NULL);
 }
 
+static void test_repeat_and_vibration_controls(void) {
+    MemoryFile file;
+    MfPassiveState state;
+    FakeServices fake;
+    uint32_t now;
+
+    make_pack(&file);
+    setup(&state, &fake, &file);
+    state.repeat_after_answer = 1U;
+    state.phase = MfPassivePhasePostVoice;
+    state.next_at = 1000U;
+    mf_passive_tick(&state, 1000U);
+    CHECK(state.phase == MfPassivePhaseRepeatCw && state.char_index == 0U);
+    while(state.phase == MfPassivePhaseRepeatCw) {
+        now = state.next_at;
+        mf_passive_tick(&state, now);
+    }
+    CHECK(state.phase == MfPassivePhaseCue && fake.voices == 0U);
+    CHECK(state.revealed_count == 0U && strcmp(state.prompt, "A1A1") == 0);
+    mf_passive_tick(&state, state.next_at);
+    CHECK(state.phase == MfPassivePhasePostCue && fake.vibrations_on == 1U);
+    mf_passive_leave(&state);
+
+    make_pack(&file);
+    setup(&state, &fake, &file);
+    state.vibrate = 0U;
+    state.phase = MfPassivePhasePostVoice;
+    state.next_at = 0U;
+    mf_passive_tick(&state, 0U);
+    CHECK(state.phase == MfPassivePhaseCue && fake.tones == 1U && fake.vibrations_on == 0U);
+    mf_passive_tick(&state, state.next_at);
+    CHECK(fake.vibrations_off != 0U);
+    mf_passive_leave(&state);
+}
+
 int main(void) {
     CHECK(sizeof(MfPassiveState) <= 3584U);
     test_initial_delay();
     test_sequence_and_timing();
     test_delayed_tick_and_failures();
     test_gesture_and_rounds();
+    test_repeat_and_vibration_controls();
     printf("test_passive_core: %u checks passed\n", checks);
     return 0;
 }

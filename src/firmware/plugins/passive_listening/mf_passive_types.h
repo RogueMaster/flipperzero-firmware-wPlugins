@@ -82,6 +82,7 @@ typedef enum {
     MfPassivePhasePostVoice,
     MfPassivePhaseCue,
     MfPassivePhasePostCue,
+    MfPassivePhaseRepeatCw,
     MfPassivePhaseError,
 } MfPassivePhase;
 
