@@ -117,6 +117,8 @@ static void morse_flipper_drain_tx_decoder(MorseFlipperApp* app) {
             morse_flipper_finish_tx_group_answer(app, furi_get_tick());
         }
     }
+    if(app->screen == MorseFlipperScreenRxPractice)
+        morse_flipper_rx_practice_host_feed(app, out, strlen(out), furi_get_tick());
 
     morse_flipper_append_text(app->rf_tx_text, sizeof(app->rf_tx_text), out);
     if(app->screen == MorseFlipperScreenHamRun) {
@@ -267,6 +269,11 @@ static bool morse_flipper_tx_decoder_allowed(const MorseFlipperApp* app) {
     if(app->screen == MorseFlipperScreenTxGroupsResult ||
        app->screen == MorseFlipperScreenTxGroupsFinal)
         return false;
+    if(app->screen == MorseFlipperScreenRxPractice) {
+        MorseFlipperPluginSnapshot snapshot;
+        return morse_flipper_plugin_runtime_snapshot(app, &snapshot) &&
+               snapshot.phase == MfRxPracticePhaseAnswer;
+    }
     return true;
 }
 
@@ -563,6 +570,9 @@ void morse_flipper_active_mode_tick(MorseFlipperApp* app, uint32_t now_ms) {
     case MorseFlipperScreenIcr:
         morse_flipper_icr_host_tick(app, now_ms);
         break;
+    case MorseFlipperScreenRxPractice:
+        morse_flipper_rx_practice_host_tick(app, now_ms);
+        break;
     case MorseFlipperScreenTxGroups:
     case MorseFlipperScreenTxGroupsResult:
         morse_flipper_tick_tx_groups(app, now_ms);
@@ -695,6 +705,15 @@ void morse_flipper_poll(MorseFlipperApp* app) {
         morse_flipper_start_tx_groups_round(app, now_ms);
         app->txg_start_holdoff = true;
         raw_straight = false;
+    }
+    if(app->screen == MorseFlipperScreenRxPractice &&
+       app->input_source != MorseFlipperInputSourceButtons && raw_straight) {
+        MorseFlipperPluginSnapshot snapshot;
+        if(morse_flipper_plugin_runtime_snapshot(app, &snapshot) &&
+           snapshot.phase == MfRxPracticePhaseIdle) {
+            morse_flipper_rx_practice_host_command(app, MfRxPracticeCommandStart, now_ms);
+            raw_straight = false;
+        }
     }
     if(app->screen == MorseFlipperScreenStraight &&
        (app->straight_done || morse_flipper_straight_countdown_active(app)) &&

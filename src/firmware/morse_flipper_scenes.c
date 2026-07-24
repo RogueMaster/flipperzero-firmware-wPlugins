@@ -145,12 +145,25 @@ static void morse_flipper_scene_menu_training_on_enter(void* context) {
         app->submenu, "ICR", MorseFlipperSceneIcr, morse_flipper_scene_menu_pick, app);
     submenu_add_item(
         app->submenu,
+        "RX Callsigns",
+        MorseFlipperSceneRxCallsigns,
+        morse_flipper_scene_menu_pick,
+        app);
+    submenu_add_item(
+        app->submenu,
+        "RX Groups of 5",
+        MorseFlipperSceneRxGroups5,
+        morse_flipper_scene_menu_pick,
+        app);
+    submenu_add_item(
+        app->submenu,
         "TX Groups of 5 letters",
         MorseFlipperSceneTxGroups,
         morse_flipper_scene_menu_pick,
         app);
     if(sel != MorseFlipperSceneProgress && sel != MorseFlipperSceneSession &&
        sel != MorseFlipperSceneStraight && sel != MorseFlipperSceneIcr &&
+       sel != MorseFlipperSceneRxCallsigns && sel != MorseFlipperSceneRxGroups5 &&
        sel != MorseFlipperSceneTxGroups)
         sel = MorseFlipperSceneProgress;
     submenu_set_selected_item(app->submenu, sel);

@@ -13,6 +13,35 @@
 #define MORSE_FLIPPER_PROGRESS_SCROLL_FAST_MS  42U
 #define MORSE_FLIPPER_PROGRESS_SCROLL_ACCEL_MS 1000U
 
+static bool morse_flipper_rx_practice_input(MorseFlipperApp* app, const InputEvent* event, uint32_t now_ms) {
+    MorseFlipperPluginSnapshot snapshot;
+    MfRxPracticeCommand command = MfRxPracticeCommandNone;
+
+    if(app->screen != MorseFlipperScreenRxPractice ||
+       !morse_flipper_plugin_runtime_snapshot(app, &snapshot))
+        return false;
+    if(event->key == InputKeyLeft && event->type == InputTypeLong)
+        command = MfRxPracticeCommandBack;
+    else if(event->type == InputTypeShort) {
+        if(event->key == InputKeyOk)
+            command = snapshot.phase == MfRxPracticePhaseFinal ? MfRxPracticeCommandConfirmExit :
+                      MfRxPracticeCommandStart;
+        else if(event->key == InputKeyLeft)
+            command = MfRxPracticeCommandBackspace;
+        else if(event->key == InputKeyDown)
+            command = MfRxPracticeCommandClear;
+        else if(event->key == InputKeyRight)
+            command = MfRxPracticeCommandHurry;
+        else if(event->key == InputKeyBack &&
+                !(snapshot.phase == MfRxPracticePhaseAnswer &&
+                  app->input_source == MorseFlipperInputSourceButtons &&
+                  !morse_flipper_straight_like_mode(app)))
+            command = MfRxPracticeCommandBack;
+    }
+    if(command == MfRxPracticeCommandNone) return false;
+    return morse_flipper_rx_practice_host_command(app, command, now_ms);
+}
+
 static bool morse_flipper_content_input(MorseFlipperApp* app, const InputEvent* event) {
     if(app->screen != MorseFlipperScreenOnboarding && app->screen != MorseFlipperScreenHelp &&
        app->screen != MorseFlipperScreenAbout)
@@ -1151,6 +1180,8 @@ bool morse_flipper_active_mode_input(MorseFlipperApp* app, InputEvent* event, ui
         return morse_flipper_streak_intro_input(app, event);
     case MorseFlipperScreenIcr:
         return morse_flipper_icr_host_input(app, event, now_ms);
+    case MorseFlipperScreenRxPractice:
+        return morse_flipper_rx_practice_input(app, event, now_ms);
     case MorseFlipperScreenRfFreq:
         return morse_flipper_rf_freq_input(app, event);
     case MorseFlipperScreenRfRx:
@@ -1180,11 +1211,18 @@ static bool
     morse_flipper_session_live_keying_input(MorseFlipperApp* app, const InputEvent* event) {
     MorseFlipperInputGate g;
 
-    if(app->screen != MorseFlipperScreenSession && app->screen != MorseFlipperScreenTxGroups)
+    if(app->screen != MorseFlipperScreenSession && app->screen != MorseFlipperScreenTxGroups &&
+       app->screen != MorseFlipperScreenRxPractice)
         return false;
     if(app->screen == MorseFlipperScreenSession && !morse_flipper_session_repeat_active(app))
         return false;
     if(app->screen == MorseFlipperScreenTxGroups && !app->txg_wait_answer) return false;
+    if(app->screen == MorseFlipperScreenRxPractice) {
+        MorseFlipperPluginSnapshot snapshot;
+        if(!morse_flipper_plugin_runtime_snapshot(app, &snapshot) ||
+           snapshot.phase != MfRxPracticePhaseAnswer)
+            return false;
+    }
     if(event->type != InputTypePress && event->type != InputTypeRelease) return false;
 
     g = morse_flipper_input_gate(app);

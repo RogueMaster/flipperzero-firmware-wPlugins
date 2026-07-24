@@ -23,6 +23,10 @@ MorseFlipperInputGate morse_flipper_input_gate(const MorseFlipperApp* app) {
         g.live = app->straight_wait_answer;
     } else if(app->screen == MorseFlipperScreenTxGroups) {
         g.live = app->txg_wait_answer;
+    } else if(app->screen == MorseFlipperScreenRxPractice) {
+        MorseFlipperPluginSnapshot snapshot;
+        g.live = morse_flipper_plugin_runtime_snapshot(app, &snapshot) &&
+                 snapshot.phase == MfRxPracticePhaseAnswer;
     }
 
     if(!g.live || app->input_source != MorseFlipperInputSourceButtons) {

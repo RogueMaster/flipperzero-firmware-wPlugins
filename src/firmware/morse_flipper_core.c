@@ -332,6 +332,11 @@ bool morse_flipper_training_playback_active(const MorseFlipperApp* app) {
         return morse_flipper_plugin_runtime_snapshot(app, &snapshot) &&
                snapshot.owner == MorseFlipperPluginOwnerIcr && snapshot.playback_active;
     }
+    if(app->screen == MorseFlipperScreenRxPractice) {
+        MorseFlipperPluginSnapshot snapshot;
+        return morse_flipper_plugin_runtime_snapshot(app, &snapshot) &&
+               snapshot.owner == MorseFlipperPluginOwnerRxPractice && snapshot.playback_active;
+    }
     return app->screen == MorseFlipperScreenSession && app->trainer_playback_active;
 }
 
