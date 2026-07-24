@@ -7,9 +7,22 @@
 #define PROGRESS_PATH    PROGRESS_DIR "/progress.bin"
 #define SETTINGS_PATH    PROGRESS_DIR "/settings.bin"
 #define PROGRESS_MAGIC   0x5445 /* "ET" */
-#define PROGRESS_VERSION 1
+#define PROGRESS_VERSION 2
 #define SETTINGS_MAGIC   0x5345 /* "ES" */
 #define SETTINGS_VERSION 1
+
+/* v1 shipped with three modes (the interval directions) before chords and
+ * scales existed. Its stars array has a different row length, so a v1 file
+ * cannot be read as a prefix of the current struct - it gets copied across
+ * field by field instead. */
+#define V1_MODE_COUNT 3
+typedef struct __attribute__((packed)) {
+    uint8_t unlocked[V1_MODE_COUNT];
+    uint8_t stars[V1_MODE_COUNT][LEVEL_COUNT_MAX];
+    uint32_t answered;
+    uint32_t correct;
+    uint16_t best_streak;
+} EarProgressV1;
 
 typedef struct __attribute__((packed)) {
     uint16_t magic;
@@ -24,12 +37,26 @@ static void progress_defaults(EarProgress* progress) {
 
 static bool progress_valid(const EarProgress* progress) {
     for(uint8_t m = 0; m < MODE_COUNT; m++) {
-        if(progress->unlocked[m] < 1 || progress->unlocked[m] > LEVEL_COUNT) return false;
-        for(uint8_t l = 0; l < LEVEL_COUNT; l++) {
+        if(progress->unlocked[m] < 1 || progress->unlocked[m] > LEVEL_COUNT_MAX) return false;
+        for(uint8_t l = 0; l < LEVEL_COUNT_MAX; l++) {
             if(progress->stars[m][l] > 3) return false;
         }
     }
     return progress->correct <= progress->answered;
+}
+
+/* Carry a v1 file forward: the three interval modes keep their unlocked level
+ * and stars, the new chord and scale modes start fresh, and the lifetime
+ * counters survive. */
+static void migrate_v1(const EarProgressV1* old, EarProgress* out) {
+    progress_defaults(out);
+    for(uint8_t m = 0; m < V1_MODE_COUNT; m++) {
+        out->unlocked[m] = old->unlocked[m];
+        memcpy(out->stars[m], old->stars[m], LEVEL_COUNT_MAX);
+    }
+    out->answered = old->answered;
+    out->correct = old->correct;
+    out->best_streak = old->best_streak;
 }
 
 void ear_progress_load(EarProgress* progress) {
@@ -43,8 +70,16 @@ void ear_progress_load(EarProgress* progress) {
         bool ok = false;
         /* Bad magic/version/values means start fresh rather than crash. */
         if(storage_file_read(file, &header, sizeof(header)) == sizeof(header) &&
-           header.magic == PROGRESS_MAGIC && header.version == PROGRESS_VERSION) {
-            ok = storage_file_read(file, &loaded, sizeof(loaded)) == (uint16_t)sizeof(loaded);
+           header.magic == PROGRESS_MAGIC) {
+            if(header.version == PROGRESS_VERSION) {
+                ok = storage_file_read(file, &loaded, sizeof(loaded)) == (uint16_t)sizeof(loaded);
+            } else if(header.version == 1) {
+                EarProgressV1 old;
+                if(storage_file_read(file, &old, sizeof(old)) == (uint16_t)sizeof(old)) {
+                    migrate_v1(&old, &loaded);
+                    ok = true;
+                }
+            }
         }
         if(ok && progress_valid(&loaded)) *progress = loaded;
     }
