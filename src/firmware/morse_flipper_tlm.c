@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MF_TLM_RING_COUNT 64U
-#define MF_TLM_LINE_LEN   384U
+#define MF_TLM_RING_COUNT 4U
+#define MF_TLM_LINE_LEN   160U
 
 typedef struct {
     uint32_t seq;
@@ -40,44 +40,6 @@ static const char* mf_tlm_pc_mode(uint8_t mode) {
     default:
         return "off";
     }
-}
-
-static const char* mf_tlm_input_source(uint8_t source) {
-    switch(source) {
-    case MorseFlipperInputSourceStraight:
-        return "straight";
-    case MorseFlipperInputSourcePaddle:
-        return "paddle";
-    default:
-        return "buttons";
-    }
-}
-
-static const char* mf_tlm_audio_path(uint8_t path) {
-    switch(path) {
-    case MorseFlipperAudioPathGpioP2Hd:
-        return "pa2";
-    case MorseFlipperAudioPathVibration:
-        return "vibration";
-    default:
-        return "buzzer";
-    }
-}
-
-static const char* mf_tlm_waveform(uint8_t path) {
-    return path == MorseFlipperAudioPathSoftBuzz ? "sine" : "square";
-}
-
-static const char* mf_tlm_charset_source(const MorseFlipperApp* app) {
-    if(app == NULL) return "lesson";
-    return morse_flipper_effective_trainer_custom_set_idx(app) == 0U ? "lesson" : "custom";
-}
-
-static uint32_t mf_tlm_answer_timeout_ms(const MorseFlipperApp* app) {
-    uint8_t timeout_s = app != NULL ? app->trainer_answer_timeout_s :
-                                      MORSE_FLIPPER_TRAINER_TIMEOUT_DEFAULT_S;
-    if(timeout_s == 0U) timeout_s = MORSE_FLIPPER_TRAINER_TIMEOUT_DEFAULT_S;
-    return (uint32_t)timeout_s * 1000U;
 }
 
 static void mf_tlm_escape(char* out, size_t out_sz, const char* in) {
@@ -154,29 +116,16 @@ static void mf_tlm_dump(uint32_t since) {
     dropped = start < oldest ? oldest : 0U;
     if(start < oldest) start = oldest;
 
-    if(dropped != 0U) {
-        printf(
-            "MFT {\"v\":1,\"event\":\"tlm_dump\",\"from_seq\":%lu,\"oldest_seq\":%lu,"
-            "\"next_seq\":%lu,\"dropped_before_seq\":%lu}\r\n",
-            (unsigned long)since,
-            (unsigned long)oldest,
-            (unsigned long)next,
-            (unsigned long)dropped);
-    } else {
-        printf(
-            "MFT {\"v\":1,\"event\":\"tlm_dump\",\"from_seq\":%lu,\"oldest_seq\":%lu,"
-            "\"next_seq\":%lu,\"dropped_before_seq\":null}\r\n",
-            (unsigned long)since,
-            (unsigned long)oldest,
-            (unsigned long)next);
-    }
+    printf(
+        "MFT {\"v\":1,\"event\":\"tlm_dump\",\"next_seq\":%lu,\"dropped_before_seq\":%lu}\r\n",
+        (unsigned long)next,
+        (unsigned long)dropped);
     for(uint32_t seq = start; seq < next; seq++) {
         uint32_t slot = (seq - 1U) % MF_TLM_RING_COUNT;
         if(mf_tlm_ring[slot].seq == seq) {
             printf("%s\r\n", mf_tlm_ring[slot].line);
         }
     }
-    printf("MFT {\"v\":1,\"event\":\"tlm_dump_done\",\"next_seq\":%lu}\r\n", (unsigned long)next);
 
     if(mf_tlm_mutex != NULL) furi_mutex_release(mf_tlm_mutex);
 }
@@ -184,7 +133,6 @@ static void mf_tlm_dump(uint32_t since) {
 static void mf_tlm_cli(PipeSide* pipe, FuriString* args, void* context) {
     uint32_t since = 0U;
     const char* text;
-    char* end = NULL;
 
     UNUSED(pipe);
     UNUSED(context);
@@ -198,16 +146,9 @@ static void mf_tlm_cli(PipeSide* pipe, FuriString* args, void* context) {
         while(*text == ' ') {
             text++;
         }
-        since = (uint32_t)strtoul(text, &end, 10);
-        if(end != text) {
-            while(*end == ' ') {
-                end++;
-            }
-            if(*end == '\0') {
-                mf_tlm_dump(since);
-                return;
-            }
-        }
+        since = (uint32_t)strtoul(text, NULL, 10);
+        mf_tlm_dump(since);
+        return;
     }
 
     printf("Usage: mf_tlm since <seq>\r\n");
@@ -261,48 +202,21 @@ void mf_tlm_cfg(const MorseFlipperApp* app) {
     n = snprintf(
         body,
         sizeof(body),
-        "\"event\":\"config_state\",\"usb_mode\":\"%s\",\"input_source\":\"%s\","
-        "\"keyer_mode\":\"%s\",\"audio_path\":\"%s\",\"waveform\":\"%s\","
-        "\"pwm_volume\":%u,\"lesson\":%u,\"group_size\":%u,\"session_groups\":%u,"
-        "\"wpm\":%u,\"farnsworth_wpm\":%u",
-        mf_tlm_pc_mode(app->pc_mode_pref),
-        mf_tlm_input_source(app->input_source),
-        morse_keyer_mode_name(app->keyer_mode),
-        mf_tlm_audio_path(app->audio_path),
-        mf_tlm_waveform(app->audio_path),
-        (unsigned)morse_flipper_p2_volume_pct(app),
-        (unsigned)morse_trainer_lesson(&app->trainer),
-        (unsigned)morse_trainer_group_size(&app->trainer),
-        (unsigned)morse_trainer_session_groups(&app->trainer),
-        (unsigned)morse_flipper_local_wpm(app),
-        (unsigned)app->trainer_farnsworth_wpm);
+        "\"event\":\"config_state\",\"usb_mode\":\"%s\"",
+        mf_tlm_pc_mode(app->pc_mode_pref));
     if(n <= 0 || (size_t)n >= sizeof(body)) return;
     mf_tlm_event(body);
 }
 
 void mf_tlm_session(const MorseFlipperApp* app) {
-    char charset[MORSE_TRAINER_CHARSET_CAP * 2U];
     char body[MF_TLM_LINE_LEN];
     int n;
 
     if(app == NULL) return;
-    mf_tlm_escape(charset, sizeof(charset), morse_trainer_charset(&app->trainer));
     n = snprintf(
         body,
         sizeof(body),
-        "\"event\":\"session_start\",\"mode\":\"listening\",\"rng_state\":%lu,"
-        "\"lesson\":%u,\"charset\":\"%s\",\"charset_source\":\"%s\","
-        "\"group_size\":%u,\"session_groups\":%u,\"wpm\":%u,"
-        "\"farnsworth_wpm\":%u,\"answer_timeout_ms\":%lu",
-        (unsigned long)app->trainer.rng_state,
-        (unsigned)morse_trainer_lesson(&app->trainer),
-        charset,
-        mf_tlm_charset_source(app),
-        (unsigned)morse_trainer_group_size(&app->trainer),
-        (unsigned)morse_trainer_session_groups(&app->trainer),
-        (unsigned)morse_flipper_local_wpm(app),
-        (unsigned)app->trainer_farnsworth_wpm,
-        (unsigned long)mf_tlm_answer_timeout_ms(app));
+        "\"event\":\"session_start\",\"mode\":\"listening\"");
     if(n <= 0 || (size_t)n >= sizeof(body)) return;
     mf_tlm_event(body);
 }
@@ -317,9 +231,8 @@ void mf_tlm_group(const MorseFlipperApp* app) {
     n = snprintf(
         body,
         sizeof(body),
-        "\"event\":\"group_ready\",\"index\":%u,\"rng_state\":%lu,\"expected\":\"%s\"",
+        "\"event\":\"group_ready\",\"index\":%u,\"expected\":\"%s\"",
         (unsigned)mf_tlm_group_index(app),
-        (unsigned long)app->trainer.rng_state,
         group);
     if(n <= 0 || (size_t)n >= sizeof(body)) return;
     mf_tlm_event(body);
@@ -329,38 +242,29 @@ void mf_tlm_open(const MorseFlipperApp* app, uint32_t deadline_ms) {
     char body[MF_TLM_LINE_LEN];
     int n;
 
+    UNUSED(deadline_ms);
     if(app == NULL) return;
     n = snprintf(
         body,
         sizeof(body),
-        "\"event\":\"answer_open\",\"index\":%u,\"deadline_ms\":%lu,"
-        "\"answer_timeout_ms\":%lu",
-        (unsigned)mf_tlm_group_index(app),
-        (unsigned long)deadline_ms,
-        (unsigned long)mf_tlm_answer_timeout_ms(app));
+        "\"event\":\"answer_open\",\"index\":%u",
+        (unsigned)mf_tlm_group_index(app));
     if(n <= 0 || (size_t)n >= sizeof(body)) return;
     mf_tlm_event(body);
 }
 
 void mf_tlm_answer(const MorseFlipperApp* app, const char* actual, bool ok) {
-    char group[MORSE_TRAINER_GROUP_CAP * 2U];
-    char answer[MORSE_TRAINER_GROUP_CAP * 2U];
     char body[MF_TLM_LINE_LEN];
     int n;
 
+    UNUSED(actual);
     if(app == NULL) return;
-    mf_tlm_escape(group, sizeof(group), morse_trainer_last_group(&app->trainer));
-    mf_tlm_escape(answer, sizeof(answer), actual);
     n = snprintf(
         body,
         sizeof(body),
-        "\"event\":\"answer_final\",\"index\":%u,\"expected\":\"%s\","
-        "\"actual\":\"%s\",\"ok\":%s,\"score\":%d",
+        "\"event\":\"answer_final\",\"index\":%u,\"ok\":%s",
         (unsigned)mf_tlm_group_index(app),
-        group,
-        answer,
-        ok ? "true" : "false",
-        (int)morse_trainer_last_score(&app->trainer));
+        ok ? "true" : "false");
     if(n <= 0 || (size_t)n >= sizeof(body)) return;
     mf_tlm_event(body);
 }
@@ -373,12 +277,7 @@ void mf_tlm_done(const MorseFlipperApp* app) {
     n = snprintf(
         body,
         sizeof(body),
-        "\"event\":\"session_done\",\"mode\":\"listening\",\"percent\":%u,"
-        "\"groups\":%u,\"failed\":%u,\"aborted\":%s",
-        (unsigned)morse_trainer_session_letter_percent(&app->trainer),
-        (unsigned)morse_trainer_session_total(&app->trainer),
-        (unsigned)morse_trainer_session_fail_count(&app->trainer),
-        morse_trainer_session_aborted(&app->trainer) ? "true" : "false");
+        "\"event\":\"session_done\",\"mode\":\"listening\"");
     if(n <= 0 || (size_t)n >= sizeof(body)) return;
     mf_tlm_event(body);
 }
