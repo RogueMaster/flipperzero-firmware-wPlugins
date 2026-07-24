@@ -5,12 +5,12 @@ App(
     entry_point="asteroids_app_entry",
     stack_size=8 * 1024,
     fap_icon="appicon.png",
-    fap_category="Games",
     fap_icon_assets="assets",
     fap_icon_assets_symbol="asteroids",
+    fap_category="Games",
     fap_author="antirez & SimplyMinimal",
     fap_weburl="https://github.com/SimplyMinimal/FlipperZero-Asteroids",
-    fap_version="1.2",
+    fap_version="1.3",
     fap_description="An implementation of the classic arcade game Asteroids",
     #  [(Modified By SimplyMinimal)](https://github.com/SimplyMinimal/FlipperZero-Asteroids)
 )

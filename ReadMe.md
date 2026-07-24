@@ -47,6 +47,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [DeFlock v0.43 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [Sub-GHz RAW Edit v1.7 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - Updated: [Android KB Bridge v0.5.5 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD) (Version Only)
+- Updated: [Asteroids v1.3 (By antirez)](https://github.com/antirez/flipper-asteroids) [fix the stray lines and stall when objects cross the screen edge (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/242)
 
 <a name="release"></a>
 
@@ -164,7 +165,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [ArduGolf v1.0 (By apfxtech)](https://github.com/apfxtech/FlipperGolf)
 - [Arduventure v2.0 (By apfxtech)](https://github.com/apfxtech/FlipperArduventure)
 - [Arkanoid v1.3 (By gotnull)](https://github.com/gotnull/flipperzero-firmware-wPlugins)
-- [Asteroids v1.2 (By antirez)](https://github.com/antirez/flipper-asteroids)
+- [Asteroids v1.3 (By antirez)](https://github.com/antirez/flipper-asteroids)
 - [Avocado Zero v0.1 (By Endika)](https://github.com/Endika/flipper-avocado-zero)
 - [Banana v0.4 (By DrEverr)](https://github.com/DrEverr/FlipperApps)
 - [Blackjack v0.1 (By RocketGod)](https://github.com/RocketGod-Git/Flipper-Zero-Blackjack)
