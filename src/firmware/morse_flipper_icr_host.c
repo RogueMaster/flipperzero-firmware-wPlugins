@@ -27,7 +27,7 @@ static void morse_flipper_icr_host_clear_locked(MorseFlipperApp* app) {
     app->session_result_tone = false;
     app->session_result_good = false;
     app->session_result_until = 0U;
-    if(audio_changed) morse_flipper_update_sidetone(app);
+    UNUSED(audio_changed);
 }
 
 /* Caller holds plugin_mutex.  Result mirrors are snapshots, not edge events. */
@@ -67,7 +67,7 @@ static void morse_flipper_icr_host_apply_locked(MorseFlipperApp* app, MorseFlipp
     default:
         break;
     }
-    if(audio_changed) morse_flipper_update_sidetone(app);
+    UNUSED(audio_changed);
     if(result.redraw) morse_flipper_view_dirty(app);
 }
 
@@ -85,7 +85,7 @@ static void morse_flipper_icr_host_expire_feedback_locked(
     app->session_result_tone = false;
     app->session_result_good = false;
     app->session_result_until = 0U;
-    if(audio_changed) morse_flipper_update_sidetone(app);
+    UNUSED(audio_changed);
 }
 
 void morse_flipper_icr_host_unload_locked(MorseFlipperApp* app) {
@@ -114,6 +114,7 @@ void morse_flipper_icr_host_unload(MorseFlipperApp* app) {
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     morse_flipper_icr_host_unload_locked(app);
     furi_mutex_release(app->plugin_slot.mutex);
+    morse_flipper_update_sidetone(app);
 }
 
 bool morse_flipper_icr_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
@@ -154,6 +155,7 @@ bool morse_flipper_icr_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
     }
     morse_flipper_icr_host_apply_locked(app, initial);
     furi_mutex_release(app->plugin_slot.mutex);
+    morse_flipper_update_sidetone(app);
     return true;
 
 cleanup:
@@ -161,6 +163,7 @@ cleanup:
     if(api != NULL && state != NULL) api->free(state);
     if(manager != NULL) plugin_manager_free(manager);
     furi_mutex_release(app->plugin_slot.mutex);
+    morse_flipper_update_sidetone(app);
     return false;
 }
 
@@ -176,6 +179,7 @@ bool morse_flipper_icr_host_input(MorseFlipperApp* app, const InputEvent* event,
         if(result.handled) morse_flipper_icr_host_apply_locked(app, result);
     }
     furi_mutex_release(app->plugin_slot.mutex);
+    morse_flipper_update_sidetone(app);
     if(!result.handled) {
         if(event->key == InputKeyBack &&
            (event->type == InputTypeShort || event->type == InputTypeLong)) {
@@ -199,6 +203,7 @@ void morse_flipper_icr_host_tick(MorseFlipperApp* app, uint32_t now_ms) {
         if(result.handled) morse_flipper_icr_host_apply_locked(app, result);
     }
     furi_mutex_release(app->plugin_slot.mutex);
+    morse_flipper_update_sidetone(app);
 }
 
 void morse_flipper_icr_host_draw(MorseFlipperApp* app, Canvas* canvas) {

@@ -126,6 +126,9 @@ void morse_flipper_plugin_runtime_unload_current(MorseFlipperApp* app) {
     else if(app->plugin_slot.owner == MorseFlipperPluginOwnerRxPractice)
         morse_flipper_rx_practice_host_unload_locked(app);
     furi_mutex_release(app->plugin_slot.mutex);
+    morse_flipper_reset_answer_decoder(app);
+    morse_flipper_release_all_notes(app);
+    morse_flipper_update_sidetone(app);
 }
 
 void morse_flipper_plugin_runtime_deinit(MorseFlipperApp* app) {

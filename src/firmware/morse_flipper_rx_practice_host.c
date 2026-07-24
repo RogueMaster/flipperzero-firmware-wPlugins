@@ -30,7 +30,6 @@ static void mf_rx_apply_locked(MorseFlipperApp* app, MfRxPracticeResult result) 
         app->session_result_until = 0U;
     }
     if(result.redraw) morse_flipper_view_dirty(app);
-    morse_flipper_update_sidetone(app);
 }
 
 void morse_flipper_rx_practice_host_unload_locked(MorseFlipperApp* app) {
@@ -115,6 +114,7 @@ bool morse_flipper_rx_practice_host_enter(MorseFlipperApp* app, MfRxPracticeMode
     }
     mf_rx_apply_locked(app, initial);
     furi_mutex_release(app->plugin_slot.mutex);
+    morse_flipper_update_sidetone(app);
     morse_flipper_reset_answer_decoder(app);
     return true;
 fail:
@@ -145,6 +145,10 @@ bool morse_flipper_rx_practice_host_command(MorseFlipperApp* app, MfRxPracticeCo
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     ok = mf_rx_call_locked(app, &result, 0U, NULL, 0U, command, now_ms);
     furi_mutex_release(app->plugin_slot.mutex);
+    morse_flipper_update_sidetone(app);
+    if(ok && result.request_exit)
+        scene_manager_search_and_switch_to_another_scene(
+            app->scene_manager, MorseFlipperSceneMenuTraining);
     return ok;
 }
 
@@ -155,6 +159,7 @@ bool morse_flipper_rx_practice_host_feed(MorseFlipperApp* app, const char* text,
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     ok = mf_rx_call_locked(app, &result, 1U, text, length, MfRxPracticeCommandNone, now_ms);
     furi_mutex_release(app->plugin_slot.mutex);
+    morse_flipper_update_sidetone(app);
     return ok;
 }
 
@@ -164,6 +169,7 @@ void morse_flipper_rx_practice_host_tick(MorseFlipperApp* app, uint32_t now_ms) 
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     mf_rx_call_locked(app, &result, 2U, NULL, 0U, MfRxPracticeCommandNone, now_ms);
     furi_mutex_release(app->plugin_slot.mutex);
+    morse_flipper_update_sidetone(app);
 }
 
 void morse_flipper_rx_practice_host_draw(MorseFlipperApp* app, Canvas* canvas) {
