@@ -90,8 +90,9 @@ bool morse_flipper_plugin_runtime_open_mapped_locked(
         path, api_version, &manager, (const void**)&api);
     if(app->plugin_slot.error != MorseFlipperPluginErrorNone) goto cleanup;
     if(api == NULL || api->magic != api_magic || api->api_version != api_version ||
-       api->struct_size < minimum_api_size || api->alloc == NULL || api->free == NULL ||
-       api->enter == NULL || api->leave == NULL || api->tick == NULL || api->draw == NULL) {
+       api->struct_size != minimum_api_size || api->alloc == NULL || api->free == NULL ||
+       api->enter == NULL || api->leave == NULL || api->input == NULL || api->tick == NULL ||
+       api->draw == NULL) {
         app->plugin_slot.error = MorseFlipperPluginErrorTable;
         goto cleanup;
     }
@@ -110,6 +111,10 @@ bool morse_flipper_plugin_runtime_open_mapped_locked(
 
 cleanup:
     if(entered) api->leave(state);
+    if(owner == MorseFlipperPluginOwnerPassive) {
+        furi_hal_vibro_on(false);
+        morse_flipper_audio_pwm_stop(&app->audio_pwm);
+    }
     if(state != NULL && api != NULL) api->free(state);
     if(manager != NULL) plugin_manager_free(manager);
     return false;
@@ -156,6 +161,10 @@ void morse_flipper_plugin_runtime_detach_locked(
     app->plugin_slot.manager = NULL;
     if(state != NULL) {
         if(api != NULL && api->leave != NULL) api->leave(state);
+        if(owner == MorseFlipperPluginOwnerPassive) {
+            furi_hal_vibro_on(false);
+            morse_flipper_audio_pwm_stop(&app->audio_pwm);
+        }
         if(api != NULL && api->free != NULL) api->free(state);
     }
     if(manager != NULL) plugin_manager_free(manager);
@@ -177,7 +186,6 @@ bool morse_flipper_plugin_runtime_tick_locked(
        app->plugin_slot.state == NULL)
         return false;
     api = app->plugin_slot.api;
-    if(api->tick == NULL) return false;
     *result = api->tick(app->plugin_slot.state, now_ms);
     return true;
 }
@@ -200,8 +208,7 @@ void morse_flipper_plugin_runtime_draw(MorseFlipperApp* app, Canvas* canvas, uin
     if(app->plugin_slot.error == MorseFlipperPluginErrorNone && app->plugin_slot.api != NULL &&
        app->plugin_slot.state != NULL) {
         api = app->plugin_slot.api;
-        if(api->draw != NULL) api->draw(app->plugin_slot.state, canvas, now_ms);
-        else morse_flipper_draw_plugin_unavailable(canvas);
+        api->draw(app->plugin_slot.state, canvas, now_ms);
     } else {
         morse_flipper_draw_plugin_unavailable(canvas);
     }

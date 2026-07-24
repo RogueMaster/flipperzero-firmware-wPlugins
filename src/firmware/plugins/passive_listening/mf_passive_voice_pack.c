@@ -5,6 +5,8 @@
 #ifdef MORSE_FLIPPER_FAP
 #include <flipper_application/flipper_application.h>
 #include <storage/storage.h>
+#else
+#define __DMB() ((void)0)
 #endif
 
 #define MF_PASSIVE_VOICE_HEADER_SIZE 32U
@@ -108,7 +110,11 @@ static size_t mf_passive_voice_decode_to_pipe(
             contiguous,
             &source_used);
         pack->source_pos = (uint16_t)(pack->source_pos + source_used);
-        pipe->write_pos = (uint16_t)((write + produced) & (MF_PASSIVE_PCM_RING_SAMPLES - 1U));
+        if(produced != 0U) {
+            __DMB();
+            pipe->write_pos =
+                (uint16_t)((write + produced) & (MF_PASSIVE_PCM_RING_SAMPLES - 1U));
+        }
         written += produced;
         capacity -= produced;
         if(produced == 0U && source_used == 0U) break;
@@ -294,6 +300,7 @@ size_t mf_passive_voice_pack_refill(MfPassiveVoicePack* pack, MfPassivePcmPipe* 
         if(mf_passive_codec_finished(&pack->codec)) {
             pack->active = false;
             pack->eof = true;
+            __DMB();
             pipe->eof = true;
             break;
         }
@@ -339,7 +346,7 @@ bool mf_passive_voice_pack_eof(const MfPassiveVoicePack* pack) {
 
 bool mf_passive_voice_pack_drained(MfPassiveVoicePack* pack, MfPassivePcmPipe* pipe) {
     if(pack == NULL || pipe == NULL || !pack->eof) return false;
-    if(pipe->read_pos == pipe->write_pos) pipe->drained = true;
+    __DMB();
     return pipe->drained;
 }
 

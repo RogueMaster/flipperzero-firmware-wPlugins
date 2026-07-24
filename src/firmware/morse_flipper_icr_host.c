@@ -42,7 +42,7 @@ bool morse_flipper_icr_host_input(MorseFlipperApp* app, const InputEvent* event,
     if(app->plugin_slot.owner == MorseFlipperPluginOwnerIcr && app->plugin_slot.api != NULL &&
        app->plugin_slot.state != NULL) {
         const MorseFlipperMappedFalApi* api = app->plugin_slot.api;
-        if(api->input != NULL) result = api->input(app->plugin_slot.state, event, now_ms);
+        result = api->input(app->plugin_slot.state, event, now_ms);
         if(result.handled) morse_flipper_icr_host_apply_locked(app, result, now_ms);
     }
     furi_mutex_release(app->plugin_slot.mutex);

@@ -44,6 +44,7 @@ typedef enum {
 typedef enum {
     MorseFlipperAudioPwmSourceTone = 0,
     MorseFlipperAudioPwmSourceVoice,
+    MorseFlipperAudioPwmSourceVoiceTail,
     MorseFlipperAudioPwmSourceSilence,
 } MorseFlipperAudioPwmSource;
 
@@ -60,10 +61,10 @@ typedef struct {
     uint32_t phase_step_q32;
     uint32_t source_phase_q32;
     uint32_t source_step_q32;
-    const MfPassivePcmPipe* voice_pipe;
+    const MfPassivePcmPipe* volatile voice_pipe;
     int16_t voice_previous;
     int16_t voice_next;
-    MorseFlipperAudioPwmSource source;
+    volatile MorseFlipperAudioPwmSource source;
     bool voice_primed;
     uint16_t pwm_period;
     uint16_t pwm_midpoint;

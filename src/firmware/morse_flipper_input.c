@@ -1160,7 +1160,7 @@ bool morse_flipper_active_mode_input(MorseFlipperApp* app, InputEvent* event, ui
            app->plugin_slot.error == MorseFlipperPluginErrorNone && app->plugin_slot.api != NULL &&
            app->plugin_slot.state != NULL) {
             const MorseFlipperMappedFalApi* api = app->plugin_slot.api;
-            if(api->input != NULL) result = api->input(app->plugin_slot.state, event, now_ms);
+            result = api->input(app->plugin_slot.state, event, now_ms);
         }
         furi_mutex_release(app->plugin_slot.mutex);
         if(result.request_exit)

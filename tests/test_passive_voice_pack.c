@@ -130,6 +130,8 @@ static void test_all_codecs(void) {
         CHECK(pipe.write_pos == cases[i].samples);
         CHECK(file.largest_read <= MF_PASSIVE_VOICE_READ_MAX);
         pipe.read_pos = pipe.write_pos;
+        CHECK(!mf_passive_voice_pack_drained(&pack, &pipe));
+        pipe.drained = true;
         CHECK(mf_passive_voice_pack_drained(&pack, &pipe));
         mf_passive_voice_pack_close(&pack);
     }
@@ -150,6 +152,8 @@ static void test_wrap_and_pending(void) {
     CHECK(pipe.samples[0] == 32512 && pipe.samples[1] == -16384);
     CHECK(!mf_passive_voice_pack_begin(&pack, &pipe, 'A'));
     pipe.read_pos = pipe.write_pos;
+    CHECK(!mf_passive_voice_pack_drained(&pack, &pipe));
+    pipe.drained = true;
     CHECK(mf_passive_voice_pack_drained(&pack, &pipe));
     CHECK(mf_passive_voice_pack_begin(&pack, &pipe, 'A'));
     mf_passive_voice_pack_close(&pack);
@@ -181,6 +185,8 @@ static void test_bounded_refill(void) {
     CHECK(mf_passive_voice_pack_eof(&pack));
     CHECK(file.largest_read <= MF_PASSIVE_VOICE_READ_MAX);
     pipe.read_pos = pipe.write_pos;
+    CHECK(!mf_passive_voice_pack_drained(&pack, &pipe));
+    pipe.drained = true;
     CHECK(mf_passive_voice_pack_drained(&pack, &pipe));
     mf_passive_voice_pack_close(&pack);
 }
