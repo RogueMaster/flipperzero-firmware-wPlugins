@@ -9,6 +9,7 @@ bool morse_flipper_content_host_enter(
     MorseFlipperContentMode mode,
     uint8_t help_topic);
 void morse_flipper_content_host_unload(MorseFlipperApp* app);
+void morse_flipper_content_host_unload_locked(MorseFlipperApp* app);
 bool morse_flipper_content_host_input(MorseFlipperApp* app, const InputEvent* event, uint32_t now_ms);
 bool morse_flipper_content_host_tick(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_content_host_draw(MorseFlipperApp* app, Canvas* canvas);

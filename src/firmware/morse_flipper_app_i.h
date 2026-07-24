@@ -141,15 +141,6 @@ typedef enum {
 } MorseFlipperTxgDifficulty;
 
 typedef enum {
-    MorseFlipperContentErrorNone = 0,
-    MorseFlipperContentErrorLoad,
-    MorseFlipperContentErrorHostId,
-    MorseFlipperContentErrorApiVersion,
-    MorseFlipperContentErrorTable,
-    MorseFlipperContentErrorState,
-} MorseFlipperContentError;
-
-typedef enum {
     MorseFlipperScreenHome = 0,
     MorseFlipperScreenRun = 1,
     MorseFlipperScreenTrace = 2,
@@ -379,20 +370,7 @@ typedef struct MorseFlipperApp {
     MorseFlipperProgress* view_progress;
     volatile bool exit_requested;
     bool terminus24_active;
-    FuriMutex* plugin_mutex;
-    PluginManager* content_manager;
-    const MorseFlipperHelpAboutApi* content_api;
-    void* content_state;
-    bool content_active;
-    uint8_t content_mode;
-    uint8_t content_error;
-    PluginManager* icr_manager;
-    const MorseFlipperIcrApi* icr_api;
-    void* icr_state;
-    bool icr_active;
-    bool icr_playback_active;
-    bool icr_prompt_visible;
-    uint8_t icr_prompt_char;
+    MorseFlipperPluginSlot plugin_slot;
 
     /*
      * Hardware and transport mirrors. These track what we last asked the outside
@@ -570,7 +548,6 @@ typedef struct MorseFlipperApp {
     bool rf_monitor_tone;
     bool rf_rx_audio_enabled;
     bool audio_wait_active;
-    bool icr_playback_mark;
     bool ptt_level;
     bool gpio_level;
     bool gpio_gap_flushed;

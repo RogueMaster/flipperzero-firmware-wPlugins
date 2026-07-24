@@ -13,23 +13,31 @@ static bool morse_flipper_content_api_valid(const MorseFlipperHelpAboutApi* api)
            api->tick != NULL && api->draw != NULL;
 }
 
-void morse_flipper_content_host_unload(MorseFlipperApp* app) {
-    if(app == NULL || app->plugin_mutex == NULL) return;
-    furi_mutex_acquire(app->plugin_mutex, FuriWaitForever);
-    const MorseFlipperHelpAboutApi* api = app->content_api;
-    void* state = app->content_state;
-    PluginManager* manager = app->content_manager;
-    app->content_api = NULL;
-    app->content_state = NULL;
-    app->content_manager = NULL;
-    app->content_active = false;
-    app->content_error = MorseFlipperContentErrorNone;
+void morse_flipper_content_host_unload_locked(MorseFlipperApp* app) {
+    const MorseFlipperHelpAboutApi* api;
+    void* state;
+    PluginManager* manager;
+
+    if(app == NULL || app->plugin_slot.owner != MorseFlipperPluginOwnerContent) return;
+    api = app->plugin_slot.api;
+    state = app->plugin_slot.state;
+    manager = app->plugin_slot.manager;
+    app->plugin_slot.api = NULL;
+    app->plugin_slot.state = NULL;
+    app->plugin_slot.manager = NULL;
     if(api != NULL && state != NULL) {
         api->leave(state);
         api->free(state);
     }
     if(manager != NULL) plugin_manager_free(manager);
-    furi_mutex_release(app->plugin_mutex);
+    morse_flipper_plugin_runtime_release_claim_locked(app, MorseFlipperPluginOwnerContent);
+}
+
+void morse_flipper_content_host_unload(MorseFlipperApp* app) {
+    if(app == NULL || app->plugin_slot.mutex == NULL) return;
+    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
+    morse_flipper_content_host_unload_locked(app);
+    furi_mutex_release(app->plugin_slot.mutex);
 }
 
 bool morse_flipper_content_host_enter(
@@ -39,40 +47,29 @@ bool morse_flipper_content_host_enter(
     PluginManager* manager = NULL;
     const MorseFlipperHelpAboutApi* api = NULL;
     void* state = NULL;
-    PluginManagerError error;
     MorseFlipperContentEnterArgs args;
     bool entered = false;
 
-    if(app == NULL || app->plugin_mutex == NULL) return false;
-    furi_mutex_acquire(app->plugin_mutex, FuriWaitForever);
-    if(app->icr_active || app->content_active || app->content_manager != NULL || app->content_api != NULL ||
-       app->content_state != NULL) {
-        furi_mutex_release(app->plugin_mutex);
+    if(app == NULL || app->plugin_slot.mutex == NULL) return false;
+    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
+    if(!morse_flipper_plugin_runtime_claim_locked(app, MorseFlipperPluginOwnerContent, mode)) {
+        furi_mutex_release(app->plugin_slot.mutex);
         return false;
     }
-    app->content_mode = mode;
-    app->content_error = MorseFlipperContentErrorLoad;
-    manager = plugin_manager_alloc("morse_flipper", MORSE_FLIPPER_HELP_ABOUT_API_VERSION, NULL);
-    if(manager == NULL) {
-        app->content_error = MorseFlipperContentErrorState;
+    app->plugin_slot.error = morse_flipper_plugin_runtime_load_locked(
+        MORSE_FLIPPER_CONTENT_PLUGIN_PATH,
+        MORSE_FLIPPER_HELP_ABOUT_API_VERSION,
+        &manager,
+        (const void**)&api);
+    if(app->plugin_slot.error != MorseFlipperPluginErrorNone)
         goto cleanup;
-    }
-    error = plugin_manager_load_single(manager, MORSE_FLIPPER_CONTENT_PLUGIN_PATH);
-    if(error != PluginManagerErrorNone || plugin_manager_get_count(manager) != 1U) {
-        if(error == PluginManagerErrorApplicationIdMismatch)
-            app->content_error = MorseFlipperContentErrorHostId;
-        else if(error == PluginManagerErrorAPIVersionMismatch)
-            app->content_error = MorseFlipperContentErrorApiVersion;
-        goto cleanup;
-    }
-    api = plugin_manager_get_ep(manager, 0U);
     if(!morse_flipper_content_api_valid(api)) {
-        app->content_error = MorseFlipperContentErrorTable;
+        app->plugin_slot.error = MorseFlipperPluginErrorTable;
         goto cleanup;
     }
     state = api->alloc();
     if(state == NULL) {
-        app->content_error = MorseFlipperContentErrorState;
+        app->plugin_slot.error = MorseFlipperPluginErrorState;
         goto cleanup;
     }
     args = (MorseFlipperContentEnterArgs){
@@ -85,23 +82,22 @@ bool morse_flipper_content_host_enter(
         .build_host = APP_BUILD_HOST,
     };
     if(!api->enter(state, &args)) {
-        app->content_error = MorseFlipperContentErrorState;
+        app->plugin_slot.error = MorseFlipperPluginErrorState;
         goto cleanup;
     }
     entered = true;
-    app->content_manager = manager;
-    app->content_api = api;
-    app->content_state = state;
-    app->content_active = true;
-    app->content_error = MorseFlipperContentErrorNone;
-    furi_mutex_release(app->plugin_mutex);
-    return true;
+    if(morse_flipper_plugin_runtime_publish_locked(
+           app, MorseFlipperPluginOwnerContent, manager, api, state)) {
+        furi_mutex_release(app->plugin_slot.mutex);
+        return true;
+    }
+    app->plugin_slot.error = MorseFlipperPluginErrorState;
 
 cleanup:
     if(entered && api != NULL && state != NULL) api->leave(state);
     if(api != NULL && state != NULL) api->free(state);
     if(manager != NULL) plugin_manager_free(manager);
-    furi_mutex_release(app->plugin_mutex);
+    furi_mutex_release(app->plugin_slot.mutex);
     return false;
 }
 
@@ -135,27 +131,31 @@ bool morse_flipper_content_host_input(MorseFlipperApp* app, const InputEvent* ev
     MorseFlipperContentResult result = {0};
     MorseFlipperContentAction action;
 
-    if(app == NULL || event == NULL || app->plugin_mutex == NULL) return false;
-    furi_mutex_acquire(app->plugin_mutex, FuriWaitForever);
-    if(app->content_active && app->content_api != NULL && app->content_state != NULL)
-        result = app->content_api->input(app->content_state, event, now_ms);
+    if(app == NULL || event == NULL || app->plugin_slot.mutex == NULL) return false;
+    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
+    if(app->plugin_slot.owner == MorseFlipperPluginOwnerContent && app->plugin_slot.api != NULL &&
+       app->plugin_slot.state != NULL)
+        result = ((const MorseFlipperHelpAboutApi*)app->plugin_slot.api)
+                     ->input(app->plugin_slot.state, event, now_ms);
     else {
-        furi_mutex_release(app->plugin_mutex);
+        furi_mutex_release(app->plugin_slot.mutex);
         return false;
     }
     action = morse_flipper_content_host_apply_locked(app, result);
-    furi_mutex_release(app->plugin_mutex);
+    furi_mutex_release(app->plugin_slot.mutex);
     morse_flipper_content_host_apply_action(app, action);
     return true;
 }
 
 bool morse_flipper_content_host_tick(MorseFlipperApp* app, uint32_t now_ms) {
     bool redraw = false;
-    if(app == NULL || app->plugin_mutex == NULL) return false;
-    furi_mutex_acquire(app->plugin_mutex, FuriWaitForever);
-    if(app->content_active && app->content_api != NULL && app->content_state != NULL)
-        redraw = app->content_api->tick(app->content_state, now_ms);
-    furi_mutex_release(app->plugin_mutex);
+    if(app == NULL || app->plugin_slot.mutex == NULL) return false;
+    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
+    if(app->plugin_slot.owner == MorseFlipperPluginOwnerContent && app->plugin_slot.api != NULL &&
+       app->plugin_slot.state != NULL)
+        redraw = ((const MorseFlipperHelpAboutApi*)app->plugin_slot.api)
+                     ->tick(app->plugin_slot.state, now_ms);
+    furi_mutex_release(app->plugin_slot.mutex);
     if(redraw) morse_flipper_view_dirty(app);
     return redraw;
 }
@@ -164,18 +164,18 @@ void morse_flipper_content_host_draw_unavailable(MorseFlipperApp* app, Canvas* c
     const char* title = "Help unavailable";
     const char* detail = "Plugin missing/corrupt";
 
-    if(app->content_mode == MorseFlipperContentModeOnboarding)
+    if(app->plugin_slot.mode == MorseFlipperContentModeOnboarding)
         title = "Setup unavailable";
-    else if(app->content_mode == MorseFlipperContentModeAbout)
+    else if(app->plugin_slot.mode == MorseFlipperContentModeAbout)
         title = "About unavailable";
 
-    if(app->content_error == MorseFlipperContentErrorHostId)
+    if(app->plugin_slot.error == MorseFlipperPluginErrorHostId)
         detail = "Plugin host mismatch";
-    else if(app->content_error == MorseFlipperContentErrorApiVersion)
+    else if(app->plugin_slot.error == MorseFlipperPluginErrorApiVersion)
         detail = "Plugin API mismatch";
-    else if(app->content_error == MorseFlipperContentErrorTable)
+    else if(app->plugin_slot.error == MorseFlipperPluginErrorTable)
         detail = "Plugin entry invalid";
-    else if(app->content_error == MorseFlipperContentErrorState)
+    else if(app->plugin_slot.error == MorseFlipperPluginErrorState)
         detail = "Not enough memory";
 
     canvas_set_font(canvas, FontPrimary);
@@ -186,13 +186,14 @@ void morse_flipper_content_host_draw_unavailable(MorseFlipperApp* app, Canvas* c
 }
 
 void morse_flipper_content_host_draw(MorseFlipperApp* app, Canvas* canvas) {
-    if(app == NULL || canvas == NULL || app->plugin_mutex == NULL) return;
-    furi_mutex_acquire(app->plugin_mutex, FuriWaitForever);
-    if(app->content_active && app->content_api != NULL && app->content_state != NULL)
-        app->content_api->draw(app->content_state, canvas);
+    if(app == NULL || canvas == NULL || app->plugin_slot.mutex == NULL) return;
+    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
+    if(app->plugin_slot.owner == MorseFlipperPluginOwnerContent && app->plugin_slot.api != NULL &&
+       app->plugin_slot.state != NULL)
+        ((const MorseFlipperHelpAboutApi*)app->plugin_slot.api)->draw(app->plugin_slot.state, canvas);
     else
         morse_flipper_content_host_draw_unavailable(app, canvas);
-    furi_mutex_release(app->plugin_mutex);
+    furi_mutex_release(app->plugin_slot.mutex);
 }
 
 bool morse_flipper_onboarding_seen(void) {
