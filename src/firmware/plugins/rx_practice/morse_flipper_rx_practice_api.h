@@ -5,7 +5,7 @@
 
 #include "morse_flipper_rx_practice_types.h"
 
-#define MORSE_FLIPPER_RX_PRACTICE_API_VERSION 4U
+#define MORSE_FLIPPER_RX_PRACTICE_API_VERSION 5U
 #define MORSE_FLIPPER_RX_PRACTICE_API_MAGIC 0x4D465258UL
 
 typedef struct {

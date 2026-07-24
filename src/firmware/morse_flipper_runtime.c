@@ -400,6 +400,10 @@ static void morse_flipper_sync_gpio_inputs(MorseFlipperApp* app, uint32_t now_ms
     bool dah_active = false;
     bool rx_answer_live = false;
 
+    if(app->screen == MorseFlipperScreenPassive) {
+        morse_flipper_straight_filter_reset(&app->straight_filter);
+        return;
+    }
     /* Probe and training modes can temporarily veto physical GPIO, even if a pin is down. */
     if(app->input_source == MorseFlipperInputSourceStraight) {
         straight_active =
@@ -594,6 +598,20 @@ void morse_flipper_active_mode_tick(MorseFlipperApp* app, uint32_t now_ms) {
         break;
     case MorseFlipperScreenRxPractice:
         break;
+    case MorseFlipperScreenPassive: {
+        MorseFlipperMappedFalResult result = {0};
+        furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
+        if(morse_flipper_plugin_runtime_tick_locked(
+               app, MorseFlipperPluginOwnerPassive, now_ms, &result)) {
+            morse_flipper_plugin_runtime_apply_result_locked(app, result, now_ms);
+            if(result.redraw) morse_flipper_view_dirty(app);
+        }
+        furi_mutex_release(app->plugin_slot.mutex);
+        if(result.request_exit)
+            scene_manager_search_and_switch_to_another_scene(
+                app->scene_manager, MorseFlipperSceneMenuTraining);
+        break;
+    }
     case MorseFlipperScreenTxGroups:
     case MorseFlipperScreenTxGroupsResult:
         morse_flipper_tick_tx_groups(app, now_ms);

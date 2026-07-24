@@ -14,6 +14,7 @@ typedef enum {
     MorseFlipperPluginOwnerContent,
     MorseFlipperPluginOwnerIcr,
     MorseFlipperPluginOwnerRxPractice,
+    MorseFlipperPluginOwnerPassive,
 } MorseFlipperPluginOwner;
 
 typedef enum {
@@ -62,6 +63,16 @@ MorseFlipperPluginError morse_flipper_plugin_runtime_load_locked(
     uint32_t api_version,
     PluginManager** manager_out,
     const void** entry_out);
+bool morse_flipper_plugin_runtime_open_mapped_locked(
+    MorseFlipperApp* app,
+    MorseFlipperPluginOwner owner,
+    uint8_t mode,
+    const char* path,
+    uint32_t api_version,
+    uint32_t api_magic,
+    uint32_t minimum_api_size,
+    const void* enter_args,
+    MorseFlipperMappedFalResult* initial);
 bool morse_flipper_plugin_runtime_publish_locked(
     MorseFlipperApp* app,
     MorseFlipperPluginOwner owner,

@@ -29,7 +29,7 @@ static bool morse_flipper_content_input(MorseFlipperApp* app, const InputEvent* 
                 morse_flipper_onboarding_finish(app);
             else
                 morse_flipper_scene_back(app);
-            morse_flipper_content_host_unload(app);
+            morse_flipper_plugin_runtime_unload_current(app);
         }
     }
     return true;
@@ -1153,6 +1153,21 @@ bool morse_flipper_active_mode_input(MorseFlipperApp* app, InputEvent* event, ui
         return morse_flipper_icr_host_input(app, event, now_ms);
     case MorseFlipperScreenRxPractice:
         return morse_flipper_rx_practice_host_input(app, event, now_ms);
+    case MorseFlipperScreenPassive: {
+        MorseFlipperMappedFalResult result = {0};
+        furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
+        if(app->plugin_slot.owner == MorseFlipperPluginOwnerPassive &&
+           app->plugin_slot.error == MorseFlipperPluginErrorNone && app->plugin_slot.api != NULL &&
+           app->plugin_slot.state != NULL) {
+            const MorseFlipperMappedFalApi* api = app->plugin_slot.api;
+            if(api->input != NULL) result = api->input(app->plugin_slot.state, event, now_ms);
+        }
+        furi_mutex_release(app->plugin_slot.mutex);
+        if(result.request_exit)
+            scene_manager_search_and_switch_to_another_scene(
+                app->scene_manager, MorseFlipperSceneMenuTraining);
+        return true;
+    }
     case MorseFlipperScreenRfFreq:
         return morse_flipper_rf_freq_input(app, event);
     case MorseFlipperScreenRfRx:

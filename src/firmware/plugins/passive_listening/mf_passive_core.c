@@ -29,8 +29,7 @@ static void mf_passive_reset_pipe(MfPassivePcmPipe* pipe) {
 }
 
 static bool mf_passive_silence(MfPassiveState* state) {
-    if(state == NULL || state->services == NULL || state->services->set_silence == NULL) return false;
-    if(!state->services->set_silence(state->services->context)) return false;
+    if(!mf_passive_host_command(state ? state->services : NULL, MfPassiveHostCommandSilence, 0U)) return false;
     mf_passive_reset_pipe(&state->pipe);
     return true;
 }
@@ -39,13 +38,11 @@ static void mf_passive_fail(MfPassiveState* state) {
     if(state == NULL) return;
     state->error = 1U;
     state->phase = MfPassivePhaseError;
-    if(state->services != NULL) {
-        if(state->services->set_silence != NULL) state->services->set_silence(state->services->context);
-        if(state->services->set_vibration != NULL) state->services->set_vibration(state->services->context, false);
-    }
+    mf_passive_host_command(state->services, MfPassiveHostCommandSilence, 0U);
+    mf_passive_host_command(state->services, MfPassiveHostCommandVibration, 0U);
     mf_passive_reset_pipe(&state->pipe);
-    if(state->audio_claimed && state->services != NULL && state->services->release != NULL) {
-        state->services->release(state->services->context);
+    if(state->audio_claimed) {
+        mf_passive_host_command(state->services, MfPassiveHostCommandRelease, 0U);
         state->audio_claimed = false;
     }
     mf_passive_voice_pack_close(&state->pack);
@@ -54,7 +51,7 @@ static void mf_passive_fail(MfPassiveState* state) {
 static bool mf_passive_start_mark(MfPassiveState* state, uint32_t now) {
     uint8_t symbol = cw(state->callsign.text[state->char_index]);
     if(symbol == CW_INVALID || state->mark_index >= cw_symbol_count(symbol) ||
-       !state->services->set_tone(state->services->context, state->tone_hz))
+       !mf_passive_host_command(state->services, MfPassiveHostCommandTone, state->tone_hz))
         return false;
     state->cw_mark = true;
     state->next_at = now + cw_symbol_units(symbol, state->mark_index) * state->dit_ms;
@@ -95,7 +92,9 @@ static bool mf_passive_prime_token(MfPassiveState* state) {
 static bool mf_passive_start_voice(MfPassiveState* state) {
     if(!mf_passive_prime_token(state)) return false;
     if(!mf_passive_voice_pack_primed(&state->pack, &state->pipe)) return true;
-    if(!state->services->set_voice(state->services->context, state->pack.sample_rate_hz)) return false;
+    if(!mf_passive_host_command(
+           state->services, MfPassiveHostCommandVoice, state->pack.sample_rate_hz))
+        return false;
     state->revealed_count = (uint8_t)(state->voice_index + 1U);
     state->phase = MfPassivePhaseVoice;
     return true;
@@ -104,9 +103,7 @@ static bool mf_passive_start_voice(MfPassiveState* state) {
 bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfPassiveResult* result) {
     if(state == NULL || result == NULL || args == NULL || args->struct_size != sizeof(*args) ||
        args->services == NULL || args->services->struct_size != sizeof(MfPassiveHostServices) ||
-       args->services->claim == NULL || args->services->set_silence == NULL ||
-       args->services->set_tone == NULL || args->services->set_voice == NULL ||
-       args->services->set_vibration == NULL || args->services->release == NULL || args->dit_ms == 0U ||
+       args->services->command == NULL || args->dit_ms == 0U ||
        args->char_gap_ms == 0U || args->tone_hz == 0U || args->output_target > MfPassiveOutputP2)
         return false;
     memset(state, 0, sizeof(*state));
@@ -117,7 +114,8 @@ bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfP
     mf_rx_rng_init(&state->rng, args->rng_seed);
     mf_callsign_gen_init(&state->callsign_gen);
     if(!mf_passive_voice_pack_open_asset(&state->pack) || !mf_passive_next_call(state) ||
-       !state->services->claim(state->services->context, args->output_target, args->volume_pct, &state->pipe)) {
+       !mf_passive_host_claim(
+           state->services, args->output_target, args->tone_hz, args->volume_pct, &state->pipe)) {
         mf_passive_fail(state);
         *result = mf_passive_result(state, true);
         return false;
@@ -131,13 +129,10 @@ bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfP
 
 void mf_passive_leave(MfPassiveState* state) {
     if(state == NULL) return;
-    if(state->services != NULL) {
-        if(state->services->set_silence != NULL) state->services->set_silence(state->services->context);
-        if(state->services->set_vibration != NULL) state->services->set_vibration(state->services->context, false);
-    }
+    mf_passive_host_command(state->services, MfPassiveHostCommandSilence, 0U);
+    mf_passive_host_command(state->services, MfPassiveHostCommandVibration, 0U);
     mf_passive_reset_pipe(&state->pipe);
-    if(state->audio_claimed && state->services != NULL && state->services->release != NULL)
-        state->services->release(state->services->context);
+    if(state->audio_claimed) mf_passive_host_command(state->services, MfPassiveHostCommandRelease, 0U);
     mf_passive_voice_pack_close(&state->pack);
     memset(state, 0, sizeof(*state));
 }
@@ -226,10 +221,10 @@ MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
         return mf_passive_result(state, redraw);
     }
     if(state->phase == MfPassivePhasePostVoice && mf_passive_reached(now_ms, state->next_at)) {
-        if(!state->services->set_tone(state->services->context, state->tone_hz)) {
+        if(!mf_passive_host_command(state->services, MfPassiveHostCommandTone, state->tone_hz)) {
             mf_passive_fail(state);
         } else {
-            state->services->set_vibration(state->services->context, true);
+            mf_passive_host_command(state->services, MfPassiveHostCommandVibration, 1U);
             state->phase = MfPassivePhaseCue;
             state->next_at = now_ms + MF_PASSIVE_CUE_MS;
         }
@@ -239,7 +234,7 @@ MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
         if(!mf_passive_silence(state)) {
             mf_passive_fail(state);
         } else {
-            state->services->set_vibration(state->services->context, false);
+            mf_passive_host_command(state->services, MfPassiveHostCommandVibration, 0U);
             state->phase = MfPassivePhasePostCue;
             state->next_at = now_ms + MF_PASSIVE_POST_CUE_MS;
         }

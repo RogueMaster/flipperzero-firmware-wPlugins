@@ -8,7 +8,6 @@ bool morse_flipper_content_host_enter(
     MorseFlipperApp* app,
     MorseFlipperContentMode mode,
     uint8_t help_topic);
-void morse_flipper_content_host_unload(MorseFlipperApp* app);
 bool morse_flipper_content_host_input(MorseFlipperApp* app, const InputEvent* event, uint32_t now_ms);
 bool morse_flipper_content_host_tick(MorseFlipperApp* app, uint32_t now_ms);
 bool morse_flipper_onboarding_seen(void);

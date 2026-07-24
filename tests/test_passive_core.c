@@ -143,14 +143,34 @@ static void fake_release(void* context) {
     fake->claimed_pipe = NULL;
 }
 
+static bool fake_command(
+    void* context,
+    MfPassiveHostCommand command,
+    uint32_t value,
+    MfPassivePcmPipe* pipe) {
+    switch(command) {
+    case MfPassiveHostCommandClaim:
+        return fake_claim(
+            context,
+            (MfPassiveOutputTarget)(uint8_t)(value >> 8U),
+            (uint8_t)value,
+            pipe);
+    case MfPassiveHostCommandSilence: return fake_silence(context);
+    case MfPassiveHostCommandTone: return fake_tone(context, (uint16_t)value);
+    case MfPassiveHostCommandVoice: return fake_voice(context, value);
+    case MfPassiveHostCommandVibration:
+        fake_vibration(context, value != 0U);
+        return true;
+    case MfPassiveHostCommandRelease:
+        fake_release(context);
+        return true;
+    default: return false;
+    }
+}
+
 static MfPassiveHostServices services = {
     .struct_size = sizeof(MfPassiveHostServices),
-    .claim = fake_claim,
-    .set_silence = fake_silence,
-    .set_tone = fake_tone,
-    .set_voice = fake_voice,
-    .set_vibration = fake_vibration,
-    .release = fake_release,
+    .command = fake_command,
 };
 
 static void setup(MfPassiveState* state, FakeServices* fake, MemoryFile* file) {
@@ -169,7 +189,7 @@ static void setup(MfPassiveState* state, FakeServices* fake, MemoryFile* file) {
     memcpy(state->callsign.text, "A1A1", 5U);
     state->callsign.text_len = 4U;
     CHECK(mf_passive_voice_pack_open_io(&state->pack, &io));
-    CHECK(state->services->claim(state->services->context, MfPassiveOutputInternal, 50U, &state->pipe));
+    CHECK(mf_passive_host_claim(state->services, MfPassiveOutputInternal, 700U, 50U, &state->pipe));
     state->audio_claimed = true;
     state->phase = MfPassivePhaseCw;
     state->next_at = 0U;

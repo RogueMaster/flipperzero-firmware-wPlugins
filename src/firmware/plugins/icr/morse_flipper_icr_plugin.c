@@ -10,6 +10,13 @@ MorseFlipperIcrResult morse_flipper_icr_runtime_input(void* state, const InputEv
 MorseFlipperIcrResult morse_flipper_icr_runtime_tick(void* state, uint32_t now_ms);
 void morse_flipper_icr_runtime_draw(void* state, Canvas* canvas, uint32_t now_ms);
 
+static bool morse_flipper_icr_enter_api(
+    void* state,
+    const void* args,
+    MorseFlipperMappedFalResult* initial) {
+    return morse_flipper_icr_runtime_enter(state, args, initial);
+}
+
 static const MorseFlipperIcrApi morse_flipper_icr_api = {
     .mapped = {
         .magic = MORSE_FLIPPER_ICR_API_MAGIC,
@@ -17,7 +24,9 @@ static const MorseFlipperIcrApi morse_flipper_icr_api = {
         .struct_size = sizeof(MorseFlipperIcrApi),
         .alloc = morse_flipper_icr_runtime_alloc,
         .free = morse_flipper_icr_runtime_free,
+        .enter = morse_flipper_icr_enter_api,
         .leave = morse_flipper_icr_runtime_leave,
+        .input = morse_flipper_icr_runtime_input,
         .tick = morse_flipper_icr_runtime_tick,
         .draw = morse_flipper_icr_runtime_draw,
     },

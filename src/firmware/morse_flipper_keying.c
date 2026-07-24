@@ -143,7 +143,7 @@ static void morse_flipper_tone_start(MorseFlipperApp* app) {
 void morse_flipper_update_sidetone(MorseFlipperApp* app) {
     bool use_pwm;
     bool use_vibro;
-    bool force_buzzer = morse_flipper_ham_force_buzzer(app);
+    bool force_buzzer;
     bool want_tx_tone = morse_flipper_any_active_notes(app) || (app->preview_ticks > 0U);
     bool want_aux_tone = app->trainer_playback_mark || app->straight_playback_mark ||
                          morse_flipper_plugin_playback_mark(app) || app->session_result_tone ||
@@ -152,6 +152,8 @@ void morse_flipper_update_sidetone(MorseFlipperApp* app) {
     bool want_speaker;
     bool want_vibro;
 
+    if(app != NULL && app->screen == MorseFlipperScreenPassive) return;
+    force_buzzer = morse_flipper_ham_force_buzzer(app);
     /*
      * One gate fans out to speaker, PWM, vibro, PTT, and signal LED.
      * Aux tones may sound without keying RF; ham break-in is the awkward exception.

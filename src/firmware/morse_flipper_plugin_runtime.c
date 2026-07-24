@@ -69,6 +69,52 @@ MorseFlipperPluginError morse_flipper_plugin_runtime_load_locked(
     return MorseFlipperPluginErrorNone;
 }
 
+bool morse_flipper_plugin_runtime_open_mapped_locked(
+    MorseFlipperApp* app,
+    MorseFlipperPluginOwner owner,
+    uint8_t mode,
+    const char* path,
+    uint32_t api_version,
+    uint32_t api_magic,
+    uint32_t minimum_api_size,
+    const void* enter_args,
+    MorseFlipperMappedFalResult* initial) {
+    PluginManager* manager = NULL;
+    const MorseFlipperMappedFalApi* api = NULL;
+    void* state = NULL;
+    bool entered = false;
+
+    if(initial != NULL) *initial = (MorseFlipperMappedFalResult){0};
+    if(!morse_flipper_plugin_runtime_claim_locked(app, owner, mode)) return false;
+    app->plugin_slot.error = morse_flipper_plugin_runtime_load_locked(
+        path, api_version, &manager, (const void**)&api);
+    if(app->plugin_slot.error != MorseFlipperPluginErrorNone) goto cleanup;
+    if(api == NULL || api->magic != api_magic || api->api_version != api_version ||
+       api->struct_size < minimum_api_size || api->alloc == NULL || api->free == NULL ||
+       api->enter == NULL || api->leave == NULL || api->tick == NULL || api->draw == NULL) {
+        app->plugin_slot.error = MorseFlipperPluginErrorTable;
+        goto cleanup;
+    }
+    state = api->alloc();
+    if(state == NULL) {
+        app->plugin_slot.error = MorseFlipperPluginErrorState;
+        goto cleanup;
+    }
+    if(!api->enter(state, enter_args, initial)) {
+        app->plugin_slot.error = MorseFlipperPluginErrorState;
+        goto cleanup;
+    }
+    entered = true;
+    if(morse_flipper_plugin_runtime_publish_locked(app, owner, manager, api, state)) return true;
+    app->plugin_slot.error = MorseFlipperPluginErrorState;
+
+cleanup:
+    if(entered) api->leave(state);
+    if(state != NULL && api != NULL) api->free(state);
+    if(manager != NULL) plugin_manager_free(manager);
+    return false;
+}
+
 bool morse_flipper_plugin_runtime_publish_locked(
     MorseFlipperApp* app,
     MorseFlipperPluginOwner owner,

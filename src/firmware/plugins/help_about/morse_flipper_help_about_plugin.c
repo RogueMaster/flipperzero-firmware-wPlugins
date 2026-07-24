@@ -221,6 +221,30 @@ void morse_flipper_help_content_draw(MorseFlipperHelpAboutState* state, Canvas* 
 static bool morse_flipper_help_about_enter(void* state, const MorseFlipperContentEnterArgs* args) {
     return morse_flipper_help_content_enter(state, args);
 }
+static MorseFlipperContentResult morse_flipper_help_about_input(
+    void* state,
+    const InputEvent* event,
+    uint32_t now_ms);
+static bool morse_flipper_help_about_enter_api(
+    void* state,
+    const void* args,
+    MorseFlipperMappedFalResult* initial) {
+    bool entered = morse_flipper_help_about_enter(state, args);
+    if(initial != NULL)
+        *initial = (MorseFlipperMappedFalResult){.handled = entered, .redraw = entered};
+    return entered;
+}
+static MorseFlipperMappedFalResult morse_flipper_help_about_input_api(
+    void* state,
+    const InputEvent* event,
+    uint32_t now_ms) {
+    MorseFlipperContentResult result = morse_flipper_help_about_input(state, event, now_ms);
+    return (MorseFlipperMappedFalResult){
+        .handled = result.handled,
+        .redraw = result.redraw,
+        .request_exit = result.request_exit,
+    };
+}
 static void morse_flipper_help_about_leave(void* state) { UNUSED(state); }
 static MorseFlipperContentResult morse_flipper_help_about_input(void* state, const InputEvent* event, uint32_t now_ms) {
     return morse_flipper_help_content_input(state, event, now_ms);
@@ -243,7 +267,9 @@ static const MorseFlipperHelpAboutApi morse_flipper_help_about_api = {
         .struct_size = sizeof(MorseFlipperHelpAboutApi),
         .alloc = morse_flipper_help_about_alloc,
         .free = morse_flipper_help_about_free,
+        .enter = morse_flipper_help_about_enter_api,
         .leave = morse_flipper_help_about_leave,
+        .input = morse_flipper_help_about_input_api,
         .tick = morse_flipper_help_about_tick,
         .draw = morse_flipper_help_about_draw,
     },

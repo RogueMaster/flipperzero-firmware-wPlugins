@@ -103,7 +103,7 @@ void morse_flipper_draw(Canvas* canvas, void* ctx) {
         return;
     }
 
-    if(app->screen == MorseFlipperScreenIcr) {
+    if(app->screen == MorseFlipperScreenIcr || app->screen == MorseFlipperScreenPassive) {
         morse_flipper_plugin_runtime_draw(app, canvas, furi_get_tick());
         return;
     }

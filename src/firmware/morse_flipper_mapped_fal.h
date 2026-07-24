@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <input/input.h>
+
 typedef struct Canvas Canvas;
 
 /* Every embedded FAL exposes these mapped operations before feature-specific calls. */
@@ -23,7 +25,9 @@ typedef struct {
     uint32_t struct_size;
     void* (*alloc)(void);
     void (*free)(void* state);
+    bool (*enter)(void* state, const void* args, MorseFlipperMappedFalResult* initial);
     void (*leave)(void* state);
+    MorseFlipperMappedFalResult (*input)(void* state, const InputEvent* event, uint32_t now_ms);
     MorseFlipperMappedFalResult (*tick)(void* state, uint32_t now_ms);
     void (*draw)(void* state, Canvas* canvas, uint32_t now_ms);
 } MorseFlipperMappedFalApi;

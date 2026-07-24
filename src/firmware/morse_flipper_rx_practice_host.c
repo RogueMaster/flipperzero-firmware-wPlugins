@@ -4,15 +4,6 @@
 #define MF_RX_START_EXTERNAL \
     (MF_RX_START_STRAIGHT | MF_RX_START_DIT | MF_RX_START_DAH)
 
-static bool mf_rx_api_valid(const MfRxPracticeApi* api) {
-    return api != NULL && api->mapped.magic == MORSE_FLIPPER_RX_PRACTICE_API_MAGIC &&
-           api->mapped.api_version == MORSE_FLIPPER_RX_PRACTICE_API_VERSION &&
-           api->mapped.struct_size >= sizeof(*api) && api->mapped.alloc != NULL && api->mapped.free != NULL &&
-           api->enter != NULL && api->mapped.leave != NULL && api->input != NULL &&
-           api->command != NULL &&
-           api->feed_text != NULL && api->mapped.tick != NULL && api->mapped.draw != NULL;
-}
-
 static void mf_rx_apply_locked(
     MorseFlipperApp* app,
     MfRxPracticeResult result,
@@ -23,36 +14,11 @@ static void mf_rx_apply_locked(
 }
 
 bool morse_flipper_rx_practice_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
-    PluginManager* manager = NULL;
-    const MfRxPracticeApi* api = NULL;
-    void* state = NULL;
     MfRxPracticeResult initial = {0};
     MfRxPracticeEnterArgs args;
-    bool entered = false;
-    bool published = false;
+    bool entered;
     if(app == NULL || app->plugin_slot.mutex == NULL) return false;
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
-    if(!morse_flipper_plugin_runtime_claim_locked(
-           app, MorseFlipperPluginOwnerRxPractice, 0U))
-        goto done;
-    app->session_result_tone = false;
-    app->session_result_good = false;
-    app->session_result_until = 0U;
-    app->plugin_slot.error = morse_flipper_plugin_runtime_load_locked(
-        MORSE_FLIPPER_RX_PRACTICE_PLUGIN_PATH,
-        MORSE_FLIPPER_RX_PRACTICE_API_VERSION,
-        &manager,
-        (const void**)&api);
-    if(app->plugin_slot.error != MorseFlipperPluginErrorNone) goto done;
-    if(!mf_rx_api_valid(api)) {
-        app->plugin_slot.error = MorseFlipperPluginErrorTable;
-        goto done;
-    }
-    state = api->mapped.alloc();
-    if(state == NULL) {
-        app->plugin_slot.error = MorseFlipperPluginErrorState;
-        goto done;
-    }
     args = (MfRxPracticeEnterArgs){
         .struct_size = sizeof(args),
         .now_ms = now_ms,
@@ -71,31 +37,28 @@ bool morse_flipper_rx_practice_host_enter(MorseFlipperApp* app, uint32_t now_ms)
         .physical_key_can_start =
             app->input_source != MorseFlipperInputSourceButtons,
     };
-    if(!api->enter(state, &args, &initial)) {
-        app->plugin_slot.error = MorseFlipperPluginErrorState;
-        goto done;
-    }
-    entered = true;
-    if(!morse_flipper_plugin_runtime_publish_locked(
-           app, MorseFlipperPluginOwnerRxPractice, manager, api, state)) {
-        app->plugin_slot.error = MorseFlipperPluginErrorState;
-        goto done;
-    }
-    published = true;
-    mf_rx_apply_locked(app, initial, now_ms);
-
-done:
-    if(!published) {
-        if(entered) api->mapped.leave(state);
-        if(state != NULL) api->mapped.free(state);
-        if(manager != NULL) plugin_manager_free(manager);
+    entered = morse_flipper_plugin_runtime_open_mapped_locked(
+        app,
+        MorseFlipperPluginOwnerRxPractice,
+        0U,
+        MORSE_FLIPPER_RX_PRACTICE_PLUGIN_PATH,
+        MORSE_FLIPPER_RX_PRACTICE_API_VERSION,
+        MORSE_FLIPPER_RX_PRACTICE_API_MAGIC,
+        sizeof(MfRxPracticeApi),
+        &args,
+        &initial);
+    if(entered) {
+        app->session_result_tone = false;
+        app->session_result_good = false;
+        app->session_result_until = 0U;
+        mf_rx_apply_locked(app, initial, now_ms);
     }
     furi_mutex_release(app->plugin_slot.mutex);
     morse_flipper_drop_live_keying_for_playback(app, now_ms);
     morse_flipper_release_all_notes(app);
     morse_flipper_reset_answer_decoder(app);
     morse_flipper_update_sidetone(app);
-    return published;
+    return entered;
 }
 
 bool morse_flipper_rx_practice_host_input(

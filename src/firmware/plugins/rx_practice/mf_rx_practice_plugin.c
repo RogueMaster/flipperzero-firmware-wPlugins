@@ -12,6 +12,9 @@ static void mf_rx_free(void* state) { free(state); }
 static bool mf_rx_enter(void* state, const MfRxPracticeEnterArgs* args, MfRxPracticeResult* result) {
     return mf_rx_practice_enter(state, args, result);
 }
+static bool mf_rx_enter_api(void* state, const void* args, MorseFlipperMappedFalResult* initial) {
+    return mf_rx_enter(state, args, initial);
+}
 static void mf_rx_leave(void* state) { mf_rx_practice_leave(state); }
 static MfRxPracticeResult mf_rx_input(
     void* state,
@@ -72,7 +75,9 @@ static const MfRxPracticeApi mf_rx_api = {
         .struct_size = sizeof(MfRxPracticeApi),
         .alloc = mf_rx_alloc,
         .free = mf_rx_free,
+        .enter = mf_rx_enter_api,
         .leave = mf_rx_leave,
+        .input = NULL,
         .tick = mf_rx_tick,
         .draw = mf_rx_draw,
     },

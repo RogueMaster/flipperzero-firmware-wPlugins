@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include <input/input.h>
@@ -13,16 +14,42 @@ typedef enum {
     MfPassiveOutputP2 = 1,
 } MfPassiveOutputTarget;
 
+typedef enum {
+    MfPassiveHostCommandClaim = 0,
+    MfPassiveHostCommandSilence,
+    MfPassiveHostCommandTone,
+    MfPassiveHostCommandVoice,
+    MfPassiveHostCommandVibration,
+    MfPassiveHostCommandRelease,
+} MfPassiveHostCommand;
+
 typedef struct {
     uint32_t struct_size;
     void* context;
-    bool (*claim)(void* context, MfPassiveOutputTarget target, uint8_t volume_pct, MfPassivePcmPipe* pipe);
-    bool (*set_silence)(void* context);
-    bool (*set_tone)(void* context, uint16_t tone_hz);
-    bool (*set_voice)(void* context, uint32_t source_rate_hz);
-    void (*set_vibration)(void* context, bool enabled);
-    void (*release)(void* context);
+    bool (*command)(void* context, MfPassiveHostCommand command, uint32_t value, MfPassivePcmPipe* pipe);
 } MfPassiveHostServices;
+
+static inline bool mf_passive_host_claim(
+    const MfPassiveHostServices* services,
+    MfPassiveOutputTarget target,
+    uint16_t tone_hz,
+    uint8_t volume_pct,
+    MfPassivePcmPipe* pipe) {
+    return services != NULL && services->command != NULL &&
+           services->command(
+               services->context,
+               MfPassiveHostCommandClaim,
+               ((uint32_t)tone_hz << 16U) | ((uint32_t)target << 8U) | volume_pct,
+               pipe);
+}
+
+static inline bool mf_passive_host_command(
+    const MfPassiveHostServices* services,
+    MfPassiveHostCommand command,
+    uint32_t value) {
+    return services != NULL && services->command != NULL &&
+           services->command(services->context, command, value, NULL);
+}
 
 typedef struct {
     uint32_t struct_size;

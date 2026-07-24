@@ -36,10 +36,12 @@
 #include "morse_flipper_gpio_probe.h"
 #include "morse_flipper_ham_keyer.h"
 #include "morse_flipper_icr_host.h"
+#include "morse_flipper_passive_host.h"
 #include "morse_flipper_plugin_runtime.h"
 #include "morse_flipper_rx_practice_host.h"
 #include "plugins/icr/morse_flipper_icr_api.h"
 #include "plugins/rx_practice/morse_flipper_rx_practice_api.h"
+#include "plugins/passive_listening/mf_passive_api.h"
 #include "morse_flipper_paths.h"
 #include "morse_flipper_progress.h"
 #include "morse_flipper_radio.h"
@@ -173,6 +175,7 @@ typedef enum {
     MorseFlipperScreenStreakIntro = 25,
     MorseFlipperScreenIcr = 26,
     MorseFlipperScreenRxPractice = 27,
+    MorseFlipperScreenPassive = 28,
 } MorseFlipperScreen;
 
 typedef enum {
@@ -224,6 +227,7 @@ typedef enum {
     MorseFlipperSceneStreakIntro,
     MorseFlipperSceneIcr,
     MorseFlipperSceneRxCallsigns,
+    MorseFlipperScenePassive,
     MorseFlipperSceneNum,
 } MorseFlipperScene;
 

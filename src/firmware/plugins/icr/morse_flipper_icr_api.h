@@ -8,7 +8,7 @@
 
 #include "../../morse_flipper_mapped_fal.h"
 
-#define MORSE_FLIPPER_ICR_API_VERSION 2U
+#define MORSE_FLIPPER_ICR_API_VERSION 3U
 #define MORSE_FLIPPER_ICR_API_MAGIC 0x4D464943UL
 
 typedef enum {

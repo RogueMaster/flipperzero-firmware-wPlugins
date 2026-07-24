@@ -5,51 +5,14 @@
 
 #define MORSE_FLIPPER_CONTENT_PLUGIN_PATH APP_ASSETS_PATH("plugins/morse_flipper_help_about.fal")
 
-static bool morse_flipper_content_api_valid(const MorseFlipperHelpAboutApi* api) {
-    return api != NULL && api->mapped.magic == MORSE_FLIPPER_HELP_ABOUT_API_MAGIC &&
-           api->mapped.api_version == MORSE_FLIPPER_HELP_ABOUT_API_VERSION &&
-           api->mapped.struct_size >= sizeof(MorseFlipperHelpAboutApi) && api->mapped.alloc != NULL &&
-           api->mapped.free != NULL && api->enter != NULL && api->mapped.leave != NULL &&
-           api->input != NULL && api->mapped.tick != NULL && api->mapped.draw != NULL;
-}
-
-void morse_flipper_content_host_unload(MorseFlipperApp* app) {
-    if(app == NULL || app->plugin_slot.mutex == NULL) return;
-    morse_flipper_plugin_runtime_unload_current(app);
-}
-
 bool morse_flipper_content_host_enter(
     MorseFlipperApp* app,
     MorseFlipperContentMode mode,
     uint8_t help_topic) {
-    PluginManager* manager = NULL;
-    const MorseFlipperHelpAboutApi* api = NULL;
-    void* state = NULL;
     MorseFlipperContentEnterArgs args;
-    bool entered = false;
 
     if(app == NULL || app->plugin_slot.mutex == NULL) return false;
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
-    if(!morse_flipper_plugin_runtime_claim_locked(app, MorseFlipperPluginOwnerContent, mode)) {
-        furi_mutex_release(app->plugin_slot.mutex);
-        return false;
-    }
-    app->plugin_slot.error = morse_flipper_plugin_runtime_load_locked(
-        MORSE_FLIPPER_CONTENT_PLUGIN_PATH,
-        MORSE_FLIPPER_HELP_ABOUT_API_VERSION,
-        &manager,
-        (const void**)&api);
-    if(app->plugin_slot.error != MorseFlipperPluginErrorNone)
-        goto cleanup;
-    if(!morse_flipper_content_api_valid(api)) {
-        app->plugin_slot.error = MorseFlipperPluginErrorTable;
-        goto cleanup;
-    }
-    state = api->mapped.alloc();
-    if(state == NULL) {
-        app->plugin_slot.error = MorseFlipperPluginErrorState;
-        goto cleanup;
-    }
     args = (MorseFlipperContentEnterArgs){
         .mode = mode,
         .help_topic = help_topic,
@@ -59,24 +22,18 @@ bool morse_flipper_content_host_enter(
         .build_commit = APP_BUILD_COMMIT,
         .build_host = APP_BUILD_HOST,
     };
-    if(!api->enter(state, &args)) {
-        app->plugin_slot.error = MorseFlipperPluginErrorState;
-        goto cleanup;
-    }
-    entered = true;
-    if(morse_flipper_plugin_runtime_publish_locked(
-           app, MorseFlipperPluginOwnerContent, manager, api, state)) {
-        furi_mutex_release(app->plugin_slot.mutex);
-        return true;
-    }
-    app->plugin_slot.error = MorseFlipperPluginErrorState;
-
-cleanup:
-    if(entered && api != NULL && state != NULL) api->mapped.leave(state);
-    if(api != NULL && state != NULL) api->mapped.free(state);
-    if(manager != NULL) plugin_manager_free(manager);
+    bool entered = morse_flipper_plugin_runtime_open_mapped_locked(
+        app,
+        MorseFlipperPluginOwnerContent,
+        mode,
+        MORSE_FLIPPER_CONTENT_PLUGIN_PATH,
+        MORSE_FLIPPER_HELP_ABOUT_API_VERSION,
+        MORSE_FLIPPER_HELP_ABOUT_API_MAGIC,
+        sizeof(MorseFlipperHelpAboutApi),
+        &args,
+        NULL);
     furi_mutex_release(app->plugin_slot.mutex);
-    return false;
+    return entered;
 }
 
 /* Caller holds plugin_mutex.  Navigation and unload happen after it releases. */
@@ -95,13 +52,13 @@ static void morse_flipper_content_host_apply_action(
     MorseFlipperContentAction action) {
     if(action == MorseFlipperContentActionBack) {
         morse_flipper_scene_back(app);
-        morse_flipper_content_host_unload(app);
+        morse_flipper_plugin_runtime_unload_current(app);
     } else if(action == MorseFlipperContentActionFinishOnboarding) {
         morse_flipper_onboarding_finish(app);
-        morse_flipper_content_host_unload(app);
+        morse_flipper_plugin_runtime_unload_current(app);
     } else if(action == MorseFlipperContentActionOpenTrace) {
         morse_flipper_scene_open(app, MorseFlipperSceneTrace);
-        morse_flipper_content_host_unload(app);
+        morse_flipper_plugin_runtime_unload_current(app);
     }
 }
 
