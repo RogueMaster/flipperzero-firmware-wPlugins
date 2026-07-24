@@ -50,3 +50,10 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Flipper Zero Build Outputs
+.ufbt/
+build/
+dist/
+.vscode/
+*.fap
