@@ -74,7 +74,7 @@ size_t mf_passive_codec_decode(
             used += 2U;
         } else if(state->codec == MfPassiveCodecU8) {
             if(used >= source_len) break;
-            destination[produced] = ((int16_t)source[used++] - 128) << 8;
+            destination[produced] = (int16_t)(((int32_t)source[used++] - 128) * 256);
         } else if(state->codec == MfPassiveCodecMulaw) {
             if(used >= source_len) break;
             destination[produced] = mf_mulaw_decode(source[used++]);
