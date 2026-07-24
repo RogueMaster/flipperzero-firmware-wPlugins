@@ -2,6 +2,7 @@
 """Host checks for deterministic production MFVA PCM16-to-U8 conversion."""
 
 import importlib.util
+import subprocess
 import struct
 import tempfile
 from pathlib import Path
@@ -28,16 +29,20 @@ def expect_invalid(blob: bytes) -> None:
 
 
 def main() -> None:
-    source = ASSET.read_bytes()
+    source = subprocess.check_output(
+        ["git", "show", "5adbc88:assets/audio/voice_en_gb_amy_v1.mfa"], cwd=ROOT)
     tokens, _ = MODULE.parse_pcm16_16k_pack(source)
     assert len(tokens) == 40
     assert MODULE.pcm16_to_u8(struct.pack("<hhhh", -32768, -1, 0, 32767)) == bytes((0, 127, 128, 255))
     with tempfile.TemporaryDirectory() as directory:
         first = Path(directory) / "first.mfa"
         second = Path(directory) / "second.mfa"
-        MODULE.convert_pcm16_16k_to_u8(ASSET, first)
-        MODULE.convert_pcm16_16k_to_u8(ASSET, second)
+        source_path = Path(directory) / "selected-pcm16.mfa"
+        source_path.write_bytes(source)
+        MODULE.convert_pcm16_16k_to_u8(source_path, first)
+        MODULE.convert_pcm16_16k_to_u8(source_path, second)
         assert first.read_bytes() == second.read_bytes()
+        assert first.read_bytes() == ASSET.read_bytes()
         magic, version, codec, count, rate, table_offset, data_offset, file_size, table_crc, data_crc = MODULE.HEADER.unpack_from(first.read_bytes())
         assert (magic, version, codec, count, rate) == (b"MFVA", 1, 1, 40, 16000)
         assert file_size == first.stat().st_size and table_offset == MODULE.HEADER.size
