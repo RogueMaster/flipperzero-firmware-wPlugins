@@ -6,7 +6,7 @@ Receive keyboard and mouse events from the companion Android app over **BLE Seri
 
 1. Flipper Zero with this FAP installed
 2. USB data cable Flipper ↔ PC
-3. Android phone with the companion app ([v0.5.4 release](https://github.com/andybeg/AndroidFlipperZeroKBD/releases/tag/v0.5.4))
+3. Android phone with the companion app ([v0.5.5 release](https://github.com/andybeg/AndroidFlipperZeroKBD/releases/tag/v0.5.5))
 4. Phone paired with Flipper in system Bluetooth settings
 
 ## How to use
