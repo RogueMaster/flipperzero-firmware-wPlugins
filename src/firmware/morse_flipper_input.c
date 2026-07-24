@@ -1148,7 +1148,7 @@ bool morse_flipper_active_mode_input(MorseFlipperApp* app, InputEvent* event, ui
     case MorseFlipperScreenStreakIntro:
         return morse_flipper_streak_intro_input(app, event);
     case MorseFlipperScreenIcr:
-        return morse_flipper_icr_input(app, event, now_ms);
+        return morse_flipper_icr_host_input(app, event, now_ms);
     case MorseFlipperScreenRfFreq:
         return morse_flipper_rf_freq_input(app, event);
     case MorseFlipperScreenRfRx:

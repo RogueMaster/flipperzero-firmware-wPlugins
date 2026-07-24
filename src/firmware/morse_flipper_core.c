@@ -347,7 +347,7 @@ void morse_flipper_toggle_source(MorseFlipperApp* app) {
 bool morse_flipper_training_playback_active(const MorseFlipperApp* app) {
     if(app == NULL) return false;
     if(app->screen == MorseFlipperScreenStraight) return app->straight_playback_active;
-    if(app->screen == MorseFlipperScreenIcr) return app->icr_phase == MorseFlipperIcrPhasePlayback;
+    if(app->screen == MorseFlipperScreenIcr) return app->icr_playback_active;
     return app->screen == MorseFlipperScreenSession && app->trainer_playback_active;
 }
 

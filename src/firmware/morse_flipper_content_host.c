@@ -60,7 +60,7 @@ bool morse_flipper_content_host_enter(
 
     if(app == NULL || app->content_mutex == NULL) return false;
     furi_mutex_acquire(app->content_mutex, FuriWaitForever);
-    if(app->content_active || app->content_manager != NULL || app->content_api != NULL ||
+    if(app->icr_active || app->content_active || app->content_manager != NULL || app->content_api != NULL ||
        app->content_state != NULL) {
         furi_mutex_release(app->content_mutex);
         return false;

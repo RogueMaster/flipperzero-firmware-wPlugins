@@ -35,7 +35,9 @@
 #include "morse_flipper_gpio.h"
 #include "morse_flipper_gpio_probe.h"
 #include "morse_flipper_ham_keyer.h"
-#include "morse_flipper_icr.h"
+#include "morse_flipper_icr_host.h"
+#include "plugins/icr/morse_flipper_icr_api.h"
+#include "plugins/icr/morse_flipper_icr.h"
 #include "morse_flipper_paths.h"
 #include "morse_flipper_progress.h"
 #include "morse_flipper_radio.h"
@@ -49,6 +51,9 @@
 #include "trainer.h"
 #include "trainer_files.h"
 #include "usb/morse_usb_midi.h"
+
+/* Help/About and ICR share one app-lifetime draw/unload guard. */
+#define content_mutex plugin_mutex
 
 #define MORSE_FLIPPER_VOLUME                        0.7f
 #define MORSE_FLIPPER_POLL_MS                       5
@@ -381,16 +386,22 @@ typedef struct MorseFlipperApp {
     NotificationApp* notifications;
     MorseFlipperProgress* session_progress;
     MorseFlipperProgress* view_progress;
-    MorseFlipperIcrStats* icr_stats;
     volatile bool exit_requested;
     bool terminus24_active;
-    FuriMutex* content_mutex;
+    FuriMutex* plugin_mutex;
     PluginManager* content_manager;
     const MorseFlipperHelpAboutApi* content_api;
     void* content_state;
     bool content_active;
     uint8_t content_mode;
     uint8_t content_error;
+    PluginManager* icr_manager;
+    const MorseFlipperIcrApi* icr_api;
+    void* icr_state;
+    bool icr_active;
+    bool icr_playback_active;
+    bool icr_prompt_visible;
+    uint8_t icr_prompt_char;
 
     /*
      * Hardware and transport mirrors. These track what we last asked the outside
@@ -490,11 +501,6 @@ typedef struct MorseFlipperApp {
     uint8_t p2_volume_pct;
     uint8_t preview_ticks;
     uint8_t input_mask;
-    uint8_t icr_phase;
-    uint8_t icr_target;
-    uint8_t icr_choices[MORSE_FLIPPER_ICR_CHOICE_COUNT];
-    uint8_t icr_choice;
-    uint8_t icr_mark_idx;
 
     /* Millisecond deadlines. Zero means idle unless the owning module says otherwise. */
     uint32_t trainer_next_at;
@@ -538,12 +544,6 @@ typedef struct MorseFlipperApp {
     uint32_t gpio_edge_at;
     uint32_t gpio_probe_notice_until;
     uint32_t ptt_tail_until;
-    uint32_t icr_rng_state;
-    uint32_t icr_next_at;
-    uint32_t icr_reaction_started_at;
-    uint32_t icr_pending_reaction_ms;
-    uint32_t icr_guard_until;
-    uint32_t icr_result_until;
     uint32_t rf_edit_khz;
     int32_t rf_rssi_sum_dbm;
     uint32_t paddle_sources[MorseKeyerPaddleCount];
@@ -580,8 +580,6 @@ typedef struct MorseFlipperApp {
     bool rf_rx_audio_enabled;
     bool audio_wait_active;
     bool icr_playback_mark;
-    bool icr_stats_dirty;
-    bool icr_answer_correct;
     bool ptt_level;
     bool gpio_level;
     bool gpio_gap_flushed;

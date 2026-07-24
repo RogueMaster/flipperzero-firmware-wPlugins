@@ -35,7 +35,7 @@ void morse_flipper_enter_screen(
     }
 
     if(app->screen == MorseFlipperScreenIcr && screen != MorseFlipperScreenIcr) {
-        morse_flipper_leave_icr(app, now_ms);
+        morse_flipper_icr_host_unload(app);
     }
 
     if((app->screen == MorseFlipperScreenRf || app->screen == MorseFlipperScreenRfRx) &&
@@ -88,7 +88,7 @@ void morse_flipper_enter_screen(
     }
 
     if(screen == MorseFlipperScreenIcr && app->screen != MorseFlipperScreenIcr) {
-        morse_flipper_reset_icr_runtime(app, now_ms);
+        morse_flipper_icr_host_unload(app);
     }
 
     if(scene == MorseFlipperSceneRun && app->scene != MorseFlipperSceneRun) {

@@ -560,7 +560,7 @@ void morse_flipper_active_mode_tick(MorseFlipperApp* app, uint32_t now_ms) {
         morse_flipper_tick_straight(app, now_ms);
         break;
     case MorseFlipperScreenIcr:
-        morse_flipper_tick_icr(app, now_ms);
+        morse_flipper_icr_host_tick(app, now_ms);
         break;
     case MorseFlipperScreenTxGroups:
     case MorseFlipperScreenTxGroupsResult:

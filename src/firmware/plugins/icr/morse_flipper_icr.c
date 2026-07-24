@@ -6,7 +6,7 @@
  */
 
 #include "morse_flipper_icr.h"
-#include "morse_flipper_paths.h"
+#include "../../morse_flipper_paths.h"
 
 #include <string.h>
 
