@@ -2,7 +2,7 @@
 
 #include "morse_flipper_app_i.h"
 
-static bool morse_flipper_plugin_runtime_typed_api_valid(
+static __attribute__((noinline)) bool morse_flipper_plugin_runtime_typed_api_valid(
     MorseFlipperPluginOwner owner,
     const void* entry) {
     if(entry == NULL) return false;
