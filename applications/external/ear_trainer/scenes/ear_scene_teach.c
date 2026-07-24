@@ -1,60 +1,67 @@
 #include "../ear_trainer_i.h"
 #include "ear_scene.h"
 
-/* Introduces each new interval before the quiz: name, size, and a tune that
- * opens with it. OK plays it, Right moves on. */
+/* Introduces each new item before the quiz: its name, a keyboard showing the
+ * shape, and a line on what it sounds like. OK replays it, Right moves on.
+ * Reuses the quiz view so the keyboard here and the one after answering are
+ * the same drawing. */
 
-#define TEACH_ROOT 60 /* C4, fixed here so the shape is what changes, not the pitch */
+#define TEACH_ROOT 60 /* C4, fixed so the shape is what varies, not the pitch */
 
-typedef enum {
-    TeachPlay = 10,
-    TeachNext,
-} TeachEvent;
-
-static void teach_button_callback(GuiButtonType result, InputType type, void* context) {
+static void teach_event_callback(void* context, uint32_t event) {
     EarTrainerApp* app = context;
-    if(type != InputTypeShort) return;
-    view_dispatcher_send_custom_event(
-        app->view_dispatcher, result == GuiButtonTypeCenter ? TeachPlay : TeachNext);
+    view_dispatcher_send_custom_event(app->view_dispatcher, event);
 }
 
-static void teach_draw(EarTrainerApp* app) {
-    const EarLevel* level = curriculum_get(app->level);
-    uint8_t semitones = level->new_intervals[app->teach_index];
-    const IntervalInfo* info = interval_get(semitones);
-    Widget* widget = app->widget;
+static uint8_t teach_current_id(EarTrainerApp* app) {
+    const EarLevel* level = curriculum_get(app->mode, app->level);
+    uint8_t index = app->teach_index < level->new_count ? app->teach_index : 0;
+    return level->new_items[index];
+}
 
-    widget_reset(widget);
+static void teach_build_notes(EarTrainerApp* app, uint8_t id) {
+    QuizState* q = &app->quiz;
+    ContentType content = mode_content(app->mode);
 
-    char header[32];
-    snprintf(header, sizeof(header), "New: %s", info->shortname);
-    widget_add_string_element(widget, 64, 11, AlignCenter, AlignBottom, FontPrimary, header);
+    if(content == ContentInterval) {
+        q->notes[0] = TEACH_ROOT;
+        q->notes[1] = (uint8_t)(TEACH_ROOT + id);
+        q->note_count = 2;
+    } else {
+        const Pattern* pattern = (content == ContentChord) ? chord_get(id) : scale_get(id);
+        q->note_count = pattern->count;
+        for(uint8_t i = 0; i < pattern->count && i < MAX_SEQUENCE; i++)
+            q->notes[i] = (uint8_t)(TEACH_ROOT + pattern->steps[i]);
+    }
+}
 
-    widget_add_string_element(widget, 64, 24, AlignCenter, AlignCenter, FontSecondary, info->name);
+static void teach_refresh(EarTrainerApp* app) {
+    const EarLevel* level = curriculum_get(app->mode, app->level);
+    uint8_t id = teach_current_id(app);
+    teach_build_notes(app, id);
 
-    char detail[40];
-    snprintf(detail, sizeof(detail), "%u semitone%s apart", semitones, semitones == 1 ? "" : "s");
-    widget_add_string_element(widget, 64, 36, AlignCenter, AlignCenter, FontSecondary, detail);
-
-    widget_add_string_element(
-        widget, 64, 48, AlignCenter, AlignCenter, FontSecondary, info->mnemonic);
-
-    widget_add_button_element(widget, GuiButtonTypeCenter, "Play", teach_button_callback, app);
-    bool last = (app->teach_index + 1 >= level->new_count);
-    widget_add_button_element(
-        widget, GuiButtonTypeRight, last ? "Start" : "Next", teach_button_callback, app);
+    QuizModel* m = &app->qm;
+    memset(m, 0, sizeof(QuizModel));
+    m->phase = QuizPhaseTeach;
+    m->mode = app->mode;
+    m->correct_id = id;
+    m->played_count = app->quiz.note_count;
+    for(uint8_t i = 0; i < app->quiz.note_count; i++)
+        m->played_notes[i] = app->quiz.notes[i];
+    m->teach_last = (app->teach_index + 1 >= level->new_count);
+    quiz_view_update(app->quiz_view, m);
 }
 
 static void teach_play(EarTrainerApp* app) {
-    const EarLevel* level = curriculum_get(app->level);
-    uint8_t semitones = level->new_intervals[app->teach_index];
-    tone_player_play_interval(app->player, TEACH_ROOT, TEACH_ROOT + semitones);
+    uint16_t gap = (mode_content(app->mode) == ContentChord) ? 45 : 0;
+    tone_player_play_sequence(app->player, app->quiz.notes, app->quiz.note_count, gap);
 }
 
 void ear_scene_teach_on_enter(void* context) {
     EarTrainerApp* app = context;
-    teach_draw(app);
-    view_dispatcher_switch_to_view(app->view_dispatcher, EarViewWidget);
+    quiz_view_set_callback(app->quiz_view, teach_event_callback, app);
+    teach_refresh(app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, EarViewQuiz);
     teach_play(app); /* hear it immediately, that is the point of the screen */
 }
 
@@ -62,15 +69,16 @@ bool ear_scene_teach_on_event(void* context, SceneManagerEvent event) {
     EarTrainerApp* app = context;
     if(event.type != SceneManagerEventTypeCustom) return false;
 
-    if(event.event == TeachPlay) {
+    /* OK replays, Right advances; both arrive as quiz-view events. */
+    if(event.event == ETEventAnswer || event.event == ETEventReplay) {
         teach_play(app);
         return true;
     }
-    if(event.event == TeachNext) {
-        const EarLevel* level = curriculum_get(app->level);
+    if(event.event == ETEventNext) {
+        const EarLevel* level = curriculum_get(app->mode, app->level);
         if(app->teach_index + 1 < level->new_count) {
             app->teach_index++;
-            teach_draw(app);
+            teach_refresh(app);
             teach_play(app);
         } else {
             scene_manager_next_scene(app->scene_manager, EarSceneQuiz);
@@ -83,5 +91,5 @@ bool ear_scene_teach_on_event(void* context, SceneManagerEvent event) {
 void ear_scene_teach_on_exit(void* context) {
     EarTrainerApp* app = context;
     tone_player_stop(app->player);
-    widget_reset(app->widget);
+    quiz_view_set_callback(app->quiz_view, NULL, NULL);
 }

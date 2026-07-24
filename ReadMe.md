@@ -51,6 +51,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: [Add method for changing variable item label #4421 (By loftyinclination)](https://github.com/flipperdevices/flipperzero-firmware/pull/4421)
 - OFW: [Allow for checking if an id is in use before adding to view dispatcher #4422 (By loftyinclination)](https://github.com/flipperdevices/flipperzero-firmware/pull/4422)
 - Updated: [Nightstand Clock v1.2 (By nymda)](https://github.com/nymda/FlipperNightStand) [fix unreachable nightlight and notif use-after-close (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/244)
+- Updated: [Ear Trainer v1.1 (By barismert98)](https://github.com/barismert98/flipper-ear-trainer)
 
 <a name="release"></a>
 
@@ -433,7 +434,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [DSTIKE Deauther v1.1 (By SequoiaSan)](https://github.com/SequoiaSan/FlipperZero-Wifi-ESP8266-Deauther-Module/tree/FlipperZero-Module-v2/FlipperZeroModule/FlipperZero-ESP8266-Deauth-App) `Req: ESP8266`
 - [DTMF Dolphin v1.5 (By litui)](https://github.com/litui/dtmf_dolphin)
 - [E220 LoRa Configurator v0.1 (By crackerjacques)](https://github.com/crackerjacques/Flipper_E220_Lora_Module_Configurator) `Req: E220-900T22S(JP)`
-- [Ear Trainer v1.0 (By barismert98)](https://github.com/barismert98/flipper-ear-trainer)
+- [Ear Trainer v1.1 (By barismert98)](https://github.com/barismert98/flipper-ear-trainer)
 - [EM4100 Key Generator v1.1 (By Milk-Cool)](https://github.com/Milk-Cool/fz-em4100-generator)
 - [EMV Reader v0.1 (By AmsaOne)](https://github.com/AmsaOne/Flipper-EMV-Reader)
 - [Encoder Reader v0.1 (By Engineegor)](https://github.com/Engineegor/Enc_reader)

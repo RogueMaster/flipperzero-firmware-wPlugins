@@ -10,13 +10,13 @@ void ear_scene_level_select_on_enter(void* context) {
     EarTrainerApp* app = context;
     Submenu* submenu = app->submenu;
     uint8_t unlocked = app->progress.unlocked[app->mode];
+    uint8_t levels = curriculum_level_count(app->mode);
 
     submenu_reset(submenu);
-    static const char* const mode_names[MODE_COUNT] = {"Ascending", "Descending", "Mixed"};
-    submenu_set_header(submenu, mode_names[app->mode]);
+    submenu_set_header(submenu, mode_name(app->mode));
 
-    for(uint8_t i = 0; i < LEVEL_COUNT; i++) {
-        const EarLevel* level = curriculum_get(i);
+    for(uint8_t i = 0; i < levels; i++) {
+        const EarLevel* level = curriculum_get(app->mode, i);
         char label[32];
         if(i < unlocked) {
             uint8_t stars = app->progress.stars[app->mode][i];
@@ -53,7 +53,7 @@ bool ear_scene_level_select_on_event(void* context, SceneManagerEvent event) {
 
     app->level = level;
     /* levels that introduce something new explain it first */
-    if(curriculum_get(level)->new_count > 0) {
+    if(curriculum_get(app->mode, level)->new_count > 0) {
         app->teach_index = 0;
         scene_manager_next_scene(app->scene_manager, EarSceneTeach);
     } else {
