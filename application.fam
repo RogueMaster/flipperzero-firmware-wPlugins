@@ -145,6 +145,7 @@ App(
     sources=[
         "src/firmware/plugins/common/mf_rx_rng.c",
         "src/firmware/plugins/common/mf_callsign_gen.c",
+        "src/firmware/plugins/common/mf_big_callsign_font.c",
         "src/firmware/plugins/rx_practice/mf_rx_practice_core.c",
         "src/firmware/plugins/rx_practice/mf_rx_practice_draw.c",
         "src/firmware/plugins/rx_practice/mf_rx_practice_plugin.c",
@@ -163,6 +164,7 @@ App(
     sources=[
         "src/firmware/plugins/common/mf_rx_rng.c",
         "src/firmware/plugins/common/mf_callsign_gen.c",
+        "src/firmware/plugins/common/mf_big_callsign_font.c",
         "src/firmware/plugins/passive_listening/mf_passive_core.c",
         "src/firmware/plugins/passive_listening/mf_passive_draw.c",
         "src/firmware/plugins/passive_listening/mf_passive_plugin.c",

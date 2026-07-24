@@ -1,12 +1,11 @@
 #include "mf_rx_practice_draw.h"
 
+#include "../common/mf_big_callsign_font.h"
+
 #include <stdio.h>
 
-#define MF_BIG_SCALE 3U
-#define MF_BIG_WIDTH (5U * MF_BIG_SCALE)
-#define MF_BIG_HEIGHT (7U * MF_BIG_SCALE)
-#define MF_BIG_GAP 3U
-
+/* The oversized glyph renderer is shared by Callsigns FALs. */
+#if 0
 static const uint8_t mf_big_glyphs[36][5] = {
     {0x3E, 0x51, 0x49, 0x45, 0x3E},
     {0x00, 0x42, 0x7F, 0x40, 0x00},
@@ -109,6 +108,7 @@ static void mf_draw_big_text(
             mismatch);
     }
 }
+#endif
 
 void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
     char score[24];
@@ -141,9 +141,9 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
         return;
     }
     if(state->phase == MfRxPracticePhaseResult)
-        mf_draw_big_text(
+        mf_big_callsign_draw_text(
             canvas, state->target, state->target, state->target_len, 5, false);
-    mf_draw_big_text(
+    mf_big_callsign_draw_text(
         canvas,
         state->answer,
         state->target,
