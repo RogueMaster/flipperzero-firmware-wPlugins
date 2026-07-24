@@ -10,6 +10,7 @@
 #define MF_PASSIVE_POST_VOICE_MS    1000U
 #define MF_PASSIVE_CUE_MS           120U
 #define MF_PASSIVE_POST_CUE_MS      1000U
+#define MF_PASSIVE_MAX_UNDERRUNS     64U
 
 static bool mf_passive_reached(uint32_t now, uint32_t deadline) {
     return (int32_t)(now - deadline) >= 0;
@@ -147,7 +148,7 @@ MfPassiveResult mf_passive_input(MfPassiveState* state, const InputEvent* event,
     } else if(event->key == InputKeyBack && event->type == InputTypeLong) {
         state->back_clicks = 0U;
     } else if(event->key != InputKeyBack &&
-              (event->type == InputTypePress || event->type == InputTypeShort || event->type == InputTypeLong)) {
+              (event->type == InputTypePress || event->type == InputTypeShort)) {
         state->back_clicks = 0U;
     }
     result = mf_passive_result(state, false);
@@ -195,6 +196,8 @@ MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
     if(state->phase == MfPassivePhaseVoice) {
         mf_passive_voice_pack_refill(&state->pack, &state->pipe);
         if(mf_passive_voice_pack_failed(&state->pack)) {
+            mf_passive_fail(state);
+        } else if(state->pipe.underruns > MF_PASSIVE_MAX_UNDERRUNS) {
             mf_passive_fail(state);
         } else if(mf_passive_voice_pack_drained(&state->pack, &state->pipe)) {
             if(!mf_passive_silence(state)) {

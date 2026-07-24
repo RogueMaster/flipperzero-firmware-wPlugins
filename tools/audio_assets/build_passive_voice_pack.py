@@ -32,7 +32,11 @@ def main() -> int:
         data = path.read_bytes()
         if not data or token not in logical or logical[token] <= 0:
             raise ValueError(f"invalid token {token}")
-        payloads.append((token_id, data, logical[token]))
+        samples = logical[token]
+        expected = samples * 2 if codec == 0 else (samples + 1) // 2 if codec == 3 else samples
+        if len(data) != expected:
+            raise ValueError(f"encoded length mismatch for {token}: {len(data)} != {expected}")
+        payloads.append((token_id, data, samples))
     table_offset = HEADER.size
     data_offset = table_offset + ENTRY.size * len(payloads)
     table = bytearray()

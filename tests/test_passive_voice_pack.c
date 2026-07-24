@@ -243,6 +243,13 @@ static void test_rejections(void) {
     file.bytes[HEADER_SIZE + 18U] = 89U;
     refresh_crcs(&file);
     CHECK(!mf_passive_voice_pack_open_io(&pack, &io));
+
+    make_pack(&file, MfPassiveCodecU8, payload, sizeof(payload), 2U, 0U);
+    CHECK(!mf_passive_voice_pack_open_io(&pack, &io));
+    make_pack(&file, MfPassiveCodecS16, payload, 2U, 2U, 0U);
+    CHECK(!mf_passive_voice_pack_open_io(&pack, &io));
+    make_pack(&file, MfPassiveCodecImaAdpcm, payload, sizeof(payload), 3U, 0U);
+    CHECK(!mf_passive_voice_pack_open_io(&pack, &io));
 }
 
 int main(void) {

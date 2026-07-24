@@ -6,6 +6,13 @@
 static unsigned checks;
 #define CHECK(x) do { assert(x); checks++; } while(0)
 
+static int16_t mulaw_reference(uint8_t input) {
+    uint8_t value = (uint8_t)~input;
+    int32_t sample = ((int32_t)(value & 15U) << 3U) + 0x84;
+    sample <<= (value >> 4U) & 7U;
+    return (int16_t)((value & 0x80U) ? 0x84 - sample : sample - 0x84);
+}
+
 int main(void) {
     MfPassiveCodecState state;
     int16_t output[8];
@@ -27,11 +34,17 @@ int main(void) {
         uint8_t value = (uint8_t)byte;
         CHECK(mf_passive_codec_decode(&state, &value, 1U, output, 1U, &used) == 1U);
         CHECK(used == 1U);
+        CHECK(output[0] == mulaw_reference(value));
     }
     CHECK(mf_passive_codec_finished(&state));
     CHECK(mf_passive_codec_begin(&state, MfPassiveCodecImaAdpcm, 4U, 0, 0));
     CHECK(mf_passive_codec_decode(&state, ima, sizeof(ima), output, 8U, &used) == 4U);
     CHECK(used == 2U && output[0] == 0 && output[1] == 1);
+    CHECK(mf_passive_codec_begin(&state, MfPassiveCodecImaAdpcm, 2U, 0, 0));
+    CHECK(mf_passive_codec_decode(&state, ima, 1U, output, 1U, &used) == 1U);
+    CHECK(used == 0U);
+    CHECK(mf_passive_codec_decode(&state, ima, 1U, output + 1U, 1U, &used) == 1U);
+    CHECK(used == 1U && output[0] == 0 && output[1] == 1);
     printf("test_passive_codec: %u checks passed\n", checks);
     return 0;
 }

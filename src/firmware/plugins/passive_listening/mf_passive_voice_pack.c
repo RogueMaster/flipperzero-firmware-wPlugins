@@ -69,11 +69,11 @@ static bool mf_passive_voice_token_valid(
        token->offset < MF_PASSIVE_VOICE_HEADER_SIZE || end < token->offset || end > pack->io.size)
         return false;
     if(pack->codec_id == MfPassiveCodecS16)
-        return (token->length & 1U) == 0U && token->samples <= token->length / 2U;
+        return (token->length & 1U) == 0U && token->samples == token->length / 2U;
     if(pack->codec_id == MfPassiveCodecU8 || pack->codec_id == MfPassiveCodecMulaw)
-        return token->samples <= token->length;
+        return token->samples == token->length;
     return pack->codec_id == MfPassiveCodecImaAdpcm && token->ima_index <= 88U &&
-           token->length >= (token->samples + 1U) / 2U;
+           token->length == (token->samples + 1U) / 2U;
 }
 
 static bool mf_passive_voice_char_token(char ch, uint8_t* token) {

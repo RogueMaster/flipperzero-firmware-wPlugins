@@ -237,6 +237,17 @@ static void test_sequence_and_timing(void) {
     state.pipe.underruns = 1U;
     mf_passive_tick(&state, voice_at + 1U);
     CHECK(state.phase == MfPassivePhaseVoice && state.pipe.underruns == 1U);
+    state.pipe.underruns = UINT32_MAX;
+    mf_passive_tick(&state, voice_at + 1U);
+    CHECK(state.phase == MfPassivePhaseError && fake.releases == 1U);
+    mf_passive_leave(&state);
+
+    make_pack(&file);
+    setup(&state, &fake, &file);
+    final_mark = run_cw_to_post(&state);
+    voice_at = state.next_at;
+    mf_passive_tick(&state, voice_at);
+    CHECK(state.phase == MfPassivePhaseVoice);
 
     drain_voice(&state, voice_at + 2U);
     CHECK(state.phase == MfPassivePhaseBetweenTokens);
@@ -341,6 +352,12 @@ static void test_gesture_and_rounds(void) {
     state.last_back_at = UINT32_MAX - 100U;
     state.back_clicks = 1U;
     CHECK(!mf_passive_input(&state, &event, 50U).request_exit && state.back_clicks == 2U);
+    event.key = InputKeyOk;
+    event.type = InputTypeLong;
+    CHECK(mf_passive_input(&state, &event, 51U).handled && state.back_clicks == 2U);
+    event.key = InputKeyBack;
+    event.type = InputTypeShort;
+    CHECK(mf_passive_input(&state, &event, 52U).request_exit);
 
     memcpy(previous, state.callsign.text, sizeof(previous));
     for(uint16_t round = 0U; round < 500U; round++) {
