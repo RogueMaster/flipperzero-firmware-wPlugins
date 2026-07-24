@@ -5,6 +5,12 @@
 
 #include "../../cw.h"
 
+#define MF_PASSIVE_POST_CW_MS       3000U
+#define MF_PASSIVE_BETWEEN_TOKEN_MS 100U
+#define MF_PASSIVE_POST_VOICE_MS    1000U
+#define MF_PASSIVE_CUE_MS           120U
+#define MF_PASSIVE_POST_CUE_MS      1000U
+
 static bool mf_passive_reached(uint32_t now, uint32_t deadline) {
     return (int32_t)(now - deadline) >= 0;
 }
@@ -13,20 +19,43 @@ static MfPassiveResult mf_passive_result(const MfPassiveState* state, bool redra
     return (MfPassiveResult){.handled = true, .redraw = redraw, .phase = state->phase, .error = state->error};
 }
 
+static void mf_passive_reset_pipe(MfPassivePcmPipe* pipe) {
+    if(pipe == NULL) return;
+    pipe->read_pos = 0U;
+    pipe->write_pos = 0U;
+    pipe->eof = false;
+    pipe->drained = false;
+    pipe->underruns = 0U;
+}
+
+static bool mf_passive_silence(MfPassiveState* state) {
+    if(state == NULL || state->services == NULL || state->services->set_silence == NULL) return false;
+    if(!state->services->set_silence(state->services->context)) return false;
+    mf_passive_reset_pipe(&state->pipe);
+    return true;
+}
+
 static void mf_passive_fail(MfPassiveState* state) {
+    if(state == NULL) return;
     state->error = 1U;
     state->phase = MfPassivePhaseError;
-    mf_passive_voice_pack_close(&state->pack);
     if(state->services != NULL) {
-        state->services->set_silence(state->services->context);
-        state->services->set_vibration(state->services->context, false);
+        if(state->services->set_silence != NULL) state->services->set_silence(state->services->context);
+        if(state->services->set_vibration != NULL) state->services->set_vibration(state->services->context, false);
     }
+    mf_passive_reset_pipe(&state->pipe);
+    if(state->audio_claimed && state->services != NULL && state->services->release != NULL) {
+        state->services->release(state->services->context);
+        state->audio_claimed = false;
+    }
+    mf_passive_voice_pack_close(&state->pack);
 }
 
 static bool mf_passive_start_mark(MfPassiveState* state, uint32_t now) {
     uint8_t symbol = cw(state->callsign.text[state->char_index]);
-    if(symbol == CW_INVALID || state->mark_index >= cw_symbol_count(symbol)) return false;
-    if(!state->services->set_tone(state->services->context, state->tone_hz)) return false;
+    if(symbol == CW_INVALID || state->mark_index >= cw_symbol_count(symbol) ||
+       !state->services->set_tone(state->services->context, state->tone_hz))
+        return false;
     state->cw_mark = true;
     state->next_at = now + cw_symbol_units(symbol, state->mark_index) * state->dit_ms;
     return true;
@@ -40,6 +69,36 @@ static bool mf_passive_next_call(MfPassiveState* state) {
             return true;
     }
     return false;
+}
+
+static bool mf_passive_start_round(MfPassiveState* state, uint32_t now) {
+    if(!mf_passive_next_call(state)) return false;
+    state->char_index = 0U;
+    state->mark_index = 0U;
+    state->voice_index = 0U;
+    state->revealed_count = 0U;
+    state->cw_mark = false;
+    mf_passive_reset_pipe(&state->pipe);
+    state->phase = MfPassivePhaseCw;
+    return mf_passive_start_mark(state, now);
+}
+
+static bool mf_passive_prime_token(MfPassiveState* state) {
+    if(!state->pack.active && state->pipe.read_pos == state->pipe.write_pos &&
+       !mf_passive_voice_pack_begin(
+           &state->pack, &state->pipe, state->callsign.text[state->voice_index]))
+        return false;
+    mf_passive_voice_pack_refill(&state->pack, &state->pipe);
+    return !mf_passive_voice_pack_failed(&state->pack);
+}
+
+static bool mf_passive_start_voice(MfPassiveState* state) {
+    if(!mf_passive_prime_token(state)) return false;
+    if(!mf_passive_voice_pack_primed(&state->pack, &state->pipe)) return true;
+    if(!state->services->set_voice(state->services->context, state->pack.sample_rate_hz)) return false;
+    state->revealed_count = (uint8_t)(state->voice_index + 1U);
+    state->phase = MfPassivePhaseVoice;
+    return true;
 }
 
 bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfPassiveResult* result) {
@@ -73,10 +132,12 @@ bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfP
 void mf_passive_leave(MfPassiveState* state) {
     if(state == NULL) return;
     if(state->services != NULL) {
-        state->services->set_silence(state->services->context);
-        state->services->set_vibration(state->services->context, false);
-        if(state->audio_claimed) state->services->release(state->services->context);
+        if(state->services->set_silence != NULL) state->services->set_silence(state->services->context);
+        if(state->services->set_vibration != NULL) state->services->set_vibration(state->services->context, false);
     }
+    mf_passive_reset_pipe(&state->pipe);
+    if(state->audio_claimed && state->services != NULL && state->services->release != NULL)
+        state->services->release(state->services->context);
     mf_passive_voice_pack_close(&state->pack);
     memset(state, 0, sizeof(*state));
 }
@@ -84,72 +145,109 @@ void mf_passive_leave(MfPassiveState* state) {
 MfPassiveResult mf_passive_input(MfPassiveState* state, const InputEvent* event, uint32_t now_ms) {
     MfPassiveResult result;
     if(state == NULL || event == NULL) return (MfPassiveResult){0};
-    if(event->key == InputKeyBack && event->type == InputTypeLong) state->back_clicks = 0U;
-    else if(event->key == InputKeyBack && event->type == InputTypeShort) {
+    if(event->key == InputKeyBack && event->type == InputTypeShort) {
         if(state->back_clicks == 0U || (uint32_t)(now_ms - state->last_back_at) > 700U) state->back_clicks = 1U;
         else state->back_clicks++;
         state->last_back_at = now_ms;
-    } else if(event->type == InputTypePress || event->type == InputTypeShort) state->back_clicks = 0U;
+    } else if(event->key == InputKeyBack && event->type == InputTypeLong) {
+        state->back_clicks = 0U;
+    } else if(event->key != InputKeyBack &&
+              (event->type == InputTypePress || event->type == InputTypeShort || event->type == InputTypeLong)) {
+        state->back_clicks = 0U;
+    }
     result = mf_passive_result(state, false);
     if(state->back_clicks >= 3U) result.request_exit = true;
     return result;
 }
 
 MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
+    bool redraw = false;
     if(state == NULL) return (MfPassiveResult){0};
     if(state->phase == MfPassivePhaseCw && mf_passive_reached(now_ms, state->next_at)) {
         uint8_t symbol = cw(state->callsign.text[state->char_index]);
         if(state->cw_mark) {
-            state->services->set_silence(state->services->context);
+            if(!mf_passive_silence(state)) mf_passive_fail(state);
             state->cw_mark = false;
             state->mark_index++;
-            if(state->mark_index < cw_symbol_count(symbol)) state->next_at = now_ms + state->dit_ms;
-            else if(state->char_index == 3U) { state->phase = MfPassivePhasePostCw; state->next_at = now_ms + 3000U; }
-            else { state->char_index++; state->mark_index = 0U; state->next_at = now_ms + state->char_gap_ms; }
-        } else if(!mf_passive_start_mark(state, now_ms)) mf_passive_fail(state);
+            if(state->phase != MfPassivePhaseError && state->mark_index < cw_symbol_count(symbol))
+                state->next_at = now_ms + state->dit_ms;
+            else if(state->phase != MfPassivePhaseError && state->char_index == 3U) {
+                state->phase = MfPassivePhasePostCw;
+                state->next_at = now_ms + MF_PASSIVE_POST_CW_MS;
+            } else if(state->phase != MfPassivePhaseError) {
+                state->char_index++;
+                state->mark_index = 0U;
+                state->next_at = now_ms + state->char_gap_ms;
+            }
+        } else if(!mf_passive_start_mark(state, now_ms)) {
+            mf_passive_fail(state);
+        }
         return mf_passive_result(state, false);
     }
     if(state->phase == MfPassivePhasePostCw) {
-        if(!state->pack.active && state->pipe.read_pos == state->pipe.write_pos &&
-           !mf_passive_voice_pack_begin(&state->pack, &state->pipe, state->callsign.text[0]))
-            mf_passive_fail(state);
-        mf_passive_voice_pack_refill(&state->pack, &state->pipe);
-        if(mf_passive_voice_pack_failed(&state->pack)) mf_passive_fail(state);
-        if(state->phase != MfPassivePhaseError && mf_passive_reached(now_ms, state->next_at))
+        if(!mf_passive_prime_token(state)) mf_passive_fail(state);
+        if(state->phase != MfPassivePhaseError && mf_passive_reached(now_ms, state->next_at)) {
             state->phase = MfPassivePhaseVoicePrime;
-        return mf_passive_result(state, false);
+            if(!mf_passive_start_voice(state)) mf_passive_fail(state);
+            redraw = state->phase == MfPassivePhaseVoice;
+        }
+        return mf_passive_result(state, redraw);
     }
     if(state->phase == MfPassivePhaseVoicePrime) {
-        if(!state->pack.active && state->pipe.read_pos == state->pipe.write_pos &&
-           !mf_passive_voice_pack_begin(
-               &state->pack, &state->pipe, state->callsign.text[state->voice_index]))
-            mf_passive_fail(state);
-        mf_passive_voice_pack_refill(&state->pack, &state->pipe);
-        if(mf_passive_voice_pack_failed(&state->pack)) mf_passive_fail(state);
-        if(state->phase != MfPassivePhaseError &&
-           mf_passive_voice_pack_primed(&state->pack, &state->pipe)) {
-            if(!state->services->set_voice(state->services->context, state->pack.sample_rate_hz))
-                mf_passive_fail(state);
-            else {
-                state->revealed_count = (uint8_t)(state->voice_index + 1U);
-                state->phase = MfPassivePhaseVoice;
-            }
-        }
+        if(!mf_passive_start_voice(state)) mf_passive_fail(state);
         return mf_passive_result(state, state->phase == MfPassivePhaseVoice);
     }
     if(state->phase == MfPassivePhaseVoice) {
         mf_passive_voice_pack_refill(&state->pack, &state->pipe);
-        if(mf_passive_voice_pack_failed(&state->pack)) mf_passive_fail(state);
-        else if(mf_passive_voice_pack_drained(&state->pack, &state->pipe)) {
-            if(state->voice_index == 3U) {
+        if(mf_passive_voice_pack_failed(&state->pack)) {
+            mf_passive_fail(state);
+        } else if(mf_passive_voice_pack_drained(&state->pack, &state->pipe)) {
+            if(!mf_passive_silence(state)) {
+                mf_passive_fail(state);
+            } else if(state->voice_index == 3U) {
                 state->phase = MfPassivePhasePostVoice;
-                state->next_at = now_ms + 1000U;
+                state->next_at = now_ms + MF_PASSIVE_POST_VOICE_MS;
             } else {
                 state->voice_index++;
-                state->phase = MfPassivePhaseVoicePrime;
+                state->phase = MfPassivePhaseBetweenTokens;
+                state->next_at = now_ms + MF_PASSIVE_BETWEEN_TOKEN_MS;
+                if(!mf_passive_prime_token(state)) mf_passive_fail(state);
             }
         }
         return mf_passive_result(state, false);
+    }
+    if(state->phase == MfPassivePhaseBetweenTokens) {
+        if(!mf_passive_prime_token(state)) mf_passive_fail(state);
+        if(state->phase != MfPassivePhaseError && mf_passive_reached(now_ms, state->next_at)) {
+            state->phase = MfPassivePhaseVoicePrime;
+            if(!mf_passive_start_voice(state)) mf_passive_fail(state);
+            redraw = state->phase == MfPassivePhaseVoice;
+        }
+        return mf_passive_result(state, redraw);
+    }
+    if(state->phase == MfPassivePhasePostVoice && mf_passive_reached(now_ms, state->next_at)) {
+        if(!state->services->set_tone(state->services->context, state->tone_hz)) {
+            mf_passive_fail(state);
+        } else {
+            state->services->set_vibration(state->services->context, true);
+            state->phase = MfPassivePhaseCue;
+            state->next_at = now_ms + MF_PASSIVE_CUE_MS;
+        }
+        return mf_passive_result(state, false);
+    }
+    if(state->phase == MfPassivePhaseCue && mf_passive_reached(now_ms, state->next_at)) {
+        if(!mf_passive_silence(state)) {
+            mf_passive_fail(state);
+        } else {
+            state->services->set_vibration(state->services->context, false);
+            state->phase = MfPassivePhasePostCue;
+            state->next_at = now_ms + MF_PASSIVE_POST_CUE_MS;
+        }
+        return mf_passive_result(state, false);
+    }
+    if(state->phase == MfPassivePhasePostCue && mf_passive_reached(now_ms, state->next_at)) {
+        if(!mf_passive_start_round(state, now_ms)) mf_passive_fail(state);
+        return mf_passive_result(state, state->phase == MfPassivePhaseCw);
     }
     return mf_passive_result(state, false);
 }
