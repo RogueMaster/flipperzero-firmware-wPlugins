@@ -87,10 +87,6 @@ void morse_flipper_enter_screen(
         morse_flipper_reset_straight_state(app, now_ms);
     }
 
-    if(screen == MorseFlipperScreenIcr && app->screen != MorseFlipperScreenIcr) {
-        morse_flipper_icr_host_unload(app);
-    }
-
     if(scene == MorseFlipperSceneRun && app->scene != MorseFlipperSceneRun) {
         app->preview_ticks = 0U;
         app->run_dit_ms = morse_flipper_current_dit_ms(app);
