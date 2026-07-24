@@ -4,6 +4,7 @@ typedef enum {
     StartIndexSweep,
     StartIndexFingerprint,
     StartIndexSurvey,
+    StartIndexWatch,
     StartIndexLogbook,
     StartIndexSettings,
     StartIndexAbout,
@@ -25,6 +26,8 @@ void specter_scene_start_on_enter(void* context) {
         submenu, "Fingerprint", StartIndexFingerprint, specter_scene_start_submenu_cb, app);
     submenu_add_item(
         submenu, "Site Survey", StartIndexSurvey, specter_scene_start_submenu_cb, app);
+    submenu_add_item(
+        submenu, "Watch Mode", StartIndexWatch, specter_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Logbook", StartIndexLogbook, specter_scene_start_submenu_cb, app);
     submenu_add_item(
         submenu, "Settings", StartIndexSettings, specter_scene_start_submenu_cb, app);
@@ -53,6 +56,10 @@ bool specter_scene_start_on_event(void* context, SceneManagerEvent event) {
             break;
         case StartIndexSurvey:
             scene_manager_next_scene(app->scene_manager, SpecterSceneSurvey);
+            consumed = true;
+            break;
+        case StartIndexWatch:
+            scene_manager_next_scene(app->scene_manager, SpecterSceneWatch);
             consumed = true;
             break;
         case StartIndexLogbook:

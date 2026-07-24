@@ -182,11 +182,18 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
         canvas_draw_frame(canvas, 0, 0, 128, 64);
         canvas_draw_frame(canvas, 1, 1, 126, 62);
     } else {
-        /* live waveform of recent field strength */
+        /* Idle: the active sensitivity on the left, a live waveform of recent
+         * field strength filling whatever space is left to the right of it. */
+        char sbuf[16];
+        snprintf(sbuf, sizeof(sbuf), "S:%s", m->sens[0] ? m->sens : "?");
+        canvas_draw_str(canvas, 2, 62, sbuf);
+        int wave_left = 2 + (int)canvas_string_width(canvas, sbuf) + 4;
+
         for(int k = 0; k < 62; k++) {
+            int x = 126 - k * 2;
+            if(x < wave_left) break;
             int idx = (m->history_head - k + 2 * SPECTER_HISTORY_LEN) % SPECTER_HISTORY_LEN;
             int v = m->history[idx];
-            int x = 126 - k * 2;
             int y = 63 - (v * 9) / 100;
             if(y < 63) canvas_draw_line(canvas, x, 63, x, y);
             else canvas_draw_dot(canvas, x, 63);

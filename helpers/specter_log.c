@@ -8,48 +8,84 @@
 #include <string.h>
 
 #define LOG_PATH APP_DATA_PATH("logbook.txt")
-#define LINE_MAX 128u
+#define CSV_PATH APP_DATA_PATH("logbook.csv")
+#define CSV_HEADER "timestamp,type,detail\n"
+#define DETAIL_MAX 96u
+/* Sized for the worst case -Wformat-truncation assumes: the DateTime fields are
+ * uint8/uint16 but arrive here as unsigned, so gcc budgets more digits than a
+ * real 2000-2099 date ever needs. */
+#define STAMP_MAX  32u
 
-bool specter_log_append(const char* fmt, ...) {
-    furi_assert(fmt);
-
+static void stamp_now(char* out, size_t n) {
     DateTime dt;
     furi_hal_rtc_get_datetime(&dt);
-
-    char body[LINE_MAX];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(body, sizeof(body), fmt, args);
-    va_end(args);
-
-    /* Timestamp on its own line, detail indented under it. The on-device text
-     * box wraps at about 21 columns, so an entry laid out this way stays
-     * readable there and still looks like a log in a text editor. Callers keep
-     * each detail line inside that budget. */
-    char line[LINE_MAX + 32u];
-    int len = snprintf(
-        line,
-        sizeof(line),
-        "%04u-%02u-%02u %02u:%02u:%02u\n  %s\n",
+    snprintf(
+        out,
+        n,
+        "%04u-%02u-%02u %02u:%02u:%02u",
         (unsigned)dt.year,
         (unsigned)dt.month,
         (unsigned)dt.day,
         (unsigned)dt.hour,
         (unsigned)dt.minute,
-        (unsigned)dt.second,
-        body);
-    if(len <= 0) return false;
-    if(len > (int)sizeof(line) - 1) len = (int)sizeof(line) - 1; // snprintf truncated
+        (unsigned)dt.second);
+}
+
+/* Append `text` to `path`, seeding it with `header` first if it is new/empty. */
+static bool append_to(Storage* storage, const char* path, const char* header, const char* text) {
+    File* file = storage_file_alloc(storage);
+    bool ok = storage_file_open(file, path, FSAM_WRITE, FSOM_OPEN_APPEND);
+    if(ok) {
+        if(header && storage_file_size(file) == 0) {
+            size_t hn = strlen(header);
+            ok = storage_file_write(file, header, hn) == hn;
+        }
+        if(ok) {
+            size_t tn = strlen(text);
+            ok = storage_file_write(file, text, tn) == tn;
+        }
+    }
+    storage_file_close(file);
+    storage_file_free(file);
+    return ok;
+}
+
+bool specter_log_append(const char* type, const char* fmt, ...) {
+    furi_assert(type);
+    furi_assert(fmt);
+
+    char detail[DETAIL_MAX];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(detail, sizeof(detail), fmt, args);
+    va_end(args);
+
+    /* A stray comma would shift every CSV column after it; turn it into a
+     * space so the row still parses rather than rejecting the entry. */
+    for(char* p = detail; *p; p++) {
+        if(*p == ',') *p = ' ';
+        if(*p == '\n' || *p == '\r') *p = ' ';
+    }
+
+    char stamp[STAMP_MAX];
+    stamp_now(stamp, sizeof(stamp));
+
+    /* Grouped for the on-device viewer: timestamp, then an indented line. */
+    char txt[STAMP_MAX + DETAIL_MAX + 32u];
+    snprintf(txt, sizeof(txt), "%s\n  %-6s %s\n", stamp, type, detail);
+
+    /* One flat row for the spreadsheet. */
+    char csv[STAMP_MAX + DETAIL_MAX + 32u];
+    snprintf(csv, sizeof(csv), "%s,%s,%s\n", stamp, type, detail);
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     storage_common_mkdir(storage, STORAGE_APP_DATA_PATH_PREFIX);
 
-    File* file = storage_file_alloc(storage);
-    bool ok = storage_file_open(file, LOG_PATH, FSAM_WRITE, FSOM_OPEN_APPEND);
-    if(ok) ok = storage_file_write(file, line, (size_t)len) == (size_t)len;
+    bool ok = append_to(storage, LOG_PATH, NULL, txt);
+    /* The CSV is a convenience mirror; don't fail the whole write if only it
+     * couldn't be updated, but do report a genuine .txt failure. */
+    append_to(storage, CSV_PATH, CSV_HEADER, csv);
 
-    storage_file_close(file);
-    storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
     return ok;
 }
@@ -99,16 +135,20 @@ bool specter_log_read_tail(FuriString* out) {
     return ok;
 }
 
-bool specter_log_clear(void) {
-    Storage* storage = furi_record_open(RECORD_STORAGE);
+static bool truncate_file(Storage* storage, const char* path) {
     File* file = storage_file_alloc(storage);
-
     /* Truncate rather than delete: the file staying put makes it obvious the
      * logbook is a real thing that is simply empty. */
-    bool ok = storage_file_open(file, LOG_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS);
-
+    bool ok = storage_file_open(file, path, FSAM_WRITE, FSOM_CREATE_ALWAYS);
     storage_file_close(file);
     storage_file_free(file);
+    return ok;
+}
+
+bool specter_log_clear(void) {
+    Storage* storage = furi_record_open(RECORD_STORAGE);
+    bool ok = truncate_file(storage, LOG_PATH);
+    truncate_file(storage, CSV_PATH);
     furi_record_close(RECORD_STORAGE);
     return ok;
 }

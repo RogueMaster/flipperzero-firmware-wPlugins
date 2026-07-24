@@ -21,10 +21,12 @@ void specter_scene_logbook_on_enter(void* context) {
             "Findings land here when you:\n"
             " - hold OK on the Sweep screen\n"
             " - press OK on Fingerprint\n"
-            " - finish a Site Survey\n\n"
+            " - finish a Site Survey\n"
+            " - catch a reader in Watch\n\n"
             "Turn Logging on in Settings.\n"
-            "The file lives on the SD card at\n"
-            "apps_data/specter/logbook.txt");
+            "Saved on the SD card as\n"
+            "apps_data/specter/logbook.txt\n"
+            "and .csv for a spreadsheet.");
         text_box_set_font(app->text_box, TextBoxFontText);
         text_box_set_focus(app->text_box, TextBoxFocusStart);
     }
