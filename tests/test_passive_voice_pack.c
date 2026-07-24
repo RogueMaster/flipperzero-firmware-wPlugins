@@ -6,7 +6,7 @@
 
 #define HEADER_SIZE 32U
 #define ENTRY_SIZE  20U
-#define ENTRY_COUNT 36U
+#define ENTRY_COUNT 40U
 
 typedef struct {
     uint8_t bytes[65536];
@@ -271,12 +271,30 @@ static void test_rejections(void) {
     CHECK(!mf_passive_voice_pack_open_io(&pack, &io));
 }
 
+static void test_character_tokens(void) {
+    uint8_t token = 0U;
+    for(char ch = 'A'; ch <= 'Z'; ch++) {
+        CHECK(mf_passive_voice_char_token(ch, &token));
+        CHECK(token == (uint8_t)(ch - 'A'));
+    }
+    for(char ch = '0'; ch <= '9'; ch++) {
+        CHECK(mf_passive_voice_char_token(ch, &token));
+        CHECK(token == (uint8_t)(26U + ch - '0'));
+    }
+    CHECK(mf_passive_voice_char_token('/', &token) && token == 36U);
+    CHECK(mf_passive_voice_char_token('.', &token) && token == 37U);
+    CHECK(mf_passive_voice_char_token(',', &token) && token == 38U);
+    CHECK(mf_passive_voice_char_token('?', &token) && token == 39U);
+    CHECK(!mf_passive_voice_char_token('=', &token));
+}
+
 int main(void) {
     test_all_codecs();
     test_wrap_and_pending();
     test_voice_gain();
     test_bounded_refill();
     test_rejections();
+    test_character_tokens();
     printf("test_passive_voice_pack: %u checks passed; state=%u bytes\n", checks, (unsigned)sizeof(MfPassiveVoicePack));
     return 0;
 }

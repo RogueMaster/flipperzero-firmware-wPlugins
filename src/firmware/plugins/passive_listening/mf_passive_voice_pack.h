@@ -51,6 +51,7 @@ typedef struct {
 } MfPassiveVoicePack;
 
 bool mf_passive_voice_pack_open_io(MfPassiveVoicePack* pack, const MfPassiveVoiceIo* io);
+bool mf_passive_voice_char_token(char ch, uint8_t* token);
 bool mf_passive_voice_pack_open_asset(MfPassiveVoicePack* pack);
 void mf_passive_voice_pack_close(MfPassiveVoicePack* pack);
 bool mf_passive_voice_pack_begin(MfPassiveVoicePack* pack, MfPassivePcmPipe* pipe, char ch);

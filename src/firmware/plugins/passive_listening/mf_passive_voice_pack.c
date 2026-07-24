@@ -76,7 +76,7 @@ static bool mf_passive_voice_token_valid(
            token->length == (token->samples + 1U) / 2U;
 }
 
-static bool mf_passive_voice_char_token(char ch, uint8_t* token) {
+bool mf_passive_voice_char_token(char ch, uint8_t* token) {
     if(ch >= 'A' && ch <= 'Z') *token = (uint8_t)(ch - 'A');
     else if(ch >= '0' && ch <= '9') *token = (uint8_t)(26U + ch - '0');
     else if(ch == '/') *token = 36U;

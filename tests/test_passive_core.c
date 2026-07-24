@@ -455,6 +455,44 @@ static void test_repeat_and_vibration_controls(void) {
     mf_passive_leave(&state);
 }
 
+static void test_lesson_prompt_bounds_and_delays(void) {
+    MemoryFile file;
+    MfPassiveState state;
+    FakeServices fake;
+    uint32_t final_mark;
+
+    make_pack(&file);
+    setup(&state, &fake, &file);
+    state.mode = 1U;
+    state.prompt_length = 6U;
+    state.lesson_charset_len = 3U;
+    memcpy(state.lesson_charset, "KMU", 3U);
+    memcpy(state.prompt, "AAAAAA", 7U);
+    state.phase = MfPassivePhasePostCue;
+    state.next_at = 0U;
+    CHECK(mf_passive_tick(&state, 0U).redraw);
+    CHECK(state.prompt_len == 6U && strcmp(state.prompt, "AAAAAA") != 0);
+    for(uint8_t i = 0U; i < state.prompt_len; i++)
+        CHECK(state.prompt[i] == 'K' || state.prompt[i] == 'M' || state.prompt[i] == 'U');
+    mf_passive_leave(&state);
+
+    make_pack(&file);
+    setup(&state, &fake, &file);
+    state.answer_delay_ms = 1000U;
+    final_mark = run_cw_to_post(&state);
+    CHECK(state.next_at == final_mark + 1000U);
+    state.answer_delay_ms = 5000U;
+    state.phase = MfPassivePhaseCw;
+    state.prompt[state.prompt_len - 1U] = 'E';
+    state.char_index = (uint8_t)(state.prompt_len - 1U);
+    state.mark_index = 0U;
+    state.cw_mark = true;
+    state.next_at = 0U;
+    mf_passive_tick(&state, 0U);
+    CHECK(state.phase == MfPassivePhasePostCw && state.next_at == 5000U);
+    mf_passive_leave(&state);
+}
+
 int main(void) {
     CHECK(sizeof(MfPassiveState) <= 3584U);
     test_initial_delay();
@@ -462,6 +500,7 @@ int main(void) {
     test_delayed_tick_and_failures();
     test_gesture_and_rounds();
     test_repeat_and_vibration_controls();
+    test_lesson_prompt_bounds_and_delays();
     printf("test_passive_core: %u checks passed\n", checks);
     return 0;
 }
