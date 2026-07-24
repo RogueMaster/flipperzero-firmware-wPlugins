@@ -21,10 +21,10 @@ typedef struct {
     uint8_t voice_index;
     uint8_t revealed_count;
     uint8_t back_clicks;
+    uint8_t voice_gain_pct;
     uint8_t error;
     bool cw_mark;
     bool audio_claimed;
-    bool prepare_armed;
 } MfPassiveState;
 
 bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfPassiveResult* result);

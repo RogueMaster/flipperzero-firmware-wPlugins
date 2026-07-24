@@ -87,7 +87,7 @@ static bool mf_passive_prime_token(MfPassiveState* state) {
        !mf_passive_voice_pack_begin(
            &state->pack, &state->pipe, state->callsign.text[state->voice_index]))
         return false;
-    mf_passive_voice_pack_refill(&state->pack, &state->pipe);
+    mf_passive_voice_pack_refill(&state->pack, &state->pipe, state->voice_gain_pct);
     return !mf_passive_voice_pack_failed(&state->pack);
 }
 
@@ -106,13 +106,16 @@ bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfP
     if(state == NULL || result == NULL || args == NULL || args->struct_size != sizeof(*args) ||
        args->services == NULL || args->services->struct_size != sizeof(MfPassiveHostServices) ||
        args->services->command == NULL || args->dit_ms == 0U ||
-       args->char_gap_ms == 0U || args->tone_hz == 0U || args->output_target > MfPassiveOutputP2)
+       args->char_gap_ms == 0U || args->tone_hz == 0U || args->output_target > MfPassiveOutputP2 ||
+       args->volume_pct < 10U || args->volume_pct > 100U)
         return false;
     memset(state, 0, sizeof(*state));
     state->services = args->services;
     state->dit_ms = args->dit_ms;
     state->char_gap_ms = args->char_gap_ms;
     state->tone_hz = args->tone_hz;
+    /* SoftBuzz doubles Q15 drive, so halve hot-mastered voice before the ring. */
+    state->voice_gain_pct = args->output_target == MfPassiveOutputInternal ? 50U : 100U;
     mf_rx_rng_init(&state->rng, args->rng_seed);
     mf_callsign_gen_init(&state->callsign_gen);
     if(!mf_passive_voice_pack_open_asset(&state->pack) || !mf_passive_next_call(state) ||
@@ -141,6 +144,19 @@ void mf_passive_leave(MfPassiveState* state) {
 MfPassiveResult mf_passive_input(MfPassiveState* state, const InputEvent* event, uint32_t now_ms) {
     MfPassiveResult result;
     if(state == NULL || event == NULL) return (MfPassiveResult){0};
+    if((event->key == InputKeyUp || event->key == InputKeyDown) &&
+       (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
+        uint8_t voice_gain_pct = state->voice_gain_pct;
+        if(event->key == InputKeyUp)
+            voice_gain_pct =
+                voice_gain_pct < 95U ? (uint8_t)(voice_gain_pct + 5U) : 100U;
+        else
+            voice_gain_pct =
+                voice_gain_pct > 15U ? (uint8_t)(voice_gain_pct - 5U) : 10U;
+        state->back_clicks = 0U;
+        state->voice_gain_pct = voice_gain_pct;
+        return mf_passive_result(state, false);
+    }
     if(event->key == InputKeyBack && event->type == InputTypeShort) {
         if(state->back_clicks == 0U || (uint32_t)(now_ms - state->last_back_at) > 700U) state->back_clicks = 1U;
         else state->back_clicks++;
@@ -160,11 +176,11 @@ MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
     bool redraw = false;
     if(state == NULL) return (MfPassiveResult){0};
     if(state->phase == MfPassivePhasePrepare) {
-        if(!state->prepare_armed) {
-            state->prepare_armed = true;
+        if(!state->cw_mark) {
+            state->cw_mark = true;
             state->next_at = now_ms + MF_PASSIVE_INITIAL_CW_MS;
         } else if(mf_passive_reached(now_ms, state->next_at)) {
-            state->prepare_armed = false;
+            state->cw_mark = false;
             state->phase = MfPassivePhaseCw;
             if(!mf_passive_start_mark(state, now_ms)) mf_passive_fail(state);
         }
@@ -205,7 +221,7 @@ MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
         return mf_passive_result(state, state->phase == MfPassivePhaseVoice);
     }
     if(state->phase == MfPassivePhaseVoice) {
-        mf_passive_voice_pack_refill(&state->pack, &state->pipe);
+        mf_passive_voice_pack_refill(&state->pack, &state->pipe, state->voice_gain_pct);
         if(mf_passive_voice_pack_failed(&state->pack)) {
             mf_passive_fail(state);
         } else if(state->pipe.underruns > MF_PASSIVE_MAX_UNDERRUNS) {

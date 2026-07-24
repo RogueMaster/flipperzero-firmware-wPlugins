@@ -184,6 +184,7 @@ static void setup(MfPassiveState* state, FakeServices* fake, MemoryFile* file) {
     state->dit_ms = 10U;
     state->char_gap_ms = 30U;
     state->tone_hz = 700U;
+    state->voice_gain_pct = 50U;
     mf_rx_rng_init(&state->rng, 0x12345678U);
     mf_callsign_gen_init(&state->callsign_gen);
     memcpy(state->callsign.text, "A1A1", 5U);
@@ -359,6 +360,26 @@ static void test_gesture_and_rounds(void) {
 
     make_pack(&file);
     setup(&state, &fake, &file);
+    event.key = InputKeyUp;
+    CHECK(mf_passive_input(&state, &event, 0U).handled);
+    CHECK(state.voice_gain_pct == 55U);
+    event.type = InputTypeRepeat;
+    mf_passive_input(&state, &event, 0U);
+    CHECK(state.voice_gain_pct == 60U);
+    event.key = InputKeyDown;
+    event.type = InputTypeShort;
+    mf_passive_input(&state, &event, 0U);
+    CHECK(state.voice_gain_pct == 55U);
+    state.voice_gain_pct = 100U;
+    event.key = InputKeyUp;
+    mf_passive_input(&state, &event, 0U);
+    CHECK(state.voice_gain_pct == 100U);
+    state.voice_gain_pct = 10U;
+    event.key = InputKeyDown;
+    mf_passive_input(&state, &event, 0U);
+    CHECK(state.voice_gain_pct == 10U);
+    state.voice_gain_pct = 50U;
+    event.key = InputKeyBack;
     CHECK(!mf_passive_input(&state, &event, 1U).request_exit);
     CHECK(!mf_passive_input(&state, &event, 701U).request_exit);
     CHECK(mf_passive_input(&state, &event, 1401U).request_exit);

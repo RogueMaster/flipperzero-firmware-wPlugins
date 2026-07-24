@@ -54,7 +54,10 @@ bool mf_passive_voice_pack_open_io(MfPassiveVoicePack* pack, const MfPassiveVoic
 bool mf_passive_voice_pack_open_asset(MfPassiveVoicePack* pack);
 void mf_passive_voice_pack_close(MfPassiveVoicePack* pack);
 bool mf_passive_voice_pack_begin(MfPassiveVoicePack* pack, MfPassivePcmPipe* pipe, char ch);
-size_t mf_passive_voice_pack_refill(MfPassiveVoicePack* pack, MfPassivePcmPipe* pipe);
+size_t mf_passive_voice_pack_refill(
+    MfPassiveVoicePack* pack,
+    MfPassivePcmPipe* pipe,
+    uint8_t gain_pct);
 bool mf_passive_voice_pack_primed(const MfPassiveVoicePack* pack, const MfPassivePcmPipe* pipe);
 bool mf_passive_voice_pack_eof(const MfPassiveVoicePack* pack);
 bool mf_passive_voice_pack_drained(MfPassiveVoicePack* pack, MfPassivePcmPipe* pipe);

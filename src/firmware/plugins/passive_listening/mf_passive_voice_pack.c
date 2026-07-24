@@ -94,7 +94,8 @@ static uint16_t mf_passive_voice_pipe_free(const MfPassivePcmPipe* pipe) {
 static size_t mf_passive_voice_decode_to_pipe(
     MfPassiveVoicePack* pack,
     MfPassivePcmPipe* pipe,
-    size_t capacity) {
+    size_t capacity,
+    uint8_t gain_pct) {
     size_t written = 0U;
     while(capacity != 0U && pack->source_pos < pack->source_len) {
         uint16_t write = pipe->write_pos;
@@ -111,6 +112,12 @@ static size_t mf_passive_voice_decode_to_pipe(
             &source_used);
         pack->source_pos = (uint16_t)(pack->source_pos + source_used);
         if(produced != 0U) {
+            if(gain_pct != 100U) {
+                for(size_t i = 0U; i < produced; i++) {
+                    pipe->samples[write + i] =
+                        (int16_t)(((int32_t)pipe->samples[write + i] * gain_pct) / 100);
+                }
+            }
             __DMB();
             pipe->write_pos =
                 (uint16_t)((write + produced) & (MF_PASSIVE_PCM_RING_SAMPLES - 1U));
@@ -283,18 +290,23 @@ bool mf_passive_voice_pack_begin(MfPassiveVoicePack* pack, MfPassivePcmPipe* pip
     return true;
 }
 
-size_t mf_passive_voice_pack_refill(MfPassiveVoicePack* pack, MfPassivePcmPipe* pipe) {
+size_t mf_passive_voice_pack_refill(
+    MfPassiveVoicePack* pack,
+    MfPassivePcmPipe* pipe,
+    uint8_t gain_pct) {
     size_t written = 0U;
     uint16_t free;
     uint32_t read_total = 0U;
-    if(pack == NULL || pipe == NULL || !pack->active || pack->error) return 0U;
+    if(pack == NULL || pipe == NULL || !pack->active || pack->error || gain_pct < 10U ||
+       gain_pct > 100U)
+        return 0U;
     free = mf_passive_voice_pipe_free(pipe);
     while(free != 0U && mf_passive_voice_pipe_count(pipe) < MF_PASSIVE_VOICE_PIPE_HIGH_WATER) {
         uint16_t count = mf_passive_voice_pipe_count(pipe);
         size_t capacity = MF_PASSIVE_VOICE_PIPE_HIGH_WATER - count;
         size_t decoded;
         if(capacity > free) capacity = free;
-        decoded = mf_passive_voice_decode_to_pipe(pack, pipe, capacity);
+        decoded = mf_passive_voice_decode_to_pipe(pack, pipe, capacity, gain_pct);
         written += decoded;
         free = (uint16_t)(free - decoded);
         if(mf_passive_codec_finished(&pack->codec)) {
