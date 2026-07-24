@@ -1051,7 +1051,7 @@ static const AppSceneOnEventCallback morse_flipper_scene_on_event_handlers[Morse
     morse_flipper_scene_live_on_event,
     morse_flipper_scene_live_on_event,          morse_flipper_scene_live_on_event,
     morse_flipper_scene_live_on_event,          morse_flipper_scene_live_on_event,
-    morse_flipper_scene_live_on_event,          morse_flipper_scene_home_on_event,
+    morse_flipper_scene_home_on_event,
     morse_flipper_scene_audio_cfg_on_event,     morse_flipper_scene_live_on_event,
     morse_flipper_scene_live_on_event,          morse_flipper_scene_pc_on_event,
     morse_flipper_scene_live_on_event,          morse_flipper_scene_gpio_on_event,
