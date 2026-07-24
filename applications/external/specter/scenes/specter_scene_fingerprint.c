@@ -44,18 +44,18 @@ static void specter_fingerprint_save(SpecterApp* app) {
         return;
     }
 
-    /* Detail lines stay inside ~21 columns so the logbook screen can show them
-     * whole - see helpers/specter_log.h. */
     bool ok;
     if(v.klass == EmitterClassContinuous) {
         ok = specter_log_append(
-            "READER %s\n  d%u%% c%u%%",
+            "READER",
+            "%s duty %u%% conf %u%%",
             emitter_class_name(v.klass),
             (unsigned)st.cadence.duty,
             (unsigned)v.confidence);
     } else {
         ok = specter_log_append(
-            "READER %s\n  %s%ums b%u d%u%% c%u%%",
+            "READER",
+            "%s period %s%ums burst %ums duty %u%% conf %u%%",
             emitter_class_name(v.klass),
             v.timing_reliable ? "" : "~",
             (unsigned)st.cadence.period_ms,

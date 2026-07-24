@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Flipper%20Zero-FF8200?style=for-the-badge&logo=flipper&logoColor=white" alt="Flipper Zero">
-  <img src="https://img.shields.io/badge/version-2.0-FF3DAE?style=for-the-badge" alt="Version 2.0">
+  <img src="https://img.shields.io/badge/version-2.1-FF3DAE?style=for-the-badge" alt="Version 2.1">
   <img src="https://img.shields.io/badge/radio-13.56%20MHz%20NFC%20(onboard)-26E8CA?style=for-the-badge" alt="Onboard NFC">
   <img src="https://img.shields.io/badge/hardware-none%20required-9B5DE5?style=for-the-badge" alt="No extra hardware">
   <img src="https://img.shields.io/badge/build-ufbt-2da0ff?style=for-the-badge" alt="ufbt">
@@ -20,7 +20,8 @@
   <b>active 13.56 MHz NFC readers</b>. It <i>passively listens</i> for the RF field that a powered-on
   reader is constantly emitting — a hidden card skimmer slipped into a payment terminal, a covert
   reader behind a door panel, a rogue logger taped under a desk — then tells you <b>where it is</b>,
-  <b>what kind of thing it is</b>, and <b>whether the room is clean</b>. It never transmits.
+  <b>what kind of thing it is</b>, <b>whether the room is clean</b>, and — left on watch — <b>the
+  moment one appears while you're away</b>. It never transmits.
 </p>
 
 <p align="center"><sub>The readers are invisible. Specter makes them visible.</sub></p>
@@ -34,8 +35,8 @@
 </p>
 <p align="center">
   <sub>
-    <b>Sweep</b> (quiet) &nbsp;·&nbsp; <b>Sweep</b> (reader locked) &nbsp;·&nbsp; <b>Fingerprint</b> &nbsp;·&nbsp; <b>Survey</b> (running)<br>
-    <b>Survey</b> (verdict) &nbsp;·&nbsp; <b>Logbook</b> &nbsp;·&nbsp; <b>Calibrate</b> &nbsp;·&nbsp; <b>Settings</b>
+    <b>Sweep</b> (quiet) &nbsp;·&nbsp; <b>Sweep</b> (reader locked) &nbsp;·&nbsp; <b>Fingerprint</b> &nbsp;·&nbsp; <b>Survey</b> (running) &nbsp;·&nbsp; <b>Survey</b> (verdict)<br>
+    <b>Watch</b> (clear) &nbsp;·&nbsp; <b>Watch</b> (reader!) &nbsp;·&nbsp; <b>Logbook</b> &nbsp;·&nbsp; <b>Calibrate</b> &nbsp;·&nbsp; <b>Settings</b>
   </sub>
 </p>
 
@@ -43,7 +44,8 @@
 
 ## ✨ What it does
 
-Specter answers three different questions, and each one has its own screen.
+Specter answers four different questions — *where is it, what is it, is the room clean,* and *did one
+show up while I was away* — and each has its own screen.
 
 ### 🔍 Sweep — *where is it?*
 
@@ -100,22 +102,48 @@ Runs for 30 s, 60 s or 2 min, and auto-logs the result.
 
 <br clear="right">
 
-### 📖 Logbook &nbsp;<sub>`NEW in 2.0`</sub>
+### 🛰️ Watch Mode — *tell me if one shows up* &nbsp;<sub>`NEW in 2.1`</sub>
 
-Findings are appended with an **RTC timestamp** to `apps_data/specter/logbook.txt` on the SD card and
-are readable on-device *and* in any text editor — no export step, no proprietary format:
+<img src="images/screen_watch_hit.png" width="42%" align="right" alt="Watch Mode — reader present">
+
+Where Sweep is you hunting and Survey is a bounded verdict, **Watch stands guard indefinitely**. Arm
+it, set the Flipper down, and walk away. It keeps a running clock and a **detection count**, remembers
+**when the last contact was**, and — the whole point — **wakes the screen and sounds off the instant a
+reader appears**. Each new contact is auto-logged with its timestamp.
+
+It deliberately **ignores stealth**: a silent, dark guard that never tells you it saw something would
+be worse than useless. `OK` re-arms it (clears the count and clock).
+
+<br clear="right">
+
+### 📖 Logbook + live CSV &nbsp;<sub>`CSV NEW in 2.1`</sub>
+
+Every finding is written **twice, from one action** — so it's readable on the device *and* already a
+spreadsheet, with no export step to remember:
+
+<table>
+<tr><th><code>logbook.txt</code> — grouped, for the on-device viewer</th><th><code>logbook.csv</code> — one flat row per entry</th></tr>
+<tr><td>
 
 ```
 2026-07-18 14:35:11
-  SURVEY 60s
-  ACTIVE READER
-  mx74% av21% f38% h5
+  SURVEY 60s ACTIVE max74…
 2026-07-18 14:32:07
-  READER POLLING
-  204ms b20 d10% c88%
+  READER POLLING 204ms…
 ```
 
-Nothing leaves the device.
+</td><td>
+
+```
+timestamp,type,detail
+2026-07-18 14:35:11,SURVEY,60s ACTIVE …
+2026-07-18 14:32:07,READER,POLLING 204ms …
+```
+
+</td></tr>
+</table>
+
+Both live in `apps_data/specter/` on the SD card. Nothing leaves the device.
 
 ### 🎯 Auto-calibration &nbsp;<sub>`NEW in 2.0`</sub>
 
@@ -228,7 +256,10 @@ The `.fap` lands in `dist/specter.fap`; `ufbt launch` copies it to `apps/NFC/` a
    cadence settle — a few seconds is usually enough. Press **OK** to save the finding.
 4. Clearing a whole room instead? Open **Site Survey**, walk the space until the bar fills, and read
    the verdict.
-5. Check **Logbook** for everything you've saved, timestamped.
+5. Leaving the area? Drop the Flipper in **Watch Mode** and it'll stand guard, waking and sounding off
+   if a reader turns up while you're gone.
+6. Check **Logbook** for everything you've saved, timestamped — or pull `logbook.csv` off the card
+   into a spreadsheet.
 
 > 💡 Sweep a known-good reader first (your own phone doing NFC, or a contactless terminal you trust) to
 > see what a strong, legitimate field looks like on the meter — and what its fingerprint reads as. Then
@@ -244,6 +275,7 @@ The `.fap` lands in `dist/specter.fap`; `ufbt launch` copies it to `apps/NFC/` a
 | **Fingerprint** | `OK` | Save the finding to the logbook |
 | | `hold OK` | Restart the measurement |
 | **Site Survey** | `OK` | Run the survey again |
+| **Watch Mode** | `OK` | Re-arm (clear count and clock) |
 | *anywhere* | `BACK` | Up a level |
 
 ---
@@ -285,9 +317,10 @@ authorised** to assess. You are responsible for how you use it. Know your local 
 - [x] Adjustable threshold for finer range control — *auto-calibration + Custom sensitivity*
 - [x] Fingerprint an emitter by its polling cadence
 - [x] Timed site survey with a room verdict
-- [ ] Export the logbook as CSV for reporting
-- [ ] Long-run unattended watch mode with a wake-on-detection alarm
+- [x] Export the logbook as CSV for reporting — *written live alongside the .txt*
+- [x] Long-run unattended watch mode with a wake-on-detection alarm
 - [ ] Investigate an LF (125 kHz) coil-based reader sense as a separate mode
+- [ ] On-device logbook filtering by type
 
 ---
 
@@ -303,11 +336,12 @@ Specter-FlipperZero/
 │   ├── emitter_classify.{c,h}    # pure: cadence -> CONTINUOUS/POLLING/INTERMITTENT
 │   ├── survey_verdict.{c,h}      # pure: survey stats -> CLEAN/TRACE/ACTIVE
 │   ├── specter_settings.{c,h}    # persisted settings (saved_struct)
-│   └── specter_log.{c,h}         # SD logbook, RTC-stamped
+│   └── specter_log.{c,h}         # SD logbook, RTC-stamped .txt + live .csv
 ├── views/
 │   ├── sweep_view.{c,h}          # the EMF gauge / waveform / alarm screen
 │   ├── fingerprint_view.{c,h}    # classification card + pulse-train trace
-│   └── survey_view.{c,h}         # progress + verdict card
+│   ├── survey_view.{c,h}         # progress + verdict card
+│   └── watch_view.{c,h}          # unattended guard: clock + count + alarm
 ├── scenes/                       # scene-manager navigation
 ├── test/                         # host tests for the pure decision layers
 ├── icons/                        # 1-bit Flipper icons (generated)

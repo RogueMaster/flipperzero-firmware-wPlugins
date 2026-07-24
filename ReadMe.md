@@ -52,6 +52,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: [Allow for checking if an id is in use before adding to view dispatcher #4422 (By loftyinclination)](https://github.com/flipperdevices/flipperzero-firmware/pull/4422)
 - Updated: [Nightstand Clock v1.2 (By nymda)](https://github.com/nymda/FlipperNightStand) [fix unreachable nightlight and notif use-after-close (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/244)
 - Updated: [Ear Trainer v1.1 (By barismert98)](https://github.com/barismert98/flipper-ear-trainer)
+- Updated: [Specter v2.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
 
 <a name="release"></a>
 
@@ -778,7 +779,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Sonic Head ID v0.9 (By flipper_zero)](https://git.mbirth.uk/flipper_zero/sonicare)
 - [Space PLayground v0.1 (By alanfortlink)](https://github.com/alanfortlink/fzspground)
 - [Space Travel Calculator v1.0 (By ejfox)](https://github.com/ejfox/flipper-space-calculators)
-- [Specter v2.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
+- [Specter v2.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
 - [Spectrum Analyzer v1.5 (By jolcese)](https://github.com/jolcese/flipperzero-firmware/tree/spectrum/applications/spectrum_analyzer)
 - [Spindle Calculator v1.0 (By Minto97)](https://github.com/Minto97/spindle-calc-flipper)
 - [SPI Flash Dump v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite)

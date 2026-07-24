@@ -66,9 +66,7 @@ def draw_gauge(d, cx, cy, R, strength, col=CYAN, lw=6):
         hot = i >= 8
         ox, oy = gauge_point(cx, cy, vv, R)
         ix, iy = gauge_point(cx, cy, vv, R - (26 if hot else 16))
-        d.line(
-            [ix, iy, ox, oy], fill=(MAG if hot else col), width=lw if hot else lw - 2
-        )
+        d.line([ix, iy, ox, oy], fill=(MAG if hot else col), width=lw if hot else lw - 2)
     # needle
     tx, ty = gauge_point(cx, cy, strength, R - 18)
     d.line([cx, cy, tx, ty], fill=WHITE, width=lw + 1)
@@ -95,7 +93,8 @@ def draw_specter(d, cx, cy, w, col=CYAN, eye=BG_TOP):
     for i in range(n):
         x0 = left + i * fw
         d.polygon(
-            [(x0, bot - w // 6), (x0 + fw / 2, bot - w // 6), (x0 + fw / 4, bot)],
+            [(x0, bot - w // 6), (x0 + fw / 2, bot - w // 6),
+             (x0 + fw / 4, bot)],
             fill=BG_TOP,
         )
     # eyes
@@ -136,18 +135,9 @@ def render(path, W, H, layout="wide"):
         gx, gy, R = int(w * 0.5), int(h * 0.26), int(h * 0.19)
 
     # radiating reader-field arcs (behind), faint
-    draw_field_arcs(
-        gd,
-        gx,
-        int(gy - R * 0.1),
-        (CYAN[0], CYAN[1], CYAN[2], 70),
-        n=5,
-        base=int(R * 0.7),
-        step=int(R * 0.42),
-        lw=5 * SS,
-        start=205,
-        end=335,
-    )
+    draw_field_arcs(gd, gx, int(gy - R * 0.1), (CYAN[0], CYAN[1], CYAN[2], 70),
+                    n=5, base=int(R * 0.7), step=int(R * 0.42), lw=5 * SS,
+                    start=205, end=335)
     draw_gauge(gd, gx, gy, R, 82, col=CYAN, lw=5 * SS)
     draw_specter(gd, gx, int(gy - R * 0.45), int(R * 0.5), col=CYAN)
     add_glow(img, glow, radius=10 * SS)
@@ -174,15 +164,11 @@ def render(path, W, H, layout="wide"):
     f_foot = font(MONO, 21 * SS)
 
     # kicker
-    td.text((x0, kicker_y), "FLIPPER ZERO  ·  NFC BUG SWEEP", font=f_kick, fill=CYAN)
+    td.text((x0, kicker_y), "FLIPPER ZERO  ·  NFC BUG SWEEP",
+            font=f_kick, fill=CYAN)
 
     # title with magenta offset shadow
-    td.text(
-        (x0 + 4 * SS, title_y + 4 * SS),
-        "SPECTER",
-        font=f_title,
-        fill=(MAG[0], MAG[1], MAG[2], 160),
-    )
+    td.text((x0 + 4 * SS, title_y + 4 * SS), "SPECTER", font=f_title, fill=(MAG[0], MAG[1], MAG[2], 160))
     td.text((x0, title_y), "SPECTER", font=f_title, fill=WHITE)
 
     # version pill, sitting on the title's baseline
@@ -191,38 +177,24 @@ def render(path, W, H, layout="wide"):
     px, py = x0 + title_w + 22 * SS, title_y + title_px - 46 * SS
     pw, ph = 84 * SS, 38 * SS
     td.rounded_rectangle([px, py, px + pw, py + ph], radius=10 * SS, fill=MAG)
-    td.text((px + pw / 2, py + ph / 2), "v2.0", font=f_ver, fill=BG_TOP, anchor="mm")
+    td.text((px + pw / 2, py + ph / 2), "v2.1", font=f_ver, fill=BG_TOP, anchor="mm")
 
     # tagline + subtitle
     tag_y = title_y + title_px + 14 * SS
     td.text((x0, tag_y), "Sweep for the readers you can't see.", font=f_tag, fill=CYAN)
-    td.text(
-        (x0, tag_y + 50 * SS),
-        "Find it · fingerprint its polling cadence · survey the room. No extra hardware.",
-        font=f_sub,
-        fill=GRAY,
-    )
+    td.text((x0, tag_y + 50 * SS),
+            "Find it · fingerprint it · survey the room · leave it on watch. No extra hardware.",
+            font=f_sub, fill=GRAY)
 
     img.alpha_composite(tx)
 
     # footer line + url
     fd = ImageDraw.Draw(img)
-    fd.line(
-        [(70 * SS, h - 54 * SS), (w - 70 * SS, h - 54 * SS)], fill=DIM, width=2 * SS
-    )
-    fd.text(
-        (70 * SS, h - 44 * SS),
-        "github.com/at0m-b0mb/Specter-FlipperZero",
-        font=f_foot,
-        fill=GRAY,
-    )
-    fd.text(
-        (w - 70 * SS, h - 44 * SS),
-        "MIT · by at0m-b0mb",
-        font=f_foot,
-        fill=GRAY,
-        anchor="ra",
-    )
+    fd.line([(70 * SS, h - 54 * SS), (w - 70 * SS, h - 54 * SS)], fill=DIM, width=2 * SS)
+    fd.text((70 * SS, h - 44 * SS), "github.com/at0m-b0mb/Specter-FlipperZero",
+            font=f_foot, fill=GRAY)
+    fd.text((w - 70 * SS, h - 44 * SS), "MIT · by at0m-b0mb",
+            font=f_foot, fill=GRAY, anchor="ra")
 
     out = img.convert("RGB").resize((W, H), Image.LANCZOS)
     out.save(path)

@@ -62,9 +62,7 @@ def line(d, x0, y0, x1, y1, col=FG, w=2):
 
 
 def circle(d, cx, cy, r, col=FG, w=2):
-    d.ellipse(
-        [L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], outline=col, width=w
-    )
+    d.ellipse([L(cx) - L(r), L(cy) - L(r), L(cx) + L(r), L(cy) + L(r)], outline=col, width=w)
 
 
 def disc(d, cx, cy, r, col=FG):
@@ -105,9 +103,7 @@ def gauge_point(value, radius):
 
 
 def proximity_word(s):
-    return (
-        "STRONG" if s >= 70 else "CLOSE" if s >= 45 else "NEAR" if s >= 20 else "FAINT"
-    )
+    return "STRONG" if s >= 70 else "CLOSE" if s >= 45 else "NEAR" if s >= 20 else "FAINT"
 
 
 # --------------------------------------------------------------------------
@@ -181,19 +177,8 @@ def draw_readout(d, strength, peak, contacts):
     tb(d, 68, 51, f"PK{peak} C{contacts}", f_sec)
 
 
-def render_sweep(
-    name,
-    strength,
-    peak,
-    contacts,
-    present,
-    state,
-    history,
-    anim=1,
-    calibrating=False,
-    calib_pct=0,
-    flash=None,
-):
+def render_sweep(name, strength, peak, contacts, present, state, history,
+                 anim=1, calibrating=False, calib_pct=0, flash=None, sens="Medium"):
     img, d = canvas()
     draw_header(d, "SPECTER", state, present, flash)
     draw_gauge(d, strength, peak, present, anim)
@@ -212,7 +197,21 @@ def render_sweep(
         tb(d, 125, 62, proximity_word(strength), f_sec, BG, anchor="rs")
         frame(d, 0, 0, 127, 63, FG, lw=2)
     else:
-        draw_waveform(d, history, 63, 9)
+        # active sensitivity on the left, waveform filling the rest
+        label = f"S:{sens}"
+        tb(d, 2, 62, label, f_sec)
+        wave_left = 2 + int(d.textlength(label, font=f_sec) / S) + 4
+        for k in range(62):
+            x = 126 - k * 2
+            if x < wave_left:
+                break
+            idx = (len(history) - 1 - k) % len(history)
+            v = history[idx]
+            y = 63 - (v * 9) // 100
+            if y < 63:
+                line(d, x, 63, x, y, FG, w=S)
+            else:
+                dot(d, x, 63)
     save(img, name)
 
 
@@ -236,21 +235,9 @@ def draw_trace(d, bits):
         prev = hi
 
 
-def render_fingerprint(
-    name,
-    klass,
-    blurb,
-    conf,
-    period,
-    burst,
-    jitter,
-    duty,
-    present=True,
-    state="LISTENING",
-    approx="",
-    flash=None,
-    has_cadence=True,
-):
+def render_fingerprint(name, klass, blurb, conf, period, burst, jitter, duty,
+                       present=True, state="LISTENING", approx="", flash=None,
+                       has_cadence=True):
     img, d = canvas()
     draw_header(d, "FINGERPRINT", state, present, flash)
 
@@ -350,13 +337,9 @@ def render_menu():
 
 def render_settings():
     img, d = canvas()
-    rows = [
-        ("Sensitivity", "Custom", True),
-        ("Survey time", "60 s", False),
-        ("Sound", "ON", False),
-        ("Vibrate", "ON", False),
-        ("Stealth", "ON", False),
-    ]
+    rows = [("Sensitivity", "Custom", True), ("Survey time", "60 s", False),
+            ("Sound", "ON", False), ("Vibrate", "ON", False),
+            ("Stealth", "ON", False)]
     ROW_H = 12
     for i, (k, v, sel) in enumerate(rows):
         y = 2 + i * ROW_H
@@ -371,151 +354,70 @@ def render_settings():
 
 
 def render_logbook():
+    """The on-device viewer: each entry is a timestamp line then an indented
+    'TYPE detail' line (long details wrap in the real text box; shown here as a
+    representative prefix)."""
     img, d = canvas()
     lines = [
+        "2026-07-18 14:36:20",
+        "  WATCH  hit 4 @92s f61%",
         "2026-07-18 14:35:11",
-        "  SURVEY 60s",
-        "  ACTIVE READER",
-        "  mx74% av21% f38% h5",
+        "  SURVEY 60s ACTIVE mx74",
         "2026-07-18 14:32:07",
-        "  READER POLLING",
-        "  204ms b20 d10% c88%",
+        "  READER POLLING 204ms",
+        "2026-07-18 14:30:55",
+        "  SWEEP  field 78% pk86%",
     ]
     for i, s in enumerate(lines):
-        tb(d, 2, 9 + i * 9, s, f_sec)
-    box(d, 125, 20, 3, 30)  # scrollbar, parked near the end
+        tb(d, 2, 9 + i * 8, s, f_sec)
+    box(d, 125, 14, 3, 34)  # scrollbar, parked near the end
     save(img, "screen_logbook.png")
 
 
-CLEAR_HIST = [
-    3,
-    5,
-    2,
-    8,
-    4,
-    1,
-    6,
-    3,
-    9,
-    5,
-    2,
-    7,
-    4,
-    11,
-    6,
-    3,
-    8,
-    5,
-    2,
-    10,
-    6,
-    4,
-    9,
-    5,
-    3,
-    7,
-    12,
-    6,
-    4,
-    8,
-    5,
-    14,
-    7,
-    4,
-    9,
-    6,
-    3,
-    8,
-    5,
-    11,
-    6,
-    4,
-    7,
-    3,
-    9,
-    5,
-    2,
-    8,
-    13,
-    6,
-    4,
-    7,
-    5,
-    10,
-    6,
-    3,
-    8,
-    5,
-    2,
-    7,
-    4,
-    9,
-]
+# --------------------------------------------------------------------------
+# Watch Mode (views/watch_view.c)
+# --------------------------------------------------------------------------
+def render_watch(name, watching_s, contacts, peak, present, strength=0,
+                 last_ago="--", blink=True):
+    img, d = canvas()
+    tb(d, 2, 9, "WATCH", f_sec)
+    tb(d, 126, 9, "ARMED", f_sec, anchor="rs")
+    line(d, 0, 11, 127, 11)
 
-SURVEY_HIST = [
-    4,
-    6,
-    3,
-    9,
-    5,
-    2,
-    7,
-    12,
-    22,
-    38,
-    51,
-    44,
-    30,
-    18,
-    9,
-    5,
-    3,
-    8,
-    4,
-    6,
-    11,
-    7,
-    4,
-    9,
-    5,
-    3,
-    8,
-    15,
-    28,
-    41,
-    36,
-    24,
-    13,
-    7,
-    4,
-    9,
-    5,
-    2,
-    8,
-    6,
-    3,
-    10,
-    5,
-    7,
-    4,
-    9,
-    6,
-    3,
-    8,
-    5,
-    12,
-    7,
-    4,
-    10,
-    6,
-    3,
-    9,
-    5,
-    8,
-    4,
-    7,
-    3,
-]
+    STATUS_Y, STATUS_H, CLOCK_BASE = 14, 14, 34
+    FOOT1, FOOT2, COLR = 50, 61, 66
+
+    if present:
+        if blink:
+            box(d, 0, STATUS_Y - 1, 128, STATUS_H)
+            tb(d, 64, STATUS_Y + 9, "READER PRESENT", f_pri, BG, anchor="ms")
+        else:
+            frame(d, 0, STATUS_Y - 1, 128, STATUS_H)
+            tb(d, 64, STATUS_Y + 9, "READER PRESENT", f_pri, FG, anchor="ms")
+    else:
+        word = "CLEAR NOW" if contacts else "ALL CLEAR"
+        tb(d, 4, STATUS_Y + 9, word, f_pri, anchor="ls")
+        mm, ss = divmod(watching_s, 60)
+        tb(d, 126, CLOCK_BASE, f"{mm:02d}:{ss:02d}", f_big, anchor="rs")
+
+    line(d, 0, FOOT1 - 10, 127, FOOT1 - 10)
+    tb(d, 2, FOOT1, f"HITS {contacts}", f_sec)
+    tb(d, COLR, FOOT1, f"PEAK {peak}%", f_sec)
+    tb(d, 2, FOOT2, f"LAST {last_ago}", f_sec)
+    if present:
+        tb(d, COLR, FOOT2, f"NOW {strength}%", f_sec)
+    else:
+        tb(d, COLR, FOOT2, "OK=reset", f_sec)
+    save(img, name)
+
+
+CLEAR_HIST = [3, 5, 2, 8, 4, 1, 6, 3, 9, 5, 2, 7, 4, 11, 6, 3, 8, 5, 2, 10, 6, 4, 9,
+              5, 3, 7, 12, 6, 4, 8, 5, 14, 7, 4, 9, 6, 3, 8, 5, 11, 6, 4, 7, 3, 9, 5,
+              2, 8, 13, 6, 4, 7, 5, 10, 6, 3, 8, 5, 2, 7, 4, 9]
+
+SURVEY_HIST = [4, 6, 3, 9, 5, 2, 7, 12, 22, 38, 51, 44, 30, 18, 9, 5, 3, 8, 4, 6, 11,
+               7, 4, 9, 5, 3, 8, 15, 28, 41, 36, 24, 13, 7, 4, 9, 5, 2, 8, 6, 3, 10,
+               5, 7, 4, 9, 6, 3, 8, 5, 12, 7, 4, 10, 6, 3, 9, 5, 8, 4, 7, 3]
 
 
 def strip(names, out, cols=None):
@@ -539,66 +441,32 @@ def strip(names, out, cols=None):
 if __name__ == "__main__":
     render_sweep("screen_clear.png", 7, 18, 0, False, "SCANNING", CLEAR_HIST, anim=2)
     render_sweep("screen_reader.png", 78, 86, 3, True, "READER", CLEAR_HIST, anim=1)
-    render_sweep(
-        "screen_calibrate.png",
-        4,
-        9,
-        0,
-        False,
-        "CALIBRATE",
-        CLEAR_HIST,
-        anim=2,
-        calibrating=True,
-        calib_pct=62,
-    )
+    render_sweep("screen_calibrate.png", 4, 9, 0, False, "CALIBRATE", CLEAR_HIST,
+                 anim=2, calibrating=True, calib_pct=62)
 
-    render_fingerprint(
-        "screen_fingerprint.png", "POLLING", "Fixed poll cycle", 88, 204, 24, 2, 11
-    )
-    render_fingerprint(
-        "screen_fingerprint_cw.png",
-        "CONTINUOUS",
-        "Carrier held up",
-        100,
-        0,
-        0,
-        0,
-        98,
-        has_cadence=False,
-    )
+    render_fingerprint("screen_fingerprint.png", "POLLING", "Fixed poll cycle",
+                       88, 204, 24, 2, 11)
+    render_fingerprint("screen_fingerprint_cw.png", "CONTINUOUS", "Carrier held up",
+                       100, 0, 0, 0, 98, has_cadence=False)
 
     render_survey_running("screen_survey_run.png", 62, 23, 9, 51, 2, False, SURVEY_HIST)
-    render_survey_verdict(
-        "screen_survey_done.png", "ACTIVE READER", "Fingerprint it", 74, 21, 38, 5
-    )
-    render_survey_verdict(
-        "screen_survey_clean.png", "CLEAN", "Nothing emitting here", 6, 2, 0, 0
-    )
+    render_survey_verdict("screen_survey_done.png", "ACTIVE READER", "Fingerprint it",
+                          74, 21, 38, 5)
+    render_survey_verdict("screen_survey_clean.png", "CLEAN", "Nothing emitting here",
+                          6, 2, 0, 0)
+
+    render_watch("screen_watch.png", watching_s=752, contacts=0, peak=6, present=False,
+                 last_ago="--")
+    render_watch("screen_watch_hit.png", watching_s=92, contacts=4, peak=71, present=True,
+                 strength=63, last_ago="0s")
 
     render_menu()
     render_settings()
     render_logbook()
 
-    strip(
-        (
-            "screen_clear.png",
-            "screen_reader.png",
-            "screen_fingerprint.png",
-            "screen_survey_done.png",
-        ),
-        "screens.png",
-    )
-    strip(
-        (
-            "screen_clear.png",
-            "screen_reader.png",
-            "screen_fingerprint.png",
-            "screen_survey_run.png",
-            "screen_survey_done.png",
-            "screen_logbook.png",
-            "screen_calibrate.png",
-            "screen_settings.png",
-        ),
-        "screens_all.png",
-        cols=4,
-    )
+    strip(("screen_reader.png", "screen_fingerprint.png",
+           "screen_survey_done.png", "screen_watch_hit.png"), "screens.png")
+    strip(("screen_clear.png", "screen_reader.png", "screen_fingerprint.png",
+           "screen_survey_run.png", "screen_survey_done.png", "screen_watch.png",
+           "screen_watch_hit.png", "screen_logbook.png", "screen_calibrate.png",
+           "screen_settings.png"), "screens_all.png", cols=5)
