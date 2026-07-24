@@ -413,6 +413,8 @@ static bool
         return true;
     }
 
+    if(back_key && event->key == InputKeyBack) return true;
+
     return false;
 }
 
