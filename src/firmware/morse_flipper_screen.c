@@ -38,6 +38,10 @@ void morse_flipper_enter_screen(
         morse_flipper_icr_host_unload(app);
     }
 
+    if(app->screen == MorseFlipperScreenRxPractice && screen != MorseFlipperScreenRxPractice) {
+        morse_flipper_plugin_runtime_unload_current(app);
+    }
+
     if((app->screen == MorseFlipperScreenRf || app->screen == MorseFlipperScreenRfRx) &&
        screen != MorseFlipperScreenRf && screen != MorseFlipperScreenRfRx) {
         app->rf_live_active = false;

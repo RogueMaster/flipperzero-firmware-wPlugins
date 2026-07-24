@@ -28,13 +28,7 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .session_progress = NULL,
         .view_progress = NULL,
         .exit_requested = false,
-        .plugin_mutex = NULL,
-        .content_manager = NULL,
-        .content_api = NULL,
-        .content_state = NULL,
-        .content_active = false,
-        .content_mode = MorseFlipperContentModeHelp,
-        .content_error = MorseFlipperContentErrorNone,
+        .plugin_slot = {0},
         .previous_usb_config = NULL,
         .hid_cfg =
             {
@@ -208,7 +202,6 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .rf_carrier_present = false,
         .rf_monitor_tone = false,
         .rf_rx_audio_enabled = true,
-        .icr_playback_mark = false,
         .ptt_level = false,
         .gpio_level = false,
         .gpio_gap_flushed = true,

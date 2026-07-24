@@ -1151,6 +1151,8 @@ bool morse_flipper_active_mode_input(MorseFlipperApp* app, InputEvent* event, ui
         return morse_flipper_streak_intro_input(app, event);
     case MorseFlipperScreenIcr:
         return morse_flipper_icr_host_input(app, event, now_ms);
+    case MorseFlipperScreenRxPractice:
+        return morse_flipper_rx_practice_host_input(app, event, now_ms);
     case MorseFlipperScreenRfFreq:
         return morse_flipper_rf_freq_input(app, event);
     case MorseFlipperScreenRfRx:
@@ -1180,7 +1182,8 @@ static bool
     morse_flipper_session_live_keying_input(MorseFlipperApp* app, const InputEvent* event) {
     MorseFlipperInputGate g;
 
-    if(app->screen != MorseFlipperScreenSession && app->screen != MorseFlipperScreenTxGroups)
+    if(app->screen != MorseFlipperScreenSession && app->screen != MorseFlipperScreenTxGroups &&
+       app->screen != MorseFlipperScreenRxPractice)
         return false;
     if(app->screen == MorseFlipperScreenSession && !morse_flipper_session_repeat_active(app))
         return false;
@@ -1188,6 +1191,7 @@ static bool
     if(event->type != InputTypePress && event->type != InputTypeRelease) return false;
 
     g = morse_flipper_input_gate(app);
+    if(app->screen == MorseFlipperScreenRxPractice && !g.live) return false;
 
     if(event->key == InputKeyOk && g.btn) {
         morse_flipper_handle_active_keying_event(app, event);
@@ -1199,7 +1203,8 @@ static bool
         return true;
     }
 
-    if(event->key == InputKeyLeft && morse_flipper_session_left_exit_active(app)) {
+    if(app->screen != MorseFlipperScreenRxPractice &&
+       event->key == InputKeyLeft && morse_flipper_session_left_exit_active(app)) {
         morse_flipper_handle_active_keying_event(app, event);
         return true;
     }
