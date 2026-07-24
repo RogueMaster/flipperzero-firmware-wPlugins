@@ -1,7 +1,9 @@
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "mf_rx_rng.h"
+#include "mf_callsign_gen.h"
 
 int main(void) {
     MfRxRng rng;
@@ -23,6 +25,22 @@ int main(void) {
     CHECK(mf_rx_rng_bounded(&rng, 1U) == 0U);
     for(uint32_t bound = 2U; bound < 100U; bound++)
         CHECK(mf_rx_rng_bounded(&rng, bound) < bound);
+    MfCallsignGen gen;
+    MfCallsign call;
+    mf_callsign_gen_init(&gen);
+    mf_rx_rng_init(&rng, 123U);
+    for(uint8_t len = 4U; len <= 6U; len++) {
+        for(unsigned i = 0U; i < 10000U; i++) {
+            char previous[MF_CALLSIGN_PREFIX_MAX + 1U];
+            uint8_t previous_len = gen.last_prefix_len;
+            for(uint8_t j = 0U; j <= previous_len; j++) previous[j] = gen.last_prefix[j];
+            CHECK(mf_callsign_generate(&gen, &rng, len, &call));
+            CHECK(mf_callsign_valid(&call, len));
+            CHECK(call.prefix_len != previous_len ||
+                  previous_len == 0U ||
+                  memcmp(call.prefix, previous, previous_len) != 0);
+        }
+    }
     printf("test_rx_callsign_gen: %u checks passed\n", checks);
     return 0;
 }
