@@ -49,6 +49,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Android KB Bridge v0.5.5 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD) (Version Only)
 - Updated: [Asteroids v1.3 (By antirez)](https://github.com/antirez/flipper-asteroids) [fix the stray lines and stall when objects cross the screen edge (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/242)
 - OFW: [Add method for changing variable item label #4421 (By loftyinclination)](https://github.com/flipperdevices/flipperzero-firmware/pull/4421)
+- OFW: [Allow for checking if an id is in use before adding to view dispatcher #4422 (By loftyinclination)](https://github.com/flipperdevices/flipperzero-firmware/pull/4422)
 
 <a name="release"></a>
 
