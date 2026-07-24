@@ -18,7 +18,6 @@ bool morse_flipper_scene_supports_audio_pwm(uint8_t scene) {
     case MorseFlipperSceneStraight:
     case MorseFlipperSceneIcr:
     case MorseFlipperSceneRxCallsigns:
-    case MorseFlipperSceneRxGroups5:
     case MorseFlipperSceneRf:
     case MorseFlipperSceneRfRx:
         return true;

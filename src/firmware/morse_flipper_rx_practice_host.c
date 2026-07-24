@@ -37,10 +37,7 @@ void morse_flipper_rx_practice_host_unload_locked(MorseFlipperApp* app) {
         api == NULL ? NULL : api->free);
 }
 
-bool morse_flipper_rx_practice_host_enter(
-    MorseFlipperApp* app,
-    MfRxPracticeMode mode,
-    uint32_t now_ms) {
+bool morse_flipper_rx_practice_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
     PluginManager* manager = NULL;
     const MfRxPracticeApi* api = NULL;
     void* state = NULL;
@@ -51,7 +48,7 @@ bool morse_flipper_rx_practice_host_enter(
     if(app == NULL || app->plugin_slot.mutex == NULL) return false;
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     if(!morse_flipper_plugin_runtime_claim_locked(
-           app, MorseFlipperPluginOwnerRxPractice, mode))
+           app, MorseFlipperPluginOwnerRxPractice, 0U))
         goto done;
     app->session_result_tone = false;
     app->session_result_good = false;
@@ -73,7 +70,6 @@ bool morse_flipper_rx_practice_host_enter(
     }
     args = (MfRxPracticeEnterArgs){
         .struct_size = sizeof(args),
-        .mode = mode,
         .now_ms = now_ms,
         .rng_seed = furi_hal_random_get(),
         .answer_timeout_ms =

@@ -13,10 +13,9 @@ static unsigned checks;
         checks++; \
     } while(0)
 
-static MfRxPracticeEnterArgs make_args(MfRxPracticeMode mode, uint32_t now) {
+static MfRxPracticeEnterArgs make_args(uint32_t now) {
     return (MfRxPracticeEnterArgs){
         .struct_size = sizeof(MfRxPracticeEnterArgs),
-        .mode = mode,
         .now_ms = now,
         .rng_seed = 1U,
         .answer_timeout_ms = 1000U,
@@ -44,7 +43,7 @@ static void open_answer(MfRxPracticeState* state, uint32_t now) {
 static void test_enter_validation(void) {
     MfRxPracticeState state;
     MfRxPracticeResult result;
-    MfRxPracticeEnterArgs args = make_args(MfRxPracticeModeCallsigns, 0U);
+    MfRxPracticeEnterArgs args = make_args(0U);
 
     memset(&state, 0xA5, sizeof(state));
     memset(&result, 0xA5, sizeof(result));
@@ -54,12 +53,10 @@ static void test_enter_validation(void) {
     args.struct_size--;
     CHECK(!mf_rx_practice_enter(&state, &args, &result));
     CHECK(state.session_total == 0U);
-    args = make_args((MfRxPracticeMode)99, 0U);
-    CHECK(!mf_rx_practice_enter(&state, &args, &result));
-    args = make_args(MfRxPracticeModeCallsigns, 0U);
+    args = make_args(0U);
     args.answer_timeout_ms = INT32_MAX;
     CHECK(!mf_rx_practice_enter(&state, &args, &result));
-    args = make_args(MfRxPracticeModeCallsigns, 0U);
+    args = make_args(0U);
     args.dit_ms = 0U;
     CHECK(!mf_rx_practice_enter(&state, &args, &result));
 }
@@ -67,7 +64,7 @@ static void test_enter_validation(void) {
 static void test_playback_and_answer(void) {
     MfRxPracticeState state;
     MfRxPracticeResult result;
-    MfRxPracticeEnterArgs args = make_args(MfRxPracticeModeCallsigns, 0U);
+    MfRxPracticeEnterArgs args = make_args(0U);
     uint8_t mark_index;
 
     CHECK(mf_rx_practice_enter(&state, &args, &result));
@@ -113,20 +110,23 @@ static void test_playback_and_answer(void) {
     CHECK(result.feedback == MfRxPracticeFeedbackClear);
 }
 
-static void test_edit_and_mode_filtering(void) {
+static void test_edit_and_filtering(void) {
     MfRxPracticeState state;
     MfRxPracticeResult result;
-    MfRxPracticeEnterArgs args = make_args(MfRxPracticeModeGroups5, 0U);
+    MfRxPracticeEnterArgs args = make_args(0U);
 
     CHECK(mf_rx_practice_enter(&state, &args, &result));
     open_answer(&state, 0U);
     uint32_t activity = state.answer_last_activity_ms;
-    result = mf_rx_practice_feed_text(&state, "7 |", 3U, activity + 10U);
+    result = mf_rx_practice_feed_text(&state, " |.!?\x80", 6U, activity + 10U);
     CHECK(!result.handled);
     CHECK(state.answer_len == 0U && state.answer_last_activity_ms == activity);
+    result = mf_rx_practice_feed_text(&state, "7", 1U, activity + 15U);
+    CHECK(result.handled && result.redraw && state.answer[0] == '7');
+    CHECK(state.answer_last_activity_ms == activity + 15U);
     result = mf_rx_practice_command(&state, MfRxPracticeCommandBackspace, activity + 20U);
-    CHECK(result.handled && result.decoder_reset && !result.redraw);
-    CHECK(state.answer_last_activity_ms == activity);
+    CHECK(result.handled && result.decoder_reset && result.redraw);
+    CHECK(state.answer_last_activity_ms == activity + 20U);
     result = mf_rx_practice_feed_text(&state, "a", 1U, activity + 30U);
     CHECK(result.handled && result.redraw && state.answer[0] == 'A');
     CHECK(state.answer_last_activity_ms == activity + 30U);
@@ -146,7 +146,7 @@ static void test_edit_and_mode_filtering(void) {
 static void test_timeout_wrap_and_saturation(void) {
     MfRxPracticeState state;
     MfRxPracticeResult result;
-    MfRxPracticeEnterArgs args = make_args(MfRxPracticeModeGroups5, UINT32_MAX - 50U);
+    MfRxPracticeEnterArgs args = make_args(UINT32_MAX - 50U);
 
     args.answer_timeout_ms = 100U;
     CHECK(mf_rx_practice_enter(&state, &args, &result));
@@ -173,7 +173,7 @@ static void test_timeout_wrap_and_saturation(void) {
 static void test_back_and_reenter(void) {
     MfRxPracticeState state;
     MfRxPracticeResult result;
-    MfRxPracticeEnterArgs args = make_args(MfRxPracticeModeCallsigns, 0U);
+    MfRxPracticeEnterArgs args = make_args(0U);
 
     CHECK(mf_rx_practice_enter(&state, &args, &result));
     result = mf_rx_practice_command(&state, MfRxPracticeCommandBack, 0U);
@@ -192,7 +192,7 @@ static void test_back_and_reenter(void) {
 static void test_press_commands(void) {
     MfRxPracticeState state;
     MfRxPracticeResult result;
-    MfRxPracticeEnterArgs args = make_args(MfRxPracticeModeGroups5, 100U);
+    MfRxPracticeEnterArgs args = make_args(100U);
 
     CHECK(mf_rx_practice_enter(&state, &args, &result));
     result = mf_rx_practice_command(&state, MfRxPracticeCommandPrimaryPress, 100U);
@@ -214,7 +214,7 @@ static void test_press_commands(void) {
 int main(void) {
     test_enter_validation();
     test_playback_and_answer();
-    test_edit_and_mode_filtering();
+    test_edit_and_filtering();
     test_timeout_wrap_and_saturation();
     test_back_and_reenter();
     test_press_commands();

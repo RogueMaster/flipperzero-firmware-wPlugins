@@ -33,8 +33,7 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
     if(state == NULL || canvas == NULL) return;
     canvas_set_font(canvas, FontSecondary);
     if(state->phase == MfRxPracticePhaseIdle) {
-        canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignBottom,
-                                state->mode == MfRxPracticeModeCallsigns ? "Callsigns" : "RX Groups 5");
+        canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignBottom, "Callsigns");
         canvas_draw_str_aligned(canvas, 64, 33, AlignCenter, AlignBottom, "Press OK to start");
         if(state->physical_key_can_start)
             canvas_draw_str_aligned(canvas, 64, 49, AlignCenter, AlignBottom, "Press your key to start");
@@ -46,9 +45,13 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
                                    state->session_total / 2U) /
                                   state->session_total);
         canvas_draw_str_aligned(canvas, 64, 10, AlignCenter, AlignBottom, "Final score");
-        canvas_draw_str_aligned(canvas, 64, 23, AlignCenter, AlignBottom,
-                                state->internal_error ? "Practice error" :
-                                (state->mode == MfRxPracticeModeCallsigns ? "Callsigns" : "RX Groups 5"));
+        canvas_draw_str_aligned(
+            canvas,
+            64,
+            23,
+            AlignCenter,
+            AlignBottom,
+            state->internal_error ? "Practice error" : "Callsigns");
         snprintf(score, sizeof(score), "%u/%u  %u%%", (unsigned)state->session_passed,
                  (unsigned)state->session_total, pct);
         canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignBottom, score);
@@ -58,7 +61,7 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
     canvas_draw_str_aligned(canvas, 64, 9, AlignCenter, AlignBottom,
                             state->phase == MfRxPracticePhaseResult ?
                                 (state->last_passed ? "PASS" : "FAIL") :
-                                (state->mode == MfRxPracticeModeCallsigns ? "Callsigns" : "RX Groups 5"));
+                                "Callsigns");
     mf_draw_slots(
         canvas,
         state->target,

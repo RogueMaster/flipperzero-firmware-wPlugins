@@ -4,13 +4,11 @@
 #include "morse_flipper_rx_practice_types.h"
 
 typedef struct MfRxPracticeState {
-    MfRxPracticeMode mode;
     MfRxPracticePhase phase;
     MfRxRng rng;
     MfCallsignGen callsigns;
     char target[MF_CALLSIGN_MAX_LEN + 1U];
     char answer[MF_CALLSIGN_MAX_LEN + 1U];
-    char last_group[6];
     uint32_t next_at;
     uint32_t answer_last_activity_ms;
     uint32_t answer_timeout_ms;

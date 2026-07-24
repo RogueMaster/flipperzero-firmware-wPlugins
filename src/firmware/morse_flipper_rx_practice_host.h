@@ -5,10 +5,7 @@
 typedef struct MorseFlipperApp MorseFlipperApp;
 typedef struct Canvas Canvas;
 
-bool morse_flipper_rx_practice_host_enter(
-    MorseFlipperApp* app,
-    MfRxPracticeMode mode,
-    uint32_t now_ms);
+bool morse_flipper_rx_practice_host_enter(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_rx_practice_host_unload_locked(MorseFlipperApp* app);
 void morse_flipper_rx_practice_host_draw(MorseFlipperApp* app, Canvas* canvas);
 

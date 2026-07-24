@@ -224,7 +224,6 @@ typedef enum {
     MorseFlipperSceneStreakIntro,
     MorseFlipperSceneIcr,
     MorseFlipperSceneRxCallsigns,
-    MorseFlipperSceneRxGroups5,
     MorseFlipperSceneNum,
 } MorseFlipperScene;
 

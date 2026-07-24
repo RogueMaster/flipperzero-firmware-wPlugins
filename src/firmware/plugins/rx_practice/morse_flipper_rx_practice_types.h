@@ -6,11 +6,6 @@
 
 #define MF_RX_PRACTICE_FEED_MAX 96U
 
-typedef uint8_t MfRxPracticeMode;
-enum {
-    MfRxPracticeModeCallsigns = 0,
-    MfRxPracticeModeGroups5 = 1,
-};
 typedef uint8_t MfRxPracticePhase;
 enum {
     MfRxPracticePhaseIdle = 0,
@@ -44,7 +39,6 @@ enum {
 
 typedef struct {
     uint32_t struct_size;
-    MfRxPracticeMode mode;
     uint32_t now_ms;
     uint32_t rng_seed;
     uint32_t answer_timeout_ms;

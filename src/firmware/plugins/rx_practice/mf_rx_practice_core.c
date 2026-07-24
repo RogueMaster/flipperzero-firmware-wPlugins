@@ -24,28 +24,6 @@ static MfRxPracticeResult mf_result(
     };
 }
 
-static bool mf_group_generate(MfRxPracticeState* state) {
-    char candidate[6];
-    for(uint8_t attempt = 0U; attempt < 8U; attempt++) {
-        for(uint8_t i = 0U; i < 5U; i++)
-            candidate[i] = (char)('A' + mf_rx_rng_bounded(&state->rng, 26U));
-        candidate[5] = '\0';
-        if(strcmp(candidate, state->last_group) != 0) {
-            memcpy(state->target, candidate, sizeof(candidate));
-            memcpy(state->last_group, candidate, sizeof(candidate));
-            state->target_len = 5U;
-            return true;
-        }
-    }
-    memcpy(candidate, state->last_group, sizeof(candidate));
-    if(candidate[0] == '\0') memcpy(candidate, "AAAAA", sizeof(candidate));
-    candidate[4] = candidate[4] == 'Z' ? 'A' : (char)(candidate[4] + 1);
-    memcpy(state->target, candidate, sizeof(candidate));
-    memcpy(state->last_group, candidate, sizeof(candidate));
-    state->target_len = 5U;
-    return true;
-}
-
 static bool mf_begin_round(MfRxPracticeState* state, uint32_t now_ms) {
     MfCallsign call;
     bool ok;
@@ -54,13 +32,9 @@ static bool mf_begin_round(MfRxPracticeState* state, uint32_t now_ms) {
     state->playback_char = 0U;
     state->playback_mark_index = 0U;
     state->playback_mark = false;
-    if(state->mode == MfRxPracticeModeCallsigns) {
-        state->target_len = mf_callsign_pick_length(&state->rng);
-        ok = mf_callsign_generate(&state->callsigns, &state->rng, state->target_len, &call);
-        if(ok) memcpy(state->target, call.text, sizeof(state->target));
-    } else {
-        ok = mf_group_generate(state);
-    }
+    state->target_len = mf_callsign_pick_length(&state->rng);
+    ok = mf_callsign_generate(&state->callsigns, &state->rng, state->target_len, &call);
+    if(ok) memcpy(state->target, call.text, sizeof(state->target));
     if(!ok || state->target_len == 0U || cw_symbol_count(cw(state->target[0])) == 0U) {
         state->phase = MfRxPracticePhaseFinal;
         state->internal_error = true;
@@ -90,10 +64,10 @@ static MfRxPracticeResult mf_finish_answer(
     return mf_result(state, true, true, true, false, feedback);
 }
 
-static char mf_normalize(MfRxPracticeMode mode, char ch) {
+static char mf_normalize(char ch) {
     if(ch >= 'a' && ch <= 'z') ch = (char)(ch - ('a' - 'A'));
     if(ch >= 'A' && ch <= 'Z') return ch;
-    if(mode == MfRxPracticeModeCallsigns && ch >= '0' && ch <= '9') return ch;
+    if(ch >= '0' && ch <= '9') return ch;
     return '\0';
 }
 
@@ -118,11 +92,10 @@ bool mf_rx_practice_enter(
     if(state != NULL) *state = (MfRxPracticeState){0};
     if(initial != NULL) *initial = (MfRxPracticeResult){0};
     if(state == NULL || args == NULL || initial == NULL || args->struct_size < sizeof(*args) ||
-       args->mode > MfRxPracticeModeGroups5 || args->dit_ms == 0U || args->char_gap_ms == 0U ||
-       args->answer_timeout_ms == 0U || args->result_hold_ms == 0U ||
+       args->dit_ms == 0U || args->char_gap_ms == 0U || args->answer_timeout_ms == 0U ||
+       args->result_hold_ms == 0U ||
        args->answer_timeout_ms >= INT32_MAX || args->result_hold_ms >= INT32_MAX)
         return false;
-    state->mode = args->mode;
     state->phase = MfRxPracticePhaseIdle;
     state->answer_timeout_ms = args->answer_timeout_ms;
     state->result_hold_ms = args->result_hold_ms;
@@ -216,7 +189,7 @@ MfRxPracticeResult mf_rx_practice_feed_text(
     if(text_len > MF_RX_PRACTICE_FEED_MAX) text_len = MF_RX_PRACTICE_FEED_MAX;
     bool accepted = false;
     for(size_t i = 0U; i < text_len; i++) {
-        char ch = mf_normalize(state->mode, text[i]);
+        char ch = mf_normalize(text[i]);
         if(ch == '\0') continue;
         if(state->answer_len < state->target_len) {
             state->answer[state->answer_len++] = ch;

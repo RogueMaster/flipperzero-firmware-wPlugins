@@ -151,20 +151,13 @@ static void morse_flipper_scene_menu_training_on_enter(void* context) {
         app);
     submenu_add_item(
         app->submenu,
-        "RX Groups of 5",
-        MorseFlipperSceneRxGroups5,
-        morse_flipper_scene_menu_pick,
-        app);
-    submenu_add_item(
-        app->submenu,
         "TX Groups of 5 letters",
         MorseFlipperSceneTxGroups,
         morse_flipper_scene_menu_pick,
         app);
     if(sel != MorseFlipperSceneProgress && sel != MorseFlipperSceneSession &&
        sel != MorseFlipperSceneStraight && sel != MorseFlipperSceneIcr &&
-       sel != MorseFlipperSceneRxCallsigns && sel != MorseFlipperSceneRxGroups5 &&
-       sel != MorseFlipperSceneTxGroups)
+       sel != MorseFlipperSceneRxCallsigns && sel != MorseFlipperSceneTxGroups)
         sel = MorseFlipperSceneProgress;
     submenu_set_selected_item(app->submenu, sel);
     morse_flipper_scene_enter_now(app, MorseFlipperSceneMenuTraining);
@@ -789,15 +782,8 @@ static void morse_flipper_scene_icr_on_exit(void* context) {
 static void morse_flipper_scene_rx_callsigns_on_enter(void* context) {
     MorseFlipperApp* app = context;
     morse_flipper_plugin_runtime_unload_current(app);
-    morse_flipper_rx_practice_host_enter(app, MfRxPracticeModeCallsigns, furi_get_tick());
+    morse_flipper_rx_practice_host_enter(app, furi_get_tick());
     morse_flipper_scene_enter_now(app, MorseFlipperSceneRxCallsigns);
-}
-
-static void morse_flipper_scene_rx_groups5_on_enter(void* context) {
-    MorseFlipperApp* app = context;
-    morse_flipper_plugin_runtime_unload_current(app);
-    morse_flipper_rx_practice_host_enter(app, MfRxPracticeModeGroups5, furi_get_tick());
-    morse_flipper_scene_enter_now(app, MorseFlipperSceneRxGroups5);
 }
 
 static void morse_flipper_scene_rx_practice_on_exit(void* context) {
@@ -1026,7 +1012,6 @@ static const AppSceneOnEnterCallback morse_flipper_scene_on_enter_handlers[Morse
     morse_flipper_scene_streak_intro_on_enter,
     morse_flipper_scene_icr_on_enter,
     morse_flipper_scene_rx_callsigns_on_enter,
-    morse_flipper_scene_rx_groups5_on_enter,
 };
 
 static const AppSceneOnEventCallback morse_flipper_scene_on_event_handlers[MorseFlipperSceneNum] = {
@@ -1050,7 +1035,7 @@ static const AppSceneOnEventCallback morse_flipper_scene_on_event_handlers[Morse
     morse_flipper_scene_live_on_event,          morse_flipper_scene_tx_groups_cfg_on_event,
     morse_flipper_scene_onboarding_on_event,    morse_flipper_scene_progress_on_event,
     morse_flipper_scene_streak_intro_on_event,  morse_flipper_scene_live_on_event,
-    morse_flipper_scene_live_on_event,          morse_flipper_scene_live_on_event,
+    morse_flipper_scene_live_on_event,
 };
 
 static const AppSceneOnExitCallback morse_flipper_scene_on_exit_handlers[MorseFlipperSceneNum] = {
@@ -1074,7 +1059,7 @@ static const AppSceneOnExitCallback morse_flipper_scene_on_exit_handlers[MorseFl
     morse_flipper_scene_live_on_exit,          morse_flipper_scene_tx_groups_cfg_on_exit,
     morse_flipper_scene_content_on_exit,       morse_flipper_scene_progress_on_exit,
     morse_flipper_scene_streak_intro_on_exit,  morse_flipper_scene_icr_on_exit,
-    morse_flipper_scene_rx_practice_on_exit,   morse_flipper_scene_rx_practice_on_exit,
+    morse_flipper_scene_rx_practice_on_exit,
 };
 
 const SceneManagerHandlers morse_flipper_scene_handlers = {
