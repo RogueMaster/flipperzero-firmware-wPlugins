@@ -378,8 +378,11 @@ void morse_flipper_tick_session(MorseFlipperApp* app, uint32_t now_ms) {
      * Session flow, in order: expire error tone, count down to the next group,
      * launch/listen/playback, delay final screen, then score or timeout the answer.
      */
-    if(app->session_result_tone && now_ms >= app->session_result_until) {
+    if((app->session_result_tone || app->session_result_good) &&
+       morse_flipper_time_reached(now_ms, app->session_result_until)) {
         app->session_result_tone = false;
+        app->session_result_good = false;
+        app->session_result_until = 0U;
         morse_flipper_update_sidetone(app);
     }
 

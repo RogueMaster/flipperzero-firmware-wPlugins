@@ -78,7 +78,7 @@ static void morse_flipper_icr_host_expire_feedback_locked(
     bool audio_changed;
 
     if(app == NULL || (!app->session_result_tone && !app->session_result_good) ||
-       (int32_t)(now_ms - app->session_result_until) < 0)
+       morse_flipper_time_pending(now_ms, app->session_result_until))
         return;
 
     audio_changed = app->session_result_tone || app->session_result_good;

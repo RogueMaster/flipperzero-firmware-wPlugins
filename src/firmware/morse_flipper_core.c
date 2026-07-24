@@ -99,8 +99,8 @@ void morse_flipper_sync_signal_led(MorseFlipperApp* app, bool on) {
     if(app == NULL) return;
 
     red = on && app->session_result_tone;
-    green = on && app->session_result_good && app->session_result_until != 0U &&
-            furi_get_tick() < app->session_result_until;
+    green = on && app->session_result_good &&
+            morse_flipper_time_pending(furi_get_tick(), app->session_result_until);
     if(app->signal_led_on == on && app->signal_led_red == red && app->signal_led_green == green)
         return;
 

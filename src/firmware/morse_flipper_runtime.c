@@ -204,7 +204,8 @@ static void morse_flipper_tick_tx_groups(MorseFlipperApp* app, uint32_t now_ms) 
 
     if(app == NULL) return;
 
-    if(app->session_result_tone && now_ms >= app->session_result_until &&
+    if((app->session_result_tone || app->session_result_good) &&
+       morse_flipper_time_reached(now_ms, app->session_result_until) &&
        (app->screen == MorseFlipperScreenTxGroups ||
         app->screen == MorseFlipperScreenTxGroupsResult)) {
         app->session_result_tone = false;
