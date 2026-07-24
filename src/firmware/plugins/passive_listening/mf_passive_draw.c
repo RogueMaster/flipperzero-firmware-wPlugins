@@ -2,20 +2,22 @@
 
 #include "../common/mf_big_callsign_font.h"
 
-/* The fixed 69 px row deliberately has no surrounding UI in normal operation. */
 void mf_passive_draw(const MfPassiveState* state, Canvas* canvas) {
-    int32_t left = (128 - 69) / 2;
+    int32_t left;
     if(state == NULL || canvas == NULL) return;
     if(state->phase == MfPassivePhaseError) {
         canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "AUDIO ERR");
         return;
     }
-    for(uint8_t i = 0U; i < 4U; i++) {
+    left = (128 - (int32_t)(state->prompt_len * MF_BIG_CALLSIGN_WIDTH +
+                            (state->prompt_len - 1U) * MF_BIG_CALLSIGN_GAP)) /
+           2;
+    for(uint8_t i = 0U; i < state->prompt_len; i++) {
         mf_big_callsign_draw_char(
             canvas,
             left + (int32_t)i * (MF_BIG_CALLSIGN_WIDTH + MF_BIG_CALLSIGN_GAP),
             (64 - MF_BIG_CALLSIGN_HEIGHT) / 2,
-            i < state->revealed_count ? state->callsign.text[i] : '_',
+            i < state->revealed_count ? state->prompt[i] : '_',
             false);
     }
 }

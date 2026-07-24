@@ -79,6 +79,10 @@ static bool mf_passive_voice_token_valid(
 static bool mf_passive_voice_char_token(char ch, uint8_t* token) {
     if(ch >= 'A' && ch <= 'Z') *token = (uint8_t)(ch - 'A');
     else if(ch >= '0' && ch <= '9') *token = (uint8_t)(26U + ch - '0');
+    else if(ch == '/') *token = 36U;
+    else if(ch == '.') *token = 37U;
+    else if(ch == ',') *token = 38U;
+    else if(ch == '?') *token = 39U;
     else return false;
     return true;
 }

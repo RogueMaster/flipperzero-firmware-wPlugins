@@ -7,6 +7,7 @@ typedef struct {
     MfRxRng rng;
     MfCallsignGen callsign_gen;
     MfCallsign callsign;
+    char prompt[MF_CALLSIGN_MAX_LEN + 1U];
     MfPassivePcmPipe pipe;
     MfPassiveVoicePack pack;
     const MfPassiveHostServices* services;
@@ -25,6 +26,7 @@ typedef struct {
     uint8_t voice_gain_pct;
     uint8_t mode;
     uint8_t prompt_length;
+    uint8_t prompt_len;
     uint8_t lesson_charset_len;
     uint8_t vibrate;
     uint8_t repeat_after_answer;

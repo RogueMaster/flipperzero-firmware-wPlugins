@@ -6,7 +6,6 @@
 #include "../../cw.h"
 
 #define MF_PASSIVE_INITIAL_CW_MS    1000U
-#define MF_PASSIVE_POST_CW_MS       3000U
 #define MF_PASSIVE_BETWEEN_TOKEN_MS 100U
 #define MF_PASSIVE_POST_VOICE_MS    1000U
 #define MF_PASSIVE_CUE_MS           120U
@@ -51,7 +50,7 @@ static void mf_passive_fail(MfPassiveState* state) {
 }
 
 static bool mf_passive_start_mark(MfPassiveState* state, uint32_t now) {
-    uint8_t symbol = cw(state->callsign.text[state->char_index]);
+    uint8_t symbol = cw(state->prompt[state->char_index]);
     if(symbol == CW_INVALID || state->mark_index >= cw_symbol_count(symbol) ||
        !mf_passive_host_command(state->services, MfPassiveHostCommandTone, state->tone_hz))
         return false;
@@ -60,18 +59,37 @@ static bool mf_passive_start_mark(MfPassiveState* state, uint32_t now) {
     return true;
 }
 
-static bool mf_passive_next_call(MfPassiveState* state) {
-    MfCallsign previous = state->callsign;
+static bool mf_passive_next_prompt(MfPassiveState* state) {
+    char previous[MF_CALLSIGN_MAX_LEN + 1U];
+    char candidate[MF_CALLSIGN_MAX_LEN + 1U];
+    uint8_t length;
+
+    if(state == NULL || state->prompt_length < 3U || state->prompt_length > MF_CALLSIGN_MAX_LEN)
+        return false;
+    length = state->prompt_length;
+    memcpy(previous, state->prompt, sizeof(previous));
     for(uint8_t tries = 0U; tries < 32U; tries++) {
-        if(mf_callsign_generate(&state->callsign_gen, &state->rng, 4U, &state->callsign) &&
-           memcmp(previous.text, state->callsign.text, 4U) != 0)
+        if(state->mode == 0U) {
+            if(!mf_callsign_generate(&state->callsign_gen, &state->rng, length, &state->callsign))
+                continue;
+            memcpy(candidate, state->callsign.text, length);
+        } else {
+            for(uint8_t i = 0U; i < length; i++)
+                candidate[i] =
+                    state->lesson_charset[mf_rx_rng_bounded(&state->rng, state->lesson_charset_len)];
+        }
+        candidate[length] = '\0';
+        if(memcmp(previous, candidate, length) != 0) {
+            memcpy(state->prompt, candidate, sizeof(state->prompt));
             return true;
+        }
     }
     return false;
 }
 
 static bool mf_passive_start_round(MfPassiveState* state, uint32_t now) {
-    if(!mf_passive_next_call(state)) return false;
+    if(!mf_passive_next_prompt(state)) return false;
+    state->prompt_len = state->prompt_length;
     state->char_index = 0U;
     state->mark_index = 0U;
     state->voice_index = 0U;
@@ -85,7 +103,7 @@ static bool mf_passive_start_round(MfPassiveState* state, uint32_t now) {
 static bool mf_passive_prime_token(MfPassiveState* state) {
     if(!state->pack.active && state->pipe.read_pos == state->pipe.write_pos &&
        !mf_passive_voice_pack_begin(
-           &state->pack, &state->pipe, state->callsign.text[state->voice_index]))
+           &state->pack, &state->pipe, state->prompt[state->voice_index]))
         return false;
     mf_passive_voice_pack_refill(&state->pack, &state->pipe, state->voice_gain_pct);
     return !mf_passive_voice_pack_failed(&state->pack);
@@ -130,13 +148,14 @@ bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfP
     state->voice_gain_pct = args->output_target == MfPassiveOutputInternal ? 70U : 100U;
     mf_rx_rng_init(&state->rng, args->rng_seed);
     mf_callsign_gen_init(&state->callsign_gen);
-    if(!mf_passive_voice_pack_open_asset(&state->pack) || !mf_passive_next_call(state) ||
+    if(!mf_passive_voice_pack_open_asset(&state->pack) || !mf_passive_next_prompt(state) ||
        !mf_passive_host_claim(
            state->services, args->output_target, args->tone_hz, args->volume_pct, &state->pipe)) {
         mf_passive_fail(state);
         *result = mf_passive_result(state, true);
         return false;
     }
+    state->prompt_len = state->prompt_length;
     state->audio_claimed = true;
     state->phase = MfPassivePhasePrepare;
     *result = mf_passive_result(state, true);
@@ -199,16 +218,17 @@ MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
         return mf_passive_result(state, false);
     }
     if(state->phase == MfPassivePhaseCw && mf_passive_reached(now_ms, state->next_at)) {
-        uint8_t symbol = cw(state->callsign.text[state->char_index]);
+        uint8_t symbol = cw(state->prompt[state->char_index]);
         if(state->cw_mark) {
             if(!mf_passive_silence(state)) mf_passive_fail(state);
             state->cw_mark = false;
             state->mark_index++;
             if(state->phase != MfPassivePhaseError && state->mark_index < cw_symbol_count(symbol))
                 state->next_at = now_ms + state->dit_ms;
-            else if(state->phase != MfPassivePhaseError && state->char_index == 3U) {
+            else if(state->phase != MfPassivePhaseError &&
+                    state->char_index + 1U == state->prompt_len) {
                 state->phase = MfPassivePhasePostCw;
-                state->next_at = now_ms + MF_PASSIVE_POST_CW_MS;
+                state->next_at = now_ms + state->answer_delay_ms;
             } else if(state->phase != MfPassivePhaseError) {
                 state->char_index++;
                 state->mark_index = 0U;
@@ -241,7 +261,7 @@ MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
         } else if(mf_passive_voice_pack_drained(&state->pack, &state->pipe)) {
             if(!mf_passive_silence(state)) {
                 mf_passive_fail(state);
-            } else if(state->voice_index == 3U) {
+            } else if(state->voice_index + 1U == state->prompt_len) {
                 state->phase = MfPassivePhasePostVoice;
                 state->next_at = now_ms + MF_PASSIVE_POST_VOICE_MS;
             } else {

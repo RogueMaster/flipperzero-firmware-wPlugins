@@ -185,10 +185,15 @@ static void setup(MfPassiveState* state, FakeServices* fake, MemoryFile* file) {
     state->char_gap_ms = 30U;
     state->tone_hz = 700U;
     state->voice_gain_pct = 70U;
+    state->mode = 0U;
+    state->prompt_length = 4U;
+    state->prompt_len = 4U;
+    state->answer_delay_ms = 3000U;
     mf_rx_rng_init(&state->rng, 0x12345678U);
     mf_callsign_gen_init(&state->callsign_gen);
     memcpy(state->callsign.text, "A1A1", 5U);
     state->callsign.text_len = 4U;
+    memcpy(state->prompt, "A1A1", 5U);
     CHECK(mf_passive_voice_pack_open_io(&state->pack, &io));
     CHECK(mf_passive_host_claim(state->services, MfPassiveOutputInternal, 700U, 50U, &state->pipe));
     state->audio_claimed = true;
