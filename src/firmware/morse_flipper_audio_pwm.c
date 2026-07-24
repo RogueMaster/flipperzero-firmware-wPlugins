@@ -23,6 +23,8 @@
 #include <stm32wbxx_ll_dmamux.h>
 #include <stm32wbxx_ll_gpio.h>
 #include <stm32wbxx_ll_tim.h>
+#else
+#define __DMB() ((void)0)
 #endif
 
 static const int16_t morse_flipper_audio_pwm_sine_q15[MORSE_FLIPPER_AUDIO_PWM_SINE_SAMPLES] = {
@@ -306,6 +308,8 @@ void morse_flipper_audio_pwm_set_tone_hz(MorseFlipperAudioPwm* audio, uint32_t t
 
 void morse_flipper_audio_pwm_set_gate(MorseFlipperAudioPwm* audio, bool gate) {
     if(audio == NULL || !audio->prepared) return;
+    if(gate && audio->source == MorseFlipperAudioPwmSourceSilence)
+        audio->source = MorseFlipperAudioPwmSourceTone;
     audio->gate_requested = gate;
 }
 
@@ -336,8 +340,8 @@ void morse_flipper_audio_pwm_set_voice(
 void morse_flipper_audio_pwm_set_silence(MorseFlipperAudioPwm* audio) {
     if(audio == NULL) return;
     audio->source = MorseFlipperAudioPwmSourceSilence;
-    audio->voice_pipe = NULL;
     audio->voice_primed = false;
+    audio->gate_requested = false;
 }
 
 void morse_flipper_audio_pwm_render(MorseFlipperAudioPwm* audio, uint16_t* dst, size_t count) {
@@ -430,6 +434,9 @@ static void morse_flipper_audio_pwm_clear_runtime(MorseFlipperAudioPwm* audio) {
     audio->env_state = MorseFlipperAudioPwmEnvIdle;
     audio->env_idx = 0U;
     audio->env_anchor_q15 = 0U;
+    audio->voice_pipe = NULL;
+    audio->voice_primed = false;
+    audio->source = MorseFlipperAudioPwmSourceSilence;
     audio->own_bus_tim1 = false;
     audio->own_bus_tim16 = false;
     audio->own_bus_dma1 = false;
