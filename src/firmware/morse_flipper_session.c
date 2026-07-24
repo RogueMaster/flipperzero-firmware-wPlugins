@@ -26,7 +26,7 @@ static void morse_flipper_session_answer_committed_text(
 
 static void morse_flipper_note_session_progress_group(MorseFlipperApp* app);
 
-static bool morse_flipper_session_answer_is_straight(const MorseFlipperApp* app) {
+bool morse_flipper_answer_input_is_straight(const MorseFlipperApp* app) {
     if(app == NULL) return false;
     if(app->input_source == MorseFlipperInputSourceStraight) return true;
     if(app->input_source == MorseFlipperInputSourcePaddle &&
@@ -38,10 +38,10 @@ static bool morse_flipper_session_answer_is_straight(const MorseFlipperApp* app)
     return false;
 }
 
-static void morse_flipper_session_reset_answer_decoder(MorseFlipperApp* app) {
+void morse_flipper_reset_answer_decoder(MorseFlipperApp* app) {
     if(app == NULL) return;
 
-    if(morse_flipper_session_answer_is_straight(app)) {
+    if(morse_flipper_answer_input_is_straight(app)) {
         morse_flipper_cw_decoder_init(
             &app->tx_decoder, morse_flipper_current_straight_dit_ms(app));
     } else {
@@ -83,7 +83,7 @@ void morse_flipper_reset_session_state(MorseFlipperApp* app, uint32_t now_ms) {
     app->rf_tx_edge_at = 0U;
     app->rf_tx_gap_flushed = true;
     app->rf_tx_level = false;
-    morse_flipper_session_reset_answer_decoder(app);
+            morse_flipper_reset_answer_decoder(app);
 
     morse_flipper_refresh_keyer(app, now_ms);
     morse_flipper_update_sidetone(app);
@@ -323,7 +323,7 @@ void morse_flipper_begin_group_playback(MorseFlipperApp* app, uint32_t now_ms) {
     app->rf_tx_edge_at = 0U;
     app->rf_tx_gap_flushed = true;
     app->rf_tx_level = false;
-    morse_flipper_session_reset_answer_decoder(app);
+    morse_flipper_reset_answer_decoder(app);
     if(app->screen == MorseFlipperScreenSession) {
         app->session_round_pending = true;
         app->session_result_hold = false;

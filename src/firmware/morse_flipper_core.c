@@ -211,27 +211,6 @@ void morse_flipper_set_straight_wpm(MorseFlipperApp* app, uint8_t wpm) {
     morse_flipper_clamp_straight_settings(app);
 }
 
-static uint16_t morse_flipper_trainer_farnsworth_unit_ms(const MorseFlipperApp* app) {
-    uint32_t w;
-    uint32_t farn;
-    uint32_t dit;
-    uint32_t total;
-    uint32_t spare;
-
-    if(app == NULL) return MORSE_FLIPPER_DEFAULT_DIT_MS;
-
-    w = morse_flipper_local_wpm(app);
-    farn = app->trainer_farnsworth_wpm;
-    dit = app->trainer.local_dit_ms ? app->trainer.local_dit_ms : MORSE_FLIPPER_DEFAULT_DIT_MS;
-    if(farn == 0U || farn >= w) return (uint16_t)dit;
-
-    total = 60000U / farn;
-    if(total <= 31U * dit) return (uint16_t)dit;
-
-    spare = total - (31U * dit);
-    return (uint16_t)((spare + 9U) / 19U);
-}
-
 static uint16_t morse_flipper_trainer_char_gap_ms(const MorseFlipperApp* app) {
     uint16_t dit_ms;
 
@@ -239,7 +218,8 @@ static uint16_t morse_flipper_trainer_char_gap_ms(const MorseFlipperApp* app) {
 
     dit_ms = app->trainer.local_dit_ms ? app->trainer.local_dit_ms : MORSE_FLIPPER_DEFAULT_DIT_MS;
     if(app->screen != MorseFlipperScreenSession) return (uint16_t)(dit_ms * 3U);
-    return (uint16_t)(morse_flipper_trainer_farnsworth_unit_ms(app) * 3U);
+    return morse_flipper_training_char_gap_ms(
+        dit_ms, morse_flipper_local_wpm(app), app->trainer_farnsworth_wpm);
 }
 
 uint8_t morse_flipper_keyer_value_index(uint8_t mode) {

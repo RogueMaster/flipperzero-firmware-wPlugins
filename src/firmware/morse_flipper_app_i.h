@@ -47,6 +47,7 @@
 #include "morse_flipper_straight_trainer.h"
 #include "morse_flipper_tlm.h"
 #include "morse_flipper_time.h"
+#include "morse_flipper_training_timing.h"
 #include "morse_flipper_tx_groups.h"
 #include "pc_keys.h"
 #include "trainer.h"
@@ -849,6 +850,8 @@ uint8_t morse_flipper_keyer_value_index(uint8_t mode);
 uint16_t morse_flipper_wpm_to_dit_ms(uint8_t wpm);
 uint16_t morse_flipper_current_dit_ms(const MorseFlipperApp* app);
 uint16_t morse_flipper_current_straight_dit_ms(const MorseFlipperApp* app);
+bool morse_flipper_answer_input_is_straight(const MorseFlipperApp* app);
+void morse_flipper_reset_answer_decoder(MorseFlipperApp* app);
 uint8_t morse_flipper_current_wpm(const MorseFlipperApp* app);
 uint32_t morse_flipper_note_source_for_paddle(uint8_t paddle);
 uint8_t morse_flipper_note_for_paddle(uint8_t paddle);
