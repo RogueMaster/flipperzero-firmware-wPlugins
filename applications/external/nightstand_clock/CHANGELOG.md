@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2
+
+- Fix Up/Down not actually changing the screen brightness: the new level is now pushed to the panel even while the backlight is held always-on (previously the on-screen bar moved but the backlight stayed at the startup brightness)
+
 ## 1.1
 
 - Fix the 12-hour clock showing midnight as `00:xx AM` instead of `12:xx AM`

@@ -50,9 +50,25 @@ static const NotificationSequence led_reset = {
     NULL,
 };
 
+// Use force_on (not backlight_on) so the level is pushed to the panel even when
+// the backlight is already on - a plain backlight_on early-returns in that case.
+// Used on exit to restore the saved brightness after the enforce lock is freed.
 void set_backlight_brightness(float brightness) {
     notif->settings.display_brightness = brightness;
-    notification_message(notif, &sequence_display_backlight_on);
+    notification_message(notif, &sequence_display_backlight_force_on);
+}
+
+// While the app holds the backlight on with enforce_on, a plain backlight_on
+// does not change the screen: the notification service early-returns when the
+// backlight is already on, and the enforced "internal" layer that is actually
+// shown is only set once at startup. force_on bypasses that early-return to
+// update the panel now; the enforce pair then refreshes the locked internal
+// layer so the new level cannot be reverted.
+void set_enforced_brightness(float brightness) {
+    notif->settings.display_brightness = brightness;
+    notification_message(notif, &sequence_display_backlight_force_on);
+    notification_message(notif, &sequence_display_backlight_enforce_auto);
+    notification_message(notif, &sequence_display_backlight_enforce_on);
 }
 
 void handle_up() {
@@ -63,7 +79,7 @@ void handle_up() {
         brightness += 5;
         if(brightness > 100) brightness = 100;
     }
-    set_backlight_brightness((float)(brightness / 100.f));
+    set_enforced_brightness((float)(brightness / 100.f));
 }
 
 void handle_down() {
@@ -83,7 +99,7 @@ void handle_down() {
             notification_message(notif, &led_off);
         }
     }
-    set_backlight_brightness((float)(brightness / 100.f));
+    set_enforced_brightness((float)(brightness / 100.f));
 }
 
 static void clock_input_callback(InputEvent* input_event, void* ctx) {
@@ -122,9 +138,6 @@ void elements_progress_bar_vertical(
 static void clock_render_callback(Canvas* const canvas, void* ctx) {
     //canvas_clear(canvas);
     //canvas_set_color(canvas, ColorBlack);
-
-    //avoids a bug with the brightness being reverted after the backlight-off period
-    //set_backlight_brightness((float)(brightness / 100.f));
 
     if(dspBrightnessBarFrames > 0) {
         elements_progress_bar_vertical(canvas, 119, 1, 62, (float)(brightness / 100.f));
