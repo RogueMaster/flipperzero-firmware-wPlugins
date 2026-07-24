@@ -14,7 +14,7 @@ typedef enum {
     MfPassiveOutputP2 = 1,
 } MfPassiveOutputTarget;
 
-typedef struct {
+typedef struct MfPassivePcmPipe {
     int16_t samples[MF_PASSIVE_PCM_RING_SAMPLES];
     volatile uint16_t read_pos;
     volatile uint16_t write_pos;
