@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "cw.h"
+#include "../../cw.h"
 
 static const char mf_letters[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 static const char mf_digits[] = "0123456789";

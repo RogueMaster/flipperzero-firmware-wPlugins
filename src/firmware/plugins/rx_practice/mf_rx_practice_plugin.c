@@ -1,0 +1,47 @@
+#include "morse_flipper_rx_practice_api.h"
+
+#include <stdlib.h>
+
+#include <flipper_application/flipper_application.h>
+
+#include "mf_rx_practice_core.h"
+#include "mf_rx_practice_draw.h"
+
+static void* mf_rx_alloc(void) { return calloc(1U, sizeof(MfRxPracticeState)); }
+static void mf_rx_free(void* state) { free(state); }
+static bool mf_rx_enter(void* state, const MfRxPracticeEnterArgs* args, MfRxPracticeResult* result) {
+    return mf_rx_practice_enter(state, args, result);
+}
+static void mf_rx_leave(void* state) { mf_rx_practice_leave(state); }
+static MfRxPracticeResult mf_rx_command(void* state, MfRxPracticeCommand command, uint32_t now_ms) {
+    return mf_rx_practice_command(state, command, now_ms);
+}
+static MfRxPracticeResult mf_rx_feed(void* state, const char* text, size_t len, uint32_t now_ms) {
+    return mf_rx_practice_feed_text(state, text, len, now_ms);
+}
+static MfRxPracticeResult mf_rx_tick(void* state, uint32_t now_ms) {
+    return mf_rx_practice_tick(state, now_ms);
+}
+static void mf_rx_draw(const void* state, Canvas* canvas) { mf_rx_practice_draw(state, canvas); }
+
+static const MfRxPracticeApi mf_rx_api = {
+    .magic = MORSE_FLIPPER_RX_PRACTICE_API_MAGIC,
+    .api_version = MORSE_FLIPPER_RX_PRACTICE_API_VERSION,
+    .struct_size = sizeof(MfRxPracticeApi),
+    .alloc = mf_rx_alloc,
+    .free = mf_rx_free,
+    .enter = mf_rx_enter,
+    .leave = mf_rx_leave,
+    .command = mf_rx_command,
+    .feed_text = mf_rx_feed,
+    .tick = mf_rx_tick,
+    .draw = mf_rx_draw,
+};
+
+static const FlipperAppPluginDescriptor mf_rx_descriptor = {
+    .appid = "morse_flipper",
+    .ep_api_version = MORSE_FLIPPER_RX_PRACTICE_API_VERSION,
+    .entry_point = &mf_rx_api,
+};
+
+const FlipperAppPluginDescriptor* morse_flipper_rx_practice_ep(void) { return &mf_rx_descriptor; }

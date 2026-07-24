@@ -1,0 +1,51 @@
+#include "mf_rx_practice_draw.h"
+
+#include <stdio.h>
+
+static void mf_draw_slots(Canvas* canvas, const char* text, uint8_t length, uint8_t top, bool reveal) {
+    const uint8_t width = (uint8_t)(length * 15U + (length - 1U) * 3U);
+    const uint8_t left = (uint8_t)((128U - width) / 2U);
+    for(uint8_t i = 0U; i < length; i++) {
+        char slot[2] = {reveal && text[i] != '\0' ? text[i] : '_', '\0'};
+        uint8_t x = (uint8_t)(left + i * 18U);
+        canvas_draw_frame(canvas, x, top, 15U, 13U);
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str_aligned(canvas, x + 7U, top + 11U, AlignCenter, AlignBottom, slot);
+    }
+}
+
+void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
+    char score[24];
+    if(state == NULL || canvas == NULL) return;
+    canvas_set_font(canvas, FontSecondary);
+    if(state->phase == MfRxPracticePhaseIdle) {
+        canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignBottom,
+                                state->mode == MfRxPracticeModeCallsigns ? "Callsigns" : "RX Groups 5");
+        canvas_draw_str_aligned(canvas, 64, 35, AlignCenter, AlignBottom, "OK to start");
+        canvas_draw_str_aligned(canvas, 64, 61, AlignCenter, AlignBottom, "Back exits");
+        return;
+    }
+    if(state->phase == MfRxPracticePhaseFinal) {
+        unsigned pct = state->session_total == 0U ? 0U :
+                       (unsigned)((100U * state->session_passed) / state->session_total);
+        canvas_draw_str_aligned(canvas, 64, 10, AlignCenter, AlignBottom, "Final score");
+        canvas_draw_str_aligned(canvas, 64, 23, AlignCenter, AlignBottom,
+                                state->internal_error ? "Practice error" :
+                                (state->mode == MfRxPracticeModeCallsigns ? "Callsigns" : "RX Groups 5"));
+        snprintf(score, sizeof(score), "%u/%u  %u%%", (unsigned)state->session_passed,
+                 (unsigned)state->session_total, pct);
+        canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignBottom, score);
+        canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "Back / OK");
+        return;
+    }
+    canvas_draw_str_aligned(canvas, 64, 9, AlignCenter, AlignBottom,
+                            state->phase == MfRxPracticePhaseResult ?
+                                (state->last_passed ? "PASS" : "FAIL") :
+                                (state->mode == MfRxPracticeModeCallsigns ? "Callsigns" : "RX Groups 5"));
+    mf_draw_slots(canvas, state->target, state->target_len, 13U, state->phase == MfRxPracticePhaseResult);
+    mf_draw_slots(canvas, state->answer, state->target_len, 30U, true);
+    canvas_draw_line(canvas, 4U, 48U, 123U, 48U);
+    snprintf(score, sizeof(score), "%u/%u", (unsigned)state->session_passed, (unsigned)state->session_total);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, 121U, 61U, AlignRight, AlignBottom, score);
+}

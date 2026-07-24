@@ -3,8 +3,8 @@
 #include <limits.h>
 #include <string.h>
 
-#include "cw.h"
-#include "morse_flipper_time.h"
+#include "../../cw.h"
+#include "../../morse_flipper_time.h"
 
 static MfRxPracticeResult mf_result(
     const MfRxPracticeState* state,

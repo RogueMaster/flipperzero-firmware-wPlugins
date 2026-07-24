@@ -123,6 +123,8 @@ void morse_flipper_plugin_runtime_unload_current(MorseFlipperApp* app) {
         morse_flipper_content_host_unload_locked(app);
     else if(app->plugin_slot.owner == MorseFlipperPluginOwnerIcr)
         morse_flipper_icr_host_unload_locked(app);
+    else if(app->plugin_slot.owner == MorseFlipperPluginOwnerRxPractice)
+        morse_flipper_rx_practice_host_unload_locked(app);
     furi_mutex_release(app->plugin_slot.mutex);
 }
 
