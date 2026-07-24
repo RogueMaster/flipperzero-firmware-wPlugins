@@ -8,6 +8,14 @@
 #include "morse_flipper_icr_api.h"
 #include "../../cw.h"
 
+#define MORSE_FLIPPER_CW_TOKEN_SK    0x80U
+#define MORSE_FLIPPER_CW_TOKEN_BK    0x81U
+#define MORSE_FLIPPER_CW_TOKEN_CT_KA 0x82U
+#define MORSE_FLIPPER_CW_TOKEN_VE_SN 0x83U
+#define MORSE_FLIPPER_CW_TOKEN_AA    0x84U
+#define MORSE_FLIPPER_CW_TOKEN_SOS   0x85U
+#include "../../../../tools/terminus24_source.h"
+
 #include <stdlib.h>
 
 #define MORSE_FLIPPER_ICR_WAIT_MS       1000U
@@ -449,6 +457,33 @@ static void morse_flipper_icr_draw_choices(Canvas* canvas, const MorseFlipperIcr
     morse_flipper_icr_draw_choice(canvas, 27, 32, state->choices[4]);
 }
 
+static uint16_t morse_flipper_icr_prompt_row(uint8_t ch, uint8_t row) {
+    switch(ch) {
+#define MF_ICR_PROMPT_CASE(symbol, advance, height, offset, ...) \
+    case symbol: { \
+        static const uint16_t rows[24] = {__VA_ARGS__}; \
+        return rows[row]; \
+    }
+        MORSE_FLIPPER_TERMINUS24_GLYPHS(MF_ICR_PROMPT_CASE)
+#undef MF_ICR_PROMPT_CASE
+    default:
+        return 0U;
+    }
+}
+
+static void morse_flipper_icr_draw_prompt(Canvas* canvas, uint8_t ch) {
+    const int32_t x0 = 92 - 6;
+    const int32_t y0 = 36 - 12;
+
+    for(uint8_t row = 0U; row < 24U; row++) {
+        uint16_t bits = morse_flipper_icr_prompt_row(ch, row);
+        for(uint8_t col = 0U; col < 12U; col++) {
+            if((bits & (uint16_t)(1U << (11U - col))) != 0U)
+                canvas_draw_dot(canvas, x0 + col, y0 + row);
+        }
+    }
+}
+
 MorseFlipperIcrDrawResult morse_flipper_icr_runtime_draw(
     void* value,
     Canvas* canvas,
@@ -469,12 +504,7 @@ MorseFlipperIcrDrawResult morse_flipper_icr_runtime_draw(
         morse_flipper_icr_draw_choices(canvas, state);
 
     canvas_draw_line(canvas, 57, 0, 57, 63);
-    if(state->phase != MorseFlipperIcrPhaseResult) return (MorseFlipperIcrDrawResult){0};
-
-    return (MorseFlipperIcrDrawResult){
-        .draw_prompt = true,
-        .prompt_char = morse_flipper_icr_char_at(state->target),
-        .prompt_cx = 92,
-        .prompt_cy = 36,
-    };
+    if(state->phase == MorseFlipperIcrPhaseResult)
+        morse_flipper_icr_draw_prompt(canvas, morse_flipper_icr_char_at(state->target));
+    return (MorseFlipperIcrDrawResult){0};
 }

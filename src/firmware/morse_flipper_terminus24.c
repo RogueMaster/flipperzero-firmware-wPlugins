@@ -45,19 +45,12 @@ static bool morse_flipper_terminus24_push(uint8_t chars[10], uint8_t* count, uin
     return true;
 }
 
-static bool morse_flipper_terminus24_icr_prompt_visible(const MorseFlipperApp* app) {
-    MorseFlipperPluginSnapshot snapshot;
-    return app != NULL && app->screen == MorseFlipperScreenIcr &&
-           morse_flipper_plugin_runtime_snapshot(app, &snapshot) && snapshot.prompt_visible;
-}
-
 static bool morse_flipper_terminus24_visible(const MorseFlipperApp* app) {
     return app != NULL &&
            ((app->screen == MorseFlipperScreenStraight && app->straight_started &&
              !morse_flipper_straight_countdown_active(app)) ||
             app->screen == MorseFlipperScreenTxGroups ||
-            app->screen == MorseFlipperScreenStreakIntro ||
-            morse_flipper_terminus24_icr_prompt_visible(app));
+            app->screen == MorseFlipperScreenStreakIntro);
 }
 
 static bool morse_flipper_terminus24_visible_chars(
@@ -97,10 +90,6 @@ static bool morse_flipper_terminus24_visible_chars(
             if(!morse_flipper_terminus24_push(chars, count, (uint8_t)days[i])) return false;
         }
         return true;
-    } else if(app->screen == MorseFlipperScreenIcr) {
-        MorseFlipperPluginSnapshot snapshot;
-        if(morse_flipper_plugin_runtime_snapshot(app, &snapshot) && snapshot.prompt_visible)
-            return morse_flipper_terminus24_push(chars, count, snapshot.prompt_char);
     }
     return true;
 }

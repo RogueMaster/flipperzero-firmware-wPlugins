@@ -154,16 +154,12 @@ void morse_flipper_icr_host_tick(MorseFlipperApp* app, uint32_t now_ms) {
 }
 
 void morse_flipper_icr_host_draw(MorseFlipperApp* app, Canvas* canvas) {
-    MorseFlipperIcrDrawResult result = {0};
     if(app == NULL || canvas == NULL || app->plugin_slot.mutex == NULL) return;
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     if(app->plugin_slot.owner == MorseFlipperPluginOwnerIcr && app->plugin_slot.api != NULL &&
        app->plugin_slot.state != NULL) {
-        result = ((const MorseFlipperIcrApi*)app->plugin_slot.api)
-                     ->draw(app->plugin_slot.state, canvas, furi_get_tick());
-        if(result.draw_prompt)
-            morse_flipper_draw_straight_prompt(
-                canvas, app, result.prompt_cx, result.prompt_cy, (char)result.prompt_char);
+        ((const MorseFlipperIcrApi*)app->plugin_slot.api)
+            ->draw(app->plugin_slot.state, canvas, furi_get_tick());
         furi_mutex_release(app->plugin_slot.mutex);
         return;
     }
