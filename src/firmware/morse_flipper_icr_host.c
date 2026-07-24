@@ -25,17 +25,17 @@ static void morse_flipper_icr_host_clear_locked(MorseFlipperApp* app) {
 }
 
 /* Caller holds plugin_mutex.  Result mirrors are snapshots, not edge events. */
-static void morse_flipper_icr_host_apply_locked(
+static bool morse_flipper_icr_host_apply_locked(
     MorseFlipperApp* app,
     MorseFlipperIcrResult result,
     uint32_t now_ms) {
-    if(app == NULL) return;
+    if(app == NULL) return false;
     app->plugin_slot.playback_active = result.playback_active;
     app->plugin_slot.playback_mark = result.playback_mark;
     app->plugin_slot.prompt_visible = result.prompt_visible;
     app->plugin_slot.prompt_char = result.prompt_char;
     morse_flipper_plugin_feedback_locked(app, result.feedback, now_ms);
-    if(result.redraw) morse_flipper_view_dirty(app);
+    return result.redraw;
 }
 
 void morse_flipper_icr_host_unload_locked(MorseFlipperApp* app) {
@@ -65,6 +65,7 @@ bool morse_flipper_icr_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
     void* state = NULL;
     MorseFlipperIcrResult initial = {0};
     bool entered = false;
+    bool redraw = false;
 
     if(app == NULL || app->plugin_slot.mutex == NULL) return false;
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
@@ -98,9 +99,10 @@ bool morse_flipper_icr_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
         app->plugin_slot.error = MorseFlipperPluginErrorState;
         goto cleanup;
     }
-    morse_flipper_icr_host_apply_locked(app, initial, now_ms);
+    redraw = morse_flipper_icr_host_apply_locked(app, initial, now_ms);
     furi_mutex_release(app->plugin_slot.mutex);
     morse_flipper_update_sidetone(app);
+    if(redraw) morse_flipper_view_dirty(app);
     return true;
 
 cleanup:
@@ -114,6 +116,7 @@ cleanup:
 
 bool morse_flipper_icr_host_input(MorseFlipperApp* app, const InputEvent* event, uint32_t now_ms) {
     MorseFlipperIcrResult result = {0};
+    bool redraw = false;
 
     if(app == NULL || event == NULL || app->plugin_slot.mutex == NULL) return false;
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
@@ -121,10 +124,12 @@ bool morse_flipper_icr_host_input(MorseFlipperApp* app, const InputEvent* event,
        app->plugin_slot.state != NULL) {
         result = ((const MorseFlipperIcrApi*)app->plugin_slot.api)
                      ->input(app->plugin_slot.state, event, now_ms);
-        if(result.handled) morse_flipper_icr_host_apply_locked(app, result, now_ms);
+        if(result.handled)
+            redraw = morse_flipper_icr_host_apply_locked(app, result, now_ms);
     }
     furi_mutex_release(app->plugin_slot.mutex);
     morse_flipper_update_sidetone(app);
+    if(redraw) morse_flipper_view_dirty(app);
     if(!result.handled) {
         if(event->key == InputKeyBack &&
            (event->type == InputTypeShort || event->type == InputTypeLong)) {
@@ -139,16 +144,19 @@ bool morse_flipper_icr_host_input(MorseFlipperApp* app, const InputEvent* event,
 
 void morse_flipper_icr_host_tick(MorseFlipperApp* app, uint32_t now_ms) {
     MorseFlipperIcrResult result = {0};
+    bool redraw = false;
     if(app == NULL || app->plugin_slot.mutex == NULL) return;
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     morse_flipper_plugin_feedback_expire_locked(app, now_ms);
     if(app->plugin_slot.owner == MorseFlipperPluginOwnerIcr && app->plugin_slot.api != NULL &&
        app->plugin_slot.state != NULL) {
         result = ((const MorseFlipperIcrApi*)app->plugin_slot.api)->tick(app->plugin_slot.state, now_ms);
-        if(result.handled) morse_flipper_icr_host_apply_locked(app, result, now_ms);
+        if(result.handled)
+            redraw = morse_flipper_icr_host_apply_locked(app, result, now_ms);
     }
     furi_mutex_release(app->plugin_slot.mutex);
     morse_flipper_update_sidetone(app);
+    if(redraw) morse_flipper_view_dirty(app);
 }
 
 void morse_flipper_icr_host_draw(MorseFlipperApp* app, Canvas* canvas) {
