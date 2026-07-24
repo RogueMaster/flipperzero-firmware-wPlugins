@@ -556,10 +556,8 @@ static bool
         return true;
     }
 
-    /* TODO: Back-as-paddle Press/Release is consumed by the live keying gate,
-     * but the synthesized Short event currently falls through to SceneManager
-     * and exits TX Groups. Consume the trailing Back event while back_key is
-     * true, preserving long-Left as the explicit exit. */
+    if(back_key && event->key == InputKeyBack) return true;
+
     return false;
 }
 
