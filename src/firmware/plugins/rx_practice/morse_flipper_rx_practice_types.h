@@ -6,15 +6,21 @@
 
 #define MF_RX_PRACTICE_FEED_MAX 96U
 
-typedef enum { MfRxPracticeModeCallsigns = 0, MfRxPracticeModeGroups5 = 1 } MfRxPracticeMode;
-typedef enum {
+typedef uint8_t MfRxPracticeMode;
+enum {
+    MfRxPracticeModeCallsigns = 0,
+    MfRxPracticeModeGroups5 = 1,
+};
+typedef uint8_t MfRxPracticePhase;
+enum {
     MfRxPracticePhaseIdle = 0,
     MfRxPracticePhasePlayback,
     MfRxPracticePhaseAnswer,
     MfRxPracticePhaseResult,
     MfRxPracticePhaseFinal,
-} MfRxPracticePhase;
-typedef enum {
+};
+typedef uint8_t MfRxPracticeCommand;
+enum {
     MfRxPracticeCommandNone = 0,
     MfRxPracticeCommandStart,
     MfRxPracticeCommandBackspace,
@@ -22,14 +28,19 @@ typedef enum {
     MfRxPracticeCommandHurry,
     MfRxPracticeCommandBack,
     MfRxPracticeCommandConfirmExit,
-} MfRxPracticeCommand;
-typedef enum {
+    MfRxPracticeCommandPrimaryPress,
+    MfRxPracticeCommandPaddleBackPress,
+    MfRxPracticeCommandReleaseOk,
+    MfRxPracticeCommandReleaseBack,
+};
+typedef uint8_t MfRxPracticeFeedback;
+enum {
     MfRxPracticeFeedbackNone = 0,
     MfRxPracticeFeedbackClear,
     MfRxPracticeFeedbackPass,
     MfRxPracticeFeedbackFail,
     MfRxPracticeFeedbackTimeout,
-} MfRxPracticeFeedback;
+};
 
 typedef struct {
     uint32_t struct_size;

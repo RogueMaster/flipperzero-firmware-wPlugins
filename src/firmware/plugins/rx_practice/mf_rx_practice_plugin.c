@@ -13,6 +13,44 @@ static bool mf_rx_enter(void* state, const MfRxPracticeEnterArgs* args, MfRxPrac
     return mf_rx_practice_enter(state, args, result);
 }
 static void mf_rx_leave(void* state) { mf_rx_practice_leave(state); }
+static MfRxPracticeResult mf_rx_input(
+    void* state,
+    const InputEvent* event,
+    bool button_paddle,
+    uint32_t now_ms) {
+    MfRxPracticeCommand command = MfRxPracticeCommandNone;
+    if(event == NULL) return mf_rx_practice_command(state, command, now_ms);
+    if(event->key == InputKeyOk && event->type == InputTypeRelease)
+        command = MfRxPracticeCommandReleaseOk;
+    else if(event->key == InputKeyBack && event->type == InputTypeRelease)
+        command = MfRxPracticeCommandReleaseBack;
+    else if(event->key == InputKeyLeft && event->type == InputTypeLong)
+        command = button_paddle ? MfRxPracticeCommandBack :
+                                  MfRxPracticeCommandConfirmExit;
+    else if(event->type == InputTypePress) {
+        if(event->key == InputKeyOk)
+            command = MfRxPracticeCommandPrimaryPress;
+        else if(button_paddle && event->key == InputKeyBack)
+            command = MfRxPracticeCommandPaddleBackPress;
+        else
+            command = MfRxPracticeCommandHurry;
+    } else if(event->type == InputTypeShort) {
+        if(event->key == InputKeyOk)
+            command = MfRxPracticeCommandConfirmExit;
+        else if(event->key == InputKeyDown)
+            command = MfRxPracticeCommandBackspace;
+        else if(event->key == InputKeyUp)
+            command = MfRxPracticeCommandClear;
+        else if(event->key == InputKeyBack && !button_paddle)
+            command = MfRxPracticeCommandBack;
+        else
+            command = MfRxPracticeCommandHurry;
+    } else if(!button_paddle && event->key == InputKeyBack &&
+              event->type == InputTypeLong) {
+        command = MfRxPracticeCommandBack;
+    }
+    return mf_rx_practice_command(state, command, now_ms);
+}
 static MfRxPracticeResult mf_rx_command(void* state, MfRxPracticeCommand command, uint32_t now_ms) {
     return mf_rx_practice_command(state, command, now_ms);
 }
@@ -32,6 +70,7 @@ static const MfRxPracticeApi mf_rx_api = {
     .free = mf_rx_free,
     .enter = mf_rx_enter,
     .leave = mf_rx_leave,
+    .input = mf_rx_input,
     .command = mf_rx_command,
     .feed_text = mf_rx_feed,
     .tick = mf_rx_tick,

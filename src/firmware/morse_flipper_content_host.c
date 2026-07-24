@@ -15,22 +15,14 @@ static bool morse_flipper_content_api_valid(const MorseFlipperHelpAboutApi* api)
 
 void morse_flipper_content_host_unload_locked(MorseFlipperApp* app) {
     const MorseFlipperHelpAboutApi* api;
-    void* state;
-    PluginManager* manager;
 
     if(app == NULL || app->plugin_slot.owner != MorseFlipperPluginOwnerContent) return;
     api = app->plugin_slot.api;
-    state = app->plugin_slot.state;
-    manager = app->plugin_slot.manager;
-    app->plugin_slot.api = NULL;
-    app->plugin_slot.state = NULL;
-    app->plugin_slot.manager = NULL;
-    if(api != NULL && state != NULL) {
-        api->leave(state);
-        api->free(state);
-    }
-    if(manager != NULL) plugin_manager_free(manager);
-    morse_flipper_plugin_runtime_release_claim_locked(app, MorseFlipperPluginOwnerContent);
+    morse_flipper_plugin_runtime_detach_locked(
+        app,
+        MorseFlipperPluginOwnerContent,
+        api == NULL ? NULL : api->leave,
+        api == NULL ? NULL : api->free);
 }
 
 void morse_flipper_content_host_unload(MorseFlipperApp* app) {
@@ -160,31 +152,6 @@ bool morse_flipper_content_host_tick(MorseFlipperApp* app, uint32_t now_ms) {
     return redraw;
 }
 
-void morse_flipper_content_host_draw_unavailable(MorseFlipperApp* app, Canvas* canvas) {
-    const char* title = "Help unavailable";
-    const char* detail = "Plugin missing/corrupt";
-
-    if(app->plugin_slot.mode == MorseFlipperContentModeOnboarding)
-        title = "Setup unavailable";
-    else if(app->plugin_slot.mode == MorseFlipperContentModeAbout)
-        title = "About unavailable";
-
-    if(app->plugin_slot.error == MorseFlipperPluginErrorHostId)
-        detail = "Plugin host mismatch";
-    else if(app->plugin_slot.error == MorseFlipperPluginErrorApiVersion)
-        detail = "Plugin API mismatch";
-    else if(app->plugin_slot.error == MorseFlipperPluginErrorTable)
-        detail = "Plugin entry invalid";
-    else if(app->plugin_slot.error == MorseFlipperPluginErrorState)
-        detail = "Not enough memory";
-
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 24, AlignCenter, AlignCenter, title);
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 39, AlignCenter, AlignCenter, detail);
-    canvas_draw_str_aligned(canvas, 64, 58, AlignCenter, AlignCenter, "Back");
-}
-
 void morse_flipper_content_host_draw(MorseFlipperApp* app, Canvas* canvas) {
     if(app == NULL || canvas == NULL || app->plugin_slot.mutex == NULL) return;
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
@@ -192,7 +159,7 @@ void morse_flipper_content_host_draw(MorseFlipperApp* app, Canvas* canvas) {
        app->plugin_slot.state != NULL)
         ((const MorseFlipperHelpAboutApi*)app->plugin_slot.api)->draw(app->plugin_slot.state, canvas);
     else
-        morse_flipper_content_host_draw_unavailable(app, canvas);
+        morse_flipper_draw_plugin_unavailable(canvas);
     furi_mutex_release(app->plugin_slot.mutex);
 }
 

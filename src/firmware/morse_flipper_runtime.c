@@ -104,6 +104,8 @@ static void morse_flipper_finish_tx_group_answer(MorseFlipperApp* app, uint32_t 
 
 static void morse_flipper_drain_tx_decoder(MorseFlipperApp* app) {
     const char* out;
+    bool decoder_reset = false;
+    size_t out_len = 0U;
 
     if(app == NULL) return;
     out = morse_flipper_cw_decoder_output(&app->tx_decoder);
@@ -117,8 +119,15 @@ static void morse_flipper_drain_tx_decoder(MorseFlipperApp* app) {
             morse_flipper_finish_tx_group_answer(app, furi_get_tick());
         }
     }
-    if(app->screen == MorseFlipperScreenRxPractice)
-        morse_flipper_rx_practice_host_feed(app, out, strlen(out), furi_get_tick());
+    if(app->screen == MorseFlipperScreenRxPractice) {
+        while(out_len < sizeof(app->tx_decoder.output) &&
+              out[out_len] != '\0')
+            out_len++;
+        decoder_reset = morse_flipper_rx_practice_host_feed(
+            app, out, out_len, furi_get_tick());
+        if(!decoder_reset) morse_flipper_cw_decoder_clear_output(&app->tx_decoder);
+        return;
+    }
 
     morse_flipper_append_text(app->rf_tx_text, sizeof(app->rf_tx_text), out);
     if(app->screen == MorseFlipperScreenHamRun) {
@@ -272,7 +281,9 @@ static bool morse_flipper_tx_decoder_allowed(const MorseFlipperApp* app) {
     if(app->screen == MorseFlipperScreenRxPractice) {
         MorseFlipperPluginSnapshot snapshot;
         return morse_flipper_plugin_runtime_snapshot(app, &snapshot) &&
-               snapshot.phase == MfRxPracticePhaseAnswer;
+               snapshot.owner == MorseFlipperPluginOwnerRxPractice &&
+               snapshot.active && snapshot.phase == MfRxPracticePhaseAnswer &&
+               !snapshot.start_holdoff;
     }
     return true;
 }
@@ -387,6 +398,7 @@ static void morse_flipper_sync_gpio_inputs(MorseFlipperApp* app, uint32_t now_ms
     bool straight_active = false;
     bool dit_active = false;
     bool dah_active = false;
+    bool rx_answer_live = false;
 
     /* Probe and training modes can temporarily veto physical GPIO, even if a pin is down. */
     if(app->input_source == MorseFlipperInputSourceStraight) {
@@ -403,6 +415,14 @@ static void morse_flipper_sync_gpio_inputs(MorseFlipperApp* app, uint32_t now_ms
         }
     } else {
         morse_flipper_straight_filter_reset(&app->straight_filter);
+    }
+
+    if(app->screen == MorseFlipperScreenRxPractice) {
+        uint8_t down_mask = straight_active ? MF_RX_START_STRAIGHT : 0U;
+        if(dit_active) down_mask |= MF_RX_START_DIT;
+        if(dah_active) down_mask |= MF_RX_START_DAH;
+        rx_answer_live =
+            morse_flipper_rx_practice_host_tick(app, now_ms, down_mask);
     }
 
     if(app->screen == MorseFlipperScreenTxGroups && app->txg_start_holdoff) {
@@ -440,7 +460,9 @@ static void morse_flipper_sync_gpio_inputs(MorseFlipperApp* app, uint32_t now_ms
        app->screen == MorseFlipperScreenTxGroupsFinal ||
        (app->screen == MorseFlipperScreenStraight && !app->straight_wait_answer) ||
        (app->screen == MorseFlipperScreenTxGroups && !app->txg_wait_answer) ||
-       (app->screen == MorseFlipperScreenSession && !morse_flipper_session_repeat_active(app))) {
+       (app->screen == MorseFlipperScreenSession &&
+        !morse_flipper_session_repeat_active(app)) ||
+       (app->screen == MorseFlipperScreenRxPractice && !rx_answer_live)) {
         morse_flipper_straight_filter_reset(&app->straight_filter);
         straight_active = false;
         dit_active = false;
@@ -571,7 +593,6 @@ void morse_flipper_active_mode_tick(MorseFlipperApp* app, uint32_t now_ms) {
         morse_flipper_icr_host_tick(app, now_ms);
         break;
     case MorseFlipperScreenRxPractice:
-        morse_flipper_rx_practice_host_tick(app, now_ms);
         break;
     case MorseFlipperScreenTxGroups:
     case MorseFlipperScreenTxGroupsResult:
@@ -705,15 +726,6 @@ void morse_flipper_poll(MorseFlipperApp* app) {
         morse_flipper_start_tx_groups_round(app, now_ms);
         app->txg_start_holdoff = true;
         raw_straight = false;
-    }
-    if(app->screen == MorseFlipperScreenRxPractice &&
-       app->input_source != MorseFlipperInputSourceButtons && raw_straight) {
-        MorseFlipperPluginSnapshot snapshot;
-        if(morse_flipper_plugin_runtime_snapshot(app, &snapshot) &&
-           snapshot.phase == MfRxPracticePhaseIdle) {
-            morse_flipper_rx_practice_host_command(app, MfRxPracticeCommandStart, now_ms);
-            raw_straight = false;
-        }
     }
     if(app->screen == MorseFlipperScreenStraight &&
        (app->straight_done || morse_flipper_straight_countdown_active(app)) &&

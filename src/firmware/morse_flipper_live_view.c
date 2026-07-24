@@ -110,6 +110,8 @@ void morse_flipper_draw(Canvas* canvas, void* ctx) {
 
     if(app->screen == MorseFlipperScreenRxPractice) {
         morse_flipper_rx_practice_host_draw(app, canvas);
+        if(morse_flipper_live_left_hint(app))
+            morse_flipper_draw_left_exit_hint(canvas);
         return;
     }
 

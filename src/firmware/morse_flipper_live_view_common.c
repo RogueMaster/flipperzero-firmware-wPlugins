@@ -7,6 +7,15 @@
 
 #include "morse_flipper_app_i.h"
 
+void morse_flipper_draw_plugin_unavailable(Canvas* canvas) {
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(
+        canvas, 64, 28, AlignCenter, AlignBottom, "Plugin unavailable");
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(
+        canvas, 64, 52, AlignCenter, AlignBottom, "Back");
+}
+
 void morse_flipper_draw_left_exit_hint(Canvas* canvas) {
     canvas_draw_box(canvas, 124, 32, 1, 1);
     canvas_draw_box(canvas, 125, 31, 1, 3);

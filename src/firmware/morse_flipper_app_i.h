@@ -782,6 +782,7 @@ void morse_flipper_rf_commit_edit(MorseFlipperApp* app);
 void morse_flipper_rf_rx_edge(void* ctx, bool level, uint16_t duration_ms);
 uint8_t morse_flipper_live_upper_char(uint8_t ch);
 void morse_flipper_draw_left_exit_hint(Canvas* canvas);
+void morse_flipper_draw_plugin_unavailable(Canvas* canvas);
 void morse_flipper_draw_tx_history_divider(Canvas* canvas, bool left_hint);
 void morse_flipper_draw_star_glyph(Canvas* canvas, uint8_t cx, uint8_t cy, bool filled);
 void morse_flipper_draw_star_glyph_cols(Canvas* canvas, uint8_t cx, uint8_t cy, uint8_t cols);

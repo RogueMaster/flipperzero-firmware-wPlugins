@@ -97,6 +97,20 @@ static char mf_normalize(MfRxPracticeMode mode, char ch) {
     return '\0';
 }
 
+static MfRxPracticeResult mf_hurry(
+    MfRxPracticeState* state,
+    uint32_t now_ms) {
+    bool shortened = false;
+    if(morse_flipper_time_pending(now_ms, state->result_deadline) &&
+       state->result_deadline - now_ms > 1000U) {
+        state->result_deadline = now_ms + 1000U;
+        state->countdown_draw_s = 0xFFU;
+        shortened = true;
+    }
+    return mf_result(
+        state, true, shortened, false, false, MfRxPracticeFeedbackNone);
+}
+
 bool mf_rx_practice_enter(
     MfRxPracticeState* state,
     const MfRxPracticeEnterArgs* args,
@@ -141,6 +155,29 @@ MfRxPracticeResult mf_rx_practice_command(
     }
     if(command == MfRxPracticeCommandConfirmExit && state->phase == MfRxPracticePhaseFinal)
         return mf_result(state, true, false, true, true, MfRxPracticeFeedbackClear);
+    if(command == MfRxPracticeCommandPrimaryPress) {
+        if(state->phase == MfRxPracticePhaseIdle) {
+            bool ok = mf_begin_round(state, now_ms);
+            (void)ok;
+            return mf_result(
+                state, true, true, true, false, MfRxPracticeFeedbackClear);
+        }
+        if(state->phase == MfRxPracticePhaseResult)
+            return mf_hurry(state, now_ms);
+    }
+    if(command == MfRxPracticeCommandPaddleBackPress) {
+        if(state->phase == MfRxPracticePhaseFinal)
+            return mf_result(
+                state, true, false, true, true, MfRxPracticeFeedbackClear);
+        if(state->phase == MfRxPracticePhaseIdle) {
+            bool ok = mf_begin_round(state, now_ms);
+            (void)ok;
+            return mf_result(
+                state, true, true, true, false, MfRxPracticeFeedbackClear);
+        }
+        if(state->phase == MfRxPracticePhaseResult)
+            return mf_hurry(state, now_ms);
+    }
     if(command == MfRxPracticeCommandStart && state->phase == MfRxPracticePhaseIdle) {
         bool ok = mf_begin_round(state, now_ms);
         (void)ok;
@@ -164,14 +201,7 @@ MfRxPracticeResult mf_rx_practice_command(
         return mf_result(state, true, changed, true, false, MfRxPracticeFeedbackNone);
     }
     if(command == MfRxPracticeCommandHurry && state->phase == MfRxPracticePhaseResult) {
-        bool shortened = false;
-        if(morse_flipper_time_pending(now_ms, state->result_deadline) &&
-           state->result_deadline - now_ms > 1000U) {
-            state->result_deadline = now_ms + 1000U;
-            state->countdown_draw_s = 0xFFU;
-            shortened = true;
-        }
-        return mf_result(state, true, shortened, false, false, MfRxPracticeFeedbackNone);
+        return mf_hurry(state, now_ms);
     }
     return mf_result(state, false, false, false, false, MfRxPracticeFeedbackNone);
 }

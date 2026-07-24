@@ -35,8 +35,9 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
     if(state->phase == MfRxPracticePhaseIdle) {
         canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignBottom,
                                 state->mode == MfRxPracticeModeCallsigns ? "Callsigns" : "RX Groups 5");
-        canvas_draw_str_aligned(canvas, 64, 35, AlignCenter, AlignBottom, "OK to start");
-        canvas_draw_str_aligned(canvas, 64, 61, AlignCenter, AlignBottom, "Back exits");
+        canvas_draw_str_aligned(canvas, 64, 33, AlignCenter, AlignBottom, "Press OK to start");
+        if(state->physical_key_can_start)
+            canvas_draw_str_aligned(canvas, 64, 49, AlignCenter, AlignBottom, "Press your key to start");
         return;
     }
     if(state->phase == MfRxPracticePhaseFinal) {

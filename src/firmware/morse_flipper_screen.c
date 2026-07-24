@@ -39,7 +39,7 @@ void morse_flipper_enter_screen(
     }
 
     if(app->screen == MorseFlipperScreenRxPractice && screen != MorseFlipperScreenRxPractice) {
-        morse_flipper_rx_practice_host_unload(app);
+        morse_flipper_plugin_runtime_unload_current(app);
     }
 
     if((app->screen == MorseFlipperScreenRf || app->screen == MorseFlipperScreenRfRx) &&

@@ -97,6 +97,52 @@ void morse_flipper_plugin_runtime_release_claim_locked(
     morse_flipper_plugin_runtime_clear_locked(app);
 }
 
+void morse_flipper_plugin_runtime_detach_locked(
+    MorseFlipperApp* app,
+    MorseFlipperPluginOwner owner,
+    MorseFlipperPluginStateFn leave,
+    MorseFlipperPluginStateFn free_state) {
+    void* state;
+    PluginManager* manager;
+    if(app == NULL || app->plugin_slot.owner != owner) return;
+    state = app->plugin_slot.state;
+    manager = app->plugin_slot.manager;
+    app->plugin_slot.api = NULL;
+    app->plugin_slot.state = NULL;
+    app->plugin_slot.manager = NULL;
+    if(state != NULL) {
+        if(leave != NULL) leave(state);
+        if(free_state != NULL) free_state(state);
+    }
+    if(manager != NULL) plugin_manager_free(manager);
+    morse_flipper_plugin_runtime_release_claim_locked(app, owner);
+    app->session_result_tone = false;
+    app->session_result_good = false;
+    app->session_result_until = 0U;
+}
+
+void morse_flipper_plugin_feedback_locked(
+    MorseFlipperApp* app,
+    uint8_t feedback,
+    uint32_t now_ms) {
+    if(app == NULL || feedback == 0U) return;
+    app->session_result_tone = feedback >= 3U;
+    app->session_result_good = feedback == 2U;
+    app->session_result_until =
+        feedback == 1U ? 0U : now_ms + MORSE_FLIPPER_SESSION_RESULT_MS;
+}
+
+void morse_flipper_plugin_feedback_expire_locked(
+    MorseFlipperApp* app,
+    uint32_t now_ms) {
+    if(app != NULL && (app->session_result_tone || app->session_result_good) &&
+       morse_flipper_time_reached(now_ms, app->session_result_until)) {
+        app->session_result_tone = false;
+        app->session_result_good = false;
+        app->session_result_until = 0U;
+    }
+}
+
 bool morse_flipper_plugin_runtime_snapshot(const MorseFlipperApp* app, MorseFlipperPluginSnapshot* out) {
     if(app == NULL || out == NULL || app->plugin_slot.mutex == NULL) return false;
     *out = (MorseFlipperPluginSnapshot){0};
@@ -126,6 +172,7 @@ void morse_flipper_plugin_runtime_unload_current(MorseFlipperApp* app) {
     else if(app->plugin_slot.owner == MorseFlipperPluginOwnerRxPractice)
         morse_flipper_rx_practice_host_unload_locked(app);
     furi_mutex_release(app->plugin_slot.mutex);
+    morse_flipper_drop_live_keying_for_playback(app, furi_get_tick());
     morse_flipper_reset_answer_decoder(app);
     morse_flipper_release_all_notes(app);
     morse_flipper_update_sidetone(app);

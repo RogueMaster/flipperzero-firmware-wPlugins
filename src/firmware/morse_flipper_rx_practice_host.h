@@ -9,12 +9,24 @@ bool morse_flipper_rx_practice_host_enter(
     MorseFlipperApp* app,
     MfRxPracticeMode mode,
     uint32_t now_ms);
-void morse_flipper_rx_practice_host_unload(MorseFlipperApp* app);
 void morse_flipper_rx_practice_host_unload_locked(MorseFlipperApp* app);
-bool morse_flipper_rx_practice_host_command(
-    MorseFlipperApp* app,
-    MfRxPracticeCommand command,
-    uint32_t now_ms);
-bool morse_flipper_rx_practice_host_feed(MorseFlipperApp* app, const char* text, size_t length, uint32_t now_ms);
-void morse_flipper_rx_practice_host_tick(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_rx_practice_host_draw(MorseFlipperApp* app, Canvas* canvas);
+
+#define MF_RX_START_OK       (1U << 0)
+#define MF_RX_START_BACK     (1U << 1)
+#define MF_RX_START_STRAIGHT (1U << 2)
+#define MF_RX_START_DIT      (1U << 3)
+#define MF_RX_START_DAH      (1U << 4)
+bool morse_flipper_rx_practice_host_input(
+    MorseFlipperApp* app,
+    const InputEvent* event,
+    uint32_t now_ms);
+bool morse_flipper_rx_practice_host_feed(
+    MorseFlipperApp* app,
+    const char* text,
+    size_t length,
+    uint32_t now_ms);
+bool morse_flipper_rx_practice_host_tick(
+    MorseFlipperApp* app,
+    uint32_t now_ms,
+    uint8_t down_mask);

@@ -189,12 +189,35 @@ static void test_back_and_reenter(void) {
     CHECK(state.session_total == 0U && state.target[0] == '\0');
 }
 
+static void test_press_commands(void) {
+    MfRxPracticeState state;
+    MfRxPracticeResult result;
+    MfRxPracticeEnterArgs args = make_args(MfRxPracticeModeGroups5, 100U);
+
+    CHECK(mf_rx_practice_enter(&state, &args, &result));
+    result = mf_rx_practice_command(&state, MfRxPracticeCommandPrimaryPress, 100U);
+    CHECK(result.handled && result.phase == MfRxPracticePhasePlayback);
+
+    CHECK(mf_rx_practice_enter(&state, &args, &result));
+    result = mf_rx_practice_command(&state, MfRxPracticeCommandPaddleBackPress, 100U);
+    CHECK(result.handled && result.phase == MfRxPracticePhasePlayback);
+
+    state.phase = MfRxPracticePhaseResult;
+    state.result_deadline = 5000U;
+    result = mf_rx_practice_command(&state, MfRxPracticeCommandPrimaryPress, 200U);
+    CHECK(result.handled && result.redraw && state.result_deadline == 1200U);
+    state.phase = MfRxPracticePhaseFinal;
+    result = mf_rx_practice_command(&state, MfRxPracticeCommandPaddleBackPress, 300U);
+    CHECK(result.handled && result.request_exit);
+}
+
 int main(void) {
     test_enter_validation();
     test_playback_and_answer();
     test_edit_and_mode_filtering();
     test_timeout_wrap_and_saturation();
     test_back_and_reenter();
+    test_press_commands();
     CHECK(sizeof(MfRxPracticeState) <= 256U);
     printf(
         "test_rx_practice: %u checks passed; state=%u bytes\n",

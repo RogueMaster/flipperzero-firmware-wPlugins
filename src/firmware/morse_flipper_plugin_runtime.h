@@ -52,6 +52,8 @@ typedef struct {
     bool start_holdoff;
 } MorseFlipperPluginSnapshot;
 
+typedef void (*MorseFlipperPluginStateFn)(void* state);
+
 /* Own the app-lifetime lock shared by all embedded FAL hosts. */
 bool morse_flipper_plugin_runtime_init(MorseFlipperApp* app);
 void morse_flipper_plugin_runtime_deinit(MorseFlipperApp* app);
@@ -73,6 +75,18 @@ bool morse_flipper_plugin_runtime_publish_locked(
 void morse_flipper_plugin_runtime_release_claim_locked(
     MorseFlipperApp* app,
     MorseFlipperPluginOwner owner);
+void morse_flipper_plugin_runtime_detach_locked(
+    MorseFlipperApp* app,
+    MorseFlipperPluginOwner owner,
+    MorseFlipperPluginStateFn leave,
+    MorseFlipperPluginStateFn free_state);
+void morse_flipper_plugin_feedback_locked(
+    MorseFlipperApp* app,
+    uint8_t feedback,
+    uint32_t now_ms);
+void morse_flipper_plugin_feedback_expire_locked(
+    MorseFlipperApp* app,
+    uint32_t now_ms);
 bool morse_flipper_plugin_runtime_snapshot(
     const MorseFlipperApp* app,
     MorseFlipperPluginSnapshot* out);

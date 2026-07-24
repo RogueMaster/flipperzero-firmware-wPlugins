@@ -60,7 +60,8 @@ static bool morse_flipper_gpio_probe_before_start(const MorseFlipperApp* app) {
     if(app->screen == MorseFlipperScreenRxPractice) {
         MorseFlipperPluginSnapshot snapshot;
         return morse_flipper_plugin_runtime_snapshot(app, &snapshot) &&
-               snapshot.phase == MfRxPracticePhaseIdle;
+               snapshot.owner == MorseFlipperPluginOwnerRxPractice &&
+               snapshot.active && snapshot.phase == MfRxPracticePhaseIdle;
     }
     return false;
 }

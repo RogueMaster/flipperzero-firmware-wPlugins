@@ -788,19 +788,21 @@ static void morse_flipper_scene_icr_on_exit(void* context) {
 
 static void morse_flipper_scene_rx_callsigns_on_enter(void* context) {
     MorseFlipperApp* app = context;
+    morse_flipper_plugin_runtime_unload_current(app);
     morse_flipper_rx_practice_host_enter(app, MfRxPracticeModeCallsigns, furi_get_tick());
     morse_flipper_scene_enter_now(app, MorseFlipperSceneRxCallsigns);
 }
 
 static void morse_flipper_scene_rx_groups5_on_enter(void* context) {
     MorseFlipperApp* app = context;
+    morse_flipper_plugin_runtime_unload_current(app);
     morse_flipper_rx_practice_host_enter(app, MfRxPracticeModeGroups5, furi_get_tick());
     morse_flipper_scene_enter_now(app, MorseFlipperSceneRxGroups5);
 }
 
 static void morse_flipper_scene_rx_practice_on_exit(void* context) {
     MorseFlipperApp* app = context;
-    morse_flipper_rx_practice_host_unload(app);
+    morse_flipper_plugin_runtime_unload_current(app);
 }
 
 static void morse_flipper_scene_session_end_on_enter(void* context) {
