@@ -2,7 +2,7 @@
 
 14-key 2-octave mini piano application for **Flipper Zero**. 
 
-<img src="docs/FlipPiano3.png" alt="FlipPiano Screen 3" width="20%" />
+<img src="docs/flipperPianoIcon.png" alt="FlipPiano Screen 3" width="20%" />
 play any song you want with a simple, handy mini piano app
 
 ---
@@ -24,10 +24,10 @@ play any song you want with a simple, handy mini piano app
 
 | Button | Action |
 | :--- | :--- |
-| **Up / Down** | Change Octave / Pitch Shift |
+| **Up / Down** | open/close volume menu |
 | **Left / Right** | navigate piano keys |
-| **OK ** | Play Selected Note / Tone |
-| **Back** | Exit Application |
+| **OK** | play selected note |
+| **Back** | exit |
 
 ---
 
