@@ -198,7 +198,10 @@ MorseFlipperContentResult morse_flipper_help_content_input(
 
 bool morse_flipper_help_content_tick(MorseFlipperHelpAboutState* state, uint32_t now_ms) {
     if(state == NULL) return false;
-    if(state->mode == MorseFlipperContentModeAbout) return morse_flipper_tick_about(state, now_ms);
+    if(state->mode == MorseFlipperContentModeAbout) {
+        if(state->about_mode == 0U) return morse_flipper_tick_about(state, now_ms);
+        return cwmd_scroll_tick(&state->about_md);
+    }
     if(state->mode == MorseFlipperContentModeOnboarding) return cwmd_scroll_tick(&state->onboarding_md);
     return cwmd_scroll_tick(&state->help_md);
 }
