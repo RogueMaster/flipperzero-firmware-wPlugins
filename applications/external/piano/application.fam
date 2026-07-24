@@ -1,12 +1,13 @@
 App(
-    appid="flippiano",
-    name="FlipPiano",
+    appid="piano",
+    name="Piano",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="piano_app_main",
     stack_size=2 * 1024,
+    fap_icon="Piano.png",
     fap_category="Media",
     fap_author="bergrfpv",
+    fap_weburl="https://github.com/bergr22/FlipPiano",
     fap_version="1.0",
     fap_description="mini piano for flipper",
-    fap_icon="Piano.png",
 )

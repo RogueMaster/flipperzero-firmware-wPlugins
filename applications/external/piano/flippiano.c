@@ -8,19 +8,27 @@
 
 // 4. and 5. octave freq list
 static const float note_freqs[14] = {
-    261.63f, 293.66f, 329.63f, 349.23f, 392.00f, 440.00f, 493.88f, // 4. octave
-    523.25f, 587.33f, 659.25f, 698.46f, 783.99f, 880.00f, 987.77f  // 5. octave
+    261.63f,
+    293.66f,
+    329.63f,
+    349.23f,
+    392.00f,
+    440.00f,
+    493.88f, // 4. octave
+    523.25f,
+    587.33f,
+    659.25f,
+    698.46f,
+    783.99f,
+    880.00f,
+    987.77f // 5. octave
 };
 
-static const char* note_names_tr[14] = {
-    "DO", "RE", "MI", "FA", "SOL", "LA", "SI",
-    "DO", "RE", "MI", "FA", "SOL", "LA", "SI"
-};
+static const char* note_names_tr[14] =
+    {"DO", "RE", "MI", "FA", "SOL", "LA", "SI", "DO", "RE", "MI", "FA", "SOL", "LA", "SI"};
 
-static const char* note_names_en[14] = {
-    "C4", "D4", "E4", "F4", "G4", "A4", "B4",
-    "C5", "D5", "E5", "F5", "G5", "A5", "B5"
-};
+static const char* note_names_en[14] =
+    {"C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5", "D5", "E5", "F5", "G5", "A5", "B5"};
 
 typedef enum {
     ModePiano,
@@ -30,11 +38,10 @@ typedef enum {
 typedef struct {
     int selected_key; // 0 - 13  (keys)
     bool is_playing;
-    float volume;     // 0.0f - 1.0f  (sound)
+    float volume; // 0.0f - 1.0f  (sound)
     AppMode mode;
     FuriMutex* mutex;
 } PianoState;
-
 
 static void draw_callback(Canvas* canvas, void* ctx) {
     PianoState* state = (PianoState*)ctx;
@@ -48,7 +55,7 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, 2, 11, "VOL:");
 
-        // vol sign 
+        // vol sign
         canvas_draw_box(canvas, 22, 5, 4, 6);
         canvas_draw_line(canvas, 26, 5, 29, 2);
         canvas_draw_line(canvas, 26, 10, 29, 13);
@@ -70,10 +77,13 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         // show note and freq
         canvas_set_font(canvas, FontPrimary);
         char header_str[32];
-        snprintf(header_str, sizeof(header_str), "%s - %s (%.1f Hz)", 
-                 note_names_tr[state->selected_key], 
-                 note_names_en[state->selected_key], 
-                 (double)note_freqs[state->selected_key]);
+        snprintf(
+            header_str,
+            sizeof(header_str),
+            "%s - %s (%.1f Hz)",
+            note_names_tr[state->selected_key],
+            note_names_en[state->selected_key],
+            (double)note_freqs[state->selected_key]);
         canvas_draw_str(canvas, 4, 12, header_str);
 
         // arrow for volume menu
@@ -81,8 +91,8 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         canvas_draw_str(canvas, 114, 10, "[^]");
     }
 
-    // piano buttons place (16 - 63 px) 
-     
+    // piano buttons place (16 - 63 px)
+
     int key_w = 9;
     int key_h = 48;
     int start_y = 16;
@@ -91,28 +101,25 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         int x = 1 + (i * key_w);
 
         if(i == state->selected_key) {
-            
             canvas_draw_box(canvas, x, start_y, key_w, key_h);
             canvas_set_color(canvas, ColorWhite);
         } else {
-            
             canvas_draw_frame(canvas, x, start_y, key_w, key_h);
             canvas_set_color(canvas, ColorBlack);
         }
 
-        
         canvas_set_font(canvas, FontSecondary);
-        char letter[2] = { note_names_en[i][0], '\0' };
+        char letter[2] = {note_names_en[i][0], '\0'};
         canvas_draw_str(canvas, x + 2, start_y + key_h - 4, letter);
 
         canvas_set_color(canvas, ColorBlack);
     }
 
     // piano signs
-        int black_keys[] = {0, 1, 3, 4, 5, 7, 8, 10, 11, 12};
+    int black_keys[] = {0, 1, 3, 4, 5, 7, 8, 10, 11, 12};
     for(int j = 0; j < 10; j++) {
         int idx = black_keys[j];
-        int bx = 1 + (idx * key_w) + 6; 
+        int bx = 1 + (idx * key_w) + 6;
         canvas_set_color(canvas, ColorBlack);
         canvas_draw_box(canvas, bx, start_y, 5, 26);
         canvas_set_color(canvas, ColorWhite);
@@ -133,11 +140,11 @@ static void input_callback(InputEvent* input_event, void* ctx) {
 int32_t piano_app_main(void* p) {
     UNUSED(p);
     FuriMessageQueue* event_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
-    
+
     PianoState* state = malloc(sizeof(PianoState));
     state->selected_key = 0;
     state->is_playing = false;
-    state->volume = 1.0f; 
+    state->volume = 1.0f;
     state->mode = ModePiano;
     state->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
 
@@ -157,12 +164,11 @@ int32_t piano_app_main(void* p) {
 
             if(event.key == InputKeyBack && event.type == InputTypeShort) {
                 if(state->mode == ModeVolume) {
-                    state->mode = ModePiano; 
+                    state->mode = ModePiano;
                 } else {
                     running = false; // exit app
                 }
-            }
-            else if(state->mode == ModePiano) {
+            } else if(state->mode == ModePiano) {
                 // piano controllers
                 if(event.type == InputTypeShort || event.type == InputTypeRepeat) {
                     if(event.key == InputKeyLeft) {
@@ -194,8 +200,7 @@ int32_t piano_app_main(void* p) {
                         state->is_playing = false;
                     }
                 }
-            } 
-            else if(state->mode == ModeVolume) {
+            } else if(state->mode == ModeVolume) {
                 // volume settings
                 if(event.type == InputTypeShort || event.type == InputTypeRepeat) {
                     if(event.key == InputKeyLeft) {
@@ -215,7 +220,6 @@ int32_t piano_app_main(void* p) {
         }
     }
 
-    
     if(furi_hal_speaker_is_mine()) {
         furi_hal_speaker_stop();
         furi_hal_speaker_release();
