@@ -166,6 +166,7 @@ App(
         "src/firmware/plugins/common/mf_callsign_gen.c",
         "src/firmware/plugins/common/mf_big_callsign_font.c",
         "src/firmware/plugins/passive_listening/mf_passive_core.c",
+        "src/firmware/plugins/passive_listening/mf_passive_codec.c",
         "src/firmware/plugins/passive_listening/mf_passive_draw.c",
         "src/firmware/plugins/passive_listening/mf_passive_plugin.c",
         "src/firmware/cw.c",
