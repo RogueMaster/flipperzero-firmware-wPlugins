@@ -32,11 +32,11 @@ static void set_level(
     uint8_t target,
     uint8_t candidate,
     uint8_t level) {
-    uint8_t* packed = &stats->confusion_levels[target][candidate / 4U];
-    uint8_t shift = (uint8_t)((candidate % 4U) * MORSE_FLIPPER_ICR_CONFUSION_BITS);
+    uint8_t* packed = &stats->confusion_levels[target][candidate / 2U];
+    uint8_t shift = (uint8_t)((candidate % 2U) * MORSE_FLIPPER_ICR_CONFUSION_BITS);
 
-    *packed = (uint8_t)(*packed & ~(0x03U << shift));
-    *packed = (uint8_t)(*packed | ((level & 0x03U) << shift));
+    *packed = (uint8_t)(*packed & ~(0x0FU << shift));
+    *packed = (uint8_t)(*packed | ((level & 0x0FU) << shift));
 }
 
 static void clear_row(MorseFlipperIcrStats* stats, uint8_t target) {
@@ -70,10 +70,10 @@ static void test_layout_seeding_and_learning(void) {
     uint8_t target = morse_flipper_icr_char_index('A');
     uint8_t wrong = morse_flipper_icr_char_index('X');
 
-    CHECK(MORSE_FLIPPER_ICR_CONFUSION_ROW_BYTES == 10U);
-    CHECK(MORSE_FLIPPER_ICR_CONFUSION_BYTES == 400U);
+    CHECK(MORSE_FLIPPER_ICR_CONFUSION_ROW_BYTES == 20U);
+    CHECK(MORSE_FLIPPER_ICR_CONFUSION_BYTES == 800U);
     CHECK(sizeof(stats) == MORSE_FLIPPER_ICR_STATS_SIZE);
-    CHECK(sizeof(stats) == 604U);
+    CHECK(sizeof(stats) == 1004U);
 
     morse_flipper_icr_stats_reset(&stats);
     CHECK(morse_flipper_icr_stats_valid(&stats));
@@ -111,8 +111,11 @@ static void test_layout_seeding_and_learning(void) {
 
     morse_flipper_icr_note_answer(&stats, target, wrong, 600U);
     morse_flipper_icr_note_answer(&stats, target, wrong, 600U);
-    morse_flipper_icr_note_answer(&stats, target, wrong, 600U);
-    CHECK(morse_flipper_icr_confusion_level(&stats, target, wrong) == 3U);
+    clear_row(&stats, target);
+    stats.attempts[target] = 0U;
+    for(uint8_t i = 0U; i < 15U; i++)
+        morse_flipper_icr_note_answer(&stats, target, wrong, 600U);
+    CHECK(morse_flipper_icr_confusion_level(&stats, target, wrong) == 15U);
     CHECK(morse_flipper_icr_stats_valid(&stats));
 }
 
@@ -130,9 +133,9 @@ static void test_unbounded_personal_admission(void) {
         CHECK(morse_flipper_icr_confusion_level(&stats, target, wrong) == 1U);
     }
 
-    morse_flipper_icr_note_answer(&stats, target, morse_flipper_icr_char_index('B'), 500U);
-    morse_flipper_icr_note_answer(&stats, target, morse_flipper_icr_char_index('B'), 500U);
-    CHECK(morse_flipper_icr_confusion_level(&stats, target, morse_flipper_icr_char_index('B')) == 3U);
+    for(uint8_t i = 0U; i < 8U; i++)
+        morse_flipper_icr_note_answer(&stats, target, morse_flipper_icr_char_index('B'), 500U);
+    CHECK(morse_flipper_icr_confusion_level(&stats, target, morse_flipper_icr_char_index('B')) == 9U);
     for(uint8_t i = 1U; i < sizeof(wrong_chars); i++)
         CHECK(morse_flipper_icr_confusion_level(
                   &stats, target, morse_flipper_icr_char_index(wrong_chars[i])) == 1U);
@@ -156,6 +159,29 @@ static void test_decay_and_reinforcement_order(void) {
     set_level(&stats, target, wrong, 1U);
     morse_flipper_icr_note_answer(&stats, target, wrong, 500U);
     CHECK(morse_flipper_icr_confusion_level(&stats, target, wrong) == 1U);
+}
+
+static void test_nibbles_and_personal_dominance(void) {
+    MorseFlipperIcrStats stats;
+    uint8_t target = morse_flipper_icr_char_index('A');
+    uint8_t even = morse_flipper_icr_char_index('B');
+    uint8_t odd = morse_flipper_icr_char_index('C');
+
+    morse_flipper_icr_stats_reset(&stats);
+    clear_row(&stats, target);
+    set_level(&stats, target, even, 4U);
+    set_level(&stats, target, odd, 11U);
+    CHECK(morse_flipper_icr_confusion_level(&stats, target, even) == 4U);
+    CHECK(morse_flipper_icr_confusion_level(&stats, target, odd) == 11U);
+    set_level(&stats, target, even, 15U);
+    CHECK(morse_flipper_icr_confusion_level(&stats, target, even) == 15U);
+    CHECK(morse_flipper_icr_confusion_level(&stats, target, odd) == 11U);
+
+    morse_flipper_icr_stats_reset(&stats);
+    for(uint8_t i = 0U; i < 6U; i++)
+        morse_flipper_icr_note_answer(&stats, target, odd, 500U);
+    CHECK(morse_flipper_icr_confusion_level(&stats, target, odd) >
+          morse_flipper_icr_confusion_level(&stats, target, morse_flipper_icr_char_index('I')));
 }
 
 static void test_answer_composition(void) {
@@ -261,6 +287,7 @@ int main(void) {
     test_layout_seeding_and_learning();
     test_unbounded_personal_admission();
     test_decay_and_reinforcement_order();
+    test_nibbles_and_personal_dominance();
     test_answer_composition();
     test_validation_and_persistence();
     test_target_selection_contract();

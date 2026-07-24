@@ -20,21 +20,21 @@
 
 #define MORSE_FLIPPER_ICR_COUNT_OF(a) (sizeof(a) / sizeof((a)[0]))
 
-#define MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK 0x03U
+#define MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK 0x0FU
 #define MORSE_FLIPPER_ICR_PACK_LEVELS(a, b, c, d)                                  \
-    ((uint8_t)(((a) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) |                    \
-               (((b) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << 2U) |            \
-               (((c) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << 4U) |            \
-               (((d) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << 6U)))
+    ((uint16_t)(((a) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) |                   \
+                (((b) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << 4U) |           \
+                (((c) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << 8U) |           \
+                (((d) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << 12U)))
 
 /*
  * The seed is used only when stats are created or reset.  Each byte stores
- * four 2-bit levels, matching the four candidate characters in its row.
+ * four 4-bit levels, matching the four candidate characters in its row.
  */
 
 typedef struct {
     char candidate[4];
-    uint8_t levels;
+    uint16_t levels;
 } MorseFlipperIcrSeedRow;
 
 static const char morse_flipper_icr_chars[MORSE_FLIPPER_ICR_CHAR_COUNT + 1U] =
@@ -111,8 +111,8 @@ uint8_t morse_flipper_icr_confusion_level(
        candidate >= MORSE_FLIPPER_ICR_CHAR_COUNT)
         return 0U;
 
-    packed = stats->confusion_levels[target][candidate / 4U];
-    return (uint8_t)((packed >> ((candidate % 4U) * MORSE_FLIPPER_ICR_CONFUSION_BITS)) &
+    packed = stats->confusion_levels[target][candidate / 2U];
+    return (uint8_t)((packed >> ((candidate % 2U) * MORSE_FLIPPER_ICR_CONFUSION_BITS)) &
                      MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK);
 }
 
@@ -128,8 +128,8 @@ static void morse_flipper_icr_set_confusion_level(
        candidate >= MORSE_FLIPPER_ICR_CHAR_COUNT)
         return;
 
-    packed = &stats->confusion_levels[target][candidate / 4U];
-    shift = (uint8_t)((candidate % 4U) * MORSE_FLIPPER_ICR_CONFUSION_BITS);
+    packed = &stats->confusion_levels[target][candidate / 2U];
+    shift = (uint8_t)((candidate % 2U) * MORSE_FLIPPER_ICR_CONFUSION_BITS);
     *packed = (uint8_t)(*packed & ~(MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK << shift));
     *packed = (uint8_t)(*packed | ((level & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << shift));
 }
@@ -153,9 +153,8 @@ static void morse_flipper_icr_seed_confusions(MorseFlipperIcrStats* stats) {
 }
 
 static uint8_t morse_flipper_icr_confusion_weight(uint8_t level) {
-    static const uint8_t weights[] = {0U, 2U, 6U, 12U};
-
-    return weights[level & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK];
+    level &= MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK;
+    return (uint8_t)(level * (level + 1U));
 }
 
 static void morse_flipper_icr_decay_confusions(MorseFlipperIcrStats* stats, uint8_t target) {
