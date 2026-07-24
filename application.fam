@@ -153,3 +153,21 @@ App(
     fal_embedded=True,
     targets=["f7"],
 )
+
+App(
+    appid="morse_flipper_passive_listening",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="morse_flipper_passive_listening_ep",
+    requires=["morse_flipper"],
+    cdefines=["MORSE_FLIPPER_FAP=1"],
+    sources=[
+        "src/firmware/plugins/common/mf_rx_rng.c",
+        "src/firmware/plugins/common/mf_callsign_gen.c",
+        "src/firmware/plugins/passive_listening/mf_passive_core.c",
+        "src/firmware/plugins/passive_listening/mf_passive_draw.c",
+        "src/firmware/plugins/passive_listening/mf_passive_plugin.c",
+        "src/firmware/cw.c",
+    ],
+    fal_embedded=True,
+    targets=["f7"],
+)
