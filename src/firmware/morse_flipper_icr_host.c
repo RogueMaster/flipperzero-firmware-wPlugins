@@ -71,6 +71,23 @@ static void morse_flipper_icr_host_apply_locked(MorseFlipperApp* app, MorseFlipp
     if(result.redraw) morse_flipper_view_dirty(app);
 }
 
+/* ICR result screens remain visible longer than their short audio/LED feedback. */
+static void morse_flipper_icr_host_expire_feedback_locked(
+    MorseFlipperApp* app,
+    uint32_t now_ms) {
+    bool audio_changed;
+
+    if(app == NULL || app->session_result_until == 0U ||
+       now_ms < app->session_result_until)
+        return;
+
+    audio_changed = app->session_result_tone || app->session_result_good;
+    app->session_result_tone = false;
+    app->session_result_good = false;
+    app->session_result_until = 0U;
+    if(audio_changed) morse_flipper_update_sidetone(app);
+}
+
 void morse_flipper_icr_host_unload(MorseFlipperApp* app) {
     const MorseFlipperIcrApi* api;
     void* state;
@@ -161,6 +178,7 @@ void morse_flipper_icr_host_tick(MorseFlipperApp* app, uint32_t now_ms) {
     MorseFlipperIcrResult result = {0};
     if(app == NULL || app->plugin_mutex == NULL) return;
     furi_mutex_acquire(app->plugin_mutex, FuriWaitForever);
+    morse_flipper_icr_host_expire_feedback_locked(app, now_ms);
     if(app->icr_active && app->icr_api != NULL && app->icr_state != NULL) {
         result = app->icr_api->tick(app->icr_state, now_ms);
         if(result.handled) morse_flipper_icr_host_apply_locked(app, result);

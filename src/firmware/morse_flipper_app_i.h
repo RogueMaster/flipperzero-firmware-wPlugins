@@ -38,7 +38,6 @@
 #include "morse_flipper_icr_host.h"
 #include "morse_flipper_plugin_runtime.h"
 #include "plugins/icr/morse_flipper_icr_api.h"
-#include "plugins/icr/morse_flipper_icr.h"
 #include "morse_flipper_paths.h"
 #include "morse_flipper_progress.h"
 #include "morse_flipper_radio.h"
@@ -98,12 +97,6 @@
 #define MORSE_FLIPPER_RF_FREQ_DIGITS                6U
 #define MORSE_FLIPPER_TONE_OFF_IDX                  0xFFU
 #define MORSE_FLIPPER_DEFAULT_TONE_IDX              20U
-#define MORSE_FLIPPER_ICR_WAIT_MS                   1000U
-#define MORSE_FLIPPER_ICR_RESULT_MS                 1000U
-#define MORSE_FLIPPER_ICR_GUARD_MS                  100U
-#define MORSE_FLIPPER_ICR_TIMEOUT_MS                5000U
-#define MORSE_FLIPPER_ICR_WPM                       25U
-
 #define MORSE_SOURCE_STRAIGHT_GPIO (1UL << 0)
 #define MORSE_SOURCE_STRAIGHT_BTN  (1UL << 1)
 #define MORSE_SOURCE_KEYER_DIT     (1UL << 2)

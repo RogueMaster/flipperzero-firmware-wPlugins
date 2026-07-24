@@ -95,7 +95,7 @@ App(
     ],
     targets=["f7"],
     fap_category="Tools",
-    fap_version="0.1.92",
+    fap_version="0.1.93",
     fap_author="@yo3gnd",
     fap_weburl="https://github.com/yo3gnd/morse-flipper/",
     fap_description="Learn, practise, send, and experiment with Morse code on Flipper Zero.",
@@ -123,6 +123,7 @@ App(
     apptype=FlipperAppType.PLUGIN,
     entry_point="morse_flipper_icr_ep",
     requires=["morse_flipper"],
+    cdefines=["MORSE_FLIPPER_FAP=1"],
     sources=[
         "src/firmware/plugins/icr/morse_flipper_icr.c",
         "src/firmware/plugins/icr/morse_flipper_icr_runtime.c",
