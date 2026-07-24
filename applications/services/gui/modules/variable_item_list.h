@@ -91,6 +91,13 @@ uint8_t variable_item_list_get_selected_item_index(VariableItemList* variable_it
  */
 void variable_item_list_set_header(VariableItemList* variable_item_list, const char* header);
 
+/** Set item label
+ *
+ * @param      item        VariableItem* instance
+ * @param      label       The label text
+ */
+void variable_item_set_item_label(VariableItem* item, const char* label);
+
 /** Set item current selected index
  *
  * @param      item                 VariableItem* instance

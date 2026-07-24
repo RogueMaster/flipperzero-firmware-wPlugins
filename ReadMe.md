@@ -48,6 +48,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Sub-GHz RAW Edit v1.7 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
 - Updated: [Android KB Bridge v0.5.5 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD) (Version Only)
 - Updated: [Asteroids v1.3 (By antirez)](https://github.com/antirez/flipper-asteroids) [fix the stray lines and stall when objects cross the screen edge (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/242)
+- OFW: [Add method for changing variable item label #4421 (By loftyinclination)](https://github.com/flipperdevices/flipperzero-firmware/pull/4421)
 
 <a name="release"></a>
 
