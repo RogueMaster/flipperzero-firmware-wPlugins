@@ -16,6 +16,7 @@ static MfPassiveResult mf_passive_result(const MfPassiveState* state, bool redra
 static void mf_passive_fail(MfPassiveState* state) {
     state->error = 1U;
     state->phase = MfPassivePhaseError;
+    mf_passive_voice_pack_close(&state->pack);
     if(state->services != NULL) {
         state->services->set_silence(state->services->context);
         state->services->set_vibration(state->services->context, false);
@@ -56,7 +57,8 @@ bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfP
     state->tone_hz = args->tone_hz;
     mf_rx_rng_init(&state->rng, args->rng_seed);
     mf_callsign_gen_init(&state->callsign_gen);
-    if(!mf_passive_next_call(state) || !state->services->claim(state->services->context, args->output_target, args->volume_pct, &state->pipe)) {
+    if(!mf_passive_voice_pack_open_asset(&state->pack) || !mf_passive_next_call(state) ||
+       !state->services->claim(state->services->context, args->output_target, args->volume_pct, &state->pipe)) {
         mf_passive_fail(state);
         *result = mf_passive_result(state, true);
         return false;
@@ -75,6 +77,7 @@ void mf_passive_leave(MfPassiveState* state) {
         state->services->set_vibration(state->services->context, false);
         if(state->audio_claimed) state->services->release(state->services->context);
     }
+    mf_passive_voice_pack_close(&state->pack);
     memset(state, 0, sizeof(*state));
 }
 
@@ -106,9 +109,46 @@ MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
         } else if(!mf_passive_start_mark(state, now_ms)) mf_passive_fail(state);
         return mf_passive_result(state, false);
     }
-    if(state->phase == MfPassivePhasePostCw && mf_passive_reached(now_ms, state->next_at)) {
-        /* Voice streaming is installed by the pack runtime; never reveal until it accepts Voice. */
-        state->phase = MfPassivePhaseVoicePrime;
+    if(state->phase == MfPassivePhasePostCw) {
+        if(!state->pack.active && state->pipe.read_pos == state->pipe.write_pos &&
+           !mf_passive_voice_pack_begin(&state->pack, &state->pipe, state->callsign.text[0]))
+            mf_passive_fail(state);
+        mf_passive_voice_pack_refill(&state->pack, &state->pipe);
+        if(mf_passive_voice_pack_failed(&state->pack)) mf_passive_fail(state);
+        if(state->phase != MfPassivePhaseError && mf_passive_reached(now_ms, state->next_at))
+            state->phase = MfPassivePhaseVoicePrime;
+        return mf_passive_result(state, false);
+    }
+    if(state->phase == MfPassivePhaseVoicePrime) {
+        if(!state->pack.active && state->pipe.read_pos == state->pipe.write_pos &&
+           !mf_passive_voice_pack_begin(
+               &state->pack, &state->pipe, state->callsign.text[state->voice_index]))
+            mf_passive_fail(state);
+        mf_passive_voice_pack_refill(&state->pack, &state->pipe);
+        if(mf_passive_voice_pack_failed(&state->pack)) mf_passive_fail(state);
+        if(state->phase != MfPassivePhaseError &&
+           mf_passive_voice_pack_primed(&state->pack, &state->pipe)) {
+            if(!state->services->set_voice(state->services->context, state->pack.sample_rate_hz))
+                mf_passive_fail(state);
+            else {
+                state->revealed_count = (uint8_t)(state->voice_index + 1U);
+                state->phase = MfPassivePhaseVoice;
+            }
+        }
+        return mf_passive_result(state, state->phase == MfPassivePhaseVoice);
+    }
+    if(state->phase == MfPassivePhaseVoice) {
+        mf_passive_voice_pack_refill(&state->pack, &state->pipe);
+        if(mf_passive_voice_pack_failed(&state->pack)) mf_passive_fail(state);
+        else if(mf_passive_voice_pack_drained(&state->pack, &state->pipe)) {
+            if(state->voice_index == 3U) {
+                state->phase = MfPassivePhasePostVoice;
+                state->next_at = now_ms + 1000U;
+            } else {
+                state->voice_index++;
+                state->phase = MfPassivePhaseVoicePrime;
+            }
+        }
         return mf_passive_result(state, false);
     }
     return mf_passive_result(state, false);

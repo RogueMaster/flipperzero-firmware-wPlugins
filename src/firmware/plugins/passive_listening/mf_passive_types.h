@@ -6,22 +6,12 @@
 #include <input/input.h>
 
 #include "../common/mf_callsign_gen.h"
-
-#define MF_PASSIVE_PCM_RING_SAMPLES 1024U
+#include "mf_passive_audio_pipe.h"
 
 typedef enum {
     MfPassiveOutputInternal = 0,
     MfPassiveOutputP2 = 1,
 } MfPassiveOutputTarget;
-
-typedef struct MfPassivePcmPipe {
-    int16_t samples[MF_PASSIVE_PCM_RING_SAMPLES];
-    volatile uint16_t read_pos;
-    volatile uint16_t write_pos;
-    volatile bool eof;
-    volatile bool drained;
-    volatile uint32_t underruns;
-} MfPassivePcmPipe;
 
 typedef struct {
     uint32_t struct_size;
