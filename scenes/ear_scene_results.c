@@ -45,7 +45,7 @@ void ear_scene_results_on_enter(void* context) {
     }
     widget_add_string_element(widget, 64, 38, AlignCenter, AlignCenter, FontSecondary, line);
 
-    bool has_next = q->passed && (app->level + 1 < LEVEL_COUNT);
+    bool has_next = q->passed && (app->level + 1 < curriculum_level_count(app->mode));
     widget_add_button_element(widget, GuiButtonTypeLeft, "Retry", results_button_callback, app);
     widget_add_button_element(
         widget, GuiButtonTypeRight, has_next ? "Next" : "Levels", results_button_callback, app);
@@ -65,11 +65,11 @@ bool ear_scene_results_on_event(void* context, SceneManagerEvent event) {
     }
     if(event.event == ResultsContinue) {
         QuizState* q = &app->quiz;
-        bool has_next = q->passed && (app->level + 1 < LEVEL_COUNT);
+        bool has_next = q->passed && (app->level + 1 < curriculum_level_count(app->mode));
         scene_manager_search_and_switch_to_previous_scene(app->scene_manager, EarSceneLevelSelect);
         if(has_next) {
             app->level++;
-            if(curriculum_get(app->level)->new_count > 0) {
+            if(curriculum_get(app->mode, app->level)->new_count > 0) {
                 app->teach_index = 0;
                 scene_manager_next_scene(app->scene_manager, EarSceneTeach);
             } else {

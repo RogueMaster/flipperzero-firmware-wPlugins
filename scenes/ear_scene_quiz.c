@@ -9,19 +9,18 @@ static uint8_t rand_below(uint8_t n) {
     return n ? (uint8_t)(furi_hal_random_get() % n) : 0;
 }
 
-/* Build the order of intervals to test. A regular level guarantees several
- * reps of whatever it just introduced, then tops up with review drawn from
- * everything learned so far; a challenge level is pure review. */
+/* Build the order of items to test. A regular level guarantees several reps
+ * of whatever it just introduced, then tops up with review drawn from
+ * everything learned so far; a review level is pure mixed practice. */
 static void build_queue(EarTrainerApp* app) {
     QuizState* q = &app->quiz;
-    const EarLevel* level = curriculum_get(app->level);
+    const EarLevel* level = curriculum_get(app->mode, app->level);
     q->queue_len = 0;
 
     if(!q->challenge) {
         for(uint8_t i = 0; i < level->new_count; i++) {
             for(uint8_t r = 0; r < QUIZ_REPS_PER_NEW; r++) {
-                if(q->queue_len < sizeof(q->queue))
-                    q->queue[q->queue_len++] = level->new_intervals[i];
+                if(q->queue_len < sizeof(q->queue)) q->queue[q->queue_len++] = level->new_items[i];
             }
         }
         for(uint8_t r = 0; r < QUIZ_REVIEW_EXTRA; r++) {
@@ -55,6 +54,7 @@ static void push_model(EarTrainerApp* app) {
     QuizState* q = &app->quiz;
     QuizModel* m = &app->qm;
 
+    m->mode = app->mode;
     m->question = q->q_index + 1;
     m->total = q->total_questions;
     m->score = q->correct;
@@ -66,19 +66,62 @@ static void push_model(EarTrainerApp* app) {
     m->challenge = q->challenge;
     m->mistakes_left =
         (uint8_t)(CHALLENGE_MAX_MISS >= q->mistakes ? CHALLENGE_MAX_MISS - q->mistakes : 0);
-    m->show_mnemonic = app->settings.show_mnemonic;
+    m->show_hint = app->settings.show_mnemonic;
     m->quit_armed = q->quit_armed;
+    m->played_count = q->note_count;
+    for(uint8_t i = 0; i < q->note_count; i++)
+        m->played_notes[i] = q->notes[i];
     quiz_view_update(app->quiz_view, m);
 }
 
 static void play_current(EarTrainerApp* app) {
     QuizState* q = &app->quiz;
-    uint8_t low = q->root_midi;
-    uint8_t high = (uint8_t)(q->root_midi + q->answer);
-    if(q->descending) {
-        tone_player_play_interval(app->player, high, low);
+    /* chords arpeggiate a touch faster so they hang together as one sound */
+    uint16_t gap = (mode_content(app->mode) == ContentChord) ? 45 : 0;
+    tone_player_play_sequence(app->player, q->notes, q->note_count, gap);
+}
+
+/* Turn the answer id into the actual run of notes, and pick a root that keeps
+ * every note inside the playable table. */
+static void build_notes(EarTrainerApp* app) {
+    QuizState* q = &app->quiz;
+    ContentType content = mode_content(app->mode);
+
+    uint8_t span;
+    const Pattern* pattern = NULL;
+    if(content == ContentInterval) {
+        span = q->answer;
     } else {
-        tone_player_play_interval(app->player, low, high);
+        pattern = (content == ContentChord) ? chord_get(q->answer) : scale_get(q->answer);
+        span = pattern_span(pattern);
+    }
+
+    uint8_t root_max = (uint8_t)(NOTE_MIDI_MAX - span);
+    if(root_max > ROOT_MIDI_MAX) root_max = ROOT_MIDI_MAX;
+    if(root_max < ROOT_MIDI_MIN) root_max = ROOT_MIDI_MIN;
+    q->root_midi =
+        app->settings.random_root ?
+            (uint8_t)(ROOT_MIDI_MIN + rand_below((uint8_t)(root_max - ROOT_MIDI_MIN + 1))) :
+            ROOT_MIDI_MIN;
+
+    if(content == ContentInterval) {
+        uint8_t low = q->root_midi;
+        uint8_t high = (uint8_t)(q->root_midi + q->answer);
+        if(app->mode == ModeIntervalAsc) {
+            q->descending = false;
+        } else if(app->mode == ModeIntervalDesc) {
+            q->descending = true;
+        } else {
+            q->descending = (rand_below(2) == 1);
+        }
+        q->notes[0] = q->descending ? high : low;
+        q->notes[1] = q->descending ? low : high;
+        q->note_count = 2;
+    } else {
+        q->descending = false;
+        q->note_count = pattern->count;
+        for(uint8_t i = 0; i < pattern->count && i < MAX_SEQUENCE; i++)
+            q->notes[i] = (uint8_t)(q->root_midi + pattern->steps[i]);
     }
 }
 
@@ -86,9 +129,10 @@ static void next_question(EarTrainerApp* app) {
     QuizState* q = &app->quiz;
 
     uint8_t answer = q->queue[q->q_index];
-    /* avoid asking the same interval twice running when there is a choice */
-    if(answer == q->last_answer && q->pool_count > 1) {
-        uint8_t swap = q->q_index + 1 + rand_below((uint8_t)(q->queue_len - q->q_index - 1));
+    /* avoid asking the same thing twice running when there is a choice */
+    if(answer == q->last_answer && q->pool_count > 1 && q->q_index + 1 < q->queue_len) {
+        uint8_t swap =
+            (uint8_t)(q->q_index + 1 + rand_below((uint8_t)(q->queue_len - q->q_index - 1)));
         if(swap < q->queue_len && q->queue[swap] != answer) {
             q->queue[q->q_index] = q->queue[swap];
             q->queue[swap] = answer;
@@ -98,22 +142,7 @@ static void next_question(EarTrainerApp* app) {
     q->answer = answer;
     q->last_answer = answer;
 
-    /* keep both notes inside the table: the root ceiling drops as the
-     * interval widens */
-    uint8_t root_max = NOTE_MIDI_MAX - answer;
-    if(root_max > ROOT_MIDI_MAX) root_max = ROOT_MIDI_MAX;
-    q->root_midi =
-        app->settings.random_root ?
-            (uint8_t)(ROOT_MIDI_MIN + rand_below((uint8_t)(root_max - ROOT_MIDI_MIN + 1))) :
-            ROOT_MIDI_MIN;
-
-    if(app->mode == ModeAscending) {
-        q->descending = false;
-    } else if(app->mode == ModeDescending) {
-        q->descending = true;
-    } else {
-        q->descending = (rand_below(2) == 1);
-    }
+    build_notes(app);
 
     app->qm.phase = QuizPhaseAnswering;
     app->qm.selected = 0;
@@ -143,9 +172,10 @@ static void finish_quiz(EarTrainerApp* app) {
     }
 
     EarProgress* p = &app->progress;
+    uint8_t levels = curriculum_level_count(app->mode);
     if(q->stars > p->stars[app->mode][app->level]) p->stars[app->mode][app->level] = q->stars;
-    if(q->passed && app->level + 1 >= p->unlocked[app->mode] && app->level + 1 < LEVEL_COUNT) {
-        p->unlocked[app->mode] = app->level + 2;
+    if(q->passed && app->level + 1 >= p->unlocked[app->mode] && app->level + 1 < levels) {
+        p->unlocked[app->mode] = (uint8_t)(app->level + 2);
     }
     ear_progress_save(p);
 
@@ -174,11 +204,12 @@ static void submit_answer(EarTrainerApp* app) {
 
     app->qm.phase = QuizPhaseFeedback;
     app->qm.last_correct = correct;
-    app->qm.correct_interval = q->answer;
+    app->qm.correct_id = q->answer;
     app->qm.streak = q->streak;
     push_model(app);
 
-    /* a wrong answer lingers longer: that is when the mnemonic matters */
+    /* a wrong answer lingers longer: that is when the keyboard and the hint
+     * are worth reading */
     furi_timer_start(
         app->feedback_timer, furi_ms_to_ticks(correct ? FEEDBACK_RIGHT_MS : FEEDBACK_WRONG_MS));
 }
@@ -239,10 +270,10 @@ void ear_scene_quiz_on_enter(void* context) {
     QuizState* q = &app->quiz;
 
     memset(q, 0, sizeof(QuizState));
-    q->challenge = curriculum_is_challenge(app->level);
+    q->challenge = curriculum_is_challenge(app->mode, app->level);
     q->hints_left = HINTS_PER_QUIZ;
     q->last_answer = 0xFF;
-    q->pool_count = curriculum_learned_upto(app->level, q->pool, sizeof(q->pool));
+    q->pool_count = curriculum_learned_upto(app->mode, app->level, q->pool, sizeof(q->pool));
     build_queue(app);
 
     memset(&app->qm, 0, sizeof(QuizModel));
