@@ -45,12 +45,28 @@ VOICE_FILTER = (
     "acompressor=threshold=-24dB:ratio=3:attack=5:release=80:makeup=6dB,"
     "loudnorm=I=-18:LRA=7:TP=-2"
 )
+PASSIVE_PRESENCE_GATE_FILTER = (
+    "agate=threshold=0.012:ratio=4:range=0.05:"
+    "attack=2:release=60:knee=2:detection=rms,"
+    "highpass=f=250:p=2,lowpass=f=6500:p=2,"
+    "equalizer=f=2400:t=q:w=1.1:g=4,"
+    "acompressor=threshold=0.25:ratio=2:attack=3:release=80:makeup=2.5,"
+    "highpass=f=30:p=1,"
+    "afade=t=in:d=0.008,"
+    "areverse,afade=t=in:d=0.012,areverse,"
+    "alimiter=limit=0.891:level=false:attack=3:release=50:latency=true,"
+    "aresample=16000:resampler=soxr:precision=28:osf=s16:dither_method=none"
+)
 MASTERING_PROFILES = {
-    "balanced": VOICE_FILTER,
+    "balanced": (VOICE_FILTER,),
     "passive-hot": (
-        f"{VOICE_FILTER},volume=11dB,"
-        "alimiter=limit=0.944:level=false:attack=1:release=20:latency=true"
+        (
+            f"{VOICE_FILTER},volume=11dB,"
+            "alimiter=limit=0.944:level=false:attack=1:release=20:latency=true"
+        ),
     ),
+    # Preserve the tested intermediate PCM boundary after the balanced master.
+    "passive-presence-gate": (VOICE_FILTER, PASSIVE_PRESENCE_GATE_FILTER),
 }
 SOURCE_RATE = 16000
 VOICE_ID = "Amy"
@@ -92,6 +108,11 @@ def parse_args() -> argparse.Namespace:
         "--force",
         action="store_true",
         help="replace existing source WAVs",
+    )
+    parser.add_argument(
+        "--runtime-pack",
+        type=Path,
+        help="also build the selected 90pct/s16_16k MFVA runtime pack",
     )
     return parser.parse_args()
 
@@ -269,29 +290,86 @@ def synthesize(client: Any, spoken_text: str, rate: str | None) -> tuple[bytes, 
     }
 
 
-def make_voice_reference(source: Path, destination: Path, voice_filter: str) -> None:
+def make_voice_reference(
+    source: Path,
+    destination: Path,
+    voice_filters: tuple[str, ...],
+) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
+    stage_input = source
+    temporary: list[Path] = []
+    try:
+        for index, voice_filter in enumerate(voice_filters):
+            stage_output = (
+                destination
+                if index == len(voice_filters) - 1
+                else destination.with_name(f".{destination.stem}.stage-{index}.wav")
+            )
+            if stage_output != destination:
+                temporary.append(stage_output)
+            run(
+                [
+                    "ffmpeg",
+                    "-nostdin",
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-y",
+                    "-i",
+                    str(stage_input),
+                    "-af",
+                    voice_filter,
+                    "-ar",
+                    str(SOURCE_RATE),
+                    "-ac",
+                    "1",
+                    "-c:a",
+                    "pcm_s16le",
+                    str(stage_output),
+                ]
+            )
+            stage_input = stage_output
+    finally:
+        for path in temporary:
+            path.unlink(missing_ok=True)
+
+
+def build_runtime_pack(
+    output: Path,
+    destination: Path,
+    decoded: dict[tuple[str, str, str], array[int]],
+) -> dict[str, int | str]:
+    runtime_input = output / "runtime-input" / "passive-presence-gate-s16-16k"
+    runtime_input.mkdir(parents=True, exist_ok=True)
+    sample_lines: list[str] = []
+    for token_name in TOKENS:
+        samples = decoded[("90pct", token_name, "s16_16k")]
+        (runtime_input / f"{token_name}.bin").write_bytes(samples_to_pcm16(samples))
+        sample_lines.append(f"{token_name} {len(samples)}")
+
+    sample_file = runtime_input / "samples"
+    sample_file.write_text("\n".join(sample_lines) + "\n", encoding="ascii")
+    destination = destination.resolve()
     run(
         [
-            "ffmpeg",
-            "-nostdin",
-            "-hide_banner",
-            "-loglevel",
-            "error",
-            "-y",
-            "-i",
-            str(source),
-            "-af",
-            voice_filter,
-            "-ar",
-            str(SOURCE_RATE),
-            "-ac",
-            "1",
-            "-c:a",
-            "pcm_s16le",
+            sys.executable,
+            str(Path(__file__).with_name("build_passive_voice_pack.py")),
+            "--input",
+            str(runtime_input),
+            "--variant",
+            "s16_16k",
+            "--samples",
+            str(sample_file),
+            "--output",
             str(destination),
         ]
     )
+    return {
+        "bytes": destination.stat().st_size,
+        "codec": "pcm_s16le",
+        "sample_rate": SOURCE_RATE,
+        "sha256": sha256_file(destination),
+    }
 
 
 def encode_variant(source: Path, destination: Path, sample_rate: int, codec: str) -> None:
@@ -436,7 +514,9 @@ def main() -> int:
     require_command("ffmpeg")
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    voice_filter = MASTERING_PROFILES[args.mastering_profile]
+    voice_filters = MASTERING_PROFILES[args.mastering_profile]
+    if args.runtime_pack is not None and args.mastering_profile != "passive-presence-gate":
+        raise ValueError("--runtime-pack requires --mastering-profile passive-presence-gate")
 
     client = None
     if not args.encode_only:
@@ -454,7 +534,8 @@ def main() -> int:
             "source_format": "pcm_s16le",
             "source_sample_rate": SOURCE_RATE,
             "mastering_profile": args.mastering_profile,
-            "processing_filter": voice_filter,
+            "processing_filter": ",".join(voice_filters),
+            "processing_stages": list(voice_filters),
         },
         "tokens": {},
         "totals": {},
@@ -493,7 +574,7 @@ def main() -> int:
 
             cleaned, clean_metadata = clean_source_pcm(source_pcm)
             write_pcm16_wave(clean_path, cleaned, SOURCE_RATE)
-            make_voice_reference(clean_path, reference_path, voice_filter)
+            make_voice_reference(clean_path, reference_path, voice_filters)
             reference_samples = decode_pcm(reference_path, SOURCE_RATE)
 
             token_entry: dict[str, Any] = {
@@ -572,6 +653,9 @@ def main() -> int:
                     round(sum(snr_values) / len(snr_values), 3) if snr_values else None
                 ),
             }
+
+    if args.runtime_pack is not None:
+        manifest["runtime_pack"] = build_runtime_pack(output, args.runtime_pack, decoded)
 
     (output / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",

@@ -114,8 +114,8 @@ bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfP
     state->dit_ms = args->dit_ms;
     state->char_gap_ms = args->char_gap_ms;
     state->tone_hz = args->tone_hz;
-    /* SoftBuzz doubles Q15 drive, so halve hot-mastered voice before the ring. */
-    state->voice_gain_pct = args->output_target == MfPassiveOutputInternal ? 50U : 100U;
+    /* Hardware audition selected 70% before SoftBuzz's doubled internal drive. */
+    state->voice_gain_pct = args->output_target == MfPassiveOutputInternal ? 70U : 100U;
     mf_rx_rng_init(&state->rng, args->rng_seed);
     mf_callsign_gen_init(&state->callsign_gen);
     if(!mf_passive_voice_pack_open_asset(&state->pack) || !mf_passive_next_call(state) ||
