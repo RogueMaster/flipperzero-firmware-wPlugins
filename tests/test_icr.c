@@ -263,6 +263,39 @@ static void test_validation_and_persistence(void) {
     CHECK(memcmp(&loaded, &stats, sizeof(stats)) == 0);
 }
 
+static void test_old_saved_state_resets_without_migration(void) {
+    MorseFlipperIcrStats stats;
+    MorseFlipperIcrStats loaded;
+    FILE* file;
+    uint8_t old_state[604] = {0};
+
+    /* Same-size data with the old version is not a compatibility format. */
+    morse_flipper_icr_stats_reset(&stats);
+    stats.version = MORSE_FLIPPER_ICR_VERSION - 1U;
+    file = fopen(MORSE_FLIPPER_ICR_STATS_PATH, "wb");
+    CHECK(file != NULL);
+    CHECK(fwrite(&stats, 1U, sizeof(stats), file) == sizeof(stats));
+    CHECK(fclose(file) == 0);
+    CHECK(morse_flipper_icr_stats_load(&loaded));
+    CHECK(morse_flipper_icr_stats_valid(&loaded));
+    CHECK(loaded.version == MORSE_FLIPPER_ICR_VERSION);
+    CHECK(memcmp(&loaded, &stats, sizeof(loaded)) != 0);
+
+    /* The former 2-bit blob size likewise resets to the seeded 4-bit state. */
+    memset(old_state, 0xA5, sizeof(old_state));
+    file = fopen(MORSE_FLIPPER_ICR_STATS_PATH, "wb");
+    CHECK(file != NULL);
+    CHECK(fwrite(old_state, 1U, sizeof(old_state), file) == sizeof(old_state));
+    CHECK(fclose(file) == 0);
+    CHECK(morse_flipper_icr_stats_load(&loaded));
+    CHECK(morse_flipper_icr_stats_valid(&loaded));
+    CHECK(loaded.version == MORSE_FLIPPER_ICR_VERSION);
+    CHECK(morse_flipper_icr_confusion_level(
+              &loaded,
+              morse_flipper_icr_char_index('A'),
+              morse_flipper_icr_char_index('I')) == 3U);
+}
+
 static void test_target_selection_contract(void) {
     MorseFlipperIcrStats stats;
     uint32_t rng = 1U;
@@ -290,6 +323,7 @@ int main(void) {
     test_nibbles_and_personal_dominance();
     test_answer_composition();
     test_validation_and_persistence();
+    test_old_saved_state_resets_without_migration();
     test_target_selection_contract();
 
     printf("test_icr: %u checks passed\n", g_checks);

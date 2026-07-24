@@ -36,6 +36,7 @@
 #include "morse_flipper_gpio_probe.h"
 #include "morse_flipper_ham_keyer.h"
 #include "morse_flipper_icr_host.h"
+#include "morse_flipper_plugin_runtime.h"
 #include "plugins/icr/morse_flipper_icr_api.h"
 #include "plugins/icr/morse_flipper_icr.h"
 #include "morse_flipper_paths.h"
@@ -51,9 +52,6 @@
 #include "trainer.h"
 #include "trainer_files.h"
 #include "usb/morse_usb_midi.h"
-
-/* Help/About and ICR share one app-lifetime draw/unload guard. */
-#define content_mutex plugin_mutex
 
 #define MORSE_FLIPPER_VOLUME                        0.7f
 #define MORSE_FLIPPER_POLL_MS                       5
@@ -733,13 +731,6 @@ bool morse_flipper_ensure_session_progress_loaded(MorseFlipperApp* app);
 bool morse_flipper_ensure_view_progress_loaded(MorseFlipperApp* app);
 void morse_flipper_release_session_progress(MorseFlipperApp* app, bool save);
 void morse_flipper_release_view_progress(MorseFlipperApp* app);
-bool morse_flipper_ensure_icr_stats_loaded(MorseFlipperApp* app);
-void morse_flipper_release_icr_stats(MorseFlipperApp* app, bool save);
-void morse_flipper_enter_icr(MorseFlipperApp* app, uint32_t now_ms);
-void morse_flipper_leave_icr(MorseFlipperApp* app, uint32_t now_ms);
-void morse_flipper_reset_icr_runtime(MorseFlipperApp* app, uint32_t now_ms);
-void morse_flipper_tick_icr(MorseFlipperApp* app, uint32_t now_ms);
-bool morse_flipper_icr_input(MorseFlipperApp* app, const InputEvent* event, uint32_t now_ms);
 void morse_flipper_drop_live_keying_for_playback(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_begin_group_playback(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_start_session(MorseFlipperApp* app, uint32_t now_ms);

@@ -28,7 +28,7 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .session_progress = NULL,
         .view_progress = NULL,
         .exit_requested = false,
-        .content_mutex = NULL,
+        .plugin_mutex = NULL,
         .content_manager = NULL,
         .content_api = NULL,
         .content_state = NULL,
@@ -249,7 +249,7 @@ MorseFlipperApp* morse_flipper_boot(void) {
     morse_flipper_straight_trainer_set_seed(&app->straight_trainer, furi_hal_random_get());
     morse_flipper_tx_group_set_seed(&app->tx_group, furi_hal_random_get());
     morse_flipper_load_config(app);
-    if(!morse_flipper_content_host_init(app)) {
+    if(!morse_flipper_plugin_runtime_init(app)) {
         morse_flipper_shutdown(app);
         return NULL;
     }
@@ -366,7 +366,6 @@ void morse_flipper_shutdown(MorseFlipperApp* app) {
     morse_flipper_unload_custom_sets(app);
     morse_flipper_release_session_progress(app, false);
     morse_flipper_release_view_progress(app);
-    morse_flipper_icr_host_unload(app);
     mf_tlm_deinit();
 
     morse_flipper_gpio_deinit();
@@ -378,7 +377,7 @@ void morse_flipper_shutdown(MorseFlipperApp* app) {
         if(app->live_view) view_dispatcher_remove_view(app->view_dispatcher, MorseFlipperViewLive);
         if(app->submenu) view_dispatcher_remove_view(app->view_dispatcher, MorseFlipperViewMenu);
     }
-    morse_flipper_content_host_deinit(app);
+    morse_flipper_plugin_runtime_deinit(app);
     if(app->text_input) text_input_free(app->text_input);
     if(app->settings_list) variable_item_list_free(app->settings_list);
     if(app->live_view) view_free(app->live_view);

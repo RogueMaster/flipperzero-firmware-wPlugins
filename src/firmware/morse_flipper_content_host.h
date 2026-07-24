@@ -4,8 +4,6 @@
 
 typedef struct MorseFlipperApp MorseFlipperApp;
 
-bool morse_flipper_content_host_init(MorseFlipperApp* app);
-void morse_flipper_content_host_deinit(MorseFlipperApp* app);
 bool morse_flipper_content_host_enter(
     MorseFlipperApp* app,
     MorseFlipperContentMode mode,

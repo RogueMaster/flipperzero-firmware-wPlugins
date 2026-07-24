@@ -28,7 +28,7 @@
                 (((d) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << 12U)))
 
 /*
- * The seed is used only when stats are created or reset.  Each byte stores
+ * The seed is used only when stats are created or reset.  The uint16_t packs
  * four 4-bit levels, matching the four candidate characters in its row.
  */
 
