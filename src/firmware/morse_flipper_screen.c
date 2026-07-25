@@ -35,7 +35,23 @@ void morse_flipper_enter_screen(
     }
 
     if(app->screen == MorseFlipperScreenIcr && screen != MorseFlipperScreenIcr) {
-        morse_flipper_icr_host_unload(app);
+        morse_flipper_plugin_runtime_unload_current(app);
+    }
+
+    if(app->screen == MorseFlipperScreenRxPractice && screen != MorseFlipperScreenRxPractice) {
+        morse_flipper_plugin_runtime_unload_current(app);
+    }
+
+    if(app->screen == MorseFlipperScreenPassive && screen != MorseFlipperScreenPassive) {
+        morse_flipper_plugin_runtime_unload_current(app);
+    }
+
+    if((app->screen == MorseFlipperScreenTxGroups ||
+        app->screen == MorseFlipperScreenTxGroupsResult ||
+        app->screen == MorseFlipperScreenTxGroupsFinal) &&
+       screen != MorseFlipperScreenTxGroups && screen != MorseFlipperScreenTxGroupsResult &&
+       screen != MorseFlipperScreenTxGroupsFinal) {
+        morse_flipper_plugin_runtime_unload_current(app);
     }
 
     if((app->screen == MorseFlipperScreenRf || app->screen == MorseFlipperScreenRfRx) &&

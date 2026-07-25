@@ -5,9 +5,9 @@
  * Tests: tests/test_tx_groups.c.
  */
 
-#include "morse_flipper_tx_groups.h"
-#include "cw.h"
-#include "morse_flipper_cw_token.h"
+#include "../../morse_flipper_tx_groups.h"
+#include "../../cw.h"
+#include "../../morse_flipper_cw_token.h"
 
 #include <string.h>
 

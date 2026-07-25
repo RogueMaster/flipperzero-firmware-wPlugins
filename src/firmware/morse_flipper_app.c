@@ -28,13 +28,7 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .session_progress = NULL,
         .view_progress = NULL,
         .exit_requested = false,
-        .plugin_mutex = NULL,
-        .content_manager = NULL,
-        .content_api = NULL,
-        .content_state = NULL,
-        .content_active = false,
-        .content_mode = MorseFlipperContentModeHelp,
-        .content_error = MorseFlipperContentErrorNone,
+        .plugin_slot = {0},
         .previous_usb_config = NULL,
         .hid_cfg =
             {
@@ -208,7 +202,6 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .rf_carrier_present = false,
         .rf_monitor_tone = false,
         .rf_rx_audio_enabled = true,
-        .icr_playback_mark = false,
         .ptt_level = false,
         .gpio_level = false,
         .gpio_gap_flushed = true,
@@ -244,10 +237,8 @@ MorseFlipperApp* morse_flipper_boot(void) {
     morse_flipper_cw_decoder_init(&app->gpio_decoder, morse_flipper_current_dit_ms(app));
     morse_flipper_run_history_reset(&app->run_history);
     morse_flipper_straight_trainer_init(&app->straight_trainer);
-    morse_flipper_tx_group_init(&app->tx_group);
     morse_trainer_set_seed(&app->trainer, furi_hal_random_get());
     morse_flipper_straight_trainer_set_seed(&app->straight_trainer, furi_hal_random_get());
-    morse_flipper_tx_group_set_seed(&app->tx_group, furi_hal_random_get());
     morse_flipper_load_config(app);
     if(!morse_flipper_plugin_runtime_init(app)) {
         morse_flipper_shutdown(app);

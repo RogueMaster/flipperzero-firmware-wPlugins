@@ -50,8 +50,7 @@ static bool morse_flipper_terminus24_visible(const MorseFlipperApp* app) {
            ((app->screen == MorseFlipperScreenStraight && app->straight_started &&
              !morse_flipper_straight_countdown_active(app)) ||
             app->screen == MorseFlipperScreenTxGroups ||
-            app->screen == MorseFlipperScreenStreakIntro ||
-            (app->screen == MorseFlipperScreenIcr && app->icr_prompt_visible));
+            app->screen == MorseFlipperScreenStreakIntro);
 }
 
 static bool morse_flipper_terminus24_visible_chars(
@@ -91,8 +90,6 @@ static bool morse_flipper_terminus24_visible_chars(
             if(!morse_flipper_terminus24_push(chars, count, (uint8_t)days[i])) return false;
         }
         return true;
-    } else if(app->screen == MorseFlipperScreenIcr && app->icr_prompt_visible) {
-        return morse_flipper_terminus24_push(chars, count, app->icr_prompt_char);
     }
     return true;
 }

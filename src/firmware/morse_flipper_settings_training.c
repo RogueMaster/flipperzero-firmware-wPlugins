@@ -236,10 +236,6 @@ static void morse_flipper_tx_groups_difficulty_changed(VariableItem* item) {
     if(idx >= MorseFlipperTxgDifficultyCount) idx = MorseFlipperTxgDifficultyCompetition;
     app->txg_difficulty = idx;
     variable_item_set_current_value_text(item, morse_flipper_txg_difficulty_name(idx));
-    morse_flipper_tx_group_set_range(
-        &app->tx_group,
-        morse_flipper_txg_range_low(app->txg_difficulty),
-        morse_flipper_txg_range_high(app->txg_difficulty));
     morse_flipper_save_config(app);
 }
 

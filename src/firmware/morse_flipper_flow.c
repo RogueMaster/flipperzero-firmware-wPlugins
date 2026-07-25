@@ -35,6 +35,17 @@ void morse_flipper_scene_back(MorseFlipperApp* app) {
     if(app->view_dispatcher) view_dispatcher_stop(app->view_dispatcher);
 }
 
+void morse_flipper_scene_return_to_training(MorseFlipperApp* app) {
+    if(app == NULL || app->scene_manager == NULL) return;
+
+    if(scene_manager_search_and_switch_to_previous_scene(
+           app->scene_manager, MorseFlipperSceneMenuTraining))
+        return;
+
+    scene_manager_search_and_switch_to_another_scene(
+        app->scene_manager, MorseFlipperSceneMenuTraining);
+}
+
 void morse_flipper_scene_menu_pick(void* ctx, uint32_t idx) {
     MorseFlipperApp* app = ctx;
     view_dispatcher_send_custom_event(app->view_dispatcher, idx);
@@ -90,6 +101,10 @@ static uint8_t morse_flipper_scene_screen(uint32_t scene) {
         return MorseFlipperScreenStreakIntro;
     case MorseFlipperSceneIcr:
         return MorseFlipperScreenIcr;
+    case MorseFlipperSceneRxCallsigns:
+        return MorseFlipperScreenRxPractice;
+    case MorseFlipperScenePassive:
+        return MorseFlipperScreenPassive;
     default:
         return MorseFlipperScreenMenu;
     }
