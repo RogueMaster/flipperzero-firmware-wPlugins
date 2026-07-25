@@ -1,0 +1,5 @@
+ADD_SCENE(share, menu, Menu)
+ADD_SCENE(share, file_browser, FileBrowser)
+ADD_SCENE(share, show_file, ShowFile)
+ADD_SCENE(share, send, Send)
+ADD_SCENE(share, receive, Receive)
