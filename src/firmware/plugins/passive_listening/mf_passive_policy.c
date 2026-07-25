@@ -1,5 +1,6 @@
 #include "mf_passive_policy.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #ifdef MORSE_FLIPPER_FAP
@@ -23,10 +24,26 @@ typedef struct {
     uint8_t answer_delay_s;
     uint8_t repeat_after_answer;
     uint8_t selected_row;
+    uint8_t reserved;
 } MfPassiveSettingsRecord;
+
+_Static_assert(sizeof(MfPassiveSettingsRecord) == 16U, "passive settings record size changed");
 
 static const char mf_passive_teaching_order[] =
     "KMURESNAPTLWI.JZFOY,VG5/Q92H38B?47C1D60X";
+
+size_t mf_passive_settings_lesson_count(void) {
+    /* Like Listening, lesson 1 introduces the first two characters. */
+    return sizeof(mf_passive_teaching_order) - 2U;
+}
+
+uint8_t mf_passive_settings_lesson_charset_len(uint8_t lesson) {
+    size_t count = mf_passive_settings_lesson_count();
+
+    if(lesson < 1U) lesson = 1U;
+    if(lesson > count) lesson = (uint8_t)count;
+    return (uint8_t)(lesson + 1U);
+}
 
 uint8_t mf_passive_settings_wpm(const MfPassiveSettingsModel* model) {
     uint16_t dit;
@@ -50,7 +67,8 @@ void mf_passive_settings_normalize(MfPassiveSettingsModel* model) {
     if(model->length < min_length) model->length = min_length;
     if(model->length > 6U) model->length = 6U;
     if(model->lesson == 0U) model->lesson = 1U;
-    if(model->lesson >= sizeof(mf_passive_teaching_order)) model->lesson = sizeof(mf_passive_teaching_order) - 1U;
+    if(model->lesson > mf_passive_settings_lesson_count())
+        model->lesson = (uint8_t)mf_passive_settings_lesson_count();
     if(model->dit_ms == 0U) model->dit_ms = 100U;
     wpm = mf_passive_settings_wpm(model);
     if(model->farnsworth_wpm == 0U || model->farnsworth_wpm > wpm) model->farnsworth_wpm = wpm;
@@ -63,6 +81,28 @@ void mf_passive_settings_normalize(MfPassiveSettingsModel* model) {
 
 const char* mf_passive_settings_lesson_charset(void) {
     return mf_passive_teaching_order;
+}
+
+void mf_passive_settings_lesson_label(uint8_t lesson, char* out, size_t out_size) {
+    size_t count = mf_passive_settings_lesson_count();
+
+    if(out == NULL || out_size == 0U) return;
+    if(lesson < 1U) lesson = 1U;
+    if(lesson > count) lesson = (uint8_t)count;
+    if(lesson == 1U)
+        snprintf(
+            out,
+            out_size,
+            "1 - %c %c",
+            mf_passive_teaching_order[0],
+            mf_passive_teaching_order[1]);
+    else
+        snprintf(
+            out,
+            out_size,
+            "%u - %c",
+            (unsigned)lesson,
+            mf_passive_teaching_order[lesson]);
 }
 
 static MfPassiveSettingsModel mf_passive_settings_default(void) {

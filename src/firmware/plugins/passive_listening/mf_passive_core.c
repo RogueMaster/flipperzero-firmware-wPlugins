@@ -193,7 +193,8 @@ bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfP
     state->answer_delay_ms = (uint16_t)(state->settings_model.answer_delay_s * 1000U);
     state->mode = state->settings_model.mode;
     state->prompt_length = state->settings_model.length;
-    state->lesson_charset_len = state->settings_model.lesson;
+    state->lesson_charset_len =
+        mf_passive_settings_lesson_charset_len(state->settings_model.lesson);
     state->vibrate = state->settings_model.vibrate;
     state->repeat_after_answer = state->settings_model.repeat_after_answer;
     state->output_target = args->entry.playback.output_target;

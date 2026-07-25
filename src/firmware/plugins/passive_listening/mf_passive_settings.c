@@ -2,7 +2,6 @@
 
 #include <gui/modules/variable_item_list.h>
 #include <stdio.h>
-#include <string.h>
 
 enum {
     MfPassiveSettingMode = 0,
@@ -38,11 +37,7 @@ static void mf_passive_settings_refresh(MfPassiveState* state) {
     variable_item_set_current_value_text(item, text);
     item = state->settings_items[MfPassiveSettingLesson];
     variable_item_set_current_value_index(item, state->settings_model.lesson - 1U);
-    snprintf(
-        text,
-        sizeof(text),
-        "%c",
-        mf_passive_settings_lesson_charset()[state->settings_model.lesson - 1U]);
+    mf_passive_settings_lesson_label(state->settings_model.lesson, text, sizeof(text));
     variable_item_set_current_value_text(item, text);
     wpm = mf_passive_settings_wpm(&state->settings_model);
     item = state->settings_items[MfPassiveSettingWpm];
@@ -113,7 +108,7 @@ bool mf_passive_settings_enter(MfPassiveState* state, const MfPassiveEnterArgs* 
     state->settings_items[MfPassiveSettingLesson] = variable_item_list_add(
         list,
         "Lesson",
-        strlen(mf_passive_settings_lesson_charset()),
+        (uint8_t)mf_passive_settings_lesson_count(),
         mf_passive_settings_changed,
         state);
     state->settings_items[MfPassiveSettingWpm] =
