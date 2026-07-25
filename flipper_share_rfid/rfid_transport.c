@@ -210,33 +210,32 @@ static void rfid_tp_feed_run(RfidTransport* tp, bool level, uint32_t dur_us, uin
 static int32_t rfid_tp_rx_worker(void* context) {
     RfidTransport* tp = context;
     uint8_t pkt[FSH_PACKET_MAX];
+    uint32_t batch[64]; // drain many capture events per syscall
 
     while(!tp->worker_stop) {
-        uint32_t e = 0;
-        size_t n = furi_stream_buffer_receive(tp->rx_stream, &e, sizeof(e), furi_ms_to_ticks(50));
-        if(n != sizeof(e)) continue;
+        // Batch-read: at ~50k noise edges/s the per-event FreeRTOS call overhead of
+        // reading one word at a time let the stream buffer overflow and drop real
+        // frame edges. Pulling up to 64 events per call keeps the drain loop ahead
+        // of the noise so real frames survive.
+        size_t got =
+            furi_stream_buffer_receive(tp->rx_stream, batch, sizeof(batch), furi_ms_to_ticks(50));
+        size_t nev = got / sizeof(uint32_t);
 
-        // The capture HAL reports PWM-style timing, NOT constant-level runs:
-        //   (true,  w) on a falling edge  -> the HIGH pulse was w us wide;
-        //   (false, p) on a rising edge   -> the full period since the last rising
-        //                                    edge was p us (high + low).
-        // Reconstruct the two constant-level runs the decoder expects: the high
-        // run is w, and the low run of that period is p - w.
-        bool level = (e & 0x80000000u) != 0;
-        uint32_t dur = e & 0x7FFFFFFFu;
+        for(size_t i = 0; i < nev; i++) {
+            uint32_t ev = batch[i];
+            // PWM-style capture: (true, w) = HIGH pulse width on the falling edge,
+            // (false, p) = full period on the rising edge. The low run is p - w.
+            bool level = (ev & 0x80000000u) != 0;
+            uint32_t dur = ev & 0x7FFFFFFFu;
 
-        if(level) {
-            // High-pulse width: emit it as a high run and remember it.
-            tp->rx_last_high = dur;
-            tp->rx_have_high = true;
-            rfid_tp_feed_run(tp, true, dur, pkt);
-        } else {
-            // Full period: the low run is period - last high pulse. A period at or
-            // below the last high (or before any high seen — e.g. after a long
-            // idle) is treated as an inter-frame gap so the decoder re-hunts.
-            if(tp->rx_have_high && dur > tp->rx_last_high) {
+            if(level) {
+                tp->rx_last_high = dur;
+                tp->rx_have_high = true;
+                rfid_tp_feed_run(tp, true, dur, pkt);
+            } else if(tp->rx_have_high && dur > tp->rx_last_high) {
                 rfid_tp_feed_run(tp, false, dur - tp->rx_last_high, pkt);
             } else {
+                // Period <= last high, or none seen yet (idle): treat as a gap.
                 rfid_tp_feed_run(tp, false, RFID_MODEM_GAP_US + 1u, pkt);
                 tp->rx_have_high = false;
             }

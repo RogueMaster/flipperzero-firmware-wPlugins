@@ -49,8 +49,13 @@
 
 // ===== Carousel / RFID transport internals ===================================
 
-// One ANNOUNCE per this many frames (~5 s lock latency at RF/32).
-#define RFID_CAROUSEL_ANNOUNCE_EVERY 32u
+// One ANNOUNCE per this many carousel frames. The receiver can only lock on an
+// ANNOUNCE, and on a noisy 2-Flipper coil link the per-frame decode success is
+// low, so a rare ANNOUNCE (the original 32) almost never got decoded (observed
+// v>0 but a==0). Send one every 4 frames: 25% overhead but a lock within a couple
+// of seconds. Once locked the receiver only needs DATA, so this only bounds the
+// initial lock latency (and re-lock after a restart).
+#define RFID_CAROUSEL_ANNOUNCE_EVERY 4u
 
 // Emulate-DMA half buffer size in (duration, pulse) pairs (~65 ms of waveform).
 #define RFID_TP_DMA_HALF_PAIRS 256u
@@ -60,5 +65,7 @@
 // there is no field to clock the DMA out; the carousel re-sends the frame.
 #define RFID_TP_SEND_TIMEOUT_MS 1000u
 
-// Reader-side capture-event stream buffer size, in bytes (headroom for bursts).
-#define RFID_TP_RX_STREAM_SIZE 4096u
+// Reader-side capture-event stream buffer size, in bytes. Sized well above one
+// frame's worth of edges so a burst of comparator noise (~50k edges/s) cannot
+// overflow it and drop real frame edges before the worker drains them.
+#define RFID_TP_RX_STREAM_SIZE 16384u
