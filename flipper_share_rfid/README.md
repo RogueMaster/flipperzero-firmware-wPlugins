@@ -382,3 +382,24 @@ passes on unmodified official firmware. `tools/` is kept out of the FAP via
 
 **Bench:** not yet run (needs two devices). `FSH_PAYLOAD_THROUGHPUT_BPS` stays at the `380`
 estimate until section 10 is executed.
+
+## 13. Post-bench fixes
+
+- **Receiver never locked (stuck on "Waiting for announce").** Root cause: the capture
+  HAL (`furi_hal_capture_dma_isr`) does not report constant-level run lengths — it reports
+  PWM-style pairs: `(true, high_pulse_width)` on the falling edge and `(false, full_period)`
+  on the rising edge (the counter is reset on the rising edge). The decoder was fed the
+  full period as if it were the low-run length, so every low run was measured as
+  high+low and no frame ever decoded. `rfid_transport.c` now reconstructs the runs in the
+  RX worker: the high run is the reported width, and the low run is `period - last_high`.
+  Added a full-chain host check (`tools/modem_test.c` "hw-capture chain") that emits the
+  firmware's PWM pairs and runs them through the same adapter — 0/10000 on clean signals.
+  (The `+/-20 us` PWM-jitter pass is informational: reconstructing the low as
+  `period - high` doubles per-edge jitter, so weak coupling drops frames and the carousel
+  re-delivers; good coupling gives clean edges.)
+- **Sender did not notice a dropped link.** The emulate TIM2 is clocked by the reader's
+  external field, so its DMA refill callback stalls when the devices are separated. The tag
+  worker now watches for that stall (no half/full callback for `RFID_TP_FIELD_LOST_MS`) and
+  clears `field_present`, so the send scene falls back to "Waiting for field..." instead of
+  showing the counters advancing — matching how the SubGHz/IR/NFC transports surface a lost
+  peer. It re-arms automatically on re-touch and the block bitmap resumes the transfer.

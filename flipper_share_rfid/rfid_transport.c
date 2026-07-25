@@ -40,7 +40,17 @@ typedef struct {
     FuriStreamBuffer* rx_stream; // capture ISR -> rx worker (packed events)
     RfidModemDec dec; // touched only by the rx worker
     volatile bool field_on;
+    // Capture-adapter state (rx worker only): the HAL reports PWM-style pairs
+    // (high-pulse width on the falling edge, full period on the rising edge), not
+    // constant-level run lengths, so the low run is reconstructed as period - high.
+    uint32_t rx_last_high;
+    bool rx_have_high;
 } RfidTransport;
+
+// How long the tag worker tolerates a stalled emulate DMA (no half/full
+// callback, i.e. the external field stopped clocking TIM2) before declaring the
+// field lost. A half buffer plays in ~65-80 ms, so a few of those means gone.
+#define RFID_TP_FIELD_LOST_MS 400u
 
 // Owned by the scene lifecycle: init in on_enter, deinit in on_exit.
 static RfidTransport* rfid_tp = NULL;
@@ -127,13 +137,22 @@ static int32_t rfid_tp_tag_worker(void* context) {
         tp->dma_dur, tp->dma_pulse, RFID_TP_TOTAL, rfid_tp_dma_isr, tp);
     tp->emulating = true;
 
-    // Phase 2: refill the inactive half whenever the DMA signals.
+    // Phase 2: refill the inactive half whenever the DMA signals. The emulate
+    // TIM2 is clocked by the reader's external field, so the DMA callback stops
+    // firing when the devices are separated — use that stall to detect a lost
+    // link (the carousel has no return channel) and drive the "Waiting for
+    // field..." UI, mirroring how the other transports notice a dropped peer.
+    uint32_t last_refill = furi_get_tick();
     while(!tp->worker_stop) {
         uint32_t flag = 0;
         size_t n = furi_stream_buffer_receive(tp->dma_flags, &flag, sizeof(flag), 50);
         if(n == sizeof(flag)) {
             size_t start = (flag == RFID_TP_FLAG_FULL) ? RFID_TP_HALF : 0;
             rfid_tp_fill_half(tp, start);
+            last_refill = furi_get_tick();
+            tp->field_present = true;
+        } else if(furi_get_tick() - last_refill > furi_ms_to_ticks(RFID_TP_FIELD_LOST_MS)) {
+            tp->field_present = false;
         }
     }
     return 0;
@@ -149,6 +168,13 @@ static void rfid_tp_capture_isr(bool level, uint32_t duration, void* context) {
     furi_stream_buffer_send(tp->rx_stream, &e, sizeof(e), 0);
 }
 
+// Feed one reconstructed constant-level run to the decoder and dispatch a
+// completed packet.
+static void rfid_tp_feed_run(RfidTransport* tp, bool level, uint32_t dur_us, uint8_t* pkt) {
+    size_t len = rfid_modem_dec_feed(&tp->dec, level, dur_us, pkt, FSH_PACKET_MAX);
+    if(len) fsh_receive_callback(pkt, len);
+}
+
 static int32_t rfid_tp_rx_worker(void* context) {
     RfidTransport* tp = context;
     uint8_t pkt[FSH_PACKET_MAX];
@@ -157,10 +183,32 @@ static int32_t rfid_tp_rx_worker(void* context) {
         uint32_t e = 0;
         size_t n = furi_stream_buffer_receive(tp->rx_stream, &e, sizeof(e), furi_ms_to_ticks(50));
         if(n != sizeof(e)) continue;
+
+        // The capture HAL reports PWM-style timing, NOT constant-level runs:
+        //   (true,  w) on a falling edge  -> the HIGH pulse was w us wide;
+        //   (false, p) on a rising edge   -> the full period since the last rising
+        //                                    edge was p us (high + low).
+        // Reconstruct the two constant-level runs the decoder expects: the high
+        // run is w, and the low run of that period is p - w.
         bool level = (e & 0x80000000u) != 0;
         uint32_t dur = e & 0x7FFFFFFFu;
-        size_t len = rfid_modem_dec_feed(&tp->dec, level, dur, pkt, sizeof(pkt));
-        if(len) fsh_receive_callback(pkt, len);
+
+        if(level) {
+            // High-pulse width: emit it as a high run and remember it.
+            tp->rx_last_high = dur;
+            tp->rx_have_high = true;
+            rfid_tp_feed_run(tp, true, dur, pkt);
+        } else {
+            // Full period: the low run is period - last high pulse. A period at or
+            // below the last high (or before any high seen — e.g. after a long
+            // idle) is treated as an inter-frame gap so the decoder re-hunts.
+            if(tp->rx_have_high && dur > tp->rx_last_high) {
+                rfid_tp_feed_run(tp, false, dur - tp->rx_last_high, pkt);
+            } else {
+                rfid_tp_feed_run(tp, false, RFID_MODEM_GAP_US + 1u, pkt);
+                tp->rx_have_high = false;
+            }
+        }
     }
     return 0;
 }

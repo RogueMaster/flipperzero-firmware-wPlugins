@@ -71,6 +71,73 @@ static size_t decode_events(const Event* ev, int n, uint8_t* out, size_t cap) {
     return 0;
 }
 
+// ==== Full-chain check against the REAL capture semantics ====================
+// The firmware capture HAL does not report constant-level runs; on each period it
+// reports (true, high_pulse_width) at the falling edge and (false, full_period)
+// at the rising edge. rfid_transport.c reconstructs the runs as high = w and
+// low = period - w. This mirrors that path so the fix is validated on the host.
+
+// Emit firmware-style (level, duration_us) events for one encoded frame.
+static int encode_to_hw_events(const uint8_t* packet, size_t len, Event* ev, int cap) {
+    RfidModemEnc enc;
+    rfid_modem_enc_set_frame(&enc, packet, len);
+    int n = 0;
+    uint32_t dur, pulse;
+    while(rfid_modem_enc_next(&enc, &dur, &pulse)) {
+        if(n < cap) { // falling edge: high pulse width
+            ev[n].level = 1;
+            ev[n].dur_us = (long)pulse * RFID_MODEM_CARRIER_US;
+            n++;
+        }
+        if(n < cap) { // rising edge: full period (high + low)
+            ev[n].level = 0;
+            ev[n].dur_us = (long)dur * RFID_MODEM_CARRIER_US;
+            n++;
+        }
+    }
+    return n;
+}
+
+// Apply the rfid_transport.c capture adapter, then decode.
+static size_t adapt_and_decode(const Event* ev, int n, uint8_t* out, size_t cap) {
+    RfidModemDec dec;
+    rfid_modem_dec_reset(&dec);
+    uint32_t last_high = 0;
+    int have_high = 0;
+    for(int i = 0; i < n; i++) {
+        if(ev[i].dur_us <= 0) continue;
+        uint32_t dur = (uint32_t)ev[i].dur_us;
+        size_t r = 0;
+        if(ev[i].level) {
+            last_high = dur;
+            have_high = 1;
+            r = rfid_modem_dec_feed(&dec, true, dur, out, cap);
+        } else if(have_high && dur > last_high) {
+            r = rfid_modem_dec_feed(&dec, false, dur - last_high, out, cap);
+        } else {
+            r = rfid_modem_dec_feed(&dec, false, RFID_MODEM_GAP_US + 1u, out, cap);
+            have_high = 0;
+        }
+        if(r) return r;
+    }
+    return 0;
+}
+
+static int hw_roundtrip(const uint8_t* packet, size_t len, long jitter) {
+    static Event ev[8192];
+    int n = encode_to_hw_events(packet, len, ev, 8192);
+    if(n < 8192) {
+        ev[n].level = 0;
+        ev[n].dur_us = 4000; // trailing period -> large low -> gap
+        n++;
+    }
+    if(jitter)
+        for(int i = 0; i < n; i++) ev[i].dur_us += (rand() % (2 * jitter + 1)) - jitter;
+    uint8_t out[TEST_PACKET_MAX + 8];
+    size_t r = adapt_and_decode(ev, n, out, sizeof(out));
+    return r == len && memcmp(out, packet, len) == 0;
+}
+
 static int roundtrip(const uint8_t* packet, size_t len, long jitter, int invert) {
     static Event ev[8192];
     int n = encode_to_events(packet, len, ev, 8192);
@@ -202,6 +269,32 @@ int main(void) {
             printf("resync after truncation: OK\n");
         }
     }
+
+    // ---- Full chain vs real capture semantics (PWM pairs + transport adapter) ----
+    int hw_fail = 0;
+    for(int i = 0; i < 10000; i++) {
+        size_t len = 1 + (rand() % TEST_PACKET_MAX);
+        fill_random(buf, len);
+        total++;
+        if(!hw_roundtrip(buf, len, 0)) {
+            hw_fail++;
+            if(hw_fail <= 3) printf("FAIL hw-chain len=%zu\n", len);
+        }
+    }
+    fails += hw_fail;
+    printf("hw-capture chain (clean): %d/10000 failed\n", hw_fail);
+
+    // Informational: reconstructing the low run as (period - high) doubles any
+    // per-edge jitter, so the PWM chain is more jitter-sensitive than the ideal
+    // run stream. Good coupling gives clean edges; weak coupling just drops frames
+    // (the carousel re-delivers). Not a correctness check.
+    int hwj_fail = 0;
+    for(int i = 0; i < 10000; i++) {
+        size_t len = 1 + (rand() % TEST_PACKET_MAX);
+        fill_random(buf, len);
+        if(!hw_roundtrip(buf, len, 20)) hwj_fail++;
+    }
+    printf("hw-capture chain +/-20us (informational): %d/10000 failed\n", hwj_fail);
 
     // ---- Harsh jitter (informational: expected to degrade) ----
     int harsh_fail = 0;
