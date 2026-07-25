@@ -46,22 +46,32 @@ bool morse_flipper_tx_groups_host_enter(MorseFlipperApp* app) {
         .input_source = &app->input_source,
         .started = &app->txg_started,
         .txg_sk = &app->txg_sk,
+        .screen_practice = MorseFlipperScreenTxGroups,
+        .screen_result = MorseFlipperScreenTxGroupsResult,
+        .input_buttons = MorseFlipperInputSourceButtons,
+        .prompt_width = MORSE_FLIPPER_TERMINUS24_WIDTH,
         .draw_prompt = mf_tx_groups_draw_prompt,
         .draw_history_divider = morse_flipper_draw_tx_history_divider,
         .draw_left_exit_hint = morse_flipper_draw_left_exit_hint,
         .answer_preview = mf_tx_groups_answer_preview,
     };
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
-    entered = morse_flipper_plugin_runtime_open_mapped_locked(
-        app,
-        MorseFlipperPluginOwnerTxGroups,
-        0U,
-        MORSE_FLIPPER_TX_GROUPS_PLUGIN_PATH,
-        MF_TX_GROUPS_API_VERSION,
-        MF_TX_GROUPS_API_MAGIC,
-        sizeof(MfTxGroupsApi),
-        &args,
-        &initial);
+    if(app->plugin_slot.owner == MorseFlipperPluginOwnerTxGroups &&
+       app->plugin_slot.error == MorseFlipperPluginErrorNone &&
+       app->plugin_slot.api != NULL && app->plugin_slot.state != NULL) {
+        entered = true;
+    } else {
+        entered = morse_flipper_plugin_runtime_open_mapped_locked(
+            app,
+            MorseFlipperPluginOwnerTxGroups,
+            0U,
+            MORSE_FLIPPER_TX_GROUPS_PLUGIN_PATH,
+            MF_TX_GROUPS_API_VERSION,
+            MF_TX_GROUPS_API_MAGIC,
+            sizeof(MfTxGroupsApi),
+            &args,
+            &initial);
+    }
     mf_tx_groups_api = entered ? app->plugin_slot.api : NULL;
     furi_mutex_release(app->plugin_slot.mutex);
     return entered;
@@ -139,25 +149,10 @@ void morse_flipper_tx_group_score(MorseFlipperTxGroup* group, uint16_t dit_ms, b
     if(mf_tx_groups_api != NULL) mf_tx_groups_api->score(group, dit_ms, timed_out);
 }
 
-void morse_flipper_tx_group_score_common(
-    MorseFlipperTxGroup* group,
-    uint16_t dit_ms,
-    bool timed_out) {
-    if(mf_tx_groups_api != NULL) mf_tx_groups_api->score_common(group, dit_ms, timed_out);
-}
-
 bool morse_flipper_tx_group_complete(const MorseFlipperTxGroup* group) {
     return mf_tx_groups_api != NULL && mf_tx_groups_api->complete(group);
 }
 
 bool morse_flipper_tx_group_marks_complete(const MorseFlipperTxGroup* group) {
     return mf_tx_groups_api != NULL && mf_tx_groups_api->marks_complete(group);
-}
-
-uint8_t morse_flipper_tx_group_expected_marks(const MorseFlipperTxGroup* group) {
-    return mf_tx_groups_api != NULL ? mf_tx_groups_api->expected_marks(group) : 0U;
-}
-
-uint8_t morse_flipper_tx_group_answer_len(const MorseFlipperTxGroup* group) {
-    return mf_tx_groups_api != NULL ? mf_tx_groups_api->answer_len(group) : 0U;
 }

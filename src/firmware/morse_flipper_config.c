@@ -225,10 +225,6 @@ static void morse_flipper_config_apply_runtime_limits(MorseFlipperApp* app) {
     morse_flipper_clamp_trainer_settings(app);
     morse_flipper_clamp_straight_settings(app);
     morse_flipper_ham_keyer_normalize(&app->ham_keyer);
-    morse_flipper_tx_group_set_range(
-        &app->tx_group,
-        morse_flipper_txg_range_low(app->txg_difficulty),
-        morse_flipper_txg_range_high(app->txg_difficulty));
 }
 
 static void morse_flipper_config_delete_settings(Storage* storage) {

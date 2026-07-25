@@ -6,6 +6,14 @@
 #define MF_TX_GROUPS_API_MAGIC 0x4D465458UL
 #define MF_TX_GROUPS_API_VERSION 1U
 
+typedef enum {
+    MfTxGroupsDrawPractice = 0,
+    MfTxGroupsDrawResult,
+    MfTxGroupsDrawFinal,
+    MfTxGroupsDrawStartButtons,
+    MfTxGroupsDrawStartKey,
+} MfTxGroupsDrawMode;
+
 typedef struct {
     void* context;
     const MorseFlipperTxGroup* group;
@@ -23,6 +31,10 @@ typedef struct {
     const uint8_t* input_source;
     const bool* started;
     const bool* txg_sk;
+    uint8_t screen_practice;
+    uint8_t screen_result;
+    uint8_t input_buttons;
+    uint8_t prompt_width;
     void (*draw_prompt)(Canvas* canvas, void* context, int32_t cx, int32_t cy, char ch);
     void (*draw_history_divider)(Canvas* canvas, bool left_hint);
     void (*draw_left_exit_hint)(Canvas* canvas);

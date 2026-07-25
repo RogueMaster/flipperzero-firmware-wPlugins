@@ -25,7 +25,7 @@ static void mf_tx_groups_draw_big_slots(
     int32_t cy,
     const char* text) {
     const int32_t gap = 3;
-    const int32_t cell = 12;
+    const int32_t cell = services->prompt_width;
     const int32_t total = (cell * 5) + (gap * 4);
     int32_t cx = ((128 - total) / 2) + (cell / 2);
 
@@ -158,7 +158,7 @@ static void mf_tx_groups_draw_start(Canvas* canvas, uint8_t mode) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 14, AlignCenter, AlignCenter, "TX Groups of 5");
     canvas_set_font(canvas, FontSecondary);
-    if(mode == 3U)
+    if(mode == MfTxGroupsDrawStartButtons)
         canvas_draw_str_aligned(canvas, 64, 38, AlignCenter, AlignCenter, "Press OK to start");
     else {
         canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "Press OK to start");
@@ -183,6 +183,8 @@ void mf_tx_groups_draw_tx_groups(void* state, Canvas* canvas) {
        services->session_good == NULL || services->session_sk == NULL ||
        services->result_until == NULL || services->screen == NULL ||
        services->input_source == NULL || services->started == NULL || services->txg_sk == NULL ||
+       services->prompt_width == 0U || services->draw_prompt == NULL ||
+       services->draw_history_divider == NULL || services->draw_left_exit_hint == NULL ||
        services->answer_preview == NULL)
         return;
     memcpy(snapshot.target, group->target, sizeof(snapshot.target));
@@ -208,19 +210,27 @@ void mf_tx_groups_draw_tx_groups(void* state, Canvas* canvas) {
     snapshot.session_total = *services->session_total;
     snapshot.session_good = *services->session_good;
     snapshot.session_sk = *services->session_sk;
-    snapshot.mode = *services->screen == 20U ?
-                        (*services->started ? 0U : (*services->input_source == 2U ? 3U : 4U)) :
-                    *services->screen == 21U ? 1U : 2U;
-    if(*services->result_until > furi_get_tick())
-        snapshot.countdown_s = (uint8_t)((*services->result_until - furi_get_tick() + 999U) / 1000U);
+    snapshot.mode =
+        *services->screen == services->screen_practice ?
+            (*services->started ? MfTxGroupsDrawPractice :
+                                  (*services->input_source == services->input_buttons ?
+                                       MfTxGroupsDrawStartButtons :
+                                       MfTxGroupsDrawStartKey)) :
+        *services->screen == services->screen_result ? MfTxGroupsDrawResult :
+                                                       MfTxGroupsDrawFinal;
+    uint32_t now_ms = furi_get_tick();
+    if(*services->result_until > now_ms)
+        snapshot.countdown_s =
+            (uint8_t)((*services->result_until - now_ms + 999U) / 1000U);
     snapshot.sk = group->sk;
-    snapshot.left_hint = *services->input_source == 2U && !*services->txg_sk;
+    snapshot.left_hint =
+        *services->input_source == services->input_buttons && !*services->txg_sk;
     snapshot.show_left_exit_hint = snapshot.left_hint;
-    if(snapshot.mode == 0U)
+    if(snapshot.mode == MfTxGroupsDrawPractice)
         mf_tx_groups_draw_practice(canvas, services, &snapshot);
-    else if(snapshot.mode == 1U)
+    else if(snapshot.mode == MfTxGroupsDrawResult)
         mf_tx_groups_draw_result(canvas, services, &snapshot);
-    else if(snapshot.mode == 2U)
+    else if(snapshot.mode == MfTxGroupsDrawFinal)
         mf_tx_groups_draw_final(canvas, services, &snapshot);
     else
         mf_tx_groups_draw_start(canvas, snapshot.mode);
