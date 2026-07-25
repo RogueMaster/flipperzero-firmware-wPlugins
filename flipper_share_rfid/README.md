@@ -257,7 +257,7 @@ worst-case wait for a single missed block.
 | `FSH_IDLE_TICK_MS` | `20` | engine tick; pacing comes from blocking send |
 | `FSH_CONNECTED_IDLE_MS` | `5000` | compiled out under carousel; keep nominal |
 | `FSH_REQUEST_JITTER_MS` | `0` | receiver never transmits |
-| `FSH_PAYLOAD_THROUGHPUT_BPS` | `380` | ETA estimate; REPLACE with measured value after bench |
+| `FSH_PAYLOAD_THROUGHPUT_BPS` | `315` | ETA estimate; measured ~315 B/s at the ~2 cm sweet spot |
 | `FSH_STALL_MS` | `15000` | must exceed one carousel cycle for small files; tune |
 | `RFID_CAROUSEL_ANNOUNCE_EVERY` | `32` | one ANNOUNCE per 32 DATA frames (~5 s lock latency) |
 | `RFID_TP_DMA_HALF_PAIRS` | `256` | ~65 ms of waveform per half buffer |
@@ -380,8 +380,15 @@ Implemented as written except for the points below.
 passes on unmodified official firmware. `tools/` is kept out of the FAP via
 `sources=["*.c*", "!tools"]` in `application.fam`.
 
-**Bench:** not yet run (needs two devices). `FSH_PAYLOAD_THROUGHPUT_BPS` stays at the `380`
-estimate until section 10 is executed.
+**Bench:** transfers complete and verify (MD5 OK) — 1 KB and 32 KB both at a steady
+**~315 B/s** (32 KB in 1:44). `FSH_PAYLOAD_THROUGHPUT_BPS` is set to `315`.
+
+**Operational note — coil spacing.** The link is very alignment/distance sensitive.
+Held flat against each other the coupling is too strong (the tag's coil detunes the
+reader's tank and the demodulator loses the modulation), so reception only flickers
+while the coils are *moving* past the sweet spot. Held **steady at ~2 cm** (a couple of
+mm of spacer, e.g. a stack of cards) reception is stable and the transfer runs to
+completion. Document this in the catalog description.
 
 ## 13. Post-bench fixes
 

@@ -165,25 +165,30 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
         } else {
             snprintf(info, sizeof(info), "Verifying...");
         }
-    } else {
-        // Diagnostic: show live decode activity (v=CRC-valid frames, a=ANNOUNCEs)
-        // right in the progress line, so a stall reveals whether decoding is still
-        // happening (v climbing -> duplicates) or has stopped (v frozen).
-        uint32_t rx_v = 0, rx_a = 0;
-        rfid_transport_reader_stats(NULL, NULL, &rx_v, &rx_a);
+    } else if(stalled) {
         snprintf(
             info,
             sizeof(info),
-            "%u%% %luKB v:%lu a:%lu%s",
+            "%u%%  %lu KB  stalled",
+            (unsigned int)percent,
+            (unsigned long)(fsize / 1024));
+    } else {
+        // ETA = remaining / rate: the measured session average once enough has
+        // elapsed, else the nominal FSH_PAYLOAD_THROUGHPUT_BPS (315 B/s measured).
+        uint64_t e = (elapsed_ms >= FSH_ETA_WARMUP_MS && recv_bytes > 0)
+                         ? ((uint64_t)rem_bytes * elapsed_ms / ((uint64_t)recv_bytes * 1000u))
+                         : ((uint64_t)rem_bytes / FSH_PAYLOAD_THROUGHPUT_BPS);
+        if(e > FSH_ETA_MAX_SEC) e = FSH_ETA_MAX_SEC;
+        char eta[16];
+        fsh_fmt_duration((uint32_t)e, eta, sizeof(eta));
+        snprintf(
+            info,
+            sizeof(info),
+            "%u%%  %lu KB  ETA %s",
             (unsigned int)percent,
             (unsigned long)(fsize / 1024),
-            (unsigned long)rx_v,
-            (unsigned long)rx_a,
-            stalled ? " ST" : "");
+            eta);
     }
-    (void)elapsed_ms;
-    (void)recv_bytes;
-    (void)rem_bytes;
     elements_multiline_text_aligned(canvas, 64, 36, AlignCenter, AlignTop, info);
 
     // Progress bar frame and fill

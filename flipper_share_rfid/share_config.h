@@ -39,9 +39,10 @@
 // Receiver never transmits, so there is nothing to desynchronize.
 #define FSH_REQUEST_JITTER_MS 0u
 
-// Nominal payload throughput for the ETA estimate before a measured rate exists.
-// REPLACE with the measured value after the bench.
-#define FSH_PAYLOAD_THROUGHPUT_BPS 380u
+// Measured payload throughput (bench): ~315 B/s at RF/32 with the coils held at
+// the ~2 cm sweet spot — steady on both a 1 KB and a 32 KB transfer (32 KB in
+// 1:44). Used for the ETA estimate.
+#define FSH_PAYLOAD_THROUGHPUT_BPS 315u
 
 // No new block for this long -> the receiver GUI shows "stalled". Must exceed one
 // carousel cycle for small files (a missed block only comes back next pass).
