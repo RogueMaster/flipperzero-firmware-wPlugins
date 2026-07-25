@@ -84,7 +84,7 @@ static const NotificationSequence alarm_melody = {
 // Used on exit to restore the saved brightness after the enforce lock is freed.
 void set_backlight_brightness(float brightness) {
     notif->settings.display_brightness = brightness;
-    notification_message(notif, &sequence_display_backlight_force_on);
+    notification_message(notif, &sequence_display_backlight_enforce_on);
 }
 
 // While the app holds the backlight on with enforce_on, a plain backlight_on
@@ -95,7 +95,7 @@ void set_backlight_brightness(float brightness) {
 // layer so the new level cannot be reverted.
 void set_enforced_brightness(float brightness) {
     notif->settings.display_brightness = brightness;
-    notification_message(notif, &sequence_display_backlight_force_on);
+    notification_message(notif, &sequence_display_backlight_enforce_on);
     notification_message(notif, &sequence_display_backlight_enforce_auto);
     notification_message(notif, &sequence_display_backlight_enforce_on);
 }
