@@ -145,6 +145,10 @@ static HermesApp* hermes_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, HermesViewNumberInput, number_input_get_view(app->number_input));
 
+    app->byte_input = byte_input_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, HermesViewByteInput, byte_input_get_view(app->byte_input));
+
     app->detect_view = detect_view_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, HermesViewDetect, detect_view_get_view(app->detect_view));
@@ -164,6 +168,10 @@ static HermesApp* hermes_app_alloc(void) {
     app->selftest_view = selftest_view_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, HermesViewSelfTest, selftest_view_get_view(app->selftest_view));
+
+    app->summary_view = summary_view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, HermesViewSummary, summary_view_get_view(app->summary_view));
 
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
     return app;
@@ -185,22 +193,26 @@ static void hermes_app_free(HermesApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, HermesViewWidget);
     view_dispatcher_remove_view(app->view_dispatcher, HermesViewTextInput);
     view_dispatcher_remove_view(app->view_dispatcher, HermesViewNumberInput);
+    view_dispatcher_remove_view(app->view_dispatcher, HermesViewByteInput);
     view_dispatcher_remove_view(app->view_dispatcher, HermesViewDetect);
     view_dispatcher_remove_view(app->view_dispatcher, HermesViewResult);
     view_dispatcher_remove_view(app->view_dispatcher, HermesViewConsole);
     view_dispatcher_remove_view(app->view_dispatcher, HermesViewWiring);
     view_dispatcher_remove_view(app->view_dispatcher, HermesViewSelfTest);
+    view_dispatcher_remove_view(app->view_dispatcher, HermesViewSummary);
 
     submenu_free(app->submenu);
     variable_item_list_free(app->var_item_list);
     widget_free(app->widget);
     text_input_free(app->text_input);
     number_input_free(app->number_input);
+    byte_input_free(app->byte_input);
     detect_view_free(app->detect_view);
     result_view_free(app->result_view);
     console_view_free(app->console_view);
     wiring_view_free(app->wiring_view);
     selftest_view_free(app->selftest_view);
+    summary_view_free(app->summary_view);
 
     view_dispatcher_free(app->view_dispatcher);
     scene_manager_free(app->scene_manager);

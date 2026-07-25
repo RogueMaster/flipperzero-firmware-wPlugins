@@ -3,6 +3,43 @@
 All notable changes to Hermes are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.3] - 2026-07-25
+
+A "power console" pass: four additions that make the live session do more, and
+a recap so you can see what it did.
+
+### Added
+
+- **Session recap card.** Pressing Back now shows what the session was —
+  bytes received, average throughput, framing errors and duration in four
+  tiles, a one-word health verdict (`clean link` / `noisy` / `wrong framing?`)
+  and the log filename if one was written. A second Back returns to the menu.
+  The throughput/duration/formatting arithmetic is pure and host-tested.
+- **Send raw bytes.** Ctrl palette → *Send hex…* asks for a length, then opens
+  a hex grid (via `byte_input`) to compose arbitrary bytes — a binary command,
+  a magic packet, an exact escape sequence, a literal NUL. Sent verbatim.
+- **Live baud nudge.** Ctrl palette → *Baud +* / *Baud −* steps to the next or
+  previous standard rate and re-opens the link in place, keeping framing,
+  logging and the armed watch — for when detection landed one row off.
+- **Log markers.** Ctrl palette → *Drop marker* (shown only while logging)
+  writes a numbered, timestamped divider into the capture, so a long session
+  has points to jump to.
+
+### Changed
+
+- Leaving the console is now Back → recap → Back → menu, rather than a bare
+  pop. The recap reads the session while the link is still open, then the link
+  and any log are closed as before.
+
+### Notes
+
+- Hex send is a two-phase scene (length via `number_input`, then bytes via
+  `byte_input`) because `byte_input` edits a fixed-length field.
+- The baud nudge re-opens the tap rather than reconfiguring it live, so the
+  status bar, health counters and watch all reset cleanly to the new rate.
+- Host tests are now three suites (autobaud fit · watch matcher · session
+  arithmetic), all under ASan/UBSan in CI, on both SDK channels.
+
 ## [1.2] - 2026-07-19
 
 Five additions, all aimed at the live session — the part of the workflow v1.1
@@ -131,6 +168,7 @@ against the dev SDK (API 88.0).
   confidence rather than a confident wrong answer; use Manual Console if you
   already know the rate.
 
+[1.3]: https://github.com/at0m-b0mb/Hermes-FlipperZero/releases/tag/v1.3
 [1.2]: https://github.com/at0m-b0mb/Hermes-FlipperZero/releases/tag/v1.2
 [1.1]: https://github.com/at0m-b0mb/Hermes-FlipperZero/releases/tag/v1.1
 [1.0]: https://github.com/at0m-b0mb/Hermes-FlipperZero/releases/tag/v1.0

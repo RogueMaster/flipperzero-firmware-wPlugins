@@ -112,10 +112,10 @@ A real terminal, not a byte dump. Boot logs are full of ANSI colour codes, so He
 |---|---|
 | **Up / Down** | Scroll back. New output never yanks you away while you're reading. |
 | **Right** | ASCII ⇄ hex (hex has an ASCII gutter, so a familiar string still jumps out) |
-| **Left** | Ctrl-key palette — **Ctrl+C**, Ctrl+D, Ctrl+Z, Esc, Tab, plus break / autoboot / watch / script (below) |
+| **Left** | Ctrl-key palette — **Ctrl+C**, Ctrl+D, Ctrl+Z, Esc, Tab, plus break / autoboot / watch / script / hex / baud± / marker (below) |
 | **OK** | Type a line and send it |
 | **OK (long)** | Send Enter on its own |
-| **Back** | Drop the link |
+| **Back** | End the session — and see the recap |
 
 RX runs on DMA, so a full boot log at 921600 arrives without holes in the middle. And the status bar earns its keep: a `●` when a capture is recording, **`ERR n`** when the line is throwing framing errors — the surest sign the *framing* is wrong even though the rate is right — and a live **`SCRIPT n/m`** or **`BREAKING 3s`** while either of those is running.
 
@@ -139,11 +139,29 @@ Some bootloaders, and the Linux magic SysRq, listen for a **UART break** — the
 
 `Hit any key to stop autoboot: 3` gives you about a second, and by the time you've read it and reached for a key it's usually gone. **Left → Stop autoboot** hammers Enter for four seconds so you can arm it *before* powering the board and let it catch the window for you. The status bar counts down while it runs, and it's driven from the UI tick rather than a blocking loop, so the screen keeps updating and the incoming boot log still renders.
 
+### Send raw bytes
+
+Text isn't always what you need to send. **Left → Send hex…** asks how many bytes, then gives you a hex grid to fill — for a binary command, a magic packet, an exact escape sequence, or a literal `0x00` the keyboard can't type. What you compose is sent verbatim and echoed into the hex view.
+
+### Nudge the baud, live
+
+Detection landed one row off? **Left → Baud +** / **Baud −** steps to the next standard rate and re-opens the link *in place*, keeping your framing, logging and armed watch. It's the fastest way to walk the neighbours when a rate is close but the text isn't quite clean — no trip back to the detect screen.
+
 ### Logging
 
 Turn on **Settings → Log to SD** and every console session is written to `/apps_data/hermes/` as `hermes_YYYYMMDD_HHMMSS.log`, with a header recording the rate, framing and port — so a file you find months later still says what it came from.
 
-The file gets the **raw** bytes, escape sequences and all. The screen strips ANSI to stay readable, but a log you'll later grep, diff or replay should be exactly what the wire said. A filled dot appears at the left of the status bar while a capture is running.
+The file gets the **raw** bytes, escape sequences and all. The screen strips ANSI to stay readable, but a log you'll later grep, diff or replay should be exactly what the wire said. A filled dot appears at the left of the status bar while a capture is running. Mid-capture, **Left → Drop marker** writes a timestamped divider into the log, so a long session has points you can jump to later.
+
+---
+
+## The session recap
+
+<div align="center">
+<img src="images/screen_summary.png" alt="The session summary card: 4.2 KB received, 1.1 KB/s throughput, 0 errors, 1m 12s, verdict 'clean link' and the log filename" width="46%">
+</div>
+
+Press **Back** and Hermes doesn't just drop you out — it shows what the session was: bytes received, average throughput, framing errors, and how long you were connected, in four tiles, with a one-word verdict of the link's health (`clean link` / `noisy` / `wrong framing?`) and the log filename if you captured one. It's the answer to "did that actually work?" without scrolling back through the log. A second Back returns to the menu.
 
 ---
 
@@ -220,13 +238,13 @@ Drop-in compatible with the app-catalog layout used by **Momentum** / **Unleashe
 
 ## Tests
 
-The two parts a screenshot can't vouch for — the baud fit and the string matcher — are the two parts with real tests:
+The parts a screenshot can't vouch for — the baud fit, the string matcher, and the session-summary arithmetic — are the parts with real tests:
 
 ```bash
 make -C test
 ```
 
-Both compile the **real** engine code for the host against a stubbed HAL, and both run under ASan and UBSan in CI on every push.
+All three compile the **real** engine code for the host against a stubbed HAL, and all run under ASan and UBSan in CI on every push.
 
 **The autobaud fit** synthesises 8N1 waveforms at known rates and drives the **actual interrupt handler** edge by edge, then asks the real fit what it saw:
 
@@ -245,6 +263,14 @@ degenerate          non-standard rate must not be named confidently · silent li
 overlaps            'aab' in 'aaab'; 'aaa' in 'aaaa' counts 2; 'abab' in 'abababab' counts 3
 split delivery      pattern found when fed one byte at a time, or split mid-word
 case + counting     case-insensitive, every occurrence counted, empty = disarmed
+```
+
+**The session-summary arithmetic** — the throughput and duration shown on the recap card — is pure integer scaling that's easy to get subtly wrong:
+
+```
+throughput          rounds to nearest, guards divide-by-zero, no overflow at speed
+error rate          permille of bytes+errors, safe on an empty session
+formatting          ms -> "1m 23s", bytes -> "1.5 KB" without floating point
 ```
 
 The jitter and harmonic cases aren't decoration — both caught real bugs during development, and the overlap cases are why the matcher is KMP rather than the naive version I wrote first.
@@ -266,16 +292,19 @@ Hermes-FlipperZero/
 │  ├─ selftest.[ch]           # loopback prover: is it me or them?
 │  ├─ trigger.[ch]            # KMP string watch over the RX stream
 │  ├─ script.[ch]             # replay a .txt into the console, paced
+│  ├─ sessionstats.[ch]       # the recap-card arithmetic (pure, tested)
 │  └─ baud_table.[ch]         # standard rates, framings, pin profiles
 ├─ views/
 │  ├─ detect_view.[ch]        # the live square-wave scope
 │  ├─ result_view.[ch]        # verdict card + candidate ladder
 │  ├─ console_view.[ch]       # the terminal (+ health, watch strip, script)
 │  ├─ selftest_view.[ch]      # the loopback report
+│  ├─ summary_view.[ch]       # the session recap card
 │  └─ wiring_view.[ch]        # animated wiring + the safety rules
 ├─ scenes/                    # start · detect · result · console · ctrl · keyboard · manual ·
-│                             # custombaud · watch · script · selftest · wiring · settings · about
-├─ test/                      # host tests: the fit and the matcher (stubbed HAL)
+│                             # custombaud · watch · script · hexsend · summary · selftest ·
+│                             # wiring · settings · about
+├─ test/                      # host tests: fit · matcher · stats (stubbed HAL)
 └─ tools_gen_*.py             # Pillow asset generators
 ```
 
