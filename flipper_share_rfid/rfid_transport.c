@@ -38,6 +38,11 @@ typedef struct {
     // Reader (receiver)
     FuriThread* rx_worker;
     FuriStreamBuffer* rx_stream; // capture ISR -> rx worker (packed events)
+    // Decoded packets are handed to a separate delivery thread so the engine's
+    // storage I/O (file create on ANNOUNCE, block writes on DATA) never stalls the
+    // capture-drain loop — a stall there overflows rx_stream and drops real frames.
+    FuriMessageQueue* deliver_q;
+    FuriThread* deliver_worker;
     RfidModemDec dec; // touched only by the rx worker
     volatile bool field_on;
     // Capture-adapter state (rx worker only): the HAL reports PWM-style pairs
@@ -203,8 +208,27 @@ static void rfid_tp_feed_run(RfidTransport* tp, bool level, uint32_t dur_us, uin
                 if(pkt[FSH_HEADER_LENGTH - 1] == FSH_PKT_ANNOUNCE) tp->rx_announce++;
             }
         }
-        fsh_receive_callback(pkt, len);
+        // Hand off to the delivery thread instead of calling fsh_receive_callback
+        // here — its storage I/O must not block this capture-drain loop. Drop if
+        // the delivery queue is full (the carousel re-sends the frame).
+        RfidTpPacket p;
+        p.len = (uint8_t)len;
+        memcpy(p.data, pkt, len);
+        furi_message_queue_put(tp->deliver_q, &p, 0);
     }
+}
+
+// Delivers decoded packets to the engine (which does the storage I/O), off the
+// capture-drain path.
+static int32_t rfid_tp_deliver_worker(void* context) {
+    RfidTransport* tp = context;
+    RfidTpPacket p;
+    while(!tp->worker_stop) {
+        if(furi_message_queue_get(tp->deliver_q, &p, furi_ms_to_ticks(50)) == FuriStatusOk) {
+            fsh_receive_callback(p.data, p.len);
+        }
+    }
+    return 0;
 }
 
 static int32_t rfid_tp_rx_worker(void* context) {
@@ -266,6 +290,10 @@ void rfid_transport_init(RfidTransportMode mode) {
     } else {
         rfid_modem_dec_reset(&tp->dec);
         tp->rx_stream = furi_stream_buffer_alloc(RFID_TP_RX_STREAM_SIZE, sizeof(uint32_t));
+        tp->deliver_q = furi_message_queue_alloc(8, sizeof(RfidTpPacket));
+        tp->deliver_worker =
+            furi_thread_alloc_ex("RfidDeliver", 2048, rfid_tp_deliver_worker, tp);
+        furi_thread_start(tp->deliver_worker);
         tp->rx_worker = furi_thread_alloc_ex("RfidRxWorker", 2048, rfid_tp_rx_worker, tp);
         furi_thread_start(tp->rx_worker);
 
@@ -308,10 +336,15 @@ void rfid_transport_deinit(void) {
             tp->field_on = false;
         }
         if(tp->rx_worker) {
-            furi_thread_join(tp->rx_worker);
+            furi_thread_join(tp->rx_worker); // stops decoding/enqueuing first
             furi_thread_free(tp->rx_worker);
         }
+        if(tp->deliver_worker) {
+            furi_thread_join(tp->deliver_worker); // then drain deliveries to the engine
+            furi_thread_free(tp->deliver_worker);
+        }
         if(tp->rx_stream) furi_stream_buffer_free(tp->rx_stream);
+        if(tp->deliver_q) furi_message_queue_free(tp->deliver_q);
     }
 
     furi_hal_rfid_pins_reset();
