@@ -18,6 +18,7 @@ typedef struct { uint8_t type; } SceneManagerEvent;
 #define SceneManagerEventTypeBack 1U
 #define UNUSED(value) (void)(value)
 typedef struct { uint8_t lesson; uint8_t group_size; uint8_t session_groups; uint8_t custom_set_idx; uint16_t local_dit_ms; } MorseTrainer;
+typedef struct { uint16_t local_dit_ms; uint8_t lesson; uint8_t group_size; uint8_t session_groups; uint8_t custom_set_idx; uint8_t farnsworth_wpm; uint8_t answer_timeout_s; uint8_t group_pause_s; } MorseFlipperListeningSettings;
 typedef struct { FuriMutex* mutex; const void* api; void* state; uint8_t owner; } MorseFlipperPluginSlot;
 typedef struct MorseFlipperApp {
     ViewDispatcher* view_dispatcher;
@@ -25,12 +26,12 @@ typedef struct MorseFlipperApp {
     VariableItemList* settings_list;
     MorseFlipperPluginSlot plugin_slot;
     uint8_t input_source, keyer_mode, handedness, audio_path, tone_idx, p2_volume_pct, preview_ticks;
-    uint8_t trainer_farnsworth_wpm, trainer_answer_timeout_s, trainer_group_pause_s;
     uint8_t straight_answer_timeout_s, straight_next_delay_s, txg_difficulty;
     uint8_t gpio_dit_idx, gpio_dah_idx, gpio_ground_idx, gpio_ptt_idx;
     uint8_t pc_mode_pref, pc_paddle_preset, pc_straight_preset;
     bool mouse_invert;
     MorseTrainer trainer;
+    MorseFlipperListeningSettings listening_settings;
 } MorseFlipperApp;
 
 enum { MorseFlipperPluginOwnerSettings = 6, MorseFlipperHandednessNormal = 0, MorseFlipperHandednessSwapped = 1,

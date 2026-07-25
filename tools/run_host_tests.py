@@ -42,6 +42,7 @@ TESTS = (
     CTest("settings-model", ("tests/test_settings_model.c", "src/firmware/plugins/settings/mf_settings_model.c", "src/firmware/trainer_lesson.c", "src/firmware/cw.c")),
     CTest("settings-plugin", ("tests/test_settings_plugin.c", "src/firmware/plugins/settings/mf_settings_model.c", "src/firmware/plugins/settings/mf_settings_plugin.c", "src/firmware/trainer_lesson.c", "src/firmware/pc_keys.c", "src/firmware/cw.c"), ("MF_SETTINGS_HOST_TEST",)),
     CTest("settings-host", ("tests/test_settings_host.c", "src/firmware/morse_flipper_settings_host.c"), ("MF_SETTINGS_HOST_TEST",)),
+    CTest("config-compat", ("tests/test_config_compat.c", "src/firmware/morse_flipper_config.c"), ("MF_CONFIG_HOST_TEST",)),
     CTest("progress", ("tests/test_progress.c", "src/firmware/morse_flipper_progress.c", "src/firmware/trainer.c", "src/firmware/cw.c")),
     CTest("icr", ("tests/test_icr.c", "src/firmware/plugins/icr/morse_flipper_icr.c")),
     CTest("icr-runtime", ("tests/test_icr_runtime.c", "src/firmware/plugins/icr/morse_flipper_icr.c", "src/firmware/plugins/icr/morse_flipper_icr_runtime.c", "src/firmware/cw.c")),

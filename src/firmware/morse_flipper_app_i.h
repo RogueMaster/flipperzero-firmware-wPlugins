@@ -369,6 +369,17 @@ typedef struct {
     char notice[16];
 } MorseFlipperHamRuntimeState;
 
+typedef struct {
+    uint16_t local_dit_ms;
+    uint8_t lesson;
+    uint8_t group_size;
+    uint8_t session_groups;
+    uint8_t custom_set_idx;
+    uint8_t farnsworth_wpm;
+    uint8_t answer_timeout_s;
+    uint8_t group_pause_s;
+} MorseFlipperListeningSettings;
+
 typedef struct MorseFlipperApp {
     /* Flipper objects owned by the app shell; allocation and teardown live in app.c. */
     FuriMessageQueue* q;
@@ -461,9 +472,8 @@ typedef struct MorseFlipperApp {
 
     /* Feature-local settings and cursors. Small integers are deliberate; this is a FAP. */
     uint8_t rf_freq_focus;
-    uint8_t trainer_farnsworth_wpm;
-    uint8_t trainer_answer_timeout_s;
-    uint8_t trainer_group_pause_s;
+    /* Persistent Listening choices are deliberately separate from the live trainer. */
+    MorseFlipperListeningSettings listening_settings;
     uint8_t straight_answer_timeout_s;
     uint8_t straight_next_delay_s;
     uint8_t trainer_char_idx;

@@ -227,6 +227,15 @@ MorseFlipperApp* morse_flipper_boot(void) {
     };
 
     morse_trainer_init(&app->trainer);
+    app->listening_settings = (MorseFlipperListeningSettings){
+        .local_dit_ms = app->trainer.local_dit_ms,
+        .lesson = app->trainer.lesson,
+        .group_size = app->trainer.group_size,
+        .session_groups = app->trainer.session_groups,
+        .farnsworth_wpm = morse_flipper_local_wpm(app),
+        .answer_timeout_s = MORSE_FLIPPER_TRAINER_TIMEOUT_DEFAULT_S,
+        .group_pause_s = MORSE_FLIPPER_TRAINER_GROUP_PAUSE_DEFAULT_S,
+    };
     morse_flipper_audio_pwm_reset(&app->audio_pwm);
     morse_flipper_rf_init(&app->rf);
     morse_flipper_radio_init(&app->radio);

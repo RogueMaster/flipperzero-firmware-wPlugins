@@ -47,16 +47,16 @@ bool morse_flipper_rx_practice_host_enter(MorseFlipperApp* app, uint32_t now_ms)
         .now_ms = now_ms,
         .rng_seed = furi_hal_random_get(),
         .answer_timeout_ms =
-            (uint32_t)(app->trainer_answer_timeout_s == 0U ?
+            (uint32_t)(app->listening_settings.answer_timeout_s == 0U ?
                            MORSE_FLIPPER_TRAINER_TIMEOUT_DEFAULT_S :
-                           app->trainer_answer_timeout_s) *
+                           app->listening_settings.answer_timeout_s) *
             1000U,
         .result_hold_ms = 3000U,
         .dit_ms = morse_flipper_current_dit_ms(app),
         .char_gap_ms = morse_flipper_training_char_gap_ms(
             morse_flipper_current_dit_ms(app),
             morse_flipper_local_wpm(app),
-            app->trainer_farnsworth_wpm),
+            app->listening_settings.farnsworth_wpm),
         .physical_key_can_start =
             app->input_source != MorseFlipperInputSourceButtons,
         .draw_services = {

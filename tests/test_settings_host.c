@@ -11,12 +11,12 @@ const int morse_flipper_tones[31];
 uint32_t furi_get_tick(void) { return 1U; }
 void furi_mutex_acquire(FuriMutex* mutex, uint32_t timeout) { (void)mutex; (void)timeout; }
 void furi_mutex_release(FuriMutex* mutex) { (void)mutex; }
-uint8_t morse_flipper_current_wpm(const MorseFlipperApp* app) { return app->trainer.local_dit_ms ? 20U : 10U; }
+uint8_t morse_flipper_current_wpm(const MorseFlipperApp* app) { return app->listening_settings.local_dit_ms ? 20U : 10U; }
 uint8_t morse_flipper_p2_volume_pct(const MorseFlipperApp* app) { return app->p2_volume_pct; }
 uint8_t morse_flipper_straight_wpm(const MorseFlipperApp* app) { (void)app; return 10U; }
 uint8_t morse_trainer_group_size(const MorseTrainer* trainer) { return trainer->group_size; }
 uint8_t morse_trainer_session_groups(const MorseTrainer* trainer) { return trainer->session_groups; }
-void morse_flipper_set_local_wpm(MorseFlipperApp* app, uint8_t wpm) { app->trainer.local_dit_ms = wpm; }
+void morse_flipper_set_local_wpm(MorseFlipperApp* app, uint8_t wpm) { app->listening_settings.local_dit_ms = wpm; }
 void morse_flipper_clear_button_keying(MorseFlipperApp* app, uint32_t now) { (void)app; (void)now; }
 void morse_flipper_refresh_keyer(MorseFlipperApp* app, uint32_t now) { (void)app; (void)now; refreshes++; }
 void morse_flipper_poll(MorseFlipperApp* app) { (void)app; polls++; }
@@ -57,7 +57,7 @@ static void apply(MorseFlipperApp* app, uint8_t kind, uint32_t value, bool accep
 int main(void) {
     FuriMutex mutex = {0}; ViewDispatcher dispatcher = {0}; SceneManager manager = {0}; VariableItemList list = {0};
     MorseFlipperApp app = {.view_dispatcher = &dispatcher, .scene_manager = &manager, .settings_list = &list,
-        .plugin_slot.mutex = &mutex, .trainer = {.local_dit_ms = 20U, .lesson = 2U, .group_size = 3U, .session_groups = 3U}, .p2_volume_pct = 50U};
+        .plugin_slot.mutex = &mutex, .listening_settings = {.local_dit_ms = 20U, .lesson = 2U, .group_size = 3U, .session_groups = 3U, .farnsworth_wpm = 20U, .answer_timeout_s = 5U, .group_pause_s = 5U}, .p2_volume_pct = 50U};
     apply(&app, MfSettingsSetLocalWpm, 25U, true);
     apply(&app, MfSettingsSetInputSource, MorseFlipperInputSourcePaddle, true);
     apply(&app, MfSettingsSetKeyerMode, MorseKeyerModeKeyahead, true);
