@@ -872,6 +872,7 @@ static void morse_flipper_scene_progress_on_exit(void* context) {
 
 static void morse_flipper_scene_tx_groups_on_enter(void* context) {
     MorseFlipperApp* app = context;
+    morse_flipper_tx_groups_host_enter(app);
     morse_flipper_scene_enter_now(app, MorseFlipperSceneTxGroups);
 }
 

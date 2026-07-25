@@ -46,6 +46,14 @@ void morse_flipper_enter_screen(
         morse_flipper_plugin_runtime_unload_current(app);
     }
 
+    if((app->screen == MorseFlipperScreenTxGroups ||
+        app->screen == MorseFlipperScreenTxGroupsResult ||
+        app->screen == MorseFlipperScreenTxGroupsFinal) &&
+       screen != MorseFlipperScreenTxGroups && screen != MorseFlipperScreenTxGroupsResult &&
+       screen != MorseFlipperScreenTxGroupsFinal) {
+        morse_flipper_plugin_runtime_unload_current(app);
+    }
+
     if((app->screen == MorseFlipperScreenRf || app->screen == MorseFlipperScreenRfRx) &&
        screen != MorseFlipperScreenRf && screen != MorseFlipperScreenRfRx) {
         app->rf_live_active = false;

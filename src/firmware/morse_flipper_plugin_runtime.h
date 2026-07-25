@@ -15,6 +15,7 @@ typedef enum {
     MorseFlipperPluginOwnerIcr,
     MorseFlipperPluginOwnerRxPractice,
     MorseFlipperPluginOwnerPassive,
+    MorseFlipperPluginOwnerTxGroups,
 } MorseFlipperPluginOwner;
 
 typedef enum {

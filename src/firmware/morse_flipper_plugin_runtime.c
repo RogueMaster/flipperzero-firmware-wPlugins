@@ -23,6 +23,13 @@ static __attribute__((noinline)) bool morse_flipper_plugin_runtime_typed_api_val
         const MfPassiveApi* api = entry;
         return api->mapped.enter != NULL && api->mapped.input != NULL;
     }
+    if(owner == MorseFlipperPluginOwnerTxGroups) {
+        const MfTxGroupsApi* api = entry;
+        return api->init != NULL && api->set_seed != NULL && api->start != NULL &&
+               api->feed_mark != NULL && api->feed_space != NULL && api->feed_text != NULL &&
+               api->finalize_answer_from_raw != NULL && api->set_range != NULL &&
+               api->score != NULL && api->complete != NULL && api->marks_complete != NULL;
+    }
     return false;
 }
 
@@ -180,6 +187,7 @@ void morse_flipper_plugin_runtime_detach_locked(
     state = app->plugin_slot.state;
     manager = app->plugin_slot.manager;
     api = app->plugin_slot.api;
+    if(owner == MorseFlipperPluginOwnerTxGroups) morse_flipper_tx_groups_host_detach();
     app->plugin_slot.api = NULL;
     app->plugin_slot.state = NULL;
     app->plugin_slot.manager = NULL;
