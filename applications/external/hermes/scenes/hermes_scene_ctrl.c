@@ -34,12 +34,41 @@ static void hermes_ctrl_arm_autoboot(HermesApp* app) {
     app->autoboot_until = furi_get_tick() + furi_ms_to_ticks(HERMES_AUTOBOOT_MS);
 }
 
+/* Step the live link to the next/previous standard rate without leaving the
+ * console - for when detection landed one row off, or you want to sweep
+ * neighbours by eye. Re-opens the tap at the new rate, keeping framing, TX,
+ * logging and the armed watch. */
+static void hermes_ctrl_nudge_baud(HermesApp* app, int dir) {
+    size_t idx = hermes_baud_nearest_index(app->link.baud);
+    if(dir > 0 && idx + 1 < HERMES_BAUD_COUNT) {
+        idx++;
+    } else if(dir < 0 && idx > 0) {
+        idx--;
+    } else {
+        return; // already at an end of the table
+    }
+
+    app->link.baud = hermes_baud_table[idx].baud;
+    app->link.verified = false; // nudged by hand, no longer a measured result
+
+    uart_tap_close(app->tap);
+    uart_tap_open(app->tap, app->port, app->link.baud, app->link.framing, app->tx_enabled);
+
+    char note[32];
+    snprintf(note, sizeof(note), "baud -> %lu", (unsigned long)app->link.baud);
+    session_log_note(app->log, note);
+}
+
 /* The actions below are not single bytes, so they live past the key table. */
 typedef enum {
     HermesCtrlActionAutoboot = HERMES_CTRL_KEY_COUNT,
     HermesCtrlActionBreak,
     HermesCtrlActionWatch,
     HermesCtrlActionScript,
+    HermesCtrlActionHex,
+    HermesCtrlActionMarker,
+    HermesCtrlActionBaudUp,
+    HermesCtrlActionBaudDown,
 
     HermesCtrlActionCount,
 } HermesCtrlAction;
@@ -71,6 +100,13 @@ void hermes_scene_ctrl_on_enter(void* context) {
         app);
     submenu_add_item(
         submenu, "Run script...", HermesCtrlActionScript, hermes_scene_ctrl_callback, app);
+    submenu_add_item(submenu, "Send hex...", HermesCtrlActionHex, hermes_scene_ctrl_callback, app);
+    submenu_add_item(submenu, "Baud +", HermesCtrlActionBaudUp, hermes_scene_ctrl_callback, app);
+    submenu_add_item(submenu, "Baud -", HermesCtrlActionBaudDown, hermes_scene_ctrl_callback, app);
+    if(session_log_is_open(app->log)) {
+        submenu_add_item(
+            submenu, "Drop marker", HermesCtrlActionMarker, hermes_scene_ctrl_callback, app);
+    }
 
     submenu_set_selected_item(
         submenu, scene_manager_get_scene_state(app->scene_manager, HermesSceneCtrl));
@@ -96,7 +132,7 @@ bool hermes_scene_ctrl_on_event(void* context, SceneManagerEvent event) {
         uart_tap_send_break(app->tap);
         break;
 
-    /* These two open a picker, so they hand off rather than returning to the
+    /* These open a picker, so they hand off rather than returning to the
      * console themselves. */
     case HermesCtrlActionWatch:
         scene_manager_next_scene(app->scene_manager, HermesSceneWatch);
@@ -105,6 +141,25 @@ bool hermes_scene_ctrl_on_event(void* context, SceneManagerEvent event) {
     case HermesCtrlActionScript:
         scene_manager_next_scene(app->scene_manager, HermesSceneScript);
         return true;
+
+    case HermesCtrlActionHex:
+        scene_manager_next_scene(app->scene_manager, HermesSceneHexSend);
+        return true;
+
+    case HermesCtrlActionMarker: {
+        char note[24];
+        snprintf(note, sizeof(note), "marker %lu", (unsigned long)(++app->marker_count));
+        session_log_note(app->log, note);
+        break;
+    }
+
+    case HermesCtrlActionBaudUp:
+        hermes_ctrl_nudge_baud(app, +1);
+        break;
+
+    case HermesCtrlActionBaudDown:
+        hermes_ctrl_nudge_baud(app, -1);
+        break;
 
     default: {
         const uint8_t byte = hermes_ctrl_keys[event.event].byte;

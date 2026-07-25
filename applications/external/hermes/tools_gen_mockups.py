@@ -347,6 +347,33 @@ def m_rules():
     return finish(img, "screen_rules.png")
 
 
+def m_summary():
+    """The session recap card shown when the console closes."""
+    img = screen()
+    d = ImageDraw.Draw(img)
+
+    ltext(d, 2, 8, "Session", PRIM)
+    rtext(d, 126, 8, "115200 8N1", SEC)
+    d.line([(0, 10), (127, 10)], fill=INK)
+
+    # four tiles: y0=13, tw=61, th=20, gap=2 (mirrors summary_view.c)
+    y0, tw, th, gap = 13, 61, 20, 2
+
+    def tile(x, y, label, value):
+        d.rounded_rectangle([x, y, x + tw, y + th], radius=2, outline=INK, width=1)
+        ltext(d, x + 4, y + 9, label, SEC)
+        ltext(d, x + 4, y + th - 4, value, PRIM)
+
+    tile(2, y0, "received", "4.2 KB")
+    tile(2 + tw + gap, y0, "throughput", "1.1 KB/s")
+    tile(2, y0 + th + gap, "errors", "0")
+    tile(2 + tw + gap, y0 + th + gap, "duration", "1m 12s")
+
+    ltext(d, 2, 63, "clean link", SEC)
+    rtext(d, 126, 63, "hermes_...30.log", SEC)
+    return finish(img, "screen_summary.png")
+
+
 # ---------------------------------------------------------------- strips -----
 def strip(paths, name, cols=None):
     imgs = [Image.open(p) for p in paths]
@@ -375,10 +402,11 @@ if __name__ == "__main__":
     rules = m_rules()
     selftest = m_selftest()
     watch = m_watch()
+    summary = m_summary()
 
-    strip([detect, result, console], "screens.png")
+    strip([detect, result, console, summary], "screens.png", cols=4)
     strip(
-        [menu, detect, result, console, watch, selftest, wiring, rules],
+        [menu, detect, result, console, watch, summary, selftest, wiring],
         "screens_all.png",
         cols=4,
     )
