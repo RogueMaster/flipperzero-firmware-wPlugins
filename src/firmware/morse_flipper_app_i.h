@@ -37,7 +37,6 @@
 #include "morse_flipper_ham_keyer.h"
 #include "morse_flipper_icr_host.h"
 #include "morse_flipper_passive_host.h"
-#include "morse_flipper_passive_loading.h"
 #include "morse_flipper_plugin_runtime.h"
 #include "morse_flipper_rx_practice_host.h"
 #include "plugins/icr/morse_flipper_icr_api.h"
@@ -63,7 +62,7 @@
 #define MORSE_FLIPPER_POLL_MS                       5
 #define MORSE_FLIPPER_PREVIEW_TICKS                 8
 #define MORSE_FLIPPER_CONFIG_PATH                   APP_DATA_PATH("config.bin")
-#define MORSE_FLIPPER_SETTINGS_VERSION              2U
+#define MORSE_FLIPPER_SETTINGS_VERSION              1U
 #define MORSE_FLIPPER_DEFAULT_DIT_MS                100U
 #define MORSE_FLIPPER_SESSION_ANSWER_GRACE_MS       250U
 #define MORSE_FLIPPER_SESSION_RESULT_MS             160U
@@ -233,7 +232,6 @@ typedef enum {
     MorseFlipperSceneStreakIntro,
     MorseFlipperSceneIcr,
     MorseFlipperSceneRxCallsigns,
-    MorseFlipperScenePassiveCfg,
     MorseFlipperScenePassive,
     MorseFlipperSceneNum,
 } MorseFlipperScene;
@@ -331,17 +329,6 @@ typedef enum {
 } MorseFlipperTrainerSettingIndex;
 
 typedef enum {
-    MorseFlipperPassiveSettingMode = 0,
-    MorseFlipperPassiveSettingLength,
-    MorseFlipperPassiveSettingLesson,
-    MorseFlipperPassiveSettingWpm,
-    MorseFlipperPassiveSettingFarnsworth,
-    MorseFlipperPassiveSettingVibrate,
-    MorseFlipperPassiveSettingAnswerDelay,
-    MorseFlipperPassiveSettingRepeat,
-} MorseFlipperPassiveSettingIndex;
-
-typedef enum {
     MorseFlipperPcModeOff = 0,
     MorseFlipperPcModeKeyboard = 1,
     MorseFlipperPcModeMouse = 2,
@@ -389,7 +376,6 @@ typedef struct MorseFlipperApp {
     VariableItemList* settings_list;
     VariableItem* audio_cfg_items[MorseFlipperAudioSettingWaveform + 1U];
     VariableItem* trainer_items[MorseFlipperTrainerSettingChars + 1U];
-    VariableItem* passive_items[MorseFlipperPassiveSettingRepeat + 1U];
     VariableItem* straight_cfg_items[3];
     View* live_view;
     Gui* gui;
@@ -400,7 +386,6 @@ typedef struct MorseFlipperApp {
     volatile bool exit_requested;
     bool terminus24_active;
     MorseFlipperPluginSlot plugin_slot;
-    MorseFlipperPassiveLoading passive_loading;
 
     /*
      * Hardware and transport mirrors. These track what we last asked the outside
@@ -476,13 +461,6 @@ typedef struct MorseFlipperApp {
     uint8_t trainer_group_pause_s;
     uint8_t straight_answer_timeout_s;
     uint8_t straight_next_delay_s;
-    uint8_t passive_mode;
-    uint8_t passive_length;
-    uint8_t passive_lesson;
-    uint8_t passive_farnsworth_wpm;
-    uint8_t passive_vibrate;
-    uint8_t passive_answer_delay_s;
-    uint8_t passive_repeat_after_answer;
     uint8_t trainer_char_idx;
     uint8_t trainer_mark_idx;
     uint8_t session_wait_draw_s;
@@ -522,7 +500,6 @@ typedef struct MorseFlipperApp {
     uint8_t txg_result_draw_s;
     uint16_t run_dit_ms;
     uint16_t straight_dit_ms;
-    uint16_t passive_dit_ms;
     uint16_t straight_session_total;
     uint16_t straight_session_good;
     uint16_t streak_intro_days;
@@ -690,11 +667,6 @@ uint8_t morse_flipper_straight_wpm(const MorseFlipperApp* app);
 void morse_flipper_set_straight_wpm(MorseFlipperApp* app, uint8_t wpm);
 void morse_flipper_clamp_trainer_settings(MorseFlipperApp* app);
 void morse_flipper_clamp_straight_settings(MorseFlipperApp* app);
-void morse_flipper_passive_defaults(MorseFlipperApp* app);
-void morse_flipper_clamp_passive_settings(MorseFlipperApp* app);
-uint8_t morse_flipper_passive_wpm(const MorseFlipperApp* app);
-const char* morse_flipper_passive_lesson_charset(uint8_t lesson);
-size_t morse_flipper_passive_lesson_count(void);
 void morse_flipper_set_pc_mode(MorseFlipperApp* app, uint8_t mode);
 void morse_flipper_handle_midi_rx(MorseFlipperApp* app);
 void morse_flipper_sync_signal_led(MorseFlipperApp* app, bool on);
@@ -954,8 +926,6 @@ bool morse_flipper_scene_gpio_on_event(void* context, SceneManagerEvent event);
 void morse_flipper_scene_gpio_on_exit(void* context);
 void morse_flipper_scene_trainer_on_enter(void* context);
 void morse_flipper_scene_trainer_on_exit(void* context);
-void morse_flipper_scene_passive_cfg_on_enter(void* context);
-void morse_flipper_scene_passive_cfg_on_exit(void* context);
 void morse_flipper_scene_straight_cfg_on_enter(void* context);
 void morse_flipper_scene_straight_cfg_on_exit(void* context);
 void morse_flipper_scene_tx_groups_cfg_on_enter(void* context);

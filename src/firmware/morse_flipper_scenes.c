@@ -217,7 +217,7 @@ static void morse_flipper_scene_menu_settings_on_enter(void* context) {
     submenu_add_item(
         app->submenu,
         "Passive listening",
-        MorseFlipperScenePassiveCfg,
+        MorseFlipperScenePassive,
         morse_flipper_scene_menu_pick,
         app);
     submenu_add_item(
@@ -233,9 +233,8 @@ static void morse_flipper_scene_menu_settings_on_enter(void* context) {
         morse_flipper_scene_menu_pick,
         app);
     submenu_add_item(app->submenu, "USB", MorseFlipperScenePc, morse_flipper_scene_menu_pick, app);
-    if(sel != MorseFlipperSceneHome && sel != MorseFlipperSceneAudioCfg &&
-       sel != MorseFlipperSceneTrainer && sel != MorseFlipperScenePassiveCfg && sel != MorseFlipperSceneStraightCfg &&
-       sel != MorseFlipperSceneTxGroupsCfg && sel != MorseFlipperScenePc)
+    if((sel < MorseFlipperSceneHome || sel > MorseFlipperScenePc) &&
+       sel != MorseFlipperSceneTxGroupsCfg && sel != MorseFlipperScenePassive)
         sel = MorseFlipperSceneHome;
     submenu_set_selected_item(app->submenu, sel);
     morse_flipper_scene_enter_now(app, MorseFlipperSceneMenuSettings);
@@ -807,15 +806,14 @@ static void morse_flipper_scene_rx_practice_on_exit(void* context) {
 static void morse_flipper_scene_passive_on_enter(void* context) {
     MorseFlipperApp* app = context;
     morse_flipper_plugin_runtime_unload_current(app);
+    if(scene_manager_has_previous_scene(app->scene_manager, MorseFlipperSceneMenuSettings)) {
+        morse_flipper_ensure_view(app, MorseFlipperViewSettings);
+        morse_flipper_passive_host_enter(app, furi_get_tick(), MfPassiveEntrySettings);
+        view_dispatcher_switch_to_view(app->view_dispatcher, MorseFlipperViewSettings);
+        return;
+    }
     morse_flipper_scene_enter_now(app, MorseFlipperScenePassive);
-    morse_flipper_passive_loading_start(&app->passive_loading, furi_get_tick());
-    morse_flipper_view_dirty(app);
-}
-
-static void morse_flipper_scene_passive_on_exit(void* context) {
-    MorseFlipperApp* app = context;
-    morse_flipper_passive_loading_clear(&app->passive_loading);
-    morse_flipper_plugin_runtime_unload_current(app);
+    morse_flipper_passive_host_enter(app, furi_get_tick(), MfPassiveEntryPlayback);
 }
 
 static void morse_flipper_scene_session_end_on_enter(void* context) {
@@ -1039,7 +1037,6 @@ static const AppSceneOnEnterCallback morse_flipper_scene_on_enter_handlers[Morse
     morse_flipper_scene_streak_intro_on_enter,
     morse_flipper_scene_icr_on_enter,
     morse_flipper_scene_rx_callsigns_on_enter,
-    morse_flipper_scene_passive_cfg_on_enter,
     morse_flipper_scene_passive_on_enter,
 };
 
@@ -1048,7 +1045,6 @@ static const AppSceneOnEventCallback morse_flipper_scene_on_event_handlers[Morse
     morse_flipper_scene_menu_settings_on_event, morse_flipper_scene_menu_help_on_event,
     morse_flipper_scene_menu_rf_on_event,       morse_flipper_scene_menu_ham_on_event,
     morse_flipper_scene_live_on_event,          morse_flipper_scene_live_on_event,
-    morse_flipper_scene_live_on_event,
     morse_flipper_scene_live_on_event,          morse_flipper_scene_live_on_event,
     morse_flipper_scene_live_on_event,          morse_flipper_scene_live_on_event,
     morse_flipper_scene_home_on_event,
@@ -1090,8 +1086,8 @@ static const AppSceneOnExitCallback morse_flipper_scene_on_exit_handlers[MorseFl
     morse_flipper_scene_live_on_exit,          morse_flipper_scene_tx_groups_cfg_on_exit,
     morse_flipper_scene_content_on_exit,       morse_flipper_scene_progress_on_exit,
     morse_flipper_scene_streak_intro_on_exit,  morse_flipper_scene_icr_on_exit,
-    morse_flipper_scene_rx_practice_on_exit,   morse_flipper_scene_passive_cfg_on_exit,
-    morse_flipper_scene_passive_on_exit,
+    morse_flipper_scene_rx_practice_on_exit,
+    morse_flipper_scene_rx_practice_on_exit,
 };
 
 const SceneManagerHandlers morse_flipper_scene_handlers = {

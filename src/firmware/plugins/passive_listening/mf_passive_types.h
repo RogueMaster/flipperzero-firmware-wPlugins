@@ -11,6 +11,30 @@
 
 #define MF_PASSIVE_LESSON_CHARSET_CAP 40U
 
+typedef struct VariableItemList VariableItemList;
+typedef struct VariableItem VariableItem;
+
+typedef enum {
+    MfPassiveEntryPlayback = 0,
+    MfPassiveEntrySettings = 1,
+} MfPassiveEntryKind;
+
+typedef struct {
+    uint8_t mode;
+    uint8_t length;
+    uint8_t lesson;
+    uint16_t dit_ms;
+    uint8_t farnsworth_wpm;
+    uint8_t vibrate;
+    uint8_t answer_delay_s;
+    uint8_t repeat_after_answer;
+    uint8_t selected_row;
+} MfPassiveSettingsModel;
+
+typedef struct {
+    VariableItemList* list;
+} MfPassiveSettingsArgs;
+
 typedef enum {
     MfPassiveOutputInternal = 0,
     MfPassiveOutputP2 = 1,
@@ -54,26 +78,28 @@ static inline bool mf_passive_host_command(
 }
 
 typedef struct {
-    uint32_t struct_size;
     uint32_t now_ms;
     uint32_t rng_seed;
-    uint16_t dit_ms;
-    uint16_t char_gap_ms;
     uint16_t tone_hz;
-    uint16_t answer_delay_ms;
     uint8_t output_target;
     uint8_t volume_pct;
-    uint8_t mode;
-    uint8_t prompt_length;
-    uint8_t lesson_charset_len;
-    uint8_t vibrate;
-    uint8_t repeat_after_answer;
-    char lesson_charset[MF_PASSIVE_LESSON_CHARSET_CAP];
     const MfPassiveHostServices* services;
+} MfPassivePlaybackArgs;
+
+typedef union {
+    MfPassivePlaybackArgs playback;
+    MfPassiveSettingsArgs settings;
+} MfPassiveEntryArgs;
+
+typedef struct {
+    uint32_t struct_size;
+    uint8_t entry_kind;
+    MfPassiveEntryArgs entry;
 } MfPassiveEnterArgs;
 
 typedef enum {
-    MfPassivePhasePrepare = 0,
+    MfPassivePhaseLoading = 0,
+    MfPassivePhasePrepare,
     MfPassivePhaseCw,
     MfPassivePhasePostCw,
     MfPassivePhaseVoicePrime,

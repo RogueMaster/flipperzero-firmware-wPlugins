@@ -133,54 +133,97 @@ static bool mf_passive_start_cue(MfPassiveState* state, uint32_t now_ms) {
     return true;
 }
 
-bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfPassiveResult* result) {
-    if(state == NULL || result == NULL || args == NULL || args->struct_size != sizeof(*args) ||
-       args->services == NULL || args->services->struct_size != sizeof(MfPassiveHostServices) ||
-       args->services->command == NULL || args->dit_ms == 0U || args->answer_delay_ms < 1000U ||
-       args->answer_delay_ms > 5000U || args->mode > 1U || args->prompt_length < 3U ||
-       args->prompt_length > 6U || (args->mode == 0U && args->prompt_length < 4U) ||
-       args->lesson_charset_len > MF_PASSIVE_LESSON_CHARSET_CAP ||
-       (args->mode == 1U && args->lesson_charset_len == 0U) || args->vibrate > 1U ||
-       args->repeat_after_answer > 1U ||
-       args->char_gap_ms == 0U || args->tone_hz == 0U || args->output_target > MfPassiveOutputP2 ||
-       args->volume_pct < 10U || args->volume_pct > 100U)
-        return false;
-    memset(state, 0, sizeof(*state));
-    state->services = args->services;
-    state->dit_ms = args->dit_ms;
-    state->char_gap_ms = args->char_gap_ms;
-    state->tone_hz = args->tone_hz;
-    state->answer_delay_ms = args->answer_delay_ms;
-    state->mode = args->mode;
-    state->prompt_length = args->prompt_length;
-    state->lesson_charset_len = args->lesson_charset_len;
-    state->vibrate = args->vibrate;
-    state->repeat_after_answer = args->repeat_after_answer;
-    memcpy(state->lesson_charset, args->lesson_charset, sizeof(state->lesson_charset));
-    /* Hardware audition selected 70% before SoftBuzz's doubled internal drive. */
-    state->voice_gain_pct = args->output_target == MfPassiveOutputInternal ? 70U : 100U;
-    mf_rx_rng_init(&state->rng, args->rng_seed);
-    mf_callsign_gen_init(&state->callsign_gen);
+static uint16_t mf_passive_char_gap_ms(uint16_t dit_ms, uint8_t character_wpm, uint8_t farnsworth_wpm) {
+    uint32_t total_ms;
+    uint32_t spare_ms;
+    uint32_t gap_ms;
+
+    if(farnsworth_wpm == 0U || farnsworth_wpm >= character_wpm)
+        return dit_ms > UINT16_MAX / 3U ? UINT16_MAX : (uint16_t)(dit_ms * 3U);
+    total_ms = 60000U / farnsworth_wpm;
+    if(total_ms <= 31U * (uint32_t)dit_ms)
+        return dit_ms > UINT16_MAX / 3U ? UINT16_MAX : (uint16_t)(dit_ms * 3U);
+    spare_ms = total_ms - 31U * (uint32_t)dit_ms;
+    gap_ms = 3U * ((spare_ms + 9U) / 19U);
+    return gap_ms > UINT16_MAX ? UINT16_MAX : (uint16_t)gap_ms;
+}
+
+static bool mf_passive_open_playback(MfPassiveState* state, uint32_t now_ms) {
     if(!mf_passive_voice_pack_open_asset(&state->pack) || !mf_passive_next_prompt(state) ||
        !mf_passive_host_claim(
-           state->services, args->output_target, args->tone_hz, args->volume_pct, &state->pipe)) {
-        mf_passive_fail(state);
-        *result = mf_passive_result(state, true);
+           state->services,
+           (MfPassiveOutputTarget)state->output_target,
+           state->tone_hz,
+           state->volume_pct,
+           &state->pipe))
         return false;
-    }
     state->prompt_len = state->prompt_length;
     state->audio_claimed = true;
     state->phase = MfPassivePhasePrepare;
     state->cw_mark = true;
-    state->next_at = args->now_ms + MF_PASSIVE_INITIAL_CW_MS;
+    state->next_at = now_ms + MF_PASSIVE_INITIAL_CW_MS;
+    return true;
+}
+
+bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfPassiveResult* result) {
+    if(state == NULL || result == NULL || args == NULL || args->struct_size != sizeof(*args)) return false;
+    if(args->entry_kind == MfPassiveEntrySettings) {
+        memset(state, 0, sizeof(*state));
+        if(!mf_passive_settings_enter(state, args)) return false;
+        *result = mf_passive_result(state, true);
+        return true;
+    }
+    if(args->entry_kind != MfPassiveEntryPlayback ||
+       args->entry.playback.services == NULL ||
+       args->entry.playback.services->struct_size != sizeof(MfPassiveHostServices) ||
+       args->entry.playback.services->command == NULL ||
+       args->entry.playback.tone_hz == 0U ||
+       args->entry.playback.output_target > MfPassiveOutputP2 ||
+       args->entry.playback.volume_pct < 10U || args->entry.playback.volume_pct > 100U)
+        return false;
+    memset(state, 0, sizeof(*state));
+    mf_passive_settings_load(&state->settings_model);
+    state->services = args->entry.playback.services;
+    state->dit_ms = state->settings_model.dit_ms;
+    state->char_gap_ms = mf_passive_char_gap_ms(
+        state->settings_model.dit_ms,
+        mf_passive_settings_wpm(&state->settings_model),
+        state->settings_model.farnsworth_wpm);
+    state->tone_hz = args->entry.playback.tone_hz;
+    state->answer_delay_ms = (uint16_t)(state->settings_model.answer_delay_s * 1000U);
+    state->mode = state->settings_model.mode;
+    state->prompt_length = state->settings_model.length;
+    state->lesson_charset_len = state->settings_model.lesson;
+    state->vibrate = state->settings_model.vibrate;
+    state->repeat_after_answer = state->settings_model.repeat_after_answer;
+    state->output_target = args->entry.playback.output_target;
+    state->volume_pct = args->entry.playback.volume_pct;
+    memcpy(
+        state->lesson_charset,
+        mf_passive_settings_lesson_charset(),
+        state->lesson_charset_len);
+    /* Hardware audition selected 70% before SoftBuzz's doubled internal drive. */
+    state->voice_gain_pct =
+        args->entry.playback.output_target == MfPassiveOutputInternal ? 70U : 100U;
+    mf_rx_rng_init(&state->rng, args->entry.playback.rng_seed);
+    mf_callsign_gen_init(&state->callsign_gen);
+    mf_passive_loading_start(&state->loading, args->entry.playback.now_ms);
+    state->phase = MfPassivePhaseLoading;
     *result = mf_passive_result(state, true);
-    return state->error == 0U;
+    return true;
 }
 
 void mf_passive_leave(MfPassiveState* state) {
     if(state == NULL) return;
-    mf_passive_host_command(state->services, MfPassiveHostCommandSilence, 0U);
-    mf_passive_host_command(state->services, MfPassiveHostCommandVibration, 0U);
+    if(state->settings_active) {
+        mf_passive_settings_leave(state);
+        memset(state, 0, sizeof(*state));
+        return;
+    }
+    if(state->audio_claimed) {
+        mf_passive_host_command(state->services, MfPassiveHostCommandSilence, 0U);
+        mf_passive_host_command(state->services, MfPassiveHostCommandVibration, 0U);
+    }
     mf_passive_reset_pipe(&state->pipe);
     if(state->audio_claimed) mf_passive_host_command(state->services, MfPassiveHostCommandRelease, 0U);
     mf_passive_voice_pack_close(&state->pack);
@@ -190,6 +233,17 @@ void mf_passive_leave(MfPassiveState* state) {
 MfPassiveResult mf_passive_input(MfPassiveState* state, const InputEvent* event, uint32_t now_ms) {
     MfPassiveResult result;
     if(state == NULL || event == NULL) return (MfPassiveResult){0};
+    if(state->phase == MfPassivePhaseLoading) {
+        result = mf_passive_result(state, false);
+        result.request_exit = mf_passive_loading_input(
+            &state->loading,
+            event->key == InputKeyBack && event->type == InputTypeShort,
+            event->key == InputKeyBack && event->type == InputTypeLong,
+            event->key != InputKeyBack &&
+                (event->type == InputTypePress || event->type == InputTypeShort),
+            now_ms);
+        return result;
+    }
     if((event->key == InputKeyUp || event->key == InputKeyDown) &&
        (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
         uint8_t voice_gain_pct = state->voice_gain_pct;
@@ -221,6 +275,14 @@ MfPassiveResult mf_passive_input(MfPassiveState* state, const InputEvent* event,
 MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
     bool redraw = false;
     if(state == NULL) return (MfPassiveResult){0};
+    if(state->phase == MfPassivePhaseLoading) {
+        uint8_t frame = state->loading.frame;
+        if(mf_passive_loading_tick(&state->loading, now_ms)) {
+            if(!mf_passive_open_playback(state, now_ms)) mf_passive_fail(state);
+            return mf_passive_result(state, true);
+        }
+        return mf_passive_result(state, frame != state->loading.frame);
+    }
     if(state->phase == MfPassivePhasePrepare) {
         if(mf_passive_reached(now_ms, state->next_at)) {
             state->cw_mark = false;

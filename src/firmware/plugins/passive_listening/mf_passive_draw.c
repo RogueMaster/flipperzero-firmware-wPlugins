@@ -5,6 +5,11 @@
 void mf_passive_draw(const MfPassiveState* state, Canvas* canvas) {
     int32_t left;
     if(state == NULL || canvas == NULL) return;
+    if(state->phase == MfPassivePhaseLoading) {
+        canvas_draw_str(canvas, 31, 34, "Loading");
+        canvas_draw_str(canvas, 80, 34, mf_passive_loading_suffix(state->loading.frame));
+        return;
+    }
     if(state->phase == MfPassivePhaseError) {
         canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "AUDIO ERR");
         return;

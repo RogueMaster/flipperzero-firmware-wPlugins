@@ -1,6 +1,8 @@
 #pragma once
 
 #include "mf_passive_types.h"
+#include "mf_passive_loading.h"
+#include "mf_passive_policy.h"
 #include "mf_passive_voice_pack.h"
 
 typedef struct {
@@ -31,12 +33,21 @@ typedef struct {
     uint8_t vibrate;
     uint8_t repeat_after_answer;
     uint8_t error;
+    uint8_t output_target;
+    uint8_t volume_pct;
     char lesson_charset[MF_PASSIVE_LESSON_CHARSET_CAP];
     bool cw_mark;
     bool audio_claimed;
+    MfPassiveLoading loading;
+    MfPassiveSettingsModel settings_model;
+    MfPassiveSettingsArgs settings;
+    VariableItem* settings_items[8];
+    bool settings_active;
 } MfPassiveState;
 
 bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfPassiveResult* result);
 void mf_passive_leave(MfPassiveState* state);
 MfPassiveResult mf_passive_input(MfPassiveState* state, const InputEvent* event, uint32_t now_ms);
 MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms);
+bool mf_passive_settings_enter(MfPassiveState* state, const MfPassiveEnterArgs* args);
+void mf_passive_settings_leave(MfPassiveState* state);

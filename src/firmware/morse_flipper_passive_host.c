@@ -14,20 +14,17 @@ static bool mf_passive_command(
     uint32_t sample_rate_hz;
     if(app == NULL) return false;
     if(command == MfPassiveHostCommandSilence) {
-        if(!app->audio_pwm.running) return false;
         morse_flipper_audio_pwm_set_silence(&app->audio_pwm);
         return true;
     }
     if(command == MfPassiveHostCommandTone) {
-        if(!app->audio_pwm.running || value == 0U) return false;
+        if(!app->audio_pwm.running) return false;
         morse_flipper_audio_pwm_set_tone_hz(&app->audio_pwm, value);
         morse_flipper_audio_pwm_set_gate(&app->audio_pwm, true);
         return true;
     }
     if(command == MfPassiveHostCommandVoice) {
-        if(!app->audio_pwm.running || value == 0U || app->audio_pwm.voice_pipe == NULL ||
-           app->audio_pwm.voice_pipe->read_pos == app->audio_pwm.voice_pipe->write_pos)
-            return false;
+        if(!app->audio_pwm.running) return false;
         morse_flipper_audio_pwm_set_voice(&app->audio_pwm, app->audio_pwm.voice_pipe, value);
         return app->audio_pwm.voice_primed;
     }
@@ -36,8 +33,6 @@ static bool mf_passive_command(
         return true;
     }
     if(command == MfPassiveHostCommandRelease) {
-        furi_hal_vibro_on(false);
-        morse_flipper_audio_pwm_set_silence(&app->audio_pwm);
         morse_flipper_audio_pwm_stop(&app->audio_pwm);
         return true;
     }
@@ -73,48 +68,53 @@ static MfPassiveHostServices mf_passive_services = {
     .command = mf_passive_command,
 };
 
-bool morse_flipper_passive_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
+bool morse_flipper_passive_host_enter(
+    MorseFlipperApp* app,
+    uint32_t now_ms,
+    uint8_t entry_kind) {
     MorseFlipperMappedFalResult initial = {0};
     MfPassiveEnterArgs args;
-    bool entered;
     MfPassiveOutputTarget target;
-    const char* lesson_charset;
+    bool entered;
+
     if(app == NULL || app->plugin_slot.mutex == NULL) return false;
-    morse_flipper_drop_live_keying_for_playback(app, now_ms);
-    morse_flipper_release_all_notes(app);
-    morse_flipper_reset_answer_decoder(app);
-    morse_flipper_sync_ptt(app, now_ms);
-    target = app->audio_path == MorseFlipperAudioPathGpioP2Hd ? MfPassiveOutputP2 :
-                                                               MfPassiveOutputInternal;
-    morse_flipper_clamp_passive_settings(app);
-    lesson_charset = morse_flipper_passive_lesson_charset(app->passive_lesson);
-    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
-    args = (MfPassiveEnterArgs){
-        .struct_size = sizeof(args),
-        .now_ms = now_ms,
-        .rng_seed = furi_hal_random_get(),
-        .dit_ms = app->passive_dit_ms,
-        .char_gap_ms = morse_flipper_training_char_gap_ms(
-            app->passive_dit_ms,
-            morse_flipper_passive_wpm(app),
-            app->passive_farnsworth_wpm),
-        .tone_hz = (uint16_t)(morse_flipper_active_tone_hz(app) + 0.5f),
-        .answer_delay_ms = (uint16_t)(app->passive_answer_delay_s * 1000U),
-        .output_target = target,
-        .volume_pct = morse_flipper_p2_volume_pct(app),
-        .mode = app->passive_mode,
-        .prompt_length = app->passive_length,
-        .lesson_charset_len = app->passive_lesson,
-        .vibrate = app->passive_vibrate,
-        .repeat_after_answer = app->passive_repeat_after_answer,
-        .services = &mf_passive_services,
-    };
-    memcpy(args.lesson_charset, lesson_charset, args.lesson_charset_len);
+    if(entry_kind == MfPassiveEntrySettings) {
+        if(app->settings_list == NULL) return false;
+        args = (MfPassiveEnterArgs){
+            .struct_size = sizeof(args),
+            .entry_kind = MfPassiveEntrySettings,
+            .entry.settings = {
+                .list = app->settings_list,
+            },
+        };
+    } else if(entry_kind == MfPassiveEntryPlayback) {
+        morse_flipper_drop_live_keying_for_playback(app, now_ms);
+        morse_flipper_release_all_notes(app);
+        morse_flipper_reset_answer_decoder(app);
+        morse_flipper_sync_ptt(app, now_ms);
+        target = app->audio_path == MorseFlipperAudioPathGpioP2Hd ? MfPassiveOutputP2 :
+                                                                   MfPassiveOutputInternal;
+        args = (MfPassiveEnterArgs){
+            .struct_size = sizeof(args),
+            .entry_kind = MfPassiveEntryPlayback,
+            .entry.playback = {
+                .now_ms = now_ms,
+                .rng_seed = furi_hal_random_get(),
+                .tone_hz = (uint16_t)(morse_flipper_active_tone_hz(app) + 0.5f),
+                .output_target = target,
+                .volume_pct = morse_flipper_p2_volume_pct(app),
+                .services = &mf_passive_services,
+            },
+        };
+    } else {
+        return false;
+    }
     mf_passive_services.context = app;
+    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     entered = morse_flipper_plugin_runtime_open_mapped_locked(
         app,
         MorseFlipperPluginOwnerPassive,
-        0U,
+        entry_kind == MfPassiveEntrySettings ? 1U : 0U,
         MORSE_FLIPPER_PASSIVE_PLUGIN_PATH,
         MF_PASSIVE_API_VERSION,
         MF_PASSIVE_API_MAGIC,
@@ -122,7 +122,7 @@ bool morse_flipper_passive_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
         &args,
         &initial);
     if(entered) app->plugin_slot.phase = initial.phase;
-    if(initial.redraw) morse_flipper_view_dirty(app);
     furi_mutex_release(app->plugin_slot.mutex);
+    if(entered && entry_kind == MfPassiveEntryPlayback) morse_flipper_view_dirty(app);
     return entered;
 }
