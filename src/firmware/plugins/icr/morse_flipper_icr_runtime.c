@@ -246,9 +246,7 @@ MorseFlipperIcrResult morse_flipper_icr_runtime_input(
 
     if(state->phase == MorseFlipperIcrPhaseRecognition && event->key == InputKeyOk &&
        event->type == InputTypePress) {
-        state->pending_reaction_ms = state->reaction_started_at != 0U ?
-                                         now_ms - state->reaction_started_at :
-                                         0U;
+        state->pending_reaction_ms = now_ms - state->reaction_started_at;
         state->phase = MorseFlipperIcrPhaseRecognizedHold;
         return morse_flipper_icr_result(state, true);
     }
