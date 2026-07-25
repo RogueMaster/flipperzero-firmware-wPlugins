@@ -62,6 +62,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [San Morse v1.0.1 (By sanjorgek)](https://github.com/sanjorgek/san-morse-flipper)
 - Updated: [Tesla Mod v2.16b22 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd) (Version Only)
 - Updated: [Segment Clock v1.2 (By Sladkisnovraper)](https://github.com/Sladkisnovraper/Segment-Clock-For-Flipper-Zero)
+- Updated: [Faraday v1.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Faraday-FlipperZero)
 
 <a name="release"></a>
 
@@ -467,7 +468,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Evil Portal v0.6 (By bigbrodude6119)](https://github.com/bigbrodude6119/flipper-zero-evil-portal)
 - [Eye Saver v0.1 (By paul-sopin)](https://github.com/paul-sopin/flipper-eye-saver)
 - [FAP Boilerplate v1.3 (By leedave)](https://github.com/leedave/flipper-zero-fap-boilerplate)
-- [Faraday v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Faraday-FlipperZero)
+- [Faraday v1.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Faraday-FlipperZero)
 - [FCC ID Lookup v0.1 (By lrehmann)](https://github.com/lrehmann/fcc-id-lookup-flipper)
 - [FDX-B Maker v1.0 (By snowsign)](https://github.com/snowsign/fdxb-maker)
 - [Fencing Test Box v0.1 (By aarjaneiro)](https://www.github.com/aarjaneiro/fencing_testbox)

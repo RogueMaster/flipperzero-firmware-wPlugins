@@ -188,6 +188,11 @@ static FaradayApp* faraday_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, FaradayViewHunt, hunt_view_get_view(app->hunt_view));
 
+    // the launch splash
+    app->splash_view = splash_view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, FaradayViewSplash, splash_view_get_view(app->splash_view));
+
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
     return app;
@@ -206,12 +211,14 @@ static void faraday_app_free(FaradayApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, FaradayViewAbout);
     view_dispatcher_remove_view(app->view_dispatcher, FaradayViewMeter);
     view_dispatcher_remove_view(app->view_dispatcher, FaradayViewHunt);
+    view_dispatcher_remove_view(app->view_dispatcher, FaradayViewSplash);
 
     submenu_free(app->submenu);
     variable_item_list_free(app->var_item_list);
     widget_free(app->widget);
     meter_view_free(app->meter_view);
     hunt_view_free(app->hunt_view);
+    splash_view_free(app->splash_view);
 
     view_dispatcher_free(app->view_dispatcher);
     scene_manager_free(app->scene_manager);

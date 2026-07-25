@@ -12,11 +12,16 @@ struct MeterView {
     void* ok_ctx;
 };
 
+/* Frames over which the verdict animates in (at the 100 ms scene tick). */
+#define FDY_REVEAL_MAX 6
+
 typedef struct {
     MeterData d;
     uint8_t history[FDY_HISTORY_LEN];
     bool has_history;
     uint8_t anim;
+    uint8_t reveal; // verdict reveal progress, 0..FDY_REVEAL_MAX
+    uint8_t last_phase; // to detect the entry into the verdict face
 } MeterModel;
 
 /* ---------------- small drawing helpers ---------------- */
@@ -65,6 +70,21 @@ static void draw_pips(Canvas* canvas, int x, int y, uint8_t filled) {
     }
 }
 
+/* A compact sparkline of the recent signal, drawn from the history ring. */
+static void draw_sparkline(Canvas* canvas, const MeterData* d, int x0, int baseline, int cols) {
+    if(!d->history) return;
+    for(int k = 0; k < cols; k++) {
+        int idx = (d->history_head - k + 2 * FDY_HISTORY_LEN) % FDY_HISTORY_LEN;
+        int v = d->history[idx];
+        int x = x0 + (cols - 1 - k) * 2;
+        int h = (v * 7) / 100;
+        if(h > 0)
+            canvas_draw_line(canvas, x, baseline, x, baseline - h);
+        else
+            canvas_draw_dot(canvas, x, baseline);
+    }
+}
+
 /* ---------------- faces ---------------- */
 
 static void draw_header(Canvas* canvas, const MeterData* d) {
@@ -102,6 +122,15 @@ static void draw_capture_face(Canvas* canvas, const MeterModel* m) {
     /* live meter bar + peak tick */
     draw_bar(canvas, 2, 30, 70, 12, d->level, d->peak);
 
+    /* While there is nothing to lock onto, a marker sweeps the empty bar so the
+     * screen reads as actively listening rather than frozen. */
+    if(!d->signal_ok) {
+        const int span = 62; // inner sweep width
+        int pos = (m->anim * 4) % (2 * span);
+        if(pos > span) pos = 2 * span - pos;
+        canvas_draw_box(canvas, 4 + pos, 34, 2, 4);
+    }
+
     /* big live readout on the right */
     if(d->signal_ok || d->live_value != 0) {
         draw_big_value(canvas, 126, 47, d->live_value, unit);
@@ -111,11 +140,14 @@ static void draw_capture_face(Canvas* canvas, const MeterModel* m) {
         canvas_draw_str_aligned(canvas, 126, 48, AlignRight, AlignBottom, "for signal");
     }
 
-    /* locked baseline reminder while capturing the shielded level */
     if(d->phase == FdyPhaseShield && d->have_base) {
+        /* locked baseline reminder while capturing the shielded level */
         snprintf(buf, sizeof(buf), "BASE %d %s", d->base_value, unit);
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, 2, 51, buf);
+    } else if(d->phase == FdyPhaseBaseline) {
+        /* live sparkline of the signal under the bar */
+        draw_sparkline(canvas, d, 2, 51, 34);
     }
 
     /* Bottom action strip. It doubles as the signal cue: until a carrier has
@@ -135,20 +167,28 @@ static void draw_capture_face(Canvas* canvas, const MeterModel* m) {
 
 static void draw_verdict_face(Canvas* canvas, const MeterModel* m) {
     const MeterData* d = &m->d;
+    FdyRating rating = (FdyRating)d->rating;
     /* The headline is a DIFFERENCE of two dBm readings, so it is dB - not dBm.
      * The bars below show the absolute levels and print no unit. */
     const char* unit = d->is_nfc ? "%" : "dB";
     char buf[16];
 
+    /* Reveal factor 0..FDY_REVEAL_MAX: the bars grow, the number tallies up and
+     * the pips fill as the screen lands, so a result feels earned rather than
+     * just appearing. Everything is static once fully revealed. */
+    uint8_t r = m->reveal;
+    int base_grow = (d->base_norm * r) / FDY_REVEAL_MAX;
+    int shield_grow = (d->shield_norm * r) / FDY_REVEAL_MAX;
+
     /* comparison bars: OPEN vs BAG */
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 2, 22, "OPEN");
-    draw_bar(canvas, 30, 15, 68, 8, d->base_norm, -1);
+    draw_bar(canvas, 30, 15, 68, 8, (uint8_t)base_grow, -1);
     snprintf(buf, sizeof(buf), "%d", d->base_value);
     canvas_draw_str_aligned(canvas, 126, 22, AlignRight, AlignBottom, buf);
 
     canvas_draw_str(canvas, 2, 32, "BAG");
-    draw_bar(canvas, 30, 25, 68, 8, d->shield_norm, -1);
+    draw_bar(canvas, 30, 25, 68, 8, (uint8_t)shield_grow, -1);
     snprintf(buf, sizeof(buf), "%d", d->shield_value);
     canvas_draw_str_aligned(canvas, 126, 32, AlignRight, AlignBottom, buf);
 
@@ -156,7 +196,8 @@ static void draw_verdict_face(Canvas* canvas, const MeterModel* m) {
      * between the bars and the bottom strip is only 19px, so the number owns
      * that band outright - the caption rides the same baseline to its right
      * rather than sitting above it. */
-    int shown = d->atten < 0 ? 0 : d->atten;
+    int target = d->atten < 0 ? 0 : d->atten;
+    int shown = (target * r) / FDY_REVEAL_MAX; // count up
     snprintf(buf, sizeof(buf), "%d", shown);
 
     /* ">=" means the shielded reading was buried in the noise floor, so the
@@ -175,19 +216,35 @@ static void draw_verdict_face(Canvas* canvas, const MeterModel* m) {
     canvas_draw_str_aligned(
         canvas, 92, 52, AlignRight, AlignBottom, d->is_nfc ? "BLOCKED" : "ATTEN");
 
-    /* grade badge (right) */
-    canvas_draw_rframe(canvas, 96, 34, 31, 18, 3);
+    /* Grade badge (right). A pass (B or better) is filled so it reads as a
+     * reward; a poor grade is only outlined so it reads as a warning. */
+    bool good = rating <= FdyRatingB;
+    if(good) {
+        canvas_draw_rbox(canvas, 96, 34, 31, 18, 3);
+        canvas_set_color(canvas, ColorWhite);
+    } else {
+        canvas_draw_rframe(canvas, 96, 34, 31, 18, 3);
+    }
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(
-        canvas, 111, 43, AlignCenter, AlignCenter, fdy_rating_letter((FdyRating)d->rating));
+    canvas_draw_str_aligned(canvas, 111, 43, AlignCenter, AlignCenter, fdy_rating_letter(rating));
+    canvas_set_color(canvas, ColorBlack);
+
+    /* A top grade earns a little sparkle at the badge corners, once revealed. */
+    if(rating == FdyRatingAPlus && r >= FDY_REVEAL_MAX) {
+        canvas_draw_line(canvas, 93, 33, 95, 35);
+        canvas_draw_line(canvas, 128, 33, 126, 35);
+        canvas_draw_dot(canvas, 91, 31);
+    }
 
     /* inverted verdict strip: word + pips (left), retest hint (right) */
     canvas_draw_box(canvas, 0, 53, 128, 11);
     canvas_set_color(canvas, ColorWhite);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 3, 62, fdy_rating_word((FdyRating)d->rating));
-    int ww = canvas_string_width(canvas, fdy_rating_word((FdyRating)d->rating));
-    draw_pips(canvas, 6 + ww, 57, fdy_rating_pips((FdyRating)d->rating));
+    const char* word = fdy_rating_word(rating);
+    canvas_draw_str(canvas, 3, 62, word);
+    int ww = canvas_string_width(canvas, word);
+    uint8_t pips = (uint8_t)((fdy_rating_pips(rating) * r) / FDY_REVEAL_MAX);
+    draw_pips(canvas, 6 + ww, 57, pips);
     canvas_draw_str_aligned(canvas, 125, 62, AlignRight, AlignBottom, "OK retest");
     canvas_set_color(canvas, ColorBlack);
 }
@@ -252,6 +309,7 @@ void meter_view_update(MeterView* v, const MeterData* data) {
         v->view,
         MeterModel * m,
         {
+            uint8_t prev_phase = m->last_phase;
             m->d = *data;
             if(data->history) {
                 memcpy(m->history, data->history, sizeof(m->history));
@@ -261,11 +319,21 @@ void meter_view_update(MeterView* v, const MeterData* data) {
                 m->has_history = false;
                 m->d.history = NULL;
             }
+            /* Restart the reveal animation each time we land on the verdict. */
+            if(m->d.phase == FdyPhaseVerdict && prev_phase != FdyPhaseVerdict) m->reveal = 0;
+            m->last_phase = m->d.phase;
         },
         true);
 }
 
 void meter_view_tick(MeterView* v) {
     furi_assert(v);
-    with_view_model(v->view, MeterModel * m, { m->anim++; }, true);
+    with_view_model(
+        v->view,
+        MeterModel * m,
+        {
+            m->anim++;
+            if(m->last_phase == FdyPhaseVerdict && m->reveal < FDY_REVEAL_MAX) m->reveal++;
+        },
+        true);
 }
