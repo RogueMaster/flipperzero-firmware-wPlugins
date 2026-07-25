@@ -116,7 +116,18 @@ def draw_header(d, band):
 # ---------------- faces ----------------
 
 
-def render_capture(name, *, is_nfc, phase, level, peak, live, signal_ok, base=None):
+def draw_sparkline(d, hist, x0, baseline, cols):
+    for k in range(cols):
+        v = hist[(len(hist) - 1 - k) % len(hist)]
+        x = x0 + (cols - 1 - k) * 2
+        h = (v * 7) // 100
+        if h > 0:
+            line(d, x, baseline, x, baseline - h)
+        else:
+            d.rectangle([L(x), L(baseline), L(x) + S - 1, L(baseline) + S - 1], fill=FG)
+
+
+def render_capture(name, *, is_nfc, phase, level, peak, live, signal_ok, base=None, spark=None):
     img, d = canvas()
     band = "13.56 MHz" if is_nfc else "433.92 MHz"
     unit = "%" if is_nfc else "dBm"
@@ -133,6 +144,10 @@ def render_capture(name, *, is_nfc, phase, level, peak, live, signal_ok, base=No
     # live meter
     draw_bar(d, 2, 30, 70, 12, level, peak)
 
+    # scanning marker sweeps the empty bar while listening
+    if not signal_ok:
+        box(d, 30, 34, 2, 4)  # a representative sweep position
+
     if signal_ok or live != 0:
         draw_big_value(d, 126, 47, live, unit)
     else:
@@ -141,6 +156,8 @@ def render_capture(name, *, is_nfc, phase, level, peak, live, signal_ok, base=No
 
     if phase == 1 and base is not None:
         text(d, 2, 51, f"BASE {base} {unit}", f_sec)
+    elif phase == 0 and spark is not None:
+        draw_sparkline(d, spark, 2, 51, 34)
 
     # action strip
     box(d, 0, 53, 128, 11)
@@ -151,7 +168,8 @@ def render_capture(name, *, is_nfc, phase, level, peak, live, signal_ok, base=No
 
 
 def render_verdict(
-    name, *, is_nfc, base_v, shield_v, base_n, shield_n, atten, floored, letter, word, pips
+    name, *, is_nfc, base_v, shield_v, base_n, shield_n, atten, floored, letter, word, pips,
+    good, aplus=False,
 ):
     img, d = canvas()
     band = "13.56 MHz" if is_nfc else "433.92 MHz"
@@ -176,8 +194,17 @@ def render_verdict(
     text(d, nx + nw + 2, 52, unit, f_sec)
     text(d, 92, 52, "BLOCKED" if is_nfc else "ATTEN", f_sec, anchor="rs")
 
-    rframe(d, 96, 34, 31, 18, 3)
-    text(d, 111, 43, letter, f_pri, anchor="ms")
+    # grade badge: filled (reward) for a pass, outlined (warning) otherwise
+    if good:
+        rbox(d, 96, 34, 31, 18, 3)
+        text(d, 111, 43, letter, f_pri, BG, anchor="ms")
+    else:
+        rframe(d, 96, 34, 31, 18, 3)
+        text(d, 111, 43, letter, f_pri, anchor="ms")
+    if aplus:
+        line(d, 93, 33, 95, 35)
+        line(d, 128, 33, 126, 35)
+        d.rectangle([L(91), L(31), L(91) + S - 1, L(31) + S - 1], fill=FG)
 
     box(d, 0, 53, 128, 11)
     text(d, 3, 62, word, f_sec, BG)
@@ -185,6 +212,36 @@ def render_verdict(
     draw_pips(d, 6 + ww, 57, pips, BG)
     text(d, 125, 62, "OK retest", f_sec, BG, anchor="rs")
     save(img, name)
+
+
+def render_splash():
+    """Mirrors views/splash_view.c (settled frame)."""
+    img, d = canvas()
+    PCX, PCY = 64, 18
+    PX, PY, PW, PH = 40, 4, 48, 28
+    # contained waves
+    for r in (5, 9, 12):
+        d.ellipse([L(PCX - r), L(PCY - r), L(PCX + r), L(PCY + r)], outline=FG, width=2)
+    # fob
+    rbox(d, PCX - 4, PCY - 5, 8, 10, 2)
+    d.rectangle([L(PCX), L(PCY - 1), L(PCX) + S - 1, L(PCY - 1) + S - 1], fill=BG)
+    # pouch shell + seal teeth
+    rframe(d, PX, PY, PW, PH, 4)
+    rframe(d, PX + 1, PY + 1, PW - 2, PH - 2, 3)
+    tx = PX + 6
+    while tx < PX + PW - 4:
+        line(d, tx, PY + 2, tx, PY + 5)
+        tx += 6
+    # the faint leak
+    for lx in (PX + PW + 2, PX + PW + 5):
+        d.rectangle([L(lx), L(PCY), L(lx) + S - 1, L(PCY) + S - 1], fill=FG)
+    # wordmark + tagline
+    text(d, 64, 44, "FARADAY", f_pri, anchor="ms")
+    text(d, 64, 54, "prove your pouch works", f_sec, anchor="ms")
+    # progress bar
+    frame(d, 24, 58, 80, 4)
+    box(d, 26, 60, 57, 1)
+    save(img, "screen_splash.png")
 
 
 def render_hunt(name, *, band, rssi, floor, level, peak_norm, history):
@@ -288,10 +345,16 @@ def render_settings():
     save(img, "screen_settings.png")
 
 
+BASE_SPARK = [
+    18, 22, 15, 28, 40, 26, 33, 48, 30, 55, 42, 61, 70, 52, 66, 74, 58, 72,
+    78, 64, 71, 76, 60, 73, 77, 62, 70, 75, 58, 72, 78, 66, 74, 72,
+]
+
 if __name__ == "__main__":
     # Sub-GHz: fob in the open, carrier landing hard
     render_capture(
-        "screen_baseline.png", is_nfc=False, phase=0, level=72, peak=78, live=-42, signal_ok=True
+        "screen_baseline.png", is_nfc=False, phase=0, level=72, peak=78, live=-42,
+        signal_ok=True, spark=BASE_SPARK,
     )
     # Sub-GHz: fob sealed in the pouch, barely anything left
     render_capture(
@@ -317,6 +380,7 @@ if __name__ == "__main__":
         letter="A",
         word="STRONG",
         pips=4,
+        good=True,
     )
     # A pouch that does not
     render_verdict(
@@ -331,6 +395,7 @@ if __name__ == "__main__":
         letter="F",
         word="OPEN",
         pips=0,
+        good=False,
     )
     # NFC capture against a reader field
     render_capture(
@@ -351,11 +416,13 @@ if __name__ == "__main__":
         peak_norm=78,
         history=HUNT_HIST,
     )
+    render_splash()
     render_results()
     render_menu()
     render_settings()
 
     names = (
+        "screen_splash.png",
         "screen_baseline.png",
         "screen_shielded.png",
         "screen_verdict.png",

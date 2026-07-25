@@ -19,11 +19,13 @@
 #include "helpers/fdy_store.h" // also defines FaradaySettings
 #include "views/meter_view.h"
 #include "views/hunt_view.h"
+#include "views/splash_view.h"
 #include "scenes/faraday_scene.h"
 
-#define FARADAY_VERSION "1.1"
+#define FARADAY_VERSION "1.2"
 
 typedef enum {
+    FaradayViewSplash,
     FaradayViewSubmenu,
     FaradayViewMeter,
     FaradayViewHunt,
@@ -62,6 +64,7 @@ typedef struct {
 
     MeterView* meter_view;
     HuntView* hunt_view;
+    SplashView* splash_view;
 
     FdySubGhz* subghz;
     FdyNfc* nfc;
@@ -70,6 +73,8 @@ typedef struct {
     FdyTest test;
 
     uint32_t last_click_tick; // paces the leak-hunt geiger clicks
+    bool splash_done; // the intro plays once per launch
+    uint8_t splash_ticks; // intro auto-advance counter
 } FaradayApp;
 
 /* test-flow helpers (defined in faraday.c) */
