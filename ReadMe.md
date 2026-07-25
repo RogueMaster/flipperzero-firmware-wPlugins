@@ -59,6 +59,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Nightstand Clock v1.3 (By nymda)](https://github.com/nymda/FlipperNightStand) [fix unreachable nightlight and notif use-after-close (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/244) [make Up/Down actually change the screen brightness (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/246) [Daily alarm & other changes (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/be05e0cdeff599797e53144a263b572bee571333)
 - Added: [Flipper Share iButton v0.1 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_ibutton)
 - Updated: [Claude Buddy v0.7 (By jxw1102)](https://github.com/jxw1102/flipper-claude-buddy)
+- Updated: [San Morse v1.0.1 (By sanjorgek)](https://github.com/sanjorgek/san-morse-flipper)
 
 <a name="release"></a>
 
@@ -764,7 +765,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Rubiks Cube Timer v0.0.2 (By KHOPAN)](https://github.com/KHOPAN/Cuber-Zero)
 - [SaFlip v0.1 (By aaronjamt)](https://github.com/aaronjamt/saflip)
 - [SAM (By Unknown)][Original?](https://github.com/ctoth/SAM)
-- [San Morse v1.0 (By sanjorgek)](https://github.com/sanjorgek/san-morse-flipper)
+- [San Morse v1.0.1 (By sanjorgek)](https://github.com/sanjorgek/san-morse-flipper)
 - [SD Info v0.1 (By Sladkisnovraper)](https://github.com/Sladkisnovraper/SD-Info-For-Flipper-Zero)
 - [SD SPI v0.5 (By Gl1tchub)](https://github.com/Gl1tchub/Flipperzero-SD-SPI) `Req: External SD Board`
 - [Segment Clock v1.1 (By Sladkisnovraper)](https://github.com/Sladkisnovraper/Segment-Clock-For-Flipper-Zero)
