@@ -21,6 +21,12 @@
 // (period - high), doubles per-edge jitter. See classify_run() in rfid_modem.c.
 #define RFID_MODEM_CLASS_SPLIT_US ((RFID_MODEM_HALFBIT_US + RFID_MODEM_FULLBIT_US) / 2u)
 
+// Glitch filter: the shortest REAL level run is a half-bit (128 us), so any run
+// shorter than this is a comparator-noise edge. Instead of splitting/​resetting on
+// it, the decoder absorbs its duration into the current run — a single stray noise
+// edge inside a real run no longer destroys the frame. Half a half-bit.
+#define RFID_MODEM_GLITCH_US (RFID_MODEM_HALFBIT_US / 2u) // 64 us
+
 // Any level run longer than this is treated as an inter-frame gap and resets the
 // decoder to sync-hunt (~2.5 bit periods).
 #define RFID_MODEM_GAP_US ((RFID_MODEM_FULLBIT_US * 5u) / 2u) // 640 us

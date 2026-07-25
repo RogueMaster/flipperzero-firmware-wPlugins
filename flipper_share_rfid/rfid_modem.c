@@ -82,6 +82,10 @@ bool rfid_modem_enc_next(RfidModemEnc* enc, uint32_t* duration, uint32_t* pulse)
 
 void rfid_modem_dec_reset(RfidModemDec* dec) {
     dec->state = RfidModemHunt;
+    dec->out_level = -1;
+    dec->out_dur = 0;
+    dec->cand_level = -1;
+    dec->cand_dur = 0;
     dec->win_len = 0;
     dec->pol = 0;
     dec->hb_count = 0;
@@ -202,28 +206,81 @@ static size_t dec_push_half(RfidModemDec* dec, int level, uint8_t* out, size_t o
     return 0;
 }
 
+// Classify and push one clean (glitch-filtered) constant-level run into the
+// half-bit decoder. Returns a packet length when a frame closes, else 0.
+static size_t dec_emit_run(RfidModemDec* dec, int level, uint32_t dur_us, uint8_t* out, size_t cap) {
+    if(dur_us > RFID_MODEM_GAP_US) {
+        // Inter-frame gap / dropout: back to sync-hunt.
+        rfid_modem_dec_reset(dec);
+        return 0;
+    }
+    int count = classify_run(dur_us);
+    if(count == 0) {
+        // Neither half-bit nor full-bit: desync.
+        rfid_modem_dec_reset(dec);
+        return 0;
+    }
+    size_t result = 0;
+    for(int i = 0; i < count; i++) {
+        size_t r = dec_push_half(dec, level, out, cap);
+        if(r) result = r;
+    }
+    return result;
+}
+
 size_t rfid_modem_dec_feed(
     RfidModemDec* dec,
     bool level,
     uint32_t duration_us,
     uint8_t* out,
     size_t out_cap) {
-    if(duration_us > RFID_MODEM_GAP_US) {
-        // Inter-frame gap / dropout: back to sync-hunt.
-        rfid_modem_dec_reset(dec);
-        return 0;
-    }
-    int count = classify_run(duration_us);
-    if(count == 0) {
-        // Neither half-bit nor full-bit: desync.
-        rfid_modem_dec_reset(dec);
+    int lvl = level ? 1 : 0;
+
+    // Glitch-filter / debounce. The shortest real run is a half-bit (128 us). A
+    // comparator-noise edge splits a real run into short pieces; treating any short
+    // run as a glitch would also swallow the two halves of a mid-run split. Instead
+    // a level change is only committed once the new level has persisted for
+    // RFID_MODEM_GLITCH_US, and brief returns to the confirmed level are absorbed.
+    if(dec->out_level < 0) {
+        dec->out_level = lvl; // first run: open the confirmed run
+        dec->out_dur = duration_us;
         return 0;
     }
 
-    size_t result = 0;
-    for(int i = 0; i < count; i++) {
-        size_t r = dec_push_half(dec, level ? 1 : 0, out, out_cap);
-        if(r) result = r;
+    if(dec->cand_level < 0) {
+        if(lvl == dec->out_level) {
+            dec->out_dur += duration_us; // continuation of the confirmed run
+        } else {
+            dec->cand_level = lvl; // a possible level change begins
+            dec->cand_dur = duration_us;
+        }
+    } else {
+        if(lvl == dec->cand_level) {
+            dec->cand_dur += duration_us; // candidate persists
+        } else if(duration_us < RFID_MODEM_GLITCH_US) {
+            dec->cand_dur += duration_us; // brief blip back to out level: absorb it
+        } else {
+            // A real run back at the confirmed level: the candidate was just noise.
+            dec->out_dur += dec->cand_dur + duration_us;
+            dec->cand_level = -1;
+            dec->cand_dur = 0;
+            return 0;
+        }
     }
-    return result;
+
+    // Candidate has lasted long enough to be a real level change: emit the now-
+    // finished confirmed run and promote the candidate to be the confirmed run.
+    if(dec->cand_level >= 0 && dec->cand_dur >= RFID_MODEM_GLITCH_US) {
+        int new_level = dec->cand_level;
+        uint32_t new_dur = dec->cand_dur;
+        size_t r = dec_emit_run(dec, dec->out_level, dec->out_dur, out, out_cap);
+        // dec_emit_run may have reset filter+decoder state (gap / frame / desync);
+        // re-open the confirmed run from the saved candidate regardless.
+        dec->out_level = new_level;
+        dec->out_dur = new_dur;
+        dec->cand_level = -1;
+        dec->cand_dur = 0;
+        return r;
+    }
+    return 0;
 }

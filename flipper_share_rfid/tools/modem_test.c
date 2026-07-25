@@ -138,6 +138,34 @@ static int hw_roundtrip(const uint8_t* packet, size_t len, long jitter) {
     return r == len && memcmp(out, packet, len) == 0;
 }
 
+// Split some runs with a brief opposite-level glitch to model a comparator-noise
+// edge landing inside a real run. The decoder's glitch filter must absorb these.
+static int roundtrip_glitchy(const uint8_t* packet, size_t len, int glitch_pct, long glitch_us) {
+    static Event ideal[8192];
+    static Event ev[16384];
+    int m = encode_to_events(packet, len, ideal, 8192);
+    int n = 0;
+    for(int i = 0; i < m && n < 16384 - 3; i++) {
+        long d = ideal[i].dur_us;
+        if((rand() % 100) < glitch_pct && d > 3 * glitch_us) {
+            long half = (d - glitch_us) / 2;
+            ev[n].level = ideal[i].level;
+            ev[n++].dur_us = half;
+            ev[n].level = !ideal[i].level; // the noise blip
+            ev[n++].dur_us = glitch_us;
+            ev[n].level = ideal[i].level;
+            ev[n++].dur_us = d - half - glitch_us;
+        } else {
+            ev[n++] = ideal[i];
+        }
+    }
+    ev[n].level = 0;
+    ev[n++].dur_us = 4000; // trailing gap
+    uint8_t out[TEST_PACKET_MAX + 8];
+    size_t r = decode_events(ev, n, out, sizeof(out));
+    return r == len && memcmp(out, packet, len) == 0;
+}
+
 static int roundtrip(const uint8_t* packet, size_t len, long jitter, int invert) {
     static Event ev[8192];
     int n = encode_to_events(packet, len, ev, 8192);
@@ -295,6 +323,20 @@ int main(void) {
         if(!hw_roundtrip(buf, len, 20)) hwj_fail++;
     }
     printf("hw-capture chain +/-20us (informational): %d/10000 failed\n", hwj_fail);
+
+    // ---- Glitch filter: noise edges splitting real runs must be absorbed ----
+    int gl_fail = 0;
+    for(int i = 0; i < 10000; i++) {
+        size_t len = 1 + (rand() % TEST_PACKET_MAX);
+        fill_random(buf, len);
+        total++;
+        if(!roundtrip_glitchy(buf, len, 30, 20)) { // 30% of runs get a 20us noise blip
+            gl_fail++;
+            if(gl_fail <= 3) printf("FAIL glitch len=%zu\n", len);
+        }
+    }
+    fails += gl_fail;
+    printf("glitch-split runs (30%%, 20us): %d/10000 failed\n", gl_fail);
 
     // ---- Harsh jitter (informational: expected to degrade) ----
     int harsh_fail = 0;

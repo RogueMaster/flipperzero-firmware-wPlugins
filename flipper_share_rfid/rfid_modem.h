@@ -62,6 +62,17 @@ typedef enum {
 typedef struct {
     RfidModemDecState state;
 
+    // Glitch filter (debounce). out_* is the confirmed run being accumulated (held
+    // one run so a same-level continuation can merge into it); cand_* is a
+    // candidate opposite-level run being observed. A level change is only committed
+    // once the candidate has persisted for RFID_MODEM_GLITCH_US; brief returns to
+    // the confirmed level inside a candidate are absorbed as noise. Levels are
+    // -1 when unset.
+    int out_level;
+    uint32_t out_dur;
+    int cand_level;
+    uint32_t cand_dur;
+
     // HUNT: sliding window of the most recent half-bit levels (raw, pre-polarity).
     uint8_t win[2u * RFID_MODEM_PREAMBLE_MATCH_BITS + 16u]; // preamble-match + sync half-bits
     int win_len;
