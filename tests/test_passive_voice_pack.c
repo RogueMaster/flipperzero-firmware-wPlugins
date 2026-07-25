@@ -141,14 +141,19 @@ static void test_wrap_and_pending(void) {
     static const uint8_t payload[] = {0U, 128U, 255U, 64U};
     MemoryFile file;
     MfPassiveVoicePack pack;
-    MfPassivePcmPipe pipe = {.read_pos = 1022U, .write_pos = 1022U};
+    MfPassivePcmPipe pipe = {
+        .read_pos = MF_PASSIVE_PCM_RING_SAMPLES - 2U,
+        .write_pos = MF_PASSIVE_PCM_RING_SAMPLES - 2U,
+    };
     MfPassiveVoiceIo io;
     make_pack(&file, MfPassiveCodecU8, payload, sizeof(payload), 4U, 0U);
     io = memory_io(&file);
     CHECK(mf_passive_voice_pack_open_io(&pack, &io));
     CHECK(mf_passive_voice_pack_begin(&pack, &pipe, 'Z'));
     CHECK(mf_passive_voice_pack_refill(&pack, &pipe, 100U) == 4U);
-    CHECK(pipe.samples[1022] == -32768 && pipe.samples[1023] == 0);
+    CHECK(
+        pipe.samples[MF_PASSIVE_PCM_RING_SAMPLES - 2U] == -32768 &&
+        pipe.samples[MF_PASSIVE_PCM_RING_SAMPLES - 1U] == 0);
     CHECK(pipe.samples[0] == 32512 && pipe.samples[1] == -16384);
     CHECK(!mf_passive_voice_pack_begin(&pack, &pipe, 'A'));
     pipe.read_pos = pipe.write_pos;
@@ -189,15 +194,13 @@ static void test_bounded_refill(void) {
     io = memory_io(&file);
     CHECK(mf_passive_voice_pack_open_io(&pack, &io));
     CHECK(mf_passive_voice_pack_begin(&pack, &pipe, '0'));
-    CHECK(mf_passive_voice_pack_refill(&pack, &pipe, 100U) == MF_PASSIVE_VOICE_READ_MAX);
-    CHECK(pipe.write_pos == MF_PASSIVE_VOICE_READ_MAX);
+    CHECK(
+        mf_passive_voice_pack_refill(&pack, &pipe, 100U) ==
+        MF_PASSIVE_VOICE_PIPE_HIGH_WATER);
+    CHECK(pipe.write_pos == MF_PASSIVE_VOICE_PIPE_HIGH_WATER);
     CHECK(!mf_passive_voice_pack_eof(&pack));
     CHECK(!mf_passive_voice_pack_failed(&pack));
     CHECK(file.largest_read <= MF_PASSIVE_VOICE_READ_MAX);
-    CHECK(mf_passive_voice_pack_refill(&pack, &pipe, 100U) ==
-          MF_PASSIVE_VOICE_PIPE_HIGH_WATER - MF_PASSIVE_VOICE_READ_MAX);
-    CHECK(pipe.write_pos == MF_PASSIVE_VOICE_PIPE_HIGH_WATER);
-    CHECK(!mf_passive_voice_pack_failed(&pack));
     pipe.read_pos = pipe.write_pos;
     CHECK(mf_passive_voice_pack_refill(&pack, &pipe, 100U) ==
           sizeof(payload) - MF_PASSIVE_VOICE_PIPE_HIGH_WATER);

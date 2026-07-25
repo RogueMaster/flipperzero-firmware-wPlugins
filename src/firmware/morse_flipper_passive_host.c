@@ -2,6 +2,8 @@
 
 #define MORSE_FLIPPER_PASSIVE_PLUGIN_PATH \
     APP_ASSETS_PATH("plugins/morse_flipper_passive_listening.fal")
+#define MORSE_FLIPPER_PASSIVE_SETTINGS_PLUGIN_PATH \
+    APP_ASSETS_PATH("plugins/morse_flipper_passive_settings.fal")
 
 static bool mf_passive_command(
     void* context,
@@ -76,6 +78,8 @@ bool morse_flipper_passive_host_enter(
     MfPassiveEnterArgs args;
     MfPassiveOutputTarget target;
     bool entered;
+    const char* plugin_path;
+    uint32_t api_magic;
 
     if(app == NULL || app->plugin_slot.mutex == NULL) return false;
     if(entry_kind == MfPassiveEntrySettings) {
@@ -87,6 +91,8 @@ bool morse_flipper_passive_host_enter(
                 .list = app->settings_list,
             },
         };
+        plugin_path = MORSE_FLIPPER_PASSIVE_SETTINGS_PLUGIN_PATH;
+        api_magic = MF_PASSIVE_SETTINGS_API_MAGIC;
     } else if(entry_kind == MfPassiveEntryPlayback) {
         morse_flipper_drop_live_keying_for_playback(app, now_ms);
         morse_flipper_release_all_notes(app);
@@ -106,6 +112,8 @@ bool morse_flipper_passive_host_enter(
                 .services = &mf_passive_services,
             },
         };
+        plugin_path = MORSE_FLIPPER_PASSIVE_PLUGIN_PATH;
+        api_magic = MF_PASSIVE_API_MAGIC;
     } else {
         return false;
     }
@@ -115,9 +123,9 @@ bool morse_flipper_passive_host_enter(
         app,
         MorseFlipperPluginOwnerPassive,
         entry_kind == MfPassiveEntrySettings ? 1U : 0U,
-        MORSE_FLIPPER_PASSIVE_PLUGIN_PATH,
+        plugin_path,
         MF_PASSIVE_API_VERSION,
-        MF_PASSIVE_API_MAGIC,
+        api_magic,
         sizeof(MfPassiveApi),
         &args,
         &initial);

@@ -21,7 +21,7 @@ static __attribute__((noinline)) bool morse_flipper_plugin_runtime_typed_api_val
     }
     if(owner == MorseFlipperPluginOwnerPassive) {
         const MfPassiveApi* api = entry;
-        return api->enter != NULL && api->input != NULL;
+        return api->mapped.enter != NULL && api->mapped.input != NULL;
     }
     return false;
 }

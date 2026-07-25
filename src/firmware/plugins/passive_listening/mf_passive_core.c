@@ -167,12 +167,6 @@ static bool mf_passive_open_playback(MfPassiveState* state, uint32_t now_ms) {
 
 bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfPassiveResult* result) {
     if(state == NULL || result == NULL || args == NULL || args->struct_size != sizeof(*args)) return false;
-    if(args->entry_kind == MfPassiveEntrySettings) {
-        memset(state, 0, sizeof(*state));
-        if(!mf_passive_settings_enter(state, args)) return false;
-        *result = mf_passive_result(state, true);
-        return true;
-    }
     if(args->entry_kind != MfPassiveEntryPlayback ||
        args->entry.playback.services == NULL ||
        args->entry.playback.services->struct_size != sizeof(MfPassiveHostServices) ||
@@ -216,11 +210,6 @@ bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfP
 
 void mf_passive_leave(MfPassiveState* state) {
     if(state == NULL) return;
-    if(state->settings_active) {
-        mf_passive_settings_leave(state);
-        memset(state, 0, sizeof(*state));
-        return;
-    }
     if(state->audio_claimed) {
         mf_passive_host_command(state->services, MfPassiveHostCommandSilence, 0U);
         mf_passive_host_command(state->services, MfPassiveHostCommandVibration, 0U);

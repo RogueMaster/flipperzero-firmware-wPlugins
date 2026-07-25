@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MF_PASSIVE_PCM_RING_SAMPLES 1024U
+#define MF_PASSIVE_PCM_RING_SAMPLES 512U
 
 typedef struct MfPassivePcmPipe {
     int16_t samples[MF_PASSIVE_PCM_RING_SAMPLES];

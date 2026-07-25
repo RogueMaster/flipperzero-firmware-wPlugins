@@ -51,11 +51,14 @@ static void test_voice_rate(uint32_t output_rate_hz, uint32_t source_rate_hz) {
 
 static void test_wrap_and_underrun(void) {
     MorseFlipperAudioPwm audio;
-    MfPassivePcmPipe pipe = {.read_pos = 1022U, .write_pos = 2U};
+    MfPassivePcmPipe pipe = {
+        .read_pos = MF_PASSIVE_PCM_RING_SAMPLES - 2U,
+        .write_pos = 2U,
+    };
     uint16_t output[20];
     prepare(&audio, 32000U);
-    pipe.samples[1022] = -100;
-    pipe.samples[1023] = 100;
+    pipe.samples[MF_PASSIVE_PCM_RING_SAMPLES - 2U] = -100;
+    pipe.samples[MF_PASSIVE_PCM_RING_SAMPLES - 1U] = 100;
     pipe.samples[0] = 200;
     pipe.samples[1] = 300;
     morse_flipper_audio_pwm_set_voice(&audio, &pipe, 8000U);

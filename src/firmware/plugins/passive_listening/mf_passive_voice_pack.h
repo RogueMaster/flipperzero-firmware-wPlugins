@@ -10,8 +10,18 @@
 #define MF_PASSIVE_VOICE_TOKEN_COUNT 40U
 #define MF_PASSIVE_VOICE_FIRST_SLICE_TOKENS 36U
 #define MF_PASSIVE_VOICE_READ_MAX 512U
-#define MF_PASSIVE_VOICE_PIPE_HIGH_WATER 768U
+#define MF_PASSIVE_VOICE_PIPE_HIGH_WATER 480U
 #define MF_PASSIVE_VOICE_PIPE_PRIME_SAMPLES 128U
+
+_Static_assert(
+    (MF_PASSIVE_PCM_RING_SAMPLES & (MF_PASSIVE_PCM_RING_SAMPLES - 1U)) == 0U,
+    "passive PCM ring size must be a power of two");
+_Static_assert(
+    MF_PASSIVE_VOICE_PIPE_HIGH_WATER < MF_PASSIVE_PCM_RING_SAMPLES,
+    "passive voice high-water mark must leave one ring slot free");
+_Static_assert(
+    MF_PASSIVE_VOICE_PIPE_PRIME_SAMPLES <= MF_PASSIVE_VOICE_PIPE_HIGH_WATER,
+    "passive voice prime must fit below the high-water mark");
 
 typedef struct Storage Storage;
 typedef struct File File;

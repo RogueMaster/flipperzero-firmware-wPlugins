@@ -515,7 +515,7 @@ static void test_single_character_lesson_rounds(void) {
 }
 
 int main(void) {
-    CHECK(sizeof(MfPassiveState) <= 3584U);
+    CHECK(sizeof(MfPassiveState) <= 2432U);
     test_initial_delay();
     test_sequence_and_timing();
     test_delayed_tick_and_failures();
