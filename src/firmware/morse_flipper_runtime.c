@@ -607,9 +607,7 @@ void morse_flipper_active_mode_tick(MorseFlipperApp* app, uint32_t now_ms) {
             if(result.redraw) morse_flipper_view_dirty(app);
         }
         furi_mutex_release(app->plugin_slot.mutex);
-        if(result.request_exit)
-            scene_manager_search_and_switch_to_another_scene(
-                app->scene_manager, MorseFlipperSceneMenuTraining);
+        if(result.request_exit) morse_flipper_scene_return_to_training(app);
         break;
     }
     case MorseFlipperScreenTxGroups:

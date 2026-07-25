@@ -841,6 +841,7 @@ void morse_flipper_draw(Canvas* canvas, void* ctx);
 void morse_flipper_view_dirty(MorseFlipperApp* app);
 void morse_flipper_scene_open(MorseFlipperApp* app, uint32_t scene);
 void morse_flipper_scene_back(MorseFlipperApp* app);
+void morse_flipper_scene_return_to_training(MorseFlipperApp* app);
 void morse_flipper_live_draw(Canvas* canvas, void* model);
 bool morse_flipper_live_input(InputEvent* event, void* ctx);
 bool morse_flipper_custom_event_callback(void* context, uint32_t event);

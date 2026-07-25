@@ -1168,8 +1168,7 @@ bool morse_flipper_active_mode_input(MorseFlipperApp* app, InputEvent* event, ui
         if(result.request_exit ||
            (!active && event->key == InputKeyBack &&
             (event->type == InputTypeShort || event->type == InputTypeLong)))
-            scene_manager_search_and_switch_to_another_scene(
-                app->scene_manager, MorseFlipperSceneMenuTraining);
+            morse_flipper_scene_return_to_training(app);
         return true;
     }
     case MorseFlipperScreenRfFreq:
