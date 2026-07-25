@@ -5,8 +5,16 @@
  * Tests: tests/test_prompt_font.c plus firmware build.
  */
 
-#include "fonts/morse_flipper_terminus24.h"
 #include "morse_flipper_app_i.h"
+
+void morse_flipper_draw_plugin_unavailable(Canvas* canvas) {
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(
+        canvas, 64, 28, AlignCenter, AlignBottom, "Plugin unavailable");
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(
+        canvas, 64, 52, AlignCenter, AlignBottom, "Back");
+}
 
 void morse_flipper_draw_left_exit_hint(Canvas* canvas) {
     canvas_draw_box(canvas, 124, 32, 1, 1);
@@ -248,24 +256,34 @@ uint8_t morse_flipper_live_upper_char(uint8_t ch) {
     return ch;
 }
 
-void morse_flipper_draw_straight_prompt(Canvas* canvas, int32_t cx, int32_t cy, uint8_t ch) {
-    const MorseFlipperTerminus24Glyph* glyph;
+void morse_flipper_draw_straight_prompt(
+    Canvas* canvas,
+    const MorseFlipperApp* app,
+    int32_t cx,
+    int32_t cy,
+    uint8_t ch) {
+    const MorseFlipperTerminus24PreparedGlyph* glyph;
     int32_t x0;
     int32_t y0;
     size_t row;
     size_t x_max;
     size_t y_max;
 
-    if(canvas == NULL) return;
+    if(canvas == NULL || app == NULL) return;
 
-    glyph = morse_flipper_terminus24_glyph(morse_flipper_live_upper_char(ch));
+    glyph = morse_flipper_terminus24_prepared(&app->terminus24, ch);
+    if(!app->terminus24.asset_ok || glyph == NULL) {
+        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str_aligned(canvas, cx, cy, AlignCenter, AlignCenter, "FONT ERR");
+        return;
+    }
     x0 = cx - (int32_t)(MORSE_FLIPPER_TERMINUS24_WIDTH / 2U);
     y0 = cy - (int32_t)(MORSE_FLIPPER_TERMINUS24_HEIGHT / 2U);
     x_max = canvas_width(canvas);
     y_max = canvas_height(canvas);
 
     for(row = 0U; row < MORSE_FLIPPER_TERMINUS24_HEIGHT; row++) {
-        uint16_t bits = morse_flipper_terminus24_row(glyph, row);
+        uint16_t bits = morse_flipper_terminus24_prepared_row(glyph, row);
         uint8_t col;
 
         for(col = 0U; col < MORSE_FLIPPER_TERMINUS24_WIDTH; col++) {

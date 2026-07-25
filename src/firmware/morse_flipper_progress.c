@@ -932,50 +932,77 @@ uint8_t morse_flipper_progress_history_load_more(
     furi_record_close(RECORD_STORAGE);
 #endif
 
-    if(count == 0U && probed_days >= MORSE_FLIPPER_PROGRESS_HISTORY_SCAN_DAYS)
-        cursor->exhausted = true;
-
     return count;
 }
 
-bool morse_flipper_progress_history_load_newer(
+void morse_flipper_progress_history_newer_reset(
+    MorseFlipperProgressHistoryNewerCursor* cursor,
     const MorseFlipperProgressHistoryRow* from,
-    uint16_t newest_day,
+    uint16_t newest_day) {
+    if(cursor == NULL) return;
+
+    cursor->practice_day = MORSE_FLIPPER_PROGRESS_DAY_NONE;
+    cursor->line_from_end = 0U;
+    cursor->newest_day = newest_day;
+    cursor->day_loaded = false;
+    cursor->initialized = false;
+    cursor->exhausted = true;
+    if(from == NULL || from->practice_day == MORSE_FLIPPER_PROGRESS_DAY_NONE ||
+       newest_day == MORSE_FLIPPER_PROGRESS_DAY_NONE || from->practice_day > newest_day)
+        return;
+
+    cursor->practice_day = from->practice_day;
+    cursor->line_from_end = from->line_from_end;
+    cursor->day_loaded = true;
+    cursor->initialized = true;
+    cursor->exhausted = false;
+}
+
+bool morse_flipper_progress_history_load_newer(
+    MorseFlipperProgressHistoryNewerCursor* cursor,
     MorseFlipperProgressHistoryRow* out) {
-    uint16_t line;
-    uint16_t day;
     uint8_t probed_days = 0U;
 
-    if(from == NULL || out == NULL) return false;
-    if(from->practice_day == MORSE_FLIPPER_PROGRESS_DAY_NONE ||
-       newest_day == MORSE_FLIPPER_PROGRESS_DAY_NONE)
-        return false;
-    if(from->practice_day > newest_day) return false;
+    if(cursor == NULL || out == NULL || !cursor->initialized || cursor->exhausted) return false;
 
-    line = from->line_from_end;
-    while(line > 0U) {
-        line--;
-        if(morse_flipper_progress_history_load_row_at(from->practice_day, line, out)) return true;
-    }
+    while(probed_days < MORSE_FLIPPER_PROGRESS_HISTORY_SCAN_DAYS && !cursor->exhausted) {
+        if(cursor->day_loaded) {
+            probed_days++;
+            while(cursor->line_from_end > 0U) {
+                cursor->line_from_end--;
+                if(morse_flipper_progress_history_load_row_at(
+                       cursor->practice_day, cursor->line_from_end, out))
+                    return true;
+            }
+        } else {
+            uint32_t total_lines;
 
-    day = (uint16_t)(from->practice_day + 1U);
-    while(day <= newest_day && probed_days < MORSE_FLIPPER_PROGRESS_HISTORY_SCAN_DAYS) {
-        uint32_t total_lines = morse_flipper_progress_history_line_count(day);
-
-        if(total_lines != 0U) {
-            uint32_t candidate = total_lines - 1U;
+            probed_days++;
+            total_lines = morse_flipper_progress_history_line_count(cursor->practice_day);
+            if(total_lines != 0U) {
+                uint32_t candidate = total_lines - 1U;
             if(candidate > UINT16_MAX) candidate = UINT16_MAX;
 
             while(true) {
-                if(morse_flipper_progress_history_load_row_at(day, (uint16_t)candidate, out))
+                    if(morse_flipper_progress_history_load_row_at(
+                           cursor->practice_day, (uint16_t)candidate, out)) {
+                        cursor->line_from_end = (uint16_t)candidate;
+                        cursor->day_loaded = true;
                     return true;
+                    }
                 if(candidate == 0U) break;
                 candidate--;
             }
+            }
         }
 
-        day++;
-        probed_days++;
+        if(cursor->practice_day == cursor->newest_day) {
+            cursor->exhausted = true;
+            break;
+        }
+        cursor->practice_day++;
+        cursor->line_from_end = 0U;
+        cursor->day_loaded = false;
     }
 
     return false;

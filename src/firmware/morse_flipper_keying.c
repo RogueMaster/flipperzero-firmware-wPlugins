@@ -72,15 +72,22 @@ static bool morse_flipper_training_input_muted(const MorseFlipperApp* app) {
     return app != NULL && app->screen == MorseFlipperScreenSession && app->trainer_playback_active;
 }
 
+static bool morse_flipper_plugin_playback_mark(const MorseFlipperApp* app) {
+    MorseFlipperPluginSnapshot snapshot;
+    return morse_flipper_plugin_runtime_snapshot(app, &snapshot) && snapshot.playback_mark;
+}
+
 static bool morse_flipper_signal_led_level(const MorseFlipperApp* app, bool want_tx_tone) {
     if(app == NULL) return false;
 
     /* Result tone is red; playback marks are orange. Both deliberately bypass TX state. */
-    if(app->session_result_good && app->session_result_until != 0U &&
-       furi_get_tick() < app->session_result_until)
+    if(app->session_result_good &&
+       morse_flipper_time_pending(furi_get_tick(), app->session_result_until))
         return true;
     if(app->session_result_tone) return true;
-    if(app->trainer_playback_mark || app->straight_playback_mark) return true;
+    if(app->trainer_playback_mark || app->straight_playback_mark ||
+       morse_flipper_plugin_playback_mark(app))
+        return true;
 
     if(app->screen == MorseFlipperScreenRf && app->rf_live_active) {
         return app->radio.tx_level;
@@ -136,14 +143,17 @@ static void morse_flipper_tone_start(MorseFlipperApp* app) {
 void morse_flipper_update_sidetone(MorseFlipperApp* app) {
     bool use_pwm;
     bool use_vibro;
-    bool force_buzzer = morse_flipper_ham_force_buzzer(app);
+    bool force_buzzer;
     bool want_tx_tone = morse_flipper_any_active_notes(app) || (app->preview_ticks > 0U);
     bool want_aux_tone = app->trainer_playback_mark || app->straight_playback_mark ||
-                         app->session_result_tone || app->rf_monitor_tone;
+                         morse_flipper_plugin_playback_mark(app) || app->session_result_tone ||
+                         app->rf_monitor_tone;
     bool want_signal = want_tx_tone || want_aux_tone;
     bool want_speaker;
     bool want_vibro;
 
+    if(app != NULL && app->screen == MorseFlipperScreenPassive) return;
+    force_buzzer = morse_flipper_ham_force_buzzer(app);
     /*
      * One gate fans out to speaker, PWM, vibro, PTT, and signal LED.
      * Aux tones may sound without keying RF; ham break-in is the awkward exception.

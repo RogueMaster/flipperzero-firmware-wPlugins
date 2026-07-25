@@ -11,6 +11,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+typedef struct MfPassivePcmPipe MfPassivePcmPipe;
+
 #define MORSE_FLIPPER_AUDIO_PWM_P2_SAMPLE_RATE_HZ        32000U
 #define MORSE_FLIPPER_AUDIO_PWM_P2_CARRIER_HZ            256000U
 #define MORSE_FLIPPER_AUDIO_PWM_SOFT_BUZZ_SAMPLE_RATE_HZ 31250U
@@ -18,14 +20,14 @@
 #define MORSE_FLIPPER_AUDIO_PWM_SOFT_BUZZ_SAMPLE_DIV     8U
 #define MORSE_FLIPPER_AUDIO_PWM_SAMPLE_RATE_HZ           MORSE_FLIPPER_AUDIO_PWM_P2_SAMPLE_RATE_HZ
 #define MORSE_FLIPPER_AUDIO_PWM_CARRIER_HZ               MORSE_FLIPPER_AUDIO_PWM_P2_CARRIER_HZ
-#define MORSE_FLIPPER_AUDIO_PWM_TONE_HZ             700U
-#define MORSE_FLIPPER_AUDIO_PWM_FADE_MS             2U
-#define MORSE_FLIPPER_AUDIO_PWM_RAMP_MS             250U
-#define MORSE_FLIPPER_AUDIO_PWM_RAMP_STEPS          10U
-#define MORSE_FLIPPER_AUDIO_PWM_SINE_SAMPLES        64U
-#define MORSE_FLIPPER_AUDIO_PWM_BUFFER_SAMPLES      32U
-#define MORSE_FLIPPER_AUDIO_PWM_BUFFER_HALF_SAMPLES (MORSE_FLIPPER_AUDIO_PWM_BUFFER_SAMPLES / 2U)
-#define MORSE_FLIPPER_AUDIO_PWM_Q15                 32767U
+#define MORSE_FLIPPER_AUDIO_PWM_TONE_HZ                  700U
+#define MORSE_FLIPPER_AUDIO_PWM_FADE_MS                  2U
+#define MORSE_FLIPPER_AUDIO_PWM_RAMP_MS                  250U
+#define MORSE_FLIPPER_AUDIO_PWM_RAMP_STEPS               10U
+#define MORSE_FLIPPER_AUDIO_PWM_SINE_SAMPLES             64U
+#define MORSE_FLIPPER_AUDIO_PWM_BUFFER_SAMPLES           32U
+#define MORSE_FLIPPER_AUDIO_PWM_BUFFER_HALF_SAMPLES      (MORSE_FLIPPER_AUDIO_PWM_BUFFER_SAMPLES / 2U)
+#define MORSE_FLIPPER_AUDIO_PWM_Q15                      32767U
 
 typedef enum {
     MorseFlipperAudioPwmEnvIdle = 0,
@@ -39,6 +41,13 @@ typedef enum {
     MorseFlipperAudioPwmTargetSoftBuzz = 1,
 } MorseFlipperAudioPwmTarget;
 
+typedef enum {
+    MorseFlipperAudioPwmSourceTone = 0,
+    MorseFlipperAudioPwmSourceVoice,
+    MorseFlipperAudioPwmSourceVoiceTail,
+    MorseFlipperAudioPwmSourceSilence,
+} MorseFlipperAudioPwmSource;
+
 typedef struct {
     bool prepared;
     bool running;
@@ -50,6 +59,13 @@ typedef struct {
     uint32_t tone_hz;
     uint32_t phase_q32;
     uint32_t phase_step_q32;
+    uint32_t source_phase_q32;
+    uint32_t source_step_q32;
+    const MfPassivePcmPipe* volatile voice_pipe;
+    int16_t voice_previous;
+    int16_t voice_next;
+    volatile MorseFlipperAudioPwmSource source;
+    bool voice_primed;
     uint16_t pwm_period;
     uint16_t pwm_midpoint;
     uint16_t pwm_amplitude;
@@ -90,6 +106,11 @@ void morse_flipper_audio_pwm_prepare(
     uint16_t release_ms);
 void morse_flipper_audio_pwm_set_tone_hz(MorseFlipperAudioPwm* audio, uint32_t tone_hz);
 void morse_flipper_audio_pwm_set_gate(MorseFlipperAudioPwm* audio, bool gate);
+void morse_flipper_audio_pwm_set_voice(
+    MorseFlipperAudioPwm* audio,
+    const MfPassivePcmPipe* pipe,
+    uint32_t source_rate_hz);
+void morse_flipper_audio_pwm_set_silence(MorseFlipperAudioPwm* audio);
 void morse_flipper_audio_pwm_render(MorseFlipperAudioPwm* audio, uint16_t* dst, size_t count);
 bool morse_flipper_audio_pwm_sound_active(const MorseFlipperAudioPwm* audio);
 

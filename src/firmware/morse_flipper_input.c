@@ -9,171 +9,30 @@
 
 #include <string.h>
 
-#define MORSE_FLIPPER_ABOUT_OK_FAST_MS 500U
-#define MORSE_FLIPPER_MD_LINE_H        9U
-#define MORSE_FLIPPER_MD_VIEW_H        48U
-#define MORSE_FLIPPER_MD_VISIBLE_LINES (MORSE_FLIPPER_MD_VIEW_H / MORSE_FLIPPER_MD_LINE_H)
-#define MORSE_FLIPPER_MD_SCROLL_STEP_PX \
-    ((MORSE_FLIPPER_MD_VISIBLE_LINES - 1U) * MORSE_FLIPPER_MD_LINE_H)
 #define MORSE_FLIPPER_PROGRESS_SCROLL_BASE_MS  125U
 #define MORSE_FLIPPER_PROGRESS_SCROLL_FAST_MS  42U
 #define MORSE_FLIPPER_PROGRESS_SCROLL_ACCEL_MS 1000U
 
-static bool morse_flipper_onboarding_input(MorseFlipperApp* app, const InputEvent* event) {
-    if(app->screen != MorseFlipperScreenOnboarding) return false;
-
-    if((event->key == InputKeyOk || event->key == InputKeyBack) &&
-       (event->type == InputTypeShort || event->type == InputTypeLong)) {
-        morse_flipper_onboarding_finish(app);
-        return true;
+static bool morse_flipper_content_input(MorseFlipperApp* app, const InputEvent* event) {
+    if(app->screen != MorseFlipperScreenOnboarding && app->screen != MorseFlipperScreenHelp &&
+       app->screen != MorseFlipperScreenAbout)
+        return false;
+    if(morse_flipper_content_host_input(app, event, furi_get_tick())) return true;
+    if(event->type == InputTypeShort || event->type == InputTypeLong) {
+        bool leave = app->screen == MorseFlipperScreenOnboarding ?
+                         (event->key == InputKeyOk || event->key == InputKeyBack) :
+                     app->screen == MorseFlipperScreenAbout ?
+                         (event->key == InputKeyBack || event->key == InputKeyLeft) :
+                         event->key == InputKeyBack;
+        if(leave) {
+            if(app->screen == MorseFlipperScreenOnboarding)
+                morse_flipper_onboarding_finish(app);
+            else
+                morse_flipper_scene_back(app);
+            morse_flipper_plugin_runtime_unload_current(app);
+        }
     }
-
-    if(event->key == InputKeyLeft &&
-       (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
-        morse_flipper_onboarding_prev(app);
-        return true;
-    }
-
-    if(event->key == InputKeyRight &&
-       (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
-        morse_flipper_onboarding_next(app);
-        return true;
-    }
-
-    if((event->key == InputKeyUp || event->key == InputKeyDown) &&
-       (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
-        int16_t old_target = app->onboarding_md.target_scroll_px;
-        cwmd_scroll_step(
-            &app->onboarding_md,
-            event->key == InputKeyDown ? 1 : -1,
-            app->onboarding_md.max_scroll_px,
-            MORSE_FLIPPER_MD_SCROLL_STEP_PX);
-        if(app->onboarding_md.target_scroll_px != old_target) morse_flipper_view_dirty(app);
-        return true;
-    }
-
     return true;
-}
-
-static bool morse_flipper_help_input(MorseFlipperApp* app, const InputEvent* event) {
-    if(app->screen != MorseFlipperScreenHelp) return false;
-
-    if(event->key == InputKeyBack &&
-       (event->type == InputTypeShort || event->type == InputTypeLong)) {
-        morse_flipper_scene_back(app);
-        return true;
-    }
-
-    if(event->key == InputKeyLeft &&
-       (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, MorseFlipperCustomHelpPrev);
-        return true;
-    }
-
-    if((event->key == InputKeyUp || event->key == InputKeyDown || event->key == InputKeyRight) &&
-       (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
-        int16_t old_target = app->help_md.target_scroll_px;
-        int16_t max_scroll = app->help_md.max_scroll_px;
-        bool forward = event->key != InputKeyUp;
-
-        if(forward && morse_flipper_help_is_chapter_card(app)) {
-            view_dispatcher_send_custom_event(app->view_dispatcher, MorseFlipperCustomHelpNext);
-            return true;
-        }
-
-        cwmd_scroll_step(
-            &app->help_md, forward ? 1 : -1, max_scroll, MORSE_FLIPPER_MD_SCROLL_STEP_PX);
-        if(app->help_md.target_scroll_px == old_target) {
-            if(forward && app->help_md.scroll_px >= max_scroll && old_target >= max_scroll) {
-                view_dispatcher_send_custom_event(
-                    app->view_dispatcher, MorseFlipperCustomHelpNext);
-            }
-            return true;
-        }
-        morse_flipper_view_dirty(app);
-        return true;
-    }
-
-    return true;
-}
-
-static bool morse_flipper_about_input(MorseFlipperApp* app, const InputEvent* event) {
-    uint32_t now_ms;
-
-    if(app->screen != MorseFlipperScreenAbout) return false;
-
-    if((event->key == InputKeyBack || event->key == InputKeyLeft) &&
-       (event->type == InputTypeShort || event->type == InputTypeLong)) {
-        app->about_mode = MorseFlipperAboutModeLanding;
-        app->about_md = (CwmdState){0};
-        app->about_ok_count = 0U;
-        app->about_last_ok_ms = 0U;
-        morse_flipper_scene_back(app);
-        return true;
-    }
-
-    if(app->about_mode == MorseFlipperAboutModeLanding && event->type == InputTypeShort) {
-        if(app->about_show_next && (event->key == InputKeyOk || event->key == InputKeyRight)) {
-            app->about_mode = MorseFlipperAboutModeText;
-            app->about_md = (CwmdState){0};
-            app->about_ok_count = 0U;
-            app->about_last_ok_ms = 0U;
-            morse_flipper_view_dirty(app);
-        }
-        return true;
-    }
-
-    if(app->about_mode == MorseFlipperAboutModeText && event->key == InputKeyOk &&
-       event->type == InputTypeShort) {
-        now_ms = furi_get_tick();
-        if(app->about_last_ok_ms != 0U &&
-           now_ms - app->about_last_ok_ms <= MORSE_FLIPPER_ABOUT_OK_FAST_MS) {
-            app->about_ok_count++;
-        } else {
-            app->about_ok_count = 1U;
-        }
-        app->about_last_ok_ms = now_ms;
-
-        if(app->about_ok_count >= 3U) {
-            app->about_ok_count = 0U;
-            app->about_last_ok_ms = 0U;
-            morse_flipper_scene_open(app, MorseFlipperSceneTrace);
-            return true;
-        }
-
-        int16_t old_target = app->about_md.target_scroll_px;
-        cwmd_scroll_step(
-            &app->about_md, 1, app->about_md.max_scroll_px, MORSE_FLIPPER_MD_SCROLL_STEP_PX);
-        if(app->about_md.target_scroll_px == old_target) return true;
-        morse_flipper_view_dirty(app);
-        return true;
-    }
-
-    if(app->about_mode == MorseFlipperAboutModeText && event->key == InputKeyDown &&
-       (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
-        app->about_ok_count = 0U;
-        app->about_last_ok_ms = 0U;
-        int16_t old_target = app->about_md.target_scroll_px;
-        cwmd_scroll_step(
-            &app->about_md, 1, app->about_md.max_scroll_px, MORSE_FLIPPER_MD_SCROLL_STEP_PX);
-        if(app->about_md.target_scroll_px == old_target) return true;
-        morse_flipper_view_dirty(app);
-        return true;
-    }
-
-    if(app->about_mode == MorseFlipperAboutModeText && event->key == InputKeyUp &&
-       (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
-        app->about_ok_count = 0U;
-        app->about_last_ok_ms = 0U;
-        int16_t old_target = app->about_md.target_scroll_px;
-        cwmd_scroll_step(
-            &app->about_md, -1, app->about_md.max_scroll_px, MORSE_FLIPPER_MD_SCROLL_STEP_PX);
-        if(app->about_md.target_scroll_px == old_target) return true;
-        morse_flipper_view_dirty(app);
-        return true;
-    }
-
-    return false;
 }
 
 static bool morse_flipper_startup_probe_input(MorseFlipperApp* app, const InputEvent* event) {
@@ -383,9 +242,7 @@ static bool morse_flipper_ham_shell_input(MorseFlipperApp* app, const InputEvent
 }
 
 bool morse_flipper_input_chunk_a(MorseFlipperApp* app, InputEvent* event) {
-    if(morse_flipper_onboarding_input(app, event)) return true;
-    if(morse_flipper_help_input(app, event)) return true;
-    if(morse_flipper_about_input(app, event)) return true;
+    if(morse_flipper_content_input(app, event)) return true;
     if(morse_flipper_startup_probe_input(app, event)) return true;
     if(morse_flipper_ham_shell_input(app, event)) return true;
     return false;
@@ -768,6 +625,7 @@ static void morse_flipper_progress_load_recent(MorseFlipperApp* app) {
     app->progress_scroll_next_ms = 0U;
     today_valid = morse_flipper_progress_today(&today);
     day = morse_flipper_progress_history_start_day(app->view_progress, today_valid, today);
+    morse_flipper_progress_history_newer_reset(&app->progress_history_newer, NULL, day);
     if(day == MORSE_FLIPPER_PROGRESS_DAY_NONE) {
         morse_flipper_progress_history_reset(
             &app->progress_history, MORSE_FLIPPER_PROGRESS_DAY_NONE);
@@ -777,6 +635,9 @@ static void morse_flipper_progress_load_recent(MorseFlipperApp* app) {
     morse_flipper_progress_history_reset(&app->progress_history, day);
     app->progress_row_count = morse_flipper_progress_history_load_more(
         &app->progress_history, app->progress_rows, MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS);
+    if(app->progress_row_count != 0U)
+        morse_flipper_progress_history_newer_reset(
+            &app->progress_history_newer, &app->progress_rows[0], day);
 }
 
 static void morse_flipper_progress_reset_scroll_repeat(MorseFlipperApp* app) {
@@ -837,6 +698,10 @@ static bool morse_flipper_progress_cache_older_one(MorseFlipperApp* app, bool* d
             sizeof(app->progress_rows[0]) * (MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS - 1U));
         app->progress_rows[MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS - 1U] = row;
         if(dropped_newest != NULL) *dropped_newest = true;
+        morse_flipper_progress_history_newer_reset(
+            &app->progress_history_newer,
+            &app->progress_rows[0],
+            app->progress_history_newer.newest_day);
     }
 
     return true;
@@ -851,8 +716,15 @@ static bool morse_flipper_progress_cache_newer_one(MorseFlipperApp* app) {
     if(app == NULL || app->progress_row_count == 0U) return false;
     today_valid = morse_flipper_progress_today(&today);
     newest_day = morse_flipper_progress_history_start_day(app->view_progress, today_valid, today);
-    if(newest_day == MORSE_FLIPPER_PROGRESS_DAY_NONE) return false;
-    if(!morse_flipper_progress_history_load_newer(&app->progress_rows[0], newest_day, &row))
+    if(newest_day == MORSE_FLIPPER_PROGRESS_DAY_NONE) {
+        morse_flipper_progress_history_newer_reset(&app->progress_history_newer, NULL, newest_day);
+        return false;
+    }
+    if(!app->progress_history_newer.initialized ||
+       app->progress_history_newer.newest_day != newest_day)
+        morse_flipper_progress_history_newer_reset(
+            &app->progress_history_newer, &app->progress_rows[0], newest_day);
+    if(!morse_flipper_progress_history_load_newer(&app->progress_history_newer, &row))
         return false;
 
     if(app->progress_row_count < MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS) {
@@ -878,7 +750,10 @@ static bool morse_flipper_progress_scroll_history(MorseFlipperApp* app, int8_t d
     uint8_t focus;
 
     if(app == NULL) return false;
-    if(app->progress_row_count == 0U) morse_flipper_progress_load_recent(app);
+    if(app->progress_row_count == 0U) {
+        if(dir < 0) return false;
+        return morse_flipper_progress_cache_older_one(app, NULL);
+    }
     visible = morse_flipper_progress_visible_history_rows(app);
     if(visible == 0U) return false;
     morse_flipper_progress_clamp_history_cursor(app);
@@ -1292,6 +1167,28 @@ bool morse_flipper_active_mode_input(MorseFlipperApp* app, InputEvent* event, ui
         return morse_flipper_progress_input(app, event);
     case MorseFlipperScreenStreakIntro:
         return morse_flipper_streak_intro_input(app, event);
+    case MorseFlipperScreenIcr:
+        return morse_flipper_icr_host_input(app, event, now_ms);
+    case MorseFlipperScreenRxPractice:
+        return morse_flipper_rx_practice_host_input(app, event, now_ms);
+    case MorseFlipperScreenPassive: {
+        MorseFlipperMappedFalResult result = {0};
+        bool active = false;
+        furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
+        if(app->plugin_slot.owner == MorseFlipperPluginOwnerPassive &&
+           app->plugin_slot.error == MorseFlipperPluginErrorNone && app->plugin_slot.api != NULL &&
+           app->plugin_slot.state != NULL) {
+            const MorseFlipperMappedFalApi* api = app->plugin_slot.api;
+            active = true;
+            result = api->input(app->plugin_slot.state, event, now_ms);
+        }
+        furi_mutex_release(app->plugin_slot.mutex);
+        if(result.request_exit ||
+           (!active && event->key == InputKeyBack &&
+            (event->type == InputTypeShort || event->type == InputTypeLong)))
+            morse_flipper_scene_return_to_training(app);
+        return true;
+    }
     case MorseFlipperScreenRfFreq:
         return morse_flipper_rf_freq_input(app, event);
     case MorseFlipperScreenRfRx:
@@ -1321,7 +1218,8 @@ static bool
     morse_flipper_session_live_keying_input(MorseFlipperApp* app, const InputEvent* event) {
     MorseFlipperInputGate g;
 
-    if(app->screen != MorseFlipperScreenSession && app->screen != MorseFlipperScreenTxGroups)
+    if(app->screen != MorseFlipperScreenSession && app->screen != MorseFlipperScreenTxGroups &&
+       app->screen != MorseFlipperScreenRxPractice)
         return false;
     if(app->screen == MorseFlipperScreenSession && !morse_flipper_session_repeat_active(app))
         return false;
@@ -1329,6 +1227,7 @@ static bool
     if(event->type != InputTypePress && event->type != InputTypeRelease) return false;
 
     g = morse_flipper_input_gate(app);
+    if(app->screen == MorseFlipperScreenRxPractice && !g.live) return false;
 
     if(event->key == InputKeyOk && g.btn) {
         morse_flipper_handle_active_keying_event(app, event);
@@ -1340,7 +1239,8 @@ static bool
         return true;
     }
 
-    if(event->key == InputKeyLeft && morse_flipper_session_left_exit_active(app)) {
+    if(app->screen != MorseFlipperScreenRxPractice &&
+       event->key == InputKeyLeft && morse_flipper_session_left_exit_active(app)) {
         morse_flipper_handle_active_keying_event(app, event);
         return true;
     }

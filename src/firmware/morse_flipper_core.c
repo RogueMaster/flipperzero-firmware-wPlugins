@@ -62,7 +62,9 @@ uint8_t morse_flipper_backlight_mode(const MorseFlipperApp* app) {
        app->screen == MorseFlipperScreenHamRun || app->screen == MorseFlipperScreenStraight ||
        app->screen == MorseFlipperScreenTxGroups ||
        app->screen == MorseFlipperScreenTxGroupsResult ||
-       app->screen == MorseFlipperScreenTxGroupsFinal)
+       app->screen == MorseFlipperScreenTxGroupsFinal ||
+       app->screen == MorseFlipperScreenIcr ||
+       app->screen == MorseFlipperScreenRxPractice)
         return MorseFlipperBacklightHold;
 
     if(app->screen == MorseFlipperScreenRf || app->screen == MorseFlipperScreenRfRx)
@@ -99,8 +101,8 @@ void morse_flipper_sync_signal_led(MorseFlipperApp* app, bool on) {
     if(app == NULL) return;
 
     red = on && app->session_result_tone;
-    green = on && app->session_result_good && app->session_result_until != 0U &&
-            furi_get_tick() < app->session_result_until;
+    green = on && app->session_result_good &&
+            morse_flipper_time_pending(furi_get_tick(), app->session_result_until);
     if(app->signal_led_on == on && app->signal_led_red == red && app->signal_led_green == green)
         return;
 
@@ -211,27 +213,6 @@ void morse_flipper_set_straight_wpm(MorseFlipperApp* app, uint8_t wpm) {
     morse_flipper_clamp_straight_settings(app);
 }
 
-static uint16_t morse_flipper_trainer_farnsworth_unit_ms(const MorseFlipperApp* app) {
-    uint32_t w;
-    uint32_t farn;
-    uint32_t dit;
-    uint32_t total;
-    uint32_t spare;
-
-    if(app == NULL) return MORSE_FLIPPER_DEFAULT_DIT_MS;
-
-    w = morse_flipper_local_wpm(app);
-    farn = app->trainer_farnsworth_wpm;
-    dit = app->trainer.local_dit_ms ? app->trainer.local_dit_ms : MORSE_FLIPPER_DEFAULT_DIT_MS;
-    if(farn == 0U || farn >= w) return (uint16_t)dit;
-
-    total = 60000U / farn;
-    if(total <= 31U * dit) return (uint16_t)dit;
-
-    spare = total - (31U * dit);
-    return (uint16_t)((spare + 9U) / 19U);
-}
-
 static uint16_t morse_flipper_trainer_char_gap_ms(const MorseFlipperApp* app) {
     uint16_t dit_ms;
 
@@ -239,7 +220,8 @@ static uint16_t morse_flipper_trainer_char_gap_ms(const MorseFlipperApp* app) {
 
     dit_ms = app->trainer.local_dit_ms ? app->trainer.local_dit_ms : MORSE_FLIPPER_DEFAULT_DIT_MS;
     if(app->screen != MorseFlipperScreenSession) return (uint16_t)(dit_ms * 3U);
-    return (uint16_t)(morse_flipper_trainer_farnsworth_unit_ms(app) * 3U);
+    return morse_flipper_training_char_gap_ms(
+        dit_ms, morse_flipper_local_wpm(app), app->trainer_farnsworth_wpm);
 }
 
 uint8_t morse_flipper_keyer_value_index(uint8_t mode) {
@@ -347,6 +329,17 @@ void morse_flipper_toggle_source(MorseFlipperApp* app) {
 bool morse_flipper_training_playback_active(const MorseFlipperApp* app) {
     if(app == NULL) return false;
     if(app->screen == MorseFlipperScreenStraight) return app->straight_playback_active;
+    if(app->screen == MorseFlipperScreenIcr) {
+        MorseFlipperPluginSnapshot snapshot;
+        return morse_flipper_plugin_runtime_snapshot(app, &snapshot) &&
+               snapshot.owner == MorseFlipperPluginOwnerIcr && snapshot.playback_active;
+    }
+    if(app->screen == MorseFlipperScreenRxPractice) {
+        MorseFlipperPluginSnapshot snapshot;
+        return morse_flipper_plugin_runtime_snapshot(app, &snapshot) &&
+               snapshot.owner == MorseFlipperPluginOwnerRxPractice &&
+               snapshot.active && snapshot.playback_active;
+    }
     return app->screen == MorseFlipperScreenSession && app->trainer_playback_active;
 }
 

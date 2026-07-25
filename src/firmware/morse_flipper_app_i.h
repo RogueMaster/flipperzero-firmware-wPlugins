@@ -24,15 +24,26 @@
 #include <notification/notification.h>
 #include <notification/notification_messages.h>
 #include <storage/storage.h>
+#include <flipper_application/plugins/plugin_manager.h>
 #include <string.h>
 
-#include "cw_markdown_widget.h"
+#include "fonts/morse_flipper_terminus24.h"
 #include "keyer.h"
 #include "morse_flipper_audio_pwm.h"
+#include "morse_flipper_content_host.h"
 #include "morse_flipper_cw_decoder.h"
 #include "morse_flipper_gpio.h"
 #include "morse_flipper_gpio_probe.h"
 #include "morse_flipper_ham_keyer.h"
+#include "morse_flipper_icr_host.h"
+#include "morse_flipper_passive_host.h"
+#include "morse_flipper_plugin_runtime.h"
+#include "morse_flipper_rx_practice_host.h"
+#include "morse_flipper_tx_groups_host.h"
+#include "plugins/icr/morse_flipper_icr_api.h"
+#include "plugins/rx_practice/morse_flipper_rx_practice_api.h"
+#include "plugins/passive_listening/mf_passive_api.h"
+#include "plugins/tx_groups/mf_tx_groups_api.h"
 #include "morse_flipper_paths.h"
 #include "morse_flipper_progress.h"
 #include "morse_flipper_radio.h"
@@ -41,6 +52,8 @@
 #include "morse_flipper_straight_filter.h"
 #include "morse_flipper_straight_trainer.h"
 #include "morse_flipper_tlm.h"
+#include "morse_flipper_time.h"
+#include "morse_flipper_training_timing.h"
 #include "morse_flipper_tx_groups.h"
 #include "pc_keys.h"
 #include "trainer.h"
@@ -92,7 +105,6 @@
 #define MORSE_FLIPPER_RF_FREQ_DIGITS                6U
 #define MORSE_FLIPPER_TONE_OFF_IDX                  0xFFU
 #define MORSE_FLIPPER_DEFAULT_TONE_IDX              20U
-
 #define MORSE_SOURCE_STRAIGHT_GPIO (1UL << 0)
 #define MORSE_SOURCE_STRAIGHT_BTN  (1UL << 1)
 #define MORSE_SOURCE_KEYER_DIT     (1UL << 2)
@@ -130,16 +142,16 @@ typedef enum {
 } MorseFlipperAudioPath;
 
 typedef enum {
+    MorseFlipperPassiveModeCallsign = 0,
+    MorseFlipperPassiveModeLesson = 1,
+} MorseFlipperPassiveMode;
+
+typedef enum {
     MorseFlipperTxgDifficultyEasy = 0,
     MorseFlipperTxgDifficultyMedium,
     MorseFlipperTxgDifficultyCompetition,
     MorseFlipperTxgDifficultyCount,
 } MorseFlipperTxgDifficulty;
-
-typedef enum {
-    MorseFlipperAboutModeLanding = 0,
-    MorseFlipperAboutModeText,
-} MorseFlipperAboutMode;
 
 typedef enum {
     MorseFlipperScreenHome = 0,
@@ -168,6 +180,9 @@ typedef enum {
     MorseFlipperScreenOnboarding = 23,
     MorseFlipperScreenProgress = 24,
     MorseFlipperScreenStreakIntro = 25,
+    MorseFlipperScreenIcr = 26,
+    MorseFlipperScreenRxPractice = 27,
+    MorseFlipperScreenPassive = 28,
 } MorseFlipperScreen;
 
 typedef enum {
@@ -217,8 +232,21 @@ typedef enum {
     MorseFlipperSceneOnboarding,
     MorseFlipperSceneProgress,
     MorseFlipperSceneStreakIntro,
+    MorseFlipperSceneIcr,
+    MorseFlipperSceneRxCallsigns,
+    MorseFlipperScenePassive,
     MorseFlipperSceneNum,
 } MorseFlipperScene;
+
+typedef enum {
+    MorseFlipperIcrPhaseGraphWait = 0,
+    MorseFlipperIcrPhasePlayback,
+    MorseFlipperIcrPhaseRecognition,
+    MorseFlipperIcrPhaseRecognizedHold,
+    MorseFlipperIcrPhaseAnswerGuard,
+    MorseFlipperIcrPhaseAnswer,
+    MorseFlipperIcrPhaseResult,
+} MorseFlipperIcrPhase;
 
 typedef enum {
     MorseFlipperHamMenuStart = 1,
@@ -248,11 +276,6 @@ typedef enum {
 typedef enum {
     MorseFlipperCustomHamTextDone = 0x1A00,
 } MorseFlipperCustomEvent;
-
-typedef enum {
-    MorseFlipperCustomHelpPrev = 0x1900,
-    MorseFlipperCustomHelpNext,
-} MorseFlipperHelpCustomEvent;
 
 typedef enum {
     MorseFlipperCustomStreakIntroStart = 0x1B00,
@@ -360,10 +383,11 @@ typedef struct MorseFlipperApp {
     Gui* gui;
     DialogsApp* dialogs;
     NotificationApp* notifications;
-    FuriString* help_text;
     MorseFlipperProgress* session_progress;
     MorseFlipperProgress* view_progress;
     volatile bool exit_requested;
+    bool terminus24_active;
+    MorseFlipperPluginSlot plugin_slot;
 
     /*
      * Hardware and transport mirrors. These track what we last asked the outside
@@ -396,9 +420,6 @@ typedef struct MorseFlipperApp {
     bool session_result_good;
     bool session_start_holdoff;
 
-    /* Onboarding/Help/About UI state; the hidden trace entry uses the OK tap counter. */
-    bool about_show_next;
-    bool help_chapter_card;
     bool onboarding_seen;
     volatile bool midi_rx_pending;
     uint8_t screen;
@@ -419,33 +440,20 @@ typedef struct MorseFlipperApp {
     uint8_t gpio_ground_idx;
     uint8_t gpio_ptt_idx;
     uint8_t trainer_row;
-    uint8_t help_topic;
-    uint8_t help_page;
-    uint8_t help_card_count;
-    uint8_t onboarding_page;
-    uint8_t onboarding_card_count;
-    uint8_t about_mode;
-    uint8_t about_ok_count;
-    uint8_t about_social_idx;
-    uint8_t about_footer_seq_i;
     uint8_t progress_row_count;
     uint8_t progress_row_offset;
     uint8_t progress_row_cursor;
     uint8_t progress_scroll_key;
     uint8_t progress_debug_prev_lesson;
     uint8_t progress_debug_prev_groups;
-    uint32_t about_last_ok_ms;
-    uint32_t about_social_next_ms;
     uint32_t progress_scroll_started_ms;
     uint32_t progress_scroll_next_ms;
     uint32_t star_anim_started_at;
     uint32_t star_anim_next_redraw_ms;
     uint32_t streak_intro_until_ms;
-    CwmdState onboarding_md;
-    CwmdState help_md;
-    CwmdState about_md;
     MorseFlipperProgressPage progress_page;
     MorseFlipperProgressHistoryCursor progress_history;
+    MorseFlipperProgressHistoryNewerCursor progress_history_newer;
     MorseFlipperProgressHistoryRow progress_rows[MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS];
     MorseFlipperHamRuntimeState ham;
 
@@ -586,7 +594,11 @@ typedef struct MorseFlipperApp {
     MorseFlipperAudioPwm audio_pwm;
     MorseFlipperStraightFilter straight_filter;
     MorseFlipperRf rf;
-    MorseFlipperRfTicker rf_rx_ticker;
+    union {
+        /* RX ticker is live only on RfRx; Terminus cache only on its prompt screens. */
+        MorseFlipperRfTicker rf_rx_ticker;
+        MorseFlipperTerminus24Cache terminus24;
+    };
     MorseFlipperRadio radio;
     MorseFlipperCwDecoder rf_decoder;
     MorseFlipperCwDecoder tx_decoder;
@@ -594,6 +606,10 @@ typedef struct MorseFlipperApp {
     MorseFlipperStraightTrainer straight_trainer;
     MorseFlipperTxGroup tx_group;
 } MorseFlipperApp;
+
+_Static_assert(
+    sizeof(MorseFlipperRfTicker) >= sizeof(MorseFlipperTerminus24Cache),
+    "RF ticker must cover Terminus cache");
 
 typedef struct {
     MorseFlipperApp* app;
@@ -693,15 +709,6 @@ uint8_t morse_flipper_back_button_paddle(const MorseFlipperApp* app);
 bool morse_flipper_straight_like_mode(const MorseFlipperApp* app);
 void morse_flipper_toggle_handedness(MorseFlipperApp* app);
 void morse_flipper_tick_trainer_playback(MorseFlipperApp* app, uint32_t now_ms);
-bool morse_flipper_onboarding_seen(void);
-void morse_flipper_onboarding_open(MorseFlipperApp* app);
-void morse_flipper_onboarding_prev(MorseFlipperApp* app);
-void morse_flipper_onboarding_next(MorseFlipperApp* app);
-void morse_flipper_onboarding_finish(MorseFlipperApp* app);
-void morse_flipper_help_open(MorseFlipperApp* app);
-bool morse_flipper_help_show_next_chapter(MorseFlipperApp* app);
-void morse_flipper_help_enter_chapter(MorseFlipperApp* app);
-void morse_flipper_about_open(MorseFlipperApp* app);
 void morse_flipper_cycle_trainer_value(MorseFlipperApp* app, int dir);
 void morse_flipper_ensure_custom_sets_loaded(MorseFlipperApp* app);
 void morse_flipper_try_custom_sets_loaded(MorseFlipperApp* app);
@@ -786,6 +793,7 @@ void morse_flipper_rf_commit_edit(MorseFlipperApp* app);
 void morse_flipper_rf_rx_edge(void* ctx, bool level, uint16_t duration_ms);
 uint8_t morse_flipper_live_upper_char(uint8_t ch);
 void morse_flipper_draw_left_exit_hint(Canvas* canvas);
+void morse_flipper_draw_plugin_unavailable(Canvas* canvas);
 void morse_flipper_draw_tx_history_divider(Canvas* canvas, bool left_hint);
 void morse_flipper_draw_star_glyph(Canvas* canvas, uint8_t cx, uint8_t cy, bool filled);
 void morse_flipper_draw_star_glyph_cols(Canvas* canvas, uint8_t cx, uint8_t cy, uint8_t cols);
@@ -798,14 +806,12 @@ uint8_t morse_flipper_star_anim_cols(
     uint8_t target_stars);
 uint16_t morse_flipper_star_anim_duration(uint8_t target_stars);
 void morse_flipper_draw_run_text(Canvas* canvas, int32_t x, int32_t y, const char* text);
-void morse_flipper_draw_straight_prompt(Canvas* canvas, int32_t cx, int32_t cy, uint8_t ch);
-void morse_flipper_about_reset(MorseFlipperApp* app, uint32_t now_ms);
-void morse_flipper_tick_about(MorseFlipperApp* app, uint32_t now_ms);
-void morse_flipper_draw_about(Canvas* canvas, MorseFlipperApp* app);
-int16_t morse_flipper_about_max_scroll(Canvas* canvas);
-void morse_flipper_draw_onboarding(Canvas* canvas, MorseFlipperApp* app);
-void morse_flipper_draw_help(Canvas* canvas, MorseFlipperApp* app);
-int16_t morse_flipper_help_max_scroll(Canvas* canvas, const MorseFlipperApp* app);
+void morse_flipper_draw_straight_prompt(
+    Canvas* canvas,
+    const MorseFlipperApp* app,
+    int32_t cx,
+    int32_t cy,
+    uint8_t ch);
 void morse_flipper_draw_gpio_probe_overlay(Canvas* canvas, const MorseFlipperApp* app);
 void morse_flipper_draw_startup_gpio_probe(Canvas* canvas, const MorseFlipperApp* app);
 void morse_flipper_draw_tx_history_screen(
@@ -820,6 +826,7 @@ void morse_flipper_draw_tx_history_screen_custom(
 void morse_flipper_draw_trainer_setup(Canvas* canvas, MorseFlipperApp* app);
 void morse_flipper_draw_progress(Canvas* canvas, MorseFlipperApp* app);
 void morse_flipper_draw_streak_intro(Canvas* canvas, MorseFlipperApp* app);
+void morse_flipper_draw_icr(Canvas* canvas, MorseFlipperApp* app);
 void morse_flipper_draw_straight_screen(Canvas* canvas, MorseFlipperApp* app);
 void morse_flipper_draw_tx_groups_screen(Canvas* canvas, MorseFlipperApp* app);
 void morse_flipper_draw_rf_tx_blocked(Canvas* canvas, const MorseFlipperApp* app);
@@ -835,6 +842,7 @@ void morse_flipper_draw(Canvas* canvas, void* ctx);
 void morse_flipper_view_dirty(MorseFlipperApp* app);
 void morse_flipper_scene_open(MorseFlipperApp* app, uint32_t scene);
 void morse_flipper_scene_back(MorseFlipperApp* app);
+void morse_flipper_scene_return_to_training(MorseFlipperApp* app);
 void morse_flipper_live_draw(Canvas* canvas, void* model);
 bool morse_flipper_live_input(InputEvent* event, void* ctx);
 bool morse_flipper_custom_event_callback(void* context, uint32_t event);
@@ -860,6 +868,8 @@ uint8_t morse_flipper_keyer_value_index(uint8_t mode);
 uint16_t morse_flipper_wpm_to_dit_ms(uint8_t wpm);
 uint16_t morse_flipper_current_dit_ms(const MorseFlipperApp* app);
 uint16_t morse_flipper_current_straight_dit_ms(const MorseFlipperApp* app);
+bool morse_flipper_answer_input_is_straight(const MorseFlipperApp* app);
+void morse_flipper_reset_answer_decoder(MorseFlipperApp* app);
 uint8_t morse_flipper_current_wpm(const MorseFlipperApp* app);
 uint32_t morse_flipper_note_source_for_paddle(uint8_t paddle);
 uint8_t morse_flipper_note_for_paddle(uint8_t paddle);
@@ -909,8 +919,6 @@ void morse_flipper_settings_usb_paddle_changed(VariableItem* item);
 void morse_flipper_settings_usb_straight_changed(VariableItem* item);
 void morse_flipper_settings_usb_mouse_swap_changed(VariableItem* item);
 void morse_flipper_scene_menu_pick(void* ctx, uint32_t idx);
-uint8_t morse_flipper_help_card_count(const MorseFlipperApp* app);
-bool morse_flipper_help_is_chapter_card(const MorseFlipperApp* app);
 void morse_flipper_scene_home_on_enter(void* context);
 bool morse_flipper_scene_home_on_event(void* context, SceneManagerEvent event);
 void morse_flipper_scene_home_on_exit(void* context);

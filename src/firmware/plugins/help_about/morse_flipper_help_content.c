@@ -5,7 +5,9 @@
  * Tests: firmware build; UI text flow is hardware-only.
  */
 
-#include "morse_flipper_app_i.h"
+#include "morse_flipper_help_about_internal.h"
+
+#define MORSE_FLIPPER_HELP_ASSET_SIGNATURE APP_ASSETS_PATH(".assets.signature")
 
 static const uint8_t morse_help_arrow_right_xbm[] = {
     0x10,
@@ -136,7 +138,6 @@ static const CwmdIcon morse_help_icons[] = {
 };
 
 #define MORSE_FLIPPER_HELP_ASSET_MAX_BYTES 12288U
-#define MORSE_FLIPPER_HELP_ASSET_SIGNATURE APP_ASSETS_PATH(".assets.signature")
 #define MORSE_FLIPPER_HELP_ASSET_MISSING   "Help assets missing.\nExit and open Morse Flipper again."
 #define MORSE_FLIPPER_ONBOARDING_ASSET     APP_ASSETS_PATH("help/00-onboarding")
 #define MORSE_FLIPPER_ONBOARDING_MISSING   "Onboarding assets missing.\nPress OK to start."
@@ -146,43 +147,41 @@ typedef struct {
     const char* title;
 } MorseFlipperHelpAsset;
 
-static const MorseFlipperHelpAsset morse_help_assets[MorseFlipperHelpCount] = {
-    [MorseFlipperHelpFirstSteps] = {APP_ASSETS_PATH("help/01-first-steps"), "First steps"},
-    [MorseFlipperHelpInputKeys] = {APP_ASSETS_PATH("help/02-input-and-keys"), "Input & keys"},
-    [MorseFlipperHelpConnectingPaddle] =
+static const MorseFlipperHelpAsset morse_help_assets[11U] = {
+    [0U] = {APP_ASSETS_PATH("help/01-first-steps"), "First steps"},
+    [1U] = {APP_ASSETS_PATH("help/02-input-and-keys"), "Input & keys"},
+    [2U] =
         {APP_ASSETS_PATH("help/03-connecting-the-paddle"), "Connecting the paddle"},
-    [MorseFlipperHelpPractice] = {APP_ASSETS_PATH("help/04-how-to-practice"), "How to practice"},
-    [MorseFlipperHelpPrepping] = {APP_ASSETS_PATH("help/05-prepping"), "Prepping"},
-    [MorseFlipperHelpContact] =
+    [3U] = {APP_ASSETS_PATH("help/04-how-to-practice"), "How to practice"},
+    [4U] = {APP_ASSETS_PATH("help/05-prepping"), "Prepping"},
+    [5U] =
         {APP_ASSETS_PATH("help/06-a-complete-morse-contact"), "A complete Morse contact"},
-    [MorseFlipperHelpContesting] = {APP_ASSETS_PATH("help/07-contesting"), "Contesting"},
-    [MorseFlipperHelpUsbLive] =
+    [6U] = {APP_ASSETS_PATH("help/07-contesting"), "Contesting"},
+    [7U] =
         {APP_ASSETS_PATH("help/08-usb-and-live-practice"), "USB & live practice"},
-    [MorseFlipperHelpHamUsage] = {APP_ASSETS_PATH("help/09-ham-usage"), "Ham usage"},
-    [MorseFlipperHelpTroubleshooting] =
+    [8U] = {APP_ASSETS_PATH("help/09-ham-usage"), "Ham usage"},
+    [9U] =
         {APP_ASSETS_PATH("help/10-troubleshooting"), "Troubleshooting"},
-    [MorseFlipperHelpMovingForward] = {APP_ASSETS_PATH("help/11-moving-forward"), "Moving forward"},
+    [10U] = {APP_ASSETS_PATH("help/11-moving-forward"), "Moving forward"},
 };
 
 static const MorseFlipperHelpAsset* morse_flipper_help_asset(uint8_t t) {
-    if(t >= MorseFlipperHelpCount) t = MorseFlipperHelpFirstSteps;
+    if(t >= 11U) t = 0U;
     return &morse_help_assets[t];
 }
 
-uint8_t morse_flipper_help_card_count(const MorseFlipperApp* app) {
+static void morse_flipper_help_load_card(MorseFlipperHelpAboutState* app);
+
+uint8_t morse_flipper_help_card_count(const MorseFlipperHelpAboutState* app) {
     if(app == NULL || app->help_card_count == 0U) return 1U;
     return app->help_card_count;
 }
 
-bool morse_flipper_help_is_chapter_card(const MorseFlipperApp* app) {
-    return app != NULL && app->help_chapter_card;
+static bool morse_flipper_help_has_next_topic(const MorseFlipperHelpAboutState* app) {
+    return app != NULL && app->help_topic + 1U < 11U;
 }
 
-static bool morse_flipper_help_has_next_topic(const MorseFlipperApp* app) {
-    return app != NULL && app->help_topic + 1U < MorseFlipperHelpCount;
-}
-
-static void morse_flipper_help_load_chapter_card(MorseFlipperApp* app) {
+static void morse_flipper_help_load_chapter_card(MorseFlipperHelpAboutState* app) {
     const MorseFlipperHelpAsset* asset;
     char text[96];
 
@@ -199,7 +198,7 @@ static void morse_flipper_help_load_chapter_card(MorseFlipperApp* app) {
     furi_string_set_str(app->help_text, text);
 }
 
-bool morse_flipper_help_show_next_chapter(MorseFlipperApp* app) {
+bool morse_flipper_help_show_next_chapter(MorseFlipperHelpAboutState* app) {
     if(!morse_flipper_help_has_next_topic(app)) return false;
 
     if(app->help_text == NULL) app->help_text = furi_string_alloc();
@@ -209,18 +208,16 @@ bool morse_flipper_help_show_next_chapter(MorseFlipperApp* app) {
     app->help_page = 0U;
     app->help_md = (CwmdState){0};
     app->help_chapter_card = true;
-    scene_manager_set_scene_state(app->scene_manager, MorseFlipperSceneMenuHelp, app->help_topic);
     morse_flipper_help_load_chapter_card(app);
-    morse_flipper_view_dirty(app);
     return true;
 }
 
-void morse_flipper_help_enter_chapter(MorseFlipperApp* app) {
+void morse_flipper_help_enter_chapter(MorseFlipperHelpAboutState* app) {
     if(app == NULL || !app->help_chapter_card) return;
     app->help_chapter_card = false;
     app->help_page = 0U;
     app->help_md = (CwmdState){0};
-    morse_flipper_help_open(app);
+    morse_flipper_help_load_card(app);
 }
 
 static bool morse_flipper_help_delimiter_at(const char* text, const char* p) {
@@ -328,7 +325,7 @@ static void morse_flipper_help_request_asset_unpack(void) {
     furi_record_close(RECORD_STORAGE);
 }
 
-static void morse_flipper_help_load_card(MorseFlipperApp* app) {
+static void morse_flipper_help_load_card(MorseFlipperHelpAboutState* app) {
     const MorseFlipperHelpAsset* asset;
     FuriString* raw;
     const char* text;
@@ -362,45 +359,17 @@ static void morse_flipper_help_load_card(MorseFlipperApp* app) {
     }
 }
 
-static const char* morse_flipper_help_current_text(const MorseFlipperApp* app) {
+static const char* morse_flipper_help_current_text(const MorseFlipperHelpAboutState* app) {
     if(app == NULL || app->help_text == NULL) return "";
     return furi_string_get_cstr(app->help_text);
 }
 
-bool morse_flipper_onboarding_seen(void) {
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    File* file = storage_file_alloc(storage);
-    bool seen =
-        storage_file_open(file, MORSE_FLIPPER_ONBOARDING_PATH, FSAM_READ, FSOM_OPEN_EXISTING);
-
-    storage_file_close(file);
-    storage_file_free(file);
-    furi_record_close(RECORD_STORAGE);
-    return seen;
-}
-
-static void morse_flipper_onboarding_mark_seen(MorseFlipperApp* app) {
-    Storage* storage = furi_record_open(RECORD_STORAGE);
-    File* file = storage_file_alloc(storage);
-    const char marker[] = "seen\n";
-
-    storage_common_mkdir(storage, MORSE_FLIPPER_APP_DATA_DIR);
-    if(storage_file_open(file, MORSE_FLIPPER_ONBOARDING_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
-        storage_file_write(file, marker, sizeof(marker) - 1U);
-    }
-
-    storage_file_close(file);
-    storage_file_free(file);
-    furi_record_close(RECORD_STORAGE);
-    if(app != NULL) app->onboarding_seen = true;
-}
-
-static uint8_t morse_flipper_onboarding_card_count(const MorseFlipperApp* app) {
+static uint8_t morse_flipper_onboarding_card_count(const MorseFlipperHelpAboutState* app) {
     if(app == NULL || app->onboarding_card_count == 0U) return 1U;
     return app->onboarding_card_count;
 }
 
-static void morse_flipper_onboarding_load_card(MorseFlipperApp* app) {
+static void morse_flipper_onboarding_load_card(MorseFlipperHelpAboutState* app) {
     FuriString* raw;
     const char* text;
     bool ok = false;
@@ -428,58 +397,20 @@ static void morse_flipper_onboarding_load_card(MorseFlipperApp* app) {
     }
 }
 
-void morse_flipper_onboarding_open(MorseFlipperApp* app) {
+void morse_flipper_onboarding_open(MorseFlipperHelpAboutState* app) {
     if(app == NULL) return;
     if(app->help_text == NULL) app->help_text = furi_string_alloc();
     morse_flipper_onboarding_load_card(app);
-    view_dispatcher_switch_to_view(app->view_dispatcher, MorseFlipperViewLive);
-    morse_flipper_view_dirty(app);
 }
 
-void morse_flipper_onboarding_prev(MorseFlipperApp* app) {
-    if(app == NULL || app->onboarding_page == 0U) return;
-    app->onboarding_page--;
-    app->onboarding_md = (CwmdState){0};
-    morse_flipper_onboarding_open(app);
-}
-
-void morse_flipper_onboarding_next(MorseFlipperApp* app) {
-    uint8_t n;
-
-    if(app == NULL) return;
-    n = morse_flipper_onboarding_card_count(app);
-    if(app->onboarding_page + 1U >= n) {
-        morse_flipper_onboarding_finish(app);
-        return;
-    }
-
-    app->onboarding_page++;
-    app->onboarding_md = (CwmdState){0};
-    morse_flipper_onboarding_open(app);
-}
-
-void morse_flipper_onboarding_finish(MorseFlipperApp* app) {
-    if(app == NULL) return;
-    morse_flipper_onboarding_mark_seen(app);
-    app->onboarding_md = (CwmdState){0};
-    scene_manager_search_and_switch_to_another_scene(
-        app->scene_manager, MorseFlipperSceneMenuMain);
-}
-
-void morse_flipper_help_open(MorseFlipperApp* app) {
+void morse_flipper_help_open(MorseFlipperHelpAboutState* app) {
     if(app == NULL) return;
     if(app->help_text == NULL) app->help_text = furi_string_alloc();
     morse_flipper_help_load_card(app);
-    view_dispatcher_switch_to_view(app->view_dispatcher, MorseFlipperViewLive);
-    morse_flipper_view_dirty(app);
-}
-
-void morse_flipper_about_open(MorseFlipperApp* app) {
-    UNUSED(app);
 }
 
 static void morse_flipper_help_cfg(
-    const MorseFlipperApp* app,
+    const MorseFlipperHelpAboutState* app,
     CwmdConfig* cfg,
     char* page,
     size_t page_sz) {
@@ -521,7 +452,7 @@ static void morse_flipper_help_cfg(
     }
 }
 
-void morse_flipper_draw_onboarding(Canvas* canvas, MorseFlipperApp* app) {
+void morse_flipper_draw_onboarding(Canvas* canvas, MorseFlipperHelpAboutState* app) {
     CwmdConfig cfg;
     uint8_t n;
 
@@ -549,7 +480,7 @@ void morse_flipper_draw_onboarding(Canvas* canvas, MorseFlipperApp* app) {
     cwmd_draw(canvas, &cfg, &app->onboarding_md, morse_flipper_help_current_text(app));
 }
 
-void morse_flipper_draw_help(Canvas* canvas, MorseFlipperApp* app) {
+void morse_flipper_draw_help(Canvas* canvas, MorseFlipperHelpAboutState* app) {
     CwmdConfig cfg;
     char page[12];
 
@@ -558,7 +489,7 @@ void morse_flipper_draw_help(Canvas* canvas, MorseFlipperApp* app) {
     cwmd_draw(canvas, &cfg, &app->help_md, morse_flipper_help_current_text(app));
 }
 
-int16_t morse_flipper_help_max_scroll(Canvas* canvas, const MorseFlipperApp* app) {
+int16_t morse_flipper_help_max_scroll(Canvas* canvas, const MorseFlipperHelpAboutState* app) {
     CwmdConfig cfg;
     char page[12];
 

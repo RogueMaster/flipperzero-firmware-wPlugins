@@ -21,17 +21,17 @@ void morse_flipper_draw(Canvas* canvas, void* ctx) {
     }
 
     if(app->screen == MorseFlipperScreenOnboarding) {
-        morse_flipper_draw_onboarding(canvas, app);
+        morse_flipper_plugin_runtime_draw(app, canvas, furi_get_tick());
         return;
     }
 
     if(app->screen == MorseFlipperScreenAbout) {
-        morse_flipper_draw_about(canvas, app);
+        morse_flipper_plugin_runtime_draw(app, canvas, furi_get_tick());
         return;
     }
 
     if(app->screen == MorseFlipperScreenHelp) {
-        morse_flipper_draw_help(canvas, app);
+        morse_flipper_plugin_runtime_draw(app, canvas, furi_get_tick());
         return;
     }
 
@@ -100,6 +100,18 @@ void morse_flipper_draw(Canvas* canvas, void* ctx) {
 
     if(app->screen == MorseFlipperScreenStreakIntro) {
         morse_flipper_draw_streak_intro(canvas, app);
+        return;
+    }
+
+    if(app->screen == MorseFlipperScreenIcr || app->screen == MorseFlipperScreenPassive) {
+        morse_flipper_plugin_runtime_draw(app, canvas, furi_get_tick());
+        return;
+    }
+
+    if(app->screen == MorseFlipperScreenRxPractice) {
+        morse_flipper_plugin_runtime_draw(app, canvas, furi_get_tick());
+        if(morse_flipper_live_left_hint(app))
+            morse_flipper_draw_left_exit_hint(canvas);
         return;
     }
 

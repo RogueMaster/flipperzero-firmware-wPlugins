@@ -48,6 +48,8 @@ typedef struct {
                      [MORSE_FLIPPER_HAM_KEYER_MESSAGE_LEN + 1U];
 } MorseFlipperConfig;
 
+_Static_assert(sizeof(MorseFlipperConfig) == 632U, "main config must remain version-1 compatible");
+
 uint8_t morse_flipper_local_wpm(const MorseFlipperApp* app) {
     uint16_t dit;
     uint8_t wpm;
@@ -223,10 +225,6 @@ static void morse_flipper_config_apply_runtime_limits(MorseFlipperApp* app) {
     morse_flipper_clamp_trainer_settings(app);
     morse_flipper_clamp_straight_settings(app);
     morse_flipper_ham_keyer_normalize(&app->ham_keyer);
-    morse_flipper_tx_group_set_range(
-        &app->tx_group,
-        morse_flipper_txg_range_low(app->txg_difficulty),
-        morse_flipper_txg_range_high(app->txg_difficulty));
 }
 
 static void morse_flipper_config_delete_settings(Storage* storage) {
@@ -246,11 +244,10 @@ void morse_flipper_load_config(MorseFlipperApp* app) {
 
     if(storage_file_open(file, MORSE_FLIPPER_CONFIG_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
         got = storage_file_read(file, &config, sizeof(config));
-        if(got == sizeof(config) && config.version == MORSE_FLIPPER_SETTINGS_VERSION) {
+        if(got == sizeof(config) && config.version == MORSE_FLIPPER_SETTINGS_VERSION)
             morse_flipper_config_apply(app, &config);
-        } else {
+        else
             reset_settings = true;
-        }
     }
 
     storage_file_close(file);
