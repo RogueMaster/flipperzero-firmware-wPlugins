@@ -4,7 +4,10 @@
 #include <storage/storage.h>
 
 #define SETTINGS_PATH  APP_DATA_PATH("settings.bin")
-#define SETTINGS_MAGIC 0x31524D53u // "SMR1"
+// Sube el magic cuando cambie el significado de un campo: los ajustes viejos
+// se descartan y se vuelve a los valores por defecto. En "SMR1" lang 0 era
+// espanol; desde "SMR2" lang 0 es ingles.
+#define SETTINGS_MAGIC 0x32524D53u // "SMR2"
 
 typedef struct {
     uint32_t magic;
@@ -12,7 +15,7 @@ typedef struct {
 } SettingsBlob;
 
 void morse_settings_default(MorseSettings* s) {
-    s->lang = 0; // espanol
+    s->lang = 0; // ingles
     s->sound = true;
     s->vibro = true;
     s->led = true;

@@ -30,7 +30,7 @@ description: |
   vibration, highlighting the current character and symbol, with live
   adjustable speed.
 
-  **Persistent settings:** language (English/Spanish), volume, tone,
+  **Persistent settings:** language (English by default, Spanish optional), volume, tone,
   vibration, LED, WPM speed, dot/dash threshold and commit timings.
 
 changelog: "@./docs/changelog.md"

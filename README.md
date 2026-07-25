@@ -4,7 +4,8 @@ A Morse code app designed for learning while you write: it shows the Morse
 **decision tree** on screen as a guide, instead of requiring you to know the
 codes beforehand. It also converts text to Morse and plays it back.
 
-The interface is available in **English and Spanish** (Settings → Language).
+The interface is **English by default**, with Spanish available as an option
+(Settings → Language).
 
 ![Decision tree](screenshots/ss0.png)
 
@@ -57,7 +58,7 @@ From the menu, persisted to the SD card (`apps_data/san_morse`):
 
 | Setting | Values |
 |---|---|
-| Language | English / Español |
+| Language | English (default) / Español |
 | Sound / Vibration / LED | on / off |
 | Volume | 25–100 % |
 | Tone | 440–800 Hz |
