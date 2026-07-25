@@ -98,7 +98,7 @@ App(
     ],
     targets=["f7"],
     fap_category="Tools",
-    fap_version="0.1.150",
+    fap_version="0.1.151",
     fap_author="@yo3gnd",
     fap_weburl="https://github.com/yo3gnd/morse-flipper/",
     fap_description="Learn, practise, send, and experiment with Morse code on Flipper Zero.",
@@ -190,6 +190,23 @@ App(
         "src/firmware/plugins/passive_listening/mf_passive_voice_pack.c",
         "src/firmware/plugins/passive_listening/mf_passive_draw.c",
         "src/firmware/plugins/passive_listening/mf_passive_plugin.c",
+        "src/firmware/cw.c",
+    ],
+    fal_embedded=True,
+    targets=["f7"],
+)
+
+App(
+    appid="morse_flipper_settings",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="morse_flipper_settings_ep",
+    requires=["morse_flipper"],
+    cdefines=["MORSE_FLIPPER_FAP=1"],
+    sources=[
+        "src/firmware/plugins/settings/mf_settings_model.c",
+        "src/firmware/plugins/settings/mf_settings_plugin.c",
+        "src/firmware/trainer_lesson.c",
+        "src/firmware/pc_keys.c",
         "src/firmware/cw.c",
     ],
     fal_embedded=True,

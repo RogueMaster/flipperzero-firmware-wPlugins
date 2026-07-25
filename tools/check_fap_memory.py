@@ -15,6 +15,7 @@ LIMITS = {
     "passive": {"text": 8_000, "alloc": 9_000},
     "passive_settings": {"text": 2_000, "alloc": 2_250},
     "tx_groups": {"text": 5_250, "alloc": 6_250},
+    "settings": {"text": 12_000, "alloc": 13_500},
 }
 
 
@@ -63,6 +64,7 @@ def main() -> int:
         "passive": args.build_dir / "morse_flipper_passive_listening_d.elf",
         "passive_settings": args.build_dir / "morse_flipper_passive_settings_d.elf",
         "tx_groups": args.build_dir / "morse_flipper_tx_groups_d.elf",
+        "settings": args.build_dir / "morse_flipper_settings_d.elf",
     }
     missing = [str(path) for path in paths.values() if not path.is_file()]
     if missing:
