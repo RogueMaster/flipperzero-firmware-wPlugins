@@ -6,7 +6,7 @@ Open-source 2.4 GHz spectrum analyzer for Flipper Zero, plug-and-play.
 
 ## Short Pitch (60 words)
 
-PINGEQUA RF Lab is an open-source 2.4 GHz spectrum analyzer + NRF24 jammer for Flipper Zero, designed for the [PINGEQUA 2-in-1 RF Devboard](https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard). It works plug-and-play across every major Flipper firmware (Momentum, Unleashed, RogueMaster, Official) where legacy single-chip NRF24 scanner apps fall short. MIT licensed.
+PINGEQUA RF Lab is an open-source 2.4 GHz spectrum analyzer + NRF24 jammer for Flipper Zero, designed for the [PINGEQUA 2-in-1 RF Devboard](https://www.pingequa.com/products/flipper-zero-nrf24-cc1101-2-in-1-rf-devboard?utm_source=github&utm_medium=press_kit&utm_campaign=rflab). It works plug-and-play across every major Flipper firmware (Momentum, Unleashed, RogueMaster, Official) where legacy single-chip NRF24 scanner apps fall short. MIT licensed.
 
 ## Medium Pitch (200 words)
 
@@ -43,7 +43,7 @@ Open source MIT. 28 KB FAP. Continuous releases.
 
 ## Boilerplate
 
-> **PINGEQUA** is a hardware brand specializing in Flipper Zero, M5Stack, and developer-focused expansion modules. Tagline: *Precision Gear for Hackers*. Worldwide shipping to 195+ countries. Store: [pingequa.com](https://www.pingequa.com)
+> **PINGEQUA** is a hardware brand specializing in Flipper Zero, M5Stack, and developer-focused expansion modules. Tagline: *Precision Gear for Hackers*. Worldwide shipping to 195+ countries. Store: [pingequa.com](https://www.pingequa.com?utm_source=github&utm_medium=press_kit&utm_campaign=rflab)
 
 ## Contact for Press
 
