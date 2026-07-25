@@ -236,6 +236,13 @@ static int32_t rfid_tp_rx_worker(void* context) {
     uint8_t pkt[FSH_PACKET_MAX];
     uint32_t batch[64]; // drain many capture events per syscall
 
+    // Self-heal: if no real (CRC-valid) frame has decoded for a while, force the
+    // decoder+adapter back to a clean sync-hunt. In dense noise the decoder can
+    // false-lock and then stay blind in READ with no gap to reset it; this is the
+    // software equivalent of the manual "separate and re-touch the coils" recovery.
+    uint32_t last_check = furi_get_tick();
+    uint32_t last_valid = tp->rx_valid;
+
     while(!tp->worker_stop) {
         // Batch-read: at ~50k noise edges/s the per-event FreeRTOS call overhead of
         // reading one word at a time let the stream buffer overflow and drop real
@@ -263,6 +270,17 @@ static int32_t rfid_tp_rx_worker(void* context) {
                 rfid_tp_feed_run(tp, false, RFID_MODEM_GAP_US + 1u, pkt);
                 tp->rx_have_high = false;
             }
+        }
+
+        uint32_t now = furi_get_tick();
+        if(now - last_check > furi_ms_to_ticks(1500)) {
+            if(tp->rx_valid == last_valid) {
+                // No real frame in the last window -> break any stuck decoder state.
+                rfid_modem_dec_reset(&tp->dec);
+                tp->rx_have_high = false;
+            }
+            last_valid = tp->rx_valid;
+            last_check = now;
         }
     }
     return 0;

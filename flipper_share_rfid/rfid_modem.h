@@ -16,9 +16,13 @@
 
 #include "rfid_modem_config.h"
 
-// Hard cap on a packet the modem will carry (the on-wire len is a single byte).
-// The engine validates the real packet length; this only sizes the buffers.
-#define RFID_MODEM_MAX_PACKET 255u
+// Hard cap on a packet the modem will carry. Kept just above the largest real
+// flipper-share packet (a 64-byte DATA packet is 73 bytes) rather than the full
+// 255 the length byte allows: a noise false-lock reads a random length byte and
+// then stays blind in READ for that many bytes, so a tight cap makes those
+// bogus reads bail out fast (len > cap -> immediate desync) instead of shadowing
+// dozens of real frames. The engine still validates the real packet length.
+#define RFID_MODEM_MAX_PACKET 80u
 
 // Worst-case run count for one encoded frame: two half-bit runs per encoded bit
 // (preamble + sync + len + packet), plus the trailing inter-frame-gap run.
