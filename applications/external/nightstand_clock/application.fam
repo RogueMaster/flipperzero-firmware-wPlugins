@@ -4,11 +4,11 @@ App(
     apptype=FlipperAppType.EXTERNAL,
     entry_point="clock_app",
     stack_size=2 * 1024,
-    fap_icon="clock.png",
+    fap_icon="icon.png",
     fap_category="Tools",
-    fap_author="nymda & WillyJL",
+    fap_author="nymda & WillyJL & mishamyte & xMasterX",
     fap_weburl="https://github.com/nymda/FlipperNightStand",
-    fap_version="1.2",
-    fap_description="Clock with screen brightness controls",
+    fap_version="1.3",
+    fap_description="Clock with screen brightness controls, alarm, and basic timer",
     #  v1.2: [Show battery percentage and show AM/PM in timer mode (By 956MB)](https://github.com/Next-Flip/Momentum-Apps/pull/42)
 )
