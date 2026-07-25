@@ -385,16 +385,18 @@ static void update_timer_callback(void* context) {
             *model = (uint8_t)state->counter;
         }, true);
     } else {
-        // Show live capture diagnostics so a stuck "waiting" is localizable:
-        // e = raw capture edges (0 -> no coupling / capture), f = decoded frames.
-        uint32_t rx_e = 0, rx_f = 0;
-        rfid_transport_reader_stats(&rx_e, &rx_f);
+        // Live capture diagnostics so a stuck "waiting" is localizable:
+        // e=raw edges, f=decoded frames, v=CRC-valid packets, a=valid ANNOUNCEs.
+        uint32_t rx_e = 0, rx_f = 0, rx_v = 0, rx_a = 0;
+        rfid_transport_reader_stats(&rx_e, &rx_f, &rx_v, &rx_a);
         snprintf(
             progress_text,
             sizeof(progress_text),
-            "Hold backs together\nWaiting...  e:%lu f:%lu",
+            "Waiting  e:%lu f:%lu\nv:%lu a:%lu",
             (unsigned long)rx_e,
-            (unsigned long)rx_f);
+            (unsigned long)rx_f,
+            (unsigned long)rx_v,
+            (unsigned long)rx_a);
 
         // If we're no longer locked but the progress view is active, switch back to dialog
         if(progress_view_active) {

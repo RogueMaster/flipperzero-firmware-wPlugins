@@ -50,6 +50,8 @@ typedef struct {
     // no-reception (0 edges = no coupling/capture; edges but 0 packets = decode).
     volatile uint32_t rx_events;
     volatile uint32_t rx_frames;
+    volatile uint32_t rx_valid; // decoded frames that pass the packet CRC16 (real, not noise)
+    volatile uint32_t rx_announce; // valid frames whose type is ANNOUNCE
 } RfidTransport;
 
 // How long the tag worker tolerates a stalled emulate DMA (no half/full
@@ -176,10 +178,31 @@ static void rfid_tp_capture_isr(bool level, uint32_t duration, void* context) {
 
 // Feed one reconstructed constant-level run to the decoder and dispatch a
 // completed packet.
+// CRC-16/CCITT-FALSE (poly 0x1021, init 0xFFFF) — same as the engine's, used only
+// to tell real decoded packets from noise false-locks in the diagnostics.
+static uint16_t rfid_tp_crc16(const uint8_t* data, size_t len) {
+    uint16_t crc = 0xFFFF;
+    for(size_t i = 0; i < len; i++) {
+        crc ^= (uint16_t)data[i] << 8;
+        for(int b = 0; b < 8; b++)
+            crc = (crc & 0x8000) ? (uint16_t)((crc << 1) ^ 0x1021) : (uint16_t)(crc << 1);
+    }
+    return crc;
+}
+
 static void rfid_tp_feed_run(RfidTransport* tp, bool level, uint32_t dur_us, uint8_t* pkt) {
     size_t len = rfid_modem_dec_feed(&tp->dec, level, dur_us, pkt, FSH_PACKET_MAX);
     if(len) {
         tp->rx_frames++; // diagnostic: modem decoded a complete frame
+        // Distinguish real packets from noise false-locks: check version + CRC16.
+        if(len >= FSH_HEADER_LENGTH + FSH_CRC_LENGTH && pkt[0] == 2) {
+            uint16_t calc = rfid_tp_crc16(pkt, len - FSH_CRC_LENGTH);
+            uint16_t got = (uint16_t)pkt[len - 2] | ((uint16_t)pkt[len - 1] << 8);
+            if(calc == got) {
+                tp->rx_valid++;
+                if(pkt[FSH_HEADER_LENGTH - 1] == FSH_PKT_ANNOUNCE) tp->rx_announce++;
+            }
+        }
         fsh_receive_callback(pkt, len);
     }
 }
@@ -312,10 +335,15 @@ bool rfid_transport_tag_field_present(void) {
     return tp && tp->field_present;
 }
 
-void rfid_transport_reader_stats(uint32_t* events, uint32_t* frames) {
+void rfid_transport_reader_stats(
+    uint32_t* events,
+    uint32_t* frames,
+    uint32_t* valid,
+    uint32_t* announce) {
     RfidTransport* tp = rfid_tp;
-    uint32_t e = (tp && tp->mode == RfidTransportModeReader) ? tp->rx_events : 0;
-    uint32_t f = (tp && tp->mode == RfidTransportModeReader) ? tp->rx_frames : 0;
-    if(events) *events = e;
-    if(frames) *frames = f;
+    bool r = tp && tp->mode == RfidTransportModeReader;
+    if(events) *events = r ? tp->rx_events : 0;
+    if(frames) *frames = r ? tp->rx_frames : 0;
+    if(valid) *valid = r ? tp->rx_valid : 0;
+    if(announce) *announce = r ? tp->rx_announce : 0;
 }
