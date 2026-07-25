@@ -88,6 +88,10 @@ function(cmsis_generate_default_linker_script FAMILY DEVICE CORE)
         stm32_get_memory_info(FAMILY ${FAMILY} DEVICE ${DEVICE} CORE ${CORE} HEAP SIZE HEAP_SIZE)
         stm32_get_memory_info(FAMILY ${FAMILY} DEVICE ${DEVICE} CORE ${CORE} STACK SIZE STACK_SIZE)
 
+        if (${CMAKE_C_COMPILER_ID} STREQUAL "GNU" AND ${CMAKE_C_COMPILER_VERSION} VERSION_GREATER_EQUAL "11.0.0")
+            set(LD_SCRIPT_FORCE_READONLY_SECTIONS TRUE)
+        endif()
+
         add_custom_command(OUTPUT "${OUTPUT_LD_FILE}"
             COMMAND ${CMAKE_COMMAND} 
                 -DFLASH_ORIGIN="${FLASH_ORIGIN}" 
@@ -101,6 +105,7 @@ function(cmsis_generate_default_linker_script FAMILY DEVICE CORE)
                 -DSTACK_SIZE="${STACK_SIZE}" 
                 -DHEAP_SIZE="${HEAP_SIZE}" 
                 -DLINKER_SCRIPT="${OUTPUT_LD_FILE}"
+                -DFORCE_READONLY_SECTIONS="${LD_SCRIPT_FORCE_READONLY_SECTIONS}"
                 -P "${STM32_CMAKE_DIR}/stm32/linker_ld.cmake"
         )
     endif()
