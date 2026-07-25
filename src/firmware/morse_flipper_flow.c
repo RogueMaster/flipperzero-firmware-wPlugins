@@ -92,7 +92,6 @@ static uint8_t morse_flipper_scene_screen(uint32_t scene) {
         return MorseFlipperScreenIcr;
     case MorseFlipperSceneRxCallsigns:
         return MorseFlipperScreenRxPractice;
-    case MorseFlipperScenePassiveCfg:
     case MorseFlipperScenePassive:
         return MorseFlipperScreenPassive;
     default:

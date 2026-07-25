@@ -91,6 +91,7 @@ def convert_pcm16_16k_to_u8(source: Path, output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(dir=output.parent, prefix=f".{output.name}.", delete=False) as temporary:
         temporary.write(header + table + data)
+        os.fchmod(temporary.fileno(), 0o644)
         temporary.flush()
         os.fsync(temporary.fileno())
         temporary_name = temporary.name

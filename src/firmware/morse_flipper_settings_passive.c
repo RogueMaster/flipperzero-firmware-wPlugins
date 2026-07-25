@@ -16,6 +16,8 @@ static void morse_flipper_passive_settings_refresh(MorseFlipperApp* app) {
     }
     item = app->passive_items[MorseFlipperPassiveSettingLength];
     if(item) {
+        variable_item_set_values_count(
+            item, app->passive_mode == MorseFlipperPassiveModeLesson ? 4U : 3U);
         index = (uint8_t)(app->passive_length -
                           (app->passive_mode == MorseFlipperPassiveModeLesson ? 3U : 4U));
         variable_item_set_current_value_index(item, index);

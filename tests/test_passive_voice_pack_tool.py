@@ -2,6 +2,7 @@
 """Host checks for deterministic production MFVA PCM16-to-U8 conversion."""
 
 import importlib.util
+import os
 import subprocess
 import struct
 import tempfile
@@ -28,11 +29,63 @@ def expect_invalid(blob: bytes) -> None:
         raise AssertionError("corrupt MFVA conversion unexpectedly succeeded")
 
 
+def selected_pcm16_source() -> bytes | None:
+    try:
+        return subprocess.check_output(
+            ["git", "show", "5adbc88:assets/audio/voice_en_gb_amy_v1.mfa"], cwd=ROOT)
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return None
+
+
+def make_pcm16_pack() -> bytes:
+    payloads = []
+    for token_id in range(40):
+        payload = struct.pack("<hhhh", -32768, -1, token_id, 32767)
+        payloads.append((token_id, payload, 4))
+    table_offset = MODULE.HEADER.size
+    data_offset = table_offset + MODULE.ENTRY.size * len(payloads)
+    table = bytearray()
+    data = bytearray()
+    for token_id, payload, samples in payloads:
+        table += MODULE.ENTRY.pack(token_id, data_offset + len(data), len(payload), samples, 0, 0, 0)
+        data += payload
+    return MODULE.HEADER.pack(
+        b"MFVA", 1, 0, len(payloads), 16000, table_offset, data_offset,
+        data_offset + len(data), MODULE.zlib.crc32(table) & 0xFFFFFFFF,
+        MODULE.zlib.crc32(data) & 0xFFFFFFFF) + table + data
+
+
+def assert_production_u8_pack(blob: bytes) -> None:
+    magic, version, codec, count, rate, table_offset, data_offset, file_size, table_crc, data_crc = MODULE.HEADER.unpack_from(blob)
+    assert (magic, version, codec, count, rate) == (b"MFVA", 1, 1, 40, 16000)
+    assert file_size == len(blob) and table_offset == MODULE.HEADER.size
+    assert table_offset + MODULE.ENTRY.size * count == data_offset <= file_size
+    table = blob[table_offset:data_offset]
+    data = blob[data_offset:file_size]
+    assert MODULE.zlib.crc32(table) & 0xFFFFFFFF == table_crc
+    assert MODULE.zlib.crc32(data) & 0xFFFFFFFF == data_crc
+    seen = set()
+    ranges = []
+    for index in range(count):
+        token_id, offset, length, samples, predictor, ima_index, reserved = MODULE.ENTRY.unpack_from(table, index * MODULE.ENTRY.size)
+        assert predictor == ima_index == reserved == 0
+        assert token_id not in seen and token_id < count
+        assert length == samples and samples > 0
+        assert data_offset <= offset < offset + length <= file_size
+        seen.add(token_id)
+        ranges.append((offset, offset + length))
+    assert seen == set(range(count))
+    assert all(left[1] <= right[0] for left, right in zip(sorted(ranges), sorted(ranges)[1:]))
+
+
 def main() -> None:
-    source = subprocess.check_output(
-        ["git", "show", "5adbc88:assets/audio/voice_en_gb_amy_v1.mfa"], cwd=ROOT)
-    tokens, _ = MODULE.parse_pcm16_16k_pack(source)
-    assert len(tokens) == 40
+    source = selected_pcm16_source()
+    if source is not None:
+        tokens, _ = MODULE.parse_pcm16_16k_pack(source)
+        assert len(tokens) == 40
+    else:
+        source = make_pcm16_pack()
+    assert_production_u8_pack(ASSET.read_bytes())
     assert MODULE.pcm16_to_u8(struct.pack("<hhhh", -32768, -1, 0, 32767)) == bytes((0, 127, 128, 255))
     with tempfile.TemporaryDirectory() as directory:
         first = Path(directory) / "first.mfa"
@@ -42,15 +95,11 @@ def main() -> None:
         MODULE.convert_pcm16_16k_to_u8(source_path, first)
         MODULE.convert_pcm16_16k_to_u8(source_path, second)
         assert first.read_bytes() == second.read_bytes()
-        assert first.read_bytes() == ASSET.read_bytes()
-        magic, version, codec, count, rate, table_offset, data_offset, file_size, table_crc, data_crc = MODULE.HEADER.unpack_from(first.read_bytes())
-        assert (magic, version, codec, count, rate) == (b"MFVA", 1, 1, 40, 16000)
-        assert file_size == first.stat().st_size and table_offset == MODULE.HEADER.size
-        table = first.read_bytes()[table_offset:data_offset]
-        data = first.read_bytes()[data_offset:file_size]
-        assert MODULE.zlib.crc32(table) & 0xFFFFFFFF == table_crc
-        assert MODULE.zlib.crc32(data) & 0xFFFFFFFF == data_crc
-    corrupt = bytearray(source)
+        assert os.stat(first).st_mode & 0o777 == 0o644
+        if selected_pcm16_source() is not None:
+            assert first.read_bytes() == ASSET.read_bytes()
+        assert_production_u8_pack(first.read_bytes())
+    corrupt = bytearray(make_pcm16_pack())
     corrupt[0] ^= 1
     expect_invalid(bytes(corrupt))
     corrupt = bytearray(source)

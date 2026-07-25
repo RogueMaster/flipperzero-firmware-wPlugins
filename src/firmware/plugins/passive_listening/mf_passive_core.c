@@ -60,8 +60,8 @@ static bool mf_passive_start_mark(MfPassiveState* state, uint32_t now) {
 }
 
 static bool mf_passive_next_prompt(MfPassiveState* state) {
-    char previous[MF_CALLSIGN_MAX_LEN + 1U];
-    char candidate[MF_CALLSIGN_MAX_LEN + 1U];
+    char previous[MF_CALLSIGN_MAX_LEN + 1U] = {0};
+    char candidate[MF_CALLSIGN_MAX_LEN + 1U] = {0};
     uint8_t length;
 
     if(state == NULL || state->prompt_length < 3U || state->prompt_length > MF_CALLSIGN_MAX_LEN)
@@ -83,6 +83,10 @@ static bool mf_passive_next_prompt(MfPassiveState* state) {
             memcpy(state->prompt, candidate, sizeof(state->prompt));
             return true;
         }
+    }
+    if(state->mode == 1U && state->lesson_charset_len == 1U) {
+        memcpy(state->prompt, candidate, sizeof(state->prompt));
+        return true;
     }
     return false;
 }
@@ -167,6 +171,8 @@ bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfP
     state->prompt_len = state->prompt_length;
     state->audio_claimed = true;
     state->phase = MfPassivePhasePrepare;
+    state->cw_mark = true;
+    state->next_at = args->now_ms + MF_PASSIVE_INITIAL_CW_MS;
     *result = mf_passive_result(state, true);
     return state->error == 0U;
 }
@@ -216,10 +222,7 @@ MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
     bool redraw = false;
     if(state == NULL) return (MfPassiveResult){0};
     if(state->phase == MfPassivePhasePrepare) {
-        if(!state->cw_mark) {
-            state->cw_mark = true;
-            state->next_at = now_ms + MF_PASSIVE_INITIAL_CW_MS;
-        } else if(mf_passive_reached(now_ms, state->next_at)) {
+        if(mf_passive_reached(now_ms, state->next_at)) {
             state->cw_mark = false;
             state->phase = MfPassivePhaseCw;
             if(!mf_passive_start_mark(state, now_ms)) mf_passive_fail(state);

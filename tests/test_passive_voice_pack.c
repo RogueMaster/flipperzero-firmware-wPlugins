@@ -288,6 +288,30 @@ static void test_character_tokens(void) {
     CHECK(!mf_passive_voice_char_token('=', &token));
 }
 
+static void test_all_production_token_shapes_stream(void) {
+    static const uint8_t payload[] = {0U, 128U, 255U, 64U};
+    static const char tokens[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/.,?";
+    MemoryFile file;
+    MfPassiveVoicePack pack;
+    MfPassivePcmPipe pipe = {0};
+    MfPassiveVoiceIo io;
+
+    make_pack(&file, MfPassiveCodecU8, payload, sizeof(payload), 4U, 0U);
+    put32(file.bytes + 8U, 16000U);
+    refresh_crcs(&file);
+    io = memory_io(&file);
+    CHECK(mf_passive_voice_pack_open_io(&pack, &io));
+    for(size_t i = 0U; i < sizeof(tokens) - 1U; i++) {
+        CHECK(mf_passive_voice_pack_begin(&pack, &pipe, tokens[i]));
+        CHECK(mf_passive_voice_pack_refill(&pack, &pipe, 100U) == 4U);
+        CHECK(mf_passive_voice_pack_eof(&pack));
+        pipe.read_pos = pipe.write_pos;
+        pipe.drained = true;
+        CHECK(mf_passive_voice_pack_drained(&pack, &pipe));
+    }
+    mf_passive_voice_pack_close(&pack);
+}
+
 int main(void) {
     test_all_codecs();
     test_wrap_and_pending();
@@ -295,6 +319,7 @@ int main(void) {
     test_bounded_refill();
     test_rejections();
     test_character_tokens();
+    test_all_production_token_shapes_stream();
     printf("test_passive_voice_pack: %u checks passed; state=%u bytes\n", checks, (unsigned)sizeof(MfPassiveVoicePack));
     return 0;
 }
