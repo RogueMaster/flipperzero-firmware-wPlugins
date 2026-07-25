@@ -284,50 +284,30 @@ void morse_flipper_scene_home_on_enter(void* context) {
     mf_settings_scene_enter(context, MfSettingsEntryKeying, MorseFlipperSceneHome);
 }
 
-bool morse_flipper_scene_home_on_event(void* context, SceneManagerEvent event) {
-    return mf_settings_scene_event(context, event, MorseFlipperSceneHome);
-}
-
-void morse_flipper_scene_home_on_exit(void* context) {
-    mf_settings_scene_exit(context, MorseFlipperSceneHome);
-}
 
 void morse_flipper_scene_audio_cfg_on_enter(void* context) {
     mf_settings_scene_enter(context, MfSettingsEntryAudio, MorseFlipperSceneAudioCfg);
 }
 
-bool morse_flipper_scene_audio_cfg_on_event(void* context, SceneManagerEvent event) {
-    return mf_settings_scene_event(context, event, MorseFlipperSceneAudioCfg);
-}
-
-void morse_flipper_scene_audio_cfg_on_exit(void* context) {
-    mf_settings_scene_exit(context, MorseFlipperSceneAudioCfg);
-}
 
 void morse_flipper_scene_pc_on_enter(void* context) {
     mf_settings_scene_enter(context, MfSettingsEntryUsb, MorseFlipperScenePc);
 }
 
-bool morse_flipper_scene_pc_on_event(void* context, SceneManagerEvent event) {
-    return mf_settings_scene_event(context, event, MorseFlipperScenePc);
-}
-
-void morse_flipper_scene_pc_on_exit(void* context) {
-    mf_settings_scene_exit(context, MorseFlipperScenePc);
-}
-
 void morse_flipper_scene_settings_listening_on_enter(void* context) { mf_settings_scene_enter(context, MfSettingsEntryListening, MorseFlipperSceneTrainer); }
-bool morse_flipper_scene_settings_listening_on_event(void* context, SceneManagerEvent event) { return mf_settings_scene_event(context, event, MorseFlipperSceneTrainer); }
-void morse_flipper_scene_settings_listening_on_exit(void* context) { mf_settings_scene_exit(context, MorseFlipperSceneTrainer); }
 void morse_flipper_scene_settings_straight_on_enter(void* context) { mf_settings_scene_enter(context, MfSettingsEntryStraight, MorseFlipperSceneStraightCfg); }
-bool morse_flipper_scene_settings_straight_on_event(void* context, SceneManagerEvent event) { return mf_settings_scene_event(context, event, MorseFlipperSceneStraightCfg); }
-void morse_flipper_scene_settings_straight_on_exit(void* context) { mf_settings_scene_exit(context, MorseFlipperSceneStraightCfg); }
 void morse_flipper_scene_settings_tx_groups_on_enter(void* context) { mf_settings_scene_enter(context, MfSettingsEntryTxGroups, MorseFlipperSceneTxGroupsCfg); }
-bool morse_flipper_scene_settings_tx_groups_on_event(void* context, SceneManagerEvent event) { return mf_settings_scene_event(context, event, MorseFlipperSceneTxGroupsCfg); }
-void morse_flipper_scene_settings_tx_groups_on_exit(void* context) { mf_settings_scene_exit(context, MorseFlipperSceneTxGroupsCfg); }
 void morse_flipper_scene_settings_gpio_on_enter(void* context) { mf_settings_scene_enter(context, MfSettingsEntryGpio, MorseFlipperSceneGpio); }
-bool morse_flipper_scene_settings_gpio_on_event(void* context, SceneManagerEvent event) { return mf_settings_scene_event(context, event, MorseFlipperSceneGpio); }
-void morse_flipper_scene_settings_gpio_on_exit(void* context) { mf_settings_scene_exit(context, MorseFlipperSceneGpio); }
+
+bool morse_flipper_scene_settings_on_event(void* context, SceneManagerEvent event) {
+    MorseFlipperApp* app = context;
+    return app != NULL && mf_settings_scene_event(app, event, app->scene);
+}
+
+void morse_flipper_scene_settings_on_exit(void* context) {
+    MorseFlipperApp* app = context;
+    if(app != NULL) mf_settings_scene_exit(app, app->scene);
+}
 
 #ifdef MF_SETTINGS_HOST_TEST
 bool mf_settings_host_test_apply(

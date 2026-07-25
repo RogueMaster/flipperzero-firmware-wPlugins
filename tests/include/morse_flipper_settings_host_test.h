@@ -39,6 +39,7 @@ typedef struct MorseFlipperApp {
     uint8_t straight_answer_timeout_s, straight_next_delay_s, txg_difficulty;
     uint8_t gpio_dit_idx, gpio_dah_idx, gpio_ground_idx, gpio_ptt_idx;
     uint8_t pc_mode_pref, pc_paddle_preset, pc_straight_preset;
+    uint8_t scene;
     bool mouse_invert;
     MorseTrainer trainer;
     MorseFlipperListeningSettings listening_settings;

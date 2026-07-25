@@ -389,9 +389,6 @@ typedef struct MorseFlipperApp {
     Submenu* submenu;
     TextInput* text_input;
     VariableItemList* settings_list;
-    VariableItem* audio_cfg_items[MorseFlipperAudioSettingWaveform + 1U];
-    VariableItem* trainer_items[MorseFlipperTrainerSettingChars + 1U];
-    VariableItem* straight_cfg_items[3];
     View* live_view;
     Gui* gui;
     DialogsApp* dialogs;
@@ -479,10 +476,6 @@ typedef struct MorseFlipperApp {
     uint8_t trainer_char_idx;
     uint8_t trainer_mark_idx;
     uint8_t session_wait_draw_s;
-    uint8_t gpio_edit_dit_idx;
-    uint8_t gpio_edit_dah_idx;
-    uint8_t gpio_edit_ground_idx;
-    uint8_t gpio_edit_ptt_idx;
     uint8_t gpio_probe_state;
     uint8_t startup_gpio_probe_state;
     bool vail_mode_active;
@@ -618,6 +611,8 @@ typedef struct MorseFlipperApp {
     MorseFlipperStraightTrainer straight_trainer;
     MorseFlipperTxGroup tx_group;
 } MorseFlipperApp;
+
+_Static_assert(sizeof(MorseFlipperApp) <= 6200U, "resident app state regressed");
 
 _Static_assert(
     sizeof(MorseFlipperRfTicker) >= sizeof(MorseFlipperTerminus24Cache),
@@ -932,26 +927,14 @@ void morse_flipper_settings_usb_straight_changed(VariableItem* item);
 void morse_flipper_settings_usb_mouse_swap_changed(VariableItem* item);
 void morse_flipper_scene_menu_pick(void* ctx, uint32_t idx);
 void morse_flipper_scene_home_on_enter(void* context);
-bool morse_flipper_scene_home_on_event(void* context, SceneManagerEvent event);
-void morse_flipper_scene_home_on_exit(void* context);
 void morse_flipper_scene_audio_cfg_on_enter(void* context);
-bool morse_flipper_scene_audio_cfg_on_event(void* context, SceneManagerEvent event);
-void morse_flipper_scene_audio_cfg_on_exit(void* context);
 void morse_flipper_scene_gpio_on_enter(void* context);
-bool morse_flipper_scene_gpio_on_event(void* context, SceneManagerEvent event);
-void morse_flipper_scene_gpio_on_exit(void* context);
 void morse_flipper_scene_settings_listening_on_enter(void* context);
-bool morse_flipper_scene_settings_listening_on_event(void* context, SceneManagerEvent event);
-void morse_flipper_scene_settings_listening_on_exit(void* context);
 void morse_flipper_scene_settings_straight_on_enter(void* context);
-bool morse_flipper_scene_settings_straight_on_event(void* context, SceneManagerEvent event);
-void morse_flipper_scene_settings_straight_on_exit(void* context);
 void morse_flipper_scene_settings_tx_groups_on_enter(void* context);
-bool morse_flipper_scene_settings_tx_groups_on_event(void* context, SceneManagerEvent event);
-void morse_flipper_scene_settings_tx_groups_on_exit(void* context);
 void morse_flipper_scene_settings_gpio_on_enter(void* context);
-bool morse_flipper_scene_settings_gpio_on_event(void* context, SceneManagerEvent event);
-void morse_flipper_scene_settings_gpio_on_exit(void* context);
+bool morse_flipper_scene_settings_on_event(void* context, SceneManagerEvent event);
+void morse_flipper_scene_settings_on_exit(void* context);
 void morse_flipper_scene_trainer_on_enter(void* context);
 void morse_flipper_scene_trainer_on_exit(void* context);
 void morse_flipper_scene_straight_cfg_on_enter(void* context);
@@ -960,8 +943,6 @@ void morse_flipper_scene_tx_groups_cfg_on_enter(void* context);
 bool morse_flipper_scene_tx_groups_cfg_on_event(void* context, SceneManagerEvent event);
 void morse_flipper_scene_tx_groups_cfg_on_exit(void* context);
 void morse_flipper_scene_pc_on_enter(void* context);
-bool morse_flipper_scene_pc_on_event(void* context, SceneManagerEvent event);
-void morse_flipper_scene_pc_on_exit(void* context);
 void morse_flipper_trainer_lesson_changed(VariableItem* item);
 void morse_flipper_trainer_wpm_changed(VariableItem* item);
 void morse_flipper_trainer_farnsworth_changed(VariableItem* item);

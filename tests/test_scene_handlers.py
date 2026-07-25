@@ -90,10 +90,10 @@ class SceneHandlerTableTest(unittest.TestCase):
             (
                 "morse_flipper_scene_on_event_handlers",
                 {
-                    "MorseFlipperSceneTrainer": "morse_flipper_scene_settings_listening_on_event",
-                    "MorseFlipperSceneStraightCfg": "morse_flipper_scene_settings_straight_on_event",
-                    "MorseFlipperSceneTxGroupsCfg": "morse_flipper_scene_settings_tx_groups_on_event",
-                    "MorseFlipperSceneGpio": "morse_flipper_scene_settings_gpio_on_event",
+                    "MorseFlipperSceneTrainer": "morse_flipper_scene_settings_on_event",
+                    "MorseFlipperSceneStraightCfg": "morse_flipper_scene_settings_on_event",
+                    "MorseFlipperSceneTxGroupsCfg": "morse_flipper_scene_settings_on_event",
+                    "MorseFlipperSceneGpio": "morse_flipper_scene_settings_on_event",
                     "MorseFlipperSceneIcr": "morse_flipper_scene_live_on_event",
                     "MorseFlipperScenePassive": "morse_flipper_scene_live_on_event",
                 },
@@ -101,10 +101,10 @@ class SceneHandlerTableTest(unittest.TestCase):
             (
                 "morse_flipper_scene_on_exit_handlers",
                 {
-                    "MorseFlipperSceneTrainer": "morse_flipper_scene_settings_listening_on_exit",
-                    "MorseFlipperSceneStraightCfg": "morse_flipper_scene_settings_straight_on_exit",
-                    "MorseFlipperSceneTxGroupsCfg": "morse_flipper_scene_settings_tx_groups_on_exit",
-                    "MorseFlipperSceneGpio": "morse_flipper_scene_settings_gpio_on_exit",
+                    "MorseFlipperSceneTrainer": "morse_flipper_scene_settings_on_exit",
+                    "MorseFlipperSceneStraightCfg": "morse_flipper_scene_settings_on_exit",
+                    "MorseFlipperSceneTxGroupsCfg": "morse_flipper_scene_settings_on_exit",
+                    "MorseFlipperSceneGpio": "morse_flipper_scene_settings_on_exit",
                     "MorseFlipperSceneIcr": "morse_flipper_scene_icr_on_exit",
                     "MorseFlipperScenePassive": "morse_flipper_scene_training_plugin_on_exit",
                 },
