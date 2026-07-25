@@ -110,6 +110,22 @@ def main():
     except Exception:
         pass
 
+    try:
+        import subprocess
+
+        subprocess.run(
+            [
+                sys.executable,
+                os.path.join(os.path.dirname(__file__), "context_usage.py"),
+                "sync",
+            ],
+            input=json.dumps(hook_input).encode("utf-8"),
+            timeout=2,
+            check=False,
+        )
+    except Exception:
+        pass
+
     sys.exit(0)
 
 

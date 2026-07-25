@@ -27,14 +27,14 @@ class ClaudeIPC:
         self._server = await asyncio.start_unix_server(
             self._handle_client, path=config.SOCKET_PATH
         )
-        os.chmod(config.SOCKET_PATH, 0o666)
+        os.chmod(config.SOCKET_PATH, 0o600)
         log.info("IPC listening on %s", config.SOCKET_PATH)
 
     async def _handle_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ):
         try:
-            data = await asyncio.wait_for(reader.read(65536), timeout=10.0)
+            data = await asyncio.wait_for(reader.read(-1), timeout=5.0)
             if not data:
                 return
 

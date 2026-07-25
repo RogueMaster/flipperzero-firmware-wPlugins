@@ -58,6 +58,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Passy v1.6 (By bettse)](https://github.com/bettse/passy)
 - Updated: [Nightstand Clock v1.3 (By nymda)](https://github.com/nymda/FlipperNightStand) [fix unreachable nightlight and notif use-after-close (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/244) [make Up/Down actually change the screen brightness (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/246) [Daily alarm & other changes (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/be05e0cdeff599797e53144a263b572bee571333)
 - Added: [Flipper Share iButton v0.1 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_ibutton)
+- Updated: [Claude Buddy v0.7 (By jxw1102)](https://github.com/jxw1102/flipper-claude-buddy)
 
 <a name="release"></a>
 
@@ -404,7 +405,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Chronometer (By nmrr)](https://github.com/nmrr/flipperzero-chronometer)
 - [CK42X Passvault v0.4.2 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
 - [CK42X Wakeup v2.29 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-wakeup)
-- [Claude Buddy v0.6 (By jxw1102)](https://github.com/jxw1102/flipper-claude-buddy)
+- [Claude Buddy v0.7 (By jxw1102)](https://github.com/jxw1102/flipper-claude-buddy)
 - [ClayLoop v1.0 (By b0bby225)](https://github.com/b0bby225/ClayLoop)
 - [Click Recorder v1.2 (By 0x78f1935)](https://github.com/0x78f1935/Click-Recorder)
 - [Clippy v0.1 (By mtormento)](https://github.com/mtormento/clippy)

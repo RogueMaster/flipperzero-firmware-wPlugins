@@ -9,34 +9,60 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Build (requires ufbt: pip3 install ufbt)
 cd flipper-app && ufbt build
 
-# Build and flash to connected Flipper
+# Build and flash to connected Flipper (stop any running bridge first)
 cd flipper-app && ufbt launch
 
 # Or use the script
 ./scripts/build-flipper.sh           # build only
 ./scripts/build-flipper.sh --flash   # build + flash
+
+# C protocol unit tests (desktop)
+make -C flipper-app/tests
 ```
 
-### Host Bridge (Python)
+### Host Bridges (Python)
+
+Three independent bridge packages share the same serial protocol:
+
+| Agent | Package | Socket | Default `HOST_TYPE` |
+|-------|---------|--------|---------------------|
+| Claude Code | `plugin/host-bridge/` | `/tmp/claude-flipper-bridge.sock` | `claude` |
+| Codex | `flipper-codex-buddy/host-bridge/` | `/tmp/codex-flipper-bridge.sock` | `codex` |
+| Cursor | `flipper-cursor-buddy/host-bridge/` | `/tmp/cursor-flipper-bridge.sock` | `cursor` |
+
 ```bash
-# Install (editable)
+# Claude Code bridge (editable install)
 cd plugin/host-bridge && pip3 install -e .
+python3 -m bridge --transport usb
 
-# Run bridge daemon
-python3 -m bridge
+# Cursor bridge
+cd flipper-cursor-buddy/host-bridge && pip3 install -e .
+python3 -m bridge --transport usb
 
-# Run with explicit transport
-python3 -m bridge --transport ble   # BLE only
-python3 -m bridge --transport usb   # USB only
+# Codex bridge
+cd flipper-codex-buddy/host-bridge && pip3 install -e .
+python3 -m bridge --transport usb
+```
 
-# Key environment overrides
+**Key environment overrides**
+
+```bash
+FLIPPER_TRANSPORT=usb              # auto, usb, or ble
+FLIPPER_SERIAL_PORT=/dev/ttyACM0   # explicit USB port
+FLIPPER_HOST_TYPE=claude           # claude, codex, or cursor (bridge identity)
 FLIPPER_BT_NAME="Flipper"          # BLE device name prefix
-FLIPPER_TRANSPORT=ble              # force BLE
 FLIPPER_LOG_LEVEL=debug            # verbose logs
 ```
 
-### Testing IPC
+### Testing
+
 ```bash
+# Python bridge tests
+cd plugin/host-bridge && python3 -m pytest tests/
+cd flipper-cursor-buddy/host-bridge && python3 -m pytest tests/
+cd flipper-codex-buddy/host-bridge && python3 -m pytest tests/
+
+# IPC smoke test (Claude socket)
 echo '{"action":"notify","sound":"success","vibro":true,"text":"Test","subtext":""}' \
   | nc -U /tmp/claude-flipper-bridge.sock
 ```
@@ -44,20 +70,26 @@ echo '{"action":"notify","sound":"success","vibro":true,"text":"Test","subtext":
 ## Architecture
 
 ```
-Flipper Zero (C app)
+Flipper Zero (flipper-app/, C)
   ↕ USB CDC serial  OR  BLE serial
-Host Bridge (Python daemon, macOS)
-  ↕ Unix socket  /tmp/claude-flipper-bridge.sock
-Claude Code hook scripts (plugin/ or .claude/)
+Host Bridge (Python daemon, per agent)
+  ↕ Unix socket  /tmp/<agent>-flipper-bridge.sock
+Hook scripts (plugin/, flipper-codex-buddy/, flipper-cursor-buddy/)
 ```
 
-The system has three components:
+**Components**
 
-1. **`flipper-app/`** — Flipper Zero FAP (C). Handles button input and audio/haptic feedback. Auto-selects USB or BLE transport at startup based on USB power state.
+1. **`flipper-app/`** — Flipper Zero FAP (C). Button input, audio/haptic feedback, UI. Auto-selects USB or BLE at startup based on cable state and settings.
 
-2. **`plugin/host-bridge/`** — Python asyncio daemon. Bridges serial ↔ Unix socket. Manages BLE/USB connection with auto-reconnect. Serves a Unix socket that hook scripts connect to.
+2. **`plugin/host-bridge/`** — Claude Code bridge. Asyncio daemon bridging serial ↔ Unix socket. Started by Claude Code `sessionStart` hook.
 
-3. **`plugin/`** — Claude Code plugin (self-contained, shareable). Hook scripts that translate Claude Code lifecycle events (notifications, permissions, tool use) into socket messages.
+3. **`plugin/`** — Claude Code plugin (hooks, scripts, skills).
+
+4. **`flipper-codex-buddy/`** — Codex plugin + bridge + slash commands (`/bridge-on`, etc.).
+
+5. **`flipper-cursor-buddy/`** — Cursor hooks + bridge. Installed into `.cursor/hooks.json` via `install-cursor-hooks.sh`.
+
+Only **one bridge** should own the Flipper serial port at a time.
 
 ## Threading Model — Critical
 
@@ -79,8 +111,14 @@ JSON lines (`\n`-terminated) over serial (USB or BLE):
 {"v": 1, "t": "<type>", "d": {...}}
 ```
 
-**Host → Flipper:** `ping`, `notify`, `state`, `status`, `menu`, `perm`
+**Host → Flipper:** `ping`, `notify`, `state`, `status`, `menu`, `perm`, `usage` (context pressure)
 **Flipper → Host:** `hello`, `pong`, `enter`, `esc`, `voice`, `down`, `cmd`, `perm_resp`
+
+**`state` message** — session + host identity:
+```json
+{"t":"state","d":{"claude":true,"host":"cursor"}}
+```
+`host` is optional for backward compatibility (`claude`, `codex`, `cursor`).
 
 The Flipper sends `hello` on the first received `ping` (from the GUI thread), not at BLE connect time. This is because the host's CCCD write (enabling notifications) hasn't happened yet when the connection status callback fires.
 
@@ -96,52 +134,59 @@ The Flipper sends `hello` on the first received `ping` (from the GUI thread), no
 | File | Purpose |
 |------|---------|
 | `flipper-app/claude_buddy.c` | App entry point, GUI event loop, message dispatch |
-| `flipper-app/transport_bt.c` | BLE transport — RX callback, connection state |
-| `flipper-app/ui.c` | Display rendering, button input handlers |
+| `flipper-app/ui.c` | Display rendering, animations, host label, button handlers |
 | `flipper-app/protocol.c` | JSON parse/build for all message types |
-| `plugin/host-bridge/bridge/daemon.py` | Main event loop, message routing |
-| `plugin/host-bridge/bridge/transport_bt.py` | BLE transport (bleak), readline, write |
-| `plugin/host-bridge/bridge/serial_conn.py` | Reconnect loop, disconnect detection |
-| `plugin/host-bridge/bridge/config.py` | All tunables (timeouts, UUIDs, chunk sizes) |
-| `plugin/scripts/` | Hook scripts for each Claude Code lifecycle event |
+| `flipper-app/nus_state.c` | Claude Desktop BLE state machine |
+| `plugin/host-bridge/bridge/daemon.py` | Claude bridge event loop |
+| `flipper-cursor-buddy/host-bridge/bridge/daemon.py` | Cursor bridge (`cursor_connect` IPC) |
+| `flipper-codex-buddy/host-bridge/bridge/daemon.py` | Codex bridge |
+| `plugin/scripts/context_usage.py` | Context/session pressure → `usage` IPC messages |
 
-## Runtime Files (macOS)
-- Socket: `/tmp/claude-flipper-bridge.sock`
-- PID: `/tmp/claude-flipper-bridge.pid`
-- Log: `/tmp/claude-flipper-bridge.log`
+## Runtime Files
+
+| Agent | Socket | PID | Log |
+|-------|--------|-----|-----|
+| Claude | `/tmp/claude-flipper-bridge.sock` | `/tmp/claude-flipper-bridge.pid` | `/tmp/claude-flipper-bridge.log` |
+| Codex | `/tmp/codex-flipper-bridge.sock` | `/tmp/codex-flipper-bridge.pid` | `/tmp/codex-flipper-bridge.log` |
+| Cursor | `/tmp/cursor-flipper-bridge.sock` | `/tmp/cursor-flipper-bridge.pid` | `/tmp/cursor-flipper-bridge.log` |
+
+Additional Claude-only files:
 - Session refcount: `/tmp/claude-flipper-bridge.refcount`
-- Turn stats: `/tmp/claude-flipper-turn-stats.json` — tool usage counts written by `on-post-tool-use.py`, read by `on-stop.sh`
-- Skip-stop flag: `/tmp/claude-flipper-skip-stop.flag` — set by hook Bash commands that write directly to the socket, prevents `on-stop.sh` from double-notifying
-- BT name cache: `$PLUGIN_DATA/bt_name` — auto-detected Bluetooth device name saved after first `hello`; used across sessions to skip re-scanning
+- Turn stats: `/tmp/claude-flipper-turn-stats.json`
+- Skip-stop flag: `/tmp/claude-flipper-skip-stop.flag`
+- BT name cache: `$PLUGIN_DATA/bt_name`
 
-To inspect bridge activity: `tail -f /tmp/claude-flipper-bridge.log`
+Inspect bridge activity: `tail -f /tmp/<agent>-flipper-bridge.log`
 
 ## Platform Notes
 
 | Feature | macOS | Linux |
 |---------|-------|-------|
 | USB transport | `/dev/cu.usbmodem*` | `/dev/ttyACM*` (auto-detected) |
-| BLE transport | ✓ | not yet supported |
-| Keystroke forwarding | AppleScript (`osascript`) | `xdotool` (X11 only; install via `apt install xdotool`) |
+| BLE transport | ✓ | experimental |
+| Keystroke forwarding | AppleScript (`osascript`) | `xdotool` (X11 only) |
 | Wayland keystroke | ✗ | not yet supported (`ydotool` needed) |
-| Dictation | macOS native (`FLIPPER_DICTATION_BACKEND=macos`) | disabled by default; use `FLIPPER_DICTATION_BACKEND=custom` |
+| Dictation | macOS native | disabled by default; `FLIPPER_DICTATION_BACKEND=custom` |
 
-On Linux, `WINDOWID` (set by VTE-based terminals like gnome-terminal and kitty) is used by `xdotool` to focus the correct window. If `WINDOWID` is not set, keystrokes go to the active window.
-
-The bridge daemon, IPC socket, and all hook scripts are otherwise platform-agnostic.
+On Linux, `WINDOWID` (VTE terminals like gnome-terminal and kitty) is used by `xdotool` to focus the correct window.
 
 ## Command Menu System
 
-The Flipper's button menu is populated from two optional text files (project overrides user):
-1. `~/.claude/flipper-commands.txt` — user-level shortcuts
-2. `$PROJECT_DIR/.claude/flipper-commands.txt` — project-level shortcuts
+The Flipper command menu is populated from optional shortcut files (project overrides user):
 
-Each line is a display label and command separated by a delimiter. The bridge also auto-discovers skill shortcuts from `.claude/commands/`. Commands are sent to the Flipper as a pipe-delimited `menu` message; the Flipper stores abbreviations in `_cmd_map` and expands the selection back to the host.
+**Claude Code**
+1. `~/.claude/flipper-commands.txt`
+2. `$PROJECT_DIR/.claude/flipper-commands.txt`
+3. Auto-discovered from `.claude/commands/`
+
+**Cursor:** `~/.cursor/flipper-commands.txt`, `$PROJECT_DIR/.cursor/flipper-commands.txt`
+
+Commands are sent as a pipe-delimited `menu` message; the bridge stores abbreviations in `_cmd_map`.
 
 ## Releasing a New Version
 
 1. **Commit any uncommitted changes first** — the version bump should be its own clean commit.
-2. **`flipper-app/CHANGELOG.md`** — add a new `## vX.Y` section at the top, summarizing commits since the previous version.
+2. **`flipper-app/CHANGELOG.md`** — add a new `## vX.Y` section at the top.
 3. **`flipper-app/application.fam`** — update `fap_version`
 4. **`flipper-app/ui.c`** — update version string on the About page
 5. **`plugin/.claude-plugin/plugin.json`** — update `version`
@@ -151,4 +196,4 @@ Each line is a display label and command separated by a delimiter. The bridge al
    git tag X.Y
    git push origin X.Y
    ```
-   The CI workflow (`.github/workflows/build-fap.yml`) creates the GitHub release and attaches the built `.fap` automatically.
+   CI (`.github/workflows/build-fap.yml`) creates the GitHub release and attaches the built `.fap`.

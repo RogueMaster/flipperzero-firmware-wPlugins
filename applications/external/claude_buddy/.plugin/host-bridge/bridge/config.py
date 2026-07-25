@@ -6,6 +6,9 @@ from pathlib import Path
 
 SOCKET_PATH = os.environ.get("FLIPPER_BRIDGE_SOCKET", "/tmp/claude-flipper-bridge.sock")
 
+# Host identity reported to the Flipper header label (claude/codex/cursor)
+HOST_TYPE = os.environ.get("FLIPPER_HOST_TYPE", "claude")
+
 SERIAL_BAUD = 115200
 
 SERIAL_PORT = os.environ.get("FLIPPER_SERIAL_PORT", "")

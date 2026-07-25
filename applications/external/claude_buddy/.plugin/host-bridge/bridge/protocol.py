@@ -40,8 +40,8 @@ def notify_msg(
     return encode("notify", d)
 
 
-def state_msg(claude_connected: bool = False) -> bytes:
-    return encode("state", {"claude": claude_connected})
+def state_msg(claude_connected: bool = False, host: str = "claude") -> bytes:
+    return encode("state", {"claude": claude_connected, "host": host})
 
 
 def status_msg(line1: str, line2: str = "") -> bytes:
@@ -67,3 +67,18 @@ def perm_msg(tool: str, detail: str = "") -> bytes:
     if detail:
         d["detail"] = detail[:21]
     return encode("perm", d)
+
+
+def usage_msg(
+    context_pct: int | None = None,
+    session_pct: int | None = None,
+    compact_level: int | None = None,
+) -> bytes:
+    d: dict[str, int] = {}
+    if context_pct is not None:
+        d["ctx"] = max(0, min(100, int(context_pct)))
+    if session_pct is not None:
+        d["sess"] = max(0, min(100, int(session_pct)))
+    if compact_level is not None:
+        d["clvl"] = max(0, min(3, int(compact_level)))
+    return encode("usage", d)

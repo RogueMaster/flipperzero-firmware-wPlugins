@@ -42,15 +42,31 @@ typedef enum {
 } UiEventType;
 
 typedef enum {
-    PoseIdle, // default: periodic blink
-    PoseListening, // eyes up, header shows REC indicator
-    PoseThinking, // eyes right, animated dots above head
+    PoseIdle, // default: periodic blink, breathing, occasional glance
+    PoseListening, // eyes up, animated sound waves
+    PoseThinking, // eyes right, orbiting dots above head
+    PoseWorking, // eyes down, typing motion (tool use / active work)
     PoseHappy, // squinted eyes + smile + sparkles, brief bounce (auto-resets)
     PoseAlert, // wide eyes, blinking ! + horizontal shake (auto-resets)
-    PoseSleeping, // closed eyes, floating z
+    PoseSleeping, // closed eyes, floating z's
     PoseExcited, // arms raised, fast bounce, cycling sparkles (auto-resets)
     PoseWorried, // shifty eyes, sweat drop, gentle wobble (used on perm screen)
+    PoseCompacting, // squished body + inward arrows (context compaction)
+    PoseDenied, // droopy eyes, downturned mouth (permission denied)
+    PoseStressed, // context 62-77%: furrowed brows, light steam
+    PoseOverloaded, // context 78-91%: heavy steam, wide eyes
+    PoseCritical, // context 92%+: frantic shake, stacked alerts
+    PoseRateLimited, // session/rate limit pressure
 } CharacterPose;
+
+#define CTX_PCT_UNKNOWN 255
+
+typedef enum {
+    HostTypeUnknown = 0,
+    HostTypeClaude,
+    HostTypeCodex,
+    HostTypeCursor,
+} HostType;
 
 typedef void (*UiEventCallback)(UiEventType event, const char* data, void* context);
 
@@ -68,6 +84,10 @@ typedef struct {
     bool space_hold_active; // true while Up long-press is held for hold-space input
     uint8_t pose; // CharacterPose
     uint8_t anim_frame; // animation counter (incremented by timer)
+    uint8_t context_pct; // 0-100, CTX_PCT_UNKNOWN when unknown
+    uint8_t session_pct; // 0-100 rate-limit pressure, CTX_PCT_UNKNOWN when unknown
+    uint8_t compact_level; // 0=off, 1-3 compaction intensity
+    uint8_t host_type; // HostType — bridge identity (Claude/Codex/Cursor)
     uint8_t transport_mode; // 0 = USB, 1 = BT (shown in header)
     uint8_t rssi_bars; // BLE signal bars 0–4 (only used when transport_mode == 1)
 } StatusModel;
@@ -128,7 +148,14 @@ void ui_show_status2(UiState* ui, const char* text, const char* subtext, bool co
 void ui_show_menu(UiState* ui);
 void ui_show_listening(UiState* ui);
 void ui_set_claude_connected(UiState* ui, bool connected);
+void ui_set_host_type(UiState* ui, uint8_t host_type);
 void ui_set_pose(UiState* ui, uint8_t pose);
+void ui_set_usage(
+    UiState* ui,
+    uint8_t context_pct,
+    uint8_t session_pct,
+    uint8_t compact_level,
+    bool update_compact);
 void ui_set_transport_mode(UiState* ui, bool is_bt);
 void ui_update_menu(UiState* ui, const char* pipe_delimited);
 void ui_show_permission(UiState* ui, const char* tool, const char* detail, bool allow_always);
