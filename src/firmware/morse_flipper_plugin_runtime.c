@@ -30,6 +30,11 @@ static __attribute__((noinline)) bool morse_flipper_plugin_runtime_typed_api_val
                api->finalize_answer_from_raw != NULL && api->set_range != NULL &&
                api->score != NULL && api->complete != NULL && api->marks_complete != NULL;
     }
+    if(owner == MorseFlipperPluginOwnerSettings) {
+        const MfSettingsApi* api = entry;
+        return api->mapped.enter != NULL && api->mapped.input != NULL &&
+               api->request_close != NULL && api->selected_state != NULL;
+    }
     return false;
 }
 
