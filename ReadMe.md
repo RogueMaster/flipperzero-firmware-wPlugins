@@ -56,7 +56,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Swimmy Fish v2.5 (By Invizabel)](https://github.com/Invizabel/fish)
 - Added: [Piano v1.0 (By bergr22)](https://github.com/bergr22/FlipPiano)
 - Updated: [Passy v1.6 (By bettse)](https://github.com/bettse/passy)
-- Updated: [Nightstand Clock v1.3 (By nymda)](https://github.com/nymda/FlipperNightStand) [fix unreachable nightlight and notif use-after-close (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/244) [make Up/Down actually change the screen brightness (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/246) Daily alarm & other changes (By xMasterX)
+- Updated: [Nightstand Clock v1.3 (By nymda)](https://github.com/nymda/FlipperNightStand) [fix unreachable nightlight and notif use-after-close (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/244) [make Up/Down actually change the screen brightness (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/246) [Daily alarm & other changes (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/be05e0cdeff599797e53144a263b572bee571333)
 
 <a name="release"></a>
 
