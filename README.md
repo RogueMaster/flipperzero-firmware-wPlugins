@@ -7,7 +7,8 @@ codes beforehand. It also converts text to Morse and plays it back.
 The interface is **English by default**, with Spanish available as an option
 (Settings → Language).
 
-![Decision tree](screenshots/ss0.png)
+![Main menu](screenshots/ss0.png)
+![Decision tree](screenshots/ss1.png)
 
 ## Modes
 
