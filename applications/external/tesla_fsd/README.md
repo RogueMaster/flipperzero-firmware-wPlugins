@@ -210,7 +210,7 @@ New to this and not very technical? Pick your hardware — both paths avoid the 
 4. On the Flipper: **Apps → GPIO → Tesla Mod**.
 
 **ESP32** — flash it straight from your browser, nothing to install:
-1. Open the **[Web Flasher](https://hypery11.github.io/flipper-tesla-fsd/install/)** in Chrome, Edge, or Opera on a desktop.
+1. Get the flasher: either open the hosted **[Web Flasher](https://hypery11.github.io/flipper-tesla-fsd/install/)**, or download `tesla-flasher.html` from the latest [release](https://github.com/hypery11/flipper-tesla-fsd/releases) and open it — both work in **Chrome, Edge, or Opera** on a desktop.
 2. Plug the board in over USB, press **Install** next to your board, and pick the serial port.
 3. When it finishes, connect to the board's Wi-Fi network and open `http://192.168.4.1` to control it.
 

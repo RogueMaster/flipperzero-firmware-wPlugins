@@ -1,3 +1,8 @@
+## 2.16-beta.22 — flasher works as a plain download (no hosting needed)
+
+- **The web flasher is now a single self-contained file, attached to each release as `tesla-flasher.html`.** Download it from Releases and open it in Chrome / Edge / Opera to flash a blank board — no hosting, no GitHub Pages required (it still works hosted too). The per-board manifests are inlined as `data:` URLs so there are no sibling files to fetch, which also lets it run when opened locally (`file://`).
+- Internal: the firmware-merge step now calls esptool via an argument list instead of a shell string (robust to paths with spaces; fails the build if the merge errors).
+
 ## 2.16-beta.21 — one-click browser flasher + beginner Getting Started guide
 
 - **Browser-based ESP32 flasher (no toolchain).** Flash a blank board straight from Chrome / Edge / Opera at the [Web Flasher](https://hypery11.github.io/flipper-tesla-fsd/install/) — pick your board, press Install. Built on ESP Web Tools. Each release now also ships a **full-flash merged image per board** (`tesla-fsd-<board>-merged.bin`) next to the existing app-only `.bin` (which the in-device dashboard OTA updater still uses).
