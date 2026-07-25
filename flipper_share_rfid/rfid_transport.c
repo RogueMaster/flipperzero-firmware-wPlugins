@@ -45,6 +45,11 @@ typedef struct {
     // constant-level run lengths, so the low run is reconstructed as period - high.
     uint32_t rx_last_high;
     bool rx_have_high;
+    // Diagnostics (reader): raw capture edges seen in the ISR and complete packets
+    // the modem decoded. Surfaced on the receive "waiting" screen to localize a
+    // no-reception (0 edges = no coupling/capture; edges but 0 packets = decode).
+    volatile uint32_t rx_events;
+    volatile uint32_t rx_frames;
 } RfidTransport;
 
 // How long the tag worker tolerates a stalled emulate DMA (no half/full
@@ -164,6 +169,7 @@ static int32_t rfid_tp_tag_worker(void* context) {
 // worker. No decoding in the ISR (same event-packing split as ir_transport).
 static void rfid_tp_capture_isr(bool level, uint32_t duration, void* context) {
     RfidTransport* tp = context;
+    tp->rx_events++; // diagnostic: proves the comparator/capture is firing at all
     uint32_t e = (level ? 0x80000000u : 0u) | (duration & 0x7FFFFFFFu);
     furi_stream_buffer_send(tp->rx_stream, &e, sizeof(e), 0);
 }
@@ -172,7 +178,10 @@ static void rfid_tp_capture_isr(bool level, uint32_t duration, void* context) {
 // completed packet.
 static void rfid_tp_feed_run(RfidTransport* tp, bool level, uint32_t dur_us, uint8_t* pkt) {
     size_t len = rfid_modem_dec_feed(&tp->dec, level, dur_us, pkt, FSH_PACKET_MAX);
-    if(len) fsh_receive_callback(pkt, len);
+    if(len) {
+        tp->rx_frames++; // diagnostic: modem decoded a complete frame
+        fsh_receive_callback(pkt, len);
+    }
 }
 
 static int32_t rfid_tp_rx_worker(void* context) {
@@ -301,4 +310,12 @@ void rfid_transport_stop_field(void) {
 bool rfid_transport_tag_field_present(void) {
     RfidTransport* tp = rfid_tp;
     return tp && tp->field_present;
+}
+
+void rfid_transport_reader_stats(uint32_t* events, uint32_t* frames) {
+    RfidTransport* tp = rfid_tp;
+    uint32_t e = (tp && tp->mode == RfidTransportModeReader) ? tp->rx_events : 0;
+    uint32_t f = (tp && tp->mode == RfidTransportModeReader) ? tp->rx_frames : 0;
+    if(events) *events = e;
+    if(frames) *frames = f;
 }

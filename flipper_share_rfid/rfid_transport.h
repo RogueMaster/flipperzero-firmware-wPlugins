@@ -34,3 +34,8 @@ void rfid_transport_stop_field(void);
 // True once the tag has seen the reader's field at least once (drives the sender's
 // "Waiting for field..." UI hint). Always false / irrelevant on the reader.
 bool rfid_transport_tag_field_present(void);
+
+// Reader diagnostics: raw capture edges seen and complete frames the modem
+// decoded so far. Zeroed if not running as reader. Used by the receive screen to
+// localize a stuck "Waiting for announce".
+void rfid_transport_reader_stats(uint32_t* events, uint32_t* frames);
