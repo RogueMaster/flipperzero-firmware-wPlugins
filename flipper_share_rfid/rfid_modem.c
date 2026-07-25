@@ -114,11 +114,17 @@ static const uint8_t* signature(void) {
 
 // Classify a level run duration into half-bit (1), full-bit (2), or invalid (0).
 static int classify_run(uint32_t dur_us) {
-    const uint32_t tol = RFID_MODEM_TOLERANCE_PCT;
-    uint32_t hb = RFID_MODEM_HALFBIT_US, fb = RFID_MODEM_FULLBIT_US;
-    if(dur_us >= hb - hb * tol / 100u && dur_us <= hb + hb * tol / 100u) return 1;
-    if(dur_us >= fb - fb * tol / 100u && dur_us <= fb + fb * tol / 100u) return 2;
-    return 0;
+    // Threshold classification with NO dead zone between the half-bit and
+    // full-bit windows: a run in a valid Manchester stream is only ever ~128 us
+    // or ~256 us, so split at the midpoint (192 us) and assign the nearer class.
+    // A dead-zone (windowed) classifier rejected borderline runs as invalid and
+    // reset the decoder — fatal here because reconstructing the low run as
+    // (period - high) doubles per-edge jitter, so real captures routinely land
+    // between the two windows. Runs longer than the inter-frame gap are already
+    // filtered by the caller before this point.
+    if(dur_us < RFID_MODEM_HALFBIT_US / 2u) return 0; // < 64 us: glitch -> desync
+    if(dur_us < RFID_MODEM_CLASS_SPLIT_US) return 1; // half-bit
+    return 2; // full-bit
 }
 
 // Process one reconstructed half-bit at raw `level`. Returns the packet length

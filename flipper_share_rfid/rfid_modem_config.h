@@ -14,9 +14,12 @@
 #define RFID_MODEM_HALFBIT_US (RFID_MODEM_HALFBIT_CYCLES * RFID_MODEM_CARRIER_US) // 128 us
 #define RFID_MODEM_FULLBIT_US (RFID_MODEM_RF_K * RFID_MODEM_CARRIER_US)           // 256 us
 
-// Run-length classification tolerance (percent) around the half-bit / full-bit
-// nominal durations. Weak coupling widens the jitter, so keep this generous.
-#define RFID_MODEM_TOLERANCE_PCT 25u
+// Run-length classification split point: a run below this is a half-bit, at or
+// above it (and up to the inter-frame gap) is a full-bit. The midpoint of the two
+// nominal durations, so each tolerates ~+/-64 us of spread before misclassifying —
+// deliberately generous because the reader's PWM capture, reconstructed as
+// (period - high), doubles per-edge jitter. See classify_run() in rfid_modem.c.
+#define RFID_MODEM_CLASS_SPLIT_US ((RFID_MODEM_HALFBIT_US + RFID_MODEM_FULLBIT_US) / 2u)
 
 // Any level run longer than this is treated as an inter-frame gap and resets the
 // decoder to sync-hunt (~2.5 bit periods).

@@ -403,3 +403,20 @@ estimate until section 10 is executed.
   clears `field_present`, so the send scene falls back to "Waiting for field..." instead of
   showing the counters advancing — matching how the SubGHz/IR/NFC transports surface a lost
   peer. It re-arms automatically on re-touch and the block bitmap resumes the transfer.
+
+### 13.1 Follow-up: receiver still stuck after the capture-adapter fix
+
+The capture-adapter fix above was necessary but not sufficient — the receiver still
+never locked while the sender transmitted. Root cause: the run-length classifier used
+two windowed ranges (half-bit 96-160 us, full-bit 192-320 us) with a **dead zone**
+between them; a run landing in that gap was rejected as invalid and **reset the decoder**.
+Because the low run is reconstructed as `period - high`, per-edge capture jitter is
+doubled, so real captures routinely land in the dead zone — resetting the decoder on
+nearly every frame, so it never completed a preamble+sync lock.
+
+Fix: `classify_run()` now uses a single midpoint split (192 us) with no dead zone — below
+it is a half-bit, at/above it (up to the inter-frame gap) is a full-bit. Each class now
+tolerates ~+/-64 us of spread. The host "hw-capture chain" pass at +/-20 us edge jitter
+went from 9670/10000 failing to 0/10000, and the harsh +/-45 us pass likewise now decodes
+cleanly. A short (50 ms) field-settle delay was also added before capture starts, matching
+the stock LF reader.

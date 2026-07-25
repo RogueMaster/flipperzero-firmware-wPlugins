@@ -239,6 +239,9 @@ void rfid_transport_init(RfidTransportMode mode) {
         furi_thread_start(tp->rx_worker);
 
         furi_hal_rfid_tim_read_start(125000.0f, 0.5f);
+        // Let the field ring up and the demodulator settle before capturing, so
+        // the first edges are clean (the stock LF reader waits here too).
+        furi_delay_ms(50);
         furi_hal_rfid_tim_read_capture_start(rfid_tp_capture_isr, tp);
         tp->field_on = true;
     }
