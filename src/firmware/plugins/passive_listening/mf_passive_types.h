@@ -110,6 +110,7 @@ typedef enum {
     MfPassivePhasePostCue,
     MfPassivePhaseRepeatCw,
     MfPassivePhaseError,
+    MfPassivePhasePostRepeat,
 } MfPassivePhase;
 
 typedef struct {

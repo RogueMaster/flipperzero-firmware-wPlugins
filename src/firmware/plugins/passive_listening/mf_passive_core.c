@@ -10,6 +10,7 @@
 #define MF_PASSIVE_POST_VOICE_MS    1000U
 #define MF_PASSIVE_CUE_MS           120U
 #define MF_PASSIVE_POST_CUE_MS      1000U
+#define MF_PASSIVE_POST_REPEAT_MS    100U
 #define MF_PASSIVE_MAX_UNDERRUNS     64U
 
 static bool mf_passive_reached(uint32_t now, uint32_t deadline) {
@@ -293,7 +294,8 @@ MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
             else if(state->phase != MfPassivePhaseError &&
                     state->char_index + 1U == state->prompt_len) {
                 if(state->phase == MfPassivePhaseRepeatCw) {
-                    if(!mf_passive_start_cue(state, now_ms)) mf_passive_fail(state);
+                    state->phase = MfPassivePhasePostRepeat;
+                    state->next_at = now_ms + MF_PASSIVE_POST_REPEAT_MS;
                 } else {
                     state->phase = MfPassivePhasePostCw;
                     state->next_at = now_ms + state->answer_delay_ms;
@@ -363,6 +365,11 @@ MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
         } else {
             /* Cue state is set by mf_passive_start_cue. */
         }
+        return mf_passive_result(state, false);
+    }
+    if(state->phase == MfPassivePhasePostRepeat &&
+       mf_passive_reached(now_ms, state->next_at)) {
+        if(!mf_passive_start_cue(state, now_ms)) mf_passive_fail(state);
         return mf_passive_result(state, false);
     }
     if(state->phase == MfPassivePhaseCue && mf_passive_reached(now_ms, state->next_at)) {

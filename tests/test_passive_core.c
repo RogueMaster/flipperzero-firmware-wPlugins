@@ -426,7 +426,9 @@ static void test_repeat_and_vibration_controls(void) {
     MemoryFile file;
     MfPassiveState state;
     FakeServices fake;
+    uint32_t cue_at;
     uint32_t now;
+    uint32_t tones_after_repeat;
 
     make_pack(&file);
     setup(&state, &fake, &file);
@@ -439,8 +441,15 @@ static void test_repeat_and_vibration_controls(void) {
         now = state.next_at;
         mf_passive_tick(&state, now);
     }
-    CHECK(state.phase == MfPassivePhaseCue && fake.voices == 0U);
+    CHECK(state.phase == MfPassivePhasePostRepeat && fake.voices == 0U);
     CHECK(state.revealed_count == 0U && strcmp(state.prompt, "A1A1") == 0);
+    cue_at = state.next_at;
+    tones_after_repeat = fake.tones;
+    CHECK(cue_at == now + 100U);
+    mf_passive_tick(&state, cue_at - 1U);
+    CHECK(state.phase == MfPassivePhasePostRepeat && fake.tones == tones_after_repeat);
+    mf_passive_tick(&state, cue_at);
+    CHECK(state.phase == MfPassivePhaseCue && fake.tones == tones_after_repeat + 1U);
     mf_passive_tick(&state, state.next_at);
     CHECK(state.phase == MfPassivePhasePostCue && fake.vibrations_on == 1U);
     mf_passive_leave(&state);
