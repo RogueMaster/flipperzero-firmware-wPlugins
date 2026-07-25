@@ -453,6 +453,7 @@ typedef struct MorseFlipperApp {
     uint32_t streak_intro_until_ms;
     MorseFlipperProgressPage progress_page;
     MorseFlipperProgressHistoryCursor progress_history;
+    MorseFlipperProgressHistoryNewerCursor progress_history_newer;
     MorseFlipperProgressHistoryRow progress_rows[MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS];
     MorseFlipperHamRuntimeState ham;
 

@@ -625,6 +625,7 @@ static void morse_flipper_progress_load_recent(MorseFlipperApp* app) {
     app->progress_scroll_next_ms = 0U;
     today_valid = morse_flipper_progress_today(&today);
     day = morse_flipper_progress_history_start_day(app->view_progress, today_valid, today);
+    morse_flipper_progress_history_newer_reset(&app->progress_history_newer, NULL, day);
     if(day == MORSE_FLIPPER_PROGRESS_DAY_NONE) {
         morse_flipper_progress_history_reset(
             &app->progress_history, MORSE_FLIPPER_PROGRESS_DAY_NONE);
@@ -634,6 +635,9 @@ static void morse_flipper_progress_load_recent(MorseFlipperApp* app) {
     morse_flipper_progress_history_reset(&app->progress_history, day);
     app->progress_row_count = morse_flipper_progress_history_load_more(
         &app->progress_history, app->progress_rows, MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS);
+    if(app->progress_row_count != 0U)
+        morse_flipper_progress_history_newer_reset(
+            &app->progress_history_newer, &app->progress_rows[0], day);
 }
 
 static void morse_flipper_progress_reset_scroll_repeat(MorseFlipperApp* app) {
@@ -694,6 +698,10 @@ static bool morse_flipper_progress_cache_older_one(MorseFlipperApp* app, bool* d
             sizeof(app->progress_rows[0]) * (MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS - 1U));
         app->progress_rows[MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS - 1U] = row;
         if(dropped_newest != NULL) *dropped_newest = true;
+        morse_flipper_progress_history_newer_reset(
+            &app->progress_history_newer,
+            &app->progress_rows[0],
+            app->progress_history_newer.newest_day);
     }
 
     return true;
@@ -708,8 +716,15 @@ static bool morse_flipper_progress_cache_newer_one(MorseFlipperApp* app) {
     if(app == NULL || app->progress_row_count == 0U) return false;
     today_valid = morse_flipper_progress_today(&today);
     newest_day = morse_flipper_progress_history_start_day(app->view_progress, today_valid, today);
-    if(newest_day == MORSE_FLIPPER_PROGRESS_DAY_NONE) return false;
-    if(!morse_flipper_progress_history_load_newer(&app->progress_rows[0], newest_day, &row))
+    if(newest_day == MORSE_FLIPPER_PROGRESS_DAY_NONE) {
+        morse_flipper_progress_history_newer_reset(&app->progress_history_newer, NULL, newest_day);
+        return false;
+    }
+    if(!app->progress_history_newer.initialized ||
+       app->progress_history_newer.newest_day != newest_day)
+        morse_flipper_progress_history_newer_reset(
+            &app->progress_history_newer, &app->progress_rows[0], newest_day);
+    if(!morse_flipper_progress_history_load_newer(&app->progress_history_newer, &row))
         return false;
 
     if(app->progress_row_count < MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS) {
@@ -735,7 +750,10 @@ static bool morse_flipper_progress_scroll_history(MorseFlipperApp* app, int8_t d
     uint8_t focus;
 
     if(app == NULL) return false;
-    if(app->progress_row_count == 0U) morse_flipper_progress_load_recent(app);
+    if(app->progress_row_count == 0U) {
+        if(dir < 0) return false;
+        return morse_flipper_progress_cache_older_one(app, NULL);
+    }
     visible = morse_flipper_progress_visible_history_rows(app);
     if(visible == 0U) return false;
     morse_flipper_progress_clamp_history_cursor(app);

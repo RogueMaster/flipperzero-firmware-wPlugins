@@ -61,6 +61,15 @@ typedef struct {
 } MorseFlipperProgressHistoryCursor;
 
 typedef struct {
+    uint16_t practice_day;
+    uint16_t line_from_end;
+    uint16_t newest_day;
+    bool day_loaded;
+    bool initialized;
+    bool exhausted;
+} MorseFlipperProgressHistoryNewerCursor;
+
+typedef struct {
     char lesson;
     uint16_t practice_day;
     uint16_t line_from_end;
@@ -146,11 +155,14 @@ bool morse_flipper_progress_append_history(
 void morse_flipper_progress_history_reset(
     MorseFlipperProgressHistoryCursor* cursor,
     uint16_t practice_day);
+void morse_flipper_progress_history_newer_reset(
+    MorseFlipperProgressHistoryNewerCursor* cursor,
+    const MorseFlipperProgressHistoryRow* from,
+    uint16_t newest_day);
 uint8_t morse_flipper_progress_history_load_more(
     MorseFlipperProgressHistoryCursor* cursor,
     MorseFlipperProgressHistoryRow* rows,
     uint8_t row_cap);
 bool morse_flipper_progress_history_load_newer(
-    const MorseFlipperProgressHistoryRow* from,
-    uint16_t newest_day,
+    MorseFlipperProgressHistoryNewerCursor* cursor,
     MorseFlipperProgressHistoryRow* out);

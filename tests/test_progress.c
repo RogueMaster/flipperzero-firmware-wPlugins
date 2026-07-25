@@ -227,14 +227,111 @@ static void test_persistence_shape_rules(void) {
     CHECK(loaded.total_attempts == 0U);
 }
 
-static void test_empty_history_scan_exhausts_cursor(void) {
+static void test_empty_history_scan_is_resumable(void) {
     MorseFlipperProgressHistoryCursor cursor;
     MorseFlipperProgressHistoryRow row;
     uint16_t today = checked_day(2026, 7, 21);
+    uint16_t expected_day = (uint16_t)(today - MORSE_FLIPPER_PROGRESS_HISTORY_SCAN_DAYS);
 
     morse_flipper_progress_history_reset(&cursor, today);
     CHECK(morse_flipper_progress_history_load_more(&cursor, &row, 1U) == 0U);
-    CHECK(cursor.exhausted);
+    CHECK(!cursor.exhausted);
+    CHECK(cursor.practice_day == expected_day);
+    while(!cursor.exhausted)
+        CHECK(morse_flipper_progress_history_load_more(&cursor, &row, 1U) == 0U);
+    CHECK(cursor.practice_day == 0U);
+}
+
+static void append_history_day(uint16_t practice_day, uint8_t hour, uint8_t lesson) {
+    uint16_t year;
+    uint8_t month;
+    uint8_t day;
+
+    CHECK(morse_flipper_progress_day_to_date(practice_day, &year, &month, &day));
+    CHECK(morse_flipper_progress_append_history(year, month, day, hour, 0U, lesson, 80U));
+}
+
+static void test_history_long_gap_continuations(void) {
+    static const uint16_t gaps[] = {31U, 32U, 62U, 90U};
+    uint16_t base_day = checked_day(2030, 7, 21);
+
+    for(size_t i = 0U; i < sizeof(gaps) / sizeof(gaps[0]); i++) {
+        MorseFlipperProgressHistoryCursor older_cursor;
+        MorseFlipperProgressHistoryNewerCursor newer_cursor;
+        MorseFlipperProgressHistoryRow row;
+        uint16_t start = (uint16_t)(base_day - i * 200U);
+        uint16_t older_day = (uint16_t)(start - gaps[i] - 1U);
+        uint8_t empty_slices = 0U;
+
+        append_history_day(start, (uint8_t)(10U + i), (uint8_t)(20U + i));
+        append_history_day(older_day, (uint8_t)(14U + i), (uint8_t)(30U + i));
+
+        morse_flipper_progress_history_reset(&older_cursor, start);
+        CHECK(morse_flipper_progress_history_load_more(&older_cursor, &row, 1U) == 1U);
+        CHECK(row.practice_day == start);
+        while(morse_flipper_progress_history_load_more(&older_cursor, &row, 1U) == 0U) {
+            CHECK(!older_cursor.exhausted);
+            empty_slices++;
+        }
+        CHECK(empty_slices > 0U);
+        CHECK(row.practice_day == older_day);
+
+        morse_flipper_progress_history_newer_reset(&newer_cursor, &row, start);
+        empty_slices = 0U;
+        while(!morse_flipper_progress_history_load_newer(&newer_cursor, &row)) {
+            CHECK(!newer_cursor.exhausted);
+            empty_slices++;
+        }
+        CHECK(empty_slices > 0U);
+        CHECK(row.practice_day == start);
+        CHECK(!morse_flipper_progress_history_load_newer(&newer_cursor, &row));
+        CHECK(newer_cursor.exhausted);
+    }
+}
+
+static void test_history_cursor_boundaries_and_reuse(void) {
+    MorseFlipperProgressHistoryCursor older_cursor;
+    MorseFlipperProgressHistoryNewerCursor newer_cursor;
+    MorseFlipperProgressHistoryRow row;
+    MorseFlipperProgressHistoryRow anchor;
+    uint16_t dec31 = checked_day(2031, 12, 31);
+    uint16_t jan1 = checked_day(2032, 1, 1);
+    uint16_t jan2 = checked_day(2032, 1, 2);
+
+    append_history_day(dec31, 8U, 40U);
+    append_history_day(jan1, 9U, 41U);
+    append_history_day(jan1, 10U, 42U);
+    append_history_day(jan2, 11U, 43U);
+
+    morse_flipper_progress_history_reset(&older_cursor, jan2);
+    CHECK(morse_flipper_progress_history_load_more(&older_cursor, &row, 1U) == 1U);
+    CHECK(row.practice_day == jan2);
+    CHECK(morse_flipper_progress_history_load_more(&older_cursor, &row, 1U) == 1U);
+    CHECK(row.practice_day == jan1 && row.hour == 10U);
+    CHECK(morse_flipper_progress_history_load_more(&older_cursor, &row, 1U) == 1U);
+    CHECK(row.practice_day == jan1 && row.hour == 9U);
+    CHECK(morse_flipper_progress_history_load_more(&older_cursor, &row, 1U) == 1U);
+    CHECK(row.practice_day == dec31);
+
+    anchor = row;
+    morse_flipper_progress_history_newer_reset(&newer_cursor, &anchor, jan2);
+    CHECK(morse_flipper_progress_history_load_newer(&newer_cursor, &row));
+    CHECK(row.practice_day == jan1 && row.hour == 9U);
+    CHECK(morse_flipper_progress_history_load_newer(&newer_cursor, &row));
+    CHECK(row.practice_day == jan1 && row.hour == 10U);
+    CHECK(morse_flipper_progress_history_load_newer(&newer_cursor, &row));
+    CHECK(row.practice_day == jan2);
+    CHECK(!morse_flipper_progress_history_load_newer(&newer_cursor, &row));
+    CHECK(newer_cursor.exhausted);
+
+    morse_flipper_progress_history_newer_reset(&newer_cursor, &anchor, jan1);
+    CHECK(newer_cursor.initialized && !newer_cursor.exhausted);
+    CHECK(morse_flipper_progress_history_load_newer(&newer_cursor, &row));
+    CHECK(row.practice_day == jan1 && row.hour == 9U);
+    morse_flipper_progress_history_newer_reset(&newer_cursor, NULL, jan2);
+    CHECK(newer_cursor.exhausted && !newer_cursor.initialized);
+    morse_flipper_progress_history_reset(&older_cursor, MORSE_FLIPPER_PROGRESS_DAY_NONE);
+    CHECK(older_cursor.exhausted);
 }
 
 static void test_history_start_day_rules(void) {
@@ -324,11 +421,16 @@ static void test_history_format_and_bidirectional_loading(void) {
     CHECK(older.lesson_idx == 5U);
     CHECK(older.hour == 17U);
 
-    CHECK(morse_flipper_progress_history_load_newer(&older, today, &newer));
+    MorseFlipperProgressHistoryNewerCursor newer_cursor;
+
+    morse_flipper_progress_history_newer_reset(&newer_cursor, &older, today);
+    CHECK(morse_flipper_progress_history_load_newer(&newer_cursor, &newer));
     CHECK(newer.lesson_idx == 6U && newer.hour == 10U && newer.minute == 0U);
-    CHECK(morse_flipper_progress_history_load_newer(&rows[3], today, &newer));
+    morse_flipper_progress_history_newer_reset(&newer_cursor, &rows[3], today);
+    CHECK(morse_flipper_progress_history_load_newer(&newer_cursor, &newer));
     CHECK(newer.lesson_idx == 6U && newer.hour == 10U && newer.minute == 20U);
-    CHECK(!morse_flipper_progress_history_load_newer(&rows[0], today, &newer));
+    morse_flipper_progress_history_newer_reset(&newer_cursor, &rows[0], today);
+    CHECK(!morse_flipper_progress_history_load_newer(&newer_cursor, &newer));
 }
 
 int main(void) {
@@ -342,7 +444,9 @@ int main(void) {
     test_streak_intro_helpers();
     test_weak_letters_are_bounded_and_recent();
     test_persistence_shape_rules();
-    test_empty_history_scan_exhausts_cursor();
+    test_empty_history_scan_is_resumable();
+    test_history_long_gap_continuations();
+    test_history_cursor_boundaries_and_reuse();
     test_history_start_day_rules();
     test_history_date_label_cutoff();
     test_history_format_and_bidirectional_loading();
