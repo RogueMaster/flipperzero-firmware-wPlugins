@@ -18,6 +18,12 @@ confirmed, so verify by eye. Use it only where you are authorized to.
 Builds against Flipper API 87.1, shared by current stock OFW and
 [Momentum](https://github.com/Next-Flip/Momentum-Firmware).
 
+**Free, and staying that way.** If FlipDeFlock is useful to you, the **Sponsor** button
+above, [Ko-fi](https://ko-fi.com/recongrunt), or
+[Buy Me a Coffee](https://buymeacoffee.com/recongrunt) fund development, test hardware,
+and the legal costs of mapping surveillance infrastructure.
+[Donations never gate a feature](SUPPORTERS.md).
+
 ## Install
 
 Download `flipdeflock.fap` from the [latest release](../../releases/latest), copy
@@ -26,7 +32,9 @@ Tools menu. Every push also builds a fresh `.fap` as a CI artifact under the
 **Actions** tab.
 
 If a newer firmware bumps the API and the app refuses to load ("API mismatch"),
-rebuild it with `ufbt` — see [Build from source](#build-from-source).
+rebuild it with `ufbt` — see [Build from source](#build-from-source). Other common
+problems — UART busy, no detections, GPS no-fix, flasher errors — are covered in
+[Troubleshooting](docs/TROUBLESHOOTING.md).
 
 ## Hardware
 
@@ -291,26 +299,19 @@ the link and credit intact.
 
 ## Contributing
 
-This is a community counter-surveillance effort; it improves with more boards and
-more field data. The most useful contributions:
+This is a community counter-surveillance effort; it improves with more boards and more
+field data. The most useful contributions are **field reports and signatures** (new
+Flock/ALPR OUIs, SSID/BLE patterns, probe IE fingerprints — and detections that
+misfired), **board support** reports, and code.
 
-- **Field reports & signatures** — new Flock/ALPR OUIs, SSID/BLE patterns, or false
-  positives and misses. Test a candidate in your own `signatures.json` first (see
-  the [signatures guide](docs/signatures.md)), then send the ones that hold up.
-- **Board support** — try it on your ESP32 and report wiring quirks.
-- **Code** — bug fixes, report formats, or roadmap items.
+Ground rules: passive recon only, correctness over features, API 87.1, and keep it lean.
+Full details, the DCO sign-off requirement, and contribution licensing are in
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
-Ground rules:
+Found a security issue? Please follow [SECURITY.md](SECURITY.md) rather than opening a
+public issue.
 
-- **Passive recon only.** No deauth, injection, or jamming, ever.
-- **Correctness over features.** A false positive is worse than a missed detection;
-  don't trade precision for recall without good reason.
-- Target **API 87.1**; it must build with both `ufbt` and `fbt`.
-- Keep it lean — the `.fap` loads entirely into the Flipper's ~256 KB of RAM.
-
-By contributing you agree to license your work under GPL-3.0-or-later.
-
-## Support & roadmap
+## Support
 
 FlipDeFlock is free and stays that way. To help cover development (and the legal
 costs of mapping surveillance hardware), use the **Sponsor** button at the top of
@@ -318,4 +319,5 @@ the repo, [Ko-fi](https://ko-fi.com/recongrunt), or
 [Buy Me a Coffee](https://buymeacoffee.com/recongrunt). Donations never gate a
 feature.
 
-Planned work and deferred items (with reasons) are in [ROADMAP.md](ROADMAP.md).
+What supporters get — recognition and early access to release candidates, never
+functionality — is spelled out in [SUPPORTERS.md](SUPPORTERS.md).
