@@ -34,7 +34,7 @@ typedef struct {
     const char* about;
 } I18nStrings;
 
-extern const I18nStrings i18n_strings[2]; // [0] = espanol, [1] = ingles
+extern const I18nStrings i18n_strings[2]; // [0] = ingles (por defecto), [1] = espanol
 extern const char* const i18n_lang_names[2];
 
 static inline const I18nStrings* i18n_get(const MorseSettings* s) {

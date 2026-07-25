@@ -6,6 +6,6 @@ Initial release:
   (quick release = dot, hold = dash) and pause-based letter commit.
 - Numbers and signs on tree level 5, with automatic zoom.
 - Text to Morse: playback with sound, LED and vibration.
-- English / Spanish interface.
+- English interface by default, Spanish available in Settings.
 - Persistent settings: language, volume, tone, vibration, LED, WPM speed
   and key timings.
