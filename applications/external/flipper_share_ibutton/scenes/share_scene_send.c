@@ -80,8 +80,15 @@ void share_scene_send_on_enter(void* context) {
     app->file_reading_state = state;
 
     // Setup dialog to show progress
-    dialog_ex_set_header(app->dialog_show_file, "Sending via " FSH_TRANSPORT_NAME "...", 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop);
-    dialog_ex_set_text(app->dialog_show_file, "Touch iButton pads", 64, 32, AlignCenter, AlignCenter);
+    dialog_ex_set_header(
+        app->dialog_show_file,
+        "Sending via " FSH_TRANSPORT_NAME "...",
+        64,
+        SCENE_HEADER_POSITION_Y,
+        AlignCenter,
+        AlignTop);
+    dialog_ex_set_text(
+        app->dialog_show_file, "Touch iButton pads", 64, 32, AlignCenter, AlignCenter);
     dialog_ex_set_left_button_text(app->dialog_show_file, "Cancel");
     dialog_ex_set_right_button_text(app->dialog_show_file, NULL); // Skip right button
 
@@ -137,7 +144,8 @@ static void update_timer_callback(void* context) {
                 sizeof(progress_text),
                 "Calc checksum...%lu%%",
                 (unsigned long)(((uint64_t)hash_done * 100u) / hash_total));
-            dialog_ex_set_text(app->dialog_show_file, progress_text, 64, 32, AlignCenter, AlignCenter);
+            dialog_ex_set_text(
+                app->dialog_show_file, progress_text, 64, 32, AlignCenter, AlignCenter);
             return;
         }
 
@@ -165,12 +173,20 @@ static void update_timer_callback(void* context) {
 
         if(fsize < 1024) {
             snprintf(
-                progress_text, sizeof(progress_text), "%s\n%lu B  ~ %s", fname,
-                (unsigned long)fsize, eta);
+                progress_text,
+                sizeof(progress_text),
+                "%s\n%lu B  ~ %s",
+                fname,
+                (unsigned long)fsize,
+                eta);
         } else {
             snprintf(
-                progress_text, sizeof(progress_text), "%s\n%lu KB  ~ %s", fname,
-                (unsigned long)(fsize / 1024), eta);
+                progress_text,
+                sizeof(progress_text),
+                "%s\n%lu KB  ~ %s",
+                fname,
+                (unsigned long)(fsize / 1024),
+                eta);
         }
     }
 
@@ -218,8 +234,7 @@ bool share_scene_send_on_event(void* context, SceneManagerEvent event) {
         // Back button - same as Cancel
         FileReadingState* state = (FileReadingState*)app->file_reading_state;
         if(state && state->worker_thread) {
-            furi_thread_flags_set(
-                furi_thread_get_id(state->worker_thread), FSH_WORKER_STOP_FLAG);
+            furi_thread_flags_set(furi_thread_get_id(state->worker_thread), FSH_WORKER_STOP_FLAG);
             furi_thread_join(state->worker_thread);
         }
 

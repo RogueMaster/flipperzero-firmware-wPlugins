@@ -18,16 +18,16 @@
 #define FSH_DATA_LENGTH 64u
 
 // Sender announce cadence: fast while discovering, slower while serving a peer.
-#define FSH_ANNOUNCE_INTERVAL_MS 1000u  // idle sender discovery interval
+#define FSH_ANNOUNCE_INTERVAL_MS  1000u // idle sender discovery interval
 #define FSH_ANNOUNCE_CONNECTED_MS 3000u // announce interval while serving a transfer
 
 // Receiver re-request timeout and sender post-RX gap before streaming DATA.
-#define FSH_RX_TIMEOUT_MS 500u          // receiver REQUEST retry timeout
-#define FSH_TX_TIMEOUT_MS 50u           // sender gap after last RX before streaming
+#define FSH_RX_TIMEOUT_MS 500u // receiver REQUEST retry timeout
+#define FSH_TX_TIMEOUT_MS 50u // sender gap after last RX before streaming
 
 // Engine tick period (the mailbox backpressure, not this, paces the stream) and
 // how long the sender stays CONNECTED after the last RX before re-announcing.
-#define FSH_IDLE_TICK_MS 20u
+#define FSH_IDLE_TICK_MS      20u
 #define FSH_CONNECTED_IDLE_MS 5000u
 
 // Small random backoff before each (re)REQUEST. The host drives the clock, so
@@ -56,10 +56,10 @@
 
 // Host pacing: gap between transactions, and retry period while no presence.
 #define IBTN_TP_POLL_INTERVAL_MS 5u
-#define IBTN_TP_RECONNECT_MS 250u
+#define IBTN_TP_RECONNECT_MS     250u
 
 // Outbound DATA mailbox: how long fsh_transport_send() blocks when it is full
 // (this backpressure paces the sender's block stream) and the mailbox / RX
 // queue depth.
 #define IBTN_TP_SEND_TIMEOUT_MS 500u
-#define IBTN_TP_QUEUE_DEPTH 4u
+#define IBTN_TP_QUEUE_DEPTH     4u

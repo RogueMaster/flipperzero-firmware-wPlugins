@@ -6,7 +6,7 @@
 #define TAG "Share"
 
 // About screen title bar (\e#/\e! markup: bold/inverted, see widget.h)
-#define FSH_ABOUT_NAME "\e#\e!    Flipper Share - " FSH_TRANSPORT_NAME "    \e!\n"
+#define FSH_ABOUT_NAME      "\e#\e!    Flipper Share - " FSH_TRANSPORT_NAME "    \e!\n"
 #define FSH_ABOUT_BLANK_INV "\e#\e!                                                      \e!\n"
 
 // Callback when a file is selected in the file browser
@@ -31,7 +31,11 @@ static void file_browser_select_callback(void* context) {
 }
 
 // Callback for internal use, not used in the app
-_Bool file_browser_callback(FuriString* path, void* context, unsigned char** icon, FuriString* name) {
+_Bool file_browser_callback(
+    FuriString* path,
+    void* context,
+    unsigned char** icon,
+    FuriString* name) {
     UNUSED(icon);
     UNUSED(name);
     UNUSED(path);
@@ -44,8 +48,10 @@ _Bool file_browser_callback(FuriString* path, void* context, unsigned char** ico
 
 void show_file_info_scene(ShareApp* app) {
     furi_assert(app);
-    dialog_ex_set_header(app->dialog_show_file, "File Info", 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop);
-    dialog_ex_set_text(app->dialog_show_file, app->selected_file_path, 64, 32, AlignCenter, AlignCenter);
+    dialog_ex_set_header(
+        app->dialog_show_file, "File Info", 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop);
+    dialog_ex_set_text(
+        app->dialog_show_file, app->selected_file_path, 64, 32, AlignCenter, AlignCenter);
     view_dispatcher_switch_to_view(app->view_dispatcher, ShareViewIdShowFile);
 }
 
@@ -186,10 +192,8 @@ static ShareApp* share_alloc() {
 
     app->scene_manager = scene_manager_alloc(&share_scene_handlers, app);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
-    view_dispatcher_set_custom_event_callback(
-        app->view_dispatcher, share_custom_event_callback);
-    view_dispatcher_set_navigation_event_callback(
-        app->view_dispatcher, share_back_event_callback);
+    view_dispatcher_set_custom_event_callback(app->view_dispatcher, share_custom_event_callback);
+    view_dispatcher_set_navigation_event_callback(app->view_dispatcher, share_back_event_callback);
 
     // Create submenu for main menu
     app->submenu = submenu_alloc();
@@ -223,23 +227,19 @@ static ShareApp* share_alloc() {
     // Store result_path for later use
     app->result_path = result_path;
     view_dispatcher_add_view(
-        app->view_dispatcher,
-        ShareViewIdFileBrowser,
-        file_browser_get_view(app->file_browser));
+        app->view_dispatcher, ShareViewIdFileBrowser, file_browser_get_view(app->file_browser));
 
     // Create dialog to show file path/info
     app->dialog_show_file = dialog_ex_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher,
-        ShareViewIdShowFile,
-        dialog_ex_get_view(app->dialog_show_file));
+        app->view_dispatcher, ShareViewIdShowFile, dialog_ex_get_view(app->dialog_show_file));
 
     // Create dialog for Receive
     app->dialog_receive = dialog_ex_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, ShareViewIdReceive, dialog_ex_get_view(app->dialog_receive));
 
-    app->selected_file_path[0] = '\0';  // Explicitly initialize with empty string
+    app->selected_file_path[0] = '\0'; // Explicitly initialize with empty string
     app->selected_file_size = 0;
     app->file_info_loaded = false;
 

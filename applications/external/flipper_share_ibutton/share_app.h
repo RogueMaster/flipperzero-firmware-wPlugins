@@ -45,7 +45,7 @@ struct ShareApp {
     char selected_file_path[256];
     size_t selected_file_size;
     bool file_info_loaded;
-    
+
     void* file_reading_state;
     FuriTimer* timer;
 };

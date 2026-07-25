@@ -131,7 +131,13 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     // Header
     canvas_set_font(canvas, FontPrimary);
     canvas_set_color(canvas, ColorBlack);
-    elements_multiline_text_aligned(canvas, 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop, "Receiving via " FSH_TRANSPORT_NAME "...");
+    elements_multiline_text_aligned(
+        canvas,
+        64,
+        SCENE_HEADER_POSITION_Y,
+        AlignCenter,
+        AlignTop,
+        "Receiving via " FSH_TRANSPORT_NAME "...");
 
     // Filename on its own line (as-is; long names may overflow — accepted).
     canvas_set_font(canvas, FontSecondary);
@@ -174,9 +180,9 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
             (unsigned long)(fsize / 1024));
     } else {
         // Clamp in uint64 before casting to guard against overflow.
-        uint64_t e = (elapsed_ms >= FSH_ETA_WARMUP_MS && recv_bytes > 0)
-                         ? ((uint64_t)rem_bytes * elapsed_ms / ((uint64_t)recv_bytes * 1000u))
-                         : ((uint64_t)rem_bytes / FSH_PAYLOAD_THROUGHPUT_BPS);
+        uint64_t e = (elapsed_ms >= FSH_ETA_WARMUP_MS && recv_bytes > 0) ?
+                         ((uint64_t)rem_bytes * elapsed_ms / ((uint64_t)recv_bytes * 1000u)) :
+                         ((uint64_t)rem_bytes / FSH_PAYLOAD_THROUGHPUT_BPS);
         if(e > FSH_ETA_MAX_SEC) e = FSH_ETA_MAX_SEC;
         char eta[16];
         fsh_fmt_duration((uint32_t)e, eta, sizeof(eta));
@@ -202,12 +208,12 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
     // Torrent-style, but each column is filled from the bottom to a height
     // proportional to the fraction of blocks received in that part (levels[i] is
     // 0..255). Any received part shows at least 1px so early progress is visible.
-    for (uint32_t i = 0; i < FSH_PARTS_COUNT; ++i) {
+    for(uint32_t i = 0; i < FSH_PARTS_COUNT; ++i) {
         uint8_t lv = levels[i];
-        if (!lv) continue;
+        if(!lv) continue;
         int fill = (lv * h) / 255;
-        if (fill < 1) fill = 1;
-        if (fill > h) fill = h;
+        if(fill < 1) fill = 1;
+        if(fill > h) fill = h;
         canvas_draw_line(canvas, x + i + 1, y + h - fill, x + i + 1, y + h - 1);
     }
     // (nothing drawn below the bar: y+h ≈ 62, screen is 64px tall)
@@ -216,13 +222,13 @@ static void progress_view_draw_callback(Canvas* canvas, void* context) {
 static bool progress_view_input_callback(InputEvent* event, void* context) {
     if(!context) return false;
     ShareApp* app = context;
-    
+
     FURI_LOG_I(TAG, "Progress view input: key=%d, type=%d", event->key, event->type);
-    
+
     if(event->type == InputTypeShort || event->type == InputTypeLong) {
         if(event->key == InputKeyBack || event->key == InputKeyLeft) {
             FURI_LOG_I(TAG, "Back/Left button pressed in progress view, handling locally");
-            
+
             FileReadingState* state = (FileReadingState*)app->file_reading_state;
             if(state && state->worker_thread) {
                 FURI_LOG_I(TAG, "Stopping worker thread from input handler");
@@ -230,22 +236,22 @@ static bool progress_view_input_callback(InputEvent* event, void* context) {
                     furi_thread_get_id(state->worker_thread), FSH_WORKER_STOP_FLAG);
                 furi_thread_join(state->worker_thread);
             }
-            
+
             if(app->timer) {
                 FURI_LOG_I(TAG, "Stopping timer from input handler");
                 furi_timer_stop(app->timer);
                 furi_timer_free(app->timer);
                 app->timer = NULL;
             }
-            
+
             progress_view_active = false;
-            
+
             FURI_LOG_I(TAG, "Switching to dialog view");
             view_dispatcher_switch_to_view(app->view_dispatcher, ShareViewIdShowFile);
-            
+
             FURI_LOG_I(TAG, "Sending DialogExResultLeft event");
             view_dispatcher_send_custom_event(app->view_dispatcher, DialogExResultLeft);
-            
+
             return true;
         }
     }
@@ -286,8 +292,15 @@ void share_scene_receive_on_enter(void* context) {
     app->file_reading_state = state;
 
     // Setup dialog to show progress (use same UI as send scene so buttons appear)
-    dialog_ex_set_header(app->dialog_show_file, "Receiving via " FSH_TRANSPORT_NAME "...", 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop);
-    dialog_ex_set_text(app->dialog_show_file, "Touch iButton pads", 64, 32, AlignCenter, AlignCenter);
+    dialog_ex_set_header(
+        app->dialog_show_file,
+        "Receiving via " FSH_TRANSPORT_NAME "...",
+        64,
+        SCENE_HEADER_POSITION_Y,
+        AlignCenter,
+        AlignTop);
+    dialog_ex_set_text(
+        app->dialog_show_file, "Touch iButton pads", 64, 32, AlignCenter, AlignCenter);
     dialog_ex_set_left_button_text(app->dialog_show_file, "Back");
     dialog_ex_set_right_button_text(app->dialog_show_file, NULL);
 
@@ -363,7 +376,10 @@ static void update_timer_callback(void* context) {
         dialog_ex_set_header(
             app->dialog_show_file,
             is_success ? "Success!" : "Hash failed",
-            64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop);
+            64,
+            SCENE_HEADER_POSITION_Y,
+            AlignCenter,
+            AlignTop);
 
         // If completed and still showing progress view, switch back to dialog
         if(progress_view_active) {
@@ -381,11 +397,11 @@ static void update_timer_callback(void* context) {
         }
 
         // Update progress view model
-        with_view_model(progress_view, uint8_t* model, {
-            *model = (uint8_t)state->counter;
-        }, true);
+        with_view_model(
+            progress_view, uint8_t * model, { *model = (uint8_t)state->counter; }, true);
     } else {
-        snprintf(progress_text, sizeof(progress_text), "Touch iButton pads\nWaiting for announce...");
+        snprintf(
+            progress_text, sizeof(progress_text), "Touch iButton pads\nWaiting for announce...");
 
         // If we're no longer locked but the progress view is active, switch back to dialog
         if(progress_view_active) {
@@ -456,8 +472,7 @@ bool share_scene_receive_on_event(void* context, SceneManagerEvent event) {
         FileReadingState* state = (FileReadingState*)app->file_reading_state;
         if(state && state->worker_thread) {
             FURI_LOG_I(TAG, "Stopping worker thread");
-            furi_thread_flags_set(
-                furi_thread_get_id(state->worker_thread), FSH_WORKER_STOP_FLAG);
+            furi_thread_flags_set(furi_thread_get_id(state->worker_thread), FSH_WORKER_STOP_FLAG);
             furi_thread_join(state->worker_thread);
         }
 
