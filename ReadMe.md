@@ -56,6 +56,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Swimmy Fish v2.5 (By Invizabel)](https://github.com/Invizabel/fish)
 - Added: [Piano v1.0 (By bergr22)](https://github.com/bergr22/FlipPiano)
 - Updated: [Nightstand Clock v1.2 (By nymda)](https://github.com/nymda/FlipperNightStand) [fix unreachable nightlight and notif use-after-close (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/244) [make Up/Down actually change the screen brightness (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/246)
+- Updated: [Passy v1.6 (By bettse)](https://github.com/bettse/passy)
 
 <a name="release"></a>
 
@@ -707,7 +708,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Password Generator v1.4 (By anakod)](https://github.com/anakod/flipper_passgen)
 - [Password Keyboard v0.1 (By evgeniyraev)](https://github.com/evgeniyraev/password_keyboard)
 - [Password Manager v1.2 (By Rrycbarm)](https://github.com/Rrycbarm/flipperZeroPasswordManager)
-- [Passy v1.5 (By bettse)](https://github.com/bettse/passy)
+- [Passy v1.6 (By bettse)](https://github.com/bettse/passy)
 - [Pause Timer v1.0 (By Matt-London)](https://github.com/Matt-London/pause_timer)
 - [PC Monitor v1.1.3 (By TheSainEyereg)](https://github.com/TheSainEyereg/flipper-pc-monitor) `Req: [Backend](https://github.com/TheSainEyereg/flipper-pc-monitor-backend)`
 - [PC Monitor USB v1.0 (By DonJulve & TheSainEyereg)](https://github.com/TheSainEyereg/flipper-pc-monitor) `Req: [Backend](https://github.com/DonJulve/Flipper-Zero-PC-Monitor-USB-Backend)`

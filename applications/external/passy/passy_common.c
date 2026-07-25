@@ -8,8 +8,8 @@ const char* passy_auth_method_string(PassyAuthMethod method) {
     switch(method) {
     case PassyAuthMethodBac:
         return "BAC";
-    case PassyAuthMethodPace:
-        return "PACE";
+    //case PassyAuthMethodPace:
+    //    return "PACE";
     case PassyAuthMethodNone:
         return "None";
     case PassyAuthMethodAny:
@@ -145,7 +145,7 @@ size_t passy_furi_string_filename_safe(FuriString* string) {
         char c = furi_string_get_char(string, ri);
 
         if((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
-           c == '_' || c == '-' || '/' || '.') {
+           c == '_' || c == '-' || c == '/' || c == '.') {
             furi_string_push_back(safe, c);
         }
     }

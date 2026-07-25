@@ -28,7 +28,7 @@ typedef enum {
     PassyAuthMethodNone,
     PassyAuthMethodAny,
     PassyAuthMethodBac,
-    PassyAuthMethodPace,
+    //PassyAuthMethodPace,
     PASSY_AUTH_METHOD_COUNT,
 } PassyAuthMethod;
 
