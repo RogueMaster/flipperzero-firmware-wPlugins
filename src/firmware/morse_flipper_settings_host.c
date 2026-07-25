@@ -104,6 +104,71 @@ static bool mf_settings_apply(void* context, const MfSettingsRequest* request, M
         morse_flipper_sync_audio_output(app);
         changed = true;
         break;
+    case MfSettingsSetListeningLesson:
+        if(request->value == 0U || request->value > morse_trainer_lesson_count()) return true;
+        app->listening_settings.lesson = (uint8_t)request->value;
+        changed = true;
+        break;
+    case MfSettingsSetListeningFarnsworth:
+        if(request->value == 0U || request->value > morse_flipper_local_wpm(app)) return true;
+        app->listening_settings.farnsworth_wpm = (uint8_t)request->value;
+        changed = true;
+        break;
+    case MfSettingsSetListeningAnswerTimeout:
+        if(request->value < MORSE_FLIPPER_TRAINER_TIMEOUT_MIN_S || request->value > MORSE_FLIPPER_TRAINER_TIMEOUT_MAX_S) return true;
+        app->listening_settings.answer_timeout_s = (uint8_t)request->value;
+        changed = true;
+        break;
+    case MfSettingsSetListeningGroupPause:
+        if(request->value < MORSE_FLIPPER_TRAINER_GROUP_PAUSE_MIN_S || request->value > MORSE_FLIPPER_TRAINER_GROUP_PAUSE_MAX_S) return true;
+        app->listening_settings.group_pause_s = (uint8_t)request->value;
+        changed = true;
+        break;
+    case MfSettingsSetListeningGroupSize:
+        if(request->value < 1U || request->value > 9U) return true;
+        app->listening_settings.group_size = (uint8_t)request->value;
+        changed = true;
+        break;
+    case MfSettingsSetListeningGroupCount:
+        if(request->value < 3U || request->value > 30U) return true;
+        app->listening_settings.session_groups = (uint8_t)request->value;
+        changed = true;
+        break;
+    case MfSettingsSetListeningCustomSet:
+        if(request->value > MORSE_TRAINER_CUSTOM_SET_CAP) return true;
+        app->listening_settings.custom_set_idx = (uint8_t)request->value;
+        changed = true;
+        break;
+    case MfSettingsSetStraightWpm:
+        if(request->value < 10U || request->value > 30U) return true;
+        morse_flipper_set_straight_wpm(app, (uint8_t)request->value);
+        changed = true;
+        break;
+    case MfSettingsSetStraightAnswerTimeout:
+        if(request->value < MORSE_FLIPPER_STRAIGHT_TIMEOUT_MIN_S || request->value > MORSE_FLIPPER_STRAIGHT_TIMEOUT_MAX_S) return true;
+        app->straight_answer_timeout_s = (uint8_t)request->value;
+        changed = true;
+        break;
+    case MfSettingsSetStraightNextDelay:
+        if(request->value < MORSE_FLIPPER_STRAIGHT_NEXT_MIN_S || request->value > MORSE_FLIPPER_STRAIGHT_NEXT_MAX_S) return true;
+        app->straight_next_delay_s = (uint8_t)request->value;
+        changed = true;
+        break;
+    case MfSettingsSetTxGroupsDifficulty:
+        if(request->value >= MorseFlipperTxgDifficultyCount) return true;
+        app->txg_difficulty = (uint8_t)request->value;
+        changed = true;
+        break;
+    case MfSettingsApplyGpioDraft: {
+        MorseFlipperGpioRule rule;
+        if(!morse_flipper_gpio_try_apply(app, request->gpio_dit_pin, request->gpio_dah_pin, request->gpio_ground_pin, request->gpio_ptt_pin, &rule)) {
+            response->error = (uint8_t)rule;
+            return true;
+        }
+        mf_settings_snapshot(app, &response->snapshot);
+        response->accepted = true;
+        return true;
+    }
     case MfSettingsSetUsbMode:
         if(request->value > MorseFlipperPcModeMidi) return true;
         app->pc_mode_pref = (uint8_t)request->value;
@@ -170,6 +235,8 @@ bool morse_flipper_settings_host_close(MorseFlipperApp* app, uint32_t scene) {
         if(close) scene_manager_set_scene_state(app->scene_manager, scene, api->selected_state(app->plugin_slot.state));
     }
     furi_mutex_release(app->plugin_slot.mutex);
+    if(!close && result.feedback != MorseFlipperGpioRuleOk)
+        morse_flipper_gpio_alert(app, (MorseFlipperGpioRule)result.feedback);
     return close;
 }
 
@@ -248,6 +315,19 @@ bool morse_flipper_scene_pc_on_event(void* context, SceneManagerEvent event) {
 void morse_flipper_scene_pc_on_exit(void* context) {
     mf_settings_scene_exit(context, MorseFlipperScenePc);
 }
+
+void morse_flipper_scene_settings_listening_on_enter(void* context) { mf_settings_scene_enter(context, MfSettingsEntryListening, MorseFlipperSceneTrainer); }
+bool morse_flipper_scene_settings_listening_on_event(void* context, SceneManagerEvent event) { return mf_settings_scene_event(context, event, MorseFlipperSceneTrainer); }
+void morse_flipper_scene_settings_listening_on_exit(void* context) { mf_settings_scene_exit(context, MorseFlipperSceneTrainer); }
+void morse_flipper_scene_settings_straight_on_enter(void* context) { mf_settings_scene_enter(context, MfSettingsEntryStraight, MorseFlipperSceneStraightCfg); }
+bool morse_flipper_scene_settings_straight_on_event(void* context, SceneManagerEvent event) { return mf_settings_scene_event(context, event, MorseFlipperSceneStraightCfg); }
+void morse_flipper_scene_settings_straight_on_exit(void* context) { mf_settings_scene_exit(context, MorseFlipperSceneStraightCfg); }
+void morse_flipper_scene_settings_tx_groups_on_enter(void* context) { mf_settings_scene_enter(context, MfSettingsEntryTxGroups, MorseFlipperSceneTxGroupsCfg); }
+bool morse_flipper_scene_settings_tx_groups_on_event(void* context, SceneManagerEvent event) { return mf_settings_scene_event(context, event, MorseFlipperSceneTxGroupsCfg); }
+void morse_flipper_scene_settings_tx_groups_on_exit(void* context) { mf_settings_scene_exit(context, MorseFlipperSceneTxGroupsCfg); }
+void morse_flipper_scene_settings_gpio_on_enter(void* context) { mf_settings_scene_enter(context, MfSettingsEntryGpio, MorseFlipperSceneGpio); }
+bool morse_flipper_scene_settings_gpio_on_event(void* context, SceneManagerEvent event) { return mf_settings_scene_event(context, event, MorseFlipperSceneGpio); }
+void morse_flipper_scene_settings_gpio_on_exit(void* context) { mf_settings_scene_exit(context, MorseFlipperSceneGpio); }
 
 #ifdef MF_SETTINGS_HOST_TEST
 bool mf_settings_host_test_apply(

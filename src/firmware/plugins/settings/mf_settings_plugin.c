@@ -446,8 +446,10 @@ static bool mf_settings_request_close(void* opaque, MorseFlipperMappedFalResult*
         request.gpio_ground_pin = state->gpio_ground_pin;
         request.gpio_ptt_pin = state->gpio_ptt_pin;
         if(!state->args.services->apply(state->args.service_context, &request, &response) ||
-           !response.accepted)
+           !response.accepted) {
+            if(result != NULL) result->feedback = response.error;
             return false;
+        }
         state->snapshot = response.snapshot;
     }
     if(result != NULL) *result = (MorseFlipperMappedFalResult){.handled = true, .request_exit = true};

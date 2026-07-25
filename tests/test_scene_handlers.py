@@ -71,6 +71,50 @@ class SceneHandlerTableTest(unittest.TestCase):
             "morse_flipper_scene_live_on_event",
         )
 
+    def test_settings_menu_routes_only_ordinary_pages_to_settings_fal(self) -> None:
+        for table_name, expected in (
+            (
+                "morse_flipper_scene_on_enter_handlers",
+                {
+                    "MorseFlipperSceneHome": "morse_flipper_scene_home_on_enter",
+                    "MorseFlipperSceneAudioCfg": "morse_flipper_scene_audio_cfg_on_enter",
+                    "MorseFlipperSceneTrainer": "morse_flipper_scene_settings_listening_on_enter",
+                    "MorseFlipperSceneStraightCfg": "morse_flipper_scene_settings_straight_on_enter",
+                    "MorseFlipperSceneTxGroupsCfg": "morse_flipper_scene_settings_tx_groups_on_enter",
+                    "MorseFlipperSceneGpio": "morse_flipper_scene_settings_gpio_on_enter",
+                    "MorseFlipperScenePc": "morse_flipper_scene_pc_on_enter",
+                    "MorseFlipperSceneIcr": "morse_flipper_scene_icr_on_enter",
+                    "MorseFlipperScenePassive": "morse_flipper_scene_passive_on_enter",
+                },
+            ),
+            (
+                "morse_flipper_scene_on_event_handlers",
+                {
+                    "MorseFlipperSceneTrainer": "morse_flipper_scene_settings_listening_on_event",
+                    "MorseFlipperSceneStraightCfg": "morse_flipper_scene_settings_straight_on_event",
+                    "MorseFlipperSceneTxGroupsCfg": "morse_flipper_scene_settings_tx_groups_on_event",
+                    "MorseFlipperSceneGpio": "morse_flipper_scene_settings_gpio_on_event",
+                    "MorseFlipperSceneIcr": "morse_flipper_scene_live_on_event",
+                    "MorseFlipperScenePassive": "morse_flipper_scene_live_on_event",
+                },
+            ),
+            (
+                "morse_flipper_scene_on_exit_handlers",
+                {
+                    "MorseFlipperSceneTrainer": "morse_flipper_scene_settings_listening_on_exit",
+                    "MorseFlipperSceneStraightCfg": "morse_flipper_scene_settings_straight_on_exit",
+                    "MorseFlipperSceneTxGroupsCfg": "morse_flipper_scene_settings_tx_groups_on_exit",
+                    "MorseFlipperSceneGpio": "morse_flipper_scene_settings_gpio_on_exit",
+                    "MorseFlipperSceneIcr": "morse_flipper_scene_icr_on_exit",
+                    "MorseFlipperScenePassive": "morse_flipper_scene_training_plugin_on_exit",
+                },
+            ),
+        ):
+            actual = handler_table(table_name)
+            for scene, handler in expected.items():
+                with self.subTest(table=table_name, scene=scene):
+                    self.assertEqual(actual[scene], handler)
+
 
 if __name__ == "__main__":
     unittest.main()

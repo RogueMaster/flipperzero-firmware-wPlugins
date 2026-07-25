@@ -5,6 +5,8 @@
 #include <string.h>
 
 static unsigned saves, refreshes, polls, audio_syncs, sidetones, events, opens, detaches;
+static unsigned gpio_applies, gpio_alerts;
+static bool gpio_accept = true;
 static MfSettingsEnterArgs captured_args;
 const int morse_flipper_tones[31];
 
@@ -12,11 +14,16 @@ uint32_t furi_get_tick(void) { return 1U; }
 void furi_mutex_acquire(FuriMutex* mutex, uint32_t timeout) { (void)mutex; (void)timeout; }
 void furi_mutex_release(FuriMutex* mutex) { (void)mutex; }
 uint8_t morse_flipper_current_wpm(const MorseFlipperApp* app) { return app->listening_settings.local_dit_ms ? 20U : 10U; }
+uint8_t morse_flipper_local_wpm(const MorseFlipperApp* app) { return morse_flipper_current_wpm(app); }
+size_t morse_trainer_lesson_count(void) { return 40U; }
 uint8_t morse_flipper_p2_volume_pct(const MorseFlipperApp* app) { return app->p2_volume_pct; }
 uint8_t morse_flipper_straight_wpm(const MorseFlipperApp* app) { (void)app; return 10U; }
 uint8_t morse_trainer_group_size(const MorseTrainer* trainer) { return trainer->group_size; }
 uint8_t morse_trainer_session_groups(const MorseTrainer* trainer) { return trainer->session_groups; }
 void morse_flipper_set_local_wpm(MorseFlipperApp* app, uint8_t wpm) { app->listening_settings.local_dit_ms = wpm; }
+void morse_flipper_set_straight_wpm(MorseFlipperApp* app, uint8_t wpm) { (void)app; (void)wpm; }
+bool morse_flipper_gpio_try_apply(MorseFlipperApp* app, uint8_t dit, uint8_t dah, uint8_t ground, uint8_t ptt, MorseFlipperGpioRule* rule) { gpio_applies++; if(rule) *rule = gpio_accept ? MorseFlipperGpioRuleOk : 1U; if(!gpio_accept) return false; app->gpio_dit_idx = dit; app->gpio_dah_idx = dah; app->gpio_ground_idx = ground; app->gpio_ptt_idx = ptt; return true; }
+void morse_flipper_gpio_alert(MorseFlipperApp* app, MorseFlipperGpioRule rule) { (void)app; (void)rule; gpio_alerts++; }
 void morse_flipper_clear_button_keying(MorseFlipperApp* app, uint32_t now) { (void)app; (void)now; }
 void morse_flipper_refresh_keyer(MorseFlipperApp* app, uint32_t now) { (void)app; (void)now; refreshes++; }
 void morse_flipper_poll(MorseFlipperApp* app) { (void)app; polls++; }
@@ -54,6 +61,26 @@ static void apply(MorseFlipperApp* app, uint8_t kind, uint32_t value, bool accep
     }
 }
 
+static MfSettingsResponse apply_gpio(
+    MorseFlipperApp* app,
+    uint8_t dit,
+    uint8_t dah,
+    uint8_t ground,
+    uint8_t ptt) {
+    MfSettingsResponse response;
+    assert(mf_settings_host_test_apply(
+        app,
+        &(MfSettingsRequest){
+            .kind = MfSettingsApplyGpioDraft,
+            .gpio_dit_pin = dit,
+            .gpio_dah_pin = dah,
+            .gpio_ground_pin = ground,
+            .gpio_ptt_pin = ptt,
+        },
+        &response));
+    return response;
+}
+
 int main(void) {
     FuriMutex mutex = {0}; ViewDispatcher dispatcher = {0}; SceneManager manager = {0}; VariableItemList list = {0};
     MorseFlipperApp app = {.view_dispatcher = &dispatcher, .scene_manager = &manager, .settings_list = &list,
@@ -76,6 +103,24 @@ int main(void) {
     apply(&app, MfSettingsSetP2Volume, 11U, false);
     apply(&app, MfSettingsSetUsbMode, MorseFlipperPcModeMidi + 1U, false);
     assert(saves == 12U);
+    apply(&app, MfSettingsSetListeningLesson, 7U, true);
+    apply(&app, MfSettingsSetListeningFarnsworth, 12U, true);
+    apply(&app, MfSettingsSetListeningAnswerTimeout, 8U, true);
+    apply(&app, MfSettingsSetListeningGroupPause, 9U, true);
+    apply(&app, MfSettingsSetListeningGroupSize, 5U, true);
+    apply(&app, MfSettingsSetListeningGroupCount, 20U, true);
+    apply(&app, MfSettingsSetListeningCustomSet, 3U, true);
+    assert(app.listening_settings.lesson == 7U && app.listening_settings.custom_set_idx == 3U);
+    {
+        MfSettingsResponse response = apply_gpio(&app, 3U, 4U, 0U, 16U);
+        assert(response.accepted && gpio_applies == 1U);
+        assert(app.gpio_dit_idx == 3U && app.gpio_dah_idx == 4U && app.gpio_ground_idx == 0U && app.gpio_ptt_idx == 16U);
+        gpio_accept = false;
+        response = apply_gpio(&app, 5U, 6U, 7U, 16U);
+        assert(!response.accepted && response.error != MorseFlipperGpioRuleOk && gpio_applies == 2U);
+        assert(app.gpio_dit_idx == 3U && app.gpio_dah_idx == 4U && app.gpio_ground_idx == 0U && app.gpio_ptt_idx == 16U);
+        gpio_accept = true;
+    }
     mf_settings_host_test_navigate(&app, MfSettingsNavigateAudio);
     assert(events == MorseFlipperSceneAudioCfg);
     mf_settings_host_test_navigate(&app, MfSettingsNavigateGpio);
