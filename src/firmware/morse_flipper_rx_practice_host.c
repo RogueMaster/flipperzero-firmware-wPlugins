@@ -4,6 +4,16 @@
 #define MF_RX_START_EXTERNAL \
     (MF_RX_START_STRAIGHT | MF_RX_START_DIT | MF_RX_START_DAH)
 
+static char mf_rx_answer_preview(void* context) {
+    MorseFlipperApp* app = context;
+    char preview;
+
+    if(app == NULL) return '\0';
+    preview =
+        (char)morse_flipper_live_upper_char(morse_flipper_cw_decoder_preview(&app->tx_decoder));
+    return preview == ' ' || preview == '|' ? '\0' : preview;
+}
+
 static void mf_rx_apply_locked(
     MorseFlipperApp* app,
     MfRxPracticeResult result,
@@ -11,6 +21,19 @@ static void mf_rx_apply_locked(
     result.playback_active = result.phase == MfRxPracticePhasePlayback;
     morse_flipper_plugin_runtime_apply_result_locked(app, result, now_ms);
     if(result.redraw) morse_flipper_view_dirty(app);
+}
+
+static void mf_rx_apply_after_unlock(
+    MorseFlipperApp* app,
+    MfRxPracticeResult result,
+    uint32_t now_ms) {
+    if(!result.decoder_reset) return;
+    morse_flipper_reset_answer_decoder(app);
+    if(result.phase != MfRxPracticePhaseAnswer) {
+        morse_flipper_drop_live_keying_for_playback(app, now_ms);
+        morse_flipper_release_all_notes(app);
+    }
+    morse_flipper_update_sidetone(app);
 }
 
 bool morse_flipper_rx_practice_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
@@ -36,6 +59,10 @@ bool morse_flipper_rx_practice_host_enter(MorseFlipperApp* app, uint32_t now_ms)
             app->trainer_farnsworth_wpm),
         .physical_key_can_start =
             app->input_source != MorseFlipperInputSourceButtons,
+        .draw_services = {
+            .context = app,
+            .answer_preview = mf_rx_answer_preview,
+        },
     };
     entered = morse_flipper_plugin_runtime_open_mapped_locked(
         app,
@@ -90,8 +117,7 @@ bool morse_flipper_rx_practice_host_input(
         mf_rx_apply_locked(app, result, now_ms);
     }
     furi_mutex_release(app->plugin_slot.mutex);
-    if(result.decoder_reset) morse_flipper_reset_answer_decoder(app);
-    morse_flipper_update_sidetone(app);
+    mf_rx_apply_after_unlock(app, result, now_ms);
     if(result.request_exit)
         scene_manager_search_and_switch_to_another_scene(
             app->scene_manager, MorseFlipperSceneMenuTraining);
@@ -120,8 +146,7 @@ bool morse_flipper_rx_practice_host_feed(
         mf_rx_apply_locked(app, result, now_ms);
     }
     furi_mutex_release(app->plugin_slot.mutex);
-    if(result.decoder_reset) morse_flipper_reset_answer_decoder(app);
-    morse_flipper_update_sidetone(app);
+    mf_rx_apply_after_unlock(app, result, now_ms);
     return result.decoder_reset;
 }
 
@@ -171,6 +196,6 @@ bool morse_flipper_rx_practice_host_tick(
         live = true;
 done:
     furi_mutex_release(app->plugin_slot.mutex);
-    if(result.decoder_reset) morse_flipper_reset_answer_decoder(app);
+    mf_rx_apply_after_unlock(app, result, now_ms);
     return live;
 }

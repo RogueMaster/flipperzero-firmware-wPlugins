@@ -310,7 +310,8 @@ static void morse_flipper_feed_tx_edge(MorseFlipperApp* app, bool level, uint32_
                     morse_flipper_tx_group_feed_space(&app->tx_group, (uint16_t)dt);
             }
             morse_flipper_drain_tx_decoder(app);
-            if(app->screen == MorseFlipperScreenTxGroups && app->txg_wait_answer)
+            if((app->screen == MorseFlipperScreenTxGroups && app->txg_wait_answer) ||
+               app->screen == MorseFlipperScreenRxPractice)
                 morse_flipper_view_dirty(app);
         }
     }

@@ -18,6 +18,7 @@ typedef struct MfRxPracticeState {
     uint16_t char_gap_ms;
     uint16_t session_total;
     uint16_t session_passed;
+    MfRxPracticeDrawServices draw_services;
     uint8_t target_len;
     uint8_t answer_len;
     uint8_t playback_char;

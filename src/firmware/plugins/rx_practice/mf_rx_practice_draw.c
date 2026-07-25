@@ -3,6 +3,7 @@
 #include "../common/mf_big_callsign_font.h"
 
 #include <stdio.h>
+#include <string.h>
 
 /* The oversized glyph renderer is shared by Callsigns FALs. */
 #if 0
@@ -111,6 +112,8 @@ static void mf_draw_big_text(
 #endif
 
 void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
+    char answer[MF_CALLSIGN_MAX_LEN + 1U];
+    const char* shown_answer;
     char score[24];
     if(state == NULL || canvas == NULL) return;
     canvas_set_font(canvas, FontSecondary);
@@ -143,9 +146,23 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
     if(state->phase == MfRxPracticePhaseResult)
         mf_big_callsign_draw_text(
             canvas, state->target, state->target, state->target_len, 5, false);
+    shown_answer = state->answer;
+    if(state->phase == MfRxPracticePhaseAnswer &&
+       state->answer_len < state->target_len &&
+       state->draw_services.answer_preview != NULL) {
+        char preview =
+            state->draw_services.answer_preview(state->draw_services.context);
+        if((preview >= 'A' && preview <= 'Z') ||
+           (preview >= '0' && preview <= '9')) {
+            memcpy(answer, state->answer, state->answer_len);
+            answer[state->answer_len] = preview;
+            answer[state->answer_len + 1U] = '\0';
+            shown_answer = answer;
+        }
+    }
     mf_big_callsign_draw_text(
         canvas,
-        state->answer,
+        shown_answer,
         state->target,
         state->target_len,
         37,
