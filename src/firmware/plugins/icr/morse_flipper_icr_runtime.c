@@ -7,6 +7,7 @@
 #include "morse_flipper_icr.h"
 #include "morse_flipper_icr_api.h"
 #include "../../cw.h"
+#include "../../morse_flipper_time.h"
 
 #define MORSE_FLIPPER_CW_TOKEN_SK    0x80U
 #define MORSE_FLIPPER_CW_TOKEN_BK    0x81U
@@ -273,27 +274,32 @@ MorseFlipperIcrResult morse_flipper_icr_runtime_tick(void* value, uint32_t now_m
     state->feedback = MorseFlipperIcrFeedbackNone;
 
     if(state->phase == MorseFlipperIcrPhaseGraphWait) {
-        if(now_ms >= state->next_at) {
+        if(morse_flipper_time_reached(now_ms, state->next_at)) {
             morse_flipper_icr_begin_prompt(state, now_ms);
             return morse_flipper_icr_result(state, true);
         }
-        if(state->target < MORSE_FLIPPER_ICR_CHAR_COUNT && state->guard_until != 0U &&
-           now_ms >= state->guard_until) {
+        if(state->target < MORSE_FLIPPER_ICR_CHAR_COUNT &&
+           morse_flipper_time_reached(now_ms, state->guard_until)) {
             do {
                 state->guard_until += MORSE_FLIPPER_ICR_FLASH_STEP_MS;
-            } while(state->guard_until <= now_ms && state->guard_until < state->next_at);
+            } while(morse_flipper_time_reached(now_ms, state->guard_until) &&
+                    morse_flipper_time_pending(state->guard_until, state->next_at));
             return morse_flipper_icr_result(state, true);
         }
-    } else if(state->phase == MorseFlipperIcrPhasePlayback && now_ms >= state->next_at) {
+    } else if(state->phase == MorseFlipperIcrPhasePlayback &&
+              morse_flipper_time_reached(now_ms, state->next_at)) {
         morse_flipper_icr_tick_playback(state, now_ms);
         return morse_flipper_icr_result(state, true);
-    } else if(state->phase == MorseFlipperIcrPhaseRecognition && now_ms >= state->next_at) {
+    } else if(state->phase == MorseFlipperIcrPhaseRecognition &&
+              morse_flipper_time_reached(now_ms, state->next_at)) {
         morse_flipper_icr_finish_timeout(state, now_ms);
         return morse_flipper_icr_result(state, true);
-    } else if(state->phase == MorseFlipperIcrPhaseAnswerGuard && now_ms >= state->guard_until) {
+    } else if(state->phase == MorseFlipperIcrPhaseAnswerGuard &&
+              morse_flipper_time_reached(now_ms, state->guard_until)) {
         state->phase = MorseFlipperIcrPhaseAnswer;
         return morse_flipper_icr_result(state, true);
-    } else if(state->phase == MorseFlipperIcrPhaseResult && now_ms >= state->result_until) {
+    } else if(state->phase == MorseFlipperIcrPhaseResult &&
+              morse_flipper_time_reached(now_ms, state->result_until)) {
         state->feedback = MorseFlipperIcrFeedbackClear;
         morse_flipper_icr_begin_wait(state, now_ms);
         return morse_flipper_icr_result(state, true);
@@ -403,7 +409,9 @@ static bool morse_flipper_icr_flash_visible(const MorseFlipperIcrState* state, u
     uint32_t elapsed;
 
     if(state->phase != MorseFlipperIcrPhaseGraphWait) return true;
-    if(state->target >= MORSE_FLIPPER_ICR_CHAR_COUNT || now_ms >= state->next_at) return true;
+    if(state->target >= MORSE_FLIPPER_ICR_CHAR_COUNT ||
+       !morse_flipper_time_pending(now_ms, state->next_at))
+        return true;
 
     remaining = state->next_at - now_ms;
     elapsed = remaining >= MORSE_FLIPPER_ICR_FLASH_MS ?
