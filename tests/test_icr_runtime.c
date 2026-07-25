@@ -307,6 +307,56 @@ static void test_zero_reaction_start_records_elapsed_time(void) {
     CHECK(saved.avg_ms20[target] == morse_flipper_icr_reaction_bucket(100U));
 }
 
+static void test_settings_reset_confirmation_and_persistence(void) {
+    MorseFlipperIcrEnterArgs args = {
+        .now_ms = 100U,
+        .entry_kind = MorseFlipperIcrEntrySettings,
+    };
+    MorseFlipperIcrStats stats;
+    MorseFlipperIcrResult result;
+    InputEvent ok = {.key = InputKeyOk, .type = InputTypeShort};
+    InputEvent back = {.key = InputKeyBack, .type = InputTypeShort};
+    void* state = morse_flipper_icr_runtime_alloc();
+
+    morse_flipper_icr_stats_reset(&stats);
+    stats.attempts[0] = 4U;
+    stats.correct[0] = 3U;
+    CHECK(morse_flipper_icr_stats_save(&stats));
+    CHECK(state != NULL);
+    CHECK(morse_flipper_icr_runtime_enter(state, &args, &result));
+    CHECK(result.handled && result.redraw);
+    result = morse_flipper_icr_runtime_input(state, &ok, 101U);
+    CHECK(result.handled && result.redraw && !result.request_exit);
+    result = morse_flipper_icr_runtime_input(state, &back, 102U);
+    CHECK(result.handled && result.redraw && !result.request_exit);
+    CHECK(morse_flipper_icr_stats_load(&stats));
+    CHECK(stats.attempts[0] == 4U && stats.correct[0] == 3U);
+    morse_flipper_icr_runtime_input(state, &ok, 103U);
+    result = morse_flipper_icr_runtime_input(state, &ok, 104U);
+    CHECK(result.handled && result.redraw && !result.request_exit);
+    CHECK(morse_flipper_icr_stats_load(&stats));
+    CHECK(morse_flipper_icr_stats_valid(&stats));
+    CHECK(stats.attempts[0] == 0U && stats.correct[0] == 0U);
+    result = morse_flipper_icr_runtime_tick(state, 1103U);
+    CHECK(!result.redraw);
+    result = morse_flipper_icr_runtime_tick(state, 1104U);
+    CHECK(result.redraw);
+    result = morse_flipper_icr_runtime_input(state, &back, 1105U);
+    CHECK(result.handled && result.request_exit);
+    morse_flipper_icr_runtime_leave(state);
+    morse_flipper_icr_runtime_free(state);
+
+    state = morse_flipper_icr_runtime_alloc();
+    CHECK(state != NULL);
+    CHECK(morse_flipper_icr_runtime_enter(state, &args, &result));
+    result = morse_flipper_icr_runtime_input(state, &back, 1106U);
+    CHECK(result.handled && result.request_exit);
+    morse_flipper_icr_runtime_leave(state);
+    morse_flipper_icr_runtime_free(state);
+    CHECK(morse_flipper_icr_stats_load(&stats));
+    CHECK(morse_flipper_icr_stats_valid(&stats) && stats.attempts[0] == 0U);
+}
+
 int main(void) {
     char tmp[] = "/tmp/morse_icr_runtime_test_XXXXXX";
 
@@ -316,6 +366,7 @@ int main(void) {
     test_answer_trace_wrap_equivalence();
     test_zero_deadlines_remain_active();
     test_zero_reaction_start_records_elapsed_time();
+    test_settings_reset_confirmation_and_persistence();
     printf("test_icr_runtime: %u checks passed\n", g_checks);
     return 0;
 }

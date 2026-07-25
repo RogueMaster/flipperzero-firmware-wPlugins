@@ -25,11 +25,16 @@ bool morse_flipper_icr_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
         MORSE_FLIPPER_ICR_API_VERSION,
         MORSE_FLIPPER_ICR_API_MAGIC,
         sizeof(MorseFlipperIcrApi),
-        &(MorseFlipperIcrEnterArgs){.now_ms = now_ms, .rng_seed = now_ms ^ 0x49435231UL},
+        &(MorseFlipperIcrEnterArgs){
+            .now_ms = now_ms,
+            .rng_seed = now_ms ^ 0x49435231UL,
+            .entry_kind = app->scene == MorseFlipperSceneMenuSettings ?
+                              MorseFlipperIcrEntrySettings :
+                              MorseFlipperIcrEntryTraining,
+        },
         &initial);
     if(entered) morse_flipper_icr_host_apply_locked(app, initial, now_ms);
     furi_mutex_release(app->plugin_slot.mutex);
-    morse_flipper_update_sidetone(app);
     if(initial.redraw) morse_flipper_view_dirty(app);
     return entered;
 }

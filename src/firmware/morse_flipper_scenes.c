@@ -232,10 +232,8 @@ static void morse_flipper_scene_menu_settings_on_enter(void* context) {
         MorseFlipperSceneTxGroupsCfg,
         morse_flipper_scene_menu_pick,
         app);
+    submenu_add_item(app->submenu, "ICR", MorseFlipperSceneIcr, morse_flipper_scene_menu_pick, app);
     submenu_add_item(app->submenu, "USB", MorseFlipperScenePc, morse_flipper_scene_menu_pick, app);
-    if((sel < MorseFlipperSceneHome || sel > MorseFlipperScenePc) &&
-       sel != MorseFlipperSceneTxGroupsCfg && sel != MorseFlipperScenePassive)
-        sel = MorseFlipperSceneHome;
     submenu_set_selected_item(app->submenu, sel);
     morse_flipper_scene_enter_now(app, MorseFlipperSceneMenuSettings);
 }

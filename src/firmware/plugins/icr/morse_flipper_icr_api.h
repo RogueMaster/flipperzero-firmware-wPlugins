@@ -8,7 +8,7 @@
 
 #include "../../morse_flipper_mapped_fal.h"
 
-#define MORSE_FLIPPER_ICR_API_VERSION 3U
+#define MORSE_FLIPPER_ICR_API_VERSION 4U
 #define MORSE_FLIPPER_ICR_API_MAGIC 0x4D464943UL
 
 typedef enum {
@@ -19,11 +19,17 @@ typedef enum {
     MorseFlipperIcrFeedbackTimeout,
 } MorseFlipperIcrFeedback;
 
+typedef enum {
+    MorseFlipperIcrEntryTraining = 0,
+    MorseFlipperIcrEntrySettings,
+} MorseFlipperIcrEntryKind;
+
 typedef MorseFlipperMappedFalResult MorseFlipperIcrResult;
 
 typedef struct {
     uint32_t now_ms;
     uint32_t rng_seed;
+    uint8_t entry_kind;
 } MorseFlipperIcrEnterArgs;
 
 typedef struct {
