@@ -57,6 +57,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Piano v1.0 (By bergr22)](https://github.com/bergr22/FlipPiano)
 - Updated: [Passy v1.6 (By bettse)](https://github.com/bettse/passy)
 - Updated: [Nightstand Clock v1.3 (By nymda)](https://github.com/nymda/FlipperNightStand) [fix unreachable nightlight and notif use-after-close (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/244) [make Up/Down actually change the screen brightness (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/246) [Daily alarm & other changes (By xMasterX)](https://github.com/DarkFlippers/unleashed-firmware/commit/be05e0cdeff599797e53144a263b572bee571333)
+- Added: [Flipper Share iButton v0.1 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_ibutton)
 
 <a name="release"></a>
 
@@ -483,6 +484,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Flipper Blackhat v0.4.1 (By o7-machinehum)](https://github.com/o7-machinehum/flipper-blackhat-app) `Req: Blackhat Board` with [Blackhat OS](https://github.com/o7-machinehum/flipper-blackhat-os)
 - [Flipper Printer v1.0 (By alxcrt)](https://github.com/alxcrt/flipper-zero-thermal-printer) `Req: T7-US thermal printer module`
 - [Flipper Share v1.5 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share)
+- [Flipper Share iButton v0.1 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_ibutton)
 - [Flipper Share IR v1.5 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share_ir)
 - [FlipperPwn v1.7 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [FlipperTrack v1.0 (By pinkpwningclub)](https://github.com/pinkpwningclub/flipperTrack)
