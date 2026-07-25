@@ -32,9 +32,9 @@ static void mf_passive_settings_refresh(MfPassiveSettingsState* state) {
     variable_item_set_current_value_index(item, state->model.mode);
     variable_item_set_current_value_text(item, state->model.mode ? "Lesson" : "Callsign");
     item = state->items[MfPassiveSettingLength];
-    variable_item_set_values_count(item, state->model.mode ? 4U : 3U);
+    variable_item_set_values_count(item, state->model.mode ? 6U : 3U);
     variable_item_set_current_value_index(
-        item, state->model.length - (state->model.mode ? 3U : 4U));
+        item, state->model.length - (state->model.mode ? 1U : 4U));
     snprintf(text, sizeof(text), "%u", (unsigned)state->model.length);
     variable_item_set_current_value_text(item, text);
     item = state->items[MfPassiveSettingLesson];
@@ -70,7 +70,7 @@ static void mf_passive_settings_changed(VariableItem* item) {
     if(item == state->items[MfPassiveSettingMode])
         state->model.mode = index;
     else if(item == state->items[MfPassiveSettingLength])
-        state->model.length = index + (state->model.mode ? 3U : 4U);
+        state->model.length = index + (state->model.mode ? 1U : 4U);
     else if(item == state->items[MfPassiveSettingLesson])
         state->model.lesson = index + 1U;
     else if(item == state->items[MfPassiveSettingWpm])
@@ -114,7 +114,7 @@ bool mf_passive_settings_enter(
     state->items[MfPassiveSettingMode] =
         variable_item_list_add(list, "Mode", 2U, mf_passive_settings_changed, state);
     state->items[MfPassiveSettingLength] =
-        variable_item_list_add(list, "Length", 3U, mf_passive_settings_changed, state);
+        variable_item_list_add(list, "Length", 6U, mf_passive_settings_changed, state);
     state->items[MfPassiveSettingLesson] = variable_item_list_add(
         list,
         "Lesson",

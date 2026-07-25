@@ -323,11 +323,11 @@ static void test_delayed_tick_and_failures(void) {
     state.phase = MfPassivePhasePostVoice;
     state.next_at = 5U;
     mf_passive_tick(&state, 5000U);
-    CHECK(state.phase == MfPassivePhaseCue && state.next_at == 5120U);
+    CHECK(state.phase == MfPassivePhaseCue && state.next_at == 5030U);
     mf_passive_tick(&state, 5000U);
     CHECK(state.phase == MfPassivePhaseCue);
-    mf_passive_tick(&state, 5120U);
-    CHECK(state.phase == MfPassivePhasePostCue && state.next_at == 6120U);
+    mf_passive_tick(&state, 5030U);
+    CHECK(state.phase == MfPassivePhasePostCue && state.next_at == 6030U);
     mf_passive_leave(&state);
 
     make_pack(&file);
@@ -445,7 +445,7 @@ static void test_repeat_and_vibration_controls(void) {
     CHECK(state.revealed_count == 0U && strcmp(state.prompt, "A1A1") == 0);
     cue_at = state.next_at;
     tones_after_repeat = fake.tones;
-    CHECK(cue_at == now + 100U);
+    CHECK(cue_at == now + 300U);
     mf_passive_tick(&state, cue_at - 1U);
     CHECK(state.phase == MfPassivePhasePostRepeat && fake.tones == tones_after_repeat);
     mf_passive_tick(&state, cue_at);
@@ -508,18 +508,44 @@ static void test_single_character_lesson_rounds(void) {
     MemoryFile file;
     MfPassiveState state;
     FakeServices fake;
+    uint32_t final_mark;
+    uint32_t voice_at;
+    uint32_t repeat_end;
 
     make_pack(&file);
     setup(&state, &fake, &file);
     state.mode = 1U;
-    state.prompt_length = 3U;
+    state.prompt_length = 1U;
     state.lesson_charset_len = 1U;
     memcpy(state.lesson_charset, "K", 1U);
-    memcpy(state.prompt, "KKK", 4U);
+    memcpy(state.prompt, "K", 2U);
     state.phase = MfPassivePhasePostCue;
     state.next_at = 0U;
     CHECK(mf_passive_tick(&state, 0U).redraw);
-    CHECK(state.phase == MfPassivePhaseCw && strcmp(state.prompt, "KKK") == 0);
+    CHECK(state.phase == MfPassivePhaseCw && state.prompt_len == 1U && strcmp(state.prompt, "K") == 0);
+    final_mark = run_cw_to_post(&state);
+    CHECK(state.next_at == final_mark + 3000U);
+    voice_at = state.next_at;
+    CHECK(mf_passive_tick(&state, voice_at).redraw);
+    CHECK(state.phase == MfPassivePhaseVoice && state.revealed_count == 1U && strcmp(state.prompt, "K") == 0);
+    drain_voice(&state, voice_at + 1U);
+    CHECK(state.phase == MfPassivePhasePostVoice);
+    state.repeat_after_answer = 1U;
+    mf_passive_tick(&state, state.next_at);
+    CHECK(state.phase == MfPassivePhaseRepeatCw && strcmp(state.prompt, "K") == 0);
+    while(state.phase == MfPassivePhaseRepeatCw) {
+        repeat_end = state.next_at;
+        mf_passive_tick(&state, repeat_end);
+    }
+    CHECK(state.phase == MfPassivePhasePostRepeat && state.next_at == repeat_end + 300U);
+    mf_passive_tick(&state, state.next_at - 1U);
+    CHECK(state.phase == MfPassivePhasePostRepeat);
+    mf_passive_tick(&state, state.next_at);
+    CHECK(state.phase == MfPassivePhaseCue && state.next_at == repeat_end + 330U);
+    mf_passive_tick(&state, state.next_at - 1U);
+    CHECK(state.phase == MfPassivePhaseCue);
+    mf_passive_tick(&state, state.next_at);
+    CHECK(state.phase == MfPassivePhasePostCue);
     mf_passive_leave(&state);
 }
 

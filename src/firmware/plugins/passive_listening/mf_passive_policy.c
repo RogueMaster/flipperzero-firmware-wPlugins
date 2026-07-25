@@ -63,7 +63,7 @@ void mf_passive_settings_normalize(MfPassiveSettingsModel* model) {
 
     if(model == NULL) return;
     if(model->mode > 1U) model->mode = 0U;
-    min_length = model->mode ? 3U : 4U;
+    min_length = model->mode ? 1U : 4U;
     if(model->length < min_length) model->length = min_length;
     if(model->length > 6U) model->length = 6U;
     if(model->lesson == 0U) model->lesson = 1U;
@@ -154,21 +154,24 @@ bool mf_passive_settings_save(const MfPassiveSettingsModel* model) {
     Storage* storage;
     File* file;
     MfPassiveSettingsRecord record;
+    MfPassiveSettingsModel normalized;
     bool saved;
 
     if(model == NULL) return false;
+    normalized = *model;
+    mf_passive_settings_normalize(&normalized);
     record = (MfPassiveSettingsRecord){
         .magic = MF_PASSIVE_SETTINGS_MAGIC,
         .version = MF_PASSIVE_SETTINGS_VERSION,
-        .mode = model->mode,
-        .length = model->length,
-        .lesson = model->lesson,
-        .dit_ms = model->dit_ms,
-        .farnsworth_wpm = model->farnsworth_wpm,
-        .vibrate = model->vibrate,
-        .answer_delay_s = model->answer_delay_s,
-        .repeat_after_answer = model->repeat_after_answer,
-        .selected_row = model->selected_row,
+        .mode = normalized.mode,
+        .length = normalized.length,
+        .lesson = normalized.lesson,
+        .dit_ms = normalized.dit_ms,
+        .farnsworth_wpm = normalized.farnsworth_wpm,
+        .vibrate = normalized.vibrate,
+        .answer_delay_s = normalized.answer_delay_s,
+        .repeat_after_answer = normalized.repeat_after_answer,
+        .selected_row = normalized.selected_row,
     };
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);

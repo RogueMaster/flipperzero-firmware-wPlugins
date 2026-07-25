@@ -8,9 +8,9 @@
 #define MF_PASSIVE_INITIAL_CW_MS    1000U
 #define MF_PASSIVE_BETWEEN_TOKEN_MS 100U
 #define MF_PASSIVE_POST_VOICE_MS    1000U
-#define MF_PASSIVE_CUE_MS           120U
+#define MF_PASSIVE_CUE_MS            30U
 #define MF_PASSIVE_POST_CUE_MS      1000U
-#define MF_PASSIVE_POST_REPEAT_MS    100U
+#define MF_PASSIVE_POST_REPEAT_MS    300U
 #define MF_PASSIVE_MAX_UNDERRUNS     64U
 
 static bool mf_passive_reached(uint32_t now, uint32_t deadline) {
@@ -65,7 +65,10 @@ static bool mf_passive_next_prompt(MfPassiveState* state) {
     char candidate[MF_CALLSIGN_MAX_LEN + 1U] = {0};
     uint8_t length;
 
-    if(state == NULL || state->prompt_length < 3U || state->prompt_length > MF_CALLSIGN_MAX_LEN)
+    if(state == NULL || state->prompt_length > MF_CALLSIGN_MAX_LEN ||
+       (state->mode == 0U && state->prompt_length < 4U) ||
+       (state->mode == 1U && state->prompt_length == 0U) || state->mode > 1U ||
+       (state->mode == 1U && state->lesson_charset_len == 0U))
         return false;
     length = state->prompt_length;
     memcpy(previous, state->prompt, sizeof(previous));
