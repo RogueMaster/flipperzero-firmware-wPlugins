@@ -14,17 +14,17 @@ I often work with devices that ship without a keyboard and needed something univ
 
 ### Android app
 
-Keyboard (PC · English), dual labels:
+Keyboard (macOS · English), dual labels, stacked ↑↓:
 
-![Keyboard PC EN dual](docs/screenshots/01-keyboard-en.png)
+![Keyboard macOS EN](docs/screenshots/01-keyboard-en.png)
 
 Layout switch banner after swiping the space bar:
 
 ![Layout switch banner](docs/screenshots/02-layout-switch-banner.png)
 
-Keyboard (macOS · Русский), dual labels:
+Connected (macOS · English):
 
-![Keyboard macOS RU dual](docs/screenshots/03-keyboard-connected.png)
+![Keyboard connected](docs/screenshots/03-keyboard-connected.png)
 
 Touchpad mode:
 
@@ -34,11 +34,7 @@ Settings — output mode (Flipper vs Direct Bluetooth) and keyboard name:
 
 ![Settings output](docs/screenshots/05-settings-output.png)
 
-Settings — Direct Bluetooth host list:
-
-![Settings Direct BT host](docs/screenshots/08-settings-direct-bt.png)
-
-Settings — keyboard template (macOS / PC / Number) and languages:
+Settings — host list, keyboard template, and languages:
 
 ![Settings templates and languages](docs/screenshots/06-settings-layouts.png)
 
