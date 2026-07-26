@@ -32,7 +32,6 @@ typedef struct {
     uint32_t* dma_pulse; // TIM2 CCR3 values (carrier cycles), length RFID_TP_TOTAL
     RfidModemEnc enc; // touched only by the tag worker (refill) -> no ISR race
     FuriMessageQueue* tx_q; // single-slot pending frame (send -> refill)
-    volatile bool field_present;
     volatile bool emulating;
 
     // Reader (receiver)
@@ -54,11 +53,6 @@ typedef struct {
     // self-heal (reset the decoder if it stops producing frames for a while).
     volatile uint32_t rx_frames;
 } RfidTransport;
-
-// How long the tag worker tolerates a stalled emulate DMA (no half/full
-// callback, i.e. the external field stopped clocking TIM2) before declaring the
-// field lost. A half buffer plays in ~65-80 ms, so a few of those means gone.
-#define RFID_TP_FIELD_LOST_MS 400u
 
 // Owned by the scene lifecycle: init in on_enter, deinit in on_exit.
 static RfidTransport* rfid_tp = NULL;
@@ -126,13 +120,11 @@ static void rfid_tp_fill_half(RfidTransport* tp, size_t start) {
 static int32_t rfid_tp_tag_worker(void* context) {
     RfidTransport* tp = context;
 
-    // Phase 1: wait for the reader's field (TIM2 is the field counter here).
+    // Phase 1: wait for the reader's field (TIM2 is the field counter here); the
+    // tag can only load-modulate while the reader's field clocks its emulate timer.
     while(!tp->worker_stop) {
         uint32_t freq = 0;
-        if(furi_hal_rfid_field_is_present(&freq)) {
-            tp->field_present = true;
-            break;
-        }
+        if(furi_hal_rfid_field_is_present(&freq)) break;
         furi_delay_ms(50);
     }
     if(tp->worker_stop) return 0;
@@ -145,22 +137,13 @@ static int32_t rfid_tp_tag_worker(void* context) {
         tp->dma_dur, tp->dma_pulse, RFID_TP_TOTAL, rfid_tp_dma_isr, tp);
     tp->emulating = true;
 
-    // Phase 2: refill the inactive half whenever the DMA signals. The emulate
-    // TIM2 is clocked by the reader's external field, so the DMA callback stops
-    // firing when the devices are separated — use that stall to detect a lost
-    // link (the carousel has no return channel) and drive the "Waiting for
-    // field..." UI, mirroring how the other transports notice a dropped peer.
-    uint32_t last_refill = furi_get_tick();
+    // Phase 2: refill the inactive half whenever the DMA signals.
     while(!tp->worker_stop) {
         uint32_t flag = 0;
         size_t n = furi_stream_buffer_receive(tp->dma_flags, &flag, sizeof(flag), 50);
         if(n == sizeof(flag)) {
             size_t start = (flag == RFID_TP_FLAG_FULL) ? RFID_TP_HALF : 0;
             rfid_tp_fill_half(tp, start);
-            last_refill = furi_get_tick();
-            tp->field_present = true;
-        } else if(furi_get_tick() - last_refill > furi_ms_to_ticks(RFID_TP_FIELD_LOST_MS)) {
-            tp->field_present = false;
         }
     }
     return 0;
@@ -353,7 +336,3 @@ void rfid_transport_stop_field(void) {
     }
 }
 
-bool rfid_transport_tag_field_present(void) {
-    RfidTransport* tp = rfid_tp;
-    return tp && tp->field_present;
-}

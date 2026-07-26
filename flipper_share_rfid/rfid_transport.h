@@ -30,8 +30,3 @@ void rfid_transport_deinit(void);
 // Receiver only: stop the carrier + capture after the transfer finalizes, without
 // tearing the transport down (mirrors the NFC app's stop_field). No-op on the tag.
 void rfid_transport_stop_field(void);
-
-// True once the tag has seen the reader's field at least once (drives the sender's
-// "Waiting for field..." UI hint). Always false / irrelevant on the reader.
-bool rfid_transport_tag_field_present(void);
-

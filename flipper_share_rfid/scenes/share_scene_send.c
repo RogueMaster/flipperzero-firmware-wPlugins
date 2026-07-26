@@ -157,23 +157,18 @@ static void update_timer_callback(void* context) {
         // failed) — keep the "Hold ~2cm apart" hint from on_enter.
         if(fsize == 0) return;
 
-        // Until the reader's field is first seen, the tag cannot transmit.
-        if(!rfid_transport_tag_field_present()) {
-            snprintf(progress_text, sizeof(progress_text), "%s\nWaiting for field...", fname);
+        uint32_t eta_sec = fsize / FSH_PAYLOAD_THROUGHPUT_BPS;
+        if(eta_sec > FSH_ETA_MAX_SEC) eta_sec = FSH_ETA_MAX_SEC;
+        char eta[16];
+        fsh_fmt_duration(eta_sec, eta, sizeof(eta));
+        if(fsize < 1024) {
+            snprintf(
+                progress_text, sizeof(progress_text), "%s\n%lu B  ~ %s", fname,
+                (unsigned long)fsize, eta);
         } else {
-            uint32_t eta_sec = fsize / FSH_PAYLOAD_THROUGHPUT_BPS;
-            if(eta_sec > FSH_ETA_MAX_SEC) eta_sec = FSH_ETA_MAX_SEC;
-            char eta[16];
-            fsh_fmt_duration(eta_sec, eta, sizeof(eta));
-            if(fsize < 1024) {
-                snprintf(
-                    progress_text, sizeof(progress_text), "%s\n%lu B  ~ %s", fname,
-                    (unsigned long)fsize, eta);
-            } else {
-                snprintf(
-                    progress_text, sizeof(progress_text), "%s\n%lu KB  ~ %s", fname,
-                    (unsigned long)(fsize / 1024), eta);
-            }
+            snprintf(
+                progress_text, sizeof(progress_text), "%s\n%lu KB  ~ %s", fname,
+                (unsigned long)(fsize / 1024), eta);
         }
     }
 

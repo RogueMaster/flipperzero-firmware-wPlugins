@@ -44,8 +44,8 @@ Features:
 4. Bring the backs together to ~2 cm and **hold still**. The receiver locks on, shows a
    progress bar, and verifies the MD5 at the end; the file is saved to `/ext/inbox/`.
 
-The sender shows "Waiting for field..." until it senses the receiver's carrier, then the
-file name, size and a rough ETA. The receiver shows "Waiting for announce..." until it
+The sender shows the file name, size and a rough ETA. The receiver shows
+"Waiting for announce..." until it
 locks, then the progress bar with percentage and ETA.
 
 ---
