@@ -14,10 +14,7 @@
 
 typedef struct {
     uint16_t dit_ms;
-    uint16_t dit_samples[8];
-    size_t dit_sample_count;
-    int16_t pending_samples[64];
-    size_t pending_count;
+    uint8_t dit_sample_count;
     uint16_t symbol_code;
     size_t symbol_count;
     char output[96];

@@ -25,27 +25,23 @@ static void decoder_clear_symbol(MorseFlipperCwDecoder* decoder) {
 }
 
 static void decoder_push_dit_sample(MorseFlipperCwDecoder* decoder, uint16_t ms) {
-    size_t i;
-    uint32_t total;
+    uint16_t dit_ms;
+    uint16_t limit;
 
     if(!decoder || !ms) return;
     if(decoder->fixed_timing) return;
 
-    /* Rolling dit estimate: small, cheap, and good enough for a human fist. */
-    if(decoder->dit_sample_count <
-       sizeof(decoder->dit_samples) / sizeof(decoder->dit_samples[0])) {
-        decoder->dit_samples[decoder->dit_sample_count++] = ms;
+    /* A first bounce must not replace the configured-speed seed. */
+    dit_ms = decoder->dit_ms;
+    limit = (uint16_t)(dit_ms / 4U);
+    if(ms > dit_ms) {
+        uint16_t step = (uint16_t)((ms - dit_ms) / 4U);
+        decoder->dit_ms = (uint16_t)(dit_ms + (step > limit ? limit : step));
     } else {
-        for(i = 1; i < decoder->dit_sample_count; i++) {
-            decoder->dit_samples[i - 1] = decoder->dit_samples[i];
-        }
-        decoder->dit_samples[decoder->dit_sample_count - 1u] = ms;
+        uint16_t step = (uint16_t)((dit_ms - ms) / 4U);
+        decoder->dit_ms = (uint16_t)(dit_ms - (step > limit ? limit : step));
     }
-
-    total = 0;
-    for(i = 0; i < decoder->dit_sample_count; i++)
-        total += decoder->dit_samples[i];
-    decoder->dit_ms = (uint16_t)(total / decoder->dit_sample_count);
+    if(decoder->dit_sample_count != UINT8_MAX) decoder->dit_sample_count++;
 }
 
 static bool decoder_push_symbol(MorseFlipperCwDecoder* decoder, bool dash) {
@@ -124,62 +120,6 @@ static void decoder_flush_symbol_buffer(MorseFlipperCwDecoder* decoder) {
     decoder_clear_symbol(decoder);
 }
 
-static bool decoder_guess_timing(MorseFlipperCwDecoder* decoder) {
-    uint16_t marks[32];
-    size_t mark_count;
-    size_t i;
-    size_t j;
-    size_t split_idx;
-    uint16_t tmp;
-    uint16_t largest_gap;
-    uint32_t lower_total;
-
-    /*
-     * Before timing is known, pending samples store marks as positive and spaces
-     * as negative. Marks should form two rough clusters; the lower cluster is dit.
-     */
-    if(!decoder) return false;
-
-    mark_count = 0;
-    for(i = 0; i < decoder->pending_count && mark_count < sizeof(marks) / sizeof(marks[0]); i++) {
-        if(decoder->pending_samples[i] > 0)
-            marks[mark_count++] = (uint16_t)decoder->pending_samples[i];
-    }
-    if(mark_count < 8) return false;
-
-    for(i = 0; i < mark_count; i++) {
-        for(j = i + 1; j < mark_count; j++) {
-            if(marks[j] < marks[i]) {
-                tmp = marks[i];
-                marks[i] = marks[j];
-                marks[j] = tmp;
-            }
-        }
-    }
-
-    split_idx = 0;
-    largest_gap = 0;
-    for(i = 1; i < mark_count; i++) {
-        if((uint16_t)(marks[i] - marks[i - 1u]) > largest_gap) {
-            largest_gap = (uint16_t)(marks[i] - marks[i - 1u]);
-            split_idx = i;
-        }
-    }
-    if(!split_idx || marks[split_idx - 1u] == 0) return false;
-    if(marks[split_idx] / marks[split_idx - 1u] < 2u) return false;
-
-    lower_total = 0;
-    for(i = 0; i < split_idx; i++)
-        lower_total += marks[i];
-    decoder->dit_ms = (uint16_t)(lower_total / split_idx);
-    decoder->dit_sample_count = 0;
-    for(i = 0; i < split_idx && i < sizeof(decoder->dit_samples) / sizeof(decoder->dit_samples[0]);
-        i++) {
-        decoder->dit_samples[decoder->dit_sample_count++] = marks[i];
-    }
-    return true;
-}
-
 static void decoder_process_mark(MorseFlipperCwDecoder* decoder, uint16_t ms) {
     uint32_t dit_min;
     uint32_t dit_max;
@@ -188,16 +128,9 @@ static void decoder_process_mark(MorseFlipperCwDecoder* decoder, uint16_t ms) {
 
     if(!decoder || !ms) return;
 
-    /* No dit yet: bank samples until the cluster split is plausible. */
-    if(!decoder->dit_ms) {
-        if(decoder->pending_count <
-           sizeof(decoder->pending_samples) / sizeof(decoder->pending_samples[0])) {
-            decoder->pending_samples[decoder->pending_count++] = (int16_t)ms;
-        }
-        return;
-    }
+    if(!decoder->dit_ms) return;
 
-    dit_min = decoder->dit_ms / 2u;
+    dit_min = (decoder->dit_ms * 2u) / 3u;
     dit_max = decoder->dit_ms * 2u;
     dah_min = decoder->dit_ms * 2u;
     dah_max = decoder->dit_ms * 5u;
@@ -219,13 +152,7 @@ static void decoder_process_space(MorseFlipperCwDecoder* decoder, uint16_t ms) {
     if(!decoder || !ms) return;
 
     /* Spaces are boundaries: letter, word, or "give up and reset timing". */
-    if(!decoder->dit_ms) {
-        if(decoder->pending_count <
-           sizeof(decoder->pending_samples) / sizeof(decoder->pending_samples[0])) {
-            decoder->pending_samples[decoder->pending_count++] = -(int16_t)ms;
-        }
-        return;
-    }
+    if(!decoder->dit_ms) return;
 
     letter_min = (decoder->dit_ms * 5u) / 2u;
     word_min = decoder->dit_ms * 6u;
@@ -241,28 +168,6 @@ static void decoder_process_space(MorseFlipperCwDecoder* decoder, uint16_t ms) {
         decoder_emit(decoder, '|');
         decoder->timing_reset = true;
         decoder_clear_symbol(decoder);
-        decoder->pending_count = 0;
-    }
-}
-
-static void decoder_replay_pending(MorseFlipperCwDecoder* decoder) {
-    int16_t samples[64];
-    size_t count;
-    size_t i;
-
-    /* Once a dit is guessed, replay old edges through the normal path. No special cases. */
-    if(!decoder) return;
-    count = decoder->pending_count;
-    if(count > sizeof(samples) / sizeof(samples[0])) count = sizeof(samples) / sizeof(samples[0]);
-    for(i = 0; i < count; i++)
-        samples[i] = decoder->pending_samples[i];
-    decoder->pending_count = 0;
-
-    for(i = 0; i < count; i++) {
-        if(samples[i] > 0)
-            decoder_process_mark(decoder, (uint16_t)samples[i]);
-        else
-            decoder_process_space(decoder, (uint16_t)(-samples[i]));
     }
 }
 
@@ -302,18 +207,12 @@ void morse_flipper_cw_decoder_feed_mark(MorseFlipperCwDecoder* decoder, uint16_t
     if(!decoder || !ms) return;
     decoder->timing_reset = false;
     decoder_process_mark(decoder, ms);
-    if(!decoder->dit_ms && decoder_guess_timing(decoder)) {
-        decoder_replay_pending(decoder);
-    }
 }
 
 void morse_flipper_cw_decoder_feed_space(MorseFlipperCwDecoder* decoder, uint16_t ms) {
     if(!decoder || !ms) return;
     decoder->timing_reset = false;
     decoder_process_space(decoder, ms);
-    if(!decoder->dit_ms && decoder_guess_timing(decoder)) {
-        decoder_replay_pending(decoder);
-    }
 }
 
 bool morse_flipper_cw_decoder_timing_ready(const MorseFlipperCwDecoder* decoder) {
