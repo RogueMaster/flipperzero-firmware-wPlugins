@@ -25,7 +25,7 @@ There is **no** Android IME / system keyboard registration. The app is a normal 
 
 ## Screenshots
 
-See `docs/screenshots/` and the **Screenshots** section in the root `README.md` (keyboard, touchpad, Settings for Flipper / Direct Bluetooth / layouts).
+See `docs/screenshots/` and the **Screenshots** section in the root `README.md` (keyboard with stacked arrows / dual labels, touchpad, Settings).
 
 ## First-time setup
 
