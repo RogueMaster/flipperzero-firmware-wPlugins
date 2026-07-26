@@ -15,6 +15,9 @@
 typedef struct {
     uint16_t dit_ms;
     uint8_t dit_sample_count;
+    uint16_t held_dit_ms;
+    uint16_t held_gap_ms;
+    uint16_t first_mark_ms;
     uint16_t symbol_code;
     size_t symbol_count;
     char output[96];

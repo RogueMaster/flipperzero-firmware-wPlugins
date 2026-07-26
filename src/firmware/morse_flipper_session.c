@@ -51,7 +51,7 @@ void morse_flipper_reset_answer_decoder(MorseFlipperApp* app) {
     /* The next accepted edge starts a new answer; playback idle is not a space. */
     app->rf_tx_edge_at = 0U;
     app->rf_tx_gap_flushed = true;
-    app->rf_tx_level = false;
+    app->rf_tx_level = morse_flipper_any_active_notes(app);
 }
 
 void morse_flipper_reset_session_runtime(MorseFlipperApp* app) {

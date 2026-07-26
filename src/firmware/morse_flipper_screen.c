@@ -103,6 +103,14 @@ void morse_flipper_enter_screen(
         morse_flipper_reset_straight_state(app, now_ms);
     }
 
+    if(screen == MorseFlipperScreenIcr && app->screen != MorseFlipperScreenIcr) {
+        /* ICR has no physical-key answer path; discard queued keyer elements before entry. */
+        morse_flipper_drop_live_keying_for_playback(app, now_ms);
+        morse_keyer_reset(&app->keyer);
+        morse_flipper_drain_keyer_events(app);
+        morse_flipper_release_all_notes(app);
+    }
+
     if(scene == MorseFlipperSceneRun && app->scene != MorseFlipperSceneRun) {
         app->preview_ticks = 0U;
         app->run_dit_ms = morse_flipper_current_dit_ms(app);

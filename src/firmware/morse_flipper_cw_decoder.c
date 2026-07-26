@@ -11,6 +11,8 @@
 
 #include <string.h>
 
+#define MORSE_FLIPPER_CW_DECODER_DEFAULT_DIT_MS 100U
+
 static void decoder_emit(MorseFlipperCwDecoder* decoder, uint8_t ch) {
     if(!decoder || !ch) return;
     if(decoder->output_len + 1u >= sizeof(decoder->output)) return;
@@ -22,6 +24,9 @@ static void decoder_clear_symbol(MorseFlipperCwDecoder* decoder) {
     if(!decoder) return;
     decoder->symbol_code = 1u;
     decoder->symbol_count = 0u;
+    decoder->held_dit_ms = 0U;
+    decoder->held_gap_ms = 0U;
+    decoder->first_mark_ms = 0U;
 }
 
 static void decoder_push_dit_sample(MorseFlipperCwDecoder* decoder, uint16_t ms) {
@@ -137,10 +142,12 @@ static void decoder_process_mark(MorseFlipperCwDecoder* decoder, uint16_t ms) {
 
     if(ms >= dit_min && ms <= dit_max) {
         if(decoder_push_symbol(decoder, false)) {
+            if(decoder->symbol_count == 1U) decoder->first_mark_ms = ms;
             decoder_push_dit_sample(decoder, ms);
         }
     } else if(ms >= dah_min && ms <= dah_max) {
-        decoder_push_symbol(decoder, true);
+        if(decoder_push_symbol(decoder, true) && decoder->symbol_count == 1U)
+            decoder->first_mark_ms = ms;
     }
 }
 
@@ -150,6 +157,19 @@ static void decoder_process_space(MorseFlipperCwDecoder* decoder, uint16_t ms) {
     uint32_t reset_min;
 
     if(!decoder || !ms) return;
+
+    if(decoder->held_dit_ms != 0U &&
+       ms >= (uint16_t)((decoder->held_dit_ms * 5U) / 2U)) {
+        uint16_t held_dit_ms = decoder->held_dit_ms;
+
+        decoder->held_dit_ms = 0U;
+        decoder->held_gap_ms = 0U;
+        if(decoder_push_symbol(decoder, false)) {
+            if(decoder->symbol_count == 1U) decoder->first_mark_ms = held_dit_ms;
+            decoder->dit_ms = held_dit_ms;
+        }
+    }
+    if(decoder->held_dit_ms != 0U) decoder->held_gap_ms = ms;
 
     /* Spaces are boundaries: letter, word, or "give up and reset timing". */
     if(!decoder->dit_ms) return;
@@ -171,13 +191,48 @@ static void decoder_process_space(MorseFlipperCwDecoder* decoder, uint16_t ms) {
     }
 }
 
+static bool decoder_fast_dit_candidate(const MorseFlipperCwDecoder* decoder, uint16_t ms) {
+    if(decoder == NULL || decoder->fixed_timing || decoder->dit_ms == 0U) return false;
+    return ms >= (uint16_t)(decoder->dit_ms / 3U) &&
+           ms < (uint16_t)((decoder->dit_ms * 2U) / 3U);
+}
+
+static bool decoder_fast_dit_confirmed(
+    uint16_t held_dit_ms,
+    uint16_t held_gap_ms,
+    uint16_t ms) {
+    return held_gap_ms >= (uint16_t)(held_dit_ms / 2U) &&
+           held_gap_ms <= (uint16_t)((held_dit_ms * 3U) / 2U) &&
+           ((ms >= (uint16_t)(held_dit_ms / 2U) &&
+             ms <= (uint16_t)((held_dit_ms * 3U) / 2U)) ||
+            (ms >= (uint16_t)((held_dit_ms * 5U) / 2U) &&
+             ms <= (uint16_t)((held_dit_ms * 7U) / 2U)));
+}
+
+static void decoder_accept_held_dit(MorseFlipperCwDecoder* decoder) {
+    uint16_t held_dit_ms;
+
+    if(decoder == NULL || decoder->held_dit_ms == 0U) return;
+    held_dit_ms = decoder->held_dit_ms;
+    decoder->held_dit_ms = 0U;
+    decoder->held_gap_ms = 0U;
+
+    if(decoder->symbol_count == 1U &&
+       decoder->first_mark_ms >= (uint16_t)(held_dit_ms * 2U))
+        decoder->symbol_code |= 1U;
+    if(decoder_push_symbol(decoder, false)) {
+        if(decoder->symbol_count == 1U) decoder->first_mark_ms = held_dit_ms;
+        decoder->dit_ms = held_dit_ms;
+    }
+}
+
 static void morse_flipper_cw_decoder_init_mode(
     MorseFlipperCwDecoder* decoder,
     uint16_t starting_dit_ms,
     bool fixed_timing) {
     if(!decoder) return;
     memset(decoder, 0, sizeof(*decoder));
-    decoder->dit_ms = starting_dit_ms;
+    decoder->dit_ms = starting_dit_ms ? starting_dit_ms : MORSE_FLIPPER_CW_DECODER_DEFAULT_DIT_MS;
     decoder->fixed_timing = fixed_timing;
     decoder_clear_symbol(decoder);
 }
@@ -206,6 +261,20 @@ void morse_flipper_cw_decoder_reset(MorseFlipperCwDecoder* decoder) {
 void morse_flipper_cw_decoder_feed_mark(MorseFlipperCwDecoder* decoder, uint16_t ms) {
     if(!decoder || !ms) return;
     decoder->timing_reset = false;
+
+    if(decoder->held_dit_ms != 0U) {
+        if(decoder_fast_dit_confirmed(decoder->held_dit_ms, decoder->held_gap_ms, ms))
+            decoder_accept_held_dit(decoder);
+        else {
+            decoder->held_dit_ms = 0U;
+            decoder->held_gap_ms = 0U;
+        }
+    }
+    if(decoder->held_dit_ms == 0U && decoder_fast_dit_candidate(decoder, ms)) {
+        decoder->held_dit_ms = ms;
+        decoder->held_gap_ms = 0U;
+        return;
+    }
     decoder_process_mark(decoder, ms);
 }
 
@@ -238,7 +307,8 @@ bool morse_flipper_cw_decoder_timing_reset(const MorseFlipperCwDecoder* decoder)
 }
 
 uint8_t morse_flipper_cw_decoder_preview(const MorseFlipperCwDecoder* decoder) {
-    if(!decoder || !decoder->symbol_count) return 0;
+    if(!decoder) return 0;
+    if(!decoder->symbol_count) return decoder->held_dit_ms ? 'E' : 0;
     return decoder_lookup(decoder->symbol_code);
 }
 

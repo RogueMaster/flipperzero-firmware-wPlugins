@@ -45,6 +45,45 @@ static void test_adaptive_seed_converges_without_boundary_collapse(void) {
     CHECK(morse_flipper_cw_decoder_dit_ms(&decoder) > 125U);
 }
 
+static void test_adaptive_fast_fist_recovers_dit_and_dah_leads(void) {
+    MorseFlipperCwDecoder decoder;
+
+    morse_flipper_cw_decoder_init(&decoder, 100U);
+    morse_flipper_cw_decoder_feed_mark(&decoder, 55U);
+    CHECK(morse_flipper_cw_decoder_preview(&decoder) == 'E');
+    morse_flipper_cw_decoder_reset(&decoder);
+    feed_letter(&decoder, ".--.", 55U);
+    feed_letter(&decoder, ".--.", 55U);
+    CHECK(strcmp(morse_flipper_cw_decoder_output(&decoder), "PP") == 0);
+
+    morse_flipper_cw_decoder_init(&decoder, 100U);
+    feed_letter(&decoder, "-...", 55U);
+    CHECK(strcmp(morse_flipper_cw_decoder_output(&decoder), "B") == 0);
+
+    morse_flipper_cw_decoder_init(&decoder, 100U);
+    feed_letter(&decoder, ".--.", 65U);
+    CHECK(strcmp(morse_flipper_cw_decoder_output(&decoder), "P") == 0);
+}
+
+static void test_adaptive_bounce_sequence_is_ignored(void) {
+    MorseFlipperCwDecoder decoder;
+
+    morse_flipper_cw_decoder_init(&decoder, 100U);
+    morse_flipper_cw_decoder_feed_mark(&decoder, 50U);
+    morse_flipper_cw_decoder_feed_space(&decoder, 15U);
+    morse_flipper_cw_decoder_feed_mark(&decoder, 50U);
+    morse_flipper_cw_decoder_feed_space(&decoder, 30U);
+    feed_letter(&decoder, ".--.", 100U);
+    CHECK(strcmp(morse_flipper_cw_decoder_output(&decoder), "P") == 0);
+}
+
+static void test_zero_seed_uses_safe_default(void) {
+    MorseFlipperCwDecoder decoder;
+
+    morse_flipper_cw_decoder_init(&decoder, 0U);
+    CHECK(morse_flipper_cw_decoder_dit_ms(&decoder) == 100U);
+}
+
 int main(void) {
     static const char expected[] = "EISH5";
     MorseFlipperCwDecoder decoder;
@@ -61,6 +100,9 @@ int main(void) {
     CHECK(strcmp(morse_flipper_cw_decoder_output(&decoder), "5") == 0);
     test_adaptive_bounce_does_not_split_p();
     test_adaptive_seed_converges_without_boundary_collapse();
+    test_adaptive_fast_fist_recovers_dit_and_dah_leads();
+    test_adaptive_bounce_sequence_is_ignored();
+    test_zero_seed_uses_safe_default();
     printf("test_cw_decoder_preview: %u checks passed\n", checks);
     return 0;
 }

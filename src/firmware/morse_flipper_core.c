@@ -261,9 +261,8 @@ uint16_t morse_flipper_current_dit_ms(const MorseFlipperApp* app) {
         return app->run_dit_ms;
     }
 
-    if(app->vail_speed_active) {
-        return app->vail_dit_ms;
-    }
+    if(app->vail_speed_active)
+        return app->vail_dit_ms ? app->vail_dit_ms : MORSE_FLIPPER_DEFAULT_DIT_MS;
 
     return app->listening_settings.local_dit_ms ? app->listening_settings.local_dit_ms : MORSE_FLIPPER_DEFAULT_DIT_MS;
 }
