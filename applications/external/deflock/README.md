@@ -24,6 +24,19 @@ above, [Ko-fi](https://ko-fi.com/recongrunt), or
 and the legal costs of mapping surveillance infrastructure.
 [Donations never gate a feature](SUPPORTERS.md).
 
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub-Sponsor-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ReconGrunt)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy_a_coffee-ff5e5b?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/recongrunt)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-Support-ffdd00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/recongrunt)
+[![Bitcoin](https://img.shields.io/badge/Bitcoin-Donate-f7931a?style=for-the-badge&logo=bitcoin&logoColor=white)](https://mempool.space/address/bc1qavy2wdhgpvqturn5he76mxclqr0a3vhg9sj4l8)
+
+Bitcoin (BTC, native SegWit):
+
+```
+bc1qavy2wdhgpvqturn5he76mxclqr0a3vhg9sj4l8
+```
+
+Also scannable from the Flipper itself: **FlipDeFlock → Support**.
+
 ## Install
 
 Download `flipdeflock.fap` from the [latest release](../../releases/latest), copy
@@ -318,6 +331,10 @@ costs of mapping surveillance hardware), use the **Sponsor** button at the top o
 the repo, [Ko-fi](https://ko-fi.com/recongrunt), or
 [Buy Me a Coffee](https://buymeacoffee.com/recongrunt). Donations never gate a
 feature.
+
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub-Sponsor-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ReconGrunt)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy_a_coffee-ff5e5b?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/recongrunt)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-Support-ffdd00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/recongrunt)
 
 What supporters get — recognition and early access to release candidates, never
 functionality — is spelled out in [SUPPORTERS.md](SUPPORTERS.md).

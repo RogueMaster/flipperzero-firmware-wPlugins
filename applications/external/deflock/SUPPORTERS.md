@@ -11,6 +11,9 @@ mapping surveillance infrastructure.
   the top of the repo
 - **[Ko-fi](https://ko-fi.com/recongrunt)**
 - **[Buy Me a Coffee](https://buymeacoffee.com/recongrunt)**
+- **Bitcoin (BTC, native SegWit)** — `bc1qavy2wdhgpvqturn5he76mxclqr0a3vhg9sj4l8`
+  ([view on mempool.space](https://mempool.space/address/bc1qavy2wdhgpvqturn5he76mxclqr0a3vhg9sj4l8)),
+  or scan it on-device from **FlipDeFlock → Support**
 
 ## What supporters get
 

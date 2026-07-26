@@ -12,7 +12,7 @@ static void (*const recon_scene_on_enter_handlers[])(void*) = {
     recon_scene_firmware_run_on_enter,    recon_scene_flock_map_on_enter,
     recon_scene_deflock_handoff_on_enter, recon_scene_guardian_on_enter,
     recon_scene_guardian_sus_on_enter,    recon_scene_locator_on_enter,
-    recon_scene_locator_home_on_enter,
+    recon_scene_locator_home_on_enter,    recon_scene_support_on_enter,
 };
 
 static bool (*const recon_scene_on_event_handlers[])(void*, SceneManagerEvent) = {
@@ -25,7 +25,7 @@ static bool (*const recon_scene_on_event_handlers[])(void*, SceneManagerEvent) =
     recon_scene_firmware_run_on_event,    recon_scene_flock_map_on_event,
     recon_scene_deflock_handoff_on_event, recon_scene_guardian_on_event,
     recon_scene_guardian_sus_on_event,    recon_scene_locator_on_event,
-    recon_scene_locator_home_on_event,
+    recon_scene_locator_home_on_event,    recon_scene_support_on_event,
 };
 
 static void (*const recon_scene_on_exit_handlers[])(void*) = {
@@ -38,7 +38,7 @@ static void (*const recon_scene_on_exit_handlers[])(void*) = {
     recon_scene_firmware_run_on_exit,    recon_scene_flock_map_on_exit,
     recon_scene_deflock_handoff_on_exit, recon_scene_guardian_on_exit,
     recon_scene_guardian_sus_on_exit,    recon_scene_locator_on_exit,
-    recon_scene_locator_home_on_exit,
+    recon_scene_locator_home_on_exit,    recon_scene_support_on_exit,
 };
 
 const SceneManagerHandlers recon_scene_handlers = {

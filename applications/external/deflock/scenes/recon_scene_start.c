@@ -15,6 +15,7 @@ typedef enum {
     StartItemFlockMap,
     StartItemDeflockShare,
     StartItemLocator,
+    StartItemSupport,
 } StartItem;
 
 static void recon_scene_start_submenu_cb(void* context, uint32_t index) {
@@ -78,6 +79,7 @@ void recon_scene_start_on_enter(void* context) {
         submenu, "Share to DeFlock", StartItemDeflockShare, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Settings", StartItemSettings, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "About", StartItemAbout, recon_scene_start_submenu_cb, app);
+    submenu_add_item(submenu, "Support", StartItemSupport, recon_scene_start_submenu_cb, app);
     submenu_set_selected_item(
         submenu, scene_manager_get_scene_state(app->scene_manager, ReconSceneStart));
     view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewSubmenu);
@@ -134,6 +136,9 @@ bool recon_scene_start_on_event(void* context, SceneManagerEvent event) {
             break;
         case StartItemAbout:
             scene_manager_next_scene(app->scene_manager, ReconSceneAbout);
+            break;
+        case StartItemSupport:
+            scene_manager_next_scene(app->scene_manager, ReconSceneSupport);
             break;
         default:
             consumed = false;

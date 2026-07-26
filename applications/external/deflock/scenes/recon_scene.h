@@ -24,6 +24,7 @@ typedef enum {
     ReconSceneGuardianSus,
     ReconSceneLocator,
     ReconSceneLocatorHome,
+    ReconSceneSupport,
     ReconSceneNum,
 } ReconScene;
 
@@ -104,3 +105,7 @@ void recon_scene_locator_on_exit(void* context);
 void recon_scene_locator_home_on_enter(void* context);
 bool recon_scene_locator_home_on_event(void* context, SceneManagerEvent event);
 void recon_scene_locator_home_on_exit(void* context);
+
+void recon_scene_support_on_enter(void* context);
+bool recon_scene_support_on_event(void* context, SceneManagerEvent event);
+void recon_scene_support_on_exit(void* context);

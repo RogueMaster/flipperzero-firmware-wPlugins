@@ -74,13 +74,24 @@ static void deflock_qr_view_draw_callback(Canvas* canvas, void* _model) {
         canvas_draw_str_aligned(canvas, QR_AREA / 2, 36, AlignCenter, AlignCenter, "n/a");
     }
 
-    // Right column: index, coords, confidence.
+    // Right column: index, coords, confidence. A total of 0 means the caller is
+    // showing a single fixed payload rather than a pageable list (the Support
+    // screen), so the "n/m" pager header is suppressed and the two text lines
+    // move up to take its place.
     canvas_set_font(canvas, FontSecondary);
-    char hdr[16];
-    snprintf(hdr, sizeof(hdr), "%d/%d", model->index + 1, model->total);
-    canvas_draw_str(canvas, QR_AREA + 4, 8, hdr);
-    canvas_draw_str(canvas, QR_AREA + 4, 18, model->coords);
-    canvas_draw_str(canvas, QR_AREA + 4, 28, model->conf);
+    int ry = 8;
+    if(model->total > 0) {
+        // Sized for the widest pair the compiler can prove ("-2147483648/..."),
+        // not for the real domain: both are bounded by the scan-table caps, but
+        // that isn't visible here and -Wformat-truncation is an error.
+        char hdr[24];
+        snprintf(hdr, sizeof(hdr), "%d/%d", model->index + 1, model->total);
+        canvas_draw_str(canvas, QR_AREA + 4, ry, hdr);
+        ry += 10;
+    }
+    canvas_draw_str(canvas, QR_AREA + 4, ry, model->coords);
+    ry += 10;
+    canvas_draw_str(canvas, QR_AREA + 4, ry, model->conf);
 
     // Bottom strip: the OSM tag summary, one line per tag. Drawn full-width below
     // the QR area so it's readable even if the QR isn't.
