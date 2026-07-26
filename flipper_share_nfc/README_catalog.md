@@ -18,7 +18,7 @@ Features:
 - Torrent-like progress bar on the receiver; filename/size and ETA on the sender.
 - The RF field is duty-cycled while idle and switched off after reception — cold antenna, negligible battery drain.
 
-NFC is near-field: hold the two Flippers with their NFC antennas back to back aligned and touching for best results. The working gap is only a few centimeters. Received files are saved to `/ext/inbox/`.
+NFC is near-field: hold the two Flippers with their NFC antennas back to back aligned and touching for best results. The working gap is only a few centimeters. Received files are saved to **/ext/inbox/**.
 
 # Notes
 
