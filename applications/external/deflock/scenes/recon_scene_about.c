@@ -85,7 +85,7 @@
     "never gate a feature.\n"        \
     "github.com/sponsors/\n"         \
     "ReconGrunt\n"                   \
-    "ko-fi.com/recongrunt\n \n"      \
+    "BTC + more: Support menu\n \n"  \
     "Companion FW + OUI data:\n"     \
     "see esp32_companion/ and\n"     \
     "deflock.org. Passive recon,\n"  \

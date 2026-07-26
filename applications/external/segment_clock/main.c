@@ -120,14 +120,14 @@ static const NotificationSequence led_off = {
 // is used to update the panel now and the enforce pair re-locks the level.
 static void set_enforced_brightness(NotificationApp* notif, float value) {
     notif->settings.display_brightness = value;
-    notification_message(notif, &sequence_display_backlight_force_on);
+    notification_message(notif, &sequence_display_backlight_enforce_on);
     notification_message(notif, &sequence_display_backlight_enforce_auto);
     notification_message(notif, &sequence_display_backlight_enforce_on);
 }
 
 static void set_backlight_brightness(NotificationApp* notif, float value) {
     notif->settings.display_brightness = value;
-    notification_message(notif, &sequence_display_backlight_force_on);
+    notification_message(notif, &sequence_display_backlight_enforce_on);
 }
 
 static void show_brightness_osd(SegmentClock* clock) {

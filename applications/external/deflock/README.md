@@ -19,23 +19,23 @@ Builds against Flipper API 87.1, shared by current stock OFW and
 [Momentum](https://github.com/Next-Flip/Momentum-Firmware).
 
 **Free, and staying that way.** If FlipDeFlock is useful to you, the **Sponsor** button
-above, [Ko-fi](https://ko-fi.com/recongrunt), or
-[Buy Me a Coffee](https://buymeacoffee.com/recongrunt) fund development, test hardware,
-and the legal costs of mapping surveillance infrastructure.
-[Donations never gate a feature](SUPPORTERS.md).
+above funds development, test hardware, and the legal costs of mapping surveillance
+infrastructure. [Donations never gate a feature](SUPPORTERS.md).
 
 [![GitHub Sponsors](https://img.shields.io/badge/GitHub-Sponsor-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ReconGrunt)
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy_a_coffee-ff5e5b?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/recongrunt)
-[![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-Support-ffdd00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/recongrunt)
 [![Bitcoin](https://img.shields.io/badge/Bitcoin-Donate-f7931a?style=for-the-badge&logo=bitcoin&logoColor=white)](https://mempool.space/address/bc1qavy2wdhgpvqturn5he76mxclqr0a3vhg9sj4l8)
+[![Ethereum](https://img.shields.io/badge/Ethereum-Donate-3C3C3D?style=for-the-badge&logo=ethereum&logoColor=white)](https://etherscan.io/address/0x481be1838e6B51B1a4013633877Bd967E2484694)
+[![Litecoin](https://img.shields.io/badge/Litecoin-Donate-345D9D?style=for-the-badge&logo=litecoin&logoColor=white)](https://blockchair.com/litecoin/address/ltc1qpj3ppsgcdvx5yara9suljeq83t32macr8pe2yt)
+[![Bitcoin Cash](https://img.shields.io/badge/Bitcoin_Cash-Donate-0AC18E?style=for-the-badge&logo=bitcoincash&logoColor=white)](https://blockchair.com/bitcoin-cash/address/qzl3a9emduev23nuh6wvk2nzwl5gguc9egmg83ae5a)
 
-Bitcoin (BTC, native SegWit):
+| Coin | Address |
+|---|---|
+| Bitcoin (BTC, native SegWit) | `bc1qavy2wdhgpvqturn5he76mxclqr0a3vhg9sj4l8` |
+| Ethereum (ETH) | `0x481be1838e6B51B1a4013633877Bd967E2484694` |
+| Litecoin (LTC, native SegWit) | `ltc1qpj3ppsgcdvx5yara9suljeq83t32macr8pe2yt` |
+| Bitcoin Cash (BCH) | `bitcoincash:qzl3a9emduev23nuh6wvk2nzwl5gguc9egmg83ae5a` |
 
-```
-bc1qavy2wdhgpvqturn5he76mxclqr0a3vhg9sj4l8
-```
-
-Also scannable from the Flipper itself: **FlipDeFlock → Support**.
+Bitcoin is also scannable from the Flipper itself: **FlipDeFlock → Support**.
 
 ## Install
 
@@ -328,13 +328,12 @@ public issue.
 
 FlipDeFlock is free and stays that way. To help cover development (and the legal
 costs of mapping surveillance hardware), use the **Sponsor** button at the top of
-the repo, [Ko-fi](https://ko-fi.com/recongrunt), or
-[Buy Me a Coffee](https://buymeacoffee.com/recongrunt). Donations never gate a
-feature.
+the repo. Donations never gate a feature.
 
 [![GitHub Sponsors](https://img.shields.io/badge/GitHub-Sponsor-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ReconGrunt)
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy_a_coffee-ff5e5b?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/recongrunt)
-[![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-Support-ffdd00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/recongrunt)
+
+Crypto (BTC, ETH, LTC, BCH) is also accepted — addresses are near the top of this
+README and in [SUPPORTERS.md](SUPPORTERS.md).
 
 What supporters get — recognition and early access to release candidates, never
 functionality — is spelled out in [SUPPORTERS.md](SUPPORTERS.md).

@@ -46,8 +46,7 @@ void recon_scene_support_on_enter(void* context) {
             "stays free. Donations\n"
             "never gate a feature.\n \n"
             "github.com/sponsors/\n"
-            "ReconGrunt\n"
-            "ko-fi.com/recongrunt\n");
+            "ReconGrunt\n");
         view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewWidget);
         return;
     }

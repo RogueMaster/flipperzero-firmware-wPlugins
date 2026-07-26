@@ -9,11 +9,15 @@ mapping surveillance infrastructure.
 
 - **[GitHub Sponsors](https://github.com/sponsors/ReconGrunt)** — the Sponsor button at
   the top of the repo
-- **[Ko-fi](https://ko-fi.com/recongrunt)**
-- **[Buy Me a Coffee](https://buymeacoffee.com/recongrunt)**
 - **Bitcoin (BTC, native SegWit)** — `bc1qavy2wdhgpvqturn5he76mxclqr0a3vhg9sj4l8`
   ([view on mempool.space](https://mempool.space/address/bc1qavy2wdhgpvqturn5he76mxclqr0a3vhg9sj4l8)),
   or scan it on-device from **FlipDeFlock → Support**
+- **Ethereum (ETH)** — `0x481be1838e6B51B1a4013633877Bd967E2484694`
+  ([view on etherscan.io](https://etherscan.io/address/0x481be1838e6B51B1a4013633877Bd967E2484694))
+- **Litecoin (LTC, native SegWit)** — `ltc1qpj3ppsgcdvx5yara9suljeq83t32macr8pe2yt`
+  ([view on blockchair.com](https://blockchair.com/litecoin/address/ltc1qpj3ppsgcdvx5yara9suljeq83t32macr8pe2yt))
+- **Bitcoin Cash (BCH)** — `bitcoincash:qzl3a9emduev23nuh6wvk2nzwl5gguc9egmg83ae5a`
+  ([view on blockchair.com](https://blockchair.com/bitcoin-cash/address/qzl3a9emduev23nuh6wvk2nzwl5gguc9egmg83ae5a))
 
 ## What supporters get
 
