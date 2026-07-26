@@ -288,7 +288,7 @@ void share_scene_receive_on_enter(void* context) {
 
     // Setup dialog to show progress (use same UI as send scene so buttons appear)
     dialog_ex_set_header(app->dialog_show_file, "Receiving via " FSH_TRANSPORT_NAME "...", 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop);
-    dialog_ex_set_text(app->dialog_show_file, "Hold backs together", 64, 32, AlignCenter, AlignCenter);
+    dialog_ex_set_text(app->dialog_show_file, "Hold ~2cm apart", 64, 32, AlignCenter, AlignCenter);
     dialog_ex_set_left_button_text(app->dialog_show_file, "Back");
     dialog_ex_set_right_button_text(app->dialog_show_file, NULL);
 
@@ -386,18 +386,10 @@ static void update_timer_callback(void* context) {
             *model = (uint8_t)state->counter;
         }, true);
     } else {
-        // Live capture diagnostics so a stuck "waiting" is localizable:
-        // e=raw edges, f=decoded frames, v=CRC-valid packets, a=valid ANNOUNCEs.
-        uint32_t rx_e = 0, rx_f = 0, rx_v = 0, rx_a = 0;
-        rfid_transport_reader_stats(&rx_e, &rx_f, &rx_v, &rx_a);
         snprintf(
             progress_text,
             sizeof(progress_text),
-            "Waiting  e:%lu f:%lu\nv:%lu a:%lu",
-            (unsigned long)rx_e,
-            (unsigned long)rx_f,
-            (unsigned long)rx_v,
-            (unsigned long)rx_a);
+            "Hold ~2cm apart\nWaiting for announce...");
 
         // If we're no longer locked but the progress view is active, switch back to dialog
         if(progress_view_active) {

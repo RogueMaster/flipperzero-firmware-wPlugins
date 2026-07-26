@@ -50,13 +50,9 @@ typedef struct {
     // constant-level run lengths, so the low run is reconstructed as period - high.
     uint32_t rx_last_high;
     bool rx_have_high;
-    // Diagnostics (reader): raw capture edges seen in the ISR and complete packets
-    // the modem decoded. Surfaced on the receive "waiting" screen to localize a
-    // no-reception (0 edges = no coupling/capture; edges but 0 packets = decode).
-    volatile uint32_t rx_events;
+    // Count of complete frames the modem has decoded — used only by the RX worker's
+    // self-heal (reset the decoder if it stops producing frames for a while).
     volatile uint32_t rx_frames;
-    volatile uint32_t rx_valid; // decoded frames that pass the packet CRC16 (real, not noise)
-    volatile uint32_t rx_announce; // valid frames whose type is ANNOUNCE
 } RfidTransport;
 
 // How long the tag worker tolerates a stalled emulate DMA (no half/full
@@ -176,38 +172,16 @@ static int32_t rfid_tp_tag_worker(void* context) {
 // worker. No decoding in the ISR (same event-packing split as ir_transport).
 static void rfid_tp_capture_isr(bool level, uint32_t duration, void* context) {
     RfidTransport* tp = context;
-    tp->rx_events++; // diagnostic: proves the comparator/capture is firing at all
     uint32_t e = (level ? 0x80000000u : 0u) | (duration & 0x7FFFFFFFu);
     furi_stream_buffer_send(tp->rx_stream, &e, sizeof(e), 0);
 }
 
 // Feed one reconstructed constant-level run to the decoder and dispatch a
 // completed packet.
-// CRC-16/CCITT-FALSE (poly 0x1021, init 0xFFFF) — same as the engine's, used only
-// to tell real decoded packets from noise false-locks in the diagnostics.
-static uint16_t rfid_tp_crc16(const uint8_t* data, size_t len) {
-    uint16_t crc = 0xFFFF;
-    for(size_t i = 0; i < len; i++) {
-        crc ^= (uint16_t)data[i] << 8;
-        for(int b = 0; b < 8; b++)
-            crc = (crc & 0x8000) ? (uint16_t)((crc << 1) ^ 0x1021) : (uint16_t)(crc << 1);
-    }
-    return crc;
-}
-
 static void rfid_tp_feed_run(RfidTransport* tp, bool level, uint32_t dur_us, uint8_t* pkt) {
     size_t len = rfid_modem_dec_feed(&tp->dec, level, dur_us, pkt, FSH_PACKET_MAX);
     if(len) {
-        tp->rx_frames++; // diagnostic: modem decoded a complete frame
-        // Distinguish real packets from noise false-locks: check version + CRC16.
-        if(len >= FSH_HEADER_LENGTH + FSH_CRC_LENGTH && pkt[0] == 2) {
-            uint16_t calc = rfid_tp_crc16(pkt, len - FSH_CRC_LENGTH);
-            uint16_t got = (uint16_t)pkt[len - 2] | ((uint16_t)pkt[len - 1] << 8);
-            if(calc == got) {
-                tp->rx_valid++;
-                if(pkt[FSH_HEADER_LENGTH - 1] == FSH_PKT_ANNOUNCE) tp->rx_announce++;
-            }
-        }
+        tp->rx_frames++; // progress signal for the RX worker's self-heal
         // Hand off to the delivery thread instead of calling fsh_receive_callback
         // here — its storage I/O must not block this capture-drain loop. Drop if
         // the delivery queue is full (the carousel re-sends the frame).
@@ -236,12 +210,11 @@ static int32_t rfid_tp_rx_worker(void* context) {
     uint8_t pkt[FSH_PACKET_MAX];
     uint32_t batch[64]; // drain many capture events per syscall
 
-    // Self-heal: if no real (CRC-valid) frame has decoded for a while, force the
-    // decoder+adapter back to a clean sync-hunt. In dense noise the decoder can
-    // false-lock and then stay blind in READ with no gap to reset it; this is the
-    // software equivalent of the manual "separate and re-touch the coils" recovery.
+    // Self-heal: if the modem stops decoding frames for a while, force the decoder
+    // + adapter back to a clean sync-hunt. In dense noise the decoder can false-lock
+    // and then stay blind in READ with no gap to reset it.
     uint32_t last_check = furi_get_tick();
-    uint32_t last_valid = tp->rx_valid;
+    uint32_t last_frames = tp->rx_frames;
 
     while(!tp->worker_stop) {
         // Batch-read: at ~50k noise edges/s the per-event FreeRTOS call overhead of
@@ -274,12 +247,12 @@ static int32_t rfid_tp_rx_worker(void* context) {
 
         uint32_t now = furi_get_tick();
         if(now - last_check > furi_ms_to_ticks(1500)) {
-            if(tp->rx_valid == last_valid) {
-                // No real frame in the last window -> break any stuck decoder state.
+            if(tp->rx_frames == last_frames) {
+                // No frame decoded in the last window -> break any stuck state.
                 rfid_modem_dec_reset(&tp->dec);
                 tp->rx_have_high = false;
             }
-            last_valid = tp->rx_valid;
+            last_frames = tp->rx_frames;
             last_check = now;
         }
     }
@@ -383,17 +356,4 @@ void rfid_transport_stop_field(void) {
 bool rfid_transport_tag_field_present(void) {
     RfidTransport* tp = rfid_tp;
     return tp && tp->field_present;
-}
-
-void rfid_transport_reader_stats(
-    uint32_t* events,
-    uint32_t* frames,
-    uint32_t* valid,
-    uint32_t* announce) {
-    RfidTransport* tp = rfid_tp;
-    bool r = tp && tp->mode == RfidTransportModeReader;
-    if(events) *events = r ? tp->rx_events : 0;
-    if(frames) *frames = r ? tp->rx_frames : 0;
-    if(valid) *valid = r ? tp->rx_valid : 0;
-    if(announce) *announce = r ? tp->rx_announce : 0;
 }

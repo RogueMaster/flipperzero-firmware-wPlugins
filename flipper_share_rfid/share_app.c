@@ -88,7 +88,7 @@ static void submenu_callback(void* context, uint32_t index) {
         furi_string_cat_printf(about_text, "\e#%s\n", "Description");
         furi_string_cat_printf(
             about_text, "%s\n\n",
-            "One-way file transfer over the 125 kHz RFID coil. Hold backs together.");
+            "One-way file transfer over the 125 kHz RFID coil. Hold antennas ~2cm apart.");
         furi_string_cat_printf(
             about_text,
             "See also: Flipper Share (classic) to transfer over distance via Sub-GHz radio.\n");

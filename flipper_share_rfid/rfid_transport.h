@@ -35,14 +35,3 @@ void rfid_transport_stop_field(void);
 // "Waiting for field..." UI hint). Always false / irrelevant on the reader.
 bool rfid_transport_tag_field_present(void);
 
-// Reader diagnostics (any pointer may be NULL; all zeroed if not running as
-// reader). Used by the receive screen to localize a stuck "Waiting for announce":
-//   events   - raw capture edges seen in the interrupt
-//   frames   - complete frames the modem decoded (may be noise false-locks)
-//   valid    - decoded frames that pass version + CRC16 (real packets)
-//   announce - valid frames of type ANNOUNCE (one of these should lock the receiver)
-void rfid_transport_reader_stats(
-    uint32_t* events,
-    uint32_t* frames,
-    uint32_t* valid,
-    uint32_t* announce);

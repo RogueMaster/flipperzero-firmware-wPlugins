@@ -81,7 +81,7 @@ void share_scene_send_on_enter(void* context) {
 
     // Setup dialog to show progress
     dialog_ex_set_header(app->dialog_show_file, "Sending via " FSH_TRANSPORT_NAME "...", 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop);
-    dialog_ex_set_text(app->dialog_show_file, "Hold backs together", 64, 32, AlignCenter, AlignCenter);
+    dialog_ex_set_text(app->dialog_show_file, "Hold ~2cm apart", 64, 32, AlignCenter, AlignCenter);
     dialog_ex_set_left_button_text(app->dialog_show_file, "Cancel");
     dialog_ex_set_right_button_text(app->dialog_show_file, NULL); // Skip right button
 
@@ -141,36 +141,39 @@ static void update_timer_callback(void* context) {
             return;
         }
 
-        // Carousel has no return channel, so there is no receiver-side progress:
-        // show the file name/size plus the sent-blocks / loop-count counters.
-        // Snapshot under the lock; skip this tick on contention.
+        // Filename on line 1, size + rough ETA on line 2. The carousel has no
+        // return channel, so the ETA is the nominal estimate only (file_size /
+        // FSH_PAYLOAD_THROUGHPUT_BPS), like the NFC/IR sender. Snapshot under the
+        // lock; skip this tick on contention.
         char fname[FSH_FILENAME_LENGTH];
-        uint32_t fsize, blocks_sent, loop_count;
+        uint32_t fsize;
         if(!fsh_try_lock_ms(20)) return;
         memcpy(fname, g.s_file_name, sizeof(fname));
         fname[sizeof(fname) - 1] = '\0';
         fsize = g.s_file_size;
-        blocks_sent = g.c_blocks_sent;
-        loop_count = g.c_loop_count;
         fsh_unlock();
 
         // fsh_init has not published state yet (hashing not started or init
-        // failed) — keep the "Hold backs together" hint from on_enter.
+        // failed) — keep the "Hold ~2cm apart" hint from on_enter.
         if(fsize == 0) return;
 
         // Until the reader's field is first seen, the tag cannot transmit.
         if(!rfid_transport_tag_field_present()) {
-            snprintf(
-                progress_text, sizeof(progress_text), "%s\nWaiting for field...", fname);
-        } else if(fsize < 1024) {
-            snprintf(
-                progress_text, sizeof(progress_text), "%s  %lu B\nsent %lu, loop %lu", fname,
-                (unsigned long)fsize, (unsigned long)blocks_sent, (unsigned long)loop_count);
+            snprintf(progress_text, sizeof(progress_text), "%s\nWaiting for field...", fname);
         } else {
-            snprintf(
-                progress_text, sizeof(progress_text), "%s  %lu KB\nsent %lu, loop %lu", fname,
-                (unsigned long)(fsize / 1024), (unsigned long)blocks_sent,
-                (unsigned long)loop_count);
+            uint32_t eta_sec = fsize / FSH_PAYLOAD_THROUGHPUT_BPS;
+            if(eta_sec > FSH_ETA_MAX_SEC) eta_sec = FSH_ETA_MAX_SEC;
+            char eta[16];
+            fsh_fmt_duration(eta_sec, eta, sizeof(eta));
+            if(fsize < 1024) {
+                snprintf(
+                    progress_text, sizeof(progress_text), "%s\n%lu B  ~ %s", fname,
+                    (unsigned long)fsize, eta);
+            } else {
+                snprintf(
+                    progress_text, sizeof(progress_text), "%s\n%lu KB  ~ %s", fname,
+                    (unsigned long)(fsize / 1024), eta);
+            }
         }
     }
 
