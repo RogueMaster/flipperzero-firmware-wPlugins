@@ -128,7 +128,6 @@ void nus_state_on_heartbeat(
      * and inaudible. SoundEnter returns to the working LED afterwards. */
     if(ctx->current == BuddyStateBusy && msg[0] && strcmp(msg, ctx->last_msg) != 0) {
         notify_play(ctx->notifications, SoundAlert, LedStateWorking);
-        ui_set_pose(ctx->ui, PoseWorking);
     }
     strlcpy(ctx->last_msg, msg, sizeof(ctx->last_msg));
 
@@ -175,8 +174,6 @@ void nus_state_on_permission_decision(NusStateCtx* ctx, NusStats* stats, bool al
         /* Heart transient — reward snappy decisions. */
         notify_play(ctx->notifications, SoundSuccess, LedStateOff);
         ui_set_pose(ctx->ui, PoseHappy);
-    } else if(!allowed) {
-        ui_set_pose(ctx->ui, PoseDenied);
     }
     /* Steady state will be re-applied by the next heartbeat. */
 }

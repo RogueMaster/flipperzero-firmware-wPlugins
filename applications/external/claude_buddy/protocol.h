@@ -14,7 +14,6 @@ typedef enum {
     MsgTypeMenu,
     MsgTypeState,
     MsgTypePerm,
-    MsgTypeUsage,
     // Flipper -> Host
     MsgTypeCmd,
     MsgTypeEnter,
@@ -40,8 +39,6 @@ typedef struct {
     char text2[PROTOCOL_MAX_FIELD_LEN]; // line2 (subtext)
     char menu_data[PROTOCOL_MAX_MSG_LEN]; // pipe-delimited menu items
     bool claude_connected; // claude code session state
-    bool has_host;
-    char host_name[8]; // "claude", "codex", "cursor" (from state message)
     bool has_rssi;
     int16_t rssi;
     /* Anthropic NUS protocol additions (zero/empty when not applicable):
@@ -61,13 +58,6 @@ typedef struct {
     int hb_waiting;
     uint32_t hb_tokens; /* cumulative since desktop start */
     uint32_t hb_tokens_today; /* resets at local midnight */
-    /* Context / session pressure from host usage message (Bridge mode). */
-    bool has_usage_ctx;
-    uint8_t usage_ctx; /* 0-100 context fill percent */
-    bool has_usage_sess;
-    uint8_t usage_sess; /* 0-100 session/rate-limit percent */
-    bool has_usage_compact;
-    uint8_t usage_compact; /* 0=clear, 1-3 compaction intensity */
     /* Per-kind payloads deferred to the GUI thread.  Keeping storage /
      * hardware side-effects off the BLE event callback thread avoids
      * deadlocks and long-blocking operations on that critical path. */

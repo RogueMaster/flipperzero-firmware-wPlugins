@@ -1,11 +1,3 @@
-## v0.7 (unreleased)
-
-- Context-driven character animations (Working, Compacting, Denied, Stressed, Overloaded, Critical, RateLimited).
-- Ctx / Lim usage meters when the host reports context pressure.
-- Sound-to-pose mapping for compaction, tool beats, and permission outcomes.
-- Host label in the status header (`Claude` / `Codex` / `Cursor`) via `state.host` protocol field.
-- Marquee scroll for status text that exceeds display width.
-
 ## v0.6
 
 - Fixed connection/disconnection state handling in Bridge mode.

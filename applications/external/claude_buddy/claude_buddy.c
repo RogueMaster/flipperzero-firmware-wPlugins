@@ -205,14 +205,6 @@ static SoundType sound_from_string(const char* name) {
     return SoundAlert;
 }
 
-static uint8_t host_from_string(const char* name) {
-    if(!name || !name[0]) return HostTypeUnknown;
-    if(strcmp(name, "codex") == 0) return HostTypeCodex;
-    if(strcmp(name, "cursor") == 0) return HostTypeCursor;
-    if(strcmp(name, "claude") == 0) return HostTypeClaude;
-    return HostTypeUnknown;
-}
-
 /* ── Serial RX (worker thread) ────────────────────────────────── */
 
 /* Translate a parsed Anthropic message into the existing ProtocolMessage
@@ -418,16 +410,12 @@ static void process_message(App* app, ProtocolMessage* msg) {
         } else if(snd == SoundVoiceStop || snd == SoundVoiceStopQuiet) {
             app->dictating = false;
             ui_set_pose(app->ui, PoseIdle);
-        } else if(snd == SoundSuccess || snd == SoundReady || snd == SoundCompactDone) {
+        } else if(snd == SoundSuccess || snd == SoundReady) {
             ui_set_pose(app->ui, PoseHappy);
         } else if(snd == SoundConnect) {
             ui_set_pose(app->ui, PoseExcited);
-        } else if(snd == SoundLedCompact) {
-            ui_set_pose(app->ui, PoseCompacting);
-        } else if(snd == SoundError || snd == SoundInterrupt) {
+        } else if(snd == SoundError || snd == SoundAlert || snd == SoundInterrupt) {
             ui_set_pose(app->ui, PoseAlert);
-        } else if(snd == SoundAlert) {
-            ui_set_pose(app->ui, app->is_working ? PoseWorking : PoseAlert);
         } else if(snd == SoundSessionEnd) {
             ui_set_pose(app->ui, PoseSleeping);
         }
@@ -511,18 +499,7 @@ static void process_message(App* app, ProtocolMessage* msg) {
 
     case MsgTypeState:
         ui_set_claude_connected(app->ui, msg->claude_connected);
-        if(msg->has_host) {
-            ui_set_host_type(app->ui, host_from_string(msg->host_name));
-        }
         break;
-
-    case MsgTypeUsage: {
-        uint8_t ctx = msg->has_usage_ctx ? msg->usage_ctx : CTX_PCT_UNKNOWN;
-        uint8_t sess = msg->has_usage_sess ? msg->usage_sess : CTX_PCT_UNKNOWN;
-        uint8_t clvl = msg->has_usage_compact ? msg->usage_compact : 0;
-        ui_set_usage(app->ui, ctx, sess, clvl, msg->has_usage_compact);
-        break;
-    }
 
     case MsgTypeAnthropicHB: {
         /* State machine handles all transitions (LED/audio/pose).  We only
@@ -826,7 +803,6 @@ static void on_ui_event(UiEventType event, const char* data, void* context) {
         bool esc = (event == UiEventPermEsc);
         notify_play(app->notifications, SoundLedOff, LedStateOff);
         app_notify(app, allow ? SoundSuccess : SoundEsc);
-        ui_set_pose(app->ui, allow ? PoseHappy : PoseDenied);
 
         if(app->current_ble_mode == BleModeDesktop && app->last_perm_id[0]) {
             /* Anthropic protocol only has once/deny — collapse Always/Allow

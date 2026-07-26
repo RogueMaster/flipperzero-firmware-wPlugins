@@ -91,8 +91,7 @@ static void anim_tick(void* context) {
     StatusModel* sm = view_get_model(ui->status_view);
     sm->anim_frame++;
     // Auto-reset transient poses after ~3s (20 frames * 150ms)
-    if((sm->pose == PoseHappy || sm->pose == PoseAlert || sm->pose == PoseExcited ||
-        sm->pose == PoseDenied) &&
+    if((sm->pose == PoseHappy || sm->pose == PoseAlert || sm->pose == PoseExcited) &&
        sm->anim_frame > 20) {
         sm->pose = PoseIdle;
         sm->anim_frame = 0;
@@ -222,21 +221,6 @@ static void draw_sparkle(Canvas* canvas, int x, int y) {
     canvas_draw_dot(canvas, x, y + 1);
 }
 
-static void draw_heart(Canvas* canvas, int x, int y) {
-    canvas_draw_dot(canvas, x, y);
-    canvas_draw_dot(canvas, x - 1, y - 1);
-    canvas_draw_dot(canvas, x + 1, y - 1);
-    canvas_draw_dot(canvas, x, y + 1);
-}
-
-static void draw_sound_waves(Canvas* canvas, int x, int y, uint8_t frame) {
-    int phase = frame % 4;
-    for(int i = 0; i < 3; i++) {
-        int h = 1 + ((phase + i) % 3);
-        canvas_draw_line(canvas, x + i * 2, y - h, x + i * 2, y);
-    }
-}
-
 static uint8_t rssi_to_bars(int rssi) {
     if(rssi > -65) return 4;
     if(rssi > -75) return 3;
@@ -245,136 +229,8 @@ static uint8_t rssi_to_bars(int rssi) {
     return 0;
 }
 
-static const char* host_type_label(uint8_t host_type) {
-    switch(host_type) {
-    case HostTypeClaude:
-        return "Claude";
-    case HostTypeCodex:
-        return "Codex";
-    case HostTypeCursor:
-        return "Cursor";
-    default:
-        return NULL;
-    }
-}
-
-static bool is_event_pose(uint8_t pose) {
-    switch(pose) {
-    case PoseListening:
-    case PoseHappy:
-    case PoseAlert:
-    case PoseExcited:
-    case PoseDenied:
-        return true;
-    default:
-        return false;
-    }
-}
-
-static uint8_t effective_pose(const StatusModel* m) {
-    if(m->compact_level > 0) return PoseCompacting;
-    if(!is_event_pose(m->pose)) {
-        if(m->session_pct != CTX_PCT_UNKNOWN && m->session_pct >= 80) return PoseRateLimited;
-        if(m->context_pct != CTX_PCT_UNKNOWN) {
-            if(m->context_pct >= 92) return PoseCritical;
-            if(m->context_pct >= 78) return PoseOverloaded;
-            if(m->context_pct >= 62) return PoseStressed;
-        }
-    }
-    return m->pose;
-}
-
-static void draw_steam_puff(Canvas* canvas, int x, int y, uint8_t frame) {
-    int drift = (frame % 4) - 1;
-    canvas_draw_dot(canvas, x + drift, y);
-    canvas_draw_dot(canvas, x + 1 + drift, y - 1);
-    canvas_draw_dot(canvas, x - 1 + drift, y - 2);
-}
-
-static void draw_usage_bar_row(Canvas* canvas, int x, int y, int bar_w, int bar_h, uint8_t pct) {
-    canvas_draw_frame(canvas, x, y, bar_w, bar_h);
-    int fill = ((bar_w - 2) * pct) / 100;
-    if(fill < 1 && pct > 0) fill = 1;
-    if(fill > bar_w - 2) fill = bar_w - 2;
-    canvas_draw_box(canvas, x + 1, y + 1, fill, bar_h - 2);
-}
-
-/* Draw context/session meters. Returns extra vertical space consumed. */
-static int draw_usage_meters(Canvas* canvas, const StatusModel* m) {
-    bool has_ctx = m->context_pct != CTX_PCT_UNKNOWN;
-    bool has_sess = m->session_pct != CTX_PCT_UNKNOWN;
-    if(!has_ctx && !has_sess) return 0;
-
-    canvas_set_font(canvas, FontSecondary);
-    const int meter_pad = 5;
-    const int y_base = HDR_H + meter_pad;
-    const int bar_w = 52;
-    const int bar_h = 3;
-    const int row_step = 7;
-    const int label_x = 24;
-    const int bar_x = 42;
-    int pct_w = (int)canvas_string_width(canvas, "100%");
-    bool fits_bars = (bar_x + bar_w + 2 + pct_w) <= 127;
-
-    if(!fits_bars) {
-        char compact[20];
-        if(has_ctx && has_sess) {
-            snprintf(compact, sizeof(compact), "C%u%% S%u%%", m->context_pct, m->session_pct);
-        } else if(has_ctx) {
-            snprintf(compact, sizeof(compact), "%u%% ctx", m->context_pct);
-        } else {
-            snprintf(compact, sizeof(compact), "%u%% lim", m->session_pct);
-        }
-        canvas_draw_str_aligned(canvas, 126, y_base + 7, AlignRight, AlignBottom, compact);
-        return meter_pad + 7;
-    }
-
-    char pct_buf[6];
-    int rows = 0;
-    int lim_y = y_base + row_step;
-
-    if(has_ctx) {
-        int ctx_y = (has_sess ? (lim_y - row_step - 2) : (y_base - 2));
-        canvas_draw_str(canvas, label_x, ctx_y + 6, "Ctx");
-        draw_usage_bar_row(canvas, bar_x, ctx_y + 2, bar_w, bar_h, m->context_pct);
-        snprintf(pct_buf, sizeof(pct_buf), "%u%%", m->context_pct);
-        canvas_draw_str(canvas, bar_x + bar_w + 2, ctx_y + 6, pct_buf);
-        rows++;
-    }
-    if(has_sess) {
-        canvas_draw_str(canvas, label_x, lim_y + 6, "Lim");
-        draw_usage_bar_row(canvas, bar_x, lim_y + 2, bar_w, bar_h, m->session_pct);
-        snprintf(pct_buf, sizeof(pct_buf), "%u%%", m->session_pct);
-        canvas_draw_str(canvas, bar_x + bar_w + 2, lim_y + 6, pct_buf);
-        rows++;
-    }
-    return rows * row_step + meter_pad;
-}
-
-static void
-    draw_pressure_overlay(Canvas* canvas, int cx, int cy, const StatusModel* m, uint8_t frame) {
-    if(m->context_pct == CTX_PCT_UNKNOWN || m->context_pct < 70) return;
-    if(m->pose != PoseThinking && m->pose != PoseWorking) return;
-    draw_steam_puff(canvas, cx + 4, cy - 3, frame);
-    draw_steam_puff(canvas, cx + 14, cy - 4, frame + 2);
-}
-
-static void draw_claude(
-    Canvas* canvas,
-    int cx,
-    int cy,
-    uint8_t pose,
-    uint8_t frame,
-    uint8_t compact_level,
-    uint8_t context_pct) {
-    int body_w = 18;
-    int body_h = 10;
-
+static void draw_claude(Canvas* canvas, int cx, int cy, uint8_t pose, uint8_t frame) {
     // ── Pose-specific body offsets ──
-    if(pose == PoseIdle) {
-        // Gentle breathing
-        if((frame % 24) >= 12) cy += 1;
-    }
     if(pose == PoseHappy) {
         // Gentle bounce: up for first 4 frames
         if(frame < 2)
@@ -398,106 +254,54 @@ static void draw_claude(
         // Gentle horizontal wobble: ±1px every 3 frames
         cx += (frame % 6 < 3) ? 1 : -1;
     }
-    if(pose == PoseWorking) {
-        // Quick bob while tools run
-        cy += (frame % 3 == 0) ? -1 : 0;
-    }
-    if(pose == PoseCompacting) {
-        int beat = (compact_level >= 3) ? 2 : (compact_level >= 2) ? 3 : 4;
-        if(frame % beat < beat / 2) {
-            body_w = (compact_level >= 3) ? 14 : 16;
-            body_h = (compact_level >= 3) ? 8 : 9;
-            cy += 1;
-        } else {
-            body_w = (compact_level >= 3) ? 22 : 20;
-            body_h = 8;
-        }
-        if(compact_level >= 3) cx += (frame % 4 < 2) ? 1 : -1;
-    }
-    if(pose == PoseDenied) {
-        cy += 1;
-    }
-    if(pose == PoseStressed) {
-        cx += (frame % 8 < 4) ? 0 : 1;
-    }
-    if(pose == PoseOverloaded) {
-        cy += (frame % 4 == 0) ? -1 : 0;
-        cx += (frame % 6 < 3) ? 1 : -1;
-    }
-    if(pose == PoseCritical) {
-        cx += (frame % 2) ? 1 : -1;
-        cy += (frame % 3 == 0) ? -1 : 0;
-    }
-    if(pose == PoseRateLimited) {
-        if((frame % 10) < 7) cy += 1;
-    }
 
     canvas_set_color(canvas, ColorBlack);
 
-    // Body
-    canvas_draw_box(canvas, cx, cy, body_w, body_h);
+    // Body (18x10 rectangle - the Claude Code icon)
+    canvas_draw_box(canvas, cx, cy, 18, 10);
 
     // Ears (single dots on each side)
-    canvas_draw_dot(canvas, cx - 1, cy + body_h / 2);
-    canvas_draw_dot(canvas, cx + body_w, cy + body_h / 2);
+    canvas_draw_dot(canvas, cx - 1, cy + 4);
+    canvas_draw_dot(canvas, cx + 18, cy + 4);
 
-    // Legs — extend on alternating beats for Working / Thinking foot-tap
-    int leg_extend = 0;
-    if(pose == PoseWorking && (frame % 4 < 2)) leg_extend = 1;
-    if(pose == PoseThinking && (frame % 6 < 3)) leg_extend = 1;
-    int leg_y0 = cy + body_h + 1;
-    int leg_y1 = cy + body_h + 1 + leg_extend;
-    int leg_l = cx + body_w / 2 - 5;
-    int leg_r = cx + body_w / 2 + 1;
-    canvas_draw_line(canvas, leg_l, leg_y0, leg_l, leg_y1);
-    canvas_draw_line(canvas, leg_l + 2, leg_y0, leg_l + 2, leg_y1);
-    canvas_draw_line(canvas, leg_r, leg_y0, leg_r, leg_y1);
-    canvas_draw_line(canvas, leg_r + 2, leg_y0, leg_r + 2, leg_y1);
+    // Legs (4 lines of 2px, 1px gap below body)
+    canvas_draw_line(canvas, cx + 4, cy + 11, cx + 4, cy + 12);
+    canvas_draw_line(canvas, cx + 6, cy + 11, cx + 6, cy + 12);
+    canvas_draw_line(canvas, cx + 12, cy + 11, cx + 12, cy + 12);
+    canvas_draw_line(canvas, cx + 14, cy + 11, cx + 14, cy + 12);
 
     // ── Eyes (white cutouts, vary by pose & frame) ──
     canvas_set_color(canvas, ColorWhite);
 
     switch(pose) {
     case PoseIdle:
-    default: {
-        int eye_y = cy + 3;
-        int eye_l_x = cx + 4;
-        int eye_r_x = cx + 12;
-        // Sideways glance every ~64 frames
-        int glance = frame % 64;
-        if(glance >= 48 && glance < 56) {
-            int dir = ((frame / 64) % 2) ? -1 : 1;
-            eye_l_x += dir;
-            eye_r_x += dir;
-        }
+    default:
         if(frame % 20 >= 18) {
-            canvas_draw_line(canvas, eye_l_x, eye_y + 1, eye_l_x + 1, eye_y + 1);
-            canvas_draw_line(canvas, eye_r_x, eye_y + 1, eye_r_x + 1, eye_y + 1);
+            // Blink: thin horizontal lines
+            canvas_draw_line(canvas, cx + 4, cy + 4, cx + 5, cy + 4);
+            canvas_draw_line(canvas, cx + 12, cy + 4, cx + 13, cy + 4);
         } else {
-            canvas_draw_box(canvas, eye_l_x, eye_y, 2, 3);
-            canvas_draw_box(canvas, eye_r_x, eye_y, 2, 3);
+            // Normal eyes
+            canvas_draw_box(canvas, cx + 4, cy + 3, 2, 3);
+            canvas_draw_box(canvas, cx + 12, cy + 3, 2, 3);
         }
         break;
-    }
 
     case PoseListening:
+        // Eyes shifted up (looking toward mic)
         canvas_draw_box(canvas, cx + 4, cy + 2, 2, 3);
         canvas_draw_box(canvas, cx + 12, cy + 2, 2, 3);
         break;
 
     case PoseThinking:
+        // Eyes shifted right (looking at status text)
         canvas_draw_box(canvas, cx + 5, cy + 3, 2, 3);
         canvas_draw_box(canvas, cx + 13, cy + 3, 2, 3);
         break;
 
-    case PoseWorking:
-        // Eyes looking down at "keyboard"
-        canvas_draw_box(canvas, cx + 5, cy + 4, 2, 2);
-        canvas_draw_box(canvas, cx + 11, cy + 4, 2, 2);
-        break;
-
     case PoseHappy:
     case PoseExcited:
+        // Squinted happy eyes (shorter) + smile
         canvas_draw_box(canvas, cx + 4, cy + 3, 2, 2);
         canvas_draw_box(canvas, cx + 12, cy + 3, 2, 2);
         canvas_draw_dot(canvas, cx + 7, cy + 7);
@@ -506,202 +310,84 @@ static void draw_claude(
         break;
 
     case PoseAlert:
+        // Wide eyes (taller)
         canvas_draw_box(canvas, cx + 4, cy + 2, 2, 4);
         canvas_draw_box(canvas, cx + 12, cy + 2, 2, 4);
         break;
 
     case PoseSleeping:
+        // Closed eyes (horizontal lines)
         canvas_draw_line(canvas, cx + 4, cy + 4, cx + 5, cy + 4);
         canvas_draw_line(canvas, cx + 12, cy + 4, cx + 13, cy + 4);
         break;
 
     case PoseWorried: {
-        int shift = ((frame / 5) % 3) - 1;
+        // Shifty eyes: cycle left → center → right every 5 frames
+        int shift = ((frame / 5) % 3) - 1; // -1, 0, +1
         canvas_draw_box(canvas, cx + 4 + shift, cy + 3, 2, 3);
         canvas_draw_box(canvas, cx + 12 + shift, cy + 3, 2, 3);
         break;
     }
-
-    case PoseCompacting:
-        // Wide alert eyes while compressing
-        canvas_draw_box(canvas, cx + 3, cy + 2, 2, 3);
-        canvas_draw_box(canvas, cx + body_w - 5, cy + 2, 2, 3);
-        break;
-
-    case PoseDenied:
-        // Droopy half-lidded eyes
-        canvas_draw_line(canvas, cx + 4, cy + 4, cx + 5, cy + 4);
-        canvas_draw_line(canvas, cx + 12, cy + 4, cx + 13, cy + 4);
-        canvas_draw_dot(canvas, cx + 4, cy + 5);
-        canvas_draw_dot(canvas, cx + 13, cy + 5);
-        break;
-
-    case PoseStressed:
-        canvas_draw_box(canvas, cx + 4, cy + 3, 2, 3);
-        canvas_draw_box(canvas, cx + 12, cy + 3, 2, 3);
-        canvas_draw_line(canvas, cx + 3, cy + 2, cx + 6, cy + 1);
-        canvas_draw_line(canvas, cx + 11, cy + 2, cx + 14, cy + 1);
-        break;
-
-    case PoseOverloaded:
-        canvas_draw_box(canvas, cx + 3, cy + 2, 3, 4);
-        canvas_draw_box(canvas, cx + 12, cy + 2, 3, 4);
-        break;
-
-    case PoseCritical:
-        canvas_draw_box(canvas, cx + 3, cy + 1, 3, 5);
-        canvas_draw_box(canvas, cx + 12, cy + 1, 3, 5);
-        canvas_draw_dot(canvas, cx + 4, cy + 3);
-        canvas_draw_dot(canvas, cx + 13, cy + 3);
-        break;
-
-    case PoseRateLimited:
-        if(frame % 10 < 7) {
-            canvas_draw_line(canvas, cx + 4, cy + 4, cx + 5, cy + 4);
-            canvas_draw_line(canvas, cx + 12, cy + 4, cx + 13, cy + 4);
-        } else {
-            canvas_draw_box(canvas, cx + 4, cy + 3, 2, 3);
-            canvas_draw_box(canvas, cx + 12, cy + 3, 2, 3);
-        }
-        break;
     }
 
     canvas_set_color(canvas, ColorBlack);
 
-    // Mouth extras drawn in black
-    if(pose == PoseDenied) {
-        canvas_draw_line(canvas, cx + 7, cy + 8, cx + 10, cy + 8);
-        canvas_draw_dot(canvas, cx + 8, cy + 9);
-        canvas_draw_dot(canvas, cx + 9, cy + 9);
-    }
-
     // ── Extra animations outside the body ──
     switch(pose) {
-    case PoseListening:
-        draw_sound_waves(canvas, cx + body_w + 2, cy + 5, frame);
-        break;
-
     case PoseThinking: {
-        // Orbiting thought dots
-        const int8_t orbit_dx[] = {8, 11, 14, 11};
-        const int8_t orbit_dy[] = {-4, -6, -4, -2};
-        int phase = (frame / 3) % 4;
-        for(int i = 0; i <= phase && i < 4; i++) {
-            canvas_draw_dot(canvas, cx + orbit_dx[i], cy + orbit_dy[i]);
-        }
+        // Animated thinking dots above character
+        int phase = (frame / 4) % 4;
+        if(phase >= 1) canvas_draw_dot(canvas, cx + 10, cy - 3);
+        if(phase >= 2) canvas_draw_dot(canvas, cx + 13, cy - 3);
+        if(phase >= 3) canvas_draw_dot(canvas, cx + 16, cy - 3);
         break;
     }
-    case PoseWorking: {
-        // Flickering typing marks below the body
-        int key_phase = frame % 6;
-        if(key_phase < 2)
-            canvas_draw_line(canvas, cx + 5, cy + body_h + 3, cx + 7, cy + body_h + 3);
-        if(key_phase >= 2 && key_phase < 4)
-            canvas_draw_line(canvas, cx + 9, cy + body_h + 3, cx + 11, cy + body_h + 3);
-        if(key_phase >= 4)
-            canvas_draw_line(canvas, cx + 13, cy + body_h + 3, cx + 15, cy + body_h + 3);
-        break;
-    }
-    case PoseAlert:
+    case PoseAlert: {
+        // Blinking exclamation mark above character
         if(frame % 6 < 3) {
             canvas_draw_line(canvas, cx + 8, cy - 5, cx + 8, cy - 3);
             canvas_draw_dot(canvas, cx + 8, cy - 1);
         }
         break;
+    }
     case PoseSleeping: {
+        // Floating "z" above character
         canvas_set_font(canvas, FontSecondary);
-        int zy = cy - 2 - ((frame % 12) / 3);
+        int zy = cy - 2 - ((frame % 10) / 2);
         if(zy > HDR_H) {
-            canvas_draw_str(canvas, cx + body_w - 2, zy, "z");
-        }
-        int zy2 = zy - 4 - ((frame % 8) / 4);
-        if(zy2 > HDR_H) {
-            canvas_draw_str(canvas, cx + body_w + 4, zy2, "Z");
+            canvas_draw_str(canvas, cx + 16, zy, "z");
         }
         break;
     }
-    case PoseHappy:
+    case PoseHappy: {
+        // Sparkle stars appear on each side after the bounce settles
         if(frame >= 4) {
             if(frame % 5 < 4) draw_sparkle(canvas, cx - 3, cy + 5);
-            if((frame + 2) % 5 < 4) draw_sparkle(canvas, cx + body_w + 3, cy + 5);
-            if(frame % 8 < 4) draw_heart(canvas, cx + body_w / 2, cy - 4);
+            if((frame + 2) % 5 < 4) draw_sparkle(canvas, cx + 21, cy + 5);
         }
-        break;
-    case PoseExcited:
-        canvas_draw_line(canvas, cx - 1, cy + 3, cx - 3, cy + 1);
-        canvas_draw_line(canvas, cx + body_w, cy + 3, cx + body_w + 2, cy + 1);
-        {
-            const int8_t sp_dx[] = {-4, (int8_t)(body_w + 3), 5, (int8_t)(body_w - 4)};
-            const int8_t sp_dy[] = {4, 4, -5, -5};
-            for(int i = 0; i < 4; i++) {
-                if((frame + i * 3) % 8 < 6) draw_sparkle(canvas, cx + sp_dx[i], cy + sp_dy[i]);
-            }
-        }
-        if(frame % 6 < 3) draw_heart(canvas, cx + body_w / 2 - 3, cy - 5);
-        if((frame + 3) % 6 < 3) draw_heart(canvas, cx + body_w / 2 + 3, cy - 6);
-        break;
-    case PoseWorried: {
-        int drop_y = cy - 1 + (frame % 4) / 2;
-        canvas_draw_dot(canvas, cx + body_w - 1, drop_y);
-        canvas_draw_dot(canvas, cx + body_w - 2, drop_y + 1);
-        canvas_draw_dot(canvas, cx + body_w, drop_y + 1);
-        canvas_draw_dot(canvas, cx + body_w - 1, drop_y + 2);
         break;
     }
-    case PoseCompacting:
-        // Inward compression arrows
-        if(frame % 4 < 2) {
-            canvas_draw_line(canvas, cx - 4, cy + 4, cx - 1, cy + 4);
-            canvas_draw_dot(canvas, cx - 2, cy + 3);
-            canvas_draw_dot(canvas, cx - 2, cy + 5);
-            canvas_draw_line(canvas, cx + body_w + 3, cy + 4, cx + body_w, cy + 4);
-            canvas_draw_dot(canvas, cx + body_w + 1, cy + 3);
-            canvas_draw_dot(canvas, cx + body_w + 1, cy + 5);
-        }
-        if(compact_level >= 2) {
-            int spin = frame % 8;
-            canvas_draw_dot(canvas, cx + body_w / 2 + spin - 4, cy - 4);
-            canvas_draw_dot(canvas, cx + body_w / 2 + 4 - spin, cy - 5);
-        }
-        if(compact_level >= 3) {
-            canvas_draw_line(canvas, cx + body_w / 2, cy - 6, cx + body_w / 2, cy - 2);
-            canvas_draw_dot(canvas, cx + body_w / 2, cy - 1);
+    case PoseExcited: {
+        // Arms raised (lines from body sides pointing up-outward)
+        canvas_draw_line(canvas, cx - 1, cy + 3, cx - 3, cy + 1);
+        canvas_draw_line(canvas, cx + 18, cy + 3, cx + 20, cy + 1);
+        // 4 sparkles cycling in with staggered phases
+        const int8_t sp_dx[] = {-4, 21, 5, 14};
+        const int8_t sp_dy[] = {4, 4, -5, -5};
+        for(int i = 0; i < 4; i++) {
+            if((frame + i * 3) % 8 < 6) draw_sparkle(canvas, cx + sp_dx[i], cy + sp_dy[i]);
         }
         break;
-    case PoseDenied:
-        if(frame % 8 < 4) {
-            canvas_draw_line(canvas, cx + body_w / 2 - 1, cy - 4, cx + body_w / 2 + 1, cy - 2);
-            canvas_draw_line(canvas, cx + body_w / 2 + 1, cy - 4, cx + body_w / 2 - 1, cy - 2);
-        }
+    }
+    case PoseWorried: {
+        // Sweat drop (upper-right of body, animated drip)
+        int drop_y = cy - 1 + (frame % 4) / 2; // slowly slides down
+        canvas_draw_dot(canvas, cx + 17, drop_y);
+        canvas_draw_dot(canvas, cx + 16, drop_y + 1);
+        canvas_draw_dot(canvas, cx + 18, drop_y + 1);
+        canvas_draw_dot(canvas, cx + 17, drop_y + 2);
         break;
-    case PoseStressed:
-        draw_steam_puff(canvas, cx + 2, cy - 3, frame);
-        if(context_pct != CTX_PCT_UNKNOWN && context_pct >= 70)
-            draw_steam_puff(canvas, cx + body_w - 4, cy - 4, frame + 1);
-        break;
-    case PoseOverloaded:
-        draw_steam_puff(canvas, cx + 1, cy - 4, frame);
-        draw_steam_puff(canvas, cx + body_w - 2, cy - 5, frame + 2);
-        draw_steam_puff(canvas, cx + body_w / 2, cy - 6, frame + 1);
-        break;
-    case PoseCritical:
-        if(frame % 4 < 2) {
-            canvas_draw_line(canvas, cx + body_w / 2 - 2, cy - 6, cx + body_w / 2 - 2, cy - 2);
-            canvas_draw_dot(canvas, cx + body_w / 2 - 2, cy - 1);
-            canvas_draw_line(canvas, cx + body_w / 2 + 2, cy - 5, cx + body_w / 2 + 2, cy - 1);
-            canvas_draw_dot(canvas, cx + body_w / 2 + 2, cy);
-        }
-        break;
-    case PoseRateLimited:
-        if(frame % 10 < 7) {
-            canvas_draw_circle(canvas, cx + body_w / 2, cy - 4, 2);
-            canvas_draw_line(canvas, cx + body_w / 2, cy - 2, cx + body_w / 2 + 1, cy);
-        } else {
-            canvas_draw_dot(canvas, cx + body_w / 2 - 1, cy - 4);
-            canvas_draw_dot(canvas, cx + body_w / 2 + 1, cy - 4);
-            canvas_draw_dot(canvas, cx + body_w / 2, cy - 2);
-        }
-        break;
+    }
     default:
         break;
     }
@@ -795,23 +481,10 @@ static void status_draw(Canvas* canvas, void* model) {
         canvas_draw_str(canvas, ox + 8, 8, "Mic");
     }
 
-    // Host label — top-left (Claude / Codex / Cursor)
-    uint8_t display_host = m->host_type;
-    if(display_host == HostTypeUnknown && desktop && m->connected) {
-        display_host = HostTypeClaude;
-    }
-    const char* host_label = host_type_label(display_host);
-    int header_left = 1;
-    if(host_label && m->connected) {
-        canvas_draw_str(canvas, header_left, 8, host_label);
-        header_left += (int)canvas_string_width(canvas, host_label) + 3;
-    }
-
-    // Mute indicator when sound is off
+    // Mute indicator — small 'M' at top-left when sound is off
     if(m->muted) {
         canvas_set_font(canvas, FontKeyboard);
-        canvas_draw_str(canvas, header_left, 8, "M");
-        canvas_set_font(canvas, FontSecondary);
+        canvas_draw_str(canvas, 1, 8, "M");
     }
 
     // Transport mode — only when connected
@@ -854,17 +527,13 @@ static void status_draw(Canvas* canvas, void* model) {
     // Header bottom separator
     canvas_draw_line(canvas, 0, HDR_H, 127, HDR_H);
 
-    int usage_h = 0;
-    if(m->connected) {
-        usage_h = draw_usage_meters(canvas, m);
-    }
-
     // ── Content area ──
+    // Claude character (left, vertically centered)
+    draw_claude(canvas, 4, 22, m->pose, m->anim_frame);
+
+    // Status text (right of character)
     const char* main_text = m->connected ? "Ready" : "No connection";
     if(m->text[0] != '\0') main_text = m->text;
-    const int area_top = HDR_H + usage_h + 1;
-    const int area_bottom = FTR_Y - 3;
-    int char_y = area_top + (area_bottom - area_top) / 2 - 3;
 
     if(desktop) {
         // Desktop mode has no subtext — wrap the main text across up to 4 lines.
@@ -878,7 +547,7 @@ static void status_draw(Canvas* canvas, void* model) {
         }
         const int line_h = 10;
         int total_h = nlines * line_h;
-        int y0 = (HDR_H + FTR_Y) / 2 - total_h / 2 + line_h / 2 + usage_h / 2;
+        int y0 = (HDR_H + FTR_Y) / 2 - total_h / 2 + line_h / 2;
         /* Left-align against the text column (x=30 starts just right of
          * the Claude character at x=4..~22, matches wrap_text's 97 px
          * width budget → right edge ≈ 127). */
@@ -888,43 +557,13 @@ static void status_draw(Canvas* canvas, void* model) {
     } else {
         bool has_sub = m->subtext[0] != '\0';
         bool show_hint = !has_sub && m->connected && m->text[0] == '\0';
-        const int line_gap = 11;
-        int text_y;
-        int sub_y = 0;
 
-        if(has_sub) {
-            text_y = area_top + 10;
-            sub_y = area_bottom - 4;
-            if(sub_y - text_y < line_gap) {
-                text_y = area_top + (area_bottom - area_top) / 2 - line_gap / 2;
-                sub_y = text_y + line_gap;
-                if(sub_y > area_bottom - 4) {
-                    has_sub = false;
-                    sub_y = 0;
-                    text_y = area_top + (area_bottom - area_top) / 2;
-                }
-            }
-        } else if(show_hint) {
-            text_y = area_top + 8;
-        } else {
-            text_y = area_top + (area_bottom - area_top) / 2;
-        }
-
-        // Draw text before the character so it masks marquee overflow on the left.
         canvas_set_font(canvas, FontPrimary);
-        int text_w = (int)canvas_string_width(canvas, main_text);
-        if(text_w <= 82) {
-            canvas_draw_str_aligned(canvas, 77, text_y, AlignCenter, AlignCenter, main_text);
-        } else {
-            // Marquee: scroll left, gap of 20px before looping.
-            int scroll_px = (m->anim_frame / 2) % (text_w + 20);
-            canvas_draw_str_aligned(
-                canvas, 45 - scroll_px, text_y, AlignLeft, AlignCenter, main_text);
-        }
-
+        canvas_draw_str_aligned(
+            canvas, 77, (has_sub || show_hint) ? 25 : 31, AlignCenter, AlignCenter, main_text);
         if(has_sub) {
             canvas_set_font(canvas, FontSecondary);
-            canvas_draw_str_aligned(canvas, 77, sub_y, AlignCenter, AlignCenter, m->subtext);
+            canvas_draw_str_aligned(canvas, 77, 37, AlignCenter, AlignCenter, m->subtext);
         } else if(show_hint) {
             canvas_set_font(canvas, FontSecondary);
             // "Hold [►] for menu" with inline icon
@@ -933,17 +572,11 @@ static void status_draw(Canvas* canvas, void* model) {
             int sw = (int)canvas_string_width(canvas, " "); // space after icon
             int total = hw + 5 + sw + fw; // 5px icon width + space
             int hx = 77 - total / 2;
-            int hint_y = area_bottom - 4;
-            canvas_draw_str(canvas, hx, hint_y, "Hold ");
-            draw_help_icon(canvas, hx + hw, hint_y, HelpBtnRight);
-            canvas_draw_str(canvas, hx + hw + 6 + sw, hint_y, "for menu");
+            canvas_draw_str(canvas, hx, 39, "Hold ");
+            draw_help_icon(canvas, hx + hw, 39, HelpBtnRight);
+            canvas_draw_str(canvas, hx + hw + 6 + sw, 39, "for menu");
         }
     }
-
-    // Draw after status text so the character covers any marquee overflow.
-    uint8_t draw_pose = effective_pose(m);
-    draw_claude(canvas, 4, char_y, draw_pose, m->anim_frame, m->compact_level, m->context_pct);
-    draw_pressure_overlay(canvas, 4, char_y, m, m->anim_frame);
 
     // ── Footer ──
     draw_footer_sep(canvas);
@@ -1353,7 +986,7 @@ static void info_draw(Canvas* canvas, void* model) {
         // Character scrolls with content — only visible at scroll 0
         int text_start, text_count, y;
         if(m->scroll == 0) {
-            draw_claude(canvas, 55, 12, PoseIdle, m->anim_frame, 0, CTX_PCT_UNKNOWN);
+            draw_claude(canvas, 55, 12, PoseIdle, m->anim_frame);
             text_start = 0;
             text_count = ABOUT_VISIBLE;
             y = 30;
@@ -1645,7 +1278,7 @@ static void perm_draw(Canvas* canvas, void* model) {
     // Content area: HDR_H(9) to FTR_Y(53), midpoint = 31
     int cy = (HDR_H + FTR_Y) / 2; // 31
     // Claude character (PoseWorried) on the left
-    draw_claude(canvas, 4, cy - 9, PoseWorried, m->anim_frame, 0, CTX_PCT_UNKNOWN);
+    draw_claude(canvas, 4, cy - 9, PoseWorried, m->anim_frame);
 
     // Right column — tool on top, hint wrapped below. Character occupies
     // roughly x=4..22, so the text column starts at x≈24 with ~104 px wide.
@@ -1782,13 +1415,6 @@ UiState* ui_alloc(Gui* gui) {
     view_set_input_callback(ui->status_view, status_input);
     view_set_context(ui->status_view, ui);
     view_dispatcher_add_view(ui->view_dispatcher, ViewIdStatus, ui->status_view);
-    {
-        StatusModel* m = view_get_model(ui->status_view);
-        m->context_pct = CTX_PCT_UNKNOWN;
-        m->session_pct = CTX_PCT_UNKNOWN;
-        m->compact_level = 0;
-        view_commit_model(ui->status_view, false);
-    }
 
     // Menu view
     ui->menu_view = view_alloc();
@@ -1870,7 +1496,6 @@ void ui_show_status(UiState* ui, const char* text, bool connected) {
     if(!connected) {
         m->pose = PoseSleeping;
         m->anim_frame = 0;
-        m->host_type = HostTypeUnknown;
     }
     view_commit_model(ui->status_view, true);
     if(ui->current_view != ViewIdMenu && ui->current_view != ViewIdInfo) {
@@ -1898,7 +1523,6 @@ void ui_show_status2(UiState* ui, const char* text, const char* subtext, bool co
     if(!connected) {
         m->pose = PoseSleeping;
         m->anim_frame = 0;
-        m->host_type = HostTypeUnknown;
     }
     view_commit_model(ui->status_view, true);
     if(ui->current_view != ViewIdMenu && ui->current_view != ViewIdInfo) {
@@ -1945,15 +1569,8 @@ void ui_set_claude_connected(UiState* ui, bool connected) {
     StatusModel* m = view_get_model(ui->status_view);
     m->claude_connected = connected;
     if(!connected) {
-        m->rssi_bars = 0; // clear signal bars
+        m->rssi_bars = 0; // 清零信号格
     }
-    view_commit_model(ui->status_view, true);
-}
-
-void ui_set_host_type(UiState* ui, uint8_t host_type) {
-    if(!ui) return;
-    StatusModel* m = view_get_model(ui->status_view);
-    m->host_type = host_type;
     view_commit_model(ui->status_view, true);
 }
 
@@ -1988,20 +1605,6 @@ void ui_set_pose(UiState* ui, uint8_t pose) {
     }
     m->pose = pose;
     m->anim_frame = 0;
-    view_commit_model(ui->status_view, true);
-}
-
-void ui_set_usage(
-    UiState* ui,
-    uint8_t context_pct,
-    uint8_t session_pct,
-    uint8_t compact_level,
-    bool update_compact) {
-    if(!ui) return;
-    StatusModel* m = view_get_model(ui->status_view);
-    if(context_pct != CTX_PCT_UNKNOWN) m->context_pct = context_pct;
-    if(session_pct != CTX_PCT_UNKNOWN) m->session_pct = session_pct;
-    if(update_compact) m->compact_level = compact_level;
     view_commit_model(ui->status_view, true);
 }
 

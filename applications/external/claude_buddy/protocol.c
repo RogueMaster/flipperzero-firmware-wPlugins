@@ -64,7 +64,6 @@ static MsgType parse_type(const char* type_str) {
     if(strcmp(type_str, "menu") == 0) return MsgTypeMenu;
     if(strcmp(type_str, "state") == 0) return MsgTypeState;
     if(strcmp(type_str, "perm") == 0) return MsgTypePerm;
-    if(strcmp(type_str, "usage") == 0) return MsgTypeUsage;
     return MsgTypeUnknown;
 }
 
@@ -101,9 +100,6 @@ bool protocol_parse(const char* json_line, ProtocolMessage* msg) {
         break;
     case MsgTypeState:
         json_get_bool(d_start, "claude", &msg->claude_connected);
-        if(json_get_string(d_start, "host", msg->host_name, sizeof(msg->host_name))) {
-            msg->has_host = true;
-        }
         break;
     case MsgTypePerm:
         json_get_string(d_start, "tool", msg->text, sizeof(msg->text));
@@ -116,49 +112,11 @@ bool protocol_parse(const char* json_line, ProtocolMessage* msg) {
             msg->rssi = (int16_t)rssi;
         }
     } break;
-    case MsgTypeUsage: {
-        int val = 0;
-        if(json_get_int(d_start, "ctx", &val)) {
-            msg->has_usage_ctx = true;
-            if(val < 0) val = 0;
-            if(val > 100) val = 100;
-            msg->usage_ctx = (uint8_t)val;
-        }
-        if(json_get_int(d_start, "sess", &val)) {
-            msg->has_usage_sess = true;
-            if(val < 0) val = 0;
-            if(val > 100) val = 100;
-            msg->usage_sess = (uint8_t)val;
-        }
-        if(json_get_int(d_start, "clvl", &val)) {
-            msg->has_usage_compact = true;
-            if(val < 0) val = 0;
-            if(val > 3) val = 3;
-            msg->usage_compact = (uint8_t)val;
-        }
-    } break;
     default:
         break;
     }
 
     return true;
-}
-
-/**
- * Write JSON-escaped *src* into [dst, dst_end). Escapes '"' and '\'.
- * Returns pointer past the last written byte (null terminator position).
- */
-static char* json_escape_into(char* dst, const char* dst_end, const char* src) {
-    if(!dst || !src) return dst;
-    while(*src && dst + 1 < dst_end) {
-        if(*src == '"' || *src == '\\') {
-            if(dst + 2 >= dst_end) break;
-            *dst++ = '\\';
-        }
-        *dst++ = *src++;
-    }
-    if(dst < dst_end) *dst = '\0';
-    return dst;
 }
 
 static int build_simple(char* buf, int buf_size, const char* type) {
@@ -169,42 +127,17 @@ static int build_simple(char* buf, int buf_size, const char* type) {
 int protocol_build_hello(char* buf, int buf_size) {
     if(!buf || buf_size <= 0) return 0;
     const char* pet = furi_hal_version_get_name_ptr();
-    const char* name = pet ? pet : "";
-    const char prefix[] = "{\"v\":1,\"t\":\"hello\",\"d\":{\"fw\":\"0.1.0\",\"bt\":\"";
-    const char suffix[] = "\"}}\n";
-    char* p = buf;
-    char* end = buf + buf_size;
-    int pfx_len = strlen(prefix);
-    if(p + pfx_len >= end) return 0;
-    memcpy(p, prefix, pfx_len);
-    p += pfx_len;
-    p = json_escape_into(p, end, name);
-    int sfx_len = strlen(suffix);
-    if(p + sfx_len >= end) return 0;
-    memcpy(p, suffix, sfx_len);
-    p += sfx_len;
-    if(p < end) *p = '\0';
-    return (int)(p - buf);
+    return snprintf(
+        buf,
+        buf_size,
+        "{\"v\":1,\"t\":\"hello\",\"d\":{\"fw\":\"0.1.0\",\"bt\":\"%s\"}}\n",
+        pet ? pet : "");
 }
 
 int protocol_build_cmd(char* buf, int buf_size, const char* text) {
     if(!buf || buf_size <= 0) return 0;
-    const char* src = text ? text : "";
-    const char prefix[] = "{\"v\":1,\"t\":\"cmd\",\"d\":{\"text\":\"";
-    const char suffix[] = "\"}}\n";
-    char* p = buf;
-    char* end = buf + buf_size;
-    int pfx_len = strlen(prefix);
-    if(p + pfx_len >= end) return 0;
-    memcpy(p, prefix, pfx_len);
-    p += pfx_len;
-    p = json_escape_into(p, end, src);
-    int sfx_len = strlen(suffix);
-    if(p + sfx_len >= end) return 0;
-    memcpy(p, suffix, sfx_len);
-    p += sfx_len;
-    if(p < end) *p = '\0';
-    return (int)(p - buf);
+    return snprintf(
+        buf, buf_size, "{\"v\":1,\"t\":\"cmd\",\"d\":{\"text\":\"%s\"}}\n", text ? text : "");
 }
 
 int protocol_build_enter(char* buf, int buf_size) {
