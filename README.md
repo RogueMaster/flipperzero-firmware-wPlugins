@@ -91,7 +91,7 @@ make apk-install
 
 Then on the phone:
 
-1. **Settings** → choose **Via Flipper** or **Direct Bluetooth to PC**, pick a **template** (macOS / PC / Number), enable **languages** (EN/RU), optionally **Show two languages on keys** → Save  
+1. **Settings** → choose **Via Flipper** or **Direct Bluetooth to PC**, pick a **template**, enable **languages** (search the list), optionally **Show two languages on keys** → Save  
 2. Tap the **top-left** connection button (green = ready; blue = waiting for PC to pair in Direct mode)  
 3. For Direct BT without a saved PC: accept discoverable, then pair/connect from the PC — host MAC is saved automatically  
 4. Type on the keyboard, or use the top-center **Keyboard | Touchpad** switch  
@@ -99,9 +99,11 @@ Then on the phone:
 
 Details: `docs/ANDROID.md`, `docs/FLIPPER.md`.
 
-Bundled templates: **macOS**, **PC**, **Number**. Language packs: **EN**, **RU**. Optional dual-label keys (current large, next small). Drop extra language JSON into the app’s `files/layouts/languages/` folder (see Settings hint / `docs/ANDROID.md`).
+Bundled templates: **macOS**, **PC**, **Number**. Bundled label packs: **EN**, **RU**. Settings lists all system-known languages (searchable); pick what you need. Optional dual-label keys (current large, next small). Drop extra language JSON into the app’s `files/layouts/languages/` folder (see `docs/ANDROID.md`).
 
-Layout screens are for convenience only — they do not switch the Mac/PC input language; match the host keyboard source yourself (see `docs/ANDROID.md`).
+**Limits:** Android often exposes only the primary system language, and does not provide soft-keyboard glyph maps — so auto-detect and “letters from the system keyboard” are incomplete. Real labels need a pack (bundled or your JSON); other selections fall back to English QWERTY on the keys. Layout screens also do not switch the Mac/PC input language.
+
+If you have a solid idea how to read the full preferred-language list or keyboard layouts on stock Android without hacks, please open an issue — I’d be grateful for tips.
 
 ## Build shortcuts
 

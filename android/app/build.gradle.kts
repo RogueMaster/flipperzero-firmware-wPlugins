@@ -11,8 +11,8 @@ android {
         applicationId = "com.flipperzero.androidkeyboard"
         minSdk = 26
         targetSdk = 34
-        versionCode = 10
-        versionName = "0.5.5"
+        versionCode = 11
+        versionName = "0.5.6"
     }
 
     buildTypes {
@@ -61,4 +61,5 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
 }

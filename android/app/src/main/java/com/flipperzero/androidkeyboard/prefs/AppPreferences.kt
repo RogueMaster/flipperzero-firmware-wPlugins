@@ -73,15 +73,17 @@ class AppPreferences(context: Context) {
 
     fun enabledLanguageIds(): List<String> {
         migrateLegacyLayoutsIfNeeded()
-        val all = KeyboardLayoutLoader.loadLanguageCatalog(appContext)
+        val all = KeyboardLayoutLoader.loadSelectableLanguages(appContext)
         val availableIds = all.map { it.id }.toSet()
         val raw = prefs.getString(KEY_ENABLED_LANGUAGES, null)
         if (raw.isNullOrBlank()) {
-            return SystemLanguages.defaultEnabledIds(appContext, all)
+            return SystemLanguages.defaultEnabledIds(appContext, KeyboardLayoutLoader.loadLanguageCatalog(appContext))
         }
         val saved = raw.split(',').map { it.trim() }.filter { it.isNotEmpty() }
         val enabled = saved.filter { it in availableIds }
-        return enabled.ifEmpty { SystemLanguages.defaultEnabledIds(appContext, all) }
+        return enabled.ifEmpty {
+            SystemLanguages.defaultEnabledIds(appContext, KeyboardLayoutLoader.loadLanguageCatalog(appContext))
+        }
     }
 
     fun setEnabledLanguageIds(ids: List<String>) {

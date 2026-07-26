@@ -31,9 +31,11 @@
     <string name="settings_template_title">Keyboard template</string>
     <string name="settings_template_hint">Physical key arrangement. Add more under assets/layouts/templates/.</string>
     <string name="settings_languages_title">Languages</string>
-    <string name="settings_languages_hint">English and Russian are bundled. Enable what you use (✓ = detected on phone). Swipe the space bar to cycle.</string>
+    <string name="settings_languages_hint">Search and enable languages to cycle with the space bar. Bundled label packs: English and Russian. Other entries use English QWERTY letters as placeholders unless you add a JSON pack.</string>
+    <string name="settings_languages_search">Search languages…</string>
+    <string name="settings_languages_count">Showing %1$d of %2$d · enabled %3$d</string>
     <string name="settings_languages_custom_dir">Add your own JSON packs here (✎ = custom):\n%1$s</string>
-    <string name="settings_languages_detected">Detected on device: %1$s</string>
+    <string name="settings_languages_legend">■ = label pack · ○ = QWERTY fallback · ✎ = custom · ✓ = matched on device</string>
     <string name="settings_languages_none">No language packs found in the app</string>
     <string name="settings_languages_not_used">This template has no language keys (digits / chrome only).</string>
     <string name="settings_languages_required">Enable at least one language</string>

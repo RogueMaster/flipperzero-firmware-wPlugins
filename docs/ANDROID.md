@@ -97,7 +97,18 @@ Layouts are composed from:
 | `assets/layouts/templates/` | Physical chrome + HID codes (`macos`, `pc`, `number`, …) |
 | `assets/layouts/languages/` | Label packs (`en`, `ru`, …) keyed by `fill` ids |
 
-Each template catalog entry points at a JSON file you can copy to add a new keyboard shape. Language packs declare `locales` (e.g. `["en"]`). Settings lists bundled packs (**en**, **ru**) plus any user JSON files; best-effort device detection only marks matches and seeds default checkboxes.
+Each template catalog entry points at a JSON file you can copy to add a new keyboard shape. Language packs declare `locales` (e.g. `["en"]`).
+
+Settings shows a **searchable list of all system-known languages** (`Locale.getAvailableLocales()`), plus bundled/user JSON packs. You pick which ones to enable. Best-effort device matching only marks entries with ✓ and can seed defaults — it is often incomplete on OEM builds.
+
+### Limitations (languages & key labels)
+
+- **Preferred system languages** (Settings → Languages) are not reliably readable as a full list on many phones; public APIs often return only the primary UI locale.
+- Android does **not** expose soft-keyboard glyph maps (Gboard / Samsung Keyboard layouts). There is no supported API to “read йцукен from the system” onto our keys.
+- Bundled packs (**en**, **ru**) and user JSON files provide real labels. Other selected languages fall back to **English QWERTY** letters on the keys (same HID positions).
+- On-screen language switching does **not** change the Mac/PC input source — the host still maps HID codes with its own layout.
+
+If you know a reliable, permission-safe way to read the user’s full preferred-language list and/or keyboard layout glyphs on stock Android, please open an issue or PR — tips are very welcome.
 
 ### Custom language packs
 

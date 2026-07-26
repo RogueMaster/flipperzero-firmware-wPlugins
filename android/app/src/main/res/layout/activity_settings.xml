@@ -160,12 +160,32 @@
             android:text="@string/settings_languages_hint"
             android:textSize="13sp" />
 
-        <LinearLayout
-            android:id="@+id/listLanguages"
+        <EditText
+            android:id="@+id/editLanguageSearch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:orientation="vertical" />
+            android:hint="@string/settings_languages_search"
+            android:inputType="text"
+            android:imeOptions="actionDone"
+            android:importantForAutofill="no"
+            android:maxLines="1"
+            android:textSize="15sp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/listLanguages"
+            android:layout_width="match_parent"
+            android:layout_height="280dp"
+            android:layout_marginTop="8dp"
+            android:nestedScrollingEnabled="true"
+            android:scrollbars="vertical" />
+
+        <TextView
+            android:id="@+id/txtLanguagesCount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="12sp" />
 
         <CheckBox
             android:id="@+id/checkDualLabels"

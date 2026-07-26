@@ -6,12 +6,6 @@ data class TemplateInfo(
     val file: String,
 )
 
-/** Where a language pack JSON is loaded from. */
-sealed class LanguageSource {
-    data class Asset(val path: String) : LanguageSource()
-    data class UserFile(val absolutePath: String) : LanguageSource()
-}
-
 data class LanguageInfo(
     val id: String,
     val title: String,
@@ -20,6 +14,21 @@ data class LanguageInfo(
 ) {
     val isUserPack: Boolean
         get() = source is LanguageSource.UserFile
+
+    val isGenerated: Boolean
+        get() = source is LanguageSource.Generated
+
+    /** Has dedicated label map (bundled/user JSON), not QWERTY fallback. */
+    val hasLabelPack: Boolean
+        get() = source is LanguageSource.Asset || source is LanguageSource.UserFile
+}
+
+/** Where a language pack JSON is loaded from. */
+sealed class LanguageSource {
+    data class Asset(val path: String) : LanguageSource()
+    data class UserFile(val absolutePath: String) : LanguageSource()
+    /** No JSON pack — labels synthesized (Latin/QWERTY fallback from EN). */
+    data class Generated(val languageTag: String) : LanguageSource()
 }
 
 /**

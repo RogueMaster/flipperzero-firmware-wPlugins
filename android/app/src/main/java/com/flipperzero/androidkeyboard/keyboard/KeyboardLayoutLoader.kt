@@ -6,6 +6,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.File
+import java.util.Locale
 
 object KeyboardLayoutLoader {
 
@@ -50,7 +51,54 @@ object KeyboardLayoutLoader {
     }
 
     fun loadSystemLanguages(context: Context): List<LanguageInfo> {
-        return SystemLanguages.availablePacks(context, loadLanguageCatalog(context))
+        return loadSelectableLanguages(context)
+    }
+
+    /**
+     * Bundled/user packs plus one entry per language from [Locale.getAvailableLocales]
+     * (for Settings search list). Pack JSON wins over generated stubs with the same id.
+     */
+    fun loadSelectableLanguages(context: Context): List<LanguageInfo> {
+        val byId = linkedMapOf<String, LanguageInfo>()
+        for (info in loadLanguageCatalog(context)) {
+            byId[info.id] = info
+        }
+        val displayLocale = Locale.getDefault()
+        Locale.getAvailableLocales()
+            .filter { it.language.isNotBlank() && it.language != "und" }
+            .groupBy { it.language.lowercase(Locale.ROOT) }
+            .forEach { (lang, locales) ->
+                val tags = locales.map { it.toLanguageTag() }.distinct()
+                val existing = byId[lang]
+                if (existing != null) {
+                    val merged = (existing.locales + tags).distinct()
+                    if (merged != existing.locales) {
+                        byId[lang] = existing.copy(locales = merged)
+                    }
+                    return@forEach
+                }
+                val primary = locales.maxWithOrNull(
+                    compareBy<Locale> { it.country.isNotEmpty() }
+                        .thenBy { it.toLanguageTag().length },
+                ) ?: locales.first()
+                val title = primary.getDisplayLanguage(displayLocale)
+                    .replaceFirstChar { ch -> if (ch.isLowerCase()) ch.titlecase(displayLocale) else ch.toString() }
+                    .ifBlank { lang }
+                byId[lang] = LanguageInfo(
+                    id = lang,
+                    title = title,
+                    locales = tags,
+                    source = LanguageSource.Generated(primary.toLanguageTag()),
+                )
+            }
+        return byId.values.sortedWith(
+            compareBy<LanguageInfo> { !it.hasLabelPack }
+                .thenBy { it.title.lowercase(Locale.ROOT) },
+        )
+    }
+
+    fun languageById(context: Context, id: String): LanguageInfo? {
+        return loadSelectableLanguages(context).firstOrNull { it.id == id }
     }
 
     fun loadMatchedLanguages(context: Context): List<LanguageInfo> {
@@ -95,7 +143,7 @@ object KeyboardLayoutLoader {
         val template = templates.firstOrNull { it.id == templateId }
             ?: templates.firstOrNull()
             ?: return emptyList()
-        val systemLangs = loadSystemLanguages(context)
+        val systemLangs = loadSelectableLanguages(context)
         if (!templateUsesLanguages(context, template)) {
             return listOf(
                 LayoutInfo(
@@ -129,10 +177,9 @@ object KeyboardLayoutLoader {
         secondaryLanguageId: String? = null,
     ): KeyboardLayout {
         val template = loadTemplates(context).first { it.id == info.templateId }
-        val catalog = loadLanguageCatalog(context)
         val labels = if (info.languageId != null) {
-            val lang = catalog.first { it.id == info.languageId }
-            loadLanguageLabels(context, lang)
+            languageById(context, info.languageId)?.let { loadLanguageLabels(context, it) }
+                .orEmpty()
         } else {
             emptyMap()
         }
@@ -140,7 +187,7 @@ object KeyboardLayoutLoader {
             secondaryLanguageId != null &&
             secondaryLanguageId != info.languageId
         ) {
-            catalog.firstOrNull { it.id == secondaryLanguageId }
+            languageById(context, secondaryLanguageId)
                 ?.let { loadLanguageLabels(context, it) }
                 .orEmpty()
         } else {
@@ -248,21 +295,37 @@ object KeyboardLayoutLoader {
     }
 
     private fun loadLanguageLabels(context: Context, lang: LanguageInfo): Map<String, String> {
-        val root = JSONObject(readLanguageJson(context, lang))
-        val labelsJson = root.getJSONObject("labels")
-        val map = mutableMapOf<String, String>()
-        val keys = labelsJson.keys()
-        while (keys.hasNext()) {
-            val key = keys.next()
-            map[key] = labelsJson.getString(key)
+        return when (lang.source) {
+            is LanguageSource.Asset,
+            is LanguageSource.UserFile,
+            -> {
+                val root = JSONObject(readLanguageJson(context, lang))
+                val labelsJson = root.getJSONObject("labels")
+                val map = mutableMapOf<String, String>()
+                val keys = labelsJson.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    map[key] = labelsJson.getString(key)
+                }
+                map
+            }
+            is LanguageSource.Generated -> {
+                // Android does not expose soft-keyboard glyph maps (Gboard etc.).
+                // Fall back to bundled English QWERTY labels as positional placeholders.
+                Log.i(TAG, "generated labels for ${lang.id} from EN QWERTY fallback")
+                val en = loadLanguageCatalog(context).firstOrNull { it.id == "en" }
+                    ?: return emptyMap()
+                loadLanguageLabels(context, en)
+            }
         }
-        return map
     }
 
     private fun readLanguageJson(context: Context, lang: LanguageInfo): String {
         return when (val source = lang.source) {
             is LanguageSource.Asset -> readAsset(context, source.path)
             is LanguageSource.UserFile -> File(source.absolutePath).readText()
+            is LanguageSource.Generated ->
+                error("generated language ${lang.id} has no JSON file")
         }
     }
 

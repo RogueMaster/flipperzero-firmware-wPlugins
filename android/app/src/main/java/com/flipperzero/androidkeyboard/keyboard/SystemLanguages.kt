@@ -4,18 +4,15 @@ import android.content.Context
 import android.content.res.Resources
 import android.os.Build
 import android.os.LocaleList
-import android.util.Log
 import android.view.inputmethod.InputMethodManager
 import java.util.Locale
 
 /**
- * Best-effort match of language packs to phone locales / keyboards.
- * Detection is unreliable on many OEMs — Settings always lists all packs;
- * matches only influence default checkboxes and the “Detected” hint.
+ * Best-effort match of language packs to phone locales / enabled IME subtypes.
+ * On many OEMs the system only exposes the primary UI language — Settings therefore
+ * lists all selectable languages for the user to pick manually.
  */
 object SystemLanguages {
-
-    private const val TAG = "AkB.Lang"
 
     fun systemLocaleTags(context: Context): Set<String> {
         val tags = linkedSetOf<String>()
@@ -56,6 +53,7 @@ object SystemLanguages {
             addLocaleList(Resources.getSystem().configuration.locales)
             addLocaleList(context.applicationContext.resources.configuration.locales)
             addLocaleList(LocaleList.getDefault())
+            addLocaleList(LocaleList.getAdjustedDefault())
         } else {
             @Suppress("DEPRECATION")
             addLocale(Resources.getSystem().configuration.locale)
@@ -77,7 +75,6 @@ object SystemLanguages {
             }
         }
 
-        Log.i(TAG, "detected locale tags: $tags")
         return tags
     }
 
@@ -92,12 +89,9 @@ object SystemLanguages {
 
     fun matchedPacks(context: Context, all: List<LanguageInfo>): List<LanguageInfo> {
         val tags = systemLocaleTags(context)
-        val matched = all.filter { packMatches(it, tags) }
-        Log.i(TAG, "matched pack ids: ${matched.map { it.id }}")
-        return matched
+        return all.filter { packMatches(it, tags) }
     }
 
-    /** Always all shipped packs — user chooses which to enable. */
     fun availablePacks(context: Context, all: List<LanguageInfo>): List<LanguageInfo> {
         if (all.isEmpty()) return emptyList()
         val matchedIds = matchedPacks(context, all).map { it.id }.toSet()
@@ -106,10 +100,6 @@ object SystemLanguages {
         return matched + rest
     }
 
-    /**
-     * Default checkboxes: device matches when any; otherwise English / first pack.
-     * Does not force-enable every pack (user picks the rest).
-     */
     fun defaultEnabledIds(context: Context, all: List<LanguageInfo>): List<String> {
         val matched = matchedPacks(context, all).map { it.id }
         if (matched.isNotEmpty()) return matched

@@ -4,23 +4,25 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.os.Build
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
-import android.widget.CheckBox
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.flipperzero.androidkeyboard.ble.BlePermissions
 import com.flipperzero.androidkeyboard.ble.FlipperBleClient
 import com.flipperzero.androidkeyboard.databinding.ActivitySettingsBinding
 import com.flipperzero.androidkeyboard.hid.DirectHidClient
 import com.flipperzero.androidkeyboard.keyboard.KeyboardLayoutLoader
 import com.flipperzero.androidkeyboard.keyboard.LanguageInfo
-import com.flipperzero.androidkeyboard.keyboard.SystemLanguages
 import com.flipperzero.androidkeyboard.keyboard.TemplateInfo
 import com.flipperzero.androidkeyboard.keyboard.composedLayoutId
 import com.flipperzero.androidkeyboard.prefs.AppPreferences
+import java.util.Locale
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -28,9 +30,10 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var prefs: AppPreferences
     private var devices: List<BluetoothDevice> = emptyList()
     private var templates: List<TemplateInfo> = emptyList()
-    private var systemLanguages: List<LanguageInfo> = emptyList()
+    private var allLanguages: List<LanguageInfo> = emptyList()
     private var selectedDeviceIndex: Int = -1
-    private val languageChecks = mutableListOf<Pair<LanguageInfo, CheckBox>>()
+    private val enabledLanguageIds = linkedSetOf<String>()
+    private var languageAdapter: LanguagePickAdapter? = null
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -49,7 +52,9 @@ class SettingsActivity : AppCompatActivity() {
 
         prefs = AppPreferences(this)
         templates = KeyboardLayoutLoader.loadTemplates(this)
-        systemLanguages = KeyboardLayoutLoader.loadSystemLanguages(this)
+        allLanguages = KeyboardLayoutLoader.loadSelectableLanguages(this)
+        enabledLanguageIds.clear()
+        enabledLanguageIds.addAll(prefs.enabledLanguageIds())
         bindOutputMode()
         binding.editHidName.setText(prefs.hidDeviceName)
         bindTemplates()
@@ -131,48 +136,74 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun bindLanguages() {
-        binding.listLanguages.removeAllViews()
-        languageChecks.clear()
-        if (systemLanguages.isEmpty()) {
+        if (allLanguages.isEmpty()) {
             Toast.makeText(this, R.string.settings_languages_none, Toast.LENGTH_LONG).show()
             return
         }
         val matchedIds = KeyboardLayoutLoader.loadMatchedLanguages(this).map { it.id }.toSet()
-        val detected = SystemLanguages.systemLocaleTags(this).sorted().joinToString(", ")
         val userDir = KeyboardLayoutLoader.userLanguagesDir(this).absolutePath
         binding.txtLanguagesHint.text = buildString {
             append(getString(R.string.settings_languages_hint))
             append('\n')
             append(getString(R.string.settings_languages_custom_dir, userDir))
             append('\n')
-            append(getString(R.string.settings_languages_detected, detected.ifBlank { "—" }))
+            append(getString(R.string.settings_languages_legend))
         }
-        val enabled = prefs.enabledLanguageIds().toSet()
-        systemLanguages.forEach { info ->
-            val box = CheckBox(this).apply {
-                text = buildString {
-                    append(info.title)
-                    if (info.isUserPack) append(" ✎")
-                    if (info.id in matchedIds) append(" ✓")
-                }
-                isChecked = info.id in enabled
-                textSize = 16f
+
+        val adapter = LanguagePickAdapter(
+            matchedIds = matchedIds,
+            enabledIds = enabledLanguageIds,
+            onEnabledChanged = { updateLanguagesCount() },
+        )
+        languageAdapter = adapter
+        binding.listLanguages.layoutManager = LinearLayoutManager(this)
+        binding.listLanguages.adapter = adapter
+        binding.editLanguageSearch.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            override fun afterTextChanged(s: Editable?) {
+                applyLanguageFilter(s?.toString().orEmpty())
             }
-            binding.listLanguages.addView(box)
-            languageChecks += info to box
+        })
+        applyLanguageFilter(binding.editLanguageSearch.text?.toString().orEmpty())
+    }
+
+    private fun applyLanguageFilter(query: String) {
+        val q = query.trim().lowercase(Locale.ROOT)
+        val filtered = if (q.isEmpty()) {
+            allLanguages
+        } else {
+            allLanguages.filter { info ->
+                info.title.lowercase(Locale.ROOT).contains(q) ||
+                    info.id.contains(q) ||
+                    info.locales.any { it.lowercase(Locale.ROOT).contains(q) }
+            }
         }
+        languageAdapter?.submit(filtered)
+        updateLanguagesCount(filtered.size)
+    }
+
+    private fun updateLanguagesCount(filteredSize: Int = languageAdapter?.itemCount ?: 0) {
+        binding.txtLanguagesCount.text = getString(
+            R.string.settings_languages_count,
+            filteredSize,
+            allLanguages.size,
+            enabledLanguageIds.size,
+        )
     }
 
     private fun updateLanguageSectionForTemplate() {
         val template = selectedTemplate() ?: return
         val usesLang = KeyboardLayoutLoader.templateUsesLanguages(this, template)
         binding.listLanguages.visibility = if (usesLang) View.VISIBLE else View.GONE
+        binding.editLanguageSearch.visibility = if (usesLang) View.VISIBLE else View.GONE
+        binding.txtLanguagesCount.visibility = if (usesLang) View.VISIBLE else View.GONE
         binding.checkDualLabels.visibility = if (usesLang) View.VISIBLE else View.GONE
         binding.txtDualLabelsHint.visibility = if (usesLang) View.VISIBLE else View.GONE
         if (!usesLang) {
             binding.txtLanguagesHint.setText(R.string.settings_languages_not_used)
         }
-        languageChecks.forEach { (_, box) -> box.isEnabled = usesLang }
+        binding.editLanguageSearch.isEnabled = usesLang
         binding.checkDualLabels.isEnabled = usesLang
     }
 
@@ -247,7 +278,7 @@ class SettingsActivity : AppCompatActivity() {
 
         val usesLang = KeyboardLayoutLoader.templateUsesLanguages(this, template)
         val enabledLangIds = if (usesLang) {
-            languageChecks.filter { (_, box) -> box.isChecked }.map { (info, _) -> info.id }
+            enabledLanguageIds.toList()
         } else {
             emptyList()
         }
