@@ -75,8 +75,10 @@ static bool apply(void* context, const MfSettingsRequest* request, MfSettingsRes
     unsigned* calls = context;
     (*calls)++;
     last_request = *request;
-    response->accepted = request->kind != MfSettingsSetInputSource;
+    response->accepted = true;
     response->snapshot = response_snapshot;
+    if(request->kind == MfSettingsSetInputSource)
+        response->snapshot.input_source = (uint8_t)request->value;
     if(request->kind == MfSettingsSetLocalWpm) {
         response->snapshot.local_wpm = (uint16_t)request->value;
         response->snapshot.farnsworth_wpm = (uint8_t)request->value;
@@ -116,7 +118,7 @@ static void assert_page_labels(uint8_t page, const VariableItemList* list) {
     switch(page) {
     case MfSettingsEntryKeying:
         assert_item(list, 0U, "WPM", "20");
-        assert_item(list, 1U, "Input", "paddle");
+        assert_item(list, 1U, "Input", "buttons");
         assert_item(list, 2U, "Keyer", "Keyahead");
         assert_item(list, 3U, "Swap paddles", "Yes");
         assert_item(list, 4U, "Audio output", NULL);
@@ -170,12 +172,14 @@ int main(void) {
         .struct_size = sizeof(services), .apply = apply, .post_navigate = post_navigation};
     MfSettingsEnterArgs args = {
         .struct_size = sizeof(args), .entry = MfSettingsEntryKeying, .selected_state = 2U,
-        .list = &list, .snapshot = {.local_wpm = 12U, .lesson = 1U, .farnsworth_wpm = 12U},
+        .list = &list, .snapshot = {
+            .local_wpm = 12U, .input_source = 2U, .lesson = 1U, .farnsworth_wpm = 12U},
         .services = &services, .service_context = &calls};
     void* state = mf_settings_test_alloc();
     assert(state != NULL);
     assert(mf_settings_test_enter(state, &args));
     assert(list.count == 6U && list.selected == 2U);
+    assert(strcmp(list.items[1].current_text, "buttons") == 0);
     list.enter(list.enter_context, 4U);
     assert(navigation_event == MfSettingsNavigateAudio);
     list.enter(list.enter_context, 5U);
@@ -187,7 +191,16 @@ int main(void) {
     list.items[1].current_index = 1U;
     list.items[1].changed(&list.items[1]);
     assert(calls == 2U);
-    assert(list.items[1].current_index == 1U);
+    assert(last_request.kind == MfSettingsSetInputSource && last_request.value == 0U);
+    assert(list.items[1].current_index == 1U && strcmp(list.items[1].current_text, "straight") == 0);
+    list.items[1].current_index = 2U;
+    list.items[1].changed(&list.items[1]);
+    assert(last_request.kind == MfSettingsSetInputSource && last_request.value == 1U);
+    assert(list.items[1].current_index == 2U && strcmp(list.items[1].current_text, "paddle") == 0);
+    list.items[1].current_index = 0U;
+    list.items[1].changed(&list.items[1]);
+    assert(last_request.kind == MfSettingsSetInputSource && last_request.value == 2U);
+    assert(list.items[1].current_index == 0U && strcmp(list.items[1].current_text, "buttons") == 0);
     mf_settings_test_leave(state);
     assert(list.count == 0U && list.resets >= 2U);
     assert(opens == closes && frees == opens);
@@ -227,7 +240,7 @@ int main(void) {
         {MfSettingsSetUsbMode, MfSettingsSetUsbPaddlePreset, MfSettingsSetUsbStraightPreset, MfSettingsSetUsbMouseInvert},
     };
     static const uint8_t expected_values[][8] = {
-        {10U, 0U, 0U, 0U}, {0U, 0U, 10U, 0U}, {1U, 10U, 1U, 3U, 3U, 1U, 3U, 0U},
+        {10U, 2U, 0U, 0U}, {0U, 0U, 10U, 0U}, {1U, 10U, 1U, 3U, 3U, 1U, 3U, 0U},
         {10U, 1U, 1U}, {0U}, {0U}, {0U, 0U, 0U, 0U},
     };
     calls = 0U;
@@ -273,7 +286,8 @@ int main(void) {
                 list.items[row].current_index = selected;
                 list.items[row].changed(&list.items[row]);
                 if(page == MfSettingsEntryKeying) {
-                    expected = row == 0U ? 30U : selected;
+                    static const uint8_t input_values[] = {2U, 0U, 1U};
+                    expected = row == 0U ? 30U : row == 1U ? input_values[selected] : selected;
                 } else if(page == MfSettingsEntryAudio) {
                     expected = row == 2U ? 10U + selected * 5U : selected;
                 } else if(page == MfSettingsEntryListening) {

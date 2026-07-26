@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -14,6 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FIRMWARE = ROOT / "src" / "firmware"
+SANITIZE = os.environ.get("MF_HOST_SANITIZE") == "1"
 
 
 @dataclass(frozen=True)
@@ -79,6 +81,8 @@ def run_c_test(test: CTest, build_dir: Path, cc: str) -> None:
         raise SystemExit(f"{test.name}: missing registered source: {', '.join(missing)}")
     output = build_dir / test.name
     command = [cc, "-std=gnu11", "-Wall", "-Wextra", "-Werror"]
+    if SANITIZE:
+        command.extend(("-fsanitize=address,undefined", "-fno-omit-frame-pointer"))
     command.extend(f"-D{define}" for define in test.defines)
     command.extend(include_paths(test.include_tests))
     command.extend(str(source) for source in sources)

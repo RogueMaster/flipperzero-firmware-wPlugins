@@ -59,6 +59,7 @@ void mf_config_test_save(const MorseFlipperListeningSettings* settings, uint8_t 
     config.trainer_lesson = settings->lesson;
     config.trainer_group_size = settings->group_size;
     config.trainer_session_groups = settings->session_groups;
+    config.input_source = settings->input_source;
     config.trainer_custom_set_idx = settings->custom_set_idx;
     config.trainer_farnsworth_wpm = settings->farnsworth_wpm;
     config.trainer_answer_timeout_s = settings->answer_timeout_s;
@@ -73,6 +74,7 @@ bool mf_config_test_load(const uint8_t in[632], MorseFlipperListeningSettings* s
     *settings = (MorseFlipperListeningSettings){.local_dit_ms = config.local_dit_ms,
         .lesson = config.trainer_lesson, .group_size = config.trainer_group_size,
         .session_groups = config.trainer_session_groups, .custom_set_idx = config.trainer_custom_set_idx,
+        .input_source = config.input_source <= 2U ? config.input_source : 0U,
         .farnsworth_wpm = config.trainer_farnsworth_wpm,
         .answer_timeout_s = config.trainer_answer_timeout_s, .group_pause_s = config.trainer_group_pause_s};
     mf_config_test_normalize(settings);

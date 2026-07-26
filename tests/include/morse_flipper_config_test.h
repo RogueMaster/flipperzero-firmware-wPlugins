@@ -10,6 +10,7 @@ typedef struct {
     uint8_t group_size;
     uint8_t session_groups;
     uint8_t custom_set_idx;
+    uint8_t input_source;
     uint8_t farnsworth_wpm;
     uint8_t answer_timeout_s;
     uint8_t group_pause_s;

@@ -44,9 +44,35 @@ static const char* mf_settings_audio_path_name(uint8_t value) {
     return value < 3U ? names[value] : names[0];
 }
 
-static const char* mf_settings_input_name(uint8_t value) {
-    static const char* const names[] = {"buttons", "straight", "paddle"};
-    return value < 3U ? names[value] : names[0];
+typedef struct {
+    uint8_t source;
+    const char* name;
+} MfSettingsInputChoice;
+
+/* Display order is a UI contract; it is intentionally not the core enum order. */
+static const MfSettingsInputChoice mf_settings_input_choices[] = {
+    {.source = 2U, .name = "buttons"},
+    {.source = 0U, .name = "straight"},
+    {.source = 1U, .name = "paddle"},
+};
+
+static uint8_t mf_settings_input_index_from_source(uint8_t source) {
+    for(uint8_t index = 0U; index < sizeof(mf_settings_input_choices) / sizeof(mf_settings_input_choices[0]); index++) {
+        if(mf_settings_input_choices[index].source == source) return index;
+    }
+    return 0U;
+}
+
+static uint8_t mf_settings_input_source_from_index(uint8_t index) {
+    return index < sizeof(mf_settings_input_choices) / sizeof(mf_settings_input_choices[0]) ?
+               mf_settings_input_choices[index].source :
+               mf_settings_input_choices[0].source;
+}
+
+static const char* mf_settings_input_name_from_index(uint8_t index) {
+    return index < sizeof(mf_settings_input_choices) / sizeof(mf_settings_input_choices[0]) ?
+               mf_settings_input_choices[index].name :
+               mf_settings_input_choices[0].name;
 }
 
 static const char* mf_settings_keyer_name(uint8_t value) {
@@ -105,8 +131,9 @@ static void mf_settings_refresh(MfSettingsState* state) {
     if(state->args.entry == MfSettingsEntryKeying) {
         item = state->items[MfSettingsRowInput];
         if(item != NULL) {
-            variable_item_set_current_value_index(item, state->snapshot.input_source);
-            variable_item_set_current_value_text(item, mf_settings_input_name(state->snapshot.input_source));
+            uint8_t input_index = mf_settings_input_index_from_source(state->snapshot.input_source);
+            variable_item_set_current_value_index(item, input_index);
+            variable_item_set_current_value_text(item, mf_settings_input_name_from_index(input_index));
         }
         item = state->items[MfSettingsRowKeyer];
         if(item != NULL) {
@@ -250,7 +277,12 @@ static void mf_settings_changed(VariableItem* item) {
     if(state->args.entry == MfSettingsEntryKeying) {
         static const uint8_t kinds[] = {
             MfSettingsSetLocalWpm, MfSettingsSetInputSource, MfSettingsSetKeyerMode, MfSettingsSetHandedness};
-        if(row < 4U) (void)mf_settings_apply(state, kinds[row], row == 0U ? 10U + index : index);
+        if(row < 4U)
+            (void)mf_settings_apply(
+                state,
+                kinds[row],
+                row == MfSettingsRowInput ? mf_settings_input_source_from_index(index) :
+                                           (row == MfSettingsRowWpm ? 10U + index : index));
     } else if(state->args.entry == MfSettingsEntryAudio) {
         static const uint8_t kinds[] = {
             MfSettingsSetAudioPath, MfSettingsSetTone, MfSettingsSetP2Volume, MfSettingsSetAudioWaveform};
@@ -380,6 +412,7 @@ static void mf_settings_leave(void* opaque) {
 
     if(state == NULL) return;
     if(state->args.list != NULL) variable_item_list_reset(state->args.list);
+    state->args = (MfSettingsEnterArgs){0};
     memset(state->items, 0, sizeof(state->items));
     state->entered = false;
 }

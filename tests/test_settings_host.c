@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static unsigned saves, refreshes, polls, audio_syncs, sidetones, events, opens, detaches;
+static unsigned saves, clears, resyncs, refreshes, polls, audio_syncs, sidetones, events, opens, detaches;
 static unsigned gpio_applies, gpio_alerts;
 static bool gpio_accept = true;
 static MfSettingsEnterArgs captured_args;
@@ -13,21 +13,21 @@ const int morse_flipper_tones[31];
 uint32_t furi_get_tick(void) { return 1U; }
 void furi_mutex_acquire(FuriMutex* mutex, uint32_t timeout) { (void)mutex; (void)timeout; }
 void furi_mutex_release(FuriMutex* mutex) { (void)mutex; }
-uint8_t morse_flipper_current_wpm(const MorseFlipperApp* app) { return app->listening_settings.local_dit_ms ? 20U : 10U; }
+uint8_t morse_flipper_current_wpm(const MorseFlipperApp* app) { return (uint8_t)app->listening_settings.local_dit_ms; }
 uint8_t morse_flipper_local_wpm(const MorseFlipperApp* app) { return morse_flipper_current_wpm(app); }
 size_t morse_trainer_lesson_count(void) { return 40U; }
 uint8_t morse_flipper_p2_volume_pct(const MorseFlipperApp* app) { return app->p2_volume_pct; }
-uint8_t morse_flipper_straight_wpm(const MorseFlipperApp* app) { (void)app; return 10U; }
+uint8_t morse_flipper_straight_wpm(const MorseFlipperApp* app) { return app->straight_wpm; }
 uint8_t morse_trainer_group_size(const MorseTrainer* trainer) { return trainer->group_size; }
 uint8_t morse_trainer_session_groups(const MorseTrainer* trainer) { return trainer->session_groups; }
 void morse_flipper_set_local_wpm(MorseFlipperApp* app, uint8_t wpm) { app->listening_settings.local_dit_ms = wpm; }
-void morse_flipper_set_straight_wpm(MorseFlipperApp* app, uint8_t wpm) { (void)app; (void)wpm; }
+void morse_flipper_set_straight_wpm(MorseFlipperApp* app, uint8_t wpm) { app->straight_wpm = wpm; }
 bool morse_flipper_gpio_try_apply(MorseFlipperApp* app, uint8_t dit, uint8_t dah, uint8_t ground, uint8_t ptt, MorseFlipperGpioRule* rule) { gpio_applies++; if(rule) *rule = gpio_accept ? MorseFlipperGpioRuleOk : 1U; if(!gpio_accept) return false; app->gpio_dit_idx = dit; app->gpio_dah_idx = dah; app->gpio_ground_idx = ground; app->gpio_ptt_idx = ptt; return true; }
 void morse_flipper_gpio_alert(MorseFlipperApp* app, MorseFlipperGpioRule rule) { (void)app; (void)rule; gpio_alerts++; }
-void morse_flipper_clear_button_keying(MorseFlipperApp* app, uint32_t now) { (void)app; (void)now; }
+void morse_flipper_clear_button_keying(MorseFlipperApp* app, uint32_t now) { (void)app; (void)now; clears++; }
 void morse_flipper_refresh_keyer(MorseFlipperApp* app, uint32_t now) { (void)app; (void)now; refreshes++; }
 void morse_flipper_poll(MorseFlipperApp* app) { (void)app; polls++; }
-void morse_flipper_resync_button_paddles(MorseFlipperApp* app, uint32_t now) { (void)app; (void)now; }
+void morse_flipper_resync_button_paddles(MorseFlipperApp* app, uint32_t now) { (void)app; (void)now; resyncs++; }
 void morse_flipper_sync_audio_output(MorseFlipperApp* app) { (void)app; audio_syncs++; }
 void morse_flipper_update_sidetone(MorseFlipperApp* app) { (void)app; sidetones++; }
 bool morse_flipper_audio_output_is_pwm(const MorseFlipperApp* app) { return app->audio_path == MorseFlipperAudioPathP2; }
@@ -84,9 +84,15 @@ static MfSettingsResponse apply_gpio(
 int main(void) {
     FuriMutex mutex = {0}; ViewDispatcher dispatcher = {0}; SceneManager manager = {0}; VariableItemList list = {0};
     MorseFlipperApp app = {.view_dispatcher = &dispatcher, .scene_manager = &manager, .settings_list = &list,
-        .plugin_slot.mutex = &mutex, .listening_settings = {.local_dit_ms = 20U, .lesson = 2U, .group_size = 3U, .session_groups = 3U, .farnsworth_wpm = 20U, .answer_timeout_s = 5U, .group_pause_s = 5U}, .p2_volume_pct = 50U};
+        .plugin_slot.mutex = &mutex, .straight_wpm = 10U,
+        .listening_settings = {.local_dit_ms = 20U, .lesson = 2U, .group_size = 3U, .session_groups = 3U, .farnsworth_wpm = 20U, .answer_timeout_s = 5U, .group_pause_s = 5U}, .p2_volume_pct = 50U};
     apply(&app, MfSettingsSetLocalWpm, 25U, true);
+    apply(&app, MfSettingsSetInputSource, MorseFlipperInputSourceButtons, true);
+    assert(app.input_source == MorseFlipperInputSourceButtons);
+    apply(&app, MfSettingsSetInputSource, MorseFlipperInputSourceStraight, true);
+    assert(app.input_source == MorseFlipperInputSourceStraight);
     apply(&app, MfSettingsSetInputSource, MorseFlipperInputSourcePaddle, true);
+    assert(app.input_source == MorseFlipperInputSourcePaddle);
     apply(&app, MfSettingsSetKeyerMode, MorseKeyerModeKeyahead, true);
     apply(&app, MfSettingsSetHandedness, 1U, true);
     apply(&app, MfSettingsSetAudioPath, MorseFlipperAudioPathP2, true);
@@ -98,11 +104,39 @@ int main(void) {
     apply(&app, MfSettingsSetUsbPaddlePreset, 8U, true);
     apply(&app, MfSettingsSetUsbStraightPreset, 7U, true);
     apply(&app, MfSettingsSetUsbMouseInvert, 1U, true);
-    assert(saves == 12U && refreshes == 3U && polls == 3U && audio_syncs == 3U);
+    assert(saves == 14U && clears == 3U && refreshes == 5U && polls == 5U && audio_syncs == 3U);
+    {
+        unsigned no_op_saves = saves;
+        unsigned no_op_clears = clears;
+        unsigned no_op_resyncs = resyncs;
+        unsigned no_op_refreshes = refreshes;
+        unsigned no_op_polls = polls;
+        unsigned no_op_audio_syncs = audio_syncs;
+        unsigned no_op_sidetones = sidetones;
+
+        apply(&app, MfSettingsSetLocalWpm, 25U, true);
+        apply(&app, MfSettingsSetInputSource, MorseFlipperInputSourcePaddle, true);
+        apply(&app, MfSettingsSetKeyerMode, MorseKeyerModeKeyahead, true);
+        apply(&app, MfSettingsSetHandedness, 1U, true);
+        apply(&app, MfSettingsSetAudioPath, MorseFlipperAudioPathBuzzer, true);
+        assert(app.audio_path == MorseFlipperAudioPathSoftBuzz);
+        apply(&app, MfSettingsSetTone, 30U, true);
+        apply(&app, MfSettingsSetP2Volume, 100U, true);
+        apply(&app, MfSettingsSetAudioWaveform, 1U, true);
+        apply(&app, MfSettingsSetUsbMode, MorseFlipperPcModeMidi, true);
+        apply(&app, MfSettingsSetUsbPaddlePreset, 8U, true);
+        apply(&app, MfSettingsSetUsbStraightPreset, 7U, true);
+        apply(&app, MfSettingsSetUsbMouseInvert, 1U, true);
+        assert(
+            saves == no_op_saves && clears == no_op_clears && resyncs == no_op_resyncs &&
+            refreshes == no_op_refreshes && polls == no_op_polls &&
+            audio_syncs == no_op_audio_syncs && sidetones == no_op_sidetones);
+    }
     apply(&app, MfSettingsSetTone, 31U, false);
     apply(&app, MfSettingsSetP2Volume, 11U, false);
     apply(&app, MfSettingsSetUsbMode, MorseFlipperPcModeMidi + 1U, false);
-    assert(saves == 12U);
+    apply(&app, MfSettingsSetInputSource, 3U, false);
+    assert(saves == 14U && app.input_source == MorseFlipperInputSourcePaddle);
     apply(&app, MfSettingsSetListeningLesson, 7U, true);
     apply(&app, MfSettingsSetListeningFarnsworth, 12U, true);
     apply(&app, MfSettingsSetListeningAnswerTimeout, 8U, true);
@@ -111,6 +145,35 @@ int main(void) {
     apply(&app, MfSettingsSetListeningGroupCount, 20U, true);
     apply(&app, MfSettingsSetListeningCustomSet, 3U, true);
     assert(app.listening_settings.lesson == 7U && app.listening_settings.custom_set_idx == 3U);
+    apply(&app, MfSettingsSetStraightWpm, 15U, true);
+    apply(&app, MfSettingsSetStraightAnswerTimeout, 5U, true);
+    apply(&app, MfSettingsSetStraightNextDelay, 4U, true);
+    apply(&app, MfSettingsSetTxGroupsDifficulty, 1U, true);
+    {
+        unsigned no_op_saves = saves;
+        unsigned no_op_clears = clears;
+        unsigned no_op_resyncs = resyncs;
+        unsigned no_op_refreshes = refreshes;
+        unsigned no_op_polls = polls;
+        unsigned no_op_audio_syncs = audio_syncs;
+        unsigned no_op_sidetones = sidetones;
+
+        apply(&app, MfSettingsSetListeningLesson, 7U, true);
+        apply(&app, MfSettingsSetListeningFarnsworth, 12U, true);
+        apply(&app, MfSettingsSetListeningAnswerTimeout, 8U, true);
+        apply(&app, MfSettingsSetListeningGroupPause, 9U, true);
+        apply(&app, MfSettingsSetListeningGroupSize, 5U, true);
+        apply(&app, MfSettingsSetListeningGroupCount, 20U, true);
+        apply(&app, MfSettingsSetListeningCustomSet, 3U, true);
+        apply(&app, MfSettingsSetStraightWpm, 15U, true);
+        apply(&app, MfSettingsSetStraightAnswerTimeout, 5U, true);
+        apply(&app, MfSettingsSetStraightNextDelay, 4U, true);
+        apply(&app, MfSettingsSetTxGroupsDifficulty, 1U, true);
+        assert(
+            saves == no_op_saves && clears == no_op_clears && resyncs == no_op_resyncs &&
+            refreshes == no_op_refreshes && polls == no_op_polls &&
+            audio_syncs == no_op_audio_syncs && sidetones == no_op_sidetones);
+    }
     {
         MfSettingsResponse response = apply_gpio(&app, 3U, 4U, 0U, 16U);
         assert(response.accepted && gpio_applies == 1U);
@@ -127,6 +190,17 @@ int main(void) {
     assert(events == MorseFlipperSceneGpio);
     assert(morse_flipper_settings_host_enter(&app, MfSettingsEntryKeying, 2U));
     assert(captured_args.entry == MfSettingsEntryKeying && captured_args.selected_state == 2U);
+    assert(captured_args.services != NULL && captured_args.services->apply != NULL);
+    {
+        MfSettingsResponse response;
+        unsigned no_op_saves = saves;
+
+        assert(captured_args.services->apply(
+            captured_args.service_context,
+            &(MfSettingsRequest){.kind = MfSettingsSetLocalWpm, .value = 25U},
+            &response));
+        assert(response.accepted && saves == no_op_saves);
+    }
     morse_flipper_settings_host_leave(&app, MorseFlipperSceneHome);
     assert(detaches == 1U);
     assert(morse_flipper_settings_host_enter(&app, MfSettingsEntryUsb, 1U));

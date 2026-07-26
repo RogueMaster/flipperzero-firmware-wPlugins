@@ -6,6 +6,25 @@
 
 #define MORSE_FLIPPER_SETTINGS_PLUGIN_PATH APP_ASSETS_PATH("plugins/morse_flipper_settings.fal")
 
+static bool mf_settings_apply(
+    void* context,
+    const MfSettingsRequest* request,
+    MfSettingsResponse* response);
+static void mf_settings_post_navigate(void* context, uint32_t event);
+
+/* The mapped Settings FAL retains this table after enter() returns. */
+static const MfSettingsHostServices mf_settings_services = {
+    .struct_size = sizeof(MfSettingsHostServices),
+    .apply = mf_settings_apply,
+    .post_navigate = mf_settings_post_navigate,
+};
+
+static bool mf_settings_input_source_valid(uint32_t value) {
+    return value == MorseFlipperInputSourceStraight ||
+           value == MorseFlipperInputSourcePaddle ||
+           value == MorseFlipperInputSourceButtons;
+}
+
 static void mf_settings_snapshot(MorseFlipperApp* app, MfSettingsSnapshot* snapshot) {
     *snapshot = (MfSettingsSnapshot){
         .local_wpm = morse_flipper_current_wpm(app),
@@ -48,116 +67,156 @@ static bool mf_settings_apply(void* context, const MfSettingsRequest* request, M
     switch(request->kind) {
     case MfSettingsSetLocalWpm:
         if(request->value < 10U || request->value > 30U) return true;
-        morse_flipper_set_local_wpm(app, (uint8_t)request->value);
-        changed = true;
+        if(morse_flipper_current_wpm(app) != request->value) {
+            morse_flipper_set_local_wpm(app, (uint8_t)request->value);
+            changed = true;
+        }
         break;
     case MfSettingsSetInputSource:
-        if(request->value > MorseFlipperInputSourcePaddle) return true;
-        app->input_source = (uint8_t)request->value;
-        morse_flipper_clear_button_keying(app, now_ms);
-        morse_flipper_refresh_keyer(app, now_ms);
-        morse_flipper_poll(app);
-        changed = true;
+        if(!mf_settings_input_source_valid(request->value)) return true;
+        if(app->input_source != request->value) {
+            app->input_source = (uint8_t)request->value;
+            morse_flipper_clear_button_keying(app, now_ms);
+            morse_flipper_refresh_keyer(app, now_ms);
+            morse_flipper_poll(app);
+            changed = true;
+        }
         break;
     case MfSettingsSetKeyerMode:
         if(request->value > MorseKeyerModeKeyahead) return true;
-        app->keyer_mode = (uint8_t)request->value;
-        morse_flipper_refresh_keyer(app, now_ms);
-        morse_flipper_poll(app);
-        changed = true;
+        if(app->keyer_mode != request->value) {
+            app->keyer_mode = (uint8_t)request->value;
+            morse_flipper_refresh_keyer(app, now_ms);
+            morse_flipper_poll(app);
+            changed = true;
+        }
         break;
     case MfSettingsSetHandedness:
         if(request->value > 1U) return true;
-        app->handedness = request->value ? MorseFlipperHandednessSwapped : MorseFlipperHandednessNormal;
-        morse_flipper_resync_button_paddles(app, now_ms);
-        morse_flipper_refresh_keyer(app, now_ms);
-        morse_flipper_poll(app);
-        changed = true;
+        if((app->handedness == MorseFlipperHandednessSwapped) != (request->value != 0U)) {
+            app->handedness = request->value ? MorseFlipperHandednessSwapped : MorseFlipperHandednessNormal;
+            morse_flipper_resync_button_paddles(app, now_ms);
+            morse_flipper_refresh_keyer(app, now_ms);
+            morse_flipper_poll(app);
+            changed = true;
+        }
         break;
     case MfSettingsSetAudioPath:
         if(request->value > MorseFlipperAudioPathVibration) return true;
-        if(request->value == MorseFlipperAudioPathBuzzer)
-            app->audio_path = app->audio_path == MorseFlipperAudioPathBuzzer ?
-                                  MorseFlipperAudioPathBuzzer : MorseFlipperAudioPathSoftBuzz;
-        else
-            app->audio_path = (uint8_t)request->value;
-        morse_flipper_sync_audio_output(app);
-        changed = true;
+        if((request->value == MorseFlipperAudioPathBuzzer &&
+            app->audio_path != MorseFlipperAudioPathBuzzer &&
+            app->audio_path != MorseFlipperAudioPathSoftBuzz) ||
+           (request->value != MorseFlipperAudioPathBuzzer && app->audio_path != request->value)) {
+            app->audio_path = request->value == MorseFlipperAudioPathBuzzer ?
+                                  MorseFlipperAudioPathSoftBuzz :
+                                  (uint8_t)request->value;
+            morse_flipper_sync_audio_output(app);
+            changed = true;
+        }
         break;
     case MfSettingsSetTone:
         if(request->value >= COUNT_OF(morse_flipper_tones) || app->audio_path == MorseFlipperAudioPathVibration)
             return true;
-        app->tone_idx = (uint8_t)request->value;
-        app->preview_ticks = MORSE_FLIPPER_PREVIEW_TICKS;
-        morse_flipper_update_sidetone(app);
-        changed = true;
+        if(app->tone_idx != request->value) {
+            app->tone_idx = (uint8_t)request->value;
+            app->preview_ticks = MORSE_FLIPPER_PREVIEW_TICKS;
+            morse_flipper_update_sidetone(app);
+            changed = true;
+        }
         break;
     case MfSettingsSetP2Volume:
         if(request->value < 10U || request->value > 100U || request->value % 5U != 0U) return true;
-        app->p2_volume_pct = (uint8_t)request->value;
-        if(morse_flipper_audio_output_is_pwm(app)) morse_flipper_sync_audio_output(app);
-        changed = true;
+        if(app->p2_volume_pct != request->value) {
+            app->p2_volume_pct = (uint8_t)request->value;
+            if(morse_flipper_audio_output_is_pwm(app)) morse_flipper_sync_audio_output(app);
+            changed = true;
+        }
         break;
     case MfSettingsSetAudioWaveform:
         if(request->value > 1U) return true;
-        app->audio_path = request->value ? MorseFlipperAudioPathSoftBuzz : MorseFlipperAudioPathBuzzer;
-        morse_flipper_sync_audio_output(app);
-        changed = true;
+        if(app->audio_path !=
+           (request->value ? MorseFlipperAudioPathSoftBuzz : MorseFlipperAudioPathBuzzer)) {
+            app->audio_path = request->value ? MorseFlipperAudioPathSoftBuzz : MorseFlipperAudioPathBuzzer;
+            morse_flipper_sync_audio_output(app);
+            changed = true;
+        }
         break;
     case MfSettingsSetListeningLesson:
         if(request->value == 0U || request->value > morse_trainer_lesson_count()) return true;
-        app->listening_settings.lesson = (uint8_t)request->value;
-        changed = true;
+        if(app->listening_settings.lesson != request->value) {
+            app->listening_settings.lesson = (uint8_t)request->value;
+            changed = true;
+        }
         break;
     case MfSettingsSetListeningFarnsworth:
         if(request->value == 0U || request->value > morse_flipper_local_wpm(app)) return true;
-        app->listening_settings.farnsworth_wpm = (uint8_t)request->value;
-        changed = true;
+        if(app->listening_settings.farnsworth_wpm != request->value) {
+            app->listening_settings.farnsworth_wpm = (uint8_t)request->value;
+            changed = true;
+        }
         break;
     case MfSettingsSetListeningAnswerTimeout:
         if(request->value < MORSE_FLIPPER_TRAINER_TIMEOUT_MIN_S || request->value > MORSE_FLIPPER_TRAINER_TIMEOUT_MAX_S) return true;
-        app->listening_settings.answer_timeout_s = (uint8_t)request->value;
-        changed = true;
+        if(app->listening_settings.answer_timeout_s != request->value) {
+            app->listening_settings.answer_timeout_s = (uint8_t)request->value;
+            changed = true;
+        }
         break;
     case MfSettingsSetListeningGroupPause:
         if(request->value < MORSE_FLIPPER_TRAINER_GROUP_PAUSE_MIN_S || request->value > MORSE_FLIPPER_TRAINER_GROUP_PAUSE_MAX_S) return true;
-        app->listening_settings.group_pause_s = (uint8_t)request->value;
-        changed = true;
+        if(app->listening_settings.group_pause_s != request->value) {
+            app->listening_settings.group_pause_s = (uint8_t)request->value;
+            changed = true;
+        }
         break;
     case MfSettingsSetListeningGroupSize:
         if(request->value < 1U || request->value > 9U) return true;
-        app->listening_settings.group_size = (uint8_t)request->value;
-        changed = true;
+        if(app->listening_settings.group_size != request->value) {
+            app->listening_settings.group_size = (uint8_t)request->value;
+            changed = true;
+        }
         break;
     case MfSettingsSetListeningGroupCount:
         if(request->value < 3U || request->value > 30U) return true;
-        app->listening_settings.session_groups = (uint8_t)request->value;
-        changed = true;
+        if(app->listening_settings.session_groups != request->value) {
+            app->listening_settings.session_groups = (uint8_t)request->value;
+            changed = true;
+        }
         break;
     case MfSettingsSetListeningCustomSet:
         if(request->value > MORSE_TRAINER_CUSTOM_SET_CAP) return true;
-        app->listening_settings.custom_set_idx = (uint8_t)request->value;
-        changed = true;
+        if(app->listening_settings.custom_set_idx != request->value) {
+            app->listening_settings.custom_set_idx = (uint8_t)request->value;
+            changed = true;
+        }
         break;
     case MfSettingsSetStraightWpm:
         if(request->value < 10U || request->value > 30U) return true;
-        morse_flipper_set_straight_wpm(app, (uint8_t)request->value);
-        changed = true;
+        if(morse_flipper_straight_wpm(app) != request->value) {
+            morse_flipper_set_straight_wpm(app, (uint8_t)request->value);
+            changed = true;
+        }
         break;
     case MfSettingsSetStraightAnswerTimeout:
         if(request->value < MORSE_FLIPPER_STRAIGHT_TIMEOUT_MIN_S || request->value > MORSE_FLIPPER_STRAIGHT_TIMEOUT_MAX_S) return true;
-        app->straight_answer_timeout_s = (uint8_t)request->value;
-        changed = true;
+        if(app->straight_answer_timeout_s != request->value) {
+            app->straight_answer_timeout_s = (uint8_t)request->value;
+            changed = true;
+        }
         break;
     case MfSettingsSetStraightNextDelay:
         if(request->value < MORSE_FLIPPER_STRAIGHT_NEXT_MIN_S || request->value > MORSE_FLIPPER_STRAIGHT_NEXT_MAX_S) return true;
-        app->straight_next_delay_s = (uint8_t)request->value;
-        changed = true;
+        if(app->straight_next_delay_s != request->value) {
+            app->straight_next_delay_s = (uint8_t)request->value;
+            changed = true;
+        }
         break;
     case MfSettingsSetTxGroupsDifficulty:
         if(request->value >= MorseFlipperTxgDifficultyCount) return true;
-        app->txg_difficulty = (uint8_t)request->value;
-        changed = true;
+        if(app->txg_difficulty != request->value) {
+            app->txg_difficulty = (uint8_t)request->value;
+            changed = true;
+        }
         break;
     case MfSettingsApplyGpioDraft: {
         MorseFlipperGpioRule rule;
@@ -171,29 +230,38 @@ static bool mf_settings_apply(void* context, const MfSettingsRequest* request, M
     }
     case MfSettingsSetUsbMode:
         if(request->value > MorseFlipperPcModeMidi) return true;
-        app->pc_mode_pref = (uint8_t)request->value;
-        changed = true;
+        if(app->pc_mode_pref != request->value) {
+            app->pc_mode_pref = (uint8_t)request->value;
+            changed = true;
+        }
         break;
     case MfSettingsSetUsbPaddlePreset:
         if(request->value >= morse_pc_paddle_preset_count()) return true;
-        app->pc_paddle_preset = (uint8_t)request->value;
-        changed = true;
+        if(app->pc_paddle_preset != request->value) {
+            app->pc_paddle_preset = (uint8_t)request->value;
+            changed = true;
+        }
         break;
     case MfSettingsSetUsbStraightPreset:
         if(request->value >= morse_pc_straight_preset_count()) return true;
-        app->pc_straight_preset = (uint8_t)request->value;
-        changed = true;
+        if(app->pc_straight_preset != request->value) {
+            app->pc_straight_preset = (uint8_t)request->value;
+            changed = true;
+        }
         break;
     case MfSettingsSetUsbMouseInvert:
         if(request->value > 1U) return true;
-        app->mouse_invert = request->value != 0U;
-        changed = true;
+        if(app->mouse_invert != (request->value != 0U)) {
+            app->mouse_invert = request->value != 0U;
+            changed = true;
+        }
         break;
     default: return true;
     }
     if(changed) morse_flipper_save_config(app);
     mf_settings_snapshot(app, &response->snapshot);
-    response->accepted = changed;
+    /* A valid no-op must return the canonical snapshot without side effects. */
+    response->accepted = true;
     return true;
 }
 
@@ -206,7 +274,6 @@ static void mf_settings_post_navigate(void* context, uint32_t event) {
 
 bool morse_flipper_settings_host_enter(MorseFlipperApp* app, uint8_t entry, uint32_t selected_state) {
     MfSettingsSnapshot snapshot;
-    MfSettingsHostServices services = {.struct_size = sizeof(services), .apply = mf_settings_apply, .post_navigate = mf_settings_post_navigate};
     MfSettingsEnterArgs args;
     MorseFlipperMappedFalResult initial = {0};
     bool entered;
@@ -214,7 +281,7 @@ bool morse_flipper_settings_host_enter(MorseFlipperApp* app, uint8_t entry, uint
     if(app == NULL || app->plugin_slot.mutex == NULL || entry > MfSettingsEntryUsb) return false;
     mf_settings_snapshot(app, &snapshot);
     args = (MfSettingsEnterArgs){.struct_size = sizeof(args), .entry = entry, .selected_state = selected_state,
-        .list = app->settings_list, .snapshot = snapshot, .services = &services, .service_context = app};
+        .list = app->settings_list, .snapshot = snapshot, .services = &mf_settings_services, .service_context = app};
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     entered = morse_flipper_plugin_runtime_open_mapped_locked(app, MorseFlipperPluginOwnerSettings, entry,
         MORSE_FLIPPER_SETTINGS_PLUGIN_PATH, MF_SETTINGS_API_VERSION, MF_SETTINGS_API_MAGIC,

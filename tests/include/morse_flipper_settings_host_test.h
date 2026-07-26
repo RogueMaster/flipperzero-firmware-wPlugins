@@ -36,7 +36,7 @@ typedef struct MorseFlipperApp {
     VariableItemList* settings_list;
     MorseFlipperPluginSlot plugin_slot;
     uint8_t input_source, keyer_mode, handedness, audio_path, tone_idx, p2_volume_pct, preview_ticks;
-    uint8_t straight_answer_timeout_s, straight_next_delay_s, txg_difficulty;
+    uint8_t straight_answer_timeout_s, straight_next_delay_s, txg_difficulty, straight_wpm;
     uint8_t gpio_dit_idx, gpio_dah_idx, gpio_ground_idx, gpio_ptt_idx;
     uint8_t pc_mode_pref, pc_paddle_preset, pc_straight_preset;
     uint8_t scene;
@@ -46,7 +46,7 @@ typedef struct MorseFlipperApp {
 } MorseFlipperApp;
 
 enum { MorseFlipperPluginOwnerSettings = 6, MorseFlipperHandednessNormal = 0, MorseFlipperHandednessSwapped = 1,
-       MorseFlipperInputSourceButtons = 0, MorseFlipperInputSourceStraight = 1, MorseFlipperInputSourcePaddle = 2,
+       MorseFlipperInputSourceStraight = 0, MorseFlipperInputSourcePaddle = 1, MorseFlipperInputSourceButtons = 2,
        MorseKeyerModeStraight = 0, MorseKeyerModeBug = 1, MorseKeyerModePlainIambic = 2, MorseKeyerModeIambicA = 3,
        MorseKeyerModeIambicB = 4, MorseKeyerModeUltimatic = 5, MorseKeyerModeKeyahead = 6,
        MorseFlipperAudioPathBuzzer = 0, MorseFlipperAudioPathP2 = 1, MorseFlipperAudioPathVibration = 2, MorseFlipperAudioPathSoftBuzz = 3,
