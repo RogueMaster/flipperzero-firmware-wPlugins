@@ -83,12 +83,10 @@ static void submenu_callback(void* context, uint32_t index) {
         // application.fam's fap_version — single source of truth, no duplication.
         furi_string_cat_printf(about_text, "Version: %s\n", FAP_VERSION);
         furi_string_cat_printf(about_text, "Developed by: %s\n", "@lomalkin");
-        furi_string_cat_printf(about_text, "Github: %s\n\n", "github.com/lomalkin");
+        furi_string_cat_printf(about_text, "Github: %s\n\n", "github.com/lomalkin/flipper-zero-apps");
         furi_string_cat_printf(about_text, "\e#%s\n", "Description");
-        furi_string_cat_printf(about_text, "%s\n\n", "File transfer over NFC.");
-        furi_string_cat_printf(
-            about_text,
-            "See also: Flipper Share (classic) to transfer over distance via Sub-GHz radio.\n");
+        furi_string_cat_printf(about_text, "%s\n\n", "File transfer over NFC. The fastest one.");
+        furi_string_cat_printf(about_text, "Also: Sub-GHz, IR & more - see Github.\n");
         widget_add_text_scroll_element(
             app->widget_about, 0, 16, 128, 50, furi_string_get_cstr(about_text));
         furi_string_free(about_text);

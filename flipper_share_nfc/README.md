@@ -6,9 +6,11 @@
 
 It is a rewrite of Flipper Share with the transport replaced by an NFC poller/listener pair. The basics of the classic flipper_share file-transfer protocol (resumable, integrity-checked) are preserved.
 
-Actual file transfer speed via **Flipper Share NFC** is estimated at a few KB/sec — much faster than the IR build and comparable to or better than the Sub-GHz build — but the two units must be held together, antenna to antenna. The exact number is filled in after hardware measurement.
+Actual file transfer speed via **Flipper Share NFC** is around 7 KB/s — the fastest Flipper Share transport — but the two Flippers must be held together, back to back.
 
-File size tested: to be measured. The protocol itself supports up to 4 GB (uint32_t file size). Maximum file size is limited by the Flipper Zero's free RAM on the receiver side (block map + progress state).
+File size tested is 32 MB (~1 h 16 min), transfer time matches the ETA estimate. The protocol itself supports up to 4 GB (uint32_t file size). Maximum file size is limited by the Flipper Zero's free RAM on the receiver side (block map + progress state).
+
+Other Flipper Share transports (Sub-GHz, IR & more): [github.com/lomalkin/flipper-zero-apps](https://github.com/lomalkin/flipper-zero-apps)
 
 Features:
 
@@ -17,9 +19,8 @@ Features:
 - Automatic retransmission of lost/corrupted packets — the transfer continues "until success" (or until you restart it manually). Separating and re-touching the devices mid-transfer resumes where it left off.
 - Half-duplex command/response link: the sender emulates a card (listener), the receiver acts as the reader (poller).
 - Torrent-like progress bar on the receiver; filename/size and ETA on the sender.
-- No pairing needed; no encryption (anyone who polls the emulated card can receive — don't send sensitive data).
 
-NFC is near-field: hold the two units with their NFC antennas (top/back of the board) aligned and touching for best results. The working gap is only a few centimeters.
+NFC is near-field: hold the two Flippers with their NFC antennas back to back aligned and touching for best results. The working gap is only a few centimeters.
 
 # Usage
 
