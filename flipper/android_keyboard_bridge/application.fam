@@ -24,7 +24,7 @@ App(
         "notification",
     ]
     + (["storage"] if _screenshot else []),
-    fap_version="0.5.6",
+    fap_version="0.5.7",
     fap_category="Bluetooth",
     fap_icon="icon.png",
     fap_author="andybeg",

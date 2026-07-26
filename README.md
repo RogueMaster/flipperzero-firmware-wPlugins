@@ -99,7 +99,7 @@ Then on the phone:
 
 Details: `docs/ANDROID.md`, `docs/FLIPPER.md`.
 
-Bundled templates: **macOS**, **PC**, **Number**. Bundled label packs: **EN**, **RU**. Settings lists all system-known languages (searchable); pick what you need. Optional dual-label keys (current large, next small). Drop extra language JSON into the app’s `files/layouts/languages/` folder (see `docs/ANDROID.md`).
+Bundled templates: **macOS**, **PC**, **Number**. Bundled label packs are generated from **CLDR Windows keyboards** (EN, RU, DE, FR, … — see `make language-packs`). Settings lists all system-known languages (searchable); pick what you need. Optional dual-label keys (current large, next small). Drop extra language JSON into the app’s `files/layouts/languages/` folder (see `docs/ANDROID.md`).
 
 **Limits:** Android often exposes only the primary system language, and does not provide soft-keyboard glyph maps — so auto-detect and “letters from the system keyboard” are incomplete. Real labels need a pack (bundled or your JSON); other selections fall back to English QWERTY on the keys. Layout screens also do not switch the Mac/PC input language.
 

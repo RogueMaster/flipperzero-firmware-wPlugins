@@ -115,7 +115,7 @@ The app is a **fullscreen landscape Activity**, not a system keyboard.
 5. Tap the **top-left BLE button** until it is **green**.
 6. Type on the on-screen keyboard, or switch to **Touchpad** via the top-center control; swipe the **space bar** to switch layouts (active name is shown in a banner and in the toolbar).
 
-Layouts live in `android/app/src/main/assets/layouts/` (see `docs/ANDROID.md`). Bundled templates: macOS, PC, Number — language packs EN/RU.
+Layouts live in `android/app/src/main/assets/layouts/` (see `docs/ANDROID.md`). Bundled templates: macOS, PC, Number. Language packs are generated from CLDR (`make language-packs` / `python3 tools/generate_cldr_language_packs.py`).
 
 App layouts only change on-screen labels / which HID keys are tapped — they do **not** switch the target Mac/PC input language.
 

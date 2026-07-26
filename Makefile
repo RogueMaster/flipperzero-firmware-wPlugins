@@ -45,7 +45,7 @@ else
 GRADLE_ENV :=
 endif
 
-.PHONY: help apk apk-install apk-release apk-release-install flipper-link flipper-build flipper-flash flipper-launch flipper-cli flipper-rust-build android-clean
+.PHONY: help apk apk-install apk-release apk-release-install language-packs flipper-link flipper-build flipper-flash flipper-launch flipper-cli flipper-rust-build android-clean
 
 help:
 	@echo "Android Keyboard Bridge"
@@ -55,6 +55,7 @@ help:
 	@echo "  make apk-install         Build and install debug APK via adb"
 	@echo "  make apk-release         Build release APK (FlipperZeroKbd-\$$VERSION.apk)"
 	@echo "  make apk-release-install Build and install release APK via adb"
+	@echo "  make language-packs      Regenerate CLDR language label packs into assets"
 	@echo "  make android-clean       Clean Android build outputs"
 	@echo ""
 	@echo "Flipper C FAP (default, FIRMWARE_DIR=$(FIRMWARE_DIR)):"
@@ -95,6 +96,9 @@ apk-release:
 
 apk-release-install: apk-release
 	adb install -r "$(APK_RELEASE)"
+
+language-packs:
+	python3 "$(PROJECT_ROOT)/tools/generate_cldr_language_packs.py"
 
 android-clean:
 	@test -d "$(ANDROID_DIR)" || exit 0

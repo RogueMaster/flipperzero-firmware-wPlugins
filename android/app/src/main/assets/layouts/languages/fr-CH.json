@@ -1,0 +1,48 @@
+{
+  "id": "fr-CH",
+  "name": "French (Switzerland)",
+  "locales": [
+    "fr-CH"
+  ],
+  "labels": {
+    "q": "q",
+    "w": "w",
+    "e": "e",
+    "r": "r",
+    "t": "t",
+    "y": "z",
+    "u": "u",
+    "i": "i",
+    "o": "o",
+    "p": "p",
+    "[": "è",
+    "]": "¨",
+    "a": "a",
+    "s": "s",
+    "d": "d",
+    "f": "f",
+    "g": "g",
+    "h": "h",
+    "j": "j",
+    "k": "k",
+    "l": "l",
+    ";": "é",
+    "'": "à",
+    "z": "y",
+    "x": "x",
+    "c": "c",
+    "v": "v",
+    "b": "b",
+    "n": "n",
+    "m": "m",
+    ",": ",",
+    ".": ".",
+    "/": "-",
+    "menu": "☰"
+  },
+  "source": {
+    "cldr": "release-41",
+    "file": "fr-CH-t-k0-windows.xml",
+    "locale": "fr-CH-t-k0-windows"
+  }
+}

@@ -15,6 +15,9 @@ flipper/android_keyboard_bridge/.vscode/
 flipper/**/*.fap
 flipper/**/*.elf
 
+# Generator caches
+tools/.cache/
+
 # OS
 .DS_Store
 Thumbs.db

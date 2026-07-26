@@ -39,5 +39,10 @@
     ".": ".",
     "/": "/",
     "menu": "☰"
+  },
+  "source": {
+    "cldr": "release-41",
+    "file": "en-t-k0-windows.xml",
+    "locale": "en-t-k0-windows"
   }
 }

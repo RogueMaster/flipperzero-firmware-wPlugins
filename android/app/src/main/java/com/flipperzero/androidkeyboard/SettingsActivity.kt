@@ -140,20 +140,19 @@ class SettingsActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.settings_languages_none, Toast.LENGTH_LONG).show()
             return
         }
-        val matchedIds = KeyboardLayoutLoader.loadMatchedLanguages(this).map { it.id }.toSet()
         val userDir = KeyboardLayoutLoader.userLanguagesDir(this).absolutePath
         binding.txtLanguagesHint.text = buildString {
             append(getString(R.string.settings_languages_hint))
             append('\n')
             append(getString(R.string.settings_languages_custom_dir, userDir))
-            append('\n')
-            append(getString(R.string.settings_languages_legend))
         }
 
         val adapter = LanguagePickAdapter(
-            matchedIds = matchedIds,
             enabledIds = enabledLanguageIds,
-            onEnabledChanged = { updateLanguagesCount() },
+            onEnabledChanged = {
+                // Keep enabled languages pinned to the top of the list.
+                applyLanguageFilter(binding.editLanguageSearch.text?.toString().orEmpty())
+            },
         )
         languageAdapter = adapter
         binding.listLanguages.layoutManager = LinearLayoutManager(this)
@@ -179,8 +178,19 @@ class SettingsActivity : AppCompatActivity() {
                     info.locales.any { it.lowercase(Locale.ROOT).contains(q) }
             }
         }
-        languageAdapter?.submit(filtered)
+        languageAdapter?.submit(sortLanguagesForPicker(filtered))
         updateLanguagesCount(filtered.size)
+    }
+
+    /** Enabled first (prefs order), then label packs, then title. */
+    private fun sortLanguagesForPicker(list: List<LanguageInfo>): List<LanguageInfo> {
+        val enabledOrder = enabledLanguageIds.mapIndexed { index, id -> id to index }.toMap()
+        return list.sortedWith(
+            compareBy<LanguageInfo> { it.id !in enabledLanguageIds }
+                .thenBy { enabledOrder[it.id] ?: Int.MAX_VALUE }
+                .thenBy { !it.hasLabelPack }
+                .thenBy { it.title.lowercase(Locale.ROOT) },
+        )
     }
 
     private fun updateLanguagesCount(filteredSize: Int = languageAdapter?.itemCount ?: 0) {

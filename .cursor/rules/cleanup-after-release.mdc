@@ -1,0 +1,26 @@
+---
+description: After a GitHub release, delete experimental temp artifacts
+alwaysApply: true
+---
+
+# Cleanup after release
+
+Whenever a **GitHub release** (tag + `gh release create` / push of versioned APK·FAP) finishes successfully, immediately delete **experimental temporary files** from this workspace.
+
+## Remove
+
+- `dist/local-test/` and any `*-local.apk` / `*-local.aab`
+- One-off experiment APKs/FAPs (names like `lang-detect`, `dual-labels`, `stack-arrows`, scratch builds)
+- Ad-hoc staging dirs under `dist/` that are not the just-published version folder (e.g. `dist/v0.5.4-release-fw`)
+- Other scratch outputs created only for that experiment (temp scripts, dump folders), unless the user asked to keep them
+
+## Keep
+
+- The release staging folder for the version just shipped (e.g. `dist/v0.5.6/`) unless the user asks to wipe `dist/` entirely
+- Generator caches such as `tools/.cache/` (not experiment leftovers)
+- Normal Android/Gradle build dirs (`android/**/build/`) — do not force-clean unless asked
+
+## When
+
+- End of the same turn/session as the release, without waiting for the user to remind
+- Also clean leftover experiment artifacts found later if a prior release skipped cleanup

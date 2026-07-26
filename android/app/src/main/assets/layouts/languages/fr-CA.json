@@ -1,0 +1,48 @@
+{
+  "id": "fr-CA",
+  "name": "French (Canada)",
+  "locales": [
+    "fr-CA"
+  ],
+  "labels": {
+    "q": "q",
+    "w": "w",
+    "e": "e",
+    "r": "r",
+    "t": "t",
+    "y": "y",
+    "u": "u",
+    "i": "i",
+    "o": "o",
+    "p": "p",
+    "[": "^",
+    "]": "ç",
+    "a": "a",
+    "s": "s",
+    "d": "d",
+    "f": "f",
+    "g": "g",
+    "h": "h",
+    "j": "j",
+    "k": "k",
+    "l": "l",
+    ";": ";",
+    "'": "è",
+    "z": "z",
+    "x": "x",
+    "c": "c",
+    "v": "v",
+    "b": "b",
+    "n": "n",
+    "m": "m",
+    ",": ",",
+    ".": ".",
+    "/": "é",
+    "menu": "☰"
+  },
+  "source": {
+    "cldr": "release-41",
+    "file": "fr-CA-t-k0-windows.xml",
+    "locale": "fr-CA-t-k0-windows"
+  }
+}

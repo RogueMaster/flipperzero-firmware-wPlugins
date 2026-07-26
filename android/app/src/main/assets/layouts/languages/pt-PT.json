@@ -1,0 +1,48 @@
+{
+  "id": "pt-PT",
+  "name": "Portuguese (Portugal)",
+  "locales": [
+    "pt-PT"
+  ],
+  "labels": {
+    "q": "q",
+    "w": "w",
+    "e": "e",
+    "r": "r",
+    "t": "t",
+    "y": "y",
+    "u": "u",
+    "i": "i",
+    "o": "o",
+    "p": "p",
+    "[": "+",
+    "]": "´",
+    "a": "a",
+    "s": "s",
+    "d": "d",
+    "f": "f",
+    "g": "g",
+    "h": "h",
+    "j": "j",
+    "k": "k",
+    "l": "l",
+    ";": "ç",
+    "'": "º",
+    "z": "z",
+    "x": "x",
+    "c": "c",
+    "v": "v",
+    "b": "b",
+    "n": "n",
+    "m": "m",
+    ",": ",",
+    ".": ".",
+    "/": "-",
+    "menu": "☰"
+  },
+  "source": {
+    "cldr": "release-41",
+    "file": "pt-PT-t-k0-windows.xml",
+    "locale": "pt-PT-t-k0-windows"
+  }
+}

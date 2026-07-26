@@ -1,0 +1,48 @@
+{
+  "id": "dsb",
+  "name": "Sorbian Standard",
+  "locales": [
+    "dsb"
+  ],
+  "labels": {
+    "q": "q",
+    "w": "w",
+    "e": "e",
+    "r": "r",
+    "t": "t",
+    "y": "z",
+    "u": "u",
+    "i": "i",
+    "o": "o",
+    "p": "p",
+    "[": "ü",
+    "]": "+",
+    "a": "a",
+    "s": "s",
+    "d": "d",
+    "f": "f",
+    "g": "g",
+    "h": "h",
+    "j": "j",
+    "k": "k",
+    "l": "l",
+    ";": "ö",
+    "'": "ä",
+    "z": "y",
+    "x": "x",
+    "c": "c",
+    "v": "v",
+    "b": "b",
+    "n": "n",
+    "m": "m",
+    ",": ",",
+    ".": ".",
+    "/": "-",
+    "menu": "☰"
+  },
+  "source": {
+    "cldr": "release-41",
+    "file": "dsb-t-k0-windows.xml",
+    "locale": "dsb-t-k0-windows"
+  }
+}

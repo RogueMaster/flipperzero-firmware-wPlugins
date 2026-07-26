@@ -1,6 +1,222 @@
 {
   "languages": [
     {
+      "id": "ar",
+      "title": "Arabic (101)",
+      "locales": [
+        "ar"
+      ],
+      "file": "layouts/languages/ar.json"
+    },
+    {
+      "id": "as",
+      "title": "Assamese - INSCRIPT",
+      "locales": [
+        "as"
+      ],
+      "file": "layouts/languages/as.json"
+    },
+    {
+      "id": "az",
+      "title": "Azeri Latin",
+      "locales": [
+        "az"
+      ],
+      "file": "layouts/languages/az.json"
+    },
+    {
+      "id": "az-Cyrl",
+      "title": "Azerbaijani (Cyrillic)",
+      "locales": [
+        "az-Cyrl"
+      ],
+      "file": "layouts/languages/az-Cyrl.json"
+    },
+    {
+      "id": "ba",
+      "title": "Bashkir",
+      "locales": [
+        "ba"
+      ],
+      "file": "layouts/languages/ba.json"
+    },
+    {
+      "id": "be",
+      "title": "Belarusian",
+      "locales": [
+        "be"
+      ],
+      "file": "layouts/languages/be.json"
+    },
+    {
+      "id": "bg",
+      "title": "Bulgarian",
+      "locales": [
+        "bg"
+      ],
+      "file": "layouts/languages/bg.json"
+    },
+    {
+      "id": "bg-Latn",
+      "title": "Bulgarian (Latin)",
+      "locales": [
+        "bg-Latn"
+      ],
+      "file": "layouts/languages/bg-Latn.json"
+    },
+    {
+      "id": "bm",
+      "title": "N’Ko",
+      "locales": [
+        "bm"
+      ],
+      "file": "layouts/languages/bm.json"
+    },
+    {
+      "id": "bn",
+      "title": "Bengali - INSCRIPT",
+      "locales": [
+        "bn"
+      ],
+      "file": "layouts/languages/bn.json"
+    },
+    {
+      "id": "bo",
+      "title": "Tibetan (PRC)",
+      "locales": [
+        "bo"
+      ],
+      "file": "layouts/languages/bo.json"
+    },
+    {
+      "id": "bs-Cyrl",
+      "title": "Bosnian (Cyrillic)",
+      "locales": [
+        "bs-Cyrl"
+      ],
+      "file": "layouts/languages/bs-Cyrl.json"
+    },
+    {
+      "id": "bug",
+      "title": "Buginese",
+      "locales": [
+        "bug"
+      ],
+      "file": "layouts/languages/bug.json"
+    },
+    {
+      "id": "chr",
+      "title": "Cherokee Nation",
+      "locales": [
+        "chr"
+      ],
+      "file": "layouts/languages/chr.json"
+    },
+    {
+      "id": "ckb",
+      "title": "Central Kurdish",
+      "locales": [
+        "ckb"
+      ],
+      "file": "layouts/languages/ckb.json"
+    },
+    {
+      "id": "cs",
+      "title": "Czech",
+      "locales": [
+        "cs"
+      ],
+      "file": "layouts/languages/cs.json"
+    },
+    {
+      "id": "da",
+      "title": "Danish",
+      "locales": [
+        "da"
+      ],
+      "file": "layouts/languages/da.json"
+    },
+    {
+      "id": "de",
+      "title": "German",
+      "locales": [
+        "de"
+      ],
+      "file": "layouts/languages/de.json"
+    },
+    {
+      "id": "de-BE",
+      "title": "German (Belgium)",
+      "locales": [
+        "de-BE"
+      ],
+      "file": "layouts/languages/de-BE.json"
+    },
+    {
+      "id": "de-CH",
+      "title": "German (Switzerland)",
+      "locales": [
+        "de-CH"
+      ],
+      "file": "layouts/languages/de-CH.json"
+    },
+    {
+      "id": "dsb",
+      "title": "Sorbian Standard",
+      "locales": [
+        "dsb"
+      ],
+      "file": "layouts/languages/dsb.json"
+    },
+    {
+      "id": "dv",
+      "title": "Divehi Phonetic",
+      "locales": [
+        "dv"
+      ],
+      "file": "layouts/languages/dv.json"
+    },
+    {
+      "id": "dyu",
+      "title": "N’Ko",
+      "locales": [
+        "dyu"
+      ],
+      "file": "layouts/languages/dyu.json"
+    },
+    {
+      "id": "dz",
+      "title": "Dzongkha",
+      "locales": [
+        "dz"
+      ],
+      "file": "layouts/languages/dz.json"
+    },
+    {
+      "id": "el",
+      "title": "Greek",
+      "locales": [
+        "el"
+      ],
+      "file": "layouts/languages/el.json"
+    },
+    {
+      "id": "el-Latn",
+      "title": "Greek (Latin)",
+      "locales": [
+        "el-Latn"
+      ],
+      "file": "layouts/languages/el-Latn.json"
+    },
+    {
+      "id": "el-POLYTON",
+      "title": "Greek (Polytonic)",
+      "locales": [
+        "el-POLYTON"
+      ],
+      "file": "layouts/languages/el-POLYTON.json"
+    },
+    {
       "id": "en",
       "title": "English",
       "locales": [
@@ -9,12 +225,796 @@
       "file": "layouts/languages/en.json"
     },
     {
+      "id": "en-GB",
+      "title": "English (UK)",
+      "locales": [
+        "en-GB"
+      ],
+      "file": "layouts/languages/en-GB.json"
+    },
+    {
+      "id": "en-IN",
+      "title": "English (India)",
+      "locales": [
+        "en-IN"
+      ],
+      "file": "layouts/languages/en-IN.json"
+    },
+    {
+      "id": "es",
+      "title": "Spanish",
+      "locales": [
+        "es"
+      ],
+      "file": "layouts/languages/es.json"
+    },
+    {
+      "id": "es-419",
+      "title": "Spanish (Latin America)",
+      "locales": [
+        "es-419"
+      ],
+      "file": "layouts/languages/es-419.json"
+    },
+    {
+      "id": "et",
+      "title": "Estonian",
+      "locales": [
+        "et"
+      ],
+      "file": "layouts/languages/et.json"
+    },
+    {
+      "id": "fa",
+      "title": "Persian",
+      "locales": [
+        "fa"
+      ],
+      "file": "layouts/languages/fa.json"
+    },
+    {
+      "id": "fi",
+      "title": "Finnish",
+      "locales": [
+        "fi"
+      ],
+      "file": "layouts/languages/fi.json"
+    },
+    {
+      "id": "fo",
+      "title": "Faeroese",
+      "locales": [
+        "fo"
+      ],
+      "file": "layouts/languages/fo.json"
+    },
+    {
+      "id": "fr",
+      "title": "French",
+      "locales": [
+        "fr"
+      ],
+      "file": "layouts/languages/fr.json"
+    },
+    {
+      "id": "fr-BE",
+      "title": "French (Belgium)",
+      "locales": [
+        "fr-BE"
+      ],
+      "file": "layouts/languages/fr-BE.json"
+    },
+    {
+      "id": "fr-CA",
+      "title": "French (Canada)",
+      "locales": [
+        "fr-CA"
+      ],
+      "file": "layouts/languages/fr-CA.json"
+    },
+    {
+      "id": "fr-CH",
+      "title": "French (Switzerland)",
+      "locales": [
+        "fr-CH"
+      ],
+      "file": "layouts/languages/fr-CH.json"
+    },
+    {
+      "id": "ga",
+      "title": "Irish",
+      "locales": [
+        "ga"
+      ],
+      "file": "layouts/languages/ga.json"
+    },
+    {
+      "id": "ga-Ogam",
+      "title": "Ogham",
+      "locales": [
+        "ga-Ogam"
+      ],
+      "file": "layouts/languages/ga-Ogam.json"
+    },
+    {
+      "id": "gd",
+      "title": "Scottish Gaelic",
+      "locales": [
+        "gd"
+      ],
+      "file": "layouts/languages/gd.json"
+    },
+    {
+      "id": "gn",
+      "title": "Guarani",
+      "locales": [
+        "gn"
+      ],
+      "file": "layouts/languages/gn.json"
+    },
+    {
+      "id": "got",
+      "title": "Gothic",
+      "locales": [
+        "got"
+      ],
+      "file": "layouts/languages/got.json"
+    },
+    {
+      "id": "gu",
+      "title": "Gujarati",
+      "locales": [
+        "gu"
+      ],
+      "file": "layouts/languages/gu.json"
+    },
+    {
+      "id": "ha",
+      "title": "Hausa",
+      "locales": [
+        "ha"
+      ],
+      "file": "layouts/languages/ha.json"
+    },
+    {
+      "id": "haw",
+      "title": "Hawaiian",
+      "locales": [
+        "haw"
+      ],
+      "file": "layouts/languages/haw.json"
+    },
+    {
+      "id": "he",
+      "title": "Hebrew",
+      "locales": [
+        "he"
+      ],
+      "file": "layouts/languages/he.json"
+    },
+    {
+      "id": "hi",
+      "title": "Devanagari - INSCRIPT",
+      "locales": [
+        "hi"
+      ],
+      "file": "layouts/languages/hi.json"
+    },
+    {
+      "id": "hu",
+      "title": "Hungarian",
+      "locales": [
+        "hu"
+      ],
+      "file": "layouts/languages/hu.json"
+    },
+    {
+      "id": "hy",
+      "title": "Armenian Typewriter",
+      "locales": [
+        "hy"
+      ],
+      "file": "layouts/languages/hy.json"
+    },
+    {
+      "id": "hy-AREVMDA",
+      "title": "Armenian Western (Legacy)",
+      "locales": [
+        "hy-AREVMDA"
+      ],
+      "file": "layouts/languages/hy-AREVMDA.json"
+    },
+    {
+      "id": "ig",
+      "title": "Igbo",
+      "locales": [
+        "ig"
+      ],
+      "file": "layouts/languages/ig.json"
+    },
+    {
+      "id": "is",
+      "title": "Icelandic",
+      "locales": [
+        "is"
+      ],
+      "file": "layouts/languages/is.json"
+    },
+    {
+      "id": "it",
+      "title": "Italian",
+      "locales": [
+        "it"
+      ],
+      "file": "layouts/languages/it.json"
+    },
+    {
+      "id": "iu",
+      "title": "Inuktitut - Naqittaut",
+      "locales": [
+        "iu"
+      ],
+      "file": "layouts/languages/iu.json"
+    },
+    {
+      "id": "jv",
+      "title": "Javanese",
+      "locales": [
+        "jv"
+      ],
+      "file": "layouts/languages/jv.json"
+    },
+    {
+      "id": "ka",
+      "title": "Georgian (MES)",
+      "locales": [
+        "ka"
+      ],
+      "file": "layouts/languages/ka.json"
+    },
+    {
+      "id": "khb",
+      "title": "New Tai Lue",
+      "locales": [
+        "khb"
+      ],
+      "file": "layouts/languages/khb.json"
+    },
+    {
+      "id": "khb-Tale",
+      "title": "Tai Le",
+      "locales": [
+        "khb-Tale"
+      ],
+      "file": "layouts/languages/khb-Tale.json"
+    },
+    {
+      "id": "kk",
+      "title": "Kazakh",
+      "locales": [
+        "kk"
+      ],
+      "file": "layouts/languages/kk.json"
+    },
+    {
+      "id": "kl",
+      "title": "Greenlandic",
+      "locales": [
+        "kl"
+      ],
+      "file": "layouts/languages/kl.json"
+    },
+    {
+      "id": "km",
+      "title": "Khmer",
+      "locales": [
+        "km"
+      ],
+      "file": "layouts/languages/km.json"
+    },
+    {
+      "id": "kn",
+      "title": "Kannada",
+      "locales": [
+        "kn"
+      ],
+      "file": "layouts/languages/kn.json"
+    },
+    {
+      "id": "ky",
+      "title": "Kyrgyz Cyrillic",
+      "locales": [
+        "ky"
+      ],
+      "file": "layouts/languages/ky.json"
+    },
+    {
+      "id": "lb",
+      "title": "Luxembourgish",
+      "locales": [
+        "lb"
+      ],
+      "file": "layouts/languages/lb.json"
+    },
+    {
+      "id": "lis",
+      "title": "Lisu (Basic)",
+      "locales": [
+        "lis"
+      ],
+      "file": "layouts/languages/lis.json"
+    },
+    {
+      "id": "lo",
+      "title": "Lao",
+      "locales": [
+        "lo"
+      ],
+      "file": "layouts/languages/lo.json"
+    },
+    {
+      "id": "lt",
+      "title": "Lithuanian",
+      "locales": [
+        "lt"
+      ],
+      "file": "layouts/languages/lt.json"
+    },
+    {
+      "id": "lv",
+      "title": "Latvian",
+      "locales": [
+        "lv"
+      ],
+      "file": "layouts/languages/lv.json"
+    },
+    {
+      "id": "man",
+      "title": "N’Ko",
+      "locales": [
+        "man"
+      ],
+      "file": "layouts/languages/man.json"
+    },
+    {
+      "id": "mi",
+      "title": "Maori",
+      "locales": [
+        "mi"
+      ],
+      "file": "layouts/languages/mi.json"
+    },
+    {
+      "id": "mk",
+      "title": "Macedonian (FYROM) - Standard",
+      "locales": [
+        "mk"
+      ],
+      "file": "layouts/languages/mk.json"
+    },
+    {
+      "id": "ml",
+      "title": "Malayalam",
+      "locales": [
+        "ml"
+      ],
+      "file": "layouts/languages/ml.json"
+    },
+    {
+      "id": "mn",
+      "title": "Mongolian Cyrillic",
+      "locales": [
+        "mn"
+      ],
+      "file": "layouts/languages/mn.json"
+    },
+    {
+      "id": "mn-Mong",
+      "title": "Mongolian (Mongolian Script)",
+      "locales": [
+        "mn-Mong"
+      ],
+      "file": "layouts/languages/mn-Mong.json"
+    },
+    {
+      "id": "mn-Phag",
+      "title": "Phags-pa",
+      "locales": [
+        "mn-Phag"
+      ],
+      "file": "layouts/languages/mn-Phag.json"
+    },
+    {
+      "id": "mr",
+      "title": "Marathi",
+      "locales": [
+        "mr"
+      ],
+      "file": "layouts/languages/mr.json"
+    },
+    {
+      "id": "mt",
+      "title": "Maltese 48-Key",
+      "locales": [
+        "mt"
+      ],
+      "file": "layouts/languages/mt.json"
+    },
+    {
+      "id": "my",
+      "title": "Myanmar",
+      "locales": [
+        "my"
+      ],
+      "file": "layouts/languages/my.json"
+    },
+    {
+      "id": "nb",
+      "title": "Norwegian",
+      "locales": [
+        "nb"
+      ],
+      "file": "layouts/languages/nb.json"
+    },
+    {
+      "id": "ne",
+      "title": "Nepali",
+      "locales": [
+        "ne"
+      ],
+      "file": "layouts/languages/ne.json"
+    },
+    {
+      "id": "nl",
+      "title": "Dutch",
+      "locales": [
+        "nl"
+      ],
+      "file": "layouts/languages/nl.json"
+    },
+    {
+      "id": "nl-BE",
+      "title": "Dutch (Belgium)",
+      "locales": [
+        "nl-BE"
+      ],
+      "file": "layouts/languages/nl-BE.json"
+    },
+    {
+      "id": "non",
+      "title": "Futhark",
+      "locales": [
+        "non"
+      ],
+      "file": "layouts/languages/non.json"
+    },
+    {
+      "id": "nso",
+      "title": "Sesotho sa Leboa",
+      "locales": [
+        "nso"
+      ],
+      "file": "layouts/languages/nso.json"
+    },
+    {
+      "id": "or",
+      "title": "Odia",
+      "locales": [
+        "or"
+      ],
+      "file": "layouts/languages/or.json"
+    },
+    {
+      "id": "pa",
+      "title": "Punjabi",
+      "locales": [
+        "pa"
+      ],
+      "file": "layouts/languages/pa.json"
+    },
+    {
+      "id": "pl",
+      "title": "Polish (214)",
+      "locales": [
+        "pl"
+      ],
+      "file": "layouts/languages/pl.json"
+    },
+    {
+      "id": "ps",
+      "title": "Pashto (Afghanistan)",
+      "locales": [
+        "ps"
+      ],
+      "file": "layouts/languages/ps.json"
+    },
+    {
+      "id": "pt",
+      "title": "Portuguese (Brazil)",
+      "locales": [
+        "pt"
+      ],
+      "file": "layouts/languages/pt.json"
+    },
+    {
+      "id": "pt-PT",
+      "title": "Portuguese (Portugal)",
+      "locales": [
+        "pt-PT"
+      ],
+      "file": "layouts/languages/pt-PT.json"
+    },
+    {
+      "id": "ro",
+      "title": "Romanian (Standard)",
+      "locales": [
+        "ro"
+      ],
+      "file": "layouts/languages/ro.json"
+    },
+    {
       "id": "ru",
-      "title": "\u0420\u0443\u0441\u0441\u043a\u0438\u0439",
+      "title": "Russian",
       "locales": [
         "ru"
       ],
       "file": "layouts/languages/ru.json"
+    },
+    {
+      "id": "sah",
+      "title": "Sakha",
+      "locales": [
+        "sah"
+      ],
+      "file": "layouts/languages/sah.json"
+    },
+    {
+      "id": "sat",
+      "title": "Ol Chiki",
+      "locales": [
+        "sat"
+      ],
+      "file": "layouts/languages/sat.json"
+    },
+    {
+      "id": "se",
+      "title": "Sami Extended Norway",
+      "locales": [
+        "se"
+      ],
+      "file": "layouts/languages/se.json"
+    },
+    {
+      "id": "se-FI",
+      "title": "Sami Extended Finland-Sweden",
+      "locales": [
+        "se-FI"
+      ],
+      "file": "layouts/languages/se-FI.json"
+    },
+    {
+      "id": "se-SE",
+      "title": "Sami Extended Finland-Sweden",
+      "locales": [
+        "se-SE"
+      ],
+      "file": "layouts/languages/se-SE.json"
+    },
+    {
+      "id": "si",
+      "title": "Sinhala - Wij 9",
+      "locales": [
+        "si"
+      ],
+      "file": "layouts/languages/si.json"
+    },
+    {
+      "id": "sk",
+      "title": "Slovak",
+      "locales": [
+        "sk"
+      ],
+      "file": "layouts/languages/sk.json"
+    },
+    {
+      "id": "sl",
+      "title": "Slovenian",
+      "locales": [
+        "sl"
+      ],
+      "file": "layouts/languages/sl.json"
+    },
+    {
+      "id": "so-Osma",
+      "title": "Osmanya",
+      "locales": [
+        "so-Osma"
+      ],
+      "file": "layouts/languages/so-Osma.json"
+    },
+    {
+      "id": "sq",
+      "title": "Albanian",
+      "locales": [
+        "sq"
+      ],
+      "file": "layouts/languages/sq.json"
+    },
+    {
+      "id": "sr",
+      "title": "Serbian (Cyrillic)",
+      "locales": [
+        "sr"
+      ],
+      "file": "layouts/languages/sr.json"
+    },
+    {
+      "id": "sr-Latn",
+      "title": "Serbian (Latin)",
+      "locales": [
+        "sr-Latn"
+      ],
+      "file": "layouts/languages/sr-Latn.json"
+    },
+    {
+      "id": "srb",
+      "title": "Sora",
+      "locales": [
+        "srb"
+      ],
+      "file": "layouts/languages/srb.json"
+    },
+    {
+      "id": "sv",
+      "title": "Swedish",
+      "locales": [
+        "sv"
+      ],
+      "file": "layouts/languages/sv.json"
+    },
+    {
+      "id": "syr",
+      "title": "Syriac",
+      "locales": [
+        "syr"
+      ],
+      "file": "layouts/languages/syr.json"
+    },
+    {
+      "id": "ta",
+      "title": "Tamil",
+      "locales": [
+        "ta"
+      ],
+      "file": "layouts/languages/ta.json"
+    },
+    {
+      "id": "te",
+      "title": "Telugu",
+      "locales": [
+        "te"
+      ],
+      "file": "layouts/languages/te.json"
+    },
+    {
+      "id": "tg",
+      "title": "Tajik",
+      "locales": [
+        "tg"
+      ],
+      "file": "layouts/languages/tg.json"
+    },
+    {
+      "id": "th",
+      "title": "Thai Kedmanee",
+      "locales": [
+        "th"
+      ],
+      "file": "layouts/languages/th.json"
+    },
+    {
+      "id": "tk",
+      "title": "Turkmen",
+      "locales": [
+        "tk"
+      ],
+      "file": "layouts/languages/tk.json"
+    },
+    {
+      "id": "tmh",
+      "title": "Tifinagh (Basic)",
+      "locales": [
+        "tmh"
+      ],
+      "file": "layouts/languages/tmh.json"
+    },
+    {
+      "id": "tn",
+      "title": "Setswana",
+      "locales": [
+        "tn"
+      ],
+      "file": "layouts/languages/tn.json"
+    },
+    {
+      "id": "tr",
+      "title": "Turkish Q",
+      "locales": [
+        "tr"
+      ],
+      "file": "layouts/languages/tr.json"
+    },
+    {
+      "id": "tt",
+      "title": "Tatar",
+      "locales": [
+        "tt"
+      ],
+      "file": "layouts/languages/tt.json"
+    },
+    {
+      "id": "tzm",
+      "title": "Central Atlas Tamazight",
+      "locales": [
+        "tzm"
+      ],
+      "file": "layouts/languages/tzm.json"
+    },
+    {
+      "id": "ug",
+      "title": "Uyghur",
+      "locales": [
+        "ug"
+      ],
+      "file": "layouts/languages/ug.json"
+    },
+    {
+      "id": "uk",
+      "title": "Ukrainian",
+      "locales": [
+        "uk"
+      ],
+      "file": "layouts/languages/uk.json"
+    },
+    {
+      "id": "ur",
+      "title": "Urdu",
+      "locales": [
+        "ur"
+      ],
+      "file": "layouts/languages/ur.json"
+    },
+    {
+      "id": "uz",
+      "title": "Uzbek Cyrillic",
+      "locales": [
+        "uz"
+      ],
+      "file": "layouts/languages/uz.json"
+    },
+    {
+      "id": "vi",
+      "title": "Vietnamese",
+      "locales": [
+        "vi"
+      ],
+      "file": "layouts/languages/vi.json"
+    },
+    {
+      "id": "wo",
+      "title": "Wolof",
+      "locales": [
+        "wo"
+      ],
+      "file": "layouts/languages/wo.json"
+    },
+    {
+      "id": "yo",
+      "title": "Yoruba",
+      "locales": [
+        "yo"
+      ],
+      "file": "layouts/languages/yo.json"
     }
   ]
 }

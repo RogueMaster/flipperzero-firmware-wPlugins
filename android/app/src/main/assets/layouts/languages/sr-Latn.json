@@ -1,0 +1,48 @@
+{
+  "id": "sr-Latn",
+  "name": "Serbian (Latin)",
+  "locales": [
+    "sr-Latn"
+  ],
+  "labels": {
+    "q": "q",
+    "w": "w",
+    "e": "e",
+    "r": "r",
+    "t": "t",
+    "y": "z",
+    "u": "u",
+    "i": "i",
+    "o": "o",
+    "p": "p",
+    "[": "š",
+    "]": "đ",
+    "a": "a",
+    "s": "s",
+    "d": "d",
+    "f": "f",
+    "g": "g",
+    "h": "h",
+    "j": "j",
+    "k": "k",
+    "l": "l",
+    ";": "č",
+    "'": "ć",
+    "z": "y",
+    "x": "x",
+    "c": "c",
+    "v": "v",
+    "b": "b",
+    "n": "n",
+    "m": "m",
+    ",": ",",
+    ".": ".",
+    "/": "-",
+    "menu": "☰"
+  },
+  "source": {
+    "cldr": "release-41",
+    "file": "sr-Latn-t-k0-windows.xml",
+    "locale": "sr-Latn-t-k0-windows"
+  }
+}

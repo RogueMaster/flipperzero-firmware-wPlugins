@@ -252,7 +252,7 @@ object KeyboardLayoutLoader {
                 """
                 Drop language pack JSON files here (e.g. de.json).
                 Files starting with _ are ignored.
-                Same id as a bundled pack (en, ru) overrides it.
+                Same id as a bundled pack overrides it.
 
                 Minimal schema:
                 {
@@ -312,7 +312,6 @@ object KeyboardLayoutLoader {
             is LanguageSource.Generated -> {
                 // Android does not expose soft-keyboard glyph maps (Gboard etc.).
                 // Fall back to bundled English QWERTY labels as positional placeholders.
-                Log.i(TAG, "generated labels for ${lang.id} from EN QWERTY fallback")
                 val en = loadLanguageCatalog(context).firstOrNull { it.id == "en" }
                     ?: return emptyMap()
                 loadLanguageLabels(context, en)

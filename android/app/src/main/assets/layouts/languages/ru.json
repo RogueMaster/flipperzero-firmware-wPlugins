@@ -1,6 +1,6 @@
 {
   "id": "ru",
-  "name": "Русский",
+  "name": "Russian",
   "locales": [
     "ru"
   ],
@@ -39,5 +39,10 @@
     ".": "ю",
     "/": ".",
     "menu": "☰"
+  },
+  "source": {
+    "cldr": "release-41",
+    "file": "ru-t-k0-windows.xml",
+    "locale": "ru-t-k0-windows"
   }
 }
