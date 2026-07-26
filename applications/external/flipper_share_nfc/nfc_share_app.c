@@ -1,17 +1,17 @@
-#include "ir_share_app.h"
+#include "nfc_share_app.h"
 #include <stream/stream.h>
 #include <stream/buffered_file_stream.h>
 
-#define TAG "IrShare"
+#define TAG "NfcShare"
 
 // About screen title bar (\e#/\e! markup: bold/inverted, see widget.h)
-#define ISH_ABOUT_NAME      "\e#\e!       Flipper Share - IR       \e!\n"
-#define ISH_ABOUT_BLANK_INV "\e#\e!                                                      \e!\n"
+#define NSH_ABOUT_NAME      "\e#\e!      Flipper Share - NFC      \e!\n"
+#define NSH_ABOUT_BLANK_INV "\e#\e!                                                      \e!\n"
 
 // Callback when a file is selected in the file browser
 static void file_browser_select_callback(void* context) {
     if(!context) return;
-    IrShareApp* app = context;
+    NfcShareApp* app = context;
 
     // Get the selected file path from result_path
     const char* file_path = furi_string_get_cstr(app->result_path);
@@ -42,46 +42,46 @@ _Bool file_browser_callback(
     return false;
 }
 
-// Set the callback after creating the file_browser (in ir_share_alloc):
+// Set the callback after creating the file_browser (in nfc_share_alloc):
 // file_browser_set_result_callback(app->file_browser, file_browser_callback, app);
 
-void show_file_info_scene(IrShareApp* app) {
+void show_file_info_scene(NfcShareApp* app) {
     furi_assert(app);
     dialog_ex_set_header(
         app->dialog_show_file, "File Info", 64, SCENE_HEADER_POSITION_Y, AlignCenter, AlignTop);
     dialog_ex_set_text(
         app->dialog_show_file, app->selected_file_path, 64, 32, AlignCenter, AlignCenter);
-    view_dispatcher_switch_to_view(app->view_dispatcher, IrShareViewIdShowFile);
+    view_dispatcher_switch_to_view(app->view_dispatcher, NfcShareViewIdShowFile);
 }
 
-bool ir_share_custom_event_callback(void* context, uint32_t event) {
+bool nfc_share_custom_event_callback(void* context, uint32_t event) {
     furi_assert(context);
-    IrShareApp* app = context;
+    NfcShareApp* app = context;
     return scene_manager_handle_custom_event(app->scene_manager, event);
 }
 
-static bool ir_share_back_event_callback(void* context) {
+static bool nfc_share_back_event_callback(void* context) {
     furi_assert(context);
-    IrShareApp* app = context;
+    NfcShareApp* app = context;
     return scene_manager_handle_back_event(app->scene_manager);
 }
 
 static void submenu_callback(void* context, uint32_t index) {
     furi_assert(context);
-    IrShareApp* app = context;
+    NfcShareApp* app = context;
 
     if(index == 0) { // Send - open file browser
-        scene_manager_next_scene(app->scene_manager, IrShareSceneFileBrowser);
+        scene_manager_next_scene(app->scene_manager, NfcShareSceneFileBrowser);
     } else if(index == 1) { // Receive
-        scene_manager_next_scene(app->scene_manager, IrShareSceneReceive);
+        scene_manager_next_scene(app->scene_manager, NfcShareSceneReceive);
     } else if(index == 2) { // About
         // Inverted title bar + scrollable body, same layout as official apps
         // (see good-faps spi_mem_manager about scene).
         widget_reset(app->widget_about);
         widget_add_text_box_element(
-            app->widget_about, 0, 0, 128, 14, AlignCenter, AlignBottom, ISH_ABOUT_BLANK_INV, false);
+            app->widget_about, 0, 0, 128, 14, AlignCenter, AlignBottom, NSH_ABOUT_BLANK_INV, false);
         widget_add_text_box_element(
-            app->widget_about, 0, 2, 128, 14, AlignCenter, AlignBottom, ISH_ABOUT_NAME, false);
+            app->widget_about, 0, 2, 128, 14, AlignCenter, AlignBottom, NSH_ABOUT_NAME, false);
 
         FuriString* about_text = furi_string_alloc();
         // furi_string_printf(about_text, "\e#%s\n", "Information");
@@ -92,27 +92,27 @@ static void submenu_callback(void* context, uint32_t index) {
         furi_string_cat_printf(
             about_text, "Github: %s\n\n", "github.com/lomalkin/flipper-zero-apps");
         furi_string_cat_printf(about_text, "\e#%s\n", "Description");
-        furi_string_cat_printf(about_text, "%s\n\n", "File transfer over Infrared.");
-        furi_string_cat_printf(about_text, "Also: Sub-GHz, NFC & more - see Github.\n");
+        furi_string_cat_printf(about_text, "%s\n\n", "File transfer over NFC. The fastest one.");
+        furi_string_cat_printf(about_text, "Also: Sub-GHz, IR & more - see Github.\n");
         widget_add_text_scroll_element(
             app->widget_about, 0, 16, 128, 50, furi_string_get_cstr(about_text));
         furi_string_free(about_text);
 
-        view_dispatcher_switch_to_view(app->view_dispatcher, IrShareViewIdAbout);
+        view_dispatcher_switch_to_view(app->view_dispatcher, NfcShareViewIdAbout);
     }
 }
 
 // Return to main menu when pressing Back on About
-static uint32_t ir_share_about_previous(void* context) {
+static uint32_t nfc_share_about_previous(void* context) {
     UNUSED(context);
-    return IrShareViewIdMenu;
+    return NfcShareViewIdMenu;
 }
 
 // TODO: check / cleanup
 
 // Function to read file information (size, etc.) - commented out for debugging
 /*
-static bool read_file_info(IrShareApp* app) {
+static bool read_file_info(NfcShareApp* app) {
     if(!app || !app->selected_file_path[0]) {
         return false;
     }
@@ -139,7 +139,7 @@ static bool read_file_info(IrShareApp* app) {
 */
 
 // Example function for reading file content (commented out for now)
-// static bool read_file_content(IrShareApp* app, char* buffer, size_t buffer_size) {
+// static bool read_file_content(NfcShareApp* app, char* buffer, size_t buffer_size) {
 //     Storage* storage = furi_record_open(RECORD_STORAGE);
 //     File* file = storage_file_alloc(storage);
 //     bool success = false;
@@ -164,7 +164,7 @@ static void file_browser_callback(void* context) {
         return;
     }
     
-    IrShareApp* app = context;
+    NfcShareApp* app = context;
     
     // Set the selected file path
     strcpy(app->selected_file_path, "/ext/test_file.txt");
@@ -181,26 +181,26 @@ static void file_browser_callback(void* context) {
 }
 */
 
-static IrShareApp* ir_share_alloc() {
-    IrShareApp* app = malloc(sizeof(IrShareApp));
+static NfcShareApp* nfc_share_alloc() {
+    NfcShareApp* app = malloc(sizeof(NfcShareApp));
     app->gui = furi_record_open(RECORD_GUI);
 
     app->view_dispatcher = view_dispatcher_alloc();
 
-    app->scene_manager = scene_manager_alloc(&ir_share_scene_handlers, app);
+    app->scene_manager = scene_manager_alloc(&nfc_share_scene_handlers, app);
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
     view_dispatcher_set_custom_event_callback(
-        app->view_dispatcher, ir_share_custom_event_callback);
+        app->view_dispatcher, nfc_share_custom_event_callback);
     view_dispatcher_set_navigation_event_callback(
-        app->view_dispatcher, ir_share_back_event_callback);
+        app->view_dispatcher, nfc_share_back_event_callback);
 
     // Create submenu for main menu
     app->submenu = submenu_alloc();
-    submenu_add_item(app->submenu, "Send via IR", 0, submenu_callback, app);
-    submenu_add_item(app->submenu, "Receive via IR", 1, submenu_callback, app);
+    submenu_add_item(app->submenu, "Send via NFC", 0, submenu_callback, app);
+    submenu_add_item(app->submenu, "Receive via NFC", 1, submenu_callback, app);
     submenu_add_item(app->submenu, "About", 2, submenu_callback, app);
     view_dispatcher_add_view(
-        app->view_dispatcher, IrShareViewIdMenu, submenu_get_view(app->submenu));
+        app->view_dispatcher, NfcShareViewIdMenu, submenu_get_view(app->submenu));
 
     // Create file browser with result_path for selected file retrieval.
     // Seeded with the base path; then it keeps the last selection for the
@@ -226,17 +226,17 @@ static IrShareApp* ir_share_alloc() {
     // Store result_path for later use
     app->result_path = result_path;
     view_dispatcher_add_view(
-        app->view_dispatcher, IrShareViewIdFileBrowser, file_browser_get_view(app->file_browser));
+        app->view_dispatcher, NfcShareViewIdFileBrowser, file_browser_get_view(app->file_browser));
 
     // Create dialog to show file path/info
     app->dialog_show_file = dialog_ex_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher, IrShareViewIdShowFile, dialog_ex_get_view(app->dialog_show_file));
+        app->view_dispatcher, NfcShareViewIdShowFile, dialog_ex_get_view(app->dialog_show_file));
 
     // Create dialog for Receive
     app->dialog_receive = dialog_ex_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher, IrShareViewIdReceive, dialog_ex_get_view(app->dialog_receive));
+        app->view_dispatcher, NfcShareViewIdReceive, dialog_ex_get_view(app->dialog_receive));
 
     app->selected_file_path[0] = '\0'; // Explicitly initialize with empty string
     app->selected_file_size = 0;
@@ -249,22 +249,22 @@ static IrShareApp* ir_share_alloc() {
     // Create widget for About (scrollable text)
     app->widget_about = widget_alloc();
     view_dispatcher_add_view(
-        app->view_dispatcher, IrShareViewIdAbout, widget_get_view(app->widget_about));
+        app->view_dispatcher, NfcShareViewIdAbout, widget_get_view(app->widget_about));
     // Ensure Back from About returns to Menu
-    view_set_previous_callback(widget_get_view(app->widget_about), ir_share_about_previous);
+    view_set_previous_callback(widget_get_view(app->widget_about), nfc_share_about_previous);
 
     return app;
 }
 
-static void ir_share_free(IrShareApp* app) {
+static void nfc_share_free(NfcShareApp* app) {
     furi_assert(app);
 
-    view_dispatcher_remove_view(app->view_dispatcher, IrShareViewIdReceive);
-    view_dispatcher_remove_view(app->view_dispatcher, IrShareViewIdShowFile);
-    view_dispatcher_remove_view(app->view_dispatcher, IrShareViewIdFileBrowser);
-    view_dispatcher_remove_view(app->view_dispatcher, IrShareViewIdMenu);
+    view_dispatcher_remove_view(app->view_dispatcher, NfcShareViewIdReceive);
+    view_dispatcher_remove_view(app->view_dispatcher, NfcShareViewIdShowFile);
+    view_dispatcher_remove_view(app->view_dispatcher, NfcShareViewIdFileBrowser);
+    view_dispatcher_remove_view(app->view_dispatcher, NfcShareViewIdMenu);
     // Also remove the About view to avoid leaving a dangling view pointer
-    view_dispatcher_remove_view(app->view_dispatcher, IrShareViewIdAbout);
+    view_dispatcher_remove_view(app->view_dispatcher, NfcShareViewIdAbout);
 
     dialog_ex_free(app->dialog_show_file);
     dialog_ex_free(app->dialog_receive);
@@ -285,17 +285,17 @@ static void ir_share_free(IrShareApp* app) {
     free(app);
 }
 
-int32_t ir_share_app(void* p) {
+int32_t nfc_share_app(void* p) {
     UNUSED(p);
-    IrShareApp* app = ir_share_alloc();
+    NfcShareApp* app = nfc_share_alloc();
 
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
 
-    scene_manager_next_scene(app->scene_manager, IrShareSceneMenu);
+    scene_manager_next_scene(app->scene_manager, NfcShareSceneMenu);
 
     view_dispatcher_run(app->view_dispatcher);
 
-    ir_share_free(app);
+    nfc_share_free(app);
 
     return 0;
 }
