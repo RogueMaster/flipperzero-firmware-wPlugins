@@ -61,6 +61,7 @@ static bool mf_settings_apply(void* context, const MfSettingsRequest* request, M
     MorseFlipperApp* app = context;
     uint32_t now_ms = furi_get_tick();
     bool changed = false;
+    uint8_t* changed_u8 = NULL;
 
     if(response != NULL) *response = (MfSettingsResponse){0};
     if(app == NULL || request == NULL || response == NULL) return false;
@@ -143,52 +144,31 @@ static bool mf_settings_apply(void* context, const MfSettingsRequest* request, M
         break;
     case MfSettingsSetListeningLesson:
         if(request->value == 0U || request->value > morse_trainer_lesson_count()) return true;
-        if(app->listening_settings.lesson != request->value) {
-            app->listening_settings.lesson = (uint8_t)request->value;
-            changed = true;
-        }
+        changed_u8 = &app->listening_settings.lesson;
         break;
     case MfSettingsSetListeningFarnsworth:
         if(request->value == 0U || request->value > morse_flipper_local_wpm(app)) return true;
-        if(app->listening_settings.farnsworth_wpm != request->value) {
-            app->listening_settings.farnsworth_wpm = (uint8_t)request->value;
-            changed = true;
-        }
+        changed_u8 = &app->listening_settings.farnsworth_wpm;
         break;
     case MfSettingsSetListeningAnswerTimeout:
         if(request->value < MORSE_FLIPPER_TRAINER_TIMEOUT_MIN_S || request->value > MORSE_FLIPPER_TRAINER_TIMEOUT_MAX_S) return true;
-        if(app->listening_settings.answer_timeout_s != request->value) {
-            app->listening_settings.answer_timeout_s = (uint8_t)request->value;
-            changed = true;
-        }
+        changed_u8 = &app->listening_settings.answer_timeout_s;
         break;
     case MfSettingsSetListeningGroupPause:
         if(request->value < MORSE_FLIPPER_TRAINER_GROUP_PAUSE_MIN_S || request->value > MORSE_FLIPPER_TRAINER_GROUP_PAUSE_MAX_S) return true;
-        if(app->listening_settings.group_pause_s != request->value) {
-            app->listening_settings.group_pause_s = (uint8_t)request->value;
-            changed = true;
-        }
+        changed_u8 = &app->listening_settings.group_pause_s;
         break;
     case MfSettingsSetListeningGroupSize:
         if(request->value < 1U || request->value > 9U) return true;
-        if(app->listening_settings.group_size != request->value) {
-            app->listening_settings.group_size = (uint8_t)request->value;
-            changed = true;
-        }
+        changed_u8 = &app->listening_settings.group_size;
         break;
     case MfSettingsSetListeningGroupCount:
         if(request->value < 3U || request->value > 30U) return true;
-        if(app->listening_settings.session_groups != request->value) {
-            app->listening_settings.session_groups = (uint8_t)request->value;
-            changed = true;
-        }
+        changed_u8 = &app->listening_settings.session_groups;
         break;
     case MfSettingsSetListeningCustomSet:
         if(request->value > MORSE_TRAINER_CUSTOM_SET_CAP) return true;
-        if(app->listening_settings.custom_set_idx != request->value) {
-            app->listening_settings.custom_set_idx = (uint8_t)request->value;
-            changed = true;
-        }
+        changed_u8 = &app->listening_settings.custom_set_idx;
         break;
     case MfSettingsSetStraightWpm:
         if(request->value < 10U || request->value > 30U) return true;
@@ -199,24 +179,15 @@ static bool mf_settings_apply(void* context, const MfSettingsRequest* request, M
         break;
     case MfSettingsSetStraightAnswerTimeout:
         if(request->value < MORSE_FLIPPER_STRAIGHT_TIMEOUT_MIN_S || request->value > MORSE_FLIPPER_STRAIGHT_TIMEOUT_MAX_S) return true;
-        if(app->straight_answer_timeout_s != request->value) {
-            app->straight_answer_timeout_s = (uint8_t)request->value;
-            changed = true;
-        }
+        changed_u8 = &app->straight_answer_timeout_s;
         break;
     case MfSettingsSetStraightNextDelay:
         if(request->value < MORSE_FLIPPER_STRAIGHT_NEXT_MIN_S || request->value > MORSE_FLIPPER_STRAIGHT_NEXT_MAX_S) return true;
-        if(app->straight_next_delay_s != request->value) {
-            app->straight_next_delay_s = (uint8_t)request->value;
-            changed = true;
-        }
+        changed_u8 = &app->straight_next_delay_s;
         break;
     case MfSettingsSetTxGroupsDifficulty:
         if(request->value >= MorseFlipperTxgDifficultyCount) return true;
-        if(app->txg_difficulty != request->value) {
-            app->txg_difficulty = (uint8_t)request->value;
-            changed = true;
-        }
+        changed_u8 = &app->txg_difficulty;
         break;
     case MfSettingsApplyGpioDraft: {
         MorseFlipperGpioRule rule;
@@ -230,24 +201,15 @@ static bool mf_settings_apply(void* context, const MfSettingsRequest* request, M
     }
     case MfSettingsSetUsbMode:
         if(request->value > MorseFlipperPcModeMidi) return true;
-        if(app->pc_mode_pref != request->value) {
-            app->pc_mode_pref = (uint8_t)request->value;
-            changed = true;
-        }
+        changed_u8 = &app->pc_mode_pref;
         break;
     case MfSettingsSetUsbPaddlePreset:
         if(request->value >= morse_pc_paddle_preset_count()) return true;
-        if(app->pc_paddle_preset != request->value) {
-            app->pc_paddle_preset = (uint8_t)request->value;
-            changed = true;
-        }
+        changed_u8 = &app->pc_paddle_preset;
         break;
     case MfSettingsSetUsbStraightPreset:
         if(request->value >= morse_pc_straight_preset_count()) return true;
-        if(app->pc_straight_preset != request->value) {
-            app->pc_straight_preset = (uint8_t)request->value;
-            changed = true;
-        }
+        changed_u8 = &app->pc_straight_preset;
         break;
     case MfSettingsSetUsbMouseInvert:
         if(request->value > 1U) return true;
@@ -257,6 +219,10 @@ static bool mf_settings_apply(void* context, const MfSettingsRequest* request, M
         }
         break;
     default: return true;
+    }
+    if(changed_u8 != NULL && *changed_u8 != request->value) {
+        *changed_u8 = (uint8_t)request->value;
+        changed = true;
     }
     if(changed) morse_flipper_save_config(app);
     mf_settings_snapshot(app, &response->snapshot);
