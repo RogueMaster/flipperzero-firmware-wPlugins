@@ -47,6 +47,11 @@ void morse_flipper_reset_answer_decoder(MorseFlipperApp* app) {
     } else {
         morse_flipper_cw_decoder_init_fixed(&app->tx_decoder, morse_flipper_current_dit_ms(app));
     }
+
+    /* The next accepted edge starts a new answer; playback idle is not a space. */
+    app->rf_tx_edge_at = 0U;
+    app->rf_tx_gap_flushed = true;
+    app->rf_tx_level = false;
 }
 
 void morse_flipper_reset_session_runtime(MorseFlipperApp* app) {
