@@ -6,11 +6,11 @@
 
 It allows to send any file over a Sub-GHz via internal transmitter directly from one Flipper Zero to another without any additional hardware, cables, smartphones, computers, internet connection and magic needed.
 
-Actual file transfer speed via **Flipper Share** is around 700 Bytes/sec (42 KB/min), that allows to transfer average .fap file from one Flipper to another in less than 1 minute.
+Actual file transfer speed via **Flipper Share** is around 700 Bytes/sec, that allows to transfer average .fap file from one Flipper to another in less than 1 minute.
 
 File size tested is 32 MB (~13 hours), but the protocol itself can support up to 4 GB (uint32_t file size). Maximum file size is limited by the Flipper Zero's free RAM on receiver side, actually should be not more than 35MB.
 
-If you prefer to use the **Infrared** channel instead of Sub-GHz, consider using **Flipper Share IR** app for that ([link](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_ir/README.md)).
+Other Flipper Share transports (IR, NFC & more): [github.com/lomalkin/flipper-zero-apps](https://github.com/lomalkin/flipper-zero-apps)
 
 Features:
 
