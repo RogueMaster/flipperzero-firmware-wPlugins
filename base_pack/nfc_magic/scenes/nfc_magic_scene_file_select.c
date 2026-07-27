@@ -46,6 +46,11 @@ static bool nfc_magic_scene_file_select_is_file_suitable(NfcMagicApp* instance) 
         if(protocol == NfcProtocolMfClassic) {
             suitable = true;
         }
+    } else if(instance->protocol == NfcMagicProtocolIso15693) {
+        // Any ISO15693-3 dump is a valid clone source for a magic ISO15693 target.
+        if(protocol == NfcProtocolIso15693_3) {
+            suitable = true;
+        }
     } else if(
         instance->protocol == NfcMagicProtocolUscuidUl ||
         instance->protocol == NfcMagicProtocolUscuidUlNotDetected) {

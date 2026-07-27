@@ -37,7 +37,8 @@ struct NfcMagicScanner {
 
 static const NfcProtocol nfc_magic_scanner_not_magic_protocols[] = {
     NfcProtocolIso14443_3b,
-    NfcProtocolIso15693_3,
+    // NfcProtocolIso15693_3 is intentionally absent. ISO15693 (NfcV) tags are handled as
+    // magic ISO15693 candidates in nfc_magic_scanner_detect_pass().
     NfcProtocolFelica,
 };
 
@@ -121,6 +122,18 @@ static bool nfc_magic_scanner_detect_mf_classic(Nfc* nfc) {
     return detected;
 }
 
+static bool nfc_magic_scanner_detect_iso15693(Nfc* nfc) {
+    // ISO15693 (NfcV) is a different RF technology from ISO14443-3A, so it gets its own
+    // activation probe. There is no reliable non-destructive backdoor probe for a magic
+    // ISO15693 tag, so any ISO15693 tag that activates is treated as a ISO15693 *candidate* --
+    // magic-ness is proven at write time via a UID read-back. This mirrors how a generic
+    // MIFARE Classic is reported as an unconfirmed candidate.
+    NfcPoller* poller = nfc_poller_alloc(nfc, NfcProtocolIso15693_3);
+    bool detected = nfc_poller_detect(poller);
+    nfc_poller_free(poller);
+    return detected;
+}
+
 static bool nfc_magic_scanner_detect_not_magic(Nfc* nfc) {
     for(size_t i = 0; i < COUNT_OF(nfc_magic_scanner_not_magic_protocols); i++) {
         NfcPoller* poller = nfc_poller_alloc(nfc, nfc_magic_scanner_not_magic_protocols[i]);
@@ -143,6 +156,13 @@ static bool nfc_magic_scanner_detect_pass(NfcMagicScanner* instance, NfcMagicPro
     // mistaken for a Gen2 CUID or a blank Ultralight.
     if(nfc_magic_scanner_detect_gen4(instance)) {
         *protocol = NfcMagicProtocolGen4;
+        return true;
+    }
+
+    // ISO15693 magic candidate. Different RF tech, so it does not depend on the
+    // ISO14443-3A identity read above.
+    if(nfc_magic_scanner_detect_iso15693(instance->nfc)) {
+        *protocol = NfcMagicProtocolIso15693;
         return true;
     }
 
