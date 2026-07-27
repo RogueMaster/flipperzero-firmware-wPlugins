@@ -26,7 +26,7 @@ bool mf_settings_snapshot_normalize(MfSettingsSnapshot* snapshot) {
 uint8_t mf_settings_row_count(uint8_t entry, const MfSettingsSnapshot* snapshot) {
     if(snapshot == NULL) return 0U;
     switch(entry) {
-    case MfSettingsEntryKeying: return 6U;
+    case MfSettingsEntryKeying: return 4U;
     case MfSettingsEntryAudio: return snapshot->audio_path == 2U ? 3U : 4U;
     case MfSettingsEntryListening: return 8U;
     case MfSettingsEntryStraight: return 3U;

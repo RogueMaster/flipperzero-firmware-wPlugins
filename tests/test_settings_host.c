@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-static unsigned saves, clears, resyncs, refreshes, polls, audio_syncs, sidetones, events, opens, detaches;
+static unsigned saves, clears, resyncs, refreshes, polls, audio_syncs, sidetones, opens, detaches;
 static unsigned gpio_applies, gpio_alerts;
 static bool gpio_accept = true;
 static MfSettingsEnterArgs captured_args;
@@ -34,7 +34,6 @@ bool morse_flipper_audio_output_is_pwm(const MorseFlipperApp* app) { return app-
 void morse_flipper_save_config(const MorseFlipperApp* app) { (void)app; saves++; }
 uint8_t morse_pc_paddle_preset_count(void) { return 9U; }
 uint8_t morse_pc_straight_preset_count(void) { return 8U; }
-void view_dispatcher_send_custom_event(ViewDispatcher* dispatcher, uint32_t event) { (void)dispatcher; events = event; }
 bool morse_flipper_plugin_runtime_open_mapped_locked(MorseFlipperApp* app, uint8_t owner, uint8_t mode, const char* path, uint32_t version, uint32_t magic, uint32_t size, const void* args, MorseFlipperMappedFalResult* initial) {
     (void)mode; (void)path; (void)version; (void)magic; (void)size; captured_args = *(const MfSettingsEnterArgs*)args; app->plugin_slot.owner = owner; opens++; *initial = (MorseFlipperMappedFalResult){0}; return true;
 }
@@ -48,7 +47,6 @@ VariableItem* variable_item_list_add(VariableItemList* list, const char* label, 
 void variable_item_list_reset(VariableItemList* list) { list->count = 0U; }
 
 bool mf_settings_host_test_apply(MorseFlipperApp*, const MfSettingsRequest*, MfSettingsResponse*);
-void mf_settings_host_test_navigate(MorseFlipperApp*, uint32_t);
 bool morse_flipper_settings_host_enter(MorseFlipperApp*, uint8_t, uint32_t);
 void morse_flipper_settings_host_leave(MorseFlipperApp*, uint32_t);
 
@@ -184,10 +182,6 @@ int main(void) {
         assert(app.gpio_dit_idx == 3U && app.gpio_dah_idx == 4U && app.gpio_ground_idx == 0U && app.gpio_ptt_idx == 16U);
         gpio_accept = true;
     }
-    mf_settings_host_test_navigate(&app, MfSettingsNavigateAudio);
-    assert(events == MorseFlipperSceneAudioCfg);
-    mf_settings_host_test_navigate(&app, MfSettingsNavigateGpio);
-    assert(events == MorseFlipperSceneGpio);
     assert(morse_flipper_settings_host_enter(&app, MfSettingsEntryKeying, 2U));
     assert(captured_args.entry == MfSettingsEntryKeying && captured_args.selected_state == 2U);
     assert(captured_args.services != NULL && captured_args.services->apply != NULL);

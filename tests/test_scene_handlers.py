@@ -14,6 +14,9 @@ SCENES = ROOT / "src/firmware/morse_flipper_scenes.c"
 APP = ROOT / "src/firmware/morse_flipper_app.c"
 INPUT = ROOT / "src/firmware/morse_flipper_input.c"
 SESSION = ROOT / "src/firmware/morse_flipper_session.c"
+SETTINGS_MODEL = ROOT / "src/firmware/plugins/settings/mf_settings_model.c"
+SETTINGS_PLUGIN = ROOT / "src/firmware/plugins/settings/mf_settings_plugin.c"
+ICR_RUNTIME = ROOT / "src/firmware/plugins/icr/morse_flipper_icr_runtime.c"
 
 
 def scene_names() -> set[str]:
@@ -168,6 +171,54 @@ class SceneHandlerTableTest(unittest.TestCase):
         self.assertIn("if(event->key == InputKeyBack)", offer)
         self.assertNotIn("InputKeyRight", offer)
         self.assertNotIn("InputKeyLeft", offer)
+
+    def test_gpio_is_a_root_settings_page_not_a_keying_submenu(self) -> None:
+        scenes = SCENES.read_text(encoding="utf-8")
+        settings = scenes[
+            scenes.index("static void morse_flipper_scene_menu_settings_on_enter") :
+            scenes.index("static bool morse_flipper_scene_menu_settings_on_event")
+        ]
+        gpio = settings.index('"GPIO", MorseFlipperSceneGpio')
+        usb = settings.index('"USB", MorseFlipperScenePc')
+        self.assertLess(gpio, usb)
+
+        self.assertIn("case MfSettingsEntryKeying: return 4U;", SETTINGS_MODEL.read_text(encoding="utf-8"))
+        plugin = SETTINGS_PLUGIN.read_text(encoding="utf-8")
+        keying = plugin[
+            plugin.index("if(state->args.entry == MfSettingsEntryKeying) {") :
+            plugin.index("} else if(state->args.entry == MfSettingsEntryAudio)", plugin.index("if(state->args.entry == MfSettingsEntryKeying) {"))
+        ]
+        self.assertNotIn('"Audio output"', keying)
+        self.assertNotIn('"GPIO"', keying)
+        self.assertNotIn("MfSettingsNavigate", plugin)
+
+        transport = (ROOT / "src/firmware/morse_flipper_transport.c").read_text(encoding="utf-8")
+        self.assertIn("morse_flipper_current_keyer_mode(app) == MorseKeyerModeStraight", transport)
+
+    def test_icr_reset_uses_standard_chrome_and_exits_settings_subflow(self) -> None:
+        runtime = ICR_RUNTIME.read_text(encoding="utf-8")
+        draw = runtime[
+            runtime.index("static void morse_flipper_icr_draw_settings") :
+            runtime.index("static uint8_t morse_flipper_icr_scale_bar_height")
+        ]
+        self.assertIn("canvas_set_font(canvas, FontPrimary);", draw)
+        self.assertIn('elements_button_left(canvas, "No");', draw)
+        self.assertIn('elements_button_center(canvas, "Yes");', draw)
+        self.assertNotIn("elements_button_right", draw)
+
+        settings_event = SCENES.read_text(encoding="utf-8")
+        settings_event = settings_event[
+            settings_event.index("static bool morse_flipper_scene_menu_settings_on_event") :
+            settings_event.index("static void morse_flipper_scene_menu_settings_on_exit")
+        ]
+        self.assertIn("MorseFlipperSceneMenuSettings, event.event", settings_event)
+
+        result = runtime[
+            runtime.index("if(state->settings_entry) {", runtime.index("MorseFlipperIcrResult morse_flipper_icr_runtime_tick")) :
+            runtime.index("if(state->phase == MorseFlipperIcrPhaseGraphWait)")
+        ]
+        self.assertIn(".request_exit = true", result)
+        self.assertNotIn("settings_phase = MorseFlipperIcrSettingsMenu", result)
 
 
 if __name__ == "__main__":

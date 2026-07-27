@@ -22,7 +22,6 @@ static unsigned closes;
 static unsigned frees;
 static const char* storage_fixture;
 static MfSettingsRequest last_request;
-static uint32_t navigation_event;
 static MfSettingsSnapshot response_snapshot = {
     .local_wpm = 20U, .lesson = 2U, .farnsworth_wpm = 20U,
     .answer_timeout_s = 3U, .group_pause_s = 3U, .group_size = 1U, .group_count = 3U,
@@ -96,11 +95,6 @@ static bool reject_gpio(void* context, const MfSettingsRequest* request, MfSetti
     return true;
 }
 
-static void post_navigation(void* context, uint32_t event) {
-    (void)context;
-    navigation_event = event;
-}
-
 static void assert_item(const VariableItemList* list, uint8_t row, const char* label, const char* value) {
     assert(row < list->count);
     assert(strcmp(list->items[row].label, label) == 0);
@@ -123,8 +117,6 @@ static void assert_page_labels(uint8_t page, const VariableItemList* list) {
         assert_item(list, 1U, "Input", "buttons");
         assert_item(list, 2U, "Keyer", "Plain Iambic");
         assert_item(list, 3U, "Swap paddles", "Yes");
-        assert_item(list, 4U, "Audio output", NULL);
-        assert_item(list, 5U, "GPIO", NULL);
         break;
     case MfSettingsEntryAudio:
         assert_item(list, 0U, "Audio path", "Buzzer");
@@ -171,7 +163,7 @@ int main(void) {
     VariableItemList list = {0};
     unsigned calls = 0U;
     MfSettingsHostServices services = {
-        .struct_size = sizeof(services), .apply = apply, .post_navigate = post_navigation};
+        .struct_size = sizeof(services), .apply = apply};
     MfSettingsEnterArgs args = {
         .struct_size = sizeof(args), .entry = MfSettingsEntryKeying, .selected_state = 2U,
         .list = &list, .snapshot = {
@@ -180,12 +172,8 @@ int main(void) {
     void* state = mf_settings_test_alloc();
     assert(state != NULL);
     assert(mf_settings_test_enter(state, &args));
-    assert(list.count == 6U && list.selected == 2U);
+    assert(list.count == 4U && list.selected == 2U);
     assert(strcmp(list.items[1].current_text, "buttons") == 0);
-    list.enter(list.enter_context, 4U);
-    assert(navigation_event == MfSettingsNavigateAudio);
-    list.enter(list.enter_context, 5U);
-    assert(navigation_event == MfSettingsNavigateGpio);
     list.items[0].current_index = 10U;
     list.items[0].changed(&list.items[0]);
     assert(calls == 1U);
@@ -242,7 +230,7 @@ int main(void) {
     mf_settings_test_free(state);
     storage_fixture = NULL;
 
-    static const uint8_t page_rows[] = {6U, 4U, 8U, 3U, 1U, 4U, 4U};
+    static const uint8_t page_rows[] = {4U, 4U, 8U, 3U, 1U, 4U, 4U};
     static const uint8_t expected_kinds[][8] = {
         {MfSettingsSetLocalWpm, MfSettingsSetInputSource, MfSettingsSetKeyerMode, MfSettingsSetHandedness},
         {MfSettingsSetAudioPath, MfSettingsSetTone, MfSettingsSetP2Volume, MfSettingsSetAudioWaveform},

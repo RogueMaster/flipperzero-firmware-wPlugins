@@ -5,7 +5,7 @@
 typedef struct VariableItemList VariableItemList;
 
 #define MF_SETTINGS_API_MAGIC 0x4D465345UL
-#define MF_SETTINGS_API_VERSION 1U
+#define MF_SETTINGS_API_VERSION 2U
 
 typedef enum {
     MfSettingsEntryKeying = 0,
@@ -16,11 +16,6 @@ typedef enum {
     MfSettingsEntryGpio,
     MfSettingsEntryUsb,
 } MfSettingsEntry;
-
-typedef enum {
-    MfSettingsNavigateAudio = 1,
-    MfSettingsNavigateGpio = 2,
-} MfSettingsNavigateEvent;
 
 typedef struct {
     uint16_t local_wpm;
@@ -95,12 +90,9 @@ typedef struct {
 } MfSettingsResponse;
 
 typedef bool (*MfSettingsApplyFn)(void* context, const MfSettingsRequest*, MfSettingsResponse*);
-typedef void (*MfSettingsPostNavigateFn)(void* context, uint32_t event);
-
 typedef struct {
     uint32_t struct_size;
     MfSettingsApplyFn apply;
-    MfSettingsPostNavigateFn post_navigate;
 } MfSettingsHostServices;
 
 typedef struct {

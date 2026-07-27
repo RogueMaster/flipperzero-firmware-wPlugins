@@ -354,16 +354,6 @@ static void mf_settings_changed(VariableItem* item) {
     }
 }
 
-static void mf_settings_enter_row(void* context, uint32_t index) {
-    MfSettingsState* state = context;
-
-    if(state == NULL || state->args.services == NULL || state->args.services->post_navigate == NULL) return;
-    if(state->args.entry == MfSettingsEntryKeying && index == 4U)
-        state->args.services->post_navigate(state->args.service_context, MfSettingsNavigateAudio);
-    if(state->args.entry == MfSettingsEntryKeying && index == 5U)
-        state->args.services->post_navigate(state->args.service_context, MfSettingsNavigateGpio);
-}
-
 static void mf_settings_build_rows(MfSettingsState* state) {
     VariableItemList* list = state->args.list;
     uint8_t rows = mf_settings_row_count(state->args.entry, &state->snapshot);
@@ -373,8 +363,6 @@ static void mf_settings_build_rows(MfSettingsState* state) {
         state->items[1] = variable_item_list_add(list, "Input", 3U, mf_settings_changed, state);
         state->items[2] = variable_item_list_add(list, "Keyer", 7U, mf_settings_changed, state);
         state->items[3] = variable_item_list_add(list, "Swap paddles", 2U, mf_settings_changed, state);
-        state->items[4] = variable_item_list_add(list, "Audio output", 0U, NULL, state);
-        state->items[5] = variable_item_list_add(list, "GPIO", 0U, NULL, state);
     } else if(state->args.entry == MfSettingsEntryAudio) {
         state->items[0] = variable_item_list_add(list, "Audio path", 3U, mf_settings_changed, state);
         state->items[1] = variable_item_list_add(list, "Frequency", 31U, mf_settings_changed, state);
@@ -471,7 +459,7 @@ static bool mf_settings_enter(void* opaque, const void* opaque_args, MorseFlippe
     state->gpio_ptt_pin = state->snapshot.gpio_ptt_pin;
     if(args->entry == MfSettingsEntryListening) (void)mf_settings_try_load_custom_names(state);
     variable_item_list_reset(args->list);
-    variable_item_list_set_enter_callback(args->list, mf_settings_enter_row, state);
+    variable_item_list_set_enter_callback(args->list, NULL, NULL);
     mf_settings_build_rows(state);
     variable_item_list_set_selected_item(args->list, (uint8_t)(args->selected_state & 0xffU));
     mf_settings_refresh(state);

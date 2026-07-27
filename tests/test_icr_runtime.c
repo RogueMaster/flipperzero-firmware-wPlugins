@@ -340,8 +340,18 @@ static void test_settings_reset_confirmation_and_persistence(void) {
     result = morse_flipper_icr_runtime_tick(state, 1103U);
     CHECK(!result.redraw);
     result = morse_flipper_icr_runtime_tick(state, 1104U);
-    CHECK(result.redraw);
-    result = morse_flipper_icr_runtime_input(state, &back, 1105U);
+    CHECK(result.handled && result.request_exit);
+    morse_flipper_icr_runtime_leave(state);
+    morse_flipper_icr_runtime_free(state);
+
+    state = morse_flipper_icr_runtime_alloc();
+    CHECK(state != NULL);
+    CHECK(morse_flipper_icr_runtime_enter(state, &args, &result));
+    result = morse_flipper_icr_runtime_input(state, &ok, 1105U);
+    CHECK(result.handled && !result.request_exit);
+    result = morse_flipper_icr_runtime_input(state, &ok, 1106U);
+    CHECK(result.handled && !result.request_exit);
+    result = morse_flipper_icr_runtime_input(state, &back, 1107U);
     CHECK(result.handled && result.request_exit);
     morse_flipper_icr_runtime_leave(state);
     morse_flipper_icr_runtime_free(state);

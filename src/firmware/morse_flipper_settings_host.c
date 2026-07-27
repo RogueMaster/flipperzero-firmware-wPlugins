@@ -10,13 +10,11 @@ static bool mf_settings_apply(
     void* context,
     const MfSettingsRequest* request,
     MfSettingsResponse* response);
-static void mf_settings_post_navigate(void* context, uint32_t event);
 
 /* The mapped Settings FAL retains this table after enter() returns. */
 static const MfSettingsHostServices mf_settings_services = {
     .struct_size = sizeof(MfSettingsHostServices),
     .apply = mf_settings_apply,
-    .post_navigate = mf_settings_post_navigate,
 };
 
 static bool mf_settings_input_source_valid(uint32_t value) {
@@ -231,13 +229,6 @@ static bool mf_settings_apply(void* context, const MfSettingsRequest* request, M
     return true;
 }
 
-static void mf_settings_post_navigate(void* context, uint32_t event) {
-    MorseFlipperApp* app = context;
-    if(app == NULL) return;
-    if(event == MfSettingsNavigateAudio) view_dispatcher_send_custom_event(app->view_dispatcher, MorseFlipperSceneAudioCfg);
-    if(event == MfSettingsNavigateGpio) view_dispatcher_send_custom_event(app->view_dispatcher, MorseFlipperSceneGpio);
-}
-
 bool morse_flipper_settings_host_enter(MorseFlipperApp* app, uint8_t entry, uint32_t selected_state) {
     MfSettingsSnapshot snapshot;
     MfSettingsEnterArgs args;
@@ -350,7 +341,4 @@ bool mf_settings_host_test_apply(
     return mf_settings_apply(app, request, response);
 }
 
-void mf_settings_host_test_navigate(MorseFlipperApp* app, uint32_t event) {
-    mf_settings_post_navigate(app, event);
-}
 #endif

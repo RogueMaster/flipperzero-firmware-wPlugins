@@ -53,15 +53,11 @@ bool morse_flipper_transport_connected(const MorseFlipperApp* app) {
 }
 
 static uint8_t morse_flipper_keyboard_key_for_note(const MorseFlipperApp* app, uint8_t note) {
-    switch(note) {
-    case 0:
-        return morse_pc_straight_preset_key(app->pc_straight_preset);
-    case 1:
-    case 2:
-        return morse_pc_paddle_preset_key(app->pc_paddle_preset, note, false);
-    default:
-        return MorsePcKeyNone;
-    }
+    return morse_pc_keyboard_key_for_note(
+        app->pc_paddle_preset,
+        app->pc_straight_preset,
+        note,
+        morse_flipper_current_keyer_mode(app) == MorseKeyerModeStraight);
 }
 
 static uint16_t morse_flipper_hid_key_for_pc_key(uint8_t key) {

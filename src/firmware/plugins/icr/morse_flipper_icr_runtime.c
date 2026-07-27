@@ -260,8 +260,7 @@ MorseFlipperIcrResult morse_flipper_icr_runtime_input(
     if(state->settings_entry) {
         if(event->key == InputKeyBack &&
            (event->type == InputTypeShort || event->type == InputTypeLong)) {
-            if(state->settings_phase == MorseFlipperIcrSettingsConfirm ||
-               state->settings_phase == MorseFlipperIcrSettingsResult) {
+            if(state->settings_phase == MorseFlipperIcrSettingsConfirm) {
                 state->settings_phase = MorseFlipperIcrSettingsMenu;
                 return morse_flipper_icr_result(state, true);
             }
@@ -276,7 +275,7 @@ MorseFlipperIcrResult morse_flipper_icr_runtime_input(
                 state->settings_phase = MorseFlipperIcrSettingsResult;
                 state->settings_until = now_ms + MORSE_FLIPPER_ICR_RESULT_MS;
             } else {
-                state->settings_phase = MorseFlipperIcrSettingsMenu;
+                return (MorseFlipperIcrResult){.handled = true, .request_exit = true};
             }
             return morse_flipper_icr_result(state, true);
         }
@@ -320,8 +319,7 @@ MorseFlipperIcrResult morse_flipper_icr_runtime_tick(void* value, uint32_t now_m
     if(state->settings_entry) {
         if(state->settings_phase == MorseFlipperIcrSettingsResult &&
            morse_flipper_time_reached(now_ms, state->settings_until)) {
-            state->settings_phase = MorseFlipperIcrSettingsMenu;
-            return morse_flipper_icr_result(state, true);
+            return (MorseFlipperIcrResult){.handled = true, .request_exit = true};
         }
         return morse_flipper_icr_result(state, false);
     }
