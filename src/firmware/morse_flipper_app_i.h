@@ -483,6 +483,8 @@ typedef struct MorseFlipperApp {
     bool vail_tone_active;
     bool session_progress_recorded;
     bool session_progress_dirty;
+    bool session_next_eligible;
+    bool session_offer_next;
     bool progress_debug_result;
     bool progress_debug_returning;
     uint8_t vail_keyer_mode;

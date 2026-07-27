@@ -69,6 +69,8 @@ void morse_flipper_reset_session_runtime(MorseFlipperApp* app) {
     app->session_result_until = 0U;
     app->session_next_group_at = 0U;
     app->session_complete_at = 0U;
+    app->session_next_eligible = false;
+    app->session_offer_next = false;
     app->session_wait_draw_s = 0xFFU;
     app->session_answer_flash_phase = MORSE_FLIPPER_SESSION_DELETE_FLASH_IDLE;
     app->session_deleted_text[0] = '\0';
@@ -496,7 +498,6 @@ void morse_flipper_leave_session(MorseFlipperApp* app, uint32_t now_ms) {
 }
 
 static uint8_t morse_flipper_session_final_percent(const MorseFlipperApp* app) {
-    if(app == NULL) return 100U;
     return morse_trainer_session_letter_percent(&app->trainer);
 }
 
@@ -518,6 +519,9 @@ void morse_flipper_record_session_progress(MorseFlipperApp* app) {
     DateTime dt = {0};
     uint16_t practice_day = MORSE_FLIPPER_PROGRESS_DAY_NONE;
     bool date_valid = false;
+    bool standard;
+    uint8_t lesson;
+    uint8_t total;
     uint8_t percent;
 
     if(app == NULL) return;
@@ -533,6 +537,14 @@ void morse_flipper_record_session_progress(MorseFlipperApp* app) {
     }
 
     app->session_progress_recorded = true;
+    percent = morse_flipper_session_final_percent(app);
+    standard = morse_flipper_effective_trainer_custom_set_idx(app) == 0U;
+    lesson = morse_trainer_lesson(&app->trainer);
+    total = morse_trainer_session_total(&app->trainer);
+    if(standard && percent >= 95U && lesson < morse_trainer_lesson_count() &&
+       total >= MORSE_FLIPPER_PROGRESS_MASTERY_GROUPS)
+        app->session_next_eligible = true;
+
     if(!morse_flipper_ensure_session_progress_loaded(app) || app->session_progress == NULL) {
         app->session_progress_dirty = false;
         return;
@@ -540,9 +552,8 @@ void morse_flipper_record_session_progress(MorseFlipperApp* app) {
 
     furi_hal_rtc_get_datetime(&dt);
     date_valid = morse_flipper_progress_date_to_day(dt.year, dt.month, dt.day, &practice_day);
-    percent = morse_flipper_session_final_percent(app);
 
-    if(morse_flipper_effective_trainer_custom_set_idx(app) != 0U) {
+    if(!standard) {
         morse_flipper_progress_note_custom_attempt(
             app->session_progress, date_valid, practice_day);
         morse_flipper_release_session_progress(app, true);
@@ -553,9 +564,9 @@ void morse_flipper_record_session_progress(MorseFlipperApp* app) {
         app->session_progress,
         date_valid,
         practice_day,
-        morse_trainer_lesson(&app->trainer),
+        lesson,
         percent,
-        morse_trainer_session_total(&app->trainer));
+        total);
     if(morse_flipper_progress_save(app->session_progress) && date_valid) {
         morse_flipper_progress_append_history(
             dt.year,
@@ -563,14 +574,13 @@ void morse_flipper_record_session_progress(MorseFlipperApp* app) {
             dt.day,
             dt.hour,
             dt.minute,
-            morse_trainer_lesson(&app->trainer),
+            lesson,
             percent);
     }
     morse_flipper_release_session_progress(app, false);
 }
 
 static const char* morse_flipper_session_end_blurb(const MorseFlipperApp* app) {
-    if(app == NULL) return "Keep practicing";
     if(morse_trainer_lesson(&app->trainer) >= 40U) return "Congratulations!";
     if(morse_flipper_session_final_percent(app) >= 90U) return "Try the next lesson";
     return "Keep practicing";
@@ -580,7 +590,7 @@ static uint8_t
     morse_flipper_score_wheel_seed(const MorseFlipperApp* app, uint8_t score, uint8_t digit_idx) {
     uint32_t seed;
 
-    seed = app == NULL ? 0U : app->star_anim_started_at;
+    seed = app->star_anim_started_at;
     seed ^= (uint32_t)score * 37U;
     seed ^= (uint32_t)(digit_idx + 1U) * 173U;
     seed ^= seed >> 11;
@@ -758,6 +768,13 @@ static void
     canvas_set_color(canvas, ColorBlack);
 }
 
+static void morse_flipper_draw_lesson_advance(Canvas* canvas) {
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str_aligned(canvas, 64, 27, AlignCenter, AlignCenter, "Proceed to next?");
+    elements_button_left(canvas, "No");
+    elements_button_right(canvas, "Yes");
+}
+
 void morse_flipper_draw_session_end(Canvas* canvas, const MorseFlipperApp* app) {
     enum {
         ScoreCenterBaselineY = 42U,
@@ -777,7 +794,7 @@ void morse_flipper_draw_session_end(Canvas* canvas, const MorseFlipperApp* app) 
     int16_t window_top;
     int16_t score_x;
     uint8_t stars;
-    uint8_t score = morse_flipper_session_final_percent(app);
+    uint8_t score;
     int16_t score_y = ScoreBaselineY;
     uint32_t elapsed = 0U;
     uint32_t now_ms = furi_get_tick();
@@ -791,7 +808,11 @@ void morse_flipper_draw_session_end(Canvas* canvas, const MorseFlipperApp* app) 
     const CanvasFontParameters* font_params;
 
     if(canvas == NULL || app == NULL) return;
-
+    score = morse_flipper_session_final_percent(app);
+    if(app->session_offer_next) {
+        morse_flipper_draw_lesson_advance(canvas);
+        return;
+    }
     if(app->star_anim_started_at != 0U) elapsed = now_ms - app->star_anim_started_at;
 
     canvas_set_font(canvas, FontBigNumbers);

@@ -30,6 +30,7 @@ enum {
     MfRxPracticeCommandReleaseOk,
     MfRxPracticeCommandReleaseBack,
     MfRxPracticeCommandAnswerActivity,
+    MfRxPracticeCommandExit,
 };
 typedef uint8_t MfRxPracticeFeedback;
 enum {
@@ -43,6 +44,7 @@ enum {
 typedef struct {
     void* context;
     char (*answer_preview)(void* context);
+    bool (*left_exit_hint)(void* context);
 } MfRxPracticeDrawServices;
 
 typedef struct {

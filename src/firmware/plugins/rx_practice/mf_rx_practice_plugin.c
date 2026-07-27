@@ -28,12 +28,12 @@ static MfRxPracticeResult mf_rx_input(
     else if(event->key == InputKeyBack && event->type == InputTypeRelease)
         command = MfRxPracticeCommandReleaseBack;
     else if(event->key == InputKeyLeft && event->type == InputTypeLong)
-        command = button_paddle ? MfRxPracticeCommandBack :
-                                  MfRxPracticeCommandConfirmExit;
+        command = MfRxPracticeCommandExit;
     else if(event->type == InputTypePress) {
         if(event->key == InputKeyOk)
             command = MfRxPracticeCommandPrimaryPress;
-        else if(button_paddle && event->key == InputKeyBack)
+        else if(button_paddle && event->key == InputKeyBack &&
+                ((MfRxPracticeState*)state)->phase == MfRxPracticePhaseAnswer)
             command = MfRxPracticeCommandPaddleBackPress;
         else
             command = MfRxPracticeCommandHurry;

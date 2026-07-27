@@ -183,6 +183,18 @@ static void test_timeout_wrap_and_saturation(void) {
     CHECK(state.session_total == UINT16_MAX && state.session_passed == 123U);
 }
 
+static void test_explicit_exit(void) {
+    MfRxPracticeState state;
+    MfRxPracticeResult result;
+    MfRxPracticeEnterArgs args = make_args(0U);
+
+    CHECK(mf_rx_practice_enter(&state, &args, &result));
+    open_answer(&state, 0U);
+    result = mf_rx_practice_command(&state, MfRxPracticeCommandExit, 100U);
+    CHECK(result.handled && result.request_exit && result.decoder_reset);
+    CHECK(result.phase == MfRxPracticePhaseAnswer);
+}
+
 static void test_first_answer_key_down_rebases_timeout_once(void) {
     MfRxPracticeState state;
     MfRxPracticeResult result;
@@ -257,6 +269,7 @@ int main(void) {
     test_playback_and_answer();
     test_edit_and_filtering();
     test_timeout_wrap_and_saturation();
+    test_explicit_exit();
     test_first_answer_key_down_rebases_timeout_once();
     test_back_and_reenter();
     test_press_commands();

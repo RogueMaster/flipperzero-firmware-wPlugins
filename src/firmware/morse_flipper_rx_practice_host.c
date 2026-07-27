@@ -14,6 +14,11 @@ static char mf_rx_answer_preview(void* context) {
     return preview == ' ' || preview == '|' ? '\0' : preview;
 }
 
+static bool mf_rx_left_exit_hint(void* context) {
+    MorseFlipperApp* app = context;
+    return app != NULL && morse_flipper_live_left_hint(app);
+}
+
 static void mf_rx_apply_locked(
     MorseFlipperApp* app,
     MfRxPracticeResult result,
@@ -62,6 +67,7 @@ bool morse_flipper_rx_practice_host_enter(MorseFlipperApp* app, uint32_t now_ms)
         .draw_services = {
             .context = app,
             .answer_preview = mf_rx_answer_preview,
+            .left_exit_hint = mf_rx_left_exit_hint,
         },
     };
     entered = morse_flipper_plugin_runtime_open_mapped_locked(
@@ -121,7 +127,7 @@ bool morse_flipper_rx_practice_host_input(
     if(result.request_exit)
         scene_manager_search_and_switch_to_another_scene(
             app->scene_manager, MorseFlipperSceneMenuTraining);
-    else if(!result.handled && event->key == InputKeyBack &&
+    else if(!result.handled && !morse_flipper_live_back_is_key(app) && event->key == InputKeyBack &&
             (event->type == InputTypeShort || event->type == InputTypeLong)) {
         morse_flipper_plugin_runtime_unload_current(app);
         scene_manager_search_and_switch_to_another_scene(

@@ -121,6 +121,8 @@ MfRxPracticeResult mf_rx_practice_command(
     uint32_t now_ms) {
     if(state == NULL) return mf_result(NULL, false, false, false, false, MfRxPracticeFeedbackNone);
     if(command == MfRxPracticeCommandNone) return mf_result(state, false, false, false, false, MfRxPracticeFeedbackNone);
+    if(command == MfRxPracticeCommandExit)
+        return mf_result(state, true, false, true, true, MfRxPracticeFeedbackClear);
     if(command == MfRxPracticeCommandBack) {
         if(state->phase == MfRxPracticePhaseIdle || state->phase == MfRxPracticePhaseFinal)
             return mf_result(state, true, false, true, true, MfRxPracticeFeedbackClear);

@@ -34,6 +34,7 @@ TESTS = (
     CTest("rx-callsign-gen", ("tests/test_rx_callsign_gen.c", "src/firmware/plugins/common/mf_rx_rng.c", "src/firmware/plugins/common/mf_callsign_gen.c", "src/firmware/cw.c")),
     CTest("rx-callsign-controlled", ("tests/test_rx_callsign_controlled.c", "src/firmware/plugins/common/mf_callsign_gen.c", "src/firmware/cw.c")),
     CTest("rx-practice", ("tests/test_rx_practice.c", "src/firmware/plugins/rx_practice/mf_rx_practice_core.c", "src/firmware/plugins/common/mf_rx_rng.c", "src/firmware/plugins/common/mf_callsign_gen.c", "src/firmware/cw.c")),
+    CTest("rx-practice-draw", ("tests/test_rx_practice_draw.c", "src/firmware/plugins/rx_practice/mf_rx_practice_draw.c")),
     CTest("tx-groups", ("tests/test_tx_groups.c", "src/firmware/plugins/tx_groups/mf_tx_groups_core.c", "src/firmware/morse_flipper_cw_token.c", "src/firmware/cw.c")),
     CTest("passive-codec", ("tests/test_passive_codec.c", "src/firmware/plugins/passive_listening/mf_passive_codec.c")),
     CTest("passive-loading", ("tests/test_passive_loading.c", "src/firmware/plugins/passive_listening/mf_passive_loading.c")),
@@ -46,6 +47,7 @@ TESTS = (
     CTest("settings-host", ("tests/test_settings_host.c", "src/firmware/morse_flipper_settings_host.c"), ("MF_SETTINGS_HOST_TEST",)),
     CTest("config-compat", ("tests/test_config_compat.c", "src/firmware/morse_flipper_config.c"), ("MF_CONFIG_HOST_TEST",)),
     CTest("progress", ("tests/test_progress.c", "src/firmware/morse_flipper_progress.c", "src/firmware/trainer.c", "src/firmware/cw.c")),
+    CTest("lesson-advance", ("tests/test_lesson_advance.c", "src/firmware/trainer.c", "src/firmware/cw.c")),
     CTest("icr", ("tests/test_icr.c", "src/firmware/plugins/icr/morse_flipper_icr.c")),
     CTest("icr-runtime", ("tests/test_icr_runtime.c", "src/firmware/plugins/icr/morse_flipper_icr.c", "src/firmware/plugins/icr/morse_flipper_icr_runtime.c", "src/firmware/cw.c")),
 )

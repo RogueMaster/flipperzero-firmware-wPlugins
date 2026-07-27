@@ -115,6 +115,7 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
     char answer[MF_CALLSIGN_MAX_LEN + 1U];
     const char* shown_answer;
     char score[24];
+    bool left_exit_hint;
     if(state == NULL || canvas == NULL) return;
     canvas_set_font(canvas, FontSecondary);
     if(state->phase == MfRxPracticePhaseIdle) {
@@ -167,7 +168,10 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
         state->target_len,
         37,
         state->phase == MfRxPracticePhaseResult);
-    canvas_draw_line(canvas, 0, 34, 127, 34);
+    left_exit_hint = state->phase == MfRxPracticePhaseAnswer &&
+                     state->draw_services.left_exit_hint != NULL &&
+                     state->draw_services.left_exit_hint(state->draw_services.context);
+    canvas_draw_line(canvas, 0, 34, left_exit_hint ? 119 : 127, 34);
     unsigned pct = state->session_total == 0U ? 0U :
                    (unsigned)(((uint32_t)100U * state->session_passed +
                                state->session_total / 2U) /

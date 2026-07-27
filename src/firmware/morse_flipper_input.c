@@ -587,14 +587,50 @@ static void morse_flipper_leave_session_end(MorseFlipperApp* app, uint32_t now_m
         app->scene_manager, MorseFlipperSceneMenuTraining);
 }
 
+static void morse_flipper_session_advance_lesson(MorseFlipperApp* app, uint32_t now_ms) {
+    uint8_t lesson;
+
+    lesson = morse_trainer_lesson(&app->trainer);
+    app->listening_settings.lesson = (uint8_t)(lesson + 1U);
+    morse_trainer_set_lesson(&app->trainer, app->listening_settings.lesson);
+    morse_flipper_save_config(app);
+    if(!scene_manager_search_and_switch_to_another_scene(
+           app->scene_manager, MorseFlipperSceneSession))
+        scene_manager_next_scene(app->scene_manager, MorseFlipperSceneSession);
+    morse_flipper_start_session(app, now_ms);
+}
+
 static bool morse_flipper_session_end_input(
     MorseFlipperApp* app,
     const InputEvent* event,
     uint32_t now_ms) {
     if(app->screen != MorseFlipperScreenSessionEnd) return false;
 
+    if(app->session_offer_next) {
+        if(event->type == InputTypeShort || event->type == InputTypeLong) {
+            if(event->key == InputKeyOk || event->key == InputKeyRight) {
+                morse_flipper_session_advance_lesson(app, now_ms);
+                return true;
+            }
+            if(event->key == InputKeyBack || event->key == InputKeyLeft) {
+                app->session_offer_next = false;
+                goto leave_session_end;
+            }
+        }
+        return true;
+    }
+
+    if(app->session_next_eligible &&
+       event->key == InputKeyOk && event->type == InputTypeShort) {
+        app->session_next_eligible = false;
+        app->session_offer_next = true;
+        morse_flipper_view_dirty(app);
+        return true;
+    }
+
     if((event->key == InputKeyOk || event->key == InputKeyBack) &&
        (event->type == InputTypeShort || event->type == InputTypeLong)) {
+leave_session_end:
         morse_flipper_leave_session_end(app, now_ms);
         return true;
     }
