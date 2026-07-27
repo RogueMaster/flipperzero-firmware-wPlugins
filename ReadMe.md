@@ -73,6 +73,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: NFC: [FeliCa: check the poller error before reading the system-code response #4428 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4428)
 - OFW: bit_lib: [don't read past the buffer when the requested bits fit one byte #4424 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4424)
 - Updated: [NFC Magic v2.1 (By gornekich)](https://github.com/flipperdevices/flipperzero-firmware/pull/1966) [NFC Magic: ISO15693 / NfcV support (By mfcarroll)](https://github.com/xMasterX/all-the-plugins/pull/250)
+- Updated: OFW: PR: NFC: [FeliCa: Add Standard card emulation support #4383 (By nikachu2012)](https://github.com/flipperdevices/flipperzero-firmware/pull/4383)
 
 <a name="release"></a>
 
