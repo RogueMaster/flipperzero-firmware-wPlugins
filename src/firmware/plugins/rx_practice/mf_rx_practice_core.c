@@ -103,7 +103,8 @@ bool mf_rx_practice_enter(
     state->dit_ms = args->dit_ms;
     state->char_gap_ms = args->char_gap_ms;
     state->physical_key_can_start = args->physical_key_can_start;
-    state->draw_services = args->draw_services;
+    state->button_paddle = args->button_paddle;
+    state->answer_preview = args->answer_preview;
     state->countdown_draw_s = 0xFFU;
     mf_rx_rng_init(&state->rng, args->rng_seed);
     mf_callsign_gen_init(&state->callsigns);

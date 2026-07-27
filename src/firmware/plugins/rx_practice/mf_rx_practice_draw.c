@@ -149,10 +149,8 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
             canvas, state->target, state->target, state->target_len, 5, false);
     shown_answer = state->answer;
     if(state->phase == MfRxPracticePhaseAnswer &&
-       state->answer_len < state->target_len &&
-       state->draw_services.answer_preview != NULL) {
-        char preview =
-            state->draw_services.answer_preview(state->draw_services.context);
+       state->answer_len < state->target_len) {
+        char preview = state->answer_preview;
         if((preview >= 'A' && preview <= 'Z') ||
            (preview >= '0' && preview <= '9')) {
             memcpy(answer, state->answer, state->answer_len);
@@ -168,9 +166,7 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
         state->target_len,
         37,
         state->phase == MfRxPracticePhaseResult);
-    left_exit_hint = state->phase == MfRxPracticePhaseAnswer &&
-                     state->draw_services.left_exit_hint != NULL &&
-                     state->draw_services.left_exit_hint(state->draw_services.context);
+    left_exit_hint = state->phase == MfRxPracticePhaseAnswer && state->button_paddle;
     canvas_draw_line(canvas, 0, 34, left_exit_hint ? 119 : 127, 34);
     unsigned pct = state->session_total == 0U ? 0U :
                    (unsigned)(((uint32_t)100U * state->session_passed +

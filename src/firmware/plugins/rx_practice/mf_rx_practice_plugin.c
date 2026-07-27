@@ -19,9 +19,9 @@ static void mf_rx_leave(void* state) { mf_rx_practice_leave(state); }
 static MfRxPracticeResult mf_rx_input(
     void* state,
     const InputEvent* event,
-    bool button_paddle,
     uint32_t now_ms) {
     MfRxPracticeCommand command = MfRxPracticeCommandNone;
+    bool button_paddle = state != NULL && ((MfRxPracticeState*)state)->button_paddle;
     if(event == NULL) return mf_rx_practice_command(state, command, now_ms);
     if(event->key == InputKeyOk && event->type == InputTypeRelease)
         command = MfRxPracticeCommandReleaseOk;

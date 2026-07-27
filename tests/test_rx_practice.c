@@ -6,18 +6,12 @@
 #include "mf_rx_practice_core.h"
 
 static unsigned checks;
-static char preview_value;
 
 #define CHECK(value) \
     do { \
         assert(value); \
         checks++; \
     } while(0)
-
-static char answer_preview(void* context) {
-    CHECK(context == &preview_value);
-    return preview_value;
-}
 
 static MfRxPracticeEnterArgs make_args(uint32_t now) {
     return (MfRxPracticeEnterArgs){
@@ -29,10 +23,8 @@ static MfRxPracticeEnterArgs make_args(uint32_t now) {
         .dit_ms = 10U,
         .char_gap_ms = 30U,
         .physical_key_can_start = true,
-        .draw_services = {
-            .context = &preview_value,
-            .answer_preview = answer_preview,
-        },
+        .button_paddle = true,
+        .answer_preview = 'E',
     };
 }
 
@@ -79,8 +71,7 @@ static void test_playback_and_answer(void) {
 
     CHECK(mf_rx_practice_enter(&state, &args, &result));
     CHECK(result.phase == MfRxPracticePhaseIdle && result.decoder_reset && result.redraw);
-    preview_value = 'E';
-    CHECK(state.draw_services.answer_preview(state.draw_services.context) == 'E');
+    CHECK(state.button_paddle && state.answer_preview == 'E');
     result = mf_rx_practice_command(&state, MfRxPracticeCommandStart, 0U);
     CHECK(result.phase == MfRxPracticePhasePlayback && result.playback_mark);
     mark_index = state.playback_mark_index;

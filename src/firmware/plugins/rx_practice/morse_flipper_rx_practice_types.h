@@ -42,12 +42,6 @@ enum {
 };
 
 typedef struct {
-    void* context;
-    char (*answer_preview)(void* context);
-    bool (*left_exit_hint)(void* context);
-} MfRxPracticeDrawServices;
-
-typedef struct {
     uint32_t struct_size;
     uint32_t now_ms;
     uint32_t rng_seed;
@@ -56,7 +50,8 @@ typedef struct {
     uint16_t dit_ms;
     uint16_t char_gap_ms;
     bool physical_key_can_start;
-    MfRxPracticeDrawServices draw_services;
+    bool button_paddle;
+    char answer_preview;
 } MfRxPracticeEnterArgs;
 
 typedef MorseFlipperMappedFalResult MfRxPracticeResult;

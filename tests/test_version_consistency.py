@@ -6,7 +6,7 @@ import re
 import sys
 
 
-EXPECTED_VERSION = "0.1.171"
+EXPECTED_VERSION = "0.1.172"
 ROOT = Path(__file__).resolve().parents[1]
 
 

@@ -1,12 +1,13 @@
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "mf_rx_practice_core.h"
 #include "mf_rx_practice_draw.h"
 
 static unsigned checks;
 static int32_t last_line_x2;
-static bool show_left_hint;
+static char last_text[MF_CALLSIGN_MAX_LEN + 1U];
 
 #define CHECK(value) \
     do { \
@@ -64,16 +65,11 @@ void mf_big_callsign_draw_text(
     int32_t y,
     bool mark_errors) {
     (void)canvas;
-    (void)text;
     (void)target;
     (void)length;
     (void)y;
     (void)mark_errors;
-}
-
-static bool left_exit_hint(void* context) {
-    CHECK(context == &show_left_hint);
-    return show_left_hint;
+    snprintf(last_text, sizeof(last_text), "%s", text);
 }
 
 int main(void) {
@@ -81,12 +77,16 @@ int main(void) {
     MfRxPracticeState state = {
         .phase = MfRxPracticePhaseAnswer,
         .target_len = 4U,
-        .draw_services = {.context = &show_left_hint, .left_exit_hint = left_exit_hint},
+        .button_paddle = true,
+        .answer_preview = 'E',
     };
 
-    show_left_hint = true;
     mf_rx_practice_draw(&state, &canvas);
     CHECK(last_line_x2 == 119);
+    CHECK(strcmp(last_text, "E") == 0);
+    state.button_paddle = false;
+    mf_rx_practice_draw(&state, &canvas);
+    CHECK(last_line_x2 == 127);
     state.phase = MfRxPracticePhaseResult;
     mf_rx_practice_draw(&state, &canvas);
     CHECK(last_line_x2 == 127);
