@@ -13,10 +13,10 @@ static int32_t last_line_y2;
 static unsigned left_hint_boxes;
 static char last_text[MF_CALLSIGN_MAX_LEN + 1U];
 static const int32_t hint_geometry[4][4] = {
-    {124, 34, 1, 1},
-    {125, 33, 1, 3},
-    {126, 32, 1, 5},
-    {127, 31, 1, 7},
+    {124, 33, 1, 1},
+    {125, 32, 1, 3},
+    {126, 31, 1, 5},
+    {127, 30, 1, 7},
 };
 
 #define CHECK(value) \
@@ -105,11 +105,19 @@ static void check_phase_chrome(
     state->phase = phase;
     state->button_paddle = button_paddle;
     mf_rx_practice_draw(state, canvas);
-    CHECK(last_line_x1 == 0);
-    CHECK(last_line_y1 == 34);
-    CHECK(last_line_x2 == (button_paddle ? 119 : 127));
-    CHECK(last_line_y2 == 34);
-    CHECK(left_hint_boxes == (button_paddle ? 4U : 0U));
+    if(phase == MfRxPracticePhaseIdle) {
+        CHECK(last_line_x1 == -1);
+        CHECK(last_line_y1 == -1);
+        CHECK(last_line_x2 == -1);
+        CHECK(last_line_y2 == -1);
+        CHECK(left_hint_boxes == 0U);
+    } else {
+        CHECK(last_line_x1 == 0);
+        CHECK(last_line_y1 == 33);
+        CHECK(last_line_x2 == (button_paddle ? 119 : 127));
+        CHECK(last_line_y2 == 33);
+        CHECK(left_hint_boxes == (button_paddle ? 4U : 0U));
+    }
 }
 
 int main(void) {

@@ -48,19 +48,18 @@ def main() -> None:
     assert "g.btn = true;" in STATUS
     assert "g.btn_pad = true;" in STATUS
     assert "g.back_key = true;" in STATUS
-    rx_back = INPUT.index("app->screen == MorseFlipperScreenRxPractice &&")
-    live_reject = INPUT.index(
-        "app->screen == MorseFlipperScreenRxPractice && !g.live", rx_back
-    )
-    assert "event->key == InputKeyBack && g.back_key" in INPUT[rx_back:live_reject]
+    rx_live_reject = INPUT.index("app->screen == MorseFlipperScreenRxPractice && !g.live")
+    assert "event->key == InputKeyBack && g.back_key" not in INPUT[
+        INPUT.index("static bool\n    morse_flipper_session_live_keying_input"):rx_live_reject
+    ]
     assert "MfRxPracticeCommandPaddleBackPress" not in TYPES + PLUGIN
     assert "button_paddle ? MfRxPracticeCommandNone" in PLUGIN
-    assert "morse_flipper_draw_tx_history_divider_geometry(" in DRAW
+    assert "morse_flipper_draw_tx_history_divider_geometry_at(" in DRAW
     assert "morse_flipper_draw_tx_history_divider_geometry(canvas, left_hint);" in (
         ROOT / "src/firmware/morse_flipper_live_view_common.c"
     ).read_text()
     assert "left_hint ? 119 : 127" in DIVIDER
-    assert "canvas_draw_box(canvas, 124, 34, 1, 1);" in DIVIDER
+    assert "canvas_draw_box(canvas, 124, y, 1, 1);" in DIVIDER
     rx_draw = LIVE.index("if(app->screen == MorseFlipperScreenRxPractice)")
     rx_draw_end = LIVE.index("return;", rx_draw)
     assert "morse_flipper_plugin_runtime_draw" in LIVE[rx_draw:rx_draw_end]

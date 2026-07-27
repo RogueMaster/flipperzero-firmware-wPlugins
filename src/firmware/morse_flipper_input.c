@@ -1264,12 +1264,6 @@ static bool
 
     g = morse_flipper_input_gate(app);
 
-    if(app->screen == MorseFlipperScreenRxPractice &&
-       event->key == InputKeyBack && g.back_key) {
-        morse_flipper_handle_active_keying_event(app, event);
-        return true;
-    }
-
     if(app->screen == MorseFlipperScreenRxPractice && !g.live) return false;
 
     if(event->key == InputKeyOk && g.btn) {

@@ -118,8 +118,6 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
     char score[24];
     if(state == NULL || canvas == NULL) return;
     canvas_set_font(canvas, FontSecondary);
-    morse_flipper_draw_tx_history_divider_geometry(
-        canvas, state->button_paddle);
     if(state->phase == MfRxPracticePhaseIdle) {
         canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignBottom, "Callsigns");
         canvas_draw_str_aligned(canvas, 64, 33, AlignCenter, AlignBottom, "Press OK to start");
@@ -127,6 +125,8 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
             canvas_draw_str_aligned(canvas, 64, 49, AlignCenter, AlignBottom, "Press your key to start");
         return;
     }
+    morse_flipper_draw_tx_history_divider_geometry_at(
+        canvas, state->button_paddle, 33);
     if(state->phase == MfRxPracticePhaseFinal) {
         unsigned pct = state->session_total == 0U ? 0U :
                        (unsigned)(((uint32_t)100U * state->session_passed +

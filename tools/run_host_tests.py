@@ -58,6 +58,7 @@ PYTHON_TESTS = (
     "tests/test_passive_voice_pack_tool.py",
     "tests/test_scene_handlers.py",
     "tests/test_rx_practice_lock_graph.py",
+    "tests/test_rx_practice_phase_gating.py",
     "tests/test_terminus24_asset.py",
     "tests/test_version_consistency.py",
 )
