@@ -31,6 +31,10 @@ void morse_flipper_cw_decoder_init_fixed(MorseFlipperCwDecoder* decoder, uint16_
 void morse_flipper_cw_decoder_reset(MorseFlipperCwDecoder* decoder);
 void morse_flipper_cw_decoder_feed_mark(MorseFlipperCwDecoder* decoder, uint16_t ms);
 void morse_flipper_cw_decoder_feed_space(MorseFlipperCwDecoder* decoder, uint16_t ms);
+void morse_flipper_cw_decoder_feed_space_with_letter_gap(
+    MorseFlipperCwDecoder* decoder,
+    uint16_t ms,
+    uint16_t letter_gap_ms);
 bool morse_flipper_cw_decoder_timing_ready(const MorseFlipperCwDecoder* decoder);
 uint16_t morse_flipper_cw_decoder_dit_ms(const MorseFlipperCwDecoder* decoder);
 const char* morse_flipper_cw_decoder_output(const MorseFlipperCwDecoder* decoder);

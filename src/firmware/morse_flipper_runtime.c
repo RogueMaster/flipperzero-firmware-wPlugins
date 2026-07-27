@@ -792,9 +792,17 @@ void morse_flipper_poll(MorseFlipperApp* app) {
     morse_flipper_feed_tx_edge(app, tx_now, now_ms);
     if(!app->rf_tx_level && !app->rf_tx_gap_flushed && app->rf_tx_edge_at != 0U) {
         uint32_t gap = now_ms - app->rf_tx_edge_at;
-        if(gap >= (morse_flipper_current_dit_ms(app) * 5U) / 2U) {
+        uint16_t dit_ms = morse_flipper_current_dit_ms(app);
+        bool rx_callsigns = app->screen == MorseFlipperScreenRxPractice;
+        uint32_t letter_gap_ms = rx_callsigns ? (uint32_t)dit_ms * 2U :
+                                               ((uint32_t)dit_ms * 5U) / 2U;
+        if(gap >= letter_gap_ms) {
             if(morse_flipper_tx_decoder_allowed(app)) {
-                morse_flipper_cw_decoder_feed_space(&app->tx_decoder, (uint16_t)gap);
+                if(rx_callsigns)
+                    morse_flipper_cw_decoder_feed_space_with_letter_gap(
+                        &app->tx_decoder, (uint16_t)gap, (uint16_t)letter_gap_ms);
+                else
+                    morse_flipper_cw_decoder_feed_space(&app->tx_decoder, (uint16_t)gap);
                 morse_flipper_drain_tx_decoder(app);
                 if(app->screen == MorseFlipperScreenTxGroups && app->txg_wait_answer)
                     morse_flipper_view_dirty(app);

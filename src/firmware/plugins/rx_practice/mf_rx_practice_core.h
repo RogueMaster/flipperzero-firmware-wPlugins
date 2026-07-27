@@ -25,6 +25,7 @@ typedef struct MfRxPracticeState {
     uint8_t playback_mark_index;
     uint8_t countdown_draw_s;
     bool playback_mark;
+    bool answer_started;
     bool last_passed;
     bool internal_error;
     bool physical_key_can_start;

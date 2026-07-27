@@ -29,6 +29,7 @@ enum {
     MfRxPracticeCommandPaddleBackPress,
     MfRxPracticeCommandReleaseOk,
     MfRxPracticeCommandReleaseBack,
+    MfRxPracticeCommandAnswerActivity,
 };
 typedef uint8_t MfRxPracticeFeedback;
 enum {

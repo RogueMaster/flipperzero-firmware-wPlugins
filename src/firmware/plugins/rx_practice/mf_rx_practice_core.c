@@ -29,6 +29,7 @@ static bool mf_begin_round(MfRxPracticeState* state, uint32_t now_ms) {
     bool ok;
     state->answer[0] = '\0';
     state->answer_len = 0U;
+    state->answer_started = false;
     state->playback_char = 0U;
     state->playback_mark_index = 0U;
     state->playback_mark = false;
@@ -157,6 +158,12 @@ MfRxPracticeResult mf_rx_practice_command(
         (void)ok;
         return mf_result(state, true, true, true, false, MfRxPracticeFeedbackClear);
     }
+    if(command == MfRxPracticeCommandAnswerActivity &&
+       state->phase == MfRxPracticePhaseAnswer && !state->answer_started) {
+        state->answer_started = true;
+        state->answer_last_activity_ms = now_ms;
+        return mf_result(state, true, false, false, false, MfRxPracticeFeedbackNone);
+    }
     if(command == MfRxPracticeCommandBackspace && state->phase == MfRxPracticePhaseAnswer) {
         bool changed = state->answer_len != 0U;
         if(changed) {
@@ -195,6 +202,7 @@ MfRxPracticeResult mf_rx_practice_feed_text(
         if(state->answer_len < state->target_len) {
             state->answer[state->answer_len++] = ch;
             state->answer[state->answer_len] = '\0';
+            state->answer_started = true;
             state->answer_last_activity_ms = now_ms;
             accepted = true;
         }
@@ -247,6 +255,7 @@ MfRxPracticeResult mf_rx_practice_tick(MfRxPracticeState* state, uint32_t now_ms
             state->next_at = now_ms + state->dit_ms;
         } else if(state->playback_char + 1U >= state->target_len) {
             state->phase = MfRxPracticePhaseAnswer;
+            state->answer_started = false;
             state->answer_last_activity_ms = now_ms;
         } else {
             state->playback_char++;

@@ -151,7 +151,10 @@ static void decoder_process_mark(MorseFlipperCwDecoder* decoder, uint16_t ms) {
     }
 }
 
-static void decoder_process_space(MorseFlipperCwDecoder* decoder, uint16_t ms) {
+static void decoder_process_space(
+    MorseFlipperCwDecoder* decoder,
+    uint16_t ms,
+    uint16_t requested_letter_gap_ms) {
     uint32_t letter_min;
     uint32_t word_min;
     uint32_t reset_min;
@@ -174,7 +177,7 @@ static void decoder_process_space(MorseFlipperCwDecoder* decoder, uint16_t ms) {
     /* Spaces are boundaries: letter, word, or "give up and reset timing". */
     if(!decoder->dit_ms) return;
 
-    letter_min = (decoder->dit_ms * 5u) / 2u;
+    letter_min = requested_letter_gap_ms ? requested_letter_gap_ms : (decoder->dit_ms * 5u) / 2u;
     word_min = decoder->dit_ms * 6u;
     reset_min = decoder->dit_ms * 12u;
 
@@ -279,9 +282,16 @@ void morse_flipper_cw_decoder_feed_mark(MorseFlipperCwDecoder* decoder, uint16_t
 }
 
 void morse_flipper_cw_decoder_feed_space(MorseFlipperCwDecoder* decoder, uint16_t ms) {
+    morse_flipper_cw_decoder_feed_space_with_letter_gap(decoder, ms, 0U);
+}
+
+void morse_flipper_cw_decoder_feed_space_with_letter_gap(
+    MorseFlipperCwDecoder* decoder,
+    uint16_t ms,
+    uint16_t letter_gap_ms) {
     if(!decoder || !ms) return;
     decoder->timing_reset = false;
-    decoder_process_space(decoder, ms);
+    decoder_process_space(decoder, ms, letter_gap_ms);
 }
 
 bool morse_flipper_cw_decoder_timing_ready(const MorseFlipperCwDecoder* decoder) {

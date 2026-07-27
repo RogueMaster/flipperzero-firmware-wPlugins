@@ -176,9 +176,12 @@ bool morse_flipper_rx_practice_host_tick(
         command = MfRxPracticeCommandStart;
     } else if(app->plugin_slot.phase == MfRxPracticePhasePlayback) {
         app->plugin_slot.start_hold_mask |= down_mask;
-    } else if(app->plugin_slot.phase == MfRxPracticePhaseAnswer &&
-              app->plugin_slot.start_hold_mask != 0U) {
-        app->plugin_slot.start_hold_mask |= down_mask;
+    } else if(app->plugin_slot.phase == MfRxPracticePhaseAnswer) {
+        if(app->plugin_slot.start_hold_mask != 0U) {
+            app->plugin_slot.start_hold_mask |= down_mask;
+        } else if(new_down != 0U || morse_flipper_any_active_notes(app)) {
+            command = MfRxPracticeCommandAnswerActivity;
+        }
     } else if(app->plugin_slot.phase == MfRxPracticePhaseResult &&
               new_down != 0U) {
         app->plugin_slot.start_hold_mask |= down_mask;
@@ -187,9 +190,13 @@ bool morse_flipper_rx_practice_host_tick(
     if(command == MfRxPracticeCommandNone)
         morse_flipper_plugin_runtime_tick_locked(
             app, MorseFlipperPluginOwnerRxPractice, now_ms, &result);
-    else
+    else {
         result = ((const MfRxPracticeApi*)app->plugin_slot.api)
                      ->command(app->plugin_slot.state, command, now_ms);
+        if(!result.handled)
+            morse_flipper_plugin_runtime_tick_locked(
+                app, MorseFlipperPluginOwnerRxPractice, now_ms, &result);
+    }
     mf_rx_apply_locked(app, result, now_ms);
     if(app->plugin_slot.phase == MfRxPracticePhaseAnswer &&
        app->plugin_slot.start_hold_mask == 0U)
