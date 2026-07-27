@@ -38,9 +38,9 @@ Settings — host list, keyboard template, and languages:
 
 ![Settings templates and languages](docs/screenshots/06-settings-layouts.png)
 
-Settings — dual-language key labels toggle:
+Settings — languages (enabled pinned to the top):
 
-![Settings dual labels](docs/screenshots/07-settings-dual-labels.png)
+![Settings languages](docs/screenshots/07-settings-languages.png)
 
 ### Flipper FAP (Android KB Bridge)
 
