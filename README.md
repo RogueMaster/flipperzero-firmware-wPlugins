@@ -19,8 +19,8 @@ track time with millisecond precision, record lap splits, and reset with a clean
 ---
 
 <!-- Badges -->
-[![GitHub Release](https://img.shields.io/github/v/release/bergr22/Stopwatch_Flipper?color=blue&label=LATEST%20VERSION)](https://github.com/bergr22/Stopwatch_Flipper/releases)
-[![GitHub Downloads (all assets)](https://img.shields.io/github/downloads/bergr22/simple_stopwatch/total?color=brightgreen&label=DOWNLOADS)](https://github.com/bergr22/simple_stopwatch/releases)
+[![GitHub Release](https://img.shields.io/github/v/release/bergr22/Stopwatch-Flipper?color=blue&label=LATEST%20VERSION)](https://github.com/bergr22/Stopwatch-Flipper/releases/tag/v1.0.0)
+[![GitHub Downloads (all assets)](https://img.shields.io/github/downloads/bergr22/Stopwatch-Flipper/total?color=brightgreen&label=DOWNLOADS)](https://github.com/bergr22/Stopwatch-Flipper/releases)
 [![License: MIT](https://img.shields.io/badge/LICENSE-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
