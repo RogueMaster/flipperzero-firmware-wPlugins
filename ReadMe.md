@@ -66,6 +66,12 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Android KB Bridge v0.5.7 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD) (Version Only)
 - Updated: [Tesla Mod v2.16b24 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd) (Version Only)
 - OFW: Infrared: [initialize timings_cnt on decoder alloc and fix its bounds check #4429 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4429)
+- OFW: js_event_loop: [reject a zero or negative timer interval- #4425 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4425)
+- OFW: LFRFID: [fix the Pyramid trailing Wiegand parity bit #4426 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4426)
+- OFW: LFRFID: [NUL-terminate the PAC/Stanley card id before parsing it- #4427
+ #4427 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4427)
+- OFW: NFC: [FeliCa: check the poller error before reading the system-code response #4428 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4428)
+- OFW: bit_lib: [don't read past the buffer when the requested bits fit one byte #4424 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4424)
 
 <a name="release"></a>
 
