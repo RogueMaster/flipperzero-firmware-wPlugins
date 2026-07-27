@@ -5,6 +5,7 @@
 #include "protocols/gen1a/gen1a_poller.h"
 #include "protocols/gen2/gen2_poller.h"
 #include "protocols/gen4/gen4_poller.h"
+#include "protocols/uscuid_ul/uscuid_ul_poller.h"
 #include <nfc/nfc_poller.h>
 #include <nfc/protocols/iso14443_3a/iso14443_3a.h>
 
@@ -21,13 +22,12 @@ typedef enum {
 struct NfcMagicScanner {
     Nfc* nfc;
     NfcMagicScannerSessionState session_state;
-    NfcMagicProtocol current_protocol;
 
     Gen4Password gen4_password;
     Gen4* gen4_data;
     Gen2Type gen2_type;
     uint8_t gen1_uid_len;
-    bool magic_protocol_detected;
+    UscuidUlData uscuid_ul_data;
 
     NfcMagicScannerCallback callback;
     void* context;
@@ -37,15 +37,16 @@ struct NfcMagicScanner {
 
 static const NfcProtocol nfc_magic_scanner_not_magic_protocols[] = {
     NfcProtocolIso14443_3b,
-    NfcProtocolIso15693_3,
+    // NfcProtocolIso15693_3 is intentionally absent. ISO15693 (NfcV) tags are handled as
+    // magic ISO15693 candidates in nfc_magic_scanner_detect_pass().
     NfcProtocolFelica,
 };
 
 static void nfc_magic_scanner_reset(NfcMagicScanner* instance) {
     instance->session_state = NfcMagicScannerSessionStateIdle;
-    instance->current_protocol = NfcMagicProtocolGen1;
     instance->gen2_type = Gen2TypeUnknown;
     instance->gen1_uid_len = 0;
+    memset(&instance->uscuid_ul_data, 0, sizeof(UscuidUlData));
 }
 
 NfcMagicScanner* nfc_magic_scanner_alloc(Nfc* nfc) {
@@ -71,27 +72,152 @@ void nfc_magic_scanner_set_gen4_password(NfcMagicScanner* instance, Gen4Password
     instance->gen4_password = password;
 }
 
-// Reads the card's UID length (4 or 7) via a standard ISO14443-3A activation, or 0 if
-// it can't be determined. Gen1's backdoor wakeup is UID-length-agnostic, so this
-// resolves the anticollision cascade to tell 4-byte and 7-byte Gen1 tags apart.
-static uint8_t nfc_magic_scanner_read_uid_len(Nfc* nfc) {
-    uint8_t uid_len = 0;
+#define NFC_MAGIC_SAK_ULTRALIGHT (0x00)
+
+// One ISO14443-3A identity read via a standard activation. SAK splits the magic families
+// (Ultralight/NTAG answer SAK 0x00, MIFARE Classic does not) BEFORE any backdoor frame,
+// and the UID length (4/7) tells 4- vs 7-byte Gen1 tags apart (the wakeup is UID-agnostic).
+typedef struct {
+    bool activated;
+    uint8_t sak;
+    uint8_t uid_len; // 4 or 7, else 0 ("unknown")
+    uint8_t uid0; // first two UID bytes, for the unpersonalized UL-5 (AA 55) heuristic
+    uint8_t uid1;
+} NfcMagicScannerIdentity;
+
+static NfcMagicScannerIdentity nfc_magic_scanner_read_identity(Nfc* nfc) {
+    NfcMagicScannerIdentity id = {.activated = false, .sak = 0, .uid_len = 0};
+
     NfcPoller* poller = nfc_poller_alloc(nfc, NfcProtocolIso14443_3a);
     if(nfc_poller_detect(poller)) {
         const Iso14443_3aData* data = nfc_poller_get_data(poller);
-        uid_len = data->uid_len;
-        if(uid_len != 4 && uid_len != 7) {
-            // Not a Gen1-relevant length (e.g. 10-byte or garbage): treat as unknown.
-            FURI_LOG_E(TAG, "Unexpected Gen1 UID length %u", (unsigned)uid_len);
-            uid_len = 0;
+        id.activated = true;
+        id.sak = data->sak;
+        id.uid_len = (data->uid_len == 4 || data->uid_len == 7) ? data->uid_len : 0;
+        if(data->uid_len >= 2) {
+            id.uid0 = data->uid[0];
+            id.uid1 = data->uid[1];
         }
-    } else {
-        // Backdoor responded but standard activation failed (card moved?). Length stays
-        // 0 ("unknown") and callers fall back to 4-byte / skip the length check.
-        FURI_LOG_E(TAG, "Gen1 detected but UID-length activation failed");
     }
     nfc_poller_free(poller);
-    return uid_len;
+
+    return id;
+}
+
+static bool nfc_magic_scanner_detect_gen4(NfcMagicScanner* instance) {
+    gen4_reset(instance->gen4_data);
+    Gen4 gen4_data;
+    Gen4PollerError error = gen4_poller_detect(instance->nfc, instance->gen4_password, &gen4_data);
+    if(error == Gen4PollerErrorNone) {
+        gen4_copy(instance->gen4_data, &gen4_data);
+        return true;
+    }
+    return false;
+}
+
+static bool nfc_magic_scanner_detect_mf_classic(Nfc* nfc) {
+    NfcPoller* poller = nfc_poller_alloc(nfc, NfcProtocolMfClassic);
+    bool detected = nfc_poller_detect(poller);
+    nfc_poller_free(poller);
+    return detected;
+}
+
+static bool nfc_magic_scanner_detect_iso15693(Nfc* nfc) {
+    // ISO15693 (NfcV) is a different RF technology from ISO14443-3A, so it gets its own
+    // activation probe. There is no reliable non-destructive backdoor probe for a magic
+    // ISO15693 tag, so any ISO15693 tag that activates is treated as a ISO15693 *candidate* --
+    // magic-ness is proven at write time via a UID read-back. This mirrors how a generic
+    // MIFARE Classic is reported as an unconfirmed candidate.
+    NfcPoller* poller = nfc_poller_alloc(nfc, NfcProtocolIso15693_3);
+    bool detected = nfc_poller_detect(poller);
+    nfc_poller_free(poller);
+    return detected;
+}
+
+static bool nfc_magic_scanner_detect_not_magic(Nfc* nfc) {
+    for(size_t i = 0; i < COUNT_OF(nfc_magic_scanner_not_magic_protocols); i++) {
+        NfcPoller* poller = nfc_poller_alloc(nfc, nfc_magic_scanner_not_magic_protocols[i]);
+        bool detected = nfc_poller_detect(poller);
+        nfc_poller_free(poller);
+        if(detected) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// One detection pass. SAK from the standard activation picks the family before any
+// backdoor frame, which prunes wrong-family probes and stops a 7AFF USCUID-UL (which
+// answers the same 40/43 wakeup as a Gen1A) from being misdetected as Gen1.
+static bool nfc_magic_scanner_detect_pass(NfcMagicScanner* instance, NfcMagicProtocol* protocol) {
+    const NfcMagicScannerIdentity id = nfc_magic_scanner_read_identity(instance->nfc);
+
+    // Gen4 (UMC) is family-agnostic and definitive; probe it first so a wiped UMC isn't
+    // mistaken for a Gen2 CUID or a blank Ultralight.
+    if(nfc_magic_scanner_detect_gen4(instance)) {
+        *protocol = NfcMagicProtocolGen4;
+        return true;
+    }
+
+    // ISO15693 magic candidate. Different RF tech, so it does not depend on the
+    // ISO14443-3A identity read above.
+    if(nfc_magic_scanner_detect_iso15693(instance->nfc)) {
+        *protocol = NfcMagicProtocolIso15693;
+        return true;
+    }
+
+    if(id.activated && id.sak == NFC_MAGIC_SAK_ULTRALIGHT) {
+        // Ultralight family.
+        if(uscuid_ul_poller_detect(instance->nfc, &instance->uscuid_ul_data) ==
+           UscuidUlPollerErrorNone) {
+            *protocol = NfcMagicProtocolUscuidUl;
+            return true;
+        }
+        // Unpersonalized UL-5 has a locked config (so the probe above fails) but is
+        // identifiable by its UID prefix AA 55. Report it as a detect-only hint.
+        if(id.uid0 == 0xAA && id.uid1 == 0x55) {
+            memset(&instance->uscuid_ul_data, 0, sizeof(UscuidUlData));
+            instance->uscuid_ul_data.maybe_ul5 = true;
+            *protocol = NfcMagicProtocolUscuidUl;
+            return true;
+        }
+        // Activated as an Ultralight but with no magic signature and no UL-5 hint: not a
+        // confirmed magic tag. Classify it as "not detected" (zeroed data => direct engine,
+        // wakeup None) so the user can still attempt a write, mirroring the Classic fallback
+        // below. Returning true here also stops the worker spinning forever on a genuine tag.
+        memset(&instance->uscuid_ul_data, 0, sizeof(UscuidUlData));
+        *protocol = NfcMagicProtocolUscuidUlNotDetected;
+        return true;
+    } else if(id.activated) {
+        // MIFARE Classic family.
+        if(gen1a_poller_detect(instance->nfc)) {
+            instance->gen1_uid_len = id.uid_len;
+            *protocol = NfcMagicProtocolGen1;
+            return true;
+        }
+        if(gen2_poller_detect_type(instance->nfc, &instance->gen2_type) == Gen2PollerErrorNone) {
+            *protocol = NfcMagicProtocolGen2;
+            return true;
+        }
+        if(nfc_magic_scanner_detect_mf_classic(instance->nfc)) {
+            *protocol = NfcMagicProtocolClassic;
+            return true;
+        }
+    } else {
+        // No standard activation: try the backdoor wakeups to revive a bricked magic card.
+        if(gen1a_poller_detect(instance->nfc)) {
+            instance->gen1_uid_len = 0;
+            *protocol = NfcMagicProtocolGen1;
+            return true;
+        }
+        if(uscuid_ul_poller_detect(instance->nfc, &instance->uscuid_ul_data) ==
+           UscuidUlPollerErrorNone) {
+            *protocol = NfcMagicProtocolUscuidUl;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 static int32_t nfc_magic_scanner_worker(void* context) {
@@ -101,72 +227,28 @@ static int32_t nfc_magic_scanner_worker(void* context) {
     furi_assert(instance->session_state == NfcMagicScannerSessionStateActive);
 
     while(instance->session_state == NfcMagicScannerSessionStateActive) {
-        do {
-            if(instance->current_protocol == NfcMagicProtocolGen1) {
-                instance->magic_protocol_detected = gen1a_poller_detect(instance->nfc);
-                if(instance->magic_protocol_detected) {
-                    instance->gen1_uid_len = nfc_magic_scanner_read_uid_len(instance->nfc);
-                    break;
-                }
-            } else if(instance->current_protocol == NfcMagicProtocolGen4) {
-                gen4_reset(instance->gen4_data);
-                Gen4 gen4_data;
-                Gen4PollerError error =
-                    gen4_poller_detect(instance->nfc, instance->gen4_password, &gen4_data);
-                instance->magic_protocol_detected = (error == Gen4PollerErrorNone);
-                if(instance->magic_protocol_detected) {
-                    gen4_copy(instance->gen4_data, &gen4_data);
-                    break;
-                }
-            } else if(instance->current_protocol == NfcMagicProtocolGen2) {
-                Gen2Type gen2_type = Gen2TypeUnknown;
-                Gen2PollerError error = gen2_poller_detect_type(instance->nfc, &gen2_type);
-                instance->magic_protocol_detected = (error == Gen2PollerErrorNone);
-                if(instance->magic_protocol_detected) {
-                    instance->gen2_type = gen2_type;
-                    break;
-                }
-            } else if(instance->current_protocol == NfcMagicProtocolClassic) {
-                NfcPoller* poller = nfc_poller_alloc(instance->nfc, NfcProtocolMfClassic);
-                instance->magic_protocol_detected = nfc_poller_detect(poller);
-                nfc_poller_free(poller);
-                if(instance->magic_protocol_detected) {
-                    break;
-                }
-            }
-        } while(false);
+        NfcMagicProtocol protocol = NfcMagicProtocolInvalid;
 
-        if(instance->magic_protocol_detected) {
+        if(nfc_magic_scanner_detect_pass(instance, &protocol)) {
             NfcMagicScannerEvent event = {
                 .type = NfcMagicScannerEventTypeDetected,
-                .data.protocol = instance->current_protocol,
+                .data.protocol = protocol,
                 .data.gen2_type = instance->gen2_type,
                 .data.gen1_uid_len = instance->gen1_uid_len,
+                .data.uscuid_ul = instance->uscuid_ul_data,
             };
             instance->callback(event, instance->context);
             break;
         }
 
-        if(instance->current_protocol == NfcMagicProtocolNum - 1) {
-            bool not_magic_protocol_detected = false;
-            for(size_t i = 0; i < COUNT_OF(nfc_magic_scanner_not_magic_protocols); i++) {
-                NfcProtocol protocol = nfc_magic_scanner_not_magic_protocols[i];
-                NfcPoller* poller = nfc_poller_alloc(instance->nfc, protocol);
-                not_magic_protocol_detected = nfc_poller_detect(poller);
-                nfc_poller_free(poller);
-                if(not_magic_protocol_detected) {
-                    break;
-                }
-            }
-            if(not_magic_protocol_detected) {
-                NfcMagicScannerEvent event = {
-                    .type = NfcMagicScannerEventTypeDetectedNotMagic,
-                };
-                instance->callback(event, instance->context);
-                break;
-            }
+        // Non-ISO14443-3A cards (ISO14443-3B / ISO15693 / FeliCa) are simply not magic.
+        if(nfc_magic_scanner_detect_not_magic(instance->nfc)) {
+            NfcMagicScannerEvent event = {
+                .type = NfcMagicScannerEventTypeDetectedNotMagic,
+            };
+            instance->callback(event, instance->context);
+            break;
         }
-        instance->current_protocol = (instance->current_protocol + 1) % NfcMagicProtocolNum;
     }
 
     nfc_magic_scanner_reset(instance);
