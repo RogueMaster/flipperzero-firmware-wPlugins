@@ -6,6 +6,7 @@ TYPES = (ROOT / "src/firmware/plugins/rx_practice/morse_flipper_rx_practice_type
 API = (ROOT / "src/firmware/plugins/rx_practice/morse_flipper_rx_practice_api.h").read_text()
 CORE = (ROOT / "src/firmware/plugins/rx_practice/mf_rx_practice_core.h").read_text()
 DRAW = (ROOT / "src/firmware/plugins/rx_practice/mf_rx_practice_draw.c").read_text()
+DIVIDER = (ROOT / "src/firmware/morse_flipper_divider_geometry.h").read_text()
 PLUGIN = (ROOT / "src/firmware/plugins/rx_practice/mf_rx_practice_plugin.c").read_text()
 HOST = (ROOT / "src/firmware/morse_flipper_rx_practice_host.c").read_text()
 RUNTIME = (ROOT / "src/firmware/morse_flipper_plugin_runtime.c").read_text()
@@ -54,8 +55,12 @@ def main() -> None:
     assert "event->key == InputKeyBack && g.back_key" in INPUT[rx_back:live_reject]
     assert "MfRxPracticeCommandPaddleBackPress" not in TYPES + PLUGIN
     assert "button_paddle ? MfRxPracticeCommandNone" in PLUGIN
-    assert "canvas_draw_line(canvas, 0, 34, 119, 34);" in DRAW
-    assert "canvas_draw_box(canvas, 124, 34, 1, 1);" in DRAW
+    assert "morse_flipper_draw_tx_history_divider_geometry(" in DRAW
+    assert "morse_flipper_draw_tx_history_divider_geometry(canvas, left_hint);" in (
+        ROOT / "src/firmware/morse_flipper_live_view_common.c"
+    ).read_text()
+    assert "left_hint ? 119 : 127" in DIVIDER
+    assert "canvas_draw_box(canvas, 124, 34, 1, 1);" in DIVIDER
     rx_draw = LIVE.index("if(app->screen == MorseFlipperScreenRxPractice)")
     rx_draw_end = LIVE.index("return;", rx_draw)
     assert "morse_flipper_plugin_runtime_draw" in LIVE[rx_draw:rx_draw_end]

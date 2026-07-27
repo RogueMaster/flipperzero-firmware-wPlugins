@@ -1,22 +1,10 @@
 #include "mf_rx_practice_draw.h"
 
+#include "../../morse_flipper_divider_geometry.h"
 #include "../common/mf_big_callsign_font.h"
 
 #include <stdio.h>
 #include <string.h>
-
-static void mf_rx_draw_divider(const MfRxPracticeState* state, Canvas* canvas) {
-    if(!state->button_paddle) {
-        canvas_draw_line(canvas, 0, 34, 127, 34);
-        return;
-    }
-
-    canvas_draw_line(canvas, 0, 34, 119, 34);
-    canvas_draw_box(canvas, 124, 34, 1, 1);
-    canvas_draw_box(canvas, 125, 33, 1, 3);
-    canvas_draw_box(canvas, 126, 32, 1, 5);
-    canvas_draw_box(canvas, 127, 31, 1, 7);
-}
 
 /* The oversized glyph renderer is shared by Callsigns FALs. */
 #if 0
@@ -130,7 +118,8 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
     char score[24];
     if(state == NULL || canvas == NULL) return;
     canvas_set_font(canvas, FontSecondary);
-    mf_rx_draw_divider(state, canvas);
+    morse_flipper_draw_tx_history_divider_geometry(
+        canvas, state->button_paddle);
     if(state->phase == MfRxPracticePhaseIdle) {
         canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignBottom, "Callsigns");
         canvas_draw_str_aligned(canvas, 64, 33, AlignCenter, AlignBottom, "Press OK to start");

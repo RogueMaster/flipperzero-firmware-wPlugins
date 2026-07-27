@@ -6,6 +6,7 @@
  */
 
 #include "morse_flipper_app_i.h"
+#include "morse_flipper_divider_geometry.h"
 
 void morse_flipper_draw_plugin_unavailable(Canvas* canvas) {
     canvas_set_font(canvas, FontPrimary);
@@ -24,18 +25,7 @@ void morse_flipper_draw_left_exit_hint(Canvas* canvas) {
 }
 
 void morse_flipper_draw_tx_history_divider(Canvas* canvas, bool left_hint) {
-    if(canvas == NULL) return;
-
-    if(!left_hint) {
-        canvas_draw_line(canvas, 0, 34, 127, 34);
-        return;
-    }
-
-    canvas_draw_line(canvas, 0, 34, 119, 34);
-    canvas_draw_box(canvas, 124, 34, 1, 1);
-    canvas_draw_box(canvas, 125, 33, 1, 3);
-    canvas_draw_box(canvas, 126, 32, 1, 5);
-    canvas_draw_box(canvas, 127, 31, 1, 7);
+    morse_flipper_draw_tx_history_divider_geometry(canvas, left_hint);
 }
 
 uint16_t morse_flipper_star_anim_duration(uint8_t target_stars) {
