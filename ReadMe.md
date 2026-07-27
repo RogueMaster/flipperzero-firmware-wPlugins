@@ -45,7 +45,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Paint v1.4 (By n-o-T-I-n-s-a-n-e)](https://github.com/n-o-T-I-n-s-a-n-e) [fix stuck pen, add Move/Draw/Erase modes and canvas persistence (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/238)
 - Updated: [Video Poker v1.5 (By PixlEmly)](https://github.com/PixlEmly/flipperzero-firmware-testing/blob/420/applications/VideoPoker/poker.c) [saturate the payout so a big win cannot overflow the bank (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/240)
 - Updated: [Sub-GHz RAW Edit v1.7 (By Lechnio)](https://github.com/Lechnio/SubGHz-RAW-Edit)
-- Updated: [Android KB Bridge v0.5.5 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD) (Version Only)
 - Updated: [Asteroids v1.3 (By antirez)](https://github.com/antirez/flipper-asteroids) [fix the stray lines and stall when objects cross the screen edge (By mishamyte)](https://github.com/xMasterX/all-the-plugins/pull/242)
 - OFW: [Add method for changing variable item label #4421 (By loftyinclination)](https://github.com/flipperdevices/flipperzero-firmware/pull/4421)
 - OFW: [Allow for checking if an id is in use before adding to view dispatcher #4422 (By loftyinclination)](https://github.com/flipperdevices/flipperzero-firmware/pull/4422)
@@ -65,6 +64,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Flipper Share NFC v1.5 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_nfc)
 - Updated: [DeFlock v0.43 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [Claude Buddy v0.6 (By jxw1102)](https://github.com/jxw1102/flipper-claude-buddy)
+- Updated: [Android KB Bridge v0.5.7 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD) (Version Only)
 
 <a name="release"></a>
 
@@ -348,7 +348,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Amusement IC v0.1 (By object-Object)](https://github.com/object-Object/flip_aic)
 - [Analog Clock v1.2 (By scrolltex)](https://github.com/scrolltex/flipper_analog_clock)
 - [Analog Output v0.1 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio/dac)
-- [Android KB Bridge v0.5.5 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD)
+- [Android KB Bridge v0.5.7 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD)
 - [Anim Previewer v1.0 (By H4W9)](https://github.com/H4W9/AnimationPreviewerFlipperApp)
 - [Animation Switcher v1.1 (By lsalik2)](https://github.com/lsalik2/FlipperAnimationSwitcher)
 - [Anki Remote v1.3 (By Blue5GD)](https://github.com/Blue5GD/Anki-Remote)

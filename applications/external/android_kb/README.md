@@ -1,130 +1,42 @@
-# Android Keyboard → Flipper Zero → USB HID
+# Android KB Bridge (Flipper)
 
-Bluetooth bridge / direct HID: a landscape Android app can send keyboard and mouse events either through Flipper Zero (BLE Serial → USB HID) or **directly to a PC over Bluetooth HID** (no Flipper).
+Receive keyboard and mouse events from the companion Android app over **BLE Serial**, and inject them into a PC as **USB HID**.
 
-```
-Android app  ──BLE Serial──►  Flipper FAP  ──USB HID──►  PC
-```
+## What you need
 
-## Motivation
+1. Flipper Zero with this FAP installed
+2. USB data cable Flipper ↔ PC
+3. Android phone with the companion app ([v0.5.7 release](https://github.com/andybeg/AndroidFlipperZeroKBD/releases/tag/v0.5.7))
+4. Phone paired with Flipper in system Bluetooth settings
 
-I often work with devices that ship without a keyboard and needed something universal — a keyboard that can reach hosts over as many interfaces as practical (USB via Flipper today, direct Bluetooth HID from the phone, more later). Dedicated mini keyboards help, but their radio dongles kept going missing, which got old fast. A phone is almost always in reach, and a Flipper Zero is harder to lose than a tiny USB stick — so the phone becomes the keys, and Flipper (or Bluetooth) is the cable into the target.
+## How to use
 
-## Screenshots
+1. Plug Flipper into the PC (USB).
+2. Launch **Android KB Bridge** on Flipper.
+3. Wait until the screen shows **USB: connected**.
+4. On the phone: open the app → Settings → **Via Flipper** → select Flipper → Save.
+5. Tap **Connect** (top-left). Status on Flipper should become **Phone: connected**.
+6. Type on the phone keyboard or use Touchpad.
 
-### Android app
+## Buttons on Flipper
 
-Keyboard (macOS · English), dual labels, stacked ↑↓:
+- **Back** — exit the app
+- **Up** — toggle forced backlight
+- **Down ×3** — save screenshot (only if built with AKB_SCREENSHOT=1)
 
-![Keyboard macOS EN](docs/screenshots/01-keyboard-en.png)
+Unplugging USB does not exit — use **Back**.
 
-Layout switch banner after swiping the space bar:
+## Notes
 
-![Layout switch banner](docs/screenshots/02-layout-switch-banner.png)
+- While this FAP owns USB HID, the Flipper serial port may disappear on the host — normal.
+- The host may see the device as Logitech-like (0x046D / 0xC529), not as “Flipper”.
+- Full project docs (Android Direct Bluetooth mode, protocol, builds): [repository README](https://github.com/andybeg/AndroidFlipperZeroKBD).
 
-Connected (macOS · English):
+## Build
 
-![Keyboard connected](docs/screenshots/03-keyboard-connected.png)
+From the project root (needs a local flipperzero-firmware checkout):
 
-Touchpad mode:
+- make flipper-link
+- make flipper-launch
 
-![Touchpad](docs/screenshots/04-touchpad.png)
-
-Settings — output mode (Flipper vs Direct Bluetooth) and keyboard name:
-
-![Settings output](docs/screenshots/05-settings-output.png)
-
-Settings — host list, keyboard template, and languages:
-
-![Settings templates and languages](docs/screenshots/06-settings-layouts.png)
-
-Settings — dual-language key labels toggle:
-
-![Settings dual labels](docs/screenshots/07-settings-dual-labels.png)
-
-### Flipper FAP (Android KB Bridge)
-
-Waiting for phone (USB connected). Bottom hint includes `Dn3=shot` when built with `AKB_SCREENSHOT=1`:
-
-![Flipper waiting](docs/screenshots/flipper-waiting.png)
-
-Phone connected over BLE — ready to type:
-
-![Flipper connected](docs/screenshots/flipper-connected.png)
-
-On-device capture: triple short **Down** → PBM on SD (`apps_data/android_keyboard_bridge/`). Details: `docs/FLIPPER.md`.
-
-More screenshots: `docs/screenshots/`.
-
-## Components
-
-| Path | Description |
-|------|-------------|
-| `docs/BUILD.md` | Build, flash, install, troubleshooting |
-| `docs/ANDROID.md` | Android app UI, Settings, templates + language packs |
-| `docs/FLIPPER.md` | FAP behavior, USB identity, BLE/RPC, optional screenshots |
-| `docs/PROTOCOL.md` | BLE UUIDs and frame format |
-| `docs/screenshots/` | Android + Flipper UI screenshots |
-| `flipper/android_keyboard_bridge/` | Flipper FAP sources (**C** — production / default) |
-| `flipper/android_keyboard_bridge_rust/` | Same FAP in **Rust**, for educational purposes only |
-| `android/` | Android app (`assets/layouts/templates/`, `assets/layouts/languages/`) |
-
-## Requirements
-
-- Flipper Zero
-- Android 8.0+ (API 26), BLE
-- USB data cable (Flipper ↔ PC)
-- Phone paired with Flipper in system Bluetooth settings
-- Local `flipperzero-firmware` checkout to build the FAP
-- JDK 17 for command-line Android builds
-
-## Quick start
-
-```bash
-# Flipper
-make flipper-link
-make flipper-launch
-
-# Android
-make apk-install
-```
-
-Then on the phone:
-
-1. **Settings** → choose **Via Flipper** or **Direct Bluetooth to PC**, pick a **template** (macOS / PC / Number), enable **languages** (EN/RU), optionally **Show two languages on keys** → Save  
-2. Tap the **top-left** connection button (green = ready; blue = waiting for PC to pair in Direct mode)  
-3. For Direct BT without a saved PC: accept discoverable, then pair/connect from the PC — host MAC is saved automatically  
-4. Type on the keyboard, or use the top-center **Keyboard | Touchpad** switch  
-5. Swipe on the **space bar** to switch languages (banner + toolbar show the active name)  
-
-Details: `docs/ANDROID.md`, `docs/FLIPPER.md`.
-
-Bundled templates: **macOS**, **PC**, **Number**. Language packs: **EN**, **RU**. Optional dual-label keys (current large, next small). Drop extra language JSON into the app’s `files/layouts/languages/` folder (see Settings hint / `docs/ANDROID.md`).
-
-Layout screens are for convenience only — they do not switch the Mac/PC input language; match the host keyboard source yourself (see `docs/ANDROID.md`).
-
-## Build shortcuts
-
-```bash
-make help
-make apk
-make apk-install
-make apk-release          # → FlipperZeroKbd-<version>.apk
-make apk-release-install
-make flipper-link
-make flipper-build
-make flipper-flash
-make flipper-launch
-make flipper-rust-build   # optional educational Rust FAP (.fap)
-make flipper-cli
-```
-
-Full instructions: `docs/BUILD.md`.
-
-## Protocol
-
-Keyboard taps use `key_down` / `key_up`; touchpad uses mouse move / button / scroll frames (same 6-byte header). See `docs/PROTOCOL.md`.
-
-## Credits
-
-Built with help from [Cursor](https://cursor.com).
+Or with [uFBT](https://pypi.org/project/ufbt/) from this directory: ufbt launch

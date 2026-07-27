@@ -95,9 +95,35 @@ Layouts are composed from:
 | Folder | Role |
 |--------|------|
 | `assets/layouts/templates/` | Physical chrome + HID codes (`macos`, `pc`, `number`, …) |
-| `assets/layouts/languages/` | Label packs (`en`, `ru`, …) keyed by `fill` ids |
+| `assets/layouts/languages/` | Label packs (`en`, `ru`, `de`, …) keyed by `fill` ids |
 
-Each template catalog entry points at a JSON file you can copy to add a new keyboard shape. Language packs declare `locales` (e.g. `["en"]`). Settings lists bundled packs (**en**, **ru**) plus any user JSON files; best-effort device detection only marks matches and seeds default checkboxes.
+Each template catalog entry points at a JSON file you can copy to add a new keyboard shape. Language packs declare `locales` (e.g. `["en"]`).
+
+Settings shows a **searchable list of all system-known languages** (`Locale.getAvailableLocales()`), plus bundled/user JSON packs. Enabled languages stay at the top of the list. Best-effort device matching can seed defaults — it is often incomplete on OEM builds.
+
+### Bundled packs from CLDR
+
+Bundled label packs are generated from **CLDR Windows keyboard** layouts (LDML XML, `release-41`):
+
+```bash
+python3 tools/generate_cldr_language_packs.py
+```
+
+- Maps ISO key positions (`D01`…`B10`) onto template `fill` ids (`q`…`/`).
+- Keeps one preferred layout per locale id (skips Dvorak; prefers the default Windows file over legacy/extended variants).
+- Skips CJK IME shells (`zh` / `ja` / `ko`) where letter keys are not useful as static glyphs.
+- Cache: `tools/.cache/cldr-keyboards/` (gitignored). Re-download with `--force-download`.
+
+Packs that still have no JSON (rare Android locales outside CLDR) fall back to English QWERTY labels.
+
+### Limitations (languages & key labels)
+
+- **Preferred system languages** (Settings → Languages) are not reliably readable as a full list on many phones; public APIs often return only the primary UI locale.
+- Android does **not** expose soft-keyboard glyph maps (Gboard / Samsung Keyboard layouts). There is no supported API to “read йцукен from the system” onto our keys.
+- Bundled CLDR packs and user JSON files provide real labels. Other selected languages fall back to **English QWERTY** letters on the keys (same HID positions).
+- On-screen language switching does **not** change the Mac/PC input source — the host still maps HID codes with its own layout.
+
+If you know a reliable, permission-safe way to read the user’s full preferred-language list and/or keyboard layout glyphs on stock Android, please open an issue or PR — tips are very welcome.
 
 ### Custom language packs
 
@@ -113,7 +139,7 @@ adb push de.json /sdcard/Android/data/com.flipperzero.androidkeyboard/files/layo
 
 - Files starting with `_` are ignored (a `README.txt` is written there with the schema).
 - Same `id` as a bundled pack overrides it.
-- Reopen Settings (or restart the app) after adding files. Custom packs show ✎ in the list.
+- Reopen Settings (or restart the app) after adding files.
 
 ### Important: labels only — no OS integration
 
