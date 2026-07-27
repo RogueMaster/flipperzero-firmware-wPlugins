@@ -65,6 +65,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Claude Buddy v0.6 (By jxw1102)](https://github.com/jxw1102/flipper-claude-buddy)
 - Updated: [Android KB Bridge v0.5.7 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD) (Version Only)
 - Updated: [Tesla Mod v2.16b24 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd) (Version Only)
+- OFW: Infrared: [initialize timings_cnt on decoder alloc and fix its bounds check #4429 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4429)
 
 <a name="release"></a>
 
