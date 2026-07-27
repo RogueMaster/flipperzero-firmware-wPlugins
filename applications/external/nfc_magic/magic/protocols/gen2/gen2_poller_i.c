@@ -398,7 +398,10 @@ bool gen2_poller_can_write_block(const MfClassicData* target_data, uint8_t block
     bool can_write = true;
 
     if(block_num == 0 && target_data->iso14443_3a_data->uid_len == 7) {
-        // 7-byte UID gen2 cards are not supported yet, need further testing
+        // 7-byte UID gen2 cards are not supported yet, need further testing. Keep this guard:
+        // the wipe's block-0 default (gen2_poller.c) hard-codes SAK/ATQA at the 4-byte-UID offsets
+        // (bytes 5-7); a 7-byte UID puts them at 7-9, so writing block 0 would corrupt it. When
+        // adding 7-byte support, derive the offsets from uid_len (or use nfc_generate_mf_classic_block_0).
         can_write = false;
     }
 
@@ -433,12 +436,17 @@ Gen2PollerWriteProblems
     if(!has_key_a && !has_key_b) {
         can_write.missing_target_keys = true;
     }
-    if(!gen2_is_allowed_access(
-           target_data, block_num, MfClassicKeyTypeA, MfClassicActionDataWrite) &&
-       !gen2_is_allowed_access(
-           target_data, block_num, MfClassicKeyTypeB, MfClassicActionDataWrite)) {
-        if(!gen2_can_reset_access_conditions(target_data, block_num)) {
-            can_write.locked_access_bits = true;
+    // Access conditions live in the sector trailer; only judge "locked" if we actually read it.
+    // An unread trailer is all-zero, which decodes as locked -- that's really just a missing key.
+    if(mf_classic_is_block_read(
+           target_data, mf_classic_get_sector_trailer_num_by_block(block_num))) {
+        if(!gen2_is_allowed_access(
+               target_data, block_num, MfClassicKeyTypeA, MfClassicActionDataWrite) &&
+           !gen2_is_allowed_access(
+               target_data, block_num, MfClassicKeyTypeB, MfClassicActionDataWrite)) {
+            if(!gen2_can_reset_access_conditions(target_data, block_num)) {
+                can_write.locked_access_bits = true;
+            }
         }
     }
 
@@ -471,24 +479,31 @@ Gen2PollerWriteProblems
     if(!has_key_a && !has_key_b) {
         can_write.missing_target_keys = true;
     }
-    if(!gen2_is_allowed_access(
-           target_data, block_num, MfClassicKeyTypeA, MfClassicActionKeyAWrite) &&
-       !gen2_is_allowed_access(
-           target_data, block_num, MfClassicKeyTypeB, MfClassicActionKeyAWrite)) {
-        if(!gen2_can_reset_access_conditions(target_data, block_num)) {
+    // Access conditions live in the trailer; only judge "locked" if we actually read it. An unread
+    // trailer is all-zero, which decodes as locked -- that's really just the missing key above.
+    if(mf_classic_is_block_read(
+           target_data, mf_classic_get_sector_trailer_num_by_block(block_num))) {
+        if(!gen2_is_allowed_access(
+               target_data, block_num, MfClassicKeyTypeA, MfClassicActionKeyAWrite) &&
+           !gen2_is_allowed_access(
+               target_data, block_num, MfClassicKeyTypeB, MfClassicActionKeyAWrite)) {
+            if(!gen2_can_reset_access_conditions(target_data, block_num)) {
+                can_write.locked_access_bits = true;
+            }
+        }
+        if(!gen2_is_allowed_access(
+               target_data, block_num, MfClassicKeyTypeA, MfClassicActionACWrite) &&
+           !gen2_is_allowed_access(
+               target_data, block_num, MfClassicKeyTypeB, MfClassicActionACWrite)) {
             can_write.locked_access_bits = true;
         }
-    }
-    if(!gen2_is_allowed_access(target_data, block_num, MfClassicKeyTypeA, MfClassicActionACWrite) &&
-       !gen2_is_allowed_access(target_data, block_num, MfClassicKeyTypeB, MfClassicActionACWrite)) {
-        can_write.locked_access_bits = true;
-    }
-    if(!gen2_is_allowed_access(
-           target_data, block_num, MfClassicKeyTypeA, MfClassicActionKeyBWrite) &&
-       !gen2_is_allowed_access(
-           target_data, block_num, MfClassicKeyTypeB, MfClassicActionKeyBWrite)) {
-        if(!gen2_can_reset_access_conditions(target_data, block_num)) {
-            can_write.locked_access_bits = true;
+        if(!gen2_is_allowed_access(
+               target_data, block_num, MfClassicKeyTypeA, MfClassicActionKeyBWrite) &&
+           !gen2_is_allowed_access(
+               target_data, block_num, MfClassicKeyTypeB, MfClassicActionKeyBWrite)) {
+            if(!gen2_can_reset_access_conditions(target_data, block_num)) {
+                can_write.locked_access_bits = true;
+            }
         }
     }
 

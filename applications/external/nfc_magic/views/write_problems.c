@@ -36,14 +36,12 @@ static void write_problems_view_draw_callback(Canvas* canvas, void* _model) {
     elements_text_box(
         canvas, 1, 13, 76, 42, AlignLeft, AlignTop, furi_string_get_cstr(model->content), false);
 
-    // Butttons
-    if(model->problem_index == model->problems_total - 1) {
-        elements_button_center(canvas, "Skip");
-        elements_button_left(canvas, "Retry");
-    } else {
-        elements_button_center(canvas, "Next");
-        elements_button_left(canvas, "Back");
-    }
+    // Buttons. Left always pages back through the warnings (and exits to the menu from the first),
+    // so it is always "Back" -- only the center action differs: advance to the next warning, or, on
+    // the last one, skip the warnings and run the operation.
+    elements_button_center(
+        canvas, model->problem_index == model->problems_total - 1 ? "Skip" : "Next");
+    elements_button_left(canvas, "Back");
 
     // Dolphin
     canvas_draw_icon(canvas, 83, 22, &I_WarningDolphinFlip_45x42);

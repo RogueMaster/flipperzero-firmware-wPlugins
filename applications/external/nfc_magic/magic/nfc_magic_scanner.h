@@ -4,6 +4,7 @@
 #include <nfc/nfc.h>
 #include "protocols/nfc_magic_protocols.h"
 #include "protocols/gen2/gen2_poller.h"
+#include "protocols/uscuid_ul/uscuid_ul_poller.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,6 +20,7 @@ typedef struct {
     NfcMagicProtocol protocol;
     Gen2Type gen2_type; // Valid when protocol == NfcMagicProtocolGen2
     uint8_t gen1_uid_len; // Gen1 UID length (4/7) when resolved; 0 if unknown or not Gen1
+    UscuidUlData uscuid_ul; // Valid when protocol == NfcMagicProtocolUscuidUl
 } NfcMagicScannerEventData;
 
 typedef struct {

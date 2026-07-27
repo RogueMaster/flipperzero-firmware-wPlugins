@@ -45,6 +45,14 @@ typedef union {
 
 extern const char* const gen2_problem_strings[];
 
+// Wipe/clone outcome is tracked per block, so the "not done" list is exact -- e.g. only block 0 of
+// a genuine MFC (read-only manufacturer block), not its whole sector. 4K has the most blocks (256).
+#define GEN2_POLLER_MAX_BLOCKS        (256)
+#define GEN2_POLLER_BLOCK_BITMAP_SIZE ((GEN2_POLLER_MAX_BLOCKS + 7) / 8)
+_Static_assert(
+    GEN2_POLLER_MAX_BLOCKS <= GEN2_POLLER_BLOCK_BITMAP_SIZE * 8,
+    "Gen2 block bitmap too small for max blocks");
+
 typedef enum {
     Gen2PollerEventTypeDetected,
     Gen2PollerEventTypeRequestMode,
@@ -52,6 +60,7 @@ typedef enum {
     Gen2PollerEventTypeRequestTargetData,
 
     Gen2PollerEventTypeSuccess,
+    Gen2PollerEventTypePartial, // wipe/clone done except blocks that couldn't be written
     Gen2PollerEventTypeFail,
 } Gen2PollerEventType;
 
@@ -72,10 +81,21 @@ typedef struct {
     const MfClassicData* mfc_data;
 } Gen2PollerEventDataRequestTargetData;
 
+// Wipe/clone soft-failure: every block was written/cleared except those that couldn't be (no key,
+// or a read-only block). failed_bitmap bit N set = block N could not be written.
+// Invariant: 0 < failed_count < blocks_total -- the all-failed and none-failed cases are reported
+// as Fail/Success, never Partial (so a blocks_total - failed_count subtraction never underflows).
+typedef struct {
+    uint16_t blocks_total;
+    uint16_t failed_count;
+    uint8_t failed_bitmap[GEN2_POLLER_BLOCK_BITMAP_SIZE];
+} Gen2PollerEventDataPartial;
+
 typedef union {
     Gen2PollerEventDataRequestMode poller_mode;
     Gen2PollerEventDataRequestDataToWrite data_to_write;
     Gen2PollerEventDataRequestTargetData target_data;
+    Gen2PollerEventDataPartial partial;
 } Gen2PollerEventData;
 
 typedef struct {

@@ -25,6 +25,7 @@ typedef enum {
     Gen2PollerStateWriteTargetDataRequest,
     Gen2PollerStateWrite,
     Gen2PollerStateSuccess,
+    Gen2PollerStatePartial,
     Gen2PollerStateFail,
 
     Gen2PollerStateNum,
@@ -48,6 +49,8 @@ typedef struct {
     MfClassicKeyType write_key;
     uint16_t current_block;
     bool need_halt_before_write;
+    uint16_t failed_block_count; // wipe/clone: blocks that couldn't be written
+    uint8_t failed_block_bitmap[GEN2_POLLER_BLOCK_BITMAP_SIZE]; // bit N = block N not written
 } Gen2PollerWriteContext;
 
 typedef union {

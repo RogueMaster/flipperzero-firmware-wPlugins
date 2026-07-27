@@ -179,6 +179,12 @@ static void nfc_magic_scene_mf_classic_dict_attack_prepare_view(NfcMagicApp* ins
 void nfc_magic_scene_mf_classic_dict_attack_on_enter(void* context) {
     NfcMagicApp* instance = context;
 
+    // Re-read the card fresh each op. The dict attack seeds the poller from target_dev and the
+    // poller trusts pre-found keys (skips re-auth), so keys cached by a prior write/wipe would be
+    // replayed -- writing/wiping with the wrong keys. Runs once per op, so the user->system
+    // two-pass reuse below (target_dev carried between passes) is unaffected.
+    nfc_device_clear(instance->target_dev);
+
     scene_manager_set_scene_state(
         instance->scene_manager,
         NfcMagicSceneMfClassicDictAttack,
@@ -203,6 +209,27 @@ static void nfc_magic_scene_mf_classic_dict_attack_notify_read(NfcMagicApp* inst
     }
 }
 
+static void nfc_magic_scene_mf_classic_dict_attack_proceed_to_write(NfcMagicApp* instance) {
+    // A wipe authenticates each sector with a found key; with none found it can only fail. Skip the
+    // write-check warnings (which imply a workable "proceed") and report the real reason directly --
+    // ahead of the read-success cue/deed below, which would otherwise chirp success on a dead wipe.
+    if(instance->gen2_poller_is_wipe_mode && instance->nfc_dict_context.keys_found == 0) {
+        scene_manager_set_scene_state(
+            instance->scene_manager, NfcMagicSceneWipeFail, NfcMagicWipeFailReasonNoKeys);
+        scene_manager_next_scene(instance->scene_manager, NfcMagicSceneWipeFail);
+        return;
+    }
+
+    nfc_magic_scene_mf_classic_dict_attack_notify_read(instance);
+    dolphin_deed(DolphinDeedNfcReadSuccess);
+
+    if(instance->protocol == NfcMagicProtocolGen2) {
+        scene_manager_next_scene(instance->scene_manager, NfcMagicSceneGen2WriteCheck);
+    } else {
+        scene_manager_next_scene(instance->scene_manager, NfcMagicSceneMfClassicWriteCheck);
+    }
+}
+
 bool nfc_magic_scene_mf_classic_dict_attack_on_event(void* context, SceneManagerEvent event) {
     NfcMagicApp* instance = context;
     bool consumed = false;
@@ -224,14 +251,7 @@ bool nfc_magic_scene_mf_classic_dict_attack_on_event(void* context, SceneManager
                 nfc_poller_start(instance->poller, nfc_dict_attack_worker_callback, instance);
                 consumed = true;
             } else {
-                nfc_magic_scene_mf_classic_dict_attack_notify_read(instance);
-                if(instance->protocol == NfcMagicProtocolGen2) {
-                    scene_manager_next_scene(instance->scene_manager, NfcMagicSceneGen2WriteCheck);
-                } else {
-                    scene_manager_next_scene(
-                        instance->scene_manager, NfcMagicSceneMfClassicWriteCheck);
-                }
-                dolphin_deed(DolphinDeedNfcReadSuccess);
+                nfc_magic_scene_mf_classic_dict_attack_proceed_to_write(instance);
                 consumed = true;
             }
         } else if(event.event == NfcMagicAppCustomEventCardDetected) {
@@ -258,26 +278,11 @@ bool nfc_magic_scene_mf_classic_dict_attack_on_event(void* context, SceneManager
                     instance->poller = nfc_poller_alloc(instance->nfc, NfcProtocolMfClassic);
                     nfc_poller_start(instance->poller, nfc_dict_attack_worker_callback, instance);
                 } else {
-                    nfc_magic_scene_mf_classic_dict_attack_notify_read(instance);
-                    if(instance->protocol == NfcMagicProtocolGen2) {
-                        scene_manager_next_scene(
-                            instance->scene_manager, NfcMagicSceneGen2WriteCheck);
-                    } else {
-                        scene_manager_next_scene(
-                            instance->scene_manager, NfcMagicSceneMfClassicWriteCheck);
-                    }
-                    dolphin_deed(DolphinDeedNfcReadSuccess);
+                    nfc_magic_scene_mf_classic_dict_attack_proceed_to_write(instance);
                 }
                 consumed = true;
             } else if(state == DictAttackStateSystemDictInProgress) {
-                nfc_magic_scene_mf_classic_dict_attack_notify_read(instance);
-                if(instance->protocol == NfcMagicProtocolGen2) {
-                    scene_manager_next_scene(instance->scene_manager, NfcMagicSceneGen2WriteCheck);
-                } else {
-                    scene_manager_next_scene(
-                        instance->scene_manager, NfcMagicSceneMfClassicWriteCheck);
-                }
-                dolphin_deed(DolphinDeedNfcReadSuccess);
+                nfc_magic_scene_mf_classic_dict_attack_proceed_to_write(instance);
                 consumed = true;
             }
         }
@@ -303,6 +308,7 @@ void nfc_magic_scene_mf_classic_dict_attack_on_exit(void* context) {
         DictAttackStateUserDictInProgress);
 
     keys_dict_free(instance->nfc_dict_context.dict);
+    instance->nfc_dict_context.dict = NULL; // so a back-out free in write-check can't double-free
 
     instance->nfc_dict_context.current_sector = 0;
     instance->nfc_dict_context.sectors_total = 0;

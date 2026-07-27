@@ -48,6 +48,16 @@ NfcCommand nfc_magic_scene_wipe_gen2_poller_callback(Gen2PollerEvent event, void
         view_dispatcher_send_custom_event(
             instance->view_dispatcher, NfcMagicCustomEventWorkerSuccess);
         command = NfcCommandStop;
+    } else if(event.type == Gen2PollerEventTypePartial) {
+        instance->gen2_partial_blocks_total = event.data->partial.blocks_total;
+        instance->gen2_partial_failed_count = event.data->partial.failed_count;
+        memcpy(
+            instance->gen2_partial_failed_bitmap,
+            event.data->partial.failed_bitmap,
+            sizeof(instance->gen2_partial_failed_bitmap));
+        view_dispatcher_send_custom_event(
+            instance->view_dispatcher, NfcMagicCustomEventWorkerPartial);
+        command = NfcCommandStop;
     } else if(event.type == Gen2PollerEventTypeFail) {
         view_dispatcher_send_custom_event(
             instance->view_dispatcher, NfcMagicCustomEventWorkerFail);
@@ -145,7 +155,15 @@ bool nfc_magic_scene_wipe_on_event(void* context, SceneManagerEvent event) {
         } else if(event.event == NfcMagicCustomEventWorkerSuccess) {
             scene_manager_next_scene(instance->scene_manager, NfcMagicSceneSuccess);
             consumed = true;
+        } else if(event.event == NfcMagicCustomEventWorkerPartial) {
+            scene_manager_next_scene(instance->scene_manager, NfcMagicSceneGen2WipePartial);
+            consumed = true;
         } else if(event.event == NfcMagicCustomEventWorkerFail) {
+            // Generic mid-wipe failure (any protocol). Set the reason explicitly -- the WipeFail
+            // scene state is malloc'd, not zero-initialized, so without this the no-keys-specific
+            // message could show on the first failure. Mirrors the NoKeys producer in dict_attack.
+            scene_manager_set_scene_state(
+                instance->scene_manager, NfcMagicSceneWipeFail, NfcMagicWipeFailReasonGeneric);
             scene_manager_next_scene(instance->scene_manager, NfcMagicSceneWipeFail);
             consumed = true;
         }
