@@ -770,10 +770,11 @@ static void
 }
 
 static void morse_flipper_draw_lesson_advance(Canvas* canvas) {
-    canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 27, AlignCenter, AlignCenter, "Proceed to next?");
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, 64, 17, AlignCenter, AlignCenter, "Would you like to try");
+    canvas_draw_str_aligned(canvas, 64, 29, AlignCenter, AlignCenter, "the next lesson?");
     elements_button_left(canvas, "No");
-    elements_button_right(canvas, "Yes");
+    elements_button_center(canvas, "Yes");
 }
 
 void morse_flipper_draw_session_end(Canvas* canvas, const MorseFlipperApp* app) {

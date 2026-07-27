@@ -272,13 +272,11 @@ MorseFlipperApp* morse_flipper_boot(void) {
     app->scene_manager = scene_manager_alloc(&morse_flipper_scene_handlers, app);
     morse_flipper_ensure_view(app, MorseFlipperViewMenu);
 
-    if(morse_flipper_gpio_probe_any_short(app->startup_gpio_probe_state)) {
+    scene_manager_next_scene(
+        app->scene_manager,
+        app->onboarding_seen ? MorseFlipperSceneMenuMain : MorseFlipperSceneOnboarding);
+    if(morse_flipper_gpio_probe_any_short(app->startup_gpio_probe_state))
         scene_manager_next_scene(app->scene_manager, MorseFlipperSceneStartupProbe);
-    } else if(!app->onboarding_seen) {
-        scene_manager_next_scene(app->scene_manager, MorseFlipperSceneOnboarding);
-    } else {
-        scene_manager_next_scene(app->scene_manager, MorseFlipperSceneMenuMain);
-    }
     return app;
 }
 

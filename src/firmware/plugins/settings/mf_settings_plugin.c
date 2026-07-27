@@ -75,10 +75,41 @@ static const char* mf_settings_input_name_from_index(uint8_t index) {
                mf_settings_input_choices[0].name;
 }
 
-static const char* mf_settings_keyer_name(uint8_t value) {
-    static const char* const names[] = {
-        "Straight", "Bug", "Plain Iambic", "Iambic A", "Iambic B", "Ultimatic", "Keyahead"};
-    return value < 7U ? names[value] : names[0];
+typedef struct {
+    uint8_t mode;
+    const char* name;
+} MfSettingsKeyerChoice;
+
+/* These are persisted core enum values, not variable-item indices. */
+static const MfSettingsKeyerChoice mf_settings_keyer_choices[] = {
+    {.mode = 1U, .name = "Straight"},
+    {.mode = 2U, .name = "Bug"},
+    {.mode = 6U, .name = "Plain Iambic"},
+    {.mode = 7U, .name = "Iambic A"},
+    {.mode = 8U, .name = "Iambic B"},
+    {.mode = 5U, .name = "Ultimatic"},
+    {.mode = 9U, .name = "Keyahead"},
+};
+
+static uint8_t mf_settings_keyer_index_from_mode(uint8_t mode) {
+    for(uint8_t index = 0U;
+        index < sizeof(mf_settings_keyer_choices) / sizeof(mf_settings_keyer_choices[0]);
+        index++) {
+        if(mf_settings_keyer_choices[index].mode == mode) return index;
+    }
+    return 0U;
+}
+
+static uint8_t mf_settings_keyer_mode_from_index(uint8_t index) {
+    return index < sizeof(mf_settings_keyer_choices) / sizeof(mf_settings_keyer_choices[0]) ?
+               mf_settings_keyer_choices[index].mode :
+               mf_settings_keyer_choices[0].mode;
+}
+
+static const char* mf_settings_keyer_name_from_index(uint8_t index) {
+    return index < sizeof(mf_settings_keyer_choices) / sizeof(mf_settings_keyer_choices[0]) ?
+               mf_settings_keyer_choices[index].name :
+               mf_settings_keyer_choices[0].name;
 }
 
 static const char* mf_settings_tone_name(uint8_t value) {
@@ -137,8 +168,11 @@ static void mf_settings_refresh(MfSettingsState* state) {
         }
         item = state->items[MfSettingsRowKeyer];
         if(item != NULL) {
-            variable_item_set_current_value_index(item, state->snapshot.keyer_mode);
-            variable_item_set_current_value_text(item, mf_settings_keyer_name(state->snapshot.keyer_mode));
+            uint8_t keyer_index =
+                mf_settings_keyer_index_from_mode(state->snapshot.keyer_mode);
+            variable_item_set_current_value_index(item, keyer_index);
+            variable_item_set_current_value_text(
+                item, mf_settings_keyer_name_from_index(keyer_index));
         }
         item = state->items[MfSettingsRowSwap];
         if(item != NULL) {
@@ -282,6 +316,7 @@ static void mf_settings_changed(VariableItem* item) {
                 state,
                 kinds[row],
                 row == MfSettingsRowInput ? mf_settings_input_source_from_index(index) :
+                row == MfSettingsRowKeyer ? mf_settings_keyer_mode_from_index(index) :
                                            (row == MfSettingsRowWpm ? 10U + index : index));
     } else if(state->args.entry == MfSettingsEntryAudio) {
         static const uint8_t kinds[] = {

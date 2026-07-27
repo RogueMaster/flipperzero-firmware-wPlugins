@@ -49,9 +49,7 @@ static bool morse_flipper_startup_probe_input(MorseFlipperApp* app, const InputE
         morse_flipper_save_config(app);
         morse_flipper_refresh_keyer(app, furi_get_tick());
         morse_flipper_poll(app);
-        scene_manager_search_and_switch_to_another_scene(
-            app->scene_manager,
-            app->onboarding_seen ? MorseFlipperSceneMenuMain : MorseFlipperSceneOnboarding);
+        scene_manager_previous_scene(app->scene_manager);
         return true;
     }
 
@@ -608,11 +606,11 @@ static bool morse_flipper_session_end_input(
 
     if(app->session_offer_next) {
         if(event->type == InputTypeShort || event->type == InputTypeLong) {
-            if(event->key == InputKeyOk || event->key == InputKeyRight) {
+            if(event->key == InputKeyOk) {
                 morse_flipper_session_advance_lesson(app, now_ms);
                 return true;
             }
-            if(event->key == InputKeyBack || event->key == InputKeyLeft) {
+            if(event->key == InputKeyBack) {
                 app->session_offer_next = false;
                 goto leave_session_end;
             }

@@ -79,6 +79,8 @@ static bool apply(void* context, const MfSettingsRequest* request, MfSettingsRes
     response->snapshot = response_snapshot;
     if(request->kind == MfSettingsSetInputSource)
         response->snapshot.input_source = (uint8_t)request->value;
+    if(request->kind == MfSettingsSetKeyerMode)
+        response->snapshot.keyer_mode = (uint8_t)request->value;
     if(request->kind == MfSettingsSetLocalWpm) {
         response->snapshot.local_wpm = (uint16_t)request->value;
         response->snapshot.farnsworth_wpm = (uint8_t)request->value;
@@ -119,7 +121,7 @@ static void assert_page_labels(uint8_t page, const VariableItemList* list) {
     case MfSettingsEntryKeying:
         assert_item(list, 0U, "WPM", "20");
         assert_item(list, 1U, "Input", "buttons");
-        assert_item(list, 2U, "Keyer", "Keyahead");
+        assert_item(list, 2U, "Keyer", "Plain Iambic");
         assert_item(list, 3U, "Swap paddles", "Yes");
         assert_item(list, 4U, "Audio output", NULL);
         assert_item(list, 5U, "GPIO", NULL);
@@ -201,6 +203,19 @@ int main(void) {
     list.items[1].changed(&list.items[1]);
     assert(last_request.kind == MfSettingsSetInputSource && last_request.value == 2U);
     assert(list.items[1].current_index == 0U && strcmp(list.items[1].current_text, "buttons") == 0);
+    {
+        static const uint8_t keyer_values[] = {1U, 2U, 6U, 7U, 8U, 5U, 9U};
+        static const char* const keyer_names[] = {
+            "Straight", "Bug", "Plain Iambic", "Iambic A", "Iambic B", "Ultimatic", "Keyahead"};
+        for(uint8_t index = 0U; index < sizeof(keyer_values); index++) {
+            list.items[2].current_index = index;
+            list.items[2].changed(&list.items[2]);
+            assert(last_request.kind == MfSettingsSetKeyerMode);
+            assert(last_request.value == keyer_values[index]);
+            assert(list.items[2].current_index == index);
+            assert(strcmp(list.items[2].current_text, keyer_names[index]) == 0);
+        }
+    }
     mf_settings_test_leave(state);
     assert(list.count == 0U && list.resets >= 2U);
     assert(opens == closes && frees == opens);
@@ -240,7 +255,7 @@ int main(void) {
         {MfSettingsSetUsbMode, MfSettingsSetUsbPaddlePreset, MfSettingsSetUsbStraightPreset, MfSettingsSetUsbMouseInvert},
     };
     static const uint8_t expected_values[][8] = {
-        {10U, 2U, 0U, 0U}, {0U, 0U, 10U, 0U}, {1U, 10U, 1U, 3U, 3U, 1U, 3U, 0U},
+        {10U, 2U, 1U, 0U}, {0U, 0U, 10U, 0U}, {1U, 10U, 1U, 3U, 3U, 1U, 3U, 0U},
         {10U, 1U, 1U}, {0U}, {0U}, {0U, 0U, 0U, 0U},
     };
     calls = 0U;
@@ -287,7 +302,11 @@ int main(void) {
                 list.items[row].changed(&list.items[row]);
                 if(page == MfSettingsEntryKeying) {
                     static const uint8_t input_values[] = {2U, 0U, 1U};
-                    expected = row == 0U ? 30U : row == 1U ? input_values[selected] : selected;
+                    static const uint8_t keyer_values[] = {1U, 2U, 6U, 7U, 8U, 5U, 9U};
+                    expected = row == 0U ? 30U :
+                               row == 1U ? input_values[selected] :
+                               row == 2U ? keyer_values[selected] :
+                                           selected;
                 } else if(page == MfSettingsEntryAudio) {
                     expected = row == 2U ? 10U + selected * 5U : selected;
                 } else if(page == MfSettingsEntryListening) {

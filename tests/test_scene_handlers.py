@@ -11,6 +11,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = ROOT / "src/firmware/morse_flipper_app_i.h"
 SCENES = ROOT / "src/firmware/morse_flipper_scenes.c"
+APP = ROOT / "src/firmware/morse_flipper_app.c"
+INPUT = ROOT / "src/firmware/morse_flipper_input.c"
+SESSION = ROOT / "src/firmware/morse_flipper_session.c"
 
 
 def scene_names() -> set[str]:
@@ -114,6 +117,57 @@ class SceneHandlerTableTest(unittest.TestCase):
             for scene, handler in expected.items():
                 with self.subTest(table=table_name, scene=scene):
                     self.assertEqual(actual[scene], handler)
+
+    def test_startup_probe_is_an_overlay_not_the_scene_root(self) -> None:
+        app = APP.read_text(encoding="utf-8")
+        base = app.index(
+            "app->onboarding_seen ? MorseFlipperSceneMenuMain : "
+            "MorseFlipperSceneOnboarding"
+        )
+        probe = app.index(
+            "scene_manager_next_scene(app->scene_manager, "
+            "MorseFlipperSceneStartupProbe)",
+            base,
+        )
+        self.assertLess(base, probe)
+
+        scenes = SCENES.read_text(encoding="utf-8")
+        handler = scenes[
+            scenes.index("static bool morse_flipper_scene_startup_probe_on_event") :
+            scenes.index("static bool morse_flipper_scene_onboarding_on_event")
+        ]
+        self.assertIn("scene_manager_previous_scene(app->scene_manager);", handler)
+        self.assertNotIn("scene_manager_search_and_switch_to_another_scene", handler)
+
+        input_source = INPUT.read_text(encoding="utf-8")
+        handler = input_source[
+            input_source.index("static bool morse_flipper_startup_probe_input") :
+            input_source.index("static uint8_t morse_flipper_ham_dir_from_key")
+        ]
+        self.assertIn("scene_manager_previous_scene(app->scene_manager);", handler)
+        self.assertNotIn("scene_manager_search_and_switch_to_another_scene", handler)
+
+    def test_lesson_offer_uses_standard_back_and_ok_chrome(self) -> None:
+        session = SESSION.read_text(encoding="utf-8")
+        draw = session[
+            session.index("static void morse_flipper_draw_lesson_advance") :
+            session.index("void morse_flipper_draw_session_end")
+        ]
+        self.assertIn('"Would you like to try"', draw)
+        self.assertIn('"the next lesson?"', draw)
+        self.assertIn('elements_button_left(canvas, "No");', draw)
+        self.assertIn('elements_button_center(canvas, "Yes");', draw)
+        self.assertNotIn("elements_button_right", draw)
+
+        input_source = INPUT.read_text(encoding="utf-8")
+        offer = input_source[
+            input_source.index("static bool morse_flipper_session_end_input") :
+            input_source.index("static bool morse_flipper_progress_today")
+        ]
+        self.assertIn("if(event->key == InputKeyOk)", offer)
+        self.assertIn("if(event->key == InputKeyBack)", offer)
+        self.assertNotIn("InputKeyRight", offer)
+        self.assertNotIn("InputKeyLeft", offer)
 
 
 if __name__ == "__main__":

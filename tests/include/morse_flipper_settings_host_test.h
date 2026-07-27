@@ -47,8 +47,8 @@ typedef struct MorseFlipperApp {
 
 enum { MorseFlipperPluginOwnerSettings = 6, MorseFlipperHandednessNormal = 0, MorseFlipperHandednessSwapped = 1,
        MorseFlipperInputSourceStraight = 0, MorseFlipperInputSourcePaddle = 1, MorseFlipperInputSourceButtons = 2,
-       MorseKeyerModeStraight = 0, MorseKeyerModeBug = 1, MorseKeyerModePlainIambic = 2, MorseKeyerModeIambicA = 3,
-       MorseKeyerModeIambicB = 4, MorseKeyerModeUltimatic = 5, MorseKeyerModeKeyahead = 6,
+       MorseKeyerModeStraight = 1, MorseKeyerModeBug = 2, MorseKeyerModePlainIambic = 6, MorseKeyerModeIambicA = 7,
+       MorseKeyerModeIambicB = 8, MorseKeyerModeUltimatic = 5, MorseKeyerModeKeyahead = 9,
        MorseFlipperAudioPathBuzzer = 0, MorseFlipperAudioPathP2 = 1, MorseFlipperAudioPathVibration = 2, MorseFlipperAudioPathSoftBuzz = 3,
        MorseFlipperPcModeOff = 0, MorseFlipperPcModeKeyboard = 1, MorseFlipperPcModeMouse = 2, MorseFlipperPcModeMidi = 3,
        MorseFlipperTxgDifficultyCount = 3,
