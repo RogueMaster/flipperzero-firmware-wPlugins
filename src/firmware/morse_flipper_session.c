@@ -7,6 +7,7 @@
 
 #include "morse_flipper_app_i.h"
 #include "morse_flipper_cw_token.h"
+#include "morse_flipper_lesson_advance_policy.h"
 
 #define MORSE_FLIPPER_SESSION_DELETE_FLASH_STEP_MS 132U
 #define MORSE_FLIPPER_SESSION_DELETE_FLASH_DONE_MS 400U
@@ -541,8 +542,8 @@ void morse_flipper_record_session_progress(MorseFlipperApp* app) {
     standard = morse_flipper_effective_trainer_custom_set_idx(app) == 0U;
     lesson = morse_trainer_lesson(&app->trainer);
     total = morse_trainer_session_total(&app->trainer);
-    if(standard && percent >= 95U && lesson < morse_trainer_lesson_count() &&
-       total >= MORSE_FLIPPER_PROGRESS_MASTERY_GROUPS)
+    if(MORSE_FLIPPER_LESSON_ADVANCE_ELIGIBLE(
+           standard, true, false, lesson, morse_trainer_lesson_count(), percent, total))
         app->session_next_eligible = true;
 
     if(!morse_flipper_ensure_session_progress_loaded(app) || app->session_progress == NULL) {
@@ -582,7 +583,7 @@ void morse_flipper_record_session_progress(MorseFlipperApp* app) {
 
 static const char* morse_flipper_session_end_blurb(const MorseFlipperApp* app) {
     if(morse_trainer_lesson(&app->trainer) >= 40U) return "Congratulations!";
-    if(morse_flipper_session_final_percent(app) >= 90U) return "Try the next lesson";
+    if(morse_flipper_session_final_percent(app) >= 95U) return "Try the next lesson";
     return "Keep practicing";
 }
 
