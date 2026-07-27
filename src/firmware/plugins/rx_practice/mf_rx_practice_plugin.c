@@ -32,9 +32,8 @@ static MfRxPracticeResult mf_rx_input(
     else if(event->type == InputTypePress) {
         if(event->key == InputKeyOk)
             command = MfRxPracticeCommandPrimaryPress;
-        else if(button_paddle && event->key == InputKeyBack &&
-                ((MfRxPracticeState*)state)->phase == MfRxPracticePhaseAnswer)
-            command = MfRxPracticeCommandPaddleBackPress;
+        else if(button_paddle && event->key == InputKeyBack)
+            command = MfRxPracticeCommandNone;
         else
             command = MfRxPracticeCommandHurry;
     } else if(event->type == InputTypeShort) {
@@ -44,8 +43,9 @@ static MfRxPracticeResult mf_rx_input(
             command = MfRxPracticeCommandBackspace;
         else if(event->key == InputKeyUp)
             command = MfRxPracticeCommandClear;
-        else if(event->key == InputKeyBack && !button_paddle)
-            command = MfRxPracticeCommandBack;
+        else if(event->key == InputKeyBack)
+            command = button_paddle ? MfRxPracticeCommandNone :
+                                      MfRxPracticeCommandBack;
         else
             command = MfRxPracticeCommandHurry;
     } else if(!button_paddle && event->key == InputKeyBack &&

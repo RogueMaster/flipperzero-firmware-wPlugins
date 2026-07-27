@@ -5,6 +5,19 @@
 #include <stdio.h>
 #include <string.h>
 
+static void mf_rx_draw_divider(const MfRxPracticeState* state, Canvas* canvas) {
+    if(!state->button_paddle) {
+        canvas_draw_line(canvas, 0, 34, 127, 34);
+        return;
+    }
+
+    canvas_draw_line(canvas, 0, 34, 119, 34);
+    canvas_draw_box(canvas, 124, 34, 1, 1);
+    canvas_draw_box(canvas, 125, 33, 1, 3);
+    canvas_draw_box(canvas, 126, 32, 1, 5);
+    canvas_draw_box(canvas, 127, 31, 1, 7);
+}
+
 /* The oversized glyph renderer is shared by Callsigns FALs. */
 #if 0
 static const uint8_t mf_big_glyphs[36][5] = {
@@ -115,9 +128,9 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
     char answer[MF_CALLSIGN_MAX_LEN + 1U];
     const char* shown_answer;
     char score[24];
-    bool left_exit_hint;
     if(state == NULL || canvas == NULL) return;
     canvas_set_font(canvas, FontSecondary);
+    mf_rx_draw_divider(state, canvas);
     if(state->phase == MfRxPracticePhaseIdle) {
         canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignBottom, "Callsigns");
         canvas_draw_str_aligned(canvas, 64, 33, AlignCenter, AlignBottom, "Press OK to start");
@@ -141,7 +154,13 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
         snprintf(score, sizeof(score), "%u/%u  %u%%", (unsigned)state->session_passed,
                  (unsigned)state->session_total, pct);
         canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignBottom, score);
-        canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, "Back / OK");
+        canvas_draw_str_aligned(
+            canvas,
+            64,
+            63,
+            AlignCenter,
+            AlignBottom,
+            state->button_paddle ? "OK / hold Left" : "Back / OK");
         return;
     }
     if(state->phase == MfRxPracticePhaseResult)
@@ -167,16 +186,6 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
         state->target_len,
         37,
         state->phase == MfRxPracticePhaseResult);
-    left_exit_hint = state->phase == MfRxPracticePhaseAnswer &&
-                     state->draw_snapshot != NULL &&
-                     state->draw_snapshot->show_left_hint;
-    canvas_draw_line(canvas, 0, 34, left_exit_hint ? 119 : 127, 34);
-    if(left_exit_hint) {
-        canvas_draw_box(canvas, 124, 32, 1, 1);
-        canvas_draw_box(canvas, 125, 31, 1, 3);
-        canvas_draw_box(canvas, 126, 30, 1, 5);
-        canvas_draw_box(canvas, 127, 29, 1, 7);
-    }
     unsigned pct = state->session_total == 0U ? 0U :
                    (unsigned)(((uint32_t)100U * state->session_passed +
                                state->session_total / 2U) /

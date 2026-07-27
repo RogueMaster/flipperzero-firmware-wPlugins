@@ -26,7 +26,6 @@ enum {
     MfRxPracticeCommandBack,
     MfRxPracticeCommandConfirmExit,
     MfRxPracticeCommandPrimaryPress,
-    MfRxPracticeCommandPaddleBackPress,
     MfRxPracticeCommandReleaseOk,
     MfRxPracticeCommandReleaseBack,
     MfRxPracticeCommandAnswerActivity,
@@ -43,7 +42,6 @@ enum {
 
 typedef struct {
     char answer_preview;
-    bool show_left_hint;
 } MfRxPracticeDrawSnapshot;
 
 typedef struct {

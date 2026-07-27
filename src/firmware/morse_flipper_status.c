@@ -31,8 +31,14 @@ MorseFlipperInputGate morse_flipper_input_gate(const MorseFlipperApp* app) {
             g.back_exit = true;
             return g;
         }
+        if(snapshot.mode != 0U) {
+            g.btn = true;
+            g.btn_pad = true;
+            g.back_key = true;
+            g.left_hint = true;
+        }
         if(snapshot.phase == MfRxPracticePhaseFinal) {
-            g.back_exit = true;
+            g.back_exit = !g.back_key;
             return g;
         }
         g.live = snapshot.phase == MfRxPracticePhaseAnswer &&
@@ -40,7 +46,7 @@ MorseFlipperInputGate morse_flipper_input_gate(const MorseFlipperApp* app) {
     }
 
     if(!g.live || app->input_source != MorseFlipperInputSourceButtons) {
-        g.back_exit = g.live;
+        g.back_exit = g.live && !g.back_key;
         return g;
     }
 

@@ -8,7 +8,6 @@
 static unsigned checks;
 static MfRxPracticeDrawSnapshot draw_snapshot = {
     .answer_preview = 'E',
-    .show_left_hint = true,
 };
 
 #define CHECK(value) \
@@ -250,17 +249,10 @@ static void test_press_commands(void) {
     result = mf_rx_practice_command(&state, MfRxPracticeCommandPrimaryPress, 100U);
     CHECK(result.handled && result.phase == MfRxPracticePhasePlayback);
 
-    CHECK(mf_rx_practice_enter(&state, &args, &result));
-    result = mf_rx_practice_command(&state, MfRxPracticeCommandPaddleBackPress, 100U);
-    CHECK(result.handled && result.phase == MfRxPracticePhasePlayback);
-
     state.phase = MfRxPracticePhaseResult;
     state.result_deadline = 5000U;
     result = mf_rx_practice_command(&state, MfRxPracticeCommandPrimaryPress, 200U);
     CHECK(result.handled && result.redraw && state.result_deadline == 1200U);
-    state.phase = MfRxPracticePhaseFinal;
-    result = mf_rx_practice_command(&state, MfRxPracticeCommandPaddleBackPress, 300U);
-    CHECK(result.handled && result.request_exit);
 }
 
 int main(void) {

@@ -145,19 +145,6 @@ MfRxPracticeResult mf_rx_practice_command(
         if(state->phase == MfRxPracticePhaseResult)
             return mf_hurry(state, now_ms);
     }
-    if(command == MfRxPracticeCommandPaddleBackPress) {
-        if(state->phase == MfRxPracticePhaseFinal)
-            return mf_result(
-                state, true, false, true, true, MfRxPracticeFeedbackClear);
-        if(state->phase == MfRxPracticePhaseIdle) {
-            bool ok = mf_begin_round(state, now_ms);
-            (void)ok;
-            return mf_result(
-                state, true, true, true, false, MfRxPracticeFeedbackClear);
-        }
-        if(state->phase == MfRxPracticePhaseResult)
-            return mf_hurry(state, now_ms);
-    }
     if(command == MfRxPracticeCommandStart && state->phase == MfRxPracticePhaseIdle) {
         bool ok = mf_begin_round(state, now_ms);
         (void)ok;

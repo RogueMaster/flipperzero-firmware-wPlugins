@@ -95,6 +95,7 @@ bool morse_flipper_rx_practice_host_input(
         hold_bit = MF_RX_START_BACK;
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     if(app->plugin_slot.owner == MorseFlipperPluginOwnerRxPractice) {
+        back_owned = app->plugin_slot.mode != 0U;
         if(event->type == InputTypePress)
             app->plugin_slot.start_hold_mask |= hold_bit;
         else if(event->type == InputTypeRelease)
@@ -106,10 +107,6 @@ bool morse_flipper_rx_practice_host_input(
         result = ((const MfRxPracticeApi*)app->plugin_slot.api)
                      ->input(app->plugin_slot.state, event, now_ms);
         mf_rx_apply_locked(app, result, now_ms);
-        back_owned = app->plugin_slot.mode != 0U &&
-                     app->plugin_slot.phase == MfRxPracticePhaseAnswer;
-        app->rx_draw_snapshot.show_left_hint =
-            back_owned && app->plugin_slot.start_hold_mask == 0U;
     }
     furi_mutex_release(app->plugin_slot.mutex);
     mf_rx_apply_after_unlock(app, result, now_ms);
@@ -136,6 +133,7 @@ bool morse_flipper_rx_practice_host_feed(
     if(app->plugin_slot.owner == MorseFlipperPluginOwnerRxPractice &&
        app->plugin_slot.error == MorseFlipperPluginErrorNone &&
        app->plugin_slot.api != NULL && app->plugin_slot.state != NULL) {
+        app->rx_draw_snapshot.answer_preview = '\0';
         result = ((const MfRxPracticeApi*)app->plugin_slot.api)
                      ->feed_text(app->plugin_slot.state, text, length, now_ms);
         mf_rx_apply_locked(app, result, now_ms);
@@ -200,8 +198,6 @@ bool morse_flipper_rx_practice_host_tick(
     live = app->plugin_slot.phase == MfRxPracticePhaseAnswer &&
            app->plugin_slot.start_hold_mask == 0U;
     app->rx_draw_snapshot.answer_preview = preview;
-    app->rx_draw_snapshot.show_left_hint =
-        live && app->plugin_slot.mode != 0U;
 done:
     furi_mutex_release(app->plugin_slot.mutex);
     mf_rx_apply_after_unlock(app, result, now_ms);
