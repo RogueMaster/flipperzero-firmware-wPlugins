@@ -179,7 +179,9 @@ bool morse_flipper_rx_practice_host_tick(
     } else if(app->plugin_slot.phase == MfRxPracticePhaseAnswer) {
         if(app->plugin_slot.start_hold_mask != 0U) {
             app->plugin_slot.start_hold_mask |= down_mask;
-        } else if(new_down != 0U || morse_flipper_any_active_notes(app)) {
+        /* Paddle GPIO is raw here; wait for its keyer-generated note instead. */
+        } else if((new_down & MF_RX_START_STRAIGHT) != 0U ||
+                  morse_flipper_any_active_notes(app)) {
             command = MfRxPracticeCommandAnswerActivity;
         }
     } else if(app->plugin_slot.phase == MfRxPracticePhaseResult &&

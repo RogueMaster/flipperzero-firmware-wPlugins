@@ -220,7 +220,7 @@ MfRxPracticeResult mf_rx_practice_tick(MfRxPracticeState* state, uint32_t now_ms
     uint8_t marks;
     uint16_t code;
     if(state == NULL) return mf_result(NULL, false, false, false, false, MfRxPracticeFeedbackNone);
-    if(state->phase == MfRxPracticePhaseAnswer &&
+    if(state->phase == MfRxPracticePhaseAnswer && state->answer_started &&
        now_ms - state->answer_last_activity_ms >= state->answer_timeout_ms)
         return mf_finish_answer(state, now_ms, MfRxPracticeFeedbackTimeout);
     if(state->phase == MfRxPracticePhaseResult) {

@@ -95,6 +95,21 @@ static void test_rx_callsigns_can_use_a_two_dit_letter_boundary(void) {
     CHECK(strcmp(morse_flipper_cw_decoder_output(&decoder), "E") == 0);
 }
 
+static void test_rx_boundary_keeps_a_normal_irregular_character_intact(void) {
+    MorseFlipperCwDecoder decoder;
+
+    morse_flipper_cw_decoder_init_fixed(&decoder, 100U);
+    morse_flipper_cw_decoder_feed_mark(&decoder, 100U);
+    morse_flipper_cw_decoder_feed_space(&decoder, 150U);
+    morse_flipper_cw_decoder_feed_mark(&decoder, 300U);
+    morse_flipper_cw_decoder_feed_space(&decoder, 125U);
+    morse_flipper_cw_decoder_feed_mark(&decoder, 300U);
+    morse_flipper_cw_decoder_feed_space(&decoder, 150U);
+    morse_flipper_cw_decoder_feed_mark(&decoder, 100U);
+    morse_flipper_cw_decoder_feed_space_with_letter_gap(&decoder, 200U, 200U);
+    CHECK(strcmp(morse_flipper_cw_decoder_output(&decoder), "P") == 0);
+}
+
 int main(void) {
     static const char expected[] = "EISH5";
     MorseFlipperCwDecoder decoder;
@@ -115,6 +130,7 @@ int main(void) {
     test_adaptive_bounce_sequence_is_ignored();
     test_zero_seed_uses_safe_default();
     test_rx_callsigns_can_use_a_two_dit_letter_boundary();
+    test_rx_boundary_keeps_a_normal_irregular_character_intact();
     printf("test_cw_decoder_preview: %u checks passed\n", checks);
     return 0;
 }

@@ -165,6 +165,7 @@ static void test_timeout_wrap_and_saturation(void) {
     state.phase = MfRxPracticePhaseAnswer;
     state.target_len = 5U;
     memcpy(state.target, "ABCDE", 6U);
+    state.answer_started = true;
     state.answer_last_activity_ms = UINT32_MAX - 50U;
     result = mf_rx_practice_tick(&state, 48U);
     CHECK(result.phase == MfRxPracticePhaseAnswer);
@@ -192,18 +193,20 @@ static void test_first_answer_key_down_rebases_timeout_once(void) {
     state.target_len = 4U;
     memcpy(state.target, "K1AB", 5U);
     state.answer_last_activity_ms = 0U;
+    result = mf_rx_practice_tick(&state, args.answer_timeout_ms * 2U);
+    CHECK(result.phase == MfRxPracticePhaseAnswer && !state.answer_started);
     result = mf_rx_practice_command(
-        &state, MfRxPracticeCommandAnswerActivity, args.answer_timeout_ms - 1U);
+        &state, MfRxPracticeCommandAnswerActivity, args.answer_timeout_ms * 2U);
     CHECK(result.handled && state.answer_started);
-    CHECK(state.answer_last_activity_ms == args.answer_timeout_ms - 1U);
-    result = mf_rx_practice_tick(&state, args.answer_timeout_ms);
+    CHECK(state.answer_last_activity_ms == args.answer_timeout_ms * 2U);
+    result = mf_rx_practice_tick(&state, args.answer_timeout_ms * 2U + 1U);
     CHECK(result.phase == MfRxPracticePhaseAnswer);
     result = mf_rx_practice_command(
-        &state, MfRxPracticeCommandAnswerActivity, args.answer_timeout_ms + 500U);
-    CHECK(!result.handled && state.answer_last_activity_ms == args.answer_timeout_ms - 1U);
-    result = mf_rx_practice_tick(&state, args.answer_timeout_ms * 2U - 2U);
+        &state, MfRxPracticeCommandAnswerActivity, args.answer_timeout_ms * 2U + 500U);
+    CHECK(!result.handled && state.answer_last_activity_ms == args.answer_timeout_ms * 2U);
+    result = mf_rx_practice_tick(&state, args.answer_timeout_ms * 3U - 1U);
     CHECK(result.phase == MfRxPracticePhaseAnswer);
-    result = mf_rx_practice_tick(&state, args.answer_timeout_ms * 2U - 1U);
+    result = mf_rx_practice_tick(&state, args.answer_timeout_ms * 3U);
     CHECK(result.phase == MfRxPracticePhaseResult);
     CHECK(result.feedback == MfRxPracticeFeedbackTimeout);
 }
