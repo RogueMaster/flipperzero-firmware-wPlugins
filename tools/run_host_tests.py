@@ -28,6 +28,7 @@ class CTest:
 
 TESTS = (
     CTest("time", ("tests/test_time.c",)),
+    CTest("keyer", ("tests/test_keyer.c", "src/firmware/keyer.c")),
     CTest("training-timing", ("tests/test_training_timing.c", "src/firmware/morse_flipper_training_timing.c")),
     CTest("cw-decoder-preview", ("tests/test_cw_decoder_preview.c", "src/firmware/morse_flipper_cw_decoder.c", "src/firmware/morse_flipper_cw_token.c", "src/firmware/cw.c")),
     CTest("cw-markdown-widget", ("tests/test_cw_markdown_widget.c", "src/firmware/plugins/help_about/cw_markdown_widget.c"), ("CWMD_HOST_TEST",), False),

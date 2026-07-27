@@ -18,11 +18,14 @@ def main() -> None:
     if forbidden_bypass in INPUT:
         raise AssertionError("RX Callsigns Back must not bypass its Answer phase gate")
 
-    transition_release = """if(result.phase != MfRxPracticePhaseAnswer) {
-        morse_flipper_drop_live_keying_for_playback(app, now_ms);
-        morse_flipper_release_all_notes(app);"""
-    if transition_release not in HOST:
-        raise AssertionError("RX Callsigns must release live notes on non-Answer transitions")
+    cleanup_start = HOST.find("if(result.phase != MfRxPracticePhaseAnswer) {")
+    cleanup_end = HOST.find("    }", cleanup_start)
+    cleanup = HOST[cleanup_start:cleanup_end]
+    drop = cleanup.find("morse_flipper_drop_live_keying_for_playback(app, now_ms);")
+    release = cleanup.find("morse_flipper_release_all_notes(app);")
+    refresh = cleanup.find("morse_flipper_refresh_keyer(app, now_ms);")
+    if cleanup_start < 0 or not (0 <= drop < release < refresh):
+        raise AssertionError("RX Callsigns must release sources and flush queued keyer tails")
 
     print("rx practice phase gating: passed")
 

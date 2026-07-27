@@ -25,6 +25,8 @@ static void mf_rx_apply_after_unlock(
     if(result.phase != MfRxPracticePhaseAnswer) {
         morse_flipper_drop_live_keying_for_playback(app, now_ms);
         morse_flipper_release_all_notes(app);
+        /* An Iambic/Keyahead tail can survive source release; discard it outside Answer. */
+        morse_flipper_refresh_keyer(app, now_ms);
     }
     morse_flipper_update_sidetone(app);
 }
