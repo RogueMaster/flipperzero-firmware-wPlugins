@@ -19,6 +19,7 @@ static MfRxPracticeResult mf_result(
         .decoder_reset = decoder_reset,
         .request_exit = request_exit,
         .phase = state == NULL ? MfRxPracticePhaseFinal : state->phase,
+        .playback_active = state != NULL && state->phase == MfRxPracticePhasePlayback,
         .playback_mark = state != NULL && state->playback_mark,
         .feedback = feedback,
     };
@@ -95,7 +96,8 @@ bool mf_rx_practice_enter(
     if(state == NULL || args == NULL || initial == NULL || args->struct_size < sizeof(*args) ||
        args->dit_ms == 0U || args->char_gap_ms == 0U || args->answer_timeout_ms == 0U ||
        args->result_hold_ms == 0U ||
-       args->answer_timeout_ms >= INT32_MAX || args->result_hold_ms >= INT32_MAX)
+       args->answer_timeout_ms >= INT32_MAX || args->result_hold_ms >= INT32_MAX ||
+       args->draw_snapshot == NULL)
         return false;
     state->phase = MfRxPracticePhaseIdle;
     state->answer_timeout_ms = args->answer_timeout_ms;
@@ -104,7 +106,7 @@ bool mf_rx_practice_enter(
     state->char_gap_ms = args->char_gap_ms;
     state->physical_key_can_start = args->physical_key_can_start;
     state->button_paddle = args->button_paddle;
-    state->answer_preview = args->answer_preview;
+    state->draw_snapshot = args->draw_snapshot;
     state->countdown_draw_s = 0xFFU;
     mf_rx_rng_init(&state->rng, args->rng_seed);
     mf_callsign_gen_init(&state->callsigns);

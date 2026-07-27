@@ -7,6 +7,7 @@
 
 static unsigned checks;
 static int32_t last_line_x2;
+static unsigned left_hint_boxes;
 static char last_text[MF_CALLSIGN_MAX_LEN + 1U];
 
 #define CHECK(value) \
@@ -43,10 +44,10 @@ void canvas_draw_dot(Canvas* canvas, int32_t x, int32_t y) {
 
 void canvas_draw_box(Canvas* canvas, int32_t x, int32_t y, int32_t width, int32_t height) {
     (void)canvas;
-    (void)x;
     (void)y;
     (void)width;
     (void)height;
+    if(x >= 124 && x <= 127) left_hint_boxes++;
 }
 
 void canvas_draw_line(Canvas* canvas, int32_t x1, int32_t y1, int32_t x2, int32_t y2) {
@@ -74,19 +75,25 @@ void mf_big_callsign_draw_text(
 
 int main(void) {
     Canvas canvas = {0};
+    MfRxPracticeDrawSnapshot snapshot = {
+        .answer_preview = 'E',
+        .show_left_hint = true,
+    };
     MfRxPracticeState state = {
         .phase = MfRxPracticePhaseAnswer,
         .target_len = 4U,
         .button_paddle = true,
-        .answer_preview = 'E',
+        .draw_snapshot = &snapshot,
     };
 
     mf_rx_practice_draw(&state, &canvas);
     CHECK(last_line_x2 == 119);
+    CHECK(left_hint_boxes == 4U);
     CHECK(strcmp(last_text, "E") == 0);
-    state.button_paddle = false;
+    snapshot.show_left_hint = false;
     mf_rx_practice_draw(&state, &canvas);
     CHECK(last_line_x2 == 127);
+    snapshot.show_left_hint = true;
     state.phase = MfRxPracticePhaseResult;
     mf_rx_practice_draw(&state, &canvas);
     CHECK(last_line_x2 == 127);

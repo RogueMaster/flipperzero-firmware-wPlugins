@@ -29,7 +29,7 @@ typedef struct MfRxPracticeState {
     bool internal_error;
     bool physical_key_can_start;
     bool button_paddle;
-    char answer_preview;
+    const MfRxPracticeDrawSnapshot* draw_snapshot;
 } MfRxPracticeState;
 
 _Static_assert(sizeof(MfRxPracticeState) <= 256U, "RX Practice state exceeds its hard memory budget");

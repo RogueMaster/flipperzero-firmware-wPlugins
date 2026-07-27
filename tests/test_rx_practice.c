@@ -6,6 +6,10 @@
 #include "mf_rx_practice_core.h"
 
 static unsigned checks;
+static MfRxPracticeDrawSnapshot draw_snapshot = {
+    .answer_preview = 'E',
+    .show_left_hint = true,
+};
 
 #define CHECK(value) \
     do { \
@@ -24,7 +28,7 @@ static MfRxPracticeEnterArgs make_args(uint32_t now) {
         .char_gap_ms = 30U,
         .physical_key_can_start = true,
         .button_paddle = true,
-        .answer_preview = 'E',
+        .draw_snapshot = &draw_snapshot,
     };
 }
 
@@ -61,6 +65,9 @@ static void test_enter_validation(void) {
     args = make_args(0U);
     args.dit_ms = 0U;
     CHECK(!mf_rx_practice_enter(&state, &args, &result));
+    args = make_args(0U);
+    args.draw_snapshot = NULL;
+    CHECK(!mf_rx_practice_enter(&state, &args, &result));
 }
 
 static void test_playback_and_answer(void) {
@@ -71,9 +78,10 @@ static void test_playback_and_answer(void) {
 
     CHECK(mf_rx_practice_enter(&state, &args, &result));
     CHECK(result.phase == MfRxPracticePhaseIdle && result.decoder_reset && result.redraw);
-    CHECK(state.button_paddle && state.answer_preview == 'E');
+    CHECK(state.button_paddle && state.draw_snapshot == &draw_snapshot);
     result = mf_rx_practice_command(&state, MfRxPracticeCommandStart, 0U);
-    CHECK(result.phase == MfRxPracticePhasePlayback && result.playback_mark);
+    CHECK(result.phase == MfRxPracticePhasePlayback && result.playback_active &&
+          result.playback_mark);
     mark_index = state.playback_mark_index;
     result = mf_rx_practice_tick(&state, state.next_at + 5000U);
     CHECK(result.phase == MfRxPracticePhasePlayback);

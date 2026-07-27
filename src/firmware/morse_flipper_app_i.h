@@ -397,6 +397,7 @@ typedef struct MorseFlipperApp {
     MorseFlipperProgress* view_progress;
     volatile bool exit_requested;
     bool terminus24_active;
+    MfRxPracticeDrawSnapshot rx_draw_snapshot;
     MorseFlipperPluginSlot plugin_slot;
 
     /*
