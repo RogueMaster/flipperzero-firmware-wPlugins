@@ -47,6 +47,8 @@ void prefs_load(FSDState *state) {
     if (g_prefs.isKey("stap")) g_prefs.getString("stap").toCharArray(state->wifi_sta_pass, sizeof(state->wifi_sta_pass));
 
     state->op_mode = (OpMode)g_prefs.getUChar("mode", (uint8_t)OpMode_ListenOnly);
+    // Manual HW selection (#110); TeslaHW_Unknown = auto-detect.
+    state->hw_override = (TeslaHWVersion)g_prefs.getUChar("hwov", (uint8_t)TeslaHW_Unknown);
 
     // Configurable nag-context signal mapping (#122)
     state->cfg_das_id        = g_prefs.getUShort("cdid",  0);
@@ -113,6 +115,7 @@ void prefs_save(const FSDState *state) {
     g_prefs.putString("stap", state->wifi_sta_pass);
 
     g_prefs.putUChar("mode",  (uint8_t)state->op_mode);
+    g_prefs.putUChar("hwov",  (uint8_t)state->hw_override);   // manual HW selection (#110)
 
     // Configurable nag-context signal mapping (#122)
     g_prefs.putUShort("cdid", state->cfg_das_id);

@@ -22,6 +22,11 @@ typedef enum {
 
 typedef struct FSDState {
     TeslaHWVersion hw_version;
+    // Manual HW selection (#110). TeslaHW_Unknown = auto-detect (default); any
+    // other value pins hw_version and makes auto-detection a no-op. For taps that
+    // carry no 0x398 (many Model 3 / Model Y) detection can only guess, so let an
+    // owner who knows their car say so instead of guessing harder.
+    TeslaHWVersion hw_override;
     int speed_profile;
     int speed_offset;
     bool fsd_enabled;
