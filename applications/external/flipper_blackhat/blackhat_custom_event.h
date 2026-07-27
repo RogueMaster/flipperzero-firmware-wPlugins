@@ -6,4 +6,6 @@ typedef enum {
     BlackhatEventStartKeyboard,
     BlackhatEventStartPortal,
     BlackhatEventTextInput,
+    BlackhatEventTuiGameModeStarted,
+    BlackhatEventTuiGameModeStopped,
 } BlackhatCustomEvent;

@@ -74,6 +74,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: bit_lib: [don't read past the buffer when the requested bits fit one byte #4424 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4424)
 - Updated: [NFC Magic v2.1 (By gornekich)](https://github.com/flipperdevices/flipperzero-firmware/pull/1966) [NFC Magic: ISO15693 / NfcV support (By mfcarroll)](https://github.com/xMasterX/all-the-plugins/pull/250)
 - Updated: OFW: PR: NFC: [FeliCa: Add Standard card emulation support #4383 (By nikachu2012)](https://github.com/flipperdevices/flipperzero-firmware/pull/4383)
+- Updated: [Flipper Blackhat v0.4.1 (By o7-machinehum)](https://github.com/o7-machinehum/flipper-blackhat-app) `Req: Blackhat Board` with [Blackhat OS](https://github.com/o7-machinehum/flipper-blackhat-os)
 
 <a name="release"></a>
 
