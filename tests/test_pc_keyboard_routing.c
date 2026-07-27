@@ -17,6 +17,7 @@ int main(void) {
     /* Direct straight sources and invalid notes keep their existing behaviour. */
     assert(morse_pc_keyboard_key_for_note(0U, 0U, 0U, false) == MorsePcKeySpace);
     assert(morse_pc_keyboard_key_for_note(0U, 0U, 3U, false) == MorsePcKeyNone);
+    assert(morse_pc_keyboard_key_for_note(0U, 0U, 3U, true) == MorsePcKeyNone);
     puts("test_pc_keyboard_routing: passed");
     return 0;
 }

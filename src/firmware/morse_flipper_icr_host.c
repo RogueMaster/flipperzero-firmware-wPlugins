@@ -1,4 +1,8 @@
+#ifdef MF_ICR_HOST_TEST
+#include "morse_flipper_icr_host_test.h"
+#else
 #include "morse_flipper_app_i.h"
+#endif
 
 #define MORSE_FLIPPER_ICR_PLUGIN_PATH APP_ASSETS_PATH("plugins/morse_flipper_icr.fal")
 
@@ -78,5 +82,6 @@ void morse_flipper_icr_host_tick(MorseFlipperApp* app, uint32_t now_ms) {
     }
     furi_mutex_release(app->plugin_slot.mutex);
     morse_flipper_update_sidetone(app);
-    if(result.handled && result.redraw) morse_flipper_view_dirty(app);
+    if(result.redraw) morse_flipper_view_dirty(app);
+    if(result.request_exit) morse_flipper_scene_back(app);
 }

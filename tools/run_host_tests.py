@@ -53,6 +53,7 @@ TESTS = (
     CTest("lesson-advance", ("tests/test_lesson_advance.c", "src/firmware/trainer.c", "src/firmware/cw.c")),
     CTest("icr", ("tests/test_icr.c", "src/firmware/plugins/icr/morse_flipper_icr.c")),
     CTest("icr-runtime", ("tests/test_icr_runtime.c", "src/firmware/plugins/icr/morse_flipper_icr.c", "src/firmware/plugins/icr/morse_flipper_icr_runtime.c", "src/firmware/cw.c")),
+    CTest("icr-host", ("tests/test_icr_host.c", "src/firmware/morse_flipper_icr_host.c"), ("MF_ICR_HOST_TEST",)),
 )
 
 PYTHON_TESTS = (
