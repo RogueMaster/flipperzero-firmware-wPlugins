@@ -176,7 +176,7 @@ class SceneHandlerTableTest(unittest.TestCase):
         scenes = SCENES.read_text(encoding="utf-8")
         settings = scenes[
             scenes.index("static void morse_flipper_scene_menu_settings_on_enter") :
-            scenes.index("static bool morse_flipper_scene_menu_settings_on_event")
+            scenes.index("static bool morse_flipper_scene_menu_simple_on_event")
         ]
         gpio = settings.index('"GPIO", MorseFlipperSceneGpio')
         usb = settings.index('"USB", MorseFlipperScenePc')
@@ -199,6 +199,24 @@ class SceneHandlerTableTest(unittest.TestCase):
 
         transport = (ROOT / "src/firmware/morse_flipper_transport.c").read_text(encoding="utf-8")
         self.assertIn("morse_flipper_current_keyer_mode(app) == MorseKeyerModeStraight", transport)
+
+    def test_shared_scene_handlers_derive_the_active_scene(self) -> None:
+        scenes = SCENES.read_text(encoding="utf-8")
+        enter = scenes[
+            scenes.index("static void morse_flipper_scene_live_on_enter") :
+            scenes.index("static void morse_flipper_scene_streak_intro_start_listening")
+        ]
+        self.assertIn("scene_manager_get_current_scene(app->scene_manager)", enter)
+
+        event = scenes[
+            scenes.index("static bool morse_flipper_scene_menu_simple_on_event") :
+            scenes.index("static void morse_flipper_scene_menu_help_on_enter")
+        ]
+        self.assertIn("scene_manager_get_current_scene(app->scene_manager)", event)
+        self.assertIn(
+            "scene == MorseFlipperSceneMenuHelp ? MorseFlipperSceneHelp : event.event",
+            event,
+        )
 
     def test_icr_reset_uses_standard_chrome_and_exits_settings_subflow(self) -> None:
         runtime = ICR_RUNTIME.read_text(encoding="utf-8")
