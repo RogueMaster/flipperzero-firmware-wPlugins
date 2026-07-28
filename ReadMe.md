@@ -26,10 +26,10 @@ This software is for experimental purposes only and is not meant for any illegal
 
 <a name="latest"></a> 
 
-## Latest Updates - [PATREON: Latest Release RM0726-1458-59bc0803-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
+## Latest Updates - [PATREON: Latest Release RM0727-1941-44beaa84-Patreon](https://www.patreon.com/RogueMaster?filters[tag]=Latest%20Release)
 
-- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-07-26 14:58 EST`
-- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-07-26 14:58 EST`
+- Last Synced/Checked OFW, changes in [commits](https://github.com/flipperdevices/flipperzero-firmware/commits/dev): `2026-07-27 19:41 EST`
+- Last Synced/Checked CFW, changes in [changelog](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/blob/420/CHANGELOG.md): `2026-07-27 19:41 EST`
 - Updated: [Hotspot Arcade v1.1.2 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32` [Hotspot Arcade flasher, add support for autoboot, fix freeze on exit (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/5d6a16c77c2a17c4aca3cb9f9ab4ab511f1d4f64)
 - Updated: [MP3 Player v3.5 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-mp3-player)
 - SubGHz: [Fix Frequency Analyzer leaving the radio in a degraded state - the worker parked the internal CC1101 with the antenna isolated and its near-field AGC profile still loaded; apps driving the radio HAL directly (without a full re-init) inherited a -sticky- sensitivity loss - the radio is now reset to its boot state on exit (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1045)
@@ -68,8 +68,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: Infrared: [initialize timings_cnt on decoder alloc and fix its bounds check #4429 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4429)
 - OFW: js_event_loop: [reject a zero or negative timer interval- #4425 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4425)
 - OFW: LFRFID: [fix the Pyramid trailing Wiegand parity bit #4426 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4426)
-- OFW: LFRFID: [NUL-terminate the PAC/Stanley card id before parsing it- #4427
- #4427 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4427)
+- OFW: LFRFID: [NUL-terminate the PAC/Stanley card id before parsing it #4427 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4427)
 - OFW: NFC: [FeliCa: check the poller error before reading the system-code response #4428 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4428)
 - OFW: bit_lib: [don't read past the buffer when the requested bits fit one byte #4424 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4424)
 - Updated: OFW: PR: NFC: [FeliCa: Add Standard card emulation support #4383 (By nikachu2012)](https://github.com/flipperdevices/flipperzero-firmware/pull/4383)
