@@ -57,8 +57,10 @@ static void morse_flipper_content_host_apply_action(
         morse_flipper_onboarding_finish(app);
         morse_flipper_plugin_runtime_unload_current(app);
     } else if(action == MorseFlipperContentActionOpenTrace) {
-        morse_flipper_scene_open(app, MorseFlipperSceneTrace);
         morse_flipper_plugin_runtime_unload_current(app);
+        scene_manager_search_and_switch_to_another_scene(
+            app->scene_manager, MorseFlipperSceneMenuMain);
+        morse_flipper_scene_open(app, MorseFlipperSceneTrace);
     }
 }
 
