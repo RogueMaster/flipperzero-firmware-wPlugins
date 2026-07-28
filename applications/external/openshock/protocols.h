@@ -27,8 +27,8 @@ typedef struct {
     uint16_t low_us;
 } OokPulse;
 
-// Maximum pulse buffer size across all protocols (CaiXianlin is largest at 44)
-#define OPENSHOCK_MAX_PULSES 48
+// Maximum pulse buffer size (dual TX concatenates two packets + gap; CaiXianlin is 44 each)
+#define OPENSHOCK_MAX_PULSES 160
 
 // Decoded shocker command (result of RX decoding).
 typedef struct {
