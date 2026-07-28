@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+
 #include <gui/canvas.h>
 
 #define MF_BIG_CALLSIGN_SCALE 3U

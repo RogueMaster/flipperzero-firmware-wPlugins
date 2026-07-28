@@ -2,6 +2,8 @@
 
 #include "mf_callsign_gen.h"
 
+#include <stddef.h>
+
 static const uint8_t mf_big_glyphs[36][5] = {
     {0x3E, 0x51, 0x49, 0x45, 0x3E},
     {0x00, 0x42, 0x7F, 0x40, 0x00},
@@ -41,9 +43,22 @@ static const uint8_t mf_big_glyphs[36][5] = {
     {0x61, 0x51, 0x49, 0x45, 0x43},
 };
 
+static const uint8_t mf_big_punctuation[5][5] = {
+    {0x00, 0x60, 0x60, 0x00, 0x00}, /* . */
+    {0x40, 0x60, 0x20, 0x00, 0x00}, /* , */
+    {0x20, 0x10, 0x08, 0x04, 0x02}, /* / */
+    {0x02, 0x01, 0x51, 0x09, 0x06}, /* ? */
+    {0x14, 0x14, 0x14, 0x14, 0x14}, /* = */
+};
+
 static const uint8_t* mf_big_glyph(char ch) {
     if(ch >= '0' && ch <= '9') return mf_big_glyphs[ch - '0'];
     if(ch >= 'A' && ch <= 'Z') return mf_big_glyphs[10U + (uint8_t)(ch - 'A')];
+    if(ch == '.') return mf_big_punctuation[0];
+    if(ch == ',') return mf_big_punctuation[1];
+    if(ch == '/') return mf_big_punctuation[2];
+    if(ch == '?') return mf_big_punctuation[3];
+    if(ch == '=') return mf_big_punctuation[4];
     return NULL;
 }
 

@@ -39,6 +39,7 @@ TESTS = (
     CTest("cw-markdown-widget", ("tests/test_cw_markdown_widget.c", "src/firmware/plugins/help_about/cw_markdown_widget.c"), ("CWMD_HOST_TEST",), False),
     CTest("rx-callsign-gen", ("tests/test_rx_callsign_gen.c", "src/firmware/plugins/common/mf_rx_rng.c", "src/firmware/plugins/common/mf_callsign_gen.c", "src/firmware/cw.c")),
     CTest("rx-callsign-controlled", ("tests/test_rx_callsign_controlled.c", "src/firmware/plugins/common/mf_callsign_gen.c", "src/firmware/cw.c")),
+    CTest("big-callsign-font", ("tests/test_big_callsign_font.c", "src/firmware/plugins/common/mf_big_callsign_font.c")),
     CTest("rx-practice", ("tests/test_rx_practice.c", "src/firmware/plugins/rx_practice/mf_rx_practice_core.c", "src/firmware/plugins/common/mf_rx_rng.c", "src/firmware/plugins/common/mf_callsign_gen.c", "src/firmware/cw.c")),
     CTest("rx-practice-draw", ("tests/test_rx_practice_draw.c", "src/firmware/plugins/rx_practice/mf_rx_practice_draw.c", "src/firmware/plugins/rx_practice/mf_rx_practice_core.c", "src/firmware/plugins/common/mf_rx_rng.c", "src/firmware/plugins/common/mf_callsign_gen.c", "src/firmware/cw.c")),
     CTest("rx-practice-input", ("tests/test_rx_practice_input.c", "src/firmware/plugins/rx_practice/mf_rx_practice_plugin.c", "src/firmware/plugins/rx_practice/mf_rx_practice_core.c", "src/firmware/plugins/common/mf_rx_rng.c", "src/firmware/plugins/common/mf_callsign_gen.c", "src/firmware/cw.c"), ("UNUSED(x)=((void)(x))",)),
