@@ -4,10 +4,14 @@
 * SubGHz: **Fix crash when exiting CLI `subghz chat` with an external CC1101** - pressing Ctrl+C dereferenced the just-freed external CC1101 radio plugin during chat worker shutdown; internal CC1101 was unaffected (by @mishamyte | PR #1036 | Fixes #829)
 * SubGHz: **Fix Frequency Analyzer leaving the radio in a degraded state** - the worker parked the internal CC1101 with the antenna isolated and its near-field AGC profile still loaded; apps driving the radio HAL directly (without a full re-init) inherited a "sticky" sensitivity loss - the radio is now reset to its boot state on exit (by @mishamyte | PR #1045 | Fixes #1044)
 * SubGHz: **Add Telcoma/Cardin EDGE protocol** (32bit, Static) (by @half2me | PR #1001)
+* SubGHz: **Fix Pecinin keeloq manufacturer** (by @lifegame1lu111)
+* SubGHz: **RAW files corruption fix** (by @Lechnio)
 * LFRFID: **Support of Hitag Micro chips** (8265/8210/H5.5) (by @mishamyte | PR #1002)
 * LFRFID: **Wipe T5577** (reset to blank, with read-back verification) (by @mishamyte | PR #1003)
 * LFRFID: **Read T5577 tags holding multiple EM4100 IDs again** - a T5577 written with several EM4100 IDs (e.g. via Multiwriter) hung on Read since the Electra protocol was added; also resets a stale PAC/Stanley decoder buffer (by @mishamyte | PR #1025 | Fixes #1024)
 * NFC: **Native MIFARE Plus support in SL3** - MIFARE Plus is now a first-class protocol instead of detection-only: read (AES auth + encrypted/plaintext blocks, admin keys & config, originality signature), automatic dictionary attack with a per-UID key cache (instant re-reads of saved cards), full SL3 emulation with shadow-writeback (a reader can authenticate, read & write the recovered card), write/update-to-card, GetVersion + ATS-based S/X/SE/EV1/EV2 detection, "Add Manually" for 18 Plus variants, and MIFARE-Classic-style dump & keys screens; SL0/SL1/SL2 stay untouched (by @mishamyte | PR #1032 | Closes #1031)
+* NFC: **Fix Type 4 Tag emulation crashing on malformed NDEF write APDUs** - a reader could reboot the Flipper with a 4-to-7 byte `UPDATE BINARY`: an empty data field, a truncated NLEN write that underflowed the length into a ~4 GB allocation, or an unclamped 64 KB NLEN; a partial NLEN write also no longer zeroes the byte it didn't cover (by @mishamyte | PR #1051 | Fixes #1050)
+* NFC: **Fix Type 4 Tag emulation corrupting the NDEF message on writes starting mid-NLEN** - a reader updating from file offset 1 had its payload shifted one byte and picked up a stale byte from the previous frame (by @Endika | PR #1049)
 * NFC: Show MIFARE Ultralight/NTAG PWD & PACK in full info view / on read screen too (by @mishamyte | PR #1010 #1011)
 * NFC: **Add Bambu Lab filament spool parser** (type, color, code, temps, spool specs) (ported from [uzyn/flipper-bambu](https://github.com/uzyn/flipper-bambu), GPL-3.0)
 * NFC: **Align MIFARE type detection with NXP AN10833** - Classic/Ultralight/NTAG/Plus sizing & security level; fixes Mifare Mini clone mis-detection and Ultralight AES read hang (by @mishamyte | PR #1014)
@@ -36,6 +40,7 @@
 * Disabled debug and trace logs in the FW binary (apps .fap's are not affected) to free up some flash space for new features
 * NFC: Fix typo in SLIX poller (by @WillyJL)
 * NFC: Internal MIFARE Plus cleanup - data-drive the "Add Manually" generator variants and unify the admin-key address mapping into one source of truth; small internal-flash saving, no functional change (by @mishamyte | PR #1035)
+* NFC: Fix wrong parent protocol in the Type 4 Tag listener assert - copy-pasted from the SLIX listener, so debug builds crashed as soon as Type 4 Tag emulation received a frame; release builds were unaffected (by @mishamyte | PR #1051)
 <br><br>
 
 ----
