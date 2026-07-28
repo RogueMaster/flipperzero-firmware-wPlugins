@@ -58,7 +58,11 @@ void variable_item_list_reset(VariableItemList* list) {
     list->enter_context = NULL;
     list->resets++;
 }
-void variable_item_list_set_enter_callback(VariableItemList* list, VariableItemListEnterCallback callback, void* context) { list->enter = callback; list->enter_context = context; }
+void variable_item_list_set_enter_callback(VariableItemList* list, VariableItemListEnterCallback callback, void* context) {
+    assert(callback != NULL);
+    list->enter = callback;
+    list->enter_context = context;
+}
 void variable_item_list_set_selected_item(VariableItemList* list, uint8_t selected) { list->selected = selected; }
 uint8_t variable_item_list_get_selected_item_index(VariableItemList* list) { return list->selected; }
 void variable_item_set_values_count(VariableItem* item, uint8_t count) { item->values_count = count; }
@@ -173,6 +177,9 @@ int main(void) {
     assert(state != NULL);
     assert(mf_settings_test_enter(state, &args));
     assert(list.count == 4U && list.selected == 2U);
+    assert(list.enter != NULL && list.enter_context == state);
+    list.enter(list.enter_context, 0U);
+    assert(calls == 0U);
     assert(strcmp(list.items[1].current_text, "buttons") == 0);
     list.items[0].current_index = 10U;
     list.items[0].changed(&list.items[0]);

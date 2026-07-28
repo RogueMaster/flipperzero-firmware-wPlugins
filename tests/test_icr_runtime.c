@@ -3,6 +3,8 @@
 #include "morse_flipper_icr.h"
 #include "morse_flipper_icr_api.h"
 
+#include <dialogs/dialogs.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,6 +24,10 @@
 #define ICR_TRACE_MS               10000U
 
 static unsigned g_checks;
+static DialogMessageButton dialog_responses[4];
+static DialogMessage dialog_seen[4];
+static uint8_t dialog_response_count;
+static uint8_t dialog_show_count;
 
 #define CHECK(expr)                                                         \
     do {                                                                    \
@@ -31,6 +37,59 @@ static unsigned g_checks;
             exit(1);                                                        \
         }                                                                   \
     } while(0)
+
+DialogMessage* dialog_message_alloc(void) {
+    return calloc(1U, sizeof(DialogMessage));
+}
+
+void dialog_message_free(DialogMessage* message) {
+    free(message);
+}
+
+void dialog_message_set_header(
+    DialogMessage* message,
+    const char* text,
+    uint8_t x,
+    uint8_t y,
+    Align horizontal,
+    Align vertical) {
+    (void)x;
+    (void)y;
+    (void)horizontal;
+    (void)vertical;
+    message->header = text;
+}
+
+void dialog_message_set_text(
+    DialogMessage* message,
+    const char* text,
+    uint8_t x,
+    uint8_t y,
+    Align horizontal,
+    Align vertical) {
+    (void)x;
+    (void)y;
+    (void)horizontal;
+    (void)vertical;
+    message->text = text;
+}
+
+void dialog_message_set_buttons(
+    DialogMessage* message,
+    const char* left,
+    const char* center,
+    const char* right) {
+    message->left = left;
+    message->center = center;
+    message->right = right;
+}
+
+DialogMessageButton dialog_message_show(DialogsApp* context, const DialogMessage* message) {
+    (void)context;
+    CHECK(dialog_show_count < dialog_response_count);
+    dialog_seen[dialog_show_count] = *message;
+    return dialog_responses[dialog_show_count++];
+}
 
 void* morse_flipper_icr_runtime_alloc(void);
 void morse_flipper_icr_runtime_free(void* state);
@@ -308,59 +367,53 @@ static void test_zero_reaction_start_records_elapsed_time(void) {
 }
 
 static void test_settings_reset_confirmation_and_persistence(void) {
+    DialogsApp dialogs = {0};
     MorseFlipperIcrEnterArgs args = {
         .now_ms = 100U,
         .entry_kind = MorseFlipperIcrEntrySettings,
+        .dialogs = &dialogs,
     };
     MorseFlipperIcrStats stats;
     MorseFlipperIcrResult result;
-    InputEvent ok = {.key = InputKeyOk, .type = InputTypeShort};
-    InputEvent back = {.key = InputKeyBack, .type = InputTypeShort};
     void* state = morse_flipper_icr_runtime_alloc();
 
     morse_flipper_icr_stats_reset(&stats);
     stats.attempts[0] = 4U;
     stats.correct[0] = 3U;
     CHECK(morse_flipper_icr_stats_save(&stats));
+
+    dialog_responses[0] = DialogMessageButtonLeft;
+    dialog_response_count = 1U;
+    dialog_show_count = 0U;
     CHECK(state != NULL);
     CHECK(morse_flipper_icr_runtime_enter(state, &args, &result));
-    CHECK(result.handled && result.redraw);
-    result = morse_flipper_icr_runtime_input(state, &ok, 101U);
-    CHECK(result.handled && result.redraw && !result.request_exit);
-    result = morse_flipper_icr_runtime_input(state, &back, 102U);
-    CHECK(result.handled && result.redraw && !result.request_exit);
+    CHECK(result.handled && result.request_exit);
+    CHECK(dialog_show_count == 1U);
+    CHECK(strcmp(dialog_seen[0].header, "ICR") == 0);
+    CHECK(strcmp(dialog_seen[0].text, "Reset statistics?") == 0);
+    CHECK(strcmp(dialog_seen[0].left, "No") == 0);
+    CHECK(strcmp(dialog_seen[0].center, "Yes") == 0);
+    CHECK(dialog_seen[0].right == NULL);
     CHECK(morse_flipper_icr_stats_load(&stats));
     CHECK(stats.attempts[0] == 4U && stats.correct[0] == 3U);
-    morse_flipper_icr_runtime_input(state, &ok, 103U);
-    result = morse_flipper_icr_runtime_input(state, &ok, 104U);
-    CHECK(result.handled && result.redraw && !result.request_exit);
+    morse_flipper_icr_runtime_free(state);
+
+    dialog_responses[0] = DialogMessageButtonCenter;
+    dialog_responses[1] = DialogMessageButtonCenter;
+    dialog_response_count = 2U;
+    dialog_show_count = 0U;
+    state = morse_flipper_icr_runtime_alloc();
+    CHECK(state != NULL);
+    CHECK(morse_flipper_icr_runtime_enter(state, &args, &result));
+    CHECK(result.handled && result.request_exit);
+    CHECK(dialog_show_count == 2U);
+    CHECK(strcmp(dialog_seen[1].text, "Statistics reset") == 0);
+    CHECK(dialog_seen[1].left == NULL);
+    CHECK(strcmp(dialog_seen[1].center, "OK") == 0);
+    CHECK(dialog_seen[1].right == NULL);
     CHECK(morse_flipper_icr_stats_load(&stats));
     CHECK(morse_flipper_icr_stats_valid(&stats));
     CHECK(stats.attempts[0] == 0U && stats.correct[0] == 0U);
-    result = morse_flipper_icr_runtime_tick(state, 1103U);
-    CHECK(!result.redraw);
-    result = morse_flipper_icr_runtime_tick(state, 1104U);
-    CHECK(result.handled && result.request_exit);
-    morse_flipper_icr_runtime_leave(state);
-    morse_flipper_icr_runtime_free(state);
-
-    state = morse_flipper_icr_runtime_alloc();
-    CHECK(state != NULL);
-    CHECK(morse_flipper_icr_runtime_enter(state, &args, &result));
-    result = morse_flipper_icr_runtime_input(state, &ok, 1105U);
-    CHECK(result.handled && !result.request_exit);
-    result = morse_flipper_icr_runtime_input(state, &ok, 1106U);
-    CHECK(result.handled && !result.request_exit);
-    result = morse_flipper_icr_runtime_input(state, &back, 1107U);
-    CHECK(result.handled && result.request_exit);
-    morse_flipper_icr_runtime_leave(state);
-    morse_flipper_icr_runtime_free(state);
-
-    state = morse_flipper_icr_runtime_alloc();
-    CHECK(state != NULL);
-    CHECK(morse_flipper_icr_runtime_enter(state, &args, &result));
-    result = morse_flipper_icr_runtime_input(state, &back, 1106U);
-    CHECK(result.handled && result.request_exit);
     morse_flipper_icr_runtime_leave(state);
     morse_flipper_icr_runtime_free(state);
     CHECK(morse_flipper_icr_stats_load(&stats));

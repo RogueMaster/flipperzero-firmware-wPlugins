@@ -191,34 +191,44 @@ class SceneHandlerTableTest(unittest.TestCase):
         self.assertNotIn('"Audio output"', keying)
         self.assertNotIn('"GPIO"', keying)
         self.assertNotIn("MfSettingsNavigate", plugin)
+        self.assertIn("mf_settings_enter_row, state", plugin)
+        self.assertNotIn(
+            "variable_item_list_set_enter_callback(args->list, NULL, NULL)",
+            plugin,
+        )
 
         transport = (ROOT / "src/firmware/morse_flipper_transport.c").read_text(encoding="utf-8")
         self.assertIn("morse_flipper_current_keyer_mode(app) == MorseKeyerModeStraight", transport)
 
     def test_icr_reset_uses_standard_chrome_and_exits_settings_subflow(self) -> None:
         runtime = ICR_RUNTIME.read_text(encoding="utf-8")
-        draw = runtime[
-            runtime.index("static void morse_flipper_icr_draw_settings") :
-            runtime.index("static uint8_t morse_flipper_icr_scale_bar_height")
+        settings = runtime[
+            runtime.index("static void morse_flipper_icr_settings_run") :
+            runtime.index("bool morse_flipper_icr_runtime_enter")
         ]
-        self.assertIn("canvas_set_font(canvas, FontPrimary);", draw)
-        self.assertIn('elements_button_left(canvas, "No");', draw)
-        self.assertIn('elements_button_center(canvas, "Yes");', draw)
-        self.assertNotIn("elements_button_right", draw)
+        self.assertIn('dialog_message_set_buttons(message, "No", "Yes", NULL);', settings)
+        self.assertIn('dialog_message_set_buttons(message, NULL, "OK", NULL);', settings)
+        self.assertIn("dialog_message_show(dialogs, message)", settings)
+        self.assertNotIn("elements_button_", settings)
+        self.assertNotIn("variable_item_list_", runtime)
 
-        settings_event = SCENES.read_text(encoding="utf-8")
-        settings_event = settings_event[
-            settings_event.index("static bool morse_flipper_scene_menu_settings_on_event") :
-            settings_event.index("static void morse_flipper_scene_menu_settings_on_exit")
+        scenes = SCENES.read_text(encoding="utf-8")
+        enter = scenes[
+            scenes.index("static void morse_flipper_scene_icr_on_enter") :
+            scenes.index("static void morse_flipper_scene_icr_on_exit")
         ]
-        self.assertIn("MorseFlipperSceneMenuSettings, event.event", settings_event)
-
-        result = runtime[
-            runtime.index("if(state->settings_entry) {", runtime.index("MorseFlipperIcrResult morse_flipper_icr_runtime_tick")) :
-            runtime.index("if(state->phase == MorseFlipperIcrPhaseGraphWait)")
+        self.assertIn("if(morse_flipper_icr_host_enter(app, furi_get_tick()))", enter)
+        host = (ROOT / "src/firmware/morse_flipper_icr_host.c").read_text(encoding="utf-8")
+        host_enter = host[
+            host.index("bool morse_flipper_icr_host_enter") :
+            host.index("bool morse_flipper_icr_host_input")
         ]
-        self.assertIn(".request_exit = true", result)
-        self.assertNotIn("settings_phase = MorseFlipperIcrSettingsMenu", result)
+        self.assertIn("if(initial.request_exit)", host_enter)
+        self.assertIn("morse_flipper_scene_back(app);", host_enter)
+        self.assertIn(
+            "*initial = (MorseFlipperIcrResult){.handled = true, .request_exit = true};",
+            runtime,
+        )
 
 
 if __name__ == "__main__":

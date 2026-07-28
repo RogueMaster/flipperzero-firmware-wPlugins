@@ -23,6 +23,7 @@ typedef struct {
 typedef struct MorseFlipperApp {
     MorseFlipperPluginSlot plugin_slot;
     uint8_t scene;
+    DialogsApp* dialogs;
 } MorseFlipperApp;
 
 enum {

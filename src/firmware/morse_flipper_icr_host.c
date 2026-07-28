@@ -35,11 +35,16 @@ bool morse_flipper_icr_host_enter(MorseFlipperApp* app, uint32_t now_ms) {
             .entry_kind = app->scene == MorseFlipperSceneMenuSettings ?
                               MorseFlipperIcrEntrySettings :
                               MorseFlipperIcrEntryTraining,
+            .dialogs = app->dialogs,
         },
         &initial);
     if(entered) morse_flipper_icr_host_apply_locked(app, initial, now_ms);
     furi_mutex_release(app->plugin_slot.mutex);
     if(initial.redraw) morse_flipper_view_dirty(app);
+    if(initial.request_exit) {
+        morse_flipper_scene_back(app);
+        entered = false;
+    }
     return entered;
 }
 
@@ -83,5 +88,4 @@ void morse_flipper_icr_host_tick(MorseFlipperApp* app, uint32_t now_ms) {
     furi_mutex_release(app->plugin_slot.mutex);
     morse_flipper_update_sidetone(app);
     if(result.redraw) morse_flipper_view_dirty(app);
-    if(result.request_exit) morse_flipper_scene_back(app);
 }

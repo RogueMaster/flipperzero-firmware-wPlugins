@@ -4,6 +4,8 @@
 #include <stdio.h>
 
 static MorseFlipperMappedFalResult tick_result;
+static MorseFlipperMappedFalResult open_initial;
+static bool open_result;
 static unsigned lock_depth;
 static unsigned backs;
 static unsigned back_lock_depth;
@@ -41,8 +43,8 @@ bool morse_flipper_plugin_runtime_open_mapped_locked(
     (void)api_magic;
     (void)minimum_api_size;
     (void)enter_args;
-    (void)initial;
-    return false;
+    *initial = open_initial;
+    return open_result;
 }
 
 bool morse_flipper_plugin_runtime_tick_locked(
@@ -89,6 +91,7 @@ void morse_flipper_scene_back(MorseFlipperApp* app) {
 }
 
 void morse_flipper_icr_host_tick(MorseFlipperApp* app, uint32_t now_ms);
+bool morse_flipper_icr_host_enter(MorseFlipperApp* app, uint32_t now_ms);
 
 int main(void) {
     FuriMutex mutex = {0};
@@ -102,13 +105,23 @@ int main(void) {
         },
     };
 
+    open_result = true;
+    open_initial =
+        (MorseFlipperMappedFalResult){.handled = true, .redraw = true, .request_exit = true};
+    assert(!morse_flipper_icr_host_enter(&app, 50U));
+    assert(backs == 1U && back_lock_depth == 0U && redraws == 1U);
+
+    open_initial = (MorseFlipperMappedFalResult){.handled = true, .redraw = true};
+    assert(morse_flipper_icr_host_enter(&app, 60U));
+    assert(backs == 1U && redraws == 2U);
+
     tick_result = (MorseFlipperMappedFalResult){.handled = true, .redraw = true};
     morse_flipper_icr_host_tick(&app, 100U);
-    assert(applies == 1U && redraws == 1U && sidetones == 1U && backs == 0U);
+    assert(applies == 3U && redraws == 3U && sidetones == 1U && backs == 1U);
 
     tick_result = (MorseFlipperMappedFalResult){.handled = true, .request_exit = true};
     morse_flipper_icr_host_tick(&app, 200U);
-    assert(applies == 2U && backs == 1U);
+    assert(applies == 4U && backs == 1U);
     assert(back_lock_depth == 0U);
 
     puts("test_icr_host: passed");

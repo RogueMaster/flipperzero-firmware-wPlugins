@@ -8,8 +8,10 @@
 
 #include "../../morse_flipper_mapped_fal.h"
 
-#define MORSE_FLIPPER_ICR_API_VERSION 4U
+#define MORSE_FLIPPER_ICR_API_VERSION 5U
 #define MORSE_FLIPPER_ICR_API_MAGIC 0x4D464943UL
+
+typedef struct DialogsApp DialogsApp;
 
 typedef enum {
     MorseFlipperIcrFeedbackNone = 0,
@@ -30,6 +32,7 @@ typedef struct {
     uint32_t now_ms;
     uint32_t rng_seed;
     uint8_t entry_kind;
+    DialogsApp* dialogs;
 } MorseFlipperIcrEnterArgs;
 
 typedef struct {

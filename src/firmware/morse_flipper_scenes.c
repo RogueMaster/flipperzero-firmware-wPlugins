@@ -781,8 +781,9 @@ static void morse_flipper_scene_straight_on_enter(void* context) {
 
 static void morse_flipper_scene_icr_on_enter(void* context) {
     MorseFlipperApp* app = context;
-    morse_flipper_icr_host_enter(app, furi_get_tick());
-    morse_flipper_scene_enter_now(app, MorseFlipperSceneIcr);
+
+    if(morse_flipper_icr_host_enter(app, furi_get_tick()))
+        morse_flipper_scene_enter_now(app, MorseFlipperSceneIcr);
 }
 
 static void morse_flipper_scene_icr_on_exit(void* context) {

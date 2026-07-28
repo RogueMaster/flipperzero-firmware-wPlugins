@@ -354,6 +354,11 @@ static void mf_settings_changed(VariableItem* item) {
     }
 }
 
+static void mf_settings_enter_row(void* context, uint32_t index) {
+    UNUSED(context);
+    UNUSED(index);
+}
+
 static void mf_settings_build_rows(MfSettingsState* state) {
     VariableItemList* list = state->args.list;
     uint8_t rows = mf_settings_row_count(state->args.entry, &state->snapshot);
@@ -459,7 +464,7 @@ static bool mf_settings_enter(void* opaque, const void* opaque_args, MorseFlippe
     state->gpio_ptt_pin = state->snapshot.gpio_ptt_pin;
     if(args->entry == MfSettingsEntryListening) (void)mf_settings_try_load_custom_names(state);
     variable_item_list_reset(args->list);
-    variable_item_list_set_enter_callback(args->list, NULL, NULL);
+    variable_item_list_set_enter_callback(args->list, mf_settings_enter_row, state);
     mf_settings_build_rows(state);
     variable_item_list_set_selected_item(args->list, (uint8_t)(args->selected_state & 0xffU));
     mf_settings_refresh(state);

@@ -9,6 +9,7 @@
 #include "../../cw.h"
 #include "../../morse_flipper_time.h"
 
+#include <dialogs/dialogs.h>
 #include <gui/elements.h>
 
 #define MORSE_FLIPPER_CW_TOKEN_SK    0x80U
@@ -45,12 +46,6 @@ typedef enum {
     MorseFlipperIcrPhaseResult,
 } MorseFlipperIcrPhase;
 
-typedef enum {
-    MorseFlipperIcrSettingsMenu = 0,
-    MorseFlipperIcrSettingsConfirm,
-    MorseFlipperIcrSettingsResult,
-} MorseFlipperIcrSettingsPhase;
-
 typedef struct {
     MorseFlipperIcrStats stats;
     bool dirty;
@@ -68,10 +63,6 @@ typedef struct {
     bool answer_correct;
     bool playback_mark;
     MorseFlipperIcrFeedback feedback;
-    uint32_t settings_until;
-    uint8_t settings_phase;
-    bool settings_entry;
-    bool settings_saved;
 } MorseFlipperIcrState;
 
 static MorseFlipperIcrResult morse_flipper_icr_result(
@@ -217,6 +208,31 @@ void morse_flipper_icr_runtime_free(void* value) {
     free(value);
 }
 
+static void morse_flipper_icr_settings_run(MorseFlipperIcrState* state, DialogsApp* dialogs) {
+    DialogMessage* message;
+
+    if(state == NULL || dialogs == NULL) return;
+    message = dialog_message_alloc();
+    dialog_message_set_header(message, "ICR", 64, 10, AlignCenter, AlignTop);
+    dialog_message_set_text(
+        message, "Reset statistics?", 64, 30, AlignCenter, AlignCenter);
+    dialog_message_set_buttons(message, "No", "Yes", NULL);
+    if(dialog_message_show(dialogs, message) == DialogMessageButtonCenter) {
+        morse_flipper_icr_stats_reset(&state->stats);
+        bool saved = morse_flipper_icr_stats_save(&state->stats);
+        dialog_message_set_text(
+            message,
+            saved ? "Statistics reset" : "Could not save",
+            64,
+            30,
+            AlignCenter,
+            AlignCenter);
+        dialog_message_set_buttons(message, NULL, "OK", NULL);
+        dialog_message_show(dialogs, message);
+    }
+    dialog_message_free(message);
+}
+
 bool morse_flipper_icr_runtime_enter(
     void* value,
     const MorseFlipperIcrEnterArgs* args,
@@ -226,9 +242,9 @@ bool morse_flipper_icr_runtime_enter(
     if(state == NULL || args == NULL || initial == NULL)
         return false;
 
-    if(args->entry_kind == MorseFlipperIcrEntrySettings) {
-        state->settings_entry = true;
-        *initial = morse_flipper_icr_result(state, true);
+    if(args->entry_kind == MorseFlipperIcrEntrySettings && args->dialogs != NULL) {
+        morse_flipper_icr_settings_run(state, args->dialogs);
+        *initial = (MorseFlipperIcrResult){.handled = true, .request_exit = true};
         return true;
     }
     if(args->entry_kind != MorseFlipperIcrEntryTraining || !morse_flipper_icr_stats_load(&state->stats))
@@ -256,31 +272,6 @@ MorseFlipperIcrResult morse_flipper_icr_runtime_input(
 
     if(state == NULL || event == NULL) return (MorseFlipperIcrResult){0};
     state->feedback = MorseFlipperIcrFeedbackNone;
-
-    if(state->settings_entry) {
-        if(event->key == InputKeyBack &&
-           (event->type == InputTypeShort || event->type == InputTypeLong)) {
-            if(state->settings_phase == MorseFlipperIcrSettingsConfirm) {
-                state->settings_phase = MorseFlipperIcrSettingsMenu;
-                return morse_flipper_icr_result(state, true);
-            }
-            return (MorseFlipperIcrResult){.handled = true, .request_exit = true};
-        }
-        if(event->key == InputKeyOk && event->type == InputTypeShort) {
-            if(state->settings_phase == MorseFlipperIcrSettingsMenu) {
-                state->settings_phase = MorseFlipperIcrSettingsConfirm;
-            } else if(state->settings_phase == MorseFlipperIcrSettingsConfirm) {
-                morse_flipper_icr_stats_reset(&state->stats);
-                state->settings_saved = morse_flipper_icr_stats_save(&state->stats);
-                state->settings_phase = MorseFlipperIcrSettingsResult;
-                state->settings_until = now_ms + MORSE_FLIPPER_ICR_RESULT_MS;
-            } else {
-                return (MorseFlipperIcrResult){.handled = true, .request_exit = true};
-            }
-            return morse_flipper_icr_result(state, true);
-        }
-        return morse_flipper_icr_result(state, false);
-    }
 
     if(event->key == InputKeyBack &&
        (event->type == InputTypeShort || event->type == InputTypeLong)) {
@@ -315,14 +306,6 @@ MorseFlipperIcrResult morse_flipper_icr_runtime_tick(void* value, uint32_t now_m
 
     if(state == NULL) return (MorseFlipperIcrResult){0};
     state->feedback = MorseFlipperIcrFeedbackNone;
-
-    if(state->settings_entry) {
-        if(state->settings_phase == MorseFlipperIcrSettingsResult &&
-           morse_flipper_time_reached(now_ms, state->settings_until)) {
-            return (MorseFlipperIcrResult){.handled = true, .request_exit = true};
-        }
-        return morse_flipper_icr_result(state, false);
-    }
 
     if(state->phase == MorseFlipperIcrPhaseGraphWait) {
         if(morse_flipper_time_reached(now_ms, state->next_at)) {
@@ -373,28 +356,6 @@ static const char* morse_flipper_icr_phase_label(const MorseFlipperIcrState* sta
         return state->answer_correct ? "OK" : "Fail";
     default:
         return "";
-    }
-}
-
-static void morse_flipper_icr_draw_settings(const MorseFlipperIcrState* state, Canvas* canvas) {
-    canvas_set_font(canvas, FontPrimary);
-    if(state->settings_phase == MorseFlipperIcrSettingsMenu) {
-        canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignCenter, "ICR");
-        canvas_draw_str_aligned(canvas, 64, 34, AlignCenter, AlignCenter, "Reset statistics");
-        elements_button_center(canvas, "OK");
-    } else if(state->settings_phase == MorseFlipperIcrSettingsConfirm) {
-        canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignCenter, "Reset statistics?");
-        elements_button_left(canvas, "No");
-        elements_button_center(canvas, "Yes");
-    } else {
-        canvas_draw_str_aligned(
-            canvas,
-            64,
-            32,
-            AlignCenter,
-            AlignCenter,
-            state->settings_saved ? "Statistics reset" : "Could not save");
-        elements_button_center(canvas, "OK");
     }
 }
 
@@ -571,10 +532,6 @@ void morse_flipper_icr_runtime_draw(
     MorseFlipperIcrState* state = value;
 
     if(state == NULL || canvas == NULL) return;
-    if(state->settings_entry) {
-        morse_flipper_icr_draw_settings(state, canvas);
-        return;
-    }
     if(state->phase < MorseFlipperIcrPhaseAnswerGuard) {
         morse_flipper_icr_draw_graph(canvas, state, now_ms);
         return;
