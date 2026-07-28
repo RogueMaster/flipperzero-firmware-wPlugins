@@ -165,7 +165,7 @@ class SceneHandlerTableTest(unittest.TestCase):
         input_source = INPUT.read_text(encoding="utf-8")
         offer = input_source[
             input_source.index("static bool morse_flipper_session_end_input") :
-            input_source.index("static bool morse_flipper_progress_today")
+            input_source.index("static void morse_flipper_progress_load_recent")
         ]
         self.assertIn("if(event->key == InputKeyOk)", offer)
         self.assertIn("if(event->key == InputKeyBack)", offer)

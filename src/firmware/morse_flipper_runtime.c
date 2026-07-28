@@ -95,7 +95,7 @@ static void morse_flipper_finish_tx_group_answer(MorseFlipperApp* app, uint32_t 
     if(app->tx_group.result.passed)
         morse_flipper_feedback_pass(app);
     else
-        morse_flipper_feedback_fail(app);
+        morse_flipper_feedback_error(app);
     app->txg_result_open_at = now_ms + MORSE_FLIPPER_TXG_RESULT_DELAY_MS;
     app->txg_result_until = 0U;
     app->txg_result_draw_s = 0xFFU;
@@ -167,7 +167,7 @@ static void morse_flipper_finish_tx_group_timeout(MorseFlipperApp* app, uint32_t
         return;
     }
 
-    morse_flipper_feedback_timeout(app);
+    morse_flipper_feedback_error(app);
     morse_flipper_drop_live_keying_for_playback(app, now_ms);
     app->txg_result_open_at = 0U;
     app->txg_result_until = now_ms + ((uint32_t)app->straight_next_delay_s * 1000U);

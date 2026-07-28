@@ -149,12 +149,6 @@ static void morse_flipper_draw_rf_rssi_bar(Canvas* canvas, const MorseFlipperApp
     canvas_set_color(canvas, ColorBlack);
 }
 
-static uint16_t morse_flipper_rf_canvas_glyph_width(uint8_t ch, void* ctx) {
-    Canvas* canvas = ctx;
-    if(canvas == NULL) return 0U;
-    return (uint16_t)canvas_glyph_width(canvas, ch);
-}
-
 static int32_t morse_flipper_rf_ticker_x(uint32_t event_ms, uint32_t now_ms) {
     uint32_t age_ms = now_ms - event_ms;
 
@@ -281,7 +275,7 @@ static void morse_flipper_draw_rf_rx_text(Canvas* canvas, const MorseFlipperApp*
         text,
         preview_active && preview_extendable,
         126U,
-        morse_flipper_rf_canvas_glyph_width,
+        morse_flipper_canvas_glyph_width,
         canvas,
         &layout);
     for(size_t i = 0U; i < MORSE_FLIPPER_RUN_HISTORY_ROWS; i++) {

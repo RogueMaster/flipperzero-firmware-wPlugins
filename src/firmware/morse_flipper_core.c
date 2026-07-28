@@ -132,11 +132,7 @@ void morse_flipper_feedback_pass(MorseFlipperApp* app) {
     morse_flipper_update_sidetone(app);
 }
 
-void morse_flipper_feedback_fail(MorseFlipperApp* app) {
-    morse_flipper_feedback_do(app);
-}
-
-void morse_flipper_feedback_timeout(MorseFlipperApp* app) {
+void morse_flipper_feedback_error(MorseFlipperApp* app) {
     morse_flipper_feedback_do(app);
 }
 

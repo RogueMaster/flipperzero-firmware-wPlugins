@@ -9,7 +9,7 @@
 #include "morse_flipper_cw_token.h"
 #include "morse_flipper_run_layout.h"
 
-static uint16_t morse_flipper_canvas_glyph_width(uint8_t ch, void* ctx) {
+uint16_t morse_flipper_canvas_glyph_width(uint8_t ch, void* ctx) {
     Canvas* canvas = ctx;
     if(canvas == NULL) return 0U;
     return (uint16_t)canvas_glyph_width(canvas, ch);

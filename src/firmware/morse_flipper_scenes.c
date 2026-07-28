@@ -73,15 +73,6 @@ static void morse_flipper_scene_start_plain_listening(MorseFlipperApp* app) {
     scene_manager_next_scene(app->scene_manager, MorseFlipperSceneSession);
 }
 
-static bool morse_flipper_scene_today(uint16_t* out_day) {
-    DateTime dt = {0};
-
-    if(out_day == NULL) return false;
-    *out_day = MORSE_FLIPPER_PROGRESS_DAY_NONE;
-    furi_hal_rtc_get_datetime(&dt);
-    return morse_flipper_progress_date_to_day(dt.year, dt.month, dt.day, out_day);
-}
-
 static void morse_flipper_scene_start_listening_or_streak_intro(MorseFlipperApp* app) {
     MorseFlipperProgress* progress;
     uint16_t practice_day = MORSE_FLIPPER_PROGRESS_DAY_NONE;
@@ -93,7 +84,7 @@ static void morse_flipper_scene_start_listening_or_streak_intro(MorseFlipperApp*
         return;
     }
 
-    if(!morse_flipper_scene_today(&practice_day)) {
+    if(!morse_flipper_progress_today(&practice_day)) {
         free(progress);
         morse_flipper_scene_start_plain_listening(app);
         return;

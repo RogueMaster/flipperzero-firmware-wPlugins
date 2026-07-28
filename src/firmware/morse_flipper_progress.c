@@ -418,6 +418,17 @@ bool morse_flipper_progress_date_to_day(
     return true;
 }
 
+#ifdef MORSE_FLIPPER_FAP
+bool morse_flipper_progress_today(uint16_t* out_day) {
+    DateTime dt = {0};
+
+    if(out_day == NULL) return false;
+    *out_day = MORSE_FLIPPER_PROGRESS_DAY_NONE;
+    furi_hal_rtc_get_datetime(&dt);
+    return morse_flipper_progress_date_to_day(dt.year, dt.month, dt.day, out_day);
+}
+#endif
+
 bool morse_flipper_progress_day_to_date(
     uint16_t practice_day,
     uint16_t* out_year,

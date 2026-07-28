@@ -120,6 +120,9 @@ bool morse_flipper_progress_date_to_day(
     uint8_t month,
     uint8_t day,
     uint16_t* out_day);
+#ifdef MORSE_FLIPPER_FAP
+bool morse_flipper_progress_today(uint16_t* out_day);
+#endif
 bool morse_flipper_progress_day_to_date(
     uint16_t practice_day,
     uint16_t* out_year,

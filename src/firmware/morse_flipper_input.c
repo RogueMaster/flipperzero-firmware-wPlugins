@@ -636,15 +636,6 @@ leave_session_end:
     return false;
 }
 
-static bool morse_flipper_progress_today(uint16_t* out_day) {
-    DateTime dt = {0};
-
-    if(out_day == NULL) return false;
-    *out_day = MORSE_FLIPPER_PROGRESS_DAY_NONE;
-    furi_hal_rtc_get_datetime(&dt);
-    return morse_flipper_progress_date_to_day(dt.year, dt.month, dt.day, out_day);
-}
-
 static void morse_flipper_progress_load_recent(MorseFlipperApp* app) {
     uint16_t today = MORSE_FLIPPER_PROGRESS_DAY_NONE;
     uint16_t day;

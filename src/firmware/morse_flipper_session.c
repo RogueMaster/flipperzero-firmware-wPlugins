@@ -27,7 +27,7 @@ static void morse_flipper_session_answer_committed_text(
 
 static void morse_flipper_note_session_progress_group(MorseFlipperApp* app);
 
-bool morse_flipper_answer_input_is_straight(const MorseFlipperApp* app) {
+bool morse_flipper_input_is_straight(const MorseFlipperApp* app) {
     if(app == NULL) return false;
     if(app->input_source == MorseFlipperInputSourceStraight) return true;
     if(app->input_source == MorseFlipperInputSourcePaddle &&
@@ -42,7 +42,7 @@ bool morse_flipper_answer_input_is_straight(const MorseFlipperApp* app) {
 void morse_flipper_reset_answer_decoder(MorseFlipperApp* app) {
     if(app == NULL) return;
 
-    if(morse_flipper_answer_input_is_straight(app)) {
+    if(morse_flipper_input_is_straight(app)) {
         morse_flipper_cw_decoder_init(
             &app->tx_decoder, morse_flipper_current_straight_dit_ms(app));
     } else {

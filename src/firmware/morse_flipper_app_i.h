@@ -776,8 +776,7 @@ const char* morse_flipper_txg_difficulty_name(uint8_t difficulty);
 uint8_t morse_flipper_txg_range_low(uint8_t difficulty);
 uint8_t morse_flipper_txg_range_high(uint8_t difficulty);
 void morse_flipper_feedback_pass(MorseFlipperApp* app);
-void morse_flipper_feedback_fail(MorseFlipperApp* app);
-void morse_flipper_feedback_timeout(MorseFlipperApp* app);
+void morse_flipper_feedback_error(MorseFlipperApp* app);
 void morse_flipper_tick_ham_macro(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_ham_start_macro(MorseFlipperApp* app, const char* text, uint32_t now_ms);
 void morse_flipper_ham_stop_macro(MorseFlipperApp* app);
@@ -815,6 +814,7 @@ uint8_t morse_flipper_star_anim_cols(
     uint8_t star_idx,
     uint8_t target_stars);
 uint16_t morse_flipper_star_anim_duration(uint8_t target_stars);
+uint16_t morse_flipper_canvas_glyph_width(uint8_t ch, void* ctx);
 void morse_flipper_draw_run_text(Canvas* canvas, int32_t x, int32_t y, const char* text);
 void morse_flipper_draw_straight_prompt(
     Canvas* canvas,
@@ -878,7 +878,7 @@ uint8_t morse_flipper_keyer_value_index(uint8_t mode);
 uint16_t morse_flipper_wpm_to_dit_ms(uint8_t wpm);
 uint16_t morse_flipper_current_dit_ms(const MorseFlipperApp* app);
 uint16_t morse_flipper_current_straight_dit_ms(const MorseFlipperApp* app);
-bool morse_flipper_answer_input_is_straight(const MorseFlipperApp* app);
+bool morse_flipper_input_is_straight(const MorseFlipperApp* app);
 void morse_flipper_reset_answer_decoder(MorseFlipperApp* app);
 uint8_t morse_flipper_current_wpm(const MorseFlipperApp* app);
 uint32_t morse_flipper_note_source_for_paddle(uint8_t paddle);
