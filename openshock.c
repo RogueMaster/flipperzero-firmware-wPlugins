@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TX_ICON_DRAW_ROTATION IconRotation270
+#define TX_ICON_DRAW_ROTATION  IconRotation270
 #define TX_SOUND_ICON_ROTATION IconRotation180
 
 typedef enum {
@@ -103,6 +103,7 @@ struct OpenshockCtx {
     OpenshockTx* tx;
     OpenshockRx* rx;
     OpenshockTx* tx_active;
+    FuriTimer* redraw_timer;
 };
 
 static bool handle_list(OpenshockCtx* app, InputEvent* e);
@@ -146,7 +147,7 @@ static void ensure_valid(ShockerState* s) {
 }
 
 #define OPENSHOCK_INTER_PACKET_GAP_HIGH_US 50
-#define OPENSHOCK_INTER_PACKET_GAP_LOW_US 10000
+#define OPENSHOCK_INTER_PACKET_GAP_LOW_US  10000
 
 typedef struct {
     ShockerModel model;
@@ -160,7 +161,8 @@ static void stem_trim(char* s) {
         s[--n] = '\0';
     }
     char* p = s;
-    while(*p && isspace((unsigned char)*p)) p++;
+    while(*p && isspace((unsigned char)*p))
+        p++;
     if(p != s) memmove(s, p, strlen(p) + 1);
 }
 
@@ -469,11 +471,8 @@ static bool transmit_rc_to_cmd(int row, int col, bool has_light, ShockerCommand*
     return false;
 }
 
-static bool transmit_grid_try_move(
-    const ShockerState* c,
-    int dr,
-    int dc,
-    ShockerCommand* out_next) {
+static bool
+    transmit_grid_try_move(const ShockerState* c, int dr, int dc, ShockerCommand* out_next) {
     bool hl = openshock_command_supported(c->model, ShockerCmdLight);
     int r, col;
     if(!transmit_cmd_to_rc(c->command, hl, &r, &col)) return false;
@@ -568,12 +567,7 @@ static void draw_tx_icon_cell(
     if(selected) {
         const int inset_x = 2;
         canvas_draw_rframe(
-            canvas,
-            cell_x + inset_x,
-            cell_y,
-            (size_t)(cell_w - 2 * inset_x),
-            (size_t)cell_h,
-            2);
+            canvas, cell_x + inset_x, cell_y, (size_t)(cell_w - 2 * inset_x), (size_t)cell_h, 2);
     }
     uint16_t iw = icon_get_width(icon);
     uint16_t ih = icon_get_height(icon);
@@ -615,8 +609,8 @@ static void draw_tx_icon_for_command(
     default:
         return;
     }
-    IconRotation rot =
-        (cell_cmd == ShockerCmdSound) ? TX_SOUND_ICON_ROTATION : TX_ICON_DRAW_ROTATION;
+    IconRotation rot = (cell_cmd == ShockerCmdSound) ? TX_SOUND_ICON_ROTATION :
+                                                       TX_ICON_DRAW_ROTATION;
     int icon_dy = (cell_cmd == ShockerCmdShock) ? 1 : 0;
     draw_tx_icon_cell(canvas, cell_x, cell_y, cell_w, cell_h, icon, rot, selected, icon_dy);
 }
@@ -726,8 +720,8 @@ static void draw_transmit_sync_strip(
     canvas_draw_str_aligned(canvas, label_left, tag_y, AlignLeft, AlignBottom, tag);
     canvas_set_font_direction(canvas, CanvasDirectionLeftToRight);
 
-    int dots_cx = bar_x + bar_w + gap_after_bar + label_col_w + gap_before_dots + (int)r -
-                    dots_nudge_left;
+    int dots_cx =
+        bar_x + bar_w + gap_after_bar + label_col_w + gap_before_dots + (int)r - dots_nudge_left;
 
     size_t span_h = (gn - 1) * (size_t)step + 2 * r;
     int y_top_center = bar_y + (int)((bar_h - (int)span_h) / 2) + (int)r;
@@ -736,7 +730,7 @@ static void draw_transmit_sync_strip(
         int cy = y_top_center + (int)(i * step);
         if(cy + (int)r >= bar_y + bar_h) break;
         bool on = (app_s->transmit_sync_cycle == 0) ||
-                    (app_s->transmit_sync_cycle == (uint8_t)(gn - i));
+                  (app_s->transmit_sync_cycle == (uint8_t)(gn - i));
         if(on) {
             canvas_draw_disc(canvas, dots_cx, cy, r);
         } else {
@@ -783,7 +777,7 @@ static void draw_transmit_sync_strip_horizontal(Canvas* canvas, AppState* app_s)
     for(size_t i = 0; i < gn; i++) {
         int cx = x_first + (int)(i * step);
         bool on = (app_s->transmit_sync_cycle == 0) ||
-                    (app_s->transmit_sync_cycle == (uint8_t)(i + 1));
+                  (app_s->transmit_sync_cycle == (uint8_t)(i + 1));
         if(on) {
             canvas_draw_disc(canvas, cx, dot_y, r);
         } else {
@@ -806,16 +800,20 @@ static void draw_transmit_mode_grid_and_bar(Canvas* canvas, AppState* app_s, int
 
     const bool cg = !bar_focus;
 
-    draw_tx_icon_for_command(canvas, gx0, gy0, cell_w, cell_h, ShockerCmdVibrate, cg && c->command == ShockerCmdVibrate);
+    draw_tx_icon_for_command(
+        canvas, gx0, gy0, cell_w, cell_h, ShockerCmdVibrate, cg && c->command == ShockerCmdVibrate);
 
     if(has_light) {
-        draw_tx_icon_for_command(canvas, gx1, gy0, cell_w, cell_h, ShockerCmdLight, cg && c->command == ShockerCmdLight);
+        draw_tx_icon_for_command(
+            canvas, gx1, gy0, cell_w, cell_h, ShockerCmdLight, cg && c->command == ShockerCmdLight);
     }
 
     const int gy1 = gy0 + cell_h + gap_y;
-    draw_tx_icon_for_command(canvas, gx0, gy1, cell_w, cell_h, ShockerCmdShock, cg && c->command == ShockerCmdShock);
+    draw_tx_icon_for_command(
+        canvas, gx0, gy1, cell_w, cell_h, ShockerCmdShock, cg && c->command == ShockerCmdShock);
 
-    draw_tx_icon_for_command(canvas, gx1, gy1, cell_w, cell_h, ShockerCmdSound, cg && c->command == ShockerCmdSound);
+    draw_tx_icon_for_command(
+        canvas, gx1, gy1, cell_w, cell_h, ShockerCmdSound, cg && c->command == ShockerCmdSound);
 
     const int bar_pad = 3;
     const int bar_y = gy0 - bar_pad;
@@ -824,7 +822,8 @@ static void draw_transmit_mode_grid_and_bar(Canvas* canvas, AppState* app_s, int
     const int bar_h = (gy1 + cell_h + bar_pad) - gy0;
 
     if(bar_focus) {
-        elements_bold_rounded_frame(canvas, bar_x - 1, bar_y - 1, (size_t)(bar_w + 2), (size_t)(bar_h + 2));
+        elements_bold_rounded_frame(
+            canvas, bar_x - 1, bar_y - 1, (size_t)(bar_w + 2), (size_t)(bar_h + 2));
     }
     canvas_draw_frame(canvas, bar_x, bar_y, bar_w, bar_h);
     if(c->command == ShockerCmdLight) {
@@ -844,13 +843,7 @@ static void draw_transmit_mode_grid_and_bar(Canvas* canvas, AppState* app_s, int
         snprintf(lvl, sizeof(lvl), "%u%%", (unsigned)c->intensity);
     }
     transmit_draw_vertical_in_bar(
-        canvas,
-        bar_x,
-        bar_y,
-        bar_w,
-        bar_h,
-        lvl,
-        c->command == ShockerCmdLight);
+        canvas, bar_x, bar_y, bar_w, bar_h, lvl, c->command == ShockerCmdLight);
 
     draw_transmit_sync_strip(canvas, app_s, bar_x, bar_y, bar_w, bar_h);
 }
@@ -969,23 +962,13 @@ static void draw_list(Canvas* canvas, AppState* s) {
         } else {
             char nm[44];
             str_trunc_fit(nm, sizeof(nm), s->saved[list_collar_index(i)].name, 22);
-            snprintf(
-                line,
-                sizeof(line),
-                "%s %s",
-                (i == s->list_sel) ? ">" : " ",
-                nm);
+            snprintf(line, sizeof(line), "%s %s", (i == s->list_sel) ? ">" : " ", nm);
         }
         canvas_draw_str(canvas, 0, y, line);
     }
 
     elements_scrollbar_pos(
-        canvas,
-        128,
-        cy - 4,
-        (size_t)(max_visible * rh),
-        (size_t)s->list_sel,
-        (size_t)total);
+        canvas, 128, cy - 4, (size_t)(max_visible * rh), (size_t)s->list_sel, (size_t)total);
 
     if(list_row_is_collar(s, s->list_sel)) {
         elements_button_left(canvas, "Del");
@@ -1154,10 +1137,7 @@ static void openshock_name_input_cb(void* ctx) {
     snprintf(prev, sizeof(prev), "%s", app->state.current.name);
 
     snprintf(
-        app->state.current.name,
-        sizeof(app->state.current.name),
-        "%s",
-        app->text_input_buffer);
+        app->state.current.name, sizeof(app->state.current.name), "%s", app->text_input_buffer);
     stem_trim(app->state.current.name);
     if(app->state.current.name[0] == '\0') {
         snprintf(app->state.current.name, sizeof(app->state.current.name), "Collar");
@@ -1223,6 +1203,12 @@ static void main_draw(Canvas* canvas, void* model) {
     }
 
     furi_mutex_release(app->mutex);
+}
+
+static void redraw_timer_cb(void* context) {
+    OpenshockCtx* app = context;
+    if(app->state.screen != ScreenReceive) return;
+    with_view_model(app->main_view, OpenshockMainModel * model, { UNUSED(model); }, true);
 }
 
 static bool main_view_input(InputEvent* event, void* context) {
@@ -1454,10 +1440,10 @@ static bool handle_transmit_horizontal(OpenshockCtx* app, InputEvent* e) {
 
     if(e->key == InputKeyOk && e->type == InputTypePress) {
         if(transmit_sync_popup_active(s)) return true;
-        s->transmitting = true;
         OokPulse pulses[OPENSHOCK_MAX_PULSES];
         size_t count = 0;
         if(tx_fill_pulses(s, pulses, &count) && count > 0) {
+            s->transmitting = true;
             openshock_tx_start(tx, pulses, count);
             *active = tx;
         }
@@ -1516,7 +1502,8 @@ static bool handle_transmit_horizontal(OpenshockCtx* app, InputEvent* e) {
             s->transmitting = false;
         }
         {
-            ShockerCommand n = (e->key == InputKeyLeft) ? cycle_cmd_back_cmd(c) : cycle_cmd_fwd_cmd(c);
+            ShockerCommand n = (e->key == InputKeyLeft) ? cycle_cmd_back_cmd(c) :
+                                                          cycle_cmd_fwd_cmd(c);
             transmit_apply_command(s, n);
         }
         return true;
@@ -1557,8 +1544,7 @@ static bool handle_transmit(OpenshockCtx* app, InputEvent* e) {
             size_t group_idx[OPENSHOCK_MAX_SAVED];
             size_t gn = tx_group_member_indices(s, group_idx, OPENSHOCK_MAX_SAVED);
             if(gn == 0) return true;
-            s->transmit_sync_cycle =
-                (uint8_t)((s->transmit_sync_cycle + 1) % (uint8_t)(gn + 1));
+            s->transmit_sync_cycle = (uint8_t)((s->transmit_sync_cycle + 1) % (uint8_t)(gn + 1));
             if(s->transmit_sync_cycle == 0) {
                 show_flash_tx(s, "TX Group %u", c->sync_group);
             } else {
@@ -1571,10 +1557,10 @@ static bool handle_transmit(OpenshockCtx* app, InputEvent* e) {
 
     if(e->key == InputKeyOk && e->type == InputTypePress) {
         if(transmit_sync_popup_active(s)) return true;
-        s->transmitting = true;
         OokPulse pulses[OPENSHOCK_MAX_PULSES];
         size_t count = 0;
         if(tx_fill_pulses(s, pulses, &count) && count > 0) {
+            s->transmitting = true;
             openshock_tx_start(tx, pulses, count);
             *active = tx;
         }
@@ -1623,10 +1609,12 @@ static bool handle_transmit(OpenshockCtx* app, InputEvent* e) {
             return true;
         }
         bool hl = openshock_command_supported(c->model, ShockerCmdLight);
-        if(c->command == ShockerCmdVibrate && openshock_command_supported(c->model, ShockerCmdShock)) {
+        if(c->command == ShockerCmdVibrate &&
+           openshock_command_supported(c->model, ShockerCmdShock)) {
             transmit_apply_command(s, ShockerCmdShock);
-        } else if(hl && c->command == ShockerCmdLight &&
-                  openshock_command_supported(c->model, ShockerCmdSound)) {
+        } else if(
+            hl && c->command == ShockerCmdLight &&
+            openshock_command_supported(c->model, ShockerCmdSound)) {
             transmit_apply_command(s, ShockerCmdSound);
         }
         return true;
@@ -1647,10 +1635,12 @@ static bool handle_transmit(OpenshockCtx* app, InputEvent* e) {
             return true;
         }
         bool hl = openshock_command_supported(c->model, ShockerCmdLight);
-        if(c->command == ShockerCmdShock && openshock_command_supported(c->model, ShockerCmdVibrate)) {
+        if(c->command == ShockerCmdShock &&
+           openshock_command_supported(c->model, ShockerCmdVibrate)) {
             transmit_apply_command(s, ShockerCmdVibrate);
-        } else if(hl && c->command == ShockerCmdSound &&
-                  openshock_command_supported(c->model, ShockerCmdLight)) {
+        } else if(
+            hl && c->command == ShockerCmdSound &&
+            openshock_command_supported(c->model, ShockerCmdLight)) {
             transmit_apply_command(s, ShockerCmdLight);
         }
         return true;
@@ -1723,7 +1713,8 @@ static bool handle_edit(OpenshockCtx* app, InputEvent* e) {
         }
         case EditChannel: {
             uint8_t mx = max_channel(s->current.model);
-            s->current.channel = (s->current.channel == 0) ? mx : (uint8_t)(s->current.channel - 1);
+            s->current.channel = (s->current.channel == 0) ? mx :
+                                                             (uint8_t)(s->current.channel - 1);
             break;
         }
         case EditSync:
@@ -1821,10 +1812,7 @@ static bool handle_receive(OpenshockCtx* app, InputEvent* e) {
         if(s->rx_found) {
             char stem[OPENSHOCK_NAME_MAX_LEN];
             if(openshock_shocker_unique_stem(
-                   s->rx_result.model,
-                   s->rx_result.shocker_id,
-                   stem,
-                   sizeof(stem))) {
+                   s->rx_result.model, s->rx_result.shocker_id, stem, sizeof(stem))) {
                 if(openshock_shocker_write(
                        stem,
                        s->rx_result.model,
@@ -1859,7 +1847,7 @@ int32_t openshock_app(void* p) {
     ctx.tx = openshock_tx_alloc();
     ctx.rx = openshock_rx_alloc();
     reload_list(&ctx.state);
-    openshock_settings_load(&ctx.state.transmit_vertical_ui);
+    ctx.state.transmit_vertical_ui = openshock_settings_load();
 
     Gui* gui = furi_record_open(RECORD_GUI);
 
@@ -1886,7 +1874,13 @@ int32_t openshock_app(void* p) {
     ctx.shown_view = OpenshockViewMain;
     view_dispatcher_switch_to_view(ctx.view_dispatcher, OpenshockViewMain);
 
+    ctx.redraw_timer = furi_timer_alloc(redraw_timer_cb, FuriTimerTypePeriodic, &ctx);
+    furi_timer_start(ctx.redraw_timer, furi_ms_to_ticks(50));
+
     view_dispatcher_run(ctx.view_dispatcher);
+
+    furi_timer_stop(ctx.redraw_timer);
+    furi_timer_free(ctx.redraw_timer);
 
     if(ctx.tx_active) openshock_tx_stop(ctx.tx);
     openshock_tx_free(ctx.tx);

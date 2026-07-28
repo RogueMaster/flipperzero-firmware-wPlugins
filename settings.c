@@ -10,8 +10,8 @@
 #define SETTINGS_TYPE "OpenShock Settings"
 #define SETTINGS_VER  1u
 
-void openshock_settings_load(bool* transmit_vertical_ui_out) {
-    *transmit_vertical_ui_out = false;
+bool openshock_settings_load(void) {
+    bool transmit_vertical_ui = false;
 
     Storage* storage = furi_record_open(RECORD_STORAGE);
     FlipperFormat* ff = flipper_format_file_alloc(storage);
@@ -32,12 +32,14 @@ void openshock_settings_load(bool* transmit_vertical_ui_out) {
 
         uint32_t v = 0;
         if(flipper_format_read_uint32(ff, "TransmitVertical", &v, 1)) {
-            *transmit_vertical_ui_out = (v != 0);
+            transmit_vertical_ui = (v != 0);
         }
     } while(false);
     flipper_format_file_close(ff);
     flipper_format_free(ff);
     furi_record_close(RECORD_STORAGE);
+
+    return transmit_vertical_ui;
 }
 
 void openshock_settings_save(bool transmit_vertical_ui) {

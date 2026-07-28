@@ -9,6 +9,8 @@
 #define FILE_VERSION 1
 
 bool openshock_shocker_unique_stem(ShockerModel model, uint16_t id, char* stem_out, size_t stem_sz) {
+    if(!stem_out || stem_sz == 0) return false;
+
     Storage* storage = furi_record_open(RECORD_STORAGE);
     storage_simply_mkdir(storage, OPENSHOCK_SAVE_DIR);
 
@@ -28,11 +30,12 @@ bool openshock_shocker_unique_stem(ShockerModel model, uint16_t id, char* stem_o
 
         FileInfo info;
         FS_Error err = storage_common_stat(storage, path, &info);
-        if(err != FSE_OK) {
+        if(err == FSE_NOT_EXIST) {
             snprintf(stem_out, stem_sz, "%s", candidate);
             ok = true;
             break;
         }
+        if(err != FSE_OK) break;
     }
 
     furi_record_close(RECORD_STORAGE);
