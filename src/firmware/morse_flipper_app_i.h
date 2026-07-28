@@ -831,6 +831,13 @@ void morse_flipper_draw_tx_history_screen_custom(
     MorseFlipperApp* app,
     const char* second_line,
     const char* hint_override);
+void morse_flipper_draw_tx_history_supplied(
+    void* context,
+    Canvas* canvas,
+    const MorseFlipperRunHistory* history,
+    uint8_t preview,
+    bool preview_extendable,
+    const char* frequency_line);
 void morse_flipper_draw_trainer_setup(Canvas* canvas, MorseFlipperApp* app);
 void morse_flipper_draw_progress(Canvas* canvas, MorseFlipperApp* app);
 void morse_flipper_draw_streak_intro(Canvas* canvas, MorseFlipperApp* app);

@@ -60,9 +60,12 @@ void morse_flipper_draw_run_text(Canvas* canvas, int32_t x, int32_t y, const cha
     }
 }
 
-void morse_flipper_draw_tx_history_screen_custom(
+static void morse_flipper_draw_tx_history_core(
     Canvas* canvas,
     MorseFlipperApp* app,
+    const MorseFlipperRunHistory* history,
+    uint8_t preview_value,
+    bool supplied_preview_extendable,
     const char* second_line,
     const char* hint_override) {
     MorseFlipperRunHistory preview_history;
@@ -77,9 +80,9 @@ void morse_flipper_draw_tx_history_screen_custom(
 
     if(canvas == NULL || app == NULL) return;
 
-    preview_history = app->run_history;
-    preview = morse_flipper_upper_char(morse_flipper_cw_decoder_preview(&app->tx_decoder));
-    preview_extendable = morse_flipper_cw_decoder_preview_extendable(&app->tx_decoder);
+    preview_history = *history;
+    preview = morse_flipper_upper_char(preview_value);
+    preview_extendable = supplied_preview_extendable;
     if(preview != 0 && preview != ' ' && preview != '|') {
         char preview_text[2] = {preview, '\0'};
         morse_flipper_run_history_append(&preview_history, preview_text);
@@ -116,6 +119,34 @@ void morse_flipper_draw_tx_history_screen_custom(
                              morse_flipper_run_hint(app, hint_line, sizeof(hint_line));
     if(canvas_string_width(canvas, footer) > 124) canvas_set_font(canvas, FontKeyboard);
     canvas_draw_str(canvas, 3, 64, footer);
+}
+
+void morse_flipper_draw_tx_history_supplied(
+    void* context,
+    Canvas* canvas,
+    const MorseFlipperRunHistory* history,
+    uint8_t preview,
+    bool preview_extendable,
+    const char* frequency_line) {
+    MorseFlipperApp* app = context;
+    if(app == NULL || history == NULL) return;
+    morse_flipper_draw_tx_history_core(
+        canvas, app, history, preview, preview_extendable, frequency_line, NULL);
+}
+
+void morse_flipper_draw_tx_history_screen_custom(
+    Canvas* canvas,
+    MorseFlipperApp* app,
+    const char* second_line,
+    const char* hint_override) {
+    morse_flipper_draw_tx_history_core(
+        canvas,
+        app,
+        &app->run_history,
+        morse_flipper_cw_decoder_preview(&app->tx_decoder),
+        morse_flipper_cw_decoder_preview_extendable(&app->tx_decoder),
+        second_line,
+        hint_override);
 }
 
 void morse_flipper_draw_tx_history_screen(

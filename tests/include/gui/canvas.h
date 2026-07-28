@@ -10,7 +10,19 @@ typedef struct Canvas {
 typedef enum {
     FontPrimary,
     FontSecondary,
+    FontKeyboard,
+    FontBigNumbers,
 } Font;
+
+typedef enum {
+    ColorWhite,
+    ColorBlack,
+} Color;
+
+typedef enum {
+    CanvasDirectionBottomToTop,
+    CanvasDirectionTopToBottom,
+} CanvasDirection;
 
 typedef enum {
     AlignLeft,
@@ -31,3 +43,28 @@ void canvas_draw_str_aligned(
 void canvas_draw_dot(Canvas* canvas, int32_t x, int32_t y);
 void canvas_draw_box(Canvas* canvas, int32_t x, int32_t y, int32_t width, int32_t height);
 void canvas_draw_line(Canvas* canvas, int32_t x1, int32_t y1, int32_t x2, int32_t y2);
+void canvas_set_color(Canvas* canvas, Color color);
+void canvas_draw_str(Canvas* canvas, int32_t x, int32_t y, const char* text);
+uint32_t canvas_string_width(Canvas* canvas, const char* text);
+void canvas_draw_frame(Canvas* canvas, int32_t x, int32_t y, int32_t width, int32_t height);
+void canvas_draw_rframe(
+    Canvas* canvas,
+    int32_t x,
+    int32_t y,
+    int32_t width,
+    int32_t height,
+    int32_t radius);
+void canvas_draw_rbox(
+    Canvas* canvas,
+    int32_t x,
+    int32_t y,
+    int32_t width,
+    int32_t height,
+    int32_t radius);
+void canvas_draw_triangle(
+    Canvas* canvas,
+    int32_t x,
+    int32_t y,
+    int32_t base,
+    int32_t height,
+    CanvasDirection direction);

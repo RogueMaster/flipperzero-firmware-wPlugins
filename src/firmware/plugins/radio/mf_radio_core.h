@@ -79,6 +79,8 @@ MorseFlipperMappedFalResult mf_radio_core_sync_tx(
     bool level,
     uint32_t now_ms);
 MorseFlipperMappedFalResult mf_radio_core_tick(MfRadioState* state, uint32_t now_ms);
+MorseFlipperMappedFalResult
+    mf_radio_core_input(MfRadioState* state, const InputEvent* event, uint32_t now_ms);
 void mf_radio_core_leave(MfRadioState* state);
 bool mf_radio_core_snapshot(const MfRadioState* state, MfRadioSnapshot* snapshot);
 
@@ -87,4 +89,3 @@ uint8_t mf_radio_clamp_wpm(uint8_t wpm);
 int8_t mf_radio_clamp_dbm(int8_t dbm);
 uint16_t mf_radio_wpm_to_dit_ms(uint8_t wpm);
 uint16_t mf_radio_decoder_mark_ms(uint16_t duration_ms, uint16_t dit_ms);
-
