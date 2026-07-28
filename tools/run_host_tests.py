@@ -70,6 +70,7 @@ PYTHON_TESTS = (
     "tests/test_rx_practice_lock_graph.py",
     "tests/test_rx_practice_phase_gating.py",
     "tests/test_radio_fal_structure.py",
+    "tests/test_runtime_input_gating.py",
     "tests/test_terminus24_asset.py",
     "tests/test_version_consistency.py",
 )

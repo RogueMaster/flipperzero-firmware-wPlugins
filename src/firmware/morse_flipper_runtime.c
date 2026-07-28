@@ -392,24 +392,41 @@ static bool
         &app->straight_filter, raw_down, now_ms, MORSE_FLIPPER_STRAIGHT_RELEASE_DEBOUNCE_MS);
 }
 
+static bool morse_flipper_gpio_keying_screen_allowed(const MorseFlipperApp* app) {
+    if(app == NULL) return false;
+
+    switch(app->screen) {
+    case MorseFlipperScreenRun:
+    case MorseFlipperScreenTrace:
+    case MorseFlipperScreenSession:
+    case MorseFlipperScreenRf:
+    case MorseFlipperScreenStraight:
+    case MorseFlipperScreenHamRun:
+    case MorseFlipperScreenTxGroups:
+    case MorseFlipperScreenRxPractice:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static void morse_flipper_release_gpio_inputs(MorseFlipperApp* app, uint32_t now_ms) {
+    morse_flipper_straight_filter_reset(&app->straight_filter);
+    morse_flipper_set_note_source(app, 0U, MORSE_SOURCE_STRAIGHT_GPIO, false);
+    morse_flipper_set_paddle_source(
+        app, MorseKeyerPaddleDit, MORSE_PADDLE_SOURCE_GPIO_DIT, false, now_ms);
+    morse_flipper_set_paddle_source(
+        app, MorseKeyerPaddleDah, MORSE_PADDLE_SOURCE_GPIO_DAH, false, now_ms);
+}
+
 static void morse_flipper_sync_gpio_inputs(MorseFlipperApp* app, uint32_t now_ms) {
     bool straight_active = false;
     bool dit_active = false;
     bool dah_active = false;
     bool rx_answer_live = false;
 
-    if(app->screen == MorseFlipperScreenPassive) {
-        morse_flipper_straight_filter_reset(&app->straight_filter);
-        return;
-    }
-    if(app->screen == MorseFlipperScreenIcr) {
-        /* ICR accepts only its five-button answer.  Release any inherited GPIO source. */
-        morse_flipper_straight_filter_reset(&app->straight_filter);
-        morse_flipper_set_note_source(app, 0U, MORSE_SOURCE_STRAIGHT_GPIO, false);
-        morse_flipper_set_paddle_source(
-            app, MorseKeyerPaddleDit, MORSE_PADDLE_SOURCE_GPIO_DIT, false, now_ms);
-        morse_flipper_set_paddle_source(
-            app, MorseKeyerPaddleDah, MORSE_PADDLE_SOURCE_GPIO_DAH, false, now_ms);
+    if(!morse_flipper_gpio_keying_screen_allowed(app)) {
+        morse_flipper_release_gpio_inputs(app, now_ms);
         return;
     }
     /* Probe and training modes can temporarily veto physical GPIO, even if a pin is down. */
