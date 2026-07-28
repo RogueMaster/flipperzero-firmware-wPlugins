@@ -1,5 +1,7 @@
 #pragma once
 
+#include <furi.h>
+#include <storage/storage.h>
 #include "protocols.h"
 #include <stdbool.h>
 
@@ -9,18 +11,27 @@
 #define OPENSHOCK_PATH_MAX_LEN 128
 
 typedef struct {
-    char filename[OPENSHOCK_PATH_MAX_LEN]; // Full path
+    char filename[OPENSHOCK_PATH_MAX_LEN];
     char name[OPENSHOCK_NAME_MAX_LEN];
     ShockerModel model;
     uint16_t shocker_id;
     uint8_t channel;
+    uint8_t sync_group;
 } SavedShocker;
 
-// Save a shocker config. Name is used for the filename and stored in the file.
-bool openshock_shocker_save(const char* name, ShockerModel model, uint16_t id, uint8_t channel);
+// replace_path: remove after successful write when renaming to a different file.
+bool openshock_shocker_write(
+    const char* stem,
+    ShockerModel model,
+    uint16_t id,
+    uint8_t channel,
+    uint8_t sync_group,
+    const char* replace_path);
 
-// Load the list of saved shockers. Returns number loaded.
+bool openshock_shocker_unique_stem(ShockerModel model, uint16_t id, char* stem_out, size_t stem_sz);
+
 size_t openshock_shocker_list(SavedShocker* list, size_t max_count);
 
-// Delete a saved shocker by its full path.
 bool openshock_shocker_delete(const char* path);
+
+bool openshock_stem_exists(const char* stem);
