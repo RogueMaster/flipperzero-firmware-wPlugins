@@ -1,5 +1,6 @@
 #include "mf_settings_api.h"
 #include <gui/modules/variable_item_list.h>
+#include <storage/storage.h>
 
 #include <assert.h>
 #include <stdio.h>
@@ -35,19 +36,23 @@ void* furi_record_open(const char* name) { (void)name; opens++; return &storage;
 void furi_record_close(const char* name) { (void)name; closes++; }
 File* storage_file_alloc(Storage* value) { (void)value; return calloc(1U, sizeof(File)); }
 void storage_file_free(File* file) { frees++; free(file); }
-bool storage_file_open(File* file, const char* path, uint8_t access, uint8_t mode) {
+bool storage_file_open(
+    File* file,
+    const char* path,
+    FS_AccessMode access,
+    FS_OpenMode mode) {
     (void)file; (void)path; (void)access; (void)mode; return storage_fixture != NULL;
 }
-uint16_t storage_file_read(File* file, void* buffer, uint16_t size) {
+size_t storage_file_read(File* file, void* buffer, size_t size) {
     size_t length;
     (void)file;
     if(storage_fixture == NULL) return 0U;
     length = strlen(storage_fixture);
     if(length > size) length = size;
     memcpy(buffer, storage_fixture, length);
-    return (uint16_t)length;
+    return length;
 }
-void storage_file_close(File* file) { (void)file; }
+bool storage_file_close(File* file) { (void)file; return true; }
 
 VariableItem* variable_item_list_add(VariableItemList* list, const char* label, uint8_t count, VariableItemChangeCallback changed, void* context) {
     VariableItem* item = &list->items[list->count++];

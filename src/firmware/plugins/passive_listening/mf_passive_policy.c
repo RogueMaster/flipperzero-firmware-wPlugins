@@ -122,15 +122,23 @@ void mf_passive_settings_load(MfPassiveSettingsModel* model) {
     Storage* storage;
     File* file;
     MfPassiveSettingsRecord record = {0};
+    bool loaded = false;
 
     if(model == NULL) return;
     *model = mf_passive_settings_default();
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);
-    if(storage_file_open(file, MF_PASSIVE_SETTINGS_PATH, FSAM_READ, FSOM_OPEN_EXISTING) &&
-       storage_file_size(file) == sizeof(record) &&
-       storage_file_read(file, &record, sizeof(record)) == sizeof(record) &&
-       record.magic == MF_PASSIVE_SETTINGS_MAGIC && record.version == MF_PASSIVE_SETTINGS_VERSION) {
+    for(uint8_t attempt = 0U; attempt < 2U && !loaded; attempt++) {
+        const char* path =
+            attempt == 0U ? MF_PASSIVE_SETTINGS_PATH : MF_PASSIVE_SETTINGS_TEMP_PATH;
+        loaded = storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING) &&
+                 storage_file_size(file) == sizeof(record) &&
+                 storage_file_read(file, &record, sizeof(record)) == sizeof(record) &&
+                 record.magic == MF_PASSIVE_SETTINGS_MAGIC &&
+                 record.version == MF_PASSIVE_SETTINGS_VERSION;
+        loaded = storage_file_close(file) && loaded;
+    }
+    if(loaded) {
         model->mode = record.mode;
         model->length = record.length;
         model->lesson = record.lesson;
@@ -141,7 +149,6 @@ void mf_passive_settings_load(MfPassiveSettingsModel* model) {
         model->repeat_after_answer = record.repeat_after_answer;
         model->selected_row = record.selected_row;
     }
-    storage_file_close(file);
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
     mf_passive_settings_normalize(model);
@@ -179,11 +186,12 @@ bool mf_passive_settings_save(const MfPassiveSettingsModel* model) {
     storage_common_remove(storage, MF_PASSIVE_SETTINGS_TEMP_PATH);
     saved = storage_file_open(file, MF_PASSIVE_SETTINGS_TEMP_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
             storage_file_write(file, &record, sizeof(record)) == sizeof(record);
-    storage_file_close(file);
+    saved = storage_file_close(file) && saved;
     if(saved)
         saved = storage_common_rename(
                     storage, MF_PASSIVE_SETTINGS_TEMP_PATH, MF_PASSIVE_SETTINGS_PATH) == FSE_OK;
-    if(!saved) storage_common_remove(storage, MF_PASSIVE_SETTINGS_TEMP_PATH);
+    else
+        storage_common_remove(storage, MF_PASSIVE_SETTINGS_TEMP_PATH);
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
     return saved;

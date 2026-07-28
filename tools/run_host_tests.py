@@ -41,6 +41,7 @@ TESTS = (
     CTest("passive-codec", ("tests/test_passive_codec.c", "src/firmware/plugins/passive_listening/mf_passive_codec.c")),
     CTest("passive-loading", ("tests/test_passive_loading.c", "src/firmware/plugins/passive_listening/mf_passive_loading.c")),
     CTest("passive-policy", ("tests/test_passive_policy.c", "src/firmware/plugins/passive_listening/mf_passive_policy.c", "src/firmware/plugins/passive_listening/mf_passive_voice_pack.c", "src/firmware/plugins/passive_listening/mf_passive_codec.c")),
+    CTest("passive-policy-storage", ("tests/test_passive_policy_storage.c", "src/firmware/plugins/passive_listening/mf_passive_policy.c"), ("MORSE_FLIPPER_FAP=1",)),
     CTest("passive-settings", ("tests/test_passive_settings.c", "src/firmware/plugins/passive_listening/mf_passive_settings.c")),
     CTest("passive-voice-pack", ("tests/test_passive_voice_pack.c", "src/firmware/plugins/passive_listening/mf_passive_voice_pack.c", "src/firmware/plugins/passive_listening/mf_passive_codec.c")),
     CTest("passive-core", ("tests/test_passive_core.c", "src/firmware/plugins/passive_listening/mf_passive_core.c", "src/firmware/plugins/passive_listening/mf_passive_loading.c", "src/firmware/plugins/passive_listening/mf_passive_policy.c", "src/firmware/plugins/passive_listening/mf_passive_voice_pack.c", "src/firmware/plugins/passive_listening/mf_passive_codec.c", "src/firmware/plugins/common/mf_rx_rng.c", "src/firmware/plugins/common/mf_callsign_gen.c", "src/firmware/cw.c")),
