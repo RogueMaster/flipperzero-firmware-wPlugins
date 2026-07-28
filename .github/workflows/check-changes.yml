@@ -1,0 +1,38 @@
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled]
+
+name: check-changes
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-slim # lightweight: release-tool changelog check
+    timeout-minutes: 5
+    if: >-
+      !github.event.pull_request.draft &&
+      !contains(github.event.pull_request.labels.*.name, 'no-changelog')
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Run change file check
+        uses: OpenShock/release-tool@aea812a62e3e06228bbc4ad0a9597b4f22968893 # v0.5.1
+        with:
+          mode: check
+          base-ref: ${{ github.event.pull_request.base.ref }}
+          base-sha: ${{ github.event.pull_request.base.sha }}
+          pr-number: ${{ github.event.pull_request.number }}
+
+      - name: Upload verdict
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-check
+          path: release-check.json
+          if-no-files-found: warn

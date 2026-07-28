@@ -7,10 +7,12 @@ on:
     paths-ignore:
       - "*.md"
       - "screenshots/**"
+      - ".changes/**"
   pull_request:
     paths-ignore:
       - "*.md"
       - "screenshots/**"
+      - ".changes/**"
   schedule:
     - cron: "1 1 * * *"
 
