@@ -54,20 +54,6 @@ void morse_flipper_enter_screen(
         morse_flipper_plugin_runtime_unload_current(app);
     }
 
-    if((app->screen == MorseFlipperScreenRf || app->screen == MorseFlipperScreenRfRx) &&
-       screen != MorseFlipperScreenRf && screen != MorseFlipperScreenRfRx) {
-        app->rf_live_active = false;
-        app->rf_carrier_present = false;
-        app->rf_monitor_tone = false;
-        morse_flipper_radio_sync_live(
-            &app->radio,
-            morse_flipper_rf_frequency_hz(&app->rf),
-            false,
-            false,
-            MorseFlipperRadioProfileOokData);
-        morse_flipper_radio_set_tx_level(&app->radio, false);
-    }
-
     if(app->scene == MorseFlipperSceneRun && scene != MorseFlipperSceneRun) {
         morse_flipper_clear_run_wpm(app, now_ms);
     }
@@ -126,61 +112,19 @@ void morse_flipper_enter_screen(
         morse_flipper_ham_gpio_apply(app);
     }
 
-    if(screen == MorseFlipperScreenRf && app->screen != MorseFlipperScreenRf) {
-        app->rf_live_active = true;
-        app->rf_rssi_valid = false;
-        app->rf_rssi_dbm = 0;
-        app->rf_rssi_peak_dbm = 0;
-        app->rf_rssi_sum_dbm = 0;
-        app->rf_rssi_samples = 0U;
-        app->rf_rssi_next_at = 0U;
-        app->rf_rx_edges_window = 0U;
-        app->rf_rx_activity = 0U;
-        app->rf_rssi_peak_decay_at = 0U;
-        app->rf_carrier_present = false;
-        app->rf_monitor_tone = false;
-        app->rf_rx_level = false;
-        app->rf_rx_candidate_level = false;
-        app->rf_rx_candidate_samples = 0U;
-        app->rf_rx_edge_at = 0U;
-        app->rf_rx_sample_next_at = 0U;
-        app->rf_rx_view_next_at = 0U;
-        app->rf_rx_gap_flushed = true;
-        app->rf_rx_audio_enabled = true;
-        app->rf_rx_text[0] = '\0';
-        app->rf_tx_tail_until = 0U;
-        morse_flipper_rf_reset_live(&app->rf);
-        morse_flipper_cw_decoder_init(&app->rf_decoder, morse_flipper_current_dit_ms(app));
-        morse_flipper_reset_run_state(app);
-    }
-
-    if(screen == MorseFlipperScreenRfRx && app->screen != MorseFlipperScreenRfRx) {
-        morse_flipper_rf_reset_rx_runtime(app);
-    }
-
-    if(screen == MorseFlipperScreenRfFreq && app->screen != MorseFlipperScreenRfFreq) {
-        morse_flipper_rf_reset_edit(app);
-    }
-
     if(screen == MorseFlipperScreenTrace && app->screen != MorseFlipperScreenTrace) {
-        app->rf_tx_text[0] = '\0';
+        app->tx_text[0] = '\0';
         app->gpio_text[0] = '\0';
         morse_flipper_cw_decoder_init(&app->tx_decoder, morse_flipper_current_dit_ms(app));
         morse_flipper_cw_decoder_init(&app->gpio_decoder, morse_flipper_current_dit_ms(app));
-        app->rf_tx_edge_at = 0U;
+        app->tx_edge_at = 0U;
         app->gpio_edge_at = 0U;
-        app->rf_tx_gap_flushed = true;
+        app->tx_gap_flushed = true;
         app->gpio_gap_flushed = true;
     }
 
     app->screen = screen;
     app->scene = scene;
-    if(old_screen == MorseFlipperScreenRfRx && screen != MorseFlipperScreenRfRx) {
-        /* The RX ticker shares this storage with Terminus.  Once the screen
-         * changes, RF ticks no longer use it; clear stale ticker bytes before
-         * any prompt screen prepares its glyph cache. */
-        app->terminus24 = (MorseFlipperTerminus24Cache){0};
-    }
     if(morse_flipper_gpio_probe_screen(app)) {
         morse_flipper_gpio_probe_prepare(app, now_ms);
     } else if(!morse_flipper_gpio_probe_keep_state(screen)) {

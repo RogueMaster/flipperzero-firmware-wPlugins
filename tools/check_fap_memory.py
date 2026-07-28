@@ -11,7 +11,7 @@ from pathlib import Path
 
 ALLOC_SECTIONS = (".text", ".rodata", ".ARM.exidx", ".data", ".bss")
 LIMITS = {
-    "main": {"text": 78_000, "alloc": 85_500},
+    "main": {"text": 73_332, "alloc": 80_400},
     "radio": {"text": 10_000, "alloc": 12_000},
     "passive": {"text": 8_000, "alloc": 9_000},
     "passive_settings": {"text": 2_000, "alloc": 2_250},

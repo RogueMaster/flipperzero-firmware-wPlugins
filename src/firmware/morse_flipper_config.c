@@ -82,6 +82,7 @@ bool mf_config_test_load(const uint8_t in[632], MorseFlipperListeningSettings* s
 }
 #else
 #include "morse_flipper_app_i.h"
+#include "morse_flipper_radio_config.h"
 #endif
 
 #ifndef MF_CONFIG_HOST_TEST
@@ -295,10 +296,8 @@ static void morse_flipper_config_apply(MorseFlipperApp* app, const MorseFlipperC
     app->audio_path = morse_flipper_config_load_audio_path(config->audio_path);
     app->p2_volume_pct = morse_flipper_config_load_p2_volume(config->p2_volume_pct);
     app->txg_difficulty = morse_flipper_config_load_txg_difficulty(config->txg_difficulty);
-    if(morse_flipper_rf_frequency_valid_hz(config->rf_frequency_hz))
-        morse_flipper_rf_set_frequency_hz(&app->rf, config->rf_frequency_hz);
-    else
-        morse_flipper_rf_set_frequency_hz(&app->rf, morse_flipper_rf_default_frequency_hz());
+    app->rf_frequency_hz =
+        morse_flipper_radio_config_candidate(config->rf_frequency_hz);
 
     app->ham_keyer.logging_enabled = config->ham_logging_enabled != 0U;
     app->ham_keyer.message_count = config->ham_message_count;
@@ -379,7 +378,7 @@ void morse_flipper_save_config(const MorseFlipperApp* app) {
         .p2_volume_pct = app->p2_volume_pct,
         .txg_difficulty = morse_flipper_config_load_txg_difficulty(app->txg_difficulty),
         .reserved0 = 0U,
-        .rf_frequency_hz = morse_flipper_rf_frequency_hz(&app->rf),
+        .rf_frequency_hz = app->rf_frequency_hz,
         .ham_logging_enabled = app->ham_keyer.logging_enabled ? 1U : 0U,
         .ham_message_count = app->ham_keyer.message_count,
     };

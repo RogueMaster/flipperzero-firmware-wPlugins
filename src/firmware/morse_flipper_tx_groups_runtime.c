@@ -88,9 +88,9 @@ void morse_flipper_start_tx_groups_round(MorseFlipperApp* app, uint32_t now_ms) 
         morse_flipper_txg_range_high(app->txg_difficulty));
     morse_flipper_tx_group_start(&app->tx_group, app->txg_sk);
     morse_flipper_cw_decoder_init(&app->tx_decoder, morse_flipper_current_dit_ms(app));
-    app->rf_tx_edge_at = 0U;
-    app->rf_tx_gap_flushed = true;
-    app->rf_tx_level = false;
+    app->tx_edge_at = 0U;
+    app->tx_gap_flushed = true;
+    app->tx_level = false;
     morse_flipper_refresh_keyer(app, now_ms);
     morse_flipper_view_dirty(app);
 }

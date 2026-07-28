@@ -38,6 +38,7 @@
 #include "morse_flipper_icr_host.h"
 #include "morse_flipper_passive_host.h"
 #include "morse_flipper_plugin_runtime.h"
+#include "morse_flipper_radio_host.h"
 #include "morse_flipper_rx_practice_host.h"
 #include "morse_flipper_settings_host.h"
 #include "morse_flipper_tx_groups_host.h"
@@ -49,9 +50,7 @@
 #include "plugins/radio/mf_radio_api.h"
 #include "morse_flipper_paths.h"
 #include "morse_flipper_progress.h"
-#include "morse_flipper_radio.h"
 #include "morse_flipper_run_history.h"
-#include "morse_flipper_rf.h"
 #include "morse_flipper_straight_filter.h"
 #include "morse_flipper_straight_trainer.h"
 #include "morse_flipper_tlm.h"
@@ -86,10 +85,6 @@
 #define MORSE_FLIPPER_STRAIGHT_SETTLE_MS            700U
 #define MORSE_FLIPPER_STRAIGHT_RELEASE_DEBOUNCE_MS  15U
 #define MORSE_FLIPPER_AUDIO_WAIT_DRAW_MS            30U
-#define MORSE_FLIPPER_RF_TX_TAIL_DITS               2U
-#define MORSE_FLIPPER_RF_RSSI_WINDOW_MS             160U
-#define MORSE_FLIPPER_RF_RSSI_PEAK_DECAY_MS         240U
-#define MORSE_FLIPPER_RF_LIVE_DECODERS              1U
 #define MORSE_FLIPPER_HAM_WPM_HOLD_NONE             0xFFU
 #define MORSE_FLIPPER_HAM_WPM_HOLD_REPEAT_MS        500U
 #define MORSE_FLIPPER_TRAINER_TIMEOUT_DEFAULT_S     6U
@@ -105,7 +100,6 @@
 #define MORSE_FLIPPER_STRAIGHT_NEXT_MAX_S           15U
 #define MORSE_FLIPPER_STRAIGHT_NEXT_DEFAULT_S       3U
 #define MORSE_FLIPPER_STRAIGHT_CHARSET              "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-#define MORSE_FLIPPER_RF_FREQ_DIGITS                6U
 #define MORSE_FLIPPER_TONE_OFF_IDX                  0xFFU
 #define MORSE_FLIPPER_DEFAULT_TONE_IDX              20U
 #define MORSE_SOURCE_STRAIGHT_GPIO (1UL << 0)
@@ -470,7 +464,6 @@ typedef struct MorseFlipperApp {
     MorseFlipperHamRuntimeState ham;
 
     /* Feature-local settings and cursors. Small integers are deliberate; this is a FAP. */
-    uint8_t rf_freq_focus;
     /* Persistent Listening choices are deliberately separate from the live trainer. */
     MorseFlipperListeningSettings listening_settings;
     uint8_t straight_answer_timeout_s;
@@ -530,18 +523,11 @@ typedef struct MorseFlipperApp {
     uint32_t session_result_until;
     uint32_t session_next_group_at;
     uint32_t session_complete_at;
-    uint32_t rf_tx_tail_until;
-    uint32_t rf_tx_edge_at;
-    uint32_t rf_rx_edge_at;
-    uint32_t rf_rx_sample_next_at;
-    uint32_t rf_rx_view_next_at;
-    uint32_t rf_rssi_next_at;
-    uint32_t rf_rssi_peak_decay_at;
+    uint32_t tx_edge_at;
     uint32_t gpio_edge_at;
     uint32_t gpio_probe_notice_until;
     uint32_t ptt_tail_until;
-    uint32_t rf_edit_khz;
-    int32_t rf_rssi_sum_dbm;
+    uint32_t rf_frequency_hz;
     uint32_t paddle_sources[MorseKeyerPaddleCount];
     uint32_t note_sources[3];
 
@@ -564,15 +550,12 @@ typedef struct MorseFlipperApp {
     bool txg_done;
     bool txg_sk;
     bool txg_start_holdoff;
-    bool rf_live_active;
-    bool rf_tx_level;
-    bool rf_rx_level;
-    bool rf_rx_candidate_level;
-    bool rf_tx_gap_flushed;
-    bool rf_rx_gap_flushed;
-    bool rf_rssi_valid;
-    bool rf_carrier_present;
-    bool rf_monitor_tone;
+    bool tx_level;
+    bool tx_gap_flushed;
+    bool radio_load_error;
+    bool radio_tx_allowed;
+    bool radio_tx_active;
+    bool radio_monitor_tone;
     bool rf_rx_audio_enabled;
     bool audio_wait_active;
     bool ptt_level;
@@ -585,16 +568,8 @@ typedef struct MorseFlipperApp {
     uint8_t txg_difficulty;
     uint8_t straight_return_screen;
     uint8_t backlight_mode;
-    int8_t rf_rssi_dbm;
     int8_t rf_monitor_threshold_dbm;
-    int8_t rf_rssi_peak_dbm;
-    uint16_t rf_rssi_samples;
-    uint16_t rf_rx_edges_window;
-    uint16_t rf_rx_activity;
-    uint8_t rf_rx_candidate_samples;
-    uint8_t rf_rx_wpm_hint;
-    char rf_rx_text[64];
-    char rf_tx_text[64];
+    char tx_text[64];
     char session_deleted_text[MORSE_TRAINER_GROUP_CAP];
     char gpio_text[64];
 
@@ -602,25 +577,15 @@ typedef struct MorseFlipperApp {
     MorseFlipperRunHistory run_history;
     MorseFlipperAudioPwm audio_pwm;
     MorseFlipperStraightFilter straight_filter;
-    MorseFlipperRf rf;
-    union {
-        /* RX ticker is live only on RfRx; Terminus cache only on its prompt screens. */
-        MorseFlipperRfTicker rf_rx_ticker;
-        MorseFlipperTerminus24Cache terminus24;
-    };
-    MorseFlipperRadio radio;
-    MorseFlipperCwDecoder rf_decoder;
+    MorseFlipperTerminus24Cache terminus24;
+    MfRadioDrawServices radio_draw_services;
     MorseFlipperCwDecoder tx_decoder;
     MorseFlipperCwDecoder gpio_decoder;
     MorseFlipperStraightTrainer straight_trainer;
     MorseFlipperTxGroup tx_group;
 } MorseFlipperApp;
 
-_Static_assert(sizeof(MorseFlipperApp) <= 6200U, "resident app state regressed");
-
-_Static_assert(
-    sizeof(MorseFlipperRfTicker) >= sizeof(MorseFlipperTerminus24Cache),
-    "RF ticker must cover Terminus cache");
+_Static_assert(sizeof(MorseFlipperApp) <= 4300U, "resident app state regressed");
 
 typedef struct {
     MorseFlipperApp* app;
@@ -784,20 +749,6 @@ void morse_flipper_ham_log_append_text(MorseFlipperApp* app, const char* text, u
 void morse_flipper_ham_log_append_marker(MorseFlipperApp* app, const char* marker, uint32_t now_ms);
 void morse_flipper_ham_log_flush(MorseFlipperApp* app);
 void morse_flipper_ham_log_flush_if_idle(MorseFlipperApp* app, uint32_t now_ms);
-void morse_flipper_tick_live_rf(MorseFlipperApp* app, uint32_t now_ms);
-int8_t morse_flipper_rf_clamp_dbm(int8_t dbm);
-int8_t morse_flipper_rssi_dbm_round(float rssi);
-uint32_t morse_flipper_rf_default_frequency_hz(void);
-bool morse_flipper_rf_frequency_valid_hz(uint32_t hz);
-bool morse_flipper_rf_frequency_valid_khz(uint32_t khz);
-bool morse_flipper_rf_tx_allowed_khz(uint32_t khz);
-void morse_flipper_rf_reset_rx_runtime(MorseFlipperApp* app);
-void morse_flipper_rf_rx_bump_wpm(MorseFlipperApp* app, int dir);
-void morse_flipper_rf_reset_edit(MorseFlipperApp* app);
-void morse_flipper_rf_bump_focus(MorseFlipperApp* app, int dir);
-void morse_flipper_rf_bump_digit(MorseFlipperApp* app, int dir);
-void morse_flipper_rf_commit_edit(MorseFlipperApp* app);
-void morse_flipper_rf_rx_edge(void* ctx, bool level, uint16_t duration_ms);
 uint8_t morse_flipper_upper_char(uint8_t ch);
 void morse_flipper_draw_left_exit_hint(Canvas* canvas);
 void morse_flipper_draw_plugin_unavailable(Canvas* canvas);
@@ -844,9 +795,6 @@ void morse_flipper_draw_streak_intro(Canvas* canvas, MorseFlipperApp* app);
 void morse_flipper_draw_icr(Canvas* canvas, MorseFlipperApp* app);
 void morse_flipper_draw_straight_screen(Canvas* canvas, MorseFlipperApp* app);
 void morse_flipper_draw_tx_groups_screen(Canvas* canvas, MorseFlipperApp* app);
-void morse_flipper_draw_rf_tx_blocked(Canvas* canvas, const MorseFlipperApp* app);
-void morse_flipper_draw_rf_freq_picker(Canvas* canvas, const MorseFlipperApp* app);
-void morse_flipper_draw_rf_rx_screen(Canvas* canvas, MorseFlipperApp* app);
 void morse_flipper_draw_ham_start_refusal(Canvas* canvas);
 void morse_flipper_draw_ham_assign(Canvas* canvas);
 void morse_flipper_draw_ham_assignments(Canvas* canvas, MorseFlipperApp* app);
@@ -912,9 +860,6 @@ const char* morse_flipper_run_mode_line(const MorseFlipperApp* app, char* buf, s
 const char* morse_flipper_run_input_name(const MorseFlipperApp* app);
 const char* morse_flipper_run_keyer_name(const MorseFlipperApp* app);
 const char* morse_flipper_run_usb_name(const MorseFlipperApp* app);
-const char* morse_flipper_rf_khz_line(const MorseFlipperApp* app, char* buf, size_t buf_sz);
-const char* morse_flipper_rf_rssi_line(const MorseFlipperApp* app, char* buf, size_t buf_sz);
-const char* morse_flipper_rf_rx_wpm_line(const MorseFlipperApp* app, char* buf, size_t buf_sz);
 const char* morse_flipper_source_short_name(const MorseFlipperApp* app, char* buf, size_t buf_sz);
 void morse_flipper_reset_run_state(MorseFlipperApp* app);
 const char* morse_flipper_trace_hint(const MorseFlipperApp* app, char* buf, size_t buf_sz);

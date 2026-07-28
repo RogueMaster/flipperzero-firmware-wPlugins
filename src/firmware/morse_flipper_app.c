@@ -112,7 +112,6 @@ MorseFlipperApp* morse_flipper_boot(void) {
                 .macro_text = {0},
                 .notice = {0},
             },
-        .rf_freq_focus = 0U,
         .vail_mode_active = false,
         .vail_speed_active = false,
         .vail_tone_active = false,
@@ -157,18 +156,11 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .session_answer_complete_at = 0U,
         .session_result_until = 0U,
         .session_next_group_at = 0U,
-        .rf_tx_tail_until = 0U,
-        .rf_tx_edge_at = 0U,
-        .rf_rx_edge_at = 0U,
-        .rf_rx_sample_next_at = 0U,
-        .rf_rx_view_next_at = 0U,
-        .rf_rssi_next_at = 0U,
-        .rf_rssi_peak_decay_at = 0U,
+        .tx_edge_at = 0U,
         .gpio_edge_at = 0U,
         .gpio_probe_notice_until = 0U,
         .ptt_tail_until = 0U,
-        .rf_edit_khz = MORSE_FLIPPER_RF_DEFAULT_FREQUENCY_KHZ,
-        .rf_rssi_sum_dbm = 0,
+        .rf_frequency_hz = MF_RADIO_DEFAULT_FREQUENCY_HZ,
         .paddle_sources = {0U, 0U},
         .note_sources = {0U, 0U, 0U},
         .trainer = {0},
@@ -189,14 +181,12 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .txg_sk = false,
         .txg_start_holdoff = false,
         .txg_difficulty = MorseFlipperTxgDifficultyCompetition,
-        .rf_live_active = false,
-        .rf_tx_level = false,
-        .rf_rx_level = false,
-        .rf_rx_candidate_level = false,
-        .rf_tx_gap_flushed = true,
-        .rf_rx_gap_flushed = true,
-        .rf_carrier_present = false,
-        .rf_monitor_tone = false,
+        .tx_level = false,
+        .tx_gap_flushed = true,
+        .radio_load_error = false,
+        .radio_tx_allowed = false,
+        .radio_tx_active = false,
+        .radio_monitor_tone = false,
         .rf_rx_audio_enabled = true,
         .ptt_level = false,
         .gpio_level = false,
@@ -205,18 +195,9 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .txg_repeated_timeouts = 0U,
         .backlight_mode = MorseFlipperBacklightAuto,
         .rf_monitor_threshold_dbm = -95,
-        .rf_rssi_samples = 0U,
-        .rf_rx_edges_window = 0U,
-        .rf_rx_activity = 0U,
-        .rf_rx_candidate_samples = 0U,
-        .rf_rx_wpm_hint = MORSE_FLIPPER_RF_RX_DEFAULT_WPM,
-        .rf_rx_text = {0},
-        .rf_tx_text = {0},
+        .tx_text = {0},
         .gpio_text = {0},
-        .rf = {0},
-        .rf_rx_ticker = {.marks = {{0}}, .start = 0U, .count = 0U},
-        .radio = {0},
-        .rf_decoder = {0},
+        .radio_draw_services = {0},
         .tx_decoder = {0},
         .gpio_decoder = {0},
         .straight_trainer = {0},
@@ -233,11 +214,7 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .group_pause_s = MORSE_FLIPPER_TRAINER_GROUP_PAUSE_DEFAULT_S,
     };
     morse_flipper_audio_pwm_reset(&app->audio_pwm);
-    morse_flipper_rf_init(&app->rf);
-    morse_flipper_radio_init(&app->radio);
     morse_flipper_ham_keyer_reset(&app->ham_keyer);
-    morse_flipper_radio_set_rx_callback(&app->radio, morse_flipper_rf_rx_edge, app);
-    morse_flipper_cw_decoder_init(&app->rf_decoder, morse_flipper_current_dit_ms(app));
     morse_flipper_cw_decoder_init(&app->tx_decoder, morse_flipper_current_dit_ms(app));
     morse_flipper_cw_decoder_init(&app->gpio_decoder, morse_flipper_current_dit_ms(app));
     morse_flipper_run_history_reset(&app->run_history);
@@ -253,7 +230,6 @@ MorseFlipperApp* morse_flipper_boot(void) {
     morse_trainer_ensure_custom_chars_file();
     app->onboarding_seen = morse_flipper_onboarding_seen();
     morse_flipper_apply_trainer_charset_choice(app);
-    morse_flipper_cw_decoder_init(&app->rf_decoder, morse_flipper_current_dit_ms(app));
     morse_flipper_cw_decoder_init(&app->tx_decoder, morse_flipper_current_dit_ms(app));
     morse_flipper_cw_decoder_init(&app->gpio_decoder, morse_flipper_current_dit_ms(app));
     morse_keyer_init(&app->keyer, app->keyer_mode, morse_flipper_current_dit_ms(app));
@@ -334,14 +310,7 @@ void morse_flipper_shutdown(MorseFlipperApp* app) {
     }
     morse_flipper_clear_button_keying(app, furi_get_tick());
     morse_flipper_set_pc_mode(app, MorseFlipperPcModeOff);
-    morse_flipper_radio_sync_live(
-        &app->radio,
-        morse_flipper_rf_frequency_hz(&app->rf),
-        false,
-        false,
-        MorseFlipperRadioProfileOokData);
-    morse_flipper_radio_set_tx_level(&app->radio, false);
-    morse_flipper_radio_deinit(&app->radio);
+    morse_flipper_radio_host_close(app, furi_get_tick());
     morse_keyer_reset(&app->keyer);
     morse_flipper_drain_keyer_events(app);
     morse_flipper_release_all_notes(app);

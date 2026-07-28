@@ -229,6 +229,8 @@ int main(void) {
 
     assert(mf_radio_core_enter(&state, &enter, &ops, &result));
     mf_radio_core_set_page(&state, MfRadioPageTransmit, 0U);
+    input = event(InputKeyBack, InputTypeShort);
+    assert(!mf_radio_core_input(&state, &input, 0U).handled);
     mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 1U);
     mf_radio_core_sync_tx(&state, MfRadioTxIntervalMark, 100U, false, 101U);
     mf_radio_core_sync_tx(&state, MfRadioTxIntervalSpace, 300U, false, 401U);

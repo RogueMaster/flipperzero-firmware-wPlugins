@@ -136,7 +136,7 @@ int main(void) {
 
     result = mf_radio_core_set_page(&state, MfRadioPageTransmit, 10U);
     assert(result.handled);
-    assert(strcmp(fake.calls, "S") == 0);
+    assert(strcmp(fake.calls, "") == 0);
     fake.count = 0U;
     fake.calls[0] = '\0';
     result = mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 20U);
@@ -162,11 +162,11 @@ int main(void) {
     assert(mf_radio_core_enter(&state, &args, &ops, &result));
     fake.rx_ok = false;
     result = mf_radio_core_set_page(&state, MfRadioPageReceive, 1U);
-    assert(result.handled && strcmp(fake.calls, "SR") == 0);
+    assert(result.handled && strcmp(fake.calls, "RIS") == 0);
     assert(mf_radio_core_snapshot(&state, &snapshot));
     assert(snapshot.page == MfRadioPageIdle && !snapshot.hardware_active);
     mf_radio_core_leave(&state);
-    assert(strcmp(fake.calls, "SRS") == 0);
+    assert(strcmp(fake.calls, "RIS") == 0);
 
     fake.count = 0U;
     fake.calls[0] = '\0';
@@ -175,18 +175,18 @@ int main(void) {
     assert(mf_radio_core_enter(&state, &args, &ops, &result));
     mf_radio_core_set_page(&state, MfRadioPageTransmit, 1U);
     mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 2U);
-    assert(strcmp(fake.calls, "ST") == 0);
+    assert(strcmp(fake.calls, "TIS") == 0);
     mf_radio_core_leave(&state);
-    assert(strcmp(fake.calls, "STS") == 0);
+    assert(strcmp(fake.calls, "TIS") == 0);
 
     fake.count = 0U;
     fake.calls[0] = '\0';
     fake.tx_ok = true;
     assert(mf_radio_core_enter(&state, &args, &ops, &result));
     mf_radio_core_set_page(&state, MfRadioPageReceive, 1U);
-    assert(strcmp(fake.calls, "SR") == 0);
+    assert(strcmp(fake.calls, "R") == 0);
     mf_radio_core_leave(&state);
-    assert(strcmp(fake.calls, "SRIS") == 0);
+    assert(strcmp(fake.calls, "RIS") == 0);
 
     puts("test_radio_fal_lifecycle: passed");
     return 0;

@@ -89,9 +89,7 @@ static bool morse_flipper_signal_led_level(const MorseFlipperApp* app, bool want
        morse_flipper_plugin_playback_mark(app))
         return true;
 
-    if(app->screen == MorseFlipperScreenRf && app->rf_live_active) {
-        return app->radio.tx_level;
-    }
+    if(app->screen == MorseFlipperScreenRf) return app->radio_tx_active;
 
     if(app->screen == MorseFlipperScreenHamRun && app->ham_keyer.break_in_enabled) {
         return app->ham.key_level;
@@ -147,7 +145,7 @@ void morse_flipper_update_sidetone(MorseFlipperApp* app) {
     bool want_tx_tone = morse_flipper_any_active_notes(app) || (app->preview_ticks > 0U);
     bool want_aux_tone = app->trainer_playback_mark || app->straight_playback_mark ||
                          morse_flipper_plugin_playback_mark(app) || app->session_result_tone ||
-                         app->rf_monitor_tone;
+                         app->radio_monitor_tone;
     bool want_signal = want_tx_tone || want_aux_tone;
     bool want_speaker;
     bool want_vibro;
@@ -236,8 +234,6 @@ void morse_flipper_set_note_source(
     uint8_t note,
     uint32_t source_mask,
     bool active) {
-    uint32_t now_ms;
-
     if(note >= COUNT_OF(app->note_sources)) return;
     if(active && morse_flipper_training_input_muted(app)) active = false;
 
@@ -248,23 +244,6 @@ void morse_flipper_set_note_source(
     if(before == after) return;
 
     app->note_sources[note] = after;
-    if(app->screen == MorseFlipperScreenRf && app->rf_live_active) {
-        bool can_tx = morse_flipper_rf_tx_allowed_khz(morse_flipper_rf_frequency_khz(&app->rf));
-        now_ms = furi_get_tick();
-        app->rf_tx_tail_until =
-            now_ms + ((uint32_t)morse_flipper_current_dit_ms(app) * MORSE_FLIPPER_RF_TX_TAIL_DITS);
-
-        if(morse_flipper_any_active_notes(app) && can_tx && !app->radio.tx_on) {
-            morse_flipper_radio_sync_live(
-                &app->radio,
-                morse_flipper_rf_frequency_hz(&app->rf),
-                true,
-                true,
-                MorseFlipperRadioProfileOokData);
-        }
-        morse_flipper_radio_set_tx_level(
-            &app->radio, morse_flipper_any_active_notes(app) && can_tx);
-    }
     morse_flipper_update_sidetone(app);
 
     if(before == 0U && after != 0U) {
@@ -286,12 +265,6 @@ void morse_flipper_release_all_notes(MorseFlipperApp* app) {
         if(note_sources[note] != 0U) morse_flipper_send_transport_note(app, (uint8_t)note, false);
     }
 
-    if(app->screen == MorseFlipperScreenRf && app->rf_live_active) {
-        uint32_t now_ms = furi_get_tick();
-        app->rf_tx_tail_until =
-            now_ms + ((uint32_t)morse_flipper_current_dit_ms(app) * MORSE_FLIPPER_RF_TX_TAIL_DITS);
-        morse_flipper_radio_set_tx_level(&app->radio, false);
-    }
     morse_flipper_update_sidetone(app);
 }
 

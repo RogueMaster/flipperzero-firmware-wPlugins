@@ -1031,97 +1031,6 @@ static bool morse_flipper_streak_intro_input(MorseFlipperApp* app, const InputEv
     return true;
 }
 
-static bool morse_flipper_rf_freq_input(MorseFlipperApp* app, const InputEvent* event) {
-    if(app->screen != MorseFlipperScreenRfFreq) return false;
-
-    if(event->key == InputKeyBack &&
-       (event->type == InputTypeShort || event->type == InputTypeLong)) {
-        morse_flipper_rf_commit_edit(app);
-        morse_flipper_scene_back(app);
-        return true;
-    }
-
-    if(event->type != InputTypeShort && event->type != InputTypeRepeat) return true;
-
-    if(event->key == InputKeyLeft) {
-        morse_flipper_rf_bump_focus(app, -1);
-        morse_flipper_view_dirty(app);
-        return true;
-    }
-
-    if(event->key == InputKeyRight) {
-        morse_flipper_rf_bump_focus(app, 1);
-        morse_flipper_view_dirty(app);
-        return true;
-    }
-
-    if(event->key == InputKeyUp) {
-        morse_flipper_rf_bump_digit(app, 1);
-        morse_flipper_view_dirty(app);
-        return true;
-    }
-
-    if(event->key == InputKeyDown) {
-        morse_flipper_rf_bump_digit(app, -1);
-        morse_flipper_view_dirty(app);
-        return true;
-    }
-
-    return true;
-}
-
-static bool morse_flipper_rf_input(MorseFlipperApp* app, const InputEvent* event) {
-    if(app->screen != MorseFlipperScreenRf) return false;
-    if(!morse_flipper_rf_tx_allowed_khz(morse_flipper_rf_frequency_khz(&app->rf))) {
-        if(event->key == InputKeyBack &&
-           (event->type == InputTypeShort || event->type == InputTypeLong)) {
-            morse_flipper_scene_back(app);
-        }
-        return true;
-    }
-
-    morse_flipper_handle_active_keying_event(app, event);
-    return true;
-}
-
-static bool morse_flipper_rf_rx_input(MorseFlipperApp* app, const InputEvent* event) {
-    if(app->screen != MorseFlipperScreenRfRx) return false;
-
-    if(event->key == InputKeyOk && event->type == InputTypeShort) {
-        app->rf_rx_audio_enabled = !app->rf_rx_audio_enabled;
-        app->rf_monitor_tone = app->rf_rx_audio_enabled && app->rf_rx_level;
-        morse_flipper_update_sidetone(app);
-        morse_flipper_view_dirty(app);
-        return true;
-    }
-
-    if((event->key == InputKeyLeft || event->key == InputKeyRight) &&
-       (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
-        int dir = event->key == InputKeyLeft ? -1 : 1;
-
-        app->rf_monitor_threshold_dbm =
-            morse_flipper_rf_clamp_dbm((int8_t)(app->rf_monitor_threshold_dbm + dir));
-        app->rf_monitor_tone = app->rf_rx_audio_enabled && app->rf_rx_level;
-        morse_flipper_update_sidetone(app);
-        morse_flipper_view_dirty(app);
-        return true;
-    }
-
-    if((event->key == InputKeyUp || event->key == InputKeyDown) &&
-       (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
-        morse_flipper_rf_rx_bump_wpm(app, event->key == InputKeyUp ? 1 : -1);
-        return true;
-    }
-
-    if(event->key == InputKeyBack &&
-       (event->type == InputTypeShort || event->type == InputTypeLong)) {
-        morse_flipper_scene_back(app);
-        return true;
-    }
-
-    return true;
-}
-
 static bool morse_flipper_run_trace_home_input(MorseFlipperApp* app, InputEvent* event) {
     if(app->screen == MorseFlipperScreenRun) {
         morse_flipper_handle_active_keying_event(app, event);
@@ -1215,11 +1124,9 @@ bool morse_flipper_active_mode_input(MorseFlipperApp* app, InputEvent* event, ui
         return true;
     }
     case MorseFlipperScreenRfFreq:
-        return morse_flipper_rf_freq_input(app, event);
     case MorseFlipperScreenRfRx:
-        return morse_flipper_rf_rx_input(app, event);
     case MorseFlipperScreenRf:
-        return morse_flipper_rf_input(app, event);
+        return morse_flipper_radio_host_input(app, event, now_ms);
     case MorseFlipperScreenRun:
     case MorseFlipperScreenTrace:
     case MorseFlipperScreenHome:

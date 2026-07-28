@@ -68,7 +68,7 @@ uint8_t morse_flipper_backlight_mode(const MorseFlipperApp* app) {
         return MorseFlipperBacklightHold;
 
     if(app->screen == MorseFlipperScreenRf || app->screen == MorseFlipperScreenRfRx)
-        return app->rf_live_active ? MorseFlipperBacklightHold : MorseFlipperBacklightAuto;
+        return MorseFlipperBacklightHold;
 
     if(app->screen == MorseFlipperScreenSession || app->screen == MorseFlipperScreenSessionEnd)
         return app->session_started ? MorseFlipperBacklightHold : MorseFlipperBacklightAuto;
@@ -154,7 +154,6 @@ void morse_flipper_set_local_wpm(MorseFlipperApp* app, uint8_t wpm) {
 
     app->listening_settings.local_dit_ms = morse_flipper_wpm_to_dit_ms(wpm);
     morse_flipper_clamp_trainer_settings(app);
-    morse_flipper_cw_decoder_init(&app->rf_decoder, morse_flipper_current_dit_ms(app));
     morse_flipper_cw_decoder_init(&app->tx_decoder, morse_flipper_current_dit_ms(app));
     morse_flipper_cw_decoder_init(&app->gpio_decoder, morse_flipper_current_dit_ms(app));
     morse_flipper_refresh_keyer(app, furi_get_tick());
@@ -168,9 +167,9 @@ void morse_flipper_set_run_wpm(MorseFlipperApp* app, uint8_t wpm) {
 
     app->run_dit_ms = morse_flipper_wpm_to_dit_ms(wpm);
     morse_flipper_cw_decoder_init(&app->tx_decoder, morse_flipper_current_dit_ms(app));
-    app->rf_tx_edge_at = 0U;
-    app->rf_tx_gap_flushed = true;
-    app->rf_tx_level = false;
+    app->tx_edge_at = 0U;
+    app->tx_gap_flushed = true;
+    app->tx_level = false;
     morse_flipper_refresh_keyer(app, furi_get_tick());
     morse_flipper_view_dirty(app);
 }
@@ -182,7 +181,6 @@ void morse_flipper_clear_run_wpm(MorseFlipperApp* app, uint32_t now_ms) {
 
     app->run_dit_ms = 0U;
     dit_ms = morse_flipper_current_dit_ms(app);
-    morse_flipper_cw_decoder_init(&app->rf_decoder, dit_ms);
     morse_flipper_cw_decoder_init(&app->tx_decoder, dit_ms);
     morse_flipper_cw_decoder_init(&app->gpio_decoder, dit_ms);
     morse_flipper_refresh_keyer(app, now_ms);
@@ -290,11 +288,11 @@ void morse_flipper_reset_run_state(MorseFlipperApp* app) {
     morse_flipper_run_history_reset(&app->run_history);
     morse_flipper_audio_pwm_set_gate(&app->audio_pwm, false);
     morse_flipper_straight_filter_reset(&app->straight_filter);
-    app->rf_tx_text[0] = '\0';
+    app->tx_text[0] = '\0';
     morse_flipper_cw_decoder_init(&app->tx_decoder, morse_flipper_current_dit_ms(app));
-    app->rf_tx_edge_at = 0U;
-    app->rf_tx_gap_flushed = true;
-    app->rf_tx_level = false;
+    app->tx_edge_at = 0U;
+    app->tx_gap_flushed = true;
+    app->tx_level = false;
 }
 
 bool morse_flipper_session_running_view(const MorseFlipperApp* app) {

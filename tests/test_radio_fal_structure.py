@@ -63,6 +63,11 @@ def main() -> None:
     if "MORSE_FLIPPER_RADIO_FAL_CUTOVER=1" in main_block:
         for source in LEGACY_MAIN_RF_SOURCES:
             assert source not in main_block
+            assert not (ROOT / source).exists()
+        assert "furi_hal_subghz" not in main_block
+        assert "MorseFlipperRf " not in APP_HEADER
+        assert "MorseFlipperRadio " not in APP_HEADER
+        assert "MfRadioState " not in APP_HEADER
 
     print("radio FAL structure: ok")
 

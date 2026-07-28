@@ -50,9 +50,9 @@ void morse_flipper_reset_answer_decoder(MorseFlipperApp* app) {
     }
 
     /* The next accepted edge starts a new answer; playback idle is not a space. */
-    app->rf_tx_edge_at = 0U;
-    app->rf_tx_gap_flushed = true;
-    app->rf_tx_level = morse_flipper_any_active_notes(app);
+    app->tx_edge_at = 0U;
+    app->tx_gap_flushed = true;
+    app->tx_level = morse_flipper_any_active_notes(app);
 }
 
 void morse_flipper_reset_session_runtime(MorseFlipperApp* app) {
@@ -87,10 +87,10 @@ void morse_flipper_reset_session_state(MorseFlipperApp* app, uint32_t now_ms) {
     morse_flipper_release_session_progress(app, false);
     morse_flipper_reset_session_runtime(app);
     morse_trainer_reset_session(&app->trainer);
-    app->rf_tx_text[0] = '\0';
-    app->rf_tx_edge_at = 0U;
-    app->rf_tx_gap_flushed = true;
-    app->rf_tx_level = false;
+    app->tx_text[0] = '\0';
+    app->tx_edge_at = 0U;
+    app->tx_gap_flushed = true;
+    app->tx_level = false;
             morse_flipper_reset_answer_decoder(app);
 
     morse_flipper_refresh_keyer(app, now_ms);
@@ -114,17 +114,17 @@ static bool morse_flipper_session_pop_committed_answer(MorseFlipperApp* app) {
 
     if(app == NULL) return false;
 
-    len = strlen(app->rf_tx_text);
+    len = strlen(app->tx_text);
     while(len > 0U) {
         len--;
-        if(app->rf_tx_text[len] != ' ' && app->rf_tx_text[len] != '|') {
-            app->rf_tx_text[len] = '\0';
+        if(app->tx_text[len] != ' ' && app->tx_text[len] != '|') {
+            app->tx_text[len] = '\0';
             return true;
         }
     }
 
-    if(app->rf_tx_text[0] == '\0') return false;
-    app->rf_tx_text[0] = '\0';
+    if(app->tx_text[0] == '\0') return false;
+    app->tx_text[0] = '\0';
     return true;
 }
 
@@ -193,8 +193,8 @@ static void morse_flipper_session_note_answer_edit(
     uint32_t now_ms) {
     app->session_last_input_at = now_ms;
     app->session_answer_complete_at = 0U;
-    app->rf_tx_gap_flushed = true;
-    app->rf_tx_edge_at = now_ms;
+    app->tx_gap_flushed = true;
+    app->tx_edge_at = now_ms;
     morse_flipper_session_start_answer_flash(app, deleted_text, now_ms);
     morse_flipper_view_dirty(app);
 }
@@ -229,7 +229,7 @@ bool morse_flipper_session_clear_answer(MorseFlipperApp* app, uint32_t now_ms) {
     morse_flipper_session_answer_text(
         app, deleted_text, sizeof(deleted_text), MORSE_TRAINER_GROUP_CAP - 1U);
     changed = deleted_text[0] != '\0';
-    app->rf_tx_text[0] = '\0';
+    app->tx_text[0] = '\0';
     morse_flipper_cw_decoder_reset(&app->tx_decoder);
 
     if(changed) morse_flipper_session_note_answer_edit(app, deleted_text, now_ms);
@@ -327,10 +327,10 @@ void morse_flipper_begin_group_playback(MorseFlipperApp* app, uint32_t now_ms) {
     app->trainer_char_idx = 0U;
     app->trainer_mark_idx = 0U;
     app->trainer_next_at = now_ms;
-    app->rf_tx_text[0] = '\0';
-    app->rf_tx_edge_at = 0U;
-    app->rf_tx_gap_flushed = true;
-    app->rf_tx_level = false;
+    app->tx_text[0] = '\0';
+    app->tx_edge_at = 0U;
+    app->tx_gap_flushed = true;
+    app->tx_level = false;
     morse_flipper_reset_answer_decoder(app);
     if(app->screen == MorseFlipperScreenSession) {
         app->session_round_pending = true;
@@ -1024,8 +1024,8 @@ static void morse_flipper_session_answer_text(
         return;
     }
 
-    for(i = 0U; app->rf_tx_text[i] != '\0' && wi + 1U < out_sz && wi < max_chars; i++) {
-        char ch = morse_flipper_upper_char(app->rf_tx_text[i]);
+    for(i = 0U; app->tx_text[i] != '\0' && wi + 1U < out_sz && wi < max_chars; i++) {
+        char ch = morse_flipper_upper_char(app->tx_text[i]);
 
         if(ch == ' ' || ch == '|') continue;
         out[wi++] = ch;
@@ -1084,8 +1084,8 @@ static void morse_flipper_session_answer_committed_text(
     out[0] = '\0';
     if(app == NULL || max_chars == 0U) return;
 
-    for(i = 0U; app->rf_tx_text[i] != '\0' && wi + 1U < out_sz && wi < max_chars; i++) {
-        char ch = morse_flipper_upper_char(app->rf_tx_text[i]);
+    for(i = 0U; app->tx_text[i] != '\0' && wi + 1U < out_sz && wi < max_chars; i++) {
+        char ch = morse_flipper_upper_char(app->tx_text[i]);
 
         if(ch == ' ' || ch == '|') continue;
         out[wi++] = ch;
