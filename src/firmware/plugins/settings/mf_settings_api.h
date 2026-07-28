@@ -5,7 +5,7 @@
 typedef struct VariableItemList VariableItemList;
 
 #define MF_SETTINGS_API_MAGIC 0x4D465345UL
-#define MF_SETTINGS_API_VERSION 2U
+#define MF_SETTINGS_API_VERSION 3U
 
 typedef enum {
     MfSettingsEntryKeying = 0,
@@ -72,6 +72,7 @@ typedef enum {
     MfSettingsSetUsbPaddlePreset,
     MfSettingsSetUsbStraightPreset,
     MfSettingsSetUsbMouseInvert,
+    MfSettingsRequestNone = 0xffU,
 } MfSettingsRequestKind;
 
 typedef struct {
@@ -107,6 +108,9 @@ typedef struct {
 
 typedef struct {
     MorseFlipperMappedFalApi mapped;
-    bool (*request_close)(void* state, MorseFlipperMappedFalResult* result);
+    bool (*request_close)(
+        void* state,
+        MfSettingsRequest* pending,
+        MorseFlipperMappedFalResult* result);
     uint32_t (*selected_state)(const void* state);
 } MfSettingsApi;

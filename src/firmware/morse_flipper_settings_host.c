@@ -187,16 +187,6 @@ static bool mf_settings_apply(void* context, const MfSettingsRequest* request, M
         if(request->value >= MorseFlipperTxgDifficultyCount) return true;
         changed_u8 = &app->txg_difficulty;
         break;
-    case MfSettingsApplyGpioDraft: {
-        MorseFlipperGpioRule rule;
-        if(!morse_flipper_gpio_try_apply(app, request->gpio_dit_pin, request->gpio_dah_pin, request->gpio_ground_pin, request->gpio_ptt_pin, &rule)) {
-            response->error = (uint8_t)rule;
-            return true;
-        }
-        mf_settings_snapshot(app, &response->snapshot);
-        response->accepted = true;
-        return true;
-    }
     case MfSettingsSetUsbMode:
         if(request->value > MorseFlipperPcModeMidi) return true;
         changed_u8 = &app->pc_mode_pref;
@@ -248,19 +238,30 @@ bool morse_flipper_settings_host_enter(MorseFlipperApp* app, uint8_t entry, uint
 }
 
 bool morse_flipper_settings_host_close(MorseFlipperApp* app, uint32_t scene) {
-    MorseFlipperMappedFalResult result = {0};
+    MfSettingsRequest request = {.kind = MfSettingsRequestNone};
     const MfSettingsApi* api;
+    uint32_t selected = 0U;
     bool close = false;
     if(app == NULL || app->plugin_slot.mutex == NULL) return false;
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     if(app->plugin_slot.owner == MorseFlipperPluginOwnerSettings && app->plugin_slot.api != NULL && app->plugin_slot.state != NULL) {
         api = app->plugin_slot.api;
-        close = api->request_close(app->plugin_slot.state, &result);
-        if(close) scene_manager_set_scene_state(app->scene_manager, scene, api->selected_state(app->plugin_slot.state));
+        close = api->request_close(app->plugin_slot.state, &request, NULL);
+        if(close) selected = api->selected_state(app->plugin_slot.state);
     }
     furi_mutex_release(app->plugin_slot.mutex);
-    if(!close && result.feedback != MorseFlipperGpioRuleOk)
-        morse_flipper_gpio_alert(app, (MorseFlipperGpioRule)result.feedback);
+    if(close && request.kind == MfSettingsApplyGpioDraft) {
+        MorseFlipperGpioRule rule;
+        close = morse_flipper_gpio_try_apply(
+            app,
+            request.gpio_dit_pin,
+            request.gpio_dah_pin,
+            request.gpio_ground_pin,
+            request.gpio_ptt_pin,
+            &rule);
+        if(!close) morse_flipper_gpio_alert(app, rule);
+    }
+    if(close) scene_manager_set_scene_state(app->scene_manager, scene, selected);
     return close;
 }
 

@@ -548,23 +548,27 @@ static void mf_settings_draw(void* state, Canvas* canvas, uint32_t now_ms) {
     UNUSED(now_ms);
 }
 
-static bool mf_settings_request_close(void* opaque, MorseFlipperMappedFalResult* result) {
+static bool mf_settings_request_close(
+    void* opaque,
+    MfSettingsRequest* pending,
+    MorseFlipperMappedFalResult* result) {
     MfSettingsState* state = opaque;
-    MfSettingsRequest request = {.kind = MfSettingsApplyGpioDraft};
-    MfSettingsResponse response = {0};
 
-    if(state == NULL || !state->entered || state->args.services == NULL) return false;
+    if(state == NULL || !state->entered) return false;
+    if(pending != NULL) pending->kind = MfSettingsRequestNone;
     if(state->args.entry == MfSettingsEntryGpio) {
-        request.gpio_dit_pin = state->gpio_dit_pin;
-        request.gpio_dah_pin = state->gpio_dah_pin;
-        request.gpio_ground_pin = state->gpio_ground_pin;
-        request.gpio_ptt_pin = state->gpio_ptt_pin;
-        if(!state->args.services->apply(state->args.service_context, &request, &response) ||
-           !response.accepted) {
-            if(result != NULL) result->feedback = response.error;
-            return false;
-        }
-        state->snapshot = response.snapshot;
+        if(pending == NULL) return false;
+        if(state->gpio_dit_pin != state->snapshot.gpio_dit_pin ||
+           state->gpio_dah_pin != state->snapshot.gpio_dah_pin ||
+           state->gpio_ground_pin != state->snapshot.gpio_ground_pin ||
+           state->gpio_ptt_pin != state->snapshot.gpio_ptt_pin)
+            *pending = (MfSettingsRequest){
+                .kind = MfSettingsApplyGpioDraft,
+                .gpio_dit_pin = state->gpio_dit_pin,
+                .gpio_dah_pin = state->gpio_dah_pin,
+                .gpio_ground_pin = state->gpio_ground_pin,
+                .gpio_ptt_pin = state->gpio_ptt_pin,
+            };
     }
     if(result != NULL) *result = (MorseFlipperMappedFalResult){.handled = true, .request_exit = true};
     return true;
@@ -611,8 +615,11 @@ bool mf_settings_test_enter(void* state, const MfSettingsEnterArgs* args) {
     return mf_settings_enter(state, args, NULL);
 }
 void mf_settings_test_leave(void* state) { mf_settings_leave(state); }
-bool mf_settings_test_close(void* state, MorseFlipperMappedFalResult* result) {
-    return mf_settings_request_close(state, result);
+bool mf_settings_test_close(
+    void* state,
+    MfSettingsRequest* pending,
+    MorseFlipperMappedFalResult* result) {
+    return mf_settings_request_close(state, pending, result);
 }
 uint8_t mf_settings_test_custom_count(const void* state) {
     return state == NULL ? 0U : ((const MfSettingsState*)state)->custom_names.count;

@@ -21,7 +21,10 @@
 #define MORSE_TRAINER_CUSTOM_SET_CAP 8U
 
 typedef struct { int unused; } FuriMutex;
-typedef enum { MorseFlipperGpioRuleOk = 0 } MorseFlipperGpioRule;
+typedef enum {
+    MorseFlipperGpioRuleOk = 0,
+    MorseFlipperGpioRuleBadIndex = 1,
+} MorseFlipperGpioRule;
 typedef struct { int unused; } ViewDispatcher;
 typedef struct { uint32_t state[64]; } SceneManager;
 typedef struct { uint8_t type; } SceneManagerEvent;

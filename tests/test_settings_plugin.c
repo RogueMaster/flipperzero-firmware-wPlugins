@@ -13,7 +13,10 @@ void* mf_settings_test_alloc(void);
 void mf_settings_test_free(void* state);
 bool mf_settings_test_enter(void* state, const MfSettingsEnterArgs* args);
 void mf_settings_test_leave(void* state);
-bool mf_settings_test_close(void* state, MorseFlipperMappedFalResult* result);
+bool mf_settings_test_close(
+    void* state,
+    MfSettingsRequest* pending,
+    MorseFlipperMappedFalResult* result);
 uint8_t mf_settings_test_custom_count(const void* state);
 
 static Storage storage;
@@ -88,14 +91,6 @@ static bool apply(void* context, const MfSettingsRequest* request, MfSettingsRes
         response->snapshot.local_wpm = (uint16_t)request->value;
         response->snapshot.farnsworth_wpm = (uint8_t)request->value;
     }
-    return true;
-}
-
-static bool reject_gpio(void* context, const MfSettingsRequest* request, MfSettingsResponse* response) {
-    unsigned* calls = context;
-    (*calls)++;
-    last_request = *request;
-    response->accepted = request->kind != MfSettingsApplyGpioDraft;
     return true;
 }
 
@@ -347,6 +342,11 @@ int main(void) {
     args.snapshot.gpio_ptt_pin = 0xffU;
     state = mf_settings_test_alloc();
     assert(mf_settings_test_enter(state, &args));
+    MfSettingsRequest pending = {.kind = MfSettingsRequestNone};
+    MorseFlipperMappedFalResult close_result = {0};
+    assert(mf_settings_test_close(state, &pending, &close_result));
+    assert(calls == 0U && close_result.request_exit);
+    assert(pending.kind == MfSettingsRequestNone);
     list.items[0].current_index = 5U;
     list.items[0].changed(&list.items[0]);
     list.items[1].current_index = 0U;
@@ -355,19 +355,21 @@ int main(void) {
     list.items[2].changed(&list.items[2]);
     list.items[3].current_index = 1U;
     list.items[3].changed(&list.items[3]);
-    MorseFlipperMappedFalResult close_result = {0};
-    assert(mf_settings_test_close(state, &close_result));
-    assert(calls == 1U && close_result.request_exit);
-    assert(last_request.gpio_dit_pin == 7U);
-    assert(last_request.gpio_dah_pin == 1U);
-    assert(last_request.gpio_ground_pin == 0xffU);
-    assert(last_request.gpio_ptt_pin == 7U);
+    pending = (MfSettingsRequest){.kind = MfSettingsRequestNone};
+    close_result = (MorseFlipperMappedFalResult){0};
+    assert(mf_settings_test_close(state, &pending, &close_result));
+    assert(calls == 0U && close_result.request_exit);
+    assert(pending.kind == MfSettingsApplyGpioDraft);
+    assert(pending.gpio_dit_pin == 7U);
+    assert(pending.gpio_dah_pin == 1U);
+    assert(pending.gpio_ground_pin == 0xffU);
+    assert(pending.gpio_ptt_pin == 7U);
     mf_settings_test_leave(state);
     mf_settings_test_free(state);
 
     list = (VariableItemList){0};
     calls = 0U;
-    services.apply = reject_gpio;
+    services.apply = apply;
     args.entry = MfSettingsEntryGpio;
     args.list = &list;
     args.service_context = &calls;
@@ -382,9 +384,11 @@ int main(void) {
     list.items[3].current_index = 1U;
     list.items[3].changed(&list.items[3]);
     assert(strcmp(list.items[3].current_text, "P16") == 0);
+    pending = (MfSettingsRequest){.kind = MfSettingsRequestNone};
     close_result = (MorseFlipperMappedFalResult){0};
-    assert(!mf_settings_test_close(state, &close_result));
-    assert(calls == 1U && !close_result.request_exit && last_request.gpio_ptt_pin == 7U);
+    assert(mf_settings_test_close(state, &pending, &close_result));
+    assert(calls == 0U && close_result.request_exit);
+    assert(pending.kind == MfSettingsApplyGpioDraft && pending.gpio_ptt_pin == 7U);
     mf_settings_test_leave(state);
     assert(list.count == 0U && list.resets >= 2U);
     mf_settings_test_free(state);
