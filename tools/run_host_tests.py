@@ -34,6 +34,7 @@ TESTS = (
     CTest("radio-decoder-services", ("tests/test_radio_decoder_services.c", "src/firmware/morse_flipper_radio_decoder_services.c", "src/firmware/morse_flipper_cw_decoder.c", "src/firmware/morse_flipper_cw_token.c", "src/firmware/cw.c")),
     CTest("radio-fal-lifecycle", ("tests/test_radio_fal_lifecycle.c", "src/firmware/plugins/radio/mf_radio_core.c", "src/firmware/morse_flipper_radio_decoder_services.c", "src/firmware/morse_flipper_run_history.c", "src/firmware/morse_flipper_cw_decoder.c", "src/firmware/morse_flipper_cw_token.c", "src/firmware/cw.c")),
     CTest("radio-fal", ("tests/test_radio_fal.c", "src/firmware/plugins/radio/mf_radio_core.c", "src/firmware/plugins/radio/mf_radio_draw.c", "src/firmware/morse_flipper_radio_decoder_services.c", "src/firmware/morse_flipper_run_history.c", "src/firmware/morse_flipper_cw_decoder.c", "src/firmware/morse_flipper_cw_token.c", "src/firmware/cw.c")),
+    CTest("radio-host", ("tests/test_radio_host.c", "src/firmware/morse_flipper_radio_host.c"), ("MF_RADIO_HOST_TEST",)),
     CTest("radio-config-boundary", ("tests/test_radio_config_boundary.c",)),
     CTest("cw-markdown-widget", ("tests/test_cw_markdown_widget.c", "src/firmware/plugins/help_about/cw_markdown_widget.c"), ("CWMD_HOST_TEST",), False),
     CTest("rx-callsign-gen", ("tests/test_rx_callsign_gen.c", "src/firmware/plugins/common/mf_rx_rng.c", "src/firmware/plugins/common/mf_callsign_gen.c", "src/firmware/cw.c")),

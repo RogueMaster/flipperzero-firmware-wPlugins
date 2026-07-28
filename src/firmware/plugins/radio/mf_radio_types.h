@@ -19,4 +19,3 @@ typedef enum {
     MfRadioTxIntervalMark,
     MfRadioTxIntervalSpace,
 } MfRadioTxInterval;
-

@@ -20,6 +20,8 @@ typedef struct {
 } FakeHardware;
 
 static char drawn[128];
+static unsigned rx_draws;
+static unsigned box_draws;
 
 static bool prepare_tx(void* context, uint32_t frequency_hz) {
     (void)frequency_hz;
@@ -92,12 +94,27 @@ static void draw_history(
     snprintf(drawn, sizeof(drawn), "%s|%s", morse_flipper_run_history_text(history), frequency_line);
 }
 
+static void draw_rx_text(
+    void* context,
+    Canvas* canvas,
+    const char* text,
+    uint8_t preview,
+    bool preview_extendable) {
+    (void)context;
+    (void)canvas;
+    (void)preview;
+    (void)preview_extendable;
+    rx_draws++;
+    snprintf(drawn, sizeof(drawn), "%s", text);
+}
+
 static MfRadioEnterArgs args(void) {
     static const MfRadioDrawServices draw = {
         .struct_size = sizeof(MfRadioDrawServices),
         .history_reset = morse_flipper_run_history_reset,
         .history_append = morse_flipper_run_history_append,
         .draw_tx_history = draw_history,
+        .draw_rx_text = draw_rx_text,
     };
     return (MfRadioEnterArgs){
         .struct_size = sizeof(MfRadioEnterArgs),
@@ -153,6 +170,7 @@ void canvas_draw_box(Canvas* canvas, int32_t x, int32_t y, int32_t width, int32_
     (void)y;
     (void)width;
     (void)height;
+    box_draws++;
 }
 void canvas_draw_line(Canvas* canvas, int32_t x1, int32_t y1, int32_t x2, int32_t y2) {
     (void)canvas;
@@ -257,6 +275,11 @@ int main(void) {
     for(uint32_t now = 1U; now <= 33U; now += 8U) mf_radio_core_tick(&state, now);
     assert(mf_radio_core_snapshot(&state, &snapshot));
     assert(snapshot.monitor_tone);
+    rx_draws = 0U;
+    box_draws = 0U;
+    mf_radio_draw(&state, &canvas, 42U);
+    assert(rx_draws == 1U);
+    assert(box_draws >= 3U);
     input = event(InputKeyOk, InputTypeShort);
     assert(mf_radio_core_input(&state, &input, 40U).handled);
     assert(mf_radio_core_snapshot(&state, &snapshot));
@@ -267,7 +290,6 @@ int main(void) {
     input = event(InputKeyUp, InputTypeShort);
     mf_radio_core_input(&state, &input, 42U);
     assert(state.rx_wpm_hint == 11U);
-    mf_radio_draw(&state, &canvas, 42U);
     input = event(InputKeyBack, InputTypeLong);
     assert(mf_radio_core_input(&state, &input, 43U).request_exit);
     mf_radio_core_leave(&state);

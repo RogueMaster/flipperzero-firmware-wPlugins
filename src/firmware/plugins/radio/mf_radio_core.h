@@ -16,6 +16,7 @@
 #define MF_RADIO_RX_AUTO_WPM_SAMPLES  3U
 #define MF_RADIO_RSSI_WINDOW_MS       160U
 #define MF_RADIO_RSSI_PEAK_DECAY_MS   240U
+#define MF_RADIO_TX_TAIL_DITS          2U
 
 typedef struct {
     uint32_t end_ms;
@@ -39,6 +40,7 @@ typedef struct {
     MfRadioTicker ticker;
     uint32_t edit_khz;
     uint32_t edit_original_hz;
+    uint32_t tx_idle_at;
     uint32_t rx_edge_at;
     uint32_t rx_sample_next_at;
     uint32_t rx_view_next_at;
@@ -48,6 +50,7 @@ typedef struct {
     uint16_t rssi_samples;
     uint16_t rx_edges_window;
     uint16_t rx_activity;
+    uint16_t tx_dit_ms;
     uint8_t frequency_focus;
     uint8_t rx_candidate_samples;
     uint8_t rx_wpm_hint;

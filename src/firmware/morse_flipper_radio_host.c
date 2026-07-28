@@ -1,4 +1,8 @@
+#ifdef MF_RADIO_HOST_TEST
+#include "morse_flipper_radio_host_test.h"
+#else
 #include "morse_flipper_app_i.h"
+#endif
 
 #define MORSE_FLIPPER_RADIO_PLUGIN_PATH APP_ASSETS_PATH("plugins/morse_flipper_radio.fal")
 
@@ -55,6 +59,7 @@ bool morse_flipper_radio_host_open(MorseFlipperApp* app, uint32_t now_ms) {
         .history_reset = morse_flipper_run_history_reset,
         .history_append = morse_flipper_run_history_append,
         .draw_tx_history = morse_flipper_draw_tx_history_supplied,
+        .draw_rx_text = morse_flipper_draw_radio_rx_text,
     };
     args = (MfRadioEnterArgs){
         .struct_size = sizeof(MfRadioEnterArgs),

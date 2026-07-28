@@ -60,6 +60,34 @@ void morse_flipper_draw_run_text(Canvas* canvas, int32_t x, int32_t y, const cha
     }
 }
 
+static void morse_flipper_draw_run_rows(
+    Canvas* canvas,
+    const char* text,
+    bool preview_extendable,
+    const uint8_t row_y[MORSE_FLIPPER_RUN_HISTORY_ROWS]) {
+    MorseFlipperRunLayout layout;
+    morse_flipper_run_layout_build(
+        text,
+        preview_extendable,
+        126U,
+        morse_flipper_canvas_glyph_width,
+        canvas,
+        &layout);
+    for(size_t i = 0U; i < MORSE_FLIPPER_RUN_HISTORY_ROWS; i++)
+        morse_flipper_draw_run_text(canvas, 1, row_y[i], layout.rows[i]);
+    if(layout.underline_valid && layout.underline_row < MORSE_FLIPPER_RUN_HISTORY_ROWS) {
+        uint16_t underline_x = (uint16_t)(1U + layout.underline_x);
+        uint8_t underline_w = layout.underline_w == 0U ? 1U : layout.underline_w;
+        uint8_t underline_y = (uint8_t)(row_y[layout.underline_row] + 2U);
+        canvas_draw_line(
+            canvas,
+            (int32_t)underline_x,
+            underline_y,
+            (int32_t)(underline_x + underline_w - 1U),
+            underline_y);
+    }
+}
+
 static void morse_flipper_draw_tx_history_core(
     Canvas* canvas,
     MorseFlipperApp* app,
@@ -69,7 +97,6 @@ static void morse_flipper_draw_tx_history_core(
     const char* second_line,
     const char* hint_override) {
     MorseFlipperRunHistory preview_history;
-    MorseFlipperRunLayout layout;
     char mode_line[32];
     char hint_line[32];
     const char* footer;
@@ -91,27 +118,11 @@ static void morse_flipper_draw_tx_history_core(
     left_hint = morse_flipper_live_left_hint(app);
 
     canvas_set_font(canvas, FontSecondary);
-    morse_flipper_run_layout_build(
+    morse_flipper_draw_run_rows(
+        canvas,
         morse_flipper_run_history_text(&preview_history),
         preview != 0 && preview != ' ' && preview != '|' && preview_extendable,
-        126U,
-        morse_flipper_canvas_glyph_width,
-        canvas,
-        &layout);
-    morse_flipper_draw_run_text(canvas, 1, row_y[0], layout.rows[0]);
-    morse_flipper_draw_run_text(canvas, 1, row_y[1], layout.rows[1]);
-    morse_flipper_draw_run_text(canvas, 1, row_y[2], layout.rows[2]);
-    if(layout.underline_valid && layout.underline_row < MORSE_FLIPPER_RUN_HISTORY_ROWS) {
-        uint16_t underline_x = (uint16_t)(1U + layout.underline_x);
-        uint8_t underline_w = layout.underline_w == 0U ? 1U : layout.underline_w;
-        uint8_t underline_y = (uint8_t)(row_y[layout.underline_row] + 2U);
-        canvas_draw_line(
-            canvas,
-            (int32_t)underline_x,
-            underline_y,
-            (int32_t)(underline_x + underline_w - 1U),
-            underline_y);
-    }
+        row_y);
     morse_flipper_draw_tx_history_divider(canvas, left_hint);
     canvas_draw_str(canvas, 3, 44, morse_flipper_run_mode_line(app, mode_line, sizeof(mode_line)));
     canvas_draw_str(canvas, 3, 54, second_line ? second_line : "");
@@ -119,6 +130,32 @@ static void morse_flipper_draw_tx_history_core(
                              morse_flipper_run_hint(app, hint_line, sizeof(hint_line));
     if(canvas_string_width(canvas, footer) > 124) canvas_set_font(canvas, FontKeyboard);
     canvas_draw_str(canvas, 3, 64, footer);
+}
+
+void morse_flipper_draw_radio_rx_text(
+    void* context,
+    Canvas* canvas,
+    const char* text,
+    uint8_t preview_value,
+    bool preview_extendable) {
+    char display[66];
+    char preview = morse_flipper_upper_char(preview_value);
+    size_t len;
+    static const uint8_t row_y[MORSE_FLIPPER_RUN_HISTORY_ROWS] = {9U, 19U, 29U};
+    UNUSED(context);
+    if(canvas == NULL || text == NULL) return;
+    snprintf(display, sizeof(display), "%s", text);
+    len = strlen(display);
+    if(preview != 0 && preview != ' ' && preview != '|' && len + 1U < sizeof(display)) {
+        display[len++] = preview;
+        display[len] = '\0';
+    }
+    canvas_set_font(canvas, FontSecondary);
+    morse_flipper_draw_run_rows(
+        canvas,
+        display,
+        preview != 0 && preview != ' ' && preview != '|' && preview_extendable,
+        row_y);
 }
 
 void morse_flipper_draw_tx_history_supplied(

@@ -77,6 +77,19 @@ static void draw_tx(
     (void)frequency_line;
 }
 
+static void draw_rx(
+    void* context,
+    Canvas* canvas,
+    const char* text,
+    uint8_t preview,
+    bool preview_extendable) {
+    (void)context;
+    (void)canvas;
+    (void)text;
+    (void)preview;
+    (void)preview_extendable;
+}
+
 static MfRadioHardwareOps hardware(FakeHardware* fake) {
     return (MfRadioHardwareOps){
         .prepare_tx = prepare_tx,
@@ -99,6 +112,7 @@ static MfRadioEnterArgs enter_args(void) {
         .history_reset = morse_flipper_run_history_reset,
         .history_append = morse_flipper_run_history_append,
         .draw_tx_history = draw_tx,
+        .draw_rx_text = draw_rx,
     };
     return (MfRadioEnterArgs){
         .struct_size = sizeof(MfRadioEnterArgs),
@@ -143,6 +157,12 @@ int main(void) {
     assert(result.handled && strcmp(fake.calls, "TH") == 0);
     result = mf_radio_core_sync_tx(&state, MfRadioTxIntervalMark, 100U, false, 120U);
     assert(result.handled && strcmp(fake.calls, "THL") == 0);
+    mf_radio_core_tick(&state, 319U);
+    assert(strcmp(fake.calls, "THL") == 0);
+    result = mf_radio_core_tick(&state, 320U);
+    assert(result.redraw && strcmp(fake.calls, "THLLIS") == 0);
+    assert(mf_radio_core_snapshot(&state, &snapshot));
+    assert(!snapshot.hardware_active && !snapshot.tx_active);
     mf_radio_core_leave(&state);
     assert(strcmp(fake.calls, "THLLIS") == 0);
     assert(mf_radio_core_snapshot(&state, &snapshot));
@@ -182,9 +202,14 @@ int main(void) {
     fake.count = 0U;
     fake.calls[0] = '\0';
     fake.tx_ok = true;
+    args.dit_ms = 60U;
     assert(mf_radio_core_enter(&state, &args, &ops, &result));
     mf_radio_core_set_page(&state, MfRadioPageReceive, 1U);
     assert(strcmp(fake.calls, "R") == 0);
+    mf_radio_core_set_page(&state, MfRadioPageIdle, 2U);
+    assert(strcmp(fake.calls, "RIS") == 0);
+    mf_radio_core_set_page(&state, MfRadioPageTransmit, 3U);
+    assert(state.decoder_services->dit_ms(&state.decoder) == 60U);
     mf_radio_core_leave(&state);
     assert(strcmp(fake.calls, "RIS") == 0);
 

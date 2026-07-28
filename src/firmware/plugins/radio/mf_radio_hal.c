@@ -2,10 +2,13 @@
 
 #include "mf_radio_types.h"
 
+#include <stddef.h>
+
 #ifdef MORSE_FLIPPER_FAP
 #include <furi_hal.h>
 #include <lib/subghz/devices/cc1101_configs.h>
 #include <cc1101_regs.h>
+#include <string.h>
 #endif
 
 static const uint8_t carrier_ook_650khz_no_autocal_regs[] = {
@@ -209,6 +212,55 @@ static bool hal_tx_allowed(void* context, uint32_t frequency_hz) {
         ;
 }
 
+#ifdef MORSE_FLIPPER_FAP
+typedef struct {
+    uint32_t min_hz;
+    uint32_t max_hz;
+} HalRadioBand;
+
+static const HalRadioBand hal_vfo_bands[] = {
+    {300000000U, 348000000U},
+    {387000000U, 464000000U},
+    {779000000U, 928000000U},
+};
+
+static bool hal_region_wide_open(void) {
+    const char* name = furi_hal_region_get_name();
+    const FuriHalRegion* region = furi_hal_region_get();
+    if(name != NULL && strcmp(name, "00") == 0) return true;
+    if(region != NULL && region->bands_count == 1U && region->bands[0].start == 0U &&
+       region->bands[0].end >= 1000000000U)
+        return true;
+    return furi_hal_region_is_frequency_allowed(hal_vfo_bands[0].min_hz) &&
+           furi_hal_region_is_frequency_allowed(hal_vfo_bands[1].min_hz) &&
+           furi_hal_region_is_frequency_allowed(hal_vfo_bands[2].min_hz);
+}
+
+static uint32_t hal_region_band_default(void) {
+    const FuriHalRegion* region = furi_hal_region_get();
+    size_t region_i;
+    size_t vfo_i;
+    if(region == NULL) return MF_RADIO_DEFAULT_FREQUENCY_HZ;
+    for(region_i = 0U; region_i < region->bands_count; region_i++) {
+        for(vfo_i = 0U; vfo_i < sizeof(hal_vfo_bands) / sizeof(hal_vfo_bands[0]); vfo_i++) {
+            uint32_t region_min_khz = (region->bands[region_i].start + 999U) / 1000U;
+            uint32_t region_max_khz = region->bands[region_i].end / 1000U;
+            uint32_t vfo_min_khz = hal_vfo_bands[vfo_i].min_hz / 1000U;
+            uint32_t vfo_max_khz = hal_vfo_bands[vfo_i].max_hz / 1000U;
+            uint32_t min_khz =
+                region_min_khz > vfo_min_khz ? region_min_khz : vfo_min_khz;
+            uint32_t max_khz =
+                region_max_khz < vfo_max_khz ? region_max_khz : vfo_max_khz;
+            uint32_t candidate;
+            if(min_khz > max_khz) continue;
+            candidate = (min_khz + ((max_khz - min_khz) / 2U)) * 1000U;
+            if(hal_tx_allowed(NULL, candidate)) return candidate;
+        }
+    }
+    return MF_RADIO_DEFAULT_FREQUENCY_HZ;
+}
+#endif
+
 static uint32_t hal_default_frequency(void* context) {
     static const uint32_t candidates[] = {
         MF_RADIO_DEFAULT_FREQUENCY_HZ,
@@ -219,10 +271,17 @@ static uint32_t hal_default_frequency(void* context) {
     };
     size_t i;
     (void)context;
+#ifdef MORSE_FLIPPER_FAP
+    if(hal_region_wide_open()) return MF_RADIO_DEFAULT_FREQUENCY_HZ;
+#endif
     for(i = 0U; i < sizeof(candidates) / sizeof(candidates[0]); i++) {
         if(hal_tx_allowed(NULL, candidates[i])) return candidates[i];
     }
+#ifdef MORSE_FLIPPER_FAP
+    return hal_region_band_default();
+#else
     return MF_RADIO_DEFAULT_FREQUENCY_HZ;
+#endif
 }
 
 static void hal_idle(void* context) {
@@ -255,4 +314,3 @@ static const MfRadioHardwareOps hardware_ops = {
 const MfRadioHardwareOps* mf_radio_hal_ops(void) {
     return &hardware_ops;
 }
-

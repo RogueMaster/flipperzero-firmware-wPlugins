@@ -11,6 +11,8 @@ RADIO = FIRMWARE / "plugins/radio"
 MANIFEST = (ROOT / "application.fam").read_text()
 APP_HEADER = (FIRMWARE / "morse_flipper_app_i.h").read_text()
 RUNTIME_HEADER = (FIRMWARE / "morse_flipper_plugin_runtime.h").read_text()
+SCENES = (FIRMWARE / "morse_flipper_scenes.c").read_text()
+LIVE_VIEW = (FIRMWARE / "morse_flipper_live_view.c").read_text()
 
 LEGACY_MAIN_RF_SOURCES = {
     "src/firmware/morse_flipper_rf.c",
@@ -35,6 +37,20 @@ def app_block(appid: str) -> str:
     next_app = MANIFEST.find("\nApp(", MANIFEST.index(marker))
     return MANIFEST[start : len(MANIFEST) if next_app < 0 else next_app]
 
+def function_body(source: str, name: str) -> str:
+    match = re.search(rf"\b{name}\s*\([^;]*\)\s*\{{", source)
+    assert match is not None, name
+    start = match.end() - 1
+    depth = 0
+    for index in range(start, len(source)):
+        if source[index] == "{":
+            depth += 1
+        elif source[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return source[start : index + 1]
+    raise AssertionError(f"unterminated function {name}")
+
 
 def main() -> None:
     # The extraction reuses the one existing slot and its one app-lifetime mutex.
@@ -57,6 +73,18 @@ def main() -> None:
         assert not re.search(r"\b(scene_manager|morse_flipper_update_sidetone|"
                              r"morse_flipper_sync_ptt|morse_flipper_save_config)\b",
                              radio_text)
+        for name in (
+            "mf_radio_core_sync_tx",
+            "mf_radio_core_tick",
+            "mf_radio_core_input",
+            "mf_radio_draw",
+            "mf_radio_sync_tx_api",
+            "mf_radio_tick_api",
+            "mf_radio_input_api",
+            "mf_radio_draw_api",
+        ):
+            body = function_body(radio_text, name)
+            assert not re.search(r"\b(malloc|calloc|realloc|free)\s*\(", body), name
 
     # Legacy files are allowed only while the product still has no Radio FAL.
     main_block = app_block("morse_flipper")
@@ -68,6 +96,22 @@ def main() -> None:
         assert "MorseFlipperRf " not in APP_HEADER
         assert "MorseFlipperRadio " not in APP_HEADER
         assert "MfRadioState " not in APP_HEADER
+
+    menu_enter = function_body(SCENES, "morse_flipper_scene_menu_rf_on_enter")
+    menu_event = function_body(SCENES, "morse_flipper_scene_menu_rf_on_event")
+    child_enter = function_body(SCENES, "morse_flipper_scene_radio_on_enter")
+    child_exit = function_body(SCENES, "morse_flipper_scene_radio_on_exit")
+    assert menu_enter.count("morse_flipper_radio_host_open") == 1
+    assert menu_enter.count("submenu_add_item") == 3
+    assert menu_event.count("morse_flipper_radio_host_close") == 1
+    assert "morse_flipper_radio_host_close" not in child_enter + child_exit
+    assert "morse_flipper_radio_host_set_page" in child_enter + child_exit
+
+    trace_start = LIVE_VIEW.index("if(app->screen == MorseFlipperScreenTrace)")
+    trace_end = LIVE_VIEW.index("\n    canvas_set_font(canvas, FontPrimary)", trace_start)
+    trace_block = LIVE_VIEW[trace_start:trace_end]
+    assert "MfRadioApi" not in trace_block
+    assert "plugin_slot" not in trace_block
 
     print("radio FAL structure: ok")
 

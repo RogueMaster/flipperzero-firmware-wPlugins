@@ -10,7 +10,7 @@
 #include "mf_radio_types.h"
 
 #define MF_RADIO_API_MAGIC   0x4D465246UL
-#define MF_RADIO_API_VERSION 1U
+#define MF_RADIO_API_VERSION 2U
 
 typedef struct {
     uint32_t struct_size;
@@ -36,6 +36,12 @@ typedef struct {
         uint8_t preview,
         bool preview_extendable,
         const char* frequency_line);
+    void (*draw_rx_text)(
+        void* context,
+        Canvas* canvas,
+        const char* text,
+        uint8_t preview,
+        bool preview_extendable);
 } MfRadioDrawServices;
 
 typedef struct {
@@ -88,7 +94,7 @@ static inline bool mf_radio_decoder_services_valid(const MfRadioDecoderServices*
 static inline bool mf_radio_draw_services_valid(const MfRadioDrawServices* services) {
     return services != NULL && services->struct_size == sizeof(MfRadioDrawServices) &&
            services->history_reset != NULL && services->history_append != NULL &&
-           services->draw_tx_history != NULL;
+           services->draw_tx_history != NULL && services->draw_rx_text != NULL;
 }
 
 static inline bool mf_radio_api_valid(const MfRadioApi* api) {
@@ -99,4 +105,3 @@ static inline bool mf_radio_api_valid(const MfRadioApi* api) {
            api->mapped.input != NULL && api->mapped.tick != NULL && api->mapped.draw != NULL &&
            api->set_page != NULL && api->sync_tx != NULL && api->snapshot != NULL;
 }
-

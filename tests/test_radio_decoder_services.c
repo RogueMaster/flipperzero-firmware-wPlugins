@@ -55,4 +55,3 @@ int main(void) {
     puts("test_radio_decoder_services: passed");
     return 0;
 }
-

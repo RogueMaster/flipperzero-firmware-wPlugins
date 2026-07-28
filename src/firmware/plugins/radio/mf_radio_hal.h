@@ -19,4 +19,3 @@ typedef struct {
 
 bool mf_radio_hardware_ops_valid(const MfRadioHardwareOps* ops);
 const MfRadioHardwareOps* mf_radio_hal_ops(void);
-

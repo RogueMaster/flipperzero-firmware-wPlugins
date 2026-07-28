@@ -1,5 +1,6 @@
 #include "mf_radio_draw.h"
 
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -84,17 +85,39 @@ static uint8_t rssi_width(int8_t dbm, uint8_t width) {
 }
 
 static void draw_rx_text(const MfRadioState* state, Canvas* canvas) {
-    char text[sizeof(state->rx_text) + 2U];
-    size_t len;
-    uint8_t preview = state->decoder_services->preview(&state->decoder);
-    snprintf(text, sizeof(text), "%s", state->rx_text);
-    len = strlen(text);
-    if(preview != 0U && preview != ' ' && preview != '|' && len + 1U < sizeof(text)) {
-        text[len++] = (char)preview;
-        text[len] = '\0';
+    state->draw_services->draw_rx_text(
+        state->draw_services->context,
+        canvas,
+        state->rx_text,
+        state->decoder_services->preview(&state->decoder),
+        state->decoder_services->preview_extendable(&state->decoder));
+}
+
+static void draw_ticker_mark(
+    Canvas* canvas,
+    const MfRadioTickerMark* mark,
+    uint32_t now_ms) {
+    uint32_t start_ms =
+        mark->end_ms >= mark->duration_ms ? mark->end_ms - mark->duration_ms : 0U;
+    uint32_t start_age = now_ms - start_ms;
+    uint32_t end_age = now_ms - mark->end_ms;
+    int32_t x0 = start_age >= MF_RADIO_RX_TICKER_WINDOW_MS ?
+                     0 :
+                     127 - (int32_t)(start_age * 127U / MF_RADIO_RX_TICKER_WINDOW_MS);
+    int32_t x1 = end_age >= MF_RADIO_RX_TICKER_WINDOW_MS ?
+                     0 :
+                     127 - (int32_t)(end_age * 127U / MF_RADIO_RX_TICKER_WINDOW_MS);
+    if(x1 < x0) {
+        int32_t swap = x0;
+        x0 = x1;
+        x1 = swap;
     }
-    canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 1, 10, text + (len > 54U ? len - 54U : 0U));
+    canvas_draw_box(
+        canvas,
+        x0,
+        mark->glitch ? 34 : 33,
+        (size_t)(x1 - x0 + 1),
+        mark->glitch ? 2U : 3U);
 }
 
 static void draw_ticker(const MfRadioState* state, Canvas* canvas, uint32_t now_ms) {
@@ -103,22 +126,21 @@ static void draw_ticker(const MfRadioState* state, Canvas* canvas, uint32_t now_
     for(i = 0U; i < state->ticker.count; i++) {
         const MfRadioTickerMark* mark =
             &state->ticker.marks[(state->ticker.start + i) % MF_RADIO_RX_TICKER_CAPACITY];
-        uint32_t start_ms =
-            mark->end_ms >= mark->duration_ms ? mark->end_ms - mark->duration_ms : 0U;
-        uint32_t start_age = now_ms - start_ms;
-        uint32_t end_age = now_ms - mark->end_ms;
-        int32_t x0 = start_age >= MF_RADIO_RX_TICKER_WINDOW_MS ?
-                         0 :
-                         127 - (int32_t)(start_age * 127U / MF_RADIO_RX_TICKER_WINDOW_MS);
-        int32_t x1 = end_age >= MF_RADIO_RX_TICKER_WINDOW_MS ?
-                         0 :
-                         127 - (int32_t)(end_age * 127U / MF_RADIO_RX_TICKER_WINDOW_MS);
-        if(x1 < x0) {
-            int32_t swap = x0;
-            x0 = x1;
-            x1 = swap;
-        }
-        canvas_draw_box(canvas, x0, mark->glitch ? 34 : 33, (size_t)(x1 - x0 + 1), mark->glitch ? 2U : 3U);
+        draw_ticker_mark(canvas, mark, now_ms);
+    }
+    if(state->rx_level && state->rx_edge_at != 0U) {
+        uint32_t duration_ms = now_ms - state->rx_edge_at;
+        uint16_t dit_ms = state->decoder_services->dit_ms(&state->decoder);
+        uint16_t glitch_limit_ms = dit_ms / 2U;
+        uint16_t floor_ms = mf_radio_wpm_to_dit_ms(MF_RADIO_RX_WPM_MAX);
+        MfRadioTickerMark mark;
+        if(glitch_limit_ms < floor_ms) glitch_limit_ms = floor_ms;
+        mark = (MfRadioTickerMark){
+            .end_ms = now_ms,
+            .duration_ms = duration_ms > UINT16_MAX ? UINT16_MAX : (uint16_t)duration_ms,
+            .glitch = duration_ms < glitch_limit_ms,
+        };
+        draw_ticker_mark(canvas, &mark, now_ms);
     }
 }
 
@@ -166,4 +188,3 @@ void mf_radio_draw(const MfRadioState* state, Canvas* canvas, uint32_t now_ms) {
     else if(state->snapshot.page == MfRadioPageFrequency)
         draw_frequency(state, canvas);
 }
-
