@@ -147,9 +147,9 @@ static void assert_page_labels(uint8_t page, const VariableItemList* list) {
         assert_item(list, 0U, "Difficulty", "Competition");
         break;
     case MfSettingsEntryGpio:
-        assert_item(list, 0U, "dit/SK", "P3");
-        assert_item(list, 1U, "dah", "P4");
-        assert_item(list, 2U, "Virtual gnd", "off");
+        assert_item(list, 0U, "dit/SK", "P7");
+        assert_item(list, 1U, "dah", "P5");
+        assert_item(list, 2U, "Virtual gnd", "P3");
         assert_item(list, 3U, "PTT/TX", "off");
         break;
     case MfSettingsEntryUsb:
@@ -265,8 +265,9 @@ int main(void) {
             .lesson = 2U, .farnsworth_wpm = 20U,
             .answer_timeout_s = 3U, .group_pause_s = 3U, .group_size = 1U,
             .group_count = 3U, .straight_wpm = 10U, .straight_answer_timeout_s = 1U,
-            .straight_next_delay_s = 1U, .tx_groups_difficulty = 2U, .gpio_dit_pin = 3U,
-            .gpio_dah_pin = 4U, .usb_mode = 3U, .usb_paddle_preset = 8U,
+            .straight_next_delay_s = 1U, .tx_groups_difficulty = 2U, .gpio_dit_pin = 5U,
+            .gpio_dah_pin = 3U, .gpio_ground_pin = 1U, .gpio_ptt_pin = 0xffU,
+            .usb_mode = 3U, .usb_paddle_preset = 8U,
             .usb_straight_preset = 7U, .usb_mouse_invert = true};
         state = mf_settings_test_alloc();
         assert(mf_settings_test_enter(state, &args));
@@ -336,14 +337,44 @@ int main(void) {
 
     list = (VariableItemList){0};
     calls = 0U;
+    services.apply = apply;
+    args.entry = MfSettingsEntryGpio;
+    args.list = &list;
+    args.service_context = &calls;
+    args.snapshot.gpio_dit_pin = 5U;
+    args.snapshot.gpio_dah_pin = 3U;
+    args.snapshot.gpio_ground_pin = 1U;
+    args.snapshot.gpio_ptt_pin = 0xffU;
+    state = mf_settings_test_alloc();
+    assert(mf_settings_test_enter(state, &args));
+    list.items[0].current_index = 5U;
+    list.items[0].changed(&list.items[0]);
+    list.items[1].current_index = 0U;
+    list.items[1].changed(&list.items[1]);
+    list.items[2].current_index = 0U;
+    list.items[2].changed(&list.items[2]);
+    list.items[3].current_index = 1U;
+    list.items[3].changed(&list.items[3]);
+    MorseFlipperMappedFalResult close_result = {0};
+    assert(mf_settings_test_close(state, &close_result));
+    assert(calls == 1U && close_result.request_exit);
+    assert(last_request.gpio_dit_pin == 7U);
+    assert(last_request.gpio_dah_pin == 1U);
+    assert(last_request.gpio_ground_pin == 0xffU);
+    assert(last_request.gpio_ptt_pin == 7U);
+    mf_settings_test_leave(state);
+    mf_settings_test_free(state);
+
+    list = (VariableItemList){0};
+    calls = 0U;
     services.apply = reject_gpio;
     args.entry = MfSettingsEntryGpio;
     args.list = &list;
     args.service_context = &calls;
     args.snapshot.gpio_dit_pin = 3U;
     args.snapshot.gpio_dah_pin = 4U;
-    args.snapshot.gpio_ground_pin = 0U;
-    args.snapshot.gpio_ptt_pin = 0U;
+    args.snapshot.gpio_ground_pin = 0xffU;
+    args.snapshot.gpio_ptt_pin = 0xffU;
     state = mf_settings_test_alloc();
     assert(mf_settings_test_enter(state, &args));
     assert(list.count == 4U);
@@ -351,9 +382,9 @@ int main(void) {
     list.items[3].current_index = 1U;
     list.items[3].changed(&list.items[3]);
     assert(strcmp(list.items[3].current_text, "P16") == 0);
-    MorseFlipperMappedFalResult close_result = {0};
+    close_result = (MorseFlipperMappedFalResult){0};
     assert(!mf_settings_test_close(state, &close_result));
-    assert(calls == 1U && !close_result.request_exit && last_request.gpio_ptt_pin == 16U);
+    assert(calls == 1U && !close_result.request_exit && last_request.gpio_ptt_pin == 7U);
     mf_settings_test_leave(state);
     assert(list.count == 0U && list.resets >= 2U);
     mf_settings_test_free(state);

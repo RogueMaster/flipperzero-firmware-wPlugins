@@ -131,13 +131,17 @@ static void morse_flipper_draw_progress_history_row(
     char time[8];
     char score[8];
     char lesson[2] = {row->lesson, '\0'};
+    uint16_t old_year;
     uint8_t stars;
     uint8_t i;
 
-    morse_flipper_progress_history_date_label(
+    old_year = morse_flipper_progress_history_date_label(
         row, reference_year, reference_month, date, sizeof(date));
     if(date[0] == '\0') return;
-    snprintf(time, sizeof(time), "%02u:%02u", (unsigned)row->hour, (unsigned)row->minute);
+    if(old_year != 0U)
+        snprintf(time, sizeof(time), "%u", (unsigned)old_year);
+    else
+        snprintf(time, sizeof(time), "%02u:%02u", (unsigned)row->hour, (unsigned)row->minute);
     snprintf(score, sizeof(score), "%u%%", (unsigned)row->percent);
     stars = morse_flipper_progress_stars(row->percent);
 

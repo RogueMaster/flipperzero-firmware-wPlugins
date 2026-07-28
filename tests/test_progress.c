@@ -370,15 +370,17 @@ static void test_history_date_label_cutoff(void) {
     row = (MorseFlipperProgressHistoryRow){
         .practice_day = checked_day(2025, 8, 3),
     };
-    morse_flipper_progress_history_date_label(&row, 2026, 7, label, sizeof(label));
+    CHECK(morse_flipper_progress_history_date_label(&row, 2026, 7, label, sizeof(label)) == 0U);
     CHECK(strcmp(label, "03 Aug") == 0);
 
     row.practice_day = checked_day(2025, 7, 3);
-    morse_flipper_progress_history_date_label(&row, 2026, 7, label, sizeof(label));
-    CHECK(strcmp(label, "Jul 25") == 0);
+    CHECK(
+        morse_flipper_progress_history_date_label(&row, 2026, 7, label, sizeof(label)) ==
+        2025U);
+    CHECK(strcmp(label, "03 Jul") == 0);
 
     row.practice_day = checked_day(2026, 7, 21);
-    morse_flipper_progress_history_date_label(&row, 2026, 7, label, sizeof(label));
+    CHECK(morse_flipper_progress_history_date_label(&row, 2026, 7, label, sizeof(label)) == 0U);
     CHECK(strcmp(label, "21 Jul") == 0);
 }
 

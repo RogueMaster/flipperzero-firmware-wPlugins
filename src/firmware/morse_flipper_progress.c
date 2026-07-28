@@ -484,7 +484,7 @@ bool morse_flipper_progress_history_row_date(
     return morse_flipper_progress_day_to_date(row->practice_day, out_year, out_month, out_day);
 }
 
-void morse_flipper_progress_history_date_label(
+uint16_t morse_flipper_progress_history_date_label(
     const MorseFlipperProgressHistoryRow* row,
     uint16_t reference_year,
     uint8_t reference_month,
@@ -493,31 +493,23 @@ void morse_flipper_progress_history_date_label(
     uint16_t year;
     uint8_t month;
     uint8_t day;
-    bool recent = true;
 
-    if(out == NULL || out_sz == 0U) return;
+    if(out == NULL || out_sz < 7U) return 0U;
     out[0] = '\0';
-    if(!morse_flipper_progress_history_row_date(row, &year, &month, &day) || month < 1U ||
-       month > 12U) {
-        return;
+    if(!morse_flipper_progress_history_row_date(row, &year, &month, &day)) {
+        return 0U;
     }
 
-    if(reference_year > MORSE_FLIPPER_PROGRESS_EPOCH_YEAR && reference_month >= 1U &&
-       reference_month <= 12U) {
-        uint16_t cutoff_year = (uint16_t)(reference_year - 1U);
-        recent = year > cutoff_year || (year == cutoff_year && month > reference_month);
-    }
+    if(reference_year <= MORSE_FLIPPER_PROGRESS_EPOCH_YEAR || year > reference_year - 1U ||
+       (year == reference_year - 1U && month > reference_month))
+        year = 0U;
 
-    if(recent) {
-        snprintf(out, out_sz, "%02u %s", (unsigned)day, morse_flipper_progress_months[month - 1U]);
-    } else {
-        snprintf(
-            out,
-            out_sz,
-            "%s %02u",
-            morse_flipper_progress_months[month - 1U],
-            (unsigned)(year % 100U));
-    }
+    out[0] = (char)('0' + day / 10U);
+    out[1] = (char)('0' + day % 10U);
+    out[2] = ' ';
+    memcpy(&out[3], morse_flipper_progress_months[month - 1U], 3U);
+    out[6] = '\0';
+    return year;
 }
 
 uint16_t morse_flipper_progress_history_start_day(

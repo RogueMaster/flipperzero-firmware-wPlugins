@@ -131,7 +131,7 @@ bool morse_flipper_progress_history_row_date(
     uint16_t* out_year,
     uint8_t* out_month,
     uint8_t* out_day);
-void morse_flipper_progress_history_date_label(
+uint16_t morse_flipper_progress_history_date_label(
     const MorseFlipperProgressHistoryRow* row,
     uint16_t reference_year,
     uint8_t reference_month,

@@ -120,18 +120,61 @@ static const char* mf_settings_tone_name(uint8_t value) {
     return value < 31U ? names[value] : names[0];
 }
 
+typedef struct {
+    uint8_t pin;
+    const char* name;
+} MfSettingsGpioChoice;
+
+enum {
+    MfSettingsGpioPinP3 = 1U,
+    MfSettingsGpioPinP5 = 3U,
+    MfSettingsGpioPinP7 = 5U,
+    MfSettingsGpioPinP16 = 7U,
+    MfSettingsGpioPinNone = 0xffU,
+};
+
+static const MfSettingsGpioChoice mf_settings_gpio_choices[] = {
+    {.pin = 1U, .name = "P3"},
+    {.pin = 2U, .name = "P4"},
+    {.pin = 3U, .name = "P5"},
+    {.pin = 4U, .name = "P6"},
+    {.pin = 5U, .name = "P7"},
+    {.pin = 7U, .name = "P16"},
+};
+
 static uint8_t mf_settings_gpio_pin_from_index(uint8_t index) {
-    static const uint8_t pins[] = {3U, 4U, 5U, 6U, 7U, 16U};
-    return index < 6U ? pins[index] : pins[0];
+    return index < sizeof(mf_settings_gpio_choices) / sizeof(mf_settings_gpio_choices[0]) ?
+               mf_settings_gpio_choices[index].pin :
+               MfSettingsGpioPinP3;
 }
 
 static uint8_t mf_settings_gpio_index_from_pin(uint8_t pin, bool permit_off) {
-    static const uint8_t pins[] = {3U, 4U, 5U, 6U, 7U, 16U};
-    if(permit_off && pin == 0U) return 0U;
-    for(uint8_t i = 0U; i < 6U; i++) {
-        if(pin == pins[i]) return permit_off ? i + 1U : i;
+    if(permit_off && pin == MfSettingsGpioPinNone) return 0U;
+    for(uint8_t i = 0U;
+        i < sizeof(mf_settings_gpio_choices) / sizeof(mf_settings_gpio_choices[0]);
+        i++) {
+        if(pin == mf_settings_gpio_choices[i].pin) return permit_off ? i + 1U : i;
     }
     return 0U;
+}
+
+static const char* mf_settings_gpio_name(uint8_t pin) {
+    if(pin == MfSettingsGpioPinNone) return "off";
+    for(uint8_t i = 0U;
+        i < sizeof(mf_settings_gpio_choices) / sizeof(mf_settings_gpio_choices[0]);
+        i++) {
+        if(pin == mf_settings_gpio_choices[i].pin) return mf_settings_gpio_choices[i].name;
+    }
+    return "?";
+}
+
+static bool mf_settings_gpio_selectable(uint8_t pin) {
+    for(uint8_t i = 0U;
+        i < sizeof(mf_settings_gpio_choices) / sizeof(mf_settings_gpio_choices[0]);
+        i++) {
+        if(pin == mf_settings_gpio_choices[i].pin) return true;
+    }
+    return false;
 }
 
 static void mf_settings_set_number(VariableItem* item, uint8_t index, uint8_t base, const char* suffix) {
@@ -256,8 +299,7 @@ static void mf_settings_refresh(MfSettingsState* state) {
             if(item == NULL) continue;
             variable_item_set_current_value_index(
                 item, mf_settings_gpio_index_from_pin(values[i], i >= 2U));
-            snprintf(label, sizeof(label), values[i] == 0U ? "off" : "P%u", (unsigned)values[i]);
-            variable_item_set_current_value_text(item, label);
+            variable_item_set_current_value_text(item, mf_settings_gpio_name(values[i]));
         }
     } else if(state->args.entry == MfSettingsEntryUsb) {
         item = state->items[0];
@@ -344,8 +386,10 @@ static void mf_settings_changed(VariableItem* item) {
             MfSettingsSetUsbStraightPreset, MfSettingsSetUsbMouseInvert};
         if(row < 4U) (void)mf_settings_apply(state, kinds[row], index);
     } else if(state->args.entry == MfSettingsEntryGpio) {
-        uint8_t pin = row >= 2U && index == 0U ? 0U :
-                      row == 3U ? 16U : mf_settings_gpio_pin_from_index(index - (row >= 2U ? 1U : 0U));
+        uint8_t pin = row >= 2U && index == 0U ? MfSettingsGpioPinNone :
+                      row == 3U ? MfSettingsGpioPinP16 :
+                                 mf_settings_gpio_pin_from_index(
+                                     index - (row >= 2U ? 1U : 0U));
         if(row == 0U) state->gpio_dit_pin = pin;
         if(row == 1U) state->gpio_dah_pin = pin;
         if(row == 2U) state->gpio_ground_pin = pin;
@@ -462,6 +506,15 @@ static bool mf_settings_enter(void* opaque, const void* opaque_args, MorseFlippe
     state->gpio_dah_pin = state->snapshot.gpio_dah_pin;
     state->gpio_ground_pin = state->snapshot.gpio_ground_pin;
     state->gpio_ptt_pin = state->snapshot.gpio_ptt_pin;
+    if(!mf_settings_gpio_selectable(state->gpio_dit_pin))
+        state->gpio_dit_pin = MfSettingsGpioPinP7;
+    if(!mf_settings_gpio_selectable(state->gpio_dah_pin))
+        state->gpio_dah_pin = MfSettingsGpioPinP5;
+    if(state->gpio_ground_pin != MfSettingsGpioPinNone &&
+       !mf_settings_gpio_selectable(state->gpio_ground_pin))
+        state->gpio_ground_pin = MfSettingsGpioPinP3;
+    if(state->gpio_ptt_pin != MfSettingsGpioPinP16)
+        state->gpio_ptt_pin = MfSettingsGpioPinNone;
     if(args->entry == MfSettingsEntryListening) (void)mf_settings_try_load_custom_names(state);
     variable_item_list_reset(args->list);
     variable_item_list_set_enter_callback(args->list, mf_settings_enter_row, state);
