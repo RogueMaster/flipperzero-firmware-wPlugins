@@ -292,7 +292,7 @@ static void morse_flipper_feed_tx_edge(MorseFlipperApp* app, bool level, uint32_
         duration_ms = dt > UINT16_MAX ? UINT16_MAX : (uint16_t)dt;
         if(app->tx_level)
             radio_interval = MfRadioTxIntervalMark;
-        else if(!app->tx_gap_flushed)
+        else
             radio_interval = MfRadioTxIntervalSpace;
         if(dt != 0U && morse_flipper_tx_decoder_allowed(app)) {
             if(app->tx_level) {

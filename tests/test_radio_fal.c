@@ -267,6 +267,22 @@ int main(void) {
     assert(strstr(drawn, "khz") != NULL);
     mf_radio_core_leave(&state);
 
+    /*
+     * A partial idle flush may finish the character before the next mark.
+     * The completed idle interval must still be accepted later so it can
+     * promote that gap to a word separator.
+     */
+    assert(mf_radio_core_enter(&state, &enter, &ops, &result));
+    mf_radio_core_set_page(&state, MfRadioPageTransmit, 0U);
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 1U);
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalMark, 60U, false, 61U);
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalSpace, 150U, false, 211U);
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalSpace, 420U, true, 481U);
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalMark, 180U, false, 661U);
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalSpace, 180U, false, 841U);
+    assert(strstr(morse_flipper_run_history_text(&state.tx_history), "E T") != NULL);
+    mf_radio_core_leave(&state);
+
     fake.allowed = false;
     fake.tx_prepares = 0U;
     assert(mf_radio_core_enter(&state, &enter, &ops, &result));
