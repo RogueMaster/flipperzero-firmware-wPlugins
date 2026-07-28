@@ -257,7 +257,7 @@ MorseFlipperApp* morse_flipper_boot(void) {
     morse_flipper_cw_decoder_init(&app->tx_decoder, morse_flipper_current_dit_ms(app));
     morse_flipper_cw_decoder_init(&app->gpio_decoder, morse_flipper_current_dit_ms(app));
     morse_keyer_init(&app->keyer, app->keyer_mode, morse_flipper_current_dit_ms(app));
-    morse_flipper_gpio_init(app);
+    morse_flipper_gpio_apply(app);
     app->startup_gpio_probe_state = morse_flipper_gpio_probe_sample_raw(app);
     app->view_dispatcher = view_dispatcher_alloc();
     view_dispatcher_set_event_callback_context(app->view_dispatcher, app);
@@ -362,7 +362,7 @@ void morse_flipper_shutdown(MorseFlipperApp* app) {
     morse_flipper_release_view_progress(app);
     mf_tlm_deinit();
 
-    morse_flipper_gpio_deinit();
+    morse_flipper_gpio_reset_candidates();
     if(app->view_dispatcher) {
         if(app->text_input)
             view_dispatcher_remove_view(app->view_dispatcher, MorseFlipperViewTextInput);

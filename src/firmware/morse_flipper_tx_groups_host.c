@@ -19,7 +19,7 @@ static char mf_tx_groups_answer_preview(void* context) {
     char preview;
 
     if(app == NULL || !app->txg_wait_answer) return '\0';
-    preview = (char)morse_flipper_live_upper_char(morse_flipper_cw_decoder_preview(&app->tx_decoder));
+    preview = (char)morse_flipper_upper_char(morse_flipper_cw_decoder_preview(&app->tx_decoder));
     return preview == ' ' || preview == '|' ? '\0' : preview;
 }
 

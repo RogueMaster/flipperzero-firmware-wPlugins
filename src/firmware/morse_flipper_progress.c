@@ -1012,29 +1012,15 @@ bool morse_flipper_progress_history_load_newer(
 }
 
 #ifdef MORSE_FLIPPER_FAP
-bool morse_flipper_ensure_session_progress_loaded(MorseFlipperApp* app) {
-    if(app == NULL) return false;
-    if(app->session_progress != NULL) return true;
+bool morse_flipper_progress_ensure_loaded(MorseFlipperProgress** progress) {
+    if(progress == NULL) return false;
+    if(*progress != NULL) return true;
 
-    app->session_progress = malloc(sizeof(MorseFlipperProgress));
-    if(app->session_progress == NULL) return false;
-    if(!morse_flipper_progress_load(app->session_progress)) {
-        free(app->session_progress);
-        app->session_progress = NULL;
-        return false;
-    }
-    return true;
-}
-
-bool morse_flipper_ensure_view_progress_loaded(MorseFlipperApp* app) {
-    if(app == NULL) return false;
-    if(app->view_progress != NULL) return true;
-
-    app->view_progress = malloc(sizeof(MorseFlipperProgress));
-    if(app->view_progress == NULL) return false;
-    if(!morse_flipper_progress_load(app->view_progress)) {
-        free(app->view_progress);
-        app->view_progress = NULL;
+    *progress = malloc(sizeof(MorseFlipperProgress));
+    if(*progress == NULL) return false;
+    if(!morse_flipper_progress_load(*progress)) {
+        free(*progress);
+        *progress = NULL;
         return false;
     }
     return true;

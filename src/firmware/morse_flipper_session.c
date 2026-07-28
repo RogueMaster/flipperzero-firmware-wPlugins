@@ -361,7 +361,7 @@ void morse_flipper_start_session(MorseFlipperApp* app, uint32_t now_ms) {
     morse_flipper_reset_session_state(app, now_ms);
     app->session_progress_recorded = false;
     app->session_progress_dirty = false;
-    morse_flipper_ensure_session_progress_loaded(app);
+    morse_flipper_progress_ensure_loaded(&app->session_progress);
     morse_trainer_start_session(&app->trainer);
     app->session_started = true;
     app->session_round_pending = false;
@@ -505,7 +505,7 @@ static uint8_t morse_flipper_session_final_percent(const MorseFlipperApp* app) {
 static void morse_flipper_note_session_progress_group(MorseFlipperApp* app) {
     if(app == NULL || !app->session_started) return;
     if(morse_flipper_effective_trainer_custom_set_idx(app) != 0U) return;
-    if(!morse_flipper_ensure_session_progress_loaded(app)) return;
+    if(!morse_flipper_progress_ensure_loaded(&app->session_progress)) return;
     if(app->session_progress == NULL) return;
 
     morse_flipper_progress_note_weak_group(
@@ -546,7 +546,8 @@ void morse_flipper_record_session_progress(MorseFlipperApp* app) {
            standard, true, false, lesson, morse_trainer_lesson_count(), percent, total))
         app->session_next_eligible = true;
 
-    if(!morse_flipper_ensure_session_progress_loaded(app) || app->session_progress == NULL) {
+    if(!morse_flipper_progress_ensure_loaded(&app->session_progress) ||
+       app->session_progress == NULL) {
         app->session_progress_dirty = false;
         return;
     }
@@ -923,10 +924,6 @@ void morse_flipper_draw_session_end(Canvas* canvas, const MorseFlipperApp* app) 
         canvas_draw_str_aligned(
             canvas, 64, 57, AlignCenter, AlignCenter, morse_flipper_session_end_blurb(app));
     }
-}
-static char morse_flipper_upper_char(char ch) {
-    if(ch >= 'a' && ch <= 'z') return (char)(ch - ('a' - 'A'));
-    return ch;
 }
 
 static void

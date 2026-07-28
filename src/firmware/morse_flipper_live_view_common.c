@@ -241,7 +241,7 @@ void morse_flipper_draw_star_glyph(Canvas* canvas, uint8_t cx, uint8_t cy, bool 
         canvas, cx, cy, filled ? MORSE_FLIPPER_STAR_REVEAL_COLS : 0U);
 }
 
-uint8_t morse_flipper_live_upper_char(uint8_t ch) {
+uint8_t morse_flipper_upper_char(uint8_t ch) {
     if(ch >= 'a' && ch <= 'z') return (char)(ch - ('a' - 'A'));
     return ch;
 }

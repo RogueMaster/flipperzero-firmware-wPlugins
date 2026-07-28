@@ -111,8 +111,8 @@ class SceneHandlerTableTest(unittest.TestCase):
                     "MorseFlipperSceneStraightCfg": "morse_flipper_scene_settings_on_exit",
                     "MorseFlipperSceneTxGroupsCfg": "morse_flipper_scene_settings_on_exit",
                     "MorseFlipperSceneGpio": "morse_flipper_scene_settings_on_exit",
-                    "MorseFlipperSceneIcr": "morse_flipper_scene_icr_on_exit",
-                    "MorseFlipperScenePassive": "morse_flipper_scene_training_plugin_on_exit",
+                    "MorseFlipperSceneIcr": "morse_flipper_scene_plugin_on_exit",
+                    "MorseFlipperScenePassive": "morse_flipper_scene_plugin_on_exit",
                 },
             ),
         ):
@@ -233,7 +233,7 @@ class SceneHandlerTableTest(unittest.TestCase):
         scenes = SCENES.read_text(encoding="utf-8")
         enter = scenes[
             scenes.index("static void morse_flipper_scene_icr_on_enter") :
-            scenes.index("static void morse_flipper_scene_icr_on_exit")
+            scenes.index("static void morse_flipper_scene_rx_callsigns_on_enter")
         ]
         self.assertIn("if(morse_flipper_icr_host_enter(app, furi_get_tick()))", enter)
         host = (ROOT / "src/firmware/morse_flipper_icr_host.c").read_text(encoding="utf-8")

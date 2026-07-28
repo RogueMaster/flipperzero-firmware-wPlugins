@@ -78,7 +78,7 @@ void morse_flipper_draw_tx_history_screen_custom(
     if(canvas == NULL || app == NULL) return;
 
     preview_history = app->run_history;
-    preview = morse_flipper_live_upper_char(morse_flipper_cw_decoder_preview(&app->tx_decoder));
+    preview = morse_flipper_upper_char(morse_flipper_cw_decoder_preview(&app->tx_decoder));
     preview_extendable = morse_flipper_cw_decoder_preview_extendable(&app->tx_decoder);
     if(preview != 0 && preview != ' ' && preview != '|') {
         char preview_text[2] = {preview, '\0'};

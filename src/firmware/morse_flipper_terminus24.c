@@ -78,7 +78,7 @@ static bool morse_flipper_terminus24_visible_chars(
         }
         if(answer_len < MORSE_FLIPPER_TX_GROUP_LEN && app->txg_wait_answer) {
             uint8_t preview =
-                morse_flipper_live_upper_char(morse_flipper_cw_decoder_preview(&app->tx_decoder));
+                morse_flipper_upper_char(morse_flipper_cw_decoder_preview(&app->tx_decoder));
             if(preview != 0U && preview != ' ' && preview != '|')
                 return morse_flipper_terminus24_push(chars, count, preview);
         }

@@ -9,14 +9,6 @@
 
 static void morse_flipper_note_tx_group_result(MorseFlipperApp* app);
 
-void morse_flipper_gpio_init(MorseFlipperApp* app) {
-    morse_flipper_gpio_apply(app);
-}
-
-void morse_flipper_gpio_deinit(void) {
-    morse_flipper_gpio_reset_candidates();
-}
-
 bool morse_flipper_straight_down(void) {
     return !furi_hal_gpio_read(morse_flipper_straight_pin);
 }

@@ -258,7 +258,7 @@ static void morse_flipper_draw_rf_rx_text(Canvas* canvas, const MorseFlipperApp*
     if(canvas == NULL || app == NULL) return;
 
     snprintf(text, sizeof(text), "%s", app->rf_rx_text);
-    preview = morse_flipper_live_upper_char(morse_flipper_cw_decoder_preview(&app->rf_decoder));
+    preview = morse_flipper_upper_char(morse_flipper_cw_decoder_preview(&app->rf_decoder));
     preview_active = preview != 0 && preview != ' ' && preview != '|';
     preview_extendable = morse_flipper_cw_decoder_preview_extendable(&app->rf_decoder);
     if(preview_active) {
