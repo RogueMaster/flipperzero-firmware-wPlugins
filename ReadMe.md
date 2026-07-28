@@ -74,6 +74,11 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Flipper Blackhat v0.4.1 (By o7-machinehum)](https://github.com/o7-machinehum/flipper-blackhat-app) `Req: Blackhat Board` with [Blackhat OS](https://github.com/o7-machinehum/flipper-blackhat-os)
 - Updated: [NFC Magic v2.1 (By gornekich)](https://github.com/flipperdevices/flipperzero-firmware/pull/1966) [NFC Magic: ISO15693 / NfcV support (By mfcarroll)](https://github.com/xMasterX/all-the-plugins/pull/250)
 - Updated: [DeFlock v0.47 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- SubGHz: [Fix Pecinin keeloq manufacturer (By lifegame1lu111)](https://github.com/DarkFlippers/unleashed-firmware/commit/57034eaf476e63fdbe1f4a61633ed47ee8accbd1)
+- SubGHz: [RAW files corruption fix (By Lechnio)](https://github.com/DarkFlippers/unleashed-firmware/commit/bd8d60dd41112bea8155750e4fa8eded513cc017)
+- NFC: [Fix Type 4 Tag emulation crashing on malformed NDEF write APDUs - a reader could reboot the Flipper with a 4-to-7 byte `UPDATE BINARY`: an empty data field, a truncated NLEN write that underflowed the length into a ~4 GB allocation, or an unclamped 64 KB NLEN; a partial NLEN write also no longer zeroes the byte it didn't cover (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1051)
+- NFC: [Fix Type 4 Tag emulation corrupting the NDEF message on writes starting mid-NLEN - a reader updating from file offset 1 had its payload shifted one byte and picked up a stale byte from the previous frame (By Endika)](https://github.com/DarkFlippers/unleashed-firmware/pull/1049)
+- NFC: [Fix wrong parent protocol in the Type 4 Tag listener assert - copy-pasted from the SLIX listener, so debug builds crashed as soon as Type 4 Tag emulation received a frame; release builds were unaffected (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1051)
 
 <a name="release"></a>
 
