@@ -51,6 +51,8 @@ def main() -> None:
     assert "MORSE_SOURCE_STRAIGHT_GPIO, false" in release
     assert "MORSE_PADDLE_SOURCE_GPIO_DIT, false" in release
     assert "MORSE_PADDLE_SOURCE_GPIO_DAH, false" in release
+    assert "morse_keyer_reset(&app->keyer);" in release
+    assert "morse_flipper_drain_keyer_events(app);" in release
 
     sync = function_body("morse_flipper_sync_gpio_inputs")
     gate = sync.index("if(!morse_flipper_gpio_keying_screen_allowed(app))")

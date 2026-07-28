@@ -417,6 +417,8 @@ static void morse_flipper_release_gpio_inputs(MorseFlipperApp* app, uint32_t now
         app, MorseKeyerPaddleDit, MORSE_PADDLE_SOURCE_GPIO_DIT, false, now_ms);
     morse_flipper_set_paddle_source(
         app, MorseKeyerPaddleDah, MORSE_PADDLE_SOURCE_GPIO_DAH, false, now_ms);
+    morse_keyer_reset(&app->keyer);
+    morse_flipper_drain_keyer_events(app);
 }
 
 static void morse_flipper_sync_gpio_inputs(MorseFlipperApp* app, uint32_t now_ms) {
