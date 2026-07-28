@@ -40,7 +40,7 @@ approach that can be read, verified, and corrected by anyone.
 
 ## What exists today
 
-Version 0.43. A Flipper Zero application paired with commodity ESP32 hardware that
+Version 0.44. A Flipper Zero application paired with commodity ESP32 hardware that
 detects Flock/ALPR cameras across Wi-Fi and BLE, identifies Bluetooth trackers that
 persist across your movement, grades nearby Wi-Fi security, flags active Wi-Fi
 attacks, audits NFC/RFID credentials, and exports findings as Markdown, GeoJSON, KML,

@@ -66,3 +66,42 @@ void ble_track_fold_fix(BleTrack* t, float lat, float lon);
  * caller latches the result (never un-follows).
  */
 bool ble_following_gate(uint32_t count, uint32_t elapsed_ms, uint32_t waypoints, float span_m);
+
+// ---- Flock detection alert gate (recon_app_report_flock) ---------------
+//
+// A hit is otherwise silent: it appears as a row on a screen you have to be
+// looking at (GitHub issue #1 -- two cameras detected, noticed blocks later).
+// This decides when the app raises its beep/vibro alert.
+
+/** Lowest confidence that may raise an alert. Mirrors FlockConfidenceLikely (2).
+ *  "Possible" is an OUI-prefix-only lead -- generic vendor prefixes appear on
+ *  unrelated hardware, so alerting on it would buzz at non-cameras. Precision
+ *  over recall applies to the alert exactly as it does to the display. */
+#define ALERT_MIN_CONF    2u
+/** Minimum gap between two alerts. A MAC-randomising unit, or driving into a
+ *  dense deployment, can mint several qualifying entries inside one second;
+ *  without this the vibro motor machine-guns and drains the battery. */
+#define ALERT_COOLDOWN_MS 3000u
+
+/**
+ * Should this detection raise the alert? Fires at most ONCE per device, on the
+ * first crossing from below ALERT_MIN_CONF to at or above it -- so a unit first
+ * seen as "Possible" and later upgraded to "Confirmed" alerts exactly once,
+ * while a camera that keeps being seen never re-alerts.
+ *
+ * @param prev_conf           entry confidence BEFORE this sighting was merged.
+ * @param new_conf            entry confidence AFTER the merge.
+ * @param already_alerted     the entry's own latch (this device already alerted).
+ * @param now_tick            furi tick of this sighting.
+ * @param last_alert_tick     tick of the last alert this session (any device).
+ * @param have_alerted_before false until the first alert of the session, so a
+ *                            fresh session's `last_alert_tick == 0` can't be
+ *                            mistaken for "an alert 0 ms ago" and swallowed.
+ */
+bool flock_alert_should_fire(
+    uint8_t prev_conf,
+    uint8_t new_conf,
+    bool already_alerted,
+    uint32_t now_tick,
+    uint32_t last_alert_tick,
+    bool have_alerted_before);

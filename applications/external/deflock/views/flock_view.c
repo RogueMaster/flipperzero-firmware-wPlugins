@@ -45,12 +45,39 @@ static char confidence_char(FlockConfidence c) {
 // render pass can run entirely unlocked.
 typedef struct {
     char conf_ch;
+    bool acoustic; /**< SoundThinking sensor, not an ALPR -> "ST" tag on the row */
+    bool hidden; /**< beacons with no SSID -> "[hid]" instead of a blank name */
     char ssid[RECON_SSID_LEN];
     uint8_t mac[6];
     int8_t rssi;
     bool marked;
     bool selected;
+    bool archived; /**< restored from hits.csv, not seen yet this session */
+    uint32_t seen_epoch; /**< RTC seconds of that stored sighting (archived only) */
 } FlockRowSnap;
+
+/**
+ * Compact age of a stored sighting: "5m", "3h", "2d", or "old" past 99 days.
+ * Shown in place of the signal bars for an archived row -- a saved RSSI is not
+ * a live reading, and drawing bars for it would claim the device is in range
+ * right now.
+ */
+static void flock_age_str(char* out, size_t out_len, uint32_t now_epoch, uint32_t seen_epoch) {
+    if(!seen_epoch || now_epoch < seen_epoch) {
+        snprintf(out, out_len, "--");
+        return;
+    }
+    uint32_t s = now_epoch - seen_epoch;
+    if(s < 3600u) {
+        snprintf(out, out_len, "%lum", (unsigned long)(s / 60u));
+    } else if(s < 86400u) {
+        snprintf(out, out_len, "%luh", (unsigned long)(s / 3600u));
+    } else if(s < 86400u * 100u) {
+        snprintf(out, out_len, "%lud", (unsigned long)(s / 86400u));
+    } else {
+        snprintf(out, out_len, "old");
+    }
+}
 
 static void flock_view_draw_callback(Canvas* canvas, void* _model) {
     FlockViewModel* model = _model;
@@ -123,16 +150,24 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
             FlockEntry* e = &app->flock[idx];
             FlockRowSnap* r = &rows[nrows++];
             r->conf_ch = confidence_char(e->confidence);
+            r->acoustic = (e->dev_class == FlockClassAcoustic);
+            r->hidden = e->hidden;
             strncpy(r->ssid, e->ssid, RECON_SSID_LEN - 1);
             r->ssid[RECON_SSID_LEN - 1] = '\0';
             memcpy(r->mac, e->mac, 6);
             r->rssi = e->rssi;
             r->marked = e->marked;
             r->selected = (idx == model->selected);
+            r->archived = e->archived;
+            r->seen_epoch = e->seen_epoch;
         }
     }
 
     furi_mutex_release(app->mutex);
+
+    // Wall clock for the archived rows' age column. Read outside the lock (it is
+    // an RTC register read, not shared app state).
+    uint32_t now_epoch = furi_hal_rtc_get_timestamp();
 
     // ---- render from the snapshot (no mutex held) --------------------------
     // Header / status bar. A real deauth flood takes over the header. Compact
@@ -229,15 +264,34 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
             canvas_set_color(canvas, ColorBlack);
         }
 
+        // "ST " marks a SoundThinking acoustic sensor. Untagged rows are ALPR
+        // cameras -- the common case stays as terse as it was, and the list never
+        // silently presents a gunshot sensor as a camera.
+        const char* cls = r->acoustic ? "ST " : "";
+
         char line[48];
         if(r->ssid[0] != '\0') {
-            snprintf(line, sizeof(line), "%c %s", r->conf_ch, r->ssid);
+            snprintf(line, sizeof(line), "%c %s%s", r->conf_ch, cls, r->ssid);
+        } else if(r->hidden) {
+            // We watched this one beacon without a name. Worth surfacing, but it
+            // is an observation only -- the conf char is unchanged by it. Drops
+            // the MAC to its last 3 bytes to make room for the tag.
+            snprintf(
+                line,
+                sizeof(line),
+                "%c %s[hid] %02X:%02X:%02X",
+                r->conf_ch,
+                cls,
+                r->mac[3],
+                r->mac[4],
+                r->mac[5]);
         } else {
             snprintf(
                 line,
                 sizeof(line),
-                "%c %02X:%02X:%02X:%02X:%02X:%02X",
+                "%c %s%02X:%02X:%02X:%02X:%02X:%02X",
                 r->conf_ch,
+                cls,
                 r->mac[0],
                 r->mac[1],
                 r->mac[2],
@@ -251,8 +305,18 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
         // Right edge: RSSI as signal bars (replaces the raw "-33dB"). The bars
         // helper hardcodes ColorBlack, so on the inverted (selected) row it
         // would be invisible -> show the exact dB as white text there instead.
-        if(r->selected) {
-            char meta[18];
+        //
+        // An ARCHIVED row shows the age of the stored sighting instead. Its RSSI
+        // was recorded on some earlier run, so bars (or a live-looking "-67dB")
+        // would assert the device is in range right now -- exactly the kind of
+        // over-claim the detections-are-indicators rule exists to prevent.
+        char meta[18];
+        if(r->archived) {
+            char age[8];
+            flock_age_str(age, sizeof(age), now_epoch, r->seen_epoch);
+            snprintf(meta, sizeof(meta), "%s%s", r->marked ? "*" : "", age);
+            canvas_draw_str_aligned(canvas, 126, y + 8, AlignRight, AlignBottom, meta);
+        } else if(r->selected) {
             if(r->marked) {
                 snprintf(meta, sizeof(meta), "*%ddB", r->rssi);
             } else {

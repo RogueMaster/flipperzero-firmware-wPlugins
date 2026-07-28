@@ -131,6 +131,10 @@ bool recon_scene_ble_on_event(void* context, SceneManagerEvent event) {
     if(app->ble_blocked) return false; // Marauder mode guard screen; let Back exit
 
     if(event.type == SceneManagerEventTypeTick) {
+        // A BLE-classified Flock device is re-reported as a Flock hit, so this
+        // scene can raise the alert too.
+        recon_app_alert_tick(app);
+
         furi_mutex_acquire(app->mutex, FuriWaitForever);
         bool done = app->ble_done;
         furi_mutex_release(app->mutex);

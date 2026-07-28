@@ -1,5 +1,164 @@
 # Changelog
 
+## v0.47
+A false-positive fix. **If you are on v0.46, upgrade.**
+- **Benign networks whose name merely contains `flock-` were shown as CONFIRMED.**
+  `Flock-Guest`, `Flock-Safety-Corp`, `Flock-12345`, `MyFlock-Net` — anything with
+  that substring that is not `Flock-` followed by exactly 6 hex digits. The real
+  provisioning-AP name (`Flock-A1B2C3`) and the `test_flck` dev SSID are unaffected
+  and still Confirm; the affected names now score **Likely**, which is what they
+  always should have been.
+- **Why it happened.** The strict, anchored SSID rule lived in `flock_db.c` and was
+  regression-tested there, but nothing on the default (companion) code path ever
+  called it — the app took the companion's own looser verdict verbatim and printed
+  it. The host tests were green the whole time, because they were testing a function
+  that path never reached.
+- **Fixed on both sides, deliberately.** The companion's matcher is now anchored the
+  same way, *and* the app re-derives any claimed CONFIRMED from the SSID it was sent
+  rather than trusting it. The second half is what matters if you don't reflash:
+  companion firmware is flashed separately and can lag the app by releases, so an
+  already-flashed board gets the correct rung with no reflash. A weaker rung from the
+  companion is still trusted — it knows things the app cannot see from one line, like
+  probe behaviour and the silent receiver's OUI.
+- **Pinned where it actually broke.** New tests drive the real companion wire
+  protocol, not the helper in isolation, and were verified to fail without the fix.
+  The bench emitter grows an eighth identity so both hidden-SSID encodings
+  (zero-length and all-NUL) are exercised — the all-NUL branch had no coverage at
+  all. Host tests 613 → 639 checks.
+
+## v0.46
+A targeted harvest from [JakeSwiz/WatchFlock](https://github.com/JakeSwiz/WatchFlock),
+whose research surfaced that Flock moved their Falcon V2 cameras to hidden SSIDs and
+probe requests. No code was taken — the signatures and the finding were.
+- **A second device class: SoundThinking (formerly ShotSpotter) acoustic gunshot
+  sensors**, via OUI `d4:11:d6`. Deliberately *not* folded into the Flock OUI list.
+  A gunshot sensor is not a licence-plate reader, and adding it to that table would
+  have the app announce a camera it never saw. It gets its own table, its own `ST`
+  tag in the list, and its own line on the detail screen — "detections are
+  indicators" applies to *what* a thing is, not just how sure we are.
+- **The same ladder and the same caps.** An acoustic OUI scores Possible alone and
+  Likely with probe behaviour. There is no known SSID tell for that hardware, so it
+  can never reach Confirmed.
+- **Hidden-SSID beaconing is now reported.** The companion flags a beacon or
+  probe-response whose SSID IE is zero-length or all-NUL; the list shows `[hid]`, and
+  the detail screen, the report and `hits.csv` all carry it. The SSID column now
+  distinguishes "(SSID withheld)" from "(none seen)".
+- **It is reported, not scored — on purpose.** This is WatchFlock's headline finding
+  and it would have been easy to promote a hidden Flock-OUI AP to Likely. But hiding
+  an SSID is also ordinary consumer-router behaviour, and the OUI tables are shared
+  silicon-vendor prefixes, so that rule would flag every hidden ESP32-based AP in
+  range. Precision over recall: surface the observation, leave the rung alone, and
+  revisit when there is bench or field evidence to justify a change.
+- **Six more candidate OUIs**, in `docs/signatures.seed.json` rather than the
+  built-ins — WatchFlock's list is flat and states no corroboration, so none of them
+  meets the built-in table's bar. `cc:cc:cc` and `f8:a2:d6` were **not** imported
+  even though it still lists them: both are our own retractions, and a statusless
+  upstream list cannot express a retraction.
+- **Channel hop 1-11 → 1-13.** 12 and 13 are unusable for APs in the US so the old
+  bound cost nothing there, but they are ordinary channels across most of the world,
+  and probe requests are not restricted the same way anywhere.
+- **A bench emitter** (`tools/flock_emitter/`) that impersonates every rung of the
+  ladder in rotation — including the ones that must *not* fire, like `Flock-Guest`
+  staying Likely. Everything since v0.20 has been compile-verified and never put in
+  front of a radio; this is the rig that closes that. It transmits, so it lives
+  outside the app and is never flashed to a Flipper. The app itself remains passive.
+- **`test_flck` is now attributed** to CVE-2025-59409 in the code and the docs. It
+  was always matched; nothing said what it was.
+- Host tests 458 → 613 checks. `hits.csv` moves to schema v2 (new `class` and
+  `hidden` columns); v1 files still load rather than being discarded on upgrade.
+- Fixes a latent wire-protocol bug found by the new tests: the detection line's
+  field array held 8 slots, so a line carrying two trailing `key=value` fields glued
+  the second onto the first and the IE fingerprint silently parsed as 0.
+
+## v0.45
+The first release driven by outside field reports. Both features come from
+issues filed by [@h00die](https://github.com/h00die) after testing FlipDeFlock
+with a Marauder dev board around two known cameras.
+- **A detection can now announce itself (issue #1).** Both cameras were
+  detected — and neither was noticed until several blocks later, because a hit
+  was silent: a new row on a screen you had to be looking at. New **"Alert on
+  hit"** setting: OFF / Vibrate / Beep / Beep+Vibe, defaulting to **Vibrate**.
+  Haptic-first is deliberate; reading a surveillance-detection screen in public
+  is itself a personal-safety exposure, so the discreet option is the default
+  rather than the one you have to go find. Every mode also raises the backlight,
+  which is what makes a hit noticeable on a device in a pocket or a cupholder.
+- **It fires once per camera, not once per frame.** The alert triggers on a
+  device's first crossing to **Likely or better** — so a unit first seen as
+  "Possible" and later confirmed alerts exactly once, and a camera you are
+  parked next to never buzzes again. OUI-only "Possible" leads are deliberately
+  excluded: generic vendor prefixes turn up on unrelated hardware, and precision
+  over recall applies to the alert exactly as it does to the display. A 3 s
+  cross-device cooldown keeps a MAC-randomising unit, or driving into a dense
+  deployment, from machine-gunning the vibro motor.
+- **`Sound = OFF` still mutes the tone** while the vibro fires, so one global
+  mute switch stays honest instead of two settings disagreeing.
+- **Hits can survive closing the app (issue #2).** Two detections, back out to
+  the Flipper menu, reopen — both gone. New **"Save hits"** setting persists the
+  detection table to `apps_data/flipdeflock/hits.csv` and restores it at startup.
+  Restored hits reappear in the Flock list *and* on the Flock Map, which is the
+  "show someone what the hits look like" case from the report.
+- **Off by default, and off means erased.** A hit log is a durable record of
+  where you have been — the sort of trail a tool for people evading surveillance
+  should not create unless asked. Turning the setting back off **deletes**
+  `hits.csv`; a privacy toggle that leaves the old file on the card reads as
+  "off" while the record is still sitting there. *Reports → Clear Saved Hits*
+  erases it at any time, and drops the restored entries from the screen too.
+- **A restored hit never poses as a live one.** Its stored RSSI is from an
+  earlier run, so the list shows the **age** of that sighting (`5m`, `3h`, `2d`)
+  where the signal bars would be, and the detail screen says `Last RSSI` and adds
+  a `Saved: <date time>` line. Detections are indicators, not proof — and a
+  stale reading dressed up as a live one is exactly that rule being broken.
+- **Two traps found while building it, both fixed before shipping.**
+  A restored entry has no meaningful tick timestamp, so WATCHSCORE's freshness
+  test `(now - last_tick) > 60 s` would have reduced to `now > 60 s` — **false
+  for the first minute after a reboot**, making a hit from days ago read as a
+  camera watching you *right now*, in exactly the window a user is most likely
+  to open the app. WATCHSCORE now skips archived entries by flag, never by tick
+  arithmetic. Separately, the detection table is capped at 64 and used to drop
+  new hits once full, so a full `hits.csv` would have blocked every live
+  detection for the rest of the session; a new hit now reclaims the least
+  valuable *archived* slot (weakest evidence first, oldest breaking a tie) and
+  never evicts a live one.
+- **Host tests: 291 → 458 checks.** The alert gate and the whole record format
+  are pure and covered: round trips through SSIDs containing commas, quotes and
+  control characters; "no fix" staying distinct from a real 0,0; and malformed
+  lines (wrong column count, bad MAC, unterminated quote, out-of-range enum)
+  being rejected outright rather than half-parsed into a plausible-looking wrong
+  detection.
+
+## v0.44
+A signature-quality release — no new detection capability, one fewer way to be
+wrong.
+- **Better source for the OUI list.** The built-in Flock OUI table was imported
+  from a **flat list with no status column** (`colonelpanichacks/flock-you` →
+  `datasets/NitekryDPaul_wifi_ouis.md`). Once a prefix landed in it, nothing
+  recorded that it was later doubted. The same researcher now keeps a **curated
+  per-prefix table with `Confidence` and `Status` columns**
+  (`nitekry/nite-oui-collection` → `groups/flockers/my_tested_flock.md`), and
+  that is now the source of truth. Re-checking the shipped list against it
+  surfaced a retraction FlipDeFlock had never learned about.
+- **Dropped `f8:a2:d6` (32 prefixes → 31).** Upstream marks it *Removed*: "low
+  confidence; hit on a Sony Media Player." Removing it can only *lose*
+  detections, never gain them — but the loss is bounded (it only ever scored
+  "Possible" on its own) and the project's rule is that a false positive is
+  worse than a missed detection. The reason is now recorded in the source, so
+  re-importing the old flat list can't silently undo it.
+- **Two new candidate prefixes — as *user* signatures, not built-ins.**
+  `e0:0a:f6` (upstream *Active*, but carrying no confidence note) and
+  `14:b5:cd` ("new finding testing") ship in a new
+  **`docs/signatures.seed.json`**, giving the SD-card signature file its first
+  real content. They are deliberately *not* compiled in: the built-in table is a
+  claim of field corroboration, and neither prefix has that yet. Scoring is
+  unaffected either way — an OUI hit caps at "Possible" whatever its source.
+  `signatures.example.json` stays a pure placeholder template; the unverified
+  status the JSON schema can't express is documented in `docs/signatures.md`.
+- **Reviewed and rejected: the 1,200-prefix bulk list.** The same upstream repo
+  carries a "Nationwide OUIs" dump scraped from wigle.net with no confidence
+  column, no dates, and no vetting. It was evaluated and **not** imported — it
+  would blow the 64-entry signature cap many times over, and a scrape for
+  networks *named* "Flock-something" collects whatever hardware happened to be
+  nearby, not Flock hardware.
+
 ## v0.43
 A precision, correctness & reliability release — a full internal audit turned
 into fixes and a real test safety net. No new screens; the app just lies to you

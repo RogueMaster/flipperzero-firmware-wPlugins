@@ -34,4 +34,11 @@ void scan_session_stop(void* _app) {
         gps_link_free(app->gps);
         app->gps = NULL;
     }
+    // Persist the detections this scan collected (opt-in; a no-op when the
+    // setting is off). Every scan scene's on_exit funnels through here, so one
+    // call site covers Flock, Flock Map, Net Guardian, WiFi, BLE and Locator --
+    // including the case that prompted the request: backing straight out of the
+    // app after a scan. Done AFTER the links are torn down, so the write can't
+    // race a still-running ESP worker.
+    recon_hits_save(app);
 }

@@ -91,7 +91,10 @@ firmware; in Marauder mode they explain what's missing.
   for a report. Each row carries a confidence tag (see
   [Detection confidence](#detection-confidence)) and shows its source — probe,
   beacon, or BLE — in the detail view. A `!DEAUTH ch<n> <bssid>` banner appears
-  while a deauth/disassoc flood is active and clears when it stops.
+  while a deauth/disassoc flood is active and clears when it stops. Set **Alert on
+  hit** in Settings (Vibrate / Beep / both) to be told about a camera you aren't
+  watching the screen for — it fires once per device, and never for an OUI-only
+  "Possible" lead.
 - **Flock Map** — a live map around your GPS position: you're at center, cameras
   are plotted by bearing and distance, dot size is confidence, with a heading tick
   and a scale bar. Left/Right zoom, OK re-fits. Needs a GPS fix; ungeotagged
@@ -137,6 +140,12 @@ firmware; in Marauder mode they explain what's missing.
   DeFlock-compatible GeoJSON, KML, plain CSV, and WiGLE CSV (Wi-Fi and BLE) for
   wardriving uploads. Reports stream row-by-row to SD, so a large scan won't run
   the Flipper out of memory. Pull them with qFlipper or a card reader.
+- **Save hits** *(Settings, off by default)* — keeps your detections across app
+  restarts in `apps_data/flipdeflock/hits.csv`, so closing the app doesn't throw
+  a scan away. Restored hits come back in the list and on the map, showing the age
+  of the stored sighting instead of a live signal reading. It is **off by default
+  on purpose**: a hit log is a durable record of where you have been. Turning it
+  back off deletes the file, and *Reports → Clear Saved Hits* erases it any time.
 - **Share to DeFlock** — renders a QR per marked, geotagged camera that opens
   [DeFlock](https://deflock.org) at that location on your phone, so you submit
   through the official app's review flow. The Flipper and ESP never touch a
@@ -196,6 +205,7 @@ exact dB. `-33dB` closer to 0 means physically closer.
 - **ESP** (or `...`) — companion connected / still waiting
 - **ch / frames / hits** — channel · 802.11 frames captured · Flock detections, counted this session (reset each time you open the screen)
 - **row tag** — `!` CONFIRMED · `F` probe-fingerprint · `L` Likely · `p` Possible · `.` OUI-only · `*` marked
+- **`ST` after the tag** — a SoundThinking (ShotSpotter) acoustic sensor, not an ALPR camera. Untagged rows are cameras; the detail screen names the class in full
 - Marauder mode shows `rx <n>  hits <n>` instead (serial heartbeat + detection count)
 
 **BLE / Tracker Scan** — header `BLE 33  trk 9  follow 0`
@@ -236,6 +246,27 @@ indicators and verify by eye; if you rely on it for anything that matters, read
 the code and confirm the behavior yourself.
 
 ## What's new
+
+**v0.47** — False-positive fix; **upgrade if you're on v0.46**. Networks whose name
+merely contains `flock-` (`Flock-Guest`, `Flock-Safety-Corp`, `Flock-12345`) were
+shown as CONFIRMED — the anchored SSID rule existed and was tested, but nothing on
+the default code path called it. Now fixed on both sides: the companion's matcher is
+anchored, and the app re-derives any claimed CONFIRMED itself, so an already-flashed
+companion is corrected without a reflash.
+
+**v0.46** — Detects **SoundThinking / ShotSpotter acoustic sensors** as a separate
+device class (tagged `ST`, never folded into the camera list), and reports
+**hidden-SSID beaconing** — the behaviour Flock moved to when broadcast-SSID
+scanning stopped working. Hidden is shown as an observation, not scored: consumer
+routers hide SSIDs too. Also six more candidate OUIs in the unverified seed file,
+channel hop extended to 1-13, and a bench emitter that exercises every confidence
+rung so changes stop being verified by compiler alone.
+
+**v0.44** — Signature quality. The OUI list now tracks a curated upstream table with
+per-prefix status instead of a flat one that couldn't record doubt: `f8:a2:d6` is
+dropped (upstream retracted it after a false hit on a Sony media player), and two
+uncorroborated candidates ship in a new `docs/signatures.seed.json` rather than the
+trusted built-ins. A 1,200-prefix bulk scrape was reviewed and rejected.
 
 **v0.43** — Precision, correctness, and a test safety net; no new screens. Only the
 real `Flock-` + 6-hex provisioning name Confirms now, and an OUI + broadcast-probe
@@ -292,6 +323,14 @@ The detection method and Flock OUI prefixes build on
 [0xXyc/flock-you-wifi-recon](https://github.com/0xXyc/flock-you-wifi-recon), and
 the [DeFlock](https://deflock.org) community. The GPS NMEA approach is based on the
 Momentum Sub-GHz GPS helper.
+
+Candidate OUI prefixes, the SoundThinking prefix, and the hidden-SSID observation
+come from [JakeSwiz/WatchFlock](https://github.com/JakeSwiz/WatchFlock) by Jake /
+Swiz Security, itself built on
+[justcallmekoko/ESP32Marauder](https://github.com/justcallmekoko/ESP32Marauder).
+No code was taken — the signatures and the finding are, with thanks. Which prefixes
+were and weren't imported, and why, is recorded in
+[docs/signatures.md](docs/signatures.md).
 
 ## License
 

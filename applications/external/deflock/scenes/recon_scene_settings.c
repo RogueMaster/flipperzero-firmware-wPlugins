@@ -78,6 +78,17 @@ static void gps_baud_changed(VariableItem* item) {
     recon_settings_save(app);
 }
 
+// Index-aligned with ReconAlertMode in helpers/alerts.h.
+static const char* const alert_text[] = {"OFF", "Vibrate", "Beep", "Beep+Vibe"};
+
+static void alert_mode_changed(VariableItem* item) {
+    ReconApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    app->settings.alert_mode = idx;
+    variable_item_set_current_value_text(item, alert_text[idx]);
+    recon_settings_save(app);
+}
+
 static void sound_changed(VariableItem* item) {
     ReconApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
@@ -94,6 +105,18 @@ static void flash_fast_changed(VariableItem* item) {
     app->settings.flash_fast = (idx == 1);
     variable_item_set_current_value_text(item, flash_speed_text[idx]);
     recon_settings_save(app);
+}
+
+static void save_hits_changed(VariableItem* item) {
+    ReconApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    app->settings.save_hits = (idx == 1);
+    variable_item_set_current_value_text(item, onoff_text[idx]);
+    recon_settings_save(app);
+    // Turning it OFF erases the trail rather than just stopping new writes: a
+    // privacy toggle that leaves the old file sitting on the card is worse than
+    // no toggle, because it reads as "off" while the record is still there.
+    if(!app->settings.save_hits) recon_hits_clear(app);
 }
 
 static void log_serials_changed(VariableItem* item) {
@@ -155,6 +178,14 @@ void recon_scene_settings_on_enter(void* context) {
     variable_item_set_current_value_index(item, idx);
     variable_item_set_current_value_text(item, gps_baud_text[idx]);
 
+    // Announce a new Flock/ALPR hit so it isn't missed while the screen is out of
+    // sight. Fires once per device on its first Likely-or-better sighting.
+    idx = (app->settings.alert_mode < ReconAlertModeCount) ? app->settings.alert_mode : 0;
+    item =
+        variable_item_list_add(list, "Alert on hit", ReconAlertModeCount, alert_mode_changed, app);
+    variable_item_set_current_value_index(item, idx);
+    variable_item_set_current_value_text(item, alert_text[idx]);
+
     idx = app->settings.sound ? 1 : 0;
     item = variable_item_list_add(list, "Sound", 2, sound_changed, app);
     variable_item_set_current_value_index(item, idx);
@@ -164,6 +195,13 @@ void recon_scene_settings_on_enter(void* context) {
     item = variable_item_list_add(list, "Flash Speed", 2, flash_fast_changed, app);
     variable_item_set_current_value_index(item, idx);
     variable_item_set_current_value_text(item, flash_speed_text[idx]);
+
+    // Persist detections across app restarts. OFF by default -- a hit log is a
+    // durable record of where you have been. Turning it off deletes hits.csv.
+    idx = app->settings.save_hits ? 1 : 0;
+    item = variable_item_list_add(list, "Save hits", 2, save_hits_changed, app);
+    variable_item_set_current_value_index(item, idx);
+    variable_item_set_current_value_text(item, onoff_text[idx]);
 
     idx = app->settings.log_serials ? 1 : 0;
     item = variable_item_list_add(list, "Log Flock serials", 2, log_serials_changed, app);

@@ -4,14 +4,15 @@
  *
  * Runs on ANY ESP32 board exposed to the Flipper UART (Marauder hardware,
  * ReksLab Tri-Board, bare WROVER/WROOM, Xiao ESP32-S3, DevKitC, ...).
- * Puts the radio in promiscuous monitor mode, hops channels 1-11, and reports
+ * Puts the radio in promiscuous monitor mode, hops channels 1-13, and reports
  * frames that look like Flock Safety / ALPR surveillance gear (by OUI, by
  * phone-home probe behaviour, and by SSID naming) over the serial link in a
  * simple line protocol the Flipper parses.
  *
  * Detection method and OUI list are from the open-source counter-surveillance
- * projects (colonelpanichacks/flock-you, 0xXyc/flock-you-wifi-recon) and the
- * DeFlock community. Passive recon only -- no deauth, no injection.
+ * projects (colonelpanichacks/flock-you, 0xXyc/flock-you-wifi-recon,
+ * nitekry/nite-oui-collection) and the DeFlock community. Passive recon only --
+ * no deauth, no injection.
  *
  * Build: Arduino IDE or arduino-cli with the esp32 core. Select your board,
  * set Serial baud to 115200. No extra libraries required.
@@ -19,16 +20,25 @@
  * Line protocol (newline-terminated, ASCII), TX to Flipper:
  *   FLOCKCO,1                              banner / version on boot and on "ver"
  *   S,<frames>,<hits>,<ch>,<deauth_rate>   status, ~1 Hz (deauth/disassoc per interval)
- *   D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>]   detection
+ *   D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a][,hid=1]  detection
  *       mac : aabbccddeeff (lower hex, no separators)
  *       rssi: signed dBm
- *       ch  : 1-11
+ *       ch  : 1-13
  *       type: P=probe-req  B=beacon  R=probe-resp  O=other
  *       conf: 1=possible 2=likely 3=confirmed (ESP-side score)
  *       ssid: raw SSID with ',' and control chars stripped (may be empty)
  *       fp  : FNV-1a uint32 (8 lower-hex) of the probe's IE skeleton (B1) --
  *             a MAC-independent device-CLASS fingerprint; trailing field,
  *             older parsers ignore it. Only emitted for probe requests.
+ *       cls : device class. 'a' = SoundThinking acoustic sensor. Absent means
+ *             ALPR camera, so the common case adds no bytes. Trailing.
+ *       hid : the AP beaconed WITHOUT an SSID (zero-length or all-NUL IE).
+ *             Beacons/probe-responses only. An observation the Flipper reports
+ *             but does NOT score -- hiding an SSID is also ordinary consumer
+ *             router behaviour. Trailing, only emitted when true.
+ *
+ *       All three trailing key=value fields are optional and order-independent.
+ *       Add one and you must also grow the field array in esp_parser.c.
  *   BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1]   BLE device
  *       cat   : 0 unknown 1 Flock/Raven 2 AirTag 3 Tile 4 SmartTag 5 FMDN
  *       mfghex: raw mfg-data hex (Flock 0x09C8 only) for serial decode; pure
@@ -63,19 +73,36 @@
 #include <BLEScan.h>
 #include <BLEAdvertisedDevice.h>
 
-// ---- Flock-associated OUI prefixes (32) ----------------------------------
+// ---- Flock-associated OUI prefixes (31) ----------------------------------
+// MUST stay byte-identical to flock_ouis[] in helpers/flock_db.c -- there is no
+// shared header and no CI parity check, so editing one side alone silently
+// desyncs ESP-side `conf` scoring from the Flipper's. See that file for the
+// provenance notes. f8:a2:d6 dropped 2026-07-27 (upstream false positive: hit
+// on a Sony Media Player) -- do NOT re-add it from the older flat OUI list.
+//
+// The last entry, b4:1e:52, is Flock Safety's own registered OUI (GainSec).
+// Row layout matches flock_db.c line-for-line so the two can be diffed by eye.
 static const uint8_t FLOCK_OUIS[][3] = {
     {0x70, 0xc9, 0x4e}, {0x3c, 0x91, 0x80}, {0xd8, 0xf3, 0xbc}, {0x80, 0x30, 0x49},
     {0xb8, 0x35, 0x32}, {0x14, 0x5a, 0xfc}, {0x74, 0x4c, 0xa1}, {0x08, 0x3a, 0x88},
     {0x9c, 0x2f, 0x9d}, {0xc0, 0x35, 0x32}, {0x94, 0x08, 0x53}, {0xe4, 0xaa, 0xea},
-    {0xf4, 0x6a, 0xdd}, {0xf8, 0xa2, 0xd6}, {0x24, 0xb2, 0xb9}, {0x00, 0xf4, 0x8d},
-    {0xd0, 0x39, 0x57}, {0xe8, 0xd0, 0xfc}, {0xe0, 0x4f, 0x43}, {0xb8, 0x1e, 0xa4},
-    {0x70, 0x08, 0x94}, {0x58, 0x8e, 0x81}, {0xec, 0x1b, 0xbd}, {0x3c, 0x71, 0xbf},
-    {0x58, 0x00, 0xe3}, {0x90, 0x35, 0xea}, {0x5c, 0x93, 0xa2}, {0x64, 0x6e, 0x69},
-    {0x48, 0x27, 0xea}, {0xa4, 0xcf, 0x12}, {0x82, 0x6b, 0xf2},
-    {0xb4, 0x1e, 0x52}, // Flock Safety's own registered OUI (GainSec)
+    {0xf4, 0x6a, 0xdd}, {0x24, 0xb2, 0xb9}, {0x00, 0xf4, 0x8d}, {0xd0, 0x39, 0x57},
+    {0xe8, 0xd0, 0xfc}, {0xe0, 0x4f, 0x43}, {0xb8, 0x1e, 0xa4}, {0x70, 0x08, 0x94},
+    {0x58, 0x8e, 0x81}, {0xec, 0x1b, 0xbd}, {0x3c, 0x71, 0xbf}, {0x58, 0x00, 0xe3},
+    {0x90, 0x35, 0xea}, {0x5c, 0x93, 0xa2}, {0x64, 0x6e, 0x69}, {0x48, 0x27, 0xea},
+    {0xa4, 0xcf, 0x12}, {0x82, 0x6b, 0xf2}, {0xb4, 0x1e, 0x52},
 };
 static const size_t FLOCK_OUI_COUNT = sizeof(FLOCK_OUIS) / sizeof(FLOCK_OUIS[0]);
+
+// ---- SoundThinking / ShotSpotter acoustic sensors (1) --------------------
+// A DIFFERENT DEVICE CLASS from the ALPRs above: these listen, they do not read
+// plates. Matches are tagged `cls=a` on the wire so the Flipper can say which it
+// found. MUST stay byte-identical to soundthinking_ouis[] in helpers/flock_db.c.
+static const uint8_t SOUNDTHINKING_OUIS[][3] = {
+    {0xd4, 0x11, 0xd6},
+};
+static const size_t SOUNDTHINKING_OUI_COUNT =
+    sizeof(SOUNDTHINKING_OUIS) / sizeof(SOUNDTHINKING_OUIS[0]);
 
 // ---- State ---------------------------------------------------------------
 static volatile bool g_scanning = true;
@@ -84,6 +111,8 @@ static volatile uint32_t g_hits = 0;
 static volatile uint32_t g_deauths = 0; // deauth + disassoc frames seen (attack indicator)
 static uint8_t g_channel = 1;
 static uint8_t g_lock_channel = 0; // 0 = hop
+/** Highest 2.4 GHz channel the hopper visits. See the hop block in loop(). */
+#define MAX_HOP_CHANNEL 13
 static uint32_t g_last_status = 0;
 static uint32_t g_last_hop = 0;
 static uint32_t g_deauths_last = 0; // for per-interval deauth rate
@@ -161,7 +190,7 @@ static uint32_t g_phase_start = 0;
 #define COMBO_WIFI_MS 9000 // ~3 channel sweeps before a BLE scan (WiFi-biased)
 #define COMBO_BLE_SEC 3 // BLE scan seconds (BLE adverts repeat fast)
 
-static bool oui_match(const uint8_t* mac) {
+static bool flock_oui_match(const uint8_t* mac) {
     for(size_t i = 0; i < FLOCK_OUI_COUNT; i++) {
         if(mac[0] == FLOCK_OUIS[i][0] && mac[1] == FLOCK_OUIS[i][1] &&
            mac[2] == FLOCK_OUIS[i][2])
@@ -170,18 +199,58 @@ static bool oui_match(const uint8_t* mac) {
     return false;
 }
 
+static bool st_oui_match(const uint8_t* mac) {
+    for(size_t i = 0; i < SOUNDTHINKING_OUI_COUNT; i++) {
+        if(mac[0] == SOUNDTHINKING_OUIS[i][0] && mac[1] == SOUNDTHINKING_OUIS[i][1] &&
+           mac[2] == SOUNDTHINKING_OUIS[i][2])
+            return true;
+    }
+    return false;
+}
+
+// Any known surveillance-vendor prefix, either class. Scoring is class-agnostic;
+// the class itself rides along in the `cls=` field.
+static bool oui_match(const uint8_t* mac) {
+    return flock_oui_match(mac) || st_oui_match(mac);
+}
+
 static char lc(char c) {
     return (c >= 'A' && c <= 'Z') ? (char)(c + 32) : c;
 }
 
-// Returns: 0 none, 2 likely (flock/flck substring), 3 confirmed (flock-/test_flck)
+/**
+ * True if `s` is EXACTLY "flock-" + 6 hex digits: the provisioning-AP name.
+ *
+ * Mirrors is_flock_provisioning_ssid() in helpers/flock_db.c -- keep the two in
+ * step, same hand-sync rule as the OUI tables above.
+ *
+ * ANCHORED on purpose. This used to be a bare strstr(buf, "flock-"), which
+ * confirmed every benign name that merely contained the substring:
+ * "Flock-Guest", "Flock-Safety-Corp", "Flock-12345". The Flipper takes the
+ * companion's conf verbatim on this path, so that went straight to the screen
+ * as CONFIRMED. Those now fall through to the "likely" check below.
+ *
+ * `s` is already lower-cased by the caller, so only a-f need testing.
+ */
+static bool is_flock_provisioning_ssid(const char* s) {
+    if(strncmp(s, "flock-", 6) != 0) return false;
+    for(int i = 6; i < 12; i++) {
+        char c = s[i]; // '\0' on a short SSID is not hex -> correctly rejected
+        bool hex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+        if(!hex) return false;
+    }
+    return s[12] == '\0'; // nothing may follow the 6 hex digits
+}
+
+// Returns: 0 none, 2 likely (flock/flck substring), 3 confirmed
+// (^flock-[0-9a-f]{6}$ or the test_flck dev SSID, CVE-2025-59409)
 static int ssid_score(const char* s, int len) {
     if(len <= 0) return 0;
     char buf[64];
     int n = len < 63 ? len : 63;
     for(int i = 0; i < n; i++) buf[i] = lc(s[i]);
     buf[n] = 0;
-    if(strstr(buf, "flock-") || strstr(buf, "test_flck")) return 3;
+    if(is_flock_provisioning_ssid(buf) || strstr(buf, "test_flck")) return 3;
     if(strstr(buf, "flock") || strstr(buf, "flck")) return 2;
     return 0;
 }
@@ -349,12 +418,33 @@ static void promisc_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
         ftype = 'R';
         tag_off = 36;
     }
+    bool ssid_ie_found = false;
     if(tag_off >= 0 && tag_off + 2 <= len && p[tag_off] == 0x00) {
+        ssid_ie_found = true;
         ssid_len = p[tag_off + 1];
         if(tag_off + 2 + ssid_len <= len) {
             ssid = (const char*)(p + tag_off + 2);
         } else {
             ssid_len = 0;
+        }
+    }
+
+    // Hidden-SSID beaconing: an AP that advertises but withholds its name. Two
+    // encodings are legal and both appear in the wild -- a zero-length SSID IE,
+    // and a length-N IE of all NULs -- so test for both.
+    //
+    // Only meaningful for beacons and probe RESPONSES: those identify an AP. A
+    // probe REQUEST with no SSID is an ordinary wildcard scan from a client and
+    // says nothing about hiding. And we only claim "hidden" when the SSID IE was
+    // actually located: a parse miss is not evidence of concealment.
+    bool hidden = false;
+    if(ssid_ie_found && (subtype == 0x08 || subtype == 0x05)) {
+        hidden = true;
+        for(int i = 0; i < ssid_len; i++) {
+            if(ssid[i] != '\0') {
+                hidden = false;
+                break;
+            }
         }
     }
 
@@ -422,6 +512,14 @@ static void promisc_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
     // B1: trailing IE-fingerprint field (probe requests only). Older parsers
     // ignore it; the Flipper matches it against a curated Flock IE-fp table.
     if(ie_fp != 0) pos += snprintf(line + pos, sizeof(line) - pos, ",fp=%08x", ie_fp);
+    // Device class. Only emitted for the non-default (acoustic) case: absent
+    // means ALPR, so the wire stays unchanged for every existing detection and
+    // an older Flipper build just ignores the token.
+    if(st_oui_match(mac)) pos += snprintf(line + pos, sizeof(line) - pos, ",cls=a");
+    // Hidden-SSID attribute. Rides on a line we were already sending, so it adds
+    // no UART traffic and needs no per-BSSID dedup of its own. Reported, NOT
+    // scored: see the note in helpers/esp_parser.c.
+    if(hidden) pos += snprintf(line + pos, sizeof(line) - pos, ",hid=1");
     if(pos > sizeof(line) - 1) pos = sizeof(line) - 1;
     line[pos++] = '\n';
     Serial.write((const uint8_t*)line, pos);
@@ -796,10 +894,18 @@ void loop() {
     if(!g_scanning) return;
 
     // Channel hop every 300 ms unless locked.
+    //
+    // 1-13, not 1-11. 12 and 13 are unusable for APs in the US, so the old bound
+    // cost nothing there -- but they are ordinary channels across most of the
+    // rest of the world, and a probe REQUEST is not bound by the same rule
+    // anywhere. The price is ~18% less dwell per channel.
+    //
+    // 14 stays out: it is Japan-only, DSSS-only, and would burn dwell almost
+    // everywhere to cover almost nothing.
     if(g_lock_channel == 0 && now - g_last_hop >= 300) {
         g_last_hop = now;
         uint8_t ch = g_channel + 1;
-        if(ch > 11) ch = 1;
+        if(ch > MAX_HOP_CHANNEL) ch = 1;
         set_channel(ch);
     }
 

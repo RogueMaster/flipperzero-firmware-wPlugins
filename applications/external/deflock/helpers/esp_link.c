@@ -111,7 +111,9 @@ static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
             m->u.flock.channel,
             m->u.flock.ftype,
             m->u.flock.conf,
-            m->u.flock.fp);
+            m->u.flock.fp,
+            m->u.flock.dev_class,
+            m->u.flock.hidden);
         break;
     case EspMsgDeauthTarget:
         recon_app_add_deauth_target(app, m->u.deauth.bssid, m->u.deauth.channel);
@@ -206,7 +208,8 @@ static void esp_parse_generic(EspLink* esp, char* line) {
         if(!parse_mac_colon(line + i, mac)) continue;
         i += 16;
 
-        bool oui = flock_oui_match(mac);
+        // Either surveillance-vendor table; flock_class_from_mac below says which.
+        bool oui = flock_oui_match(mac) || soundthinking_oui_match(mac);
         FlockConfidence conf;
         if(oui) {
             // OUI vendor prefix; SSID naming on the same line can raise it.
@@ -218,7 +221,17 @@ static void esp_parse_generic(EspLink* esp, char* line) {
             continue;
         }
 
-        recon_app_report_flock(esp->app, mac, ssid ? ssid : "", 0, 0, 'O', conf, 0);
+        recon_app_report_flock(
+            esp->app,
+            mac,
+            ssid ? ssid : "",
+            0,
+            0,
+            'O',
+            conf,
+            0,
+            flock_class_from_mac(mac),
+            false); // Marauder's scraped text carries no hidden-SSID signal
     }
 }
 

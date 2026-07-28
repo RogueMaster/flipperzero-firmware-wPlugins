@@ -132,8 +132,8 @@ bool recon_report_save_flock(void* _app, char* out_path_md, size_t out_len) {
         "Generated: %s (device RTC)\n\n"
         "Detection by OUI + probe behaviour + SSID naming. 'Possible' = OUI only\n"
         "(generic vendor prefix); treat as a lead, verify visually.\n\n"
-        "| # | Conf | MAC | SSID | RSSI | Ch | Seen | Lat | Lon |\n"
-        "|---|------|-----|------|------|----|------|-----|-----|\n",
+        "| # | Conf | Class | MAC | SSID | RSSI | Ch | Seen | Lat | Lon |\n"
+        "|---|------|-------|-----|------|------|----|------|-----|-----|\n",
         ts);
 
     rfile_puts(
@@ -164,14 +164,23 @@ bool recon_report_save_flock(void* _app, char* out_path_md, size_t out_len) {
         fmt_mac(mac_s, sizeof(mac_s), e->mac);
 
         char ssid_md[80];
-        md_escape(e->ssid[0] ? e->ssid : "(hidden)", ssid_md, sizeof(ssid_md));
+        // Distinguish "no name recorded" from "the AP beacons and withholds it" --
+        // the second is an observation about the device, the first is just a gap
+        // in what we saw.
+        md_escape(
+            e->ssid[0] ? e->ssid :
+            e->hidden  ? "(SSID withheld)" :
+                         "(none seen)",
+            ssid_md,
+            sizeof(ssid_md));
 
         rfile_printf(
             &md,
             line,
-            "| %d | %s | %s | %s | %d | %u | %lu | %s | %s |\n",
+            "| %d | %s | %s | %s | %s | %d | %u | %lu | %s | %s |\n",
             marked,
             flock_confidence_str(e->confidence),
+            flock_class_str((FlockDevClass)e->dev_class),
             mac_s,
             ssid_md,
             e->rssi,

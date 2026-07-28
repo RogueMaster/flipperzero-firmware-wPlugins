@@ -17,6 +17,7 @@
 #include <storage/storage.h>
 
 #include "scenes/recon_scene.h"
+#include "helpers/alerts.h"
 #include "helpers/flock_db.h"
 #include "helpers/flock_ble.h"
 #include "helpers/watchscore.h"
@@ -52,6 +53,7 @@ typedef enum {
 #define RECON_APP_FOLDER    EXT_PATH("apps_data/flipdeflock")
 #define RECON_REPORT_FOLDER RECON_APP_FOLDER "/reports"
 #define RECON_SETTINGS_PATH RECON_APP_FOLDER "/settings.txt"
+#define RECON_HITS_PATH     RECON_APP_FOLDER "/hits.csv"
 
 /** ViewDispatcher view indexes. */
 typedef enum {
@@ -92,7 +94,10 @@ typedef struct {
     uint8_t marauder_cmd; /**< Generic backend: which Marauder sniff command to run. */
     bool gps_enabled;
     bool sound;
+    uint8_t alert_mode; /**< ReconAlertMode: beep/vibro on a new Flock hit (default Vibrate) */
     bool flash_fast; /**< raise the flash (write) baud to 230400 after connect */
+    bool save_hits; /**< persist detections to hits.csv across app restarts (default OFF:
+                      *   it is a durable record of where you have been) */
     bool log_serials; /**< log Flock device serials to saved reports (default OFF) */
     bool anomaly_flag; /**< Net Guardian: flag unidentified strong/persistent devices (default OFF, higher FP) */
 } ReconSettings;
@@ -105,6 +110,10 @@ typedef struct {
     uint8_t channel;
     char ftype; /**< P/B/R/O/F/L */
     FlockConfidence confidence;
+    uint8_t dev_class; /**< FlockDevClass: ALPR camera vs SoundThinking acoustic
+                         *   sensor. What it is, as opposed to how sure we are. */
+    bool hidden; /**< beacons but withholds its SSID. An OBSERVATION shown to the
+                   *   operator, never a confidence input -- see esp_parser.c. */
     uint32_t ie_fp; /**< probe IE-skeleton fingerprint of this detection (0=none);
                       *   shown on the detail screen so it can be seeded into
                       *   signatures.json to catch MAC-randomized siblings. */
@@ -116,6 +125,11 @@ typedef struct {
     uint32_t first_tick;
     uint32_t last_tick;
     bool marked; /**< user flagged this for the report */
+    bool alerted; /**< the detection alert has already fired for this device (latch) */
+    bool archived; /**< restored from hits.csv, not seen yet this session. first_tick/
+                     *   last_tick are 0 and MEANINGLESS -- never age-test an archived
+                     *   entry with tick arithmetic (see recon_app_watchscore_tick). */
+    uint32_t seen_epoch; /**< RTC Unix seconds at the last sighting, 0 if never stored */
 } FlockEntry;
 
 /** One access point seen by the WiFi security scan (companion firmware). */
@@ -201,6 +215,13 @@ typedef struct {
     FlockEntry flock[RECON_FLOCK_MAX];
     size_t flock_count;
     int selected; /**< selected flock index for the detail scene */
+
+    // Detection alert (issue #1). The ESP worker only RAISES alert_pending under
+    // the mutex; the GUI tick clears it and calls notification_message, mirroring
+    // how the WATCHSCORE haptic is deferred off the worker thread.
+    bool alert_pending; /**< a qualifying detection is waiting to be announced */
+    uint32_t alert_last_tick; /**< tick of the last alert fired (any device) */
+    bool alert_have_fired; /**< false until the session's first alert -> cooldown is inert */
 
     bool gps_valid;
     float gps_lat;
@@ -295,6 +316,10 @@ typedef struct {
 /**
  * Record/merge a Flock detection. Thread-safe (takes app->mutex internally).
  * Called from the ESP worker thread; geotags with the latest GPS fix.
+ *
+ * `dev_class` is what the device IS (ALPR camera vs acoustic sensor), separate
+ * from `confidence`, which is how sure we are. FlockClassAlpr is the default;
+ * only a positive acoustic identification overwrites a stored class.
  */
 void recon_app_report_flock(
     ReconApp* app,
@@ -304,7 +329,9 @@ void recon_app_report_flock(
     uint8_t channel,
     char ftype,
     FlockConfidence confidence,
-    uint32_t ie_fp);
+    uint32_t ie_fp,
+    FlockDevClass dev_class,
+    bool hidden);
 
 /** Update the cached ESP status line (thread-safe). */
 void recon_app_set_esp_status(
@@ -385,5 +412,25 @@ void recon_app_wifi_end(ReconApp* app);
  */
 void recon_app_watchscore_tick(ReconApp* app);
 
+/**
+ * Announce any pending detection alert (issue #1). Reads and clears
+ * app->alert_pending under the mutex, then fires the configured beep/vibro
+ * OUTSIDE the lock. Must be called from the GUI thread -- every scan scene's
+ * tick branch does. Cheap and safe to call when nothing is pending.
+ */
+void recon_app_alert_tick(ReconApp* app);
+
 void recon_settings_load(ReconApp* app);
 void recon_settings_save(ReconApp* app);
+
+/**
+ * Persisted detections (issue #2), gated on settings.save_hits.
+ *
+ * Save is called from scan_session_stop(), i.e. every scan scene's on_exit, so
+ * hits survive backing out of the app. Load runs once at startup and marks every
+ * restored entry `archived`. Clear removes the file AND the archived entries, so
+ * turning the setting off actually erases the trail rather than just hiding it.
+ */
+void recon_hits_load(ReconApp* app);
+void recon_hits_save(ReconApp* app);
+void recon_hits_clear(ReconApp* app);

@@ -50,6 +50,7 @@ bool recon_scene_flock_on_event(void* context, SceneManagerEvent event) {
     bool consumed = false;
 
     if(event.type == SceneManagerEventTypeTick) {
+        recon_app_alert_tick(app); // announce a new hit raised by the ESP worker
         flock_view_refresh(app->flock_view);
         consumed = true;
     } else if(event.type == SceneManagerEventTypeCustom) {

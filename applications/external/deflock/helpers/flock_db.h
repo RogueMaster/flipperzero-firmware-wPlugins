@@ -36,6 +36,35 @@ typedef enum {
     FlockConfidenceConfirmed, /**< SSID matches a known Flock naming pattern. */
 } FlockConfidence;
 
+/**
+ * What KIND of surveillance device a detection is, independent of how sure we are.
+ *
+ * Kept separate from FlockConfidence on purpose: they answer different questions
+ * ("what is it" vs "how sure are we"), and folding an acoustic gunshot sensor into
+ * the ALPR list would make the app claim something it has not detected. Reported
+ * and persisted alongside the confidence rung.
+ */
+typedef enum {
+    FlockClassAlpr = 0, /**< Flock Safety ALPR camera (the default / historical case). */
+    FlockClassAcoustic, /**< SoundThinking (formerly ShotSpotter) acoustic sensor. */
+} FlockDevClass;
+
+/** Short human-readable label for a device class ("ALPR", "Acoustic"). */
+const char* flock_class_str(FlockDevClass cls);
+
+/** Long human-readable label for the detail screen. */
+const char* flock_class_long_str(FlockDevClass cls);
+
+/**
+ * True if the first 3 bytes of `mac` match a known SoundThinking / ShotSpotter
+ * OUI prefix. Disjoint from flock_oui_match() -- a MAC is one class or the other,
+ * never both.
+ */
+bool soundthinking_oui_match(const uint8_t* mac);
+
+/** Device class implied by a MAC's OUI. Defaults to FlockClassAlpr. */
+FlockDevClass flock_class_from_mac(const uint8_t* mac);
+
 /** Source of an IE-fingerprint match, so a caller can gate confidence by trust. */
 typedef enum {
     FlockIeFpNone = 0, /**< no match (or fp==0 "no fingerprint"). */

@@ -52,31 +52,58 @@ static void recon_scene_flock_detail_render(ReconApp* app) {
         break;
     }
 
+    // An archived entry's RSSI/channel were recorded on an earlier run, so label
+    // them as last-known rather than presenting a stored reading as a live one.
+    const char* rssi_label = e.archived ? "Last RSSI" : "RSSI";
+
     FuriString* s = furi_string_alloc();
     furi_string_printf(
         s,
         "%s  %s\n"
+        "%s\n"
         "%02X:%02X:%02X:%02X:%02X:%02X\n"
         "SSID: %s\n"
-        "RSSI %d  Ch %u  Seen %lu  via %s",
+        "%s %d  Ch %u  Seen %lu  via %s",
         flock_confidence_str(e.confidence),
         e.marked ? "(MARKED)" : "",
+        // What it is, spelled out: the confidence rung above says how sure we
+        // are, not which kind of device this is.
+        flock_class_long_str((FlockDevClass)e.dev_class),
         e.mac[0],
         e.mac[1],
         e.mac[2],
         e.mac[3],
         e.mac[4],
         e.mac[5],
-        e.ssid[0] ? e.ssid : "(hidden)",
+        // "(hidden)" here has always meant "we have no name for it". Only say the
+        // AP is actively withholding one when we watched it beacon without a name.
+        e.ssid[0] ? e.ssid : (e.hidden ? "(withheld by AP)" : "(none seen)"),
+        rssi_label,
         e.rssi,
         e.channel,
         (unsigned long)e.count,
         src);
 
+    // Where a stored hit came from, in wall-clock terms. Only meaningful for an
+    // archived entry: a live one's seen_epoch is "moments ago" by definition.
+    if(e.archived && e.seen_epoch) {
+        DateTime dt;
+        datetime_timestamp_to_datetime(e.seen_epoch, &dt);
+        furi_string_cat_printf(
+            s, "\nSaved: %04u-%02u-%02u %02u:%02u", dt.year, dt.month, dt.day, dt.hour, dt.minute);
+    }
+
     if(!isnan(e.lat) && !isnan(e.lon)) {
         furi_string_cat_printf(s, "\nGPS %.5f, %.5f", (double)e.lat, (double)e.lon);
     } else {
         furi_string_cat(s, "\nGPS: no fix");
+    }
+
+    // Hidden-SSID beaconing. An OBSERVATION, not a score: it did not raise the
+    // confidence rung above, and the wording must not imply that it did. Flock
+    // moved to hidden SSIDs, but so do plenty of ordinary home routers.
+    if(e.hidden) {
+        furi_string_cat(s, "\nHidden SSID: beacons, no name (not scored)");
     }
 
     // Show the probe IE-fingerprint when present: a confirmed unit's fp can be

@@ -14,7 +14,7 @@
  *   S,<frames>,<hits>,<ch>[,<deauths>]  status heartbeat
  *   WBEGIN / W,<bssid>,<rssi>,<ch>,<auth>,<pair>,<grp>,<wps>,<ssid> / WEND
  *   BBEGIN / BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1] / BEND
- *   D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>]   Flock detection
+ *   D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a][,hid=1]  detection
  *   DA,<bssid>,<ch>                     deauth/disassoc attack target
  *   ATK,<kind>,<value>                  active attack-tool signature
  *   LOC,<rssi>                          live Locator RSSI
@@ -71,6 +71,9 @@ typedef struct {
             char ftype;
             FlockConfidence conf;
             uint32_t fp;
+            FlockDevClass dev_class; /**< from `cls=`; absent -> FlockClassAlpr */
+            bool hidden; /**< from `hid=`: beacons but withholds its SSID.
+                           *  Reported, never scored -- see parse_flock(). */
         } flock;
         struct { // EspMsgWifiAp (W)
             uint8_t bssid[6];
