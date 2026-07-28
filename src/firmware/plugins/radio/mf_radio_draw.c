@@ -66,15 +66,17 @@ static void draw_frequency(const MfRadioState* state, Canvas* canvas) {
             7 + (19 * (int32_t)i),
             i == state->frequency_focus,
             digits[i]);
-    if(!mf_radio_frequency_in_vfo(frequency_hz))
-        status = "RX not available";
-    else if(!state->hardware.frequency_valid(state->hardware.context, frequency_hz))
+    canvas_set_font(canvas, FontSecondary);
+    if(!mf_radio_frequency_in_vfo(frequency_hz)) {
+        canvas_draw_str_aligned(canvas, 64, 47, AlignCenter, AlignCenter, "RX not available");
+        canvas_draw_str_aligned(canvas, 64, 58, AlignCenter, AlignCenter, "PLL lock failed");
+        return;
+    } else if(!state->hardware.frequency_valid(state->hardware.context, frequency_hz))
         status = "Invalid freq";
     else
         status = state->hardware.tx_allowed(state->hardware.context, frequency_hz) ?
                      "TX allowed" :
                      "RX only";
-    canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignCenter, status);
 }
 
@@ -82,6 +84,25 @@ static uint8_t rssi_width(int8_t dbm, uint8_t width) {
     if(dbm <= -115) return 0U;
     if(dbm >= -50) return width;
     return (uint8_t)(((int16_t)dbm + 115) * width / 65);
+}
+
+static void format_wpm(const MfRadioState* state, char* text, size_t size) {
+    uint16_t dit_ms = state->decoder_services->dit_ms(&state->decoder);
+    if(state->decoder.dit_sample_count >= MF_RADIO_RX_AUTO_WPM_SAMPLES && dit_ms != 0U) {
+        uint16_t wpm_tenths = (uint16_t)((12000U + (dit_ms / 2U)) / dit_ms);
+        const uint16_t min_tenths = MF_RADIO_RX_WPM_MIN * 10U;
+        const uint16_t max_tenths = MF_RADIO_RX_WPM_MAX * 10U;
+        if(wpm_tenths < min_tenths) wpm_tenths = min_tenths;
+        if(wpm_tenths > max_tenths) wpm_tenths = max_tenths;
+        snprintf(
+            text,
+            size,
+            "auto wpm %u.%u",
+            (unsigned)(wpm_tenths / 10U),
+            (unsigned)(wpm_tenths % 10U));
+    } else {
+        snprintf(text, size, "wpm %u", (unsigned)state->rx_wpm_hint);
+    }
 }
 
 static void draw_rx_text(const MfRadioState* state, Canvas* canvas) {
@@ -147,6 +168,9 @@ static void draw_ticker(const MfRadioState* state, Canvas* canvas, uint32_t now_
 static void draw_receive(const MfRadioState* state, Canvas* canvas, uint32_t now_ms) {
     char line[32];
     char wpm[16];
+    int32_t wpm_x;
+    int32_t threshold_x;
+    int32_t peak_x;
     uint8_t fill;
     uint8_t peak;
     uint8_t threshold;
@@ -155,16 +179,26 @@ static void draw_receive(const MfRadioState* state, Canvas* canvas, uint32_t now
     canvas_set_font(canvas, FontSecondary);
     snprintf(line, sizeof(line), "%lu khz", (unsigned long)(state->snapshot.frequency_hz / 1000U));
     canvas_draw_str(canvas, 3, 44, line);
-    snprintf(wpm, sizeof(wpm), "wpm %u", (unsigned)state->rx_wpm_hint);
-    canvas_draw_str(canvas, 125 - (int32_t)canvas_string_width(canvas, wpm), 44, wpm);
+    format_wpm(state, wpm, sizeof(wpm));
+    wpm_x = 125 - (int32_t)canvas_string_width(canvas, wpm);
+    if(wpm_x < 66) wpm_x = 66;
+    canvas_draw_str(canvas, wpm_x, 44, wpm);
     canvas_draw_frame(canvas, 3, 51, 122, 5);
     threshold = rssi_width(state->snapshot.monitor_threshold_dbm, 120U);
-    canvas_draw_box(canvas, 2 + threshold, 47, 5, 1);
+    threshold_x = 4 + threshold;
+    if(threshold_x > 123) threshold_x = 123;
+    canvas_draw_box(canvas, threshold_x - 2, 47, 5, 1);
+    canvas_draw_box(canvas, threshold_x - 1, 48, 3, 1);
+    canvas_draw_box(canvas, threshold_x, 49, 1, 1);
     if(state->rssi_valid) {
         fill = rssi_width(state->rssi_dbm, 120U);
         peak = rssi_width(state->rssi_peak_dbm, 120U);
         if(fill != 0U) canvas_draw_box(canvas, 4, 52, fill, 3);
-        canvas_draw_box(canvas, 4 + peak, 52, 1, 3);
+        peak_x = 4 + peak;
+        if(peak_x > 123) peak_x = 123;
+        canvas_set_color(canvas, peak <= fill ? ColorWhite : ColorBlack);
+        canvas_draw_box(canvas, peak_x, 52, 1, 3);
+        canvas_set_color(canvas, ColorBlack);
         snprintf(
             line,
             sizeof(line),
@@ -176,7 +210,8 @@ static void draw_receive(const MfRadioState* state, Canvas* canvas, uint32_t now
         snprintf(line, sizeof(line), "cs0 --/--");
     }
     canvas_draw_str(canvas, 3, 64, line);
-    canvas_draw_str(canvas, 91, 64, "Bk exit");
+    canvas_draw_str(
+        canvas, 125 - (int32_t)canvas_string_width(canvas, "Bk exit"), 64, "Bk exit");
 }
 
 void mf_radio_draw(const MfRadioState* state, Canvas* canvas, uint32_t now_ms) {

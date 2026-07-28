@@ -11,6 +11,12 @@
 #include <string.h>
 #endif
 
+static const uint8_t tx_ook_270khz_no_autocal_regs[] = {
+    0x02, 0x0D, 0x03, 0x47, 0x08, 0x32, 0x0B, 0x06, 0x14, 0x00, 0x13, 0x00, 0x12, 0x30, 0x11,
+    0x32, 0x10, 0x67, 0x18, 0x08, 0x19, 0x18, 0x1D, 0x40, 0x1C, 0x00, 0x1B, 0x03, 0x20, 0xFB,
+    0x22, 0x11, 0x21, 0xB6, 0x00, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
 static const uint8_t carrier_ook_650khz_no_autocal_regs[] = {
 #ifdef MORSE_FLIPPER_FAP
     CC1101_IOCFG0,
@@ -129,8 +135,10 @@ static const uint8_t carrier_ook_650khz_no_autocal_regs[] = {
 static bool hal_prepare_common(uint32_t frequency_hz, bool output) {
 #ifdef MORSE_FLIPPER_FAP
     const GpioPin* data_gpio = furi_hal_subghz_get_data_gpio();
+    const uint8_t* preset =
+        output ? tx_ook_270khz_no_autocal_regs : carrier_ook_650khz_no_autocal_regs;
     furi_hal_subghz_reset();
-    furi_hal_subghz_load_custom_preset(carrier_ook_650khz_no_autocal_regs);
+    furi_hal_subghz_load_custom_preset(preset);
     (void)furi_hal_subghz_set_frequency_and_path(frequency_hz);
     furi_hal_gpio_init(
         data_gpio,

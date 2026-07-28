@@ -13,6 +13,7 @@ APP_HEADER = (FIRMWARE / "morse_flipper_app_i.h").read_text()
 RUNTIME_HEADER = (FIRMWARE / "morse_flipper_plugin_runtime.h").read_text()
 SCENES = (FIRMWARE / "morse_flipper_scenes.c").read_text()
 LIVE_VIEW = (FIRMWARE / "morse_flipper_live_view.c").read_text()
+RADIO_HAL = (RADIO / "mf_radio_hal.c").read_text()
 
 LEGACY_MAIN_RF_SOURCES = {
     "src/firmware/morse_flipper_rf.c",
@@ -85,6 +86,14 @@ def main() -> None:
         ):
             body = function_body(radio_text, name)
             assert not re.search(r"\b(malloc|calloc|realloc|free)\s*\(", body), name
+
+        tx_preset = RADIO_HAL.split("tx_ook_270khz_no_autocal_regs[] = {", 1)[1].split(
+            "};", 1
+        )[0]
+        prepare_common = function_body(RADIO_HAL, "hal_prepare_common")
+        assert "0x0D" in tx_preset
+        assert "tx_ook_270khz_no_autocal_regs" in prepare_common
+        assert "carrier_ook_650khz_no_autocal_regs" in prepare_common
 
     # Legacy files are allowed only while the product still has no Radio FAL.
     main_block = app_block("morse_flipper")

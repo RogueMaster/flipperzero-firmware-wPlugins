@@ -20,8 +20,15 @@ typedef struct {
 } FakeHardware;
 
 static char drawn[128];
+static char draw_log[512];
 static unsigned rx_draws;
 static unsigned box_draws;
+
+static void log_drawn_text(const char* text) {
+    size_t len = strlen(draw_log);
+    if(len != 0U && len + 1U < sizeof(draw_log)) draw_log[len++] = '|';
+    snprintf(draw_log + len, sizeof(draw_log) - len, "%s", text);
+}
 
 static bool prepare_tx(void* context, uint32_t frequency_hz) {
     (void)frequency_hz;
@@ -140,6 +147,7 @@ void canvas_draw_str(Canvas* canvas, int32_t x, int32_t y, const char* text) {
     (void)x;
     (void)y;
     snprintf(drawn, sizeof(drawn), "%s", text);
+    log_drawn_text(text);
 }
 void canvas_draw_str_aligned(
     Canvas* canvas,
@@ -154,6 +162,7 @@ void canvas_draw_str_aligned(
     (void)horizontal;
     (void)vertical;
     snprintf(drawn, sizeof(drawn), "%s", text);
+    log_drawn_text(text);
 }
 uint32_t canvas_string_width(Canvas* canvas, const char* text) {
     (void)canvas;
@@ -277,9 +286,17 @@ int main(void) {
     assert(snapshot.monitor_tone);
     rx_draws = 0U;
     box_draws = 0U;
+    draw_log[0] = '\0';
     mf_radio_draw(&state, &canvas, 42U);
     assert(rx_draws == 1U);
-    assert(box_draws >= 3U);
+    assert(box_draws >= 5U);
+    assert(strstr(draw_log, "wpm 10") != NULL);
+    assert(strstr(draw_log, "Bk exit") != NULL);
+    state.decoder.dit_ms = 80U;
+    state.decoder.dit_sample_count = MF_RADIO_RX_AUTO_WPM_SAMPLES;
+    draw_log[0] = '\0';
+    mf_radio_draw(&state, &canvas, 43U);
+    assert(strstr(draw_log, "auto wpm 15.0") != NULL);
     input = event(InputKeyOk, InputTypeShort);
     assert(mf_radio_core_input(&state, &input, 40U).handled);
     assert(mf_radio_core_snapshot(&state, &snapshot));
@@ -308,7 +325,11 @@ int main(void) {
     mf_radio_core_input(&state, &input, 4U);
     input = event(InputKeyBack, InputTypeShort);
     assert(mf_radio_core_input(&state, &input, 5U).request_exit);
+    state.edit_khz = 100000U;
+    draw_log[0] = '\0';
     mf_radio_draw(&state, &canvas, 5U);
+    assert(strstr(draw_log, "RX not available") != NULL);
+    assert(strstr(draw_log, "PLL lock failed") != NULL);
     mf_radio_core_leave(&state);
 
     puts("test_radio_fal: passed");
