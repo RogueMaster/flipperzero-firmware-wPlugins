@@ -4,6 +4,7 @@
 
 #include <gui/modules/variable_item_list.h>
 #include <stdio.h>
+#include <string.h>
 
 enum {
     MfPassiveSettingMode = 0,
@@ -17,9 +18,16 @@ enum {
     MfPassiveSettingCount,
 };
 
-static void mf_passive_settings_persist(MfPassiveSettingsState* state) {
+static bool mf_passive_settings_persist(MfPassiveSettingsState* state) {
     mf_passive_settings_normalize(&state->model);
-    mf_passive_settings_save(&state->model);
+    if(mf_passive_settings_save(&state->model)) {
+        state->dirty = false;
+        state->save_failed = false;
+        return true;
+    }
+    state->dirty = true;
+    state->save_failed = true;
+    return false;
 }
 
 static void mf_passive_settings_refresh(MfPassiveSettingsState* state) {
@@ -84,7 +92,9 @@ static void mf_passive_settings_changed(VariableItem* item) {
     else
         state->model.repeat_after_answer = index;
     mf_passive_settings_refresh(state);
-    mf_passive_settings_persist(state);
+    state->dirty = true;
+    if(!mf_passive_settings_persist(state))
+        variable_item_set_current_value_text(item, "Save failed");
 }
 
 static void mf_passive_settings_noop_enter(void* context, uint32_t index) {
@@ -142,10 +152,14 @@ bool mf_passive_settings_enter(
 }
 
 void mf_passive_settings_leave(MfPassiveSettingsState* state) {
+    uint8_t selected_row;
+
     if(state == NULL || !state->active) return;
-    state->model.selected_row =
-        variable_item_list_get_selected_item_index(state->settings.list);
-    mf_passive_settings_save(&state->model);
+    selected_row = variable_item_list_get_selected_item_index(state->settings.list);
+    if(state->dirty || selected_row != state->model.selected_row) {
+        state->model.selected_row = selected_row;
+        mf_passive_settings_persist(state);
+    }
     variable_item_list_reset(state->settings.list);
     memset(state, 0, sizeof(*state));
 }

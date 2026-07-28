@@ -8,6 +8,7 @@
 #include <storage/storage.h>
 
 #define MF_PASSIVE_SETTINGS_PATH APP_DATA_PATH("passive.bin")
+#define MF_PASSIVE_SETTINGS_TEMP_PATH APP_DATA_PATH("passive.tmp")
 #endif
 #define MF_PASSIVE_SETTINGS_MAGIC 0x4D465053UL
 #define MF_PASSIVE_SETTINGS_VERSION 1U
@@ -175,9 +176,14 @@ bool mf_passive_settings_save(const MfPassiveSettingsModel* model) {
     };
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);
-    saved = storage_file_open(file, MF_PASSIVE_SETTINGS_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
+    storage_common_remove(storage, MF_PASSIVE_SETTINGS_TEMP_PATH);
+    saved = storage_file_open(file, MF_PASSIVE_SETTINGS_TEMP_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
             storage_file_write(file, &record, sizeof(record)) == sizeof(record);
     storage_file_close(file);
+    if(saved)
+        saved = storage_common_rename(
+                    storage, MF_PASSIVE_SETTINGS_TEMP_PATH, MF_PASSIVE_SETTINGS_PATH) == FSE_OK;
+    if(!saved) storage_common_remove(storage, MF_PASSIVE_SETTINGS_TEMP_PATH);
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
     return saved;

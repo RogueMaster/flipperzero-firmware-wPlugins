@@ -7,6 +7,8 @@ typedef struct {
     MfPassiveSettingsArgs settings;
     VariableItem* items[8];
     bool active;
+    bool dirty;
+    bool save_failed;
 } MfPassiveSettingsState;
 
 bool mf_passive_settings_enter(
