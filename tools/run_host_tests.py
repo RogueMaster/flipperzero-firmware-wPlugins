@@ -31,6 +31,7 @@ TESTS = (
     CTest("keyer", ("tests/test_keyer.c", "src/firmware/keyer.c")),
     CTest("training-timing", ("tests/test_training_timing.c", "src/firmware/morse_flipper_training_timing.c")),
     CTest("cw-decoder-preview", ("tests/test_cw_decoder_preview.c", "src/firmware/morse_flipper_cw_decoder.c", "src/firmware/morse_flipper_cw_token.c", "src/firmware/cw.c")),
+    CTest("radio-decoder-services", ("tests/test_radio_decoder_services.c", "src/firmware/morse_flipper_radio_host.c", "src/firmware/morse_flipper_cw_decoder.c", "src/firmware/morse_flipper_cw_token.c", "src/firmware/cw.c")),
     CTest("cw-markdown-widget", ("tests/test_cw_markdown_widget.c", "src/firmware/plugins/help_about/cw_markdown_widget.c"), ("CWMD_HOST_TEST",), False),
     CTest("rx-callsign-gen", ("tests/test_rx_callsign_gen.c", "src/firmware/plugins/common/mf_rx_rng.c", "src/firmware/plugins/common/mf_callsign_gen.c", "src/firmware/cw.c")),
     CTest("rx-callsign-controlled", ("tests/test_rx_callsign_controlled.c", "src/firmware/plugins/common/mf_callsign_gen.c", "src/firmware/cw.c")),

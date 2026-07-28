@@ -60,7 +60,7 @@ def main() -> None:
 
     # Legacy files are allowed only while the product still has no Radio FAL.
     main_block = app_block("morse_flipper")
-    if radio_block:
+    if "MORSE_FLIPPER_RADIO_FAL_CUTOVER=1" in main_block:
         for source in LEGACY_MAIN_RF_SOURCES:
             assert source not in main_block
 

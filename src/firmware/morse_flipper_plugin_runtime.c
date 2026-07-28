@@ -35,6 +35,7 @@ static __attribute__((noinline)) bool morse_flipper_plugin_runtime_typed_api_val
         return api->mapped.enter != NULL && api->mapped.input != NULL &&
                api->request_close != NULL && api->selected_state != NULL;
     }
+    if(owner == MorseFlipperPluginOwnerRadio) return mf_radio_api_valid(entry);
     return false;
 }
 

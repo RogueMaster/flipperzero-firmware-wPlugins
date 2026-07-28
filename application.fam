@@ -45,6 +45,7 @@ App(
         "src/firmware/morse_flipper_passive_host.c",
         "src/firmware/morse_flipper_tx_groups_host.c",
         "src/firmware/morse_flipper_plugin_runtime.c",
+        "src/firmware/morse_flipper_radio_host.c",
         "src/firmware/morse_flipper_training_timing.c",
         "src/firmware/morse_flipper_app.c",
         "src/firmware/morse_flipper_flow.c",
@@ -93,12 +94,25 @@ App(
     ],
     targets=["f7"],
     fap_category="Tools",
-    fap_version="0.1.189",
+    fap_version="0.1.190",
     fap_author="@yo3gnd",
     fap_weburl="https://github.com/yo3gnd/morse-flipper/",
     fap_description="Learn, practise, send, and experiment with Morse code on Flipper Zero.",
     fap_icon="morse-flipper.png",
     fap_file_assets="assets",
+)
+
+App(
+    appid="morse_flipper_radio",
+    apptype=FlipperAppType.PLUGIN,
+    entry_point="morse_flipper_radio_ep",
+    requires=["morse_flipper"],
+    cdefines=["MORSE_FLIPPER_FAP=1"],
+    sources=[
+        "src/firmware/plugins/radio/mf_radio_plugin.c",
+    ],
+    fal_embedded=True,
+    targets=["f7"],
 )
 
 App(

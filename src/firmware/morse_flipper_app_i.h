@@ -46,6 +46,7 @@
 #include "plugins/passive_listening/mf_passive_api.h"
 #include "plugins/settings/mf_settings_api.h"
 #include "plugins/tx_groups/mf_tx_groups_api.h"
+#include "plugins/radio/mf_radio_api.h"
 #include "morse_flipper_paths.h"
 #include "morse_flipper_progress.h"
 #include "morse_flipper_radio.h"
