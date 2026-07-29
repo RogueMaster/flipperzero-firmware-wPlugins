@@ -12,10 +12,8 @@ static void mf_tx_groups_free(void* state) {
     (void)state;
 }
 
-static bool mf_tx_groups_enter(
-    void* state,
-    const void* args,
-    MorseFlipperMappedFalResult* initial) {
+static bool
+    mf_tx_groups_enter(void* state, const void* args, MorseFlipperMappedFalResult* initial) {
     MfTxGroupsState* tx_groups_state = state;
     const MfTxGroupsEnterArgs* enter_args = args;
 
@@ -50,18 +48,19 @@ static void mf_tx_groups_draw(void* state, Canvas* canvas, uint32_t now_ms) {
 }
 
 static const MfTxGroupsApi mf_tx_groups_api = {
-    .mapped = {
-        .magic = MF_TX_GROUPS_API_MAGIC,
-        .api_version = MF_TX_GROUPS_API_VERSION,
-        .struct_size = sizeof(MfTxGroupsApi),
-        .alloc = mf_tx_groups_alloc,
-        .free = mf_tx_groups_free,
-        .enter = mf_tx_groups_enter,
-        .leave = mf_tx_groups_leave,
-        .input = mf_tx_groups_input,
-        .tick = mf_tx_groups_tick,
-        .draw = mf_tx_groups_draw,
-    },
+    .mapped =
+        {
+            .magic = MF_TX_GROUPS_API_MAGIC,
+            .api_version = MF_TX_GROUPS_API_VERSION,
+            .struct_size = sizeof(MfTxGroupsApi),
+            .alloc = mf_tx_groups_alloc,
+            .free = mf_tx_groups_free,
+            .enter = mf_tx_groups_enter,
+            .leave = mf_tx_groups_leave,
+            .input = mf_tx_groups_input,
+            .tick = mf_tx_groups_tick,
+            .draw = mf_tx_groups_draw,
+        },
     .init = morse_flipper_tx_group_init,
     .set_seed = morse_flipper_tx_group_set_seed,
     .start = morse_flipper_tx_group_start,

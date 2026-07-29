@@ -391,9 +391,7 @@ static void test_history_date_label_cutoff(void) {
     CHECK(strcmp(label, "03 Aug") == 0);
 
     row.practice_day = checked_day(2025, 7, 3);
-    CHECK(
-        morse_flipper_progress_history_date_label(&row, 2026, 7, label, sizeof(label)) ==
-        2025U);
+    CHECK(morse_flipper_progress_history_date_label(&row, 2026, 7, label, sizeof(label)) == 2025U);
     CHECK(strcmp(label, "03 Jul") == 0);
 
     row.practice_day = checked_day(2026, 7, 21);
@@ -469,10 +467,8 @@ static MorseFlipperProgressHistoryMove finish_history_move(
     return move;
 }
 
-static MorseFlipperProgressHistoryMove click_history(
-    MorseFlipperProgressHistoryView* view,
-    int8_t dir,
-    uint16_t* pending_slices) {
+static MorseFlipperProgressHistoryMove
+    click_history(MorseFlipperProgressHistoryView* view, int8_t dir, uint16_t* pending_slices) {
     return finish_history_move(
         view, morse_flipper_progress_history_view_scroll(view, dir), pending_slices);
 }
@@ -508,14 +504,10 @@ static void test_history_view_long_gap_navigation(void) {
     CHECK(focused != NULL && focused->practice_day == jul23 && focused->hour == 17U);
 
     for(uint8_t expected_hour = 16U; expected_hour < 18U; expected_hour--) {
-        CHECK(
-            click_history(&view, 1, &pending_slices) ==
-            MorseFlipperProgressHistoryMoved);
+        CHECK(click_history(&view, 1, &pending_slices) == MorseFlipperProgressHistoryMoved);
         CHECK(pending_slices == 0U);
         focused = morse_flipper_progress_history_view_focused(&view);
-        CHECK(
-            focused != NULL && focused->practice_day == jul23 &&
-            focused->hour == expected_hour);
+        CHECK(focused != NULL && focused->practice_day == jul23 && focused->hour == expected_hour);
         if(expected_hour == 0U) break;
     }
 
@@ -533,9 +525,7 @@ static void test_history_view_long_gap_navigation(void) {
         focused != NULL && focused->practice_day == mar24 && focused->hour == 12U &&
         focused->minute == 34U);
 
-    CHECK(
-        click_history(&view, 1, &pending_slices) ==
-        MorseFlipperProgressHistoryBoundary);
+    CHECK(click_history(&view, 1, &pending_slices) == MorseFlipperProgressHistoryBoundary);
     CHECK(pending_slices > 1U);
     focused = morse_flipper_progress_history_view_focused(&view);
     CHECK(focused != NULL && focused->practice_day == mar24);
@@ -590,9 +580,7 @@ static void test_history_view_empty_and_single_boundaries(void) {
     CHECK(view.older.practice_day == cursor_day);
     morse_flipper_progress_history_view_cancel(&view);
     CHECK(view.pending_dir == 0);
-    CHECK(
-        click_history(&view, 1, NULL) ==
-        MorseFlipperProgressHistoryBoundary);
+    CHECK(click_history(&view, 1, NULL) == MorseFlipperProgressHistoryBoundary);
     CHECK(morse_flipper_progress_history_view_focused(&view) == NULL);
     CHECK(chdir("..") == 0);
 
@@ -603,13 +591,9 @@ static void test_history_view_empty_and_single_boundaries(void) {
     morse_flipper_progress_history_view_reset(&view, day);
     CHECK(view.row_count == 1U);
     check_history_focus(&view, day, 9U);
-    CHECK(
-        click_history(&view, -1, NULL) ==
-        MorseFlipperProgressHistoryBoundary);
+    CHECK(click_history(&view, -1, NULL) == MorseFlipperProgressHistoryBoundary);
     check_history_focus(&view, day, 9U);
-    CHECK(
-        click_history(&view, 1, NULL) ==
-        MorseFlipperProgressHistoryBoundary);
+    CHECK(click_history(&view, 1, NULL) == MorseFlipperProgressHistoryBoundary);
     check_history_focus(&view, day, 9U);
     CHECK(chdir("..") == 0);
 }
@@ -667,19 +651,15 @@ static void test_history_view_pending_cancellation_and_reversal(void) {
     }
 
     CHECK(
-        finish_history_move(
-            &view,
-            morse_flipper_progress_history_view_scroll(&view, 1),
-            NULL) == MorseFlipperProgressHistoryMoved);
+        finish_history_move(&view, morse_flipper_progress_history_view_scroll(&view, 1), NULL) ==
+        MorseFlipperProgressHistoryMoved);
     check_history_focus(&view, mar24, 11U);
     for(uint8_t expected_hour = 10U; expected_hour < 12U; expected_hour--) {
         CHECK(click_history(&view, 1, NULL) == MorseFlipperProgressHistoryMoved);
         check_history_focus(&view, mar24, expected_hour);
         if(expected_hour == 0U) break;
     }
-    CHECK(
-        click_history(&view, 1, NULL) ==
-        MorseFlipperProgressHistoryBoundary);
+    CHECK(click_history(&view, 1, NULL) == MorseFlipperProgressHistoryBoundary);
     check_history_focus(&view, mar24, 0U);
 
     for(uint8_t expected_hour = 1U; expected_hour < 12U; expected_hour++) {
@@ -713,18 +693,14 @@ static void test_history_view_pending_cancellation_and_reversal(void) {
     }
 
     CHECK(
-        finish_history_move(
-            &view,
-            morse_flipper_progress_history_view_scroll(&view, -1),
-            NULL) == MorseFlipperProgressHistoryMoved);
+        finish_history_move(&view, morse_flipper_progress_history_view_scroll(&view, -1), NULL) ==
+        MorseFlipperProgressHistoryMoved);
     check_history_focus(&view, jul23, 0U);
     for(uint8_t expected_hour = 1U; expected_hour < 12U; expected_hour++) {
         CHECK(click_history(&view, -1, NULL) == MorseFlipperProgressHistoryMoved);
         check_history_focus(&view, jul23, expected_hour);
     }
-    CHECK(
-        click_history(&view, -1, NULL) ==
-        MorseFlipperProgressHistoryBoundary);
+    CHECK(click_history(&view, -1, NULL) == MorseFlipperProgressHistoryBoundary);
     check_history_focus(&view, jul23, 11U);
     CHECK(chdir("..") == 0);
 }

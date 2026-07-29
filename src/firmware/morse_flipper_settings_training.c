@@ -44,7 +44,9 @@ void morse_flipper_trainer_sync_farn_item(MorseFlipperApp* app) {
     wpm = morse_flipper_local_wpm(app);
     if(wpm == 0U) wpm = 1U;
     variable_item_set_values_count(it, wpm);
-    idx = app->listening_settings.farnsworth_wpm > 0U ? (uint8_t)(app->listening_settings.farnsworth_wpm - 1U) : 0U;
+    idx = app->listening_settings.farnsworth_wpm > 0U ?
+              (uint8_t)(app->listening_settings.farnsworth_wpm - 1U) :
+              0U;
     variable_item_set_current_value_index(it, idx);
     snprintf(txt, sizeof(txt), "%u", (unsigned)app->listening_settings.farnsworth_wpm);
     variable_item_set_current_value_text(it, txt);
@@ -80,7 +82,8 @@ void morse_flipper_trainer_menu_refresh(MorseFlipperApp* app) {
 
     it = app->trainer_items[MorseFlipperTrainerSettingAnswerTimeout];
     if(it) {
-        idx = (uint8_t)(app->listening_settings.answer_timeout_s - MORSE_FLIPPER_TRAINER_TIMEOUT_MIN_S);
+        idx = (uint8_t)(app->listening_settings.answer_timeout_s -
+                        MORSE_FLIPPER_TRAINER_TIMEOUT_MIN_S);
         variable_item_set_current_value_index(it, idx);
         snprintf(txt, sizeof(txt), "%u", (unsigned)app->listening_settings.answer_timeout_s);
         variable_item_set_current_value_text(it, txt);
@@ -88,7 +91,8 @@ void morse_flipper_trainer_menu_refresh(MorseFlipperApp* app) {
 
     it = app->trainer_items[MorseFlipperTrainerSettingGroupPause];
     if(it) {
-        idx = (uint8_t)(app->listening_settings.group_pause_s - MORSE_FLIPPER_TRAINER_GROUP_PAUSE_MIN_S);
+        idx = (uint8_t)(app->listening_settings.group_pause_s -
+                        MORSE_FLIPPER_TRAINER_GROUP_PAUSE_MIN_S);
         variable_item_set_current_value_index(it, idx);
         snprintf(txt, sizeof(txt), "%u", (unsigned)app->listening_settings.group_pause_s);
         variable_item_set_current_value_text(it, txt);

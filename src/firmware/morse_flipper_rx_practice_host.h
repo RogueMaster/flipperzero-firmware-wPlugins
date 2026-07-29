@@ -21,7 +21,4 @@ bool morse_flipper_rx_practice_host_feed(
     const char* text,
     size_t length,
     uint32_t now_ms);
-bool morse_flipper_rx_practice_host_tick(
-    MorseFlipperApp* app,
-    uint32_t now_ms,
-    uint8_t down_mask);
+bool morse_flipper_rx_practice_host_tick(MorseFlipperApp* app, uint32_t now_ms, uint8_t down_mask);

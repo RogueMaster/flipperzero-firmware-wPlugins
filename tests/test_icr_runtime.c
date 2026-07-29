@@ -10,18 +10,18 @@
 #include <string.h>
 #include <unistd.h>
 
-#define ICR_PHASE_GRAPH_WAIT       0U
-#define ICR_PHASE_PLAYBACK         1U
-#define ICR_PHASE_RECOGNITION      2U
-#define ICR_PHASE_RECOGNIZED_HOLD  3U
-#define ICR_PHASE_ANSWER_GUARD     4U
-#define ICR_PHASE_ANSWER           5U
-#define ICR_PHASE_RESULT           6U
-#define ICR_FEEDBACK_TIMEOUT       4U
-#define ICR_WAIT_MS                1000U
-#define ICR_GUARD_MS               100U
-#define ICR_RESULT_MS              1000U
-#define ICR_TRACE_MS               10000U
+#define ICR_PHASE_GRAPH_WAIT      0U
+#define ICR_PHASE_PLAYBACK        1U
+#define ICR_PHASE_RECOGNITION     2U
+#define ICR_PHASE_RECOGNIZED_HOLD 3U
+#define ICR_PHASE_ANSWER_GUARD    4U
+#define ICR_PHASE_ANSWER          5U
+#define ICR_PHASE_RESULT          6U
+#define ICR_FEEDBACK_TIMEOUT      4U
+#define ICR_WAIT_MS               1000U
+#define ICR_GUARD_MS              100U
+#define ICR_RESULT_MS             1000U
+#define ICR_TRACE_MS              10000U
 
 static unsigned g_checks;
 static DialogMessageButton dialog_responses[4];
@@ -98,10 +98,8 @@ bool morse_flipper_icr_runtime_enter(
     void* state,
     const MorseFlipperIcrEnterArgs* args,
     MorseFlipperIcrResult* initial);
-MorseFlipperIcrResult morse_flipper_icr_runtime_input(
-    void* state,
-    const InputEvent* event,
-    uint32_t now_ms);
+MorseFlipperIcrResult
+    morse_flipper_icr_runtime_input(void* state, const InputEvent* event, uint32_t now_ms);
 MorseFlipperIcrResult morse_flipper_icr_runtime_tick(void* state, uint32_t now_ms);
 void morse_flipper_icr_runtime_draw(void* state, Canvas* canvas, uint32_t now_ms);
 
@@ -229,7 +227,8 @@ static void test_answer_trace_wrap_equivalence(void) {
         phases[run][2] = result.phase;
         result = morse_flipper_icr_runtime_tick(state, starts[run] + elapsed + 1U + ICR_GUARD_MS);
         phases[run][3] = result.phase;
-        result = morse_flipper_icr_runtime_input(state, &answer, starts[run] + elapsed + 2U + ICR_GUARD_MS);
+        result = morse_flipper_icr_runtime_input(
+            state, &answer, starts[run] + elapsed + 2U + ICR_GUARD_MS);
         CHECK(result.phase == ICR_PHASE_RESULT);
         result = morse_flipper_icr_runtime_tick(
             state, starts[run] + elapsed + 2U + ICR_GUARD_MS + ICR_RESULT_MS);

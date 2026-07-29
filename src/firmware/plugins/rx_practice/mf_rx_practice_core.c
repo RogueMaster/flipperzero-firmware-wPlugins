@@ -36,8 +36,8 @@ static bool mf_begin_round(MfRxPracticeState* state, uint32_t now_ms) {
     state->playback_mark = false;
     state->target_len = state->min_length;
     if(state->max_length > state->min_length)
-        state->target_len += (uint8_t)mf_rx_rng_bounded(
-            &state->rng, state->max_length - state->min_length + 1U);
+        state->target_len +=
+            (uint8_t)mf_rx_rng_bounded(&state->rng, state->max_length - state->min_length + 1U);
     ok = mf_callsign_generate(&state->callsigns, &state->rng, state->target_len, &call);
     if(ok) memcpy(state->target, call.text, sizeof(state->target));
     if(!ok || state->target_len == 0U || cw_symbol_count(cw(state->target[0])) == 0U) {
@@ -47,15 +47,12 @@ static bool mf_begin_round(MfRxPracticeState* state, uint32_t now_ms) {
     }
     state->phase = MfRxPracticePhasePlayback;
     state->playback_mark = true;
-    state->next_at = now_ms +
-                     (uint32_t)state->dit_ms * cw_symbol_units(cw(state->target[0]), 0U);
+    state->next_at = now_ms + (uint32_t)state->dit_ms * cw_symbol_units(cw(state->target[0]), 0U);
     return true;
 }
 
-static MfRxPracticeResult mf_finish_answer(
-    MfRxPracticeState* state,
-    uint32_t now_ms,
-    MfRxPracticeFeedback feedback) {
+static MfRxPracticeResult
+    mf_finish_answer(MfRxPracticeState* state, uint32_t now_ms, MfRxPracticeFeedback feedback) {
     state->phase = MfRxPracticePhaseResult;
     state->playback_mark = false;
     state->last_passed = feedback == MfRxPracticeFeedbackPass;
@@ -76,9 +73,7 @@ static char mf_normalize(char ch) {
     return '\0';
 }
 
-static MfRxPracticeResult mf_hurry(
-    MfRxPracticeState* state,
-    uint32_t now_ms) {
+static MfRxPracticeResult mf_hurry(MfRxPracticeState* state, uint32_t now_ms) {
     bool shortened = false;
     if(morse_flipper_time_pending(now_ms, state->result_deadline) &&
        state->result_deadline - now_ms > 1000U) {
@@ -86,8 +81,7 @@ static MfRxPracticeResult mf_hurry(
         state->countdown_draw_s = 0xFFU;
         shortened = true;
     }
-    return mf_result(
-        state, true, shortened, false, false, MfRxPracticeFeedbackNone);
+    return mf_result(state, true, shortened, false, false, MfRxPracticeFeedbackNone);
 }
 
 bool mf_rx_practice_enter(
@@ -99,8 +93,7 @@ bool mf_rx_practice_enter(
     if(state == NULL || args == NULL || initial == NULL || args->struct_size < sizeof(*args) ||
        args->dit_ms == 0U || args->char_gap_ms == 0U || args->answer_timeout_ms == 0U ||
        args->min_length < 4U || args->max_length > MF_CALLSIGN_MAX_LEN ||
-       args->min_length > args->max_length ||
-       args->result_hold_ms == 0U ||
+       args->min_length > args->max_length || args->result_hold_ms == 0U ||
        args->answer_timeout_ms >= INT32_MAX || args->result_hold_ms >= INT32_MAX ||
        args->draw_snapshot == NULL)
         return false;
@@ -125,12 +118,11 @@ void mf_rx_practice_leave(MfRxPracticeState* state) {
     if(state != NULL) *state = (MfRxPracticeState){0};
 }
 
-MfRxPracticeResult mf_rx_practice_command(
-    MfRxPracticeState* state,
-    MfRxPracticeCommand command,
-    uint32_t now_ms) {
+MfRxPracticeResult
+    mf_rx_practice_command(MfRxPracticeState* state, MfRxPracticeCommand command, uint32_t now_ms) {
     if(state == NULL) return mf_result(NULL, false, false, false, false, MfRxPracticeFeedbackNone);
-    if(command == MfRxPracticeCommandNone) return mf_result(state, false, false, false, false, MfRxPracticeFeedbackNone);
+    if(command == MfRxPracticeCommandNone)
+        return mf_result(state, false, false, false, false, MfRxPracticeFeedbackNone);
     if(command == MfRxPracticeCommandExit ||
        (command == MfRxPracticeCommandBack &&
         (state->phase == MfRxPracticePhaseIdle || state->phase == MfRxPracticePhaseFinal)))
@@ -146,19 +138,17 @@ MfRxPracticeResult mf_rx_practice_command(
         if(state->phase == MfRxPracticePhaseIdle) {
             bool ok = mf_begin_round(state, now_ms);
             (void)ok;
-            return mf_result(
-                state, true, true, true, false, MfRxPracticeFeedbackClear);
+            return mf_result(state, true, true, true, false, MfRxPracticeFeedbackClear);
         }
-        if(state->phase == MfRxPracticePhaseResult)
-            return mf_hurry(state, now_ms);
+        if(state->phase == MfRxPracticePhaseResult) return mf_hurry(state, now_ms);
     }
     if(command == MfRxPracticeCommandStart && state->phase == MfRxPracticePhaseIdle) {
         bool ok = mf_begin_round(state, now_ms);
         (void)ok;
         return mf_result(state, true, true, true, false, MfRxPracticeFeedbackClear);
     }
-    if(command == MfRxPracticeCommandAnswerActivity &&
-       state->phase == MfRxPracticePhaseAnswer && !state->answer_started) {
+    if(command == MfRxPracticeCommandAnswerActivity && state->phase == MfRxPracticePhaseAnswer &&
+       !state->answer_started) {
         state->answer_started = true;
         state->answer_last_activity_ms = now_ms;
         return mf_result(state, true, false, false, false, MfRxPracticeFeedbackNone);
@@ -210,7 +200,7 @@ MfRxPracticeResult mf_rx_practice_feed_text(
                 state,
                 now_ms,
                 strcmp(state->answer, state->target) == 0 ? MfRxPracticeFeedbackPass :
-                                                             MfRxPracticeFeedbackFail);
+                                                            MfRxPracticeFeedbackFail);
     }
     return mf_result(state, accepted, accepted, false, false, MfRxPracticeFeedbackNone);
 }
@@ -237,7 +227,8 @@ MfRxPracticeResult mf_rx_practice_tick(MfRxPracticeState* state, uint32_t now_ms
         }
         return mf_result(state, false, false, false, false, MfRxPracticeFeedbackNone);
     }
-    if(state->phase != MfRxPracticePhasePlayback || !morse_flipper_time_reached(now_ms, state->next_at))
+    if(state->phase != MfRxPracticePhasePlayback ||
+       !morse_flipper_time_reached(now_ms, state->next_at))
         return mf_result(state, false, false, false, false, MfRxPracticeFeedbackNone);
     code = cw(state->target[state->playback_char]);
     marks = cw_symbol_count(code);
@@ -263,9 +254,16 @@ MfRxPracticeResult mf_rx_practice_tick(MfRxPracticeState* state, uint32_t now_ms
         }
     } else {
         state->playback_mark = true;
-        state->next_at = now_ms +
-                         (uint32_t)state->dit_ms *
-                             cw_symbol_units(cw(state->target[state->playback_char]), state->playback_mark_index);
+        state->next_at =
+            now_ms + (uint32_t)state->dit_ms *
+                         cw_symbol_units(
+                             cw(state->target[state->playback_char]), state->playback_mark_index);
     }
-    return mf_result(state, true, true, state->phase == MfRxPracticePhaseAnswer, false, MfRxPracticeFeedbackNone);
+    return mf_result(
+        state,
+        true,
+        true,
+        state->phase == MfRxPracticePhaseAnswer,
+        false,
+        MfRxPracticeFeedbackNone);
 }

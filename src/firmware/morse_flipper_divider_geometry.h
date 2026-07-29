@@ -4,10 +4,8 @@
 
 #include <stdbool.h>
 
-static inline void morse_flipper_draw_tx_history_divider_geometry_at(
-    Canvas* canvas,
-    bool left_hint,
-    int32_t y) {
+static inline void
+    morse_flipper_draw_tx_history_divider_geometry_at(Canvas* canvas, bool left_hint, int32_t y) {
     if(canvas == NULL) return;
     canvas_draw_line(canvas, 0, y, left_hint ? 119 : 127, y);
     if(!left_hint) return;
@@ -18,8 +16,6 @@ static inline void morse_flipper_draw_tx_history_divider_geometry_at(
     canvas_draw_box(canvas, 127, y - 3, 1, 7);
 }
 
-static inline void morse_flipper_draw_tx_history_divider_geometry(
-    Canvas* canvas,
-    bool left_hint) {
+static inline void morse_flipper_draw_tx_history_divider_geometry(Canvas* canvas, bool left_hint) {
     morse_flipper_draw_tx_history_divider_geometry_at(canvas, left_hint, 34);
 }

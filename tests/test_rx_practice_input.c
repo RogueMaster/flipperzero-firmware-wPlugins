@@ -8,10 +8,10 @@
 
 static unsigned checks;
 
-#define CHECK(value) \
-    do { \
+#define CHECK(value)   \
+    do {               \
         assert(value); \
-        checks++; \
+        checks++;      \
     } while(0)
 
 void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
@@ -36,11 +36,8 @@ static MfRxPracticeEnterArgs make_args(MfRxPracticeDrawSnapshot* snapshot) {
     };
 }
 
-static MfRxPracticeResult send(
-    const MfRxPracticeApi* api,
-    void* state,
-    InputKey key,
-    InputType type) {
+static MfRxPracticeResult
+    send(const MfRxPracticeApi* api, void* state, InputKey key, InputType type) {
     InputEvent event = {.key = key, .type = type};
     return api->input(state, &event, 100U);
 }
@@ -64,8 +61,7 @@ int main(void) {
     CHECK(opaque != NULL);
     CHECK(descriptor->ep_api_version == MORSE_FLIPPER_RX_PRACTICE_API_VERSION);
     CHECK(api->enter(opaque, &args, &result));
-    for(MfRxPracticePhase phase = MfRxPracticePhaseIdle;
-        phase <= MfRxPracticePhaseFinal;
+    for(MfRxPracticePhase phase = MfRxPracticePhaseIdle; phase <= MfRxPracticePhaseFinal;
         phase++) {
         state->phase = phase;
         state->result_deadline = 5000U;

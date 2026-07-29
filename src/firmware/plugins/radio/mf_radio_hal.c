@@ -135,16 +135,13 @@ static const uint8_t carrier_ook_650khz_no_autocal_regs[] = {
 static bool hal_prepare_common(uint32_t frequency_hz, bool output) {
 #ifdef MORSE_FLIPPER_FAP
     const GpioPin* data_gpio = furi_hal_subghz_get_data_gpio();
-    const uint8_t* preset =
-        output ? tx_ook_270khz_no_autocal_regs : carrier_ook_650khz_no_autocal_regs;
+    const uint8_t* preset = output ? tx_ook_270khz_no_autocal_regs :
+                                     carrier_ook_650khz_no_autocal_regs;
     furi_hal_subghz_reset();
     furi_hal_subghz_load_custom_preset(preset);
     (void)furi_hal_subghz_set_frequency_and_path(frequency_hz);
     furi_hal_gpio_init(
-        data_gpio,
-        output ? GpioModeOutputPushPull : GpioModeInput,
-        GpioPullNo,
-        GpioSpeedLow);
+        data_gpio, output ? GpioModeOutputPushPull : GpioModeInput, GpioPullNo, GpioSpeedLow);
     if(output) furi_hal_gpio_write(data_gpio, false);
     return true;
 #else
@@ -255,10 +252,8 @@ static uint32_t hal_region_band_default(void) {
             uint32_t region_max_khz = region->bands[region_i].end / 1000U;
             uint32_t vfo_min_khz = hal_vfo_bands[vfo_i].min_hz / 1000U;
             uint32_t vfo_max_khz = hal_vfo_bands[vfo_i].max_hz / 1000U;
-            uint32_t min_khz =
-                region_min_khz > vfo_min_khz ? region_min_khz : vfo_min_khz;
-            uint32_t max_khz =
-                region_max_khz < vfo_max_khz ? region_max_khz : vfo_max_khz;
+            uint32_t min_khz = region_min_khz > vfo_min_khz ? region_min_khz : vfo_min_khz;
+            uint32_t max_khz = region_max_khz < vfo_max_khz ? region_max_khz : vfo_max_khz;
             uint32_t candidate;
             if(min_khz > max_khz) continue;
             candidate = (min_khz + ((max_khz - min_khz) / 2U)) * 1000U;

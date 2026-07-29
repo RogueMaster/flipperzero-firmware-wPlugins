@@ -7,7 +7,7 @@
 bool mf_settings_snapshot_normalize(MfSettingsSnapshot* snapshot);
 uint8_t mf_settings_row_count(uint8_t entry, const MfSettingsSnapshot* snapshot);
 
-#define MF_SETTINGS_CUSTOM_SET_CAP 8U
+#define MF_SETTINGS_CUSTOM_SET_CAP  8U
 #define MF_SETTINGS_CUSTOM_NAME_CAP 24U
 
 typedef struct {

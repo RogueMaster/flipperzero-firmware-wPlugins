@@ -9,10 +9,10 @@ static size_t queue_count;
 static size_t queue_at;
 static unsigned checks;
 
-#define CHECK(value) \
-    do { \
+#define CHECK(value)   \
+    do {               \
         assert(value); \
-        checks++; \
+        checks++;      \
     } while(0)
 
 void mf_rx_rng_init(MfRxRng* rng, uint32_t seed) {

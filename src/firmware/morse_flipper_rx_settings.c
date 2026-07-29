@@ -42,8 +42,7 @@ void morse_flipper_rx_settings_normalize(MorseFlipperRxSettings* settings) {
     if(settings->wpm < 10U) settings->wpm = 10U;
     if(settings->wpm > 30U) settings->wpm = 30U;
     if(settings->farnsworth_wpm < 1U) settings->farnsworth_wpm = 1U;
-    if(settings->farnsworth_wpm > settings->wpm)
-        settings->farnsworth_wpm = settings->wpm;
+    if(settings->farnsworth_wpm > settings->wpm) settings->farnsworth_wpm = settings->wpm;
 }
 
 void morse_flipper_rx_settings_length_bounds(
@@ -68,7 +67,7 @@ bool morse_flipper_rx_settings_load(MorseFlipperRxSettings* settings) {
 
     for(uint8_t attempt = 0U; attempt < 2U && !loaded; attempt++) {
         const char* path = attempt == 0U ? MORSE_FLIPPER_RX_SETTINGS_PATH :
-                                          MORSE_FLIPPER_RX_SETTINGS_TEMP_PATH;
+                                           MORSE_FLIPPER_RX_SETTINGS_TEMP_PATH;
         loaded = storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING) &&
                  storage_file_size(file) == sizeof(record) &&
                  storage_file_read(file, &record, sizeof(record)) == sizeof(record) &&
@@ -111,15 +110,15 @@ bool morse_flipper_rx_settings_save(const MorseFlipperRxSettings* settings) {
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);
     storage_common_remove(storage, MORSE_FLIPPER_RX_SETTINGS_TEMP_PATH);
-    saved =
-        storage_file_open(file, MORSE_FLIPPER_RX_SETTINGS_TEMP_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
-        storage_file_write(file, &record, sizeof(record)) == sizeof(record);
+    saved = storage_file_open(
+                file, MORSE_FLIPPER_RX_SETTINGS_TEMP_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
+            storage_file_write(file, &record, sizeof(record)) == sizeof(record);
     saved = storage_file_close(file) && saved;
     if(saved)
-        saved = storage_common_rename(
-                    storage,
-                    MORSE_FLIPPER_RX_SETTINGS_TEMP_PATH,
-                    MORSE_FLIPPER_RX_SETTINGS_PATH) == FSE_OK;
+        saved =
+            storage_common_rename(
+                storage, MORSE_FLIPPER_RX_SETTINGS_TEMP_PATH, MORSE_FLIPPER_RX_SETTINGS_PATH) ==
+            FSE_OK;
     else
         storage_common_remove(storage, MORSE_FLIPPER_RX_SETTINGS_TEMP_PATH);
     storage_file_free(file);

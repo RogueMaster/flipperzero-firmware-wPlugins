@@ -150,18 +150,14 @@ typedef struct {
 static const MorseFlipperHelpAsset morse_help_assets[11U] = {
     [0U] = {APP_ASSETS_PATH("help/01-first-steps"), "First steps"},
     [1U] = {APP_ASSETS_PATH("help/02-input-and-keys"), "Input & keys"},
-    [2U] =
-        {APP_ASSETS_PATH("help/03-connecting-the-paddle"), "Connecting the paddle"},
+    [2U] = {APP_ASSETS_PATH("help/03-connecting-the-paddle"), "Connecting the paddle"},
     [3U] = {APP_ASSETS_PATH("help/04-how-to-practice"), "How to practice"},
     [4U] = {APP_ASSETS_PATH("help/05-prepping"), "Prepping"},
-    [5U] =
-        {APP_ASSETS_PATH("help/06-a-complete-morse-contact"), "A complete Morse contact"},
+    [5U] = {APP_ASSETS_PATH("help/06-a-complete-morse-contact"), "A complete Morse contact"},
     [6U] = {APP_ASSETS_PATH("help/07-contesting"), "Contesting"},
-    [7U] =
-        {APP_ASSETS_PATH("help/08-usb-and-live-practice"), "USB & live practice"},
+    [7U] = {APP_ASSETS_PATH("help/08-usb-and-live-practice"), "USB & live practice"},
     [8U] = {APP_ASSETS_PATH("help/09-ham-usage"), "Ham usage"},
-    [9U] =
-        {APP_ASSETS_PATH("help/10-troubleshooting"), "Troubleshooting"},
+    [9U] = {APP_ASSETS_PATH("help/10-troubleshooting"), "Troubleshooting"},
     [10U] = {APP_ASSETS_PATH("help/11-moving-forward"), "Moving forward"},
 };
 

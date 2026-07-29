@@ -103,11 +103,11 @@
 #define MORSE_FLIPPER_STRAIGHT_CHARSET              "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 #define MORSE_FLIPPER_TONE_OFF_IDX                  0xFFU
 #define MORSE_FLIPPER_DEFAULT_TONE_IDX              20U
-#define MORSE_SOURCE_STRAIGHT_GPIO (1UL << 0)
-#define MORSE_SOURCE_STRAIGHT_BTN  (1UL << 1)
-#define MORSE_SOURCE_KEYER_DIT     (1UL << 2)
-#define MORSE_SOURCE_KEYER_DAH     (1UL << 3)
-#define MORSE_SOURCE_HAM_MACRO     (1UL << 4)
+#define MORSE_SOURCE_STRAIGHT_GPIO                  (1UL << 0)
+#define MORSE_SOURCE_STRAIGHT_BTN                   (1UL << 1)
+#define MORSE_SOURCE_KEYER_DIT                      (1UL << 2)
+#define MORSE_SOURCE_KEYER_DAH                      (1UL << 3)
+#define MORSE_SOURCE_HAM_MACRO                      (1UL << 4)
 
 #define MORSE_PADDLE_SOURCE_GPIO_DIT (1UL << 0)
 #define MORSE_PADDLE_SOURCE_GPIO_DAH (1UL << 1)

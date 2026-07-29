@@ -34,17 +34,17 @@ typedef struct MfRxPracticeState {
     const MfRxPracticeDrawSnapshot* draw_snapshot;
 } MfRxPracticeState;
 
-_Static_assert(sizeof(MfRxPracticeState) <= 256U, "RX Practice state exceeds its hard memory budget");
+_Static_assert(
+    sizeof(MfRxPracticeState) <= 256U,
+    "RX Practice state exceeds its hard memory budget");
 
 bool mf_rx_practice_enter(
     MfRxPracticeState* state,
     const MfRxPracticeEnterArgs* args,
     MfRxPracticeResult* initial);
 void mf_rx_practice_leave(MfRxPracticeState* state);
-MfRxPracticeResult mf_rx_practice_command(
-    MfRxPracticeState* state,
-    MfRxPracticeCommand command,
-    uint32_t now_ms);
+MfRxPracticeResult
+    mf_rx_practice_command(MfRxPracticeState* state, MfRxPracticeCommand command, uint32_t now_ms);
 MfRxPracticeResult mf_rx_practice_feed_text(
     MfRxPracticeState* state,
     const char* text,

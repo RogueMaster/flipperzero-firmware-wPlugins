@@ -13,10 +13,10 @@ static bool save_outcomes[4];
 static MfPassiveSettingsModel saved_model;
 static MfPassiveSettingsModel loaded_model;
 
-#define CHECK(value) \
-    do { \
+#define CHECK(value)   \
+    do {               \
         assert(value); \
-        checks++; \
+        checks++;      \
     } while(0)
 
 void mf_passive_settings_load(MfPassiveSettingsModel* model) {
@@ -38,11 +38,11 @@ void mf_passive_settings_normalize(MfPassiveSettingsModel* model) {
     } else {
         if(model->length < 4U || model->length > 9U) model->length = 4U;
     }
-    if(model->lesson < 1U || model->lesson > mf_passive_settings_lesson_count()) model->lesson = 1U;
+    if(model->lesson < 1U || model->lesson > mf_passive_settings_lesson_count())
+        model->lesson = 1U;
     if(model->dit_ms == 0U) model->dit_ms = 100U;
     wpm = mf_passive_settings_wpm(model);
-    if(model->farnsworth_wpm < 1U || model->farnsworth_wpm > wpm)
-        model->farnsworth_wpm = wpm;
+    if(model->farnsworth_wpm < 1U || model->farnsworth_wpm > wpm) model->farnsworth_wpm = wpm;
     model->vibrate = model->vibrate ? 1U : 0U;
     if(model->answer_delay_s < 1U || model->answer_delay_s > 5U) model->answer_delay_s = 1U;
     model->repeat_after_answer = model->repeat_after_answer ? 1U : 0U;
@@ -60,8 +60,7 @@ size_t mf_passive_settings_lesson_count(void) {
 }
 
 const char* mf_passive_settings_length_label(uint8_t selection) {
-    static const char* const labels[] = {
-        "", "1", "2", "3", "4", "5", "6", "4-5", "5-6", "4-6"};
+    static const char* const labels[] = {"", "1", "2", "3", "4", "5", "6", "4-5", "5-6", "4-6"};
     return selection < 10U ? labels[selection] : "?";
 }
 
@@ -77,7 +76,8 @@ VariableItem* variable_item_list_add(
     void* context) {
     VariableItem* item = &list->items[list->count++];
 
-    *item = (VariableItem){.label = label, .values_count = count, .changed = changed, .context = context};
+    *item = (VariableItem){
+        .label = label, .values_count = count, .changed = changed, .context = context};
     return item;
 }
 

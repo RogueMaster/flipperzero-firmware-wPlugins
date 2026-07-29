@@ -100,7 +100,8 @@ static void draw_history(
     (void)canvas;
     (void)preview;
     (void)preview_extendable;
-    snprintf(drawn, sizeof(drawn), "%s|%s", morse_flipper_run_history_text(history), frequency_line);
+    snprintf(
+        drawn, sizeof(drawn), "%s|%s", morse_flipper_run_history_text(history), frequency_line);
 }
 
 static void draw_rx_text(
@@ -388,10 +389,7 @@ int main(void) {
     now = 1000U;
     fake.carrier = false;
     fake.rssi = -79;
-    tick_samples(
-        &state,
-        &now,
-        MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
+    tick_samples(&state, &now, MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
     assert(state.snapshot.monitor_threshold_dbm == -73);
     mf_radio_core_set_page(&state, MfRadioPageIdle, now);
     mf_radio_core_set_page(&state, MfRadioPageReceive, now);
@@ -405,10 +403,7 @@ int main(void) {
     now = 2000U;
     fake.carrier = true;
     fake.rssi = -65;
-    tick_samples(
-        &state,
-        &now,
-        MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
+    tick_samples(&state, &now, MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
     assert(state.snapshot.monitor_threshold_dbm == -59);
     assert(state.rx_recovery_pending && !state.snapshot.monitor_tone);
     input = event(InputKeyLeft, InputTypeShort);
@@ -422,10 +417,7 @@ int main(void) {
     fake.rssi = -106;
     tick_samples(&state, &now, 1U);
     assert(!state.snapshot.monitor_tone && !state.rx_level);
-    tick_samples(
-        &state,
-        &now,
-        MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES - 2U);
+    tick_samples(&state, &now, MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES - 2U);
     assert(state.rx_recovery_pending && state.snapshot.monitor_threshold_dbm == -60);
     assert(!state.snapshot.monitor_tone);
     tick_samples(&state, &now, 1U);
@@ -439,17 +431,11 @@ int main(void) {
     now = 3000U;
     fake.carrier = true;
     fake.rssi = -100;
-    tick_samples(
-        &state,
-        &now,
-        MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
+    tick_samples(&state, &now, MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
     assert(state.snapshot.monitor_threshold_dbm == -94);
     fake.carrier = false;
     fake.rssi = -70;
-    tick_samples(
-        &state,
-        &now,
-        MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
+    tick_samples(&state, &now, MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
     assert(state.rx_recovery_pending);
     assert(state.snapshot.monitor_threshold_dbm == -94);
     mf_radio_core_leave(&state);
@@ -460,18 +446,12 @@ int main(void) {
     now = 4000U;
     fake.carrier = false;
     fake.rssi = -127;
-    tick_samples(
-        &state,
-        &now,
-        MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
+    tick_samples(&state, &now, MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
     assert(state.snapshot.monitor_threshold_dbm == -115);
     mf_radio_core_set_page(&state, MfRadioPageIdle, now);
     mf_radio_core_set_page(&state, MfRadioPageReceive, now);
     fake.rssi = -50;
-    tick_samples(
-        &state,
-        &now,
-        MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
+    tick_samples(&state, &now, MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
     assert(state.snapshot.monitor_threshold_dbm == -50);
     mf_radio_core_leave(&state);
 

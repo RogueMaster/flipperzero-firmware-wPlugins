@@ -7,8 +7,12 @@
 #include "mf_passive_core.h"
 #include "mf_passive_draw.h"
 
-static void* mf_passive_alloc(void) { return calloc(1U, sizeof(MfPassiveState)); }
-static void mf_passive_free(void* state) { free(state); }
+static void* mf_passive_alloc(void) {
+    return calloc(1U, sizeof(MfPassiveState));
+}
+static void mf_passive_free(void* state) {
+    free(state);
+}
 static MorseFlipperMappedFalResult mf_passive_tick_api(void* state, uint32_t now_ms) {
     MfPassiveResult result = mf_passive_tick(state, now_ms);
     return (MorseFlipperMappedFalResult){
@@ -19,10 +23,8 @@ static MorseFlipperMappedFalResult mf_passive_tick_api(void* state, uint32_t now
         .feedback = result.feedback,
     };
 }
-static bool mf_passive_enter_api(
-    void* state,
-    const void* args,
-    MorseFlipperMappedFalResult* initial) {
+static bool
+    mf_passive_enter_api(void* state, const void* args, MorseFlipperMappedFalResult* initial) {
     MfPassiveResult result = {0};
     bool entered = mf_passive_enter(state, args, &result);
     if(initial != NULL) {
@@ -36,10 +38,8 @@ static bool mf_passive_enter_api(
     }
     return entered;
 }
-static MorseFlipperMappedFalResult mf_passive_input_api(
-    void* state,
-    const InputEvent* event,
-    uint32_t now_ms) {
+static MorseFlipperMappedFalResult
+    mf_passive_input_api(void* state, const InputEvent* event, uint32_t now_ms) {
     MfPassiveResult result = mf_passive_input(state, event, now_ms);
     return (MorseFlipperMappedFalResult){
         .handled = result.handled,
@@ -55,20 +55,21 @@ static void mf_passive_draw_api(void* state, Canvas* canvas, uint32_t now_ms) {
 }
 
 static const MfPassiveApi mf_passive_api = {
-    .mapped = {
-        .magic = MF_PASSIVE_API_MAGIC,
-        .api_version = MF_PASSIVE_API_VERSION,
-        .struct_size = sizeof(MfPassiveApi),
-        .alloc = mf_passive_alloc,
-        .free = mf_passive_free,
-        .enter = mf_passive_enter_api,
-        .leave = (void (*)(void*))mf_passive_leave,
-        .input = mf_passive_input_api,
-        .tick = mf_passive_tick_api,
-        .draw = mf_passive_draw_api,
-    },
+    .mapped =
+        {
+            .magic = MF_PASSIVE_API_MAGIC,
+            .api_version = MF_PASSIVE_API_VERSION,
+            .struct_size = sizeof(MfPassiveApi),
+            .alloc = mf_passive_alloc,
+            .free = mf_passive_free,
+            .enter = mf_passive_enter_api,
+            .leave = (void (*)(void*))mf_passive_leave,
+            .input = mf_passive_input_api,
+            .tick = mf_passive_tick_api,
+            .draw = mf_passive_draw_api,
+        },
     .enter = (bool (*)(void*, const MfPassiveEnterArgs*, MfPassiveResult*))mf_passive_enter,
-    .input = (MfPassiveResult (*)(void*, const InputEvent*, uint32_t))mf_passive_input,
+    .input = (MfPassiveResult(*)(void*, const InputEvent*, uint32_t))mf_passive_input,
 };
 
 static const FlipperAppPluginDescriptor mf_passive_descriptor = {

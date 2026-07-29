@@ -10,22 +10,22 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MORSE_FLIPPER_ICR_CHAR_COUNT        40U
-#define MORSE_FLIPPER_ICR_CHOICE_COUNT      5U
-#define MORSE_FLIPPER_ICR_CONFUSION_BITS     4U
+#define MORSE_FLIPPER_ICR_CHAR_COUNT     40U
+#define MORSE_FLIPPER_ICR_CHOICE_COUNT   5U
+#define MORSE_FLIPPER_ICR_CONFUSION_BITS 4U
 #define MORSE_FLIPPER_ICR_CONFUSION_ROW_BYTES \
     ((MORSE_FLIPPER_ICR_CHAR_COUNT * MORSE_FLIPPER_ICR_CONFUSION_BITS) / 8U)
 #define MORSE_FLIPPER_ICR_CONFUSION_BYTES \
     (MORSE_FLIPPER_ICR_CHAR_COUNT * MORSE_FLIPPER_ICR_CONFUSION_ROW_BYTES)
 /* Each target's mutable confusion row loses one level every 16 attempts. */
 #define MORSE_FLIPPER_ICR_CONFUSION_DECAY_INTERVAL 16U
-#define MORSE_FLIPPER_ICR_MAGIC             0x4943U
-#define MORSE_FLIPPER_ICR_VERSION           3U
-#define MORSE_FLIPPER_ICR_STATS_SIZE        1004U
-#define MORSE_FLIPPER_ICR_TIMEOUT_BUCKET    250U
-#define MORSE_FLIPPER_ICR_NO_CHOICE         0xFFU
-#define MORSE_FLIPPER_ICR_INSTANT_BUCKET    30U
-#define MORSE_FLIPPER_ICR_RECOGNIZED_BUCKET 100U
+#define MORSE_FLIPPER_ICR_MAGIC                    0x4943U
+#define MORSE_FLIPPER_ICR_VERSION                  3U
+#define MORSE_FLIPPER_ICR_STATS_SIZE               1004U
+#define MORSE_FLIPPER_ICR_TIMEOUT_BUCKET           250U
+#define MORSE_FLIPPER_ICR_NO_CHOICE                0xFFU
+#define MORSE_FLIPPER_ICR_INSTANT_BUCKET           30U
+#define MORSE_FLIPPER_ICR_RECOGNIZED_BUCKET        100U
 
 typedef struct {
     uint16_t magic;
@@ -34,8 +34,7 @@ typedef struct {
     uint16_t correct[MORSE_FLIPPER_ICR_CHAR_COUNT];
     uint8_t avg_ms20[MORSE_FLIPPER_ICR_CHAR_COUNT];
     /* 40 directed rows x 40 packed 4-bit answer levels = 800 bytes. */
-    uint8_t confusion_levels[MORSE_FLIPPER_ICR_CHAR_COUNT]
-                            [MORSE_FLIPPER_ICR_CONFUSION_ROW_BYTES];
+    uint8_t confusion_levels[MORSE_FLIPPER_ICR_CHAR_COUNT][MORSE_FLIPPER_ICR_CONFUSION_ROW_BYTES];
 } MorseFlipperIcrStats;
 
 _Static_assert(

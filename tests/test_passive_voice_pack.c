@@ -17,10 +17,10 @@ typedef struct {
 
 static unsigned checks;
 
-#define CHECK(value) \
-    do { \
+#define CHECK(value)   \
+    do {               \
         assert(value); \
-        checks++; \
+        checks++;      \
     } while(0)
 
 static void put16(uint8_t* out, uint16_t value) {
@@ -189,21 +189,21 @@ static void test_bounded_refill(void) {
     MfPassiveVoicePack pack;
     MfPassivePcmPipe pipe = {0};
     MfPassiveVoiceIo io;
-    for(size_t i = 0U; i < sizeof(payload); i++) payload[i] = (uint8_t)i;
+    for(size_t i = 0U; i < sizeof(payload); i++)
+        payload[i] = (uint8_t)i;
     make_pack(&file, MfPassiveCodecU8, payload, sizeof(payload), sizeof(payload), 0U);
     io = memory_io(&file);
     CHECK(mf_passive_voice_pack_open_io(&pack, &io));
     CHECK(mf_passive_voice_pack_begin(&pack, &pipe, '0'));
-    CHECK(
-        mf_passive_voice_pack_refill(&pack, &pipe, 100U) ==
-        MF_PASSIVE_VOICE_PIPE_HIGH_WATER);
+    CHECK(mf_passive_voice_pack_refill(&pack, &pipe, 100U) == MF_PASSIVE_VOICE_PIPE_HIGH_WATER);
     CHECK(pipe.write_pos == MF_PASSIVE_VOICE_PIPE_HIGH_WATER);
     CHECK(!mf_passive_voice_pack_eof(&pack));
     CHECK(!mf_passive_voice_pack_failed(&pack));
     CHECK(file.largest_read <= MF_PASSIVE_VOICE_READ_MAX);
     pipe.read_pos = pipe.write_pos;
-    CHECK(mf_passive_voice_pack_refill(&pack, &pipe, 100U) ==
-          sizeof(payload) - MF_PASSIVE_VOICE_PIPE_HIGH_WATER);
+    CHECK(
+        mf_passive_voice_pack_refill(&pack, &pipe, 100U) ==
+        sizeof(payload) - MF_PASSIVE_VOICE_PIPE_HIGH_WATER);
     CHECK(mf_passive_voice_pack_eof(&pack));
     CHECK(file.largest_read <= MF_PASSIVE_VOICE_READ_MAX);
     pipe.read_pos = pipe.write_pos;
@@ -323,6 +323,9 @@ int main(void) {
     test_rejections();
     test_character_tokens();
     test_all_production_token_shapes_stream();
-    printf("test_passive_voice_pack: %u checks passed; state=%u bytes\n", checks, (unsigned)sizeof(MfPassiveVoicePack));
+    printf(
+        "test_passive_voice_pack: %u checks passed; state=%u bytes\n",
+        checks,
+        (unsigned)sizeof(MfPassiveVoicePack));
     return 0;
 }

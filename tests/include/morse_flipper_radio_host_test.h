@@ -7,7 +7,7 @@
 #include "plugins/radio/mf_radio_api.h"
 
 #define APP_ASSETS_PATH(path) path
-#define FuriWaitForever 0U
+#define FuriWaitForever       0U
 
 typedef struct {
     int unused;
@@ -97,22 +97,14 @@ void morse_flipper_sync_ptt(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_save_config(const MorseFlipperApp* app);
 void morse_flipper_view_dirty(MorseFlipperApp* app);
 void morse_flipper_release_all_notes(MorseFlipperApp* app);
-void morse_flipper_handle_active_keying_event(
-    MorseFlipperApp* app,
-    const InputEvent* event);
+void morse_flipper_handle_active_keying_event(MorseFlipperApp* app, const InputEvent* event);
 void morse_flipper_scene_back(MorseFlipperApp* app);
 void morse_flipper_draw_plugin_unavailable(Canvas* canvas);
 
 bool morse_flipper_radio_host_open(MorseFlipperApp* app, uint32_t now_ms);
 bool morse_flipper_radio_host_active(const MorseFlipperApp* app);
-bool morse_flipper_radio_host_set_page(
-    MorseFlipperApp* app,
-    MfRadioPage page,
-    uint32_t now_ms);
-bool morse_flipper_radio_host_input(
-    MorseFlipperApp* app,
-    const InputEvent* event,
-    uint32_t now_ms);
+bool morse_flipper_radio_host_set_page(MorseFlipperApp* app, MfRadioPage page, uint32_t now_ms);
+bool morse_flipper_radio_host_input(MorseFlipperApp* app, const InputEvent* event, uint32_t now_ms);
 void morse_flipper_radio_host_tick(MorseFlipperApp* app, uint32_t now_ms);
 void morse_flipper_radio_host_sync_tx(
     MorseFlipperApp* app,
@@ -120,8 +112,5 @@ void morse_flipper_radio_host_sync_tx(
     uint16_t duration_ms,
     bool level,
     uint32_t now_ms);
-void morse_flipper_radio_host_draw(
-    MorseFlipperApp* app,
-    Canvas* canvas,
-    uint32_t now_ms);
+void morse_flipper_radio_host_draw(MorseFlipperApp* app, Canvas* canvas, uint32_t now_ms);
 void morse_flipper_radio_host_close(MorseFlipperApp* app, uint32_t now_ms);

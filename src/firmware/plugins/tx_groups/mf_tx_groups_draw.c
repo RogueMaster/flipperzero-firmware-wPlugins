@@ -5,7 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 
-static void mf_tx_groups_score_line(const MfTxGroupsDrawSnapshot* snapshot, char* out, size_t out_sz) {
+static void
+    mf_tx_groups_score_line(const MfTxGroupsDrawSnapshot* snapshot, char* out, size_t out_sz) {
     unsigned pct = snapshot->session_total != 0U ?
                        ((unsigned)snapshot->session_good * 100U) / snapshot->session_total :
                        0U;
@@ -90,7 +91,8 @@ static void mf_tx_groups_draw_result(
     const MorseFlipperTxGroupResult* result = &snapshot->result;
 
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(canvas, 64, 7, AlignCenter, AlignCenter, result->passed ? "OK" : "Fail");
+    canvas_draw_str_aligned(
+        canvas, 64, 7, AlignCenter, AlignCenter, result->passed ? "OK" : "Fail");
     canvas_set_font(canvas, FontKeyboard);
     snprintf(value, sizeof(value), "%u/5", (unsigned)result->correct);
     mf_tx_groups_metric(canvas, 1, 20, "Corr", value, !result->correct_pass);
@@ -99,7 +101,12 @@ static void mf_tx_groups_draw_result(
     snprintf(value, sizeof(value), "%u%%", (unsigned)result->letter_gap_pct);
     mf_tx_groups_metric(canvas, 1, 38, "LGap", value, !result->letter_gap_pass);
     if(snapshot->sk) {
-        snprintf(value, sizeof(value), "%u.%02u", (unsigned)(result->ratio_x100 / 100U), (unsigned)(result->ratio_x100 % 100U));
+        snprintf(
+            value,
+            sizeof(value),
+            "%u.%02u",
+            (unsigned)(result->ratio_x100 / 100U),
+            (unsigned)(result->ratio_x100 % 100U));
         mf_tx_groups_metric(canvas, 64, 20, "Rtio", value, !result->ratio_pass);
         snprintf(value, sizeof(value), "%u%%", (unsigned)result->accuracy_pct);
         mf_tx_groups_metric(canvas, 64, 29, "Acc", value, !result->accuracy_pass);
@@ -128,23 +135,53 @@ static void mf_tx_groups_draw_final(
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 6, AlignCenter, AlignCenter, "Final score");
     canvas_set_font(canvas, FontKeyboard);
-    snprintf(value, sizeof(value), "%u/%u", (unsigned)snapshot->session_good, (unsigned)snapshot->session_total);
+    snprintf(
+        value,
+        sizeof(value),
+        "%u/%u",
+        (unsigned)snapshot->session_good,
+        (unsigned)snapshot->session_total);
     mf_tx_groups_metric(canvas, 1, y, "Pass", value, false);
     y += 9U;
-    snprintf(value, sizeof(value), "%u%%", (unsigned)mf_tx_groups_average(snapshot->sum_speed, snapshot->session_total));
+    snprintf(
+        value,
+        sizeof(value),
+        "%u%%",
+        (unsigned)mf_tx_groups_average(snapshot->sum_speed, snapshot->session_total));
     mf_tx_groups_metric(canvas, 1, y, "Time", value, false);
     y += 9U;
-    snprintf(value, sizeof(value), "%u%%", (unsigned)mf_tx_groups_average(snapshot->sum_lgap, snapshot->session_total));
+    snprintf(
+        value,
+        sizeof(value),
+        "%u%%",
+        (unsigned)mf_tx_groups_average(snapshot->sum_lgap, snapshot->session_total));
     mf_tx_groups_metric(canvas, 1, y, "LGap", value, false);
     if(snapshot->session_sk != 0U) {
         average = mf_tx_groups_average(snapshot->sum_ratio, snapshot->session_sk);
-        snprintf(value, sizeof(value), "%u.%02u", (unsigned)(average / 100U), (unsigned)(average % 100U));
+        snprintf(
+            value,
+            sizeof(value),
+            "%u.%02u",
+            (unsigned)(average / 100U),
+            (unsigned)(average % 100U));
         mf_tx_groups_metric(canvas, 64, 20, "Rtio", value, false);
-        snprintf(value, sizeof(value), "%u%%", (unsigned)mf_tx_groups_average(snapshot->sum_accuracy, snapshot->session_sk));
+        snprintf(
+            value,
+            sizeof(value),
+            "%u%%",
+            (unsigned)mf_tx_groups_average(snapshot->sum_accuracy, snapshot->session_sk));
         mf_tx_groups_metric(canvas, 64, 29, "Acc", value, false);
-        snprintf(value, sizeof(value), "%u%%", (unsigned)mf_tx_groups_average(snapshot->sum_dgap, snapshot->session_sk));
+        snprintf(
+            value,
+            sizeof(value),
+            "%u%%",
+            (unsigned)mf_tx_groups_average(snapshot->sum_dgap, snapshot->session_sk));
         mf_tx_groups_metric(canvas, 64, 38, "DGap", value, false);
-        snprintf(value, sizeof(value), "%u%%", (unsigned)mf_tx_groups_average(snapshot->sum_variance, snapshot->session_sk));
+        snprintf(
+            value,
+            sizeof(value),
+            "%u%%",
+            (unsigned)mf_tx_groups_average(snapshot->sum_variance, snapshot->session_sk));
         mf_tx_groups_metric(canvas, 64, 47, "Var", value, false);
     }
     canvas_set_font(canvas, FontSecondary);
@@ -162,7 +199,8 @@ static void mf_tx_groups_draw_start(Canvas* canvas, uint8_t mode) {
         canvas_draw_str_aligned(canvas, 64, 38, AlignCenter, AlignCenter, "Press OK to start");
     else {
         canvas_draw_str_aligned(canvas, 64, 32, AlignCenter, AlignCenter, "Press OK to start");
-        canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignCenter, "Press your key to start");
+        canvas_draw_str_aligned(
+            canvas, 64, 44, AlignCenter, AlignCenter, "Press your key to start");
     }
 }
 
@@ -178,12 +216,12 @@ void mf_tx_groups_draw_tx_groups(void* state, Canvas* canvas) {
     services = &tx_groups_state->draw_services;
     group = services->group;
     if(group == NULL || services->sum_speed == NULL || services->sum_lgap == NULL ||
-       services->sum_ratio == NULL || services->sum_accuracy == NULL || services->sum_dgap == NULL ||
-       services->sum_variance == NULL || services->session_total == NULL ||
-       services->session_good == NULL || services->session_sk == NULL ||
-       services->result_until == NULL || services->screen == NULL ||
-       services->input_source == NULL || services->started == NULL || services->txg_sk == NULL ||
-       services->prompt_width == 0U || services->draw_prompt == NULL ||
+       services->sum_ratio == NULL || services->sum_accuracy == NULL ||
+       services->sum_dgap == NULL || services->sum_variance == NULL ||
+       services->session_total == NULL || services->session_good == NULL ||
+       services->session_sk == NULL || services->result_until == NULL ||
+       services->screen == NULL || services->input_source == NULL || services->started == NULL ||
+       services->txg_sk == NULL || services->prompt_width == 0U || services->draw_prompt == NULL ||
        services->draw_history_divider == NULL || services->draw_left_exit_hint == NULL ||
        services->answer_preview == NULL)
         return;
@@ -210,21 +248,18 @@ void mf_tx_groups_draw_tx_groups(void* state, Canvas* canvas) {
     snapshot.session_total = *services->session_total;
     snapshot.session_good = *services->session_good;
     snapshot.session_sk = *services->session_sk;
-    snapshot.mode =
-        *services->screen == services->screen_practice ?
-            (*services->started ? MfTxGroupsDrawPractice :
-                                  (*services->input_source == services->input_buttons ?
-                                       MfTxGroupsDrawStartButtons :
-                                       MfTxGroupsDrawStartKey)) :
-        *services->screen == services->screen_result ? MfTxGroupsDrawResult :
-                                                       MfTxGroupsDrawFinal;
+    snapshot.mode = *services->screen == services->screen_practice ?
+                        (*services->started ? MfTxGroupsDrawPractice :
+                                              (*services->input_source == services->input_buttons ?
+                                                   MfTxGroupsDrawStartButtons :
+                                                   MfTxGroupsDrawStartKey)) :
+                    *services->screen == services->screen_result ? MfTxGroupsDrawResult :
+                                                                   MfTxGroupsDrawFinal;
     uint32_t now_ms = furi_get_tick();
     if(*services->result_until > now_ms)
-        snapshot.countdown_s =
-            (uint8_t)((*services->result_until - now_ms + 999U) / 1000U);
+        snapshot.countdown_s = (uint8_t)((*services->result_until - now_ms + 999U) / 1000U);
     snapshot.sk = group->sk;
-    snapshot.left_hint =
-        *services->input_source == services->input_buttons && !*services->txg_sk;
+    snapshot.left_hint = *services->input_source == services->input_buttons && !*services->txg_sk;
     snapshot.show_left_exit_hint = snapshot.left_hint;
     if(snapshot.mode == MfTxGroupsDrawPractice)
         mf_tx_groups_draw_practice(canvas, services, &snapshot);

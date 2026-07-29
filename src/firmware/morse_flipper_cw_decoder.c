@@ -161,8 +161,7 @@ static void decoder_process_space(
 
     if(!decoder || !ms) return;
 
-    if(decoder->held_dit_ms != 0U &&
-       ms >= (uint16_t)((decoder->held_dit_ms * 5U) / 2U)) {
+    if(decoder->held_dit_ms != 0U && ms >= (uint16_t)((decoder->held_dit_ms * 5U) / 2U)) {
         uint16_t held_dit_ms = decoder->held_dit_ms;
 
         decoder->held_dit_ms = 0U;
@@ -196,18 +195,13 @@ static void decoder_process_space(
 
 static bool decoder_fast_dit_candidate(const MorseFlipperCwDecoder* decoder, uint16_t ms) {
     if(decoder == NULL || decoder->fixed_timing || decoder->dit_ms == 0U) return false;
-    return ms >= (uint16_t)(decoder->dit_ms / 3U) &&
-           ms < (uint16_t)((decoder->dit_ms * 2U) / 3U);
+    return ms >= (uint16_t)(decoder->dit_ms / 3U) && ms < (uint16_t)((decoder->dit_ms * 2U) / 3U);
 }
 
-static bool decoder_fast_dit_confirmed(
-    uint16_t held_dit_ms,
-    uint16_t held_gap_ms,
-    uint16_t ms) {
+static bool decoder_fast_dit_confirmed(uint16_t held_dit_ms, uint16_t held_gap_ms, uint16_t ms) {
     return held_gap_ms >= (uint16_t)(held_dit_ms / 2U) &&
            held_gap_ms <= (uint16_t)((held_dit_ms * 3U) / 2U) &&
-           ((ms >= (uint16_t)(held_dit_ms / 2U) &&
-             ms <= (uint16_t)((held_dit_ms * 3U) / 2U)) ||
+           ((ms >= (uint16_t)(held_dit_ms / 2U) && ms <= (uint16_t)((held_dit_ms * 3U) / 2U)) ||
             (ms >= (uint16_t)((held_dit_ms * 5U) / 2U) &&
              ms <= (uint16_t)((held_dit_ms * 7U) / 2U)));
 }
@@ -220,8 +214,7 @@ static void decoder_accept_held_dit(MorseFlipperCwDecoder* decoder) {
     decoder->held_dit_ms = 0U;
     decoder->held_gap_ms = 0U;
 
-    if(decoder->symbol_count == 1U &&
-       decoder->first_mark_ms >= (uint16_t)(held_dit_ms * 2U))
+    if(decoder->symbol_count == 1U && decoder->first_mark_ms >= (uint16_t)(held_dit_ms * 2U))
         decoder->symbol_code |= 1U;
     if(decoder_push_symbol(decoder, false)) {
         if(decoder->symbol_count == 1U) decoder->first_mark_ms = held_dit_ms;

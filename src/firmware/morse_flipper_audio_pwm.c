@@ -28,8 +28,23 @@
 #endif
 
 static const int16_t morse_flipper_audio_pwm_sine_quarter_q15[17] = {
-    0,     3212,  6393,  9512,  12539, 15446, 18204, 20787, 23170,
-    25329, 27245, 28898, 30273, 31356, 32137, 32609, 32767,
+    0,
+    3212,
+    6393,
+    9512,
+    12539,
+    15446,
+    18204,
+    20787,
+    23170,
+    25329,
+    27245,
+    28898,
+    30273,
+    31356,
+    32137,
+    32609,
+    32767,
 };
 
 static int16_t morse_flipper_audio_pwm_sine_q15(uint8_t index) {
@@ -141,10 +156,9 @@ static uint16_t morse_flipper_audio_pwm_next_sample(MorseFlipperAudioPwm* audio)
         MfPassivePcmPipe* pipe = (MfPassivePcmPipe*)audio->voice_pipe;
         int32_t mixed;
         if(pipe == NULL || !audio->voice_primed) return audio->pwm_midpoint;
-        mixed = audio->voice_previous +
-                (((int32_t)audio->voice_next - audio->voice_previous) *
-                     (int32_t)(audio->source_phase_q32 >> 17U) >>
-                 15U);
+        mixed = audio->voice_previous + (((int32_t)audio->voice_next - audio->voice_previous) *
+                                             (int32_t)(audio->source_phase_q32 >> 17U) >>
+                                         15U);
         audio->source_phase_q32 += audio->source_step_q32;
         if(audio->source_phase_q32 < audio->source_step_q32) {
             uint16_t read = pipe->read_pos;
@@ -168,7 +182,8 @@ static uint16_t morse_flipper_audio_pwm_next_sample(MorseFlipperAudioPwm* audio)
             }
         }
         delta = (morse_flipper_audio_pwm_drive_mix_q15(audio, mixed) *
-                 (int32_t)audio->pwm_amplitude) >> 15;
+                 (int32_t)audio->pwm_amplitude) >>
+                15;
         return (uint16_t)((int32_t)audio->pwm_midpoint + delta);
     }
 
@@ -335,12 +350,14 @@ void morse_flipper_audio_pwm_set_voice(
         return;
     __DMB();
     audio->voice_previous = mutable_pipe->samples[mutable_pipe->read_pos];
-    mutable_pipe->read_pos = (uint16_t)((mutable_pipe->read_pos + 1U) % MF_PASSIVE_PCM_RING_SAMPLES);
+    mutable_pipe->read_pos =
+        (uint16_t)((mutable_pipe->read_pos + 1U) % MF_PASSIVE_PCM_RING_SAMPLES);
     audio->voice_next = audio->voice_previous;
     audio->source = MorseFlipperAudioPwmSourceVoiceTail;
     if(mutable_pipe->read_pos != mutable_pipe->write_pos) {
         audio->voice_next = mutable_pipe->samples[mutable_pipe->read_pos];
-        mutable_pipe->read_pos = (uint16_t)((mutable_pipe->read_pos + 1U) % MF_PASSIVE_PCM_RING_SAMPLES);
+        mutable_pipe->read_pos =
+            (uint16_t)((mutable_pipe->read_pos + 1U) % MF_PASSIVE_PCM_RING_SAMPLES);
         audio->source = MorseFlipperAudioPwmSourceVoice;
     }
     audio->voice_pipe = pipe;

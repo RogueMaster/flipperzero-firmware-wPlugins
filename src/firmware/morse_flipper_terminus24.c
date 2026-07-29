@@ -7,15 +7,14 @@
 #include "morse_flipper_app_i.h"
 #include "fonts/morse_flipper_terminus24.h"
 
-#define MORSE_FLIPPER_TERMINUS24_ASSET APP_ASSETS_PATH("terminus24.bin")
+#define MORSE_FLIPPER_TERMINUS24_ASSET           APP_ASSETS_PATH("terminus24.bin")
 #define MORSE_FLIPPER_TERMINUS24_ASSET_SIGNATURE APP_ASSETS_PATH(".assets.signature")
-#define MORSE_FLIPPER_TERMINUS24_MAGIC "MF24"
-#define MORSE_FLIPPER_TERMINUS24_VERSION 1U
-#define MORSE_FLIPPER_TERMINUS24_HEADER_SIZE 8U
-#define MORSE_FLIPPER_TERMINUS24_GLYPH_COUNT 61U
+#define MORSE_FLIPPER_TERMINUS24_MAGIC           "MF24"
+#define MORSE_FLIPPER_TERMINUS24_VERSION         1U
+#define MORSE_FLIPPER_TERMINUS24_HEADER_SIZE     8U
+#define MORSE_FLIPPER_TERMINUS24_GLYPH_COUNT     61U
 #define MORSE_FLIPPER_TERMINUS24_ASSET_SIZE \
-    (MORSE_FLIPPER_TERMINUS24_HEADER_SIZE + \
-     (256U * MORSE_FLIPPER_TERMINUS24_PACKED_SIZE))
+    (MORSE_FLIPPER_TERMINUS24_HEADER_SIZE + (256U * MORSE_FLIPPER_TERMINUS24_PACKED_SIZE))
 
 const MorseFlipperTerminus24PreparedGlyph*
     morse_flipper_terminus24_prepared(const MorseFlipperTerminus24Cache* cache, uint8_t ch) {
@@ -35,8 +34,7 @@ uint16_t morse_flipper_terminus24_prepared_row(
     pos = (row / 2U) * 3U;
     if((row & 1U) == 0U)
         return (uint16_t)(((uint16_t)glyph->rows[pos] << 4U) | (glyph->rows[pos + 1U] >> 4U));
-    return (uint16_t)(((uint16_t)(glyph->rows[pos + 1U] & 0x0FU) << 8U) |
-                      glyph->rows[pos + 2U]);
+    return (uint16_t)(((uint16_t)(glyph->rows[pos + 1U] & 0x0FU) << 8U) | glyph->rows[pos + 2U]);
 }
 
 static bool morse_flipper_terminus24_push(uint8_t chars[10], uint8_t* count, uint8_t ch) {
@@ -46,11 +44,10 @@ static bool morse_flipper_terminus24_push(uint8_t chars[10], uint8_t* count, uin
 }
 
 static bool morse_flipper_terminus24_visible(const MorseFlipperApp* app) {
-    return app != NULL &&
-           ((app->screen == MorseFlipperScreenStraight && app->straight_started &&
-             !morse_flipper_straight_countdown_active(app)) ||
-            app->screen == MorseFlipperScreenTxGroups ||
-            app->screen == MorseFlipperScreenStreakIntro);
+    return app != NULL && ((app->screen == MorseFlipperScreenStraight && app->straight_started &&
+                            !morse_flipper_straight_countdown_active(app)) ||
+                           app->screen == MorseFlipperScreenTxGroups ||
+                           app->screen == MorseFlipperScreenStreakIntro);
 }
 
 static bool morse_flipper_terminus24_visible_chars(
@@ -65,12 +62,13 @@ static bool morse_flipper_terminus24_visible_chars(
             chars, count, morse_flipper_straight_trainer_target_char(&app->straight_trainer));
     } else if(app->screen == MorseFlipperScreenTxGroups) {
         uint8_t answer_len = 0U;
-        for(uint8_t i = 0U;
-            i < MORSE_FLIPPER_TX_GROUP_LEN && app->tx_group.target[i] != '\0';
+        for(uint8_t i = 0U; i < MORSE_FLIPPER_TX_GROUP_LEN && app->tx_group.target[i] != '\0';
             i++) {
-            if(!morse_flipper_terminus24_push(chars, count, (uint8_t)app->tx_group.target[i])) return false;
+            if(!morse_flipper_terminus24_push(chars, count, (uint8_t)app->tx_group.target[i]))
+                return false;
         }
-        while(answer_len < MORSE_FLIPPER_TX_GROUP_LEN && app->tx_group.answer[answer_len] != '\0') {
+        while(answer_len < MORSE_FLIPPER_TX_GROUP_LEN &&
+              app->tx_group.answer[answer_len] != '\0') {
             if(!morse_flipper_terminus24_push(
                    chars, count, (uint8_t)app->tx_group.answer[answer_len]))
                 return false;
@@ -107,7 +105,8 @@ static bool morse_flipper_terminus24_load(
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);
     if(file == NULL) goto record_done;
-    if(!storage_file_open(file, MORSE_FLIPPER_TERMINUS24_ASSET, FSAM_READ, FSOM_OPEN_EXISTING)) goto done;
+    if(!storage_file_open(file, MORSE_FLIPPER_TERMINUS24_ASSET, FSAM_READ, FSOM_OPEN_EXISTING))
+        goto done;
     if(storage_file_size(file) != MORSE_FLIPPER_TERMINUS24_ASSET_SIZE ||
        storage_file_read(file, header, sizeof(header)) != sizeof(header) ||
        memcmp(header, MORSE_FLIPPER_TERMINUS24_MAGIC, 4U) != 0 ||
@@ -120,8 +119,7 @@ static bool morse_flipper_terminus24_load(
                MORSE_FLIPPER_TERMINUS24_HEADER_SIZE +
                    ((uint32_t)chars[slot] * MORSE_FLIPPER_TERMINUS24_PACKED_SIZE),
                true) ||
-           storage_file_read(
-               file, cache->slots[slot].rows, MORSE_FLIPPER_TERMINUS24_PACKED_SIZE) !=
+           storage_file_read(file, cache->slots[slot].rows, MORSE_FLIPPER_TERMINUS24_PACKED_SIZE) !=
                MORSE_FLIPPER_TERMINUS24_PACKED_SIZE)
             goto done;
         cache->slots[slot].ch = chars[slot];
@@ -182,6 +180,7 @@ void morse_flipper_terminus24_prepare(MorseFlipperApp* app) {
             .asset_ok = false,
             .prepared = true,
         };
-        for(uint8_t i = 0U; i < wanted; i++) app->terminus24.slots[i].ch = chars[i];
+        for(uint8_t i = 0U; i < wanted; i++)
+            app->terminus24.slots[i].ch = chars[i];
     }
 }

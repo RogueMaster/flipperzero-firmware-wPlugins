@@ -62,8 +62,7 @@ uint8_t morse_flipper_backlight_mode(const MorseFlipperApp* app) {
        app->screen == MorseFlipperScreenHamRun || app->screen == MorseFlipperScreenStraight ||
        app->screen == MorseFlipperScreenTxGroups ||
        app->screen == MorseFlipperScreenTxGroupsResult ||
-       app->screen == MorseFlipperScreenTxGroupsFinal ||
-       app->screen == MorseFlipperScreenIcr ||
+       app->screen == MorseFlipperScreenTxGroupsFinal || app->screen == MorseFlipperScreenIcr ||
        app->screen == MorseFlipperScreenRxPractice)
         return MorseFlipperBacklightHold;
 
@@ -212,7 +211,8 @@ static uint16_t morse_flipper_trainer_char_gap_ms(const MorseFlipperApp* app) {
 
     if(app == NULL) return MORSE_FLIPPER_DEFAULT_DIT_MS * 3U;
 
-    dit_ms = app->listening_settings.local_dit_ms ? app->listening_settings.local_dit_ms : MORSE_FLIPPER_DEFAULT_DIT_MS;
+    dit_ms = app->listening_settings.local_dit_ms ? app->listening_settings.local_dit_ms :
+                                                    MORSE_FLIPPER_DEFAULT_DIT_MS;
     if(app->screen != MorseFlipperScreenSession) return (uint16_t)(dit_ms * 3U);
     return morse_flipper_training_char_gap_ms(
         dit_ms, morse_flipper_local_wpm(app), app->listening_settings.farnsworth_wpm);
@@ -258,7 +258,8 @@ uint16_t morse_flipper_current_dit_ms(const MorseFlipperApp* app) {
     if(app->vail_speed_active)
         return app->vail_dit_ms ? app->vail_dit_ms : MORSE_FLIPPER_DEFAULT_DIT_MS;
 
-    return app->listening_settings.local_dit_ms ? app->listening_settings.local_dit_ms : MORSE_FLIPPER_DEFAULT_DIT_MS;
+    return app->listening_settings.local_dit_ms ? app->listening_settings.local_dit_ms :
+                                                  MORSE_FLIPPER_DEFAULT_DIT_MS;
 }
 
 uint16_t morse_flipper_current_straight_dit_ms(const MorseFlipperApp* app) {
@@ -330,8 +331,8 @@ bool morse_flipper_training_playback_active(const MorseFlipperApp* app) {
     if(app->screen == MorseFlipperScreenRxPractice) {
         MorseFlipperPluginSnapshot snapshot;
         return morse_flipper_plugin_runtime_snapshot(app, &snapshot) &&
-               snapshot.owner == MorseFlipperPluginOwnerRxPractice &&
-               snapshot.active && snapshot.playback_active;
+               snapshot.owner == MorseFlipperPluginOwnerRxPractice && snapshot.active &&
+               snapshot.playback_active;
     }
     return app->screen == MorseFlipperScreenSession && app->trainer_playback_active;
 }
@@ -514,7 +515,8 @@ void morse_flipper_unload_custom_sets(MorseFlipperApp* app) {
 uint8_t morse_flipper_effective_trainer_custom_set_idx(const MorseFlipperApp* app) {
     if(app == NULL || app->listening_settings.custom_set_idx == 0U) return 0U;
     if(!app->custom_sets_loaded) {
-        return app->trainer.charset_override[0] == '\0' ? 0U : app->listening_settings.custom_set_idx;
+        return app->trainer.charset_override[0] == '\0' ? 0U :
+                                                          app->listening_settings.custom_set_idx;
     }
     if(app->custom_sets == NULL || app->custom_sets->count == 0U ||
        app->listening_settings.custom_set_idx > app->custom_sets->count)

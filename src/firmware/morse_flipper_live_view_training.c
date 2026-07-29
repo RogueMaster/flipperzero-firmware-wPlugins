@@ -343,11 +343,7 @@ void morse_flipper_draw_straight_screen(Canvas* canvas, MorseFlipperApp* app) {
     }
 
     morse_flipper_draw_straight_prompt(
-        canvas,
-        app,
-        19,
-        18,
-        morse_flipper_straight_trainer_target_char(&app->straight_trainer));
+        canvas, app, 19, 18, morse_flipper_straight_trainer_target_char(&app->straight_trainer));
 
     dit_ms = morse_flipper_current_straight_dit_ms(app);
 

@@ -91,7 +91,7 @@ void morse_flipper_reset_session_state(MorseFlipperApp* app, uint32_t now_ms) {
     app->tx_edge_at = 0U;
     app->tx_gap_flushed = true;
     app->tx_level = false;
-            morse_flipper_reset_answer_decoder(app);
+    morse_flipper_reset_answer_decoder(app);
 
     morse_flipper_refresh_keyer(app, now_ms);
     morse_flipper_update_sidetone(app);
@@ -296,9 +296,10 @@ static void morse_flipper_queue_session_feedback(MorseFlipperApp* app, uint32_t 
     app->session_result_tone = !app->session_result_good;
     app->session_result_until = now_ms + MORSE_FLIPPER_SESSION_RESULT_MS;
     app->session_answer_complete_at = 0U;
-    app->session_next_group_at = morse_trainer_session_has_next(&app->trainer) ?
-                                     (now_ms + ((uint32_t)app->listening_settings.group_pause_s * 1000U)) :
-                                     0U;
+    app->session_next_group_at =
+        morse_trainer_session_has_next(&app->trainer) ?
+            (now_ms + ((uint32_t)app->listening_settings.group_pause_s * 1000U)) :
+            0U;
     app->session_wait_draw_s = 0xFFU;
     morse_flipper_update_sidetone(app);
     morse_flipper_view_dirty(app);
@@ -370,7 +371,8 @@ void morse_flipper_start_session(MorseFlipperApp* app, uint32_t now_ms) {
     app->session_result_good = false;
     app->session_result_until = 0U;
     app->session_answer_complete_at = 0U;
-    app->session_next_group_at = now_ms + ((uint32_t)app->listening_settings.group_pause_s * 1000U);
+    app->session_next_group_at =
+        now_ms + ((uint32_t)app->listening_settings.group_pause_s * 1000U);
     app->session_wait_draw_s = 0xFFU;
     mf_tlm_session(app);
     mf_tlm_group(app);
@@ -563,21 +565,10 @@ void morse_flipper_record_session_progress(MorseFlipperApp* app) {
     }
 
     morse_flipper_progress_note_standard_attempt(
-        app->session_progress,
-        date_valid,
-        practice_day,
-        lesson,
-        percent,
-        total);
+        app->session_progress, date_valid, practice_day, lesson, percent, total);
     if(morse_flipper_progress_save(app->session_progress) && date_valid) {
         if(morse_flipper_progress_append_history(
-               dt.year,
-               dt.month,
-               dt.day,
-               dt.hour,
-               dt.minute,
-               lesson,
-               percent) &&
+               dt.year, dt.month, dt.day, dt.hour, dt.minute, lesson, percent) &&
            morse_flipper_activity_listening_success(percent))
             morse_flipper_activity_note_listening_session(practice_day);
     }

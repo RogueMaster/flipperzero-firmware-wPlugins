@@ -3,19 +3,19 @@
 #include "mf_radio_api.h"
 #include "mf_radio_hal.h"
 
-#define MF_RADIO_FREQ_DIGITS          6U
-#define MF_RADIO_RX_DEFAULT_WPM       10U
-#define MF_RADIO_RX_WPM_MIN           2U
-#define MF_RADIO_RX_WPM_MAX           25U
-#define MF_RADIO_RX_SAMPLE_MS         8U
-#define MF_RADIO_RX_STABLE_SAMPLES    4U
-#define MF_RADIO_RX_VIEW_MS           32U
-#define MF_RADIO_RX_TICKER_WINDOW_MS  4000U
-#define MF_RADIO_RX_TICKER_CAPACITY   64U
-#define MF_RADIO_RX_HYSTERESIS_DB     1
-#define MF_RADIO_RX_AUTO_WPM_SAMPLES  3U
-#define MF_RADIO_RSSI_WINDOW_MS       160U
-#define MF_RADIO_RSSI_PEAK_DECAY_MS   240U
+#define MF_RADIO_FREQ_DIGITS           6U
+#define MF_RADIO_RX_DEFAULT_WPM        10U
+#define MF_RADIO_RX_WPM_MIN            2U
+#define MF_RADIO_RX_WPM_MAX            25U
+#define MF_RADIO_RX_SAMPLE_MS          8U
+#define MF_RADIO_RX_STABLE_SAMPLES     4U
+#define MF_RADIO_RX_VIEW_MS            32U
+#define MF_RADIO_RX_TICKER_WINDOW_MS   4000U
+#define MF_RADIO_RX_TICKER_CAPACITY    64U
+#define MF_RADIO_RX_HYSTERESIS_DB      1
+#define MF_RADIO_RX_AUTO_WPM_SAMPLES   3U
+#define MF_RADIO_RSSI_WINDOW_MS        160U
+#define MF_RADIO_RSSI_PEAK_DECAY_MS    240U
 /* Ignore eight startup samples, then use a 16-sample median plus a 6 dB margin. */
 #define MF_RADIO_RX_CAL_SETTLE_SAMPLES 8U
 #define MF_RADIO_RX_CAL_SAMPLES        16U

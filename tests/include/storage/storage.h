@@ -32,11 +32,7 @@ typedef enum {
 
 File* storage_file_alloc(Storage* storage);
 void storage_file_free(File* file);
-bool storage_file_open(
-    File* file,
-    const char* path,
-    FS_AccessMode access,
-    FS_OpenMode mode);
+bool storage_file_open(File* file, const char* path, FS_AccessMode access, FS_OpenMode mode);
 size_t storage_file_read(File* file, void* buffer, size_t size);
 size_t storage_file_write(File* file, const void* buffer, size_t size);
 uint64_t storage_file_size(File* file);

@@ -993,18 +993,18 @@ bool morse_flipper_progress_history_load_newer(
             total_lines = morse_flipper_progress_history_line_count(cursor->practice_day);
             if(total_lines != 0U) {
                 uint32_t candidate = total_lines - 1U;
-            if(candidate > UINT16_MAX) candidate = UINT16_MAX;
+                if(candidate > UINT16_MAX) candidate = UINT16_MAX;
 
-            while(true) {
+                while(true) {
                     if(morse_flipper_progress_history_load_row_at(
                            cursor->practice_day, (uint16_t)candidate, out)) {
                         cursor->line_from_end = (uint16_t)candidate;
                         cursor->day_loaded = true;
-                    return true;
+                        return true;
                     }
-                if(candidate == 0U) break;
-                candidate--;
-            }
+                    if(candidate == 0U) break;
+                    candidate--;
+                }
             }
         }
 
@@ -1079,7 +1079,7 @@ static MorseFlipperProgressHistoryMove morse_flipper_progress_history_view_cache
     if(view->older.exhausted) return MorseFlipperProgressHistoryBoundary;
     if(morse_flipper_progress_history_load_more(&view->older, &row, 1U) == 0U) {
         return view->older.exhausted ? MorseFlipperProgressHistoryBoundary :
-                                      MorseFlipperProgressHistoryPending;
+                                       MorseFlipperProgressHistoryPending;
     }
 
     if(view->row_count < MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS) {
@@ -1108,14 +1108,11 @@ static MorseFlipperProgressHistoryMove
             &view->newer, &view->rows[0], view->newer.newest_day);
     if(!morse_flipper_progress_history_load_newer(&view->newer, &row)) {
         return view->newer.exhausted ? MorseFlipperProgressHistoryBoundary :
-                                      MorseFlipperProgressHistoryPending;
+                                       MorseFlipperProgressHistoryPending;
     }
 
     if(view->row_count < MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS) {
-        memmove(
-            &view->rows[1],
-            &view->rows[0],
-            sizeof(view->rows[0]) * view->row_count);
+        memmove(&view->rows[1], &view->rows[0], sizeof(view->rows[0]) * view->row_count);
         view->rows[0] = row;
         view->row_count++;
     } else {
@@ -1162,8 +1159,7 @@ static MorseFlipperProgressHistoryMove
         }
 
         if(focus + 1U >= view->row_count) {
-            loaded =
-                morse_flipper_progress_history_view_cache_older(view, &dropped_newest);
+            loaded = morse_flipper_progress_history_view_cache_older(view, &dropped_newest);
             if(loaded != MorseFlipperProgressHistoryMoved) return loaded;
         }
 
@@ -1172,8 +1168,7 @@ static MorseFlipperProgressHistoryMove
             view->row_offset++;
             return MorseFlipperProgressHistoryMoved;
         }
-        if(view->row_cursor + 1U <
-           morse_flipper_progress_history_view_visible_rows(view)) {
+        if(view->row_cursor + 1U < morse_flipper_progress_history_view_visible_rows(view)) {
             view->row_cursor++;
             return MorseFlipperProgressHistoryMoved;
         }
@@ -1210,17 +1205,15 @@ void morse_flipper_progress_history_view_reset(
     view->row_count = morse_flipper_progress_history_load_more(
         &view->older, view->rows, MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS);
     if(view->row_count != 0U)
-        morse_flipper_progress_history_newer_reset(
-            &view->newer, &view->rows[0], newest_day);
+        morse_flipper_progress_history_newer_reset(&view->newer, &view->rows[0], newest_day);
 }
 
 void morse_flipper_progress_history_view_cancel(MorseFlipperProgressHistoryView* view) {
     if(view != NULL) view->pending_dir = 0;
 }
 
-MorseFlipperProgressHistoryMove morse_flipper_progress_history_view_scroll(
-    MorseFlipperProgressHistoryView* view,
-    int8_t dir) {
+MorseFlipperProgressHistoryMove
+    morse_flipper_progress_history_view_scroll(MorseFlipperProgressHistoryView* view, int8_t dir) {
     MorseFlipperProgressHistoryMove result;
 
     if(view == NULL || dir == 0) return MorseFlipperProgressHistoryBoundary;
@@ -1244,8 +1237,8 @@ MorseFlipperProgressHistoryMove
     return result;
 }
 
-const MorseFlipperProgressHistoryRow* morse_flipper_progress_history_view_focused(
-    const MorseFlipperProgressHistoryView* view) {
+const MorseFlipperProgressHistoryRow*
+    morse_flipper_progress_history_view_focused(const MorseFlipperProgressHistoryView* view) {
     uint8_t row;
 
     if(view == NULL) return NULL;

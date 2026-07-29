@@ -41,8 +41,10 @@ static MorseFlipperContentAction morse_flipper_content_host_apply_locked(
     MorseFlipperApp* app,
     MorseFlipperContentResult result) {
     if(result.help_topic_changed)
-        scene_manager_set_scene_state(app->scene_manager, MorseFlipperSceneMenuHelp, result.help_topic);
-    if(result.action == MorseFlipperContentActionRedraw || result.redraw) morse_flipper_view_dirty(app);
+        scene_manager_set_scene_state(
+            app->scene_manager, MorseFlipperSceneMenuHelp, result.help_topic);
+    if(result.action == MorseFlipperContentActionRedraw || result.redraw)
+        morse_flipper_view_dirty(app);
 
     return result.action;
 }
@@ -64,7 +66,10 @@ static void morse_flipper_content_host_apply_action(
     }
 }
 
-bool morse_flipper_content_host_input(MorseFlipperApp* app, const InputEvent* event, uint32_t now_ms) {
+bool morse_flipper_content_host_input(
+    MorseFlipperApp* app,
+    const InputEvent* event,
+    uint32_t now_ms) {
     MorseFlipperContentResult result = {0};
     MorseFlipperContentAction action;
 
@@ -88,8 +93,7 @@ bool morse_flipper_content_host_tick(MorseFlipperApp* app, uint32_t now_ms) {
     MorseFlipperMappedFalResult result = {0};
     if(app == NULL || app->plugin_slot.mutex == NULL) return false;
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
-    morse_flipper_plugin_runtime_tick_locked(
-        app, MorseFlipperPluginOwnerContent, now_ms, &result);
+    morse_flipper_plugin_runtime_tick_locked(app, MorseFlipperPluginOwnerContent, now_ms, &result);
     furi_mutex_release(app->plugin_slot.mutex);
     if(result.redraw) morse_flipper_view_dirty(app);
     return result.redraw;
@@ -98,7 +102,8 @@ bool morse_flipper_content_host_tick(MorseFlipperApp* app, uint32_t now_ms) {
 bool morse_flipper_onboarding_seen(void) {
     Storage* storage = furi_record_open(RECORD_STORAGE);
     File* file = storage_file_alloc(storage);
-    bool seen = storage_file_open(file, MORSE_FLIPPER_ONBOARDING_PATH, FSAM_READ, FSOM_OPEN_EXISTING);
+    bool seen =
+        storage_file_open(file, MORSE_FLIPPER_ONBOARDING_PATH, FSAM_READ, FSOM_OPEN_EXISTING);
     storage_file_close(file);
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
@@ -117,6 +122,7 @@ void morse_flipper_onboarding_finish(MorseFlipperApp* app) {
     furi_record_close(RECORD_STORAGE);
     if(app != NULL) {
         app->onboarding_seen = true;
-        scene_manager_search_and_switch_to_another_scene(app->scene_manager, MorseFlipperSceneMenuMain);
+        scene_manager_search_and_switch_to_another_scene(
+            app->scene_manager, MorseFlipperSceneMenuMain);
     }
 }

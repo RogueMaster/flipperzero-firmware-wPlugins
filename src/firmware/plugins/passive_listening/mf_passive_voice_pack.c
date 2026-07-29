@@ -39,9 +39,11 @@ static bool mf_passive_voice_read(
     void* buffer,
     size_t length) {
     uint32_t end;
-    if(pack == NULL || pack->io.read_at == NULL || buffer == NULL || length > UINT32_MAX) return false;
+    if(pack == NULL || pack->io.read_at == NULL || buffer == NULL || length > UINT32_MAX)
+        return false;
     end = offset + (uint32_t)length;
-    return end >= offset && end <= pack->io.size && pack->io.read_at(pack->io.context, offset, buffer, length);
+    return end >= offset && end <= pack->io.size &&
+           pack->io.read_at(pack->io.context, offset, buffer, length);
 }
 
 static bool mf_passive_voice_crc_range(
@@ -61,11 +63,11 @@ static bool mf_passive_voice_crc_range(
     return crc == expected;
 }
 
-static bool mf_passive_voice_token_valid(
-    const MfPassiveVoicePack* pack,
-    const MfPassiveVoiceToken* token) {
+static bool
+    mf_passive_voice_token_valid(const MfPassiveVoicePack* pack, const MfPassiveVoiceToken* token) {
     uint32_t end = token->offset + token->length;
-    if(token->length == 0U || token->samples == 0U || token->samples > MF_PASSIVE_VOICE_MAX_SAMPLES ||
+    if(token->length == 0U || token->samples == 0U ||
+       token->samples > MF_PASSIVE_VOICE_MAX_SAMPLES ||
        token->offset < MF_PASSIVE_VOICE_HEADER_SIZE || end < token->offset || end > pack->io.size)
         return false;
     if(pack->codec_id == MfPassiveCodecS16)
@@ -77,13 +79,20 @@ static bool mf_passive_voice_token_valid(
 }
 
 bool mf_passive_voice_char_token(char ch, uint8_t* token) {
-    if(ch >= 'A' && ch <= 'Z') *token = (uint8_t)(ch - 'A');
-    else if(ch >= '0' && ch <= '9') *token = (uint8_t)(26U + ch - '0');
-    else if(ch == '/') *token = 36U;
-    else if(ch == '.') *token = 37U;
-    else if(ch == ',') *token = 38U;
-    else if(ch == '?') *token = 39U;
-    else return false;
+    if(ch >= 'A' && ch <= 'Z')
+        *token = (uint8_t)(ch - 'A');
+    else if(ch >= '0' && ch <= '9')
+        *token = (uint8_t)(26U + ch - '0');
+    else if(ch == '/')
+        *token = 36U;
+    else if(ch == '.')
+        *token = 37U;
+    else if(ch == ',')
+        *token = 38U;
+    else if(ch == '?')
+        *token = 39U;
+    else
+        return false;
     return true;
 }
 
@@ -123,8 +132,7 @@ static size_t mf_passive_voice_decode_to_pipe(
                 }
             }
             __DMB();
-            pipe->write_pos =
-                (uint16_t)((write + produced) & (MF_PASSIVE_PCM_RING_SAMPLES - 1U));
+            pipe->write_pos = (uint16_t)((write + produced) & (MF_PASSIVE_PCM_RING_SAMPLES - 1U));
         }
         written += produced;
         capacity -= produced;
@@ -144,8 +152,9 @@ static bool mf_passive_voice_validate(MfPassiveVoicePack* pack) {
     uint32_t file_size;
     uint16_t count;
 
-    if(!mf_passive_voice_read(pack, 0U, header, sizeof(header)) || memcmp(header, "MFVA", 4U) != 0 ||
-       header[4] != MF_PASSIVE_VOICE_VERSION || header[5] > MfPassiveCodecImaAdpcm)
+    if(!mf_passive_voice_read(pack, 0U, header, sizeof(header)) ||
+       memcmp(header, "MFVA", 4U) != 0 || header[4] != MF_PASSIVE_VOICE_VERSION ||
+       header[5] > MfPassiveCodecImaAdpcm)
         return false;
     count = mf_passive_voice_le16(header + 6U);
     pack->sample_rate_hz = mf_passive_voice_le32(header + 8U);
@@ -153,18 +162,20 @@ static bool mf_passive_voice_validate(MfPassiveVoicePack* pack) {
     data_offset = mf_passive_voice_le32(header + 16U);
     file_size = mf_passive_voice_le32(header + 20U);
     if(count < MF_PASSIVE_VOICE_FIRST_SLICE_TOKENS || count > MF_PASSIVE_VOICE_TOKEN_COUNT ||
-       (pack->sample_rate_hz != 8000U && pack->sample_rate_hz != 16000U) || file_size != pack->io.size)
+       (pack->sample_rate_hz != 8000U && pack->sample_rate_hz != 16000U) ||
+       file_size != pack->io.size)
         return false;
     table_length = (uint32_t)count * MF_PASSIVE_VOICE_ENTRY_SIZE;
     table_end = table_offset + table_length;
-    if(table_offset < MF_PASSIVE_VOICE_HEADER_SIZE || table_end < table_offset || table_end > data_offset ||
-       data_offset > file_size)
+    if(table_offset < MF_PASSIVE_VOICE_HEADER_SIZE || table_end < table_offset ||
+       table_end > data_offset || data_offset > file_size)
         return false;
     pack->codec_id = header[5];
     for(uint16_t i = 0U; i < count; i++) {
         uint8_t id;
         MfPassiveVoiceToken* token;
-        if(!mf_passive_voice_read(pack, table_offset + i * MF_PASSIVE_VOICE_ENTRY_SIZE, entry, sizeof(entry)))
+        if(!mf_passive_voice_read(
+               pack, table_offset + i * MF_PASSIVE_VOICE_ENTRY_SIZE, entry, sizeof(entry)))
             return false;
         id = entry[0];
         if(id >= MF_PASSIVE_VOICE_TOKEN_COUNT || seen[id]) return false;
@@ -187,15 +198,20 @@ static bool mf_passive_voice_validate(MfPassiveVoicePack* pack) {
             if(!seen[right]) continue;
             left_end = pack->tokens[left].offset + pack->tokens[left].length;
             right_end = pack->tokens[right].offset + pack->tokens[right].length;
-            if(pack->tokens[left].offset < right_end && pack->tokens[right].offset < left_end) return false;
+            if(pack->tokens[left].offset < right_end && pack->tokens[right].offset < left_end)
+                return false;
         }
     }
-    return mf_passive_voice_crc_range(pack, table_offset, table_length, mf_passive_voice_le32(header + 24U)) &&
-           mf_passive_voice_crc_range(pack, data_offset, file_size - data_offset, mf_passive_voice_le32(header + 28U));
+    return mf_passive_voice_crc_range(
+               pack, table_offset, table_length, mf_passive_voice_le32(header + 24U)) &&
+           mf_passive_voice_crc_range(
+               pack, data_offset, file_size - data_offset, mf_passive_voice_le32(header + 28U));
 }
 
 bool mf_passive_voice_pack_open_io(MfPassiveVoicePack* pack, const MfPassiveVoiceIo* io) {
-    if(pack == NULL || io == NULL || io->read_at == NULL || io->size < MF_PASSIVE_VOICE_HEADER_SIZE) return false;
+    if(pack == NULL || io == NULL || io->read_at == NULL ||
+       io->size < MF_PASSIVE_VOICE_HEADER_SIZE)
+        return false;
     memset(pack, 0, sizeof(*pack));
     pack->io = *io;
     pack->open = mf_passive_voice_validate(pack);
@@ -204,11 +220,8 @@ bool mf_passive_voice_pack_open_io(MfPassiveVoicePack* pack, const MfPassiveVoic
 }
 
 #ifdef MORSE_FLIPPER_FAP
-static bool mf_passive_voice_storage_read(
-    void* context,
-    uint32_t offset,
-    void* buffer,
-    size_t length) {
+static bool
+    mf_passive_voice_storage_read(void* context, uint32_t offset, void* buffer, size_t length) {
     MfPassiveVoicePack* pack = context;
     return pack != NULL && pack->file != NULL && storage_file_seek(pack->file, offset, true) &&
            storage_file_read(pack->file, buffer, length) == length;
@@ -224,12 +237,11 @@ bool mf_passive_voice_pack_open_asset(MfPassiveVoicePack* pack) {
     pack->storage = furi_record_open(RECORD_STORAGE);
     if(pack->storage == NULL) return false;
     pack->file = storage_file_alloc(pack->storage);
-    if(pack->file == NULL ||
-       !storage_file_open(
-           pack->file,
-           APP_ASSETS_PATH("audio/voice_en_gb_amy_v1.mfa"),
-           FSAM_READ,
-           FSOM_OPEN_EXISTING)) {
+    if(pack->file == NULL || !storage_file_open(
+                                 pack->file,
+                                 APP_ASSETS_PATH("audio/voice_en_gb_amy_v1.mfa"),
+                                 FSAM_READ,
+                                 FSOM_OPEN_EXISTING)) {
         mf_passive_voice_pack_close(pack);
         return false;
     }
@@ -269,8 +281,8 @@ void mf_passive_voice_pack_close(MfPassiveVoicePack* pack) {
 bool mf_passive_voice_pack_begin(MfPassiveVoicePack* pack, MfPassivePcmPipe* pipe, char ch) {
     MfPassiveVoiceToken* token;
     uint8_t id;
-    if(pack == NULL || pipe == NULL || !pack->open || pack->active || !mf_passive_voice_char_token(ch, &id) ||
-       pipe->read_pos != pipe->write_pos)
+    if(pack == NULL || pipe == NULL || !pack->open || pack->active ||
+       !mf_passive_voice_char_token(ch, &id) || pipe->read_pos != pipe->write_pos)
         return false;
     token = &pack->tokens[id];
     if(!mf_passive_codec_begin(
@@ -330,8 +342,10 @@ size_t mf_passive_voice_pack_refill(
             if(read_total == MF_PASSIVE_VOICE_READ_MAX) break;
             remaining = pack->payload_end - pack->payload_at;
             chunk = remaining;
-            if(chunk > MF_PASSIVE_VOICE_READ_MAX - read_total) chunk = MF_PASSIVE_VOICE_READ_MAX - read_total;
-            if(chunk == 0U || !mf_passive_voice_read(pack, pack->payload_at, pack->source, chunk)) {
+            if(chunk > MF_PASSIVE_VOICE_READ_MAX - read_total)
+                chunk = MF_PASSIVE_VOICE_READ_MAX - read_total;
+            if(chunk == 0U ||
+               !mf_passive_voice_read(pack, pack->payload_at, pack->source, chunk)) {
                 pack->error = true;
                 break;
             }

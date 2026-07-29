@@ -7,7 +7,7 @@
 #include "plugins/icr/morse_flipper_icr_api.h"
 
 #define APP_ASSETS_PATH(path) path
-#define FuriWaitForever 0U
+#define FuriWaitForever       0U
 
 typedef struct {
     int unused;

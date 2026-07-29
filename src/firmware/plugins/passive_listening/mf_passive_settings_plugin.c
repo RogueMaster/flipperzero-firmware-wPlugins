@@ -33,10 +33,8 @@ static bool mf_passive_settings_enter_api(
     return entered;
 }
 
-static MorseFlipperMappedFalResult mf_passive_settings_input(
-    void* state,
-    const InputEvent* event,
-    uint32_t now_ms) {
+static MorseFlipperMappedFalResult
+    mf_passive_settings_input(void* state, const InputEvent* event, uint32_t now_ms) {
     UNUSED(state);
     UNUSED(event);
     UNUSED(now_ms);
@@ -56,18 +54,19 @@ static void mf_passive_settings_draw(void* state, Canvas* canvas, uint32_t now_m
 }
 
 static const MfPassiveApi mf_passive_settings_api = {
-    .mapped = {
-        .magic = MF_PASSIVE_SETTINGS_API_MAGIC,
-        .api_version = MF_PASSIVE_API_VERSION,
-        .struct_size = sizeof(MfPassiveApi),
-        .alloc = mf_passive_settings_alloc,
-        .free = mf_passive_settings_free,
-        .enter = mf_passive_settings_enter_api,
-        .leave = mf_passive_settings_leave_api,
-        .input = mf_passive_settings_input,
-        .tick = mf_passive_settings_tick,
-        .draw = mf_passive_settings_draw,
-    },
+    .mapped =
+        {
+            .magic = MF_PASSIVE_SETTINGS_API_MAGIC,
+            .api_version = MF_PASSIVE_API_VERSION,
+            .struct_size = sizeof(MfPassiveApi),
+            .alloc = mf_passive_settings_alloc,
+            .free = mf_passive_settings_free,
+            .enter = mf_passive_settings_enter_api,
+            .leave = mf_passive_settings_leave_api,
+            .input = mf_passive_settings_input,
+            .tick = mf_passive_settings_tick,
+            .draw = mf_passive_settings_draw,
+        },
     .enter = NULL,
     .input = NULL,
 };

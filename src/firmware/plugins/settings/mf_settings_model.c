@@ -8,14 +8,26 @@ bool mf_settings_snapshot_normalize(MfSettingsSnapshot* snapshot) {
     bool changed = false;
 
     if(snapshot == NULL) return false;
-    if(snapshot->local_wpm < 10U) { snapshot->local_wpm = 10U; changed = true; }
-    if(snapshot->local_wpm > 30U) { snapshot->local_wpm = 30U; changed = true; }
-    if(snapshot->lesson < 1U) { snapshot->lesson = 1U; changed = true; }
+    if(snapshot->local_wpm < 10U) {
+        snapshot->local_wpm = 10U;
+        changed = true;
+    }
+    if(snapshot->local_wpm > 30U) {
+        snapshot->local_wpm = 30U;
+        changed = true;
+    }
+    if(snapshot->lesson < 1U) {
+        snapshot->lesson = 1U;
+        changed = true;
+    }
     if(snapshot->lesson > morse_trainer_lesson_count()) {
         snapshot->lesson = (uint8_t)morse_trainer_lesson_count();
         changed = true;
     }
-    if(snapshot->farnsworth_wpm < 1U) { snapshot->farnsworth_wpm = 1U; changed = true; }
+    if(snapshot->farnsworth_wpm < 1U) {
+        snapshot->farnsworth_wpm = 1U;
+        changed = true;
+    }
     if(snapshot->farnsworth_wpm > snapshot->local_wpm) {
         snapshot->farnsworth_wpm = (uint8_t)snapshot->local_wpm;
         changed = true;
@@ -46,15 +58,24 @@ bool mf_settings_snapshot_normalize(MfSettingsSnapshot* snapshot) {
 uint8_t mf_settings_row_count(uint8_t entry, const MfSettingsSnapshot* snapshot) {
     if(snapshot == NULL) return 0U;
     switch(entry) {
-    case MfSettingsEntryKeying: return 4U;
-    case MfSettingsEntryAudio: return snapshot->audio_path == 2U ? 3U : 4U;
-    case MfSettingsEntryListening: return 8U;
-    case MfSettingsEntryStraight: return 3U;
-    case MfSettingsEntryTxGroups: return 1U;
-    case MfSettingsEntryRxCallsigns: return 3U;
-    case MfSettingsEntryGpio: return 4U;
-    case MfSettingsEntryUsb: return 4U;
-    default: return 0U;
+    case MfSettingsEntryKeying:
+        return 4U;
+    case MfSettingsEntryAudio:
+        return snapshot->audio_path == 2U ? 3U : 4U;
+    case MfSettingsEntryListening:
+        return 8U;
+    case MfSettingsEntryStraight:
+        return 3U;
+    case MfSettingsEntryTxGroups:
+        return 1U;
+    case MfSettingsEntryRxCallsigns:
+        return 3U;
+    case MfSettingsEntryGpio:
+        return 4U;
+    case MfSettingsEntryUsb:
+        return 4U;
+    default:
+        return 0U;
     }
 }
 
@@ -77,8 +98,7 @@ bool mf_settings_parse_custom_names(
         if(separator != NULL) {
             *separator++ = '\0';
             if(line[0] != '\0' && separator[0] != '\0') {
-                strncpy(
-                    names->names[names->count], line, MF_SETTINGS_CUSTOM_NAME_CAP - 1U);
+                strncpy(names->names[names->count], line, MF_SETTINGS_CUSTOM_NAME_CAP - 1U);
                 names->count++;
             }
         }

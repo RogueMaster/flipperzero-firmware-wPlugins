@@ -138,10 +138,7 @@ static void* api_alloc(void) {
 static void api_free(void* state) {
     assert(state == &radio);
 }
-static bool api_enter(
-    void* state,
-    const void* args,
-    MorseFlipperMappedFalResult* initial) {
+static bool api_enter(void* state, const void* args, MorseFlipperMappedFalResult* initial) {
     (void)state;
     (void)args;
     (void)initial;
@@ -151,10 +148,8 @@ static void api_leave(void* state) {
     assert(mutex_depth == 1U && state == &radio);
     radio.leaves++;
 }
-static MorseFlipperMappedFalResult api_input(
-    void* state,
-    const InputEvent* event,
-    uint32_t now_ms) {
+static MorseFlipperMappedFalResult
+    api_input(void* state, const InputEvent* event, uint32_t now_ms) {
     (void)now_ms;
     assert(mutex_depth == 1U && state == &radio);
     radio.inputs++;
@@ -181,10 +176,7 @@ static void api_draw(void* state, Canvas* canvas, uint32_t now_ms) {
     assert(mutex_depth == 1U && state == &radio);
     radio.draws++;
 }
-static MorseFlipperMappedFalResult api_set_page(
-    void* state,
-    MfRadioPage page,
-    uint32_t now_ms) {
+static MorseFlipperMappedFalResult api_set_page(void* state, MfRadioPage page, uint32_t now_ms) {
     (void)now_ms;
     assert(mutex_depth == 1U && state == &radio);
     radio.set_pages++;
@@ -297,10 +289,9 @@ bool morse_flipper_plugin_runtime_snapshot(
     MorseFlipperPluginSnapshot* snapshot) {
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     snapshot->owner = app->plugin_slot.owner;
-    snapshot->active =
-        app->plugin_slot.error == MorseFlipperPluginErrorNone &&
-        app->plugin_slot.manager != NULL && app->plugin_slot.api != NULL &&
-        app->plugin_slot.state != NULL;
+    snapshot->active = app->plugin_slot.error == MorseFlipperPluginErrorNone &&
+                       app->plugin_slot.manager != NULL && app->plugin_slot.api != NULL &&
+                       app->plugin_slot.state != NULL;
     furi_mutex_release(app->plugin_slot.mutex);
     return true;
 }
@@ -331,9 +322,7 @@ void morse_flipper_release_all_notes(MorseFlipperApp* app) {
     assert_unlocked();
     releases++;
 }
-void morse_flipper_handle_active_keying_event(
-    MorseFlipperApp* app,
-    const InputEvent* event) {
+void morse_flipper_handle_active_keying_event(MorseFlipperApp* app, const InputEvent* event) {
     (void)app;
     (void)event;
     assert_unlocked();
@@ -397,8 +386,7 @@ int main(void) {
     assert(opens == 1U && morse_flipper_radio_host_active(&app));
     assert(sidetones == 1U && ptt_syncs == 1U && redraws == 1U);
     assert(morse_flipper_radio_host_set_page(&app, MfRadioPageTransmit, 11U));
-    morse_flipper_radio_host_sync_tx(
-        &app, MfRadioTxIntervalNone, 0U, true, 12U);
+    morse_flipper_radio_host_sync_tx(&app, MfRadioTxIntervalNone, 0U, true, 12U);
     assert(radio.syncs == 1U && app.radio_tx_active);
     morse_flipper_radio_host_tick(&app, 13U);
     assert(radio.ticks == 1U && app.radio_monitor_tone);

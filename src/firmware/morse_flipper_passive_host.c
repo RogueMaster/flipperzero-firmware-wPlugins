@@ -70,10 +70,7 @@ static MfPassiveHostServices mf_passive_services = {
     .command = mf_passive_command,
 };
 
-bool morse_flipper_passive_host_enter(
-    MorseFlipperApp* app,
-    uint32_t now_ms,
-    uint8_t entry_kind) {
+bool morse_flipper_passive_host_enter(MorseFlipperApp* app, uint32_t now_ms, uint8_t entry_kind) {
     MorseFlipperMappedFalResult initial = {0};
     MfPassiveEnterArgs args;
     MfPassiveOutputTarget target;
@@ -87,9 +84,10 @@ bool morse_flipper_passive_host_enter(
         args = (MfPassiveEnterArgs){
             .struct_size = sizeof(args),
             .entry_kind = MfPassiveEntrySettings,
-            .entry.settings = {
-                .list = app->settings_list,
-            },
+            .entry.settings =
+                {
+                    .list = app->settings_list,
+                },
         };
         plugin_path = MORSE_FLIPPER_PASSIVE_SETTINGS_PLUGIN_PATH;
         api_magic = MF_PASSIVE_SETTINGS_API_MAGIC;
@@ -99,18 +97,19 @@ bool morse_flipper_passive_host_enter(
         morse_flipper_reset_answer_decoder(app);
         morse_flipper_sync_ptt(app, now_ms);
         target = app->audio_path == MorseFlipperAudioPathGpioP2Hd ? MfPassiveOutputP2 :
-                                                                   MfPassiveOutputInternal;
+                                                                    MfPassiveOutputInternal;
         args = (MfPassiveEnterArgs){
             .struct_size = sizeof(args),
             .entry_kind = MfPassiveEntryPlayback,
-            .entry.playback = {
-                .now_ms = now_ms,
-                .rng_seed = furi_hal_random_get(),
-                .tone_hz = (uint16_t)(morse_flipper_active_tone_hz(app) + 0.5f),
-                .output_target = target,
-                .volume_pct = morse_flipper_p2_volume_pct(app),
-                .services = &mf_passive_services,
-            },
+            .entry.playback =
+                {
+                    .now_ms = now_ms,
+                    .rng_seed = furi_hal_random_get(),
+                    .tone_hz = (uint16_t)(morse_flipper_active_tone_hz(app) + 0.5f),
+                    .output_target = target,
+                    .volume_pct = morse_flipper_p2_volume_pct(app),
+                    .services = &mf_passive_services,
+                },
         };
         plugin_path = MORSE_FLIPPER_PASSIVE_PLUGIN_PATH;
         api_magic = MF_PASSIVE_API_MAGIC;

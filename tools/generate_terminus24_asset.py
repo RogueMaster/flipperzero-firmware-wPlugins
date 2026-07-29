@@ -27,15 +27,16 @@ TOKEN = {
 
 def parse(source: Path = SOURCE) -> list[tuple[int, int, int, list[int]]]:
     glyphs = []
-    pattern = re.compile(r"^\s*X\((.*)\)\s*\\?\s*$")
-    for line in source.read_text().splitlines():
-        match = pattern.match(line)
-        if not match:
-            continue
-        content = match.group(1)
-        token_match = re.match(r"\s*(MORSE_FLIPPER_CW_TOKEN_[A-Z_]+|'(?:\\.|[^'])')\s*,(.*)$", content)
+    pattern = re.compile(r"^\s*X\((.*?)\)\s*\\?\s*$", re.MULTILINE | re.DOTALL)
+    for match in pattern.finditer(source.read_text()):
+        content = re.sub(r"\\\r?\n", "", match.group(1))
+        token_match = re.match(
+            r"\s*(MORSE_FLIPPER_CW_TOKEN_[A-Z_]+|'(?:\\.|[^'])')\s*,(.*)$",
+            content,
+            re.DOTALL,
+        )
         if token_match is None:
-            raise ValueError(f"invalid glyph entry: {line}")
+            raise ValueError(f"invalid glyph entry: {content}")
         token, rest = token_match.groups()
         fields = [token] + [field.strip() for field in rest.split(",")]
         value = TOKEN.get(token)

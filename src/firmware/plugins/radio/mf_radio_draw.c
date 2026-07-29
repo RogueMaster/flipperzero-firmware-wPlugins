@@ -21,11 +21,7 @@ static void draw_tx(const MfRadioState* state, Canvas* canvas) {
         canvas_draw_str_aligned(canvas, 64, 45, AlignCenter, AlignCenter, "TX Blocked");
         return;
     }
-    snprintf(
-        line,
-        sizeof(line),
-        "%lu khz",
-        (unsigned long)(state->snapshot.frequency_hz / 1000U));
+    snprintf(line, sizeof(line), "%lu khz", (unsigned long)(state->snapshot.frequency_hz / 1000U));
     state->draw_services->draw_tx_history(
         state->draw_services->context,
         canvas,
@@ -35,11 +31,7 @@ static void draw_tx(const MfRadioState* state, Canvas* canvas) {
         line);
 }
 
-static void draw_frequency_digit(
-    Canvas* canvas,
-    int32_t x,
-    bool focused,
-    char digit) {
+static void draw_frequency_digit(Canvas* canvas, int32_t x, bool focused, char digit) {
     char text[2] = {digit, '\0'};
     if(focused) {
         canvas_draw_triangle(canvas, x + 9, 9, 5, 3, CanvasDirectionBottomToTop);
@@ -62,10 +54,7 @@ static void draw_frequency(const MfRadioState* state, Canvas* canvas) {
     frequency_text(digits, sizeof(digits), frequency_hz);
     for(i = 0U; i < MF_RADIO_FREQ_DIGITS; i++)
         draw_frequency_digit(
-            canvas,
-            7 + (19 * (int32_t)i),
-            i == state->frequency_focus,
-            digits[i]);
+            canvas, 7 + (19 * (int32_t)i), i == state->frequency_focus, digits[i]);
     canvas_set_font(canvas, FontSecondary);
     if(!mf_radio_frequency_in_vfo(frequency_hz)) {
         canvas_draw_str_aligned(canvas, 64, 47, AlignCenter, AlignCenter, "RX not available");
@@ -74,9 +63,8 @@ static void draw_frequency(const MfRadioState* state, Canvas* canvas) {
     } else if(!state->hardware.frequency_valid(state->hardware.context, frequency_hz))
         status = "Invalid freq";
     else
-        status = state->hardware.tx_allowed(state->hardware.context, frequency_hz) ?
-                     "TX allowed" :
-                     "RX only";
+        status = state->hardware.tx_allowed(state->hardware.context, frequency_hz) ? "TX allowed" :
+                                                                                     "RX only";
     canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignCenter, status);
 }
 
@@ -114,12 +102,8 @@ static void draw_rx_text(const MfRadioState* state, Canvas* canvas) {
         state->decoder_services->preview_extendable(&state->decoder));
 }
 
-static void draw_ticker_mark(
-    Canvas* canvas,
-    const MfRadioTickerMark* mark,
-    uint32_t now_ms) {
-    uint32_t start_ms =
-        mark->end_ms >= mark->duration_ms ? mark->end_ms - mark->duration_ms : 0U;
+static void draw_ticker_mark(Canvas* canvas, const MfRadioTickerMark* mark, uint32_t now_ms) {
+    uint32_t start_ms = mark->end_ms >= mark->duration_ms ? mark->end_ms - mark->duration_ms : 0U;
     uint32_t start_age = now_ms - start_ms;
     uint32_t end_age = now_ms - mark->end_ms;
     int32_t x0 = start_age >= MF_RADIO_RX_TICKER_WINDOW_MS ?
@@ -134,11 +118,7 @@ static void draw_ticker_mark(
         x1 = swap;
     }
     canvas_draw_box(
-        canvas,
-        x0,
-        mark->glitch ? 34 : 33,
-        (size_t)(x1 - x0 + 1),
-        mark->glitch ? 2U : 3U);
+        canvas, x0, mark->glitch ? 34 : 33, (size_t)(x1 - x0 + 1), mark->glitch ? 2U : 3U);
 }
 
 static void draw_ticker(const MfRadioState* state, Canvas* canvas, uint32_t now_ms) {

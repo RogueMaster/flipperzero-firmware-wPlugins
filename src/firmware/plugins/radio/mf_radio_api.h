@@ -70,10 +70,7 @@ typedef struct {
 
 typedef struct {
     MorseFlipperMappedFalApi mapped;
-    MorseFlipperMappedFalResult (*set_page)(
-        void* state,
-        MfRadioPage page,
-        uint32_t now_ms);
+    MorseFlipperMappedFalResult (*set_page)(void* state, MfRadioPage page, uint32_t now_ms);
     MorseFlipperMappedFalResult (*sync_tx)(
         void* state,
         MfRadioTxInterval completed_interval,
@@ -85,10 +82,10 @@ typedef struct {
 
 static inline bool mf_radio_decoder_services_valid(const MfRadioDecoderServices* services) {
     return services != NULL && services->struct_size == sizeof(MfRadioDecoderServices) &&
-           services->init != NULL && services->feed_mark != NULL &&
-           services->feed_space != NULL && services->dit_ms != NULL &&
-           services->output != NULL && services->clear_output != NULL &&
-           services->preview != NULL && services->preview_extendable != NULL;
+           services->init != NULL && services->feed_mark != NULL && services->feed_space != NULL &&
+           services->dit_ms != NULL && services->output != NULL &&
+           services->clear_output != NULL && services->preview != NULL &&
+           services->preview_extendable != NULL;
 }
 
 static inline bool mf_radio_draw_services_valid(const MfRadioDrawServices* services) {

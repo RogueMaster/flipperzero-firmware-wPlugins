@@ -213,10 +213,7 @@ void mf_tlm_session(const MorseFlipperApp* app) {
     int n;
 
     if(app == NULL) return;
-    n = snprintf(
-        body,
-        sizeof(body),
-        "\"event\":\"session_start\",\"mode\":\"listening\"");
+    n = snprintf(body, sizeof(body), "\"event\":\"session_start\",\"mode\":\"listening\"");
     if(n <= 0 || (size_t)n >= sizeof(body)) return;
     mf_tlm_event(body);
 }
@@ -274,10 +271,7 @@ void mf_tlm_done(const MorseFlipperApp* app) {
     int n;
 
     if(app == NULL) return;
-    n = snprintf(
-        body,
-        sizeof(body),
-        "\"event\":\"session_done\",\"mode\":\"listening\"");
+    n = snprintf(body, sizeof(body), "\"event\":\"session_done\",\"mode\":\"listening\"");
     if(n <= 0 || (size_t)n >= sizeof(body)) return;
     mf_tlm_event(body);
 }

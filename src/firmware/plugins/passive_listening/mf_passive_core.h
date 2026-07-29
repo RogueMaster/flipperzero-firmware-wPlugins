@@ -44,7 +44,10 @@ typedef struct {
     MfPassiveSettingsModel settings_model;
 } MfPassiveState;
 
-bool mf_passive_enter(MfPassiveState* state, const MfPassiveEnterArgs* args, MfPassiveResult* result);
+bool mf_passive_enter(
+    MfPassiveState* state,
+    const MfPassiveEnterArgs* args,
+    MfPassiveResult* result);
 void mf_passive_leave(MfPassiveState* state);
 MfPassiveResult mf_passive_input(MfPassiveState* state, const InputEvent* event, uint32_t now_ms);
 MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms);

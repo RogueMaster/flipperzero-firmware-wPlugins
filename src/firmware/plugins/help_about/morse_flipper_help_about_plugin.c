@@ -7,7 +7,7 @@
 #include <stdlib.h>
 
 #define MORSE_FLIPPER_MD_SCROLL_STEP_PX 45U
-#define MORSE_FLIPPER_ABOUT_OK_FAST_MS   500U
+#define MORSE_FLIPPER_ABOUT_OK_FAST_MS  500U
 
 static MorseFlipperContentResult morse_flipper_content_result(MorseFlipperContentAction action) {
     return (MorseFlipperContentResult){
@@ -65,9 +65,8 @@ bool morse_flipper_help_content_enter(
     return true;
 }
 
-static MorseFlipperContentResult morse_flipper_content_help_input(
-    MorseFlipperHelpAboutState* state,
-    const InputEvent* event) {
+static MorseFlipperContentResult
+    morse_flipper_content_help_input(MorseFlipperHelpAboutState* state, const InputEvent* event) {
     bool forward;
     CwmdState* markdown = &state->help_md;
 
@@ -96,16 +95,19 @@ static MorseFlipperContentResult morse_flipper_content_help_input(
         return morse_flipper_content_result(MorseFlipperContentActionRedraw);
     }
     int16_t old_target = markdown->target_scroll_px;
-    cwmd_scroll_step(markdown, forward ? 1 : -1, markdown->max_scroll_px, MORSE_FLIPPER_MD_SCROLL_STEP_PX);
+    cwmd_scroll_step(
+        markdown, forward ? 1 : -1, markdown->max_scroll_px, MORSE_FLIPPER_MD_SCROLL_STEP_PX);
     if(markdown->target_scroll_px != old_target)
         return morse_flipper_content_result(MorseFlipperContentActionRedraw);
-    if(forward && markdown->scroll_px >= markdown->max_scroll_px && old_target >= markdown->max_scroll_px) {
+    if(forward && markdown->scroll_px >= markdown->max_scroll_px &&
+       old_target >= markdown->max_scroll_px) {
         if(state->help_page + 1U < morse_flipper_help_card_count(state)) {
             state->help_page++;
             state->help_md = (CwmdState){0};
             morse_flipper_help_open(state);
         } else if(morse_flipper_help_show_next_chapter(state)) {
-            MorseFlipperContentResult result = morse_flipper_content_result(MorseFlipperContentActionRedraw);
+            MorseFlipperContentResult result =
+                morse_flipper_content_result(MorseFlipperContentActionRedraw);
             result.help_topic_changed = true;
             result.help_topic = state->help_topic;
             return result;
@@ -129,19 +131,24 @@ static MorseFlipperContentResult morse_flipper_content_onboarding_input(
             morse_flipper_onboarding_open(state);
             return morse_flipper_content_result(MorseFlipperContentActionRedraw);
         }
-    } else if(event->key == InputKeyRight &&
-              (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
+    } else if(
+        event->key == InputKeyRight &&
+        (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
         if(state->onboarding_page + 1U >= state->onboarding_card_count)
             return morse_flipper_content_result(MorseFlipperContentActionFinishOnboarding);
         state->onboarding_page++;
         state->onboarding_md = (CwmdState){0};
         morse_flipper_onboarding_open(state);
         return morse_flipper_content_result(MorseFlipperContentActionRedraw);
-    } else if((event->key == InputKeyUp || event->key == InputKeyDown) &&
-              (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
+    } else if(
+        (event->key == InputKeyUp || event->key == InputKeyDown) &&
+        (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
         int16_t old_target = state->onboarding_md.target_scroll_px;
-        cwmd_scroll_step(&state->onboarding_md, event->key == InputKeyDown ? 1 : -1,
-                         state->onboarding_md.max_scroll_px, MORSE_FLIPPER_MD_SCROLL_STEP_PX);
+        cwmd_scroll_step(
+            &state->onboarding_md,
+            event->key == InputKeyDown ? 1 : -1,
+            state->onboarding_md.max_scroll_px,
+            MORSE_FLIPPER_MD_SCROLL_STEP_PX);
         if(old_target != state->onboarding_md.target_scroll_px)
             return morse_flipper_content_result(MorseFlipperContentActionRedraw);
     }
@@ -165,13 +172,16 @@ static MorseFlipperContentResult morse_flipper_content_about_input(
         }
     } else if(state->about_mode == 1U && event->key == InputKeyOk && event->type == InputTypeShort) {
         state->about_ok_count = state->about_last_ok_ms != 0U &&
-                                        now_ms - state->about_last_ok_ms <= MORSE_FLIPPER_ABOUT_OK_FAST_MS ?
+                                        now_ms - state->about_last_ok_ms <=
+                                            MORSE_FLIPPER_ABOUT_OK_FAST_MS ?
                                     state->about_ok_count + 1U :
                                     1U;
         state->about_last_ok_ms = now_ms;
-        if(state->about_ok_count >= 3U) return morse_flipper_content_result(MorseFlipperContentActionOpenTrace);
+        if(state->about_ok_count >= 3U)
+            return morse_flipper_content_result(MorseFlipperContentActionOpenTrace);
         int16_t old_target = state->about_md.target_scroll_px;
-        cwmd_scroll_step(&state->about_md, 1, state->about_md.max_scroll_px, MORSE_FLIPPER_MD_SCROLL_STEP_PX);
+        cwmd_scroll_step(
+            &state->about_md, 1, state->about_md.max_scroll_px, MORSE_FLIPPER_MD_SCROLL_STEP_PX);
         if(old_target != state->about_md.target_scroll_px)
             return morse_flipper_content_result(MorseFlipperContentActionRedraw);
     } else if(
@@ -195,9 +205,12 @@ MorseFlipperContentResult morse_flipper_help_content_input(
     MorseFlipperHelpAboutState* state,
     const InputEvent* event,
     uint32_t now_ms) {
-    if(state == NULL || event == NULL) return morse_flipper_content_result(MorseFlipperContentActionNone);
-    if(state->mode == MorseFlipperContentModeOnboarding) return morse_flipper_content_onboarding_input(state, event);
-    if(state->mode == MorseFlipperContentModeHelp) return morse_flipper_content_help_input(state, event);
+    if(state == NULL || event == NULL)
+        return morse_flipper_content_result(MorseFlipperContentActionNone);
+    if(state->mode == MorseFlipperContentModeOnboarding)
+        return morse_flipper_content_onboarding_input(state, event);
+    if(state->mode == MorseFlipperContentModeHelp)
+        return morse_flipper_content_help_input(state, event);
     return morse_flipper_content_about_input(state, event, now_ms);
 }
 
@@ -207,24 +220,26 @@ bool morse_flipper_help_content_tick(MorseFlipperHelpAboutState* state, uint32_t
         if(state->about_mode == 0U) return morse_flipper_tick_about(state, now_ms);
         return cwmd_scroll_tick(&state->about_md);
     }
-    if(state->mode == MorseFlipperContentModeOnboarding) return cwmd_scroll_tick(&state->onboarding_md);
+    if(state->mode == MorseFlipperContentModeOnboarding)
+        return cwmd_scroll_tick(&state->onboarding_md);
     return cwmd_scroll_tick(&state->help_md);
 }
 
 void morse_flipper_help_content_draw(MorseFlipperHelpAboutState* state, Canvas* canvas) {
     if(state == NULL || canvas == NULL) return;
-    if(state->mode == MorseFlipperContentModeOnboarding) morse_flipper_draw_onboarding(canvas, state);
-    else if(state->mode == MorseFlipperContentModeHelp) morse_flipper_draw_help(canvas, state);
-    else morse_flipper_draw_about(canvas, state);
+    if(state->mode == MorseFlipperContentModeOnboarding)
+        morse_flipper_draw_onboarding(canvas, state);
+    else if(state->mode == MorseFlipperContentModeHelp)
+        morse_flipper_draw_help(canvas, state);
+    else
+        morse_flipper_draw_about(canvas, state);
 }
 
 static bool morse_flipper_help_about_enter(void* state, const MorseFlipperContentEnterArgs* args) {
     return morse_flipper_help_content_enter(state, args);
 }
-static MorseFlipperContentResult morse_flipper_help_about_input(
-    void* state,
-    const InputEvent* event,
-    uint32_t now_ms);
+static MorseFlipperContentResult
+    morse_flipper_help_about_input(void* state, const InputEvent* event, uint32_t now_ms);
 static bool morse_flipper_help_about_enter_api(
     void* state,
     const void* args,
@@ -234,10 +249,8 @@ static bool morse_flipper_help_about_enter_api(
         *initial = (MorseFlipperMappedFalResult){.handled = entered, .redraw = entered};
     return entered;
 }
-static MorseFlipperMappedFalResult morse_flipper_help_about_input_api(
-    void* state,
-    const InputEvent* event,
-    uint32_t now_ms) {
+static MorseFlipperMappedFalResult
+    morse_flipper_help_about_input_api(void* state, const InputEvent* event, uint32_t now_ms) {
     MorseFlipperContentResult result = morse_flipper_help_about_input(state, event, now_ms);
     return (MorseFlipperMappedFalResult){
         .handled = result.handled,
@@ -245,8 +258,11 @@ static MorseFlipperMappedFalResult morse_flipper_help_about_input_api(
         .request_exit = result.request_exit,
     };
 }
-static void morse_flipper_help_about_leave(void* state) { UNUSED(state); }
-static MorseFlipperContentResult morse_flipper_help_about_input(void* state, const InputEvent* event, uint32_t now_ms) {
+static void morse_flipper_help_about_leave(void* state) {
+    UNUSED(state);
+}
+static MorseFlipperContentResult
+    morse_flipper_help_about_input(void* state, const InputEvent* event, uint32_t now_ms) {
     return morse_flipper_help_content_input(state, event, now_ms);
 }
 static MorseFlipperMappedFalResult morse_flipper_help_about_tick(void* state, uint32_t now_ms) {
@@ -261,18 +277,19 @@ static void morse_flipper_help_about_draw(void* state, Canvas* canvas, uint32_t 
 }
 
 static const MorseFlipperHelpAboutApi morse_flipper_help_about_api = {
-    .mapped = {
-        .magic = MORSE_FLIPPER_HELP_ABOUT_API_MAGIC,
-        .api_version = MORSE_FLIPPER_HELP_ABOUT_API_VERSION,
-        .struct_size = sizeof(MorseFlipperHelpAboutApi),
-        .alloc = morse_flipper_help_about_alloc,
-        .free = morse_flipper_help_about_free,
-        .enter = morse_flipper_help_about_enter_api,
-        .leave = morse_flipper_help_about_leave,
-        .input = morse_flipper_help_about_input_api,
-        .tick = morse_flipper_help_about_tick,
-        .draw = morse_flipper_help_about_draw,
-    },
+    .mapped =
+        {
+            .magic = MORSE_FLIPPER_HELP_ABOUT_API_MAGIC,
+            .api_version = MORSE_FLIPPER_HELP_ABOUT_API_VERSION,
+            .struct_size = sizeof(MorseFlipperHelpAboutApi),
+            .alloc = morse_flipper_help_about_alloc,
+            .free = morse_flipper_help_about_free,
+            .enter = morse_flipper_help_about_enter_api,
+            .leave = morse_flipper_help_about_leave,
+            .input = morse_flipper_help_about_input_api,
+            .tick = morse_flipper_help_about_tick,
+            .draw = morse_flipper_help_about_draw,
+        },
     .enter = morse_flipper_help_about_enter,
     .input = morse_flipper_help_about_input,
 };

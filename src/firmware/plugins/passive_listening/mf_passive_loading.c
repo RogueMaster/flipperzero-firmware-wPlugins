@@ -50,6 +50,7 @@ bool mf_passive_loading_input(
 }
 
 const char* mf_passive_loading_suffix(uint8_t frame) {
-    if(frame >= (sizeof(mf_passive_loading_frames) / sizeof(mf_passive_loading_frames[0]))) frame = 0U;
+    if(frame >= (sizeof(mf_passive_loading_frames) / sizeof(mf_passive_loading_frames[0])))
+        frame = 0U;
     return mf_passive_loading_frames[frame];
 }

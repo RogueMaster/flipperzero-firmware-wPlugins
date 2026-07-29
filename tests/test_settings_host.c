@@ -13,7 +13,9 @@ static MfSettingsRequest close_request;
 static uint32_t close_selected;
 const int morse_flipper_tones[31];
 
-uint32_t furi_get_tick(void) { return 1U; }
+uint32_t furi_get_tick(void) {
+    return 1U;
+}
 void furi_mutex_acquire(FuriMutex* mutex, uint32_t timeout) {
     (void)mutex;
     (void)timeout;
@@ -25,48 +27,161 @@ void furi_mutex_release(FuriMutex* mutex) {
     assert(mutex_depth == 1U);
     mutex_depth--;
 }
-uint8_t morse_flipper_current_wpm(const MorseFlipperApp* app) { return (uint8_t)app->listening_settings.local_dit_ms; }
-uint8_t morse_flipper_local_wpm(const MorseFlipperApp* app) { return morse_flipper_current_wpm(app); }
-size_t morse_trainer_lesson_count(void) { return 40U; }
-uint8_t morse_flipper_p2_volume_pct(const MorseFlipperApp* app) { return app->p2_volume_pct; }
-uint8_t morse_flipper_straight_wpm(const MorseFlipperApp* app) { return app->straight_wpm; }
-uint8_t morse_trainer_group_size(const MorseTrainer* trainer) { return trainer->group_size; }
-uint8_t morse_trainer_session_groups(const MorseTrainer* trainer) { return trainer->session_groups; }
-void morse_flipper_set_local_wpm(MorseFlipperApp* app, uint8_t wpm) { app->listening_settings.local_dit_ms = wpm; }
-void morse_flipper_set_straight_wpm(MorseFlipperApp* app, uint8_t wpm) { app->straight_wpm = wpm; }
-bool morse_flipper_gpio_try_apply(MorseFlipperApp* app, uint8_t dit, uint8_t dah, uint8_t ground, uint8_t ptt, MorseFlipperGpioRule* rule) { assert(mutex_depth == 0U); gpio_applies++; if(rule) *rule = gpio_accept ? MorseFlipperGpioRuleOk : MorseFlipperGpioRuleBadIndex; if(!gpio_accept) return false; app->gpio_dit_idx = dit; app->gpio_dah_idx = dah; app->gpio_ground_idx = ground; app->gpio_ptt_idx = ptt; return true; }
-void morse_flipper_gpio_alert(MorseFlipperApp* app, MorseFlipperGpioRule rule) { (void)app; (void)rule; gpio_alerts++; }
-void morse_flipper_clear_button_keying(MorseFlipperApp* app, uint32_t now) { (void)app; (void)now; clears++; }
-void morse_flipper_refresh_keyer(MorseFlipperApp* app, uint32_t now) { (void)app; (void)now; refreshes++; }
-void morse_flipper_poll(MorseFlipperApp* app) { (void)app; polls++; }
-void morse_flipper_resync_button_paddles(MorseFlipperApp* app, uint32_t now) { (void)app; (void)now; resyncs++; }
-void morse_flipper_sync_audio_output(MorseFlipperApp* app) { (void)app; audio_syncs++; }
-void morse_flipper_update_sidetone(MorseFlipperApp* app) { (void)app; sidetones++; }
-bool morse_flipper_audio_output_is_pwm(const MorseFlipperApp* app) { return app->audio_path == MorseFlipperAudioPathP2; }
-void morse_flipper_save_config(const MorseFlipperApp* app) { (void)app; saves++; }
-uint8_t morse_pc_paddle_preset_count(void) { return 9U; }
-uint8_t morse_pc_straight_preset_count(void) { return 8U; }
-bool morse_flipper_plugin_runtime_open_mapped_locked(MorseFlipperApp* app, uint8_t owner, uint8_t mode, const char* path, uint32_t version, uint32_t magic, uint32_t size, const void* args, MorseFlipperMappedFalResult* initial) {
-    (void)mode; (void)path; (void)version; (void)magic; (void)size; captured_args = *(const MfSettingsEnterArgs*)args; app->plugin_slot.owner = owner; opens++; *initial = (MorseFlipperMappedFalResult){0}; return true;
+uint8_t morse_flipper_current_wpm(const MorseFlipperApp* app) {
+    return (uint8_t)app->listening_settings.local_dit_ms;
 }
-void morse_flipper_plugin_runtime_detach_locked(MorseFlipperApp* app, uint8_t owner) { assert(app->plugin_slot.owner == owner); app->plugin_slot.owner = 0U; detaches++; }
-void scene_manager_set_scene_state(SceneManager* manager, uint32_t scene, uint32_t state) { manager->state[scene] = state; }
-uint32_t scene_manager_get_scene_state(SceneManager* manager, uint32_t scene) { return manager->state[scene]; }
-void morse_flipper_ensure_view(MorseFlipperApp* app, uint8_t view) { (void)app; (void)view; }
-void morse_flipper_scene_enter_now(MorseFlipperApp* app, uint32_t scene) { (void)app; (void)scene; }
-void morse_flipper_scene_back(MorseFlipperApp* app) { (void)app; }
-VariableItem* variable_item_list_add(VariableItemList* list, const char* label, uint8_t count, VariableItemChangeCallback changed, void* context) { (void)label; (void)count; (void)changed; (void)context; return &list->items[list->count++]; }
-void variable_item_list_reset(VariableItemList* list) { list->count = 0U; }
+uint8_t morse_flipper_local_wpm(const MorseFlipperApp* app) {
+    return morse_flipper_current_wpm(app);
+}
+size_t morse_trainer_lesson_count(void) {
+    return 40U;
+}
+uint8_t morse_flipper_p2_volume_pct(const MorseFlipperApp* app) {
+    return app->p2_volume_pct;
+}
+uint8_t morse_flipper_straight_wpm(const MorseFlipperApp* app) {
+    return app->straight_wpm;
+}
+uint8_t morse_trainer_group_size(const MorseTrainer* trainer) {
+    return trainer->group_size;
+}
+uint8_t morse_trainer_session_groups(const MorseTrainer* trainer) {
+    return trainer->session_groups;
+}
+void morse_flipper_set_local_wpm(MorseFlipperApp* app, uint8_t wpm) {
+    app->listening_settings.local_dit_ms = wpm;
+}
+void morse_flipper_set_straight_wpm(MorseFlipperApp* app, uint8_t wpm) {
+    app->straight_wpm = wpm;
+}
+bool morse_flipper_gpio_try_apply(
+    MorseFlipperApp* app,
+    uint8_t dit,
+    uint8_t dah,
+    uint8_t ground,
+    uint8_t ptt,
+    MorseFlipperGpioRule* rule) {
+    assert(mutex_depth == 0U);
+    gpio_applies++;
+    if(rule) *rule = gpio_accept ? MorseFlipperGpioRuleOk : MorseFlipperGpioRuleBadIndex;
+    if(!gpio_accept) return false;
+    app->gpio_dit_idx = dit;
+    app->gpio_dah_idx = dah;
+    app->gpio_ground_idx = ground;
+    app->gpio_ptt_idx = ptt;
+    return true;
+}
+void morse_flipper_gpio_alert(MorseFlipperApp* app, MorseFlipperGpioRule rule) {
+    (void)app;
+    (void)rule;
+    gpio_alerts++;
+}
+void morse_flipper_clear_button_keying(MorseFlipperApp* app, uint32_t now) {
+    (void)app;
+    (void)now;
+    clears++;
+}
+void morse_flipper_refresh_keyer(MorseFlipperApp* app, uint32_t now) {
+    (void)app;
+    (void)now;
+    refreshes++;
+}
+void morse_flipper_poll(MorseFlipperApp* app) {
+    (void)app;
+    polls++;
+}
+void morse_flipper_resync_button_paddles(MorseFlipperApp* app, uint32_t now) {
+    (void)app;
+    (void)now;
+    resyncs++;
+}
+void morse_flipper_sync_audio_output(MorseFlipperApp* app) {
+    (void)app;
+    audio_syncs++;
+}
+void morse_flipper_update_sidetone(MorseFlipperApp* app) {
+    (void)app;
+    sidetones++;
+}
+bool morse_flipper_audio_output_is_pwm(const MorseFlipperApp* app) {
+    return app->audio_path == MorseFlipperAudioPathP2;
+}
+void morse_flipper_save_config(const MorseFlipperApp* app) {
+    (void)app;
+    saves++;
+}
+uint8_t morse_pc_paddle_preset_count(void) {
+    return 9U;
+}
+uint8_t morse_pc_straight_preset_count(void) {
+    return 8U;
+}
+bool morse_flipper_plugin_runtime_open_mapped_locked(
+    MorseFlipperApp* app,
+    uint8_t owner,
+    uint8_t mode,
+    const char* path,
+    uint32_t version,
+    uint32_t magic,
+    uint32_t size,
+    const void* args,
+    MorseFlipperMappedFalResult* initial) {
+    (void)mode;
+    (void)path;
+    (void)version;
+    (void)magic;
+    (void)size;
+    captured_args = *(const MfSettingsEnterArgs*)args;
+    app->plugin_slot.owner = owner;
+    opens++;
+    *initial = (MorseFlipperMappedFalResult){0};
+    return true;
+}
+void morse_flipper_plugin_runtime_detach_locked(MorseFlipperApp* app, uint8_t owner) {
+    assert(app->plugin_slot.owner == owner);
+    app->plugin_slot.owner = 0U;
+    detaches++;
+}
+void scene_manager_set_scene_state(SceneManager* manager, uint32_t scene, uint32_t state) {
+    manager->state[scene] = state;
+}
+uint32_t scene_manager_get_scene_state(SceneManager* manager, uint32_t scene) {
+    return manager->state[scene];
+}
+void morse_flipper_ensure_view(MorseFlipperApp* app, uint8_t view) {
+    (void)app;
+    (void)view;
+}
+void morse_flipper_scene_enter_now(MorseFlipperApp* app, uint32_t scene) {
+    (void)app;
+    (void)scene;
+}
+void morse_flipper_scene_back(MorseFlipperApp* app) {
+    (void)app;
+}
+VariableItem* variable_item_list_add(
+    VariableItemList* list,
+    const char* label,
+    uint8_t count,
+    VariableItemChangeCallback changed,
+    void* context) {
+    (void)label;
+    (void)count;
+    (void)changed;
+    (void)context;
+    return &list->items[list->count++];
+}
+void variable_item_list_reset(VariableItemList* list) {
+    list->count = 0U;
+}
 
 bool mf_settings_host_test_apply(MorseFlipperApp*, const MfSettingsRequest*, MfSettingsResponse*);
 bool morse_flipper_settings_host_enter(MorseFlipperApp*, uint8_t, uint32_t);
 bool morse_flipper_settings_host_close(MorseFlipperApp*, uint32_t);
 void morse_flipper_settings_host_leave(MorseFlipperApp*, uint32_t);
 
-static bool request_close(
-    void* state,
-    MfSettingsRequest* pending,
-    MorseFlipperMappedFalResult* result) {
+static bool
+    request_close(void* state, MfSettingsRequest* pending, MorseFlipperMappedFalResult* result) {
     (void)state;
     assert(mutex_depth == 1U);
     *pending = close_request;
@@ -83,18 +198,40 @@ static uint32_t selected_state(const void* state) {
 
 static void apply(MorseFlipperApp* app, uint8_t kind, uint32_t value, bool accepted) {
     MfSettingsResponse response;
-    assert(mf_settings_host_test_apply(app, &(MfSettingsRequest){.kind = kind, .value = value}, &response));
+    assert(mf_settings_host_test_apply(
+        app, &(MfSettingsRequest){.kind = kind, .value = value}, &response));
     if(response.accepted != accepted) {
-        fprintf(stderr, "apply mismatch kind=%u value=%lu got=%u expected=%u\n", kind, (unsigned long)value, response.accepted, accepted);
+        fprintf(
+            stderr,
+            "apply mismatch kind=%u value=%lu got=%u expected=%u\n",
+            kind,
+            (unsigned long)value,
+            response.accepted,
+            accepted);
         assert(false);
     }
 }
 
 int main(void) {
-    FuriMutex mutex = {0}; ViewDispatcher dispatcher = {0}; SceneManager manager = {0}; VariableItemList list = {0};
-    MorseFlipperApp app = {.view_dispatcher = &dispatcher, .scene_manager = &manager, .settings_list = &list,
-        .plugin_slot.mutex = &mutex, .straight_wpm = 10U,
-        .listening_settings = {.local_dit_ms = 20U, .lesson = 2U, .group_size = 3U, .session_groups = 3U, .farnsworth_wpm = 20U, .answer_timeout_s = 5U, .group_pause_s = 5U}, .p2_volume_pct = 50U};
+    FuriMutex mutex = {0};
+    ViewDispatcher dispatcher = {0};
+    SceneManager manager = {0};
+    VariableItemList list = {0};
+    MorseFlipperApp app = {
+        .view_dispatcher = &dispatcher,
+        .scene_manager = &manager,
+        .settings_list = &list,
+        .plugin_slot.mutex = &mutex,
+        .straight_wpm = 10U,
+        .listening_settings =
+            {.local_dit_ms = 20U,
+             .lesson = 2U,
+             .group_size = 3U,
+             .session_groups = 3U,
+             .farnsworth_wpm = 20U,
+             .answer_timeout_s = 5U,
+             .group_pause_s = 5U},
+        .p2_volume_pct = 50U};
     apply(&app, MfSettingsSetLocalWpm, 25U, true);
     apply(&app, MfSettingsSetInputSource, MorseFlipperInputSourceButtons, true);
     assert(app.input_source == MorseFlipperInputSourceButtons);

@@ -74,8 +74,8 @@ static void morse_flipper_activity_load(MorseFlipperActivityDaily* daily) {
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);
     for(uint8_t attempt = 0U; attempt < 2U && !loaded; attempt++) {
-        const char* path =
-            attempt == 0U ? MORSE_FLIPPER_ACTIVITY_PATH : MORSE_FLIPPER_ACTIVITY_TEMP_PATH;
+        const char* path = attempt == 0U ? MORSE_FLIPPER_ACTIVITY_PATH :
+                                           MORSE_FLIPPER_ACTIVITY_TEMP_PATH;
         loaded = storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING) &&
                  storage_file_size(file) == sizeof(record) &&
                  storage_file_read(file, &record, sizeof(record)) == sizeof(record) &&
@@ -109,15 +109,14 @@ static bool morse_flipper_activity_save(const MorseFlipperActivityDaily* daily) 
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);
     storage_common_remove(storage, MORSE_FLIPPER_ACTIVITY_TEMP_PATH);
-    saved =
-        storage_file_open(file, MORSE_FLIPPER_ACTIVITY_TEMP_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
-        storage_file_write(file, &record, sizeof(record)) == sizeof(record);
+    saved = storage_file_open(
+                file, MORSE_FLIPPER_ACTIVITY_TEMP_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
+            storage_file_write(file, &record, sizeof(record)) == sizeof(record);
     saved = storage_file_close(file) && saved;
     if(saved)
         saved = storage_common_rename(
-                    storage,
-                    MORSE_FLIPPER_ACTIVITY_TEMP_PATH,
-                    MORSE_FLIPPER_ACTIVITY_PATH) == FSE_OK;
+                    storage, MORSE_FLIPPER_ACTIVITY_TEMP_PATH, MORSE_FLIPPER_ACTIVITY_PATH) ==
+                FSE_OK;
     else
         storage_common_remove(storage, MORSE_FLIPPER_ACTIVITY_TEMP_PATH);
     storage_file_free(file);
@@ -125,9 +124,8 @@ static bool morse_flipper_activity_save(const MorseFlipperActivityDaily* daily) 
     return saved;
 }
 
-static void morse_flipper_activity_note_deed(
-    uint16_t practice_day,
-    MorseFlipperActivityKind kind) {
+static void
+    morse_flipper_activity_note_deed(uint16_t practice_day, MorseFlipperActivityKind kind) {
     MorseFlipperActivityDaily daily;
     bool award;
 
@@ -150,14 +148,12 @@ void morse_flipper_activity_note_rx(bool correct_answer) {
         morse_flipper_progress_save(&progress);
     }
     if(correct_answer)
-        morse_flipper_activity_note_deed(
-            practice_day, MorseFlipperActivityCorrectAnswer);
+        morse_flipper_activity_note_deed(practice_day, MorseFlipperActivityCorrectAnswer);
 }
 
 void morse_flipper_activity_note_listening_session(uint16_t practice_day) {
     if(practice_day == MORSE_FLIPPER_PROGRESS_DAY_NONE) return;
-    morse_flipper_activity_note_deed(
-        practice_day, MorseFlipperActivityListeningSession);
+    morse_flipper_activity_note_deed(practice_day, MorseFlipperActivityListeningSession);
 }
 #else
 void morse_flipper_activity_note_rx(bool correct_answer) {

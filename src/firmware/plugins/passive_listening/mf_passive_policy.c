@@ -7,10 +7,10 @@
 #include <furi.h>
 #include <storage/storage.h>
 
-#define MF_PASSIVE_SETTINGS_PATH APP_DATA_PATH("passive.bin")
+#define MF_PASSIVE_SETTINGS_PATH      APP_DATA_PATH("passive.bin")
 #define MF_PASSIVE_SETTINGS_TEMP_PATH APP_DATA_PATH("passive.tmp")
 #endif
-#define MF_PASSIVE_SETTINGS_MAGIC 0x4D465053UL
+#define MF_PASSIVE_SETTINGS_MAGIC   0x4D465053UL
 #define MF_PASSIVE_SETTINGS_VERSION 2U
 
 typedef struct {
@@ -30,8 +30,7 @@ typedef struct {
 
 _Static_assert(sizeof(MfPassiveSettingsRecord) == 16U, "passive settings record size changed");
 
-static const char mf_passive_teaching_order[] =
-    "KMURESNAPTLWI.JZFOY,VG5/Q92H38B?47C1D60X";
+static const char mf_passive_teaching_order[] = "KMURESNAPTLWI.JZFOY,VG5/Q92H38B?47C1D60X";
 static const char* const mf_passive_length_labels[] = {
     "",
     "1",
@@ -132,18 +131,9 @@ void mf_passive_settings_lesson_label(uint8_t lesson, char* out, size_t out_size
     if(lesson > count) lesson = (uint8_t)count;
     if(lesson == 1U)
         snprintf(
-            out,
-            out_size,
-            "1 - %c %c",
-            mf_passive_teaching_order[0],
-            mf_passive_teaching_order[1]);
+            out, out_size, "1 - %c %c", mf_passive_teaching_order[0], mf_passive_teaching_order[1]);
     else
-        snprintf(
-            out,
-            out_size,
-            "%u - %c",
-            (unsigned)lesson,
-            mf_passive_teaching_order[lesson]);
+        snprintf(out, out_size, "%u - %c", (unsigned)lesson, mf_passive_teaching_order[lesson]);
 }
 
 static MfPassiveSettingsModel mf_passive_settings_default(void) {
@@ -170,8 +160,8 @@ void mf_passive_settings_load(MfPassiveSettingsModel* model) {
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);
     for(uint8_t attempt = 0U; attempt < 2U && !loaded; attempt++) {
-        const char* path =
-            attempt == 0U ? MF_PASSIVE_SETTINGS_PATH : MF_PASSIVE_SETTINGS_TEMP_PATH;
+        const char* path = attempt == 0U ? MF_PASSIVE_SETTINGS_PATH :
+                                           MF_PASSIVE_SETTINGS_TEMP_PATH;
         loaded = storage_file_open(file, path, FSAM_READ, FSOM_OPEN_EXISTING) &&
                  storage_file_size(file) == sizeof(record) &&
                  storage_file_read(file, &record, sizeof(record)) == sizeof(record) &&
@@ -189,8 +179,7 @@ void mf_passive_settings_load(MfPassiveSettingsModel* model) {
         model->answer_delay_s = record.answer_delay_s;
         model->repeat_after_answer = record.repeat_after_answer;
         model->selected_row = record.selected_row;
-        model->courtesy_delay_half_s =
-            record.version >= 2U ? record.courtesy_delay_half_s : 2U;
+        model->courtesy_delay_half_s = record.version >= 2U ? record.courtesy_delay_half_s : 2U;
     }
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
@@ -228,8 +217,9 @@ bool mf_passive_settings_save(const MfPassiveSettingsModel* model) {
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);
     storage_common_remove(storage, MF_PASSIVE_SETTINGS_TEMP_PATH);
-    saved = storage_file_open(file, MF_PASSIVE_SETTINGS_TEMP_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
-            storage_file_write(file, &record, sizeof(record)) == sizeof(record);
+    saved =
+        storage_file_open(file, MF_PASSIVE_SETTINGS_TEMP_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS) &&
+        storage_file_write(file, &record, sizeof(record)) == sizeof(record);
     saved = storage_file_close(file) && saved;
     if(saved)
         saved = storage_common_rename(

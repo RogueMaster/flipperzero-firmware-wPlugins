@@ -23,11 +23,7 @@ void morse_trainer_lesson_label(uint8_t lesson, char* out, size_t out_size) {
     if(out == NULL || out_size == 0U) return;
     if(lesson == 1U) {
         snprintf(
-            out,
-            out_size,
-            "1 - %c %c",
-            morse_trainer_koch_order[0],
-            morse_trainer_koch_order[1]);
+            out, out_size, "1 - %c %c", morse_trainer_koch_order[0], morse_trainer_koch_order[1]);
     } else {
         snprintf(out, out_size, "%u - %c", (unsigned)lesson, morse_trainer_koch_order[lesson]);
     }

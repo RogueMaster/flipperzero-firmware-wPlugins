@@ -5,10 +5,10 @@
 
 static unsigned checks;
 
-#define CHECK(value) \
-    do { \
+#define CHECK(value)   \
+    do {               \
         assert(value); \
-        checks++; \
+        checks++;      \
     } while(0)
 
 int main(void) {

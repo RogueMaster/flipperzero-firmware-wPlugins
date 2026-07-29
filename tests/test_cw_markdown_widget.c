@@ -176,18 +176,38 @@ static void test_escapes_ascii_and_malformed_input(void) {
     CwmdTestStats stats;
     const char bad[] = {'A', '\t', (char)0x01, (char)0x80, '\0'};
 
-    cwmd_test_stats(&canvas, &cfg, "\x1b" "ccenter\nleft", &stats);
+    cwmd_test_stats(
+        &canvas,
+        &cfg,
+        "\x1b"
+        "ccenter\nleft",
+        &stats);
     assert(stats.centered == 1U);
     assert(stats.lines == 2U);
-    cwmd_test_stats(&canvas, &cfg, "\x1b" "#bold\nplain", &stats);
+    cwmd_test_stats(
+        &canvas,
+        &cfg,
+        "\x1b"
+        "#bold\nplain",
+        &stats);
     assert(stats.bold_atoms >= 1U);
     assert(stats.lines == 2U);
-    cwmd_test_stats(&canvas, &cfg, "\x1b" "*mono\nplain", &stats);
+    cwmd_test_stats(
+        &canvas,
+        &cfg,
+        "\x1b"
+        "*mono\nplain",
+        &stats);
     assert(stats.mono_atoms >= 1U);
     assert(stats.lines == 2U);
     cwmd_test_stats(&canvas, &cfg, bad, &stats);
     assert(stats.sanitized == 2U);
-    cwmd_test_stats(&canvas, &cfg, "\x1b" "x", &stats);
+    cwmd_test_stats(
+        &canvas,
+        &cfg,
+        "\x1b"
+        "x",
+        &stats);
     assert(stats.unknown_icons == 0U);
 }
 
@@ -215,7 +235,12 @@ static void test_icons(void) {
         &stats);
     assert(stats.icons == 4U);
     assert(stats.unknown_icons == 0U);
-    cwmd_test_stats(&canvas, &cfg, "\x1b" "x1 starts a line", &stats);
+    cwmd_test_stats(
+        &canvas,
+        &cfg,
+        "\x1b"
+        "x1 starts a line",
+        &stats);
     assert(stats.icons == 1U);
     cwmd_test_stats(
         &canvas,
@@ -227,7 +252,12 @@ static void test_icons(void) {
         &stats);
     assert(stats.icons == 0U);
     assert(stats.unknown_icons == 3U);
-    cwmd_draw(&canvas, &cfg, NULL, "a \x1b" "x1 b");
+    cwmd_draw(
+        &canvas,
+        &cfg,
+        NULL,
+        "a \x1b"
+        "x1 b");
     assert(canvas.xbm_calls == 1U);
 }
 

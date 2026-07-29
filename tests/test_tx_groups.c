@@ -7,10 +7,10 @@
 
 static unsigned checks;
 
-#define CHECK(value) \
-    do { \
+#define CHECK(value)   \
+    do {               \
         assert(value); \
-        checks++; \
+        checks++;      \
     } while(0)
 
 static void test_api_layout(void) {
@@ -32,7 +32,10 @@ static void test_seeded_generation_and_text_input(void) {
     morse_flipper_tx_group_start(&first, false);
     morse_flipper_tx_group_start(&second, false);
     CHECK(strcmp(first.target, second.target) == 0);
-    morse_flipper_tx_group_feed_text(&first, "a |b\x7f" "3");
+    morse_flipper_tx_group_feed_text(
+        &first,
+        "a |b\x7f"
+        "3");
     CHECK(strcmp(first.answer, "AB3") == 0);
     CHECK(morse_flipper_tx_group_answer_len(&first) == 3U);
     CHECK(!morse_flipper_tx_group_complete(&first));
@@ -45,8 +48,7 @@ static void test_raw_rescue_and_scoring(void) {
     memcpy(group.target, "EEEEE", sizeof(group.target));
     for(uint8_t i = 0U; i < MORSE_FLIPPER_TX_GROUP_LEN; i++) {
         morse_flipper_tx_group_feed_mark(&group, 100U);
-        if(i + 1U < MORSE_FLIPPER_TX_GROUP_LEN)
-            morse_flipper_tx_group_feed_space(&group, 300U);
+        if(i + 1U < MORSE_FLIPPER_TX_GROUP_LEN) morse_flipper_tx_group_feed_space(&group, 300U);
     }
     CHECK(morse_flipper_tx_group_expected_marks(&group) == MORSE_FLIPPER_TX_GROUP_LEN);
     CHECK(morse_flipper_tx_group_marks_complete(&group));

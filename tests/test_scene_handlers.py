@@ -294,7 +294,10 @@ class SceneHandlerTableTest(unittest.TestCase):
         usb = settings.index('"USB", MorseFlipperScenePc')
         self.assertLess(gpio, usb)
 
-        self.assertIn("case MfSettingsEntryKeying: return 4U;", SETTINGS_MODEL.read_text(encoding="utf-8"))
+        self.assertRegex(
+            SETTINGS_MODEL.read_text(encoding="utf-8"),
+            r"case\s+MfSettingsEntryKeying:\s*return\s+4U;",
+        )
         plugin = SETTINGS_PLUGIN.read_text(encoding="utf-8")
         keying = plugin[
             plugin.index("if(state->args.entry == MfSettingsEntryKeying) {") :

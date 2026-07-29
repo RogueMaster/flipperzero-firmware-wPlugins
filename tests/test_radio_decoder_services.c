@@ -16,9 +16,7 @@ static void compare_sequence(
     services->feed_mark(serviced, 300U);
     morse_flipper_cw_decoder_feed_space(direct, 300U);
     services->feed_space(serviced, 300U);
-    assert(strcmp(
-               morse_flipper_cw_decoder_output(direct),
-               services->output(serviced)) == 0);
+    assert(strcmp(morse_flipper_cw_decoder_output(direct), services->output(serviced)) == 0);
     assert(morse_flipper_cw_decoder_dit_ms(direct) == services->dit_ms(serviced));
     assert(morse_flipper_cw_decoder_preview(direct) == services->preview(serviced));
     assert(

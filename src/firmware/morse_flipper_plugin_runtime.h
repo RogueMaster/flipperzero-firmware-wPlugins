@@ -98,13 +98,8 @@ void morse_flipper_plugin_runtime_apply_result_locked(
     MorseFlipperMappedFalResult result,
     uint32_t now_ms);
 void morse_flipper_plugin_runtime_draw(MorseFlipperApp* app, Canvas* canvas, uint32_t now_ms);
-void morse_flipper_plugin_feedback_locked(
-    MorseFlipperApp* app,
-    uint8_t feedback,
-    uint32_t now_ms);
-void morse_flipper_plugin_feedback_expire_locked(
-    MorseFlipperApp* app,
-    uint32_t now_ms);
+void morse_flipper_plugin_feedback_locked(MorseFlipperApp* app, uint8_t feedback, uint32_t now_ms);
+void morse_flipper_plugin_feedback_expire_locked(MorseFlipperApp* app, uint32_t now_ms);
 bool morse_flipper_plugin_runtime_snapshot(
     const MorseFlipperApp* app,
     MorseFlipperPluginSnapshot* out);

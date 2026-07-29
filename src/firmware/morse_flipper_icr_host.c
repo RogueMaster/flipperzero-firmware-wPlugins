@@ -63,8 +63,7 @@ bool morse_flipper_icr_host_input(MorseFlipperApp* app, const InputEvent* event,
     furi_mutex_release(app->plugin_slot.mutex);
     if(result.feedback == MorseFlipperIcrFeedbackGood ||
        result.feedback == MorseFlipperIcrFeedbackFail)
-        morse_flipper_activity_note_rx(
-            result.feedback == MorseFlipperIcrFeedbackGood);
+        morse_flipper_activity_note_rx(result.feedback == MorseFlipperIcrFeedbackGood);
     morse_flipper_update_sidetone(app);
     if(result.handled && result.redraw) morse_flipper_view_dirty(app);
     if(!result.handled) {
@@ -86,8 +85,7 @@ void morse_flipper_icr_host_tick(MorseFlipperApp* app, uint32_t now_ms) {
     morse_flipper_plugin_feedback_expire_locked(app, now_ms);
     if(app->plugin_slot.owner == MorseFlipperPluginOwnerIcr && app->plugin_slot.api != NULL &&
        app->plugin_slot.state != NULL) {
-        morse_flipper_plugin_runtime_tick_locked(
-            app, MorseFlipperPluginOwnerIcr, now_ms, &result);
+        morse_flipper_plugin_runtime_tick_locked(app, MorseFlipperPluginOwnerIcr, now_ms, &result);
         if(result.handled) morse_flipper_icr_host_apply_locked(app, result, now_ms);
     }
     furi_mutex_release(app->plugin_slot.mutex);

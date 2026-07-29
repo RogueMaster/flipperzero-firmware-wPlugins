@@ -3,7 +3,7 @@
 #include "../../morse_flipper_mapped_fal.h"
 #include "../../morse_flipper_tx_groups.h"
 
-#define MF_TX_GROUPS_API_MAGIC 0x4D465458UL
+#define MF_TX_GROUPS_API_MAGIC   0x4D465458UL
 #define MF_TX_GROUPS_API_VERSION 1U
 
 typedef enum {

@@ -7,22 +7,15 @@
 
 static unsigned checks;
 
-#define CHECK(value) \
-    do { \
+#define CHECK(value)   \
+    do {               \
         assert(value); \
-        checks++; \
+        checks++;      \
     } while(0)
 
 static void prepare(MorseFlipperAudioPwm* audio, uint32_t sample_rate_hz) {
     morse_flipper_audio_pwm_prepare_target(
-        audio,
-        MorseFlipperAudioPwmTargetP2,
-        256000U,
-        sample_rate_hz,
-        700U,
-        100U,
-        0U,
-        0U);
+        audio, MorseFlipperAudioPwmTargetP2, 256000U, sample_rate_hz, 700U, 100U, 0U, 0U);
 }
 
 static void test_voice_rate(uint32_t output_rate_hz, uint32_t source_rate_hz) {

@@ -8,10 +8,10 @@
 int main(void) {
     MfRxRng rng;
     unsigned checks = 0U;
-#define CHECK(value) \
-    do { \
+#define CHECK(value)   \
+    do {               \
         assert(value); \
-        checks++; \
+        checks++;      \
     } while(0)
     mf_rx_rng_init(&rng, 1U);
     CHECK(mf_rx_rng_next(&rng) == 270369U);
@@ -30,7 +30,8 @@ int main(void) {
         CHECK(mf_rx_rng_bounded(&rng, bound) < bound);
     unsigned lengths[7] = {0};
     mf_rx_rng_init(&rng, 0x12345678U);
-    for(unsigned i = 0U; i < 20000U; i++) lengths[mf_callsign_pick_length(&rng)]++;
+    for(unsigned i = 0U; i < 20000U; i++)
+        lengths[mf_callsign_pick_length(&rng)]++;
     CHECK(lengths[4] > 4500U && lengths[4] < 5500U);
     CHECK(lengths[5] > 9000U && lengths[5] < 11000U);
     CHECK(lengths[6] > 4500U && lengths[6] < 5500U);
@@ -42,12 +43,13 @@ int main(void) {
         for(unsigned i = 0U; i < 10000U; i++) {
             char previous[MF_CALLSIGN_PREFIX_MAX + 1U];
             uint8_t previous_len = gen.last_prefix_len;
-            for(uint8_t j = 0U; j <= previous_len; j++) previous[j] = gen.last_prefix[j];
+            for(uint8_t j = 0U; j <= previous_len; j++)
+                previous[j] = gen.last_prefix[j];
             CHECK(mf_callsign_generate(&gen, &rng, len, &call));
             CHECK(mf_callsign_valid(&call, len));
-            CHECK(call.prefix_len != previous_len ||
-                  previous_len == 0U ||
-                  memcmp(call.prefix, previous, previous_len) != 0);
+            CHECK(
+                call.prefix_len != previous_len || previous_len == 0U ||
+                memcmp(call.prefix, previous, previous_len) != 0);
         }
     }
     printf("test_rx_callsign_gen: %u checks passed\n", checks);

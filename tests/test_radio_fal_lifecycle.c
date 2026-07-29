@@ -171,9 +171,7 @@ int main(void) {
         size_t calls = fake.count;
         mf_radio_core_leave(&state);
         assert(fake.count == calls);
-        assert(!mf_radio_core_sync_tx(
-                    &state, MfRadioTxIntervalNone, 0U, true, 130U)
-                    .handled);
+        assert(!mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 130U).handled);
         assert(!mf_radio_core_tick(&state, 130U).handled);
     }
 

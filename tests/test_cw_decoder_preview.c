@@ -6,10 +6,10 @@
 
 static unsigned checks;
 
-#define CHECK(value) \
-    do { \
+#define CHECK(value)   \
+    do {               \
         assert(value); \
-        checks++; \
+        checks++;      \
     } while(0)
 
 static void feed_letter(MorseFlipperCwDecoder* decoder, const char* pattern, uint16_t dit_ms) {
@@ -118,8 +118,7 @@ int main(void) {
     for(size_t i = 0U; i < strlen(expected); i++) {
         morse_flipper_cw_decoder_feed_mark(&decoder, 100U);
         CHECK(morse_flipper_cw_decoder_preview(&decoder) == (uint8_t)expected[i]);
-        if(i + 1U < strlen(expected))
-            morse_flipper_cw_decoder_feed_space(&decoder, 100U);
+        if(i + 1U < strlen(expected)) morse_flipper_cw_decoder_feed_space(&decoder, 100U);
     }
 
     morse_flipper_cw_decoder_feed_space(&decoder, 300U);

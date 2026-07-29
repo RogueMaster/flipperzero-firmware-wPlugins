@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define MF_RADIO_DEFAULT_FREQUENCY_HZ 433160000U
+#define MF_RADIO_DEFAULT_FREQUENCY_HZ  433160000U
 #define MF_RADIO_DEFAULT_FREQUENCY_KHZ 433160U
 
 typedef enum {

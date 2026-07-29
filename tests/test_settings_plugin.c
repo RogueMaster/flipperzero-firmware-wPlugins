@@ -7,8 +7,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct Storage { int unused; } Storage;
-typedef struct File { int open; } File;
+typedef struct Storage {
+    int unused;
+} Storage;
+typedef struct File {
+    int open;
+} File;
 
 void* mf_settings_test_alloc(void);
 void mf_settings_test_free(void* state);
@@ -27,21 +31,42 @@ static unsigned frees;
 static const char* storage_fixture;
 static MfSettingsRequest last_request;
 static MfSettingsSnapshot response_snapshot = {
-    .local_wpm = 20U, .lesson = 2U, .farnsworth_wpm = 20U,
-    .answer_timeout_s = 3U, .group_pause_s = 3U, .group_size = 1U, .group_count = 3U,
-    .straight_wpm = 10U, .straight_answer_timeout_s = 1U, .straight_next_delay_s = 1U,
-    .gpio_dit_pin = 3U, .gpio_dah_pin = 4U};
+    .local_wpm = 20U,
+    .lesson = 2U,
+    .farnsworth_wpm = 20U,
+    .answer_timeout_s = 3U,
+    .group_pause_s = 3U,
+    .group_size = 1U,
+    .group_count = 3U,
+    .straight_wpm = 10U,
+    .straight_answer_timeout_s = 1U,
+    .straight_next_delay_s = 1U,
+    .gpio_dit_pin = 3U,
+    .gpio_dah_pin = 4U};
 
-void* furi_record_open(const char* name) { (void)name; opens++; return &storage; }
-void furi_record_close(const char* name) { (void)name; closes++; }
-File* storage_file_alloc(Storage* value) { (void)value; return calloc(1U, sizeof(File)); }
-void storage_file_free(File* file) { frees++; free(file); }
-bool storage_file_open(
-    File* file,
-    const char* path,
-    FS_AccessMode access,
-    FS_OpenMode mode) {
-    (void)file; (void)path; (void)access; (void)mode; return storage_fixture != NULL;
+void* furi_record_open(const char* name) {
+    (void)name;
+    opens++;
+    return &storage;
+}
+void furi_record_close(const char* name) {
+    (void)name;
+    closes++;
+}
+File* storage_file_alloc(Storage* value) {
+    (void)value;
+    return calloc(1U, sizeof(File));
+}
+void storage_file_free(File* file) {
+    frees++;
+    free(file);
+}
+bool storage_file_open(File* file, const char* path, FS_AccessMode access, FS_OpenMode mode) {
+    (void)file;
+    (void)path;
+    (void)access;
+    (void)mode;
+    return storage_fixture != NULL;
 }
 size_t storage_file_read(File* file, void* buffer, size_t size) {
     size_t length;
@@ -52,11 +77,20 @@ size_t storage_file_read(File* file, void* buffer, size_t size) {
     memcpy(buffer, storage_fixture, length);
     return length;
 }
-bool storage_file_close(File* file) { (void)file; return true; }
+bool storage_file_close(File* file) {
+    (void)file;
+    return true;
+}
 
-VariableItem* variable_item_list_add(VariableItemList* list, const char* label, uint8_t count, VariableItemChangeCallback changed, void* context) {
+VariableItem* variable_item_list_add(
+    VariableItemList* list,
+    const char* label,
+    uint8_t count,
+    VariableItemChangeCallback changed,
+    void* context) {
     VariableItem* item = &list->items[list->count++];
-    *item = (VariableItem){.label = label, .values_count = count, .changed = changed, .context = context};
+    *item = (VariableItem){
+        .label = label, .values_count = count, .changed = changed, .context = context};
     return item;
 }
 void variable_item_list_reset(VariableItemList* list) {
@@ -66,21 +100,36 @@ void variable_item_list_reset(VariableItemList* list) {
     list->enter_context = NULL;
     list->resets++;
 }
-void variable_item_list_set_enter_callback(VariableItemList* list, VariableItemListEnterCallback callback, void* context) {
+void variable_item_list_set_enter_callback(
+    VariableItemList* list,
+    VariableItemListEnterCallback callback,
+    void* context) {
     assert(callback != NULL);
     list->enter = callback;
     list->enter_context = context;
 }
-void variable_item_list_set_selected_item(VariableItemList* list, uint8_t selected) { list->selected = selected; }
-uint8_t variable_item_list_get_selected_item_index(VariableItemList* list) { return list->selected; }
-void variable_item_set_values_count(VariableItem* item, uint8_t count) { item->values_count = count; }
-void variable_item_set_current_value_index(VariableItem* item, uint8_t index) { item->current_index = index; }
-uint8_t variable_item_get_current_value_index(VariableItem* item) { return item->current_index; }
+void variable_item_list_set_selected_item(VariableItemList* list, uint8_t selected) {
+    list->selected = selected;
+}
+uint8_t variable_item_list_get_selected_item_index(VariableItemList* list) {
+    return list->selected;
+}
+void variable_item_set_values_count(VariableItem* item, uint8_t count) {
+    item->values_count = count;
+}
+void variable_item_set_current_value_index(VariableItem* item, uint8_t index) {
+    item->current_index = index;
+}
+uint8_t variable_item_get_current_value_index(VariableItem* item) {
+    return item->current_index;
+}
 void variable_item_set_current_value_text(VariableItem* item, const char* text) {
     snprintf(item->value_text, sizeof(item->value_text), "%s", text == NULL ? "" : text);
     item->current_text = item->value_text;
 }
-void* variable_item_get_context(VariableItem* item) { return item->context; }
+void* variable_item_get_context(VariableItem* item) {
+    return item->context;
+}
 
 static bool apply(void* context, const MfSettingsRequest* request, MfSettingsResponse* response) {
     unsigned* calls = context;
@@ -99,7 +148,8 @@ static bool apply(void* context, const MfSettingsRequest* request, MfSettingsRes
     return true;
 }
 
-static void assert_item(const VariableItemList* list, uint8_t row, const char* label, const char* value) {
+static void
+    assert_item(const VariableItemList* list, uint8_t row, const char* label, const char* value) {
     assert(row < list->count);
     assert(strcmp(list->items[row].label, label) == 0);
     if(value != NULL && strcmp(list->items[row].current_text, value) != 0) {
@@ -171,13 +221,15 @@ static void assert_page_labels(uint8_t page, const VariableItemList* list) {
 int main(void) {
     VariableItemList list = {0};
     unsigned calls = 0U;
-    MfSettingsHostServices services = {
-        .struct_size = sizeof(services), .apply = apply};
+    MfSettingsHostServices services = {.struct_size = sizeof(services), .apply = apply};
     MfSettingsEnterArgs args = {
-        .struct_size = sizeof(args), .entry = MfSettingsEntryKeying, .selected_state = 2U,
-        .list = &list, .snapshot = {
-            .local_wpm = 12U, .input_source = 2U, .lesson = 1U, .farnsworth_wpm = 12U},
-        .services = &services, .service_context = &calls};
+        .struct_size = sizeof(args),
+        .entry = MfSettingsEntryKeying,
+        .selected_state = 2U,
+        .list = &list,
+        .snapshot = {.local_wpm = 12U, .input_source = 2U, .lesson = 1U, .farnsworth_wpm = 12U},
+        .services = &services,
+        .service_context = &calls};
     void* state = mf_settings_test_alloc();
     assert(state != NULL);
     assert(mf_settings_test_enter(state, &args));
@@ -194,7 +246,8 @@ int main(void) {
     list.items[1].changed(&list.items[1]);
     assert(calls == 2U);
     assert(last_request.kind == MfSettingsSetInputSource && last_request.value == 0U);
-    assert(list.items[1].current_index == 1U && strcmp(list.items[1].current_text, "straight") == 0);
+    assert(
+        list.items[1].current_index == 1U && strcmp(list.items[1].current_text, "straight") == 0);
     list.items[1].current_index = 2U;
     list.items[1].changed(&list.items[1]);
     assert(last_request.kind == MfSettingsSetInputSource && last_request.value == 1U);
@@ -202,7 +255,8 @@ int main(void) {
     list.items[1].current_index = 0U;
     list.items[1].changed(&list.items[1]);
     assert(last_request.kind == MfSettingsSetInputSource && last_request.value == 2U);
-    assert(list.items[1].current_index == 0U && strcmp(list.items[1].current_text, "buttons") == 0);
+    assert(
+        list.items[1].current_index == 0U && strcmp(list.items[1].current_text, "buttons") == 0);
     {
         static const uint8_t keyer_values[] = {1U, 2U, 6U, 7U, 8U, 5U, 9U};
         static const char* const keyer_names[] = {
@@ -230,8 +284,13 @@ int main(void) {
     args.selected_state = 7U;
     args.service_context = &calls;
     args.snapshot = (MfSettingsSnapshot){
-        .local_wpm = 20U, .lesson = 2U, .farnsworth_wpm = 20U,
-        .answer_timeout_s = 3U, .group_pause_s = 3U, .group_size = 1U, .group_count = 3U};
+        .local_wpm = 20U,
+        .lesson = 2U,
+        .farnsworth_wpm = 20U,
+        .answer_timeout_s = 3U,
+        .group_pause_s = 3U,
+        .group_size = 1U,
+        .group_count = 3U};
     state = mf_settings_test_alloc();
     assert(mf_settings_test_enter(state, &args));
     assert(list.items[7].values_count == 3U && list.items[7].current_index == 0U);
@@ -244,21 +303,44 @@ int main(void) {
 
     static const uint8_t page_rows[] = {4U, 4U, 8U, 3U, 1U, 3U, 4U, 4U};
     static const uint8_t expected_kinds[][8] = {
-        {MfSettingsSetLocalWpm, MfSettingsSetInputSource, MfSettingsSetKeyerMode, MfSettingsSetHandedness},
-        {MfSettingsSetAudioPath, MfSettingsSetTone, MfSettingsSetP2Volume, MfSettingsSetAudioWaveform},
-        {MfSettingsSetListeningLesson, MfSettingsSetLocalWpm, MfSettingsSetListeningFarnsworth,
-         MfSettingsSetListeningAnswerTimeout, MfSettingsSetListeningGroupPause,
-         MfSettingsSetListeningGroupSize, MfSettingsSetListeningGroupCount, MfSettingsSetListeningCustomSet},
-        {MfSettingsSetStraightWpm, MfSettingsSetStraightAnswerTimeout, MfSettingsSetStraightNextDelay},
+        {MfSettingsSetLocalWpm,
+         MfSettingsSetInputSource,
+         MfSettingsSetKeyerMode,
+         MfSettingsSetHandedness},
+        {MfSettingsSetAudioPath,
+         MfSettingsSetTone,
+         MfSettingsSetP2Volume,
+         MfSettingsSetAudioWaveform},
+        {MfSettingsSetListeningLesson,
+         MfSettingsSetLocalWpm,
+         MfSettingsSetListeningFarnsworth,
+         MfSettingsSetListeningAnswerTimeout,
+         MfSettingsSetListeningGroupPause,
+         MfSettingsSetListeningGroupSize,
+         MfSettingsSetListeningGroupCount,
+         MfSettingsSetListeningCustomSet},
+        {MfSettingsSetStraightWpm,
+         MfSettingsSetStraightAnswerTimeout,
+         MfSettingsSetStraightNextDelay},
         {MfSettingsSetTxGroupsDifficulty},
-        {MfSettingsSetRxCallsignsLength, MfSettingsSetRxCallsignsWpm,
+        {MfSettingsSetRxCallsignsLength,
+         MfSettingsSetRxCallsignsWpm,
          MfSettingsSetRxCallsignsFarnsworth},
         {0U},
-        {MfSettingsSetUsbMode, MfSettingsSetUsbPaddlePreset, MfSettingsSetUsbStraightPreset, MfSettingsSetUsbMouseInvert},
+        {MfSettingsSetUsbMode,
+         MfSettingsSetUsbPaddlePreset,
+         MfSettingsSetUsbStraightPreset,
+         MfSettingsSetUsbMouseInvert},
     };
     static const uint8_t expected_values[][8] = {
-        {10U, 2U, 1U, 0U}, {0U, 0U, 10U, 0U}, {1U, 10U, 1U, 3U, 3U, 1U, 3U, 0U},
-        {10U, 1U, 1U}, {0U}, {0U, 10U, 1U}, {0U}, {0U, 0U, 0U, 0U},
+        {10U, 2U, 1U, 0U},
+        {0U, 0U, 10U, 0U},
+        {1U, 10U, 1U, 3U, 3U, 1U, 3U, 0U},
+        {10U, 1U, 1U},
+        {0U},
+        {0U, 10U, 1U},
+        {0U},
+        {0U, 0U, 0U, 0U},
     };
     calls = 0U;
     for(uint8_t page = MfSettingsEntryKeying; page <= MfSettingsEntryUsb; page++) {
@@ -267,17 +349,35 @@ int main(void) {
         args.list = &list;
         args.selected_state = page == MfSettingsEntryListening ? 7U : 0U;
         args.snapshot = (MfSettingsSnapshot){
-            .local_wpm = 20U, .input_source = 2U, .keyer_mode = 6U, .handedness = true,
-            .audio_path = 0U, .tone_index = 30U, .p2_volume = 100U, .audio_waveform = 1U,
-            .lesson = 2U, .farnsworth_wpm = 20U,
-            .answer_timeout_s = 3U, .group_pause_s = 3U, .group_size = 1U,
-            .group_count = 3U, .straight_wpm = 10U, .straight_answer_timeout_s = 1U,
-            .straight_next_delay_s = 1U, .tx_groups_difficulty = 2U, .gpio_dit_pin = 5U,
-            .rx_callsigns_length = 5U, .rx_callsigns_wpm = 20U,
+            .local_wpm = 20U,
+            .input_source = 2U,
+            .keyer_mode = 6U,
+            .handedness = true,
+            .audio_path = 0U,
+            .tone_index = 30U,
+            .p2_volume = 100U,
+            .audio_waveform = 1U,
+            .lesson = 2U,
+            .farnsworth_wpm = 20U,
+            .answer_timeout_s = 3U,
+            .group_pause_s = 3U,
+            .group_size = 1U,
+            .group_count = 3U,
+            .straight_wpm = 10U,
+            .straight_answer_timeout_s = 1U,
+            .straight_next_delay_s = 1U,
+            .tx_groups_difficulty = 2U,
+            .gpio_dit_pin = 5U,
+            .rx_callsigns_length = 5U,
+            .rx_callsigns_wpm = 20U,
             .rx_callsigns_farnsworth_wpm = 15U,
-            .gpio_dah_pin = 3U, .gpio_ground_pin = 1U, .gpio_ptt_pin = 0xffU,
-            .usb_mode = 3U, .usb_paddle_preset = 8U,
-            .usb_straight_preset = 7U, .usb_mouse_invert = true};
+            .gpio_dah_pin = 3U,
+            .gpio_ground_pin = 1U,
+            .gpio_ptt_pin = 0xffU,
+            .usb_mode = 3U,
+            .usb_paddle_preset = 8U,
+            .usb_straight_preset = 7U,
+            .usb_mouse_invert = true};
         state = mf_settings_test_alloc();
         assert(mf_settings_test_enter(state, &args));
         assert(list.count == page_rows[page]);

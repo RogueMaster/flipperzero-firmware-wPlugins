@@ -46,10 +46,13 @@ static void mf_config_test_normalize(MorseFlipperListeningSettings* settings) {
     if(settings->local_dit_ms == 0U) settings->local_dit_ms = 100U;
     if(settings->lesson == 0U || settings->lesson > 40U) settings->lesson = 1U;
     if(settings->group_size == 0U || settings->group_size > 9U) settings->group_size = 1U;
-    if(settings->session_groups < 3U || settings->session_groups > 30U) settings->session_groups = 3U;
+    if(settings->session_groups < 3U || settings->session_groups > 30U)
+        settings->session_groups = 3U;
     if(settings->custom_set_idx > 8U) settings->custom_set_idx = 0U;
-    if(settings->farnsworth_wpm == 0U || settings->farnsworth_wpm > wpm) settings->farnsworth_wpm = wpm;
-    if(settings->answer_timeout_s < 3U || settings->answer_timeout_s > 10U) settings->answer_timeout_s = 6U;
+    if(settings->farnsworth_wpm == 0U || settings->farnsworth_wpm > wpm)
+        settings->farnsworth_wpm = wpm;
+    if(settings->answer_timeout_s < 3U || settings->answer_timeout_s > 10U)
+        settings->answer_timeout_s = 6U;
     if(settings->group_pause_s < 3U || settings->group_pause_s > 15U) settings->group_pause_s = 3U;
 }
 
@@ -71,12 +74,16 @@ bool mf_config_test_load(const uint8_t in[632], MorseFlipperListeningSettings* s
     MorseFlipperConfig config;
     memcpy(&config, in, sizeof(config));
     if(config.version != 1U) return false;
-    *settings = (MorseFlipperListeningSettings){.local_dit_ms = config.local_dit_ms,
-        .lesson = config.trainer_lesson, .group_size = config.trainer_group_size,
-        .session_groups = config.trainer_session_groups, .custom_set_idx = config.trainer_custom_set_idx,
+    *settings = (MorseFlipperListeningSettings){
+        .local_dit_ms = config.local_dit_ms,
+        .lesson = config.trainer_lesson,
+        .group_size = config.trainer_group_size,
+        .session_groups = config.trainer_session_groups,
+        .custom_set_idx = config.trainer_custom_set_idx,
         .input_source = config.input_source <= 2U ? config.input_source : 0U,
         .farnsworth_wpm = config.trainer_farnsworth_wpm,
-        .answer_timeout_s = config.trainer_answer_timeout_s, .group_pause_s = config.trainer_group_pause_s};
+        .answer_timeout_s = config.trainer_answer_timeout_s,
+        .group_pause_s = config.trainer_group_pause_s};
     mf_config_test_normalize(settings);
     return true;
 }
@@ -135,7 +142,7 @@ uint8_t morse_flipper_local_wpm(const MorseFlipperApp* app) {
 
     if(app == NULL) return 0U;
     dit = app->listening_settings.local_dit_ms ? app->listening_settings.local_dit_ms :
-                                                MORSE_FLIPPER_DEFAULT_DIT_MS;
+                                                 MORSE_FLIPPER_DEFAULT_DIT_MS;
     wpm = (uint8_t)((1200U + (dit / 2U)) / dit);
     if(wpm < 10U) wpm = 10U;
     if(wpm > 30U) wpm = 30U;
@@ -296,8 +303,7 @@ static void morse_flipper_config_apply(MorseFlipperApp* app, const MorseFlipperC
     app->audio_path = morse_flipper_config_load_audio_path(config->audio_path);
     app->p2_volume_pct = morse_flipper_config_load_p2_volume(config->p2_volume_pct);
     app->txg_difficulty = morse_flipper_config_load_txg_difficulty(config->txg_difficulty);
-    app->rf_frequency_hz =
-        morse_flipper_radio_config_candidate(config->rf_frequency_hz);
+    app->rf_frequency_hz = morse_flipper_radio_config_candidate(config->rf_frequency_hz);
 
     app->ham_keyer.logging_enabled = config->ham_logging_enabled != 0U;
     app->ham_keyer.message_count = config->ham_message_count;

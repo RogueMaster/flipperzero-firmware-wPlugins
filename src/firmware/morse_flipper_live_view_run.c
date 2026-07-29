@@ -67,12 +67,7 @@ static void morse_flipper_draw_run_rows(
     const uint8_t row_y[MORSE_FLIPPER_RUN_HISTORY_ROWS]) {
     MorseFlipperRunLayout layout;
     morse_flipper_run_layout_build(
-        text,
-        preview_extendable,
-        126U,
-        morse_flipper_canvas_glyph_width,
-        canvas,
-        &layout);
+        text, preview_extendable, 126U, morse_flipper_canvas_glyph_width, canvas, &layout);
     for(size_t i = 0U; i < MORSE_FLIPPER_RUN_HISTORY_ROWS; i++)
         morse_flipper_draw_run_text(canvas, 1, row_y[i], layout.rows[i]);
     if(layout.underline_valid && layout.underline_row < MORSE_FLIPPER_RUN_HISTORY_ROWS) {

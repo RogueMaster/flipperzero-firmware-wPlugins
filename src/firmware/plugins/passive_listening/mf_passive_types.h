@@ -53,7 +53,11 @@ typedef enum {
 typedef struct {
     uint32_t struct_size;
     void* context;
-    bool (*command)(void* context, MfPassiveHostCommand command, uint32_t value, MfPassivePcmPipe* pipe);
+    bool (*command)(
+        void* context,
+        MfPassiveHostCommand command,
+        uint32_t value,
+        MfPassivePcmPipe* pipe);
 } MfPassiveHostServices;
 
 static inline bool mf_passive_host_claim(

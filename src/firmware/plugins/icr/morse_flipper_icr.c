@@ -21,10 +21,10 @@
 #define MORSE_FLIPPER_ICR_COUNT_OF(a) (sizeof(a) / sizeof((a)[0]))
 
 #define MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK 0x0FU
-#define MORSE_FLIPPER_ICR_PACK_LEVELS(a, b, c, d)                                  \
-    ((uint16_t)(((a) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) |                   \
-                (((b) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << 4U) |           \
-                (((c) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << 8U) |           \
+#define MORSE_FLIPPER_ICR_PACK_LEVELS(a, b, c, d)                        \
+    ((uint16_t)(((a) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) |         \
+                (((b) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << 4U) | \
+                (((c) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << 8U) | \
                 (((d) & MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK) << 12U)))
 
 /*
@@ -84,8 +84,7 @@ static const MorseFlipperIcrSeedRow morse_flipper_icr_seed_rows[] = {
 };
 
 _Static_assert(
-    MORSE_FLIPPER_ICR_COUNT_OF(morse_flipper_icr_seed_rows) ==
-        MORSE_FLIPPER_ICR_CHAR_COUNT,
+    MORSE_FLIPPER_ICR_COUNT_OF(morse_flipper_icr_seed_rows) == MORSE_FLIPPER_ICR_CHAR_COUNT,
     "ICR seed rows must match the character table");
 
 static uint32_t morse_flipper_icr_rng_next(uint32_t* state) {
@@ -142,9 +141,8 @@ static void morse_flipper_icr_seed_confusions(MorseFlipperIcrStats* stats) {
 
         for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_COUNT_OF(row->candidate); i++) {
             uint8_t candidate = morse_flipper_icr_char_index(row->candidate[i]);
-            uint8_t level =
-                (uint8_t)((row->levels >> (i * MORSE_FLIPPER_ICR_CONFUSION_BITS)) &
-                          MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK);
+            uint8_t level = (uint8_t)((row->levels >> (i * MORSE_FLIPPER_ICR_CONFUSION_BITS)) &
+                                      MORSE_FLIPPER_ICR_CONFUSION_LEVEL_MASK);
 
             if(candidate != MORSE_FLIPPER_ICR_NO_CHOICE && candidate != target)
                 morse_flipper_icr_set_confusion_level(stats, target, candidate, level);
@@ -207,7 +205,7 @@ static bool morse_flipper_icr_pick_confusion(
     for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_CHAR_COUNT; i++) {
         if(i != target && !morse_flipper_icr_choice_used(choices, count, i))
             total = (uint16_t)(total + morse_flipper_icr_confusion_weight(
-                                         morse_flipper_icr_confusion_level(stats, target, i)));
+                                           morse_flipper_icr_confusion_level(stats, target, i)));
     }
     if(total == 0U) return false;
 
@@ -500,8 +498,8 @@ void morse_flipper_icr_build_choices(
     }
 
     while(count < MORSE_FLIPPER_ICR_CHOICE_COUNT) {
-        uint8_t candidate = morse_flipper_icr_random_exploration_choice(
-            stats, target, choices, count, rng_state);
+        uint8_t candidate =
+            morse_flipper_icr_random_exploration_choice(stats, target, choices, count, rng_state);
 
         if(candidate == MORSE_FLIPPER_ICR_NO_CHOICE) break;
         choices[count++] = candidate;
@@ -531,6 +529,5 @@ void morse_flipper_icr_note_answer(
        stats->attempts[target] % MORSE_FLIPPER_ICR_CONFUSION_DECAY_INTERVAL == 0U)
         morse_flipper_icr_decay_confusions(stats, target);
     if(!correct) morse_flipper_icr_learn_confusion(stats, target, choice);
-    stats->avg_ms20[target] =
-        morse_flipper_icr_update_average(stats->avg_ms20[target], bucket);
+    stats->avg_ms20[target] = morse_flipper_icr_update_average(stats->avg_ms20[target], bucket);
 }

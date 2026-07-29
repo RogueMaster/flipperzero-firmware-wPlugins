@@ -30,10 +30,10 @@ typedef struct {
 
 static unsigned checks;
 
-#define CHECK(value) \
-    do { \
+#define CHECK(value)   \
+    do {               \
         assert(value); \
-        checks++; \
+        checks++;      \
     } while(0)
 
 static void put16(uint8_t* out, uint16_t value) {
@@ -70,7 +70,8 @@ static void make_pack(MemoryFile* file) {
     uint8_t payload[200];
     uint32_t data_offset = HEADER_SIZE + ENTRY_SIZE * ENTRY_COUNT;
     uint32_t offset = data_offset;
-    for(size_t i = 0U; i < sizeof(payload); i++) payload[i] = (uint8_t)(i + 16U);
+    for(size_t i = 0U; i < sizeof(payload); i++)
+        payload[i] = (uint8_t)(i + 16U);
     memset(file, 0, sizeof(*file));
     memcpy(file->bytes, "MFVA", 4U);
     file->bytes[4] = 1U;
@@ -90,12 +91,8 @@ static void make_pack(MemoryFile* file) {
     }
     file->size = offset;
     put32(file->bytes + 20U, file->size);
-    put32(
-        file->bytes + 24U,
-        crc32(0U, file->bytes + HEADER_SIZE, ENTRY_SIZE * ENTRY_COUNT));
-    put32(
-        file->bytes + 28U,
-        crc32(0U, file->bytes + data_offset, file->size - data_offset));
+    put32(file->bytes + 24U, crc32(0U, file->bytes + HEADER_SIZE, ENTRY_SIZE * ENTRY_COUNT));
+    put32(file->bytes + 28U, crc32(0U, file->bytes + data_offset, file->size - data_offset));
 }
 
 static bool fake_claim(
@@ -133,8 +130,10 @@ static bool fake_voice(void* context, uint32_t source_rate_hz) {
 
 static void fake_vibration(void* context, bool enabled) {
     FakeServices* fake = context;
-    if(enabled) fake->vibrations_on++;
-    else fake->vibrations_off++;
+    if(enabled)
+        fake->vibrations_on++;
+    else
+        fake->vibrations_off++;
 }
 
 static void fake_release(void* context) {
@@ -151,20 +150,21 @@ static bool fake_command(
     switch(command) {
     case MfPassiveHostCommandClaim:
         return fake_claim(
-            context,
-            (MfPassiveOutputTarget)(uint8_t)(value >> 8U),
-            (uint8_t)value,
-            pipe);
-    case MfPassiveHostCommandSilence: return fake_silence(context);
-    case MfPassiveHostCommandTone: return fake_tone(context, (uint16_t)value);
-    case MfPassiveHostCommandVoice: return fake_voice(context, value);
+            context, (MfPassiveOutputTarget)(uint8_t)(value >> 8U), (uint8_t)value, pipe);
+    case MfPassiveHostCommandSilence:
+        return fake_silence(context);
+    case MfPassiveHostCommandTone:
+        return fake_tone(context, (uint16_t)value);
+    case MfPassiveHostCommandVoice:
+        return fake_voice(context, value);
     case MfPassiveHostCommandVibration:
         fake_vibration(context, value != 0U);
         return true;
     case MfPassiveHostCommandRelease:
         fake_release(context);
         return true;
-    default: return false;
+    default:
+        return false;
     }
 }
 
@@ -198,7 +198,8 @@ static void setup(MfPassiveState* state, FakeServices* fake, MemoryFile* file) {
     state->callsign.text_len = 4U;
     memcpy(state->prompt, "A1A1", 5U);
     CHECK(mf_passive_voice_pack_open_io(&state->pack, &io));
-    CHECK(mf_passive_host_claim(state->services, MfPassiveOutputInternal, 700U, 50U, &state->pipe));
+    CHECK(
+        mf_passive_host_claim(state->services, MfPassiveOutputInternal, 700U, 50U, &state->pipe));
     state->audio_claimed = true;
     state->phase = MfPassivePhaseCw;
     state->next_at = 0U;
@@ -531,12 +532,16 @@ static void test_single_character_lesson_rounds(void) {
     state.phase = MfPassivePhasePostCue;
     state.next_at = 0U;
     CHECK(mf_passive_tick(&state, 0U).redraw);
-    CHECK(state.phase == MfPassivePhaseCw && state.prompt_len == 1U && strcmp(state.prompt, "K") == 0);
+    CHECK(
+        state.phase == MfPassivePhaseCw && state.prompt_len == 1U &&
+        strcmp(state.prompt, "K") == 0);
     final_mark = run_cw_to_post(&state);
     CHECK(state.next_at == final_mark + 3000U);
     voice_at = state.next_at;
     CHECK(mf_passive_tick(&state, voice_at).redraw);
-    CHECK(state.phase == MfPassivePhaseVoice && state.revealed_count == 1U && strcmp(state.prompt, "K") == 0);
+    CHECK(
+        state.phase == MfPassivePhaseVoice && state.revealed_count == 1U &&
+        strcmp(state.prompt, "K") == 0);
     drain_voice(&state, voice_at + 1U);
     CHECK(state.phase == MfPassivePhasePostVoice);
     state.repeat_after_answer = 1U;

@@ -97,12 +97,13 @@ int main(void) {
     FuriMutex mutex = {0};
     MorseFlipperMappedFalApi api = {0};
     MorseFlipperApp app = {
-        .plugin_slot = {
-            .mutex = &mutex,
-            .api = &api,
-            .state = &app,
-            .owner = MorseFlipperPluginOwnerIcr,
-        },
+        .plugin_slot =
+            {
+                .mutex = &mutex,
+                .api = &api,
+                .state = &app,
+                .owner = MorseFlipperPluginOwnerIcr,
+            },
     };
 
     open_result = true;

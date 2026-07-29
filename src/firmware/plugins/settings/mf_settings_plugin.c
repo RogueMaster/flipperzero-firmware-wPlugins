@@ -57,7 +57,9 @@ static const MfSettingsInputChoice mf_settings_input_choices[] = {
 };
 
 static uint8_t mf_settings_input_index_from_source(uint8_t source) {
-    for(uint8_t index = 0U; index < sizeof(mf_settings_input_choices) / sizeof(mf_settings_input_choices[0]); index++) {
+    for(uint8_t index = 0U;
+        index < sizeof(mf_settings_input_choices) / sizeof(mf_settings_input_choices[0]);
+        index++) {
         if(mf_settings_input_choices[index].source == source) return index;
     }
     return 0U;
@@ -113,10 +115,10 @@ static const char* mf_settings_keyer_name_from_index(uint8_t index) {
 }
 
 static const char* mf_settings_tone_name(uint8_t value) {
-    static const char* const names[] = {
-        "G2", "A2", "B2", "C3", "D3", "E3", "F3", "G3", "A3", "B3", "C4",
-        "D4", "E4", "F4", "G4", "A4", "B4", "C5", "D5", "E5", "F5", "G5",
-        "A5", "B5", "C6", "D6", "E6", "F6", "G6", "A6", "B6"};
+    static const char* const names[] = {"G2", "A2", "B2", "C3", "D3", "E3", "F3", "G3",
+                                        "A3", "B3", "C4", "D4", "E4", "F4", "G4", "A4",
+                                        "B4", "C5", "D5", "E5", "F5", "G5", "A5", "B5",
+                                        "C6", "D6", "E6", "F6", "G6", "A6", "B6"};
     return value < 31U ? names[value] : names[0];
 }
 
@@ -155,8 +157,7 @@ static uint8_t mf_settings_gpio_pin_from_index(uint8_t index) {
 
 static uint8_t mf_settings_gpio_index_from_pin(uint8_t pin, bool permit_off) {
     if(permit_off && pin == MfSettingsGpioPinNone) return 0U;
-    for(uint8_t i = 0U;
-        i < sizeof(mf_settings_gpio_choices) / sizeof(mf_settings_gpio_choices[0]);
+    for(uint8_t i = 0U; i < sizeof(mf_settings_gpio_choices) / sizeof(mf_settings_gpio_choices[0]);
         i++) {
         if(pin == mf_settings_gpio_choices[i].pin) return permit_off ? i + 1U : i;
     }
@@ -165,8 +166,7 @@ static uint8_t mf_settings_gpio_index_from_pin(uint8_t pin, bool permit_off) {
 
 static const char* mf_settings_gpio_name(uint8_t pin) {
     if(pin == MfSettingsGpioPinNone) return "off";
-    for(uint8_t i = 0U;
-        i < sizeof(mf_settings_gpio_choices) / sizeof(mf_settings_gpio_choices[0]);
+    for(uint8_t i = 0U; i < sizeof(mf_settings_gpio_choices) / sizeof(mf_settings_gpio_choices[0]);
         i++) {
         if(pin == mf_settings_gpio_choices[i].pin) return mf_settings_gpio_choices[i].name;
     }
@@ -174,15 +174,15 @@ static const char* mf_settings_gpio_name(uint8_t pin) {
 }
 
 static bool mf_settings_gpio_selectable(uint8_t pin) {
-    for(uint8_t i = 0U;
-        i < sizeof(mf_settings_gpio_choices) / sizeof(mf_settings_gpio_choices[0]);
+    for(uint8_t i = 0U; i < sizeof(mf_settings_gpio_choices) / sizeof(mf_settings_gpio_choices[0]);
         i++) {
         if(pin == mf_settings_gpio_choices[i].pin) return true;
     }
     return false;
 }
 
-static void mf_settings_set_number(VariableItem* item, uint8_t index, uint8_t base, const char* suffix) {
+static void
+    mf_settings_set_number(VariableItem* item, uint8_t index, uint8_t base, const char* suffix) {
     char value[12];
 
     variable_item_set_current_value_index(item, index);
@@ -206,18 +206,20 @@ static void mf_settings_refresh(MfSettingsState* state) {
     if(state == NULL) return;
     mf_settings_snapshot_normalize(&state->snapshot);
     item = state->items[MfSettingsRowWpm];
-    if(item != NULL) mf_settings_set_number(item, (uint8_t)(state->snapshot.local_wpm - 10U), 10U, "");
+    if(item != NULL)
+        mf_settings_set_number(item, (uint8_t)(state->snapshot.local_wpm - 10U), 10U, "");
     if(state->args.entry == MfSettingsEntryKeying) {
         item = state->items[MfSettingsRowInput];
         if(item != NULL) {
-            uint8_t input_index = mf_settings_input_index_from_source(state->snapshot.input_source);
+            uint8_t input_index =
+                mf_settings_input_index_from_source(state->snapshot.input_source);
             variable_item_set_current_value_index(item, input_index);
-            variable_item_set_current_value_text(item, mf_settings_input_name_from_index(input_index));
+            variable_item_set_current_value_text(
+                item, mf_settings_input_name_from_index(input_index));
         }
         item = state->items[MfSettingsRowKeyer];
         if(item != NULL) {
-            uint8_t keyer_index =
-                mf_settings_keyer_index_from_mode(state->snapshot.keyer_mode);
+            uint8_t keyer_index = mf_settings_keyer_index_from_mode(state->snapshot.keyer_mode);
             variable_item_set_current_value_index(item, keyer_index);
             variable_item_set_current_value_text(
                 item, mf_settings_keyer_name_from_index(keyer_index));
@@ -231,7 +233,8 @@ static void mf_settings_refresh(MfSettingsState* state) {
         item = state->items[MfSettingsRowWpm];
         if(item != NULL) {
             variable_item_set_current_value_index(item, state->snapshot.audio_path);
-            variable_item_set_current_value_text(item, mf_settings_audio_path_name(state->snapshot.audio_path));
+            variable_item_set_current_value_text(
+                item, mf_settings_audio_path_name(state->snapshot.audio_path));
         }
         item = state->items[MfSettingsRowInput];
         if(item != NULL) {
@@ -242,7 +245,8 @@ static void mf_settings_refresh(MfSettingsState* state) {
             } else {
                 variable_item_set_values_count(item, 31U);
                 variable_item_set_current_value_index(item, state->snapshot.tone_index);
-                variable_item_set_current_value_text(item, mf_settings_tone_name(state->snapshot.tone_index));
+                variable_item_set_current_value_text(
+                    item, mf_settings_tone_name(state->snapshot.tone_index));
             }
         }
         item = state->items[MfSettingsRowKeyer];
@@ -250,7 +254,8 @@ static void mf_settings_refresh(MfSettingsState* state) {
         item = state->items[MfSettingsRowSwap];
         if(item != NULL) {
             variable_item_set_current_value_index(item, state->snapshot.audio_waveform);
-            variable_item_set_current_value_text(item, state->snapshot.audio_waveform ? "Sine" : "Square");
+            variable_item_set_current_value_text(
+                item, state->snapshot.audio_waveform ? "Sine" : "Square");
         }
     } else if(state->args.entry == MfSettingsEntryListening) {
         item = state->items[MfSettingsRowWpm];
@@ -261,17 +266,23 @@ static void mf_settings_refresh(MfSettingsState* state) {
             variable_item_set_current_value_text(item, label);
         }
         item = state->items[MfSettingsRowInput];
-        if(item != NULL) mf_settings_set_number(item, (uint8_t)(state->snapshot.local_wpm - 10U), 10U, "");
+        if(item != NULL)
+            mf_settings_set_number(item, (uint8_t)(state->snapshot.local_wpm - 10U), 10U, "");
         item = state->items[MfSettingsRowKeyer];
-        if(item != NULL) mf_settings_set_number(item, (uint8_t)(state->snapshot.farnsworth_wpm - 1U), 1U, "");
+        if(item != NULL)
+            mf_settings_set_number(item, (uint8_t)(state->snapshot.farnsworth_wpm - 1U), 1U, "");
         item = state->items[MfSettingsRowSwap];
-        if(item != NULL) mf_settings_set_number(item, (uint8_t)(state->snapshot.answer_timeout_s - 3U), 3U, "");
+        if(item != NULL)
+            mf_settings_set_number(item, (uint8_t)(state->snapshot.answer_timeout_s - 3U), 3U, "");
         item = state->items[MfSettingsRowAudioOrTone];
-        if(item != NULL) mf_settings_set_number(item, (uint8_t)(state->snapshot.group_pause_s - 3U), 3U, "");
+        if(item != NULL)
+            mf_settings_set_number(item, (uint8_t)(state->snapshot.group_pause_s - 3U), 3U, "");
         item = state->items[MfSettingsRowGpioOrVolume];
-        if(item != NULL) mf_settings_set_number(item, (uint8_t)(state->snapshot.group_size - 1U), 1U, "");
+        if(item != NULL)
+            mf_settings_set_number(item, (uint8_t)(state->snapshot.group_size - 1U), 1U, "");
         item = state->items[MfSettingsRowWaveformOrTimeout];
-        if(item != NULL) mf_settings_set_number(item, (uint8_t)(state->snapshot.group_count - 3U), 3U, "");
+        if(item != NULL)
+            mf_settings_set_number(item, (uint8_t)(state->snapshot.group_count - 3U), 3U, "");
         item = state->items[7];
         if(item != NULL) {
             uint8_t selected = state->snapshot.custom_set_idx;
@@ -283,11 +294,16 @@ static void mf_settings_refresh(MfSettingsState* state) {
         }
     } else if(state->args.entry == MfSettingsEntryStraight) {
         item = state->items[0];
-        if(item != NULL) mf_settings_set_number(item, (uint8_t)(state->snapshot.straight_wpm - 10U), 10U, "");
+        if(item != NULL)
+            mf_settings_set_number(item, (uint8_t)(state->snapshot.straight_wpm - 10U), 10U, "");
         item = state->items[1];
-        if(item != NULL) mf_settings_set_number(item, (uint8_t)(state->snapshot.straight_answer_timeout_s - 1U), 1U, "");
+        if(item != NULL)
+            mf_settings_set_number(
+                item, (uint8_t)(state->snapshot.straight_answer_timeout_s - 1U), 1U, "");
         item = state->items[2];
-        if(item != NULL) mf_settings_set_number(item, (uint8_t)(state->snapshot.straight_next_delay_s - 1U), 1U, "");
+        if(item != NULL)
+            mf_settings_set_number(
+                item, (uint8_t)(state->snapshot.straight_next_delay_s - 1U), 1U, "");
     } else if(state->args.entry == MfSettingsEntryTxGroups) {
         item = state->items[0];
         if(item != NULL) {
@@ -295,7 +311,8 @@ static void mf_settings_refresh(MfSettingsState* state) {
             variable_item_set_current_value_text(
                 item,
                 state->snapshot.tx_groups_difficulty == 0U ? "Easy" :
-                state->snapshot.tx_groups_difficulty == 1U ? "Medium" : "Competition");
+                state->snapshot.tx_groups_difficulty == 1U ? "Medium" :
+                                                             "Competition");
         }
     } else if(state->args.entry == MfSettingsEntryRxCallsigns) {
         item = state->items[0];
@@ -312,13 +329,11 @@ static void mf_settings_refresh(MfSettingsState* state) {
         if(item != NULL) {
             variable_item_set_values_count(item, state->snapshot.rx_callsigns_wpm);
             mf_settings_set_number(
-                item,
-                (uint8_t)(state->snapshot.rx_callsigns_farnsworth_wpm - 1U),
-                1U,
-                "");
+                item, (uint8_t)(state->snapshot.rx_callsigns_farnsworth_wpm - 1U), 1U, "");
         }
     } else if(state->args.entry == MfSettingsEntryGpio) {
-        uint8_t values[] = {state->gpio_dit_pin, state->gpio_dah_pin, state->gpio_ground_pin, state->gpio_ptt_pin};
+        uint8_t values[] = {
+            state->gpio_dit_pin, state->gpio_dah_pin, state->gpio_ground_pin, state->gpio_ptt_pin};
         for(uint8_t i = 0U; i < 4U; i++) {
             item = state->items[i];
             if(item == NULL) continue;
@@ -349,7 +364,8 @@ static void mf_settings_refresh(MfSettingsState* state) {
         item = state->items[3];
         if(item != NULL) {
             variable_item_set_current_value_index(item, state->snapshot.usb_mouse_invert);
-            variable_item_set_current_value_text(item, state->snapshot.usb_mouse_invert ? "Yes" : "No");
+            variable_item_set_current_value_text(
+                item, state->snapshot.usb_mouse_invert ? "Yes" : "No");
         }
     }
 }
@@ -358,8 +374,10 @@ static bool mf_settings_apply(MfSettingsState* state, uint8_t kind, uint32_t val
     MfSettingsRequest request = {.kind = kind, .value = value};
     MfSettingsResponse response = {0};
 
-    if(state == NULL || state->args.services == NULL || state->args.services->apply == NULL) return false;
-    if(!state->args.services->apply(state->args.service_context, &request, &response) || !response.accepted)
+    if(state == NULL || state->args.services == NULL || state->args.services->apply == NULL)
+        return false;
+    if(!state->args.services->apply(state->args.service_context, &request, &response) ||
+       !response.accepted)
         return false;
     state->snapshot = response.snapshot;
     mf_settings_refresh(state);
@@ -372,35 +390,48 @@ static void mf_settings_changed(VariableItem* item) {
     uint8_t index;
 
     if(state == NULL) return;
-    while(row < MfSettingsRowCount && state->items[row] != item) row++;
+    while(row < MfSettingsRowCount && state->items[row] != item)
+        row++;
     if(row == MfSettingsRowCount) return;
     index = variable_item_get_current_value_index(item);
     if(state->args.entry == MfSettingsEntryKeying) {
         static const uint8_t kinds[] = {
-            MfSettingsSetLocalWpm, MfSettingsSetInputSource, MfSettingsSetKeyerMode, MfSettingsSetHandedness};
+            MfSettingsSetLocalWpm,
+            MfSettingsSetInputSource,
+            MfSettingsSetKeyerMode,
+            MfSettingsSetHandedness};
         if(row < 4U)
             (void)mf_settings_apply(
                 state,
                 kinds[row],
                 row == MfSettingsRowInput ? mf_settings_input_source_from_index(index) :
                 row == MfSettingsRowKeyer ? mf_settings_keyer_mode_from_index(index) :
-                                           (row == MfSettingsRowWpm ? 10U + index : index));
+                                            (row == MfSettingsRowWpm ? 10U + index : index));
     } else if(state->args.entry == MfSettingsEntryAudio) {
         static const uint8_t kinds[] = {
-            MfSettingsSetAudioPath, MfSettingsSetTone, MfSettingsSetP2Volume, MfSettingsSetAudioWaveform};
-        if(row < 4U) (void)mf_settings_apply(
-            state, kinds[row], row == 2U ? 10U + index * 5U : index);
+            MfSettingsSetAudioPath,
+            MfSettingsSetTone,
+            MfSettingsSetP2Volume,
+            MfSettingsSetAudioWaveform};
+        if(row < 4U)
+            (void)mf_settings_apply(state, kinds[row], row == 2U ? 10U + index * 5U : index);
     } else if(state->args.entry == MfSettingsEntryListening) {
         static const uint8_t kinds[] = {
-            MfSettingsSetListeningLesson, MfSettingsSetLocalWpm, MfSettingsSetListeningFarnsworth,
-            MfSettingsSetListeningAnswerTimeout, MfSettingsSetListeningGroupPause,
-            MfSettingsSetListeningGroupSize, MfSettingsSetListeningGroupCount};
+            MfSettingsSetListeningLesson,
+            MfSettingsSetLocalWpm,
+            MfSettingsSetListeningFarnsworth,
+            MfSettingsSetListeningAnswerTimeout,
+            MfSettingsSetListeningGroupPause,
+            MfSettingsSetListeningGroupSize,
+            MfSettingsSetListeningGroupCount};
         static const uint8_t bases[] = {1U, 10U, 1U, 3U, 3U, 1U, 3U};
         if(row < 7U) (void)mf_settings_apply(state, kinds[row], bases[row] + index);
         if(row == 7U) (void)mf_settings_apply(state, MfSettingsSetListeningCustomSet, index);
     } else if(state->args.entry == MfSettingsEntryStraight) {
         static const uint8_t kinds[] = {
-            MfSettingsSetStraightWpm, MfSettingsSetStraightAnswerTimeout, MfSettingsSetStraightNextDelay};
+            MfSettingsSetStraightWpm,
+            MfSettingsSetStraightAnswerTimeout,
+            MfSettingsSetStraightNextDelay};
         static const uint8_t bases[] = {10U, 1U, 1U};
         if(row < 3U) (void)mf_settings_apply(state, kinds[row], bases[row] + index);
     } else if(state->args.entry == MfSettingsEntryTxGroups && row == 0U) {
@@ -415,14 +446,15 @@ static void mf_settings_changed(VariableItem* item) {
         if(row < 3U) (void)mf_settings_apply(state, kinds[row], bases[row] + index);
     } else if(state->args.entry == MfSettingsEntryUsb) {
         static const uint8_t kinds[] = {
-            MfSettingsSetUsbMode, MfSettingsSetUsbPaddlePreset,
-            MfSettingsSetUsbStraightPreset, MfSettingsSetUsbMouseInvert};
+            MfSettingsSetUsbMode,
+            MfSettingsSetUsbPaddlePreset,
+            MfSettingsSetUsbStraightPreset,
+            MfSettingsSetUsbMouseInvert};
         if(row < 4U) (void)mf_settings_apply(state, kinds[row], index);
     } else if(state->args.entry == MfSettingsEntryGpio) {
         uint8_t pin = row >= 2U && index == 0U ? MfSettingsGpioPinNone :
-                      row == 3U ? MfSettingsGpioPinP16 :
-                                 mf_settings_gpio_pin_from_index(
-                                     index - (row >= 2U ? 1U : 0U));
+                      row == 3U                ? MfSettingsGpioPinP16 :
+                                  mf_settings_gpio_pin_from_index(index - (row >= 2U ? 1U : 0U));
         if(row == 0U) state->gpio_dit_pin = pin;
         if(row == 1U) state->gpio_dah_pin = pin;
         if(row == 2U) state->gpio_ground_pin = pin;
@@ -444,53 +476,70 @@ static void mf_settings_build_rows(MfSettingsState* state) {
         state->items[0] = variable_item_list_add(list, "WPM", 21U, mf_settings_changed, state);
         state->items[1] = variable_item_list_add(list, "Input", 3U, mf_settings_changed, state);
         state->items[2] = variable_item_list_add(list, "Keyer", 7U, mf_settings_changed, state);
-        state->items[3] = variable_item_list_add(list, "Swap paddles", 2U, mf_settings_changed, state);
+        state->items[3] =
+            variable_item_list_add(list, "Swap paddles", 2U, mf_settings_changed, state);
     } else if(state->args.entry == MfSettingsEntryAudio) {
-        state->items[0] = variable_item_list_add(list, "Audio path", 3U, mf_settings_changed, state);
-        state->items[1] = variable_item_list_add(list, "Frequency", 31U, mf_settings_changed, state);
-        state->items[2] = variable_item_list_add(list, "PWM Volume", 19U, mf_settings_changed, state);
-        if(rows == 4U) state->items[3] = variable_item_list_add(list, "Waveform", 2U, mf_settings_changed, state);
+        state->items[0] =
+            variable_item_list_add(list, "Audio path", 3U, mf_settings_changed, state);
+        state->items[1] =
+            variable_item_list_add(list, "Frequency", 31U, mf_settings_changed, state);
+        state->items[2] =
+            variable_item_list_add(list, "PWM Volume", 19U, mf_settings_changed, state);
+        if(rows == 4U)
+            state->items[3] =
+                variable_item_list_add(list, "Waveform", 2U, mf_settings_changed, state);
     } else if(state->args.entry == MfSettingsEntryListening) {
-        state->items[0] = variable_item_list_add(list, "Lesson", (uint8_t)morse_trainer_lesson_count(), mf_settings_changed, state);
+        state->items[0] = variable_item_list_add(
+            list, "Lesson", (uint8_t)morse_trainer_lesson_count(), mf_settings_changed, state);
         state->items[1] = variable_item_list_add(list, "WPM", 21U, mf_settings_changed, state);
-        state->items[2] = variable_item_list_add(list, "Farnsworth", state->snapshot.local_wpm, mf_settings_changed, state);
-        state->items[3] = variable_item_list_add(list, "Answer timeout", 8U, mf_settings_changed, state);
-        state->items[4] = variable_item_list_add(list, "Group pause", 13U, mf_settings_changed, state);
-        state->items[5] = variable_item_list_add(list, "Group size", 9U, mf_settings_changed, state);
+        state->items[2] = variable_item_list_add(
+            list, "Farnsworth", state->snapshot.local_wpm, mf_settings_changed, state);
+        state->items[3] =
+            variable_item_list_add(list, "Answer timeout", 8U, mf_settings_changed, state);
+        state->items[4] =
+            variable_item_list_add(list, "Group pause", 13U, mf_settings_changed, state);
+        state->items[5] =
+            variable_item_list_add(list, "Group size", 9U, mf_settings_changed, state);
         state->items[6] = variable_item_list_add(list, "Groups", 28U, mf_settings_changed, state);
         state->items[7] = variable_item_list_add(list, "Chars", 1U, mf_settings_changed, state);
     } else if(state->args.entry == MfSettingsEntryStraight) {
         state->items[0] = variable_item_list_add(list, "WPM", 21U, mf_settings_changed, state);
-        state->items[1] = variable_item_list_add(list, "Answer timeout", 30U, mf_settings_changed, state);
-        state->items[2] = variable_item_list_add(list, "Next delay", 30U, mf_settings_changed, state);
+        state->items[1] =
+            variable_item_list_add(list, "Answer timeout", 30U, mf_settings_changed, state);
+        state->items[2] =
+            variable_item_list_add(list, "Next delay", 30U, mf_settings_changed, state);
     } else if(state->args.entry == MfSettingsEntryTxGroups) {
-        state->items[0] = variable_item_list_add(list, "Difficulty", 3U, mf_settings_changed, state);
+        state->items[0] =
+            variable_item_list_add(list, "Difficulty", 3U, mf_settings_changed, state);
     } else if(state->args.entry == MfSettingsEntryRxCallsigns) {
         state->items[0] = variable_item_list_add(list, "Length", 6U, mf_settings_changed, state);
         state->items[1] = variable_item_list_add(list, "WPM", 21U, mf_settings_changed, state);
         state->items[2] = variable_item_list_add(
-            list,
-            "Farnsworth",
-            state->snapshot.rx_callsigns_wpm,
-            mf_settings_changed,
-            state);
+            list, "Farnsworth", state->snapshot.rx_callsigns_wpm, mf_settings_changed, state);
     } else if(state->args.entry == MfSettingsEntryGpio) {
         state->items[0] = variable_item_list_add(list, "dit/SK", 6U, mf_settings_changed, state);
         state->items[1] = variable_item_list_add(list, "dah", 6U, mf_settings_changed, state);
-        state->items[2] = variable_item_list_add(list, "Virtual gnd", 7U, mf_settings_changed, state);
+        state->items[2] =
+            variable_item_list_add(list, "Virtual gnd", 7U, mf_settings_changed, state);
         state->items[3] = variable_item_list_add(list, "PTT/TX", 2U, mf_settings_changed, state);
     } else if(state->args.entry == MfSettingsEntryUsb) {
-        state->items[0] = variable_item_list_add(list, "Connection", 4U, mf_settings_changed, state);
+        state->items[0] =
+            variable_item_list_add(list, "Connection", 4U, mf_settings_changed, state);
         state->items[1] = variable_item_list_add(
             list, "Paddle keys", morse_pc_paddle_preset_count(), mf_settings_changed, state);
         state->items[2] = variable_item_list_add(
             list, "Straight key", morse_pc_straight_preset_count(), mf_settings_changed, state);
-        state->items[3] = variable_item_list_add(list, "Invert mouse", 2U, mf_settings_changed, state);
+        state->items[3] =
+            variable_item_list_add(list, "Invert mouse", 2U, mf_settings_changed, state);
     }
 }
 
-static void* mf_settings_alloc(void) { return calloc(1U, sizeof(MfSettingsState)); }
-static void mf_settings_free(void* state) { free(state); }
+static void* mf_settings_alloc(void) {
+    return calloc(1U, sizeof(MfSettingsState));
+}
+static void mf_settings_free(void* state) {
+    free(state);
+}
 
 static bool mf_settings_try_load_custom_names(MfSettingsState* state) {
     Storage* storage;
@@ -505,7 +554,8 @@ static bool mf_settings_try_load_custom_names(MfSettingsState* state) {
     if(storage == NULL) return false;
     file = storage_file_alloc(storage);
     if(file != NULL) {
-        if(storage_file_open(file, MORSE_FLIPPER_CUSTOM_CHARS_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        if(storage_file_open(
+               file, MORSE_FLIPPER_CUSTOM_CHARS_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
             read = storage_file_read(
                 file, state->custom_parse_scratch, sizeof(state->custom_parse_scratch) - 1U);
             state->custom_parse_scratch[read] = '\0';
@@ -531,7 +581,8 @@ static void mf_settings_leave(void* opaque) {
     state->entered = false;
 }
 
-static bool mf_settings_enter(void* opaque, const void* opaque_args, MorseFlipperMappedFalResult* initial) {
+static bool
+    mf_settings_enter(void* opaque, const void* opaque_args, MorseFlipperMappedFalResult* initial) {
     MfSettingsState* state = opaque;
     const MfSettingsEnterArgs* args = opaque_args;
 
@@ -555,8 +606,7 @@ static bool mf_settings_enter(void* opaque, const void* opaque_args, MorseFlippe
     if(state->gpio_ground_pin != MfSettingsGpioPinNone &&
        !mf_settings_gpio_selectable(state->gpio_ground_pin))
         state->gpio_ground_pin = MfSettingsGpioPinP3;
-    if(state->gpio_ptt_pin != MfSettingsGpioPinP16)
-        state->gpio_ptt_pin = MfSettingsGpioPinNone;
+    if(state->gpio_ptt_pin != MfSettingsGpioPinP16) state->gpio_ptt_pin = MfSettingsGpioPinNone;
     if(args->entry == MfSettingsEntryListening) (void)mf_settings_try_load_custom_names(state);
     variable_item_list_reset(args->list);
     variable_item_list_set_enter_callback(args->list, mf_settings_enter_row, state);
@@ -568,10 +618,8 @@ static bool mf_settings_enter(void* opaque, const void* opaque_args, MorseFlippe
     return true;
 }
 
-static MorseFlipperMappedFalResult mf_settings_input(
-    void* state,
-    const InputEvent* event,
-    uint32_t now_ms) {
+static MorseFlipperMappedFalResult
+    mf_settings_input(void* state, const InputEvent* event, uint32_t now_ms) {
     UNUSED(state);
     UNUSED(event);
     UNUSED(now_ms);
@@ -612,7 +660,8 @@ static bool mf_settings_request_close(
                 .gpio_ptt_pin = state->gpio_ptt_pin,
             };
     }
-    if(result != NULL) *result = (MorseFlipperMappedFalResult){.handled = true, .request_exit = true};
+    if(result != NULL)
+        *result = (MorseFlipperMappedFalResult){.handled = true, .request_exit = true};
     return true;
 }
 
@@ -624,18 +673,19 @@ static uint32_t mf_settings_selected_state(const void* opaque) {
 }
 
 static const MfSettingsApi mf_settings_api = {
-    .mapped = {
-        .magic = MF_SETTINGS_API_MAGIC,
-        .api_version = MF_SETTINGS_API_VERSION,
-        .struct_size = sizeof(MfSettingsApi),
-        .alloc = mf_settings_alloc,
-        .free = mf_settings_free,
-        .enter = mf_settings_enter,
-        .leave = mf_settings_leave,
-        .input = mf_settings_input,
-        .tick = mf_settings_tick,
-        .draw = mf_settings_draw,
-    },
+    .mapped =
+        {
+            .magic = MF_SETTINGS_API_MAGIC,
+            .api_version = MF_SETTINGS_API_VERSION,
+            .struct_size = sizeof(MfSettingsApi),
+            .alloc = mf_settings_alloc,
+            .free = mf_settings_free,
+            .enter = mf_settings_enter,
+            .leave = mf_settings_leave,
+            .input = mf_settings_input,
+            .tick = mf_settings_tick,
+            .draw = mf_settings_draw,
+        },
     .request_close = mf_settings_request_close,
     .selected_state = mf_settings_selected_state,
 };
@@ -651,12 +701,18 @@ const FlipperAppPluginDescriptor* morse_flipper_settings_ep(void) {
 }
 
 #ifdef MF_SETTINGS_HOST_TEST
-void* mf_settings_test_alloc(void) { return mf_settings_alloc(); }
-void mf_settings_test_free(void* state) { mf_settings_free(state); }
+void* mf_settings_test_alloc(void) {
+    return mf_settings_alloc();
+}
+void mf_settings_test_free(void* state) {
+    mf_settings_free(state);
+}
 bool mf_settings_test_enter(void* state, const MfSettingsEnterArgs* args) {
     return mf_settings_enter(state, args, NULL);
 }
-void mf_settings_test_leave(void* state) { mf_settings_leave(state); }
+void mf_settings_test_leave(void* state) {
+    mf_settings_leave(state);
+}
 bool mf_settings_test_close(
     void* state,
     MfSettingsRequest* pending,

@@ -122,16 +122,17 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
         canvas_draw_str_aligned(canvas, 64, 12, AlignCenter, AlignBottom, "Callsigns");
         canvas_draw_str_aligned(canvas, 64, 33, AlignCenter, AlignBottom, "Press OK to start");
         if(state->physical_key_can_start)
-            canvas_draw_str_aligned(canvas, 64, 49, AlignCenter, AlignBottom, "Press your key to start");
+            canvas_draw_str_aligned(
+                canvas, 64, 49, AlignCenter, AlignBottom, "Press your key to start");
         return;
     }
-    morse_flipper_draw_tx_history_divider_geometry_at(
-        canvas, state->button_paddle, 33);
+    morse_flipper_draw_tx_history_divider_geometry_at(canvas, state->button_paddle, 33);
     if(state->phase == MfRxPracticePhaseFinal) {
-        unsigned pct = state->session_total == 0U ? 0U :
-                       (unsigned)(((uint32_t)100U * state->session_passed +
-                                   state->session_total / 2U) /
-                                  state->session_total);
+        unsigned pct =
+            state->session_total == 0U ?
+                0U :
+                (unsigned)(((uint32_t)100U * state->session_passed + state->session_total / 2U) /
+                           state->session_total);
         canvas_draw_str_aligned(canvas, 64, 10, AlignCenter, AlignBottom, "Final score");
         canvas_draw_str_aligned(
             canvas,
@@ -140,8 +141,13 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
             AlignCenter,
             AlignBottom,
             state->internal_error ? "Practice error" : "Callsigns");
-        snprintf(score, sizeof(score), "%u/%u  %u%%", (unsigned)state->session_passed,
-                 (unsigned)state->session_total, pct);
+        snprintf(
+            score,
+            sizeof(score),
+            "%u/%u  %u%%",
+            (unsigned)state->session_passed,
+            (unsigned)state->session_total,
+            pct);
         canvas_draw_str_aligned(canvas, 64, 48, AlignCenter, AlignBottom, score);
         canvas_draw_str_aligned(
             canvas,
@@ -156,12 +162,9 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
         mf_big_callsign_draw_text(
             canvas, state->target, state->target, state->target_len, 5, false);
     shown_answer = state->answer;
-    if(state->phase == MfRxPracticePhaseAnswer &&
-       state->answer_len < state->target_len) {
-        char preview =
-            state->draw_snapshot == NULL ? '\0' : state->draw_snapshot->answer_preview;
-        if((preview >= 'A' && preview <= 'Z') ||
-           (preview >= '0' && preview <= '9')) {
+    if(state->phase == MfRxPracticePhaseAnswer && state->answer_len < state->target_len) {
+        char preview = state->draw_snapshot == NULL ? '\0' : state->draw_snapshot->answer_preview;
+        if((preview >= 'A' && preview <= 'Z') || (preview >= '0' && preview <= '9')) {
             memcpy(answer, state->answer, state->answer_len);
             answer[state->answer_len] = preview;
             answer[state->answer_len + 1U] = '\0';
@@ -175,15 +178,12 @@ void mf_rx_practice_draw(const MfRxPracticeState* state, Canvas* canvas) {
         state->target_len,
         37,
         state->phase == MfRxPracticePhaseResult);
-    unsigned pct = state->session_total == 0U ? 0U :
-                   (unsigned)(((uint32_t)100U * state->session_passed +
-                               state->session_total / 2U) /
-                              state->session_total);
-    snprintf(
-        score,
-        sizeof(score),
-        "%u%%",
-        pct);
+    unsigned pct =
+        state->session_total == 0U ?
+            0U :
+            (unsigned)(((uint32_t)100U * state->session_passed + state->session_total / 2U) /
+                       state->session_total);
+    snprintf(score, sizeof(score), "%u%%", pct);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, 126U, 64U, AlignRight, AlignBottom, score);
     if(state->phase == MfRxPracticePhaseResult) {

@@ -80,11 +80,7 @@ void storage_file_free(File* value) {
     frees++;
 }
 
-bool storage_file_open(
-    File* value,
-    const char* path,
-    FS_AccessMode access,
-    FS_OpenMode mode) {
+bool storage_file_open(File* value, const char* path, FS_AccessMode access, FS_OpenMode mode) {
     assert(value == &file);
     value->path = path;
     if(access == FSAM_READ) {
@@ -176,8 +172,10 @@ static void reset_storage(void) {
     renames = 0U;
     write_open_result = true;
     write_result = sizeof(SavedRecord);
-    for(unsigned i = 0U; i < 4U; i++) close_results[i] = true;
-    for(unsigned i = 0U; i < 3U; i++) remove_results[i] = FSE_OK;
+    for(unsigned i = 0U; i < 4U; i++)
+        close_results[i] = true;
+    for(unsigned i = 0U; i < 3U; i++)
+        remove_results[i] = FSE_OK;
     rename_result = FSE_OK;
     final_present = false;
     temp_present = false;

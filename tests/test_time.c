@@ -6,10 +6,10 @@
 
 int main(void) {
     unsigned checks = 0U;
-#define CHECK(value) \
-    do { \
+#define CHECK(value)   \
+    do {               \
         assert(value); \
-        checks++; \
+        checks++;      \
     } while(0)
     CHECK(morse_flipper_time_pending(99U, 100U));
     CHECK(morse_flipper_time_reached(100U, 100U));

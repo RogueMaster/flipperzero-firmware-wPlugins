@@ -2,9 +2,8 @@
 
 #include "morse_flipper_app_i.h"
 
-static __attribute__((noinline)) bool morse_flipper_plugin_runtime_typed_api_valid(
-    MorseFlipperPluginOwner owner,
-    const void* entry) {
+static __attribute__((noinline)) bool
+    morse_flipper_plugin_runtime_typed_api_valid(MorseFlipperPluginOwner owner, const void* entry) {
     if(entry == NULL) return false;
     if(owner == MorseFlipperPluginOwnerContent) {
         const MorseFlipperHelpAboutApi* api = entry;
@@ -83,7 +82,8 @@ MorseFlipperPluginError morse_flipper_plugin_runtime_load_locked(
 
     if(manager_out != NULL) *manager_out = NULL;
     if(entry_out != NULL) *entry_out = NULL;
-    if(path == NULL || manager_out == NULL || entry_out == NULL) return MorseFlipperPluginErrorState;
+    if(path == NULL || manager_out == NULL || entry_out == NULL)
+        return MorseFlipperPluginErrorState;
     manager = plugin_manager_alloc("morse_flipper", api_version, NULL);
     if(manager == NULL) return MorseFlipperPluginErrorState;
     error = plugin_manager_load_single(manager, path);
@@ -123,8 +123,8 @@ bool morse_flipper_plugin_runtime_open_mapped_locked(
 
     if(initial != NULL) *initial = (MorseFlipperMappedFalResult){0};
     if(!morse_flipper_plugin_runtime_claim_locked(app, owner, mode)) return false;
-    app->plugin_slot.error = morse_flipper_plugin_runtime_load_locked(
-        path, api_version, &manager, (const void**)&api);
+    app->plugin_slot.error =
+        morse_flipper_plugin_runtime_load_locked(path, api_version, &manager, (const void**)&api);
     if(app->plugin_slot.error != MorseFlipperPluginErrorNone) goto cleanup;
     if(api == NULL || api->magic != api_magic || api->api_version != api_version ||
        api->struct_size != minimum_api_size || api->alloc == NULL || api->free == NULL ||
@@ -163,9 +163,9 @@ bool morse_flipper_plugin_runtime_publish_locked(
     PluginManager* manager,
     const void* api,
     void* state) {
-    if(app == NULL || owner == MorseFlipperPluginOwnerNone || manager == NULL || api == NULL || state == NULL ||
-       app->plugin_slot.owner != owner || app->plugin_slot.manager != NULL || app->plugin_slot.api != NULL ||
-       app->plugin_slot.state != NULL)
+    if(app == NULL || owner == MorseFlipperPluginOwnerNone || manager == NULL || api == NULL ||
+       state == NULL || app->plugin_slot.owner != owner || app->plugin_slot.manager != NULL ||
+       app->plugin_slot.api != NULL || app->plugin_slot.state != NULL)
         return false;
     app->plugin_slot.manager = manager;
     app->plugin_slot.api = api;
@@ -255,20 +255,14 @@ void morse_flipper_plugin_runtime_draw(MorseFlipperApp* app, Canvas* canvas, uin
     furi_mutex_release(app->plugin_slot.mutex);
 }
 
-void morse_flipper_plugin_feedback_locked(
-    MorseFlipperApp* app,
-    uint8_t feedback,
-    uint32_t now_ms) {
+void morse_flipper_plugin_feedback_locked(MorseFlipperApp* app, uint8_t feedback, uint32_t now_ms) {
     if(app == NULL || feedback == 0U) return;
     app->session_result_tone = feedback >= 3U;
     app->session_result_good = feedback == 2U;
-    app->session_result_until =
-        feedback == 1U ? 0U : now_ms + MORSE_FLIPPER_SESSION_RESULT_MS;
+    app->session_result_until = feedback == 1U ? 0U : now_ms + MORSE_FLIPPER_SESSION_RESULT_MS;
 }
 
-void morse_flipper_plugin_feedback_expire_locked(
-    MorseFlipperApp* app,
-    uint32_t now_ms) {
+void morse_flipper_plugin_feedback_expire_locked(MorseFlipperApp* app, uint32_t now_ms) {
     if(app != NULL && (app->session_result_tone || app->session_result_good) &&
        morse_flipper_time_reached(now_ms, app->session_result_until)) {
         app->session_result_tone = false;
@@ -277,7 +271,9 @@ void morse_flipper_plugin_feedback_expire_locked(
     }
 }
 
-bool morse_flipper_plugin_runtime_snapshot(const MorseFlipperApp* app, MorseFlipperPluginSnapshot* out) {
+bool morse_flipper_plugin_runtime_snapshot(
+    const MorseFlipperApp* app,
+    MorseFlipperPluginSnapshot* out) {
     if(app == NULL || out == NULL || app->plugin_slot.mutex == NULL) return false;
     *out = (MorseFlipperPluginSnapshot){0};
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);

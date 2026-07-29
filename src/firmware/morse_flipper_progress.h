@@ -195,10 +195,9 @@ void morse_flipper_progress_history_view_reset(
 void morse_flipper_progress_history_view_cancel(MorseFlipperProgressHistoryView* view);
 uint8_t
     morse_flipper_progress_history_view_visible_rows(const MorseFlipperProgressHistoryView* view);
-MorseFlipperProgressHistoryMove morse_flipper_progress_history_view_scroll(
-    MorseFlipperProgressHistoryView* view,
-    int8_t dir);
+MorseFlipperProgressHistoryMove
+    morse_flipper_progress_history_view_scroll(MorseFlipperProgressHistoryView* view, int8_t dir);
 MorseFlipperProgressHistoryMove
     morse_flipper_progress_history_view_continue(MorseFlipperProgressHistoryView* view);
-const MorseFlipperProgressHistoryRow* morse_flipper_progress_history_view_focused(
-    const MorseFlipperProgressHistoryView* view);
+const MorseFlipperProgressHistoryRow*
+    morse_flipper_progress_history_view_focused(const MorseFlipperProgressHistoryView* view);

@@ -37,7 +37,8 @@ static void mf_call_digit(MfCallsign* call, char digit) {
 }
 
 static void mf_call_letters(MfCallsign* call, MfRxRng* rng, uint8_t count) {
-    while(count-- != 0U) call->text[call->text_len++] = mf_pick(rng, mf_letters, 26U);
+    while(count-- != 0U)
+        call->text[call->text_len++] = mf_pick(rng, mf_letters, 26U);
 }
 
 static MfCallsignEntity mf_pick_entity(MfRxRng* rng) {
@@ -66,7 +67,8 @@ static bool mf_make_us(MfRxRng* rng, uint8_t len, MfCallsign* call) {
             mf_call_prefix(call, prefix, 1U);
         } else {
             prefix[0] = mf_rx_rng_bounded(rng, 2U) == 0U ? 'A' : mf_pick(rng, "KNW", 3U);
-            prefix[1] = prefix[0] == 'A' ? mf_pick(rng, "ABCDEFGHIJKL", 12U) : mf_pick(rng, mf_letters, 26U);
+            prefix[1] = prefix[0] == 'A' ? mf_pick(rng, "ABCDEFGHIJKL", 12U) :
+                                           mf_pick(rng, mf_letters, 26U);
             mf_call_prefix(call, prefix, 2U);
         }
         mf_call_digit(call, mf_pick(rng, mf_digits, 10U));
@@ -83,10 +85,14 @@ static bool mf_make_germany(MfRxRng* rng, uint8_t len, MfCallsign* call) {
         prefix[1] = mf_pick(rng, "ABCDEFGHIJKLMNOPQR", 18U);
     } else {
         roll = mf_rx_rng_bounded(rng, 83U);
-        if(roll < 35U) prefix[1] = 'L';
-        else if(roll < 52U) prefix[1] = mf_pick(rng, "KO", 2U);
-        else if(roll < 72U) prefix[1] = mf_pick(rng, "FJMG", 4U);
-        else prefix[1] = mf_pick(rng, "HCBDNA", 6U);
+        if(roll < 35U)
+            prefix[1] = 'L';
+        else if(roll < 52U)
+            prefix[1] = mf_pick(rng, "KO", 2U);
+        else if(roll < 72U)
+            prefix[1] = mf_pick(rng, "FJMG", 4U);
+        else
+            prefix[1] = mf_pick(rng, "HCBDNA", 6U);
     }
     mf_call_prefix(call, prefix, 2U);
     mf_call_digit(call, len == 4U ? mf_pick(rng, mf_digits, 10U) : mf_pick(rng, "123456789", 9U));
@@ -124,8 +130,7 @@ static bool mf_make_canada(MfRxRng* rng, uint8_t len, MfCallsign* call) {
         roll = mf_rx_rng_bounded(rng, 4U);
         prefix[0] = roll < 3U ? 'V' : 'X';
         prefix[1] = prefix[0] == 'V' ? mf_pick(rng, "BCDGX", 5U) : mf_pick(rng, "LMNO", 4U);
-    } else if((roll = mf_rx_rng_bounded(rng, len == 6U ? 56U : 45U)) <
-              (len == 6U ? 51U : 40U)) {
+    } else if((roll = mf_rx_rng_bounded(rng, len == 6U ? 56U : 45U)) < (len == 6U ? 51U : 40U)) {
         prefix[1] = mf_pick(rng, "AE", 2U);
     } else {
         prefix[1] = mf_pick(rng, "OY", 2U);
@@ -146,14 +151,21 @@ static bool mf_make_romania(MfRxRng* rng, uint8_t len, MfCallsign* call) {
     return mf_call_finish(call, len);
 }
 
-static bool mf_callsign_construct(MfRxRng* rng, MfCallsignEntity entity, uint8_t len, MfCallsign* call) {
+static bool
+    mf_callsign_construct(MfRxRng* rng, MfCallsignEntity entity, uint8_t len, MfCallsign* call) {
     switch(entity) {
-    case MfCallsignEntityUs: return mf_make_us(rng, len, call);
-    case MfCallsignEntityGermany: return mf_make_germany(rng, len, call);
-    case MfCallsignEntityItaly: return mf_make_italy(rng, len, call);
-    case MfCallsignEntityCanada: return mf_make_canada(rng, len, call);
-    case MfCallsignEntityRomania: return mf_make_romania(rng, len, call);
-    default: return false;
+    case MfCallsignEntityUs:
+        return mf_make_us(rng, len, call);
+    case MfCallsignEntityGermany:
+        return mf_make_germany(rng, len, call);
+    case MfCallsignEntityItaly:
+        return mf_make_italy(rng, len, call);
+    case MfCallsignEntityCanada:
+        return mf_make_canada(rng, len, call);
+    case MfCallsignEntityRomania:
+        return mf_make_romania(rng, len, call);
+    default:
+        return false;
     }
 }
 
@@ -165,23 +177,28 @@ static bool mf_prefix_same(const MfCallsignGen* gen, const MfCallsign* call) {
 static bool mf_entity_valid(const MfCallsign* call) {
     char digit = call->text[call->prefix_len];
     if(call->entity == MfCallsignEntityItaly) {
-        if(call->prefix_len == 2U && call->prefix[0] == 'I' && call->prefix[1] == 'T' && digit == '9') return false;
-        if(call->prefix_len == 2U && call->prefix[0] == 'I' && call->prefix[1] == 'S' && digit == '0') return false;
-        if(call->prefix_len == 2U && (call->prefix[1] == 'M' || call->prefix[1] == 'G' || call->prefix[1] == 'P') && digit == '9') return false;
+        if(call->prefix_len == 2U && call->prefix[0] == 'I' && call->prefix[1] == 'T' &&
+           digit == '9')
+            return false;
+        if(call->prefix_len == 2U && call->prefix[0] == 'I' && call->prefix[1] == 'S' &&
+           digit == '0')
+            return false;
+        if(call->prefix_len == 2U &&
+           (call->prefix[1] == 'M' || call->prefix[1] == 'G' || call->prefix[1] == 'P') &&
+           digit == '9')
+            return false;
     }
     return true;
 }
 
-static bool mf_callsign_fallback(
-    MfRxRng* rng,
-    MfCallsignEntity entity,
-    uint8_t len,
-    MfCallsign* call) {
+static bool
+    mf_callsign_fallback(MfRxRng* rng, MfCallsignEntity entity, uint8_t len, MfCallsign* call) {
     static const char* const prefix4[] = {"K", "DA", "IB", "VB", "YP"};
     static const char* const prefix5[] = {"K", "DL", "I", "VA", "YO"};
     static const char* const prefix6[] = {"KA", "DL", "IU", "VA", "YO"};
-    const char* prefix =
-        len == 4U ? prefix4[entity] : len == 5U ? prefix5[entity] : prefix6[entity];
+    const char* prefix = len == 4U ? prefix4[entity] :
+                         len == 5U ? prefix5[entity] :
+                                     prefix6[entity];
     uint8_t prefix_len = (uint8_t)strlen(prefix);
 
     mf_call_clear(call, entity);
@@ -207,9 +224,10 @@ uint8_t mf_callsign_pick_length(MfRxRng* rng) {
 
 bool mf_callsign_valid(const MfCallsign* call, uint8_t target_len) {
     bool prefix_letter = false;
-    if(call == NULL || target_len < 4U || target_len > MF_CALLSIGN_MAX_LEN || call->text_len != target_len ||
-       call->text[target_len] != '\0' || call->prefix_len == 0U || call->prefix_len > MF_CALLSIGN_PREFIX_MAX ||
-       call->prefix_len >= target_len || memcmp(call->text, call->prefix, call->prefix_len) != 0 ||
+    if(call == NULL || target_len < 4U || target_len > MF_CALLSIGN_MAX_LEN ||
+       call->text_len != target_len || call->text[target_len] != '\0' || call->prefix_len == 0U ||
+       call->prefix_len > MF_CALLSIGN_PREFIX_MAX || call->prefix_len >= target_len ||
+       memcmp(call->text, call->prefix, call->prefix_len) != 0 ||
        call->text[call->prefix_len] < '0' || call->text[call->prefix_len] > '9')
         return false;
     for(uint8_t i = 0U; i < target_len; i++) {
@@ -225,10 +243,14 @@ bool mf_callsign_valid(const MfCallsign* call, uint8_t target_len) {
 
 bool mf_callsign_generate(MfCallsignGen* gen, MfRxRng* rng, uint8_t target_len, MfCallsign* out) {
     static const MfCallsignEntity fallback[] = {
-        MfCallsignEntityUs, MfCallsignEntityGermany, MfCallsignEntityItaly,
-        MfCallsignEntityCanada, MfCallsignEntityRomania};
+        MfCallsignEntityUs,
+        MfCallsignEntityGermany,
+        MfCallsignEntityItaly,
+        MfCallsignEntityCanada,
+        MfCallsignEntityRomania};
     MfCallsign candidate;
-    if(gen == NULL || rng == NULL || out == NULL || target_len < 4U || target_len > 6U) return false;
+    if(gen == NULL || rng == NULL || out == NULL || target_len < 4U || target_len > 6U)
+        return false;
     for(uint8_t i = 0U; i < 16U; i++) {
         if(mf_callsign_construct(rng, mf_pick_entity(rng), target_len, &candidate) &&
            mf_callsign_valid(&candidate, target_len) && !mf_prefix_same(gen, &candidate)) {

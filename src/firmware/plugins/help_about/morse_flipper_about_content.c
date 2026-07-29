@@ -10,8 +10,8 @@
 #include <gui/elements.h>
 #include <string.h>
 
-#define MORSE_FLIPPER_ABOUT_ALLOW_MS   1000U
-#define MORSE_FLIPPER_ABOUT_CYCLE_MS   1500U
+#define MORSE_FLIPPER_ABOUT_ALLOW_MS 1000U
+#define MORSE_FLIPPER_ABOUT_CYCLE_MS 1500U
 
 typedef struct {
     const uint8_t* data;
@@ -154,7 +154,6 @@ static const uint8_t morse_flipper_about_request_seq[] = {
     MorseFlipperAboutEntryYoutube,
 };
 
-
 static uint8_t morse_flipper_about_request_start(uint8_t day) {
     return day % COUNT_OF(morse_flipper_about_request_seq);
 }
@@ -223,7 +222,8 @@ int16_t morse_flipper_about_max_scroll(Canvas* canvas, const MorseFlipperHelpAbo
     return cwmd_max_scroll_px(canvas, &cfg, state->about_body);
 }
 
-static void morse_flipper_draw_about_landing(Canvas* canvas, const MorseFlipperHelpAboutState* app) {
+static void
+    morse_flipper_draw_about_landing(Canvas* canvas, const MorseFlipperHelpAboutState* app) {
     canvas_clear(canvas);
     canvas_draw_xbm(canvas, 4, 16, 32, 32, morse_flipper_about_left_icon);
     canvas_draw_xbm(canvas, 45, 8, 70, 16, morse_flipper_about_yo3gnd);

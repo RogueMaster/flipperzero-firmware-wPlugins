@@ -5,10 +5,10 @@
 
 int main(void) {
     unsigned checks = 0U;
-#define CHECK(value) \
-    do { \
+#define CHECK(value)   \
+    do {               \
         assert(value); \
-        checks++; \
+        checks++;      \
     } while(0)
     CHECK(morse_flipper_training_char_gap_ms(100U, 12U, 0U) == 300U);
     CHECK(morse_flipper_training_char_gap_ms(100U, 12U, 12U) == 300U);

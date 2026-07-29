@@ -618,8 +618,7 @@ static bool morse_flipper_session_end_input(
         return true;
     }
 
-    if(app->session_next_eligible &&
-       event->key == InputKeyOk && event->type == InputTypeShort) {
+    if(app->session_next_eligible && event->key == InputKeyOk && event->type == InputTypeShort) {
         app->session_next_eligible = false;
         app->session_offer_next = true;
         morse_flipper_view_dirty(app);
@@ -628,7 +627,7 @@ static bool morse_flipper_session_end_input(
 
     if((event->key == InputKeyOk || event->key == InputKeyBack) &&
        (event->type == InputTypeShort || event->type == InputTypeLong)) {
-leave_session_end:
+    leave_session_end:
         morse_flipper_leave_session_end(app, now_ms);
         return true;
     }
@@ -738,8 +737,7 @@ static bool morse_flipper_progress_history_input(MorseFlipperApp* app, const Inp
     if(event->key != InputKeyUp && event->key != InputKeyDown) return false;
 
     dir = event->key == InputKeyDown ? 1 : -1;
-    if(app->progress_history.pending_dir != 0 &&
-       app->progress_history.pending_dir != dir)
+    if(app->progress_history.pending_dir != 0 && app->progress_history.pending_dir != dir)
         morse_flipper_progress_history_view_cancel(&app->progress_history);
     if(event->type == InputTypePress) {
         app->progress_scroll_key = event->key;
@@ -1015,8 +1013,8 @@ static bool
         return true;
     }
 
-    if(app->screen != MorseFlipperScreenRxPractice &&
-       event->key == InputKeyLeft && morse_flipper_session_left_exit_active(app)) {
+    if(app->screen != MorseFlipperScreenRxPractice && event->key == InputKeyLeft &&
+       morse_flipper_session_left_exit_active(app)) {
         morse_flipper_handle_active_keying_event(app, event);
         return true;
     }

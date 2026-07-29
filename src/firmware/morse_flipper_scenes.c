@@ -69,15 +69,12 @@ static void morse_flipper_scene_menu_on_exit(void* context) {
     submenu_reset(app->submenu);
 }
 
-static void morse_flipper_scene_start_rx_training(
-    MorseFlipperApp* app,
-    uint32_t target_scene) {
+static void morse_flipper_scene_start_rx_training(MorseFlipperApp* app, uint32_t target_scene) {
     scene_manager_next_scene(app->scene_manager, target_scene);
 }
 
-static void morse_flipper_scene_start_rx_or_streak_intro(
-    MorseFlipperApp* app,
-    uint32_t target_scene) {
+static void
+    morse_flipper_scene_start_rx_or_streak_intro(MorseFlipperApp* app, uint32_t target_scene) {
     MorseFlipperProgress* progress;
     uint16_t practice_day = MORSE_FLIPPER_PROGRESS_DAY_NONE;
     bool saved;
@@ -116,8 +113,7 @@ static void morse_flipper_scene_start_rx_or_streak_intro(
         return;
     }
 
-    scene_manager_set_scene_state(
-        app->scene_manager, MorseFlipperSceneStreakIntro, target_scene);
+    scene_manager_set_scene_state(app->scene_manager, MorseFlipperSceneStreakIntro, target_scene);
     scene_manager_next_scene(app->scene_manager, MorseFlipperSceneStreakIntro);
 }
 
@@ -178,8 +174,7 @@ static bool morse_flipper_scene_menu_training_on_event(void* context, SceneManag
     if(event.type == SceneManagerEventTypeCustom) {
         scene_manager_set_scene_state(
             app->scene_manager, MorseFlipperSceneMenuTraining, event.event);
-        if(event.event == MorseFlipperSceneSession ||
-           event.event == MorseFlipperSceneIcr ||
+        if(event.event == MorseFlipperSceneSession || event.event == MorseFlipperSceneIcr ||
            event.event == MorseFlipperSceneRxCallsigns ||
            event.event == MorseFlipperScenePassive) {
             morse_flipper_scene_start_rx_or_streak_intro(app, event.event);
@@ -233,8 +228,10 @@ static void morse_flipper_scene_menu_settings_on_enter(void* context) {
         MorseFlipperSceneRxCallsignsCfg,
         morse_flipper_scene_menu_pick,
         app);
-    submenu_add_item(app->submenu, "ICR", MorseFlipperSceneIcr, morse_flipper_scene_menu_pick, app);
-    submenu_add_item(app->submenu, "GPIO", MorseFlipperSceneGpio, morse_flipper_scene_menu_pick, app);
+    submenu_add_item(
+        app->submenu, "ICR", MorseFlipperSceneIcr, morse_flipper_scene_menu_pick, app);
+    submenu_add_item(
+        app->submenu, "GPIO", MorseFlipperSceneGpio, morse_flipper_scene_menu_pick, app);
     submenu_add_item(app->submenu, "USB", MorseFlipperScenePc, morse_flipper_scene_menu_pick, app);
     submenu_set_selected_item(app->submenu, sel);
     morse_flipper_scene_enter_now(app, MorseFlipperSceneMenuSettings);
@@ -689,8 +686,7 @@ static void morse_flipper_scene_radio_on_enter(void* context) {
     app->tx_edge_at = 0U;
     app->tx_gap_flushed = true;
     if(!morse_flipper_radio_host_active(app)) morse_flipper_radio_host_open(app, now_ms);
-    morse_flipper_radio_host_set_page(
-        app, morse_flipper_scene_radio_page(scene), now_ms);
+    morse_flipper_radio_host_set_page(app, morse_flipper_scene_radio_page(scene), now_ms);
     morse_flipper_scene_enter_now(app, scene);
 }
 
@@ -715,12 +711,10 @@ static void morse_flipper_scene_radio_on_exit(void* context) {
 }
 
 static void morse_flipper_scene_streak_intro_start_training(MorseFlipperApp* app) {
-    uint32_t target_scene = scene_manager_get_scene_state(
-        app->scene_manager, MorseFlipperSceneStreakIntro);
-    if(target_scene != MorseFlipperSceneSession &&
-       target_scene != MorseFlipperSceneIcr &&
-       target_scene != MorseFlipperSceneRxCallsigns &&
-       target_scene != MorseFlipperScenePassive)
+    uint32_t target_scene =
+        scene_manager_get_scene_state(app->scene_manager, MorseFlipperSceneStreakIntro);
+    if(target_scene != MorseFlipperSceneSession && target_scene != MorseFlipperSceneIcr &&
+       target_scene != MorseFlipperSceneRxCallsigns && target_scene != MorseFlipperScenePassive)
         target_scene = MorseFlipperSceneSession;
     app->streak_intro_until_ms = 0U;
     scene_manager_search_and_switch_to_another_scene(

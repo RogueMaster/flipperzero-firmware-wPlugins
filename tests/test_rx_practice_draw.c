@@ -19,10 +19,10 @@ static const int32_t hint_geometry[4][4] = {
     {127, 30, 1, 7},
 };
 
-#define CHECK(value) \
-    do { \
+#define CHECK(value)   \
+    do {               \
         assert(value); \
-        checks++; \
+        checks++;      \
     } while(0)
 
 void canvas_set_font(Canvas* canvas, Font font) {
@@ -133,8 +133,7 @@ int main(void) {
     };
 
     memcpy(state.target, "EIAA", 5U);
-    for(MfRxPracticePhase phase = MfRxPracticePhaseIdle;
-        phase <= MfRxPracticePhaseFinal;
+    for(MfRxPracticePhase phase = MfRxPracticePhaseIdle; phase <= MfRxPracticePhaseFinal;
         phase++) {
         check_phase_chrome(&state, &canvas, phase, true);
         check_phase_chrome(&state, &canvas, phase, false);

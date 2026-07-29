@@ -7,10 +7,10 @@
 #include "mf_passive_audio_pipe.h"
 #include "mf_passive_codec.h"
 
-#define MF_PASSIVE_VOICE_TOKEN_COUNT 40U
+#define MF_PASSIVE_VOICE_TOKEN_COUNT        40U
 #define MF_PASSIVE_VOICE_FIRST_SLICE_TOKENS 36U
-#define MF_PASSIVE_VOICE_READ_MAX 512U
-#define MF_PASSIVE_VOICE_PIPE_HIGH_WATER 480U
+#define MF_PASSIVE_VOICE_READ_MAX           512U
+#define MF_PASSIVE_VOICE_PIPE_HIGH_WATER    480U
 #define MF_PASSIVE_VOICE_PIPE_PRIME_SAMPLES 128U
 
 _Static_assert(

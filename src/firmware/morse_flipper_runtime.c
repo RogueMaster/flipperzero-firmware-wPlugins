@@ -114,11 +114,9 @@ static void morse_flipper_drain_tx_decoder(MorseFlipperApp* app) {
         }
     }
     if(app->screen == MorseFlipperScreenRxPractice) {
-        while(out_len < sizeof(app->tx_decoder.output) &&
-              out[out_len] != '\0')
+        while(out_len < sizeof(app->tx_decoder.output) && out[out_len] != '\0')
             out_len++;
-        decoder_reset = morse_flipper_rx_practice_host_feed(
-            app, out, out_len, furi_get_tick());
+        decoder_reset = morse_flipper_rx_practice_host_feed(app, out, out_len, furi_get_tick());
         if(!decoder_reset) morse_flipper_cw_decoder_clear_output(&app->tx_decoder);
         return;
     }
@@ -269,9 +267,8 @@ static bool morse_flipper_tx_decoder_allowed(const MorseFlipperApp* app) {
     if(app->screen == MorseFlipperScreenRxPractice) {
         MorseFlipperPluginSnapshot snapshot;
         return morse_flipper_plugin_runtime_snapshot(app, &snapshot) &&
-               snapshot.owner == MorseFlipperPluginOwnerRxPractice &&
-               snapshot.active && snapshot.phase == MfRxPracticePhaseAnswer &&
-               !snapshot.start_holdoff;
+               snapshot.owner == MorseFlipperPluginOwnerRxPractice && snapshot.active &&
+               snapshot.phase == MfRxPracticePhaseAnswer && !snapshot.start_holdoff;
     }
     return true;
 }
@@ -311,8 +308,7 @@ static void morse_flipper_feed_tx_edge(MorseFlipperApp* app, bool level, uint32_
         }
     }
     if(app->screen == MorseFlipperScreenRf)
-        morse_flipper_radio_host_sync_tx(
-            app, radio_interval, duration_ms, level, now_ms);
+        morse_flipper_radio_host_sync_tx(app, radio_interval, duration_ms, level, now_ms);
 
     app->tx_level = level;
     app->tx_edge_at = now_ms;
@@ -452,8 +448,7 @@ static void morse_flipper_sync_gpio_inputs(MorseFlipperApp* app, uint32_t now_ms
         uint8_t down_mask = straight_active ? MF_RX_START_STRAIGHT : 0U;
         if(dit_active) down_mask |= MF_RX_START_DIT;
         if(dah_active) down_mask |= MF_RX_START_DAH;
-        rx_answer_live =
-            morse_flipper_rx_practice_host_tick(app, now_ms, down_mask);
+        rx_answer_live = morse_flipper_rx_practice_host_tick(app, now_ms, down_mask);
     }
 
     if(app->screen == MorseFlipperScreenTxGroups && app->txg_start_holdoff) {
@@ -492,8 +487,7 @@ static void morse_flipper_sync_gpio_inputs(MorseFlipperApp* app, uint32_t now_ms
        app->screen == MorseFlipperScreenTxGroupsFinal ||
        (app->screen == MorseFlipperScreenStraight && !app->straight_wait_answer) ||
        (app->screen == MorseFlipperScreenTxGroups && !app->txg_wait_answer) ||
-       (app->screen == MorseFlipperScreenSession &&
-        !morse_flipper_session_repeat_active(app)) ||
+       (app->screen == MorseFlipperScreenSession && !morse_flipper_session_repeat_active(app)) ||
        (app->screen == MorseFlipperScreenRxPractice && !rx_answer_live)) {
         morse_flipper_straight_filter_reset(&app->straight_filter);
         straight_active = false;
@@ -651,7 +645,6 @@ void morse_flipper_active_mode_tick(MorseFlipperApp* app, uint32_t now_ms) {
     }
 }
 
-
 static bool morse_flipper_star_animation_active(const MorseFlipperApp* app, uint32_t now_ms) {
     uint32_t elapsed;
 
@@ -803,7 +796,7 @@ void morse_flipper_poll(MorseFlipperApp* app) {
         uint16_t dit_ms = morse_flipper_current_dit_ms(app);
         bool rx_callsigns = app->screen == MorseFlipperScreenRxPractice;
         uint32_t letter_gap_ms = rx_callsigns ? (uint32_t)dit_ms * 2U :
-                                               ((uint32_t)dit_ms * 5U) / 2U;
+                                                ((uint32_t)dit_ms * 5U) / 2U;
         if(gap >= letter_gap_ms) {
             if(app->screen == MorseFlipperScreenRf) {
                 morse_flipper_radio_host_sync_tx(

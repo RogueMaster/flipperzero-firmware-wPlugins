@@ -9,7 +9,7 @@
 #include "../../morse_flipper_mapped_fal.h"
 
 #define MORSE_FLIPPER_HELP_ABOUT_API_VERSION 3U
-#define MORSE_FLIPPER_HELP_ABOUT_API_MAGIC 0x4D464841UL
+#define MORSE_FLIPPER_HELP_ABOUT_API_MAGIC   0x4D464841UL
 
 typedef enum {
     MorseFlipperContentModeOnboarding = 0,

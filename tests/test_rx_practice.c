@@ -10,10 +10,10 @@ static MfRxPracticeDrawSnapshot draw_snapshot = {
     .answer_preview = 'E',
 };
 
-#define CHECK(value) \
-    do { \
+#define CHECK(value)   \
+    do {               \
         assert(value); \
-        checks++; \
+        checks++;      \
     } while(0)
 
 static MfRxPracticeEnterArgs make_args(uint32_t now) {
@@ -34,8 +34,7 @@ static MfRxPracticeEnterArgs make_args(uint32_t now) {
 }
 
 static void open_answer(MfRxPracticeState* state, uint32_t now) {
-    MfRxPracticeResult result =
-        mf_rx_practice_command(state, MfRxPracticeCommandStart, now);
+    MfRxPracticeResult result = mf_rx_practice_command(state, MfRxPracticeCommandStart, now);
     CHECK(result.phase == MfRxPracticePhasePlayback);
     CHECK(result.playback_mark);
     for(unsigned boundaries = 0U; state->phase == MfRxPracticePhasePlayback; boundaries++) {
@@ -81,15 +80,16 @@ static void test_playback_and_answer(void) {
     CHECK(result.phase == MfRxPracticePhaseIdle && result.decoder_reset && result.redraw);
     CHECK(state.button_paddle && state.draw_snapshot == &draw_snapshot);
     result = mf_rx_practice_command(&state, MfRxPracticeCommandStart, 0U);
-    CHECK(result.phase == MfRxPracticePhasePlayback && result.playback_active &&
-          result.playback_mark);
+    CHECK(
+        result.phase == MfRxPracticePhasePlayback && result.playback_active &&
+        result.playback_mark);
     mark_index = state.playback_mark_index;
     result = mf_rx_practice_tick(&state, state.next_at + 5000U);
     CHECK(result.phase == MfRxPracticePhasePlayback);
     CHECK(!state.playback_mark);
-    CHECK(state.playback_mark_index == mark_index + 1U ||
-          state.playback_char == 1U ||
-          state.phase == MfRxPracticePhaseAnswer);
+    CHECK(
+        state.playback_mark_index == mark_index + 1U || state.playback_char == 1U ||
+        state.phase == MfRxPracticePhaseAnswer);
     while(state.phase == MfRxPracticePhasePlayback)
         result = mf_rx_practice_tick(&state, state.next_at);
     CHECK(result.decoder_reset);

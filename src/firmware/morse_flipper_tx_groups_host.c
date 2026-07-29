@@ -1,16 +1,11 @@
 #include "morse_flipper_app_i.h"
 
-#define MORSE_FLIPPER_TX_GROUPS_PLUGIN_PATH \
-    APP_ASSETS_PATH("plugins/morse_flipper_tx_groups.fal")
+#define MORSE_FLIPPER_TX_GROUPS_PLUGIN_PATH APP_ASSETS_PATH("plugins/morse_flipper_tx_groups.fal")
 
 static const MfTxGroupsApi* mf_tx_groups_api;
 
-static void mf_tx_groups_draw_prompt(
-    Canvas* canvas,
-    void* context,
-    int32_t cx,
-    int32_t cy,
-    char ch) {
+static void
+    mf_tx_groups_draw_prompt(Canvas* canvas, void* context, int32_t cx, int32_t cy, char ch) {
     morse_flipper_draw_straight_prompt(canvas, context, cx, cy, ch);
 }
 
@@ -57,8 +52,8 @@ bool morse_flipper_tx_groups_host_enter(MorseFlipperApp* app) {
     };
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     if(app->plugin_slot.owner == MorseFlipperPluginOwnerTxGroups &&
-       app->plugin_slot.error == MorseFlipperPluginErrorNone &&
-       app->plugin_slot.api != NULL && app->plugin_slot.state != NULL) {
+       app->plugin_slot.error == MorseFlipperPluginErrorNone && app->plugin_slot.api != NULL &&
+       app->plugin_slot.state != NULL) {
         entered = true;
     } else {
         entered = morse_flipper_plugin_runtime_open_mapped_locked(
@@ -91,8 +86,8 @@ void morse_flipper_draw_tx_groups_screen(Canvas* canvas, MorseFlipperApp* app) {
                morse_flipper_gpio_probe_blocks_start(app));
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     active = app->plugin_slot.owner == MorseFlipperPluginOwnerTxGroups &&
-             app->plugin_slot.error == MorseFlipperPluginErrorNone && app->plugin_slot.api != NULL &&
-             app->plugin_slot.state != NULL;
+             app->plugin_slot.error == MorseFlipperPluginErrorNone &&
+             app->plugin_slot.api != NULL && app->plugin_slot.state != NULL;
     if(active && !overlay)
         ((const MorseFlipperMappedFalApi*)app->plugin_slot.api)
             ->draw(app->plugin_slot.state, canvas, furi_get_tick());
@@ -132,8 +127,7 @@ void morse_flipper_tx_group_feed_text(MorseFlipperTxGroup* group, const char* te
 }
 
 bool morse_flipper_tx_group_finalize_answer_from_raw(MorseFlipperTxGroup* group, uint16_t dit_ms) {
-    return mf_tx_groups_api != NULL &&
-           mf_tx_groups_api->finalize_answer_from_raw(group, dit_ms);
+    return mf_tx_groups_api != NULL && mf_tx_groups_api->finalize_answer_from_raw(group, dit_ms);
 }
 
 void morse_flipper_tx_group_set_range(

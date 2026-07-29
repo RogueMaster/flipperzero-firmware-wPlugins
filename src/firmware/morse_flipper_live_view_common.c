@@ -10,11 +10,9 @@
 
 void morse_flipper_draw_plugin_unavailable(Canvas* canvas) {
     canvas_set_font(canvas, FontPrimary);
-    canvas_draw_str_aligned(
-        canvas, 64, 28, AlignCenter, AlignBottom, "Plugin unavailable");
+    canvas_draw_str_aligned(canvas, 64, 28, AlignCenter, AlignBottom, "Plugin unavailable");
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(
-        canvas, 64, 52, AlignCenter, AlignBottom, "Back");
+    canvas_draw_str_aligned(canvas, 64, 52, AlignCenter, AlignBottom, "Back");
 }
 
 void morse_flipper_draw_left_exit_hint(Canvas* canvas) {

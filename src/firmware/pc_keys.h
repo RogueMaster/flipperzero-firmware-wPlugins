@@ -54,8 +54,7 @@ static inline uint8_t morse_pc_keyboard_key_for_note(
     uint8_t note,
     bool straight_keying) {
     if(note > 2U) return MorsePcKeyNone;
-    if(note == 0U || straight_keying)
-        return morse_pc_straight_preset_key(straight_preset);
+    if(note == 0U || straight_keying) return morse_pc_straight_preset_key(straight_preset);
     return morse_pc_paddle_preset_key(paddle_preset, note, false);
 }
 uint8_t morse_pc_mouse_button(uint8_t note, bool inverted);

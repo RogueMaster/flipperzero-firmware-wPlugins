@@ -6,10 +6,10 @@
 
 static unsigned checks;
 
-#define CHECK(value) \
-    do { \
+#define CHECK(value)   \
+    do {               \
         assert(value); \
-        checks++; \
+        checks++;      \
     } while(0)
 
 static MorseTrainer completed_session(uint8_t lesson, uint8_t groups, uint16_t hits) {

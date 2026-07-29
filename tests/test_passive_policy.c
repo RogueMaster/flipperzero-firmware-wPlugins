@@ -7,10 +7,10 @@
 
 static unsigned checks;
 
-#define CHECK(value) \
-    do { \
+#define CHECK(value)   \
+    do {               \
         assert(value); \
-        checks++; \
+        checks++;      \
     } while(0)
 
 static void test_defaults(void) {
@@ -90,8 +90,7 @@ static void test_filtered_lesson_order(void) {
     CHECK(mf_passive_settings_lesson_charset_len(1U) == 2U);
     CHECK(mf_passive_settings_lesson_charset_len(2U) == 3U);
     CHECK(
-        mf_passive_settings_lesson_charset_len(
-            (uint8_t)mf_passive_settings_lesson_count()) ==
+        mf_passive_settings_lesson_charset_len((uint8_t)mf_passive_settings_lesson_count()) ==
         strlen(charset));
     mf_passive_settings_lesson_label(1U, label, sizeof(label));
     CHECK(strcmp(label, "1 - K M") == 0);

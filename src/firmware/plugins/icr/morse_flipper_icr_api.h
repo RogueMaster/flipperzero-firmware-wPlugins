@@ -9,7 +9,7 @@
 #include "../../morse_flipper_mapped_fal.h"
 
 #define MORSE_FLIPPER_ICR_API_VERSION 5U
-#define MORSE_FLIPPER_ICR_API_MAGIC 0x4D464943UL
+#define MORSE_FLIPPER_ICR_API_MAGIC   0x4D464943UL
 
 typedef struct DialogsApp DialogsApp;
 
@@ -37,6 +37,7 @@ typedef struct {
 
 typedef struct {
     MorseFlipperMappedFalApi mapped;
-    bool (*enter)(void* state, const MorseFlipperIcrEnterArgs* args, MorseFlipperIcrResult* initial);
+    bool (
+        *enter)(void* state, const MorseFlipperIcrEnterArgs* args, MorseFlipperIcrResult* initial);
     MorseFlipperIcrResult (*input)(void* state, const InputEvent* event, uint32_t now_ms);
 } MorseFlipperIcrApi;
