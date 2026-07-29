@@ -82,6 +82,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Nyx v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Nyx-FlipperZero)
 - Updated: [DeFlock v0.50 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Added: [Partition Panic v1.0 (By slavik0329)](https://github.com/slavik0329/partition-panic-flipper)
+- [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Marauder and Hotspot Arcade firmwares.
 
 <a name="release"></a>
 
