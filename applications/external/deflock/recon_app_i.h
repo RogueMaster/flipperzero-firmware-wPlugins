@@ -28,7 +28,6 @@
 #include "views/deflock_qr_view.h"
 #include "views/guardian_view.h"
 #include "views/ble_list_view.h"
-#include "views/wifi_list_view.h"
 #include "views/locator_view.h"
 
 #define RECON_FLOCK_MAX  64
@@ -67,7 +66,6 @@ typedef enum {
     ReconViewDeflockQr,
     ReconViewGuardian,
     ReconViewBleList,
-    ReconViewWifiList,
     ReconViewLocator,
 } ReconView;
 
@@ -198,7 +196,6 @@ typedef struct {
 
 typedef struct EspLink EspLink;
 typedef struct GpsLink GpsLink;
-typedef struct ReconNfc ReconNfc;
 typedef struct SigDb SigDb;
 
 typedef struct {
@@ -218,14 +215,12 @@ typedef struct {
     DeflockQrView* deflock_qr_view;
     GuardianView* guardian_view;
     BleListView* ble_list_view;
-    WifiListView* wifi_list_view;
     LocatorView* locator_view;
 
     ReconSettings settings;
 
     EspLink* esp;
     GpsLink* gps;
-    ReconNfc* nfc;
     SigDb* sig_db; /**< SD-loaded extra signatures (NULL = built-ins only) */
 
     FuriMutex* mutex; /**< protects flock[] and gps_* snapshot */
@@ -270,11 +265,15 @@ typedef struct {
     char esp_attack_kind[16]; /**< short kind from the ATK line, e.g. "BLE-spam" */
     bool esp_attack_ble; /**< true if the signature is BLE-borne (BLE-spam) vs Wi-Fi */
 
-    WifiAp wifi[RECON_WIFI_MAX]; /**< results of the last WiFi security scan */
+    /* The WiFi Audit SCREEN was removed, but this table stays: Net Guardian's
+     * rotating sweep still runs `wifiscan`, and the evil-twin/rogue pass in
+     * recon_app.c is what raises watchscore's rogue_ap input. Dropping it would
+     * silently cost the Guardian one of the two independent radios it needs to
+     * agree before it may reach ELEVATED. */
+    WifiAp wifi[RECON_WIFI_MAX]; /**< results of the last WiFi sweep */
     size_t wifi_count;
     bool wifi_scanning; /**< true between WBEGIN and WEND */
     bool wifi_done; /**< a scan has completed at least once */
-    int wifi_selected; /**< selected AP index for the detail scene */
     uint8_t saved_backend; /**< backend to restore after the WiFi-audit scene */
 
     DeauthTarget deauth[RECON_DEAUTH_MAX]; /**< BSSIDs seen under deauth attack */

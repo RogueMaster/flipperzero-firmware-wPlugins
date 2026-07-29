@@ -1,4 +1,4 @@
-<!-- visibility: public --><!-- PUBLIC-SAFE: reviewed 2026-07-25 -->
+<!-- visibility: public --><!-- PUBLIC-SAFE: reviewed 2026-07-29 -->
 
 # FlipDeFlock — Project Plan
 
@@ -42,9 +42,8 @@ approach that can be read, verified, and corrected by anyone.
 
 Version 0.44. A Flipper Zero application paired with commodity ESP32 hardware that
 detects Flock/ALPR cameras across Wi-Fi and BLE, identifies Bluetooth trackers that
-persist across your movement, grades nearby Wi-Fi security, flags active Wi-Fi
-attacks, audits NFC/RFID credentials, and exports findings as Markdown, GeoJSON, KML,
-CSV, and WiGLE.
+persist across your movement, flags active Wi-Fi attacks, and exports findings as
+Markdown, GeoJSON, KML, CSV, and WiGLE.
 
 Detections carry an explicit confidence ladder — *Possible*, *Likely*, *Confirmed*,
 *Class?* — because a counter-surveillance tool that overstates certainty is worse than
@@ -148,9 +147,6 @@ Refusals, with reasons. These are boundaries, not a backlog.
 
 - **Any transmit capability.** No deauthentication, injection, jamming, or replay. This
   disqualifies a range of otherwise-effective techniques, and that is accepted.
-- **Active NFC key recovery.** Recovering keys from a reader requires actively emulating
-  a card to harvest its responses. That is outside the passive posture. It would only be
-  reconsidered as a separately gated mode with explicit, informed consent.
 - **Mapping private home-security devices.** Decoding consumer alarm and motion sensors
   is technically adjacent and deliberately not pursued. The project exists to give people
   visibility into surveillance *of* them, not to catalogue the private security of

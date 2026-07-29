@@ -39,19 +39,11 @@
     "On-device map of detected\n"    \
     "cameras around your GPS fix.\n" \
     " \n"                            \
-    "WIFI AUDIT (Companion)\n"       \
-    "Grades nearby Wi-Fi security\n" \
-    "& flags evil-twin APs and\n"    \
-    "deauth floods.\n \n"            \
     "BLE / TRACKER (Companion)\n"    \
     "Finds AirTag / Tile /\n"        \
     "SmartTag / Find My & Flock\n"   \
     "BLE; flags a tracker that\n"    \
     "follows you.\n \n"              \
-    "NFC / RFID AUDIT\n"             \
-    "Identifies a card's protocol\n" \
-    "and grades its security for\n"  \
-    "access-control reviews.\n \n"   \
     "REPORTS\n"                      \
     "Marked finds export to\n"       \
     "Markdown, DeFlock GeoJSON,\n"   \
@@ -74,11 +66,11 @@
     "BOARD MODE (Settings)\n"        \
     "Marauder: keep your board\n"    \
     "as-is, no flashing - Flock\n"   \
-    "detect, NFC, GPS & reports.\n"  \
+    "detect, GPS & reports.\n"       \
     "Companion: flash our FW\n"      \
     "(via 'ESP32 Firmware') to\n"    \
-    "add WiFi audit, BLE tracker\n"  \
-    "scan, Net Guardian, Locator,\n" \
+    "add BLE tracker scan, Net\n"    \
+    "Guardian, Locator,\n"           \
     "deauth & dual-band Flock.\n \n" \
     "SUPPORT\n"                      \
     "Free forever - donations\n"     \
@@ -97,7 +89,7 @@ void recon_scene_about_on_enter(void* context) {
     furi_string_printf(
         s,
         "Mode: %s\n \n%s",
-        app->settings.backend == EspBackendGeneric ? "Marauder (Flock+NFC)" : "Companion (all)",
+        app->settings.backend == EspBackendGeneric ? "Marauder (Flock)" : "Companion (all)",
         RECON_ABOUT_TEXT);
     widget_add_text_scroll_element(widget, 0, 0, 128, 64, furi_string_get_cstr(s));
     furi_string_free(s);

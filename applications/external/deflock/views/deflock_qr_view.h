@@ -4,6 +4,8 @@
 
 #include <gui/view.h>
 
+#include "../plugins/qr_plugin_api.h"
+
 typedef struct DeflockQrView DeflockQrView;
 
 /** Called when the user pages Left/Right; delta is -1 or +1. */
@@ -15,6 +17,13 @@ View* deflock_qr_view_get_view(DeflockQrView* qv);
 
 /** Set the owning ReconApp pointer (read for live data inside the draw callback). */
 void deflock_qr_view_set_app(DeflockQrView* qv, void* app);
+
+/**
+ * Hand the view the QR encoder plugin's API, or NULL if it could not be loaded.
+ * Must be called before set_content(); with NULL the view degrades to the text
+ * fallback instead of drawing modules.
+ */
+void deflock_qr_view_set_api(DeflockQrView* qv, const QrPluginApi* api);
 
 /** Set the Left/Right paging callback. */
 void deflock_qr_view_set_page_callback(DeflockQrView* qv, DeflockQrPageCallback cb, void* context);

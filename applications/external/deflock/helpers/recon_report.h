@@ -16,19 +16,6 @@ void recon_report_ensure_dirs(void* app);
 bool recon_report_save_flock(void* app, char* out_path_md, size_t out_len);
 
 /**
- * Append one NFC/RFID audit finding (a single preformatted line) to the daily
- * NFC audit log on the SD card.
- */
-bool recon_report_append_nfc(void* app, const char* line);
-
-/**
- * Write a Markdown + CSV report of the last WiFi security scan (all APs with
- * grade, auth, WPS and weaknesses). Returns true on success and fills
- * `out_path_md`.
- */
-bool recon_report_save_wifi(void* app, char* out_path_md, size_t out_len);
-
-/**
  * Write a CSV + GeoJSON of the last BLE scan (all devices, with tracker
  * category and "following" flag; GeoJSON points for geotagged trackers).
  */

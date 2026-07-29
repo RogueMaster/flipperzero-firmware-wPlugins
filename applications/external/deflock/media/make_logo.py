@@ -2,9 +2,9 @@
 """
 Generate FlipDeFlock branding:
   - icon.png  : 10x10 1-bit Flipper .fap menu icon (camera-with-slash glyph)
-  - assets/logo.png : repo/README banner (camera + slash + wordmark)
+  - media/logo.png : repo/README banner (camera + slash + wordmark)
 
-Run:  python assets/make_logo.py
+Run:  python media/make_logo.py
 Requires Pillow.
 """
 import os

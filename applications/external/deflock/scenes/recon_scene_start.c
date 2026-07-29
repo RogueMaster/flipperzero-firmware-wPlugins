@@ -5,9 +5,7 @@
 typedef enum {
     StartItemFlock,
     StartItemGuardian,
-    StartItemWifi,
     StartItemBle,
-    StartItemNfc,
     StartItemFirmware,
     StartItemReports,
     StartItemSettings,
@@ -68,10 +66,8 @@ void recon_scene_start_on_enter(void* context) {
         submenu, "Net Guardian", StartItemGuardian, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Locator", StartItemLocator, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Flock Map", StartItemFlockMap, recon_scene_start_submenu_cb, app);
-    submenu_add_item(submenu, "WiFi Audit", StartItemWifi, recon_scene_start_submenu_cb, app);
     submenu_add_item(
         submenu, "BLE / Tracker Scan", StartItemBle, recon_scene_start_submenu_cb, app);
-    submenu_add_item(submenu, "NFC / RFID Audit", StartItemNfc, recon_scene_start_submenu_cb, app);
     submenu_add_item(
         submenu, "ESP32 Firmware", StartItemFirmware, recon_scene_start_submenu_cb, app);
     submenu_add_item(submenu, "Reports", StartItemReports, recon_scene_start_submenu_cb, app);
@@ -113,14 +109,10 @@ bool recon_scene_start_on_event(void* context, SceneManagerEvent event) {
         case StartItemFlockMap:
             scene_manager_next_scene(app->scene_manager, ReconSceneFlockMap);
             break;
-        case StartItemWifi:
-            scene_manager_next_scene(app->scene_manager, ReconSceneWifi);
             break;
         case StartItemBle:
             scene_manager_next_scene(app->scene_manager, ReconSceneBle);
             break;
-        case StartItemNfc:
-            scene_manager_next_scene(app->scene_manager, ReconSceneNfc);
             break;
         case StartItemFirmware:
             scene_manager_next_scene(app->scene_manager, ReconSceneFirmware);

@@ -1029,8 +1029,6 @@ static ReconApp* recon_app_alloc(void) {
     guardian_view_set_app(app->guardian_view, app);
     app->ble_list_view = ble_list_view_alloc();
     ble_list_view_set_app(app->ble_list_view, app);
-    app->wifi_list_view = wifi_list_view_alloc();
-    wifi_list_view_set_app(app->wifi_list_view, app);
     app->locator_view = locator_view_alloc();
     locator_view_set_app(app->locator_view, app);
 
@@ -1057,8 +1055,6 @@ static ReconApp* recon_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, ReconViewBleList, ble_list_view_get_view(app->ble_list_view));
     view_dispatcher_add_view(
-        app->view_dispatcher, ReconViewWifiList, wifi_list_view_get_view(app->wifi_list_view));
-    view_dispatcher_add_view(
         app->view_dispatcher, ReconViewLocator, locator_view_get_view(app->locator_view));
 
     view_dispatcher_attach_to_gui(app->view_dispatcher, app->gui, ViewDispatcherTypeFullscreen);
@@ -1077,7 +1073,6 @@ static void recon_app_free(ReconApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewDeflockQr);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewGuardian);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewBleList);
-    view_dispatcher_remove_view(app->view_dispatcher, ReconViewWifiList);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewLocator);
 
     submenu_free(app->submenu);
@@ -1090,7 +1085,6 @@ static void recon_app_free(ReconApp* app) {
     deflock_qr_view_free(app->deflock_qr_view);
     guardian_view_free(app->guardian_view);
     ble_list_view_free(app->ble_list_view);
-    wifi_list_view_free(app->wifi_list_view);
     locator_view_free(app->locator_view);
 
     scene_manager_free(app->scene_manager);

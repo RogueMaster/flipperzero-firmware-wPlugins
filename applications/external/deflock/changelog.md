@@ -1,5 +1,44 @@
 # Changelog
 
+## v0.51
+**A quarter of the app's memory footprint, gone.** Users on heavier firmware were
+being refused at launch with *"Not enough RAM to run the app"*
+([#5](https://github.com/ReconGrunt/FlipDeFlock/issues/5)) — that is the Flipper's
+loader failing to find one contiguous block for the app image, before any of our
+own allocation happens. The image is now **86,810 → 65,054 bytes (−25.1%)**, and
+the block that has to be found is **67,056 → 50,808 (−24.2%)**.
+
+- **BREAKING: the NFC / RFID Audit and WiFi Audit screens are removed.**
+  FlipDeFlock detects surveillance hardware; a card-security grader was never part
+  of that, and WiFi Audit was a second product sharing the menu. Together they were
+  13.4 KB of an image that was failing to load. **Net Guardian is unaffected** — it
+  still runs the Wi-Fi sweep and still flags evil-twin APs, because its fused score
+  is only allowed to reach ELEVATED when two independent radios agree. The screens
+  went; the scan and the detection stayed.
+- **The QR encoder now loads on demand.** Nayuki's generator is ~4.6 KB and is
+  reachable from one screen, so it ships as a plugin inside the `.fap` and is mapped
+  in only while *Share to DeFlock* is open. **Still a single-file install** — one
+  `.fap`, copied to `apps/Tools/`, exactly as before. If the plugin can't be loaded
+  the screen degrades to "QR n/a" and still shows the coordinates and OSM tags, so
+  you can submit by hand at deflock.org/report.
+- **Cheaper maths.** `sinf`/`cosf` dragged in newlib's large-argument range
+  reduction (~3.2 KB) for arguments that are only ever a latitude or a compass
+  heading, and `powf` was being called with an integer exponent (~1.5 KB). Both
+  replaced; the new trig is checked against the host's libm across the real input
+  domain, at a tolerance 100× tighter than a float coordinate's own resolution.
+- **Smaller detection tables.** `FlockEntry` and `BleDevice` are ordered by field
+  width now; the thematic order was leaving 7 and 9 bytes of padding per entry,
+  multiplied by 64 and 48 entries.
+
+### Fixed
+
+- **Share to DeFlock never found any marked cameras.** It reported "No marked
+  cameras" no matter how many were marked and geotagged, in **v0.48, v0.49 and
+  v0.50**. v0.48 moved three scene snapshot arrays off BSS onto the heap and added
+  the allocation to two of the three; this screen got the pointer and the `free()`
+  but never a `malloc`, and a NULL guard on the collection loop is why it failed
+  silently instead of crashing.
+
 ## v0.50
 Finishes a v0.49 fix that only landed on one of the three scanner screens. **No
 detection logic changed.**

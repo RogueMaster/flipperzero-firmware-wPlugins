@@ -27,11 +27,11 @@ ones:
 Check **Settings → ESP Port** and **GPS Port**. Both can run at once, but not on the
 same UART.
 
-**Nothing appears in WiFi Audit, BLE Scan, Net Guardian, or Locator.** These four screens
+**Nothing appears in BLE Scan, Net Guardian, or Locator.** These three screens
 require **Companion** firmware and are blocked in Marauder mode — you should see an
 explicit notice saying so. Either flash the companion firmware (**ESP32 Firmware → Flash
 a .bin**, no computer needed) or use the screens Marauder mode supports: Flock/ALPR
-Detect, NFC/RFID Audit, Flock Map, and Reports.
+Detect, Flock Map, and Reports.
 
 **Flock/ALPR Detect finds nothing at all.** Check in order:
 
@@ -88,16 +88,6 @@ end to end. Flashing keeps your Fast setting since each block is MD5-verified an
 
 **"Low memory" before a flash starts.** The flasher pre-flight found too little heap.
 Reboot the Flipper and try again without opening other screens first.
-
-## NFC
-
-**The MIFARE Classic deep check takes minutes.** Expected — it runs the full SD key
-dictionary against every sector. It uses the Flipper's stock
-`nfc/assets/mf_classic_dict.nfc`; if that file is missing, it falls back to a much
-smaller built-in key list and will find less.
-
-**The verdict looks like it's for the wrong card.** Fixed in v0.43 — the verdict now
-binds to the card actually presented. Update if you're on an older build.
 
 ## Reports
 

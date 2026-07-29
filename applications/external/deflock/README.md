@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="assets/logo.png" width="560" alt="FlipDeFlock">
+  <img src="media/logo.png" width="560" alt="FlipDeFlock">
 </p>
 
 <p align="center"><em>"Snoop onto them as they snoop onto us."</em></p>
 
 FlipDeFlock is a Flipper Zero app that pairs the Flipper with an ESP32 board to
 survey the radio around you for surveillance hardware: Flock Safety / ALPR
-cameras, Bluetooth trackers that follow you, weak or spoofed Wi-Fi, and active
-Wi-Fi attacks. The Flipper is the screen, GPS tagger, and logger; the ESP32 does
-the Wi-Fi sniffing its BLE-only radio can't. It's for security assessments,
-anti-surveillance awareness, and CTF/research.
+cameras, Bluetooth trackers that follow you, and active Wi-Fi attacks such as
+deauth floods and evil-twin APs. The Flipper is the screen, GPS tagger, and
+logger; the ESP32 does the Wi-Fi sniffing its BLE-only radio can't. It's for
+security assessments, anti-surveillance awareness, and CTF/research.
 
 **Passive recon only.** It listens; it never transmits — no deauth, injection, or
 jamming. Detections are indicators, not proof: OUI-only matches are possible, not
@@ -72,11 +72,11 @@ persist.
 Set **Board Mode** in Settings to match your ESP32 firmware:
 
 - **Marauder** — keep the board's existing firmware, no flashing. You get Flock /
-  ALPR Detect, NFC / RFID audit, GPS, and Reports. The app scrapes MAC/SSID tokens
+  ALPR Detect, GPS, and Reports. The app scrapes MAC/SSID tokens
   from whatever Marauder prints and applies the Flock filter on the Flipper.
 - **Companion** — the project firmware in `esp32_companion/`, a clean line
-  protocol. Adds WiFi Audit, BLE / Tracker Scan, Net Guardian, Locator, passive
-  deauth detection, and dual-band (Wi-Fi + BLE) Flock detection. Flash it from the
+  protocol. Adds BLE / Tracker Scan, Net Guardian, Locator, passive deauth
+  detection, and dual-band (Wi-Fi + BLE) Flock detection. Flash it from the
   app with **ESP32 Firmware** (no computer needed) or with Arduino IDE /
   arduino-cli (see [`esp32_companion/README.md`](esp32_companion/README.md)).
 
@@ -98,11 +98,6 @@ firmware; in Marauder mode they explain what's missing.
   are plotted by bearing and distance, dot size is confidence, with a heading tick
   and a scale bar. Left/Right zoom, OK re-fits. Needs a GPS fix; ungeotagged
   cameras aren't plotted.
-- **WiFi Audit** *(companion)* — grades each nearby network worst-first
-  (Open/WEP/WPA1/WPA2/WPA3, WPS, TKIP, hidden) and flags evil-twin SSIDs (same
-  name, different BSSIDs). Open a row for the auth/cipher/WPS/vendor breakdown and
-  exactly what's weak. Also detects deauth/disassoc floods live. Marauder can't
-  report encryption over serial, so this needs the companion.
 - **BLE / Tracker Scan** *(companion)* — detects AirTag / Tile / SmartTag / Google
   Find My trackers and Flock/Raven BLE. With GPS on, a tracker that stays with you
   across several waypoints is flagged `!FOLLOWING` (anti-stalking); open it for the
@@ -119,15 +114,10 @@ firmware; in Marauder mode they explain what's missing.
   default off) adds unidentified-device flagging.
 - **Locator** *(companion)* — hunt a marked device by live signal strength: a
   hot/cold meter that climbs as you get closer, peak-hold, and a warmer/colder
-  trend. Mark a target from any Flock / BLE / WiFi detection or from the Guardian's
+  trend. Mark a target from any Flock or BLE detection, or from the Guardian's
   Suspicious list. Works without GPS (a fix only adds a "strongest here" note).
   There's no compass arrow — direction-finding a transmitter needs a directional
   antenna, so you close in by walking.
-- **NFC / RFID Audit** — identifies a presented card's protocol and grades its
-  security for access-control reviews. On a MIFARE Classic, a **Deep** check
-  captures the UID and tries the Flipper's on-SD key dictionary against every
-  sector, reporting how many open with default keys (`N/total` = trivially
-  cloneable). Audit only cards you own or are authorized to test.
 - **ESP32 Firmware** — backs up the board's current firmware to SD, then flashes a
   `.bin` (companion, Marauder, or a backup) at `0x0`, straight from the Flipper.
   Put the ESP in bootloader/download mode first (hold **BOOT**, tap **RESET**). It
@@ -154,15 +144,15 @@ firmware; in Marauder mode they explain what's missing.
 ## Screenshots
 
 <p align="center">
-  <img src="assets/screenshots/net-guardian.png" width="420" alt="Net Guardian">
+  <img src="media/screenshots/net-guardian.png" width="420" alt="Net Guardian">
   <br><em>Net Guardian — the always-on watch face</em>
 </p>
 
 | | |
 |:--:|:--:|
-| <img src="assets/screenshots/alpr.png" width="330" alt="Flock / ALPR Detect"><br>**Flock / ALPR Detect** | <img src="assets/screenshots/menu.png" width="330" alt="Main menu"><br>**Main menu** |
-| <img src="assets/screenshots/flock-detail.png" width="330" alt="Detection detail"><br>**Why it was flagged** | <img src="assets/screenshots/ble-scan-results.png" width="330" alt="BLE / Tracker results"><br>**BLE / Tracker results** |
-| <img src="assets/screenshots/wifi-audit.png" width="330" alt="WiFi Audit"><br>**WiFi Audit** | <img src="assets/screenshots/esp32-firmware.png" width="330" alt="ESP32 Firmware"><br>**ESP32 Firmware** |
+| <img src="media/screenshots/alpr.png" width="330" alt="Flock / ALPR Detect"><br>**Flock / ALPR Detect** | <img src="media/screenshots/menu.png" width="330" alt="Main menu"><br>**Main menu** |
+| <img src="media/screenshots/flock-detail.png" width="330" alt="Detection detail"><br>**Why it was flagged** | <img src="media/screenshots/ble-scan-results.png" width="330" alt="BLE / Tracker results"><br>**BLE / Tracker results** |
+| <img src="media/screenshots/ble-scan-results.png" width="330" alt="BLE / Tracker results"><br>**BLE / Tracker results** | <img src="media/screenshots/esp32-firmware.png" width="330" alt="ESP32 Firmware"><br>**ESP32 Firmware** |
 
 <sub>Captured on a Flipper Zero running v0.49. The devices shown are fabricated
 demo records — no real network, tracker or location appears in any screenshot.</sub>
@@ -215,13 +205,8 @@ exact dB. `-33dB` closer to 0 means physically closer.
 - **row** — `<type> <name|MAC-tail> <rssi>dB`; type = `FLOCK` / `AirTag` / `Tile` / `Tag` / `FindMy` / `Flipper` / `BLE`. A `Flipper` is a recon device, not a tracker, so it isn't in `trk`
 - **prefix** — `!` following · `*` tagged
 
-**WiFi Audit** — header `10 AP  2crit 1weak 3twin`
-- **AP / crit / weak / twin** — total APs · critical-grade · weak-grade · evil-twin/duplicate-SSID
-- **row grade** — `CRIT` / `WEAK` / `OK` / `STRONG` / `INFO`
-- **marker** — `!` rogue/evil-twin (same SSID, mismatched security) · `~` duplicate SSID (mesh?) · `*` tagged · `[ABCDEF]` a hidden SSID (last 3 BSSID bytes)
-
 **Locator**
-- **mark first** — the report star on any Flock / BLE / WiFi detection adds it to the Locator pool; or pick one from the Guardian's Suspicious list
+- **mark first** — the report star on any Flock or BLE detection adds it to the Locator pool; or pick one from the Guardian's Suspicious list
 - **meter / dB** — climbs as you get closer; `WARMER`/`colder` is the trend, the tick above the bar is peak-hold. `out of range` means the target went quiet — walk back to where it was loudest
 
 ## Build from source
@@ -248,6 +233,18 @@ indicators and verify by eye; if you rely on it for anything that matters, read
 the code and confirm the behavior yourself.
 
 ## What's new
+
+**v0.51** — **A quarter of the memory footprint, gone.** Users on heavier firmware were
+being refused at launch with *"Not enough RAM to run the app"*
+([#5](https://github.com/ReconGrunt/FlipDeFlock/issues/5)); the app image is now
+**86,810 → 65,054 bytes (−25.1%)**. **Breaking: the NFC / RFID Audit and WiFi Audit
+screens are removed** — this app detects surveillance hardware, and those were 13.4 KB
+of an image that was failing to load. **Net Guardian is unaffected**: it still runs the
+Wi-Fi sweep and still flags evil-twin APs, because its score only reaches ELEVATED when
+two independent radios agree. The QR encoder now loads on demand from a plugin bundled
+inside the `.fap` (still a single-file install). Cheaper trig and tighter detection
+structs make up the rest. **Fixed:** *Share to DeFlock* had reported "No marked cameras"
+no matter what was marked, since v0.48.
 
 **v0.50** — Finishes a v0.49 fix that only landed on one of the three scanner
 screens. **No detection logic changed.** The WiFi Audit and BLE / Tracker lists were
@@ -343,16 +340,15 @@ Full history in [changelog.md](changelog.md).
 ```
 application.fam          manifest
 recon_app.c / _i.h       lifecycle, shared state, settings
-scenes/                  start, flock, guardian, locator, map, wifi, ble, nfc,
-                         firmware, reports, deflock_handoff, settings, about
+scenes/                  start, flock, guardian, locator, map, ble, firmware,
+                         reports, deflock_handoff, settings, about
 views/                   flock list, on-device map, DeFlock QR, guardian face,
-                         locator HUD, ble/wifi lists
+                         locator HUD, ble list
 helpers/
   flock_db / detect_rules / sig_db   Flock OUIs, SSID/IE signatures, confidence scoring
   esp_link / esp_parser              ESP32 UART link (companion + generic backends)
   esp_flasher                        in-app ESP32 backup/flash (esp-serial-flasher port)
   gps_link / gps_parser              NMEA GPS reader (2nd UART)
-  recon_nfc                          NFC scanner + grading + default-key deep check
   recon_report / report_escape       Markdown + GeoJSON + KML + CSV/WiGLE writers
   watchscore / scan_session          fused surveillance score, scan lifecycle
 lib/esp-serial-flasher/  vendored Espressif flasher (Apache-2.0)
