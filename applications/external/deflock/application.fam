@@ -79,7 +79,7 @@ App(
     appid="flipdeflock_qr",
     apptype=FlipperAppType.PLUGIN,
     entry_point="qr_plugin_ep",
-    requires=["flipdeflock"],
+    requires=["deflock"],
     sources=["plugins/qr/*.c"],
     fal_embedded=True,
     fap_private_libs=[
