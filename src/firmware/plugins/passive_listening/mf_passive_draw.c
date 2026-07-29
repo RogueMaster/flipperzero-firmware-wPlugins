@@ -40,5 +40,5 @@ void mf_passive_draw(const MfPassiveState* state, Canvas* canvas) {
     footer_left += label_width + 2;
     remaining = state->back_clicks < 3U ? (uint8_t)(3U - state->back_clicks) : 0U;
     for(uint8_t i = 0U; i < remaining; i++)
-        canvas_draw_xbm(canvas, footer_left + i * 12, 55, 10, 8, mf_passive_back_icon);
+        canvas_draw_xbm(canvas, footer_left + i * 12, 53, 10, 8, mf_passive_back_icon);
 }
