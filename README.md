@@ -1,8 +1,8 @@
-# JezzBall for Flipper Zero
+# Partition Panic for Flipper Zero
 
-A compact JezzBall clone built as a standalone Flipper Application Package
-(`.fap`). Complete walls to divide the arena. Every new region without a ball
-is captured; secure 75% of the field before time runs out.
+An original territory-capture arcade game built as a standalone Flipper
+Application Package (`.fap`). Complete walls to divide the arena. Every new
+region without a ball is captured; secure 75% of the field before time runs out.
 
 ## Features
 
@@ -51,6 +51,6 @@ The rules engine has no firmware dependencies and can be checked on a desktop:
 
 ```sh
 cc -std=c11 -Wall -Wextra -Werror \
-  tests/test_jezzball_game.c jezzball_game.c -o /tmp/jezzball-tests
-/tmp/jezzball-tests
+  tests/test_partition_panic_game.c partition_panic_game.c -o /tmp/partition_panic-tests
+/tmp/partition_panic-tests
 ```

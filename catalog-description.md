@@ -1,4 +1,4 @@
-# JezzBall
+# Partition Panic
 
 Claim the arena without letting a bouncing ball hit an unfinished wall.
 Complete a wall to divide the playfield; every newly enclosed region without a
