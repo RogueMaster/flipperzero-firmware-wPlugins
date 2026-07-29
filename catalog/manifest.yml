@@ -1,11 +1,10 @@
 sourcecode:
   type: git
   location:
-    origin: https://github.com/slavik0329/jezzball-flipper.git
-    commit_sha: 06569fb39e7743b69db61f344b849dfd0332d64a
+    origin: https://github.com/slavik0329/partition-panic-flipper.git
+    commit_sha: 7dcd1c043ffc1be4400fdeffc74e094333bb0619
 description: "@catalog-description.md"
 changelog: "@changelog.md"
 screenshots:
-  - screenshots/title.png
   - screenshots/gameplay.png
   - screenshots/pause.png
