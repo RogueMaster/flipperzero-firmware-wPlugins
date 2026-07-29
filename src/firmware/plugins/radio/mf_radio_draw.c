@@ -202,16 +202,19 @@ static void draw_receive(const MfRadioState* state, Canvas* canvas, uint32_t now
         snprintf(
             line,
             sizeof(line),
-            "cs%u %d/%d",
+            "cs%u r%d t%d",
             state->carrier_present ? 1U : 0U,
             state->rssi_dbm,
-            state->rssi_peak_dbm);
+            state->snapshot.monitor_threshold_dbm);
     } else {
-        snprintf(line, sizeof(line), "cs0 --/--");
+        snprintf(
+            line,
+            sizeof(line),
+            "cs%u r-- t%d",
+            state->carrier_present ? 1U : 0U,
+            state->snapshot.monitor_threshold_dbm);
     }
     canvas_draw_str(canvas, 3, 64, line);
-    canvas_draw_str(
-        canvas, 125 - (int32_t)canvas_string_width(canvas, "Bk exit"), 64, "Bk exit");
 }
 
 void mf_radio_draw(const MfRadioState* state, Canvas* canvas, uint32_t now_ms) {

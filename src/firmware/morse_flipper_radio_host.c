@@ -32,7 +32,6 @@ static void morse_flipper_radio_host_apply(
             app->rf_frequency_hz = snapshot->frequency_hz;
             save_frequency = true;
         }
-        app->rf_monitor_threshold_dbm = snapshot->monitor_threshold_dbm;
         app->rf_rx_audio_enabled = snapshot->receive_audio_enabled;
         app->radio_tx_allowed = snapshot->tx_allowed;
         app->radio_tx_active = snapshot->tx_active;

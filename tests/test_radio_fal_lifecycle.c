@@ -206,6 +206,8 @@ int main(void) {
     assert(mf_radio_core_enter(&state, &args, &ops, &result));
     mf_radio_core_set_page(&state, MfRadioPageReceive, 1U);
     assert(strcmp(fake.calls, "R") == 0);
+    mf_radio_core_tick(&state, 1U);
+    assert(!state.snapshot.monitor_tone && !state.rx_level);
     mf_radio_core_set_page(&state, MfRadioPageIdle, 2U);
     assert(strcmp(fake.calls, "RIS") == 0);
     mf_radio_core_set_page(&state, MfRadioPageTransmit, 3U);

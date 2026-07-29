@@ -16,6 +16,10 @@
 #define MF_RADIO_RX_AUTO_WPM_SAMPLES  3U
 #define MF_RADIO_RSSI_WINDOW_MS       160U
 #define MF_RADIO_RSSI_PEAK_DECAY_MS   240U
+/* Ignore eight startup samples, then use a 16-sample median plus a 6 dB margin. */
+#define MF_RADIO_RX_CAL_SETTLE_SAMPLES 8U
+#define MF_RADIO_RX_CAL_SAMPLES        16U
+#define MF_RADIO_RX_FLOOR_MARGIN_DB    6
 #define MF_RADIO_TX_TAIL_DITS          2U
 
 typedef struct {
@@ -54,6 +58,12 @@ typedef struct {
     uint8_t frequency_focus;
     uint8_t rx_candidate_samples;
     uint8_t rx_wpm_hint;
+    uint8_t rx_cal_settle_samples;
+    uint8_t rx_cal_samples;
+    int8_t rx_cal_dbm[MF_RADIO_RX_CAL_SAMPLES];
+    int8_t configured_monitor_threshold_dbm;
+    int8_t rx_auto_threshold_dbm;
+    int8_t rx_manual_threshold_offset_db;
     int8_t rssi_dbm;
     int8_t rssi_peak_dbm;
     bool entered;
@@ -65,6 +75,9 @@ typedef struct {
     bool rx_gap_flushed;
     bool rssi_valid;
     bool carrier_present;
+    bool rx_calibrating;
+    bool rx_cal_carrier_continuous;
+    bool rx_recovery_pending;
     char rx_text[64];
 } MfRadioState;
 

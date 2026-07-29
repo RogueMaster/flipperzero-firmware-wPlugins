@@ -43,6 +43,12 @@ int8_t mf_radio_clamp_dbm(int8_t dbm) {
     return dbm;
 }
 
+static int8_t mf_radio_clamp_dbm_i16(int16_t dbm) {
+    if(dbm < -115) return -115;
+    if(dbm > -50) return -50;
+    return (int8_t)dbm;
+}
+
 uint16_t mf_radio_wpm_to_dit_ms(uint8_t wpm) {
     wpm = mf_radio_clamp_wpm(wpm);
     return (uint16_t)(1200U / wpm);
@@ -227,6 +233,46 @@ static bool mf_radio_rx_flush_gap(MfRadioState* state, uint32_t now_ms) {
     return mf_radio_rx_drain_decoder(state);
 }
 
+static void mf_radio_rx_reset_cal_samples(MfRadioState* state) {
+    state->rx_cal_settle_samples = 0U;
+    state->rx_cal_samples = 0U;
+}
+
+static int8_t mf_radio_rx_cal_floor(MfRadioState* state) {
+    uint8_t i;
+    for(i = 1U; i < MF_RADIO_RX_CAL_SAMPLES; i++) {
+        int8_t sample = state->rx_cal_dbm[i];
+        uint8_t slot = i;
+        while(slot != 0U && state->rx_cal_dbm[slot - 1U] > sample) {
+            state->rx_cal_dbm[slot] = state->rx_cal_dbm[slot - 1U];
+            slot--;
+        }
+        state->rx_cal_dbm[slot] = sample;
+    }
+    return (int8_t)(((int16_t)state->rx_cal_dbm[MF_RADIO_RX_CAL_SAMPLES / 2U - 1U] +
+                     state->rx_cal_dbm[MF_RADIO_RX_CAL_SAMPLES / 2U]) /
+                    2);
+}
+
+static int8_t mf_radio_rx_floor_threshold(int8_t floor_dbm) {
+    return mf_radio_clamp_dbm_i16((int16_t)floor_dbm + MF_RADIO_RX_FLOOR_MARGIN_DB);
+}
+
+static void mf_radio_rx_apply_threshold(MfRadioState* state, int8_t auto_threshold_dbm) {
+    state->rx_auto_threshold_dbm = auto_threshold_dbm;
+    state->snapshot.monitor_threshold_dbm = mf_radio_clamp_dbm_i16(
+        (int16_t)auto_threshold_dbm + state->rx_manual_threshold_offset_db);
+}
+
+static bool mf_radio_rx_take_cal_sample(MfRadioState* state, int8_t dbm) {
+    if(state->rx_cal_settle_samples < MF_RADIO_RX_CAL_SETTLE_SAMPLES) {
+        state->rx_cal_settle_samples++;
+        return false;
+    }
+    state->rx_cal_dbm[state->rx_cal_samples++] = dbm;
+    return state->rx_cal_samples == MF_RADIO_RX_CAL_SAMPLES;
+}
+
 bool mf_radio_core_enter(
     MfRadioState* state,
     const MfRadioEnterArgs* args,
@@ -260,6 +306,8 @@ bool mf_radio_core_enter(
         .frequency_dirty = state->snapshot.frequency_dirty,
         .tx_allowed = state->hardware.tx_allowed(state->hardware.context, frequency_hz),
     };
+    state->configured_monitor_threshold_dbm = state->snapshot.monitor_threshold_dbm;
+    state->rx_auto_threshold_dbm = state->snapshot.monitor_threshold_dbm;
     state->rx_wpm_hint = MF_RADIO_RX_DEFAULT_WPM;
     state->tx_dit_ms = args->dit_ms;
     mf_radio_reset_decoder(state, args->dit_ms);
@@ -271,7 +319,6 @@ bool mf_radio_core_enter(
 
 MorseFlipperMappedFalResult
     mf_radio_core_set_page(MfRadioState* state, MfRadioPage page, uint32_t now_ms) {
-    (void)now_ms;
     if(state == NULL || !state->entered || state->leaving || page > MfRadioPageFrequency)
         return (MorseFlipperMappedFalResult){0};
 
@@ -281,6 +328,8 @@ MorseFlipperMappedFalResult
     state->rx_candidate_level = false;
     state->rx_candidate_samples = 0U;
     state->rx_gap_flushed = true;
+    state->rx_calibrating = false;
+    state->rx_recovery_pending = false;
 
     if(page == MfRadioPageTransmit) {
         state->snapshot.page = page;
@@ -289,6 +338,9 @@ MorseFlipperMappedFalResult
         mf_radio_reset_decoder(state, state->tx_dit_ms);
         state->draw_services->history_reset(&state->tx_history);
     } else if(page == MfRadioPageReceive) {
+        state->snapshot.monitor_threshold_dbm = state->configured_monitor_threshold_dbm;
+        state->rx_auto_threshold_dbm = state->configured_monitor_threshold_dbm;
+        state->rx_manual_threshold_offset_db = 0;
         state->rssi_valid = false;
         state->rssi_dbm = 0;
         state->rssi_peak_dbm = 0;
@@ -297,11 +349,15 @@ MorseFlipperMappedFalResult
         state->rx_edges_window = 0U;
         state->rx_activity = 0U;
         state->rx_edge_at = 0U;
-        state->rx_sample_next_at = 0U;
+        state->rx_sample_next_at = now_ms;
         state->rx_view_next_at = 0U;
         state->rssi_next_at = 0U;
         state->rssi_peak_decay_at = 0U;
         state->carrier_present = false;
+        state->rx_calibrating = true;
+        state->rx_cal_carrier_continuous = true;
+        state->rx_recovery_pending = false;
+        mf_radio_rx_reset_cal_samples(state);
         mf_radio_reset_decoder(state, mf_radio_wpm_to_dit_ms(state->rx_wpm_hint));
         memset(state->rx_text, 0, sizeof(state->rx_text));
         memset(&state->ticker, 0, sizeof(state->ticker));
@@ -385,11 +441,42 @@ MorseFlipperMappedFalResult mf_radio_core_tick(MfRadioState* state, uint32_t now
         int8_t dbm = state->hardware.read_rssi_dbm(state->hardware.context);
         int8_t open_dbm = mf_radio_clamp_dbm(state->snapshot.monitor_threshold_dbm);
         int8_t close_dbm = mf_radio_clamp_dbm((int8_t)(open_dbm - MF_RADIO_RX_HYSTERESIS_DB));
-        bool monitor =
-            dbm >= ((state->rx_level || state->rx_candidate_level) ? close_dbm : open_dbm);
-        bool text_changed = mf_radio_rx_sample_level(state, monitor, now_ms);
-        text_changed = mf_radio_rx_flush_gap(state, now_ms) || text_changed;
+        bool monitor = false;
+        bool text_changed = false;
         state->carrier_present = state->hardware.read_carrier(state->hardware.context);
+        if(state->rx_calibrating) {
+            if(state->rx_cal_settle_samples >= MF_RADIO_RX_CAL_SETTLE_SAMPLES)
+                state->rx_cal_carrier_continuous =
+                    state->rx_cal_carrier_continuous && state->carrier_present;
+            if(mf_radio_rx_take_cal_sample(state, dbm)) {
+                mf_radio_rx_apply_threshold(
+                    state, mf_radio_rx_floor_threshold(mf_radio_rx_cal_floor(state)));
+                state->rx_calibrating = false;
+                state->rx_recovery_pending = state->rx_cal_carrier_continuous;
+                mf_radio_rx_reset_cal_samples(state);
+            }
+        } else if(state->rx_recovery_pending && !state->carrier_present) {
+            if(state->rx_cal_settle_samples == 0U && state->rx_cal_samples == 0U) {
+                state->rx_level = false;
+                state->rx_candidate_level = false;
+                state->rx_candidate_samples = 0U;
+                state->rx_edge_at = 0U;
+                state->rx_gap_flushed = true;
+            }
+            if(mf_radio_rx_take_cal_sample(state, dbm)) {
+                int8_t recovered =
+                    mf_radio_rx_floor_threshold(mf_radio_rx_cal_floor(state));
+                if(recovered < state->rx_auto_threshold_dbm)
+                    mf_radio_rx_apply_threshold(state, recovered);
+                state->rx_recovery_pending = false;
+            }
+        } else {
+            if(state->rx_recovery_pending) mf_radio_rx_reset_cal_samples(state);
+            monitor =
+                dbm >= ((state->rx_level || state->rx_candidate_level) ? close_dbm : open_dbm);
+            text_changed = mf_radio_rx_sample_level(state, monitor, now_ms);
+            text_changed = mf_radio_rx_flush_gap(state, now_ms) || text_changed;
+        }
         state->rssi_sum_dbm += dbm;
         state->rssi_samples++;
         if(state->rssi_next_at == 0U) state->rssi_next_at = now_ms + MF_RADIO_RSSI_WINDOW_MS;
@@ -489,8 +576,11 @@ MorseFlipperMappedFalResult
             (event->key == InputKeyLeft || event->key == InputKeyRight) &&
             (event->type == InputTypeShort || event->type == InputTypeRepeat)) {
             int direction = event->key == InputKeyLeft ? -1 : 1;
-            state->snapshot.monitor_threshold_dbm = mf_radio_clamp_dbm(
-                (int8_t)(state->snapshot.monitor_threshold_dbm + direction));
+            int8_t previous = state->snapshot.monitor_threshold_dbm;
+            state->snapshot.monitor_threshold_dbm =
+                mf_radio_clamp_dbm_i16((int16_t)previous + direction);
+            state->rx_manual_threshold_offset_db +=
+                state->snapshot.monitor_threshold_dbm - previous;
         } else if(
             (event->key == InputKeyUp || event->key == InputKeyDown) &&
             (event->type == InputTypeShort || event->type == InputTypeRepeat)) {

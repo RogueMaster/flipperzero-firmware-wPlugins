@@ -160,6 +160,10 @@ static MorseFlipperMappedFalResult api_input(
     radio.inputs++;
     if(event->key == InputKeyBack)
         return (MorseFlipperMappedFalResult){.handled = true, .request_exit = true};
+    if(event->key == InputKeyRight) {
+        radio.snapshot.monitor_threshold_dbm = -70;
+        return (MorseFlipperMappedFalResult){.handled = true, .redraw = true};
+    }
     radio.snapshot.frequency_hz++;
     radio.snapshot.frequency_dirty = true;
     return (MorseFlipperMappedFalResult){.handled = true, .redraw = true};
@@ -400,6 +404,10 @@ int main(void) {
     assert(radio.ticks == 1U && app.radio_monitor_tone);
     assert(morse_flipper_radio_host_input(&app, &event, 14U));
     assert(saves == 1U && app.rf_frequency_hz == MF_RADIO_DEFAULT_FREQUENCY_HZ + 1U);
+    assert(app.rf_monitor_threshold_dbm == -95);
+    event = (InputEvent){.key = InputKeyRight, .type = InputTypeShort};
+    assert(morse_flipper_radio_host_input(&app, &event, 15U));
+    assert(saves == 1U && app.rf_monitor_threshold_dbm == -95);
     morse_flipper_radio_host_draw(&app, canvas, 15U);
     assert(radio.draws == 1U && unavailable == 0U);
 
@@ -421,7 +429,7 @@ int main(void) {
     assert(unavailable == 1U);
     assert(morse_flipper_radio_host_input(&app, &event, 22U));
     assert(backs == 2U);
-    assert(radio.inputs == 2U && radio.ticks == 1U && radio.syncs == 1U && radio.draws == 1U);
+    assert(radio.inputs == 3U && radio.ticks == 1U && radio.syncs == 1U && radio.draws == 1U);
     assert(mutex_depth == 0U);
 
     puts("test_radio_host: passed");
