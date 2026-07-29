@@ -111,13 +111,14 @@ static NyxApp* nyx_app_alloc(void) {
     view_dispatcher_set_navigation_event_callback(app->view_dispatcher, nyx_back_event_callback);
     view_dispatcher_set_tick_event_callback(app->view_dispatcher, nyx_tick_event_callback, 100);
 
-    // default settings
+    // default settings, then let anything saved on disk override them
     app->settings.mode_index = IrSenseModeAuto;
     app->settings.sensitivity_index = 1; // Medium
     app->settings.probe_pin_index = 0;
     app->settings.sound = true;
     app->settings.vibro = true;
     app->settings.led = true;
+    nyx_store_settings_load(&app->settings);
 
     app->sense = ir_sense_alloc();
 
@@ -133,6 +134,10 @@ static NyxApp* nyx_app_alloc(void) {
     view_dispatcher_add_view(app->view_dispatcher, NyxViewAbout, widget_get_view(app->widget));
 
     // custom views
+    app->splash_view = splash_view_alloc();
+    view_dispatcher_add_view(
+        app->view_dispatcher, NyxViewSplash, splash_view_get_view(app->splash_view));
+
     app->sweep_view = sweep_view_alloc();
     view_dispatcher_add_view(
         app->view_dispatcher, NyxViewSweep, sweep_view_get_view(app->sweep_view));
@@ -151,6 +156,7 @@ static void nyx_app_free(NyxApp* app) {
 
     ir_sense_stop(app->sense);
 
+    view_dispatcher_remove_view(app->view_dispatcher, NyxViewSplash);
     view_dispatcher_remove_view(app->view_dispatcher, NyxViewSubmenu);
     view_dispatcher_remove_view(app->view_dispatcher, NyxViewSettings);
     view_dispatcher_remove_view(app->view_dispatcher, NyxViewAbout);
@@ -160,6 +166,7 @@ static void nyx_app_free(NyxApp* app) {
     submenu_free(app->submenu);
     variable_item_list_free(app->var_item_list);
     widget_free(app->widget);
+    splash_view_free(app->splash_view);
     sweep_view_free(app->sweep_view);
     probe_view_free(app->probe_view);
 
@@ -177,7 +184,7 @@ static void nyx_app_free(NyxApp* app) {
 int32_t nyx_app(void* p) {
     UNUSED(p);
     NyxApp* app = nyx_app_alloc();
-    scene_manager_next_scene(app->scene_manager, NyxSceneStart);
+    scene_manager_next_scene(app->scene_manager, NyxSceneSplash);
     view_dispatcher_run(app->view_dispatcher);
     nyx_app_free(app);
     return 0;

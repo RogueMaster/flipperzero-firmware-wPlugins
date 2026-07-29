@@ -14,13 +14,16 @@
 #include "nyx_icons.h" // generated from icons/ by fbt
 
 #include "helpers/ir_sense.h"
+#include "helpers/nyx_store.h"
 #include "views/sweep_view.h"
 #include "views/probe_view.h"
+#include "views/splash_view.h"
 #include "scenes/nyx_scene.h"
 
-#define NYX_VERSION "1.0"
+#define NYX_VERSION "1.1"
 
 typedef enum {
+    NyxViewSplash,
     NyxViewSubmenu,
     NyxViewSweep,
     NyxViewProbe,
@@ -31,9 +34,10 @@ typedef enum {
 typedef enum {
     NyxCustomEventReset = 100, // OK on the sweep screen clears peak/hits
     NyxCustomEventRenull, // long OK re-captures the ambient baseline
+    NyxCustomEventSplashDone, // intro finished or was skipped
 } NyxCustomEvent;
 
-typedef struct {
+typedef struct NyxSettings {
     uint8_t mode_index; // 0 Auto, 1 Onboard, 2 Probe  (IrSenseMode order)
     uint8_t sensitivity_index; // 0 High, 1 Medium, 2 Low
     uint8_t probe_pin_index; // index into ir_sense_probe_pins()
@@ -52,6 +56,7 @@ typedef struct {
     VariableItemList* var_item_list;
     Widget* widget;
 
+    SplashView* splash_view;
     SweepView* sweep_view;
     ProbeView* probe_view;
 

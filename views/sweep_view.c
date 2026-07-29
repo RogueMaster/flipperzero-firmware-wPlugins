@@ -6,19 +6,24 @@
 
 /* The sweep screen is a locating instrument, not a dashboard. Everything on it
  * answers one of two questions you ask while walking a room: "is there IR here"
- * and "am I getting warmer". Hence the trend arrow next to the level, and the
- * scrolling trace with a peak-hold line across it — you find an emitter by
- * watching the trace climb, not by reading the number.
+ * and "am I getting warmer".
+ *
+ * The hero is an eye — Nyx watching back. Its ring fills clockwise with the
+ * live level, a tick marks your best reading so far, and the pupil dilates as
+ * you close on a source; when it locks on, glare spikes rotate around the iris.
+ * A trend arrow on the right says whether you are getting warmer. You hunt by
+ * watching the ring fill and the pupil widen, not by reading the number.
  *
  * Layout of the 128x64:
  *   y 0..11   header: mark, active mode, live dot
- *   y 12..35  readout: level, trend arrow, source kind, peak/hits
- *   y 37..51  trace with peak-hold line
+ *   y 12..51  eye gauge (left) + readout: kind, state, peak/hits, trend (right)
  *   y 53..63  status strip, inverted into an alarm when locked on
  */
 
-#define TRACE_BASE_Y 51
-#define TRACE_H      13
+#define EYE_CX   21
+#define EYE_CY   27
+#define EYE_ROUT 15
+#define EYE_IRIS 9
 
 struct SweepView {
     View* view;
@@ -88,31 +93,61 @@ static void draw_nulling(Canvas* canvas, const SweepModel* m) {
     }
 }
 
-static void draw_trend(Canvas* canvas, int8_t trend) {
+/* "getting warmer" arrow, centred on (cx,cy). Up = rising, down = falling,
+ * a flat bar = holding steady. */
+static void draw_trend_at(Canvas* canvas, int cx, int cy, int8_t trend) {
     if(trend > 0) {
-        canvas_draw_triangle(canvas, 58, 30, 11, 9, CanvasDirectionBottomToTop);
+        canvas_draw_triangle(canvas, cx, cy + 4, 12, 9, CanvasDirectionBottomToTop);
     } else if(trend < 0) {
-        canvas_draw_triangle(canvas, 58, 21, 11, 9, CanvasDirectionTopToBottom);
+        canvas_draw_triangle(canvas, cx, cy - 4, 12, 9, CanvasDirectionTopToBottom);
     } else {
-        canvas_draw_box(canvas, 53, 24, 11, 3);
+        canvas_draw_box(canvas, cx - 6, cy - 1, 12, 3);
     }
 }
 
-static void draw_trace(Canvas* canvas, const SweepModel* m) {
-    for(uint8_t k = 0; k < NYX_TRACE_LEN; k++) {
-        uint8_t idx = (uint8_t)((m->trace_head + NYX_TRACE_LEN - k) % NYX_TRACE_LEN);
-        int h = (m->trace[idx] * TRACE_H) / 100;
-        int x = 126 - k * 2;
-        if(h > 0) {
-            canvas_draw_line(canvas, x, TRACE_BASE_Y, x, TRACE_BASE_Y - h);
-        } else {
-            canvas_draw_dot(canvas, x, TRACE_BASE_Y);
-        }
+/* point on a circle of the given radius, angle in degrees clockwise from 12 o'clock */
+static void ring_point(int radius, int deg, int* x, int* y) {
+    float a = (float)(deg - 90) * (float)M_PI / 180.0f;
+    *x = EYE_CX + (int)(cosf(a) * radius);
+    *y = EYE_CY + (int)(sinf(a) * radius);
+}
+
+static void draw_eye(Canvas* canvas, const SweepModel* m) {
+    /* outer ring */
+    canvas_draw_circle(canvas, EYE_CX, EYE_CY, EYE_ROUT);
+
+    /* proximity arc: fills clockwise from 12 o'clock, length proportional to level */
+    int span = (m->level * 360) / 100;
+    for(int deg = 0; deg < span; deg += 5) {
+        int x, y;
+        ring_point(EYE_ROUT - 1, deg, &x, &y);
+        canvas_draw_dot(canvas, x, y);
+        ring_point(EYE_ROUT - 2, deg, &x, &y);
+        canvas_draw_dot(canvas, x, y);
     }
-    /* peak-hold: the line to beat while you hunt for the hot spot */
+
+    /* peak tick: the reading to beat while you hunt for the hot spot */
     if(m->peak > 0) {
-        int py = TRACE_BASE_Y - (m->peak * TRACE_H) / 100;
-        for(int x = 0; x < 128; x += 4) canvas_draw_dot(canvas, x, py);
+        int xi, yi, xo, yo;
+        ring_point(EYE_ROUT - 4, (m->peak * 360) / 100, &xi, &yi);
+        ring_point(EYE_ROUT + 1, (m->peak * 360) / 100, &xo, &yo);
+        canvas_draw_line(canvas, xi, yi, xo, yo);
+    }
+
+    /* iris + pupil that dilates with the live level */
+    canvas_draw_circle(canvas, EYE_CX, EYE_CY, EYE_IRIS);
+    int pupil = 1 + (m->level * 7) / 100;
+    canvas_draw_disc(canvas, EYE_CX, EYE_CY, pupil);
+
+    /* lock-on glare: short spikes rotating just outside the iris */
+    if(m->present) {
+        for(int i = 0; i < 6; i++) {
+            int deg = i * 60 + m->anim * 6;
+            int x1, y1, x2, y2;
+            ring_point(EYE_IRIS + 2, deg, &x1, &y1);
+            ring_point(EYE_IRIS + 4, deg, &x2, &y2);
+            canvas_draw_line(canvas, x1, y1, x2, y2);
+        }
     }
 }
 
@@ -181,23 +216,28 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
         return;
     }
 
-    /* ---------- readout ---------- */
-    canvas_set_font(canvas, FontBigNumbers);
-    snprintf(buf, sizeof(buf), "%u", (unsigned)m->level);
-    canvas_draw_str_aligned(canvas, 42, 34, AlignRight, AlignBottom, buf);
+    /* ---------- eye gauge (left) ---------- */
+    draw_eye(canvas, m);
+    snprintf(buf, sizeof(buf), "%u%%", (unsigned)m->level);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, 44, 33, "%");
+    canvas_draw_str_aligned(canvas, EYE_CX, 51, AlignCenter, AlignBottom, buf);
 
-    draw_trend(canvas, m->trend);
+    /* ---------- readout (right) ---------- */
+    canvas_draw_line(canvas, 41, 13, 41, 51);
 
-    canvas_draw_line(canvas, 68, 13, 68, 34);
-    canvas_draw_str(canvas, 72, 22, ir_sense_source_kind_str(m->kind));
-    snprintf(buf, sizeof(buf), "PK%u H%lu", (unsigned)m->peak, (unsigned long)m->hits);
-    canvas_draw_str(canvas, 72, 33, buf);
+    canvas_set_font(canvas, FontPrimary);
+    canvas_draw_str(canvas, 45, 23, ir_sense_source_kind_str(m->kind));
 
-    /* ---------- trace ---------- */
-    canvas_draw_line(canvas, 0, 36, 127, 36);
-    draw_trace(canvas, m);
+    canvas_set_font(canvas, FontSecondary);
+    const char* state = m->present ? proximity_word(m->level) :
+                        m->armed   ? "SCANNING" :
+                                     "IDLE";
+    canvas_draw_str(canvas, 45, 36, state);
+
+    snprintf(buf, sizeof(buf), "PK%u  HIT%lu", (unsigned)m->peak, (unsigned long)m->hits);
+    canvas_draw_str(canvas, 45, 49, buf);
+
+    draw_trend_at(canvas, 118, 30, m->trend);
 
     /* ---------- status strip ---------- */
     canvas_draw_line(canvas, 0, 52, 127, 52);
