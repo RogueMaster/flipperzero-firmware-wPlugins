@@ -403,7 +403,11 @@ MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
     }
     if(state->phase == MfPassivePhasePostCue && mf_passive_reached(now_ms, state->next_at)) {
         if(!mf_passive_start_round(state, now_ms)) mf_passive_fail(state);
-        return mf_passive_result(state, state->phase == MfPassivePhaseCw);
+        MfPassiveResult result =
+            mf_passive_result(state, state->phase == MfPassivePhaseCw);
+        if(state->phase == MfPassivePhaseCw)
+            result.feedback = MfPassiveFeedbackRoundComplete;
+        return result;
     }
     return mf_passive_result(state, false);
 }

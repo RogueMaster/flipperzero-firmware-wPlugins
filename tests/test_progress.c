@@ -89,6 +89,11 @@ static void test_attempt_rules(void) {
     morse_flipper_progress_note_custom_attempt(&progress, true, day2);
     CHECK(progress.streak_days == 2U);
     CHECK(progress.last_streak_day == day2);
+    morse_flipper_progress_note_rx_activity(&progress, true, day2);
+    CHECK(progress.streak_days == 2U);
+    morse_flipper_progress_note_rx_activity(&progress, true, day4);
+    CHECK(progress.streak_days == 1U);
+    CHECK(progress.last_streak_day == day4);
     CHECK(progress.today_attempts == 2U);
     CHECK(progress.last_stats_day == day1);
     CHECK(progress.total_attempts == 2U);

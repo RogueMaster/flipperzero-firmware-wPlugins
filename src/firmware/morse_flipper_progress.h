@@ -110,6 +110,10 @@ void morse_flipper_progress_note_custom_attempt(
     MorseFlipperProgress* progress,
     bool date_valid,
     uint16_t practice_day);
+void morse_flipper_progress_note_rx_activity(
+    MorseFlipperProgress* progress,
+    bool date_valid,
+    uint16_t practice_day);
 uint8_t morse_flipper_progress_mastered_lesson(const MorseFlipperProgress* progress);
 uint16_t morse_flipper_progress_streak_intro_days(
     const MorseFlipperProgress* progress,

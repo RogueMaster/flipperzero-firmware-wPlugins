@@ -150,6 +150,10 @@ bool morse_flipper_rx_practice_host_feed(
     }
     furi_mutex_release(app->plugin_slot.mutex);
     mf_rx_apply_after_unlock(app, result, now_ms);
+    if(result.feedback == MfRxPracticeFeedbackPass ||
+       result.feedback == MfRxPracticeFeedbackFail)
+        morse_flipper_activity_note_rx(
+            result.feedback == MfRxPracticeFeedbackPass);
     return result.decoder_reset;
 }
 

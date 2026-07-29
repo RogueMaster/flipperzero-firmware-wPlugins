@@ -33,5 +33,5 @@ void morse_flipper_draw_streak_intro(Canvas* canvas, MorseFlipperApp* app) {
     }
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 60, AlignCenter, AlignCenter, "days");
+    canvas_draw_str_aligned(canvas, 64, 56, AlignCenter, AlignCenter, "days");
 }

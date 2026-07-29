@@ -120,4 +120,10 @@ typedef struct {
     bool request_exit;
     uint8_t phase;
     uint8_t error;
+    uint8_t feedback;
 } MfPassiveResult;
+
+enum {
+    MfPassiveFeedbackNone = 0,
+    MfPassiveFeedbackRoundComplete = 1,
+};

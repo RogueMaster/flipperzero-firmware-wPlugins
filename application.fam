@@ -40,6 +40,7 @@ App(
         "src/firmware/morse_flipper_screen.c",
         "src/firmware/morse_flipper_status.c",
         "src/firmware/morse_flipper_audio_route.c",
+        "src/firmware/morse_flipper_activity.c",
         "src/firmware/morse_flipper_content_host.c",
         "src/firmware/morse_flipper_icr_host.c",
         "src/firmware/morse_flipper_rx_practice_host.c",

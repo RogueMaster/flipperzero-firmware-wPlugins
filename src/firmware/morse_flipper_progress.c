@@ -206,6 +206,15 @@ void morse_flipper_progress_note_custom_attempt(
         morse_flipper_progress_note_streak(progress, practice_day);
 }
 
+void morse_flipper_progress_note_rx_activity(
+    MorseFlipperProgress* progress,
+    bool date_valid,
+    uint16_t practice_day) {
+    if(progress == NULL) return;
+    if(date_valid && practice_day != MORSE_FLIPPER_PROGRESS_DAY_NONE)
+        morse_flipper_progress_note_streak(progress, practice_day);
+}
+
 uint8_t morse_flipper_progress_mastered_lesson(const MorseFlipperProgress* progress) {
     uint8_t lesson;
 

@@ -16,6 +16,7 @@ static MorseFlipperMappedFalResult mf_passive_tick_api(void* state, uint32_t now
         .redraw = result.redraw,
         .request_exit = result.request_exit,
         .phase = result.phase,
+        .feedback = result.feedback,
     };
 }
 static bool mf_passive_enter_api(
@@ -30,6 +31,7 @@ static bool mf_passive_enter_api(
             .redraw = result.redraw,
             .request_exit = result.request_exit,
             .phase = result.phase,
+            .feedback = result.feedback,
         };
     }
     return entered;
@@ -44,6 +46,7 @@ static MorseFlipperMappedFalResult mf_passive_input_api(
         .redraw = result.redraw,
         .request_exit = result.request_exit,
         .phase = result.phase,
+        .feedback = result.feedback,
     };
 }
 static void mf_passive_draw_api(void* state, Canvas* canvas, uint32_t now_ms) {

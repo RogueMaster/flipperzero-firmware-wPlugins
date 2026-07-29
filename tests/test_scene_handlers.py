@@ -273,7 +273,7 @@ class SceneHandlerTableTest(unittest.TestCase):
         scenes = SCENES.read_text(encoding="utf-8")
         enter = scenes[
             scenes.index("static void morse_flipper_scene_live_on_enter") :
-            scenes.index("static void morse_flipper_scene_streak_intro_start_listening")
+            scenes.index("static void morse_flipper_scene_streak_intro_start_training")
         ]
         self.assertIn("scene_manager_get_current_scene(app->scene_manager)", enter)
 

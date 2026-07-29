@@ -7,7 +7,7 @@
 
 #define MF_PASSIVE_API_MAGIC 0x4D46504CUL
 #define MF_PASSIVE_SETTINGS_API_MAGIC 0x4D465053UL
-#define MF_PASSIVE_API_VERSION 6U
+#define MF_PASSIVE_API_VERSION 7U
 
 typedef struct {
     MorseFlipperMappedFalApi mapped;

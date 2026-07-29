@@ -53,6 +53,7 @@ TESTS = (
     CTest("passive-voice-pack", ("tests/test_passive_voice_pack.c", "src/firmware/plugins/passive_listening/mf_passive_voice_pack.c", "src/firmware/plugins/passive_listening/mf_passive_codec.c")),
     CTest("passive-core", ("tests/test_passive_core.c", "src/firmware/plugins/passive_listening/mf_passive_core.c", "src/firmware/plugins/passive_listening/mf_passive_loading.c", "src/firmware/plugins/passive_listening/mf_passive_policy.c", "src/firmware/plugins/passive_listening/mf_passive_voice_pack.c", "src/firmware/plugins/passive_listening/mf_passive_codec.c", "src/firmware/plugins/common/mf_rx_rng.c", "src/firmware/plugins/common/mf_callsign_gen.c", "src/firmware/cw.c")),
     CTest("audio-pwm", ("tests/test_audio_pwm.c", "src/firmware/morse_flipper_audio_pwm.c")),
+    CTest("activity", ("tests/test_activity.c", "src/firmware/morse_flipper_activity.c")),
     CTest("pc-keyboard-routing", ("tests/test_pc_keyboard_routing.c", "src/firmware/pc_keys.c")),
     CTest("settings-model", ("tests/test_settings_model.c", "src/firmware/plugins/settings/mf_settings_model.c", "src/firmware/trainer_lesson.c", "src/firmware/cw.c")),
     CTest("settings-plugin", ("tests/test_settings_plugin.c", "src/firmware/plugins/settings/mf_settings_model.c", "src/firmware/plugins/settings/mf_settings_plugin.c", "src/firmware/trainer_lesson.c", "src/firmware/pc_keys.c", "src/firmware/cw.c"), ("MF_SETTINGS_HOST_TEST",)),
@@ -62,7 +63,7 @@ TESTS = (
     CTest("lesson-advance", ("tests/test_lesson_advance.c", "src/firmware/trainer.c", "src/firmware/cw.c")),
     CTest("icr", ("tests/test_icr.c", "src/firmware/plugins/icr/morse_flipper_icr.c")),
     CTest("icr-runtime", ("tests/test_icr_runtime.c", "src/firmware/plugins/icr/morse_flipper_icr.c", "src/firmware/plugins/icr/morse_flipper_icr_runtime.c", "src/firmware/cw.c")),
-    CTest("icr-host", ("tests/test_icr_host.c", "src/firmware/morse_flipper_icr_host.c"), ("MF_ICR_HOST_TEST",)),
+    CTest("icr-host", ("tests/test_icr_host.c", "src/firmware/morse_flipper_icr_host.c", "src/firmware/morse_flipper_activity.c"), ("MF_ICR_HOST_TEST",)),
 )
 
 PYTHON_TESTS = (

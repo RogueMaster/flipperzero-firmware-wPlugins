@@ -3,6 +3,7 @@
 #else
 #include "morse_flipper_app_i.h"
 #endif
+#include "morse_flipper_activity.h"
 
 #define MORSE_FLIPPER_ICR_PLUGIN_PATH APP_ASSETS_PATH("plugins/morse_flipper_icr.fal")
 
@@ -60,6 +61,10 @@ bool morse_flipper_icr_host_input(MorseFlipperApp* app, const InputEvent* event,
         if(result.handled) morse_flipper_icr_host_apply_locked(app, result, now_ms);
     }
     furi_mutex_release(app->plugin_slot.mutex);
+    if(result.feedback == MorseFlipperIcrFeedbackGood ||
+       result.feedback == MorseFlipperIcrFeedbackFail)
+        morse_flipper_activity_note_rx(
+            result.feedback == MorseFlipperIcrFeedbackGood);
     morse_flipper_update_sidetone(app);
     if(result.handled && result.redraw) morse_flipper_view_dirty(app);
     if(!result.handled) {

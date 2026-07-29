@@ -69,36 +69,40 @@ static void morse_flipper_scene_menu_on_exit(void* context) {
     submenu_reset(app->submenu);
 }
 
-static void morse_flipper_scene_start_plain_listening(MorseFlipperApp* app) {
-    scene_manager_next_scene(app->scene_manager, MorseFlipperSceneSession);
+static void morse_flipper_scene_start_rx_training(
+    MorseFlipperApp* app,
+    uint32_t target_scene) {
+    scene_manager_next_scene(app->scene_manager, target_scene);
 }
 
-static void morse_flipper_scene_start_listening_or_streak_intro(MorseFlipperApp* app) {
+static void morse_flipper_scene_start_rx_or_streak_intro(
+    MorseFlipperApp* app,
+    uint32_t target_scene) {
     MorseFlipperProgress* progress;
     uint16_t practice_day = MORSE_FLIPPER_PROGRESS_DAY_NONE;
     bool saved;
 
     progress = malloc(sizeof(*progress));
     if(progress == NULL) {
-        morse_flipper_scene_start_plain_listening(app);
+        morse_flipper_scene_start_rx_training(app, target_scene);
         return;
     }
 
     if(!morse_flipper_progress_today(&practice_day)) {
         free(progress);
-        morse_flipper_scene_start_plain_listening(app);
+        morse_flipper_scene_start_rx_training(app, target_scene);
         return;
     }
 
     if(!morse_flipper_progress_load(progress)) {
         free(progress);
-        morse_flipper_scene_start_plain_listening(app);
+        morse_flipper_scene_start_rx_training(app, target_scene);
         return;
     }
 
     if(!morse_flipper_progress_streak_intro_due(progress, practice_day)) {
         free(progress);
-        morse_flipper_scene_start_plain_listening(app);
+        morse_flipper_scene_start_rx_training(app, target_scene);
         return;
     }
 
@@ -108,10 +112,12 @@ static void morse_flipper_scene_start_listening_or_streak_intro(MorseFlipperApp*
     free(progress);
 
     if(!saved) {
-        morse_flipper_scene_start_plain_listening(app);
+        morse_flipper_scene_start_rx_training(app, target_scene);
         return;
     }
 
+    scene_manager_set_scene_state(
+        app->scene_manager, MorseFlipperSceneStreakIntro, target_scene);
     scene_manager_next_scene(app->scene_manager, MorseFlipperSceneStreakIntro);
 }
 
@@ -172,8 +178,11 @@ static bool morse_flipper_scene_menu_training_on_event(void* context, SceneManag
     if(event.type == SceneManagerEventTypeCustom) {
         scene_manager_set_scene_state(
             app->scene_manager, MorseFlipperSceneMenuTraining, event.event);
-        if(event.event == MorseFlipperSceneSession) {
-            morse_flipper_scene_start_listening_or_streak_intro(app);
+        if(event.event == MorseFlipperSceneSession ||
+           event.event == MorseFlipperSceneIcr ||
+           event.event == MorseFlipperSceneRxCallsigns ||
+           event.event == MorseFlipperScenePassive) {
+            morse_flipper_scene_start_rx_or_streak_intro(app, event.event);
             return true;
         }
         scene_manager_next_scene(app->scene_manager, event.event);
@@ -705,11 +714,18 @@ static void morse_flipper_scene_radio_on_exit(void* context) {
     app->tx_gap_flushed = true;
 }
 
-static void morse_flipper_scene_streak_intro_start_listening(MorseFlipperApp* app) {
+static void morse_flipper_scene_streak_intro_start_training(MorseFlipperApp* app) {
+    uint32_t target_scene = scene_manager_get_scene_state(
+        app->scene_manager, MorseFlipperSceneStreakIntro);
+    if(target_scene != MorseFlipperSceneSession &&
+       target_scene != MorseFlipperSceneIcr &&
+       target_scene != MorseFlipperSceneRxCallsigns &&
+       target_scene != MorseFlipperScenePassive)
+        target_scene = MorseFlipperSceneSession;
     app->streak_intro_until_ms = 0U;
     scene_manager_search_and_switch_to_another_scene(
         app->scene_manager, MorseFlipperSceneMenuTraining);
-    scene_manager_next_scene(app->scene_manager, MorseFlipperSceneSession);
+    scene_manager_next_scene(app->scene_manager, target_scene);
 }
 
 static void morse_flipper_scene_streak_intro_on_enter(void* context) {
@@ -724,17 +740,17 @@ static bool morse_flipper_scene_streak_intro_on_event(void* context, SceneManage
 
     if(event.type == SceneManagerEventTypeCustom &&
        event.event == MorseFlipperCustomStreakIntroStart) {
-        morse_flipper_scene_streak_intro_start_listening(app);
+        morse_flipper_scene_streak_intro_start_training(app);
         return true;
     }
 
     if(event.type == SceneManagerEventTypeBack) {
-        morse_flipper_scene_streak_intro_start_listening(app);
+        morse_flipper_scene_streak_intro_start_training(app);
         return true;
     }
 
     if(event.type == SceneManagerEventTypeTick && furi_get_tick() >= app->streak_intro_until_ms) {
-        morse_flipper_scene_streak_intro_start_listening(app);
+        morse_flipper_scene_streak_intro_start_training(app);
         return true;
     }
 

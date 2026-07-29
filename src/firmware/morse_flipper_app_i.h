@@ -37,6 +37,7 @@
 #include "morse_flipper_ham_keyer.h"
 #include "morse_flipper_icr_host.h"
 #include "morse_flipper_passive_host.h"
+#include "morse_flipper_activity.h"
 #include "morse_flipper_plugin_runtime.h"
 #include "morse_flipper_radio_host.h"
 #include "morse_flipper_rx_practice_host.h"

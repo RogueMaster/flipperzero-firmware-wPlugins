@@ -570,14 +570,15 @@ void morse_flipper_record_session_progress(MorseFlipperApp* app) {
         percent,
         total);
     if(morse_flipper_progress_save(app->session_progress) && date_valid) {
-        morse_flipper_progress_append_history(
+        if(morse_flipper_progress_append_history(
             dt.year,
             dt.month,
             dt.day,
             dt.hour,
             dt.minute,
             lesson,
-            percent);
+            percent))
+            morse_flipper_activity_note_listening_session(practice_day);
     }
     morse_flipper_release_session_progress(app, false);
 }
