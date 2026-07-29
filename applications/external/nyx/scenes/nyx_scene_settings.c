@@ -109,5 +109,7 @@ bool nyx_scene_settings_on_event(void* context, SceneManagerEvent event) {
 
 void nyx_scene_settings_on_exit(void* context) {
     NyxApp* app = context;
+    /* Persist on the way out, so the next launch comes up the way you left it. */
+    nyx_store_settings_save(&app->settings);
     variable_item_list_reset(app->var_item_list);
 }

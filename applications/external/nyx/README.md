@@ -67,15 +67,18 @@ receiver, and the header always tells you which one is live.
 
 ## Using it
 
-1. **Sweep** — the meter. Kill the room lights, then pan the Flipper slowly
-   across walls, smoke detectors, alarm clocks, vents, mirrors, and anything
-   with a pinhole. Watch the **trace climb** and follow the **trend arrow** (▲
-   getting warmer / ▼ colder) toward the source. The dotted line is your best
-   reading so far; the geiger clicks and LED speed up as you close in.
+1. **Sweep** — the meter, built around an **eye that watches back**. Kill the
+   room lights, then pan the Flipper slowly across walls, smoke detectors, alarm
+   clocks, vents, mirrors, and anything with a pinhole. The eye's **ring fills**
+   and its **pupil dilates** as the signal rises, a tick marks your best reading
+   so far, and the big **trend arrow** (▲ getting warmer / ▼ colder) points you
+   in. When it locks on, glare spikes spin around the iris and the geiger clicks
+   and LED speed up as you close in.
 2. **Probe Setup** — how to wire the phototransistor, plus a **live check** so
    you can prove the probe works (aim a TV remote at it and watch the needle
    jump) before you trust a clean sweep.
-3. **Settings** — mode, sensitivity, probe pin, and sound/vibro/LED.
+3. **Settings** — mode, sensitivity, probe pin, and sound/vibro/LED. Your
+   choices are **saved** and restored on the next launch.
 4. **About** — the same honesty notes, on the device.
 
 ### Reading the source label
@@ -194,13 +197,18 @@ python3 tools_gen_mockups.py
     so the ripple survives.
   - The probe pin list is built from the SDK's own `gpio_pins[]` ADC table, so
     it can't drift from the HAL.
-- **`views/sweep_view.c`** — the locating instrument: big level, trend arrow,
-  source label, scrolling trace with a peak-hold line, and an inverted alarm
-  strip when an emitter is locked on. In onboard mode it keeps admitting, in the
-  idle hint line, that it can only see pulsed IR.
+- **`views/sweep_view.c`** — the locating instrument: an eye whose ring fills
+  with the live level, whose pupil dilates as you close in, with a peak tick, a
+  source label, a get-warmer trend arrow, and an inverted alarm strip when an
+  emitter is locked on. In onboard mode it keeps admitting, in the idle hint
+  line, that it can only see pulsed IR.
 - **`views/probe_view.c`** — the wiring schematic and the live probe check.
-- **`scenes/`** — start / sweep / probe / settings / about, wired with the
-  standard Flipper scene-manager X-macro.
+- **`views/splash_view.c`** — the boot intro: a Nyx eye opening through IR
+  wave-rings (any key skips it).
+- **`helpers/nyx_store.c`** — settings persistence via the firmware's
+  `saved_struct`, so mode / sensitivity / probe pin survive a relaunch.
+- **`scenes/`** — splash / start / sweep / probe / settings / about, wired with
+  the standard Flipper scene-manager X-macro.
 
 **Listen-only.** Nyx never transmits IR.
 

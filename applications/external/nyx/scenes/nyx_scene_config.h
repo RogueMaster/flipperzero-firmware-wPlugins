@@ -1,3 +1,4 @@
+ADD_SCENE(nyx, splash, Splash)
 ADD_SCENE(nyx, start, Start)
 ADD_SCENE(nyx, sweep, Sweep)
 ADD_SCENE(nyx, probe, Probe)

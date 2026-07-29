@@ -80,6 +80,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Fix wrong parent protocol in the Type 4 Tag listener assert - copy-pasted from the SLIX listener, so debug builds crashed as soon as Type 4 Tag emulation received a frame; release builds were unaffected (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1051)
 - Updated: [OpenShock v0.1 (By OpenShock Team)](https://github.com/OpenShock/FlipperZero)
 - Updated: [DeFlock v0.50 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- Updated: [Nyx v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Nyx-FlipperZero)
 
 <a name="release"></a>
 
@@ -722,7 +723,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [NRF24 Jammer v1.0 (By huuck)](https://github.com/huuck/FlipperZeroNRFJammer) (Exercise Caution and Follow Your Local Laws)
 - [NRF24 Monitor v1.0 (By CyberDemon73)](https://github.com/CyberDemon73/flipperzero-nrf24monitor)
 - [NRF24 Scanner v2.3 (By vad7)](https://github.com/vad7/nrf24scan)
-- [Nyx v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Nyx-FlipperZero)
+- [Nyx v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Nyx-FlipperZero)
 - [Ocarina v1.3 (By invalidna-me)](https://github.com/invalidna-me/flipperzero-ocarina) [Here are the LOTZ Songs](https://www.zeldadungeon.net/wiki/Ocarina_of_Time_Songs)
 - [OpenPrintTag v1.0 (By Houzvicka)](https://github.com/Houzvicka/FlipperPrintTag)
 - [OpenShock v0.1 (By OpenShock Team)](https://github.com/OpenShock/FlipperZero)

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Render Flipper-style mock screenshots (128x64, orange theme) for the README.
-These mirror the on-device draw code in views/sweep_view.c, views/probe_view.c
-and the scenes, so the README shows what the app actually draws."""
+These mirror the on-device draw code in views/sweep_view.c, views/probe_view.c,
+views/splash_view.c and the scenes, so the README shows what the app draws."""
 from PIL import Image, ImageDraw, ImageFont
+import math
 import os
 
 S = 6  # scale
@@ -15,9 +16,8 @@ os.makedirs(OUT, exist_ok=True)
 MONO = "/System/Library/Fonts/Supplemental/Andale Mono.ttf"
 BOLD = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
 
-TRACE_BASE_Y = 51
-TRACE_H = 13
-NYX_TRACE_LEN = 64
+# sweep-view eye geometry — must match the #defines in views/sweep_view.c
+EYE_CX, EYE_CY, EYE_ROUT, EYE_IRIS = 21, 27, 15, 9
 
 
 def font(path, px):
@@ -112,51 +112,65 @@ def draw_header(d, mode_word, present):
     line(d, 0, 11, 127, 11)
 
 
-def draw_trend(d, trend):
+def draw_trend_at(d, cx, cy, trend):
     if trend > 0:
-        # base at y=30, points up (height 9) => apex at y=21
-        tri_up(d, 58, 21, 11, 9)
+        tri_up(d, cx, cy - 4, 12, 9)
     elif trend < 0:
-        tri_down(d, 58, 30, 11, 9)
+        tri_down(d, cx, cy + 4, 12, 9)
     else:
-        box(d, 53, 24, 11, 3)
+        box(d, cx - 6, cy - 1, 12, 3)
 
 
-def draw_trace(d, trace, peak):
-    for k in range(NYX_TRACE_LEN):
-        idx = (len(trace) - 1 - k) % len(trace)
-        val = trace[idx]
-        h = (val * TRACE_H) // 100
-        x = 126 - k * 2
-        if h > 0:
-            line(d, x, TRACE_BASE_Y, x, TRACE_BASE_Y - h, FG, w=S)
-        else:
-            dot(d, x, TRACE_BASE_Y)
+def ring_point(radius, deg):
+    a = math.radians(deg - 90)
+    return EYE_CX + math.cos(a) * radius, EYE_CY + math.sin(a) * radius
+
+
+def draw_eye(d, level, peak, present, anim):
+    circle(d, EYE_CX, EYE_CY, EYE_ROUT)
+    # proximity arc, clockwise from 12 o'clock
+    span = (level * 360) // 100
+    for deg in range(0, span, 5):
+        for rr in (EYE_ROUT - 1, EYE_ROUT - 2):
+            x, y = ring_point(rr, deg)
+            dot(d, x, y)
+    # peak tick
     if peak > 0:
-        py = TRACE_BASE_Y - (peak * TRACE_H) // 100
-        x = 0
-        while x < 128:
-            dot(d, x, py)
-            x += 4
+        xi, yi = ring_point(EYE_ROUT - 4, (peak * 360) // 100)
+        xo, yo = ring_point(EYE_ROUT + 1, (peak * 360) // 100)
+        line(d, xi, yi, xo, yo)
+    # iris + dilating pupil
+    circle(d, EYE_CX, EYE_CY, EYE_IRIS)
+    pupil = 1 + (level * 7) // 100
+    disc(d, EYE_CX, EYE_CY, pupil)
+    # lock-on glare
+    if present:
+        for i in range(6):
+            deg = i * 60 + anim * 6
+            x1, y1 = ring_point(EYE_IRIS + 2, deg)
+            x2, y2 = ring_point(EYE_IRIS + 4, deg)
+            line(d, x1, y1, x2, y2)
 
 
 def render_sweep(
-    name, level, peak, hits, trend, kind, present, mode_word, trace, hint=None
+    name, level, peak, hits, trend, kind, present, mode_word, hint=None, anim=0
 ):
     img, d = canvas()
     draw_header(d, mode_word, present)
 
-    # readout
-    text(d, 42, 33, str(level), f_big, anchor="rs")
-    text(d, 44, 30, "%", f_sec)
-    draw_trend(d, trend)
-    line(d, 68, 13, 68, 34)
-    text(d, 72, 20, kind, f_sec)
-    text(d, 72, 31, f"PK{peak} H{hits}", f_sec)
+    # eye gauge (left)
+    draw_eye(d, level, peak, present, anim)
+    text(d, EYE_CX, 50, f"{level}%", f_sec, anchor="ms")
 
-    # trace
-    line(d, 0, 36, 127, 36)
-    draw_trace(d, trace, peak)
+    # readout (right)
+    line(d, 41, 13, 41, 51)
+    text(d, 45, 21, kind, f_pri)
+    state = (
+        proximity_word(level) if present else ("SCANNING" if level or hint else "IDLE")
+    )
+    text(d, 45, 35, state, f_sec)
+    text(d, 45, 48, f"PK{peak}  HIT{hits}", f_sec)
+    draw_trend_at(d, 118, 30, trend)
 
     # status strip
     line(d, 0, 52, 127, 52)
@@ -168,6 +182,28 @@ def render_sweep(
         frame(d, 0, 0, 127, 63, FG, lw=2)
     else:
         text(d, 2, 59, hint or "Pan slowly across walls", f_sec)
+    save(img, name)
+
+
+def render_splash(name):
+    img, d = canvas()
+    cx, cy, hw, hh = 64, 27, 30, 14
+    # IR wave-rings washing out of the pupil
+    for r in (10, 22, 34):
+        circle(d, cx, cy, r, FG, w=2)
+    # almond eye (fully open frame)
+    for sign in (-1, 1):
+        pts = []
+        for i in range(0, 49):
+            t = i / 48.0
+            x = cx - hw + t * 2 * hw
+            y = cy + sign * math.sin(t * math.pi) * hh
+            pts.append((L(x), L(y)))
+        d.line(pts, fill=FG, width=2)
+    circle(d, cx, cy, 7)
+    disc(d, cx, cy, 3)
+    text(d, 64, 50, "N Y X", f_pri, anchor="ms")
+    text(d, 64, 61, "IR EMITTER SWEEP", f_sec, anchor="ms")
     save(img, name)
 
 
@@ -285,140 +321,8 @@ def render_settings():
     save(img, "screen_settings.png")
 
 
-# recent-level ring buffers for the trace
-CLEAR = [
-    3,
-    5,
-    2,
-    8,
-    4,
-    1,
-    6,
-    3,
-    9,
-    5,
-    2,
-    7,
-    4,
-    11,
-    6,
-    3,
-    8,
-    5,
-    2,
-    10,
-    6,
-    4,
-    9,
-    5,
-    3,
-    7,
-    12,
-    6,
-    4,
-    8,
-    5,
-    14,
-    7,
-    4,
-    9,
-    6,
-    3,
-    8,
-    5,
-    11,
-    6,
-    4,
-    7,
-    3,
-    9,
-    5,
-    2,
-    8,
-    13,
-    6,
-    4,
-    7,
-    5,
-    10,
-    6,
-    3,
-    8,
-    5,
-    2,
-    7,
-    4,
-    9,
-]
-HOT = [
-    4,
-    6,
-    5,
-    9,
-    8,
-    12,
-    15,
-    18,
-    22,
-    20,
-    26,
-    30,
-    28,
-    35,
-    40,
-    38,
-    44,
-    50,
-    48,
-    55,
-    60,
-    58,
-    64,
-    68,
-    66,
-    72,
-    76,
-    74,
-    80,
-    78,
-    82,
-    85,
-    83,
-    86,
-    88,
-    84,
-    87,
-    85,
-    82,
-    86,
-    88,
-    90,
-    87,
-    85,
-    88,
-    84,
-    86,
-    89,
-    85,
-    83,
-    87,
-    84,
-    86,
-    88,
-    85,
-    82,
-    86,
-    88,
-    84,
-    87,
-    85,
-    83,
-    86,
-    88,
-]
-
-
 if __name__ == "__main__":
+    render_splash("screen_splash.png")
     render_sweep(
         "screen_clear.png",
         4,
@@ -428,10 +332,9 @@ if __name__ == "__main__":
         "--",
         False,
         "ONBOARD",
-        CLEAR,
         hint="Onboard: pulsed IR only",
     )
-    render_sweep("screen_emitter.png", 84, 90, 3, 1, "STEADY", True, "PROBE", HOT)
+    render_sweep("screen_emitter.png", 84, 90, 3, 1, "STEADY", True, "PROBE", anim=2)
     render_nulling("screen_nulling.png")
     render_menu()
     render_probe_wiring()
@@ -439,10 +342,10 @@ if __name__ == "__main__":
     render_settings()
 
     names = (
-        "screen_clear.png",
+        "screen_splash.png",
         "screen_emitter.png",
         "screen_probe_wiring.png",
-        "screen_probe_check.png",
+        "screen_settings.png",
     )
     imgs = [Image.open(os.path.join(OUT, n)) for n in names]
     pad = 18
