@@ -27,6 +27,8 @@ Flash this Companion firmware for the cleanest, most reliable results.
 
 Best for boards without a USB port (e.g. ReksLab/CaracalDB multi-boards that only
 have a microSD slot): the Flipper flashes the ESP32 over its own UART pins.
+**If your board has USB, [flash it directly from a computer](#flash-directly-from-a-computer-no-flipper-needed)
+instead — it's significantly faster.**
 
 **One file is all you need.** Download **`flipdeflock_companion_esp32wroom.bin`**
 from the FlipDeFlock [release](https://github.com/ReconGrunt/FlipDeFlock/releases)
@@ -48,12 +50,53 @@ Back up before flashing if the board currently runs something you want back
 > **Prebuilt image is for the classic ESP32 (WROOM).** For other targets — S3,
 > C3, C5 — build from source (below); the prebuilt image will not boot on them.
 
+> **⏱️ Flashing over the Flipper's UART is slow — budget several minutes, not
+> seconds.** The Flipper writes the WHOLE image serially with no skip-blank
+> optimization, so time scales with file size, not with how much of it is real
+> firmware. In **Settings → ESP32 Firmware → Flash Speed**, `Safe 115k` runs at
+> 115200 baud; `Fast 921k` raises it to **230400 baud** during the write only
+> (the label is aspirational — 230400 is what actually goes over the wire),
+> roughly halving the time. **Backups always run at the safe rate**, regardless
+> of that setting.
+>
+> The **`..._esp32c5_EXPERIMENTAL.bin` is ~4 MB** versus **~1.5 MB** for the
+> WROOM image — core 3.x's merge step pads the C5 image out to the full flash
+> size, even though the real firmware inside it is a similar size to the
+> WROOM's (~1.4 MB). Nothing skips that padding on write, so **the C5 image
+> takes roughly 2–3× as long to flash** as the number of useful bytes would
+> suggest. If a flash looks stalled, check the on-screen progress percentage
+> before assuming it hung — this is expected, not a bug (though shrinking that
+> padded image is on the list to fix).
+
 <sub>Earlier revisions of this page listed `flock_companion.ino.bootloader.bin`,
 `...partitions.bin`, `...ino.bin` and a `flock_companion-merged.bin`. Those
 instructions were wrong: the individual files are CI build artifacts rather than
 release downloads, and nothing was ever published under the `-merged` name.
 Reported by @h00die in
 [#4](https://github.com/ReconGrunt/FlipDeFlock/issues/4).</sub>
+
+## Flash directly from a computer (no Flipper needed)
+
+If your board has USB, skip the Flipper entirely and flash straight from a
+PC/Mac/Linux box with `esptool` — it's faster than the UART path above and
+doesn't need the app's flasher or ESP Flasher installed.
+
+```sh
+pip install esptool
+
+# Classic ESP32 / WROOM
+esptool --chip esp32   --port COM5 write_flash 0x0 flipdeflock_companion_esp32wroom.bin
+
+# ESP32-C5 (EXPERIMENTAL -- see the warning above; unverified on real hardware)
+esptool --chip esp32c5 --port COM5 write_flash 0x0 flipdeflock_companion_esp32c5_EXPERIMENTAL.bin
+```
+
+Replace `COM5` with your board's port (`/dev/ttyUSB0` etc. on Linux/macOS). Some
+`esptool` installs expose the command as `esptool.py` instead of `esptool` --
+try that if the above isn't found. Both `.bin` files are the same merged,
+0x0-flashable images described above; nothing extra to download. If the board
+doesn't auto-reset into bootloader mode, hold **BOOT**, tap **RESET**, release
+**BOOT**, then run the command.
 
 ## Build from source
 
