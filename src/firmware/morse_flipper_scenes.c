@@ -218,6 +218,12 @@ static void morse_flipper_scene_menu_settings_on_enter(void* context) {
         MorseFlipperSceneTxGroupsCfg,
         morse_flipper_scene_menu_pick,
         app);
+    submenu_add_item(
+        app->submenu,
+        "RX Callsigns",
+        MorseFlipperSceneRxCallsignsCfg,
+        morse_flipper_scene_menu_pick,
+        app);
     submenu_add_item(app->submenu, "ICR", MorseFlipperSceneIcr, morse_flipper_scene_menu_pick, app);
     submenu_add_item(app->submenu, "GPIO", MorseFlipperSceneGpio, morse_flipper_scene_menu_pick, app);
     submenu_add_item(app->submenu, "USB", MorseFlipperScenePc, morse_flipper_scene_menu_pick, app);
@@ -931,6 +937,7 @@ static const AppSceneOnEnterCallback morse_flipper_scene_on_enter_handlers[Morse
     [MorseFlipperSceneTxGroupsResult] = morse_flipper_scene_live_on_enter,
     [MorseFlipperSceneTxGroupsFinal] = morse_flipper_scene_live_on_enter,
     [MorseFlipperSceneTxGroupsCfg] = morse_flipper_scene_settings_tx_groups_on_enter,
+    [MorseFlipperSceneRxCallsignsCfg] = morse_flipper_scene_settings_rx_callsigns_on_enter,
     [MorseFlipperSceneOnboarding] = morse_flipper_scene_onboarding_on_enter,
     [MorseFlipperSceneProgress] = morse_flipper_scene_progress_on_enter,
     [MorseFlipperSceneStreakIntro] = morse_flipper_scene_streak_intro_on_enter,
@@ -976,6 +983,7 @@ static const AppSceneOnEventCallback morse_flipper_scene_on_event_handlers[Morse
     [MorseFlipperSceneTxGroupsResult] = morse_flipper_scene_live_on_event,
     [MorseFlipperSceneTxGroupsFinal] = morse_flipper_scene_live_on_event,
     [MorseFlipperSceneTxGroupsCfg] = morse_flipper_scene_settings_on_event,
+    [MorseFlipperSceneRxCallsignsCfg] = morse_flipper_scene_settings_on_event,
     [MorseFlipperSceneOnboarding] = morse_flipper_scene_onboarding_on_event,
     [MorseFlipperSceneProgress] = morse_flipper_scene_progress_on_event,
     [MorseFlipperSceneStreakIntro] = morse_flipper_scene_streak_intro_on_event,
@@ -1021,6 +1029,7 @@ static const AppSceneOnExitCallback morse_flipper_scene_on_exit_handlers[MorseFl
     [MorseFlipperSceneTxGroupsResult] = morse_flipper_scene_live_on_exit,
     [MorseFlipperSceneTxGroupsFinal] = morse_flipper_scene_live_on_exit,
     [MorseFlipperSceneTxGroupsCfg] = morse_flipper_scene_settings_on_exit,
+    [MorseFlipperSceneRxCallsignsCfg] = morse_flipper_scene_settings_on_exit,
     [MorseFlipperSceneOnboarding] = morse_flipper_scene_plugin_on_exit,
     [MorseFlipperSceneProgress] = morse_flipper_scene_progress_on_exit,
     [MorseFlipperSceneStreakIntro] = morse_flipper_scene_streak_intro_on_exit,

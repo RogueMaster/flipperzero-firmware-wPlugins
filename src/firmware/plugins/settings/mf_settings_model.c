@@ -20,6 +20,26 @@ bool mf_settings_snapshot_normalize(MfSettingsSnapshot* snapshot) {
         snapshot->farnsworth_wpm = (uint8_t)snapshot->local_wpm;
         changed = true;
     }
+    if(snapshot->rx_callsigns_length > 5U) {
+        snapshot->rx_callsigns_length = 5U;
+        changed = true;
+    }
+    if(snapshot->rx_callsigns_wpm < 10U) {
+        snapshot->rx_callsigns_wpm = 10U;
+        changed = true;
+    }
+    if(snapshot->rx_callsigns_wpm > 30U) {
+        snapshot->rx_callsigns_wpm = 30U;
+        changed = true;
+    }
+    if(snapshot->rx_callsigns_farnsworth_wpm < 1U) {
+        snapshot->rx_callsigns_farnsworth_wpm = 1U;
+        changed = true;
+    }
+    if(snapshot->rx_callsigns_farnsworth_wpm > snapshot->rx_callsigns_wpm) {
+        snapshot->rx_callsigns_farnsworth_wpm = snapshot->rx_callsigns_wpm;
+        changed = true;
+    }
     return changed;
 }
 
@@ -31,6 +51,7 @@ uint8_t mf_settings_row_count(uint8_t entry, const MfSettingsSnapshot* snapshot)
     case MfSettingsEntryListening: return 8U;
     case MfSettingsEntryStraight: return 3U;
     case MfSettingsEntryTxGroups: return 1U;
+    case MfSettingsEntryRxCallsigns: return 3U;
     case MfSettingsEntryGpio: return 4U;
     case MfSettingsEntryUsb: return 4U;
     default: return 0U;

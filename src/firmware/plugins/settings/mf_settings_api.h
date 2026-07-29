@@ -5,7 +5,7 @@
 typedef struct VariableItemList VariableItemList;
 
 #define MF_SETTINGS_API_MAGIC 0x4D465345UL
-#define MF_SETTINGS_API_VERSION 3U
+#define MF_SETTINGS_API_VERSION 4U
 
 typedef enum {
     MfSettingsEntryKeying = 0,
@@ -13,6 +13,7 @@ typedef enum {
     MfSettingsEntryListening,
     MfSettingsEntryStraight,
     MfSettingsEntryTxGroups,
+    MfSettingsEntryRxCallsigns,
     MfSettingsEntryGpio,
     MfSettingsEntryUsb,
 } MfSettingsEntry;
@@ -37,6 +38,9 @@ typedef struct {
     uint8_t straight_answer_timeout_s;
     uint8_t straight_next_delay_s;
     uint8_t tx_groups_difficulty;
+    uint8_t rx_callsigns_length;
+    uint8_t rx_callsigns_wpm;
+    uint8_t rx_callsigns_farnsworth_wpm;
     uint8_t gpio_dit_pin;
     uint8_t gpio_dah_pin;
     uint8_t gpio_ground_pin;
@@ -67,6 +71,9 @@ typedef enum {
     MfSettingsSetStraightAnswerTimeout,
     MfSettingsSetStraightNextDelay,
     MfSettingsSetTxGroupsDifficulty,
+    MfSettingsSetRxCallsignsLength,
+    MfSettingsSetRxCallsignsWpm,
+    MfSettingsSetRxCallsignsFarnsworth,
     MfSettingsApplyGpioDraft,
     MfSettingsSetUsbMode,
     MfSettingsSetUsbPaddlePreset,

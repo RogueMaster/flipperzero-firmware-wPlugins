@@ -120,6 +120,11 @@ static const char* mf_settings_tone_name(uint8_t value) {
     return value < 31U ? names[value] : names[0];
 }
 
+static const char* mf_settings_rx_length_name(uint8_t value) {
+    static const char* const names[] = {"4", "5", "6", "4-5", "5-6", "4-6"};
+    return value < 6U ? names[value] : names[5];
+}
+
 typedef struct {
     uint8_t pin;
     const char* name;
@@ -292,6 +297,26 @@ static void mf_settings_refresh(MfSettingsState* state) {
                 state->snapshot.tx_groups_difficulty == 0U ? "Easy" :
                 state->snapshot.tx_groups_difficulty == 1U ? "Medium" : "Competition");
         }
+    } else if(state->args.entry == MfSettingsEntryRxCallsigns) {
+        item = state->items[0];
+        if(item != NULL) {
+            variable_item_set_current_value_index(item, state->snapshot.rx_callsigns_length);
+            variable_item_set_current_value_text(
+                item, mf_settings_rx_length_name(state->snapshot.rx_callsigns_length));
+        }
+        item = state->items[1];
+        if(item != NULL)
+            mf_settings_set_number(
+                item, (uint8_t)(state->snapshot.rx_callsigns_wpm - 10U), 10U, "");
+        item = state->items[2];
+        if(item != NULL) {
+            variable_item_set_values_count(item, state->snapshot.rx_callsigns_wpm);
+            mf_settings_set_number(
+                item,
+                (uint8_t)(state->snapshot.rx_callsigns_farnsworth_wpm - 1U),
+                1U,
+                "");
+        }
     } else if(state->args.entry == MfSettingsEntryGpio) {
         uint8_t values[] = {state->gpio_dit_pin, state->gpio_dah_pin, state->gpio_ground_pin, state->gpio_ptt_pin};
         for(uint8_t i = 0U; i < 4U; i++) {
@@ -380,6 +405,14 @@ static void mf_settings_changed(VariableItem* item) {
         if(row < 3U) (void)mf_settings_apply(state, kinds[row], bases[row] + index);
     } else if(state->args.entry == MfSettingsEntryTxGroups && row == 0U) {
         (void)mf_settings_apply(state, MfSettingsSetTxGroupsDifficulty, index);
+    } else if(state->args.entry == MfSettingsEntryRxCallsigns) {
+        static const uint8_t kinds[] = {
+            MfSettingsSetRxCallsignsLength,
+            MfSettingsSetRxCallsignsWpm,
+            MfSettingsSetRxCallsignsFarnsworth,
+        };
+        static const uint8_t bases[] = {0U, 10U, 1U};
+        if(row < 3U) (void)mf_settings_apply(state, kinds[row], bases[row] + index);
     } else if(state->args.entry == MfSettingsEntryUsb) {
         static const uint8_t kinds[] = {
             MfSettingsSetUsbMode, MfSettingsSetUsbPaddlePreset,
@@ -432,6 +465,15 @@ static void mf_settings_build_rows(MfSettingsState* state) {
         state->items[2] = variable_item_list_add(list, "Next delay", 30U, mf_settings_changed, state);
     } else if(state->args.entry == MfSettingsEntryTxGroups) {
         state->items[0] = variable_item_list_add(list, "Difficulty", 3U, mf_settings_changed, state);
+    } else if(state->args.entry == MfSettingsEntryRxCallsigns) {
+        state->items[0] = variable_item_list_add(list, "Length", 6U, mf_settings_changed, state);
+        state->items[1] = variable_item_list_add(list, "WPM", 21U, mf_settings_changed, state);
+        state->items[2] = variable_item_list_add(
+            list,
+            "Farnsworth",
+            state->snapshot.rx_callsigns_wpm,
+            mf_settings_changed,
+            state);
     } else if(state->args.entry == MfSettingsEntryGpio) {
         state->items[0] = variable_item_list_add(list, "dit/SK", 6U, mf_settings_changed, state);
         state->items[1] = variable_item_list_add(list, "dah", 6U, mf_settings_changed, state);

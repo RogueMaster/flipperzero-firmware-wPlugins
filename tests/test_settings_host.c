@@ -158,6 +158,9 @@ int main(void) {
     apply(&app, MfSettingsSetStraightAnswerTimeout, 5U, true);
     apply(&app, MfSettingsSetStraightNextDelay, 4U, true);
     apply(&app, MfSettingsSetTxGroupsDifficulty, 1U, true);
+    apply(&app, MfSettingsSetRxCallsignsLength, 3U, true);
+    apply(&app, MfSettingsSetRxCallsignsWpm, 24U, true);
+    apply(&app, MfSettingsSetRxCallsignsFarnsworth, 18U, true);
     {
         unsigned no_op_saves = saves;
         unsigned no_op_clears = clears;
@@ -178,6 +181,9 @@ int main(void) {
         apply(&app, MfSettingsSetStraightAnswerTimeout, 5U, true);
         apply(&app, MfSettingsSetStraightNextDelay, 4U, true);
         apply(&app, MfSettingsSetTxGroupsDifficulty, 1U, true);
+        apply(&app, MfSettingsSetRxCallsignsLength, 3U, true);
+        apply(&app, MfSettingsSetRxCallsignsWpm, 24U, true);
+        apply(&app, MfSettingsSetRxCallsignsFarnsworth, 18U, true);
         assert(
             saves == no_op_saves && clears == no_op_clears && resyncs == no_op_resyncs &&
             refreshes == no_op_refreshes && polls == no_op_polls &&

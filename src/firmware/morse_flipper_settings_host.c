@@ -4,6 +4,8 @@
 #include "morse_flipper_app_i.h"
 #endif
 
+#include "morse_flipper_rx_settings.h"
+
 #define MORSE_FLIPPER_SETTINGS_PLUGIN_PATH APP_ASSETS_PATH("plugins/morse_flipper_settings.fal")
 
 static bool mf_settings_apply(
@@ -24,6 +26,8 @@ static bool mf_settings_input_source_valid(uint32_t value) {
 }
 
 static void mf_settings_snapshot(MorseFlipperApp* app, MfSettingsSnapshot* snapshot) {
+    MorseFlipperRxSettings rx;
+    morse_flipper_rx_settings_load(&rx);
     *snapshot = (MfSettingsSnapshot){
         .local_wpm = morse_flipper_current_wpm(app),
         .input_source = app->input_source,
@@ -44,6 +48,9 @@ static void mf_settings_snapshot(MorseFlipperApp* app, MfSettingsSnapshot* snaps
         .straight_answer_timeout_s = app->straight_answer_timeout_s,
         .straight_next_delay_s = app->straight_next_delay_s,
         .tx_groups_difficulty = app->txg_difficulty,
+        .rx_callsigns_length = rx.length,
+        .rx_callsigns_wpm = rx.wpm,
+        .rx_callsigns_farnsworth_wpm = rx.farnsworth_wpm,
         .gpio_dit_pin = app->gpio_dit_idx,
         .gpio_dah_pin = app->gpio_dah_idx,
         .gpio_ground_pin = app->gpio_ground_idx,
@@ -59,10 +66,13 @@ static bool mf_settings_apply(void* context, const MfSettingsRequest* request, M
     MorseFlipperApp* app = context;
     uint32_t now_ms = furi_get_tick();
     bool changed = false;
+    bool rx_changed = false;
     uint8_t* changed_u8 = NULL;
+    MorseFlipperRxSettings rx;
 
     if(response != NULL) *response = (MfSettingsResponse){0};
     if(app == NULL || request == NULL || response == NULL) return false;
+    morse_flipper_rx_settings_load(&rx);
     switch(request->kind) {
     case MfSettingsSetLocalWpm:
         if(request->value < 10U || request->value > 30U) return true;
@@ -187,6 +197,28 @@ static bool mf_settings_apply(void* context, const MfSettingsRequest* request, M
         if(request->value >= MorseFlipperTxgDifficultyCount) return true;
         changed_u8 = &app->txg_difficulty;
         break;
+    case MfSettingsSetRxCallsignsLength:
+        if(request->value > 5U) return true;
+        if(rx.length != request->value) {
+            rx.length = (uint8_t)request->value;
+            rx_changed = true;
+        }
+        break;
+    case MfSettingsSetRxCallsignsWpm:
+        if(request->value < 10U || request->value > 30U) return true;
+        if(rx.wpm != request->value) {
+            rx.wpm = (uint8_t)request->value;
+            if(rx.farnsworth_wpm > rx.wpm) rx.farnsworth_wpm = rx.wpm;
+            rx_changed = true;
+        }
+        break;
+    case MfSettingsSetRxCallsignsFarnsworth:
+        if(request->value < 1U || request->value > rx.wpm) return true;
+        if(rx.farnsworth_wpm != request->value) {
+            rx.farnsworth_wpm = (uint8_t)request->value;
+            rx_changed = true;
+        }
+        break;
     case MfSettingsSetUsbMode:
         if(request->value > MorseFlipperPcModeMidi) return true;
         changed_u8 = &app->pc_mode_pref;
@@ -213,6 +245,7 @@ static bool mf_settings_apply(void* context, const MfSettingsRequest* request, M
         changed = true;
     }
     if(changed) morse_flipper_save_config(app);
+    if(rx_changed && !morse_flipper_rx_settings_save(&rx)) return true;
     mf_settings_snapshot(app, &response->snapshot);
     /* A valid no-op must return the canonical snapshot without side effects. */
     response->accepted = true;
@@ -322,6 +355,7 @@ void morse_flipper_scene_pc_on_enter(void* context) {
 void morse_flipper_scene_settings_listening_on_enter(void* context) { mf_settings_scene_enter(context, MfSettingsEntryListening, MorseFlipperSceneTrainer); }
 void morse_flipper_scene_settings_straight_on_enter(void* context) { mf_settings_scene_enter(context, MfSettingsEntryStraight, MorseFlipperSceneStraightCfg); }
 void morse_flipper_scene_settings_tx_groups_on_enter(void* context) { mf_settings_scene_enter(context, MfSettingsEntryTxGroups, MorseFlipperSceneTxGroupsCfg); }
+void morse_flipper_scene_settings_rx_callsigns_on_enter(void* context) { mf_settings_scene_enter(context, MfSettingsEntryRxCallsigns, MorseFlipperSceneRxCallsignsCfg); }
 void morse_flipper_scene_settings_gpio_on_enter(void* context) { mf_settings_scene_enter(context, MfSettingsEntryGpio, MorseFlipperSceneGpio); }
 
 bool morse_flipper_scene_settings_on_event(void* context, SceneManagerEvent event) {

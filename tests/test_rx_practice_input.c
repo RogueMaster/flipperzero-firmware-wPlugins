@@ -29,6 +29,8 @@ static MfRxPracticeEnterArgs make_args(MfRxPracticeDrawSnapshot* snapshot) {
         .result_hold_ms = 3000U,
         .dit_ms = 10U,
         .char_gap_ms = 30U,
+        .min_length = 4U,
+        .max_length = 6U,
         .button_paddle = true,
         .draw_snapshot = snapshot,
     };

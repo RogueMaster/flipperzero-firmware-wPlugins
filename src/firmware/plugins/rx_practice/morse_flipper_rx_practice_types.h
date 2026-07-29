@@ -52,6 +52,8 @@ typedef struct {
     uint32_t result_hold_ms;
     uint16_t dit_ms;
     uint16_t char_gap_ms;
+    uint8_t min_length;
+    uint8_t max_length;
     bool physical_key_can_start;
     bool button_paddle;
     const MfRxPracticeDrawSnapshot* draw_snapshot;

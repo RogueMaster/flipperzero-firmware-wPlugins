@@ -16,6 +16,8 @@ typedef struct MfRxPracticeState {
     uint32_t result_hold_ms;
     uint16_t dit_ms;
     uint16_t char_gap_ms;
+    uint8_t min_length;
+    uint8_t max_length;
     uint16_t session_total;
     uint16_t session_passed;
     uint8_t target_len;

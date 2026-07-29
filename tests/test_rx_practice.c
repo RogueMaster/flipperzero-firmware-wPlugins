@@ -25,6 +25,8 @@ static MfRxPracticeEnterArgs make_args(uint32_t now) {
         .result_hold_ms = 3000U,
         .dit_ms = 10U,
         .char_gap_ms = 30U,
+        .min_length = 4U,
+        .max_length = 6U,
         .physical_key_can_start = true,
         .button_paddle = true,
         .draw_snapshot = &draw_snapshot,

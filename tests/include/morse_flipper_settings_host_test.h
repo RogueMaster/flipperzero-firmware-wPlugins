@@ -57,7 +57,7 @@ enum { MorseFlipperPluginOwnerSettings = 6, MorseFlipperHandednessNormal = 0, Mo
        MorseFlipperTxgDifficultyCount = 3,
        MorseFlipperSceneHome = 13, MorseFlipperSceneAudioCfg = 14, MorseFlipperSceneTrainer = 15,
        MorseFlipperSceneStraightCfg = 16, MorseFlipperScenePc = 17, MorseFlipperSceneGpio = 19,
-       MorseFlipperSceneTxGroupsCfg = 34 };
+       MorseFlipperSceneTxGroupsCfg = 34, MorseFlipperSceneRxCallsignsCfg = 35 };
 
 uint32_t furi_get_tick(void);
 void furi_mutex_acquire(FuriMutex*, uint32_t);

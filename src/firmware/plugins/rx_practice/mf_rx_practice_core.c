@@ -34,7 +34,10 @@ static bool mf_begin_round(MfRxPracticeState* state, uint32_t now_ms) {
     state->playback_char = 0U;
     state->playback_mark_index = 0U;
     state->playback_mark = false;
-    state->target_len = mf_callsign_pick_length(&state->rng);
+    state->target_len = state->min_length;
+    if(state->max_length > state->min_length)
+        state->target_len += (uint8_t)mf_rx_rng_bounded(
+            &state->rng, state->max_length - state->min_length + 1U);
     ok = mf_callsign_generate(&state->callsigns, &state->rng, state->target_len, &call);
     if(ok) memcpy(state->target, call.text, sizeof(state->target));
     if(!ok || state->target_len == 0U || cw_symbol_count(cw(state->target[0])) == 0U) {
@@ -95,6 +98,8 @@ bool mf_rx_practice_enter(
     if(initial != NULL) *initial = (MfRxPracticeResult){0};
     if(state == NULL || args == NULL || initial == NULL || args->struct_size < sizeof(*args) ||
        args->dit_ms == 0U || args->char_gap_ms == 0U || args->answer_timeout_ms == 0U ||
+       args->min_length < 4U || args->max_length > MF_CALLSIGN_MAX_LEN ||
+       args->min_length > args->max_length ||
        args->result_hold_ms == 0U ||
        args->answer_timeout_ms >= INT32_MAX || args->result_hold_ms >= INT32_MAX ||
        args->draw_snapshot == NULL)
@@ -104,6 +109,8 @@ bool mf_rx_practice_enter(
     state->result_hold_ms = args->result_hold_ms;
     state->dit_ms = args->dit_ms;
     state->char_gap_ms = args->char_gap_ms;
+    state->min_length = args->min_length;
+    state->max_length = args->max_length;
     state->physical_key_can_start = args->physical_key_can_start;
     state->button_paddle = args->button_paddle;
     state->draw_snapshot = args->draw_snapshot;

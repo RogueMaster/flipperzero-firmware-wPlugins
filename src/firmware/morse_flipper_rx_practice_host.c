@@ -1,4 +1,5 @@
 #include "morse_flipper_app_i.h"
+#include "morse_flipper_rx_settings.h"
 
 #define MORSE_FLIPPER_RX_PRACTICE_PLUGIN_PATH APP_ASSETS_PATH("plugins/morse_flipper_rx_practice.fal")
 #define MF_RX_START_EXTERNAL \
@@ -36,9 +37,14 @@ bool morse_flipper_rx_practice_host_enter(MorseFlipperApp* app, uint32_t now_ms)
     MfRxPracticeEnterArgs args;
     bool button_paddle;
     bool entered;
+    MorseFlipperRxSettings settings;
+    uint8_t min_length;
+    uint8_t max_length;
     if(app == NULL || app->plugin_slot.mutex == NULL) return false;
     button_paddle = app->input_source == MorseFlipperInputSourceButtons &&
                     !morse_flipper_straight_like_mode(app);
+    morse_flipper_rx_settings_load(&settings);
+    morse_flipper_rx_settings_length_bounds(settings.length, &min_length, &max_length);
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
     app->rx_draw_snapshot = (MfRxPracticeDrawSnapshot){0};
     args = (MfRxPracticeEnterArgs){
@@ -51,11 +57,13 @@ bool morse_flipper_rx_practice_host_enter(MorseFlipperApp* app, uint32_t now_ms)
                            app->listening_settings.answer_timeout_s) *
             1000U,
         .result_hold_ms = 3000U,
-        .dit_ms = morse_flipper_current_dit_ms(app),
+        .dit_ms = (uint16_t)((1200U + settings.wpm / 2U) / settings.wpm),
         .char_gap_ms = morse_flipper_training_char_gap_ms(
-            morse_flipper_current_dit_ms(app),
-            morse_flipper_local_wpm(app),
-            app->listening_settings.farnsworth_wpm),
+            (uint16_t)((1200U + settings.wpm / 2U) / settings.wpm),
+            settings.wpm,
+            settings.farnsworth_wpm),
+        .min_length = min_length,
+        .max_length = max_length,
         .physical_key_can_start =
             app->input_source != MorseFlipperInputSourceButtons,
         .button_paddle = button_paddle,

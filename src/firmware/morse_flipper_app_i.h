@@ -226,6 +226,7 @@ typedef enum {
     MorseFlipperSceneTxGroupsResult,
     MorseFlipperSceneTxGroupsFinal,
     MorseFlipperSceneTxGroupsCfg,
+    MorseFlipperSceneRxCallsignsCfg,
     MorseFlipperSceneOnboarding,
     MorseFlipperSceneProgress,
     MorseFlipperSceneStreakIntro,
@@ -886,6 +887,7 @@ void morse_flipper_scene_gpio_on_enter(void* context);
 void morse_flipper_scene_settings_listening_on_enter(void* context);
 void morse_flipper_scene_settings_straight_on_enter(void* context);
 void morse_flipper_scene_settings_tx_groups_on_enter(void* context);
+void morse_flipper_scene_settings_rx_callsigns_on_enter(void* context);
 void morse_flipper_scene_settings_gpio_on_enter(void* context);
 bool morse_flipper_scene_settings_on_event(void* context, SceneManagerEvent event);
 void morse_flipper_scene_settings_on_exit(void* context);

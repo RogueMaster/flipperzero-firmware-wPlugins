@@ -146,6 +146,11 @@ static void assert_page_labels(uint8_t page, const VariableItemList* list) {
     case MfSettingsEntryTxGroups:
         assert_item(list, 0U, "Difficulty", "Competition");
         break;
+    case MfSettingsEntryRxCallsigns:
+        assert_item(list, 0U, "Length", "4-6");
+        assert_item(list, 1U, "WPM", "20");
+        assert_item(list, 2U, "Farnsworth", "15");
+        break;
     case MfSettingsEntryGpio:
         assert_item(list, 0U, "dit/SK", "P7");
         assert_item(list, 1U, "dah", "P5");
@@ -237,7 +242,7 @@ int main(void) {
     mf_settings_test_free(state);
     storage_fixture = NULL;
 
-    static const uint8_t page_rows[] = {4U, 4U, 8U, 3U, 1U, 4U, 4U};
+    static const uint8_t page_rows[] = {4U, 4U, 8U, 3U, 1U, 3U, 4U, 4U};
     static const uint8_t expected_kinds[][8] = {
         {MfSettingsSetLocalWpm, MfSettingsSetInputSource, MfSettingsSetKeyerMode, MfSettingsSetHandedness},
         {MfSettingsSetAudioPath, MfSettingsSetTone, MfSettingsSetP2Volume, MfSettingsSetAudioWaveform},
@@ -246,12 +251,14 @@ int main(void) {
          MfSettingsSetListeningGroupSize, MfSettingsSetListeningGroupCount, MfSettingsSetListeningCustomSet},
         {MfSettingsSetStraightWpm, MfSettingsSetStraightAnswerTimeout, MfSettingsSetStraightNextDelay},
         {MfSettingsSetTxGroupsDifficulty},
+        {MfSettingsSetRxCallsignsLength, MfSettingsSetRxCallsignsWpm,
+         MfSettingsSetRxCallsignsFarnsworth},
         {0U},
         {MfSettingsSetUsbMode, MfSettingsSetUsbPaddlePreset, MfSettingsSetUsbStraightPreset, MfSettingsSetUsbMouseInvert},
     };
     static const uint8_t expected_values[][8] = {
         {10U, 2U, 1U, 0U}, {0U, 0U, 10U, 0U}, {1U, 10U, 1U, 3U, 3U, 1U, 3U, 0U},
-        {10U, 1U, 1U}, {0U}, {0U}, {0U, 0U, 0U, 0U},
+        {10U, 1U, 1U}, {0U}, {0U, 10U, 1U}, {0U}, {0U, 0U, 0U, 0U},
     };
     calls = 0U;
     for(uint8_t page = MfSettingsEntryKeying; page <= MfSettingsEntryUsb; page++) {
@@ -266,6 +273,8 @@ int main(void) {
             .answer_timeout_s = 3U, .group_pause_s = 3U, .group_size = 1U,
             .group_count = 3U, .straight_wpm = 10U, .straight_answer_timeout_s = 1U,
             .straight_next_delay_s = 1U, .tx_groups_difficulty = 2U, .gpio_dit_pin = 5U,
+            .rx_callsigns_length = 5U, .rx_callsigns_wpm = 20U,
+            .rx_callsigns_farnsworth_wpm = 15U,
             .gpio_dah_pin = 3U, .gpio_ground_pin = 1U, .gpio_ptt_pin = 0xffU,
             .usb_mode = 3U, .usb_paddle_preset = 8U,
             .usb_straight_preset = 7U, .usb_mouse_invert = true};
@@ -310,6 +319,9 @@ int main(void) {
                     expected = bases[row] + selected;
                 } else if(page == MfSettingsEntryStraight) {
                     expected = row == 0U ? 10U + selected : 1U + selected;
+                } else if(page == MfSettingsEntryRxCallsigns) {
+                    static const uint8_t bases[] = {0U, 10U, 1U};
+                    expected = bases[row] + selected;
                 } else {
                     expected = selected;
                 }
@@ -333,7 +345,7 @@ int main(void) {
         assert(list.enter == NULL && list.enter_context == NULL);
         mf_settings_test_free(state);
     }
-    assert(calls == 48U);
+    assert(calls == 54U);
 
     list = (VariableItemList){0};
     calls = 0U;
