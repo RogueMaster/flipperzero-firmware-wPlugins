@@ -260,7 +260,11 @@ element was reported as a hidden network — reflash to get it), dropped serial 
 no longer corrupt a record silently, `flock_score()` deleted for having no callers,
 first-ever tests for the BLE decoder and the whole Marauder backend (639 → 763
 checks), a CI gate so the two OUI tables cannot drift apart, and ~5.9 KB of RAM
-reclaimed.
+reclaimed. On the companion side: it **builds on Arduino core 3.x again** (it had
+stopped compiling entirely for anyone with a current install — thanks
+[@h00die](https://github.com/h00die)), CI now guards that on every push instead of
+only on tags, and there is an **experimental ESP32-C5 dual-band build** that scans
+5 GHz as well as 2.4. Nobody here owns a C5, so that one is compile-verified only.
 
 **v0.47** — False-positive fix; **upgrade if you're on v0.46**. Networks whose name
 merely contains `flock-` (`Flock-Guest`, `Flock-Safety-Corp`, `Flock-12345`) were

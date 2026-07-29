@@ -23,42 +23,113 @@ You do not have to flash this firmware. The app has two backends:
 
 Flash this Companion firmware for the cleanest, most reliable results.
 
-## Flash with the Flipper ESP Flasher app (no computer / no USB)
+## Flash from the Flipper (no computer / no USB)
 
 Best for boards without a USB port (e.g. ReksLab/CaracalDB multi-boards that only
 have a microSD slot): the Flipper flashes the ESP32 over its own UART pins.
 
-1. Install **ESP Flasher** on the Flipper (lab.flipper.net/apps/esp_flasher).
-2. Download the prebuilt binaries from the FlipDeFlock **release** (built by CI):
-   `flock_companion.ino.bootloader.bin`, `...partitions.bin`, `...ino.bin`
-   (or the single `flock_companion-merged.bin`). Copy them to the SD card.
-3. Seat the board on the Flipper, open **ESP Flasher**:
-   - Either flash the **merged** image at offset `0x0`, or
-   - set Bootloader = `...bootloader.bin`, Part Table = `...partitions.bin`,
-     FirmwareA/app = `...ino.bin` (offsets 0x1000 / 0x8000 / 0x10000), then **Flash**.
-4. Done. The board now runs FlipDeFlock companion. Reflash Marauder anytime the
-   same way.
+**One file is all you need.** Download **`flipdeflock_companion_esp32wroom.bin`**
+from the FlipDeFlock [release](https://github.com/ReconGrunt/FlipDeFlock/releases)
+and copy it to the SD card. It is a merged image containing the bootloader,
+partition table and app, and it is flashed **whole at offset `0x0`** — you do not
+set three separate files or offsets.
 
-> Built for the classic **ESP32 (WROOM)**. For ESP32-S3 boards (e.g. Xiao S3),
-> build from source for `esp32:esp32:XIAO_ESP32S3` instead (below).
+Two ways to flash it:
 
-## Flash with Arduino IDE (needs a USB-capable board)
+- **FlipDeFlock's built-in flasher** (no extra app): **ESP32 Firmware → Backup
+  current FW** first if you want to keep what is on the board, then **Flash
+  from SD** and pick the `.bin`. It always writes a single file at `0x0`.
+- **ESP Flasher** (lab.flipper.net/apps/esp_flasher), if you already use it:
+  flash the same file at offset `0x0`.
+
+Back up before flashing if the board currently runs something you want back
+(e.g. Marauder) — restoring is just flashing that backup the same way.
+
+> **Prebuilt image is for the classic ESP32 (WROOM).** For other targets — S3,
+> C3, C5 — build from source (below); the prebuilt image will not boot on them.
+
+<sub>Earlier revisions of this page listed `flock_companion.ino.bootloader.bin`,
+`...partitions.bin`, `...ino.bin` and a `flock_companion-merged.bin`. Those
+instructions were wrong: the individual files are CI build artifacts rather than
+release downloads, and nothing was ever published under the `-merged` name.
+Reported by @h00die in
+[#4](https://github.com/ReconGrunt/FlipDeFlock/issues/4).</sub>
+
+## Build from source
+
+**Arduino core 2.x and 3.x are both supported.** The sketch compiles on either;
+no external libraries are required. (Core 3.x moved the BLE API to Arduino
+`String` and changed `BLEScan::start()` to return a pointer — the sketch shims
+both, so you do not need to pin a version. Before v0.48 it only built on 2.x,
+which broke every fresh install once 3.x became the default.)
+
+Newer chips — **ESP32-C5, C6, H2** — require core **3.x**; they do not exist in
+2.x at all.
+
+### ESP32-C5: dual-band (5 GHz) — EXPERIMENTAL, unverified on hardware
+
+The C5 is the first Espressif part with a **5 GHz** radio. A 2.4-only companion
+cannot see a Flock uplink on 5 GHz at all, so on a C5 the sweep covers both
+bands: 13 channels on 2.4 GHz plus 28 on 5 GHz.
+
+```sh
+arduino-cli compile --fqbn esp32:esp32:esp32c5:PartitionScheme=huge_app flock_companion
+```
+
+Pick the band at runtime over the serial link:
+
+| Command  | Sweep                          |
+|----------|--------------------------------|
+| `band 2g`  | 13 channels (classic behaviour) |
+| `band 5g`  | 28 channels                     |
+| `band all` | 41 channels (**default** on a C5) |
+
+The board replies `BAND,<2g|5g|all>,<channels>` with the band actually in force.
+On a 2.4-only radio that answer is always `2g`, whatever you asked for.
+
+> **The cost of `all`:** a full sweep is 41 channels instead of 13, so at the
+> same 300 ms dwell it takes ~12.3 s instead of ~3.9 s. Any given camera is
+> revisited a third as often. Use `band 2g` if you would rather have the fast
+> sweep and know your target is on 2.4 GHz.
+
+> **⚠️ Nobody on this project owns a C5.** The dual-band build is
+> **compile-verified only** — it has never been run on the chip. It may not
+> boot, hop, or detect anything. The release asset is named
+> `..._esp32c5_EXPERIMENTAL.bin` so the warning travels with the file. If you
+> have a C5, reports are very welcome on the issue tracker.
+
+> **Flash offset differs on the C5:** its bootloader lives at **`0x2000`**, not
+> the classic `0x1000` (and the C3's is at `0x0`). Wrong offset means an
+> `invalid header` boot-loop. You do not need to care if you flash the merged
+> image at `0x0` — the core generates it with the correct per-chip offsets
+> already baked in, which is exactly why we publish the merged file.
+
+### Arduino IDE
 
 1. Install the **esp32** board package (Espressif) via Boards Manager.
 2. Open `flock_companion/flock_companion.ino`.
-3. Select your board (e.g. "ESP32 Dev Module" / "XIAO_ESP32S3").
-4. Tools → set Upload Speed as needed; the **app talks at 115200 baud**.
-5. Upload. No external libraries are required.
+3. Select your board (e.g. "ESP32 Dev Module", "XIAO_ESP32S3", "ESP32C5 Dev Module").
+4. **Partition Scheme → Huge APP.** Wi-Fi + BLE together overflow the default
+   1.3 MB app partition; without this the build fails at the link step.
+5. Upload. The Flipper talks to the board at **115200 baud**.
 
-## Flash with arduino-cli
+### arduino-cli
 
 ```sh
+# The core lives in Espressif's own index, not the default Arduino one.
+arduino-cli config init --additional-urls \
+  https://espressif.github.io/arduino-esp32/package_esp32_index.json
+arduino-cli core update-index
 arduino-cli core install esp32:esp32
-arduino-cli compile --fqbn esp32:esp32:esp32 flock_companion
-arduino-cli upload  --fqbn esp32:esp32:esp32 -p COM5 flock_companion
+
+# Classic ESP32 / WROOM. PartitionScheme=huge_app is required, not optional.
+arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=huge_app flock_companion
+arduino-cli upload  --fqbn esp32:esp32:esp32:PartitionScheme=huge_app -p COM5 flock_companion
 ```
 
-Replace the FQBN/port to match your board.
+Replace the FQBN/port to match your board. Note the plain
+`--fqbn esp32:esp32:esp32` shown in older revisions of this page omitted the
+partition scheme and could fail to link.
 
 ## Wiring (standard Flipper UART)
 
@@ -81,18 +152,35 @@ TX (board → Flipper), newline-terminated ASCII:
 
 ```
 FLOCKCO,1                                  banner/version
-S,<frames>,<hits>,<ch>,<deauths>           status ~1 Hz (deauths = last-interval deauth/disassoc rate)
-D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>   detection
+S,<frames>,<hits>,<ch>,<deauths>           status ~1 Hz (deauths = last-interval rate)
+D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a][,hid=1]   detection
    type: P=probe-req B=beacon R=probe-resp O=other
    conf: 1=possible 2=likely 3=confirmed
-WBEGIN                                      WiFi audit scan started
+   fp  : FNV-1a hash of the probe's IE skeleton (MAC-independent class tell)
+   cls : 'a' = SoundThinking acoustic sensor. Absent = ALPR camera.
+   hid : AP beaconed with no SSID. Reported, deliberately NOT scored.
+BBEGIN                                     BLE scan started
+BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1]   one BLE device
+   cat   : 0 unknown 1 Flock/Raven 2 AirTag 3 Tile 4 SmartTag 5 FMDN
+   mfghex: raw mfg-data hex (Flock 0x09C8 only), for serial decode
+   rv=1  : Raven-specific GATT service seen -> positive acoustic-sensor ID
+BEND                                       BLE scan finished
+WBEGIN                                     WiFi audit scan started
 W,<bssid>,<rssi>,<ch>,<auth>,<pair>,<grp>,<wps>,<ssid>   one AP
    auth/pair/grp: esp wifi_auth_mode_t / wifi_cipher_type_t ints
 WEND,<count>                               WiFi audit scan finished
+DA,<bssid>,<ch>                            deauth/disassoc target (attack indicator)
+ATK,<kind>,<value>                         active attack-tool signature
+   kind: probeflood | beaconflood | blespam
+LOC,<rssi>                                 Locator: live RSSI of the active target
 ```
 
+All trailing `key=value` fields are optional and order-independent, so an older
+Flipper build simply ignores ones it does not know.
+
 RX (Flipper → board): `scan` (WiFi Flock), `flockcombo` (interleaved WiFi+BLE
-Flock), `flockwifi`, `wifiscan`, `blescan`, `stop`, `ver`, `ch <1-14>` (0 = hop).
+Flock), `flockwifi`, `wifiscan`, `blescan`, `stop`, `ver`, `ch <1-14>` (0 = hop),
+`locate <w|b> <mac> [ch]` (stream `LOC` for one target; `locate off` ends it).
 
 ## Credit / data sources
 

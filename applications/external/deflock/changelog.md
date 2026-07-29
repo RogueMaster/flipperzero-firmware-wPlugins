@@ -58,6 +58,38 @@ BLE detection, upgrade.**
   1344 bytes of the 4 KB budget during startup. Also cut the per-frame OUI scan in
   the companion's Wi-Fi callback by ~8×, and removed two redundant full rescans.
 
+### Companion firmware: builds on current Arduino again, and speaks 5 GHz
+
+- **The companion did not compile at all on Arduino ESP32 core 3.x** — which is
+  what a fresh install has been getting for a while. Core 3.x moved the BLE API to
+  Arduino `String`, changed `BLEScan::start()` to return a pointer, and reshaped
+  `BLEAddress::getNative()`. Anyone following our own README hit a wall of ten
+  compile errors. Fixed with 2.x/3.x shims, so **no version pin is needed** and
+  both cores work. Reported by [@h00die](https://github.com/h00die) in
+  [#4](https://github.com/ReconGrunt/FlipDeFlock/issues/4).
+- **Why CI never caught it:** the firmware job pinned core 2.0.17 and only ran on
+  release tags. A pin without a matching compat build is a blind spot, not a
+  policy. There is now a core-3.x job that builds the classic ESP32, the emitter
+  and the C5 **on every push and PR**.
+- **ESP32-C5 dual-band (5 GHz) — EXPERIMENTAL.** The C5 is the first Espressif
+  part with a 5 GHz radio, and a 2.4-only companion *cannot see* a Flock uplink on
+  5 GHz at all. On a C5 the sweep now covers 13 channels on 2.4 GHz plus 28 on
+  5 GHz, selectable at runtime with `band 2g|5g|all`. **Nobody on this project
+  owns a C5**, so this is compile-verified only — it has never been run on the
+  chip, and the release asset is named `..._esp32c5_EXPERIMENTAL.bin` so the
+  warning travels with the download. The 5 GHz code is gated on the SoC
+  capability, so every other chip compiles exactly as before and pays nothing
+  (verified: the channel table is absent from the classic ESP32 binary).
+- **The cost of scanning both bands**, stated plainly: 41 channels instead of 13,
+  so at the same 300 ms dwell a full sweep takes ~12.3 s instead of ~3.9 s and any
+  given camera is revisited a third as often. `band 2g` restores the fast sweep.
+- **Companion README corrected.** It told users to download four files that either
+  are not release downloads or never existed under that name. One merged image is
+  all you need, flashed whole at `0x0`. It also never mentioned FlipDeFlock's own
+  built-in flasher, and omitted the required `PartitionScheme=huge_app`. Also
+  documents the C5's different bootloader offset (`0x2000`, not `0x1000`) — wrong
+  offset means an `invalid header` boot-loop.
+
 **Still not field-validated.** Everything since v0.20 is verified by host tests and
 compilers, not against real hardware in the field. Exercising the confidence ladder
 over the air needs two ESP32 boards — one to transmit, one to receive — so the bench

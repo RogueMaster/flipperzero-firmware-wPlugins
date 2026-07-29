@@ -4,7 +4,8 @@
  *
  * Runs on ANY ESP32 board exposed to the Flipper UART (Marauder hardware,
  * ReksLab Tri-Board, bare WROVER/WROOM, Xiao ESP32-S3, DevKitC, ...).
- * Puts the radio in promiscuous monitor mode, hops channels 1-13, and reports
+ * Puts the radio in promiscuous monitor mode, hops channels 1-13 (plus the 28
+ * 5 GHz channels on an ESP32-C5, which has a dual-band radio), and reports
  * frames that look like Flock Safety / ALPR surveillance gear (by OUI, by
  * phone-home probe behaviour, and by SSID naming) over the serial link in a
  * simple line protocol the Flipper parses.
@@ -23,7 +24,7 @@
  *   D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a][,hid=1]  detection
  *       mac : aabbccddeeff (lower hex, no separators)
  *       rssi: signed dBm
- *       ch  : 1-13
+ *       ch  : 1-13 (2.4 GHz), or 36-177 (5 GHz, ESP32-C5 only)
  *       type: P=probe-req  B=beacon  R=probe-resp  O=other
  *       conf: 1=possible 2=likely 3=confirmed (ESP-side score)
  *       ssid: raw SSID with ',' and control chars stripped (may be empty)
@@ -55,10 +56,19 @@
  *       value: the count/rate measured. New line; older app builds ignore it.
  *   LOC,<rssi>                             Locator: live RSSI of the active target
  *                                          (signed dBm), streamed while homing.
+ *   BAND,<2g|5g|all>,<channels>            ACK for the `band` command: the band
+ *                                          actually in force and how many
+ *                                          channels the sweep now covers. On a
+ *                                          2.4-only radio this always answers
+ *                                          2g, whatever was asked -- claiming
+ *                                          5 GHz coverage the chip cannot
+ *                                          provide would be a lie on the wire.
  *
  * RX from Flipper (commands, newline-terminated):
  *   scan   start reporting        stop   pause reporting
  *   ver    re-send banner         ch <n> lock to channel n (0 = hop)
+ *   band <2g|5g|all>         pick which band(s) the hopper sweeps (C5 only;
+ *                            a 2.4-only radio always ends up on 2g)
  *   locate <w|b> <mac> [ch]  stream LOC for a target (w=Wi-Fi, b=BLE; mac is
  *                            aabbccddeeff). "locate off" (or any other command)
  *                            ends Locator mode.
@@ -74,14 +84,72 @@
 #include <BLEScan.h>
 #include <BLEAdvertisedDevice.h>
 
+#include <string>
+
+/* ---- Arduino-ESP32 core 2.x / 3.x compatibility ---------------------------
+ *
+ * Core 3.x (IDF 5.x) changed the BLE API in ways that break compilation
+ * outright, not subtly. Reported by @h00die (issue #4) on core 3.3.11, which is
+ * what a fresh Arduino install gets TODAY -- so before this shim, anyone
+ * following our own README hit a wall of errors. Our CI pinned 2.0.17, so it
+ * never saw any of it. A pin is not portability; it just hides the question.
+ *
+ * The three breaks:
+ *
+ *   1. BLEScan::start(secs, bool) returns BLEScanResults* in 3.x, by value in 2.x.
+ *   2. getManufacturerData() / getName() / BLEUUID::toString() /
+ *      BLEAddress::toString() return Arduino String in 3.x, std::string in 2.x.
+ *   3. BLEAddress::getNative() returns const uint8_t* in 3.x, but uint8_t(*)[6]
+ *      in 2.x -- so the 2.x code deref'd it once and 3.x gave back a single byte.
+ *
+ * Normalised to std::string here because the detection logic below does
+ * substring work (find/rfind) that reads clearly in std::string and would have
+ * to be rewritten for String. Conversion is LENGTH-PRESERVING on purpose:
+ * manufacturer data is binary and can contain NUL bytes, so it is rebuilt with
+ * the (pointer, length) constructor rather than treated as a C string -- a
+ * strlen-style copy would silently truncate an advert at its first zero byte and
+ * lose the Flock 0x09C8 payload we decode serials from.
+ *
+ * ESP_ARDUINO_VERSION_MAJOR is absent on very old cores; treat absent as 2.x.
+ */
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
+#define FLOCK_ARDUINO3 1
+#else
+#define FLOCK_ARDUINO3 0
+#endif
+
+#if FLOCK_ARDUINO3
+/** Arduino String -> std::string, preserving embedded NULs. */
+static inline std::string fstr(const String& s) {
+    return std::string(s.c_str(), s.length());
+}
+/** 3.x hands back a pointer to the scan's internal results. */
+#define FLOCK_SCAN(scan, secs) (*(scan)->start((secs), false))
+/** 3.x: already a flat pointer to the 6 address bytes. */
+static inline const uint8_t* fble_addr_bytes(BLEAddress& a) {
+    return a.getNative();
+}
+#else
+/** 2.x already returns std::string; pass through so call sites stay identical. */
+static inline std::string fstr(const std::string& s) {
+    return s;
+}
+/** 2.x returns by value. */
+#define FLOCK_SCAN(scan, secs) ((scan)->start((secs), false))
+/** 2.x: uint8_t(*)[6], so one deref yields the uint8_t*. */
+static inline const uint8_t* fble_addr_bytes(BLEAddress& a) {
+    return *a.getNative();
+}
+#endif
+
 // ---- Flock-associated OUI prefixes (31) ----------------------------------
 // MUST stay byte-identical to flock_ouis[] in helpers/flock_db.c. There is no
 // shared header (an Arduino sketch cannot include the app's), so editing one
 // side alone would silently desync ESP-side `conf` scoring from the Flipper's.
 // tools/check_oui_parity.py is a REQUIRED CI gate that catches exactly that.
-// See that file for the
-// provenance notes. f8:a2:d6 dropped 2026-07-27 (upstream false positive: hit
-// on a Sony Media Player) -- do NOT re-add it from the older flat OUI list.
+// See flock_db.c for the provenance notes. f8:a2:d6 dropped 2026-07-27 (upstream
+// false positive: hit on a Sony Media Player) -- do NOT re-add it from the older
+// flat OUI list.
 //
 // The last entry, b4:1e:52, is Flock Safety's own registered OUI (GainSec).
 // Row layout matches flock_db.c line-for-line so the two can be diffed by eye.
@@ -133,6 +201,95 @@ static volatile uint8_t g_channel = 1;
 static uint8_t g_lock_channel = 0; // 0 = hop
 /** Highest 2.4 GHz channel the hopper visits. See the hop block in loop(). */
 #define MAX_HOP_CHANNEL 13
+
+/* ---- Dual-band (5 GHz) support -------------------------------------------
+ *
+ * A 2.4-only companion CANNOT SEE a Flock uplink on 5 GHz -- not "sees it
+ * weakly", cannot see it at all. The ESP32-C5 is the first Espressif part with a
+ * 5 GHz radio, so on that chip we hop both bands.
+ *
+ * Gated on the SoC capability, not on a board name: SOC_WIFI_SUPPORT_5G comes
+ * from the IDF's own soc_caps.h, so a classic ESP32/S3/C3 compiles exactly as
+ * before and pays nothing (the 5 GHz table is not even emitted). Requires
+ * Arduino core 3.x, which is where the C5 exists at all.
+ *
+ * Channel list is the 28 20 MHz channels the IDF enumerates for this radio
+ * (esp_wifi_types_generic.h). Band switching is done purely by setting the
+ * channel: the IDF docs say to prefer esp_wifi_set_channel() over
+ * esp_wifi_set_band(), and it moves bands on its own once band mode is AUTO.
+ *
+ * COST, stated plainly: a full sweep goes from 13 channels to 41. At the same
+ * 300 ms dwell that is ~12.3 s per sweep instead of ~3.9 s, so a given camera is
+ * revisited a third as often. That is the honest price of covering a band we
+ * currently cannot see, and `band 2g` returns the fast sweep for anyone who
+ * wants it.
+ */
+#if defined(SOC_WIFI_SUPPORT_5G) && SOC_WIFI_SUPPORT_5G
+#define FLOCK_HAS_5GHZ 1
+#else
+#define FLOCK_HAS_5GHZ 0
+#endif
+
+#if FLOCK_HAS_5GHZ
+/** 5 GHz 20 MHz channels, incl. DFS (52-144) -- we only ever listen. */
+static const uint8_t CHANNELS_5G[] = {36,  40,  44,  48,  52,  56,  60,  64,  100, 104,
+                                      108, 112, 116, 120, 124, 128, 132, 136, 140, 144,
+                                      149, 153, 157, 161, 165, 169, 173, 177};
+#define CHANNELS_5G_COUNT (sizeof(CHANNELS_5G) / sizeof(CHANNELS_5G[0]))
+#endif
+
+/** Which band(s) the hopper sweeps. `band 2g|5g|all` selects at runtime. */
+typedef enum {
+    FlockBand2G = 0,
+    FlockBand5G = 1,
+    FlockBandAll = 2,
+} FlockBandSel;
+
+/* Default: sweep everything the radio can reach. On a 2.4-only part this is
+ * identical to the old behaviour, because the 5 GHz list does not exist. */
+#if FLOCK_HAS_5GHZ
+static FlockBandSel g_band = FlockBandAll;
+#else
+static FlockBandSel g_band = FlockBand2G;
+#endif
+
+/** Hop cursor: index into the logical (2.4 then 5) channel sequence. */
+static uint16_t g_hop_i = 0;
+
+/** True if `ch` is a 5 GHz channel number (2.4 GHz tops out at 14). */
+static inline bool is_5ghz_channel(uint8_t ch) {
+    return ch >= 36;
+}
+
+/** Number of channels in the current sweep. */
+static uint16_t hop_count() {
+    uint16_t n = 0;
+    if(g_band == FlockBand2G || g_band == FlockBandAll) n += MAX_HOP_CHANNEL;
+#if FLOCK_HAS_5GHZ
+    if(g_band == FlockBand5G || g_band == FlockBandAll) n += CHANNELS_5G_COUNT;
+#endif
+    return n ? n : MAX_HOP_CHANNEL; // never zero: degrade to 2.4 rather than stall
+}
+
+/** i-th channel of the current sweep (2.4 GHz first, then 5 GHz). */
+static uint8_t hop_channel(uint16_t i) {
+    bool do_24 = (g_band == FlockBand2G || g_band == FlockBandAll);
+#if FLOCK_HAS_5GHZ
+    bool do_5 = (g_band == FlockBand5G || g_band == FlockBandAll);
+#else
+    bool do_5 = false;
+#endif
+    if(do_24) {
+        if(i < MAX_HOP_CHANNEL) return (uint8_t)(i + 1);
+        i -= MAX_HOP_CHANNEL;
+    }
+#if FLOCK_HAS_5GHZ
+    if(do_5 && i < CHANNELS_5G_COUNT) return CHANNELS_5G[i];
+#else
+    (void)do_5;
+#endif
+    return 1;
+}
 static uint32_t g_last_status = 0;
 static uint32_t g_last_hop = 0;
 static uint32_t g_deauths_last = 0; // for per-interval deauth rate
@@ -722,7 +879,7 @@ static void ble_do_scan(int seconds) {
     esp_wifi_set_promiscuous(false);
 
     Serial.print("BBEGIN\n");
-    BLEScanResults found = g_ble->start(seconds, false);
+    BLEScanResults found = FLOCK_SCAN(g_ble, seconds);
     int count = found.getCount();
     if(count > 80) count = 80;
     int spam = 0; // impersonation/pairing adverts -> BLE-spam flood indicator
@@ -737,7 +894,7 @@ static void ble_do_scan(int seconds) {
         // positive Raven (acoustic) ID, so we surface it as its own rv=1 field.
         bool raven = false;
         if(d.haveManufacturerData()) {
-            std::string md = d.getManufacturerData();
+            std::string md = fstr(d.getManufacturerData());
             if(md.length() >= 2) company = (uint8_t)md[0] | ((uint8_t)md[1] << 8);
             if(company == 0x09C8)
                 cat = 1; // Flock Safety / Raven
@@ -745,12 +902,12 @@ static void ble_do_scan(int seconds) {
                 cat = 2; // Apple Find My / AirTag
         }
         if(cat != 1 && d.haveName()) {
-            std::string nm = d.getName();
+            std::string nm = fstr(d.getName());
             if(nm.rfind("Penguin", 0) == 0 || nm.find("FS Ext") != std::string::npos)
                 cat = 1; // Flock Penguin battery / FS external battery
         }
         if(d.haveServiceUUID()) {
-            std::string u = d.getServiceUUID().toString();
+            std::string u = fstr(d.getServiceUUID().toString());
             if(u.find("00003100") != std::string::npos || u.find("00003200") != std::string::npos ||
                u.find("00003300") != std::string::npos || u.find("00003400") != std::string::npos ||
                u.find("00003500") != std::string::npos) {
@@ -766,7 +923,7 @@ static void ble_do_scan(int seconds) {
         }
         if(cat == 0) {
             BLEAddress ba = d.getAddress();
-            uint8_t* nat = *ba.getNative(); // getNative() is uint8_t(*)[6]
+            const uint8_t* nat = fble_addr_bytes(ba); // shape differs 2.x vs 3.x
             if(nat && oui_match(nat)) cat = 1; // Flock OUI on the BLE address
         }
 
@@ -775,7 +932,7 @@ static void ble_do_scan(int seconds) {
         // are normal; a flood of them in one scan is the spam signature.
         if(cat == 2 || cat == 3 || cat == 4 || cat == 5) spam++;
 
-        std::string a = d.getAddress().toString();
+        std::string a = fstr(d.getAddress().toString());
         char addr[13];
         int k = 0;
         for(size_t j = 0; j < a.size() && k < 12; j++) {
@@ -789,14 +946,14 @@ static void ble_do_scan(int seconds) {
         size_t pos =
             snprintf(line, sizeof(line), "BLE,%s,%d,%d,%d,", addr, d.getRSSI(), cat, company);
         if(d.haveName()) {
-            std::string nm = d.getName();
+            std::string nm = fstr(d.getName());
             buf_append_escaped(line, sizeof(line), &pos, nm.c_str(), (int)nm.size(), 32);
         }
         // Trailing field: raw mfg-data hex for Flock (0x09C8) only, so the
         // Flipper can decode the device serial. Capped so the line stays well
         // under the Flipper's RX line limit; only Flock units carry it.
         if(cat == 1 && company == 0x09C8 && d.haveManufacturerData()) {
-            std::string md = d.getManufacturerData();
+            std::string md = fstr(d.getManufacturerData());
             if(pos + 1 < sizeof(line)) line[pos++] = ',';
             for(size_t j = 0; j < md.length() && j < 31 && pos + 2 < sizeof(line); j++) {
                 buf_appendf(line, sizeof(line), &pos, "%02x", (uint8_t)md[j]);
@@ -829,12 +986,12 @@ static void ble_do_scan(int seconds) {
 static void ble_locate_scan() {
     ble_ensure_init();
     esp_wifi_set_promiscuous(false);
-    BLEScanResults res = g_ble->start(1, false);
+    BLEScanResults res = FLOCK_SCAN(g_ble, 1);
     int best = -127;
     int n = res.getCount();
     for(int i = 0; i < n; i++) {
         BLEAdvertisedDevice d = res.getDevice(i);
-        std::string a = d.getAddress().toString();
+        std::string a = fstr(d.getAddress().toString());
         char addr[13];
         int k = 0;
         for(size_t j = 0; j < a.size() && k < 12; j++) {
@@ -866,6 +1023,16 @@ void setup() {
     esp_wifi_set_storage(WIFI_STORAGE_RAM);
     esp_wifi_set_mode(WIFI_MODE_NULL);
     esp_wifi_start();
+#if FLOCK_HAS_5GHZ
+    // AUTO = 2.4 + 5. Must be set before hopping: with the default 2.4-only mode
+    // a 5 GHz set_channel() is rejected and the sweep silently covers half of
+    // what it reports. Non-fatal if it fails -- hop_channel() still yields valid
+    // 2.4 GHz channels, so the companion degrades to the classic behaviour
+    // instead of scanning nothing.
+    if(esp_wifi_set_band_mode(WIFI_BAND_MODE_AUTO) != ESP_OK) {
+        g_band = FlockBand2G;
+    }
+#endif
     start_promisc();
 
     banner();
@@ -903,12 +1070,48 @@ static void handle_command(String cmd) {
         g_combo = false;
     } else if(cmd.startsWith("ch ")) {
         int n = cmd.substring(3).toInt();
-        if(n >= 1 && n <= 14) {
-            g_lock_channel = n;
-            set_channel(n);
+        // 1-14 are 2.4 GHz; 36-177 are the 5 GHz channels (C5 only). Anything
+        // else, including 0, means "resume hopping".
+        bool ok_24 = (n >= 1 && n <= 14);
+        bool ok_5 = false;
+#if FLOCK_HAS_5GHZ
+        for(size_t i = 0; i < CHANNELS_5G_COUNT; i++) {
+            if(n == CHANNELS_5G[i]) {
+                ok_5 = true;
+                break;
+            }
+        }
+#endif
+        if(ok_24 || ok_5) {
+            g_lock_channel = (uint8_t)n;
+            set_channel((uint8_t)n);
         } else {
             g_lock_channel = 0;
         }
+    } else if(cmd.startsWith("band")) {
+        // band 2g|5g|all -- pick which band(s) the hopper sweeps.
+        // Always ACKs with the band actually in force, which on a 2.4-only chip
+        // is 2g whatever was asked: silently accepting "5g" on a radio that has
+        // no 5 GHz would report coverage that does not exist.
+        String a = cmd.substring(4);
+        a.trim();
+#if FLOCK_HAS_5GHZ
+        if(a == "5g")
+            g_band = FlockBand5G;
+        else if(a == "all")
+            g_band = FlockBandAll;
+        else if(a == "2g")
+            g_band = FlockBand2G;
+#else
+        g_band = FlockBand2G;
+#endif
+        g_hop_i = 0;
+        g_lock_channel = 0;
+        set_channel(hop_channel(0));
+        Serial.printf(
+            "BAND,%s,%u\n",
+            (g_band == FlockBand5G) ? "5g" : ((g_band == FlockBandAll) ? "all" : "2g"),
+            (unsigned)hop_count());
     } else if(cmd.startsWith("locate")) {
         // locate <w|b> <hexmac> [ch]   -> stream LOC,<rssi> for that target
         // locate off                   -> stop
@@ -1004,11 +1207,15 @@ void loop() {
     //
     // 14 stays out: it is Japan-only, DSSS-only, and would burn dwell almost
     // everywhere to cover almost nothing.
+    //
+    // On a 5 GHz-capable radio the sweep also walks the 28 5 GHz channels -- see
+    // the dual-band block near the top. The cursor is an index rather than
+    // "current + 1" because the 5 GHz channel numbers are not contiguous.
     if(g_lock_channel == 0 && now - g_last_hop >= 300) {
         g_last_hop = now;
-        uint8_t ch = g_channel + 1;
-        if(ch > MAX_HOP_CHANNEL) ch = 1;
-        set_channel(ch);
+        uint16_t n = hop_count();
+        g_hop_i = (uint16_t)((g_hop_i + 1) % n);
+        set_channel(hop_channel(g_hop_i));
     }
 
     // Status heartbeat ~1 Hz. 4th field = deauth/disassoc frames in the LAST

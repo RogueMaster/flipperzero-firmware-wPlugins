@@ -81,6 +81,7 @@
 #include <BLEDevice.h>
 #include <BLEAdvertising.h>
 
+
 // Rotation periods. WiFi is slower because switching identity restarts the
 // driver (~600 ms); BLE only swaps an advert payload.
 #define WIFI_ROTATE_MS 3000
@@ -169,6 +170,32 @@ static const WifiIdentity WIFI_IDS[] = {
 
 /** Length of the all-NUL SSID IE emitted by SsidAllNul identities. */
 #define ALLNUL_SSID_LEN 6
+
+/* Arduino-ESP32 core 2.x / 3.x compatibility -- see the fuller note in
+ * esp32_companion/flock_companion/flock_companion.ino. Core 3.x takes an Arduino
+ * String where 2.x took std::string. The advert payload here is BINARY (a 2-byte
+ * little-endian company id, then an optional ASCII serial), so the 3.x
+ * conversion MUST be length-preserving: a C-string copy would stop at the
+ * company id's high NUL byte and emit a truncated, unrecognisable advert --
+ * which would make this bench target silently stop testing what it claims to.
+ */
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
+static inline String fmfg(const std::string& s) {
+    // Built byte-by-byte rather than from a C string: String::concat(char)
+    // appends via memcpy and tracks length separately, so a 0x00 byte inside the
+    // payload survives. String(s.c_str()) would not.
+    String out;
+    out.reserve(s.size());
+    for(size_t i = 0; i < s.size(); i++) {
+        out.concat((char)s[i]);
+    }
+    return out;
+}
+#else
+static inline const std::string& fmfg(const std::string& s) {
+    return s;
+}
+#endif
 
 // ---- BLE identities --------------------------------------------------------
 
@@ -332,7 +359,7 @@ static void apply_ble_identity(int idx) {
         // rather than falling back to reading the model label as one.
         std::string mfg((const char*)XUNTONG_LE, sizeof(XUNTONG_LE));
         if(id->serial) mfg.append(id->serial);
-        data.setManufacturerData(mfg);
+        data.setManufacturerData(fmfg(mfg));
     }
 
     if(id->service_uuid) {
