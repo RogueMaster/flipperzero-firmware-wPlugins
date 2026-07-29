@@ -104,7 +104,18 @@ typedef struct {
     bool anomaly_flag; /**< Net Guardian: flag unidentified strong/persistent devices (default OFF, higher FP) */
 } ReconSettings;
 
-/** One deduplicated surveillance-device sighting. */
+/**
+ * One deduplicated surveillance-device sighting.
+ *
+ * FIELD ORDER IS SIZE-DRIVEN, not thematic: bytes first, then 2-byte, then
+ * 4-byte. 64 of these live inside the single ReconApp allocation, so each byte
+ * of padding costs 64. The obvious thematic grouping left 7 bytes of holes
+ * (88 bytes/entry); this ordering has none (80), which is 512 bytes of heap on
+ * a device where a user on heavier firmware was already being refused with "Not
+ * enough RAM to run the app" (issue #5). Nothing serializes this struct by
+ * layout -- FlockStoreRec in flock_store.h is the separate on-disk POD, exactly
+ * so reordering here is safe -- but keep new fields grouped by width.
+ */
 typedef struct {
     uint8_t mac[6];
     char ssid[RECON_SSID_LEN];
@@ -116,21 +127,21 @@ typedef struct {
                          *   sensor. What it is, as opposed to how sure we are. */
     bool hidden; /**< beacons but withholds its SSID. An OBSERVATION shown to the
                    *   operator, never a confidence input -- see esp_parser.c. */
+    int8_t geotag_rssi; /**< rssi when the geotag was last set (hysteresis) */
+    bool marked; /**< user flagged this for the report */
+    bool alerted; /**< the detection alert has already fired for this device (latch) */
+    bool archived; /**< restored from hits.csv, not seen yet this session. first_tick/
+                     *   last_tick are 0 and MEANINGLESS -- never age-test an archived
+                     *   entry with tick arithmetic (see recon_app_watchscore_tick). */
     uint32_t ie_fp; /**< probe IE-skeleton fingerprint of this detection (0=none);
                       *   shown on the detail screen so it can be seeded into
                       *   signatures.json to catch MAC-randomized siblings. */
     float lat; /**< geotag of best sighting, NAN if none */
     float lon;
     float heading; /**< observer course-over-ground at sighting, NAN if none */
-    int8_t geotag_rssi; /**< rssi when the geotag was last set (hysteresis) */
     uint32_t count;
     uint32_t first_tick;
     uint32_t last_tick;
-    bool marked; /**< user flagged this for the report */
-    bool alerted; /**< the detection alert has already fired for this device (latch) */
-    bool archived; /**< restored from hits.csv, not seen yet this session. first_tick/
-                     *   last_tick are 0 and MEANINGLESS -- never age-test an archived
-                     *   entry with tick arithmetic (see recon_app_watchscore_tick). */
     uint32_t seen_epoch; /**< RTC Unix seconds at the last sighting, 0 if never stored */
 } FlockEntry;
 
@@ -159,14 +170,20 @@ typedef struct {
 /** A BLE device sighting (anti-tracker / BLE-Flock). */
 #define RECON_BLE_SERIAL_LEN 24 /**< "TN72023022000771" is 16 chars; room to spare */
 
+/** Same size-driven field ordering as FlockEntry, for the same reason: 48 of
+ *  these sit in the ReconApp allocation, and the thematic order left 9 bytes of
+ *  holes (120 bytes/device vs 112). Group new fields by width. */
 typedef struct {
     uint8_t addr[6];
     char name[RECON_SSID_LEN];
+    char serial[RECON_BLE_SERIAL_LEN]; /**< Flock 0x09C8 device serial, "" if none */
     int8_t rssi;
     uint8_t cat; /**< BleCat */
-    uint16_t company; /**< BLE company id, 0xFFFF if none */
-    char serial[RECON_BLE_SERIAL_LEN]; /**< Flock 0x09C8 device serial, "" if none */
     uint8_t model; /**< FlockBleModel: conservative Falcon/Raven guess */
+    uint8_t inrange_wp_count; /**< distinct observer waypoints (>=50 m apart) seen at */
+    bool following; /**< multi-condition anti-stalking signal (latched) */
+    bool marked; /**< user-tagged for the report */
+    uint16_t company; /**< BLE company id, 0xFFFF if none */
     uint32_t count; /**< times seen across rescans */
     float first_lat; /**< GPS at first sighting (NAN if none) */
     float first_lon;
@@ -174,12 +191,9 @@ typedef struct {
     float last_lon;
     uint32_t first_tick; /**< tick at first sighting */
     uint32_t last_tick; /**< tick at latest sighting */
-    uint8_t inrange_wp_count; /**< distinct observer waypoints (>=50 m apart) seen at */
     float last_wp_lat; /**< last counted waypoint (NAN if none) */
     float last_wp_lon;
     float max_span_m; /**< running max distance between counted waypoints */
-    bool following; /**< multi-condition anti-stalking signal (latched) */
-    bool marked; /**< user-tagged for the report */
 } BleDevice;
 
 typedef struct EspLink EspLink;

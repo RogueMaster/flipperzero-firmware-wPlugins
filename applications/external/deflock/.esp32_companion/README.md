@@ -73,7 +73,11 @@ Back up before flashing if the board currently runs something you want back
 instructions were wrong: the individual files are CI build artifacts rather than
 release downloads, and nothing was ever published under the `-merged` name.
 Reported by @h00die in
-[#4](https://github.com/ReconGrunt/FlipDeFlock/issues/4).</sub>
+[#4](https://github.com/ReconGrunt/FlipDeFlock/issues/4), now closed. If anything
+on this page is still out of date,
+[open a new issue](https://github.com/ReconGrunt/FlipDeFlock/issues/new) or
+[start a discussion](https://github.com/ReconGrunt/FlipDeFlock/discussions)
+rather than replying on that thread.</sub>
 
 ## Flash directly from a computer (no Flipper needed)
 

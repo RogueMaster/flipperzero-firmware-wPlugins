@@ -3,6 +3,7 @@
 #include "../recon_app_i.h"
 
 #include <math.h>
+#include "../helpers/fast_trig.h"
 
 typedef enum {
     BleDetailToggleTag = 410,
@@ -53,7 +54,7 @@ static void recon_scene_ble_detail_render(ReconApp* app) {
     if(has_move) {
         float dlat = (d.last_lat - d.first_lat) * 111320.0f;
         float dlon =
-            (d.last_lon - d.first_lon) * 111320.0f * cosf(d.first_lat * (float)M_PI / 180.0f);
+            (d.last_lon - d.first_lon) * 111320.0f * trig_cosf(d.first_lat * (float)M_PI / 180.0f);
         moved = sqrtf(dlat * dlat + dlon * dlon);
     }
 

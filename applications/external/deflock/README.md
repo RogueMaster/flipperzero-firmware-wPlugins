@@ -407,6 +407,12 @@ Ground rules: passive recon only, correctness over features, API 87.1, and keep 
 Full details, the DCO sign-off requirement, and contribution licensing are in
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
+Questions, board reports and ideas are welcome in
+[Discussions](https://github.com/ReconGrunt/FlipDeFlock/discussions). Bugs and feature
+requests belong in [Issues](https://github.com/ReconGrunt/FlipDeFlock/issues/new) —
+please open a **new** one even if a closed issue looks related, since closed threads
+are not watched.
+
 Found a security issue? Please follow [SECURITY.md](SECURITY.md) rather than opening a
 public issue.
 

@@ -3,6 +3,7 @@
 #include "detect_rules.h"
 
 #include <math.h>
+#include "fast_trig.h"
 
 // M_PI is a POSIX/GNU extension, not standard C -- define it if the host's
 // <math.h> (strict -std=c11) doesn't. The firmware toolchain provides it.
@@ -12,7 +13,7 @@
 
 float detect_dist_m(float lat1, float lon1, float lat2, float lon2) {
     float dlat = (lat2 - lat1) * 111320.0f;
-    float dlon = (lon2 - lon1) * 111320.0f * cosf(lat1 * (float)M_PI / 180.0f);
+    float dlon = (lon2 - lon1) * 111320.0f * trig_cosf(lat1 * (float)M_PI / 180.0f);
     return sqrtf(dlat * dlat + dlon * dlon);
 }
 

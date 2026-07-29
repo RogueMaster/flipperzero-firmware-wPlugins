@@ -79,8 +79,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Fix Type 4 Tag emulation corrupting the NDEF message on writes starting mid-NLEN - a reader updating from file offset 1 had its payload shifted one byte and picked up a stale byte from the previous frame (By Endika)](https://github.com/DarkFlippers/unleashed-firmware/pull/1049)
 - NFC: [Fix wrong parent protocol in the Type 4 Tag listener assert - copy-pasted from the SLIX listener, so debug builds crashed as soon as Type 4 Tag emulation received a frame; release builds were unaffected (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1051)
 - Updated: [OpenShock v0.1 (By OpenShock Team)](https://github.com/OpenShock/FlipperZero)
-- Updated: [DeFlock v0.50 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [Nyx v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Nyx-FlipperZero)
+- Updated: [DeFlock v0.50 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 
 <a name="release"></a>
 

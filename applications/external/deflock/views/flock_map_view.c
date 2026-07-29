@@ -5,6 +5,7 @@
 
 #include <gui/elements.h>
 #include <math.h>
+#include "../helpers/fast_trig.h"
 
 // Operator marker is fixed at screen centre; cameras are projected around it.
 #define MAP_CX      64
@@ -98,7 +99,7 @@ static void flock_map_view_draw_callback(Canvas* canvas, void* _model) {
     static uint8_t pconf[RECON_FLOCK_MAX];
     size_t np = 0;
     float maxr = 0.0f;
-    float coslat = cosf(glat * (float)M_PI / 180.0f);
+    float coslat = trig_cosf(glat * (float)M_PI / 180.0f);
     for(size_t i = 0; i < n; i++) {
         if(isnan(lat[i]) || isnan(lon[i])) continue;
         float dn = (lat[i] - glat) * 111320.0f;
@@ -116,7 +117,14 @@ static void flock_map_view_draw_callback(Canvas* canvas, void* _model) {
     // on the operator, or all cameras co-located with us).
     float mpp = maxr / MAP_FIT_R;
     if(mpp < 1.0f) mpp = 1.0f;
-    mpp *= powf(1.5f, (float)-model->zoom);
+    // powf() for an integer exponent drags newlib's __ieee754_powf (~1.5 KB of
+    // .text) into an app whose whole image has to fit in one contiguous
+    // allocation. zoom is clamped to [-12, 12], so at most 12 multiplies or
+    // divides give the same scale for a fraction of the size.
+    for(int z = model->zoom; z > 0; z--)
+        mpp /= 1.5f;
+    for(int z = model->zoom; z < 0; z++)
+        mpp *= 1.5f;
     if(mpp < 0.01f) mpp = 0.01f;
 
     // ---- operator marker + heading tick + range ring -----------------------
@@ -124,8 +132,8 @@ static void flock_map_view_draw_callback(Canvas* canvas, void* _model) {
     if(!isnan(gcourse)) {
         // Screen Y grows downward; north (course 0) points up.
         float rad = gcourse * (float)M_PI / 180.0f;
-        int tx = MAP_CX + (int)lroundf(sinf(rad) * HEADING_LEN);
-        int ty = MAP_CY - (int)lroundf(cosf(rad) * HEADING_LEN);
+        int tx = MAP_CX + (int)lroundf(trig_sinf(rad) * HEADING_LEN);
+        int ty = MAP_CY - (int)lroundf(trig_cosf(rad) * HEADING_LEN);
         canvas_draw_line(canvas, MAP_CX, MAP_CY, tx, ty);
     }
     // Faint range ring at the fitted radius (orientation reference).
