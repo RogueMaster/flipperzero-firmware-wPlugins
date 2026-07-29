@@ -2,7 +2,6 @@
 
 #include "morse_flipper_progress.h"
 
-#include <stdlib.h>
 #include <string.h>
 
 #define MORSE_FLIPPER_ACTIVITY_DAY_NONE UINT16_MAX
@@ -135,17 +134,14 @@ static void morse_flipper_activity_note_deed(
 }
 
 void morse_flipper_activity_note_rx(bool correct_answer) {
-    MorseFlipperProgress* progress;
+    MorseFlipperProgress progress;
     uint16_t practice_day = MORSE_FLIPPER_PROGRESS_DAY_NONE;
 
     if(!morse_flipper_progress_today(&practice_day)) return;
-    progress = malloc(sizeof(*progress));
-    if(progress == NULL) return;
-    if(morse_flipper_progress_load(progress)) {
-        morse_flipper_progress_note_rx_activity(progress, true, practice_day);
-        morse_flipper_progress_save(progress);
+    if(morse_flipper_progress_load(&progress)) {
+        morse_flipper_progress_note_rx_activity(&progress, true, practice_day);
+        morse_flipper_progress_save(&progress);
     }
-    free(progress);
     if(correct_answer)
         morse_flipper_activity_note_deed(
             practice_day, MorseFlipperActivityCorrectAnswer);

@@ -25,6 +25,7 @@ static void test_defaults(void) {
     CHECK(model.vibrate == 1U);
     CHECK(model.answer_delay_s == 3U);
     CHECK(model.repeat_after_answer == 0U);
+    CHECK(model.courtesy_delay_half_s == 2U);
     CHECK(model.selected_row == 0U);
 }
 
@@ -55,7 +56,10 @@ static void test_normalize_and_wpm(void) {
     CHECK(model.length == 1U);
     model.length = 7U;
     mf_passive_settings_normalize(&model);
-    CHECK(model.length == 6U);
+    CHECK(model.length == 7U);
+    model.length = 10U;
+    mf_passive_settings_normalize(&model);
+    CHECK(model.length == 1U);
     model.length = 1U;
     model.mode = 0U;
     mf_passive_settings_normalize(&model);
@@ -67,6 +71,13 @@ static void test_normalize_and_wpm(void) {
     CHECK(mf_passive_settings_wpm(&model) == 30U);
     model.dit_ms = 200U;
     CHECK(mf_passive_settings_wpm(&model) == 10U);
+    {
+        uint8_t min;
+        uint8_t max;
+        mf_passive_settings_length_bounds(9U, 0U, &min, &max);
+        CHECK(min == 4U && max == 6U);
+        CHECK(strcmp(mf_passive_settings_length_label(8U), "5-6") == 0);
+    }
 }
 
 static void test_filtered_lesson_order(void) {

@@ -34,9 +34,9 @@ void mf_passive_settings_normalize(MfPassiveSettingsModel* model) {
     if(model->mode > 1U) model->mode = 0U;
     if(model->mode) {
         if(model->length < 1U) model->length = 1U;
-        if(model->length > 6U) model->length = 6U;
+        if(model->length > 9U) model->length = 1U;
     } else {
-        if(model->length < 4U || model->length > 6U) model->length = 4U;
+        if(model->length < 4U || model->length > 9U) model->length = 4U;
     }
     if(model->lesson < 1U || model->lesson > mf_passive_settings_lesson_count()) model->lesson = 1U;
     if(model->dit_ms == 0U) model->dit_ms = 100U;
@@ -46,7 +46,8 @@ void mf_passive_settings_normalize(MfPassiveSettingsModel* model) {
     model->vibrate = model->vibrate ? 1U : 0U;
     if(model->answer_delay_s < 1U || model->answer_delay_s > 5U) model->answer_delay_s = 1U;
     model->repeat_after_answer = model->repeat_after_answer ? 1U : 0U;
-    if(model->selected_row >= 8U) model->selected_row = 0U;
+    if(model->courtesy_delay_half_s > 10U) model->courtesy_delay_half_s = 2U;
+    if(model->selected_row >= 9U) model->selected_row = 0U;
 }
 
 uint8_t mf_passive_settings_wpm(const MfPassiveSettingsModel* model) {
@@ -56,6 +57,12 @@ uint8_t mf_passive_settings_wpm(const MfPassiveSettingsModel* model) {
 
 size_t mf_passive_settings_lesson_count(void) {
     return 39U;
+}
+
+const char* mf_passive_settings_length_label(uint8_t selection) {
+    static const char* const labels[] = {
+        "", "1", "2", "3", "4", "5", "6", "4-5", "5-6", "4-6"};
+    return selection < 10U ? labels[selection] : "?";
 }
 
 void mf_passive_settings_lesson_label(uint8_t lesson, char* out, size_t out_size) {
@@ -135,13 +142,14 @@ static void setup(MfPassiveSettingsState* state, VariableItemList* list, uint8_t
         .farnsworth_wpm = 12U,
         .vibrate = 1U,
         .answer_delay_s = 3U,
+        .courtesy_delay_half_s = 2U,
         .selected_row = selected_row,
     };
     memset(list, 0, sizeof(*list));
     memset(state, 0, sizeof(*state));
     CHECK(mf_passive_settings_enter(state, &args, &result));
     CHECK(result.handled && result.redraw);
-    CHECK(list->count == 8U && list->resets == 1U);
+    CHECK(list->count == 9U && list->resets == 1U);
 }
 
 static void change(VariableItemList* list, uint8_t row, uint8_t value) {

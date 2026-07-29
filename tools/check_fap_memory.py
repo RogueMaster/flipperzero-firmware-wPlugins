@@ -11,10 +11,10 @@ from pathlib import Path
 
 ALLOC_SECTIONS = (".text", ".rodata", ".ARM.exidx", ".data", ".bss")
 LIMITS = {
-    "main": {"text": 73_332, "alloc": 80_400},
+    "main": {"text": 74_500, "alloc": 81_500},
     "radio": {"text": 10_000, "alloc": 12_000},
-    "passive": {"text": 8_000, "alloc": 9_000},
-    "passive_settings": {"text": 2_000, "alloc": 2_250},
+    "passive": {"text": 8_500, "alloc": 9_750},
+    "passive_settings": {"text": 2_150, "alloc": 2_600},
     "tx_groups": {"text": 5_250, "alloc": 6_250},
     "settings": {"text": 12_000, "alloc": 13_500},
 }
