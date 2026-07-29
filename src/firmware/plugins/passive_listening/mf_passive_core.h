@@ -19,6 +19,7 @@ typedef struct {
     uint16_t char_gap_ms;
     uint16_t tone_hz;
     uint16_t answer_delay_ms;
+    uint16_t courtesy_delay_ms;
     uint8_t phase;
     uint8_t char_index;
     uint8_t mark_index;
@@ -27,6 +28,7 @@ typedef struct {
     uint8_t back_clicks;
     uint8_t voice_gain_pct;
     uint8_t mode;
+    uint8_t length_setting;
     uint8_t prompt_length;
     uint8_t prompt_len;
     uint8_t lesson_charset_len;

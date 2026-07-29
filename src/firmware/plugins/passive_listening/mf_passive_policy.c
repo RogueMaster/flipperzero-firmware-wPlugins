@@ -11,7 +11,7 @@
 #define MF_PASSIVE_SETTINGS_TEMP_PATH APP_DATA_PATH("passive.tmp")
 #endif
 #define MF_PASSIVE_SETTINGS_MAGIC 0x4D465053UL
-#define MF_PASSIVE_SETTINGS_VERSION 1U
+#define MF_PASSIVE_SETTINGS_VERSION 2U
 
 typedef struct {
     uint32_t magic;
@@ -25,13 +25,55 @@ typedef struct {
     uint8_t answer_delay_s;
     uint8_t repeat_after_answer;
     uint8_t selected_row;
-    uint8_t reserved;
+    uint8_t courtesy_delay_half_s;
 } MfPassiveSettingsRecord;
 
 _Static_assert(sizeof(MfPassiveSettingsRecord) == 16U, "passive settings record size changed");
 
 static const char mf_passive_teaching_order[] =
     "KMURESNAPTLWI.JZFOY,VG5/Q92H38B?47C1D60X";
+static const char* const mf_passive_length_labels[] = {
+    "",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "4-5",
+    "5-6",
+    "4-6",
+};
+
+void mf_passive_settings_length_bounds(
+    uint8_t selection,
+    uint8_t mode,
+    uint8_t* min_length,
+    uint8_t* max_length) {
+    uint8_t min = mode ? 1U : 4U;
+    uint8_t max = min;
+
+    if(selection >= min && selection <= 6U) {
+        min = selection;
+        max = selection;
+    } else if(selection == 7U) {
+        min = 4U;
+        max = 5U;
+    } else if(selection == 8U) {
+        min = 5U;
+        max = 6U;
+    } else if(selection == 9U) {
+        min = 4U;
+        max = 6U;
+    }
+    if(min_length != NULL) *min_length = min;
+    if(max_length != NULL) *max_length = max;
+}
+
+const char* mf_passive_settings_length_label(uint8_t selection) {
+    if(selection >= 1U && selection <= 9U) return mf_passive_length_labels[selection];
+    return "?";
+}
 
 size_t mf_passive_settings_lesson_count(void) {
     /* Like Listening, lesson 1 introduces the first two characters. */
@@ -60,13 +102,10 @@ uint8_t mf_passive_settings_wpm(const MfPassiveSettingsModel* model) {
 
 void mf_passive_settings_normalize(MfPassiveSettingsModel* model) {
     uint8_t wpm;
-    uint8_t min_length;
-
     if(model == NULL) return;
     if(model->mode > 1U) model->mode = 0U;
-    min_length = model->mode ? 1U : 4U;
-    if(model->length < min_length) model->length = min_length;
-    if(model->length > 6U) model->length = 6U;
+    if(model->length < (model->mode ? 1U : 4U) || model->length > 9U)
+        model->length = model->mode ? 1U : 4U;
     if(model->lesson == 0U) model->lesson = 1U;
     if(model->lesson > mf_passive_settings_lesson_count())
         model->lesson = (uint8_t)mf_passive_settings_lesson_count();
@@ -77,7 +116,8 @@ void mf_passive_settings_normalize(MfPassiveSettingsModel* model) {
     if(model->answer_delay_s < 1U) model->answer_delay_s = 1U;
     if(model->answer_delay_s > 5U) model->answer_delay_s = 5U;
     model->repeat_after_answer = model->repeat_after_answer ? 1U : 0U;
-    if(model->selected_row > 7U) model->selected_row = 0U;
+    if(model->courtesy_delay_half_s > 10U) model->courtesy_delay_half_s = 2U;
+    if(model->selected_row > 8U) model->selected_row = 0U;
 }
 
 const char* mf_passive_settings_lesson_charset(void) {
@@ -114,6 +154,7 @@ static MfPassiveSettingsModel mf_passive_settings_default(void) {
         .farnsworth_wpm = 12U,
         .vibrate = 1U,
         .answer_delay_s = 3U,
+        .courtesy_delay_half_s = 2U,
     };
 }
 
@@ -135,7 +176,7 @@ void mf_passive_settings_load(MfPassiveSettingsModel* model) {
                  storage_file_size(file) == sizeof(record) &&
                  storage_file_read(file, &record, sizeof(record)) == sizeof(record) &&
                  record.magic == MF_PASSIVE_SETTINGS_MAGIC &&
-                 record.version == MF_PASSIVE_SETTINGS_VERSION;
+                 (record.version == 1U || record.version == MF_PASSIVE_SETTINGS_VERSION);
         loaded = storage_file_close(file) && loaded;
     }
     if(loaded) {
@@ -148,6 +189,8 @@ void mf_passive_settings_load(MfPassiveSettingsModel* model) {
         model->answer_delay_s = record.answer_delay_s;
         model->repeat_after_answer = record.repeat_after_answer;
         model->selected_row = record.selected_row;
+        model->courtesy_delay_half_s =
+            record.version >= 2U ? record.courtesy_delay_half_s : 2U;
     }
     storage_file_free(file);
     furi_record_close(RECORD_STORAGE);
@@ -180,6 +223,7 @@ bool mf_passive_settings_save(const MfPassiveSettingsModel* model) {
         .answer_delay_s = normalized.answer_delay_s,
         .repeat_after_answer = normalized.repeat_after_answer,
         .selected_row = normalized.selected_row,
+        .courtesy_delay_half_s = normalized.courtesy_delay_half_s,
     };
     storage = furi_record_open(RECORD_STORAGE);
     file = storage_file_alloc(storage);

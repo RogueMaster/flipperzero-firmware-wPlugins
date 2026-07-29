@@ -27,7 +27,7 @@ typedef struct {
     uint8_t answer_delay_s;
     uint8_t repeat_after_answer;
     uint8_t selected_row;
-    uint8_t reserved;
+    uint8_t courtesy_delay_half_s;
 } SavedRecord;
 
 _Static_assert(sizeof(SavedRecord) == 16U, "saved record test layout changed");
@@ -149,7 +149,7 @@ FS_Error storage_common_rename(Storage* value, const char* old_path, const char*
 static SavedRecord valid_record(uint8_t selected_row) {
     return (SavedRecord){
         .magic = 0x4D465053UL,
-        .version = 1U,
+        .version = 2U,
         .mode = 1U,
         .length = 5U,
         .lesson = 2U,
@@ -159,6 +159,7 @@ static SavedRecord valid_record(uint8_t selected_row) {
         .answer_delay_s = 4U,
         .repeat_after_answer = 1U,
         .selected_row = selected_row,
+        .courtesy_delay_half_s = 4U,
     };
 }
 
@@ -209,6 +210,20 @@ static void test_load_prefers_valid_final(void) {
     check_resources();
     assert(read_opens == 1U && closes == 1U);
     assert(model.selected_row == 1U && model.dit_ms == 80U);
+    assert(model.courtesy_delay_half_s == 4U);
+}
+
+static void test_load_v1_defaults_courtesy_delay(void) {
+    MfPassiveSettingsModel model;
+
+    reset_storage();
+    final_present = true;
+    final_record = valid_record(1U);
+    final_record.version = 1U;
+    final_record.courtesy_delay_half_s = 0U;
+    mf_passive_settings_load(&model);
+    check_resources();
+    assert(model.courtesy_delay_half_s == 2U);
 }
 
 static void test_load_recovers_from_temp(void) {
@@ -264,6 +279,7 @@ static void test_save_success(void) {
         .answer_delay_s = 5U,
         .repeat_after_answer = 1U,
         .selected_row = 7U,
+        .courtesy_delay_half_s = 10U,
     };
 
     reset_storage();
@@ -273,10 +289,11 @@ static void test_save_success(void) {
     assert(write_opens == 1U && writes == 1U && closes == 1U && renames == 1U);
     assert(strcmp(renamed_from, "/data/passive.tmp") == 0);
     assert(strcmp(renamed_to, "/data/passive.bin") == 0);
-    assert(written_record.magic == 0x4D465053UL && written_record.version == 1U);
+    assert(written_record.magic == 0x4D465053UL && written_record.version == 2U);
     assert(written_record.mode == model.mode && written_record.length == model.length);
     assert(written_record.dit_ms == model.dit_ms);
     assert(written_record.selected_row == model.selected_row);
+    assert(written_record.courtesy_delay_half_s == model.courtesy_delay_half_s);
 }
 
 static void test_save_pre_rename_failures_clean_temp(void) {
@@ -320,6 +337,7 @@ static void test_null_model(void) {
 
 int main(void) {
     test_load_prefers_valid_final();
+    test_load_v1_defaults_courtesy_delay();
     test_load_recovers_from_temp();
     test_load_close_failure_uses_temp();
     test_save_success();

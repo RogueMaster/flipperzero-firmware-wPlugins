@@ -28,6 +28,7 @@ typedef struct {
     uint8_t vibrate;
     uint8_t answer_delay_s;
     uint8_t repeat_after_answer;
+    uint8_t courtesy_delay_half_s;
     uint8_t selected_row;
 } MfPassiveSettingsModel;
 

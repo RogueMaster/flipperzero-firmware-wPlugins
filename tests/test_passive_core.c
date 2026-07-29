@@ -186,10 +186,12 @@ static void setup(MfPassiveState* state, FakeServices* fake, MemoryFile* file) {
     state->tone_hz = 700U;
     state->voice_gain_pct = 70U;
     state->mode = 0U;
+    state->length_setting = 4U;
     state->prompt_length = 4U;
     state->prompt_len = 4U;
     state->answer_delay_ms = 3000U;
     state->vibrate = 1U;
+    state->courtesy_delay_ms = 1000U;
     mf_rx_rng_init(&state->rng, 0x12345678U);
     mf_callsign_gen_init(&state->callsign_gen);
     memcpy(state->callsign.text, "A1A1", 5U);
@@ -445,7 +447,7 @@ static void test_repeat_and_vibration_controls(void) {
     CHECK(state.revealed_count == 0U && strcmp(state.prompt, "A1A1") == 0);
     cue_at = state.next_at;
     tones_after_repeat = fake.tones;
-    CHECK(cue_at == now + 300U);
+    CHECK(cue_at == now + 1000U);
     mf_passive_tick(&state, cue_at - 1U);
     CHECK(state.phase == MfPassivePhasePostRepeat && fake.tones == tones_after_repeat);
     mf_passive_tick(&state, cue_at);
@@ -475,6 +477,7 @@ static void test_lesson_prompt_bounds_and_delays(void) {
     make_pack(&file);
     setup(&state, &fake, &file);
     state.mode = 1U;
+    state.length_setting = 6U;
     state.prompt_length = 6U;
     state.lesson_charset_len = 3U;
     memcpy(state.lesson_charset, "KMU", 3U);
@@ -515,6 +518,7 @@ static void test_single_character_lesson_rounds(void) {
     make_pack(&file);
     setup(&state, &fake, &file);
     state.mode = 1U;
+    state.length_setting = 1U;
     state.prompt_length = 1U;
     state.lesson_charset_len = 1U;
     memcpy(state.lesson_charset, "K", 1U);
@@ -537,15 +541,46 @@ static void test_single_character_lesson_rounds(void) {
         repeat_end = state.next_at;
         mf_passive_tick(&state, repeat_end);
     }
-    CHECK(state.phase == MfPassivePhasePostRepeat && state.next_at == repeat_end + 300U);
+    CHECK(state.phase == MfPassivePhasePostRepeat && state.next_at == repeat_end + 1000U);
     mf_passive_tick(&state, state.next_at - 1U);
     CHECK(state.phase == MfPassivePhasePostRepeat);
     mf_passive_tick(&state, state.next_at);
-    CHECK(state.phase == MfPassivePhaseCue && state.next_at == repeat_end + 330U);
+    CHECK(state.phase == MfPassivePhaseCue && state.next_at == repeat_end + 1030U);
     mf_passive_tick(&state, state.next_at - 1U);
     CHECK(state.phase == MfPassivePhaseCue);
     mf_passive_tick(&state, state.next_at);
     CHECK(state.phase == MfPassivePhasePostCue);
+    mf_passive_leave(&state);
+}
+
+static void test_length_ranges_and_courtesy_off(void) {
+    MemoryFile file;
+    MfPassiveState state;
+    FakeServices fake;
+    bool saw_four = false;
+    bool saw_five = false;
+
+    make_pack(&file);
+    setup(&state, &fake, &file);
+    state.length_setting = 7U;
+    for(uint16_t round = 0U; round < 200U; round++) {
+        state.phase = MfPassivePhasePostCue;
+        state.next_at = round;
+        CHECK(mf_passive_tick(&state, round).redraw);
+        CHECK(state.prompt_len == 4U || state.prompt_len == 5U);
+        saw_four |= state.prompt_len == 4U;
+        saw_five |= state.prompt_len == 5U;
+    }
+    CHECK(saw_four && saw_five);
+
+    state.courtesy_delay_ms = 0U;
+    state.repeat_after_answer = 0U;
+    state.phase = MfPassivePhasePostVoice;
+    state.next_at = 500U;
+    mf_passive_tick(&state, 500U);
+    CHECK(state.phase == MfPassivePhasePostCue);
+    CHECK(state.next_at == 1500U);
+    CHECK(fake.tones == 200U && fake.vibrations_on == 0U);
     mf_passive_leave(&state);
 }
 
@@ -558,6 +593,7 @@ int main(void) {
     test_repeat_and_vibration_controls();
     test_lesson_prompt_bounds_and_delays();
     test_single_character_lesson_rounds();
+    test_length_ranges_and_courtesy_off();
     printf("test_passive_core: %u checks passed\n", checks);
     return 0;
 }
