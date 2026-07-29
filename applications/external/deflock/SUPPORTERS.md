@@ -7,8 +7,9 @@ GPL-3.0-or-later. That is a promise, not a marketing position.
 Support funds development time, test hardware, and the legal costs that come with
 mapping surveillance infrastructure.
 
-- **[GitHub Sponsors](https://github.com/sponsors/ReconGrunt)** — the Sponsor button at
-  the top of the repo
+**GitHub Sponsors, Ko-fi, and Buy Me a Coffee are temporarily unavailable.**
+Crypto (BTC/ETH/LTC/BCH) is the current channel.
+
 - **Bitcoin (BTC, native SegWit)** — `bc1qavy2wdhgpvqturn5he76mxclqr0a3vhg9sj4l8`
   ([view on mempool.space](https://mempool.space/address/bc1qavy2wdhgpvqturn5he76mxclqr0a3vhg9sj4l8)),
   or scan it on-device from **FlipDeFlock → Support**

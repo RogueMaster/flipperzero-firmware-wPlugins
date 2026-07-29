@@ -2,7 +2,7 @@
   <img src="assets/logo.png" width="560" alt="FlipDeFlock">
 </p>
 
-<p align="center"><em>Snoop onto them as they snoop onto us.</em></p>
+<p align="center"><em>"Snoop onto them as they snoop onto us."</em></p>
 
 FlipDeFlock is a Flipper Zero app that pairs the Flipper with an ESP32 board to
 survey the radio around you for surveillance hardware: Flock Safety / ALPR
@@ -18,11 +18,10 @@ confirmed, so verify by eye. Use it only where you are authorized to.
 Builds against Flipper API 87.1, shared by current stock OFW and
 [Momentum](https://github.com/Next-Flip/Momentum-Firmware).
 
-**Free, and staying that way.** If FlipDeFlock is useful to you, the **Sponsor** button
-above funds development, test hardware, and the legal costs of mapping surveillance
-infrastructure. [Donations never gate a feature](SUPPORTERS.md).
+**Free, and staying that way.** If FlipDeFlock is useful to you, crypto donations fund
+development, test hardware, and the legal costs of mapping surveillance infrastructure.
+[Donations never gate a feature](SUPPORTERS.md).
 
-[![GitHub Sponsors](https://img.shields.io/badge/GitHub-Sponsor-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ReconGrunt)
 [![Bitcoin](https://img.shields.io/badge/Bitcoin-Donate-f7931a?style=for-the-badge&logo=bitcoin&logoColor=white)](https://mempool.space/address/bc1qavy2wdhgpvqturn5he76mxclqr0a3vhg9sj4l8)
 [![Ethereum](https://img.shields.io/badge/Ethereum-Donate-3C3C3D?style=for-the-badge&logo=ethereum&logoColor=white)](https://etherscan.io/address/0x481be1838e6B51B1a4013633877Bd967E2484694)
 [![Litecoin](https://img.shields.io/badge/Litecoin-Donate-345D9D?style=for-the-badge&logo=litecoin&logoColor=white)](https://blockchair.com/litecoin/address/ltc1qpj3ppsgcdvx5yara9suljeq83t32macr8pe2yt)
@@ -385,13 +384,11 @@ public issue.
 ## Support
 
 FlipDeFlock is free and stays that way. To help cover development (and the legal
-costs of mapping surveillance hardware), use the **Sponsor** button at the top of
-the repo. Donations never gate a feature.
+costs of mapping surveillance hardware), crypto (BTC, ETH, LTC, BCH) is accepted —
+addresses are near the top of this README and in [SUPPORTERS.md](SUPPORTERS.md).
+Donations never gate a feature.
 
-[![GitHub Sponsors](https://img.shields.io/badge/GitHub-Sponsor-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ReconGrunt)
-
-Crypto (BTC, ETH, LTC, BCH) is also accepted — addresses are near the top of this
-README and in [SUPPORTERS.md](SUPPORTERS.md).
+GitHub Sponsors is temporarily unavailable.
 
 What supporters get — recognition and early access to release candidates, never
 functionality — is spelled out in [SUPPORTERS.md](SUPPORTERS.md).

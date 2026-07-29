@@ -44,9 +44,7 @@ void recon_scene_support_on_enter(void* context) {
             "SUPPORT\n \n"
             "FlipDeFlock is free and\n"
             "stays free. Donations\n"
-            "never gate a feature.\n \n"
-            "github.com/sponsors/\n"
-            "ReconGrunt\n");
+            "never gate a feature.\n");
         view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewWidget);
         return;
     }
