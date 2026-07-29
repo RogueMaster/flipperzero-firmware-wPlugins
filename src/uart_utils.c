@@ -221,6 +221,14 @@ static void
 
     g_uart_rx_session_bytes++;
 
+    if(uart->swallow_next_newline) {
+        uart->swallow_next_newline = false;
+        if(data == '\n') {
+            return;
+        }
+        // Not the expected delimiter; fall through and process normally.
+    }
+
     // Check if we're collecting a marker
     if(uart->mark_test_idx > 0) {
         if(uart->mark_test_idx >= sizeof(uart->mark_test_buf)) {
@@ -274,11 +282,16 @@ static void
                                     furi_thread_get_id(uart->rx_thread), WorkerEvtPcapDone);
                             }
                         }
+                        // Firmware always writes a bare '\n' right after the close
+                        // marker as a wire delimiter; swallow it so it doesn't leak
+                        // into the console as a blank line.
+                        uart->swallow_next_newline = true;
                     } else if(uart->mark_candidate_mask & 0x04) {
                         uart->pcap = false;
                         uart->csv = true;
                     } else if(uart->mark_candidate_mask & 0x08) {
                         uart->csv = false;
+                        uart->swallow_next_newline = true;
                     }
 
                     furi_mutex_release(uart->text_manager->mutex);

@@ -80,6 +80,10 @@ typedef struct UartContext {
     bool pcap;
     bool csv;
     bool pcap_flush_pending;
+    // Firmware always sends a single '\n' right after every [BUF/CLOSE]/[CSV/CLOSE]
+    // marker as a wire delimiter; it isn't part of the marker itself and isn't
+    // meant for any stream, so swallow exactly one after a close marker.
+    bool swallow_next_newline;
     uint8_t mark_test_buf[11]; // Fixed size for markers
     uint8_t mark_test_idx;
     uint8_t mark_candidate_mask;
