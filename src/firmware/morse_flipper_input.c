@@ -956,8 +956,10 @@ bool morse_flipper_active_mode_input(MorseFlipperApp* app, InputEvent* event, ui
             const MorseFlipperMappedFalApi* api = app->plugin_slot.api;
             active = true;
             result = api->input(app->plugin_slot.state, event, now_ms);
+            morse_flipper_plugin_runtime_apply_result_locked(app, result, now_ms);
         }
         furi_mutex_release(app->plugin_slot.mutex);
+        if(result.redraw) morse_flipper_view_dirty(app);
         if(result.request_exit ||
            (!active && event->key == InputKeyBack &&
             (event->type == InputTypeShort || event->type == InputTypeLong)))

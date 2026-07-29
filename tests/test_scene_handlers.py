@@ -144,6 +144,26 @@ class SceneHandlerTableTest(unittest.TestCase):
             with self.subTest(scene=scene):
                 self.assertIn(f"case {scene}:", view_switch)
 
+    def test_passive_input_propagates_fal_redraw(self) -> None:
+        input_source = INPUT.read_text(encoding="utf-8")
+        passive_case = input_source[
+            input_source.index("case MorseFlipperScreenPassive:") :
+            input_source.index("case MorseFlipperScreenRfFreq:")
+        ]
+        input_call = passive_case.index(
+            "result = api->input(app->plugin_slot.state, event, now_ms);"
+        )
+        apply_call = passive_case.index(
+            "morse_flipper_plugin_runtime_apply_result_locked(app, result, now_ms);"
+        )
+        unlock = passive_case.index("furi_mutex_release(app->plugin_slot.mutex);")
+        redraw = passive_case.index(
+            "if(result.redraw) morse_flipper_view_dirty(app);"
+        )
+        self.assertLess(input_call, apply_call)
+        self.assertLess(apply_call, unlock)
+        self.assertLess(unlock, redraw)
+
     def test_startup_probe_is_an_overlay_not_the_scene_root(self) -> None:
         app = APP.read_text(encoding="utf-8")
         base = app.index(
