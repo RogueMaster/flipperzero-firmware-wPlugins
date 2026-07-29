@@ -13,6 +13,7 @@ HEADER = ROOT / "src/firmware/morse_flipper_app_i.h"
 SCENES = ROOT / "src/firmware/morse_flipper_scenes.c"
 APP = ROOT / "src/firmware/morse_flipper_app.c"
 INPUT = ROOT / "src/firmware/morse_flipper_input.c"
+FLOW = ROOT / "src/firmware/morse_flipper_flow.c"
 SESSION = ROOT / "src/firmware/morse_flipper_session.c"
 SETTINGS_MODEL = ROOT / "src/firmware/plugins/settings/mf_settings_model.c"
 SETTINGS_PLUGIN = ROOT / "src/firmware/plugins/settings/mf_settings_plugin.c"
@@ -87,6 +88,7 @@ class SceneHandlerTableTest(unittest.TestCase):
                     "MorseFlipperSceneTrainer": "morse_flipper_scene_settings_listening_on_enter",
                     "MorseFlipperSceneStraightCfg": "morse_flipper_scene_settings_straight_on_enter",
                     "MorseFlipperSceneTxGroupsCfg": "morse_flipper_scene_settings_tx_groups_on_enter",
+                    "MorseFlipperSceneRxCallsignsCfg": "morse_flipper_scene_settings_rx_callsigns_on_enter",
                     "MorseFlipperSceneGpio": "morse_flipper_scene_settings_gpio_on_enter",
                     "MorseFlipperScenePc": "morse_flipper_scene_pc_on_enter",
                     "MorseFlipperSceneIcr": "morse_flipper_scene_icr_on_enter",
@@ -99,6 +101,7 @@ class SceneHandlerTableTest(unittest.TestCase):
                     "MorseFlipperSceneTrainer": "morse_flipper_scene_settings_on_event",
                     "MorseFlipperSceneStraightCfg": "morse_flipper_scene_settings_on_event",
                     "MorseFlipperSceneTxGroupsCfg": "morse_flipper_scene_settings_on_event",
+                    "MorseFlipperSceneRxCallsignsCfg": "morse_flipper_scene_settings_on_event",
                     "MorseFlipperSceneGpio": "morse_flipper_scene_settings_on_event",
                     "MorseFlipperSceneIcr": "morse_flipper_scene_live_on_event",
                     "MorseFlipperScenePassive": "morse_flipper_scene_live_on_event",
@@ -110,6 +113,7 @@ class SceneHandlerTableTest(unittest.TestCase):
                     "MorseFlipperSceneTrainer": "morse_flipper_scene_settings_on_exit",
                     "MorseFlipperSceneStraightCfg": "morse_flipper_scene_settings_on_exit",
                     "MorseFlipperSceneTxGroupsCfg": "morse_flipper_scene_settings_on_exit",
+                    "MorseFlipperSceneRxCallsignsCfg": "morse_flipper_scene_settings_on_exit",
                     "MorseFlipperSceneGpio": "morse_flipper_scene_settings_on_exit",
                     "MorseFlipperSceneIcr": "morse_flipper_scene_plugin_on_exit",
                     "MorseFlipperScenePassive": "morse_flipper_scene_plugin_on_exit",
@@ -120,6 +124,25 @@ class SceneHandlerTableTest(unittest.TestCase):
             for scene, handler in expected.items():
                 with self.subTest(table=table_name, scene=scene):
                     self.assertEqual(actual[scene], handler)
+
+    def test_every_settings_fal_scene_uses_settings_view(self) -> None:
+        flow = FLOW.read_text(encoding="utf-8")
+        view_switch = flow[
+            flow.index("static uint8_t morse_flipper_scene_view") :
+            flow.index("void morse_flipper_scene_enter_now")
+        ]
+        for scene in (
+            "MorseFlipperSceneHome",
+            "MorseFlipperSceneAudioCfg",
+            "MorseFlipperSceneTrainer",
+            "MorseFlipperSceneStraightCfg",
+            "MorseFlipperSceneTxGroupsCfg",
+            "MorseFlipperSceneRxCallsignsCfg",
+            "MorseFlipperScenePc",
+            "MorseFlipperSceneGpio",
+        ):
+            with self.subTest(scene=scene):
+                self.assertIn(f"case {scene}:", view_switch)
 
     def test_startup_probe_is_an_overlay_not_the_scene_root(self) -> None:
         app = APP.read_text(encoding="utf-8")

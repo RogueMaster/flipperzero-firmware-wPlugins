@@ -232,6 +232,7 @@ void mf_passive_leave(MfPassiveState* state) {
 
 MfPassiveResult mf_passive_input(MfPassiveState* state, const InputEvent* event, uint32_t now_ms) {
     MfPassiveResult result;
+    bool redraw = false;
     if(state == NULL || event == NULL) return (MfPassiveResult){0};
     if(state->phase == MfPassivePhaseLoading) {
         result = mf_passive_result(state, false);
@@ -253,21 +254,25 @@ MfPassiveResult mf_passive_input(MfPassiveState* state, const InputEvent* event,
         else
             voice_gain_pct =
                 voice_gain_pct > 15U ? (uint8_t)(voice_gain_pct - 5U) : 10U;
+        redraw = state->back_clicks != 0U;
         state->back_clicks = 0U;
         state->voice_gain_pct = voice_gain_pct;
-        return mf_passive_result(state, false);
+        return mf_passive_result(state, redraw);
     }
     if(event->key == InputKeyBack && event->type == InputTypeShort) {
         if(state->back_clicks == 0U || (uint32_t)(now_ms - state->last_back_at) > 700U) state->back_clicks = 1U;
         else state->back_clicks++;
         state->last_back_at = now_ms;
+        redraw = true;
     } else if(event->key == InputKeyBack && event->type == InputTypeLong) {
+        redraw = state->back_clicks != 0U;
         state->back_clicks = 0U;
     } else if(event->key != InputKeyBack &&
               (event->type == InputTypePress || event->type == InputTypeShort)) {
+        redraw = state->back_clicks != 0U;
         state->back_clicks = 0U;
     }
-    result = mf_passive_result(state, false);
+    result = mf_passive_result(state, redraw);
     if(state->back_clicks >= 3U) result.request_exit = true;
     return result;
 }
@@ -282,6 +287,11 @@ MfPassiveResult mf_passive_tick(MfPassiveState* state, uint32_t now_ms) {
             return mf_passive_result(state, true);
         }
         return mf_passive_result(state, frame != state->loading.frame);
+    }
+    if(state->back_clicks != 0U &&
+       (uint32_t)(now_ms - state->last_back_at) > 700U) {
+        state->back_clicks = 0U;
+        return mf_passive_result(state, true);
     }
     if(state->phase == MfPassivePhasePrepare) {
         if(mf_passive_reached(now_ms, state->next_at)) {

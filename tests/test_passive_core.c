@@ -390,7 +390,8 @@ static void test_gesture_and_rounds(void) {
     CHECK(state.voice_gain_pct == 10U);
     state.voice_gain_pct = 70U;
     event.key = InputKeyBack;
-    CHECK(!mf_passive_input(&state, &event, 1U).request_exit);
+    CHECK(mf_passive_input(&state, &event, 1U).redraw);
+    CHECK(state.back_clicks == 1U);
     CHECK(!mf_passive_input(&state, &event, 701U).request_exit);
     CHECK(mf_passive_input(&state, &event, 1401U).request_exit);
     event.type = InputTypeLong;
@@ -408,6 +409,10 @@ static void test_gesture_and_rounds(void) {
     event.key = InputKeyBack;
     event.type = InputTypeShort;
     CHECK(mf_passive_input(&state, &event, 52U).request_exit);
+    state.back_clicks = 1U;
+    state.last_back_at = 2000U;
+    CHECK(mf_passive_tick(&state, 2701U).redraw);
+    CHECK(state.back_clicks == 0U);
 
     memcpy(previous, state.callsign.text, sizeof(previous));
     for(uint16_t round = 0U; round < 500U; round++) {

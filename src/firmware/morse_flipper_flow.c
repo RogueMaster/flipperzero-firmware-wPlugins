@@ -117,6 +117,7 @@ static uint8_t morse_flipper_scene_view(uint32_t scene) {
     case MorseFlipperSceneTrainer:
     case MorseFlipperSceneStraightCfg:
     case MorseFlipperSceneTxGroupsCfg:
+    case MorseFlipperSceneRxCallsignsCfg:
     case MorseFlipperScenePc:
     case MorseFlipperSceneGpio:
         return MorseFlipperViewSettings;
