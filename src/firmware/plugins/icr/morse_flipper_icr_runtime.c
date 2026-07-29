@@ -31,11 +31,11 @@
 #define MORSE_FLIPPER_ICR_FLASH_MS      (MORSE_FLIPPER_ICR_FLASH_STEP_MS * 5U)
 #define MORSE_FLIPPER_ICR_DIT_MS        48U /* 1200 / fixed 25 WPM */
 
-#define MORSE_FLIPPER_ICR_1000MS_BUCKET 50U
-#define MORSE_FLIPPER_ICR_GRAPH_MAX_H   44U
-#define MORSE_FLIPPER_ICR_GRAPH_Q_H     11U
-#define MORSE_FLIPPER_ICR_GRAPH_MIN_H   4U
-#define MORSE_FLIPPER_ICR_GRAPH_SOLID_H (MORSE_FLIPPER_ICR_GRAPH_Q_H * 3U)
+#define MORSE_FLIPPER_ICR_1000MS_BUCKET      50U
+#define MORSE_FLIPPER_ICR_GRAPH_MAX_H        44U
+#define MORSE_FLIPPER_ICR_GRAPH_Q_H          11U
+#define MORSE_FLIPPER_ICR_GRAPH_MIN_H        4U
+#define MORSE_FLIPPER_ICR_GRAPH_RECOGNIZED_H (MORSE_FLIPPER_ICR_GRAPH_Q_H * 3U)
 
 typedef enum {
     MorseFlipperIcrPhaseGraphWait,
@@ -380,14 +380,14 @@ static uint8_t morse_flipper_icr_bar_height(uint8_t bucket) {
             1U,
             MORSE_FLIPPER_ICR_INSTANT_BUCKET,
             MORSE_FLIPPER_ICR_GRAPH_MAX_H,
-            MORSE_FLIPPER_ICR_GRAPH_SOLID_H + 1U);
+            MORSE_FLIPPER_ICR_GRAPH_RECOGNIZED_H + 1U);
     }
     if(bucket <= MORSE_FLIPPER_ICR_1000MS_BUCKET) {
         return morse_flipper_icr_scale_bar_height(
             bucket,
             MORSE_FLIPPER_ICR_INSTANT_BUCKET,
             MORSE_FLIPPER_ICR_1000MS_BUCKET,
-            MORSE_FLIPPER_ICR_GRAPH_SOLID_H,
+            MORSE_FLIPPER_ICR_GRAPH_RECOGNIZED_H,
             MORSE_FLIPPER_ICR_GRAPH_Q_H + 1U);
     }
     return morse_flipper_icr_scale_bar_height(
@@ -396,13 +396,6 @@ static uint8_t morse_flipper_icr_bar_height(uint8_t bucket) {
         MORSE_FLIPPER_ICR_TIMEOUT_BUCKET,
         MORSE_FLIPPER_ICR_GRAPH_Q_H,
         MORSE_FLIPPER_ICR_GRAPH_MIN_H);
-}
-
-static void
-    morse_flipper_icr_draw_checker(Canvas* canvas, uint8_t x, uint8_t top, uint8_t bottom) {
-    for(uint8_t y = top; y <= bottom; y++) {
-        canvas_draw_dot(canvas, x + ((y - top) & 1U), y);
-    }
 }
 
 static void morse_flipper_icr_draw_bar(Canvas* canvas, uint8_t x, uint8_t base_y, uint8_t bucket) {
@@ -416,15 +409,16 @@ static void morse_flipper_icr_draw_bar(Canvas* canvas, uint8_t x, uint8_t base_y
     }
 
     top = (uint8_t)(base_y - h + 1U);
-    if(h > MORSE_FLIPPER_ICR_GRAPH_SOLID_H) {
-        uint8_t solid_top = (uint8_t)(base_y - MORSE_FLIPPER_ICR_GRAPH_SOLID_H + 1U);
-
-        morse_flipper_icr_draw_checker(canvas, x, top, (uint8_t)(solid_top - 1U));
-        canvas_draw_box(canvas, x, solid_top, 2U, MORSE_FLIPPER_ICR_GRAPH_SOLID_H);
-        return;
-    }
-
+    canvas_set_color(canvas, ColorBlack);
     canvas_draw_box(canvas, x, top, 2U, h);
+    canvas_set_color(canvas, ColorWhite);
+    if(h > MORSE_FLIPPER_ICR_GRAPH_Q_H) {
+        canvas_draw_box(canvas, x, base_y - MORSE_FLIPPER_ICR_GRAPH_Q_H, 2U, 1U);
+    }
+    if(h > MORSE_FLIPPER_ICR_GRAPH_RECOGNIZED_H) {
+        canvas_draw_box(canvas, x, base_y - MORSE_FLIPPER_ICR_GRAPH_RECOGNIZED_H, 2U, 1U);
+    }
+    canvas_set_color(canvas, ColorBlack);
 }
 
 static bool morse_flipper_icr_flash_visible(const MorseFlipperIcrState* state, uint32_t now_ms) {

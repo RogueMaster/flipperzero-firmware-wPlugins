@@ -7,6 +7,7 @@
 #define TEST_CANVAS_TEXT_CAPACITY   16U
 #define TEST_CANVAS_TEXT_LENGTH     16U
 #define TEST_CANVAS_BITMAP_CAPACITY 2U
+#define TEST_CANVAS_BOX_CAPACITY    16U
 
 typedef struct Canvas {
     uint32_t dots;
@@ -25,6 +26,11 @@ typedef struct Canvas {
     int32_t bitmap_y[TEST_CANVAS_BITMAP_CAPACITY];
     size_t bitmap_width[TEST_CANVAS_BITMAP_CAPACITY];
     size_t bitmap_height[TEST_CANVAS_BITMAP_CAPACITY];
+    int32_t box_x[TEST_CANVAS_BOX_CAPACITY];
+    int32_t box_y[TEST_CANVAS_BOX_CAPACITY];
+    int32_t box_width[TEST_CANVAS_BOX_CAPACITY];
+    int32_t box_height[TEST_CANVAS_BOX_CAPACITY];
+    uint8_t box_color[TEST_CANVAS_BOX_CAPACITY];
 } Canvas;
 
 typedef enum {

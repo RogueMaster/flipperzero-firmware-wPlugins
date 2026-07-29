@@ -137,10 +137,13 @@ void canvas_draw_dot(Canvas* canvas, int32_t x, int32_t y) {
 }
 
 void canvas_draw_box(Canvas* canvas, int32_t x, int32_t y, int32_t width, int32_t height) {
-    (void)x;
-    (void)y;
-    (void)width;
-    (void)height;
+    if(canvas->boxes < TEST_CANVAS_BOX_CAPACITY) {
+        canvas->box_x[canvas->boxes] = x;
+        canvas->box_y[canvas->boxes] = y;
+        canvas->box_width[canvas->boxes] = width;
+        canvas->box_height[canvas->boxes] = height;
+        canvas->box_color[canvas->boxes] = canvas->current_color;
+    }
     canvas->boxes++;
 }
 
@@ -338,6 +341,24 @@ static bool canvas_has_text(const Canvas* canvas, const char* text) {
     return false;
 }
 
+static bool canvas_has_box(
+    const Canvas* canvas,
+    int32_t x,
+    int32_t y,
+    int32_t width,
+    int32_t height,
+    Color color) {
+    uint32_t count = canvas->boxes < TEST_CANVAS_BOX_CAPACITY ? canvas->boxes :
+                                                                TEST_CANVAS_BOX_CAPACITY;
+
+    for(uint32_t i = 0U; i < count; i++) {
+        if(canvas->box_x[i] == x && canvas->box_y[i] == y && canvas->box_width[i] == width &&
+           canvas->box_height[i] == height && canvas->box_color[i] == color)
+            return true;
+    }
+    return false;
+}
+
 static void test_answer_choice_layout(void) {
     const uint32_t start = 100000U;
     static const uint32_t selected_hash[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {
@@ -427,6 +448,39 @@ static void test_answer_choice_layout(void) {
 
         morse_flipper_icr_runtime_free(state);
     }
+}
+
+static void test_graph_bars_are_solid_with_level_gaps(void) {
+    MorseFlipperIcrStats stats;
+    MorseFlipperIcrEnterArgs args = {.now_ms = 100U, .rng_seed = 0x12345678U};
+    MorseFlipperIcrResult result;
+    Canvas canvas = {0};
+    void* state;
+
+    morse_flipper_icr_stats_reset(&stats);
+    stats.avg_ms20[0] = 1U;
+    stats.avg_ms20[1] = 40U;
+    stats.avg_ms20[2] = 60U;
+    CHECK(morse_flipper_icr_stats_save(&stats));
+
+    state = morse_flipper_icr_runtime_alloc();
+    CHECK(state != NULL);
+    CHECK(morse_flipper_icr_runtime_enter(state, &args, &result));
+    CHECK(result.phase == ICR_PHASE_GRAPH_WAIT);
+    morse_flipper_icr_runtime_draw(state, &canvas, args.now_ms);
+
+    CHECK(canvas_has_box(&canvas, 4, 16, 2, 44, ColorBlack));
+    CHECK(canvas_has_box(&canvas, 4, 26, 2, 1, ColorWhite));
+    CHECK(canvas_has_box(&canvas, 4, 48, 2, 1, ColorWhite));
+    CHECK(canvas_has_box(&canvas, 7, 38, 2, 22, ColorBlack));
+    CHECK(canvas_has_box(&canvas, 7, 48, 2, 1, ColorWhite));
+    CHECK(canvas_has_box(&canvas, 10, 50, 2, 10, ColorBlack));
+    CHECK(canvas.dots == 74U);
+    CHECK(canvas.current_color == ColorBlack);
+
+    morse_flipper_icr_runtime_free(state);
+    morse_flipper_icr_stats_reset(&stats);
+    CHECK(morse_flipper_icr_stats_save(&stats));
 }
 
 static uint32_t recognition_elapsed(uint32_t start, uint32_t seed) {
@@ -566,6 +620,7 @@ int main(void) {
     test_answer_trace_wrap_equivalence();
     test_zero_deadlines_remain_active();
     test_answer_choice_layout();
+    test_graph_bars_are_solid_with_level_gaps();
     test_zero_reaction_start_records_elapsed_time();
     test_settings_reset_confirmation_and_persistence();
     printf("test_icr_runtime: %u checks passed\n", g_checks);
