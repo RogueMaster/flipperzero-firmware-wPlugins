@@ -164,6 +164,7 @@ bool pp_game_start_wall(PPGame* game) {
 }
 
 static bool pp_ball_touches_cell_type(const PPGame* game, const PPBall* ball, PPCell target) {
+    // Sample the ball's center and extremes so its radius can hit a growing wall.
     const int32_t sample_x[3] = {
         ball->x - PP_BALL_RADIUS,
         ball->x,
@@ -189,6 +190,7 @@ static bool pp_ball_touches_cell_type(const PPGame* game, const PPBall* ball, PP
 }
 
 static bool pp_position_hits_solid(const PPGame* game, int32_t x, int32_t y) {
+    // Four corner samples are enough for the ball's axis-aligned collision bounds.
     const int32_t left = (x - PP_BALL_RADIUS) >> PP_FP_SHIFT;
     const int32_t right = (x + PP_BALL_RADIUS) >> PP_FP_SHIFT;
     const int32_t top = (y - PP_BALL_RADIUS) >> PP_FP_SHIFT;
@@ -266,6 +268,7 @@ static uint16_t pp_captured_cell_count(const PPGame* game) {
 }
 
 static void pp_capture_regions_without_balls(PPGame* game) {
+    // Flood outward from every ball; any empty cell not reached is safe to capture.
     memset(game->reachable, 0, sizeof(game->reachable));
     uint16_t head = 0;
     uint16_t tail = 0;
@@ -306,6 +309,7 @@ static void pp_capture_regions_without_balls(PPGame* game) {
 }
 
 static void pp_finish_wall(PPGame* game) {
+    // Commit the divider before filling enclosed regions so it blocks the flood.
     const uint16_t captured_before = pp_captured_cell_count(game);
 
     for(uint8_t y = 1; y < PP_GRID_HEIGHT - 1; y++) {
