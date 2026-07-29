@@ -81,6 +81,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [OpenShock v0.1 (By OpenShock Team)](https://github.com/OpenShock/FlipperZero)
 - Updated: [Nyx v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Nyx-FlipperZero)
 - Updated: [DeFlock v0.50 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- Added: [Partition Panic v1.0 (By slavik0329)](https://github.com/slavik0329/partition-panic-flipper)
 
 <a name="release"></a>
 
@@ -294,6 +295,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Paint v1.4 (By n-o-T-I-n-s-a-n-e)](https://github.com/n-o-T-I-n-s-a-n-e)
 - [Panis - A Grumpy Bread v0.1 (By fgreil)](https://github.com/fgreil/mitzi-panis)
 - [Paper Plane v1.3 (By Larry-the-Pig)](https://github.com/Larry-the-Pig/flipper-plane)
+- [Partition Panic v1.0 (By slavik0329)](https://github.com/slavik0329/partition-panic-flipper)
 - [Pinball0 v0.5.2 (By rdefeo)](https://github.com/rdefeo/pinball0)
 - [Pocket Battle+ v2.0 (By HermeticCode)](https://github.com/HermeticCode/showdown-current)
 - [Pong v1.4 (By nmrr)](https://github.com/nmrr/flipperzero-pong)
