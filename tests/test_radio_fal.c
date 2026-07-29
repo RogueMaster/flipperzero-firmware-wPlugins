@@ -417,7 +417,8 @@ int main(void) {
     fake.rssi = -50;
     tick_samples(&state, &now, MF_RADIO_RX_STABLE_SAMPLES);
     assert(state.snapshot.monitor_tone);
-    fake.carrier = false;
+    /* Idle carrier sense may remain asserted on a noisy band. RSSI drop recovers. */
+    fake.carrier = true;
     fake.rssi = -106;
     tick_samples(&state, &now, 1U);
     assert(!state.snapshot.monitor_tone && !state.rx_level);
@@ -449,7 +450,7 @@ int main(void) {
         &state,
         &now,
         MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
-    assert(!state.rx_recovery_pending);
+    assert(state.rx_recovery_pending);
     assert(state.snapshot.monitor_threshold_dbm == -94);
     mf_radio_core_leave(&state);
 

@@ -20,6 +20,7 @@
 #define MF_RADIO_RX_CAL_SETTLE_SAMPLES 8U
 #define MF_RADIO_RX_CAL_SAMPLES        16U
 #define MF_RADIO_RX_FLOOR_MARGIN_DB    6
+#define MF_RADIO_RX_RECOVERY_DROP_DB   3
 #define MF_RADIO_TX_TAIL_DITS          2U
 
 typedef struct {

@@ -258,6 +258,12 @@ static int8_t mf_radio_rx_floor_threshold(int8_t floor_dbm) {
     return mf_radio_clamp_dbm_i16((int16_t)floor_dbm + MF_RADIO_RX_FLOOR_MARGIN_DB);
 }
 
+static int8_t mf_radio_rx_recovery_trigger(const MfRadioState* state) {
+    return mf_radio_clamp_dbm_i16(
+        (int16_t)state->rx_auto_threshold_dbm - MF_RADIO_RX_FLOOR_MARGIN_DB -
+        MF_RADIO_RX_RECOVERY_DROP_DB);
+}
+
 static void mf_radio_rx_apply_threshold(MfRadioState* state, int8_t auto_threshold_dbm) {
     state->rx_auto_threshold_dbm = auto_threshold_dbm;
     state->snapshot.monitor_threshold_dbm = mf_radio_clamp_dbm_i16(
@@ -455,7 +461,8 @@ MorseFlipperMappedFalResult mf_radio_core_tick(MfRadioState* state, uint32_t now
                 state->rx_recovery_pending = state->rx_cal_carrier_continuous;
                 mf_radio_rx_reset_cal_samples(state);
             }
-        } else if(state->rx_recovery_pending && !state->carrier_present) {
+        } else if(
+            state->rx_recovery_pending && dbm < mf_radio_rx_recovery_trigger(state)) {
             if(state->rx_cal_settle_samples == 0U && state->rx_cal_samples == 0U) {
                 state->rx_level = false;
                 state->rx_candidate_level = false;
