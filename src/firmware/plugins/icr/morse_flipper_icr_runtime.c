@@ -6,6 +6,7 @@
 
 #include "morse_flipper_icr.h"
 #include "morse_flipper_icr_api.h"
+#include "morse_flipper_icr_choice_bitmap.h"
 #include "../../cw.h"
 #include "../../morse_flipper_time.h"
 
@@ -461,22 +462,82 @@ static void
     }
 }
 
-static void morse_flipper_icr_draw_choice(Canvas* canvas, int32_t x, int32_t y, uint8_t choice) {
+static void morse_flipper_icr_draw_choice(
+    Canvas* canvas,
+    int32_t x,
+    int32_t y,
+    uint8_t choice,
+    bool selected) {
     char text[2] = {
         choice < MORSE_FLIPPER_ICR_CHAR_COUNT ? morse_flipper_icr_char_at(choice) : '?',
         '\0',
     };
 
-    canvas_set_font(canvas, FontPrimary);
+    canvas_set_color(canvas, selected ? ColorWhite : ColorBlack);
+    canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, x, y + 1, AlignCenter, AlignCenter, text);
+    if(selected) canvas_set_color(canvas, ColorBlack);
+}
+
+static void morse_flipper_icr_draw_selected_shape(Canvas* canvas, uint8_t choice) {
+    switch(choice) {
+    case 0U:
+        canvas_draw_bitmap(canvas, 20, 5, 19, 14, morse_flipper_icr_choice_selected_0);
+        break;
+    case 1U:
+        canvas_draw_bitmap(canvas, 20, 45, 19, 14, morse_flipper_icr_choice_selected_1);
+        break;
+    case 2U:
+        canvas_draw_bitmap(canvas, 2, 22, 14, 19, morse_flipper_icr_choice_selected_2);
+        break;
+    case 3U:
+        canvas_draw_bitmap(canvas, 44, 22, 14, 19, morse_flipper_icr_choice_selected_3);
+        break;
+    case 4U:
+        canvas_draw_bitmap(canvas, 20, 22, 20, 20, morse_flipper_icr_choice_selected_4);
+        break;
+    default:
+        break;
+    }
+}
+
+static uint8_t morse_flipper_icr_selected_choice(const MorseFlipperIcrState* state) {
+    if(state->phase != MorseFlipperIcrPhaseResult || state->choice == MORSE_FLIPPER_ICR_NO_CHOICE)
+        return MORSE_FLIPPER_ICR_NO_CHOICE;
+
+    for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_CHOICE_COUNT; i++) {
+        if(state->choices[i] == state->choice) return i;
+    }
+    return MORSE_FLIPPER_ICR_NO_CHOICE;
 }
 
 static void morse_flipper_icr_draw_choices(Canvas* canvas, const MorseFlipperIcrState* state) {
-    morse_flipper_icr_draw_choice(canvas, 27, 12, state->choices[0]);
-    morse_flipper_icr_draw_choice(canvas, 27, 51, state->choices[1]);
-    morse_flipper_icr_draw_choice(canvas, 10, 32, state->choices[2]);
-    morse_flipper_icr_draw_choice(canvas, 44, 32, state->choices[3]);
-    morse_flipper_icr_draw_choice(canvas, 27, 32, state->choices[4]);
+    static const uint8_t choice_x[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {29U, 29U, 10U, 49U, 29U};
+    static const uint8_t choice_y[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {12U, 50U, 31U, 31U, 31U};
+    uint8_t selected = morse_flipper_icr_selected_choice(state);
+
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_bitmap(canvas, 2, 5, 56, 54, morse_flipper_icr_choice_outline);
+    if(selected < MORSE_FLIPPER_ICR_CHOICE_COUNT)
+        morse_flipper_icr_draw_selected_shape(canvas, selected);
+
+    for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_CHOICE_COUNT; i++) {
+        bool is_selected = i == selected;
+
+        morse_flipper_icr_draw_choice(
+            canvas, choice_x[i], choice_y[i], state->choices[i], is_selected);
+    }
+}
+
+static void morse_flipper_icr_draw_answer_hint(Canvas* canvas) {
+    canvas_set_color(canvas, ColorBlack);
+    canvas_set_font(canvas, FontSecondary);
+    canvas_draw_str_aligned(canvas, 66, 8, AlignLeft, AlignBottom, "Press");
+    canvas_draw_str_aligned(canvas, 66, 18, AlignLeft, AlignBottom, "the");
+    canvas_draw_str_aligned(canvas, 66, 28, AlignLeft, AlignBottom, "joystick");
+    canvas_draw_str_aligned(canvas, 66, 38, AlignLeft, AlignBottom, "for");
+    canvas_draw_str_aligned(canvas, 66, 48, AlignLeft, AlignBottom, "your");
+    canvas_draw_str_aligned(canvas, 66, 58, AlignLeft, AlignBottom, "answer");
 }
 
 static uint16_t morse_flipper_icr_prompt_row(uint8_t ch, uint8_t row) {
@@ -515,13 +576,16 @@ void morse_flipper_icr_runtime_draw(void* value, Canvas* canvas, uint32_t now_ms
         return;
     }
 
+    canvas_set_color(canvas, ColorBlack);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(
         canvas, 127, 8, AlignRight, AlignBottom, morse_flipper_icr_phase_label(state));
     if(state->choice != MORSE_FLIPPER_ICR_NO_CHOICE || state->phase != MorseFlipperIcrPhaseResult)
         morse_flipper_icr_draw_choices(canvas, state);
 
-    canvas_draw_line(canvas, 57, 0, 57, 63);
-    if(state->phase == MorseFlipperIcrPhaseResult)
+    if(state->phase == MorseFlipperIcrPhaseResult) {
         morse_flipper_icr_draw_prompt(canvas, morse_flipper_icr_char_at(state->target));
+    } else {
+        morse_flipper_icr_draw_answer_hint(canvas);
+    }
 }

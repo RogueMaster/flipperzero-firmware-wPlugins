@@ -12,6 +12,7 @@ from pathlib import Path
 ALLOC_SECTIONS = (".text", ".rodata", ".ARM.exidx", ".data", ".bss")
 LIMITS = {
     "main": {"text": 74_500, "alloc": 81_500},
+    "icr": {"text": 5_300, "alloc": 8_900},
     "radio": {"text": 10_000, "alloc": 12_000},
     "passive": {"text": 8_500, "alloc": 9_750},
     "passive_settings": {"text": 2_150, "alloc": 2_600},
@@ -62,6 +63,7 @@ def main() -> int:
     args = parser.parse_args()
     paths = {
         "main": args.build_dir / "morse_flipper_d.elf",
+        "icr": args.build_dir / "morse_flipper_icr_d.elf",
         "passive": args.build_dir / "morse_flipper_passive_listening_d.elf",
         "passive_settings": args.build_dir / "morse_flipper_passive_settings_d.elf",
         "tx_groups": args.build_dir / "morse_flipper_tx_groups_d.elf",
