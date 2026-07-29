@@ -88,7 +88,11 @@ const char* flock_class_str(FlockDevClass cls) {
 }
 
 const char* flock_class_long_str(FlockDevClass cls) {
-    return (cls == FlockClassAcoustic) ? "SoundThinking (acoustic sensor)" : "Flock / ALPR camera";
+    // "SoundThinking (acoustic sensor)" was 31 characters and overran the detail
+    // screen's 128 px row. Shortened rather than truncated at draw time, so the
+    // device class -- the thing that stops a gunshot sensor being read as a
+    // camera -- is never the field that gets cut off.
+    return (cls == FlockClassAcoustic) ? "SoundThinking sensor" : "Flock / ALPR camera";
 }
 
 /**
@@ -281,5 +285,43 @@ const char* flock_confidence_str(FlockConfidence confidence) {
     case FlockConfidenceNone:
     default:
         return "-";
+    }
+}
+
+FlockMethod flock_method_of(const uint8_t* mac, const char* ssid, char ftype, uint32_t ie_fp) {
+    // Strongest re-derivable indicator wins, mirroring the ladder's own ordering
+    // so the label never claims more than the confidence rung does.
+    if(flock_ssid_confidence(ssid) != FlockConfidenceNone) return FlockMethodSsid;
+    if(flock_ie_fp_match(ie_fp) != FlockIeFpNone) return FlockMethodIeFp;
+    // Either table: a SoundThinking prefix is an OUI match too, just for the other
+    // device class. Reporting it as "unclassified" would hide the one indicator we
+    // actually have for an acoustic sensor.
+    if(flock_oui_match(mac) || soundthinking_oui_match(mac)) return FlockMethodOui;
+    // BLE is classified on the companion (mfg id 0x09C8 / Raven GATT) from advert
+    // bytes that never reach this side, so name the source rather than guess.
+    if(ftype == 'L') return FlockMethodBle;
+    return FlockMethodUnknown;
+}
+
+const char* flock_method_str(FlockMethod method) {
+    // TERSE ON PURPOSE. These are composed into "Method: <this> + <frame>" on a
+    // 128 px row that also carries a scrollbar, leaving ~26 characters. The
+    // first draft ("OUI prefix", "IE fingerprint") pushed the longest
+    // combination off the right edge on real hardware. "OUI" and "SSID" are also
+    // the terms the reporter used, so nothing is lost by the shorter form.
+    switch(method) {
+    case FlockMethodSsid:
+        return "SSID";
+    case FlockMethodIeFp:
+        return "IE fp";
+    case FlockMethodOui:
+        return "OUI";
+    case FlockMethodBle:
+        return "BLE mfg ID";
+    case FlockMethodUnknown:
+    default:
+        // Not "none": the companion DID score it, on probe behaviour we cannot
+        // re-derive here. Saying "no indicator" would be the wrong claim.
+        return "ESP probe rule";
     }
 }

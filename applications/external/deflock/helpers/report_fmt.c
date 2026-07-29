@@ -25,3 +25,12 @@ void fmt_coord(char* out, size_t out_len, float value, const char* fallback) {
         snprintf(out, out_len, "%.6f", (double)value);
     }
 }
+
+int fmt_signal_level(int rssi) {
+    if(rssi == 0) return -1; // unknown
+    if(rssi >= -50) return 4;
+    if(rssi >= -62) return 3;
+    if(rssi >= -74) return 2;
+    if(rssi >= -86) return 1;
+    return 1; // very weak but present -- never 0, so a real reading always shows
+}

@@ -1,5 +1,65 @@
 # Changelog
 
+## v0.50
+Finishes a v0.49 fix that only landed on one of the three scanner screens. **No
+detection logic changed.**
+
+- **The WiFi Audit and BLE / Tracker lists still fell back to raw `-70dB` text on
+  the selected row.** v0.49 stopped the signal-bar helper forcing black — the
+  reason bars vanished on an inverted row — and updated the Flock list to draw
+  them on every row. These two screens kept their old "selected? print dB
+  instead" branch, above a comment describing the exact behaviour that had just
+  been removed. So the two-notations-for-one-column mismatch
+  [#5](https://github.com/ReconGrunt/FlipDeFlock/issues/5) reported outlived the
+  release meant to fix it, on two screens out of three, and v0.49's own note
+  claiming *every* list was corrected was wrong. Both now draw bars on every row,
+  selected or not. The exact dBm is unchanged and still on each detail screen.
+- README screenshots refreshed for the v0.49 UI.
+
+## v0.49
+A UI pass over the Flock/ALPR screens, all of it from a field report by
+[@h00die](https://github.com/h00die) running an ESP32-C5 card (issues
+[#5](https://github.com/ReconGrunt/FlipDeFlock/issues/5) and
+[#6](https://github.com/ReconGrunt/FlipDeFlock/issues/6)). No detection logic
+changed — what a hit *is* is identical to v0.48; this is about being able to read
+and act on one.
+
+- **"What made it a possible hit?" is now answered on screen.** The detail screen
+  gains a `Method:` line — `OUI + beacon`, `SSID + beacon`, `BLE mfg ID`,
+  `IE fp + probe req` — so an OUI-prefix lead and an SSID-pattern match are no
+  longer both just "Possible". It is re-derived from the stored MAC/SSID/IE-fp
+  rather than taken from the companion, so it cannot inherit an over-claim from
+  firmware that lags the app. When nothing this side can re-derive matched, it
+  says `ESP probe rule` rather than inventing an indicator.
+- **The detail screen is a real view instead of a wall of text.** One labelled
+  field per line (`MAC:`, `SSID:`, `RSSI:`, `Ch:`, `Seen:`), scrollable, and the
+  RSSI row draws the same graphical signal bars the list does. The old layout ran
+  RSSI, channel, sighting count and frame type together on one line, which wrapped
+  mid-word — the reported `via be`/`acon`.
+- **"Lock In".** Right on any detection jumps straight into the Locator's homing
+  HUD for *that* device — live RSSI, hot/cold meter, peak hold — instead of making
+  you mark it, back out, and pick it from a list. Back returns to the detection;
+  back again resumes the general sweep. A Wi-Fi sighting homes on Wi-Fi, a BLE one
+  on BLE.
+- **Alert level is configurable.** A new Settings item chooses the lowest
+  confidence that may buzz: `Any` / `Likely` / `Confirm`. **The default is
+  unchanged** (Likely-or-better). `Any` is opt-in and *will* raise false positives
+  — it exists because in a thin deployment "Possible" can be all you ever see, and
+  an alert you cannot switch on is not an alert.
+- **The header no longer prints the same number twice.** Channel and hit count
+  lived in both the title bar and the line under it; they now appear once, the
+  channel is width-padded so it stops jittering as the sweep hops, and the freed
+  width is what stopped the rows overrunning.
+- **GPS is a badge, not a code.** A boxed `GPS` — filled with the satellite count
+  when locked, hollow while searching — replacing `G:3` / `G:-`.
+- **Signal strength is drawn one way, not two.** The bars helper forced black, so
+  on the selected (inverted) row it was invisible and every list quietly fell back
+  to raw `-82dB` text. One screen, two notations for one field. It now inherits the
+  row colour.
+- Costs ~1.6 KB of flash and no BSS. The screens above were checked on real
+  hardware this time, not just in CI — though with stored hits and a bench build,
+  since live detection still needs a companion board.
+
 ## v0.48
 A false-positive fix on the BLE side, a bug that quietly disabled four features,
 and the coverage gaps that let both hide. **If you use the Guardian screens or

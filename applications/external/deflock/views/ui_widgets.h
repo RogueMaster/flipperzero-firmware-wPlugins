@@ -24,6 +24,10 @@ int ui_signal_level(int rssi);
 /**
  * 4-segment signal-strength bars from an RSSI (dBm). Occupies a ~11x9 cell with
  * its top-left at (x, y). rssi == 0 draws hollow "unknown" ticks.
+ *
+ * Drawn in the canvas's CURRENT color, so it renders on an inverted/selected row
+ * as long as the caller has set ColorWhite first. It does not set the color
+ * itself, and it does not restore one.
  */
 void ui_signal_bars(Canvas* canvas, int x, int y, int rssi);
 

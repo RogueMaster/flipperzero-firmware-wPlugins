@@ -18,10 +18,12 @@
 
 #include "scenes/recon_scene.h"
 #include "helpers/alerts.h"
+#include "helpers/detect_rules.h" // AlertConfChoice for the settings scene
 #include "helpers/flock_db.h"
 #include "helpers/flock_ble.h"
 #include "helpers/watchscore.h"
 #include "views/flock_view.h"
+#include "views/flock_detail_view.h"
 #include "views/flock_map_view.h"
 #include "views/deflock_qr_view.h"
 #include "views/guardian_view.h"
@@ -60,6 +62,7 @@ typedef enum {
     ReconViewWidget,
     ReconViewPopup,
     ReconViewFlock,
+    ReconViewFlockDetail,
     ReconViewFlockMap,
     ReconViewDeflockQr,
     ReconViewGuardian,
@@ -93,6 +96,7 @@ typedef struct {
     bool gps_enabled;
     bool sound;
     uint8_t alert_mode; /**< ReconAlertMode: beep/vibro on a new Flock hit (default Vibrate) */
+    uint8_t alert_min_conf; /**< AlertConfChoice: lowest rung that may alert (default Likely) */
     bool flash_fast; /**< raise the flash (write) baud to 230400 after connect */
     bool save_hits; /**< persist detections to hits.csv across app restarts (default OFF:
                       *   it is a durable record of where you have been) */
@@ -195,6 +199,7 @@ typedef struct {
     Widget* widget;
     Popup* popup;
     FlockView* flock_view;
+    FlockDetailView* flock_detail_view;
     FlockMapView* flock_map_view;
     DeflockQrView* deflock_qr_view;
     GuardianView* guardian_view;

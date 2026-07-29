@@ -73,15 +73,40 @@ bool ble_following_gate(uint32_t count, uint32_t elapsed_ms, uint32_t waypoints,
 // looking at (GitHub issue #1 -- two cameras detected, noticed blocks later).
 // This decides when the app raises its beep/vibro alert.
 
-/** Lowest confidence that may raise an alert. Mirrors FlockConfidenceLikely (2).
- *  "Possible" is an OUI-prefix-only lead -- generic vendor prefixes appear on
- *  unrelated hardware, so alerting on it would buzz at non-cameras. Precision
- *  over recall applies to the alert exactly as it does to the display. */
+/** DEFAULT lowest confidence that may raise an alert. Mirrors FlockConfidenceLikely
+ *  (2). "Possible" is an OUI-prefix-only lead -- generic vendor prefixes appear on
+ *  unrelated hardware, so alerting on it by default would buzz at non-cameras.
+ *  Precision over recall applies to the alert exactly as it does to the display.
+ *
+ *  The operator may lower it (GitHub issue #5): in a thin deployment "Possible"
+ *  can be all you ever see, and an alert you cannot turn on is no alert. Opt-in
+ *  only -- the shipped default is unchanged, so the loose mode is a deliberate
+ *  choice to accept false positives, never something the app does on its own. */
 #define ALERT_MIN_CONF    2u
 /** Minimum gap between two alerts. A MAC-randomising unit, or driving into a
  *  dense deployment, can mint several qualifying entries inside one second;
  *  without this the vibro motor machine-guns and drains the battery. */
 #define ALERT_COOLDOWN_MS 3000u
+
+/** ReconSettings.alert_min_conf. Index-aligned with alert_conf_text[] in the
+ *  settings scene; map to a confidence rung with flock_alert_min_conf_rung(). */
+typedef enum {
+    AlertConfPossible = 0, /**< OUI-prefix leads included -- expect false positives. */
+    AlertConfLikely = 1, /**< default: ALERT_MIN_CONF. */
+    AlertConfConfirmed = 2, /**< SSID-pattern matches only. */
+    AlertConfCount = 3,
+} AlertConfChoice;
+
+/**
+ * Map an AlertConfChoice to the FlockConfidence rung the gate compares against
+ * (1 Possible / 2 Likely / 4 Confirmed). An out-of-range value -- a corrupt
+ * settings file -- falls back to ALERT_MIN_CONF rather than the loosest rung,
+ * so corruption can never silently turn on the false-positive-prone mode.
+ *
+ * Note 3 (ProbeFp, "Class?") is deliberately not offered: it sits BETWEEN Likely
+ * and Confirmed, so both neighbouring choices already cover it.
+ */
+uint8_t flock_alert_min_conf_rung(uint8_t choice);
 
 /**
  * Should this detection raise the alert? Fires at most ONCE per device, on the
@@ -97,6 +122,8 @@ bool ble_following_gate(uint32_t count, uint32_t elapsed_ms, uint32_t waypoints,
  * @param have_alerted_before false until the first alert of the session, so a
  *                            fresh session's `last_alert_tick == 0` can't be
  *                            mistaken for "an alert 0 ms ago" and swallowed.
+ * @param min_conf            lowest qualifying rung, from
+ *                            flock_alert_min_conf_rung(settings.alert_min_conf).
  */
 bool flock_alert_should_fire(
     uint8_t prev_conf,
@@ -104,4 +131,5 @@ bool flock_alert_should_fire(
     bool already_alerted,
     uint32_t now_tick,
     uint32_t last_alert_tick,
-    bool have_alerted_before);
+    bool have_alerted_before,
+    uint8_t min_conf);

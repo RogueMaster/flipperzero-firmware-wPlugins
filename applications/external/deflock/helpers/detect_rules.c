@@ -50,16 +50,31 @@ bool ble_following_gate(uint32_t count, uint32_t elapsed_ms, uint32_t waypoints,
            waypoints >= FOLLOW_MIN_WAYPOINTS && span_m >= FOLLOW_MIN_SPAN_M;
 }
 
+uint8_t flock_alert_min_conf_rung(uint8_t choice) {
+    switch(choice) {
+    case AlertConfPossible:
+        return 1u; // FlockConfidencePossible
+    case AlertConfConfirmed:
+        return 4u; // FlockConfidenceConfirmed
+    case AlertConfLikely:
+    default:
+        // Anything unrecognised (corrupt settings file) lands on the shipped
+        // default, never on the looser rung.
+        return ALERT_MIN_CONF;
+    }
+}
+
 bool flock_alert_should_fire(
     uint8_t prev_conf,
     uint8_t new_conf,
     bool already_alerted,
     uint32_t now_tick,
     uint32_t last_alert_tick,
-    bool have_alerted_before) {
+    bool have_alerted_before,
+    uint8_t min_conf) {
     if(already_alerted) return false; // one alert per device, ever
-    if(new_conf < ALERT_MIN_CONF) return false; // still only a "Possible" lead
-    if(prev_conf >= ALERT_MIN_CONF) return false; // it already qualified -> not a crossing
+    if(new_conf < min_conf) return false; // below the operator's chosen rung
+    if(prev_conf >= min_conf) return false; // it already qualified -> not a crossing
     // Rate limit across devices. Guarded on have_alerted_before so the very first
     // alert of a session isn't measured against a last_alert_tick of 0.
     if(have_alerted_before && (now_tick - last_alert_tick) < ALERT_COOLDOWN_MS) return false;

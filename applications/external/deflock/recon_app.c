@@ -123,7 +123,8 @@ void recon_app_report_flock(
                entry->alerted,
                now,
                app->alert_last_tick,
-               app->alert_have_fired)) {
+               app->alert_have_fired,
+               flock_alert_min_conf_rung(app->settings.alert_min_conf))) {
             entry->alerted = true;
             app->alert_pending = true;
             app->alert_last_tick = now;
@@ -670,6 +671,7 @@ static void recon_settings_defaults(ReconApp* app) {
     app->settings.gps_enabled = false; // off by default
     app->settings.sound = true;
     app->settings.alert_mode = ReconAlertVibro; // haptic-first, like the ELEVATED alert
+    app->settings.alert_min_conf = AlertConfLikely; // precision over recall stays the default
     app->settings.flash_fast = false; // safe 115200 by default
     app->settings.save_hits = false; // privacy: a hit log is a record of where you have been
     app->settings.log_serials = false; // privacy: don't catalogue police asset serials by default
@@ -683,7 +685,7 @@ void recon_settings_save(ReconApp* app) {
         FuriString* s = furi_string_alloc();
         furi_string_printf(
             s,
-            "backend=%d\nesp_uart=%d\ngps_uart=%d\nesp_baud=%lu\ngps_baud=%lu\nmarauder_cmd=%d\ngps_enabled=%d\nsound=%d\nflash_fast=%d\nlog_serials=%d\nanomaly_flag=%d\nalert_mode=%d\nsave_hits=%d\n",
+            "backend=%d\nesp_uart=%d\ngps_uart=%d\nesp_baud=%lu\ngps_baud=%lu\nmarauder_cmd=%d\ngps_enabled=%d\nsound=%d\nflash_fast=%d\nlog_serials=%d\nanomaly_flag=%d\nalert_mode=%d\nalert_min_conf=%d\nsave_hits=%d\n",
             app->settings.backend,
             app->settings.esp_uart,
             app->settings.gps_uart,
@@ -696,6 +698,7 @@ void recon_settings_save(ReconApp* app) {
             app->settings.log_serials ? 1 : 0,
             app->settings.anomaly_flag ? 1 : 0,
             app->settings.alert_mode,
+            app->settings.alert_min_conf,
             app->settings.save_hits ? 1 : 0);
         storage_file_write(file, furi_string_get_cstr(s), furi_string_size(s));
         furi_string_free(s);
@@ -732,6 +735,8 @@ static void recon_settings_apply_kv(ReconApp* app, const char* key, long val) {
         app->settings.anomaly_flag = (val != 0);
     else if(strcmp(key, "alert_mode") == 0 && val >= 0 && val < ReconAlertModeCount)
         app->settings.alert_mode = (uint8_t)val; // corrupt value -> keep the default
+    else if(strcmp(key, "alert_min_conf") == 0 && val >= 0 && val < AlertConfCount)
+        app->settings.alert_min_conf = (uint8_t)val; // ditto -- range-checked, not trusted
     else if(strcmp(key, "save_hits") == 0)
         app->settings.save_hits = (val != 0);
 }
@@ -740,8 +745,8 @@ void recon_settings_load(ReconApp* app) {
     recon_settings_defaults(app);
     File* file = storage_file_alloc(app->storage);
     if(storage_file_open(file, RECON_SETTINGS_PATH, FSAM_READ, FSOM_OPEN_EXISTING)) {
-        // One read covers the whole file. The settings file is 13 short key=value
-        // lines (~170 B today); keep generous headroom so adding keys later can't
+        // One read covers the whole file. The settings file is 14 short key=value
+        // lines (~190 B today); keep generous headroom so adding keys later can't
         // silently truncate the load (anything past the buffer is dropped).
         char buf[512];
         size_t n = storage_file_read(file, buf, sizeof(buf) - 1);
@@ -1014,6 +1019,8 @@ static ReconApp* recon_app_alloc(void) {
     app->popup = popup_alloc();
     app->flock_view = flock_view_alloc();
     flock_view_set_app(app->flock_view, app);
+    app->flock_detail_view = flock_detail_view_alloc();
+    flock_detail_view_set_app(app->flock_detail_view, app);
     app->flock_map_view = flock_map_view_alloc();
     flock_map_view_set_app(app->flock_map_view, app);
     app->deflock_qr_view = deflock_qr_view_alloc();
@@ -1038,6 +1045,10 @@ static ReconApp* recon_app_alloc(void) {
     view_dispatcher_add_view(
         app->view_dispatcher, ReconViewFlock, flock_view_get_view(app->flock_view));
     view_dispatcher_add_view(
+        app->view_dispatcher,
+        ReconViewFlockDetail,
+        flock_detail_view_get_view(app->flock_detail_view));
+    view_dispatcher_add_view(
         app->view_dispatcher, ReconViewFlockMap, flock_map_view_get_view(app->flock_map_view));
     view_dispatcher_add_view(
         app->view_dispatcher, ReconViewDeflockQr, deflock_qr_view_get_view(app->deflock_qr_view));
@@ -1061,6 +1072,7 @@ static void recon_app_free(ReconApp* app) {
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewWidget);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewPopup);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewFlock);
+    view_dispatcher_remove_view(app->view_dispatcher, ReconViewFlockDetail);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewFlockMap);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewDeflockQr);
     view_dispatcher_remove_view(app->view_dispatcher, ReconViewGuardian);
@@ -1073,6 +1085,7 @@ static void recon_app_free(ReconApp* app) {
     widget_free(app->widget);
     popup_free(app->popup);
     flock_view_free(app->flock_view);
+    flock_detail_view_free(app->flock_detail_view);
     flock_map_view_free(app->flock_map_view);
     deflock_qr_view_free(app->deflock_qr_view);
     guardian_view_free(app->guardian_view);

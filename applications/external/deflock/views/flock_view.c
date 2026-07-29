@@ -172,17 +172,26 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
     // ---- render from the snapshot (no mutex held) --------------------------
     // Header / status bar. A real deauth flood takes over the header. Compact
     // right-aligned status for the inverted title bar.
+    //
+    // EVERY COUNTER APPEARS EXACTLY ONCE across the two header lines (issue #5):
+    // channel and hits live up here, frames/rx on the sub-line. They used to be
+    // printed in both places, which cost the sub-line the width it needed and
+    // pushed the row text into an overrun. "FLOCK/ALPR" loses its spaces for the
+    // same two characters.
+    //
+    // Channel is space-padded to a fixed 3 (1-14 / 36-165 / 6 GHz up to 233 on a
+    // C5) so the right-aligned block stops jittering as the sweep hops.
     char right[16]; // fits "ch165 h999999" + NUL; snprintf truncates safely beyond
     if(deauths >= DEAUTH_FLOOD_MIN) {
         snprintf(right, sizeof(right), "!DEAUTH");
     } else if(generic) {
-        snprintf(right, sizeof(right), "rx %lu", (unsigned long)lines);
+        snprintf(right, sizeof(right), "rx%lu", (unsigned long)lines);
     } else {
-        snprintf(right, sizeof(right), "ch%u h%lu", channel, (unsigned long)hits);
+        snprintf(right, sizeof(right), "ch%3u h%lu", channel, (unsigned long)hits);
     }
-    ui_title_bar(canvas, "FLOCK / ALPR", right); // leaves color=black, font=Secondary
+    ui_title_bar(canvas, "FLOCK/ALPR", right); // leaves color=black, font=Secondary
 
-    // Fuller status sub-line under the bar (nothing from the old header lost).
+    // Status sub-line: only what the title bar does NOT already show.
     // A wire-protocol version mismatch is the highest-priority health warning (the
     // data may be mis-parsed), then a deauth flood. A non-zero dropped-line count
     // (overlong RX lines) is appended as a "!dN" health suffix on the normal lines.
@@ -204,38 +213,42 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
                 (unsigned long)deauths);
         }
     } else if(generic) {
-        // Companion status counters stay 0 on a Marauder board; show the RX
-        // line heartbeat and the detection count instead.
-        snprintf(
-            hdr,
-            sizeof(hdr),
-            "%s  rx %lu  hits %zu%s",
-            connected ? "ESP" : "...",
-            (unsigned long)lines,
-            count,
-            drop);
+        // Companion status counters stay 0 on a Marauder board, so the title bar
+        // carries the RX heartbeat there and the detection count belongs here.
+        snprintf(hdr, sizeof(hdr), "%s  hits %zu%s", connected ? "ESP" : "...", count, drop);
     } else {
         snprintf(
             hdr,
             sizeof(hdr),
-            "%s ch%u  frames %lu  hits %lu%s",
+            "%s  frames %lu%s",
             connected ? "ESP" : "...",
-            channel,
             (unsigned long)frames,
-            (unsigned long)hits,
             drop);
     }
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 0, 22, hdr);
 
-    char gps_str[12];
+    // GPS state as a badge, not a code (issue #5): filled = we have a fix, hollow
+    // = enabled but searching. A boxed "GPS" reads at a glance in a moving car,
+    // where "G:-" needed a moment's decoding. Satellite count still shown when
+    // locked -- it is the difference between a fresh 2D fix and a solid one.
     if(gps_enabled) {
+        char gps_str[12];
         if(gps_valid) {
-            snprintf(gps_str, sizeof(gps_str), "G:%d", gps_sats);
+            snprintf(gps_str, sizeof(gps_str), "GPS %d", gps_sats);
         } else {
-            snprintf(gps_str, sizeof(gps_str), "G:-");
+            snprintf(gps_str, sizeof(gps_str), "GPS");
         }
-        canvas_draw_str_aligned(canvas, 128, 22, AlignRight, AlignBottom, gps_str);
+        int w = canvas_string_width(canvas, gps_str) + 4;
+        int x = 128 - w;
+        if(gps_valid) {
+            canvas_draw_box(canvas, x, 14, w, 10);
+            canvas_set_color(canvas, ColorWhite);
+        } else {
+            canvas_draw_frame(canvas, x, 14, w, 10);
+        }
+        canvas_draw_str(canvas, x + 2, 22, gps_str);
+        canvas_set_color(canvas, ColorBlack);
     }
     canvas_draw_line(canvas, 0, 24, 128, 24);
 
@@ -302,26 +315,22 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
         canvas_set_font(canvas, FontSecondary);
         canvas_draw_str(canvas, 2, y + 8, line);
 
-        // Right edge: RSSI as signal bars (replaces the raw "-33dB"). The bars
-        // helper hardcodes ColorBlack, so on the inverted (selected) row it
-        // would be invisible -> show the exact dB as white text there instead.
+        // Right edge: RSSI as signal bars, on EVERY live row including the
+        // selected one. It used to switch to raw "-82dB" text when selected,
+        // because the bars helper forced ColorBlack and vanished on the inverted
+        // row; that made one list show two notations for the same column (issue
+        // #5). ui_signal_bars now inherits the row color, so the notation is
+        // uniform and the exact dBm lives on the detail screen.
         //
         // An ARCHIVED row shows the age of the stored sighting instead. Its RSSI
         // was recorded on some earlier run, so bars (or a live-looking "-67dB")
         // would assert the device is in range right now -- exactly the kind of
         // over-claim the detections-are-indicators rule exists to prevent.
-        char meta[18];
         if(r->archived) {
+            char meta[18];
             char age[8];
             flock_age_str(age, sizeof(age), now_epoch, r->seen_epoch);
             snprintf(meta, sizeof(meta), "%s%s", r->marked ? "*" : "", age);
-            canvas_draw_str_aligned(canvas, 126, y + 8, AlignRight, AlignBottom, meta);
-        } else if(r->selected) {
-            if(r->marked) {
-                snprintf(meta, sizeof(meta), "*%ddB", r->rssi);
-            } else {
-                snprintf(meta, sizeof(meta), "%ddB", r->rssi);
-            }
             canvas_draw_str_aligned(canvas, 126, y + 8, AlignRight, AlignBottom, meta);
         } else {
             if(r->marked) {

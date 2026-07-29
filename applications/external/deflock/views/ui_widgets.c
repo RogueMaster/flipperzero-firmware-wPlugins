@@ -2,6 +2,8 @@
 // Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
 #include "ui_widgets.h"
 
+#include "../helpers/report_fmt.h"
+
 int ui_title_bar(Canvas* canvas, const char* title, const char* right) {
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_box(canvas, 0, 0, 128, UI_TITLE_BAR_H);
@@ -18,17 +20,18 @@ int ui_title_bar(Canvas* canvas, const char* title, const char* right) {
 }
 
 int ui_signal_level(int rssi) {
-    if(rssi == 0) return -1; // unknown
-    if(rssi >= -50) return 4;
-    if(rssi >= -62) return 3;
-    if(rssi >= -74) return 2;
-    if(rssi >= -86) return 1;
-    return 1; // very weak but present
+    // Thresholds live in helpers/report_fmt.c so the canvas bars here and the
+    // text meter on the detail screen are the same scale by construction.
+    return fmt_signal_level(rssi);
 }
 
 void ui_signal_bars(Canvas* canvas, int x, int y, int rssi) {
     int level = ui_signal_level(rssi);
-    canvas_set_color(canvas, ColorBlack);
+    // Draw in the CALLER's current color rather than forcing black. Forcing it
+    // made the bars invisible on an inverted (selected) row, so every list fell
+    // back to raw "-82dB" text there -- which is why one screen showed two
+    // different notations for the same field (GitHub issue #5). Every caller
+    // already sets the row color immediately before calling.
     // 4 bars, width 2, heights 2/4/6/8, sharing a baseline at y+8.
     for(int i = 0; i < 4; i++) {
         int bh = 2 + i * 2;

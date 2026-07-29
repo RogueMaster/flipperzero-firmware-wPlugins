@@ -19,3 +19,13 @@ void fmt_mac(char* out, size_t out_len, const uint8_t mac[6]);
  * "" for an omitted field) when the value is NaN (no fix). Truncation-safe.
  */
 void fmt_coord(char* out, size_t out_len, float value, const char* fallback);
+
+/**
+ * Map an RSSI (dBm; 0 = unknown) to a strength level: -1 unknown, else 1..4.
+ *
+ * Lives here, in the pure/host-tested layer, rather than in views/ui_widgets.c
+ * so the thresholds are testable. ui_signal_level() delegates to it, and every
+ * screen that draws bars goes through that -- so the list rows and the detail
+ * screen cannot disagree about what "-74 dBm" looks like.
+ */
+int fmt_signal_level(int rssi);

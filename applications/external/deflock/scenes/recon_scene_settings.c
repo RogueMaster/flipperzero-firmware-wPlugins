@@ -89,6 +89,23 @@ static void alert_mode_changed(VariableItem* item) {
     recon_settings_save(app);
 }
 
+// Index-aligned with AlertConfChoice in helpers/detect_rules.h.
+//
+// Kept to 7 characters: VariableItemList clips the value column past that, and
+// "Confirmed" rendered on hardware as "Confirme" (the same way "Companion"
+// shows as "ompanio" on Board Mode). "Any" rather than "Possible+" because the
+// rung it admits is the OUI-only lead -- "alert me about everything" is what
+// the operator is actually choosing, and it fits.
+static const char* const alert_conf_text[] = {"Any", "Likely", "Confirm"};
+
+static void alert_min_conf_changed(VariableItem* item) {
+    ReconApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    app->settings.alert_min_conf = idx;
+    variable_item_set_current_value_text(item, alert_conf_text[idx]);
+    recon_settings_save(app);
+}
+
 static void sound_changed(VariableItem* item) {
     ReconApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
@@ -185,6 +202,20 @@ void recon_scene_settings_on_enter(void* context) {
         variable_item_list_add(list, "Alert on hit", ReconAlertModeCount, alert_mode_changed, app);
     variable_item_set_current_value_index(item, idx);
     variable_item_set_current_value_text(item, alert_text[idx]);
+
+    // Lowest confidence rung that may alert. "Likely+" is the shipped default;
+    // "Possible+" is an opt-in that trades precision for recall (an OUI-prefix
+    // lead will buzz at unrelated hardware) and is the only way to be told about
+    // a deployment that never scores higher -- GitHub issue #5.
+    // Out-of-range falls back to Likely, NOT index 0: 0 is the loosest rung, and a
+    // corrupt settings file must never present (or select) the noisy mode. Matches
+    // flock_alert_min_conf_rung()'s own fallback.
+    idx = (app->settings.alert_min_conf < AlertConfCount) ? app->settings.alert_min_conf :
+                                                            AlertConfLikely;
+    item =
+        variable_item_list_add(list, "Alert level", AlertConfCount, alert_min_conf_changed, app);
+    variable_item_set_current_value_index(item, idx);
+    variable_item_set_current_value_text(item, alert_conf_text[idx]);
 
     idx = app->settings.sound ? 1 : 0;
     item = variable_item_list_add(list, "Sound", 2, sound_changed, app);

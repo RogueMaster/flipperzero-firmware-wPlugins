@@ -161,8 +161,11 @@ firmware; in Marauder mode they explain what's missing.
 | | |
 |:--:|:--:|
 | <img src="assets/screenshots/alpr.png" width="330" alt="Flock / ALPR Detect"><br>**Flock / ALPR Detect** | <img src="assets/screenshots/menu.png" width="330" alt="Main menu"><br>**Main menu** |
-| <img src="assets/screenshots/ble-scan.png" width="330" alt="BLE / Tracker scan"><br>**BLE / Tracker scan** | <img src="assets/screenshots/ble-scan-results.png" width="330" alt="BLE / Tracker results"><br>**BLE / Tracker results** |
+| <img src="assets/screenshots/flock-detail.png" width="330" alt="Detection detail"><br>**Why it was flagged** | <img src="assets/screenshots/ble-scan-results.png" width="330" alt="BLE / Tracker results"><br>**BLE / Tracker results** |
 | <img src="assets/screenshots/wifi-audit.png" width="330" alt="WiFi Audit"><br>**WiFi Audit** | <img src="assets/screenshots/esp32-firmware.png" width="330" alt="ESP32 Firmware"><br>**ESP32 Firmware** |
+
+<sub>Captured on a Flipper Zero running v0.49. The devices shown are fabricated
+demo records — no real network, tracker or location appears in any screenshot.</sub>
 
 ## Detection confidence
 
@@ -245,6 +248,32 @@ indicators and verify by eye; if you rely on it for anything that matters, read
 the code and confirm the behavior yourself.
 
 ## What's new
+
+**v0.50** — Finishes a v0.49 fix that only landed on one of the three scanner
+screens. **No detection logic changed.** The WiFi Audit and BLE / Tracker lists were
+still swapping the signal bars for raw `-70dB` text on the selected row, above a
+comment describing the very behaviour v0.49 had removed — so the mixed-notation
+problem [#5](https://github.com/ReconGrunt/FlipDeFlock/issues/5) reported outlived
+the release meant to fix it, and v0.49's claim that *every* list was corrected was
+wrong. Both lists now draw bars on every row; the exact dBm is still on each detail
+screen. README screenshots are also refreshed for the v0.49 UI.
+
+**v0.49** — A UI pass over the Flock/ALPR screens, entirely from a field report by
+[@h00die](https://github.com/h00die) on an ESP32-C5 card. **No detection logic
+changed** — this is about reading and acting on a hit. The detail screen now answers
+*why* something was flagged with a `Method:` line (`OUI + beacon`, `SSID + beacon`,
+`BLE mfg ID`), re-derived locally rather than taken on the companion's word, so an
+OUI-prefix lead and an SSID-pattern match are no longer both just "Possible". That
+screen is a proper view now: one labelled field per line, scrollable, with real
+signal bars — the old run-on line wrapped mid-word. **Lock In** (Right on any
+detection) jumps straight into the Locator's homing HUD for that device instead of
+making you mark it and hunt for it in a list. **Alert level** in Settings picks the
+lowest confidence that may buzz (`Any` / `Likely` / `Confirm`); the default is
+unchanged, and `Any` is opt-in because it will raise false positives. Also: the
+header stopped printing the channel and hit count twice, GPS is a filled/hollow
+badge instead of `G:3`, and signal strength is drawn as bars everywhere — the
+selected row used to fall back to raw dB text because the bars were being forced to
+black and rendered invisible.
 
 **v0.48** — A false positive on the BLE side, and a bug that quietly switched off four
 features. BLE devices were shown as **CONFIRMED** Flock on nothing more than a

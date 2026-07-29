@@ -2,149 +2,101 @@
 // Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
 #include "../recon_app_i.h"
 
-#include <math.h>
+#include <string.h>
+
+// The screen itself lives in views/flock_detail_view.c (a canvas view, so the
+// RSSI row can draw the same graphical bars as the list -- GitHub issue #5).
+// This scene owns only the two actions those buttons trigger.
 
 typedef enum {
     DetailCustomToggleMark = 200,
+    DetailCustomLockIn = 201,
 } DetailCustomEvent;
 
-static void
-    recon_scene_flock_detail_button_cb(GuiButtonType type, InputType input, void* context) {
+static void recon_scene_flock_detail_mark_cb(void* context) {
     ReconApp* app = context;
-    if(input == InputTypeShort && type == GuiButtonTypeCenter) {
-        view_dispatcher_send_custom_event(app->view_dispatcher, DetailCustomToggleMark);
-    }
+    view_dispatcher_send_custom_event(app->view_dispatcher, DetailCustomToggleMark);
 }
 
-static void recon_scene_flock_detail_render(ReconApp* app) {
-    Widget* widget = app->widget;
-    widget_reset(widget);
-
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
-    if(app->selected < 0 || app->selected >= (int)app->flock_count) {
-        furi_mutex_release(app->mutex);
-        widget_add_string_element(
-            widget, 64, 32, AlignCenter, AlignCenter, FontPrimary, "No selection");
-        return;
-    }
-    FlockEntry e = app->flock[app->selected];
-    furi_mutex_release(app->mutex);
-
-    const char* src;
-    switch(e.ftype) {
-    case 'L':
-        src = "BLE";
-        break;
-    case 'P':
-        src = "probe";
-        break;
-    case 'F':
-        src = "probe-fp"; // B1 IE-fingerprint device-class match
-        break;
-    case 'B':
-        src = "beacon";
-        break;
-    case 'R':
-        src = "p-resp";
-        break;
-    default:
-        src = "RF";
-        break;
-    }
-
-    // An archived entry's RSSI/channel were recorded on an earlier run, so label
-    // them as last-known rather than presenting a stored reading as a live one.
-    const char* rssi_label = e.archived ? "Last RSSI" : "RSSI";
-
-    FuriString* s = furi_string_alloc();
-    furi_string_printf(
-        s,
-        "%s  %s\n"
-        "%s\n"
-        "%02X:%02X:%02X:%02X:%02X:%02X\n"
-        "SSID: %s\n"
-        "%s %d  Ch %u  Seen %lu  via %s",
-        flock_confidence_str(e.confidence),
-        e.marked ? "(MARKED)" : "",
-        // What it is, spelled out: the confidence rung above says how sure we
-        // are, not which kind of device this is.
-        flock_class_long_str((FlockDevClass)e.dev_class),
-        e.mac[0],
-        e.mac[1],
-        e.mac[2],
-        e.mac[3],
-        e.mac[4],
-        e.mac[5],
-        // "(hidden)" here has always meant "we have no name for it". Only say the
-        // AP is actively withholding one when we watched it beacon without a name.
-        e.ssid[0] ? e.ssid : (e.hidden ? "(withheld by AP)" : "(none seen)"),
-        rssi_label,
-        e.rssi,
-        e.channel,
-        (unsigned long)e.count,
-        src);
-
-    // Where a stored hit came from, in wall-clock terms. Only meaningful for an
-    // archived entry: a live one's seen_epoch is "moments ago" by definition.
-    if(e.archived && e.seen_epoch) {
-        DateTime dt;
-        datetime_timestamp_to_datetime(e.seen_epoch, &dt);
-        furi_string_cat_printf(
-            s, "\nSaved: %04u-%02u-%02u %02u:%02u", dt.year, dt.month, dt.day, dt.hour, dt.minute);
-    }
-
-    if(!isnan(e.lat) && !isnan(e.lon)) {
-        furi_string_cat_printf(s, "\nGPS %.5f, %.5f", (double)e.lat, (double)e.lon);
-    } else {
-        furi_string_cat(s, "\nGPS: no fix");
-    }
-
-    // Hidden-SSID beaconing. An OBSERVATION, not a score: it did not raise the
-    // confidence rung above, and the wording must not imply that it did. Flock
-    // moved to hidden SSIDs, but so do plenty of ordinary home routers.
-    if(e.hidden) {
-        furi_string_cat(s, "\nHidden SSID: beacons, no name (not scored)");
-    }
-
-    // Show the probe IE-fingerprint when present: a confirmed unit's fp can be
-    // dropped into signatures.json ("ie_fps") to catch its MAC-randomized twins.
-    if(e.ie_fp != 0) {
-        furi_string_cat_printf(s, "\nIE-fp: %08lx", (unsigned long)e.ie_fp);
-    }
-
-    widget_add_text_scroll_element(widget, 0, 0, 128, 44, furi_string_get_cstr(s));
-    furi_string_free(s);
-
-    widget_add_button_element(
-        widget,
-        GuiButtonTypeCenter,
-        e.marked ? "Unmark" : "Mark",
-        recon_scene_flock_detail_button_cb,
-        app);
+static void recon_scene_flock_detail_lock_cb(void* context) {
+    ReconApp* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, DetailCustomLockIn);
 }
 
 void recon_scene_flock_detail_on_enter(void* context) {
     ReconApp* app = context;
-    recon_scene_flock_detail_render(app);
-    view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewWidget);
+    flock_detail_view_reset(app->flock_detail_view); // a new selection starts at the top
+    flock_detail_view_set_callbacks(
+        app->flock_detail_view,
+        recon_scene_flock_detail_mark_cb,
+        recon_scene_flock_detail_lock_cb,
+        app);
+    view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewFlockDetail);
 }
 
 bool recon_scene_flock_detail_on_event(void* context, SceneManagerEvent event) {
     ReconApp* app = context;
-    bool consumed = false;
-    if(event.type == SceneManagerEventTypeCustom && event.event == DetailCustomToggleMark) {
+
+    if(event.type == SceneManagerEventTypeTick) {
+        // The parent scan scene is only suspended, not exited, so the ESP worker
+        // keeps feeding this entry -- repaint so RSSI and the sighting count are
+        // live while you are looking at them. The suspended parent stops getting
+        // ticks, so announce alerts here too (as every other scan scene does),
+        // otherwise a hit found while you read this screen waits for you to leave.
+        recon_app_alert_tick(app);
+        flock_detail_view_refresh(app->flock_detail_view);
+        return true;
+    }
+    if(event.type != SceneManagerEventTypeCustom) return false;
+
+    if(event.event == DetailCustomToggleMark) {
         furi_mutex_acquire(app->mutex, FuriWaitForever);
         if(app->selected >= 0 && app->selected < (int)app->flock_count) {
             app->flock[app->selected].marked = !app->flock[app->selected].marked;
         }
         furi_mutex_release(app->mutex);
-        recon_scene_flock_detail_render(app);
-        consumed = true;
+        flock_detail_view_refresh(app->flock_detail_view);
+        return true;
     }
-    return consumed;
+
+    if(event.event == DetailCustomLockIn) {
+        // Copy this entry into the Locator target slots -- the same fields the
+        // Locator's own marked-device picker fills, so the homing HUD needs no
+        // special case. Kind/channel follow that picker exactly: a BLE sighting
+        // ('L') homes on the BLE radio, everything else on Wi-Fi at its channel.
+        bool valid = false;
+        furi_mutex_acquire(app->mutex, FuriWaitForever);
+        if(app->selected >= 0 && app->selected < (int)app->flock_count) {
+            const FlockEntry* e = &app->flock[app->selected];
+            memcpy(app->locate_mac, e->mac, 6);
+            app->locate_kind = (e->ftype == 'L') ? 'b' : 'w';
+            app->locate_ch = e->channel;
+            if(e->ssid[0]) {
+                snprintf(app->locate_label, sizeof(app->locate_label), "Flock %s", e->ssid);
+            } else {
+                snprintf(
+                    app->locate_label,
+                    sizeof(app->locate_label),
+                    "Flock %02X%02X%02X",
+                    e->mac[3],
+                    e->mac[4],
+                    e->mac[5]);
+            }
+            valid = true;
+        }
+        furi_mutex_release(app->mutex);
+        // The Locator is companion-only; navigate unconditionally and let
+        // ReconSceneLocatorHome show its own Marauder guard screen rather than
+        // duplicating that check here. Backing out of the HUD lands back on this
+        // screen, and one more Back returns to the Flock list, whose on_enter
+        // restarts the general sweep (the Locator's on_exit stopped the scan
+        // session) -- the round trip issue #6 asked for.
+        if(valid) scene_manager_next_scene(app->scene_manager, ReconSceneLocatorHome);
+        return true;
+    }
+    return false;
 }
 
 void recon_scene_flock_detail_on_exit(void* context) {
-    ReconApp* app = context;
-    widget_reset(app->widget);
+    UNUSED(context);
 }

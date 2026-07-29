@@ -113,15 +113,14 @@ static void wifi_list_view_draw_callback(Canvas* canvas, void* _model) {
         }
         canvas_draw_str(canvas, 2, y + 8, line);
 
-        // Right edge: RSSI as signal bars; selected (inverted) row shows white
-        // dB text instead (bars hardcode ColorBlack -> invisible on black).
-        if(sel) {
-            char meta[10];
-            snprintf(meta, sizeof(meta), "%ddB", a->rssi);
-            canvas_draw_str_aligned(canvas, 126, y + 8, AlignRight, AlignBottom, meta);
-        } else {
-            ui_signal_bars(canvas, 104, y - 1, a->rssi);
-        }
+        // Right edge: RSSI as signal bars, on EVERY row including the selected
+        // one -- same rule as the Flock list. It used to switch to raw "-70dB"
+        // text when selected, because the bars helper forced ColorBlack and
+        // vanished on the inverted row; that made one list show two notations
+        // for the same column (issue #5). ui_signal_bars has inherited the row
+        // color since v0.49, so the fallback only kept the mismatch alive. The
+        // exact dBm lives on the AP detail screen.
+        ui_signal_bars(canvas, 104, y - 1, a->rssi);
     }
     canvas_set_color(canvas, ColorBlack);
 

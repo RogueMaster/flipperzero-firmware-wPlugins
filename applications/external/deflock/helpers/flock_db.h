@@ -147,6 +147,45 @@ FlockConfidence flock_ssid_confidence(const char* ssid);
 /** Human-readable label for a confidence level. */
 const char* flock_confidence_str(FlockConfidence confidence);
 
+/**
+ * WHICH indicator put a detection on the list, so the operator can weigh it
+ * (GitHub issue #5). "Possible" on its own says how sure we are but not why,
+ * and an OUI-prefix lead and an SSID-pattern match deserve very different
+ * trust.
+ *
+ * Derived from stored evidence (MAC / SSID / IE-fp), never from a field the
+ * companion asserts, so it cannot inherit an over-claim from firmware that
+ * lags the app -- the same trust-boundary reasoning as parse_flock().
+ */
+typedef enum {
+    FlockMethodUnknown = 0, /**< nothing WE can re-derive matched (see below). */
+    FlockMethodSsid, /**< SSID matched a known Flock naming pattern. */
+    FlockMethodIeFp, /**< probe IE-skeleton fingerprint matched. */
+    FlockMethodOui, /**< MAC is in a Flock/SoundThinking-associated OUI table. */
+    FlockMethodBle, /**< BLE sighting: the companion classified it by mfg id / GATT. */
+} FlockMethod;
+
+/**
+ * Re-derive the strongest indicator behind a detection, strongest first:
+ * SSID pattern > IE fingerprint > OUI prefix. A BLE sighting (`ftype == 'L'`)
+ * reports FlockMethodBle when nothing stronger is re-derivable, because its
+ * classification happened on the companion (mfg id 0x09C8 / Raven GATT) and is
+ * not reconstructible from these fields.
+ *
+ * FlockMethodUnknown is a HONEST answer, not a failure: the companion scores
+ * probe-request behaviour we never see, so a "Likely" from a MAC outside our
+ * tables genuinely has no indicator this side can name.
+ *
+ * @param mac    6-byte MAC (NULL-safe).
+ * @param ssid   SSID as stored, may be NULL/empty.
+ * @param ftype  frame-type tag: P/B/R/O/F/L.
+ * @param ie_fp  IE-skeleton fingerprint, 0 = none.
+ */
+FlockMethod flock_method_of(const uint8_t* mac, const char* ssid, char ftype, uint32_t ie_fp);
+
+/** Short label for a detection method ("SSID name", "OUI prefix", ...). */
+const char* flock_method_str(FlockMethod method);
+
 #ifdef __cplusplus
 }
 #endif
