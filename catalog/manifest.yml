@@ -2,7 +2,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/slavik0329/partition-panic-flipper.git
-    commit_sha: 7dcd1c043ffc1be4400fdeffc74e094333bb0619
+    commit_sha: 4cd9222a2124bec37a73d850a0bdf4f31e3b4ebf
 description: "@catalog-description.md"
 changelog: "@changelog.md"
 screenshots:
