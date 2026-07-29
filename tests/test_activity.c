@@ -6,6 +6,10 @@
 int main(void) {
     MorseFlipperActivityDaily daily;
 
+    assert(!morse_flipper_activity_listening_success(94U));
+    assert(morse_flipper_activity_listening_success(95U));
+    assert(morse_flipper_activity_listening_success(100U));
+
     morse_flipper_activity_daily_reset(&daily);
     assert(!morse_flipper_activity_daily_note(
         &daily, UINT16_MAX, MorseFlipperActivityCorrectAnswer));

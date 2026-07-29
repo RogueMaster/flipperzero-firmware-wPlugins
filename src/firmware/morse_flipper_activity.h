@@ -19,6 +19,7 @@ bool morse_flipper_activity_daily_note(
     MorseFlipperActivityDaily* daily,
     uint16_t day,
     MorseFlipperActivityKind kind);
+bool morse_flipper_activity_listening_success(uint8_t percent);
 
 void morse_flipper_activity_note_rx(bool correct_answer);
 void morse_flipper_activity_note_listening_session(uint16_t practice_day);

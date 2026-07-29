@@ -39,6 +39,10 @@ bool morse_flipper_activity_daily_note(
     return award;
 }
 
+bool morse_flipper_activity_listening_success(uint8_t percent) {
+    return percent >= 95U;
+}
+
 #ifdef MORSE_FLIPPER_FAP
 #include <applications/services/dolphin/dolphin.h>
 #include <furi.h>
@@ -130,7 +134,10 @@ static void morse_flipper_activity_note_deed(
     morse_flipper_activity_load(&daily);
     award = morse_flipper_activity_daily_note(&daily, practice_day, kind);
     if(!morse_flipper_activity_save(&daily)) return;
-    if(award) dolphin_deed(DolphinDeedPluginGameWin);
+    if(award)
+        dolphin_deed(
+            kind == MorseFlipperActivityListeningSession ? DolphinDeedPluginGameWin :
+                                                           DolphinDeedPluginStart);
 }
 
 void morse_flipper_activity_note_rx(bool correct_answer) {
