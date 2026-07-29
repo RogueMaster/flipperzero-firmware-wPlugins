@@ -14,7 +14,6 @@
 // A reading older than this means the target has gone quiet / out of range.
 #define LOC_FRESH_MS   2500
 // dB change before we call it warmer/colder (vs the smoothed average).
-#define LOC_TREND_DB   2
 
 struct LocatorView {
     View* view;

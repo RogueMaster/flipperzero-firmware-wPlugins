@@ -27,9 +27,14 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "flock_db.h" // FlockConfidence
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/** Flock Safety's manufacturer id (XUNTONG) in the BLE advert. */
+#define FLOCK_BLE_COMPANY_ID 0x09C8
 
 /** Conservative Flock BLE model identification from the 0x09C8 advert + GATT. */
 typedef enum {
@@ -74,11 +79,25 @@ bool flock_ble_extract_serial(
 FlockBleModel flock_ble_model_ex(const char* serial, const char* name, bool raven_gatt);
 
 /**
- * Back-compat wrapper: identical to flock_ble_model_ex(serial, name, false), so
- * host tests and older callers that lack the GATT signal still work (they just
- * never see Raven). Returns Generic/Unknown only.
+ * How sure we are that a BLE device the companion classified as Flock really is
+ * one -- the BLE counterpart to the SSID trust boundary in esp_parser.c.
+ *
+ * WHY THIS EXISTS. The companion sets cat=1 ("Flock") from several signals, and
+ * one of them is a bare OUI-prefix match on the BLE address. Those prefixes are
+ * SHARED silicon-vendor ranges, so treating every cat=1 as CONFIRMED announced
+ * ordinary ESP32-based hardware as a confirmed surveillance camera. This
+ * re-derives the rung from the evidence the app can actually see, and it is a
+ * FLOOR: anything without a Flock-specific tell lands on "possible".
+ *
+ * @param company     Manufacturer id from the advert (0 if none).
+ * @param name        GAP device name, or NULL/"" if unknown.
+ * @param raven_gatt  true iff a Raven-specific GATT service was seen.
+ * @return Confirmed for a Flock-specific tell (0x09C8 mfg id, Raven GATT, or
+ *         "Penguin-*"/"FS Ext *" naming); FlockConfidencePossible otherwise.
+ *         Never returns None -- the caller only asks about devices already
+ *         classified as Flock.
  */
-FlockBleModel flock_ble_model(const char* serial, const char* name);
+FlockConfidence flock_ble_confidence(uint16_t company, const char* name, bool raven_gatt);
 
 /**
  * Human-readable label. The Raven label is GATT-backed and therefore confident

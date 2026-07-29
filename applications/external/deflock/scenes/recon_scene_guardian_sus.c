@@ -2,6 +2,8 @@
 // Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
 #include "../recon_app_i.h"
 
+#include <stdlib.h> // malloc/free for the scene-scoped snapshot
+
 // Net Guardian -> OK -> this list: the devices that tripped (or could trip) the
 // Guardian -- BLE Flippers, opt-in "anomaly" unknown devices, and Wi-Fi rogue /
 // evil-twin APs. Selecting one MARKS it (so it joins the report + Locator pool)
@@ -21,7 +23,19 @@ typedef struct {
     uint16_t idx; // index into that array (frozen while this scene is up)
 } SusTarget;
 
-static SusTarget s_sus[SUS_MAX];
+/**
+ * Scene-scoped snapshot, allocated on entry and freed on exit.
+ *
+ * This used to be a static array, which cost 2560 bytes of BSS for the entire
+ * run of the app to serve one scene you are usually not in. The Locator and
+ * DeFlock-handoff scenes had the same pattern; together they held ~5.9 KB
+ * permanently out of a ~256 KB budget.
+ *
+ * NULL is a supported state, not an error path to bolt on later: if the
+ * allocation fails the scene renders as an empty list rather than crashing, and
+ * sus_add() simply drops entries. Every consumer below checks.
+ */
+static SusTarget* s_sus;
 static size_t s_sus_count;
 
 static void sus_add(
@@ -31,7 +45,7 @@ static void sus_add(
     const char* label,
     uint8_t src,
     uint16_t idx) {
-    if(s_sus_count >= SUS_MAX) return;
+    if(!s_sus || s_sus_count >= SUS_MAX) return;
     SusTarget* t = &s_sus[s_sus_count++];
     memcpy(t->mac, mac, 6);
     t->kind = kind;
@@ -51,6 +65,9 @@ void recon_scene_guardian_sus_on_enter(void* context) {
     Submenu* submenu = app->submenu;
     submenu_reset(submenu);
     s_sus_count = 0;
+    // Freed in on_exit. malloc (not furi_alloc) so a failure is recoverable:
+    // sus_add() and the render below both tolerate NULL and show an empty list.
+    if(!s_sus) s_sus = malloc(sizeof(SusTarget) * SUS_MAX);
 
     uint32_t now = furi_get_tick();
     char buf[28];
@@ -106,7 +123,7 @@ bool recon_scene_guardian_sus_on_event(void* context, SceneManagerEvent event) {
     ReconApp* app = context;
     if(event.type == SceneManagerEventTypeCustom) {
         uint32_t idx = event.event;
-        if(idx < s_sus_count) {
+        if(s_sus && idx < s_sus_count) {
             SusTarget* t = &s_sus[idx];
             furi_mutex_acquire(app->mutex, FuriWaitForever);
             // Mark the underlying entry (arrays are frozen while this scene is up)
@@ -130,4 +147,9 @@ bool recon_scene_guardian_sus_on_event(void* context, SceneManagerEvent event) {
 void recon_scene_guardian_sus_on_exit(void* context) {
     ReconApp* app = context;
     submenu_reset(app->submenu);
+    // Release the snapshot: this scene is one of several that each held a
+    // 64-entry array, and they are mutually exclusive in practice.
+    free(s_sus);
+    s_sus = NULL;
+    s_sus_count = 0;
 }

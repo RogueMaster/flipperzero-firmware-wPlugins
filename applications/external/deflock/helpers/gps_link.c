@@ -25,6 +25,8 @@ struct GpsLink {
     volatile bool running;
     char line[GPS_LINE_MAX];
     size_t line_len;
+    /** Bytes the ISR could not buffer. ISR-written, worker-read: single writer. */
+    volatile uint32_t rx_dropped;
 };
 
 // Pure NMEA parsing (nmea_to_decimal / gps_coord_sane / nmea_tokenize /
@@ -64,7 +66,16 @@ static void gps_rx_isr(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, 
     GpsLink* gps = context;
     if(event == FuriHalSerialRxEventData) {
         uint8_t data = furi_hal_serial_async_rx(handle);
-        furi_stream_buffer_send(gps->rx_stream, &data, 1, 0);
+        // 0 timeout (an ISR must not block), so a full buffer drops the byte and
+        // the sentence in flight loses a character. Mostly self-defending: when a
+        // "*hh" checksum is present gps_parser.c verifies it (gps_parser.c:62-72)
+        // and rejects the holed sentence rather than parsing a wrong fix. Note
+        // that check is conditional on the '*' surviving, so it is a strong
+        // mitigation, not a guarantee. Count the drop either way, so a chronically
+        // undersized buffer is visible instead of looking like poor reception.
+        if(furi_stream_buffer_send(gps->rx_stream, &data, 1, 0) != 1) {
+            gps->rx_dropped++;
+        }
         furi_thread_flags_set(furi_thread_get_id(gps->thread), GpsEvtRx);
     }
 }

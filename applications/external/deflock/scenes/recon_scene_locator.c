@@ -2,6 +2,8 @@
 // Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
 #include "../recon_app_i.h"
 
+#include <stdlib.h> // malloc/free for the scene-scoped snapshot
+
 // Locator step 1: a picker listing every device currently MARKED across Flock /
 // WiFi / BLE (the unified report-tag doubles as the Locator pool). Selecting one
 // copies it into app->locate_* and opens the homing HUD.
@@ -15,7 +17,13 @@ typedef struct {
     char label[28];
 } LocTarget;
 
-static LocTarget s_targets[LOC_MAX_TARGETS];
+/**
+ * Scene-scoped snapshot, allocated on entry and freed on exit. Was a static
+ * array costing 2304 bytes of BSS for the whole app run to serve one scene.
+ * NULL is a supported state: the scene renders an empty list rather than
+ * crashing, and loc_add() drops entries. Every consumer below checks.
+ */
+static LocTarget* s_targets;
 static size_t s_count;
 
 static const char* loc_ble_kind(uint8_t cat) {
@@ -38,7 +46,7 @@ static const char* loc_ble_kind(uint8_t cat) {
 }
 
 static void loc_add(const uint8_t* mac, uint8_t kind, uint8_t ch, const char* label) {
-    if(s_count >= LOC_MAX_TARGETS) return;
+    if(!s_targets || s_count >= LOC_MAX_TARGETS) return;
     LocTarget* t = &s_targets[s_count++];
     memcpy(t->mac, mac, 6);
     t->kind = kind;
@@ -56,6 +64,8 @@ void recon_scene_locator_on_enter(void* context) {
     Submenu* submenu = app->submenu;
     submenu_reset(submenu);
     s_count = 0;
+    // Freed in on_exit; NULL degrades to an empty list (see loc_add).
+    if(!s_targets) s_targets = malloc(sizeof(LocTarget) * LOC_MAX_TARGETS);
 
     char buf[28];
     furi_mutex_acquire(app->mutex, FuriWaitForever);
@@ -107,7 +117,7 @@ bool recon_scene_locator_on_event(void* context, SceneManagerEvent event) {
     ReconApp* app = context;
     if(event.type == SceneManagerEventTypeCustom) {
         uint32_t idx = event.event;
-        if(idx < s_count) {
+        if(s_targets && idx < s_count) {
             LocTarget* t = &s_targets[idx];
             furi_mutex_acquire(app->mutex, FuriWaitForever);
             memcpy(app->locate_mac, t->mac, 6);
@@ -125,4 +135,7 @@ bool recon_scene_locator_on_event(void* context, SceneManagerEvent event) {
 void recon_scene_locator_on_exit(void* context) {
     ReconApp* app = context;
     submenu_reset(app->submenu);
+    free(s_targets);
+    s_targets = NULL;
+    s_count = 0;
 }

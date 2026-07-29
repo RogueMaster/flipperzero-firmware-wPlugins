@@ -22,6 +22,41 @@ static bool ci_prefix(const char* s, const char* needle_upper) {
     return true;
 }
 
+/** Case-insensitive substring test (needle assumed already upper-case). */
+static bool ci_contains(const char* s, const char* needle_upper) {
+    if(!s || !needle_upper[0]) return false;
+    for(const char* h = s; *h; h++) {
+        if(ci_prefix(h, needle_upper)) return true;
+    }
+    return false;
+}
+
+FlockConfidence flock_ble_confidence(uint16_t company, const char* name, bool raven_gatt) {
+    // Strong, near-unique tells. Each names Flock specifically rather than the
+    // silicon vendor, so each stands on its own:
+    //   - 0x09C8 is Flock's own manufacturer id in the advert;
+    //   - the Raven GATT services (0x3100-0x3500) are Raven-SPECIFIC;
+    //   - "Penguin-*" / "FS Ext *" are Flock's own product naming.
+    if(company == FLOCK_BLE_COMPANY_ID) return FlockConfidenceConfirmed;
+    if(raven_gatt) return FlockConfidenceConfirmed;
+    if(ci_prefix(name, "PENGUIN") || ci_contains(name, "FS EXT")) return FlockConfidenceConfirmed;
+
+    // Nothing Flock-specific left. The only other way the companion classifies a
+    // device as Flock is an OUI prefix on the BLE address, and those prefixes are
+    // SHARED silicon-vendor ranges (Espressif, Liteon and friends -- see the
+    // table comment in flock_db.c). That is exactly the "possible" rung and must
+    // never be announced as a confirmed camera.
+    //
+    // This is a TRUST BOUNDARY, not a redundant check, and it is deliberately a
+    // FLOOR rather than an allow-list: a newer companion may classify on a tell
+    // this build predates, and the honest answer to "Flock, for a reason I don't
+    // recognise" is "possible", not "confirmed". Before this cap existed, any BLE
+    // device with a static address in the OUI table was reported as CONFIRMED
+    // Flock -- the same over-claim as the v0.46 "Flock-Guest" SSID bug, on the
+    // BLE path, which the SSID-side guard in esp_parser.c never covered.
+    return FlockConfidencePossible;
+}
+
 bool flock_ble_extract_serial(
     const uint8_t* mfg,
     size_t len,
@@ -124,11 +159,6 @@ FlockBleModel flock_ble_model_ex(const char* serial, const char* name, bool rave
         return FlockBleModelGeneric;
     }
     return FlockBleModelUnknown;
-}
-
-FlockBleModel flock_ble_model(const char* serial, const char* name) {
-    // Thin wrapper for host tests / older callers that lack the GATT signal.
-    return flock_ble_model_ex(serial, name, false);
 }
 
 const char* flock_ble_model_str(FlockBleModel model) {

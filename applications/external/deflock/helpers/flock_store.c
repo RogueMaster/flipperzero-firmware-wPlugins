@@ -128,7 +128,9 @@ size_t flock_store_fmt_line(char* out, size_t out_len, const FlockStoreRec* r) {
     // anyway.
     char ssid_flat[FLOCK_STORE_SSID_LEN];
     size_t si = 0;
-    for(; r->ssid[si] && si < FLOCK_STORE_SSID_LEN - 1; si++) {
+    // Bounds test FIRST: the old order dereferenced r->ssid[si] before
+    // checking si was in range. In bounds as written, but backwards.
+    for(; si < FLOCK_STORE_SSID_LEN - 1 && r->ssid[si]; si++) {
         unsigned char c = (unsigned char)r->ssid[si];
         ssid_flat[si] = (c < 0x20 || c == 0x7F) ? ' ' : (char)c;
     }

@@ -137,15 +137,12 @@ void flock_db_set_extras(const FlockDbExtras* extras);
  */
 FlockConfidence flock_ssid_confidence(const char* ssid);
 
-/**
- * Combined confidence for an observed device.
- *
- * @param mac          6-byte MAC of the transmitter (must not be NULL).
- * @param ssid         Advertised/probed SSID, or NULL/"" if unknown.
- * @param is_probe_req True if this frame is a station-mode probe request
- *                     (the "phoning home" behaviour Flock cameras exhibit).
+/*
+ * NOTE: there is deliberately no combined flock_score() here. It existed until
+ * v0.48 with zero production callers while the real ladder lived in
+ * helpers/esp_parser.c, so its tests guarded code the device never ran. See the
+ * block comment in flock_db.c for the full rationale before adding one back.
  */
-FlockConfidence flock_score(const uint8_t* mac, const char* ssid, bool is_probe_req);
 
 /** Human-readable label for a confidence level. */
 const char* flock_confidence_str(FlockConfidence confidence);

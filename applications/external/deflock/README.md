@@ -247,6 +247,21 @@ the code and confirm the behavior yourself.
 
 ## What's new
 
+**v0.48** — A false positive on the BLE side, and a bug that quietly switched off four
+features. BLE devices were shown as **CONFIRMED** Flock on nothing more than a
+shared silicon-vendor OUI (Espressif, Liteon), so ordinary ESP32 hardware was
+announced as a surveillance camera — the same over-claim as v0.47, on a path that
+fix never covered. **Expect fewer things flagged**: without a Flock-specific tell
+they now read Possible. Separately, a BLE device's freshness timestamp only updated
+when GPS had a fix, and GPS is off by default, so the "Flipper near" signal, the
+Guardian counter, the anomaly window and the "FOLLOWING you" timer all silently
+expired ~90 s into every session. Also: companion hardening (a truncated SSID
+element was reported as a hidden network — reflash to get it), dropped serial bytes
+no longer corrupt a record silently, `flock_score()` deleted for having no callers,
+first-ever tests for the BLE decoder and the whole Marauder backend (639 → 763
+checks), a CI gate so the two OUI tables cannot drift apart, and ~5.9 KB of RAM
+reclaimed.
+
 **v0.47** — False-positive fix; **upgrade if you're on v0.46**. Networks whose name
 merely contains `flock-` (`Flock-Guest`, `Flock-Safety-Corp`, `Flock-12345`) were
 shown as CONFIRMED — the anchored SSID rule existed and was tested, but nothing on

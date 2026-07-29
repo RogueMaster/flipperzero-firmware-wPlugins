@@ -414,7 +414,9 @@ static int32_t recon_nfc_probe_worker(void* ctx) {
             }
         }
     } else if(!removed) {
-        size_t num = sizeof(recon_nfc_default_keys) / MF_CLASSIC_KEY_SIZE;
+        // sizeof(arr)/sizeof(arr[0]), not /KEY_SIZE: dividing a 2-D array by the
+        // ELEMENT size is only correct while the row stride happens to equal it.
+        size_t num = sizeof(recon_nfc_default_keys) / sizeof(recon_nfc_default_keys[0]);
         for(size_t i = 0; i < num; i++) {
             if(n->probe_abort) break; // cooperative cancel (scene exit)
             MfClassicKey key;

@@ -1,5 +1,69 @@
 # Changelog
 
+## v0.48
+A false-positive fix on the BLE side, a bug that quietly disabled four features,
+and the coverage gaps that let both hide. **If you use the Guardian screens or
+BLE detection, upgrade.**
+
+- **BLE devices were announced as CONFIRMED Flock on a shared-vendor OUI.** The
+  companion classifies a BLE device as Flock from several signals, and one of them
+  is a plain OUI-prefix match on the BLE address. Those prefixes are *shared
+  silicon-vendor* ranges — Espressif, Liteon and friends — so any ordinary
+  ESP32-based BLE device with a static address was reported as a confirmed
+  surveillance camera. **This will reduce what you see flagged**: devices that
+  previously showed CONFIRMED now show Possible unless there is a Flock-specific
+  tell (the `0x09C8` manufacturer id, the Raven GATT services, or `Penguin-*` /
+  `FS Ext *` naming). That is the correct direction — a false positive is worse
+  than a missed detection.
+- **Same bug class as v0.47, on a path the v0.47 guard never covered.** That fix
+  re-derives a claimed CONFIRMED on the Wi-Fi path. Nothing did so for BLE. The new
+  rule is a *floor*, not an allow-list: a newer companion may classify on a tell
+  this build predates, and the honest answer to "Flock, for a reason I don't
+  recognise" is Possible.
+- **Freshness stopped updating without a GPS fix.** A BLE device's `last_tick` was
+  only refreshed inside the GPS-valid branch, and GPS is off by default, so it froze
+  when the device was first seen. Four things silently expired ~90 s into every
+  session: the WATCHSCORE "Flipper near" signal (a Flipper sitting next to you
+  dropped out of the score while still being seen every scan), the Guardian "Flip N"
+  counter, the BLE anomaly window, and the "FOLLOWING you … over *n*s" readout,
+  which always displayed `0s`.
+- **Companion firmware hardening.** A truncated SSID element was reported as a
+  hidden network — the parser zeroed the length but kept the "found it" flag, so the
+  all-NUL test passed on zero bytes. A parse miss is not evidence of concealment.
+  Also fixed a `snprintf` idiom that could walk off the detection-line buffer if the
+  SSID cap were ever raised, and added the missing `volatile`/critical sections
+  around state shared between the Wi-Fi task and the main loop (the beacon ring's
+  count bounds an array write; the Locator target is a 6-byte MAC that must swap
+  atomically). **Reflash the companion to get these** — the app-side fixes work
+  without it.
+- **A dropped serial byte no longer corrupts a record silently.** Both receive
+  interrupts discarded the buffer-full return value, and a byte lost mid-line
+  produces a damaged record the parser reads as a valid one. Damaged lines are now
+  discarded whole and counted, the same way overlong lines already were.
+- **`flock_score()` is gone.** v0.47 found it had no production callers and
+  documented that; this removes it. Six checks were pinning a scoring ladder nothing
+  on the device ran, while the ladder that *does* run had no such guard — the same
+  trap one level up. The assertions moved onto the real wire-protocol boundary.
+- **Three modules that had no tests now do**, including the BLE decoder that parses
+  raw advertisement bytes, and the entire Marauder backend — which had *zero*
+  regression tests despite being the backend that runs on a stock Marauder board.
+  Host tests 639 → 763 checks. Every new guard was verified to fail against the bug
+  it claims to catch, in a throwaway tree.
+- **The OUI tables can no longer drift apart.** They are compiled into both binaries
+  from two files with no shared header, and both carried a "keep in step by hand"
+  comment with nothing enforcing it. Now a required CI gate.
+- **~5.9 KB of RAM reclaimed** — three scenes each held a 64-entry snapshot array in
+  memory for the whole run of the app to serve a screen you are usually not on.
+  Part of that was spent raising the stack, after measuring one parser frame at
+  1344 bytes of the 4 KB budget during startup. Also cut the per-frame OUI scan in
+  the companion's Wi-Fi callback by ~8×, and removed two redundant full rescans.
+
+**Still not field-validated.** Everything since v0.20 is verified by host tests and
+compilers, not against real hardware in the field. Exercising the confidence ladder
+over the air needs two ESP32 boards — one to transmit, one to receive — so the bench
+emitter remains compile-verified only. The ladder is instead pinned by fixtures at
+the real parser boundary. Treat detections as indicators, as always.
+
 ## v0.47
 A false-positive fix. **If you are on v0.46, upgrade.**
 - **Benign networks whose name merely contains `flock-` were shown as CONFIRMED.**

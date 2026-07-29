@@ -3,6 +3,7 @@
 #include "../recon_app_i.h"
 
 #include <math.h>
+#include <stdlib.h> // malloc/free for the scene-scoped snapshot
 
 // Snapshot of the marked, geotagged cameras taken on_enter. This scene is
 // passive: it starts no ESP/GPS link and holds no UART -- it only renders a
@@ -17,7 +18,13 @@ typedef struct {
     FlockConfidence confidence;
 } HandoffCam;
 
-static HandoffCam g_cams[HANDOFF_MAX];
+/**
+ * Scene-scoped snapshot, allocated on entry and freed on exit. Was a static
+ * array costing 1024 bytes of BSS for the whole app run. NULL degrades to
+ * "no cameras", which is already a rendered state (see the g_cam_count == 0
+ * branch), so there is no new failure mode to handle.
+ */
+static HandoffCam* g_cams;
 static int g_cam_count;
 static int g_selected;
 
@@ -77,7 +84,7 @@ void recon_scene_deflock_handoff_on_enter(void* context) {
     g_cam_count = 0;
     g_selected = 0;
     furi_mutex_acquire(app->mutex, FuriWaitForever);
-    for(size_t i = 0; i < app->flock_count && g_cam_count < HANDOFF_MAX; i++) {
+    for(size_t i = 0; g_cams && i < app->flock_count && g_cam_count < HANDOFF_MAX; i++) {
         FlockEntry* e = &app->flock[i];
         if(e->marked && !isnan(e->lat) && !isnan(e->lon)) {
             HandoffCam* c = &g_cams[g_cam_count++];
@@ -116,6 +123,8 @@ bool recon_scene_deflock_handoff_on_event(void* context, SceneManagerEvent event
 
 void recon_scene_deflock_handoff_on_exit(void* context) {
     UNUSED(context);
+    free(g_cams);
+    g_cams = NULL;
     g_cam_count = 0;
     g_selected = 0;
 }

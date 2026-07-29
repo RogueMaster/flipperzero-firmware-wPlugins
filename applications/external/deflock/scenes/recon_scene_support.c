@@ -58,9 +58,16 @@ void recon_scene_support_on_enter(void* context) {
     // if the scan fails. Chunked at a fixed column rather than split once: a
     // legacy address is 34 chars, native SegWit 42, Taproot 62, and any line
     // longer than the wrap column runs off the right edge.
+    // NOTE: snprintf() returns what it WOULD have written, so accumulating the
+    // raw return value overshoots `w` past the buffer on truncation and the next
+    // iteration's `sizeof(body) - w` underflows as a size_t. Clamp every append.
+    // The loop guard alone is not enough -- it catches the NEXT iteration, not an
+    // overshoot within the current one, and a 62-char Taproot address puts this
+    // at 85 of 96 bytes.
     char body[96];
     size_t w = 0;
-    w += (size_t)snprintf(body, sizeof(body), "BTC - scan or type:");
+    int hn = snprintf(body, sizeof(body), "BTC - scan or type:");
+    w = (hn > 0 && (size_t)hn < sizeof(body)) ? (size_t)hn : sizeof(body) - 1;
     const char* a = RECON_BTC_ADDRESS;
     size_t alen = strlen(a);
     for(size_t i = 0; i < alen && w < sizeof(body) - 1; i += RECON_BTC_WRAP) {
@@ -68,7 +75,8 @@ void recon_scene_support_on_enter(void* context) {
         if(chunk > RECON_BTC_WRAP) chunk = RECON_BTC_WRAP;
         int n = snprintf(body + w, sizeof(body) - w, "\n%.*s", (int)chunk, a + i);
         if(n <= 0) break;
-        w += (size_t)n;
+        size_t avail = sizeof(body) - w - 1;
+        w += ((size_t)n > avail) ? avail : (size_t)n;
     }
 
     // The QR view is shared with Share-to-DeFlock, which installs a Left/Right

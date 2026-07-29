@@ -4,6 +4,7 @@
 #include "../recon_app_i.h"
 #include "flock_db.h"
 #include "esp_parser.h"
+#include "marauder_scan.h"
 
 #include <expansion/expansion.h>
 #include <stdlib.h>
@@ -31,23 +32,17 @@ struct EspLink {
     size_t line_len;
     bool skip_line; /**< dropping the remainder of an overlong (overflowed) line */
     uint32_t lines; /**< total completed RX lines (heartbeat) */
-    uint32_t dropped; /**< overlong lines dropped whole (wire-protocol health metric) */
+    uint32_t dropped; /**< lines dropped whole: overlong, or corrupted by an RX drop */
+    /**
+     * Bytes the ISR could not hand to the worker because the stream buffer was
+     * full. Written ONLY by the ISR, read only by the worker -- single writer, so
+     * no lock is needed. At 921600 baud a full buffer drops bytes MID-LINE, which
+     * silently corrupts a record rather than failing it; the worker compares this
+     * against @ref line_rx_dropped to discard any line that lost bytes.
+     */
+    volatile uint32_t rx_dropped;
+    uint32_t line_rx_dropped; /**< rx_dropped as of the start of the current line */
 };
-
-// ---- parsing helpers -----------------------------------------------------
-
-/** Try to read a "hh:hh:hh:hh:hh:hh" MAC starting at p. (Marauder/generic path;
- *  the companion path's compact-MAC + field parsing live in esp_parser.c.) */
-static bool parse_mac_colon(const char* p, uint8_t mac[6]) {
-    for(int i = 0; i < 6; i++) {
-        int hi = esp_hexval(p[i * 3]);
-        int lo = esp_hexval(p[i * 3 + 1]);
-        if(hi < 0 || lo < 0) return false;
-        if(i < 5 && p[i * 3 + 2] != ':') return false;
-        mac[i] = (uint8_t)((hi << 4) | lo);
-    }
-    return true;
-}
 
 // ---- companion protocol --------------------------------------------------
 
@@ -156,82 +151,39 @@ static const char* const ESP_MARAUDER_CMDS[] = {
 #define ESP_MARAUDER_CMD_COUNT (sizeof(ESP_MARAUDER_CMDS) / sizeof(ESP_MARAUDER_CMDS[0]))
 
 /**
- * Marauder prints the network name after a known label. Return a pointer to the
- * name (rest of line) or NULL. Covers scanap/sniffbeacon ("ESSID: "),
- * sniffraw ("SSID: ") and sniffprobe ("Requesting: ").
+ * Apply a scraped generic/Marauder line to the app.
+ *
+ * The DECISION (which MACs are hits, at what rung) lives in the pure, host-tested
+ * marauder_scan.c; this function only applies the result. Keeping the two apart
+ * is what makes the precision rules -- especially the single-MAC attribution
+ * rule -- regression-testable, and it mirrors the split the companion path
+ * already uses.
  */
-static const char* marauder_extract_ssid(const char* line) {
-    static const char* const labels[] = {"ESSID: ", "SSID: ", "Requesting: "};
-    static char buf[RECON_SSID_LEN]; // 33: SSIDs are max 32 bytes
-    for(size_t k = 0; k < 3; k++) {
-        const char* p = strstr(line, labels[k]);
-        if(!p) continue;
-        p += strlen(labels[k]);
-        // Bound to an SSID length (preserves embedded spaces) so trailing
-        // fields on the line aren't absorbed and a far-away "flock" token can't
-        // spuriously raise confidence. Single-threaded ESP worker -> static ok.
-        size_t i = 0;
-        for(; i < RECON_SSID_LEN - 1 && p[i] && p[i] != '\r' && p[i] != '\n'; i++)
-            buf[i] = p[i];
-        buf[i] = '\0';
-        return buf;
-    }
-    return NULL;
-}
-
 static void esp_parse_generic(EspLink* esp, char* line) {
     // Liveness/connected is handled by the worker via recon_app_set_esp_lines().
+    MarauderScan scan;
+    marauder_scan_line(line, &scan);
 
-    // Prefer the labelled SSID Marauder prints over a whole-line scan, so the
-    // confidence is attributed to the actual network name and we can display it.
-    const char* ssid = marauder_extract_ssid(line);
-    FlockConfidence ssid_conf = flock_ssid_confidence(ssid ? ssid : line);
-    size_t len = strlen(line);
-
-    // Count MAC tokens first. A line-wide SSID match can only be safely
-    // attributed to a specific MAC when the line names exactly one MAC;
-    // otherwise an unrelated "flock" substring would promote every MAC on a
-    // multi-record log line. So: OUI matches always count; a lone MAC may take
-    // the SSID confidence; extra non-OUI MACs are ignored.
-    int mac_count = 0;
-    for(size_t i = 0; i + 17 <= len; i++) {
-        uint8_t mac[6];
-        if(parse_mac_colon(line + i, mac)) {
-            mac_count++;
-            i += 16;
-        }
-    }
-    bool single = (mac_count == 1);
-
-    for(size_t i = 0; i + 17 <= len; i++) {
-        uint8_t mac[6];
-        if(!parse_mac_colon(line + i, mac)) continue;
-        i += 16;
-
-        // Either surveillance-vendor table; flock_class_from_mac below says which.
-        bool oui = flock_oui_match(mac) || soundthinking_oui_match(mac);
-        FlockConfidence conf;
-        if(oui) {
-            // OUI vendor prefix; SSID naming on the same line can raise it.
-            conf = (ssid_conf > FlockConfidencePossible) ? ssid_conf : FlockConfidencePossible;
-        } else if(single && ssid_conf != FlockConfidenceNone) {
-            // Sole MAC on a line that names a Flock SSID -> attribute to it.
-            conf = ssid_conf;
-        } else {
-            continue;
-        }
-
+    for(int i = 0; i < scan.hit_count; i++) {
+        const MarauderHit* h = &scan.hits[i];
         recon_app_report_flock(
             esp->app,
-            mac,
-            ssid ? ssid : "",
+            h->mac,
+            scan.have_ssid ? scan.ssid : "",
             0,
             0,
             'O',
-            conf,
+            h->conf,
             0,
-            flock_class_from_mac(mac),
+            h->dev_class,
             false); // Marauder's scraped text carries no hidden-SSID signal
+    }
+
+    // A line naming more MACs than one scan can carry is pathological; surface it
+    // as wire-protocol health rather than dropping it silently.
+    if(scan.dropped > 0) {
+        esp->dropped += (uint32_t)scan.dropped;
+        recon_app_set_esp_dropped(esp->app, esp->dropped);
     }
 }
 
@@ -241,7 +193,13 @@ static void esp_rx_isr(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, 
     EspLink* esp = context;
     if(event == FuriHalSerialRxEventData) {
         uint8_t data = furi_hal_serial_async_rx(handle);
-        furi_stream_buffer_send(esp->rx_stream, &data, 1, 0);
+        // 0 timeout: an ISR must never block. A full buffer therefore DROPS the
+        // byte, and a byte lost mid-line corrupts that record rather than failing
+        // it -- the parser would happily read the damaged remainder as a valid
+        // one. Count it so the worker can discard the affected line instead.
+        if(furi_stream_buffer_send(esp->rx_stream, &data, 1, 0) != 1) {
+            esp->rx_dropped++;
+        }
         furi_thread_flags_set(furi_thread_get_id(esp->thread), EspEvtRx);
     }
 }
@@ -261,6 +219,14 @@ static int32_t esp_worker(void* context) {
                         // tail as a spurious record); resume on the next line.
                         esp->skip_line = false;
                         esp->line_len = 0;
+                    } else if(esp->rx_dropped != esp->line_rx_dropped) {
+                        // The ISR dropped at least one byte while this line was
+                        // being assembled, so what we hold is a record with a hole
+                        // in it -- not a shorter valid one. Discard it whole, for
+                        // the same reason an overlong line is discarded whole.
+                        esp->line_len = 0;
+                        esp->dropped++;
+                        recon_app_set_esp_dropped(esp->app, esp->dropped);
                     } else if(esp->line_len > 0) {
                         esp->line[esp->line_len] = '\0';
                         // Every completed line counts as RX activity.
@@ -273,6 +239,9 @@ static int32_t esp_worker(void* context) {
                         }
                         esp->line_len = 0;
                     }
+                    // A line boundary is the only safe place to re-sync the drop
+                    // watermark: whatever was lost belonged to the line just ended.
+                    esp->line_rx_dropped = esp->rx_dropped;
                 } else if(esp->skip_line) {
                     // still discarding the remainder of the overlong line
                 } else if(esp->line_len < ESP_LINE_MAX - 1) {
