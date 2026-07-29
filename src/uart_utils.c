@@ -252,14 +252,27 @@ static void
                     furi_mutex_acquire(uart->text_manager->mutex, FuriWaitForever);
 
                     if(uart->mark_candidate_mask & 0x01) {
-                        uart->csv = false;
-                        uart->pcap = true;
+                        // Firmware only ever emits the generic [BUF/BEGIN] marker for both
+                        // PCAP and CSV (wardrive) streams; route it to whichever capture is
+                        // actually active instead of assuming PCAP.
+                        if(uart->csv_stream && !uart->pcap_stream) {
+                            uart->pcap = false;
+                            uart->csv = true;
+                        } else {
+                            uart->csv = false;
+                            uart->pcap = true;
+                        }
                     } else if(uart->mark_candidate_mask & 0x02) {
-                        uart->pcap = false;
-                        uart->pcap_flush_pending = true;
-                        if(uart->rx_thread) {
-                            furi_thread_flags_set(
-                                furi_thread_get_id(uart->rx_thread), WorkerEvtPcapDone);
+                        // Symmetric close for the generic [BUF/CLOSE] marker.
+                        if(uart->csv) {
+                            uart->csv = false;
+                        } else {
+                            uart->pcap = false;
+                            uart->pcap_flush_pending = true;
+                            if(uart->rx_thread) {
+                                furi_thread_flags_set(
+                                    furi_thread_get_id(uart->rx_thread), WorkerEvtPcapDone);
+                            }
                         }
                     } else if(uart->mark_candidate_mask & 0x04) {
                         uart->pcap = false;
