@@ -809,6 +809,7 @@ static bool morse_flipper_scene_progress_on_event(void* context, SceneManagerEve
 static void morse_flipper_scene_progress_on_exit(void* context) {
     MorseFlipperApp* app = context;
 
+    morse_flipper_progress_history_view_cancel(&app->progress_history);
     if(app->progress_debug_result) return;
 
     morse_flipper_release_view_progress(app);

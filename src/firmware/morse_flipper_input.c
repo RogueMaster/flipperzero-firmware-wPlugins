@@ -683,8 +683,9 @@ static void morse_flipper_progress_open_history_result(MorseFlipperApp* app) {
     const MorseFlipperProgressHistoryRow* row = morse_flipper_progress_focused_history_row(app);
     uint8_t percent;
 
-    if(app == NULL || row == NULL) return;
-
+    if(app == NULL) return;
+    morse_flipper_progress_history_view_cancel(&app->progress_history);
+    if(row == NULL) return;
     percent = row->percent > 100U ? 100U : row->percent;
     app->progress_debug_result = true;
     app->progress_debug_returning = false;
@@ -716,6 +717,7 @@ static void
     morse_flipper_progress_enter_page(MorseFlipperApp* app, MorseFlipperProgressPage page) {
     if(app == NULL) return;
 
+    morse_flipper_progress_history_view_cancel(&app->progress_history);
     app->progress_page = page;
     morse_flipper_progress_reset_scroll_repeat(app);
     if(page == MorseFlipperProgressPageHistory) morse_flipper_progress_load_recent(app);
@@ -736,6 +738,9 @@ static bool morse_flipper_progress_history_input(MorseFlipperApp* app, const Inp
     if(event->key != InputKeyUp && event->key != InputKeyDown) return false;
 
     dir = event->key == InputKeyDown ? 1 : -1;
+    if(app->progress_history.pending_dir != 0 &&
+       app->progress_history.pending_dir != dir)
+        morse_flipper_progress_history_view_cancel(&app->progress_history);
     if(event->type == InputTypePress) {
         app->progress_scroll_key = event->key;
         app->progress_scroll_started_ms = furi_get_tick();
@@ -781,6 +786,7 @@ void morse_flipper_tick_progress_history_scroll(MorseFlipperApp* app, uint32_t n
     if(app->screen != MorseFlipperScreenProgress ||
        app->progress_page != MorseFlipperProgressPageHistory) {
         morse_flipper_progress_reset_scroll_repeat(app);
+        morse_flipper_progress_history_view_cancel(&app->progress_history);
         return;
     }
     if(app->progress_history.pending_dir != 0) {
@@ -808,6 +814,7 @@ static bool morse_flipper_progress_input(MorseFlipperApp* app, const InputEvent*
 
     if(event->key == InputKeyBack &&
        (event->type == InputTypeShort || event->type == InputTypeLong)) {
+        morse_flipper_progress_history_view_cancel(&app->progress_history);
         scene_manager_search_and_switch_to_another_scene(
             app->scene_manager, MorseFlipperSceneMenuTraining);
         return true;

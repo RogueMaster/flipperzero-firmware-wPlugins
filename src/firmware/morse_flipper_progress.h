@@ -89,7 +89,6 @@ typedef struct {
     MorseFlipperProgressHistoryCursor older;
     MorseFlipperProgressHistoryNewerCursor newer;
     MorseFlipperProgressHistoryRow rows[MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS];
-    uint16_t newest_day;
     uint8_t row_count;
     uint8_t row_offset;
     uint8_t row_cursor;
@@ -189,6 +188,7 @@ bool morse_flipper_progress_history_load_newer(
 void morse_flipper_progress_history_view_reset(
     MorseFlipperProgressHistoryView* view,
     uint16_t newest_day);
+void morse_flipper_progress_history_view_cancel(MorseFlipperProgressHistoryView* view);
 uint8_t
     morse_flipper_progress_history_view_visible_rows(const MorseFlipperProgressHistoryView* view);
 MorseFlipperProgressHistoryMove morse_flipper_progress_history_view_scroll(

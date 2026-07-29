@@ -172,6 +172,75 @@ class SceneHandlerTableTest(unittest.TestCase):
         self.assertNotIn("InputKeyRight", offer)
         self.assertNotIn("InputKeyLeft", offer)
 
+    def test_progress_history_cancels_pending_navigation_on_context_changes(self) -> None:
+        input_source = INPUT.read_text(encoding="utf-8")
+        open_result = input_source[
+            input_source.index("static void morse_flipper_progress_open_history_result") :
+            input_source.index("static void\n    morse_flipper_progress_enter_page")
+        ]
+        self.assertIn(
+            "morse_flipper_progress_history_view_cancel(&app->progress_history);",
+            open_result,
+        )
+
+        enter_page = input_source[
+            input_source.index("static void\n    morse_flipper_progress_enter_page") :
+            input_source.index("static bool morse_flipper_progress_history_input")
+        ]
+        self.assertIn(
+            "morse_flipper_progress_history_view_cancel(&app->progress_history);",
+            enter_page,
+        )
+
+        history = input_source[
+            input_source.index("static bool morse_flipper_progress_history_input") :
+            input_source.index("void morse_flipper_tick_progress_history_scroll")
+        ]
+        self.assertIn(
+            "morse_flipper_progress_history_view_cancel(&app->progress_history);",
+            history,
+        )
+        self.assertIn("app->progress_history.pending_dir != dir", history)
+
+        tick = input_source[
+            input_source.index("void morse_flipper_tick_progress_history_scroll") :
+            input_source.index("static bool morse_flipper_progress_input")
+        ]
+        off_page = tick[
+            tick.index("if(app->screen != MorseFlipperScreenProgress") :
+            tick.index("if(app->progress_history.pending_dir != 0)")
+        ]
+        self.assertIn(
+            "morse_flipper_progress_history_view_cancel(&app->progress_history);",
+            off_page,
+        )
+
+        progress = input_source[
+            input_source.index("static bool morse_flipper_progress_input") :
+            input_source.index("static bool morse_flipper_streak_intro_input")
+        ]
+        back = progress.index("event->key == InputKeyBack")
+        cancel = progress.index(
+            "morse_flipper_progress_history_view_cancel(&app->progress_history);",
+            back,
+        )
+        switch = progress.index(
+            "scene_manager_search_and_switch_to_another_scene",
+            back,
+        )
+        self.assertLess(cancel, switch)
+
+        scenes = SCENES.read_text(encoding="utf-8")
+        on_exit = scenes[
+            scenes.index("static void morse_flipper_scene_progress_on_exit") :
+            scenes.index("static void morse_flipper_scene_tx_groups_on_enter")
+        ]
+        cancel = on_exit.index(
+            "morse_flipper_progress_history_view_cancel(&app->progress_history);"
+        )
+        preserve = on_exit.index("if(app->progress_debug_result) return;")
+        self.assertLess(cancel, preserve)
+
     def test_gpio_is_a_root_settings_page_not_a_keying_submenu(self) -> None:
         scenes = SCENES.read_text(encoding="utf-8")
         settings = scenes[
