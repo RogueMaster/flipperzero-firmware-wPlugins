@@ -446,9 +446,6 @@ typedef struct MorseFlipperApp {
     uint8_t gpio_ground_idx;
     uint8_t gpio_ptt_idx;
     uint8_t trainer_row;
-    uint8_t progress_row_count;
-    uint8_t progress_row_offset;
-    uint8_t progress_row_cursor;
     uint8_t progress_scroll_key;
     uint8_t progress_debug_prev_lesson;
     uint8_t progress_debug_prev_groups;
@@ -458,9 +455,7 @@ typedef struct MorseFlipperApp {
     uint32_t star_anim_next_redraw_ms;
     uint32_t streak_intro_until_ms;
     MorseFlipperProgressPage progress_page;
-    MorseFlipperProgressHistoryCursor progress_history;
-    MorseFlipperProgressHistoryNewerCursor progress_history_newer;
-    MorseFlipperProgressHistoryRow progress_rows[MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS];
+    MorseFlipperProgressHistoryView progress_history;
     MorseFlipperHamRuntimeState ham;
 
     /* Feature-local settings and cursors. Small integers are deliberate; this is a FAP. */

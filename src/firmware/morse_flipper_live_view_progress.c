@@ -166,10 +166,7 @@ static void morse_flipper_draw_progress_history(Canvas* canvas, MorseFlipperApp*
     canvas_draw_str(canvas, 4, 10, "Recent lessons");
     canvas_set_font(canvas, FontSecondary);
 
-    if(app->progress_row_offset < app->progress_row_count)
-        visible = (uint8_t)(app->progress_row_count - app->progress_row_offset);
-    if(visible > MORSE_FLIPPER_PROGRESS_HISTORY_ROWS)
-        visible = MORSE_FLIPPER_PROGRESS_HISTORY_ROWS;
+    visible = morse_flipper_progress_history_view_visible_rows(&app->progress_history);
 
     if(visible == 0U) {
         canvas_draw_str_aligned(canvas, 64, 34, AlignCenter, AlignCenter, "No lesson history yet");
@@ -179,8 +176,8 @@ static void morse_flipper_draw_progress_history(Canvas* canvas, MorseFlipperApp*
             morse_flipper_draw_progress_history_row(
                 canvas,
                 (uint8_t)(21U + (i * 9U)),
-                &app->progress_rows[app->progress_row_offset + i],
-                i == app->progress_row_cursor,
+                &app->progress_history.rows[app->progress_history.row_offset + i],
+                i == app->progress_history.row_cursor,
                 reference_year,
                 reference_month);
         }

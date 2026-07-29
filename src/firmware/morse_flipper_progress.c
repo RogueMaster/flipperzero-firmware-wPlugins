@@ -2,7 +2,7 @@
  * Purpose: Persist and summarise compact Listening progress.
  * Owns: progress math, progress.bin IO, history row IO, and app-scoped guards.
  * Depends on: morse_flipper_progress.h, trainer.h, paths, and Flipper storage in FAP builds.
- * Tests: firmware build; pure helpers are host-safe for future tests.
+ * Tests: firmware build and tests/test_progress.c.
  */
 
 #include "morse_flipper_progress.h"
@@ -1009,6 +1009,240 @@ bool morse_flipper_progress_history_load_newer(
     }
 
     return false;
+}
+
+/*
+ * The view cache contains one contiguous run of actual history rows. Its two
+ * storage cursors remain anchored immediately outside that run as either edge
+ * is evicted; Pending preserves one logical move across bounded scan slices.
+ */
+static void morse_flipper_progress_history_older_reset(
+    MorseFlipperProgressHistoryCursor* cursor,
+    const MorseFlipperProgressHistoryRow* from) {
+    if(cursor == NULL) return;
+    if(from == NULL || from->practice_day == MORSE_FLIPPER_PROGRESS_DAY_NONE) {
+        morse_flipper_progress_history_reset(cursor, MORSE_FLIPPER_PROGRESS_DAY_NONE);
+        return;
+    }
+
+    cursor->practice_day = from->practice_day;
+    cursor->line_from_end = from->line_from_end;
+    cursor->exhausted = false;
+    if(cursor->line_from_end < UINT16_MAX) {
+        cursor->line_from_end++;
+    } else {
+        morse_flipper_progress_history_prev_day(cursor);
+    }
+}
+
+uint8_t
+    morse_flipper_progress_history_view_visible_rows(const MorseFlipperProgressHistoryView* view) {
+    uint8_t visible;
+
+    if(view == NULL || view->row_offset >= view->row_count) return 0U;
+    visible = (uint8_t)(view->row_count - view->row_offset);
+    if(visible > MORSE_FLIPPER_PROGRESS_HISTORY_ROWS)
+        visible = MORSE_FLIPPER_PROGRESS_HISTORY_ROWS;
+    return visible;
+}
+
+static void
+    morse_flipper_progress_history_view_clamp_cursor(MorseFlipperProgressHistoryView* view) {
+    uint8_t visible;
+
+    if(view == NULL) return;
+    visible = morse_flipper_progress_history_view_visible_rows(view);
+    if(visible == 0U) {
+        view->row_offset = 0U;
+        view->row_cursor = 0U;
+        return;
+    }
+    if(view->row_cursor >= visible) view->row_cursor = (uint8_t)(visible - 1U);
+}
+
+static MorseFlipperProgressHistoryMove morse_flipper_progress_history_view_cache_older(
+    MorseFlipperProgressHistoryView* view,
+    bool* dropped_newest) {
+    MorseFlipperProgressHistoryRow row;
+
+    if(view == NULL) return MorseFlipperProgressHistoryBoundary;
+    if(dropped_newest != NULL) *dropped_newest = false;
+    if(view->older.exhausted) return MorseFlipperProgressHistoryBoundary;
+    if(morse_flipper_progress_history_load_more(&view->older, &row, 1U) == 0U) {
+        return view->older.exhausted ? MorseFlipperProgressHistoryBoundary :
+                                      MorseFlipperProgressHistoryPending;
+    }
+
+    if(view->row_count < MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS) {
+        view->rows[view->row_count++] = row;
+    } else {
+        memmove(
+            &view->rows[0],
+            &view->rows[1],
+            sizeof(view->rows[0]) * (MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS - 1U));
+        view->rows[MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS - 1U] = row;
+        if(dropped_newest != NULL) *dropped_newest = true;
+        morse_flipper_progress_history_newer_reset(
+            &view->newer, &view->rows[0], view->newest_day);
+    }
+
+    return MorseFlipperProgressHistoryMoved;
+}
+
+static MorseFlipperProgressHistoryMove
+    morse_flipper_progress_history_view_cache_newer(MorseFlipperProgressHistoryView* view) {
+    MorseFlipperProgressHistoryRow row;
+
+    if(view == NULL || view->row_count == 0U) return MorseFlipperProgressHistoryBoundary;
+    if(!view->newer.initialized || view->newer.newest_day != view->newest_day)
+        morse_flipper_progress_history_newer_reset(
+            &view->newer, &view->rows[0], view->newest_day);
+    if(!morse_flipper_progress_history_load_newer(&view->newer, &row)) {
+        return view->newer.exhausted ? MorseFlipperProgressHistoryBoundary :
+                                      MorseFlipperProgressHistoryPending;
+    }
+
+    if(view->row_count < MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS) {
+        memmove(
+            &view->rows[1],
+            &view->rows[0],
+            sizeof(view->rows[0]) * view->row_count);
+        view->rows[0] = row;
+        view->row_count++;
+    } else {
+        memmove(
+            &view->rows[1],
+            &view->rows[0],
+            sizeof(view->rows[0]) * (MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS - 1U));
+        view->rows[0] = row;
+        morse_flipper_progress_history_older_reset(
+            &view->older, &view->rows[MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS - 1U]);
+    }
+
+    return MorseFlipperProgressHistoryMoved;
+}
+
+static MorseFlipperProgressHistoryMove
+    morse_flipper_progress_history_view_step(MorseFlipperProgressHistoryView* view, int8_t dir) {
+    uint8_t visible;
+    uint8_t focus;
+
+    if(view == NULL || dir == 0) return MorseFlipperProgressHistoryBoundary;
+    if(view->row_count == 0U) {
+        if(dir < 0) return MorseFlipperProgressHistoryBoundary;
+        return morse_flipper_progress_history_view_cache_older(view, NULL);
+    }
+    visible = morse_flipper_progress_history_view_visible_rows(view);
+    if(visible == 0U) return MorseFlipperProgressHistoryBoundary;
+    morse_flipper_progress_history_view_clamp_cursor(view);
+
+    if(dir > 0) {
+        bool dropped_newest = false;
+        MorseFlipperProgressHistoryMove loaded;
+
+        if(view->row_cursor < 2U && view->row_cursor + 1U < visible) {
+            view->row_cursor++;
+            return MorseFlipperProgressHistoryMoved;
+        }
+
+        focus = (uint8_t)(view->row_offset + view->row_cursor);
+        if(view->older.exhausted && focus + 1U < view->row_count &&
+           focus + 1U == view->row_count - 1U && view->row_cursor + 1U < visible) {
+            view->row_cursor++;
+            return MorseFlipperProgressHistoryMoved;
+        }
+
+        if(focus + 1U >= view->row_count) {
+            loaded =
+                morse_flipper_progress_history_view_cache_older(view, &dropped_newest);
+            if(loaded != MorseFlipperProgressHistoryMoved) return loaded;
+        }
+
+        if(dropped_newest) return MorseFlipperProgressHistoryMoved;
+        if(view->row_offset + MORSE_FLIPPER_PROGRESS_HISTORY_ROWS < view->row_count) {
+            view->row_offset++;
+            return MorseFlipperProgressHistoryMoved;
+        }
+        if(view->row_cursor + 1U <
+           morse_flipper_progress_history_view_visible_rows(view)) {
+            view->row_cursor++;
+            return MorseFlipperProgressHistoryMoved;
+        }
+        return MorseFlipperProgressHistoryBoundary;
+    }
+
+    if(view->row_cursor > 1U) {
+        view->row_cursor--;
+        return MorseFlipperProgressHistoryMoved;
+    }
+    if(view->row_offset != 0U) {
+        view->row_offset--;
+        return MorseFlipperProgressHistoryMoved;
+    }
+
+    {
+        MorseFlipperProgressHistoryMove loaded =
+            morse_flipper_progress_history_view_cache_newer(view);
+        if(loaded != MorseFlipperProgressHistoryBoundary) return loaded;
+    }
+    if(view->row_cursor > 0U) {
+        view->row_cursor--;
+        return MorseFlipperProgressHistoryMoved;
+    }
+    return MorseFlipperProgressHistoryBoundary;
+}
+
+void morse_flipper_progress_history_view_reset(
+    MorseFlipperProgressHistoryView* view,
+    uint16_t newest_day) {
+    if(view == NULL) return;
+
+    memset(view, 0, sizeof(*view));
+    view->newest_day = newest_day;
+    morse_flipper_progress_history_reset(&view->older, newest_day);
+    morse_flipper_progress_history_newer_reset(&view->newer, NULL, newest_day);
+    if(newest_day == MORSE_FLIPPER_PROGRESS_DAY_NONE) return;
+
+    view->row_count = morse_flipper_progress_history_load_more(
+        &view->older, view->rows, MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS);
+    if(view->row_count != 0U)
+        morse_flipper_progress_history_newer_reset(
+            &view->newer, &view->rows[0], newest_day);
+}
+
+MorseFlipperProgressHistoryMove morse_flipper_progress_history_view_scroll(
+    MorseFlipperProgressHistoryView* view,
+    int8_t dir) {
+    MorseFlipperProgressHistoryMove result;
+
+    if(view == NULL || dir == 0) return MorseFlipperProgressHistoryBoundary;
+    dir = dir > 0 ? 1 : -1;
+    if(view->pending_dir != 0 && view->pending_dir != dir) view->pending_dir = 0;
+    result = morse_flipper_progress_history_view_step(view, dir);
+    view->pending_dir = result == MorseFlipperProgressHistoryPending ? dir : 0;
+    return result;
+}
+
+MorseFlipperProgressHistoryMove
+    morse_flipper_progress_history_view_continue(MorseFlipperProgressHistoryView* view) {
+    MorseFlipperProgressHistoryMove result;
+    int8_t dir;
+
+    if(view == NULL || view->pending_dir == 0) return MorseFlipperProgressHistoryBoundary;
+    dir = view->pending_dir;
+    result = morse_flipper_progress_history_view_step(view, dir);
+    view->pending_dir = result == MorseFlipperProgressHistoryPending ? dir : 0;
+    return result;
+}
+
+const MorseFlipperProgressHistoryRow* morse_flipper_progress_history_view_focused(
+    const MorseFlipperProgressHistoryView* view) {
+    uint8_t row;
+
+    if(view == NULL) return NULL;
+    row = (uint8_t)(view->row_offset + view->row_cursor);
+    if(row >= view->row_count) return NULL;
+    return &view->rows[row];
 }
 
 #ifdef MORSE_FLIPPER_FAP

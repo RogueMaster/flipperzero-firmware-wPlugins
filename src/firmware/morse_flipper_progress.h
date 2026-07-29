@@ -79,6 +79,23 @@ typedef struct {
     uint8_t percent;
 } MorseFlipperProgressHistoryRow;
 
+typedef enum {
+    MorseFlipperProgressHistoryBoundary = 0,
+    MorseFlipperProgressHistoryMoved,
+    MorseFlipperProgressHistoryPending,
+} MorseFlipperProgressHistoryMove;
+
+typedef struct {
+    MorseFlipperProgressHistoryCursor older;
+    MorseFlipperProgressHistoryNewerCursor newer;
+    MorseFlipperProgressHistoryRow rows[MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS];
+    uint16_t newest_day;
+    uint8_t row_count;
+    uint8_t row_offset;
+    uint8_t row_cursor;
+    int8_t pending_dir;
+} MorseFlipperProgressHistoryView;
+
 void morse_flipper_progress_reset(MorseFlipperProgress* progress);
 bool morse_flipper_progress_valid(const MorseFlipperProgress* progress);
 uint8_t morse_flipper_progress_stars(uint8_t percent);
@@ -169,3 +186,15 @@ uint8_t morse_flipper_progress_history_load_more(
 bool morse_flipper_progress_history_load_newer(
     MorseFlipperProgressHistoryNewerCursor* cursor,
     MorseFlipperProgressHistoryRow* out);
+void morse_flipper_progress_history_view_reset(
+    MorseFlipperProgressHistoryView* view,
+    uint16_t newest_day);
+uint8_t
+    morse_flipper_progress_history_view_visible_rows(const MorseFlipperProgressHistoryView* view);
+MorseFlipperProgressHistoryMove morse_flipper_progress_history_view_scroll(
+    MorseFlipperProgressHistoryView* view,
+    int8_t dir);
+MorseFlipperProgressHistoryMove
+    morse_flipper_progress_history_view_continue(MorseFlipperProgressHistoryView* view);
+const MorseFlipperProgressHistoryRow* morse_flipper_progress_history_view_focused(
+    const MorseFlipperProgressHistoryView* view);

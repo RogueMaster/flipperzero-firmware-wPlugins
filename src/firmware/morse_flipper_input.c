@@ -642,27 +642,12 @@ static void morse_flipper_progress_load_recent(MorseFlipperApp* app) {
     bool today_valid;
 
     if(app == NULL) return;
-    app->progress_row_count = 0U;
-    app->progress_row_offset = 0U;
-    app->progress_row_cursor = 0U;
     app->progress_scroll_key = 0xFFU;
     app->progress_scroll_started_ms = 0U;
     app->progress_scroll_next_ms = 0U;
     today_valid = morse_flipper_progress_today(&today);
     day = morse_flipper_progress_history_start_day(app->view_progress, today_valid, today);
-    morse_flipper_progress_history_newer_reset(&app->progress_history_newer, NULL, day);
-    if(day == MORSE_FLIPPER_PROGRESS_DAY_NONE) {
-        morse_flipper_progress_history_reset(
-            &app->progress_history, MORSE_FLIPPER_PROGRESS_DAY_NONE);
-        return;
-    }
-
-    morse_flipper_progress_history_reset(&app->progress_history, day);
-    app->progress_row_count = morse_flipper_progress_history_load_more(
-        &app->progress_history, app->progress_rows, MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS);
-    if(app->progress_row_count != 0U)
-        morse_flipper_progress_history_newer_reset(
-            &app->progress_history_newer, &app->progress_rows[0], day);
+    morse_flipper_progress_history_view_reset(&app->progress_history, day);
 }
 
 static void morse_flipper_progress_reset_scroll_repeat(MorseFlipperApp* app) {
@@ -682,173 +667,16 @@ static uint16_t
     return MORSE_FLIPPER_PROGRESS_SCROLL_BASE_MS;
 }
 
-static uint8_t morse_flipper_progress_visible_history_rows(const MorseFlipperApp* app) {
-    uint8_t visible;
-
-    if(app == NULL || app->progress_row_offset >= app->progress_row_count) return 0U;
-    visible = (uint8_t)(app->progress_row_count - app->progress_row_offset);
-    if(visible > MORSE_FLIPPER_PROGRESS_HISTORY_ROWS)
-        visible = MORSE_FLIPPER_PROGRESS_HISTORY_ROWS;
-    return visible;
-}
-
-static void morse_flipper_progress_clamp_history_cursor(MorseFlipperApp* app) {
-    uint8_t visible;
-
-    if(app == NULL) return;
-    visible = morse_flipper_progress_visible_history_rows(app);
-    if(visible == 0U) {
-        app->progress_row_offset = 0U;
-        app->progress_row_cursor = 0U;
-        return;
-    }
-    if(app->progress_row_cursor >= visible) app->progress_row_cursor = (uint8_t)(visible - 1U);
-}
-
-static bool morse_flipper_progress_cache_older_one(MorseFlipperApp* app, bool* dropped_newest) {
-    MorseFlipperProgressHistoryRow row;
-
-    if(app == NULL) return false;
-    if(dropped_newest != NULL) *dropped_newest = false;
-    if(app->progress_history.exhausted) return false;
-    if(morse_flipper_progress_history_load_more(&app->progress_history, &row, 1U) == 0U)
-        return false;
-
-    if(app->progress_row_count < MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS) {
-        app->progress_rows[app->progress_row_count++] = row;
-    } else {
-        memmove(
-            &app->progress_rows[0],
-            &app->progress_rows[1],
-            sizeof(app->progress_rows[0]) * (MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS - 1U));
-        app->progress_rows[MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS - 1U] = row;
-        if(dropped_newest != NULL) *dropped_newest = true;
-        morse_flipper_progress_history_newer_reset(
-            &app->progress_history_newer,
-            &app->progress_rows[0],
-            app->progress_history_newer.newest_day);
-    }
-
-    return true;
-}
-
-static bool morse_flipper_progress_cache_newer_one(MorseFlipperApp* app) {
-    MorseFlipperProgressHistoryRow row;
-    uint16_t today = MORSE_FLIPPER_PROGRESS_DAY_NONE;
-    uint16_t newest_day;
-    bool today_valid;
-
-    if(app == NULL || app->progress_row_count == 0U) return false;
-    today_valid = morse_flipper_progress_today(&today);
-    newest_day = morse_flipper_progress_history_start_day(app->view_progress, today_valid, today);
-    if(newest_day == MORSE_FLIPPER_PROGRESS_DAY_NONE) {
-        morse_flipper_progress_history_newer_reset(&app->progress_history_newer, NULL, newest_day);
-        return false;
-    }
-    if(!app->progress_history_newer.initialized ||
-       app->progress_history_newer.newest_day != newest_day)
-        morse_flipper_progress_history_newer_reset(
-            &app->progress_history_newer, &app->progress_rows[0], newest_day);
-    if(!morse_flipper_progress_history_load_newer(&app->progress_history_newer, &row))
-        return false;
-
-    if(app->progress_row_count < MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS) {
-        memmove(
-            &app->progress_rows[1],
-            &app->progress_rows[0],
-            sizeof(app->progress_rows[0]) * app->progress_row_count);
-        app->progress_rows[0] = row;
-        app->progress_row_count++;
-    } else {
-        memmove(
-            &app->progress_rows[1],
-            &app->progress_rows[0],
-            sizeof(app->progress_rows[0]) * (MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS - 1U));
-        app->progress_rows[0] = row;
-    }
-
-    return true;
-}
-
 static bool morse_flipper_progress_scroll_history(MorseFlipperApp* app, int8_t dir) {
-    uint8_t visible;
-    uint8_t focus;
-
     if(app == NULL) return false;
-    if(app->progress_row_count == 0U) {
-        if(dir < 0) return false;
-        return morse_flipper_progress_cache_older_one(app, NULL);
-    }
-    visible = morse_flipper_progress_visible_history_rows(app);
-    if(visible == 0U) return false;
-    morse_flipper_progress_clamp_history_cursor(app);
-
-    if(dir > 0) {
-        bool dropped_newest = false;
-
-        if(app->progress_row_cursor < 2U && app->progress_row_cursor + 1U < visible) {
-            app->progress_row_cursor++;
-            return true;
-        }
-
-        focus = (uint8_t)(app->progress_row_offset + app->progress_row_cursor);
-        if(app->progress_history.exhausted && focus + 1U < app->progress_row_count &&
-           focus + 1U == app->progress_row_count - 1U && app->progress_row_cursor + 1U < visible) {
-            app->progress_row_cursor++;
-            return true;
-        }
-
-        if(focus + 1U >= app->progress_row_count &&
-           !morse_flipper_progress_cache_older_one(app, &dropped_newest)) {
-            if(app->progress_row_cursor + 1U < visible) {
-                app->progress_row_cursor++;
-                return true;
-            }
-            return false;
-        }
-
-        if(dropped_newest) {
-            return true;
-        }
-        if(app->progress_row_offset + MORSE_FLIPPER_PROGRESS_HISTORY_ROWS <
-           app->progress_row_count) {
-            app->progress_row_offset++;
-            return true;
-        }
-        if(app->progress_row_cursor + 1U < morse_flipper_progress_visible_history_rows(app)) {
-            app->progress_row_cursor++;
-            return true;
-        }
-        return false;
-    }
-
-    if(app->progress_row_cursor > 1U) {
-        app->progress_row_cursor--;
-        return true;
-    }
-
-    if(app->progress_row_offset != 0U) {
-        app->progress_row_offset--;
-        return true;
-    }
-
-    if(morse_flipper_progress_cache_newer_one(app)) return true;
-
-    if(app->progress_row_cursor > 0U) {
-        app->progress_row_cursor--;
-        return true;
-    }
-    return false;
+    return morse_flipper_progress_history_view_scroll(&app->progress_history, dir) ==
+           MorseFlipperProgressHistoryMoved;
 }
 
 static const MorseFlipperProgressHistoryRow*
     morse_flipper_progress_focused_history_row(const MorseFlipperApp* app) {
-    uint8_t row;
-
     if(app == NULL) return NULL;
-    row = (uint8_t)(app->progress_row_offset + app->progress_row_cursor);
-    if(row >= app->progress_row_count) return NULL;
-    return &app->progress_rows[row];
+    return morse_flipper_progress_history_view_focused(&app->progress_history);
 }
 
 static void morse_flipper_progress_open_history_result(MorseFlipperApp* app) {
@@ -946,12 +774,18 @@ static bool morse_flipper_progress_history_input(MorseFlipperApp* app, const Inp
 }
 
 void morse_flipper_tick_progress_history_scroll(MorseFlipperApp* app, uint32_t now_ms) {
+    MorseFlipperProgressHistoryMove pending;
     int8_t dir;
 
     if(app == NULL) return;
     if(app->screen != MorseFlipperScreenProgress ||
        app->progress_page != MorseFlipperProgressPageHistory) {
         morse_flipper_progress_reset_scroll_repeat(app);
+        return;
+    }
+    if(app->progress_history.pending_dir != 0) {
+        pending = morse_flipper_progress_history_view_continue(&app->progress_history);
+        if(pending == MorseFlipperProgressHistoryMoved) morse_flipper_view_dirty(app);
         return;
     }
     if(app->progress_scroll_key != InputKeyUp && app->progress_scroll_key != InputKeyDown) return;
