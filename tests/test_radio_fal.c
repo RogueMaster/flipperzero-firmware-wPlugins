@@ -323,13 +323,13 @@ int main(void) {
     fake.rssi = -106;
     tick_samples(&state, &now, MF_RADIO_RX_CAL_SAMPLES - 4U);
     assert(!state.rx_calibrating);
-    assert(state.snapshot.monitor_threshold_dbm == -100);
+    assert(state.snapshot.monitor_threshold_dbm == -99);
     assert(!state.rx_level && !state.snapshot.monitor_tone && state.ticker.count == 0U);
     fake.rssi = -65;
     tick_samples(&state, &now, MF_RADIO_RX_STABLE_SAMPLES);
     assert(mf_radio_core_snapshot(&state, &snapshot));
     assert(snapshot.monitor_tone);
-    assert(snapshot.monitor_threshold_dbm == -100);
+    assert(snapshot.monitor_threshold_dbm == -99);
     rx_draws = 0U;
     box_draws = 0U;
     draw_log[0] = '\0';
@@ -387,7 +387,7 @@ int main(void) {
         &state,
         &now,
         MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
-    assert(state.snapshot.monitor_threshold_dbm == -73);
+    assert(state.snapshot.monitor_threshold_dbm == -72);
     mf_radio_core_set_page(&state, MfRadioPageIdle, now);
     mf_radio_core_set_page(&state, MfRadioPageReceive, now);
     assert(state.rx_calibrating && state.snapshot.monitor_threshold_dbm == -95);
@@ -404,11 +404,11 @@ int main(void) {
         &state,
         &now,
         MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
-    assert(state.snapshot.monitor_threshold_dbm == -59);
+    assert(state.snapshot.monitor_threshold_dbm == -58);
     assert(state.rx_recovery_pending && !state.snapshot.monitor_tone);
     input = event(InputKeyLeft, InputTypeShort);
     mf_radio_core_input(&state, &input, now);
-    assert(state.snapshot.monitor_threshold_dbm == -60);
+    assert(state.snapshot.monitor_threshold_dbm == -59);
     fake.rssi = -50;
     tick_samples(&state, &now, MF_RADIO_RX_STABLE_SAMPLES);
     assert(state.snapshot.monitor_tone);
@@ -420,11 +420,11 @@ int main(void) {
         &state,
         &now,
         MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES - 2U);
-    assert(state.rx_recovery_pending && state.snapshot.monitor_threshold_dbm == -60);
+    assert(state.rx_recovery_pending && state.snapshot.monitor_threshold_dbm == -59);
     assert(!state.snapshot.monitor_tone);
     tick_samples(&state, &now, 1U);
     assert(!state.rx_recovery_pending);
-    assert(state.snapshot.monitor_threshold_dbm == -101);
+    assert(state.snapshot.monitor_threshold_dbm == -100);
     assert(!state.snapshot.monitor_tone);
     mf_radio_core_leave(&state);
 
@@ -437,7 +437,7 @@ int main(void) {
         &state,
         &now,
         MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
-    assert(state.snapshot.monitor_threshold_dbm == -94);
+    assert(state.snapshot.monitor_threshold_dbm == -93);
     fake.carrier = false;
     fake.rssi = -70;
     tick_samples(
@@ -445,7 +445,7 @@ int main(void) {
         &now,
         MF_RADIO_RX_CAL_SETTLE_SAMPLES + MF_RADIO_RX_CAL_SAMPLES);
     assert(!state.rx_recovery_pending);
-    assert(state.snapshot.monitor_threshold_dbm == -94);
+    assert(state.snapshot.monitor_threshold_dbm == -93);
     mf_radio_core_leave(&state);
 
     /* Valid threshold limits still apply at both ends of the RSSI range. */

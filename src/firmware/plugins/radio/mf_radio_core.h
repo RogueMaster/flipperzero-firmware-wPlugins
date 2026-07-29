@@ -16,10 +16,10 @@
 #define MF_RADIO_RX_AUTO_WPM_SAMPLES  3U
 #define MF_RADIO_RSSI_WINDOW_MS       160U
 #define MF_RADIO_RSSI_PEAK_DECAY_MS   240U
-/* Ignore eight startup samples, then use a 16-sample median plus a 6 dB margin. */
+/* Ignore eight startup samples, then use a 16-sample median plus a 7 dB margin. */
 #define MF_RADIO_RX_CAL_SETTLE_SAMPLES 8U
 #define MF_RADIO_RX_CAL_SAMPLES        16U
-#define MF_RADIO_RX_FLOOR_MARGIN_DB    6
+#define MF_RADIO_RX_FLOOR_MARGIN_DB    7
 #define MF_RADIO_TX_TAIL_DITS          2U
 
 typedef struct {
