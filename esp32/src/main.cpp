@@ -53,7 +53,7 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-#define WOL_FW_VERSION   8
+#define WOL_FW_VERSION   9
 #define LINE_MAX         320
 #define MAX_FIELDS       8
 #define WIFI_TIMEOUT_MS  20000
@@ -266,6 +266,12 @@ static bool wifi_up(const char* ssid, const char* pass) {
     return udp_started;
 }
 
+static bool send_one(IPAddress dst, uint16_t port, const uint8_t* packet, size_t len) {
+    if(udp.beginPacket(dst, port) != 1) return false;
+    udp.write(packet, len);
+    return udp.endPacket() == 1;
+}
+
 static bool send_magic_packet(const uint8_t* mac, IPAddress target, uint16_t port) {
     uint8_t packet[WOL_PACKET_SIZE];
     memset(packet, 0xFF, 6);
@@ -273,16 +279,49 @@ static bool send_magic_packet(const uint8_t* mac, IPAddress target, uint16_t por
         memcpy(packet + 6 + i * 6, mac, 6);
     }
 
-    size_t sent = 0;
-    for(size_t i = 0; i < WOL_REPEAT; i++) {
-        if(udp.beginPacket(target, port) != 1) continue;
-        udp.write(packet, sizeof(packet));
-        if(udp.endPacket() == 1) sent++;
-        delay(100);
+    /* wifi_up() returns early when the association is already there, so the
+     * socket may never have been opened. beginPacket() would make one anyway,
+     * but then nothing is bound to a local port. */
+    if(!udp_started) udp_started = udp.begin(UDP_LOCAL_PORT);
+
+    /*
+     * Aim at the configured address and at the subnet directed broadcast.
+     * The packet leaves from a Wi-Fi client, and access points differ in which
+     * of the two they bridge onto the wired segment: 255.255.255.255 is
+     * commonly dropped while 192.168.x.255 goes through. A WoL sender running
+     * on a wired PC never runs into this, which is why the same MAC and port
+     * can work there and do nothing from here.
+     */
+    IPAddress destinations[2];
+    size_t count = 0;
+    destinations[count++] = target;
+
+    IPAddress local = WiFi.localIP();
+    IPAddress mask = WiFi.subnetMask();
+    if((uint32_t)mask != 0) {
+        IPAddress directed(
+            local[0] | (uint8_t)~mask[0],
+            local[1] | (uint8_t)~mask[1],
+            local[2] | (uint8_t)~mask[2],
+            local[3] | (uint8_t)~mask[3]);
+        if(directed != target) destinations[count++] = directed;
     }
 
-    Serial.printf("+SEND %u\n", (unsigned)sent);
-    return sent > 0;
+    size_t ok = 0;
+    size_t attempts = 0;
+    for(size_t i = 0; i < WOL_REPEAT; i++) {
+        for(size_t d = 0; d < count; d++) {
+            attempts++;
+            if(send_one(destinations[d], port, packet, sizeof(packet))) ok++;
+            delay(40);
+        }
+    }
+
+    Serial.printf("+SEND %u/%u %s", (unsigned)ok, (unsigned)attempts, destinations[0].toString().c_str());
+    if(count > 1) Serial.printf(" %s", destinations[1].toString().c_str());
+    Serial.printf(" port %u\n", (unsigned)port);
+
+    return ok > 0;
 }
 
 static void reply_ok(void) {
