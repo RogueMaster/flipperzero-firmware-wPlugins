@@ -77,7 +77,8 @@ static bool wol_target_parse(const char* line, WolTarget* target) {
         }
     }
 
-    while(*line == ' ') line++;
+    while(*line == ' ')
+        line++;
     size_t n = 0;
     while(*line && *line != ' ' && n < WOL_IP_LEN - 1) {
         target->ip[n++] = *line++;
@@ -85,14 +86,16 @@ static bool wol_target_parse(const char* line, WolTarget* target) {
     target->ip[n] = '\0';
     if(!wol_ip_is_valid(target->ip)) return false;
 
-    while(*line == ' ') line++;
+    while(*line == ' ')
+        line++;
     char* end = NULL;
     long port = strtol(line, &end, 10);
     if(end == line || port < 0 || port > 65535) return false;
     target->port = (uint16_t)port;
     line = end;
 
-    while(*line == ' ') line++;
+    while(*line == ' ')
+        line++;
     wol_strcpy(target->name, WOL_NAME_LEN, line);
     if(target->name[0] == '\0') {
         wol_mac_to_str(target->mac, target->name, WOL_NAME_LEN);

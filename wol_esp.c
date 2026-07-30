@@ -14,8 +14,8 @@
 #define ESP_RX_BUF    1024
 #define ESP_ACC_LIMIT 2048
 
-#define ESP_TOKEN_OK   "\nOK\n"
-#define ESP_TOKEN_ERR  "\nERR"
+#define ESP_TOKEN_OK  "\nOK\n"
+#define ESP_TOKEN_ERR "\nERR"
 
 #define ESP_PROGRESS_WIFI_BIT (1 << 0)
 #define ESP_PROGRESS_SEND_BIT (1 << 1)
@@ -32,7 +32,8 @@ struct WolEsp {
     bool opened;
 };
 
-static void wol_esp_rx_callback(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* ctx) {
+static void
+    wol_esp_rx_callback(FuriHalSerialHandle* handle, FuriHalSerialRxEvent event, void* ctx) {
     WolEsp* esp = ctx;
     if(event & FuriHalSerialRxEventData) {
         uint8_t byte = furi_hal_serial_async_rx(handle);
@@ -271,10 +272,12 @@ WolEspResult wol_esp_scan(WolEsp* esp, WolEspAp* out, uint8_t capacity, uint8_t*
         long rssi = strtol(cursor, &end, 10);
         if(end == cursor) break;
         cursor = end;
-        while(*cursor == ' ') cursor++;
+        while(*cursor == ' ')
+            cursor++;
 
         size_t len = 0;
-        while(cursor[len] && cursor[len] != '\n' && cursor[len] != '\r') len++;
+        while(cursor[len] && cursor[len] != '\n' && cursor[len] != '\r')
+            len++;
         if(len == 0) continue;
         if(len >= WOL_SSID_LEN) len = WOL_SSID_LEN - 1;
 

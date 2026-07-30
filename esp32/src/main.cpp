@@ -53,20 +53,18 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-#define WOL_FW_VERSION   9
-#define LINE_MAX         320
-#define MAX_FIELDS       8
-#define WIFI_TIMEOUT_MS  20000
-#define WOL_PACKET_SIZE  102
-#define WOL_REPEAT       3
-#define UDP_LOCAL_PORT   40000
+#define WOL_FW_VERSION  9
+#define LINE_MAX        320
+#define MAX_FIELDS      8
+#define WIFI_TIMEOUT_MS 20000
+#define WOL_PACKET_SIZE 102
+#define WOL_REPEAT      3
+#define UDP_LOCAL_PORT  40000
 
 /*
  * Discrete RGB LED, same pins Marauder uses for its MARAUDER_FLIPPER target.
- * The polarity of the part is not documented anywhere I could check, so every
- * signal below is a blink rather than a steady level: an inverted LED still
- * blinks, and the only question worth answering here is whether the firmware
- * is alive at all.
+ * Signals are blinks rather than steady levels, which also keeps them readable
+ * if a board ever turns out to be wired the other way round.
  */
 #define LED_B_PIN 4
 #define LED_G_PIN 5
@@ -317,7 +315,8 @@ static bool send_magic_packet(const uint8_t* mac, IPAddress target, uint16_t por
         }
     }
 
-    Serial.printf("+SEND %u/%u %s", (unsigned)ok, (unsigned)attempts, destinations[0].toString().c_str());
+    Serial.printf(
+        "+SEND %u/%u %s", (unsigned)ok, (unsigned)attempts, destinations[0].toString().c_str());
     if(count > 1) Serial.printf(" %s", destinations[1].toString().c_str());
     Serial.printf(" port %u\n", (unsigned)port);
 

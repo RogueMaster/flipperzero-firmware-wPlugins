@@ -52,7 +52,8 @@ static void wol_scene_target_edit_build(WolApp* app, const char* header) {
         app->submenu, edit_label_name, EditIndexName, wol_scene_target_edit_callback, app);
     submenu_add_item(
         app->submenu, edit_label_mac, EditIndexMac, wol_scene_target_edit_callback, app);
-    submenu_add_item(app->submenu, edit_label_ip, EditIndexIp, wol_scene_target_edit_callback, app);
+    submenu_add_item(
+        app->submenu, edit_label_ip, EditIndexIp, wol_scene_target_edit_callback, app);
     submenu_add_item(
         app->submenu, edit_label_port, EditIndexPort, wol_scene_target_edit_callback, app);
     submenu_add_item(app->submenu, "Save", EditIndexSave, wol_scene_target_edit_callback, app);

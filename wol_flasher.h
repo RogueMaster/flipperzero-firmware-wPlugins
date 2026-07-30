@@ -37,10 +37,7 @@ typedef enum {
     WolFlasherStageVerify,
 } WolFlasherStage;
 
-typedef void (*WolFlasherProgressCallback)(
-    void* context,
-    WolFlasherStage stage,
-    uint8_t percent);
+typedef void (*WolFlasherProgressCallback)(void* context, WolFlasherStage stage, uint8_t percent);
 
 typedef struct {
     const char* path;

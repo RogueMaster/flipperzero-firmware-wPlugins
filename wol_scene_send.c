@@ -69,7 +69,8 @@ static void wol_send_copy_line(WolApp* app, WolEsp* esp, const char* prefix) {
     if(!start) return;
 
     size_t len = 0;
-    while(start[len] && start[len] != '\n') len++;
+    while(start[len] && start[len] != '\n')
+        len++;
     if(len >= sizeof(app->worker_info)) len = sizeof(app->worker_info) - 1;
 
     memcpy(app->worker_info, start, len);
@@ -110,8 +111,7 @@ static int32_t wol_send_worker(void* context) {
         if(app->worker_cancel) break;
 
         if(app->wake_op == WolWakeOpPing) {
-            snprintf(
-                app->worker_info, sizeof(app->worker_info), "Firmware v%u alive", version);
+            snprintf(app->worker_info, sizeof(app->worker_info), "Firmware v%u alive", version);
             wol_send_report(app, WolSendStepDone);
             break;
         }
@@ -131,12 +131,7 @@ static int32_t wol_send_worker(void* context) {
             result = wol_esp_join(esp, app->config.ssid, app->config.pass);
         } else {
             result = wol_esp_wake(
-                esp,
-                app->config.ssid,
-                app->config.pass,
-                target->mac,
-                target->ip,
-                target->port);
+                esp, app->config.ssid, app->config.pass, target->mac, target->ip, target->port);
         }
         if(app->worker_cancel) break;
 

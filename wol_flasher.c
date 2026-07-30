@@ -151,11 +151,9 @@ static void wol_port_log(
 
 static void wol_flasher_lines_init(void) {
     furi_hal_gpio_write(FLASHER_DTR_PIN, false);
-    furi_hal_gpio_init(
-        FLASHER_DTR_PIN, GpioModeOutputPushPull, GpioPullDown, GpioSpeedVeryHigh);
+    furi_hal_gpio_init(FLASHER_DTR_PIN, GpioModeOutputPushPull, GpioPullDown, GpioSpeedVeryHigh);
     furi_hal_gpio_write(FLASHER_RTS_PIN, false);
-    furi_hal_gpio_init(
-        FLASHER_RTS_PIN, GpioModeOutputPushPull, GpioPullDown, GpioSpeedVeryHigh);
+    furi_hal_gpio_init(FLASHER_RTS_PIN, GpioModeOutputPushPull, GpioPullDown, GpioSpeedVeryHigh);
 }
 
 static void wol_flasher_lines_release(void) {
@@ -209,8 +207,7 @@ static bool wol_flasher_cancelled(WolFlasher* flasher) {
     return flasher->cancel && *flasher->cancel;
 }
 
-static void
-    wol_flasher_report(WolFlasher* flasher, WolFlasherStage stage, uint8_t percent) {
+static void wol_flasher_report(WolFlasher* flasher, WolFlasherStage stage, uint8_t percent) {
     if(flasher->progress_callback) {
         flasher->progress_callback(flasher->progress_context, stage, percent);
     }
@@ -368,9 +365,8 @@ WolFlasherResult wol_flasher_connect(WolFlasher* flasher) {
         }
     }
 
-    if(!sized &&
-       esp_loader_flash_detect_size(&flasher->loader, &flasher->flash_size) !=
-           ESP_LOADER_SUCCESS) {
+    if(!sized && esp_loader_flash_detect_size(&flasher->loader, &flasher->flash_size) !=
+                     ESP_LOADER_SUCCESS) {
         // every board shipped so far carries 4 MB; keep going with that
         flasher->flash_size = 4 * 1024 * 1024;
     }

@@ -82,7 +82,7 @@ typedef enum {
     WolSendStepCount,
 } WolSendStep;
 
-#define WOL_EVENT_SEND_BASE 0x100
+#define WOL_EVENT_SEND_BASE  0x100
 #define WOL_EVENT_SEND(step) (WOL_EVENT_SEND_BASE + (uint32_t)(step))
 
 /** What the flasher scene was entered to do. */
@@ -98,7 +98,7 @@ typedef enum {
 #define WOL_EVENT_FLASH_BASE 0x1000
 #define WOL_EVENT_FLASH(stage, percent) \
     (WOL_EVENT_FLASH_BASE + ((uint32_t)(stage) << 8) + (uint32_t)(percent))
-#define WOL_EVENT_FLASH_DONE_BASE 0x2000
+#define WOL_EVENT_FLASH_DONE_BASE    0x2000
 #define WOL_EVENT_FLASH_DONE(result) (WOL_EVENT_FLASH_DONE_BASE + (uint32_t)(result))
 
 typedef struct {

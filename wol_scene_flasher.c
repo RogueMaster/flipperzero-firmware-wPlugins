@@ -95,9 +95,7 @@ static int32_t wol_flasher_worker(void* context) {
     if(result == WolFlasherErrNoBoard) {
         // the auto reset lines are only on the official board
         snprintf(
-            app->worker_info,
-            sizeof(app->worker_info),
-            "Hold BOOT, tap RESET,\nthen try again");
+            app->worker_info, sizeof(app->worker_info), "Hold BOOT, tap RESET,\nthen try again");
     }
 
     if(result == WolFlasherOk) {
@@ -205,9 +203,7 @@ bool wol_scene_flasher_on_event(void* context, SceneManagerEvent event) {
                 app->worker_info);
         } else {
             wol_strcpy(
-                app->status_text,
-                sizeof(app->status_text),
-                wol_flasher_result_text(result));
+                app->status_text, sizeof(app->status_text), wol_flasher_result_text(result));
         }
 
         popup_set_text(app->popup, app->status_text, 64, 26, AlignCenter, AlignTop);

@@ -2,12 +2,12 @@
 
 #include <furi.h>
 
-#define WOL_NAME_LEN     24
-#define WOL_IP_LEN       16
-#define WOL_SSID_LEN     33
-#define WOL_PASS_LEN     65
-#define WOL_MAX_TARGETS  16
-#define WOL_PACKET_SIZE  102
+#define WOL_NAME_LEN    24
+#define WOL_IP_LEN      16
+#define WOL_SSID_LEN    33
+#define WOL_PASS_LEN    65
+#define WOL_MAX_TARGETS 16
+#define WOL_PACKET_SIZE 102
 
 typedef struct {
     char name[WOL_NAME_LEN];
