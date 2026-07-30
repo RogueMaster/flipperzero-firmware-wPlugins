@@ -78,7 +78,7 @@ bool wol_scene_board_on_event(void* context, SceneManagerEvent event) {
         return false;
     }
 
-    scene_manager_next_scene(app->scene_manager, WolSceneBootMode);
+    scene_manager_next_scene(app->scene_manager, WolSceneFlasher);
     return true;
 }
 

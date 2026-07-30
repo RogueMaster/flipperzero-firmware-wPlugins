@@ -7,9 +7,9 @@
  * ESP32-S2 flasher built on esp-serial-flasher, talking to the dev board over
  * the same USART the WoL protocol uses.
  *
- * The board has to be put into its ROM bootloader by hand before connecting
- * (hold BOOT, tap RESET, release BOOT): the Flipper header carries no DTR/RTS,
- * so there is nothing to toggle from this side.
+ * The official board exposes its reset and strapping lines on header pins 7 and
+ * 6, so bootloader entry is automatic. Boards that leave those unconnected need
+ * the manual sequence: hold BOOT, tap RESET, release BOOT.
  *
  * All calls are blocking and belong on a worker thread.
  */
@@ -63,6 +63,9 @@ uint32_t wol_flasher_get_flash_size(const WolFlasher* flasher);
 const char* wol_flasher_get_chip_name(const WolFlasher* flasher);
 bool wol_flasher_is_stub_running(const WolFlasher* flasher);
 uint32_t wol_flasher_get_transmission_rate(const WolFlasher* flasher);
+
+/** Pulse the reset line so the target leaves the bootloader and runs the app. */
+void wol_flasher_reset_target(WolFlasher* flasher);
 
 /** Dump the entire flash chip to path. */
 WolFlasherResult wol_flasher_backup(WolFlasher* flasher, const char* path);

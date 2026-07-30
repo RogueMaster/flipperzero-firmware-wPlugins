@@ -91,6 +91,14 @@ static int32_t wol_flasher_worker(void* context) {
 
     result = wol_flasher_connect(flasher);
 
+    if(result == WolFlasherErrNoBoard) {
+        // the auto reset lines are only on the official board
+        snprintf(
+            app->worker_info,
+            sizeof(app->worker_info),
+            "Hold BOOT, tap RESET,\nthen try again");
+    }
+
     if(result == WolFlasherOk) {
         switch(app->flasher_op) {
         case WolFlasherOpInfo:
@@ -107,10 +115,8 @@ static int32_t wol_flasher_worker(void* context) {
         case WolFlasherOpFlashFirmware:
             result = wol_flasher_do_flash_firmware(app, flasher);
             if(result == WolFlasherOk) {
-                snprintf(
-                    app->worker_info,
-                    sizeof(app->worker_info),
-                    "Press RESET on the board");
+                wol_flasher_reset_target(flasher);
+                snprintf(app->worker_info, sizeof(app->worker_info), "Board reset");
             }
             break;
 
@@ -136,10 +142,8 @@ static int32_t wol_flasher_worker(void* context) {
             const WolFlasherImage image = {furi_string_get_cstr(app->flasher_path), 0};
             result = wol_flasher_write_images(flasher, &image, 1);
             if(result == WolFlasherOk) {
-                snprintf(
-                    app->worker_info,
-                    sizeof(app->worker_info),
-                    "Press RESET on the board");
+                wol_flasher_reset_target(flasher);
+                snprintf(app->worker_info, sizeof(app->worker_info), "Board reset");
             }
             break;
         }
@@ -185,12 +189,6 @@ void wol_scene_flasher_on_enter(void* context) {
 
 bool wol_scene_flasher_on_event(void* context, SceneManagerEvent event) {
     WolApp* app = context;
-
-    if(event.type == SceneManagerEventTypeBack) {
-        // one step back lands on the bootloader prompt, which is pointless now
-        scene_manager_search_and_switch_to_previous_scene(app->scene_manager, WolSceneBoard);
-        return true;
-    }
 
     if(event.type != SceneManagerEventTypeCustom) return false;
 

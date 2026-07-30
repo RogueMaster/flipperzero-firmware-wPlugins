@@ -24,6 +24,25 @@
 #define FLASHER_BLOCK_ROM  1024
 #define FLASHER_BLOCK_STUB 4096
 
+/*
+ * Automatic bootloader entry.
+ *
+ * The official dev board routes the ESP32-S2 reset and strapping lines to two
+ * header pins, so the esptool usb-jtag-serial reset dance works without
+ * touching the buttons:
+ *
+ *   pin 7, PC3 -> DTR
+ *   pin 6, PB2 -> RTS
+ *
+ * Third party boards normally leave both unconnected, in which case this does
+ * nothing and the manual BOOT+RESET is still the way in. The library calls
+ * enter_bootloader once per connect attempt, not per sync retry.
+ */
+#define FLASHER_DTR_PIN       (&gpio_ext_pc3)
+#define FLASHER_RTS_PIN       (&gpio_ext_pb2)
+#define FLASHER_RESET_HOLD_MS 100
+#define FLASHER_BOOT_HOLD_MS  50
+
 typedef struct {
     esp_loader_port_t base;
     FuriHalSerialHandle* serial;
@@ -131,17 +150,46 @@ static void wol_port_log(
     FURI_LOG_W(TAG, "%s", text);
 }
 
-/* The header carries no DTR/RTS, so entering the bootloader and resetting are
- * button presses on the board, not something this side can drive. */
-static void wol_port_noop(esp_loader_port_t* base) {
+static void wol_flasher_lines_init(void) {
+    furi_hal_gpio_write(FLASHER_DTR_PIN, false);
+    furi_hal_gpio_init(
+        FLASHER_DTR_PIN, GpioModeOutputPushPull, GpioPullDown, GpioSpeedVeryHigh);
+    furi_hal_gpio_write(FLASHER_RTS_PIN, false);
+    furi_hal_gpio_init(
+        FLASHER_RTS_PIN, GpioModeOutputPushPull, GpioPullDown, GpioSpeedVeryHigh);
+}
+
+static void wol_flasher_lines_release(void) {
+    furi_hal_gpio_init_simple(FLASHER_DTR_PIN, GpioModeAnalog);
+    furi_hal_gpio_init_simple(FLASHER_RTS_PIN, GpioModeAnalog);
+}
+
+static void wol_port_enter_bootloader(esp_loader_port_t* base) {
     UNUSED(base);
+
+    // strap the boot pin, pulse reset, then let both go
+    furi_hal_gpio_write(FLASHER_DTR_PIN, true);
+    furi_delay_ms(FLASHER_RESET_HOLD_MS);
+    furi_hal_gpio_write(FLASHER_RTS_PIN, true);
+    furi_hal_gpio_write(FLASHER_DTR_PIN, false);
+    furi_delay_ms(FLASHER_BOOT_HOLD_MS);
+    furi_hal_gpio_write(FLASHER_RTS_PIN, false);
+    furi_delay_ms(FLASHER_BOOT_HOLD_MS);
+}
+
+static void wol_port_reset_target(esp_loader_port_t* base) {
+    UNUSED(base);
+
+    furi_hal_gpio_write(FLASHER_DTR_PIN, true);
+    furi_delay_ms(FLASHER_RESET_HOLD_MS);
+    furi_hal_gpio_write(FLASHER_DTR_PIN, false);
 }
 
 static const esp_loader_port_ops_t wol_port_ops = {
     .init = NULL,
     .deinit = NULL,
-    .enter_bootloader = wol_port_noop,
-    .reset_target = wol_port_noop,
+    .enter_bootloader = wol_port_enter_bootloader,
+    .reset_target = wol_port_reset_target,
     .start_timer = wol_port_start_timer,
     .remaining_time = wol_port_remaining_time,
     .delay_ms = wol_port_delay_ms,
@@ -277,6 +325,7 @@ WolFlasherResult wol_flasher_connect(WolFlasher* flasher) {
         return WolFlasherErrBusy;
     }
 
+    wol_flasher_lines_init();
     furi_hal_serial_init(flasher->port.serial, FLASHER_BAUD_SYNC);
     furi_hal_serial_async_rx_start(
         flasher->port.serial, wol_flasher_rx_callback, &flasher->port, false);
@@ -350,6 +399,7 @@ void wol_flasher_disconnect(WolFlasher* flasher) {
     }
 
     if(flasher->opened) {
+        wol_flasher_lines_release();
         furi_hal_serial_async_rx_stop(flasher->port.serial);
         furi_hal_serial_deinit(flasher->port.serial);
         furi_hal_serial_control_release(flasher->port.serial);
@@ -365,6 +415,11 @@ void wol_flasher_disconnect(WolFlasher* flasher) {
 }
 
 /* ---------------------------------------------------------------- backup */
+
+void wol_flasher_reset_target(WolFlasher* flasher) {
+    furi_check(flasher);
+    if(flasher->opened) esp_loader_reset_target(&flasher->loader);
+}
 
 WolFlasherResult wol_flasher_backup(WolFlasher* flasher, const char* path) {
     furi_check(flasher && flasher->opened);

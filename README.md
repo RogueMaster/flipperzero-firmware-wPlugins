@@ -50,8 +50,9 @@ The app appears under `Apps -> GPIO -> WoL Flipper`.
    `/ext/apps_data/wol_flipper/backup/esp-YYYYMMDD-HHMMSS.bin`. Do this before
    overwriting Marauder or whatever else is on the board — the dump is bit exact and
    includes NVS, so `Restore backup` puts it back exactly as it was.
-2. `ESP board -> Flash WoL firmware`. Writes the three images, MD5 verified.
-3. Press RESET on the board.
+2. `ESP board -> Flash WoL firmware`. Writes the three images, MD5 verified, then resets
+   the board into them. Three blue LED blinks mean the new firmware booted.
+3. `ESP board -> Firmware check` confirms it answers.
 4. `Wi-Fi setup` — SSID and password of the network the target machine is on.
    `Test connection` checks the board actually associates.
 5. `Targets -> Add target`:
@@ -81,9 +82,12 @@ bad credentials:
 * `Wrong ESP firmware` — something answers on the UART, but it is not this firmware
 * `No answer from board` — nothing answers: not flashed, not seated, or not powered
 
-Every flasher operation needs the board in its ROM bootloader first: **hold BOOT, tap
-RESET, release BOOT**. The app prompts for it. This cannot be automated — the GPIO
-header carries no DTR/RTS, so there is nothing to toggle from the Flipper side.
+Bootloader mode is entered automatically. The official dev board routes the ESP32-S2
+reset and strapping lines to header pins 7 (PC3, DTR) and 6 (PB2, RTS), so the flasher
+runs the esptool reset dance itself, and resets the board again when it is done writing.
+Third party boards usually leave those pins unconnected; there the old ritual still
+applies, **hold BOOT, tap RESET, release BOOT**, and the app says so when it gets no
+answer.
 
 Settings live in `/ext/apps_data/wol_flipper/wol.cfg`, including the Wi-Fi password in
 plain text. The companion firmware itself stores no credentials: they arrive with every
@@ -190,8 +194,8 @@ against the v2 vtable.
 
 * *Wrong ESP firmware* on wake — the board is running something else. Flash it from the
   ESP board menu.
-* *No bootloader answer* — the BOOT+RESET sequence did not take, or the board is not
-  seated. It has to be redone before every flasher operation.
+* *No bootloader answer* — automatic entry did not take, or the board is not seated. Do
+  the manual sequence and retry.
 * *Wi-Fi join failed* — wrong credentials, or a 5 GHz only SSID. The ESP32-S2 is
   2.4 GHz only.
 * *UDP send failed* — the AP refused the broadcast address. Switch the target to the

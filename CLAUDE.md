@@ -54,6 +54,13 @@ small. Two consequences already baked in:
   `arm-none-eabi-readelf -S dist/wol_flipper.fap` after touching the manifest: if
   `.fapassets` ever shows an `A` flag, the app will not fit in RAM.
 
+**The dev board can be put into its bootloader from the Flipper.** Header pin 7 (PC3) is
+DTR and pin 6 (PB2) is RTS on the official board, and the library calls
+`ops->enter_bootloader` once per `esp_loader_connect()`. An earlier version of this app
+shipped no-op hooks and a scene telling the user to press BOOT+RESET by hand, which was
+simply wrong. Third party boards do leave those pins unconnected, so the manual sequence
+stays documented as the fallback.
+
 **No `strlcpy` in the SDK libc.** Use `wol_strcpy()` from `wol_config.c`.
 
 **`popup_set_text()` stores the pointer, it does not copy.** Anything passed to it must
