@@ -39,7 +39,9 @@ static void wol_scene_target_edit_build(WolApp* app, const char* header) {
         "Name: %s",
         app->edit.name[0] ? app->edit.name : "<unset>");
     snprintf(edit_label_mac, sizeof(edit_label_mac), "MAC: %s", mac);
-    snprintf(edit_label_ip, sizeof(edit_label_ip), "IP: %s", app->edit.ip);
+    // labelled as a broadcast on purpose: putting the target's own address here
+    // silently does nothing, since a sleeping host answers no ARP
+    snprintf(edit_label_ip, sizeof(edit_label_ip), "Bcast: %s", app->edit.ip);
     snprintf(edit_label_port, sizeof(edit_label_port), "Port: %u", app->edit.port);
 
     wol_strcpy(edit_header, sizeof(edit_header), header);

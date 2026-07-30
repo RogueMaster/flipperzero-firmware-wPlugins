@@ -59,8 +59,10 @@ The app appears under `Apps -> GPIO -> WoL Flipper`.
 5. `Targets -> Add target`:
    * `Name` — free text label
    * `MAC` — the target NIC's MAC, entered as 6 hex bytes
-   * `IP` — broadcast address, `255.255.255.255` by default. If the router drops the
-     global broadcast, use the subnet one, e.g. `192.168.1.255`
+   * `Bcast` — a **broadcast** address, `255.255.255.255` by default. Not the target's
+     own address: a sleeping host answers no ARP, so a unicast magic packet never gets
+     a destination MAC and dies at the sender. The board always adds the subnet directed
+     broadcast of its own network on top of whatever is set here
    * `Port` — cycles between 9, 7 and 0
 6. `Wake device` — pick a target.
 

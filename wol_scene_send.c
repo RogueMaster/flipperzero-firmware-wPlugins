@@ -63,6 +63,19 @@ static WolSendStep wol_send_step_for_error(WolEspResult result) {
     }
 }
 
+/** Lift one reported line, e.g. "+SEND 6/6 ...", out of the board's reply. */
+static void wol_send_copy_line(WolApp* app, WolEsp* esp, const char* prefix) {
+    const char* start = strstr(wol_esp_last_reply(esp), prefix);
+    if(!start) return;
+
+    size_t len = 0;
+    while(start[len] && start[len] != '\n') len++;
+    if(len >= sizeof(app->worker_info)) len = sizeof(app->worker_info) - 1;
+
+    memcpy(app->worker_info, start, len);
+    app->worker_info[len] = '\0';
+}
+
 /** Snapshot what the board said, then report the mapped failure. */
 static void wol_send_fail(WolApp* app, WolEsp* esp, WolEspResult result) {
     snprintf(app->raw_reply, sizeof(app->raw_reply), "%s", wol_esp_last_reply(esp));
@@ -128,6 +141,9 @@ static int32_t wol_send_worker(void* context) {
         if(app->worker_cancel) break;
 
         if(result == WolEspOk) {
+            // the count and the addresses are the only evidence the packet
+            // really went somewhere, so put them on the result screen
+            if(app->wake_op == WolWakeOpSend) wol_send_copy_line(app, esp, "+SEND ");
             wol_send_report(app, WolSendStepDone);
         } else {
             wol_send_fail(app, esp, result);

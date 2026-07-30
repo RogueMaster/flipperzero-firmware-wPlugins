@@ -17,7 +17,7 @@ void wol_scene_text_input_on_enter(void* context) {
         max_len = WOL_NAME_LEN;
         break;
     case WolTextFieldIp:
-        header = "Broadcast IP";
+        header = "Broadcast, not host IP";
         max_len = WOL_IP_LEN;
         break;
     case WolTextFieldSsid:
