@@ -1,0 +1,31 @@
+# Copy this file to applications/GPIO/wol_flipper/manifest.yml in a fork of
+# flipperdevices/flipper-application-catalog and open a pull request from there.
+# It is kept here only so it stays in sync with the sources it points at.
+#
+# commit_sha must name the exact commit to build, and the paths below resolve
+# inside this repository at that commit, not in the catalog.
+#
+# Validate before opening the PR:
+#   git clone https://github.com/flipperdevices/flipper-application-catalog
+#   pip install -r flipper-application-catalog/tools/requirements.txt
+#   python flipper-application-catalog/tools/bundle.py \
+#       flipper-application-catalog/applications/GPIO/wol_flipper/manifest.yml bundle.zip
+
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/keetsta/wol-flipper.git
+    commit_sha: d93e9a6f11245745a97957487a51bcbdcc0f5921
+    build_dir: .
+
+# kept identical to fap_description in application.fam, otherwise the bundler
+# warns about the two disagreeing
+short_description: Wake-on-LAN over the ESP32-S2 WiFi dev board, with a built in flasher
+
+description: "@DESCRIPTION.md"
+changelog: "@changelog.md"
+
+screenshots:
+  - "screenshots/menu.png"
+  - "screenshots/board.png"
+  - "screenshots/sending.png"

@@ -1,0 +1,57 @@
+App(
+    appid="wol_flipper",
+    name="WoL Flipper",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="wol_flipper_app",
+    # explicit: the default glob is recursive and would drag esp32/src/main.cpp
+    # (the companion firmware, built with PlatformIO) into the FAP
+    sources=["wol_*.c"],
+    # the companion firmware rides inside the .fap and is unpacked by the app
+    # loader to /ext/apps_assets/wol_flipper/ on launch, so distribution stays
+    # a single file
+    fap_file_assets="fw",
+    stack_size=4 * 1024,
+    fap_category="GPIO",
+    fap_icon="wol_10px.png",
+    fap_author="keetsta",
+    fap_version="1.1",
+    fap_description="Wake-on-LAN over the ESP32-S2 WiFi dev board, with a built in flasher",
+    fap_weburl="https://github.com/keetsta/wol-flipper",
+    fap_private_libs=[
+        Lib(
+            name="esp-serial-flasher",
+            # these land on the app's own include path too
+            fap_include_paths=["include", "private_include"],
+            # protocol_spi.c and protocol_sdio.c are left out on purpose, see
+            # wol_loader_glue.c; only the ESP32-S2 stub blob is linked
+            sources=[
+                "src/esp_loader.c",
+                "src/esp_targets.c",
+                "src/md5_hash.c",
+                "src/protocol_serial.c",
+                "src/protocol_uart.c",
+                "src/slip.c",
+                "src/stubs/esp_stub_esp32s2.c",
+            ],
+            cincludes=[
+                "lib/esp-serial-flasher/include",
+                "lib/esp-serial-flasher/private_include",
+            ],
+            cdefines=[
+                "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
+                "SERIAL_FLASHER_LOG_LEVEL=2",
+            ],
+            cflags=["-Wno-sign-compare", "-Wno-unused-parameter"],
+        ),
+    ],
+    cdefines=[
+        "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
+        "SERIAL_FLASHER_LOG_LEVEL=2",
+    ],
+    requires=[
+        "gui",
+        "storage",
+        "notification",
+        "dialogs",
+    ],
+)
