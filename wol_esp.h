@@ -72,6 +72,12 @@ WolEspResult wol_esp_ping(WolEsp* esp, uint8_t* version);
  */
 const char* wol_esp_last_reply(WolEsp* esp);
 
+/**
+ * SSID the board is currently associated with, empty string when it is not.
+ * Cheap, so it is worth asking before paying for a scan.
+ */
+WolEspResult wol_esp_status(WolEsp* esp, char* ssid, size_t ssid_len);
+
 /** List what the board's radio can see. Takes a few seconds. */
 WolEspResult wol_esp_scan(WolEsp* esp, WolEspAp* out, uint8_t capacity, uint8_t* count);
 

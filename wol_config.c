@@ -103,6 +103,30 @@ static bool wol_target_parse(const char* line, WolTarget* target) {
     return true;
 }
 
+/** Parse "ssid\tpassword". An empty password is valid, an empty SSID is not. */
+static bool wol_network_parse(const char* line, WolNetwork* network) {
+    memset(network, 0, sizeof(WolNetwork));
+
+    const char* tab = strchr(line, '\t');
+    size_t ssid_len = tab ? (size_t)(tab - line) : strlen(line);
+    if(ssid_len == 0) return false;
+    if(ssid_len >= WOL_SSID_LEN) ssid_len = WOL_SSID_LEN - 1;
+
+    memcpy(network->ssid, line, ssid_len);
+    network->ssid[ssid_len] = '\0';
+    if(tab) wol_strcpy(network->pass, WOL_PASS_LEN, tab + 1);
+    return true;
+}
+
+uint8_t wol_config_find_network(const WolConfig* cfg, const char* ssid) {
+    furi_check(cfg && ssid);
+
+    for(uint8_t i = 0; i < cfg->network_count; i++) {
+        if(strcmp(cfg->networks[i].ssid, ssid) == 0) return i;
+    }
+    return WOL_MAX_NETWORKS;
+}
+
 void wol_config_load(WolConfig* cfg) {
     furi_check(cfg);
 
@@ -122,13 +146,29 @@ void wol_config_load(WolConfig* cfg) {
             break;
         }
 
-        if(flipper_format_read_string(file, "SSID", buf)) {
-            wol_strcpy(cfg->ssid, WOL_SSID_LEN, furi_string_get_cstr(buf));
-        }
-        if(flipper_format_read_string(file, "Password", buf)) {
-            wol_strcpy(cfg->pass, WOL_PASS_LEN, furi_string_get_cstr(buf));
+        /* Files written before multiple networks existed carry a single SSID
+         * and Password pair. Read it in as the first network so nobody has to
+         * type their key again after an update. */
+        if(flipper_format_read_string(file, "SSID", buf) && furi_string_size(buf) > 0) {
+            wol_strcpy(cfg->networks[0].ssid, WOL_SSID_LEN, furi_string_get_cstr(buf));
+            if(flipper_format_read_string(file, "Password", buf)) {
+                wol_strcpy(cfg->networks[0].pass, WOL_PASS_LEN, furi_string_get_cstr(buf));
+            }
+            cfg->network_count = 1;
         }
 
+        flipper_format_rewind(file);
+        for(size_t i = 0; i < WOL_MAX_NETWORKS; i++) {
+            furi_string_printf(key, "Network%u", (unsigned)i);
+            if(!flipper_format_read_string(file, furi_string_get_cstr(key), buf)) break;
+
+            WolNetwork network;
+            if(!wol_network_parse(furi_string_get_cstr(buf), &network)) continue;
+            if(i == 0) cfg->network_count = 0; // the new keys win over the legacy pair
+            cfg->networks[cfg->network_count++] = network;
+        }
+
+        flipper_format_rewind(file);
         for(size_t i = 0; i < WOL_MAX_TARGETS; i++) {
             furi_string_printf(key, "Target%u", (unsigned)i);
             if(!flipper_format_read_string(file, furi_string_get_cstr(key), buf)) break;
@@ -163,10 +203,18 @@ bool wol_config_save(const WolConfig* cfg) {
     do {
         if(!flipper_format_file_open_always(file, WOL_CONFIG_PATH)) break;
         if(!flipper_format_write_header_cstr(file, WOL_FILE_TYPE, WOL_FILE_VER)) break;
-        if(!flipper_format_write_string_cstr(file, "SSID", cfg->ssid)) break;
-        if(!flipper_format_write_string_cstr(file, "Password", cfg->pass)) break;
-
         ok = true;
+        for(size_t i = 0; i < cfg->network_count; i++) {
+            furi_string_printf(key, "Network%u", (unsigned)i);
+            // tab separated: both an SSID and a key may contain spaces
+            furi_string_printf(buf, "%s\t%s", cfg->networks[i].ssid, cfg->networks[i].pass);
+            if(!flipper_format_write_string(file, furi_string_get_cstr(key), buf)) {
+                ok = false;
+                break;
+            }
+        }
+        if(!ok) break;
+
         for(size_t i = 0; i < cfg->target_count; i++) {
             const WolTarget* target = &cfg->targets[i];
             wol_mac_to_str(target->mac, mac, sizeof(mac));

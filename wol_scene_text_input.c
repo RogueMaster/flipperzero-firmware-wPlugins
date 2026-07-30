@@ -50,13 +50,12 @@ bool wol_scene_text_input_on_event(void* context, SceneManagerEvent event) {
     case WolTextFieldIp:
         wol_strcpy(app->edit.ip, WOL_IP_LEN, app->text_buf);
         break;
+    // networks are committed by the edit scene, not here
     case WolTextFieldSsid:
-        wol_strcpy(app->config.ssid, WOL_SSID_LEN, app->text_buf);
-        wol_config_save(&app->config);
+        wol_strcpy(app->edit_network.ssid, WOL_SSID_LEN, app->text_buf);
         break;
     case WolTextFieldPassword:
-        wol_strcpy(app->config.pass, WOL_PASS_LEN, app->text_buf);
-        wol_config_save(&app->config);
+        wol_strcpy(app->edit_network.pass, WOL_PASS_LEN, app->text_buf);
         break;
     }
 

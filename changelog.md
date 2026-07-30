@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1
+
+* Up to 8 Wi-Fi networks can be saved instead of one. When several are saved, each wake
+  asks the board what is on the air and uses the strongest match, so the same Flipper
+  works at home and at the office without editing anything. An association that is
+  already up gets reused, which skips the scan.
+* Picking a network from the scan list opens it for editing, and adding an SSID that is
+  already saved edits that entry rather than making a duplicate.
+* An existing single network from an older version is carried over on first launch.
+
 ## 1.0
 
 First release.

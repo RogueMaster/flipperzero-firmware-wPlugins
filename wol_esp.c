@@ -255,6 +255,37 @@ WolEspResult wol_esp_ping(WolEsp* esp, uint8_t* version) {
     return heard_something ? WolEspErrWrongFirmware : WolEspErrNoReply;
 }
 
+WolEspResult wol_esp_status(WolEsp* esp, char* ssid, size_t ssid_len) {
+    furi_check(esp && esp->opened && ssid && ssid_len);
+
+    ssid[0] = '\0';
+    wol_esp_cmd(esp, "STATUS");
+    if(!wol_esp_wait(esp, 3000)) return wol_esp_error(esp);
+
+    const char* start = strstr(furi_string_get_cstr(esp->acc), "+WIFI ");
+    if(!start) return WolEspErrWrongFirmware;
+    start += 6;
+
+    const char* eol = strchr(start, '\n');
+    if(!eol) return WolEspErrNoReply;
+
+    /* The line is "+WIFI <ssid> <ip>" and an SSID may contain spaces, so the
+     * name ends at the last space rather than the first. */
+    const char* split = NULL;
+    for(const char* p = start; p < eol; p++) {
+        if(*p == ' ') split = p;
+    }
+    if(!split) return WolEspErrNoReply;
+
+    size_t len = (size_t)(split - start);
+    if(len >= ssid_len) len = ssid_len - 1;
+    memcpy(ssid, start, len);
+    ssid[len] = '\0';
+    if(strcmp(ssid, "-") == 0) ssid[0] = '\0'; // not associated
+
+    return WolEspOk;
+}
+
 WolEspResult wol_esp_scan(WolEsp* esp, WolEspAp* out, uint8_t capacity, uint8_t* count) {
     furi_check(esp && esp->opened && out && count);
 

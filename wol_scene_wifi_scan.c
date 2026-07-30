@@ -32,12 +32,24 @@ bool wol_scene_wifi_scan_on_event(void* context, SceneManagerEvent event) {
     if(event.type != SceneManagerEventTypeCustom) return false;
     if(event.event >= app->scan_count) return false;
 
-    // picking from the list is also the only way to get an SSID with odd
-    // characters in it right
-    wol_strcpy(app->config.ssid, WOL_SSID_LEN, app->scan_list[event.event].ssid);
-    wol_config_save(&app->config);
+    /* Picking from the list is also the only way to get an SSID with odd
+     * characters in it right. An already saved network opens for editing, a new
+     * one goes straight to its key. */
+    const char* ssid = app->scan_list[event.event].ssid;
+    uint8_t existing = wol_config_find_network(&app->config, ssid);
 
-    scene_manager_search_and_switch_to_previous_scene(app->scene_manager, WolSceneWifi);
+    if(existing < WOL_MAX_NETWORKS) {
+        app->network_is_new = false;
+        app->network_index = existing;
+        app->edit_network = app->config.networks[existing];
+    } else {
+        app->network_is_new = true;
+        app->network_index = app->config.network_count;
+        memset(&app->edit_network, 0, sizeof(WolNetwork));
+        wol_strcpy(app->edit_network.ssid, WOL_SSID_LEN, ssid);
+    }
+
+    scene_manager_next_scene(app->scene_manager, WolSceneNetworkEdit);
     return true;
 }
 

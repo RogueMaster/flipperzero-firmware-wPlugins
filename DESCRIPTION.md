@@ -13,7 +13,9 @@ else, goes back exactly as it was whenever you want it.
 
 * Saves up to 16 targets, each with a name, MAC address, broadcast address and port.
   The MAC is entered as six hex bytes, so there is nothing to mistype.
-* Scans for Wi-Fi networks and fills the SSID in from the list.
+* Scans for Wi-Fi networks and fills the SSID in from the list. Up to 8 networks can be
+  saved, and each wake picks whichever of them is actually in range, so the same Flipper
+  works at home and at the office.
 * Sends the packet to the subnet broadcast as well as the address you set, because
   access points differ in which of the two they pass to the wired side.
 * Says what actually failed when something does: network not on the air, key refused, no

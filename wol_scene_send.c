@@ -77,6 +77,44 @@ static void wol_send_copy_line(WolApp* app, WolEsp* esp, const char* prefix) {
     app->worker_info[len] = '\0';
 }
 
+/**
+ * Decide which saved network to use for this wake.
+ *
+ * With one saved there is nothing to decide. With several, the Flipper has
+ * probably moved between places since the last time, so the board is asked what
+ * is actually on the air and the strongest match wins. An existing association
+ * to a saved network is kept as is, which skips the scan entirely on repeat
+ * wakes.
+ */
+static uint8_t wol_send_pick_network(WolApp* app, WolEsp* esp, WolEspResult* result) {
+    if(app->config.network_count <= 1) return 0;
+
+    char joined[WOL_SSID_LEN];
+    if(wol_esp_status(esp, joined, sizeof(joined)) == WolEspOk && joined[0] != '\0') {
+        uint8_t index = wol_config_find_network(&app->config, joined);
+        if(index < WOL_MAX_NETWORKS) return index;
+    }
+
+    wol_send_report(app, WolSendStepWifi);
+    *result = wol_esp_scan(esp, app->scan_list, WOL_SSID_MAX_SCAN, &app->scan_count);
+    if(*result != WolEspOk) return WOL_MAX_NETWORKS;
+
+    uint8_t best = WOL_MAX_NETWORKS;
+    int8_t best_rssi = -128;
+    for(uint8_t i = 0; i < app->config.network_count; i++) {
+        for(uint8_t j = 0; j < app->scan_count; j++) {
+            if(strcmp(app->config.networks[i].ssid, app->scan_list[j].ssid) != 0) continue;
+            if(best == WOL_MAX_NETWORKS || app->scan_list[j].rssi > best_rssi) {
+                best = i;
+                best_rssi = app->scan_list[j].rssi;
+            }
+        }
+    }
+
+    if(best == WOL_MAX_NETWORKS) *result = WolEspErrWifiNotFound;
+    return best;
+}
+
 /** Snapshot what the board said, then report the mapped failure. */
 static void wol_send_fail(WolApp* app, WolEsp* esp, WolEspResult result) {
     snprintf(app->raw_reply, sizeof(app->raw_reply), "%s", wol_esp_last_reply(esp));
@@ -127,11 +165,26 @@ static int32_t wol_send_worker(void* context) {
             break;
         }
 
+        if(app->config.network_count == 0) {
+            wol_send_report(app, WolSendStepErrNoNetwork);
+            break;
+        }
+
+        uint8_t net = wol_send_pick_network(app, esp, &result);
+        if(net >= WOL_MAX_NETWORKS) {
+            wol_send_fail(app, esp, result);
+            break;
+        }
+        const WolNetwork* network = &app->config.networks[net];
+
         if(app->wake_op == WolWakeOpWifiTest) {
-            result = wol_esp_join(esp, app->config.ssid, app->config.pass);
+            result = wol_esp_join(esp, network->ssid, network->pass);
+            if(result == WolEspOk) {
+                snprintf(app->worker_info, sizeof(app->worker_info), "Joined %s", network->ssid);
+            }
         } else {
             result = wol_esp_wake(
-                esp, app->config.ssid, app->config.pass, target->mac, target->ip, target->port);
+                esp, network->ssid, network->pass, target->mac, target->ip, target->port);
         }
         if(app->worker_cancel) break;
 
@@ -226,6 +279,9 @@ bool wol_scene_send_on_event(void* context, SceneManagerEvent event) {
         break;
     case WolSendStepErrReboot:
         wol_send_show_error(app, "Board restarted");
+        break;
+    case WolSendStepErrNoNetwork:
+        wol_send_show_error(app, "No Wi-Fi network saved");
         break;
     case WolSendStepErrWifi:
         wol_send_show_error(app, "Wi-Fi join failed");

@@ -74,6 +74,7 @@ typedef enum {
     WolSendStepErrFirmware,
     WolSendStepErrPower,
     WolSendStepErrReboot,
+    WolSendStepErrNoNetwork,
     WolSendStepErrWifi,
     WolSendStepErrWifiNotFound,
     WolSendStepErrWifiAuth,
@@ -114,6 +115,11 @@ typedef struct {
     Widget* widget;
 
     WolConfig config;
+
+    /** Scratch copy of the network being edited/created. */
+    WolNetwork edit_network;
+    uint8_t network_index;
+    bool network_is_new;
 
     /** Scratch copy of the target being edited/created. */
     WolTarget edit;

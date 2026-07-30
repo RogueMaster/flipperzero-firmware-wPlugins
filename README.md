@@ -39,7 +39,7 @@ Copy `dist/wol_flipper.fap` to `/ext/apps/GPIO/`. That is the whole install.
 The companion firmware travels inside the .fap. fbt packs `fw/` into a `.fapassets`
 section and the app loader unpacks it to `/ext/apps_assets/wol_flipper/` on launch, so
 the flasher always has something to write. That section carries no ELF `ALLOC` flag, so
-it never reaches RAM — the app itself is about 32 KB of `.text` + `.rodata`, the other
+it never reaches RAM: the app itself is about 32 KB of `.text` + `.rodata`, the other
 670 KB are streamed off the SD card. The first launch takes an extra moment while the
 images are unpacked.
 
@@ -53,23 +53,28 @@ The app appears under `Apps -> GPIO -> WoL Flipper`.
 
 1. `ESP board -> Backup ESP flash`. Dumps the whole 4 MB chip to
    `/ext/apps_data/wol_flipper/backup/esp-YYYYMMDD-HHMMSS.bin`. Do this before
-   overwriting Marauder or whatever else is on the board — the dump is bit exact and
+   overwriting Marauder or whatever else is on the board. The dump is bit exact and
    includes NVS, so `Restore backup` puts it back exactly as it was.
 2. `ESP board -> Flash WoL firmware`. Writes the three images, MD5 verified, then resets
    the board into them. Three blue LED blinks mean the new firmware booted.
 3. `ESP board -> Firmware check` confirms it answers.
-4. `Wi-Fi setup -> Scan networks` lists what the board's own radio can see and fills the
-   SSID in from the list, which also rules out typos and invisible 5 GHz networks. Then
-   set the password. `Test connection` checks the board actually associates.
+4. `Wi-Fi setup -> Scan for networks` lists what the board's own radio can see and fills
+   the SSID in from the list, which also rules out typos and invisible 5 GHz networks.
+   Then set the key and save. `Test connection` checks the board actually associates.
+
+   Up to 8 networks can be saved, so the same Flipper works at home and at the office.
+   Nothing marks one of them as active: when several are saved, each wake asks the board
+   what is on the air and takes the strongest match. An association that is already up to
+   a saved network is reused, which skips the scan on repeat wakes.
 5. `Targets -> Add target`:
-   * `Name` — free text label
-   * `MAC` — the target NIC's MAC, entered as 6 hex bytes
-   * `Bcast` — a **broadcast** address, `255.255.255.255` by default. Not the target's
+   * `Name`: free text label
+   * `MAC`: the target NIC's MAC, entered as 6 hex bytes
+   * `Bcast`: a **broadcast** address, `255.255.255.255` by default. Not the target's
      own address: a sleeping host answers no ARP, so a unicast magic packet never gets
      a destination MAC and dies at the sender. The board always adds the subnet directed
      broadcast of its own network on top of whatever is set here
-   * `Port` — cycles between 9, 7 and 0
-6. `Wake device` — pick a target.
+   * `Port`: cycles between 9, 7 and 0
+6. `Wake device`, pick a target.
 
 ## Is the board alive
 
@@ -96,9 +101,9 @@ association.
 never touches Wi-Fi and never needs bootloader mode, so it separates a dead board from
 bad credentials:
 
-* `Firmware vN alive` — the board is running this firmware
-* `Wrong ESP firmware` — something answers on the UART, but it is not this firmware
-* `No answer from board` — nothing answers: not flashed, not seated, or not powered
+* `Firmware vN alive`: the board is running this firmware
+* `Wrong ESP firmware`: something answers on the UART, but it is not this firmware
+* `No answer from board`: nothing answers: not flashed, not seated, or not powered
 
 Bootloader mode is entered automatically. The official dev board routes the ESP32-S2
 reset and strapping lines to header pins 7 (PC3, DTR) and 6 (PB2, RTS), so the flasher
@@ -213,21 +218,21 @@ against the v2 vtable.
 
 ## Troubleshooting
 
-* *Wrong ESP firmware* on wake — the board is running something else. Flash it from the
+* *Wrong ESP firmware* on wake: the board is running something else. Flash it from the
   ESP board menu.
-* *No bootloader answer* — automatic entry did not take, or the board is not seated. Do
+* *No bootloader answer*: automatic entry did not take, or the board is not seated. Do
   the manual sequence and retry.
-* *Flipper 5V tripped* / *Board restarted* — the boost powering the board gave out.
+* *Flipper 5V tripped* / *Board restarted*: the boost powering the board gave out.
   Association is the current peak of a session, so this is where a marginal rail lets
   go, usually on a low battery. Charge the Flipper, or plug the board's own USB-C in
   while it sits on the header. The firmware already caps transmit power at 11 dBm and
   leaves modem sleep on to keep the draw down, and the app brings 5V back by itself
   before the next attempt.
-* *Wi-Fi join failed* — wrong credentials, or a 5 GHz only SSID. The ESP32-S2 is
+* *Wi-Fi join failed*: wrong credentials, or a 5 GHz only SSID. The ESP32-S2 is
   2.4 GHz only.
-* *UDP send failed* — the AP refused the broadcast address. Switch the target to the
+* *UDP send failed*: the AP refused the broadcast address. Switch the target to the
   subnet broadcast.
-* Packet sent but the machine stays off — that is the target side. Enable *Wake on LAN*
+* Packet sent but the machine stays off, that is the target side. Enable *Wake on LAN*
   in BIOS/UEFI, disable ErP/EuP deep sleep, and on Windows turn off Fast Startup and
   tick *Wake on Magic Packet* in the NIC's advanced properties. On Linux,
   `ethtool -s eth0 wol g`. Wi-Fi NICs generally do not support WoL, use the wired MAC.
