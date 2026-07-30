@@ -499,7 +499,7 @@ static void morse_flipper_icr_draw_choice(
     canvas_set_color(canvas, selected && pressed_black ? ColorWhite : ColorBlack);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(
-        canvas, selected ? x - 1 : x, y + (selected ? 2 : 1), AlignCenter, AlignCenter, text);
+        canvas, selected ? x + 1 : x, y + (selected ? 2 : 1), AlignCenter, AlignCenter, text);
     if(selected) canvas_set_color(canvas, ColorBlack);
 }
 
@@ -585,9 +585,11 @@ static void morse_flipper_icr_draw_choices(
 
     for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_CHOICE_COUNT; i++) {
         bool is_selected = i == selected;
+        int32_t x = choice_x[i];
 
+        if(is_selected && i == 2U) x--;
         morse_flipper_icr_draw_choice(
-            canvas, choice_x[i], choice_y[i], state->choices[i], is_selected, pressed_black);
+            canvas, x, choice_y[i], state->choices[i], is_selected, pressed_black);
     }
 }
 
