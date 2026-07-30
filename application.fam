@@ -14,8 +14,9 @@ App(
     fap_category="GPIO",
     fap_icon="wol_10px.png",
     fap_author="keetsta",
-    fap_version="1.1",
+    fap_version="1.0",
     fap_description="Wake-on-LAN over the ESP32-S2 WiFi dev board, with a built in flasher",
+    fap_weburl="https://github.com/keetsta/wol-flipper",
     fap_private_libs=[
         Lib(
             name="esp-serial-flasher",
