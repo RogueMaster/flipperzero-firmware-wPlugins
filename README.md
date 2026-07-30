@@ -2,14 +2,19 @@
 
 Wake-on-LAN for Flipper Zero, with a built in ESP flasher.
 
+<p align="center">
+  <img src="docs/demo.gif" width="240"
+       alt="Picking a saved target on the Flipper, and the machine powering up">
+</p>
+
 The Flipper has no network stack, so the official ESP32-S2 WiFi dev board is used as
 the network adapter. It runs a small companion firmware from this repo: the Flipper
 sends one line over UART, the board joins Wi-Fi and puts the magic packet on the wire
 as a UDP broadcast.
 
-The app can also flash that firmware itself — dump whatever is currently on the ESP to
-the SD card, write the WoL firmware, and put the old image back later. No PC needed
-after the first setup.
+The app can also flash that firmware itself: dump whatever is currently on the ESP to the
+SD card, write the WoL firmware, and put the old image back later. No PC needed after the
+first setup.
 
 ## Why not ESP-AT or Marauder
 
