@@ -36,16 +36,20 @@
  *
  *   three blue blinks   boot reached setup()
  *   green blip every 3s idle and running
- *   solid blue          a command is being handled
+ *   pulsing blue        a command is being handled
  *   one green blink     command succeeded
  *   three red blinks    command failed
+ *
+ * Everything runs at a low PWM duty, see LED_LEVEL. Note that the board is
+ * powered from the Flipper's 5V rail, which the app switches off when it
+ * exits, so leaving the app kills the LED with it.
  */
 
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-#define WOL_FW_VERSION   3
+#define WOL_FW_VERSION   4
 #define LINE_MAX         320
 #define MAX_FIELDS       8
 #define WIFI_TIMEOUT_MS  20000
@@ -77,7 +81,8 @@
 #define LED_LEVEL    10
 
 #define HEARTBEAT_PERIOD_MS 3000
-#define HEARTBEAT_BLIP_MS   15
+#define HEARTBEAT_BLIP_MS   60
+#define BUSY_PULSE_MS       250
 
 static WiFiUDP udp;
 static char line[LINE_MAX];
@@ -111,6 +116,21 @@ static void led_blink(bool red, bool green, bool blue, uint8_t times, uint16_t p
         led_off();
         delay(period_ms / 2);
     }
+}
+
+/**
+ * Slow blue pulse for the blocking parts of a command. Joining an AP can take
+ * twenty seconds, and a steady light through all of it reads as a hang, with
+ * the eventual switch off looking like the board died.
+ */
+static void led_busy_tick(void) {
+    static uint32_t last = 0;
+    static bool on = false;
+
+    if(millis() - last < BUSY_PULSE_MS) return;
+    last = millis();
+    on = !on;
+    led_set(false, false, on);
 }
 
 /** Short green blip so an idle board still proves it is running. */
@@ -182,6 +202,7 @@ static bool wifi_up(const char* ssid, const char* pass) {
     uint32_t started = millis();
     while(WiFi.status() != WL_CONNECTED) {
         if(millis() - started > WIFI_TIMEOUT_MS) return false;
+        led_busy_tick();
         delay(100);
     }
 
@@ -213,7 +234,7 @@ static bool send_magic_packet(const uint8_t* mac, IPAddress target, uint16_t por
 
 static void reply_ok(void) {
     Serial.println("OK");
-    led_blink(false, true, false, 1, 140);
+    led_blink(false, true, false, 1, 250);
 }
 
 static void reply_err(const char* reason) {

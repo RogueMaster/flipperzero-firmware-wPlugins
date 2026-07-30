@@ -69,10 +69,15 @@ The firmware has no other visible output, so `RESET` on a correctly flashed boar
 exactly like nothing happening. Two ways to tell:
 
 **The LED.** Three blue blinks at boot, then a short green blip every three seconds
-while idle. Blue while a command runs, one green blink on success, three red blinks on
-failure. Pins 4/5/6 match what Marauder drives on this board; the polarity is not
-documented, so every signal is a blink rather than a steady level, which reads the same
-either way.
+while idle. Pulsing blue while a command runs, one green blink on success, three red
+blinks on failure. Pins 4/5/6 match what Marauder drives on this board. Everything is
+driven through LEDC at about 4 percent duty, because at full brightness this part is
+painful to look at; raise `LED_LEVEL` in `esp32/src/main.cpp` if you need it visible in
+daylight.
+
+The board runs off the Flipper's 5V rail, which the app switches on at launch and off
+when it exits. Leaving the app therefore kills the LED and drops the board's Wi-Fi
+association.
 
 **`ESP board -> Firmware check`.** Sends a `PING` and reports the firmware version. It
 never touches Wi-Fi and never needs bootloader mode, so it separates a dead board from
