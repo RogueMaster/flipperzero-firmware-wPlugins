@@ -87,7 +87,8 @@ def load_stub_json(file_obj):
     return entry, text, text_start, data, data_start
 
 
-_CHIP_FILE_TEMPLATE = Template("""\
+_CHIP_FILE_TEMPLATE = Template(
+    """\
 $license_header
 // auto-generated from esp-flasher-stub v$version — $json_name
 // Source: https://github.com/espressif/esp-flasher-stub/releases/tag/v$version
@@ -116,7 +117,8 @@ const esp_stub_t $c_var = {
         },
     },
 };
-""")
+"""
+)
 
 
 def write_chip_file(
