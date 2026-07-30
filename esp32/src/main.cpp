@@ -14,12 +14,16 @@
  *     -> +WIFI <ssid|-> <ip|->
  *     -> OK
  *
+ *   SCAN
+ *     -> +AP <rssi> <ssid>          (one line per network, up to 24)
+ *     -> OK
+ *
  *   JOIN <ssid> <pass>
  *     -> +WIFI CONNECTING
  *     -> +WIFI OK <ip>
  *     -> OK
  *     or
- *     -> ERR <ARGS|WIFI>
+ *     -> ERR ARGS, or ERR WIFI <reason code>
  *
  *   WOL <ssid> <pass> <mac> <broadcast-ip> <port>
  *     -> +WIFI CONNECTING          (only when an association has to be made)
@@ -27,7 +31,7 @@
  *     -> +SEND <count>
  *     -> OK
  *     or
- *     -> ERR <ARGS|WIFI|UDP>
+ *     -> ERR ARGS, ERR UDP, or ERR WIFI <reason code>
  *
  * The board keeps no credentials of its own: everything arrives with the
  * request, so a flash backup taken from this firmware never contains secrets.
@@ -49,7 +53,7 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-#define WOL_FW_VERSION   6
+#define WOL_FW_VERSION   8
 #define LINE_MAX         320
 #define MAX_FIELDS       8
 #define WIFI_TIMEOUT_MS  20000
@@ -82,11 +86,12 @@
 #define LED_MAX      ((1 << LED_PWM_BITS) - 1)
 
 /*
- * Set to 1 for a common anode part, where pulling the pin low is what lights
- * the die. Wrong guess here is not subtle: "off" becomes full brightness and
- * the dimming does nothing. Run the boot self test below to tell which it is.
+ * Common anode part: pulling the pin low is what lights the die. Getting this
+ * backwards is not subtle. Every state ends up within 4 percent of full
+ * brightness, so the board glows constantly and the self test looks like
+ * nothing is happening at all, which is exactly how this was found.
  */
-#define LED_ACTIVE_LOW 0
+#define LED_ACTIVE_LOW 1
 
 static inline uint32_t led_duty(bool on) {
 #if LED_ACTIVE_LOW
@@ -101,6 +106,7 @@ static inline uint32_t led_duty(bool on) {
 #define BUSY_PULSE_MS       250
 
 static WiFiUDP udp;
+static volatile uint8_t last_wifi_reason = 0;
 static char line[LINE_MAX];
 static size_t line_len = 0;
 static bool udp_started = false;
@@ -223,6 +229,13 @@ static size_t split_fields(char* buf, char** fields, size_t max_fields) {
     return count;
 }
 
+/** Keep the last disconnect reason so a failure can say what went wrong. */
+static void wifi_event(WiFiEvent_t event, WiFiEventInfo_t info) {
+    if(event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
+        last_wifi_reason = info.wifi_sta_disconnected.reason;
+    }
+}
+
 static bool wifi_up(const char* ssid, const char* pass) {
     if(WiFi.status() == WL_CONNECTED && WiFi.SSID() == String(ssid)) return true;
 
@@ -236,6 +249,7 @@ static bool wifi_up(const char* ssid, const char* pass) {
      * modem sleep stays on to keep the average down. */
     WiFi.setTxPower(WIFI_POWER_11dBm);
     WiFi.disconnect(false, true);
+    last_wifi_reason = 0;
     WiFi.begin(ssid, pass);
 
     uint32_t started = millis();
@@ -282,6 +296,34 @@ static void reply_err(const char* reason) {
     led_blink(true, false, false, 3, 140);
 }
 
+/**
+ * Report why the association failed, not just that it did. The reason comes
+ * from the disconnect event; esp_wifi_types.h numbers them, the ones that
+ * matter here are 201 no AP found, 202 auth failure and 15/204 handshake
+ * timeout, which in practice all mean a wrong password.
+ */
+static void reply_wifi_err(void) {
+    char reason[24];
+    snprintf(reason, sizeof(reason), "WIFI %u", (unsigned)last_wifi_reason);
+    reply_err(reason);
+}
+
+/** List what the radio can actually see, so "not found" becomes checkable. */
+static void handle_scan(void) {
+    int found = WiFi.scanNetworks(false, false, false, 300);
+
+    for(int i = 0; i < found && i < 24; i++) {
+        Serial.printf("+AP %d %s\n", WiFi.RSSI(i), WiFi.SSID(i).c_str());
+    }
+    WiFi.scanDelete();
+
+    if(found < 0) {
+        reply_err("SCAN");
+        return;
+    }
+    reply_ok();
+}
+
 static void handle_ping(void) {
     Serial.printf("+WOLFW %u\n", (unsigned)WOL_FW_VERSION);
     reply_ok();
@@ -303,7 +345,7 @@ static void handle_join(char** fields, size_t count) {
     }
 
     if(!wifi_up(fields[1], fields[2])) {
-        reply_err("WIFI");
+        reply_wifi_err();
         return;
     }
 
@@ -330,7 +372,7 @@ static void handle_wol(char** fields, size_t count) {
     }
 
     if(!wifi_up(ssid, pass)) {
-        reply_err("WIFI");
+        reply_wifi_err();
         return;
     }
     Serial.printf("+WIFI OK %s\n", WiFi.localIP().toString().c_str());
@@ -354,6 +396,8 @@ static void handle_line(char* buf) {
         handle_ping();
     } else if(!strcmp(fields[0], "STATUS")) {
         handle_status();
+    } else if(!strcmp(fields[0], "SCAN")) {
+        handle_scan();
     } else if(!strcmp(fields[0], "JOIN")) {
         handle_join(fields, count);
     } else if(!strcmp(fields[0], "WOL")) {
@@ -377,6 +421,7 @@ void setup() {
 
     WiFi.mode(WIFI_STA);
     WiFi.persistent(false);
+    WiFi.onEvent(wifi_event);
 
     last_heartbeat = millis();
 }
