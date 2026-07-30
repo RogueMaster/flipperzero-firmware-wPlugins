@@ -477,7 +477,7 @@ void subghz_cli_command_decode_raw(PipeSide* pipe, FuriString* args, void* conte
 
     do {
         if(furi_string_size(args)) {
-            if(!args_read_string_and_trim(args, file_name)) {
+            if(!args_read_probably_quoted_string_and_trim(args, file_name)) {
                 cli_print_usage(
                     "subghz decode_raw", "<file_name: path_RAW_file>", furi_string_get_cstr(args));
                 break;
@@ -605,7 +605,7 @@ void subghz_cli_command_tx_from_file(PipeSide* pipe, FuriString* args, void* con
 
     do {
         if(furi_string_size(args)) {
-            if(!args_read_string_and_trim(args, file_name)) {
+            if(!args_read_probably_quoted_string_and_trim(args, file_name)) {
                 cli_print_usage(
                     "subghz tx_from_file: ",
                     "<file_name: path_file> <Repeat count> <Device: 0 - CC1101_INT, 1 - CC1101_EXT>",
@@ -860,12 +860,12 @@ static void subghz_cli_command_encrypt_keeloq(PipeSide* pipe, FuriString* args) 
     SubGhzKeystore* keystore = subghz_keystore_alloc();
 
     do {
-        if(!args_read_string_and_trim(args, source)) {
+        if(!args_read_probably_quoted_string_and_trim(args, source)) {
             subghz_cli_command_print_usage();
             break;
         }
 
-        if(!args_read_string_and_trim(args, destination)) {
+        if(!args_read_probably_quoted_string_and_trim(args, destination)) {
             subghz_cli_command_print_usage();
             break;
         }
@@ -899,12 +899,12 @@ static void subghz_cli_command_encrypt_raw(PipeSide* pipe, FuriString* args) {
     FuriString* destination = furi_string_alloc();
 
     do {
-        if(!args_read_string_and_trim(args, source)) {
+        if(!args_read_probably_quoted_string_and_trim(args, source)) {
             subghz_cli_command_print_usage();
             break;
         }
 
-        if(!args_read_string_and_trim(args, destination)) {
+        if(!args_read_probably_quoted_string_and_trim(args, destination)) {
             subghz_cli_command_print_usage();
             break;
         }
