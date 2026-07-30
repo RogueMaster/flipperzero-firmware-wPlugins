@@ -9,17 +9,12 @@ App(
     # the companion firmware rides inside the .fap and is unpacked by the app
     # loader to /ext/apps_assets/wol_flipper/ on launch, so distribution stays
     # a single file
-    fap_file_assets="fw",
+    # fap_file_assets=".fw",
     stack_size=4 * 1024,
-    fap_category="GPIO",
     fap_icon="wol_10px.png",
-    fap_author="keetsta",
-    fap_version="1.1",
-    fap_description="Wake-on-LAN over the ESP32-S2 WiFi dev board, with a built in flasher",
-    fap_weburl="https://github.com/keetsta/wol-flipper",
     fap_private_libs=[
         Lib(
-            name="esp-serial-flasher",
+            name="esp_serial_flasher",
             # these land on the app's own include path too
             fap_include_paths=["include", "private_include"],
             # protocol_spi.c and protocol_sdio.c are left out on purpose, see
@@ -34,8 +29,8 @@ App(
                 "src/stubs/esp_stub_esp32s2.c",
             ],
             cincludes=[
-                "lib/esp-serial-flasher/include",
-                "lib/esp-serial-flasher/private_include",
+                "lib/esp_serial_flasher/include",
+                "lib/esp_serial_flasher/private_include",
             ],
             cdefines=[
                 "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
@@ -48,10 +43,9 @@ App(
         "SERIAL_FLASHER_WRITE_BLOCK_RETRIES=10",
         "SERIAL_FLASHER_LOG_LEVEL=2",
     ],
-    requires=[
-        "gui",
-        "storage",
-        "notification",
-        "dialogs",
-    ],
+    fap_category="GPIO/ESP32",
+    fap_author="keetsta",
+    fap_weburl="https://github.com/keetsta/wol-flipper",
+    fap_version="1.1",
+    fap_description="Wake-on-LAN over the ESP32-S2 WiFi dev board, with a built in flasher",
 )

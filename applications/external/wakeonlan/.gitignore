@@ -1,7 +1,0 @@
-.ufbt/
-.vscode/
-dist/
-build/
-*.fap
-*.pyc
-__pycache__/
