@@ -85,6 +85,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Marauder and Hotspot Arcade firmwares.
 - Updated: [Ghost ESP v1.8.1 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app)
 - Updated: [DeFlock v0.52 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- OFW: CLI: [consistent quoted path handling for loader and Sub-GHz #4430 (By drkemp187)](https://github.com/flipperdevices/flipperzero-firmware/pull/4430)
 
 <a name="release"></a>
 
