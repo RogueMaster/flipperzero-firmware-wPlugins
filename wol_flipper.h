@@ -44,6 +44,15 @@ typedef enum {
     WolViewWidget,
 } WolView;
 
+/** What the send scene was entered to do. */
+typedef enum {
+    WolWakeOpSend,
+    WolWakeOpWifiTest,
+    /** Identify the running firmware. Touches no Wi-Fi, so it isolates a dead
+     *  board from bad credentials. */
+    WolWakeOpPing,
+} WolWakeOp;
+
 /** Which field the shared text input scene is currently editing. */
 typedef enum {
     WolTextFieldName,
@@ -113,14 +122,14 @@ typedef struct {
 
     FuriThread* worker;
     volatile bool worker_cancel;
-    bool wifi_test_mode;
+    WolWakeOp wake_op;
 
     DialogsApp* dialogs;
     WolFlasherOp flasher_op;
     /** Backup being restored, or the dump file being created. */
     FuriString* flasher_path;
-    /** Written by the worker before it posts the done event, read after. */
-    char flasher_info[96];
+    /** Written by a worker before it posts its done event, read after. */
+    char worker_info[96];
     /** Owned by the GUI thread; the popup keeps a pointer to it. */
-    char flasher_status[192];
+    char status_text[192];
 } WolApp;

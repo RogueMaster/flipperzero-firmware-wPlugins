@@ -31,13 +31,21 @@
  *
  * The board keeps no credentials of its own: everything arrives with the
  * request, so a flash backup taken from this firmware never contains secrets.
+ *
+ * LED, because otherwise a working board is indistinguishable from a dead one:
+ *
+ *   three blue blinks   boot reached setup()
+ *   green blip every 3s idle and running
+ *   solid blue          a command is being handled
+ *   one green blink     command succeeded
+ *   three red blinks    command failed
  */
 
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-#define WOL_FW_VERSION   1
+#define WOL_FW_VERSION   2
 #define LINE_MAX         320
 #define MAX_FIELDS       8
 #define WIFI_TIMEOUT_MS  20000
@@ -45,10 +53,62 @@
 #define WOL_REPEAT       3
 #define UDP_LOCAL_PORT   40000
 
+/*
+ * Discrete RGB LED, same pins Marauder uses for its MARAUDER_FLIPPER target.
+ * The polarity of the part is not documented anywhere I could check, so every
+ * signal below is a blink rather than a steady level: an inverted LED still
+ * blinks, and the only question worth answering here is whether the firmware
+ * is alive at all.
+ */
+#define LED_B_PIN 4
+#define LED_G_PIN 5
+#define LED_R_PIN 6
+#define LED_ON    HIGH
+#define LED_OFF   LOW
+
+#define HEARTBEAT_PERIOD_MS 3000
+#define HEARTBEAT_BLIP_MS   15
+
 static WiFiUDP udp;
 static char line[LINE_MAX];
 static size_t line_len = 0;
 static bool udp_started = false;
+static uint32_t last_heartbeat = 0;
+
+static void led_init(void) {
+    pinMode(LED_R_PIN, OUTPUT);
+    pinMode(LED_G_PIN, OUTPUT);
+    pinMode(LED_B_PIN, OUTPUT);
+}
+
+static void led_set(bool red, bool green, bool blue) {
+    digitalWrite(LED_R_PIN, red ? LED_ON : LED_OFF);
+    digitalWrite(LED_G_PIN, green ? LED_ON : LED_OFF);
+    digitalWrite(LED_B_PIN, blue ? LED_ON : LED_OFF);
+}
+
+static void led_off(void) {
+    led_set(false, false, false);
+}
+
+static void led_blink(bool red, bool green, bool blue, uint8_t times, uint16_t period_ms) {
+    for(uint8_t i = 0; i < times; i++) {
+        led_set(red, green, blue);
+        delay(period_ms / 2);
+        led_off();
+        delay(period_ms / 2);
+    }
+}
+
+/** Short green blip so an idle board still proves it is running. */
+static void led_heartbeat(void) {
+    if(millis() - last_heartbeat < HEARTBEAT_PERIOD_MS) return;
+    last_heartbeat = millis();
+
+    led_set(false, true, false);
+    delay(HEARTBEAT_BLIP_MS);
+    led_off();
+}
 
 static bool parse_hex_byte(const char* s, uint8_t* out) {
     uint8_t value = 0;
@@ -138,9 +198,20 @@ static bool send_magic_packet(const uint8_t* mac, IPAddress target, uint16_t por
     return sent > 0;
 }
 
+static void reply_ok(void) {
+    Serial.println("OK");
+    led_blink(false, true, false, 1, 140);
+}
+
+static void reply_err(const char* reason) {
+    Serial.print("ERR ");
+    Serial.println(reason);
+    led_blink(true, false, false, 3, 140);
+}
+
 static void handle_ping(void) {
     Serial.printf("+WOLFW %u\n", (unsigned)WOL_FW_VERSION);
-    Serial.println("OK");
+    reply_ok();
 }
 
 static void handle_status(void) {
@@ -149,22 +220,22 @@ static void handle_status(void) {
     } else {
         Serial.println("+WIFI - -");
     }
-    Serial.println("OK");
+    reply_ok();
 }
 
 static void handle_join(char** fields, size_t count) {
     if(count < 3 || fields[1][0] == '\0') {
-        Serial.println("ERR ARGS");
+        reply_err("ARGS");
         return;
     }
 
     if(!wifi_up(fields[1], fields[2])) {
-        Serial.println("ERR WIFI");
+        reply_err("WIFI");
         return;
     }
 
     Serial.printf("+WIFI OK %s\n", WiFi.localIP().toString().c_str());
-    Serial.println("OK");
+    reply_ok();
 }
 
 static void handle_wol(char** fields, size_t count) {
@@ -181,21 +252,21 @@ static void handle_wol(char** fields, size_t count) {
 
     if(ssid[0] == '\0' || !parse_mac(fields[3], mac) || !target.fromString(fields[4]) ||
        port < 0 || port > 65535) {
-        Serial.println("ERR ARGS");
+        reply_err("ARGS");
         return;
     }
 
     if(!wifi_up(ssid, pass)) {
-        Serial.println("ERR WIFI");
+        reply_err("WIFI");
         return;
     }
     Serial.printf("+WIFI OK %s\n", WiFi.localIP().toString().c_str());
 
     if(!send_magic_packet(mac, target, (uint16_t)port)) {
-        Serial.println("ERR UDP");
+        reply_err("UDP");
         return;
     }
-    Serial.println("OK");
+    reply_ok();
 }
 
 static void handle_line(char* buf) {
@@ -203,6 +274,8 @@ static void handle_line(char* buf) {
     size_t count = split_fields(buf, fields, MAX_FIELDS);
 
     if(count == 0 || fields[0][0] == '\0') return;
+
+    led_set(false, false, true); // blue while a command is in flight
 
     if(!strcmp(fields[0], "PING")) {
         handle_ping();
@@ -213,16 +286,25 @@ static void handle_line(char* buf) {
     } else if(!strcmp(fields[0], "WOL")) {
         handle_wol(fields, count);
     } else {
-        Serial.println("ERR CMD");
+        reply_err("CMD");
     }
+
+    led_off();
+    last_heartbeat = millis();
 }
 
 void setup() {
+    led_init();
+    // three blue blinks: the firmware booted and reached setup()
+    led_blink(false, false, true, 3, 160);
+
     Serial.begin(115200);
     WiFi.mode(WIFI_STA);
     WiFi.persistent(false);
     delay(50);
     Serial.printf("+WOLFW %u ready\n", (unsigned)WOL_FW_VERSION);
+
+    last_heartbeat = millis();
 }
 
 void loop() {
@@ -244,5 +326,7 @@ void loop() {
             line_len = 0;
         }
     }
+
+    led_heartbeat();
     delay(2);
 }

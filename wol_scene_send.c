@@ -39,7 +39,9 @@ static int32_t wol_send_worker(void* context) {
     WolEsp* esp = wol_esp_alloc(&app->worker_cancel);
     const WolTarget* target = &app->config.targets[app->target_index];
     WolEspResult result;
+    uint8_t version = 0;
 
+    app->worker_info[0] = '\0';
     wol_esp_set_progress_callback(esp, wol_send_progress, app);
 
     do {
@@ -50,14 +52,21 @@ static int32_t wol_send_worker(void* context) {
         }
 
         wol_send_report(app, WolSendStepSync);
-        result = wol_esp_ping(esp, NULL);
+        result = wol_esp_ping(esp, &version);
         if(result != WolEspOk) {
             wol_send_report(app, wol_send_step_for_error(result));
             break;
         }
         if(app->worker_cancel) break;
 
-        if(app->wifi_test_mode) {
+        if(app->wake_op == WolWakeOpPing) {
+            snprintf(
+                app->worker_info, sizeof(app->worker_info), "Firmware v%u alive", version);
+            wol_send_report(app, WolSendStepDone);
+            break;
+        }
+
+        if(app->wake_op == WolWakeOpWifiTest) {
             result = wol_esp_join(esp, app->config.ssid, app->config.pass);
         } else {
             result = wol_esp_wake(
@@ -82,10 +91,16 @@ static int32_t wol_send_worker(void* context) {
 void wol_scene_send_on_enter(void* context) {
     WolApp* app = context;
 
-    if(app->wifi_test_mode) {
+    switch(app->wake_op) {
+    case WolWakeOpWifiTest:
         wol_strcpy(send_header, sizeof(send_header), "Wi-Fi test");
-    } else {
+        break;
+    case WolWakeOpPing:
+        wol_strcpy(send_header, sizeof(send_header), "Firmware check");
+        break;
+    case WolWakeOpSend:
         wol_strcpy(send_header, sizeof(send_header), app->config.targets[app->target_index].name);
+        break;
     }
 
     popup_reset(app->popup);
@@ -120,13 +135,15 @@ bool wol_scene_send_on_event(void* context, SceneManagerEvent event) {
         popup_set_text(app->popup, "Sending magic packet...", 64, 32, AlignCenter, AlignTop);
         break;
     case WolSendStepDone:
-        popup_set_text(
-            app->popup,
-            app->wifi_test_mode ? "Wi-Fi is up" : "Magic packet sent",
-            64,
-            32,
-            AlignCenter,
-            AlignTop);
+        if(app->worker_info[0] != '\0') {
+            wol_strcpy(app->status_text, sizeof(app->status_text), app->worker_info);
+        } else {
+            wol_strcpy(
+                app->status_text,
+                sizeof(app->status_text),
+                app->wake_op == WolWakeOpWifiTest ? "Wi-Fi is up" : "Magic packet sent");
+        }
+        popup_set_text(app->popup, app->status_text, 64, 32, AlignCenter, AlignTop);
         notification_message(app->notifications, &sequence_success);
         break;
     case WolSendStepErrBoard:
@@ -170,6 +187,6 @@ void wol_scene_send_on_exit(void* context) {
         furi_thread_free(app->worker);
         app->worker = NULL;
     }
-    app->wifi_test_mode = false;
+    app->wake_op = WolWakeOpSend;
     popup_reset(app->popup);
 }

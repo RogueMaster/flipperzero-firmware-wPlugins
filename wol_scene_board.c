@@ -3,6 +3,7 @@
 #include <storage/storage.h>
 
 typedef enum {
+    BoardIndexCheck,
     BoardIndexFlash,
     BoardIndexBackup,
     BoardIndexRestore,
@@ -19,6 +20,8 @@ void wol_scene_board_on_enter(void* context) {
 
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "ESP board");
+    submenu_add_item(
+        app->submenu, "Firmware check", BoardIndexCheck, wol_scene_board_callback, app);
     submenu_add_item(
         app->submenu, "Flash WoL firmware", BoardIndexFlash, wol_scene_board_callback, app);
     submenu_add_item(
@@ -52,6 +55,12 @@ bool wol_scene_board_on_event(void* context, SceneManagerEvent event) {
     scene_manager_set_scene_state(app->scene_manager, WolSceneBoard, event.event);
 
     switch(event.event) {
+    case BoardIndexCheck:
+        // talks to the running firmware, not the bootloader: no BOOT+RESET
+        app->wake_op = WolWakeOpPing;
+        scene_manager_next_scene(app->scene_manager, WolSceneSend);
+        return true;
+
     case BoardIndexFlash:
         app->flasher_op = WolFlasherOpFlashFirmware;
         break;

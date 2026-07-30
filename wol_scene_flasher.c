@@ -69,8 +69,8 @@ static WolFlasherResult wol_flasher_do_flash_firmware(WolApp* app, WolFlasher* f
         result = wol_flasher_write_images(flasher, images, COUNT_OF(wol_firmware_parts));
     } else {
         snprintf(
-            app->flasher_info,
-            sizeof(app->flasher_info),
+            app->worker_info,
+            sizeof(app->worker_info),
             "Firmware images missing.\nReinstall the app");
         result = WolFlasherErrFile;
     }
@@ -86,7 +86,7 @@ static int32_t wol_flasher_worker(void* context) {
     WolFlasher* flasher = wol_flasher_alloc(&app->worker_cancel);
     WolFlasherResult result;
 
-    app->flasher_info[0] = '\0';
+    app->worker_info[0] = '\0';
     wol_flasher_set_progress_callback(flasher, wol_flasher_progress, app);
 
     result = wol_flasher_connect(flasher);
@@ -95,8 +95,8 @@ static int32_t wol_flasher_worker(void* context) {
         switch(app->flasher_op) {
         case WolFlasherOpInfo:
             snprintf(
-                app->flasher_info,
-                sizeof(app->flasher_info),
+                app->worker_info,
+                sizeof(app->worker_info),
                 "%s, %lu MB flash\n%s, %lu baud",
                 wol_flasher_get_chip_name(flasher),
                 (unsigned long)(wol_flasher_get_flash_size(flasher) / (1024 * 1024)),
@@ -108,8 +108,8 @@ static int32_t wol_flasher_worker(void* context) {
             result = wol_flasher_do_flash_firmware(app, flasher);
             if(result == WolFlasherOk) {
                 snprintf(
-                    app->flasher_info,
-                    sizeof(app->flasher_info),
+                    app->worker_info,
+                    sizeof(app->worker_info),
                     "Press RESET on the board");
             }
             break;
@@ -124,8 +124,8 @@ static int32_t wol_flasher_worker(void* context) {
             result = wol_flasher_backup(flasher, furi_string_get_cstr(app->flasher_path));
             if(result == WolFlasherOk) {
                 snprintf(
-                    app->flasher_info,
-                    sizeof(app->flasher_info),
+                    app->worker_info,
+                    sizeof(app->worker_info),
                     "%s",
                     strrchr(furi_string_get_cstr(app->flasher_path), '/') + 1);
             }
@@ -137,8 +137,8 @@ static int32_t wol_flasher_worker(void* context) {
             result = wol_flasher_write_images(flasher, &image, 1);
             if(result == WolFlasherOk) {
                 snprintf(
-                    app->flasher_info,
-                    sizeof(app->flasher_info),
+                    app->worker_info,
+                    sizeof(app->worker_info),
                     "Press RESET on the board");
             }
             break;
@@ -171,11 +171,11 @@ void wol_scene_flasher_on_enter(void* context) {
         break;
     }
 
-    wol_strcpy(app->flasher_status, sizeof(app->flasher_status), "Connecting...");
+    wol_strcpy(app->status_text, sizeof(app->status_text), "Connecting...");
 
     popup_reset(app->popup);
     popup_set_header(app->popup, flasher_header, 64, 8, AlignCenter, AlignTop);
-    popup_set_text(app->popup, app->flasher_status, 64, 28, AlignCenter, AlignTop);
+    popup_set_text(app->popup, app->status_text, 64, 28, AlignCenter, AlignTop);
     view_dispatcher_switch_to_view(app->view_dispatcher, WolViewPopup);
 
     app->worker_cancel = false;
@@ -197,21 +197,21 @@ bool wol_scene_flasher_on_event(void* context, SceneManagerEvent event) {
     if(event.event >= WOL_EVENT_FLASH_DONE_BASE) {
         WolFlasherResult result = event.event - WOL_EVENT_FLASH_DONE_BASE;
 
-        if(app->flasher_info[0] != '\0') {
+        if(app->worker_info[0] != '\0') {
             snprintf(
-                app->flasher_status,
-                sizeof(app->flasher_status),
+                app->status_text,
+                sizeof(app->status_text),
                 "%s\n%s",
                 wol_flasher_result_text(result),
-                app->flasher_info);
+                app->worker_info);
         } else {
             wol_strcpy(
-                app->flasher_status,
-                sizeof(app->flasher_status),
+                app->status_text,
+                sizeof(app->status_text),
                 wol_flasher_result_text(result));
         }
 
-        popup_set_text(app->popup, app->flasher_status, 64, 26, AlignCenter, AlignTop);
+        popup_set_text(app->popup, app->status_text, 64, 26, AlignCenter, AlignTop);
         notification_message(
             app->notifications, result == WolFlasherOk ? &sequence_success : &sequence_error);
         return true;
@@ -225,12 +225,12 @@ bool wol_scene_flasher_on_event(void* context, SceneManagerEvent event) {
         if(stage >= COUNT_OF(wol_flasher_stage_text)) return false;
 
         snprintf(
-            app->flasher_status,
-            sizeof(app->flasher_status),
+            app->status_text,
+            sizeof(app->status_text),
             "%s %lu%%",
             wol_flasher_stage_text[stage],
             (unsigned long)percent);
-        popup_set_text(app->popup, app->flasher_status, 64, 28, AlignCenter, AlignTop);
+        popup_set_text(app->popup, app->status_text, 64, 28, AlignCenter, AlignTop);
         return true;
     }
 

@@ -62,6 +62,25 @@ The app appears under `Apps -> GPIO -> WoL Flipper`.
    * `Port` — cycles between 9, 7 and 0
 6. `Wake device` — pick a target.
 
+## Is the board alive
+
+The firmware has no other visible output, so `RESET` on a correctly flashed board looks
+exactly like nothing happening. Two ways to tell:
+
+**The LED.** Three blue blinks at boot, then a short green blip every three seconds
+while idle. Blue while a command runs, one green blink on success, three red blinks on
+failure. Pins 4/5/6 match what Marauder drives on this board; the polarity is not
+documented, so every signal is a blink rather than a steady level, which reads the same
+either way.
+
+**`ESP board -> Firmware check`.** Sends a `PING` and reports the firmware version. It
+never touches Wi-Fi and never needs bootloader mode, so it separates a dead board from
+bad credentials:
+
+* `Firmware vN alive` — the board is running this firmware
+* `Wrong ESP firmware` — something answers on the UART, but it is not this firmware
+* `No answer from board` — nothing answers: not flashed, not seated, or not powered
+
 Every flasher operation needs the board in its ROM bootloader first: **hold BOOT, tap
 RESET, release BOOT**. The app prompts for it. This cannot be automated — the GPIO
 header carries no DTR/RTS, so there is nothing to toggle from the Flipper side.
@@ -87,7 +106,7 @@ UART0 on the board (GPIO43/44, wired to Flipper pins 13/14), 115200 8N1, tab sep
 fields, `\n` terminated:
 
 ```
-PING                                        -> +WOLFW 1 / OK
+PING                                        -> +WOLFW 2 / OK
 STATUS                                      -> +WIFI <ssid|-> <ip|-> / OK
 JOIN <ssid> <pass>                          -> +WIFI OK <ip> / OK
 WOL <ssid> <pass> <mac> <bcast> <port>      -> +WIFI OK <ip> / +SEND 3 / OK

@@ -54,7 +54,7 @@ bool wol_scene_targets_on_event(void* context, SceneManagerEvent event) {
         app->target_index = event.event;
 
         if(app->list_mode_wake) {
-            app->wifi_test_mode = false;
+            app->wake_op = WolWakeOpSend;
             scene_manager_next_scene(app->scene_manager, WolSceneSend);
         } else {
             app->edit_is_new = false;

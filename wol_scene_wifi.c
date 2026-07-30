@@ -70,7 +70,7 @@ bool wol_scene_wifi_on_event(void* context, SceneManagerEvent event) {
         return true;
 
     case WifiIndexTest:
-        app->wifi_test_mode = true;
+        app->wake_op = WolWakeOpWifiTest;
         scene_manager_next_scene(app->scene_manager, WolSceneSend);
         return true;
 
