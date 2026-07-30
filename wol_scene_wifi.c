@@ -3,6 +3,7 @@
 #include <string.h>
 
 typedef enum {
+    WifiIndexScan,
     WifiIndexSsid,
     WifiIndexPassword,
     WifiIndexTest,
@@ -38,6 +39,7 @@ void wol_scene_wifi_on_enter(void* context) {
 
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "Wi-Fi setup");
+    submenu_add_item(app->submenu, "Scan networks", WifiIndexScan, wol_scene_wifi_callback, app);
     submenu_add_item(app->submenu, wifi_label_ssid, WifiIndexSsid, wol_scene_wifi_callback, app);
     submenu_add_item(
         app->submenu, wifi_label_pass, WifiIndexPassword, wol_scene_wifi_callback, app);
@@ -57,6 +59,11 @@ bool wol_scene_wifi_on_event(void* context, SceneManagerEvent event) {
     scene_manager_set_scene_state(app->scene_manager, WolSceneWifi, event.event);
 
     switch(event.event) {
+    case WifiIndexScan:
+        app->wake_op = WolWakeOpScan;
+        scene_manager_next_scene(app->scene_manager, WolSceneSend);
+        return true;
+
     case WifiIndexSsid:
         app->text_field = WolTextFieldSsid;
         wol_strcpy(app->text_buf, sizeof(app->text_buf), app->config.ssid);

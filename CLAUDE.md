@@ -61,6 +61,18 @@ shipped no-op hooks and a scene telling the user to press BOOT+RESET by hand, wh
 simply wrong. Third party boards do leave those pins unconnected, so the manual sequence
 stays documented as the fallback.
 
+**The board's RGB LED is common anode** on GPIO 4/5/6. Driving it active high is a trap
+that wastes a lot of time: every state lands within a few percent of full brightness, so
+the LED glows constantly and any blink pattern is invisible, which reads as "the LED code
+does nothing" rather than "the polarity is inverted". See `LED_ACTIVE_LOW`.
+
+**The board's line endings are mixed.** Arduino's `println()` sends CRLF, `printf("...\n")`
+sends LF. `wol_esp.c` strips CR while accumulating so both look the same to the matcher.
+Without that, a terminator anchored as `"\nOK\n"` never matches, every command runs to
+its full timeout, and the app reports "no answer" about a board that answered correctly.
+That one cost several rounds of debugging into the wrong subsystem, so if a command
+starts timing out, check the framing before suspecting power.
+
 **No `strlcpy` in the SDK libc.** Use `wol_strcpy()` from `wol_config.c`.
 
 **`popup_set_text()` stores the pointer, it does not copy.** Anything passed to it must

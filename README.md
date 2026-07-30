@@ -53,8 +53,9 @@ The app appears under `Apps -> GPIO -> WoL Flipper`.
 2. `ESP board -> Flash WoL firmware`. Writes the three images, MD5 verified, then resets
    the board into them. Three blue LED blinks mean the new firmware booted.
 3. `ESP board -> Firmware check` confirms it answers.
-4. `Wi-Fi setup` — SSID and password of the network the target machine is on.
-   `Test connection` checks the board actually associates.
+4. `Wi-Fi setup -> Scan networks` lists what the board's own radio can see and fills the
+   SSID in from the list, which also rules out typos and invisible 5 GHz networks. Then
+   set the password. `Test connection` checks the board actually associates.
 5. `Targets -> Add target`:
    * `Name` — free text label
    * `MAC` — the target NIC's MAC, entered as 6 hex bytes
@@ -68,12 +69,17 @@ The app appears under `Apps -> GPIO -> WoL Flipper`.
 The firmware has no other visible output, so `RESET` on a correctly flashed board looks
 exactly like nothing happening. Two ways to tell:
 
-**The LED.** Three blue blinks at boot, then a short green blip every three seconds
-while idle. Pulsing blue while a command runs, one green blink on success, three red
-blinks on failure. Pins 4/5/6 match what Marauder drives on this board. Everything is
-driven through LEDC at about 4 percent duty, because at full brightness this part is
-painful to look at; raise `LED_LEVEL` in `esp32/src/main.cpp` if you need it visible in
-daylight.
+**The LED.** A red, green, blue self test at boot, then a short green blip every three
+seconds while idle. Pulsing blue while a command runs, one green blink on success, three
+red blinks on failure.
+
+The RGB LED is on GPIO 4 (blue), 5 (green) and 6 (red), the same pins Marauder drives on
+this board, and it is **common anode**: the pin has to go low to light the die. Driving
+it the other way is not a subtle mistake, since every state then lands within a few
+percent of full brightness and the board just glows. Both facts are baked into
+`LED_ACTIVE_LOW` and the pin defines in `esp32/src/main.cpp`. Output goes through LEDC at
+about 4 percent duty, because at full brightness this part is painful to look at; raise
+`LED_LEVEL` if you need it visible in daylight.
 
 The board runs off the Flipper's 5V rail, which the app switches on at launch and off
 when it exits. Leaving the app therefore kills the LED and drops the board's Wi-Fi
@@ -117,12 +123,15 @@ fields, `\n` terminated:
 ```
 PING                                        -> +WOLFW <version> / OK
 STATUS                                      -> +WIFI <ssid|-> <ip|-> / OK
+SCAN                                        -> +AP <rssi> <ssid> ... / OK
 JOIN <ssid> <pass>                          -> +WIFI OK <ip> / OK
 WOL <ssid> <pass> <mac> <bcast> <port>      -> +WIFI OK <ip> / +SEND 3 / OK
 ```
 
-Errors come back as `ERR ARGS|WIFI|UDP|CMD`. Lines starting with `+` are progress
-notices the app turns into on screen status.
+Errors come back as `ERR ARGS|UDP|CMD|SCAN`, or `ERR WIFI <reason>` where the reason is
+an `esp_wifi_types.h` code: 201 means the AP was never on the air, 202/204/15 mean it
+refused the key. The app turns those into separate messages, because "Wi-Fi join failed"
+on its own is not worth printing. Lines starting with `+` are progress notices.
 
 ## Building
 

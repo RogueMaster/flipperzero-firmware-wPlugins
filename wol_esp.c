@@ -88,8 +88,12 @@ static bool wol_esp_wait(WolEsp* esp, uint32_t timeout_ms) {
         size_t len = furi_stream_buffer_receive(esp->rx, buf, sizeof(buf), furi_ms_to_ticks(50));
         if(len == 0) continue;
 
+        /* Drop CR on the way in. Arduino's println() terminates with CRLF while
+         * printf() lines end in LF alone, and the OK token is anchored on both
+         * sides, so a stray CR between OK and the newline made the terminator
+         * unmatchable and every command ran to its timeout. */
         for(size_t i = 0; i < len; i++) {
-            if(buf[i] != 0) furi_string_push_back(esp->acc, buf[i]);
+            if(buf[i] != 0 && buf[i] != '\r') furi_string_push_back(esp->acc, buf[i]);
         }
 
         wol_esp_check_progress(esp);
@@ -125,23 +129,41 @@ static void wol_esp_cmd(WolEsp* esp, const char* format, ...) {
 static WolEspResult wol_esp_error(WolEsp* esp) {
     const char* text = furi_string_get_cstr(esp->acc);
 
-    if(strstr(text, "ERR WIFI")) return WolEspErrWifi;
+    const char* wifi_err = strstr(text, "ERR WIFI");
+    if(wifi_err) {
+        /* esp_wifi_types.h reason codes. 201 is "no AP found"; 202, 204 and 15
+         * are auth and handshake failures, which on a home network always mean
+         * the key is wrong. Anything else stays generic. */
+        int reason = atoi(wifi_err + 8);
+        if(reason == 201) return WolEspErrWifiNotFound;
+        if(reason == 202 || reason == 204 || reason == 15) return WolEspErrWifiAuth;
+        return WolEspErrWifi;
+    }
     if(strstr(text, "ERR UDP")) return WolEspErrUdp;
     if(strstr(text, "ERR ARGS")) return WolEspErrArgs;
     if(strstr(text, "ERR CMD")) return WolEspErrWrongFirmware;
-
-    /* Latches the charger's fault bits and drops OTG if the boost gave up.
-     * Association is the current peak of the whole session, so this is where
-     * a marginal 5V rail lets go. */
-    furi_hal_power_check_otg_status();
-    if(!furi_hal_power_is_otg_enabled()) return WolEspErrPower;
+    if(strstr(text, "ERR SCAN")) return WolEspErrScan;
 
     /* The firmware prints its banner on every boot. Seeing one mid command
      * means the board restarted underneath us: a brownout the charger did not
      * flag, or a crash. */
     if(strstr(text, "+WOLFW ")) return WolEspErrReboot;
 
+    /* Only interrogate the charger when the line went completely silent.
+     * check_otg_status() is not a read: it drops OTG whenever it finds a
+     * latched fault bit, so calling it after every protocol hiccup powers the
+     * board down by itself and then blames the rail for it. */
+    if(furi_string_size(esp->acc) <= 1) {
+        furi_hal_power_check_otg_status();
+        if(!furi_hal_power_is_otg_enabled()) return WolEspErrPower;
+    }
+
     return WolEspErrNoReply;
+}
+
+const char* wol_esp_last_reply(WolEsp* esp) {
+    furi_check(esp);
+    return furi_string_get_cstr(esp->acc);
 }
 
 WolEsp* wol_esp_alloc(volatile bool* cancel) {
@@ -224,12 +246,47 @@ WolEspResult wol_esp_ping(WolEsp* esp, uint8_t* version) {
             return WolEspOk;
         }
         if(answered) return WolEspErrWrongFirmware; // said OK without naming itself
+        if(wol_esp_cancelled(esp)) break;
 
         if(furi_string_size(esp->acc) > 1) heard_something = true;
-        if(wol_esp_cancelled(esp)) break;
     }
 
     return heard_something ? WolEspErrWrongFirmware : WolEspErrNoReply;
+}
+
+WolEspResult wol_esp_scan(WolEsp* esp, WolEspAp* out, uint8_t capacity, uint8_t* count) {
+    furi_check(esp && esp->opened && out && count);
+
+    *count = 0;
+    wol_esp_cmd(esp, "SCAN");
+    if(!wol_esp_wait(esp, 20000)) return wol_esp_error(esp);
+
+    /* Lines look like "+AP -62 My Network", and an SSID may contain spaces, so
+     * the name is whatever follows the RSSI up to the newline. */
+    const char* cursor = furi_string_get_cstr(esp->acc);
+    while(*count < capacity && (cursor = strstr(cursor, "+AP ")) != NULL) {
+        cursor += 4;
+
+        char* end = NULL;
+        long rssi = strtol(cursor, &end, 10);
+        if(end == cursor) break;
+        cursor = end;
+        while(*cursor == ' ') cursor++;
+
+        size_t len = 0;
+        while(cursor[len] && cursor[len] != '\n' && cursor[len] != '\r') len++;
+        if(len == 0) continue;
+        if(len >= WOL_SSID_LEN) len = WOL_SSID_LEN - 1;
+
+        memcpy(out[*count].ssid, cursor, len);
+        out[*count].ssid[len] = '\0';
+        out[*count].rssi = (int8_t)rssi;
+        (*count)++;
+
+        cursor += len;
+    }
+
+    return WolEspOk;
 }
 
 WolEspResult wol_esp_join(WolEsp* esp, const char* ssid, const char* pass) {

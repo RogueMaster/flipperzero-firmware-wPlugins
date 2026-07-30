@@ -3,6 +3,8 @@
 #include <furi.h>
 #include <stdbool.h>
 
+#include "wol_config.h"
+
 /**
  * Client for the wol-flipper companion firmware running on the ESP32-S2 dev
  * board (see esp32/src/main.cpp for the wire protocol).
@@ -23,9 +25,21 @@ typedef enum {
     /** The board announced a fresh boot in the middle of a command. */
     WolEspErrReboot,
     WolEspErrWifi,
+    /** The AP was not on the air at all. */
+    WolEspErrWifiNotFound,
+    /** Association was refused: wrong key, in practice. */
+    WolEspErrWifiAuth,
     WolEspErrUdp,
     WolEspErrArgs,
+    WolEspErrScan,
 } WolEspResult;
+
+#define WOL_SSID_MAX_SCAN 24
+
+typedef struct {
+    char ssid[WOL_SSID_LEN];
+    int8_t rssi;
+} WolEspAp;
 
 /** Intermediate notices pushed by the board while a command runs. */
 typedef enum {
@@ -50,6 +64,16 @@ void wol_esp_close(WolEsp* esp);
 
 /** Identify the board. Writes the firmware protocol version if non NULL. */
 WolEspResult wol_esp_ping(WolEsp* esp, uint8_t* version);
+
+/**
+ * Everything the board said during the last command, newline separated.
+ * Valid until the next command. Meant for putting on screen when something
+ * fails, since guessing at a black box over a serial line does not work.
+ */
+const char* wol_esp_last_reply(WolEsp* esp);
+
+/** List what the board's radio can see. Takes a few seconds. */
+WolEspResult wol_esp_scan(WolEsp* esp, WolEspAp* out, uint8_t capacity, uint8_t* count);
 
 /** Associate with an AP, or confirm an existing association. */
 WolEspResult wol_esp_join(WolEsp* esp, const char* ssid, const char* pass);

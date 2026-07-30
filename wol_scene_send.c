@@ -6,6 +6,25 @@ static void wol_send_report(WolApp* app, WolSendStep step) {
     view_dispatcher_send_custom_event(app->view_dispatcher, WOL_EVENT_SEND(step));
 }
 
+/**
+ * Errors get the diagnosis and the evidence on the same screen. A serial link
+ * to a board with one LED gives nothing to reason about otherwise, and every
+ * failure so far has been resolved by looking at what the board actually said.
+ */
+static void wol_send_show_error(WolApp* app, const char* message) {
+    snprintf(
+        app->status_text,
+        sizeof(app->status_text),
+        "\e#%s\n\n\e#Board said\n%s",
+        message,
+        app->raw_reply[0] ? app->raw_reply : "(nothing)");
+
+    widget_reset(app->widget);
+    widget_add_text_scroll_element(app->widget, 0, 0, 128, 64, app->status_text);
+    view_dispatcher_switch_to_view(app->view_dispatcher, WolViewWidget);
+    notification_message(app->notifications, &sequence_error);
+}
+
 /** Called from the worker thread while a board command is in flight. */
 static void wol_send_progress(void* context, WolEspProgress progress) {
     WolApp* app = context;
@@ -30,12 +49,24 @@ static WolSendStep wol_send_step_for_error(WolEspResult result) {
         return WolSendStepErrReboot;
     case WolEspErrWifi:
         return WolSendStepErrWifi;
+    case WolEspErrWifiNotFound:
+        return WolSendStepErrWifiNotFound;
+    case WolEspErrWifiAuth:
+        return WolSendStepErrWifiAuth;
+    case WolEspErrScan:
+        return WolSendStepErrScan;
     case WolEspErrUdp:
     case WolEspErrArgs:
         return WolSendStepErrSend;
     default:
         return WolSendStepErrBoard;
     }
+}
+
+/** Snapshot what the board said, then report the mapped failure. */
+static void wol_send_fail(WolApp* app, WolEsp* esp, WolEspResult result) {
+    snprintf(app->raw_reply, sizeof(app->raw_reply), "%s", wol_esp_last_reply(esp));
+    wol_send_report(app, wol_send_step_for_error(result));
 }
 
 static int32_t wol_send_worker(void* context) {
@@ -46,6 +77,7 @@ static int32_t wol_send_worker(void* context) {
     uint8_t version = 0;
 
     app->worker_info[0] = '\0';
+    app->raw_reply[0] = '\0';
     wol_esp_set_progress_callback(esp, wol_send_progress, app);
 
     do {
@@ -59,7 +91,7 @@ static int32_t wol_send_worker(void* context) {
         wol_send_report(app, WolSendStepSync);
         result = wol_esp_ping(esp, &version);
         if(result != WolEspOk) {
-            wol_send_report(app, wol_send_step_for_error(result));
+            wol_send_fail(app, esp, result);
             break;
         }
         if(app->worker_cancel) break;
@@ -68,6 +100,17 @@ static int32_t wol_send_worker(void* context) {
             snprintf(
                 app->worker_info, sizeof(app->worker_info), "Firmware v%u alive", version);
             wol_send_report(app, WolSendStepDone);
+            break;
+        }
+
+        if(app->wake_op == WolWakeOpScan) {
+            wol_send_report(app, WolSendStepWifi);
+            result = wol_esp_scan(esp, app->scan_list, WOL_SSID_MAX_SCAN, &app->scan_count);
+            if(result == WolEspOk) {
+                wol_send_report(app, WolSendStepDone);
+            } else {
+                wol_send_fail(app, esp, result);
+            }
             break;
         }
 
@@ -84,8 +127,11 @@ static int32_t wol_send_worker(void* context) {
         }
         if(app->worker_cancel) break;
 
-        wol_send_report(
-            app, result == WolEspOk ? WolSendStepDone : wol_send_step_for_error(result));
+        if(result == WolEspOk) {
+            wol_send_report(app, WolSendStepDone);
+        } else {
+            wol_send_fail(app, esp, result);
+        }
     } while(false);
 
     wol_esp_close(esp);
@@ -102,6 +148,9 @@ void wol_scene_send_on_enter(void* context) {
         break;
     case WolWakeOpPing:
         wol_strcpy(send_header, sizeof(send_header), "Firmware check");
+        break;
+    case WolWakeOpScan:
+        wol_strcpy(send_header, sizeof(send_header), "Scanning");
         break;
     case WolWakeOpSend:
         wol_strcpy(send_header, sizeof(send_header), app->config.targets[app->target_index].name);
@@ -140,6 +189,10 @@ bool wol_scene_send_on_event(void* context, SceneManagerEvent event) {
         popup_set_text(app->popup, "Sending magic packet...", 64, 32, AlignCenter, AlignTop);
         break;
     case WolSendStepDone:
+        if(app->wake_op == WolWakeOpScan) {
+            scene_manager_next_scene(app->scene_manager, WolSceneWifiScan);
+            return true;
+        }
         if(app->worker_info[0] != '\0') {
             wol_strcpy(app->status_text, sizeof(app->status_text), app->worker_info);
         } else {
@@ -152,49 +205,31 @@ bool wol_scene_send_on_event(void* context, SceneManagerEvent event) {
         notification_message(app->notifications, &sequence_success);
         break;
     case WolSendStepErrBoard:
-        popup_set_text(
-            app->popup, "No answer from board.\nIs it seated?", 64, 30, AlignCenter, AlignTop);
-        notification_message(app->notifications, &sequence_error);
+        wol_send_show_error(app, "No answer from board");
         break;
     case WolSendStepErrFirmware:
-        popup_set_text(
-            app->popup,
-            "Wrong ESP firmware.\nFlash it from Board menu",
-            64,
-            30,
-            AlignCenter,
-            AlignTop);
-        notification_message(app->notifications, &sequence_error);
+        wol_send_show_error(app, "Wrong ESP firmware");
         break;
     case WolSendStepErrPower:
-        popup_set_text(
-            app->popup,
-            "Flipper 5V tripped.\nCharge it or power the\nboard over USB-C",
-            64,
-            26,
-            AlignCenter,
-            AlignTop);
-        notification_message(app->notifications, &sequence_error);
+        wol_send_show_error(app, "Flipper 5V tripped");
         break;
     case WolSendStepErrReboot:
-        popup_set_text(
-            app->popup,
-            "Board restarted.\nWeak 5V rail, power it\nover USB-C",
-            64,
-            26,
-            AlignCenter,
-            AlignTop);
-        notification_message(app->notifications, &sequence_error);
+        wol_send_show_error(app, "Board restarted");
         break;
     case WolSendStepErrWifi:
-        popup_set_text(
-            app->popup, "Wi-Fi join failed.\nCheck SSID/password", 64, 30, AlignCenter, AlignTop);
-        notification_message(app->notifications, &sequence_error);
+        wol_send_show_error(app, "Wi-Fi join failed");
+        break;
+    case WolSendStepErrWifiNotFound:
+        wol_send_show_error(app, "Network not on the air");
+        break;
+    case WolSendStepErrWifiAuth:
+        wol_send_show_error(app, "AP refused the key");
+        break;
+    case WolSendStepErrScan:
+        wol_send_show_error(app, "Scan failed");
         break;
     case WolSendStepErrSend:
-        popup_set_text(
-            app->popup, "UDP send failed.\nCheck broadcast IP", 64, 30, AlignCenter, AlignTop);
-        notification_message(app->notifications, &sequence_error);
+        wol_send_show_error(app, "UDP send failed");
         break;
     default:
         return false;
@@ -214,4 +249,5 @@ void wol_scene_send_on_exit(void* context) {
     }
     app->wake_op = WolWakeOpSend;
     popup_reset(app->popup);
+    widget_reset(app->widget);
 }

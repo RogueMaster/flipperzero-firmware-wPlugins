@@ -51,6 +51,8 @@ typedef enum {
     /** Identify the running firmware. Touches no Wi-Fi, so it isolates a dead
      *  board from bad credentials. */
     WolWakeOpPing,
+    /** List visible APs, which turns "not found" into something checkable. */
+    WolWakeOpScan,
 } WolWakeOp;
 
 /** Which field the shared text input scene is currently editing. */
@@ -73,6 +75,9 @@ typedef enum {
     WolSendStepErrPower,
     WolSendStepErrReboot,
     WolSendStepErrWifi,
+    WolSendStepErrWifiNotFound,
+    WolSendStepErrWifiAuth,
+    WolSendStepErrScan,
     WolSendStepErrSend,
     WolSendStepCount,
 } WolSendStep;
@@ -122,6 +127,9 @@ typedef struct {
     WolTextField text_field;
     char text_buf[WOL_TEXT_BUF_LEN];
 
+    WolEspAp scan_list[WOL_SSID_MAX_SCAN];
+    uint8_t scan_count;
+
     FuriThread* worker;
     volatile bool worker_cancel;
     WolWakeOp wake_op;
@@ -135,7 +143,9 @@ typedef struct {
     /** Written by a worker before it posts its done event, read after. */
     char worker_info[96];
     /** Owned by the GUI thread; the popup keeps a pointer to it. */
-    char status_text[192];
+    char status_text[512];
+    /** Raw board output from the last failed command, for the error screen. */
+    char raw_reply[256];
 } WolApp;
 
 /** Bring 5V back if the boost tripped. Call from a worker before talking. */
