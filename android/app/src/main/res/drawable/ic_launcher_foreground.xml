@@ -1,13 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive foreground: keyboard + Bluetooth mark with radio waves. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- Left radio waves -->
     <path
-        android:fillColor="#FF6B35"
-        android:pathData="M24,24h60v60h-60z" />
+        android:fillColor="#00000000"
+        android:pathData="M41,26c-3.2,3 -5,7.1 -5,11.5s1.8,8.5 5,11.5"
+        android:strokeWidth="3"
+        android:strokeColor="#FF6B35"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M35,20c-5.2,4.8 -8,11.2 -8,17.5s2.8,12.7 8,17.5"
+        android:strokeWidth="3"
+        android:strokeColor="#FF6B35"
+        android:strokeLineCap="round" />
+
+    <!-- Right radio waves -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M67,26c3.2,3 5,7.1 5,11.5s-1.8,8.5 -5,11.5"
+        android:strokeWidth="3"
+        android:strokeColor="#FF6B35"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M73,20c5.2,4.8 8,11.2 8,17.5s-2.8,12.7 -8,17.5"
+        android:strokeWidth="3"
+        android:strokeColor="#FF6B35"
+        android:strokeLineCap="round" />
+
+    <!-- Bluetooth rune -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,18 L63,27.5 L54,37 L63,46.5 L54,56"
+        android:strokeWidth="3.4"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M54,18 L54,56"
+        android:strokeWidth="3.4"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M45,27.5 L54,37 L45,46.5"
+        android:strokeWidth="3.4"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Keyboard body -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M36,42h36v6h-36zM36,54h28v6h-28zM36,66h20v6h-20z" />
+        android:pathData="M25,60c0,-2.2 1.8,-4 4,-4h50c2.2,0 4,1.8 4,4v24c0,2.2 -1.8,4 -4,4h-50c-2.2,0 -4,-1.8 -4,-4z" />
+
+    <!-- Keys row 1 -->
+    <path android:fillColor="#1E1E1E" android:pathData="M31,64h7v5.5h-7z" />
+    <path android:fillColor="#1E1E1E" android:pathData="M41,64h7v5.5h-7z" />
+    <path android:fillColor="#1E1E1E" android:pathData="M51,64h7v5.5h-7z" />
+    <path android:fillColor="#1E1E1E" android:pathData="M61,64h7v5.5h-7z" />
+    <path android:fillColor="#1E1E1E" android:pathData="M71,64h6v5.5h-6z" />
+
+    <!-- Keys row 2 -->
+    <path android:fillColor="#1E1E1E" android:pathData="M34,72h7v5.5h-7z" />
+    <path android:fillColor="#1E1E1E" android:pathData="M44,72h7v5.5h-7z" />
+    <path android:fillColor="#1E1E1E" android:pathData="M54,72h7v5.5h-7z" />
+    <path android:fillColor="#1E1E1E" android:pathData="M64,72h7v5.5h-7z" />
+
+    <!-- Space bar -->
+    <path android:fillColor="#1E1E1E" android:pathData="M37,80.5h34v4.5h-34z" />
 </vector>
