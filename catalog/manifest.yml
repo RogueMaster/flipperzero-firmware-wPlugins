@@ -15,10 +15,12 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/keetsta/wol-flipper.git
-    commit_sha: 8716e751e859047184d1fe62a869c239a9bddee4
+    commit_sha: 5ef8fbb4a143dc1d68b652a35c9858e7072ddac6
     build_dir: .
 
-short_description: Wake-on-LAN through the ESP32-S2 WiFi dev board, which the app flashes itself
+# kept identical to fap_description in application.fam, otherwise the bundler
+# warns about the two disagreeing
+short_description: Wake-on-LAN over the ESP32-S2 WiFi dev board, with a built in flasher
 
 description: "@DESCRIPTION.md"
 changelog: "@changelog.md"
