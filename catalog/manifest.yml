@@ -25,6 +25,5 @@ changelog: "@changelog.md"
 
 screenshots:
   - "screenshots/menu.png"
-  - "screenshots/targets.png"
-  - "screenshots/sending.png"
   - "screenshots/board.png"
+  - "screenshots/sending.png"
