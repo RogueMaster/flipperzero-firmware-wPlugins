@@ -9,19 +9,17 @@
 - Added version number
 
 ## v1.4
-- Compatibility for FW above 0.99.0
-- Fix for Value changing on success screen
+- Prevent value changing on win view
+- Fix issues with FW build 0.99.x
 
 ## v1.3
-- Fixed minor memory leak in storage
+- Patched Memory Leak in storage
 
 ## v1.2
-- Updated Application for Flipper Zero 0.95.0-rc
+- Updated compatibility to 0.95.0-rc
 
 ## v1.1
-
-Added GFX to start screen
+- Updated Launch Screen GFX
 
 ## v1.0
-
 First release to Application Catalog
