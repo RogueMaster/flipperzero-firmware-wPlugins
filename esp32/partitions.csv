@@ -1,0 +1,6 @@
+# Single factory app, no OTA. Keeps the layout to three flashable files and
+# removes the need for boot_app0.bin at 0xe000.
+# Name,     Type, SubType,  Offset,   Size,     Flags
+nvs,        data, nvs,      0x9000,   0x5000,
+phy_init,   data, phy,      0xe000,   0x1000,
+factory,    app,  factory,  0x10000,  0x300000,
