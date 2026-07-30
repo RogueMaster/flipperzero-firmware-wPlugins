@@ -23,13 +23,14 @@
 
 #include <stdlib.h>
 
-#define MORSE_FLIPPER_ICR_WAIT_MS       1000U
-#define MORSE_FLIPPER_ICR_TIMEOUT_MS    5000U
-#define MORSE_FLIPPER_ICR_GUARD_MS      100U
-#define MORSE_FLIPPER_ICR_RESULT_MS     1000U
-#define MORSE_FLIPPER_ICR_FLASH_STEP_MS 250U
-#define MORSE_FLIPPER_ICR_FLASH_MS      (MORSE_FLIPPER_ICR_FLASH_STEP_MS * 5U)
-#define MORSE_FLIPPER_ICR_DIT_MS        48U /* 1200 / fixed 25 WPM */
+#define MORSE_FLIPPER_ICR_WAIT_MS        1000U
+#define MORSE_FLIPPER_ICR_TIMEOUT_MS     5000U
+#define MORSE_FLIPPER_ICR_GUARD_MS       100U
+#define MORSE_FLIPPER_ICR_RESULT_MS      1000U
+#define MORSE_FLIPPER_ICR_PRESS_BLACK_MS 300U
+#define MORSE_FLIPPER_ICR_FLASH_STEP_MS  250U
+#define MORSE_FLIPPER_ICR_FLASH_MS       (MORSE_FLIPPER_ICR_FLASH_STEP_MS * 5U)
+#define MORSE_FLIPPER_ICR_DIT_MS         48U /* 1200 / fixed 25 WPM */
 
 #define MORSE_FLIPPER_ICR_1000MS_BUCKET      50U
 #define MORSE_FLIPPER_ICR_GRAPH_MAX_H        44U
@@ -53,6 +54,7 @@ typedef struct {
     MorseFlipperIcrPhase phase;
     uint8_t target;
     uint8_t choice;
+    uint8_t pressed_choice;
     uint8_t choices[MORSE_FLIPPER_ICR_CHOICE_COUNT];
     uint8_t mark_idx;
     uint32_t rng_state;
@@ -84,6 +86,7 @@ static void morse_flipper_icr_begin_wait(MorseFlipperIcrState* state, uint32_t n
     state->playback_mark = false;
     state->phase = MorseFlipperIcrPhaseGraphWait;
     state->choice = MORSE_FLIPPER_ICR_NO_CHOICE;
+    state->pressed_choice = MORSE_FLIPPER_ICR_NO_CHOICE;
     state->mark_idx = 0U;
     state->next_at =
         now_ms + (has_previous_target ? MORSE_FLIPPER_ICR_FLASH_MS : MORSE_FLIPPER_ICR_WAIT_MS);
@@ -101,6 +104,7 @@ static void morse_flipper_icr_begin_prompt(MorseFlipperIcrState* state, uint32_t
     state->target =
         morse_flipper_icr_pick_target_except(&state->stats, &state->rng_state, previous);
     state->choice = MORSE_FLIPPER_ICR_NO_CHOICE;
+    state->pressed_choice = MORSE_FLIPPER_ICR_NO_CHOICE;
     state->mark_idx = 0U;
     state->playback_mark = false;
     state->pending_reaction_ms = 0U;
@@ -131,6 +135,7 @@ static void morse_flipper_icr_open_answer_guard(MorseFlipperIcrState* state, uin
     morse_flipper_icr_build_choices(
         &state->stats, state->target, &state->rng_state, state->choices);
     state->phase = MorseFlipperIcrPhaseAnswerGuard;
+    state->pressed_choice = MORSE_FLIPPER_ICR_NO_CHOICE;
     state->guard_until = now_ms + MORSE_FLIPPER_ICR_GUARD_MS;
     state->next_at = 0U;
 }
@@ -285,8 +290,24 @@ MorseFlipperIcrResult
         return morse_flipper_icr_result(state, true);
     }
 
+    if(state->phase == MorseFlipperIcrPhaseAnswer && event->type == InputTypePress) {
+        uint8_t choice_pos = morse_flipper_icr_choice_from_key(event->key);
+        if(choice_pos < MORSE_FLIPPER_ICR_CHOICE_COUNT) {
+            state->pressed_choice = choice_pos;
+            state->guard_until = now_ms + MORSE_FLIPPER_ICR_PRESS_BLACK_MS;
+            return morse_flipper_icr_result(state, true);
+        }
+    }
+
     if(state->phase == MorseFlipperIcrPhaseAnswer && event->type == InputTypeRelease) {
-        morse_flipper_icr_answer(state, morse_flipper_icr_choice_from_key(event->key), now_ms);
+        uint8_t choice_pos = morse_flipper_icr_choice_from_key(event->key);
+        if(choice_pos < MORSE_FLIPPER_ICR_CHOICE_COUNT) {
+            if(state->pressed_choice != choice_pos) {
+                state->pressed_choice = choice_pos;
+                state->guard_until = now_ms + MORSE_FLIPPER_ICR_PRESS_BLACK_MS;
+            }
+            morse_flipper_icr_answer(state, choice_pos, now_ms);
+        }
         return morse_flipper_icr_result(state, true);
     }
 
@@ -332,6 +353,13 @@ MorseFlipperIcrResult morse_flipper_icr_runtime_tick(void* value, uint32_t now_m
         morse_flipper_time_reached(now_ms, state->result_until)) {
         state->feedback = MorseFlipperIcrFeedbackClear;
         morse_flipper_icr_begin_wait(state, now_ms);
+        return morse_flipper_icr_result(state, true);
+    } else if(
+        (state->phase == MorseFlipperIcrPhaseAnswer ||
+         state->phase == MorseFlipperIcrPhaseResult) &&
+        state->pressed_choice < MORSE_FLIPPER_ICR_CHOICE_COUNT && state->guard_until != 0U &&
+        morse_flipper_time_reached(now_ms, state->guard_until)) {
+        state->guard_until = 0U;
         return morse_flipper_icr_result(state, true);
     }
 
@@ -461,65 +489,104 @@ static void morse_flipper_icr_draw_choice(
     int32_t x,
     int32_t y,
     uint8_t choice,
-    bool selected) {
+    bool selected,
+    bool pressed_black) {
     char text[2] = {
         choice < MORSE_FLIPPER_ICR_CHAR_COUNT ? morse_flipper_icr_char_at(choice) : '?',
         '\0',
     };
 
-    canvas_set_color(canvas, selected ? ColorWhite : ColorBlack);
+    canvas_set_color(canvas, selected && pressed_black ? ColorWhite : ColorBlack);
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str_aligned(canvas, x, y + 1, AlignCenter, AlignCenter, text);
     if(selected) canvas_set_color(canvas, ColorBlack);
 }
 
-static void morse_flipper_icr_draw_selected_shape(Canvas* canvas, uint8_t choice) {
+static void
+    morse_flipper_icr_draw_pressed_shape(Canvas* canvas, uint8_t choice, bool pressed_black) {
+    const uint8_t* bitmap;
+    int32_t x;
+    int32_t y;
+    size_t width;
+    size_t height;
+
     switch(choice) {
     case 0U:
-        canvas_draw_bitmap(canvas, 20, 5, 19, 14, morse_flipper_icr_choice_selected_0);
+        x = 20;
+        y = 5;
+        width = 19U;
+        height = 14U;
+        bitmap = pressed_black ? morse_flipper_icr_choice_pressed_black_0 :
+                                 morse_flipper_icr_choice_pressed_white_0;
         break;
     case 1U:
-        canvas_draw_bitmap(canvas, 20, 45, 19, 14, morse_flipper_icr_choice_selected_1);
+        x = 20;
+        y = 45;
+        width = 19U;
+        height = 14U;
+        bitmap = pressed_black ? morse_flipper_icr_choice_pressed_black_1 :
+                                 morse_flipper_icr_choice_pressed_white_1;
         break;
     case 2U:
-        canvas_draw_bitmap(canvas, 2, 22, 14, 19, morse_flipper_icr_choice_selected_2);
+        x = 2;
+        y = 22;
+        width = 14U;
+        height = 19U;
+        bitmap = pressed_black ? morse_flipper_icr_choice_pressed_black_2 :
+                                 morse_flipper_icr_choice_pressed_white_2;
         break;
     case 3U:
-        canvas_draw_bitmap(canvas, 44, 22, 14, 19, morse_flipper_icr_choice_selected_3);
+        x = 44;
+        y = 22;
+        width = 14U;
+        height = 19U;
+        bitmap = pressed_black ? morse_flipper_icr_choice_pressed_black_3 :
+                                 morse_flipper_icr_choice_pressed_white_3;
         break;
     case 4U:
-        canvas_draw_bitmap(canvas, 20, 22, 20, 20, morse_flipper_icr_choice_selected_4);
+        x = 20;
+        y = 22;
+        width = 20U;
+        height = 20U;
+        bitmap = pressed_black ? morse_flipper_icr_choice_pressed_black_4 :
+                                 morse_flipper_icr_choice_pressed_white_4;
         break;
     default:
-        break;
+        return;
     }
+
+    canvas_set_color(canvas, ColorWhite);
+    canvas_draw_box(canvas, x, y, width, height);
+    canvas_set_color(canvas, ColorBlack);
+    canvas_draw_bitmap(canvas, x, y, width, height, bitmap);
 }
 
 static uint8_t morse_flipper_icr_selected_choice(const MorseFlipperIcrState* state) {
-    if(state->phase != MorseFlipperIcrPhaseResult || state->choice == MORSE_FLIPPER_ICR_NO_CHOICE)
+    if(state->phase != MorseFlipperIcrPhaseAnswer && state->phase != MorseFlipperIcrPhaseResult)
         return MORSE_FLIPPER_ICR_NO_CHOICE;
-
-    for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_CHOICE_COUNT; i++) {
-        if(state->choices[i] == state->choice) return i;
-    }
-    return MORSE_FLIPPER_ICR_NO_CHOICE;
+    return state->pressed_choice;
 }
 
-static void morse_flipper_icr_draw_choices(Canvas* canvas, const MorseFlipperIcrState* state) {
+static void morse_flipper_icr_draw_choices(
+    Canvas* canvas,
+    const MorseFlipperIcrState* state,
+    uint32_t now_ms) {
     static const uint8_t choice_x[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {29U, 29U, 10U, 49U, 29U};
     static const uint8_t choice_y[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {12U, 50U, 31U, 31U, 31U};
     uint8_t selected = morse_flipper_icr_selected_choice(state);
+    bool pressed_black = selected < MORSE_FLIPPER_ICR_CHOICE_COUNT && state->guard_until != 0U &&
+                         morse_flipper_time_pending(now_ms, state->guard_until);
 
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_bitmap(canvas, 2, 5, 56, 54, morse_flipper_icr_choice_outline);
     if(selected < MORSE_FLIPPER_ICR_CHOICE_COUNT)
-        morse_flipper_icr_draw_selected_shape(canvas, selected);
+        morse_flipper_icr_draw_pressed_shape(canvas, selected, pressed_black);
 
     for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_CHOICE_COUNT; i++) {
         bool is_selected = i == selected;
 
         morse_flipper_icr_draw_choice(
-            canvas, choice_x[i], choice_y[i], state->choices[i], is_selected);
+            canvas, choice_x[i], choice_y[i], state->choices[i], is_selected, pressed_black);
     }
 }
 
@@ -575,7 +642,7 @@ void morse_flipper_icr_runtime_draw(void* value, Canvas* canvas, uint32_t now_ms
     canvas_draw_str_aligned(
         canvas, 127, 8, AlignRight, AlignBottom, morse_flipper_icr_phase_label(state));
     if(state->choice != MORSE_FLIPPER_ICR_NO_CHOICE || state->phase != MorseFlipperIcrPhaseResult)
-        morse_flipper_icr_draw_choices(canvas, state);
+        morse_flipper_icr_draw_choices(canvas, state, now_ms);
 
     if(state->phase == MorseFlipperIcrPhaseResult) {
         morse_flipper_icr_draw_prompt(canvas, morse_flipper_icr_char_at(state->target));
