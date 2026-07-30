@@ -15,7 +15,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/keetsta/wol-flipper.git
-    commit_sha: 5ef8fbb4a143dc1d68b652a35c9858e7072ddac6
+    commit_sha: d93e9a6f11245745a97957487a51bcbdcc0f5921
     build_dir: .
 
 # kept identical to fap_description in application.fam, otherwise the bundler
