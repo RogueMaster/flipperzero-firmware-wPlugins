@@ -34,7 +34,7 @@
  *
  * LED, because otherwise a working board is indistinguishable from a dead one:
  *
- *   three blue blinks   boot reached setup()
+ *   red, green, blue    boot self test, one second each
  *   green blip every 3s idle and running
  *   pulsing blue        a command is being handled
  *   one green blink     command succeeded
@@ -49,7 +49,7 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-#define WOL_FW_VERSION   5
+#define WOL_FW_VERSION   6
 #define LINE_MAX         320
 #define MAX_FIELDS       8
 #define WIFI_TIMEOUT_MS  20000
@@ -79,6 +79,22 @@
 #define LED_PWM_FREQ 2000
 #define LED_PWM_BITS 8
 #define LED_LEVEL    10
+#define LED_MAX      ((1 << LED_PWM_BITS) - 1)
+
+/*
+ * Set to 1 for a common anode part, where pulling the pin low is what lights
+ * the die. Wrong guess here is not subtle: "off" becomes full brightness and
+ * the dimming does nothing. Run the boot self test below to tell which it is.
+ */
+#define LED_ACTIVE_LOW 0
+
+static inline uint32_t led_duty(bool on) {
+#if LED_ACTIVE_LOW
+    return on ? (LED_MAX - LED_LEVEL) : LED_MAX;
+#else
+    return on ? LED_LEVEL : 0;
+#endif
+}
 
 #define HEARTBEAT_PERIOD_MS 3000
 #define HEARTBEAT_BLIP_MS   60
@@ -100,9 +116,28 @@ static void led_init(void) {
 }
 
 static void led_set(bool red, bool green, bool blue) {
-    ledcWrite(LED_CH_R, red ? LED_LEVEL : 0);
-    ledcWrite(LED_CH_G, green ? LED_LEVEL : 0);
-    ledcWrite(LED_CH_B, blue ? LED_LEVEL : 0);
+    ledcWrite(LED_CH_R, led_duty(red));
+    ledcWrite(LED_CH_G, led_duty(green));
+    ledcWrite(LED_CH_B, led_duty(blue));
+}
+
+/**
+ * One second of each primary at boot, then dark. What actually appears
+ * identifies the part:
+ *
+ *   red, green, blue, then dark   pins and polarity are right
+ *   cyan, magenta, yellow, white  common anode, set LED_ACTIVE_LOW to 1
+ *   nothing changes               these are not the pins, or that light is
+ *                                 the board's own power indicator
+ */
+static void led_self_test(void) {
+    led_set(true, false, false);
+    delay(800);
+    led_set(false, true, false);
+    delay(800);
+    led_set(false, false, true);
+    delay(800);
+    led_off();
 }
 
 static void led_off(void) {
@@ -338,8 +373,7 @@ void setup() {
     Serial.printf("+WOLFW %u ready\n", (unsigned)WOL_FW_VERSION);
 
     led_init();
-    // three blue blinks: the firmware booted and reached setup()
-    led_blink(false, false, true, 3, 160);
+    led_self_test();
 
     WiFi.mode(WIFI_STA);
     WiFi.persistent(false);
