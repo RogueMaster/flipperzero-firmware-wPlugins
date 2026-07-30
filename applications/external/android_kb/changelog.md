@@ -1,3 +1,7 @@
+## v0.5.8
+
+- Version align with companion app 0.5.8 (no FAP behavior change)
+
 ## v0.5.7
 
 - Version align with companion app 0.5.7 (no FAP behavior change)

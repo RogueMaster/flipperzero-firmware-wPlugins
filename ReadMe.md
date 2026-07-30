@@ -63,7 +63,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Hermes v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Hermes-FlipperZero)
 - Added: [Flipper Share NFC v1.5 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_nfc)
 - Updated: [Claude Buddy v0.6 (By jxw1102)](https://github.com/jxw1102/flipper-claude-buddy)
-- Updated: [Android KB Bridge v0.5.7 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD) (Version Only)
+- Updated: [Android KB Bridge v0.5.8 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD) (Version Only)
 - Updated: [Tesla Mod v2.16b24 (By hypery11)](https://github.com/hypery11/flipper-tesla-fsd) (Version Only)
 - OFW: Infrared: [initialize timings_cnt on decoder alloc and fix its bounds check #4429 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4429)
 - OFW: js_event_loop: [reject a zero or negative timer interval- #4425 (By munzzyy)](https://github.com/flipperdevices/flipperzero-firmware/pull/4425)
@@ -86,6 +86,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Ghost ESP v1.8.1 (By jaylikesbunda & Spooks4576)](https://github.com/Spooks4576/ghost_esp_app)
 - Updated: [DeFlock v0.52 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - OFW: CLI: [consistent quoted path handling for loader and Sub-GHz #4430 (By drkemp187)](https://github.com/flipperdevices/flipperzero-firmware/pull/4430)
+- Added: [WoL Flipper v1.1 (By keetsta)](https://github.com/keetsta/wol-flipper) `Req: ESP32`
+- [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest [WoL Flipper v1.1 (By keetsta)](https://github.com/keetsta/wol-flipper) ESP32 firmware.
 
 <a name="release"></a>
 
@@ -370,7 +372,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Amusement IC v0.1 (By object-Object)](https://github.com/object-Object/flip_aic)
 - [Analog Clock v1.2 (By scrolltex)](https://github.com/scrolltex/flipper_analog_clock)
 - [Analog Output v0.1 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio/dac)
-- [Android KB Bridge v0.5.7 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD)
+- [Android KB Bridge v0.5.8 (By andybeg)](https://github.com/andybeg/AndroidFlipperZeroKBD)
 - [Anim Previewer v1.0 (By H4W9)](https://github.com/H4W9/AnimationPreviewerFlipperApp)
 - [Animation Switcher v1.1 (By lsalik2)](https://github.com/lsalik2/FlipperAnimationSwitcher)
 - [Anki Remote v1.3 (By Blue5GD)](https://github.com/Blue5GD/Anki-Remote)
@@ -913,6 +915,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [WikiFlip v1.3 (By RogerF5-Security)](https://github.com/RogerF5-Security/WikiFlip)
 - [Wire Tester v1.1 (By unixispower)](https://gitlab.com/unixispower/flipper-wire-tester)
 - [wM-Buster v1.1.1 (By i12bp8)](https://github.com/i12bp8/wmbuster)
+- [WoL Flipper v1.1 (By keetsta)](https://github.com/keetsta/wol-flipper) `Req: ESP32`
 - [WS2812B LED Tester v1.9 (By jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/gpio/ws2812b_tester)
 - [Xbox Post Code Reader v0.14 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-xbox-post-code-reader)
 - [XBox360 USB Game Controller v0.2 (By expected-ingot)](https://github.com/expected-ingot/flipper-xinput)

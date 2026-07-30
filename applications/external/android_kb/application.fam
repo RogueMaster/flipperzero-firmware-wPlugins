@@ -8,6 +8,6 @@ App(
     fap_category="Bluetooth",
     fap_author="andybeg",
     fap_weburl="https://github.com/andybeg/AndroidFlipperZeroKBD",
-    fap_version="0.5.7",
+    fap_version="0.5.8",
     fap_description="BLE Serial bridge: Android phone keyboard/touchpad → USB HID on PC",
 )
