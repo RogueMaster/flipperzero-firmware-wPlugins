@@ -8,7 +8,7 @@ App(
     stack_size=2 * 1024,
     fap_category="NFC",
     # Optional values
-    fap_version="0.1",
+    fap_version="1.0",
     fap_icon="mizip_balance_editor.png",  # 10x10 1-bit PNG
     fap_description="Easily modify your MiZip tags balance",
     fap_author="Téo Humeau",
