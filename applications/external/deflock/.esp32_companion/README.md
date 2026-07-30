@@ -220,6 +220,13 @@ DA,<bssid>,<ch>                            deauth/disassoc target (attack indica
 ATK,<kind>,<value>                         active attack-tool signature
    kind: probeflood | beaconflood | blespam
 LOC,<rssi>                                 Locator: live RSSI of the active target
+G,<nmea>                                   one NMEA sentence from a GPS on THIS board
+   Relayed verbatim from the `$` (RMC/GGA/GLL only; commas are part of the
+   sentence, not protocol fields). For boards that wire the GPS to the ESP32
+   instead of to the Flipper header, where the Flipper cannot see it at all.
+   Off until the app sends `gps <rx> [baud]`. The Flipper decodes it with the
+   same NMEA parser its own UART path uses -- no coordinate maths on the ESP.
+GPSCFG,<on>,<pin>,<baud>                   echo of the relay config
 ```
 
 All trailing `key=value` fields are optional and order-independent, so an older
@@ -227,7 +234,10 @@ Flipper build simply ignores ones it does not know.
 
 RX (Flipper → board): `scan` (WiFi Flock), `flockcombo` (interleaved WiFi+BLE
 Flock), `flockwifi`, `wifiscan`, `blescan`, `stop`, `ver`, `ch <1-14>` (0 = hop),
-`locate <w|b> <mac> [ch]` (stream `LOC` for one target; `locate off` ends it).
+`locate <w|b> <mac> [ch]` (stream `LOC` for one target; `locate off` ends it),
+`gps` (report relay state), `gps off`, `gps <rx_pin> [baud]` (relay NMEA from a
+GPS wired to this board; RX-only, default 9600. Pins 1 and 3 are refused -- they
+carry this very link).
 
 ## Credit / data sources
 

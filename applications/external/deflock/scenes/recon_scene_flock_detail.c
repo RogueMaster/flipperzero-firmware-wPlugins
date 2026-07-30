@@ -40,10 +40,8 @@ bool recon_scene_flock_detail_on_event(void* context, SceneManagerEvent event) {
     if(event.type == SceneManagerEventTypeTick) {
         // The parent scan scene is only suspended, not exited, so the ESP worker
         // keeps feeding this entry -- repaint so RSSI and the sighting count are
-        // live while you are looking at them. The suspended parent stops getting
-        // ticks, so announce alerts here too (as every other scan scene does),
-        // otherwise a hit found while you read this screen waits for you to leave.
-        recon_app_alert_tick(app);
+        // live while you are looking at them. Detection alerts are delivered from
+        // the dispatcher tick, not from here.
         flock_detail_view_refresh(app->flock_detail_view);
         return true;
     }

@@ -233,6 +233,17 @@ EspMsgType esp_parse_companion_line(char* line, EspMsg* out) {
         out->type = EspMsgLocate;
         return out->type;
     }
+    // G,<nmea>  one sentence relayed from a GPS wired to the ESP board. Passed
+    // through verbatim from the '$' for nmea_parse_line() to decode -- see
+    // EspMsg.u.gps.nmea for why it is not parsed here. Guard the payload: an
+    // empty or non-'$' body is not a sentence, and forwarding it would only make
+    // the NMEA parser reject it one layer further on.
+    if(strncmp(line, "G,", 2) == 0) {
+        if(line[2] != '$') return EspMsgIgnore;
+        out->u.gps.nmea = line + 2;
+        out->type = EspMsgGpsNmea;
+        return out->type;
+    }
     // ---- BLE scan: BBEGIN / BLE,... / BEND ----
     if(strncmp(line, "BBEGIN", 6) == 0) {
         out->type = EspMsgBleBegin;

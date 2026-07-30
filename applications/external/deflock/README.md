@@ -67,6 +67,12 @@ Both run at once. Ports and bauds are configurable in **Settings** for boards wi
 nonstandard pinouts. Turn **GPS** on in Settings to geotag detections. Settings
 persist.
 
+**GPS on the ESP board instead?** Some carrier boards wire their GPS module to the
+ESP32 rather than to the Flipper header, so the Flipper cannot see it on any pin. Set
+**GPS From** to `ESP32` and **ESP GPS Pin** to the ESP GPIO the module's TX is on; the
+companion firmware then relays each NMEA sentence over the link it already has. Needs
+companion firmware v0.52+. Default is `Flipper`, i.e. the pin table above.
+
 ### Board Mode
 
 Set **Board Mode** in Settings to match your ESP32 firmware:
@@ -198,6 +204,7 @@ exact dB. `-33dB` closer to 0 means physically closer.
 - **ch / frames / hits** — channel · 802.11 frames captured · Flock detections, counted this session (reset each time you open the screen)
 - **row tag** — `!` CONFIRMED · `F` probe-fingerprint · `L` Likely · `p` Possible · `.` OUI-only · `*` marked
 - **`ST` after the tag** — a SoundThinking (ShotSpotter) acoustic sensor, not an ALPR camera. Untagged rows are cameras; the detail screen names the class in full
+- **GPS badge** — filled `GPS 9` = locked with 9 satellites · hollow `GPS` = on and searching · filled `GPS!` = on but it can never get a fix, so go fix the setting. The usual cause of `GPS!` is **GPS Port set to the same UART as the ESP** — they cannot share one port, so put the GPS on the other one (LPUART / pins 15-16 by default)
 - Marauder mode shows `rx <n>  hits <n>` instead (serial heartbeat + detection count)
 
 **BLE / Tracker Scan** — header `BLE 33  trk 9  follow 0`
@@ -233,6 +240,17 @@ indicators and verify by eye; if you rely on it for anything that matters, read
 the code and confirm the behavior yourself.
 
 ## What's new
+
+**v0.52** — **GPS off the companion board**, plus two bugs that made working features
+look broken. Settings gains a **GPS source** choice (`Flipper` / `Companion`) and the
+ESP pin the module's TX lands on — on boards that wire GPS to the ESP32 there was no
+way to use it before, since the Flipper's UART pins simply are not connected to it
+(needs companion firmware v0.52+). **Fixed:** detection alerts never fired while the
+**Locator** was open, the screen you are most likely to be watching during a hunt; the
+companion dropped every GPS sentence that arrived during a BLE scan, so wardriving lost
+fixes; flashing the companion failed before writing a byte on slower flash chips; and a
+successful flash ended with a `COMMAND_FAILED` line that contradicted the `Verified OK.`
+above it.
 
 **v0.51** — **A quarter of the memory footprint, gone.** Users on heavier firmware were
 being refused at launch with *"Not enough RAM to run the app"*

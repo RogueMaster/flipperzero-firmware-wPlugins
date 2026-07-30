@@ -2,6 +2,7 @@
 // Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
 #include "flock_view.h"
 #include "../recon_app_i.h"
+#include "../helpers/gps_link.h"
 #include "ui_widgets.h"
 
 #include <gui/elements.h>
@@ -111,6 +112,24 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
     bool gps_enabled = app->settings.gps_enabled;
     bool gps_valid = app->gps_valid;
     int gps_sats = app->gps_sats;
+    // GPS is on but can never produce a fix. Two distinct causes, one badge:
+    //
+    //  1. GPS Port is set to the SAME UART as the ESP. scan_session_gps_start()
+    //     refuses that outright (it would steal the ESP's port) and returns
+    //     without allocating app->gps -- silently, until now. This is a pure
+    //     configuration test, which is why it reads settings and not link state.
+    //  2. The port is real but held by something else, so the acquire failed.
+    //     gps_link latches that separately.
+    //
+    // Either way the old UI showed a hollow "searching" badge forever. A user on
+    // issue #5 pointed GPS at pins 13/14 (the ESP's own USART), got no feedback
+    // at all, and reasonably concluded GPS was broken.
+    // Only the Flipper-UART source can hit either of these: the companion source
+    // has no second port to clash over or fail to acquire, so with it selected a
+    // missing fix genuinely is "searching" (or the companion isn't relaying).
+    bool gps_busy =
+        app->settings.gps_source == ReconGpsSourceFlipper &&
+        ((app->settings.gps_uart == app->settings.esp_uart) || gps_link_port_busy(app->gps));
 
     // Most-attacked BSSID + channel for the deauth header attribution.
     bool have_attr = false;
@@ -228,20 +247,27 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 0, 22, hdr);
 
-    // GPS state as a badge, not a code (issue #5): filled = we have a fix, hollow
-    // = enabled but searching. A boxed "GPS" reads at a glance in a moving car,
-    // where "G:-" needed a moment's decoding. Satellite count still shown when
-    // locked -- it is the difference between a fresh 2D fix and a solid one.
+    // GPS state as a badge, not a code (issue #5). Three states, each visually
+    // distinct so it reads at a glance in a moving car:
+    //   filled "GPS n"  -- locked, n satellites (a fresh 2D fix vs a solid one)
+    //   hollow "GPS"    -- enabled, searching
+    //   filled "GPS!"   -- enabled but it can NEVER get a fix; go fix the config
+    // The third state is new: it used to render as the hollow "searching" badge
+    // forever, which is indistinguishable from a cold start.
     if(gps_enabled) {
         char gps_str[12];
-        if(gps_valid) {
+        if(gps_busy) {
+            snprintf(gps_str, sizeof(gps_str), "GPS!");
+        } else if(gps_valid) {
             snprintf(gps_str, sizeof(gps_str), "GPS %d", gps_sats);
         } else {
             snprintf(gps_str, sizeof(gps_str), "GPS");
         }
         int w = canvas_string_width(canvas, gps_str) + 4;
         int x = 128 - w;
-        if(gps_valid) {
+        // Fill for both "locked" and "misconfigured": a filled badge means "this
+        // is settled, stop waiting for it" either way, and the "!" says which.
+        if(gps_valid || gps_busy) {
             canvas_draw_box(canvas, x, 14, w, 10);
             canvas_set_color(canvas, ColorWhite);
         } else {

@@ -21,6 +21,9 @@ struct EspFlasher {
     FuriStreamBuffer* rx;
     EspFlasherLog log;
     void* ctx;
+    /** Suppress the library's debug_print while we make a call whose failure
+     *  response is EXPECTED and already ignored. See esp_flasher_quiet(). */
+    bool quiet;
 };
 
 /* The esp-serial-flasher port hooks are global free functions, so the active
@@ -96,6 +99,11 @@ esp_loader_error_t loader_port_change_transmission_rate(uint32_t rate) {
 }
 
 void loader_port_debug_print(const char* str) {
+    // Dropped while quiet: the library prints the raw status byte name for any
+    // non-OK response, including ones we deliberately ignore. Surfacing those
+    // puts "Error: COMMAND_FAILED" on screen directly under "Verified OK.",
+    // which reads as a failed flash when the flash in fact succeeded.
+    if(s_active && s_active->quiet) return;
     if(s_active && s_active->log) s_active->log(s_active->ctx, str);
 }
 
@@ -118,6 +126,7 @@ EspFlasher* esp_flasher_alloc(FuriHalSerialId ch, EspFlasherLog log_cb, void* ct
     if(!f) return NULL; // heap critically low; caller already handles a NULL link
     f->log = log_cb;
     f->ctx = ctx;
+    f->quiet = false; // malloc, not calloc -- an uninitialised flag would drop logs
     f->rx = furi_stream_buffer_alloc(FLASH_RX_BUF, 1);
 
     Expansion* expansion = furi_record_open(RECORD_EXPANSION);
@@ -313,7 +322,14 @@ bool esp_flasher_flash_file(EspFlasher* f, Storage* storage, const char* path, u
         // Best-effort leave-flash-mode. On the ESP32 ROM this FLASH_END often
         // answers COMMAND_FAILED even though the image is fine, so its result is
         // cosmetic and ignored here -- the verify above already decided pass/fail.
+        //
+        // Silence the library's own print of that response too. Ignoring the
+        // return value was never enough: protocol_serial.c prints the status byte
+        // name itself, so a successful flash ended with "Verified OK." followed by
+        // "Error: COMMAND_FAILED", and users reasonably read the last line.
+        f->quiet = true;
         esp_loader_flash_finish(false);
+        f->quiet = false;
         esp_flasher_logf(f, "Done. Reset ESP to run.");
     }
     return ok;

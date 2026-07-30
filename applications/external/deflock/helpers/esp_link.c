@@ -4,6 +4,7 @@
 #include "../recon_app_i.h"
 #include "flock_db.h"
 #include "esp_parser.h"
+#include "gps_link.h" // gps_apply_nmea: the shared decode+publish path
 #include "marauder_scan.h"
 
 #include <expansion/expansion.h>
@@ -118,6 +119,18 @@ static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
         break;
     case EspMsgLocate:
         recon_app_set_locate_rssi(app, m->u.locate.rssi);
+        break;
+    case EspMsgGpsNmea:
+        // Only when the operator actually selected the companion as the GPS
+        // source. A board that relays NMEA must not be able to override a GPS
+        // the user wired to the Flipper itself, and must not quietly start
+        // geotagging when GPS is switched off altogether.
+        //
+        // m is const, but u.gps.nmea is a char* INTO the mutable line buffer --
+        // nmea_parse_line() tokenizes in place, exactly as on the direct path.
+        if(app->settings.gps_enabled && app->settings.gps_source == ReconGpsSourceCompanion) {
+            gps_apply_nmea(app, m->u.gps.nmea);
+        }
         break;
     case EspMsgStatus:
         recon_app_set_esp_status(

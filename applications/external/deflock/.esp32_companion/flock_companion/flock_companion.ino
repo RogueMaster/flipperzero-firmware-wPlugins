@@ -125,6 +125,8 @@ static inline std::string fstr(const String& s) {
 }
 /** 3.x hands back a pointer to the scan's internal results. */
 #define FLOCK_SCAN(scan, secs) (*(scan)->start((secs), false))
+/** Same, but `cont` keeps results accumulated from earlier slices. */
+#define FLOCK_SCAN_CONT(scan, secs, cont) (*(scan)->start((secs), (cont)))
 /** 3.x: already a flat pointer to the 6 address bytes. */
 static inline const uint8_t* fble_addr_bytes(BLEAddress& a) {
     return a.getNative();
@@ -136,6 +138,8 @@ static inline std::string fstr(const std::string& s) {
 }
 /** 2.x returns by value. */
 #define FLOCK_SCAN(scan, secs) ((scan)->start((secs), false))
+/** Same, but `cont` keeps results accumulated from earlier slices. */
+#define FLOCK_SCAN_CONT(scan, secs, cont) ((scan)->start((secs), (cont)))
 /** 2.x: uint8_t(*)[6], so one deref yields the uint8_t*. */
 static inline const uint8_t* fble_addr_bytes(BLEAddress& a) {
     return *a.getNative();
@@ -879,7 +883,34 @@ static void ble_do_scan(int seconds) {
     esp_wifi_set_promiscuous(false);
 
     Serial.print("BBEGIN\n");
-    BLEScanResults found = FLOCK_SCAN(g_ble, seconds);
+    if(seconds < 1) seconds = 1;
+
+    // Run the scan as 1-second slices, draining the GPS between each.
+    //
+    // BLEScan::start() blocks, so one 3 s call also stops loop() for 3 s -- and
+    // loop() is what empties Serial1. At 9600 baud that is ~2.9 KB of NMEA
+    // arriving against the RX buffer, so sentences were dropped outright; even
+    // the survivors left the fix up to ~4 s old. At 50 km/h a 4 s old fix
+    // geotags a camera ~55 m from where it really is, which is worse than
+    // useless on a DeFlock submission.
+    //
+    // is_continue = true keeps the library's accumulated results, so total
+    // dwell, dedup and the reported device list are preserved. Not quite free:
+    // each slice restarts GAP scanning, so a few milliseconds of advert time is
+    // lost per boundary (two boundaries at the default 3 s). BLE advertisers
+    // repeat every 20-100 ms, so that is far below the noise floor of whether a
+    // given device is seen at all -- and a fix that is 1 s old instead of 4 s is
+    // worth much more than those milliseconds.
+    //
+    // 1 s is the floor because start() takes whole seconds.
+    for(int i = 0; i < seconds - 1; i++) {
+        FLOCK_SCAN_CONT(g_ble, 1, i > 0);
+        gps_poll();
+    }
+    // Last slice returns the accumulated results. is_continue only when earlier
+    // slices actually ran, so a 1-second scan still starts from a clean list.
+    BLEScanResults found = FLOCK_SCAN_CONT(g_ble, 1, seconds > 1);
+    gps_poll();
     int count = found.getCount();
     if(count > 80) count = 80;
     int spam = 0; // impersonation/pairing adverts -> BLE-spam flood indicator
@@ -1009,6 +1040,135 @@ static void ble_locate_scan() {
     if(best > -127) Serial.printf("LOC,%d\n", best);
 }
 
+// ---- optional GPS relay (FlipDeFlock issue #5) ---------------------------
+//
+// Some carrier boards wire a GPS module to the ESP32 instead of to the Flipper's
+// header. The Flipper then cannot see it on ANY pin setting, because the NMEA
+// never reaches its GPIO. When switched on, read the module here and relay the
+// sentences the Flipper's parser understands as `G,<sentence>` lines.
+//
+// OFF unless the app asks for it (`gps <rx> [baud]`): Serial1's pins differ per
+// board and per chip, so a wrong guess would just spray a dead pin's noise onto
+// a link that carries detections.
+//
+// Deliberately NOT parsed here. The Flipper already has a host-tested NMEA
+// parser used by its own UART path; relaying raw sentences means one parser, one
+// set of lock-loss semantics, and no duplicated coordinate maths on the ESP.
+#define GPS_LINE_MAX 100 // NMEA caps a sentence at 82 incl. CRLF; headroom
+// Sized for the worst configured baud, not the common one. The app offers up to
+// 115200, and a 10 Hz receiver at that rate emits on the order of 6 KB/s. loop()
+// now drains between 1-second BLE slices rather than being stalled for a whole
+// 3-second scan, so one slice is the window this has to cover: 8 KB gives
+// headroom over that with room for a scheduling hiccup. It is ~3% of the free
+// heap the sketch reports, which is a cheap way to make dropped sentences a
+// non-event instead of a silent position error.
+#define GPS_RX_BUF   8192
+
+static bool g_gps_on = false;
+static int g_gps_rx = -1;
+static uint32_t g_gps_baud = 9600;
+static char g_gps_line[GPS_LINE_MAX];
+static size_t g_gps_len = 0;
+
+// Only the three sentence types the Flipper decodes (RMC / GGA / GLL). Filtering
+// on this side keeps GSV/GSA/VTG chatter off a UART shared with detection lines
+// -- a talkative receiver emits well over a dozen sentences per fix.
+static bool gps_wanted(const char* s, size_t n) {
+    if(n < 6 || s[0] != '$') return false;
+    const char* t = s + 3; // '$' + 2-char talker (GP / GN / GL / GA / BD ...)
+    return strncmp(t, "RMC", 3) == 0 || strncmp(t, "GGA", 3) == 0 || strncmp(t, "GLL", 3) == 0;
+}
+
+static void gps_relay_line() {
+    if(!gps_wanted(g_gps_line, g_gps_len)) return;
+    char out[GPS_LINE_MAX + 4];
+    size_t pos = 0;
+    out[pos++] = 'G';
+    out[pos++] = ',';
+    // Copy printable ASCII only. Commas and '$'/'*' MUST survive (they are the
+    // sentence), so buf_append_escaped() is wrong here -- it maps ',' to '.'.
+    // Anything outside printable ASCII is dropped rather than substituted: a
+    // stray CR/LF would split the line and desync the Flipper's framing.
+    for(size_t i = 0; i < g_gps_len && pos + 2 < sizeof(out); i++) {
+        uint8_t c = (uint8_t)g_gps_line[i];
+        if(c < 0x20 || c > 0x7E) continue;
+        out[pos++] = (char)c;
+    }
+    out[pos++] = '\n';
+    Serial.write((const uint8_t*)out, pos); // single write: atomic vs the WiFi task
+}
+
+static void gps_poll() {
+    if(!g_gps_on) return;
+    // Drain everything buffered, but emit at most ONE sentence of each type per
+    // pass -- the newest.
+    //
+    // Only the current position matters, and the Flipper's parser ends up in the
+    // same state either way: it applies sentences in order, so the last one wins.
+    // Relaying a whole backlog instead would burn the Flipper's UART on
+    // already-superseded fixes, competing with detection lines for the same link
+    // at the exact moment a scan phase just ended and hits are being reported.
+    //
+    // Keeps the lock-loss semantics intact: "newest wins" is what the direct UART
+    // path effectively does too, so a valid -> invalid transition still clears the
+    // fix rather than being coalesced away.
+    char last[3][GPS_LINE_MAX];
+    size_t last_len[3] = {0, 0, 0};
+    int budget = 4096; // generous: this runs once per pass, not per byte of link
+    while(g_gps_on && Serial1.available() && budget-- > 0) {
+        char c = (char)Serial1.read();
+        if(c == '\n' || c == '\r') {
+            if(g_gps_len && gps_wanted(g_gps_line, g_gps_len)) {
+                // Bucket by sentence type so an RMC cannot displace a GGA: the
+                // two carry different fields (course/validity vs satellites).
+                const char* t = g_gps_line + 3;
+                int slot = (strncmp(t, "RMC", 3) == 0) ? 0 : (strncmp(t, "GGA", 3) == 0) ? 1 : 2;
+                memcpy(last[slot], g_gps_line, g_gps_len);
+                last_len[slot] = g_gps_len;
+            }
+            g_gps_len = 0;
+        } else if(g_gps_len + 1 < sizeof(g_gps_line)) {
+            g_gps_line[g_gps_len++] = c;
+        } else {
+            // Overlong: drop the whole thing. Emitting a truncated sentence
+            // would fail the Flipper's checksum check anyway, and a sentence
+            // without its '*hh' could be parsed as a WRONG fix.
+            g_gps_len = 0;
+        }
+    }
+    // GGA first so the satellite count is in place before RMC's position/course.
+    static const int order[3] = {1, 0, 2};
+    for(int i = 0; i < 3; i++) {
+        int slot = order[i];
+        if(!last_len[slot]) continue;
+        memcpy(g_gps_line, last[slot], last_len[slot]);
+        g_gps_len = last_len[slot];
+        gps_relay_line();
+        g_gps_len = 0;
+    }
+}
+
+// `gps off` | `gps <rx_pin> [baud]`. Echoes GPSCFG either way so a user hunting
+// for their board's pin can confirm from a plain serial terminal. The Flipper
+// ignores unknown lines, so the echo is safe on a live link.
+static void gps_configure(int rx, uint32_t baud) {
+    if(g_gps_on) {
+        Serial1.end();
+        g_gps_on = false;
+    }
+    g_gps_len = 0;
+    if(rx >= 0) {
+        g_gps_rx = rx;
+        g_gps_baud = baud;
+        Serial1.setRxBufferSize(GPS_RX_BUF);
+        // RX only: we never talk to the receiver, so TX stays unassigned rather
+        // than claiming a second pin the board may be using for something else.
+        Serial1.begin(g_gps_baud, SERIAL_8N1, g_gps_rx, -1);
+        g_gps_on = true;
+    }
+    Serial.printf("GPSCFG,%d,%d,%lu\n", g_gps_on ? 1 : 0, g_gps_rx, (unsigned long)g_gps_baud);
+}
+
 void setup() {
     Serial.begin(115200);
     // Short RX timeout so loop()'s readStringUntil('\n') can't stall channel-hop /
@@ -1049,6 +1209,36 @@ static void handle_command(String cmd) {
             set_channel(g_channel);
         }
         g_locate_kind = 0;
+    }
+    if(cmd.startsWith("gps")) {
+        // gps            -> report current state
+        // gps off        -> stop relaying, release Serial1
+        // gps <rx> [baud]-> relay NMEA from that RX pin (default 9600)
+        String a = cmd.substring(3);
+        a.trim();
+        if(a.length() == 0) {
+            Serial.printf(
+                "GPSCFG,%d,%d,%lu\n", g_gps_on ? 1 : 0, g_gps_rx, (unsigned long)g_gps_baud);
+        } else if(a == "off") {
+            gps_configure(-1, g_gps_baud);
+        } else {
+            int sp = a.indexOf(' ');
+            int rx = (sp < 0 ? a : a.substring(0, sp)).toInt();
+            uint32_t baud = 9600;
+            if(sp >= 0) {
+                long b = a.substring(sp + 1).toInt();
+                if(b >= 1200 && b <= 921600) baud = (uint32_t)b;
+            }
+            // Refuse pin 0 and the UART0 pins that carry this very link: taking
+            // them would cut the Flipper off, which looks exactly like a dead
+            // board and is not recoverable without a reflash.
+            if(rx > 0 && rx != 1 && rx != 3 && rx < 48) {
+                gps_configure(rx, baud);
+            } else {
+                Serial.printf("GPSCFG,0,%d,%lu\n", rx, (unsigned long)baud);
+            }
+        }
+        return; // not a scan-mode command
     }
     if(cmd == "scan") {
         g_scanning = true;
@@ -1167,6 +1357,13 @@ void loop() {
     if(Serial.available()) {
         handle_command(Serial.readStringUntil('\n'));
     }
+
+    // Before every early return below: a fix must keep flowing in Locator mode
+    // and while idle, or detections geotag with a stale position (or none).
+    // The blocking BLE scans drain the GPS between their 1-second slices too
+    // (see ble_do_scan), so no phase of the rotation stalls this for longer than
+    // about a second.
+    gps_poll();
 
     uint32_t now = millis();
 

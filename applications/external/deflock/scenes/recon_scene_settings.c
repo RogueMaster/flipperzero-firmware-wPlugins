@@ -62,6 +62,38 @@ static void gps_enabled_changed(VariableItem* item) {
     recon_settings_save(app);
 }
 
+// Where NMEA comes from. "ESP32" is for carrier boards whose GPS module is wired
+// to the ESP rather than to the Flipper's header -- the Flipper cannot see those
+// on any pin, so the companion relays each sentence instead (issue #5).
+static const char* const gps_source_text[] = {"Flipper", "ESP32"};
+
+static void gps_source_changed(VariableItem* item) {
+    ReconApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    app->settings.gps_source = idx;
+    variable_item_set_current_value_text(item, gps_source_text[idx]);
+    recon_settings_save(app);
+}
+
+// ESP-side GPS RX pin for the relay. There is no standard pin, so this is a
+// short list of the ones ESP32 carrier boards actually use rather than a free
+// numeric entry (a VariableItem cannot do arbitrary numbers, and a wrong pin is
+// indistinguishable from a dead receiver). 1 and 3 are excluded: they carry the
+// UART0 link to the Flipper, and taking them would cut the board off entirely.
+static const uint8_t esp_gps_pin_vals[] = {4, 5, 12, 13, 16, 17, 32, 33, 34, 35};
+static const char* const esp_gps_pin_text[] =
+    {"4", "5", "12", "13", "16", "17", "32", "33", "34", "35"};
+#define ESP_GPS_PIN_COUNT (sizeof(esp_gps_pin_vals) / sizeof(esp_gps_pin_vals[0]))
+
+static void esp_gps_pin_changed(VariableItem* item) {
+    ReconApp* app = variable_item_get_context(item);
+    uint8_t idx = variable_item_get_current_value_index(item);
+    if(idx >= ESP_GPS_PIN_COUNT) idx = 0;
+    app->settings.esp_gps_pin = esp_gps_pin_vals[idx];
+    variable_item_set_current_value_text(item, esp_gps_pin_text[idx]);
+    recon_settings_save(app);
+}
+
 static void gps_port_changed(VariableItem* item) {
     ReconApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
@@ -184,6 +216,29 @@ void recon_scene_settings_on_enter(void* context) {
     item = variable_item_list_add(list, "GPS", 2, gps_enabled_changed, app);
     variable_item_set_current_value_index(item, idx);
     variable_item_set_current_value_text(item, onoff_text[idx]);
+
+    // Out-of-range falls back to Flipper, the wiring the docs and the pin table
+    // describe -- never silently to the relay, which needs companion support.
+    idx = (app->settings.gps_source < ReconGpsSourceCount) ? app->settings.gps_source :
+                                                             ReconGpsSourceFlipper;
+    item = variable_item_list_add(list, "GPS From", ReconGpsSourceCount, gps_source_changed, app);
+    variable_item_set_current_value_index(item, idx);
+    variable_item_set_current_value_text(item, gps_source_text[idx]);
+
+    // Which ESP pin the relay listens on. Only meaningful with GPS From = ESP32,
+    // but shown unconditionally: hiding items as other settings change makes the
+    // list jump around under the cursor.
+    idx = 0;
+    for(uint8_t i = 0; i < ESP_GPS_PIN_COUNT; i++) {
+        if(esp_gps_pin_vals[i] == app->settings.esp_gps_pin) {
+            idx = i;
+            break;
+        }
+    }
+    item =
+        variable_item_list_add(list, "ESP GPS Pin", ESP_GPS_PIN_COUNT, esp_gps_pin_changed, app);
+    variable_item_set_current_value_index(item, idx);
+    variable_item_set_current_value_text(item, esp_gps_pin_text[idx]);
 
     idx = (app->settings.gps_uart == FuriHalSerialIdLpuart) ? 1 : 0;
     item = variable_item_list_add(list, "GPS Port", 2, gps_port_changed, app);

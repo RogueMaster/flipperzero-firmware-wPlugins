@@ -1,5 +1,51 @@
 # Changelog
 
+## v0.52
+**GPS off the companion board, and two bugs that made features look broken when
+they were only unreachable.** Most of this comes from a field report by
+[@h00die](https://github.com/h00die) in
+[#5](https://github.com/ReconGrunt/FlipDeFlock/issues/5) running an ESP32 card with
+GPS wired to the ESP rather than to the Flipper.
+
+### Added
+
+- **GPS can now come from the companion instead of the Flipper.** Settings gains a
+  **GPS source** choice (`Flipper` / `Companion`) plus the ESP pin the module's TX
+  lands on. On boards that wire GPS to the ESP32 there was previously no way to use
+  it at all: the Flipper's own UART pins are not connected to that module, so
+  entering *any* pin number there could never work. Needs companion firmware
+  v0.52+; the Flipper never transmits to the GPS, it only reads sentences the
+  companion forwards.
+
+### Fixed
+
+- **Detection alerts never fired while the Locator screen was open** — the one
+  screen you are most likely to be staring at while hunting a camera. Alert
+  delivery was driven from a per-scene tick handler, and the Locator installs its
+  own, so `Beep+Vibrate` with alert level `Any` produced silence on a `!`-level hit.
+  Alerts are now delivered from the app's tick before the scene sees it, so every
+  screen behaves the same.
+- **A GPS that can never get a fix now says so instead of "searching" forever.**
+  If GPS and the companion are pointed at the same UART, or the port is already
+  held, the badge reads `GPS!` rather than sitting blank and hopeful. The two
+  cannot share one port.
+- **The companion no longer drops GPS sentences during its BLE scan.** A BLE scan
+  blocked its loop for the whole scan window, so a wardriving pass lost every fix
+  that arrived in it. The scan is now run in 1-second slices with the GPS buffer
+  drained between them, accumulating results across slices, and sentences are
+  coalesced per type so a slow reader still gets the newest position. Verified on
+  hardware: a sliced 6-second scan returned 36 devices / 12 trackers.
+- **Flashing the companion failed on slower flash chips, before writing a byte.**
+  The vendored flasher allowed 10 s/MB to erase; esptool allows 30. A 1.45 MB image
+  therefore had 14.8 s, and a chip that erases slower than that timed out at
+  `flash_start failed (2)` every single time — for the released companion image too,
+  not just development builds. Now matches esptool's budget; this only extends how
+  long we wait.
+- **A successful flash no longer ends with `Error: COMMAND_FAILED`.** The ESP32 ROM
+  answers the final `FLASH_END` with a failure status by design and we already
+  ignored it, but the flasher library prints the status itself, so the last line on
+  screen contradicted the `Verified OK.` above it.
+
 ## v0.51
 **A quarter of the app's memory footprint, gone.** Users on heavier firmware were
 being refused at launch with *"Not enough RAM to run the app"*

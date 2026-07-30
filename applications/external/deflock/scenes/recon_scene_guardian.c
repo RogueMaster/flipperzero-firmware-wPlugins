@@ -92,8 +92,6 @@ bool recon_scene_guardian_on_event(void* context, SceneManagerEvent event) {
     }
 
     if(event.type == SceneManagerEventTypeTick) {
-        recon_app_alert_tick(app); // announce a new Flock hit found by the sweep
-
         // Advance the rotating sweep when the current phase's dwell elapses.
         uint32_t now = furi_get_tick();
         if(now - app->guardian_phase_mark >= GUARD_PHASES[app->guardian_phase].dwell_ms) {

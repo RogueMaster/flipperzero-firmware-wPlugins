@@ -84,14 +84,32 @@ typedef enum {
     EspLinkPortBusy, /**< UART acquire failed -- another owner holds it (e.g. the GPS port) */
 } EspLinkState;
 
+/**
+ * Where NMEA comes from.
+ *
+ * Plenty of ESP32 carrier boards put the GPS module on the ESP itself rather
+ * than on the Flipper's header, so the Flipper's UART can never see it and no
+ * pin setting helps (issue #5). For those, the companion firmware relays each
+ * sentence over the link it already has.
+ */
+typedef enum {
+    ReconGpsSourceFlipper = 0, /**< default: a GPS wired to the Flipper's own UART */
+    ReconGpsSourceCompanion, /**< relayed by the companion as `G,<nmea>` */
+    ReconGpsSourceCount,
+} ReconGpsSource;
+
 typedef struct {
     EspBackend backend;
     uint8_t esp_uart; /**< FuriHalSerialId for the ESP32. */
-    uint8_t gps_uart; /**< FuriHalSerialId for the GPS module. */
+    uint8_t gps_uart; /**< FuriHalSerialId for the GPS module (Flipper source only). */
     uint32_t esp_baud;
     uint32_t gps_baud;
     uint8_t marauder_cmd; /**< Generic backend: which Marauder sniff command to run. */
     bool gps_enabled;
+    uint8_t gps_source; /**< ReconGpsSource: Flipper UART or companion relay */
+    uint8_t esp_gps_pin; /**< ESP-side GPS RX pin, for the companion relay. Board
+                           *  specific -- there is no standard, so it is a setting
+                           *  rather than a guess. */
     bool sound;
     uint8_t alert_mode; /**< ReconAlertMode: beep/vibro on a new Flock hit (default Vibrate) */
     uint8_t alert_min_conf; /**< AlertConfChoice: lowest rung that may alert (default Likely) */

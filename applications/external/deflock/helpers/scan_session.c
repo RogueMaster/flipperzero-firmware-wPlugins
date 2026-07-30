@@ -10,6 +10,30 @@ bool scan_session_start(void* _app) {
     if(app->esp) return false; // already live (a Back re-entry) -> keep it, don't leak
     app->esp = esp_link_alloc(app);
     esp_link_start(app->esp);
+
+    // Configure the companion's GPS relay once, centrally, for every screen that
+    // opens a session -- rather than in each scene, which is how the alert
+    // delivery bug happened. Only on the companion backend: Marauder has no such
+    // command and would just log an error line.
+    //
+    // Sent unconditionally in BOTH directions so the board's state always matches
+    // the setting. Without the explicit "off", a board left relaying from an
+    // earlier session would keep overriding a GPS the user has since moved to the
+    // Flipper's own UART.
+    if(app->settings.backend == EspBackendCompanion) {
+        char cmd[32];
+        if(app->settings.gps_enabled && app->settings.gps_source == ReconGpsSourceCompanion) {
+            snprintf(
+                cmd,
+                sizeof(cmd),
+                "gps %u %lu",
+                (unsigned)app->settings.esp_gps_pin,
+                (unsigned long)app->settings.gps_baud);
+        } else {
+            snprintf(cmd, sizeof(cmd), "gps off");
+        }
+        esp_link_send(app->esp, cmd);
+    }
     return true;
 }
 
@@ -17,6 +41,10 @@ void scan_session_gps_start(void* _app) {
     ReconApp* app = _app;
     if(app->gps) return; // already running
     if(!app->settings.gps_enabled) return;
+    // Companion source: the fix arrives as `G,<nmea>` on the ESP link, so there
+    // is no second UART to open here at all. Opening one would take a port for
+    // nothing (and on a single-UART wiring, take the ESP's).
+    if(app->settings.gps_source == ReconGpsSourceCompanion) return;
     if(app->settings.gps_uart == app->settings.esp_uart) return; // would steal the ESP's UART
     app->gps = gps_link_alloc(app);
     gps_link_start(app->gps);

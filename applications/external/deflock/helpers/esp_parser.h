@@ -53,6 +53,7 @@ typedef enum {
     EspMsgDeauthTarget, /**< DA: attributed deauth/disassoc target */
     EspMsgAttack, /**< ATK: active attack-tool signature */
     EspMsgLocate, /**< LOC: live RSSI for the Locator target */
+    EspMsgGpsNmea, /**< G: one NMEA sentence relayed from a GPS on the ESP board */
 } EspMsgType;
 
 /**
@@ -105,6 +106,24 @@ typedef struct {
             uint8_t bssid[6];
             uint8_t channel;
         } deauth;
+        struct { // EspMsgGpsNmea (G)
+            /**
+             * The relayed sentence, starting at '$'. Points INTO the caller's
+             * line buffer like the other string fields here, and the app hands
+             * it straight to nmea_parse_line() -- deliberately NOT parsed here.
+             *
+             * Some boards wire their GPS to the ESP32 rather than to the
+             * Flipper's header, so the Flipper cannot see it at all (issue #5).
+             * Relaying the raw sentence means the companion needs no NMEA code,
+             * and the fix is decoded by the same host-tested parser the direct
+             * UART path already uses -- one implementation and one set of
+             * lock-loss semantics, whichever wire the bytes arrived on.
+             *
+             * Mutable (char*, not const char*): nmea_parse_line() tokenizes in
+             * place, matching how the direct path already feeds it.
+             */
+            char* nmea;
+        } gps;
         struct { // EspMsgAttack (ATK)
             const char* kind;
             uint32_t value;
