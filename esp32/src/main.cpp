@@ -121,6 +121,10 @@ static void led_set(bool red, bool green, bool blue) {
     ledcWrite(LED_CH_B, led_duty(blue));
 }
 
+static void led_off(void) {
+    led_set(false, false, false);
+}
+
 /**
  * One second of each primary at boot, then dark. What actually appears
  * identifies the part:
@@ -138,10 +142,6 @@ static void led_self_test(void) {
     led_set(false, false, true);
     delay(800);
     led_off();
-}
-
-static void led_off(void) {
-    led_set(false, false, false);
 }
 
 static void led_blink(bool red, bool green, bool blue, uint8_t times, uint16_t period_ms) {
