@@ -67,6 +67,7 @@ TESTS = (
 )
 
 PYTHON_TESTS = (
+    "tests/test_fap_bundle_check.py",
     "tests/test_passive_config_compat.py",
     "tests/test_passive_voice_pack_tool.py",
     "tests/test_scene_handlers.py",
