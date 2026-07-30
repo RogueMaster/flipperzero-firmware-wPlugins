@@ -450,7 +450,7 @@ static void test_answer_choice_layout(void) {
     }
 }
 
-static void test_graph_bars_use_temporal_levels(void) {
+static void test_graph_bars_are_solid_with_level_gaps(void) {
     MorseFlipperIcrStats stats;
     MorseFlipperIcrEnterArgs args = {.now_ms = 100U, .rng_seed = 0x12345678U};
     MorseFlipperIcrResult result;
@@ -467,7 +467,8 @@ static void test_graph_bars_use_temporal_levels(void) {
     CHECK(state != NULL);
     CHECK(morse_flipper_icr_runtime_enter(state, &args, &result));
     CHECK(result.phase == ICR_PHASE_GRAPH_WAIT);
-    morse_flipper_icr_runtime_draw(state, &canvas, 100U);
+    morse_flipper_icr_runtime_draw(state, &canvas, args.now_ms);
+
     CHECK(canvas_has_box(&canvas, 4, 16, 2, 44, ColorBlack));
     CHECK(canvas_has_box(&canvas, 4, 26, 2, 1, ColorWhite));
     CHECK(canvas_has_box(&canvas, 4, 48, 2, 1, ColorWhite));
@@ -476,26 +477,6 @@ static void test_graph_bars_use_temporal_levels(void) {
     CHECK(canvas_has_box(&canvas, 10, 50, 2, 10, ColorBlack));
     CHECK(canvas.dots == 74U);
     CHECK(canvas.current_color == ColorBlack);
-
-    result = morse_flipper_icr_runtime_tick(state, 117U);
-    CHECK(result.redraw);
-    canvas = (Canvas){0};
-    morse_flipper_icr_runtime_draw(state, &canvas, 117U);
-    CHECK(canvas_has_box(&canvas, 4, 16, 2, 44, ColorBlack));
-    CHECK(canvas_has_box(&canvas, 4, 49, 2, 11, ColorWhite));
-    CHECK(canvas_has_box(&canvas, 7, 38, 2, 22, ColorBlack));
-    CHECK(canvas_has_box(&canvas, 7, 49, 2, 11, ColorWhite));
-    CHECK(canvas_has_box(&canvas, 10, 49, 2, 11, ColorWhite));
-
-    result = morse_flipper_icr_runtime_tick(state, 134U);
-    CHECK(result.redraw);
-    canvas = (Canvas){0};
-    morse_flipper_icr_runtime_draw(state, &canvas, 134U);
-    CHECK(canvas_has_box(&canvas, 4, 16, 2, 44, ColorBlack));
-    CHECK(canvas_has_box(&canvas, 4, 27, 2, 21, ColorWhite));
-    CHECK(canvas_has_box(&canvas, 7, 38, 2, 22, ColorBlack));
-    CHECK(canvas_has_box(&canvas, 7, 27, 2, 21, ColorWhite));
-    CHECK(canvas_has_box(&canvas, 10, 50, 2, 10, ColorBlack));
 
     morse_flipper_icr_runtime_free(state);
     morse_flipper_icr_stats_reset(&stats);
@@ -639,7 +620,7 @@ int main(void) {
     test_answer_trace_wrap_equivalence();
     test_zero_deadlines_remain_active();
     test_answer_choice_layout();
-    test_graph_bars_use_temporal_levels();
+    test_graph_bars_are_solid_with_level_gaps();
     test_zero_reaction_start_records_elapsed_time();
     test_settings_reset_confirmation_and_persistence();
     printf("test_icr_runtime: %u checks passed\n", g_checks);
