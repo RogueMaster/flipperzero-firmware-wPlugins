@@ -498,7 +498,8 @@ static void morse_flipper_icr_draw_choice(
 
     canvas_set_color(canvas, selected && pressed_black ? ColorWhite : ColorBlack);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, x, y + 1, AlignCenter, AlignCenter, text);
+    canvas_draw_str_aligned(
+        canvas, selected ? x - 1 : x, y + (selected ? 2 : 1), AlignCenter, AlignCenter, text);
     if(selected) canvas_set_color(canvas, ColorBlack);
 }
 

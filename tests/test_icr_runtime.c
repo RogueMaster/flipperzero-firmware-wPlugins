@@ -380,6 +380,8 @@ static void test_answer_choice_layout(void) {
     static const int32_t selected_y[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {5, 45, 22, 22, 22};
     static const size_t selected_width[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {19, 19, 14, 14, 20};
     static const size_t selected_height[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {14, 14, 19, 19, 20};
+    static const int32_t pressed_letter_x[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {28, 28, 9, 48, 28};
+    static const int32_t pressed_letter_y[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {14, 52, 33, 33, 33};
 
     for(uint8_t choice = 0U; choice < MORSE_FLIPPER_ICR_CHOICE_COUNT; choice++) {
         MorseFlipperIcrEnterArgs args = {
@@ -451,6 +453,8 @@ static void test_answer_choice_layout(void) {
                 selected_width[choice],
                 selected_height[choice],
                 ColorWhite));
+            CHECK(canvas.text_x[choice] == pressed_letter_x[choice]);
+            CHECK(canvas.text_y[choice] == pressed_letter_y[choice]);
             CHECK(canvas.white_strings == 1U);
             CHECK(canvas_has_text(&canvas, "joystick"));
         }
@@ -501,6 +505,8 @@ static void test_answer_choice_layout(void) {
                 selected_width[choice],
                 selected_height[choice],
                 ColorWhite));
+            CHECK(canvas.text_x[choice + 1U] == pressed_letter_x[choice]);
+            CHECK(canvas.text_y[choice + 1U] == pressed_letter_y[choice]);
             CHECK(canvas.white_strings == 0U);
             CHECK(canvas.dots > 0U);
         }
