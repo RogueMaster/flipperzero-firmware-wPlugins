@@ -201,6 +201,12 @@ against the v2 vtable.
   ESP board menu.
 * *No bootloader answer* — automatic entry did not take, or the board is not seated. Do
   the manual sequence and retry.
+* *Flipper 5V tripped* / *Board restarted* — the boost powering the board gave out.
+  Association is the current peak of a session, so this is where a marginal rail lets
+  go, usually on a low battery. Charge the Flipper, or plug the board's own USB-C in
+  while it sits on the header. The firmware already caps transmit power at 11 dBm and
+  leaves modem sleep on to keep the draw down, and the app brings 5V back by itself
+  before the next attempt.
 * *Wi-Fi join failed* — wrong credentials, or a 5 GHz only SSID. The ESP32-S2 is
   2.4 GHz only.
 * *UDP send failed* — the AP refused the broadcast address. Switch the target to the

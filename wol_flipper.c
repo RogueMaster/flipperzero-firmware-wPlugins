@@ -12,6 +12,20 @@ static void wol_app_make_dirs(void) {
     furi_record_close(RECORD_STORAGE);
 }
 
+void wol_app_ensure_power(WolApp* app) {
+    furi_check(app);
+
+    // clears the charger's latched fault, which also drops OTG if the boost
+    // gave up under the radio's current draw
+    furi_hal_power_check_otg_status();
+    if(furi_hal_power_is_otg_enabled()) return;
+
+    FURI_LOG_W("WolApp", "5V was down, bringing it back");
+    furi_hal_power_enable_otg();
+    app->otg_by_us = true;
+    furi_delay_ms(1000); // the board has to boot again
+}
+
 static bool wol_custom_event_callback(void* context, uint32_t event) {
     furi_assert(context);
     WolApp* app = context;

@@ -129,6 +129,18 @@ static WolEspResult wol_esp_error(WolEsp* esp) {
     if(strstr(text, "ERR UDP")) return WolEspErrUdp;
     if(strstr(text, "ERR ARGS")) return WolEspErrArgs;
     if(strstr(text, "ERR CMD")) return WolEspErrWrongFirmware;
+
+    /* Latches the charger's fault bits and drops OTG if the boost gave up.
+     * Association is the current peak of the whole session, so this is where
+     * a marginal 5V rail lets go. */
+    furi_hal_power_check_otg_status();
+    if(!furi_hal_power_is_otg_enabled()) return WolEspErrPower;
+
+    /* The firmware prints its banner on every boot. Seeing one mid command
+     * means the board restarted underneath us: a brownout the charger did not
+     * flag, or a crash. */
+    if(strstr(text, "+WOLFW ")) return WolEspErrReboot;
+
     return WolEspErrNoReply;
 }
 

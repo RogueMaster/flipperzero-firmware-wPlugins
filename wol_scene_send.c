@@ -24,6 +24,10 @@ static WolSendStep wol_send_step_for_error(WolEspResult result) {
     switch(result) {
     case WolEspErrWrongFirmware:
         return WolSendStepErrFirmware;
+    case WolEspErrPower:
+        return WolSendStepErrPower;
+    case WolEspErrReboot:
+        return WolSendStepErrReboot;
     case WolEspErrWifi:
         return WolSendStepErrWifi;
     case WolEspErrUdp:
@@ -46,6 +50,7 @@ static int32_t wol_send_worker(void* context) {
 
     do {
         wol_send_report(app, WolSendStepPower);
+        wol_app_ensure_power(app);
         if(!wol_esp_open(esp)) {
             wol_send_report(app, WolSendStepErrBoard);
             break;
@@ -157,6 +162,26 @@ bool wol_scene_send_on_event(void* context, SceneManagerEvent event) {
             "Wrong ESP firmware.\nFlash it from Board menu",
             64,
             30,
+            AlignCenter,
+            AlignTop);
+        notification_message(app->notifications, &sequence_error);
+        break;
+    case WolSendStepErrPower:
+        popup_set_text(
+            app->popup,
+            "Flipper 5V tripped.\nCharge it or power the\nboard over USB-C",
+            64,
+            26,
+            AlignCenter,
+            AlignTop);
+        notification_message(app->notifications, &sequence_error);
+        break;
+    case WolSendStepErrReboot:
+        popup_set_text(
+            app->popup,
+            "Board restarted.\nWeak 5V rail, power it\nover USB-C",
+            64,
+            26,
             AlignCenter,
             AlignTop);
         notification_message(app->notifications, &sequence_error);

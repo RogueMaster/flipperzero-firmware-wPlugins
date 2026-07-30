@@ -49,7 +49,7 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-#define WOL_FW_VERSION   4
+#define WOL_FW_VERSION   5
 #define LINE_MAX         320
 #define MAX_FIELDS       8
 #define WIFI_TIMEOUT_MS  20000
@@ -195,7 +195,11 @@ static bool wifi_up(const char* ssid, const char* pass) {
 
     WiFi.persistent(false);
     WiFi.mode(WIFI_STA);
-    WiFi.setSleep(false);
+    /* The board runs off the Flipper's 5V boost, which does not have much
+     * headroom. Full transmit power draws enough on association to brown the
+     * rail out; 11 dBm is plenty for reaching an AP in the same flat, and
+     * modem sleep stays on to keep the average down. */
+    WiFi.setTxPower(WIFI_POWER_11dBm);
     WiFi.disconnect(false, true);
     WiFi.begin(ssid, pass);
 

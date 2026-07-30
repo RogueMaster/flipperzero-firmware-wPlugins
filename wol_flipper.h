@@ -70,6 +70,8 @@ typedef enum {
     WolSendStepDone,
     WolSendStepErrBoard,
     WolSendStepErrFirmware,
+    WolSendStepErrPower,
+    WolSendStepErrReboot,
     WolSendStepErrWifi,
     WolSendStepErrSend,
     WolSendStepCount,
@@ -135,3 +137,6 @@ typedef struct {
     /** Owned by the GUI thread; the popup keeps a pointer to it. */
     char status_text[192];
 } WolApp;
+
+/** Bring 5V back if the boost tripped. Call from a worker before talking. */
+void wol_app_ensure_power(WolApp* app);

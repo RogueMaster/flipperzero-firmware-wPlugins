@@ -89,6 +89,7 @@ static int32_t wol_flasher_worker(void* context) {
     app->worker_info[0] = '\0';
     wol_flasher_set_progress_callback(flasher, wol_flasher_progress, app);
 
+    wol_app_ensure_power(app);
     result = wol_flasher_connect(flasher);
 
     if(result == WolFlasherErrNoBoard) {

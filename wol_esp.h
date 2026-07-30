@@ -18,6 +18,10 @@ typedef enum {
     WolEspErrNoReply,
     /** Something answered but it is not this firmware. */
     WolEspErrWrongFirmware,
+    /** The Flipper's 5V boost tripped and took the board with it. */
+    WolEspErrPower,
+    /** The board announced a fresh boot in the middle of a command. */
+    WolEspErrReboot,
     WolEspErrWifi,
     WolEspErrUdp,
     WolEspErrArgs,
