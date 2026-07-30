@@ -1,5 +1,6 @@
 #include "wol_flipper.h"
 
+#include <furi_hal.h>
 #include <storage/storage.h>
 
 /** So the file browser has somewhere to point at before the first backup. */
@@ -35,6 +36,15 @@ static WolApp* wol_app_alloc(void) {
 
     wol_app_make_dirs();
     wol_config_load(&app->config);
+
+    /* Power the board once and leave it up. Toggling 5V per operation rebooted
+     * the ESP before every command, which cost a second of boot time, dropped
+     * the Wi-Fi association, and raced the boot banner against the first
+     * PING. */
+    if(!furi_hal_power_is_otg_enabled()) {
+        furi_hal_power_enable_otg();
+        app->otg_by_us = true;
+    }
 
     app->gui = furi_record_open(RECORD_GUI);
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
@@ -85,6 +95,8 @@ static void wol_app_free(WolApp* app) {
 
     scene_manager_free(app->scene_manager);
     view_dispatcher_free(app->view_dispatcher);
+
+    if(app->otg_by_us) furi_hal_power_disable_otg();
 
     furi_string_free(app->flasher_path);
     furi_record_close(RECORD_DIALOGS);

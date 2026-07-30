@@ -45,7 +45,7 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-#define WOL_FW_VERSION   2
+#define WOL_FW_VERSION   3
 #define LINE_MAX         320
 #define MAX_FIELDS       8
 #define WIFI_TIMEOUT_MS  20000
@@ -63,8 +63,18 @@
 #define LED_B_PIN 4
 #define LED_G_PIN 5
 #define LED_R_PIN 6
-#define LED_ON    HIGH
-#define LED_OFF   LOW
+
+/*
+ * Driven through LEDC rather than digitalWrite: at full duty this LED is
+ * blinding in a dark room. Duty is out of 255; raise LED_LEVEL if the signals
+ * are hard to see in daylight.
+ */
+#define LED_CH_R     0
+#define LED_CH_G     1
+#define LED_CH_B     2
+#define LED_PWM_FREQ 2000
+#define LED_PWM_BITS 8
+#define LED_LEVEL    10
 
 #define HEARTBEAT_PERIOD_MS 3000
 #define HEARTBEAT_BLIP_MS   15
@@ -76,15 +86,18 @@ static bool udp_started = false;
 static uint32_t last_heartbeat = 0;
 
 static void led_init(void) {
-    pinMode(LED_R_PIN, OUTPUT);
-    pinMode(LED_G_PIN, OUTPUT);
-    pinMode(LED_B_PIN, OUTPUT);
+    ledcSetup(LED_CH_R, LED_PWM_FREQ, LED_PWM_BITS);
+    ledcSetup(LED_CH_G, LED_PWM_FREQ, LED_PWM_BITS);
+    ledcSetup(LED_CH_B, LED_PWM_FREQ, LED_PWM_BITS);
+    ledcAttachPin(LED_R_PIN, LED_CH_R);
+    ledcAttachPin(LED_G_PIN, LED_CH_G);
+    ledcAttachPin(LED_B_PIN, LED_CH_B);
 }
 
 static void led_set(bool red, bool green, bool blue) {
-    digitalWrite(LED_R_PIN, red ? LED_ON : LED_OFF);
-    digitalWrite(LED_G_PIN, green ? LED_ON : LED_OFF);
-    digitalWrite(LED_B_PIN, blue ? LED_ON : LED_OFF);
+    ledcWrite(LED_CH_R, red ? LED_LEVEL : 0);
+    ledcWrite(LED_CH_G, green ? LED_LEVEL : 0);
+    ledcWrite(LED_CH_B, blue ? LED_LEVEL : 0);
 }
 
 static void led_off(void) {
@@ -294,15 +307,17 @@ static void handle_line(char* buf) {
 }
 
 void setup() {
+    // banner first: the Flipper starts probing as soon as the board has power,
+    // and anything that delays this races the first PING
+    Serial.begin(115200);
+    Serial.printf("+WOLFW %u ready\n", (unsigned)WOL_FW_VERSION);
+
     led_init();
     // three blue blinks: the firmware booted and reached setup()
     led_blink(false, false, true, 3, 160);
 
-    Serial.begin(115200);
     WiFi.mode(WIFI_STA);
     WiFi.persistent(false);
-    delay(50);
-    Serial.printf("+WOLFW %u ready\n", (unsigned)WOL_FW_VERSION);
 
     last_heartbeat = millis();
 }

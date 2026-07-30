@@ -29,7 +29,6 @@ struct WolEsp {
     WolEspProgressCallback progress_callback;
     void* progress_context;
     uint8_t progress_seen;
-    bool otg_by_us;
     bool opened;
 };
 
@@ -143,7 +142,6 @@ WolEsp* wol_esp_alloc(volatile bool* cancel) {
     esp->progress_callback = NULL;
     esp->progress_context = NULL;
     esp->progress_seen = 0;
-    esp->otg_by_us = false;
     esp->opened = false;
     return esp;
 }
@@ -167,20 +165,11 @@ bool wol_esp_open(WolEsp* esp) {
     furi_check(esp);
     if(esp->opened) return true;
 
-    if(!furi_hal_power_is_otg_enabled()) {
-        furi_hal_power_enable_otg();
-        esp->otg_by_us = true;
-        // give the ESP32-S2 time to boot and print its banner
-        furi_delay_ms(800);
-    }
-
+    // 5V is owned by the app, not by individual operations: cycling it here
+    // rebooted the board before every single command
     esp->serial = furi_hal_serial_control_acquire(ESP_SERIAL_ID);
     if(!esp->serial) {
         FURI_LOG_E(TAG, "USART busy");
-        if(esp->otg_by_us) {
-            furi_hal_power_disable_otg();
-            esp->otg_by_us = false;
-        }
         return false;
     }
 
@@ -201,29 +190,34 @@ void wol_esp_close(WolEsp* esp) {
         esp->serial = NULL;
         esp->opened = false;
     }
-    if(esp->otg_by_us) {
-        furi_hal_power_disable_otg();
-        esp->otg_by_us = false;
-    }
 }
 
 WolEspResult wol_esp_ping(WolEsp* esp, uint8_t* version) {
     furi_check(esp && esp->opened);
 
-    for(size_t attempt = 0; attempt < 3; attempt++) {
+    bool heard_something = false;
+
+    /* Retry across the whole boot window. A board that just got power spends a
+     * second in the ROM loader and then prints its own banner, so early bytes
+     * mean nothing on their own and must not be mistaken for a foreign
+     * firmware. The banner carries the same marker as the reply, so either one
+     * is proof enough. */
+    for(size_t attempt = 0; attempt < 5; attempt++) {
         wol_esp_cmd(esp, "PING");
-        if(wol_esp_wait(esp, 1000)) {
-            const char* marker = strstr(furi_string_get_cstr(esp->acc), "+WOLFW ");
-            if(!marker) return WolEspErrWrongFirmware;
+        bool answered = wol_esp_wait(esp, 1000);
+
+        const char* marker = strstr(furi_string_get_cstr(esp->acc), "+WOLFW ");
+        if(marker) {
             if(version) *version = (uint8_t)atoi(marker + 7);
             return WolEspOk;
         }
-        if(wol_esp_cancelled(esp)) break;
+        if(answered) return WolEspErrWrongFirmware; // said OK without naming itself
 
-        // a board running something else answers, it just answers nonsense
-        if(furi_string_size(esp->acc) > 1) return WolEspErrWrongFirmware;
+        if(furi_string_size(esp->acc) > 1) heard_something = true;
+        if(wol_esp_cancelled(esp)) break;
     }
-    return WolEspErrNoReply;
+
+    return heard_something ? WolEspErrWrongFirmware : WolEspErrNoReply;
 }
 
 WolEspResult wol_esp_join(WolEsp* esp, const char* ssid, const char* pass) {

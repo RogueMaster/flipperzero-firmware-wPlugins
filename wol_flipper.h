@@ -123,6 +123,8 @@ typedef struct {
     FuriThread* worker;
     volatile bool worker_cancel;
     WolWakeOp wake_op;
+    /** 5V on pin 1 is held for the whole session, see wol_app_alloc(). */
+    bool otg_by_us;
 
     DialogsApp* dialogs;
     WolFlasherOp flasher_op;

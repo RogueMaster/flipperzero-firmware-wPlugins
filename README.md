@@ -110,7 +110,7 @@ UART0 on the board (GPIO43/44, wired to Flipper pins 13/14), 115200 8N1, tab sep
 fields, `\n` terminated:
 
 ```
-PING                                        -> +WOLFW 2 / OK
+PING                                        -> +WOLFW <version> / OK
 STATUS                                      -> +WIFI <ssid|-> <ip|-> / OK
 JOIN <ssid> <pass>                          -> +WIFI OK <ip> / OK
 WOL <ssid> <pass> <mac> <bcast> <port>      -> +WIFI OK <ip> / +SEND 3 / OK

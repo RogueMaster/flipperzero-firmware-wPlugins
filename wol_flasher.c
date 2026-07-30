@@ -63,7 +63,6 @@ struct WolFlasher {
     uint32_t rate;
     target_chip_t chip;
     bool stub_running;
-    bool otg_by_us;
     bool opened;
 };
 
@@ -310,18 +309,9 @@ WolFlasherResult wol_flasher_connect(WolFlasher* flasher) {
 
     wol_flasher_report(flasher, WolFlasherStageConnect, 0);
 
-    if(!furi_hal_power_is_otg_enabled()) {
-        furi_hal_power_enable_otg();
-        flasher->otg_by_us = true;
-        furi_delay_ms(500);
-    }
-
+    // 5V stays on for the lifetime of the app, see wol_flipper.c
     flasher->port.serial = furi_hal_serial_control_acquire(FLASHER_SERIAL_ID);
     if(!flasher->port.serial) {
-        if(flasher->otg_by_us) {
-            furi_hal_power_disable_otg();
-            flasher->otg_by_us = false;
-        }
         return WolFlasherErrBusy;
     }
 
@@ -406,11 +396,6 @@ void wol_flasher_disconnect(WolFlasher* flasher) {
         flasher->port.serial = NULL;
         flasher->opened = false;
         flasher->stub_running = false;
-    }
-
-    if(flasher->otg_by_us) {
-        furi_hal_power_disable_otg();
-        flasher->otg_by_us = false;
     }
 }
 
