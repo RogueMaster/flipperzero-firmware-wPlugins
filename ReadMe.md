@@ -88,6 +88,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: CLI: [consistent quoted path handling for loader and Sub-GHz #4430 (By drkemp187)](https://github.com/flipperdevices/flipperzero-firmware/pull/4430)
 - Added: [WoL Flipper v1.1 (By keetsta)](https://github.com/keetsta/wol-flipper) `Req: ESP32`
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest [WoL Flipper v1.1 (By keetsta)](https://github.com/keetsta/wol-flipper) ESP32 firmware.
+- Updated: [MiZip Balance Editor v1.0 (By teohumeau)](https://github.com/teohumeau/MiZipBalanceEditor) (Version Only)
 
 <a name="release"></a>
 
@@ -675,7 +676,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Mifare Fuzzer v1.5 (By spheeere98)](https://github.com/spheeere98/mifare_fuzzer)
 - [Mitsubishi AC Remote v1.0 (By achistyakov)](https://github.com/achistyakov/flipperzero-mitsubishi-ac-remote)
 - [Mitzi Type Aid Demo v0.1 (By fgreil)](https://github.com/fgreil/mitzi-tyaid)
-- [MiZip Balance Editor v0.2 (By teohumeau)](https://github.com/teohumeau/MiZipBalanceEditor)
+- [MiZip Balance Editor v1.0 (By teohumeau)](https://github.com/teohumeau/MiZipBalanceEditor)
 - [MODBUS v1.1.3.1 (By ElectronicCats)](https://github.com/ElectronicCats/flipper-rs485modbus) `Req: Modbus By ElectronicCats`
 - [Moisture Sensor v1.0 (By smallwat3r)](https://github.com/smallwat3r/flipperzero-moisture-sensor)
 - [Moon Phases v1.0 (By w84death)](https://github.com/w84death/flipper-zero-apps)
