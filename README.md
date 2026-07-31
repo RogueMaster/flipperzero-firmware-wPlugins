@@ -38,7 +38,7 @@ It also falls back sensibly when a straight key is plugged into a stereo paddle 
 <p align="center">
   <img src="docs/images/ss1.png" alt="Morse Flipper screenshot 1" width="19%">
   <img src="docs/images/ss2.png" alt="Morse Flipper screenshot 2" width="19%">
-  <img src="docs/images/ss4.png" alt="Morse Flipper screenshot 4" width="19%">
+  <img src="docs/images/ss4.gif" alt="Animated Morse Flipper final score" width="19%">
   <img src="docs/images/ss5.png" alt="Morse Flipper screenshot 5" width="19%">
   <img src="docs/images/ss6.png" alt="Morse Flipper screenshot 6" width="19%"><br>
   <img src="docs/images/ss7.png" alt="Morse Flipper screenshot 7" width="19%">
