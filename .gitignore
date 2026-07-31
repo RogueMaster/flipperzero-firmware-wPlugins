@@ -1,0 +1,4 @@
+.vscode/
+dist/debug/
+*.elf
+
