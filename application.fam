@@ -8,7 +8,7 @@ App(
     fap_version="1.0",
     fap_icon="rps_launcher_10x10.png",
     fap_icon_assets="assets/rps_reference_sprites",
-    fap_description="Animated rock paper scissors",
+    fap_description="Play rock, paper, or scissors",
     fap_author="Ugur",
     fap_weburl="https://github.com/xantopren/rock-paper-scissors",
 )
