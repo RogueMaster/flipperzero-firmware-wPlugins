@@ -3,7 +3,7 @@
 #include <gui/gui.h>
 #include <gui/view.h>
 #include <gui/view_dispatcher.h>
-#include <pixel_rps_icons.h>
+#include <rock_paper_scissors_3_icons.h>
 
 typedef enum {
     PixelRpsGestureRock,

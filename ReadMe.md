@@ -90,6 +90,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest [WoL Flipper v1.1 (By keetsta)](https://github.com/keetsta/wol-flipper) ESP32 firmware.
 - Updated: [MiZip Balance Editor v1.0 (By teohumeau)](https://github.com/teohumeau/MiZipBalanceEditor) (Version Only)
 - NFC: [Fix a crafted EMV `.nfc` file corrupting the heap on load - `emv_load()` used the file's own lengths as write sizes: three unbounded `strcpy`s into the cardholder name, application name and label, and `PAN length`/`AID length` read as 32-bit then written into 10- and 16-byte fields; an oversized `PAN length` also walked the card-number render loops past the array. Saving a card no longer writes a garbage `PIN try counter` either (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1056)
+- Added: [Fortune Spinner v1.0 (By xantopren)](https://github.com/xantopren/fortune-spinner)
+- Added: [Rock Paper Scissors 3 v1.0 (By xantopren)](https://github.com/xantopren/rock-paper-scissors)
 
 <a name="release"></a>
 
@@ -253,6 +255,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [FlipRogue v1.2.1 (By Abzac)](https://github.com/Abzac/fliprogue)
 - [FMatrix v0.3.5 (By misterwaztaken)](https://github.com/misterwaztaken/fmatrix)
 - [Fortune Cookie v0.1 (By evillero)](https://github.com/evillero/fortune_cookie)
+- [Fortune Spinner v1.0 (By xantopren)](https://github.com/xantopren/fortune-spinner)
 - [Free Roam v0.6 (By jblanked)](https://github.com/jblanked/Free-Roam) `Req: ESP32` with [FliperHTTP Firmware](https://github.com/jblanked/FlipperHTTP)
 - [Furious Birds v1.1 (By bmstr-ru)](https://github.com/bmstr-ru/furious-birds)
 - [Game of Life v1.3 (By Mad-MO)](https://github.com/Mad-MO/FlipperGoL)
@@ -316,8 +319,9 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Reaction Test v1.3 (By Milk-Cool)](https://github.com/Milk-Cool/fz-reaction-game)
 - [Reaction Time (By ihatecsv)](https://github.com/ihatecsv/flipper_reaction_time)
 - [Reversi v1.4 (By dimat)](https://github.com/dimat/flipperzero-reversi)
-- [Rock Paper Scissors 2 v1.1 (By benwoo1110)](https://github.com/benwoo1110/rps-FlipperZero)
 - [Rock Paper Scissors v1.5 (By CodeAllNight/jamisonderek)](https://github.com/jamisonderek/flipper-zero-tutorials/tree/main/subghz/plugins/rock_paper_scissors)
+- [Rock Paper Scissors 2 v1.1 (By benwoo1110)](https://github.com/benwoo1110/rps-FlipperZero)
+- [Rock Paper Scissors 3 v1.0 (By xantopren)](https://github.com/xantopren/rock-paper-scissors)
 - [Root of Life v1.4 (By Xorboo)](https://github.com/Xorboo/root-of-life)
 - [Rubiks Cube Scrambler v1.4 (By RaZeSloth)](https://github.com/RaZeSloth/flipperzero-rubiks-cube-scrambler)
 - [Rush Hour v0.1.6 (By Endika)](https://github.com/Endika/flipper-tutu)
