@@ -55,10 +55,11 @@ The development `v0.4.4-dev` candidate adds an explicit one-time setup action fo
 4. Click Continue on the Mac.
 5. Press `Send` on Flipper. PassVault sends the ANSI-position keys `Z`, then `/`.
 6. Choose `ANSI` on the Mac when prompted.
-7. Press Back on Flipper. PassVault restores the previous USB mode.
-8. Focus a password field and use the normal Inject action.
+7. Press Back on Flipper. PassVault keeps HID active for this app session, preventing another keyboard-enumeration cycle before each injection.
+8. Focus a password field and use the normal Inject action as many times as needed.
+9. Exit PassVault when finished. The original USB mode is restored on app exit.
 
-This setup is intended for a US ANSI keyboard layout. Password symbols can be wrong when the Mac input source uses a different physical layout because USB HID sends key positions, not Unicode characters.
+This setup is intended for a US ANSI keyboard layout. Password symbols can be wrong when the Mac input source uses a different physical layout because USB HID sends key positions, not Unicode characters. Disconnecting USB, exiting PassVault, or switching away from HID creates a new enumeration event; reopen Mac mode before the next injection session if necessary.
 
 ## Branding
 

@@ -2,7 +2,8 @@ v0.4.4-dev:
 - added an explicit `macOS Keyboard Setup` action for Apple's Keyboard Setup Assistant
 - sends the standard ANSI identification positions (`Z`, then `/`) only when the user presses Send
 - keeps the normal Flipper USB HID identity instead of spoofing an Apple VID/PID
-- keeps HID active while setup completes and restores the previous USB mode on Back or app exit
+- keeps HID active after setup so repeated injections do not re-enumerate the keyboard
+- restores the previous USB mode only when PassVault exits or setup is cancelled
 - leaves the existing Windows/Linux password injection path unchanged
 
 v0.4.3:
