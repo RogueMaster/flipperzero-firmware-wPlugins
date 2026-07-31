@@ -92,6 +92,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - NFC: [Fix a crafted EMV `.nfc` file corrupting the heap on load - `emv_load()` used the file's own lengths as write sizes: three unbounded `strcpy`s into the cardholder name, application name and label, and `PAN length`/`AID length` read as 32-bit then written into 10- and 16-byte fields; an oversized `PAN length` also walked the card-number render loops past the array. Saving a card no longer writes a garbage `PIN try counter` either (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1056)
 - Added: [Fortune Spinner v1.0 (By xantopren)](https://github.com/xantopren/fortune-spinner)
 - Added: [Rock Paper Scissors 3 v1.0 (By xantopren)](https://github.com/xantopren/rock-paper-scissors)
+- HID: [Mouse Jiggler Stealth now shows which buttons change the intervals - Up/Down (Min) and Left/Right (Max) already worked but nothing on screen said so; the arrows appear next to each row while the jiggler is stopped, and only for presses that would actually change the value (By sequesters)](https://github.com/DarkFlippers/unleashed-firmware/pull/1020)
 
 <a name="release"></a>
 
