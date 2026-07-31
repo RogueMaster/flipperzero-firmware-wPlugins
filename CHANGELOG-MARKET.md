@@ -3,6 +3,7 @@ v0.2.5:
 - Add callsign practice with realistic generated callsigns.
 - Add Morse Ninja-style Passive Listening with NATO phonetic answers.
 - Add lesson progress, recent-session history, scores, and daily streaks.
+- Add answer editing: ↓ deletes the last character; ↑ clears the whole answer.
 - Improve Sub-GHz receive calibration, signal release, and transmit timing.
 
 v0.1.78:

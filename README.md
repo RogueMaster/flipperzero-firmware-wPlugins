@@ -14,7 +14,7 @@ The full Morse Flipper manual lives here: [manual/README.md](manual/README.md).
 
 ## 0.2.5
 
-This release adds an Instant Character Recognition trainer, a callsign generator, and Morse Ninja-style passive listening through either the internal buzzer or the PA2 audio port. It also adds progress history and daily streaks, because apparently even Morse practice benefits from keeping score.
+This release adds an Instant Character Recognition trainer, a callsign generator, and Morse Ninja-style passive listening through either the internal buzzer or the PA2 audio port. It also adds progress history and daily streaks, because apparently even Morse practice benefits from keeping score. We finally have backspace, too: ↓ removes the last character and ↑ clears the whole answer.
 
 ## What it does
 

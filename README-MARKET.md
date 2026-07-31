@@ -11,6 +11,7 @@ Morse Flipper also includes a fairly extensive help manual on the Flipper itself
 - Flipper-to-Flipper Sub-GHz Morse TX/RX, plus receive and decode experiments for compatible OOK Morse signals inside supported Flipper bands.
 - Listening practice (LCWO/Koch progressions), straight-key timing practice, and five-character sending drills.
 - Listening practice includes lesson progress, history, scores, and daily streaks.
+- Listening answers can be corrected: ↓ deletes the last character and ↑ clears the whole answer.
 - Free practice with a straight key, paddle, Flipper buttons, USB, MIDI, mouse, or keyboard input.
 - Iambic, Elekey-A/B, Ultimatic, bug, keyahead, and Vail-compatible keying modes.
 - Built-in help for setup, hardware, practice, portable operating, contests, and CW operating notes.
