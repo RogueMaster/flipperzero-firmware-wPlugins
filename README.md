@@ -17,9 +17,13 @@ Website: <https://ck42x.com>
    - Strict 16+ A/a/0/!
    - Long 20+ passphrase
    - No special char
-8. Save entry
-9. Select saved account to view username/password
+8. Confirm the entry with `Enter`
+9. The saved entry opens directly on its Inject screen
 10. Press `Inject`, confirm, and the app HID-types the password only
+11. After typing, PassVault returns to the same Inject screen so the password can be injected again
+12. `FIDO2 Security Key` starts the experimental USB runtime; Back or Stop
+    restores the previous USB mode. Credential creation and assertion require
+    an explicit on-device Approve/Deny decision.
 
 ## macOS keyboard setup popup
 
@@ -69,8 +73,24 @@ Generated passwords use the Flipper RNG and the app checks generated passwords a
 
 v0.4 stores the active vault in app data as AES-GCM encrypted `vault.pv1` and gates vault access behind a master PIN. The key is derived in-app from the PIN and a per-vault random salt using a compact SHA-256 KDF. A fresh random AES-GCM nonce is used on each save.
 
+FIDO2 credentials are kept separately in AES-GCM encrypted `fido2.pv1`, using
+distinct file magic/AAD and the unlocked vault key. The experimental store is
+bounded to 20 non-resident credentials and does not change `vault.pv1`.
+
 If a legacy plaintext `vault.tsv` exists and no encrypted vault exists, first PIN setup imports it once, saves the encrypted vault, and removes the plaintext file after the encrypted save succeeds.
 
 This is still a small Flipper utility, not a hardened audited password manager. Device compromise, weak PINs, shoulder surfing, debug access, or modified firmware can still expose vault contents.
 
+The `v0.4.3-dev` FIDO2 runtime is experimental. Physical testing on an Oaspote
+Flipper Zero proved CTAP2 GetInfo, browser WebAuthn registration and
+authentication in Chromium, credential persistence across a FIDO-mode restart,
+ES256 signature verification, signature-counter advancement, and restoration of
+the prior USB serial mode after exit. This is not a FIDO conformance or security
+certification.
+
+Flipper Zero has no secure element for these credentials. This build is not
+equivalent to a hardened YubiKey, Titan, or other certified authenticator. Do not
+use it as your only authenticator or recovery method; retain a backup security
+key and account recovery path. Client PIN, resident credentials, and user
+verification are intentionally unsupported.
 

@@ -13,6 +13,8 @@
 
 #include <ck42x_passvault_icons.h>
 
+#include "ck42x_fido2_service.h"
+
 #define CK_TAG            "CK42XPassVault"
 #define CK_MAX_ENTRIES    20
 #define CK_ACCOUNT_LEN    32
@@ -64,11 +66,13 @@ typedef enum {
 typedef enum {
     CkDialogSave = 0,
     CkDialogInjectConfirm,
+    CkDialogFido2Presence,
 } CkDialogPurpose;
 
 typedef enum {
     CkEventAdd = 1,
     CkEventAbout = 2,
+    CkEventSecurityKey = 3,
     CkEventSavedBase = 100,
     CkEventTextDone = 300,
     CkEventChooseGenerate = 400,
@@ -110,6 +114,8 @@ typedef struct {
     CkInputStage input_stage;
     CkDialogPurpose dialog_purpose;
     FuriHalUsbInterface* previous_usb;
+    CkFido2Service* fido2_service;
+    bool security_key_view;
 
     uint8_t vault_key[CK_KEY_LEN];
     uint8_t vault_salt[CK_SALT_LEN];
@@ -121,6 +127,9 @@ static void ck_show_text_input(CkApp* app, CkInputStage stage, const char* heade
 static void ck_show_save_dialog(CkApp* app);
 static void ck_show_entry_widget(CkApp* app);
 static void ck_show_about(CkApp* app);
+static void ck_show_security_key(CkApp* app);
+static void ck_show_fido2_presence(CkApp* app);
+static void ck_stop_fido2(CkApp* app);
 static void ck_show_inject_confirm(CkApp* app);
 static void ck_handle_event(CkApp* app, uint32_t event);
 static void ck_begin_auth(CkApp* app);
@@ -682,6 +691,18 @@ static bool ck_custom_event_callback(void* context, uint32_t event) {
 
 static bool ck_navigation_callback(void* context) {
     CkApp* app = context;
+    if(app->dialog_purpose == CkDialogFido2Presence &&
+       ck_fido2_service_presence_pending(app->fido2_service)) {
+        ck_fido2_service_answer_presence(app->fido2_service, false);
+        ck_stop_fido2(app);
+        ck_show_main(app);
+        return true;
+    }
+    if(app->security_key_view) {
+        ck_stop_fido2(app);
+        ck_show_main(app);
+        return true;
+    }
     if(!app->unlocked) {
         view_dispatcher_stop(app->dispatcher);
         return true;
@@ -695,11 +716,13 @@ static bool ck_navigation_callback(void* context) {
 }
 
 static void ck_show_main(CkApp* app) {
+    app->security_key_view = false;
     app->menu_mode = CkMenuModeMain;
     app->selected = -1;
     submenu_reset(app->submenu);
-    submenu_set_header(app->submenu, "CK42X PassVault");
+    submenu_set_header(app->submenu, "PāSSVΛŭLƬ");
     submenu_add_item(app->submenu, "+ Add New Password", CkEventAdd, ck_submenu_callback, app);
+    submenu_add_item(app->submenu, "FIDO2 Security Key", CkEventSecurityKey, ck_submenu_callback, app);
     submenu_add_item(app->submenu, "About / ck42x.com", CkEventAbout, ck_submenu_callback, app);
     for(uint8_t i = 0; i < app->entry_count; i++) {
         submenu_add_item(
@@ -789,10 +812,10 @@ static void ck_show_save_dialog(CkApp* app) {
     dialog_ex_reset(app->dialog);
     dialog_ex_set_context(app->dialog, app);
     dialog_ex_set_result_callback(app->dialog, ck_dialog_callback);
-    dialog_ex_set_header(app->dialog, "Save CK42X Entry?", 64, 6, AlignCenter, AlignTop);
+    dialog_ex_set_header(app->dialog, "Confirm Entry?", 64, 6, AlignCenter, AlignTop);
     dialog_ex_set_text(app->dialog, text, 4, 18, AlignLeft, AlignTop);
     dialog_ex_set_left_button_text(app->dialog, "No");
-    dialog_ex_set_right_button_text(app->dialog, "Save");
+    dialog_ex_set_right_button_text(app->dialog, "Enter");
     app->current_view = CkViewDialog;
     view_dispatcher_switch_to_view(app->dispatcher, CkViewDialog);
 }
@@ -851,6 +874,66 @@ static void ck_show_about(CkApp* app) {
     view_dispatcher_switch_to_view(app->dispatcher, CkViewWidget);
 }
 
+static void ck_show_security_key(CkApp* app) {
+    if(!app->fido2_service) {
+        app->fido2_service =
+            ck_fido2_service_alloc(app->storage, app->vault_key, app->dispatcher);
+    }
+    if(!app->fido2_service || !ck_fido2_service_start(app->fido2_service)) {
+        ck_show_status(app, "FIDO2 Failed", "Could not start\nUSB security key.");
+        return;
+    }
+    widget_reset(app->widget);
+    widget_add_string_element(
+        app->widget, 64, 6, AlignCenter, AlignTop, FontPrimary, "CK42X FIDO2");
+    widget_add_text_box_element(
+        app->widget,
+        4,
+        20,
+        120,
+        32,
+        AlignCenter,
+        AlignCenter,
+        "Ready / waiting\nExperimental runtime\nHardware proof pending",
+        false);
+    widget_add_button_element(
+        app->widget, GuiButtonTypeLeft, "Back", ck_widget_button_callback, app);
+    widget_add_button_element(
+        app->widget, GuiButtonTypeRight, "Stop", ck_widget_button_callback, app);
+    app->security_key_view = true;
+    app->current_view = CkViewWidget;
+    view_dispatcher_switch_to_view(app->dispatcher, CkViewWidget);
+}
+
+static void ck_show_fido2_presence(CkApp* app) {
+    if(!ck_fido2_service_presence_pending(app->fido2_service)) return;
+    app->dialog_purpose = CkDialogFido2Presence;
+    dialog_ex_reset(app->dialog);
+    dialog_ex_set_context(app->dialog, app);
+    dialog_ex_set_result_callback(app->dialog, ck_dialog_callback);
+    dialog_ex_set_header(app->dialog, "FIDO2 Request", 64, 7, AlignCenter, AlignTop);
+    dialog_ex_set_text(
+        app->dialog,
+        "Approve presence?\nCheck the requesting site.\nTimes out in 30 seconds.",
+        4,
+        20,
+        AlignLeft,
+        AlignTop);
+    dialog_ex_set_left_button_text(app->dialog, "Deny");
+    dialog_ex_set_right_button_text(app->dialog, "Approve");
+    app->security_key_view = true;
+    app->current_view = CkViewDialog;
+    view_dispatcher_switch_to_view(app->dispatcher, CkViewDialog);
+}
+
+static void ck_stop_fido2(CkApp* app) {
+    if(!app->fido2_service) return;
+    if(ck_fido2_service_presence_pending(app->fido2_service))
+        ck_fido2_service_answer_presence(app->fido2_service, false);
+    ck_fido2_service_stop(app->fido2_service);
+    app->security_key_view = false;
+}
+
 static void ck_hid_type_string(const char* text) {
     for(const char* p = text; *p; p++) {
         uint16_t key = HID_ASCII_TO_KEY(*p);
@@ -884,7 +967,7 @@ static void ck_begin_auth(CkApp* app) {
     app->unlocked = false;
     app->entry_count = 0;
     if(ck_file_exists(app, CK_VAULT_FILE)) {
-        ck_show_text_input(app, CkInputUnlockPin, "Unlock PIN", NULL);
+        ck_show_text_input(app, CkInputUnlockPin, "Enter Master PIN", NULL);
     } else {
         ck_show_text_input(app, CkInputSetPin, "Set Master PIN", NULL);
     }
@@ -926,7 +1009,7 @@ static void ck_handle_unlock_pin(CkApp* app) {
         ck_show_main(app);
     } else {
         ck_secure_zero(app->input, sizeof(app->input));
-        ck_show_text_input(app, CkInputUnlockPin, "Wrong PIN - Retry", NULL);
+        ck_show_text_input(app, CkInputUnlockPin, "PIN Incorrect - Retry", NULL);
     }
 }
 
@@ -958,10 +1041,12 @@ static void ck_save_draft(CkApp* app) {
         ck_show_status(app, "Vault Full", "Max entries reached.");
         return;
     }
+    uint8_t saved_index = app->entry_count;
     app->entries[app->entry_count++] = app->draft;
     bool ok = ck_save_entries(app);
     if(ok) {
-        ck_show_status(app, "Saved", "Entry saved to\nCK42X PassVault.");
+        app->selected = saved_index;
+        ck_show_entry_widget(app);
     } else {
         ck_show_status(app, "Save Failed", "SD/app data write failed.");
     }
@@ -971,7 +1056,9 @@ static void ck_handle_event(CkApp* app, uint32_t event) {
     if(!app->unlocked && event != CkEventTextDone && event != CkEventWidgetBack) return;
 
     if(event == CkEventAdd) {
-        ck_show_text_input(app, CkInputAccount, "Account Name", NULL);
+        ck_show_text_input(app, CkInputAccount, "Name", NULL);
+    } else if(event == CkEventSecurityKey) {
+        ck_show_security_key(app);
     } else if(event == CkEventAbout) {
         ck_show_about(app);
     } else if(event >= CkEventSavedBase && event < CkEventSavedBase + CK_MAX_ENTRIES) {
@@ -997,14 +1084,31 @@ static void ck_handle_event(CkApp* app, uint32_t event) {
         ck_make_password_unique(app, app->draft.password, sizeof(app->draft.password));
         ck_show_save_dialog(app);
     } else if(event == CkEventWidgetBack) {
-        if(app->unlocked)
+        if(app->security_key_view) {
+            ck_stop_fido2(app);
+            ck_show_main(app);
+        } else if(app->unlocked)
             ck_show_main(app);
         else
             ck_begin_auth(app);
     } else if(event == CkEventWidgetInject) {
-        ck_show_inject_confirm(app);
+        if(app->security_key_view) {
+            ck_stop_fido2(app);
+            ck_show_main(app);
+        } else {
+            ck_show_inject_confirm(app);
+        }
+    } else if(event == CkFido2ServiceEventPresence) {
+        ck_show_fido2_presence(app);
+    } else if(event == CkFido2ServiceEventPresenceDone) {
+        if(app->security_key_view && app->current_view == CkViewDialog &&
+           app->dialog_purpose == CkDialogFido2Presence)
+            ck_show_security_key(app);
     } else if(event == CkEventDialogLeft) {
-        if(app->dialog_purpose == CkDialogInjectConfirm)
+        if(app->dialog_purpose == CkDialogFido2Presence) {
+            ck_fido2_service_answer_presence(app->fido2_service, false);
+            ck_show_security_key(app);
+        } else if(app->dialog_purpose == CkDialogInjectConfirm)
             ck_show_entry_widget(app);
         else
             ck_show_main(app);
@@ -1013,10 +1117,13 @@ static void ck_handle_event(CkApp* app, uint32_t event) {
             ck_save_draft(app);
         } else if(app->dialog_purpose == CkDialogInjectConfirm) {
             bool ok = ck_inject_selected(app);
-            ck_show_status(
-                app,
-                ok ? "Typed" : "HID Failed",
-                ok ? "Password HID typed." : "Could not switch USB HID.");
+            if(ok)
+                ck_show_entry_widget(app);
+            else
+                ck_show_status(app, "HID Failed", "Could not switch USB HID.");
+        } else if(app->dialog_purpose == CkDialogFido2Presence) {
+            ck_fido2_service_answer_presence(app->fido2_service, true);
+            ck_show_security_key(app);
         }
     }
 }
@@ -1050,6 +1157,8 @@ static CkApp* ck_app_alloc(void) {
 
 static void ck_app_free(CkApp* app) {
     if(!app) return;
+    ck_fido2_service_free(app->fido2_service);
+    app->fido2_service = NULL;
     view_dispatcher_remove_view(app->dispatcher, CkViewMain);
     view_dispatcher_remove_view(app->dispatcher, CkViewTextInput);
     view_dispatcher_remove_view(app->dispatcher, CkViewWidget);
@@ -1076,6 +1185,7 @@ int32_t ck42x_passvault_app(void* p) {
     ck_begin_auth(app);
     view_dispatcher_run(app->dispatcher);
 
+    ck_stop_fido2(app);
     furi_record_close(RECORD_GUI);
     ck_app_free(app);
     FURI_LOG_I(CK_TAG, "Stopped CK42X PassVault");

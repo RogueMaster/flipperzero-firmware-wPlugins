@@ -1,0 +1,9 @@
+Upstream: https://github.com/kmackay/micro-ecc
+Commit: 541b3a78026420a3e369c4c9281c396b5e531113
+License: BSD-2-Clause (see LICENSE.txt)
+
+The vendored files are the upstream sources needed to build the library.
+The only source modification is the configuration block at the top of uECC.c,
+which selects portable 32-bit code, enables upstream optimization level 2 fast
+modular reduction, explicitly disables the ARM assembly reduction hook, and
+disables every curve except secp256r1.
