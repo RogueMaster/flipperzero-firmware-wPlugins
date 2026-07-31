@@ -523,3 +523,33 @@ h3{margin:0; font-weight:600}
   .rc-pad.go{animation:none}
   *{transition:none!important}
 }
+
+/* --- Guess the Color --- */
+.gc-play{display:flex; flex-direction:column; gap:12px}
+.gc-swatches{display:flex; gap:10px}
+.gc-sw{flex:1; display:flex; flex-direction:column; gap:4px; align-items:center}
+/* z-index above .scan (40): the CRT scanline must not tint the color you're judging. */
+.gc-chip{width:100%; aspect-ratio:3/2; border:2px solid var(--line); border-radius:var(--radius);
+  background:#000; position:relative; z-index:41}
+.gc-lbl{color:var(--text-dim); font-size:11px; text-transform:uppercase; letter-spacing:.1em}
+.gc-rows{display:flex; flex-direction:column; gap:8px}
+.gc-row{display:flex; align-items:center; gap:8px}
+.gc-ch{width:22px; font-weight:700; text-align:center}
+.gc-ch.gc-r{color:#FF5D5D} .gc-ch.gc-g{color:var(--good)} .gc-ch.gc-b{color:var(--info)}
+.gc-step{min-height:44px; flex:none; width:44px; font-size:22px; padding:0; touch-action:none; user-select:none}
+.gc-step:disabled{opacity:.35}
+.gc-slider{flex:1; min-width:0; -webkit-appearance:none; appearance:none; height:10px; border-radius:6px;
+  background:var(--surface-2); border:1px solid var(--line); touch-action:pan-y}
+.gc-slider::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:28px; height:28px; border-radius:50%;
+  background:var(--orange); border:2px solid var(--bg); cursor:pointer}
+.gc-slider::-moz-range-thumb{width:28px; height:28px; border:2px solid var(--bg); border-radius:50%;
+  background:var(--orange); cursor:pointer}
+.gc-slider:disabled{opacity:.45}
+.gc-val{flex:none; width:46px; text-align:right; font-size:22px; font-weight:700; font-variant-numeric:tabular-nums}
+.gc-result{text-align:center; display:flex; flex-direction:column; gap:4px}
+.gc-nums{color:var(--text-dim); font-size:14px}
+.gc-nums b{color:var(--text); font-variant-numeric:tabular-nums}
+.gc-pts{color:var(--orange); font-weight:700; font-size:22px}
+.gc-winner{text-align:center; font-weight:700; margin-top:6px}
+.gc-target-wrap{display:flex; flex-direction:column; gap:6px; align-items:center}
+.gc-chip-lg{max-width:280px; aspect-ratio:16/9}

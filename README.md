@@ -19,7 +19,7 @@ the rounds. The ESP32 board is the **referee**: it runs the WiFi access point, s
 the game to phones, and keeps the real-time game state. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-Ten games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
+Eleven games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
 reactions that float up on everyone's screen mid-game.
 
 **Whole-group** (scale to everyone in the room, ready-up lobby, shared live leaderboard):
@@ -34,6 +34,9 @@ reactions that float up on everyone's screen mid-game.
   Words are the scramble packs on the SD card, votable in the lobby.
 - **Reaction Duel** — fastest finger: wait for green, tap first to win, false-start and
   you're out for the round.
+- **Guess the Color** — a random color swatch appears; dial in its R/G/B (0-255) with a
+  slider per channel and submit. Closest guess wins the round, with a speed bonus, over
+  five rounds to a podium. You never see a preview of your color while guessing.
 
 **1v1 duels** (challenge a player, many matches at once, rematch button, wins score on
 the Flipper leaderboard):
@@ -66,12 +69,15 @@ Pick a nickname and an emoji avatar, then land in the lobby:
 </p>
 
 The other phone games — the shared-lobby party games (Would You Rather, Word Scramble,
-Reaction Duel), Draw &amp; Guess, and a real-time Pong (animated below):
+Reaction Duel, Guess the Color), Draw &amp; Guess, and a real-time Pong (animated below):
 
 <p align="center">
   <img src="docs/img/web-wyr.gif" alt="Would You Rather: A/B poll with the live vote split" width="19%">
   <img src="docs/img/web-scramble.png" alt="Word Scramble: unscramble the letters and type the word" width="19%">
   <img src="docs/img/web-react.png" alt="Reaction Duel: fastest finger with reaction time and leaderboard" width="19%">
+</p>
+<p align="center">
+  <img src="docs/img/web-guesscolor.png" alt="Guess the Color: match the swatch's RGB with a slider per channel" width="19%">
   <img src="docs/img/web-draw.gif" alt="Draw &amp; Guess: the drawer's canvas with strokes forming and the secret word" width="19%">
   <img src="docs/img/web-pong.gif" alt="Pong: real-time 1v1 rally with on-screen paddle controls" width="19%">
 </p>

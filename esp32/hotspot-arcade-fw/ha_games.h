@@ -66,6 +66,10 @@ static inline void ha_upper(char* s) {
 #define SCR_REVEAL_MS 5000
 #define REACT_ROUNDS 5
 #define REACT_REVEAL_MS 4000
+#define GC_ROUNDS 5
+#define GC_PLAY_SECS 25 // safety deadline per color
+#define GC_REVEAL_MS 6000
+#define GC_SPEED_MS 12000 // speed bonus decays to 0 over this window
 
 // ---- sinks implemented in the .ino ----
 void haWsSendWs(uint32_t wsId, const String& msg); // to one socket (0 = no-op)
@@ -218,6 +222,20 @@ struct ReactState {
     uint32_t winMs; // winner's reaction time
 };
 
+// Guess the Color: a random swatch is shown; everyone dials in an R/G/B guess and
+// submits. Points = closeness (Euclidean RGB distance) + a speed bonus that decays
+// the longer you take. Closest usually wins the round; a fast submit can edge it.
+struct GuessColorState {
+    Party pt;
+    uint8_t tr, tg, tb; // target color for the round
+    uint32_t roundStart; // millis the play phase began (for speed)
+    bool guessed[HA_MAX_PLAYERS + 1];
+    uint8_t gr[HA_MAX_PLAYERS + 1], gg[HA_MAX_PLAYERS + 1], gb[HA_MAX_PLAYERS + 1];
+    uint32_t submitMs[HA_MAX_PLAYERS + 1]; // reveal -> submit, ms
+    int gained[HA_MAX_PLAYERS + 1]; // points earned this round
+    uint8_t winner; // pid with the most points this round, 0 = none
+};
+
 struct PongMatch {
     bool used;
     uint8_t a, b; // a = left paddle, b = right paddle
@@ -242,6 +260,7 @@ public:
         wyrClear();
         scrambleClear();
         reactClear();
+        gcClear();
     }
 
     // ---- roster ----
@@ -476,6 +495,8 @@ public:
             scrambleClear();
         else if(_active == HA_GAME_REACT)
             reactClear();
+        else if(_active == HA_GAME_GUESSCOLOR)
+            gcClear();
         pushAll();
     }
 
@@ -494,6 +515,8 @@ public:
             scrambleTick(now);
         else if(_active == HA_GAME_REACT)
             reactTick(now);
+        else if(_active == HA_GAME_GUESSCOLOR)
+            gcTick(now);
     }
 
     // ---- player input (parsed WS JSON) ----
@@ -529,6 +552,7 @@ public:
             wyrReady(pid, r);
             scrambleReady(pid, r);
             reactReady(pid, r);
+            gcReady(pid, r);
         } else if(strcmp(type, "vote") == 0 && ha_json_int(json, "topic", &v)) {
             triviaVote(pid, v);
         } else if(strcmp(type, "vote") == 0 && ha_json_int(json, "pack", &v)) {
@@ -542,6 +566,7 @@ public:
             wyrAgain(pid);
             scrambleAgain(pid);
             reactAgain(pid);
+            gcAgain(pid);
         } else if(strcmp(type, "say") == 0) {
             char t[120];
             if(ha_json_str(json, "text", t, sizeof(t))) onSay(pid, t);
@@ -558,10 +583,16 @@ public:
         } else if(strcmp(type, "paddle") == 0 && ha_json_int(json, "dir", &v)) {
             pongPaddle(pid, v);
         } else if(strcmp(type, "guess") == 0) {
+            // A text guess (draw/scramble) or an r/g/b color guess (guess the color).
             char g[64];
+            int r, gg, b;
             if(ha_json_str(json, "text", g, sizeof(g))) {
                 drawGuess(pid, g);
                 scrambleGuess(pid, g);
+            } else if(
+                ha_json_int(json, "r", &r) && ha_json_int(json, "g", &gg) &&
+                ha_json_int(json, "b", &b)) {
+                gcGuess(pid, r, gg, b);
             }
         } else if(strcmp(type, "stroke") == 0) {
             drawStroke(pid, json);
@@ -588,6 +619,7 @@ private:
     WyrState _wyr = {};
     ScrambleState _scr = {};
     ReactState _react = {};
+    GuessColorState _gc = {};
 
     uint8_t freePid() {
         for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
@@ -621,6 +653,8 @@ private:
                 haWsSendWs(_p[pid].wsId, scrambleJson(pid));
             else if(_active == HA_GAME_REACT)
                 haWsSendWs(_p[pid].wsId, reactJson(pid));
+            else if(_active == HA_GAME_GUESSCOLOR)
+                haWsSendWs(_p[pid].wsId, gcJson(pid));
         }
     }
 
@@ -671,6 +705,8 @@ private:
             return "scramble";
         case HA_GAME_REVERSI:
             return "reversi";
+        case HA_GAME_GUESSCOLOR:
+            return "gc";
         default:
             return "none";
         }
@@ -1961,6 +1997,8 @@ private:
             scrambleCheckStart();
         else if(_active == HA_GAME_REACT)
             reactCheckStart();
+        else if(_active == HA_GAME_GUESSCOLOR)
+            gcCheckStart();
     }
 
     // ---------- would you rather (live A/B poll) ----------
@@ -2508,6 +2546,193 @@ private:
         }
         s += ",\"dq\":";
         s += _react.dq[pid] ? "true" : "false";
+        s += ",\"scores\":" + playersJson() + "}";
+        return s;
+    }
+
+    // ---------- guess the color (closest RGB + speed) ----------
+    void gcClear() {
+        partyClear(_gc.pt);
+        _gc.tr = _gc.tg = _gc.tb = 0;
+        _gc.roundStart = 0;
+        _gc.winner = 0;
+        for(int i = 0; i <= HA_MAX_PLAYERS; i++) {
+            _gc.guessed[i] = false;
+            _gc.gained[i] = 0;
+            _gc.submitMs[i] = 0;
+            _gc.gr[i] = _gc.gg[i] = _gc.gb[i] = 0;
+        }
+    }
+
+    void gcReady(uint8_t pid, bool val) {
+        if(_active != HA_GAME_GUESSCOLOR) return;
+        if(_gc.pt.phase != 0 && _gc.pt.phase != 4) return;
+        if(_gc.pt.phase == 4 && val) gcClear();
+        _gc.pt.ready[pid] = val;
+        gcCheckStart();
+        pushAll();
+    }
+
+    void gcCheckStart() {
+        Party& pt = _gc.pt;
+        if(pt.phase == 0 && partyAllReady(pt)) {
+            pt.phase = 1;
+            pt.countdownEnd = millis() + (uint32_t)PARTY_COUNTDOWN * 1000;
+            pt.lastSec = -1;
+        } else if(pt.phase == 1 && !partyAllReady(pt)) {
+            pt.phase = 0;
+        }
+    }
+
+    // Everyone present has submitted -> round is settled.
+    bool gcAllGuessed() {
+        int n = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used) continue;
+            n++;
+            if(!_gc.guessed[i]) return false;
+        }
+        return n >= 1;
+    }
+
+    void gcStartRound(uint32_t now) {
+        Party& pt = _gc.pt;
+        if(pt.round >= GC_ROUNDS) {
+            pt.phase = 4;
+            haUartRoundResult("{\"gc\":\"final\"}");
+            pushAll();
+            return;
+        }
+        pt.round++;
+        _gc.tr = esp_random() % 256;
+        _gc.tg = esp_random() % 256;
+        _gc.tb = esp_random() % 256;
+        _gc.winner = 0;
+        for(int i = 0; i <= HA_MAX_PLAYERS; i++) {
+            _gc.guessed[i] = false;
+            _gc.gained[i] = 0;
+            _gc.submitMs[i] = 0;
+        }
+        _gc.roundStart = now;
+        pt.deadline = now + (uint32_t)GC_PLAY_SECS * 1000;
+        pt.phase = 2;
+        pushAll();
+    }
+
+    void gcGuess(uint8_t pid, int r, int g, int b) {
+        if(_active != HA_GAME_GUESSCOLOR || _gc.pt.phase != 2) return;
+        if(_gc.guessed[pid]) return;
+        if(r < 0) r = 0;
+        if(r > 255) r = 255;
+        if(g < 0) g = 0;
+        if(g > 255) g = 255;
+        if(b < 0) b = 0;
+        if(b > 255) b = 255;
+        _gc.gr[pid] = (uint8_t)r;
+        _gc.gg[pid] = (uint8_t)g;
+        _gc.gb[pid] = (uint8_t)b;
+        _gc.guessed[pid] = true;
+        uint32_t now = millis();
+        _gc.submitMs[pid] = (now >= _gc.roundStart) ? (now - _gc.roundStart) : 0;
+        if(gcAllGuessed()) gcReveal(now);
+        else pushAll();
+    }
+
+    void gcReveal(uint32_t now) {
+        _gc.winner = 0;
+        int bestPts = -1;
+        uint32_t bestMs = 0xFFFFFFFF;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used) continue;
+            if(!_gc.guessed[i]) {
+                _gc.gained[i] = 0;
+                continue;
+            }
+            int dr = (int)_gc.gr[i] - _gc.tr, dg = (int)_gc.gg[i] - _gc.tg,
+                db = (int)_gc.gb[i] - _gc.tb;
+            float dist = sqrtf((float)(dr * dr + dg * dg + db * db)); // 0..441.67
+            int closeness = (int)(200.0f * (1.0f - dist / 441.673f) + 0.5f);
+            if(closeness < 0) closeness = 0;
+            float sf = 1.0f - (float)_gc.submitMs[i] / (float)GC_SPEED_MS;
+            if(sf < 0) sf = 0;
+            int speed = (int)(100.0f * sf + 0.5f);
+            int pts = closeness + speed;
+            _gc.gained[i] = pts;
+            _p[i].score += pts;
+            haUartScore(i, pts, "gc");
+            if(pts > bestPts || (pts == bestPts && _gc.submitMs[i] < bestMs)) {
+                bestPts = pts;
+                bestMs = _gc.submitMs[i];
+                _gc.winner = i;
+            }
+        }
+        _gc.pt.phase = 3;
+        _gc.pt.revealUntil = now + GC_REVEAL_MS;
+        pushAll();
+    }
+
+    void gcAgain(uint8_t pid) {
+        (void)pid;
+        if(_active != HA_GAME_GUESSCOLOR || _gc.pt.phase != 4) return;
+        gcClear();
+        pushAll();
+    }
+
+    void gcTick(uint32_t now) {
+        Party& pt = _gc.pt;
+        if(pt.phase == 1) {
+            if(partyCountdownDone(pt, now)) {
+                pt.round = 0;
+                resetScoresAll();
+                gcStartRound(now);
+            }
+        } else if(pt.phase == 2) {
+            if(now > pt.deadline) gcReveal(now);
+        } else if(pt.phase == 3) {
+            if(now > pt.revealUntil) gcStartRound(now);
+        }
+    }
+
+    String gcJson(uint8_t pid) {
+        Party& pt = _gc.pt;
+        if(pt.phase == 0)
+            return String("{\"t\":\"gc\",\"phase\":\"lobby\",\"you\":") + pid +
+                   ",\"players\":" + partyPlayersJson(pt) + "}";
+        if(pt.phase == 1)
+            return String("{\"t\":\"gc\",\"phase\":\"countdown\",\"sec\":") +
+                   partyCountdownSec(pt) + "}";
+        if(pt.phase == 4)
+            return String("{\"t\":\"gc\",\"phase\":\"final\",\"board\":") + triviaBoard() + "}";
+        char color[8];
+        snprintf(color, sizeof(color), "#%02X%02X%02X", _gc.tr, _gc.tg, _gc.tb);
+        if(pt.phase == 2)
+            return String("{\"t\":\"gc\",\"phase\":\"play\",\"round\":") + pt.round +
+                   ",\"rounds\":" + GC_ROUNDS + ",\"color\":\"" + color + "\",\"submitted\":" +
+                   (_gc.guessed[pid] ? "true" : "false") + ",\"scores\":" + playersJson() + "}";
+        // reveal
+        String s = String("{\"t\":\"gc\",\"phase\":\"reveal\",\"round\":") + pt.round +
+                   ",\"rounds\":" + GC_ROUNDS + ",\"r\":" + _gc.tr + ",\"g\":" + _gc.tg +
+                   ",\"b\":" + _gc.tb + ",\"color\":\"" + color + "\"";
+        if(_gc.guessed[pid]) {
+            int dr = (int)_gc.gr[pid] - _gc.tr, dg = (int)_gc.gg[pid] - _gc.tg,
+                db = (int)_gc.gb[pid] - _gc.tb;
+            int dist = (int)(sqrtf((float)(dr * dr + dg * dg + db * db)) + 0.5f);
+            char gcol[8];
+            snprintf(gcol, sizeof(gcol), "#%02X%02X%02X", _gc.gr[pid], _gc.gg[pid], _gc.gb[pid]);
+            s += ",\"your\":{\"r\":" + String(_gc.gr[pid]) + ",\"g\":" + String(_gc.gg[pid]) +
+                 ",\"b\":" + String(_gc.gb[pid]) + ",\"color\":\"" + gcol + "\",\"dist\":" + dist +
+                 ",\"points\":" + _gc.gained[pid] + "}";
+        } else {
+            s += ",\"your\":null";
+        }
+        if(_gc.winner) {
+            s += ",\"winner\":\"";
+            s += ha_json_escape(_p[_gc.winner].nick);
+            s += "\",\"iwon\":";
+            s += (_gc.winner == pid) ? "true" : "false";
+        } else {
+            s += ",\"winner\":null";
+        }
         s += ",\"scores\":" + playersJson() + "}";
         return s;
     }

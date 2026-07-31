@@ -16,7 +16,7 @@
 #define HA_FW_MAGIC_1 0x41 // 'A'
 #define HA_FW_MAGIC_2 0x52 // 'R'
 #define HA_FW_MAGIC_3 0x43 // 'C'  ("HARC" = Hotspot ARCade)
-#define HA_FW_VERSION 11 // v11: 3s countdowns; WYR vote/reveal countdown bar
+#define HA_FW_VERSION 12 // v12: guess the color game
 
 // Flipper -> ESP
 enum {
@@ -61,6 +61,7 @@ enum {
     HA_GAME_WYR = 8, // would you rather (poll)
     HA_GAME_SCRAMBLE = 9, // word scramble race
     HA_GAME_REVERSI = 10, // reversi/othello (duel kind)
+    HA_GAME_GUESSCOLOR = 11, // guess the color (closest RGB + speed)
 };
 
 // CRC-8/ATM: poly 0x07, init 0x00, no reflect, no xorout. Identical both sides.

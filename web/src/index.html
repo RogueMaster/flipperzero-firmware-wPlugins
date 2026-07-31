@@ -277,6 +277,60 @@
   </div>
 </section>
 
+<!-- 11. Guess the Color — whole-group: match the swatch's RGB, closest + fastest wins -->
+<section id="gc" class="screen hide">
+  <div id="gc-lobby" class="hide">
+    <header class="bar"><h2>Guess the Color</h2><span id="gc-me" class="me"></span></header>
+    <ul id="gc-players" class="players"></ul>
+    <button id="gc-ready" class="btn big">I'm ready</button>
+  </div>
+  <div id="gc-count" class="hide count">
+    <div class="count-topic">Get ready</div>
+    <div id="gc-count-num" class="count-num">3</div>
+    <div class="sub">Starting</div>
+  </div>
+  <div id="gc-play" class="hide gc-play">
+    <div class="bar"><span id="gc-meta" class="me"></span></div>
+    <div class="gc-target-wrap">
+      <div id="gc-target" class="gc-chip gc-chip-lg"></div>
+      <span class="gc-lbl">Match this color &mdash; dial in R / G / B</span>
+    </div>
+    <div class="gc-rows">
+      <div class="gc-row"><span class="gc-ch gc-r">R</span>
+        <button id="gc-r-dn" class="btn ghost gc-step" aria-label="R minus 1">&minus;</button>
+        <input id="gc-r-slider" class="gc-slider" type="range" min="0" max="255" value="128" aria-label="Red">
+        <span id="gc-r-val" class="gc-val">128</span>
+        <button id="gc-r-up" class="btn ghost gc-step" aria-label="R plus 1">+</button></div>
+      <div class="gc-row"><span class="gc-ch gc-g">G</span>
+        <button id="gc-g-dn" class="btn ghost gc-step" aria-label="G minus 1">&minus;</button>
+        <input id="gc-g-slider" class="gc-slider" type="range" min="0" max="255" value="128" aria-label="Green">
+        <span id="gc-g-val" class="gc-val">128</span>
+        <button id="gc-g-up" class="btn ghost gc-step" aria-label="G plus 1">+</button></div>
+      <div class="gc-row"><span class="gc-ch gc-b">B</span>
+        <button id="gc-b-dn" class="btn ghost gc-step" aria-label="B minus 1">&minus;</button>
+        <input id="gc-b-slider" class="gc-slider" type="range" min="0" max="255" value="128" aria-label="Blue">
+        <span id="gc-b-val" class="gc-val">128</span>
+        <button id="gc-b-up" class="btn ghost gc-step" aria-label="B plus 1">+</button></div>
+    </div>
+    <button id="gc-submit" class="btn big">Submit guess</button>
+    <div id="gc-wait" class="hide sub">Submitted — waiting for others...</div>
+  </div>
+  <div id="gc-reveal" class="hide gc-play">
+    <div class="bar"><span id="gc-rmeta" class="me"></span></div>
+    <div class="gc-swatches">
+      <div class="gc-sw"><div id="gc-rtarget" class="gc-chip"></div><span id="gc-rtarget-lbl" class="gc-lbl">Answer</span></div>
+      <div class="gc-sw"><div id="gc-rguess" class="gc-chip"></div><span id="gc-rguess-lbl" class="gc-lbl">You</span></div>
+    </div>
+    <div id="gc-result" class="gc-result"></div>
+    <div id="gc-winner" class="gc-winner"></div>
+  </div>
+  <div id="gc-final" class="hide">
+    <header class="bar"><h2>Final</h2></header>
+    <ol id="gc-podium" class="podium"></ol>
+    <button id="gc-again" class="btn big">Play again</button>
+  </div>
+</section>
+
 <!-- Emoji reactions: floating layer + a corner button that opens the emoji row -->
 <div id="react-layer" class="react-layer" aria-hidden="true"></div>
 <div id="react-bar" class="react-bar hide">

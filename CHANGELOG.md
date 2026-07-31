@@ -6,6 +6,13 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ## [Unreleased]
 
+### Added
+
+- **Guess the Color**, an 11th game (whole-group). A random color swatch appears and
+  everyone dials in its R/G/B with a slider per channel; closest guess wins the round with
+  a speed bonus, over five rounds to a podium. No preview of your own color while guessing.
+  Firmware **v12**.
+
 ## [1.1.2] - 2026-07-22
 
 Third board: **ESP32-C5**. From @xMasterX, tested on C5 hardware. Firmware **v11**

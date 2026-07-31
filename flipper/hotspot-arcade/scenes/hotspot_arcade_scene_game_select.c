@@ -15,6 +15,7 @@ typedef enum {
     GameReact,
     GameWyr,
     GameScramble,
+    GameGuessColor,
     GameNone,
 } GameIndex;
 
@@ -37,6 +38,7 @@ void hotspot_arcade_scene_game_select_on_enter(void* context) {
     submenu_add_item(app->submenu, "Reversi", GameReversi, ha_game_cb, app);
     submenu_add_item(app->submenu, "Drawing", GameDraw, ha_game_cb, app);
     submenu_add_item(app->submenu, "Pong", GamePong, ha_game_cb, app);
+    submenu_add_item(app->submenu, "Guess the Color", GameGuessColor, ha_game_cb, app);
     submenu_add_item(app->submenu, "None (lobby)", GameNone, ha_game_cb, app);
     uint32_t sel = app->active_game == HA_GAME_TRIVIA    ? GameTrivia :
                    app->active_game == HA_GAME_WYR       ? GameWyr :
@@ -48,6 +50,7 @@ void hotspot_arcade_scene_game_select_on_enter(void* context) {
                    app->active_game == HA_GAME_REVERSI   ? GameReversi :
                    app->active_game == HA_GAME_DRAW      ? GameDraw :
                    app->active_game == HA_GAME_PONG      ? GamePong :
+                   app->active_game == HA_GAME_GUESSCOLOR ? GameGuessColor :
                                                            GameNone;
     submenu_set_selected_item(app->submenu, sel);
     view_dispatcher_switch_to_view(app->view_dispatcher, HaViewSubmenu);
@@ -95,6 +98,10 @@ bool hotspot_arcade_scene_game_select_on_event(void* context, SceneManagerEvent 
         return true;
     case GamePong:
         ha_select_game(app, HA_GAME_PONG);
+        scene_manager_previous_scene(app->scene_manager);
+        return true;
+    case GameGuessColor:
+        ha_select_game(app, HA_GAME_GUESSCOLOR);
         scene_manager_previous_scene(app->scene_manager);
         return true;
     case GameNone:

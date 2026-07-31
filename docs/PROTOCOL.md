@@ -260,3 +260,26 @@ Durations are sent in **seconds**; deadlines in ms (server `millis`).
   first valid tap after `light:"go"` wins (200), tapping while `"wait"` DQs you
   for the round. `"reveal"` carries `winner` (nick or null), `ms`, `iwon`;
   `"final"` a `board` podium.
+
+## 5. Guess the Color (`gc`) — game id `11`
+
+Whole-group round game on the same `Party` skeleton (`lobby -> countdown -> play
+-> reveal -> ... -> final`, 5 rounds). Select with UART `SELECT_GAME` id `11`;
+lobby `game` string is `"gc"`. Firmware **v12**.
+
+Client intents: `ready{ready:bool}` (lobby), `again` (from final), and
+`guess{r,g,b}` (submit your color, each 0-255). The `guess` type is shared with
+draw/scramble, which send `guess{text}`; the ESP routes by which fields are present.
+
+Server `{t:"gc",phase,...}`:
+- `"play"`: `round`, `rounds`, `color` (`"#RRGGBB"`, the target swatch to match —
+  the numeric answer is hidden), `submitted` (bool, you), `scores`.
+- `"reveal"`: `round`, `rounds`, `r`,`g`,`b` (the true color), `color`, `your`
+  (`{r,g,b,color,dist,points}` or null if you didn't guess), `winner` (nick or
+  null), `iwon`, `scores`.
+- `"final"`: `board` (podium).
+
+Scoring per round: `points = closeness + speed_bonus`, where
+`closeness = round(200 * (1 - dist/441.67))` clamped ≥ 0 (`dist` = Euclidean RGB
+distance) and `speed_bonus = round(100 * (1 - submit_ms/12000))` clamped ≥ 0.
+The round winner is the highest points (ties broken by the faster submit).
