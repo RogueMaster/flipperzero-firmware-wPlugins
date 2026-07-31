@@ -58,9 +58,11 @@ _CASE_SENSITIVE_PATTERNS: tuple[str, ...] = (
     r"\bNOT\b",
     # NO followed by a Spanish verb — restricting by verb avoids catching
     # standalone "No" answers or sentence-initial "No" + noun phrases.
-    r"\bNO\s+(?:es|fue|son|fueron|era|eran|estuvo|estaba|tiene|tuvo|"
-    r"gan[oó]|cont[oó]|conto|presenta|present[oó]|aparece|aparec[ií]o|"
-    r"incluye|incluy[oó]|figura|figur[oó]|forma|formaba|form[oó])\b",
+    (
+        r"\bNO\s+(?:es|fue|son|fueron|era|eran|estuvo|estaba|tiene|tuvo|"
+        r"gan[oó]|cont[oó]|conto|presenta|present[oó]|aparece|aparec[ií]o|"
+        r"incluye|incluy[oó]|figura|figur[oó]|forma|formaba|form[oó])\b"
+    ),
 )
 
 _REGEX = re.compile("|".join(_PATTERNS), flags=re.IGNORECASE)
