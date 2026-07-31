@@ -28,7 +28,7 @@ This release adds an Instant Character Recognition trainer, a callsign generator
 - A field keyer/logger for POTA/SOTA-style portable operating. Send canned replies like `UR 5NN HW?` or `P2P RO 0038`; if you send a callsign manually with paddles, it keys your rig and logs the text at the same time.
 - Ham rig keying on GPIO, with `P15` as key and `P16` as PTT in Ham Keyer mode.
 - Vail-style MIDI control, so the browser can talk back to the Flipper for speed, tone and keyer mode. It also means Vail-style browser games can use the Flipper as the adapter, which is tidier than buying another adapter.
-- Smoother internal `Soft Buzz` sidetone, high-quality sinewave sidetone on `P2/A7`, plus square-wave buzzer and vibration fallback.
+- Selectable sinewave or square-wave Morse on the internal speaker, high-quality sinewave sidetone on `P2/A7`, plus vibration fallback.
 - A field-tested decoder, compact run history, saved settings, custom training character files on SD, and startup warnings for suspicious GPIO shorts.
 
 It also falls back sensibly when a straight key is plugged into a stereo paddle jack, because that mistake is not hypothetical. Ask me how I know.
@@ -58,7 +58,7 @@ The other half of the project is hardware. A Flipper is already a pocket full of
 
 ### None required
 
-Morse Flipper works out of the box with no extra hardware. Use the joystick as a straight key, switch to the built-in keyers when you want paddle-style timing, hear smoother `Soft Buzz` sidetone on the internal speaker, and use the Flipper radio for short-range Morse experiments where that is legal and sensible. The adapters below make it nicer, sturdier, or more useful with real keys and rigs; they are comfort upgrades, not a hard requirement.
+Morse Flipper works out of the box with no extra hardware. Use the joystick as a straight key, switch to the built-in keyers when you want paddle-style timing, choose sinewave or square-wave Morse on the internal speaker, and use the Flipper radio for short-range experiments where that is legal and sensible. The adapters below make it nicer, sturdier, or more useful with real keys and rigs; they are comfort upgrades, not a hard requirement.
 
 ### Simple key and paddle jack
 

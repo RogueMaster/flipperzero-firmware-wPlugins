@@ -17,7 +17,7 @@ Morse Flipper also includes a fairly extensive help manual on the Flipper itself
 - Built-in help for setup, hardware, practice, portable operating, contests, and CW operating notes.
 - GPIO key and paddle input using a simple jack adapter, with configurable pins and startup checks for suspicious wiring.
 - Ham keyer mode with rig keying on P15 and PTT on P16.
-- Smoother internal Soft Buzz sidetone, high-quality sidetone on P2/A7, and vibration fallback.
+- Selectable sinewave or square-wave Morse on the internal speaker, high-quality sinewave output on P2/A7, and vibration fallback.
 - Field keyer/logger for portable operating and canned replies.
 - Adaptive Instant Character Recognition training brings slow or troublesome characters back more often.
 - Callsign practice has independent speed, spacing, and length settings, and generates callsigns which actually look like callsigns.

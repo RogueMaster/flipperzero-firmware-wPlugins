@@ -4,6 +4,7 @@ v0.2.5:
 - Add Morse Ninja-style Passive Listening with NATO phonetic answers.
 - Add lesson progress, recent-session history, scores, and daily streaks.
 - Add answer editing: ↓ deletes the last character; ↑ clears the whole answer.
+- Add selectable sinewave or square-wave Morse output on the internal buzzer.
 - Improve Sub-GHz receive calibration, signal release, and transmit timing.
 
 v0.1.78:
