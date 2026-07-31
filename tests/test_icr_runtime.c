@@ -21,7 +21,7 @@
 #define ICR_WAIT_MS               1000U
 #define ICR_GUARD_MS              100U
 #define ICR_RESULT_MS             1000U
-#define ICR_PRESS_BLACK_MS        300U
+#define ICR_RELEASE_POP_MS        200U
 #define ICR_TRACE_MS              10000U
 
 static unsigned g_checks;
@@ -382,6 +382,8 @@ static void test_answer_choice_layout(void) {
     static const size_t selected_height[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {14, 14, 19, 19, 20};
     static const int32_t pressed_letter_x[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {30, 30, 10, 50, 30};
     static const int32_t pressed_letter_y[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {14, 52, 33, 33, 33};
+    static const int32_t raised_letter_x[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {29, 29, 10, 49, 29};
+    static const int32_t raised_letter_y[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {13, 51, 32, 32, 32};
 
     for(uint8_t choice = 0U; choice < MORSE_FLIPPER_ICR_CHOICE_COUNT; choice++) {
         MorseFlipperIcrEnterArgs args = {
@@ -459,17 +461,31 @@ static void test_answer_choice_layout(void) {
             CHECK(canvas_has_text(&canvas, "joystick"));
         }
 
-        result = morse_flipper_icr_runtime_input(state, &answer_release, answer_at + 1U);
+        result = morse_flipper_icr_runtime_tick(state, answer_at + 2000U);
+        CHECK(result.phase == ICR_PHASE_ANSWER);
+        CHECK(!result.redraw);
+        {
+            Canvas canvas = {0};
+
+            morse_flipper_icr_runtime_draw(state, &canvas, answer_at + 2000U);
+            CHECK(canvas.bitmaps == 2U);
+            CHECK(canvas.bitmap_hash[1] == pressed_black_hash[choice]);
+            CHECK(canvas.text_x[choice] == pressed_letter_x[choice]);
+            CHECK(canvas.text_y[choice] == pressed_letter_y[choice]);
+            CHECK(canvas.white_strings == 1U);
+        }
+
+        result = morse_flipper_icr_runtime_input(state, &answer_release, answer_at + 2001U);
         CHECK(result.phase == ICR_PHASE_RESULT);
         {
             Canvas canvas = {0};
 
-            morse_flipper_icr_runtime_draw(state, &canvas, answer_at + 1U);
+            morse_flipper_icr_runtime_draw(state, &canvas, answer_at + 2001U);
             CHECK(!canvas.full_height_divider);
             CHECK(canvas.lines == 0U);
             CHECK(canvas.bitmaps == 2U);
             CHECK(canvas.bitmap_hash[0] == 0xBDF95AD9U);
-            CHECK(canvas.bitmap_hash[1] == pressed_black_hash[choice]);
+            CHECK(canvas.bitmap_hash[1] == pressed_white_hash[choice]);
             CHECK(canvas.bitmap_x[1] == selected_x[choice]);
             CHECK(canvas.bitmap_y[1] == selected_y[choice]);
             CHECK(canvas.bitmap_width[1] == selected_width[choice]);
@@ -481,38 +497,104 @@ static void test_answer_choice_layout(void) {
                 selected_width[choice],
                 selected_height[choice],
                 ColorWhite));
-            CHECK(canvas.white_strings == 1U);
+            CHECK(canvas.text_x[choice + 1U] == pressed_letter_x[choice]);
+            CHECK(canvas.text_y[choice + 1U] == pressed_letter_y[choice]);
+            CHECK(canvas.white_strings == 0U);
             CHECK(!canvas_has_text(&canvas, "Press"));
             CHECK(!canvas_has_text(&canvas, "joystick"));
             CHECK(!canvas_has_text(&canvas, "answer"));
             CHECK(canvas.dots > 0U);
         }
 
-        result = morse_flipper_icr_runtime_tick(state, answer_at + ICR_PRESS_BLACK_MS);
+        result =
+            morse_flipper_icr_runtime_tick(state, answer_at + 2001U + ICR_RELEASE_POP_MS - 1U);
+        CHECK(result.phase == ICR_PHASE_RESULT);
+        CHECK(!result.redraw);
+        {
+            Canvas canvas = {0};
+
+            morse_flipper_icr_runtime_draw(
+                state, &canvas, answer_at + 2001U + ICR_RELEASE_POP_MS - 1U);
+            CHECK(canvas.bitmaps == 2U);
+            CHECK(canvas.bitmap_hash[1] == pressed_white_hash[choice]);
+            CHECK(canvas.text_x[choice + 1U] == pressed_letter_x[choice]);
+            CHECK(canvas.text_y[choice + 1U] == pressed_letter_y[choice]);
+        }
+
+        result = morse_flipper_icr_runtime_tick(state, answer_at + 2001U + ICR_RELEASE_POP_MS);
         CHECK(result.phase == ICR_PHASE_RESULT);
         CHECK(result.redraw);
         {
             Canvas canvas = {0};
 
-            morse_flipper_icr_runtime_draw(state, &canvas, answer_at + ICR_PRESS_BLACK_MS);
-            CHECK(canvas.bitmaps == 2U);
+            morse_flipper_icr_runtime_draw(state, &canvas, answer_at + 2001U + ICR_RELEASE_POP_MS);
+            CHECK(canvas.bitmaps == 1U);
             CHECK(canvas.bitmap_hash[0] == 0xBDF95AD9U);
-            CHECK(canvas.bitmap_hash[1] == pressed_white_hash[choice]);
-            CHECK(canvas_has_box(
-                &canvas,
-                selected_x[choice],
-                selected_y[choice],
-                selected_width[choice],
-                selected_height[choice],
-                ColorWhite));
-            CHECK(canvas.text_x[choice + 1U] == pressed_letter_x[choice]);
-            CHECK(canvas.text_y[choice + 1U] == pressed_letter_y[choice]);
+            CHECK(canvas.text_x[choice + 1U] == raised_letter_x[choice]);
+            CHECK(canvas.text_y[choice + 1U] == raised_letter_y[choice]);
             CHECK(canvas.white_strings == 0U);
             CHECK(canvas.dots > 0U);
         }
 
         morse_flipper_icr_runtime_free(state);
     }
+}
+
+static void test_release_only_transition_and_result_expiry(void) {
+    const uint32_t start = 200000U;
+    MorseFlipperIcrEnterArgs args = {
+        .now_ms = start,
+        .rng_seed = 0x1234ABCDU,
+    };
+    MorseFlipperIcrResult result;
+    InputEvent press = {.key = InputKeyOk, .type = InputTypePress};
+    InputEvent release = {.key = InputKeyOk, .type = InputTypeRelease};
+    InputEvent answer_release = {.key = InputKeyLeft, .type = InputTypeRelease};
+    void* state = morse_flipper_icr_runtime_alloc();
+    uint32_t elapsed;
+    uint32_t answer_at;
+
+    CHECK(state != NULL);
+    CHECK(morse_flipper_icr_runtime_enter(state, &args, &result));
+    for(elapsed = 0U; elapsed < ICR_TRACE_MS; elapsed++) {
+        result = morse_flipper_icr_runtime_tick(state, start + elapsed);
+        if(result.phase == ICR_PHASE_RECOGNITION) break;
+    }
+    CHECK(result.phase == ICR_PHASE_RECOGNITION);
+    result = morse_flipper_icr_runtime_input(state, &press, start + elapsed);
+    CHECK(result.phase == ICR_PHASE_RECOGNIZED_HOLD);
+    result = morse_flipper_icr_runtime_input(state, &release, start + elapsed + 1U);
+    CHECK(result.phase == ICR_PHASE_ANSWER_GUARD);
+    result = morse_flipper_icr_runtime_tick(state, start + elapsed + 1U + ICR_GUARD_MS);
+    CHECK(result.phase == ICR_PHASE_ANSWER);
+
+    answer_at = UINT32_MAX - (ICR_RELEASE_POP_MS - 1U);
+    result = morse_flipper_icr_runtime_input(state, &answer_release, answer_at);
+    CHECK(result.phase == ICR_PHASE_RESULT);
+    CHECK(result.redraw);
+    {
+        Canvas canvas = {0};
+
+        morse_flipper_icr_runtime_draw(state, &canvas, answer_at);
+        CHECK(canvas.bitmaps == 2U);
+        CHECK(canvas.bitmap_hash[1] == 0x363F840CU);
+        CHECK(canvas.text_x[3] == 10);
+        CHECK(canvas.text_y[3] == 33);
+        CHECK(canvas.white_strings == 0U);
+    }
+
+    /* Result expiry wins even if the cosmetic pop deadline was never serviced. */
+    result = morse_flipper_icr_runtime_tick(state, answer_at + ICR_RESULT_MS);
+    CHECK(result.phase == ICR_PHASE_GRAPH_WAIT);
+    CHECK(result.redraw);
+    {
+        Canvas canvas = {0};
+
+        morse_flipper_icr_runtime_draw(state, &canvas, answer_at + ICR_RESULT_MS);
+        CHECK(canvas.bitmaps == 0U);
+    }
+
+    morse_flipper_icr_runtime_free(state);
 }
 
 static void test_graph_bars_are_solid_with_level_gaps(void) {
@@ -685,6 +767,7 @@ int main(void) {
     test_answer_trace_wrap_equivalence();
     test_zero_deadlines_remain_active();
     test_answer_choice_layout();
+    test_release_only_transition_and_result_expiry();
     test_graph_bars_are_solid_with_level_gaps();
     test_zero_reaction_start_records_elapsed_time();
     test_settings_reset_confirmation_and_persistence();
