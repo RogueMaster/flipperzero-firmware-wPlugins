@@ -573,7 +573,7 @@ static uint8_t morse_flipper_icr_selected_choice(const MorseFlipperIcrState* sta
 }
 
 static void morse_flipper_icr_draw_choices(Canvas* canvas, const MorseFlipperIcrState* state) {
-    static const uint8_t choice_x[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {29U, 29U, 10U, 49U, 29U};
+    static const uint8_t choice_x[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {29U, 29U, 9U, 49U, 29U};
     static const uint8_t choice_y[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {12U, 50U, 31U, 31U, 31U};
     uint8_t selected = morse_flipper_icr_selected_choice(state);
     bool pressed_black = selected < MORSE_FLIPPER_ICR_CHOICE_COUNT && state->answer_key_held;

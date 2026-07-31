@@ -380,9 +380,9 @@ static void test_answer_choice_layout(void) {
     static const int32_t selected_y[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {5, 45, 22, 22, 22};
     static const size_t selected_width[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {19, 19, 14, 14, 20};
     static const size_t selected_height[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {14, 14, 19, 19, 20};
-    static const int32_t pressed_letter_x[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {30, 30, 10, 50, 30};
+    static const int32_t pressed_letter_x[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {30, 30, 9, 50, 30};
     static const int32_t pressed_letter_y[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {14, 52, 33, 33, 33};
-    static const int32_t raised_letter_x[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {29, 29, 10, 49, 29};
+    static const int32_t raised_letter_x[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {29, 29, 9, 49, 29};
     static const int32_t raised_letter_y[MORSE_FLIPPER_ICR_CHOICE_COUNT] = {13, 51, 32, 32, 32};
 
     for(uint8_t choice = 0U; choice < MORSE_FLIPPER_ICR_CHOICE_COUNT; choice++) {
@@ -422,11 +422,10 @@ static void test_answer_choice_layout(void) {
             CHECK(canvas.bitmap_x[0] == 2 && canvas.bitmap_y[0] == 5);
             CHECK(canvas.bitmap_width[0] == 56U && canvas.bitmap_height[0] == 54U);
             CHECK(canvas.white_strings == 0U);
-            CHECK(canvas.text_y[0] == 13);
-            CHECK(canvas.text_y[1] == 51);
-            CHECK(canvas.text_y[2] == 32);
-            CHECK(canvas.text_y[3] == 32);
-            CHECK(canvas.text_y[4] == 32);
+            for(uint8_t i = 0U; i < MORSE_FLIPPER_ICR_CHOICE_COUNT; i++) {
+                CHECK(canvas.text_x[i] == raised_letter_x[i]);
+                CHECK(canvas.text_y[i] == raised_letter_y[i]);
+            }
             CHECK(canvas_has_text(&canvas, "Press"));
             CHECK(canvas_has_text(&canvas, "the"));
             CHECK(canvas_has_text(&canvas, "joystick"));
@@ -578,7 +577,7 @@ static void test_release_only_transition_and_result_expiry(void) {
         morse_flipper_icr_runtime_draw(state, &canvas, answer_at);
         CHECK(canvas.bitmaps == 2U);
         CHECK(canvas.bitmap_hash[1] == 0x363F840CU);
-        CHECK(canvas.text_x[3] == 10);
+        CHECK(canvas.text_x[3] == 9);
         CHECK(canvas.text_y[3] == 33);
         CHECK(canvas.white_strings == 0U);
     }
