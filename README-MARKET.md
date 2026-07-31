@@ -34,7 +34,7 @@ For rig control, Ham Keyer mode uses P15 as the key output and P16 as PTT. Verif
 
 ## A note on Morse transmissions
 
-Sub-GHz TX remains as jurisdiction-dependent as any ordinary Flipper Zero transmission, which is the polite way of saying: know your band plan before pressing send. It is useful for experiments, practice, and keying a ham transceiver. Do not trust the Flipper's 100 mW for emergency Morse communications. Treat it as an entry-level teaser, or a very bad QRP rig, not a replacement for a proper radio.
+Sub-GHz TX remains as jurisdiction-dependent as any ordinary Flipper Zero transmission, which is the polite way of saying: know your band plan before pressing send. It is useful for experiments, practice, and keying a ham transceiver. Do not trust the Flipper's 16 mW for emergency Morse communications. Treat it as an entry-level teaser, or a very bad QRP rig, not a replacement for a proper radio.
 
 ## More
 
