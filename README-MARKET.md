@@ -10,6 +10,7 @@ Morse Flipper also includes a fairly extensive help manual on the Flipper itself
 
 - Flipper-to-Flipper Sub-GHz Morse TX/RX, plus receive and decode experiments for compatible OOK Morse signals inside supported Flipper bands.
 - Listening practice (LCWO/Koch progressions), straight-key timing practice, and five-character sending drills.
+- Listening practice includes lesson progress, history, scores, and daily streaks.
 - Free practice with a straight key, paddle, Flipper buttons, USB, MIDI, mouse, or keyboard input.
 - Iambic, Elekey-A/B, Ultimatic, bug, keyahead, and Vail-compatible keying modes.
 - Built-in help for setup, hardware, practice, portable operating, contests, and CW operating notes.
@@ -17,7 +18,10 @@ Morse Flipper also includes a fairly extensive help manual on the Flipper itself
 - Ham keyer mode with rig keying on P15 and PTT on P16.
 - Smoother internal Soft Buzz sidetone, high-quality sidetone on P2/A7, and vibration fallback.
 - Field keyer/logger for portable operating and canned replies.
-- Saved settings, compact run history, custom training character files on SD, and a small CW decoder.
+- Adaptive Instant Character Recognition training brings slow or troublesome characters back more often.
+- Callsign practice has independent speed, spacing, and length settings, and generates callsigns which actually look like callsigns.
+- Passive Listening plays CW followed by the answer in NATO phonetics, in the style of Morse Ninja exercises.
+- Voice output works through the Flipper's internal speaker or the PA2 audio port.
 
 ## Hardware
 

@@ -1,6 +1,6 @@
 # Morse Flipper
 
-Morse Flipper is a CW trainer, keyer, hardware adapter, portable ham helper, and Sub-GHz Morse experiment bench for the Flipper Zero. [Download version 0.1.76 here](https://github.com/yo3gnd/morse-flipper/releases/download/v0.1.76/morse_flipper.fap).
+Morse Flipper is a CW trainer, keyer, hardware adapter, portable ham helper, and Sub-GHz Morse experiment bench for the Flipper Zero. [Download version 0.2.5 here](https://github.com/yo3gnd/morse-flipper/releases/download/v0.2.5/morse_flipper.fap).
 
 It is built around one opinion: do not learn Morse by staring at dots and dashes. Learn the sound. Hear the character, type the character, and keep the counting part of your brain out of it.
 
@@ -12,9 +12,9 @@ Morse Flipper also includes a fairly extensive help manual on the Flipper itself
 
 The full Morse Flipper manual lives here: [manual/README.md](manual/README.md).
 
-## 0.1.71 Hourglass Fix
+## 0.2.5
 
-Some users on both official and custom firmware saw the app get stuck forever on the startup hourglass. Version 0.1.71 fixes that nonsense.
+This release adds an Instant Character Recognition trainer, a callsign generator, and Morse Ninja-style passive listening through either the internal buzzer or the PA2 audio port. It also adds progress history and daily streaks, because apparently even Morse practice benefits from keeping score.
 
 ## What it does
 
@@ -35,7 +35,18 @@ It also falls back sensibly when a straight key is plugged into a stereo paddle 
 
 ## Why another CW app?
 
-<p align="center"><img src="docs/images/ss1.png" alt="Morse Flipper screenshot 1" height="128"> <img src="docs/images/ss2.png" alt="Morse Flipper screenshot 2" height="128"> <img src="docs/images/ss4.png" alt="Morse Flipper screenshot 4" height="128"> <img src="docs/images/ss5.png" alt="Morse Flipper screenshot 5" height="128"> <img src="docs/images/ss6.png" alt="Morse Flipper screenshot 6" height="128"> <img src="docs/images/ss7.png" alt="Morse Flipper screenshot 7" height="128"> <img src="docs/images/ss8.png" alt="Morse Flipper screenshot 8" height="128"> <img src="docs/images/ss9.png" alt="Morse Flipper screenshot 9" height="128"></p>
+<p align="center">
+  <img src="docs/images/ss1.png" alt="Morse Flipper screenshot 1" width="19%">
+  <img src="docs/images/ss2.png" alt="Morse Flipper screenshot 2" width="19%">
+  <img src="docs/images/ss4.png" alt="Morse Flipper screenshot 4" width="19%">
+  <img src="docs/images/ss5.png" alt="Morse Flipper screenshot 5" width="19%">
+  <img src="docs/images/ss6.png" alt="Morse Flipper screenshot 6" width="19%"><br>
+  <img src="docs/images/ss7.png" alt="Morse Flipper screenshot 7" width="19%">
+  <img src="docs/images/ss8.png" alt="Morse Flipper screenshot 8" width="19%">
+  <img src="docs/images/ss9.png" alt="Morse Flipper screenshot 9" width="19%">
+  <img src="docs/images/ss10.png" alt="Morse Flipper screenshot 10" width="19%">
+  <img src="docs/images/ss3.png" alt="Morse Flipper screenshot 3" width="19%">
+</p>
 
 There are already Flipper Morse apps, but many of them teach the most common bad habit first: looking at dots and dashes. That is fine for a code table and rubbish for copying real CW at speed.
 

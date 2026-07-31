@@ -1,3 +1,10 @@
+v0.2.5:
+- Add adaptive Instant Character Recognition training.
+- Add callsign practice with realistic generated callsigns.
+- Add Morse Ninja-style Passive Listening with NATO phonetic answers.
+- Add lesson progress, recent-session history, scores, and daily streaks.
+- Improve Sub-GHz receive calibration, signal release, and transmit timing.
+
 v0.1.78:
 - Fix Training settings custom character loading when the custom character file is missing.
 - Create the default custom character file during app startup.
