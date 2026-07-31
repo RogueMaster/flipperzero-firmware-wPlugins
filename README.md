@@ -25,6 +25,26 @@ Website: <https://ck42x.com>
     restores the previous USB mode. Credential creation and assertion require
     an explicit on-device Approve/Deny decision.
 
+## FIDO2 security key
+
+The experimental v0.4.3 runtime supports FIDO 2.0 WebAuthn with ES256,
+non-resident credentials, allow lists, and physical user presence.
+
+1. Unlock PassVault with the master PIN.
+2. Select `FIDO2 Security Key` and wait for `Ready / Waiting`.
+3. On the website, choose its security-key or passkey registration/sign-in flow.
+4. Approve or deny the ceremony with the Flipper controls.
+5. Exit FIDO2 mode with Back when finished. PassVault restores the previous USB
+   configuration.
+
+FIDO credentials are limited to 20 records and remain separate from the
+password vault. Client PIN, resident credentials, and user verification are not
+implemented. Keep another authenticator and account recovery method for every
+account.
+
+Browser installer, release notes, and operating guide:
+<https://www.ck42x.com/tools/ck42x-passvault/uploader>
+
 ## macOS keyboard setup popup
 
 PassVault uses Flipper's standard HID keyboard typing path. On a fresh macOS target, Keyboard Setup Assistant may appear the first time the Flipper presents as a keyboard. If that happens, cancel or complete the setup dialog once, refocus the password field, and inject again.
@@ -81,7 +101,7 @@ If a legacy plaintext `vault.tsv` exists and no encrypted vault exists, first PI
 
 This is still a small Flipper utility, not a hardened audited password manager. Device compromise, weak PINs, shoulder surfing, debug access, or modified firmware can still expose vault contents.
 
-The `v0.4.3-dev` FIDO2 runtime is experimental. Physical testing on an Oaspote
+The `v0.4.3` FIDO2 runtime is experimental. Physical testing on an Oaspote
 Flipper Zero proved CTAP2 GetInfo, browser WebAuthn registration and
 authentication in Chromium, credential persistence across a FIDO-mode restart,
 ES256 signature verification, signature-counter advancement, and restoration of
