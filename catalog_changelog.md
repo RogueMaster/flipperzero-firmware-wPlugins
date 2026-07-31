@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.4.5
+
+- Added editing for saved Name, Username, and Password fields with prefilled values and confirmation.
+- Added Keep Existing, Generate Password, and Enter Custom choices while editing.
+- Restores the original entry in memory if an encrypted save fails.
+- Added explicit macOS ANSI keyboard setup using the standard Flipper HID identity.
+- Keeps HID active after successful setup so repeated injections do not re-enumerate the keyboard.
+- Restores the previous USB mode when PassVault exits or setup is cancelled.
+
 ## v0.4.3
 
 - Added a clean-room FIDO 2.0 authenticator with CTAPHID, CTAP2, and ES256.

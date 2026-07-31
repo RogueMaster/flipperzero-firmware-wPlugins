@@ -27,7 +27,7 @@ Website: <https://ck42x.com>
 
 ## Edit a saved entry
 
-The development `v0.4.5-dev` candidate can update an existing entry without changing the encrypted vault format.
+Version `v0.4.5` can update an existing entry without changing the encrypted vault format.
 
 1. Open a saved entry.
 2. Press `Edit`.
@@ -39,7 +39,7 @@ Cancelling confirmation leaves the original entry unchanged. If encrypted storag
 
 ## FIDO2 security key
 
-The experimental v0.4.3 runtime supports FIDO 2.0 WebAuthn with ES256,
+The experimental FIDO2 runtime in v0.4.5 supports FIDO 2.0 WebAuthn with ES256,
 non-resident credentials, allow lists, and physical user presence.
 
 1. Unlock PassVault with the master PIN.
@@ -59,7 +59,7 @@ Browser installer, release notes, and operating guide:
 
 ## macOS keyboard setup
 
-The development `v0.4.5-dev` candidate includes an explicit one-time setup action for macOS. It keeps the standard Flipper USB HID identity instead of impersonating an Apple keyboard.
+Version `v0.4.5` includes an explicit one-time setup action for macOS. It keeps the standard Flipper USB HID identity instead of impersonating an Apple keyboard.
 
 1. Connect Flipper Zero directly to the Mac over USB.
 2. Unlock PassVault and choose `macOS Keyboard Setup`.
@@ -125,7 +125,7 @@ If a legacy plaintext `vault.tsv` exists and no encrypted vault exists, first PI
 
 This is still a small Flipper utility, not a hardened audited password manager. Device compromise, weak PINs, shoulder surfing, debug access, or modified firmware can still expose vault contents.
 
-The `v0.4.3` FIDO2 runtime is experimental. Physical testing on an Oaspote
+The FIDO2 runtime in `v0.4.5` remains experimental. Physical testing on an Oaspote
 Flipper Zero proved CTAP2 GetInfo, browser WebAuthn registration and
 authentication in Chromium, credential persistence across a FIDO-mode restart,
 ES256 signature verification, signature-counter advancement, and restoration of
