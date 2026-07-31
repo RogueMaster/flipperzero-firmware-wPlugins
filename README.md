@@ -15,6 +15,7 @@ A text-free YES / NO / MAYBE spinner for Flipper Zero.
 ## Target
 
 - Hardware target: Flipper Zero (`7`)
+- Compatible with the latest official release and development SDKs
 - Firmware: Momentum `mntm-dev`
 - Firmware commit: `8ed809fb`
 - Firmware API: `87.1`
@@ -41,3 +42,7 @@ ufbt launch
 ```
 
 The app is installed to `/ext/apps/Games/fortune_spinner.fap`.
+
+## License
+
+Fortune Spinner is released under the [MIT License](LICENSE).

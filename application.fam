@@ -11,4 +11,5 @@ App(
     fap_icon="fortune_spinner_icon_v2.png",
     fap_description="Spin for YES, NO, or MAYBE",
     fap_author="Ugur",
+    fap_weburl="https://github.com/xantopren/fortune-spinner",
 )
