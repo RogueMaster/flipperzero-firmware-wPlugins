@@ -3,14 +3,16 @@
 
 import importlib.util
 import os
-import subprocess
 import struct
 import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TOOL = ROOT / "tools/audio_assets/build_passive_voice_pack.py"
+TOOL = ROOT / "tools/mfva/build_passive_voice_pack.py"
 ASSET = ROOT / "assets/audio/voice_en_gb_amy_v1.mfa"
+SOURCE_ROOT = ROOT / "tools/mfva/voice_en_gb_amy_v1"
+SOURCE_PCM16 = SOURCE_ROOT / "voice_en_gb_amy_v1_s16_16k.mfa"
+SOURCE_WAVS = SOURCE_ROOT / "wav"
 SPEC = importlib.util.spec_from_file_location("passive_voice_pack", TOOL)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
@@ -27,14 +29,6 @@ def expect_invalid(blob: bytes) -> None:
         except ValueError:
             return
         raise AssertionError("corrupt MFVA conversion unexpectedly succeeded")
-
-
-def selected_pcm16_source() -> bytes | None:
-    try:
-        return subprocess.check_output(
-            ["git", "show", "5adbc88:assets/audio/voice_en_gb_amy_v1.mfa"], cwd=ROOT)
-    except (FileNotFoundError, subprocess.CalledProcessError):
-        return None
 
 
 def make_pcm16_pack() -> bytes:
@@ -79,25 +73,24 @@ def assert_production_u8_pack(blob: bytes) -> None:
 
 
 def main() -> None:
-    source = selected_pcm16_source()
-    if source is not None:
-        tokens, _ = MODULE.parse_pcm16_16k_pack(source)
-        assert len(tokens) == 40
-    else:
-        source = make_pcm16_pack()
+    source = SOURCE_PCM16.read_bytes()
+    tokens, _ = MODULE.parse_pcm16_16k_pack(source)
+    assert len(tokens) == 40
     assert_production_u8_pack(ASSET.read_bytes())
     assert MODULE.pcm16_to_u8(struct.pack("<hhhh", -32768, -1, 0, 32767)) == bytes((0, 127, 128, 255))
     with tempfile.TemporaryDirectory() as directory:
         first = Path(directory) / "first.mfa"
         second = Path(directory) / "second.mfa"
         source_path = Path(directory) / "selected-pcm16.mfa"
+        rebuilt_source = Path(directory) / "rebuilt-source.mfa"
         source_path.write_bytes(source)
+        MODULE.write_pack(MODULE.read_pcm16_wavs(SOURCE_WAVS), *MODULE.CODECS["s16_16k"], rebuilt_source)
+        assert rebuilt_source.read_bytes() == source
         MODULE.convert_pcm16_16k_to_u8(source_path, first)
         MODULE.convert_pcm16_16k_to_u8(source_path, second)
         assert first.read_bytes() == second.read_bytes()
         assert os.stat(first).st_mode & 0o777 == 0o644
-        if selected_pcm16_source() is not None:
-            assert first.read_bytes() == ASSET.read_bytes()
+        assert first.read_bytes() == ASSET.read_bytes()
         assert_production_u8_pack(first.read_bytes())
     corrupt = bytearray(make_pcm16_pack())
     corrupt[0] ^= 1

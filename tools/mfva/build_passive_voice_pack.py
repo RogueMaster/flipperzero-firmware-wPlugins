@@ -7,6 +7,7 @@ import argparse
 import os
 import struct
 import tempfile
+import wave
 import zlib
 from pathlib import Path
 
@@ -73,6 +74,41 @@ def pcm16_to_u8(payload: bytes) -> bytes:
     return bytes(converted)
 
 
+def read_pcm16_wavs(directory: Path) -> list[tuple[int, bytes, int]]:
+    """Read the canonical mono PCM16/16 kHz token WAVs in token-ID order."""
+    payloads = []
+    for token_id, token in enumerate(TOKENS):
+        path = directory / f"{token}.wav"
+        with wave.open(str(path), "rb") as source:
+            if (
+                source.getnchannels() != 1 or source.getsampwidth() != 2 or
+                source.getframerate() != 16000 or source.getcomptype() != "NONE"
+            ):
+                raise ValueError(f"{path} is not mono PCM16/16 kHz WAV")
+            samples = source.getnframes()
+            payload = source.readframes(samples)
+        if samples == 0 or len(payload) != samples * 2:
+            raise ValueError(f"invalid token WAV {path}")
+        payloads.append((token_id, payload, samples))
+    return payloads
+
+
+def write_pack(payloads: list[tuple[int, bytes, int]], codec: int, rate: int, output: Path) -> None:
+    table_offset = HEADER.size
+    data_offset = table_offset + ENTRY.size * len(payloads)
+    table = bytearray()
+    data = bytearray()
+    for token_id, payload, samples in payloads:
+        table += ENTRY.pack(token_id, data_offset + len(data), len(payload), samples, 0, 0, 0)
+        data += payload
+    header = HEADER.pack(
+        b"MFVA", 1, codec, len(payloads), rate, table_offset, data_offset,
+        data_offset + len(data), zlib.crc32(table) & 0xFFFFFFFF,
+        zlib.crc32(data) & 0xFFFFFFFF)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_bytes(header + table + data)
+
+
 def convert_pcm16_16k_to_u8(source: Path, output: Path) -> None:
     """Atomically replace output with the deterministic U8/16 kHz conversion."""
     source_blob = source.read_bytes()
@@ -105,18 +141,24 @@ def convert_pcm16_16k_to_u8(source: Path, output: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, help="directory containing token-id .bin payloads")
+    parser.add_argument("--wav-input", type=Path, help="directory containing mono PCM16/16 kHz token WAVs")
     parser.add_argument("--variant", choices=CODECS)
     parser.add_argument("--from-mfva", type=Path, help="selected PCM16/16 kHz MFVA input to convert")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--samples", type=Path, help="JSON-like line file: token-id sample-count")
     args = parser.parse_args()
     if args.from_mfva is not None:
-        if args.input is not None or args.variant is not None or args.samples is not None:
+        if args.input is not None or args.wav_input is not None or args.variant is not None or args.samples is not None:
             parser.error("--from-mfva cannot be combined with payload build options")
         convert_pcm16_16k_to_u8(args.from_mfva, args.output)
         return 0
+    if args.wav_input is not None:
+        if args.input is not None or args.samples is not None or args.variant != "s16_16k":
+            parser.error("--wav-input requires --variant s16_16k and cannot use --input or --samples")
+        write_pack(read_pcm16_wavs(args.wav_input), *CODECS[args.variant], args.output)
+        return 0
     if args.input is None or args.variant is None or args.samples is None:
-        parser.error("--input, --variant, and --samples are required for a payload build")
+        parser.error("--input, --variant, and --samples are required for a binary payload build")
     codec, rate = CODECS[args.variant]
     logical = {}
     for line in args.samples.read_text(encoding="ascii").splitlines():
@@ -133,19 +175,7 @@ def main() -> int:
         if len(data) != expected:
             raise ValueError(f"encoded length mismatch for {token}: {len(data)} != {expected}")
         payloads.append((token_id, data, samples))
-    table_offset = HEADER.size
-    data_offset = table_offset + ENTRY.size * len(payloads)
-    table = bytearray()
-    data = bytearray()
-    for token_id, payload, samples in payloads:
-        table += ENTRY.pack(token_id, data_offset + len(data), len(payload), samples, 0, 0, 0)
-        data += payload
-    header = HEADER.pack(
-        b"MFVA", 1, codec, len(payloads), rate, table_offset, data_offset,
-        data_offset + len(data), zlib.crc32(table) & 0xFFFFFFFF,
-        zlib.crc32(data) & 0xFFFFFFFF)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_bytes(header + table + data)
+    write_pack(payloads, codec, rate, args.output)
     return 0
 
 

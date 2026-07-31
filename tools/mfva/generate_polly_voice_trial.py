@@ -250,7 +250,7 @@ def polly_client(region: str) -> Any:
         import boto3
     except Exception as error:
         raise RuntimeError(
-            "boto3 is unavailable; install tools/audio_assets/requirements.txt "
+            "boto3 is unavailable; install tools/mfva/requirements.txt "
             "in a virtual environment"
         ) from error
     return boto3.Session(region_name=region).client("polly")
