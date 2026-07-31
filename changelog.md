@@ -1,3 +1,10 @@
+v0.4.4-dev:
+- added an explicit `macOS Keyboard Setup` action for Apple's Keyboard Setup Assistant
+- sends the standard ANSI identification positions (`Z`, then `/`) only when the user presses Send
+- keeps the normal Flipper USB HID identity instead of spoofing an Apple VID/PID
+- keeps HID active while setup completes and restores the previous USB mode on Back or app exit
+- leaves the existing Windows/Linux password injection path unchanged
+
 v0.4.3:
 - added a clean-room FIDO 2.0 security-key runtime with CTAPHID and CTAP2
 - added non-resident ES256 WebAuthn credentials with physical Approve/Deny user presence

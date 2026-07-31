@@ -45,9 +45,20 @@ account.
 Browser installer, release notes, and operating guide:
 <https://www.ck42x.com/tools/ck42x-passvault/uploader>
 
-## macOS keyboard setup popup
+## macOS keyboard setup
 
-PassVault uses Flipper's standard HID keyboard typing path. On a fresh macOS target, Keyboard Setup Assistant may appear the first time the Flipper presents as a keyboard. If that happens, cancel or complete the setup dialog once, refocus the password field, and inject again.
+The development `v0.4.4-dev` candidate adds an explicit one-time setup action for macOS. It keeps the standard Flipper USB HID identity instead of impersonating an Apple keyboard.
+
+1. Connect Flipper Zero directly to the Mac over USB.
+2. Unlock PassVault and choose `macOS Keyboard Setup`.
+3. If Keyboard Setup Assistant is not already open, launch it from macOS Keyboard settings or open `/System/Library/CoreServices/KeyboardSetupAssistant.app`.
+4. Click Continue on the Mac.
+5. Press `Send` on Flipper. PassVault sends the ANSI-position keys `Z`, then `/`.
+6. Choose `ANSI` on the Mac when prompted.
+7. Press Back on Flipper. PassVault restores the previous USB mode.
+8. Focus a password field and use the normal Inject action.
+
+This setup is intended for a US ANSI keyboard layout. Password symbols can be wrong when the Mac input source uses a different physical layout because USB HID sends key positions, not Unicode characters.
 
 ## Branding
 

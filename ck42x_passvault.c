@@ -73,6 +73,7 @@ typedef enum {
     CkEventAdd = 1,
     CkEventAbout = 2,
     CkEventSecurityKey = 3,
+    CkEventMacKeyboardSetup = 4,
     CkEventSavedBase = 100,
     CkEventTextDone = 300,
     CkEventChooseGenerate = 400,
@@ -116,6 +117,7 @@ typedef struct {
     FuriHalUsbInterface* previous_usb;
     CkFido2Service* fido2_service;
     bool security_key_view;
+    bool mac_setup_view;
 
     uint8_t vault_key[CK_KEY_LEN];
     uint8_t vault_salt[CK_SALT_LEN];
@@ -128,6 +130,9 @@ static void ck_show_save_dialog(CkApp* app);
 static void ck_show_entry_widget(CkApp* app);
 static void ck_show_about(CkApp* app);
 static void ck_show_security_key(CkApp* app);
+static void ck_show_mac_keyboard_setup(CkApp* app);
+static void ck_send_mac_ansi_keys(CkApp* app);
+static void ck_stop_mac_keyboard_setup(CkApp* app);
 static void ck_show_fido2_presence(CkApp* app);
 static void ck_stop_fido2(CkApp* app);
 static void ck_show_inject_confirm(CkApp* app);
@@ -703,6 +708,11 @@ static bool ck_navigation_callback(void* context) {
         ck_show_main(app);
         return true;
     }
+    if(app->mac_setup_view) {
+        ck_stop_mac_keyboard_setup(app);
+        ck_show_main(app);
+        return true;
+    }
     if(!app->unlocked) {
         view_dispatcher_stop(app->dispatcher);
         return true;
@@ -717,12 +727,19 @@ static bool ck_navigation_callback(void* context) {
 
 static void ck_show_main(CkApp* app) {
     app->security_key_view = false;
+    app->mac_setup_view = false;
     app->menu_mode = CkMenuModeMain;
     app->selected = -1;
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "PāSSVΛŭLƬ");
     submenu_add_item(app->submenu, "+ Add New Password", CkEventAdd, ck_submenu_callback, app);
     submenu_add_item(app->submenu, "FIDO2 Security Key", CkEventSecurityKey, ck_submenu_callback, app);
+    submenu_add_item(
+        app->submenu,
+        "macOS Keyboard Setup",
+        CkEventMacKeyboardSetup,
+        ck_submenu_callback,
+        app);
     submenu_add_item(app->submenu, "About / ck42x.com", CkEventAbout, ck_submenu_callback, app);
     for(uint8_t i = 0; i < app->entry_count; i++) {
         submenu_add_item(
@@ -934,6 +951,79 @@ static void ck_stop_fido2(CkApp* app) {
     app->security_key_view = false;
 }
 
+static void ck_stop_mac_keyboard_setup(CkApp* app) {
+    if(!app->mac_setup_view) return;
+    furi_hal_hid_kb_release_all();
+    if(app->previous_usb && app->previous_usb != &usb_hid) {
+        furi_hal_usb_set_config(app->previous_usb, NULL);
+    }
+    app->previous_usb = NULL;
+    app->mac_setup_view = false;
+}
+
+static void ck_show_mac_keyboard_setup(CkApp* app) {
+    app->previous_usb = furi_hal_usb_get_config();
+    if(app->previous_usb != &usb_hid) {
+        if(!furi_hal_usb_set_config(&usb_hid, NULL)) {
+            app->previous_usb = NULL;
+            ck_show_status(app, "macOS Setup Failed", "Could not start\nUSB keyboard mode.");
+            return;
+        }
+        furi_delay_ms(1200);
+    }
+    if(!furi_hal_hid_is_connected()) {
+        if(app->previous_usb && app->previous_usb != &usb_hid) {
+            furi_hal_usb_set_config(app->previous_usb, NULL);
+        }
+        app->previous_usb = NULL;
+        ck_show_status(app, "Mac Not Found", "Connect USB, then\ntry setup again.");
+        return;
+    }
+
+    app->mac_setup_view = true;
+    widget_reset(app->widget);
+    widget_add_string_element(
+        app->widget, 64, 6, AlignCenter, AlignTop, FontPrimary, "macOS Keyboard Setup");
+    widget_add_text_box_element(
+        app->widget,
+        4,
+        20,
+        120,
+        30,
+        AlignCenter,
+        AlignCenter,
+        "On Mac click Continue.\nThen press Send here.",
+        false);
+    widget_add_button_element(
+        app->widget, GuiButtonTypeLeft, "Back", ck_widget_button_callback, app);
+    widget_add_button_element(
+        app->widget, GuiButtonTypeRight, "Send", ck_widget_button_callback, app);
+    app->current_view = CkViewWidget;
+    view_dispatcher_switch_to_view(app->dispatcher, CkViewWidget);
+}
+
+static void ck_send_mac_ansi_keys(CkApp* app) {
+    if(!app->mac_setup_view || !furi_hal_hid_is_connected()) {
+        ck_stop_mac_keyboard_setup(app);
+        ck_show_status(app, "Mac Disconnected", "Reconnect USB and\nrun setup again.");
+        return;
+    }
+
+    furi_hal_hid_kb_press(HID_KEYBOARD_Z);
+    furi_delay_ms(80);
+    furi_hal_hid_kb_release_all();
+    furi_delay_ms(700);
+    furi_hal_hid_kb_press(HID_KEYBOARD_SLASH);
+    furi_delay_ms(80);
+    furi_hal_hid_kb_release_all();
+    furi_delay_ms(700);
+
+    ck_show_status(
+        app,
+        "ANSI Keys Sent",
+        "On Mac choose ANSI.\nBack restores USB.");
+}
+
 static void ck_hid_type_string(const char* text) {
     for(const char* p = text; *p; p++) {
         uint16_t key = HID_ASCII_TO_KEY(*p);
@@ -1059,6 +1149,8 @@ static void ck_handle_event(CkApp* app, uint32_t event) {
         ck_show_text_input(app, CkInputAccount, "Name", NULL);
     } else if(event == CkEventSecurityKey) {
         ck_show_security_key(app);
+    } else if(event == CkEventMacKeyboardSetup) {
+        ck_show_mac_keyboard_setup(app);
     } else if(event == CkEventAbout) {
         ck_show_about(app);
     } else if(event >= CkEventSavedBase && event < CkEventSavedBase + CK_MAX_ENTRIES) {
@@ -1084,7 +1176,10 @@ static void ck_handle_event(CkApp* app, uint32_t event) {
         ck_make_password_unique(app, app->draft.password, sizeof(app->draft.password));
         ck_show_save_dialog(app);
     } else if(event == CkEventWidgetBack) {
-        if(app->security_key_view) {
+        if(app->mac_setup_view) {
+            ck_stop_mac_keyboard_setup(app);
+            ck_show_main(app);
+        } else if(app->security_key_view) {
             ck_stop_fido2(app);
             ck_show_main(app);
         } else if(app->unlocked)
@@ -1092,7 +1187,9 @@ static void ck_handle_event(CkApp* app, uint32_t event) {
         else
             ck_begin_auth(app);
     } else if(event == CkEventWidgetInject) {
-        if(app->security_key_view) {
+        if(app->mac_setup_view) {
+            ck_send_mac_ansi_keys(app);
+        } else if(app->security_key_view) {
             ck_stop_fido2(app);
             ck_show_main(app);
         } else {
@@ -1185,6 +1282,7 @@ int32_t ck42x_passvault_app(void* p) {
     ck_begin_auth(app);
     view_dispatcher_run(app->dispatcher);
 
+    ck_stop_mac_keyboard_setup(app);
     ck_stop_fido2(app);
     furi_record_close(RECORD_GUI);
     ck_app_free(app);
