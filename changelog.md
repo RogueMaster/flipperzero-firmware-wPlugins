@@ -1,3 +1,9 @@
+v0.4.5-dev:
+- added editing for saved Name, Username, and Password fields
+- added Keep Existing, Generate Password, and Enter Custom choices during editing
+- pre-fills current values and requires confirmation before encrypted save
+- restores the original entry in memory if the encrypted save fails
+
 v0.4.4-dev:
 - added an explicit `macOS Keyboard Setup` action for Apple's Keyboard Setup Assistant
 - sends the standard ANSI identification positions (`Z`, then `/`) only when the user presses Send

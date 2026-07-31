@@ -78,12 +78,14 @@ typedef enum {
     CkEventTextDone = 300,
     CkEventChooseGenerate = 400,
     CkEventChooseCustom = 401,
+    CkEventChooseKeepExisting = 402,
     CkEventPresetMemorable = 500,
     CkEventPresetStrict = 501,
     CkEventPresetLong = 502,
     CkEventPresetNoSymbol = 503,
     CkEventWidgetBack = 600,
     CkEventWidgetInject = 601,
+    CkEventWidgetEdit = 602,
     CkEventDialogRight = 700,
     CkEventDialogLeft = 701,
 } CkEvent;
@@ -121,6 +123,7 @@ typedef struct {
     bool mac_setup_view;
     bool mac_setup_keys_sent;
     bool mac_hid_active;
+    bool editing_entry;
 
     uint8_t vault_key[CK_KEY_LEN];
     uint8_t vault_salt[CK_SALT_LEN];
@@ -131,6 +134,7 @@ static void ck_show_main(CkApp* app);
 static void ck_show_text_input(CkApp* app, CkInputStage stage, const char* header, char* initial);
 static void ck_show_save_dialog(CkApp* app);
 static void ck_show_entry_widget(CkApp* app);
+static void ck_begin_edit(CkApp* app);
 static void ck_show_about(CkApp* app);
 static void ck_show_security_key(CkApp* app);
 static void ck_show_mac_keyboard_setup(CkApp* app);
@@ -679,6 +683,8 @@ static void ck_widget_button_callback(GuiButtonType result, InputType type, void
     CkApp* app = context;
     if(result == GuiButtonTypeLeft) {
         view_dispatcher_send_custom_event(app->dispatcher, CkEventWidgetBack);
+    } else if(result == GuiButtonTypeCenter) {
+        view_dispatcher_send_custom_event(app->dispatcher, CkEventWidgetEdit);
     } else if(result == GuiButtonTypeRight) {
         view_dispatcher_send_custom_event(app->dispatcher, CkEventWidgetInject);
     }
@@ -738,6 +744,7 @@ static void ck_show_main(CkApp* app) {
     app->mac_setup_view = false;
     app->menu_mode = CkMenuModeMain;
     app->selected = -1;
+    app->editing_entry = false;
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "PāSSVΛŭLƬ");
     submenu_add_item(app->submenu, "+ Add New Password", CkEventAdd, ck_submenu_callback, app);
@@ -761,6 +768,14 @@ static void ck_show_generate_or_custom(CkApp* app) {
     app->menu_mode = CkMenuModeGenerateOrCustom;
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "Password Source");
+    if(app->editing_entry) {
+        submenu_add_item(
+            app->submenu,
+            "Keep Existing",
+            CkEventChooseKeepExisting,
+            ck_submenu_callback,
+            app);
+    }
     submenu_add_item(
         app->submenu, "Generate Password", CkEventChooseGenerate, ck_submenu_callback, app);
     submenu_add_item(app->submenu, "Enter Custom", CkEventChooseCustom, ck_submenu_callback, app);
@@ -819,9 +834,18 @@ static void ck_show_entry_widget(CkApp* app) {
     widget_add_button_element(
         app->widget, GuiButtonTypeLeft, "Back", ck_widget_button_callback, app);
     widget_add_button_element(
+        app->widget, GuiButtonTypeCenter, "Edit", ck_widget_button_callback, app);
+    widget_add_button_element(
         app->widget, GuiButtonTypeRight, "Inject", ck_widget_button_callback, app);
     app->current_view = CkViewWidget;
     view_dispatcher_switch_to_view(app->dispatcher, CkViewWidget);
+}
+
+static void ck_begin_edit(CkApp* app) {
+    if(app->selected < 0 || app->selected >= app->entry_count) return;
+    app->editing_entry = true;
+    app->draft = app->entries[app->selected];
+    ck_show_text_input(app, CkInputAccount, "Name", app->draft.account);
 }
 
 static void ck_show_save_dialog(CkApp* app) {
@@ -837,7 +861,13 @@ static void ck_show_save_dialog(CkApp* app) {
     dialog_ex_reset(app->dialog);
     dialog_ex_set_context(app->dialog, app);
     dialog_ex_set_result_callback(app->dialog, ck_dialog_callback);
-    dialog_ex_set_header(app->dialog, "Confirm Entry?", 64, 6, AlignCenter, AlignTop);
+    dialog_ex_set_header(
+        app->dialog,
+        app->editing_entry ? "Confirm Changes?" : "Confirm Entry?",
+        64,
+        6,
+        AlignCenter,
+        AlignTop);
     dialog_ex_set_text(app->dialog, text, 4, 18, AlignLeft, AlignTop);
     dialog_ex_set_left_button_text(app->dialog, "No");
     dialog_ex_set_right_button_text(app->dialog, "Enter");
@@ -1140,9 +1170,8 @@ static void ck_handle_text_done(CkApp* app) {
 
     ck_sanitize(app->input);
     if(app->input_stage == CkInputAccount) {
-        memset(&app->draft, 0, sizeof(app->draft));
         ck_copy(app->draft.account, sizeof(app->draft.account), app->input);
-        ck_show_text_input(app, CkInputUsername, "Username", NULL);
+        ck_show_text_input(app, CkInputUsername, "Username", app->draft.username);
     } else if(app->input_stage == CkInputUsername) {
         ck_copy(app->draft.username, sizeof(app->draft.username), app->input);
         ck_show_generate_or_custom(app);
@@ -1153,6 +1182,25 @@ static void ck_handle_text_done(CkApp* app) {
 }
 
 static void ck_save_draft(CkApp* app) {
+    if(app->editing_entry) {
+        if(app->selected < 0 || app->selected >= app->entry_count) {
+            app->editing_entry = false;
+            ck_show_main(app);
+            return;
+        }
+        CkVaultEntry original = app->entries[app->selected];
+        app->entries[app->selected] = app->draft;
+        if(ck_save_entries(app)) {
+            app->editing_entry = false;
+            ck_show_entry_widget(app);
+        } else {
+            app->entries[app->selected] = original;
+            ck_show_status(app, "Save Failed", "Original unchanged.");
+        }
+        ck_secure_zero(&original, sizeof(original));
+        return;
+    }
+
     if(app->entry_count >= CK_MAX_ENTRIES) {
         ck_show_status(app, "Vault Full", "Max entries reached.");
         return;
@@ -1164,6 +1212,8 @@ static void ck_save_draft(CkApp* app) {
         app->selected = saved_index;
         ck_show_entry_widget(app);
     } else {
+        app->entry_count--;
+        memset(&app->entries[app->entry_count], 0, sizeof(CkVaultEntry));
         ck_show_status(app, "Save Failed", "SD/app data write failed.");
     }
 }
@@ -1172,6 +1222,8 @@ static void ck_handle_event(CkApp* app, uint32_t event) {
     if(!app->unlocked && event != CkEventTextDone && event != CkEventWidgetBack) return;
 
     if(event == CkEventAdd) {
+        app->editing_entry = false;
+        memset(&app->draft, 0, sizeof(app->draft));
         ck_show_text_input(app, CkInputAccount, "Name", NULL);
     } else if(event == CkEventSecurityKey) {
         ck_show_security_key(app);
@@ -1189,8 +1241,14 @@ static void ck_handle_event(CkApp* app, uint32_t event) {
         ck_handle_text_done(app);
     } else if(event == CkEventChooseGenerate) {
         ck_show_preset_menu(app);
+    } else if(event == CkEventChooseKeepExisting) {
+        if(app->editing_entry) ck_show_save_dialog(app);
     } else if(event == CkEventChooseCustom) {
-        ck_show_text_input(app, CkInputCustomPassword, "Custom Password", NULL);
+        if(app->editing_entry)
+            ck_show_text_input(
+                app, CkInputCustomPassword, "Custom Password", app->draft.password);
+        else
+            ck_show_text_input(app, CkInputCustomPassword, "Custom Password", NULL);
     } else if(
         event == CkEventPresetMemorable || event == CkEventPresetStrict ||
         event == CkEventPresetLong || event == CkEventPresetNoSymbol) {
@@ -1225,6 +1283,8 @@ static void ck_handle_event(CkApp* app, uint32_t event) {
         } else {
             ck_show_inject_confirm(app);
         }
+    } else if(event == CkEventWidgetEdit) {
+        ck_begin_edit(app);
     } else if(event == CkFido2ServiceEventPresence) {
         ck_show_fido2_presence(app);
     } else if(event == CkFido2ServiceEventPresenceDone) {
@@ -1235,10 +1295,14 @@ static void ck_handle_event(CkApp* app, uint32_t event) {
         if(app->dialog_purpose == CkDialogFido2Presence) {
             ck_fido2_service_answer_presence(app->fido2_service, false);
             ck_show_security_key(app);
-        } else if(app->dialog_purpose == CkDialogInjectConfirm)
+        } else if(app->dialog_purpose == CkDialogInjectConfirm) {
             ck_show_entry_widget(app);
-        else
+        } else if(app->dialog_purpose == CkDialogSave && app->editing_entry) {
+            app->editing_entry = false;
+            ck_show_entry_widget(app);
+        } else {
             ck_show_main(app);
+        }
     } else if(event == CkEventDialogRight) {
         if(app->dialog_purpose == CkDialogSave) {
             ck_save_draft(app);

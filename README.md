@@ -25,6 +25,18 @@ Website: <https://ck42x.com>
     restores the previous USB mode. Credential creation and assertion require
     an explicit on-device Approve/Deny decision.
 
+## Edit a saved entry
+
+The development `v0.4.5-dev` candidate can update an existing entry without changing the encrypted vault format.
+
+1. Open a saved entry.
+2. Press `Edit`.
+3. Update the prefilled Name and Username fields.
+4. Choose `Keep Existing`, `Generate Password`, or `Enter Custom` for the password.
+5. Review `Confirm Changes?` and press `Enter` to save.
+
+Cancelling confirmation leaves the original entry unchanged. If encrypted storage fails, PassVault restores the original entry in memory and reports the failed save.
+
 ## FIDO2 security key
 
 The experimental v0.4.3 runtime supports FIDO 2.0 WebAuthn with ES256,
@@ -47,7 +59,7 @@ Browser installer, release notes, and operating guide:
 
 ## macOS keyboard setup
 
-The development `v0.4.4-dev` candidate adds an explicit one-time setup action for macOS. It keeps the standard Flipper USB HID identity instead of impersonating an Apple keyboard.
+The development `v0.4.5-dev` candidate includes an explicit one-time setup action for macOS. It keeps the standard Flipper USB HID identity instead of impersonating an Apple keyboard.
 
 1. Connect Flipper Zero directly to the Mac over USB.
 2. Unlock PassVault and choose `macOS Keyboard Setup`.

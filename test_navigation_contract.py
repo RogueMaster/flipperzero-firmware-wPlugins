@@ -16,5 +16,5 @@ for contract in required:
     assert contract in source, contract
 
 assert 'dialog_ex_set_right_button_text(app->dialog, "Save")' not in source
-assert 'fap_version="0.4.4"' in manifest
+assert 'fap_version="0.4.5"' in manifest
 print("OK: PassVault navigation contract checks passed")
