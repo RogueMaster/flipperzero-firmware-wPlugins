@@ -89,6 +89,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [WoL Flipper v1.1 (By keetsta)](https://github.com/keetsta/wol-flipper) `Req: ESP32`
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest [WoL Flipper v1.1 (By keetsta)](https://github.com/keetsta/wol-flipper) ESP32 firmware.
 - Updated: [MiZip Balance Editor v1.0 (By teohumeau)](https://github.com/teohumeau/MiZipBalanceEditor) (Version Only)
+- NFC: [Fix a crafted EMV `.nfc` file corrupting the heap on load - `emv_load()` used the file's own lengths as write sizes: three unbounded `strcpy`s into the cardholder name, application name and label, and `PAN length`/`AID length` read as 32-bit then written into 10- and 16-byte fields; an oversized `PAN length` also walked the card-number render loops past the array. Saving a card no longer writes a garbage `PIN try counter` either (By mishamyte)](https://github.com/DarkFlippers/unleashed-firmware/pull/1056)
 
 <a name="release"></a>
 
