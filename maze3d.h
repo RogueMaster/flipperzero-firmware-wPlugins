@@ -27,7 +27,18 @@ typedef enum {
     CELL_DOOR  = 11,
     CELL_TORCH = 12,
     CELL_TRAP  = 13,
+    CELL_POTION = 14,   // 药水(捡起后入物品栏, 恢复HP)
+    CELL_AMULET = 15,   // 护符(捡起后入物品栏, 传送回起点)
 } CellType;
+
+// 物品栏物品类型
+typedef enum {
+    ITEM_KEY = 0,
+    ITEM_TORCH,
+    ITEM_POTION,
+    ITEM_AMULET,
+    ITEM_COUNT,
+} ItemType;
 
 // 敌人/NPC
 typedef struct {
@@ -45,17 +56,23 @@ typedef struct {
     float plane_x, plane_y;
     int keys;
     int torches;
+    int potions;
+    int amulets;
     int health;
+    int max_health;
 } Player;
 
 typedef enum {
     MODE_MENU = 0,
-    MODE_CAMPAIGN,
+    MODE_CAMPAIGN,          // 剧情模式(原关卡模式)
     MODE_ENDLESS_VISITOR,
     MODE_ENDLESS_RUN,
     MODE_PAUSED,
     MODE_LEVEL_CLEAR,
     MODE_GAME_OVER,
+    MODE_STORY,             // 剧情文本展示
+    MODE_INVENTORY,         // 物品栏
+    MODE_LEVEL_SELECT,      // 层级选择
 } GameMode;
 
 typedef enum {
@@ -88,6 +105,17 @@ typedef struct {
     uint8_t msg_ttl;
     // 语言: 0=中文 (XBM 位图), 1=English (canvas_draw_str)
     uint8_t lang;
+    // 物品栏
+    uint8_t inv_sel;        // 光标位置 0..ITEM_COUNT-1
+    // 剧情文本
+    uint8_t story_id;       // 当前剧情段 id
+    uint8_t story_page;     // 当前页
+    uint8_t story_choice;   // 玩家选择 (0=A 1=B)
+    GameMode story_return;  // 剧情结束后回到哪个 mode
+    // 层级选择
+    uint8_t ls_sel;         // 选中的层级 (1..)
+    uint8_t ls_max;         // 可选层级上限
+    bool ls_for_campaign;   // true=剧情模式选层 false=无尽模式选层
 } GameState;
 
 extern GameState g;
@@ -129,8 +157,20 @@ void actors_update(void);
 void spawn_actor(float x, float y, int type);
 void set_msg(int id); // 设置中文提示
 
+// 物品栏: 使用选中物品, 返回是否消耗
+bool item_use(int item_type);
+// 物品栏当前持有数
+int  item_count(int item_type);
+
 void storage_load(void);
 void storage_save(void);
+
+// 剧情: 返回剧情段总页数, 取指定页文本(英文), 取选项A/B文本
+int  story_pages(int story_id);
+const char* story_page_text(int story_id, int page);
+const char* story_choice_a(int story_id);
+const char* story_choice_b(int story_id);
+const char* story_title(int story_id);
 
 extern const uint8_t TEXTURES[][8];
 #define TEX_COUNT 4

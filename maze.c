@@ -160,6 +160,18 @@ void maze_generate(int w, int h, int level, unsigned int seed) {
                 placed++;
             }
         }
+        // 药水: puzzle 关卡开始出现
+        int potions = 1 + (level - 10) / 5;
+        if(potions > 3) potions = 3;
+        placed = 0; tries = 0;
+        while(placed < potions && tries++ < 300) {
+            int x = 1 + maze_rng_next() % (w - 2);
+            int y = 1 + maze_rng_next() % (h - 2);
+            if(g.map[(uint16_t)y * MAP_MAX + x] == CELL_EMPTY && !(x == 1 && y == 1)) {
+                g.map[(uint16_t)y * MAP_MAX + x] = CELL_POTION;
+                placed++;
+            }
+        }
     }
     if(stage >= 2) {
         int traps = 2 + (level - 20) / 3;
@@ -170,6 +182,18 @@ void maze_generate(int w, int h, int level, unsigned int seed) {
             int y = 1 + maze_rng_next() % (h - 2);
             if(g.map[(uint16_t)y * MAP_MAX + x] == CELL_EMPTY && (abs(x - 1) + abs(y - 1) > 3)) {
                 g.map[(uint16_t)y * MAP_MAX + x] = CELL_TRAP;
+                placed++;
+            }
+        }
+        // 护符: combat 关卡稀有出现
+        int amulets = 1 + (level - 20) / 8;
+        if(amulets > 2) amulets = 2;
+        placed = 0; tries = 0;
+        while(placed < amulets && tries++ < 300) {
+            int x = 1 + maze_rng_next() % (w - 2);
+            int y = 1 + maze_rng_next() % (h - 2);
+            if(g.map[(uint16_t)y * MAP_MAX + x] == CELL_EMPTY && (abs(x - 1) + abs(y - 1) > 4)) {
+                g.map[(uint16_t)y * MAP_MAX + x] = CELL_AMULET;
                 placed++;
             }
         }

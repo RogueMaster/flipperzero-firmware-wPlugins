@@ -15,7 +15,8 @@ static int level_stage(int level) {
 
 static bool walkable(uint8_t c) {
     return c == CELL_EMPTY || c == CELL_KEY || c == CELL_EXIT ||
-           c == CELL_TORCH || c == CELL_TRAP;
+           c == CELL_TORCH || c == CELL_TRAP ||
+           c == CELL_POTION || c == CELL_AMULET;
 }
 static bool blocking(uint8_t c) {
     return c == WALL_BRICK || c == WALL_STONE || c == WALL_METAL ||
@@ -50,6 +51,14 @@ bool player_move(float dx, float dy) {
         g.player.torches++;
         maze_set(cx, cy, CELL_EMPTY);
         set_msg(MSG_TORCH);
+    } else if(here == CELL_POTION) {
+        g.player.potions++;
+        maze_set(cx, cy, CELL_EMPTY);
+        set_msg(MSG_TORCH); // 复用"获得"提示
+    } else if(here == CELL_AMULET) {
+        g.player.amulets++;
+        maze_set(cx, cy, CELL_EMPTY);
+        set_msg(MSG_KEY);
     } else if(here == CELL_TRAP) {
         if(g.stage == STAGE_COMBAT && g.player.health > 0) {
             g.player.health -= 1;
@@ -131,8 +140,27 @@ static void place_player_and_actors(int level, bool visitor) {
     set_dir(0.0f);
     g.player.keys = 0;
     g.player.torches = 0;
-    g.player.health = (g.stage >= STAGE_COMBAT) ? 5 : 1;
+    g.player.potions = 0;
+    g.player.amulets = 0;
     g.actor_count = 0;
+
+    // 起始 HP/物品: 剧情模式由开场选择决定; 无尽/游客固定
+    if(g.mode == MODE_CAMPAIGN) {
+        if(g.story_choice == 0) {        // A) Warrior
+            g.player.max_health = 7;
+            g.player.health = 7;
+        } else if(g.story_choice == 1) { // B) Seeker
+            g.player.max_health = 4;
+            g.player.health = 4;
+            g.player.torches = 1;
+        } else {                          // 未选(直接进高层级重玩)
+            g.player.max_health = 5;
+            g.player.health = 5;
+        }
+    } else {
+        g.player.max_health = 5;
+        g.player.health = 5;
+    }
 
     if(g.mode == MODE_CAMPAIGN && g.stage == STAGE_COMBAT) {
         int enemies = 1 + (level - 20) / 4;
@@ -168,9 +196,10 @@ void game_init_campaign(int level) {
     g.level = level;
     g.stage = level_stage(level);
     g.has_exit = true;
+    g.exit_found = true;
     g.tick = 0;
     int sz = 7 + level;
-    if(sz > MAP_MAX) sz = MAP_MAX;
+    if(sz > 23) sz = 23;     // 上限保护, 防止大迷宫卡顿
     maze_generate(sz, sz, level, 0xABCDEF01u);
     place_player_and_actors(level, false);
     if(g.stage == STAGE_COMBAT) set_msg(MSG_CARE);
@@ -184,20 +213,64 @@ void game_init_endless(int floor, bool visitor) {
     g.level = floor;
     g.endless_floor = floor;
     g.stage = STAGE_MAZE_ONLY;
-    g.has_exit = !visitor;
+    g.has_exit = true;
+    g.exit_found = true;     // 始终显示出口罗盘, 避免渲染异常
     g.tick = 0;
-    int sz = 9 + floor;
-    if(sz > MAP_MAX) sz = MAP_MAX;
+    int sz = 9 + (floor > 12 ? 12 : floor);
+    if(sz > 21) sz = 21;     // 严格上限, 防卡死
     maze_generate(sz, sz, floor + 100, 0x12345678u + (unsigned)floor * 31u);
     place_player_and_actors(floor + 100, visitor);
     set_msg(visitor ? MSG_VISITOR : MSG_RUN);
-    if(visitor) { g.exit_found = false; } // 游客模式不显示出口罗盘
     g.dirty = true;
 }
 
 void game_next_level(void) {
     if(g.mode == MODE_CAMPAIGN) game_init_campaign(g.level + 1);
     else if(g.mode == MODE_ENDLESS_RUN) game_init_endless(g.endless_floor, false);
+}
+
+// ---- 物品栏 ----
+int item_count(int item_type) {
+    switch(item_type) {
+        case ITEM_KEY:    return g.player.keys;
+        case ITEM_TORCH:  return g.player.torches;
+        case ITEM_POTION: return g.player.potions;
+        case ITEM_AMULET: return g.player.amulets;
+        default: return 0;
+    }
+}
+
+bool item_use(int item_type) {
+    switch(item_type) {
+        case ITEM_KEY:
+            // 钥匙不能主动使用, 自动开门
+            return false;
+        case ITEM_TORCH:
+            if(g.player.torches > 0) {
+                g.player.torches--;
+                set_msg(MSG_TORCH);
+                return true;
+            }
+            return false;
+        case ITEM_POTION:
+            if(g.player.potions > 0 && g.player.health < g.player.max_health) {
+                g.player.potions--;
+                g.player.health = g.player.max_health;
+                set_msg(MSG_KEY); // 复用提示
+                return true;
+            }
+            return false;
+        case ITEM_AMULET:
+            if(g.player.amulets > 0) {
+                g.player.amulets--;
+                g.player.x = 1.5f; g.player.y = 1.5f;
+                set_msg(MSG_EXIT);
+                return true;
+            }
+            return false;
+        default:
+            return false;
+    }
 }
 
 void game_handle_input(InputKey key, InputType type) {

@@ -8,13 +8,38 @@
 
 // Title
 #define EN_TITLE       "3D MAZE"
-// Menu items
-#define EN_M1          "1. Campaign"
+// Menu items (M1 = story/campaign mode, M2 = endless, M3 = visitor)
+#define EN_M1          "1. Story"
 #define EN_M2          "2. Endless"
 #define EN_M3          "3. Visitor"
 #define EN_HINT_MENU   "Up/Dn Select  OK Start  Back Exit"
 #define EN_LANG_TAG    "EN"
 #define EN_ZH_TAG      "CN"
+
+// Level select
+#define EN_LS_TITLE_STORY  "STORY - SELECT LEVEL"
+#define EN_LS_TITLE_ENDLESS "ENDLESS - SELECT LEVEL"
+#define EN_LS_LOCKED       "Locked"
+#define EN_LS_CLEARED      "Cleared"
+#define EN_LS_HINT         "Up/Dn:Level  OK:Enter  Back"
+
+// Inventory
+#define EN_INV_TITLE    "INVENTORY"
+#define EN_INV_KEY      "Key"
+#define EN_INV_TORCH    "Torch"
+#define EN_INV_POTION   "Potion"
+#define EN_INV_AMULET   "Amulet"
+#define EN_INV_EMPTY    "(empty)"
+#define EN_INV_HINT     "Up/Dn:Select  OK:Use  Back"
+#define EN_INV_USED     "Used!"
+#define EN_INV_NOITEM   "No item"
+#define EN_INV_FULLHP   "Full HP"
+#define EN_INV_TELEPORT "Warp!"
+
+// Story
+#define EN_STORY_HINT   "OK:Next  Back:Skip"
+#define EN_STORY_CHOOSE "OK:A  Right:B"
+#define EN_STORY_PAGE   "p"
 
 // HUD labels
 #define EN_HUD_LV      "LV"

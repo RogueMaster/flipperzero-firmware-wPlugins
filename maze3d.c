@@ -48,6 +48,99 @@ static void canvas_draw_num(Canvas* c, int x, int y, int n) {
     canvas_draw_str(c, x, y, buf);
 }
 
+// ---- 新界面绘制 ----
+static const char* en_item_name(int t) {
+    switch(t) {
+        case ITEM_KEY:    return EN_INV_KEY;
+        case ITEM_TORCH:  return EN_INV_TORCH;
+        case ITEM_POTION: return EN_INV_POTION;
+        case ITEM_AMULET: return EN_INV_AMULET;
+        default: return "";
+    }
+}
+
+static void draw_story(Canvas* c) {
+    canvas_clear(c);
+    canvas_set_color(c, ColorBlack);
+    canvas_set_font(c, FontPrimary);
+    canvas_draw_str_aligned(c, 64, 1, AlignCenter, AlignTop, story_title(g.story_id));
+    canvas_set_font(c, FontSecondary);
+    // 分行绘制正文
+    const char* text = story_page_text(g.story_id, g.story_page);
+    const char* p = text;
+    int y = 14;
+    while(*p && y < 50) {
+        const char* nl = p;
+        while(*nl && *nl != '\n') nl++;
+        int len = nl - p;
+        char line[24];
+        if(len > 23) len = 23;
+        memcpy(line, p, len); line[len] = 0;
+        canvas_draw_str(c, 2, y, line);
+        y += 8;
+        p = (*nl == '\n') ? nl + 1 : nl;
+    }
+    // 页码
+    char pg[16];
+    snprintf(pg, sizeof(pg), "%d/%d", g.story_page + 1, story_pages(g.story_id));
+    canvas_draw_str_aligned(c, 126, 1, AlignRight, AlignTop, pg);
+    int np = story_pages(g.story_id);
+    if(g.story_page < np - 1) {
+        canvas_draw_str(c, 2, 62, EN_STORY_HINT);
+    } else {
+        // 最后一页: 选项 A/B + 光标
+        canvas_draw_str(c, 8, 50, story_choice_a(g.story_id));
+        canvas_draw_str(c, 8, 60, story_choice_b(g.story_id));
+        canvas_draw_str(c, 0, (g.story_choice == 0) ? 50 : 60, ">");
+    }
+}
+
+static void draw_inventory(Canvas* c) {
+    canvas_clear(c);
+    canvas_set_color(c, ColorBlack);
+    canvas_set_font(c, FontPrimary);
+    canvas_draw_str_aligned(c, 64, 1, AlignCenter, AlignTop, EN_INV_TITLE);
+    canvas_set_font(c, FontSecondary);
+    for(int i = 0; i < ITEM_COUNT; i++) {
+        int y = 14 + i * 9;
+        if(i == g.inv_sel) {
+            canvas_draw_box(c, 0, y - 8, 128, 9);
+            canvas_set_color(c, ColorWhite);
+        }
+        char line[24];
+        snprintf(line, sizeof(line), "%s  x%d", en_item_name(i), item_count(i));
+        canvas_draw_str(c, 4, y, line);
+        canvas_set_color(c, ColorBlack);
+    }
+    canvas_draw_str(c, 2, 62, EN_INV_HINT);
+}
+
+static void draw_level_select(Canvas* c) {
+    canvas_clear(c);
+    canvas_set_color(c, ColorBlack);
+    canvas_set_font(c, FontPrimary);
+    canvas_draw_str_aligned(c, 64, 1, AlignCenter, AlignTop,
+        g.ls_for_campaign ? EN_LS_TITLE_STORY : EN_LS_TITLE_ENDLESS);
+    canvas_set_font(c, FontSecondary);
+    for(int i = 0; i < 6; i++) {
+        int lvl = g.ls_sel - 2 + i;
+        if(lvl < 1) continue;
+        int y = 13 + i * 8;
+        bool locked = g.ls_for_campaign && (lvl > g.campaign_cleared + 1);
+        bool cleared = g.ls_for_campaign && (lvl <= g.campaign_cleared);
+        if(lvl == g.ls_sel && !locked) {
+            canvas_draw_box(c, 0, y - 7, 128, 9);
+            canvas_set_color(c, ColorWhite);
+        }
+        char line[24];
+        const char* tag = locked ? "  LOCKED" : (cleared ? "  ok" : "");
+        snprintf(line, sizeof(line), "Lv %d%s", lvl, tag);
+        canvas_draw_str(c, 4, y, line);
+        canvas_set_color(c, ColorBlack);
+    }
+    canvas_draw_str(c, 2, 62, EN_LS_HINT);
+}
+
 // ---- 绘制回调 ----
 static void draw_callback(Canvas* canvas, void* ctx) {
     UNUSED(ctx);
@@ -99,6 +192,10 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         return;
     }
 
+    if(g.mode == MODE_STORY)         { draw_story(canvas); return; }
+    if(g.mode == MODE_INVENTORY)     { draw_inventory(canvas); return; }
+    if(g.mode == MODE_LEVEL_SELECT)  { draw_level_select(canvas); return; }
+
     // 游戏画面: 先把渲染好的 framebuffer 拷到 canvas
     canvas_clear(canvas);
     canvas_set_color(canvas, ColorBlack);
@@ -135,8 +232,16 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         else
             canvas_draw_str(canvas, x + 6, 9, EN_HUD_TORCH);
         x += 13;
+        // 药水 (P)
+        canvas_draw_num(canvas, x, 9, g.player.potions);
+        canvas_draw_str(canvas, x + 6, 9, "P");
+        x += 11;
     }
     if(g.stage == STAGE_COMBAT) {
+        // 护符 (A)
+        canvas_draw_num(canvas, x, 9, g.player.amulets);
+        canvas_draw_str(canvas, x + 6, 9, "A");
+        x += 11;
         canvas_draw_num(canvas, x, 9, g.player.health);
         if(g.lang == LANG_ZH)
             canvas_draw_xbm(canvas, x + 6, 1, HUD_HP_W, HUD_HP_H, hud_hp_bits);
@@ -231,6 +336,69 @@ static void handle_overlay_input(InputKey key) {
     }
 }
 
+// ---- 新流程: 层级选择 / 剧情 / 物品栏 ----
+static void enter_level_select(bool for_campaign) {
+    g.mode = MODE_LEVEL_SELECT;
+    g.ls_for_campaign = for_campaign;
+    g.ls_max = 30;
+    g.ls_sel = for_campaign ? (g.campaign_cleared + 1) : (g.endless_floor > 0 ? g.endless_floor : 1);
+    if(g.ls_sel < 1) g.ls_sel = 1;
+    if(g.ls_sel > g.ls_max) g.ls_sel = g.ls_max;
+}
+
+static void enter_story(int sid, GameMode ret) {
+    g.mode = MODE_STORY;
+    g.story_id = sid;
+    g.story_page = 0;
+    g.story_choice = 0;
+    g.story_return = ret;
+}
+
+static void handle_new_modes_input(InputKey key, InputType type) {
+    if(type != InputTypeShort) return;
+    if(g.mode == MODE_STORY) {
+        int np = story_pages(g.story_id);
+        if(key == InputKeyOk) {
+            if(g.story_page < np - 1) {
+                g.story_page++;
+            } else {
+                // 最后一页确认: story_choice 已由 Left/Right 选好(默认0=A)
+                if(g.story_return == MODE_CAMPAIGN) {
+                    game_init_campaign(1);
+                } else {
+                    g.mode = g.story_return;
+                }
+            }
+        } else if(key == InputKeyRight) {
+            if(g.story_page == np - 1) g.story_choice = 1;
+        } else if(key == InputKeyLeft) {
+            if(g.story_page == np - 1) g.story_choice = 0;
+        } else if(key == InputKeyBack) {
+            g.mode = (g.story_return == MODE_CAMPAIGN) ? MODE_MENU : g.story_return;
+        }
+    } else if(g.mode == MODE_INVENTORY) {
+        if(key == InputKeyUp)        g.inv_sel = (g.inv_sel + ITEM_COUNT - 1) % ITEM_COUNT;
+        else if(key == InputKeyDown) g.inv_sel = (g.inv_sel + 1) % ITEM_COUNT;
+        else if(key == InputKeyOk)   item_use(g.inv_sel);
+        else if(key == InputKeyBack) g.mode = s_resume_mode;
+    } else if(g.mode == MODE_LEVEL_SELECT) {
+        if(key == InputKeyUp)        { if(g.ls_sel > 1) g.ls_sel--; }
+        else if(key == InputKeyDown) { if(g.ls_sel < g.ls_max) g.ls_sel++; }
+        else if(key == InputKeyOk) {
+            bool locked = g.ls_for_campaign && (g.ls_sel > g.campaign_cleared + 1);
+            if(!locked) {
+                if(g.ls_for_campaign) {
+                    // 剧情模式: 第1关且未通关过 -> 先看开场剧情
+                    if(g.ls_sel == 1 && g.campaign_cleared == 0) enter_story(0, MODE_CAMPAIGN);
+                    else game_init_campaign(g.ls_sel);
+                } else {
+                    game_init_endless(g.ls_sel, false);
+                }
+            }
+        } else if(key == InputKeyBack) g.mode = MODE_MENU;
+    }
+}
+
 // 主循环 - **关键**: 渲染受 dirty 控制; 主循环定时器用 120ms 间隔而不是 50ms,减少 CPU
 int32_t maze3d_app(void* p) {
     UNUSED(p);
@@ -267,14 +435,17 @@ int32_t maze3d_app(void* p) {
                         g.lang = (g.lang == LANG_ZH) ? LANG_EN : LANG_ZH;
                     else if(key == InputKeyOk) {
                         storage_load();
-                        if(s_sel == M_CAMPAIGN) game_init_campaign(g.campaign_cleared + 1);
-                        else if(s_sel == M_ENDLESS) game_init_endless(g.endless_floor, false);
+                        if(s_sel == M_CAMPAIGN) enter_level_select(true);
+                        else if(s_sel == M_ENDLESS) enter_level_select(false);
                         else game_init_endless(g.endless_floor, true);
                     } else if(key == InputKeyBack) running = false;
                 }
                 did_input = true;
             } else if(g.mode == MODE_LEVEL_CLEAR || g.mode == MODE_GAME_OVER || g.mode == MODE_PAUSED) {
                 if(type == InputTypeShort) handle_overlay_input(key);
+                did_input = true;
+            } else if(g.mode == MODE_STORY || g.mode == MODE_INVENTORY || g.mode == MODE_LEVEL_SELECT) {
+                handle_new_modes_input(key, type);
                 did_input = true;
             } else {
                 // 游戏中
@@ -284,6 +455,11 @@ int32_t maze3d_app(void* p) {
                         s_resume_mode = g.mode;
                         g.mode = MODE_PAUSED;
                     }
+                } else if(key == InputKeyOk && type == InputTypeLong) {
+                    // 长按 OK 进入物品栏
+                    s_resume_mode = g.mode;
+                    g.mode = MODE_INVENTORY;
+                    g.inv_sel = 0;
                 } else {
                     game_handle_input(key, type);
                 }
@@ -303,7 +479,10 @@ int32_t maze3d_app(void* p) {
 
         // 按需渲染,避免 20Hz 的全速 raycasting(那是死机根源)
         bool need_render = did_input || did_update_world;
-        if(g.mode != MODE_MENU && need_render) {
+        bool in_game_view = (g.mode == MODE_CAMPAIGN || g.mode == MODE_ENDLESS_RUN ||
+                             g.mode == MODE_ENDLESS_VISITOR || g.mode == MODE_PAUSED ||
+                             g.mode == MODE_LEVEL_CLEAR || g.mode == MODE_GAME_OVER);
+        if(in_game_view && need_render) {
             engine_render();
             g.dirty = false;
         }

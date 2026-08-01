@@ -180,6 +180,8 @@ static void draw_minimap(void) {
                 if((g.tick & 7) < 4) fb_set(ox + x, oy + y, 1);
             } else if(c == CELL_KEY || c == CELL_TORCH) {
                 if((g.tick & 3) == 0) fb_set(ox + x, oy + y, 1);
+            } else if(c == CELL_POTION || c == CELL_AMULET) {
+                if((g.tick & 7) < 2) fb_set(ox + x, oy + y, 1);
             } else if(c == CELL_DOOR) {
                 if((g.tick & 15) < 8) fb_set(ox + x, oy + y, 1);
             }
