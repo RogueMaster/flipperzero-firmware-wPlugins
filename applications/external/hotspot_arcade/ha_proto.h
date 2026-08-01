@@ -16,7 +16,7 @@
 #define HA_FW_MAGIC_1 0x41
 #define HA_FW_MAGIC_2 0x52
 #define HA_FW_MAGIC_3 0x43
-#define HA_FW_VERSION 11 // v11: 3s countdowns; WYR vote/reveal countdown bar
+#define HA_FW_VERSION 13 // v13: battleship game
 
 // Flipper -> ESP
 #define HA_MSG_CLEAR_FILES   0x10
@@ -45,17 +45,19 @@
 #define HA_MSG_PING         0x86
 
 // Game ids
-#define HA_GAME_NONE      0
-#define HA_GAME_TRIVIA    1
-#define HA_GAME_CONNECT4  2
-#define HA_GAME_TICTACTOE 3
-#define HA_GAME_DOTS      4
-#define HA_GAME_DRAW      5
-#define HA_GAME_PONG      6
-#define HA_GAME_REACT     7 // reaction duel (fastest finger)
-#define HA_GAME_WYR       8 // would you rather (poll)
-#define HA_GAME_SCRAMBLE  9 // word scramble race
-#define HA_GAME_REVERSI   10 // reversi/othello (duel kind)
+#define HA_GAME_NONE       0
+#define HA_GAME_TRIVIA     1
+#define HA_GAME_CONNECT4   2
+#define HA_GAME_TICTACTOE  3
+#define HA_GAME_DOTS       4
+#define HA_GAME_DRAW       5
+#define HA_GAME_PONG       6
+#define HA_GAME_REACT      7 // reaction duel (fastest finger)
+#define HA_GAME_WYR        8 // would you rather (poll)
+#define HA_GAME_SCRAMBLE   9 // word scramble race
+#define HA_GAME_REVERSI    10 // reversi/othello (duel kind)
+#define HA_GAME_GUESSCOLOR 11 // guess the color (closest RGB + speed)
+#define HA_GAME_BATTLESHIP 12 // battleship (1v1, hidden fleets)
 
 static inline uint8_t ha_crc8_upd(uint8_t crc, uint8_t b) {
     crc ^= b;

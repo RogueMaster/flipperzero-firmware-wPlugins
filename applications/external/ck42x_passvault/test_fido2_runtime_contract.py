@@ -12,8 +12,7 @@ assert "#define uECC_OPTIMIZATION_LEVEL 2" in uecc
 
 callback_start = service.index("static void ck_fido2_usb_callback")
 callback = service[
-    callback_start:
-    service.index("static void ck_fido2_send_message", callback_start)
+    callback_start : service.index("static void ck_fido2_send_message", callback_start)
 ]
 assert "furi_semaphore_release(service->request_semaphore)" in callback
 assert "furi_thread_flags_set" not in callback
@@ -21,8 +20,9 @@ assert "furi_hal_hid_u2f_get_request" not in callback
 assert "ck_fido2_hid_dispatch" not in callback
 
 worker = service[
-    service.index("static int32_t ck_fido2_worker"):
-    service.index("CkFido2Service* ck_fido2_service_alloc")
+    service.index("static int32_t ck_fido2_worker") : service.index(
+        "CkFido2Service* ck_fido2_service_alloc"
+    )
 ]
 assert "furi_hal_hid_u2f_get_request(report)" in worker
 assert "ck_fido2_hid_parser_consume" in worker
@@ -44,7 +44,7 @@ assert "furi_hal_crypto_gcm_encrypt_and_tag" in service
 assert "furi_hal_crypto_gcm_decrypt_and_verify" in service
 assert "CK_FIDO2_SERVICE_MAX_CREDENTIALS" in service
 
-start = service[service.index("bool ck_fido2_service_start"):]
+start = service[service.index("bool ck_fido2_service_start") :]
 assert "service->previous_usb = furi_hal_usb_get_config();" in start
 assert "furi_hal_usb_set_config(&usb_hid_u2f, NULL)" in start
 assert start.count("furi_hal_usb_set_config(service->previous_usb, NULL)") >= 2
@@ -52,8 +52,9 @@ assert "furi_hal_hid_u2f_set_callback(NULL, NULL);" in start
 assert "ck_fido2_service_stop(service);" in service
 
 presence = service[
-    service.index("static bool ck_fido2_user_present"):
-    service.index("static bool ck_fido2_save_credential")
+    service.index("static bool ck_fido2_user_present") : service.index(
+        "static bool ck_fido2_save_credential"
+    )
 ]
 assert "furi_semaphore_acquire" in presence
 assert "CK_FIDO2_SERVICE_APPROVAL_TIMEOUT_MS" in presence
@@ -70,8 +71,9 @@ assert "ck_fido2_service_free(app->fido2_service);" in app
 assert '"Approve"' in app and '"Deny"' in app
 
 store_write = service[
-    service.index("static bool ck_fido2_encrypt_records"):
-    service.index("static bool ck_fido2_random")
+    service.index("static bool ck_fido2_encrypt_records") : service.index(
+        "static bool ck_fido2_random"
+    )
 ]
 assert 'CK_FIDO2_TEMP_SUFFIX ".tmp"' in service
 assert 'CK_FIDO2_BACKUP_SUFFIX ".bak"' in service
@@ -79,8 +81,9 @@ assert "storage_file_sync(file)" in store_write
 assert "storage_common_rename" in store_write
 assert "storage_common_remove" in store_write
 save = service[
-    service.index("static bool ck_fido2_save_credential"):
-    service.index("static bool ck_fido2_load_credential")
+    service.index("static bool ck_fido2_save_credential") : service.index(
+        "static bool ck_fido2_load_credential"
+    )
 ]
 assert save.index("if(state == CkFido2StoreInvalid) goto cleanup;") < save.index(
     "if(state == CkFido2StoreMissing) count = 0;"
@@ -88,8 +91,9 @@ assert save.index("if(state == CkFido2StoreInvalid) goto cleanup;") < save.index
 assert "CkFido2StoreInvalid" in save
 assert "FSE_NOT_EXIST" in service
 recovery = service[
-    service.index("static void ck_fido2_recover_interrupted_update"):
-    service.index("static bool ck_fido2_read_file")
+    service.index("static void ck_fido2_recover_interrupted_update") : service.index(
+        "static bool ck_fido2_read_file"
+    )
 ]
 assert "if(!target_exists && backup_exists)" in recovery
 assert "storage_common_rename" in recovery

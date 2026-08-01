@@ -24,6 +24,9 @@ for name, password in samples.items():
     assert bool(re.search(r"[A-Z]", password)) == rule["upper"], (name, password)
     assert bool(re.search(r"[a-z]", password)) == rule["lower"], (name, password)
     assert bool(re.search(r"[0-9]", password)) == rule["digit"], (name, password)
-    assert bool(re.search(r"[^A-Za-z0-9]", password)) == rule["symbol"], (name, password)
+    assert bool(re.search(r"[^A-Za-z0-9]", password)) == rule["symbol"], (
+        name,
+        password,
+    )
 
 print("OK: CK42X PassVault password preset shape checks passed")

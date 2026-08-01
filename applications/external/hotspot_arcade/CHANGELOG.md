@@ -6,6 +6,16 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ## [Unreleased]
 
+### Added
+
+- **Guess the Color**, an 11th game (whole-group). A random color swatch appears and
+  everyone dials in its R/G/B with a slider per channel; closest guess wins the round with
+  a speed bonus, over five rounds to a podium. No preview of your own color while guessing.
+  Firmware **v12**.
+- **Battleship**, a 12th game (1v1). Place a hidden fleet of five ships on a 10x10 grid,
+  then fire at the enemy grid; a hit lets you fire again, and sinking all five ships wins.
+  Firmware **v13**.
+
 ## [1.1.2] - 2026-07-22
 
 Third board: **ESP32-C5**. From @xMasterX, tested on C5 hardware. Firmware **v11**

@@ -20,6 +20,7 @@ const GAMES = [
   ["None", 0], ["Trivia", 1], ["Connect Four", 2], ["Tic-Tac-Toe", 3],
   ["Dots & Boxes", 4], ["Draw & Guess", 5], ["Pong", 6], ["Reaction Duel", 7],
   ["Would You Rather", 8], ["Word Scramble", 9], ["Reversi", 10],
+  ["Guess the Color", 11], ["Battleship", 12],
 ];
 
 const players = new Map(); // pid -> { nick, score }

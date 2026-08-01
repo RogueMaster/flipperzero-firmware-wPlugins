@@ -25,7 +25,9 @@ for contract in required:
 
 # Editing must not wipe the copied username/password when the account field completes.
 account_start = source.index("if(app->input_stage == CkInputAccount)")
-account_end = source.index("} else if(app->input_stage == CkInputUsername)", account_start)
+account_end = source.index(
+    "} else if(app->input_stage == CkInputUsername)", account_start
+)
 account_flow = source[account_start:account_end]
 assert "memset(&app->draft" not in account_flow
 

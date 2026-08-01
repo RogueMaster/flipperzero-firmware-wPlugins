@@ -260,3 +260,51 @@ Durations are sent in **seconds**; deadlines in ms (server `millis`).
   first valid tap after `light:"go"` wins (200), tapping while `"wait"` DQs you
   for the round. `"reveal"` carries `winner` (nick or null), `ms`, `iwon`;
   `"final"` a `board` podium.
+
+## 5. Guess the Color (`gc`) — game id `11`
+
+Whole-group round game on the same `Party` skeleton (`lobby -> countdown -> play
+-> reveal -> ... -> final`, 5 rounds). Select with UART `SELECT_GAME` id `11`;
+lobby `game` string is `"gc"`. Firmware **v12**.
+
+Client intents: `ready{ready:bool}` (lobby), `again` (from final), and
+`guess{r,g,b}` (submit your color, each 0-255). The `guess` type is shared with
+draw/scramble, which send `guess{text}`; the ESP routes by which fields are present.
+
+Server `{t:"gc",phase,...}`:
+- `"play"`: `round`, `rounds`, `color` (`"#RRGGBB"`, the target swatch to match —
+  the numeric answer is hidden), `submitted` (bool, you), `scores`.
+- `"reveal"`: `round`, `rounds`, `r`,`g`,`b` (the true color), `color`, `your`
+  (`{r,g,b,color,dist,points}` or null if you didn't guess), `winner` (nick or
+  null), `iwon`, `scores`.
+- `"final"`: `board` (podium).
+
+Scoring per round: `points = closeness + speed_bonus`, where
+`closeness = round(200 * (1 - dist/441.67))` clamped ≥ 0 (`dist` = Euclidean RGB
+distance) and `speed_bonus = round(100 * (1 - submit_ms/12000))` clamped ≥ 0.
+The round winner is the highest points (ties broken by the faster submit).
+
+## 6. Battleship (`bs`) — game id `12`
+
+A 1v1 match game (like Pong): shares the challenge/lobby flow (`challenge`/`accept`/
+`cancel`, `rematch`, `leaveGame`) but has its own state and screen. 10x10 grid, five ships
+(5,4,3,3,2 = 17 cells). Select with UART `SELECT_GAME` id `12`; lobby `game` string `"bs"`.
+Firmware **v13**.
+
+Client intents (besides the shared match ones): `place{ships}` and `fire{n}`.
+- `place{ships}`: `ships` is a string `"r,c,d;r,c,d;..."`, one triple per ship in fixed
+  order (5,4,3,3,2); `d`=0 horizontal, `d`=1 vertical (anchor is the top/left cell). The
+  server reconstructs the cells, validates bounds and no-overlap, stores the fleet, and
+  marks the player ready. Invalid layouts get a `toast` and no ready. Both ready -> firing.
+- `fire{n}` (0..99): a hit keeps your turn (shoot again); a miss passes it. Sinking a ship
+  sends a `toast` to both players.
+
+Server `{t:"bs",phase,...}`:
+- `"place"`: `you`, `me` (1/2), `opp`, `ready`, `oppReady`. The client renders its own board.
+- `"fire"`: `turn`, `yourTurn`, `opp`, `myShips`, `oppShips`, and two 100-cell arrays:
+  `mine` (your fleet: 0 empty, 1 ship, 2 miss, 3 hit) and `track` (your shots on the enemy:
+  0 un-shot, 1 miss, 2 hit, 3 hit+sunk).
+- `"over"`: adds `result` (win/lose) and `oppFleet` (the enemy fleet revealed).
+
+**Hidden information:** `track` is derived only from the shots you've fired, so an enemy
+ship cell you haven't hit is never in the payload. `oppFleet` appears only in `"over"`.

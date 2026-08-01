@@ -23,6 +23,10 @@ static const char* game_name(uint8_t g) {
         return "Would You Rather";
     case HA_GAME_SCRAMBLE:
         return "Word Scramble";
+    case HA_GAME_GUESSCOLOR:
+        return "Guess the Color";
+    case HA_GAME_BATTLESHIP:
+        return "Battleship";
     default:
         return "None";
     }

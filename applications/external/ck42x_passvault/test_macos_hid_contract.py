@@ -48,7 +48,7 @@ inject = source[inject_start:inject_end]
 assert "app->previous_usb != &usb_hid" in inject
 assert "app->previous_usb && app->previous_usb != &usb_hid" in inject
 
-cleanup = source[source.index("static void ck_stop_mac_keyboard_setup"):]
+cleanup = source[source.index("static void ck_stop_mac_keyboard_setup") :]
 assert cleanup.count("ck_stop_mac_keyboard_setup(app);") >= 3
 
 print("OK: macOS keyboard setup lifecycle contract checks passed")
