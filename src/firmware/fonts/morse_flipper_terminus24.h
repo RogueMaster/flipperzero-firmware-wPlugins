@@ -1,5 +1,5 @@
 /* Storage-backed Terminus 24 prompt glyphs.  The canonical pixels live in
- * tools/terminus24_source.h and are packed into assets/terminus24.bin. */
+ * morse_flipper_terminus24_source.h and are packed into assets/terminus24.bin. */
 #pragma once
 
 #include <stdbool.h>

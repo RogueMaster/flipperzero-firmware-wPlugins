@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "tools" / "terminus24_source.h"
+SOURCE = ROOT / "src" / "firmware" / "fonts" / "morse_flipper_terminus24_source.h"
 OUTPUT = ROOT / "assets" / "terminus24.bin"
 TOKEN = {
     "MORSE_FLIPPER_CW_TOKEN_SK": 0x80,

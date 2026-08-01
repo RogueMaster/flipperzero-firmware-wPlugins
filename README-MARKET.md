@@ -11,8 +11,9 @@ Morse Flipper also includes a fairly extensive help manual on the Flipper itself
 ## Features
 
 - Flipper-to-Flipper Sub-GHz Morse TX/RX, plus receive and decode experiments for compatible OOK Morse signals inside supported Flipper bands.
+- CWFM makes transmitted Morse audible as a 700 Hz tone on ordinary FM handhelds, including the UV-5R.
 - Listening practice (LCWO/Koch progressions), straight-key timing practice, and five-character sending drills.
-- Listening practice includes lesson progress, history, scores, and daily streaks.
+- Lesson progress, history, scores, and daily streaks keep track of whether you are actually practising.
 - Listening answers can be corrected: ↓ deletes the last character and ↑ clears the whole answer.
 - Free practice with a straight key, paddle, Flipper buttons, USB, MIDI, mouse, or keyboard input.
 - Iambic, Elekey-A/B, Ultimatic, bug, keyahead, and Vail-compatible keying modes.
@@ -23,7 +24,7 @@ Morse Flipper also includes a fairly extensive help manual on the Flipper itself
 - Field keyer/logger for portable operating and canned replies.
 - Adaptive Instant Character Recognition training brings slow or troublesome characters back more often.
 - Callsign practice has independent speed, spacing, and length settings, and generates callsigns which actually look like callsigns.
-- Passive Listening plays CW followed by the answer in NATO phonetics, in the style of Morse Ninja exercises.
+- Passive Listening plays CW, then speaks the answer, in the style of Morse Ninja exercises.
 - Voice output works through the Flipper's internal speaker or the PA2 audio port.
 - ARDF Foxhunting with Standard, Sprint, and Custom modes using carrier-keyed CW or CWFM.
 

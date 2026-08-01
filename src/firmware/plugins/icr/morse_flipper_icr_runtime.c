@@ -19,7 +19,7 @@
 #define MORSE_FLIPPER_CW_TOKEN_VE_SN 0x83U
 #define MORSE_FLIPPER_CW_TOKEN_AA    0x84U
 #define MORSE_FLIPPER_CW_TOKEN_SOS   0x85U
-#include "../../../../tools/terminus24_source.h"
+#include "../../fonts/morse_flipper_terminus24_source.h"
 
 #include <stdlib.h>
 
