@@ -94,6 +94,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - HID: [Mouse Jiggler Stealth now shows which buttons change the intervals - Up/Down (Min) and Left/Right (Max) already worked but nothing on screen said so; the arrows appear next to each row while the jiggler is stopped, and only for presses that would actually change the value (By sequesters)](https://github.com/DarkFlippers/unleashed-firmware/pull/1020)
 - Updated: [CK42X Passvault v0.4.5 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
 - Updated: [Hotspot Arcade v1.2 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32` [Hotspot Arcade flasher, add support for autoboot, fix freeze on exit (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/5d6a16c77c2a17c4aca3cb9f9ab4ab511f1d4f64) Guess the Color & Battleship were added (By tarikbc)
+- [Fixed Protobuf tags not detected causing restore to OFW before new RM update (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a66624d5f7203346da4b980554b6cb03bb93d386)
 
 <a name="release"></a>
 
