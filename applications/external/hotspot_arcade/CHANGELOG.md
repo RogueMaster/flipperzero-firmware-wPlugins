@@ -6,6 +6,22 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-01
+
+A 13th game. Firmware **v14**.
+
+### Added
+
+- **Spectrum**, a 13th game (whole-group), a Wavelength-style guessing game contributed by
+  @genkigenki ([#7](https://github.com/tarikbc/hotspot-arcade/pull/7)). Each round one
+  player is the psychic: they see a hidden target on a 0-100 spectrum between two opposing
+  words and type a clue; everyone else slides a dial to guess where it lands. Points by
+  closeness, and the psychic scores by how well the group guesses. Six rounds, rotating
+  psychic, four content packs. Reuses the whole-group party skeleton and the pack pipeline.
+  Firmware **v14**.
+- A contributor guide (`CONTRIBUTING.md`), a PR template, and a `pr-checklist` CI action that
+  reviews PRs against the "adding a game" checklist.
+
 ## [1.2.0] - 2026-07-31
 
 Two new games bring the count to **twelve**. Firmware **v13**.

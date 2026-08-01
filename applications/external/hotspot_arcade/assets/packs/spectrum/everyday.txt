@@ -1,0 +1,72 @@
+Pack: Everyday
+Left: Cold
+Right: Hot
+---
+Left: Cheap
+Right: Expensive
+---
+Left: Small
+Right: Big
+---
+Left: Slow
+Right: Fast
+---
+Left: Quiet
+Right: Loud
+---
+Left: Empty
+Right: Full
+---
+Left: Old
+Right: New
+---
+Left: Weak
+Right: Strong
+---
+Left: Dark
+Right: Bright
+---
+Left: Soft
+Right: Hard
+---
+Left: Dry
+Right: Wet
+---
+Left: Dirty
+Right: Clean
+---
+Left: Near
+Right: Far
+---
+Left: Early
+Right: Late
+---
+Left: Light
+Right: Heavy
+---
+Left: Smooth
+Right: Rough
+---
+Left: Short
+Right: Tall
+---
+Left: Narrow
+Right: Wide
+---
+Left: Shallow
+Right: Deep
+---
+Left: Simple
+Right: Complicated
+---
+Left: Common
+Right: Rare
+---
+Left: Boring
+Right: Exciting
+---
+Left: Calm
+Right: Chaotic
+---
+Left: Gentle
+Right: Fierce

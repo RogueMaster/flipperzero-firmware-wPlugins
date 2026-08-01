@@ -17,6 +17,7 @@ typedef enum {
     GameScramble,
     GameGuessColor,
     GameBattleship,
+    GameSpectrum,
     GameNone,
 } GameIndex;
 
@@ -32,6 +33,7 @@ void hotspot_arcade_scene_game_select_on_enter(void* context) {
     submenu_add_item(app->submenu, "Trivia", GameTrivia, ha_game_cb, app);
     submenu_add_item(app->submenu, "Would You Rather", GameWyr, ha_game_cb, app);
     submenu_add_item(app->submenu, "Word Scramble", GameScramble, ha_game_cb, app);
+    submenu_add_item(app->submenu, "Spectrum", GameSpectrum, ha_game_cb, app);
     submenu_add_item(app->submenu, "Reaction Duel", GameReact, ha_game_cb, app);
     submenu_add_item(app->submenu, "Connect Four", GameConnect4, ha_game_cb, app);
     submenu_add_item(app->submenu, "Tic-Tac-Toe", GameTicTacToe, ha_game_cb, app);
@@ -45,6 +47,7 @@ void hotspot_arcade_scene_game_select_on_enter(void* context) {
     uint32_t sel = app->active_game == HA_GAME_TRIVIA     ? GameTrivia :
                    app->active_game == HA_GAME_WYR        ? GameWyr :
                    app->active_game == HA_GAME_SCRAMBLE   ? GameScramble :
+                   app->active_game == HA_GAME_SPECTRUM   ? GameSpectrum :
                    app->active_game == HA_GAME_REACT      ? GameReact :
                    app->active_game == HA_GAME_CONNECT4   ? GameConnect4 :
                    app->active_game == HA_GAME_TICTACTOE  ? GameTicTacToe :
@@ -89,6 +92,10 @@ bool hotspot_arcade_scene_game_select_on_event(void* context, SceneManagerEvent 
         return true;
     case GameScramble:
         ha_select_game(app, HA_GAME_SCRAMBLE);
+        scene_manager_previous_scene(app->scene_manager);
+        return true;
+    case GameSpectrum:
+        ha_select_game(app, HA_GAME_SPECTRUM);
         scene_manager_previous_scene(app->scene_manager);
         return true;
     case GameReact:

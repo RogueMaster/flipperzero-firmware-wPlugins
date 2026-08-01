@@ -71,6 +71,7 @@
   function renderReveal(m) {
     sub("reveal");
     $("gc-rmeta").textContent = "Round " + m.round + " / " + m.rounds;
+    $("gc-rtarget").style.background = m.color; // the answer color, shown big up top
     $("gc-answer").textContent = "Answer  " + m.r + ", " + m.g + ", " + m.b;
     // One row per player who guessed, closest (highest points) first. Each row's
     // swatch is split down the middle: left half is the answer, right half is that

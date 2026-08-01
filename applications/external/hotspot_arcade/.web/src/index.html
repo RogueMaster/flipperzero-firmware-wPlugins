@@ -317,7 +317,10 @@
   </div>
   <div id="gc-reveal" class="hide gc-play">
     <div class="bar"><span id="gc-rmeta" class="me"></span></div>
-    <div id="gc-answer" class="gc-lbl gc-answer">Answer</div>
+    <div class="gc-target-wrap">
+      <div id="gc-rtarget" class="gc-chip gc-chip-lg"></div>
+      <span id="gc-answer" class="gc-lbl gc-answer">Answer</span>
+    </div>
     <div class="gc-legend">◀ answer &middot; guess ▶</div>
     <div id="gc-guesses" class="gc-guesses"></div>
     <div id="gc-winner" class="gc-winner"></div>
@@ -362,6 +365,51 @@
     <div id="bs-over-grid" class="bs-grid"></div>
     <button id="bs-rematch" class="btn big">Rematch</button>
     <button id="bs-back" class="btn ghost">Back to lobby</button>
+  </div>
+</section>
+
+<!-- 13. Spectrum (wavelength-style guessing): one player (the psychic) sees a
+     hidden target on a spectrum and types a clue; everyone else slides to guess. -->
+<section id="spectrum" class="screen hide">
+  <div id="sp-lobby" class="hide">
+    <header class="bar"><h2>Spectrum</h2><span id="sp-me" class="me"></span></header>
+    <ul id="sp-players" class="players"></ul>
+    <button id="sp-ready" class="btn big">I'm ready</button>
+    <p class="sub">Vote a pack</p>
+    <div id="sp-topics" class="topics"></div>
+  </div>
+  <div id="sp-count" class="hide count">
+    <div class="count-topic">Spectrum</div>
+    <div id="sp-count-num" class="count-num">3</div>
+    <div class="sub">Starting</div>
+  </div>
+  <div id="sp-play" class="hide">
+    <div class="bar"><span id="sp-meta" class="me"></span><span id="sp-role" class="me"></span></div>
+    <div id="sp-bar" class="timebar hide"><i></i></div>
+    <div class="sp-dialwrap">
+      <svg id="sp-dial" class="sp-dial" viewBox="0 0 220 128" aria-hidden="true">
+        <path class="sp-arc" d="M14 114 A96 96 0 0 1 206 114"></path>
+        <g id="sp-bands"></g>
+        <g id="sp-dmarks"></g>
+        <line id="sp-ndl" class="sp-ndl hide" x1="110" y1="114" x2="110" y2="18"></line>
+        <circle class="sp-hub" cx="110" cy="114" r="7"></circle>
+      </svg>
+      <span id="sp-left" class="sp-end"></span>
+      <span id="sp-right" class="sp-end sp-end-r"></span>
+    </div>
+    <div id="sp-clue" class="sp-clue"></div>
+    <div id="sp-clueform" class="sp-clueform hide">
+      <input id="sp-cluein" class="sp-cluein" maxlength="38" placeholder="Type your clue…"
+             autocomplete="off" spellcheck="false">
+      <button id="sp-cluego" class="btn sm">Send</button>
+    </div>
+    <button id="sp-guessgo" class="btn big hide">Lock in guess</button>
+    <div id="sp-note" class="sp-note"></div>
+  </div>
+  <div id="sp-final" class="hide">
+    <header class="bar"><h2>Final</h2></header>
+    <ol id="sp-podium" class="podium"></ol>
+    <button id="sp-again" class="btn big">Play again</button>
   </div>
 </section>
 

@@ -35,6 +35,7 @@ const js = [
   read("games/react.js"),
   read("games/guesscolor.js"),
   read("games/battleship.js"),
+  read("games/spectrum.js"),
 ].map((f) => minify(f, false)).join("\n");
 
 let html = read("src/index.html")

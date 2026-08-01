@@ -1,3 +1,22 @@
+## 1.3
+
+- New game: Spectrum, a Wavelength-style guessing game. Each round one player is the
+  psychic: they see a hidden target on a 0-100 spectrum between two opposing words and type
+  a clue; everyone else slides a dial to guess where it lands. Points by closeness, and the
+  psychic scores by how well the group guesses, so a good clue pays off. Six rounds, four
+  content packs. Thanks to genkigenki for contributing it.
+- Firmware v14.
+
+## 1.2
+
+- Two new games, bringing the total to twelve.
+- Guess the Color: a random color swatch appears; dial in its R/G/B with a slider per
+  channel. Closest guess wins the round with a speed bonus, over five rounds. The reveal
+  lines up everyone's guess beside the answer so you can see how close each was.
+- Battleship: place a hidden fleet of five ships on a 10x10 grid, then fire at the enemy
+  grid. A hit lets you fire again; sink all five ships to win.
+- Firmware v13.
+
 ## 1.1
 
 - Flash more than one ESP board: "Install Firmware" now opens a board picker for the
