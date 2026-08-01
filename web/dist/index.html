@@ -268,7 +268,10 @@ spellcheck="false" placeholder="Type the word">
 </div>
 <div id="gc-reveal" class="hide gc-play">
 <div class="bar"><span id="gc-rmeta" class="me"></span></div>
-<div id="gc-answer" class="gc-lbl gc-answer">Answer</div>
+<div class="gc-target-wrap">
+<div id="gc-rtarget" class="gc-chip gc-chip-lg"></div>
+<span id="gc-answer" class="gc-lbl gc-answer">Answer</span>
+</div>
 <div class="gc-legend">◀ answer &middot; guess ▶</div>
 <div id="gc-guesses" class="gc-guesses"></div>
 <div id="gc-winner" class="gc-winner"></div>
@@ -1867,6 +1870,7 @@ A.showLead(m.scores || [], false);
 function renderReveal(m) {
 sub("reveal");
 $("gc-rmeta").textContent = "Round " + m.round + " / " + m.rounds;
+$("gc-rtarget").style.background = m.color; // the answer color, shown big up top
 $("gc-answer").textContent = "Answer  " + m.r + ", " + m.g + ", " + m.b;
 var gs = (m.guesses || []).slice().sort(function (a, b) {
 return b.points - a.points || a.dist - b.dist;
