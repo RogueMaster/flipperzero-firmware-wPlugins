@@ -275,6 +275,25 @@ int main(void) {
     assert(opens == closes && frees == opens);
     mf_settings_test_free(state);
 
+    /* Reopening the page must map persisted core enum values back to the same row. */
+    {
+        static const uint8_t modes[] = {1U, 2U};
+        static const char* const names[] = {"Straight", "Bug"};
+
+        for(uint8_t index = 0U; index < sizeof(modes); index++) {
+            list = (VariableItemList){0};
+            args.entry = MfSettingsEntryKeying;
+            args.list = &list;
+            args.snapshot.keyer_mode = modes[index];
+            state = mf_settings_test_alloc();
+            assert(mf_settings_test_enter(state, &args));
+            assert(list.items[2].current_index == index);
+            assert(strcmp(list.items[2].current_text, names[index]) == 0);
+            mf_settings_test_leave(state);
+            mf_settings_test_free(state);
+        }
+    }
+
     list = (VariableItemList){0};
     calls = 0U;
     storage_fixture = "numbers=0123456789\nmore dits=EISH5AUVNDB\n";

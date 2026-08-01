@@ -67,7 +67,9 @@ void morse_flipper_enter_screen(
         app->ham.wpm_hold_next_at = 0U;
     }
 
-    morse_flipper_clear_button_keying(app, now_ms);
+    morse_keyer_reset(&app->keyer);
+    morse_flipper_drain_keyer_events(app);
+    morse_flipper_drop_live_keying_for_playback(app, now_ms);
 
     if(screen == MorseFlipperScreenSession && app->screen != MorseFlipperScreenSession &&
        app->screen != MorseFlipperScreenSessionEnd) {
