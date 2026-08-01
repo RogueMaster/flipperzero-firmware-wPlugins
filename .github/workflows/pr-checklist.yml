@@ -1,0 +1,58 @@
+name: pr-checklist
+
+# Review each PR against the CONTRIBUTING.md checklist: hard checks (ha_proto.h agreement,
+# a committed & current web bundle) fail the job; "adding a game" wiring/docs items are
+# posted as advisory reminders. The report goes to the run summary always, and to a sticky
+# PR comment when the token can write (i.e. not fork PRs).
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  checklist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run PR checklist
+        id: check
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch --no-tags --depth=100 origin "$BASE_REF"
+          set +e
+          BASE="origin/$BASE_REF" node tools/pr-check.mjs > checklist.md
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+          cat checklist.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on the PR
+        if: always()
+        continue-on-error: true # fork PRs get a read-only token; the run summary still has it
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const marker = "<!-- pr-checklist-bot -->";
+            const body = fs.readFileSync("checklist.md", "utf8") + "\n" + marker;
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+            const prev = comments.find((c) => c.body.includes(marker));
+            if (prev) await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body });
+            else await github.rest.issues.createComment({ owner, repo, issue_number, body });
+
+      - name: Enforce required checks
+        if: steps.check.outputs.exit != '0'
+        run: |
+          echo "Required PR checks failed — see the checklist in the run summary / PR comment."
+          exit 1
