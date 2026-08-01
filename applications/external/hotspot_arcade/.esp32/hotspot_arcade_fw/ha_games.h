@@ -2714,7 +2714,8 @@ private:
             float sf = 1.0f - (float)_gc.submitMs[i] / (float)GC_SPEED_MS;
             if(sf < 0) sf = 0;
             int speed = (int)(100.0f * sf + 0.5f);
-            int pts = closeness + speed;
+            int pts = (int)((closeness + speed) / 30.0f + 0.5f); // rescale 0..300 -> 0..10
+            if(pts > 10) pts = 10;
             _gc.gained[i] = pts;
             _p[i].score += pts;
             haUartScore(i, pts, "gc");
@@ -2771,22 +2772,28 @@ private:
         String s = String("{\"t\":\"gc\",\"phase\":\"reveal\",\"round\":") + pt.round +
                    ",\"rounds\":" + GC_ROUNDS + ",\"r\":" + _gc.tr + ",\"g\":" + _gc.tg +
                    ",\"b\":" + _gc.tb + ",\"color\":\"" + color + "\"";
-        if(_gc.guessed[pid]) {
-            int dr = (int)_gc.gr[pid] - _gc.tr, dg = (int)_gc.gg[pid] - _gc.tg,
-                db = (int)_gc.gb[pid] - _gc.tb;
+        // Every player's guess, so the reveal can compare them side by side.
+        s += ",\"guesses\":[";
+        bool gfirst = true;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used || !_gc.guessed[i]) continue;
+            int dr = (int)_gc.gr[i] - _gc.tr, dg = (int)_gc.gg[i] - _gc.tg,
+                db = (int)_gc.gb[i] - _gc.tb;
             int dist = (int)(sqrtf((float)(dr * dr + dg * dg + db * db)) + 0.5f);
             char gcol[8];
-            snprintf(gcol, sizeof(gcol), "#%02X%02X%02X", _gc.gr[pid], _gc.gg[pid], _gc.gb[pid]);
-            s += ",\"your\":{\"r\":" + String(_gc.gr[pid]) + ",\"g\":" + String(_gc.gg[pid]) +
-                 ",\"b\":" + String(_gc.gb[pid]) + ",\"color\":\"" + gcol + "\",\"dist\":" + dist +
-                 ",\"points\":" + _gc.gained[pid] + "}";
-        } else {
-            s += ",\"your\":null";
+            snprintf(gcol, sizeof(gcol), "#%02X%02X%02X", _gc.gr[i], _gc.gg[i], _gc.gb[i]);
+            if(!gfirst) s += ",";
+            s += "{\"pid\":" + String(i) + ",\"nick\":\"" + ha_json_escape(_p[i].nick) +
+                 "\",\"color\":\"" + gcol + "\",\"dist\":" + dist + ",\"points\":" + _gc.gained[i] + "}";
+            gfirst = false;
         }
+        s += "]";
         if(_gc.winner) {
             s += ",\"winner\":\"";
             s += ha_json_escape(_p[_gc.winner].nick);
-            s += "\",\"iwon\":";
+            s += "\",\"winnerPid\":";
+            s += _gc.winner;
+            s += ",\"iwon\":";
             s += (_gc.winner == pid) ? "true" : "false";
         } else {
             s += ",\"winner\":null";

@@ -59,7 +59,7 @@
   function renderFinal(m) {
     sub("final");
     A.hideLead();
-    var b = A.podium("rc-podium", m.scores);
+    var b = A.podium("rc-podium", m.board); // final JSON carries the scoreboard as `board`
     if (b.length && b[0].pid === A.pid) { A.sfx("win"); A.vibe([30, 50, 30]); }
     else A.sfx("lose");
   }

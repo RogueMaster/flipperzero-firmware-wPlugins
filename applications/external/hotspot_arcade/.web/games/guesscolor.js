@@ -71,27 +71,36 @@
   function renderReveal(m) {
     sub("reveal");
     $("gc-rmeta").textContent = "Round " + m.round + " / " + m.rounds;
-    $("gc-rtarget").style.background = m.color;
-    if (m.your) {
-      $("gc-rguess").style.background = m.your.color;
-      $("gc-rguess-lbl").textContent = "You";
-      $("gc-result").innerHTML =
-        '<div class="gc-nums">answer <b>' + m.r + ", " + m.g + ", " + m.b + "</b></div>" +
-        '<div class="gc-nums">you <b>' + m.your.r + ", " + m.your.g + ", " + m.your.b + "</b>" +
-        " &middot; off by " + m.your.dist + "</div>" +
-        '<div class="gc-pts">+' + m.your.points + " pts</div>";
-    } else {
-      $("gc-rguess").style.background = "#000";
-      $("gc-rguess-lbl").textContent = "No guess";
-      $("gc-result").innerHTML =
-        '<div class="gc-nums">answer <b>' + m.r + ", " + m.g + ", " + m.b + "</b></div>" +
-        '<div class="gc-pts">no guess</div>';
-    }
+    $("gc-answer").textContent = "Answer  " + m.r + ", " + m.g + ", " + m.b;
+    // One row per player who guessed, closest (highest points) first. Each row's
+    // swatch is split down the middle: left half is the answer, right half is that
+    // player's guess, so how well the two halves match reads at a glance.
+    var gs = (m.guesses || []).slice().sort(function (a, b) {
+      return b.points - a.points || a.dist - b.dist;
+    });
+    var list = $("gc-guesses");
+    list.innerHTML = "";
+    gs.forEach(function (g) {
+      var row = document.createElement("div");
+      row.className = "gc-grow" +
+        (g.pid === A.pid ? " you" : "") +
+        (g.pid === m.winnerPid ? " win" : "");
+      row.innerHTML =
+        '<span class="gc-gsw">' +
+          '<span class="gc-h" style="background:' + esc(m.color) + '"></span>' +
+          '<span class="gc-h" style="background:' + esc(g.color) + '"></span>' +
+        "</span>" +
+        '<span class="gc-gn">' + esc(g.nick) + "</span>" +
+        '<span class="gc-gd">off ' + g.dist + "</span>" +
+        '<span class="gc-gp">' + g.points + "/10</span>";
+      list.appendChild(row);
+    });
+    if (!gs.length) list.innerHTML = '<div class="gc-grow"><span class="gc-gn">No guesses</span></div>';
     if (m.winner) {
       $("gc-winner").textContent = m.iwon ? "You were closest!" : esc(m.winner) + " was closest";
       if (m.iwon) { A.sfx("win"); A.vibe([30, 50, 30]); } else A.sfx("tick");
     } else {
-      $("gc-winner").textContent = "No guesses";
+      $("gc-winner").textContent = "";
     }
     round = -1; // force a reset when the next play round arrives
     A.showLead(m.scores || [], true);
@@ -100,7 +109,7 @@
   function renderFinal(m) {
     sub("final");
     A.hideLead();
-    var b = A.podium("gc-podium", m.scores);
+    var b = A.podium("gc-podium", m.board); // final JSON carries the scoreboard as `board`
     if (b.length && b[0].pid === A.pid) { A.sfx("win"); A.vibe([30, 50, 30]); }
     else A.sfx("lose");
     round = -1;

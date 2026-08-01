@@ -6,15 +6,28 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-31
+
+Two new games bring the count to **twelve**. Firmware **v13**.
+
 ### Added
 
 - **Guess the Color**, an 11th game (whole-group). A random color swatch appears and
   everyone dials in its R/G/B with a slider per channel; closest guess wins the round with
-  a speed bonus, over five rounds to a podium. No preview of your own color while guessing.
-  Firmware **v12**.
+  a speed bonus, scored **0-10**, over five rounds to a podium. You never see your own color
+  while guessing — the reveal then lines up every player's guess beside the answer as a
+  split swatch (answer on the left, that player's guess on the right) so you can see how
+  close each was. Firmware **v12**.
 - **Battleship**, a 12th game (1v1). Place a hidden fleet of five ships on a 10x10 grid,
   then fire at the enemy grid; a hit lets you fire again, and sinking all five ships wins.
-  Firmware **v13**.
+  Distinct hit / miss / sunk sounds, an orange border on your grid when it's your turn, and
+  the enemy fleet revealed at the end. Firmware **v13**.
+
+### Changed
+
+- The official ESP32-S2 dev board is manual-only in the flasher again: its reset lines
+  aren't wired to the pins the auto-boot pulse drives, so the "(auto boot)" row never
+  dropped it into download mode. WROOM and C5 keep both their auto-boot and manual rows.
 
 ## [1.1.2] - 2026-07-22
 
