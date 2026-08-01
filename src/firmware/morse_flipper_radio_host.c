@@ -6,19 +6,6 @@
 
 #define MORSE_FLIPPER_RADIO_PLUGIN_PATH APP_ASSETS_PATH("plugins/morse_flipper_radio.fal")
 
-static bool morse_flipper_radio_host_snapshot_locked(
-    const MorseFlipperApp* app,
-    MfRadioSnapshot* snapshot) {
-    const MfRadioApi* api;
-    if(app == NULL || snapshot == NULL || app->plugin_slot.owner != MorseFlipperPluginOwnerRadio ||
-       app->plugin_slot.error != MorseFlipperPluginErrorNone || app->plugin_slot.api == NULL ||
-       app->plugin_slot.state == NULL)
-        return false;
-    api = app->plugin_slot.api;
-    *snapshot = (MfRadioSnapshot){.struct_size = sizeof(MfRadioSnapshot)};
-    return mf_radio_api_valid(api) && api->snapshot(app->plugin_slot.state, snapshot);
-}
-
 static void morse_flipper_radio_host_apply(
     MorseFlipperApp* app,
     const MfRadioSnapshot* snapshot,
@@ -44,10 +31,8 @@ static void morse_flipper_radio_host_apply(
 
 bool morse_flipper_radio_host_open(MorseFlipperApp* app, uint32_t now_ms) {
     MorseFlipperMappedFalResult initial = {0};
-    MfRadioSnapshot snapshot = {0};
     MfRadioEnterArgs args;
     bool opened;
-    bool have_snapshot = false;
     if(app == NULL || app->plugin_slot.mutex == NULL) return false;
     if(morse_flipper_radio_host_active(app)) return true;
 
@@ -81,16 +66,14 @@ bool morse_flipper_radio_host_open(MorseFlipperApp* app, uint32_t now_ms) {
         sizeof(MfRadioApi),
         &args,
         &initial);
-    if(opened) {
-        have_snapshot = morse_flipper_radio_host_snapshot_locked(app, &snapshot);
-    } else {
+    if(!opened) {
         morse_flipper_plugin_runtime_release_claim_locked(app, MorseFlipperPluginOwnerRadio);
     }
     furi_mutex_release(app->plugin_slot.mutex);
 
     app->radio_load_error = !opened;
     if(opened)
-        morse_flipper_radio_host_apply(app, have_snapshot ? &snapshot : NULL, initial, now_ms);
+        morse_flipper_radio_host_apply(app, NULL, initial, now_ms);
     else
         morse_flipper_view_dirty(app);
     return opened;
@@ -103,53 +86,33 @@ bool morse_flipper_radio_host_active(const MorseFlipperApp* app) {
 }
 
 bool morse_flipper_radio_host_set_page(MorseFlipperApp* app, MfRadioPage page, uint32_t now_ms) {
-    const MfRadioApi* api;
     MorseFlipperMappedFalResult result = {0};
     MfRadioSnapshot snapshot = {0};
-    bool have_snapshot = false;
-    bool called = false;
-    if(app == NULL || app->plugin_slot.mutex == NULL) return false;
-
-    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
-    if(app->plugin_slot.owner == MorseFlipperPluginOwnerRadio &&
-       app->plugin_slot.error == MorseFlipperPluginErrorNone && app->plugin_slot.api != NULL &&
-       app->plugin_slot.state != NULL) {
-        api = app->plugin_slot.api;
-        if(mf_radio_api_valid(api)) {
-            result = api->set_page(app->plugin_slot.state, page, now_ms);
-            called = true;
-            have_snapshot = morse_flipper_radio_host_snapshot_locked(app, &snapshot);
-        }
-    }
-    furi_mutex_release(app->plugin_slot.mutex);
-    if(called)
-        morse_flipper_radio_host_apply(app, have_snapshot ? &snapshot : NULL, result, now_ms);
+    bool called = morse_flipper_plugin_runtime_call(
+        app,
+        MorseFlipperPluginOwnerRadio,
+        MfRadioCommandSetPage,
+        &page,
+        &snapshot,
+        now_ms,
+        &result);
+    if(called) morse_flipper_radio_host_apply(app, &snapshot, result, now_ms);
     return called;
 }
 
 bool morse_flipper_radio_host_input(MorseFlipperApp* app, const InputEvent* event, uint32_t now_ms) {
-    const MfRadioApi* api;
     MorseFlipperMappedFalResult result = {0};
     MfRadioSnapshot snapshot = {0};
-    bool have_snapshot = false;
-    bool called = false;
     if(app == NULL || event == NULL || app->plugin_slot.mutex == NULL) return false;
-
-    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
-    if(app->plugin_slot.owner == MorseFlipperPluginOwnerRadio &&
-       app->plugin_slot.error == MorseFlipperPluginErrorNone && app->plugin_slot.api != NULL &&
-       app->plugin_slot.state != NULL) {
-        api = app->plugin_slot.api;
-        if(mf_radio_api_valid(api)) {
-            result = api->mapped.input(app->plugin_slot.state, event, now_ms);
-            called = true;
-            have_snapshot = morse_flipper_radio_host_snapshot_locked(app, &snapshot);
-        }
-    }
-    furi_mutex_release(app->plugin_slot.mutex);
-
-    if(called)
-        morse_flipper_radio_host_apply(app, have_snapshot ? &snapshot : NULL, result, now_ms);
+    bool called = morse_flipper_plugin_runtime_call(
+        app,
+        MorseFlipperPluginOwnerRadio,
+        MORSE_FLIPPER_MAPPED_INPUT,
+        event,
+        &snapshot,
+        now_ms,
+        &result);
+    if(called) morse_flipper_radio_host_apply(app, &snapshot, result, now_ms);
     if(result.request_exit || (!called && event->key == InputKeyBack &&
                                (event->type == InputTypeShort || event->type == InputTypeLong))) {
         morse_flipper_release_all_notes(app);
@@ -165,27 +128,17 @@ bool morse_flipper_radio_host_input(MorseFlipperApp* app, const InputEvent* even
 }
 
 void morse_flipper_radio_host_tick(MorseFlipperApp* app, uint32_t now_ms) {
-    const MfRadioApi* api;
     MorseFlipperMappedFalResult result = {0};
     MfRadioSnapshot snapshot = {0};
-    bool have_snapshot = false;
-    bool called = false;
-    if(app == NULL || app->plugin_slot.mutex == NULL) return;
-
-    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
-    if(app->plugin_slot.owner == MorseFlipperPluginOwnerRadio &&
-       app->plugin_slot.error == MorseFlipperPluginErrorNone && app->plugin_slot.api != NULL &&
-       app->plugin_slot.state != NULL) {
-        api = app->plugin_slot.api;
-        if(mf_radio_api_valid(api)) {
-            result = api->mapped.tick(app->plugin_slot.state, now_ms);
-            called = true;
-            have_snapshot = morse_flipper_radio_host_snapshot_locked(app, &snapshot);
-        }
-    }
-    furi_mutex_release(app->plugin_slot.mutex);
-    if(called)
-        morse_flipper_radio_host_apply(app, have_snapshot ? &snapshot : NULL, result, now_ms);
+    if(morse_flipper_plugin_runtime_call(
+           app,
+           MorseFlipperPluginOwnerRadio,
+           MORSE_FLIPPER_MAPPED_TICK,
+           NULL,
+           &snapshot,
+           now_ms,
+           &result))
+        morse_flipper_radio_host_apply(app, &snapshot, result, now_ms);
 }
 
 void morse_flipper_radio_host_sync_tx(
@@ -194,70 +147,37 @@ void morse_flipper_radio_host_sync_tx(
     uint16_t duration_ms,
     bool level,
     uint32_t now_ms) {
-    const MfRadioApi* api;
+    MfRadioSyncTxCommand command = {
+        .completed_interval = completed_interval, .duration_ms = duration_ms, .level = level};
     MorseFlipperMappedFalResult result = {0};
     MfRadioSnapshot snapshot = {0};
-    bool have_snapshot = false;
-    bool called = false;
-    if(app == NULL || app->plugin_slot.mutex == NULL) return;
-
-    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
-    if(app->plugin_slot.owner == MorseFlipperPluginOwnerRadio &&
-       app->plugin_slot.error == MorseFlipperPluginErrorNone && app->plugin_slot.api != NULL &&
-       app->plugin_slot.state != NULL) {
-        api = app->plugin_slot.api;
-        if(mf_radio_api_valid(api)) {
-            result = api->sync_tx(
-                app->plugin_slot.state, completed_interval, duration_ms, level, now_ms);
-            called = true;
-            have_snapshot = morse_flipper_radio_host_snapshot_locked(app, &snapshot);
-        }
-    }
-    furi_mutex_release(app->plugin_slot.mutex);
-    if(called)
-        morse_flipper_radio_host_apply(app, have_snapshot ? &snapshot : NULL, result, now_ms);
+    if(morse_flipper_plugin_runtime_call(
+           app,
+           MorseFlipperPluginOwnerRadio,
+           MfRadioCommandSyncTx,
+           &command,
+           &snapshot,
+           now_ms,
+           &result))
+        morse_flipper_radio_host_apply(app, &snapshot, result, now_ms);
 }
 
 void morse_flipper_radio_host_draw(MorseFlipperApp* app, Canvas* canvas, uint32_t now_ms) {
-    const MfRadioApi* api;
-    bool drawn = false;
-    if(app == NULL || canvas == NULL || app->plugin_slot.mutex == NULL) return;
-    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
-    if(app->plugin_slot.owner == MorseFlipperPluginOwnerRadio &&
-       app->plugin_slot.error == MorseFlipperPluginErrorNone && app->plugin_slot.api != NULL &&
-       app->plugin_slot.state != NULL) {
-        api = app->plugin_slot.api;
-        if(mf_radio_api_valid(api)) {
-            api->mapped.draw(app->plugin_slot.state, canvas, now_ms);
-            drawn = true;
-        }
-    }
-    furi_mutex_release(app->plugin_slot.mutex);
-    if(!drawn) morse_flipper_draw_plugin_unavailable(canvas);
+    morse_flipper_plugin_runtime_draw(app, canvas, now_ms);
 }
 
 void morse_flipper_radio_host_close(MorseFlipperApp* app, uint32_t now_ms) {
-    const MfRadioApi* api;
-    MfRadioSnapshot snapshot = {0};
-    MorseFlipperMappedFalResult result = {0};
-    bool have_snapshot = false;
     if(app == NULL || app->plugin_slot.mutex == NULL) return;
 
     morse_flipper_release_all_notes(app);
+    (void)morse_flipper_radio_host_set_page(app, MfRadioPageIdle, now_ms);
     furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
-    if(app->plugin_slot.owner == MorseFlipperPluginOwnerRadio) {
-        api = app->plugin_slot.api;
-        if(app->plugin_slot.error == MorseFlipperPluginErrorNone &&
-           app->plugin_slot.state != NULL && mf_radio_api_valid(api)) {
-            result = api->set_page(app->plugin_slot.state, MfRadioPageIdle, now_ms);
-            have_snapshot = morse_flipper_radio_host_snapshot_locked(app, &snapshot);
-        }
+    if(app->plugin_slot.owner == MorseFlipperPluginOwnerRadio)
         morse_flipper_plugin_runtime_detach_locked(app, MorseFlipperPluginOwnerRadio);
-    }
     furi_mutex_release(app->plugin_slot.mutex);
 
     app->radio_load_error = false;
     app->radio_tx_active = false;
     app->radio_monitor_tone = false;
-    morse_flipper_radio_host_apply(app, have_snapshot ? &snapshot : NULL, result, now_ms);
+    morse_flipper_radio_host_apply(app, NULL, (MorseFlipperMappedFalResult){0}, now_ms);
 }

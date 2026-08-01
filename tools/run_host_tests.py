@@ -27,13 +27,18 @@ class CTest:
 
 
 TESTS = (
+    CTest("ardf-core", ("tests/test_ardf_core.c", "src/firmware/plugins/ardf/mf_ardf_core.c", "src/firmware/plugins/ardf/mf_ardf_settings.c", "src/firmware/cw.c")),
+    CTest("ardf-settings", ("tests/test_ardf_settings.c", "src/firmware/plugins/ardf/mf_ardf_settings.c")),
+    CTest("ardf-draw", ("tests/test_ardf_draw.c", "src/firmware/plugins/ardf/mf_ardf_draw.c", "src/firmware/plugins/ardf/mf_ardf_core.c", "src/firmware/plugins/ardf/mf_ardf_settings.c", "src/firmware/cw.c")),
+    CTest("ardf-tx-session", ("tests/test_ardf_tx_session.c", "src/firmware/plugins/common/mf_radio_tx_session.c", "src/firmware/plugins/radio/mf_radio_core.c", "src/firmware/morse_flipper_radio_decoder_services.c", "src/firmware/morse_flipper_run_history.c", "src/firmware/morse_flipper_cw_decoder.c", "src/firmware/morse_flipper_cw_token.c", "src/firmware/cw.c")),
+    CTest("ardf-host", ("tests/test_ardf_host.c", "src/firmware/morse_flipper_ardf_host.c"), ("MF_ARDF_HOST_TEST",)),
     CTest("time", ("tests/test_time.c",)),
     CTest("keyer", ("tests/test_keyer.c", "src/firmware/keyer.c")),
     CTest("training-timing", ("tests/test_training_timing.c", "src/firmware/morse_flipper_training_timing.c")),
     CTest("cw-decoder-preview", ("tests/test_cw_decoder_preview.c", "src/firmware/morse_flipper_cw_decoder.c", "src/firmware/morse_flipper_cw_token.c", "src/firmware/cw.c")),
     CTest("radio-decoder-services", ("tests/test_radio_decoder_services.c", "src/firmware/morse_flipper_radio_decoder_services.c", "src/firmware/morse_flipper_cw_decoder.c", "src/firmware/morse_flipper_cw_token.c", "src/firmware/cw.c")),
-    CTest("radio-fal-lifecycle", ("tests/test_radio_fal_lifecycle.c", "src/firmware/plugins/radio/mf_radio_core.c", "src/firmware/morse_flipper_radio_decoder_services.c", "src/firmware/morse_flipper_run_history.c", "src/firmware/morse_flipper_cw_decoder.c", "src/firmware/morse_flipper_cw_token.c", "src/firmware/cw.c")),
-    CTest("radio-fal", ("tests/test_radio_fal.c", "src/firmware/plugins/radio/mf_radio_core.c", "src/firmware/plugins/radio/mf_radio_draw.c", "src/firmware/morse_flipper_radio_decoder_services.c", "src/firmware/morse_flipper_run_history.c", "src/firmware/morse_flipper_cw_decoder.c", "src/firmware/morse_flipper_cw_token.c", "src/firmware/cw.c")),
+    CTest("radio-fal-lifecycle", ("tests/test_radio_fal_lifecycle.c", "src/firmware/plugins/radio/mf_radio_core.c", "src/firmware/plugins/common/mf_radio_tx_session.c", "src/firmware/morse_flipper_radio_decoder_services.c", "src/firmware/morse_flipper_run_history.c", "src/firmware/morse_flipper_cw_decoder.c", "src/firmware/morse_flipper_cw_token.c", "src/firmware/cw.c")),
+    CTest("radio-fal", ("tests/test_radio_fal.c", "src/firmware/plugins/radio/mf_radio_core.c", "src/firmware/plugins/common/mf_radio_tx_session.c", "src/firmware/plugins/radio/mf_radio_draw.c", "src/firmware/morse_flipper_radio_decoder_services.c", "src/firmware/morse_flipper_run_history.c", "src/firmware/morse_flipper_cw_decoder.c", "src/firmware/morse_flipper_cw_token.c", "src/firmware/cw.c")),
     CTest("radio-cwfm-timing", ("tests/test_radio_cwfm_timing.c", "src/firmware/plugins/radio/mf_radio_hal.c")),
     CTest("radio-host", ("tests/test_radio_host.c", "src/firmware/morse_flipper_radio_host.c"), ("MF_RADIO_HOST_TEST",)),
     CTest("radio-config-boundary", ("tests/test_radio_config_boundary.c",)),
@@ -68,6 +73,7 @@ TESTS = (
 )
 
 PYTHON_TESTS = (
+    "tests/test_ardf_fal_structure.py",
     "tests/test_callsign_structure.py",
     "tests/test_fap_bundle_check.py",
     "tests/test_passive_config_compat.py",

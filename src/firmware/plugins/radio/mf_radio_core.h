@@ -2,6 +2,7 @@
 
 #include "mf_radio_api.h"
 #include "mf_radio_hal.h"
+#include "../common/mf_radio_tx_session.h"
 
 #define MF_RADIO_FREQ_DIGITS           6U
 #define MF_RADIO_RX_DEFAULT_WPM        10U
@@ -40,6 +41,7 @@ typedef struct {
 typedef struct {
     MfRadioSnapshot snapshot;
     MfRadioHardwareOps hardware;
+    MfRadioTxSession tx_session;
     const MfRadioDecoderServices* decoder_services;
     const MfRadioDrawServices* draw_services;
     MorseFlipperCwDecoder decoder;

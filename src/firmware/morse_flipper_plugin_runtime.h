@@ -18,6 +18,7 @@ typedef enum {
     MorseFlipperPluginOwnerTxGroups,
     MorseFlipperPluginOwnerSettings,
     MorseFlipperPluginOwnerRadio,
+    MorseFlipperPluginOwnerArdf,
 } MorseFlipperPluginOwner;
 
 typedef enum {
@@ -29,6 +30,9 @@ typedef enum {
     MorseFlipperPluginErrorTable,
     MorseFlipperPluginErrorState,
 } MorseFlipperPluginError;
+
+#define MORSE_FLIPPER_MAPPED_INPUT (UINT32_MAX - 1U)
+#define MORSE_FLIPPER_MAPPED_TICK  UINT32_MAX
 
 typedef struct {
     FuriMutex* mutex;
@@ -91,6 +95,14 @@ void morse_flipper_plugin_runtime_detach_locked(
 bool morse_flipper_plugin_runtime_tick_locked(
     MorseFlipperApp* app,
     MorseFlipperPluginOwner owner,
+    uint32_t now_ms,
+    MorseFlipperMappedFalResult* result);
+bool morse_flipper_plugin_runtime_call(
+    MorseFlipperApp* app,
+    MorseFlipperPluginOwner owner,
+    uint32_t operation,
+    const void* input,
+    void* output,
     uint32_t now_ms,
     MorseFlipperMappedFalResult* result);
 void morse_flipper_plugin_runtime_apply_result_locked(

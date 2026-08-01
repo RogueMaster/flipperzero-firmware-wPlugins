@@ -12,6 +12,7 @@ from pathlib import Path
 ASSET_MAGIC = 0x4F4C5A44
 ASSET_VERSION = 1
 REQUIRED_FALS = (
+    "morse_flipper_ardf.fal",
     "morse_flipper_help_about.fal",
     "morse_flipper_icr.fal",
     "morse_flipper_passive_listening.fal",

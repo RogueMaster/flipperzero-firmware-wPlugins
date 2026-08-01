@@ -10,7 +10,7 @@
 #include "mf_radio_types.h"
 
 #define MF_RADIO_API_MAGIC   0x4D465246UL
-#define MF_RADIO_API_VERSION 2U
+#define MF_RADIO_API_VERSION 3U
 
 typedef struct {
     uint32_t struct_size;
@@ -69,15 +69,19 @@ typedef struct {
 } MfRadioSnapshot;
 
 typedef struct {
-    MorseFlipperMappedFalApi mapped;
-    MorseFlipperMappedFalResult (*set_page)(void* state, MfRadioPage page, uint32_t now_ms);
-    MorseFlipperMappedFalResult (*sync_tx)(
-        void* state,
-        MfRadioTxInterval completed_interval,
-        uint16_t duration_ms,
-        bool level,
-        uint32_t now_ms);
-    bool (*snapshot)(const void* state, MfRadioSnapshot* snapshot);
+    MfRadioTxInterval completed_interval;
+    uint16_t duration_ms;
+    bool level;
+} MfRadioSyncTxCommand;
+
+typedef enum {
+    MfRadioCommandSnapshot = 0,
+    MfRadioCommandSetPage,
+    MfRadioCommandSyncTx,
+} MfRadioCommand;
+
+typedef struct {
+    MorseFlipperCommandFalApi fal;
 } MfRadioApi;
 
 static inline bool mf_radio_decoder_services_valid(const MfRadioDecoderServices* services) {
@@ -95,10 +99,11 @@ static inline bool mf_radio_draw_services_valid(const MfRadioDrawServices* servi
 }
 
 static inline bool mf_radio_api_valid(const MfRadioApi* api) {
-    return api != NULL && api->mapped.magic == MF_RADIO_API_MAGIC &&
-           api->mapped.api_version == MF_RADIO_API_VERSION &&
-           api->mapped.struct_size == sizeof(MfRadioApi) && api->mapped.alloc != NULL &&
-           api->mapped.free != NULL && api->mapped.enter != NULL && api->mapped.leave != NULL &&
-           api->mapped.input != NULL && api->mapped.tick != NULL && api->mapped.draw != NULL &&
-           api->set_page != NULL && api->sync_tx != NULL && api->snapshot != NULL;
+    const MorseFlipperMappedFalApi* mapped = api != NULL ? &api->fal.mapped : NULL;
+    return mapped != NULL && mapped->magic == MF_RADIO_API_MAGIC &&
+           mapped->api_version == MF_RADIO_API_VERSION &&
+           mapped->struct_size == sizeof(MfRadioApi) && mapped->alloc != NULL &&
+           mapped->free != NULL && mapped->enter != NULL && mapped->leave != NULL &&
+           mapped->input != NULL && mapped->tick != NULL && mapped->draw != NULL &&
+           api->fal.command != NULL;
 }

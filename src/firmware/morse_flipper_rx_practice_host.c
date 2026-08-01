@@ -16,7 +16,7 @@ static void mf_rx_apply_locked(MorseFlipperApp* app, MfRxPracticeResult result, 
 
 static void
     mf_rx_apply_after_unlock(MorseFlipperApp* app, MfRxPracticeResult result, uint32_t now_ms) {
-    if(!result.decoder_reset) return;
+    if(!result.transition) return;
     morse_flipper_reset_answer_decoder(app);
     if(result.phase != MfRxPracticePhaseAnswer) {
         morse_flipper_drop_live_keying_for_playback(app, now_ms);
@@ -79,7 +79,7 @@ bool morse_flipper_rx_practice_host_enter(MorseFlipperApp* app, uint32_t now_ms)
         mf_rx_apply_locked(app, initial, now_ms);
     }
     furi_mutex_release(app->plugin_slot.mutex);
-    initial.decoder_reset = true;
+    initial.transition = true;
     mf_rx_apply_after_unlock(app, initial, now_ms);
     return entered;
 }
@@ -146,7 +146,7 @@ bool morse_flipper_rx_practice_host_feed(
     mf_rx_apply_after_unlock(app, result, now_ms);
     if(result.feedback == MfRxPracticeFeedbackPass || result.feedback == MfRxPracticeFeedbackFail)
         morse_flipper_activity_note_rx(result.feedback == MfRxPracticeFeedbackPass);
-    return result.decoder_reset;
+    return result.transition;
 }
 
 bool morse_flipper_rx_practice_host_tick(MorseFlipperApp* app, uint32_t now_ms, uint8_t down_mask) {

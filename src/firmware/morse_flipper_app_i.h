@@ -38,6 +38,7 @@
 #include "morse_flipper_icr_host.h"
 #include "morse_flipper_passive_host.h"
 #include "morse_flipper_activity.h"
+#include "morse_flipper_ardf_host.h"
 #include "morse_flipper_plugin_runtime.h"
 #include "morse_flipper_radio_host.h"
 #include "morse_flipper_rx_practice_host.h"
@@ -49,6 +50,7 @@
 #include "plugins/settings/mf_settings_api.h"
 #include "plugins/tx_groups/mf_tx_groups_api.h"
 #include "plugins/radio/mf_radio_api.h"
+#include "plugins/ardf/mf_ardf_api.h"
 #include "morse_flipper_paths.h"
 #include "morse_flipper_progress.h"
 #include "morse_flipper_run_history.h"
@@ -181,6 +183,7 @@ typedef enum {
     MorseFlipperScreenIcr = 26,
     MorseFlipperScreenRxPractice = 27,
     MorseFlipperScreenPassive = 28,
+    MorseFlipperScreenArdf = 29,
 } MorseFlipperScreen;
 
 typedef enum {
@@ -234,6 +237,7 @@ typedef enum {
     MorseFlipperSceneIcr,
     MorseFlipperSceneRxCallsigns,
     MorseFlipperScenePassive,
+    MorseFlipperSceneArdf,
     MorseFlipperSceneNum,
 } MorseFlipperScene;
 
@@ -279,6 +283,12 @@ typedef enum {
 typedef enum {
     MorseFlipperCustomStreakIntroStart = 0x1B00,
 } MorseFlipperStreakIntroCustomEvent;
+
+typedef enum {
+    MorseFlipperCustomArdfLoad = 0x1C00,
+    MorseFlipperCustomArdfTextDone,
+    MorseFlipperCustomArdfTextCleanup,
+} MorseFlipperArdfCustomEvent;
 
 typedef enum {
     MorseFlipperHelpFirstSteps = 0,
@@ -553,6 +563,8 @@ typedef struct MorseFlipperApp {
     bool radio_tx_allowed;
     bool radio_tx_active;
     bool radio_monitor_tone;
+    bool ardf_gpio_owned;
+    bool ardf_backlight_wake_active;
     bool rf_rx_audio_enabled;
     bool audio_wait_active;
     bool ptt_level;
@@ -569,6 +581,8 @@ typedef struct MorseFlipperApp {
     char tx_text[64];
     char session_deleted_text[MORSE_TRAINER_GROUP_CAP];
     char gpio_text[64];
+    char ardf_text[MF_ARDF_CUSTOM_CAPACITY + 1U];
+    uint8_t ardf_view;
 
     /* Larger submodules held by value to keep lifetime boring and failure modes fewer. */
     MorseFlipperRunHistory run_history;
@@ -845,7 +859,7 @@ const GpioPin* morse_flipper_gpio_pin_ptr(uint8_t pin_idx);
 void morse_flipper_gpio_bind_from_app(const MorseFlipperApp* app);
 void morse_flipper_gpio_reset_candidates(void);
 void morse_flipper_gpio_apply(MorseFlipperApp* app);
-void morse_flipper_gpio_alert(MorseFlipperApp* app, MorseFlipperGpioRule rule);
+bool morse_flipper_host_dialog(MorseFlipperApp* app, const MorseFlipperHostDialog* info);
 bool morse_flipper_gpio_try_apply(
     MorseFlipperApp* app,
     uint8_t dit,

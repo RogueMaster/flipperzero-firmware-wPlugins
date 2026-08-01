@@ -31,6 +31,10 @@ static void assert_unlocked(void) {
     assert(mutex_depth == 0U);
 }
 
+uint32_t furi_get_tick(void) {
+    return 99U;
+}
+
 void furi_mutex_acquire(FuriMutex* mutex, uint32_t timeout) {
     (void)mutex;
     (void)timeout;
@@ -176,57 +180,51 @@ static void api_draw(void* state, Canvas* canvas, uint32_t now_ms) {
     assert(mutex_depth == 1U && state == &radio);
     radio.draws++;
 }
-static MorseFlipperMappedFalResult api_set_page(void* state, MfRadioPage page, uint32_t now_ms) {
+static MorseFlipperMappedFalResult
+    api_command(void* state, uint32_t command, const void* input, void* output, uint32_t now_ms) {
     (void)now_ms;
     assert(mutex_depth == 1U && state == &radio);
-    radio.set_pages++;
-    radio.snapshot.page = page;
-    if(page == MfRadioPageIdle) {
-        radio.snapshot.hardware_active = false;
-        radio.snapshot.tx_active = false;
-        radio.snapshot.monitor_tone = false;
+    MorseFlipperMappedFalResult result = {.handled = true, .redraw = true};
+    if(command == MfRadioCommandSetPage) {
+        MfRadioPage page = *(const MfRadioPage*)input;
+        radio.set_pages++;
+        radio.snapshot.page = page;
+        if(page == MfRadioPageIdle) {
+            radio.snapshot.hardware_active = false;
+            radio.snapshot.tx_active = false;
+            radio.snapshot.monitor_tone = false;
+        }
+    } else if(command == MfRadioCommandSyncTx) {
+        const MfRadioSyncTxCommand* sync = input;
+        assert(sync != NULL);
+        radio.syncs++;
+        radio.snapshot.hardware_active = true;
+        radio.snapshot.tx_active = sync->level;
+    } else {
+        assert(command == MfRadioCommandSnapshot);
     }
-    return (MorseFlipperMappedFalResult){.handled = true, .redraw = true};
-}
-static MorseFlipperMappedFalResult api_sync(
-    void* state,
-    MfRadioTxInterval interval,
-    uint16_t duration_ms,
-    bool level,
-    uint32_t now_ms) {
-    (void)interval;
-    (void)duration_ms;
-    (void)now_ms;
-    assert(mutex_depth == 1U && state == &radio);
-    radio.syncs++;
-    radio.snapshot.hardware_active = true;
-    radio.snapshot.tx_active = level;
-    return (MorseFlipperMappedFalResult){.handled = true, .redraw = true};
-}
-static bool api_snapshot(const void* state, MfRadioSnapshot* snapshot) {
-    assert(mutex_depth == 1U && state == &radio);
-    assert(snapshot->struct_size == sizeof(MfRadioSnapshot));
-    *snapshot = radio.snapshot;
-    return true;
+    if(output != NULL) *(MfRadioSnapshot*)output = radio.snapshot;
+    return result;
 }
 
 static const MfRadioApi api = {
-    .mapped =
+    .fal =
         {
-            .magic = MF_RADIO_API_MAGIC,
-            .api_version = MF_RADIO_API_VERSION,
-            .struct_size = sizeof(MfRadioApi),
-            .alloc = api_alloc,
-            .free = api_free,
-            .enter = api_enter,
-            .leave = api_leave,
-            .input = api_input,
-            .tick = api_tick,
-            .draw = api_draw,
+            .mapped =
+                {
+                    .magic = MF_RADIO_API_MAGIC,
+                    .api_version = MF_RADIO_API_VERSION,
+                    .struct_size = sizeof(MfRadioApi),
+                    .alloc = api_alloc,
+                    .free = api_free,
+                    .enter = api_enter,
+                    .leave = api_leave,
+                    .input = api_input,
+                    .tick = api_tick,
+                    .draw = api_draw,
+                },
+            .command = api_command,
         },
-    .set_page = api_set_page,
-    .sync_tx = api_sync,
-    .snapshot = api_snapshot,
 };
 
 bool morse_flipper_plugin_runtime_open_mapped_locked(
@@ -275,13 +273,47 @@ void morse_flipper_plugin_runtime_detach_locked(
     MorseFlipperApp* app,
     MorseFlipperPluginOwner owner) {
     assert(mutex_depth == 1U && app->plugin_slot.owner == owner);
-    api.mapped.leave(app->plugin_slot.state);
+    api.fal.mapped.leave(app->plugin_slot.state);
     app->plugin_slot.owner = MorseFlipperPluginOwnerNone;
     app->plugin_slot.error = MorseFlipperPluginErrorNone;
     app->plugin_slot.manager = NULL;
     app->plugin_slot.api = NULL;
     app->plugin_slot.state = NULL;
     detaches++;
+}
+
+bool morse_flipper_plugin_runtime_call(
+    MorseFlipperApp* app,
+    MorseFlipperPluginOwner owner,
+    uint32_t operation,
+    const void* input,
+    void* output,
+    uint32_t now_ms,
+    MorseFlipperMappedFalResult* result) {
+    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
+    if(app->plugin_slot.owner != owner || app->plugin_slot.api != &api) {
+        furi_mutex_release(app->plugin_slot.mutex);
+        return false;
+    }
+    if(operation == MORSE_FLIPPER_MAPPED_INPUT)
+        *result = api.fal.mapped.input(app->plugin_slot.state, input, now_ms);
+    else if(operation == MORSE_FLIPPER_MAPPED_TICK)
+        *result = api.fal.mapped.tick(app->plugin_slot.state, now_ms);
+    else
+        *result = api.fal.command(app->plugin_slot.state, operation, input, output, now_ms);
+    if(operation >= MORSE_FLIPPER_MAPPED_INPUT && output != NULL)
+        (void)api.fal.command(app->plugin_slot.state, 0U, NULL, output, now_ms);
+    furi_mutex_release(app->plugin_slot.mutex);
+    return true;
+}
+
+void morse_flipper_plugin_runtime_draw(MorseFlipperApp* app, Canvas* canvas, uint32_t now_ms) {
+    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
+    bool active = app->plugin_slot.owner == MorseFlipperPluginOwnerRadio &&
+                  app->plugin_slot.api == &api;
+    if(active) api.fal.mapped.draw(app->plugin_slot.state, canvas, now_ms);
+    furi_mutex_release(app->plugin_slot.mutex);
+    if(!active) morse_flipper_draw_plugin_unavailable(canvas);
 }
 
 bool morse_flipper_plugin_runtime_snapshot(
@@ -354,16 +386,16 @@ int main(void) {
 
     assert(mf_radio_api_valid(&api));
     invalid_api = api;
-    invalid_api.mapped.magic++;
+    invalid_api.fal.mapped.magic++;
     assert(!mf_radio_api_valid(&invalid_api));
     invalid_api = api;
-    invalid_api.mapped.api_version++;
+    invalid_api.fal.mapped.api_version++;
     assert(!mf_radio_api_valid(&invalid_api));
     invalid_api = api;
-    invalid_api.mapped.struct_size--;
+    invalid_api.fal.mapped.struct_size--;
     assert(!mf_radio_api_valid(&invalid_api));
     invalid_api = api;
-    invalid_api.sync_tx = NULL;
+    invalid_api.fal.command = NULL;
     assert(!mf_radio_api_valid(&invalid_api));
     invalid_draw = (MfRadioDrawServices){
         .struct_size = sizeof(MfRadioDrawServices),

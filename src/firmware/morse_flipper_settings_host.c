@@ -323,7 +323,11 @@ bool morse_flipper_settings_host_close(MorseFlipperApp* app, uint32_t scene) {
             request.gpio_ground_pin,
             request.gpio_ptt_pin,
             &rule);
-        if(!close) morse_flipper_gpio_alert(app, rule);
+        if(!close) {
+            MorseFlipperHostDialog dialog = {
+                .header = "GPIO conflict", .text = morse_flipper_gpio_rule_text(rule)};
+            (void)morse_flipper_host_dialog(app, &dialog);
+        }
     }
     if(close) scene_manager_set_scene_state(app->scene_manager, scene, selected);
     return close;

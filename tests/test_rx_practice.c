@@ -43,7 +43,7 @@ static void open_answer(MfRxPracticeState* state, uint32_t now) {
         CHECK(result.handled);
     }
     CHECK(state->phase == MfRxPracticePhaseAnswer);
-    CHECK(result.decoder_reset);
+    CHECK(result.transition);
 }
 
 static void test_enter_validation(void) {
@@ -77,7 +77,7 @@ static void test_playback_and_answer(void) {
     uint8_t mark_index;
 
     CHECK(mf_rx_practice_enter(&state, &args, &result));
-    CHECK(result.phase == MfRxPracticePhaseIdle && result.decoder_reset && result.redraw);
+    CHECK(result.phase == MfRxPracticePhaseIdle && result.transition && result.redraw);
     CHECK(state.button_paddle && state.draw_snapshot == &draw_snapshot);
     result = mf_rx_practice_command(&state, MfRxPracticeCommandStart, 0U);
     CHECK(
@@ -92,7 +92,7 @@ static void test_playback_and_answer(void) {
         state.phase == MfRxPracticePhaseAnswer);
     while(state.phase == MfRxPracticePhasePlayback)
         result = mf_rx_practice_tick(&state, state.next_at);
-    CHECK(result.decoder_reset);
+    CHECK(result.transition);
 
     uint32_t activity = state.answer_last_activity_ms;
     result = mf_rx_practice_feed_text(&state, " |.!?\x80", 7U, activity + 100U);
@@ -106,7 +106,7 @@ static void test_playback_and_answer(void) {
     result = mf_rx_practice_feed_text(&state, exact, state.target_len, activity + 200U);
     CHECK(result.phase == MfRxPracticePhaseResult);
     CHECK(result.feedback == MfRxPracticeFeedbackPass);
-    CHECK(result.decoder_reset && state.session_total == 1U && state.session_passed == 1U);
+    CHECK(result.transition && state.session_total == 1U && state.session_passed == 1U);
 
     uint32_t original_deadline = state.result_deadline;
     result = mf_rx_practice_command(&state, MfRxPracticeCommandHurry, activity + 201U);
@@ -137,21 +137,21 @@ static void test_edit_and_filtering(void) {
     CHECK(result.handled && result.redraw && state.answer[0] == '7');
     CHECK(state.answer_last_activity_ms == activity + 15U);
     result = mf_rx_practice_command(&state, MfRxPracticeCommandBackspace, activity + 20U);
-    CHECK(result.handled && result.decoder_reset && result.redraw);
+    CHECK(result.handled && result.transition && result.redraw);
     CHECK(state.answer_last_activity_ms == activity + 20U);
     result = mf_rx_practice_feed_text(&state, "a", 1U, activity + 30U);
     CHECK(result.handled && result.redraw && state.answer[0] == 'A');
     CHECK(state.answer_last_activity_ms == activity + 30U);
     result = mf_rx_practice_command(&state, MfRxPracticeCommandBackspace, activity + 40U);
-    CHECK(result.handled && result.redraw && result.decoder_reset);
+    CHECK(result.handled && result.redraw && result.transition);
     CHECK(state.answer_len == 0U && state.answer_last_activity_ms == activity + 40U);
     result = mf_rx_practice_feed_text(&state, "bc", 2U, activity + 50U);
     CHECK(result.handled && state.answer_len == 2U);
     result = mf_rx_practice_command(&state, MfRxPracticeCommandClear, activity + 60U);
-    CHECK(result.handled && result.redraw && result.decoder_reset);
+    CHECK(result.handled && result.redraw && result.transition);
     CHECK(state.answer_len == 0U && state.answer_last_activity_ms == activity + 60U);
     result = mf_rx_practice_command(&state, MfRxPracticeCommandClear, activity + 70U);
-    CHECK(result.handled && !result.redraw && result.decoder_reset);
+    CHECK(result.handled && !result.redraw && result.transition);
     CHECK(state.answer_last_activity_ms == activity + 60U);
 }
 
@@ -191,7 +191,7 @@ static void test_explicit_exit(void) {
     CHECK(mf_rx_practice_enter(&state, &args, &result));
     open_answer(&state, 0U);
     result = mf_rx_practice_command(&state, MfRxPracticeCommandExit, 100U);
-    CHECK(result.handled && result.request_exit && result.decoder_reset);
+    CHECK(result.handled && result.request_exit && result.transition);
     CHECK(result.phase == MfRxPracticePhaseAnswer);
 }
 
@@ -230,12 +230,12 @@ static void test_back_and_reenter(void) {
 
     CHECK(mf_rx_practice_enter(&state, &args, &result));
     result = mf_rx_practice_command(&state, MfRxPracticeCommandBack, 0U);
-    CHECK(result.request_exit && result.decoder_reset);
+    CHECK(result.request_exit && result.transition);
     CHECK(mf_rx_practice_enter(&state, &args, &result));
     open_answer(&state, 0U);
     result = mf_rx_practice_command(&state, MfRxPracticeCommandBack, 0U);
     CHECK(result.phase == MfRxPracticePhaseFinal && !result.request_exit);
-    CHECK(result.feedback == MfRxPracticeFeedbackClear && result.decoder_reset);
+    CHECK(result.feedback == MfRxPracticeFeedbackClear && result.transition);
     result = mf_rx_practice_command(&state, MfRxPracticeCommandConfirmExit, 0U);
     CHECK(result.request_exit);
     mf_rx_practice_leave(&state);

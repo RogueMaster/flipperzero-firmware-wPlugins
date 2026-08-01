@@ -130,7 +130,8 @@ bool morse_flipper_gpio_try_apply(
     uint8_t,
     uint8_t,
     MorseFlipperGpioRule*);
-void morse_flipper_gpio_alert(MorseFlipperApp*, MorseFlipperGpioRule);
+bool morse_flipper_host_dialog(MorseFlipperApp*, const MorseFlipperHostDialog*);
+const char* morse_flipper_gpio_rule_text(MorseFlipperGpioRule);
 void morse_flipper_clear_button_keying(MorseFlipperApp*, uint32_t);
 void morse_flipper_refresh_keyer(MorseFlipperApp*, uint32_t);
 void morse_flipper_poll(MorseFlipperApp*);

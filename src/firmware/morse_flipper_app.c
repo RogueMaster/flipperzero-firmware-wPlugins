@@ -307,6 +307,7 @@ void morse_flipper_shutdown(MorseFlipperApp* app) {
     }
     morse_flipper_clear_button_keying(app, furi_get_tick());
     morse_flipper_set_pc_mode(app, MorseFlipperPcModeOff);
+    morse_flipper_ardf_host_close(app);
     morse_flipper_radio_host_close(app, furi_get_tick());
     morse_keyer_reset(&app->keyer);
     morse_flipper_drain_keyer_events(app);

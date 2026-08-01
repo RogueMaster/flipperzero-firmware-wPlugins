@@ -19,6 +19,7 @@ This release adds an Instant Character Recognition trainer, a callsign generator
 ## What it does
 
 - Flipper-to-Flipper Sub-GHz Morse TX/RX, plus receive/decode experiments for compatible OOK Morse signals inside the Flipper's supported bands.
+- Clock-scheduled [ARDF Foxhunting](manual/302-ardf-foxhunting.md) with Standard, Sprint, and Custom windows, carrier-keyed CW or CWFM, and optional GPIO/audio output.
 - Listening practice (LCWO/Koch progressions), straight-key timing practice, and five-character sending drills.
 - Free practice with a straight key, paddle, Flipper buttons, USB, MIDI, mouse, or keyboard input.
 - Built-in help for setup, hardware, practice, portable operating, contests, prepper use, and the bits of CW folklore that otherwise become pub arguments.

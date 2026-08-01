@@ -6,8 +6,10 @@
 
 #include "plugins/radio/mf_radio_api.h"
 
-#define APP_ASSETS_PATH(path) path
-#define FuriWaitForever       0U
+#define APP_ASSETS_PATH(path)      path
+#define FuriWaitForever            0U
+#define MORSE_FLIPPER_MAPPED_INPUT (UINT32_MAX - 1U)
+#define MORSE_FLIPPER_MAPPED_TICK  UINT32_MAX
 
 typedef struct {
     int unused;
@@ -56,6 +58,7 @@ typedef struct MorseFlipperApp {
 
 void furi_mutex_acquire(FuriMutex* mutex, uint32_t timeout);
 void furi_mutex_release(FuriMutex* mutex);
+uint32_t furi_get_tick(void);
 uint16_t morse_flipper_current_dit_ms(const MorseFlipperApp* app);
 const MfRadioDecoderServices* morse_flipper_radio_decoder_services(void);
 void morse_flipper_run_history_reset(MorseFlipperRunHistory* history);
@@ -89,6 +92,15 @@ void morse_flipper_plugin_runtime_release_claim_locked(
 void morse_flipper_plugin_runtime_detach_locked(
     MorseFlipperApp* app,
     MorseFlipperPluginOwner owner);
+bool morse_flipper_plugin_runtime_call(
+    MorseFlipperApp* app,
+    MorseFlipperPluginOwner owner,
+    uint32_t operation,
+    const void* input,
+    void* output,
+    uint32_t now_ms,
+    MorseFlipperMappedFalResult* result);
+void morse_flipper_plugin_runtime_draw(MorseFlipperApp* app, Canvas* canvas, uint32_t now_ms);
 bool morse_flipper_plugin_runtime_snapshot(
     const MorseFlipperApp* app,
     MorseFlipperPluginSnapshot* snapshot);

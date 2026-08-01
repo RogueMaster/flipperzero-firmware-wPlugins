@@ -64,10 +64,14 @@ static bool mf_radio_frequency_valid(const MfRadioState* state, uint32_t frequen
 
 static void mf_radio_quiesce(MfRadioState* state) {
     bool hardware_active;
+    bool tx_prepared;
     if(state == NULL) return;
+    tx_prepared = state->tx_prepared;
     hardware_active = state->tx_prepared || state->rx_prepared || state->snapshot.hardware_active;
-    if(state->tx_prepared) state->hardware.stop_tx(state->hardware.context);
-    if(state->snapshot.hardware_active) state->hardware.idle(state->hardware.context);
+    if(state->tx_prepared)
+        mf_radio_tx_session_stop(&state->tx_session);
+    else if(state->snapshot.hardware_active)
+        state->hardware.idle(state->hardware.context);
     state->tx_prepared = false;
     state->rx_prepared = false;
     state->snapshot.hardware_active = false;
@@ -75,7 +79,7 @@ static void mf_radio_quiesce(MfRadioState* state) {
     state->snapshot.monitor_tone = false;
     state->tx_idle_at = 0U;
     state->tx_idle_pending = false;
-    if(hardware_active) state->hardware.sleep(state->hardware.context);
+    if(hardware_active && !tx_prepared) state->hardware.sleep(state->hardware.context);
 }
 
 static void mf_radio_rollback_prepare(MfRadioState* state) {
@@ -84,9 +88,6 @@ static void mf_radio_rollback_prepare(MfRadioState* state) {
 }
 
 static void mf_radio_rollback_tx(MfRadioState* state) {
-    state->hardware.stop_tx(state->hardware.context);
-    state->hardware.idle(state->hardware.context);
-    state->hardware.sleep(state->hardware.context);
     state->tx_prepared = false;
     state->snapshot.hardware_active = false;
     state->snapshot.tx_active = false;
@@ -300,6 +301,7 @@ bool mf_radio_core_enter(
 
     memset(state, 0, sizeof(*state));
     state->hardware = *hardware;
+    mf_radio_tx_session_init(&state->tx_session, &state->hardware);
     state->decoder_services = args->decoder;
     state->draw_services = args->draw;
     frequency_hz = args->frequency_hz;
@@ -419,8 +421,8 @@ MorseFlipperMappedFalResult mf_radio_core_sync_tx(
         return (MorseFlipperMappedFalResult){.handled = true, .redraw = true};
     }
     if(level && !state->tx_prepared) {
-        if(!state->hardware.prepare_tx(
-               state->hardware.context, state->snapshot.frequency_hz, state->tx_mode)) {
+        if(!mf_radio_tx_session_start(
+               &state->tx_session, state->snapshot.frequency_hz, state->tx_mode)) {
             mf_radio_rollback_tx(state);
             return (MorseFlipperMappedFalResult){.handled = true, .redraw = true};
         }
@@ -429,7 +431,7 @@ MorseFlipperMappedFalResult mf_radio_core_sync_tx(
     }
     if(state->tx_prepared &&
        (state->tx_mode == MfRadioTxModeOok || level || state->snapshot.tx_active) &&
-       !state->hardware.set_tx_level(state->hardware.context, level)) {
+       !mf_radio_tx_session_set_mark(&state->tx_session, level)) {
         mf_radio_rollback_tx(state);
         return (MorseFlipperMappedFalResult){.handled = true, .redraw = true};
     }

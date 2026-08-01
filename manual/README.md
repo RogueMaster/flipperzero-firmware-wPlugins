@@ -41,6 +41,7 @@ After the first few Koch listening lessons, the Flipper buttons may start feelin
 - [Free Practice mode](220-free-practice.md)
 - [Flipper as a Morse transceiver](300-transceiver.md)
 - [Ham keyer and logger](301-ham-keyer-and-logger.md)
+- [ARDF Foxhunting](302-ardf-foxhunting.md)
 - [USB adapters](310-usb-adapters.md)
 - [Custom lessons and character sets](201-custom-lessons-and-character-sets.md)
 - Troubleshooting

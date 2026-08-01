@@ -968,6 +968,8 @@ bool morse_flipper_active_mode_input(MorseFlipperApp* app, InputEvent* event, ui
     case MorseFlipperScreenRfRx:
     case MorseFlipperScreenRf:
         return morse_flipper_radio_host_input(app, event, now_ms);
+    case MorseFlipperScreenArdf:
+        return morse_flipper_ardf_host_input(app, event, now_ms);
     case MorseFlipperScreenRun:
     case MorseFlipperScreenTrace:
     case MorseFlipperScreenHome:

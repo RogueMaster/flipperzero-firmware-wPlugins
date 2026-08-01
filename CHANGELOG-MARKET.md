@@ -1,5 +1,5 @@
 v0.2.8:
-- Add optional 700 Hz CW-over-FM transmission.
+- Add optional 700 Hz CWFM transmission.
 
 v0.2.7:
 - Expand realistic callsign practice to 20 entities with length-aware patterns.

@@ -35,6 +35,7 @@ static __attribute__((noinline)) bool
                api->request_close != NULL && api->selected_state != NULL;
     }
     if(owner == MorseFlipperPluginOwnerRadio) return mf_radio_api_valid(entry);
+    if(owner == MorseFlipperPluginOwnerArdf) return mf_ardf_api_valid(entry);
     return false;
 }
 
@@ -228,6 +229,40 @@ bool morse_flipper_plugin_runtime_tick_locked(
     return true;
 }
 
+bool morse_flipper_plugin_runtime_call(
+    MorseFlipperApp* app,
+    MorseFlipperPluginOwner owner,
+    uint32_t operation,
+    const void* input,
+    void* output,
+    uint32_t now_ms,
+    MorseFlipperMappedFalResult* result) {
+    const MorseFlipperCommandFalApi* api;
+    bool called = false;
+    if(result != NULL) *result = (MorseFlipperMappedFalResult){0};
+    if(app == NULL || result == NULL || app->plugin_slot.mutex == NULL) return false;
+    furi_mutex_acquire(app->plugin_slot.mutex, FuriWaitForever);
+    if(app->plugin_slot.owner == owner && app->plugin_slot.error == MorseFlipperPluginErrorNone &&
+       app->plugin_slot.api != NULL && app->plugin_slot.state != NULL) {
+        api = app->plugin_slot.api;
+        if(operation == MORSE_FLIPPER_MAPPED_INPUT)
+            *result = api->mapped.input(app->plugin_slot.state, input, now_ms);
+        else if(operation == MORSE_FLIPPER_MAPPED_TICK)
+            *result = api->mapped.tick(app->plugin_slot.state, now_ms);
+        else if(api->command != NULL)
+            *result = api->command(app->plugin_slot.state, operation, input, output, now_ms);
+        else
+            goto unlock;
+        morse_flipper_plugin_runtime_apply_result_locked(app, *result, now_ms);
+        called = true;
+        if(operation >= MORSE_FLIPPER_MAPPED_INPUT && output != NULL && api->command != NULL)
+            (void)api->command(app->plugin_slot.state, 0U, NULL, output, now_ms);
+    }
+unlock:
+    furi_mutex_release(app->plugin_slot.mutex);
+    return called;
+}
+
 void morse_flipper_plugin_runtime_apply_result_locked(
     MorseFlipperApp* app,
     MorseFlipperMappedFalResult result,
@@ -236,7 +271,8 @@ void morse_flipper_plugin_runtime_apply_result_locked(
     app->plugin_slot.phase = result.phase;
     app->plugin_slot.playback_active = result.playback_active;
     app->plugin_slot.playback_mark = result.playback_mark;
-    morse_flipper_plugin_feedback_locked(app, result.feedback, now_ms);
+    if(app->plugin_slot.owner != MorseFlipperPluginOwnerArdf)
+        morse_flipper_plugin_feedback_locked(app, result.feedback, now_ms);
 }
 
 void morse_flipper_plugin_runtime_draw(MorseFlipperApp* app, Canvas* canvas, uint32_t now_ms) {

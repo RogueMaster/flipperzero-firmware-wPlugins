@@ -81,7 +81,7 @@ def main() -> None:
             "mf_radio_core_tick",
             "mf_radio_core_input",
             "mf_radio_draw",
-            "mf_radio_sync_tx_api",
+            "mf_radio_command_api",
             "mf_radio_tick_api",
             "mf_radio_input_api",
             "mf_radio_draw_api",
@@ -120,8 +120,9 @@ def main() -> None:
         )
         assert "DEVIATN" not in RADIO_HAL
         assert "dev5_" not in RADIO_HAL
-        assert "stop_tx" in function_body(RADIO_CORE, "mf_radio_quiesce")
-        assert re.search(r"#define\s+MF_RADIO_API_VERSION\s+2U", RADIO_API)
+        assert "mf_radio_tx_session_stop" in function_body(RADIO_CORE, "mf_radio_quiesce")
+        assert re.search(r"#define\s+MF_RADIO_API_VERSION\s+3U", RADIO_API)
+        assert "MorseFlipperCommandFalApi fal" in RADIO_API
 
     # Legacy files are allowed only while the product still has no Radio FAL.
     main_block = app_block("morse_flipper")
@@ -139,7 +140,8 @@ def main() -> None:
     child_enter = function_body(SCENES, "morse_flipper_scene_radio_on_enter")
     child_exit = function_body(SCENES, "morse_flipper_scene_radio_on_exit")
     assert menu_enter.count("morse_flipper_radio_host_open") == 1
-    assert menu_enter.count("submenu_add_item") == 3
+    assert menu_enter.count("submenu_add_item") == 4
+    assert '"ARDF Foxhunting"' in menu_enter
     assert menu_event.count("morse_flipper_radio_host_close") == 1
     assert "morse_flipper_radio_host_close" not in child_enter + child_exit
     assert "morse_flipper_radio_host_set_page" in child_enter + child_exit

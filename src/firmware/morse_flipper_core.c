@@ -6,6 +6,17 @@
  */
 
 #include "morse_flipper_app_i.h"
+
+bool morse_flipper_host_dialog(MorseFlipperApp* app, const MorseFlipperHostDialog* info) {
+    DialogMessage* message = dialog_message_alloc();
+    dialog_message_set_header(message, info->header, 64, 16, AlignCenter, AlignTop);
+    if(info->text != NULL)
+        dialog_message_set_text(message, info->text, 64, 34, AlignCenter, AlignCenter);
+    dialog_message_set_buttons(message, NULL, "OK", info->confirm ? "Back" : NULL);
+    bool accepted = dialog_message_show(app->dialogs, message) == DialogMessageButtonCenter;
+    dialog_message_free(message);
+    return accepted;
+}
 #include "cw.h"
 
 const char* const morse_flipper_usb_mode_names[] = {
@@ -98,6 +109,7 @@ void morse_flipper_sync_signal_led(MorseFlipperApp* app, bool on) {
     bool green;
 
     if(app == NULL) return;
+    if(app->ardf_gpio_owned) return;
 
     red = on && app->session_result_tone;
     green = on && app->session_result_good &&

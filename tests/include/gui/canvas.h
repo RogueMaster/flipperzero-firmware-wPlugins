@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #define TEST_CANVAS_TEXT_CAPACITY   16U
-#define TEST_CANVAS_TEXT_LENGTH     16U
+#define TEST_CANVAS_TEXT_LENGTH     24U
 #define TEST_CANVAS_BITMAP_CAPACITY 2U
 #define TEST_CANVAS_BOX_CAPACITY    16U
 
@@ -16,10 +16,12 @@ typedef struct Canvas {
     uint32_t strings;
     uint32_t white_strings;
     uint8_t current_color;
+    uint8_t current_font;
     bool full_height_divider;
     char text[TEST_CANVAS_TEXT_CAPACITY][TEST_CANVAS_TEXT_LENGTH];
     int32_t text_x[TEST_CANVAS_TEXT_CAPACITY];
     int32_t text_y[TEST_CANVAS_TEXT_CAPACITY];
+    uint8_t text_font[TEST_CANVAS_TEXT_CAPACITY];
     uint32_t bitmaps;
     uint32_t bitmap_hash[TEST_CANVAS_BITMAP_CAPACITY];
     int32_t bitmap_x[TEST_CANVAS_BITMAP_CAPACITY];
@@ -31,6 +33,11 @@ typedef struct Canvas {
     int32_t box_width[TEST_CANVAS_BOX_CAPACITY];
     int32_t box_height[TEST_CANVAS_BOX_CAPACITY];
     uint8_t box_color[TEST_CANVAS_BOX_CAPACITY];
+    uint8_t box_kind[TEST_CANVAS_BOX_CAPACITY];
+    int32_t box_radius[TEST_CANVAS_BOX_CAPACITY];
+    uint32_t center_buttons;
+    uint8_t center_button_font;
+    char center_button_text[TEST_CANVAS_TEXT_LENGTH];
 } Canvas;
 
 typedef enum {

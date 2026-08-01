@@ -272,10 +272,12 @@ static bool hal_set_tx_level(void* context, bool level) {
             hal->async_running = true;
             return true;
         }
-        if(!hal->async_running) return true;
-        furi_hal_subghz_stop_async_tx();
-        hal->async_running = false;
-        mf_radio_cwfm_timing_reset(&hal->timing);
+        if(hal->static_running) return true;
+        if(hal->async_running) {
+            furi_hal_subghz_stop_async_tx();
+            hal->async_running = false;
+            mf_radio_cwfm_timing_reset(&hal->timing);
+        }
         MfRadioCwfmStaticConfig static_config;
         if(!mf_radio_cwfm_static_config(
                hal->selected_frequency_hz,

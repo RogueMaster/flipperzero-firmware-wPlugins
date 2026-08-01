@@ -16,7 +16,7 @@ static MfRxPracticeResult mf_result(
     return (MfRxPracticeResult){
         .handled = handled,
         .redraw = redraw,
-        .decoder_reset = decoder_reset,
+        .transition = decoder_reset,
         .request_exit = request_exit,
         .phase = state == NULL ? MfRxPracticePhaseFinal : state->phase,
         .playback_active = state != NULL && state->phase == MfRxPracticePhasePlayback,

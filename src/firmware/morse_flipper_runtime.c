@@ -484,7 +484,7 @@ static void morse_flipper_sync_gpio_inputs(MorseFlipperApp* app, uint32_t now_ms
        app->screen == MorseFlipperScreenSessionEnd || app->screen == MorseFlipperScreenRfRx ||
        (app->screen == MorseFlipperScreenRf && !app->radio_tx_allowed) ||
        app->screen == MorseFlipperScreenTxGroupsResult ||
-       app->screen == MorseFlipperScreenTxGroupsFinal ||
+       app->screen == MorseFlipperScreenTxGroupsFinal || app->screen == MorseFlipperScreenArdf ||
        (app->screen == MorseFlipperScreenStraight && !app->straight_wait_answer) ||
        (app->screen == MorseFlipperScreenTxGroups && !app->txg_wait_answer) ||
        (app->screen == MorseFlipperScreenSession && !morse_flipper_session_repeat_active(app)) ||
@@ -639,6 +639,9 @@ void morse_flipper_active_mode_tick(MorseFlipperApp* app, uint32_t now_ms) {
     case MorseFlipperScreenRf:
     case MorseFlipperScreenRfRx:
         morse_flipper_radio_host_tick(app, now_ms);
+        break;
+    case MorseFlipperScreenArdf:
+        morse_flipper_ardf_host_tick(app, now_ms);
         break;
     default:
         break;

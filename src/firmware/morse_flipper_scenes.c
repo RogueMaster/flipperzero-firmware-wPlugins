@@ -336,8 +336,10 @@ static void morse_flipper_scene_menu_rf_on_enter(void* context) {
         app->submenu, "Receive monitor", MorseFlipperSceneRfRx, morse_flipper_scene_menu_pick, app);
     submenu_add_item(
         app->submenu, "Frequency", MorseFlipperSceneRfFreq, morse_flipper_scene_menu_pick, app);
+    submenu_add_item(
+        app->submenu, "ARDF Foxhunting", MorseFlipperSceneArdf, morse_flipper_scene_menu_pick, app);
     if(sel != MorseFlipperSceneRf && sel != MorseFlipperSceneRfRx &&
-       sel != MorseFlipperSceneRfFreq)
+       sel != MorseFlipperSceneRfFreq && sel != MorseFlipperSceneArdf)
         sel = MorseFlipperSceneRf;
     submenu_set_selected_item(app->submenu, sel);
     morse_flipper_scene_enter_now(app, MorseFlipperSceneMenuRf);
@@ -710,6 +712,59 @@ static void morse_flipper_scene_radio_on_exit(void* context) {
     app->tx_gap_flushed = true;
 }
 
+static void morse_flipper_scene_ardf_on_enter(void* context) {
+    MorseFlipperApp* app = context;
+    morse_flipper_ensure_view(app, MorseFlipperViewMenu);
+    app->ardf_view = MORSE_FLIPPER_ARDF_VIEW_NONE;
+    submenu_reset(app->submenu);
+    submenu_set_header(app->submenu, "Loading...");
+    morse_flipper_scene_enter_now(app, MorseFlipperSceneArdf);
+    view_dispatcher_send_custom_event(app->view_dispatcher, MorseFlipperCustomArdfLoad);
+}
+
+#define morse_flipper_scene_ardf_on_exit morse_flipper_ardf_host_close
+
+static bool morse_flipper_scene_ardf_on_event(void* context, SceneManagerEvent event) {
+    MorseFlipperApp* app = context;
+    if(event.type == SceneManagerEventTypeBack) {
+        if(app->ardf_view == MORSE_FLIPPER_ARDF_VIEW_TEXT) {
+            morse_flipper_ardf_host_text_result(app, app->ardf_text, false, furi_get_tick());
+            view_dispatcher_send_custom_event(
+                app->view_dispatcher, MorseFlipperCustomArdfTextCleanup);
+            return true;
+        }
+        InputEvent input = {.key = InputKeyBack, .type = InputTypeShort};
+        if(!morse_flipper_ardf_host_input(app, &input, furi_get_tick()))
+            scene_manager_previous_scene(app->scene_manager);
+        return true;
+    }
+    if(event.type != SceneManagerEventTypeCustom) return false;
+    if(event.event == MorseFlipperCustomArdfTextDone) {
+        morse_flipper_ardf_host_text_result(app, app->ardf_text, true, furi_get_tick());
+        view_dispatcher_send_custom_event(app->view_dispatcher, MorseFlipperCustomArdfTextCleanup);
+        return true;
+    }
+    if(event.event == MorseFlipperCustomArdfTextCleanup) {
+        if(app->text_input != NULL) {
+            text_input_reset(app->text_input);
+            view_dispatcher_remove_view(app->view_dispatcher, MorseFlipperViewTextInput);
+            text_input_free(app->text_input);
+            app->text_input = NULL;
+        }
+        return true;
+    }
+    if(event.event != MorseFlipperCustomArdfLoad) return false;
+    uint32_t now_ms = furi_get_tick();
+    morse_flipper_radio_host_close(app, now_ms);
+    if(!morse_flipper_ardf_host_open(app, now_ms)) {
+        scene_manager_search_and_switch_to_another_scene(
+            app->scene_manager, MorseFlipperSceneMenuRf);
+        return true;
+    }
+    morse_flipper_ardf_host_tick(app, now_ms);
+    return true;
+}
+
 static void morse_flipper_scene_streak_intro_start_training(MorseFlipperApp* app) {
     uint32_t target_scene =
         scene_manager_get_scene_state(app->scene_manager, MorseFlipperSceneStreakIntro);
@@ -954,6 +1009,7 @@ static const AppSceneOnEnterCallback morse_flipper_scene_on_enter_handlers[Morse
     [MorseFlipperSceneIcr] = morse_flipper_scene_icr_on_enter,
     [MorseFlipperSceneRxCallsigns] = morse_flipper_scene_rx_callsigns_on_enter,
     [MorseFlipperScenePassive] = morse_flipper_scene_passive_on_enter,
+    [MorseFlipperSceneArdf] = morse_flipper_scene_ardf_on_enter,
 };
 
 static const AppSceneOnEventCallback morse_flipper_scene_on_event_handlers[MorseFlipperSceneNum] = {
@@ -1000,6 +1056,7 @@ static const AppSceneOnEventCallback morse_flipper_scene_on_event_handlers[Morse
     [MorseFlipperSceneIcr] = morse_flipper_scene_live_on_event,
     [MorseFlipperSceneRxCallsigns] = morse_flipper_scene_live_on_event,
     [MorseFlipperScenePassive] = morse_flipper_scene_live_on_event,
+    [MorseFlipperSceneArdf] = morse_flipper_scene_ardf_on_event,
 };
 
 static const AppSceneOnExitCallback morse_flipper_scene_on_exit_handlers[MorseFlipperSceneNum] = {
@@ -1046,6 +1103,7 @@ static const AppSceneOnExitCallback morse_flipper_scene_on_exit_handlers[MorseFl
     [MorseFlipperSceneIcr] = morse_flipper_scene_plugin_on_exit,
     [MorseFlipperSceneRxCallsigns] = morse_flipper_scene_plugin_on_exit,
     [MorseFlipperScenePassive] = morse_flipper_scene_plugin_on_exit,
+    [MorseFlipperSceneArdf] = morse_flipper_scene_ardf_on_exit,
 };
 
 const SceneManagerHandlers morse_flipper_scene_handlers = {

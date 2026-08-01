@@ -71,10 +71,15 @@ bool morse_flipper_gpio_try_apply(
     app->gpio_ptt_idx = ptt;
     return true;
 }
-void morse_flipper_gpio_alert(MorseFlipperApp* app, MorseFlipperGpioRule rule) {
+bool morse_flipper_host_dialog(MorseFlipperApp* app, const MorseFlipperHostDialog* info) {
     (void)app;
-    (void)rule;
+    (void)info;
     gpio_alerts++;
+    return true;
+}
+const char* morse_flipper_gpio_rule_text(MorseFlipperGpioRule rule) {
+    (void)rule;
+    return "bad";
 }
 void morse_flipper_clear_button_keying(MorseFlipperApp* app, uint32_t now) {
     (void)app;

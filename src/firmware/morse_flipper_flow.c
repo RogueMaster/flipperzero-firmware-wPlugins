@@ -105,6 +105,8 @@ static uint8_t morse_flipper_scene_screen(uint32_t scene) {
         return MorseFlipperScreenRxPractice;
     case MorseFlipperScenePassive:
         return MorseFlipperScreenPassive;
+    case MorseFlipperSceneArdf:
+        return MorseFlipperScreenArdf;
     default:
         return MorseFlipperScreenMenu;
     }
@@ -131,6 +133,7 @@ static uint8_t morse_flipper_scene_view(uint32_t scene) {
     case MorseFlipperSceneMenuHam:
     case MorseFlipperSceneHamConfigure:
     case MorseFlipperSceneHamMessageActions:
+    case MorseFlipperSceneArdf:
         return MorseFlipperViewMenu;
     default:
         return MorseFlipperViewLive;
