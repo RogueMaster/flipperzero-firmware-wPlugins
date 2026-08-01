@@ -1,0 +1,14 @@
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/k20120509/maze3d.git
+    commit_sha: COMMIT_SHA_HERE
+short_description: 3D raycasting maze game (campaign / endless / visitor) with bilingual CN/EN UI
+description: "@README.md"
+changelog: "@docs/changelog.md"
+screenshots:
+  - screenshots/ss0.png
+  - screenshots/ss1.png
+  - screenshots/ss2.png
+  - screenshots/ss3.png
+  - screenshots/ss4.png

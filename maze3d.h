@@ -86,6 +86,8 @@ typedef struct {
     // 中文消息索引(>=0 指向 msg_id 到中文位图)
     int msg_id;
     uint8_t msg_ttl;
+    // 语言: 0=中文 (XBM 位图), 1=English (canvas_draw_str)
+    uint8_t lang;
 } GameState;
 
 extern GameState g;

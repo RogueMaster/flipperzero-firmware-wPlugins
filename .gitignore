@@ -19,3 +19,7 @@ Thumbs.db
 # Python cache
 __pycache__/
 *.pyc
+
+# Personal cloud drive (separate repo, do not ship with maze3d)
+drive/
+
