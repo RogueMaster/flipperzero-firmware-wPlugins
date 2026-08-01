@@ -1,5 +1,6 @@
 v0.2.8:
-- Add optional 700 Hz CWFM transmission.
+- Add optional 700 Hz CWFM transmission in Flipper Radio.
+- Add ARDF Foxhunting with Standard, Sprint, and Custom modes using CW or CWFM.
 
 v0.2.7:
 - Expand realistic callsign practice to 20 entities with length-aware patterns.

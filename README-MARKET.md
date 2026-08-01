@@ -25,6 +25,7 @@ Morse Flipper also includes a fairly extensive help manual on the Flipper itself
 - Callsign practice has independent speed, spacing, and length settings, and generates callsigns which actually look like callsigns.
 - Passive Listening plays CW followed by the answer in NATO phonetics, in the style of Morse Ninja exercises.
 - Voice output works through the Flipper's internal speaker or the PA2 audio port.
+- ARDF Foxhunting with Standard, Sprint, and Custom modes using carrier-keyed CW or CWFM.
 
 ## Hardware
 

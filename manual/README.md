@@ -36,6 +36,10 @@ After the first few Koch listening lessons, the Flipper buttons may start feelin
 - [Keyers and paddle settings](101-keyers-and-paddle-settings.md)
 - [Audio sidetone](102-audio-sidetone.md)
 - [Listening practice](200-koch-listening-practice.md)
+- [Callsign generator](501-callsign-generator.md)
+- [Callsign listening practice](230-callsign-listening-practice.md)
+- [Passive listening](250-passive-listening.md)
+- [Instant character recognition](225-instant-character-recognition.md)
 - [Straight key trainer](210-straight-key-practice.md)
 - Groups-of-five drills
 - [Free Practice mode](220-free-practice.md)
