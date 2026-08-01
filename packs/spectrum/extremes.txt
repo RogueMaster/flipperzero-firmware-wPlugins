@@ -1,0 +1,66 @@
+Pack: Extremes
+Left: Freezing
+Right: Boiling
+---
+Left: Whisper
+Right: Scream
+---
+Left: Snail
+Right: Rocket
+---
+Left: Featherweight
+Right: Heavyweight
+---
+Left: Molehill
+Right: Mountain
+---
+Left: Trickle
+Right: Flood
+---
+Left: Dim
+Right: Blinding
+---
+Left: Ancient
+Right: Futuristic
+---
+Left: Tiny
+Right: Gigantic
+---
+Left: Silent
+Right: Deafening
+---
+Left: Ice age
+Right: Heatwave
+---
+Left: A breeze
+Right: A hurricane
+---
+Left: Pocket money
+Right: A fortune
+---
+Left: A second
+Right: An eternity
+---
+Left: Baby steps
+Right: Giant leap
+---
+Left: Barely warm
+Right: Scorching
+---
+Left: A drizzle
+Right: A downpour
+---
+Left: Featherlight
+Right: Crushing
+---
+Left: Calm pond
+Right: Raging sea
+---
+Left: A spark
+Right: An inferno
+---
+Left: Barely moving
+Right: Warp speed
+---
+Left: A crumb
+Right: A mountain of it

@@ -308,3 +308,28 @@ Server `{t:"bs",phase,...}`:
 
 **Hidden information:** `track` is derived only from the shots you've fired, so an enemy
 ship cell you haven't hit is never in the payload. `oppFleet` appears only in `"over"`.
+
+## 7. Spectrum (`spectrum`) — game id `13`
+
+A whole-group party game (Wavelength-style) on the shared party skeleton (lobby with a
+ready-up + pack vote, countdown, reveal). Content reuses the pack pipeline: each item is a
+`Left`/`Right` word pair. Select with UART `SELECT_GAME` id `13`; lobby `game` string
+`"spectrum"`. Firmware **v14**.
+
+Each round rotates a **psychic** who sees a hidden target on a 0-100 spectrum and types a
+clue; everyone else slides a dial to guess. Points by closeness (±2 = 4, ±7 = 3, ±12 = 2),
+and the psychic earns the guessers' average, so a good clue pays off. Six rounds.
+
+Client intents: `ready`, `vote{pack}`, `clue{text}` (psychic only), `slide{n}` (0..100,
+guessers only), `again`.
+
+Server `{t:"spectrum",phase,...}`:
+- `"lobby"`: `you`, `players`, `packs` (name/votes), `myvote`.
+- `"countdown"`: `sec`.
+- `"play"` with `stage` `"clue"` | `"guess"` | `"reveal"`: `round`, `rounds`, `left`,
+  `right`, `psychic` (nick), `iam` (am I the psychic), `deadline`/`dur` for the timer bar.
+  - `target` (0..100) is sent **only to the psychic** during clue/guess, and to everyone on
+    reveal — an un-revealed target never reaches a guesser.
+  - `clue` appears once the psychic has submitted; `myguess` is the guesser's own locked value.
+  - reveal adds `guesses` (`nick`/`g`/`pts`) and `mygain`.
+- `"final"`: `board` (the shared leaderboard).

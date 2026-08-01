@@ -75,6 +75,17 @@ static inline void ha_upper(char* s) {
 #define SCR_REVEAL_MS 5000
 #define REACT_ROUNDS 5
 #define REACT_REVEAL_MS 4000
+
+// Spectrum (wavelength-style): each round one player is the psychic. They see a
+// hidden target on a 0..100 spectrum between two opposing words and type a clue;
+// everyone else slides to guess where the clue lands. Points by closeness; the
+// psychic scores by how well the guessers do, so a good clue is rewarded.
+#define SPECTRUM_ROUNDS 6
+#define SPECTRUM_CLUE_SECS 45 // psychic's clue window (safety timer)
+#define SPECTRUM_GUESS_SECS 30 // guessers' window (safety timer)
+#define SPECTRUM_REVEAL_MS 6000
+#define SPECTRUM_CLUE_LEN 40
+
 #define GC_ROUNDS 5
 #define GC_PLAY_SECS 25 // safety deadline per color
 #define GC_REVEAL_MS 6000
@@ -245,6 +256,26 @@ struct GuessColorState {
     uint8_t winner; // pid with the most points this round, 0 = none
 };
 
+// Spectrum: reuses WyrPack for content (each item's a=left label, b=right label)
+// and the Party lobby/countdown/reveal skeleton. Within a playing round it has two
+// stages: 0 = the psychic is writing the clue, 1 = everyone else is guessing.
+struct SpectrumState {
+    Party pt;
+    WyrPack packs[TRIVIA_MAX_TOPICS]; // item.a = left word, item.b = right word
+    uint8_t packCount;
+    int8_t vote[HA_MAX_PLAYERS + 1]; // pack index, -1 = not voted
+    uint8_t pack; // chosen pack (locked when the game starts)
+    uint16_t cardSeq; // rotates the spectrum card across rounds
+    uint8_t card; // current card index within the pack
+    uint8_t psychic; // pid giving the clue this round
+    uint8_t psychicSeq; // rotates the psychic across rounds
+    uint8_t stage; // 0 clue, 1 guess
+    int target; // hidden target 0..100
+    char clue[SPECTRUM_CLUE_LEN]; // psychic's clue text
+    int8_t guess[HA_MAX_PLAYERS + 1]; // 0..100, -1 = not guessed
+    int gained[HA_MAX_PLAYERS + 1]; // points earned this round (shown on reveal)
+};
+
 struct PongMatch {
     bool used;
     uint8_t a, b; // a = left paddle, b = right paddle
@@ -291,6 +322,7 @@ public:
         reactClear();
         gcClear();
         battleClear();
+        spectrumClear();
     }
 
     // ---- roster ----
@@ -353,6 +385,7 @@ public:
         wyrClear();
         scrambleClear();
         reactClear();
+        spectrumClear();
         pushAll();
     }
 
@@ -403,6 +436,8 @@ public:
         _scr.packCount = 0;
         for(int i = 0; i < TRIVIA_MAX_TOPICS; i++) _d.packs[i] = WordPack{};
         _d.packCount = 0;
+        for(int i = 0; i < TRIVIA_MAX_TOPICS; i++) _spec.packs[i] = WyrPack{};
+        _spec.packCount = 0;
         _packGame = 0;
     }
 
@@ -428,6 +463,12 @@ public:
                 _d.packs[_d.packCount].name = name;
                 _d.packCount++;
             }
+        } else if(game == HA_GAME_SPECTRUM) {
+            if(_spec.packCount < TRIVIA_MAX_TOPICS) {
+                _spec.packs[_spec.packCount] = WyrPack{};
+                _spec.packs[_spec.packCount].name = name;
+                _spec.packCount++;
+            }
         }
     }
 
@@ -437,6 +478,7 @@ public:
         else if(_packGame == HA_GAME_WYR) wyrLoadItem(json);
         else if(_packGame == HA_GAME_SCRAMBLE) scrambleLoadItem(json);
         else if(_packGame == HA_GAME_DRAW) drawLoadItem(json);
+        else if(_packGame == HA_GAME_SPECTRUM) spectrumLoadItem(json);
         // Unknown game ids are dropped on purpose: a newer Flipper must not be able
         // to corrupt an older board's state.
     }
@@ -488,6 +530,22 @@ public:
         return true;
     }
 
+    // Map a spectrum pack file's {left,right} keys into the current pack, reusing
+    // WyrPrompt (a = left label, b = right label).
+    bool spectrumLoadItem(const char* json) {
+        if(_spec.packCount == 0) return false;
+        WyrPack& p = _spec.packs[_spec.packCount - 1];
+        if(p.count >= PACK_MAX_ITEMS) return false;
+        char buf[128];
+        if(!ha_json_str(json, "left", buf, sizeof(buf)) || !buf[0]) return false;
+        String left = buf;
+        if(!ha_json_str(json, "right", buf, sizeof(buf)) || !buf[0]) return false;
+        p.items[p.count].a = left;
+        p.items[p.count].b = buf;
+        p.count++;
+        return true;
+    }
+
     // Map a scramble pack file's {word} key into the current pack.
     bool scrambleLoadItem(const char* json) {
         if(_scr.packCount == 0) return false;
@@ -529,6 +587,8 @@ public:
             gcClear();
         else if(_active == HA_GAME_BATTLESHIP)
             battleClear();
+        else if(_active == HA_GAME_SPECTRUM)
+            spectrumClear();
         pushAll();
     }
 
@@ -549,6 +609,8 @@ public:
             reactTick(now);
         else if(_active == HA_GAME_GUESSCOLOR)
             gcTick(now);
+        else if(_active == HA_GAME_SPECTRUM)
+            spectrumTick(now);
     }
 
     // ---- player input (parsed WS JSON) ----
@@ -585,13 +647,20 @@ public:
             scrambleReady(pid, r);
             reactReady(pid, r);
             gcReady(pid, r);
+            spectrumReady(pid, r);
         } else if(strcmp(type, "vote") == 0 && ha_json_int(json, "topic", &v)) {
             triviaVote(pid, v);
         } else if(strcmp(type, "vote") == 0 && ha_json_int(json, "pack", &v)) {
             wyrVote(pid, v);
             scrambleVote(pid, v);
+            spectrumVote(pid, v);
         } else if(strcmp(type, "tap") == 0) {
             reactTap(pid);
+        } else if(strcmp(type, "clue") == 0) {
+            char c[SPECTRUM_CLUE_LEN];
+            if(ha_json_str(json, "text", c, sizeof(c))) spectrumClue(pid, c);
+        } else if(strcmp(type, "slide") == 0 && ha_json_int(json, "n", &v)) {
+            spectrumGuess(pid, v);
         } else if(strcmp(type, "again") == 0) {
             triviaAgain(pid);
             drawAgain(pid);
@@ -599,6 +668,7 @@ public:
             scrambleAgain(pid);
             reactAgain(pid);
             gcAgain(pid);
+            spectrumAgain(pid);
         } else if(strcmp(type, "say") == 0) {
             char t[120];
             if(ha_json_str(json, "text", t, sizeof(t))) onSay(pid, t);
@@ -658,6 +728,7 @@ private:
     ReactState _react = {};
     GuessColorState _gc = {};
     BattleMatch _bm[BATTLE_MAX] = {};
+    SpectrumState _spec = {};
 
     uint8_t freePid() {
         for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
@@ -695,6 +766,8 @@ private:
                 haWsSendWs(_p[pid].wsId, gcJson(pid));
             else if(_active == HA_GAME_BATTLESHIP)
                 haWsSendWs(_p[pid].wsId, battleJson(pid));
+            else if(_active == HA_GAME_SPECTRUM)
+                haWsSendWs(_p[pid].wsId, spectrumJson(pid));
         }
     }
 
@@ -749,6 +822,8 @@ private:
             return "gc";
         case HA_GAME_BATTLESHIP:
             return "bs";
+        case HA_GAME_SPECTRUM:
+            return "spectrum";
         default:
             return "none";
         }
@@ -2057,6 +2132,8 @@ private:
             reactCheckStart();
         else if(_active == HA_GAME_GUESSCOLOR)
             gcCheckStart();
+        else if(_active == HA_GAME_SPECTRUM)
+            spectrumCheckStart();
     }
 
     // ---------- would you rather (live A/B poll) ----------
@@ -3021,6 +3098,292 @@ private:
             s += "\",\"oppFleet\":" + battleCells(oppFleet); // reveal at game end
         }
         s += "}";
+        return s;
+    }
+
+    // ---------- spectrum (wavelength-style guessing) ----------
+    // Which pack wins the pre-round vote; identical policy to wyrWinningPack().
+    int spectrumWinningPack() {
+        if(_spec.packCount == 0) return 0;
+        int votes[TRIVIA_MAX_TOPICS] = {0};
+        int total = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+            if(_p[i].used && _spec.vote[i] >= 0 && _spec.vote[i] < _spec.packCount) {
+                votes[_spec.vote[i]]++;
+                total++;
+            }
+        if(total == 0) return (int)random(_spec.packCount);
+        int best = 0;
+        for(int i = 1; i < _spec.packCount; i++)
+            if(votes[i] > votes[best]) best = i;
+        int tie[TRIVIA_MAX_TOPICS], tn = 0;
+        for(int i = 0; i < _spec.packCount; i++)
+            if(votes[i] == votes[best]) tie[tn++] = i;
+        return tie[(int)random(tn)];
+    }
+
+    void spectrumClear() {
+        partyClear(_spec.pt);
+        _spec.pack = 0;
+        _spec.card = 0;
+        _spec.cardSeq = 0;
+        _spec.psychic = 0;
+        _spec.psychicSeq = 0;
+        _spec.stage = 0;
+        _spec.target = 0;
+        _spec.clue[0] = '\0';
+        for(int i = 0; i <= HA_MAX_PLAYERS; i++) {
+            _spec.vote[i] = -1;
+            _spec.guess[i] = -1;
+            _spec.gained[i] = 0;
+        }
+    }
+
+    void spectrumReady(uint8_t pid, bool val) {
+        if(_active != HA_GAME_SPECTRUM) return;
+        if(_spec.pt.phase != 0 && _spec.pt.phase != 4) return;
+        if(_spec.pt.phase == 4 && val) spectrumClear(); // ready from final -> new game
+        _spec.pt.ready[pid] = val;
+        spectrumCheckStart();
+        pushAll();
+    }
+
+    void spectrumVote(uint8_t pid, int pack) {
+        if(_active != HA_GAME_SPECTRUM || _spec.pt.phase != 0) return;
+        if(pack < 0 || pack >= _spec.packCount) return;
+        _spec.vote[pid] = (int8_t)pack;
+        pushAll();
+    }
+
+    void spectrumCheckStart() {
+        if(_spec.packCount == 0) return;
+        Party& pt = _spec.pt;
+        if(pt.phase == 0 && partyAllReady(pt)) {
+            pt.phase = 1;
+            pt.countdownEnd = millis() + (uint32_t)PARTY_COUNTDOWN * 1000;
+            pt.lastSec = -1;
+        } else if(pt.phase == 1 && !partyAllReady(pt)) {
+            pt.phase = 0;
+        }
+    }
+
+    // The psychic rotates across rounds: the (psychicSeq mod N)-th connected player.
+    uint8_t spectrumPickPsychic() {
+        int n = connectedCount();
+        if(n <= 0) return 0;
+        int want = _spec.psychicSeq % n;
+        int seen = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used) continue;
+            if(seen == want) return i;
+            seen++;
+        }
+        return 0;
+    }
+
+    void spectrumNextRound(uint32_t now) {
+        Party& pt = _spec.pt;
+        WyrPack& pk = _spec.packs[_spec.pack];
+        if(pt.round >= SPECTRUM_ROUNDS || pk.count == 0) {
+            pt.phase = 4; // final
+            pushAll();
+            return;
+        }
+        pt.round++;
+        _spec.psychic = spectrumPickPsychic();
+        _spec.psychicSeq++;
+        _spec.card = (uint8_t)(_spec.cardSeq % pk.count);
+        _spec.cardSeq++;
+        _spec.target = 5 + (int)random(91); // 5..95, avoid the very edges
+        _spec.stage = 0; // clue first
+        _spec.clue[0] = '\0';
+        for(int i = 0; i <= HA_MAX_PLAYERS; i++) {
+            _spec.guess[i] = -1;
+            _spec.gained[i] = 0;
+        }
+        pt.deadline = now + (uint32_t)SPECTRUM_CLUE_SECS * 1000;
+        pt.phase = 2;
+        pushAll();
+    }
+
+    void spectrumClue(uint8_t pid, const char* text) {
+        if(_active != HA_GAME_SPECTRUM || _spec.pt.phase != 2 || _spec.stage != 0) return;
+        if(pid != _spec.psychic) return;
+        strlcpy(_spec.clue, text, sizeof(_spec.clue));
+        _spec.stage = 1; // move to guessing
+        _spec.pt.deadline = millis() + (uint32_t)SPECTRUM_GUESS_SECS * 1000;
+        haUartEvent(String("{\"draw\":\"") + ha_json_escape(_p[pid].nick) + ": " +
+                    ha_json_escape(_spec.clue) + "\"}");
+        pushAll();
+    }
+
+    bool spectrumAllGuessed() {
+        int guessers = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used || i == _spec.psychic) continue;
+            guessers++;
+            if(_spec.guess[i] < 0) return false;
+        }
+        return guessers >= 1;
+    }
+
+    void spectrumGuess(uint8_t pid, int val) {
+        if(_active != HA_GAME_SPECTRUM || _spec.pt.phase != 2 || _spec.stage != 1) return;
+        if(pid == _spec.psychic) return; // the clue-giver doesn't guess
+        if(val < 0) val = 0;
+        if(val > 100) val = 100;
+        _spec.guess[pid] = (int8_t)val;
+        if(spectrumAllGuessed()) spectrumReveal(millis());
+        else pushAll();
+    }
+
+    // Points by closeness of the guess (0..100) to the hidden target (0..100).
+    // A tight bullseye (±2) for landing right on it, then two 5-wide rings,
+    // matching the dial's three scoring wedges exactly.
+    static int spectrumPoints(int target, int guess) {
+        int d = target - guess;
+        if(d < 0) d = -d;
+        if(d <= 2) return 4;
+        if(d <= 7) return 3;
+        if(d <= 12) return 2;
+        return 0;
+    }
+
+    void spectrumReveal(uint32_t now) {
+        int sum = 0, guessers = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used || i == _spec.psychic || _spec.guess[i] < 0) continue;
+            int pts = spectrumPoints(_spec.target, _spec.guess[i]);
+            _spec.gained[i] = pts;
+            _p[i].score += pts;
+            if(pts) haUartScore(i, pts, "spectrum");
+            sum += pts;
+            guessers++;
+        }
+        // The psychic scores by how well the group did: the average guesser score,
+        // so a clue that lands everyone near the target is worth the most.
+        if(_spec.psychic && guessers > 0) {
+            int avg = (sum + guessers / 2) / guessers;
+            _spec.gained[_spec.psychic] = avg;
+            _p[_spec.psychic].score += avg;
+            if(avg) haUartScore(_spec.psychic, avg, "clue");
+        }
+        haUartRoundResult(String("{\"spectrum\":\"round ") + _spec.pt.round + "\"}");
+        _spec.pt.phase = 3;
+        _spec.pt.revealUntil = now + SPECTRUM_REVEAL_MS;
+        pushAll();
+    }
+
+    void spectrumAgain(uint8_t pid) {
+        (void)pid;
+        if(_active != HA_GAME_SPECTRUM || _spec.pt.phase != 4) return;
+        spectrumClear();
+        pushAll();
+    }
+
+    void spectrumTick(uint32_t now) {
+        Party& pt = _spec.pt;
+        if(pt.phase == 1) {
+            if(partyCountdownDone(pt, now)) {
+                pt.round = 0;
+                _spec.pack = (uint8_t)spectrumWinningPack();
+                _spec.psychicSeq = 0;
+                _spec.cardSeq = 0;
+                spectrumNextRound(now);
+            }
+        } else if(pt.phase == 2) {
+            if(_spec.stage == 0) {
+                // Clue window expired with no clue: move on to guessing anyway so a
+                // silent/absent psychic can't stall the game.
+                if((int32_t)(now - pt.deadline) >= 0) {
+                    _spec.stage = 1;
+                    pt.deadline = now + (uint32_t)SPECTRUM_GUESS_SECS * 1000;
+                    pushAll();
+                }
+            } else {
+                if((int32_t)(now - pt.deadline) >= 0 || spectrumAllGuessed())
+                    spectrumReveal(now);
+            }
+        } else if(pt.phase == 3) {
+            if((int32_t)(now - pt.revealUntil) >= 0) spectrumNextRound(now);
+        }
+    }
+
+    String spectrumJson(uint8_t pid) {
+        Party& pt = _spec.pt;
+        if(pt.phase == 0) {
+            String s = String("{\"t\":\"spectrum\",\"phase\":\"lobby\",\"you\":") + pid +
+                       ",\"players\":" + partyPlayersJson(pt);
+            s += ",\"packs\":[";
+            int votes[TRIVIA_MAX_TOPICS] = {0};
+            for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+                if(_p[i].used && _spec.vote[i] >= 0 && _spec.vote[i] < _spec.packCount)
+                    votes[_spec.vote[i]]++;
+            for(int i = 0; i < _spec.packCount; i++) {
+                if(i) s += ",";
+                s += "{\"name\":\"" + ha_json_escape(_spec.packs[i].name.c_str()) +
+                     "\",\"votes\":" + votes[i] + "}";
+            }
+            s += "],\"myvote\":" + String((int)_spec.vote[pid]) + "}";
+            return s;
+        }
+        if(pt.phase == 1)
+            return String("{\"t\":\"spectrum\",\"phase\":\"countdown\",\"sec\":") +
+                   partyCountdownSec(pt) + "}";
+        if(pt.phase == 4)
+            return String("{\"t\":\"spectrum\",\"phase\":\"final\",\"board\":") + triviaBoard() +
+                   "}";
+
+        WyrPack& pk = _spec.packs[_spec.pack];
+        const char* left = pk.items[_spec.card].a.c_str();
+        const char* right = pk.items[_spec.card].b.c_str();
+        bool mePsychic = (pid == _spec.psychic);
+        bool reveal = (pt.phase == 3);
+        const char* stage = reveal ? "reveal" : (_spec.stage == 0 ? "clue" : "guess");
+
+        String s = String("{\"t\":\"spectrum\",\"phase\":\"play\",\"stage\":\"") + stage +
+                   "\",\"round\":" + pt.round + ",\"rounds\":" + SPECTRUM_ROUNDS + ",\"left\":\"" +
+                   ha_json_escape(left) + "\",\"right\":\"" + ha_json_escape(right) +
+                   "\",\"psychic\":\"" + ha_json_escape(_p[_spec.psychic].nick) +
+                   "\",\"iam\":" + (mePsychic ? "true" : "false");
+        // The psychic sees the target during the clue stage; on reveal everyone does.
+        if(reveal || mePsychic) {
+            s += ",\"target\":";
+            s += _spec.target;
+        }
+        if(_spec.stage == 1 || reveal) {
+            s += ",\"clue\":\"";
+            s += ha_json_escape(_spec.clue);
+            s += "\"";
+        }
+        if(!mePsychic) {
+            s += ",\"myguess\":";
+            s += (int)_spec.guess[pid];
+        }
+        if(reveal) {
+            s += ",\"guesses\":[";
+            bool first = true;
+            for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+                if(!_p[i].used || i == _spec.psychic || _spec.guess[i] < 0) continue;
+                if(!first) s += ",";
+                first = false;
+                s += "{\"nick\":\"" + ha_json_escape(_p[i].nick) + "\",\"g\":" +
+                     (int)_spec.guess[i] + ",\"pts\":" + _spec.gained[i] + "}";
+            }
+            s += "]";
+            s += ",\"mygain\":";
+            s += _spec.gained[pid];
+            s += ",\"deadline\":";
+            s += pt.revealUntil;
+            s += ",\"dur\":";
+            s += (SPECTRUM_REVEAL_MS / 1000);
+        } else {
+            s += ",\"deadline\":";
+            s += pt.deadline;
+            s += ",\"dur\":";
+            s += (_spec.stage == 0 ? SPECTRUM_CLUE_SECS : SPECTRUM_GUESS_SECS);
+        }
+        s += ",\"scores\":" + playersJson() + "}";
         return s;
     }
 };

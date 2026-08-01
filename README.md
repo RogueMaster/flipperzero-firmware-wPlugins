@@ -19,7 +19,7 @@ the rounds. The ESP32 board is the **referee**: it runs the WiFi access point, s
 the game to phones, and keeps the real-time game state. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-Twelve games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
+Thirteen games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
 reactions that float up on everyone's screen mid-game.
 
 **Whole-group** (scale to everyone in the room, ready-up lobby, shared live leaderboard):
@@ -37,6 +37,11 @@ reactions that float up on everyone's screen mid-game.
 - **Guess the Color** — a random color swatch appears; dial in its R/G/B (0-255) with a
   slider per channel and submit. Closest guess wins the round, with a speed bonus, over
   five rounds to a podium. You never see a preview of your color while guessing.
+- **Spectrum** — a Wavelength-style guessing game. Each round one player is the psychic:
+  they see a hidden target on a 0-100 spectrum between two opposing words (Cold to Hot)
+  and type a clue; everyone else slides a dial to guess where it lands. Points by
+  closeness, and the psychic scores by how well the group guesses, so a good clue pays
+  off. Six rounds, rotating psychic. Prompts are the spectrum packs on the SD card.
 
 **1v1 duels** (challenge a player, many matches at once, rematch button, wins score on
 the Flipper leaderboard):
@@ -80,6 +85,7 @@ Reaction Duel, Guess the Color), Draw &amp; Guess, and a real-time Pong (animate
 </p>
 <p align="center">
   <img src="docs/img/web-guesscolor.gif" alt="Guess the Color: dial in the swatch's RGB with a slider per channel, then the reveal" width="19%">
+  <img src="docs/img/web-spectrum.gif" alt="Spectrum: the psychic's clue points at a hidden target on a Cold-to-Hot dial; guessers slide to it" width="19%">
   <img src="docs/img/web-draw.gif" alt="Draw &amp; Guess: the drawer's canvas with strokes forming and the secret word" width="19%">
   <img src="docs/img/web-pong.gif" alt="Pong: real-time 1v1 rally with on-screen paddle controls" width="19%">
 </p>
@@ -221,6 +227,9 @@ sim/serve.sh                 # -> http://localhost:8123/sim/web/
 Headless tests: `sim/test/all.sh`. Memory-bug hunting: `sim/engine/build.sh --asan &&
 sim/test/all.sh`. Full docs, including caveats and what still has to be hand-kept in sync
 with the firmware, in [sim/README.md](sim/README.md).
+
+New games and fixes are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the build/test
+loop and the "adding a game" checklist (a `pr-checklist` action reviews PRs against it).
 
 ## Usage
 

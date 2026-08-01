@@ -27,6 +27,8 @@ static const char* game_name(uint8_t g) {
         return "Guess the Color";
     case HA_GAME_BATTLESHIP:
         return "Battleship";
+    case HA_GAME_SPECTRUM:
+        return "Spectrum";
     default:
         return "None";
     }

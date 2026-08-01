@@ -598,3 +598,45 @@ h3{margin:0; font-weight:600}
 .bs-actions{display:flex; gap:8px; align-items:center; margin-top:8px}
 .bs-actions .btn.big{flex:1}
 .bs-count{text-align:center}
+/* ---- Spectrum (wavelength-style guessing) ------------------------------- */
+/* A half-circle dial like the Wavelength board: the target sits under nested
+   scoring wedges (closer = more points) and a needle swings to the guess. */
+/* The wrapper reserves height with the classic padding-bottom aspect hack
+   (128/220 = 58.18%) and the SVG fills it absolutely. An inline SVG with
+   width:100%+height:auto collapses its layout box to 0x0 here — it still paints
+   via overflow:visible, but getBoundingClientRect returns 0x0 and the
+   pointer->value mapping breaks. Filling a sized box gives a real rect, and since
+   the box ratio matches the viewBox there's no letterboxing. */
+.sp-dialwrap{position:relative; margin:8px 0 4px; padding-bottom:58.18%}
+.sp-dial{position:absolute; inset:0; width:100%; height:100%; overflow:visible;
+  touch-action:none; cursor:grab; -webkit-user-select:none; user-select:none}
+.sp-dial:active{cursor:grabbing}
+/* A fat invisible hit-line over the needle isn't needed — the whole dial grabs. */
+.sp-arc{fill:none; stroke:var(--line); stroke-width:3}
+.sp-hub{fill:var(--text); stroke:var(--bg); stroke-width:2}
+.sp-ndl{stroke:var(--text); stroke-width:3; stroke-linecap:round}
+.sp-ndl.reveal{stroke:var(--orange)}
+/* Scoring wedges, faint→bright as the points rise toward the centre line. */
+.sp-band{stroke:none}
+.sp-band.b1{fill:rgba(255,130,0,.10)}
+.sp-band.b2{fill:rgba(255,130,0,.20)}
+.sp-band.b3{fill:rgba(255,130,0,.32)}
+.sp-band.b4{fill:rgba(255,130,0,.52)}
+.sp-tline{stroke:var(--orange-bright); stroke-width:2.5}
+/* End labels sit under the two ends of the arc. */
+.sp-end{position:absolute; bottom:2px; max-width:44%; font-size:13px; font-weight:700;
+  color:var(--text-dim); line-height:1.15}
+.sp-end{left:0} .sp-end-r{left:auto; right:0; text-align:right}
+/* Reveal: a guess dot on the arc + its owner's name/points. */
+.sp-dot{fill:var(--text-mute)}
+.sp-dot.hit{fill:var(--orange)}
+.sp-dlabel{fill:var(--text-dim); font-size:9px; font-weight:700}
+.sp-dlabel.hit{fill:var(--orange-bright)}
+.sp-slider{width:100%; margin:6px 0; accent-color:var(--orange); height:30px; background:transparent}
+.sp-clue{text-align:center; font-size:20px; font-weight:800; color:var(--orange-bright);
+  margin:10px 0; min-height:4px}
+.sp-clueform{display:flex; gap:8px; margin:12px 0 6px}
+.sp-cluein{flex:1; background:var(--surface-2); color:var(--text);
+  border:2px solid var(--line); padding:10px 12px; font:inherit; font-size:16px}
+.sp-cluein:focus{outline:none; border-color:var(--orange)}
+.sp-note{text-align:center; color:var(--text-dim); font-size:13px; margin-top:8px; min-height:16px}
