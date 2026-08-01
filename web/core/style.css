@@ -551,18 +551,21 @@ h3{margin:0; font-weight:600}
 .gc-nums b{color:var(--text); font-variant-numeric:tabular-nums}
 .gc-pts{color:var(--orange); font-weight:700; font-size:22px}
 .gc-winner{text-align:center; font-weight:700; margin-top:6px}
-.gc-chip-lg{max-width:280px; aspect-ratio:16/9}
+/* Shared by the play swatch (still in the markup) and centered blocks below. */
+.gc-target-wrap{display:flex; flex-direction:column; gap:6px; align-items:center}
+.gc-chip-lg{width:100%; max-width:280px; aspect-ratio:16/9}
+/* Reveal centers its own column (gc-play defaults to stretch). */
+#gc-reveal{align-items:center}
 .gc-answer{text-align:center; font-size:13px}
-.gc-legend{padding-left:4px; color:var(--text-mute); font-size:10px;
-  text-transform:uppercase; letter-spacing:.08em}
-.gc-guesses{display:flex; flex-direction:column; gap:6px}
+.gc-legend{color:var(--text-mute); font-size:10px; text-transform:uppercase; letter-spacing:.08em}
+.gc-guesses{display:flex; flex-direction:column; gap:6px; width:100%; max-width:340px}
 .gc-grow{display:flex; align-items:center; gap:10px; padding:6px 8px;
   background:var(--surface); border:2px solid var(--line); border-radius:var(--radius)}
 .gc-grow.you{border-color:var(--orange)}
 .gc-grow.win{background:var(--surface-2)}
 /* Split swatch: left half answer, right half the player's guess. z-index above
    .scan (40) so the CRT scanline doesn't tint the colors being compared. */
-.gc-gsw{display:flex; width:84px; height:30px; flex:none; overflow:hidden;
+.gc-gsw{display:flex; width:96px; height:34px; flex:none; overflow:hidden;
   border:1px solid var(--line); border-radius:2px; position:relative; z-index:41; background:#000}
 .gc-h{flex:1}
 .gc-h + .gc-h{border-left:2px solid var(--bg)}
