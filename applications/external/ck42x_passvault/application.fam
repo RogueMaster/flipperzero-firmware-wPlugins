@@ -6,6 +6,7 @@ App(
     stack_size=8 * 1024,
     fap_icon="ck42x_passvault.png",
     fap_icon_assets="images",
+    sources=["*.c", "!test_*.c"],
     fap_category="Tools",
     fap_author="CK42X / lordbuffcloud",
     fap_weburl="https://github.com/lordbuffcloud/flipper-ck42x-passvault",
