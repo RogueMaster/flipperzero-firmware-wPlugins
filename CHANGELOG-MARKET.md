@@ -1,3 +1,6 @@
+v0.2.7:
+- Expand realistic callsign practice to 20 entities with length-aware patterns.
+
 v0.2.6:
 - Fix timing of bug-style keyer.
 
