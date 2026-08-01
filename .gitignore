@@ -1,0 +1,17 @@
+# Build artifacts
+dist/
+build/
+.ufbt/
+
+# IDE
+.vscode/
+.idea/
+
+# Compiled outputs
+*.fap
+*.elf
+*.dfu
+
+# OS files
+.DS_Store
+Thumbs.db
