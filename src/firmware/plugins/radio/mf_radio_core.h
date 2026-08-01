@@ -22,6 +22,8 @@
 #define MF_RADIO_RX_FLOOR_MARGIN_DB    6
 #define MF_RADIO_RX_RECOVERY_DROP_DB   3
 #define MF_RADIO_TX_TAIL_DITS          2U
+#define MF_RADIO_CWFM_HANG_DITS        7U
+#define MF_RADIO_CWFM_HANG_MIN_MS      500U
 
 typedef struct {
     uint32_t end_ms;
@@ -56,6 +58,7 @@ typedef struct {
     uint16_t rx_edges_window;
     uint16_t rx_activity;
     uint16_t tx_dit_ms;
+    MfRadioTxMode tx_mode;
     uint8_t frequency_focus;
     uint8_t rx_candidate_samples;
     uint8_t rx_wpm_hint;
@@ -70,6 +73,7 @@ typedef struct {
     bool entered;
     bool leaving;
     bool tx_prepared;
+    bool tx_idle_pending;
     bool rx_prepared;
     bool rx_level;
     bool rx_candidate_level;

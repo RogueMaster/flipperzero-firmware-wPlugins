@@ -3,14 +3,82 @@
 #include "mf_radio_types.h"
 
 #include <stddef.h>
+#include <string.h>
 
 #ifdef MORSE_FLIPPER_FAP
+#include <cc1101_regs.h>
 #include <furi_hal.h>
 #include <lib/subghz/devices/cc1101_configs.h>
-#include <cc1101_regs.h>
-#include <string.h>
 #endif
 
+typedef struct {
+    uint32_t selected_frequency_hz;
+    bool fm_prepared;
+    bool async_running;
+    bool static_running;
+    MfRadioCwfmTiming timing;
+} MfRadioHalContext;
+
+static MfRadioHalContext hal_context;
+
+bool mf_radio_cwfm_static_config(
+    uint32_t selected_frequency_hz,
+    MfRadioFrequencyPredicate frequency_valid,
+    MfRadioFrequencyPredicate frequency_allowed,
+    MfRadioCwfmStaticConfig* config) {
+    uint32_t candidate;
+    if(frequency_valid == NULL || frequency_allowed == NULL || config == NULL ||
+       !frequency_valid(selected_frequency_hz) || !frequency_allowed(selected_frequency_hz))
+        return false;
+    /* Move only the quiet carrier so one static FSK leg rests on the selected frequency. */
+    if(selected_frequency_hz <= UINT32_MAX - MF_RADIO_CWFM_DEVIATION_HZ) {
+        candidate = selected_frequency_hz + MF_RADIO_CWFM_DEVIATION_HZ;
+        if(frequency_valid(candidate) && frequency_allowed(candidate)) {
+            config->frequency_hz = candidate;
+            config->data_level = false;
+            return true;
+        }
+    }
+    if(selected_frequency_hz >= MF_RADIO_CWFM_DEVIATION_HZ) {
+        candidate = selected_frequency_hz - MF_RADIO_CWFM_DEVIATION_HZ;
+        if(frequency_valid(candidate) && frequency_allowed(candidate)) {
+            config->frequency_hz = candidate;
+            config->data_level = true;
+            return true;
+        }
+    }
+    return false;
+}
+
+void mf_radio_cwfm_timing_reset(MfRadioCwfmTiming* timing) {
+    if(timing == NULL) return;
+    timing->remainder = 0U;
+    timing->phase = false;
+}
+
+uint16_t mf_radio_cwfm_next_half_period(MfRadioCwfmTiming* timing, bool* level) {
+    uint16_t duration = 714U;
+    if(timing == NULL || level == NULL) return 0U;
+    timing->remainder = (uint8_t)(timing->remainder + 2U);
+    if(timing->remainder >= 7U) {
+        timing->remainder = (uint8_t)(timing->remainder - 7U);
+        duration++;
+    }
+    timing->phase = !timing->phase;
+    *level = timing->phase;
+    return duration;
+}
+
+#ifdef MORSE_FLIPPER_FAP
+static LevelDuration hal_cwfm_yield(void* context) {
+    MfRadioHalContext* hal = context;
+    bool level;
+    uint16_t duration = mf_radio_cwfm_next_half_period(&hal->timing, &level);
+    return level_duration_make(level, duration);
+}
+#endif
+
+#ifdef MORSE_FLIPPER_FAP
 static const uint8_t tx_ook_270khz_no_autocal_regs[] = {
     0x02, 0x0D, 0x03, 0x47, 0x08, 0x32, 0x0B, 0x06, 0x14, 0x00, 0x13, 0x00, 0x12, 0x30, 0x11,
     0x32, 0x10, 0x67, 0x18, 0x08, 0x19, 0x18, 0x1D, 0x40, 0x1C, 0x00, 0x1B, 0x03, 0x20, 0xFB,
@@ -131,6 +199,7 @@ static const uint8_t carrier_ook_650khz_no_autocal_regs[] = {
     0x00,
     0x00,
 };
+#endif
 
 static bool hal_prepare_common(uint32_t frequency_hz, bool output) {
 #ifdef MORSE_FLIPPER_FAP
@@ -151,18 +220,31 @@ static bool hal_prepare_common(uint32_t frequency_hz, bool output) {
 #endif
 }
 
-static bool hal_prepare_tx(void* context, uint32_t frequency_hz) {
-    (void)context;
+static bool hal_prepare_tx(void* context, uint32_t frequency_hz, MfRadioTxMode mode) {
+    MfRadioHalContext* hal = context;
+    memset(hal, 0, sizeof(*hal));
 #ifdef MORSE_FLIPPER_FAP
+    if(mode == MfRadioTxModeCwfm) {
+        const GpioPin* data_gpio = furi_hal_subghz_get_data_gpio();
+        furi_hal_subghz_reset();
+        furi_hal_subghz_load_custom_preset(subghz_device_cc1101_preset_2fsk_dev2_38khz_async_regs);
+        (void)furi_hal_subghz_set_frequency_and_path(frequency_hz);
+        furi_hal_gpio_init(data_gpio, GpioModeInput, GpioPullNo, GpioSpeedLow);
+        hal->selected_frequency_hz = frequency_hz;
+        hal->fm_prepared = true;
+        return true;
+    }
     if(!hal_prepare_common(frequency_hz, true)) return false;
     return furi_hal_subghz_tx();
 #else
+    (void)mode;
     return hal_prepare_common(frequency_hz, true);
 #endif
 }
 
 static bool hal_prepare_carrier_rx(void* context, uint32_t frequency_hz) {
-    (void)context;
+    MfRadioHalContext* hal = context;
+    memset(hal, 0, sizeof(*hal));
 #ifdef MORSE_FLIPPER_FAP
     if(!hal_prepare_common(frequency_hz, false)) return false;
     furi_hal_subghz_rx();
@@ -172,13 +254,59 @@ static bool hal_prepare_carrier_rx(void* context, uint32_t frequency_hz) {
 #endif
 }
 
-static void hal_set_tx_level(void* context, bool level) {
-    (void)context;
+static bool hal_set_tx_level(void* context, bool level) {
+    MfRadioHalContext* hal = context;
 #ifdef MORSE_FLIPPER_FAP
+    const GpioPin* data_gpio = furi_hal_subghz_get_data_gpio();
+    if(hal->fm_prepared) {
+        if(level) {
+            if(hal->async_running) return true;
+            if(hal->static_running) {
+                furi_hal_subghz_idle();
+                (void)furi_hal_subghz_set_frequency_and_path(hal->selected_frequency_hz);
+                hal->static_running = false;
+            }
+            furi_hal_gpio_init(data_gpio, GpioModeInput, GpioPullNo, GpioSpeedLow);
+            mf_radio_cwfm_timing_reset(&hal->timing);
+            if(!furi_hal_subghz_start_async_tx(hal_cwfm_yield, hal)) return false;
+            hal->async_running = true;
+            return true;
+        }
+        if(!hal->async_running) return true;
+        furi_hal_subghz_stop_async_tx();
+        hal->async_running = false;
+        mf_radio_cwfm_timing_reset(&hal->timing);
+        MfRadioCwfmStaticConfig static_config;
+        if(!mf_radio_cwfm_static_config(
+               hal->selected_frequency_hz,
+               furi_hal_subghz_is_frequency_valid,
+               furi_hal_region_is_frequency_allowed,
+               &static_config))
+            return false;
+        (void)furi_hal_subghz_set_frequency_and_path(static_config.frequency_hz);
+        furi_hal_gpio_init(data_gpio, GpioModeOutputPushPull, GpioPullNo, GpioSpeedLow);
+        furi_hal_gpio_write(data_gpio, static_config.data_level);
+        if(!furi_hal_subghz_tx()) return false;
+        hal->static_running = true;
+        return true;
+    }
     furi_hal_gpio_write(furi_hal_subghz_get_data_gpio(), level);
 #else
+    (void)hal;
     (void)level;
 #endif
+    return true;
+}
+
+static void hal_stop_tx(void* context) {
+    MfRadioHalContext* hal = context;
+#ifdef MORSE_FLIPPER_FAP
+    const GpioPin* data_gpio = furi_hal_subghz_get_data_gpio();
+    if(hal->async_running) furi_hal_subghz_stop_async_tx();
+    furi_hal_gpio_write(data_gpio, false);
+    furi_hal_gpio_init(data_gpio, GpioModeInput, GpioPullNo, GpioSpeedLow);
+#endif
+    memset(hal, 0, sizeof(*hal));
 }
 
 static bool hal_read_carrier(void* context) {
@@ -305,6 +433,7 @@ static const MfRadioHardwareOps hardware_ops = {
     .prepare_tx = hal_prepare_tx,
     .prepare_carrier_rx = hal_prepare_carrier_rx,
     .set_tx_level = hal_set_tx_level,
+    .stop_tx = hal_stop_tx,
     .read_carrier = hal_read_carrier,
     .read_rssi_dbm = hal_read_rssi_dbm,
     .frequency_valid = hal_frequency_valid,
@@ -312,6 +441,7 @@ static const MfRadioHardwareOps hardware_ops = {
     .default_frequency = hal_default_frequency,
     .idle = hal_idle,
     .sleep = hal_sleep,
+    .context = &hal_context,
 };
 
 const MfRadioHardwareOps* mf_radio_hal_ops(void) {

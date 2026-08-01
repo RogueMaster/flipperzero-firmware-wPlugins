@@ -9,10 +9,13 @@ typedef struct {
     char calls[64];
     size_t count;
     bool tx_ok;
+    bool high_ok;
+    bool low_ok;
     bool rx_ok;
     bool valid;
     bool allowed;
     uint32_t default_hz;
+    MfRadioTxMode prepared_mode;
 } FakeHardware;
 
 static void record(FakeHardware* fake, char call) {
@@ -21,10 +24,11 @@ static void record(FakeHardware* fake, char call) {
     fake->calls[fake->count] = '\0';
 }
 
-static bool prepare_tx(void* context, uint32_t frequency_hz) {
+static bool prepare_tx(void* context, uint32_t frequency_hz, MfRadioTxMode mode) {
     (void)frequency_hz;
     FakeHardware* fake = context;
     record(fake, 'T');
+    fake->prepared_mode = mode;
     return fake->tx_ok;
 }
 static bool prepare_rx(void* context, uint32_t frequency_hz) {
@@ -33,8 +37,12 @@ static bool prepare_rx(void* context, uint32_t frequency_hz) {
     record(fake, 'R');
     return fake->rx_ok;
 }
-static void set_level(void* context, bool level) {
+static bool set_level(void* context, bool level) {
     record(context, level ? 'H' : 'L');
+    return level ? ((FakeHardware*)context)->high_ok : ((FakeHardware*)context)->low_ok;
+}
+static void stop_tx(void* context) {
+    record(context, 'X');
 }
 static bool read_carrier(void* context) {
     (void)context;
@@ -95,6 +103,7 @@ static MfRadioHardwareOps hardware(FakeHardware* fake) {
         .prepare_tx = prepare_tx,
         .prepare_carrier_rx = prepare_rx,
         .set_tx_level = set_level,
+        .stop_tx = stop_tx,
         .read_carrier = read_carrier,
         .read_rssi_dbm = read_rssi,
         .frequency_valid = frequency_valid,
@@ -128,6 +137,8 @@ static MfRadioEnterArgs enter_args(void) {
 int main(void) {
     FakeHardware fake = {
         .tx_ok = true,
+        .high_ok = true,
+        .low_ok = true,
         .rx_ok = true,
         .valid = true,
         .allowed = true,
@@ -141,6 +152,9 @@ int main(void) {
 
     assert(!mf_radio_core_enter(NULL, &args, &ops, &result));
     assert(!mf_radio_core_enter(&state, NULL, &ops, &result));
+    ops.stop_tx = NULL;
+    assert(!mf_radio_core_enter(&state, &args, &ops, &result));
+    ops = hardware(&fake);
     args.decoder = NULL;
     assert(!mf_radio_core_enter(&state, &args, &ops, &result));
     args = enter_args();
@@ -154,17 +168,18 @@ int main(void) {
     fake.count = 0U;
     fake.calls[0] = '\0';
     result = mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 20U);
-    assert(result.handled && strcmp(fake.calls, "TH") == 0);
+    assert(
+        result.handled && strcmp(fake.calls, "TH") == 0 && fake.prepared_mode == MfRadioTxModeOok);
     result = mf_radio_core_sync_tx(&state, MfRadioTxIntervalMark, 100U, false, 120U);
     assert(result.handled && strcmp(fake.calls, "THL") == 0);
     mf_radio_core_tick(&state, 319U);
     assert(strcmp(fake.calls, "THL") == 0);
     result = mf_radio_core_tick(&state, 320U);
-    assert(result.redraw && strcmp(fake.calls, "THLLIS") == 0);
+    assert(result.redraw && strcmp(fake.calls, "THLXIS") == 0);
     assert(mf_radio_core_snapshot(&state, &snapshot));
     assert(!snapshot.hardware_active && !snapshot.tx_active);
     mf_radio_core_leave(&state);
-    assert(strcmp(fake.calls, "THLLIS") == 0);
+    assert(strcmp(fake.calls, "THLXIS") == 0);
     assert(mf_radio_core_snapshot(&state, &snapshot));
     assert(!snapshot.hardware_active && !snapshot.tx_active && !snapshot.monitor_tone);
     {
@@ -174,6 +189,189 @@ int main(void) {
         assert(!mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 130U).handled);
         assert(!mf_radio_core_tick(&state, 130U).handled);
     }
+
+    /* CWFM holds a quiet carrier through a seven-dit/500 ms minimum hang. */
+    fake.count = 0U;
+    fake.calls[0] = '\0';
+    assert(mf_radio_core_enter(&state, &args, &ops, &result));
+    mf_radio_core_set_page(&state, MfRadioPageTransmit, 10U);
+    {
+        InputEvent right = {.key = InputKeyRight, .type = InputTypeShort};
+        assert(mf_radio_core_input(&state, &right, 11U).handled);
+    }
+    assert(state.tx_mode == MfRadioTxModeCwfm);
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 20U);
+    assert(strcmp(fake.calls, "TH") == 0 && fake.prepared_mode == MfRadioTxModeCwfm);
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalMark, 100U, false, 120U);
+    assert(strcmp(fake.calls, "THL") == 0 && state.tx_idle_at == 820U);
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalSpace, 30U, false, 150U);
+    assert(strcmp(fake.calls, "THL") == 0 && state.tx_idle_at == 820U);
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalSpace, 250U, true, 400U);
+    assert(strcmp(fake.calls, "THLH") == 0 && !state.tx_idle_pending);
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalMark, 100U, false, 500U);
+    assert(strcmp(fake.calls, "THLHL") == 0 && state.tx_idle_at == 1200U);
+    mf_radio_core_tick(&state, 1199U);
+    assert(strcmp(fake.calls, "THLHL") == 0);
+    result = mf_radio_core_tick(&state, 1200U);
+    assert(result.redraw && strcmp(fake.calls, "THLHLXIS") == 0);
+    assert(state.tx_mode == MfRadioTxModeCwfm && !state.snapshot.hardware_active);
+    mf_radio_core_leave(&state);
+
+    /* A toggle during the static hang stops RF before changing mode. */
+    fake.count = 0U;
+    fake.calls[0] = '\0';
+    assert(mf_radio_core_enter(&state, &args, &ops, &result));
+    mf_radio_core_set_page(&state, MfRadioPageTransmit, 0U);
+    {
+        InputEvent right = {.key = InputKeyRight, .type = InputTypeShort};
+        mf_radio_core_input(&state, &right, 1U);
+        mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 2U);
+        result = mf_radio_core_input(&state, &right, 3U);
+        assert(result.handled && !result.redraw && state.tx_mode == MfRadioTxModeCwfm);
+        assert(strcmp(fake.calls, "TH") == 0);
+        mf_radio_core_sync_tx(&state, MfRadioTxIntervalMark, 100U, false, 102U);
+        result = mf_radio_core_input(&state, &right, 103U);
+        assert(result.handled && result.redraw && state.tx_mode == MfRadioTxModeOok);
+        assert(strcmp(fake.calls, "THLXIS") == 0);
+    }
+    mf_radio_core_leave(&state);
+
+    /* Leaving the page or FAL stops an active callback exactly once. */
+    fake.count = 0U;
+    fake.calls[0] = '\0';
+    assert(mf_radio_core_enter(&state, &args, &ops, &result));
+    mf_radio_core_set_page(&state, MfRadioPageTransmit, 0U);
+    {
+        InputEvent right = {.key = InputKeyRight, .type = InputTypeShort};
+        mf_radio_core_input(&state, &right, 1U);
+    }
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 2U);
+    mf_radio_core_set_page(&state, MfRadioPageIdle, 3U);
+    assert(strcmp(fake.calls, "THXIS") == 0 && state.tx_mode == MfRadioTxModeOok);
+    mf_radio_core_leave(&state);
+    assert(strcmp(fake.calls, "THXIS") == 0);
+
+    fake.count = 0U;
+    fake.calls[0] = '\0';
+    assert(mf_radio_core_enter(&state, &args, &ops, &result));
+    mf_radio_core_set_page(&state, MfRadioPageTransmit, 0U);
+    {
+        InputEvent right = {.key = InputKeyRight, .type = InputTypeShort};
+        mf_radio_core_input(&state, &right, 1U);
+    }
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 2U);
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalMark, 100U, false, 102U);
+    mf_radio_core_leave(&state);
+    assert(strcmp(fake.calls, "THLXIS") == 0 && state.tx_mode == MfRadioTxModeOok);
+    mf_radio_core_leave(&state);
+    assert(strcmp(fake.calls, "THLXIS") == 0);
+
+    /* Both async-start and static-carrier failures roll back completely. */
+    fake.count = 0U;
+    fake.calls[0] = '\0';
+    fake.high_ok = false;
+    assert(mf_radio_core_enter(&state, &args, &ops, &result));
+    mf_radio_core_set_page(&state, MfRadioPageTransmit, 0U);
+    {
+        InputEvent right = {.key = InputKeyRight, .type = InputTypeShort};
+        mf_radio_core_input(&state, &right, 1U);
+    }
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 2U);
+    assert(strcmp(fake.calls, "THXIS") == 0);
+    assert(!state.tx_prepared && !state.snapshot.hardware_active && !state.snapshot.tx_active);
+    mf_radio_core_leave(&state);
+    fake.high_ok = true;
+
+    fake.count = 0U;
+    fake.calls[0] = '\0';
+    fake.low_ok = false;
+    assert(mf_radio_core_enter(&state, &args, &ops, &result));
+    mf_radio_core_set_page(&state, MfRadioPageTransmit, 0U);
+    {
+        InputEvent right = {.key = InputKeyRight, .type = InputTypeShort};
+        mf_radio_core_input(&state, &right, 1U);
+    }
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 2U);
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalMark, 100U, false, 102U);
+    assert(strcmp(fake.calls, "THLXIS") == 0);
+    assert(!state.tx_prepared && !state.snapshot.hardware_active && !state.snapshot.tx_active);
+    mf_radio_core_leave(&state);
+    fake.low_ok = true;
+
+    /* Losing TX permission tears down an active tone or static carrier immediately. */
+    fake.count = 0U;
+    fake.calls[0] = '\0';
+    assert(mf_radio_core_enter(&state, &args, &ops, &result));
+    mf_radio_core_set_page(&state, MfRadioPageTransmit, 0U);
+    {
+        InputEvent right = {.key = InputKeyRight, .type = InputTypeShort};
+        mf_radio_core_input(&state, &right, 1U);
+    }
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 2U);
+    fake.allowed = false;
+    result = mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 3U);
+    assert(result.handled && result.redraw && strcmp(fake.calls, "THXIS") == 0);
+    assert(!state.tx_prepared && !state.snapshot.hardware_active && !state.snapshot.tx_active);
+    mf_radio_core_leave(&state);
+
+    fake.allowed = true;
+    fake.count = 0U;
+    fake.calls[0] = '\0';
+    assert(mf_radio_core_enter(&state, &args, &ops, &result));
+    mf_radio_core_set_page(&state, MfRadioPageTransmit, 0U);
+    {
+        InputEvent right = {.key = InputKeyRight, .type = InputTypeShort};
+        mf_radio_core_input(&state, &right, 1U);
+        mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 2U);
+        mf_radio_core_sync_tx(&state, MfRadioTxIntervalMark, 100U, false, 102U);
+        fake.allowed = false;
+        result = mf_radio_core_input(&state, &right, 103U);
+        assert(result.handled && !result.redraw && state.tx_mode == MfRadioTxModeCwfm);
+        assert(strcmp(fake.calls, "THLXIS") == 0);
+        assert(!state.tx_prepared && !state.snapshot.hardware_active && !state.snapshot.tx_active);
+    }
+    mf_radio_core_leave(&state);
+    fake.allowed = true;
+
+    /* The CWFM hang deadline remains exact across uint32_t wrap. */
+    fake.count = 0U;
+    fake.calls[0] = '\0';
+    assert(mf_radio_core_enter(&state, &args, &ops, &result));
+    mf_radio_core_set_page(&state, MfRadioPageTransmit, 0U);
+    {
+        InputEvent right = {.key = InputKeyRight, .type = InputTypeShort};
+        mf_radio_core_input(&state, &right, 1U);
+    }
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, UINT32_MAX - 300U);
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalMark, 100U, false, UINT32_MAX - 200U);
+    assert(state.tx_idle_at == 499U && state.tx_idle_pending);
+    mf_radio_core_tick(&state, 498U);
+    assert(strcmp(fake.calls, "THL") == 0);
+    mf_radio_core_tick(&state, 499U);
+    assert(strcmp(fake.calls, "THLXIS") == 0);
+    mf_radio_core_leave(&state);
+
+    /* Faster keying still gets the fixed 500 ms minimum hang. */
+    fake.count = 0U;
+    fake.calls[0] = '\0';
+    args.dit_ms = 60U;
+    assert(mf_radio_core_enter(&state, &args, &ops, &result));
+    mf_radio_core_set_page(&state, MfRadioPageTransmit, 0U);
+    {
+        InputEvent right = {.key = InputKeyRight, .type = InputTypeShort};
+        mf_radio_core_input(&state, &right, 1U);
+    }
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 10U);
+    mf_radio_core_sync_tx(&state, MfRadioTxIntervalMark, 60U, false, 70U);
+    assert(state.tx_idle_at == 570U);
+    mf_radio_core_tick(&state, 569U);
+    assert(strcmp(fake.calls, "THL") == 0);
+    mf_radio_core_tick(&state, 570U);
+    assert(strcmp(fake.calls, "THLXIS") == 0);
+    mf_radio_core_set_page(&state, MfRadioPageTransmit, 571U);
+    assert(state.tx_mode == MfRadioTxModeOok);
+    mf_radio_core_leave(&state);
+    args = enter_args();
 
     fake.count = 0U;
     fake.calls[0] = '\0';
@@ -193,9 +391,9 @@ int main(void) {
     assert(mf_radio_core_enter(&state, &args, &ops, &result));
     mf_radio_core_set_page(&state, MfRadioPageTransmit, 1U);
     mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 2U);
-    assert(strcmp(fake.calls, "TIS") == 0);
+    assert(strcmp(fake.calls, "TXIS") == 0);
     mf_radio_core_leave(&state);
-    assert(strcmp(fake.calls, "TIS") == 0);
+    assert(strcmp(fake.calls, "TXIS") == 0);
 
     fake.count = 0U;
     fake.calls[0] = '\0';

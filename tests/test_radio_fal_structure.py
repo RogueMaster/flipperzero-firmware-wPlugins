@@ -14,6 +14,8 @@ RUNTIME_HEADER = (FIRMWARE / "morse_flipper_plugin_runtime.h").read_text()
 SCENES = (FIRMWARE / "morse_flipper_scenes.c").read_text()
 LIVE_VIEW = (FIRMWARE / "morse_flipper_live_view.c").read_text()
 RADIO_HAL = (RADIO / "mf_radio_hal.c").read_text()
+RADIO_CORE = (RADIO / "mf_radio_core.c").read_text()
+RADIO_API = (RADIO / "mf_radio_api.h").read_text()
 
 LEGACY_MAIN_RF_SOURCES = {
     "src/firmware/morse_flipper_rf.c",
@@ -91,9 +93,35 @@ def main() -> None:
             "};", 1
         )[0]
         prepare_common = function_body(RADIO_HAL, "hal_prepare_common")
+        prepare_tx = function_body(RADIO_HAL, "hal_prepare_tx")
+        set_tx_level = function_body(RADIO_HAL, "hal_set_tx_level")
         assert "0x0D" in tx_preset
         assert "tx_ook_270khz_no_autocal_regs" in prepare_common
         assert "carrier_ook_650khz_no_autocal_regs" in prepare_common
+        assert "subghz_device_cc1101_preset_2fsk_dev2_38khz_async_regs" in RADIO_HAL
+        assert "furi_hal_subghz_start_async_tx" in RADIO_HAL
+        assert "furi_hal_subghz_stop_async_tx" in RADIO_HAL
+        assert "MF_RADIO_CWFM_DEVIATION_HZ 2380U" in radio_text
+        assert "furi_hal_subghz_set_frequency_and_path(frequency_hz)" in prepare_tx
+        assert re.search(
+            r"if\(hal->static_running\).*?furi_hal_subghz_idle\(\).*?"
+            r"set_frequency_and_path\(hal->selected_frequency_hz\).*?"
+            r"GpioModeInput.*?furi_hal_subghz_start_async_tx",
+            set_tx_level,
+            re.DOTALL,
+        )
+        assert re.search(
+            r"furi_hal_subghz_stop_async_tx\(\).*?mf_radio_cwfm_static_config\(.*?"
+            r"set_frequency_and_path\(static_config.frequency_hz\).*?"
+            r"gpio_write\(data_gpio, static_config.data_level\).*?"
+            r"furi_hal_subghz_tx\(\).*?static_running = true",
+            set_tx_level,
+            re.DOTALL,
+        )
+        assert "DEVIATN" not in RADIO_HAL
+        assert "dev5_" not in RADIO_HAL
+        assert "stop_tx" in function_body(RADIO_CORE, "mf_radio_quiesce")
+        assert re.search(r"#define\s+MF_RADIO_API_VERSION\s+2U", RADIO_API)
 
     # Legacy files are allowed only while the product still has no Radio FAL.
     main_block = app_block("morse_flipper")

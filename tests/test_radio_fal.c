@@ -12,17 +12,26 @@ typedef struct {
     bool rx_ok;
     bool valid;
     bool allowed;
+    bool level_ok;
     bool carrier;
     int8_t rssi;
     unsigned tx_prepares;
     unsigned rx_prepares;
     unsigned level_writes;
+    unsigned tx_stops;
+    unsigned idles;
+    unsigned sleeps;
+    MfRadioTxMode prepared_mode;
+    bool last_level;
 } FakeHardware;
 
 static char drawn[128];
 static char draw_log[512];
 static char diagnostic[32];
 static int32_t diagnostic_x;
+static int32_t cwfm_x;
+static Font cwfm_font;
+static Font current_font;
 static unsigned rx_draws;
 static unsigned box_draws;
 
@@ -32,10 +41,11 @@ static void log_drawn_text(const char* text) {
     snprintf(draw_log + len, sizeof(draw_log) - len, "%s", text);
 }
 
-static bool prepare_tx(void* context, uint32_t frequency_hz) {
+static bool prepare_tx(void* context, uint32_t frequency_hz, MfRadioTxMode mode) {
     (void)frequency_hz;
     FakeHardware* fake = context;
     fake->tx_prepares++;
+    fake->prepared_mode = mode;
     return fake->tx_ok;
 }
 static bool prepare_rx(void* context, uint32_t frequency_hz) {
@@ -44,9 +54,14 @@ static bool prepare_rx(void* context, uint32_t frequency_hz) {
     fake->rx_prepares++;
     return fake->rx_ok;
 }
-static void set_level(void* context, bool level) {
-    (void)level;
-    ((FakeHardware*)context)->level_writes++;
+static bool set_level(void* context, bool level) {
+    FakeHardware* fake = context;
+    fake->level_writes++;
+    fake->last_level = level;
+    return fake->level_ok;
+}
+static void stop_tx(void* context) {
+    ((FakeHardware*)context)->tx_stops++;
 }
 static bool read_carrier(void* context) {
     return ((FakeHardware*)context)->carrier;
@@ -67,10 +82,10 @@ static uint32_t default_frequency(void* context) {
     return MF_RADIO_DEFAULT_FREQUENCY_HZ;
 }
 static void idle(void* context) {
-    (void)context;
+    ((FakeHardware*)context)->idles++;
 }
 static void sleep_radio(void* context) {
-    (void)context;
+    ((FakeHardware*)context)->sleeps++;
 }
 
 static MfRadioHardwareOps hardware(FakeHardware* fake) {
@@ -78,6 +93,7 @@ static MfRadioHardwareOps hardware(FakeHardware* fake) {
         .prepare_tx = prepare_tx,
         .prepare_carrier_rx = prepare_rx,
         .set_tx_level = set_level,
+        .stop_tx = stop_tx,
         .read_carrier = read_carrier,
         .read_rssi_dbm = read_rssi,
         .frequency_valid = frequency_valid,
@@ -102,6 +118,7 @@ static void draw_history(
     (void)preview_extendable;
     snprintf(
         drawn, sizeof(drawn), "%s|%s", morse_flipper_run_history_text(history), frequency_line);
+    log_drawn_text(frequency_line);
 }
 
 static void draw_rx_text(
@@ -139,7 +156,7 @@ static MfRadioEnterArgs args(void) {
 
 void canvas_set_font(Canvas* canvas, Font font) {
     (void)canvas;
-    (void)font;
+    current_font = font;
 }
 void canvas_set_color(Canvas* canvas, Color color) {
     (void)canvas;
@@ -152,6 +169,10 @@ void canvas_draw_str(Canvas* canvas, int32_t x, int32_t y, const char* text) {
     if(strncmp(text, "cs", 2U) == 0) {
         snprintf(diagnostic, sizeof(diagnostic), "%s", text);
         diagnostic_x = x;
+    }
+    if(strncmp(text, "Right: CWFM", 11U) == 0) {
+        cwfm_x = x;
+        cwfm_font = current_font;
     }
     log_drawn_text(text);
 }
@@ -172,6 +193,11 @@ void canvas_draw_str_aligned(
 }
 uint32_t canvas_string_width(Canvas* canvas, const char* text) {
     (void)canvas;
+    if(current_font == FontSecondary) {
+        if(strcmp(text, "433160 khz") == 0) return 49U;
+        if(strcmp(text, "Right: CWFM off") == 0) return 66U;
+        if(strcmp(text, "Right: CWFM on") == 0) return 65U;
+    }
     return (uint32_t)strlen(text) * 6U;
 }
 void canvas_draw_dot(Canvas* canvas, int32_t x, int32_t y) {
@@ -249,6 +275,7 @@ int main(void) {
         .rx_ok = true,
         .valid = true,
         .allowed = true,
+        .level_ok = true,
         .rssi = -80,
     };
     MfRadioHardwareOps ops = hardware(&fake);
@@ -270,6 +297,32 @@ int main(void) {
 
     assert(mf_radio_core_enter(&state, &enter, &ops, &result));
     mf_radio_core_set_page(&state, MfRadioPageTransmit, 0U);
+    assert(state.tx_mode == MfRadioTxModeOok);
+    draw_log[0] = '\0';
+    cwfm_x = -1;
+    mf_radio_draw(&state, &canvas, 0U);
+    assert(strstr(draw_log, "433160 khz") != NULL);
+    assert(strstr(draw_log, "Right: CWFM off") != NULL);
+    assert(cwfm_font == FontSecondary);
+    assert(cwfm_x >= 3 + 49 + 2);
+    assert(cwfm_x + 66 <= 128);
+    input = event(InputKeyRight, InputTypePress);
+    assert(!mf_radio_core_input(&state, &input, 0U).handled);
+    input = event(InputKeyRight, InputTypeRelease);
+    assert(!mf_radio_core_input(&state, &input, 0U).handled);
+    input = event(InputKeyRight, InputTypeRepeat);
+    assert(!mf_radio_core_input(&state, &input, 0U).handled);
+    input = event(InputKeyRight, InputTypeLong);
+    assert(!mf_radio_core_input(&state, &input, 0U).handled);
+    assert(state.tx_mode == MfRadioTxModeOok);
+    input = event(InputKeyRight, InputTypeShort);
+    result = mf_radio_core_input(&state, &input, 0U);
+    assert(result.handled && result.redraw && state.tx_mode == MfRadioTxModeCwfm);
+    draw_log[0] = '\0';
+    mf_radio_draw(&state, &canvas, 0U);
+    assert(strstr(draw_log, "Right: CWFM on") != NULL);
+    result = mf_radio_core_input(&state, &input, 0U);
+    assert(result.handled && result.redraw && state.tx_mode == MfRadioTxModeOok);
     input = event(InputKeyBack, InputTypeShort);
     assert(!mf_radio_core_input(&state, &input, 0U).handled);
     mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 1U);
@@ -278,7 +331,18 @@ int main(void) {
     assert(strstr(morse_flipper_run_history_text(&state.tx_history), "E") != NULL);
     drawn[0] = '\0';
     mf_radio_draw(&state, &canvas, 401U);
-    assert(strstr(drawn, "khz") != NULL);
+    assert(strstr(draw_log, "khz") != NULL);
+    {
+        char history[64];
+        snprintf(
+            history, sizeof(history), "%s", morse_flipper_run_history_text(&state.tx_history));
+        input = event(InputKeyRight, InputTypeShort);
+        assert(mf_radio_core_input(&state, &input, 402U).handled);
+        assert(state.tx_mode == MfRadioTxModeCwfm);
+        assert(strcmp(history, morse_flipper_run_history_text(&state.tx_history)) == 0);
+        assert(mf_radio_core_input(&state, &input, 403U).handled);
+        assert(state.tx_mode == MfRadioTxModeOok);
+    }
     mf_radio_core_leave(&state);
 
     /*
@@ -303,8 +367,13 @@ int main(void) {
     mf_radio_core_set_page(&state, MfRadioPageTransmit, 0U);
     mf_radio_core_sync_tx(&state, MfRadioTxIntervalNone, 0U, true, 1U);
     assert(fake.tx_prepares == 0U);
+    input = event(InputKeyRight, InputTypeShort);
+    result = mf_radio_core_input(&state, &input, 1U);
+    assert(result.handled && !result.redraw && state.tx_mode == MfRadioTxModeOok);
+    draw_log[0] = '\0';
     mf_radio_draw(&state, &canvas, 1U);
     assert(strcmp(drawn, "TX Blocked") == 0);
+    assert(strstr(draw_log, "CWFM") == NULL);
     mf_radio_core_leave(&state);
 
     fake.allowed = true;

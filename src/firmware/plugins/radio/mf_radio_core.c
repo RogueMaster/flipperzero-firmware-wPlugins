@@ -16,8 +16,8 @@ static const MfRadioBand vfo_bands[] = {
 
 bool mf_radio_hardware_ops_valid(const MfRadioHardwareOps* ops) {
     return ops != NULL && ops->prepare_tx != NULL && ops->prepare_carrier_rx != NULL &&
-           ops->set_tx_level != NULL && ops->read_carrier != NULL && ops->read_rssi_dbm != NULL &&
-           ops->frequency_valid != NULL && ops->tx_allowed != NULL &&
+           ops->set_tx_level != NULL && ops->stop_tx != NULL && ops->read_carrier != NULL &&
+           ops->read_rssi_dbm != NULL && ops->frequency_valid != NULL && ops->tx_allowed != NULL &&
            ops->default_frequency != NULL && ops->idle != NULL && ops->sleep != NULL;
 }
 
@@ -66,7 +66,7 @@ static void mf_radio_quiesce(MfRadioState* state) {
     bool hardware_active;
     if(state == NULL) return;
     hardware_active = state->tx_prepared || state->rx_prepared || state->snapshot.hardware_active;
-    if(state->tx_prepared) state->hardware.set_tx_level(state->hardware.context, false);
+    if(state->tx_prepared) state->hardware.stop_tx(state->hardware.context);
     if(state->snapshot.hardware_active) state->hardware.idle(state->hardware.context);
     state->tx_prepared = false;
     state->rx_prepared = false;
@@ -74,12 +74,24 @@ static void mf_radio_quiesce(MfRadioState* state) {
     state->snapshot.tx_active = false;
     state->snapshot.monitor_tone = false;
     state->tx_idle_at = 0U;
+    state->tx_idle_pending = false;
     if(hardware_active) state->hardware.sleep(state->hardware.context);
 }
 
 static void mf_radio_rollback_prepare(MfRadioState* state) {
     state->hardware.idle(state->hardware.context);
     state->hardware.sleep(state->hardware.context);
+}
+
+static void mf_radio_rollback_tx(MfRadioState* state) {
+    state->hardware.stop_tx(state->hardware.context);
+    state->hardware.idle(state->hardware.context);
+    state->hardware.sleep(state->hardware.context);
+    state->tx_prepared = false;
+    state->snapshot.hardware_active = false;
+    state->snapshot.tx_active = false;
+    state->tx_idle_at = 0U;
+    state->tx_idle_pending = false;
 }
 
 static void mf_radio_reset_decoder(MfRadioState* state, uint16_t dit_ms) {
@@ -311,6 +323,7 @@ bool mf_radio_core_enter(
     state->rx_auto_threshold_dbm = state->snapshot.monitor_threshold_dbm;
     state->rx_wpm_hint = MF_RADIO_RX_DEFAULT_WPM;
     state->tx_dit_ms = args->dit_ms;
+    state->tx_mode = MfRadioTxModeOok;
     mf_radio_reset_decoder(state, args->dit_ms);
     state->draw_services->history_reset(&state->tx_history);
     state->entered = true;
@@ -324,6 +337,7 @@ MorseFlipperMappedFalResult
         return (MorseFlipperMappedFalResult){0};
 
     mf_radio_quiesce(state);
+    state->tx_mode = MfRadioTxModeOok;
     state->snapshot.page = MfRadioPageIdle;
     state->rx_level = false;
     state->rx_candidate_level = false;
@@ -385,9 +399,12 @@ MorseFlipperMappedFalResult mf_radio_core_sync_tx(
     uint16_t duration_ms,
     bool level,
     uint32_t now_ms) {
+    bool was_tx_active;
     if(state == NULL || !state->entered || state->leaving ||
        state->snapshot.page != MfRadioPageTransmit)
         return (MorseFlipperMappedFalResult){0};
+
+    was_tx_active = state->snapshot.tx_active;
 
     if(completed_interval == MfRadioTxIntervalMark && duration_ms != 0U)
         state->decoder_services->feed_mark(&state->decoder, duration_ms);
@@ -397,23 +414,37 @@ MorseFlipperMappedFalResult mf_radio_core_sync_tx(
 
     state->snapshot.tx_allowed =
         state->hardware.tx_allowed(state->hardware.context, state->snapshot.frequency_hz);
-    if(level && !state->snapshot.tx_allowed)
+    if(!state->snapshot.tx_allowed) {
+        if(state->tx_prepared) mf_radio_quiesce(state);
         return (MorseFlipperMappedFalResult){.handled = true, .redraw = true};
+    }
     if(level && !state->tx_prepared) {
-        if(!state->hardware.prepare_tx(state->hardware.context, state->snapshot.frequency_hz)) {
-            mf_radio_rollback_prepare(state);
+        if(!state->hardware.prepare_tx(
+               state->hardware.context, state->snapshot.frequency_hz, state->tx_mode)) {
+            mf_radio_rollback_tx(state);
             return (MorseFlipperMappedFalResult){.handled = true, .redraw = true};
         }
         state->tx_prepared = true;
         state->snapshot.hardware_active = true;
     }
-    if(state->tx_prepared) state->hardware.set_tx_level(state->hardware.context, level);
+    if(state->tx_prepared &&
+       (state->tx_mode == MfRadioTxModeOok || level || state->snapshot.tx_active) &&
+       !state->hardware.set_tx_level(state->hardware.context, level)) {
+        mf_radio_rollback_tx(state);
+        return (MorseFlipperMappedFalResult){.handled = true, .redraw = true};
+    }
     state->snapshot.tx_active = state->tx_prepared && level;
     if(state->snapshot.tx_active) {
         state->tx_idle_at = 0U;
-    } else if(state->tx_prepared) {
-        state->tx_idle_at = now_ms + ((uint32_t)state->tx_dit_ms * MF_RADIO_TX_TAIL_DITS);
-        if(state->tx_idle_at == 0U) state->tx_idle_at = 1U;
+        state->tx_idle_pending = false;
+    } else if(state->tx_prepared && (state->tx_mode == MfRadioTxModeOok || was_tx_active)) {
+        uint32_t tail_ms = (uint32_t)state->tx_dit_ms * MF_RADIO_TX_TAIL_DITS;
+        if(state->tx_mode == MfRadioTxModeCwfm) {
+            tail_ms = (uint32_t)state->tx_dit_ms * MF_RADIO_CWFM_HANG_DITS;
+            if(tail_ms < MF_RADIO_CWFM_HANG_MIN_MS) tail_ms = MF_RADIO_CWFM_HANG_MIN_MS;
+        }
+        state->tx_idle_at = now_ms + tail_ms;
+        state->tx_idle_pending = true;
     }
     return (MorseFlipperMappedFalResult){.handled = true, .redraw = true};
 }
@@ -421,7 +452,7 @@ MorseFlipperMappedFalResult mf_radio_core_sync_tx(
 MorseFlipperMappedFalResult mf_radio_core_tick(MfRadioState* state, uint32_t now_ms) {
     if(state == NULL || !state->entered || state->leaving) return (MorseFlipperMappedFalResult){0};
     if(state->snapshot.page == MfRadioPageTransmit) {
-        if(state->tx_prepared && !state->snapshot.tx_active && state->tx_idle_at != 0U &&
+        if(state->tx_prepared && !state->snapshot.tx_active && state->tx_idle_pending &&
            (int32_t)(now_ms - state->tx_idle_at) >= 0) {
             mf_radio_quiesce(state);
             return (MorseFlipperMappedFalResult){.redraw = true};
@@ -555,6 +586,19 @@ MorseFlipperMappedFalResult
         };
     }
     if(state->snapshot.page == MfRadioPageTransmit) {
+        if(event->key == InputKeyRight && event->type == InputTypeShort) {
+            state->snapshot.tx_allowed =
+                state->hardware.tx_allowed(state->hardware.context, state->snapshot.frequency_hz);
+            if(!state->snapshot.tx_allowed) {
+                if(state->tx_prepared) mf_radio_quiesce(state);
+                return (MorseFlipperMappedFalResult){.handled = true};
+            }
+            if(state->snapshot.tx_active) return (MorseFlipperMappedFalResult){.handled = true};
+            if(state->tx_prepared) mf_radio_quiesce(state);
+            state->tx_mode = state->tx_mode == MfRadioTxModeCwfm ? MfRadioTxModeOok :
+                                                                   MfRadioTxModeCwfm;
+            return (MorseFlipperMappedFalResult){.handled = true, .redraw = true};
+        }
         if(event->key == InputKeyLeft && event->type == InputTypeShort) {
             mf_radio_reset_decoder(state, state->decoder_services->dit_ms(&state->decoder));
             state->draw_services->history_reset(&state->tx_history);
@@ -612,6 +656,7 @@ void mf_radio_core_leave(MfRadioState* state) {
     if(state == NULL || !state->entered || state->leaving) return;
     state->leaving = true;
     mf_radio_quiesce(state);
+    state->tx_mode = MfRadioTxModeOok;
     state->snapshot.page = MfRadioPageIdle;
 }
 

@@ -12,6 +12,8 @@ static void frequency_text(char* text, size_t size, uint32_t frequency_hz) {
 
 static void draw_tx(const MfRadioState* state, Canvas* canvas) {
     char line[24];
+    const char* cwfm;
+    int32_t cwfm_x;
     if(!state->snapshot.tx_allowed) {
         char digits[MF_RADIO_FREQ_DIGITS + 1U];
         frequency_text(digits, sizeof(digits), state->snapshot.frequency_hz);
@@ -29,6 +31,10 @@ static void draw_tx(const MfRadioState* state, Canvas* canvas) {
         state->decoder_services->preview(&state->decoder),
         state->decoder_services->preview_extendable(&state->decoder),
         line);
+    cwfm = state->tx_mode == MfRadioTxModeCwfm ? "Right: CWFM on" : "Right: CWFM off";
+    canvas_set_font(canvas, FontSecondary);
+    cwfm_x = 125 - (int32_t)canvas_string_width(canvas, cwfm);
+    canvas_draw_str(canvas, cwfm_x, 54, cwfm);
 }
 
 static void draw_frequency_digit(Canvas* canvas, int32_t x, bool focused, char digit) {
