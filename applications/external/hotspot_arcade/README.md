@@ -119,6 +119,12 @@ carries the live event log):
   **official Flipper WiFi Dev Board (ESP32-S2)**, an **ESP32 WROOM** board, or an
   **ESP32-C5** board. You pick your board when flashing from the Flipper.
 
+**No Flipper?** There's a community port to the
+[**M5Stack Cardputer**](https://github.com/genkigenki/hotspot-arcade-cardputer) by
+[@genkigenki](https://github.com/genkigenki) — a single ESP32-S3 device that is both the
+access point and the host UI, so it needs no Flipper. It vendors this engine unmodified, so
+the games stay in sync.
+
 ## How it works
 
 ```

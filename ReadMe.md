@@ -98,7 +98,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Marauder 1.14.1 firmwares.
 - Updated: [DeFlock v0.53 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Added: [Maze 3D v3.0 (By k20120509)](https://github.com/k20120509/flipper-release)
-- Updated: [Weebo v0.5.1 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer)
+- Updated: [Weebo v0.5.1 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer) [more ids added (By Brickleberry19)](https://github.com/bettse/weebo/pull/13)
 - Updated: [Walkie Talkie v1.2 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-walkie-talkie) [Add PMR446 (Europe) band alongside FRS (By jasiek)](https://github.com/coolshrimp/flipperzero-walkie-talkie/pull/2)
 
 <a name="release"></a>
