@@ -3,10 +3,10 @@ App(
     name="Maze 3D",
     apptype=FlipperAppType.EXTERNAL,
     entry_point="maze3d_app",
-    stack_size=4 * 1024,
+    stack_size=8 * 1024,
     icon="maze3d.png",
-    fap_version=(1, 0),
+    fap_version=(2, 0, 1),
     fap_category="Games",
-    fap_description="3D raycasting maze game with campaign and endless modes",
+    fap_description="3D raycasting 迷宫闯关游戏(关卡/无尽/游客三模式)",
     fap_author="user",
 )
