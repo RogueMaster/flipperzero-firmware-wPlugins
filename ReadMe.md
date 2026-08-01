@@ -95,6 +95,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [CK42X Passvault v0.4.5 (By lordbuffcloud)](https://github.com/lordbuffcloud/flipper-ck42x-passvault)
 - [Fixed Protobuf tags not detected causing restore to OFW before new RM update (By RogueMaster)](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/commit/a66624d5f7203346da4b980554b6cb03bb93d386)
 - Updated: [Hotspot Arcade v1.3 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32` [Hotspot Arcade flasher, add support for autoboot, fix freeze on exit (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/5d6a16c77c2a17c4aca3cb9f9ab4ab511f1d4f64) Guess the Color & Battleship were added (By tarikbc)
+- ESP Flasher: [Bump Marauder v1.14.1 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.14.1)
+- [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Marauder 1.14.1 firmwares.
 
 <a name="release"></a>
 
