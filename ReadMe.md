@@ -98,6 +98,8 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Marauder 1.14.1 firmwares.
 - Updated: [DeFlock v0.53 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Added: [Maze 3D v3.0 (By k20120509)](https://github.com/k20120509/flipper-release)
+- Updated: [Weebo v0.5.1 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer)
+- Updated: [Walkie Talkie v1.2 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-walkie-talkie) [Add PMR446 (Europe) band alongside FRS (By jasiek)](https://github.com/coolshrimp/flipperzero-walkie-talkie/pull/2)
 
 <a name="release"></a>
 
@@ -908,7 +910,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [VL6180X Distance Sensor I2C v0.1 (By kdiller713)](https://github.com/kdiller713/public-FlipperApps/tree/main/vl6180x) `Req: Adafruit VL6180X`
 - [Voltage Calculator v1.0 (By HappyAmos)](https://github.com/HappyAmos/Flipper_FAPS)
 - [Voyah Password v0.2 (By bolknote)](https://github.com/bolknote/Flipper-Zero-Voyah-Password)
-- [Walkie Talkie v1.1 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-walkie-talkie)
+- [Walkie Talkie v1.2 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-walkie-talkie)
 - [Walkman v1.0 (By rynosec)](https://github.com/rynosec/flipper-walkman) `Req:  GD3300D / HW-311 / YX5300-family board`
 - [Warden v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/Warden-FlipperZero)
 - [Wardriver GPS v1.0 (By Sil333033)](https://github.com/Next-Flip/Momentum-Apps/tree/dev/wardriver)

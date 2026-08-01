@@ -1,10 +1,11 @@
 # Application Submission
 
-Walkie Talkie v1.1 — a receive-only FRS channel activity and RSSI scanner using the Flipper Zero's built-in CC1101 radio.
+Walkie Talkie v1.2 — a receive-only FRS/PMR446 channel activity and RSSI scanner using the Flipper Zero's built-in CC1101 radio.
 
 Features:
 
-- All 22 standard FRS channels (462/467 MHz) in a scrollable channel list
+- Two channel plans, switchable in Settings: FRS (22 channels, 462/467 MHz, US/Canada) and PMR446 (16 analogue channels, 446.00625-446.19375 MHz, Europe)
+- Scrollable channel list for the active band
 - Channel scanner: scans up or down, pauses automatically when a signal is detected, and resumes after the transmission ends
 - Auto-squelch with adjustable sensitivity
 - Live RSSI readout with a 5-bar signal-strength meter
@@ -31,7 +32,7 @@ Source repository: https://github.com/coolshrimp/flipperzero-walkie-talkie
 - [x] Partially AI assisted (clarify below which code was AI assisted and briefly explain what it does).
 - [ ] Fully AI generated (explain what all the generated code does in moderate detail).
 
-- AI assistance was used for portions of the app code (channel scanner debouncing, squelch handling, and UI) and for preparing and validating this catalog manifest. The app tunes the built-in CC1101 to the 22 FRS channels and reports channel activity and RSSI; it does not transmit.
+- AI assistance was used for portions of the app code (channel scanner debouncing, squelch handling, the FRS/PMR446 band tables and band switching, and UI) and for preparing and validating this catalog manifest. The app tunes the built-in CC1101 to the FRS or PMR446 channels and reports channel activity and RSSI; it does not transmit.
 
 # Reviewer Checklist (Don't fill this out!)
 
