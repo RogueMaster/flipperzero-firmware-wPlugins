@@ -34,6 +34,7 @@ static void draw_tx(const MfRadioState* state, Canvas* canvas) {
     cwfm = state->tx_mode == MfRadioTxModeCwfm ? "Right: CWFM on" : "Right: CWFM off";
     canvas_set_font(canvas, FontSecondary);
     cwfm_x = 125 - (int32_t)canvas_string_width(canvas, cwfm);
+    if(state->tx_mode == MfRadioTxModeCwfm) cwfm_x--;
     canvas_draw_str(canvas, cwfm_x, 54, cwfm);
 }
 

@@ -286,6 +286,7 @@ int main(void) {
     Canvas canvas = {0};
     InputEvent input;
     uint32_t now;
+    int32_t cwfm_off_x;
 
     assert(mf_radio_core_enter(&state, &enter, &ops, &result));
     assert(mf_radio_core_snapshot(&state, &snapshot));
@@ -306,6 +307,7 @@ int main(void) {
     assert(cwfm_font == FontSecondary);
     assert(cwfm_x >= 3 + 49 + 2);
     assert(cwfm_x + 66 <= 128);
+    cwfm_off_x = cwfm_x;
     input = event(InputKeyRight, InputTypePress);
     assert(!mf_radio_core_input(&state, &input, 0U).handled);
     input = event(InputKeyRight, InputTypeRelease);
@@ -321,6 +323,7 @@ int main(void) {
     draw_log[0] = '\0';
     mf_radio_draw(&state, &canvas, 0U);
     assert(strstr(draw_log, "Right: CWFM on") != NULL);
+    assert(cwfm_x == cwfm_off_x);
     result = mf_radio_core_input(&state, &input, 0U);
     assert(result.handled && result.redraw && state.tx_mode == MfRadioTxModeOok);
     input = event(InputKeyBack, InputTypeShort);
