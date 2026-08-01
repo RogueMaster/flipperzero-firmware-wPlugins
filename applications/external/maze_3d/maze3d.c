@@ -253,9 +253,13 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         }
 
         // 语言切换行
-        int lang_y = 22 + M_COUNT * 11 + 2;
+        // int lang_y = 22 + M_COUNT * 11 + 2;
         const char* lang_label = (g.lang == LANG_ZH) ? "Lang: CN  <-  ->" : "Lang: EN  <-  ->";
-        canvas_draw_str(canvas, 4, lang_y, lang_label);
+        if(g.lang == LANG_ZH) {
+            canvas_draw_str(canvas, 64, 47, lang_label);
+        } else {
+            canvas_draw_str(canvas, 4, 52, lang_label);
+        }
 
         // 底部提示
         if(g.lang == LANG_ZH) {

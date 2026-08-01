@@ -3,8 +3,8 @@
 
 // English text strings (used when g.lang == 1)
 // 中文模式直接用 zh_chars.h 中的 XBM 位图; 英文模式用 canvas_draw_str
-#define LANG_ZH 0
-#define LANG_EN 1
+#define LANG_EN 0
+#define LANG_ZH 1
 
 // Title
 #define EN_TITLE     "3D MAZE"
