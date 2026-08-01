@@ -1,3 +1,23 @@
+v0.4.5:
+- added editing for saved Name, Username, and Password fields
+- added Keep Existing, Generate Password, and Enter Custom choices during editing
+- pre-fills current values and requires confirmation before encrypted save
+- restores the original entry in memory if the encrypted save fails
+- added an explicit `macOS Keyboard Setup` action for Apple's Keyboard Setup Assistant
+- sends the standard ANSI identification positions (`Z`, then `/`) only when the user presses Send
+- keeps the normal Flipper USB HID identity instead of spoofing an Apple VID/PID
+- keeps HID active after setup so repeated injections do not re-enumerate the keyboard
+- restores the previous USB mode only when PassVault exits or setup is cancelled
+- leaves the existing Windows/Linux password injection path unchanged
+
+v0.4.3:
+- added a clean-room FIDO 2.0 security-key runtime with CTAPHID and CTAP2
+- added non-resident ES256 WebAuthn credentials with physical Approve/Deny user presence
+- stores up to 20 FIDO credentials in a separate AES-GCM encrypted `fido2.pv1` store
+- added credential persistence, allow-list matching, signature counters, cancellation, and USB restoration on exit
+- verified Chromium registration and authentication, restart persistence, ES256 signatures, and physical USB lifecycle behavior
+- improved new-entry navigation so saved entries open on Inject and return there after typing
+
 v0.4:
 - added master PIN setup/unlock gate before vault access
 - replaced plaintext active vault storage with AES-GCM encrypted `vault.pv1`

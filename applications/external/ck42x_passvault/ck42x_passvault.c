@@ -13,6 +13,8 @@
 
 #include <ck42x_passvault_icons.h>
 
+#include "ck42x_fido2_service.h"
+
 #define CK_TAG            "CK42XPassVault"
 #define CK_MAX_ENTRIES    20
 #define CK_ACCOUNT_LEN    32
@@ -64,21 +66,26 @@ typedef enum {
 typedef enum {
     CkDialogSave = 0,
     CkDialogInjectConfirm,
+    CkDialogFido2Presence,
 } CkDialogPurpose;
 
 typedef enum {
     CkEventAdd = 1,
     CkEventAbout = 2,
+    CkEventSecurityKey = 3,
+    CkEventMacKeyboardSetup = 4,
     CkEventSavedBase = 100,
     CkEventTextDone = 300,
     CkEventChooseGenerate = 400,
     CkEventChooseCustom = 401,
+    CkEventChooseKeepExisting = 402,
     CkEventPresetMemorable = 500,
     CkEventPresetStrict = 501,
     CkEventPresetLong = 502,
     CkEventPresetNoSymbol = 503,
     CkEventWidgetBack = 600,
     CkEventWidgetInject = 601,
+    CkEventWidgetEdit = 602,
     CkEventDialogRight = 700,
     CkEventDialogLeft = 701,
 } CkEvent;
@@ -110,6 +117,13 @@ typedef struct {
     CkInputStage input_stage;
     CkDialogPurpose dialog_purpose;
     FuriHalUsbInterface* previous_usb;
+    FuriHalUsbInterface* mac_previous_usb;
+    CkFido2Service* fido2_service;
+    bool security_key_view;
+    bool mac_setup_view;
+    bool mac_setup_keys_sent;
+    bool mac_hid_active;
+    bool editing_entry;
 
     uint8_t vault_key[CK_KEY_LEN];
     uint8_t vault_salt[CK_SALT_LEN];
@@ -120,7 +134,15 @@ static void ck_show_main(CkApp* app);
 static void ck_show_text_input(CkApp* app, CkInputStage stage, const char* header, char* initial);
 static void ck_show_save_dialog(CkApp* app);
 static void ck_show_entry_widget(CkApp* app);
+static void ck_begin_edit(CkApp* app);
 static void ck_show_about(CkApp* app);
+static void ck_show_security_key(CkApp* app);
+static void ck_show_mac_keyboard_setup(CkApp* app);
+static void ck_send_mac_ansi_keys(CkApp* app);
+static void ck_finish_mac_keyboard_setup(CkApp* app);
+static void ck_stop_mac_keyboard_setup(CkApp* app);
+static void ck_show_fido2_presence(CkApp* app);
+static void ck_stop_fido2(CkApp* app);
 static void ck_show_inject_confirm(CkApp* app);
 static void ck_handle_event(CkApp* app, uint32_t event);
 static void ck_begin_auth(CkApp* app);
@@ -661,6 +683,8 @@ static void ck_widget_button_callback(GuiButtonType result, InputType type, void
     CkApp* app = context;
     if(result == GuiButtonTypeLeft) {
         view_dispatcher_send_custom_event(app->dispatcher, CkEventWidgetBack);
+    } else if(result == GuiButtonTypeCenter) {
+        view_dispatcher_send_custom_event(app->dispatcher, CkEventWidgetEdit);
     } else if(result == GuiButtonTypeRight) {
         view_dispatcher_send_custom_event(app->dispatcher, CkEventWidgetInject);
     }
@@ -682,6 +706,27 @@ static bool ck_custom_event_callback(void* context, uint32_t event) {
 
 static bool ck_navigation_callback(void* context) {
     CkApp* app = context;
+    if(app->dialog_purpose == CkDialogFido2Presence &&
+       ck_fido2_service_presence_pending(app->fido2_service)) {
+        ck_fido2_service_answer_presence(app->fido2_service, false);
+        ck_stop_fido2(app);
+        ck_show_main(app);
+        return true;
+    }
+    if(app->security_key_view) {
+        ck_stop_fido2(app);
+        ck_show_main(app);
+        return true;
+    }
+    if(app->mac_setup_view) {
+        if(app->mac_setup_keys_sent)
+            ck_finish_mac_keyboard_setup(app);
+        else {
+            ck_stop_mac_keyboard_setup(app);
+            ck_show_main(app);
+        }
+        return true;
+    }
     if(!app->unlocked) {
         view_dispatcher_stop(app->dispatcher);
         return true;
@@ -695,11 +740,22 @@ static bool ck_navigation_callback(void* context) {
 }
 
 static void ck_show_main(CkApp* app) {
+    app->security_key_view = false;
+    app->mac_setup_view = false;
     app->menu_mode = CkMenuModeMain;
     app->selected = -1;
+    app->editing_entry = false;
     submenu_reset(app->submenu);
-    submenu_set_header(app->submenu, "CK42X PassVault");
+    submenu_set_header(app->submenu, "PāSSVΛŭLƬ");
     submenu_add_item(app->submenu, "+ Add New Password", CkEventAdd, ck_submenu_callback, app);
+    submenu_add_item(
+        app->submenu, "FIDO2 Security Key", CkEventSecurityKey, ck_submenu_callback, app);
+    submenu_add_item(
+        app->submenu,
+        app->mac_hid_active ? "macOS HID Active" : "macOS Keyboard Setup",
+        CkEventMacKeyboardSetup,
+        ck_submenu_callback,
+        app);
     submenu_add_item(app->submenu, "About / ck42x.com", CkEventAbout, ck_submenu_callback, app);
     for(uint8_t i = 0; i < app->entry_count; i++) {
         submenu_add_item(
@@ -713,6 +769,10 @@ static void ck_show_generate_or_custom(CkApp* app) {
     app->menu_mode = CkMenuModeGenerateOrCustom;
     submenu_reset(app->submenu);
     submenu_set_header(app->submenu, "Password Source");
+    if(app->editing_entry) {
+        submenu_add_item(
+            app->submenu, "Keep Existing", CkEventChooseKeepExisting, ck_submenu_callback, app);
+    }
     submenu_add_item(
         app->submenu, "Generate Password", CkEventChooseGenerate, ck_submenu_callback, app);
     submenu_add_item(app->submenu, "Enter Custom", CkEventChooseCustom, ck_submenu_callback, app);
@@ -771,9 +831,18 @@ static void ck_show_entry_widget(CkApp* app) {
     widget_add_button_element(
         app->widget, GuiButtonTypeLeft, "Back", ck_widget_button_callback, app);
     widget_add_button_element(
+        app->widget, GuiButtonTypeCenter, "Edit", ck_widget_button_callback, app);
+    widget_add_button_element(
         app->widget, GuiButtonTypeRight, "Inject", ck_widget_button_callback, app);
     app->current_view = CkViewWidget;
     view_dispatcher_switch_to_view(app->dispatcher, CkViewWidget);
+}
+
+static void ck_begin_edit(CkApp* app) {
+    if(app->selected < 0 || app->selected >= app->entry_count) return;
+    app->editing_entry = true;
+    app->draft = app->entries[app->selected];
+    ck_show_text_input(app, CkInputAccount, "Name", app->draft.account);
 }
 
 static void ck_show_save_dialog(CkApp* app) {
@@ -789,10 +858,16 @@ static void ck_show_save_dialog(CkApp* app) {
     dialog_ex_reset(app->dialog);
     dialog_ex_set_context(app->dialog, app);
     dialog_ex_set_result_callback(app->dialog, ck_dialog_callback);
-    dialog_ex_set_header(app->dialog, "Save CK42X Entry?", 64, 6, AlignCenter, AlignTop);
+    dialog_ex_set_header(
+        app->dialog,
+        app->editing_entry ? "Confirm Changes?" : "Confirm Entry?",
+        64,
+        6,
+        AlignCenter,
+        AlignTop);
     dialog_ex_set_text(app->dialog, text, 4, 18, AlignLeft, AlignTop);
     dialog_ex_set_left_button_text(app->dialog, "No");
-    dialog_ex_set_right_button_text(app->dialog, "Save");
+    dialog_ex_set_right_button_text(app->dialog, "Enter");
     app->current_view = CkViewDialog;
     view_dispatcher_switch_to_view(app->dispatcher, CkViewDialog);
 }
@@ -851,6 +926,153 @@ static void ck_show_about(CkApp* app) {
     view_dispatcher_switch_to_view(app->dispatcher, CkViewWidget);
 }
 
+static void ck_show_security_key(CkApp* app) {
+    if(!app->fido2_service) {
+        app->fido2_service = ck_fido2_service_alloc(app->storage, app->vault_key, app->dispatcher);
+    }
+    if(!app->fido2_service || !ck_fido2_service_start(app->fido2_service)) {
+        ck_show_status(app, "FIDO2 Failed", "Could not start\nUSB security key.");
+        return;
+    }
+    widget_reset(app->widget);
+    widget_add_string_element(
+        app->widget, 64, 6, AlignCenter, AlignTop, FontPrimary, "CK42X FIDO2");
+    widget_add_text_box_element(
+        app->widget,
+        4,
+        20,
+        120,
+        32,
+        AlignCenter,
+        AlignCenter,
+        "Ready / waiting\nExperimental runtime\nHardware proof pending",
+        false);
+    widget_add_button_element(
+        app->widget, GuiButtonTypeLeft, "Back", ck_widget_button_callback, app);
+    widget_add_button_element(
+        app->widget, GuiButtonTypeRight, "Stop", ck_widget_button_callback, app);
+    app->security_key_view = true;
+    app->current_view = CkViewWidget;
+    view_dispatcher_switch_to_view(app->dispatcher, CkViewWidget);
+}
+
+static void ck_show_fido2_presence(CkApp* app) {
+    if(!ck_fido2_service_presence_pending(app->fido2_service)) return;
+    app->dialog_purpose = CkDialogFido2Presence;
+    dialog_ex_reset(app->dialog);
+    dialog_ex_set_context(app->dialog, app);
+    dialog_ex_set_result_callback(app->dialog, ck_dialog_callback);
+    dialog_ex_set_header(app->dialog, "FIDO2 Request", 64, 7, AlignCenter, AlignTop);
+    dialog_ex_set_text(
+        app->dialog,
+        "Approve presence?\nCheck the requesting site.\nTimes out in 30 seconds.",
+        4,
+        20,
+        AlignLeft,
+        AlignTop);
+    dialog_ex_set_left_button_text(app->dialog, "Deny");
+    dialog_ex_set_right_button_text(app->dialog, "Approve");
+    app->security_key_view = true;
+    app->current_view = CkViewDialog;
+    view_dispatcher_switch_to_view(app->dispatcher, CkViewDialog);
+}
+
+static void ck_stop_fido2(CkApp* app) {
+    if(!app->fido2_service) return;
+    if(ck_fido2_service_presence_pending(app->fido2_service))
+        ck_fido2_service_answer_presence(app->fido2_service, false);
+    ck_fido2_service_stop(app->fido2_service);
+    app->security_key_view = false;
+}
+
+static void ck_stop_mac_keyboard_setup(CkApp* app) {
+    if(!app->mac_setup_view && !app->mac_hid_active) return;
+    furi_hal_hid_kb_release_all();
+    if(app->mac_previous_usb && app->mac_previous_usb != &usb_hid) {
+        furi_hal_usb_set_config(app->mac_previous_usb, NULL);
+    }
+    app->mac_previous_usb = NULL;
+    app->mac_setup_view = false;
+    app->mac_setup_keys_sent = false;
+    app->mac_hid_active = false;
+}
+
+static void ck_finish_mac_keyboard_setup(CkApp* app) {
+    if(!app->mac_setup_view || !app->mac_setup_keys_sent) return;
+    app->mac_setup_view = false;
+    app->mac_setup_keys_sent = false;
+    app->mac_hid_active = true;
+    ck_show_main(app);
+}
+
+static void ck_show_mac_keyboard_setup(CkApp* app) {
+    if(app->mac_hid_active) {
+        ck_show_status(
+            app, "macOS HID Active", "Inject without reconnect.\nExit app restores USB.");
+        return;
+    }
+
+    app->mac_previous_usb = furi_hal_usb_get_config();
+    if(app->mac_previous_usb != &usb_hid) {
+        if(!furi_hal_usb_set_config(&usb_hid, NULL)) {
+            app->mac_previous_usb = NULL;
+            ck_show_status(app, "macOS Setup Failed", "Could not start\nUSB keyboard mode.");
+            return;
+        }
+        furi_delay_ms(1200);
+    }
+    if(!furi_hal_hid_is_connected()) {
+        if(app->mac_previous_usb && app->mac_previous_usb != &usb_hid) {
+            furi_hal_usb_set_config(app->mac_previous_usb, NULL);
+        }
+        app->mac_previous_usb = NULL;
+        ck_show_status(app, "Mac Not Found", "Connect USB, then\ntry setup again.");
+        return;
+    }
+
+    app->mac_setup_view = true;
+    app->mac_setup_keys_sent = false;
+    widget_reset(app->widget);
+    widget_add_string_element(
+        app->widget, 64, 6, AlignCenter, AlignTop, FontPrimary, "macOS Keyboard Setup");
+    widget_add_text_box_element(
+        app->widget,
+        4,
+        20,
+        120,
+        30,
+        AlignCenter,
+        AlignCenter,
+        "On Mac click Continue.\nThen press Send here.",
+        false);
+    widget_add_button_element(
+        app->widget, GuiButtonTypeLeft, "Back", ck_widget_button_callback, app);
+    widget_add_button_element(
+        app->widget, GuiButtonTypeRight, "Send", ck_widget_button_callback, app);
+    app->current_view = CkViewWidget;
+    view_dispatcher_switch_to_view(app->dispatcher, CkViewWidget);
+}
+
+static void ck_send_mac_ansi_keys(CkApp* app) {
+    if(!app->mac_setup_view || !furi_hal_hid_is_connected()) {
+        ck_stop_mac_keyboard_setup(app);
+        ck_show_status(app, "Mac Disconnected", "Reconnect USB and\nrun setup again.");
+        return;
+    }
+
+    furi_hal_hid_kb_press(HID_KEYBOARD_Z);
+    furi_delay_ms(80);
+    furi_hal_hid_kb_release_all();
+    furi_delay_ms(700);
+    furi_hal_hid_kb_press(HID_KEYBOARD_SLASH);
+    furi_delay_ms(80);
+    furi_hal_hid_kb_release_all();
+    furi_delay_ms(700);
+    app->mac_setup_keys_sent = true;
+
+    ck_show_status(app, "ANSI Keys Sent", "Choose ANSI, then Back.\nHID stays active.");
+}
+
 static void ck_hid_type_string(const char* text) {
     for(const char* p = text; *p; p++) {
         uint16_t key = HID_ASCII_TO_KEY(*p);
@@ -884,7 +1106,7 @@ static void ck_begin_auth(CkApp* app) {
     app->unlocked = false;
     app->entry_count = 0;
     if(ck_file_exists(app, CK_VAULT_FILE)) {
-        ck_show_text_input(app, CkInputUnlockPin, "Unlock PIN", NULL);
+        ck_show_text_input(app, CkInputUnlockPin, "Enter Master PIN", NULL);
     } else {
         ck_show_text_input(app, CkInputSetPin, "Set Master PIN", NULL);
     }
@@ -926,7 +1148,7 @@ static void ck_handle_unlock_pin(CkApp* app) {
         ck_show_main(app);
     } else {
         ck_secure_zero(app->input, sizeof(app->input));
-        ck_show_text_input(app, CkInputUnlockPin, "Wrong PIN - Retry", NULL);
+        ck_show_text_input(app, CkInputUnlockPin, "PIN Incorrect - Retry", NULL);
     }
 }
 
@@ -941,9 +1163,8 @@ static void ck_handle_text_done(CkApp* app) {
 
     ck_sanitize(app->input);
     if(app->input_stage == CkInputAccount) {
-        memset(&app->draft, 0, sizeof(app->draft));
         ck_copy(app->draft.account, sizeof(app->draft.account), app->input);
-        ck_show_text_input(app, CkInputUsername, "Username", NULL);
+        ck_show_text_input(app, CkInputUsername, "Username", app->draft.username);
     } else if(app->input_stage == CkInputUsername) {
         ck_copy(app->draft.username, sizeof(app->draft.username), app->input);
         ck_show_generate_or_custom(app);
@@ -954,15 +1175,38 @@ static void ck_handle_text_done(CkApp* app) {
 }
 
 static void ck_save_draft(CkApp* app) {
+    if(app->editing_entry) {
+        if(app->selected < 0 || app->selected >= app->entry_count) {
+            app->editing_entry = false;
+            ck_show_main(app);
+            return;
+        }
+        CkVaultEntry original = app->entries[app->selected];
+        app->entries[app->selected] = app->draft;
+        if(ck_save_entries(app)) {
+            app->editing_entry = false;
+            ck_show_entry_widget(app);
+        } else {
+            app->entries[app->selected] = original;
+            ck_show_status(app, "Save Failed", "Original unchanged.");
+        }
+        ck_secure_zero(&original, sizeof(original));
+        return;
+    }
+
     if(app->entry_count >= CK_MAX_ENTRIES) {
         ck_show_status(app, "Vault Full", "Max entries reached.");
         return;
     }
+    uint8_t saved_index = app->entry_count;
     app->entries[app->entry_count++] = app->draft;
     bool ok = ck_save_entries(app);
     if(ok) {
-        ck_show_status(app, "Saved", "Entry saved to\nCK42X PassVault.");
+        app->selected = saved_index;
+        ck_show_entry_widget(app);
     } else {
+        app->entry_count--;
+        memset(&app->entries[app->entry_count], 0, sizeof(CkVaultEntry));
         ck_show_status(app, "Save Failed", "SD/app data write failed.");
     }
 }
@@ -971,7 +1215,13 @@ static void ck_handle_event(CkApp* app, uint32_t event) {
     if(!app->unlocked && event != CkEventTextDone && event != CkEventWidgetBack) return;
 
     if(event == CkEventAdd) {
-        ck_show_text_input(app, CkInputAccount, "Account Name", NULL);
+        app->editing_entry = false;
+        memset(&app->draft, 0, sizeof(app->draft));
+        ck_show_text_input(app, CkInputAccount, "Name", NULL);
+    } else if(event == CkEventSecurityKey) {
+        ck_show_security_key(app);
+    } else if(event == CkEventMacKeyboardSetup) {
+        ck_show_mac_keyboard_setup(app);
     } else if(event == CkEventAbout) {
         ck_show_about(app);
     } else if(event >= CkEventSavedBase && event < CkEventSavedBase + CK_MAX_ENTRIES) {
@@ -984,8 +1234,13 @@ static void ck_handle_event(CkApp* app, uint32_t event) {
         ck_handle_text_done(app);
     } else if(event == CkEventChooseGenerate) {
         ck_show_preset_menu(app);
+    } else if(event == CkEventChooseKeepExisting) {
+        if(app->editing_entry) ck_show_save_dialog(app);
     } else if(event == CkEventChooseCustom) {
-        ck_show_text_input(app, CkInputCustomPassword, "Custom Password", NULL);
+        if(app->editing_entry)
+            ck_show_text_input(app, CkInputCustomPassword, "Custom Password", app->draft.password);
+        else
+            ck_show_text_input(app, CkInputCustomPassword, "Custom Password", NULL);
     } else if(
         event == CkEventPresetMemorable || event == CkEventPresetStrict ||
         event == CkEventPresetLong || event == CkEventPresetNoSymbol) {
@@ -997,26 +1252,61 @@ static void ck_handle_event(CkApp* app, uint32_t event) {
         ck_make_password_unique(app, app->draft.password, sizeof(app->draft.password));
         ck_show_save_dialog(app);
     } else if(event == CkEventWidgetBack) {
-        if(app->unlocked)
+        if(app->mac_setup_view) {
+            if(app->mac_setup_keys_sent)
+                ck_finish_mac_keyboard_setup(app);
+            else {
+                ck_stop_mac_keyboard_setup(app);
+                ck_show_main(app);
+            }
+        } else if(app->security_key_view) {
+            ck_stop_fido2(app);
+            ck_show_main(app);
+        } else if(app->unlocked)
             ck_show_main(app);
         else
             ck_begin_auth(app);
     } else if(event == CkEventWidgetInject) {
-        ck_show_inject_confirm(app);
-    } else if(event == CkEventDialogLeft) {
-        if(app->dialog_purpose == CkDialogInjectConfirm)
-            ck_show_entry_widget(app);
-        else
+        if(app->mac_setup_view) {
+            ck_send_mac_ansi_keys(app);
+        } else if(app->security_key_view) {
+            ck_stop_fido2(app);
             ck_show_main(app);
+        } else {
+            ck_show_inject_confirm(app);
+        }
+    } else if(event == CkEventWidgetEdit) {
+        ck_begin_edit(app);
+    } else if(event == CkFido2ServiceEventPresence) {
+        ck_show_fido2_presence(app);
+    } else if(event == CkFido2ServiceEventPresenceDone) {
+        if(app->security_key_view && app->current_view == CkViewDialog &&
+           app->dialog_purpose == CkDialogFido2Presence)
+            ck_show_security_key(app);
+    } else if(event == CkEventDialogLeft) {
+        if(app->dialog_purpose == CkDialogFido2Presence) {
+            ck_fido2_service_answer_presence(app->fido2_service, false);
+            ck_show_security_key(app);
+        } else if(app->dialog_purpose == CkDialogInjectConfirm) {
+            ck_show_entry_widget(app);
+        } else if(app->dialog_purpose == CkDialogSave && app->editing_entry) {
+            app->editing_entry = false;
+            ck_show_entry_widget(app);
+        } else {
+            ck_show_main(app);
+        }
     } else if(event == CkEventDialogRight) {
         if(app->dialog_purpose == CkDialogSave) {
             ck_save_draft(app);
         } else if(app->dialog_purpose == CkDialogInjectConfirm) {
             bool ok = ck_inject_selected(app);
-            ck_show_status(
-                app,
-                ok ? "Typed" : "HID Failed",
-                ok ? "Password HID typed." : "Could not switch USB HID.");
+            if(ok)
+                ck_show_entry_widget(app);
+            else
+                ck_show_status(app, "HID Failed", "Could not switch USB HID.");
+        } else if(app->dialog_purpose == CkDialogFido2Presence) {
+            ck_fido2_service_answer_presence(app->fido2_service, true);
+            ck_show_security_key(app);
         }
     }
 }
@@ -1050,6 +1340,8 @@ static CkApp* ck_app_alloc(void) {
 
 static void ck_app_free(CkApp* app) {
     if(!app) return;
+    ck_fido2_service_free(app->fido2_service);
+    app->fido2_service = NULL;
     view_dispatcher_remove_view(app->dispatcher, CkViewMain);
     view_dispatcher_remove_view(app->dispatcher, CkViewTextInput);
     view_dispatcher_remove_view(app->dispatcher, CkViewWidget);
@@ -1076,6 +1368,8 @@ int32_t ck42x_passvault_app(void* p) {
     ck_begin_auth(app);
     view_dispatcher_run(app->dispatcher);
 
+    ck_stop_mac_keyboard_setup(app);
+    ck_stop_fido2(app);
     furi_record_close(RECORD_GUI);
     ck_app_free(app);
     FURI_LOG_I(CK_TAG, "Stopped CK42X PassVault");
