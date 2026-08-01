@@ -5,8 +5,9 @@ App(
     entry_point="maze3d_app",
     stack_size=8 * 1024,
     icon="maze3d.png",
-    fap_version=(3, 0, 0),
     fap_category="Games",
-    fap_description="3D raycasting maze game (campaign / endless / visitor)",
     fap_author="k20120509",
+    fap_weburl="https://github.com/k20120509/flipper-release",
+    fap_version=(3, 0, 0),
+    fap_description="3D raycasting maze game (campaign / endless / visitor)",
 )

@@ -5,12 +5,12 @@
 #include <input/input.h>
 
 // 屏幕尺寸
-#define SCREEN_W 128
-#define SCREEN_H 64
+#define SCREEN_W    128
+#define SCREEN_H    64
 // 渲染半分辨率列数(性能): 每列输出 2 像素宽度,减少一半光线投射
 #define RENDER_COLS 64
 // Framebuffer: 单色 XBM
-#define FB_BYTES (SCREEN_W * SCREEN_H / 8)
+#define FB_BYTES    (SCREEN_W * SCREEN_H / 8)
 
 // 迷宫最大尺寸
 #define MAP_MAX 31
@@ -21,14 +21,14 @@ typedef enum {
     WALL_BRICK = 1,
     WALL_STONE = 2,
     WALL_METAL = 3,
-    WALL_VINE  = 4,
-    CELL_EXIT  = 9,
-    CELL_KEY   = 10,
-    CELL_DOOR  = 11,
+    WALL_VINE = 4,
+    CELL_EXIT = 9,
+    CELL_KEY = 10,
+    CELL_DOOR = 11,
     CELL_TORCH = 12,
-    CELL_TRAP  = 13,
-    CELL_POTION = 14,   // 药水(捡起后入物品栏, 恢复HP)
-    CELL_AMULET = 15,   // 护符(捡起后入物品栏, 传送回起点)
+    CELL_TRAP = 13,
+    CELL_POTION = 14, // 药水(捡起后入物品栏, 恢复HP)
+    CELL_AMULET = 15, // 护符(捡起后入物品栏, 传送回起点)
 } CellType;
 
 // 物品栏物品类型
@@ -44,7 +44,7 @@ typedef enum {
 typedef struct {
     float x, y;
     bool active;
-    uint8_t type;       // 0=敌人 1=NPC游客
+    uint8_t type; // 0=敌人 1=NPC游客
     uint8_t cooldown;
 } Actor;
 
@@ -64,21 +64,21 @@ typedef struct {
 
 typedef enum {
     MODE_MENU = 0,
-    MODE_CAMPAIGN,          // 剧情模式(原关卡模式)
+    MODE_CAMPAIGN, // 剧情模式(原关卡模式)
     MODE_ENDLESS_VISITOR,
     MODE_ENDLESS_RUN,
     MODE_PAUSED,
     MODE_LEVEL_CLEAR,
     MODE_GAME_OVER,
-    MODE_STORY,             // 剧情文本展示
-    MODE_INVENTORY,         // 物品栏
-    MODE_LEVEL_SELECT,      // 层级选择
+    MODE_STORY, // 剧情文本展示
+    MODE_INVENTORY, // 物品栏
+    MODE_LEVEL_SELECT, // 层级选择
 } GameMode;
 
 typedef enum {
     STAGE_MAZE_ONLY = 0,
-    STAGE_PUZZLE    = 1,
-    STAGE_COMBAT    = 2,
+    STAGE_PUZZLE = 1,
+    STAGE_COMBAT = 2,
 } LevelStage;
 
 typedef struct {
@@ -93,7 +93,7 @@ typedef struct {
     int endless_floor;
     int stage;
     bool has_exit;
-    bool dirty;   // 需要重渲染
+    bool dirty; // 需要重渲染
     uint8_t fb[FB_BYTES];
     // 出口坐标(每关生成后缓存,避免每帧扫描)
     int exit_x, exit_y;
@@ -106,16 +106,16 @@ typedef struct {
     // 语言: 0=中文 (XBM 位图), 1=English (canvas_draw_str)
     uint8_t lang;
     // 物品栏
-    uint8_t inv_sel;        // 光标位置 0..ITEM_COUNT-1
+    uint8_t inv_sel; // 光标位置 0..ITEM_COUNT-1
     // 剧情文本
-    uint8_t story_id;       // 当前剧情段 id
-    uint8_t story_page;     // 当前页
-    uint8_t story_choice;   // 玩家选择 (0=A 1=B)
-    GameMode story_return;  // 剧情结束后回到哪个 mode
+    uint8_t story_id; // 当前剧情段 id
+    uint8_t story_page; // 当前页
+    uint8_t story_choice; // 玩家选择 (0=A 1=B)
+    GameMode story_return; // 剧情结束后回到哪个 mode
     // 层级选择
-    uint8_t ls_sel;         // 选中的层级 (1..)
-    uint8_t ls_max;         // 可选层级上限
-    bool ls_for_campaign;   // true=剧情模式选层 false=无尽模式选层
+    uint8_t ls_sel; // 选中的层级 (1..)
+    uint8_t ls_max; // 可选层级上限
+    bool ls_for_campaign; // true=剧情模式选层 false=无尽模式选层
 } GameState;
 
 extern GameState g;
@@ -141,7 +141,7 @@ enum {
 void engine_render(void);
 
 void maze_generate(int w, int h, int level, unsigned int seed);
-int  maze_cell_index(int x, int y);
+int maze_cell_index(int x, int y);
 uint8_t maze_get(int x, int y);
 void maze_set(int x, int y, uint8_t v);
 uint32_t maze_rng_next(void);
@@ -160,13 +160,13 @@ void set_msg(int id); // 设置中文提示
 // 物品栏: 使用选中物品, 返回是否消耗
 bool item_use(int item_type);
 // 物品栏当前持有数
-int  item_count(int item_type);
+int item_count(int item_type);
 
 void storage_load(void);
 void storage_save(void);
 
 // 剧情: 返回剧情段总页数, 取指定页文本(英文), 取选项A/B文本
-int  story_pages(int story_id);
+int story_pages(int story_id);
 const char* story_page_text(int story_id, int page);
 const char* story_choice_a(int story_id);
 const char* story_choice_b(int story_id);

@@ -63,42 +63,58 @@ static const char* ENDING_PAGES[] = {
 
 int story_pages(int story_id) {
     switch(story_id) {
-        case 0: return INTRO_NP;
-        case 1: return BETWEEN_NP;
-        case 2: return ENDING_NP;
-        default: return 0;
+    case 0:
+        return INTRO_NP;
+    case 1:
+        return BETWEEN_NP;
+    case 2:
+        return ENDING_NP;
+    default:
+        return 0;
     }
 }
 
 const char* story_page_text(int story_id, int page) {
     if(page < 0) return "";
     switch(story_id) {
-        case 0: return (page < INTRO_NP) ? INTRO_PAGES[page] : "";
-        case 1: return (page < BETWEEN_NP) ? BETWEEN_PAGES[page] : "";
-        case 2: return (page < ENDING_NP) ? ENDING_PAGES[page] : "";
-        default: return "";
+    case 0:
+        return (page < INTRO_NP) ? INTRO_PAGES[page] : "";
+    case 1:
+        return (page < BETWEEN_NP) ? BETWEEN_PAGES[page] : "";
+    case 2:
+        return (page < ENDING_NP) ? ENDING_PAGES[page] : "";
+    default:
+        return "";
     }
 }
 
 const char* story_choice_a(int story_id) {
     switch(story_id) {
-        case 0: return "A) Warrior: +HP, no items";
-        default: return "A) Continue";
+    case 0:
+        return "A) Warrior: +HP, no items";
+    default:
+        return "A) Continue";
     }
 }
 
 const char* story_choice_b(int story_id) {
     switch(story_id) {
-        case 0: return "B) Seeker: -HP, +1 torch";
-        default: return "B) Continue";
+    case 0:
+        return "B) Seeker: -HP, +1 torch";
+    default:
+        return "B) Continue";
     }
 }
 
 const char* story_title(int story_id) {
     switch(story_id) {
-        case 0: return "PROLOGUE";
-        case 1: return "DESCENT";
-        case 2: return "ESCAPE";
-        default: return "STORY";
+    case 0:
+        return "PROLOGUE";
+    case 1:
+        return "DESCENT";
+    case 2:
+        return "ESCAPE";
+    default:
+        return "STORY";
     }
 }

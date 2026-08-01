@@ -3,15 +3,21 @@
 
 // Xorshift PRNG
 static uint32_t rng_state = 1;
-static void rng_seed(unsigned int s) { rng_state = s ? s : 1; }
+static void rng_seed(unsigned int s) {
+    rng_state = s ? s : 1;
+}
 uint32_t maze_rng_next(void) {
     uint32_t x = rng_state;
-    x ^= x << 13; x ^= x >> 17; x ^= x << 5;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
     rng_state = x;
     return x;
 }
 
-int maze_cell_index(int x, int y) { return y * MAP_MAX + x; }
+int maze_cell_index(int x, int y) {
+    return y * MAP_MAX + x;
+}
 uint8_t maze_get(int x, int y) {
     if((unsigned)x >= (unsigned)g.map_w || (unsigned)y >= (unsigned)g.map_h) return WALL_BRICK;
     return g.map[(uint16_t)y * MAP_MAX + x];
@@ -28,7 +34,9 @@ static void carve(int w, int h) {
 
     int sx[MAP_MAX * MAP_MAX], sy[MAP_MAX * MAP_MAX];
     int top = 0;
-    sx[top] = 1; sy[top] = 1; top++;
+    sx[top] = 1;
+    sy[top] = 1;
+    top++;
     g.map[1 * MAP_MAX + 1] = CELL_EMPTY;
 
     static const int dx[4] = {2, -2, 0, 0};
@@ -39,7 +47,9 @@ static void carve(int w, int h) {
         int order[4] = {0, 1, 2, 3};
         for(int i = 3; i > 0; i--) {
             int j = maze_rng_next() % (i + 1);
-            int t = order[i]; order[i] = order[j]; order[j] = t;
+            int t = order[i];
+            order[i] = order[j];
+            order[j] = t;
         }
         int moved = 0;
         for(int k = 0; k < 4; k++) {
@@ -50,7 +60,9 @@ static void carve(int w, int h) {
                 int wx = cx + dx[idx] / 2, wy = cy + dy[idx] / 2;
                 g.map[(uint16_t)wy * MAP_MAX + wx] = CELL_EMPTY;
                 g.map[(uint16_t)ny * MAP_MAX + nx] = CELL_EMPTY;
-                sx[top] = nx; sy[top] = ny; top++;
+                sx[top] = nx;
+                sy[top] = ny;
+                top++;
                 moved = 1;
                 break;
             }
@@ -64,21 +76,30 @@ static void add_loops(int w, int h, int count) {
         int x = 1 + maze_rng_next() % (w - 2);
         int y = 1 + maze_rng_next() % (h - 2);
         if(g.map[(uint16_t)y * MAP_MAX + x] == WALL_BRICK) {
-            int horiz = (g.map[(uint16_t)y * MAP_MAX + x - 1] == CELL_EMPTY && g.map[(uint16_t)y * MAP_MAX + x + 1] == CELL_EMPTY);
-            int vert  = (g.map[(uint16_t)(y - 1) * MAP_MAX + x] == CELL_EMPTY && g.map[(uint16_t)(y + 1) * MAP_MAX + x] == CELL_EMPTY);
+            int horiz =
+                (g.map[(uint16_t)y * MAP_MAX + x - 1] == CELL_EMPTY &&
+                 g.map[(uint16_t)y * MAP_MAX + x + 1] == CELL_EMPTY);
+            int vert =
+                (g.map[(uint16_t)(y - 1) * MAP_MAX + x] == CELL_EMPTY &&
+                 g.map[(uint16_t)(y + 1) * MAP_MAX + x] == CELL_EMPTY);
             if(horiz || vert) g.map[(uint16_t)y * MAP_MAX + x] = CELL_EMPTY;
         }
     }
 }
 
 static void find_far(int w, int h, int sxx, int syy, int* ox, int* oy) {
-    *ox = sxx; *oy = syy;
+    *ox = sxx;
+    *oy = syy;
     int best = -1;
     for(int y = 1; y < h - 1; y++) {
         for(int x = 1; x < w - 1; x++) {
             if(g.map[(uint16_t)y * MAP_MAX + x] == CELL_EMPTY) {
                 int d = abs(x - sxx) + abs(y - syy);
-                if(d > best) { best = d; *ox = x; *oy = y; }
+                if(d > best) {
+                    best = d;
+                    *ox = x;
+                    *oy = y;
+                }
             }
         }
     }
@@ -93,10 +114,18 @@ static void update_wall_textures(int w, int h, int level) {
             if(g.map[(uint16_t)y * MAP_MAX + x] == WALL_BRICK) {
                 int hh = (x * 73856093u ^ y * 19349663u) & 7;
                 switch(base) {
-                    case 0: g.map[(uint16_t)y * MAP_MAX + x] = (hh < 6) ? WALL_BRICK : WALL_STONE; break;
-                    case 1: g.map[(uint16_t)y * MAP_MAX + x] = (hh < 5) ? WALL_STONE : WALL_METAL; break;
-                    case 2: g.map[(uint16_t)y * MAP_MAX + x] = (hh < 5) ? WALL_METAL : WALL_VINE; break;
-                    case 3: g.map[(uint16_t)y * MAP_MAX + x] = (hh < 4) ? WALL_VINE : WALL_BRICK; break;
+                case 0:
+                    g.map[(uint16_t)y * MAP_MAX + x] = (hh < 6) ? WALL_BRICK : WALL_STONE;
+                    break;
+                case 1:
+                    g.map[(uint16_t)y * MAP_MAX + x] = (hh < 5) ? WALL_STONE : WALL_METAL;
+                    break;
+                case 2:
+                    g.map[(uint16_t)y * MAP_MAX + x] = (hh < 5) ? WALL_METAL : WALL_VINE;
+                    break;
+                case 3:
+                    g.map[(uint16_t)y * MAP_MAX + x] = (hh < 4) ? WALL_VINE : WALL_BRICK;
+                    break;
                 }
             }
         }
@@ -110,7 +139,8 @@ void maze_generate(int w, int h, int level, unsigned int seed) {
     if(h % 2 == 0) h--;
     if(w < 7) w = 7;
     if(h < 7) h = 7;
-    g.map_w = w; g.map_h = h;
+    g.map_w = w;
+    g.map_h = h;
 
     rng_seed(seed + level * 2654435761u);
     carve(w, h);
@@ -123,11 +153,15 @@ void maze_generate(int w, int h, int level, unsigned int seed) {
     int ex, ey;
     find_far(w, h, 1, 1, &ex, &ey);
     g.map[(uint16_t)ey * MAP_MAX + ex] = CELL_EXIT;
-    g.exit_x = ex; g.exit_y = ey; g.exit_found = true;
+    g.exit_x = ex;
+    g.exit_y = ey;
+    g.exit_found = true;
 
     int stage = 0;
-    if(level >= 20) stage = 2;
-    else if(level >= 10) stage = 1;
+    if(level >= 20)
+        stage = 2;
+    else if(level >= 10)
+        stage = 1;
 
     if(stage >= 1) {
         // 钥匙
@@ -148,10 +182,12 @@ void maze_generate(int w, int h, int level, unsigned int seed) {
             int ex2, ey2;
             find_far(w, h, ex, ey, &ex2, &ey2);
             g.map[(uint16_t)ey2 * MAP_MAX + ex2] = CELL_EXIT;
-            g.exit_x = ex2; g.exit_y = ey2;
+            g.exit_x = ex2;
+            g.exit_y = ey2;
         }
         int torches = 2 + level / 5;
-        placed = 0; tries = 0;
+        placed = 0;
+        tries = 0;
         while(placed < torches && tries++ < 300) {
             int x = 1 + maze_rng_next() % (w - 2);
             int y = 1 + maze_rng_next() % (h - 2);
@@ -163,7 +199,8 @@ void maze_generate(int w, int h, int level, unsigned int seed) {
         // 药水: puzzle 关卡开始出现
         int potions = 1 + (level - 10) / 5;
         if(potions > 3) potions = 3;
-        placed = 0; tries = 0;
+        placed = 0;
+        tries = 0;
         while(placed < potions && tries++ < 300) {
             int x = 1 + maze_rng_next() % (w - 2);
             int y = 1 + maze_rng_next() % (h - 2);
@@ -188,7 +225,8 @@ void maze_generate(int w, int h, int level, unsigned int seed) {
         // 护符: combat 关卡稀有出现
         int amulets = 1 + (level - 20) / 8;
         if(amulets > 2) amulets = 2;
-        placed = 0; tries = 0;
+        placed = 0;
+        tries = 0;
         while(placed < amulets && tries++ < 300) {
             int x = 1 + maze_rng_next() % (w - 2);
             int y = 1 + maze_rng_next() % (h - 2);

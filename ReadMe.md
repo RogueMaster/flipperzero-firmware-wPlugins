@@ -97,6 +97,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - ESP Flasher: [Bump Marauder v1.14.1 (By justcallmekoko)](https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v1.14.1)
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Marauder 1.14.1 firmwares.
 - Updated: [DeFlock v0.53 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- Added: [Maze 3D v3.0 (By k20120509)](https://github.com/k20120509/flipper-release)
 
 <a name="release"></a>
 
@@ -292,6 +293,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Mancala v0.1 (By fgreil)](https://github.com/fgreil/mitzi-mancala)
 - [Mandelbrot Set v1.4 (By Possibly-Matt)](https://github.com/Possibly-Matt/flipperzero-firmware-wPlugins)
 - [Matagotchi v1.1 (By MrModd)](https://github.com/MrModd/Matagotchi)
+- [Maze 3D v3.0 (By k20120509)](https://github.com/k20120509/flipper-release)
 - [Mind Probe v0.1 (By Miksang)](https://github.com/Miksang/flipper_guessing_game)
 - [Minesweeper Redux v1.7 (By squee72564)](https://github.com/squee72564/F0_Minesweeper_Fap)
 - [Minesweeper v1.2 (By panki27)](https://github.com/panki27/minesweeper)

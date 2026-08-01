@@ -8,20 +8,28 @@ static inline void fb_set(int x, int y, uint8_t on) {
     if((unsigned)x >= SCREEN_W || (unsigned)y >= SCREEN_H) return;
     uint16_t idx = ((uint16_t)y << 4) + ((uint16_t)x >> 3); // y*16 + x/8
     uint8_t bit = 1u << (x & 7);
-    if(on) g.fb[idx] |= bit;
-    else g.fb[idx] &= ~bit;
+    if(on)
+        g.fb[idx] |= bit;
+    else
+        g.fb[idx] &= ~bit;
 }
 
 static inline void fb_hline(int x1, int x2, int y, uint8_t on) {
     if((unsigned)y >= SCREEN_H) return;
-    if(x1 > x2) { int t = x1; x1 = x2; x2 = t; }
+    if(x1 > x2) {
+        int t = x1;
+        x1 = x2;
+        x2 = t;
+    }
     if(x1 < 0) x1 = 0;
     if(x2 >= SCREEN_W) x2 = SCREEN_W - 1;
-    for(int x = x1; x <= x2; x++) fb_set(x, y, on);
+    for(int x = x1; x <= x2; x++)
+        fb_set(x, y, on);
 }
 
 static inline void fb_clear(void) {
-    for(int i = 0; i < FB_BYTES; i++) g.fb[i] = 0;
+    for(int i = 0; i < FB_BYTES; i++)
+        g.fb[i] = 0;
 }
 
 // 绘制 XBM 位图(预生成的中文字符)
@@ -42,18 +50,24 @@ static inline uint8_t map_at(int x, int y) {
 }
 
 static inline bool is_wall(uint8_t c) {
-    return c == WALL_BRICK || c == WALL_STONE || c == WALL_METAL ||
-           c == WALL_VINE || c == CELL_DOOR;
+    return c == WALL_BRICK || c == WALL_STONE || c == WALL_METAL || c == WALL_VINE ||
+           c == CELL_DOOR;
 }
 
 static inline int wall_tex_id(uint8_t c) {
     switch(c) {
-        case WALL_BRICK: return 0;
-        case WALL_STONE: return 1;
-        case WALL_METAL: return 2;
-        case WALL_VINE:  return 3;
-        case CELL_DOOR:  return 2;
-        default:         return 0;
+    case WALL_BRICK:
+        return 0;
+    case WALL_STONE:
+        return 1;
+    case WALL_METAL:
+        return 2;
+    case WALL_VINE:
+        return 3;
+    case CELL_DOOR:
+        return 2;
+    default:
+        return 0;
     }
 }
 
@@ -63,20 +77,32 @@ extern uint8_t texture_sample(int tex_id, int tx, int ty);
 // 避免 sqrtf,用 perp距离(已经是无透视失真的垂直距离)
 static inline int shade_from(float perp, int side) {
     int s;
-    if(perp < 2.0f) s = 0;
-    else if(perp < 3.5f) s = 1;
-    else if(perp < 6.0f) s = 2;
-    else s = 3;
+    if(perp < 2.0f)
+        s = 0;
+    else if(perp < 3.5f)
+        s = 1;
+    else if(perp < 6.0f)
+        s = 2;
+    else
+        s = 3;
     if(side == 1 && s < 3) s++; // 东西墙暗一档
     return s;
 }
 
 static inline void apply_shade_px(int x, int y, int shade) {
     switch(shade) {
-        case 0: fb_set(x, y, 1); break;
-        case 1: if(((x >> 1) ^ (y >> 1)) & 1) fb_set(x, y, 1); break;
-        case 2: if(((x + y * 3) & 7) == 0) fb_set(x, y, 1); break;
-        case 3: if(((x * 5 + y * 7) & 15) == 0) fb_set(x, y, 1); break;
+    case 0:
+        fb_set(x, y, 1);
+        break;
+    case 1:
+        if(((x >> 1) ^ (y >> 1)) & 1) fb_set(x, y, 1);
+        break;
+    case 2:
+        if(((x + y * 3) & 7) == 0) fb_set(x, y, 1);
+        break;
+    case 3:
+        if(((x * 5 + y * 7) & 15) == 0) fb_set(x, y, 1);
+        break;
     }
 }
 
@@ -135,12 +161,12 @@ static void draw_compass(void) {
     fb_set(ex, ey, 1);
     if((g.tick & 31) < 16) {
         // 闪烁外圈提示近
-        float dist_sq = dx*dx + dy*dy;
+        float dist_sq = dx * dx + dy * dy;
         if(dist_sq < 36.0f) {
             for(int a = 0; a < 16; a++) {
                 float ang = (float)a * 0.3927f;
-                int xx = cx + (int)(cosf(ang) * (r+1));
-                int yy = cy + (int)(sinf(ang) * (r+1));
+                int xx = cx + (int)(cosf(ang) * (r + 1));
+                int yy = cy + (int)(sinf(ang) * (r + 1));
                 fb_set(xx, yy, 1);
             }
         }
@@ -157,24 +183,25 @@ static void draw_minimap(void) {
     // 玩家中心平移
     int px = (int)g.player.x;
     int py = (int)g.player.y;
-    int sx = px - mw/2;
-    int sy = py - mh/2;
+    int sx = px - mw / 2;
+    int sy = py - mh / 2;
 
     // 边框
-    for(int x = ox-1; x <= ox+mw; x++) {
-        fb_set(x, oy-1, 1);
-        fb_set(x, oy+mh, 1);
+    for(int x = ox - 1; x <= ox + mw; x++) {
+        fb_set(x, oy - 1, 1);
+        fb_set(x, oy + mh, 1);
     }
-    for(int y = oy-1; y <= oy+mh; y++) {
-        fb_set(ox-1, y, 1);
-        fb_set(ox+mw, y, 1);
+    for(int y = oy - 1; y <= oy + mh; y++) {
+        fb_set(ox - 1, y, 1);
+        fb_set(ox + mw, y, 1);
     }
 
     // 地图内容
     for(int y = 0; y < mh; y++) {
         for(int x = 0; x < mw; x++) {
             uint8_t c = map_at(sx + x, sy + y);
-            if(is_wall(c)) fb_set(ox + x, oy + y, 1);
+            if(is_wall(c))
+                fb_set(ox + x, oy + y, 1);
             else if(c == CELL_EXIT) {
                 // 出口闪烁
                 if((g.tick & 7) < 4) fb_set(ox + x, oy + y, 1);
@@ -223,25 +250,45 @@ void engine_render(void) {
 
         int stepX, stepY;
         float sideX, sideY;
-        if(rayX < 0) { stepX = -1; sideX = (posX - mapX) * deltaX; }
-        else         { stepX = 1;  sideX = (mapX + 1.0f - posX) * deltaX; }
-        if(rayY < 0) { stepY = -1; sideY = (posY - mapY) * deltaY; }
-        else         { stepY = 1;  sideY = (mapY + 1.0f - posY) * deltaY; }
+        if(rayX < 0) {
+            stepX = -1;
+            sideX = (posX - mapX) * deltaX;
+        } else {
+            stepX = 1;
+            sideX = (mapX + 1.0f - posX) * deltaX;
+        }
+        if(rayY < 0) {
+            stepY = -1;
+            sideY = (posY - mapY) * deltaY;
+        } else {
+            stepY = 1;
+            sideY = (mapY + 1.0f - posY) * deltaY;
+        }
 
         int side = 0;
         uint8_t hit = 0;
         uint8_t exit_on_ray = 0; // 这条光线途中是否经过出口
         for(int i = 0; i < MAP_MAX + 4 && !hit; i++) {
-            if(sideX < sideY) { sideX += deltaX; mapX += stepX; side = 0; }
-            else              { sideY += deltaY; mapY += stepY; side = 1; }
+            if(sideX < sideY) {
+                sideX += deltaX;
+                mapX += stepX;
+                side = 0;
+            } else {
+                sideY += deltaY;
+                mapY += stepY;
+                side = 1;
+            }
             uint8_t c = map_at(mapX, mapY);
-            if(is_wall(c)) { hit = c; break; }
+            if(is_wall(c)) {
+                hit = c;
+                break;
+            }
             if(c == CELL_EXIT) exit_on_ray = 1;
         }
         if(!hit) {
             // 没打到墙: 仅画地板/天花板
             for(int y = 0; y < SCREEN_H; y++) {
-                uint8_t on = (y < SCREEN_H/2) ? ceil_px(cx*2, y) : floor_px(cx*2, y);
+                uint8_t on = (y < SCREEN_H / 2) ? ceil_px(cx * 2, y) : floor_px(cx * 2, y);
                 fb_set(cx * 2, y, on);
                 fb_set(cx * 2 + 1, y, on);
             }
@@ -249,8 +296,10 @@ void engine_render(void) {
         }
 
         float perp;
-        if(side == 0) perp = sideX - deltaX;
-        else perp = sideY - deltaY;
+        if(side == 0)
+            perp = sideX - deltaX;
+        else
+            perp = sideY - deltaY;
         if(perp < 0.01f) perp = 0.01f;
 
         int lineH = (int)((float)SCREEN_H / perp);
@@ -262,8 +311,10 @@ void engine_render(void) {
 
         // 命中坐标
         float wallX;
-        if(side == 0) wallX = posY + perp * rayY;
-        else wallX = posX + perp * rayX;
+        if(side == 0)
+            wallX = posY + perp * rayY;
+        else
+            wallX = posX + perp * rayX;
         wallX -= (float)((int)wallX);
         int texX = (int)(wallX * 8.0f);
         if(side == 0 && rayX > 0) texX = 7 - texX;
@@ -276,7 +327,7 @@ void engine_render(void) {
         // 这里做法: 如果靠近出口(格子距离小),每8帧让列的底部画亮
         if(exit_on_ray) {
             float dxm = mapX - posX, dym = mapY - posY;
-            if(dxm*dxm + dym*dym < 64.0f && (g.tick & 7) < 3) {
+            if(dxm * dxm + dym * dym < 64.0f && (g.tick & 7) < 3) {
                 // 出口列边缘加亮: 画一列闪烁的竖线在墙上方
                 int yy = drawStart - 1;
                 if(yy >= 0) fb_set(cx * 2, yy, 1);
@@ -285,7 +336,7 @@ void engine_render(void) {
 
         // 画天花板
         for(int y = 0; y < drawStart; y++) {
-            uint8_t on = ceil_px(cx*2, y);
+            uint8_t on = ceil_px(cx * 2, y);
             fb_set(cx * 2, y, on);
             fb_set(cx * 2 + 1, y, on);
         }
@@ -293,7 +344,10 @@ void engine_render(void) {
         int constHalf = -lineH / 2 + SCREEN_H / 2;
         for(int y = drawStart; y <= drawEnd; y++) {
             int texY = ((y - constHalf) * 8) / lineH;
-            if(texY < 0) texY = 0; else if(texY > 7) texY = 7;
+            if(texY < 0)
+                texY = 0;
+            else if(texY > 7)
+                texY = 7;
             if(texture_sample(texId, texX, texY)) {
                 apply_shade_px(cx * 2, y, shade);
                 apply_shade_px(cx * 2 + 1, y, shade);
@@ -301,7 +355,7 @@ void engine_render(void) {
         }
         // 画地板
         for(int y = drawEnd + 1; y < SCREEN_H; y++) {
-            uint8_t on = floor_px(cx*2, y);
+            uint8_t on = floor_px(cx * 2, y);
             fb_set(cx * 2, y, on);
             fb_set(cx * 2 + 1, y, on);
         }
@@ -311,16 +365,18 @@ void engine_render(void) {
     if(g.exit_found) {
         float dx = (float)g.exit_x + 0.5f - g.player.x;
         float dy = (float)g.exit_y + 0.5f - g.player.y;
-        float dist_sq = dx*dx + dy*dy;
+        float dist_sq = dx * dx + dy * dy;
         if(dist_sq < 16.0f) {
             // 在屏幕中上方画闪烁大箭头
-            int cx = SCREEN_W/2, cy = 16;
+            int cx = SCREEN_W / 2, cy = 16;
             if((g.tick & 15) < 8) {
                 for(int i = -6; i <= 6; i++) {
                     fb_set(cx + i, cy - 4, 1);
                 }
-                fb_set(cx - 5, cy - 3, 1); fb_set(cx + 5, cy - 3, 1);
-                fb_set(cx - 4, cy - 2, 1); fb_set(cx + 4, cy - 2, 1);
+                fb_set(cx - 5, cy - 3, 1);
+                fb_set(cx + 5, cy - 3, 1);
+                fb_set(cx - 4, cy - 2, 1);
+                fb_set(cx + 4, cy - 2, 1);
                 fb_set(cx, cy + 2, 1);
             }
         }
