@@ -1,3 +1,6 @@
+v0.2.6:
+- Fix timing of bug-style keyer.
+
 v0.2.5:
 - Add adaptive Instant Character Recognition training.
 - Add callsign practice with realistic generated callsigns.
