@@ -551,8 +551,26 @@ h3{margin:0; font-weight:600}
 .gc-nums b{color:var(--text); font-variant-numeric:tabular-nums}
 .gc-pts{color:var(--orange); font-weight:700; font-size:22px}
 .gc-winner{text-align:center; font-weight:700; margin-top:6px}
-.gc-target-wrap{display:flex; flex-direction:column; gap:6px; align-items:center}
 .gc-chip-lg{max-width:280px; aspect-ratio:16/9}
+.gc-answer{text-align:center; font-size:13px}
+.gc-legend{padding-left:4px; color:var(--text-mute); font-size:10px;
+  text-transform:uppercase; letter-spacing:.08em}
+.gc-guesses{display:flex; flex-direction:column; gap:6px}
+.gc-grow{display:flex; align-items:center; gap:10px; padding:6px 8px;
+  background:var(--surface); border:2px solid var(--line); border-radius:var(--radius)}
+.gc-grow.you{border-color:var(--orange)}
+.gc-grow.win{background:var(--surface-2)}
+/* Split swatch: left half answer, right half the player's guess. z-index above
+   .scan (40) so the CRT scanline doesn't tint the colors being compared. */
+.gc-gsw{display:flex; width:84px; height:30px; flex:none; overflow:hidden;
+  border:1px solid var(--line); border-radius:2px; position:relative; z-index:41; background:#000}
+.gc-h{flex:1}
+.gc-h + .gc-h{border-left:2px solid var(--bg)}
+.gc-gn{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700}
+.gc-gd{color:var(--text-dim); font-size:12px; font-variant-numeric:tabular-nums}
+.gc-gp{flex:none; width:52px; text-align:right; font-weight:700; color:var(--orange);
+  font-variant-numeric:tabular-nums}
+.gc-grow.win .gc-gp{color:var(--orange-bright)}
 
 /* --- Battleship --- */
 .bs-grid{display:grid; grid-template-columns:repeat(10,1fr); grid-template-rows:repeat(10,1fr);
@@ -560,6 +578,7 @@ h3{margin:0; font-weight:600}
   border-radius:var(--radius); max-width:360px; margin:0 auto; touch-action:manipulation}
 .bs-grid.small{max-width:220px}
 .bs-grid.waiting{opacity:.45}
+.bs-grid.myturn{border-color:var(--orange); box-shadow:0 0 0 2px var(--orange-dim)}
 .bs-cell{background:var(--bg); position:relative}
 .bs-cell.pop{animation:bs-pop .28s ease-out}
 @keyframes bs-pop{from{transform:scale(.35); opacity:.4}to{transform:scale(1); opacity:1}}

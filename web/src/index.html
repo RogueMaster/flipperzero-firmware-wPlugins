@@ -317,11 +317,9 @@
   </div>
   <div id="gc-reveal" class="hide gc-play">
     <div class="bar"><span id="gc-rmeta" class="me"></span></div>
-    <div class="gc-swatches">
-      <div class="gc-sw"><div id="gc-rtarget" class="gc-chip"></div><span id="gc-rtarget-lbl" class="gc-lbl">Answer</span></div>
-      <div class="gc-sw"><div id="gc-rguess" class="gc-chip"></div><span id="gc-rguess-lbl" class="gc-lbl">You</span></div>
-    </div>
-    <div id="gc-result" class="gc-result"></div>
+    <div id="gc-answer" class="gc-lbl gc-answer">Answer</div>
+    <div class="gc-legend">◀ answer &middot; guess ▶</div>
+    <div id="gc-guesses" class="gc-guesses"></div>
     <div id="gc-winner" class="gc-winner"></div>
   </div>
   <div id="gc-final" class="hide">
@@ -360,6 +358,7 @@
   </div>
   <div id="bs-over" class="hide over">
     <div id="bs-result" class="result"></div>
+    <p class="sub">Enemy fleet revealed</p>
     <div id="bs-over-grid" class="bs-grid"></div>
     <button id="bs-rematch" class="btn big">Rematch</button>
     <button id="bs-back" class="btn ghost">Back to lobby</button>

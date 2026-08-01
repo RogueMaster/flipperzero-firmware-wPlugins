@@ -37,10 +37,15 @@ assert.equal(rA.msg.phase, "reveal", "reveal once everyone has guessed");
 assert.equal(rA.msg.r, tr, "reveal exposes the true RGB");
 assert.equal(rA.msg.winner, "ALICE", "the closest guess wins the round");
 assert.equal(rA.msg.iwon, true);
-assert.equal(rA.msg.your.dist, 0, "an exact guess is distance 0");
-assert.ok(rA.msg.your.points > 200 && rA.msg.your.points <= 300,
-  "exact match earns 200 closeness + a partial speed bonus (got " + rA.msg.your.points + ")");
-assert.ok(rB.msg.your.points < rA.msg.your.points, "the far guess scores less");
+// reveal now carries every player's guess so the phones can compare them.
+const guessOf = (m, pid) => m.guesses.find((g) => g.pid === pid);
+assert.equal(rA.msg.winnerPid, 1, "reveal names the winning player id");
+const aGuess = guessOf(rA.msg, 1);
+const bGuess = guessOf(rA.msg, 2);
+assert.equal(aGuess.dist, 0, "an exact guess is distance 0");
+assert.ok(aGuess.points > 6 && aGuess.points <= 10,
+  "scores are rescaled to 0-10; an exact fast guess is near the top (got " + aGuess.points + ")");
+assert.ok(bGuess.points < aGuess.points, "the far guess scores less");
 const score = (m, pid) => m.scores.find((p) => p.pid === pid).score;
 assert.ok(score(rA.msg, 1) > score(rA.msg, 2), "Alice leads the board");
 

@@ -11,6 +11,8 @@
   var sel = 0;                          // selected ship index
   var prevPhase = "";
   var prevTrack = null;                 // last tracking grid, to animate new shots
+  var prevMine = null;                  // last fleet grid, to detect incoming hits
+  var prevYourTurn = false;             // to cue when the turn flips to you
   var rematchTimer = null;
 
   function sub(name) {
@@ -131,6 +133,7 @@
     var TR = ["", "miss", "hit", "sunk"];
     var track = $("bs-track-grid");
     track.classList.toggle("waiting", !m.yourTurn); // dim + no taps when it's not your turn
+    track.classList.toggle("myturn", m.yourTurn);   // orange border when it's your turn to fire
     // Your shot just resolved (a track cell went from un-shot to a result): play a
     // distinct sound for miss / hit / sunk. track only changes on your own shots.
     if (prevTrack) {
@@ -154,6 +157,17 @@
     } : null);
     prevTrack = m.track.slice();
     var MI = ["", "ship", "miss", "hit"];
+    // Incoming fire: play a sound + haptic when one of your own ships takes a hit.
+    if (prevMine) {
+      for (var mi = 0; mi < N; mi++) {
+        if (prevMine[mi] !== 3 && m.mine[mi] === 3) { A.sfx("hit"); A.vibe([30, 60]); break; }
+      }
+    }
+    prevMine = m.mine.slice();
+    // Cue when the turn flips to you (a hit keeps the opponent firing, so this only
+    // fires when they miss and it's genuinely your shot).
+    if (m.yourTurn && !prevYourTurn) { A.sfx("tick"); A.vibe(30); }
+    prevYourTurn = m.yourTurn;
     grid($("bs-fleet-grid"), function (i) { return MI[m.mine[i]]; }, null);
   }
 
@@ -178,7 +192,7 @@
     route("bs");
     if (A.view !== "bs") return;
     if (rematchTimer && m.phase !== "over") { clearTimeout(rematchTimer); rematchTimer = null; }
-    if (m.phase !== "fire") prevTrack = null; // don't animate stale shots after a phase change
+    if (m.phase !== "fire") { prevTrack = null; prevMine = null; prevYourTurn = false; } // reset cues across phases
     $("bs-leave").classList.toggle("hide", m.phase === "lobby");
     if (m.phase === "lobby") {
       sub("lobby");
