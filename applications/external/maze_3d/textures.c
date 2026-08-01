@@ -1,0 +1,23 @@
+#include "maze3d.h"
+
+// 8x8 单色贴图, 每行1字节(LSB=最左像素), 共8字节/贴图
+// 1=实心(亮), 0=空(暗)
+// 索引: 0=砖墙 1=石墙 2=金属 3=藤蔓
+const uint8_t TEXTURES[TEX_COUNT][8] = {
+    // 砖墙: 错位砖块
+    {0xFF,0x81,0x81,0xFF,0x18,0x18,0xFF,0x81},
+    // 石墙: 粗糙斑点
+    {0xFF,0xBD,0xC3,0xDB,0xFF,0x99,0xFF,0xC3},
+    // 金属墙: 竖条纹+铆钉
+    {0xFF,0xDB,0xDB,0xFF,0xDB,0xDB,0xFF,0xDB},
+    // 藤蔓墙: 有机纹理
+    {0x7E,0x42,0x5A,0x42,0x7E,0x24,0x7E,0x42},
+};
+
+// 取贴图像素 (1=亮 0=暗)
+uint8_t texture_sample(int tex_id, int tx, int ty) {
+    if(tex_id < 0 || tex_id >= TEX_COUNT) return 1;
+    tx &= 7;
+    ty &= 7;
+    return (TEXTURES[tex_id][ty] >> (tx & 7)) & 1;
+}
