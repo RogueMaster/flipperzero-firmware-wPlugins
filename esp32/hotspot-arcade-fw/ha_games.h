@@ -33,6 +33,15 @@ static inline void ha_upper(char* s) {
 #define DOTS_VEDGES (DOTS_H * (DOTS_W + 1)) // vertical edges
 #define DOTS_BOXES (DOTS_W * DOTS_H)
 
+// Battleship: 1v1 on a 10x10 grid, five ships (5+4+3+3+2 = 17 cells). Its own match
+// struct (like Pong), not the shared DuelMatch board, because it needs two grids per
+// player and hidden fleets.
+#define BS_SIZE 10
+#define BS_N (BS_SIZE * BS_SIZE) // 100
+#define BS_SHIPS 5
+#define BS_TOTAL 17 // sum of BS_LEN, the win threshold
+#define BATTLE_MAX 4 // concurrent matches
+
 #define TRIVIA_MAX_TOPICS 6
 #define TRIVIA_MAX_QS 20
 #define PACK_MAX_ITEMS 32 // items in a word/prompt pack (wyr/scramble/draw)
@@ -248,6 +257,26 @@ struct PongMatch {
     uint8_t winner; // pid
 };
 
+// Battleship: a = challenger, b = opponent. Each keeps a hidden fleet grid; shots are
+// recorded on the *target's* grid. battleJson never exposes an un-hit enemy ship cell.
+struct BattleMatch {
+    bool used;
+    uint8_t a, b; // pids
+    bool aIn, bIn;
+    uint8_t phase; // 0 placement, 1 firing, 2 over
+    uint8_t turn; // pid to fire (firing phase)
+    uint8_t first; // who fired first (rematch alternates it)
+    uint8_t winner; // pid, or 0
+    bool readyA, readyB; // placement committed
+    uint8_t fleetA[BS_N], fleetB[BS_N]; // 0 empty, else ship id 1..BS_SHIPS
+    uint8_t shotOnA[BS_N], shotOnB[BS_N]; // shots landed on that grid: 0 none, 1 miss, 2 hit
+    uint8_t hitsA, hitsB; // hits scored BY a / BY b (win at BS_TOTAL)
+};
+
+static const uint8_t BS_LEN[BS_SHIPS] = {5, 4, 3, 3, 2};
+static const char* const BS_NAMES[BS_SHIPS] = {
+    "Carrier", "Battleship", "Cruiser", "Submarine", "Destroyer"};
+
 class Engine {
 public:
     void reset() {
@@ -261,6 +290,7 @@ public:
         scrambleClear();
         reactClear();
         gcClear();
+        battleClear();
     }
 
     // ---- roster ----
@@ -497,6 +527,8 @@ public:
             reactClear();
         else if(_active == HA_GAME_GUESSCOLOR)
             gcClear();
+        else if(_active == HA_GAME_BATTLESHIP)
+            battleClear();
         pushAll();
     }
 
@@ -580,8 +612,13 @@ public:
             duelMove(pid, v);
         } else if(strcmp(type, "rematch") == 0) {
             duelRematch(pid);
+            battleRematch(pid);
         } else if(strcmp(type, "paddle") == 0 && ha_json_int(json, "dir", &v)) {
             pongPaddle(pid, v);
+        } else if(strcmp(type, "place") == 0) {
+            battlePlace(pid, json);
+        } else if(strcmp(type, "fire") == 0 && ha_json_int(json, "n", &v)) {
+            battleFire(pid, v);
         } else if(strcmp(type, "guess") == 0) {
             // A text guess (draw/scramble) or an r/g/b color guess (guess the color).
             char g[64];
@@ -620,6 +657,7 @@ private:
     ScrambleState _scr = {};
     ReactState _react = {};
     GuessColorState _gc = {};
+    BattleMatch _bm[BATTLE_MAX] = {};
 
     uint8_t freePid() {
         for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
@@ -655,6 +693,8 @@ private:
                 haWsSendWs(_p[pid].wsId, reactJson(pid));
             else if(_active == HA_GAME_GUESSCOLOR)
                 haWsSendWs(_p[pid].wsId, gcJson(pid));
+            else if(_active == HA_GAME_BATTLESHIP)
+                haWsSendWs(_p[pid].wsId, battleJson(pid));
         }
     }
 
@@ -707,6 +747,8 @@ private:
             return "reversi";
         case HA_GAME_GUESSCOLOR:
             return "gc";
+        case HA_GAME_BATTLESHIP:
+            return "bs";
         default:
             return "none";
         }
@@ -1092,9 +1134,13 @@ private:
             if(_c[i].used && (_c[i].from == pid || _c[i].to == pid)) _c[i] = DuelChallenge{};
     }
 
-    // Challenge/accept are shared by all 1v1 games (duels + pong).
-    bool isMatchGame() { return isDuel(_active) || _active == HA_GAME_PONG; }
-    bool inAnyMatch(uint8_t pid) { return matchOf(pid) || pongMatchOf(pid); }
+    // Challenge/accept are shared by all 1v1 games (duels + pong + battleship).
+    bool isMatchGame() {
+        return isDuel(_active) || _active == HA_GAME_PONG || _active == HA_GAME_BATTLESHIP;
+    }
+    bool inAnyMatch(uint8_t pid) {
+        return matchOf(pid) || pongMatchOf(pid) || battleMatchOf(pid);
+    }
 
     void matchChallenge(uint8_t from, uint8_t to) {
         if(!isMatchGame()) return;
@@ -1152,6 +1198,12 @@ private:
                     pongStart(&_pm[i], from, pid);
                     break;
                 }
+        } else if(_active == HA_GAME_BATTLESHIP) {
+            for(int i = 0; i < BATTLE_MAX; i++)
+                if(!_bm[i].used) {
+                    battleStart(&_bm[i], from, pid, from); // challenger fires first
+                    break;
+                }
         } else {
             for(int i = 0; i < DUEL_MAX_MATCHES; i++)
                 if(!_m[i].used) {
@@ -1161,7 +1213,9 @@ private:
         }
         duelRemoveChallengesInvolving(pid);
         duelRemoveChallengesInvolving(from);
-        const char* key = (_active == HA_GAME_PONG) ? "pong" : "duel";
+        const char* key = (_active == HA_GAME_PONG)      ? "pong" :
+                          (_active == HA_GAME_BATTLESHIP) ? "bs" :
+                                                            "duel";
         haUartEvent(
             String("{\"") + key + "\":\"" + ha_json_escape(_p[from].nick) + " vs " +
             ha_json_escape(_p[pid].nick) + "\"}");
@@ -1171,6 +1225,7 @@ private:
     void anyOnLeave(uint8_t pid) {
         duelOnLeave(pid);
         pongOnLeave(pid);
+        battleOnLeave(pid);
     }
 
     void duelCancel(uint8_t pid) {
@@ -1566,6 +1621,7 @@ private:
                      ha_json_escape(emoji) + "\"}";
         DuelMatch* dm = matchOf(pid);
         PongMatch* pm = dm ? nullptr : pongMatchOf(pid);
+        BattleMatch* bm = (dm || pm) ? nullptr : battleMatchOf(pid);
         for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
             if(!_p[i].used || !_p[i].wsId) continue;
             bool peer;
@@ -1573,8 +1629,10 @@ private:
                 peer = (i == dm->a || i == dm->b);
             else if(pm)
                 peer = (i == pm->a || i == pm->b);
+            else if(bm)
+                peer = (i == bm->a || i == bm->b);
             else
-                peer = !inAnyMatch(i);
+                peer = !inAnyMatch(i); // lobby / whole-group: reaches everyone not in a match
             if(peer) haWsSendWs(_p[i].wsId, msg);
         }
     }
@@ -2734,6 +2792,228 @@ private:
             s += ",\"winner\":null";
         }
         s += ",\"scores\":" + playersJson() + "}";
+        return s;
+    }
+
+    // ---------- battleship (1v1, hidden fleets) ----------
+    void battleClear() {
+        for(int i = 0; i < BATTLE_MAX; i++) _bm[i] = BattleMatch{};
+    }
+
+    BattleMatch* battleMatchOf(uint8_t pid) {
+        for(int i = 0; i < BATTLE_MAX; i++) {
+            if(!_bm[i].used) continue;
+            if(_bm[i].a == pid && _bm[i].aIn) return &_bm[i];
+            if(_bm[i].b == pid && _bm[i].bIn) return &_bm[i];
+        }
+        return nullptr;
+    }
+
+    void battleStart(BattleMatch* m, uint8_t a, uint8_t b, uint8_t first) {
+        *m = BattleMatch{};
+        m->used = true;
+        m->a = a;
+        m->b = b;
+        m->aIn = m->bIn = true;
+        m->phase = 0; // placement
+        m->first = first;
+        m->turn = first;
+        m->winner = 0;
+    }
+
+    void battleFinish(BattleMatch* m, uint8_t winner) {
+        m->phase = 2;
+        m->winner = winner;
+    }
+
+    // Parse one base-10 int from `p`, advancing past it. Own parser (no strtol, which
+    // the off-target Arduino shim doesn't provide).
+    static bool bsReadInt(const char*& p, int& out) {
+        while(*p == ' ') p++;
+        bool neg = (*p == '-');
+        if(neg) p++;
+        if(*p < '0' || *p > '9') return false;
+        int v = 0;
+        while(*p >= '0' && *p <= '9') v = v * 10 + (*p++ - '0');
+        out = neg ? -v : v;
+        return true;
+    }
+
+    // ships is "r,c,d;r,c,d;..." in fixed ship order; d=0 horizontal, d=1 vertical.
+    void battlePlace(uint8_t pid, const char* json) {
+        BattleMatch* m = battleMatchOf(pid);
+        if(!m || m->phase != 0) return;
+        char buf[96];
+        if(!ha_json_str(json, "ships", buf, sizeof(buf))) return;
+        uint8_t fleet[BS_N];
+        memset(fleet, 0, sizeof(fleet));
+        const char* p = buf;
+        for(uint8_t s = 0; s < BS_SHIPS; s++) {
+            int r, c, d;
+            if(!bsReadInt(p, r)) return;
+            if(*p == ',') p++;
+            if(!bsReadInt(p, c)) return;
+            if(*p == ',') p++;
+            if(!bsReadInt(p, d)) return;
+            if(*p == ';') p++;
+            for(uint8_t k = 0; k < BS_LEN[s]; k++) {
+                int rr = r + (d ? (int)k : 0), cc = c + (d ? 0 : (int)k);
+                if(rr < 0 || rr >= BS_SIZE || cc < 0 || cc >= BS_SIZE) return; // out of bounds
+                int idx = rr * BS_SIZE + cc;
+                if(fleet[idx]) return; // overlap
+                fleet[idx] = s + 1; // ship id 1..BS_SHIPS
+            }
+        }
+        uint8_t* myFleet = (pid == m->a) ? m->fleetA : m->fleetB;
+        memcpy(myFleet, fleet, sizeof(fleet));
+        if(pid == m->a)
+            m->readyA = true;
+        else
+            m->readyB = true;
+        if(m->readyA && m->readyB) {
+            m->phase = 1; // both placed -> firing
+            m->turn = m->first;
+        }
+        pushAll();
+    }
+
+    bool battleShipSunk(const uint8_t* fleet, const uint8_t* shot, uint8_t shipId) {
+        for(int i = 0; i < BS_N; i++)
+            if(fleet[i] == shipId && shot[i] != 2) return false;
+        return true;
+    }
+
+    int battleShipsLeft(const uint8_t* fleet, const uint8_t* shot) {
+        int left = 0;
+        for(uint8_t s = 1; s <= BS_SHIPS; s++)
+            if(!battleShipSunk(fleet, shot, s)) left++;
+        return left;
+    }
+
+    void battleFire(uint8_t pid, int n) {
+        BattleMatch* m = battleMatchOf(pid);
+        if(!m || m->phase != 1 || m->turn != pid) return;
+        if(n < 0 || n >= BS_N) return;
+        uint8_t opp = (pid == m->a) ? m->b : m->a;
+        uint8_t* oppFleet = (pid == m->a) ? m->fleetB : m->fleetA;
+        uint8_t* shotOnOpp = (pid == m->a) ? m->shotOnB : m->shotOnA;
+        if(shotOnOpp[n]) return; // already fired here
+        bool hit = oppFleet[n] != 0;
+        shotOnOpp[n] = hit ? 2 : 1;
+        if(!hit) {
+            m->turn = opp; // miss passes the turn
+            pushAll();
+            return;
+        }
+        if(pid == m->a)
+            m->hitsA++;
+        else
+            m->hitsB++;
+        uint8_t hits = (pid == m->a) ? m->hitsA : m->hitsB;
+        if(battleShipSunk(oppFleet, shotOnOpp, oppFleet[n])) {
+            const char* name = BS_NAMES[oppFleet[n] - 1];
+            if(_p[pid].wsId)
+                haWsSendWs(
+                    _p[pid].wsId,
+                    String("{\"t\":\"toast\",\"msg\":\"You sank their ") + name + "!\"}");
+            if(_p[opp].wsId)
+                haWsSendWs(
+                    _p[opp].wsId,
+                    String("{\"t\":\"toast\",\"msg\":\"Your ") + name + " was sunk!\"}");
+        }
+        if(hits >= BS_TOTAL) battleFinish(m, pid); // all enemy ships down
+        // else: a hit keeps the turn (shoot again)
+        pushAll();
+    }
+
+    void battleRematch(uint8_t pid) {
+        BattleMatch* m = battleMatchOf(pid);
+        if(!m || m->phase != 2) return;
+        if(!m->aIn || !m->bIn) {
+            if(_p[pid].wsId)
+                haWsSendWs(_p[pid].wsId, String("{\"t\":\"toast\",\"msg\":\"Opponent left\"}"));
+            battleOnLeave(pid);
+            pushAll();
+            return;
+        }
+        uint8_t next = (m->first == m->a) ? m->b : m->a; // alternate who fires first
+        battleStart(m, m->a, m->b, next);
+        pushAll();
+    }
+
+    void battleOnLeave(uint8_t pid) {
+        BattleMatch* m = battleMatchOf(pid);
+        if(!m) return;
+        uint8_t opp = (pid == m->a) ? m->b : m->a;
+        if(m->phase == 0 || m->phase == 1) battleFinish(m, opp); // forfeit
+        if(pid == m->a) m->aIn = false;
+        if(pid == m->b) m->bIn = false;
+        if(!m->aIn && !m->bIn) *m = BattleMatch{}; // both gone: free the slot
+    }
+
+    String battleCells(const uint8_t* v) {
+        String s = "[";
+        for(int i = 0; i < BS_N; i++) {
+            if(i) s += ",";
+            s += v[i];
+        }
+        s += "]";
+        return s;
+    }
+
+    String battleJson(uint8_t pid) {
+        BattleMatch* m = battleMatchOf(pid);
+        if(!m)
+            return String("{\"t\":\"bs\",\"phase\":\"lobby\",\"challenges\":") +
+                   duelChallengesJson() + "}";
+        uint8_t me = (pid == m->a) ? 1 : 2;
+        uint8_t opp = (pid == m->a) ? m->b : m->a;
+        if(m->phase == 0) {
+            bool ready = (pid == m->a) ? m->readyA : m->readyB;
+            bool oppReady = (pid == m->a) ? m->readyB : m->readyA;
+            return String("{\"t\":\"bs\",\"phase\":\"place\",\"you\":") + pid + ",\"me\":" + me +
+                   ",\"opp\":\"" + ha_json_escape(_p[opp].nick) + "\",\"ready\":" +
+                   (ready ? "true" : "false") + ",\"oppReady\":" +
+                   (oppReady ? "true" : "false") + "}";
+        }
+        // firing / over: build the two grids from this player's perspective
+        uint8_t* fleetSelf = (pid == m->a) ? m->fleetA : m->fleetB;
+        uint8_t* shotOnSelf = (pid == m->a) ? m->shotOnA : m->shotOnB; // opponent's shots on me
+        uint8_t* oppFleet = (pid == m->a) ? m->fleetB : m->fleetA;
+        uint8_t* shotOnOpp = (pid == m->a) ? m->shotOnB : m->shotOnA; // my shots on them
+        uint8_t mine[BS_N], track[BS_N];
+        for(int i = 0; i < BS_N; i++) {
+            uint8_t sh = shotOnSelf[i]; // 0 none, 1 miss, 2 hit
+            mine[i] = (sh == 2) ? 3 : (sh == 1) ? 2 : (fleetSelf[i] ? 1 : 0);
+            uint8_t st = shotOnOpp[i];
+            // hidden info: only read oppFleet where I've already hit (st == 2)
+            track[i] = (st == 2) ? (battleShipSunk(oppFleet, shotOnOpp, oppFleet[i]) ? 3 : 2) : st;
+        }
+        int myShips = battleShipsLeft(fleetSelf, shotOnSelf);
+        int oppShips = battleShipsLeft(oppFleet, shotOnOpp);
+        String s = "{\"t\":\"bs\",\"phase\":\"";
+        s += (m->phase == 2) ? "over" : "fire";
+        s += "\",\"you\":";
+        s += pid;
+        s += ",\"me\":";
+        s += me;
+        s += ",\"opp\":\"" + ha_json_escape(_p[opp].nick) + "\"";
+        s += ",\"turn\":";
+        s += m->turn;
+        s += ",\"yourTurn\":";
+        s += (m->turn == pid) ? "true" : "false";
+        s += ",\"myShips\":";
+        s += myShips;
+        s += ",\"oppShips\":";
+        s += oppShips;
+        s += ",\"mine\":" + battleCells(mine);
+        s += ",\"track\":" + battleCells(track);
+        if(m->phase == 2) {
+            s += ",\"result\":\"";
+            s += (m->winner == pid) ? "win" : "lose";
+            s += "\",\"oppFleet\":" + battleCells(oppFleet); // reveal at game end
+        }
+        s += "}";
         return s;
     }
 };

@@ -553,3 +553,26 @@ h3{margin:0; font-weight:600}
 .gc-winner{text-align:center; font-weight:700; margin-top:6px}
 .gc-target-wrap{display:flex; flex-direction:column; gap:6px; align-items:center}
 .gc-chip-lg{max-width:280px; aspect-ratio:16/9}
+
+/* --- Battleship --- */
+.bs-grid{display:grid; grid-template-columns:repeat(10,1fr); grid-template-rows:repeat(10,1fr);
+  aspect-ratio:1; gap:2px; background:var(--line); border:2px solid var(--line);
+  border-radius:var(--radius); max-width:360px; margin:0 auto; touch-action:manipulation}
+.bs-grid.small{max-width:220px}
+.bs-grid.waiting{opacity:.45}
+.bs-cell{background:var(--bg); position:relative}
+.bs-cell.pop{animation:bs-pop .28s ease-out}
+@keyframes bs-pop{from{transform:scale(.35); opacity:.4}to{transform:scale(1); opacity:1}}
+.bs-cell.ship{background:#5a5e68}
+.bs-cell.ship.sel{background:var(--orange-dim); outline:2px solid var(--orange); outline-offset:-2px}
+.bs-cell.miss::after{content:""; position:absolute; inset:36%; border-radius:50%; background:var(--text-mute)}
+.bs-cell.hit{background:var(--bad)}
+.bs-cell.sunk{background:#6e1414}
+.bs-tray{display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin:10px 0}
+.bs-ship{padding:8px 10px; font-size:12px; border:1px solid var(--line); background:var(--surface);
+  color:var(--text); border-radius:var(--radius); font-family:var(--font)}
+.bs-ship.sel{border-color:var(--orange); color:var(--orange)}
+.bs-ship.placed{opacity:.45}
+.bs-actions{display:flex; gap:8px; align-items:center; margin-top:8px}
+.bs-actions .btn.big{flex:1}
+.bs-count{text-align:center}

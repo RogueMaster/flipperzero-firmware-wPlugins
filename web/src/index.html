@@ -331,6 +331,41 @@
   </div>
 </section>
 
+<!-- 12. Battleship — 1v1: place a hidden fleet, then fire at the enemy grid -->
+<section id="bs" class="screen hide">
+  <header class="bar"><h2>Battleship</h2><button id="bs-leave" class="btn ghost sm hide">Leave</button></header>
+  <div id="bs-lobby">
+    <div id="bs-incoming" class="challenges"></div>
+    <p class="sub">Challenge a player</p>
+    <ul id="bs-players" class="players"></ul>
+  </div>
+  <div id="bs-place" class="hide">
+    <p id="bs-place-hint" class="sub">Place your fleet</p>
+    <div id="bs-place-grid" class="bs-grid"></div>
+    <div id="bs-tray" class="bs-tray"></div>
+    <div id="bs-place-actions" class="bs-actions">
+      <button id="bs-rotate" class="btn ghost">Rotate</button>
+      <button id="bs-random" class="btn ghost">Random</button>
+      <button id="bs-ready" class="btn big" disabled>Ready</button>
+    </div>
+    <div id="bs-wait" class="hide sub">Waiting for opponent...</div>
+  </div>
+  <div id="bs-fire" class="hide">
+    <div id="bs-turn" class="turn"></div>
+    <p id="bs-ships" class="sub bs-count"></p>
+    <p class="sub">Enemy waters</p>
+    <div id="bs-track-grid" class="bs-grid"></div>
+    <p class="sub">Your fleet</p>
+    <div id="bs-fleet-grid" class="bs-grid small"></div>
+  </div>
+  <div id="bs-over" class="hide over">
+    <div id="bs-result" class="result"></div>
+    <div id="bs-over-grid" class="bs-grid"></div>
+    <button id="bs-rematch" class="btn big">Rematch</button>
+    <button id="bs-back" class="btn ghost">Back to lobby</button>
+  </div>
+</section>
+
 <!-- Emoji reactions: floating layer + a corner button that opens the emoji row -->
 <div id="react-layer" class="react-layer" aria-hidden="true"></div>
 <div id="react-bar" class="react-bar hide">
