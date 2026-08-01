@@ -3,19 +3,22 @@ sourcecode:
   location:
     origin: https://github.com/coolshrimp/flipperzero-walkie-talkie.git
     commit_sha: 843e8785ffc09bc3d70c57eaac137f62eef8e368
-short_description: Receive-only FRS channel activity and RSSI scanner
+short_description: Receive-only FRS/PMR446 channel activity and RSSI scanner
 description: |
-  Monitor FRS walkie-talkie channels with your Flipper Zero. Tunes the
-  built-in CC1101 radio to the 22 standard FRS channels (462/467 MHz) with
-  auto-squelch, live RSSI, and a channel scanner.
+  Monitor walkie-talkie channels with your Flipper Zero. Tunes the built-in
+  CC1101 radio to the 22 standard FRS channels (462/467 MHz, US/Canada) or the
+  16 PMR446 channels (446 MHz, Europe) with auto-squelch, live RSSI, and a
+  channel scanner.
 
   **Audio limitation:** the CC1101 data mirror is a digital receive-data
   stream, not demodulated analog voice — treat this as a channel
-  activity/RSSI scanner; speaker output is not reliable FRS voice.
+  activity/RSSI scanner; speaker output is not reliable voice audio.
 
   **Features:**
 
-  - All 22 standard FRS channels with a scrollable channel list
+  - Two channel plans, switchable in Settings: FRS (22 channels, US/Canada)
+    and PMR446 (16 analogue channels, Europe)
+  - Scrollable channel list for the active band
   - Channel scanner: scans up or down, pauses automatically when a signal is
     detected, and resumes after the transmission ends
   - Auto-squelch with adjustable sensitivity
@@ -33,6 +36,7 @@ description: |
   - Left/Right: subchannel labels (long press: scan direction)
   - OK: mute/unmute (long press: start/stop scanning)
   - Back: menu (long press: exit)
+  - The band (FRS or PMR446) is selected in Settings
 changelog: "@docs/changelog.md"
 screenshots:
   - screenshots/Screenshot1.png
