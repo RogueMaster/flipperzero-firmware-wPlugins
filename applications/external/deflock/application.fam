@@ -64,7 +64,7 @@ App(
     fap_category="GPIO/ESP32",
     fap_author="ReconGrunt",
     fap_weburl="https://github.com/ReconGrunt/FlipDeFlock",
-    fap_version="0.52",
+    fap_version="0.53",
     fap_description="FlipDeFlock: detect Flock/ALPR surveillance cameras via any "
     "ESP32 (Marauder or companion FW), with GPS geotagging and "
     "DeFlock-compatible reports.",

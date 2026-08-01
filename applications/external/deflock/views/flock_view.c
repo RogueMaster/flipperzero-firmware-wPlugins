@@ -46,6 +46,7 @@ static char confidence_char(FlockConfidence c) {
 // render pass can run entirely unlocked.
 typedef struct {
     char conf_ch;
+    char ftype; /**< P/B/R/O/F/L -- 'L' is the BLE radio, everything else Wi-Fi */
     bool acoustic; /**< SoundThinking sensor, not an ALPR -> "ST" tag on the row */
     bool hidden; /**< beacons with no SSID -> "[hid]" instead of a blank name */
     char ssid[RECON_SSID_LEN];
@@ -169,6 +170,7 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
             FlockEntry* e = &app->flock[idx];
             FlockRowSnap* r = &rows[nrows++];
             r->conf_ch = confidence_char(e->confidence);
+            r->ftype = e->ftype;
             r->acoustic = (e->dev_class == FlockClassAcoustic);
             r->hidden = e->hidden;
             strncpy(r->ssid, e->ssid, RECON_SSID_LEN - 1);
@@ -303,6 +305,47 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
             canvas_set_color(canvas, ColorBlack);
         }
 
+        canvas_set_font(canvas, FontSecondary);
+
+        // ---- right edge first: it decides how much width the name gets -------
+        // RSSI as signal bars, on EVERY live row including the selected one. It
+        // used to switch to raw "-82dB" text when selected, because the bars
+        // helper forced ColorBlack and vanished on the inverted row; that made one
+        // list show two notations for the same column (issue #5). ui_signal_bars
+        // now inherits the row color, so the notation is uniform and the exact dBm
+        // lives on the detail screen.
+        //
+        // An ARCHIVED row shows the age of the stored sighting instead. Its RSSI
+        // was recorded on some earlier run, so bars (or a live-looking "-67dB")
+        // would assert the device is in range right now -- exactly the kind of
+        // over-claim the detections-are-indicators rule exists to prevent.
+        int text_max_x;
+        if(r->archived) {
+            char meta[18];
+            char age[8];
+            flock_age_str(age, sizeof(age), now_epoch, r->seen_epoch);
+            snprintf(meta, sizeof(meta), "%s%s", r->marked ? "*" : "", age);
+            canvas_draw_str_aligned(canvas, 126, y + 8, AlignRight, AlignBottom, meta);
+            text_max_x = 126 - canvas_string_width(canvas, meta) - 3;
+        } else {
+            if(r->marked) {
+                // marked indicator just left of the bars
+                canvas_draw_str(canvas, 96, y + 8, "*");
+            }
+            ui_signal_bars(canvas, 104, y - 1, r->rssi); // cell ~104..114, baseline y+7
+            text_max_x = r->marked ? 94 : 102;
+        }
+
+        // ---- left: confidence rung, radio glyph, then the name ---------------
+        // The rung and the glyph are drawn as fixed cells rather than being
+        // sprintf'd into the string, because one of them is not text. Which radio
+        // saw a device is otherwise unknowable from the row (issue #5): an OUI and
+        // an RSSI look identical either way, and "has an SSID" is not the tell --
+        // hidden APs and probe requests have no name and still came in on Wi-Fi.
+        char cbuf[2] = {r->conf_ch, '\0'};
+        canvas_draw_str(canvas, 2, y + 8, cbuf);
+        ui_icon_radio(canvas, 8, y + 1, r->ftype == 'L');
+
         // "ST " marks a SoundThinking acoustic sensor. Untagged rows are ALPR
         // cameras -- the common case stays as terse as it was, and the list never
         // silently presents a gunshot sensor as a camera.
@@ -310,26 +353,18 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
 
         char line[48];
         if(r->ssid[0] != '\0') {
-            snprintf(line, sizeof(line), "%c %s%s", r->conf_ch, cls, r->ssid);
+            snprintf(line, sizeof(line), "%s%s", cls, r->ssid);
         } else if(r->hidden) {
             // We watched this one beacon without a name. Worth surfacing, but it
             // is an observation only -- the conf char is unchanged by it. Drops
             // the MAC to its last 3 bytes to make room for the tag.
             snprintf(
-                line,
-                sizeof(line),
-                "%c %s[hid] %02X:%02X:%02X",
-                r->conf_ch,
-                cls,
-                r->mac[3],
-                r->mac[4],
-                r->mac[5]);
+                line, sizeof(line), "%s[hid] %02X:%02X:%02X", cls, r->mac[3], r->mac[4], r->mac[5]);
         } else {
             snprintf(
                 line,
                 sizeof(line),
-                "%c %s%02X:%02X:%02X:%02X:%02X:%02X",
-                r->conf_ch,
+                "%s%02X:%02X:%02X:%02X:%02X:%02X",
                 cls,
                 r->mac[0],
                 r->mac[1],
@@ -338,33 +373,10 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
                 r->mac[4],
                 r->mac[5]);
         }
-        canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str(canvas, 2, y + 8, line);
-
-        // Right edge: RSSI as signal bars, on EVERY live row including the
-        // selected one. It used to switch to raw "-82dB" text when selected,
-        // because the bars helper forced ColorBlack and vanished on the inverted
-        // row; that made one list show two notations for the same column (issue
-        // #5). ui_signal_bars now inherits the row color, so the notation is
-        // uniform and the exact dBm lives on the detail screen.
-        //
-        // An ARCHIVED row shows the age of the stored sighting instead. Its RSSI
-        // was recorded on some earlier run, so bars (or a live-looking "-67dB")
-        // would assert the device is in range right now -- exactly the kind of
-        // over-claim the detections-are-indicators rule exists to prevent.
-        if(r->archived) {
-            char meta[18];
-            char age[8];
-            flock_age_str(age, sizeof(age), now_epoch, r->seen_epoch);
-            snprintf(meta, sizeof(meta), "%s%s", r->marked ? "*" : "", age);
-            canvas_draw_str_aligned(canvas, 126, y + 8, AlignRight, AlignBottom, meta);
-        } else {
-            if(r->marked) {
-                // marked indicator just left of the bars
-                canvas_draw_str(canvas, 96, y + 8, "*");
-            }
-            ui_signal_bars(canvas, 104, y - 1, r->rssi); // cell ~104..114, baseline y+7
-        }
+        // Measured trim, not a hoped-for fit: the glyph cost the name ~7 px, and a
+        // full 32-char SSID never fitted in the first place. Both used to be drawn
+        // straight through the bars and off the right edge.
+        ui_draw_str_fit(canvas, 17, y + 8, line, text_max_x);
     }
     canvas_set_color(canvas, ColorBlack);
 }

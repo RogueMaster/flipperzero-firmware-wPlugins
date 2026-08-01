@@ -11,6 +11,7 @@
 typedef enum {
     DetailCustomToggleMark = 200,
     DetailCustomLockIn = 201,
+    DetailCustomDelete = 202,
 } DetailCustomEvent;
 
 static void recon_scene_flock_detail_mark_cb(void* context) {
@@ -23,6 +24,11 @@ static void recon_scene_flock_detail_lock_cb(void* context) {
     view_dispatcher_send_custom_event(app->view_dispatcher, DetailCustomLockIn);
 }
 
+static void recon_scene_flock_detail_del_cb(void* context) {
+    ReconApp* app = context;
+    view_dispatcher_send_custom_event(app->view_dispatcher, DetailCustomDelete);
+}
+
 void recon_scene_flock_detail_on_enter(void* context) {
     ReconApp* app = context;
     flock_detail_view_reset(app->flock_detail_view); // a new selection starts at the top
@@ -30,6 +36,7 @@ void recon_scene_flock_detail_on_enter(void* context) {
         app->flock_detail_view,
         recon_scene_flock_detail_mark_cb,
         recon_scene_flock_detail_lock_cb,
+        recon_scene_flock_detail_del_cb,
         app);
     view_dispatcher_switch_to_view(app->view_dispatcher, ReconViewFlockDetail);
 }
@@ -54,6 +61,40 @@ bool recon_scene_flock_detail_on_event(void* context, SceneManagerEvent event) {
         }
         furi_mutex_release(app->mutex);
         flock_detail_view_refresh(app->flock_detail_view);
+        return true;
+    }
+
+    if(event.event == DetailCustomDelete) {
+        // The view already took the confirmation, so this just does it.
+        //
+        // Persistence made a false positive permanent (issue #5): before hits.csv
+        // you cleared one by backing out and rescanning, and afterwards there was
+        // no way at all. Deleting an entry the radios can still hear only removes
+        // the RECORD -- it reappears on the next sighting, which is the same
+        // behaviour the pre-persistence rescan had and is not a mute list.
+        bool removed = false;
+        furi_mutex_acquire(app->mutex, FuriWaitForever);
+        if(app->selected >= 0 && app->selected < (int)app->flock_count) {
+            size_t idx = (size_t)app->selected;
+            for(size_t i = idx; i + 1 < app->flock_count; i++) {
+                app->flock[i] = app->flock[i + 1];
+            }
+            app->flock_count--;
+            if(app->selected >= (int)app->flock_count) {
+                app->selected = app->flock_count ? (int)app->flock_count - 1 : 0;
+            }
+            removed = true;
+        }
+        furi_mutex_release(app->mutex);
+
+        if(removed) {
+            // Write through immediately. Deferring to scan_session_stop() would
+            // mean a battery pull between here and leaving the scan screen
+            // resurrects the entry -- and "I deleted that" surviving a reboot is
+            // the entire point of the request.
+            recon_hits_save(app);
+            scene_manager_previous_scene(app->scene_manager); // this entry is gone
+        }
         return true;
     }
 

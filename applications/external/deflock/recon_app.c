@@ -816,7 +816,15 @@ void recon_hits_save(ReconApp* app) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     size_t total = app->flock_count;
     furi_mutex_release(app->mutex);
-    if(total == 0) return;
+    if(total == 0) {
+        // An empty table means "nothing to remember", so the file must GO. It used
+        // to be left untouched, which was harmless while the only way to reach
+        // zero was a fresh install -- but the detail screen can now delete
+        // entries, and deleting the last one would silently keep the old file and
+        // restore every entry on the next launch.
+        storage_common_remove(app->storage, RECON_HITS_PATH);
+        return;
+    }
 
     recon_report_ensure_dirs(app);
 

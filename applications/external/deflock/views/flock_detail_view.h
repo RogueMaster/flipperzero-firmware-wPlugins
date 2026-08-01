@@ -21,7 +21,7 @@
 
 typedef struct FlockDetailView FlockDetailView;
 
-/** Fired by the OK (Mark) and Right (Lock In) buttons. */
+/** Fired by the OK (Mark), Right (Lock In) and Left (Remove) buttons. */
 typedef void (*FlockDetailActionCallback)(void* context);
 
 FlockDetailView* flock_detail_view_alloc(void);
@@ -31,11 +31,17 @@ View* flock_detail_view_get_view(FlockDetailView* v);
 /** Bind the ReconApp the view renders from. */
 void flock_detail_view_set_app(FlockDetailView* v, void* app);
 
-/** Wire the two buttons. Either callback may be NULL. */
+/**
+ * Wire the three buttons. Any callback may be NULL.
+ *
+ * `del_cb` fires only after the user has confirmed the in-view removal prompt,
+ * so it can delete without asking again.
+ */
 void flock_detail_view_set_callbacks(
     FlockDetailView* v,
     FlockDetailActionCallback mark_cb,
     FlockDetailActionCallback lock_cb,
+    FlockDetailActionCallback del_cb,
     void* context);
 
 /** Scroll back to the top (call on scene enter, so a new selection starts fresh). */

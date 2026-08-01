@@ -241,6 +241,14 @@ the code and confirm the behavior yourself.
 
 ## What's new
 
+**v0.53** — **Two UI requests, both verified on hardware.** You can now **remove a
+detection** from the detail screen (Left, then confirm) — persistence had made a false
+positive permanent, and the delete writes through to the card immediately. Every hit
+also carries a **Wi-Fi or Bluetooth glyph** on the list and detail screens, since which
+radio saw a device was otherwise unknowable from the row. **Fixed:** deleting the last
+stored detection now removes `hits.csv` instead of restoring everything on next launch,
+and long SSIDs no longer run off the right edge of a list row.
+
 **v0.52** — **GPS off the companion board**, plus two bugs that made working features
 look broken. Settings gains a **GPS source** choice (`Flipper` / `Companion`) and the
 ESP pin the module's TX lands on — on boards that wire GPS to the ESP32 there was no

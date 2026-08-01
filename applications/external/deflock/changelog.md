@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.53
+**Two UI requests from
+[@h00die](https://github.com/h00die) in
+[#5](https://github.com/ReconGrunt/FlipDeFlock/issues/5), both verified on hardware
+rather than in CI.**
+
+### Added
+
+- **Remove a detection from the detail screen.** Left opens a confirmation showing
+  the MAC; OK deletes. Persistence made a false positive permanent: before
+  `hits.csv` you cleared one by backing out and rescanning, and afterwards there
+  was no way at all. The delete writes through to the card immediately rather than
+  waiting for the scan session to end, so pulling the battery cannot resurrect the
+  entry. It removes the RECORD, not the device: anything still in range reappears
+  on the next sighting, exactly as a rescan used to behave. This is not a mute list.
+- **A Wi-Fi or Bluetooth glyph on every hit**, on the list rows and beside the
+  confidence word on the detail screen. Which radio saw a device was previously
+  unknowable from the row. "Has an SSID" was not the tell either, since hidden APs
+  and probe requests have no name and are still Wi-Fi. Drawn from canvas primitives
+  rather than image assets, to stay inside the RAM budget.
+
+### Fixed
+
+- **Deleting the last stored detection now removes `hits.csv`.** It used to leave
+  the file untouched when the table was empty, which was harmless while the only
+  way to reach zero was a fresh install. With removal available, deleting the last
+  entry would have kept the old file and restored everything on next launch.
+- **List rows no longer run off the right edge.** A full-length SSID, or a MAC on
+  a row that now also carries a glyph, was drawn straight through the signal bars
+  and off the screen. Row text is measured and trimmed with a `..` marker, the same
+  way the detail screen already did it.
+
 ## v0.52
 **GPS off the companion board, and two bugs that made features look broken when
 they were only unreachable.** Most of this comes from a field report by

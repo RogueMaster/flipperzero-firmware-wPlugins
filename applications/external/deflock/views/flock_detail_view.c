@@ -33,12 +33,14 @@ struct FlockDetailView {
     View* view;
     FlockDetailActionCallback mark_cb;
     FlockDetailActionCallback lock_cb;
+    FlockDetailActionCallback del_cb;
     void* ctx;
 };
 
 typedef struct {
     void* app; /**< ReconApp* */
     int top; /**< first visible content row */
+    bool confirm_del; /**< the Left-key removal prompt is up, holding every key */
 } FlockDetailModel;
 
 /**
@@ -88,36 +90,6 @@ static const char* fd_src_phrase(char ftype) {
     default:
         return "RF";
     }
-}
-
-/**
- * Draw `s` at (x, baseline), trimmed with a ".." marker if it would not fit
- * inside `max_x`.
- *
- * The Widget text-scroll element this screen replaced WRAPPED an over-long line
- * onto the next row; a fixed-row renderer cannot, so without this an SSID at the
- * full 32 characters would simply run off the right edge and under the
- * scrollbar. Trimming visibly is the honest degradation -- the untruncated value
- * is still in the saved report.
- */
-static void fd_draw_fit(Canvas* canvas, int x, int baseline, const char* s, int max_x) {
-    int avail = max_x - x;
-    if(canvas_string_width(canvas, s) <= avail) {
-        canvas_draw_str(canvas, x, baseline, s);
-        return;
-    }
-    char probe[52];
-    size_t n = strlen(s);
-    if(n > sizeof(probe) - 3) n = sizeof(probe) - 3;
-    while(n > 0) {
-        n--;
-        memcpy(probe, s, n);
-        probe[n] = '.';
-        probe[n + 1] = '.';
-        probe[n + 2] = '\0';
-        if(canvas_string_width(canvas, probe) <= avail) break;
-    }
-    canvas_draw_str(canvas, x, baseline, probe);
 }
 
 /** Format one content row. Returns true if the row should also draw signal bars. */
@@ -240,7 +212,20 @@ static void flock_detail_view_draw_callback(Canvas* canvas, void* _model) {
         return;
     }
 
-    ui_title_bar(canvas, flock_confidence_str(e.confidence), e.marked ? "MARKED" : NULL);
+    const char* conf_str = flock_confidence_str(e.confidence);
+    ui_title_bar(canvas, conf_str, e.marked ? "MARKED" : NULL);
+
+    // Radio glyph immediately after the confidence word, matching the one on the
+    // list row (issue #5). The title bar is inverted, so it has to be drawn white
+    // and the colour restored -- ui_title_bar leaves black/FontSecondary behind.
+    {
+        canvas_set_font(canvas, FontPrimary);
+        int gx = 2 + canvas_string_width(canvas, conf_str) + 4;
+        canvas_set_font(canvas, FontSecondary);
+        canvas_set_color(canvas, ColorWhite);
+        ui_icon_radio(canvas, gx, 3, e.ftype == 'L');
+        canvas_set_color(canvas, ColorBlack);
+    }
 
     // Which rows exist for THIS entry.
     uint8_t kinds[FdKindCount];
@@ -288,10 +273,10 @@ static void flock_detail_view_draw_callback(Canvas* canvas, void* _model) {
             // consistency is the whole point of this view existing. Reserve the
             // bar cell so a long label can never be drawn through it.
             int bx = TEXT_X + canvas_string_width(canvas, buf) + 4;
-            fd_draw_fit(canvas, TEXT_X, ry + 8, buf, max_x - 15);
+            ui_draw_str_fit(canvas, TEXT_X, ry + 8, buf, max_x - 15);
             ui_signal_bars(canvas, bx, ry - 1, e.rssi);
         } else {
-            fd_draw_fit(canvas, TEXT_X, ry + 8, buf, max_x);
+            ui_draw_str_fit(canvas, TEXT_X, ry + 8, buf, max_x);
         }
     }
 
@@ -305,21 +290,94 @@ static void flock_detail_view_draw_callback(Canvas* canvas, void* _model) {
             (size_t)max_top + 1);
     }
 
-    // Footer: which key does what. Left hint is the primary action (OK), right
-    // hint is "Lock In" (issue #6) -- hold the companion on this one device and
-    // stream live RSSI, so a hit can be walked/driven down instead of staying a
-    // MAC on a screen. Opposite edges, so the two can never collide.
+    // Footer: which key does what. Three hints now, pinned to left / centre /
+    // right so they cannot collide at any string width. "Lock In >" shortened to
+    // "Lock >" to buy the width the new left hint needs -- the full name is on the
+    // screen it opens.
+    //   Left  "< Del"  remove this entry (issue #5: persistent hits were
+    //                  unremovable, so a false positive stayed forever)
+    //   OK             mark/unmark
+    //   Right          Lock In (issue #6) -- hold the companion on this one device
+    //                  and stream live RSSI so a hit can be walked down
     canvas_draw_line(canvas, 0, FOOTER_LINE, 128, FOOTER_LINE);
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str(canvas, TEXT_X, FOOTER_BASE, e.marked ? "OK Unmark" : "OK Mark");
-    canvas_draw_str_aligned(canvas, 126, FOOTER_BASE, AlignRight, AlignBottom, "Lock In >");
+    const char* del_hint = "< Del";
+    const char* lock_hint = "Lock >";
+    const char* ok_hint = e.marked ? "OK Unmark" : "OK Mark";
+    canvas_draw_str(canvas, TEXT_X, FOOTER_BASE, del_hint);
+    canvas_draw_str_aligned(canvas, 126, FOOTER_BASE, AlignRight, AlignBottom, lock_hint);
+    // The centre hint is fitted, not assumed. Three fixed hint positions is
+    // exactly how the two ORIGINAL ones collided (see the layout note at the top
+    // of this file), and the widths depend on font metrics that cannot be checked
+    // without a device -- so measure and degrade to a bare "OK" rather than
+    // overprint a neighbour on some firmware whose FontSecondary is wider.
+    int left_edge = TEXT_X + canvas_string_width(canvas, del_hint);
+    int right_edge = 126 - canvas_string_width(canvas, lock_hint);
+    if(canvas_string_width(canvas, ok_hint) + 8 > right_edge - left_edge) ok_hint = "OK";
+    canvas_draw_str_aligned(
+        canvas, (left_edge + right_edge) / 2, FOOTER_BASE, AlignCenter, AlignBottom, ok_hint);
+
+    // Removal prompt. A modal panel drawn over this screen rather than a separate
+    // scene/DialogEx: it costs one bool in the model instead of another view
+    // allocation, and the .fap is already close enough to the RAM ceiling that
+    // users have hit "Not enough RAM to run the app" (issue #5).
+    //
+    // The MAC is on the prompt deliberately -- "Remove entry?" alone gives you
+    // nothing to check against once the panel has covered the detail rows.
+    if(model->confirm_del) {
+        // Full width on purpose. An inset panel left the detail rows peeking out
+        // in the 4 px margin either side, which reads as a rendering fault rather
+        // than as a deliberate layer.
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_box(canvas, 0, 16, 128, 46);
+        canvas_set_color(canvas, ColorBlack);
+        canvas_draw_frame(canvas, 0, 16, 128, 46);
+        canvas_set_font(canvas, FontPrimary);
+        canvas_draw_str_aligned(canvas, 64, 28, AlignCenter, AlignCenter, "Remove entry?");
+        canvas_set_font(canvas, FontSecondary);
+        char mac[18];
+        fmt_mac(mac, sizeof(mac), e.mac);
+        canvas_draw_str_aligned(canvas, 64, 41, AlignCenter, AlignCenter, mac);
+        canvas_draw_str(canvas, 4, 58, "Back No");
+        canvas_draw_str_aligned(canvas, 124, 58, AlignRight, AlignBottom, "OK Delete");
+    }
 }
 
 static bool flock_detail_view_input_callback(InputEvent* event, void* context) {
     FlockDetailView* v = context;
+
+    // While the removal prompt is up it owns EVERY key, including Back -- which
+    // must cancel the prompt rather than bubbling to the scene manager and
+    // leaving the screen. Checked before the Short/Repeat filter so a long or
+    // release event can't slip past the modal to the view underneath either.
+    bool confirming = false;
+    with_view_model(
+        v->view, FlockDetailModel * model, { confirming = model->confirm_del; }, false);
+    if(confirming) {
+        if(event->type != InputTypeShort) return true;
+        if(event->key == InputKeyOk) {
+            with_view_model(
+                v->view, FlockDetailModel * model, { model->confirm_del = false; }, true);
+            if(v->del_cb) v->del_cb(v->ctx);
+        } else if(event->key == InputKeyBack) {
+            with_view_model(
+                v->view, FlockDetailModel * model, { model->confirm_del = false; }, true);
+        }
+        return true;
+    }
+
     if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
 
     switch(event->key) {
+    case InputKeyLeft:
+        // Arm the prompt only; the delete itself needs a second, deliberate press.
+        // Persistent hits used to be unremovable, so one misfiring signature sat
+        // in the list across every future session (issue #5).
+        if(event->type == InputTypeShort) {
+            with_view_model(
+                v->view, FlockDetailModel * model, { model->confirm_del = true; }, true);
+        }
+        return true;
     case InputKeyUp:
         with_view_model(
             v->view,
@@ -349,6 +407,7 @@ FlockDetailView* flock_detail_view_alloc(void) {
     FlockDetailView* v = malloc(sizeof(FlockDetailView));
     v->mark_cb = NULL;
     v->lock_cb = NULL;
+    v->del_cb = NULL;
     v->ctx = NULL;
     v->view = view_alloc();
     view_set_context(v->view, v);
@@ -361,6 +420,7 @@ FlockDetailView* flock_detail_view_alloc(void) {
         {
             model->app = NULL;
             model->top = 0;
+            model->confirm_del = false;
         },
         false);
     return v;
@@ -385,14 +445,26 @@ void flock_detail_view_set_callbacks(
     FlockDetailView* v,
     FlockDetailActionCallback mark_cb,
     FlockDetailActionCallback lock_cb,
+    FlockDetailActionCallback del_cb,
     void* context) {
     v->mark_cb = mark_cb;
     v->lock_cb = lock_cb;
+    v->del_cb = del_cb;
     v->ctx = context;
 }
 
 void flock_detail_view_reset(FlockDetailView* v) {
-    with_view_model(v->view, FlockDetailModel * model, { model->top = 0; }, true);
+    // Clears the prompt too: entering this screen must never land on a live
+    // "Remove entry?" left over from the PREVIOUS selection, where one OK press
+    // would delete a device the operator never looked at.
+    with_view_model(
+        v->view,
+        FlockDetailModel * model,
+        {
+            model->top = 0;
+            model->confirm_del = false;
+        },
+        true);
 }
 
 void flock_detail_view_refresh(FlockDetailView* v) {
