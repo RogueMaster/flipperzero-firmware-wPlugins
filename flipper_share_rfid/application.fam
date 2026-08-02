@@ -1,0 +1,15 @@
+App(
+    appid="flipper_share_rfid",
+    name="Flipper Share RFID",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="share_app",
+    # tools/ holds the host-only modem test harness; keep it out of the FAP.
+    sources=["*.c*", "!tools"],
+    stack_size=2 * 1024,
+    fap_category="RFID",
+    fap_version="0.1",
+    fap_icon="rfid_share.png",
+    fap_description="Direct file transfer between flippers via 125 kHz RFID coil",
+    fap_author="@lomalkin",
+    fap_weburl="https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_rfid",
+)
