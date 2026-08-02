@@ -16,11 +16,16 @@ typedef enum {
     M_CAMPAIGN = 0,
     M_ENDLESS  = 1,
     M_VISITOR  = 2,
-    M_COUNT = 3,
+    M_SETTINGS = 3,
+    M_COUNT = 4,
 } MenuItem;
 
 static int s_sel = 0;
 static GameMode s_resume_mode = MODE_CAMPAIGN;
+// 物品栏分页: 0=物品 1=任务 (仅有任务时才可切到第2页)
+static uint8_t s_inv_page = 0;
+// 设置页光标 (0=音效 1=开场)
+static uint8_t s_set_sel = 0;
 
 // 根据 msg_id 返回对应中文位图
 static void get_msg_bmp(int id, const uint8_t** bits, int* w, int* h, int* bpr) {
@@ -188,6 +193,28 @@ static void zh_item_name(int item, const uint8_t** bits, int* w, int* h) {
     }
 }
 
+// 任务标签位图 (中文)
+static void zh_task_label(TaskType t, const uint8_t** bits, int* w, int* h) {
+    switch(t) {
+        case TASK_FIND_EXIT:  *bits = t_findexit_bits; *w = T_FINDEXIT_W; *h = T_FINDEXIT_H; break;
+        case TASK_GET_KEY:    *bits = t_getkey_bits;   *w = T_GETKEY_W;   *h = T_GETKEY_H;   break;
+        case TASK_OPEN_DOOR:  *bits = t_opendoor_bits; *w = T_OPENDOOR_W; *h = T_OPENDOOR_H; break;
+        case TASK_KILL_ENEMY: *bits = t_kill_bits;     *w = T_KILL_W;     *h = T_KILL_H;     break;
+        default: *bits = NULL; *w = *h = 0;
+    }
+}
+// 英文任务名
+static const char* en_task_name(TaskType t) {
+    switch(t) {
+        case TASK_FIND_EXIT:  return "Find Exit";
+        case TASK_GET_KEY:    return "Get Key";
+        case TASK_OPEN_DOOR:  return "Open Door";
+        case TASK_KILL_ENEMY: return "Kill Enemy";
+        case TASK_SURVIVE:    return "Survive";
+        default: return "";
+    }
+}
+
 static void draw_inventory(Canvas* c) {
     canvas_clear(c);
     canvas_set_color(c, ColorBlack);
@@ -228,6 +255,63 @@ static void draw_inventory(Canvas* c) {
     // 分隔线
     canvas_draw_line(c, 0, 11, 127, 11);
 
+    bool has_quest = g.quest.active;
+
+    // ===== 第 2 页: 任务面板 (仅有任务时可切到) =====
+    if(has_quest && s_inv_page == 1) {
+        // 标题 "任务" 位图
+        if(g.lang == LANG_ZH) {
+            canvas_draw_xbm(c, 2, 14, QUEST_HDR_W, QUEST_HDR_H, quest_hdr_bits);
+        } else {
+            canvas_draw_str(c, 2, 22, "QUEST");
+        }
+        // 页码
+        canvas_draw_str_aligned(c, 126, 16, AlignRight, AlignTop, "2/2");
+        canvas_draw_line(c, 0, 26, 127, 26);
+
+        // 任务行
+        int y = 30;
+        for(int i = 0; i < g.quest.sub_count && y < 56; i++) {
+            SubTask* s = &g.quest.subs[i];
+            // 复选框 (8x8): 完成则实心, 否则空心框
+            if(s->done) canvas_draw_box(c, 3, y + 1, 7, 7);
+            else        canvas_draw_frame(c, 3, y + 1, 7, 7);
+            // 任务名
+            if(g.lang == LANG_ZH) {
+                int lw, lh; const uint8_t* lb;
+                zh_task_label(s->type, &lb, &lw, &lh);
+                if(lb) canvas_draw_xbm(c, 14, y, lw, lh, lb);
+            } else {
+                canvas_draw_str(c, 14, y + 8, en_task_name(s->type));
+            }
+            // 进度 (右对齐)
+            char prog[24];
+            if(s->target > 1)
+                snprintf(prog, sizeof(prog), "%d/%d", s->progress, s->target);
+            else
+                snprintf(prog, sizeof(prog), "%d/%d", s->done ? 1 : 0, 1);
+            canvas_draw_str_aligned(c, 124, y + 8, AlignRight, AlignBottom, prog);
+            y += 13;
+        }
+        // 完成状态
+        if(g.quest.all_done) {
+            if(g.lang == LANG_ZH)
+                canvas_draw_str(c, 2, 63, "任务完成! 血已满");
+            else
+                canvas_draw_str(c, 2, 63, "Quest Done! HP Full");
+        } else {
+            if(g.lang == LANG_ZH)
+                canvas_draw_str(c, 2, 63, "<-物品  Back返");
+            else
+                canvas_draw_str(c, 2, 63, "<-Items  Back");
+        }
+        return;
+    }
+
+    // ===== 第 1 页: 物品 =====
+    // 页码指示 (有任务时显示 1/2)
+    if(has_quest) canvas_draw_str_aligned(c, 126, 16, AlignRight, AlignTop, "1/2");
+
     if(g.lang == LANG_ZH) {
         // 物品行
         for(int i = 0; i < ITEM_COUNT; i++) {
@@ -246,7 +330,10 @@ static void draw_inventory(Canvas* c) {
             canvas_draw_str(c, 110, y + 8, cnt);
             canvas_set_color(c, ColorBlack);
         }
-        canvas_draw_xbm(c, 2, 62 - INV_HINT_H + 1, INV_HINT_W, INV_HINT_H, inv_hint_bits);
+        if(has_quest)
+            canvas_draw_str(c, 2, 63, "上下选 OK用  ->任务 Back返");
+        else
+            canvas_draw_xbm(c, 2, 62 - INV_HINT_H + 1, INV_HINT_W, INV_HINT_H, inv_hint_bits);
         return;
     }
 
@@ -262,7 +349,10 @@ static void draw_inventory(Canvas* c) {
         canvas_draw_str(c, 4, y + 7, line);
         canvas_set_color(c, ColorBlack);
     }
-    canvas_draw_str(c, 2, 62, EN_INV_HINT);
+    if(has_quest)
+        canvas_draw_str(c, 2, 62, "OK use  ->Quest  Back");
+    else
+        canvas_draw_str(c, 2, 62, EN_INV_HINT);
 }
 
 // 层级选择: 可见行数与行高 (滚动列表)
@@ -531,9 +621,184 @@ static void draw_map_panel(Canvas* c) {
     // ===== 底部提示 =====
     canvas_draw_line(c, 0, 56, 127, 56);
     if(g.lang == LANG_ZH) {
-        canvas_draw_str(c, 2, 63, "OK/Back退出  长按OK物品栏");
+        canvas_draw_str(c, 2, 63, "OK/Back返回游戏");
     } else {
-        canvas_draw_str(c, 2, 63, "OK/Back Close  LongOK Inv");
+        canvas_draw_str(c, 2, 63, "OK/Back Resume");
+    }
+}
+
+// ---- 开场动画: 4阶段流畅嗨皮动画 + BGM ----
+//   stage 0 (tick 0-7):  Logo 从顶部弹跳落入, 配合 BGM 上行琶音
+//   stage 1 (tick 8-15): 粒子/星星从 Logo 中心迸发扩散
+//   stage 2 (tick 16-23): 副标题 "k20120509 presents" 从底部滑入
+//   stage 3 (tick 24-37): "按任意键开始" 闪烁, BGM 渐收
+//   tick 38+: 自动进菜单
+static void draw_opening(Canvas* c) {
+    canvas_clear(c);
+    canvas_set_color(c, ColorBlack);
+
+    int t = g.opening_tick;
+    int s = g.opening_stage;
+    int cx = (128 - TITLE_W) / 2;  // logo 居中 X
+    int cy_final = 18;              // logo 最终 Y
+
+    // ===== Stage 0: Logo 从顶部弹跳落入 (ease-in + bounce) =====
+    if(s == 0) {
+        // 0..7 tick: 从 y=-20 弹跳到 y=cy_final
+        // 前5tick自由落体加速, 后2tick弹跳回弹
+        int y;
+        if(t <= 5) {
+            // 自由落体: y = -20 + (t^2)*1.5, t=0:-20, t=5:-20+37=17
+            y = -20 + t * t * 2;
+        } else {
+            // 弹跳: t=6 略过冲到 cy_final-4, t=7 回到 cy_final
+            int bt = t - 5;  // 1..2
+            y = cy_final - 4 + bt * 2;  // 16, 18
+            if(bt >= 2) y = cy_final;
+        }
+        if(y > cy_final) y = cy_final;
+        // logo 渐现: 前2tick不画(太高), 后5tick画
+        if(t >= 2) {
+            canvas_draw_xbm(c, cx, y, TITLE_W, TITLE_H, title_bits);
+            // 着地瞬间(t=5)画一个"冲击波"横线
+            if(t == 5 || t == 6) {
+                int wave_y = cy_final + TITLE_H + 2;
+                int wave_w = (t == 5) ? 40 : 60;
+                canvas_draw_line(c, 64 - wave_w/2, wave_y, 64 + wave_w/2, wave_y);
+            }
+        }
+    }
+    // ===== Stage 1: 粒子/星星从 Logo 中心迸发 =====
+    else if(s == 1) {
+        // Logo 稳定居中
+        canvas_draw_xbm(c, cx, cy_final, TITLE_W, TITLE_H, title_bits);
+        // 粒子: 8个方向放射, 距离随 (t-8) 增长
+        int pt = t - 8;  // 0..7
+        int px = 64, py = cy_final + TITLE_H / 2;  // 中心
+        // 8个方向的单位向量 (x,y)
+        static const int dx[8] = { 1, 1, 0,-1,-1,-1, 0, 1};
+        static const int dy[8] = { 0, 1, 1, 1, 0,-1,-1,-1};
+        for(int i = 0; i < 8; i++) {
+            int dist = pt * 3 + 2;  // 距离随时间增大
+            int x = px + dx[i] * dist;
+            int y = py + dy[i] * dist;
+            // 限制在屏幕内
+            if(x >= 0 && x < 128 && y >= 0 && y < 64) {
+                // 画一个小十字星
+                canvas_draw_dot(c, x, y);
+                if(pt < 5) {
+                    canvas_draw_dot(c, x + 1, y);
+                    canvas_draw_dot(c, x, y + 1);
+                }
+            }
+        }
+        // Logo 周围闪烁星星 (随机位置, 用 tick 伪随机)
+        if((g.tick & 3) == 0) {
+            for(int i = 0; i < 4; i++) {
+                int sx = (g.tick * 37 + i * 23) % 120 + 4;
+                int sy = (g.tick * 53 + i * 17) % 40 + 4;
+                canvas_draw_dot(c, sx, sy);
+            }
+        }
+    }
+    // ===== Stage 2: 副标题从底部滑入 =====
+    else if(s == 2) {
+        // Logo 居中
+        canvas_draw_xbm(c, cx, cy_final, TITLE_W, TITLE_H, title_bits);
+        // 残留粒子 (淡出)
+        int pt = t - 16;  // 0..7
+        if(pt < 4) {
+            for(int i = 0; i < 8; i++) {
+                static const int dx[8] = { 1, 1, 0,-1,-1,-1, 0, 1};
+                static const int dy[8] = { 0, 1, 1, 1, 0,-1,-1,-1};
+                int dist = (pt + 8) * 3 + 2;
+                int x = 64 + dx[i] * dist;
+                int y = cy_final + TITLE_H / 2 + dy[i] * dist;
+                if(x >= 0 && x < 128 && y >= 0 && y < 64)
+                    canvas_draw_dot(c, x, y);
+            }
+        }
+        // 副标题从底部滑入: y = 64 -> 50
+        int sub_y = 64 - pt * 2;
+        if(sub_y < 50) sub_y = 50;
+        if(g.lang == LANG_ZH)
+            canvas_draw_str_aligned(c, 64, sub_y, AlignCenter, AlignTop, "k20120509");
+        else
+            canvas_draw_xbm(c, (128 - OPEN_BY_W)/2, sub_y, OPEN_BY_W, OPEN_BY_H, open_by_bits);
+    }
+    // ===== Stage 3: "按任意键开始" 闪烁 =====
+    else {
+        // Logo + 副标题 静止
+        canvas_draw_xbm(c, cx, cy_final, TITLE_W, TITLE_H, title_bits);
+        if(g.lang == LANG_ZH)
+            canvas_draw_str_aligned(c, 64, 50, AlignCenter, AlignTop, "k20120509");
+        else
+            canvas_draw_xbm(c, (128 - OPEN_BY_W)/2, 50, OPEN_BY_W, OPEN_BY_H, open_by_bits);
+        // "按任意键开始" 闪烁 (1.5Hz)
+        if((g.tick & 4) == 0)
+            canvas_draw_str_aligned(c, 64, 62, AlignCenter, AlignTop,
+                g.lang == LANG_ZH ? "按任意键开始" : "Press any key");
+    }
+}
+
+// ---- 设置页
+static void draw_settings(Canvas* c) {
+    canvas_clear(c);
+    canvas_set_color(c, ColorBlack);
+    canvas_set_font(c, FontSecondary);
+
+    // 标题
+    if(g.lang == LANG_ZH) {
+        canvas_draw_xbm(c, (128 - SETTINGS_HDR_W) / 2, 1,
+                         SETTINGS_HDR_W, SETTINGS_HDR_H, settings_hdr_bits);
+    } else {
+        canvas_set_font(c, FontPrimary);
+        canvas_draw_str_aligned(c, 64, 2, AlignCenter, AlignTop, "SETTINGS");
+        canvas_set_font(c, FontSecondary);
+    }
+    canvas_draw_line(c, 0, 16, 127, 16);
+
+    // 两项: 音效开关
+    int y = 22;
+    const uint8_t* labels_zh[2] = { set_sfx_bits, set_opening_bits };
+    const char*    labels_en[2] = { "SFX", "Opening" };
+    const int lws[2] = { SET_SFX_W, SET_OPENING_W };
+    const int lhs[2] = { SET_SFX_H, SET_OPENING_H };
+    bool vals[2]     = { g.sfx_enabled, g.opening_enabled };
+
+    for(int i = 0; i < 2; i++) {
+        if(i == s_set_sel) {
+            canvas_draw_box(c, 0, y - 1, 128, 12);
+            canvas_set_color(c, ColorWhite);
+        }
+        canvas_draw_str(c, 2, y + 8, ">");
+        if(g.lang == LANG_ZH)
+            canvas_draw_xbm(c, 12, y, lws[i], lhs[i], labels_zh[i]);
+        else
+            canvas_draw_str(c, 12, y + 8, labels_en[i]);
+        // 值
+        if(vals[i]) {
+            if(g.lang == LANG_ZH)
+                canvas_draw_xbm(c, 110, y, SET_ON_W, SET_ON_H, set_on_bits);
+            else
+                canvas_draw_str(c, 110, y + 8, "ON");
+        } else {
+            if(g.lang == LANG_ZH)
+                canvas_draw_xbm(c, 110, y, SET_OFF_W, SET_OFF_H, set_off_bits);
+            else
+                canvas_draw_str(c, 110, y + 8, "OFF");
+        }
+        canvas_set_color(c, ColorBlack);
+        y += 14;
+    }
+    canvas_draw_line(c, 0, 56, 127, 56);
+    // 提示
+    if(g.lang == LANG_ZH) {
+        canvas_draw_xbm(c, 2, 58, SET_SELECT_W, SET_SELECT_H, set_select_bits);
+        canvas_draw_xbm(c, 128 - SET_BACK_W - 2, 58, SET_BACK_W, SET_BACK_H, set_back_bits);
+    } else {
+        canvas_draw_str(c, 2, 63, "Up/Dn  OK Toggle");
+        canvas_draw_str_aligned(c, 126, 63, AlignRight, AlignBottom, "Back Exit");
     }
 }
 
@@ -555,11 +820,11 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         // 菜单分隔线
         canvas_draw_line(canvas, 0, 16, 127, 16);
 
-        // 菜单项: 1.闯关模式  2.无尽挑战  3.游客漫游
-        const uint8_t* zh_items[M_COUNT] = { m1_bits, m2_bits, m3_bits };
-        const char*    en_items[M_COUNT] = { EN_M1, EN_M2, EN_M3 };
-        const int ws[M_COUNT] = { M1_W, M2_W, M3_W };
-        const int hs[M_COUNT] = { M1_H, M2_H, M3_H };
+        // 菜单项: 1.闯关模式  2.无尽挑战  3.游客漫游  4.设置
+        const uint8_t* zh_items[M_COUNT] = { m1_bits, m2_bits, m3_bits, m4_bits };
+        const char*    en_items[M_COUNT] = { EN_M1, EN_M2, EN_M3, "4. Settings" };
+        const int ws[M_COUNT] = { M1_W, M2_W, M3_W, M4_W };
+        const int hs[M_COUNT] = { M1_H, M2_H, M3_H, M4_H };
         for(int i = 0; i < M_COUNT; i++) {
             int yy = 22 + i * 11;
             if(i == s_sel) {
@@ -588,6 +853,8 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         return;
     }
 
+    if(g.mode == MODE_OPENING)       { draw_opening(canvas); return; }
+    if(g.mode == MODE_SETTINGS)      { draw_settings(canvas); return; }
     if(g.mode == MODE_STORY)         { draw_story(canvas); return; }
     if(g.mode == MODE_INVENTORY)     { draw_inventory(canvas); return; }
     if(g.mode == MODE_LEVEL_SELECT)  { draw_level_select(canvas); return; }
@@ -781,10 +1048,18 @@ static void handle_new_modes_input(InputKey key, InputType type) {
             g.mode = (g.story_return == MODE_CAMPAIGN) ? MODE_MENU : g.story_return;
         }
     } else if(g.mode == MODE_INVENTORY) {
-        if(key == InputKeyUp)        g.inv_sel = (g.inv_sel + ITEM_COUNT - 1) % ITEM_COUNT;
-        else if(key == InputKeyDown) g.inv_sel = (g.inv_sel + 1) % ITEM_COUNT;
-        else if(key == InputKeyOk)   item_use(g.inv_sel);
-        else if(key == InputKeyBack) g.mode = s_resume_mode;
+        // 有任务时: 左右切换 物品/任务 页
+        if(g.quest.active) {
+            if(key == InputKeyRight)      { s_inv_page = 1; }
+            else if(key == InputKeyLeft)  { s_inv_page = 0; }
+        }
+        // 物品页才可操作物品
+        if(s_inv_page == 0) {
+            if(key == InputKeyUp)        g.inv_sel = (g.inv_sel + ITEM_COUNT - 1) % ITEM_COUNT;
+            else if(key == InputKeyDown) g.inv_sel = (g.inv_sel + 1) % ITEM_COUNT;
+            else if(key == InputKeyOk)   item_use(g.inv_sel);
+        }
+        if(key == InputKeyBack) { g.mode = s_resume_mode; s_inv_page = 0; }
     } else if(g.mode == MODE_MAP_PANEL) {
         // 小地图面板: 短按 OK / Back 关闭
         if(key == InputKeyOk || key == InputKeyBack) {
@@ -813,8 +1088,14 @@ static void handle_new_modes_input(InputKey key, InputType type) {
 int32_t maze3d_app(void* p) {
     UNUSED(p);
     memset(&g, 0, sizeof(g));
-    g.mode = MODE_MENU;
+    // 默认设置 (storage_load 会覆盖)
+    settings_defaults();
     storage_load();
+    sfx_init();
+    // 开场动画
+    g.opening_stage = 0;
+    g.opening_tick = 0;
+    g.mode = g.opening_enabled ? MODE_OPENING : MODE_MENU;
 
     FuriMessageQueue* q = furi_message_queue_alloc(8, sizeof(AppEvent));
     ViewPort* vp = view_port_alloc();
@@ -822,6 +1103,8 @@ int32_t maze3d_app(void* p) {
     view_port_input_callback_set(vp, input_callback, q);
     Gui* gui = furi_record_open(RECORD_GUI);
     gui_add_view_port(gui, vp, GuiLayerFullscreen);
+    // 播放开场 BGM (嗨皮旋律, 独立通道)
+    if(g.mode == MODE_OPENING) sfx_bgm_play();
 
     AppEvent ev;
     bool running = true;
@@ -837,45 +1120,89 @@ int32_t maze3d_app(void* p) {
             InputKey key = ev.input.key;
             InputType type = ev.input.type;
 
-            if(g.mode == MODE_MENU) {
+            if(g.mode == MODE_OPENING) {
+                // 开场动画: 任意键跳过,或等其自然结束
+                if(type == InputTypeShort || type == InputTypeLong) {
+                    sfx_bgm_stop();
+                    g.mode = MODE_MENU;
+                    sfx_play(SFX_MENU_OK);
+                }
+                did_input = true;
+            } else if(g.mode == MODE_SETTINGS) {
                 if(type == InputTypeShort) {
-                    if(key == InputKeyUp) s_sel = (s_sel + M_COUNT - 1) % M_COUNT;
-                    else if(key == InputKeyDown) s_sel = (s_sel + 1) % M_COUNT;
+                    if(key == InputKeyUp)        { s_set_sel = (s_set_sel + 1) % 2; sfx_play(SFX_MENU_MOVE); }
+                    else if(key == InputKeyDown) { s_set_sel = (s_set_sel + 1) % 2; sfx_play(SFX_MENU_MOVE); }
+                    else if(key == InputKeyLeft || key == InputKeyRight || key == InputKeyOk) {
+                        if(s_set_sel == 0) { g.sfx_enabled = !g.sfx_enabled; sfx_play(g.sfx_enabled ? SFX_MENU_OK : SFX_NEED_KEY); }
+                        else               { g.opening_enabled = !g.opening_enabled; sfx_play(SFX_MENU_OK); }
+                        storage_save();
+                    } else if(key == InputKeyBack) {
+                        g.mode = MODE_MENU;
+                        sfx_play(SFX_MENU_OK);
+                    }
+                }
+                did_input = true;
+            } else if(g.mode == MODE_MENU) {
+                if(type == InputTypeShort) {
+                    if(key == InputKeyUp) { s_sel = (s_sel + M_COUNT - 1) % M_COUNT; sfx_play(SFX_MENU_MOVE); }
+                    else if(key == InputKeyDown) { s_sel = (s_sel + 1) % M_COUNT; sfx_play(SFX_MENU_MOVE); }
                     else if(key == InputKeyLeft || key == InputKeyRight)
                         g.lang = (g.lang == LANG_ZH) ? LANG_EN : LANG_ZH;
                     else if(key == InputKeyOk) {
                         storage_load();
+                        sfx_play(SFX_MENU_OK);
                         if(s_sel == M_CAMPAIGN) enter_level_select(true);
                         else if(s_sel == M_ENDLESS) enter_level_select(false);
-                        else game_init_endless(g.endless_floor, true);
-                    } else if(key == InputKeyBack) running = false;
+                        else if(s_sel == M_VISITOR) game_init_endless(g.endless_floor, true);
+                        else if(s_sel == M_SETTINGS) { g.mode = MODE_SETTINGS; s_set_sel = 0; }
+                    } else if(key == InputKeyBack) { running = false; sfx_stop_all(); }
                 }
                 did_input = true;
             } else if(g.mode == MODE_LEVEL_CLEAR || g.mode == MODE_GAME_OVER || g.mode == MODE_PAUSED) {
-                if(type == InputTypeShort) handle_overlay_input(key);
+                if(type == InputTypeShort) {
+                    if(g.mode == MODE_LEVEL_CLEAR && key == InputKeyOk) sfx_play(SFX_QUEST_DONE);
+                    else if(g.mode == MODE_GAME_OVER && key == InputKeyOk) sfx_play(SFX_MENU_OK);
+                    else if(g.mode == MODE_PAUSED) sfx_play(SFX_MENU_OK);
+                    handle_overlay_input(key);
+                }
                 did_input = true;
             } else if(g.mode == MODE_STORY || g.mode == MODE_INVENTORY ||
                       g.mode == MODE_LEVEL_SELECT || g.mode == MODE_MAP_PANEL) {
-                // 小地图面板内部长按 OK → 进入物品栏
-                if(g.mode == MODE_MAP_PANEL && key == InputKeyOk && type == InputTypeLong) {
-                    g.mode = MODE_INVENTORY;
-                    g.inv_sel = 0;
-                } else {
+                // 物品栏中长按 OK → 进入小地图面板 (查看全图+出口箭头)
+                if(g.mode == MODE_INVENTORY && key == InputKeyOk && type == InputTypeLong) {
+                    g.mode = MODE_MAP_PANEL;
+                    sfx_play(SFX_MENU_OK);
+                } else if(type == InputTypeShort) {
+                    // 翻页/选层时播放音效
+                    SfxType old = SFX_NONE;
+                    GameMode mm = g.mode;
+                    if(mm == MODE_STORY && (key == InputKeyOk || key == InputKeyLeft || key == InputKeyRight)) old = SFX_STORY_TURN;
+                    if(mm == MODE_LEVEL_SELECT && (key == InputKeyUp || key == InputKeyDown)) old = SFX_MENU_MOVE;
+                    if(mm == MODE_LEVEL_SELECT && key == InputKeyOk) old = SFX_MENU_OK;
+                    if(mm == MODE_INVENTORY && (key == InputKeyUp || key == InputKeyDown || key == InputKeyLeft || key == InputKeyRight)) old = SFX_MENU_MOVE;
+                    if(mm == MODE_INVENTORY && key == InputKeyOk) old = SFX_PICK_ITEM;
+                    if(mm == MODE_INVENTORY && key == InputKeyBack) old = SFX_MENU_OK;
+                    if(mm == MODE_MAP_PANEL) old = SFX_MENU_OK;
+                    if(old != SFX_NONE) sfx_play(old);
                     handle_new_modes_input(key, type);
                 }
                 did_input = true;
             } else {
                 // 游戏中
                 if(key == InputKeyBack) {
-                    if(type == InputTypeLong) running = false;
+                    if(type == InputTypeLong) { running = false; sfx_stop_all(); }
                     else if(type == InputTypeShort) {
                         s_resume_mode = g.mode;
                         g.mode = MODE_PAUSED;
+                        sfx_play(SFX_MENU_OK);
                     }
                 } else if(key == InputKeyOk && type == InputTypeLong) {
-                    // 长按 OK: 打开小地图面板 (完整 HUD + 迷宫全图 + 出口大箭头)
+                    // 长按 OK: 暂停 + 打开物品栏 (含任务面板)
                     s_resume_mode = g.mode;
-                    g.mode = MODE_MAP_PANEL;
+                    g.mode = MODE_INVENTORY;
+                    g.inv_sel = 0;
+                    s_inv_page = 0;
+                    sfx_play(SFX_MENU_OK);
                 } else {
                     game_handle_input(key, type);
                 }
@@ -883,9 +1210,33 @@ int32_t maze3d_app(void* p) {
             }
         }
 
-        // 定时更新世界(无论是否有事件): 敌人移动、闪烁tick
+        // 定时更新世界(无论是否有事件): 敌人移动、闪烁tick + 音效tick + 开场tick
         uint32_t now = furi_get_tick(); // 注: furi HAL tick = ms
-        if((now - last_update_tick) >= UPDATE_MS || did_input) {
+        bool timer_fired = ((now - last_update_tick) >= UPDATE_MS);
+        if(timer_fired || did_input) {
+            if(timer_fired) {
+                g.tick++;
+                sfx_tick_update();
+                if(g.mode == MODE_OPENING) {
+                    g.opening_tick++;
+                    // 4阶段: 0(0-7) 1(8-15) 2(16-23) 3(24+)
+                    if(g.opening_stage == 0 && g.opening_tick >= 8) {
+                        g.opening_stage = 1;
+                        g.opening_tick = 0;
+                    } else if(g.opening_stage == 1 && g.opening_tick >= 8) {
+                        g.opening_stage = 2;
+                        g.opening_tick = 0;
+                    } else if(g.opening_stage == 2 && g.opening_tick >= 8) {
+                        g.opening_stage = 3;
+                        g.opening_tick = 0;
+                    } else if(g.opening_stage == 3 && g.opening_tick >= 14) {
+                        // 开场结束 -> 菜单 (BGM 应已播完)
+                        g.mode = MODE_MENU;
+                        sfx_bgm_stop();
+                        sfx_play(SFX_MENU_OK);
+                    }
+                }
+            }
             if(g.mode == MODE_CAMPAIGN || g.mode == MODE_ENDLESS_RUN || g.mode == MODE_ENDLESS_VISITOR) {
                 game_update();
                 did_update_world = true;
@@ -908,6 +1259,7 @@ int32_t maze3d_app(void* p) {
     gui_remove_view_port(gui, vp);
     view_port_free(vp);
     furi_message_queue_free(q);
+    sfx_deinit();
     furi_record_close(RECORD_GUI);
     return 0;
 }

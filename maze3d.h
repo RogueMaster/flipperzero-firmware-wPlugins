@@ -40,12 +40,41 @@ typedef enum {
     ITEM_COUNT,
 } ItemType;
 
+// 任务系统
+typedef enum {
+    TASK_NONE = 0,
+    TASK_FIND_EXIT,     // 找到出口
+    TASK_GET_KEY,       // 获得钥匙
+    TASK_OPEN_DOOR,     // 开门
+    TASK_KILL_ENEMY,    // 消灭敌人
+    TASK_REACH_FLOOR,   // 到达指定楼层(无尽)
+    TASK_SURVIVE,       // 存活 N 秒
+    TASK_COUNT,
+} TaskType;
+
+#define MAX_SUBTASKS 2
+typedef struct {
+    TaskType type;
+    int target;     // 目标值
+    int progress;   // 当前进度
+    bool done;      // 是否完成
+} SubTask;
+
+typedef struct {
+    bool active;            // 本关是否有任务
+    SubTask subs[MAX_SUBTASKS];
+    int  sub_count;
+    bool all_done;          // 全部子任务完成
+    bool reward_given;      // 奖励是否已发放
+} Quest;
+
 // 敌人/NPC
 typedef struct {
     float x, y;
     bool active;
     uint8_t type;       // 0=敌人 1=NPC游客
     uint8_t cooldown;
+    uint8_t hp;         // 敌人血量(1-3), 0=死亡
 } Actor;
 
 #define MAX_ACTORS 8
@@ -74,6 +103,8 @@ typedef enum {
     MODE_INVENTORY,         // 物品栏
     MODE_LEVEL_SELECT,      // 层级选择
     MODE_MAP_PANEL,         // 小地图面板(长按OK呼出)
+    MODE_OPENING,           // 开场动画
+    MODE_SETTINGS,          // 设置
 } GameMode;
 
 typedef enum {
@@ -125,6 +156,18 @@ typedef struct {
     float move_fwd_target;  // 累积待插值前进速度 (格/tick)
     float move_bwd_target;  // 累积待插值后退速度
     float move_dash_target; // 待插值前冲 (OK 键)
+    // 任务系统
+    Quest quest;
+    int  task_kill_count;   // 累计击杀(本关)
+    int  task_open_door;    // 是否已开门
+    int  task_get_key;      // 本关累计捡到的钥匙
+    int  task_survive_secs; // 本关存活秒数
+    // 开场动画
+    uint8_t opening_stage;   // 0:logo渐入 1:副标题 2:结束
+    uint8_t opening_tick;    // 开场动画tick
+    // 设置
+    bool sfx_enabled;       // 音效开关
+    bool opening_enabled;   // 开场动画开关
 } GameState;
 
 extern GameState g;
@@ -170,6 +213,41 @@ void set_msg(int id); // 设置中文提示
 bool item_use(int item_type);
 // 物品栏当前持有数
 int  item_count(int item_type);
+
+// ---- 音效系统 ----
+typedef enum {
+    SFX_NONE = 0,
+    SFX_MENU_MOVE,    // 菜单切换
+    SFX_MENU_OK,      // 菜单确认
+    SFX_PICK_KEY,     // 拾取钥匙
+    SFX_PICK_ITEM,    // 拾取药水/火把/护符
+    SFX_OPEN_DOOR,    // 开门
+    SFX_NEED_KEY,     // 无钥匙(失败)
+    SFX_TRAP,         // 陷阱
+    SFX_DAMAGE,       // 受伤
+    SFX_ATTACK_HIT,   // 命中敌人
+    SFX_ENEMY_KILL,   // 击杀敌人
+    SFX_QUEST_DONE,   // 任务完成
+    SFX_LEVEL_CLEAR,  // 过关
+    SFX_GAME_OVER,    // 阵亡
+    SFX_STORY_TURN,   // 剧情翻页
+    SFX_COUNT,
+} SfxType;
+
+void sfx_init(void);
+void sfx_deinit(void);
+void sfx_play(SfxType t);
+void sfx_stop_all(void);
+// 由 tick 更新 (每 120ms 被 main loop 调用即可)
+void sfx_tick_update(void);
+// 开场 BGM (长旋律, 独立于 SFX 通道)
+void sfx_bgm_play(void);
+void sfx_bgm_stop(void);
+// BGM 是否仍在播放
+bool sfx_bgm_playing(void);
+
+// 设置默认值 (加载前)
+void settings_defaults(void);
 
 void storage_load(void);
 void storage_save(void);

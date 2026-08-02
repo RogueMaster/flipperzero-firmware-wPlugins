@@ -1,3 +1,41 @@
+v4.3:
+- Opening animation on app start: fluent 4-stage intro with BGM —
+  (1) logo drops from the top with bounce easing + impact wave,
+  (2) 8-direction particle/star burst from logo center with twinkles,
+  (3) "k20120509 presents" subtitle slides up from the bottom,
+  (4) blinking "press any key" prompt.
+  A happy C-major chiptune BGM (40 notes, ~4.5s) plays on a dedicated
+  sequencer channel during the opening. Pressing any key skips straight
+  to the menu. Can be disabled from the new Settings screen (persisted).
+- SFX (sound effects) using the Flipper Zero speaker: menu move / confirm,
+  pickup key / item, door open / locked, trap / damage, attack hit / enemy
+  kill, quest complete, level clear, game over, story page turn. A tiny
+  tick-based sequencer in sfx.c plays short note sequences (C/D/E/F/G/A/B/C6
+  scale) with no external audio files. BGM has priority over SFX.
+- New menu item #4 "Settings": two toggles — SFX on/off and Opening on/off,
+  persisted to save (MAZ4 magic, MAZ3 old saves migrated). Up/Down choose
+  row; OK or Left/Right toggle; Back returns to menu.
+- Save format bumped to MAZ4 with explicit settings fields; older MAZ3 saves
+  are still read (settings fall back to on/on).
+
+v4.2:
+- Quest / task system for story levels: long-press OK now pauses the game and
+  opens the Inventory (instead of the map panel). The Inventory is now a 2-page
+  view — page 1 lists items, page 2 shows the current level's quest. Press
+  Left/Right to switch pages (page 2 only exists when the level has a quest).
+- Only "story" levels carry quests: Level 1 (Find Exit), puzzle levels 10-19
+  (Get Key + Open Door), combat levels 20+ (Kill all enemies). Other campaign
+  levels and endless/visitor modes have no quest.
+- Quest tracking: picking up a key, opening a door, reaching the exit, and
+  killing enemies auto-update each subtask's progress with a checkbox and
+  x/N counter. Completing all subtasks grants a one-time reward (full HP
+  restore).
+- Enemy combat: enemies now have HP (2). Dashing (OK) into an enemy in front
+  of you deals 1 damage instead of moving; two dashes kill it. Dead enemies
+  stop attacking.
+- Map panel preserved: from the Inventory, long-press OK opens the full map
+  panel (minimap + exit arrow + HUD); OK/Back returns to the game.
+
 v4.1:
 - FIX: Endless Mode crash root cause found and fixed. The maze-carving DFS
   used two local int arrays of MAP_MAX*MAP_MAX (31*31*4 = 3844 bytes each,
