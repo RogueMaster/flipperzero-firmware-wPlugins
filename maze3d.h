@@ -73,6 +73,7 @@ typedef enum {
     MODE_STORY,             // 剧情文本展示
     MODE_INVENTORY,         // 物品栏
     MODE_LEVEL_SELECT,      // 层级选择
+    MODE_MAP_PANEL,         // 小地图面板(长按OK呼出)
 } GameMode;
 
 typedef enum {
@@ -115,7 +116,10 @@ typedef struct {
     // 层级选择
     uint8_t ls_sel;         // 选中的层级 (1..)
     uint8_t ls_max;         // 可选层级上限
+    uint8_t ls_offset;      // 滚动偏移 (首个可见层级, 1..)
     bool ls_for_campaign;   // true=剧情模式选层 false=无尽模式选层
+    // HUD 显示: 游戏中默认隐藏, 长按 OK 切换
+    bool show_hud;
 } GameState;
 
 extern GameState g;

@@ -191,13 +191,47 @@ static void zh_item_name(int item, const uint8_t** bits, int* w, int* h) {
 static void draw_inventory(Canvas* c) {
     canvas_clear(c);
     canvas_set_color(c, ColorBlack);
+    canvas_set_font(c, FontSecondary);
+
+    // 顶部 HUD 状态条 (关卡/层数 + 血量)
+    bool is_campaign = (s_resume_mode == MODE_CAMPAIGN);
+    {
+        int hx = 2;
+        char buf[8];
+        if(is_campaign) {
+            snprintf(buf, sizeof(buf), "%d", g.level);
+            canvas_draw_str(c, hx, 8, buf);
+            if(g.lang == LANG_ZH)
+                canvas_draw_xbm(c, hx + 7, 1, HUD_LV_W, HUD_LV_H, hud_lv_bits);
+            else
+                canvas_draw_str(c, hx + 7, 8, EN_HUD_LV);
+            hx += 22;
+        } else {
+            snprintf(buf, sizeof(buf), "%d", g.endless_floor);
+            canvas_draw_str(c, hx, 8, buf);
+            if(g.lang == LANG_ZH)
+                canvas_draw_xbm(c, hx + 7, 1, HUD_FLOOR_W, HUD_FLOOR_H, hud_floor_bits);
+            else
+                canvas_draw_str(c, hx + 7, 8, EN_HUD_FLOOR);
+            hx += 22;
+        }
+        // 血量
+        snprintf(buf, sizeof(buf), "%d", g.player.health);
+        canvas_draw_str(c, hx, 8, buf);
+        if(g.lang == LANG_ZH)
+            canvas_draw_xbm(c, hx + 7, 1, HUD_HP_W, HUD_HP_H, hud_hp_bits);
+        else
+            canvas_draw_str(c, hx + 7, 8, EN_HUD_HP);
+        hx += 22;
+        // 钥匙 / 火把 (物品栏已列, 这里不重复)
+    }
+    // 分隔线
+    canvas_draw_line(c, 0, 11, 127, 11);
 
     if(g.lang == LANG_ZH) {
-        // 标题
-        canvas_draw_xbm(c, (128 - INV_TITLE_W) / 2, 1, INV_TITLE_W, INV_TITLE_H, inv_title_bits);
         // 物品行
         for(int i = 0; i < ITEM_COUNT; i++) {
-            int y = 16 + i * 10;
+            int y = 14 + i * 10;
             int nw, nh; const uint8_t* nb;
             zh_item_name(i, &nb, &nw, &nh);
             // 数量 ASCII
@@ -217,26 +251,37 @@ static void draw_inventory(Canvas* c) {
     }
 
     // 英文 (原逻辑)
-    canvas_set_font(c, FontPrimary);
-    canvas_draw_str_aligned(c, 64, 1, AlignCenter, AlignTop, EN_INV_TITLE);
-    canvas_set_font(c, FontSecondary);
     for(int i = 0; i < ITEM_COUNT; i++) {
         int y = 14 + i * 9;
         if(i == g.inv_sel) {
-            canvas_draw_box(c, 0, y - 8, 128, 9);
+            canvas_draw_box(c, 0, y - 1, 128, 10);
             canvas_set_color(c, ColorWhite);
         }
         char line[24];
         snprintf(line, sizeof(line), "%s  x%d", en_item_name(i), item_count(i));
-        canvas_draw_str(c, 4, y, line);
+        canvas_draw_str(c, 4, y + 7, line);
         canvas_set_color(c, ColorBlack);
     }
     canvas_draw_str(c, 2, 62, EN_INV_HINT);
 }
 
+// 层级选择: 可见行数与行高 (滚动列表)
+#define LS_VISIBLE 7
+#define LS_ROW_H   7
+#define LS_Y_START 15
+
 static void draw_level_select(Canvas* c) {
     canvas_clear(c);
     canvas_set_color(c, ColorBlack);
+    canvas_set_font(c, FontSecondary);  // 显式使用小字体
+
+    // 滚动偏移: 确保 ls_sel 在可见窗口内
+    if(g.ls_offset < 1) g.ls_offset = 1;
+    if(g.ls_sel < g.ls_offset) g.ls_offset = g.ls_sel;
+    if(g.ls_sel > g.ls_offset + LS_VISIBLE - 1) g.ls_offset = g.ls_sel - LS_VISIBLE + 1;
+    int max_off = g.ls_max - LS_VISIBLE + 1;
+    if(max_off < 1) max_off = 1;
+    if(g.ls_offset > max_off) g.ls_offset = max_off;
 
     if(g.lang == LANG_ZH) {
         // 标题
@@ -244,27 +289,31 @@ static void draw_level_select(Canvas* c) {
         if(g.ls_for_campaign) { tb = ls_title_s_bits; tw = LS_TITLE_S_W; th = LS_TITLE_S_H; }
         else                  { tb = ls_title_e_bits; tw = LS_TITLE_E_W; th = LS_TITLE_E_H; }
         canvas_draw_xbm(c, (128 - tw) / 2, 1, tw, th, tb);
-        // 关卡列表
-        for(int i = 0; i < 6; i++) {
-            int lvl = g.ls_sel - 2 + i;
-            if(lvl < 1) continue;
-            int y = 16 + i * 8;
+        // 关卡列表 (滚动)
+        for(int i = 0; i < LS_VISIBLE; i++) {
+            int lvl = g.ls_offset + i;
+            if(lvl > g.ls_max) break;
+            int y = LS_Y_START + i * LS_ROW_H;
             bool locked = g.ls_for_campaign && (lvl > g.campaign_cleared + 1);
             bool cleared = g.ls_for_campaign && (lvl <= g.campaign_cleared);
             if(lvl == g.ls_sel && !locked) {
-                canvas_draw_box(c, 0, y - 1, 128, 9);
+                canvas_draw_box(c, 0, y - 1, 128, LS_ROW_H + 1);
                 canvas_set_color(c, ColorWhite);
             }
             // 关卡号 ASCII (前缀用英文 L 避免中文"层"无法用 canvas_draw_str)
             char lv[8]; snprintf(lv, sizeof(lv), "L%d", lvl);
-            canvas_draw_str(c, 4, y + 7, lv);
+            canvas_draw_str(c, 4, y + 6, lv);
             // 状态标签 (位图)
             int tag_w, tag_h; const uint8_t* tag_b = NULL;
             if(locked)         { tag_b = ls_locked_bits;  tag_w = LS_LOCKED_W;  tag_h = LS_LOCKED_H; }
             else if(cleared)   { tag_b = ls_cleared_bits; tag_w = LS_CLEARED_W; tag_h = LS_CLEARED_H; }
-            if(tag_b) canvas_draw_xbm(c, 100, y, tag_w, tag_h, tag_b);
+            if(tag_b) canvas_draw_xbm(c, 113, y - 1, tag_w, tag_h, tag_b);
             canvas_set_color(c, ColorBlack);
         }
+        // 滚动指示器
+        if(g.ls_offset > 1)             canvas_draw_str(c, 118, LS_Y_START + 5, "^");
+        if(g.ls_offset + LS_VISIBLE - 1 < g.ls_max)
+            canvas_draw_str(c, 118, LS_Y_START + (LS_VISIBLE - 1) * LS_ROW_H + 6, "v");
         canvas_draw_xbm(c, 2, 62 - LS_HINT_H + 1, LS_HINT_W, LS_HINT_H, ls_hint_bits);
         return;
     }
@@ -274,23 +323,218 @@ static void draw_level_select(Canvas* c) {
     canvas_draw_str_aligned(c, 64, 1, AlignCenter, AlignTop,
         g.ls_for_campaign ? EN_LS_TITLE_STORY : EN_LS_TITLE_ENDLESS);
     canvas_set_font(c, FontSecondary);
-    for(int i = 0; i < 6; i++) {
-        int lvl = g.ls_sel - 2 + i;
-        if(lvl < 1) continue;
-        int y = 13 + i * 8;
+    for(int i = 0; i < LS_VISIBLE; i++) {
+        int lvl = g.ls_offset + i;
+        if(lvl > g.ls_max) break;
+        int y = LS_Y_START + i * LS_ROW_H;
         bool locked = g.ls_for_campaign && (lvl > g.campaign_cleared + 1);
         bool cleared = g.ls_for_campaign && (lvl <= g.campaign_cleared);
         if(lvl == g.ls_sel && !locked) {
-            canvas_draw_box(c, 0, y - 7, 128, 9);
+            canvas_draw_box(c, 0, y - 1, 128, LS_ROW_H + 1);
             canvas_set_color(c, ColorWhite);
         }
         char line[24];
         const char* tag = locked ? "  LOCKED" : (cleared ? "  ok" : "");
         snprintf(line, sizeof(line), "Lv %d%s", lvl, tag);
-        canvas_draw_str(c, 4, y, line);
+        canvas_draw_str(c, 4, y + 6, line);
         canvas_set_color(c, ColorBlack);
     }
+    if(g.ls_offset > 1)             canvas_draw_str(c, 120, LS_Y_START + 5, "^");
+    if(g.ls_offset + LS_VISIBLE - 1 < g.ls_max)
+        canvas_draw_str(c, 120, LS_Y_START + (LS_VISIBLE - 1) * LS_ROW_H + 6, "v");
     canvas_draw_str(c, 2, 62, EN_LS_HINT);
+}
+
+// ---- 小地图面板: 全迷宫 + 玩家位置 + 出口大箭头 + 紧凑 HUD ----
+static void draw_map_panel(Canvas* c) {
+    canvas_clear(c);
+    canvas_set_color(c, ColorBlack);
+    canvas_set_font(c, FontSecondary);
+
+    // ========= 顶部紧凑 HUD (极小文字, FontSecondary 已经是最小字号) =========
+    // 行 1-2: 关卡/层数/血量/钥匙/火把/药水/护符
+    int hy = 1;
+    char b[8];
+    int hx = 1;
+    bool is_camp = (s_resume_mode == MODE_CAMPAIGN);
+
+    // 关卡/层数
+    if(is_camp) {
+        snprintf(b, sizeof(b), "%d", g.level);
+        canvas_draw_str(c, hx, hy + 7, b);
+        if(g.lang == LANG_ZH) canvas_draw_xbm(c, hx+6, hy, HUD_LV_W, HUD_LV_H, hud_lv_bits);
+        else                   canvas_draw_str(c, hx+6, hy+7, EN_HUD_LV);
+        hx += 20;
+    } else {
+        snprintf(b, sizeof(b), "%d", g.endless_floor);
+        canvas_draw_str(c, hx, hy + 7, b);
+        if(g.lang == LANG_ZH) canvas_draw_xbm(c, hx+6, hy, HUD_FLOOR_W, HUD_FLOOR_H, hud_floor_bits);
+        else                   canvas_draw_str(c, hx+6, hy+7, EN_HUD_FLOOR);
+        hx += 20;
+    }
+    // 血量
+    snprintf(b, sizeof(b), "%d", g.player.health);
+    canvas_draw_str(c, hx, hy+7, b);
+    if(g.lang == LANG_ZH) canvas_draw_xbm(c, hx+6, hy, HUD_HP_W, HUD_HP_H, hud_hp_bits);
+    else                   canvas_draw_str(c, hx+6, hy+7, EN_HUD_HP);
+    hx += 18;
+    // 钥匙
+    snprintf(b, sizeof(b), "%d", g.player.keys);
+    canvas_draw_str(c, hx, hy+7, b);
+    if(g.lang == LANG_ZH) canvas_draw_xbm(c, hx+5, hy, HUD_KEY_W, HUD_KEY_H, hud_key_bits);
+    else                   canvas_draw_str(c, hx+5, hy+7, EN_HUD_KEY);
+    hx += 16;
+    // 火把
+    snprintf(b, sizeof(b), "%d", g.player.torches);
+    canvas_draw_str(c, hx, hy+7, b);
+    if(g.lang == LANG_ZH) canvas_draw_xbm(c, hx+5, hy, HUD_TORCH_W, HUD_TORCH_H, hud_torch_bits);
+    else                   canvas_draw_str(c, hx+5, hy+7, EN_HUD_TORCH);
+    hx += 16;
+    // 药水 P / 护符 A (直接用 ASCII)
+    snprintf(b, sizeof(b), "%dP", g.player.potions);
+    canvas_draw_str(c, hx, hy+7, b);
+    hx += 13;
+    snprintf(b, sizeof(b), "%dA", g.player.amulets);
+    canvas_draw_str(c, hx, hy+7, b);
+
+    // 分隔线
+    canvas_draw_line(c, 0, 10, 127, 10);
+
+    // ========= 小地图 =========
+    // 地图绘制区: x=[2..125]  y=[12..55], 宽 124, 高 44
+    const int MX = 2, MY = 12, MW = 124, MH = 44;
+    int m_w = g.map_w, m_h = g.map_h;
+    if(m_w < 1) m_w = 1;
+    if(m_h < 1) m_h = 1;
+    // 单元像素大小 (取最小值保证整张地图能装下)
+    int cs = MW / m_w;
+    if(MH / m_h < cs) cs = MH / m_h;
+    if(cs < 1) cs = 1;
+    // 地图实际绘制大小,居中
+    int dw = m_w * cs;
+    int dh = m_h * cs;
+    int mx0 = MX + (MW - dw) / 2;
+    int my0 = MY + (MH - dh) / 2;
+
+    // 边框
+    canvas_draw_frame(c, mx0 - 1, my0 - 1, dw + 2, dh + 2);
+
+    // 绘制墙壁/门/出口/物品
+    for(int y = 0; y < m_h; y++) {
+        for(int x = 0; x < m_w; x++) {
+            uint8_t cell = g.map[(uint16_t)y * MAP_MAX + x];
+            bool wall = (cell == WALL_BRICK || cell == WALL_STONE ||
+                         cell == WALL_METAL || cell == WALL_VINE || cell == CELL_DOOR);
+            int dx = mx0 + x * cs;
+            int dy = my0 + y * cs;
+            if(wall) {
+                if(cs >= 2)
+                    canvas_draw_box(c, dx, dy, cs, cs);
+                else
+                    canvas_draw_dot(c, dx, dy);
+            } else if(cell == CELL_EXIT) {
+                // 出口: 画一个实心方框标记 (闪烁交替)
+                bool flick = (g.tick & 4) ? true : false;
+                if(cs >= 2) {
+                    if(flick) canvas_draw_box(c, dx, dy, cs, cs);
+                    else      canvas_draw_frame(c, dx, dy, cs, cs);
+                } else {
+                    canvas_draw_dot(c, dx, dy);
+                }
+            } else if(cell == CELL_KEY || cell == CELL_TORCH ||
+                      cell == CELL_POTION || cell == CELL_AMULET) {
+                // 物品: 单点
+                if(cs >= 2)
+                    canvas_draw_dot(c, dx + cs/2, dy + cs/2);
+                else
+                    canvas_draw_dot(c, dx, dy);
+            }
+        }
+    }
+
+    // ===== 出口大箭头 (指向出口格, 巨大黑色箭头) =====
+    if(g.exit_found && m_w > 0 && m_h > 0) {
+        int ex = mx0 + g.exit_x * cs + cs/2;
+        int ey = my0 + g.exit_y * cs + cs/2;
+        // 箭头大小取决于可用空间
+        int ar = 8; // 箭头臂长
+        // 选离出口距离最短的边(但保证箭头长度够):
+        // pick: 0=从左指→右, 1=从右指→左, 2=从上指↓下, 3=从下指↑上
+        int pick = 0; // 0=up,1=dn,2=lf,3=rt
+        int d_up = abs(ex - (mx0 - 1));
+        int d_dn = abs((mx0 + dw) - ex);
+        int d_lf = abs(ey - (my0 - 1));
+        int d_rt = abs((my0 + dh) - ey);
+        int min_d = d_up;
+        if(d_dn < min_d) { min_d = d_dn; pick = 1; }
+        if(d_lf < min_d) { min_d = d_lf; pick = 2; }
+        if(d_rt < min_d) { min_d = d_rt; pick = 3; }
+        // 限制箭头长度至少 ar, 如果空间不够则减少
+        int len = ar;
+        if(min_d - 2 < len) len = min_d - 2;
+        if(len < 4) len = 4;
+        int sx, sy;
+        if(pick == 0)      { sx = ex - len; sy = ey; }
+        else if(pick == 1) { sx = ex + len; sy = ey; }
+        else if(pick == 2) { sx = ex; sy = ey - len; }
+        else               { sx = ex; sy = ey + len; }
+        // 箭头尾至头线段
+        canvas_draw_line(c, sx, sy, ex, ey);
+        // 箭头头部: 两条短线 (巨大黑色)
+        int ah = 5; // 箭头头部长度
+        int aw = 4; // 箭头头部展开宽度
+        if(pick == 0) {
+            // 从左指向右, 箭尾(左)<-起点,箭头头(右)->终点
+            canvas_draw_line(c, ex, ey, ex - ah, ey - aw);
+            canvas_draw_line(c, ex, ey, ex - ah, ey + aw);
+            canvas_draw_line(c, ex, ey, ex - ah + 1, ey - aw + 1); // 加粗
+            canvas_draw_line(c, ex, ey, ex - ah + 1, ey + aw - 1);
+        } else if(pick == 1) {
+            canvas_draw_line(c, ex, ey, ex - ah, ey - aw);
+            canvas_draw_line(c, ex, ey, ex - ah, ey + aw);
+            canvas_draw_line(c, ex, ey, ex - ah + 1, ey - aw + 1);
+            canvas_draw_line(c, ex, ey, ex - ah + 1, ey + aw - 1);
+        } else if(pick == 2) {
+            canvas_draw_line(c, ex, ey, ex - aw, ey - ah);
+            canvas_draw_line(c, ex, ey, ex + aw, ey - ah);
+            canvas_draw_line(c, ex, ey, ex - aw + 1, ey - ah + 1);
+            canvas_draw_line(c, ex, ey, ex + aw - 1, ey - ah + 1);
+        } else {
+            canvas_draw_line(c, ex, ey, ex - aw, ey - ah);
+            canvas_draw_line(c, ex, ey, ex + aw, ey - ah);
+            canvas_draw_line(c, ex, ey, ex - aw + 1, ey - ah + 1);
+            canvas_draw_line(c, ex, ey, ex + aw - 1, ey - ah + 1);
+        }
+        // 在出口格位置额外画一个实心方块(加黑加粗出口)
+        int bx = mx0 + g.exit_x * cs;
+        int by = my0 + g.exit_y * cs;
+        if(cs >= 2) {
+            canvas_draw_box(c, bx, by, cs, cs);
+        }
+    }
+
+    // ===== 玩家标记 (黑色实心圆或十字) =====
+    {
+        int px = mx0 + (int)g.player.x * cs + cs/2;
+        int py = my0 + (int)g.player.y * cs + cs/2;
+        // 玩家十字标记 (比1像素大,明显)
+        int ps = (cs >= 3) ? cs - 1 : 2;
+        canvas_draw_line(c, px - ps, py, px + ps, py);
+        canvas_draw_line(c, px, py - ps, px, py + ps);
+        // 玩家朝向短线
+        int dx = (int)(g.player.dir_x * (ps + 2));
+        int dy = (int)(g.player.dir_y * (ps + 2));
+        if(dx || dy)
+            canvas_draw_line(c, px, py, px + dx, py + dy);
+    }
+
+    // ===== 底部提示 =====
+    canvas_draw_line(c, 0, 56, 127, 56);
+    if(g.lang == LANG_ZH) {
+        canvas_draw_str(c, 2, 63, "OK/Back退出  长按OK物品栏");
+    } else {
+        canvas_draw_str(c, 2, 63, "OK/Back Close  LongOK Inv");
+    }
 }
 
 // ---- 绘制回调 ----
@@ -347,13 +591,15 @@ static void draw_callback(Canvas* canvas, void* ctx) {
     if(g.mode == MODE_STORY)         { draw_story(canvas); return; }
     if(g.mode == MODE_INVENTORY)     { draw_inventory(canvas); return; }
     if(g.mode == MODE_LEVEL_SELECT)  { draw_level_select(canvas); return; }
+    if(g.mode == MODE_MAP_PANEL)     { draw_map_panel(canvas); return; }
 
     // 游戏画面: 先把渲染好的 framebuffer 拷到 canvas
     canvas_clear(canvas);
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_xbm(canvas, 0, 0, SCREEN_W, SCREEN_H, g.fb);
 
-    // HUD 信息: 关卡/层数/钥匙/火把/血
+    // HUD 信息 (默认隐藏, 长按 OK 切换显示): 关卡/层数/钥匙/火把/血
+    if(g.show_hud) {
     int x = 1;
     canvas_set_font(canvas, FontSecondary);
     if(g.mode == MODE_CAMPAIGN) {
@@ -401,7 +647,7 @@ static void draw_callback(Canvas* canvas, void* ctx) {
             canvas_draw_str(canvas, x + 6, 9, EN_HUD_HP);
     }
 
-    // 提示信息
+    // 提示信息 (HUD 显示时一并展示)
     if(g.msg_id >= 0 && g.msg_ttl > 0) {
         if(g.lang == LANG_ZH) {
             const uint8_t* b; int w, h, bpr;
@@ -412,6 +658,7 @@ static void draw_callback(Canvas* canvas, void* ctx) {
             canvas_draw_str(canvas, 2, 62, s);
         }
     }
+    } // end if(g.show_hud)
 
     // 覆盖层
     int cx, cy;
@@ -496,6 +743,11 @@ static void enter_level_select(bool for_campaign) {
     g.ls_sel = for_campaign ? (g.campaign_cleared + 1) : (g.endless_floor > 0 ? g.endless_floor : 1);
     if(g.ls_sel < 1) g.ls_sel = 1;
     if(g.ls_sel > g.ls_max) g.ls_sel = g.ls_max;
+    // 初始化滚动偏移: 让选中项尽量居中
+    g.ls_offset = g.ls_sel > 3 ? g.ls_sel - 3 : 1;
+    if(g.ls_offset > g.ls_max - LS_VISIBLE + 1 && g.ls_max >= LS_VISIBLE)
+        g.ls_offset = g.ls_max - LS_VISIBLE + 1;
+    if(g.ls_offset < 1) g.ls_offset = 1;
 }
 
 static void enter_story(int sid, GameMode ret) {
@@ -533,6 +785,12 @@ static void handle_new_modes_input(InputKey key, InputType type) {
         else if(key == InputKeyDown) g.inv_sel = (g.inv_sel + 1) % ITEM_COUNT;
         else if(key == InputKeyOk)   item_use(g.inv_sel);
         else if(key == InputKeyBack) g.mode = s_resume_mode;
+    } else if(g.mode == MODE_MAP_PANEL) {
+        // 小地图面板: 短按 OK / Back 关闭
+        if(key == InputKeyOk || key == InputKeyBack) {
+            g.mode = s_resume_mode;
+        }
+        // 长按 OK 则在外部处理中进物品栏
     } else if(g.mode == MODE_LEVEL_SELECT) {
         if(key == InputKeyUp)        { if(g.ls_sel > 1) g.ls_sel--; }
         else if(key == InputKeyDown) { if(g.ls_sel < g.ls_max) g.ls_sel++; }
@@ -596,8 +854,15 @@ int32_t maze3d_app(void* p) {
             } else if(g.mode == MODE_LEVEL_CLEAR || g.mode == MODE_GAME_OVER || g.mode == MODE_PAUSED) {
                 if(type == InputTypeShort) handle_overlay_input(key);
                 did_input = true;
-            } else if(g.mode == MODE_STORY || g.mode == MODE_INVENTORY || g.mode == MODE_LEVEL_SELECT) {
-                handle_new_modes_input(key, type);
+            } else if(g.mode == MODE_STORY || g.mode == MODE_INVENTORY ||
+                      g.mode == MODE_LEVEL_SELECT || g.mode == MODE_MAP_PANEL) {
+                // 小地图面板内部长按 OK → 进入物品栏
+                if(g.mode == MODE_MAP_PANEL && key == InputKeyOk && type == InputTypeLong) {
+                    g.mode = MODE_INVENTORY;
+                    g.inv_sel = 0;
+                } else {
+                    handle_new_modes_input(key, type);
+                }
                 did_input = true;
             } else {
                 // 游戏中
@@ -608,10 +873,9 @@ int32_t maze3d_app(void* p) {
                         g.mode = MODE_PAUSED;
                     }
                 } else if(key == InputKeyOk && type == InputTypeLong) {
-                    // 长按 OK 进入物品栏
+                    // 长按 OK: 打开小地图面板 (完整 HUD + 迷宫全图 + 出口大箭头)
                     s_resume_mode = g.mode;
-                    g.mode = MODE_INVENTORY;
-                    g.inv_sel = 0;
+                    g.mode = MODE_MAP_PANEL;
                 } else {
                     game_handle_input(key, type);
                 }

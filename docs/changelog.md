@@ -1,3 +1,16 @@
+v3.3:
+- Level select screen rewrite: smaller FontSecondary text, scrollable list (7 visible rows) with up/down navigation and ^/v scroll indicators
+- In-game HUD is now hidden by default for an unobstructed 3D view; long-press OK opens a full Map Panel instead
+- New Map Panel (long-press OK): compact HUD bar (level/floor + HP + keys + torches + potions + amulets) in the smallest font, full-maze minimap centered on screen, player crosshair marker with facing line, and a large bold black arrow pointing from the nearest edge straight to the exit cell (exit cell also drawn as a solid black box for maximum visibility)
+- Map Panel controls: short OK / Back closes the panel and resumes play; long-press OK again jumps into the Inventory
+- Inventory screen now shows a compact HUD status bar (level/floor + HP) at the top so opening the inventory also serves as a status dashboard
+
+v3.2:
+- Full Chinese localization of story mode, inventory and level-select screens (XBM bitmaps for titles, body lines, item names, level tags)
+
+v3.1:
+- Force full rebuild of maze3d.fap so the published binary actually contains the v3.0 features (previous v3.0 fap was a stale artifact)
+
 v3.0:
 - Remove old endless-mode crash: cap maze size (<=21), always enable exit compass, strict actor limit
 - Endless mode now lets you pick ANY level to enter (level select screen)

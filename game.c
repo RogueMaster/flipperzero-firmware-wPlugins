@@ -198,6 +198,7 @@ void game_init_campaign(int level) {
     g.has_exit = true;
     g.exit_found = true;
     g.tick = 0;
+    g.show_hud = false;
     int sz = 7 + level;
     if(sz > 23) sz = 23;     // 上限保护, 防止大迷宫卡顿
     maze_generate(sz, sz, level, 0xABCDEF01u);
@@ -216,6 +217,7 @@ void game_init_endless(int floor, bool visitor) {
     g.has_exit = true;
     g.exit_found = true;     // 始终显示出口罗盘, 避免渲染异常
     g.tick = 0;
+    g.show_hud = false;
     int sz = 9 + (floor > 12 ? 12 : floor);
     if(sz > 21) sz = 21;     // 严格上限, 防卡死
     maze_generate(sz, sz, floor + 100, 0x12345678u + (unsigned)floor * 31u);
