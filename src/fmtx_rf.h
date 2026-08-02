@@ -17,7 +17,8 @@ typedef struct
     volatile bool prime;
     int16_t s;
     int32_t err;
-    bool use;
+    uint8_t sphase;
+    uint8_t slot;
     bool bit;
     bool awake;
 } Rf;
