@@ -1,3 +1,11 @@
+## 1.4
+
+- New game: Kiss Marry Kill. Each round a rotating chooser secretly labels three people
+  (drawn from the pack) Kiss, Marry, and Kill; everyone else predicts the chooser's
+  assignment. Points for matching positions, and the chooser scores by how well the group
+  reads them. Six rounds, four content packs. Thanks to genkigenki for contributing it.
+- Firmware v15.
+
 ## 1.3
 
 - New game: Spectrum, a Wavelength-style guessing game. Each round one player is the
