@@ -100,6 +100,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [Maze 3D v3.0 (By k20120509)](https://github.com/k20120509/flipper-release)
 - Updated: [Weebo v0.5.1 (By bettse)](https://github.com/bettse/weebo) `Req: key_retail.bin on SD card /nfc/assets` (Amiibo Remixer) [more ids added (By Brickleberry19)](https://github.com/bettse/weebo/pull/13)
 - Updated: [Walkie Talkie v1.2 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-walkie-talkie) [Add PMR446 (Europe) band alongside FRS (By jasiek)](https://github.com/coolshrimp/flipperzero-walkie-talkie/pull/2)
+- Added: [Flipper Share RFID v0.1 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_rfid)
 
 <a name="release"></a>
 
@@ -542,6 +543,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Flipper Share iButton v0.1 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_ibutton)
 - [Flipper Share IR v1.5 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share_ir)
 - [Flipper Share NFC v1.5 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_nfc)
+- [Flipper Share RFID v0.1 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_rfid)
 - [Flipper Share v1.5 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/tree/dev/flipper_share)
 - [Flipper Tag v1.0 (By thejudge156)](https://github.com/thejudge156/flippertag)
 - [Flipper Wedge v1.1 (By DangerousThings)](https://github.com/DangerousThings/flipper-wedge)
