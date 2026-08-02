@@ -49,7 +49,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: [Add method for changing variable item label #4421 (By loftyinclination)](https://github.com/flipperdevices/flipperzero-firmware/pull/4421)
 - OFW: [Allow for checking if an id is in use before adding to view dispatcher #4422 (By loftyinclination)](https://github.com/flipperdevices/flipperzero-firmware/pull/4422)
 - Updated: [Ear Trainer v1.1 (By barismert98)](https://github.com/barismert98/flipper-ear-trainer)
-- Updated: [Specter v2.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
 - Updated: [GlitchTrigger v1.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/GlitchTrigger-FlipperZero)
 - Updated: [Swimmy Fish v2.5 (By Invizabel)](https://github.com/Invizabel/fish)
 - Added: [Piano v1.0 (By bergr22)](https://github.com/bergr22/FlipPiano)
@@ -102,6 +101,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Hotspot Arcade v1.4 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32` [Hotspot Arcade flasher, add support for autoboot, fix freeze on exit (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/5d6a16c77c2a17c4aca3cb9f9ab4ab511f1d4f64) Guess the Color & Battleship were added (By tarikbc)
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Hotspot Arcade firmwares.
 - Updated: [Morse Flipper v0.2.8 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
+- Updated: [Specter v2.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
 
 <a name="release"></a>
 
