@@ -1,6 +1,6 @@
 /*
- * Purpose: Handle tone, output path, PWM volume, and buzzer waveform settings rows.
- * Owns: audio setting callbacks and preview/persistence side effects.
+ * Purpose: Handle tone, output path, PWM volume, and buzzer waveform settings
+ * rows. Owns: audio setting callbacks and preview/persistence side effects.
  * Depends on: morse_flipper_app_i.h and audio route/PWM state.
  * Tests: firmware build; settings UI is hardware-only.
  */

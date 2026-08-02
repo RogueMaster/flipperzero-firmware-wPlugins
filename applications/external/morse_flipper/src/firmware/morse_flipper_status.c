@@ -17,16 +17,34 @@ MorseFlipperInputGate morse_flipper_input_gate(const MorseFlipperApp* app) {
     } else if(app->screen == MorseFlipperScreenSession) {
         g.live = morse_flipper_session_repeat_active(app) ||
                  morse_flipper_session_running_view(app);
-    } else if(app->screen == MorseFlipperScreenRf || app->screen == MorseFlipperScreenRfRx) {
-        g.live = app->rf_live_active;
+    } else if(app->screen == MorseFlipperScreenRf) {
+        g.live = app->radio_tx_allowed;
     } else if(app->screen == MorseFlipperScreenStraight) {
         g.live = app->straight_wait_answer;
     } else if(app->screen == MorseFlipperScreenTxGroups) {
         g.live = app->txg_wait_answer;
+    } else if(app->screen == MorseFlipperScreenRxPractice) {
+        MorseFlipperPluginSnapshot snapshot;
+        if(!morse_flipper_plugin_runtime_snapshot(app, &snapshot) ||
+           snapshot.owner != MorseFlipperPluginOwnerRxPractice || !snapshot.active) {
+            g.back_exit = true;
+            return g;
+        }
+        if(snapshot.mode != 0U) {
+            g.btn = true;
+            g.btn_pad = true;
+            g.back_key = true;
+            g.left_hint = true;
+        }
+        if(snapshot.phase == MfRxPracticePhaseFinal) {
+            g.back_exit = !g.back_key;
+            return g;
+        }
+        g.live = snapshot.phase == MfRxPracticePhaseAnswer && !snapshot.start_holdoff;
     }
 
     if(!g.live || app->input_source != MorseFlipperInputSourceButtons) {
-        g.back_exit = g.live;
+        g.back_exit = g.live && !g.back_key;
         return g;
     }
 
