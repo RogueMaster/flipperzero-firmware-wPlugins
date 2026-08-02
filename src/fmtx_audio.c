@@ -53,7 +53,7 @@ static uint32_t phinc(uint16_t hz)
     return (uint32_t)(((uint64_t)hz * (1ULL << 32) + 8000U) / 16000U);
 }
 
-static void dtmfpick(Dtmf *dtmf)
+void dtmfpick(Dtmf *dtmf)
 {
     dtmf->key = furi_hal_random_get() & 0x0F;
     dtmf->rp = 0;

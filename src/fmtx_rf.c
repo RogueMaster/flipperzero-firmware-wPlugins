@@ -72,7 +72,11 @@ static LevelDuration rfbit(void *ctx)
 {
     Rf *rf = ctx;
     uint32_t us;
-    if(rf->sphase == 0) rf->s = rfpop(rf);
+    if(rf->sphase == 0)
+    {
+        if(rf->drain && rf->tail == rf->head) return level_duration_reset();
+        rf->s = rfpop(rf);
+    }
     rf->sphase = (rf->sphase + 1U) & 1U;
     rf->err += rf->s;
     rf->bit = rf->err >= 0;
@@ -112,6 +116,7 @@ bool rfstart(Rf *rf)
     furi_hal_subghz_load_custom_preset(rf->regs);
     (void)furi_hal_subghz_set_frequency_and_path(rf->hz);
     furi_hal_gpio_init(furi_hal_subghz_get_data_gpio(), GpioModeInput, GpioPullNo, GpioSpeedLow);
+    rf->drain = false;
     rf->on = furi_hal_subghz_start_async_tx(rfbit, rf);
     if(!rf->on) rfstop(rf);
     if(rf->on) txled(true);
@@ -141,4 +146,29 @@ bool rfput(Rf *rf, int16_t s)
     __DMB();
     rf->head = n;
     return true;
+}
+
+void rfend(Rf *rf)
+{
+    __DMB();
+    rf->drain = true;
+}
+
+bool rfdone(const Rf *rf)
+{
+    return rf->drain && furi_hal_subghz_is_async_tx_complete();
+}
+
+void rfrst(Rf *rf)
+{
+    if(rf->on) return;
+    rf->head = 0;
+    rf->tail = 0;
+    rf->prime = false;
+    rf->drain = false;
+    rf->s = 0;
+    rf->sphase = 0;
+    rf->err = 0;
+    rf->slot = 0;
+    rf->bit = false;
 }

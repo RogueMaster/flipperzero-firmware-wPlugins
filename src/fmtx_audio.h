@@ -16,6 +16,7 @@ typedef struct
 
 int16_t u8pcm(uint8_t s);
 void dtmfinit(Dtmf *dtmf);
+void dtmfpick(Dtmf *dtmf);
 int16_t dtmfnext(Dtmf *dtmf);
 
 #endif

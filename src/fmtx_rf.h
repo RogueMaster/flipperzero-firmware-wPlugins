@@ -15,6 +15,7 @@ typedef struct
     int16_t ring[RINGSZ];
     volatile bool on;
     volatile bool prime;
+    volatile bool drain;
     int16_t s;
     int32_t err;
     uint8_t sphase;
@@ -29,5 +30,8 @@ bool rfstart(Rf *rf);
 void rfstop(Rf *rf);
 bool rfput(Rf *rf, int16_t s);
 uint16_t rfused(const Rf *rf);
+void rfend(Rf *rf);
+bool rfdone(const Rf *rf);
+void rfrst(Rf *rf);
 
 #endif
