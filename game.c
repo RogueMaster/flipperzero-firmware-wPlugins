@@ -199,6 +199,10 @@ void game_init_campaign(int level) {
     g.exit_found = true;
     g.tick = 0;
     g.show_hud = false;
+    g.turn_target = 0.0f;
+    g.move_fwd_target = 0.0f;
+    g.move_bwd_target = 0.0f;
+    g.move_dash_target = 0.0f;
     int sz = 7 + level;
     if(sz > 23) sz = 23;     // 上限保护, 防止大迷宫卡顿
     maze_generate(sz, sz, level, 0xABCDEF01u);
@@ -215,12 +219,21 @@ void game_init_endless(int floor, bool visitor) {
     g.endless_floor = floor;
     g.stage = STAGE_MAZE_ONLY;
     g.has_exit = true;
-    g.exit_found = true;     // 始终显示出口罗盘, 避免渲染异常
+    g.exit_found = true;
     g.tick = 0;
     g.show_hud = false;
-    int sz = 9 + (floor > 12 ? 12 : floor);
-    if(sz > 21) sz = 21;     // 严格上限, 防卡死
-    maze_generate(sz, sz, floor + 100, 0x12345678u + (unsigned)floor * 31u);
+    // 清零平滑插值目标(避免旧累积值)
+    g.turn_target = 0.0f;
+    g.move_fwd_target = 0.0f;
+    g.move_bwd_target = 0.0f;
+    g.move_dash_target = 0.0f;
+    // 尺寸严格上限 19 (19x19=361 格, DDA 步数最多 19 列 × 64 = 1216 次循环)
+    int sz = 9 + (floor > 10 ? 10 : floor);
+    if(sz > 19) sz = 19;
+    if(sz < 9)  sz = 9;
+    // 用 floor 做种子散列 (避免连续 floor 生成相似地图)
+    unsigned seed = 0x12345678u ^ (unsigned)floor * 2654435761u ^ (unsigned)floor * 1013904242u;
+    maze_generate(sz, sz, floor + 100, seed);
     place_player_and_actors(floor + 100, visitor);
     set_msg(visitor ? MSG_VISITOR : MSG_RUN);
     g.dirty = true;
@@ -278,27 +291,28 @@ bool item_use(int item_type) {
 void game_handle_input(InputKey key, InputType type) {
     if(type != InputTypeShort && type != InputTypeRepeat) return;
 
-    float speed  = 0.28f;
-    float slow   = 0.18f;
-    float dash   = 0.45f;
-    float turn   = 0.29f;
+    // 平滑移动: 输入只设置"目标"值,game_update 每帧逐步插值施加,
+    // 从而达到"转角和移动更加平滑"的效果
+    const float speed  = 0.28f;
+    const float slow   = 0.18f;
+    const float dash   = 0.42f;
+    const float turn   = 0.26f;
 
     switch(key) {
         case InputKeyUp:
-            player_move(g.player.dir_x * speed, g.player.dir_y * speed);
+            g.move_fwd_target += speed;
             break;
         case InputKeyDown:
-            player_move(-g.player.dir_x * slow, -g.player.dir_y * slow);
+            g.move_bwd_target += slow;
             break;
         case InputKeyLeft:
-            player_rotate(-turn);
+            g.turn_target -= turn;
             break;
         case InputKeyRight:
-            player_rotate(turn);
+            g.turn_target += turn;
             break;
         case InputKeyOk:
-            // 确认键: 前冲一步
-            player_move(g.player.dir_x * dash, g.player.dir_y * dash);
+            g.move_dash_target += dash;
             break;
         default: break;
     }
@@ -307,6 +321,36 @@ void game_handle_input(InputKey key, InputType type) {
 
 void game_update(void) {
     g.tick++;
+
+    // 平滑插值: 每帧施加 turn_target 的 40% (剩余 60% 累积到下帧),
+    // 这样"按左右键"不会立刻转一个大角度,而是分几帧平滑转到目标朝向.
+    // 如果 turn_target 过大(连续按多次),就每帧 40% 分步转.
+    if(g.turn_target != 0.0f) {
+        float step = g.turn_target * 0.45f;
+        if(fabsf(step) < 0.01f) { step = g.turn_target; g.turn_target = 0.0f; }
+        else                    { g.turn_target -= step; }
+        player_rotate(step);
+    }
+
+    // 平滑移动: 每帧施加 move_target 的一部分, 与插值转弯配合
+    if(g.move_dash_target != 0.0f) {
+        float s = g.move_dash_target;
+        player_move(g.player.dir_x * s, g.player.dir_y * s);
+        g.move_dash_target = 0.0f;
+    }
+    if(g.move_fwd_target != 0.0f) {
+        float s = g.move_fwd_target > 0.5f ? 0.5f : g.move_fwd_target;
+        player_move(g.player.dir_x * s, g.player.dir_y * s);
+        g.move_fwd_target -= s;
+        if(g.move_fwd_target < 0.0f) g.move_fwd_target = 0.0f;
+    }
+    if(g.move_bwd_target != 0.0f) {
+        float s = g.move_bwd_target > 0.3f ? 0.3f : g.move_bwd_target;
+        player_move(-g.player.dir_x * s, -g.player.dir_y * s);
+        g.move_bwd_target -= s;
+        if(g.move_bwd_target < 0.0f) g.move_bwd_target = 0.0f;
+    }
+
     actors_update();
     if(g.msg_ttl > 0) {
         g.msg_ttl--;

@@ -120,6 +120,11 @@ typedef struct {
     bool ls_for_campaign;   // true=剧情模式选层 false=无尽模式选层
     // HUD 显示: 游戏中默认隐藏, 长按 OK 切换
     bool show_hud;
+    // 平滑旋转: 目标角度(由输入设置), game_update 每帧往目标角度插值
+    float turn_target;      // 累积待插值旋转量(弧度)
+    float move_fwd_target;  // 累积待插值前进速度 (格/tick)
+    float move_bwd_target;  // 累积待插值后退速度
+    float move_dash_target; // 待插值前冲 (OK 键)
 } GameState;
 
 extern GameState g;

@@ -1,3 +1,8 @@
+v4.0:
+- Critical stability fixes for Endless Mode: tight size cap (max 19x19 maze cells, DDA steps capped, render loop guarded), cleared pending turn/move targets at every new level, better seed hashing to avoid repeated similar layouts — eliminates the freeze/crash when selecting or progressing in Endless
+- Smooth controls rewrite: direction keys now set "target" rotation/move amounts; game_update applies a fractional step each frame (~45% of remaining turn target) so rotating, moving forward/back, and dashing all feel progressively smoother instead of one-shot jerky steps
+- Big exit marker in 3D view: a giant black down-arrow (↓) painted at the top of the screen at the horizontal offset matching the exit direction relative to player facing; flickers every 16 frames; when exit is straight ahead (within ±20°), a big blinking rectangular frame is drawn around screen top to signal "exit is directly in front" — you see this anywhere in the maze, not just when nearby
+- 3D sprite rendering of ground items: keys/torches/potions/amulets/traps/exit cells are raycast-projected onto the screen at proper floor depth with size scaling, each with a distinct glyph (key = hollow square, torch = cross, potion = solid square, amulet = diamond, trap = X, exit = blinking frame); flickers for visibility
 v3.3:
 - Level select screen rewrite: smaller FontSecondary text, scrollable list (7 visible rows) with up/down navigation and ^/v scroll indicators
 - In-game HUD is now hidden by default for an unobstructed 3D view; long-press OK opens a full Map Panel instead

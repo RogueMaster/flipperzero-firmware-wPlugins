@@ -326,7 +326,138 @@ void engine_render(void) {
         }
     }
 
-    // HUD 覆盖层: 小地图 + 罗盘
+    // HUD 覆盖层: 小地图 + 罗盘 + 屏幕中央出口箭头 + 地面道具
+    // 1) 屏幕中央的巨大"指向出口"闪烁箭头线(不管距离多少都显示)
+    if(g.exit_found && ((g.tick & 15) < 8)) {
+        float dx = (float)g.exit_x + 0.5f - g.player.x;
+        float dy = (float)g.exit_y + 0.5f - g.player.y;
+        float tgt = atan2f(dy, dx);
+        float cur = atan2f(g.player.dir_y, g.player.dir_x);
+        float delta = tgt - cur;
+        // 归一化到 [-PI, PI]
+        while(delta >  3.14159f) delta -= 6.28318f;
+        while(delta < -3.14159f) delta += 6.28318f;
+        // 左右箭头显示区: 屏幕上半 (y=8..24)
+        int cy = 14;
+        int cx = SCREEN_W / 2;
+        // 箭头离中心的偏移(按 delta 比例),delta=0 指向正前方=正中央
+        int off_x = (int)(delta * 40.0f); // ~±128像素偏移(±PI)
+        if(off_x >  58) off_x =  58;
+        if(off_x < -58) off_x = -58;
+        int ax = cx + off_x;
+        // 画巨大下箭头 (↓) 表示出口在这个水平方向上
+        int as = 8;
+        // 竖线
+        for(int i = -as; i <= as; i++) {
+            fb_set(ax, cy + i, 1);
+        }
+        // 三角箭头头
+        for(int i = 0; i < 6; i++) {
+            fb_set(ax - i - 1, cy + as - i, 1);
+            fb_set(ax + i + 1, cy + as - i, 1);
+        }
+        // 如果 delta 接近 0 (出口正对前方), 在屏幕上半画大闪烁外框提示"出口在前"
+        if(fabsf(delta) < 0.35f) {
+            float dist = sqrtf(dx*dx + dy*dy);
+            int bw = (dist < 5.0f) ? 60 : 40;
+            for(int i = -bw/2; i <= bw/2; i++) {
+                fb_set(cx + i, 2, 1);
+                fb_set(cx + i, 10, 1);
+            }
+            for(int y = 2; y <= 10; y++) {
+                fb_set(cx - bw/2, y, 1);
+                fb_set(cx + bw/2, y, 1);
+            }
+        }
+    }
+
+    // 2) 绘制屏幕空间中的地面道具 (在画墙之后、绘制2D覆盖物之前做精灵投影)
+    //    做法: 遍历玩家附近 5x5 格,非空道具格做简单投影 (z-buffer 简单近似)
+    {
+        int px = (int)g.player.x;
+        int py = (int)g.player.y;
+        Player* pp = &g.player;
+        const float invDet = 1.0f / (pp->plane_x * pp->dir_y - pp->dir_x * pp->plane_y);
+        for(int y = -3; y <= 3; y++) {
+            for(int x = -3; x <= 3; x++) {
+                int cx1 = px + x, cy1 = py + y;
+                uint8_t cell = maze_get(cx1, cy1);
+                if(cell != CELL_KEY && cell != CELL_TORCH && cell != CELL_POTION &&
+                   cell != CELL_AMULET && cell != CELL_TRAP && cell != CELL_EXIT)
+                    continue;
+                // 精灵世界坐标
+                float spx = (float)cx1 + 0.5f - pp->x;
+                float spy = (float)cy1 + 0.5f - pp->y;
+                float transX = invDet * ( pp->dir_y * spx - pp->dir_x * spy);
+                float transY = invDet * (-pp->plane_y * spx + pp->plane_x * spy);
+                if(transY <= 0.1f) continue; // 背后或太近
+                int screenX = (int)((SCREEN_W / 2.0f) * (1.0f + transX / transY));
+                // 投影尺寸
+                int ss = (int)(SCREEN_H / transY);
+                if(ss < 2) continue;
+                if(ss > 40) ss = 40;
+                // 道具中心位于地板线附近 (下半屏, drawEnd 附近)
+                int cy_base = SCREEN_H / 2 + (int)((float)SCREEN_H * 0.12f / transY);
+                if(cy_base > SCREEN_H - 1) cy_base = SCREEN_H - 1;
+                // 根据道具类型选简单标志形状 (2x2 或 十字 闪烁)
+                bool show = true;
+                if(cell == CELL_TRAP) show = ((g.tick & 7) < 3); // 陷阱稀有闪烁(半隐藏)
+                else                  show = ((g.tick & 3) < 2);
+                if(!show) continue;
+                int mark = ss;
+                if(mark < 3) mark = 3;
+                if(mark > 10) mark = 10;
+                // 画方块 (道具)
+                if(cell == CELL_KEY) {
+                    // 钥匙: 画空心方块
+                    for(int i = -mark/2; i <= mark/2; i++) {
+                        fb_set(screenX + i, cy_base - mark/2, 1);
+                        fb_set(screenX + i, cy_base + mark/2, 1);
+                        fb_set(screenX - mark/2, cy_base + i, 1);
+                        fb_set(screenX + mark/2, cy_base + i, 1);
+                    }
+                } else if(cell == CELL_TORCH) {
+                    // 火把: 十字 (4 点)+ 中心
+                    fb_set(screenX, cy_base, 1);
+                    fb_set(screenX - 1, cy_base - 1, 1);
+                    fb_set(screenX + 1, cy_base - 1, 1);
+                    fb_set(screenX, cy_base - 2, 1);
+                    if(mark > 5) {
+                        fb_set(screenX - 2, cy_base - 3, 1);
+                        fb_set(screenX + 2, cy_base - 3, 1);
+                    }
+                } else if(cell == CELL_POTION) {
+                    // 药水: 实心圆(近似方块)
+                    for(int yy = -mark/3; yy <= mark/3; yy++)
+                        for(int xx = -mark/3; xx <= mark/3; xx++)
+                            fb_set(screenX + xx, cy_base + yy, 1);
+                } else if(cell == CELL_AMULET) {
+                    // 护符: 菱形
+                    for(int i = 0; i < mark/2 + 1; i++) {
+                        fb_set(screenX + i, cy_base - mark/2 + i, 1);
+                        fb_set(screenX - i, cy_base - mark/2 + i, 1);
+                        fb_set(screenX + i, cy_base + mark/2 - i, 1);
+                        fb_set(screenX - i, cy_base + mark/2 - i, 1);
+                    }
+                } else if(cell == CELL_TRAP) {
+                    // 陷阱: X 形
+                    for(int i = -mark/2; i <= mark/2; i++) {
+                        fb_set(screenX + i, cy_base + i, 1);
+                        fb_set(screenX + i, cy_base - i, 1);
+                    }
+                } else if(cell == CELL_EXIT) {
+                    // 出口: 大闪烁框 (在 3D 墙上已经有高亮,但此处投影更醒目)
+                    for(int i = -mark; i <= mark; i++) {
+                        fb_set(screenX + i, cy_base - mark, 1);
+                        fb_set(screenX + i, cy_base + mark, 1);
+                        fb_set(screenX - mark, cy_base + i, 1);
+                        fb_set(screenX + mark, cy_base + i, 1);
+                    }
+                }
+            }
+        }
+    }
+
     draw_minimap();
     draw_compass();
 }
