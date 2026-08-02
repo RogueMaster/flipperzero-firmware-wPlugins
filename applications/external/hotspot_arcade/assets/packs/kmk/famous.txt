@@ -1,0 +1,48 @@
+Pack: Famous People
+Name: Taylor Swift
+---
+Name: Elon Musk
+---
+Name: Beyonce
+---
+Name: Keanu Reeves
+---
+Name: Lady Gaga
+---
+Name: Dwayne Johnson
+---
+Name: Rihanna
+---
+Name: Leonardo DiCaprio
+---
+Name: Ariana Grande
+---
+Name: Cristiano Ronaldo
+---
+Name: Zendaya
+---
+Name: Snoop Dogg
+---
+Name: Adele
+---
+Name: Ryan Reynolds
+---
+Name: Billie Eilish
+---
+Name: David Beckham
+---
+Name: Emma Watson
+---
+Name: Bill Gates
+---
+Name: Serena Williams
+---
+Name: Timothee Chalamet
+---
+Name: Oprah Winfrey
+---
+Name: Gordon Ramsay
+---
+Name: Dua Lipa
+---
+Name: Lionel Messi

@@ -26,11 +26,12 @@ the list — or flash it from a computer with esptool.
 its bundled firmware and game files to the SD card. The hourglass is the loader working,
 not a hang. Every launch after that is instant.
 
-## Thirteen games
+## Fourteen games
 
 - **Whole-group:** Trivia, Would You Rather, Word Scramble, Reaction Duel, Guess the
-  Color (match a swatch's RGB, closest and fastest wins), and Spectrum (a Wavelength-style
-  game: one player clues a hidden point on a spectrum, everyone else guesses) — everyone in
+  Color (match a swatch's RGB, closest and fastest wins), Spectrum (a Wavelength-style
+  game: one player clues a hidden point on a spectrum, everyone else guesses), and Kiss
+  Marry Kill (a chooser secretly labels three people, everyone predicts it) — everyone in
   the room plays at once, with a ready-up lobby and a live leaderboard.
 - **1v1 duels:** Connect Four, Tic-Tac-Toe, Dots & Boxes, Reversi/Othello, real-time Pong,
   and Battleship (place a hidden fleet, then fire) — challenge another player from your phone.
