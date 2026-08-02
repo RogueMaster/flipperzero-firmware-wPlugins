@@ -2,7 +2,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/k20120509/flipper-release.git
-    commit_sha: 1789817adda653fbf463934a71d1756b8abd9c29
+    commit_sha: aa72d1c06d093d314d29e86b208870d51f7b232d
 short_description: 3D raycasting maze game (campaign / endless / visitor) with bilingual CN/EN UI
 description: "@README.md"
 changelog: "@docs/changelog.md"
