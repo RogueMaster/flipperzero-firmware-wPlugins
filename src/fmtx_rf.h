@@ -1,15 +1,32 @@
 #ifndef yo3gnd_rf_08a1
 #define yo3gnd_rf_08a1
 
+#include <stdbool.h>
 #include <stdint.h>
+
+#define RINGSZ 512U
 
 typedef struct
 {
     uint32_t hz;
     const uint8_t *regs;
+    volatile uint16_t head;
+    volatile uint16_t tail;
+    int16_t ring[RINGSZ];
+    volatile bool on;
+    volatile bool prime;
+    int16_t s;
+    int32_t err;
+    bool use;
+    bool bit;
+    bool awake;
 } Rf;
 
 void rfinit(Rf *rf, uint32_t hz);
 const uint8_t *rfregs(void);
+bool rfstart(Rf *rf);
+void rfstop(Rf *rf);
+bool rfput(Rf *rf, int16_t s);
+uint16_t rfused(const Rf *rf);
 
 #endif

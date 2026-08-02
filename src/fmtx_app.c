@@ -1,5 +1,6 @@
 #include "fmtx_app.h"
 
+#include "fmtx_audio.h"
 #include "fmtx_rf.h"
 
 #include <gui/gui.h>
@@ -11,6 +12,7 @@ typedef struct
     ViewPort *v;
     FuriMessageQueue *q;
     Rf r;
+    Dtmf dtmf;
 } App;
 
 static void draw(Canvas *canvas, void *ctx)
@@ -37,17 +39,22 @@ int32_t flipper_zero_fmtx_app(void *ctx)
     if(!app->q || !app->v) goto done;
     app->gui = furi_record_open(RECORD_GUI);
     rfinit(&app->r, 433160000U);
+    dtmfinit(&app->dtmf);
     view_port_draw_callback_set(app->v, draw, app);
     view_port_input_callback_set(app->v, input, app->q);
     gui_add_view_port(app->gui, app->v, GuiLayerFullscreen);
+    while(rfused(&app->r) < 480U) rfput(&app->r, dtmfnext(&app->dtmf));
+    if(!rfstart(&app->r)) goto done;
 
     for(bool go = true; go;)
     {
         InputEvent ev;
         if(furi_message_queue_get(app->q, &ev, 1) == FuriStatusOk && ev.key == InputKeyBack && ev.type == InputTypeShort) go = false;
+        while(rfused(&app->r) < 480U) rfput(&app->r, dtmfnext(&app->dtmf));
     }
 
 done:
+    rfstop(&app->r);
     if(app->gui && app->v) gui_remove_view_port(app->gui, app->v);
     if(app->v) view_port_free(app->v);
     if(app->q) furi_message_queue_free(app->q);
