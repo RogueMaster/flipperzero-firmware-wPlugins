@@ -1725,6 +1725,11 @@ send({ t: "again" });
 (function () {
 var myready = false;
 var solvedFor = -1;
+function upTiles(s) {
+return String(s || "")
+.replace(/[a-z]/g, function (c) { return c.toUpperCase(); })
+.replace(/ß/g, "ẞ");
+}
 function sub(name) {
 ["lobby", "count", "play", "final"].forEach(function (id) {
 $("scr-" + id).classList.toggle("hide", id !== name);
@@ -1754,14 +1759,14 @@ var form = $("scr-form"), status = $("scr-status");
 if (reveal) {
 A.timebarStop("scr-bar"); hide("scr-bar");
 letters.className = "scr-letters answer";
-letters.textContent = (m.word || "").toUpperCase();
+letters.textContent = upTiles(m.word);
 form.classList.add("hide");
 status.textContent = "Answer";
 solvedFor = -1;
 } else {
 noteDeadline(m.deadline, m.dur); A.timebar("scr-bar", m.deadline, m.dur, false);
 letters.className = "scr-letters";
-letters.textContent = (m.scram || "").toUpperCase().split("").join(" ");
+letters.textContent = upTiles(m.scram).split("").join(" ");
 var solved = !!m.solved;
 form.classList.toggle("hide", solved);
 status.textContent = solved ? "Solved! Waiting for the round to end." : (m.len + " letters");
