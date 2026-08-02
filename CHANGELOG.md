@@ -6,6 +6,14 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ## [Unreleased]
 
+### Added
+
+- **Kiss Marry Kill**, a 14th game (whole-group), contributed by @genkigenki
+  ([#8](https://github.com/tarikbc/hotspot-arcade/pull/8)). Each round a rotating chooser
+  secretly labels three people (drawn from the pack) Kiss, Marry, and Kill; everyone else
+  predicts the chooser's assignment. Points for matching positions, and the chooser scores
+  by how well the group reads them. Six rounds, four content packs. Firmware **v15**.
+
 ## [1.3.0] - 2026-08-01
 
 A 13th game. Firmware **v14**.

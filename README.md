@@ -19,7 +19,7 @@ the rounds. The ESP32 board is the **referee**: it runs the WiFi access point, s
 the game to phones, and keeps the real-time game state. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-Thirteen games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
+Fourteen games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
 reactions that float up on everyone's screen mid-game.
 
 **Whole-group** (scale to everyone in the room, ready-up lobby, shared live leaderboard):
@@ -42,6 +42,10 @@ reactions that float up on everyone's screen mid-game.
   and type a clue; everyone else slides a dial to guess where it lands. Points by
   closeness, and the psychic scores by how well the group guesses, so a good clue pays
   off. Six rounds, rotating psychic. Prompts are the spectrum packs on the SD card.
+- **Kiss Marry Kill** — each round a rotating chooser secretly labels three people (drawn
+  from the pack) Kiss, Marry, and Kill; everyone else predicts the chooser's assignment.
+  Points for matching positions, and the chooser scores by how well the group reads them.
+  Six rounds. People are the kmk packs on the SD card.
 
 **1v1 duels** (challenge a player, many matches at once, rematch button, wins score on
 the Flipper leaderboard):
@@ -86,6 +90,7 @@ Reaction Duel, Guess the Color), Draw &amp; Guess, and a real-time Pong (animate
 <p align="center">
   <img src="docs/img/web-guesscolor.gif" alt="Guess the Color: dial in the swatch's RGB with a slider per channel, then the reveal" width="19%">
   <img src="docs/img/web-spectrum.gif" alt="Spectrum: the psychic's clue points at a hidden target on a Cold-to-Hot dial; guessers slide to it" width="19%">
+  <img src="docs/img/web-kmk.gif" alt="Kiss Marry Kill: the chooser secretly labels three people Kiss/Marry/Kill and everyone predicts it" width="19%">
   <img src="docs/img/web-draw.gif" alt="Draw &amp; Guess: the drawer's canvas with strokes forming and the secret word" width="19%">
   <img src="docs/img/web-pong.gif" alt="Pong: real-time 1v1 rally with on-screen paddle controls" width="19%">
 </p>
