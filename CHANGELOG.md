@@ -6,6 +6,10 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-08-02
+
+A 14th game. Firmware **v15**.
+
 ### Added
 
 - **Kiss Marry Kill**, a 14th game (whole-group), contributed by @genkigenki
