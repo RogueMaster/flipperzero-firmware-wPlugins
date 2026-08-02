@@ -1,0 +1,19 @@
+Pack: Dia a Dia
+
+A: Poder voar
+B: Ser invisível
+---
+A: Viver na praia
+B: Viver na montanha
+---
+A: Nunca mais comer pizza
+B: Nunca mais comer brigadeiro
+---
+A: Acordar cedo todo dia
+B: Dormir tarde todo dia
+---
+A: Ter super força
+B: Ler a mente das pessoas
+---
+A: Só ouvir música o resto da vida
+B: Só assistir filmes o resto da vida

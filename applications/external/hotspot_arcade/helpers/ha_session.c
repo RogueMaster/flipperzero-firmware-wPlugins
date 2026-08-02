@@ -262,51 +262,67 @@ static void ha_content_stream_dir(
     storage_file_free(dir);
 }
 
-// Stream every pack to the ESP. User packs go first so they win both a name clash and
-// the topic cap, then the bundled ones fill what is left, then the legacy trivia-only
-// directories are swept for anything a user left there before the packs/ layout.
+// Stream one game's packs from packs/<sub> (user before bundled), into its per-game cap.
+// `sub` is the game dir, optionally with a "/<lang>" suffix for a translated set.
+static void ha_stream_subdir(
+    HotspotArcadeApp* app,
+    Storage* storage,
+    uint8_t game,
+    const char* sub,
+    char seen[HA_MAX_TOPICS][80],
+    int* topics) {
+    FuriString* d = furi_string_alloc();
+    furi_string_printf(d, "%s/%s", HA_USER_PACKS_DIR, sub);
+    ha_content_stream_dir(app, storage, furi_string_get_cstr(d), game, seen, topics);
+    furi_string_printf(d, "%s/%s", HA_BUNDLED_PACKS_DIR, sub);
+    ha_content_stream_dir(app, storage, furi_string_get_cstr(d), game, seen, topics);
+    furi_string_free(d);
+}
+
+// Stream every content game's packs to the ESP. User packs win over bundled (name clash
+// and the topic cap). If a language is selected, each game prefers packs/<game>/<lang>/
+// and falls back to English (packs/<game>/) when that language has none, so a partly
+// translated language still plays. English content is the unchanged root.
 static void ha_content_stream_packs(HotspotArcadeApp* app) {
     ha_proto_send(app->uart, HA_MSG_CONTENT_CLEAR, NULL, 0);
     furi_delay_ms(2);
     Storage* storage = furi_record_open(RECORD_STORAGE);
-    // `seen`/`topics` de-duplicate and cap packs PER GAME (each game stores its own
-    // set on the ESP), so every game restarts `topics` at 0. The streaming itself is
-    // generic — only the directory it reads and the game byte it tags differ.
+    // `seen`/`topics` de-duplicate and cap packs PER GAME (each game stores its own set
+    // on the ESP), so every game restarts `topics` at 0. Only the dir and game byte differ.
     char seen[HA_MAX_TOPICS][80];
-    FuriString* dir = furi_string_alloc();
+    const char* lang = app->lang; // "" = English
 
-    // Trivia: packs/trivia (user, then bundled) plus the legacy trivia-only dirs, all
-    // under one cap so a pack appearing in several is streamed once. User wins a clash.
-    int topics = 0;
-    furi_string_printf(dir, "%s/trivia", HA_USER_PACKS_DIR);
-    ha_content_stream_dir(app, storage, furi_string_get_cstr(dir), HA_GAME_TRIVIA, seen, &topics);
-    furi_string_printf(dir, "%s/trivia", HA_BUNDLED_PACKS_DIR);
-    ha_content_stream_dir(app, storage, furi_string_get_cstr(dir), HA_GAME_TRIVIA, seen, &topics);
-    ha_content_stream_dir(app, storage, HA_USER_TRIVIA_DIR, HA_GAME_TRIVIA, seen, &topics);
-    ha_content_stream_dir(app, storage, HA_BUNDLED_TRIVIA_DIR, HA_GAME_TRIVIA, seen, &topics);
-
-    // The other pack games. Same user-before-bundled precedence; each its own cap.
-    // Without this the packs bundled for wyr/scramble/draw never reach the ESP and
-    // those games start empty.
     static const struct {
         uint8_t game;
         const char* sub;
-    } more[] = {
+    } games[] = {
+        {HA_GAME_TRIVIA, "trivia"},
         {HA_GAME_WYR, "wyr"},
         {HA_GAME_SCRAMBLE, "scramble"},
         {HA_GAME_DRAW, "draw"},
+        {HA_GAME_SPECTRUM, "spectrum"},
+        {HA_GAME_KMK, "kmk"},
     };
-    for(unsigned g = 0; g < sizeof(more) / sizeof(more[0]); g++) {
-        topics = 0;
-        furi_string_printf(dir, "%s/%s", HA_USER_PACKS_DIR, more[g].sub);
-        ha_content_stream_dir(
-            app, storage, furi_string_get_cstr(dir), more[g].game, seen, &topics);
-        furi_string_printf(dir, "%s/%s", HA_BUNDLED_PACKS_DIR, more[g].sub);
-        ha_content_stream_dir(
-            app, storage, furi_string_get_cstr(dir), more[g].game, seen, &topics);
+    for(unsigned g = 0; g < sizeof(games) / sizeof(games[0]); g++) {
+        int topics = 0;
+        // Prefer the selected language's packs...
+        if(lang[0]) {
+            FuriString* s = furi_string_alloc();
+            furi_string_printf(s, "%s/%s", games[g].sub, lang);
+            ha_stream_subdir(app, storage, games[g].game, furi_string_get_cstr(s), seen, &topics);
+            furi_string_free(s);
+        }
+        // ...falling back to the English root when the language has none for this game.
+        if(topics == 0) ha_stream_subdir(app, storage, games[g].game, games[g].sub, seen, &topics);
+        // Trivia also sweeps the legacy trivia-only dirs (English, pre-packs/ layout),
+        // but only when it's on the English set.
+        if(games[g].game == HA_GAME_TRIVIA && (!lang[0] || topics == 0)) {
+            ha_content_stream_dir(app, storage, HA_USER_TRIVIA_DIR, HA_GAME_TRIVIA, seen, &topics);
+            ha_content_stream_dir(
+                app, storage, HA_BUNDLED_TRIVIA_DIR, HA_GAME_TRIVIA, seen, &topics);
+        }
     }
 
-    furi_string_free(dir);
     furi_record_close(RECORD_STORAGE);
 }
 

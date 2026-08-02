@@ -1,0 +1,42 @@
+Pack: Conhecimentos Gerais
+Q: Qual é a capital do Brasil?
+A: Rio de Janeiro
+B: São Paulo
+C: Brasília
+D: Salvador
+Answer: C
+---
+Q: Quantos jogadores de cada time ficam em campo no futebol?
+A: 9
+B: 10
+C: 11
+D: 12
+Answer: C
+---
+Q: Quem escreveu "Dom Casmurro"?
+A: José de Alencar
+B: Machado de Assis
+C: Jorge Amado
+D: Clarice Lispector
+Answer: B
+---
+Q: Qual é o maior planeta do Sistema Solar?
+A: Terra
+B: Saturno
+C: Júpiter
+D: Marte
+Answer: C
+---
+Q: Em que ano os portugueses chegaram ao Brasil?
+A: 1492
+B: 1500
+C: 1808
+D: 1889
+Answer: B
+---
+Q: Qual é o rio mais extenso do Brasil?
+A: São Francisco
+B: Paraná
+C: Amazonas
+D: Tietê
+Answer: C

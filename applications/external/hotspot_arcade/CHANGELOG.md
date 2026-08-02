@@ -6,6 +6,26 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ## [Unreleased]
 
+### Added
+
+- **Content languages.** The host picks a content language in Settings, and each game
+  streams that language's packs from `packs/<game>/<lang>/`, falling back to English per
+  game where a language has none (so a partly translated language still plays). English is
+  the unchanged default. **Brazilian Portuguese (pt-BR)** is the first, with a starter pack
+  for every content game. Adding a language is a set of pack files plus one row in the
+  settings picker.
+
+### Fixed
+
+- **Spectrum and Kiss Marry Kill now get their content packs on hardware.** The Flipper's
+  pack streamer only covered trivia/wyr/scramble/draw, so those two games started empty on
+  a real board (the simulator streamed them, which hid it). Both are streamed now.
+- Word Scramble and Draw are now UTF-8-safe, so non-English content packs work: the
+  scramble shuffles whole letters (not bytes), the Draw blank count is per character, and
+  the scramble tiles upper-case ASCII only (so a German `ß` stays one tile). ASCII content
+  is unchanged. From @genkigenki
+  ([#9](https://github.com/tarikbc/hotspot-arcade/pull/9)) — the enabler for language packs.
+
 ## [1.4.0] - 2026-08-02
 
 A 14th game. Firmware **v15**.

@@ -49,6 +49,17 @@ static inline void ha_upper(char* s) {
 #define TRIVIA_COUNTDOWN 3 // seconds after all-ready before the first question
 #define TRIVIA_REVEAL_MS 4000 // pause on the reveal before the next question
 
+// Character count of a UTF-8 string (counts lead bytes, skips continuation bytes).
+// Content packs are UTF-8, so any language beyond ASCII (accented Latin, Cyrillic,
+// Greek, ...) needs glyph-aware handling: a 2-byte letter must count as one blank in
+// Draw, and Scramble must shuffle whole letters, not split them into invalid bytes.
+static inline int haUtf8Len(const char* s) {
+    int n = 0;
+    for(; *s; s++)
+        if(((unsigned char)*s & 0xC0) != 0x80) n++;
+    return n;
+}
+
 #define DRAW_SECS 70 // per drawing round
 #define DRAW_REVEAL_MS 4000 // reveal pause before the next round
 #define PONG_MAX 4 // concurrent pong matches
@@ -1954,7 +1965,7 @@ private:
                     s += _d.drawer;
                 } else {
                     s += ",\"role\":\"guesser\",\"len\":";
-                    s += (int)strlen(_d.word);
+                    s += haUtf8Len(_d.word); // characters, not bytes: one blank per letter
                     s += ",\"drawer\":\"";
                     s += ha_json_escape(_p[_d.drawer].nick);
                     s += "\"";
@@ -2412,17 +2423,38 @@ private:
     }
 
     // Shuffle src into dst (NUL-terminated); retry a few times so it differs from src.
+    // Shuffles by UTF-8 character, not byte: a multi-byte letter (an accented Latin
+    // char, or any non-Latin script) moves as one glyph instead of splitting into
+    // continuation bytes that render as garbage.
     void scrambleMake(char* dst, const char* src) {
-        int len = (int)strlen(src);
+        // Slice src into glyphs: offset + byte-length of each UTF-8 character.
+        const char* off[24];
+        uint8_t glen[24];
+        int n = 0;
+        for(const char* p = src; *p && n < 23;) {
+            unsigned char c = (unsigned char)*p;
+            int l = c >= 0xF0 ? 4 : c >= 0xE0 ? 3 : c >= 0xC0 ? 2 : 1;
+            off[n] = p;
+            glen[n] = (uint8_t)l;
+            n++;
+            p += l;
+        }
         for(int attempt = 0; attempt < 8; attempt++) {
-            strlcpy(dst, src, 24);
-            for(int i = len - 1; i > 0; i--) {
+            int idx[24];
+            for(int i = 0; i < n; i++) idx[i] = i;
+            for(int i = n - 1; i > 0; i--) {
                 int j = (int)(esp_random() % (uint32_t)(i + 1));
-                char t = dst[i];
-                dst[i] = dst[j];
-                dst[j] = t;
+                int t = idx[i];
+                idx[i] = idx[j];
+                idx[j] = t;
             }
-            if(len < 2 || strcmp(dst, src) != 0) return;
+            char* o = dst;
+            for(int i = 0; i < n; i++) {
+                memcpy(o, off[idx[i]], glen[idx[i]]);
+                o += glen[idx[i]];
+            }
+            *o = '\0';
+            if(n < 2 || strcmp(dst, src) != 0) return;
         }
     }
 

@@ -6,6 +6,16 @@
   var myready = false;
   var solvedFor = -1;
 
+  // Upper-case ASCII letters only, so accented letters keep the case the answer check
+  // accepts and stay one tile each. "ß" is special: its JS upper-case is "SS" (two
+  // tiles, breaks the letter count), so map it to the capital esz-zett "ẞ" instead --
+  // one uppercase glyph that still reads as a ß and still matches a typed "ß".
+  function upTiles(s) {
+    return String(s || "")
+      .replace(/[a-z]/g, function (c) { return c.toUpperCase(); })
+      .replace(/ß/g, "ẞ");
+  }
+
   function sub(name) {
     ["lobby", "count", "play", "final"].forEach(function (id) {
       $("scr-" + id).classList.toggle("hide", id !== name);
@@ -38,14 +48,17 @@
     if (reveal) {
       A.timebarStop("scr-bar"); hide("scr-bar");
       letters.className = "scr-letters answer";
-      letters.textContent = (m.word || "").toUpperCase();
+      // Upper-case ASCII only: "ß".toUpperCase() is "SS" (two chars) and umlauts would
+      // show a case the ASCII-folding answer check doesn't accept, so the tiles would
+      // stop matching what you type. Leaving non-ASCII as-is keeps display == answer.
+      letters.textContent = upTiles(m.word);
       form.classList.add("hide");
       status.textContent = "Answer";
       solvedFor = -1;
     } else {
       noteDeadline(m.deadline, m.dur); A.timebar("scr-bar", m.deadline, m.dur, false);
       letters.className = "scr-letters";
-      letters.textContent = (m.scram || "").toUpperCase().split("").join(" ");
+      letters.textContent = upTiles(m.scram).split("").join(" ");
       var solved = !!m.solved;
       form.classList.toggle("hide", solved);
       status.textContent = solved ? "Solved! Waiting for the round to end." : (m.len + " letters");
