@@ -1,0 +1,51 @@
+name: pr-checklist-comment
+
+# Posts the pr-checklist report as a sticky PR comment. Runs via workflow_run so it
+# executes in the base-repo context with a writable token even for fork PRs — the secure
+# alternative to pull_request_target. It never checks out or runs PR code; it only reads
+# the report artifact (text) that the pr-checklist job produced and posts it.
+on:
+  workflow_run:
+    workflows: [pr-checklist]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read # download-artifact reads the artifact from the pr-checklist run
+  pull-requests: write
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the checklist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-checklist
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Post or update the checklist comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const marker = "<!-- pr-checklist-bot -->";
+            let report, number;
+            try {
+              report = fs.readFileSync("checklist.md", "utf8");
+              number = parseInt(fs.readFileSync("pr-number.txt", "utf8").trim(), 10);
+            } catch (e) {
+              core.info("No checklist artifact; nothing to comment.");
+              return;
+            }
+            if (!Number.isInteger(number) || number <= 0) {
+              core.info("No PR number in artifact; skipping.");
+              return;
+            }
+            const body = report + "\n" + marker;
+            const { owner, repo } = context.repo;
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number: number });
+            const prev = comments.find((c) => c.body.includes(marker));
+            if (prev) await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body });
+            else await github.rest.issues.createComment({ owner, repo, issue_number: number, body });

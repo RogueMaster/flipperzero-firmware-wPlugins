@@ -2,15 +2,17 @@ name: pr-checklist
 
 # Review each PR against the CONTRIBUTING.md checklist: hard checks (ha_proto.h agreement,
 # a committed & current web bundle) fail the job; "adding a game" wiring/docs items are
-# posted as advisory reminders. The report goes to the run summary always, and to a sticky
-# PR comment when the token can write (i.e. not fork PRs).
+# advisory reminders. Runs on `pull_request` with a read-only token (safe for fork code),
+# writes the report to the run summary, and uploads it as an artifact. A separate
+# pr-checklist-comment workflow (workflow_run) posts it as a sticky PR comment with a
+# writable token — the secure way to comment on fork PRs without giving this job, which
+# runs the PR's own web/build.mjs, write access.
 on:
   pull_request:
     types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   checklist:
@@ -35,24 +37,25 @@ jobs:
           echo "exit=$?" >> "$GITHUB_OUTPUT"
           cat checklist.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Comment on the PR
+      # Hand the report + PR number to the comment workflow. The workflow_run event can't
+      # read a fork PR's number, so pass it through the artifact.
+      - name: Stash report + PR number
         if: always()
-        continue-on-error: true # fork PRs get a read-only token; the run summary still has it
-        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: echo "$PR_NUMBER" > pr-number.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          script: |
-            const fs = require("fs");
-            const marker = "<!-- pr-checklist-bot -->";
-            const body = fs.readFileSync("checklist.md", "utf8") + "\n" + marker;
-            const { owner, repo } = context.repo;
-            const issue_number = context.payload.pull_request.number;
-            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
-            const prev = comments.find((c) => c.body.includes(marker));
-            if (prev) await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body });
-            else await github.rest.issues.createComment({ owner, repo, issue_number, body });
+          name: pr-checklist
+          path: |
+            checklist.md
+            pr-number.txt
+          retention-days: 3
 
       - name: Enforce required checks
         if: steps.check.outputs.exit != '0'
         run: |
-          echo "Required PR checks failed — see the checklist in the run summary / PR comment."
+          echo "Required PR checks failed — see the checklist comment / run summary."
           exit 1
