@@ -77,19 +77,20 @@ static LevelDuration rfbit(void *ctx)
         if(rf->drain && rf->tail == rf->head) return level_duration_reset();
         rf->s = rfpop(rf);
     }
-    rf->sphase = (rf->sphase + 1U) & 1U;
+    rf->sphase++;
+    if(rf->sphase == 3U) rf->sphase = 0;
     rf->err += rf->s;
     rf->bit = rf->err >= 0;
     rf->err += rf->bit ? -32767 : 32768;
     rf->slot++;
-    if(rf->slot == 4U)
+    if(rf->slot == 6U)
     {
         rf->slot = 0;
-        us = 32U;
+        us = 20U;
     }
     else
     {
-        us = 31U;
+        us = 21U;
     }
     return level_duration_make(rf->bit, us);
 }
