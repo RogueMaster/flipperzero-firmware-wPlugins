@@ -1,0 +1,17 @@
+Pack: Palavras
+
+Word: coração
+---
+Word: café
+---
+Word: pão
+---
+Word: avião
+---
+Word: girafa
+---
+Word: música
+---
+Word: irmão
+---
+Word: caminhão

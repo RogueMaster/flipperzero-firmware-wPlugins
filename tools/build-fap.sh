@@ -191,6 +191,17 @@ for gamedir in "$REPO"/packs/*/; do
     for pack in "$gamedir"*.txt; do
         [ -f "$pack" ] && cp "$pack" "$ASSETS_PACKS/$game/"
     done
+    # Translated packs live in packs/<game>/<lang>/ subdirs; mirror them so the host
+    # can stream a language and fall back to the English root.
+    for langdir in "$gamedir"*/; do
+        [ -d "$langdir" ] || continue
+        lang=$(basename "$langdir")
+        for pack in "$langdir"*.txt; do
+            [ -f "$pack" ] || continue
+            mkdir -p "$ASSETS_PACKS/$game/$lang"
+            cp "$pack" "$ASSETS_PACKS/$game/$lang/"
+        done
+    done
 done
 ls -la "$ASSETS_WEB"
 ls -la "$ASSETS_PACKS"/*

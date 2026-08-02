@@ -17,6 +17,16 @@ const PACK_DIRS = [
   { game: 14, dir: "kmk", names: ["famous", "fiction", "historical", "mix"] },
 ];
 
+// Translated packs live under packs/<dir>/<lang>/. Mirrors the Flipper: the host picks
+// one language, and each game falls back to English (the packs/<dir>/ root) when that
+// language has no pack. English content is unchanged. Keyed by game dir -> pack names.
+const LANGS = {
+  "pt-br": {
+    trivia: ["geral"], wyr: ["cotidiano"], scramble: ["palavras"],
+    spectrum: ["opostos"], kmk: ["famosos"], draw: ["coisas"],
+  },
+};
+
 // Ids copied verbatim from flipper/hotspot-arcade/ha_proto.h (HA_GAME_*).
 const GAMES = [
   ["None", 0], ["Trivia", 1], ["Connect Four", 2], ["Tic-Tac-Toe", 3],
@@ -74,6 +84,7 @@ export async function mountFlipper(el) {
       <button id="zero">Reset scores</button>
     </div>
     <div class="row"><button id="packs">Load packs</button>
+      <select id="lang"><option value="">English</option><option value="pt-br">Portugues (BR)</option></select>
       <span id="packstate" class="muted">no packs loaded</span></div>
     <table class="roster"><thead><tr><th>pid</th><th>nick</th><th>score</th></tr></thead>
       <tbody id="roster"></tbody></table>
@@ -90,15 +101,23 @@ export async function mountFlipper(el) {
   };
   document.getElementById("packs").onclick = async () => {
     engine.contentClear();
+    const lang = document.getElementById("lang").value; // "" = English
+    const trans = (lang && LANGS[lang]) || {};
     let packCount = 0;
     let itemCount = 0;
     for (const g of PACK_DIRS) {
-      const loaded = await loadGamePacks(engine, g.game, g.dir, g.names);
+      // Per-game fallback: use the language's packs if it has any for this game,
+      // otherwise the English root. One language across, English where it's missing.
+      const langNames = trans[g.dir];
+      const loaded = (lang && langNames)
+        ? await loadGamePacks(engine, g.game, g.dir, langNames, lang)
+        : await loadGamePacks(engine, g.game, g.dir, g.names);
       packCount += loaded.length;
       itemCount += loaded.reduce((n, p) => n + p.count, 0);
     }
+    const label = lang ? LANGS[lang] ? lang : "en" : "en";
     document.getElementById("packstate").textContent =
-      `${packCount} packs, ${itemCount} items (all games)`;
+      `${packCount} packs, ${itemCount} items (${label})`;
   };
   render();
 }

@@ -1,0 +1,14 @@
+Pack: Famosos do Brasil
+Name: Pelé
+---
+Name: Anitta
+---
+Name: Xuxa
+---
+Name: Ayrton Senna
+---
+Name: Gisele Bündchen
+---
+Name: Neymar
+---
+Name: Machado de Assis

@@ -106,11 +106,12 @@ export function parseGenericPack(text, fallbackName = "") {
 
 // Stream one game's packs into the engine the way the Flipper does: contentPack to
 // begin, contentItem per block. Returns [{name, count}] for the panel to report.
-export async function loadGamePacks(engine, game, dir, names) {
+export async function loadGamePacks(engine, game, dir, names, sub = "") {
   const loaded = [];
+  const base = sub ? `../../packs/${dir}/${sub}` : `../../packs/${dir}`;
   for (const n of names) {
     try {
-      const res = await fetch(`../../packs/${dir}/${n}.txt`);
+      const res = await fetch(`${base}/${n}.txt`);
       if (!res.ok) { console.warn(`${dir} pack "${n}": HTTP ${res.status}`); continue; }
       const pk = parseGenericPack(await res.text(), n);
       engine.contentPack(game, pk.name);

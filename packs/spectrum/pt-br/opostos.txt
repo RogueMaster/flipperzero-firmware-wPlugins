@@ -1,0 +1,18 @@
+Pack: Opostos
+Left: Frio
+Right: Quente
+---
+Left: Barato
+Right: Caro
+---
+Left: Pequeno
+Right: Grande
+---
+Left: Devagar
+Right: Rápido
+---
+Left: Fácil
+Right: Difícil
+---
+Left: Perto
+Right: Longe

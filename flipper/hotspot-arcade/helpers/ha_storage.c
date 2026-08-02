@@ -26,6 +26,7 @@ void ha_storage_load_config(HotspotArcadeApp* app) {
     FlipperFormat* ff = flipper_format_file_alloc(storage);
     FuriString* tmp = furi_string_alloc();
     bool have_ssid = false;
+    app->lang[0] = '\0'; // default: English
 
     if(flipper_format_file_open_existing(ff, HA_CONFIG_PATH)) {
         uint32_t ver = 0;
@@ -40,6 +41,9 @@ void ha_storage_load_config(HotspotArcadeApp* app) {
             if(flipper_format_read_uint32(ff, "Sound", &v, 1)) app->sound_on = (v != 0);
             flipper_format_rewind(ff);
             if(flipper_format_read_uint32(ff, "Vibro", &v, 1)) app->vibro_on = (v != 0);
+            flipper_format_rewind(ff);
+            if(flipper_format_read_string(ff, "Lang", tmp))
+                strlcpy(app->lang, furi_string_get_cstr(tmp), sizeof(app->lang));
         }
     }
 
@@ -59,6 +63,7 @@ void ha_storage_save_config(HotspotArcadeApp* app) {
         uint32_t vibro = app->vibro_on ? 1 : 0;
         flipper_format_write_uint32(ff, "Sound", &sound, 1);
         flipper_format_write_uint32(ff, "Vibro", &vibro, 1);
+        flipper_format_write_string_cstr(ff, "Lang", app->lang);
     }
     flipper_format_free(ff);
     furi_record_close(RECORD_STORAGE);

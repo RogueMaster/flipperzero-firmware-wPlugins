@@ -110,7 +110,14 @@ def pack_files():
         game_dir = os.path.join(PACKS, game)
         if not os.path.isdir(game_dir):
             continue  # e.g. packs/README.md
-        files = sorted(glob.glob(os.path.join(game_dir, "*.txt")))
+        # Root packs (English) plus any packs/<game>/<lang>/ translated subdirs. Each
+        # entry is (relpath-under-the-game-dir, fullpath) so the upload preserves the
+        # <game>/<lang>/<name> layout the host streams.
+        files = []
+        for p in sorted(glob.glob(os.path.join(game_dir, "*.txt"))):
+            files.append((os.path.basename(p), p))
+        for p in sorted(glob.glob(os.path.join(game_dir, "*", "*.txt"))):
+            files.append((os.path.relpath(p, game_dir), p))
         if files:
             games[game] = files
     return games
@@ -155,15 +162,22 @@ def main():
             f"{APP_DIR}/logs",
         ]:
             cmd(s, f"storage mkdir {d}")
-        for game in packs:
+        made = set()
+        for game, files in packs.items():
             cmd(s, f"storage mkdir {APP_DIR}/packs/{game}")
+            for rel, _ in files:
+                sub = os.path.dirname(rel)  # "" or a language subdir
+                subpath = f"{game}/{sub}"
+                if sub and subpath not in made:
+                    cmd(s, f"storage mkdir {APP_DIR}/packs/{game}/{sub}")
+                    made.add(subpath)
 
         jobs.append((FAP, "/ext/apps/GPIO/hotspot_arcade.fap"))
         for p in web:
             jobs.append((p, f"{APP_DIR}/web/{os.path.basename(p)}"))
         for game, files in packs.items():
-            for p in files:
-                jobs.append((p, f"{APP_DIR}/packs/{game}/{os.path.basename(p)}"))
+            for rel, p in files:
+                jobs.append((p, f"{APP_DIR}/packs/{game}/{rel}"))
 
         for local, remote in jobs:
             ok = upload(s, local, remote)

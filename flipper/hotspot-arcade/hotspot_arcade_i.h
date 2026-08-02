@@ -113,6 +113,7 @@ typedef struct HotspotArcadeApp {
     char ssid_buf[HA_SSID_MAX];
     bool sound_on;
     bool vibro_on;
+    char lang[8]; // content language code, "" = English (streams packs/<game>/<lang>/)
 
     // Web bundle (from manifest.json)
     HaAsset assets[HA_MAX_ASSETS];

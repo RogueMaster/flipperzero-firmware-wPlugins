@@ -1,0 +1,15 @@
+Pack: Coisas
+
+Word: elefante
+---
+Word: pinguim
+---
+Word: girafa
+---
+Word: guitarra
+---
+Word: foguete
+---
+Word: castelo
+---
+Word: bicicleta
