@@ -8,17 +8,14 @@
 
 // Title
 #define EN_TITLE       "3D MAZE"
-// Menu items (M1 = story/campaign mode, M2 = endless, M3 = visitor)
+// Menu items (M1 = story/campaign mode)
 #define EN_M1          "1. Story"
-#define EN_M2          "2. Endless"
-#define EN_M3          "3. Visitor"
 #define EN_HINT_MENU   "Up/Dn Select  OK Start  Back Exit"
 #define EN_LANG_TAG    "EN"
 #define EN_ZH_TAG      "CN"
 
 // Level select
 #define EN_LS_TITLE_STORY  "STORY - SELECT LEVEL"
-#define EN_LS_TITLE_ENDLESS "ENDLESS - SELECT LEVEL"
 #define EN_LS_LOCKED       "Locked"
 #define EN_LS_CLEARED      "Cleared"
 #define EN_LS_HINT         "Up/Dn:Level  OK:Enter  Back"
@@ -66,8 +63,6 @@
 #define EN_MSG_FINDEXIT "Find Exit!"
 #define EN_MSG_CARE    "Watch Out!"
 #define EN_MSG_PUZZLE  "Key->Door"
-#define EN_MSG_VISITOR "Visitor Mode"
-#define EN_MSG_RUN     "Endless Run"
 #define EN_MSG_HIT     "Hit! -1HP"
 #define EN_MSG_EXIT    "Exit Ahead"
 
@@ -82,10 +77,8 @@ static inline const char* en_msg_str(int id) {
         case 5:  return EN_MSG_FINDEXIT;
         case 6:  return EN_MSG_CARE;
         case 7:  return EN_MSG_PUZZLE;
-        case 8:  return EN_MSG_VISITOR;
-        case 9:  return EN_MSG_RUN;
-        case 10: return EN_MSG_HIT;
-        case 11: return EN_MSG_EXIT;
+        case 8:  return EN_MSG_HIT;
+        case 9:  return EN_MSG_EXIT;
         default: return "";
     }
 }

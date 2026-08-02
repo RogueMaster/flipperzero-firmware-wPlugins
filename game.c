@@ -32,7 +32,6 @@ static void quest_init_for_level(int level) {
     g.task_kill_count = 0;
     g.task_open_door = 0;
     g.task_get_key = 0;
-    g.task_survive_secs = 0;
     for(int i = 0; i < MAX_SUBTASKS; i++) {
         g.quest.subs[i].type = TASK_NONE;
         g.quest.subs[i].target = 0;
@@ -82,9 +81,6 @@ static void quest_update(void) {
                 break;
             case TASK_FIND_EXIT:
                 // 由 player_move 命中 CELL_EXIT 时直接置 done
-                break;
-            case TASK_SURVIVE:
-                s->progress = g.task_survive_secs;
                 break;
             default: break;
         }
@@ -220,18 +216,10 @@ bool player_move(float dx, float dy) {
             }
             quest_update();
         }
-        if(g.mode == MODE_CAMPAIGN) {
-            g.mode = MODE_LEVEL_CLEAR;
-            if(g.level > g.campaign_cleared) g.campaign_cleared = g.level;
-            storage_save();
-            sfx_play(SFX_LEVEL_CLEAR);
-        } else if(g.mode == MODE_ENDLESS_RUN) {
-            g.endless_floor++;
-            storage_save();
-            game_next_level();
-        } else if(g.mode == MODE_ENDLESS_VISITOR) {
-            set_msg(MSG_EXIT);
-        }
+        g.mode = MODE_LEVEL_CLEAR;
+        if(g.level > g.campaign_cleared) g.campaign_cleared = g.level;
+        storage_save();
+        sfx_play(SFX_LEVEL_CLEAR);
     }
     return true;
 }
@@ -283,7 +271,7 @@ void actors_update(void) {
     }
 }
 
-static void place_player_and_actors(int level, bool visitor) {
+static void place_player_and_actors(int level) {
     g.player.x = 1.5f; g.player.y = 1.5f;
     set_dir(0.0f);
     g.player.keys = 0;
@@ -292,25 +280,20 @@ static void place_player_and_actors(int level, bool visitor) {
     g.player.amulets = 0;
     g.actor_count = 0;
 
-    // 起始 HP/物品: 剧情模式由开场选择决定; 无尽/游客固定
-    if(g.mode == MODE_CAMPAIGN) {
-        if(g.story_choice == 0) {        // A) Warrior
-            g.player.max_health = 7;
-            g.player.health = 7;
-        } else if(g.story_choice == 1) { // B) Seeker
-            g.player.max_health = 4;
-            g.player.health = 4;
-            g.player.torches = 1;
-        } else {                          // 未选(直接进高层级重玩)
-            g.player.max_health = 5;
-            g.player.health = 5;
-        }
-    } else {
+    // 起始 HP/物品: 由开场剧情选择决定
+    if(g.story_choice == 0) {        // A) Warrior
+        g.player.max_health = 7;
+        g.player.health = 7;
+    } else if(g.story_choice == 1) { // B) Seeker
+        g.player.max_health = 4;
+        g.player.health = 4;
+        g.player.torches = 1;
+    } else {                          // 未选(直接进高层级重玩)
         g.player.max_health = 5;
         g.player.health = 5;
     }
 
-    if(g.mode == MODE_CAMPAIGN && g.stage == STAGE_COMBAT) {
+    if(g.stage == STAGE_COMBAT) {
         int enemies = 1 + (level - 20) / 4;
         if(enemies > 4) enemies = 4;
         int placed = 0, tries = 0;
@@ -320,20 +303,6 @@ static void place_player_and_actors(int level, bool visitor) {
             if(walkable(maze_get(x, y)) && (abs(x - 1) + abs(y - 1) > 5)) {
                 spawn_actor(x + 0.5f, y + 0.5f, 0);
                 placed++;
-            }
-        }
-    }
-    if(visitor) {
-        int npcs = 3;
-        for(int i = 0; i < npcs; i++) {
-            int tries = 0;
-            while(tries++ < 100) {
-                int x = 2 + maze_rng_next() % (g.map_w - 4);
-                int y = 2 + maze_rng_next() % (g.map_h - 4);
-                if(walkable(maze_get(x, y))) {
-                    spawn_actor(x + 0.5f, y + 0.5f, 1);
-                    break;
-                }
             }
         }
     }
@@ -354,7 +323,7 @@ void game_init_campaign(int level) {
     int sz = 7 + level;
     if(sz > 23) sz = 23;     // 上限保护, 防止大迷宫卡顿
     maze_generate(sz, sz, level, 0xABCDEF01u);
-    place_player_and_actors(level, false);
+    place_player_and_actors(level);
     quest_init_for_level(level);
     if(g.stage == STAGE_COMBAT) set_msg(MSG_CARE);
     else if(g.stage == STAGE_PUZZLE) set_msg(MSG_PUZZLE);
@@ -362,35 +331,8 @@ void game_init_campaign(int level) {
     g.dirty = true;
 }
 
-void game_init_endless(int floor, bool visitor) {
-    g.mode = visitor ? MODE_ENDLESS_VISITOR : MODE_ENDLESS_RUN;
-    g.level = floor;
-    g.endless_floor = floor;
-    g.stage = STAGE_MAZE_ONLY;
-    g.has_exit = true;
-    g.exit_found = true;
-    g.tick = 0;
-    g.show_hud = false;
-    // 清零平滑插值目标(避免旧累积值)
-    g.turn_target = 0.0f;
-    g.move_fwd_target = 0.0f;
-    g.move_bwd_target = 0.0f;
-    g.move_dash_target = 0.0f;
-    // 尺寸严格上限 19 (19x19=361 格, DDA 步数最多 19 列 × 64 = 1216 次循环)
-    int sz = 9 + (floor > 10 ? 10 : floor);
-    if(sz > 19) sz = 19;
-    if(sz < 9)  sz = 9;
-    // 用 floor 做种子散列 (避免连续 floor 生成相似地图)
-    unsigned seed = 0x12345678u ^ (unsigned)floor * 2654435761u ^ (unsigned)floor * 1013904242u;
-    maze_generate(sz, sz, floor + 100, seed);
-    place_player_and_actors(floor + 100, visitor);
-    set_msg(visitor ? MSG_VISITOR : MSG_RUN);
-    g.dirty = true;
-}
-
 void game_next_level(void) {
-    if(g.mode == MODE_CAMPAIGN) game_init_campaign(g.level + 1);
-    else if(g.mode == MODE_ENDLESS_RUN) game_init_endless(g.endless_floor, false);
+    game_init_campaign(g.level + 1);
 }
 
 // ---- 物品栏 ----

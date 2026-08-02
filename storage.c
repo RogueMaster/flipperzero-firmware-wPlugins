@@ -24,11 +24,10 @@ void storage_load(void) {
     bool ok = storage_file_open(f, SAVE_PATH, FSAM_READ, FSOM_OPEN_EXISTING);
     if(ok && storage_file_read(f, &d, sizeof(d)) == sizeof(d) && d.magic == SAVE_MAGIC) {
         g.campaign_cleared = d.campaign_cleared;
-        g.endless_floor = d.endless_floor;
         g.sfx_enabled = (d.sfx_enabled != 0);
         g.opening_enabled = (d.opening_enabled != 0);
     } else {
-        // 旧版 MAZ3 存档: 只读取前 3 项
+        // 旧版 MAZ3 存档: 只读取 campaign_cleared (endless 已废弃, 忽略)
         uint32_t magic_old = 0;
         storage_file_close(f);
         if(storage_file_open(f, SAVE_PATH, FSAM_READ, FSOM_OPEN_EXISTING) &&
@@ -37,10 +36,8 @@ void storage_load(void) {
             storage_file_read(f, &cc, 4);
             storage_file_read(f, &ef, 4);
             g.campaign_cleared = cc;
-            g.endless_floor = ef;
         } else {
             g.campaign_cleared = 0;
-            g.endless_floor = 1;
         }
     }
     storage_file_free(f);
@@ -51,7 +48,7 @@ void storage_save(void) {
     SaveData d;
     d.magic = SAVE_MAGIC;
     d.campaign_cleared = g.campaign_cleared;
-    d.endless_floor = g.endless_floor;
+    d.endless_floor = 0;   // 已废弃, 固定 0 (保留字段以维持二进制兼容)
     d.sfx_enabled = g.sfx_enabled ? 1 : 0;
     d.opening_enabled = g.opening_enabled ? 1 : 0;
     memset(d.reserved, 0, sizeof(d.reserved));

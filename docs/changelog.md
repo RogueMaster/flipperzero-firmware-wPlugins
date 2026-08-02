@@ -1,3 +1,23 @@
+v5.0:
+- BREAKING: Endless Run and Visitor modes REMOVED. The endless mode kept
+  crashing / freezing the device on floor transitions despite multiple fix
+  attempts (v4.0 size cap, v4.1 stack-overflow fix). Rather than ship an
+  unstable mode, it has been cut entirely. The app is now a focused
+  single-mode story campaign.
+- Full architectural refactor around the single Campaign mode: menu reduced
+  to two items (1. Story / 2. Settings); GameMode enum, GameState, level
+  select, HUD, inventory and map panel all stripped of endless/visitor
+  branches; game_init_endless, NPC visitor spawns, MSG_VISITOR/MSG_RUN,
+  TASK_SURVIVE/TASK_REACH_FLOOR and the endlessFloor save field are gone.
+- Stability hardening: world update + raycast now only run in
+  MODE_CAMPAIGN (the one mode that needs them), so there is no longer any
+  per-floor re-init + full-speed render storm that triggered the crashes.
+- Save format unchanged on disk (MAZ4); the endless_floor slot is kept for
+  binary compatibility but ignored. Old MAZ3/MAZ4 saves still load
+  (campaign progress + settings preserved).
+- Everything from v4.2/v4.3 retained: opening animation + BGM, SFX, quest
+  system for story levels, enemy combat, bilingual CN/EN UI, settings.
+
 v4.3:
 - Opening animation on app start: fluent 4-stage intro with BGM —
   (1) logo drops from the top with bounce easing + impact wave,
