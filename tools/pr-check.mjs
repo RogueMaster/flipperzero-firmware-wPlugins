@@ -10,6 +10,7 @@
 // CI passes BASE; locally it defaults to origin/master (falls back to master).
 import { execSync } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
+import { gunzipSync } from "node:zlib";
 
 const REPO = new URL("..", import.meta.url).pathname;
 const sh = (c) => execSync(c, { cwd: REPO, encoding: "utf8" }).trim();
@@ -50,16 +51,23 @@ H(gamesEqual, "HA_GAME_* ids match in both ha_proto.h",
   gamesEqual ? `${Object.keys(espGames).length} games` : "id lists differ between the two headers");
 
 // ---- HARD: web bundle is rebuilt & committed ----
+// Compare the DECOMPRESSED bundle, not the raw .gz: gzip container bytes vary by the
+// platform's zlib, so a raw-byte check false-fails when the committer built on a
+// different OS. The decompressed HTML is what actually differs when the bundle is stale.
 let bundleOk = false, bundleDetail = "";
 try {
-  sh("node web/build.mjs");
-  const dirty = sh("git status --porcelain -- web/dist").length > 0;
-  bundleOk = !dirty;
-  bundleDetail = dirty ? "web/dist differs after `node web/build.mjs` — rebuild and commit" : "up to date";
+  const committedHtml = gunzipSync(execSync("git show HEAD:web/dist/index.html.gz", { cwd: REPO })).toString();
+  sh("node web/build.mjs"); // overwrites web/dist in the working tree
+  const builtHtml = gunzipSync(readFileSync(REPO + "web/dist/index.html.gz")).toString();
+  const manifestStale = sh("git status --porcelain -- web/dist/manifest.json").length > 0;
+  bundleOk = committedHtml === builtHtml && !manifestStale;
+  bundleDetail = bundleOk ? "up to date"
+    : committedHtml !== builtHtml ? "the built bundle differs from web/dist — run `node web/build.mjs` and commit"
+      : "web/dist/manifest.json is stale — run `node web/build.mjs` and commit";
 } catch (e) {
-  bundleDetail = "could not run web/build.mjs: " + e.message.split("\n")[0];
+  bundleDetail = "could not check the web bundle: " + e.message.split("\n")[0];
 }
-H(bundleOk, "web/dist matches `node web/build.mjs`", bundleDetail);
+H(bundleOk, "web/dist matches `node web/build.mjs` (decompressed)", bundleDetail);
 
 // ---- Detect a new game (a HA_GAME_* id present in HEAD but not in BASE) ----
 let baseGames = {};
