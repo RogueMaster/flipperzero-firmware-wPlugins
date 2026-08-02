@@ -6,7 +6,7 @@ font_path = "/root/.fonts/NotoSansCJKsc-Regular.otf"
 F = ImageFont.truetype(font_path, 8)
 
 items = [
-    ("m4",           "2.设置",     10, 12),
+    ("m4",           "4.设置",     10, 12),
     ("settings_hdr", "设置",       11, 14),
     ("set_sfx",      "音效",       8, 10),
     ("set_opening",  "开场动画",   8, 10),

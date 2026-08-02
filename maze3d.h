@@ -40,13 +40,15 @@ typedef enum {
     ITEM_COUNT,
 } ItemType;
 
-// 任务系统 (仅剧情关卡)
+// 任务系统
 typedef enum {
     TASK_NONE = 0,
     TASK_FIND_EXIT,     // 找到出口
     TASK_GET_KEY,       // 获得钥匙
     TASK_OPEN_DOOR,     // 开门
     TASK_KILL_ENEMY,    // 消灭敌人
+    TASK_REACH_FLOOR,   // 到达指定楼层(无尽)
+    TASK_SURVIVE,       // 存活 N 秒
     TASK_COUNT,
 } TaskType;
 
@@ -66,11 +68,11 @@ typedef struct {
     bool reward_given;      // 奖励是否已发放
 } Quest;
 
-// 敌人
+// 敌人/NPC
 typedef struct {
     float x, y;
     bool active;
-    uint8_t type;       // 0=敌人 (保留字段, 兼容旧逻辑)
+    uint8_t type;       // 0=敌人 1=NPC游客
     uint8_t cooldown;
     uint8_t hp;         // 敌人血量(1-3), 0=死亡
 } Actor;
@@ -91,7 +93,9 @@ typedef struct {
 
 typedef enum {
     MODE_MENU = 0,
-    MODE_CAMPAIGN,          // 剧情模式 (唯一玩法)
+    MODE_CAMPAIGN,          // 剧情模式(原关卡模式)
+    MODE_ENDLESS_VISITOR,
+    MODE_ENDLESS_RUN,
     MODE_PAUSED,
     MODE_LEVEL_CLEAR,
     MODE_GAME_OVER,
@@ -118,6 +122,7 @@ typedef struct {
     int actor_count;
     int level;
     int campaign_cleared;
+    int endless_floor;
     int stage;
     bool has_exit;
     bool dirty;   // 需要重渲染
@@ -143,6 +148,7 @@ typedef struct {
     uint8_t ls_sel;         // 选中的层级 (1..)
     uint8_t ls_max;         // 可选层级上限
     uint8_t ls_offset;      // 滚动偏移 (首个可见层级, 1..)
+    bool ls_for_campaign;   // true=剧情模式选层 false=无尽模式选层
     // HUD 显示: 游戏中默认隐藏, 长按 OK 切换
     bool show_hud;
     // 平滑旋转: 目标角度(由输入设置), game_update 每帧往目标角度插值
@@ -155,6 +161,7 @@ typedef struct {
     int  task_kill_count;   // 累计击杀(本关)
     int  task_open_door;    // 是否已开门
     int  task_get_key;      // 本关累计捡到的钥匙
+    int  task_survive_secs; // 本关存活秒数
     // 开场动画
     uint8_t opening_stage;   // 0:logo渐入 1:副标题 2:结束
     uint8_t opening_tick;    // 开场动画tick
@@ -176,6 +183,8 @@ enum {
     MSG_FINDEXIT,
     MSG_CARE,
     MSG_PUZZLE,
+    MSG_VISITOR,
+    MSG_RUN,
     MSG_HIT,
     MSG_EXIT,
 };
@@ -190,6 +199,7 @@ void maze_set(int x, int y, uint8_t v);
 uint32_t maze_rng_next(void);
 
 void game_init_campaign(int level);
+void game_init_endless(int floor, bool visitor);
 void game_handle_input(InputKey key, InputType type);
 void game_update(void);
 void game_next_level(void);

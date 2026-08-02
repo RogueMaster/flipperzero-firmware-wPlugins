@@ -14,8 +14,10 @@ typedef struct {
 
 typedef enum {
     M_CAMPAIGN = 0,
-    M_SETTINGS = 1,
-    M_COUNT = 2,
+    M_ENDLESS  = 1,
+    M_VISITOR  = 2,
+    M_SETTINGS = 3,
+    M_COUNT = 4,
 } MenuItem;
 
 static int s_sel = 0;
@@ -36,6 +38,8 @@ static void get_msg_bmp(int id, const uint8_t** bits, int* w, int* h, int* bpr) 
         case MSG_FINDEXIT:*bits = msg_findexit_bits;*w = MSG_FINDEXIT_W;*h = MSG_FINDEXIT_H;*bpr = MSG_FINDEXIT_BPR;break;
         case MSG_CARE:    *bits = msg_care_bits;    *w = MSG_CARE_W;    *h = MSG_CARE_H;    *bpr = MSG_CARE_BPR;    break;
         case MSG_PUZZLE:  *bits = msg_puzzle_bits;  *w = MSG_PUZZLE_W;  *h = MSG_PUZZLE_H;  *bpr = MSG_PUZZLE_BPR;  break;
+        case MSG_VISITOR: *bits = msg_visitor_bits; *w = MSG_VISITOR_W; *h = MSG_VISITOR_H; *bpr = MSG_VISITOR_BPR; break;
+        case MSG_RUN:     *bits = msg_run_bits;     *w = MSG_RUN_W;     *h = MSG_RUN_H;     *bpr = MSG_RUN_BPR;     break;
         case MSG_HIT:     *bits = msg_hit_bits;     *w = MSG_HIT_W;     *h = MSG_HIT_H;     *bpr = MSG_HIT_BPR;     break;
         case MSG_EXIT:    *bits = msg_exit_bits;    *w = MSG_EXIT_W;    *h = MSG_EXIT_H;    *bpr = MSG_EXIT_BPR;    break;
         default: *bits = NULL; *w = *h = *bpr = 0;
@@ -206,6 +210,7 @@ static const char* en_task_name(TaskType t) {
         case TASK_GET_KEY:    return "Get Key";
         case TASK_OPEN_DOOR:  return "Open Door";
         case TASK_KILL_ENEMY: return "Kill Enemy";
+        case TASK_SURVIVE:    return "Survive";
         default: return "";
     }
 }
@@ -215,17 +220,28 @@ static void draw_inventory(Canvas* c) {
     canvas_set_color(c, ColorBlack);
     canvas_set_font(c, FontSecondary);
 
-    // 顶部 HUD 状态条 (关卡 + 血量)
+    // 顶部 HUD 状态条 (关卡/层数 + 血量)
+    bool is_campaign = (s_resume_mode == MODE_CAMPAIGN);
     {
         int hx = 2;
         char buf[8];
-        snprintf(buf, sizeof(buf), "%d", g.level);
-        canvas_draw_str(c, hx, 8, buf);
-        if(g.lang == LANG_ZH)
-            canvas_draw_xbm(c, hx + 7, 1, HUD_LV_W, HUD_LV_H, hud_lv_bits);
-        else
-            canvas_draw_str(c, hx + 7, 8, EN_HUD_LV);
-        hx += 22;
+        if(is_campaign) {
+            snprintf(buf, sizeof(buf), "%d", g.level);
+            canvas_draw_str(c, hx, 8, buf);
+            if(g.lang == LANG_ZH)
+                canvas_draw_xbm(c, hx + 7, 1, HUD_LV_W, HUD_LV_H, hud_lv_bits);
+            else
+                canvas_draw_str(c, hx + 7, 8, EN_HUD_LV);
+            hx += 22;
+        } else {
+            snprintf(buf, sizeof(buf), "%d", g.endless_floor);
+            canvas_draw_str(c, hx, 8, buf);
+            if(g.lang == LANG_ZH)
+                canvas_draw_xbm(c, hx + 7, 1, HUD_FLOOR_W, HUD_FLOOR_H, hud_floor_bits);
+            else
+                canvas_draw_str(c, hx + 7, 8, EN_HUD_FLOOR);
+            hx += 22;
+        }
         // 血量
         snprintf(buf, sizeof(buf), "%d", g.player.health);
         canvas_draw_str(c, hx, 8, buf);
@@ -358,15 +374,18 @@ static void draw_level_select(Canvas* c) {
     if(g.ls_offset > max_off) g.ls_offset = max_off;
 
     if(g.lang == LANG_ZH) {
-        // 标题 (剧情选层)
-        canvas_draw_xbm(c, (128 - LS_TITLE_S_W) / 2, 1, LS_TITLE_S_W, LS_TITLE_S_H, ls_title_s_bits);
+        // 标题
+        const uint8_t* tb; int tw, th;
+        if(g.ls_for_campaign) { tb = ls_title_s_bits; tw = LS_TITLE_S_W; th = LS_TITLE_S_H; }
+        else                  { tb = ls_title_e_bits; tw = LS_TITLE_E_W; th = LS_TITLE_E_H; }
+        canvas_draw_xbm(c, (128 - tw) / 2, 1, tw, th, tb);
         // 关卡列表 (滚动)
         for(int i = 0; i < LS_VISIBLE; i++) {
             int lvl = g.ls_offset + i;
             if(lvl > g.ls_max) break;
             int y = LS_Y_START + i * LS_ROW_H;
-            bool locked = (lvl > g.campaign_cleared + 1);
-            bool cleared = (lvl <= g.campaign_cleared);
+            bool locked = g.ls_for_campaign && (lvl > g.campaign_cleared + 1);
+            bool cleared = g.ls_for_campaign && (lvl <= g.campaign_cleared);
             if(lvl == g.ls_sel && !locked) {
                 canvas_draw_box(c, 0, y - 1, 128, LS_ROW_H + 1);
                 canvas_set_color(c, ColorWhite);
@@ -389,16 +408,17 @@ static void draw_level_select(Canvas* c) {
         return;
     }
 
-    // 英文
+    // 英文 (原逻辑)
     canvas_set_font(c, FontPrimary);
-    canvas_draw_str_aligned(c, 64, 1, AlignCenter, AlignTop, EN_LS_TITLE_STORY);
+    canvas_draw_str_aligned(c, 64, 1, AlignCenter, AlignTop,
+        g.ls_for_campaign ? EN_LS_TITLE_STORY : EN_LS_TITLE_ENDLESS);
     canvas_set_font(c, FontSecondary);
     for(int i = 0; i < LS_VISIBLE; i++) {
         int lvl = g.ls_offset + i;
         if(lvl > g.ls_max) break;
         int y = LS_Y_START + i * LS_ROW_H;
-        bool locked = (lvl > g.campaign_cleared + 1);
-        bool cleared = (lvl <= g.campaign_cleared);
+        bool locked = g.ls_for_campaign && (lvl > g.campaign_cleared + 1);
+        bool cleared = g.ls_for_campaign && (lvl <= g.campaign_cleared);
         if(lvl == g.ls_sel && !locked) {
             canvas_draw_box(c, 0, y - 1, 128, LS_ROW_H + 1);
             canvas_set_color(c, ColorWhite);
@@ -422,17 +442,26 @@ static void draw_map_panel(Canvas* c) {
     canvas_set_font(c, FontSecondary);
 
     // ========= 顶部紧凑 HUD (极小文字, FontSecondary 已经是最小字号) =========
-    // 行 1-2: 关卡/血量/钥匙/火把/药水/护符
+    // 行 1-2: 关卡/层数/血量/钥匙/火把/药水/护符
     int hy = 1;
     char b[8];
     int hx = 1;
+    bool is_camp = (s_resume_mode == MODE_CAMPAIGN);
 
-    // 关卡
-    snprintf(b, sizeof(b), "%d", g.level);
-    canvas_draw_str(c, hx, hy + 7, b);
-    if(g.lang == LANG_ZH) canvas_draw_xbm(c, hx+6, hy, HUD_LV_W, HUD_LV_H, hud_lv_bits);
-    else                   canvas_draw_str(c, hx+6, hy+7, EN_HUD_LV);
-    hx += 20;
+    // 关卡/层数
+    if(is_camp) {
+        snprintf(b, sizeof(b), "%d", g.level);
+        canvas_draw_str(c, hx, hy + 7, b);
+        if(g.lang == LANG_ZH) canvas_draw_xbm(c, hx+6, hy, HUD_LV_W, HUD_LV_H, hud_lv_bits);
+        else                   canvas_draw_str(c, hx+6, hy+7, EN_HUD_LV);
+        hx += 20;
+    } else {
+        snprintf(b, sizeof(b), "%d", g.endless_floor);
+        canvas_draw_str(c, hx, hy + 7, b);
+        if(g.lang == LANG_ZH) canvas_draw_xbm(c, hx+6, hy, HUD_FLOOR_W, HUD_FLOOR_H, hud_floor_bits);
+        else                   canvas_draw_str(c, hx+6, hy+7, EN_HUD_FLOOR);
+        hx += 20;
+    }
     // 血量
     snprintf(b, sizeof(b), "%d", g.player.health);
     canvas_draw_str(c, hx, hy+7, b);
@@ -791,11 +820,11 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         // 菜单分隔线
         canvas_draw_line(canvas, 0, 16, 127, 16);
 
-        // 菜单项: 1.剧情模式  2.设置
-        const uint8_t* zh_items[M_COUNT] = { m1_bits, m4_bits };
-        const char*    en_items[M_COUNT] = { EN_M1, "2. Settings" };
-        const int ws[M_COUNT] = { M1_W, M4_W };
-        const int hs[M_COUNT] = { M1_H, M4_H };
+        // 菜单项: 1.闯关模式  2.无尽挑战  3.游客漫游  4.设置
+        const uint8_t* zh_items[M_COUNT] = { m1_bits, m2_bits, m3_bits, m4_bits };
+        const char*    en_items[M_COUNT] = { EN_M1, EN_M2, EN_M3, "4. Settings" };
+        const int ws[M_COUNT] = { M1_W, M2_W, M3_W, M4_W };
+        const int hs[M_COUNT] = { M1_H, M2_H, M3_H, M4_H };
         for(int i = 0; i < M_COUNT; i++) {
             int yy = 22 + i * 11;
             if(i == s_sel) {
@@ -836,16 +865,25 @@ static void draw_callback(Canvas* canvas, void* ctx) {
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_xbm(canvas, 0, 0, SCREEN_W, SCREEN_H, g.fb);
 
-    // HUD 信息 (默认隐藏, 长按 OK 切换显示): 关卡/钥匙/火把/血
+    // HUD 信息 (默认隐藏, 长按 OK 切换显示): 关卡/层数/钥匙/火把/血
     if(g.show_hud) {
     int x = 1;
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_num(canvas, x, 9, g.level);
-    if(g.lang == LANG_ZH)
-        canvas_draw_xbm(canvas, x + 7, 1, HUD_LV_W, HUD_LV_H, hud_lv_bits);
-    else
-        canvas_draw_str(canvas, x + 7, 9, EN_HUD_LV);
-    x += 16;
+    if(g.mode == MODE_CAMPAIGN) {
+        canvas_draw_num(canvas, x, 9, g.level);
+        if(g.lang == LANG_ZH)
+            canvas_draw_xbm(canvas, x + 7, 1, HUD_LV_W, HUD_LV_H, hud_lv_bits);
+        else
+            canvas_draw_str(canvas, x + 7, 9, EN_HUD_LV);
+        x += 16;
+    } else {
+        canvas_draw_num(canvas, x, 9, g.endless_floor);
+        if(g.lang == LANG_ZH)
+            canvas_draw_xbm(canvas, x + 7, 1, HUD_FLOOR_W, HUD_FLOOR_H, hud_floor_bits);
+        else
+            canvas_draw_str(canvas, x + 7, 9, EN_HUD_FLOOR);
+        x += 16;
+    }
     if(g.stage == STAGE_PUZZLE || g.stage == STAGE_COMBAT) {
         canvas_draw_num(canvas, x, 9, g.player.keys);
         if(g.lang == LANG_ZH)
@@ -953,8 +991,10 @@ static void handle_overlay_input(InputKey key) {
         if(key == InputKeyOk) { game_next_level(); }
         else if(key == InputKeyBack) { g.mode = MODE_MENU; }
     } else if(g.mode == MODE_GAME_OVER) {
+        GameMode old = s_resume_mode;
         if(key == InputKeyOk) {
-            game_init_campaign(g.level);
+            if(old == MODE_CAMPAIGN) game_init_campaign(g.level);
+            else game_init_endless(g.endless_floor, (old == MODE_ENDLESS_VISITOR));
         } else if(key == InputKeyBack) { g.mode = MODE_MENU; }
     } else if(g.mode == MODE_PAUSED) {
         if(key == InputKeyOk) { g.mode = s_resume_mode; }
@@ -963,10 +1003,11 @@ static void handle_overlay_input(InputKey key) {
 }
 
 // ---- 新流程: 层级选择 / 剧情 / 物品栏 ----
-static void enter_level_select(void) {
+static void enter_level_select(bool for_campaign) {
     g.mode = MODE_LEVEL_SELECT;
+    g.ls_for_campaign = for_campaign;
     g.ls_max = 30;
-    g.ls_sel = g.campaign_cleared + 1;
+    g.ls_sel = for_campaign ? (g.campaign_cleared + 1) : (g.endless_floor > 0 ? g.endless_floor : 1);
     if(g.ls_sel < 1) g.ls_sel = 1;
     if(g.ls_sel > g.ls_max) g.ls_sel = g.ls_max;
     // 初始化滚动偏移: 让选中项尽量居中
@@ -1029,11 +1070,15 @@ static void handle_new_modes_input(InputKey key, InputType type) {
         if(key == InputKeyUp)        { if(g.ls_sel > 1) g.ls_sel--; }
         else if(key == InputKeyDown) { if(g.ls_sel < g.ls_max) g.ls_sel++; }
         else if(key == InputKeyOk) {
-            bool locked = (g.ls_sel > g.campaign_cleared + 1);
+            bool locked = g.ls_for_campaign && (g.ls_sel > g.campaign_cleared + 1);
             if(!locked) {
-                // 第1关且未通关过 -> 先看开场剧情
-                if(g.ls_sel == 1 && g.campaign_cleared == 0) enter_story(0, MODE_CAMPAIGN);
-                else game_init_campaign(g.ls_sel);
+                if(g.ls_for_campaign) {
+                    // 剧情模式: 第1关且未通关过 -> 先看开场剧情
+                    if(g.ls_sel == 1 && g.campaign_cleared == 0) enter_story(0, MODE_CAMPAIGN);
+                    else game_init_campaign(g.ls_sel);
+                } else {
+                    game_init_endless(g.ls_sel, false);
+                }
             }
         } else if(key == InputKeyBack) g.mode = MODE_MENU;
     }
@@ -1106,7 +1151,9 @@ int32_t maze3d_app(void* p) {
                     else if(key == InputKeyOk) {
                         storage_load();
                         sfx_play(SFX_MENU_OK);
-                        if(s_sel == M_CAMPAIGN) enter_level_select();
+                        if(s_sel == M_CAMPAIGN) enter_level_select(true);
+                        else if(s_sel == M_ENDLESS) enter_level_select(false);
+                        else if(s_sel == M_VISITOR) game_init_endless(g.endless_floor, true);
                         else if(s_sel == M_SETTINGS) { g.mode = MODE_SETTINGS; s_set_sel = 0; }
                     } else if(key == InputKeyBack) { running = false; sfx_stop_all(); }
                 }
@@ -1190,7 +1237,7 @@ int32_t maze3d_app(void* p) {
                     }
                 }
             }
-            if(g.mode == MODE_CAMPAIGN) {
+            if(g.mode == MODE_CAMPAIGN || g.mode == MODE_ENDLESS_RUN || g.mode == MODE_ENDLESS_VISITOR) {
                 game_update();
                 did_update_world = true;
             }
@@ -1199,7 +1246,8 @@ int32_t maze3d_app(void* p) {
 
         // 按需渲染,避免 20Hz 的全速 raycasting(那是死机根源)
         bool need_render = did_input || did_update_world;
-        bool in_game_view = (g.mode == MODE_CAMPAIGN || g.mode == MODE_PAUSED ||
+        bool in_game_view = (g.mode == MODE_CAMPAIGN || g.mode == MODE_ENDLESS_RUN ||
+                             g.mode == MODE_ENDLESS_VISITOR || g.mode == MODE_PAUSED ||
                              g.mode == MODE_LEVEL_CLEAR || g.mode == MODE_GAME_OVER);
         if(in_game_view && need_render) {
             engine_render();
