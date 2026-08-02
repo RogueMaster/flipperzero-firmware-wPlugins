@@ -1,3 +1,12 @@
+v4.1:
+- FIX: Endless Mode crash root cause found and fixed. The maze-carving DFS
+  used two local int arrays of MAP_MAX*MAP_MAX (31*31*4 = 3844 bytes each,
+  7688 bytes total) on the 8KB stack — combined with the rest of the call
+  chain this overflowed the stack and crashed the app every time a new
+  endless floor was generated. Arrays moved to static storage (BSS);
+  stack_size also raised from 8KB to 12KB as a safety margin. Endless Mode
+  now plays through floor transitions without freezing.
+
 v4.0:
 - Critical stability fixes for Endless Mode: tight size cap (max 19x19 maze cells, DDA steps capped, render loop guarded), cleared pending turn/move targets at every new level, better seed hashing to avoid repeated similar layouts — eliminates the freeze/crash when selecting or progressing in Endless
 - Smooth controls rewrite: direction keys now set "target" rotation/move amounts; game_update applies a fractional step each frame (~45% of remaining turn target) so rotating, moving forward/back, and dashing all feel progressively smoother instead of one-shot jerky steps

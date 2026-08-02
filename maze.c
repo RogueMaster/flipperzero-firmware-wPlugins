@@ -26,7 +26,12 @@ static void carve(int w, int h) {
         for(int x = 0; x < w; x++)
             g.map[(uint16_t)y * MAP_MAX + x] = WALL_BRICK;
 
-    int sx[MAP_MAX * MAP_MAX], sy[MAP_MAX * MAP_MAX];
+    // NOTE: sx/sy 放在静态存储(BSS)而非栈上.
+    // 之前是 int sx[961], sy[961] 局部数组 = 7688 字节, 而应用栈只有 8KB,
+    // 叠加 maze_generate/game_init_*/engine_render 的栈帧后直接栈溢出崩溃
+    // (无尽模式每次进下一关都触发, "一玩就死机"的真正根因).
+    // 单线程应用使用 static 安全.
+    static int sx[MAP_MAX * MAP_MAX], sy[MAP_MAX * MAP_MAX];
     int top = 0;
     sx[top] = 1; sy[top] = 1; top++;
     g.map[1 * MAP_MAX + 1] = CELL_EMPTY;
