@@ -71,26 +71,18 @@ static int16_t rfpop(Rf *rf)
 static LevelDuration rfbit(void *ctx)
 {
     Rf *rf = ctx;
-    uint32_t us;
+    uint32_t us = 15U;
     if(rf->sphase == 0)
     {
         if(rf->drain && rf->tail == rf->head) return level_duration_reset();
         rf->s = rfpop(rf);
     }
-    rf->sphase = (rf->sphase + 1U) & 1U;
+    rf->sphase = (rf->sphase + 1U) & 3U;
     rf->err += rf->s;
     rf->bit = rf->err >= 0;
     rf->err += rf->bit ? -32767 : 32768;
-    rf->slot++;
-    if(rf->slot == 4U)
-    {
-        rf->slot = 0;
-        us = 32U;
-    }
-    else
-    {
-        us = 31U;
-    }
+    rf->rem += 5U;
+    if(rf->rem >= 8U) rf->rem -= 8U, us = 16U;
     return level_duration_make(rf->bit, us);
 }
 
@@ -169,6 +161,6 @@ void rfrst(Rf *rf)
     rf->s = 0;
     rf->sphase = 0;
     rf->err = 0;
-    rf->slot = 0;
+    rf->rem = 0;
     rf->bit = false;
 }

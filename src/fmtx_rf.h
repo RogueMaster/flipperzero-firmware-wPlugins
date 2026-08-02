@@ -19,7 +19,7 @@ typedef struct
     int16_t s;
     int32_t err;
     uint8_t sphase;
-    uint8_t slot;
+    uint8_t rem;
     bool bit;
     bool awake;
 } Rf;
