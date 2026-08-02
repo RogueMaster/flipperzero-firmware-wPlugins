@@ -121,3 +121,35 @@ export async function loadGamePacks(engine, game, dir, names, sub = "") {
   }
   return loaded;
 }
+
+// --- content pack config + language resolution (shared with the sim UI and tests) ---
+// PACK_DIRS is the English set (packs/<dir>/*.txt). LANGS maps a language code to its
+// packs per game dir; a game a language doesn't cover falls back to English.
+export const PACK_DIRS = [
+  { game: 1, dir: "trivia", names: ["general", "movies", "science", "geography", "music", "games"] },
+  { game: 8, dir: "wyr", names: ["everyday", "spooky", "spicy", "superpowers", "timespace", "absurd"] },
+  { game: 9, dir: "scramble", names: ["classic", "animals", "food", "space", "music", "sports"] },
+  { game: 5, dir: "draw", names: ["classic", "movies", "food", "nature", "animals", "fantasy"] },
+  { game: 13, dir: "spectrum", names: ["everyday", "extremes", "opinions", "tastes"] },
+  { game: 14, dir: "kmk", names: ["famous", "fiction", "historical", "mix"] },
+];
+
+export const LANGS = {
+  "pt-br": {
+    trivia: ["geral"], wyr: ["cotidiano"], scramble: ["palavras"],
+    spectrum: ["opostos"], kmk: ["famosos"], draw: ["coisas"],
+  },
+};
+
+// For a selected language ("" = English), return {game, dir, names, sub} per game: the
+// language's packs where it has them (sub = the language subdir), otherwise the English
+// root (sub = ""). This is the host's "one language, English fallback per game" rule.
+export function resolvePacks(lang) {
+  const trans = (lang && LANGS[lang]) || {};
+  return PACK_DIRS.map((g) => {
+    const langNames = trans[g.dir];
+    return lang && langNames
+      ? { game: g.game, dir: g.dir, names: langNames, sub: lang }
+      : { game: g.game, dir: g.dir, names: g.names, sub: "" };
+  });
+}

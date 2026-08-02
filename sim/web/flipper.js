@@ -3,29 +3,11 @@
 // the 128x64 screen — reimplementing the scenes would be a second implementation
 // of the Flipper UI, the same drift trap the WASM engine exists to avoid.
 import { engine, subscribeUart } from "./harness.js";
-import { loadGamePacks } from "./trivia-packs.js";
+import { loadGamePacks, LANGS, resolvePacks } from "./trivia-packs.js";
 
 // What the real Flipper streams: every packs/<game>/ directory, tagged with its game
 // id. Mirrors ha_content_stream_packs in ha_session.c so the sim exercises all four
 // content games, not just trivia.
-const PACK_DIRS = [
-  { game: 1, dir: "trivia", names: ["general", "movies", "science", "geography", "music", "games"] },
-  { game: 8, dir: "wyr", names: ["everyday", "spooky", "spicy", "superpowers", "timespace", "absurd"] },
-  { game: 9, dir: "scramble", names: ["classic", "animals", "food", "space", "music", "sports"] },
-  { game: 5, dir: "draw", names: ["classic", "movies", "food", "nature", "animals", "fantasy"] },
-  { game: 13, dir: "spectrum", names: ["everyday", "extremes", "opinions", "tastes"] },
-  { game: 14, dir: "kmk", names: ["famous", "fiction", "historical", "mix"] },
-];
-
-// Translated packs live under packs/<dir>/<lang>/. Mirrors the Flipper: the host picks
-// one language, and each game falls back to English (the packs/<dir>/ root) when that
-// language has no pack. English content is unchanged. Keyed by game dir -> pack names.
-const LANGS = {
-  "pt-br": {
-    trivia: ["geral"], wyr: ["cotidiano"], scramble: ["palavras"],
-    spectrum: ["opostos"], kmk: ["famosos"], draw: ["coisas"],
-  },
-};
 
 // Ids copied verbatim from flipper/hotspot-arcade/ha_proto.h (HA_GAME_*).
 const GAMES = [
@@ -102,20 +84,15 @@ export async function mountFlipper(el) {
   document.getElementById("packs").onclick = async () => {
     engine.contentClear();
     const lang = document.getElementById("lang").value; // "" = English
-    const trans = (lang && LANGS[lang]) || {};
     let packCount = 0;
     let itemCount = 0;
-    for (const g of PACK_DIRS) {
-      // Per-game fallback: use the language's packs if it has any for this game,
-      // otherwise the English root. One language across, English where it's missing.
-      const langNames = trans[g.dir];
-      const loaded = (lang && langNames)
-        ? await loadGamePacks(engine, g.game, g.dir, langNames, lang)
-        : await loadGamePacks(engine, g.game, g.dir, g.names);
+    // resolvePacks applies the host's per-game English fallback for the chosen language.
+    for (const g of resolvePacks(lang)) {
+      const loaded = await loadGamePacks(engine, g.game, g.dir, g.names, g.sub);
       packCount += loaded.length;
       itemCount += loaded.reduce((n, p) => n + p.count, 0);
     }
-    const label = lang ? LANGS[lang] ? lang : "en" : "en";
+    const label = lang && LANGS[lang] ? lang : "en";
     document.getElementById("packstate").textContent =
       `${packCount} packs, ${itemCount} items (${label})`;
   };
