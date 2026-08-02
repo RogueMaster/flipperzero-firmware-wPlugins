@@ -1,5 +1,17 @@
 # Maze 3D / 3D 迷宫
 
+
+
+
+Endless Challenge and Tourist Roam are not fully developed, which may cause system exceptions.
+
+
+Some features are not fully‑developed. Unknown risks may occur, please use with caution.
+
+Some features are not fully‑developed. Unknown risks may occur, please use with caution.
+
+
+
 A first-person 3D raycasting maze game for Flipper Zero, with three game modes, in-app language switching (Chinese / English), compass + minimap, save progress, and a small-footprint renderer tuned for the Flipper's 128×64 monochrome display.
 
 一款为 Flipper Zero 打造的第一人称 3D 光线投射迷宫游戏,内含三种玩法、中英文随时切换、罗盘 + 小地图、进度自动保存,并针对 128×64 单色屏做了轻量化渲染优化。
