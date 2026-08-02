@@ -83,12 +83,12 @@ int32_t flipper_zero_fmtx_app(void *ctx)
         if(app->dtmf.tone == 0)
         {
             if(!drain(app)) break;
-            rfstop(&app->r);
+            rfpause(&app->r);
             rfrst(&app->r);
             if(!waitgap(app)) break;
             dtmfpick(&app->dtmf);
             filltone(app, 128U);
-            if(!rfstart(&app->r)) break;
+            if(!rfresume(&app->r)) break;
         }
     }
 

@@ -19,7 +19,7 @@ typedef struct
     int16_t s;
     int32_t err;
     uint8_t sphase;
-    uint8_t rem;
+    uint8_t slot;
     bool bit;
     bool awake;
 } Rf;
@@ -27,6 +27,8 @@ typedef struct
 void rfinit(Rf *rf, uint32_t hz);
 const uint8_t *rfregs(void);
 bool rfstart(Rf *rf);
+bool rfresume(Rf *rf);
+void rfpause(Rf *rf);
 void rfstop(Rf *rf);
 bool rfput(Rf *rf, int16_t s);
 uint16_t rfused(const Rf *rf);

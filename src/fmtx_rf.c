@@ -71,18 +71,26 @@ static int16_t rfpop(Rf *rf)
 static LevelDuration rfbit(void *ctx)
 {
     Rf *rf = ctx;
-    uint32_t us = 15U;
+    uint32_t us;
     if(rf->sphase == 0)
     {
         if(rf->drain && rf->tail == rf->head) return level_duration_reset();
         rf->s = rfpop(rf);
     }
-    rf->sphase = (rf->sphase + 1U) & 3U;
+    rf->sphase = (rf->sphase + 1U) & 1U;
     rf->err += rf->s;
     rf->bit = rf->err >= 0;
     rf->err += rf->bit ? -32767 : 32768;
-    rf->rem += 5U;
-    if(rf->rem >= 8U) rf->rem -= 8U, us = 16U;
+    rf->slot++;
+    if(rf->slot == 4U)
+    {
+        rf->slot = 0;
+        us = 32U;
+    }
+    else
+    {
+        us = 31U;
+    }
     return level_duration_make(rf->bit, us);
 }
 
@@ -115,6 +123,29 @@ bool rfstart(Rf *rf)
 
 
     return rf->on;
+}
+
+bool rfresume(Rf *rf)
+{
+    if(rf->on) return true;
+    if(!rf->awake) return false;
+    furi_hal_subghz_idle();
+    (void)furi_hal_subghz_set_frequency_and_path(rf->hz);
+    furi_hal_gpio_init(furi_hal_subghz_get_data_gpio(), GpioModeInput, GpioPullNo, GpioSpeedLow);
+    rf->drain = false;
+    rf->on = furi_hal_subghz_start_async_tx(rfbit, rf);
+    txled(rf->on);
+
+
+    return rf->on;
+}
+
+void rfpause(Rf *rf)
+{
+    if(rf->on) furi_hal_subghz_stop_async_tx();
+    rf->on = false;
+    furi_hal_subghz_idle();
+    txled(false);
 }
 
 void rfstop(Rf *rf)
@@ -161,6 +192,6 @@ void rfrst(Rf *rf)
     rf->s = 0;
     rf->sphase = 0;
     rf->err = 0;
-    rf->rem = 0;
+    rf->slot = 0;
     rf->bit = false;
 }
