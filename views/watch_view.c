@@ -133,7 +133,7 @@ static bool watch_view_input(InputEvent* event, void* context) {
         if(v->reset_cb) v->reset_cb(v->reset_ctx);
         return true;
     }
-    return false;
+    return false; // everything else (incl. BACK) bubbles to the scene manager
 }
 
 WatchView* watch_view_alloc(void) {

@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Flipper%20Zero-FF8200?style=for-the-badge&logo=flipper&logoColor=white" alt="Flipper Zero">
-  <img src="https://img.shields.io/badge/version-2.1-FF3DAE?style=for-the-badge" alt="Version 2.1">
+  <img src="https://img.shields.io/badge/version-2.2-FF3DAE?style=for-the-badge" alt="Version 2.2">
   <img src="https://img.shields.io/badge/radio-13.56%20MHz%20NFC%20(onboard)-26E8CA?style=for-the-badge" alt="Onboard NFC">
   <img src="https://img.shields.io/badge/hardware-none%20required-9B5DE5?style=for-the-badge" alt="No extra hardware">
   <img src="https://img.shields.io/badge/build-ufbt-2da0ff?style=for-the-badge" alt="ufbt">
@@ -156,7 +156,8 @@ than a number baked in at build time.
 
 Keeps the **screen and LED dark** for the whole sweep, so the Flipper doesn't glow while you're the
 one doing the looking. Sound and vibration keep working — the point isn't to disable the feedback
-you're sweeping by.
+you're sweeping by. Exiting a stealth screen **re-lights the display**, so `BACK` always lands you on
+a lit menu <sub>(fixed in 2.2 — it used to leave the screen dark, which made `BACK` look dead)</sub>.
 
 ### 💾 Everything persists &nbsp;<sub>`NEW in 2.0`</sub>
 

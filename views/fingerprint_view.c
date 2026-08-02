@@ -148,6 +148,7 @@ static void fingerprint_view_draw(Canvas* canvas, void* model) {
 
 static bool fingerprint_view_input(InputEvent* event, void* context) {
     FingerprintView* v = context;
+    /* BACK (and anything not OK) bubbles up so the scene manager can exit. */
     if(event->key != InputKeyOk) return false;
 
     if(event->type == InputTypeShort) {

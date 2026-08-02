@@ -118,9 +118,14 @@ void specter_stealth_enter(SpecterApp* app) {
 void specter_stealth_exit(SpecterApp* app) {
     furi_assert(app);
     if(!app->stealth_engaged) return;
-    /* Hand the backlight back to the system's own timeout rather than forcing
-     * it on - leaving it pinned would outlive the app. */
+    /* Two steps, and the order matters. enforce_auto only *unlocks* the
+     * force-off; on its own it leaves the backlight dark until the next input.
+     * That made BACK look broken: you'd leave a stealth sweep, land on the menu,
+     * and stare at a dark screen thinking the press didn't register. So after
+     * unlocking, actively wake the backlight so the screen we return to is lit
+     * now, then fall back to the system's normal timeout. */
     notification_message(app->notifications, &sequence_display_backlight_enforce_auto);
+    notification_message(app->notifications, &sequence_display_backlight_on);
     app->stealth_engaged = false;
 }
 

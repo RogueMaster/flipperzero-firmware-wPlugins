@@ -179,7 +179,7 @@ static bool survey_view_input(InputEvent* event, void* context) {
         if(v->restart_cb) v->restart_cb(v->restart_ctx);
         return true;
     }
-    return false;
+    return false; // everything else (incl. BACK) bubbles to the scene manager
 }
 
 SurveyView* survey_view_alloc(void) {

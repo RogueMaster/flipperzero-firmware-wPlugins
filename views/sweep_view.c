@@ -204,6 +204,11 @@ static void sweep_view_draw(Canvas* canvas, void* model) {
 static bool sweep_view_input(InputEvent* event, void* context) {
     SweepView* v = context;
 
+    /* BACK is never ours - let it reach the scene manager so it always exits,
+     * even mid OK-long-press. Explicit so the swallow logic below can't grow to
+     * cover it by accident. */
+    if(event->key == InputKeyBack) return false;
+
     if(event->key == InputKeyOk) {
         if(event->type == InputTypeShort) {
             if(v->ok_cb) v->ok_cb(v->ok_ctx);
