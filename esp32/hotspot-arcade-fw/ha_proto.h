@@ -16,7 +16,7 @@
 #define HA_FW_MAGIC_1 0x41 // 'A'
 #define HA_FW_MAGIC_2 0x52 // 'R'
 #define HA_FW_MAGIC_3 0x43 // 'C'  ("HARC" = Hotspot ARCade)
-#define HA_FW_VERSION 14 // v14: spectrum game
+#define HA_FW_VERSION 15 // v15: Kiss Marry Kill game added
 
 // Flipper -> ESP
 enum {
@@ -64,6 +64,7 @@ enum {
     HA_GAME_GUESSCOLOR = 11, // guess the color (closest RGB + speed)
     HA_GAME_BATTLESHIP = 12, // battleship (1v1, hidden fleets)
     HA_GAME_SPECTRUM = 13, // wavelength-style spectrum guessing (party)
+    HA_GAME_KMK = 14, // kiss marry kill (party, predict a player's picks)
 };
 
 // CRC-8/ATM: poly 0x07, init 0x00, no reflect, no xorout. Identical both sides.
