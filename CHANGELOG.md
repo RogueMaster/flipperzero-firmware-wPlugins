@@ -6,6 +6,14 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ## [Unreleased]
 
+### Fixed
+
+- Word Scramble and Draw are now UTF-8-safe, so non-English content packs work: the
+  scramble shuffles whole letters (not bytes), the Draw blank count is per character, and
+  the scramble tiles upper-case ASCII only (so a German `ß` stays one tile). ASCII content
+  is unchanged. From @genkigenki
+  ([#9](https://github.com/tarikbc/hotspot-arcade/pull/9)) — the enabler for language packs.
+
 ## [1.4.0] - 2026-08-02
 
 A 14th game. Firmware **v15**.
