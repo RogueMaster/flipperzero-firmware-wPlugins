@@ -640,3 +640,21 @@ h3{margin:0; font-weight:600}
   border:2px solid var(--line); padding:10px 12px; font:inherit; font-size:16px}
 .sp-cluein:focus{outline:none; border-color:var(--orange)}
 .sp-note{text-align:center; color:var(--text-dim); font-size:13px; margin-top:8px; min-height:16px}
+
+/* ---- Kiss Marry Kill ---------------------------------------------------- */
+.kmk-people{display:flex; flex-direction:column; gap:8px; margin:10px 0}
+.kmk-row{display:flex; align-items:center; gap:8px; background:var(--surface-2);
+  border:2px solid var(--line); padding:12px; min-height:52px}
+.kmk-row.tap{cursor:pointer}
+.kmk-row.tap:active{border-color:var(--orange); transform:translateY(1px)}
+.kmk-name{flex:1; font-weight:800; font-size:16px}
+.kmk-tag{font-weight:700; font-size:14px; padding:4px 8px; border:2px solid var(--line);
+  white-space:nowrap}
+.kmk-tag.none{color:var(--text-mute); border-style:dashed}
+.kmk-tag.l0{color:#ff7db0; border-color:#ff7db0}   /* kiss */
+.kmk-tag.l1{color:var(--orange-bright); border-color:var(--orange)} /* marry */
+.kmk-tag.l2{color:var(--text-dim); border-color:var(--text-mute)}   /* kill */
+.kmk-mark{font-weight:800; font-size:18px; width:20px; text-align:center}
+.kmk-mark.ok{color:var(--good)}
+.kmk-mark.no{color:var(--bad)}
+.kmk-note{text-align:center; color:var(--text-dim); font-size:13px; margin-top:8px; min-height:16px}

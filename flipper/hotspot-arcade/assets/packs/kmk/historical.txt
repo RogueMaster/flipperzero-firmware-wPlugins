@@ -1,0 +1,48 @@
+Pack: Historical
+Name: Cleopatra
+---
+Name: Julius Caesar
+---
+Name: Napoleon
+---
+Name: Albert Einstein
+---
+Name: Leonardo da Vinci
+---
+Name: Joan of Arc
+---
+Name: Genghis Khan
+---
+Name: Marie Curie
+---
+Name: Abraham Lincoln
+---
+Name: Queen Victoria
+---
+Name: Nikola Tesla
+---
+Name: Amelia Earhart
+---
+Name: Alexander the Great
+---
+Name: Frida Kahlo
+---
+Name: William Shakespeare
+---
+Name: Catherine the Great
+---
+Name: Mozart
+---
+Name: Aristotle
+---
+Name: Vincent van Gogh
+---
+Name: Ada Lovelace
+---
+Name: Blackbeard
+---
+Name: King Tut
+---
+Name: Beethoven
+---
+Name: Isaac Newton

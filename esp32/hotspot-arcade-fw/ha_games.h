@@ -86,6 +86,15 @@ static inline void ha_upper(char* s) {
 #define SPECTRUM_REVEAL_MS 6000
 #define SPECTRUM_CLUE_LEN 40
 
+// Kiss Marry Kill: each round one player (the "chooser") secretly assigns Kiss /
+// Marry / Kill to three people from the voted pack; everyone else predicts that
+// assignment. A guess of a permutation of three either matches 3 positions or at
+// most 1 (getting two right forces the third), so per-round scores are 0/1/3.
+#define KMK_ROUNDS 6
+#define KMK_CHOOSE_SECS 40 // chooser's window (safety timer)
+#define KMK_GUESS_SECS 30 // guessers' window (safety timer)
+#define KMK_REVEAL_MS 7000
+
 #define GC_ROUNDS 5
 #define GC_PLAY_SECS 25 // safety deadline per color
 #define GC_REVEAL_MS 6000
@@ -276,6 +285,26 @@ struct SpectrumState {
     int gained[HA_MAX_PLAYERS + 1]; // points earned this round (shown on reveal)
 };
 
+// Kiss Marry Kill: reuses WordPack (a flat list of names) and the Party skeleton.
+// Labels are 0 = kiss, 1 = marry, 2 = kill; each round has three people and the
+// assignment is a permutation of those three labels over them.
+struct KmkState {
+    Party pt;
+    WordPack packs[TRIVIA_MAX_TOPICS]; // each item is one person's name
+    uint8_t packCount;
+    int8_t vote[HA_MAX_PLAYERS + 1]; // pack index, -1 = not voted
+    uint8_t pack; // chosen pack (locked when the game starts)
+    uint16_t nameSeq; // advances the people picked across rounds
+    uint8_t person[3]; // indices into the pack for this round's three people
+    uint8_t chooser; // pid assigning K/M/K this round
+    uint8_t chooserSeq; // rotates the chooser across rounds
+    uint8_t stage; // 0 choose, 1 guess
+    int8_t cLabel[3]; // chooser's label per person, -1 = unset
+    int8_t gLabel[HA_MAX_PLAYERS + 1][3]; // each guesser's labels per person
+    bool guessed[HA_MAX_PLAYERS + 1];
+    int gained[HA_MAX_PLAYERS + 1]; // points earned this round (shown on reveal)
+};
+
 struct PongMatch {
     bool used;
     uint8_t a, b; // a = left paddle, b = right paddle
@@ -323,6 +352,7 @@ public:
         gcClear();
         battleClear();
         spectrumClear();
+        kmkClear();
     }
 
     // ---- roster ----
@@ -386,6 +416,7 @@ public:
         scrambleClear();
         reactClear();
         spectrumClear();
+        kmkClear();
         pushAll();
     }
 
@@ -438,6 +469,8 @@ public:
         _d.packCount = 0;
         for(int i = 0; i < TRIVIA_MAX_TOPICS; i++) _spec.packs[i] = WyrPack{};
         _spec.packCount = 0;
+        for(int i = 0; i < TRIVIA_MAX_TOPICS; i++) _kmk.packs[i] = WordPack{};
+        _kmk.packCount = 0;
         _packGame = 0;
     }
 
@@ -469,6 +502,12 @@ public:
                 _spec.packs[_spec.packCount].name = name;
                 _spec.packCount++;
             }
+        } else if(game == HA_GAME_KMK) {
+            if(_kmk.packCount < TRIVIA_MAX_TOPICS) {
+                _kmk.packs[_kmk.packCount] = WordPack{};
+                _kmk.packs[_kmk.packCount].name = name;
+                _kmk.packCount++;
+            }
         }
     }
 
@@ -479,6 +518,7 @@ public:
         else if(_packGame == HA_GAME_SCRAMBLE) scrambleLoadItem(json);
         else if(_packGame == HA_GAME_DRAW) drawLoadItem(json);
         else if(_packGame == HA_GAME_SPECTRUM) spectrumLoadItem(json);
+        else if(_packGame == HA_GAME_KMK) kmkLoadItem(json);
         // Unknown game ids are dropped on purpose: a newer Flipper must not be able
         // to corrupt an older board's state.
     }
@@ -557,6 +597,17 @@ public:
         return true;
     }
 
+    // Map a Kiss Marry Kill pack file's {name} key into the current pack.
+    bool kmkLoadItem(const char* json) {
+        if(_kmk.packCount == 0) return false;
+        WordPack& p = _kmk.packs[_kmk.packCount - 1];
+        if(p.count >= PACK_MAX_ITEMS) return false;
+        char buf[40];
+        if(!ha_json_str(json, "name", buf, sizeof(buf)) || !buf[0]) return false;
+        p.words[p.count++] = buf;
+        return true;
+    }
+
     // Map a draw pack file's {word} key into the current pack.
     bool drawLoadItem(const char* json) {
         if(_d.packCount == 0) return false;
@@ -589,6 +640,8 @@ public:
             battleClear();
         else if(_active == HA_GAME_SPECTRUM)
             spectrumClear();
+        else if(_active == HA_GAME_KMK)
+            kmkClear();
         pushAll();
     }
 
@@ -611,6 +664,8 @@ public:
             gcTick(now);
         else if(_active == HA_GAME_SPECTRUM)
             spectrumTick(now);
+        else if(_active == HA_GAME_KMK)
+            kmkTick(now);
     }
 
     // ---- player input (parsed WS JSON) ----
@@ -648,12 +703,14 @@ public:
             reactReady(pid, r);
             gcReady(pid, r);
             spectrumReady(pid, r);
+            kmkReady(pid, r);
         } else if(strcmp(type, "vote") == 0 && ha_json_int(json, "topic", &v)) {
             triviaVote(pid, v);
         } else if(strcmp(type, "vote") == 0 && ha_json_int(json, "pack", &v)) {
             wyrVote(pid, v);
             scrambleVote(pid, v);
             spectrumVote(pid, v);
+            kmkVote(pid, v);
         } else if(strcmp(type, "tap") == 0) {
             reactTap(pid);
         } else if(strcmp(type, "clue") == 0) {
@@ -661,6 +718,11 @@ public:
             if(ha_json_str(json, "text", c, sizeof(c))) spectrumClue(pid, c);
         } else if(strcmp(type, "slide") == 0 && ha_json_int(json, "n", &v)) {
             spectrumGuess(pid, v);
+        } else if(strcmp(type, "assign") == 0) {
+            int k, m, x;
+            if(ha_json_int(json, "kiss", &k) && ha_json_int(json, "marry", &m) &&
+               ha_json_int(json, "kill", &x))
+                kmkAssign(pid, k, m, x);
         } else if(strcmp(type, "again") == 0) {
             triviaAgain(pid);
             drawAgain(pid);
@@ -669,6 +731,7 @@ public:
             reactAgain(pid);
             gcAgain(pid);
             spectrumAgain(pid);
+            kmkAgain(pid);
         } else if(strcmp(type, "say") == 0) {
             char t[120];
             if(ha_json_str(json, "text", t, sizeof(t))) onSay(pid, t);
@@ -729,6 +792,7 @@ private:
     GuessColorState _gc = {};
     BattleMatch _bm[BATTLE_MAX] = {};
     SpectrumState _spec = {};
+    KmkState _kmk = {};
 
     uint8_t freePid() {
         for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
@@ -768,6 +832,8 @@ private:
                 haWsSendWs(_p[pid].wsId, battleJson(pid));
             else if(_active == HA_GAME_SPECTRUM)
                 haWsSendWs(_p[pid].wsId, spectrumJson(pid));
+            else if(_active == HA_GAME_KMK)
+                haWsSendWs(_p[pid].wsId, kmkJson(pid));
         }
     }
 
@@ -824,6 +890,8 @@ private:
             return "bs";
         case HA_GAME_SPECTRUM:
             return "spectrum";
+        case HA_GAME_KMK:
+            return "kmk";
         default:
             return "none";
         }
@@ -2134,6 +2202,8 @@ private:
             gcCheckStart();
         else if(_active == HA_GAME_SPECTRUM)
             spectrumCheckStart();
+        else if(_active == HA_GAME_KMK)
+            kmkCheckStart();
     }
 
     // ---------- would you rather (live A/B poll) ----------
@@ -3382,6 +3452,295 @@ private:
             s += pt.deadline;
             s += ",\"dur\":";
             s += (_spec.stage == 0 ? SPECTRUM_CLUE_SECS : SPECTRUM_GUESS_SECS);
+        }
+        s += ",\"scores\":" + playersJson() + "}";
+        return s;
+    }
+
+    // ---------- Kiss Marry Kill (predict a player's picks) ----------
+    int kmkWinningPack() {
+        if(_kmk.packCount == 0) return 0;
+        int votes[TRIVIA_MAX_TOPICS] = {0};
+        int total = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+            if(_p[i].used && _kmk.vote[i] >= 0 && _kmk.vote[i] < _kmk.packCount) {
+                votes[_kmk.vote[i]]++;
+                total++;
+            }
+        if(total == 0) return (int)random(_kmk.packCount);
+        int best = 0;
+        for(int i = 1; i < _kmk.packCount; i++)
+            if(votes[i] > votes[best]) best = i;
+        int tie[TRIVIA_MAX_TOPICS], tn = 0;
+        for(int i = 0; i < _kmk.packCount; i++)
+            if(votes[i] == votes[best]) tie[tn++] = i;
+        return tie[(int)random(tn)];
+    }
+
+    void kmkClear() {
+        partyClear(_kmk.pt);
+        _kmk.pack = 0;
+        _kmk.nameSeq = 0;
+        _kmk.chooser = 0;
+        _kmk.chooserSeq = 0;
+        _kmk.stage = 0;
+        for(int i = 0; i < 3; i++) {
+            _kmk.person[i] = 0;
+            _kmk.cLabel[i] = -1;
+        }
+        for(int i = 0; i <= HA_MAX_PLAYERS; i++) {
+            _kmk.vote[i] = -1;
+            _kmk.guessed[i] = false;
+            _kmk.gained[i] = 0;
+            for(int j = 0; j < 3; j++) _kmk.gLabel[i][j] = -1;
+        }
+    }
+
+    void kmkReady(uint8_t pid, bool val) {
+        if(_active != HA_GAME_KMK) return;
+        if(_kmk.pt.phase != 0 && _kmk.pt.phase != 4) return;
+        if(_kmk.pt.phase == 4 && val) kmkClear();
+        _kmk.pt.ready[pid] = val;
+        kmkCheckStart();
+        pushAll();
+    }
+
+    void kmkVote(uint8_t pid, int pack) {
+        if(_active != HA_GAME_KMK || _kmk.pt.phase != 0) return;
+        if(pack < 0 || pack >= _kmk.packCount) return;
+        _kmk.vote[pid] = (int8_t)pack;
+        pushAll();
+    }
+
+    void kmkCheckStart() {
+        if(_kmk.packCount == 0) return;
+        Party& pt = _kmk.pt;
+        if(pt.phase == 0 && partyAllReady(pt)) {
+            pt.phase = 1;
+            pt.countdownEnd = millis() + (uint32_t)PARTY_COUNTDOWN * 1000;
+            pt.lastSec = -1;
+        } else if(pt.phase == 1 && !partyAllReady(pt)) {
+            pt.phase = 0;
+        }
+    }
+
+    // The chooser rotates: the (chooserSeq mod N)-th connected player.
+    uint8_t kmkPickChooser() {
+        int n = connectedCount();
+        if(n <= 0) return 0;
+        int want = _kmk.chooserSeq % n, seen = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used) continue;
+            if(seen == want) return i;
+            seen++;
+        }
+        return 0;
+    }
+
+    void kmkNextRound(uint32_t now) {
+        Party& pt = _kmk.pt;
+        WordPack& pk = _kmk.packs[_kmk.pack];
+        if(pt.round >= KMK_ROUNDS || pk.count < 3) {
+            pt.phase = 4; // final (need at least three names to play)
+            pushAll();
+            return;
+        }
+        pt.round++;
+        _kmk.chooser = kmkPickChooser();
+        _kmk.chooserSeq++;
+        // three distinct people, walking the pack from a rotating offset
+        uint8_t base = (uint8_t)(_kmk.nameSeq % pk.count);
+        _kmk.nameSeq += 3;
+        _kmk.person[0] = base;
+        _kmk.person[1] = (uint8_t)((base + 1 + random(pk.count - 2)) % pk.count);
+        do {
+            _kmk.person[2] = (uint8_t)(random(pk.count));
+        } while(_kmk.person[2] == _kmk.person[0] || _kmk.person[2] == _kmk.person[1]);
+        _kmk.stage = 0; // chooser assigns first
+        for(int i = 0; i < 3; i++) _kmk.cLabel[i] = -1;
+        for(int i = 0; i <= HA_MAX_PLAYERS; i++) {
+            _kmk.guessed[i] = false;
+            _kmk.gained[i] = 0;
+            for(int j = 0; j < 3; j++) _kmk.gLabel[i][j] = -1;
+        }
+        pt.deadline = now + (uint32_t)KMK_CHOOSE_SECS * 1000;
+        pt.phase = 2;
+        pushAll();
+    }
+
+    // kiss/marry/kill are person indices 0..2; build a per-person label array
+    // (0 kiss, 1 marry, 2 kill). Returns false unless it's a valid permutation.
+    static bool kmkToLabels(int kiss, int marry, int kill, int8_t out[3]) {
+        int a[3] = {kiss, marry, kill};
+        for(int i = 0; i < 3; i++)
+            if(a[i] < 0 || a[i] > 2) return false;
+        if(kiss == marry || kiss == kill || marry == kill) return false;
+        out[kiss] = 0;
+        out[marry] = 1;
+        out[kill] = 2;
+        return true;
+    }
+
+    bool kmkAllGuessed() {
+        int guessers = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used || i == _kmk.chooser) continue;
+            guessers++;
+            if(!_kmk.guessed[i]) return false;
+        }
+        return guessers >= 1;
+    }
+
+    void kmkAssign(uint8_t pid, int kiss, int marry, int kill) {
+        if(_active != HA_GAME_KMK || _kmk.pt.phase != 2) return;
+        int8_t labels[3];
+        if(!kmkToLabels(kiss, marry, kill, labels)) return;
+        if(_kmk.stage == 0) {
+            if(pid != _kmk.chooser) return; // only the chooser sets the secret
+            for(int i = 0; i < 3; i++) _kmk.cLabel[i] = labels[i];
+            _kmk.stage = 1;
+            _kmk.pt.deadline = millis() + (uint32_t)KMK_GUESS_SECS * 1000;
+            haUartEvent(String("{\"draw\":\"") + ha_json_escape(_p[pid].nick) + " has decided\"}");
+            pushAll();
+        } else {
+            if(pid == _kmk.chooser) return; // the chooser doesn't guess
+            for(int i = 0; i < 3; i++) _kmk.gLabel[pid][i] = labels[i];
+            _kmk.guessed[pid] = true;
+            if(kmkAllGuessed()) kmkReveal(millis());
+            else pushAll();
+        }
+    }
+
+    void kmkReveal(uint32_t now) {
+        int sum = 0, guessers = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used || i == _kmk.chooser || !_kmk.guessed[i]) continue;
+            int hit = 0;
+            for(int j = 0; j < 3; j++)
+                if(_kmk.gLabel[i][j] == _kmk.cLabel[j]) hit++;
+            _kmk.gained[i] = hit; // 0, 1 or 3 (two right forces the third)
+            _p[i].score += hit;
+            if(hit) haUartScore(i, hit, "kmk");
+            sum += hit;
+            guessers++;
+        }
+        if(_kmk.chooser && guessers > 0) {
+            int avg = (sum + guessers / 2) / guessers;
+            _kmk.gained[_kmk.chooser] = avg;
+            _p[_kmk.chooser].score += avg;
+            if(avg) haUartScore(_kmk.chooser, avg, "kmk");
+        }
+        haUartRoundResult(String("{\"kmk\":\"round ") + _kmk.pt.round + "\"}");
+        _kmk.pt.phase = 3;
+        _kmk.pt.revealUntil = now + KMK_REVEAL_MS;
+        pushAll();
+    }
+
+    void kmkAgain(uint8_t pid) {
+        (void)pid;
+        if(_active != HA_GAME_KMK || _kmk.pt.phase != 4) return;
+        kmkClear();
+        pushAll();
+    }
+
+    void kmkTick(uint32_t now) {
+        Party& pt = _kmk.pt;
+        if(pt.phase == 1) {
+            if(partyCountdownDone(pt, now)) {
+                pt.round = 0;
+                _kmk.pack = (uint8_t)kmkWinningPack();
+                _kmk.chooserSeq = 0;
+                _kmk.nameSeq = 0;
+                kmkNextRound(now);
+            }
+        } else if(pt.phase == 2) {
+            if(_kmk.stage == 0) {
+                if((int32_t)(now - pt.deadline) >= 0) { // chooser stalled: pick for them
+                    _kmk.cLabel[0] = 0;
+                    _kmk.cLabel[1] = 1;
+                    _kmk.cLabel[2] = 2;
+                    _kmk.stage = 1;
+                    pt.deadline = now + (uint32_t)KMK_GUESS_SECS * 1000;
+                    pushAll();
+                }
+            } else {
+                if((int32_t)(now - pt.deadline) >= 0 || kmkAllGuessed()) kmkReveal(now);
+            }
+        } else if(pt.phase == 3) {
+            if((int32_t)(now - pt.revealUntil) >= 0) kmkNextRound(now);
+        }
+    }
+
+    // Emit a player's K/M/K labels for the three people as an array of 0/1/2/-1.
+    String kmkLabelsJson(const int8_t* lab) {
+        String s = "[";
+        for(int i = 0; i < 3; i++) {
+            if(i) s += ",";
+            s += (int)lab[i];
+        }
+        s += "]";
+        return s;
+    }
+
+    String kmkJson(uint8_t pid) {
+        Party& pt = _kmk.pt;
+        if(pt.phase == 0) {
+            String s = String("{\"t\":\"kmk\",\"phase\":\"lobby\",\"you\":") + pid +
+                       ",\"players\":" + partyPlayersJson(pt);
+            s += ",\"packs\":[";
+            int votes[TRIVIA_MAX_TOPICS] = {0};
+            for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+                if(_p[i].used && _kmk.vote[i] >= 0 && _kmk.vote[i] < _kmk.packCount)
+                    votes[_kmk.vote[i]]++;
+            for(int i = 0; i < _kmk.packCount; i++) {
+                if(i) s += ",";
+                s += "{\"name\":\"" + ha_json_escape(_kmk.packs[i].name.c_str()) +
+                     "\",\"votes\":" + votes[i] + "}";
+            }
+            s += "],\"myvote\":" + String((int)_kmk.vote[pid]) + "}";
+            return s;
+        }
+        if(pt.phase == 1)
+            return String("{\"t\":\"kmk\",\"phase\":\"countdown\",\"sec\":") +
+                   partyCountdownSec(pt) + "}";
+        if(pt.phase == 4)
+            return String("{\"t\":\"kmk\",\"phase\":\"final\",\"board\":") + triviaBoard() + "}";
+
+        WordPack& pk = _kmk.packs[_kmk.pack];
+        bool me = (pid == _kmk.chooser);
+        bool reveal = (pt.phase == 3);
+        const char* stage = reveal ? "reveal" : (_kmk.stage == 0 ? "choose" : "guess");
+
+        String s = String("{\"t\":\"kmk\",\"phase\":\"play\",\"stage\":\"") + stage +
+                   "\",\"round\":" + pt.round + ",\"rounds\":" + KMK_ROUNDS + ",\"chooser\":\"" +
+                   ha_json_escape(_p[_kmk.chooser].nick) + "\",\"iam\":" + (me ? "true" : "false") +
+                   ",\"people\":[";
+        for(int i = 0; i < 3; i++) {
+            if(i) s += ",";
+            s += "\"" + ha_json_escape(pk.words[_kmk.person[i]].c_str()) + "\"";
+        }
+        s += "]";
+        // The chooser sees their own picks during the guess stage; on reveal everyone
+        // sees the chooser's actual assignment.
+        if(reveal || (me && _kmk.stage == 1))
+            s += ",\"answer\":" + kmkLabelsJson(_kmk.cLabel);
+        if(!me) s += ",\"mine\":" + kmkLabelsJson(_kmk.gLabel[pid]);
+        if(reveal) {
+            s += ",\"guesses\":[";
+            bool first = true;
+            for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+                if(!_p[i].used || i == _kmk.chooser || !_kmk.guessed[i]) continue;
+                if(!first) s += ",";
+                first = false;
+                s += "{\"nick\":\"" + ha_json_escape(_p[i].nick) + "\",\"pick\":" +
+                     kmkLabelsJson(_kmk.gLabel[i]) + ",\"pts\":" + _kmk.gained[i] + "}";
+            }
+            s += "],\"mygain\":" + String(_kmk.gained[pid]);
+            s += ",\"deadline\":" + String(pt.revealUntil) + ",\"dur\":" +
+                 String(KMK_REVEAL_MS / 1000);
+        } else {
+            s += ",\"deadline\":" + String(pt.deadline) + ",\"dur\":" +
+                 String(_kmk.stage == 0 ? KMK_CHOOSE_SECS : KMK_GUESS_SECS);
         }
         s += ",\"scores\":" + playersJson() + "}";
         return s;

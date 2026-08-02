@@ -333,3 +333,30 @@ Server `{t:"spectrum",phase,...}`:
   - `clue` appears once the psychic has submitted; `myguess` is the guesser's own locked value.
   - reveal adds `guesses` (`nick`/`g`/`pts`) and `mygain`.
 - `"final"`: `board` (the shared leaderboard).
+
+## 8. Kiss Marry Kill (`kmk`) — game id `14`
+
+A whole-group party game on the shared party skeleton (lobby with a ready-up + pack vote,
+countdown, reveal). Content reuses the pack pipeline: each item is a `Name` (one person or
+character). Select with UART `SELECT_GAME` id `14`; lobby `game` string `"kmk"`. Firmware
+**v15**.
+
+Each round rotates a **chooser** and draws three people from the pack. The chooser secretly
+assigns Kiss / Marry / Kill; everyone else predicts that assignment. Points are the number
+of matching positions (0, 1, or 3 — matching two forces the third), and the chooser earns
+the guessers' average. Six rounds.
+
+Client intents: `ready`, `vote{pack}`, `assign{kiss,marry,kill}` (each is the 0-2 index of
+the person getting that label; the chooser sends it in the choose stage, guessers in the
+guess stage), `again`.
+
+Server `{t:"kmk",phase,...}`:
+- `"lobby"`: `you`, `players`, `packs` (name/votes), `myvote`.
+- `"countdown"`: `sec`.
+- `"play"` with `stage` `"choose"` | `"guess"` | `"reveal"`: `round`, `rounds`, `chooser`
+  (nick), `iam` (am I the chooser), `people` (the three names), `deadline`/`dur` for the timer.
+  - `answer` (the chooser's Kiss/Marry/Kill labels) is sent **only to the chooser** from the
+    guess stage on, and to everyone on reveal — a guesser never sees it early.
+  - `mine` is the guesser's own submitted labels.
+  - reveal adds `guesses` (`nick`/labels/`pts`) and `mygain`.
+- `"final"`: `board` (the shared leaderboard).

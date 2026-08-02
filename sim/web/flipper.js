@@ -14,6 +14,7 @@ const PACK_DIRS = [
   { game: 9, dir: "scramble", names: ["classic", "animals", "food", "space", "music", "sports"] },
   { game: 5, dir: "draw", names: ["classic", "movies", "food", "nature", "animals", "fantasy"] },
   { game: 13, dir: "spectrum", names: ["everyday", "extremes", "opinions", "tastes"] },
+  { game: 14, dir: "kmk", names: ["famous", "fiction", "historical", "mix"] },
 ];
 
 // Ids copied verbatim from flipper/hotspot-arcade/ha_proto.h (HA_GAME_*).
@@ -22,6 +23,7 @@ const GAMES = [
   ["Dots & Boxes", 4], ["Draw & Guess", 5], ["Pong", 6], ["Reaction Duel", 7],
   ["Would You Rather", 8], ["Word Scramble", 9], ["Reversi", 10],
   ["Guess the Color", 11], ["Battleship", 12], ["Spectrum", 13],
+  ["Kiss Marry Kill", 14],
 ];
 
 const players = new Map(); // pid -> { nick, score }

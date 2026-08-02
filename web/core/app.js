@@ -26,17 +26,17 @@ function esc(s) {
 /* Which lobby `game` string maps to which top-level screen, and its title.
    The three duels share the single "duel" screen; the duel message's `kind`
    drives the actual board. */
-var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum"];
+var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk"];
 var GAME_SCREEN = {
   trivia: "trivia", connect4: "duel", tictactoe: "duel", dots: "duel",
   reversi: "duel", draw: "draw", pong: "pong",
-  wyr: "wyr", scramble: "scramble", react: "react", gc: "gc", bs: "bs", spectrum: "spectrum",
+  wyr: "wyr", scramble: "scramble", react: "react", gc: "gc", bs: "bs", spectrum: "spectrum", kmk: "kmk",
 };
 var GAME_LABEL = {
   trivia: "Trivia", connect4: "Connect 4", tictactoe: "Tic-Tac-Toe",
   dots: "Dots & Boxes", reversi: "Reversi", draw: "Draw & Guess", pong: "Pong",
   wyr: "Would You Rather", scramble: "Word Scramble", react: "Reaction Duel",
-  gc: "Guess the Color", bs: "Battleship", spectrum: "Spectrum",
+  gc: "Guess the Color", bs: "Battleship", spectrum: "Spectrum", kmk: "Kiss Marry Kill",
 };
 
 /* Show exactly one top-level screen. */
