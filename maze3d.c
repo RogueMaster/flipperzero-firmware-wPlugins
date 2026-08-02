@@ -59,13 +59,97 @@ static const char* en_item_name(int t) {
     }
 }
 
+// 中文剧情页行数表 (与下方 zh_story_lines 一一对应)
+static const int zh_story_lines_per_page[3][5] = {
+    {4, 4, 4, 0, 0},   // story 0 (intro): 3 页, 每页 4 行
+    {5, 0, 0, 0, 0},   // story 1 (between): 1 页 5 行
+    {5, 0, 0, 0, 0},   // story 2 (ending): 1 页 5 行
+};
+// 中文剧情每行位图查表: story_id, page, line -> (bits, w, h)
+static void zh_story_line(int sid, int page, int line,
+                          const uint8_t** bits, int* w, int* h) {
+    // 把 (sid,page,line) 压成一个 case id
+    int id = sid * 100 + page * 10 + line;
+    switch(id) {
+        // story 0 page 0
+        case 0:   *bits = p0_0_0_bits; *w = P0_0_0_W; *h = P0_0_0_H; break;
+        case 1:   *bits = p0_0_1_bits; *w = P0_0_1_W; *h = P0_0_1_H; break;
+        case 2:   *bits = p0_0_2_bits; *w = P0_0_2_W; *h = P0_0_2_H; break;
+        case 3:   *bits = p0_0_3_bits; *w = P0_0_3_W; *h = P0_0_3_H; break;
+        // story 0 page 1
+        case 10:  *bits = p0_1_0_bits; *w = P0_1_0_W; *h = P0_1_0_H; break;
+        case 11:  *bits = p0_1_1_bits; *w = P0_1_1_W; *h = P0_1_1_H; break;
+        case 12:  *bits = p0_1_2_bits; *w = P0_1_2_W; *h = P0_1_2_H; break;
+        case 13:  *bits = p0_1_3_bits; *w = P0_1_3_W; *h = P0_1_3_H; break;
+        // story 0 page 2
+        case 20:  *bits = p0_2_0_bits; *w = P0_2_0_W; *h = P0_2_0_H; break;
+        case 21:  *bits = p0_2_1_bits; *w = P0_2_1_W; *h = P0_2_1_H; break;
+        case 22:  *bits = p0_2_2_bits; *w = P0_2_2_W; *h = P0_2_2_H; break;
+        case 23:  *bits = p0_2_3_bits; *w = P0_2_3_W; *h = P0_2_3_H; break;
+        // story 1 page 0
+        case 100: *bits = p1_0_0_bits; *w = P1_0_0_W; *h = P1_0_0_H; break;
+        case 101: *bits = p1_0_1_bits; *w = P1_0_1_W; *h = P1_0_1_H; break;
+        case 102: *bits = p1_0_2_bits; *w = P1_0_2_W; *h = P1_0_2_H; break;
+        case 103: *bits = p1_0_3_bits; *w = P1_0_3_W; *h = P1_0_3_H; break;
+        case 104: *bits = p1_0_4_bits; *w = P1_0_4_W; *h = P1_0_4_H; break;
+        // story 2 page 0
+        case 200: *bits = p2_0_0_bits; *w = P2_0_0_W; *h = P2_0_0_H; break;
+        case 201: *bits = p2_0_1_bits; *w = P2_0_1_W; *h = P2_0_1_H; break;
+        case 202: *bits = p2_0_2_bits; *w = P2_0_2_W; *h = P2_0_2_H; break;
+        case 203: *bits = p2_0_3_bits; *w = P2_0_3_W; *h = P2_0_3_H; break;
+        case 204: *bits = p2_0_4_bits; *w = P2_0_4_W; *h = P2_0_4_H; break;
+        default:  *bits = NULL; *w = *h = 0;
+    }
+}
+static const uint8_t* zh_story_title(int sid, int* w, int* h) {
+    switch(sid) {
+        case 0:  *w = STORY_T0_W; *h = STORY_T0_H; return story_t0_bits;
+        case 1:  *w = STORY_T1_W; *h = STORY_T1_H; return story_t1_bits;
+        case 2:  *w = STORY_T2_W; *h = STORY_T2_H; return story_t2_bits;
+        default: *w = *h = 0; return NULL;
+    }
+}
+
 static void draw_story(Canvas* c) {
     canvas_clear(c);
     canvas_set_color(c, ColorBlack);
+
+    if(g.lang == LANG_ZH) {
+        // 中文: 标题位图居中
+        int tw, th; const uint8_t* tb = zh_story_title(g.story_id, &tw, &th);
+        if(tb) canvas_draw_xbm(c, (128 - tw) / 2, 1, tw, th, tb);
+        // 页码 (数字 ASCII)
+        char pg[16];
+        snprintf(pg, sizeof(pg), "%d/%d", g.story_page + 1, story_pages(g.story_id));
+        canvas_draw_str_aligned(c, 126, 2, AlignRight, AlignTop, pg);
+        // 正文行位图
+        int nlines = zh_story_lines_per_page[g.story_id][g.story_page];
+        int y = 16;
+        for(int i = 0; i < nlines && y < 50; i++) {
+            int lw, lh; const uint8_t* lb;
+            zh_story_line(g.story_id, g.story_page, i, &lb, &lw, &lh);
+            if(lb) {
+                canvas_draw_xbm(c, 2, y, lw, lh, lb);
+                y += lh + 1;
+            }
+        }
+        int np = story_pages(g.story_id);
+        if(g.story_page < np - 1) {
+            canvas_draw_xbm(c, 2, 62 - STORY_HINT_H + 1, STORY_HINT_W, STORY_HINT_H, story_hint_bits);
+        } else {
+            // 最后一页: 选项 A/B 位图 + 光标
+            int selY = (g.story_choice == 0) ? 48 : 58;
+            canvas_draw_str(c, 0, selY, ">");
+            canvas_draw_xbm(c, 8, 48 - CHOICE_A_H + 1, CHOICE_A_W, CHOICE_A_H, choice_a_bits);
+            canvas_draw_xbm(c, 8, 58 - CHOICE_B_H + 1, CHOICE_B_W, CHOICE_B_H, choice_b_bits);
+        }
+        return;
+    }
+
+    // 英文 (原逻辑)
     canvas_set_font(c, FontPrimary);
     canvas_draw_str_aligned(c, 64, 1, AlignCenter, AlignTop, story_title(g.story_id));
     canvas_set_font(c, FontSecondary);
-    // 分行绘制正文
     const char* text = story_page_text(g.story_id, g.story_page);
     const char* p = text;
     int y = 14;
@@ -80,7 +164,6 @@ static void draw_story(Canvas* c) {
         y += 8;
         p = (*nl == '\n') ? nl + 1 : nl;
     }
-    // 页码
     char pg[16];
     snprintf(pg, sizeof(pg), "%d/%d", g.story_page + 1, story_pages(g.story_id));
     canvas_draw_str_aligned(c, 126, 1, AlignRight, AlignTop, pg);
@@ -88,16 +171,52 @@ static void draw_story(Canvas* c) {
     if(g.story_page < np - 1) {
         canvas_draw_str(c, 2, 62, EN_STORY_HINT);
     } else {
-        // 最后一页: 选项 A/B + 光标
         canvas_draw_str(c, 8, 50, story_choice_a(g.story_id));
         canvas_draw_str(c, 8, 60, story_choice_b(g.story_id));
         canvas_draw_str(c, 0, (g.story_choice == 0) ? 50 : 60, ">");
     }
 }
 
+// 中文物品名位图
+static void zh_item_name(int item, const uint8_t** bits, int* w, int* h) {
+    switch(item) {
+        case 0:  *bits = inv_key_bits;    *w = INV_KEY_W;    *h = INV_KEY_H;    break;
+        case 1:  *bits = inv_torch_bits;  *w = INV_TORCH_W;  *h = INV_TORCH_H;  break;
+        case 2:  *bits = inv_potion_bits; *w = INV_POTION_W; *h = INV_POTION_H; break;
+        case 3:  *bits = inv_amulet_bits; *w = INV_AMULET_W; *h = INV_AMULET_H; break;
+        default: *bits = inv_empty_bits;  *w = INV_EMPTY_W;  *h = INV_EMPTY_H;  break;
+    }
+}
+
 static void draw_inventory(Canvas* c) {
     canvas_clear(c);
     canvas_set_color(c, ColorBlack);
+
+    if(g.lang == LANG_ZH) {
+        // 标题
+        canvas_draw_xbm(c, (128 - INV_TITLE_W) / 2, 1, INV_TITLE_W, INV_TITLE_H, inv_title_bits);
+        // 物品行
+        for(int i = 0; i < ITEM_COUNT; i++) {
+            int y = 16 + i * 10;
+            int nw, nh; const uint8_t* nb;
+            zh_item_name(i, &nb, &nw, &nh);
+            // 数量 ASCII
+            char cnt[8]; snprintf(cnt, sizeof(cnt), "x%d", item_count(i));
+            if(i == g.inv_sel) {
+                canvas_draw_box(c, 0, y - 1, 128, 11);
+                canvas_set_color(c, ColorWhite);
+            }
+            // 光标 >
+            if(i == g.inv_sel) canvas_draw_str(c, 0, y + 8, ">");
+            if(nb) canvas_draw_xbm(c, 10, y, nw, nh, nb);
+            canvas_draw_str(c, 110, y + 8, cnt);
+            canvas_set_color(c, ColorBlack);
+        }
+        canvas_draw_xbm(c, 2, 62 - INV_HINT_H + 1, INV_HINT_W, INV_HINT_H, inv_hint_bits);
+        return;
+    }
+
+    // 英文 (原逻辑)
     canvas_set_font(c, FontPrimary);
     canvas_draw_str_aligned(c, 64, 1, AlignCenter, AlignTop, EN_INV_TITLE);
     canvas_set_font(c, FontSecondary);
@@ -118,6 +237,39 @@ static void draw_inventory(Canvas* c) {
 static void draw_level_select(Canvas* c) {
     canvas_clear(c);
     canvas_set_color(c, ColorBlack);
+
+    if(g.lang == LANG_ZH) {
+        // 标题
+        const uint8_t* tb; int tw, th;
+        if(g.ls_for_campaign) { tb = ls_title_s_bits; tw = LS_TITLE_S_W; th = LS_TITLE_S_H; }
+        else                  { tb = ls_title_e_bits; tw = LS_TITLE_E_W; th = LS_TITLE_E_H; }
+        canvas_draw_xbm(c, (128 - tw) / 2, 1, tw, th, tb);
+        // 关卡列表
+        for(int i = 0; i < 6; i++) {
+            int lvl = g.ls_sel - 2 + i;
+            if(lvl < 1) continue;
+            int y = 16 + i * 8;
+            bool locked = g.ls_for_campaign && (lvl > g.campaign_cleared + 1);
+            bool cleared = g.ls_for_campaign && (lvl <= g.campaign_cleared);
+            if(lvl == g.ls_sel && !locked) {
+                canvas_draw_box(c, 0, y - 1, 128, 9);
+                canvas_set_color(c, ColorWhite);
+            }
+            // 关卡号 ASCII (前缀用英文 L 避免中文"层"无法用 canvas_draw_str)
+            char lv[8]; snprintf(lv, sizeof(lv), "L%d", lvl);
+            canvas_draw_str(c, 4, y + 7, lv);
+            // 状态标签 (位图)
+            int tag_w, tag_h; const uint8_t* tag_b = NULL;
+            if(locked)         { tag_b = ls_locked_bits;  tag_w = LS_LOCKED_W;  tag_h = LS_LOCKED_H; }
+            else if(cleared)   { tag_b = ls_cleared_bits; tag_w = LS_CLEARED_W; tag_h = LS_CLEARED_H; }
+            if(tag_b) canvas_draw_xbm(c, 100, y, tag_w, tag_h, tag_b);
+            canvas_set_color(c, ColorBlack);
+        }
+        canvas_draw_xbm(c, 2, 62 - LS_HINT_H + 1, LS_HINT_W, LS_HINT_H, ls_hint_bits);
+        return;
+    }
+
+    // 英文 (原逻辑)
     canvas_set_font(c, FontPrimary);
     canvas_draw_str_aligned(c, 64, 1, AlignCenter, AlignTop,
         g.ls_for_campaign ? EN_LS_TITLE_STORY : EN_LS_TITLE_ENDLESS);
