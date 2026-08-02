@@ -1,5 +1,8 @@
 # Flipper Share RFID — direct file transfer between Flippers over the 125 kHz coil
 
+> **⚠️ WARNING:** Flipper Share RFID is an **experimental-only** app, it is not recommended for regular use.
+> Consider using other Flipper Share transports (NFC, Sub-GHz, IR) for everyday file transfer.
+
 ## Overview
 
 **Flipper Share RFID** transfers a file from one Flipper Zero to another over the
@@ -22,7 +25,9 @@ are preserved.
 
 Actual transfer speed is around **315 B/s** (measured on 1 KB and 32 KB transfers; 32 KB
 in ~1:44). This is a slow, alignment-sensitive, one-way-on-the-air link — for real
-throughput use the original **Flipper Share** over Sub-GHz, or Flipper Share NFC / UART.
+throughput use another Flipper Share transport.
+
+Other Flipper Share transports (Sub-GHz, IR, NFC & more): [github.com/lomalkin/flipper-zero-apps](https://github.com/lomalkin/flipper-zero-apps)
 
 Features:
 
