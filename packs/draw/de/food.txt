@@ -1,0 +1,41 @@
+Pack: Essen
+
+Word: Pizza
+---
+Word: Banane
+---
+Word: Cupcake
+---
+Word: Hotdog
+---
+Word: Donut
+---
+Word: Ei
+---
+Word: Kirsche
+---
+Word: Karotte
+---
+Word: Pilz
+---
+Word: Ananas
+---
+Word: Taco
+---
+Word: Burger
+---
+Word: Käse
+---
+Word: Trauben
+---
+Word: Lutscher
+---
+Word: Wassermelone
+---
+Word: Keks
+---
+Word: Popcorn
+---
+Word: Erdbeere
+---
+Word: Eisbecher

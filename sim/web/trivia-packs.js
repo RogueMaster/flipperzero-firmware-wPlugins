@@ -135,6 +135,14 @@ export const PACK_DIRS = [
 ];
 
 export const LANGS = {
+  de: {
+    trivia: ["general", "geography", "science", "movies", "music", "games"],
+    wyr: ["everyday", "absurd", "spicy", "spooky", "superpowers", "timespace"],
+    scramble: ["animals", "food", "space", "sports", "music", "classic"],
+    draw: ["animals", "classic", "fantasy", "food", "movies", "nature"],
+    spectrum: ["everyday", "extremes", "opinions", "tastes"],
+    kmk: ["famous", "fiction", "historical", "mix"],
+  },
   "pt-br": {
     trivia: ["geral"], wyr: ["cotidiano"], scramble: ["palavras"],
     spectrum: ["opostos"], kmk: ["famosos"], draw: ["coisas"],

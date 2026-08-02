@@ -1,0 +1,105 @@
+Pack: Filme
+Q: Wer führte 1975 Regie beim Film "Der weiße Hai"?
+A: George Lucas
+B: Steven Spielberg
+C: Martin Scorsese
+D: Ridley Scott
+Answer: B
+---
+Q: Welche Farbe haben Dorothys Schuhe in "Der Zauberer von Oz"?
+A: Silber
+B: Gold
+C: Rubinrot
+D: Smaragdgrün
+Answer: C
+---
+Q: Welcher Animationsfilm handelt von einem Clownfisch namens Nemo?
+A: Große Haie – Kleine Fische
+B: Findet Nemo
+C: Arielle die Meerjungfrau
+D: Vaiana
+Answer: B
+---
+Q: Wie heißt der Hobbit, der den Ring nach Mordor bringt?
+A: Samweis Gamdschie
+B: Bilbo Beutlin
+C: Frodo Beutlin
+D: Peregrin Tuk
+Answer: C
+---
+Q: Was für ein Spielzeug ist Woody in "Toy Story"?
+A: Ein Astronaut
+B: Ein Cowboy
+C: Ein Dinosaurier
+D: Ein Soldat
+Answer: B
+---
+Q: In welchem Film fällt der Satz "Möge die Macht mit dir sein"?
+A: Star Trek
+B: Star Wars
+C: Guardians of the Galaxy
+D: Interstellar
+Answer: B
+---
+Q: Mit welchem fiktiven Metall ist Wolverines Skelett verbunden?
+A: Vibranium
+B: Titan
+C: Adamantium
+D: Mithril
+Answer: C
+---
+Q: Wie heißt Simbas Vater in "Der König der Löwen"?
+A: Scar
+B: Mufasa
+C: Rafiki
+D: Zazu
+Answer: B
+---
+Q: Welche Filmreihe spielt an einer Zaubererschule namens Hogwarts?
+A: Die Chroniken von Narnia
+B: Harry Potter
+C: Percy Jackson
+D: His Dark Materials
+Answer: B
+---
+Q: Wer spielt Jack im Film "Titanic" (1997)?
+A: Brad Pitt
+B: Matt Damon
+C: Leonardo DiCaprio
+D: Tom Cruise
+Answer: C
+---
+Q: Wie heißt die fiktive afrikanische Nation in "Black Panther"?
+A: Zamunda
+B: Genovia
+C: Wakanda
+D: Sokovia
+Answer: C
+---
+Q: Welche Kreaturen werden in "Jurassic Park" wiederbelebt?
+A: Mammuts
+B: Dinosaurier
+C: Drachen
+D: Säbelzahntiger
+Answer: B
+---
+Q: In welchem Film gibt es die Figur Forrest Gump?
+A: Cast Away
+B: Forrest Gump
+C: The Green Mile
+D: Big
+Answer: B
+---
+Q: Was ist die höchste Auszeichnung bei den Academy Awards?
+A: Golden Globe
+B: Bester Film
+C: Goldene Palme
+D: BAFTA
+Answer: B
+---
+Q: Wie heißt Elsas jüngere Schwester in "Die Eiskönigin"?
+A: Anna
+B: Rapunzel
+C: Merida
+D: Belle
+Answer: A

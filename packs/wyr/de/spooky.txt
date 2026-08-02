@@ -1,0 +1,37 @@
+Pack: Gruselig
+
+A: Von einem Geist gejagt werden
+B: Von einem Zombie gejagt werden
+---
+A: In einem Spukhaus wohnen
+B: Auf einem Friedhof wohnen
+---
+A: Einem Vampir begegnen
+B: Einem Werwolf begegnen
+---
+A: Schritte hinter dir hören
+B: Flüstern in einem leeren Raum hören
+---
+A: In einem Spukhotel schlafen
+B: In einer verlassenen Nervenheilanstalt schlafen
+---
+A: Eine verfluchte Puppe finden
+B: Einen verfluchten Spiegel finden
+---
+A: Süßes oder Saures im Sturm sammeln
+B: Süßes oder Saures in völliger Stille sammeln
+---
+A: Eine Hexe sein
+B: Ein Zauberer sein
+---
+A: Dich um Mitternacht im Maislabyrinth verirren
+B: Dich um Mitternacht im Wald verirren
+---
+A: Eine schwarze Katze kreuzt deinen Weg
+B: Einen Spiegel zerbrechen
+---
+A: Allein einen Horrorfilm schauen
+B: Am Lagerfeuer Gruselgeschichten erzählen
+---
+A: In einem Sarg aufwachen
+B: Auf einem nebligen Friedhof aufwachen

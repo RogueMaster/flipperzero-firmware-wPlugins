@@ -14,6 +14,8 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
   the unchanged default. **Brazilian Portuguese (pt-BR)** is the first, with a starter pack
   for every content game. Adding a language is a set of pack files plus one row in the
   settings picker.
+- **German (de).** A full German translation of all six content games — every pack for
+  Trivia, Would You Rather, Spectrum, Kiss Marry Kill, Word Scramble and Draw (32 packs).
 
 ### Fixed
 

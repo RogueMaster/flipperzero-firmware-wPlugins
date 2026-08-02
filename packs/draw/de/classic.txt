@@ -1,0 +1,61 @@
+Pack: Alltag
+
+Word: Apfel
+---
+Word: Haus
+---
+Word: Auto
+---
+Word: Baum
+---
+Word: Katze
+---
+Word: Hund
+---
+Word: Sonne
+---
+Word: Stern
+---
+Word: Boot
+---
+Word: Fisch
+---
+Word: Uhr
+---
+Word: Blume
+---
+Word: Buch
+---
+Word: Handy
+---
+Word: Stuhl
+---
+Word: Herz
+---
+Word: Wolke
+---
+Word: Schlüssel
+---
+Word: Schuh
+---
+Word: Lächeln
+---
+Word: Pizza
+---
+Word: Roboter
+---
+Word: Gespenst
+---
+Word: Schlange
+---
+Word: Krone
+---
+Word: Gitarre
+---
+Word: Rakete
+---
+Word: Kuchen
+---
+Word: Mond
+---
+Word: Leiter

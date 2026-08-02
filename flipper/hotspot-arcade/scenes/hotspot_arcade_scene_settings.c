@@ -11,6 +11,7 @@ static const struct {
     const char* label;
 } ha_langs[] = {
     {"", "English"},
+    {"de", "Deutsch"},
     {"pt-br", "Portugues BR"},
 };
 #define HA_LANG_COUNT (sizeof(ha_langs) / sizeof(ha_langs[0]))
