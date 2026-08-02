@@ -31,8 +31,11 @@ static void morse_flipper_radio_host_apply(
 
 bool morse_flipper_radio_host_open(MorseFlipperApp* app, uint32_t now_ms) {
     MorseFlipperMappedFalResult initial = {0};
+    MorseFlipperMappedFalResult snapshot_result = {0};
+    MfRadioSnapshot snapshot = {.struct_size = sizeof(MfRadioSnapshot)};
     MfRadioEnterArgs args;
     bool opened;
+    bool have_snapshot = false;
     if(app == NULL || app->plugin_slot.mutex == NULL) return false;
     if(morse_flipper_radio_host_active(app)) return true;
 
@@ -72,10 +75,19 @@ bool morse_flipper_radio_host_open(MorseFlipperApp* app, uint32_t now_ms) {
     furi_mutex_release(app->plugin_slot.mutex);
 
     app->radio_load_error = !opened;
-    if(opened)
-        morse_flipper_radio_host_apply(app, NULL, initial, now_ms);
-    else
+    if(opened) {
+        have_snapshot = morse_flipper_plugin_runtime_call(
+            app,
+            MorseFlipperPluginOwnerRadio,
+            MfRadioCommandSnapshot,
+            NULL,
+            &snapshot,
+            now_ms,
+            &snapshot_result);
+        morse_flipper_radio_host_apply(app, have_snapshot ? &snapshot : NULL, initial, now_ms);
+    } else {
         morse_flipper_view_dirty(app);
+    }
     return opened;
 }
 
@@ -87,7 +99,7 @@ bool morse_flipper_radio_host_active(const MorseFlipperApp* app) {
 
 bool morse_flipper_radio_host_set_page(MorseFlipperApp* app, MfRadioPage page, uint32_t now_ms) {
     MorseFlipperMappedFalResult result = {0};
-    MfRadioSnapshot snapshot = {0};
+    MfRadioSnapshot snapshot = {.struct_size = sizeof(MfRadioSnapshot)};
     bool called = morse_flipper_plugin_runtime_call(
         app,
         MorseFlipperPluginOwnerRadio,
@@ -102,7 +114,7 @@ bool morse_flipper_radio_host_set_page(MorseFlipperApp* app, MfRadioPage page, u
 
 bool morse_flipper_radio_host_input(MorseFlipperApp* app, const InputEvent* event, uint32_t now_ms) {
     MorseFlipperMappedFalResult result = {0};
-    MfRadioSnapshot snapshot = {0};
+    MfRadioSnapshot snapshot = {.struct_size = sizeof(MfRadioSnapshot)};
     if(app == NULL || event == NULL || app->plugin_slot.mutex == NULL) return false;
     bool called = morse_flipper_plugin_runtime_call(
         app,
@@ -129,7 +141,7 @@ bool morse_flipper_radio_host_input(MorseFlipperApp* app, const InputEvent* even
 
 void morse_flipper_radio_host_tick(MorseFlipperApp* app, uint32_t now_ms) {
     MorseFlipperMappedFalResult result = {0};
-    MfRadioSnapshot snapshot = {0};
+    MfRadioSnapshot snapshot = {.struct_size = sizeof(MfRadioSnapshot)};
     if(morse_flipper_plugin_runtime_call(
            app,
            MorseFlipperPluginOwnerRadio,
@@ -150,7 +162,7 @@ void morse_flipper_radio_host_sync_tx(
     MfRadioSyncTxCommand command = {
         .completed_interval = completed_interval, .duration_ms = duration_ms, .level = level};
     MorseFlipperMappedFalResult result = {0};
-    MfRadioSnapshot snapshot = {0};
+    MfRadioSnapshot snapshot = {.struct_size = sizeof(MfRadioSnapshot)};
     if(morse_flipper_plugin_runtime_call(
            app,
            MorseFlipperPluginOwnerRadio,

@@ -96,6 +96,13 @@ def main() -> None:
     assert "? MorseKeyerPaddleDit : MorseKeyerPaddleDah" in ok_map
     assert "? MorseKeyerPaddleDah : MorseKeyerPaddleDit" in back_map
 
+    input_gate = compact(function_body(STATUS, "morse_flipper_input_gate"))
+    assert "app->screen == MorseFlipperScreenRf) { g.live = app->radio_tx_allowed;" in input_gate
+    assert "if(!g.live || app->input_source != MorseFlipperInputSourceButtons)" in input_gate
+    assert "if(morse_flipper_straight_like_mode(app)) g.btn_str = true; else g.btn_pad = true;" in input_gate
+    assert "g.back_key = g.btn_pad;" in input_gate
+    assert "g.left_hint = g.back_key;" in input_gate
+
     button_sync = compact(function_body(KEYING, "morse_flipper_resync_button_paddles"))
     assert "morse_flipper_ok_button_paddle(app)" in button_sync
     assert "morse_flipper_back_button_paddle(app)" in button_sync
