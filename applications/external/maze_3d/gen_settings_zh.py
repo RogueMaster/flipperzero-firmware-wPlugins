@@ -6,16 +6,17 @@ font_path = "/root/.fonts/NotoSansCJKsc-Regular.otf"
 F = ImageFont.truetype(font_path, 8)
 
 items = [
-    ("m4",           "4.设置",     10, 12),
-    ("settings_hdr", "设置",       11, 14),
-    ("set_sfx",      "音效",       8, 10),
-    ("set_opening",  "开场动画",   8, 10),
-    ("set_on",       "开",         7, 10),
-    ("set_off",      "关",         7, 10),
-    ("set_back",     "Back返回",   8, 10),
-    ("set_select",   "上下选 OK切",8, 10),
-    ("open_by",      "k20120509 presents", 8, 10),
+    ("m4", "4.设置", 10, 12),
+    ("settings_hdr", "设置", 11, 14),
+    ("set_sfx", "音效", 8, 10),
+    ("set_opening", "开场动画", 8, 10),
+    ("set_on", "开", 7, 10),
+    ("set_off", "关", 7, 10),
+    ("set_back", "Back返回", 8, 10),
+    ("set_select", "上下选 OK切", 8, 10),
+    ("open_by", "k20120509 presents", 8, 10),
 ]
+
 
 def render(text, font_size, target_h):
     bbox = F.getbbox(text)
@@ -26,6 +27,7 @@ def render(text, font_size, target_h):
     d = ImageDraw.Draw(img)
     d.text((-ox, -oy), text, fill=1, font=F)
     return w, h, img
+
 
 def to_xbm_bytes(w, h, img):
     px = img.load()
@@ -41,6 +43,7 @@ def to_xbm_bytes(w, h, img):
             out.append(byte)
     return out, bpr
 
+
 out_lines = []
 out_lines.append("")
 out_lines.append("// ===== v4.3 设置与开场 中文位图 (紧凑 size 8) =====")
@@ -54,7 +57,7 @@ for name, s, fs, th in items:
     out_lines.append(f"#define {name.upper()}_BPR {bpr}")
     out_lines.append(f"static const uint8_t {name}_bits[] = {{")
     for i in range(0, len(data), 16):
-        chunk = data[i:i+16]
+        chunk = data[i : i + 16]
         out_lines.append("    " + ",".join(f"0x{b:02x}" for b in chunk) + ",")
     out_lines.append("};")
     out_lines.append("")
