@@ -2,6 +2,7 @@ App(
     appid="flipper_share_rfid",
     name="Flipper Share RFID",
     apptype=FlipperAppType.EXTERNAL,
+    targets=["f7"],
     entry_point="share_app",
     sources=["*.c*", "!tools"],
     stack_size=2 * 1024,

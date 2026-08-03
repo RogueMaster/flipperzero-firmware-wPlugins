@@ -104,6 +104,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Hotspot Arcade firmwares.
 - Updated: [Maze 3D v6.1 (By k20120509)](https://github.com/k20120509/flipper-release)
 - OFW: CCID: [Move the debug app out of the firmware repository #4431 (By kidbomb)](https://github.com/flipperdevices/flipperzero-firmware/pull/4431)
+- Added: [CCID Emu v1.0 (By kidbomb)](https://github.com/kidbomb/flipper-ccid-app)
 
 <a name="release"></a>
 
@@ -444,6 +445,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [CANBUS ATTACK v1.0 (By jorgepnaranjo25)](https://github.com/jorgepnaranjo25/CAN-Bus-Attack) `Req: CANBUS By ElectronicCats`
 - [CANBUS v1.1.6.2 (By ElectronicCats)](https://github.com/ElectronicCats/flipper-MCP2515-CANBUS) `Req: CANBUS By ElectronicCats`
 - [Canon Intervalometer v1.0 (By TravisCG)](https://github.com/TravisCG/canonivm)
+- [CCID Emu v1.0 (By kidbomb)](https://github.com/kidbomb/flipper-ccid-app)
 - [CCID Emulator v1.1 (By barkandbite)](https://github.com/barkandbite/flipper_suite)
 - [Cerberus v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/flipper-cerberus)
 - [CFS Tag Writer v1.0 (By pwschattenberg)](https://github.com/pwschattenberg/cfs-tag-writer)
