@@ -663,6 +663,7 @@ h3{margin:0; font-weight:600}
 .ch-board{display:grid; grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(8,1fr);
   aspect-ratio:1; border:2px solid var(--line); border-radius:var(--radius);
   max-width:400px; margin:0 auto; touch-action:manipulation; overflow:hidden}
+#chess-over-board{margin:12px auto; width:100%}
 .ch-cell{position:relative; display:flex; align-items:center; justify-content:center;
   font-size:clamp(20px,7vmin,34px); line-height:1}
 .ch-cell.lt{background:var(--surface-2)}

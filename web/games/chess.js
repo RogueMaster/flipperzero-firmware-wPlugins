@@ -45,12 +45,14 @@
   // un-stylable emoji on some Android fonts); color comes from the w/b class.
   var GLYPH = { P: "♟", N: "♞", B: "♝", R: "♜", Q: "♛", K: "♚" };
 
-  function renderBoard(m) {
+  // `el` defaults to the in-game board; renderOver passes the over-screen copy
+  // (same renderer, non-interactive there since m.yourTurn is absent in "over").
+  function renderBoard(m, el) {
     var board = m.board;
     var chkSq = m.check ? kingSquare(board, m.wtm) : -1;
     var lastFrom = m.last >= 0 ? Math.floor(m.last / 64) : -1;
     var lastTo = m.last >= 0 ? m.last % 64 : -1;
-    var el = $("chess-board");
+    el = el || $("chess-board");
     var rebuild = el.childElementCount !== 64;
     if (rebuild) el.innerHTML = "";
     for (var i = 0; i < 64; i++) {
@@ -200,6 +202,9 @@
       move75: "chess.reason_move75", agree: "chess.reason_agree", left: "chess.reason_left",
     };
     $("chess-reason").textContent = t(REASON_KEY[m.reason] || m.reason);
+    // The final position, with the mating move and checked king still highlighted.
+    selFrom = -1;
+    if (m.board) renderBoard(m, $("chess-over-board"));
     if (prevPhase !== "over") {
       if (m.result === "win") { A.sfx("win"); A.vibe([40, 60, 40, 60, 120]); }
       else if (m.result === "lose") { A.sfx("lose"); A.vibe(200); }
