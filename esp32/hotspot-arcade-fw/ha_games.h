@@ -429,6 +429,7 @@ struct ChessMatch {
     uint16_t fullmove;
     uint32_t clockMs[2]; // remaining ms, [0] = white, [1] = black
     uint32_t lastStamp; // millis() at game start / last completed move
+    int16_t lastMove; // from * 64 + to of the move just played, -1 before the first
     uint8_t offerBy; // pid with a pending draw offer, 0 none
     uint16_t histLen;
     uint32_t hist[CH_HIST];
@@ -457,6 +458,7 @@ public:
         battleClear();
         spectrumClear();
         kmkClear();
+        chessClear();
     }
 
     // ---- roster ----
@@ -519,8 +521,11 @@ public:
         wyrClear();
         scrambleClear();
         reactClear();
+        gcClear();
+        battleClear();
         spectrumClear();
         kmkClear();
+        chessClear();
         pushAll();
     }
 
@@ -746,6 +751,8 @@ public:
             spectrumClear();
         else if(_active == HA_GAME_KMK)
             kmkClear();
+        else if(_active == HA_GAME_CHESS)
+            chessClear();
         pushAll();
     }
 
@@ -770,6 +777,8 @@ public:
             spectrumTick(now);
         else if(_active == HA_GAME_KMK)
             kmkTick(now);
+        else if(_active == HA_GAME_CHESS)
+            chessTick(now);
     }
 
     // ---- player input (parsed WS JSON) ----
@@ -847,15 +856,30 @@ public:
             duelCancel(pid);
         } else if(strcmp(type, "move") == 0 && ha_json_int(json, "n", &v)) {
             duelMove(pid, v);
+        } else if(strcmp(type, "move") == 0 && _active == HA_GAME_CHESS) {
+            // Chess names its squares, so its "move" carries from/to instead of the
+            // duels' single "n" and falls through to here.
+            int from, to, promo;
+            if(!ha_json_int(json, "from", &from)) from = -1;
+            if(!ha_json_int(json, "to", &to)) to = -1;
+            if(!ha_json_int(json, "promo", &promo)) promo = 0;
+            chessMove(pid, from, to, promo);
         } else if(strcmp(type, "rematch") == 0) {
             duelRematch(pid);
             battleRematch(pid);
+            chessRematch(pid);
         } else if(strcmp(type, "paddle") == 0 && ha_json_int(json, "dir", &v)) {
             pongPaddle(pid, v);
         } else if(strcmp(type, "place") == 0) {
             battlePlace(pid, json);
         } else if(strcmp(type, "fire") == 0 && ha_json_int(json, "n", &v)) {
             battleFire(pid, v);
+        } else if(strcmp(type, "resign") == 0 && _active == HA_GAME_CHESS) {
+            chessResign(pid);
+        } else if(strcmp(type, "draw") == 0 && _active == HA_GAME_CHESS) {
+            chessDraw(pid);
+        } else if(strcmp(type, "claim") == 0 && _active == HA_GAME_CHESS) {
+            chessClaim(pid);
         } else if(strcmp(type, "guess") == 0) {
             // A text guess (draw/scramble) or an r/g/b color guess (guess the color).
             char g[64];
@@ -898,6 +922,7 @@ private:
     BattleMatch _bm[BATTLE_MAX] = {};
     SpectrumState _spec = {};
     KmkState _kmk = {};
+    ChessMatch _cm[CHESS_MAX] = {};
 
     uint8_t freePid() {
         for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
@@ -939,6 +964,8 @@ private:
                 haWsSendWs(_p[pid].wsId, spectrumJson(pid));
             else if(_active == HA_GAME_KMK)
                 haWsSendWs(_p[pid].wsId, kmkJson(pid));
+            else if(_active == HA_GAME_CHESS)
+                haWsSendWs(_p[pid].wsId, chessJson(pid));
         }
     }
 
@@ -997,6 +1024,8 @@ private:
             return "spectrum";
         case HA_GAME_KMK:
             return "kmk";
+        case HA_GAME_CHESS:
+            return "chess";
         default:
             return "none";
         }
@@ -1382,12 +1411,13 @@ private:
             if(_c[i].used && (_c[i].from == pid || _c[i].to == pid)) _c[i] = DuelChallenge{};
     }
 
-    // Challenge/accept are shared by all 1v1 games (duels + pong + battleship).
+    // Challenge/accept are shared by all 1v1 games (duels + pong + battleship + chess).
     bool isMatchGame() {
-        return isDuel(_active) || _active == HA_GAME_PONG || _active == HA_GAME_BATTLESHIP;
+        return isDuel(_active) || _active == HA_GAME_PONG ||
+               _active == HA_GAME_BATTLESHIP || _active == HA_GAME_CHESS;
     }
     bool inAnyMatch(uint8_t pid) {
-        return matchOf(pid) || pongMatchOf(pid) || battleMatchOf(pid);
+        return matchOf(pid) || pongMatchOf(pid) || battleMatchOf(pid) || chessMatchOf(pid);
     }
 
     void matchChallenge(uint8_t from, uint8_t to) {
@@ -1452,6 +1482,12 @@ private:
                     battleStart(&_bm[i], from, pid, from); // challenger fires first
                     break;
                 }
+        } else if(_active == HA_GAME_CHESS) {
+            for(int i = 0; i < CHESS_MAX; i++)
+                if(!_cm[i].used) {
+                    chessStart(&_cm[i], from, pid, from); // challenger plays white
+                    break;
+                }
         } else {
             for(int i = 0; i < DUEL_MAX_MATCHES; i++)
                 if(!_m[i].used) {
@@ -1461,8 +1497,9 @@ private:
         }
         duelRemoveChallengesInvolving(pid);
         duelRemoveChallengesInvolving(from);
-        const char* key = (_active == HA_GAME_PONG)      ? "pong" :
+        const char* key = (_active == HA_GAME_PONG)       ? "pong" :
                           (_active == HA_GAME_BATTLESHIP) ? "bs" :
+                          (_active == HA_GAME_CHESS)      ? "chess" :
                                                             "duel";
         haUartEvent(
             String("{\"") + key + "\":\"" + ha_json_escape(_p[from].nick) + " vs " +
@@ -1474,6 +1511,7 @@ private:
         duelOnLeave(pid);
         pongOnLeave(pid);
         battleOnLeave(pid);
+        chessOnLeave(pid);
     }
 
     void duelCancel(uint8_t pid) {
@@ -1870,6 +1908,7 @@ private:
         DuelMatch* dm = matchOf(pid);
         PongMatch* pm = dm ? nullptr : pongMatchOf(pid);
         BattleMatch* bm = (dm || pm) ? nullptr : battleMatchOf(pid);
+        ChessMatch* cm = (dm || pm || bm) ? nullptr : chessMatchOf(pid);
         for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
             if(!_p[i].used || !_p[i].wsId) continue;
             bool peer;
@@ -1879,6 +1918,8 @@ private:
                 peer = (i == pm->a || i == pm->b);
             else if(bm)
                 peer = (i == bm->a || i == bm->b);
+            else if(cm)
+                peer = (i == cm->a || i == cm->b);
             else
                 peer = !inAnyMatch(i); // lobby / whole-group: reaches everyone not in a match
             if(peer) haWsSendWs(_p[i].wsId, msg);
@@ -3659,6 +3700,342 @@ public:
     }
 private:
 #endif
+
+    // ---------- chess (match) ----------
+    // Lifecycle, clocks and serialization around the rules core above. Same shape as
+    // battleship: one slot per live pairing, freed when both players have detached.
+    void chessClear() {
+        for(int i = 0; i < CHESS_MAX; i++) _cm[i] = ChessMatch{};
+    }
+
+    ChessMatch* chessMatchOf(uint8_t pid) {
+        for(int i = 0; i < CHESS_MAX; i++) {
+            if(!_cm[i].used) continue;
+            if(_cm[i].a == pid && _cm[i].aIn) return &_cm[i];
+            if(_cm[i].b == pid && _cm[i].bIn) return &_cm[i];
+        }
+        return nullptr;
+    }
+
+    // Colors are per game, not per seat: a rematch swaps them, so every side/pid
+    // translation goes through m->white rather than through a/b.
+    static uint8_t chessSideOf(const ChessMatch* m, uint8_t pid) {
+        return pid == m->white ? 0 : 1;
+    }
+    static uint8_t chessPidOf(const ChessMatch* m, uint8_t side) {
+        return side ? ((m->white == m->a) ? m->b : m->a) : m->white;
+    }
+    static uint8_t chessTurnPid(const ChessMatch* m) { return chessPidOf(m, m->core.stm); }
+
+    void chessStart(ChessMatch* m, uint8_t a, uint8_t b, uint8_t whitePid) {
+        *m = ChessMatch{};
+        m->used = true;
+        m->a = a;
+        m->b = b;
+        m->aIn = m->bIn = true;
+        m->white = whitePid;
+        m->phase = 1;
+        m->winner = 0;
+        static const uint8_t back[8] = {4, 2, 3, 5, 6, 3, 2, 4}; // R N B Q K B N R
+        for(int f = 0; f < 8; f++) {
+            m->core.sq[f] = back[f]; // a1..h1
+            m->core.sq[8 + f] = 1; // white pawns
+            m->core.sq[48 + f] = 7; // black pawns
+            m->core.sq[56 + f] = (uint8_t)(back[f] + 6); // a8..h8
+        }
+        m->core.stm = 0;
+        m->core.rights = 15;
+        m->core.ep = -1;
+        m->halfmove = 0;
+        m->fullmove = 1;
+        m->clockMs[0] = m->clockMs[1] = CH_CLOCK_MS;
+        m->lastStamp = millis();
+        m->lastMove = -1;
+        m->offerBy = 0;
+        chessZobristInit();
+        m->hist[0] = chessHash(m->core);
+        m->histLen = 1;
+    }
+
+    // Scoring copies duelFinish (battleship's finish forgot it): 300 to the winner,
+    // nothing on a draw, and the result goes up the UART either way. winnerPid 0 = draw.
+    void chessFinish(ChessMatch* m, uint8_t winnerPid, uint8_t reason) {
+        if(m->phase != 1) return;
+        m->phase = 2;
+        m->winner = winnerPid;
+        m->reason = reason;
+        uint8_t loser = (winnerPid == m->a) ? m->b : (winnerPid == m->b) ? m->a : 0;
+        if(winnerPid) {
+            _p[winnerPid].score += 300;
+            haUartScore(winnerPid, 300, "chesswin");
+            haUartRoundResult(String("{\"win\":") + winnerPid + ",\"lose\":" + loser + "}");
+        } else {
+            haUartRoundResult(String("{\"draw\":[") + m->a + "," + m->b + "]}");
+        }
+    }
+
+    // The flag falls for the side to move. FIDE 6.9: the opponent only wins if they
+    // could still mate by SOME legal sequence, otherwise the game is drawn.
+    void chessFlagFall(ChessMatch* m) {
+        uint8_t side = m->core.stm, opp = (uint8_t)(side ^ 1);
+        m->clockMs[side] = 0;
+        if(chessCanMateVs(m->core, opp))
+            chessFinish(m, chessPidOf(m, opp), CH_R_FLAG);
+        else
+            chessFinish(m, 0, CH_R_FLAGDRAW);
+    }
+
+    // How often the position now on the board has occurred, counting this occurrence.
+    static int chessRepCount(const ChessMatch* m) {
+        uint32_t h = chessHash(m->core);
+        int n = 0;
+        for(uint16_t i = 0; i < m->histLen; i++)
+            if(m->hist[i] == h) n++;
+        return n;
+    }
+
+    void chessMove(uint8_t pid, int from, int to, int promo) {
+        ChessMatch* m = chessMatchOf(pid);
+        if(!m || m->phase != 1 || chessTurnPid(m) != pid) return;
+        uint8_t stm = m->core.stm;
+        uint32_t now = millis(), elapsed = now - m->lastStamp;
+        if(elapsed >= m->clockMs[stm]) { // the move arrived after the flag fell: ignore it
+            chessFlagFall(m);
+            pushAll();
+            return;
+        }
+        if(from < 0 || from > 63 || to < 0 || to > 63) return;
+        // Never hand chessMake a move it did not generate: its castling branch hops the
+        // rook on any e1-g1/c1 king move without re-checking, so a spoofed one corrupts
+        // the board.
+        uint16_t mv[CH_MAX_MOVES];
+        int n = chessGenLegal(m->core, mv);
+        bool legal = false;
+        for(int i = 0; i < n; i++)
+            if(mv[i] == (uint16_t)(from * 64 + to)) legal = true;
+        if(!legal) return;
+        // A pawn reaching the last rank must name a promotion piece, and nothing else may.
+        bool isPromo = chKind(m->core.sq[from]) == 1 && (to >> 3) == (stm ? 0 : 7);
+        if(isPromo != (promo >= 2 && promo <= 5)) return;
+
+        m->clockMs[stm] -= elapsed;
+        m->lastStamp = now;
+        ChessUndo u;
+        bool irrev = chessMake(m->core, from, to, isPromo ? (uint8_t)promo : 0, u);
+        m->lastMove = (int16_t)(from * 64 + to);
+        m->offerBy = 0; // a pending draw offer lapses once a move is played
+        if(stm) m->fullmove++;
+        if(irrev) { // a pawn move or capture can never repeat: the record starts over
+            m->halfmove = 0;
+            m->histLen = 0;
+        } else {
+            m->halfmove++;
+        }
+        if(m->histLen < CH_HIST) m->hist[m->histLen++] = chessHash(m->core);
+
+        // Checkmate outranks the automatic counters (FIDE 9.6.2): a mating move ends the
+        // game even when it also completes the 75-move or fivefold count.
+        uint16_t reply[CH_MAX_MOVES];
+        bool stuck = chessGenLegal(m->core, reply) == 0; // no reply: mate or stalemate
+        if(stuck && chessInCheck(m->core))
+            chessFinish(m, pid, CH_R_MATE);
+        else if(stuck)
+            chessFinish(m, 0, CH_R_STALEMATE);
+        else if(chessDeadPosition(m->core))
+            chessFinish(m, 0, CH_R_MATERIAL);
+        else if(m->halfmove >= 150)
+            chessFinish(m, 0, CH_R_MOVE75);
+        else if(chessRepCount(m) >= 5)
+            chessFinish(m, 0, CH_R_REP5);
+        pushAll();
+    }
+
+    void chessResign(uint8_t pid) {
+        ChessMatch* m = chessMatchOf(pid);
+        if(!m || m->phase != 1) return;
+        chessFinish(m, (pid == m->a) ? m->b : m->a, CH_R_RESIGN);
+        pushAll();
+    }
+
+    // Offer a draw, or accept the one already on the table.
+    void chessDraw(uint8_t pid) {
+        ChessMatch* m = chessMatchOf(pid);
+        if(!m || m->phase != 1) return;
+        uint8_t opp = (pid == m->a) ? m->b : m->a;
+        if(m->offerBy == opp) {
+            chessFinish(m, 0, CH_R_AGREE);
+        } else {
+            m->offerBy = pid;
+            if(_p[opp].wsId)
+                haWsSendWs(
+                    _p[opp].wsId,
+                    String("{\"t\":\"toast\",\"msg\":\"") + ha_json_escape(_p[pid].nick) +
+                        " offers a draw\"}");
+        }
+        pushAll();
+    }
+
+    // Threefold and the 50-move rule are claims, not automatic: only the player to move
+    // may make them, and only while the count actually stands.
+    void chessClaim(uint8_t pid) {
+        ChessMatch* m = chessMatchOf(pid);
+        if(!m || m->phase != 1 || chessTurnPid(m) != pid) return;
+        if(chessRepCount(m) >= 3)
+            chessFinish(m, 0, CH_R_REP3);
+        else if(m->halfmove >= 100)
+            chessFinish(m, 0, CH_R_MOVE50);
+        else
+            return; // nothing to claim
+        pushAll();
+    }
+
+    void chessRematch(uint8_t pid) {
+        ChessMatch* m = chessMatchOf(pid);
+        if(!m || m->phase != 2) return;
+        if(!m->aIn || !m->bIn) {
+            if(_p[pid].wsId)
+                haWsSendWs(_p[pid].wsId, String("{\"t\":\"toast\",\"msg\":\"Opponent left\"}"));
+            chessOnLeave(pid);
+            pushAll();
+            return;
+        }
+        uint8_t next = (m->white == m->a) ? m->b : m->a; // colors swap every game
+        chessStart(m, m->a, m->b, next);
+        pushAll();
+    }
+
+    void chessOnLeave(uint8_t pid) {
+        ChessMatch* m = chessMatchOf(pid);
+        if(!m) return;
+        uint8_t opp = (pid == m->a) ? m->b : m->a;
+        if(m->phase == 1) chessFinish(m, opp, CH_R_LEFT); // forfeit
+        if(pid == m->a) m->aIn = false;
+        if(pid == m->b) m->bIn = false;
+        if(!m->aIn && !m->bIn) *m = ChessMatch{}; // both gone: free the slot
+    }
+
+    // The only game whose state changes with no input at all. Nothing is pushed unless a
+    // flag actually fell: the phones count the running clock down from `deadline`.
+    void chessTick(uint32_t now) {
+        bool ended = false;
+        for(int i = 0; i < CHESS_MAX; i++) {
+            ChessMatch* m = &_cm[i];
+            if(!m->used || m->phase != 1) continue;
+            if((now - m->lastStamp) < m->clockMs[m->core.stm]) continue;
+            chessFlagFall(m);
+            ended = true;
+        }
+        if(ended) pushAll();
+    }
+
+    // 64 chars, index 0 = a1: FEN letters, uppercase white, '.' empty.
+    static String chessBoardStr(const ChessCore& c) {
+        char b[65];
+        for(int i = 0; i < 64; i++) b[i] = ".PNBRQKpnbrqk"[c.sq[i]];
+        b[64] = '\0';
+        return String(b);
+    }
+
+    static const char* chessReasonStr(uint8_t r) {
+        switch(r) {
+        case CH_R_MATE:
+            return "mate";
+        case CH_R_STALEMATE:
+            return "stalemate";
+        case CH_R_RESIGN:
+            return "resign";
+        case CH_R_FLAG:
+            return "flag";
+        case CH_R_FLAGDRAW:
+            return "flagdraw";
+        case CH_R_MATERIAL:
+            return "material";
+        case CH_R_REP3:
+            return "rep3";
+        case CH_R_REP5:
+            return "rep5";
+        case CH_R_MOVE50:
+            return "move50";
+        case CH_R_MOVE75:
+            return "move75";
+        case CH_R_AGREE:
+            return "agree";
+        case CH_R_LEFT:
+            return "left";
+        }
+        return "";
+    }
+
+    String chessJson(uint8_t pid) {
+        ChessMatch* m = chessMatchOf(pid);
+        if(!m)
+            return String("{\"t\":\"chess\",\"phase\":\"lobby\",\"challenges\":") +
+                   duelChallengesJson() + "}";
+        uint8_t opp = (pid == m->a) ? m->b : m->a;
+        uint8_t stm = m->core.stm, turn = chessTurnPid(m);
+        bool yourTurn = (turn == pid);
+        // One clock reading for the whole message, so `run` and `deadline` agree. The
+        // running clock freezes once the game is over -- the over screen is not a place
+        // to watch time tick away.
+        uint32_t now = millis(), rem = m->clockMs[stm];
+        if(m->phase == 1) {
+            uint32_t spent = now - m->lastStamp;
+            rem -= (spent < rem) ? spent : rem;
+        }
+        String s = "{\"t\":\"chess\",\"phase\":\"";
+        s += (m->phase == 2) ? "over" : "playing";
+        s += "\",\"you\":";
+        s += pid;
+        s += ",\"opp\":\"" + ha_json_escape(_p[opp].nick) + "\"";
+        s += ",\"white\":";
+        s += (chessSideOf(m, pid) == 0) ? "true" : "false";
+        s += ",\"turn\":";
+        s += turn;
+        s += ",\"yourTurn\":";
+        s += yourTurn ? "true" : "false";
+        s += ",\"board\":\"" + chessBoardStr(m->core) + "\"";
+        if(m->phase == 1) { // the mover's own legal moves; nobody else's are anyone's business
+            s += ",\"moves\":[";
+            if(yourTurn) {
+                uint16_t mv[CH_MAX_MOVES];
+                int n = chessGenLegal(m->core, mv);
+                for(int i = 0; i < n; i++) {
+                    if(i) s += ",";
+                    s += (int)mv[i];
+                }
+            }
+            s += "]";
+        }
+        s += ",\"check\":";
+        s += chessInCheck(m->core) ? "true" : "false";
+        s += ",\"last\":";
+        s += (int)m->lastMove;
+        s += ",\"deadline\":";
+        s += (unsigned long)(now + rem);
+        s += ",\"run\":";
+        s += (unsigned long)rem;
+        s += ",\"oms\":";
+        s += (unsigned long)m->clockMs[stm ^ 1];
+        s += ",\"wtm\":";
+        s += (stm == 0) ? "true" : "false";
+        if(m->phase == 1) {
+            s += ",\"claim3\":";
+            s += (yourTurn && chessRepCount(m) >= 3) ? "true" : "false";
+            s += ",\"claim50\":";
+            s += (yourTurn && m->halfmove >= 100) ? "true" : "false";
+        }
+        s += ",\"offer\":";
+        s += m->offerBy;
+        if(m->phase == 2) {
+            s += ",\"result\":\"";
+            s += !m->winner ? "draw" : (m->winner == pid) ? "win" : "lose";
+            s += "\",\"reason\":\"";
+            s += chessReasonStr(m->reason);
+            s += "\"";
+        }
+        s += "}";
+        return s;
+    }
 
     // ---------- spectrum (wavelength-style guessing) ----------
     // Which pack wins the pre-round vote; identical policy to wyrWinningPack().
