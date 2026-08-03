@@ -86,7 +86,7 @@
       var piece = m.board.charAt(from);
       var needsPromo = (piece === "P" && to >= 56) || (piece === "p" && to <= 7);
       selFrom = -1;
-      if (needsPromo) { pendingPromo = { from: from, to: to }; showPromo(); }
+      if (needsPromo) { pendingPromo = { from: from, to: to }; renderBoard(m); showPromo(); }
       else { sendMove(from, to, 0); renderBoard(m); }
       return;
     }
@@ -103,7 +103,15 @@
   }
 
   function showPromo() { $("chess-promo").classList.remove("hide"); }
-  function hidePromo() { $("chess-promo").classList.add("hide"); pendingPromo = null; }
+  // Always leaves the board in a fresh, consistent state (selFrom is already -1 by
+  // the time this runs, from either caller) -- both the promo-pick and the
+  // backdrop-cancel path route through here, so neither can leave a stale
+  // sel/tgt highlight from the square that triggered the promotion overlay.
+  function hidePromo() {
+    $("chess-promo").classList.add("hide");
+    pendingPromo = null;
+    if (lastMsg) renderBoard(lastMsg);
+  }
 
   /* ---- clocks ---- */
   function fmtClock(ms) {
@@ -248,8 +256,7 @@
           if (!pendingPromo) return;
           var promo = parseInt(btn.getAttribute("data-promo"), 10);
           sendMove(pendingPromo.from, pendingPromo.to, promo);
-          hidePromo();
-          if (lastMsg) renderBoard(lastMsg);
+          hidePromo(); // re-renders the board (see hidePromo's comment)
         });
       })(promoBtns[pi]);
     }

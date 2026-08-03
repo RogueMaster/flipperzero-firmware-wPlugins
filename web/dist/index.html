@@ -509,23 +509,31 @@ document.body.appendChild(v);
 wakeVideo = v;
 return v;
 }
+var lastWakeWanted = null;
+var wakeInFlight = false;
 function syncWakeLock() {
 var wanted = wakeWanted();
+if (wanted === lastWakeWanted) return;
+lastWakeWanted = wanted;
 if (navigator.wakeLock && navigator.wakeLock.request) {
-if (wanted && !wakeSentinel) {
+if (wanted) {
+if (wakeInFlight || wakeSentinel) return;
+wakeInFlight = true;
 navigator.wakeLock.request("screen").then(function (s) {
+wakeInFlight = false;
+if (!wakeWanted()) { s.release().catch(function () {}); return; }
 wakeSentinel = s;
 s.addEventListener("release", function () { wakeSentinel = null; });
-}).catch(function () {});
-} else if (!wanted && wakeSentinel) {
+}).catch(function () { wakeInFlight = false; });
+} else if (wakeSentinel) {
 wakeSentinel.release().catch(function () {});
 wakeSentinel = null;
 }
 return; // Tier 1 available on this origin: never touch the video fallback.
 }
 var v = ensureWakeVideo();
-if (wanted) v.play().catch(function () {});
-else v.pause();
+if (wanted) { if (v.paused) v.play().catch(function () {}); }
+else if (!v.paused) v.pause();
 }
 function route(name) { if (A.joined) screen(name); }
 function serverNow() { return Date.now() + A.offset; }
@@ -3123,7 +3131,7 @@ var from = selFrom, to = sq;
 var piece = m.board.charAt(from);
 var needsPromo = (piece === "P" && to >= 56) || (piece === "p" && to <= 7);
 selFrom = -1;
-if (needsPromo) { pendingPromo = { from: from, to: to }; showPromo(); }
+if (needsPromo) { pendingPromo = { from: from, to: to }; renderBoard(m); showPromo(); }
 else { sendMove(from, to, 0); renderBoard(m); }
 return;
 }
@@ -3138,7 +3146,11 @@ if (promo) msg.promo = promo;
 send(msg);
 }
 function showPromo() { $("chess-promo").classList.remove("hide"); }
-function hidePromo() { $("chess-promo").classList.add("hide"); pendingPromo = null; }
+function hidePromo() {
+$("chess-promo").classList.add("hide");
+pendingPromo = null;
+if (lastMsg) renderBoard(lastMsg);
+}
 function fmtClock(ms) {
 var s = Math.max(0, Math.ceil(ms / 1000));
 var mm = Math.floor(s / 60), ss = s % 60;
@@ -3262,8 +3274,7 @@ btn.addEventListener("click", function () {
 if (!pendingPromo) return;
 var promo = parseInt(btn.getAttribute("data-promo"), 10);
 sendMove(pendingPromo.from, pendingPromo.to, promo);
-hidePromo();
-if (lastMsg) renderBoard(lastMsg);
+hidePromo(); // re-renders the board (see hidePromo's comment)
 });
 })(promoBtns[pi]);
 }

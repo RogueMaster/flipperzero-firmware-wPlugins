@@ -85,23 +85,45 @@ function ensureWakeVideo() {
   wakeVideo = v;
   return v;
 }
+// screen() calls syncWakeLock() on every route (a Pong match pushes ~30/s), so this
+// needs to be cheap and idempotent when nothing actually changed:
+//  - lastWakeWanted latches the last state we acted on; a call with the same
+//    `wanted` is a no-op. This also stops an infinite request loop on phones where
+//    wakeLock.request() rejects (e.g. battery saver) -- we only retry once `wanted`
+//    flips false -> true again, not on every subsequent push.
+//  - wakeInFlight guards the async request itself: without it, a wanted-then-not
+//    toggle inside one pending request's round trip could fire a second request,
+//    and the two sentinels would overwrite each other -- orphaning one that
+//    release() (in the `else if (wakeSentinel)` branch below) never reaches.
+var lastWakeWanted = null;
+var wakeInFlight = false;
 function syncWakeLock() {
   var wanted = wakeWanted();
+  if (wanted === lastWakeWanted) return;
+  lastWakeWanted = wanted;
+
   if (navigator.wakeLock && navigator.wakeLock.request) {
-    if (wanted && !wakeSentinel) {
+    if (wanted) {
+      if (wakeInFlight || wakeSentinel) return;
+      wakeInFlight = true;
       navigator.wakeLock.request("screen").then(function (s) {
+        wakeInFlight = false;
+        // `wanted` may have flipped back to false while this was in flight; check
+        // the live state rather than trust the stale closure, so a fast toggle
+        // can't leave an orphaned lock held past the point it was released.
+        if (!wakeWanted()) { s.release().catch(function () {}); return; }
         wakeSentinel = s;
         s.addEventListener("release", function () { wakeSentinel = null; });
-      }).catch(function () {});
-    } else if (!wanted && wakeSentinel) {
+      }).catch(function () { wakeInFlight = false; });
+    } else if (wakeSentinel) {
       wakeSentinel.release().catch(function () {});
       wakeSentinel = null;
     }
     return; // Tier 1 available on this origin: never touch the video fallback.
   }
   var v = ensureWakeVideo();
-  if (wanted) v.play().catch(function () {});
-  else v.pause();
+  if (wanted) { if (v.paused) v.play().catch(function () {}); }
+  else if (!v.paused) v.pause();
 }
 
 /* Auto-route driven by server state. Ignored until the user has joined so we
