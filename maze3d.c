@@ -53,8 +53,11 @@ static void get_msg_bmp(int id, const uint8_t** bits, int* w, int* h, int* bpr) 
         // 拾取药水/护符: 复用物品栏中文名位图
         case MSG_POTION:  *bits = inv_potion_bits;  *w = INV_POTION_W;  *h = INV_POTION_H;  *bpr = INV_POTION_BPR;  break;
         case MSG_AMULET:  *bits = inv_amulet_bits;  *w = INV_AMULET_W;  *h = INV_AMULET_H;  *bpr = INV_AMULET_BPR;  break;
-        // MC 挖掘/放置: 无中文位图, toast 用英文回退
-        case MSG_MINE: case MSG_PLACE: *bits = NULL; *w = *h = *bpr = 0; break;
+        // MC 挖掘/放置/锁定/弹药/成就: 无中文位图, toast 用英文回退
+        case MSG_MINE: case MSG_PLACE:
+        case MSG_LOCKED: case MSG_NOAMMO: case MSG_AMMO:
+        case MSG_ACHIEVE: case MSG_TASKPROG:
+            *bits = NULL; *w = *h = *bpr = 0; break;
         default: *bits = NULL; *w = *h = *bpr = 0;
     }
 }
@@ -970,17 +973,28 @@ static void draw_callback(Canvas* canvas, void* ctx) {
             snprintf(sb, sizeof(sb), "K%d", g.player.keys);
             canvas_draw_str_aligned(canvas, 127, 8, AlignRight, AlignBottom, sb);
         }
+        // v6.0: 战斗关右下显示弹药数
+        if(g.stage == STAGE_COMBAT) {
+            char ab[8];
+            snprintf(ab, sizeof(ab), "AM%d", g.ammo);
+            canvas_draw_str(canvas, 64, 8, ab);
+        }
     } else {
         // MC 沙盒模式 (Beta): 顶部状态条 — 模式 + 手持方块 + 已挖数
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_box(canvas, 0, 0, 128, 10);
         canvas_set_color(canvas, ColorBlack);
         canvas_set_font(canvas, FontSecondary);
-        const char* bn[4] = { "Brick", "Stone", "Metal", "Vine" };
+        // v6.0: 6 种方块名 (砖/石/木/草/沙/树叶)
+        const char* bn[6] = { "Brick", "Stone", "Wood", "Grass", "Sand", "Leaf" };
         char mb[32];
-        snprintf(mb, sizeof(mb), "MC  Blk:%s  Mined:%d",
-                 bn[(g.mc_block_type - 1) & 3], g.mc_mined);
+        snprintf(mb, sizeof(mb), "MC %s M%d",
+                 bn[(g.mc_block_type - 1) % 6], g.mc_mined);
         canvas_draw_str(canvas, 1, 8, mb);
+        // v6.0: 右上显示成就统计
+        char ach[24];
+        snprintf(ach, sizeof(ach), "K%lu C%lu", g.ach_total_kills, g.ach_total_clears);
+        canvas_draw_str_aligned(canvas, 127, 8, AlignRight, AlignBottom, ach);
         // 右下角操作提示 (闪烁)
         if((g.tick & 7) < 6) {
             const char* hint = (g.lang == LANG_ZH)
@@ -1167,7 +1181,7 @@ static void handle_overlay_input(InputKey key) {
 static void enter_level_select(bool for_campaign) {
     g.mode = MODE_LEVEL_SELECT;
     g.ls_for_campaign = for_campaign;
-    g.ls_max = 30;
+    g.ls_max = 50;   // v6.0: 关卡上限提到 50
     g.ls_sel = for_campaign ? (g.campaign_cleared + 1) : (g.endless_floor > 0 ? g.endless_floor : 1);
     if(g.ls_sel < 1) g.ls_sel = 1;
     if(g.ls_sel > g.ls_max) g.ls_sel = g.ls_max;
@@ -1358,7 +1372,8 @@ int32_t maze3d_app(void* p) {
                 } else if(key == InputKeyOk && type == InputTypeLong) {
                     mc_place();
                 } else if(key == InputKeyBack && type == InputTypeShort) {
-                    g.mc_block_type = (g.mc_block_type >= 4) ? 1 : (g.mc_block_type + 1);
+                    // v6.0: 6 种手持方块循环 (1砖 2石 3木 4草 5沙 6树叶)
+                    g.mc_block_type = (g.mc_block_type >= 6) ? 1 : (g.mc_block_type + 1);
                     sfx_play(SFX_MENU_MOVE);
                     set_msg(MSG_PLACE);
                 } else if(key == InputKeyBack && type == InputTypeLong) {

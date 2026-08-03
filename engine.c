@@ -43,7 +43,8 @@ static inline uint8_t map_at(int x, int y) {
 
 static inline bool is_wall(uint8_t c) {
     return c == WALL_BRICK || c == WALL_STONE || c == WALL_METAL ||
-           c == WALL_VINE || c == CELL_DOOR;
+           c == WALL_VINE || c == WALL_WATER || c == WALL_GRASS ||
+           c == WALL_WOOD || c == WALL_TREE || c == CELL_DOOR;
 }
 
 static inline int wall_tex_id(uint8_t c) {
@@ -52,7 +53,11 @@ static inline int wall_tex_id(uint8_t c) {
         case WALL_STONE: return 1;
         case WALL_METAL: return 2;
         case WALL_VINE:  return 3;
-        case CELL_DOOR:  return 2;
+        case WALL_WATER: return 4;
+        case WALL_GRASS: return 5;
+        case WALL_WOOD:  return 6;
+        case WALL_TREE:  return 7;
+        case CELL_DOOR:  return 2;   // 门用金属纹理
         default:         return 0;
     }
 }
@@ -477,4 +482,17 @@ void engine_render(void) {
 
     draw_minimap();
     if(g.mode != MODE_MC) draw_compass();   // MC 沙盒无出口, 不画罗盘
+
+    // v6.0: 战斗关和 MC 模式画准星 (屏幕中央十字)
+    if((g.mode == MODE_CAMPAIGN && g.stage == STAGE_COMBAT) || g.mode == MODE_MC) {
+        int cx = SCREEN_W / 2, cy = SCREEN_H / 2;
+        // 中心点 + 四向短线 (留中间空隙, 不挡视野)
+        fb_set(cx, cy, 1);
+        for(int i = 2; i <= 4; i++) {
+            fb_set(cx + i, cy, 1);
+            fb_set(cx - i, cy, 1);
+            fb_set(cx, cy + i, 1);
+            fb_set(cx, cy - i, 1);
+        }
+    }
 }

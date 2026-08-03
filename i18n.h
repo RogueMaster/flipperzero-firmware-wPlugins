@@ -75,6 +75,11 @@
 #define EN_MSG_AMULET  "Amulet +1"
 #define EN_MSG_MINE    "Mined"
 #define EN_MSG_PLACE   "Placed"
+#define EN_MSG_LOCKED  "Locked! Do Task"
+#define EN_MSG_NOAMMO  "No Ammo!"
+#define EN_MSG_AMMO    "Ammo +3"
+#define EN_MSG_ACHIEVE "Achievement!"
+#define EN_MSG_TASKPROG "Task Progress"
 #define EN_HUD_ENEMY   "E"
 
 // Map msg_id -> English string
@@ -97,6 +102,11 @@ static inline const char* en_msg_str(int id) {
         case 14: return EN_MSG_AMULET;
         case 15: return EN_MSG_MINE;
         case 16: return EN_MSG_PLACE;
+        case 17: return EN_MSG_LOCKED;
+        case 18: return EN_MSG_NOAMMO;
+        case 19: return EN_MSG_AMMO;
+        case 20: return EN_MSG_ACHIEVE;
+        case 21: return EN_MSG_TASKPROG;
         default: return "";
     }
 }

@@ -6,15 +6,22 @@ A first-person 3D raycasting maze game for Flipper Zero, with three game modes, 
 
 ## Features / 特性
 
-- **3D raycasting engine** — distance shading, wall orientation brightness, dithered floor / ceiling.
-- **Three game modes / 三种模式**
-  - **Campaign / 闯关模式** — 1–10 纯迷宫, 11–20 加入道具/敌人/解谜, 之后自动生成, 难度递增.
-  - **Endless Run / 无尽挑战** — 找到出口进入下一层, 自动保存层数, 每层贴图变化.
-  - **Visitor / 游客漫游** — 无目标自由探索, 还有其他"游客"在迷宫里走动.
+- **3D raycasting engine** — distance shading, wall orientation brightness, Bayer-dithered floor / ceiling, 9 wall textures.
+- **v6.0 50-level campaign / 50 关闯关** — three progressive stages:
+  - **1–10 纯迷宫** — pure maze, just find the exit.
+  - **11–20 解谜关** — collect N keys (scaling up) and open the locked door to unlock the exit.
+  - **21–50 战斗关** — pistol combat: kill ALL enemies before the exit unlocks. Enemy count + HP + maze size scale every few levels.
+  - The exit is **locked** (CELL_LOCKED_EXIT) until the level's quest is done — no more clicking through to instant-clear.
+- **MC sandbox mode / MC 沙盒模式** — a 15×15 world with grass / tree / water / sand / wood / brick terrain and a bedrock border. Mine blocks (OK), place blocks (long OK), cycle held block (short Back). 6 holdable block types; mining counts toward the Miner achievement. A center crosshair aids aiming.
+- **Endless Run / 无尽挑战** — find the exit to descend, auto-saves the floor.
+- **Visitor / 游客漫游** — free exploration with other "visitors" wandering the maze.
+- **Achievement system / 成就系统** — persistent across sessions (First Blood, First Clear, 10/50 Kills, 10/25 Clears, Miner 50, Reach Combat/Late). Each unlock fires a popup toast + arpeggio SFX.
+- **Combat: pistol + crosshair / 手枪 + 准星** — OK shoots (limited ammo, 4-cell range, raycast hit detection); a center crosshair is drawn in combat and MC modes.
 - **Compass + Minimap** — points to exit, shows layout around the player.
 - **Bilingual UI / 双语界面** — switch Chinese / English any time from the menu (← / → key).
-- **Auto save / 自动存档** — campaign progress and endless floor are persisted.
-- **Performance tuned / 性能优化** — half-resolution raycasting, on-demand rendering (~8 Hz world tick), 8 KB stack.
+- **Rich feedback / 反馈丰富** — 18 SFX (incl. shoot / locked / achievement / no-ammo), task progress + quest-done toasts, always-on HUD (level / HP / enemy count / keys / ammo).
+- **Auto save / 自动存档** — campaign progress, endless floor, settings, and achievements persist (MAZ5 format; backward-compatible with MAZ4/MAZ3).
+- **Performance tuned / 性能优化** — half-resolution raycasting, on-demand rendering (~8 Hz world tick), 12 KB stack.
 
 ## Controls / 操作
 
@@ -22,8 +29,9 @@ A first-person 3D raycasting maze game for Flipper Zero, with three game modes, 
 | --- | --- |
 | `Up` / `Down` | Move forward / backward / 前进 / 后退 |
 | `Left` / `Right` | Turn left / right (in menu: switch language) / 转向 (菜单中: 切换语言) |
-| `OK` | Confirm / select / 确认 |
-| `Back` (short) | Pause / 暂停 |
+| `OK` | Combat stage: shoot pistol / 战斗关: 手枪射击; other: dash / 其他: 冲刺; menu: confirm / 菜单: 确认 |
+| `OK` (long) | MC mode: place held block / MC 模式: 放置方块 |
+| `Back` (short) | Pause / 暂停; MC mode: cycle held block / MC: 切换方块 |
 | `Back` (long) | Exit to Flipper home / 退出到桌面 |
 
 ## How to play / 玩法

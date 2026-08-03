@@ -22,6 +22,10 @@ typedef enum {
     WALL_STONE = 2,
     WALL_METAL = 3,
     WALL_VINE  = 4,
+    WALL_WATER = 5,    // v6.0 MC: 水 (不可放置, 半透明)
+    WALL_GRASS = 6,    // v6.0 MC: 草地 (装饰)
+    WALL_WOOD  = 7,    // v6.0 MC: 木板 (可挖可放)
+    WALL_TREE  = 8,    // v6.0 MC: 树 (实体, 挖掉得木)
     CELL_EXIT  = 9,
     CELL_KEY   = 10,
     CELL_DOOR  = 11,
@@ -29,6 +33,7 @@ typedef enum {
     CELL_TRAP  = 13,
     CELL_POTION = 14,   // 药水(捡起后入物品栏, 恢复HP)
     CELL_AMULET = 15,   // 护符(捡起后入物品栏, 传送回起点)
+    CELL_LOCKED_EXIT = 16, // v6.0: 锁定出口 (任务未完成前不可通过)
 } CellType;
 
 // 物品栏物品类型
@@ -52,7 +57,7 @@ typedef enum {
     TASK_COUNT,
 } TaskType;
 
-#define MAX_SUBTASKS 2
+#define MAX_SUBTASKS 4
 typedef struct {
     TaskType type;
     int target;     // 目标值
@@ -175,7 +180,27 @@ typedef struct {
     // MC 沙盒模式 (Beta): 当前手持方块类型 (1..N), OK 挖, 长 OK 放
     uint8_t mc_block_type;
     uint8_t mc_mined;
+    // v6.0 成就系统: 累计统计 (跨局保存)
+    uint32_t ach_total_kills;     // 累计击杀
+    uint32_t ach_total_clears;    // 累计过关
+    uint32_t ach_total_mined;     // 累计挖掘方块
+    uint32_t ach_flags;           // 里程碑位图 (见 ACH_* 枚举)
+    // v6.0 战斗: 手枪弹药 (战斗关每关补给)
+    uint8_t ammo;
 } GameState;
+
+// v6.0 成就里程碑位图
+enum {
+    ACH_FIRST_BLOOD   = 1u << 0,  // 首次击杀
+    ACH_FIRST_CLEAR   = 1u << 1,  // 首次过关
+    ACH_KILL_10       = 1u << 2,  // 累计10杀
+    ACH_KILL_50       = 1u << 3,  // 累计50杀
+    ACH_CLEAR_10      = 1u << 4,  // 累计10关
+    ACH_CLEAR_25      = 1u << 5,  // 累计25关
+    ACH_MINER_50      = 1u << 6,  // MC挖50块
+    ACH_REACH_COMBAT  = 1u << 7,  // 到达战斗关(21)
+    ACH_REACH_LATE    = 1u << 8,  // 到达后期关(35+)
+};
 
 extern GameState g;
 
@@ -199,6 +224,11 @@ enum {
     MSG_AMULET,     // 拾取护符 toast
     MSG_MINE,       // MC: 挖掘 toast
     MSG_PLACE,      // MC: 放置 toast
+    MSG_LOCKED,     // v6.0: 出口锁定 (任务未完成)
+    MSG_NOAMMO,     // v6.0: 弹药耗尽
+    MSG_AMMO,       // v6.0: 拾取弹药
+    MSG_ACHIEVE,    // v6.0: 成就解锁
+    MSG_TASKPROG,   // v6.0: 任务进度更新
 };
 
 // ---- 模块接口 ----
@@ -215,6 +245,9 @@ void game_init_endless(int floor, bool visitor);
 void game_init_mc(void);          // MC 沙盒模式 (Beta)
 void mc_mine(void);               // MC: 挖掘前方方块
 void mc_place(void);              // MC: 在前方放置方块
+void player_shoot(void);          // v6.0: 手枪射击 (战斗关)
+void ach_check(void);             // v6.0: 检查并触发成就里程碑
+void ach_grant(uint32_t flag, int msg_extra); // v6.0: 发放成就
 void game_handle_input(InputKey key, InputType type);
 void game_update(void);
 void game_next_level(void);
@@ -246,6 +279,10 @@ typedef enum {
     SFX_LEVEL_CLEAR,  // 过关
     SFX_GAME_OVER,    // 阵亡
     SFX_STORY_TURN,   // 剧情翻页
+    SFX_SHOOT,        // v6.0: 手枪射击
+    SFX_LOCKED,       // v6.0: 出口锁定/操作禁止
+    SFX_ACHIEVE,      // v6.0: 成就解锁
+    SFX_NO_AMMO,      // v6.0: 空仓
     SFX_COUNT,
 } SfxType;
 
@@ -275,4 +312,4 @@ const char* story_choice_b(int story_id);
 const char* story_title(int story_id);
 
 extern const uint8_t TEXTURES[][8];
-#define TEX_COUNT 4
+#define TEX_COUNT 9   // v6.0: 砖/石/金属/藤蔓/水/草/木/树/沙
