@@ -103,6 +103,9 @@ def main() -> None:
         assert "furi_hal_subghz_stop_async_tx" in RADIO_HAL
         assert "MF_RADIO_CWFM_DEVIATION_HZ 2380U" in radio_text
         assert "furi_hal_subghz_set_frequency_and_path(frequency_hz)" in prepare_tx
+        assert "furi_hal_subghz_tx" not in prepare_tx
+        assert "furi_hal_subghz_tx" in set_tx_level
+        assert "furi_hal_subghz_reset" not in prepare_common + prepare_tx
         assert re.search(
             r"if\(hal->static_running\).*?furi_hal_subghz_idle\(\).*?"
             r"set_frequency_and_path\(hal->selected_frequency_hz\).*?"

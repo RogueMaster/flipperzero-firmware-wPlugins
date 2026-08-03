@@ -55,7 +55,7 @@ sync_ptt = gpio.split("void morse_flipper_sync_ptt", 1)[1].split("\n}", 1)[0]
 sync_led = resident_core.split("void morse_flipper_sync_signal_led", 1)[1].split("\n}", 1)[0]
 assert "ardf_gpio_owned" in sync_ptt
 assert "ardf_gpio_owned" in sync_led
-assert "mf_radio_tx_session_start" in radio_core
+assert "mf_radio_tx_session_prepare" in radio_core
 assert "mf_radio_tx_session_set_mark" in radio_core
 assert "MorseFlipperSceneArdf" in scenes
 assert "MorseFlipperSceneArdfTextInput" not in scenes

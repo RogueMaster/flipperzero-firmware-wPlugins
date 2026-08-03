@@ -13,6 +13,8 @@
 
 typedef struct {
     uint32_t selected_frequency_hz;
+    bool ook_prepared;
+    bool ook_running;
     bool fm_prepared;
     bool async_running;
     bool static_running;
@@ -206,7 +208,6 @@ static bool hal_prepare_common(uint32_t frequency_hz, bool output) {
     const GpioPin* data_gpio = furi_hal_subghz_get_data_gpio();
     const uint8_t* preset = output ? tx_ook_270khz_no_autocal_regs :
                                      carrier_ook_650khz_no_autocal_regs;
-    furi_hal_subghz_reset();
     furi_hal_subghz_load_custom_preset(preset);
     (void)furi_hal_subghz_set_frequency_and_path(frequency_hz);
     furi_hal_gpio_init(
@@ -226,7 +227,6 @@ static bool hal_prepare_tx(void* context, uint32_t frequency_hz, MfRadioTxMode m
 #ifdef MORSE_FLIPPER_FAP
     if(mode == MfRadioTxModeCwfm) {
         const GpioPin* data_gpio = furi_hal_subghz_get_data_gpio();
-        furi_hal_subghz_reset();
         furi_hal_subghz_load_custom_preset(subghz_device_cc1101_preset_2fsk_dev2_38khz_async_regs);
         (void)furi_hal_subghz_set_frequency_and_path(frequency_hz);
         furi_hal_gpio_init(data_gpio, GpioModeInput, GpioPullNo, GpioSpeedLow);
@@ -235,7 +235,8 @@ static bool hal_prepare_tx(void* context, uint32_t frequency_hz, MfRadioTxMode m
         return true;
     }
     if(!hal_prepare_common(frequency_hz, true)) return false;
-    return furi_hal_subghz_tx();
+    hal->ook_prepared = true;
+    return true;
 #else
     (void)mode;
     return hal_prepare_common(frequency_hz, true);
@@ -292,7 +293,12 @@ static bool hal_set_tx_level(void* context, bool level) {
         hal->static_running = true;
         return true;
     }
-    furi_hal_gpio_write(furi_hal_subghz_get_data_gpio(), level);
+    if(!hal->ook_prepared) return false;
+    if(level && !hal->ook_running) {
+        if(!furi_hal_subghz_tx()) return false;
+        hal->ook_running = true;
+    }
+    furi_hal_gpio_write(data_gpio, level);
 #else
     (void)hal;
     (void)level;

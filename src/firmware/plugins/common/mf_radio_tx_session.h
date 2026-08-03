@@ -13,6 +13,10 @@ typedef struct {
 
 void mf_radio_tx_session_init(MfRadioTxSession* session, const MfRadioHardwareOps* hardware);
 bool mf_radio_tx_session_frequency_allowed(const MfRadioTxSession* session, uint32_t frequency_hz);
+bool mf_radio_tx_session_prepare(
+    MfRadioTxSession* session,
+    uint32_t frequency_hz,
+    MfRadioTxMode mode);
 bool mf_radio_tx_session_start(
     MfRadioTxSession* session,
     uint32_t frequency_hz,
