@@ -112,7 +112,12 @@ static bool enter_state(MfArdfState* state, HardwareMock* mock) {
     return mf_ardf_core_enter(state, &args, &ops, &initial);
 }
 
-static int run_numbered_case(MfArdfMode mode, uint8_t wpm, uint32_t start_ms, bool assisted) {
+static int run_numbered_case(
+    MfArdfMode mode,
+    MfArdfModulation modulation,
+    uint8_t wpm,
+    uint32_t start_ms,
+    bool assisted) {
     HardwareMock mock = {.allow = true, .prepare_ok = true};
     MfArdfState state;
     MfArdfSequence sequence;
@@ -131,6 +136,7 @@ static int run_numbered_case(MfArdfMode mode, uint8_t wpm, uint32_t start_ms, bo
     state.snapshot.view = MfArdfViewRun;
     state.snapshot.running = true;
     state.snapshot.settings.mode = mode;
+    state.snapshot.settings.modulation = modulation;
     state.snapshot.settings.message = MfArdfMessage5;
     state.snapshot.settings.wpm = wpm;
     state.snapshot.settings.light_assistance = assisted;
@@ -152,24 +158,30 @@ static int run_numbered_case(MfArdfMode mode, uint8_t wpm, uint32_t start_ms, bo
     CHECK(!result.backlight_off);
     identifiers = 1U;
 
-    while(state.snapshot.transmitting) {
+    while(state.slot_active) {
         bool was_gap = state.repeat_gap;
-        uint32_t deadline = state.sequence_next_ms;
         CHECK(++transitions < 4096U);
-        if(was_gap) {
-            CHECK(state.snapshot.ptt);
-            CHECK(!state.snapshot.mark);
-            CHECK(deadline == last_start + sequence.duration_ms + gap_ms);
-            last_start = deadline;
+        if(state.snapshot.transmitting) {
+            uint32_t deadline = state.sequence_next_ms;
+            if(was_gap) {
+                CHECK(state.prepared && state.snapshot.ptt && !state.snapshot.mark);
+                CHECK(deadline == last_start + sequence.duration_ms + gap_ms);
+                last_start = deadline;
+            }
+            result = mf_ardf_core_tick(&state, state.sequence_next_ms);
+            if(was_gap) {
+                identifiers++;
+                CHECK(state.snapshot.transmitting && state.snapshot.mark);
+                CHECK(result.backlight_wake == assisted);
+                CHECK(!result.backlight_off);
+            }
+            if(result.backlight_off) saw_off = true;
+        } else {
+            result = mf_ardf_core_tick(&state, ui_deadline);
         }
-        result = mf_ardf_core_tick(&state, deadline);
-        CHECK(state.snapshot.next_deadline_ms == ui_deadline);
-        if(was_gap) {
-            identifiers++;
-            CHECK(result.backlight_wake == assisted);
-            CHECK(!result.backlight_off);
-        }
-        if(result.backlight_off) saw_off = true;
+        CHECK(
+            state.snapshot.next_deadline_ms ==
+            (state.slot_active ? ui_deadline : start_ms + cycle_ms));
     }
 
     CHECK(identifiers == expected_count);
@@ -177,11 +189,10 @@ static int run_numbered_case(MfArdfMode mode, uint8_t wpm, uint32_t start_ms, bo
     CHECK(
         (int32_t)((start_ms + slot_ms) -
                   (last_start + sequence.duration_ms + gap_ms + sequence.duration_ms)) < 0);
-    CHECK(state.snapshot.next_deadline_ms == ui_deadline);
-    mf_ardf_core_tick(&state, ui_deadline);
     CHECK(state.snapshot.next_deadline_ms == start_ms + cycle_ms);
     CHECK(!state.snapshot.ptt && !state.snapshot.mark);
     CHECK(saw_off == assisted);
+    CHECK(trace_count(&mock, 'P') == 1U);
     mf_ardf_core_leave(&state);
     return 0;
 }
@@ -210,18 +221,28 @@ static int run_continuous_case(MfArdfMode mode, MfArdfMessage message, bool assi
     CHECK(result.handled && state.snapshot.transmitting && state.snapshot.mark);
     CHECK(result.backlight_wake == assisted);
     CHECK(!state.sampling);
-    expected_repeat =
-        first_start + state.sequence.duration_ms + (uint32_t)mf_ardf_wpm_to_dit_ms(10U) * 7U;
+    expected_repeat = first_start + state.sequence.duration_ms + MF_ARDF_REPEAT_GAP_MS;
 
-    while(!state.repeat_gap) {
+    while(state.snapshot.transmitting) {
         CHECK(++transitions < 256U);
         result = mf_ardf_core_tick(&state, state.sequence_next_ms);
-        CHECK(!result.backlight_off);
     }
-    CHECK(state.snapshot.ptt && !state.snapshot.mark);
+    CHECK(result.backlight_off == assisted);
+    CHECK(state.repeat_gap && !state.prepared && !state.snapshot.ptt && !state.snapshot.mark);
     CHECK(state.sequence_next_ms == expected_repeat);
+    CHECK(state.snapshot.next_deadline_ms == expected_repeat);
+    CHECK(
+        mf_ardf_countdown_seconds(expected_repeat - 4001U, state.snapshot.next_deadline_ms) == 5U);
+    CHECK(
+        mf_ardf_countdown_seconds(expected_repeat - 4000U, state.snapshot.next_deadline_ms) == 4U);
+    result = mf_ardf_core_tick(&state, expected_repeat - MF_ARDF_PTT_LEAD_MS - 1U);
+    CHECK(state.repeat_gap && !state.prepared && !state.snapshot.ptt);
+    result = mf_ardf_core_tick(&state, expected_repeat - MF_ARDF_PTT_LEAD_MS);
+    CHECK(!state.repeat_gap && state.prepared && state.preamble && state.snapshot.ptt);
+    CHECK(!state.snapshot.transmitting && !state.snapshot.mark);
     result = mf_ardf_core_tick(&state, expected_repeat);
-    CHECK(!state.repeat_gap && state.snapshot.mark);
+    CHECK(!state.preamble && state.snapshot.transmitting && state.snapshot.mark);
+    CHECK(state.snapshot.next_deadline_ms == 0U);
     CHECK(result.backlight_wake == assisted);
     result = mf_ardf_core_input(&state, &back, expected_repeat + 1U);
     CHECK(result.handled && state.modal);
@@ -313,6 +334,41 @@ int main(void) {
     CHECK(sequence.steps[sequence.count - 1U].mark);
     CHECK(sequence.duration_ms == 21U * 120U);
 
+    /* A delayed dispatcher tick may lengthen a step, but must never collapse the next mark. */
+    {
+        HardwareMock mock = {.allow = true, .prepare_ok = true};
+        MfArdfState state;
+        uint32_t deadline = 1000U;
+        uint16_t dit_ms = mf_ardf_wpm_to_dit_ms(30U);
+        CHECK(enter_state(&state, &mock));
+        state.snapshot.view = MfArdfViewRun;
+        state.snapshot.running = true;
+        state.snapshot.gpio_owned = true;
+        state.snapshot.settings.mode = MfArdfModeCustom;
+        state.snapshot.settings.wpm = 30U;
+        state.snapshot.settings.interval_index = 0U;
+        memcpy(state.snapshot.settings.custom, "I", 2U);
+        state.snapshot.next_deadline_ms = deadline;
+        state.deadline_wall_s = 60U;
+        CHECK(mf_ardf_core_tick(&state, deadline - MF_ARDF_PTT_LEAD_MS).handled);
+        CHECK(mf_ardf_core_tick(&state, deadline).handled);
+        CHECK(state.snapshot.mark && state.sequence_next_ms == deadline + dit_ms);
+
+        uint32_t late_space_start = state.sequence_next_ms + 17U;
+        CHECK(mf_ardf_core_tick(&state, late_space_start).handled);
+        CHECK(!state.snapshot.mark && state.sequence_next_ms == late_space_start + dit_ms);
+
+        uint32_t late_final_mark = state.sequence_next_ms + 33U;
+        CHECK(mf_ardf_core_tick(&state, late_final_mark).handled);
+        CHECK(state.snapshot.mark && state.sequence_next_ms == late_final_mark + dit_ms);
+        CHECK(trace_count(&mock, 'M') == 2U);
+        CHECK(mf_ardf_core_tick(&state, state.sequence_next_ms - 1U).handled);
+        CHECK(state.snapshot.mark);
+        CHECK(mf_ardf_core_tick(&state, state.sequence_next_ms).handled);
+        CHECK(!state.snapshot.mark && !state.snapshot.transmitting);
+        mf_ardf_core_leave(&state);
+    }
+
     for(i = 0U; i < 5U; i++) {
         uint32_t standard_phase = 300U + i * 60U;
         uint32_t sprint_phase = 60U + i * 12U;
@@ -351,11 +407,17 @@ int main(void) {
     CHECK(mf_ardf_custom_next_wall_s(86340U, 8U, 86401U) == 86404U);
 
     for(i = 0U; i < sizeof(repeat_wpms); i++) {
-        CHECK(run_numbered_case(MfArdfModeStandard, repeat_wpms[i], 1000U, true) == 0);
-        CHECK(run_numbered_case(MfArdfModeSprint, repeat_wpms[i], 1000U, true) == 0);
+        CHECK(
+            run_numbered_case(
+                MfArdfModeStandard, MfArdfModulationCw, repeat_wpms[i], 1000U, true) == 0);
+        CHECK(
+            run_numbered_case(MfArdfModeSprint, MfArdfModulationCw, repeat_wpms[i], 1000U, true) ==
+            0);
     }
-    CHECK(run_numbered_case(MfArdfModeSprint, 30U, UINT32_MAX - 5000U, true) == 0);
-    CHECK(run_numbered_case(MfArdfModeSprint, 10U, 1000U, false) == 0);
+    CHECK(
+        run_numbered_case(MfArdfModeSprint, MfArdfModulationCwfm, 30U, UINT32_MAX - 5000U, true) ==
+        0);
+    CHECK(run_numbered_case(MfArdfModeSprint, MfArdfModulationCw, 10U, 1000U, false) == 0);
 
     CHECK(run_continuous_case(MfArdfModeStandard, MfArdfMessageS, true) == 0);
     CHECK(run_continuous_case(MfArdfModeSprint, MfArdfMessageMo, true) == 0);

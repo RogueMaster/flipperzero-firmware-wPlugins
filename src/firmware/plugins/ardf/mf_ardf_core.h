@@ -5,6 +5,7 @@
 #define MF_ARDF_SEQUENCE_CAPACITY 64U
 #define MF_ARDF_PTT_LEAD_MS       250U
 #define MF_ARDF_CWFM_ACQUIRE_MS   250U
+#define MF_ARDF_REPEAT_GAP_MS     5000U
 #define MF_ARDF_REDRAW_MS         50U
 
 typedef struct {

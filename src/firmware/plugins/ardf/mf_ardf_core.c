@@ -287,7 +287,8 @@ static bool mf_ardf_begin_immediate(MfArdfState* state, uint32_t now_ms, uint32_
     return mf_ardf_arm_preamble(state, now_ms + MF_ARDF_CWFM_ACQUIRE_MS, end_limit_ms);
 }
 
-static bool mf_ardf_start_numbered_slot(MfArdfState* state, uint32_t deadline_ms) {
+static bool
+    mf_ardf_start_numbered_slot(MfArdfState* state, uint32_t deadline_ms, uint32_t now_ms) {
     uint32_t cycle_s = mf_ardf_cycle_seconds((MfArdfMode)state->snapshot.settings.mode);
     state->slot_end_ms = deadline_ms + mf_ardf_slot_ms(state);
     state->cycle_deadline_ms = deadline_ms + cycle_s * 1000U;
@@ -295,7 +296,7 @@ static bool mf_ardf_start_numbered_slot(MfArdfState* state, uint32_t deadline_ms
     state->snapshot.next_deadline_ms = state->slot_end_ms;
     state->slot_active = true;
     state->deadline_wall_s += cycle_s;
-    if(!mf_ardf_start_sequence(state, deadline_ms, state->slot_end_ms)) {
+    if(!mf_ardf_start_sequence(state, now_ms, state->slot_end_ms)) {
         state->snapshot.next_deadline_ms = state->cycle_deadline_ms;
         return false;
     }
@@ -320,12 +321,12 @@ static bool mf_ardf_arm_cwfm_numbered_slot(
     return true;
 }
 
-static bool mf_ardf_restart_sequence(MfArdfState* state, uint32_t start_ms) {
+static bool mf_ardf_restart_sequence(MfArdfState* state, uint32_t now_ms) {
     uint16_t dit_ms = mf_ardf_wpm_to_dit_ms(state->snapshot.settings.wpm);
     state->sequence_index = 0U;
     state->repeat_gap = false;
     if(!mf_ardf_set_mark(state, state->sequence.steps[0].mark)) return false;
-    state->sequence_next_ms = start_ms + (uint32_t)state->sequence.steps[0].units * dit_ms;
+    state->sequence_next_ms = now_ms + (uint32_t)state->sequence.steps[0].units * dit_ms;
     mf_ardf_backlight_refresh(state);
     return true;
 }
@@ -682,12 +683,21 @@ MorseFlipperMappedFalResult
     return mf_ardf_result(state, false);
 }
 
-static void mf_ardf_finish_sequence(MfArdfState* state, uint32_t planned_end_ms, uint32_t now_ms) {
+static void mf_ardf_finish_sequence(MfArdfState* state, uint32_t now_ms) {
     uint32_t interval_s;
-    uint32_t repeat_start = planned_end_ms + mf_ardf_repeat_gap_ms(state);
-    if(state->continuous ||
-       (mf_ardf_numbered(state) &&
-        mf_ardf_fits_by(repeat_start, state->sequence.duration_ms, state->slot_end_ms))) {
+    uint32_t repeat_start;
+    if(state->continuous) {
+        repeat_start = now_ms + MF_ARDF_REPEAT_GAP_MS;
+        mf_ardf_outputs_off(state);
+        state->repeat_gap = true;
+        state->sequence_next_ms = repeat_start;
+        state->snapshot.segment_start_ms = now_ms;
+        state->snapshot.next_deadline_ms = repeat_start;
+        return;
+    }
+    repeat_start = now_ms + mf_ardf_repeat_gap_ms(state);
+    if(mf_ardf_numbered(state) &&
+       mf_ardf_fits_by(repeat_start, state->sequence.duration_ms, state->slot_end_ms)) {
         if(!mf_ardf_set_mark(state, false)) {
             state->snapshot.error = MfArdfErrorHardware;
             state->snapshot.host_action = MfArdfHostActionShowError;
@@ -749,10 +759,22 @@ MorseFlipperMappedFalResult mf_ardf_core_tick(MfArdfState* state, uint32_t now_m
         state->redraw_pending = true;
     }
     dit_ms = mf_ardf_wpm_to_dit_ms(state->snapshot.settings.wpm);
-    if(state->preamble && mf_ardf_time_reached(now_ms, state->sequence_next_ms)) {
+    if(state->repeat_gap && !state->snapshot.transmitting) {
         uint32_t first_mark = state->sequence_next_ms;
+        uint32_t lead = first_mark - MF_ARDF_PTT_LEAD_MS;
+        if(mf_ardf_time_reached(now_ms, lead)) {
+            state->repeat_gap = false;
+            if(!mf_ardf_arm_preamble(state, first_mark, 0U)) {
+                state->snapshot.error = MfArdfErrorHardware;
+                state->snapshot.host_action = MfArdfHostActionShowError;
+                mf_ardf_outputs_off(state);
+            }
+        }
+        if(state->repeat_gap) return mf_ardf_tick_result(state, true);
+    }
+    if(state->preamble && mf_ardf_time_reached(now_ms, state->sequence_next_ms)) {
         state->preamble = false;
-        if(!mf_ardf_begin_sequence(state, first_mark)) {
+        if(!mf_ardf_begin_sequence(state, now_ms)) {
             state->snapshot.error = MfArdfErrorHardware;
             state->snapshot.host_action = MfArdfHostActionShowError;
             mf_ardf_outputs_off(state);
@@ -762,32 +784,23 @@ MorseFlipperMappedFalResult mf_ardf_core_tick(MfArdfState* state, uint32_t now_m
             state->snapshot.next_deadline_ms = 0U;
         }
     }
-    while(state->snapshot.transmitting && mf_ardf_time_reached(now_ms, state->sequence_next_ms)) {
+    if(state->snapshot.transmitting && mf_ardf_time_reached(now_ms, state->sequence_next_ms)) {
         if(state->repeat_gap) {
-            uint32_t repeat_start = state->sequence_next_ms;
-            if(!mf_ardf_restart_sequence(state, repeat_start)) {
+            if(!mf_ardf_restart_sequence(state, now_ms)) {
                 state->snapshot.error = MfArdfErrorHardware;
                 state->snapshot.host_action = MfArdfHostActionShowError;
                 mf_ardf_outputs_off(state);
-                break;
             }
-            continue;
-        }
-        state->sequence_index++;
-        if(state->sequence_index >= state->sequence.count) {
-            uint32_t planned_end = state->sequence_next_ms;
-            mf_ardf_finish_sequence(state, planned_end, now_ms);
-            if(!state->snapshot.transmitting) break;
-            continue;
-        }
-        if(!mf_ardf_set_mark(state, state->sequence.steps[state->sequence_index].mark)) {
+        } else if(++state->sequence_index >= state->sequence.count) {
+            mf_ardf_finish_sequence(state, now_ms);
+        } else if(!mf_ardf_set_mark(state, state->sequence.steps[state->sequence_index].mark)) {
             state->snapshot.error = MfArdfErrorHardware;
             state->snapshot.host_action = MfArdfHostActionShowError;
             mf_ardf_outputs_off(state);
-            break;
+        } else {
+            state->sequence_next_ms =
+                now_ms + (uint32_t)state->sequence.steps[state->sequence_index].units * dit_ms;
         }
-        state->sequence_next_ms +=
-            (uint32_t)state->sequence.steps[state->sequence_index].units * dit_ms;
     }
     if(mf_ardf_numbered(state) && state->slot_active) {
         if(!state->snapshot.transmitting && !state->preamble &&
@@ -834,19 +847,19 @@ MorseFlipperMappedFalResult mf_ardf_core_tick(MfArdfState* state, uint32_t now_m
                 return mf_ardf_tick_result(state, true);
             } else if(
                 state->snapshot.settings.mode != MfArdfModeCustom &&
-                !mf_ardf_start_numbered_slot(state, deadline)) {
+                !mf_ardf_start_numbered_slot(state, deadline, now_ms)) {
                 state->snapshot.error = MfArdfErrorHardware;
                 state->snapshot.host_action = MfArdfHostActionShowError;
                 mf_ardf_outputs_off(state);
             } else if(
                 state->snapshot.settings.mode == MfArdfModeCustom &&
-                !mf_ardf_start_sequence(state, deadline, 0U)) {
+                !mf_ardf_start_sequence(state, now_ms, 0U)) {
                 state->snapshot.error = MfArdfErrorHardware;
                 state->snapshot.host_action = MfArdfHostActionShowError;
                 mf_ardf_outputs_off(state);
             } else if(state->snapshot.settings.mode == MfArdfModeCustom) {
                 mf_ardf_schedule_custom_after(
-                    state, deadline, deadline + state->sequence.duration_ms);
+                    state, deadline, now_ms + state->sequence.duration_ms);
             }
         }
     }
