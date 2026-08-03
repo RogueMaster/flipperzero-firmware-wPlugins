@@ -21,7 +21,18 @@ typedef enum {
     M_COUNT = 5,
 } MenuItem;
 
-#define MENU_VISIBLE 4   // 菜单可见行数 (M_COUNT > MENU_VISIBLE 时滚动)
+#define MENU_VISIBLE 5   // 菜单可见行数 (选中项永远在中间第3行, 即 MENU_SEL_IDX=2)
+#define MENU_SEL_IDX  2
+#define MENU_ROW_H   10
+#define MENU_Y_START 19   // 标题+分隔线后开始 (y=17 分隔线, 到 52 底分隔 = 35px 可用)
+#define MENU_Y_END   51
+
+// v6.9: 设置页可见区常量 (与菜单类似布局, 选中项永远居中)
+#define SET_VISIBLE  5   // 设置页可见行数
+#define SET_SEL_IDX  2
+#define SET_ROW_H    8
+#define SET_Y_START  19
+#define SET_Y_END    52
 
 static int s_sel = 0;
 static uint8_t s_menu_off = 0;   // 菜单滚动偏移
@@ -435,26 +446,23 @@ static void draw_inventory(Canvas* c) {
 
 // 层级选择: 可见行数与行高 (滚动列表)
 #define LS_VISIBLE 7
+#define LS_SEL_IDX  3         // 选中项永远在可见行的中间 (第 4 行, 0 基准 3)
 #define LS_ROW_H   7
 #define LS_Y_START 15
-
-// 设置: 可见行数与行高 (居中 + 滚动列表)
-#define SET_VISIBLE 3
-#define SET_ROW_H   11
-#define SET_Y_START 18
+#define LS_Y_END   52
 
 static void draw_level_select(Canvas* c) {
     canvas_clear(c);
     canvas_set_color(c, ColorBlack);
     canvas_set_font(c, FontSecondary);  // 显式使用小字体
 
-    // 滚动偏移: 确保 ls_sel 在可见窗口内
-    if(g.ls_offset < 1) g.ls_offset = 1;
-    if(g.ls_sel < g.ls_offset) g.ls_offset = g.ls_sel;
-    if(g.ls_sel > g.ls_offset + LS_VISIBLE - 1) g.ls_offset = g.ls_sel - LS_VISIBLE + 1;
-    int max_off = g.ls_max - LS_VISIBLE + 1;
+    // ---- 居中滚动: g.ls_offset = g.ls_sel - LS_SEL_IDX (1 基准, off 也是 1 基准) ----
+    int off = (int)g.ls_sel - LS_SEL_IDX;
+    if(off < 1) off = 1;
+    int max_off = (int)g.ls_max - LS_VISIBLE + 1;
     if(max_off < 1) max_off = 1;
-    if(g.ls_offset > max_off) g.ls_offset = max_off;
+    if(off > max_off) off = max_off;
+    g.ls_offset = (uint8_t)off;
 
     if(g.lang == LANG_ZH) {
         // 标题
@@ -820,10 +828,128 @@ static void draw_opening(Canvas* c) {
     }
 }
 
-// ---- 设置页
-// 设置项总数: 默认 2 (音效/开场), dev_mode 解锁后追加 调试
+// ---- 设置页 v6.9: 20+ 开发者设置 (选中项永远垂直居中)
+// 设置项类型
+typedef enum { SET_BOOL, SET_VAL8, SET_ACTION } SetType;
+// 单个设置条目
+typedef struct {
+    const char*  label_en;     // 英文标签 (中文下暂用英文, 保证可读性)
+    SetType      type;
+    void*        val_ptr;      // 指向 GameState 中的 uint8_t/bool 字段 (void* 避免 bool/uint8_t 类型警告)
+    uint8_t      min_val;
+    uint8_t      max_val;
+    // 显示格式化 (显示值或档位)
+    const char** labels;       // 档位标签数组 (可 NULL 则直接显示数字)
+    const char*  fmt_num;      // 数字格式化 sprintf 字符串 (可 NULL)
+} SetEntry;
+
+// 档位表 (静态只读)
+static const char* LBL_TURN_SENS[] = { "1.0x","1.25x","1.5x","1.75x","2.0x","2.5x" };
+static const char* LBL_SHORT_DEG[] = { "5.7d","8.6d","11.5d","14.3d","17.2d" };
+static const char* LBL_MOVE_SHT[]  = { "0.08","0.12","0.15","0.20","0.26" };
+static const char* LBL_MOVE_MAX[]  = { "0.024","0.030","0.042","0.055","0.072" };
+static const char* LBL_TURN_MAX[]  = { "0.030","0.038","0.050","0.065","0.085" };
+static const char* LBL_JUMP_PX[]   = { "OFF","6px","9px","12px" };
+static const char* LBL_BACK_RT[]   = { "0.55x","0.72x","0.88x","1.00x" };
+static const char* LBL_DENSITY[]   = { "32c","48c","64c" };
+static const char* LBL_BRIGH[]     = { "0.6x","0.8x","1.0x","1.25x","1.5x" };
+static const char* LBL_VOL[]       = { "Low","Med","High" };
+static const char* LBL_MAZE_SC[]   = { "0.6x","0.8x","1.0x","1.2x","1.5x" };
+static const char* LBL_HP[]        = { "8HP","10HP","12HP","16HP","20HP" };
+static const char* LBL_REGEN[]     = { "0.5x","1.0x","2.0x","3.0x" };
+static const char* LBL_AMMO[]      = { "0.5x","1.0x","2.0x","3.0x" };
+static const char* LBL_ENDLESS[]   = { "F1","F10","F25","F50","F99" };
+static const char* LBL_MCSZ[]      = { "11x11","15x15","19x19","23x23" };
+static const char* LBL_MCDAY[]     = { "1024","512","256","128" };
+static const char* LBL_MCBLK[]     = { "Brk","Stn","Wd","Grs","Drt","Snd","Log","Lef" };
+static const char* LBL_ONOFF[]     = { "OFF","ON" };
+
+// --- 简单设置 (所有模式可见): 音效/开场
+static const SetEntry SIMPLE_SETS[] = {
+    { "SFX Audio",        SET_BOOL,  &g.sfx_enabled,      0,1, LBL_ONOFF, NULL },
+    { "Opening Anim",     SET_BOOL,  &g.opening_enabled,  0,1, LBL_ONOFF, NULL },
+};
+#define SIMPLE_SET_COUNT (sizeof(SIMPLE_SETS)/sizeof(SIMPLE_SETS[0]))
+
+// --- 开发者设置 (dev_mode 解锁后追加, 20+ 项): 控制/画面/音效/游戏/MC/调试
+#define DEV_SET_FIRST SIMPLE_SET_COUNT
+static const SetEntry DEV_SETS[] = {
+    // 🎮 控制类 (7)
+    { "Turn Sensitivity", SET_VAL8, &g.cfg_turn_sens,    0,5, LBL_TURN_SENS, NULL },
+    { "Short Turn Deg",   SET_VAL8, &g.cfg_turn_short,   0,4, LBL_SHORT_DEG, NULL },
+    { "Short Move Step",  SET_VAL8, &g.cfg_move_short,   0,4, LBL_MOVE_SHT, NULL },
+    { "Move Max Speed",   SET_VAL8, &g.cfg_move_max,     0,4, LBL_MOVE_MAX, NULL },
+    { "Turn Max Speed",   SET_VAL8, &g.cfg_turn_max,     0,4, LBL_TURN_MAX, NULL },
+    { "Jump Height",      SET_VAL8, &g.cfg_jump_height,  0,3, LBL_JUMP_PX, NULL },
+    { "Back Move Ratio",  SET_VAL8, &g.cfg_back_ratio,   0,3, LBL_BACK_RT, NULL },
+    // 🎨 画面类 (5)
+    { "DDA Col Density",  SET_VAL8, &g.cfg_density,      0,2, LBL_DENSITY, NULL },
+    { "Distance Fog",     SET_BOOL, &g.cfg_fog,          0,1, LBL_ONOFF, NULL },
+    { "Brightness",       SET_VAL8, &g.cfg_brightness,   0,4, LBL_BRIGH, NULL },
+    { "Sky/Ceiling",      SET_BOOL, &g.cfg_sky_ceil,     0,1, LBL_ONOFF, NULL },
+    { "Floor Texture",    SET_BOOL, &g.cfg_floor_tex,    0,1, LBL_ONOFF, NULL },
+    // 🔊 音效类 (3)
+    { "SFX Volume",       SET_VAL8, &g.cfg_sfx_vol,      0,2, LBL_VOL, NULL },
+    { "Menu SFX",         SET_BOOL, &g.cfg_sfx_menu,     0,1, LBL_ONOFF, NULL },
+    { "Combat SFX",       SET_BOOL, &g.cfg_sfx_combat,   0,1, LBL_ONOFF, NULL },
+    // 🕹️ 游戏参数 (5)
+    { "Maze Scale",       SET_VAL8, &g.cfg_maze_scale,   0,4, LBL_MAZE_SC, NULL },
+    { "Start HP",         SET_VAL8, &g.cfg_hp_start,     0,4, LBL_HP, NULL },
+    { "Regen Rate",       SET_VAL8, &g.cfg_regen_rate,   0,3, LBL_REGEN, NULL },
+    { "Ammo Multiplier",  SET_VAL8, &g.cfg_ammo_mul,     0,3, LBL_AMMO, NULL },
+    { "Endless Start",    SET_VAL8, &g.cfg_endless_start,0,4, LBL_ENDLESS, NULL },
+    // 🏔️ MC 沙盒 (4)
+    { "MC Map Size",      SET_VAL8, &g.cfg_mc_size,      0,3, LBL_MCSZ, NULL },
+    { "MC Day Length",    SET_VAL8, &g.cfg_mc_day_len,   0,3, LBL_MCDAY, NULL },
+    { "MC Jump Enable",   SET_BOOL, &g.cfg_mc_jump,      0,1, LBL_ONOFF, NULL },
+    { "MC Start Block",   SET_VAL8, &g.cfg_mc_start_sel, 0,7, LBL_MCBLK, NULL },
+    // 🛠️ 调试 (1)
+    { "Debug Overlay",    SET_BOOL, &g.show_debug,       0,1, LBL_ONOFF, NULL },
+};
+#define DEV_SET_COUNT (sizeof(DEV_SETS)/sizeof(DEV_SETS[0]))
+
+// 总数
 static int settings_count(void) {
-    return g.dev_mode ? 3 : 2;
+    return (int)SIMPLE_SET_COUNT + (g.dev_mode ? (int)DEV_SET_COUNT : 0);
+}
+
+// 获取第 idx 个设置条目
+static const SetEntry* settings_get(int idx) {
+    if(idx < (int)SIMPLE_SET_COUNT) return &SIMPLE_SETS[idx];
+    idx -= (int)SIMPLE_SET_COUNT;
+    if(idx < (int)DEV_SET_COUNT)   return &DEV_SETS[idx];
+    return NULL;
+}
+
+// 格式化设置值为字符串 (写到 buf)
+static void settings_val_str(const SetEntry* e, char* buf, int bufsize) {
+    // void* 统一转 uint8_t* (bool 和 uint8_t 都是 1 字节, 值范围兼容)
+    uint8_t v = *(uint8_t*)(e->val_ptr);
+    if(e->type == SET_BOOL) {
+        snprintf(buf, bufsize, "%s", LBL_ONOFF[v ? 1 : 0]);
+        return;
+    }
+    // SET_VAL8
+    if(e->labels) {
+        int i = v;
+        if(i < 0) i = 0;
+        // max_val 判断
+        if(i > (int)e->max_val) i = (int)e->max_val;
+        snprintf(buf, bufsize, "%s", e->labels[i]);
+        return;
+    }
+    if(e->fmt_num) {
+        // 按档位表 (0..max_val) 映射到实际值; 大部分标签已直接写死
+        // 这里对 Turn Sensitivity 单独处理
+        float f = 0.0f;
+        if(e->val_ptr == (void*)&g.cfg_turn_sens) {
+            static const float tv[] = {1.0f,1.25f,1.5f,1.75f,2.0f,2.5f};
+            f = tv[v % 6];
+        }
+        snprintf(buf, bufsize, e->fmt_num, (double)f);
+        return;
+    }
+    snprintf(buf, bufsize, "%d", (int)v);
 }
 
 // 开发模式解锁: 检测隐藏长按按键序列 (上/下/左/右).
@@ -838,7 +964,7 @@ static void dev_mode_try_unlock(InputKey key) {
             storage_save();
             sfx_play(SFX_QUEST_DONE);
         } else {
-            sfx_play(SFX_MENU_MOVE);
+            if(g.cfg_sfx_menu) sfx_play(SFX_MENU_MOVE);
         }
     } else {
         // 错误按键: 若是序列首键则重新开始, 否则清零
@@ -851,88 +977,102 @@ static void draw_settings(Canvas* c) {
     canvas_set_color(c, ColorBlack);
     canvas_set_font(c, FontSecondary);
 
-    // 标题 (居中)
-    if(g.lang == LANG_ZH) {
-        canvas_draw_xbm(c, (128 - SETTINGS_HDR_W) / 2, 1,
-                         SETTINGS_HDR_W, SETTINGS_HDR_H, settings_hdr_bits);
+    // 标题 (居中) — 如果是开发者模式, 标题写 DEV SETTINGS 突出
+    canvas_set_font(c, FontPrimary);
+    if(g.dev_mode) {
+        char tb[24]; snprintf(tb, sizeof(tb), "DEV [%d/%d]", s_set_sel+1, settings_count());
+        canvas_draw_str_aligned(c, 64, 2, AlignCenter, AlignTop, tb);
     } else {
-        canvas_set_font(c, FontPrimary);
         canvas_draw_str_aligned(c, 64, 2, AlignCenter, AlignTop, "SETTINGS");
-        canvas_set_font(c, FontSecondary);
     }
+    canvas_set_font(c, FontSecondary);
     canvas_draw_line(c, 0, 16, 127, 16);
 
     int n = settings_count();
-    // 滚动偏移: 保证 s_set_sel 在可见窗口内
-    if(s_set_off > s_set_sel) s_set_off = s_set_sel;
-    if(s_set_off + SET_VISIBLE - 1 < s_set_sel) s_set_off = s_set_sel - SET_VISIBLE + 1;
+    if(n == 0) return;
+    // 边界保护
+    if(s_set_sel >= n) s_set_sel = n - 1;
+
+    // ---- 居中滚动: s_set_off = s_set_sel - SET_SEL_IDX ----
+    int off = (int)s_set_sel - SET_SEL_IDX;
+    if(off < 0) off = 0;
     int max_off = n - SET_VISIBLE;
     if(max_off < 0) max_off = 0;
-    if(s_set_off > max_off) s_set_off = max_off;
+    if(off > max_off) off = max_off;
+    s_set_off = (uint8_t)off;
 
-    // 标签/值位图与宽度表 (第 3 项 调试 仅 dev_mode 时可见)
-    const uint8_t* labels_zh[3] = { set_sfx_bits, set_opening_bits, set_debug_bits };
-    const char*    labels_en[3] = { "SFX", "Opening", "Debug" };
-    const int lws[3] = { SET_SFX_W, SET_OPENING_W, SET_DEBUG_W };
-    const int lhs[3] = { SET_SFX_H, SET_OPENING_H, SET_DEBUG_H };
-    bool vals[3]     = { g.sfx_enabled, g.opening_enabled, g.show_debug };
+    // 顶部/底部分区指示 (开发模式: 6 个类别分区)
+    // 简单设置 2 + 控制类 7 + 画面 5 + 音效 3 + 游戏 5 + MC 4 + 调试 1 = 27 项 (dev_mode时)
+    if(g.dev_mode) {
+        static const struct { int from; int to; const char* tag; } cat[] = {
+            {0,1, "BASIC"},
+            {2,8, "CTRL"},
+            {9,13,"GFX"},
+            {14,16,"AUDIO"},
+            {17,21,"GAME"},
+            {22,25,"MC"},
+            {26,26,"DBG"},
+        };
+        const char* tag = "SETTING";
+        for(unsigned k = 0; k < sizeof(cat)/sizeof(cat[0]); k++) {
+            if(s_set_sel >= cat[k].from && s_set_sel <= cat[k].to) { tag = cat[k].tag; break; }
+        }
+        // 右上角显示分类标签
+        canvas_draw_str_aligned(c, 127, 2, AlignRight, AlignTop, tag);
+    }
 
-    for(int i = 0; i < SET_VISIBLE; i++) {
-        int idx = s_set_off + i;
+    // 绘制可见行
+    int actual_vis = (n < SET_VISIBLE) ? n : SET_VISIBLE;
+    // 让少量项时也居中 (不是从 SET_Y_START 顶开始, 而是整体偏移)
+    int block_h = actual_vis * SET_ROW_H;
+    int space_h = (SET_Y_END - SET_Y_START);
+    int offs_y = SET_Y_START + ((space_h - block_h) / 2);
+
+    for(int i = 0; i < actual_vis; i++) {
+        int idx = off + i;
         if(idx >= n) break;
-        int y = SET_Y_START + i * SET_ROW_H;
-        bool sel = (idx == s_set_sel);
+        int y = offs_y + i * SET_ROW_H;
+        const SetEntry* e = settings_get(idx);
+        if(!e) continue;
+
+        // 选中永远在 SET_SEL_IDX 位置 (若有足够项)
+        bool sel = (idx == (int)s_set_sel);
         if(sel) {
+            // 选中整行黑底白字 + 左右箭头指示 < >
             canvas_draw_box(c, 0, y - 1, 128, SET_ROW_H);
             canvas_set_color(c, ColorWhite);
+            canvas_draw_str(c, 1, y + 7, "<");
+            canvas_draw_str(c, 122, y + 7, ">");
         }
-        // 值位图(ZH) / 字符串(EN)
-        const uint8_t* vb = NULL; int vw = 0, vh = 0;
-        const char* vs = vals[idx] ? "ON" : "OFF";
-        if(g.lang == LANG_ZH) {
-            if(vals[idx]) { vb = set_on_bits;  vw = SET_ON_W;  vh = SET_ON_H; }
-            else          { vb = set_off_bits; vw = SET_OFF_W; vh = SET_OFF_H; }
-        }
-        // 整行居中: 标签 + 4 间隙 + 值
-        int total_w;
-        if(g.lang == LANG_ZH) {
-            total_w = lws[idx] + 4 + vw;
-        } else {
-            total_w = (int)canvas_string_width(c, labels_en[idx]) + 4 +
-                      (int)canvas_string_width(c, vs);
-        }
-        int x = (128 - total_w) / 2;
-        if(x < 8) x = 8;
-        // 光标 >
-        canvas_draw_str(c, x - 6, y + 8, ">");
-        if(g.lang == LANG_ZH) {
-            canvas_draw_xbm(c, x, y + (SET_ROW_H - lhs[idx]) / 2,
-                            lws[idx], lhs[idx], labels_zh[idx]);
-            canvas_draw_xbm(c, x + lws[idx] + 4, y + (SET_ROW_H - vh) / 2,
-                            vw, vh, vb);
-        } else {
-            canvas_draw_str(c, x, y + 8, labels_en[idx]);
-            canvas_draw_str(c, x + (int)canvas_string_width(c, labels_en[idx]) + 4,
-                            y + 8, vs);
-        }
+        // 标签 (左中)
+        canvas_draw_str(c, 9, y + 7, e->label_en);
+        // 值 (右对齐, 带括号)
+        char vbuf[16];
+        settings_val_str(e, vbuf, sizeof(vbuf));
+        char wrap[24]; snprintf(wrap, sizeof(wrap), "[%s]", vbuf);
+        canvas_draw_str_aligned(c, 118, y + 7, AlignRight, AlignBottom, wrap);
         canvas_set_color(c, ColorBlack);
     }
 
-    // 滚动指示器
-    if(s_set_off > 0)
-        canvas_draw_str(c, 121, SET_Y_START + 7, "^");
-    if(s_set_off + SET_VISIBLE < n)
-        canvas_draw_str(c, 121, SET_Y_START + (SET_VISIBLE - 1) * SET_ROW_H + 8, "v");
-
-    canvas_draw_line(c, 0, 52, 127, 52);
-    // 底部提示 (上移避免遮挡最后一项)
-    if(g.lang == LANG_ZH) {
-        canvas_draw_xbm(c, 2, 53, SET_SELECT_W, SET_SELECT_H, set_select_bits);
-        canvas_draw_xbm(c, 128 - SET_BACK_W - 2, 53, SET_BACK_W, SET_BACK_H, set_back_bits);
-    } else {
-        canvas_draw_str(c, 2, 62, "Up/Dn  OK Toggle");
-        canvas_draw_str_aligned(c, 126, 63, AlignRight, AlignBottom, "Back Exit");
+    // 滚动指示器 (右侧)
+    if(off > 0)
+        canvas_draw_str(c, 121, SET_Y_START - 1, "^");
+    if(off + SET_VISIBLE < n)
+        canvas_draw_str(c, 121, SET_Y_END - 1, "v");
+    // 滚动进度条 (左侧竖条, 显示当前在总数中的位置)
+    if(n > SET_VISIBLE) {
+        int bar_x = 125, bar_y = SET_Y_START, bar_h = SET_Y_END - SET_Y_START;
+        float ratio = (float)s_set_sel / (float)(n - 1);
+        int thumb_h = bar_h / 4; if(thumb_h < 2) thumb_h = 2;
+        int thumb_y = bar_y + (int)(ratio * (float)(bar_h - thumb_h));
+        canvas_draw_frame(c, bar_x, bar_y, 2, bar_h);
+        canvas_draw_box(c, bar_x, thumb_y, 2, thumb_h);
     }
+
+    // 底部分隔 + 操作提示
+    canvas_draw_line(c, 0, 52, 127, 52);
+    canvas_draw_str(c, 2, 62, g.dev_mode ? "<-/-> Chg  Up/Dn Move" : "Up/Dn  OK Toggle");
+    canvas_draw_str_aligned(c, 126, 63, AlignRight, AlignBottom, "Back Exit");
 }
 
 // ---- 绘制回调 ----
@@ -958,32 +1098,46 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         const char*    en_items[M_COUNT] = { EN_M1, EN_M2, EN_M3, "4. Settings", "5. MC Beta" };
         const int ws[M_COUNT] = { M1_W, M2_W, M3_W, M4_W, M5_W };
         const int hs[M_COUNT] = { M1_H, M2_H, M3_H, M4_H, M5_H };
-        // 滚动偏移: 保证 s_sel 在可见窗口内
-        if(s_menu_off > s_sel) s_menu_off = s_sel;
-        if(s_menu_off + MENU_VISIBLE - 1 < s_sel) s_menu_off = s_sel - MENU_VISIBLE + 1;
+        // ---- 居中滚动: off = s_sel - MENU_SEL_IDX ----
+        int off = s_sel - MENU_SEL_IDX;
+        if(off < 0) off = 0;
         int max_off = M_COUNT - MENU_VISIBLE;
         if(max_off < 0) max_off = 0;
-        if(s_menu_off > max_off) s_menu_off = max_off;
-        for(int i = 0; i < MENU_VISIBLE; i++) {
-            int idx = s_menu_off + i;
+        if(off > max_off) off = max_off;
+        s_menu_off = (uint8_t)off;
+        // 少量项 (n < vis) 时整体垂直居中
+        int actual_vis = (M_COUNT < MENU_VISIBLE) ? M_COUNT : MENU_VISIBLE;
+        int block_h = actual_vis * MENU_ROW_H;
+        int space_h = MENU_Y_END - MENU_Y_START;
+        int offs_y = MENU_Y_START + ((space_h - block_h) / 2);
+        for(int i = 0; i < actual_vis; i++) {
+            int idx = off + i;
             if(idx >= M_COUNT) break;
-            int yy = 22 + i * 11;
+            int yy = offs_y + i * MENU_ROW_H + 8; // 文字 baseline 偏移
             if(idx == s_sel) {
                 canvas_draw_box(canvas, 0, yy - 9, 128, 10);
                 canvas_set_color(canvas, ColorWhite);
             }
             if(g.lang == LANG_ZH) {
-                canvas_draw_xbm(canvas, 4, yy - 9, ws[idx], hs[idx], zh_items[idx]);
+                canvas_draw_xbm(canvas, 4, yy - 8, ws[idx], hs[idx], zh_items[idx]);
             } else {
-                canvas_draw_str(canvas, 6, yy - 1, en_items[idx]);
+                canvas_draw_str(canvas, 6, yy, en_items[idx]);
             }
             canvas_set_color(canvas, ColorBlack);
         }
-        // 滚动指示器
-        if(s_menu_off > 0)
-            canvas_draw_str(canvas, 121, 18, "^");
-        if(s_menu_off + MENU_VISIBLE < M_COUNT)
-            canvas_draw_str(canvas, 121, 22 + (MENU_VISIBLE - 1) * 11, "v");
+        // 滚动指示器 + 进度条
+        if(off > 0)
+            canvas_draw_str(canvas, 121, MENU_Y_START - 1, "^");
+        if(off + MENU_VISIBLE < M_COUNT)
+            canvas_draw_str(canvas, 121, MENU_Y_END - 1, "v");
+        if(M_COUNT > MENU_VISIBLE) {
+            int bar_x = 125, bar_y = MENU_Y_START, bar_h = space_h;
+            float ratio = (float)s_sel / (float)(M_COUNT - 1);
+            int thumb_h = bar_h / 4; if(thumb_h < 2) thumb_h = 2;
+            int thumb_y = bar_y + (int)(ratio * (float)(bar_h - thumb_h));
+            canvas_draw_frame(canvas, bar_x, bar_y, 2, bar_h);
+            canvas_draw_box(canvas, bar_x, thumb_y, 2, thumb_h);
+        }
 
         // 底部提示 (含语言切换说明)
         if(g.lang == LANG_ZH) {
@@ -1068,7 +1222,10 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         canvas_set_color(canvas, ColorBlack);
         canvas_set_font(canvas, FontSecondary);
         // 太阳/月亮指示 + 已挖数
-        bool is_day = ((g.tick & 1023) < 512);
+        // v6.9: cfg_mc_day_len → 周期掩码 1023/511/255/127, 白天半周期
+        static const uint16_t mc_day_masks[] = { 1023u, 511u, 255u, 127u };
+        uint16_t mc_mask = mc_day_masks[(g.cfg_mc_day_len < 4) ? g.cfg_mc_day_len : 0];
+        bool is_day = ((g.tick & mc_mask) < ((mc_mask + 1) >> 1));
         char top[32];
         snprintf(top, sizeof(top), "%s M%d", is_day ? "DAY" : "NITE", g.mc_mined);
         canvas_draw_str(canvas, 1, 8, top);
@@ -1297,7 +1454,10 @@ static void enter_level_select(bool for_campaign) {
     g.mode = MODE_LEVEL_SELECT;
     g.ls_for_campaign = for_campaign;
     g.ls_max = 50;   // v6.0: 关卡上限提到 50
-    g.ls_sel = for_campaign ? (g.campaign_cleared + 1) : (g.endless_floor > 0 ? g.endless_floor : 1);
+    // v6.9: cfg_endless_start 0..4 → F1/F10/F25/F50/F99
+    static const int els[] = { 1, 10, 25, 50, 99 };
+    int default_endless = els[(g.cfg_endless_start < 5) ? g.cfg_endless_start : 0];
+    g.ls_sel = for_campaign ? (g.campaign_cleared + 1) : default_endless;
     if(g.ls_sel < 1) g.ls_sel = 1;
     if(g.ls_sel > g.ls_max) g.ls_sel = g.ls_max;
     // 初始化滚动偏移: 让选中项尽量居中
@@ -1418,13 +1578,44 @@ int32_t maze3d_app(void* p) {
             } else if(g.mode == MODE_SETTINGS) {
                 int nset = settings_count();
                 if(type == InputTypeShort) {
-                    if(key == InputKeyUp)        { s_set_sel = (s_set_sel + nset - 1) % nset; sfx_play(SFX_MENU_MOVE); }
-                    else if(key == InputKeyDown) { s_set_sel = (s_set_sel + 1) % nset; sfx_play(SFX_MENU_MOVE); }
-                    else if(key == InputKeyLeft || key == InputKeyRight || key == InputKeyOk) {
-                        if(s_set_sel == 0)      { g.sfx_enabled = !g.sfx_enabled; sfx_play(g.sfx_enabled ? SFX_MENU_OK : SFX_NEED_KEY); }
-                        else if(s_set_sel == 1) { g.opening_enabled = !g.opening_enabled; sfx_play(SFX_MENU_OK); }
-                        else                    { g.show_debug = !g.show_debug; sfx_play(SFX_MENU_OK); }
-                        storage_save();
+                    if(key == InputKeyUp) {
+                        s_set_sel = (s_set_sel + nset - 1) % nset;
+                        if(g.cfg_sfx_menu) sfx_play(SFX_MENU_MOVE);
+                    } else if(key == InputKeyDown) {
+                        s_set_sel = (s_set_sel + 1) % nset;
+                        if(g.cfg_sfx_menu) sfx_play(SFX_MENU_MOVE);
+                    } else if(key == InputKeyLeft || key == InputKeyRight) {
+                        const SetEntry* e = settings_get(s_set_sel);
+                        if(e) {
+                            int dir = (key == InputKeyRight) ? +1 : -1;
+                            // SET_BOOL: 统一按 uint8_t 指针访问 (bool 与 uint8_t 同尺寸 0/1 值一致)
+                            uint8_t* vp = (uint8_t*)(e->val_ptr);
+                            if(e->type == SET_BOOL) {
+                                *vp = (*vp == 0) ? 1 : 0;
+                            } else if(e->type == SET_VAL8) {
+                                int v = (int)(*vp) + dir;
+                                if(v < (int)e->min_val) v = (int)e->max_val;
+                                if(v > (int)e->max_val) v = (int)e->min_val;
+                                *vp = (uint8_t)v;
+                            }
+                            sfx_play(SFX_MENU_MOVE);
+                            storage_save();
+                        }
+                    } else if(key == InputKeyOk) {
+                        const SetEntry* e = settings_get(s_set_sel);
+                        if(e) {
+                            uint8_t* vp = (uint8_t*)(e->val_ptr);
+                            if(e->type == SET_BOOL) {
+                                *vp = (*vp == 0) ? 1 : 0;
+                            } else if(e->type == SET_VAL8) {
+                                // OK 键: 布尔切换/数值 也 +1 循环 (方便用户)
+                                int v = (int)(*vp) + 1;
+                                if(v > (int)e->max_val) v = (int)e->min_val;
+                                *vp = (uint8_t)v;
+                            }
+                            sfx_play(SFX_MENU_OK);
+                            storage_save();
+                        }
                     } else if(key == InputKeyBack) {
                         g.mode = MODE_MENU;
                         sfx_play(SFX_MENU_OK);
@@ -1433,8 +1624,8 @@ int32_t maze3d_app(void* p) {
                 did_input = true;
             } else if(g.mode == MODE_MENU) {
                 if(type == InputTypeShort) {
-                    if(key == InputKeyUp) { s_sel = (s_sel + M_COUNT - 1) % M_COUNT; sfx_play(SFX_MENU_MOVE); }
-                    else if(key == InputKeyDown) { s_sel = (s_sel + 1) % M_COUNT; sfx_play(SFX_MENU_MOVE); }
+                    if(key == InputKeyUp) { s_sel = (s_sel + M_COUNT - 1) % M_COUNT; if(g.cfg_sfx_menu) sfx_play(SFX_MENU_MOVE); }
+                    else if(key == InputKeyDown) { s_sel = (s_sel + 1) % M_COUNT; if(g.cfg_sfx_menu) sfx_play(SFX_MENU_MOVE); }
                     else if(key == InputKeyLeft || key == InputKeyRight)
                         g.lang = (g.lang == LANG_ZH) ? LANG_EN : LANG_ZH;
                     else if(key == InputKeyOk) {
@@ -1495,7 +1686,8 @@ int32_t maze3d_app(void* p) {
                     mc_cycle_block();
                 } else if(key == InputKeyBack && type == InputTypeLong) {
                     // v6.7-beta: 跳跃 + 三次连续长按退出保护
-                    if(g.jump_timer == 0) {
+                    // v6.9: cfg_mc_jump=false 时禁止 MC 模式跳跃 (仅做退出计数)
+                    if(g.cfg_mc_jump && g.jump_timer == 0) {
                         g.jump_timer = 1;    // 从 1 开始起跳 (game_update 里推进)
                         sfx_play(SFX_MENU_MOVE); // 跳跃轻微音效
                     }

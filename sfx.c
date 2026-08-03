@@ -107,7 +107,13 @@ static bool s_speaker_acquired = false;
 static void speaker_start(uint32_t freq) {
     if(!g.sfx_enabled) return;
     if(!s_speaker_acquired) return;
-    furi_hal_speaker_start(freq, 0.35f);
+    // v6.9: cfg_sfx_vol 0..2 → 音量 0.5/1.0/1.5 倍 (基准 0.35)
+    static const float vol_mul[] = { 0.5f, 1.0f, 1.5f };
+    float vm = vol_mul[(g.cfg_sfx_vol < 3) ? g.cfg_sfx_vol : 1];
+    float vol = 0.35f * vm;
+    if(vol > 0.99f) vol = 0.99f;
+    if(vol < 0.05f) vol = 0.05f;
+    furi_hal_speaker_start(freq, vol);
     s_speaker_on = true;
 }
 static void speaker_stop_now(void) {
@@ -175,6 +181,19 @@ bool sfx_bgm_playing(void) {
 void sfx_play(SfxType t) {
     if(!g.sfx_enabled) return;
     if(t <= SFX_NONE || t >= SFX_COUNT) return;
+    // v6.9: cfg_sfx_menu=false 时跳过菜单类音效
+    //   菜单: MOVE, OK, STORY_TURN, LOCKED
+    if(!g.cfg_sfx_menu) {
+        if(t == SFX_MENU_MOVE || t == SFX_MENU_OK ||
+           t == SFX_STORY_TURN || t == SFX_LOCKED) return;
+    }
+    // v6.9: cfg_sfx_combat=false 时跳过战斗类音效
+    //   战斗: TRAP, DAMAGE, ATTACK_HIT, ENEMY_KILL, SHOOT, NO_AMMO, GAME_OVER
+    if(!g.cfg_sfx_combat) {
+        if(t == SFX_TRAP || t == SFX_DAMAGE || t == SFX_ATTACK_HIT ||
+           t == SFX_ENEMY_KILL || t == SFX_SHOOT || t == SFX_NO_AMMO ||
+           t == SFX_GAME_OVER) return;
+    }
     // BGM 播放时, SFX 不打断 (BGM 优先)
     if(s_bgm_active) return;
     const Seq* s = &s_seqs[t];
@@ -243,4 +262,29 @@ void settings_defaults(void) {
     g.opening_enabled = true;
     g.show_debug = false;
     g.dev_mode = false;
+    // v6.9-beta: 开发者模式 20+ 设置默认值
+    g.cfg_turn_sens      = 2;  // 1.5x
+    g.cfg_turn_short     = 2;  // 11.5°
+    g.cfg_move_short     = 2;  // 0.15 格
+    g.cfg_move_max       = 2;  // 0.042 格/帧
+    g.cfg_turn_max       = 2;  // 0.050 rad/帧
+    g.cfg_jump_height    = 2;  // 9 像素
+    g.cfg_back_ratio     = 1;  // 0.72
+    g.cfg_density        = 2;  // 64 列
+    g.cfg_fog            = true;
+    g.cfg_brightness     = 2;  // 1.0x
+    g.cfg_sky_ceil       = true;
+    g.cfg_floor_tex      = true;
+    g.cfg_sfx_vol        = 1;  // 1.0x
+    g.cfg_sfx_menu       = true;
+    g.cfg_sfx_combat     = true;
+    g.cfg_maze_scale     = 2;  // 1.0x
+    g.cfg_hp_start       = 1;  // 10 HP
+    g.cfg_regen_rate     = 1;  // 1.0x
+    g.cfg_ammo_mul       = 1;  // 1.0x
+    g.cfg_endless_start  = 0;  // 1
+    g.cfg_mc_size        = 1;  // 15x15
+    g.cfg_mc_day_len     = 0;  // 1024 tick
+    g.cfg_mc_jump        = true;
+    g.cfg_mc_start_sel   = 0;  // 砖
 }

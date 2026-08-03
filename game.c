@@ -634,9 +634,11 @@ static void place_player_and_actors(int level, bool visitor) {
     g.regen_timer = 0;
 
     if(g.mode == MODE_CAMPAIGN && g.stage == STAGE_COMBAT) {
-        // v6.0: 战斗关给手枪弹药 (敌人数 + 3, 留容错), 敌人血量随关卡递进
+        // v6.9: cfg_ammo_mul (0..3) → 0.5x/1x/2x/3x
+        static const float amm[] = { 0.5f, 1.0f, 2.0f, 3.0f };
+        float amul = amm[(g.cfg_ammo_mul < 4) ? g.cfg_ammo_mul : 1];
         int enemies = combat_enemy_count(level);
-        g.ammo = (uint8_t)(enemies + 3);
+        g.ammo = (uint8_t)((float)(enemies + 3) * amul);
         int placed = 0, tries = 0;
         while(placed < enemies && tries++ < 300) {
             int x = 2 + maze_rng_next() % (g.map_w - 4);
@@ -679,8 +681,20 @@ void game_init_campaign(int level) {
     g.move_dash_target = 0.0f;
     g.turn_hold_dir = 0; g.turn_hold_time = 0;
     g.move_hold_dir = 0; g.move_hold_time = 0;
+    // v6.9: cfg_hp_start: 0..4 → 8/10/12/16/20 HP (+2 per 5 levels, max 20 不变)
+    static const int hp_start[] = { 8, 10, 12, 16, 20 };
+    int basehp = hp_start[(g.cfg_hp_start < 5) ? g.cfg_hp_start : 1];
+    int add = level / 5 * 2;  // 每 5 关 +2 HP (跟原逻辑相同, 基数不同)
+    int maxhp = basehp + add;
+    if(maxhp > 20) maxhp = 20;
+    g.player.max_health = maxhp;
+    g.player.health = maxhp;
+    // v6.9: cfg_maze_scale 0..4 → 0.6x/0.8x/1.0x/1.2x/1.5x
+    static const float mscale[] = { 0.6f, 0.8f, 1.0f, 1.2f, 1.5f };
+    float ms = mscale[(g.cfg_maze_scale < 5) ? g.cfg_maze_scale : 2];
     // v6.0: 迷宫尺寸随关卡递进, 上限 25 防卡顿; 50 关上限
-    int sz = 7 + level;
+    int sz = (int)((float)(7 + level) * ms + 0.5f);
+    if(sz < 5)  sz = 5;
     if(sz > 25) sz = 25;
     // v6.6: 先尝试加载缓存, 未命中则生成并保存
     if(!world_load(level)) {
@@ -813,7 +827,9 @@ void game_init_mc(void) {
 
     // v6.4: 纯平地 — 整个地图全空 (无墙/无边界/无随机方块),
     //   玩家在开阔平地上自由搭建, 天空+日升月落
-    const int sz = 15;
+    // v6.9: cfg_mc_size 0..3 → 11,15,19,23
+    static const int mcsizes[] = { 11, 15, 19, 23 };
+    const int sz = mcsizes[(g.cfg_mc_size < 4) ? g.cfg_mc_size : 1];
     g.map_w = sz; g.map_h = sz;
     for(int y = 0; y < sz; y++) {
         for(int x = 0; x < sz; x++) {
@@ -824,7 +840,9 @@ void game_init_mc(void) {
     g.player.y = sz / 2 + 0.5f;
     set_dir(0.0f);
 
-    g.mc_block_type = 4;  // 默认手持草方块
+    // v6.9: cfg_mc_start_sel 0..7 → 8 种方块
+    static const uint8_t mc_default_sel[] = {1,2,3,4,5,6,7,8};
+    g.mc_block_type = mc_default_sel[(g.cfg_mc_start_sel < 8) ? g.cfg_mc_start_sel : 0];
     g.mc_mined = 0;
     set_msg(MSG_MINE);
     g.dirty = true;
@@ -924,27 +942,23 @@ bool item_use(int item_type) {
 }
 
 void game_handle_input(InputKey key, InputType type) {
-    // v6.8: 全新操控模型 — 短按精确小步, 连按累积加速, 长按持续加速 (越长越快)
-    //   Press   → 启动 hold 状态 (game_update 每帧按加速曲线施加)
-    //   Short   → 释放时补一个固定小步 (精确可控的"轻点几下")
-    //   Repeat  → 长按中的连发, 不额外加 (纯靠 hold 加速, 避免双重加速失控)
-    //   Release → 清 hold 状态
-    // 这样: 快速连按 = 多次 Short 累积 = 快速移动; 长按 = hold 持续加速 = 越按越快
+    // v6.9: 操控全部由 cfg_* 设置驱动 — 开发者模式可实时调节
 
     // ---- 左右转向 (全局, 所有模式) ----
     if(key == InputKeyLeft || key == InputKeyRight) {
         int8_t dir = (key == InputKeyLeft) ? -1 : +1;
+        // cfg_turn_short: 0..4 → 弧度表 (对应 5.7°/8.6°/11.5°/14.3°/17.2°)
+        static const float short_deg[] = { 0.10f, 0.15f, 0.20f, 0.25f, 0.30f };
+        float sh = short_deg[(g.cfg_turn_short < 5) ? g.cfg_turn_short : 2];
         if(type == InputTypePress) {
             g.turn_hold_dir = dir;
             g.turn_hold_time = 0;
         } else if(type == InputTypeShort) {
-            // 短按释放: 精确转 11.5° (0.20 rad) — "轻点几下"的小幅转动
-            g.turn_target += dir * 0.20f;
-            g.turn_hold_dir = 0;   // 已释放
+            g.turn_target += dir * sh;
+            g.turn_hold_dir = 0;
         } else if(type == InputTypeRelease) {
             g.turn_hold_dir = 0;
         }
-        // InputTypeLong / Repeat: 不额外加, 由 game_update 的 hold 加速曲线驱动
         g.dirty = true;
         return;
     }
@@ -952,13 +966,17 @@ void game_handle_input(InputKey key, InputType type) {
     // ---- 前后移动 (全局) ----
     if(key == InputKeyUp || key == InputKeyDown) {
         int8_t dir = (key == InputKeyUp) ? +1 : -1;
+        // cfg_move_short: 0..4 → 前进步幅表 (0.08/0.12/0.15/0.20/0.26)
+        static const float fwd_step[] = { 0.08f, 0.12f, 0.15f, 0.20f, 0.26f };
+        static const float bak_ratio[]= { 0.55f, 0.72f, 0.88f, 1.00f }; // cfg_back_ratio
+        float fs = fwd_step[(g.cfg_move_short < 5) ? g.cfg_move_short : 2];
+        float br = bak_ratio[(g.cfg_back_ratio < 4) ? g.cfg_back_ratio : 1];
         if(type == InputTypePress) {
             g.move_hold_dir = dir;
             g.move_hold_time = 0;
         } else if(type == InputTypeShort) {
-            // 短按: 前进 0.15 格 / 后退 0.11 格 — 小步但明显, 连按累积快速移动
-            if(dir > 0) g.move_fwd_target += 0.15f;
-            else        g.move_bwd_target += 0.11f;
+            if(dir > 0) g.move_fwd_target += fs;
+            else        g.move_bwd_target += fs * br;
             g.move_hold_dir = 0;
         } else if(type == InputTypeRelease) {
             g.move_hold_dir = 0;
@@ -988,13 +1006,25 @@ void game_update(void) {
         if(g.exit_long_ttl == 0) g.exit_long_cnt = 0;
     }
 
+    // v6.9: 跳跃峰值由 cfg_jump_height 控制 (0=关, 1=6px, 2=9px, 3=12px)
+    float JUMP_PEAK_LOCAL;
+    {
+        static const float peaks[] = { 0.0f, 6.0f, 9.0f, 12.0f };
+        JUMP_PEAK_LOCAL = peaks[(g.cfg_jump_height < 4) ? g.cfg_jump_height : 2];
+    }
+    // v6.9: cfg_regen_rate 回血倍率 (0=0.5x, 1=1.0x, 2=2.0x, 3=3.0x)
+    //   倍率越高, 阈值越低 → 回血越快
+    static const float regen_mul[] = { 0.5f, 1.0f, 2.0f, 3.0f };
+    float rm = regen_mul[(g.cfg_regen_rate < 4) ? g.cfg_regen_rate : 1];
+    uint16_t regen_threshold = (uint16_t)(60.0f / rm);
+    if(regen_threshold < 5) regen_threshold = 5;
+    if(regen_threshold > 240) regen_threshold = 240;
+
     // v6.7-beta: 跳跃抛物线 — 基于半余弦曲线 jump_z
-    if(g.jump_timer > 0) {
-        // t=0..JUMP_FRAMES, 抛物线近似 z = t*(1-t)*4 * JUMP_PEAK
-        //   t_norm=0 起, t_norm=0.5 达峰值 JUMP_PEAK, t_norm=1 归零
-        float t_norm = (float)g.jump_timer / (float)JUMP_FRAMES; // 0..1
+    if(g.jump_timer > 0 && JUMP_PEAK_LOCAL > 0.1f) {
+        float t_norm = (float)g.jump_timer / (float)JUMP_FRAMES;
         float sine_approx = t_norm * (1.0f - t_norm) * 4.0f;
-        g.jump_z = sine_approx * JUMP_PEAK;
+        g.jump_z = sine_approx * JUMP_PEAK_LOCAL;
         g.jump_timer++;
         if(g.jump_timer >= JUMP_FRAMES) {
             g.jump_timer = 0;
@@ -1004,28 +1034,43 @@ void game_update(void) {
             float by = g.player.y - g.player.dir_y * 0.35f;
             particle_spawn(bx, by, 3, 2);
         }
+    } else if(JUMP_PEAK_LOCAL <= 0.1f) {
+        // 跳跃被关闭
+        g.jump_timer = 0;
+        g.jump_z = 0.0f;
     }
-    // v6.8: 长按持续转向 — 加速度曲线 (按住越久转得越快)
-    //   base 0.010 rad/帧, 每 8 帧 +0.004, 上限 0.050 rad/帧 (≈2.9°/帧, 非常快)
-    //   这样长按开头慢(精确), 持续越久越快(爽快扫视)
+    // v6.9: 转向灵敏度 + 长按加速 — cfg_turn_sens 0..5: 1.0x/1.25x/1.5x/1.75x/2.0x/2.5x
+    static const float t_sens[] = {1.0f,1.25f,1.5f,1.75f,2.0f,2.5f};
+    float ts = t_sens[(g.cfg_turn_sens < 6) ? g.cfg_turn_sens : 2];
+    // cfg_turn_max 0..4: 0.030,0.038,0.050,0.065,0.085
+    static const float tmax_vals[] = {0.030f,0.038f,0.050f,0.065f,0.085f};
+    float tmax = tmax_vals[(g.cfg_turn_max < 5) ? g.cfg_turn_max : 2];
     if(g.turn_hold_dir != 0) {
         g.turn_hold_time++;
-        float v = 0.010f + (float)(g.turn_hold_time / 8) * 0.004f;
-        if(v > 0.050f) v = 0.050f;
+        // 基础速度由 t_sens 调整: base = 0.008 * ts, 每 8 帧加 0.003 * ts
+        float base = 0.008f * ts;
+        float inc  = 0.003f * ts;
+        float v = base + (float)(g.turn_hold_time / 8) * inc;
+        if(v > tmax) v = tmax;
         g.turn_target += (float)g.turn_hold_dir * v;
     }
-    // v6.8: 长按持续移动 — 加速度曲线 (按住越久移得越快)
-    //   base 0.009 格/帧, 每 6 帧 +0.005, 上限 0.042 格/帧 (≈2.5 格/秒)
+    // v6.9: 长按移动加速 cfg_move_max 0..4: 0.024,0.030,0.042,0.055,0.072
+    static const float mmax_vals[] = {0.024f,0.030f,0.042f,0.055f,0.072f};
+    float mmax = mmax_vals[(g.cfg_move_max < 5) ? g.cfg_move_max : 2];
+    // 后退比
+    static const float bak_r[] = {0.55f,0.72f,0.88f,1.00f};
+    float backr = bak_r[(g.cfg_back_ratio < 4) ? g.cfg_back_ratio : 1];
     if(g.move_hold_dir != 0) {
         g.move_hold_time++;
-        float v = 0.009f + (float)(g.move_hold_time / 6) * 0.005f;
-        if(v > 0.042f) v = 0.042f;
+        float base = 0.007f * ts;  // 移动基础速度也跟 turn_sens 挂钩 (更快时都更快)
+        float inc  = 0.004f * ts;
+        float v = base + (float)(g.move_hold_time / 6) * inc;
+        if(v > mmax) v = mmax;
         if(g.move_hold_dir > 0) g.move_fwd_target += v;
-        else                     g.move_bwd_target += v * 0.72f; // 后退略慢
+        else                     g.move_bwd_target += v * backr;
     }
 
-    // 平滑插值: 每帧施加 turn_target 的 55% (v6.8 提高响应速度, 更跟手)
-    // 剩余 45% 累积到下帧, 连按/长按时平滑过渡不卡顿
+    // 平滑插值
     if(g.turn_target != 0.0f) {
         float step = g.turn_target * 0.55f;
         if(fabsf(step) < 0.008f) { step = g.turn_target; g.turn_target = 0.0f; }
@@ -1033,9 +1078,7 @@ void game_update(void) {
         player_rotate(step);
     }
 
-    // 平滑移动: 每帧施加 move_target 的一部分, 与插值转弯配合
     if(g.move_dash_target != 0.0f) {
-        // 冲刺(OK键): 若前方有敌人则攻击, 命中则取消本次冲刺
         if(g.stage == STAGE_COMBAT && player_attack()) {
             // 命中敌人, 不移动
         } else {
@@ -1045,7 +1088,6 @@ void game_update(void) {
         g.move_dash_target = 0.0f;
     }
     if(g.move_fwd_target != 0.0f) {
-        // v6.8: 提高单帧上限到 0.55, 让长按加速到高速时能充分释放
         float s = g.move_fwd_target > 0.55f ? 0.55f : g.move_fwd_target;
         player_move(g.player.dir_x * s, g.player.dir_y * s);
         g.move_fwd_target -= s;
@@ -1083,9 +1125,10 @@ void game_update(void) {
     // v6.5: 无敌时间递减
     if(g.invincible_timer > 0) g.invincible_timer--;
     // v6.5: 每秒回血 1 点 (60 tick = 1秒), 无敌期结束后才开始回血
+    // v6.9: 阈值由 cfg_regen_rate 控制 (regen_threshold)
     if(g.invincible_timer == 0 && g.player.health < g.player.max_health) {
         g.regen_timer++;
-        if(g.regen_timer >= 60) {
+        if(g.regen_timer >= regen_threshold) {
             g.regen_timer = 0;
             g.player.health++;
         }

@@ -242,6 +242,36 @@ typedef struct {
     // v6.7-beta: 三次连续长按 Back 才退出 (防误触 beta 保护)
     uint8_t exit_long_cnt; // 连续 Back 长按计数 (0..3)
     uint16_t exit_long_ttl;// 计数有效剩余帧数, 归零则计数器重置
+    // v6.9-beta: 开发者模式 20+ 设置 (数值档 0..N, 运行时转乘数)
+    //   --- 操控控制 ---
+    uint8_t cfg_turn_sens;    // 转向灵敏度 (0..5) 档 1.0,1.25,1.5,1.75,2.0,2.5
+    uint8_t cfg_turn_short;   // 短按转角度数 (0..4) 档 5.7°,8.6°,11.5°,14.3°,17.2°
+    uint8_t cfg_move_short;   // 短按步幅 (0..4) 档 0.08,0.12,0.15,0.20,0.26
+    uint8_t cfg_move_max;     // 移动最大速度 (0..4) 档 0.024,0.030,0.042,0.055,0.072
+    uint8_t cfg_turn_max;     // 转向最大速度 (0..4) 档 0.030,0.038,0.050,0.065,0.085
+    uint8_t cfg_jump_height;  // 跳跃高度 (0..3) 档 0,6,9,12 像素
+    uint8_t cfg_back_ratio;   // 后退速度比 (0..3) 档 0.55,0.72,0.88,1.00
+    //   --- 画面渲染 ---
+    uint8_t cfg_density;      // DDA 列密度 (0..2) 档 32,48,64 列
+    bool    cfg_fog;          // 距离雾效开关
+    uint8_t cfg_brightness;   // 画面亮度 (0..4) 档 0.6,0.8,1.0,1.25,1.5
+    bool    cfg_sky_ceil;     // 天空/天花板渲染开关
+    bool    cfg_floor_tex;    // 地板纹理开关
+    //   --- 音效 ---
+    uint8_t cfg_sfx_vol;      // 音量 (0..2) 档 0.5,1.0,1.5 倍
+    bool    cfg_sfx_menu;     // 菜单切换音效开关
+    bool    cfg_sfx_combat;   // 战斗/击杀/受伤音效开关
+    //   --- 游戏参数 ---
+    uint8_t cfg_maze_scale;   // 迷宫尺寸缩放 (0..4) 档 0.6,0.8,1.0,1.2,1.5
+    uint8_t cfg_hp_start;     // 初始血量 (0..4) 档 8,10,12,16,20
+    uint8_t cfg_regen_rate;   // 回血倍率 (0..3) 档 0.5,1.0,2.0,3.0
+    uint8_t cfg_ammo_mul;     // 弹药倍率 (0..3) 档 0.5,1.0,2.0,3.0
+    uint8_t cfg_endless_start;// 无尽起始楼层 (0..4) 档 1,10,25,50,99
+    //   --- MC 沙盒 ---
+    uint8_t cfg_mc_size;      // MC 地图尺寸 (0..3) 档 11,15,19,23
+    uint8_t cfg_mc_day_len;   // MC 日夜时长 (0..3) 档 1024/512/256/128 tick
+    bool    cfg_mc_jump;      // MC 跳跃开关
+    uint8_t cfg_mc_start_sel; // MC 初始持有方块 0..7
 } GameState;
 
 // v6.2: 粒子接口

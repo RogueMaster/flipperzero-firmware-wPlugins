@@ -78,7 +78,11 @@ typedef struct {
     uint8_t reserved[4];
 } SaveDataV4;
 
-// v6.0: 扩展存档, 含成就统计
+// v6.9: 扩展存档 v6, 含 20+ 开发者设置
+#define SAVE_MAGIC_V6 0x4D415A36u // "MAZ6" (v6.9 dev-settings)
+#define SAVE_MAGIC_V5 0x4D415A35u // "MAZ5" (v6.0 成就系统)
+#define SAVE_MAGIC_V4 0x4D415A34u // "MAZ4" (旧版, 向后兼容)
+
 typedef struct {
     uint32_t magic;
     int campaign_cleared;
@@ -92,30 +96,84 @@ typedef struct {
     uint32_t ach_total_clears;
     uint32_t ach_total_mined;
     uint32_t ach_flags;
+    // v6.9 开发者设置 (20+)
+    uint8_t cfg_turn_sens;
+    uint8_t cfg_turn_short;
+    uint8_t cfg_move_short;
+    uint8_t cfg_move_max;
+    uint8_t cfg_turn_max;
+    uint8_t cfg_jump_height;
+    uint8_t cfg_back_ratio;
+    uint8_t cfg_density;
+    uint8_t cfg_fog;
+    uint8_t cfg_brightness;
+    uint8_t cfg_sky_ceil;
+    uint8_t cfg_floor_tex;
+    uint8_t cfg_sfx_vol;
+    uint8_t cfg_sfx_menu;
+    uint8_t cfg_sfx_combat;
+    uint8_t cfg_maze_scale;
+    uint8_t cfg_hp_start;
+    uint8_t cfg_regen_rate;
+    uint8_t cfg_ammo_mul;
+    uint8_t cfg_endless_start;
+    uint8_t cfg_mc_size;
+    uint8_t cfg_mc_day_len;
+    uint8_t cfg_mc_jump;
+    uint8_t cfg_mc_start_sel;
     uint8_t reserved[8];
 } SaveData;
 
-#define SAVE_MAGIC_V5 0x4D415A35u // "MAZ5" (v6.0 成就系统)
-#define SAVE_MAGIC_V4 0x4D415A34u // "MAZ4" (旧版, 向后兼容)
+// 从 v5/v6 公共字段赋值 (两个版本 magic 不同但前几个字段对齐)
+static void load_common_from_v5v6(const SaveData* d) {
+    g.campaign_cleared = d->campaign_cleared;
+    g.endless_floor = d->endless_floor;
+    g.sfx_enabled = (d->sfx_enabled != 0);
+    g.opening_enabled = (d->opening_enabled != 0);
+    g.show_debug = (d->show_debug != 0);
+    g.dev_mode = (d->dev_mode != 0);
+    g.ach_total_kills = d->ach_total_kills;
+    g.ach_total_clears = d->ach_total_clears;
+    g.ach_total_mined = d->ach_total_mined;
+    g.ach_flags = d->ach_flags;
+}
 
 void storage_load(void) {
     SaveData d = {0};
     Storage* st = furi_record_open(RECORD_STORAGE);
     File* f = storage_file_alloc(st);
     settings_defaults();
-    // 先尝试 v6.0 (MAZ5) 格式
+    // 先尝试 v6.9 (MAZ6) 格式
     bool ok = storage_file_open(f, SAVE_PATH, FSAM_READ, FSOM_OPEN_EXISTING);
-    if(ok && storage_file_read(f, &d, sizeof(d)) == sizeof(d) && d.magic == SAVE_MAGIC_V5) {
-        g.campaign_cleared = d.campaign_cleared;
-        g.endless_floor = d.endless_floor;
-        g.sfx_enabled = (d.sfx_enabled != 0);
-        g.opening_enabled = (d.opening_enabled != 0);
-        g.show_debug = (d.show_debug != 0);
-        g.dev_mode = (d.dev_mode != 0);
-        g.ach_total_kills = d.ach_total_kills;
-        g.ach_total_clears = d.ach_total_clears;
-        g.ach_total_mined = d.ach_total_mined;
-        g.ach_flags = d.ach_flags;
+    if(ok && storage_file_read(f, &d, sizeof(d)) == sizeof(d) &&
+       (d.magic == SAVE_MAGIC_V6 || d.magic == SAVE_MAGIC_V5)) {
+        load_common_from_v5v6(&d);
+        if(d.magic == SAVE_MAGIC_V6) {
+            g.cfg_turn_sens     = d.cfg_turn_sens;
+            g.cfg_turn_short     = d.cfg_turn_short;
+            g.cfg_move_short     = d.cfg_move_short;
+            g.cfg_move_max       = d.cfg_move_max;
+            g.cfg_turn_max       = d.cfg_turn_max;
+            g.cfg_jump_height   = d.cfg_jump_height;
+            g.cfg_back_ratio    = d.cfg_back_ratio;
+            g.cfg_density       = d.cfg_density;
+            g.cfg_fog           = (d.cfg_fog != 0);
+            g.cfg_brightness    = d.cfg_brightness;
+            g.cfg_sky_ceil      = (d.cfg_sky_ceil != 0);
+            g.cfg_floor_tex    = (d.cfg_floor_tex != 0);
+            g.cfg_sfx_vol       = d.cfg_sfx_vol;
+            g.cfg_sfx_menu      = (d.cfg_sfx_menu != 0);
+            g.cfg_sfx_combat    = (d.cfg_sfx_combat != 0);
+            g.cfg_maze_scale    = d.cfg_maze_scale;
+            g.cfg_hp_start      = d.cfg_hp_start;
+            g.cfg_regen_rate    = d.cfg_regen_rate;
+            g.cfg_ammo_mul      = d.cfg_ammo_mul;
+            g.cfg_endless_start = d.cfg_endless_start;
+            g.cfg_mc_size       = d.cfg_mc_size;
+            g.cfg_mc_day_len    = d.cfg_mc_day_len;
+            g.cfg_mc_jump       = (d.cfg_mc_jump != 0);
+            g.cfg_mc_start_sel  = d.cfg_mc_start_sel;
+        }
     } else {
         // 回退: 读旧 MAZ4 (无成就字段, 默认 0)
         SaveDataV4 d4 = {0};
@@ -155,7 +213,8 @@ void storage_load(void) {
 
 void storage_save(void) {
     SaveData d;
-    d.magic = SAVE_MAGIC_V5;
+    memset(&d, 0, sizeof(d));
+    d.magic = SAVE_MAGIC_V6;
     d.campaign_cleared = g.campaign_cleared;
     d.endless_floor = g.endless_floor;
     d.sfx_enabled = g.sfx_enabled ? 1 : 0;
@@ -166,7 +225,31 @@ void storage_save(void) {
     d.ach_total_clears = g.ach_total_clears;
     d.ach_total_mined = g.ach_total_mined;
     d.ach_flags = g.ach_flags;
-    memset(d.reserved, 0, sizeof(d.reserved));
+    // v6.9 dev settings
+    d.cfg_turn_sens    = g.cfg_turn_sens;
+    d.cfg_turn_short   = g.cfg_turn_short;
+    d.cfg_move_short   = g.cfg_move_short;
+    d.cfg_move_max     = g.cfg_move_max;
+    d.cfg_turn_max     = g.cfg_turn_max;
+    d.cfg_jump_height = g.cfg_jump_height;
+    d.cfg_back_ratio  = g.cfg_back_ratio;
+    d.cfg_density     = g.cfg_density;
+    d.cfg_fog         = g.cfg_fog ? 1 : 0;
+    d.cfg_brightness  = g.cfg_brightness;
+    d.cfg_sky_ceil    = g.cfg_sky_ceil ? 1 : 0;
+    d.cfg_floor_tex  = g.cfg_floor_tex ? 1 : 0;
+    d.cfg_sfx_vol     = g.cfg_sfx_vol;
+    d.cfg_sfx_menu    = g.cfg_sfx_menu ? 1 : 0;
+    d.cfg_sfx_combat  = g.cfg_sfx_combat ? 1 : 0;
+    d.cfg_maze_scale  = g.cfg_maze_scale;
+    d.cfg_hp_start    = g.cfg_hp_start;
+    d.cfg_regen_rate  = g.cfg_regen_rate;
+    d.cfg_ammo_mul    = g.cfg_ammo_mul;
+    d.cfg_endless_start = g.cfg_endless_start;
+    d.cfg_mc_size     = g.cfg_mc_size;
+    d.cfg_mc_day_len  = g.cfg_mc_day_len;
+    d.cfg_mc_jump     = g.cfg_mc_jump ? 1 : 0;
+    d.cfg_mc_start_sel = g.cfg_mc_start_sel;
     Storage* st = furi_record_open(RECORD_STORAGE);
     File* f = storage_file_alloc(st);
     if(storage_file_open(f, SAVE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {

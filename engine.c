@@ -90,13 +90,19 @@ extern uint8_t texture_sample(int tex_id, int tx, int ty);
 
 // v6.2: 全局高亮 — 提亮墙体 (shade 档位 -1, 阴影阈值放宽).
 // shade 档位: 0=实心/最亮, 4=极远. 现在同样距离比之前亮一档.
+// v6.9: cfg_fog=false 时关闭距离雾 (所有墙近似最亮档)
 static inline int shade_from(float perp, int side) {
     int s;
-    if(perp < 2.5f) s = 0;
-    else if(perp < 4.5f) s = 1;
-    else if(perp < 7.5f) s = 2;
-    else if(perp < 11.0f) s = 3;
-    else s = 4;
+    if(!g.cfg_fog) {
+        // 雾效关闭: 所有距离视作近距离, 仅保留侧面区分
+        s = (perp < 4.5f) ? 0 : 1;
+    } else {
+        if(perp < 2.5f) s = 0;
+        else if(perp < 4.5f) s = 1;
+        else if(perp < 7.5f) s = 2;
+        else if(perp < 11.0f) s = 3;
+        else s = 4;
+    }
     if(side == 1 && s < 4) s++;
     return s;
 }
@@ -114,20 +120,30 @@ static inline uint8_t bayer_at(int x, int y) {
 
 static inline void apply_shade_px(int x, int y, int shade) {
     // 阈值越小越稀疏; 用 4 档密度做平滑距离渐变
+    // v6.9: cfg_brightness 0..4 → 乘数 0.6/0.8/1.0/1.25/1.5, 调节阈值(阈值越高→像素越多越亮)
     int thr;
+    static const float bright_mul[] = {0.60f, 0.80f, 1.00f, 1.25f, 1.50f};
+    float bm = bright_mul[(g.cfg_brightness < 5) ? g.cfg_brightness : 2];
     // v6.2: 阈值整体上移, 所有档位都更亮
     switch(shade) {
         case 0: fb_set(x, y, 1); return;   // 最近: 实心
-        case 1: thr = 14; break;           // ~88% (原~75%)
-        case 2: thr = 10; break;           // ~63% (原~44%)
-        case 3: thr = 6;  break;           // ~38% (原~25%)
-        default: thr = 3; break;           // 超远: 19%
+        case 1: thr = (int)(14.0f * bm); break;
+        case 2: thr = (int)(10.0f * bm); break;
+        case 3: thr = (int)(6.0f  * bm); break;
+        default: thr = (int)(3.0f * bm); break;
     }
+    if(thr < 1) thr = 1;
+    if(thr > 15) thr = 15;
     if(bayer_at(x, y) < thr) fb_set(x, y, 1);
 }
 
 // 地板/天花板抖动 pattern: 沿距地平线距离做平滑密度渐变 (Bayer)
+// v6.9: cfg_floor_tex=false 时简化地板 (纯抖动无渐变, 更省运算)
 static inline uint8_t floor_px(int x, int y) {
+    if(!g.cfg_floor_tex) {
+        // 简化版: 纯棋盘/稀疏点, 无距离依赖 (更像"平坦地面")
+        return (bayer_at(x, y) < 5) ? 1 : 0;
+    }
     int d = y - (SCREEN_H >> 1);   // 离地平线距离 (下方为正), 越大越近->越密
     if(d <= 0) return 0;
     int thr = 1 + (d >> 1);        // 近地平线稀疏, 脚下密集
@@ -137,10 +153,14 @@ static inline uint8_t floor_px(int x, int y) {
 // v6.4: MC 天空亮度 — 随日升月落变化.
 //   太阳角度 0..255 循环: 0=日出(左下), 64=正午(顶), 128=日落(右下), 192=午夜.
 //   亮度 = sin(太阳角度) 的正值部分.
+// v6.9: 周期由 cfg_mc_day_len 控制: 0=1024,1=512,2=256,3=128 tick
 static int mc_sky_brightness(void) {
     if(g.mode != MODE_MC) return -1;  // 非 MC 模式用原逻辑
-    // 太阳周期: 1024 tick ≈ 17 秒一轮 (可观察的日升月落)
-    int phase = (g.tick & 1023) >> 2;   // 0..255
+    // v6.9: cfg_mc_day_len → 周期掩码 (1023/511/255/127)
+    static const uint16_t day_mask[] = { 1023u, 511u, 255u, 127u };
+    uint16_t mask = day_mask[(g.cfg_mc_day_len < 4) ? g.cfg_mc_day_len : 0];
+    int period = (int)mask + 1;
+    int phase = ((g.tick & mask) * 256) / period;   // 0..255
     // 用查表近似 sin: 正午最亮(15), 日出日落中等(8), 夜晚最暗(2)
     if(phase < 128) {
         // 白天半周期: 0→128 对应日出→正午→日落
@@ -154,7 +174,9 @@ static int mc_sky_brightness(void) {
 }
 
 // v6.4: 天花板. MC 模式画"天空" (亮度随日升月落), 普通模式保持暗
+// v6.9: cfg_sky_ceil=false 时完全不画天空/天花板 (上半屏纯黑)
 static inline uint8_t ceil_px(int x, int y) {
+    if(!g.cfg_sky_ceil) return 0;   // 天空/天花板关闭
     int d = (SCREEN_H >> 1) - y;   // 离地平线距离 (上方为正)
     if(d <= 0) return 0;
     int thr;
@@ -273,7 +295,7 @@ static void draw_minimap(void) {
     fb_set(lp + dx, mp + dy, 1);
 }
 
-// ---- Raycasting 主渲染(半列: RENDER_COLS = 64, 每列输出 2 像素宽) ----
+// ---- Raycasting 主渲染(v6.9: 可变 DDA 列密度 32/48/64) ----
 void engine_render(void) {
     fb_clear();
 
@@ -282,8 +304,18 @@ void engine_render(void) {
     const float dirX = p->dir_x, dirY = p->dir_y;
     const float planeX = p->plane_x, planeY = p->plane_y;
 
-    for(int cx = 0; cx < RENDER_COLS; cx++) {
-        float cameraX = 2.0f * (float)(cx * 2 + 1) / (float)SCREEN_W - 1.0f;
+    // v6.9: cfg_density 0..2 → 列数 32/48/64
+    static const int dens_cols[] = { 32, 48, 64 };
+    int RENDER_COLS_DYN = dens_cols[(g.cfg_density < 3) ? g.cfg_density : 2];
+
+    for(int ci = 0; ci < RENDER_COLS_DYN; ci++) {
+        // 本列覆盖的屏幕像素范围 [px_start, px_end] (inclusive)
+        int px_start = (ci * SCREEN_W) / RENDER_COLS_DYN;
+        int px_end   = ((ci + 1) * SCREEN_W) / RENDER_COLS_DYN - 1;
+        if(px_end < px_start) px_end = px_start;
+        int px_ctr = (px_start + px_end) / 2;
+
+        float cameraX = 2.0f * (float)(px_ctr + 0.5f) / (float)SCREEN_W - 1.0f;
         float rayX = dirX + planeX * cameraX;
         float rayY = dirY + planeY * cameraX;
 
@@ -315,11 +347,11 @@ void engine_render(void) {
             if(c == CELL_EXIT) exit_on_ray = 1;
         }
         if(!hit) {
-            // 没打到墙: 仅画地板/天花板
+            // 没打到墙: 仅画地板/天花板, 填充整列像素范围
             for(int y = 0; y < SCREEN_H; y++) {
-                uint8_t on = (y < SCREEN_H/2) ? ceil_px(cx*2, y) : floor_px(cx*2, y);
-                fb_set(cx * 2, y, on);
-                fb_set(cx * 2 + 1, y, on);
+                uint8_t on = (y < SCREEN_H/2) ? ceil_px(px_ctr, y) : floor_px(px_ctr, y);
+                for(int px = px_start; px <= px_end; px++)
+                    fb_set(px, y, on);
             }
             continue;
         }
@@ -332,7 +364,6 @@ void engine_render(void) {
         int lineH = (int)((float)SCREEN_H / perp);
         if(lineH < 1) lineH = 1;
         // v6.7-beta: 跳跃 — 根据离地 jump_z 像素高度, 按距离将墙面+地平线整体下移
-        // (相机升高 → 屏幕中万物下移, 天空区变大地板区变小)
         int jumpShift = 0;
         if(g.jump_z != 0.0f) {
             jumpShift = (int)(g.jump_z * (float)SCREEN_H / perp);
@@ -354,38 +385,36 @@ void engine_render(void) {
         int texId = wall_tex_id(hit);
         int shade = shade_from(perp, side);
 
-        // 出口在这条光线经过: 在该列最亮像素上叠加闪烁标记,或者让出口处的地板高亮
-        // 这里做法: 如果靠近出口(格子距离小),每8帧让列的底部画亮
+        // 出口在这条光线经过: 出口列上方闪烁提示
         if(exit_on_ray) {
             float dxm = mapX - posX, dym = mapY - posY;
             if(dxm*dxm + dym*dym < 64.0f && (g.tick & 7) < 3) {
-                // 出口列边缘加亮: 画一列闪烁的竖线在墙上方
                 int yy = drawStart - 1;
-                if(yy >= 0) fb_set(cx * 2, yy, 1);
+                if(yy >= 0) fb_set(px_start, yy, 1);
             }
         }
 
-        // 画天花板
+        // 画天花板 (填充像素范围)
         for(int y = 0; y < drawStart; y++) {
-            uint8_t on = ceil_px(cx*2, y);
-            fb_set(cx * 2, y, on);
-            fb_set(cx * 2 + 1, y, on);
+            uint8_t on = ceil_px(px_ctr, y);
+            for(int px = px_start; px <= px_end; px++)
+                fb_set(px, y, on);
         }
-        // 画墙
+        // 画墙 (填充像素范围)
         int constHalf = -lineH / 2 + SCREEN_H / 2 + jumpShift;
         for(int y = drawStart; y <= drawEnd; y++) {
             int texY = ((y - constHalf) * 8) / lineH;
             if(texY < 0) texY = 0; else if(texY > 7) texY = 7;
             if(texture_sample(texId, texX, texY)) {
-                apply_shade_px(cx * 2, y, shade);
-                apply_shade_px(cx * 2 + 1, y, shade);
+                for(int px = px_start; px <= px_end; px++)
+                    apply_shade_px(px, y, shade);
             }
         }
-        // 画地板
+        // 画地板 (填充像素范围)
         for(int y = drawEnd + 1; y < SCREEN_H; y++) {
-            uint8_t on = floor_px(cx*2, y);
-            fb_set(cx * 2, y, on);
-            fb_set(cx * 2 + 1, y, on);
+            uint8_t on = floor_px(px_ctr, y);
+            for(int px = px_start; px <= px_end; px++)
+                fb_set(px, y, on);
         }
     }
 

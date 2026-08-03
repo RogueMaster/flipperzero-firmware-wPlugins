@@ -5,8 +5,8 @@ App(
     entry_point="maze3d_app",
     stack_size=12 * 1024,
     icon="maze3d.png",
-    fap_version=(6, 8, 0),
+    fap_version=(6, 9, 0),
     fap_category="Games",
-    fap_description="3D raycasting maze: 50-level campaign (maze/puzzle/combat), MC sandbox, achievements, enemy AI, bullets, particle FX, XOR crosshair, MC textures (v6.8: precision controls - short tap=small step, hold=accelerate)",
+    fap_description="v6.9.0-beta PRIVATE: 20+ Developer Settings (Controls/Graphics/Audio/Gameplay/MC/Debug), List Auto-Centering Scroll, MC day/night cycle length, MC jump toggle, DDA density 32/48/64, fog toggle, brightness, sky/floor switches, SFX volume, menu/combat SFX switches, maze scale, HP start, regen rate, ammo mul, endless start floor",
     fap_author="k20120509",
 )
