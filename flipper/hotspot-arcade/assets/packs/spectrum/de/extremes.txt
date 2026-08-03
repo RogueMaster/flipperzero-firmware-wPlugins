@@ -1,0 +1,66 @@
+Pack: Extreme
+Left: Eiskalt
+Right: Kochend
+---
+Left: Flüstern
+Right: Schreien
+---
+Left: Schnecke
+Right: Rakete
+---
+Left: Federgewicht
+Right: Schwergewicht
+---
+Left: Maulwurfshügel
+Right: Berg
+---
+Left: Rinnsal
+Right: Flut
+---
+Left: Schummrig
+Right: Blendend
+---
+Left: Uralt
+Right: Futuristisch
+---
+Left: Winzig
+Right: Gigantisch
+---
+Left: Lautlos
+Right: Ohrenbetäubend
+---
+Left: Eiszeit
+Right: Hitzewelle
+---
+Left: Ein Lüftchen
+Right: Ein Orkan
+---
+Left: Taschengeld
+Right: Ein Vermögen
+---
+Left: Eine Sekunde
+Right: Eine Ewigkeit
+---
+Left: Babyschritte
+Right: Riesensprung
+---
+Left: Kaum warm
+Right: Glühend heiß
+---
+Left: Ein Nieseln
+Right: Ein Wolkenbruch
+---
+Left: Federleicht
+Right: Erdrückend
+---
+Left: Stiller Teich
+Right: Tobende See
+---
+Left: Ein Funke
+Right: Ein Inferno
+---
+Left: Kaum in Bewegung
+Right: Warp-Tempo
+---
+Left: Ein Krümel
+Right: Ein Berg davon

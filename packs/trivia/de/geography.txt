@@ -1,0 +1,70 @@
+Pack: Rund um die Welt
+Q: Was ist die Hauptstadt von Australien?
+A: Sydney
+B: Canberra
+C: Melbourne
+D: Perth
+Answer: B
+---
+Q: Welches ist das größte Land nach Fläche?
+A: China
+B: USA
+C: Russland
+D: Kanada
+Answer: C
+---
+Q: Der Nil fließt hauptsächlich durch welches Land?
+A: Ägypten
+B: Brasilien
+C: Indien
+D: Kongo
+Answer: A
+---
+Q: Der Mount Everest liegt an der Grenze von Nepal und welchem Land?
+A: Indien
+B: China
+C: Bhutan
+D: Pakistan
+Answer: B
+---
+Q: Was ist das kleinste Land der Welt?
+A: Monaco
+B: Nauru
+C: Malta
+D: Vatikanstadt
+Answer: D
+---
+Q: Welches ist der größte Ozean der Erde?
+A: Atlantik
+B: Pazifik
+C: Indischer Ozean
+D: Arktischer Ozean
+Answer: B
+---
+Q: Die Sahara liegt auf welchem Kontinent?
+A: Afrika
+B: Asien
+C: Australien
+D: Südamerika
+Answer: A
+---
+Q: Welcher ist der größte US-Bundesstaat nach Fläche?
+A: Texas
+B: Alaska
+C: Kalifornien
+D: Montana
+Answer: B
+---
+Q: Das Great Barrier Reef liegt vor der Küste welchen Landes?
+A: Brasilien
+B: Thailand
+C: Australien
+D: Mexiko
+Answer: C
+---
+Q: Welches Land hat die meisten Zeitzonen?
+A: Frankreich
+B: Russland
+C: USA
+D: China
+Answer: A

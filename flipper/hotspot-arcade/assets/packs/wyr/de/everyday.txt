@@ -1,0 +1,37 @@
+Pack: Alltag
+
+A: Fliegen können
+B: Unsichtbar sein
+---
+A: Gedanken lesen
+B: In die Zukunft sehen
+---
+A: Immer 10 Min zu früh sein
+B: Immer 5 Min zu spät sein
+---
+A: Nie wieder ins Internet
+B: Nie wieder Filme schauen
+---
+A: Gegen eine pferdegroße Ente kämpfen
+B: Gegen 100 entengroße Pferde
+---
+A: Ohne Musik leben
+B: Ohne Fernsehen leben
+---
+A: Unbegrenzt Pizza
+B: Unbegrenzt Tacos
+---
+A: Dich überallhin teleportieren
+B: Durch die Zeit reisen
+---
+A: Mit Tieren sprechen
+B: Jede Sprache sprechen
+---
+A: Dir ist immer zu heiß
+B: Dir ist immer zu kalt
+---
+A: Eine Woche ohne Handy
+B: Einen Monat ohne Kaffee
+---
+A: Den Weltraum erkunden
+B: Die Tiefsee erkunden
