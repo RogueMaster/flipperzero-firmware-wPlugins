@@ -112,7 +112,11 @@ static void draw_status(
     draw_history(canvas, state, 44);
 
     canvas_set_font(canvas, FontSecondary);
-    canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "<Sess  Evt>  OK=cfg");
+    /* Spell the destinations out. Abbreviations save pixels but cost the user
+     * a guess every time they look at it. */
+    canvas_draw_str(canvas, 2, 62, "<Session");
+    canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "OK:Setup");
+    canvas_draw_str_aligned(canvas, 127, 62, AlignRight, AlignBottom, "Events>");
 }
 
 static void draw_events(Canvas* canvas, const ViewState* view, AlerterState* state) {
@@ -233,7 +237,8 @@ static void draw_session(Canvas* canvas, AlerterState* state) {
         canvas_draw_str(canvas, 2, 36, "No events this session");
     }
 
-    canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "Status>  OK=clear");
+    canvas_draw_str(canvas, 2, 62, "OK:Clear");
+    canvas_draw_str_aligned(canvas, 127, 62, AlignRight, AlignBottom, "Status>");
 }
 
 static void draw_settings(
@@ -277,7 +282,9 @@ static void draw_settings(
         if(sel) canvas_set_color(canvas, ColorBlack);
     }
 
-    canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "OK=test  Back=save");
+    /* Left/Right editing is not discoverable without saying so. */
+    canvas_draw_str(canvas, 2, 62, "<>Change");
+    canvas_draw_str_aligned(canvas, 127, 62, AlignRight, AlignBottom, "OK:Test");
 }
 
 static void draw_diag(Canvas* canvas, AlerterState* state) {
