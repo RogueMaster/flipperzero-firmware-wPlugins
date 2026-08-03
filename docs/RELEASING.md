@@ -60,7 +60,14 @@ and get no response within 14 days, the app is removed — so watch the PR.
 ### Requirements worth re-checking
 
 - Open source license permitting binary distribution (MIT — satisfied)
-- Icon is 10×10px 1-bit PNG (`nfc_alerter.png` — satisfied)
+- Icon is 10×10px **1-bit** PNG (`nfc_alerter.png` — satisfied). Verify with:
+  ```bash
+  python3 -c "import struct;d=open('nfc_alerter.png','rb').read();\
+  print(struct.unpack('>II',d[16:24]), 'depth',d[24], 'color',d[25])"
+  # want: (10, 10) depth 1 color 0
+  ```
+  The ufbt scaffold generates an 8-bit RGB placeholder, which is the wrong
+  format even though the dimensions look right.
 - Builds against the latest Release or Release Candidate firmware (CI)
 - Unique, incremented `version` for every submission
 - No code that bypasses the Flipper's intentional limits
