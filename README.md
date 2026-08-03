@@ -105,6 +105,7 @@ The 1v1 board duels (Connect Four, Tic-Tac-Toe, Dots &amp; Boxes, Reversi, Battl
   <img src="docs/img/web-dots.png" alt="Dots &amp; Boxes: claimed boxes and live score" width="19%">
   <img src="docs/img/web-reversi.gif" alt="Reversi/Othello: 8x8 board with legal-move hints and disc counts" width="19%">
   <img src="docs/img/web-battleship.gif" alt="Battleship: place a fleet, then fire at the enemy grid with hits, misses, and sinks" width="19%">
+  <img src="docs/img/web-chess.gif" alt="Chess: full FIDE rules with legal-move hints, blitz clocks, and a checkmate finish" width="19%">
 </p>
 
 **On the Flipper** — the host device shows the app menu, the live broadcasting dashboard
