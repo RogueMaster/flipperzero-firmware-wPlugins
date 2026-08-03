@@ -4037,6 +4037,37 @@ private:
         return s;
     }
 
+#ifdef HA_CHESS_TEST
+public:
+    // Test-only: overwrite match slot 0's position after a normal challenge/accept, so
+    // a scenario can set up a specific board without walking through the opening moves.
+    // Requires slot 0 to already hold a live game (_cm[0].used && phase == 1).
+    void chessTestLoad(const char* board64, int stm, int rights, int ep, int halfmove,
+                        uint32_t wms, uint32_t bms) {
+        if(!_cm[0].used || _cm[0].phase != 1) return;
+        if(!chessLoadCore(_cm[0].core, board64, (uint8_t)stm, (uint8_t)rights, (int8_t)ep))
+            return;
+        _cm[0].halfmove = (uint8_t)halfmove;
+        _cm[0].clockMs[0] = wms;
+        _cm[0].clockMs[1] = bms;
+        _cm[0].lastStamp = millis();
+        _cm[0].offerBy = 0;
+        _cm[0].lastMove = -1;
+        _cm[0].hist[0] = chessHash(_cm[0].core);
+        _cm[0].histLen = 1;
+        pushAll();
+    }
+
+    // Loads a scratch position (no match involved) and runs perft on it.
+    static uint32_t chessTestPerft(const char* board64, int stm, int rights, int ep,
+                                    int depth) {
+        ChessCore c{};
+        if(!chessLoadCore(c, board64, (uint8_t)stm, (uint8_t)rights, (int8_t)ep)) return 0;
+        return chessPerft(c, depth);
+    }
+private:
+#endif
+
     // ---------- spectrum (wavelength-style guessing) ----------
     // Which pack wins the pre-round vote; identical policy to wyrWinningPack().
     int spectrumWinningPack() {
