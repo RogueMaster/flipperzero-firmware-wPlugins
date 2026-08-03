@@ -97,7 +97,7 @@
     sub("play");
     revealedFor = -1;
     head(m);
-    $("tv-answered").textContent = "Answered " + (m.answered || 0) + " / " + (m.total || 0);
+    $("tv-answered").textContent = t("trivia.answered", { n: m.answered || 0, total: m.total || 0 });
     $("tv-q").textContent = m.q || "";
     var mine = (typeof m.mine === "number") ? m.mine : -1;
     noteDeadline(m.deadline, m.dur); A.timebar("tv-bar", m.deadline, m.dur, true);

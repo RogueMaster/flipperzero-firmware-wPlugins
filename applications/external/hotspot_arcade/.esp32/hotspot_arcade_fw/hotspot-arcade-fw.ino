@@ -292,6 +292,12 @@ static void dispatchFrame() {
     case HA_MSG_CONFIG: {
         int v;
         if(ha_json_int((const char*)rxBuf, "max", &v) && v >= 1 && v <= 15) apMaxConn = (uint8_t)v;
+        char lang[8];
+        if(ha_json_str((const char*)rxBuf, "lang", lang, sizeof(lang))) {
+            ENGINE_LOCK();
+            engine.setLang(lang);
+            ENGINE_UNLOCK();
+        }
         break;
     }
     case HA_MSG_RESET_SCORES:

@@ -6,7 +6,7 @@
 (function () {
   var SIZE = 10, N = 100;
   var LENS = [5, 4, 3, 3, 2];          // fixed ship order (server matches this)
-  var NAMES = ["Carrier", "Battleship", "Cruiser", "Submarine", "Destroyer"];
+  var NAMES = ["bs.ship_carrier", "bs.ship_battleship", "bs.ship_cruiser", "bs.ship_submarine", "bs.ship_destroyer"];
   var ships = null;                     // local placement: [{len,r,c,d,placed}]
   var sel = 0;                          // selected ship index
   var prevPhase = "";
@@ -85,7 +85,7 @@
     ships.forEach(function (s, i) {
       var b = document.createElement("button");
       b.className = "bs-ship" + (i === sel ? " sel" : "") + (s.placed ? " placed" : "");
-      b.textContent = NAMES[i] + " (" + s.len + ")";
+      b.textContent = t(NAMES[i]) + " (" + s.len + ")";
       b.onclick = function () { sel = i; renderPlace(lastPlaceMsg); };
       tray.appendChild(b);
     });
@@ -98,11 +98,11 @@
     if (m.ready) {                       // committed: lock, wait for opponent
       $("bs-place-actions").classList.add("hide");
       $("bs-wait").classList.remove("hide");
-      $("bs-place-hint").textContent = m.oppReady ? "Both ready..." : "Waiting for opponent...";
+      $("bs-place-hint").textContent = m.oppReady ? t("bs.both_ready") : t("bs.wait_opp");
     } else {
       $("bs-place-actions").classList.remove("hide");
       $("bs-wait").classList.add("hide");
-      $("bs-place-hint").textContent = m.oppReady ? "Opponent is ready - arrange & Ready" : "Tap a ship then a cell to move it, or Random";
+      $("bs-place-hint").textContent = m.oppReady ? t("bs.opp_ready") : t("bs.tap_ship");
     }
     $("bs-ready").disabled = !allPlaced();
     var occ = {};
@@ -127,9 +127,9 @@
   function renderFire(m) {
     sub("fire");
     var t = $("bs-turn");
-    t.textContent = m.yourTurn ? "Your turn - fire!" : esc(m.opp || "Opponent") + "'s turn";
+    t.textContent = m.yourTurn ? t("bs.your_turn_fire") : t("common.opp_turn", { nick: esc(m.opp) || t("common.opponent") });
     t.className = "turn" + (m.yourTurn ? " you" : "");
-    $("bs-ships").textContent = "You " + m.myShips + " | Them " + m.oppShips;
+    $("bs-ships").textContent = t("common.you") + " " + m.myShips + " | " + t("common.them") + " " + m.oppShips;
     var TR = ["", "miss", "hit", "sunk"];
     var track = $("bs-track-grid");
     track.classList.toggle("waiting", !m.yourTurn); // dim + no taps when it's not your turn
@@ -174,7 +174,7 @@
   function renderOver(m) {
     sub("over");
     var r = $("bs-result");
-    r.textContent = m.result === "win" ? "You win!" : "Defeated";
+    r.textContent = m.result === "win" ? t("bs.you_win") : t("bs.defeated");
     r.className = "result " + (m.result === "win" ? "win" : "lose");
     if (prevPhase !== "over") {
       if (m.result === "win") { A.sfx("win"); A.vibe([40, 60, 40, 60, 120]); }
@@ -233,7 +233,7 @@
       if (rematchTimer) clearTimeout(rematchTimer);
       rematchTimer = setTimeout(function () {
         rematchTimer = null;
-        if (prevPhase === "over" && A.view === "bs") { toast("Opponent left"); send({ t: "leaveGame" }); }
+        if (prevPhase === "over" && A.view === "bs") { toast(t("common.opp_left")); send({ t: "leaveGame" }); }
       }, 1500);
     });
   });

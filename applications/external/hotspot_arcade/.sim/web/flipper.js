@@ -96,5 +96,17 @@ export async function mountFlipper(el) {
     document.getElementById("packstate").textContent =
       `${packCount} packs, ${itemCount} items (${label})`;
   };
+
+  // Language also drives the phone UI: the ESP echoes it in `welcome`, so new joiners
+  // get it. Apply it to already-connected phones directly (a sim shortcut; on hardware
+  // a phone picks it up when it joins).
+  document.getElementById("lang").onchange = (e) => {
+    const lang = e.target.value;
+    engine.setLang(lang);
+    for (const f of document.querySelectorAll("iframe")) {
+      const w = f.contentWindow;
+      if (w && w.A && w.A.setLang) w.A.setLang(lang);
+    }
+  };
   render();
 }

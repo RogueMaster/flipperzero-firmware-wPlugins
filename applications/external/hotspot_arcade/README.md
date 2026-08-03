@@ -257,13 +257,19 @@ On the Flipper: **Apps → GPIO → [ESP32] Hotspot Arcade**.
 
 ## Content packs
 
-Four games are content-driven from plain-text files under `packs/`, one directory per
-game (`trivia/`, `wyr/`, `scramble/`, `draw/`). Format: `Key: value` lines, blocks split
-by `---` or a blank line, `Pack:` names the pack. The keys are per game — Trivia uses
-`Q:`, `A:`-`D:` and `Answer:`; Would You Rather uses `A:` / `B:`; Word Scramble and
-Draw &amp; Guess use `Word:`. Six packs per game ship inside the .fap; drop your own into
-`/ext/apps_data/hotspot_arcade/packs/<game>/` to add to them (yours win a name clash). See
-[packs/README.md](packs/README.md).
+Six games are content-driven from plain-text files under `packs/`, one directory per
+game (`trivia/`, `wyr/`, `scramble/`, `draw/`, `spectrum/`, `kmk/`). Format: `Key: value`
+lines, blocks split by `---` or a blank line, `Pack:` names the pack. The keys are per
+game — e.g. Trivia uses `Q:`, `A:`-`D:` and `Answer:`; Would You Rather uses `A:` / `B:`;
+Word Scramble and Draw &amp; Guess use `Word:`. Packs ship inside the .fap; drop your own
+into `/ext/apps_data/hotspot_arcade/packs/<game>/` to add to them (yours win a name
+clash). See [packs/README.md](packs/README.md).
+
+**Languages.** The host picks a language in Settings, and both the phone UI and the game
+content follow it. English is the default; **Brazilian Portuguese** ships as the first
+translation — the phone UI is fully localized, with a starter content pack per game.
+Translated packs live in a `<lang>/` subdirectory (`packs/<game>/pt-br/`), falling back to
+English per game, and content is UTF-8. The Flipper's own host menus stay English.
 
 ## Responsible use
 

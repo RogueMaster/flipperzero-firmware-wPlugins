@@ -82,7 +82,7 @@
     sizeCanvas();
     st = m;
     $("pong-score").innerHTML =
-      '<span' + (m.me === 1 ? ' class="you"' : "") + ">You " + (m.me === 1 ? m.s1 : m.s2) + "</span>" +
+      '<span' + (m.me === 1 ? ' class="you"' : "") + ">" + t("common.you") + " " + (m.me === 1 ? m.s1 : m.s2) + "</span>" +
       '<span' + (m.me === 2 ? ' class="you"' : "") + ">" + esc(m.opp || "Opp") + " " + (m.me === 1 ? m.s2 : m.s1) + "</span>";
     // Score change blip.
     if (prevPhase === "playing" && (m.s1 !== prevS1 || m.s2 !== prevS2)) { A.sfx("score"); A.vibe(20); }
@@ -94,8 +94,8 @@
     stopLoop();
     hide("pong-lobby"); hide("pong-match"); show("pong-over"); show("pong-leave");
     var r = $("pong-result");
-    var map = { win: ["Win", "win"], lose: ["Lose", "lose"], draw: ["Draw", "draw"] };
-    var res = map[m.result] || ["Over", ""];
+    var map = { win: [t("common.win"), "win"], lose: [t("common.lose"), "lose"], draw: [t("common.draw"), "draw"] };
+    var res = map[m.result] || [t("common.over"), ""];
     r.textContent = res[0]; r.className = "result " + res[1];
     if (prevPhase !== "over") {
       if (m.result === "win") { A.sfx("win"); A.vibe([40, 60, 40, 60, 120]); }

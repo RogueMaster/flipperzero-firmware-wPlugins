@@ -34,7 +34,7 @@
   function renderPlay(m) {
     sub("play");
     var reveal = m.phase === "reveal";
-    $("wyr-meta").textContent = "Would you rather... (" + m.round + " / " + m.rounds + ")";
+    $("wyr-meta").textContent = t("wyr.meta", { n: m.round, total: m.rounds });
     // Countdown bar: the vote window while asking, the pause before the next prompt
     // while revealing. Both carry deadline+dur, so the shared timebar drives both.
     noteDeadline(m.deadline, m.dur);

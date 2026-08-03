@@ -10,11 +10,9 @@
 #include <vector>
 
 static uint32_t g_millis = 0;
-uint32_t millis() {
-    return g_millis;
-}
+uint32_t millis() { return g_millis; }
 
-#include "../../esp32/hotspot_arcade_fw/ha_games.h"
+#include "../../esp32/hotspot-arcade-fw/ha_games.h"
 
 static Engine engine;
 static std::vector<std::string> g_outbox;
@@ -26,21 +24,11 @@ static std::string esc(const char* s) {
     std::string o;
     for(const char* p = s ? s : ""; *p; p++) {
         switch(*p) {
-        case '"':
-            o += "\\\"";
-            break;
-        case '\\':
-            o += "\\\\";
-            break;
-        case '\n':
-            o += "\\n";
-            break;
-        case '\r':
-            o += "\\r";
-            break;
-        case '\t':
-            o += "\\t";
-            break;
+        case '"': o += "\\\""; break;
+        case '\\': o += "\\\\"; break;
+        case '\n': o += "\\n"; break;
+        case '\r': o += "\\r"; break;
+        case '\t': o += "\\t"; break;
         default:
             if((unsigned char)*p < 0x20) {
                 char b[7];
@@ -70,12 +58,13 @@ void haWsBroadcast(const String& msg) {
 
 void haUartJoin(uint8_t pid, const char* nick) {
     g_outbox.push_back(
-        "{\"to\":\"uart\",\"kind\":\"join\",\"pid\":" + std::to_string(pid) + ",\"nick\":\"" +
-        esc(nick) + "\"}");
+        "{\"to\":\"uart\",\"kind\":\"join\",\"pid\":" + std::to_string(pid) +
+        ",\"nick\":\"" + esc(nick) + "\"}");
 }
 
 void haUartLeave(uint8_t pid) {
-    g_outbox.push_back("{\"to\":\"uart\",\"kind\":\"leave\",\"pid\":" + std::to_string(pid) + "}");
+    g_outbox.push_back(
+        "{\"to\":\"uart\",\"kind\":\"leave\",\"pid\":" + std::to_string(pid) + "}");
 }
 
 void haUartScore(uint8_t pid, int delta, const char* reason) {
@@ -105,39 +94,18 @@ void ha_tick(uint32_t now) {
     engine.tick(now);
 }
 
-void ha_input(uint32_t wsId, const char* json) {
-    engine.onInput(wsId, json);
-}
-void ha_disconnect(uint32_t wsId) {
-    engine.onWsDisconnect(wsId);
-}
-void ha_select_game(int id) {
-    engine.selectGame((uint8_t)id);
-}
-void ha_trivia_clear() {
-    engine.triviaTopicsClear();
-}
-void ha_trivia_add_topic(const char* name) {
-    engine.triviaAddTopic(name);
-}
-void ha_trivia_add_q(const char* json) {
-    engine.triviaAddQ(json);
-}
-void ha_content_clear() {
-    engine.contentClear();
-}
-void ha_content_pack(int game, const char* name) {
-    engine.contentPack((uint8_t)game, name);
-}
-void ha_content_item(const char* json) {
-    engine.contentItem(json);
-}
-void ha_round_end() {
-    engine.roundEnd();
-}
-void ha_reset_scores() {
-    engine.resetScores();
-}
+void ha_input(uint32_t wsId, const char* json) { engine.onInput(wsId, json); }
+void ha_disconnect(uint32_t wsId) { engine.onWsDisconnect(wsId); }
+void ha_select_game(int id) { engine.selectGame((uint8_t)id); }
+void ha_trivia_clear() { engine.triviaTopicsClear(); }
+void ha_trivia_add_topic(const char* name) { engine.triviaAddTopic(name); }
+void ha_trivia_add_q(const char* json) { engine.triviaAddQ(json); }
+void ha_content_clear() { engine.contentClear(); }
+void ha_content_pack(int game, const char* name) { engine.contentPack((uint8_t)game, name); }
+void ha_content_item(const char* json) { engine.contentItem(json); }
+void ha_round_end() { engine.roundEnd(); }
+void ha_reset_scores() { engine.resetScores(); }
+void ha_set_lang(const char* l) { engine.setLang(l); }
 
 const char* ha_drain() {
     g_drained = "[";

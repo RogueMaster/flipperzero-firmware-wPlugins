@@ -78,7 +78,7 @@
     if (!dragging || !spCanGuess) return;
     spGuess = valFromEvent(e);
     setNeedle(spGuess, false);
-    $("sp-note").textContent = "Guess: " + spGuess + " — lock it in when ready.";
+    $("sp-note").textContent = t("sp.guess_hint", { n: spGuess });
     if (e.cancelable) e.preventDefault();
   }
   function dragStart(e) { if (!spCanGuess) return; dragging = true; dragMove(e); }
@@ -105,8 +105,8 @@
   function renderPlay(m) {
     sub("play");
     var stage = m.stage; // "clue" | "guess" | "reveal"
-    $("sp-meta").textContent = "Round " + m.round + " / " + m.rounds;
-    $("sp-role").textContent = m.iam ? "You are the psychic" : "Psychic: " + m.psychic;
+    $("sp-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
+    $("sp-role").textContent = m.iam ? t("sp.you_psychic") : t("sp.psychic_is", { nick: m.psychic });
     $("sp-left").textContent = m.left || "";
     $("sp-right").textContent = m.right || "";
 
@@ -131,17 +131,17 @@
       clueForm.classList.toggle("hide", !m.iam);
       guessGo.classList.add("hide");
       if (m.iam) {
-        note.textContent = "Give a clue that points to the orange zone.";
+        note.textContent = t("sp.give_clue");
         if (lastRound !== m.round) { $("sp-cluein").value = ""; setTimeout(function () { $("sp-cluein").focus(); }, 60); }
       } else {
-        note.textContent = m.psychic + " is thinking of a clue…";
+        note.textContent = t("sp.thinking", { nick: m.psychic });
       }
     } else if (stage === "guess") {
       clueForm.classList.add("hide");
       if (m.iam) {
         spCanGuess = false;
         guessGo.classList.add("hide");
-        note.textContent = "Clue sent. Waiting for guesses…";
+        note.textContent = t("sp.clue_sent");
       } else {
         var locked = (typeof m.myguess === "number" && m.myguess >= 0);
         if (lastRound !== m.round || lastStage !== "guess") spGuess = locked ? m.myguess : 50;
@@ -149,8 +149,8 @@
         setNeedle(spGuess, false); // drag the dial to move it
         guessGo.classList.toggle("hide", locked);
         guessGo.disabled = locked;
-        note.textContent = locked ? "Guess locked at " + m.myguess + ". Waiting…"
-                                  : "Drag the dial to where the clue lands, then lock in.";
+        note.textContent = locked ? t("sp.guess_locked", { n: m.myguess })
+                                  : t("sp.drag");
       }
     } else { // reveal
       spCanGuess = false;
@@ -171,8 +171,8 @@
         dmarks.appendChild(t);
       });
       var gain = (typeof m.mygain === "number") ? m.mygain : 0;
-      note.textContent = m.iam ? "Your clue earned you +" + gain
-                               : (gain > 0 ? "Nice — +" + gain : "+0 this round");
+      note.textContent = m.iam ? t("sp.clue_earned", { gain: gain })
+                               : (gain > 0 ? t("sp.nice", { gain: gain }) : t("common.zero_round"));
       if (lastRound !== m.round || lastStage !== "reveal") {
         A.sfx(gain > 0 ? "correct" : "buzz"); A.vibe(gain > 0 ? 25 : 12);
       }

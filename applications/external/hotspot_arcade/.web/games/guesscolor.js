@@ -55,7 +55,7 @@
 
   function renderPlay(m) {
     sub("play");
-    $("gc-meta").textContent = "Round " + m.round + " / " + m.rounds;
+    $("gc-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
     $("gc-target").style.background = m.color;
     if (m.round !== round) {           // new round: reset the guess and unlock
       round = m.round;
@@ -70,9 +70,9 @@
 
   function renderReveal(m) {
     sub("reveal");
-    $("gc-rmeta").textContent = "Round " + m.round + " / " + m.rounds;
+    $("gc-rmeta").textContent = t("common.round", { n: m.round, total: m.rounds });
     $("gc-rtarget").style.background = m.color; // the answer color, shown big up top
-    $("gc-answer").textContent = "Answer  " + m.r + ", " + m.g + ", " + m.b;
+    $("gc-answer").textContent = t("gc.answer_val", { r: m.r, g: m.g, b: m.b });
     // One row per player who guessed, closest (highest points) first. Each row's
     // swatch is split down the middle: left half is the answer, right half is that
     // player's guess, so how well the two halves match reads at a glance.
@@ -98,7 +98,7 @@
     });
     if (!gs.length) list.innerHTML = '<div class="gc-grow"><span class="gc-gn">No guesses</span></div>';
     if (m.winner) {
-      $("gc-winner").textContent = m.iwon ? "You were closest!" : esc(m.winner) + " was closest";
+      $("gc-winner").textContent = m.iwon ? t("gc.you_closest") : t("gc.was_closest", { nick: m.winner });
       if (m.iwon) { A.sfx("win"); A.vibe([30, 50, 30]); } else A.sfx("tick");
     } else {
       $("gc-winner").textContent = "";

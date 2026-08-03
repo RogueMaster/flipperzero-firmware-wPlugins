@@ -167,7 +167,7 @@ A.readyLobby = function (cfg) {
     ul.appendChild(li);
   });
   var rb = $(cfg.readyId);
-  rb.textContent = mine ? "Ready. Tap to cancel" : "I'm ready";
+  rb.textContent = mine ? t("common.ready_cancel") : t("common.ready");
   rb.classList.toggle("on", mine);
   return mine;
 };
@@ -329,7 +329,7 @@ function connect() {
 function scheduleReconnect() {
   setDot(A.retry > 4 ? "bad" : "warn");   // down after repeated failures
   if (A.view !== "landing") {
-    $("netbar").textContent = "Reconnecting...";
+    $("netbar").textContent = t("net.reconnecting");
     show("netbar");
   }
   var wait = Math.min(1000 * Math.pow(1.6, A.retry), 8000);
@@ -362,6 +362,7 @@ function dispatch(m) {
   switch (m.t) {
     case "welcome":
       A.pid = m.pid;
+      if (A.setLang) A.setLang(m.lang); // host-chosen UI language; localizes static text
       if (m.nick) { A.nick = m.nick; setNick(); }
       break;
     case "lobby":

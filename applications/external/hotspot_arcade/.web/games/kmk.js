@@ -5,7 +5,7 @@
    ready / vote / assign / again. Labels: 0 kiss, 1 marry, 2 kill. */
 (function () {
   var myready = false;
-  var LBL = ["Kiss", "Marry", "Kill"]; // index = label value
+  var LBL = ["kmk.kiss", "kmk.marry", "kmk.kill"]; // index = label key
   var EMO = ["💋", "💍", "💀"]; // kiss/marry/kill
 
   function sub(name) {
@@ -51,11 +51,11 @@
       var row = document.createElement("div");
       row.className = "kmk-row";
       var lab = labels && labels[i] >= 0 ? labels[i] : -1;
-      var tag = lab >= 0 ? '<span class="kmk-tag l' + lab + '">' + EMO[lab] + " " + LBL[lab] + "</span>"
-                         : '<span class="kmk-tag none">tap to set</span>';
+      var tag = lab >= 0 ? '<span class="kmk-tag l' + lab + '">' + EMO[lab] + " " + t(LBL[lab]) + "</span>"
+                         : '<span class="kmk-tag none">' + t("kmk.tap_set") + '</span>';
       var extra = "";
       if (answer) {
-        tag = '<span class="kmk-tag l' + answer[i] + '">' + EMO[answer[i]] + " " + LBL[answer[i]] + "</span>";
+        tag = '<span class="kmk-tag l' + answer[i] + '">' + EMO[answer[i]] + " " + t(LBL[answer[i]]) + "</span>";
         if (counts) {
           // chooser view: how many guessers matched this person
           extra = '<span class="kmk-count">' + counts[i] + "/" + total + "</span>";
@@ -83,8 +83,8 @@
   function renderPlay(m) {
     sub("play");
     var stage = m.stage; // choose | guess | reveal
-    $("kmk-meta").textContent = "Round " + m.round + " / " + m.rounds;
-    $("kmk-role").textContent = m.iam ? "You choose" : "Chooser: " + m.chooser;
+    $("kmk-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
+    $("kmk-role").textContent = m.iam ? t("kmk.you_choose") : t("kmk.chooser_is", { nick: m.chooser });
     noteDeadline(m.deadline, m.dur);
     A.timebar("kmk-bar", m.deadline, m.dur, false);
 
@@ -108,10 +108,10 @@
         });
         renderPeople(m.people, null, false, m.answer, counts, gs.length);
         var perfect = gs.filter(function (gg) { return gg.pts >= 3; }).length;
-        note.textContent = perfect + " of " + gs.length + " read you perfectly.  You +" + g;
+        note.textContent = t("kmk.read_perfect", { perfect: perfect, total: gs.length, g: g });
       } else {
         renderPeople(m.people, m.mine, false, m.answer);
-        note.textContent = g >= 3 ? "Perfect read! +" + g : g ? "Close - +" + g : "+0 this round";
+        note.textContent = g >= 3 ? t("kmk.perfect", { g: g }) : g ? t("kmk.close", { g: g }) : t("common.zero_round");
       }
       if (lastRound !== m.round || lastStage !== "reveal") { A.sfx(g ? "correct" : "buzz"); A.vibe(g ? 25 : 12); }
     } else if (stage === "choose") {
@@ -119,30 +119,30 @@
         canEdit = true;
         renderPeople(m.people, mine, true);
         go.classList.remove("hide");
-        go.textContent = "Lock in your picks";
+        go.textContent = t("kmk.lock_picks");
         go.disabled = !valid(mine);
-        note.textContent = "Tap each to tag them Kiss, Marry or Kill.";
+        note.textContent = t("kmk.tap_tag");
       } else {
         canEdit = false;
         renderPeople(m.people, null, false);
         go.classList.add("hide");
-        note.textContent = m.chooser + " is deciding…";
+        note.textContent = t("kmk.deciding", { nick: m.chooser });
       }
     } else { // guess
       if (m.iam) {
         canEdit = false;
         renderPeople(m.people, m.answer, false); // chooser sees their own locked picks
         go.classList.add("hide");
-        note.textContent = "Locked. Waiting for guesses…";
+        note.textContent = t("kmk.locked_waiting");
       } else {
         var locked = m.mine && valid(m.mine);
         canEdit = !locked;
         renderPeople(m.people, locked ? m.mine : mine, !locked);
         go.classList.toggle("hide", locked);
-        go.textContent = "Lock in guess";
+        go.textContent = t("kmk.lock_guess");
         go.disabled = !valid(mine);
-        note.textContent = locked ? "Guess locked. Waiting…"
-                                  : "Predict how " + m.chooser + " tagged them.";
+        note.textContent = locked ? t("kmk.guess_locked")
+                                  : t("kmk.predict", { nick: m.chooser });
       }
     }
     lastRound = m.round; lastStage = stage;

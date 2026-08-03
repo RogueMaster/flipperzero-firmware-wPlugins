@@ -16,6 +16,7 @@ export async function newEngine() {
     selectGame: (id) => { M.ccall("ha_select_game", null, ["number"], [id]); return drain(); },
     roundEnd: () => { M.ccall("ha_round_end", null, [], []); return drain(); },
     resetScores: () => { M.ccall("ha_reset_scores", null, [], []); return drain(); },
+    setLang: (lang) => { M.ccall("ha_set_lang", null, ["string"], [lang || ""]); return drain(); },
     triviaClear: () => { M.ccall("ha_trivia_clear", null, [], []); return drain(); },
     triviaAddTopic: (name) => { M.ccall("ha_trivia_add_topic", null, ["string"], [name]); return drain(); },
     triviaAddQ: (json) => { M.ccall("ha_trivia_add_q", null, ["string"], [json]); return drain(); },

@@ -350,6 +350,13 @@ static const char* const BS_NAMES[BS_SHIPS] = {
 
 class Engine {
 public:
+    // The phone-client UI language, set by the host and echoed to each phone in `welcome`
+    // so the client loads the matching message catalog. "" = English. Content packs are a
+    // separate, Flipper-side concern (which packs get streamed).
+    void setLang(const char* l) {
+        strlcpy(_lang, (l && l[0]) ? l : "", sizeof(_lang));
+    }
+
     void reset() {
         for(int i = 0; i <= HA_MAX_PLAYERS; i++) _p[i] = Player{};
         _active = HA_GAME_NONE;
@@ -409,7 +416,7 @@ public:
             if(avatar && avatar[0]) strlcpy(_p[pid].avatar, avatar, sizeof(_p[pid].avatar));
         }
         String w = String("{\"t\":\"welcome\",\"pid\":") + pid + ",\"nick\":\"" +
-                   ha_json_escape(_p[pid].nick) + "\"}";
+                   ha_json_escape(_p[pid].nick) + "\",\"lang\":\"" + _lang + "\"}";
         haWsSendWs(wsId, w);
         triviaOnRosterChange();
         partyRosterChanged();
@@ -788,6 +795,7 @@ public:
 private:
     Player _p[HA_MAX_PLAYERS + 1] = {};
     uint8_t _active = HA_GAME_NONE;
+    char _lang[8] = {0}; // UI language code for the phone client, "" = English
     Trivia _t = {};
     TriviaTopic _topics[TRIVIA_MAX_TOPICS] = {};
     uint8_t _topicCount = 0;

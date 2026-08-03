@@ -14,22 +14,22 @@
 </header>
 <div id="id-edit" class="sheet hide">
 <div class="sheet-card">
-<p class="sub">Your nickname</p>
+<p class="sub" data-i18n="id.nick">Your nickname</p>
 <input id="id-nick" maxlength="12" autocomplete="off" autocapitalize="characters"
-spellcheck="false" placeholder="e.g. NOVA" style="text-transform:uppercase">
-<p class="sub">Your avatar</p>
+spellcheck="false" placeholder="e.g. NOVA" data-i18n-ph="id.nick_ph" style="text-transform:uppercase">
+<p class="sub" data-i18n="id.avatar">Your avatar</p>
 <div id="id-avatars" class="avatars"></div>
 <div class="sheet-actions">
-<button id="id-save" class="btn big">Save</button>
-<button id="id-cancel" class="btn ghost big">Cancel</button>
+<button id="id-save" class="btn big" data-i18n="id.save">Save</button>
+<button id="id-cancel" class="btn ghost big" data-i18n="id.cancel">Cancel</button>
 </div>
 </div>
 </div>
-<div id="netbar" class="netbar hide">Reconnecting...</div>
+<div id="netbar" class="netbar hide" data-i18n="net.reconnecting">Reconnecting...</div>
 <div id="lead" class="lead hide">
 <button id="lead-bar" class="lead-bar" type="button" aria-expanded="false">
 <span id="lead-sum" class="lead-sum"></span>
-<span class="lead-hint">Board</span>
+<span class="lead-hint" data-i18n="common.board">Board</span>
 <span id="lead-caret" class="lead-caret">&#9660;</span>
 </button>
 <ol id="lead-full" class="lead-full hide"></ol>
@@ -38,45 +38,45 @@ spellcheck="false" placeholder="e.g. NOVA" style="text-transform:uppercase">
 <div class="brand">
 <svg class="logo-invader" viewBox="0 0 11 8" width="88" aria-hidden="true" shape-rendering="crispEdges" fill="currentColor"><rect x="2" y="0" width="1" height="1"/><rect x="8" y="0" width="1" height="1"/><rect x="3" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="2" y="2" width="1" height="1"/><rect x="3" y="2" width="1" height="1"/><rect x="4" y="2" width="1" height="1"/><rect x="5" y="2" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/><rect x="7" y="2" width="1" height="1"/><rect x="8" y="2" width="1" height="1"/><rect x="1" y="3" width="1" height="1"/><rect x="2" y="3" width="1" height="1"/><rect x="4" y="3" width="1" height="1"/><rect x="5" y="3" width="1" height="1"/><rect x="6" y="3" width="1" height="1"/><rect x="8" y="3" width="1" height="1"/><rect x="9" y="3" width="1" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="1" y="4" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/><rect x="3" y="4" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/><rect x="5" y="4" width="1" height="1"/><rect x="6" y="4" width="1" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="8" y="4" width="1" height="1"/><rect x="9" y="4" width="1" height="1"/><rect x="10" y="4" width="1" height="1"/><rect x="0" y="5" width="1" height="1"/><rect x="2" y="5" width="1" height="1"/><rect x="3" y="5" width="1" height="1"/><rect x="4" y="5" width="1" height="1"/><rect x="5" y="5" width="1" height="1"/><rect x="6" y="5" width="1" height="1"/><rect x="7" y="5" width="1" height="1"/><rect x="8" y="5" width="1" height="1"/><rect x="10" y="5" width="1" height="1"/><rect x="0" y="6" width="1" height="1"/><rect x="2" y="6" width="1" height="1"/><rect x="8" y="6" width="1" height="1"/><rect x="10" y="6" width="1" height="1"/><rect x="3" y="7" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="6" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/></svg>
 <h1 class="wordmark-big"><span>HOTSPOT</span><span class="accent">ARCADE</span></h1>
-<p class="tag">Offline · Multiplayer · No signal</p>
+<p class="tag" data-i18n="landing.tagline">Offline · Multiplayer · No signal</p>
 </div>
 <label class="field">
-<span class="sub">Your nickname</span>
+<span class="sub" data-i18n="landing.nick">Your nickname</span>
 <input id="nick" maxlength="12" autocomplete="off" autocapitalize="characters"
-spellcheck="false" placeholder="e.g. NOVA" style="text-transform:uppercase">
+spellcheck="false" placeholder="e.g. NOVA" data-i18n-ph="landing.nick_ph" style="text-transform:uppercase">
 </label>
 <div class="field">
-<span class="sub">Pick an avatar</span>
+<span class="sub" data-i18n="landing.avatar">Pick an avatar</span>
 <div id="avatars" class="avatars"></div>
 </div>
-<button id="play" class="btn big">Play</button>
-<p class="hint">If this page closes, rejoin the WiFi and open
-<b>192.168.4.1</b> in your browser.</p>
+<button id="play" class="btn big" data-i18n="landing.play">Play</button>
+<p class="hint" data-i18n="landing.hint">If this page closes, rejoin the WiFi and open
+192.168.4.1 in your browser.</p>
 </section>
 <section id="lobby" class="screen hide">
-<header class="bar"><h2>Lobby</h2><span id="lobby-me" class="me"></span></header>
-<div id="lobby-game" class="game-state">Waiting for the host to pick a game.</div>
+<header class="bar"><h2 data-i18n="lobby.title">Lobby</h2><span id="lobby-me" class="me"></span></header>
+<div id="lobby-game" class="game-state" data-i18n="lobby.waiting">Waiting for the host to pick a game.</div>
 <ul id="players" class="players"></ul>
-<p class="sub">Chat</p>
+<p class="sub" data-i18n="lobby.chat">Chat</p>
 <div id="lobby-chat" class="chat"></div>
 <form id="lobby-form" class="guess-row" autocomplete="off">
 <input id="lobby-input" maxlength="100" autocomplete="off" autocapitalize="sentences"
-spellcheck="false" placeholder="Say something">
-<button class="btn sm" type="submit">Send</button>
+spellcheck="false" placeholder="Say something" data-i18n-ph="lobby.say_ph">
+<button class="btn sm" type="submit" data-i18n="common.send">Send</button>
 </form>
 </section>
 <section id="trivia" class="screen hide">
 <div id="tv-lobby" class="hide">
-<header class="bar"><h2>Trivia</h2><span id="tv-lobby-me" class="me"></span></header>
+<header class="bar"><h2 data-i18n="trivia.title">Trivia</h2><span id="tv-lobby-me" class="me"></span></header>
 <ul id="tv-players" class="players"></ul>
-<button id="tv-ready" class="btn big">I'm ready</button>
-<p class="sub">Vote a topic</p>
+<button id="tv-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+<p class="sub" data-i18n="trivia.vote_topic">Vote a topic</p>
 <div id="tv-topics" class="topics"></div>
 </div>
 <div id="tv-count" class="hide count">
 <div id="tv-count-topic" class="count-topic"></div>
 <div id="tv-count-num" class="count-num">3</div>
-<div class="sub">Starting</div>
+<div class="sub" data-i18n="common.starting">Starting</div>
 </div>
 <div id="tv-play" class="hide">
 <div class="bar tv-head">
@@ -88,16 +88,16 @@ spellcheck="false" placeholder="Say something">
 <div id="tv-opts" class="opts"></div>
 </div>
 <div id="tv-final" class="hide">
-<header class="bar"><h2>Final</h2></header>
+<header class="bar"><h2 data-i18n="common.final">Final</h2></header>
 <ol id="tv-podium" class="podium"></ol>
-<button id="tv-again" class="btn big">Play again</button>
+<button id="tv-again" class="btn big" data-i18n="common.play_again">Play again</button>
 </div>
 </section>
 <section id="duel" class="screen hide">
-<header class="bar"><h2 id="duel-title">Duel</h2><button id="duel-leave" class="btn ghost sm hide">Leave</button></header>
+<header class="bar"><h2 id="duel-title">Duel</h2><button id="duel-leave" class="btn ghost sm hide" data-i18n="common.leave">Leave</button></header>
 <div id="duel-lobby">
 <div id="duel-incoming" class="challenges"></div>
-<p class="sub">Challenge a player</p>
+<p class="sub" data-i18n="common.challenge_player">Challenge a player</p>
 <ul id="duel-players" class="players"></ul>
 </div>
 <div id="duel-match" class="hide">
@@ -108,38 +108,38 @@ spellcheck="false" placeholder="Say something">
 <div id="duel-over" class="hide over">
 <div id="duel-result" class="result"></div>
 <div class="over-actions">
-<button id="duel-rematch" class="btn big">Rematch</button>
-<button id="duel-back" class="btn ghost big">Back to lobby</button>
+<button id="duel-rematch" class="btn big" data-i18n="common.rematch">Rematch</button>
+<button id="duel-back" class="btn ghost big" data-i18n="common.back_lobby">Back to lobby</button>
 </div>
 </div>
 </section>
 <section id="draw" class="screen hide">
-<header class="bar"><h2>Draw &amp; Guess</h2><span id="draw-status" class="me"></span></header>
+<header class="bar"><h2 data-i18n="draw.title">Draw &amp; Guess</h2><span id="draw-status" class="me"></span></header>
 <div id="draw-bar" class="timebar hide"><i></i></div>
 <div id="draw-word" class="draw-word"></div>
 <canvas id="draw-canvas" class="draw-canvas"></canvas>
 <div id="draw-tools" class="draw-tools hide">
-<button id="draw-clear" class="btn ghost sm">Clear</button>
+<button id="draw-clear" class="btn ghost sm" data-i18n="draw.clear">Clear</button>
 </div>
 <div id="draw-guess" class="hide">
 <div id="draw-chat" class="chat"></div>
 <form id="draw-form" class="guess-row" autocomplete="off">
 <input id="draw-input" maxlength="24" autocomplete="off" autocapitalize="off"
-spellcheck="false" placeholder="Your guess">
-<button class="btn sm" type="submit">Send</button>
+spellcheck="false" placeholder="Your guess" data-i18n-ph="draw.guess_ph">
+<button class="btn sm" type="submit" data-i18n="common.send">Send</button>
 </form>
 </div>
 <div id="draw-reveal" class="game-state hide"></div>
 <div id="draw-final" class="hide">
 <ol id="draw-podium" class="podium"></ol>
-<button id="draw-again" class="btn big">Play again</button>
+<button id="draw-again" class="btn big" data-i18n="common.play_again">Play again</button>
 </div>
 </section>
 <section id="pong" class="screen hide">
-<header class="bar"><h2>Pong</h2><button id="pong-leave" class="btn ghost sm hide">Leave</button></header>
+<header class="bar"><h2>Pong</h2><button id="pong-leave" class="btn ghost sm hide" data-i18n="common.leave">Leave</button></header>
 <div id="pong-lobby">
 <div id="pong-incoming" class="challenges"></div>
-<p class="sub">Challenge a player</p>
+<p class="sub" data-i18n="common.challenge_player">Challenge a player</p>
 <ul id="pong-players" class="players"></ul>
 </div>
 <div id="pong-match" class="hide">
@@ -152,21 +152,21 @@ spellcheck="false" placeholder="Your guess">
 </div>
 <div id="pong-over" class="hide over">
 <div id="pong-result" class="result"></div>
-<button id="pong-back" class="btn big">Back to lobby</button>
+<button id="pong-back" class="btn big" data-i18n="common.back_lobby">Back to lobby</button>
 </div>
 </section>
 <section id="wyr" class="screen hide">
 <div id="wyr-lobby" class="hide">
-<header class="bar"><h2>Would You Rather</h2><span id="wyr-me" class="me"></span></header>
+<header class="bar"><h2 data-i18n="wyr.title">Would You Rather</h2><span id="wyr-me" class="me"></span></header>
 <ul id="wyr-players" class="players"></ul>
-<button id="wyr-ready" class="btn big">I'm ready</button>
-<p class="sub">Vote a pack</p>
+<button id="wyr-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+<p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
 <div id="wyr-topics" class="topics"></div>
 </div>
 <div id="wyr-count" class="hide count">
-<div class="count-topic">Would you rather</div>
+<div class="count-topic" data-i18n="wyr.count_topic">Would you rather</div>
 <div id="wyr-count-num" class="count-num">3</div>
-<div class="sub">Starting</div>
+<div class="sub" data-i18n="common.starting">Starting</div>
 </div>
 <div id="wyr-play" class="hide">
 <div class="bar"><span id="wyr-meta" class="me"></span><span id="wyr-tally" class="me"></span></div>
@@ -174,23 +174,23 @@ spellcheck="false" placeholder="Your guess">
 <div id="wyr-opts" class="wyr-opts"></div>
 </div>
 <div id="wyr-final" class="hide">
-<header class="bar"><h2>That's a wrap</h2></header>
-<div class="game-state">Thanks for playing. Ready up for another round.</div>
-<button id="wyr-again" class="btn big">Play again</button>
+<header class="bar"><h2 data-i18n="wyr.wrap">That's a wrap</h2></header>
+<div class="game-state" data-i18n="wyr.wrap_body">Thanks for playing. Ready up for another round.</div>
+<button id="wyr-again" class="btn big" data-i18n="common.play_again">Play again</button>
 </div>
 </section>
 <section id="scramble" class="screen hide">
 <div id="scr-lobby" class="hide">
-<header class="bar"><h2>Word Scramble</h2><span id="scr-me" class="me"></span></header>
+<header class="bar"><h2 data-i18n="scr.title">Word Scramble</h2><span id="scr-me" class="me"></span></header>
 <ul id="scr-players" class="players"></ul>
-<button id="scr-ready" class="btn big">I'm ready</button>
-<p class="sub">Vote a pack</p>
+<button id="scr-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+<p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
 <div id="scr-topics" class="topics"></div>
 </div>
 <div id="scr-count" class="hide count">
-<div class="count-topic">Unscramble</div>
+<div class="count-topic" data-i18n="scr.count_topic">Unscramble</div>
 <div id="scr-count-num" class="count-num">3</div>
-<div class="sub">Starting</div>
+<div class="sub" data-i18n="common.starting">Starting</div>
 </div>
 <div id="scr-play" class="hide">
 <div class="bar"><span id="scr-meta" class="me"></span><span id="scr-status" class="me"></span></div>
@@ -198,53 +198,53 @@ spellcheck="false" placeholder="Your guess">
 <div id="scr-letters" class="scr-letters"></div>
 <form id="scr-form" class="guess-row" autocomplete="off">
 <input id="scr-input" maxlength="24" autocomplete="off" autocapitalize="off"
-spellcheck="false" placeholder="Type the word">
-<button class="btn sm" type="submit">Go</button>
+spellcheck="false" placeholder="Type the word" data-i18n-ph="scr.type_ph">
+<button class="btn sm" type="submit" data-i18n="common.go">Go</button>
 </form>
 </div>
 <div id="scr-final" class="hide">
-<header class="bar"><h2>Final</h2></header>
+<header class="bar"><h2 data-i18n="common.final">Final</h2></header>
 <ol id="scr-podium" class="podium"></ol>
-<button id="scr-again" class="btn big">Play again</button>
+<button id="scr-again" class="btn big" data-i18n="common.play_again">Play again</button>
 </div>
 </section>
 <section id="react" class="screen hide">
 <div id="rc-lobby" class="hide">
-<header class="bar"><h2>Reaction Duel</h2><span id="rc-me" class="me"></span></header>
+<header class="bar"><h2 data-i18n="rc.title">Reaction Duel</h2><span id="rc-me" class="me"></span></header>
 <ul id="rc-players" class="players"></ul>
-<button id="rc-ready" class="btn big">I'm ready</button>
+<button id="rc-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
 </div>
 <div id="rc-count" class="hide count">
-<div class="count-topic">Get ready</div>
+<div class="count-topic" data-i18n="common.get_ready">Get ready</div>
 <div id="rc-count-num" class="count-num">3</div>
-<div class="sub">Starting</div>
+<div class="sub" data-i18n="common.starting">Starting</div>
 </div>
 <div id="rc-arena" class="hide">
 <div class="bar"><span id="rc-meta" class="me"></span></div>
-<div id="rc-pad" class="rc-pad wait"><span class="rc-big">Wait...</span></div>
+<div id="rc-pad" class="rc-pad wait"><span class="rc-big" data-i18n="rc.wait">Wait...</span></div>
 </div>
 <div id="rc-final" class="hide">
-<header class="bar"><h2>Final</h2></header>
+<header class="bar"><h2 data-i18n="common.final">Final</h2></header>
 <ol id="rc-podium" class="podium"></ol>
-<button id="rc-again" class="btn big">Play again</button>
+<button id="rc-again" class="btn big" data-i18n="common.play_again">Play again</button>
 </div>
 </section>
 <section id="gc" class="screen hide">
 <div id="gc-lobby" class="hide">
-<header class="bar"><h2>Guess the Color</h2><span id="gc-me" class="me"></span></header>
+<header class="bar"><h2 data-i18n="gc.title">Guess the Color</h2><span id="gc-me" class="me"></span></header>
 <ul id="gc-players" class="players"></ul>
-<button id="gc-ready" class="btn big">I'm ready</button>
+<button id="gc-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
 </div>
 <div id="gc-count" class="hide count">
-<div class="count-topic">Get ready</div>
+<div class="count-topic" data-i18n="common.get_ready">Get ready</div>
 <div id="gc-count-num" class="count-num">3</div>
-<div class="sub">Starting</div>
+<div class="sub" data-i18n="common.starting">Starting</div>
 </div>
 <div id="gc-play" class="hide gc-play">
 <div class="bar"><span id="gc-meta" class="me"></span></div>
 <div class="gc-target-wrap">
 <div id="gc-target" class="gc-chip gc-chip-lg"></div>
-<span class="gc-lbl">Match this color &mdash; dial in R / G / B</span>
+<span class="gc-lbl" data-i18n="gc.match">Match this color &mdash; dial in R / G / B</span>
 </div>
 <div class="gc-rows">
 <div class="gc-row"><span class="gc-ch gc-r">R</span>
@@ -263,8 +263,8 @@ spellcheck="false" placeholder="Type the word">
 <span id="gc-b-val" class="gc-val">128</span>
 <button id="gc-b-up" class="btn ghost gc-step" aria-label="B plus 1">+</button></div>
 </div>
-<button id="gc-submit" class="btn big">Submit guess</button>
-<div id="gc-wait" class="hide sub">Submitted — waiting for others...</div>
+<button id="gc-submit" class="btn big" data-i18n="gc.submit">Submit guess</button>
+<div id="gc-wait" class="hide sub" data-i18n="gc.submitted">Submitted — waiting for others...</div>
 </div>
 <div id="gc-reveal" class="hide gc-play">
 <div class="bar"><span id="gc-rmeta" class="me"></span></div>
@@ -272,62 +272,62 @@ spellcheck="false" placeholder="Type the word">
 <div id="gc-rtarget" class="gc-chip gc-chip-lg"></div>
 <span id="gc-answer" class="gc-lbl gc-answer">Answer</span>
 </div>
-<div class="gc-legend">◀ answer &middot; guess ▶</div>
+<div class="gc-legend" data-i18n="gc.legend">◀ answer &middot; guess ▶</div>
 <div id="gc-guesses" class="gc-guesses"></div>
 <div id="gc-winner" class="gc-winner"></div>
 </div>
 <div id="gc-final" class="hide">
-<header class="bar"><h2>Final</h2></header>
+<header class="bar"><h2 data-i18n="common.final">Final</h2></header>
 <ol id="gc-podium" class="podium"></ol>
-<button id="gc-again" class="btn big">Play again</button>
+<button id="gc-again" class="btn big" data-i18n="common.play_again">Play again</button>
 </div>
 </section>
 <section id="bs" class="screen hide">
-<header class="bar"><h2>Battleship</h2><button id="bs-leave" class="btn ghost sm hide">Leave</button></header>
+<header class="bar"><h2 data-i18n="bs.title">Battleship</h2><button id="bs-leave" class="btn ghost sm hide" data-i18n="common.leave">Leave</button></header>
 <div id="bs-lobby">
 <div id="bs-incoming" class="challenges"></div>
-<p class="sub">Challenge a player</p>
+<p class="sub" data-i18n="common.challenge_player">Challenge a player</p>
 <ul id="bs-players" class="players"></ul>
 </div>
 <div id="bs-place" class="hide">
-<p id="bs-place-hint" class="sub">Place your fleet</p>
+<p id="bs-place-hint" class="sub" data-i18n="bs.place">Place your fleet</p>
 <div id="bs-place-grid" class="bs-grid"></div>
 <div id="bs-tray" class="bs-tray"></div>
 <div id="bs-place-actions" class="bs-actions">
-<button id="bs-rotate" class="btn ghost">Rotate</button>
-<button id="bs-random" class="btn ghost">Random</button>
-<button id="bs-ready" class="btn big" disabled>Ready</button>
+<button id="bs-rotate" class="btn ghost" data-i18n="bs.rotate">Rotate</button>
+<button id="bs-random" class="btn ghost" data-i18n="bs.random">Random</button>
+<button id="bs-ready" class="btn big" data-i18n="common.ready_short" disabled>Ready</button>
 </div>
-<div id="bs-wait" class="hide sub">Waiting for opponent...</div>
+<div id="bs-wait" class="hide sub" data-i18n="bs.wait_opp">Waiting for opponent...</div>
 </div>
 <div id="bs-fire" class="hide">
 <div id="bs-turn" class="turn"></div>
 <p id="bs-ships" class="sub bs-count"></p>
-<p class="sub">Enemy waters</p>
+<p class="sub" data-i18n="bs.enemy_waters">Enemy waters</p>
 <div id="bs-track-grid" class="bs-grid"></div>
-<p class="sub">Your fleet</p>
+<p class="sub" data-i18n="bs.your_fleet">Your fleet</p>
 <div id="bs-fleet-grid" class="bs-grid small"></div>
 </div>
 <div id="bs-over" class="hide over">
 <div id="bs-result" class="result"></div>
-<p class="sub">Enemy fleet revealed</p>
+<p class="sub" data-i18n="bs.enemy_revealed">Enemy fleet revealed</p>
 <div id="bs-over-grid" class="bs-grid"></div>
-<button id="bs-rematch" class="btn big">Rematch</button>
-<button id="bs-back" class="btn ghost">Back to lobby</button>
+<button id="bs-rematch" class="btn big" data-i18n="common.rematch">Rematch</button>
+<button id="bs-back" class="btn ghost" data-i18n="common.back_lobby">Back to lobby</button>
 </div>
 </section>
 <section id="spectrum" class="screen hide">
 <div id="sp-lobby" class="hide">
-<header class="bar"><h2>Spectrum</h2><span id="sp-me" class="me"></span></header>
+<header class="bar"><h2 data-i18n="sp.title">Spectrum</h2><span id="sp-me" class="me"></span></header>
 <ul id="sp-players" class="players"></ul>
-<button id="sp-ready" class="btn big">I'm ready</button>
-<p class="sub">Vote a pack</p>
+<button id="sp-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+<p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
 <div id="sp-topics" class="topics"></div>
 </div>
 <div id="sp-count" class="hide count">
-<div class="count-topic">Spectrum</div>
+<div class="count-topic" data-i18n="sp.count_topic">Spectrum</div>
 <div id="sp-count-num" class="count-num">3</div>
-<div class="sub">Starting</div>
+<div class="sub" data-i18n="common.starting">Starting</div>
 </div>
 <div id="sp-play" class="hide">
 <div class="bar"><span id="sp-meta" class="me"></span><span id="sp-role" class="me"></span></div>
@@ -345,43 +345,43 @@ spellcheck="false" placeholder="Type the word">
 </div>
 <div id="sp-clue" class="sp-clue"></div>
 <div id="sp-clueform" class="sp-clueform hide">
-<input id="sp-cluein" class="sp-cluein" maxlength="38" placeholder="Type your clue…"
+<input id="sp-cluein" class="sp-cluein" maxlength="38" placeholder="Type your clue…" data-i18n-ph="sp.clue_ph"
 autocomplete="off" spellcheck="false">
 <button id="sp-cluego" class="btn sm">Send</button>
 </div>
-<button id="sp-guessgo" class="btn big hide">Lock in guess</button>
+<button id="sp-guessgo" class="btn big hide" data-i18n="sp.lock_guess">Lock in guess</button>
 <div id="sp-note" class="sp-note"></div>
 </div>
 <div id="sp-final" class="hide">
-<header class="bar"><h2>Final</h2></header>
+<header class="bar"><h2 data-i18n="common.final">Final</h2></header>
 <ol id="sp-podium" class="podium"></ol>
-<button id="sp-again" class="btn big">Play again</button>
+<button id="sp-again" class="btn big" data-i18n="common.play_again">Play again</button>
 </div>
 </section>
 <section id="kmk" class="screen hide">
 <div id="kmk-lobby" class="hide">
-<header class="bar"><h2>Kiss Marry Kill</h2><span id="kmk-me" class="me"></span></header>
+<header class="bar"><h2 data-i18n="kmk.title">Kiss Marry Kill</h2><span id="kmk-me" class="me"></span></header>
 <ul id="kmk-players" class="players"></ul>
-<button id="kmk-ready" class="btn big">I'm ready</button>
-<p class="sub">Vote a pack</p>
+<button id="kmk-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+<p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
 <div id="kmk-topics" class="topics"></div>
 </div>
 <div id="kmk-count" class="hide count">
-<div class="count-topic">Kiss Marry Kill</div>
+<div class="count-topic" data-i18n="kmk.count_topic">Kiss Marry Kill</div>
 <div id="kmk-count-num" class="count-num">3</div>
-<div class="sub">Starting</div>
+<div class="sub" data-i18n="common.starting">Starting</div>
 </div>
 <div id="kmk-play" class="hide">
 <div class="bar"><span id="kmk-meta" class="me"></span><span id="kmk-role" class="me"></span></div>
 <div id="kmk-bar" class="timebar hide"><i></i></div>
 <div id="kmk-people" class="kmk-people"></div>
-<button id="kmk-go" class="btn big hide">Lock in</button>
+<button id="kmk-go" class="btn big hide" data-i18n="kmk.lock">Lock in</button>
 <div id="kmk-note" class="kmk-note"></div>
 </div>
 <div id="kmk-final" class="hide">
-<header class="bar"><h2>Final</h2></header>
+<header class="bar"><h2 data-i18n="common.final">Final</h2></header>
 <ol id="kmk-podium" class="podium"></ol>
-<button id="kmk-again" class="btn big">Play again</button>
+<button id="kmk-again" class="btn big" data-i18n="common.play_again">Play again</button>
 </div>
 </section>
 <div id="react-layer" class="react-layer" aria-hidden="true"></div>
@@ -392,19 +392,19 @@ autocomplete="off" spellcheck="false">
 <div id="toast" class="toast hide"></div>
 <div id="captive" class="captive hide" role="dialog" aria-modal="true" aria-labelledby="captive-title">
 <div class="captive-card">
-<div id="captive-title" class="captive-title">Open in your browser</div>
-<p class="captive-body">This Wi-Fi popup can&rsquo;t keep the game connected. To play,
+<div id="captive-title" class="captive-title" data-i18n="captive.title">Open in your browser</div>
+<p class="captive-body" data-i18n="captive.body">This Wi-Fi popup can&rsquo;t keep the game connected. To play,
 leave it and open the game in your phone&rsquo;s browser:</p>
 <ol class="captive-steps">
-<li>Tap <b>Cancel</b>, then <b>Use Without Internet</b></li>
-<li>Open your browser and go to this address:</li>
+<li data-i18n="captive.step1">Tap Cancel, then Use Without Internet</li>
+<li data-i18n="captive.step2">Open your browser and go to this address:</li>
 </ol>
 <div class="captive-copy">
 <input id="captive-url" class="captive-url" readonly value="192.168.4.1"
 aria-label="Game address" spellcheck="false">
-<button id="captive-copy" class="btn sm" type="button">Copy</button>
+<button id="captive-copy" class="btn sm" type="button" data-i18n="captive.copy">Copy</button>
 </div>
-<button id="captive-dismiss" class="captive-dismiss" type="button">Dismiss</button>
+<button id="captive-dismiss" class="captive-dismiss" type="button" data-i18n="captive.dismiss">Dismiss</button>
 </div>
 </div>
 <script>"use strict";
@@ -534,7 +534,7 @@ li.innerHTML =
 ul.appendChild(li);
 });
 var rb = $(cfg.readyId);
-rb.textContent = mine ? "Ready. Tap to cancel" : "I'm ready";
+rb.textContent = mine ? t("common.ready_cancel") : t("common.ready");
 rb.classList.toggle("on", mine);
 return mine;
 };
@@ -654,7 +654,7 @@ ws.onerror = function () { try { ws.close(); } catch (e) {} };
 function scheduleReconnect() {
 setDot(A.retry > 4 ? "bad" : "warn");   // down after repeated failures
 if (A.view !== "landing") {
-$("netbar").textContent = "Reconnecting...";
+$("netbar").textContent = t("net.reconnecting");
 show("netbar");
 }
 var wait = Math.min(1000 * Math.pow(1.6, A.retry), 8000);
@@ -676,6 +676,7 @@ function dispatch(m) {
 switch (m.t) {
 case "welcome":
 A.pid = m.pid;
+if (A.setLang) A.setLang(m.lang); // host-chosen UI language; localizes static text
 if (m.nick) { A.nick = m.nick; setNick(); }
 break;
 case "lobby":
@@ -936,6 +937,326 @@ connect();
 setInterval(function () { send({ t: "ping" }); }, 20000);
 }
 document.addEventListener("DOMContentLoaded", initApp);
+var MESSAGES = {
+en: {
+"common.ready": "I'm ready",
+"common.ready_cancel": "Ready. Tap to cancel",
+"common.ready_short": "Ready",
+"common.play_again": "Play again",
+"common.final": "Final",
+"common.starting": "Starting",
+"common.send": "Send",
+"common.go": "Go",
+"common.leave": "Leave",
+"common.rematch": "Rematch",
+"common.back_lobby": "Back to lobby",
+"common.challenge_player": "Challenge a player",
+"common.get_ready": "Get ready",
+"common.vote_pack": "Vote a pack",
+"common.board": "Board",
+"landing.tagline": "Offline · Multiplayer · No signal",
+"landing.nick": "Your nickname",
+"landing.avatar": "Pick an avatar",
+"landing.play": "Play",
+"landing.nick_ph": "e.g. NOVA",
+"landing.hint": "If this page closes, rejoin the WiFi and open 192.168.4.1 in your browser.",
+"id.nick": "Your nickname",
+"id.nick_ph": "e.g. NOVA",
+"id.avatar": "Your avatar",
+"id.save": "Save",
+"id.cancel": "Cancel",
+"net.reconnecting": "Reconnecting...",
+"lobby.title": "Lobby",
+"lobby.waiting": "Waiting for the host to pick a game.",
+"lobby.chat": "Chat",
+"lobby.say_ph": "Say something",
+"trivia.title": "Trivia",
+"trivia.vote_topic": "Vote a topic",
+"draw.title": "Draw & Guess",
+"draw.clear": "Clear",
+"draw.guess_ph": "Your guess",
+"wyr.title": "Would You Rather",
+"wyr.count_topic": "Would you rather",
+"wyr.wrap": "That's a wrap",
+"wyr.wrap_body": "Thanks for playing. Ready up for another round.",
+"scr.title": "Word Scramble",
+"scr.count_topic": "Unscramble",
+"scr.type_ph": "Type the word",
+"rc.title": "Reaction Duel",
+"rc.wait": "Wait...",
+"gc.title": "Guess the Color",
+"gc.match": "Match this color — dial in R / G / B",
+"gc.submit": "Submit guess",
+"gc.submitted": "Submitted — waiting for others...",
+"gc.answer": "Answer",
+"gc.legend": "◀ answer · guess ▶",
+"bs.title": "Battleship",
+"bs.place": "Place your fleet",
+"bs.rotate": "Rotate",
+"bs.random": "Random",
+"bs.wait_opp": "Waiting for opponent...",
+"bs.enemy_waters": "Enemy waters",
+"bs.your_fleet": "Your fleet",
+"bs.enemy_revealed": "Enemy fleet revealed",
+"sp.title": "Spectrum",
+"sp.count_topic": "Spectrum",
+"sp.clue_ph": "Type your clue…",
+"sp.lock_guess": "Lock in guess",
+"kmk.title": "Kiss Marry Kill",
+"kmk.count_topic": "Kiss Marry Kill",
+"kmk.lock": "Lock in",
+"captive.title": "Open in your browser",
+"captive.body": "This Wi-Fi popup can't keep the game connected. To play, leave it and open the game in your phone's browser:",
+"captive.step1": "Tap Cancel, then Use Without Internet",
+"captive.step2": "Open your browser and go to this address:",
+"captive.copy": "Copy",
+"captive.dismiss": "Dismiss",
+"common.round": "Round {n} / {total}",
+"scr.word": "Word {n} / {total}",
+"scr.answer": "Answer",
+"scr.solved": "Solved! Waiting for the round to end.",
+"scr.letters": "{n} letters",
+"gc.answer_val": "Answer  {r}, {g}, {b}",
+"gc.you_closest": "You were closest!",
+"gc.was_closest": "{nick} was closest",
+"common.win": "Win",
+"common.lose": "Lose",
+"common.draw": "Draw",
+"common.over": "Over",
+"common.your_turn": "Your turn",
+"common.opp_turn": "{nick}'s turn",
+"common.opponent": "Opponent",
+"common.opp_left": "Opponent left",
+"common.zero_round": "+0 this round",
+"common.you": "You",
+"common.them": "Them",
+"rc.too_soon": "Too soon!",
+"rc.wait_next": "Wait for the next round",
+"rc.tapped": "Tapped!",
+"rc.tap": "TAP!",
+"rc.wait_green": "Tap when it turns green",
+"rc.you_won": "You won!",
+"rc.nick_won": "{nick} won",
+"rc.no_winner": "No winner",
+"sp.guess_hint": "Guess: {n} — lock it in when ready.",
+"sp.you_psychic": "You are the psychic",
+"sp.psychic_is": "Psychic: {nick}",
+"sp.give_clue": "Give a clue that points to the orange zone.",
+"sp.thinking": "{nick} is thinking of a clue…",
+"sp.clue_sent": "Clue sent. Waiting for guesses…",
+"sp.guess_locked": "Guess locked at {n}. Waiting…",
+"sp.drag": "Drag the dial to where the clue lands, then lock in.",
+"sp.clue_earned": "Your clue earned you +{gain}",
+"sp.nice": "Nice — +{gain}",
+"kmk.kiss": "Kiss",
+"kmk.marry": "Marry",
+"kmk.kill": "Kill",
+"kmk.you_choose": "You choose",
+"kmk.chooser_is": "Chooser: {nick}",
+"kmk.read_perfect": "{perfect} of {total} read you perfectly.  You +{g}",
+"kmk.perfect": "Perfect read! +{g}",
+"kmk.close": "Close - +{g}",
+"kmk.lock_picks": "Lock in your picks",
+"kmk.tap_tag": "Tap each to tag them Kiss, Marry or Kill.",
+"kmk.deciding": "{nick} is deciding…",
+"kmk.locked_waiting": "Locked. Waiting for guesses…",
+"kmk.guess_locked": "Guess locked. Waiting…",
+"kmk.tap_set": "tap to set",
+"kmk.predict": "Predict how {nick} tagged them.",
+"kmk.lock_guess": "Lock in guess",
+"bs.both_ready": "Both ready...",
+"bs.opp_ready": "Opponent is ready - arrange & Ready",
+"bs.tap_ship": "Tap a ship then a cell to move it, or Random",
+"bs.your_turn_fire": "Your turn - fire!",
+"bs.you_win": "You win!",
+"bs.defeated": "Defeated",
+"bs.ship_carrier": "Carrier",
+"bs.ship_battleship": "Battleship",
+"bs.ship_cruiser": "Cruiser",
+"bs.ship_submarine": "Submarine",
+"bs.ship_destroyer": "Destroyer",
+"draw.game_over": "Game over",
+"draw.got_it": "{nick} got it",
+"draw.nobody": "Nobody guessed it",
+"draw.word_label": "Word:",
+"draw.round_over": "Round over",
+"draw.get_ready": "Get ready...",
+"draw.waiting": "Waiting",
+"draw.is_drawing": "{nick} is drawing",
+"wyr.meta": "Would you rather... ({n} / {total})",
+"trivia.answered": "Answered {n} / {total}",
+},
+"pt-br": {
+"common.ready": "Estou pronto",
+"common.ready_cancel": "Pronto. Toque para cancelar",
+"common.ready_short": "Pronto",
+"common.play_again": "Jogar de novo",
+"common.final": "Fim",
+"common.starting": "Começando",
+"common.send": "Enviar",
+"common.go": "Vai",
+"common.leave": "Sair",
+"common.rematch": "Revanche",
+"common.back_lobby": "Voltar ao lobby",
+"common.challenge_player": "Desafie um jogador",
+"common.get_ready": "Prepare-se",
+"common.vote_pack": "Vote num pacote",
+"common.board": "Placar",
+"landing.tagline": "Offline · Multijogador · Sem sinal",
+"landing.nick": "Seu apelido",
+"landing.avatar": "Escolha um avatar",
+"landing.play": "Jogar",
+"landing.nick_ph": "ex. NOVA",
+"landing.hint": "Se esta página fechar, reconecte no WiFi e abra 192.168.4.1 no navegador.",
+"id.nick": "Seu apelido",
+"id.nick_ph": "ex. NOVA",
+"id.avatar": "Seu avatar",
+"id.save": "Salvar",
+"id.cancel": "Cancelar",
+"net.reconnecting": "Reconectando...",
+"lobby.title": "Lobby",
+"lobby.waiting": "Aguardando o anfitrião escolher um jogo.",
+"lobby.chat": "Bate-papo",
+"lobby.say_ph": "Diga algo",
+"trivia.title": "Trivia",
+"trivia.vote_topic": "Vote num tema",
+"draw.title": "Desenhe e Adivinhe",
+"draw.clear": "Limpar",
+"draw.guess_ph": "Seu palpite",
+"wyr.title": "O Que Você Prefere",
+"wyr.count_topic": "O que você prefere",
+"wyr.wrap": "Fim de jogo",
+"wyr.wrap_body": "Obrigado por jogar. Fique pronto para outra rodada.",
+"scr.title": "Palavra Embaralhada",
+"scr.count_topic": "Desembaralhe",
+"scr.type_ph": "Digite a palavra",
+"rc.title": "Duelo de Reflexo",
+"rc.wait": "Espere...",
+"gc.title": "Adivinhe a Cor",
+"gc.match": "Iguale esta cor — ajuste R / G / B",
+"gc.submit": "Enviar palpite",
+"gc.submitted": "Enviado — aguardando os outros...",
+"gc.answer": "Resposta",
+"gc.legend": "◀ resposta · palpite ▶",
+"bs.title": "Batalha Naval",
+"bs.place": "Posicione sua frota",
+"bs.rotate": "Girar",
+"bs.random": "Aleatório",
+"bs.wait_opp": "Aguardando o oponente...",
+"bs.enemy_waters": "Águas inimigas",
+"bs.your_fleet": "Sua frota",
+"bs.enemy_revealed": "Frota inimiga revelada",
+"sp.title": "Espectro",
+"sp.count_topic": "Espectro",
+"sp.clue_ph": "Digite sua dica…",
+"sp.lock_guess": "Confirmar palpite",
+"kmk.title": "Kiss Marry Kill",
+"kmk.count_topic": "Kiss Marry Kill",
+"kmk.lock": "Confirmar",
+"captive.title": "Abra no navegador",
+"captive.body": "Este popup de Wi-Fi não mantém o jogo conectado. Para jogar, saia dele e abra o jogo no navegador do seu celular:",
+"captive.step1": "Toque em Cancelar, depois em Usar Sem Internet",
+"captive.step2": "Abra o navegador e vá para este endereço:",
+"captive.copy": "Copiar",
+"captive.dismiss": "Fechar",
+"common.round": "Rodada {n} / {total}",
+"scr.word": "Palavra {n} / {total}",
+"scr.answer": "Resposta",
+"scr.solved": "Resolvido! Aguardando o fim da rodada.",
+"scr.letters": "{n} letras",
+"gc.answer_val": "Resposta  {r}, {g}, {b}",
+"gc.you_closest": "Você chegou mais perto!",
+"gc.was_closest": "{nick} chegou mais perto",
+"common.win": "Vitória",
+"common.lose": "Derrota",
+"common.draw": "Empate",
+"common.over": "Fim",
+"common.your_turn": "Sua vez",
+"common.opp_turn": "Vez de {nick}",
+"common.opponent": "Oponente",
+"common.opp_left": "O oponente saiu",
+"common.zero_round": "+0 nesta rodada",
+"common.you": "Você",
+"common.them": "Eles",
+"rc.too_soon": "Cedo demais!",
+"rc.wait_next": "Espere a próxima rodada",
+"rc.tapped": "Tocou!",
+"rc.tap": "TOQUE!",
+"rc.wait_green": "Toque quando ficar verde",
+"rc.you_won": "Você venceu!",
+"rc.nick_won": "{nick} venceu",
+"rc.no_winner": "Sem vencedor",
+"sp.guess_hint": "Palpite: {n} — confirme quando quiser.",
+"sp.you_psychic": "Você é o médium",
+"sp.psychic_is": "Médium: {nick}",
+"sp.give_clue": "Dê uma dica que aponte para a zona laranja.",
+"sp.thinking": "{nick} está pensando numa dica…",
+"sp.clue_sent": "Dica enviada. Aguardando os palpites…",
+"sp.guess_locked": "Palpite travado em {n}. Aguardando…",
+"sp.drag": "Arraste o mostrador até onde a dica se encaixa e confirme.",
+"sp.clue_earned": "Sua dica te rendeu +{gain}",
+"sp.nice": "Boa — +{gain}",
+"kmk.kiss": "Beijar",
+"kmk.marry": "Casar",
+"kmk.kill": "Matar",
+"kmk.you_choose": "Você escolhe",
+"kmk.chooser_is": "Quem escolhe: {nick}",
+"kmk.read_perfect": "{perfect} de {total} acertaram você.  Você +{g}",
+"kmk.perfect": "Leitura perfeita! +{g}",
+"kmk.close": "Quase - +{g}",
+"kmk.lock_picks": "Confirmar escolhas",
+"kmk.tap_tag": "Toque em cada um para marcar Beijar, Casar ou Matar.",
+"kmk.deciding": "{nick} está decidindo…",
+"kmk.locked_waiting": "Confirmado. Aguardando os palpites…",
+"kmk.guess_locked": "Palpite travado. Aguardando…",
+"kmk.tap_set": "toque para marcar",
+"kmk.predict": "Preveja como {nick} marcou cada um.",
+"kmk.lock_guess": "Confirmar palpite",
+"bs.both_ready": "Ambos prontos...",
+"bs.opp_ready": "O oponente está pronto - posicione e Pronto",
+"bs.tap_ship": "Toque num navio e depois numa célula para movê-lo, ou Aleatório",
+"bs.your_turn_fire": "Sua vez - atire!",
+"bs.you_win": "Você venceu!",
+"bs.defeated": "Derrotado",
+"bs.ship_carrier": "Porta-aviões",
+"bs.ship_battleship": "Encouraçado",
+"bs.ship_cruiser": "Cruzador",
+"bs.ship_submarine": "Submarino",
+"bs.ship_destroyer": "Destróier",
+"draw.game_over": "Fim de jogo",
+"draw.got_it": "{nick} acertou",
+"draw.nobody": "Ninguém acertou",
+"draw.word_label": "Palavra:",
+"draw.round_over": "Fim da rodada",
+"draw.get_ready": "Prepare-se...",
+"draw.waiting": "Aguardando",
+"draw.is_drawing": "{nick} está desenhando",
+"wyr.meta": "O que você prefere... ({n} / {total})",
+"trivia.answered": "Responderam {n} / {total}",
+},
+};
+A.lang = "en";
+function t(key, params) {
+var cat = MESSAGES[A.lang] || MESSAGES.en;
+var s = cat[key];
+if (s == null) s = MESSAGES.en[key];
+if (s == null) return key;
+if (params)
+s = s.replace(/\{(\w+)\}/g, function (_, k) { return params[k] != null ? params[k] : "{" + k + "}"; });
+return s;
+}
+function applyI18n(root) {
+root = root || document;
+var els = root.querySelectorAll("[data-i18n]");
+for (var i = 0; i < els.length; i++) els[i].textContent = t(els[i].getAttribute("data-i18n"));
+var ph = root.querySelectorAll("[data-i18n-ph]");
+for (var j = 0; j < ph.length; j++) ph[j].setAttribute("placeholder", t(ph[j].getAttribute("data-i18n-ph")));
+}
+A.setLang = function (lang) {
+A.lang = (lang && MESSAGES[lang]) ? lang : "en";
+applyI18n();
+};
+document.addEventListener("DOMContentLoaded", function () { applyI18n(); });
 (function () {
 var ctx = null;
 var muted = false;
@@ -1086,7 +1407,7 @@ function renderQuestion(m) {
 sub("play");
 revealedFor = -1;
 head(m);
-$("tv-answered").textContent = "Answered " + (m.answered || 0) + " / " + (m.total || 0);
+$("tv-answered").textContent = t("trivia.answered", { n: m.answered || 0, total: m.total || 0 });
 $("tv-q").textContent = m.q || "";
 var mine = (typeof m.mine === "number") ? m.mine : -1;
 noteDeadline(m.deadline, m.dur); A.timebar("tv-bar", m.deadline, m.dur, true);
@@ -1278,7 +1599,7 @@ function renderPlaying(m) {
 hide("duel-lobby"); hide("duel-over"); show("duel-match"); show("duel-leave");
 var myTurn = m.turn === m.you;
 var turn = $("duel-turn");
-turn.textContent = myTurn ? "Your turn" : (esc(m.opp || "Opponent") + "'s turn");
+turn.textContent = myTurn ? t("common.your_turn") : t("common.opp_turn", { nick: esc(m.opp) || t("common.opponent") });
 turn.className = "turn" + (myTurn ? " you" : "");
 if (m.kind === "dots") renderDots(m);
 else if (m.kind === "reversi") renderReversi(m);
@@ -1292,8 +1613,8 @@ prevTurnMine = myTurn;
 function renderOver(m) {
 hide("duel-lobby"); hide("duel-match"); show("duel-over"); show("duel-leave");
 var r = $("duel-result");
-var map = { win: ["Win", "win"], lose: ["Lose", "lose"], draw: ["Draw", "draw"] };
-var res = map[m.result] || ["Over", ""];
+var map = { win: [t("common.win"), "win"], lose: [t("common.lose"), "lose"], draw: [t("common.draw"), "draw"] };
+var res = map[m.result] || [t("common.over"), ""];
 r.textContent = res[0];
 r.className = "result " + res[1];
 if (prevPhase !== "over") {
@@ -1327,7 +1648,7 @@ if (rematchTimer) clearTimeout(rematchTimer);
 rematchTimer = setTimeout(function () {
 rematchTimer = null;
 if (prevPhase === "over" && A.view === "duel") {
-toast("Opponent left");
+toast(t("common.opp_left"));
 send({ t: "leaveGame" });
 }
 }, 1500);
@@ -1426,7 +1747,7 @@ role = ""; A.timebarStop("draw-bar");
 hide("draw-bar"); hide("draw-word"); hide("draw-canvas");
 hide("draw-tools"); hide("draw-guess"); hide("draw-reveal");
 show("draw-final");
-status.textContent = "Game over";
+status.textContent = t("draw.game_over");
 renderPodium(m.board);
 return;
 }
@@ -1435,9 +1756,9 @@ finaledFor = false;
 if (m.phase === "reveal") {
 role = ""; A.timebarStop("draw-bar"); hide("draw-bar");
 hide("draw-tools"); hide("draw-guess"); show("draw-reveal");
-var who = m.winner == null ? "Nobody guessed it" : (esc(nickOf(m.winner)) + " got it");
-reveal.innerHTML = "Word: <b>" + esc(m.word || "") + "</b><br>" + who;
-status.textContent = "Round over";
+var who = m.winner == null ? t("draw.nobody") : t("draw.got_it", { nick: esc(nickOf(m.winner)) });
+reveal.innerHTML = t("draw.word_label") + " <b>" + esc(m.word || "") + "</b><br>" + who;
+status.textContent = t("draw.round_over");
 if (revealedRound !== m.round) {
 revealedRound = (m.round == null ? -2 : m.round);
 if (m.winner === A.pid) { A.sfx("win"); A.vibe([40, 60, 40]); }
@@ -1448,8 +1769,8 @@ return;
 if (m.phase === "idle") {
 role = ""; A.timebarStop("draw-bar"); hide("draw-bar");
 hide("draw-tools"); hide("draw-guess"); show("draw-reveal");
-reveal.textContent = "Get ready...";
-status.textContent = "Waiting";
+reveal.textContent = t("draw.get_ready");
+status.textContent = t("draw.waiting");
 word.textContent = "";
 return;
 }
@@ -1457,7 +1778,7 @@ hide("draw-reveal");
 show("draw-word");
 role = m.role;
 revealedRound = -1;
-status.textContent = "Round " + (m.round || 1) + " / " + (m.rounds || m.round || 1);
+status.textContent = t("common.round", { n: (m.round || 1), total: (m.rounds || m.round || 1) });
 noteDeadline(m.deadline, m.dur);
 A.timebar("draw-bar", m.deadline, m.dur, false);
 if (role === "drawer") {
@@ -1472,7 +1793,7 @@ word.textContent = blanks(m.len || 0);
 hide("draw-tools"); show("draw-guess");
 $("draw-chat").innerHTML = "";
 var artist = esc(m.drawer || "Someone");
-chatLine("—", artist + " is drawing", "sys");
+chatLine("—", t("draw.is_drawing", { nick: artist }), "sys");
 sizeCanvas();
 canvas.classList.remove("drawable");
 }
@@ -1574,7 +1895,7 @@ if (!canvas) ready();
 sizeCanvas();
 st = m;
 $("pong-score").innerHTML =
-'<span' + (m.me === 1 ? ' class="you"' : "") + ">You " + (m.me === 1 ? m.s1 : m.s2) + "</span>" +
+'<span' + (m.me === 1 ? ' class="you"' : "") + ">" + t("common.you") + " " + (m.me === 1 ? m.s1 : m.s2) + "</span>" +
 '<span' + (m.me === 2 ? ' class="you"' : "") + ">" + esc(m.opp || "Opp") + " " + (m.me === 1 ? m.s2 : m.s1) + "</span>";
 if (prevPhase === "playing" && (m.s1 !== prevS1 || m.s2 !== prevS2)) { A.sfx("score"); A.vibe(20); }
 prevS1 = m.s1; prevS2 = m.s2;
@@ -1584,8 +1905,8 @@ function renderOver(m) {
 stopLoop();
 hide("pong-lobby"); hide("pong-match"); show("pong-over"); show("pong-leave");
 var r = $("pong-result");
-var map = { win: ["Win", "win"], lose: ["Lose", "lose"], draw: ["Draw", "draw"] };
-var res = map[m.result] || ["Over", ""];
+var map = { win: [t("common.win"), "win"], lose: [t("common.lose"), "lose"], draw: [t("common.draw"), "draw"] };
+var res = map[m.result] || [t("common.over"), ""];
 r.textContent = res[0]; r.className = "result " + res[1];
 if (prevPhase !== "over") {
 if (m.result === "win") { A.sfx("win"); A.vibe([40, 60, 40, 60, 120]); }
@@ -1658,7 +1979,7 @@ var revealedFor = -1;
 function renderPlay(m) {
 sub("play");
 var reveal = m.phase === "reveal";
-$("wyr-meta").textContent = "Would you rather... (" + m.round + " / " + m.rounds + ")";
+$("wyr-meta").textContent = t("wyr.meta", { n: m.round, total: m.rounds });
 noteDeadline(m.deadline, m.dur);
 A.timebar("wyr-bar", m.deadline, m.dur, true);
 var counts = m.counts || [0, 0];
@@ -1753,7 +2074,7 @@ A.countdown("scr-count-num", m.sec);
 function renderPlay(m) {
 sub("play");
 var reveal = m.phase === "reveal";
-$("scr-meta").textContent = "Word " + m.round + " / " + m.rounds;
+$("scr-meta").textContent = t("scr.word", { n: m.round, total: m.rounds });
 var letters = $("scr-letters");
 var form = $("scr-form"), status = $("scr-status");
 if (reveal) {
@@ -1761,7 +2082,7 @@ A.timebarStop("scr-bar"); hide("scr-bar");
 letters.className = "scr-letters answer";
 letters.textContent = upTiles(m.word);
 form.classList.add("hide");
-status.textContent = "Answer";
+status.textContent = t("scr.answer");
 solvedFor = -1;
 } else {
 noteDeadline(m.deadline, m.dur); A.timebar("scr-bar", m.deadline, m.dur, false);
@@ -1769,7 +2090,7 @@ letters.className = "scr-letters";
 letters.textContent = upTiles(m.scram).split("").join(" ");
 var solved = !!m.solved;
 form.classList.toggle("hide", solved);
-status.textContent = solved ? "Solved! Waiting for the round to end." : (m.len + " letters");
+status.textContent = solved ? t("scr.solved") : t("scr.letters", { n: m.len });
 if (solved && solvedFor !== m.round) { solvedFor = m.round; A.sfx("correct"); A.vibe([25, 40, 25]); }
 }
 A.showLead(m.scores || [], reveal);
@@ -1829,15 +2150,15 @@ A.countdown("rc-count-num", m.sec);
 }
 function renderArmed(m) {
 sub("arena");
-$("rc-meta").textContent = "Round " + m.round + " / " + m.rounds;
+$("rc-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
 var pad = $("rc-pad");
 var go = m.light === "go";
 var cls = "rc-pad " + (m.dq ? "dq" : go ? "go" : "wait");
 pad.className = cls;
-if (m.dq) pad.innerHTML = '<span class="rc-big">Too soon!</span><span class="rc-sub">Wait for the next round</span>';
-else if (m.tapped) pad.innerHTML = '<span class="rc-big">Tapped!</span>';
-else if (go) pad.innerHTML = '<span class="rc-big">TAP!</span>';
-else pad.innerHTML = '<span class="rc-big">Wait...</span><span class="rc-sub">Tap when it turns green</span>';
+if (m.dq) pad.innerHTML = '<span class="rc-big">' + t("rc.too_soon") + '</span><span class="rc-sub">' + t("rc.wait_next") + '</span>';
+else if (m.tapped) pad.innerHTML = '<span class="rc-big">' + t("rc.tapped") + '</span>';
+else if (go) pad.innerHTML = '<span class="rc-big">' + t("rc.tap") + '</span>';
+else pad.innerHTML = '<span class="rc-big">' + t("rc.wait") + '</span><span class="rc-sub">' + t("rc.wait_green") + '</span>';
 if (go && !greenBuzzed && armedFor === m.round) { greenBuzzed = true; A.sfx("buzz"); A.vibe(30); }
 if (armedFor !== m.round) { armedFor = m.round; greenBuzzed = false; }
 A.showLead(m.scores || [], false);
@@ -1845,15 +2166,15 @@ A.showLead(m.scores || [], false);
 function renderReveal(m) {
 sub("arena");
 A.showLead(m.scores || [], true);
-$("rc-meta").textContent = "Round " + m.round + " / " + m.rounds;
+$("rc-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
 var pad = $("rc-pad");
 pad.className = "rc-pad reveal";
 if (m.winner) {
-pad.innerHTML = '<span class="rc-big">' + (m.iwon ? "You won!" : esc(m.winner) + " won") + "</span>" +
+pad.innerHTML = '<span class="rc-big">' + (m.iwon ? t("rc.you_won") : t("rc.nick_won", { nick: esc(m.winner) })) + "</span>" +
 '<span class="rc-sub">' + m.ms + " ms</span>";
 if (m.iwon) { A.sfx("win"); A.vibe([30, 50, 30]); } else A.sfx("tick");
 } else {
-pad.innerHTML = '<span class="rc-big">No winner</span>';
+pad.innerHTML = '<span class="rc-big">' + t("rc.no_winner") + '</span>';
 }
 greenBuzzed = false; armedFor = -1;
 }
@@ -1928,7 +2249,7 @@ A.countdown("gc-count-num", m.sec);
 }
 function renderPlay(m) {
 sub("play");
-$("gc-meta").textContent = "Round " + m.round + " / " + m.rounds;
+$("gc-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
 $("gc-target").style.background = m.color;
 if (m.round !== round) {           // new round: reset the guess and unlock
 round = m.round;
@@ -1942,9 +2263,9 @@ A.showLead(m.scores || [], false);
 }
 function renderReveal(m) {
 sub("reveal");
-$("gc-rmeta").textContent = "Round " + m.round + " / " + m.rounds;
+$("gc-rmeta").textContent = t("common.round", { n: m.round, total: m.rounds });
 $("gc-rtarget").style.background = m.color; // the answer color, shown big up top
-$("gc-answer").textContent = "Answer  " + m.r + ", " + m.g + ", " + m.b;
+$("gc-answer").textContent = t("gc.answer_val", { r: m.r, g: m.g, b: m.b });
 var gs = (m.guesses || []).slice().sort(function (a, b) {
 return b.points - a.points || a.dist - b.dist;
 });
@@ -1967,7 +2288,7 @@ list.appendChild(row);
 });
 if (!gs.length) list.innerHTML = '<div class="gc-grow"><span class="gc-gn">No guesses</span></div>';
 if (m.winner) {
-$("gc-winner").textContent = m.iwon ? "You were closest!" : esc(m.winner) + " was closest";
+$("gc-winner").textContent = m.iwon ? t("gc.you_closest") : t("gc.was_closest", { nick: m.winner });
 if (m.iwon) { A.sfx("win"); A.vibe([30, 50, 30]); } else A.sfx("tick");
 } else {
 $("gc-winner").textContent = "";
@@ -2043,7 +2364,7 @@ send({ t: "again" });
 (function () {
 var SIZE = 10, N = 100;
 var LENS = [5, 4, 3, 3, 2];          // fixed ship order (server matches this)
-var NAMES = ["Carrier", "Battleship", "Cruiser", "Submarine", "Destroyer"];
+var NAMES = ["bs.ship_carrier", "bs.ship_battleship", "bs.ship_cruiser", "bs.ship_submarine", "bs.ship_destroyer"];
 var ships = null;                     // local placement: [{len,r,c,d,placed}]
 var sel = 0;                          // selected ship index
 var prevPhase = "";
@@ -2116,7 +2437,7 @@ tray.innerHTML = "";
 ships.forEach(function (s, i) {
 var b = document.createElement("button");
 b.className = "bs-ship" + (i === sel ? " sel" : "") + (s.placed ? " placed" : "");
-b.textContent = NAMES[i] + " (" + s.len + ")";
+b.textContent = t(NAMES[i]) + " (" + s.len + ")";
 b.onclick = function () { sel = i; renderPlace(lastPlaceMsg); };
 tray.appendChild(b);
 });
@@ -2128,11 +2449,11 @@ sub("place");
 if (m.ready) {                       // committed: lock, wait for opponent
 $("bs-place-actions").classList.add("hide");
 $("bs-wait").classList.remove("hide");
-$("bs-place-hint").textContent = m.oppReady ? "Both ready..." : "Waiting for opponent...";
+$("bs-place-hint").textContent = m.oppReady ? t("bs.both_ready") : t("bs.wait_opp");
 } else {
 $("bs-place-actions").classList.remove("hide");
 $("bs-wait").classList.add("hide");
-$("bs-place-hint").textContent = m.oppReady ? "Opponent is ready - arrange & Ready" : "Tap a ship then a cell to move it, or Random";
+$("bs-place-hint").textContent = m.oppReady ? t("bs.opp_ready") : t("bs.tap_ship");
 }
 $("bs-ready").disabled = !allPlaced();
 var occ = {};
@@ -2155,9 +2476,9 @@ renderTray();
 function renderFire(m) {
 sub("fire");
 var t = $("bs-turn");
-t.textContent = m.yourTurn ? "Your turn - fire!" : esc(m.opp || "Opponent") + "'s turn";
+t.textContent = m.yourTurn ? t("bs.your_turn_fire") : t("common.opp_turn", { nick: esc(m.opp) || t("common.opponent") });
 t.className = "turn" + (m.yourTurn ? " you" : "");
-$("bs-ships").textContent = "You " + m.myShips + " | Them " + m.oppShips;
+$("bs-ships").textContent = t("common.you") + " " + m.myShips + " | " + t("common.them") + " " + m.oppShips;
 var TR = ["", "miss", "hit", "sunk"];
 var track = $("bs-track-grid");
 track.classList.toggle("waiting", !m.yourTurn); // dim + no taps when it's not your turn
@@ -2196,7 +2517,7 @@ grid($("bs-fleet-grid"), function (i) { return MI[m.mine[i]]; }, null);
 function renderOver(m) {
 sub("over");
 var r = $("bs-result");
-r.textContent = m.result === "win" ? "You win!" : "Defeated";
+r.textContent = m.result === "win" ? t("bs.you_win") : t("bs.defeated");
 r.className = "result " + (m.result === "win" ? "win" : "lose");
 if (prevPhase !== "over") {
 if (m.result === "win") { A.sfx("win"); A.vibe([40, 60, 40, 60, 120]); }
@@ -2252,7 +2573,7 @@ A.sfx("buzz"); send({ t: "rematch" });
 if (rematchTimer) clearTimeout(rematchTimer);
 rematchTimer = setTimeout(function () {
 rematchTimer = null;
-if (prevPhase === "over" && A.view === "bs") { toast("Opponent left"); send({ t: "leaveGame" }); }
+if (prevPhase === "over" && A.view === "bs") { toast(t("common.opp_left")); send({ t: "leaveGame" }); }
 }, 1500);
 });
 });
@@ -2316,7 +2637,7 @@ function dragMove(e) {
 if (!dragging || !spCanGuess) return;
 spGuess = valFromEvent(e);
 setNeedle(spGuess, false);
-$("sp-note").textContent = "Guess: " + spGuess + " — lock it in when ready.";
+$("sp-note").textContent = t("sp.guess_hint", { n: spGuess });
 if (e.cancelable) e.preventDefault();
 }
 function dragStart(e) { if (!spCanGuess) return; dragging = true; dragMove(e); }
@@ -2340,8 +2661,8 @@ var lastRound = -1, lastStage = "";
 function renderPlay(m) {
 sub("play");
 var stage = m.stage; // "clue" | "guess" | "reveal"
-$("sp-meta").textContent = "Round " + m.round + " / " + m.rounds;
-$("sp-role").textContent = m.iam ? "You are the psychic" : "Psychic: " + m.psychic;
+$("sp-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
+$("sp-role").textContent = m.iam ? t("sp.you_psychic") : t("sp.psychic_is", { nick: m.psychic });
 $("sp-left").textContent = m.left || "";
 $("sp-right").textContent = m.right || "";
 noteDeadline(m.deadline, m.dur);
@@ -2359,17 +2680,17 @@ if (stage === "clue") {
 clueForm.classList.toggle("hide", !m.iam);
 guessGo.classList.add("hide");
 if (m.iam) {
-note.textContent = "Give a clue that points to the orange zone.";
+note.textContent = t("sp.give_clue");
 if (lastRound !== m.round) { $("sp-cluein").value = ""; setTimeout(function () { $("sp-cluein").focus(); }, 60); }
 } else {
-note.textContent = m.psychic + " is thinking of a clue…";
+note.textContent = t("sp.thinking", { nick: m.psychic });
 }
 } else if (stage === "guess") {
 clueForm.classList.add("hide");
 if (m.iam) {
 spCanGuess = false;
 guessGo.classList.add("hide");
-note.textContent = "Clue sent. Waiting for guesses…";
+note.textContent = t("sp.clue_sent");
 } else {
 var locked = (typeof m.myguess === "number" && m.myguess >= 0);
 if (lastRound !== m.round || lastStage !== "guess") spGuess = locked ? m.myguess : 50;
@@ -2377,8 +2698,8 @@ spCanGuess = !locked;
 setNeedle(spGuess, false); // drag the dial to move it
 guessGo.classList.toggle("hide", locked);
 guessGo.disabled = locked;
-note.textContent = locked ? "Guess locked at " + m.myguess + ". Waiting…"
-: "Drag the dial to where the clue lands, then lock in.";
+note.textContent = locked ? t("sp.guess_locked", { n: m.myguess })
+: t("sp.drag");
 }
 } else { // reveal
 spCanGuess = false;
@@ -2399,8 +2720,8 @@ t.textContent = g.nick + " +" + g.pts;
 dmarks.appendChild(t);
 });
 var gain = (typeof m.mygain === "number") ? m.mygain : 0;
-note.textContent = m.iam ? "Your clue earned you +" + gain
-: (gain > 0 ? "Nice — +" + gain : "+0 this round");
+note.textContent = m.iam ? t("sp.clue_earned", { gain: gain })
+: (gain > 0 ? t("sp.nice", { gain: gain }) : t("common.zero_round"));
 if (lastRound !== m.round || lastStage !== "reveal") {
 A.sfx(gain > 0 ? "correct" : "buzz"); A.vibe(gain > 0 ? 25 : 12);
 }
@@ -2455,7 +2776,7 @@ send({ t: "again" });
 })();
 (function () {
 var myready = false;
-var LBL = ["Kiss", "Marry", "Kill"]; // index = label value
+var LBL = ["kmk.kiss", "kmk.marry", "kmk.kill"]; // index = label key
 var EMO = ["💋", "💍", "💀"]; // kiss/marry/kill
 function sub(name) {
 ["lobby", "count", "play", "final"].forEach(function (id) {
@@ -2491,11 +2812,11 @@ box.innerHTML = "";
 var row = document.createElement("div");
 row.className = "kmk-row";
 var lab = labels && labels[i] >= 0 ? labels[i] : -1;
-var tag = lab >= 0 ? '<span class="kmk-tag l' + lab + '">' + EMO[lab] + " " + LBL[lab] + "</span>"
-: '<span class="kmk-tag none">tap to set</span>';
+var tag = lab >= 0 ? '<span class="kmk-tag l' + lab + '">' + EMO[lab] + " " + t(LBL[lab]) + "</span>"
+: '<span class="kmk-tag none">' + t("kmk.tap_set") + '</span>';
 var extra = "";
 if (answer) {
-tag = '<span class="kmk-tag l' + answer[i] + '">' + EMO[answer[i]] + " " + LBL[answer[i]] + "</span>";
+tag = '<span class="kmk-tag l' + answer[i] + '">' + EMO[answer[i]] + " " + t(LBL[answer[i]]) + "</span>";
 if (counts) {
 extra = '<span class="kmk-count">' + counts[i] + "/" + total + "</span>";
 } else if (labels) {
@@ -2521,8 +2842,8 @@ var lastRound = -1, lastStage = "";
 function renderPlay(m) {
 sub("play");
 var stage = m.stage; // choose | guess | reveal
-$("kmk-meta").textContent = "Round " + m.round + " / " + m.rounds;
-$("kmk-role").textContent = m.iam ? "You choose" : "Chooser: " + m.chooser;
+$("kmk-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
+$("kmk-role").textContent = m.iam ? t("kmk.you_choose") : t("kmk.chooser_is", { nick: m.chooser });
 noteDeadline(m.deadline, m.dur);
 A.timebar("kmk-bar", m.deadline, m.dur, false);
 var go = $("kmk-go"), note = $("kmk-note");
@@ -2541,10 +2862,10 @@ for (var i = 0; i < 3; i++) if (gg.pick && gg.pick[i] === m.answer[i]) counts[i]
 });
 renderPeople(m.people, null, false, m.answer, counts, gs.length);
 var perfect = gs.filter(function (gg) { return gg.pts >= 3; }).length;
-note.textContent = perfect + " of " + gs.length + " read you perfectly.  You +" + g;
+note.textContent = t("kmk.read_perfect", { perfect: perfect, total: gs.length, g: g });
 } else {
 renderPeople(m.people, m.mine, false, m.answer);
-note.textContent = g >= 3 ? "Perfect read! +" + g : g ? "Close - +" + g : "+0 this round";
+note.textContent = g >= 3 ? t("kmk.perfect", { g: g }) : g ? t("kmk.close", { g: g }) : t("common.zero_round");
 }
 if (lastRound !== m.round || lastStage !== "reveal") { A.sfx(g ? "correct" : "buzz"); A.vibe(g ? 25 : 12); }
 } else if (stage === "choose") {
@@ -2552,30 +2873,30 @@ if (m.iam) {
 canEdit = true;
 renderPeople(m.people, mine, true);
 go.classList.remove("hide");
-go.textContent = "Lock in your picks";
+go.textContent = t("kmk.lock_picks");
 go.disabled = !valid(mine);
-note.textContent = "Tap each to tag them Kiss, Marry or Kill.";
+note.textContent = t("kmk.tap_tag");
 } else {
 canEdit = false;
 renderPeople(m.people, null, false);
 go.classList.add("hide");
-note.textContent = m.chooser + " is deciding…";
+note.textContent = t("kmk.deciding", { nick: m.chooser });
 }
 } else { // guess
 if (m.iam) {
 canEdit = false;
 renderPeople(m.people, m.answer, false); // chooser sees their own locked picks
 go.classList.add("hide");
-note.textContent = "Locked. Waiting for guesses…";
+note.textContent = t("kmk.locked_waiting");
 } else {
 var locked = m.mine && valid(m.mine);
 canEdit = !locked;
 renderPeople(m.people, locked ? m.mine : mine, !locked);
 go.classList.toggle("hide", locked);
-go.textContent = "Lock in guess";
+go.textContent = t("kmk.lock_guess");
 go.disabled = !valid(mine);
-note.textContent = locked ? "Guess locked. Waiting…"
-: "Predict how " + m.chooser + " tagged them.";
+note.textContent = locked ? t("kmk.guess_locked")
+: t("kmk.predict", { nick: m.chooser });
 }
 }
 lastRound = m.round; lastStage = stage;
