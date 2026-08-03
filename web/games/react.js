@@ -26,7 +26,7 @@
 
   function renderArmed(m) {
     sub("arena");
-    $("rc-meta").textContent = "Round " + m.round + " / " + m.rounds;
+    $("rc-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
     var pad = $("rc-pad");
     var go = m.light === "go";
     var cls = "rc-pad " + (m.dq ? "dq" : go ? "go" : "wait");
@@ -43,7 +43,7 @@
   function renderReveal(m) {
     sub("arena");
     A.showLead(m.scores || [], true);
-    $("rc-meta").textContent = "Round " + m.round + " / " + m.rounds;
+    $("rc-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
     var pad = $("rc-pad");
     pad.className = "rc-pad reveal";
     if (m.winner) {

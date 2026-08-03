@@ -87,6 +87,15 @@ var MESSAGES = {
     "captive.step2": "Open your browser and go to this address:",
     "captive.copy": "Copy",
     "captive.dismiss": "Dismiss",
+    // dynamic (in-game)
+    "common.round": "Round {n} / {total}",
+    "scr.word": "Word {n} / {total}",
+    "scr.answer": "Answer",
+    "scr.solved": "Solved! Waiting for the round to end.",
+    "scr.letters": "{n} letters",
+    "gc.answer_val": "Answer  {r}, {g}, {b}",
+    "gc.you_closest": "You were closest!",
+    "gc.was_closest": "{nick} was closest",
   },
   "pt-br": {
     "common.ready": "Estou pronto",
@@ -161,6 +170,15 @@ var MESSAGES = {
     "captive.step2": "Abra o navegador e vá para este endereço:",
     "captive.copy": "Copiar",
     "captive.dismiss": "Fechar",
+    // dynamic (in-game)
+    "common.round": "Rodada {n} / {total}",
+    "scr.word": "Palavra {n} / {total}",
+    "scr.answer": "Resposta",
+    "scr.solved": "Resolvido! Aguardando o fim da rodada.",
+    "scr.letters": "{n} letras",
+    "gc.answer_val": "Resposta  {r}, {g}, {b}",
+    "gc.you_closest": "Você chegou mais perto!",
+    "gc.was_closest": "{nick} chegou mais perto",
   },
 };
 

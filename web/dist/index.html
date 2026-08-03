@@ -534,7 +534,7 @@ li.innerHTML =
 ul.appendChild(li);
 });
 var rb = $(cfg.readyId);
-rb.textContent = mine ? "Ready. Tap to cancel" : "I'm ready";
+rb.textContent = mine ? t("common.ready_cancel") : t("common.ready");
 rb.classList.toggle("on", mine);
 return mine;
 };
@@ -654,7 +654,7 @@ ws.onerror = function () { try { ws.close(); } catch (e) {} };
 function scheduleReconnect() {
 setDot(A.retry > 4 ? "bad" : "warn");   // down after repeated failures
 if (A.view !== "landing") {
-$("netbar").textContent = "Reconnecting...";
+$("netbar").textContent = t("net.reconnecting");
 show("netbar");
 }
 var wait = Math.min(1000 * Math.pow(1.6, A.retry), 8000);
@@ -1011,6 +1011,14 @@ en: {
 "captive.step2": "Open your browser and go to this address:",
 "captive.copy": "Copy",
 "captive.dismiss": "Dismiss",
+"common.round": "Round {n} / {total}",
+"scr.word": "Word {n} / {total}",
+"scr.answer": "Answer",
+"scr.solved": "Solved! Waiting for the round to end.",
+"scr.letters": "{n} letters",
+"gc.answer_val": "Answer  {r}, {g}, {b}",
+"gc.you_closest": "You were closest!",
+"gc.was_closest": "{nick} was closest",
 },
 "pt-br": {
 "common.ready": "Estou pronto",
@@ -1085,6 +1093,14 @@ en: {
 "captive.step2": "Abra o navegador e vá para este endereço:",
 "captive.copy": "Copiar",
 "captive.dismiss": "Fechar",
+"common.round": "Rodada {n} / {total}",
+"scr.word": "Palavra {n} / {total}",
+"scr.answer": "Resposta",
+"scr.solved": "Resolvido! Aguardando o fim da rodada.",
+"scr.letters": "{n} letras",
+"gc.answer_val": "Resposta  {r}, {g}, {b}",
+"gc.you_closest": "Você chegou mais perto!",
+"gc.was_closest": "{nick} chegou mais perto",
 },
 };
 A.lang = "en";
@@ -1926,7 +1942,7 @@ A.countdown("scr-count-num", m.sec);
 function renderPlay(m) {
 sub("play");
 var reveal = m.phase === "reveal";
-$("scr-meta").textContent = "Word " + m.round + " / " + m.rounds;
+$("scr-meta").textContent = t("scr.word", { n: m.round, total: m.rounds });
 var letters = $("scr-letters");
 var form = $("scr-form"), status = $("scr-status");
 if (reveal) {
@@ -1934,7 +1950,7 @@ A.timebarStop("scr-bar"); hide("scr-bar");
 letters.className = "scr-letters answer";
 letters.textContent = upTiles(m.word);
 form.classList.add("hide");
-status.textContent = "Answer";
+status.textContent = t("scr.answer");
 solvedFor = -1;
 } else {
 noteDeadline(m.deadline, m.dur); A.timebar("scr-bar", m.deadline, m.dur, false);
@@ -1942,7 +1958,7 @@ letters.className = "scr-letters";
 letters.textContent = upTiles(m.scram).split("").join(" ");
 var solved = !!m.solved;
 form.classList.toggle("hide", solved);
-status.textContent = solved ? "Solved! Waiting for the round to end." : (m.len + " letters");
+status.textContent = solved ? t("scr.solved") : t("scr.letters", { n: m.len });
 if (solved && solvedFor !== m.round) { solvedFor = m.round; A.sfx("correct"); A.vibe([25, 40, 25]); }
 }
 A.showLead(m.scores || [], reveal);
@@ -2002,7 +2018,7 @@ A.countdown("rc-count-num", m.sec);
 }
 function renderArmed(m) {
 sub("arena");
-$("rc-meta").textContent = "Round " + m.round + " / " + m.rounds;
+$("rc-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
 var pad = $("rc-pad");
 var go = m.light === "go";
 var cls = "rc-pad " + (m.dq ? "dq" : go ? "go" : "wait");
@@ -2018,7 +2034,7 @@ A.showLead(m.scores || [], false);
 function renderReveal(m) {
 sub("arena");
 A.showLead(m.scores || [], true);
-$("rc-meta").textContent = "Round " + m.round + " / " + m.rounds;
+$("rc-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
 var pad = $("rc-pad");
 pad.className = "rc-pad reveal";
 if (m.winner) {
@@ -2101,7 +2117,7 @@ A.countdown("gc-count-num", m.sec);
 }
 function renderPlay(m) {
 sub("play");
-$("gc-meta").textContent = "Round " + m.round + " / " + m.rounds;
+$("gc-meta").textContent = t("common.round", { n: m.round, total: m.rounds });
 $("gc-target").style.background = m.color;
 if (m.round !== round) {           // new round: reset the guess and unlock
 round = m.round;
@@ -2115,9 +2131,9 @@ A.showLead(m.scores || [], false);
 }
 function renderReveal(m) {
 sub("reveal");
-$("gc-rmeta").textContent = "Round " + m.round + " / " + m.rounds;
+$("gc-rmeta").textContent = t("common.round", { n: m.round, total: m.rounds });
 $("gc-rtarget").style.background = m.color; // the answer color, shown big up top
-$("gc-answer").textContent = "Answer  " + m.r + ", " + m.g + ", " + m.b;
+$("gc-answer").textContent = t("gc.answer_val", { r: m.r, g: m.g, b: m.b });
 var gs = (m.guesses || []).slice().sort(function (a, b) {
 return b.points - a.points || a.dist - b.dist;
 });
@@ -2140,7 +2156,7 @@ list.appendChild(row);
 });
 if (!gs.length) list.innerHTML = '<div class="gc-grow"><span class="gc-gn">No guesses</span></div>';
 if (m.winner) {
-$("gc-winner").textContent = m.iwon ? "You were closest!" : esc(m.winner) + " was closest";
+$("gc-winner").textContent = m.iwon ? t("gc.you_closest") : t("gc.was_closest", { nick: m.winner });
 if (m.iwon) { A.sfx("win"); A.vibe([30, 50, 30]); } else A.sfx("tick");
 } else {
 $("gc-winner").textContent = "";
