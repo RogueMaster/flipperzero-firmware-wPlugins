@@ -34,3 +34,6 @@ flipper/hotspot-arcade/.clang-format
 
 # Planning docs from the superpowers workflow are kept locally, not committed.
 docs/superpowers/
+
+# Local Claude Code session data (worktrees, skills, memory) — never committed
+.claude/
