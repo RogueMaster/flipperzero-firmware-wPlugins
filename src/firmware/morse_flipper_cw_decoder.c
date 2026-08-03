@@ -11,7 +11,7 @@
 
 #include <string.h>
 
-#define MORSE_FLIPPER_CW_DECODER_DEFAULT_DIT_MS 100U
+#define MORSE_FLIPPER_CW_DECODER_DEFAULT_DIT_MS 48U
 
 static void decoder_emit(MorseFlipperCwDecoder* decoder, uint8_t ch) {
     if(!decoder || !ch) return;

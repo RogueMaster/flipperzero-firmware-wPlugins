@@ -202,7 +202,7 @@ uint8_t morse_flipper_straight_wpm(const MorseFlipperApp* app) {
     uint8_t wpm;
 
     if(app == NULL) return 0U;
-    dit = app->straight_dit_ms ? app->straight_dit_ms : MORSE_FLIPPER_DEFAULT_DIT_MS;
+    dit = app->straight_dit_ms ? app->straight_dit_ms : MORSE_FLIPPER_STRAIGHT_DEFAULT_DIT_MS;
     wpm = (uint8_t)((1200U + (dit / 2U)) / dit);
     if(wpm < 10U) wpm = 10U;
     if(wpm > 30U) wpm = 30U;
@@ -275,8 +275,8 @@ uint16_t morse_flipper_current_dit_ms(const MorseFlipperApp* app) {
 }
 
 uint16_t morse_flipper_current_straight_dit_ms(const MorseFlipperApp* app) {
-    if(app == NULL) return MORSE_FLIPPER_DEFAULT_DIT_MS;
-    return app->straight_dit_ms ? app->straight_dit_ms : MORSE_FLIPPER_DEFAULT_DIT_MS;
+    if(app == NULL) return MORSE_FLIPPER_STRAIGHT_DEFAULT_DIT_MS;
+    return app->straight_dit_ms ? app->straight_dit_ms : MORSE_FLIPPER_STRAIGHT_DEFAULT_DIT_MS;
 }
 
 uint8_t morse_flipper_current_wpm(const MorseFlipperApp* app) {

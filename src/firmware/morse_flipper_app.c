@@ -136,7 +136,7 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .txg_result_until = 0U,
         .txg_result_draw_s = 0xFFU,
         .run_dit_ms = 0U,
-        .straight_dit_ms = MORSE_FLIPPER_DEFAULT_DIT_MS,
+        .straight_dit_ms = MORSE_FLIPPER_STRAIGHT_DEFAULT_DIT_MS,
         .straight_session_total = 0U,
         .straight_session_good = 0U,
         .streak_intro_days = 1U,
@@ -206,7 +206,7 @@ MorseFlipperApp* morse_flipper_boot(void) {
         .lesson = app->trainer.lesson,
         .group_size = app->trainer.group_size,
         .session_groups = app->trainer.session_groups,
-        .farnsworth_wpm = morse_flipper_local_wpm(app),
+        .farnsworth_wpm = MORSE_FLIPPER_DEFAULT_FARNSWORTH_WPM,
         .answer_timeout_s = MORSE_FLIPPER_TRAINER_TIMEOUT_DEFAULT_S,
         .group_pause_s = MORSE_FLIPPER_TRAINER_GROUP_PAUSE_DEFAULT_S,
     };

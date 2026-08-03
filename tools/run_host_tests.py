@@ -75,6 +75,7 @@ TESTS = (
 PYTHON_TESTS = (
     "tests/test_ardf_fal_structure.py",
     "tests/test_callsign_structure.py",
+    "tests/test_default_wpm_policy.py",
     "tests/test_fap_bundle_check.py",
     "tests/test_passive_config_compat.py",
     "tests/test_passive_voice_pack_tool.py",

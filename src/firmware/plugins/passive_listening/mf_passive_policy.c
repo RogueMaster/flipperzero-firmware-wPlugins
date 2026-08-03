@@ -91,7 +91,7 @@ uint8_t mf_passive_settings_wpm(const MfPassiveSettingsModel* model) {
     uint16_t dit;
     uint8_t wpm;
 
-    if(model == NULL || model->dit_ms == 0U) return 12U;
+    if(model == NULL || model->dit_ms == 0U) return 25U;
     dit = model->dit_ms;
     wpm = (uint8_t)((1200U + dit / 2U) / dit);
     if(wpm < 10U) return 10U;
@@ -108,7 +108,7 @@ void mf_passive_settings_normalize(MfPassiveSettingsModel* model) {
     if(model->lesson == 0U) model->lesson = 1U;
     if(model->lesson > mf_passive_settings_lesson_count())
         model->lesson = (uint8_t)mf_passive_settings_lesson_count();
-    if(model->dit_ms == 0U) model->dit_ms = 100U;
+    if(model->dit_ms == 0U) model->dit_ms = 48U;
     wpm = mf_passive_settings_wpm(model);
     if(model->farnsworth_wpm == 0U || model->farnsworth_wpm > wpm) model->farnsworth_wpm = wpm;
     model->vibrate = model->vibrate ? 1U : 0U;
@@ -140,7 +140,7 @@ static MfPassiveSettingsModel mf_passive_settings_default(void) {
     return (MfPassiveSettingsModel){
         .length = 4U,
         .lesson = 1U,
-        .dit_ms = 100U,
+        .dit_ms = 48U,
         .farnsworth_wpm = 12U,
         .vibrate = 1U,
         .answer_delay_s = 3U,

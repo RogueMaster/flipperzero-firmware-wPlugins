@@ -37,11 +37,11 @@ int main(void) {
     bytes[21] = 2U;
     bytes[22] = 16U;
     assert(mf_config_test_load(bytes, &loaded));
-    assert(loaded.local_dit_ms == 100U && loaded.lesson == 1U && loaded.group_size == 1U);
+    assert(loaded.local_dit_ms == 48U && loaded.lesson == 1U && loaded.group_size == 1U);
     assert(
         loaded.session_groups == 3U && loaded.custom_set_idx == 0U && loaded.input_source == 0U);
     assert(
-        loaded.farnsworth_wpm == 12U && loaded.answer_timeout_s == 6U &&
+        loaded.farnsworth_wpm == 25U && loaded.answer_timeout_s == 6U &&
         loaded.group_pause_s == 3U);
     puts("test_config_compat: passed");
     return 0;

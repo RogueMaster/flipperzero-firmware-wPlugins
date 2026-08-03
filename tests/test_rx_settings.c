@@ -9,7 +9,7 @@ int main(void) {
     uint8_t max;
 
     morse_flipper_rx_settings_reset(&settings);
-    assert(settings.length == 5U && settings.wpm == 12U && settings.farnsworth_wpm == 12U);
+    assert(settings.length == 5U && settings.wpm == 25U && settings.farnsworth_wpm == 12U);
     settings = (MorseFlipperRxSettings){.length = 99U, .wpm = 1U, .farnsworth_wpm = 30U};
     morse_flipper_rx_settings_normalize(&settings);
     assert(settings.length == 5U && settings.wpm == 10U && settings.farnsworth_wpm == 10U);

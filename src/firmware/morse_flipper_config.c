@@ -37,13 +37,13 @@ typedef struct {
 _Static_assert(sizeof(MorseFlipperConfig) == 632U, "main config must remain version-1 compatible");
 
 static uint8_t mf_config_test_wpm(uint16_t dit_ms) {
-    uint8_t wpm = (uint8_t)((1200U + (dit_ms / 2U)) / (dit_ms ? dit_ms : 100U));
+    uint8_t wpm = (uint8_t)((1200U + (dit_ms / 2U)) / (dit_ms ? dit_ms : 48U));
     return wpm < 10U ? 10U : (wpm > 30U ? 30U : wpm);
 }
 
 static void mf_config_test_normalize(MorseFlipperListeningSettings* settings) {
     uint8_t wpm = mf_config_test_wpm(settings->local_dit_ms);
-    if(settings->local_dit_ms == 0U) settings->local_dit_ms = 100U;
+    if(settings->local_dit_ms == 0U) settings->local_dit_ms = 48U;
     if(settings->lesson == 0U || settings->lesson > 40U) settings->lesson = 1U;
     if(settings->group_size == 0U || settings->group_size > 9U) settings->group_size = 1U;
     if(settings->session_groups < 3U || settings->session_groups > 30U)
@@ -189,7 +189,7 @@ void morse_flipper_clamp_straight_settings(MorseFlipperApp* app) {
 
     w = morse_flipper_straight_wpm(app);
     if(w == 0U) {
-        app->straight_dit_ms = MORSE_FLIPPER_DEFAULT_DIT_MS;
+        app->straight_dit_ms = MORSE_FLIPPER_STRAIGHT_DEFAULT_DIT_MS;
         w = morse_flipper_straight_wpm(app);
     }
 

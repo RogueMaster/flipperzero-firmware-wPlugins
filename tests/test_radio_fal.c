@@ -420,7 +420,7 @@ int main(void) {
     mf_radio_draw(&state, &canvas, now);
     assert(rx_draws == 1U);
     assert(box_draws >= 5U);
-    assert(strstr(draw_log, "wpm 10") != NULL);
+    assert(strstr(draw_log, "wpm 15") != NULL);
     assert(strcmp(diagnostic, "cs1 r-81 t-76") == 0);
     assert(diagnostic_x >= 0);
     assert((uint32_t)diagnostic_x + canvas_string_width(&canvas, diagnostic) <= 128U);
@@ -447,7 +447,7 @@ int main(void) {
     assert(state.snapshot.monitor_threshold_dbm == -99);
     input = event(InputKeyUp, InputTypeShort);
     mf_radio_core_input(&state, &input, now);
-    assert(state.rx_wpm_hint == 11U);
+    assert(state.rx_wpm_hint == 16U);
     input = event(InputKeyBack, InputTypeLong);
     assert(mf_radio_core_input(&state, &input, now).request_exit);
     mf_radio_core_leave(&state);

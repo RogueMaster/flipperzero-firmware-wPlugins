@@ -20,7 +20,7 @@ static void test_defaults(void) {
     CHECK(model.mode == 0U);
     CHECK(model.length == 4U);
     CHECK(model.lesson == 1U);
-    CHECK(model.dit_ms == 100U);
+    CHECK(model.dit_ms == 48U);
     CHECK(model.farnsworth_wpm == 12U);
     CHECK(model.vibrate == 1U);
     CHECK(model.answer_delay_s == 3U);
@@ -42,12 +42,12 @@ static void test_normalize_and_wpm(void) {
         .selected_row = 255U,
     };
 
-    CHECK(mf_passive_settings_wpm(NULL) == 12U);
-    CHECK(mf_passive_settings_wpm(&model) == 12U);
+    CHECK(mf_passive_settings_wpm(NULL) == 25U);
+    CHECK(mf_passive_settings_wpm(&model) == 25U);
     mf_passive_settings_normalize(&model);
     CHECK(model.mode == 0U && model.length == 4U);
     CHECK(model.lesson == mf_passive_settings_lesson_count());
-    CHECK(model.dit_ms == 100U && model.farnsworth_wpm == 12U);
+    CHECK(model.dit_ms == 48U && model.farnsworth_wpm == 25U);
     CHECK(model.vibrate == 1U && model.answer_delay_s == 1U);
     CHECK(model.repeat_after_answer == 1U && model.selected_row == 0U);
     model.mode = 1U;
