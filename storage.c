@@ -121,7 +121,9 @@ typedef struct {
     uint8_t cfg_mc_day_len;
     uint8_t cfg_mc_jump;
     uint8_t cfg_mc_start_sel;
-    uint8_t reserved[8];
+    // v6.10: 积分系统
+    uint32_t score;
+    uint8_t reserved[4];
 } SaveData;
 
 // 从 v5/v6 公共字段赋值 (两个版本 magic 不同但前几个字段对齐)
@@ -173,6 +175,7 @@ void storage_load(void) {
             g.cfg_mc_day_len    = d.cfg_mc_day_len;
             g.cfg_mc_jump       = (d.cfg_mc_jump != 0);
             g.cfg_mc_start_sel  = d.cfg_mc_start_sel;
+            g.score             = d.score;       // v6.10: 积分
         }
     } else {
         // 回退: 读旧 MAZ4 (无成就字段, 默认 0)
@@ -250,6 +253,7 @@ void storage_save(void) {
     d.cfg_mc_day_len  = g.cfg_mc_day_len;
     d.cfg_mc_jump     = g.cfg_mc_jump ? 1 : 0;
     d.cfg_mc_start_sel = g.cfg_mc_start_sel;
+    d.score = g.score;       // v6.10: 积分
     Storage* st = furi_record_open(RECORD_STORAGE);
     File* f = storage_file_alloc(st);
     if(storage_file_open(f, SAVE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {

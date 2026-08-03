@@ -1188,9 +1188,15 @@ static void draw_callback(Canvas* canvas, void* ctx) {
                 canvas_draw_str(canvas, 70, 9, "AM!");
             }
         } else if(g.stage == STAGE_PUZZLE) {
-            // 解谜: 钥匙数
+            // 解谜: 钥匙数 + 积分
             snprintf(sb, sizeof(sb), "K%d", g.player.keys);
-            canvas_draw_str_aligned(canvas, 127, 9, AlignRight, AlignBottom, sb);
+            canvas_draw_str(canvas, 70, 9, sb);
+            char sc[16]; snprintf(sc, sizeof(sc), "S%lu", (unsigned long)g.score);
+            canvas_draw_str_aligned(canvas, 127, 9, AlignRight, AlignBottom, sc);
+        } else if(g.stage == STAGE_MAZE_ONLY) {
+            // v6.10: 纯迷宫关显示积分
+            char sc[16]; snprintf(sc, sizeof(sc), "S%lu", (unsigned long)g.score);
+            canvas_draw_str_aligned(canvas, 127, 9, AlignRight, AlignBottom, sc);
         }
     } else {
         // v6.4 MC 模式 HUD: 顶部简洁信息 + 底部物品栏 + 仿 MC 血条
@@ -1370,6 +1376,68 @@ static void draw_callback(Canvas* canvas, void* ctx) {
             canvas_set_font(canvas, FontSecondary);
             canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignCenter, EN_OV_BTNS);
         }
+        // v6.10: 积分显示 + 商城提示
+        char sb[24]; snprintf(sb, sizeof(sb), "积分:%lu  左=商城", (unsigned long)g.score);
+        canvas_draw_str_aligned(canvas, 64, 55, AlignCenter, AlignCenter, sb);
+    } else if(g.mode == MODE_SHOP) {
+        // v6.10: 积分商城
+        canvas_clear(canvas);
+        canvas_set_color(canvas, ColorBlack);
+        canvas_set_font(canvas, FontSecondary);
+        char tb[24]; snprintf(tb, sizeof(tb), "商城 积分:%lu", (unsigned long)g.score);
+        canvas_draw_str_aligned(canvas, 64, 1, AlignCenter, AlignTop, tb);
+        canvas_draw_line(canvas, 0, 11, 127, 11);
+        // 20 项商品: 弹药x5/血量药水x3/火把x3/钥匙x3/护身符x2/满血x2/护盾x2
+        static const char* shop_items[] = {
+            "弹药+5", "弹药+10", "弹药+15", "弹药+20", "弹药满",
+            "血量药水", "大血药", "满血药剂",
+            "火把+3", "火把+5", "火把+10",
+            "钥匙+1", "钥匙+2", "钥匙+3",
+            "护身符+1", "护身符+2",
+            "回满血", "临时无敌",
+            "护盾5秒", "双倍弹药",
+        };
+        static const uint16_t shop_price[] = {
+            20, 35, 50, 65, 80,
+            30, 50, 80,
+            15, 25, 40,
+            20, 35, 50,
+            40, 70,
+            60, 100,
+            80, 120,
+        };
+        #define SHOP_COUNT 20
+        int n = SHOP_COUNT;
+        if(g.shop_sel >= n) g.shop_sel = n - 1;
+        // 居中滚动
+        int y_top = 12, y_bot = 51, row_h = 8;
+        int center_y = (y_top + y_bot) / 2;
+        int sel_y = center_y - row_h / 2;
+        for(int i = 0; i < n; i++) {
+            int rel = i - (int)g.shop_sel;
+            int y = sel_y + rel * row_h;
+            if(y + row_h <= y_top || y >= y_bot) continue;
+            bool sel = (i == (int)g.shop_sel);
+            if(sel) {
+                canvas_draw_box(canvas, 0, y, 128, row_h);
+                canvas_set_color(canvas, ColorWhite);
+            }
+            char line[32]; snprintf(line, sizeof(line), "%s  %d分", shop_items[i], shop_price[i]);
+            canvas_draw_str(canvas, 4, y + 7, line);
+            if(sel) canvas_set_color(canvas, ColorBlack);
+        }
+        // 进度条
+        if(n > 1) {
+            int bar_x = 126, bar_y = y_top, bar_h = y_bot - y_top;
+            float ratio = (float)g.shop_sel / (float)(n - 1);
+            int thumb_h = bar_h / 4; if(thumb_h < 2) thumb_h = 2;
+            int thumb_y = bar_y + (int)(ratio * (float)(bar_h - thumb_h));
+            canvas_draw_frame(canvas, bar_x, bar_y, 2, bar_h);
+            canvas_draw_box(canvas, bar_x, thumb_y, 2, thumb_h);
+        }
+        canvas_draw_line(canvas, 0, 52, 127, 52);
+        canvas_draw_str(canvas, 2, 62, "OK购买 上下选");
+        canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, "返回");
     } else if(g.mode == MODE_GAME_OVER) {
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_box(canvas, 20, 18, 88, 32);
@@ -1415,6 +1483,56 @@ static void handle_overlay_input(InputKey key) {
     if(g.mode == MODE_LEVEL_CLEAR) {
         if(key == InputKeyOk) { game_next_level(); }
         else if(key == InputKeyBack) { g.mode = MODE_MENU; }
+        else if(key == InputKeyLeft) { g.mode = MODE_SHOP; g.shop_sel = 0; } // v6.10: 进入商城
+    } else if(g.mode == MODE_SHOP) {
+        // v6.10: 商城输入
+        static const uint16_t shop_price[] = {
+            20, 35, 50, 65, 80, 30, 50, 80, 15, 25, 40, 20, 35, 50, 40, 70, 60, 100, 80, 120,
+        };
+        #define SHOP_COUNT_OV 20
+        if(key == InputKeyUp) {
+            g.shop_sel = (g.shop_sel + SHOP_COUNT_OV - 1) % SHOP_COUNT_OV;
+            if(g.cfg_sfx_menu) sfx_play(SFX_MENU_MOVE);
+        } else if(key == InputKeyDown) {
+            g.shop_sel = (g.shop_sel + 1) % SHOP_COUNT_OV;
+            if(g.cfg_sfx_menu) sfx_play(SFX_MENU_MOVE);
+        } else if(key == InputKeyOk) {
+            // 购买
+            uint16_t price = shop_price[g.shop_sel];
+            if(g.score >= price) {
+                g.score -= price;
+                int sel = g.shop_sel;
+                if(sel < 5) { // 弹药
+                    int amt[] = {5,10,15,20,99};
+                    g.ammo = (g.ammo + amt[sel]) > 99 ? 99 : (g.ammo + amt[sel]);
+                } else if(sel < 8) { // 血药
+                    g.player.potions += (sel == 5) ? 1 : (sel == 6) ? 2 : 3;
+                } else if(sel == 7) { // 满血药剂
+                    g.player.potions++;
+                    g.player.health = g.player.max_health;
+                } else if(sel < 11) { // 火把
+                    g.player.torches += (sel == 8) ? 3 : (sel == 9) ? 5 : 10;
+                } else if(sel < 14) { // 钥匙
+                    g.player.keys += (sel == 11) ? 1 : (sel == 12) ? 2 : 3;
+                } else if(sel < 16) { // 护身符
+                    g.player.amulets += (sel == 14) ? 1 : 2;
+                } else if(sel == 16) { // 回满血
+                    g.player.health = g.player.max_health;
+                } else if(sel == 17) { // 临时无敌
+                    g.invincible_timer = 300; // 5秒
+                } else if(sel == 18) { // 护盾5秒
+                    g.invincible_timer = 300;
+                } else if(sel == 19) { // 双倍弹药
+                    g.ammo = (g.ammo * 2) > 99 ? 99 : (g.ammo * 2);
+                }
+                sfx_play(SFX_MENU_OK);
+                storage_save();
+            } else {
+                sfx_play(SFX_NO_AMMO); // 积分不足
+            }
+        } else if(key == InputKeyBack) {
+            g.mode = MODE_LEVEL_CLEAR; // 返回通关画面
+        }
     } else if(g.mode == MODE_GAME_OVER) {
         GameMode old = s_resume_mode;
         if(key == InputKeyOk) {

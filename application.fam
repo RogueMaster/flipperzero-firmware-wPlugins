@@ -5,8 +5,8 @@ App(
     entry_point="maze3d_app",
     stack_size=12 * 1024,
     icon="maze3d.png",
-    fap_version=(6, 9, 1),
+    fap_version=(6, 10, 0),
     fap_category="Games",
-    fap_description="v6.9.1-beta PRIVATE: Settings全中文 + 列表选中永久居中 + MC跳跃踩方块修复",
+    fap_description="v6.10.0-beta: 敌人平滑移动+自动锁定+弹药回复+积分商城20项+拿钥匙通关+剧情扩展6段",
     fap_author="k20120509",
 )

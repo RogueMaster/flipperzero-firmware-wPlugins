@@ -156,16 +156,41 @@ void player_shoot(void) {
     }
     g.ammo--;
     sfx_play(SFX_SHOOT);
-    // 枪口位置: 玩家中心 + 朝向前移 0.3 格
+    // v6.10: 自动锁定 — 找画面中最近的敌人, 子弹偏向它
+    float bdx = g.player.dir_x, bdy = g.player.dir_y;
+    g.auto_lock = 255;
+    float best_score = 999.0f;
+    for(int i = 0; i < g.actor_count; i++) {
+        Actor* a = &g.actors[i];
+        if(!a->active || a->type != 0 || a->hp == 0) continue;
+        float ex = a->x - g.player.x, ey = a->y - g.player.y;
+        float fwd = ex * g.player.dir_x + ey * g.player.dir_y; // 前方投影
+        if(fwd < 0.5f || fwd > 8.0f) continue; // 必须在前方 0.5~8 格
+        float side = fabsf(ex * (-g.player.dir_y) + ey * g.player.dir_x); // 侧向偏移
+        if(side > 2.0f) continue; // 视锥宽度 2 格
+        // 综合评分: 距离越近 + 越居中 = 越优先
+        float sc = fwd + side * 2.0f;
+        if(sc < best_score) {
+            best_score = sc;
+            g.auto_lock = (uint8_t)i;
+            // 子弹方向偏转向敌人 (最多偏 30°)
+            float dist = sqrtf(ex*ex + ey*ey);
+            float tx = ex / dist, ty = ey / dist;
+            // 混合: 70% 原方向 + 30% 目标方向
+            bdx = g.player.dir_x * 0.7f + tx * 0.3f;
+            bdy = g.player.dir_y * 0.7f + ty * 0.3f;
+            float bl = sqrtf(bdx*bdx + bdy*bdy);
+            if(bl > 0.01f) { bdx /= bl; bdy /= bl; }
+        }
+    }
+    // 枪口位置
     float px = g.player.x + g.player.dir_x * 0.3f;
     float py = g.player.y + g.player.dir_y * 0.3f;
-    bullet_spawn(px, py, g.player.dir_x, g.player.dir_y, 0);
-    // v6.2: 射击火花粒子 (朝前方喷射 ~5 粒)
+    bullet_spawn(px, py, bdx, bdy, 0);
     particle_spawn(px, py, 0, 5);
-    // 视觉反馈
-    g.muzzle_flash = 3;   // 3 帧枪口闪光
-    g.shoot_kick   = 4;   // 4 帧后坐力 (准星下移)
-    g.screen_shake = 2;   // 轻微震屏
+    g.muzzle_flash = 3;
+    g.shoot_kick   = 4;
+    g.screen_shake = 2;
     g.dirty = true;
 }
 
@@ -222,18 +247,17 @@ void bullets_update(void) {
                 if(!a->active || a->type != 0 || a->hp == 0) continue;
                 float ddx = a->x - b->x, ddy = a->y - b->y;
                 if(ddx*ddx + ddy*ddy < 0.16f) {
-                    a->hp -= 2;            // 手枪伤害 2
-                    a->hurt_flash = 4;     // 受伤反白 4 帧
+                    a->hp -= 2;
+                    a->hurt_flash = 8;     // v6.10: 受伤反白增至 8 帧 (更明显)
                     b->active = false;
-                    // v6.2: 命中爆炸粒子 (6粒)
                     particle_spawn(b->x, b->y, 1, 6);
                     if(a->hp <= 0) {
                         a->active = false;
                         g.task_kill_count++;
                         g.ach_total_kills++;
+                        g.score += 10;     // v6.10: 击杀 +10 积分
                         sfx_play(SFX_ENEMY_KILL);
                         ach_check();
-                        // v6.2: 敌人死亡大爆炸
                         particle_spawn(a->x, a->y, 1, 10);
                     } else {
                         sfx_play(SFX_ATTACK_HIT);
@@ -398,6 +422,16 @@ bool player_move(float dx, float dy) {
         maze_set(cx, cy, CELL_EMPTY);
         set_msg(MSG_KEY);
         sfx_play(SFX_PICK_KEY);
+        // v6.10: 纯迷宫关 (1-10) 拿钥匙即通关
+        if(g.stage == STAGE_MAZE_ONLY && g.mode == MODE_CAMPAIGN) {
+            g.mode = MODE_LEVEL_CLEAR;
+            if(g.level > g.campaign_cleared) g.campaign_cleared = g.level;
+            g.ach_total_clears++;
+            ach_check();
+            storage_save();
+            sfx_play(SFX_LEVEL_CLEAR);
+            return true;
+        }
     } else if(here == CELL_TORCH) {
         g.player.torches++;
         maze_set(cx, cy, CELL_EMPTY);
@@ -513,9 +547,8 @@ void player_rotate(float angle) {
 void spawn_actor(float x, float y, int type) {
     if(g.actor_count >= MAX_ACTORS) return;
     Actor* a = &g.actors[g.actor_count++];
-    a->x = x; a->y = y; a->active = true; a->type = (uint8_t)type; a->cooldown = 0;
+    a->x = x; a->y = y; a->tx = x; a->ty = y; a->active = true; a->type = (uint8_t)type; a->cooldown = 0;
     // v6.0: 敌人血量随关卡递进 (21-27关 hp=2, 28-34关 hp=3, 35+关 hp=4)
-    // 手枪伤害=2, 高级关需要2发; 近战冲刺伤害=1
     if(type == 0) {
         int hp = 2;
         if(g.level >= 35) hp = 4;
@@ -524,28 +557,53 @@ void spawn_actor(float x, float y, int type) {
     } else {
         a->hp = 0;
     }
-    a->fire_cd = (uint8_t)(20 + (maze_rng_next() & 31));  // v6.1: 随机初始射击冷却
+    a->fire_cd = (uint8_t)(20 + (maze_rng_next() & 31));
     a->hurt_flash = 0;
+    a->moving = 0;
 }
 
-// v6.1: 敌人 AI — 移动 + 视线内远程射击玩家
+// v6.10: 敌人 AI — 平滑插值移动 + 视线内远程射击 + 看不到玩家时自动接近
 void actors_update(void) {
     for(int i = 0; i < g.actor_count; i++) {
         Actor* a = &g.actors[i];
         if(!a->active) continue;
-        if(a->hurt_flash > 0) a->hurt_flash--;   // 受伤闪烁递减
+        if(a->hurt_flash > 0) a->hurt_flash--;
+
+        // v6.10: 平滑移动插值 — 每帧朝目标位置移动 1/4 距离
+        if(a->moving > 0) {
+            float dx = a->tx - a->x, dy = a->ty - a->y;
+            a->x += dx * 0.25f;
+            a->y += dy * 0.25f;
+            a->moving--;
+            if(a->moving == 0) { a->x = a->tx; a->y = a->ty; } // 到达目标
+        }
+
         if(a->cooldown > 0) { a->cooldown--; }
-        else {
-            // v6.2: 敌人/游客都更"会动" (移动频率提高)
-            a->cooldown = (a->type == 0) ? (uint8_t)15 : (uint8_t)25;
-            // 移动: 优先朝玩家方向走 (简单贪心), 走不通则随机
+        else if(a->moving == 0) { // 移动完成后才决定下一步
+            a->cooldown = (a->type == 0) ? (uint8_t)12 : (uint8_t)25;
             float dirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
             int r = maze_rng_next() & 3;
-            // 30% 概率朝玩家走, 70% 随机游走 (避免太聪明卡死玩家)
-            bool chase = (a->type == 0) && ((maze_rng_next() & 3) < 2);
+
+            // v6.10: 检测是否有视线 — 看不到玩家时 100% 追击, 看到时 60% 追击
+            bool has_los = false;
+            if(a->type == 0) {
+                float ddx = g.player.x - a->x, ddy = g.player.y - a->y;
+                float dist2 = ddx*ddx + ddy*ddy;
+                if(dist2 < 64.0f) {
+                    float dist = sqrtf(dist2);
+                    float nx = ddx / dist, ny = ddy / dist;
+                    has_los = true;
+                    for(float s = 0.5f; s < dist; s += 0.5f) {
+                        if(blocking(maze_get((int)(a->x + nx * s), (int)(a->y + ny * s)))) {
+                            has_los = false; break;
+                        }
+                    }
+                }
+            }
+            // 看不到玩家 → 100% 朝玩家走; 看到玩家 → 60% 追击 40% 随机
+            bool chase = (a->type == 0) && (has_los ? ((maze_rng_next() & 3) < 2) : true);
             if(chase) {
                 float ddx = g.player.x - a->x, ddy = g.player.y - a->y;
-                // 选主导轴
                 if(fabsf(ddx) > fabsf(ddy)) {
                     dirs[0][0] = (ddx > 0) ? 1 : -1; dirs[0][1] = 0;
                     dirs[1][0] = 0; dirs[1][1] = (ddy > 0) ? 1 : -1;
@@ -560,7 +618,9 @@ void actors_update(void) {
                 float nx = a->x + dirs[idx][0];
                 float ny = a->y + dirs[idx][1];
                 if(walkable(maze_get((int)nx, (int)ny))) {
-                    a->x = nx; a->y = ny;
+                    // v6.10: 不直接传送, 设置目标位置 + 插值帧数
+                    a->tx = nx; a->ty = ny;
+                    a->moving = 4; // 4 帧插值完成
                     break;
                 }
             }
@@ -572,7 +632,7 @@ void actors_update(void) {
                 g.player.health -= 1;
                 g.hurt_flash = 6;
                 g.screen_shake = 4;
-                g.invincible_timer = 120;  // v6.5: 2秒无敌
+                g.invincible_timer = 120;
                 g.regen_timer = 0;
                 set_msg(MSG_HIT);
                 sfx_play(SFX_DAMAGE);
@@ -586,7 +646,6 @@ void actors_update(void) {
                 float ddx = g.player.x - a->x, ddy = g.player.y - a->y;
                 float dist2 = ddx*ddx + ddy*ddy;
                 if(dist2 > 4.0f && dist2 < 36.0f) {
-                    // 视线检测: 沿方向 DDA 看是否被墙挡住
                     float dist = sqrtf(dist2);
                     float nx = ddx / dist, ny = ddy / dist;
                     bool blocked = false;
@@ -598,12 +657,11 @@ void actors_update(void) {
                     if(!blocked) {
                         bullet_spawn(a->x, a->y, nx, ny, 1);
                         sfx_play(SFX_SHOOT);
-                        // v6.5: 射击冷却 — 低关卡慢(80), 高关卡快但不低于40
                         int cd = 80 - (g.level > 20 ? (g.level - 20) : 0);
                         if(cd < 40) cd = 40;
                         a->fire_cd = (uint8_t)cd;
                     } else {
-                        a->fire_cd = 8;  // 视线被挡, 短暂等待
+                        a->fire_cd = 8;
                     }
                 } else {
                     a->fire_cd = 10;
@@ -641,11 +699,14 @@ static void place_player_and_actors(int level, bool visitor) {
         float amul = amm[(g.cfg_ammo_mul < 4) ? g.cfg_ammo_mul : 1];
         int enemies = combat_enemy_count(level);
         g.ammo = (uint8_t)((float)(enemies + 3) * amul);
+        g.ammo_regen_timer = 0; // v6.10: 弹药回复计时器
         int placed = 0, tries = 0;
+        // v6.10: 敌人刷新距离玩家至少 8 格曼哈顿距离 (原 5 太近)
+        int px = (int)g.player.x, py = (int)g.player.y;
         while(placed < enemies && tries++ < 300) {
             int x = 2 + maze_rng_next() % (g.map_w - 4);
             int y = 2 + maze_rng_next() % (g.map_h - 4);
-            if(walkable(maze_get(x, y)) && (abs(x - 1) + abs(y - 1) > 5)) {
+            if(walkable(maze_get(x, y)) && (abs(x - px) + abs(y - py) > 8)) {
                 spawn_actor(x + 0.5f, y + 0.5f, 0);
                 placed++;
             }
@@ -1006,6 +1067,16 @@ void game_update(void) {
     if(g.exit_long_ttl > 0) {
         g.exit_long_ttl--;
         if(g.exit_long_ttl == 0) g.exit_long_cnt = 0;
+    }
+
+    // v6.10: 弹药自动回复 — 战斗关每 40 帧 (~0.6s) +1 弹药, 上限 30
+    if(g.stage == STAGE_COMBAT && g.ammo < 30) {
+        g.ammo_regen_timer++;
+        if(g.ammo_regen_timer >= 40) {
+            g.ammo_regen_timer = 0;
+            g.ammo++;
+            g.dirty = true;
+        }
     }
 
     // v6.9: 跳跃峰值由 cfg_jump_height 控制 (0=关, 1=6px, 2=9px, 3=12px)

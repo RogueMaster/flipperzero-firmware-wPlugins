@@ -287,4 +287,9 @@ void settings_defaults(void) {
     g.cfg_mc_day_len     = 0;  // 1024 tick
     g.cfg_mc_jump        = true;
     g.cfg_mc_start_sel   = 0;  // 砖
+    // v6.10: 积分/商城/自动锁定
+    g.score              = 0;
+    g.shop_sel           = 0;
+    g.auto_lock          = 255;
+    g.ammo_regen_timer   = 0;
 }

@@ -83,12 +83,14 @@ typedef struct {
 // 敌人/NPC
 typedef struct {
     float x, y;
+    float tx, ty;       // v6.10: 移动目标位置 (平滑插值用)
     bool active;
     uint8_t type;       // 0=敌人 1=NPC游客
     uint8_t cooldown;   // 移动/攻击冷却
     uint8_t hp;         // 敌人血量(1-4), 0=死亡
     uint8_t fire_cd;    // v6.1: 远程射击冷却 (0=可射击)
     uint8_t hurt_flash; // v6.1: 受伤闪烁帧数 (>0 时反白显示)
+    uint8_t moving;     // v6.10: 正在移动中 (>0 时插值 tx,ty)
 } Actor;
 
 #define MAX_ACTORS 8
@@ -141,6 +143,7 @@ typedef enum {
     MODE_OPENING,           // 开场动画
     MODE_SETTINGS,          // 设置
     MODE_MC,                // MC 沙盒模式 (Beta): 小空间内挖掘/放置方块
+    MODE_SHOP,              // v6.10: 积分商城
 } GameMode;
 
 typedef enum {
@@ -223,6 +226,7 @@ typedef struct {
     uint32_t ach_flags;           // 里程碑位图 (见 ACH_* 枚举)
     // v6.0 战斗: 手枪弹药 (战斗关每关补给)
     uint8_t ammo;
+    uint16_t ammo_regen_timer; // v6.10: 弹药自动回复计时器
     // v6.1: 子弹池 + 射击视觉
     Bullet bullets[MAX_BULLETS];
     uint8_t muzzle_flash;   // 枪口闪光帧数 (>0 时屏幕中央画闪光)
@@ -272,6 +276,10 @@ typedef struct {
     uint8_t cfg_mc_day_len;   // MC 日夜时长 (0..3) 档 1024/512/256/128 tick
     bool    cfg_mc_jump;      // MC 跳跃开关
     uint8_t cfg_mc_start_sel; // MC 初始持有方块 0..7
+    // v6.10: 积分系统 + 商城
+    uint32_t score;           // 当前积分 (击杀+10/只)
+    uint8_t shop_sel;         // 商城光标位置
+    uint8_t auto_lock;        // 自动锁定目标 (255=无)
 } GameState;
 
 // v6.2: 粒子接口
