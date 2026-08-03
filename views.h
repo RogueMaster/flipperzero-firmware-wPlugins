@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nfc_alerter_i.h"
+#include "nfc_canary_i.h"
 
 typedef enum {
     ScreenIntro = 0, /* first-run splash: tag vs reader */

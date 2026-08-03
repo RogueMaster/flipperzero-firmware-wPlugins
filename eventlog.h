@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nfc_alerter_i.h"
+#include "nfc_canary_i.h"
 
 /* Record an event into the ring buffer and update session stats.
  * Caller must NOT hold state->mutex. */

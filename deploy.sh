@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build and deploy nfc_alerter to a connected Flipper Zero.
+# Build and deploy nfc_canary to a connected Flipper Zero.
 #
 # The SDK must match the device's API version exactly or the loader rejects the
 # FAP with "Invalid file". This device runs Unleashed unlshd-089e = API 87.8,
@@ -10,8 +10,8 @@
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-FAP="$APP_DIR/dist/nfc_alerter.fap"
-DEST="/ext/apps/NFC/nfc_alerter.fap"
+FAP="$APP_DIR/dist/nfc_canary.fap"
+DEST="/ext/apps/NFC/nfc_canary.fap"
 
 # The Flipper's tty number moves around between reboots and replugs, so resolve
 # it by USB ID rather than hardcoding one. An explicit argument still wins.
@@ -37,4 +37,4 @@ ufbt
 echo "==> Deploying to $PORT"
 python3 "$APP_DIR/tools/flipper_push.py" "$PORT" "$FAP" "$DEST"
 
-echo "==> Done. Launch from: Apps > NFC > NFC Alerter"
+echo "==> Done. Launch from: Apps > NFC > NFC Canary"

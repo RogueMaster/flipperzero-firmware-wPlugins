@@ -1,4 +1,4 @@
-# NFC Alerter
+# NFC Canary
 
 NFC scanner detection and alerter for when you're concerned about others
 coming up and sniffing around your pockets, bags and gear. It's a
@@ -28,10 +28,10 @@ reader's carrier and never transmits anything of its own.
 
 ## Install
 
-**From a release:** download `nfc_alerter.fap` from
-[Releases](https://github.com/antitree/nfc_alerter/releases) and copy it to
+**From a release:** download `nfc_canary.fap` from
+[Releases](https://github.com/antitree/nfc_canary/releases) and copy it to
 `/ext/apps/NFC/` on the Flipper's SD card (qFlipper's file manager works).
-Then: **Apps → NFC → NFC Alerter**.
+Then: **Apps → NFC → NFC Canary**.
 
 **From source:** see [Build and deploy](#build-and-deploy).
 
@@ -51,5 +51,5 @@ the **back** of the Flipper. Full procedure: [docs/TESTING.md](docs/TESTING.md).
 ./deploy.sh                # auto-detects the Flipper's serial port
 ./deploy.sh /dev/ttyACM0   # or name it
 ```
-Then: **Apps > NFC > NFC Alerter**
+Then: **Apps > NFC > NFC Canary**
 

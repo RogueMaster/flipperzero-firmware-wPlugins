@@ -1,4 +1,4 @@
-# How to test NFC Alerter on the device
+# How to test NFC Canary on the device
 
 "Nothing triggered it" almost always means the **test source wasn't emitting a
 field**, not that the app is broken. This procedure separates those two cases
@@ -27,7 +27,7 @@ You need something that **actively emits** 13.56 MHz. See Step 2.
 This confirms the radio came up and the alarm hardware works, independent of
 any test source.
 
-1. Launch **Apps → NFC → NFC Alerter**.
+1. Launch **Apps → NFC → NFC Canary**.
 2. Press **Right** to open the **Diagnostics** screen.
 3. Read the two lines that matter:
 
@@ -136,7 +136,7 @@ This happened repeatedly during development. Power-cycle the Flipper: hold
 
 **App won't launch: `Preload failed: Invalid file`**
 
-SDK/firmware API mismatch. See `nfc_alerter/README.md` — the SDK must be pinned
+SDK/firmware API mismatch. See `nfc_canary/README.md` — the SDK must be pinned
 to match `info device` exactly (this device: API 87.8 / `unlshd-089e`).
 
 **Watching logs while testing**

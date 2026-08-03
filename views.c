@@ -65,7 +65,7 @@ static void draw_status(
         canvas_set_color(canvas, ColorBlack);
     } else {
         canvas_set_font(canvas, FontPrimary);
-        canvas_draw_str_aligned(canvas, 64, 9, AlignCenter, AlignCenter, "NFC Alerter");
+        canvas_draw_str_aligned(canvas, 64, 9, AlignCenter, AlignCenter, "NFC Canary");
         canvas_draw_line(canvas, 0, 18, 127, 18);
     }
 

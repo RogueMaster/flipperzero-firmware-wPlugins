@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nfc_alerter_i.h"
+#include "nfc_canary_i.h"
 
 /* Populate with defaults tuned for pocket carry: vibration on for Warn and
  * above, sound reserved for Alarm. */

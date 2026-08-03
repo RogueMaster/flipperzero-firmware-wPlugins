@@ -1,5 +1,5 @@
 /*
- * NFC Alerter - shared types.
+ * NFC Canary - shared types.
  *
  * Detects readers interrogating the device over 13.56 MHz NFC and alerts the
  * wearer. Vibration is the primary channel; this lives in a pocket, where a
@@ -15,7 +15,7 @@
 #include <input/input.h>
 #include <notification/notification.h>
 
-#define TAG "NfcAlerter"
+#define TAG "NfcCanary"
 
 #define SETTINGS_PATH  APP_DATA_PATH("settings.bin")
 #define EVENTLOG_PATH  APP_DATA_PATH("events.csv")

@@ -1,5 +1,11 @@
 ## v0.2
 
+- Renamed from "NFC Alerter" to **NFC Canary** — a canary warns you of danger
+  you cannot sense yourself, which is what this does. The app id changed with
+  it, so if you installed the earlier build, delete the old
+  nfc_alerter.fap from /ext/apps/NFC/ on the SD card; the new app stores its
+  settings and event log separately.
+
 - Fixed: alert pattern selection had no effect. Both channels were driven from
   a single pattern, so the sound setting was ignored and every alert played the
   vibration pattern (default Double). Vibration and sound now play their own

@@ -18,7 +18,7 @@
 ```bash
 git tag -a v0.2 -m "v0.2: tiering, configurable alerts, event log"
 git push origin v0.2
-gh release create v0.2 --generate-notes dist/nfc_alerter.fap
+gh release create v0.2 --generate-notes dist/nfc_canary.fap
 ```
 
 Attaching the `.fap` lets people install without a toolchain.
@@ -52,7 +52,7 @@ The catalog hosts only a manifest pointing at this repo — never the source.
 3. **Fill in `catalog/manifest.yml`** — set `commit_sha` to the released
    commit and confirm the screenshot paths.
 4. **Fork** `flipperdevices/flipper-application-catalog`, add the manifest at
-   `applications/NFC/nfc_alerter/manifest.yml`, and open a PR.
+   `applications/NFC/nfc_canary/manifest.yml`, and open a PR.
 
 Expect review in ~1–2 business days. If they request metadata or code changes
 and get no response within 14 days, the app is removed — so watch the PR.
@@ -60,9 +60,9 @@ and get no response within 14 days, the app is removed — so watch the PR.
 ### Requirements worth re-checking
 
 - Open source license permitting binary distribution (MIT — satisfied)
-- Icon is 10×10px **1-bit** PNG (`nfc_alerter.png` — satisfied). Verify with:
+- Icon is 10×10px **1-bit** PNG (`nfc_canary.png` — satisfied). Verify with:
   ```bash
-  python3 -c "import struct;d=open('nfc_alerter.png','rb').read();\
+  python3 -c "import struct;d=open('nfc_canary.png','rb').read();\
   print(struct.unpack('>II',d[16:24]), 'depth',d[24], 'color',d[25])"
   # want: (10, 10) depth 1 color 0
   ```

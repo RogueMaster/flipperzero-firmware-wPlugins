@@ -1,5 +1,5 @@
 /*
- * NFC Alerter
+ * NFC Canary
  *
  * Passive 13.56 MHz reader detector. Alerts the wearer -- vibration first --
  * when a reader interrogates the device.
@@ -10,7 +10,7 @@
  * the BACK of the Flipper, where the antenna is.
  */
 
-#include "nfc_alerter_i.h"
+#include "nfc_canary_i.h"
 #include "alert.h"
 #include "eventlog.h"
 #include "settings.h"
@@ -31,7 +31,7 @@ typedef struct {
     Alert* alert;
     FuriThread* worker;
     volatile bool running;
-} NfcAlerter;
+} NfcCanary;
 
 /* ---------- helpers ---------- */
 
@@ -70,7 +70,7 @@ static void history_mark(AlerterState* s, ThreatTier tier) {
 /* ---------- detection worker ---------- */
 
 static int32_t worker_thread(void* context) {
-    NfcAlerter* app = context;
+    NfcCanary* app = context;
     AlerterState* st = &app->state;
 
     if(furi_hal_nfc_acquire() != FuriHalNfcErrorNone) {
@@ -194,19 +194,19 @@ static int32_t worker_thread(void* context) {
 /* ---------- gui plumbing ---------- */
 
 static void draw_callback(Canvas* canvas, void* context) {
-    NfcAlerter* app = context;
+    NfcCanary* app = context;
     views_draw(canvas, &app->view, &app->state, &app->settings);
 }
 
 static void input_callback(InputEvent* event, void* context) {
-    NfcAlerter* app = context;
+    NfcCanary* app = context;
     furi_message_queue_put(app->input_queue, event, FuriWaitForever);
 }
 
 /* ---------- input handling ---------- */
 
 /* Returns true to exit the app. */
-static bool handle_input(NfcAlerter* app, InputEvent* event) {
+static bool handle_input(NfcCanary* app, InputEvent* event) {
     ViewState* v = &app->view;
 
     if(event->type != InputTypeShort && event->type != InputTypeRepeat) return false;
@@ -288,9 +288,9 @@ static bool handle_input(NfcAlerter* app, InputEvent* event) {
 
 /* ---------- lifecycle ---------- */
 
-static NfcAlerter* app_alloc(void) {
-    NfcAlerter* app = malloc(sizeof(NfcAlerter));
-    memset(app, 0, sizeof(NfcAlerter));
+static NfcCanary* app_alloc(void) {
+    NfcCanary* app = malloc(sizeof(NfcCanary));
+    memset(app, 0, sizeof(NfcCanary));
 
     settings_load(&app->settings);
 
@@ -316,7 +316,7 @@ static NfcAlerter* app_alloc(void) {
     return app;
 }
 
-static void app_free(NfcAlerter* app) {
+static void app_free(NfcCanary* app) {
     gui_remove_view_port(app->gui, app->view_port);
     view_port_free(app->view_port);
     furi_record_close(RECORD_GUI);
@@ -327,12 +327,12 @@ static void app_free(NfcAlerter* app) {
     free(app);
 }
 
-int32_t nfc_alerter_app(void* p) {
+int32_t nfc_canary_app(void* p) {
     UNUSED(p);
 
-    NfcAlerter* app = app_alloc();
+    NfcCanary* app = app_alloc();
 
-    app->worker = furi_thread_alloc_ex("NfcAlerterWorker", 2048, worker_thread, app);
+    app->worker = furi_thread_alloc_ex("NfcCanaryWorker", 2048, worker_thread, app);
     furi_thread_start(app->worker);
 
     InputEvent event;

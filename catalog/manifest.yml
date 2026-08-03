@@ -2,7 +2,7 @@
 #
 # This file is NOT used by this repository. It is submitted as a pull request
 # to flipperdevices/flipper-application-catalog, placed at:
-#   applications/NFC/nfc_alerter/manifest.yml
+#   applications/NFC/nfc_canary/manifest.yml
 #
 # Paths in this file are relative to the app source root (this repo), because
 # the catalog builds from the sourcecode reference below.
@@ -15,11 +15,11 @@
 sourcecode:
   type: git
   location:
-    origin: https://github.com/antitree/nfc_alerter.git
+    origin: https://github.com/antitree/nfc_canary.git
     commit_sha: 789913413d5f39b6c5c600f847922b3343f7c97a
 
-name: NFC Alerter
-id: nfc_alerter
+name: NFC Canary
+id: nfc_canary
 category: NFC
 version: "0.2"
 author: antitree
@@ -32,7 +32,7 @@ short_description: Alerts you by vibration when someone scans you over NFC.
 description: "@./catalog/description.md"
 changelog: "@./changelog.md"
 
-icon: nfc_alerter.png
+icon: nfc_canary.png
 
 # 128x64 1-bit, the panel's native resolution.
 screenshots:

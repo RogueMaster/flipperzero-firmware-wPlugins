@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nfc_alerter_i.h"
+#include "nfc_canary_i.h"
 
 /* One row of the settings screen. Values are edited in place with Left/Right,
  * so every setting is a small enum or bounded integer -- no text entry, no

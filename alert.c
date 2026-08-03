@@ -253,7 +253,7 @@ Alert* alert_alloc(NotificationApp* notifications, AlerterSettings* settings) {
     a->speaker_held = false;
     a->vibro_on = false;
 
-    a->thread = furi_thread_alloc_ex("NfcAlerterAlert", 1024, alert_thread, a);
+    a->thread = furi_thread_alloc_ex("NfcCanaryAlert", 1024, alert_thread, a);
     furi_thread_start(a->thread);
     return a;
 }

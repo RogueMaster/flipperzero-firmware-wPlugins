@@ -1,4 +1,4 @@
-# SPEC: `nfc_alerter` — Flipper Zero NFC skim alarm
+# SPEC: `nfc_canary` — Flipper Zero NFC skim alarm
 
 **Scope: 13.56 MHz NFC only.** LF/125 kHz is explicitly out of scope (see `VALIDATION.md` §3–4 for why it was cut: shared-pin conflict + it blocks MCU sleep).
 **Status:** Validated, ready to build. Read `VALIDATION.md` first.

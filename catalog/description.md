@@ -37,4 +37,4 @@ This is a defensive tool. It tells you that you are being scanned; it does not c
 
 It detects, it does not prevent: by the time it fires, a read may already have succeeded. The value is knowing.
 
-Source, documentation, and issues: https://github.com/antitree/nfc_alerter
+Source, documentation, and issues: https://github.com/antitree/nfc_canary
