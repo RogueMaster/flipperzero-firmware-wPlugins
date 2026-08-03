@@ -22,27 +22,27 @@
 <!-- Identity editor: tap the header name to change your nickname / avatar mid-game. -->
 <div id="id-edit" class="sheet hide">
   <div class="sheet-card">
-    <p class="sub">Your nickname</p>
+    <p class="sub" data-i18n="id.nick">Your nickname</p>
     <input id="id-nick" maxlength="12" autocomplete="off" autocapitalize="characters"
-           spellcheck="false" placeholder="e.g. NOVA" style="text-transform:uppercase">
-    <p class="sub">Your avatar</p>
+           spellcheck="false" placeholder="e.g. NOVA" data-i18n-ph="id.nick_ph" style="text-transform:uppercase">
+    <p class="sub" data-i18n="id.avatar">Your avatar</p>
     <div id="id-avatars" class="avatars"></div>
     <div class="sheet-actions">
-      <button id="id-save" class="btn big">Save</button>
-      <button id="id-cancel" class="btn ghost big">Cancel</button>
+      <button id="id-save" class="btn big" data-i18n="id.save">Save</button>
+      <button id="id-cancel" class="btn ghost big" data-i18n="id.cancel">Cancel</button>
     </div>
   </div>
 </div>
 
 <!-- Reconnect banner -->
-<div id="netbar" class="netbar hide">Reconnecting...</div>
+<div id="netbar" class="netbar hide" data-i18n="net.reconnecting">Reconnecting...</div>
 
 <!-- Shared collapsible live leaderboard, pinned under the header. Any group-score
      game (trivia / scramble / reaction) mounts it via A.showLead(board). -->
 <div id="lead" class="lead hide">
   <button id="lead-bar" class="lead-bar" type="button" aria-expanded="false">
     <span id="lead-sum" class="lead-sum"></span>
-    <span class="lead-hint">Board</span>
+    <span class="lead-hint" data-i18n="common.board">Board</span>
     <span id="lead-caret" class="lead-caret">&#9660;</span>
   </button>
   <ol id="lead-full" class="lead-full hide"></ol>
@@ -72,15 +72,15 @@
 
 <!-- 2. Lobby -->
 <section id="lobby" class="screen hide">
-  <header class="bar"><h2>Lobby</h2><span id="lobby-me" class="me"></span></header>
-  <div id="lobby-game" class="game-state">Waiting for the host to pick a game.</div>
+  <header class="bar"><h2 data-i18n="lobby.title">Lobby</h2><span id="lobby-me" class="me"></span></header>
+  <div id="lobby-game" class="game-state" data-i18n="lobby.waiting">Waiting for the host to pick a game.</div>
   <ul id="players" class="players"></ul>
-  <p class="sub">Chat</p>
+  <p class="sub" data-i18n="lobby.chat">Chat</p>
   <div id="lobby-chat" class="chat"></div>
   <form id="lobby-form" class="guess-row" autocomplete="off">
     <input id="lobby-input" maxlength="100" autocomplete="off" autocapitalize="sentences"
-           spellcheck="false" placeholder="Say something">
-    <button class="btn sm" type="submit">Send</button>
+           spellcheck="false" placeholder="Say something" data-i18n-ph="lobby.say_ph">
+    <button class="btn sm" type="submit" data-i18n="common.send">Send</button>
   </form>
 </section>
 
@@ -90,10 +90,10 @@
 
   <!-- Lobby: ready toggle + topic vote -->
   <div id="tv-lobby" class="hide">
-    <header class="bar"><h2>Trivia</h2><span id="tv-lobby-me" class="me"></span></header>
+    <header class="bar"><h2 data-i18n="trivia.title">Trivia</h2><span id="tv-lobby-me" class="me"></span></header>
     <ul id="tv-players" class="players"></ul>
-    <button id="tv-ready" class="btn big">I'm ready</button>
-    <p class="sub">Vote a topic</p>
+    <button id="tv-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+    <p class="sub" data-i18n="trivia.vote_topic">Vote a topic</p>
     <div id="tv-topics" class="topics"></div>
   </div>
 
@@ -101,7 +101,7 @@
   <div id="tv-count" class="hide count">
     <div id="tv-count-topic" class="count-topic"></div>
     <div id="tv-count-num" class="count-num">3</div>
-    <div class="sub">Starting</div>
+    <div class="sub" data-i18n="common.starting">Starting</div>
   </div>
 
   <!-- Question / reveal share this block -->
@@ -117,19 +117,19 @@
 
   <!-- Final leaderboard -->
   <div id="tv-final" class="hide">
-    <header class="bar"><h2>Final</h2></header>
+    <header class="bar"><h2 data-i18n="common.final">Final</h2></header>
     <ol id="tv-podium" class="podium"></ol>
-    <button id="tv-again" class="btn big">Play again</button>
+    <button id="tv-again" class="btn big" data-i18n="common.play_again">Play again</button>
   </div>
 </section>
 
 <!-- 4. Duel (Connect 4 / Tic-Tac-Toe / Dots & Boxes) -->
 <section id="duel" class="screen hide">
-  <header class="bar"><h2 id="duel-title">Duel</h2><button id="duel-leave" class="btn ghost sm hide">Leave</button></header>
+  <header class="bar"><h2 id="duel-title">Duel</h2><button id="duel-leave" class="btn ghost sm hide" data-i18n="common.leave">Leave</button></header>
 
   <div id="duel-lobby">
     <div id="duel-incoming" class="challenges"></div>
-    <p class="sub">Challenge a player</p>
+    <p class="sub" data-i18n="common.challenge_player">Challenge a player</p>
     <ul id="duel-players" class="players"></ul>
   </div>
 
@@ -142,43 +142,43 @@
   <div id="duel-over" class="hide over">
     <div id="duel-result" class="result"></div>
     <div class="over-actions">
-      <button id="duel-rematch" class="btn big">Rematch</button>
-      <button id="duel-back" class="btn ghost big">Back to lobby</button>
+      <button id="duel-rematch" class="btn big" data-i18n="common.rematch">Rematch</button>
+      <button id="duel-back" class="btn ghost big" data-i18n="common.back_lobby">Back to lobby</button>
     </div>
   </div>
 </section>
 
 <!-- 5. Draw & Guess -->
 <section id="draw" class="screen hide">
-  <header class="bar"><h2>Draw &amp; Guess</h2><span id="draw-status" class="me"></span></header>
+  <header class="bar"><h2 data-i18n="draw.title">Draw &amp; Guess</h2><span id="draw-status" class="me"></span></header>
   <div id="draw-bar" class="timebar hide"><i></i></div>
   <div id="draw-word" class="draw-word"></div>
   <canvas id="draw-canvas" class="draw-canvas"></canvas>
   <div id="draw-tools" class="draw-tools hide">
-    <button id="draw-clear" class="btn ghost sm">Clear</button>
+    <button id="draw-clear" class="btn ghost sm" data-i18n="draw.clear">Clear</button>
   </div>
   <div id="draw-guess" class="hide">
     <div id="draw-chat" class="chat"></div>
     <form id="draw-form" class="guess-row" autocomplete="off">
       <input id="draw-input" maxlength="24" autocomplete="off" autocapitalize="off"
-             spellcheck="false" placeholder="Your guess">
-      <button class="btn sm" type="submit">Send</button>
+             spellcheck="false" placeholder="Your guess" data-i18n-ph="draw.guess_ph">
+      <button class="btn sm" type="submit" data-i18n="common.send">Send</button>
     </form>
   </div>
   <div id="draw-reveal" class="game-state hide"></div>
   <div id="draw-final" class="hide">
     <ol id="draw-podium" class="podium"></ol>
-    <button id="draw-again" class="btn big">Play again</button>
+    <button id="draw-again" class="btn big" data-i18n="common.play_again">Play again</button>
   </div>
 </section>
 
 <!-- 6. Pong -->
 <section id="pong" class="screen hide">
-  <header class="bar"><h2>Pong</h2><button id="pong-leave" class="btn ghost sm hide">Leave</button></header>
+  <header class="bar"><h2>Pong</h2><button id="pong-leave" class="btn ghost sm hide" data-i18n="common.leave">Leave</button></header>
 
   <div id="pong-lobby">
     <div id="pong-incoming" class="challenges"></div>
-    <p class="sub">Challenge a player</p>
+    <p class="sub" data-i18n="common.challenge_player">Challenge a player</p>
     <ul id="pong-players" class="players"></ul>
   </div>
 
@@ -193,23 +193,23 @@
 
   <div id="pong-over" class="hide over">
     <div id="pong-result" class="result"></div>
-    <button id="pong-back" class="btn big">Back to lobby</button>
+    <button id="pong-back" class="btn big" data-i18n="common.back_lobby">Back to lobby</button>
   </div>
 </section>
 
 <!-- 7. Would You Rather — whole-group live A/B poll -->
 <section id="wyr" class="screen hide">
   <div id="wyr-lobby" class="hide">
-    <header class="bar"><h2>Would You Rather</h2><span id="wyr-me" class="me"></span></header>
+    <header class="bar"><h2 data-i18n="wyr.title">Would You Rather</h2><span id="wyr-me" class="me"></span></header>
     <ul id="wyr-players" class="players"></ul>
-    <button id="wyr-ready" class="btn big">I'm ready</button>
-    <p class="sub">Vote a pack</p>
+    <button id="wyr-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+    <p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
     <div id="wyr-topics" class="topics"></div>
   </div>
   <div id="wyr-count" class="hide count">
-    <div class="count-topic">Would you rather</div>
+    <div class="count-topic" data-i18n="wyr.count_topic">Would you rather</div>
     <div id="wyr-count-num" class="count-num">3</div>
-    <div class="sub">Starting</div>
+    <div class="sub" data-i18n="common.starting">Starting</div>
   </div>
   <div id="wyr-play" class="hide">
     <div class="bar"><span id="wyr-meta" class="me"></span><span id="wyr-tally" class="me"></span></div>
@@ -217,25 +217,25 @@
     <div id="wyr-opts" class="wyr-opts"></div>
   </div>
   <div id="wyr-final" class="hide">
-    <header class="bar"><h2>That's a wrap</h2></header>
-    <div class="game-state">Thanks for playing. Ready up for another round.</div>
-    <button id="wyr-again" class="btn big">Play again</button>
+    <header class="bar"><h2 data-i18n="wyr.wrap">That's a wrap</h2></header>
+    <div class="game-state" data-i18n="wyr.wrap_body">Thanks for playing. Ready up for another round.</div>
+    <button id="wyr-again" class="btn big" data-i18n="common.play_again">Play again</button>
   </div>
 </section>
 
 <!-- 8. Word Scramble race -->
 <section id="scramble" class="screen hide">
   <div id="scr-lobby" class="hide">
-    <header class="bar"><h2>Word Scramble</h2><span id="scr-me" class="me"></span></header>
+    <header class="bar"><h2 data-i18n="scr.title">Word Scramble</h2><span id="scr-me" class="me"></span></header>
     <ul id="scr-players" class="players"></ul>
-    <button id="scr-ready" class="btn big">I'm ready</button>
-    <p class="sub">Vote a pack</p>
+    <button id="scr-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+    <p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
     <div id="scr-topics" class="topics"></div>
   </div>
   <div id="scr-count" class="hide count">
-    <div class="count-topic">Unscramble</div>
+    <div class="count-topic" data-i18n="scr.count_topic">Unscramble</div>
     <div id="scr-count-num" class="count-num">3</div>
-    <div class="sub">Starting</div>
+    <div class="sub" data-i18n="common.starting">Starting</div>
   </div>
   <div id="scr-play" class="hide">
     <div class="bar"><span id="scr-meta" class="me"></span><span id="scr-status" class="me"></span></div>
@@ -243,57 +243,57 @@
     <div id="scr-letters" class="scr-letters"></div>
     <form id="scr-form" class="guess-row" autocomplete="off">
       <input id="scr-input" maxlength="24" autocomplete="off" autocapitalize="off"
-             spellcheck="false" placeholder="Type the word">
-      <button class="btn sm" type="submit">Go</button>
+             spellcheck="false" placeholder="Type the word" data-i18n-ph="scr.type_ph">
+      <button class="btn sm" type="submit" data-i18n="common.go">Go</button>
     </form>
   </div>
   <div id="scr-final" class="hide">
-    <header class="bar"><h2>Final</h2></header>
+    <header class="bar"><h2 data-i18n="common.final">Final</h2></header>
     <ol id="scr-podium" class="podium"></ol>
-    <button id="scr-again" class="btn big">Play again</button>
+    <button id="scr-again" class="btn big" data-i18n="common.play_again">Play again</button>
   </div>
 </section>
 
 <!-- 9. Reaction Duel (fastest finger) -->
 <section id="react" class="screen hide">
   <div id="rc-lobby" class="hide">
-    <header class="bar"><h2>Reaction Duel</h2><span id="rc-me" class="me"></span></header>
+    <header class="bar"><h2 data-i18n="rc.title">Reaction Duel</h2><span id="rc-me" class="me"></span></header>
     <ul id="rc-players" class="players"></ul>
-    <button id="rc-ready" class="btn big">I'm ready</button>
+    <button id="rc-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
   </div>
   <div id="rc-count" class="hide count">
-    <div class="count-topic">Get ready</div>
+    <div class="count-topic" data-i18n="common.get_ready">Get ready</div>
     <div id="rc-count-num" class="count-num">3</div>
-    <div class="sub">Starting</div>
+    <div class="sub" data-i18n="common.starting">Starting</div>
   </div>
   <div id="rc-arena" class="hide">
     <div class="bar"><span id="rc-meta" class="me"></span></div>
-    <div id="rc-pad" class="rc-pad wait"><span class="rc-big">Wait...</span></div>
+    <div id="rc-pad" class="rc-pad wait"><span class="rc-big" data-i18n="rc.wait">Wait...</span></div>
   </div>
   <div id="rc-final" class="hide">
-    <header class="bar"><h2>Final</h2></header>
+    <header class="bar"><h2 data-i18n="common.final">Final</h2></header>
     <ol id="rc-podium" class="podium"></ol>
-    <button id="rc-again" class="btn big">Play again</button>
+    <button id="rc-again" class="btn big" data-i18n="common.play_again">Play again</button>
   </div>
 </section>
 
 <!-- 11. Guess the Color — whole-group: match the swatch's RGB, closest + fastest wins -->
 <section id="gc" class="screen hide">
   <div id="gc-lobby" class="hide">
-    <header class="bar"><h2>Guess the Color</h2><span id="gc-me" class="me"></span></header>
+    <header class="bar"><h2 data-i18n="gc.title">Guess the Color</h2><span id="gc-me" class="me"></span></header>
     <ul id="gc-players" class="players"></ul>
-    <button id="gc-ready" class="btn big">I'm ready</button>
+    <button id="gc-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
   </div>
   <div id="gc-count" class="hide count">
-    <div class="count-topic">Get ready</div>
+    <div class="count-topic" data-i18n="common.get_ready">Get ready</div>
     <div id="gc-count-num" class="count-num">3</div>
-    <div class="sub">Starting</div>
+    <div class="sub" data-i18n="common.starting">Starting</div>
   </div>
   <div id="gc-play" class="hide gc-play">
     <div class="bar"><span id="gc-meta" class="me"></span></div>
     <div class="gc-target-wrap">
       <div id="gc-target" class="gc-chip gc-chip-lg"></div>
-      <span class="gc-lbl">Match this color &mdash; dial in R / G / B</span>
+      <span class="gc-lbl" data-i18n="gc.match">Match this color &mdash; dial in R / G / B</span>
     </div>
     <div class="gc-rows">
       <div class="gc-row"><span class="gc-ch gc-r">R</span>
@@ -312,8 +312,8 @@
         <span id="gc-b-val" class="gc-val">128</span>
         <button id="gc-b-up" class="btn ghost gc-step" aria-label="B plus 1">+</button></div>
     </div>
-    <button id="gc-submit" class="btn big">Submit guess</button>
-    <div id="gc-wait" class="hide sub">Submitted — waiting for others...</div>
+    <button id="gc-submit" class="btn big" data-i18n="gc.submit">Submit guess</button>
+    <div id="gc-wait" class="hide sub" data-i18n="gc.submitted">Submitted — waiting for others...</div>
   </div>
   <div id="gc-reveal" class="hide gc-play">
     <div class="bar"><span id="gc-rmeta" class="me"></span></div>
@@ -321,50 +321,50 @@
       <div id="gc-rtarget" class="gc-chip gc-chip-lg"></div>
       <span id="gc-answer" class="gc-lbl gc-answer">Answer</span>
     </div>
-    <div class="gc-legend">◀ answer &middot; guess ▶</div>
+    <div class="gc-legend" data-i18n="gc.legend">◀ answer &middot; guess ▶</div>
     <div id="gc-guesses" class="gc-guesses"></div>
     <div id="gc-winner" class="gc-winner"></div>
   </div>
   <div id="gc-final" class="hide">
-    <header class="bar"><h2>Final</h2></header>
+    <header class="bar"><h2 data-i18n="common.final">Final</h2></header>
     <ol id="gc-podium" class="podium"></ol>
-    <button id="gc-again" class="btn big">Play again</button>
+    <button id="gc-again" class="btn big" data-i18n="common.play_again">Play again</button>
   </div>
 </section>
 
 <!-- 12. Battleship — 1v1: place a hidden fleet, then fire at the enemy grid -->
 <section id="bs" class="screen hide">
-  <header class="bar"><h2>Battleship</h2><button id="bs-leave" class="btn ghost sm hide">Leave</button></header>
+  <header class="bar"><h2 data-i18n="bs.title">Battleship</h2><button id="bs-leave" class="btn ghost sm hide" data-i18n="common.leave">Leave</button></header>
   <div id="bs-lobby">
     <div id="bs-incoming" class="challenges"></div>
-    <p class="sub">Challenge a player</p>
+    <p class="sub" data-i18n="common.challenge_player">Challenge a player</p>
     <ul id="bs-players" class="players"></ul>
   </div>
   <div id="bs-place" class="hide">
-    <p id="bs-place-hint" class="sub">Place your fleet</p>
+    <p id="bs-place-hint" class="sub" data-i18n="bs.place">Place your fleet</p>
     <div id="bs-place-grid" class="bs-grid"></div>
     <div id="bs-tray" class="bs-tray"></div>
     <div id="bs-place-actions" class="bs-actions">
-      <button id="bs-rotate" class="btn ghost">Rotate</button>
-      <button id="bs-random" class="btn ghost">Random</button>
-      <button id="bs-ready" class="btn big" disabled>Ready</button>
+      <button id="bs-rotate" class="btn ghost" data-i18n="bs.rotate">Rotate</button>
+      <button id="bs-random" class="btn ghost" data-i18n="bs.random">Random</button>
+      <button id="bs-ready" class="btn big" data-i18n="common.ready_short" disabled>Ready</button>
     </div>
-    <div id="bs-wait" class="hide sub">Waiting for opponent...</div>
+    <div id="bs-wait" class="hide sub" data-i18n="bs.wait_opp">Waiting for opponent...</div>
   </div>
   <div id="bs-fire" class="hide">
     <div id="bs-turn" class="turn"></div>
     <p id="bs-ships" class="sub bs-count"></p>
-    <p class="sub">Enemy waters</p>
+    <p class="sub" data-i18n="bs.enemy_waters">Enemy waters</p>
     <div id="bs-track-grid" class="bs-grid"></div>
-    <p class="sub">Your fleet</p>
+    <p class="sub" data-i18n="bs.your_fleet">Your fleet</p>
     <div id="bs-fleet-grid" class="bs-grid small"></div>
   </div>
   <div id="bs-over" class="hide over">
     <div id="bs-result" class="result"></div>
-    <p class="sub">Enemy fleet revealed</p>
+    <p class="sub" data-i18n="bs.enemy_revealed">Enemy fleet revealed</p>
     <div id="bs-over-grid" class="bs-grid"></div>
-    <button id="bs-rematch" class="btn big">Rematch</button>
-    <button id="bs-back" class="btn ghost">Back to lobby</button>
+    <button id="bs-rematch" class="btn big" data-i18n="common.rematch">Rematch</button>
+    <button id="bs-back" class="btn ghost" data-i18n="common.back_lobby">Back to lobby</button>
   </div>
 </section>
 
@@ -372,16 +372,16 @@
      hidden target on a spectrum and types a clue; everyone else slides to guess. -->
 <section id="spectrum" class="screen hide">
   <div id="sp-lobby" class="hide">
-    <header class="bar"><h2>Spectrum</h2><span id="sp-me" class="me"></span></header>
+    <header class="bar"><h2 data-i18n="sp.title">Spectrum</h2><span id="sp-me" class="me"></span></header>
     <ul id="sp-players" class="players"></ul>
-    <button id="sp-ready" class="btn big">I'm ready</button>
-    <p class="sub">Vote a pack</p>
+    <button id="sp-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+    <p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
     <div id="sp-topics" class="topics"></div>
   </div>
   <div id="sp-count" class="hide count">
-    <div class="count-topic">Spectrum</div>
+    <div class="count-topic" data-i18n="sp.count_topic">Spectrum</div>
     <div id="sp-count-num" class="count-num">3</div>
-    <div class="sub">Starting</div>
+    <div class="sub" data-i18n="common.starting">Starting</div>
   </div>
   <div id="sp-play" class="hide">
     <div class="bar"><span id="sp-meta" class="me"></span><span id="sp-role" class="me"></span></div>
@@ -399,45 +399,45 @@
     </div>
     <div id="sp-clue" class="sp-clue"></div>
     <div id="sp-clueform" class="sp-clueform hide">
-      <input id="sp-cluein" class="sp-cluein" maxlength="38" placeholder="Type your clue…"
+      <input id="sp-cluein" class="sp-cluein" maxlength="38" placeholder="Type your clue…" data-i18n-ph="sp.clue_ph"
              autocomplete="off" spellcheck="false">
       <button id="sp-cluego" class="btn sm">Send</button>
     </div>
-    <button id="sp-guessgo" class="btn big hide">Lock in guess</button>
+    <button id="sp-guessgo" class="btn big hide" data-i18n="sp.lock_guess">Lock in guess</button>
     <div id="sp-note" class="sp-note"></div>
   </div>
   <div id="sp-final" class="hide">
-    <header class="bar"><h2>Final</h2></header>
+    <header class="bar"><h2 data-i18n="common.final">Final</h2></header>
     <ol id="sp-podium" class="podium"></ol>
-    <button id="sp-again" class="btn big">Play again</button>
+    <button id="sp-again" class="btn big" data-i18n="common.play_again">Play again</button>
   </div>
 </section>
 
 <!-- 15. Kiss Marry Kill: the chooser tags three people; everyone else predicts. -->
 <section id="kmk" class="screen hide">
   <div id="kmk-lobby" class="hide">
-    <header class="bar"><h2>Kiss Marry Kill</h2><span id="kmk-me" class="me"></span></header>
+    <header class="bar"><h2 data-i18n="kmk.title">Kiss Marry Kill</h2><span id="kmk-me" class="me"></span></header>
     <ul id="kmk-players" class="players"></ul>
-    <button id="kmk-ready" class="btn big">I'm ready</button>
-    <p class="sub">Vote a pack</p>
+    <button id="kmk-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+    <p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
     <div id="kmk-topics" class="topics"></div>
   </div>
   <div id="kmk-count" class="hide count">
-    <div class="count-topic">Kiss Marry Kill</div>
+    <div class="count-topic" data-i18n="kmk.count_topic">Kiss Marry Kill</div>
     <div id="kmk-count-num" class="count-num">3</div>
-    <div class="sub">Starting</div>
+    <div class="sub" data-i18n="common.starting">Starting</div>
   </div>
   <div id="kmk-play" class="hide">
     <div class="bar"><span id="kmk-meta" class="me"></span><span id="kmk-role" class="me"></span></div>
     <div id="kmk-bar" class="timebar hide"><i></i></div>
     <div id="kmk-people" class="kmk-people"></div>
-    <button id="kmk-go" class="btn big hide">Lock in</button>
+    <button id="kmk-go" class="btn big hide" data-i18n="kmk.lock">Lock in</button>
     <div id="kmk-note" class="kmk-note"></div>
   </div>
   <div id="kmk-final" class="hide">
-    <header class="bar"><h2>Final</h2></header>
+    <header class="bar"><h2 data-i18n="common.final">Final</h2></header>
     <ol id="kmk-podium" class="podium"></ol>
-    <button id="kmk-again" class="btn big">Play again</button>
+    <button id="kmk-again" class="btn big" data-i18n="common.play_again">Play again</button>
   </div>
 </section>
 
@@ -457,19 +457,19 @@
      button can't hand off out of the captive window, so we don't pretend it can). -->
 <div id="captive" class="captive hide" role="dialog" aria-modal="true" aria-labelledby="captive-title">
   <div class="captive-card">
-    <div id="captive-title" class="captive-title">Open in your browser</div>
-    <p class="captive-body">This Wi-Fi popup can&rsquo;t keep the game connected. To play,
+    <div id="captive-title" class="captive-title" data-i18n="captive.title">Open in your browser</div>
+    <p class="captive-body" data-i18n="captive.body">This Wi-Fi popup can&rsquo;t keep the game connected. To play,
        leave it and open the game in your phone&rsquo;s browser:</p>
     <ol class="captive-steps">
-      <li>Tap <b>Cancel</b>, then <b>Use Without Internet</b></li>
-      <li>Open your browser and go to this address:</li>
+      <li data-i18n="captive.step1">Tap Cancel, then Use Without Internet</li>
+      <li data-i18n="captive.step2">Open your browser and go to this address:</li>
     </ol>
     <div class="captive-copy">
       <input id="captive-url" class="captive-url" readonly value="192.168.4.1"
              aria-label="Game address" spellcheck="false">
-      <button id="captive-copy" class="btn sm" type="button">Copy</button>
+      <button id="captive-copy" class="btn sm" type="button" data-i18n="captive.copy">Copy</button>
     </div>
-    <button id="captive-dismiss" class="captive-dismiss" type="button">Dismiss</button>
+    <button id="captive-dismiss" class="captive-dismiss" type="button" data-i18n="captive.dismiss">Dismiss</button>
   </div>
 </div>
 
