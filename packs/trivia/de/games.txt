@@ -1,0 +1,70 @@
+Pack: Player One
+Q: Welche Farbe hat Sonic the Hedgehog?
+A: Rot
+B: Grün
+C: Blau
+D: Gelb
+Answer: C
+---
+Q: Welche Kreatur explodiert in Minecraft neben dir?
+A: Zombie
+B: Creeper
+C: Skelett
+D: Spinne
+Answer: B
+---
+Q: Welche Firma stellt die PlayStation her?
+A: Microsoft
+B: Nintendo
+C: Sony
+D: Sega
+Answer: C
+---
+Q: Welcher Gegenstand gibt in Super Mario ein Extraleben?
+A: Münze
+B: Feuerblume
+C: Stern
+D: 1-Up-Pilz
+Answer: D
+---
+Q: Von welchem Typ ist Pikachu (Pokémon)?
+A: Feuer
+B: Wasser
+C: Elektro
+D: Pflanze
+Answer: C
+---
+Q: Was ist das meistverkaufte Videospiel aller Zeiten?
+A: Tetris
+B: Minecraft
+C: GTA V
+D: Wii Sports
+Answer: B
+---
+Q: Welche Prinzessin rettet Mario meistens?
+A: Zelda
+B: Peach
+C: Daisy
+D: Rosalina
+Answer: B
+---
+Q: Was frisst Pac-Man, um Geister zu jagen?
+A: Kirschen
+B: Power-Pillen
+C: Schlüssel
+D: Glocken
+Answer: B
+---
+Q: Welches Spiel machte "Battle Royale" mit 100 Spielern populär?
+A: Halo
+B: Fortnite
+C: Doom
+D: Pong
+Answer: B
+---
+Q: Aus wie vielen Blöcken besteht jedes Tetris-Teil?
+A: 3
+B: 4
+C: 5
+D: 6
+Answer: B

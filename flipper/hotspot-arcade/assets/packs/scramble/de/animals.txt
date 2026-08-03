@@ -1,0 +1,37 @@
+Pack: Tiere
+
+Word: Elefant
+---
+Word: Giraffe
+---
+Word: Känguru
+---
+Word: Leopard
+---
+Word: Krake
+---
+Word: Pfau
+---
+Word: Waschbär
+---
+Word: Gepard
+---
+Word: Gorilla
+---
+Word: Igel
+---
+Word: Flamingo
+---
+Word: Panther
+---
+Word: Walross
+---
+Word: Leguan
+---
+Word: Otter
+---
+Word: Falke
+---
+Word: Bison
+---
+Word: Pinguin

@@ -1,0 +1,48 @@
+Pack: Fiktive Figuren
+Name: Darth Vader
+---
+Name: Sherlock Holmes
+---
+Name: Batman
+---
+Name: Hermine Granger
+---
+Name: James Bond
+---
+Name: Gandalf
+---
+Name: Wonder Woman
+---
+Name: Homer Simpson
+---
+Name: Lara Croft
+---
+Name: Shrek
+---
+Name: Katniss Everdeen
+---
+Name: Yoda
+---
+Name: Elsa
+---
+Name: Walter White
+---
+Name: Prinzessin Leia
+---
+Name: Spider-Man
+---
+Name: Captain Jack Sparrow
+---
+Name: Daenerys Targaryen
+---
+Name: Mario
+---
+Name: Der Joker
+---
+Name: Wednesday Addams
+---
+Name: Geralt von Riva
+---
+Name: SpongeBob
+---
+Name: Ellen Ripley

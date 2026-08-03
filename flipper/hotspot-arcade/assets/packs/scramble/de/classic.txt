@@ -1,0 +1,61 @@
+Pack: Alltag
+
+Word: Planet
+---
+Word: Gitarre
+---
+Word: Bild
+---
+Word: Monster
+---
+Word: Regenbogen
+---
+Word: Diamant
+---
+Word: Küche
+---
+Word: Fahrrad
+---
+Word: Delfin
+---
+Word: Pinguin
+---
+Word: Vulkan
+---
+Word: Pyramide
+---
+Word: Kompass
+---
+Word: Decke
+---
+Word: Kaktus
+---
+Word: Hafen
+---
+Word: Dschungel
+---
+Word: Magnet
+---
+Word: Puzzle
+---
+Word: Rakete
+---
+Word: Sonnenuntergang
+---
+Word: Tiger
+---
+Word: Geige
+---
+Word: Zauberer
+---
+Word: Anker
+---
+Word: Brücke
+---
+Word: Schloss
+---
+Word: Wald
+---
+Word: Insel
+---
+Word: Umlaufbahn

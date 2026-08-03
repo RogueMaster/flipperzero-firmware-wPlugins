@@ -1,0 +1,41 @@
+Pack: Essen
+
+Word: Pizza
+---
+Word: Burger
+---
+Word: Nudeln
+---
+Word: Pfannkuchen
+---
+Word: Popcorn
+---
+Word: Avocado
+---
+Word: Spaghetti
+---
+Word: Cupcake
+---
+Word: Sandwich
+---
+Word: Brezel
+---
+Word: Waffel
+---
+Word: Muffin
+---
+Word: Burrito
+---
+Word: Donut
+---
+Word: Keks
+---
+Word: Banane
+---
+Word: Gurke
+---
+Word: Nachos
+---
+Word: Pudding
+---
+Word: Müsli

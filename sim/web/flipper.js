@@ -66,7 +66,7 @@ export async function mountFlipper(el) {
       <button id="zero">Reset scores</button>
     </div>
     <div class="row"><button id="packs">Load packs</button>
-      <select id="lang"><option value="">English</option><option value="pt-br">Portugues (BR)</option></select>
+      <select id="lang"><option value="">English</option><option value="de">Deutsch</option><option value="pt-br">Portugues (BR)</option></select>
       <span id="packstate" class="muted">no packs loaded</span></div>
     <table class="roster"><thead><tr><th>pid</th><th>nick</th><th>score</th></tr></thead>
       <tbody id="roster"></tbody></table>

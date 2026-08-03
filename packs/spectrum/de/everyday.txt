@@ -1,0 +1,72 @@
+Pack: Alltag
+Left: Kalt
+Right: Heiß
+---
+Left: Billig
+Right: Teuer
+---
+Left: Klein
+Right: Groß
+---
+Left: Langsam
+Right: Schnell
+---
+Left: Leise
+Right: Laut
+---
+Left: Leer
+Right: Voll
+---
+Left: Alt
+Right: Neu
+---
+Left: Schwach
+Right: Stark
+---
+Left: Dunkel
+Right: Hell
+---
+Left: Weich
+Right: Hart
+---
+Left: Trocken
+Right: Nass
+---
+Left: Schmutzig
+Right: Sauber
+---
+Left: Nah
+Right: Fern
+---
+Left: Früh
+Right: Spät
+---
+Left: Leicht
+Right: Schwer
+---
+Left: Glatt
+Right: Rau
+---
+Left: Kurz
+Right: Lang
+---
+Left: Schmal
+Right: Breit
+---
+Left: Flach
+Right: Tief
+---
+Left: Einfach
+Right: Kompliziert
+---
+Left: Häufig
+Right: Selten
+---
+Left: Langweilig
+Right: Aufregend
+---
+Left: Ruhig
+Right: Chaotisch
+---
+Left: Sanft
+Right: Wild

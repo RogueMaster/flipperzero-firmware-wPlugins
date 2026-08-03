@@ -1,0 +1,105 @@
+Pack: Allgemeinwissen
+Q: Was ist die Hauptstadt von Frankreich?
+A: Paris
+B: London
+C: Berlin
+D: Madrid
+Answer: A
+---
+Q: Wie viele Kontinente hat die Erde?
+A: 5
+B: 6
+C: 7
+D: 8
+Answer: C
+---
+Q: Was ist der größte Ozean der Erde?
+A: Atlantik
+B: Indischer Ozean
+C: Arktischer Ozean
+D: Pazifik
+Answer: D
+---
+Q: In welchem Land ist das Känguru heimisch?
+A: Brasilien
+B: Australien
+C: Indien
+D: Kenia
+Answer: B
+---
+Q: Wie viele Seiten hat ein Sechseck?
+A: 5
+B: 6
+C: 7
+D: 8
+Answer: B
+---
+Q: Welcher ist der höchste Berg über dem Meeresspiegel?
+A: K2
+B: Kilimandscharo
+C: Mount Everest
+D: Denali
+Answer: C
+---
+Q: Welche Sprache hat die meisten Muttersprachler?
+A: Englisch
+B: Spanisch
+C: Hindi
+D: Mandarin-Chinesisch
+Answer: D
+---
+Q: Welche Währung wird in Japan verwendet?
+A: Yen
+B: Won
+C: Yuan
+D: Ringgit
+Answer: A
+---
+Q: Wie viele Farben hat ein normaler Regenbogen?
+A: 5
+B: 6
+C: 7
+D: 8
+Answer: C
+---
+Q: Welcher Planet wird der Rote Planet genannt?
+A: Venus
+B: Mars
+C: Jupiter
+D: Saturn
+Answer: B
+---
+Q: Was ist der längste Fluss der Welt?
+A: Amazonas
+B: Jangtse
+C: Mississippi
+D: Nil
+Answer: D
+---
+Q: Welches Instrument hat 88 Tasten?
+A: Gitarre
+B: Klavier
+C: Geige
+D: Harfe
+Answer: B
+---
+Q: In welchem Land steht der Eiffelturm?
+A: Italien
+B: Spanien
+C: Frankreich
+D: Deutschland
+Answer: C
+---
+Q: Wie viele Minuten hat eine volle Stunde?
+A: 30
+B: 60
+C: 90
+D: 100
+Answer: B
+---
+Q: Welches ist das größte Land nach Fläche?
+A: Kanada
+B: China
+C: USA
+D: Russland
+Answer: D

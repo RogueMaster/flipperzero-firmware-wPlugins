@@ -1,0 +1,41 @@
+Pack: Musik
+
+Word: Gitarre
+---
+Word: Schlagzeug
+---
+Word: Klavier
+---
+Word: Geige
+---
+Word: Trompete
+---
+Word: Melodie
+---
+Word: Rhythmus
+---
+Word: Refrain
+---
+Word: Konzert
+---
+Word: Sänger
+---
+Word: Banjo
+---
+Word: Cello
+---
+Word: Flöte
+---
+Word: Saxophon
+---
+Word: Keyboard
+---
+Word: Harmonie
+---
+Word: Songtext
+---
+Word: Festival
+---
+Word: Lautsprecher
+---
+Word: Zugabe

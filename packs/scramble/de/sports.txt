@@ -1,0 +1,41 @@
+Pack: Sport
+
+Word: Fußball
+---
+Word: Tennis
+---
+Word: Hockey
+---
+Word: Cricket
+---
+Word: Boxen
+---
+Word: Karate
+---
+Word: Radfahren
+---
+Word: Bowling
+---
+Word: Bogenschießen
+---
+Word: Surfen
+---
+Word: Skaten
+---
+Word: Rugby
+---
+Word: Sprint
+---
+Word: Marathon
+---
+Word: Schiedsrichter
+---
+Word: Stadion
+---
+Word: Pokal
+---
+Word: Trillerpfeife
+---
+Word: Torwart
+---
+Word: Schläger

@@ -1,0 +1,37 @@
+Pack: Pikant
+
+A: Küssen und petzen
+B: Nie küssen und immer petzen
+---
+A: Mit jemandem daten, der viel lustiger ist als du
+B: Mit jemandem daten, der viel heißer ist als du
+---
+A: Deinem Schwarm eine peinliche Nachricht schicken
+B: Deinen Schwarm deinen Suchverlauf sehen lassen
+---
+A: Beim Singen unter der Dusche erwischt werden
+B: Beim Selbstgespräch erwischt werden
+---
+A: Von deinem Ex auf einer Skala bis 10 bewertet werden
+B: Deine Mutter deine Nachrichten lesen lassen
+---
+A: Heute Abend ein Blind Date haben
+B: Deinen besten Freund zu einem verkuppeln
+---
+A: Den ganzen Abend dein Outfit auf links tragen
+B: Den ganzen Abend zwei verschiedene Schuhe tragen
+---
+A: Dein meistgenutztes Emoji verraten
+B: Deine letzte Suchanfrage verraten
+---
+A: Mit einem Fremden eng tanzen
+B: Ein Liebeslied allein bei Karaoke singen
+---
+A: Alle hier dein Flirten bewerten lassen
+B: Alle hier deine Tanzmoves bewerten lassen
+---
+A: Deinen schlimmsten Anmachspruch zugeben
+B: Deinen peinlichsten Schwarm zugeben
+---
+A: Einen pikanten Spitznamen für heute Abend bekommen
+B: Allen anderen einen pikanten Spitznamen geben
