@@ -389,7 +389,7 @@ Client intents (besides the shared match ones): `move{from,to[,promo]}`, `resign
 Server `{t:"chess",phase,...}`:
 - `"playing"`: `you`, `opp`, `white` (bool, are you playing white), `turn` (pid),
   `yourTurn`, `board` (64 chars, index 0 = a1, row-major to h8: `PNBRQK`/`pnbrqk`/`.`),
-  `moves` (`[from*64+to, ...]`, your legal moves, sent only when it's your turn), `check`,
+  `moves` (`[from*64+to, ...]`, your legal moves, always present but populated only for the player to move), `check`,
   `last` (`from*64+to` of the last move played, `-1` before the first), `deadline`, `run`,
   `oms`, `wtm`, `claim3`, `claim50`, `offer` (`0` or the pid with a pending draw offer).
 - `"over"`: the same fields minus `moves`/`claim3`/`claim50`, plus `result`

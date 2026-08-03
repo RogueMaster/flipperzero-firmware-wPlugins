@@ -122,7 +122,12 @@ function syncWakeLock() {
     return; // Tier 1 available on this origin: never touch the video fallback.
   }
   var v = ensureWakeVideo();
-  if (wanted) { if (v.paused) v.play().catch(function () {}); }
+  if (wanted) {
+    if (v.paused) {
+      var p = v.play();
+      if (p && p.catch) p.catch(function () {});
+    }
+  }
   else if (!v.paused) v.pause();
 }
 

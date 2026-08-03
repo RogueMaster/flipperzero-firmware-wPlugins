@@ -209,6 +209,8 @@
     $("chess-leave").classList.toggle("hide", m.phase === "lobby");
     if (m.phase === "lobby") {
       stopClockTimer();
+      if (resignTimer) clearTimeout(resignTimer);
+      resignArmed = false; resignTimer = null;
       selFrom = -1; movesFrom = {}; hidePromo(); prevYourTurn = false; prevMyCheck = false;
       sub("lobby");
       A.lobbyView($("chess-incoming"), $("chess-players"), m.challenges);
@@ -217,6 +219,8 @@
       renderPlay(m);
     } else if (m.phase === "over") {
       stopClockTimer();
+      if (resignTimer) clearTimeout(resignTimer);
+      resignArmed = false; resignTimer = null;
       hidePromo();
       renderOver(m);
     }

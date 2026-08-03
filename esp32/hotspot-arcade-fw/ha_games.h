@@ -3862,6 +3862,7 @@ private:
         ChessMatch* m = chessMatchOf(pid);
         if(!m || m->phase != 1) return;
         uint8_t opp = (pid == m->a) ? m->b : m->a;
+        if(m->offerBy == pid) return;
         if(m->offerBy == opp) {
             chessFinish(m, 0, CH_R_AGREE);
         } else {

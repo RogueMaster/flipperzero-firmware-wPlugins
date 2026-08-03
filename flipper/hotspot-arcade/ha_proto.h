@@ -60,7 +60,7 @@
 #define HA_GAME_BATTLESHIP 12 // battleship (1v1, hidden fleets)
 #define HA_GAME_SPECTRUM 13 // wavelength-style spectrum guessing (party)
 #define HA_GAME_KMK      14 // kiss marry kill (party)
-#define HA_GAME_CHESS    15 // chess (1v1, hidden move notation + piece coords)
+#define HA_GAME_CHESS    15 // chess (1v1, full FIDE rules)
 
 static inline uint8_t ha_crc8_upd(uint8_t crc, uint8_t b) {
     crc ^= b;
