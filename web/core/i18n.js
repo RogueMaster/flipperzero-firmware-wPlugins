@@ -161,6 +161,8 @@ var MESSAGES = {
     "draw.get_ready": "Get ready...",
     "draw.waiting": "Waiting",
     "draw.is_drawing": "{nick} is drawing",
+    "wyr.meta": "Would you rather... ({n} / {total})",
+    "trivia.answered": "Answered {n} / {total}",
   },
   "pt-br": {
     "common.ready": "Estou pronto",
@@ -309,6 +311,8 @@ var MESSAGES = {
     "draw.get_ready": "Prepare-se...",
     "draw.waiting": "Aguardando",
     "draw.is_drawing": "{nick} está desenhando",
+    "wyr.meta": "O que você prefere... ({n} / {total})",
+    "trivia.answered": "Responderam {n} / {total}",
   },
 };
 

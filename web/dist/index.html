@@ -1083,6 +1083,8 @@ en: {
 "draw.get_ready": "Get ready...",
 "draw.waiting": "Waiting",
 "draw.is_drawing": "{nick} is drawing",
+"wyr.meta": "Would you rather... ({n} / {total})",
+"trivia.answered": "Answered {n} / {total}",
 },
 "pt-br": {
 "common.ready": "Estou pronto",
@@ -1229,6 +1231,8 @@ en: {
 "draw.get_ready": "Prepare-se...",
 "draw.waiting": "Aguardando",
 "draw.is_drawing": "{nick} está desenhando",
+"wyr.meta": "O que você prefere... ({n} / {total})",
+"trivia.answered": "Responderam {n} / {total}",
 },
 };
 A.lang = "en";
@@ -1403,7 +1407,7 @@ function renderQuestion(m) {
 sub("play");
 revealedFor = -1;
 head(m);
-$("tv-answered").textContent = "Answered " + (m.answered || 0) + " / " + (m.total || 0);
+$("tv-answered").textContent = t("trivia.answered", { n: m.answered || 0, total: m.total || 0 });
 $("tv-q").textContent = m.q || "";
 var mine = (typeof m.mine === "number") ? m.mine : -1;
 noteDeadline(m.deadline, m.dur); A.timebar("tv-bar", m.deadline, m.dur, true);
@@ -1975,7 +1979,7 @@ var revealedFor = -1;
 function renderPlay(m) {
 sub("play");
 var reveal = m.phase === "reveal";
-$("wyr-meta").textContent = "Would you rather... (" + m.round + " / " + m.rounds + ")";
+$("wyr-meta").textContent = t("wyr.meta", { n: m.round, total: m.rounds });
 noteDeadline(m.deadline, m.dur);
 A.timebar("wyr-bar", m.deadline, m.dur, true);
 var counts = m.counts || [0, 0];
