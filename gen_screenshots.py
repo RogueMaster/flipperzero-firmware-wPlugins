@@ -228,12 +228,12 @@ def gen_clear(idx, lang_zh=True):
         d.text((28, 42), "OK:Next    Back:Menu", fill=1, font=f2)
     img.save(f"{OUT}/ss{idx}.png")
 
-# ---- Generate all ----
-gen_menu(True, 0)   # ss0: Chinese menu
-gen_menu(False, 1)  # ss1: English menu
-gen_gameplay(2, level=3, lang_zh=True, exit_ahead=True)   # ss2: campaign, exit ahead
-gen_gameplay(3, level=15, lang_zh=False, exit_ahead=False) # ss3: English, puzzle stage
-gen_clear(4, lang_zh=True)  # ss4: level clear
+# ---- Generate all (ALL ENGLISH — standard firmware only supports ASCII) ----
+gen_menu(False, 0)   # ss0: English menu
+gen_gameplay(1, level=3, lang_zh=False, exit_ahead=True)    # ss1: campaign, exit ahead
+gen_gameplay(2, level=15, lang_zh=False, exit_ahead=False)  # ss2: puzzle stage (keys/doors)
+gen_gameplay(3, level=25, lang_zh=False, exit_ahead=False)  # ss3: combat stage (HP + items)
+gen_clear(4, lang_zh=False)  # ss4: level clear
 
 print("Generated:")
 for f in sorted(os.listdir(OUT)):
