@@ -220,6 +220,9 @@ typedef struct {
     uint8_t hurt_flash;     // 玩家受伤屏幕闪白帧数
     uint8_t shoot_kick;     // 射击后坐力 (准星抖动)
     int16_t screen_shake;   // 屏幕震屏量 (像素偏移)
+    // v6.5: 无敌时间 + 回血系统
+    uint16_t invincible_timer;  // 受伤后无敌帧数 (>0 时免疫一切伤害)
+    uint16_t regen_timer;       // 回血计时器 (累计到阈值时 +1 血)
     // v6.2: 粒子系统
     Particle particles[MAX_PARTICLES];
     // 玩家移动痕迹 (上一帧位置, 用于尘土粒子触发)

@@ -245,11 +245,17 @@ void bullets_update(void) {
             // 敌人子弹: 检测玩家命中
             float ddx = g.player.x - b->x, ddy = g.player.y - b->y;
             if(ddx*ddx + ddy*ddy < 0.16f && g.player.health > 0) {
+                // v6.5: 无敌期内不掉血
+                if(g.invincible_timer > 0) {
+                    b->active = false;
+                    continue;
+                }
                 g.player.health -= 1;
                 g.hurt_flash = 6;        // 屏幕闪白
                 g.screen_shake = 4;
+                g.invincible_timer = 120; // v6.5: 2秒无敌 (60fps * 2s)
+                g.regen_timer = 0;        // 受伤后重置回血计时
                 b->active = false;
-                // v6.2: 玩家命中粒子
                 particle_spawn(b->x, b->y, 1, 4);
                 set_msg(MSG_HIT);
                 sfx_play(SFX_DAMAGE);
@@ -406,8 +412,10 @@ bool player_move(float dx, float dy) {
         set_msg(MSG_AMULET);
         sfx_play(SFX_PICK_ITEM);
     } else if(here == CELL_TRAP) {
-        if(g.stage == STAGE_COMBAT && g.player.health > 0) {
+        if(g.stage == STAGE_COMBAT && g.player.health > 0 && g.invincible_timer == 0) {
             g.player.health -= 1;
+            g.invincible_timer = 120;  // v6.5: 2秒无敌
+            g.regen_timer = 0;
             set_msg(MSG_TRAP);
             sfx_play(SFX_TRAP);
             if(g.player.health <= 0) { g.mode = MODE_GAME_OVER; sfx_play(SFX_GAME_OVER); }
@@ -555,13 +563,15 @@ void actors_update(void) {
                 }
             }
         }
-        // 近战接触伤害 (原有逻辑保留)
+        // 近战接触伤害
         if(a->type == 0) {
             float ddx = a->x - g.player.x, ddy = a->y - g.player.y;
-            if(ddx*ddx + ddy*ddy < 0.6f && g.player.health > 0) {
+            if(ddx*ddx + ddy*ddy < 0.6f && g.player.health > 0 && g.invincible_timer == 0) {
                 g.player.health -= 1;
                 g.hurt_flash = 6;
                 g.screen_shake = 4;
+                g.invincible_timer = 120;  // v6.5: 2秒无敌
+                g.regen_timer = 0;
                 set_msg(MSG_HIT);
                 sfx_play(SFX_DAMAGE);
                 if(g.player.health <= 0) { g.mode = MODE_GAME_OVER; sfx_play(SFX_GAME_OVER); }
@@ -585,8 +595,11 @@ void actors_update(void) {
                     }
                     if(!blocked) {
                         bullet_spawn(a->x, a->y, nx, ny, 1);
-                        sfx_play(SFX_SHOOT);   // 复用射击音 (敌人射击)
-                        a->fire_cd = (uint8_t)(40 + (g.level * 2));  // 高关卡射更慢
+                        sfx_play(SFX_SHOOT);
+                        // v6.5: 射击冷却 — 低关卡慢(80), 高关卡快但不低于40
+                        int cd = 80 - (g.level > 20 ? (g.level - 20) : 0);
+                        if(cd < 40) cd = 40;
+                        a->fire_cd = (uint8_t)cd;
                     } else {
                         a->fire_cd = 8;  // 视线被挡, 短暂等待
                     }
@@ -607,23 +620,18 @@ static void place_player_and_actors(int level, bool visitor) {
     g.player.amulets = 0;
     g.actor_count = 0;
 
-    // 起始 HP/物品: 剧情模式由开场选择决定; 无尽/游客固定
+    // v6.5: 血量上限 = 10 + 关卡递进 (每5关+2, 上限20)
+    //   1-4关: 10血, 5-9关: 12血, 10-14关: 14血, ..., 25+关: 20血上限
+    int base_hp = 10;
     if(g.mode == MODE_CAMPAIGN) {
-        if(g.story_choice == 0) {        // A) Warrior
-            g.player.max_health = 7;
-            g.player.health = 7;
-        } else if(g.story_choice == 1) { // B) Seeker
-            g.player.max_health = 4;
-            g.player.health = 4;
-            g.player.torches = 1;
-        } else {                          // 未选(直接进高层级重玩)
-            g.player.max_health = 5;
-            g.player.health = 5;
-        }
-    } else {
-        g.player.max_health = 5;
-        g.player.health = 5;
+        int bonus = (g.level / 5) * 2;
+        if(bonus > 10) bonus = 10;
+        base_hp += bonus;
     }
+    g.player.max_health = base_hp;
+    g.player.health = base_hp;
+    g.invincible_timer = 0;
+    g.regen_timer = 0;
 
     if(g.mode == MODE_CAMPAIGN && g.stage == STAGE_COMBAT) {
         // v6.0: 战斗关给手枪弹药 (敌人数 + 3, 留容错), 敌人血量随关卡递进
@@ -991,6 +999,16 @@ void game_update(void) {
     if(g.shoot_kick > 0)   g.shoot_kick--;
     if(g.screen_shake > 0) g.screen_shake--;
     else if(g.screen_shake < 0) g.screen_shake++;
+    // v6.5: 无敌时间递减
+    if(g.invincible_timer > 0) g.invincible_timer--;
+    // v6.5: 每秒回血 1 点 (60 tick = 1秒), 无敌期结束后才开始回血
+    if(g.invincible_timer == 0 && g.player.health < g.player.max_health) {
+        g.regen_timer++;
+        if(g.regen_timer >= 60) {
+            g.regen_timer = 0;
+            g.player.health++;
+        }
+    }
     // 任务进度更新 + 完成检测/奖励
     quest_update();
     if(g.msg_ttl > 0) {
