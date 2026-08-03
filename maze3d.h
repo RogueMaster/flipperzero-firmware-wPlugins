@@ -354,6 +354,10 @@ void settings_defaults(void);
 void storage_load(void);
 void storage_save(void);
 
+// v6.6: 世界预生成缓存 — 保存/加载完整迷宫到 App Data
+bool world_save(int level);
+bool world_load(int level);
+
 // 剧情: 返回剧情段总页数, 取指定页文本(英文), 取选项A/B文本
 int  story_pages(int story_id);
 const char* story_page_text(int story_id, int page);

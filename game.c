@@ -680,7 +680,11 @@ void game_init_campaign(int level) {
     // v6.0: 迷宫尺寸随关卡递进, 上限 25 防卡顿; 50 关上限
     int sz = 7 + level;
     if(sz > 25) sz = 25;
-    maze_generate(sz, sz, level, 0xABCDEF01u);
+    // v6.6: 先尝试加载缓存, 未命中则生成并保存
+    if(!world_load(level)) {
+        maze_generate(sz, sz, level, 0xABCDEF01u);
+        world_save(level);
+    }
     place_player_and_actors(level, false);
     quest_init_for_level(level);
     if(g.stage == STAGE_COMBAT) set_msg(MSG_CARE);
@@ -708,10 +712,17 @@ void game_init_endless(int floor, bool visitor) {
     int sz = 9 + (floor > 10 ? 10 : floor);
     if(sz > 19) sz = 19;
     if(sz < 9)  sz = 9;
-    // 用 floor 做种子散列 (避免连续 floor 生成相似地图)
+    // v6.6: 传 floor (不是 floor+100) 避免 maze_generate 误走战斗分支
+    // 用种子散列避免连续 floor 生成相似地图
+    // v6.6: 先尝试加载缓存, 未命中则生成并保存
     unsigned seed = 0x12345678u ^ (unsigned)floor * 2654435761u ^ (unsigned)floor * 1013904242u;
-    maze_generate(sz, sz, floor + 100, seed);
-    place_player_and_actors(floor + 100, visitor);
+    // 无尽模式用负数 level 区分缓存文件名
+    int cache_id = -(floor + 1000);
+    if(!world_load(cache_id)) {
+        maze_generate(sz, sz, floor, seed);
+        world_save(cache_id);
+    }
+    place_player_and_actors(floor, visitor);
     set_msg(visitor ? MSG_VISITOR : MSG_RUN);
     g.dirty = true;
 }

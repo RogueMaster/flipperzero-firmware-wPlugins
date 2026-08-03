@@ -76,15 +76,71 @@ static void add_loops(int w, int h, int count) {
     }
 }
 
+// v6.6: BFS 找最远空格 — 替代曼哈顿距离, 确保出口真正可达且最远
+static int bfs_dist[MAP_MAX * MAP_MAX];
 static void find_far(int w, int h, int sxx, int syy, int* ox, int* oy) {
+    // BFS 从起点扩散, 找距离最远的空格
+    static int qx[MAP_MAX * MAP_MAX], qy[MAP_MAX * MAP_MAX];
+    int head = 0, tail = 0;
+    // 清空距离表
+    for(int i = 0; i < MAP_MAX * MAP_MAX; i++) bfs_dist[i] = -1;
+    qx[tail] = sxx; qy[tail] = syy; tail++;
+    bfs_dist[syy * MAP_MAX + sxx] = 0;
+
     *ox = sxx; *oy = syy;
-    int best = -1;
-    for(int y = 1; y < h - 1; y++) {
-        for(int x = 1; x < w - 1; x++) {
-            if(g.map[(uint16_t)y * MAP_MAX + x] == CELL_EMPTY) {
-                int d = abs(x - sxx) + abs(y - syy);
-                if(d > best) { best = d; *ox = x; *oy = y; }
-            }
+    int best = 0;
+
+    while(head < tail) {
+        int cx = qx[head], cy = qy[head]; head++;
+        int cd = bfs_dist[cy * MAP_MAX + cx];
+        if(cd > best) { best = cd; *ox = cx; *oy = cy; }
+        // 四方向扩散
+        static const int dx[4] = {1,-1,0,0};
+        static const int dy[4] = {0,0,1,-1};
+        for(int k = 0; k < 4; k++) {
+            int nx = cx + dx[k], ny = cy + dy[k];
+            if(nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+            int idx = ny * MAP_MAX + nx;
+            if(bfs_dist[idx] != -1) continue;
+            uint8_t c = g.map[(uint16_t)idx];
+            // 墙不可通过
+            if(c == WALL_BRICK || c == WALL_STONE || c == WALL_METAL ||
+               c == WALL_VINE || c == WALL_GRASS || c == WALL_WATER ||
+               c == WALL_WOOD || c == WALL_TREE || c == WALL_SAND ||
+               c == WALL_DIRT || c == WALL_LOG) continue;
+            bfs_dist[idx] = cd + 1;
+            qx[tail] = nx; qy[tail] = ny; tail++;
+        }
+    }
+}
+
+// v6.6: BFS 检查从起点不经过门能到达哪些格子 (返回 reachable 数组)
+static bool reachable[MAP_MAX * MAP_MAX];
+static void bfs_reachable(int w, int h, int sxx, int syy) {
+    static int qx[MAP_MAX * MAP_MAX], qy[MAP_MAX * MAP_MAX];
+    int head = 0, tail = 0;
+    for(int i = 0; i < MAP_MAX * MAP_MAX; i++) reachable[i] = false;
+    qx[tail] = sxx; qy[tail] = syy; tail++;
+    reachable[syy * MAP_MAX + sxx] = true;
+
+    while(head < tail) {
+        int cx = qx[head], cy = qy[head]; head++;
+        static const int dx[4] = {1,-1,0,0};
+        static const int dy[4] = {0,0,1,-1};
+        for(int k = 0; k < 4; k++) {
+            int nx = cx + dx[k], ny = cy + dy[k];
+            if(nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+            int idx = ny * MAP_MAX + nx;
+            if(reachable[idx]) continue;
+            uint8_t c = g.map[(uint16_t)idx];
+            // 门和墙不可通过 (钥匙必须在开门前拿到)
+            if(c == CELL_DOOR) continue;
+            if(c == WALL_BRICK || c == WALL_STONE || c == WALL_METAL ||
+               c == WALL_VINE || c == WALL_GRASS || c == WALL_WATER ||
+               c == WALL_WOOD || c == WALL_TREE || c == WALL_SAND ||
+               c == WALL_DIRT || c == WALL_LOG) continue;
+            reachable[idx] = true;
+            qx[tail] = nx; qy[tail] = ny; tail++;
         }
     }
 }
@@ -135,24 +191,9 @@ void maze_generate(int w, int h, int level, unsigned int seed) {
     else if(level >= 11) stage = 1;  // v6.0: 11-20 解谜
 
     if(stage >= 1) {
-        // v6.0: 解谜关 — 出口前必须有一扇门挡住 (任务完成前出口锁定)
-        // 在出口格放 CELL_LOCKED_EXIT, 旁边放 CELL_DOOR (需钥匙)
-        // 任务完成后 game 逻辑会把它当 CELL_EXIT 处理 (quest.all_done 解锁)
+        // v6.6: 解谜关 — 出口锁定 + 门 + 钥匙 (BFS 保证钥匙可达)
         g.map[(uint16_t)ey * MAP_MAX + ex] = CELL_LOCKED_EXIT;
-        // 钥匙数递进: 11关1把, 每3关+1, 上限3
-        int keys = 1 + (level - 11) / 3;
-        if(keys > 3) keys = 3;
-        int placed = 0, tries = 0;
-        while(placed < keys && tries++ < 300) {
-            int x = 1 + maze_rng_next() % (w - 2);
-            int y = 1 + maze_rng_next() % (h - 2);
-            uint8_t c = g.map[(uint16_t)y * MAP_MAX + x];
-            if(c == CELL_EMPTY && !(x == 1 && y == 1) && !(x == ex && y == ey)) {
-                g.map[(uint16_t)y * MAP_MAX + x] = CELL_KEY;
-                placed++;
-            }
-        }
-        // 门: 放在通往出口的走廊上 (简化: 在出口邻格放门)
+        // 门: 放在出口邻格 (先放门, 再用 BFS 确定钥匙可达区域)
         {
             int dxs[4] = {1,-1,0,0}, dys[4] = {0,0,1,-1};
             for(int k = 0; k < 4; k++) {
@@ -162,6 +203,21 @@ void maze_generate(int w, int h, int level, unsigned int seed) {
                     g.map[(uint16_t)ny * MAP_MAX + nx] = CELL_DOOR;
                     break;
                 }
+            }
+        }
+        // v6.6: BFS 计算从起点不经过门能到达的格子
+        bfs_reachable(w, h, 1, 1);
+        // 钥匙只放在可达区域 (确保玩家不经过门就能拿到)
+        int keys = 1 + (level - 11) / 3;
+        if(keys > 3) keys = 3;
+        int placed = 0, tries = 0;
+        while(placed < keys && tries++ < 300) {
+            int x = 1 + maze_rng_next() % (w - 2);
+            int y = 1 + maze_rng_next() % (h - 2);
+            if(!reachable[y * MAP_MAX + x]) continue;
+            if(g.map[(uint16_t)y * MAP_MAX + x] == CELL_EMPTY && !(x == 1 && y == 1)) {
+                g.map[(uint16_t)y * MAP_MAX + x] = CELL_KEY;
+                placed++;
             }
         }
         int torches = 2 + level / 5;

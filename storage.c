@@ -1,8 +1,69 @@
 #include "maze3d.h"
 #include <storage/storage.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 #define SAVE_PATH APP_DATA_PATH("maze3d.sav")
+
+// v6.6: 世界缓存 magic
+#define WORLD_MAGIC 0x574F524Cu  // "WORL"
+
+// v6.6: 世界数据结构 (完整迷宫快照)
+typedef struct {
+    uint32_t magic;
+    int map_w;
+    int map_h;
+    int exit_x;
+    int exit_y;
+    uint8_t map[MAP_MAX * MAP_MAX];  // 961 bytes
+} WorldData;
+
+// v6.6: 保存当前迷宫到 App Data
+bool world_save(int level) {
+    char path[64];
+    snprintf(path, sizeof(path), APP_DATA_PATH("w%d.dat"), level);
+    static WorldData wd;  // static 避免 977 字节栈开销
+    wd.magic = WORLD_MAGIC;
+    wd.map_w = g.map_w;
+    wd.map_h = g.map_h;
+    wd.exit_x = g.exit_x;
+    wd.exit_y = g.exit_y;
+    memcpy(wd.map, g.map, MAP_MAX * MAP_MAX);
+    Storage* st = furi_record_open(RECORD_STORAGE);
+    File* f = storage_file_alloc(st);
+    bool ok = false;
+    if(storage_file_open(f, path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+        ok = (storage_file_write(f, &wd, sizeof(wd)) == sizeof(wd));
+    }
+    storage_file_free(f);
+    furi_record_close(RECORD_STORAGE);
+    return ok;
+}
+
+// v6.6: 从 App Data 加载迷宫 (返回 true=命中缓存)
+bool world_load(int level) {
+    char path[64];
+    snprintf(path, sizeof(path), APP_DATA_PATH("w%d.dat"), level);
+    static WorldData wd;  // static 避免 977 字节栈开销
+    Storage* st = furi_record_open(RECORD_STORAGE);
+    File* f = storage_file_alloc(st);
+    bool ok = false;
+    if(storage_file_open(f, path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+        if(storage_file_read(f, &wd, sizeof(wd)) == sizeof(wd) && wd.magic == WORLD_MAGIC) {
+            g.map_w = wd.map_w;
+            g.map_h = wd.map_h;
+            g.exit_x = wd.exit_x;
+            g.exit_y = wd.exit_y;
+            g.exit_found = true;
+            memcpy(g.map, wd.map, MAP_MAX * MAP_MAX);
+            ok = true;
+        }
+    }
+    storage_file_free(f);
+    furi_record_close(RECORD_STORAGE);
+    return ok;
+}
 
 typedef struct {
     uint32_t magic;
