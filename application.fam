@@ -5,8 +5,8 @@ App(
     entry_point="maze3d_app",
     stack_size=12 * 1024,
     icon="maze3d.png",
-    fap_version=(6, 9, 0),
+    fap_version=(6, 9, 1),
     fap_category="Games",
-    fap_description="v6.9.0-beta PRIVATE: 20+ Developer Settings (Controls/Graphics/Audio/Gameplay/MC/Debug), List Auto-Centering Scroll, MC day/night cycle length, MC jump toggle, DDA density 32/48/64, fog toggle, brightness, sky/floor switches, SFX volume, menu/combat SFX switches, maze scale, HP start, regen rate, ammo mul, endless start floor",
+    fap_description="v6.9.1-beta PRIVATE: Settings全中文 + 列表选中永久居中 + MC跳跃踩方块修复",
     fap_author="k20120509",
 )

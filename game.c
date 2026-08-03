@@ -381,12 +381,14 @@ bool player_move(float dx, float dy) {
     float nx = g.player.x + dx;
     float ny = g.player.y + dy;
     const float pad = 0.2f;
+    // MC模式跳跃中: 允许踩到方块上 (临时穿透墙体)
+    bool mc_hop = (g.mode == MODE_MC && g.jump_z > 2.0f);
     int mx = (int)(nx + (dx > 0 ? pad : -pad));
     int my = (int)g.player.y;
-    if(!blocking(maze_get(mx, my))) g.player.x = nx;
+    if(mc_hop || !blocking(maze_get(mx, my))) g.player.x = nx;
     mx = (int)g.player.x;
     my = (int)(ny + (dy > 0 ? pad : -pad));
-    if(!blocking(maze_get(mx, my))) g.player.y = ny;
+    if(mc_hop || !blocking(maze_get(mx, my))) g.player.y = ny;
 
     int cx = (int)g.player.x, cy = (int)g.player.y;
     uint8_t here = maze_get(cx, cy);
