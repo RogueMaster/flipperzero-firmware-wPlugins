@@ -362,6 +362,7 @@ function dispatch(m) {
   switch (m.t) {
     case "welcome":
       A.pid = m.pid;
+      if (A.setLang) A.setLang(m.lang); // host-chosen UI language; localizes static text
       if (m.nick) { A.nick = m.nick; setNick(); }
       break;
     case "lobby":

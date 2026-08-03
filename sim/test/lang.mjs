@@ -51,4 +51,19 @@ import { PACK_DIRS, LANGS, resolvePacks, parseGenericPack } from "../web/trivia-
     "the streamed trivia is Portuguese (got: " + q.msg.q + ")");
 }
 
+// --- the engine echoes the host UI language to each phone in `welcome` ---
+{
+  const e = await newEngine();
+  e.reset();
+  e.setLang("pt-br");
+  const w = e.join(1, "ANA").find((o) => o.to === "ws" && o.msg && o.msg.t === "welcome");
+  assert.ok(w, "a welcome is sent on join");
+  assert.equal(w.msg.lang, "pt-br", "welcome carries the host UI language");
+
+  const e2 = await newEngine();
+  e2.reset();
+  const w2 = e2.join(1, "BO").find((o) => o.to === "ws" && o.msg && o.msg.t === "welcome");
+  assert.equal(w2.msg.lang, "", "default UI language is English (empty)");
+}
+
 console.log("lang: all checks passed");

@@ -343,7 +343,9 @@ void ha_reset_scores(HotspotArcadeApp* app) {
 
 static void send_config(HotspotArcadeApp* app) {
     FuriString* j = furi_string_alloc();
-    furi_string_printf(j, "{\"max\":%d}", HA_MAX_PLAYERS < 8 ? HA_MAX_PLAYERS : 8);
+    // `lang` is the phone-UI language; the ESP echoes it to each phone in `welcome`.
+    furi_string_printf(
+        j, "{\"max\":%d,\"lang\":\"%s\"}", HA_MAX_PLAYERS < 8 ? HA_MAX_PLAYERS : 8, app->lang);
     ha_proto_send(
         app->uart, HA_MSG_CONFIG, (const uint8_t*)furi_string_get_cstr(j), furi_string_size(j));
     furi_string_free(j);

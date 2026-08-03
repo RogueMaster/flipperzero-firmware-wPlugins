@@ -105,6 +105,7 @@ void ha_content_pack(int game, const char* name) { engine.contentPack((uint8_t)g
 void ha_content_item(const char* json) { engine.contentItem(json); }
 void ha_round_end() { engine.roundEnd(); }
 void ha_reset_scores() { engine.resetScores(); }
+void ha_set_lang(const char* l) { engine.setLang(l); }
 
 const char* ha_drain() {
     g_drained = "[";

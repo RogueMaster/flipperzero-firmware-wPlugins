@@ -8,6 +8,12 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ### Added
 
+- **Phone UI localization (in progress).** The host's chosen language is now relayed to
+  each phone (the ESP echoes it in `welcome`), and the client renders from a message
+  catalog with English as the fallback for any untranslated string. The landing screen is
+  the first localized (pt-BR); the rest of the UI is being extracted screen by screen, so
+  a partly translated language is safe. Firmware **v16** (the board relays the language).
+  The Flipper's own menus stay English.
 - **Content languages.** The host picks a content language in Settings, and each game
   streams that language's packs from `packs/<game>/<lang>/`, falling back to English per
   game where a language has none (so a partly translated language still plays). English is
