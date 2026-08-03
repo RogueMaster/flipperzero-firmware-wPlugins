@@ -107,10 +107,14 @@
   // the time this runs, from either caller) -- both the promo-pick and the
   // backdrop-cancel path route through here, so neither can leave a stale
   // sel/tgt highlight from the square that triggered the promotion overlay.
+  // Guarded on lastMsg.board rather than just lastMsg: hidePromo() is also called
+  // unconditionally on every "lobby" push (below), whose payload carries no board
+  // at all -- renderBoard would throw on board.charAt() before sub("lobby") and
+  // lobbyView() ever ran, so the lobby's challenge/player list would never render.
   function hidePromo() {
     $("chess-promo").classList.add("hide");
     pendingPromo = null;
-    if (lastMsg) renderBoard(lastMsg);
+    if (lastMsg && lastMsg.board) renderBoard(lastMsg);
   }
 
   /* ---- clocks ---- */

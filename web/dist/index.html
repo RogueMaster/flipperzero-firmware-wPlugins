@@ -3149,7 +3149,7 @@ function showPromo() { $("chess-promo").classList.remove("hide"); }
 function hidePromo() {
 $("chess-promo").classList.add("hide");
 pendingPromo = null;
-if (lastMsg) renderBoard(lastMsg);
+if (lastMsg && lastMsg.board) renderBoard(lastMsg);
 }
 function fmtClock(ms) {
 var s = Math.max(0, Math.ceil(ms / 1000));
