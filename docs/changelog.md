@@ -1,3 +1,14 @@
+v5.0.1 (Beta):
+- New "MC" sandbox mode (Beta): selectable as menu item #5 "MC Beta".
+  A small 11x11 space where you can mine and place blocks Minecraft-style.
+  Controls: Up/Down move, Left/Right turn, short OK mines the block in
+  front of you, long OK places the currently held block, short Back cycles
+  the held block type (brick / stone / metal / vine), long Back returns to
+  the menu. The outer border is unmineable bedrock so you can't fall out of
+  the world; any placed block (incl. metal) can be mined again, so you
+  can't trap yourself. Top bar shows the held block and total blocks mined.
+  This is a Beta — no quest/combat, just creative digging in a pocket space.
+
 v5.0:
 - Pickup toasts: every item you pick up (key / torch / potion / amulet) now
   pops a bordered, blinking message box in the bottom-left corner. Bilingual

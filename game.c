@@ -394,6 +394,107 @@ void game_next_level(void) {
     else if(g.mode == MODE_ENDLESS_RUN) game_init_endless(g.endless_floor, false);
 }
 
+// ---- MC 沙盒模式 (Beta) ----
+// 小空间内 MC 风格操作: OK 挖前方方块, 长 OK 放置方块, Back 短按切换手持方块, Back 长按退出.
+// 手持方块类型 mc_block_type: 1=砖 2=石 3=金属 4=藤蔓 (映射到 WALL_*)
+static uint8_t mc_block_to_wall(uint8_t bt) {
+    switch(bt) {
+        case 1: return WALL_BRICK;
+        case 2: return WALL_STONE;
+        case 3: return WALL_METAL;
+        case 4: return WALL_VINE;
+        default: return WALL_BRICK;
+    }
+}
+
+// 玩家正前方的相邻格 (按主导方向取 4 邻域, 类似 MC 的十字挖掘)
+static void mc_target_cell(int* tx, int* ty) {
+    int px = (int)g.player.x;
+    int py = (int)g.player.y;
+    if(fabsf(g.player.dir_x) >= fabsf(g.player.dir_y))
+        *tx = px + (g.player.dir_x > 0 ? 1 : -1), *ty = py;
+    else
+        *tx = px, *ty = py + (g.player.dir_y > 0 ? 1 : -1);
+}
+
+void game_init_mc(void) {
+    g.mode = MODE_MC;
+    g.stage = STAGE_MAZE_ONLY;
+    g.has_exit = false;
+    g.exit_found = false;
+    g.tick = 0;
+    g.show_hud = false;
+    g.turn_target = 0.0f;
+    g.move_fwd_target = 0.0f;
+    g.move_bwd_target = 0.0f;
+    g.move_dash_target = 0.0f;
+    g.actor_count = 0;
+    g.player.keys = 0;
+    g.player.torches = 0;
+    g.player.potions = 0;
+    g.player.amulets = 0;
+    g.player.max_health = 5;
+    g.player.health = 5;
+    g.quest.active = false;
+    g.quest.sub_count = 0;
+    g.quest.all_done = false;
+
+    // 小空间 11x11: 外圈基岩(WALL_METAL, 不可挖), 内部填满可挖砖块
+    const int sz = 11;
+    g.map_w = sz; g.map_h = sz;
+    for(int y = 0; y < sz; y++) {
+        for(int x = 0; x < sz; x++) {
+            uint8_t c = (x == 0 || y == 0 || x == sz-1 || y == sz-1) ? WALL_METAL : WALL_BRICK;
+            g.map[(uint16_t)y * MAP_MAX + x] = c;
+        }
+    }
+    // 中心挖出 2x2 起始空间, 玩家站中心
+    int mx = sz/2, my = sz/2;
+    g.map[(uint16_t)my       * MAP_MAX + mx]     = CELL_EMPTY;
+    g.map[(uint16_t)my       * MAP_MAX + mx + 1] = CELL_EMPTY;
+    g.map[(uint16_t)(my + 1) * MAP_MAX + mx]     = CELL_EMPTY;
+    g.map[(uint16_t)(my + 1) * MAP_MAX + mx + 1] = CELL_EMPTY;
+    g.player.x = mx + 0.5f;
+    g.player.y = my + 0.5f;
+    set_dir(0.0f);
+
+    g.mc_block_type = 1;  // 默认手持砖块
+    g.mc_mined = 0;
+    set_msg(MSG_MINE);
+    g.dirty = true;
+}
+
+void mc_mine(void) {
+    int tx, ty;
+    mc_target_cell(&tx, &ty);
+    uint8_t c = maze_get(tx, ty);
+    bool is_border = (tx == 0 || ty == 0 ||
+                      tx == g.map_w - 1 || ty == g.map_h - 1);
+    // 可挖任何墙体, 但外圈基岩(按位置判定)不可挖, 避免困死玩家
+    if((c == WALL_BRICK || c == WALL_STONE ||
+        c == WALL_METAL || c == WALL_VINE) && !is_border) {
+        maze_set(tx, ty, CELL_EMPTY);
+        g.mc_mined++;
+        set_msg(MSG_MINE);
+        sfx_play(SFX_PICK_ITEM);
+    } else {
+        sfx_play(SFX_NEED_KEY);  // 不可挖提示
+    }
+}
+
+void mc_place(void) {
+    int tx, ty;
+    mc_target_cell(&tx, &ty);
+    // 目标格恒为玩家相邻格, 不会封死玩家自身所在格
+    if(maze_get(tx, ty) == CELL_EMPTY) {
+        maze_set(tx, ty, mc_block_to_wall(g.mc_block_type));
+        set_msg(MSG_PLACE);
+        sfx_play(SFX_OPEN_DOOR);
+    } else {
+        sfx_play(SFX_NEED_KEY);
+    }
+}
+
 // ---- 物品栏 ----
 int item_count(int item_type) {
     switch(item_type) {

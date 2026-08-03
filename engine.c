@@ -476,5 +476,5 @@ void engine_render(void) {
     }
 
     draw_minimap();
-    draw_compass();
+    if(g.mode != MODE_MC) draw_compass();   // MC 沙盒无出口, 不画罗盘
 }

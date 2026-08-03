@@ -212,6 +212,9 @@ uint32_t maze_rng_next(void);
 
 void game_init_campaign(int level);
 void game_init_endless(int floor, bool visitor);
+void game_init_mc(void);          // MC 沙盒模式 (Beta)
+void mc_mine(void);               // MC: 挖掘前方方块
+void mc_place(void);              // MC: 在前方放置方块
 void game_handle_input(InputKey key, InputType type);
 void game_update(void);
 void game_next_level(void);

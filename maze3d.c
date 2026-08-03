@@ -17,10 +17,14 @@ typedef enum {
     M_ENDLESS  = 1,
     M_VISITOR  = 2,
     M_SETTINGS = 3,
-    M_COUNT = 4,
+    M_MC       = 4,   // MC 沙盒模式 (Beta)
+    M_COUNT = 5,
 } MenuItem;
 
+#define MENU_VISIBLE 4   // 菜单可见行数 (M_COUNT > MENU_VISIBLE 时滚动)
+
 static int s_sel = 0;
+static uint8_t s_menu_off = 0;   // 菜单滚动偏移
 static GameMode s_resume_mode = MODE_CAMPAIGN;
 // 物品栏分页: 0=物品 1=任务 (仅有任务时才可切到第2页)
 static uint8_t s_inv_page = 0;
@@ -884,31 +888,39 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         // 菜单分隔线
         canvas_draw_line(canvas, 0, 16, 127, 16);
 
-        // 菜单项: 1.闯关模式  2.无尽挑战  3.游客漫游  4.设置
-        const uint8_t* zh_items[M_COUNT] = { m1_bits, m2_bits, m3_bits, m4_bits };
-        const char*    en_items[M_COUNT] = { EN_M1, EN_M2, EN_M3, "4. Settings" };
-        const int ws[M_COUNT] = { M1_W, M2_W, M3_W, M4_W };
-        const int hs[M_COUNT] = { M1_H, M2_H, M3_H, M4_H };
-        for(int i = 0; i < M_COUNT; i++) {
+        // 菜单项: 1.闯关模式  2.无尽挑战  3.游客漫游  4.设置  5.MC模式(Beta)
+        const uint8_t* zh_items[M_COUNT] = { m1_bits, m2_bits, m3_bits, m4_bits, m5_bits };
+        const char*    en_items[M_COUNT] = { EN_M1, EN_M2, EN_M3, "4. Settings", "5. MC Beta" };
+        const int ws[M_COUNT] = { M1_W, M2_W, M3_W, M4_W, M5_W };
+        const int hs[M_COUNT] = { M1_H, M2_H, M3_H, M4_H, M5_H };
+        // 滚动偏移: 保证 s_sel 在可见窗口内
+        if(s_menu_off > s_sel) s_menu_off = s_sel;
+        if(s_menu_off + MENU_VISIBLE - 1 < s_sel) s_menu_off = s_sel - MENU_VISIBLE + 1;
+        int max_off = M_COUNT - MENU_VISIBLE;
+        if(max_off < 0) max_off = 0;
+        if(s_menu_off > max_off) s_menu_off = max_off;
+        for(int i = 0; i < MENU_VISIBLE; i++) {
+            int idx = s_menu_off + i;
+            if(idx >= M_COUNT) break;
             int yy = 22 + i * 11;
-            if(i == s_sel) {
+            if(idx == s_sel) {
                 canvas_draw_box(canvas, 0, yy - 9, 128, 10);
                 canvas_set_color(canvas, ColorWhite);
             }
             if(g.lang == LANG_ZH) {
-                canvas_draw_xbm(canvas, 4, yy - 9, ws[i], hs[i], zh_items[i]);
+                canvas_draw_xbm(canvas, 4, yy - 9, ws[idx], hs[idx], zh_items[idx]);
             } else {
-                canvas_draw_str(canvas, 6, yy - 1, en_items[i]);
+                canvas_draw_str(canvas, 6, yy - 1, en_items[idx]);
             }
             canvas_set_color(canvas, ColorBlack);
         }
+        // 滚动指示器
+        if(s_menu_off > 0)
+            canvas_draw_str(canvas, 121, 18, "^");
+        if(s_menu_off + MENU_VISIBLE < M_COUNT)
+            canvas_draw_str(canvas, 121, 22 + (MENU_VISIBLE - 1) * 11, "v");
 
-        // 语言切换行
-        int lang_y = 22 + M_COUNT * 11 + 2;
-        const char* lang_label = (g.lang == LANG_ZH) ? "Lang: CN  <-  ->" : "Lang: EN  <-  ->";
-        canvas_draw_str(canvas, 4, lang_y, lang_label);
-
-        // 底部提示
+        // 底部提示 (含语言切换说明)
         if(g.lang == LANG_ZH) {
             canvas_draw_xbm(canvas, 2, 62 - HINT_MENU_H + 1, HINT_MENU_W, HINT_MENU_H, hint_menu_bits);
         } else {
@@ -957,6 +969,24 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         } else if(g.stage == STAGE_PUZZLE) {
             snprintf(sb, sizeof(sb), "K%d", g.player.keys);
             canvas_draw_str_aligned(canvas, 127, 8, AlignRight, AlignBottom, sb);
+        }
+    } else {
+        // MC 沙盒模式 (Beta): 顶部状态条 — 模式 + 手持方块 + 已挖数
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_box(canvas, 0, 0, 128, 10);
+        canvas_set_color(canvas, ColorBlack);
+        canvas_set_font(canvas, FontSecondary);
+        const char* bn[4] = { "Brick", "Stone", "Metal", "Vine" };
+        char mb[32];
+        snprintf(mb, sizeof(mb), "MC  Blk:%s  Mined:%d",
+                 bn[(g.mc_block_type - 1) & 3], g.mc_mined);
+        canvas_draw_str(canvas, 1, 8, mb);
+        // 右下角操作提示 (闪烁)
+        if((g.tick & 7) < 6) {
+            const char* hint = (g.lang == LANG_ZH)
+                ? "OK挖 长OK放 Back切 长Back出"
+                : "OK mine OK-place Back blk";
+            canvas_draw_str_aligned(canvas, 127, 63, AlignRight, AlignBottom, hint);
         }
     }
 
@@ -1285,6 +1315,7 @@ int32_t maze3d_app(void* p) {
                         else if(s_sel == M_ENDLESS) enter_level_select(false);
                         else if(s_sel == M_VISITOR) game_init_endless(g.endless_floor, true);
                         else if(s_sel == M_SETTINGS) { g.mode = MODE_SETTINGS; s_set_sel = 0; s_set_off = 0; }
+                        else if(s_sel == M_MC) game_init_mc();
                     } else if(key == InputKeyBack) { running = false; sfx_stop_all(); }
                 } else if(type == InputTypeLong) {
                     // 开发模式解锁: 检测隐藏按键序列
@@ -1318,6 +1349,25 @@ int32_t maze3d_app(void* p) {
                     if(mm == MODE_MAP_PANEL) old = SFX_MENU_OK;
                     if(old != SFX_NONE) sfx_play(old);
                     handle_new_modes_input(key, type);
+                }
+                did_input = true;
+            } else if(g.mode == MODE_MC) {
+                // MC 沙盒模式 (Beta): OK 挖 / 长 OK 放 / Back 短按切方块 / Back 长按回菜单
+                if(key == InputKeyOk && type == InputTypeShort) {
+                    mc_mine();
+                } else if(key == InputKeyOk && type == InputTypeLong) {
+                    mc_place();
+                } else if(key == InputKeyBack && type == InputTypeShort) {
+                    g.mc_block_type = (g.mc_block_type >= 4) ? 1 : (g.mc_block_type + 1);
+                    sfx_play(SFX_MENU_MOVE);
+                    set_msg(MSG_PLACE);
+                } else if(key == InputKeyBack && type == InputTypeLong) {
+                    g.mode = MODE_MENU;
+                    sfx_stop_all();
+                    sfx_play(SFX_MENU_OK);
+                } else {
+                    // 上下左右: 移动 / 转向 (复用平滑插值)
+                    game_handle_input(key, type);
                 }
                 did_input = true;
             } else {
@@ -1370,7 +1420,8 @@ int32_t maze3d_app(void* p) {
                     }
                 }
             }
-            if(g.mode == MODE_CAMPAIGN || g.mode == MODE_ENDLESS_RUN || g.mode == MODE_ENDLESS_VISITOR) {
+            if(g.mode == MODE_CAMPAIGN || g.mode == MODE_ENDLESS_RUN ||
+               g.mode == MODE_ENDLESS_VISITOR || g.mode == MODE_MC) {
                 game_update();
                 did_update_world = true;
             }
@@ -1381,7 +1432,8 @@ int32_t maze3d_app(void* p) {
         bool need_render = did_input || did_update_world;
         bool in_game_view = (g.mode == MODE_CAMPAIGN || g.mode == MODE_ENDLESS_RUN ||
                              g.mode == MODE_ENDLESS_VISITOR || g.mode == MODE_PAUSED ||
-                             g.mode == MODE_LEVEL_CLEAR || g.mode == MODE_GAME_OVER);
+                             g.mode == MODE_LEVEL_CLEAR || g.mode == MODE_GAME_OVER ||
+                             g.mode == MODE_MC);
         if(in_game_view && need_render) {
             engine_render();
             g.dirty = false;
