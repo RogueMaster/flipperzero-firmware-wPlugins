@@ -192,6 +192,11 @@ typedef struct {
     float move_fwd_target;  // 累积待插值前进速度 (格/tick)
     float move_bwd_target;  // 累积待插值后退速度
     float move_dash_target; // 待插值前冲 (OK 键)
+    // v6.8: 全新操控 — 按键持续状态 (短按精确小步, 长按持续加速)
+    int8_t  turn_hold_dir;   // 持续转向方向 (-1=左, 0=无, +1=右)
+    uint16_t turn_hold_time; // 持续按下帧数 (驱动加速曲线)
+    int8_t  move_hold_dir;   // 持续移动方向 (-1=后, 0=无, +1=前)
+    uint16_t move_hold_time; // 持续按下帧数
     // 任务系统
     Quest quest;
     int  task_kill_count;   // 累计击杀(本关)

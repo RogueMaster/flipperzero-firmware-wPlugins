@@ -677,6 +677,8 @@ void game_init_campaign(int level) {
     g.move_fwd_target = 0.0f;
     g.move_bwd_target = 0.0f;
     g.move_dash_target = 0.0f;
+    g.turn_hold_dir = 0; g.turn_hold_time = 0;
+    g.move_hold_dir = 0; g.move_hold_time = 0;
     // v6.0: 迷宫尺寸随关卡递进, 上限 25 防卡顿; 50 关上限
     int sz = 7 + level;
     if(sz > 25) sz = 25;
@@ -708,6 +710,8 @@ void game_init_endless(int floor, bool visitor) {
     g.move_fwd_target = 0.0f;
     g.move_bwd_target = 0.0f;
     g.move_dash_target = 0.0f;
+    g.turn_hold_dir = 0; g.turn_hold_time = 0;
+    g.move_hold_dir = 0; g.move_hold_time = 0;
     // 尺寸严格上限 19 (19x19=361 格, DDA 步数最多 19 列 × 64 = 1216 次循环)
     int sz = 9 + (floor > 10 ? 10 : floor);
     if(sz > 19) sz = 19;
@@ -793,6 +797,8 @@ void game_init_mc(void) {
     g.move_fwd_target = 0.0f;
     g.move_bwd_target = 0.0f;
     g.move_dash_target = 0.0f;
+    g.turn_hold_dir = 0; g.turn_hold_time = 0;
+    g.move_hold_dir = 0; g.move_hold_time = 0;
     g.actor_count = 0;
     g.player.keys = 0;
     g.player.torches = 0;
@@ -918,39 +924,61 @@ bool item_use(int item_type) {
 }
 
 void game_handle_input(InputKey key, InputType type) {
-    if(type != InputTypeShort && type != InputTypeRepeat) return;
+    // v6.8: 全新操控模型 — 短按精确小步, 连按累积加速, 长按持续加速 (越长越快)
+    //   Press   → 启动 hold 状态 (game_update 每帧按加速曲线施加)
+    //   Short   → 释放时补一个固定小步 (精确可控的"轻点几下")
+    //   Repeat  → 长按中的连发, 不额外加 (纯靠 hold 加速, 避免双重加速失控)
+    //   Release → 清 hold 状态
+    // 这样: 快速连按 = 多次 Short 累积 = 快速移动; 长按 = hold 持续加速 = 越按越快
 
-    // 平滑移动: 输入只设置"目标"值,game_update 每帧逐步插值施加,
-    // 从而达到"转角和移动更加平滑"的效果
-    const float speed  = 0.28f;
-    const float slow   = 0.18f;
-    const float dash   = 0.42f;
-    const float turn   = 0.26f;
+    // ---- 左右转向 (全局, 所有模式) ----
+    if(key == InputKeyLeft || key == InputKeyRight) {
+        int8_t dir = (key == InputKeyLeft) ? -1 : +1;
+        if(type == InputTypePress) {
+            g.turn_hold_dir = dir;
+            g.turn_hold_time = 0;
+        } else if(type == InputTypeShort) {
+            // 短按释放: 精确转 11.5° (0.20 rad) — "轻点几下"的小幅转动
+            g.turn_target += dir * 0.20f;
+            g.turn_hold_dir = 0;   // 已释放
+        } else if(type == InputTypeRelease) {
+            g.turn_hold_dir = 0;
+        }
+        // InputTypeLong / Repeat: 不额外加, 由 game_update 的 hold 加速曲线驱动
+        g.dirty = true;
+        return;
+    }
 
-    switch(key) {
-        case InputKeyUp:
-            g.move_fwd_target += speed;
-            break;
-        case InputKeyDown:
-            g.move_bwd_target += slow;
-            break;
-        case InputKeyLeft:
-            g.turn_target -= turn;
-            break;
-        case InputKeyRight:
-            g.turn_target += turn;
-            break;
-        case InputKeyOk:
-            // v6.0: 战斗关 OK = 手枪射击; 其他关 OK = 冲刺
+    // ---- 前后移动 (全局) ----
+    if(key == InputKeyUp || key == InputKeyDown) {
+        int8_t dir = (key == InputKeyUp) ? +1 : -1;
+        if(type == InputTypePress) {
+            g.move_hold_dir = dir;
+            g.move_hold_time = 0;
+        } else if(type == InputTypeShort) {
+            // 短按: 前进 0.15 格 / 后退 0.11 格 — 小步但明显, 连按累积快速移动
+            if(dir > 0) g.move_fwd_target += 0.15f;
+            else        g.move_bwd_target += 0.11f;
+            g.move_hold_dir = 0;
+        } else if(type == InputTypeRelease) {
+            g.move_hold_dir = 0;
+        }
+        g.dirty = true;
+        return;
+    }
+
+    // ---- OK 键: 战斗关=射击, 其他=冲刺 ----
+    if(key == InputKeyOk) {
+        if(type == InputTypeShort || type == InputTypeRepeat) {
             if(g.stage == STAGE_COMBAT) {
                 player_shoot();
             } else {
-                g.move_dash_target += dash;
+                g.move_dash_target += 0.42f;
             }
-            break;
-        default: break;
+        }
+        g.dirty = true;
+        return;
     }
-    g.dirty = true;
 }
 
 void game_update(void) {
@@ -977,13 +1005,31 @@ void game_update(void) {
             particle_spawn(bx, by, 3, 2);
         }
     }
-    // 平滑插值: 每帧施加 turn_target 的 40% (剩余 60% 累积到下帧),
-    // 这样"按左右键"不会立刻转一个大角度,而是分几帧平滑转到目标朝向.
-    // 如果 turn_target 过大(连续按多次),就每帧 40% 分步转.
+    // v6.8: 长按持续转向 — 加速度曲线 (按住越久转得越快)
+    //   base 0.010 rad/帧, 每 8 帧 +0.004, 上限 0.050 rad/帧 (≈2.9°/帧, 非常快)
+    //   这样长按开头慢(精确), 持续越久越快(爽快扫视)
+    if(g.turn_hold_dir != 0) {
+        g.turn_hold_time++;
+        float v = 0.010f + (float)(g.turn_hold_time / 8) * 0.004f;
+        if(v > 0.050f) v = 0.050f;
+        g.turn_target += (float)g.turn_hold_dir * v;
+    }
+    // v6.8: 长按持续移动 — 加速度曲线 (按住越久移得越快)
+    //   base 0.009 格/帧, 每 6 帧 +0.005, 上限 0.042 格/帧 (≈2.5 格/秒)
+    if(g.move_hold_dir != 0) {
+        g.move_hold_time++;
+        float v = 0.009f + (float)(g.move_hold_time / 6) * 0.005f;
+        if(v > 0.042f) v = 0.042f;
+        if(g.move_hold_dir > 0) g.move_fwd_target += v;
+        else                     g.move_bwd_target += v * 0.72f; // 后退略慢
+    }
+
+    // 平滑插值: 每帧施加 turn_target 的 55% (v6.8 提高响应速度, 更跟手)
+    // 剩余 45% 累积到下帧, 连按/长按时平滑过渡不卡顿
     if(g.turn_target != 0.0f) {
-        float step = g.turn_target * 0.45f;
-        if(fabsf(step) < 0.01f) { step = g.turn_target; g.turn_target = 0.0f; }
-        else                    { g.turn_target -= step; }
+        float step = g.turn_target * 0.55f;
+        if(fabsf(step) < 0.008f) { step = g.turn_target; g.turn_target = 0.0f; }
+        else                     { g.turn_target -= step; }
         player_rotate(step);
     }
 
@@ -999,13 +1045,14 @@ void game_update(void) {
         g.move_dash_target = 0.0f;
     }
     if(g.move_fwd_target != 0.0f) {
-        float s = g.move_fwd_target > 0.5f ? 0.5f : g.move_fwd_target;
+        // v6.8: 提高单帧上限到 0.55, 让长按加速到高速时能充分释放
+        float s = g.move_fwd_target > 0.55f ? 0.55f : g.move_fwd_target;
         player_move(g.player.dir_x * s, g.player.dir_y * s);
         g.move_fwd_target -= s;
         if(g.move_fwd_target < 0.0f) g.move_fwd_target = 0.0f;
     }
     if(g.move_bwd_target != 0.0f) {
-        float s = g.move_bwd_target > 0.3f ? 0.3f : g.move_bwd_target;
+        float s = g.move_bwd_target > 0.38f ? 0.38f : g.move_bwd_target;
         player_move(-g.player.dir_x * s, -g.player.dir_y * s);
         g.move_bwd_target -= s;
         if(g.move_bwd_target < 0.0f) g.move_bwd_target = 0.0f;
