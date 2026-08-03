@@ -1450,16 +1450,18 @@ int32_t maze3d_app(void* p) {
                 }
                 did_input = true;
             } else if(g.mode == MODE_MC) {
-                // MC 沙盒模式 (Beta): OK 挖 / 长 OK 放 / Back 短按切方块 / Back 长按回菜单
+                // v6.2: 按用户硬规定:
+                //   OK 短按 = 射击 (MC无弹药时播无弹药反馈)
+                //   OK 长按 = 挖掘前方方块
+                //   Back 短按 = 放置当前手持方块
+                //   Back 长按 = 返回主菜单
+                // 上下左右: 移动 / 转向 (复用平滑插值)
                 if(key == InputKeyOk && type == InputTypeShort) {
-                    mc_mine();
+                    player_shoot();
                 } else if(key == InputKeyOk && type == InputTypeLong) {
-                    mc_place();
+                    mc_mine();
                 } else if(key == InputKeyBack && type == InputTypeShort) {
-                    // v6.0: 6 种手持方块循环 (1砖 2石 3木 4草 5沙 6树叶)
-                    g.mc_block_type = (g.mc_block_type >= 6) ? 1 : (g.mc_block_type + 1);
-                    sfx_play(SFX_MENU_MOVE);
-                    set_msg(MSG_PLACE);
+                    mc_place();
                 } else if(key == InputKeyBack && type == InputTypeLong) {
                     g.mode = MODE_MENU;
                     sfx_stop_all();
@@ -1470,7 +1472,10 @@ int32_t maze3d_app(void* p) {
                 }
                 did_input = true;
             } else {
-                // 游戏中
+                // v6.2: 所有游戏模式 (闯关/无尽/游客):
+                //   OK 短按 = 射击 (用户硬性规定)
+                //   OK 长按 = 打开物品栏/任务面板 (保留原功能)
+                //   Back 短按 = 暂停 / Back 长按 = 退出游戏
                 if(key == InputKeyBack) {
                     if(type == InputTypeLong) { running = false; sfx_stop_all(); }
                     else if(type == InputTypeShort) {
@@ -1478,13 +1483,18 @@ int32_t maze3d_app(void* p) {
                         g.mode = MODE_PAUSED;
                         sfx_play(SFX_MENU_OK);
                     }
-                } else if(key == InputKeyOk && type == InputTypeLong) {
-                    // 长按 OK: 暂停 + 打开物品栏 (含任务面板)
-                    s_resume_mode = g.mode;
-                    g.mode = MODE_INVENTORY;
-                    g.inv_sel = 0;
-                    s_inv_page = 0;
-                    sfx_play(SFX_MENU_OK);
+                } else if(key == InputKeyOk) {
+                    if(type == InputTypeShort) {
+                        // v6.2: OK 短按=射击 (所有模式). 解谜/迷宫关无弹药时播"无弹药"
+                        player_shoot();
+                    } else if(type == InputTypeLong) {
+                        // OK 长按=打开物品栏 (非战斗关也能看物品面板)
+                        s_resume_mode = g.mode;
+                        g.mode = MODE_INVENTORY;
+                        g.inv_sel = 0;
+                        s_inv_page = 0;
+                        sfx_play(SFX_MENU_OK);
+                    }
                 } else {
                     game_handle_input(key, type);
                 }

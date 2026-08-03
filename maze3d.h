@@ -96,6 +96,17 @@ typedef struct {
     uint8_t owner;      // 0=玩家 1=敌人
 } Bullet;
 
+// v6.2: 粒子系统 (射击火花/命中爆炸/子弹尾迹/行走尘土)
+#define MAX_PARTICLES 32
+typedef struct {
+    bool active;
+    float x, y;         // 世界坐标
+    float vx, vy;       // 速度
+    uint8_t life;       // 剩余帧数, 0=消失
+    uint8_t type;       // 0=射击火花 1=命中爆炸 2=子弹尾迹 3=行走尘土
+    uint8_t size;       // 粒子大小(像素半径近似)
+} Particle;
+
 typedef struct {
     float x, y;
     float dir_x, dir_y;
@@ -205,7 +216,16 @@ typedef struct {
     uint8_t hurt_flash;     // 玩家受伤屏幕闪白帧数
     uint8_t shoot_kick;     // 射击后坐力 (准星抖动)
     int16_t screen_shake;   // 屏幕震屏量 (像素偏移)
+    // v6.2: 粒子系统
+    Particle particles[MAX_PARTICLES];
+    // 玩家移动痕迹 (上一帧位置, 用于尘土粒子触发)
+    float prev_px, prev_py;
 } GameState;
+
+// v6.2: 粒子接口
+void particles_update(void);
+void particle_spawn(float x, float y, uint8_t type, int count);
+int  particles_active_count(void);
 
 // v6.0 成就里程碑位图
 enum {

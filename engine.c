@@ -12,6 +12,24 @@ static inline void fb_set(int x, int y, uint8_t on) {
     else g.fb[idx] &= ~bit;
 }
 
+// v6.2: XOR 画法 (画"永远与背景相反色"的像素 — 准星/标记专用)
+static inline void fb_xor(int x, int y) {
+    if((unsigned)x >= SCREEN_W || (unsigned)y >= SCREEN_H) return;
+    uint16_t idx = ((uint16_t)y << 4) + ((uint16_t)x >> 3);
+    uint8_t bit = 1u << (x & 7);
+    g.fb[idx] ^= bit;
+}
+
+// v6.2: 画一个实心像素 + 反色边框 (高亮小方块, 用于粒子)
+static inline void fb_highlight_px(int x, int y) {
+    fb_set(x, y, 1);
+    // 周围做一个反色小十字, 突出该像素 (即使在亮/暗背景上都可见)
+    fb_xor(x + 1, y);
+    fb_xor(x - 1, y);
+    fb_xor(x, y + 1);
+    fb_xor(x, y - 1);
+}
+
 static inline void fb_hline(int x1, int x2, int y, uint8_t on) {
     if((unsigned)y >= SCREEN_H) return;
     if(x1 > x2) { int t = x1; x1 = x2; x2 = t; }
@@ -64,15 +82,16 @@ static inline int wall_tex_id(uint8_t c) {
 
 extern uint8_t texture_sample(int tex_id, int tx, int ty);
 
-// 距离/明暗处理: 0=最近(亮),3=最远(极稀疏)
-// 避免 sqrtf,用 perp距离(已经是无透视失真的垂直距离)
+// v6.2: 全局高亮 — 提亮墙体 (shade 档位 -1, 阴影阈值放宽).
+// shade 档位: 0=实心/最亮, 4=极远. 现在同样距离比之前亮一档.
 static inline int shade_from(float perp, int side) {
     int s;
-    if(perp < 2.0f) s = 0;
-    else if(perp < 3.5f) s = 1;
-    else if(perp < 6.0f) s = 2;
-    else s = 3;
-    if(side == 1 && s < 3) s++; // 东西墙暗一档
+    if(perp < 2.5f) s = 0;
+    else if(perp < 4.5f) s = 1;
+    else if(perp < 7.5f) s = 2;
+    else if(perp < 11.0f) s = 3;
+    else s = 4;
+    if(side == 1 && s < 4) s++;
     return s;
 }
 
@@ -90,11 +109,13 @@ static inline uint8_t bayer_at(int x, int y) {
 static inline void apply_shade_px(int x, int y, int shade) {
     // 阈值越小越稀疏; 用 4 档密度做平滑距离渐变
     int thr;
+    // v6.2: 阈值整体上移, 所有档位都更亮
     switch(shade) {
         case 0: fb_set(x, y, 1); return;   // 最近: 实心
-        case 1: thr = 12; break;           // ~75%
-        case 2: thr = 7;  break;           // ~44%
-        default: thr = 4; break;           // ~25% (最远)
+        case 1: thr = 14; break;           // ~88% (原~75%)
+        case 2: thr = 10; break;           // ~63% (原~44%)
+        case 3: thr = 6;  break;           // ~38% (原~25%)
+        default: thr = 3; break;           // 超远: 19%
     }
     if(bayer_at(x, y) < thr) fb_set(x, y, 1);
 }
@@ -612,16 +633,61 @@ void engine_render(void) {
     draw_minimap();
     if(g.mode != MODE_MC) draw_compass();   // MC 沙盒无出口, 不画罗盘
 
-    // v6.0: 战斗关和 MC 模式画准星 (屏幕中央十字)
-    if((g.mode == MODE_CAMPAIGN && g.stage == STAGE_COMBAT) || g.mode == MODE_MC) {
-        int cx = SCREEN_W / 2, cy = SCREEN_H / 2;
-        // 中心点 + 四向短线 (留中间空隙, 不挡视野)
-        fb_set(cx, cy, 1);
-        for(int i = 2; i <= 4; i++) {
-            fb_set(cx + i, cy, 1);
-            fb_set(cx - i, cy, 1);
-            fb_set(cx, cy + i, 1);
-            fb_set(cx, cy - i, 1);
+    // v6.2: 渲染粒子 (3D 投影: 和子弹/敌人相同逆行列式)
+    {
+        Player* pp = &g.player;
+        const float invDet = 1.0f / (pp->plane_x * pp->dir_y - pp->dir_x * pp->plane_y);
+        for(int i = 0; i < MAX_PARTICLES; i++) {
+            Particle* p = &g.particles[i];
+            if(!p->active) continue;
+            float spx = p->x - pp->x;
+            float spy = p->y - pp->y;
+            float transX = invDet * ( pp->dir_y * spx - pp->dir_x * spy);
+            float transY = invDet * (-pp->plane_y * spx + pp->plane_x * spy);
+            if(transY <= 0.1f) continue;
+            int sx = (int)((SCREEN_W / 2.0f) * (1.0f + transX / transY));
+            if(sx < -4 || sx > SCREEN_W + 3) continue;
+            // 粒子高度: 子弹尾迹在中线附近, 行走尘土在地板附近
+            int sy;
+            if(p->type == 3) sy = SCREEN_H / 2 + (int)(SCREEN_H * 0.38f / transY);   // 尘土: 地板
+            else             sy = SCREEN_H / 2 + (int)(2.0f / transY);               // 火花/爆炸: 近视线
+            if(sy < 0) sy = 0;
+            if(sy >= SCREEN_H) sy = SCREEN_H - 1;
+            // 不同类型大小样式
+            if(p->type == 1 && p->size >= 2) {
+                // 命中爆炸: 3x3 高亮
+                for(int yy = -1; yy <= 1; yy++)
+                    for(int xx = -1; xx <= 1; xx++)
+                        fb_highlight_px(sx + xx, sy + yy);
+            } else {
+                // 其他类型: 单点高亮 (十字+反色边框)
+                fb_highlight_px(sx, sy);
+            }
         }
+    }
+
+    // v6.2: 准星 (反差色十字, 恒可见).
+    // 所有非菜单模式都画, 保证用户要求的"屏幕一直有反差十字准心".
+    if(g.mode != MODE_MENU && g.mode != MODE_PAUSED &&
+       g.mode != MODE_INVENTORY && g.mode != MODE_LEVEL_SELECT &&
+       g.mode != MODE_STORY) {
+        int cx = SCREEN_W / 2, cy = SCREEN_H / 2;
+        // 后坐力: 射击时准星下移
+        if(g.shoot_kick > 0) cy += (int)g.shoot_kick;
+        // 准星样式: 中心空心框 + 四向短尖 (共 13 px)
+        // 都用 XOR 画法, 保证黑底白点/白底黑点永远相反
+        // 中央空框 (2x2 空)
+        fb_xor(cx - 1, cy - 2); fb_xor(cx, cy - 2); fb_xor(cx + 1, cy - 2);
+        fb_xor(cx - 2, cy - 1);                                 fb_xor(cx + 2, cy - 1);
+        fb_xor(cx - 2, cy);                                     fb_xor(cx + 2, cy);
+        fb_xor(cx - 2, cy + 1);                                 fb_xor(cx + 2, cy + 1);
+        fb_xor(cx - 1, cy + 2); fb_xor(cx, cy + 2); fb_xor(cx + 1, cy + 2);
+        // 中心十字点
+        fb_xor(cx, cy);
+        // 四向尖刺 (尖端朝外)
+        fb_xor(cx, cy - 4); fb_xor(cx, cy - 5);
+        fb_xor(cx, cy + 4); fb_xor(cx, cy + 5);
+        fb_xor(cx - 4, cy); fb_xor(cx - 5, cy);
+        fb_xor(cx + 4, cy); fb_xor(cx + 5, cy);
     }
 }

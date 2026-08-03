@@ -1,3 +1,24 @@
+v6.2:
+- Control scheme (用户硬规定):
+  * OK short press = SHOOT in ALL modes (MC, campaign, endless, visitor).
+    Plays "No Ammo!" feedback when the magazine is empty.
+  * OK long press  = MINE in MC mode, or open inventory/task panel
+    in other modes (preserves the original OK-long behavior).
+  * Back short press = PLACE block in MC mode (mc_place).
+  * Long/short move keys (up/down/left/right) unchanged: front/back + rotate.
+- Crosshair permanently visible (所有游戏模式) as a high-contrast
+  XOR-drawn inverted-color square with four spiked arms — always the
+  opposite of whatever is on screen (black on white, white on black).
+  Crosshair drops 4 px on shoot (recoil) and rebounds over 4 frames.
+- Particle system (32 slots): shoot sparks (~5 at muzzle), hit explosion
+  (~6 on enemy hit, ~10 on kill, ~3 on wall hit), per-frame bullet trail
+  pellets, and footstep dust every other frame when walking.
+- Global brightness bump: shade distance thresholds relaxed (2.5/4.5/7.5/11)
+  and Bayer density thresholds raised (14/10/6/3), so walls, floor and
+  ceiling are noticeably brighter at all ranges.
+- Enemy speed-up: AI cooldown reduced from 22 → 15 ticks per move so
+  enemies and NPCs visibly move more often.
+
 v6.1:
 - FIX: MC sandbox mode was completely broken — players could clip through
   grass/tree/water blocks (blocking() missed WALL_GRASS/WALL_WATER/WALL_VINE)
