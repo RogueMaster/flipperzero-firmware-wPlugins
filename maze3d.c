@@ -734,7 +734,7 @@ static void draw_opening(Canvas* c) {
         else
             canvas_draw_xbm(c, (128 - OPEN_BY_W)/2, sub_y, OPEN_BY_W, OPEN_BY_H, open_by_bits);
     }
-    // ===== Stage 3: "按任意键开始" 闪烁 =====
+    // ===== Stage 3: logo + 副标题静止, 等待开场自然结束进入菜单 =====
     else {
         // Logo + 副标题 静止
         canvas_draw_xbm(c, cx, cy_final, TITLE_W, TITLE_H, title_bits);
@@ -742,10 +742,6 @@ static void draw_opening(Canvas* c) {
             canvas_draw_str_aligned(c, 64, 50, AlignCenter, AlignTop, "k20120509");
         else
             canvas_draw_xbm(c, (128 - OPEN_BY_W)/2, 50, OPEN_BY_W, OPEN_BY_H, open_by_bits);
-        // "按任意键开始" 闪烁 (1.5Hz)
-        if((g.tick & 4) == 0)
-            canvas_draw_str_aligned(c, 64, 62, AlignCenter, AlignTop,
-                g.lang == LANG_ZH ? "按任意键开始" : "Press any key");
     }
 }
 
@@ -753,6 +749,26 @@ static void draw_opening(Canvas* c) {
 // 设置项总数: 默认 2 (音效/开场), dev_mode 解锁后追加 调试
 static int settings_count(void) {
     return g.dev_mode ? 3 : 2;
+}
+
+// 开发模式解锁: 检测隐藏长按按键序列 (上/下/左/右).
+// 在菜单和开场动画期间均可调用. 返回是否触发了音效 (供调用方判断).
+static void dev_mode_try_unlock(InputKey key) {
+    if(g.dev_mode) return;
+    InputKey expect[4] = { InputKeyUp, InputKeyDown, InputKeyLeft, InputKeyRight };
+    if(s_dev_seq < 4 && key == expect[s_dev_seq]) {
+        s_dev_seq++;
+        if(s_dev_seq >= 4) {
+            g.dev_mode = true;
+            storage_save();
+            sfx_play(SFX_QUEST_DONE);
+        } else {
+            sfx_play(SFX_MENU_MOVE);
+        }
+    } else {
+        // 错误按键: 若是序列首键则重新开始, 否则清零
+        s_dev_seq = (key == expect[0]) ? 1 : 0;
+    }
 }
 
 static void draw_settings(Canvas* c) {
@@ -1184,12 +1200,9 @@ int32_t maze3d_app(void* p) {
             InputType type = ev.input.type;
 
             if(g.mode == MODE_OPENING) {
-                // 开场动画: 任意键跳过,或等其自然结束
-                if(type == InputTypeShort || type == InputTypeLong) {
-                    sfx_bgm_stop();
-                    g.mode = MODE_MENU;
-                    sfx_play(SFX_MENU_OK);
-                }
+                // 开场动画不可通过按键跳过 (只能通过设置关闭), 让玩家完整听完 BGM.
+                // 期间允许长按 上/下/左/右 输入开发者模式解锁序列.
+                if(type == InputTypeLong) dev_mode_try_unlock(key);
                 did_input = true;
             } else if(g.mode == MODE_SETTINGS) {
                 int nset = settings_count();
@@ -1223,22 +1236,7 @@ int32_t maze3d_app(void* p) {
                     } else if(key == InputKeyBack) { running = false; sfx_stop_all(); }
                 } else if(type == InputTypeLong) {
                     // 开发模式解锁: 检测隐藏按键序列
-                    if(!g.dev_mode) {
-                        InputKey expect[4] = { InputKeyUp, InputKeyDown, InputKeyLeft, InputKeyRight };
-                        if(s_dev_seq < 4 && key == expect[s_dev_seq]) {
-                            s_dev_seq++;
-                            if(s_dev_seq >= 4) {
-                                g.dev_mode = true;
-                                storage_save();
-                                sfx_play(SFX_QUEST_DONE);
-                            } else {
-                                sfx_play(SFX_MENU_MOVE);
-                            }
-                        } else {
-                            // 错误按键: 若是序列首键则重新开始, 否则清零
-                            s_dev_seq = (key == expect[0]) ? 1 : 0;
-                        }
-                    }
+                    dev_mode_try_unlock(key);
                 }
                 did_input = true;
             } else if(g.mode == MODE_LEVEL_CLEAR || g.mode == MODE_GAME_OVER || g.mode == MODE_PAUSED) {
