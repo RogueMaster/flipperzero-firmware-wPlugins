@@ -34,6 +34,9 @@ typedef enum {
     CELL_POTION = 14,   // 药水(捡起后入物品栏, 恢复HP)
     CELL_AMULET = 15,   // 护符(捡起后入物品栏, 传送回起点)
     CELL_LOCKED_EXIT = 16, // v6.0: 锁定出口 (任务未完成前不可通过)
+    WALL_SAND  = 17,   // v6.3 MC: 沙子 (真正沙方块, 落地有尘土粒子)
+    WALL_DIRT  = 18,   // v6.3 MC: 土方块
+    WALL_LOG   = 19,   // v6.3 MC: 原木 (区别于木板 WALL_WOOD)
 } CellType;
 
 // 物品栏物品类型
@@ -200,7 +203,8 @@ typedef struct {
     bool show_debug;        // 调试信息显示开关
     // 开发模式: 隐藏序列解锁, 解锁后所有关卡可玩 + 设置显示调试项
     bool dev_mode;
-    // MC 沙盒模式 (Beta): 当前手持方块类型 (1..N), OK 挖, 长 OK 放
+    // v6.3 MC 沙盒模式: 当前手持方块类型 (1..8), 挖到方块自动切换手持
+    //   1=砖 2=石 3=木板 4=草 5=土 6=沙 7=原木 8=树叶
     uint8_t mc_block_type;
     uint8_t mc_mined;
     // v6.0 成就系统: 累计统计 (跨局保存)
@@ -354,4 +358,4 @@ const char* story_choice_b(int story_id);
 const char* story_title(int story_id);
 
 extern const uint8_t TEXTURES[][8];
-#define TEX_COUNT 9   // v6.0: 砖/石/金属/藤蔓/水/草/木/树/沙
+#define TEX_COUNT 12  // v6.3: 砖/石/金属/藤蔓/水/草/木/树叶/沙/土/原木/光柱

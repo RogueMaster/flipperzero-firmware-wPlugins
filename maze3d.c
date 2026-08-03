@@ -1061,15 +1061,17 @@ static void draw_callback(Canvas* canvas, void* ctx) {
             canvas_draw_str_aligned(canvas, 127, 9, AlignRight, AlignBottom, sb);
         }
     } else {
-        // MC 沙盒模式: 顶部状态条 — 模式 + 手持方块 + 已挖数 + 心形血量
+        // v6.3 MC 沙盒模式: 顶部状态条 — 手持方块 + 已挖数 + 心形血量
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_box(canvas, 0, 0, 128, 11);
         canvas_set_color(canvas, ColorBlack);
         canvas_set_font(canvas, FontSecondary);
-        const char* bn[6] = { "Brick", "Stone", "Wood", "Grass", "Sand", "Leaf" };
+        // v6.3: 8 种手持方块名
+        const char* bn[8] = { "Brick", "Stone", "Wood", "Grass",
+                              "Dirt", "Sand", "Log", "Leaf" };
         char mb[32];
-        snprintf(mb, sizeof(mb), "MC %s M%d",
-                 bn[(g.mc_block_type - 1) % 6], g.mc_mined);
+        snprintf(mb, sizeof(mb), "%s M%d",
+                 bn[(g.mc_block_type - 1) % 8], g.mc_mined);
         canvas_draw_str(canvas, 1, 9, mb);
         // v6.1: MC 模式也显示心形血量 (5 颗)
         for(int i = 0; i < g.player.max_health && i < 5; i++) {
@@ -1079,11 +1081,11 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         char ach[24];
         snprintf(ach, sizeof(ach), "K%lu C%lu", g.ach_total_kills, g.ach_total_clears);
         canvas_draw_str_aligned(canvas, 127, 9, AlignRight, AlignBottom, ach);
-        // 右下角操作提示 (闪烁)
+        // v6.3: 右下角操作提示 (OK长按=挖/切块, Back短按=放置)
         if((g.tick & 7) < 6) {
             const char* hint = (g.lang == LANG_ZH)
-                ? "OK挖 长OK放 Back切 长Back出"
-                : "OK mine OK-place Back blk";
+                ? "长OK挖/切 Back放 长Back出"
+                : "OK mine/sw Back place";
             canvas_draw_str_aligned(canvas, 127, 63, AlignRight, AlignBottom, hint);
         }
     }

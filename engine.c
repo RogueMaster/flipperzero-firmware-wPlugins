@@ -62,7 +62,9 @@ static inline uint8_t map_at(int x, int y) {
 static inline bool is_wall(uint8_t c) {
     return c == WALL_BRICK || c == WALL_STONE || c == WALL_METAL ||
            c == WALL_VINE || c == WALL_WATER || c == WALL_GRASS ||
-           c == WALL_WOOD || c == WALL_TREE || c == CELL_DOOR;
+           c == WALL_WOOD || c == WALL_TREE || c == CELL_DOOR ||
+           // v6.3 MC 新方块
+           c == WALL_SAND || c == WALL_DIRT || c == WALL_LOG;
 }
 
 static inline int wall_tex_id(uint8_t c) {
@@ -71,11 +73,15 @@ static inline int wall_tex_id(uint8_t c) {
         case WALL_STONE: return 1;
         case WALL_METAL: return 2;
         case WALL_VINE:  return 3;
-        case WALL_WATER: return 4;
-        case WALL_GRASS: return 5;
-        case WALL_WOOD:  return 6;
-        case WALL_TREE:  return 7;
+        case WALL_WATER: return 4;   // 动态流动水
+        case WALL_GRASS: return 5;   // 草+土侧面
+        case WALL_WOOD:  return 6;   // 木板
+        case WALL_TREE:  return 7;   // 树叶
         case CELL_DOOR:  return 2;   // 门用金属纹理
+        // v6.3 MC 新方块材质
+        case WALL_SAND:  return 8;   // 沙子
+        case WALL_DIRT:  return 9;   // 土
+        case WALL_LOG:   return 10;  // 原木
         default:         return 0;
     }
 }
@@ -128,11 +134,19 @@ static inline uint8_t floor_px(int x, int y) {
     if(thr > 10) thr = 10;
     return (bayer_at(x, y) < thr) ? 1 : 0;
 }
+// v6.3: 天花板. MC 模式画"天空" (更亮, 模拟白天), 普通模式保持暗天花板
 static inline uint8_t ceil_px(int x, int y) {
     int d = (SCREEN_H >> 1) - y;   // 离地平线距离 (上方为正)
     if(d <= 0) return 0;
-    int thr = d >> 2;              // 天花板整体偏暗
-    if(thr > 4) thr = 4;
+    int thr;
+    if(g.mode == MODE_MC) {
+        // v6.3 MC 天空: 地平线附近渐亮, 顶部全亮 (白天天空)
+        thr = 6 + (d >> 1);
+        if(thr > 14) thr = 14;
+    } else {
+        thr = d >> 2;              // 普通天花板整体偏暗
+        if(thr > 4) thr = 4;
+    }
     return (bayer_at(x, y) < thr) ? 1 : 0;
 }
 
@@ -632,6 +646,26 @@ void engine_render(void) {
 
     draw_minimap();
     if(g.mode != MODE_MC) draw_compass();   // MC 沙盒无出口, 不画罗盘
+
+    // v6.3: MC 模式画太阳 (天空右上角, 不随视角转, 仿 MC 白天太阳)
+    if(g.mode == MODE_MC) {
+        // 太阳位置: 屏幕右上角, 缓慢左右飘动
+        int sun_x = SCREEN_W - 14 + (int)(sinf(g.tick * 0.02f) * 3.0f);
+        int sun_y = 6;
+        // 太阳本体: 5x5 实心方块
+        for(int yy = 0; yy < 5; yy++)
+            for(int xx = 0; xx < 5; xx++)
+                fb_set(sun_x + xx, sun_y + yy, 1);
+        // 光晕: 四向十字光芒 (闪烁)
+        if((g.tick & 3) < 3) {
+            for(int i = 1; i <= 3; i++) {
+                fb_set(sun_x + 2, sun_y - i, 1);     // 上
+                fb_set(sun_x + 2, sun_y + 4 + i, 1); // 下
+                fb_set(sun_x - i, sun_y + 2, 1);     // 左
+                fb_set(sun_x + 4 + i, sun_y + 2, 1); // 右
+            }
+        }
+    }
 
     // v6.2: 渲染粒子 (3D 投影: 和子弹/敌人相同逆行列式)
     {

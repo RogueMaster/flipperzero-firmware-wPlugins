@@ -693,20 +693,44 @@ void game_next_level(void) {
     else if(g.mode == MODE_ENDLESS_RUN) game_init_endless(g.endless_floor, false);
 }
 
-// ---- MC 沙盒模式 (v6.0 扩展) ----
-// v6.0: 手持方块类型 mc_block_type: 1=砖 2=石 3=木 4=草 5=沙 6=树叶
-// (金属/水/树不可放置; 挖树得木, 挖草得草, 挖沙得沙)
-#define MC_BLOCK_COUNT 6
+// ---- MC 沙盒模式 (v6.3 完整材质版) ----
+// v6.3: 手持方块类型 mc_block_type: 1=砖 2=石 3=木板 4=草 5=土 6=沙 7=原木 8=树叶
+// 挖到方块自动切换手持 (MC 生存模式核心玩法); 对空地长按 OK = 循环切手持
+#define MC_BLOCK_COUNT 8
 static uint8_t mc_block_to_wall(uint8_t bt) {
     switch(bt) {
         case 1: return WALL_BRICK;
         case 2: return WALL_STONE;
-        case 3: return WALL_WOOD;
-        case 4: return WALL_GRASS;
-        case 5: return WALL_VINE;   // 沙用藤蔓纹理近似
-        case 6: return WALL_TREE;   // 树叶用树纹理
+        case 3: return WALL_WOOD;    // 木板
+        case 4: return WALL_GRASS;   // 草方块
+        case 5: return WALL_DIRT;    // 土方块
+        case 6: return WALL_SAND;    // 沙子
+        case 7: return WALL_LOG;     // 原木
+        case 8: return WALL_TREE;    // 树叶 (用树叶纹理)
         default: return WALL_BRICK;
     }
+}
+
+// v6.3: WALL_* → 手持方块 ID (挖掘时自动切换). 不可挖的返回 0.
+static uint8_t mc_wall_to_block(uint8_t wall) {
+    switch(wall) {
+        case WALL_BRICK: return 1;
+        case WALL_STONE: return 2;
+        case WALL_WOOD:  return 3;
+        case WALL_GRASS: return 4;
+        case WALL_DIRT:  return 5;
+        case WALL_SAND:  return 6;
+        case WALL_LOG:   return 7;
+        case WALL_TREE:  return 8;
+        default:         return 0;   // 水/金属/藤蔓不可得
+    }
+}
+
+// v6.3: 循环切换手持方块 (对空地长按 OK 时调用)
+static void mc_cycle_block(void) {
+    g.mc_block_type = (g.mc_block_type >= MC_BLOCK_COUNT) ? 1 : (g.mc_block_type + 1);
+    sfx_play(SFX_MENU_MOVE);
+    set_msg(MSG_PLACE);
 }
 
 // 玩家正前方的相邻格 (按主导方向取 4 邻域, 类似 MC 的十字挖掘)
@@ -742,26 +766,25 @@ void game_init_mc(void) {
     g.quest.all_done = false;
     g.ammo = 0;
 
-    // v6.1: 15x15 大空间, 以空地为主 (玩家可自由走动),
-    //        随机点缀方块 (草/树/木/沙/水) — 不再"几乎全是实体"卡死玩家.
+    // v6.3: 15x15 MC 世界, 仿 Minecraft 地形:
+    //   草地为主表层, 点缀树(原木+树叶)/沙/土/水, 70% 留空可走
     const int sz = 15;
     g.map_w = sz; g.map_h = sz;
-    // 外圈基岩(不可挖), 内部: 默认空地, 随机撒方块
     for(int y = 0; y < sz; y++) {
         for(int x = 0; x < sz; x++) {
             uint8_t c;
             if(x == 0 || y == 0 || x == sz-1 || y == sz-1) {
-                c = WALL_METAL;  // 基岩边界
+                c = WALL_STONE;  // v6.3: 边界石头 (可挖, 不像金属那么硬)
             } else {
-                // 用关卡种子派生 PRNG, 保证地形可重现又多样
                 uint32_t h = maze_rng_next() & 15;
-                // v6.1: 约 30% 格子放方块 (草/树/沙/水/木混合), 70% 留空可走
-                if(h < 4)      c = WALL_GRASS;
-                else if(h < 7) c = WALL_TREE;
-                else if(h < 9) c = WALL_WOOD;
-                else if(h < 11) c = WALL_VINE;   // 沙地用藤蔓纹理
-                else if(h < 12) c = WALL_WATER;
-                else            c = CELL_EMPTY;
+                // v6.3: 地形分布 — 草/树/原木/沙/土/水
+                if(h < 4)       c = WALL_GRASS;   // 25% 草地
+                else if(h < 6)  c = WALL_TREE;    // 12% 树叶
+                else if(h < 8)  c = WALL_LOG;     // 12% 原木
+                else if(h < 10) c = WALL_SAND;    // 12% 沙子
+                else if(h < 11) c = WALL_DIRT;    // 6% 土
+                else if(h < 12) c = WALL_WATER;   // 6% 水
+                else            c = CELL_EMPTY;   // 25% 空地
             }
             g.map[(uint16_t)y * MAP_MAX + x] = c;
         }
@@ -775,42 +798,61 @@ void game_init_mc(void) {
     g.player.y = my + 0.5f;
     set_dir(0.0f);
 
-    g.mc_block_type = 3;  // v6.0: 默认手持木板
+    g.mc_block_type = 4;  // v6.3: 默认手持草方块
     g.mc_mined = 0;
     set_msg(MSG_MINE);
     g.dirty = true;
 }
 
+// v6.3: mc_mine — 挖掘前方方块, 挖到后手持自动切换为该方块 (MC 生存核心).
+//   前方是空地/不可挖 → 循环切换手持方块 (创造模式选块)
 void mc_mine(void) {
     int tx, ty;
     mc_target_cell(&tx, &ty);
     uint8_t c = maze_get(tx, ty);
-    bool is_border = (tx == 0 || ty == 0 ||
-                      tx == g.map_w - 1 || ty == g.map_h - 1);
-    // v6.0: 可挖草地/树/木/砖/藤蔓/沙; 水和基岩边界不可挖
-    if(is_border || c == WALL_WATER || c == WALL_METAL) {
-        sfx_play(SFX_NEED_KEY);  // 不可挖提示
+    // v6.3: 水不可挖
+    if(c == WALL_WATER) {
+        sfx_play(SFX_NEED_KEY);
         return;
     }
-    if(c == WALL_GRASS || c == WALL_TREE || c == WALL_WOOD ||
-       c == WALL_BRICK || c == WALL_STONE || c == WALL_VINE) {
-        maze_set(tx, ty, CELL_EMPTY);
-        g.mc_mined++;
-        g.ach_total_mined++;   // v6.0 成就统计
-        set_msg(MSG_MINE);
-        sfx_play(SFX_PICK_ITEM);
-        ach_check();            // 触发挖掘成就
-    } else {
-        sfx_play(SFX_NEED_KEY);
+    // v6.3: 空地 → 切换手持方块
+    if(c == CELL_EMPTY) {
+        mc_cycle_block();
+        return;
     }
+    // v6.3: 尝试获取对应手持 ID (0 = 不可挖, 如金属/藤蔓)
+    uint8_t got = mc_wall_to_block(c);
+    if(got == 0) {
+        sfx_play(SFX_NEED_KEY);
+        return;
+    }
+    // 挖掘成功: 清除方块 + 手持切换 + 粒子 + 音效
+    maze_set(tx, ty, CELL_EMPTY);
+    g.mc_mined++;
+    g.ach_total_mined++;
+    g.mc_block_type = got;   // v6.3: 挖到什么拿什么
+    // 挖掘碎屑粒子 (沙/土多撒一些)
+    float px = tx + 0.5f, py = ty + 0.5f;
+    int cnt = (c == WALL_SAND || c == WALL_DIRT) ? 6 : 3;
+    particle_spawn(px, py, 3, cnt);
+    set_msg(MSG_MINE);
+    sfx_play(SFX_PICK_ITEM);
+    ach_check();
 }
 
+// v6.3: mc_place — 在前方放置手持方块. 放沙子时额外尘土粒子 (落地效果)
 void mc_place(void) {
     int tx, ty;
     mc_target_cell(&tx, &ty);
-    // 目标格恒为玩家相邻格, 不会封死玩家自身所在格
     if(maze_get(tx, ty) == CELL_EMPTY) {
-        maze_set(tx, ty, mc_block_to_wall(g.mc_block_type));
+        uint8_t wall = mc_block_to_wall(g.mc_block_type);
+        maze_set(tx, ty, wall);
+        // v6.3: 沙子放置 → 落地尘土粒子爆发
+        if(wall == WALL_SAND || wall == WALL_DIRT) {
+            float px = tx + 0.5f, py = ty + 0.5f;
+            particle_spawn(px, py, 3, 6);   // 落地尘土
+            particle_spawn(px, py, 0, 3);   // 少量火花点缀
+        }
         set_msg(MSG_PLACE);
         sfx_play(SFX_OPEN_DOOR);
     } else {
