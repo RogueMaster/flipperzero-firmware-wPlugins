@@ -37,3 +37,4 @@ docs/superpowers/
 
 # Local Claude Code session data (worktrees, skills, memory) — never committed
 .claude/
+.gstack/
