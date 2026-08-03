@@ -540,7 +540,9 @@ static void dispatch_frame(HotspotArcadeApp* app) {
         char ev[64];
         if(ha_json_str((const char*)p, "duel", ev, sizeof(ev)) ||
            ha_json_str((const char*)p, "pong", ev, sizeof(ev)) ||
-           ha_json_str((const char*)p, "draw", ev, sizeof(ev))) {
+           ha_json_str((const char*)p, "draw", ev, sizeof(ev)) ||
+           ha_json_str((const char*)p, "chess", ev, sizeof(ev)) ||
+           ha_json_str((const char*)p, "bs", ev, sizeof(ev))) {
             furi_string_set_str(app->last_event, ev);
             console_add(app, ev);
         } else if(ha_json_str((const char*)p, "chat", ev, sizeof(ev))) {

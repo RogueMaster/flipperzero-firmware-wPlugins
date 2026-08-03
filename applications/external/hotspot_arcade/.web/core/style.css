@@ -658,3 +658,37 @@ h3{margin:0; font-weight:600}
 .kmk-mark.ok{color:var(--good)}
 .kmk-mark.no{color:var(--bad)}
 .kmk-note{text-align:center; color:var(--text-dim); font-size:13px; margin-top:8px; min-height:16px}
+
+/* ---- Chess ------------------------------------------------------------- */
+.ch-board{display:grid; grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(8,1fr);
+  aspect-ratio:1; border:2px solid var(--line); border-radius:var(--radius);
+  max-width:400px; margin:0 auto; touch-action:manipulation; overflow:hidden}
+#chess-over-board{margin:12px auto; width:100%}
+.ch-cell{position:relative; display:flex; align-items:center; justify-content:center;
+  font-size:clamp(20px,7vmin,34px); line-height:1}
+.ch-cell.lt{background:var(--surface-2)}
+.ch-cell.dk{background:var(--surface)}
+/* Piece color: readable on both (dark) square shades -- the palette has no
+   light squares, so plain --text / --orange-bright both read fine either way. */
+.ch-cell.w{color:var(--text)}
+.ch-cell.b{color:var(--orange-bright)}
+.ch-cell.sel{outline:2px solid var(--orange); outline-offset:-2px}
+.ch-cell.tgt::after{content:""; position:absolute; inset:38%; border-radius:50%;
+  background:var(--orange); opacity:.55}
+.ch-cell.last{box-shadow:inset 0 0 0 999px rgba(255,130,0,.16)}
+.ch-cell.chk{outline:2px solid var(--bad); outline-offset:-2px}
+.ch-clock{display:flex; justify-content:center; align-items:center; width:88px;
+  font-variant-numeric:tabular-nums; font-weight:700; font-size:20px;
+  background:var(--surface); border:2px solid var(--line); border-radius:var(--radius);
+  padding:8px; margin:0 auto}
+.ch-clock.hot{color:var(--bad); border-color:var(--bad)}
+.ch-check{text-align:center; color:var(--bad); font-weight:700; text-transform:uppercase;
+  letter-spacing:.08em; margin:0}
+.ch-actions{display:flex; gap:8px; margin-top:8px}
+.ch-actions .btn{flex:1}
+.ch-promo-card{align-items:center}
+.ch-promo-row{display:flex; gap:8px; justify-content:center}
+.ch-promo-btn{appearance:none; font-family:var(--font); cursor:pointer; width:56px; height:56px;
+  font-size:30px; background:var(--surface-2); border:2px solid var(--line);
+  border-radius:var(--radius); color:var(--text)}
+.ch-promo-btn:active{border-color:var(--orange); transform:translateY(1px)}

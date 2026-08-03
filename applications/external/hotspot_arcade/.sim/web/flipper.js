@@ -15,7 +15,7 @@ const GAMES = [
   ["Dots & Boxes", 4], ["Draw & Guess", 5], ["Pong", 6], ["Reaction Duel", 7],
   ["Would You Rather", 8], ["Word Scramble", 9], ["Reversi", 10],
   ["Guess the Color", 11], ["Battleship", 12], ["Spectrum", 13],
-  ["Kiss Marry Kill", 14],
+  ["Kiss Marry Kill", 14], ["Chess", 15],
 ];
 
 const players = new Map(); // pid -> { nick, score }
@@ -66,7 +66,7 @@ export async function mountFlipper(el) {
       <button id="zero">Reset scores</button>
     </div>
     <div class="row"><button id="packs">Load packs</button>
-      <select id="lang"><option value="">English</option><option value="pt-br">Portugues (BR)</option></select>
+      <select id="lang"><option value="">English</option><option value="de">Deutsch</option><option value="pt-br">Portugues (BR)</option></select>
       <span id="packstate" class="muted">no packs loaded</span></div>
     <table class="roster"><thead><tr><th>pid</th><th>nick</th><th>score</th></tr></thead>
       <tbody id="roster"></tbody></table>

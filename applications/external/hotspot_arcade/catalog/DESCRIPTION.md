@@ -26,7 +26,7 @@ the list — or flash it from a computer with esptool.
 its bundled firmware and game files to the SD card. The hourglass is the loader working,
 not a hang. Every launch after that is instant.
 
-## Fourteen games
+## Fifteen games
 
 - **Whole-group:** Trivia, Would You Rather, Word Scramble, Reaction Duel, Guess the
   Color (match a swatch's RGB, closest and fastest wins), Spectrum (a Wavelength-style
@@ -34,7 +34,8 @@ not a hang. Every launch after that is instant.
   Marry Kill (a chooser secretly labels three people, everyone predicts it) — everyone in
   the room plays at once, with a ready-up lobby and a live leaderboard.
 - **1v1 duels:** Connect Four, Tic-Tac-Toe, Dots & Boxes, Reversi/Othello, real-time Pong,
-  and Battleship (place a hidden fleet, then fire) — challenge another player from your phone.
+  Battleship (place a hidden fleet, then fire), and Chess (full FIDE rules, 5-minute blitz
+  clocks) — challenge another player from your phone.
 - **Drawing & guessing** — one player draws, everyone else guesses in a chat.
 
 Pick an emoji avatar on the way in and send emoji reactions that float up on everyone's

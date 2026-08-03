@@ -26,6 +26,23 @@ export async function newEngine() {
       return drain();
     },
     contentItem: (json) => { M.ccall("ha_content_item", null, ["string"], [json]); return drain(); },
+    // HA_CHESS_TEST-only hooks: load an arbitrary position into match slot 0 (must
+    // already be a live game from challenge/accept), and perft a scratch position
+    // against the real move generator.
+    chessLoad: (board64, stm, rights, ep, halfmove, wms, bms) => {
+      M.ccall(
+        "ha_chess_load", null,
+        ["string", "number", "number", "number", "number", "number", "number"],
+        [board64, stm, rights, ep, halfmove, wms, bms],
+      );
+      return drain();
+    },
+    chessPerft: (board64, stm, rights, ep, depth) =>
+      M.ccall(
+        "ha_chess_perft", "number",
+        ["string", "number", "number", "number", "number"],
+        [board64, stm, rights, ep, depth],
+      ),
   };
   api.join = (wsId, nick) => api.input(wsId, { t: "hello", nick, avatar: "🙂" });
   return api;

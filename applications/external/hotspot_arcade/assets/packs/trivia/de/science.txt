@@ -1,0 +1,105 @@
+Pack: Wissenschaft
+Q: Welches Gas nehmen Pflanzen für die Photosynthese aus der Luft auf?
+A: Sauerstoff
+B: Stickstoff
+C: Kohlendioxid
+D: Wasserstoff
+Answer: C
+---
+Q: Was ist das chemische Symbol für Wasser?
+A: H2O
+B: CO2
+C: O2
+D: NaCl
+Answer: A
+---
+Q: Wie viele Knochen hat der erwachsene menschliche Körper?
+A: 186
+B: 206
+C: 226
+D: 246
+Answer: B
+---
+Q: Welcher Planet ist der Sonne am nächsten?
+A: Erde
+B: Venus
+C: Merkur
+D: Mars
+Answer: C
+---
+Q: Was ist das Kraftwerk der Zelle?
+A: Zellkern
+B: Ribosom
+C: Mitochondrium
+D: Vakuole
+Answer: C
+---
+Q: Welche Kraft zieht Objekte zur Erde?
+A: Magnetismus
+B: Schwerkraft
+C: Reibung
+D: Spannung
+Answer: B
+---
+Q: Was ist das chemische Symbol für Gold?
+A: Go
+B: Gd
+C: Ag
+D: Au
+Answer: D
+---
+Q: Bei welcher Temperatur gefriert Wasser (Celsius)?
+A: 0 Grad
+B: 10 Grad
+C: 32 Grad
+D: 100 Grad
+Answer: A
+---
+Q: Welches Gas macht den größten Teil der Erdatmosphäre aus?
+A: Sauerstoff
+B: Stickstoff
+C: Kohlendioxid
+D: Argon
+Answer: B
+---
+Q: Welches Organ pumpt Blut durch den Körper?
+A: Lunge
+B: Leber
+C: Herz
+D: Niere
+Answer: C
+---
+Q: Wie schnell ist das Licht ungefähr?
+A: 300.000 km pro Sekunde
+B: 30.000 km pro Sekunde
+C: 3.000 km pro Sekunde
+D: 300 km pro Sekunde
+Answer: A
+---
+Q: Welcher Wissenschaftler stellte die allgemeine Relativitätstheorie auf?
+A: Isaac Newton
+B: Albert Einstein
+C: Galileo Galilei
+D: Niels Bohr
+Answer: B
+---
+Q: Was ist das härteste bekannte Naturmaterial?
+A: Quarz
+B: Eisen
+C: Diamant
+D: Granit
+Answer: C
+---
+Q: Wie viele Kammern hat das menschliche Herz?
+A: 2
+B: 3
+C: 4
+D: 5
+Answer: C
+---
+Q: Was für ein Tier ist ein Delfin?
+A: Fisch
+B: Säugetier
+C: Reptil
+D: Amphibie
+Answer: B

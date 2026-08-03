@@ -1,0 +1,66 @@
+Pack: Geschmack
+Left: Fad
+Right: Lecker
+---
+Left: Süß
+Right: Sauer
+---
+Left: Mild
+Right: Scharf
+---
+Left: Gesund
+Right: Junkfood
+---
+Left: Snack
+Right: Festmahl
+---
+Left: Bitter
+Right: Zuckrig
+---
+Left: Schlicht
+Right: Edel
+---
+Left: Wässrig
+Right: Gehaltvoll
+---
+Left: Roh
+Right: Gekocht
+---
+Left: Winzige Portion
+Right: Riesige Portion
+---
+Left: Kaltes Getränk
+Right: Heißes Getränk
+---
+Left: Nippen
+Right: In einem Zug
+---
+Left: Knusprig
+Right: Matschig
+---
+Left: Frisch
+Right: Altbacken
+---
+Left: Alltagsessen
+Right: Besonderer Genuss
+---
+Left: Happen
+Right: Bankett
+---
+Left: Nüchternes Frühstück
+Right: Nachtisch zum Abendessen
+---
+Left: Billige Küche
+Right: Gehobene Küche
+---
+Left: Zu wenig gewürzt
+Right: Zu stark gewürzt
+---
+Left: Diät
+Right: Schummeltag
+---
+Left: Zimmertemperatur
+Right: Glühend
+---
+Left: Ein Häppchen
+Right: Nachschlag, bitte

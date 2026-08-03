@@ -1,0 +1,37 @@
+Pack: Zeit & Raum
+
+A: Die ferne Vergangenheit besuchen
+B: Die ferne Zukunft besuchen
+---
+A: Auf dem Mars leben
+B: Unter dem Meer leben
+---
+A: Deine Vorfahren treffen
+B: Deine Nachkommen treffen
+---
+A: Den tiefen Weltraum erkunden
+B: Die Tiefsee erkunden
+---
+A: Auf einem echten Dinosaurier reiten
+B: Mit einer Rakete zum Mond fliegen
+---
+A: Einen Roboter-Butler haben
+B: Ein fliegendes Auto haben
+---
+A: Dich in jedes Jahr teleportieren
+B: Dich an jeden Ort teleportieren
+---
+A: Dein Leben ab 10 neu starten
+B: 10 Jahre vorspulen
+---
+A: Vor 300 Jahren berühmt sein
+B: Heute unbekannt, aber sorgenfrei sein
+---
+A: Eine funktionierende Zeitmaschine besitzen
+B: Einen funktionierenden Teleporter besitzen
+---
+A: Einen neuen Planeten entdecken
+B: Eine neue Spezies entdecken
+---
+A: Wissen, wie die Welt endet
+B: Wissen, wie die Welt begann

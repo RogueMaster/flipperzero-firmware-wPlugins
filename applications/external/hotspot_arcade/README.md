@@ -19,7 +19,7 @@ the rounds. The ESP32 board is the **referee**: it runs the WiFi access point, s
 the game to phones, and keeps the real-time game state. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-Fourteen games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
+Fifteen games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
 reactions that float up on everyone's screen mid-game.
 
 **Whole-group** (scale to everyone in the room, ready-up lobby, shared live leaderboard):
@@ -54,6 +54,8 @@ the Flipper leaderboard):
 - **Pong** — real-time rally with on-screen paddles.
 - **Battleship** — place a hidden fleet, then fire at the enemy grid; a hit lets you fire
   again, sink all five ships to win.
+- **Chess** — full FIDE rules refereed on the board, 5-minute blitz clock per side; offer
+  or claim a draw, or resign.
 
 **Cooperative-ish:**
 
@@ -95,7 +97,7 @@ Reaction Duel, Guess the Color), Draw &amp; Guess, and a real-time Pong (animate
   <img src="docs/img/web-pong.gif" alt="Pong: real-time 1v1 rally with on-screen paddle controls" width="19%">
 </p>
 
-The 1v1 board duels (Connect Four, Tic-Tac-Toe, Dots &amp; Boxes, Reversi, Battleship):
+The 1v1 board duels (Connect Four, Tic-Tac-Toe, Dots &amp; Boxes, Reversi, Battleship, Chess):
 
 <p align="center">
   <img src="docs/img/web-connect4.png" alt="Connect Four: 7x6 board mid-game, your turn" width="19%">
@@ -103,6 +105,7 @@ The 1v1 board duels (Connect Four, Tic-Tac-Toe, Dots &amp; Boxes, Reversi, Battl
   <img src="docs/img/web-dots.png" alt="Dots &amp; Boxes: claimed boxes and live score" width="19%">
   <img src="docs/img/web-reversi.gif" alt="Reversi/Othello: 8x8 board with legal-move hints and disc counts" width="19%">
   <img src="docs/img/web-battleship.gif" alt="Battleship: place a fleet, then fire at the enemy grid with hits, misses, and sinks" width="19%">
+  <img src="docs/img/web-chess.gif" alt="Chess: full FIDE rules with legal-move hints, blitz clocks, and a checkmate finish" width="19%">
 </p>
 
 **On the Flipper** — the host device shows the app menu, the live broadcasting dashboard

@@ -4,7 +4,31 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.6.0] - 2026-08-03
+
+Chess joins as the fifteenth game. Firmware **v17**.
+
+### Added
+
+- **Chess**, a 15th game (1v1). Full FIDE rules refereed on the ESP: legal move
+  generation, check/checkmate/stalemate, castling, en passant, and underpromotion.
+  Threefold repetition and the 50-move rule are claimable, fivefold repetition and the
+  75-move rule end the game automatically, and a flag fall loses unless the opponent
+  couldn't mate by any legal sequence (FIDE 6.9), which draws instead. A 5+0 blitz clock
+  per side, server-authoritative. Ships fully localized (English + Brazilian Portuguese)
+  from day one. Firmware **v17**.
+- A **keep-awake helper** on the phone client: the Wake Lock API where available, falling
+  back to a looping muted video where it isn't (the AP's captive page is served over an
+  insecure context, so `navigator.wakeLock` is absent there) — keeps the screen on through
+  a long chess clock or any other match.
+
+### Fixed
+
+- `selectGame()`'s clear-chain was missing `gcClear()` and `battleClear()`, so switching
+  the active game left live Guess the Color and Battleship matches occupying their slots.
+  Fixed alongside adding the new `chessClear()`.
+- Battleship's "A vs B" match `EVENT` never reached the Flipper: the UART dispatcher's
+  event key chain checked `duel`/`pong`/`draw` but not `bs`. Added (alongside `chess`).
 
 ## [1.5.0] - 2026-08-02
 
@@ -26,6 +50,8 @@ the first language. Firmware **v16** (the board relays the host's language to ea
   the unchanged default. **Brazilian Portuguese (pt-BR)** is the first, with a starter pack
   for every content game. Adding a language is a set of pack files plus one row in the
   settings picker.
+- **German (de).** A full German translation of all six content games — every pack for
+  Trivia, Would You Rather, Spectrum, Kiss Marry Kill, Word Scramble and Draw (32 packs).
 
 ### Fixed
 

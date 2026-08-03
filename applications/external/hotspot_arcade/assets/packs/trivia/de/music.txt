@@ -1,0 +1,70 @@
+Pack: Sound-Check
+Q: Welche Band veröffentlichte "Bohemian Rhapsody"?
+A: The Beatles
+B: Queen
+C: Led Zeppelin
+D: Pink Floyd
+Answer: B
+---
+Q: Wie viele Saiten hat eine Standardgitarre?
+A: 4
+B: 5
+C: 6
+D: 7
+Answer: C
+---
+Q: Wer ist als "King of Pop" bekannt?
+A: Elvis Presley
+B: Prince
+C: Michael Jackson
+D: Freddie Mercury
+Answer: C
+---
+Q: Welches Instrument hat 88 Tasten?
+A: Klavier
+B: Harfe
+C: Akkordeon
+D: Orgel
+Answer: A
+---
+Q: "Purple Rain" ist von welchem Künstler?
+A: David Bowie
+B: Prince
+C: Jimi Hendrix
+D: Lenny Kravitz
+Answer: B
+---
+Q: Was bedeutet "forte" in der Musik?
+A: Langsam
+B: Schnell
+C: Laut
+D: Leise
+Answer: C
+---
+Q: Welches Jahrzehnt wird am meisten mit Disco verbunden?
+A: 1960er
+B: 1970er
+C: 1980er
+D: 1990er
+Answer: B
+---
+Q: In welcher Stadt gründeten sich die Beatles?
+A: London
+B: Manchester
+C: Liverpool
+D: Birmingham
+Answer: C
+---
+Q: Eine Gruppe aus vier Musikern nennt man?
+A: Trio
+B: Quartett
+C: Quintett
+D: Duo
+Answer: B
+---
+Q: Wer sang "Rolling in the Deep"?
+A: Adele
+B: Beyoncé
+C: Rihanna
+D: Lady Gaga
+Answer: A
