@@ -69,6 +69,39 @@ try {
 }
 H(bundleOk, "web/dist matches `node web/build.mjs` (decompressed)", bundleDetail);
 
+// ---- HARD: i18n catalog integrity ----
+// Every t("key") the client calls must resolve in the English catalog — a missing key
+// leaks the raw key string to players. pt-BR (or any non-en) gaps are advisory: they
+// fall back to English by design, so they're reported in the detail, not failed.
+// (Only direct t("literal") calls are checked; keys passed through a variable — e.g.
+// kmk.js's LBL[] array — are not, but they're literals in the source and rarely drift.)
+let i18nOk = true, i18nDetail = "";
+try {
+  const cat = read("/web/core/i18n.js");
+  const parts = cat.split('"pt-br"');
+  const keysOf = (s) => new Set([...s.matchAll(/"([a-z][a-z0-9]*\.[a-z0-9_]+)":/g)].map((m) => m[1]));
+  const en = keysOf(parts[0]);
+  const pt = keysOf('"pt-br"' + (parts[1] || ""));
+  const refs = new Set();
+  for (const f of sh("git ls-files web/games web/core").split("\n")) {
+    if (!/\.js$/.test(f) || /i18n\.js$/.test(f)) continue;
+    for (const m of read("/" + f).matchAll(/(?<![A-Za-z0-9_$])t\(\s*"([^"]+)"/g)) {
+      if (/^[a-z]+\./.test(m[1])) refs.add(m[1]); // namespaced keys only
+    }
+  }
+  const missingEn = [...refs].filter((k) => !en.has(k));
+  const missingPt = [...en].filter((k) => !pt.has(k));
+  i18nOk = missingEn.length === 0;
+  i18nDetail = !i18nOk
+    ? `missing en keys: ${missingEn.join(", ")}`
+    : `${en.size} keys` + (missingPt.length
+      ? `, pt-br missing ${missingPt.length} (falls back to en): ${missingPt.slice(0, 6).join(", ")}${missingPt.length > 6 ? "…" : ""}`
+      : ", pt-br in sync");
+} catch (e) {
+  i18nDetail = "could not check the i18n catalog: " + e.message.split("\n")[0];
+}
+H(i18nOk, "i18n catalog: every client t() key resolves (en)", i18nDetail);
+
 // ---- Detect a new game (a HA_GAME_* id present in HEAD but not in BASE) ----
 let baseGames = {};
 if (BASE) {

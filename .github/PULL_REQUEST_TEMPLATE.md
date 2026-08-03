@@ -25,7 +25,8 @@
 - [ ] Engine wired into every seam in `ha_games.h` (reset, clear-on-switch, tick, intent
       dispatch, state member, per-player push, `gameName`, and `checkStart`/`loadItem`).
 - [ ] Phone client registered in `web/build.mjs`, `web/core/app.js`, `web/src/index.html`,
-      `web/core/style.css`.
+      `web/core/style.css`, and user-facing strings added to the `en` catalog in
+      `web/core/i18n.js` (`t("key")` / `data-i18n` — `pr-check` fails on a missing key).
 - [ ] Flipper UI wired in `scenes/hotspot_arcade_scene_game_select.c` and
       `scenes/hotspot_arcade_scene_lobby.c`.
 - [ ] Simulator updated (`sim/web/flipper.js` `GAMES`, plus `PACK_DIRS` if it has packs).

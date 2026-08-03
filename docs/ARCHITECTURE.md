@@ -95,7 +95,10 @@ owns the WebSocket, identity (nickname + emoji avatar in localStorage), lobby, s
 router, emoji reactions, and the shared game-UI components (`A.readyLobby` / `A.countdown`
 / `A.timebar` / `A.showLead` leaderboard / `A.podium`). Each game module (`trivia.js`,
 `duel.js` for the four board duels, `draw.js`, `pong.js`, `wyr.js`, `scramble.js`,
-`react.js`) registers handlers for its message types and reuses those components. Styled to the Flipper design
+`react.js`) registers handlers for its message types and reuses those components. User-facing text is
+localized through `core/i18n.js`: the host's language rides in the `welcome` message and
+the client renders from a message catalog, with English the default and the fallback for
+any untranslated string. Styled to the Flipper design
 system ([../web/DESIGN.md](../web/DESIGN.md)): dark, monochrome, one orange accent,
 mono/uppercase, sharp borders. The captive page is a real-browser handoff because iOS/
 Android captive mini-browsers do not run WebSockets reliably.

@@ -56,7 +56,7 @@ All control messages are framed so the link can resync after noise:
 | 0x17 | QUESTION     | JSON: `{"i":<n>,"q":"..","o":["a","b","c","d"],"c":<0-3>,"dur":<sec>}` (trivia) |
 | 0x18 | REVEAL       | (none) — close the current question, broadcast the correct answer |
 | 0x19 | ROUND_END    | (none) — back to lobby for the active game |
-| 0x1A | CONFIG       | JSON: `{"max":8}` optional tuning |
+| 0x1A | CONFIG       | JSON: `{"max":8,"lang":"pt-br"}` — station cap and the host's phone-UI language (`""`/absent = English). The ESP stores `lang` and echoes it back in each `welcome`. |
 | 0x1B | RESET_SCORES | (none) — zero the ESP live score mirror |
 | 0x1C | CONTENT_CLEAR | (none) — drop all packs, for every game |
 | 0x1D | CONTENT_PACK | game byte + pack name — begin a pack for that game |
@@ -67,6 +67,10 @@ All control messages are framed so the link can resync after noise:
 > content game needs no protocol change. Per-game item shapes (no new opcodes, just what
 > the ESP expects in each `CONTENT_ITEM` JSON object): trivia `{q,a,b,c,d,answer}`, wyr
 > `{a,b}` (the two options), scramble and draw `{word}` (a single plain word).
+>
+> Content **language** is resolved entirely on the Flipper: for the host's chosen `lang`
+> it streams `packs/<game>/<lang>/` (falling back to the English packs at `packs/<game>/`
+> per game), so the wire opcodes above are language-agnostic. Item text is UTF-8.
 
 **ESP -> Flipper**
 
@@ -127,7 +131,7 @@ REVEAL/ROUND_END flow down as the host drives rounds. PING beacons throughout.
 
 | `t`      | Fields | Meaning |
 |----------|--------|---------|
-| `welcome`| `pid`, `nick` | Assigned player id after `hello` |
+| `welcome`| `pid`, `nick`, `lang` | Assigned player id after `hello`; `lang` is the host's phone-UI language (`""` = English), which the client uses to pick its message catalog |
 | `lobby`  | `game` ("none"/"trivia"/"connect4"), `players` (`[{pid,nick,score}]`), `me` (pid) | Lobby snapshot; sent on change |
 | `trivia` | `phase` ("idle"/"question"/"reveal"), `i`, `q`, `o` (opts), `dur`, `deadline` (ms epoch-ish, server `millis`), `mine` (my choice or -1), `counts` ([n0..n3]), `correct` (reveal only), `scores` | Full trivia view for this client |
 | `c4`     | `phase` ("lobby"/"playing"/"over"), lobby: `challenges` (`[{from,to}]`); playing: `mid`, `board` (42 ints: 0 empty/1/2), `turn` (pid), `me` (1 or 2), `opp` (nick), `you` (pid); over: `result` ("win"/"lose"/"draw") | Full connect4 view for this client |

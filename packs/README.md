@@ -1,7 +1,7 @@
 # Content packs
 
-Plain-text content for the pack-driven games, one directory per game: `packs/trivia/`,
-`packs/wyr/`, `packs/scramble/`, `packs/draw/`.
+Plain-text content for the pack-driven games, one directory per game (`packs/trivia/`,
+`packs/wyr/`, `packs/scramble/`, `packs/draw/`, `packs/spectrum/`, `packs/kmk/`).
 
 The format is the same for every game: `Key: value` lines, with a line of `---` or a
 blank line between blocks. A `Pack:` key names the pack; without one the filename is
@@ -95,6 +95,25 @@ Word: house
 
 Same 20-character guidance as scramble. Unlike the other games, draw has no vote
 strip yet — the first pack streamed is the one played.
+
+## Languages
+
+English packs live at the game root (`packs/<game>/*.txt`) and are the default. A
+translated set goes in a subdirectory named for the host's language code — the same code
+the phone UI uses (e.g. `pt-br`):
+
+```
+packs/trivia/geral.txt         # English (default)
+packs/trivia/pt-br/geral.txt   # Brazilian Portuguese
+```
+
+When the host picks a language in Settings, the Flipper streams that language's
+subdirectory for each game, falling back to the English packs **per game** where a
+language has none (so a partly translated language still plays). Content is UTF-8, so
+accented words are fine — Word Scramble shuffles whole characters (not bytes) and Draw
+counts blanks per character. Adding a language is a set of pack files here plus a row in
+the Flipper's Settings language picker (and, for the phone UI itself, a catalog in
+`web/core/i18n.js`).
 
 ## How packs get onto the SD card
 

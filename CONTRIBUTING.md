@@ -61,7 +61,11 @@ kind — it shows every seam.
 
 **Phone client:** `web/games/<name>.js` (an `A.handlers.<t>` handler), and register it in
 `web/build.mjs`, `web/core/app.js` (`SCREENS`, `GAME_SCREEN`, `GAME_LABEL`),
-`web/src/index.html` (a `<section>`), and `web/core/style.css`.
+`web/src/index.html` (a `<section>`), and `web/core/style.css`. Route user-facing text
+through the i18n layer: static markup gets `data-i18n`/`data-i18n-ph` attributes, dynamic
+text uses `t("key")`, and the keys go in the `en` catalog in `web/core/i18n.js` (a
+`pr-check` gate fails if a `t()` key is missing from `en`). Translating those keys is
+optional — anything untranslated falls back to English.
 
 **Flipper UI:** `scenes/hotspot_arcade_scene_game_select.c` (enum entry, submenu item,
 selected-item mapping, and the `on_event` case) and `scenes/hotspot_arcade_scene_lobby.c`
@@ -80,6 +84,25 @@ shouldn't see).
 **Docs & counts:** the game count and gallery in `README.md`, a `CHANGELOG.md` entry under
 `[Unreleased]`, the count/list in `flipper/hotspot-arcade/catalog/DESCRIPTION.md`, and a new
 section in `docs/PROTOCOL.md`. A README GIF is appreciated but the maintainer can add it.
+
+## Adding a language
+
+Localization has two independent halves — you can do either on its own.
+
+**Phone UI:** add a language block to `MESSAGES` in `web/core/i18n.js`, keyed by the
+language code (e.g. `pt-br`), translating the `en` keys you can. Missing keys fall back to
+English, so a partial translation is safe. Rebuild the bundle (`node web/build.mjs`).
+
+**Content:** add packs under `packs/<game>/<lang>/` for the games you want; the English
+packs at the game root are the per-game fallback. See [packs/README.md](packs/README.md).
+
+**Register the code** as a row in the Flipper's Settings language picker
+(`scenes/hotspot_arcade_scene_settings.c`) so a host can select it — use an ASCII label
+(the Flipper font has no accented glyphs). The host's choice rides to each phone in the
+`welcome` message, so there's no protocol or firmware change. The simulator's language
+picker (`sim/web/flipper.js`, `LANGS` in `sim/web/trivia-packs.js`) exercises it headlessly
+and in the browser. Keep English as the default and the source of truth; every other
+language is an overlay on it.
 
 ## Opening the PR
 
