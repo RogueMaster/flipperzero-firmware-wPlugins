@@ -480,6 +480,135 @@ void engine_render(void) {
         }
     }
 
+    // v6.1: 渲染敌人精灵 (3D 投影 + 外形 + 受伤反白 + 移动呼吸)
+    {
+        Player* pp = &g.player;
+        const float invDet = 1.0f / (pp->plane_x * pp->dir_y - pp->dir_x * pp->plane_y);
+        for(int i = 0; i < g.actor_count; i++) {
+            Actor* a = &g.actors[i];
+            if(!a->active || a->hp == 0) continue;
+            float spx = a->x - pp->x;
+            float spy = a->y - pp->y;
+            float transX = invDet * ( pp->dir_y * spx - pp->dir_x * spy);
+            float transY = invDet * (-pp->plane_y * spx + pp->plane_x * spy);
+            if(transY <= 0.2f) continue;   // 背后或太近不画
+            int screenX = (int)((SCREEN_W / 2.0f) * (1.0f + transX / transY));
+            if(screenX < -8 || screenX > SCREEN_W + 8) continue;
+            // 投影高度 (敌人约 0.8 格高)
+            int sh = (int)((float)SCREEN_H * 0.8f / transY);
+            if(sh < 3) sh = 3;
+            if(sh > 36) sh = 36;
+            int sw = sh / 2;             // 宽度约高度一半
+            // 垂直锚点: 站在地板上 (脚部在 drawEnd 附近)
+            int feet_y = SCREEN_H / 2 + (int)((float)SCREEN_H * 0.4f / transY);
+            if(feet_y > SCREEN_H - 1) feet_y = SCREEN_H - 1;
+            int top_y = feet_y - sh;
+            if(top_y < 0) top_y = 0;
+            // 受伤反白: hurt_flash>0 时画空心 (反相), 否则实心
+            bool hurt = (a->hurt_flash > 0);
+            // 移动呼吸: 每 8 帧上下抖 1 像素
+            int bob = ((g.tick + i * 3) & 8) ? 1 : 0;
+            top_y += bob; feet_y += bob;
+            // 敌人外形: 头(小圆) + 身(矩形) + 眼(亮点)
+            // 身体: 实心矩形 (留头顶 1/4 给头)
+            int body_h = sh - sh / 4;
+            int body_top = top_y + sh / 4;
+            for(int yy = 0; yy < body_h; yy++) {
+                int py = body_top + yy;
+                if(py < 0 || py >= SCREEN_H) continue;
+                for(int xx = -sw; xx <= sw; xx++) {
+                    int px = screenX + xx;
+                    if(px < 0 || px >= SCREEN_W) continue;
+                    // 边框始终亮, 内部按 hurt 决定
+                    bool edge = (xx == -sw || xx == sw || yy == 0 || yy == body_h - 1);
+                    if(edge) fb_set(px, py, 1);
+                    else if(!hurt) fb_set(px, py, 1);   // 实心敌人
+                    // hurt 时内部留空 (反白效果)
+                }
+            }
+            // 头: 小方块
+            int head_h = sh / 4;
+            if(head_h < 2) head_h = 2;
+            for(int yy = 0; yy < head_h; yy++) {
+                int py = top_y + yy;
+                if(py < 0 || py >= SCREEN_H) continue;
+                int hw = sw / 2 + 1;
+                for(int xx = -hw; xx <= hw; xx++) {
+                    int px = screenX + xx;
+                    if(px < 0 || px >= SCREEN_W) continue;
+                    fb_set(px, py, 1);
+                }
+            }
+            // 眼睛: 两个亮点 (闪烁, 模拟"瞄准玩家")
+            if(sh >= 8 && (g.tick & 3) < 3) {
+                int ey_y = top_y + head_h / 2 + 1;
+                int ex_off = (sw > 2) ? 1 : 0;
+                if(ex_off) {
+                    fb_set(screenX - ex_off, ey_y, hurt ? 0 : 1);
+                    fb_set(screenX + ex_off, ey_y, hurt ? 0 : 1);
+                }
+            }
+            // 敌人射击预警: fire_cd 接近 0 时画一个红点(此处黑白=亮点)在枪口位置
+            if(a->fire_cd > 0 && a->fire_cd < 8 && sh >= 6) {
+                int mx = screenX;
+                int my = body_top + body_h / 2;
+                fb_set(mx, my, 1);
+                fb_set(mx + 1, my, 1);
+            }
+        }
+    }
+
+    // v6.1: 渲染子弹 (沿屏幕水平线的发光点, 远近按距离缩放)
+    {
+        Player* pp = &g.player;
+        const float invDet = 1.0f / (pp->plane_x * pp->dir_y - pp->dir_x * pp->plane_y);
+        for(int i = 0; i < MAX_BULLETS; i++) {
+            Bullet* b = &g.bullets[i];
+            if(!b->active) continue;
+            float spx = b->x - pp->x;
+            float spy = b->y - pp->y;
+            float transX = invDet * ( pp->dir_y * spx - pp->dir_x * spy);
+            float transY = invDet * (-pp->plane_y * spx + pp->plane_x * spy);
+            if(transY <= 0.1f) continue;
+            int sx = (int)((SCREEN_W / 2.0f) * (1.0f + transX / transY));
+            if(sx < -2 || sx > SCREEN_W + 1) continue;
+            // 子弹在屏幕中线高度 (略低于视线)
+            int sy = SCREEN_H / 2 + (int)(4.0f / transY);
+            if(sy < 0) sy = 0;
+            if(sy >= SCREEN_H) sy = SCREEN_H - 1;
+            // 大小随距离: 近处画 3 点, 远处 1 点, 闪烁
+            bool flick = ((g.tick + i) & 1) == 0;
+            if(transY < 2.0f && flick) {
+                fb_set(sx - 1, sy, 1);
+                fb_set(sx + 1, sy, 1);
+            }
+            fb_set(sx, sy, 1);
+            // 玩家子弹拖尾 (向上偏移的渐淡点)
+            if(b->owner == 0 && transY < 3.0f) {
+                fb_set(sx, sy - 1, (g.tick & 1));
+            }
+        }
+    }
+
+    // v6.1: 枪口闪光 (屏幕中央亮斑, 模拟开火瞬间)
+    if(g.muzzle_flash > 0) {
+        int cx = SCREEN_W / 2, cy = SCREEN_H / 2 + 4;
+        // 十字闪光 + 中心实心
+        fb_set(cx, cy, 1);
+        for(int r = 1; r <= 3; r++) {
+            fb_set(cx + r, cy, 1); fb_set(cx - r, cy, 1);
+            fb_set(cx, cy + r, 1); fb_set(cx, cy - r, 1);
+        }
+        // 对角线 (稀疏)
+        fb_set(cx + 2, cy + 2, 1); fb_set(cx - 2, cy - 2, 1);
+        fb_set(cx - 2, cy + 2, 1); fb_set(cx + 2, cy - 2, 1);
+    }
+
+    // v6.1: 受伤闪白 (整屏反相几帧)
+    if(g.hurt_flash > 0 && (g.tick & 1)) {
+        for(int i = 0; i < FB_BYTES; i++) g.fb[i] ^= 0xFF;
+    }
+
     draw_minimap();
     if(g.mode != MODE_MC) draw_compass();   // MC 沙盒无出口, 不画罗盘
 

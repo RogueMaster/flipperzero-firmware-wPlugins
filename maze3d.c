@@ -69,6 +69,68 @@ static void canvas_draw_num(Canvas* c, int x, int y, int n) {
     canvas_draw_str(c, x, y, buf);
 }
 
+// v6.1: 画一个小心形 (7x6) — 用实心像素拼, 比字符更清晰
+static void canvas_draw_heart(Canvas* c, int x, int y, bool filled) {
+    // 心形位图 (7x6), 1=亮
+    static const uint8_t heart[6] = {
+        0x66,  // .##.##.
+        0xFF,  // #######
+        0xFF,  // #######
+        0x7E,  // .#####.
+        0x3C,  // ..###..
+        0x18,  // ...#...
+    };
+    for(int r = 0; r < 6; r++) {
+        for(int cc = 0; cc < 7; cc++) {
+            bool on = (heart[r] >> (6 - cc)) & 1;
+            if(filled ? on : on) {  // 心形只画 on 像素 (filled 参数保留以备空心)
+                canvas_draw_dot(c, x + cc, y + r);
+            }
+        }
+    }
+}
+
+// v6.1: 画一个小星星 (7x7) — 五角星近似
+static void canvas_draw_star(Canvas* c, int x, int y) {
+    // 星形位图 (7x7)
+    static const uint8_t star[7] = {
+        0x10,  // ...#...
+        0x10,  // ...#...
+        0xFE,  // #######
+        0x38,  // ..###..
+        0x7C,  // .#####.
+        0x28,  // .#.#.#.
+        0x44,  // #.....#
+    };
+    for(int r = 0; r < 7; r++) {
+        for(int cc = 0; cc < 7; cc++) {
+            if((star[r] >> (6 - cc)) & 1) {
+                canvas_draw_dot(c, x + cc, y + r);
+            }
+        }
+    }
+}
+
+// v6.1: 画一个骷髅/敌人图标 (8x7) — 表示剩余敌人
+static void canvas_draw_skull(Canvas* c, int x, int y) {
+    static const uint8_t skull[7] = {
+        0x3C,  // ..####..
+        0x7E,  // .######.
+        0xDB,  // ##.##.##
+        0xFF,  // ########
+        0xFF,  // ########
+        0x18,  // ...##...
+        0x3C,  // ..####..
+    };
+    for(int r = 0; r < 7; r++) {
+        for(int cc = 0; cc < 8; cc++) {
+            if((skull[r] >> (7 - cc)) & 1) {
+                canvas_draw_dot(c, x + cc, y + r);
+            }
+        }
+    }
+}
+
 // ---- 新界面绘制 ----
 static const char* en_item_name(int t) {
     switch(t) {
@@ -944,57 +1006,79 @@ static void draw_callback(Canvas* canvas, void* ctx) {
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_xbm(canvas, 0, 0, SCREEN_W, SCREEN_H, g.fb);
 
-    // 始终显示的顶部状态条 (不依赖 show_hud): 关卡/层数 + 血量 + 敌人数(战斗)
+    // v6.1: 顶部状态条 — 关卡/层数 + 心形血量 + 骷髅剩余敌人 + 星星击杀 + 弹药
     // 半透明效果: 用白底黑字覆盖在 3D 画面顶部
     if(g.mode != MODE_MC) {
         canvas_set_color(canvas, ColorWhite);
-        canvas_draw_box(canvas, 0, 0, 128, 10);
+        canvas_draw_box(canvas, 0, 0, 128, 11);
         canvas_set_color(canvas, ColorBlack);
         canvas_set_font(canvas, FontSecondary);
-        char sb[24];
         int lv = (g.mode == MODE_CAMPAIGN) ? g.level : g.endless_floor;
         const char* ltag = (g.mode == MODE_CAMPAIGN) ? "L" : "F";
-        // 左: 关卡/层数 + HP
-        snprintf(sb, sizeof(sb), "%s%d HP%d", ltag, lv, g.player.health);
-        canvas_draw_str(canvas, 1, 8, sb);
-        // 右: 敌人数 (战斗阶段) 或 钥匙数 (解谜阶段)
+        // 左侧: 关卡/层数 (文字)
+        char sb[20];
+        snprintf(sb, sizeof(sb), "%s%d", ltag, lv);
+        canvas_draw_str(canvas, 1, 9, sb);
+        // 心形血量 (最多画 5 颗心, 超出用数字)
+        int hx = 22;
+        int hp = g.player.health;
+        int maxhp = g.player.max_health;
+        if(maxhp > 5) {
+            // 高血量: 画 1 颗心 + 数字
+            canvas_draw_heart(canvas, hx, 2, true);
+            char hpb[12]; snprintf(hpb, sizeof(hpb), "x%d", hp);
+            canvas_draw_str(canvas, hx + 9, 9, hpb);
+            hx += 24;
+        } else {
+            for(int i = 0; i < maxhp; i++) {
+                canvas_draw_heart(canvas, hx + i * 8, 2, i < hp);
+            }
+            hx += maxhp * 8 + 2;
+        }
+        // 右侧: 战斗关显示 骷髅+剩余敌人 + 星星+击杀 + 弹药
         if(g.stage == STAGE_COMBAT) {
-            // 统计存活敌人数
             int alive = 0;
             for(int i = 0; i < g.actor_count; i++)
                 if(g.actors[i].active && g.actors[i].type == 0 && g.actors[i].hp > 0) alive++;
-            if(g.lang == LANG_ZH)
-                canvas_draw_xbm(canvas, 100, 0, HUD_ENEMY_W, HUD_ENEMY_H, hud_enemy_bits);
-            else
-                canvas_draw_str(canvas, 104, 8, EN_HUD_ENEMY);
+            // 弹药 (左中)
+            char ab[12]; snprintf(ab, sizeof(ab), "A%d", g.ammo);
+            canvas_draw_str(canvas, 70, 9, ab);
+            // 星星击杀数
+            canvas_draw_star(canvas, 84, 2);
+            char kc[12]; snprintf(kc, sizeof(kc), "%d", g.task_kill_count);
+            canvas_draw_str(canvas, 92, 9, kc);
+            // 骷髅剩余敌人 (最右)
+            canvas_draw_skull(canvas, 108, 2);
             char ec[12]; snprintf(ec, sizeof(ec), "%d", alive);
-            canvas_draw_str_aligned(canvas, 127, 8, AlignRight, AlignBottom, ec);
+            canvas_draw_str(canvas, 117, 9, ec);
+            // 没弹药时 AM 闪烁警告
+            if(g.ammo == 0 && (g.tick & 7) < 4) {
+                canvas_draw_str(canvas, 70, 9, "AM!");
+            }
         } else if(g.stage == STAGE_PUZZLE) {
+            // 解谜: 钥匙数
             snprintf(sb, sizeof(sb), "K%d", g.player.keys);
-            canvas_draw_str_aligned(canvas, 127, 8, AlignRight, AlignBottom, sb);
-        }
-        // v6.0: 战斗关右下显示弹药数
-        if(g.stage == STAGE_COMBAT) {
-            char ab[8];
-            snprintf(ab, sizeof(ab), "AM%d", g.ammo);
-            canvas_draw_str(canvas, 64, 8, ab);
+            canvas_draw_str_aligned(canvas, 127, 9, AlignRight, AlignBottom, sb);
         }
     } else {
-        // MC 沙盒模式 (Beta): 顶部状态条 — 模式 + 手持方块 + 已挖数
+        // MC 沙盒模式: 顶部状态条 — 模式 + 手持方块 + 已挖数 + 心形血量
         canvas_set_color(canvas, ColorWhite);
-        canvas_draw_box(canvas, 0, 0, 128, 10);
+        canvas_draw_box(canvas, 0, 0, 128, 11);
         canvas_set_color(canvas, ColorBlack);
         canvas_set_font(canvas, FontSecondary);
-        // v6.0: 6 种方块名 (砖/石/木/草/沙/树叶)
         const char* bn[6] = { "Brick", "Stone", "Wood", "Grass", "Sand", "Leaf" };
         char mb[32];
         snprintf(mb, sizeof(mb), "MC %s M%d",
                  bn[(g.mc_block_type - 1) % 6], g.mc_mined);
-        canvas_draw_str(canvas, 1, 8, mb);
-        // v6.0: 右上显示成就统计
+        canvas_draw_str(canvas, 1, 9, mb);
+        // v6.1: MC 模式也显示心形血量 (5 颗)
+        for(int i = 0; i < g.player.max_health && i < 5; i++) {
+            canvas_draw_heart(canvas, 70 + i * 8, 2, i < g.player.health);
+        }
+        // 右上: 成就统计 (K=击杀 C=通关)
         char ach[24];
         snprintf(ach, sizeof(ach), "K%lu C%lu", g.ach_total_kills, g.ach_total_clears);
-        canvas_draw_str_aligned(canvas, 127, 8, AlignRight, AlignBottom, ach);
+        canvas_draw_str_aligned(canvas, 127, 9, AlignRight, AlignBottom, ach);
         // 右下角操作提示 (闪烁)
         if((g.tick & 7) < 6) {
             const char* hint = (g.lang == LANG_ZH)
