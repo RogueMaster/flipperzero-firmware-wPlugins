@@ -94,10 +94,11 @@ static bool     s_bgm_active = false;
 static uint8_t  s_bgm_idx = 0;
 static uint8_t  s_bgm_ticks_left = 0;
 static volatile bool s_speaker_on = false;
+static bool s_speaker_acquired = false;
 
 static void speaker_start(uint32_t freq) {
     if(!g.sfx_enabled) return;
-    if(!furi_hal_speaker_is_mine()) return;
+    if(!s_speaker_acquired) return;
     furi_hal_speaker_start(freq, 0.35f);
     s_speaker_on = true;
 }
@@ -116,12 +117,19 @@ void sfx_init(void) {
     s_bgm_idx = 0;
     s_bgm_ticks_left = 0;
     s_speaker_on = false;
+    // 获取 speaker 所有权 (FuriHal 的 speaker 是互斥资源)
+    // 用 1000ms 超时, 失败则音效功能不可用 (不阻塞 app)
+    s_speaker_acquired = furi_hal_speaker_acquire(1000);
 }
 
 void sfx_deinit(void) {
     speaker_stop_now();
     s_cur_sfx = SFX_NONE;
     s_bgm_active = false;
+    if(s_speaker_acquired) {
+        furi_hal_speaker_release();
+        s_speaker_acquired = false;
+    }
 }
 
 void sfx_stop_all(void) {

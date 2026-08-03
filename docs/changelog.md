@@ -1,3 +1,13 @@
+v4.3.1:
+- FIX: no sound at all. v4.3's speaker_start() called the non-existent
+  furi_hal_speaker_is_muted() which was patched to furi_hal_speaker_is_mine(),
+  but the app never acquired the speaker first — so is_mine() always returned
+  false and every sound was silently dropped. Now sfx_init() calls
+  furi_hal_speaker_acquire(1000ms) to take ownership of the speaker, and
+  sfx_deinit() releases it. speaker_start() just calls furi_hal_speaker_start
+  directly. All SFX (menu, pickup, door, combat, quest/level clear, game over)
+  and the opening BGM now play correctly.
+
 v4.3:
 - Opening animation on app start: fluent 4-stage intro with BGM —
   (1) logo drops from the top with bounce easing + impact wave,
