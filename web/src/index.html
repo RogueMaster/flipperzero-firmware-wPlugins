@@ -441,6 +441,45 @@
   </div>
 </section>
 
+<!-- 16. Chess — 1v1: full FIDE rules, server-refereed. -->
+<section id="chess" class="screen hide">
+  <header class="bar"><h2 data-i18n="chess.title">Chess</h2><button id="chess-leave" class="btn ghost sm hide" data-i18n="common.leave">Leave</button></header>
+  <div id="chess-lobby">
+    <div id="chess-incoming" class="challenges"></div>
+    <p class="sub" data-i18n="common.challenge_player">Challenge a player</p>
+    <ul id="chess-players" class="players"></ul>
+  </div>
+  <div id="chess-play" class="hide">
+    <div id="chess-opp-clock" class="ch-clock"></div>
+    <div id="chess-turn" class="turn"></div>
+    <p id="chess-check" class="ch-check hide" data-i18n="chess.check">Check!</p>
+    <div id="chess-board" class="ch-board"></div>
+    <div id="chess-my-clock" class="ch-clock"></div>
+    <div class="ch-actions">
+      <button id="chess-resign" class="btn ghost sm" data-i18n="chess.resign">Resign</button>
+      <button id="chess-draw" class="btn ghost sm" data-i18n="chess.offer_draw">Offer draw</button>
+      <button id="chess-claim" class="btn ghost sm hide" data-i18n="chess.claim_draw">Claim draw</button>
+    </div>
+  </div>
+  <div id="chess-over" class="hide over">
+    <div id="chess-result" class="result"></div>
+    <p id="chess-reason" class="sub"></p>
+    <button id="chess-rematch" class="btn big" data-i18n="common.rematch">Rematch</button>
+    <button id="chess-back" class="btn ghost" data-i18n="common.back_lobby">Back to lobby</button>
+  </div>
+  <div id="chess-promo" class="sheet hide">
+    <div class="sheet-card ch-promo-card">
+      <p class="sub" data-i18n="chess.choose_promo">Choose promotion</p>
+      <div class="ch-promo-row">
+        <button class="ch-promo-btn" data-promo="5">&#9819;</button>
+        <button class="ch-promo-btn" data-promo="4">&#9820;</button>
+        <button class="ch-promo-btn" data-promo="3">&#9821;</button>
+        <button class="ch-promo-btn" data-promo="2">&#9822;</button>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- Emoji reactions: floating layer + a corner button that opens the emoji row -->
 <div id="react-layer" class="react-layer" aria-hidden="true"></div>
 <div id="react-bar" class="react-bar hide">

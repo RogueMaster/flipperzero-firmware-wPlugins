@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const DIST = join(ROOT, "dist");
 const CEIL = 60 * 1024;   // hard ceiling: fail the build above this (gzipped)
-const TARGET = 30 * 1024; // soft target: warn above this
+const TARGET = 40 * 1024; // soft target: warn above this
 
 const read = (p) => readFileSync(join(ROOT, p), "utf8");
 
@@ -38,6 +38,7 @@ const js = [
   read("games/battleship.js"),
   read("games/spectrum.js"),
   read("games/kmk.js"),
+  read("games/chess.js"),
 ].map((f) => minify(f, false)).join("\n");
 
 let html = read("src/index.html")

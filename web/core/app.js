@@ -26,17 +26,19 @@ function esc(s) {
 /* Which lobby `game` string maps to which top-level screen, and its title.
    The three duels share the single "duel" screen; the duel message's `kind`
    drives the actual board. */
-var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk"];
+var SCREENS = ["landing", "lobby", "trivia", "duel", "draw", "pong", "wyr", "scramble", "react", "gc", "bs", "spectrum", "kmk", "chess"];
 var GAME_SCREEN = {
   trivia: "trivia", connect4: "duel", tictactoe: "duel", dots: "duel",
   reversi: "duel", draw: "draw", pong: "pong",
   wyr: "wyr", scramble: "scramble", react: "react", gc: "gc", bs: "bs", spectrum: "spectrum", kmk: "kmk",
+  chess: "chess",
 };
 var GAME_LABEL = {
   trivia: "Trivia", connect4: "Connect 4", tictactoe: "Tic-Tac-Toe",
   dots: "Dots & Boxes", reversi: "Reversi", draw: "Draw & Guess", pong: "Pong",
   wyr: "Would You Rather", scramble: "Word Scramble", react: "Reaction Duel",
   gc: "Guess the Color", bs: "Battleship", spectrum: "Spectrum", kmk: "Kiss Marry Kill",
+  chess: "Chess",
 };
 
 /* Show exactly one top-level screen. */
@@ -54,6 +56,52 @@ function screen(name) {
   // The shared leaderboard only belongs to the group-score games, which manage
   // it themselves; anywhere else, drop it so it never lingers over a lobby.
   if (name !== "trivia" && name !== "scramble" && name !== "react") A.hideLead();
+  syncWakeLock();
+}
+
+/* Keep-awake, shared by every game: don't let the phone sleep mid-match. Two
+   tiers, picked by secure context.
+   Tier 1 (HTTPS, or a "localhost" dev server) uses the real Screen Wake Lock
+   API. The browser auto-releases the sentinel when the tab hides, so we just
+   re-request it from the visibilitychange listener below.
+   Tier 2 is what actually runs on the device: http://192.168.4.1 is not a
+   secure context, so navigator.wakeLock is simply absent there. Falls back to
+   the classic NoSleep.js trick -- a muted, invisible, looping video, which
+   autoplay policies allow without a user gesture on iOS >=10 / Android. */
+var wakeSentinel = null;
+var wakeVideo = null;
+var WAKE_MP4 = "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAMwbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAB9AAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAlt0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAB9AAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAABAAAAAQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAfQAAAAAAABAAAAAAHTbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAABAAAAAgABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABfm1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAT5zdGJsAAAAvnN0c2QAAAAAAAAAAQAAAK5hdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAEABIAAAASAAAAAAAAAABFUxhdmM2Mi4xMS4xMDAgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAANGF2Y0MBZAAK/+EAF2dkAAqs2V7ARAAAAwAEAAADAAg8SJZYAQAGaOvgZSyL/fj4AAAAABBwYXNwAAAAAQAAAAEAAAAUYnRydAAAAAAAAAs4AAAAAAAAABhzdHRzAAAAAAAAAAEAAAACAABAAAAAABRzdHNzAAAAAAAAAAEAAAABAAAAHHN0c2MAAAAAAAAAAQAAAAEAAAACAAAAAQAAABxzdHN6AAAAAAAAAAAAAAACAAACwgAAAAwAAAAUc3RjbwAAAAAAAAABAAADYAAAAGF1ZHRhAAAAWW1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALGlsc3QAAAAkqXRvbwAAABxkYXRhAAAAAQAAAABMYXZmNjIuMy4xMDAAAAAIZnJlZQAAAtZtZGF0AAACrQYF//+p3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE2NSByMzIyMiBiMzU2MDVhIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAyNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTEgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD00MCByYz1jcmYgbWJ0cmVlPTEgY3JmPTUxLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAANZYiEABb//RjvApNwGQAAAAhBmiFsQV++gA==";
+function wakeWanted() { return A.joined && A.view !== "landing" && !document.hidden; }
+function ensureWakeVideo() {
+  if (wakeVideo) return wakeVideo;
+  var v = document.createElement("video");
+  v.muted = true; v.setAttribute("muted", "");   // both the property and the attribute (iOS quirk)
+  v.playsInline = true; v.setAttribute("playsinline", "");
+  v.loop = true;
+  v.width = 16; v.height = 16;
+  v.style.cssText = "position:fixed; left:0; top:0; width:1px; height:1px; opacity:0; pointer-events:none";
+  v.src = WAKE_MP4;
+  document.body.appendChild(v);
+  wakeVideo = v;
+  return v;
+}
+function syncWakeLock() {
+  var wanted = wakeWanted();
+  if (navigator.wakeLock && navigator.wakeLock.request) {
+    if (wanted && !wakeSentinel) {
+      navigator.wakeLock.request("screen").then(function (s) {
+        wakeSentinel = s;
+        s.addEventListener("release", function () { wakeSentinel = null; });
+      }).catch(function () {});
+    } else if (!wanted && wakeSentinel) {
+      wakeSentinel.release().catch(function () {});
+      wakeSentinel = null;
+    }
+    return; // Tier 1 available on this origin: never touch the video fallback.
+  }
+  var v = ensureWakeVideo();
+  if (wanted) v.play().catch(function () {});
+  else v.pause();
 }
 
 /* Auto-route driven by server state. Ignored until the user has joined so we
@@ -684,6 +732,10 @@ function initApp() {
     send({ t: "say", text: text });
     inp.value = "";
   });
+
+  // Screen Wake Lock sentinels are auto-released when the tab hides; re-sync
+  // (and re-request) whenever visibility flips back.
+  document.addEventListener("visibilitychange", syncWakeLock);
 
   connect();
   // Keepalive; also nudges the server to resend state after a doze.
