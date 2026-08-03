@@ -5,7 +5,7 @@
 #include "../common/mf_radio_tx_session.h"
 
 #define MF_RADIO_FREQ_DIGITS           6U
-#define MF_RADIO_RX_DEFAULT_WPM        10U
+#define MF_RADIO_RX_DEFAULT_WPM        15U
 #define MF_RADIO_RX_WPM_MIN            2U
 #define MF_RADIO_RX_WPM_MAX            25U
 #define MF_RADIO_RX_SAMPLE_MS          8U

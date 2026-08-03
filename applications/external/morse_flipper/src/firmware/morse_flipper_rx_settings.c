@@ -26,14 +26,14 @@ _Static_assert(sizeof(MorseFlipperRxSettingsRecord) == 8U, "RX settings record s
 #ifndef MORSE_FLIPPER_FAP
 static MorseFlipperRxSettings morse_flipper_rx_host_settings = {
     .length = 5U,
-    .wpm = 12U,
+    .wpm = 25U,
     .farnsworth_wpm = 12U,
 };
 #endif
 
 void morse_flipper_rx_settings_reset(MorseFlipperRxSettings* settings) {
     if(settings == NULL) return;
-    *settings = (MorseFlipperRxSettings){.length = 5U, .wpm = 12U, .farnsworth_wpm = 12U};
+    *settings = (MorseFlipperRxSettings){.length = 5U, .wpm = 25U, .farnsworth_wpm = 12U};
 }
 
 void morse_flipper_rx_settings_normalize(MorseFlipperRxSettings* settings) {

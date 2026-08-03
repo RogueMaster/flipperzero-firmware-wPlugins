@@ -81,7 +81,7 @@ static void test_zero_seed_uses_safe_default(void) {
     MorseFlipperCwDecoder decoder;
 
     morse_flipper_cw_decoder_init(&decoder, 0U);
-    CHECK(morse_flipper_cw_decoder_dit_ms(&decoder) == 100U);
+    CHECK(morse_flipper_cw_decoder_dit_ms(&decoder) == 48U);
 }
 
 static void test_rx_callsigns_can_use_a_two_dit_letter_boundary(void) {

@@ -21,7 +21,7 @@ static uint32_t morse_flipper_straight_strip_total_ms(
     size_t i;
 
     if(code == NULL || code[0] == '\0') return 0U;
-    if(dit_ms == 0U) dit_ms = MORSE_FLIPPER_DEFAULT_DIT_MS;
+    if(dit_ms == 0U) dit_ms = MORSE_FLIPPER_STRAIGHT_DEFAULT_DIT_MS;
 
     total = (uint32_t)dit_ms * 2U;
     for(i = 0U; code[i] != '\0'; i++) {
@@ -107,7 +107,7 @@ static void morse_flipper_draw_straight_strip(
     size_t i;
 
     if(canvas == NULL || code == NULL || code[0] == '\0') return;
-    if(dit_ms == 0U) dit_ms = MORSE_FLIPPER_DEFAULT_DIT_MS;
+    if(dit_ms == 0U) dit_ms = MORSE_FLIPPER_STRAIGHT_DEFAULT_DIT_MS;
     if(ref_ms == 0U)
         ref_ms = morse_flipper_straight_strip_total_ms(code, marks_ms, spaces_ms, dit_ms, use_ms);
 

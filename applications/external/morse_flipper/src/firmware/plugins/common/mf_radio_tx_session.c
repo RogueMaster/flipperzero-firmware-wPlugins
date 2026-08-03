@@ -21,7 +21,7 @@ bool mf_radio_tx_session_frequency_allowed(const MfRadioTxSession* session, uint
            session->hardware->tx_allowed(session->hardware->context, frequency_hz);
 }
 
-bool mf_radio_tx_session_start(
+bool mf_radio_tx_session_prepare(
     MfRadioTxSession* session,
     uint32_t frequency_hz,
     MfRadioTxMode mode) {
@@ -35,6 +35,14 @@ bool mf_radio_tx_session_start(
         return false;
     }
     session->prepared = true;
+    return true;
+}
+
+bool mf_radio_tx_session_start(
+    MfRadioTxSession* session,
+    uint32_t frequency_hz,
+    MfRadioTxMode mode) {
+    if(!mf_radio_tx_session_prepare(session, frequency_hz, mode)) return false;
     if(mode == MfRadioTxModeCwfm &&
        !session->hardware->set_tx_level(session->hardware->context, false)) {
         mf_radio_tx_session_stop(session);

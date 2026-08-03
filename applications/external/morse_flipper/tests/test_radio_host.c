@@ -25,6 +25,9 @@ static unsigned redraws;
 static unsigned releases;
 static unsigned backs;
 static unsigned unavailable;
+static unsigned keying_events;
+static unsigned snapshot_rejections;
+static InputEvent last_keying_event;
 static bool open_ok;
 
 static void assert_unlocked(void) {
@@ -157,6 +160,15 @@ static MorseFlipperMappedFalResult
     (void)now_ms;
     assert(mutex_depth == 1U && state == &radio);
     radio.inputs++;
+    if(radio.snapshot.page == MfRadioPageTransmit) {
+        if(event->key == InputKeyRight && event->type == InputTypeShort) {
+            radio.snapshot.monitor_threshold_dbm = -70;
+            return (MorseFlipperMappedFalResult){.handled = true, .redraw = true};
+        }
+        if(event->key == InputKeyLeft && event->type == InputTypeShort)
+            return (MorseFlipperMappedFalResult){.handled = true, .redraw = true};
+        return (MorseFlipperMappedFalResult){0};
+    }
     if(event->key == InputKeyBack)
         return (MorseFlipperMappedFalResult){.handled = true, .request_exit = true};
     if(event->key == InputKeyRight) {
@@ -203,7 +215,13 @@ static MorseFlipperMappedFalResult
     } else {
         assert(command == MfRadioCommandSnapshot);
     }
-    if(output != NULL) *(MfRadioSnapshot*)output = radio.snapshot;
+    if(output != NULL) {
+        MfRadioSnapshot* snapshot = output;
+        if(snapshot->struct_size == sizeof(*snapshot))
+            *snapshot = radio.snapshot;
+        else
+            snapshot_rejections++;
+    }
     return result;
 }
 
@@ -356,8 +374,9 @@ void morse_flipper_release_all_notes(MorseFlipperApp* app) {
 }
 void morse_flipper_handle_active_keying_event(MorseFlipperApp* app, const InputEvent* event) {
     (void)app;
-    (void)event;
     assert_unlocked();
+    keying_events++;
+    last_keying_event = *event;
 }
 void morse_flipper_scene_back(MorseFlipperApp* app) {
     (void)app;
@@ -373,7 +392,7 @@ void morse_flipper_draw_plugin_unavailable(Canvas* canvas) {
 int main(void) {
     FuriMutex mutex = {0};
     Canvas* canvas = (Canvas*)(uintptr_t)1U;
-    InputEvent event = {.key = InputKeyOk, .type = InputTypeShort};
+    InputEvent event = {.key = InputKeyOk, .type = InputTypePress};
     MfRadioApi invalid_api;
     MfRadioDrawServices invalid_draw;
     MorseFlipperApp app = {
@@ -416,40 +435,74 @@ int main(void) {
     open_ok = true;
     assert(morse_flipper_radio_host_open(&app, 10U));
     assert(opens == 1U && morse_flipper_radio_host_active(&app));
+    assert(snapshot_rejections == 0U && app.radio_tx_allowed);
     assert(sidetones == 1U && ptt_syncs == 1U && redraws == 1U);
     assert(morse_flipper_radio_host_set_page(&app, MfRadioPageTransmit, 11U));
+    assert(radio.snapshot.page == MfRadioPageTransmit && app.radio_tx_allowed);
     morse_flipper_radio_host_sync_tx(&app, MfRadioTxIntervalNone, 0U, true, 12U);
     assert(radio.syncs == 1U && app.radio_tx_active);
     morse_flipper_radio_host_tick(&app, 13U);
     assert(radio.ticks == 1U && app.radio_monitor_tone);
+
     assert(morse_flipper_radio_host_input(&app, &event, 14U));
-    assert(saves == 1U && app.rf_frequency_hz == MF_RADIO_DEFAULT_FREQUENCY_HZ + 1U);
-    assert(app.rf_monitor_threshold_dbm == -95);
-    event = (InputEvent){.key = InputKeyRight, .type = InputTypeShort};
+    assert(
+        keying_events == 1U && last_keying_event.key == InputKeyOk &&
+        last_keying_event.type == InputTypePress);
+    event.type = InputTypeRelease;
     assert(morse_flipper_radio_host_input(&app, &event, 15U));
-    assert(saves == 1U && app.rf_monitor_threshold_dbm == -95);
-    morse_flipper_radio_host_draw(&app, canvas, 15U);
+    assert(keying_events == 2U && last_keying_event.type == InputTypeRelease);
+    event = (InputEvent){.key = InputKeyBack, .type = InputTypePress};
+    assert(morse_flipper_radio_host_input(&app, &event, 16U));
+    assert(keying_events == 3U && last_keying_event.key == InputKeyBack);
+    event.type = InputTypeRelease;
+    assert(morse_flipper_radio_host_input(&app, &event, 17U));
+    assert(keying_events == 4U && last_keying_event.type == InputTypeRelease);
+
+    event = (InputEvent){.key = InputKeyRight, .type = InputTypeShort};
+    assert(morse_flipper_radio_host_input(&app, &event, 18U));
+    assert(keying_events == 4U && app.rf_monitor_threshold_dbm == -95);
+    event = (InputEvent){.key = InputKeyLeft, .type = InputTypeShort};
+    assert(morse_flipper_radio_host_input(&app, &event, 19U));
+    assert(keying_events == 4U);
+
+    radio.snapshot.tx_allowed = false;
+    morse_flipper_radio_host_tick(&app, 20U);
+    assert(!app.radio_tx_allowed);
+    event = (InputEvent){.key = InputKeyOk, .type = InputTypePress};
+    assert(!morse_flipper_radio_host_input(&app, &event, 21U));
+    assert(keying_events == 4U);
+    radio.snapshot.tx_allowed = true;
+    radio.snapshot.frequency_hz++;
+    radio.snapshot.frequency_dirty = true;
+    morse_flipper_radio_host_tick(&app, 22U);
+    assert(
+        app.radio_tx_allowed && saves == 1U &&
+        app.rf_frequency_hz == MF_RADIO_DEFAULT_FREQUENCY_HZ + 1U);
+    assert(app.rf_monitor_threshold_dbm == -95);
+    morse_flipper_radio_host_draw(&app, canvas, 23U);
     assert(radio.draws == 1U && unavailable == 0U);
 
+    assert(morse_flipper_radio_host_set_page(&app, MfRadioPageReceive, 24U));
     event = (InputEvent){.key = InputKeyBack, .type = InputTypeShort};
-    assert(morse_flipper_radio_host_input(&app, &event, 16U));
+    assert(morse_flipper_radio_host_input(&app, &event, 25U));
     assert(releases == 1U && backs == 1U);
     assert(radio.snapshot.page == MfRadioPageIdle && !app.radio_monitor_tone);
     assert(morse_flipper_radio_host_active(&app));
 
-    morse_flipper_radio_host_close(&app, 17U);
+    morse_flipper_radio_host_close(&app, 26U);
     assert(detaches == 1U && radio.leaves == 1U);
     assert(!morse_flipper_radio_host_active(&app));
     assert(!app.radio_tx_active && !app.radio_monitor_tone);
 
     open_ok = false;
-    assert(!morse_flipper_radio_host_open(&app, 20U));
+    assert(!morse_flipper_radio_host_open(&app, 30U));
     assert(app.radio_load_error && app.plugin_slot.owner == MorseFlipperPluginOwnerNone);
-    morse_flipper_radio_host_draw(&app, canvas, 21U);
+    morse_flipper_radio_host_draw(&app, canvas, 31U);
     assert(unavailable == 1U);
-    assert(morse_flipper_radio_host_input(&app, &event, 22U));
+    assert(morse_flipper_radio_host_input(&app, &event, 32U));
     assert(backs == 2U);
-    assert(radio.inputs == 3U && radio.ticks == 1U && radio.syncs == 1U && radio.draws == 1U);
+    assert(radio.inputs == 8U && radio.ticks == 3U && radio.syncs == 1U && radio.draws == 1U);
+    assert(snapshot_rejections == 0U);
     assert(mutex_depth == 0U);
 
     puts("test_radio_host: passed");

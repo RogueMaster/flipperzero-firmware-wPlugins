@@ -757,6 +757,11 @@ static bool morse_flipper_scene_ardf_on_event(void* context, SceneManagerEvent e
     uint32_t now_ms = furi_get_tick();
     morse_flipper_radio_host_close(app, now_ms);
     if(!morse_flipper_ardf_host_open(app, now_ms)) {
+        const MorseFlipperHostDialog dialog = {
+            .header = "ARDF Foxhunting",
+            .text = "Plugin unavailable",
+        };
+        morse_flipper_host_dialog(app, &dialog);
         scene_manager_search_and_switch_to_another_scene(
             app->scene_manager, MorseFlipperSceneMenuRf);
         return true;

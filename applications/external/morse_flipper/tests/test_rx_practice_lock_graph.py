@@ -37,7 +37,7 @@ def main() -> None:
     call = HOST.index("->feed_text(", clear)
     feed_unlock = HOST.index("furi_mutex_release", call)
     assert feed < clear < call < feed_unlock
-    assert "MORSE_FLIPPER_RX_PRACTICE_API_VERSION 11U" in API
+    assert "MORSE_FLIPPER_RX_PRACTICE_API_VERSION 12U" in API
     assert "sync_draw_state" not in API + PLUGIN + HOST + RUNTIME
     tick = HOST.index("bool morse_flipper_rx_practice_host_tick")
     preview = HOST.index("preview = mf_rx_answer_preview(app);", tick)

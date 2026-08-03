@@ -13,7 +13,7 @@ typedef struct {
     bool confirm;
 } MorseFlipperHostDialog;
 
-/* Every embedded FAL exposes these mapped operations before feature-specific calls. */
+/* Changing this result ABI requires bumping every mapped FAL API version. */
 typedef struct {
     uint32_t handled         : 1;
     uint32_t redraw          : 1;

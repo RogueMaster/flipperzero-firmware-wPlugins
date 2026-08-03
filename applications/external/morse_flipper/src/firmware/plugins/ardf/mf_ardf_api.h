@@ -6,7 +6,7 @@
 typedef struct VariableItemList VariableItemList;
 
 #define MF_ARDF_API_MAGIC   0x4D464146UL
-#define MF_ARDF_API_VERSION 1U
+#define MF_ARDF_API_VERSION 2U
 
 typedef enum {
     MfArdfCommandHostActionInfo = 0,

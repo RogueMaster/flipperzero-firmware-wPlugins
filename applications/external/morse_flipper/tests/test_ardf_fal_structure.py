@@ -14,6 +14,21 @@ resident_core = (root / "src/firmware/morse_flipper_core.c").read_text()
 radio_core = (root / "src/firmware/plugins/radio/mf_radio_core.c").read_text()
 audio_route = (root / "src/firmware/morse_flipper_audio_route.c").read_text()
 
+api_epochs = {
+    "src/firmware/plugins/help_about/morse_flipper_help_about_api.h":
+        "MORSE_FLIPPER_HELP_ABOUT_API_VERSION 4U",
+    "src/firmware/plugins/icr/morse_flipper_icr_api.h": "MORSE_FLIPPER_ICR_API_VERSION 6U",
+    "src/firmware/plugins/rx_practice/morse_flipper_rx_practice_api.h":
+        "MORSE_FLIPPER_RX_PRACTICE_API_VERSION 12U",
+    "src/firmware/plugins/passive_listening/mf_passive_api.h": "MF_PASSIVE_API_VERSION        8U",
+    "src/firmware/plugins/settings/mf_settings_api.h": "MF_SETTINGS_API_VERSION 5U",
+    "src/firmware/plugins/tx_groups/mf_tx_groups_api.h": "MF_TX_GROUPS_API_VERSION 2U",
+    "src/firmware/plugins/radio/mf_radio_api.h": "MF_RADIO_API_VERSION 4U",
+    "src/firmware/plugins/ardf/mf_ardf_api.h": "MF_ARDF_API_VERSION 2U",
+}
+for path, epoch in api_epochs.items():
+    assert epoch in (root / path).read_text()
+
 enter_args = types.split("} MfArdfEnterArgs;", 1)[0].rsplit("typedef struct {", 1)[1]
 assert "(*" not in enter_args
 assert all(field in enter_args for field in ("struct_size", "now_ms", "frequency_hz"))
@@ -82,7 +97,7 @@ sync_led = resident_core.split("void morse_flipper_sync_signal_led", 1)[1].split
 )[0]
 assert "ardf_gpio_owned" in sync_ptt
 assert "ardf_gpio_owned" in sync_led
-assert "mf_radio_tx_session_start" in radio_core
+assert "mf_radio_tx_session_prepare" in radio_core
 assert "mf_radio_tx_session_set_mark" in radio_core
 assert "MorseFlipperSceneArdf" in scenes
 assert "MorseFlipperSceneArdfTextInput" not in scenes
@@ -93,6 +108,12 @@ assert "MorseFlipperSceneArdf" in audio_pwm_scenes
 ardf_scene = scenes.split("static bool morse_flipper_scene_ardf_on_event", 1)[1].split(
     "static void morse_flipper_scene_streak_intro_start_training", 1
 )[0]
+load_failure = ardf_scene.split("if(!morse_flipper_ardf_host_open", 1)[1].split("return true;", 1)[0]
+assert '"Plugin unavailable"' in load_failure
+assert "morse_flipper_host_dialog" in load_failure
+assert load_failure.index("morse_flipper_host_dialog") < load_failure.index(
+    "scene_manager_search_and_switch_to_another_scene"
+)
 assert "MorseFlipperCustomArdfTextDone" in ardf_scene
 assert "MorseFlipperCustomArdfTextCleanup" in ardf_scene
 text_result_path = ardf_scene.split("MorseFlipperCustomArdfTextDone", 1)[1]

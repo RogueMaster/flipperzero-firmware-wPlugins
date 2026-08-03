@@ -97,6 +97,13 @@ int main(void) {
     CHECK(strstr(mock.trace, "SIZSIZ") != NULL);
     mock.used = 0U;
     mock.trace[0] = '\0';
+    CHECK(mf_radio_tx_session_prepare(&session, 433160000U, MfRadioTxModeCwfm));
+    CHECK(strcmp(mock.trace, "P") == 0);
+    CHECK(mf_radio_tx_session_set_mark(&session, true));
+    CHECK(strcmp(mock.trace, "P1") == 0);
+    mf_radio_tx_session_stop(&session);
+    mock.used = 0U;
+    mock.trace[0] = '\0';
     CHECK(mf_radio_tx_session_start(&session, 433160000U, MfRadioTxModeCwfm));
     CHECK(strcmp(mock.trace, "P0") == 0);
     CHECK(mf_radio_tx_session_set_mark(&session, true));
