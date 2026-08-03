@@ -5,7 +5,7 @@ App(
     entry_point="maze3d_app",
     stack_size=12 * 1024,
     icon="maze3d.png",
-    fap_version=(4, 3, 1),
+    fap_version=(4, 4, 0),
     fap_category="Games",
     fap_description="3D raycasting maze game (campaign / endless / visitor)",
     fap_author="k20120509",

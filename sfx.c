@@ -233,4 +233,6 @@ void sfx_tick_update(void) {
 void settings_defaults(void) {
     g.sfx_enabled = true;
     g.opening_enabled = true;
+    g.show_debug = false;
+    g.dev_mode = false;
 }

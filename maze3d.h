@@ -168,6 +168,9 @@ typedef struct {
     // 设置
     bool sfx_enabled;       // 音效开关
     bool opening_enabled;   // 开场动画开关
+    bool show_debug;        // 调试信息显示开关
+    // 开发模式: 隐藏序列解锁, 解锁后所有关卡可玩 + 设置显示调试项
+    bool dev_mode;
 } GameState;
 
 extern GameState g;

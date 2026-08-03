@@ -1,3 +1,16 @@
+v4.4:
+- Developer mode: unlocks all campaign levels from the level-select screen
+  and enables a debug overlay. Persists across sessions.
+- Debug overlay: a top status bar over the 3D view showing current level /
+  floor, player X/Y, world tick, actor count, and facing direction. Toggled
+  from Settings (the row appears once developer mode is active).
+- Settings screen rewrite: option rows are horizontally centered (label +
+  value as a group); the list scrolls when it overflows (^/v indicators);
+  the bottom hint bar no longer overlaps the last option. Up/Down now move
+  the cursor in opposite directions.
+- Save format stays MAZ4 (new flags reuse the reserved bytes; old v4.3 saves
+  load with defaults).
+
 v4.3.1:
 - FIX: no sound at all. v4.3's speaker_start() called the non-existent
   furi_hal_speaker_is_muted() which was patched to furi_hal_speaker_is_mine(),

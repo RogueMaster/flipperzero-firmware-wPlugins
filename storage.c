@@ -11,10 +11,13 @@ typedef struct {
     // v4.3+: 设置
     uint8_t sfx_enabled;      // 1 on, 0 off
     uint8_t opening_enabled;  // 1 on, 0 off
-    uint8_t reserved[6];
+    // v4.4+: 调试信息 / 开发模式 (复用原 reserved, 旧 MAZ4 存档此处为 0 即关闭, 兼容)
+    uint8_t show_debug;       // 1 on, 0 off
+    uint8_t dev_mode;         // 1 on, 0 off
+    uint8_t reserved[4];
 } SaveData;
 
-#define SAVE_MAGIC 0x4D415A34u // "MAZ4" (bump for v4.3 struct change)
+#define SAVE_MAGIC 0x4D415A34u // "MAZ4" (v4.4 复用 reserved 字段, 结构大小不变)
 
 void storage_load(void) {
     SaveData d = {0};
@@ -27,6 +30,8 @@ void storage_load(void) {
         g.endless_floor = d.endless_floor;
         g.sfx_enabled = (d.sfx_enabled != 0);
         g.opening_enabled = (d.opening_enabled != 0);
+        g.show_debug = (d.show_debug != 0);
+        g.dev_mode = (d.dev_mode != 0);
     } else {
         // 旧版 MAZ3 存档: 只读取前 3 项
         uint32_t magic_old = 0;
@@ -54,6 +59,8 @@ void storage_save(void) {
     d.endless_floor = g.endless_floor;
     d.sfx_enabled = g.sfx_enabled ? 1 : 0;
     d.opening_enabled = g.opening_enabled ? 1 : 0;
+    d.show_debug = g.show_debug ? 1 : 0;
+    d.dev_mode = g.dev_mode ? 1 : 0;
     memset(d.reserved, 0, sizeof(d.reserved));
     Storage* st = furi_record_open(RECORD_STORAGE);
     File* f = storage_file_alloc(st);
