@@ -42,6 +42,26 @@ static inline void ha_upper(char* s) {
 #define BS_TOTAL 17 // sum of BS_LEN, the win threshold
 #define BATTLE_MAX 4 // concurrent matches
 
+// Chess: 1v1, full FIDE rules refereed here. Squares are 0..63 with a1 = 0, b1 = 1 ...
+// h8 = 63, so rank = sq >> 3 and file = sq & 7. A move is encoded as from * 64 + to.
+#define CHESS_MAX 4 // concurrent matches
+#define CH_HIST 154 // repetition ring: 1 + 150 halfmoves (75-move bound) + slack
+#define CH_CLOCK_MS 300000UL // 5:00 per side, no increment
+#define CH_MAX_MOVES 220 // legal-move buffer (theoretical max is 218)
+// How a finished game ended (ChessMatch::reason).
+#define CH_R_MATE 1
+#define CH_R_STALEMATE 2
+#define CH_R_RESIGN 3
+#define CH_R_FLAG 4 // opponent's clock ran out
+#define CH_R_FLAGDRAW 5 // clock ran out but the winner could not have mated (FIDE 6.9)
+#define CH_R_MATERIAL 6 // dead position
+#define CH_R_REP3 7 // threefold, claimed
+#define CH_R_REP5 8 // fivefold, automatic
+#define CH_R_MOVE50 9 // 50-move rule, claimed
+#define CH_R_MOVE75 10 // 75-move rule, automatic
+#define CH_R_AGREE 11 // draw by agreement
+#define CH_R_LEFT 12 // opponent disconnected
+
 #define TRIVIA_MAX_TOPICS 6
 #define TRIVIA_MAX_QS 20
 #define PACK_MAX_ITEMS 32 // items in a word/prompt pack (wyr/scramble/draw)
@@ -347,6 +367,72 @@ struct BattleMatch {
 static const uint8_t BS_LEN[BS_SHIPS] = {5, 4, 3, 3, 2};
 static const char* const BS_NAMES[BS_SHIPS] = {
     "Carrier", "Battleship", "Cruiser", "Submarine", "Destroyer"};
+
+// ---- chess tables and piece helpers ----
+// Step tables are (file, rank) deltas rather than square offsets, so every step is
+// bounds-checked on both axes: a raw +-1 on the square index wraps around the board
+// edge (h4 + 1 lands on a5) and would invent moves that do not exist.
+static const int8_t CH_NDF[8] = {1, 2, 2, 1, -1, -2, -2, -1}; // knight
+static const int8_t CH_NDR[8] = {2, 1, -1, -2, -2, -1, 1, 2};
+static const int8_t CH_KDF[8] = {-1, 0, 1, -1, 1, -1, 0, 1}; // king (and the 8 neighbours)
+static const int8_t CH_KDR[8] = {1, 1, 1, 0, 0, -1, -1, -1};
+static const int8_t CH_SDF[8] = {1, 1, -1, -1, 1, -1, 0, 0}; // sliders: 0..3 diagonal,
+static const int8_t CH_SDR[8] = {1, -1, 1, -1, 0, 0, 1, -1}; // 4..7 orthogonal
+
+// Piece codes in ChessCore::sq are 0 empty, 1..6 white P,N,B,R,Q,K, 7..12 black.
+static inline uint8_t chKind(uint8_t pc) { return pc > 6 ? (uint8_t)(pc - 6) : pc; }
+static inline bool chIsWhite(uint8_t pc) { return pc >= 1 && pc <= 6; }
+static inline uint8_t chSide(uint8_t pc) { return pc > 6 ? 1 : 0; } // callers check pc != 0
+
+// Castling right lost when a corner square changes hands (the rook moving off it, or
+// being captured on it). 0 for every other square.
+static inline uint8_t chCornerBit(int sq) {
+    return sq == 0 ? 0x02 : sq == 7 ? 0x01 : sq == 56 ? 0x08 : sq == 63 ? 0x04 : 0;
+}
+
+// Zobrist keys: 12*64 piece-square, one side-to-move, 16 castling-rights states, 8
+// en-passant files. Filled once from a fixed seed (chessZobristInit) so a key means
+// the same position on every boot, and in the sim.
+static uint32_t ZOB[12 * 64 + 1 + 16 + 8];
+static bool ZOB_READY = false;
+
+// The position identity per FIDE 9.2: placement, side to move, castling rights and
+// en-passant capturability. Everything repetition hashing has to cover, and nothing
+// else: the clocks and move counters live in ChessMatch.
+struct ChessCore {
+    uint8_t sq[64];
+    uint8_t stm; // 0 white, 1 black
+    uint8_t rights; // castling: 1 = white O-O, 2 = white O-O-O, 4 = black O-O, 8 = black O-O-O
+    int8_t ep; // en-passant target (the square the pawn skipped), -1 none
+};
+
+// What chessMake has to hand back so chessUnmake can restore the position exactly.
+// capSq differs from the move's `to` only for an en-passant capture.
+struct ChessUndo {
+    uint8_t captured, capSq, rights;
+    int8_t ep;
+};
+
+// Chess: a = challenger, b = opponent. `white` is a pid rather than a flag because a
+// rematch swaps colors. hist[] is the repetition record: every position since the
+// last irreversible move (pawn move or capture), which is what bounds it to CH_HIST.
+struct ChessMatch {
+    bool used;
+    uint8_t a, b; // pids
+    bool aIn, bIn;
+    uint8_t white; // pid playing white this game
+    uint8_t phase; // 1 playing, 2 over
+    uint8_t winner; // pid, 0 = draw
+    uint8_t reason; // CH_R_*
+    ChessCore core;
+    uint8_t halfmove; // plies since a pawn move/capture; 100 = 50-move claim, 150 = auto
+    uint16_t fullmove;
+    uint32_t clockMs[2]; // remaining ms, [0] = white, [1] = black
+    uint32_t lastStamp; // millis() at game start / last completed move
+    uint8_t offerBy; // pid with a pending draw offer, 0 none
+    uint16_t histLen;
+    uint32_t hist[CH_HIST];
+};
 
 class Engine {
 public:
@@ -3210,6 +3296,369 @@ private:
         s += "}";
         return s;
     }
+
+    // ---------- chess (rules core) ----------
+    // Pure rules, no match state: everything below takes a ChessCore and is safe to
+    // call on a scratch copy. Move generation is plain mailbox scanning: a few thousand
+    // ops per move at human speed, which is nothing next to the WS traffic.
+
+    static void chPush(uint16_t* out, int& n, int from, int to) {
+        if(n < CH_MAX_MOVES) out[n++] = (uint16_t)(from * 64 + to);
+    }
+
+    // Is `sq` attacked by any piece of `bySide` (0 white, 1 black)?
+    static bool chessAttacked(const ChessCore& c, int sq, uint8_t bySide) {
+        int f = sq & 7, r = sq >> 3;
+        uint8_t base = bySide ? 6 : 0; // white pieces are 1..6, black 7..12
+        for(int i = 0; i < 8; i++) { // knights
+            int ff = f + CH_NDF[i], rr = r + CH_NDR[i];
+            if(ff < 0 || ff > 7 || rr < 0 || rr > 7) continue;
+            if(c.sq[rr * 8 + ff] == base + 2) return true;
+        }
+        for(int i = 0; i < 8; i++) { // king
+            int ff = f + CH_KDF[i], rr = r + CH_KDR[i];
+            if(ff < 0 || ff > 7 || rr < 0 || rr > 7) continue;
+            if(c.sq[rr * 8 + ff] == base + 6) return true;
+        }
+        // Pawns attack forwards, so an attacker stands one rank *behind* `sq`.
+        int pr = bySide ? r + 1 : r - 1;
+        if(pr >= 0 && pr <= 7) {
+            if(f > 0 && c.sq[pr * 8 + f - 1] == base + 1) return true;
+            if(f < 7 && c.sq[pr * 8 + f + 1] == base + 1) return true;
+        }
+        for(int d = 0; d < 8; d++) { // sliders: bishop/queen diagonally, rook/queen straight
+            int ff = f + CH_SDF[d], rr = r + CH_SDR[d];
+            while(ff >= 0 && ff <= 7 && rr >= 0 && rr <= 7) {
+                uint8_t pc = c.sq[rr * 8 + ff];
+                if(pc) {
+                    uint8_t k = chKind(pc);
+                    if(chSide(pc) == bySide && (k == 5 || k == (d < 4 ? 3 : 4))) return true;
+                    break; // first piece on the ray blocks it
+                }
+                ff += CH_SDF[d];
+                rr += CH_SDR[d];
+            }
+        }
+        return false;
+    }
+
+    // Where is `side`'s king? -1 if it has none (only loaded test positions can).
+    static int chessKingSq(const ChessCore& c, uint8_t side) {
+        uint8_t king = side ? 12 : 6;
+        for(int i = 0; i < 64; i++)
+            if(c.sq[i] == king) return i;
+        return -1;
+    }
+
+    static bool chessInCheck(const ChessCore& c) {
+        int ks = chessKingSq(c, c.stm);
+        return ks >= 0 && chessAttacked(c, ks, c.stm ^ 1);
+    }
+
+    // Every pseudo-legal move for c.stm (own king may end up attacked; chessGenLegal
+    // filters that). Promotions emit ONE entry per from/to, because the promotion piece
+    // is supplied at apply time and cannot change whether the move is legal.
+    static int chessGenPseudo(const ChessCore& c, uint16_t* out) {
+        int n = 0;
+        uint8_t me = c.stm, opp = me ^ 1;
+        for(int from = 0; from < 64; from++) {
+            uint8_t pc = c.sq[from];
+            if(!pc || chSide(pc) != me) continue;
+            int f = from & 7, r = from >> 3;
+            uint8_t k = chKind(pc);
+            if(k == 1) { // pawn
+                int dir = me ? -1 : 1, home = me ? 6 : 1, r1 = r + dir;
+                if(r1 < 0 || r1 > 7) continue; // an unpromoted pawn on the last rank
+                if(!c.sq[r1 * 8 + f]) {
+                    chPush(out, n, from, r1 * 8 + f);
+                    int r2 = r + 2 * dir; // double push needs both squares empty
+                    if(r == home && !c.sq[r2 * 8 + f]) chPush(out, n, from, r2 * 8 + f);
+                }
+                for(int df = -1; df <= 1; df += 2) {
+                    int ff = f + df;
+                    if(ff < 0 || ff > 7) continue;
+                    int to = r1 * 8 + ff;
+                    uint8_t t = c.sq[to];
+                    if(t) {
+                        if(chSide(t) == opp) chPush(out, n, from, to);
+                    } else if(to == (int)c.ep) {
+                        chPush(out, n, from, to); // en passant
+                    }
+                }
+            } else if(k == 2 || k == 6) { // knight, king: one step per direction
+                const int8_t* sdf = (k == 2) ? CH_NDF : CH_KDF;
+                const int8_t* sdr = (k == 2) ? CH_NDR : CH_KDR;
+                for(int i = 0; i < 8; i++) {
+                    int ff = f + sdf[i], rr = r + sdr[i];
+                    if(ff < 0 || ff > 7 || rr < 0 || rr > 7) continue;
+                    int to = rr * 8 + ff;
+                    uint8_t t = c.sq[to];
+                    if(t && chSide(t) == me) continue;
+                    chPush(out, n, from, to);
+                }
+            } else { // bishop rays 0..3, rook rays 4..7, queen all eight
+                int d0 = (k == 4) ? 4 : 0, d1 = (k == 3) ? 4 : 8;
+                for(int d = d0; d < d1; d++) {
+                    int ff = f + CH_SDF[d], rr = r + CH_SDR[d];
+                    while(ff >= 0 && ff <= 7 && rr >= 0 && rr <= 7) {
+                        int to = rr * 8 + ff;
+                        uint8_t t = c.sq[to];
+                        if(t && chSide(t) == me) break;
+                        chPush(out, n, from, to);
+                        if(t) break; // captured: the ray stops here
+                        ff += CH_SDF[d];
+                        rr += CH_SDR[d];
+                    }
+                }
+            }
+        }
+        // Castling is validated in full here, so it never reaches the make/unmake
+        // filter: right present, rook actually home (defensive, for loaded positions),
+        // the path clear, and the king neither in check nor crossing an attacked square.
+        int home = me ? 60 : 4, base = me ? 56 : 0;
+        uint8_t rook = me ? 10 : 4, bitK = me ? 4 : 1, bitQ = me ? 8 : 2;
+        if(c.sq[home] == (uint8_t)(me ? 12 : 6) && (c.rights & (bitK | bitQ)) &&
+           !chessAttacked(c, home, opp)) {
+            if((c.rights & bitK) && c.sq[base + 7] == rook && !c.sq[base + 5] &&
+               !c.sq[base + 6] && !chessAttacked(c, base + 5, opp) &&
+               !chessAttacked(c, base + 6, opp))
+                chPush(out, n, home, base + 6);
+            if((c.rights & bitQ) && c.sq[base] == rook && !c.sq[base + 1] &&
+               !c.sq[base + 2] && !c.sq[base + 3] && !chessAttacked(c, base + 3, opp) &&
+               !chessAttacked(c, base + 2, opp))
+                chPush(out, n, home, base + 2); // b1/b8 may be attacked, only crossed by the rook
+        }
+        return n;
+    }
+
+    // Apply a move and record what chessUnmake needs. `promo` is a WHITE piece code
+    // (2 = N, 3 = B, 4 = R, 5 = Q) and is only meaningful for a pawn reaching the last
+    // rank; callers pass 0 otherwise, which chessUnmake relies on. Returns true when
+    // the move was irreversible (pawn move or capture), on which the caller resets the
+    // halfmove clock and the repetition history.
+    static bool chessMake(ChessCore& c, int from, int to, uint8_t promo, ChessUndo& u) {
+        uint8_t pc = c.sq[from], k = chKind(pc), me = chSide(pc);
+        u.rights = c.rights;
+        u.ep = c.ep;
+        u.capSq = (uint8_t)to;
+        u.captured = c.sq[to];
+        bool irreversible = (k == 1) || (u.captured != 0);
+        if(k == 1 && to == (int)c.ep && !u.captured) { // en passant: victim sits beside `to`
+            u.capSq = (uint8_t)(me ? to + 8 : to - 8);
+            u.captured = c.sq[u.capSq];
+            c.sq[u.capSq] = 0;
+        }
+        c.sq[to] = pc;
+        c.sq[from] = 0;
+        if(k == 1 && (to >> 3) == (me ? 0 : 7) && promo >= 2 && promo <= 5)
+            c.sq[to] = (uint8_t)(promo + (me ? 6 : 0));
+        if(k == 6 && from == (me ? 60 : 4)) { // castling also hops the rook over the king
+            if(to == from + 2) {
+                c.sq[from + 1] = c.sq[from + 3];
+                c.sq[from + 3] = 0;
+            } else if(to == from - 2) {
+                c.sq[from - 1] = c.sq[from - 4];
+                c.sq[from - 4] = 0;
+            }
+        }
+        if(k == 6) c.rights &= (uint8_t)~(me ? 0x0C : 0x03); // king moved: both rights gone
+        c.rights &= (uint8_t)~chCornerBit(from);
+        if(u.captured) c.rights &= (uint8_t)~chCornerBit(u.capSq);
+        c.ep = (k == 1 && (to - from == 16 || from - to == 16)) ? (int8_t)((from + to) / 2) : -1;
+        c.stm ^= 1;
+        return irreversible;
+    }
+
+    // Exact inverse of chessMake, given the same from/to/promo and its ChessUndo.
+    static void chessUnmake(ChessCore& c, int from, int to, uint8_t promo,
+                            const ChessUndo& u) {
+        c.stm ^= 1; // back to the side that moved
+        uint8_t me = c.stm, pc = c.sq[to];
+        if(promo >= 2 && promo <= 5) pc = me ? 7 : 1; // demote: only a pawn could promote
+        c.sq[from] = pc;
+        c.sq[to] = 0;
+        if(u.captured) c.sq[u.capSq] = u.captured; // capSq != to for en passant
+        if(chKind(pc) == 6 && from == (me ? 60 : 4)) { // un-hop the castling rook
+            if(to == from + 2) {
+                c.sq[from + 3] = c.sq[from + 1];
+                c.sq[from + 1] = 0;
+            } else if(to == from - 2) {
+                c.sq[from - 4] = c.sq[from - 1];
+                c.sq[from - 1] = 0;
+            }
+        }
+        c.rights = u.rights;
+        c.ep = u.ep;
+    }
+
+    // Pseudo-legal moves that do not leave the mover's own king attacked. Pins and
+    // en-passant discovered checks fall out of the make/test/unmake for free.
+    static int chessGenLegal(const ChessCore& c, uint16_t* out) {
+        uint16_t ps[CH_MAX_MOVES];
+        int np = chessGenPseudo(c, ps), n = 0;
+        ChessCore w = c;
+        uint8_t me = c.stm;
+        for(int i = 0; i < np; i++) {
+            int from = ps[i] >> 6, to = ps[i] & 63;
+            ChessUndo u;
+            chessMake(w, from, to, 0, u);
+            int ks = chessKingSq(w, me);
+            if(ks < 0 || !chessAttacked(w, ks, me ^ 1)) out[n++] = ps[i];
+            chessUnmake(w, from, to, 0, u);
+        }
+        return n;
+    }
+
+    // FIDE 6.9: on a flag fall the opponent only wins if they *could* mate by some
+    // series of legal moves (the helpmate test, not "can force"). So K+N vs K+N is a
+    // win on time, but K+N vs a bare king is a draw.
+    static bool chessCanMateVs(const ChessCore& c, uint8_t side) {
+        int minors = 0, heavy = 0, oppPieces = 0;
+        for(int i = 0; i < 64; i++) {
+            uint8_t pc = c.sq[i];
+            if(!pc || chKind(pc) == 6) continue;
+            if(chSide(pc) != side)
+                oppPieces++;
+            else if(chKind(pc) == 2 || chKind(pc) == 3)
+                minors++;
+            else
+                heavy++; // pawn, rook or queen: a mate always exists
+        }
+        if(heavy) return true;
+        if(minors == 0) return false; // bare king
+        return !(minors == 1 && oppPieces == 0); // lone minor vs lone king cannot mate
+    }
+
+    // Dead position (FIDE 5.2.2): no legal sequence at all reaches a mate, so the game
+    // is drawn the instant it arises. The standard material subset: K vs K, K+minor vs
+    // K, and any number of bishops as long as they all stand on one square color.
+    // K+N vs K+N is NOT dead: it has helpmates.
+    static bool chessDeadPosition(const ChessCore& c) {
+        int knights = 0, bishops = 0, color = -1;
+        for(int i = 0; i < 64; i++) {
+            uint8_t pc = c.sq[i];
+            if(!pc) continue;
+            uint8_t k = chKind(pc);
+            if(k == 6) continue;
+            if(k == 2) {
+                knights++;
+            } else if(k == 3) {
+                int sc = (((i >> 3) + (i & 7)) & 1);
+                if(color < 0)
+                    color = sc;
+                else if(color != sc)
+                    return false; // bishops on both colors can mate
+                bishops++;
+            } else {
+                return false; // pawn, rook or queen
+            }
+        }
+        if(knights + bishops <= 1) return true; // K vs K, or a single minor
+        return knights == 0; // bishops only, and the loop proved they share a color
+    }
+
+    // splitmix32 over a fixed seed: the Zobrist keys are the same on every boot without
+    // spending 3 KB of flash on a stored table.
+    static void chessZobristInit() {
+        if(ZOB_READY) return;
+        uint32_t s = 0x9E3779B9UL;
+        for(unsigned i = 0; i < sizeof(ZOB) / sizeof(ZOB[0]); i++) {
+            s += 0x9E3779B9UL;
+            uint32_t z = s;
+            z = (z ^ (z >> 16)) * 0x85EBCA6BUL;
+            z = (z ^ (z >> 13)) * 0xC2B2AE35UL;
+            ZOB[i] = z ^ (z >> 16);
+        }
+        ZOB_READY = true;
+    }
+
+    // Can the side to move actually capture en passant here? FIDE 9.2 compares the
+    // *possible moves*, not the bare ep square, so a hash that always folds in the ep
+    // file reports two identical positions as different and repetition never triggers.
+    static bool chessEpLegal(const ChessCore& c) {
+        if(c.ep < 0) return false;
+        int to = c.ep, f = to & 7, pr = (to >> 3) + (c.stm ? 1 : -1);
+        if(pr < 0 || pr > 7) return false;
+        uint8_t pawn = c.stm ? 7 : 1;
+        ChessCore w = c;
+        for(int df = -1; df <= 1; df += 2) {
+            int ff = f + df;
+            if(ff < 0 || ff > 7) continue;
+            int from = pr * 8 + ff;
+            if(w.sq[from] != pawn) continue;
+            ChessUndo u;
+            chessMake(w, from, to, 0, u);
+            int ks = chessKingSq(w, c.stm);
+            bool ok = (ks < 0) || !chessAttacked(w, ks, c.stm ^ 1);
+            chessUnmake(w, from, to, 0, u);
+            if(ok) return true;
+        }
+        return false;
+    }
+
+    // Position key for repetition detection, recomputed from scratch (a 64-square scan
+    // once per move; incremental updating would buy nothing at this rate).
+    static uint32_t chessHash(const ChessCore& c) {
+        chessZobristInit();
+        uint32_t h = 0;
+        for(int i = 0; i < 64; i++)
+            if(c.sq[i]) h ^= ZOB[(c.sq[i] - 1) * 64 + i];
+        if(c.stm) h ^= ZOB[768];
+        h ^= ZOB[769 + (c.rights & 15)];
+        if(chessEpLegal(c)) h ^= ZOB[785 + (c.ep & 7)];
+        return h;
+    }
+
+#ifdef HA_CHESS_TEST
+public:
+    // Move-path enumeration, the standard yardstick for a move generator: the number
+    // of distinct legal move sequences of the given length. Test builds only.
+    static uint32_t chessPerft(ChessCore& c, int depth) {
+        if(depth <= 0) return 1;
+        uint16_t mv[CH_MAX_MOVES];
+        int n = chessGenLegal(c, mv);
+        uint32_t total = 0;
+        for(int i = 0; i < n; i++) {
+            int from = mv[i] >> 6, to = mv[i] & 63;
+            ChessUndo u;
+            // Perft counts each promotion piece as its own move, so expand the single
+            // entry our encoding generates back into the four choices.
+            if(chKind(c.sq[from]) == 1 && (to >> 3) == (c.stm ? 0 : 7)) {
+                for(uint8_t p = 2; p <= 5; p++) {
+                    chessMake(c, from, to, p, u);
+                    total += chessPerft(c, depth - 1);
+                    chessUnmake(c, from, to, p, u);
+                }
+            } else {
+                chessMake(c, from, to, 0, u);
+                total += chessPerft(c, depth - 1);
+                chessUnmake(c, from, to, 0, u);
+            }
+        }
+        return total;
+    }
+
+    // board64 is exactly 64 chars, index 0 = a1 .. 63 = h8, FEN letters (uppercase =
+    // white) and '.' for an empty square. False on a bad length or character.
+    static bool chessLoadCore(ChessCore& c, const char* board64, uint8_t stm,
+                              uint8_t rights, int8_t ep) {
+        if(!board64 || strlen(board64) != 64) return false;
+        const char* codes = "PNBRQKpnbrqk";
+        ChessCore t = ChessCore{};
+        for(int i = 0; i < 64; i++) {
+            if(board64[i] == '.') continue;
+            const char* p = strchr(codes, board64[i]);
+            if(!p) return false;
+            t.sq[i] = (uint8_t)(p - codes + 1);
+        }
+        t.stm = stm ? 1 : 0;
+        t.rights = rights & 15;
+        t.ep = ep;
+        c = t;
+        return true;
+    }
+private:
+#endif
 
     // ---------- spectrum (wavelength-style guessing) ----------
     // Which pack wins the pre-round vote; identical policy to wyrWinningPack().
