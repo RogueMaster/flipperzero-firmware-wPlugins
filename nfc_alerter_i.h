@@ -10,6 +10,7 @@
 #include <furi.h>
 #include <furi_hal_nfc.h>
 #include <nfc/protocols/nfc_protocol.h>
+#include <storage/storage.h> /* APP_DATA_PATH */
 #include <gui/gui.h>
 #include <input/input.h>
 #include <notification/notification.h>
