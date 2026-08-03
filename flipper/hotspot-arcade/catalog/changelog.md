@@ -1,3 +1,19 @@
+## 1.6
+
+- New game: Chess, the fifteenth. Full FIDE rules refereed on the board: castling, en
+  passant, underpromotion, claimable draws (threefold repetition, 50-move rule) and
+  automatic ones (fivefold, 75-move, dead position), with a 5-minute blitz clock per
+  side — a flag fall loses unless no mate was possible. The final position stays on the
+  result screen, and the phone keeps its screen awake during games.
+- Firmware v17.
+
+## 1.5
+
+- The phone UI is fully localized: the host's language reaches every phone, with
+  Brazilian Portuguese first and English as the fallback for anything untranslated.
+  Content packs can ship per-language versions (packs/<game>/<lang>/).
+- Firmware v16.
+
 ## 1.4
 
 - New game: Kiss Marry Kill. Each round a rotating chooser secretly labels three people
