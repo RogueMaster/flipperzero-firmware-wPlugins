@@ -4,12 +4,35 @@ Passive 13.56 MHz reader detector for Flipper Zero. Carry it in a pocket; it
 alerts you — by vibration first — when a reader interrogates you.
 
 Uses the ST25R3916's hardware External Field Detector: it listens for a
-reader's carrier and, in the default mode, never transmits anything of its own.
+reader's carrier and never transmits anything of its own.
 
 > **Detects readers, not tags.** A card, badge, or fob will *never* trigger
 > this — passive tags have no transmitter and only reflect a reader's energy.
 > You need something that **emits**: a phone with NFC on (unlocked), or a
 > payment/access terminal. Present it to the **back** of the Flipper.
+
+It alerts you that a scan is happening; it cannot prevent one. By the time it
+fires, a read may already have succeeded. The value is awareness — knowing you
+were probed, when, and how often.
+
+## Install
+
+**From a release:** download `nfc_alerter.fap` from
+[Releases](https://github.com/antitree/nfc_alerter/releases) and copy it to
+`/ext/apps/NFC/` on the Flipper's SD card (qFlipper's file manager works).
+Then: **Apps → NFC → NFC Alerter**.
+
+**From source:** see [Build and deploy](#build-and-deploy).
+
+## Quick start
+
+1. Launch the app — the first run explains the tag-vs-reader distinction.
+2. Press **OK** → **OK** to audition the alert so you know what to listen and
+   feel for.
+3. Press **Back** to arm it, and pocket the device.
+
+To confirm it works, hold an unlocked Android phone with NFC enabled against
+the **back** of the Flipper. Full procedure: [docs/TESTING.md](docs/TESTING.md).
 
 ## Screens
 
@@ -60,10 +83,15 @@ a reader.
 | **Sentinel** (default) | Any carrier, any protocol | Fully passive; no protocol detail |
 | **Decoy** | Protocol + reader command bytes | Responds as a fake card |
 
-Decoy mode presents a random-UID card so the reader will talk to it, which is
-what reveals *what* is being asked for (`Auth key A`, `Read block`, `Select
-application`, …). This is diagnostic only: the log records that an
-interrogation happened and which command was used — never card contents.
+> **Decoy mode is not implemented yet.** The setting, event fields, and command
+> decode table are in place, but the detection worker currently runs Sentinel
+> regardless of the selection, so protocol and command stay blank. Tracked for
+> v0.3.
+
+The plan: Decoy presents a random-UID card so the reader will talk to it,
+revealing *what* is being asked for (`Auth key A`, `Read block`, `Select
+application`, …). Diagnostic only — the log records that an interrogation
+happened and which command was used, never card contents.
 
 ## Build and deploy
 
@@ -134,6 +162,37 @@ holding it steady, so a symmetric debounce fails — the bit never holds still
 long enough and a real reader reads as noise. The latch fires on the first
 rising edge and only clears after the field has been continuously absent for
 the hold-off, collapsing a burst train into one detection.
+
+## Status
+
+Working and field-tested on Flipper Zero hardware (Unleashed `unlshd-089e`,
+API 87.8; CI also builds against official firmware).
+
+Known gaps:
+
+- **Decoy mode / protocol fingerprinting** — plumbed but not wired up, so
+  protocol and command fields stay blank (v0.3).
+- **Battery figures in [VALIDATION.md](docs/VALIDATION.md) are datasheet
+  estimates, not measurements.** Real numbers need a bench measurement.
+- **Alarm tier currently triggers on a sustained carrier**, not on a reader
+  addressing us by UID — that distinction arrives with Decoy mode and is what
+  will make tiering genuinely sharp.
+
+## Design notes
+
+- [VALIDATION.md](docs/VALIDATION.md) — hardware feasibility: why NFC works,
+  and why 125 kHz LF was cut (a shared GPIO makes dual-band physically
+  impossible, and LF blocks MCU sleep)
+- [SPEC.md](docs/SPEC.md) — crawl/walk/run plan
+- [TESTING.md](docs/TESTING.md) — triggering it with a real reader
+- [RELEASING.md](docs/RELEASING.md) — release + Apps Catalog checklist
+
+## Scope
+
+Defensive only. This app detects interrogation aimed at the wearer and tells
+them about it. It does not capture, store, clone, or replay credentials, and
+the log records only *that* an interrogation happened — time, tier, protocol,
+command — never card contents.
 
 ## License
 

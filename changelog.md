@@ -1,5 +1,18 @@
 ## v0.2
 
+- Fixed: alert pattern selection had no effect. Both channels were driven from
+  a single pattern, so the sound setting was ignored and every alert played the
+  vibration pattern (default Double). Vibration and sound now play their own
+  patterns independently.
+- Fixed: pattern tables counted a trailing terminator as a real step, so
+  one-shots ended with a zero-length step and Constant stuttered once a second
+  instead of holding.
+- Fixed: the settings alert test blocked the UI thread. It now runs
+  asynchronously, and lasts long enough (2.6s) to hear a full SOS cycle.
+- Clearer navigation hints; the previous "<Sess Evt>" footer was unreadable.
+- Mode selector hidden until Decoy mode is implemented, so it cannot be set to
+  something that does nothing.
+
 - Threat tiering: Info (silent, logged), Warn (sustained carrier), Alarm
 - Configurable alerts: vibration and sound patterns, tone, volume, per-tier
   thresholds, silent mode

@@ -112,7 +112,9 @@ Speaker access is arbitrated — **always check `furi_hal_speaker_acquire()` and
 
 **Crawl is done when:** step 4 works repeatably. Do not add features until it does.
 
-> **Build status (2026-08-02):** implemented in `nfc_alerter/`. Compiles clean against the pinned API 87.8 SDK and produces a valid FAP. **On-device verification is still outstanding** — the Flipper's serial CLI wedged during deployment and needs a physical power-cycle (**Back + Left**). Deployment tooling and the API-pinning procedure are documented in `nfc_alerter/README.md`.
+> **Build status (2026-08-03):** crawl phase **complete and verified on hardware** — a phone in reader mode reliably triggers the alarm. Walk phase (v0.2) is also implemented and field-tested: tiering, configurable vibro/sound alerts, event log, session view, history strip, and first-run splash. Deployment tooling and the API-pinning procedure are in the [README](../README.md).
+>
+> Detection tuning note: the original 100 ms symmetric debounce never fired, because readers *pulse* their carrier rather than holding it. Replaced with an asymmetric latch (fire on first rising edge, clear only after a 750 ms hold-off). See §4 of this document and `FIELD_HOLDOFF_MS`.
 
 **Expected friction:** if nothing fires, confirm you're using an *emitter* (§1), not a tag, and that you're presenting to the **back** of the device.
 

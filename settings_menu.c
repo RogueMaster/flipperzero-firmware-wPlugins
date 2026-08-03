@@ -35,7 +35,12 @@ uint8_t settings_menu_build(AlerterSettings* s, SettingRow* rows, uint8_t cap) {
         }                                                     \
     } while(0)
 
-    ADD("Mode", &s->mode, ModeCount - 1, fmt_mode);
+    /* Mode is deliberately not exposed yet: Decoy is not wired into the
+     * detection worker, so offering the choice would be a toggle that
+     * silently does nothing. Re-add when the listener path lands (v0.3).
+     *   ADD("Mode", &s->mode, ModeCount - 1, fmt_mode);
+     */
+    (void)fmt_mode;
 
     /* Vibration first: it is the primary channel for a pocket device. */
     ADD("Vibrate", &s->vibro_pattern, PatternCount - 1, fmt_pattern);

@@ -82,11 +82,8 @@ static void draw_status(
             (unsigned long)(ms / 1000),
             (unsigned long)((ms % 1000) / 100));
     } else {
-        snprintf(
-            line,
-            sizeof(line),
-            "Armed - %s",
-            settings->mode == ModeDecoy ? "Decoy" : "Sentinel");
+        /* Mode is not user-selectable yet, so naming it here would be noise. */
+        snprintf(line, sizeof(line), "Armed - listening");
     }
     canvas_draw_str(canvas, 2, 29, line);
 

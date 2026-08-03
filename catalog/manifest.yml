@@ -1,0 +1,43 @@
+# Flipper Apps Catalog manifest.
+#
+# This file is NOT used by this repository -- it is the file you submit as a
+# pull request to flipperdevices/flipper-application-catalog, under
+# applications/NFC/nfc_alerter/manifest.yml
+#
+# Before submitting:
+#   1. Make this repo public (the catalog only accepts public GitHub repos).
+#   2. Fill in commit_sha with the exact commit to build from.
+#   3. Add screenshots taken with qFlipper (unmodified resolution/format) to
+#      catalog/screenshots/ and list them below. At least one is required;
+#      the first is the catalog preview image.
+#   4. Bump fap_version in application.fam and add a changelog.md entry.
+#
+# See docs/RELEASING.md for the full checklist.
+
+sourcecode:
+  type: git
+  location:
+    origin: https://github.com/antitree/nfc_alerter.git
+    commit_sha: REPLACE_WITH_COMMIT_SHA
+
+name: NFC Alerter
+id: nfc_alerter
+category: NFC
+version: "0.2"
+author: antitree
+
+short_description: Alerts you when a reader is scanning you over NFC.
+
+description: "@README.md"
+changelog: "@changelog.md"
+
+icon: nfc_alerter.png
+
+screenshots:
+  - catalog/screenshots/01-status.png
+  - catalog/screenshots/02-alarm.png
+  - catalog/screenshots/03-events.png
+  - catalog/screenshots/04-settings.png
+
+targets:
+  - f7
