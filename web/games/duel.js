@@ -168,7 +168,7 @@
     hide("duel-lobby"); hide("duel-over"); show("duel-match"); show("duel-leave");
     var myTurn = m.turn === m.you;
     var turn = $("duel-turn");
-    turn.textContent = myTurn ? "Your turn" : (esc(m.opp || "Opponent") + "'s turn");
+    turn.textContent = myTurn ? t("common.your_turn") : t("common.opp_turn", { nick: esc(m.opp) || t("common.opponent") });
     turn.className = "turn" + (myTurn ? " you" : "");
 
     if (m.kind === "dots") renderDots(m);
@@ -186,8 +186,8 @@
   function renderOver(m) {
     hide("duel-lobby"); hide("duel-match"); show("duel-over"); show("duel-leave");
     var r = $("duel-result");
-    var map = { win: ["Win", "win"], lose: ["Lose", "lose"], draw: ["Draw", "draw"] };
-    var res = map[m.result] || ["Over", ""];
+    var map = { win: [t("common.win"), "win"], lose: [t("common.lose"), "lose"], draw: [t("common.draw"), "draw"] };
+    var res = map[m.result] || [t("common.over"), ""];
     r.textContent = res[0];
     r.className = "result " + res[1];
     if (prevPhase !== "over") {
@@ -230,7 +230,7 @@
       rematchTimer = setTimeout(function () {
         rematchTimer = null;
         if (prevPhase === "over" && A.view === "duel") {
-          toast("Opponent left");
+          toast(t("common.opp_left"));
           send({ t: "leaveGame" });
         }
       }, 1500);
