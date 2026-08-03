@@ -1,0 +1,14 @@
+App(
+    appid="nfc_canary",
+    name="NFC Canary",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="nfc_canary_app",
+    requires=["gui", "notification", "storage"],
+    stack_size=2 * 1024,
+    fap_category="NFC",
+    fap_version="0.2",
+    fap_icon="nfc_canary.png",
+    fap_description="Passive NFC skim detector: alarms when a reader interrogates the device.",
+    fap_author="antitree",
+    fap_weburl="https://github.com/antitree/nfc_canary",
+)

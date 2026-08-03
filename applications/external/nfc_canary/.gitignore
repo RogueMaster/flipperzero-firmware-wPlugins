@@ -1,0 +1,11 @@
+dist/
+.vscode/
+*.elf
+*.fap
+sdk*.zip
+
+# editor swap/backup files
+*.swp
+*.swo
+*~
+.DS_Store
