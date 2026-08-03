@@ -1,3 +1,26 @@
+v6.1:
+- FIX: MC sandbox mode was completely broken — players could clip through
+  grass/tree/water blocks (blocking() missed WALL_GRASS/WALL_WATER/WALL_VINE)
+  while the renderer drew them as solid walls, producing a "无法玩" experience.
+  All WALL_* types now correctly block movement. MC terrain regenerated with
+  ~30% blocks / 70% open space so the player actually has room to walk.
+- Combat overhaul: pistol now fires real entity bullets (Bullet pool, 12 max)
+  that travel and collide instead of the old instant raycast hit.
+  - Player bullet speed 0.55 cell/frame, enemy bullet 0.35.
+  - Bullet life 30 frames; despawns on wall hit or target hit.
+- Enemy AI expanded: enemies now chase the player (greedy move, 60% chance)
+  AND shoot back when they have line-of-sight at 2-6 cells. Fire cooldown
+  scales with level (slower at higher levels for fairness).
+- Visual feedback (the "激励动画和音效" request):
+  - Enemy sprites: head + body + blinking eyes, bob animation, hurt-flash
+    (white-out) when damaged, muzzle warning dot before they fire.
+  - Bullets rendered as glowing dots with distance-based size + trail.
+  - Muzzle flash on player shoot, screen shake on hit, hurt screen-flash.
+  - HUD redesigned with icons: heart HP, star kill count, skull remaining
+    enemies, ammo counter (flashes "AM!" when empty).
+- HUD always shows all key info: level + hearts + skull enemies + star kills
+  + ammo in combat; MC mode shows block type + mined + hearts + achievements.
+
 v6.0:
 - FIX: "instant clear" exploit — clicking the exit no longer completes the
   level. Exits are now CELL_LOCKED_EXIT in puzzle (11-20) and combat (21-50)

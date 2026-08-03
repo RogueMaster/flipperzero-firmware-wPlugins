@@ -155,8 +155,8 @@ static bool player_attack(void) {
     return false;
 }
 
-// v6.0: 手枪射击 (战斗关 OK 键).
-// 射程 4 格, 沿朝向打第一只命中敌人; 消耗 1 发弹药.
+// v6.1: 手枪射击 — 发射一颗实体子弹 (沿玩家朝向飞行, 由 bullets_update 处理碰撞).
+//       立即播放枪口闪光 + 后坐力 + 震屏, 子弹命中时再结算伤害.
 void player_shoot(void) {
     if(g.ammo == 0) {
         set_msg(MSG_NOAMMO);
@@ -165,38 +165,99 @@ void player_shoot(void) {
     }
     g.ammo--;
     sfx_play(SFX_SHOOT);
-    // 射程 4 格内, 沿朝向找最近的敌人
-    float px = g.player.x, py = g.player.y;
-    float dx = g.player.dir_x, dy = g.player.dir_y;
-    int best_i = -1;
-    float best_fwd = 99.0f;
-    for(int i = 0; i < g.actor_count; i++) {
-        Actor* a = &g.actors[i];
-        if(!a->active || a->type != 0 || a->hp == 0) continue;
-        float ex = a->x - px, ey = a->y - py;
-        float fwd = ex * dx + ey * dy;
-        if(fwd < 0.3f || fwd > 4.5f) continue;
-        float side = fabsf(ex * (-dy) + ey * dx);
-        if(side > 0.5f) continue;
-        if(fwd < best_fwd) {
-            best_fwd = fwd;
-            best_i = i;
-        }
-    }
-    if(best_i >= 0) {
-        Actor* a = &g.actors[best_i];
-        a->hp -= 2; // 手枪一击致命 (敌人 hp=2)
-        if(a->hp <= 0) {
-            a->active = false;
-            g.task_kill_count++;
-            g.ach_total_kills++;
-            sfx_play(SFX_ENEMY_KILL);
-            ach_check();
-        } else {
-            sfx_play(SFX_ATTACK_HIT);
-        }
-    }
+    // 枪口位置: 玩家中心 + 朝向前移 0.3 格
+    float px = g.player.x + g.player.dir_x * 0.3f;
+    float py = g.player.y + g.player.dir_y * 0.3f;
+    bullet_spawn(px, py, g.player.dir_x, g.player.dir_y, 0);
+    // 视觉反馈
+    g.muzzle_flash = 3; // 3 帧枪口闪光
+    g.shoot_kick = 4; // 4 帧后坐力 (准星下移)
+    g.screen_shake = 2; // 轻微震屏
     g.dirty = true;
+}
+
+// v6.1: 子弹系统 — 生成子弹 (owner: 0=玩家 1=敌人)
+void bullet_spawn(float x, float y, float dx, float dy, int owner) {
+    for(int i = 0; i < MAX_BULLETS; i++) {
+        if(!g.bullets[i].active) {
+            g.bullets[i].active = true;
+            g.bullets[i].x = x;
+            g.bullets[i].y = y;
+            // 速度: 玩家子弹 0.55 格/帧, 敌人子弹 0.35 格/帧
+            float sp = (owner == 0) ? 0.55f : 0.35f;
+            g.bullets[i].dx = dx * sp;
+            g.bullets[i].dy = dy * sp;
+            g.bullets[i].life = 30; // 约 30 帧 (~3.7s) 寿命
+            g.bullets[i].owner = (uint8_t)owner;
+            return;
+        }
+    }
+}
+
+int bullets_active_count(void) {
+    int n = 0;
+    for(int i = 0; i < MAX_BULLETS; i++)
+        if(g.bullets[i].active) n++;
+    return n;
+}
+
+// v6.1: 推进所有子弹, 检测墙/敌人/玩家碰撞
+static bool blocking(uint8_t c); // 前向声明 (定义在下方 player_move 附近)
+void bullets_update(void) {
+    for(int i = 0; i < MAX_BULLETS; i++) {
+        Bullet* b = &g.bullets[i];
+        if(!b->active) continue;
+        b->x += b->dx;
+        b->y += b->dy;
+        if(--b->life == 0) {
+            b->active = false;
+            continue;
+        }
+        // 撞墙: 消失 (基岩/砖/树等都挡子弹)
+        uint8_t c = maze_get((int)b->x, (int)b->y);
+        if(blocking(c)) {
+            b->active = false;
+            continue;
+        }
+        if(b->owner == 0) {
+            // 玩家子弹: 检测敌人命中 (圆形碰撞, 半径 0.4)
+            for(int j = 0; j < g.actor_count; j++) {
+                Actor* a = &g.actors[j];
+                if(!a->active || a->type != 0 || a->hp == 0) continue;
+                float ddx = a->x - b->x, ddy = a->y - b->y;
+                if(ddx * ddx + ddy * ddy < 0.16f) {
+                    a->hp -= 2; // 手枪伤害 2
+                    a->hurt_flash = 4; // 受伤反白 4 帧
+                    b->active = false;
+                    if(a->hp <= 0) {
+                        a->active = false;
+                        g.task_kill_count++;
+                        g.ach_total_kills++;
+                        sfx_play(SFX_ENEMY_KILL);
+                        ach_check();
+                    } else {
+                        sfx_play(SFX_ATTACK_HIT);
+                    }
+                    break;
+                }
+            }
+        } else {
+            // 敌人子弹: 检测玩家命中
+            float ddx = g.player.x - b->x, ddy = g.player.y - b->y;
+            if(ddx * ddx + ddy * ddy < 0.16f && g.player.health > 0) {
+                g.player.health -= 1;
+                g.hurt_flash = 6; // 屏幕闪白
+                g.screen_shake = 4;
+                b->active = false;
+                set_msg(MSG_HIT);
+                sfx_play(SFX_DAMAGE);
+                if(g.player.health <= 0) {
+                    g.mode = MODE_GAME_OVER;
+                    sfx_play(SFX_GAME_OVER);
+                }
+            }
+        }
+    }
 }
 
 // v6.0: 成就系统 — 检查里程碑并触发弹窗
@@ -224,12 +285,16 @@ void ach_check(void) {
 }
 
 static bool walkable(uint8_t c) {
+    // v6.1: 所有 WALL_* 都是实体方块, 玩家不可踏入; 仅地面道具/空格可走.
+    // (WALL_WATER 也算实体阻挡 — MC 模式里水池是不能直接踩进去的方块)
     return c == CELL_EMPTY || c == CELL_KEY || c == CELL_EXIT || c == CELL_TORCH ||
            c == CELL_TRAP || c == CELL_POTION || c == CELL_AMULET || c == CELL_LOCKED_EXIT;
 }
 static bool blocking(uint8_t c) {
+    // v6.1: 所有 WALL_* + 门都阻挡玩家移动 (草地/水/沙/木/树都是实体方块)
     return c == WALL_BRICK || c == WALL_STONE || c == WALL_METAL || c == WALL_VINE ||
-           c == WALL_WOOD || c == WALL_TREE || c == CELL_DOOR;
+           c == WALL_WATER || c == WALL_GRASS || c == WALL_WOOD || c == WALL_TREE ||
+           c == CELL_DOOR;
 }
 
 static void set_dir(float angle) {
@@ -377,38 +442,94 @@ void spawn_actor(float x, float y, int type) {
     } else {
         a->hp = 0;
     }
+    a->fire_cd = (uint8_t)(20 + (maze_rng_next() & 31)); // v6.1: 随机初始射击冷却
+    a->hurt_flash = 0;
 }
 
+// v6.1: 敌人 AI — 移动 + 视线内远程射击玩家
 void actors_update(void) {
     for(int i = 0; i < g.actor_count; i++) {
         Actor* a = &g.actors[i];
         if(!a->active) continue;
+        if(a->hurt_flash > 0) a->hurt_flash--; // 受伤闪烁递减
         if(a->cooldown > 0) {
             a->cooldown--;
-            continue;
-        }
-        a->cooldown = (a->type == 0) ? (uint8_t)22 : (uint8_t)34;
-        float dirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-        int r = maze_rng_next() & 3;
-        for(int k = 0; k < 4; k++) {
-            int idx = (r + k) & 3;
-            float nx = a->x + dirs[idx][0];
-            float ny = a->y + dirs[idx][1];
-            if(walkable(maze_get((int)nx, (int)ny))) {
-                a->x = nx;
-                a->y = ny;
-                break;
+        } else {
+            a->cooldown = (a->type == 0) ? (uint8_t)22 : (uint8_t)34;
+            // 移动: 优先朝玩家方向走 (简单贪心), 走不通则随机
+            float dirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+            int r = maze_rng_next() & 3;
+            // 30% 概率朝玩家走, 70% 随机游走 (避免太聪明卡死玩家)
+            bool chase = (a->type == 0) && ((maze_rng_next() & 3) < 2);
+            if(chase) {
+                float ddx = g.player.x - a->x, ddy = g.player.y - a->y;
+                // 选主导轴
+                if(fabsf(ddx) > fabsf(ddy)) {
+                    dirs[0][0] = (ddx > 0) ? 1 : -1;
+                    dirs[0][1] = 0;
+                    dirs[1][0] = 0;
+                    dirs[1][1] = (ddy > 0) ? 1 : -1;
+                } else {
+                    dirs[0][0] = 0;
+                    dirs[0][1] = (ddy > 0) ? 1 : -1;
+                    dirs[1][0] = (ddx > 0) ? 1 : -1;
+                    dirs[1][1] = 0;
+                }
+                r = 0;
+            }
+            for(int k = 0; k < 4; k++) {
+                int idx = (r + k) & 3;
+                float nx = a->x + dirs[idx][0];
+                float ny = a->y + dirs[idx][1];
+                if(walkable(maze_get((int)nx, (int)ny))) {
+                    a->x = nx;
+                    a->y = ny;
+                    break;
+                }
             }
         }
+        // 近战接触伤害 (原有逻辑保留)
         if(a->type == 0) {
             float ddx = a->x - g.player.x, ddy = a->y - g.player.y;
             if(ddx * ddx + ddy * ddy < 0.6f && g.player.health > 0) {
                 g.player.health -= 1;
+                g.hurt_flash = 6;
+                g.screen_shake = 4;
                 set_msg(MSG_HIT);
                 sfx_play(SFX_DAMAGE);
                 if(g.player.health <= 0) {
                     g.mode = MODE_GAME_OVER;
                     sfx_play(SFX_GAME_OVER);
+                }
+            }
+        }
+        // v6.1: 战斗关敌人远程射击 — 视线内且 2~6 格距离时开火
+        if(a->type == 0 && a->hp > 0 && g.stage == STAGE_COMBAT) {
+            if(a->fire_cd > 0)
+                a->fire_cd--;
+            else {
+                float ddx = g.player.x - a->x, ddy = g.player.y - a->y;
+                float dist2 = ddx * ddx + ddy * ddy;
+                if(dist2 > 4.0f && dist2 < 36.0f) {
+                    // 视线检测: 沿方向 DDA 看是否被墙挡住
+                    float dist = sqrtf(dist2);
+                    float nx = ddx / dist, ny = ddy / dist;
+                    bool blocked = false;
+                    for(float s = 0.5f; s < dist; s += 0.5f) {
+                        if(blocking(maze_get((int)(a->x + nx * s), (int)(a->y + ny * s)))) {
+                            blocked = true;
+                            break;
+                        }
+                    }
+                    if(!blocked) {
+                        bullet_spawn(a->x, a->y, nx, ny, 1);
+                        sfx_play(SFX_SHOOT); // 复用射击音 (敌人射击)
+                        a->fire_cd = (uint8_t)(40 + (g.level * 2)); // 高关卡射更慢
+                    } else {
+                        a->fire_cd = 8; // 视线被挡, 短暂等待
+                    }
+                } else {
+                    a->fire_cd = 10;
                 }
             }
         }
@@ -592,32 +713,38 @@ void game_init_mc(void) {
     g.quest.all_done = false;
     g.ammo = 0;
 
-    // v6.0: 15x15 大空间, 含多种地形 (草地+树+水池+沙地)
+    // v6.1: 15x15 大空间, 以空地为主 (玩家可自由走动),
+    //        随机点缀方块 (草/树/木/沙/水) — 不再"几乎全是实体"卡死玩家.
     const int sz = 15;
     g.map_w = sz;
     g.map_h = sz;
-    // 外圈基岩(不可挖), 内部随机生成地形
+    // 外圈基岩(不可挖), 内部: 默认空地, 随机撒方块
     for(int y = 0; y < sz; y++) {
         for(int x = 0; x < sz; x++) {
             uint8_t c;
             if(x == 0 || y == 0 || x == sz - 1 || y == sz - 1) {
                 c = WALL_METAL; // 基岩边界
             } else {
-                // 按位置哈希生成地形: 大部分草地, 散布树/水/沙
-                int h = (x * 73856093u ^ y * 19349663u) & 15;
-                if(h < 8)
+                // 用关卡种子派生 PRNG, 保证地形可重现又多样
+                uint32_t h = maze_rng_next() & 15;
+                // v6.1: 约 30% 格子放方块 (草/树/沙/水/木混合), 70% 留空可走
+                if(h < 4)
                     c = WALL_GRASS;
-                else if(h < 11)
+                else if(h < 7)
                     c = WALL_TREE;
-                else if(h < 13)
+                else if(h < 9)
+                    c = WALL_WOOD;
+                else if(h < 11)
+                    c = WALL_VINE; // 沙地用藤蔓纹理
+                else if(h < 12)
                     c = WALL_WATER;
                 else
-                    c = WALL_BRICK; // 沙地用砖纹理近似
+                    c = CELL_EMPTY;
             }
             g.map[(uint16_t)y * MAP_MAX + x] = c;
         }
     }
-    // 中心挖出 3x3 起始空间, 玩家站中心
+    // 玩家出生点周围 3x3 强制清空 (保证有起步空间)
     int mx = sz / 2, my = sz / 2;
     for(int dy = -1; dy <= 1; dy++)
         for(int dx = -1; dx <= 1; dx++)
@@ -795,6 +922,15 @@ void game_update(void) {
     }
 
     actors_update();
+    bullets_update(); // v6.1: 推进所有飞行中的子弹
+    // v6.1: 视觉帧计数递减 (枪口闪光/受伤闪白/后坐力/震屏)
+    if(g.muzzle_flash > 0) g.muzzle_flash--;
+    if(g.hurt_flash > 0) g.hurt_flash--;
+    if(g.shoot_kick > 0) g.shoot_kick--;
+    if(g.screen_shake > 0)
+        g.screen_shake--;
+    else if(g.screen_shake < 0)
+        g.screen_shake++;
     // 任务进度更新 + 完成检测/奖励
     quest_update();
     if(g.msg_ttl > 0) {

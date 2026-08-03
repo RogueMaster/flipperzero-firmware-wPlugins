@@ -78,11 +78,23 @@ typedef struct {
     float x, y;
     bool active;
     uint8_t type; // 0=敌人 1=NPC游客
-    uint8_t cooldown;
-    uint8_t hp; // 敌人血量(1-3), 0=死亡
+    uint8_t cooldown; // 移动/攻击冷却
+    uint8_t hp; // 敌人血量(1-4), 0=死亡
+    uint8_t fire_cd; // v6.1: 远程射击冷却 (0=可射击)
+    uint8_t hurt_flash; // v6.1: 受伤闪烁帧数 (>0 时反白显示)
 } Actor;
 
 #define MAX_ACTORS 8
+
+// v6.1: 子弹 (玩家/敌人共用, 用 owner 区分)
+#define MAX_BULLETS 12
+typedef struct {
+    bool active;
+    float x, y; // 当前位置
+    float dx, dy; // 速度方向 (单位向量 * 速度)
+    uint8_t life; // 剩余生命 (帧数), 0=消失
+    uint8_t owner; // 0=玩家 1=敌人
+} Bullet;
 
 typedef struct {
     float x, y;
@@ -187,6 +199,12 @@ typedef struct {
     uint32_t ach_flags; // 里程碑位图 (见 ACH_* 枚举)
     // v6.0 战斗: 手枪弹药 (战斗关每关补给)
     uint8_t ammo;
+    // v6.1: 子弹池 + 射击视觉
+    Bullet bullets[MAX_BULLETS];
+    uint8_t muzzle_flash; // 枪口闪光帧数 (>0 时屏幕中央画闪光)
+    uint8_t hurt_flash; // 玩家受伤屏幕闪白帧数
+    uint8_t shoot_kick; // 射击后坐力 (准星抖动)
+    int16_t screen_shake; // 屏幕震屏量 (像素偏移)
 } GameState;
 
 // v6.0 成就里程碑位图
@@ -245,7 +263,7 @@ void game_init_endless(int floor, bool visitor);
 void game_init_mc(void); // MC 沙盒模式 (Beta)
 void mc_mine(void); // MC: 挖掘前方方块
 void mc_place(void); // MC: 在前方放置方块
-void player_shoot(void); // v6.0: 手枪射击 (战斗关)
+void player_shoot(void); // v6.0/v6.1: 手枪射击 (发射实体子弹)
 void ach_check(void); // v6.0: 检查并触发成就里程碑
 void ach_grant(uint32_t flag, int msg_extra); // v6.0: 发放成就
 void game_handle_input(InputKey key, InputType type);
@@ -256,6 +274,10 @@ void player_rotate(float angle);
 void actors_update(void);
 void spawn_actor(float x, float y, int type);
 void set_msg(int id); // 设置中文提示
+// v6.1: 子弹系统
+void bullets_update(void); // 推进所有子弹, 处理碰撞
+void bullet_spawn(float x, float y, float dx, float dy, int owner);
+int bullets_active_count(void);
 
 // 物品栏: 使用选中物品, 返回是否消耗
 bool item_use(int item_type);
