@@ -15,6 +15,10 @@
 // 迷宫最大尺寸
 #define MAP_MAX 31
 
+// v6.7-beta: 跳跃参数
+#define JUMP_FRAMES 28       // 跳跃总帧数 (≈0.5s)
+#define JUMP_PEAK    9.0f    // 跳跃峰值像素高度
+
 // 地图格类型
 typedef enum {
     CELL_EMPTY = 0,
@@ -227,6 +231,12 @@ typedef struct {
     Particle particles[MAX_PARTICLES];
     // 玩家移动痕迹 (上一帧位置, 用于尘土粒子触发)
     float prev_px, prev_py;
+    // v6.7-beta: 跳跃 — 垂直偏移 (0=地面, +值=在空中), 帧计数
+    float jump_z;          // 当前像素级垂直偏移 (>0 表示离地)
+    uint8_t jump_timer;    // 跳跃已进行帧数, 0=不在跳跃中
+    // v6.7-beta: 三次连续长按 Back 才退出 (防误触 beta 保护)
+    uint8_t exit_long_cnt; // 连续 Back 长按计数 (0..3)
+    uint16_t exit_long_ttl;// 计数有效剩余帧数, 归零则计数器重置
 } GameState;
 
 // v6.2: 粒子接口
@@ -366,4 +376,4 @@ const char* story_choice_b(int story_id);
 const char* story_title(int story_id);
 
 extern const uint8_t TEXTURES[][8];
-#define TEX_COUNT 12  // v6.3: 砖/石/金属/藤蔓/水/草/木/树叶/沙/土/原木/光柱
+#define TEX_COUNT 24  // v6.7-beta: 扩展到24槽, 保留12个空白给未来方块 (圆石/煤/铁/钻石/台阶/玻璃/工作台/熔炉/羊毛/苔石/地狱岩/末地石)

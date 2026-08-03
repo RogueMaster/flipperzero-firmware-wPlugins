@@ -5,8 +5,8 @@ App(
     entry_point="maze3d_app",
     stack_size=12 * 1024,
     icon="maze3d.png",
-    fap_version=(6, 6, 0),
+    fap_version=(6, 7, 0),
     fap_category="Games",
-    fap_description="3D raycasting maze: 50-level campaign (maze/puzzle/combat), MC sandbox, achievements, enemy AI, bullets, particle FX, XOR crosshair, MC textures",
+    fap_description="3D raycasting maze: 50-level campaign (maze/puzzle/combat), MC sandbox, achievements, enemy AI, bullets, particle FX, XOR crosshair, MC textures (v6.7-beta: jump + triple-Long-Press exit protection)",
     fap_author="k20120509",
 )

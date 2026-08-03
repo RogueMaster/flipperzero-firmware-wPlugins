@@ -331,8 +331,14 @@ void engine_render(void) {
 
         int lineH = (int)((float)SCREEN_H / perp);
         if(lineH < 1) lineH = 1;
-        int drawStart = -lineH / 2 + SCREEN_H / 2;
-        int drawEnd = lineH / 2 + SCREEN_H / 2;
+        // v6.7-beta: 跳跃 — 根据离地 jump_z 像素高度, 按距离将墙面+地平线整体下移
+        // (相机升高 → 屏幕中万物下移, 天空区变大地板区变小)
+        int jumpShift = 0;
+        if(g.jump_z != 0.0f) {
+            jumpShift = (int)(g.jump_z * (float)SCREEN_H / perp);
+        }
+        int drawStart = -lineH / 2 + SCREEN_H / 2 + jumpShift;
+        int drawEnd   =  lineH / 2 + SCREEN_H / 2 + jumpShift;
         if(drawStart < 0) drawStart = 0;
         if(drawEnd >= SCREEN_H) drawEnd = SCREEN_H - 1;
 
@@ -366,7 +372,7 @@ void engine_render(void) {
             fb_set(cx * 2 + 1, y, on);
         }
         // 画墙
-        int constHalf = -lineH / 2 + SCREEN_H / 2;
+        int constHalf = -lineH / 2 + SCREEN_H / 2 + jumpShift;
         for(int y = drawStart; y <= drawEnd; y++) {
             int texY = ((y - constHalf) * 8) / lineH;
             if(texY < 0) texY = 0; else if(texY > 7) texY = 7;
@@ -475,7 +481,12 @@ void engine_render(void) {
                 if(ss < 2) continue;
                 if(ss > 40) ss = 40;
                 // 道具中心位于地板线附近 (下半屏, drawEnd 附近)
-                int cy_base = SCREEN_H / 2 + (int)((float)SCREEN_H * 0.12f / transY);
+                // v6.7-beta: 加上跳跃位移 — 相机升高, 地板上的精灵整体下移
+                int jumpShiftSprite = 0;
+                if(g.jump_z != 0.0f) {
+                    jumpShiftSprite = (int)(g.jump_z * (float)SCREEN_H / transY);
+                }
+                int cy_base = SCREEN_H / 2 + (int)((float)SCREEN_H * 0.12f / transY) + jumpShiftSprite;
                 if(cy_base > SCREEN_H - 1) cy_base = SCREEN_H - 1;
                 // 根据道具类型选简单标志形状 (2x2 或 十字 闪烁)
                 bool show = true;
@@ -556,7 +567,12 @@ void engine_render(void) {
             if(sh > 36) sh = 36;
             int sw = sh / 2;             // 宽度约高度一半
             // 垂直锚点: 站在地板上 (脚部在 drawEnd 附近)
-            int feet_y = SCREEN_H / 2 + (int)((float)SCREEN_H * 0.4f / transY);
+            // v6.7-beta: 跳跃位移 — 敌人站地板上, 随相机升高而下移
+            int jumpShiftActor = 0;
+            if(g.jump_z != 0.0f) {
+                jumpShiftActor = (int)(g.jump_z * (float)SCREEN_H / transY);
+            }
+            int feet_y = SCREEN_H / 2 + (int)((float)SCREEN_H * 0.4f / transY) + jumpShiftActor;
             if(feet_y > SCREEN_H - 1) feet_y = SCREEN_H - 1;
             int top_y = feet_y - sh;
             if(top_y < 0) top_y = 0;
@@ -629,7 +645,12 @@ void engine_render(void) {
             int sx = (int)((SCREEN_W / 2.0f) * (1.0f + transX / transY));
             if(sx < -2 || sx > SCREEN_W + 1) continue;
             // 子弹在屏幕中线高度 (略低于视线)
-            int sy = SCREEN_H / 2 + (int)(4.0f / transY);
+            // v6.7-beta: 子弹在世界空间中 (高度接近视线), 跳跃时跟着略微下移
+            int jumpShiftBullet = 0;
+            if(g.jump_z != 0.0f) {
+                jumpShiftBullet = (int)(g.jump_z * (float)SCREEN_H / transY);
+            }
+            int sy = SCREEN_H / 2 + (int)(4.0f / transY) + jumpShiftBullet;
             if(sy < 0) sy = 0;
             if(sy >= SCREEN_H) sy = SCREEN_H - 1;
             // 大小随距离: 近处画 3 点, 远处 1 点, 闪烁
@@ -726,9 +747,14 @@ void engine_render(void) {
             int sx = (int)((SCREEN_W / 2.0f) * (1.0f + transX / transY));
             if(sx < -4 || sx > SCREEN_W + 3) continue;
             // 粒子高度: 子弹尾迹在中线附近, 行走尘土在地板附近
+            // v6.7-beta: 跳跃位移 — 世界空间粒子都下移
+            int jumpShiftP = 0;
+            if(g.jump_z != 0.0f) {
+                jumpShiftP = (int)(g.jump_z * (float)SCREEN_H / transY);
+            }
             int sy;
-            if(p->type == 3) sy = SCREEN_H / 2 + (int)(SCREEN_H * 0.38f / transY);   // 尘土: 地板
-            else             sy = SCREEN_H / 2 + (int)(2.0f / transY);               // 火花/爆炸: 近视线
+            if(p->type == 3) sy = SCREEN_H / 2 + (int)(SCREEN_H * 0.38f / transY) + jumpShiftP;
+            else             sy = SCREEN_H / 2 + (int)(2.0f / transY) + jumpShiftP;
             if(sy < 0) sy = 0;
             if(sy >= SCREEN_H) sy = SCREEN_H - 1;
             // 不同类型大小样式

@@ -1481,11 +1481,12 @@ int32_t maze3d_app(void* p) {
                 }
                 did_input = true;
             } else if(g.mode == MODE_MC) {
-                // v6.4 MC 模式输入:
+                // v6.7-beta MC 模式输入 (Beta 保护):
                 //   OK 短按 = 放置方块
                 //   OK 长按 = 挖掘方块
                 //   Back 短按 = 切换手持物品
-                //   Back 长按 = 返回主菜单
+                //   Back 长按 = 跳跃 (Beta 新功能)
+                //   连续 3 次 Back 长按 = 返回主菜单 (防误触退出)
                 if(key == InputKeyOk && type == InputTypeShort) {
                     mc_place();
                 } else if(key == InputKeyOk && type == InputTypeLong) {
@@ -1493,21 +1494,53 @@ int32_t maze3d_app(void* p) {
                 } else if(key == InputKeyBack && type == InputTypeShort) {
                     mc_cycle_block();
                 } else if(key == InputKeyBack && type == InputTypeLong) {
-                    g.mode = MODE_MENU;
-                    sfx_stop_all();
-                    sfx_play(SFX_MENU_OK);
+                    // v6.7-beta: 跳跃 + 三次连续长按退出保护
+                    if(g.jump_timer == 0) {
+                        g.jump_timer = 1;    // 从 1 开始起跳 (game_update 里推进)
+                        sfx_play(SFX_MENU_MOVE); // 跳跃轻微音效
+                    }
+                    // 累计连续长按计数 (beta 保护: 3 次才真退出)
+                    if(g.exit_long_ttl > 0 && g.exit_long_cnt < 3) {
+                        g.exit_long_cnt++;
+                    } else {
+                        g.exit_long_cnt = 1;
+                    }
+                    g.exit_long_ttl = 90; // 每次长按重置 1.5 秒有效窗口
+                    if(g.exit_long_cnt >= 3) {
+                        g.exit_long_cnt = 0;
+                        g.exit_long_ttl = 0;
+                        g.jump_timer = 0;   // 取消跳跃动画
+                        g.jump_z = 0.0f;
+                        g.mode = MODE_MENU;
+                        sfx_stop_all();
+                        sfx_play(SFX_MENU_OK);
+                    }
                 } else {
                     game_handle_input(key, type);
                 }
                 did_input = true;
             } else {
-                // v6.2: 所有游戏模式 (闯关/无尽/游客):
-                //   OK 短按 = 射击 (用户硬性规定)
-                //   OK 长按 = 打开物品栏/任务面板 (保留原功能)
-                //   Back 短按 = 暂停 / Back 长按 = 退出游戏
+                // v6.7-beta: 所有游戏模式 (闯关/无尽/游客) — Beta 保护:
+                //   OK 短按 = 射击
+                //   OK 长按 = 打开物品栏
+                //   Back 短按 = 暂停
+                //   Back 长按 × 3 次连续 = 退出游戏 (防误触)
                 if(key == InputKeyBack) {
-                    if(type == InputTypeLong) { running = false; sfx_stop_all(); }
-                    else if(type == InputTypeShort) {
+                    if(type == InputTypeLong) {
+                        if(g.exit_long_ttl > 0 && g.exit_long_cnt < 3) {
+                            g.exit_long_cnt++;
+                        } else {
+                            g.exit_long_cnt = 1;
+                        }
+                        g.exit_long_ttl = 90; // 1.5 秒有效窗口
+                        sfx_play(SFX_LOCKED); // 给一个确认音, 让玩家知道长按被记录了
+                        if(g.exit_long_cnt >= 3) {
+                            g.exit_long_cnt = 0;
+                            g.exit_long_ttl = 0;
+                            running = false;
+                            sfx_stop_all();
+                        }
+                    } else if(type == InputTypeShort) {
                         s_resume_mode = g.mode;
                         g.mode = MODE_PAUSED;
                         sfx_play(SFX_MENU_OK);

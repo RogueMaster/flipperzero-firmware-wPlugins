@@ -954,6 +954,29 @@ void game_handle_input(InputKey key, InputType type) {
 }
 
 void game_update(void) {
+    // v6.7-beta: 退出长按窗口计时 — 超时则计数器清零
+    if(g.exit_long_ttl > 0) {
+        g.exit_long_ttl--;
+        if(g.exit_long_ttl == 0) g.exit_long_cnt = 0;
+    }
+
+    // v6.7-beta: 跳跃抛物线 — 基于半余弦曲线 jump_z
+    if(g.jump_timer > 0) {
+        // t=0..JUMP_FRAMES, 抛物线近似 z = t*(1-t)*4 * JUMP_PEAK
+        //   t_norm=0 起, t_norm=0.5 达峰值 JUMP_PEAK, t_norm=1 归零
+        float t_norm = (float)g.jump_timer / (float)JUMP_FRAMES; // 0..1
+        float sine_approx = t_norm * (1.0f - t_norm) * 4.0f;
+        g.jump_z = sine_approx * JUMP_PEAK;
+        g.jump_timer++;
+        if(g.jump_timer >= JUMP_FRAMES) {
+            g.jump_timer = 0;
+            g.jump_z = 0.0f;
+            // 落地瞬间 2 粒尘土
+            float bx = g.player.x - g.player.dir_x * 0.35f;
+            float by = g.player.y - g.player.dir_y * 0.35f;
+            particle_spawn(bx, by, 3, 2);
+        }
+    }
     // 平滑插值: 每帧施加 turn_target 的 40% (剩余 60% 累积到下帧),
     // 这样"按左右键"不会立刻转一个大角度,而是分几帧平滑转到目标朝向.
     // 如果 turn_target 过大(连续按多次),就每帧 40% 分步转.
