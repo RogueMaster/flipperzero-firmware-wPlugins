@@ -16,7 +16,7 @@
 #define HA_FW_MAGIC_1 0x41 // 'A'
 #define HA_FW_MAGIC_2 0x52 // 'R'
 #define HA_FW_MAGIC_3 0x43 // 'C'  ("HARC" = Hotspot ARCade)
-#define HA_FW_VERSION 16 // v16: phone-UI language relayed to the client
+#define HA_FW_VERSION 17 // v17: Chess game added
 
 // Flipper -> ESP
 enum {
@@ -65,6 +65,7 @@ enum {
     HA_GAME_BATTLESHIP = 12, // battleship (1v1, hidden fleets)
     HA_GAME_SPECTRUM = 13, // wavelength-style spectrum guessing (party)
     HA_GAME_KMK = 14, // kiss marry kill (party, predict a player's picks)
+    HA_GAME_CHESS = 15, // chess (1v1, hidden move notation + piece coords)
 };
 
 // CRC-8/ATM: poly 0x07, init 0x00, no reflect, no xorout. Identical both sides.
