@@ -32,7 +32,12 @@ static void carve(int w, int h) {
         for(int x = 0; x < w; x++)
             g.map[(uint16_t)y * MAP_MAX + x] = WALL_BRICK;
 
-    int sx[MAP_MAX * MAP_MAX], sy[MAP_MAX * MAP_MAX];
+    // NOTE: sx/sy 放在静态存储(BSS)而非栈上.
+    // 之前是 int sx[961], sy[961] 局部数组 = 7688 字节, 而应用栈只有 8KB,
+    // 叠加 maze_generate/game_init_*/engine_render 的栈帧后直接栈溢出崩溃
+    // (无尽模式每次进下一关都触发, "一玩就死机"的真正根因).
+    // 单线程应用使用 static 安全.
+    static int sx[MAP_MAX * MAP_MAX], sy[MAP_MAX * MAP_MAX];
     int top = 0;
     sx[top] = 1;
     sy[top] = 1;
@@ -106,8 +111,8 @@ static void find_far(int w, int h, int sxx, int syy, int* ox, int* oy) {
 }
 
 static void update_wall_textures(int w, int h, int level) {
-    // 随着关卡切换主贴图: 4 种循环
-    int base = (level / 5) % TEX_COUNT;
+    // v6.0: 随着关卡切换主贴图 (砖/石/金属/藤蔓 循环, 不动 MC 方块)
+    int base = (level / 5) % 4;
     // 给每个墙格按坐标决定纹理变体(用位置哈希)
     for(int y = 0; y < h; y++) {
         for(int x = 0; x < w; x++) {
@@ -158,16 +163,21 @@ void maze_generate(int w, int h, int level, unsigned int seed) {
     g.exit_found = true;
 
     int stage = 0;
-    if(level >= 20)
-        stage = 2;
-    else if(level >= 10)
-        stage = 1;
+    if(level >= 21)
+        stage = 2; // v6.0: 21+ 战斗
+    else if(level >= 11)
+        stage = 1; // v6.0: 11-20 解谜
 
     if(stage >= 1) {
-        // 钥匙
-        int keys = 1 + (level >= 15 ? 1 : 0);
+        // v6.0: 解谜关 — 出口前必须有一扇门挡住 (任务完成前出口锁定)
+        // 在出口格放 CELL_LOCKED_EXIT, 旁边放 CELL_DOOR (需钥匙)
+        // 任务完成后 game 逻辑会把它当 CELL_EXIT 处理 (quest.all_done 解锁)
+        g.map[(uint16_t)ey * MAP_MAX + ex] = CELL_LOCKED_EXIT;
+        // 钥匙数递进: 11关1把, 每3关+1, 上限3
+        int keys = 1 + (level - 11) / 3;
+        if(keys > 3) keys = 3;
         int placed = 0, tries = 0;
-        while(placed < keys && tries++ < 200) {
+        while(placed < keys && tries++ < 300) {
             int x = 1 + maze_rng_next() % (w - 2);
             int y = 1 + maze_rng_next() % (h - 2);
             uint8_t c = g.map[(uint16_t)y * MAP_MAX + x];
@@ -176,14 +186,17 @@ void maze_generate(int w, int h, int level, unsigned int seed) {
                 placed++;
             }
         }
-        // 15+关: 出口变成门, 再放一个出口
-        if(level >= 15) {
-            g.map[(uint16_t)ey * MAP_MAX + ex] = CELL_DOOR;
-            int ex2, ey2;
-            find_far(w, h, ex, ey, &ex2, &ey2);
-            g.map[(uint16_t)ey2 * MAP_MAX + ex2] = CELL_EXIT;
-            g.exit_x = ex2;
-            g.exit_y = ey2;
+        // 门: 放在通往出口的走廊上 (简化: 在出口邻格放门)
+        {
+            int dxs[4] = {1, -1, 0, 0}, dys[4] = {0, 0, 1, -1};
+            for(int k = 0; k < 4; k++) {
+                int nx = ex + dxs[k], ny = ey + dys[k];
+                if(nx > 0 && ny > 0 && nx < w - 1 && ny < h - 1 &&
+                   g.map[(uint16_t)ny * MAP_MAX + nx] == CELL_EMPTY) {
+                    g.map[(uint16_t)ny * MAP_MAX + nx] = CELL_DOOR;
+                    break;
+                }
+            }
         }
         int torches = 2 + level / 5;
         placed = 0;
@@ -196,8 +209,8 @@ void maze_generate(int w, int h, int level, unsigned int seed) {
                 placed++;
             }
         }
-        // 药水: puzzle 关卡开始出现
-        int potions = 1 + (level - 10) / 5;
+        // 药水: 解谜关开始出现
+        int potions = 1 + (level - 11) / 4;
         if(potions > 3) potions = 3;
         placed = 0;
         tries = 0;
@@ -211,7 +224,9 @@ void maze_generate(int w, int h, int level, unsigned int seed) {
         }
     }
     if(stage >= 2) {
-        int traps = 2 + (level - 20) / 3;
+        // v6.0: 战斗关 — 出口锁定 (全歼敌人后解锁), 放陷阱和护符
+        g.map[(uint16_t)ey * MAP_MAX + ex] = CELL_LOCKED_EXIT;
+        int traps = 2 + (level - 21) / 3;
         if(traps > 8) traps = 8;
         int placed = 0, tries = 0;
         while(placed < traps && tries++ < 300) {
@@ -222,8 +237,7 @@ void maze_generate(int w, int h, int level, unsigned int seed) {
                 placed++;
             }
         }
-        // 护符: combat 关卡稀有出现
-        int amulets = 1 + (level - 20) / 8;
+        int amulets = 1 + (level - 21) / 8;
         if(amulets > 2) amulets = 2;
         placed = 0;
         tries = 0;

@@ -13,18 +13,223 @@ void set_msg(int id) {
 }
 
 static int level_stage(int level) {
-    if(level >= 20) return STAGE_COMBAT;
-    if(level >= 10) return STAGE_PUZZLE;
+    // v6.0: 1-10 纯迷宫 / 11-20 解谜(钥匙+门) / 21-50 战斗(手枪+敌人)
+    if(level >= 21) return STAGE_COMBAT;
+    if(level >= 11) return STAGE_PUZZLE;
     return STAGE_MAZE_ONLY;
+}
+
+// ---- 任务系统 ----
+// 根据关卡设置任务 (只有"有剧情"的关卡才有任务)
+//   level 1 (序章): 找出口
+//   level 10-19 (解谜): 拿钥匙 + 开门
+//   level 20+  (战斗): 消灭所有敌人
+//   其他关卡: 无任务
+static int combat_enemy_count(int level) {
+    // v6.0: 21关起 2 敌人, 每 3 关 +1, 上限 6
+    int n = 2 + (level - 21) / 3;
+    return n > 6 ? 6 : n;
+}
+
+static void quest_init_for_level(int level) {
+    g.quest.active = false;
+    g.quest.sub_count = 0;
+    g.quest.all_done = false;
+    g.quest.reward_given = false;
+    g.task_kill_count = 0;
+    g.task_open_door = 0;
+    g.task_get_key = 0;
+    g.task_survive_secs = 0;
+    for(int i = 0; i < MAX_SUBTASKS; i++) {
+        g.quest.subs[i].type = TASK_NONE;
+        g.quest.subs[i].target = 0;
+        g.quest.subs[i].progress = 0;
+        g.quest.subs[i].done = false;
+    }
+
+    int stg = level_stage(level);
+    if(stg == STAGE_MAZE_ONLY) {
+        // 1-10 纯迷宫: 找到出口
+        g.quest.active = true;
+        g.quest.sub_count = 1;
+        g.quest.subs[0].type = TASK_FIND_EXIT;
+        g.quest.subs[0].target = 1;
+    } else if(stg == STAGE_PUZZLE) {
+        // 11-20 解谜: 拿钥匙 + 开门, 钥匙数递进 (11关1把, 每3关+1)
+        int keys = 1 + (level - 11) / 3;
+        if(keys > 3) keys = 3;
+        g.quest.active = true;
+        g.quest.sub_count = 2;
+        g.quest.subs[0].type = TASK_GET_KEY;
+        g.quest.subs[0].target = keys;
+        g.quest.subs[1].type = TASK_OPEN_DOOR;
+        g.quest.subs[1].target = 1;
+    } else if(stg == STAGE_COMBAT) {
+        // 21-50 战斗: 全歼敌人 + 存活 + 找出口 (递进)
+        int enemies = combat_enemy_count(level);
+        g.quest.active = true;
+        g.quest.sub_count = 2;
+        g.quest.subs[0].type = TASK_KILL_ENEMY;
+        g.quest.subs[0].target = enemies;
+        g.quest.subs[1].type = TASK_FIND_EXIT;
+        g.quest.subs[1].target = 1;
+    }
+}
+
+// 更新任务进度 + 检测完成 + 发放奖励
+static void quest_update(void) {
+    if(!g.quest.active || g.quest.all_done) return;
+    for(int i = 0; i < g.quest.sub_count; i++) {
+        SubTask* s = &g.quest.subs[i];
+        if(s->done) continue;
+        switch(s->type) {
+        case TASK_GET_KEY:
+            s->progress = g.task_get_key;
+            break;
+        case TASK_OPEN_DOOR:
+            s->progress = g.task_open_door;
+            break;
+        case TASK_KILL_ENEMY:
+            s->progress = g.task_kill_count;
+            break;
+        case TASK_FIND_EXIT:
+            // 由 player_move 命中 CELL_EXIT 时直接置 done
+            break;
+        case TASK_SURVIVE:
+            s->progress = g.task_survive_secs;
+            break;
+        default:
+            break;
+        }
+        if(s->target > 0 && s->progress >= s->target) s->done = true;
+    }
+    // 是否全部完成
+    bool all = true;
+    for(int i = 0; i < g.quest.sub_count; i++) {
+        if(!g.quest.subs[i].done) {
+            all = false;
+            break;
+        }
+    }
+    if(all && !g.quest.all_done) {
+        g.quest.all_done = true;
+        // 奖励: 回满血 (一次性)
+        if(!g.quest.reward_given) {
+            g.quest.reward_given = true;
+            g.player.health = g.player.max_health;
+            sfx_play(SFX_QUEST_DONE);
+            set_msg(MSG_QUESTDONE); // 任务完成 toast
+        }
+    }
+}
+
+// 玩家冲刺(OK键)时攻击前方敌人: 命中则敌人扣血, 不前进
+// 返回 true 表示命中了敌人 (应取消本次冲刺移动)
+static bool player_attack(void) {
+    if(g.actor_count == 0) return false;
+    float px = g.player.x, py = g.player.y;
+    float dx = g.player.dir_x, dy = g.player.dir_y;
+    for(int i = 0; i < g.actor_count; i++) {
+        Actor* a = &g.actors[i];
+        if(!a->active || a->type != 0 || a->hp == 0) continue;
+        float ex = a->x - px, ey = a->y - py;
+        // 前方距离 (沿朝向投影)
+        float fwd = ex * dx + ey * dy;
+        if(fwd < 0.2f || fwd > 1.2f) continue;
+        // 横向偏移 (垂直于朝向)
+        float side = fabsf(ex * (-dy) + ey * dx);
+        if(side > 0.6f) continue;
+        // 命中
+        if(a->hp > 0) a->hp--;
+        set_msg(MSG_HIT);
+        sfx_play(SFX_ATTACK_HIT);
+        if(a->hp == 0) {
+            a->active = false;
+            g.task_kill_count++;
+            g.ach_total_kills++; // v6.0 成就统计
+            sfx_play(SFX_ENEMY_KILL);
+            ach_check(); // 触发击杀成就
+        }
+        return true;
+    }
+    return false;
+}
+
+// v6.0: 手枪射击 (战斗关 OK 键).
+// 射程 4 格, 沿朝向打第一只命中敌人; 消耗 1 发弹药.
+void player_shoot(void) {
+    if(g.ammo == 0) {
+        set_msg(MSG_NOAMMO);
+        sfx_play(SFX_NO_AMMO);
+        return;
+    }
+    g.ammo--;
+    sfx_play(SFX_SHOOT);
+    // 射程 4 格内, 沿朝向找最近的敌人
+    float px = g.player.x, py = g.player.y;
+    float dx = g.player.dir_x, dy = g.player.dir_y;
+    int best_i = -1;
+    float best_fwd = 99.0f;
+    for(int i = 0; i < g.actor_count; i++) {
+        Actor* a = &g.actors[i];
+        if(!a->active || a->type != 0 || a->hp == 0) continue;
+        float ex = a->x - px, ey = a->y - py;
+        float fwd = ex * dx + ey * dy;
+        if(fwd < 0.3f || fwd > 4.5f) continue;
+        float side = fabsf(ex * (-dy) + ey * dx);
+        if(side > 0.5f) continue;
+        if(fwd < best_fwd) {
+            best_fwd = fwd;
+            best_i = i;
+        }
+    }
+    if(best_i >= 0) {
+        Actor* a = &g.actors[best_i];
+        a->hp -= 2; // 手枪一击致命 (敌人 hp=2)
+        if(a->hp <= 0) {
+            a->active = false;
+            g.task_kill_count++;
+            g.ach_total_kills++;
+            sfx_play(SFX_ENEMY_KILL);
+            ach_check();
+        } else {
+            sfx_play(SFX_ATTACK_HIT);
+        }
+    }
+    g.dirty = true;
+}
+
+// v6.0: 成就系统 — 检查里程碑并触发弹窗
+void ach_grant(uint32_t flag, int msg_extra) {
+    if(g.ach_flags & flag) return;
+    g.ach_flags |= flag;
+    set_msg(MSG_ACHIEVE);
+    sfx_play(SFX_ACHIEVE);
+    storage_save();
+    (void)msg_extra;
+}
+
+void ach_check(void) {
+    if(g.ach_total_kills >= 1) ach_grant(ACH_FIRST_BLOOD, 0);
+    if(g.ach_total_kills >= 10) ach_grant(ACH_KILL_10, 0);
+    if(g.ach_total_kills >= 50) ach_grant(ACH_KILL_50, 0);
+    if(g.ach_total_clears >= 1) ach_grant(ACH_FIRST_CLEAR, 0);
+    if(g.ach_total_clears >= 10) ach_grant(ACH_CLEAR_10, 0);
+    if(g.ach_total_clears >= 25) ach_grant(ACH_CLEAR_25, 0);
+    if(g.ach_total_mined >= 50) ach_grant(ACH_MINER_50, 0);
+    if(g.mode == MODE_CAMPAIGN) {
+        if(g.level >= 21) ach_grant(ACH_REACH_COMBAT, 0);
+        if(g.level >= 35) ach_grant(ACH_REACH_LATE, 0);
+    }
 }
 
 static bool walkable(uint8_t c) {
     return c == CELL_EMPTY || c == CELL_KEY || c == CELL_EXIT || c == CELL_TORCH ||
-           c == CELL_TRAP || c == CELL_POTION || c == CELL_AMULET;
+           c == CELL_TRAP || c == CELL_POTION || c == CELL_AMULET || c == CELL_LOCKED_EXIT;
 }
 static bool blocking(uint8_t c) {
     return c == WALL_BRICK || c == WALL_STONE || c == WALL_METAL || c == WALL_VINE ||
-           c == CELL_DOOR;
+           c == WALL_WOOD || c == WALL_TREE || c == CELL_DOOR;
 }
 
 static void set_dir(float angle) {
@@ -49,42 +254,79 @@ bool player_move(float dx, float dy) {
     uint8_t here = maze_get(cx, cy);
     if(here == CELL_KEY) {
         g.player.keys++;
+        g.task_get_key++;
         maze_set(cx, cy, CELL_EMPTY);
         set_msg(MSG_KEY);
+        sfx_play(SFX_PICK_KEY);
     } else if(here == CELL_TORCH) {
         g.player.torches++;
         maze_set(cx, cy, CELL_EMPTY);
         set_msg(MSG_TORCH);
+        sfx_play(SFX_PICK_ITEM);
     } else if(here == CELL_POTION) {
         g.player.potions++;
         maze_set(cx, cy, CELL_EMPTY);
-        set_msg(MSG_TORCH); // 复用"获得"提示
+        set_msg(MSG_POTION);
+        sfx_play(SFX_PICK_ITEM);
     } else if(here == CELL_AMULET) {
         g.player.amulets++;
         maze_set(cx, cy, CELL_EMPTY);
-        set_msg(MSG_KEY);
+        set_msg(MSG_AMULET);
+        sfx_play(SFX_PICK_ITEM);
     } else if(here == CELL_TRAP) {
         if(g.stage == STAGE_COMBAT && g.player.health > 0) {
             g.player.health -= 1;
             set_msg(MSG_TRAP);
+            sfx_play(SFX_TRAP);
+            if(g.player.health <= 0) {
+                g.mode = MODE_GAME_OVER;
+                sfx_play(SFX_GAME_OVER);
+            }
         }
         maze_set(cx, cy, CELL_EMPTY);
     } else if(here == CELL_DOOR) {
         if(g.player.keys > 0) {
             g.player.keys--;
+            g.task_open_door = 1;
             maze_set(cx, cy, CELL_EMPTY);
             set_msg(MSG_DOOR);
+            sfx_play(SFX_OPEN_DOOR);
         } else {
             set_msg(MSG_NEEDKEY);
+            sfx_play(SFX_NEED_KEY);
             g.player.x -= dx;
             g.player.y -= dy;
             return false;
         }
     } else if(here == CELL_EXIT) {
+        // v6.0 修复瞬间通关: 出口在任务未完成时锁定, 不能直接通过.
+        // 解谜关必须先开门, 战斗关必须先全歼敌人.
+        if(g.quest.active && !g.quest.all_done) {
+            // 任务未完成: 弹回 + 提示
+            g.player.x -= dx;
+            g.player.y -= dy;
+            set_msg(MSG_LOCKED);
+            sfx_play(SFX_LOCKED);
+            return false;
+        }
+        // 命中出口: 标记 FIND_EXIT 子任务完成, 并即时结算奖励
+        // (mode 即将变为 LEVEL_CLEAR, game_update 不再运行, 故此处直接结算)
+        if(g.quest.active) {
+            for(int i = 0; i < g.quest.sub_count; i++) {
+                if(g.quest.subs[i].type == TASK_FIND_EXIT) {
+                    g.quest.subs[i].progress = 1;
+                    g.quest.subs[i].done = true;
+                }
+            }
+            quest_update();
+        }
         if(g.mode == MODE_CAMPAIGN) {
             g.mode = MODE_LEVEL_CLEAR;
             if(g.level > g.campaign_cleared) g.campaign_cleared = g.level;
+            g.ach_total_clears++; // v6.0 成就统计
+            ach_check(); // 触发过关成就
             storage_save();
+            sfx_play(SFX_LEVEL_CLEAR);
         } else if(g.mode == MODE_ENDLESS_RUN) {
             g.endless_floor++;
             storage_save();
@@ -92,6 +334,13 @@ bool player_move(float dx, float dy) {
         } else if(g.mode == MODE_ENDLESS_VISITOR) {
             set_msg(MSG_EXIT);
         }
+    } else if(here == CELL_LOCKED_EXIT) {
+        // v6.0 锁定出口: 视觉上存在但不可通过, 提示任务未完成
+        g.player.x -= dx;
+        g.player.y -= dy;
+        set_msg(MSG_LOCKED);
+        sfx_play(SFX_LOCKED);
+        return false;
     }
     return true;
 }
@@ -116,6 +365,18 @@ void spawn_actor(float x, float y, int type) {
     a->active = true;
     a->type = (uint8_t)type;
     a->cooldown = 0;
+    // v6.0: 敌人血量随关卡递进 (21-27关 hp=2, 28-34关 hp=3, 35+关 hp=4)
+    // 手枪伤害=2, 高级关需要2发; 近战冲刺伤害=1
+    if(type == 0) {
+        int hp = 2;
+        if(g.level >= 35)
+            hp = 4;
+        else if(g.level >= 28)
+            hp = 3;
+        a->hp = (uint8_t)hp;
+    } else {
+        a->hp = 0;
+    }
 }
 
 void actors_update(void) {
@@ -144,7 +405,11 @@ void actors_update(void) {
             if(ddx * ddx + ddy * ddy < 0.6f && g.player.health > 0) {
                 g.player.health -= 1;
                 set_msg(MSG_HIT);
-                if(g.player.health <= 0) g.mode = MODE_GAME_OVER;
+                sfx_play(SFX_DAMAGE);
+                if(g.player.health <= 0) {
+                    g.mode = MODE_GAME_OVER;
+                    sfx_play(SFX_GAME_OVER);
+                }
             }
         }
     }
@@ -179,10 +444,11 @@ static void place_player_and_actors(int level, bool visitor) {
     }
 
     if(g.mode == MODE_CAMPAIGN && g.stage == STAGE_COMBAT) {
-        int enemies = 1 + (level - 20) / 4;
-        if(enemies > 4) enemies = 4;
+        // v6.0: 战斗关给手枪弹药 (敌人数 + 3, 留容错), 敌人血量随关卡递进
+        int enemies = combat_enemy_count(level);
+        g.ammo = (uint8_t)(enemies + 3);
         int placed = 0, tries = 0;
-        while(placed < enemies && tries++ < 200) {
+        while(placed < enemies && tries++ < 300) {
             int x = 2 + maze_rng_next() % (g.map_w - 4);
             int y = 2 + maze_rng_next() % (g.map_h - 4);
             if(walkable(maze_get(x, y)) && (abs(x - 1) + abs(y - 1) > 5)) {
@@ -190,6 +456,8 @@ static void place_player_and_actors(int level, bool visitor) {
                 placed++;
             }
         }
+    } else {
+        g.ammo = 0;
     }
     if(visitor) {
         int npcs = 3;
@@ -214,16 +482,24 @@ void game_init_campaign(int level) {
     g.has_exit = true;
     g.exit_found = true;
     g.tick = 0;
+    g.show_hud = false;
+    g.turn_target = 0.0f;
+    g.move_fwd_target = 0.0f;
+    g.move_bwd_target = 0.0f;
+    g.move_dash_target = 0.0f;
+    // v6.0: 迷宫尺寸随关卡递进, 上限 25 防卡顿; 50 关上限
     int sz = 7 + level;
-    if(sz > 23) sz = 23; // 上限保护, 防止大迷宫卡顿
+    if(sz > 25) sz = 25;
     maze_generate(sz, sz, level, 0xABCDEF01u);
     place_player_and_actors(level, false);
+    quest_init_for_level(level);
     if(g.stage == STAGE_COMBAT)
         set_msg(MSG_CARE);
     else if(g.stage == STAGE_PUZZLE)
         set_msg(MSG_PUZZLE);
     else
         set_msg(MSG_FINDEXIT);
+    ach_check(); // v6.0: 触发进度里程碑成就
     g.dirty = true;
 }
 
@@ -233,11 +509,21 @@ void game_init_endless(int floor, bool visitor) {
     g.endless_floor = floor;
     g.stage = STAGE_MAZE_ONLY;
     g.has_exit = true;
-    g.exit_found = true; // 始终显示出口罗盘, 避免渲染异常
+    g.exit_found = true;
     g.tick = 0;
-    int sz = 9 + (floor > 12 ? 12 : floor);
-    if(sz > 21) sz = 21; // 严格上限, 防卡死
-    maze_generate(sz, sz, floor + 100, 0x12345678u + (unsigned)floor * 31u);
+    g.show_hud = false;
+    // 清零平滑插值目标(避免旧累积值)
+    g.turn_target = 0.0f;
+    g.move_fwd_target = 0.0f;
+    g.move_bwd_target = 0.0f;
+    g.move_dash_target = 0.0f;
+    // 尺寸严格上限 19 (19x19=361 格, DDA 步数最多 19 列 × 64 = 1216 次循环)
+    int sz = 9 + (floor > 10 ? 10 : floor);
+    if(sz > 19) sz = 19;
+    if(sz < 9) sz = 9;
+    // 用 floor 做种子散列 (避免连续 floor 生成相似地图)
+    unsigned seed = 0x12345678u ^ (unsigned)floor * 2654435761u ^ (unsigned)floor * 1013904242u;
+    maze_generate(sz, sz, floor + 100, seed);
     place_player_and_actors(floor + 100, visitor);
     set_msg(visitor ? MSG_VISITOR : MSG_RUN);
     g.dirty = true;
@@ -248,6 +534,138 @@ void game_next_level(void) {
         game_init_campaign(g.level + 1);
     else if(g.mode == MODE_ENDLESS_RUN)
         game_init_endless(g.endless_floor, false);
+}
+
+// ---- MC 沙盒模式 (v6.0 扩展) ----
+// v6.0: 手持方块类型 mc_block_type: 1=砖 2=石 3=木 4=草 5=沙 6=树叶
+// (金属/水/树不可放置; 挖树得木, 挖草得草, 挖沙得沙)
+#define MC_BLOCK_COUNT 6
+static uint8_t mc_block_to_wall(uint8_t bt) {
+    switch(bt) {
+    case 1:
+        return WALL_BRICK;
+    case 2:
+        return WALL_STONE;
+    case 3:
+        return WALL_WOOD;
+    case 4:
+        return WALL_GRASS;
+    case 5:
+        return WALL_VINE; // 沙用藤蔓纹理近似
+    case 6:
+        return WALL_TREE; // 树叶用树纹理
+    default:
+        return WALL_BRICK;
+    }
+}
+
+// 玩家正前方的相邻格 (按主导方向取 4 邻域, 类似 MC 的十字挖掘)
+static void mc_target_cell(int* tx, int* ty) {
+    int px = (int)g.player.x;
+    int py = (int)g.player.y;
+    if(fabsf(g.player.dir_x) >= fabsf(g.player.dir_y))
+        *tx = px + (g.player.dir_x > 0 ? 1 : -1), *ty = py;
+    else
+        *tx = px, *ty = py + (g.player.dir_y > 0 ? 1 : -1);
+}
+
+void game_init_mc(void) {
+    g.mode = MODE_MC;
+    g.stage = STAGE_MAZE_ONLY;
+    g.has_exit = false;
+    g.exit_found = false;
+    g.tick = 0;
+    g.show_hud = false;
+    g.turn_target = 0.0f;
+    g.move_fwd_target = 0.0f;
+    g.move_bwd_target = 0.0f;
+    g.move_dash_target = 0.0f;
+    g.actor_count = 0;
+    g.player.keys = 0;
+    g.player.torches = 0;
+    g.player.potions = 0;
+    g.player.amulets = 0;
+    g.player.max_health = 5;
+    g.player.health = 5;
+    g.quest.active = false;
+    g.quest.sub_count = 0;
+    g.quest.all_done = false;
+    g.ammo = 0;
+
+    // v6.0: 15x15 大空间, 含多种地形 (草地+树+水池+沙地)
+    const int sz = 15;
+    g.map_w = sz;
+    g.map_h = sz;
+    // 外圈基岩(不可挖), 内部随机生成地形
+    for(int y = 0; y < sz; y++) {
+        for(int x = 0; x < sz; x++) {
+            uint8_t c;
+            if(x == 0 || y == 0 || x == sz - 1 || y == sz - 1) {
+                c = WALL_METAL; // 基岩边界
+            } else {
+                // 按位置哈希生成地形: 大部分草地, 散布树/水/沙
+                int h = (x * 73856093u ^ y * 19349663u) & 15;
+                if(h < 8)
+                    c = WALL_GRASS;
+                else if(h < 11)
+                    c = WALL_TREE;
+                else if(h < 13)
+                    c = WALL_WATER;
+                else
+                    c = WALL_BRICK; // 沙地用砖纹理近似
+            }
+            g.map[(uint16_t)y * MAP_MAX + x] = c;
+        }
+    }
+    // 中心挖出 3x3 起始空间, 玩家站中心
+    int mx = sz / 2, my = sz / 2;
+    for(int dy = -1; dy <= 1; dy++)
+        for(int dx = -1; dx <= 1; dx++)
+            g.map[(uint16_t)(my + dy) * MAP_MAX + (mx + dx)] = CELL_EMPTY;
+    g.player.x = mx + 0.5f;
+    g.player.y = my + 0.5f;
+    set_dir(0.0f);
+
+    g.mc_block_type = 3; // v6.0: 默认手持木板
+    g.mc_mined = 0;
+    set_msg(MSG_MINE);
+    g.dirty = true;
+}
+
+void mc_mine(void) {
+    int tx, ty;
+    mc_target_cell(&tx, &ty);
+    uint8_t c = maze_get(tx, ty);
+    bool is_border = (tx == 0 || ty == 0 || tx == g.map_w - 1 || ty == g.map_h - 1);
+    // v6.0: 可挖草地/树/木/砖/藤蔓/沙; 水和基岩边界不可挖
+    if(is_border || c == WALL_WATER || c == WALL_METAL) {
+        sfx_play(SFX_NEED_KEY); // 不可挖提示
+        return;
+    }
+    if(c == WALL_GRASS || c == WALL_TREE || c == WALL_WOOD || c == WALL_BRICK || c == WALL_STONE ||
+       c == WALL_VINE) {
+        maze_set(tx, ty, CELL_EMPTY);
+        g.mc_mined++;
+        g.ach_total_mined++; // v6.0 成就统计
+        set_msg(MSG_MINE);
+        sfx_play(SFX_PICK_ITEM);
+        ach_check(); // 触发挖掘成就
+    } else {
+        sfx_play(SFX_NEED_KEY);
+    }
+}
+
+void mc_place(void) {
+    int tx, ty;
+    mc_target_cell(&tx, &ty);
+    // 目标格恒为玩家相邻格, 不会封死玩家自身所在格
+    if(maze_get(tx, ty) == CELL_EMPTY) {
+        maze_set(tx, ty, mc_block_to_wall(g.mc_block_type));
+        set_msg(MSG_PLACE);
+        sfx_play(SFX_OPEN_DOOR);
+    } else {
+        sfx_play(SFX_NEED_KEY);
+    }
 }
 
 // ---- 物品栏 ----
@@ -303,27 +721,33 @@ bool item_use(int item_type) {
 void game_handle_input(InputKey key, InputType type) {
     if(type != InputTypeShort && type != InputTypeRepeat) return;
 
-    float speed = 0.28f;
-    float slow = 0.18f;
-    float dash = 0.45f;
-    float turn = 0.29f;
+    // 平滑移动: 输入只设置"目标"值,game_update 每帧逐步插值施加,
+    // 从而达到"转角和移动更加平滑"的效果
+    const float speed = 0.28f;
+    const float slow = 0.18f;
+    const float dash = 0.42f;
+    const float turn = 0.26f;
 
     switch(key) {
     case InputKeyUp:
-        player_move(g.player.dir_x * speed, g.player.dir_y * speed);
+        g.move_fwd_target += speed;
         break;
     case InputKeyDown:
-        player_move(-g.player.dir_x * slow, -g.player.dir_y * slow);
+        g.move_bwd_target += slow;
         break;
     case InputKeyLeft:
-        player_rotate(-turn);
+        g.turn_target -= turn;
         break;
     case InputKeyRight:
-        player_rotate(turn);
+        g.turn_target += turn;
         break;
     case InputKeyOk:
-        // 确认键: 前冲一步
-        player_move(g.player.dir_x * dash, g.player.dir_y * dash);
+        // v6.0: 战斗关 OK = 手枪射击; 其他关 OK = 冲刺
+        if(g.stage == STAGE_COMBAT) {
+            player_shoot();
+        } else {
+            g.move_dash_target += dash;
+        }
         break;
     default:
         break;
@@ -332,8 +756,47 @@ void game_handle_input(InputKey key, InputType type) {
 }
 
 void game_update(void) {
-    g.tick++;
+    // 平滑插值: 每帧施加 turn_target 的 40% (剩余 60% 累积到下帧),
+    // 这样"按左右键"不会立刻转一个大角度,而是分几帧平滑转到目标朝向.
+    // 如果 turn_target 过大(连续按多次),就每帧 40% 分步转.
+    if(g.turn_target != 0.0f) {
+        float step = g.turn_target * 0.45f;
+        if(fabsf(step) < 0.01f) {
+            step = g.turn_target;
+            g.turn_target = 0.0f;
+        } else {
+            g.turn_target -= step;
+        }
+        player_rotate(step);
+    }
+
+    // 平滑移动: 每帧施加 move_target 的一部分, 与插值转弯配合
+    if(g.move_dash_target != 0.0f) {
+        // 冲刺(OK键): 若前方有敌人则攻击, 命中则取消本次冲刺
+        if(g.stage == STAGE_COMBAT && player_attack()) {
+            // 命中敌人, 不移动
+        } else {
+            float s = g.move_dash_target;
+            player_move(g.player.dir_x * s, g.player.dir_y * s);
+        }
+        g.move_dash_target = 0.0f;
+    }
+    if(g.move_fwd_target != 0.0f) {
+        float s = g.move_fwd_target > 0.5f ? 0.5f : g.move_fwd_target;
+        player_move(g.player.dir_x * s, g.player.dir_y * s);
+        g.move_fwd_target -= s;
+        if(g.move_fwd_target < 0.0f) g.move_fwd_target = 0.0f;
+    }
+    if(g.move_bwd_target != 0.0f) {
+        float s = g.move_bwd_target > 0.3f ? 0.3f : g.move_bwd_target;
+        player_move(-g.player.dir_x * s, -g.player.dir_y * s);
+        g.move_bwd_target -= s;
+        if(g.move_bwd_target < 0.0f) g.move_bwd_target = 0.0f;
+    }
+
     actors_update();
+    // 任务进度更新 + 完成检测/奖励
+    quest_update();
     if(g.msg_ttl > 0) {
         g.msg_ttl--;
         if(g.msg_ttl == 0) g.msg_id = MSG_NONE;
