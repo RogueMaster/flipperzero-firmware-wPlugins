@@ -3137,7 +3137,7 @@ var piece = m.board.charAt(from);
 var needsPromo = (piece === "P" && to >= 56) || (piece === "p" && to <= 7);
 selFrom = -1;
 if (needsPromo) { pendingPromo = { from: from, to: to }; renderBoard(m); showPromo(); }
-else { sendMove(from, to, 0); renderBoard(m); }
+else { renderBoard(m); sendMove(from, to, 0); }
 return;
 }
 if (movesFrom[sq]) { selFrom = sq; A.vibe(8); renderBoard(m); return; }

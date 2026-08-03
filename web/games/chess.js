@@ -87,7 +87,12 @@
       var needsPromo = (piece === "P" && to >= 56) || (piece === "p" && to <= 7);
       selFrom = -1;
       if (needsPromo) { pendingPromo = { from: from, to: to }; renderBoard(m); showPromo(); }
-      else { sendMove(from, to, 0); renderBoard(m); }
+      // Render BEFORE sending: in the simulator send() is synchronous (the engine's
+      // reply dispatches inside this same call stack), so a render placed after the
+      // send would paint this stale pre-move `m` over the fresh server state and the
+      // move would only appear on the next push. Render-then-send is correct in both
+      // worlds: async (hardware) clears the highlight now and applies the push later.
+      else { renderBoard(m); sendMove(from, to, 0); }
       return;
     }
     if (movesFrom[sq]) { selFrom = sq; A.vibe(8); renderBoard(m); return; }
