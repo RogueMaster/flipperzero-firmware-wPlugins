@@ -15,6 +15,14 @@ It alerts you that a scan is happening; it cannot prevent one. By the time it
 fires, a read may already have succeeded. The value is awareness — knowing you
 were probed, when, and how often.
 
+| Armed | Reader detected |
+|---|---|
+| ![Status](docs/img/01-status.png) | ![Alarm](docs/img/02-alarm.png) |
+
+| Event log | Settings |
+|---|---|
+| ![Events](docs/img/03-events.png) | ![Settings](docs/img/04-settings.png) |
+
 ## Install
 
 **From a release:** download `nfc_alerter.fap` from

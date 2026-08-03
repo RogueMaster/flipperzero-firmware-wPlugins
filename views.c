@@ -160,7 +160,7 @@ static void draw_events(Canvas* canvas, const ViewState* view, AlerterState* sta
     }
 
     char foot[32];
-    snprintf(foot, sizeof(foot), "%u/%u  OK=detail", view->event_cursor + 1, count);
+    snprintf(foot, sizeof(foot), "%u/%u  OK:Detail", view->event_cursor + 1, count);
     canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, foot);
 }
 
@@ -184,21 +184,24 @@ static void draw_event_detail(Canvas* canvas, const ViewState* view, AlerterStat
     canvas_set_font(canvas, FontSecondary);
     char line[40];
 
-    snprintf(line, sizeof(line), "Mode: %s", ev.mode == ModeDecoy ? "Decoy" : "Sentinel");
+    snprintf(line, sizeof(line), "Exposure: %u ms", (unsigned)ev.duration_ms);
     canvas_draw_str(canvas, 2, 24, line);
 
-    snprintf(line, sizeof(line), "Proto: %s", eventlog_protocol_name(ev.protocol));
-    canvas_draw_str(canvas, 2, 33, line);
-
+    /* Protocol and command are only populated in Decoy mode. Until that lands,
+     * printing "Unknown / none" on every event is noise, so show the detail
+     * only when there is detail to show. */
+    if(ev.protocol != 0xFF) {
+        snprintf(line, sizeof(line), "Proto: %s", eventlog_protocol_name(ev.protocol));
+        canvas_draw_str(canvas, 2, 33, line);
+    }
     if(ev.cmd) {
         snprintf(line, sizeof(line), "Cmd %02X: %s", ev.cmd, eventlog_cmd_name(ev.cmd));
-    } else {
-        snprintf(line, sizeof(line), "Cmd: none (carrier only)");
+        canvas_draw_str(canvas, 2, 42, line);
     }
-    canvas_draw_str(canvas, 2, 42, line);
-
-    snprintf(line, sizeof(line), "Exposure: %u ms", (unsigned)ev.duration_ms);
-    canvas_draw_str(canvas, 2, 51, line);
+    if(ev.protocol == 0xFF && !ev.cmd) {
+        canvas_draw_str(canvas, 2, 33, "Carrier detected");
+        canvas_draw_str(canvas, 2, 42, "(no protocol detail)");
+    }
 
     canvas_draw_str_aligned(canvas, 64, 62, AlignCenter, AlignBottom, "Back");
 }
@@ -306,7 +309,7 @@ static void draw_diag(Canvas* canvas, AlerterState* state) {
     snprintf(line, sizeof(line), "Detections: %lu", (unsigned long)state->detections);
     canvas_draw_str(canvas, 2, 56, line);
 
-    canvas_draw_str_aligned(canvas, 127, 62, AlignRight, AlignBottom, "OK=test");
+    canvas_draw_str_aligned(canvas, 127, 62, AlignRight, AlignBottom, "OK:Test");
 }
 
 /* ---------- dispatch ---------- */
