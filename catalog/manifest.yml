@@ -16,7 +16,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/antitree/nfc_alerter.git
-    commit_sha: 1183e9a872f8c4d43d94d1287ebc0515ff53b830
+    commit_sha: 789913413d5f39b6c5c600f847922b3343f7c97a
 
 name: NFC Alerter
 id: nfc_alerter
