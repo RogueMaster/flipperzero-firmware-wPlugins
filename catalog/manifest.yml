@@ -1,24 +1,22 @@
 # Flipper Apps Catalog manifest.
 #
-# This file is NOT used by this repository -- it is the file you submit as a
-# pull request to flipperdevices/flipper-application-catalog, under
-# applications/NFC/nfc_alerter/manifest.yml
+# This file is NOT used by this repository. It is submitted as a pull request
+# to flipperdevices/flipper-application-catalog, placed at:
+#   applications/NFC/nfc_alerter/manifest.yml
 #
-# Before submitting:
-#   1. Make this repo public (the catalog only accepts public GitHub repos).
-#   2. Fill in commit_sha with the exact commit to build from.
-#   3. Add screenshots taken with qFlipper (unmodified resolution/format) to
-#      catalog/screenshots/ and list them below. At least one is required;
-#      the first is the catalog preview image.
-#   4. Bump fap_version in application.fam and add a changelog.md entry.
+# Paths in this file are relative to the app source root (this repo), because
+# the catalog builds from the sourcecode reference below.
 #
-# See docs/RELEASING.md for the full checklist.
+# On each release: bump `version` here and `fap_version` in application.fam to
+# match, update commit_sha, and add a changelog.md entry.
+#
+# See ../docs/RELEASING.md for the full checklist.
 
 sourcecode:
   type: git
   location:
     origin: https://github.com/antitree/nfc_alerter.git
-    commit_sha: REPLACE_WITH_COMMIT_SHA
+    commit_sha: e88e07a1b04f413f0969f4365436a8607939b510
 
 name: NFC Alerter
 id: nfc_alerter
@@ -26,13 +24,17 @@ category: NFC
 version: "0.2"
 author: antitree
 
-short_description: Alerts you when a reader is scanning you over NFC.
+short_description: Alerts you by vibration when someone scans you over NFC.
 
-description: "@README.md"
-changelog: "@changelog.md"
+# Not @README.md: the catalog supports only limited Markdown (headers 1-2,
+# bold/italic, lists, links) and the README relies on image tables and code
+# blocks that would not render.
+description: "@./catalog/description.md"
+changelog: "@./changelog.md"
 
 icon: nfc_alerter.png
 
+# 128x64 1-bit, the panel's native resolution.
 screenshots:
   - catalog/screenshots/01-status.png
   - catalog/screenshots/02-alarm.png
