@@ -102,6 +102,7 @@ static void quest_update(void) {
             g.quest.reward_given = true;
             g.player.health = g.player.max_health;
             sfx_play(SFX_QUEST_DONE);
+            set_msg(MSG_QUESTDONE);  // 任务完成 toast
         }
     }
 }
@@ -180,12 +181,12 @@ bool player_move(float dx, float dy) {
     } else if(here == CELL_POTION) {
         g.player.potions++;
         maze_set(cx, cy, CELL_EMPTY);
-        set_msg(MSG_TORCH); // 复用"获得"提示
+        set_msg(MSG_POTION);
         sfx_play(SFX_PICK_ITEM);
     } else if(here == CELL_AMULET) {
         g.player.amulets++;
         maze_set(cx, cy, CELL_EMPTY);
-        set_msg(MSG_KEY);
+        set_msg(MSG_AMULET);
         sfx_play(SFX_PICK_ITEM);
     } else if(here == CELL_TRAP) {
         if(g.stage == STAGE_COMBAT && g.player.health > 0) {

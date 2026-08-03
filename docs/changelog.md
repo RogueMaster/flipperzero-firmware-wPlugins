@@ -1,3 +1,24 @@
+v5.0:
+- Pickup toasts: every item you pick up (key / torch / potion / amulet) now
+  pops a bordered, blinking message box in the bottom-left corner. Bilingual
+  (Chinese XBM bitmap or English text). Also fires a "Quest Done!" toast when
+  a level's quest is completed.
+- Always-on top status bar over the 3D view: shows level/floor + HP on the
+  left, and on the right the live enemy count (combat stages) or key count
+  (puzzle stages). No longer needs long-press OK to see vital stats.
+- FIX: exit arrow was inaccurate — it used a linear angle*40 approximation
+  that drifted badly near the screen edges. Rewritten to use the same inverse-
+  determinant screen projection as sprites, so the arrow now points at the
+  exit's true on-screen position. When the exit is behind you, both screen
+  edges show turn-around chevrons; when it's dead ahead, a big blinking
+  "exit ahead" frame appears.
+- Smoother shading: distance darkening switched from harsh checkerboard /
+  sparse-dot patterns to a 4x4 Bayer ordered-dither, so walls and the
+  floor/ceiling fade into the distance smoothly instead of vanishing in
+  steps. Floor/ceiling now gradient by distance from the horizon.
+- Redrawn wall textures (brick running-bond, cobblestone, riveted metal
+  panels, leafy vine) for clearer visual identity.
+
 v4.4.1:
 - Opening animation is no longer skippable by keys — it plays to completion
   (~4.5s, full BGM). It can only be disabled entirely from Settings.

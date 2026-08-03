@@ -70,6 +70,12 @@
 #define EN_MSG_RUN     "Endless Run"
 #define EN_MSG_HIT     "Hit! -1HP"
 #define EN_MSG_EXIT    "Exit Ahead"
+#define EN_MSG_QUESTDONE "Quest Done!"
+#define EN_MSG_POTION  "Potion +1"
+#define EN_MSG_AMULET  "Amulet +1"
+#define EN_MSG_MINE    "Mined"
+#define EN_MSG_PLACE   "Placed"
+#define EN_HUD_ENEMY   "E"
 
 // Map msg_id -> English string
 static inline const char* en_msg_str(int id) {
@@ -86,6 +92,11 @@ static inline const char* en_msg_str(int id) {
         case 9:  return EN_MSG_RUN;
         case 10: return EN_MSG_HIT;
         case 11: return EN_MSG_EXIT;
+        case 12: return EN_MSG_QUESTDONE;
+        case 13: return EN_MSG_POTION;
+        case 14: return EN_MSG_AMULET;
+        case 15: return EN_MSG_MINE;
+        case 16: return EN_MSG_PLACE;
         default: return "";
     }
 }

@@ -45,6 +45,12 @@ static void get_msg_bmp(int id, const uint8_t** bits, int* w, int* h, int* bpr) 
         case MSG_RUN:     *bits = msg_run_bits;     *w = MSG_RUN_W;     *h = MSG_RUN_H;     *bpr = MSG_RUN_BPR;     break;
         case MSG_HIT:     *bits = msg_hit_bits;     *w = MSG_HIT_W;     *h = MSG_HIT_H;     *bpr = MSG_HIT_BPR;     break;
         case MSG_EXIT:    *bits = msg_exit_bits;    *w = MSG_EXIT_W;    *h = MSG_EXIT_H;    *bpr = MSG_EXIT_BPR;    break;
+        case MSG_QUESTDONE: *bits = msg_questdone_bits; *w = MSG_QUESTDONE_W; *h = MSG_QUESTDONE_H; *bpr = MSG_QUESTDONE_BPR; break;
+        // 拾取药水/护符: 复用物品栏中文名位图
+        case MSG_POTION:  *bits = inv_potion_bits;  *w = INV_POTION_W;  *h = INV_POTION_H;  *bpr = INV_POTION_BPR;  break;
+        case MSG_AMULET:  *bits = inv_amulet_bits;  *w = INV_AMULET_W;  *h = INV_AMULET_H;  *bpr = INV_AMULET_BPR;  break;
+        // MC 挖掘/放置: 无中文位图, toast 用英文回退
+        case MSG_MINE: case MSG_PLACE: *bits = NULL; *w = *h = *bpr = 0; break;
         default: *bits = NULL; *w = *h = *bpr = 0;
     }
 }
@@ -923,6 +929,37 @@ static void draw_callback(Canvas* canvas, void* ctx) {
     canvas_set_color(canvas, ColorBlack);
     canvas_draw_xbm(canvas, 0, 0, SCREEN_W, SCREEN_H, g.fb);
 
+    // 始终显示的顶部状态条 (不依赖 show_hud): 关卡/层数 + 血量 + 敌人数(战斗)
+    // 半透明效果: 用白底黑字覆盖在 3D 画面顶部
+    if(g.mode != MODE_MC) {
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_box(canvas, 0, 0, 128, 10);
+        canvas_set_color(canvas, ColorBlack);
+        canvas_set_font(canvas, FontSecondary);
+        char sb[24];
+        int lv = (g.mode == MODE_CAMPAIGN) ? g.level : g.endless_floor;
+        const char* ltag = (g.mode == MODE_CAMPAIGN) ? "L" : "F";
+        // 左: 关卡/层数 + HP
+        snprintf(sb, sizeof(sb), "%s%d HP%d", ltag, lv, g.player.health);
+        canvas_draw_str(canvas, 1, 8, sb);
+        // 右: 敌人数 (战斗阶段) 或 钥匙数 (解谜阶段)
+        if(g.stage == STAGE_COMBAT) {
+            // 统计存活敌人数
+            int alive = 0;
+            for(int i = 0; i < g.actor_count; i++)
+                if(g.actors[i].active && g.actors[i].type == 0 && g.actors[i].hp > 0) alive++;
+            if(g.lang == LANG_ZH)
+                canvas_draw_xbm(canvas, 100, 0, HUD_ENEMY_W, HUD_ENEMY_H, hud_enemy_bits);
+            else
+                canvas_draw_str(canvas, 104, 8, EN_HUD_ENEMY);
+            char ec[12]; snprintf(ec, sizeof(ec), "%d", alive);
+            canvas_draw_str_aligned(canvas, 127, 8, AlignRight, AlignBottom, ec);
+        } else if(g.stage == STAGE_PUZZLE) {
+            snprintf(sb, sizeof(sb), "K%d", g.player.keys);
+            canvas_draw_str_aligned(canvas, 127, 8, AlignRight, AlignBottom, sb);
+        }
+    }
+
     // HUD 信息 (默认隐藏, 长按 OK 切换显示): 关卡/层数/钥匙/火把/血
     if(g.show_hud) {
     int x = 1;
@@ -972,18 +1009,33 @@ static void draw_callback(Canvas* canvas, void* ctx) {
             canvas_draw_str(canvas, x + 6, 9, EN_HUD_HP);
     }
 
-    // 提示信息 (HUD 显示时一并展示)
-    if(g.msg_id >= 0 && g.msg_ttl > 0) {
-        if(g.lang == LANG_ZH) {
-            const uint8_t* b; int w, h, bpr;
-            get_msg_bmp(g.msg_id, &b, &w, &h, &bpr);
-            if(b) canvas_draw_xbm(canvas, 2, 62 - h + 1, w, h, b);
-        } else {
-            const char* s = en_msg_str(g.msg_id);
-            canvas_draw_str(canvas, 2, 62, s);
+    // 提示信息 (toast): 始终显示, 不依赖 show_hud. 左下角带边框, 闪烁.
+    } // end if(g.show_hud)
+    if(g.msg_id >= 0 && g.msg_ttl > 0 && g.mode != MODE_PAUSED) {
+        // 闪烁: 后半段每 4 tick 闪一次
+        bool blink = (g.msg_ttl > 30) || ((g.tick & 3) < 2);
+        if(blink) {
+            const uint8_t* b = NULL; int w = 0, h = 0, bpr = 0;
+            if(g.lang == LANG_ZH) get_msg_bmp(g.msg_id, &b, &w, &h, &bpr);
+            const char* s = (b == NULL) ? en_msg_str(g.msg_id) : NULL;
+            // 测量尺寸 -> 边框
+            int bx = 1, by = 50, bw, bh;
+            if(b) { bw = w + 4; bh = h + 2; }
+            else if(s) {
+                bw = (int)canvas_string_width(canvas, s) + 4;
+                bh = 11;
+            } else { bw = 0; bh = 0; }
+            if(bw > 0) {
+                if(by + bh > 63) by = 63 - bh;
+                canvas_set_color(canvas, ColorWhite);
+                canvas_draw_box(canvas, bx, by, bw, bh);
+                canvas_set_color(canvas, ColorBlack);
+                canvas_draw_frame(canvas, bx, by, bw, bh);
+                if(b) canvas_draw_xbm(canvas, bx + 2, by + 1, w, h, b);
+                else  canvas_draw_str(canvas, bx + 2, by + bh - 2, s);
+            }
         }
     }
-    } // end if(g.show_hud)
 
     // 调试信息覆盖层 (设置中开启 show_debug 后显示)
     if(g.show_debug) {

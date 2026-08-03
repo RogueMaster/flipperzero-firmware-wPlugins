@@ -105,6 +105,7 @@ typedef enum {
     MODE_MAP_PANEL,         // 小地图面板(长按OK呼出)
     MODE_OPENING,           // 开场动画
     MODE_SETTINGS,          // 设置
+    MODE_MC,                // MC 沙盒模式 (Beta): 小空间内挖掘/放置方块
 } GameMode;
 
 typedef enum {
@@ -171,6 +172,9 @@ typedef struct {
     bool show_debug;        // 调试信息显示开关
     // 开发模式: 隐藏序列解锁, 解锁后所有关卡可玩 + 设置显示调试项
     bool dev_mode;
+    // MC 沙盒模式 (Beta): 当前手持方块类型 (1..N), OK 挖, 长 OK 放
+    uint8_t mc_block_type;
+    uint8_t mc_mined;
 } GameState;
 
 extern GameState g;
@@ -190,6 +194,11 @@ enum {
     MSG_RUN,
     MSG_HIT,
     MSG_EXIT,
+    MSG_QUESTDONE,  // 任务完成 toast
+    MSG_POTION,     // 拾取药水 toast
+    MSG_AMULET,     // 拾取护符 toast
+    MSG_MINE,       // MC: 挖掘 toast
+    MSG_PLACE,      // MC: 放置 toast
 };
 
 // ---- 模块接口 ----
