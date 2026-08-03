@@ -21,9 +21,16 @@ Features
 This Flipper Zero app will scan the NFC chip and show the UID, MFG code, lifespan, as well as
 the used time. It'll also generate the NFC password.
 
+It can also **reset the usage counter** of the brush head. After reading a head, press the
+right button ("Reset"), confirm the warning dialog, and hold the head to the Flipper again.
+
+> **Warning:** The NTAG213 in the brush heads permanently disables all write access after
+> **3 wrong password attempts** (AUTHLIM). The password is derived correctly from UID + MFG,
+> but if authentication fails for any reason, do NOT retry more than twice.
+
 
 TODO
 ----
 
 * determine brush head type from [data](https://blog.mbirth.uk/2026/03/29/sonicare-brush-head-nfc-data.html)
-* allow writing back modified data (different type, reset usage)
+* allow writing other data (different type)
