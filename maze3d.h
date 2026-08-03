@@ -287,6 +287,7 @@ void game_init_endless(int floor, bool visitor);
 void game_init_mc(void);          // MC 沙盒模式 (Beta)
 void mc_mine(void);               // MC: 挖掘前方方块
 void mc_place(void);              // MC: 在前方放置方块
+void mc_cycle_block(void);        // MC: 切换手持方块
 void player_shoot(void);          // v6.0/v6.1: 手枪射击 (发射实体子弹)
 void ach_check(void);             // v6.0: 检查并触发成就里程碑
 void ach_grant(uint32_t flag, int msg_extra); // v6.0: 发放成就

@@ -294,10 +294,11 @@ static bool walkable(uint8_t c) {
            c == CELL_POTION || c == CELL_AMULET || c == CELL_LOCKED_EXIT;
 }
 static bool blocking(uint8_t c) {
-    // v6.1: 所有 WALL_* + 门都阻挡玩家移动 (草地/水/沙/木/树都是实体方块)
+    // v6.4: 所有 WALL_* + 门都阻挡玩家移动
     return c == WALL_BRICK || c == WALL_STONE || c == WALL_METAL ||
            c == WALL_VINE || c == WALL_WATER || c == WALL_GRASS ||
-           c == WALL_WOOD || c == WALL_TREE || c == CELL_DOOR;
+           c == WALL_WOOD || c == WALL_TREE || c == CELL_DOOR ||
+           c == WALL_SAND || c == WALL_DIRT || c == WALL_LOG;
 }
 
 static void set_dir(float angle) {
@@ -426,17 +427,9 @@ bool player_move(float dx, float dy) {
             return false;
         }
     } else if(here == CELL_EXIT) {
-        // v6.0 修复瞬间通关: 出口在任务未完成时锁定, 不能直接通过.
-        // 解谜关必须先开门, 战斗关必须先全歼敌人.
-        if(g.quest.active && !g.quest.all_done) {
-            // 任务未完成: 弹回 + 提示
-            g.player.x -= dx; g.player.y -= dy;
-            set_msg(MSG_LOCKED);
-            sfx_play(SFX_LOCKED);
-            return false;
-        }
-        // 命中出口: 标记 FIND_EXIT 子任务完成, 并即时结算奖励
-        // (mode 即将变为 LEVEL_CLEAR, game_update 不再运行, 故此处直接结算)
+        // v6.4 修复: CELL_EXIT 是普通出口 (1-10 纯迷宫关 / 无尽模式),
+        //   直接放行. 任务 FIND_EXIT 在此标记完成.
+        //   (只有 CELL_LOCKED_EXIT 才需要检查任务完成)
         if(g.quest.active) {
             for(int i = 0; i < g.quest.sub_count; i++) {
                 if(g.quest.subs[i].type == TASK_FIND_EXIT) {
@@ -461,11 +454,38 @@ bool player_move(float dx, float dy) {
             set_msg(MSG_EXIT);
         }
     } else if(here == CELL_LOCKED_EXIT) {
-        // v6.0 锁定出口: 视觉上存在但不可通过, 提示任务未完成
-        g.player.x -= dx; g.player.y -= dy;
-        set_msg(MSG_LOCKED);
-        sfx_play(SFX_LOCKED);
-        return false;
+        // v6.4 修复: 任务完成后锁定出口自动放行 (之前总是弹回, 导致无法通关)
+        if(g.quest.active && !g.quest.all_done) {
+            // 任务未完成: 弹回 + 提示
+            g.player.x -= dx; g.player.y -= dy;
+            set_msg(MSG_LOCKED);
+            sfx_play(SFX_LOCKED);
+            return false;
+        }
+        // 任务完成: 当作普通出口处理
+        if(g.quest.active) {
+            for(int i = 0; i < g.quest.sub_count; i++) {
+                if(g.quest.subs[i].type == TASK_FIND_EXIT) {
+                    g.quest.subs[i].progress = 1;
+                    g.quest.subs[i].done = true;
+                }
+            }
+            quest_update();
+        }
+        if(g.mode == MODE_CAMPAIGN) {
+            g.mode = MODE_LEVEL_CLEAR;
+            if(g.level > g.campaign_cleared) g.campaign_cleared = g.level;
+            g.ach_total_clears++;
+            ach_check();
+            storage_save();
+            sfx_play(SFX_LEVEL_CLEAR);
+        } else if(g.mode == MODE_ENDLESS_RUN) {
+            g.endless_floor++;
+            storage_save();
+            game_next_level();
+        } else if(g.mode == MODE_ENDLESS_VISITOR) {
+            set_msg(MSG_EXIT);
+        }
     }
     return true;
 }
@@ -726,8 +746,8 @@ static uint8_t mc_wall_to_block(uint8_t wall) {
     }
 }
 
-// v6.3: 循环切换手持方块 (对空地长按 OK 时调用)
-static void mc_cycle_block(void) {
+// v6.4: 循环切换手持方块 (Back 短按调用)
+void mc_cycle_block(void) {
     g.mc_block_type = (g.mc_block_type >= MC_BLOCK_COUNT) ? 1 : (g.mc_block_type + 1);
     sfx_play(SFX_MENU_MOVE);
     set_msg(MSG_PLACE);
@@ -766,61 +786,35 @@ void game_init_mc(void) {
     g.quest.all_done = false;
     g.ammo = 0;
 
-    // v6.3: 15x15 MC 世界, 仿 Minecraft 地形:
-    //   草地为主表层, 点缀树(原木+树叶)/沙/土/水, 70% 留空可走
+    // v6.4: 纯平地 — 整个地图全空 (无墙/无边界/无随机方块),
+    //   玩家在开阔平地上自由搭建, 天空+日升月落
     const int sz = 15;
     g.map_w = sz; g.map_h = sz;
     for(int y = 0; y < sz; y++) {
         for(int x = 0; x < sz; x++) {
-            uint8_t c;
-            if(x == 0 || y == 0 || x == sz-1 || y == sz-1) {
-                c = WALL_STONE;  // v6.3: 边界石头 (可挖, 不像金属那么硬)
-            } else {
-                uint32_t h = maze_rng_next() & 15;
-                // v6.3: 地形分布 — 草/树/原木/沙/土/水
-                if(h < 4)       c = WALL_GRASS;   // 25% 草地
-                else if(h < 6)  c = WALL_TREE;    // 12% 树叶
-                else if(h < 8)  c = WALL_LOG;     // 12% 原木
-                else if(h < 10) c = WALL_SAND;    // 12% 沙子
-                else if(h < 11) c = WALL_DIRT;    // 6% 土
-                else if(h < 12) c = WALL_WATER;   // 6% 水
-                else            c = CELL_EMPTY;   // 25% 空地
-            }
-            g.map[(uint16_t)y * MAP_MAX + x] = c;
+            g.map[(uint16_t)y * MAP_MAX + x] = CELL_EMPTY;
         }
     }
-    // 玩家出生点周围 3x3 强制清空 (保证有起步空间)
-    int mx = sz/2, my = sz/2;
-    for(int dy = -1; dy <= 1; dy++)
-        for(int dx = -1; dx <= 1; dx++)
-            g.map[(uint16_t)(my + dy) * MAP_MAX + (mx + dx)] = CELL_EMPTY;
-    g.player.x = mx + 0.5f;
-    g.player.y = my + 0.5f;
+    g.player.x = sz / 2 + 0.5f;
+    g.player.y = sz / 2 + 0.5f;
     set_dir(0.0f);
 
-    g.mc_block_type = 4;  // v6.3: 默认手持草方块
+    g.mc_block_type = 4;  // 默认手持草方块
     g.mc_mined = 0;
     set_msg(MSG_MINE);
     g.dirty = true;
 }
 
-// v6.3: mc_mine — 挖掘前方方块, 挖到后手持自动切换为该方块 (MC 生存核心).
-//   前方是空地/不可挖 → 循环切换手持方块 (创造模式选块)
+// v6.4: mc_mine — OK 长按挖掘前方方块, 挖到后手持自动切换为该方块
 void mc_mine(void) {
     int tx, ty;
     mc_target_cell(&tx, &ty);
     uint8_t c = maze_get(tx, ty);
-    // v6.3: 水不可挖
-    if(c == WALL_WATER) {
+    // 空地/水: 不可挖
+    if(c == CELL_EMPTY || c == WALL_WATER) {
         sfx_play(SFX_NEED_KEY);
         return;
     }
-    // v6.3: 空地 → 切换手持方块
-    if(c == CELL_EMPTY) {
-        mc_cycle_block();
-        return;
-    }
-    // v6.3: 尝试获取对应手持 ID (0 = 不可挖, 如金属/藤蔓)
     uint8_t got = mc_wall_to_block(c);
     if(got == 0) {
         sfx_play(SFX_NEED_KEY);

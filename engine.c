@@ -134,15 +134,36 @@ static inline uint8_t floor_px(int x, int y) {
     if(thr > 10) thr = 10;
     return (bayer_at(x, y) < thr) ? 1 : 0;
 }
-// v6.3: 天花板. MC 模式画"天空" (更亮, 模拟白天), 普通模式保持暗天花板
+// v6.4: MC 天空亮度 — 随日升月落变化.
+//   太阳角度 0..255 循环: 0=日出(左下), 64=正午(顶), 128=日落(右下), 192=午夜.
+//   亮度 = sin(太阳角度) 的正值部分.
+static int mc_sky_brightness(void) {
+    if(g.mode != MODE_MC) return -1;  // 非 MC 模式用原逻辑
+    // 太阳周期: 1024 tick ≈ 17 秒一轮 (可观察的日升月落)
+    int phase = (g.tick & 1023) >> 2;   // 0..255
+    // 用查表近似 sin: 正午最亮(15), 日出日落中等(8), 夜晚最暗(2)
+    if(phase < 128) {
+        // 白天半周期: 0→128 对应日出→正午→日落
+        int h = (phase < 64) ? phase : (127 - phase);  // 0→64→0 三角波
+        return 4 + (h * 11) / 64;   // 4..15
+    } else {
+        // 夜晚半周期: 128→256
+        int h = (phase < 192) ? (phase - 128) : (255 - phase);
+        return 1 + (h * 3) / 64;    // 1..4
+    }
+}
+
+// v6.4: 天花板. MC 模式画"天空" (亮度随日升月落), 普通模式保持暗
 static inline uint8_t ceil_px(int x, int y) {
     int d = (SCREEN_H >> 1) - y;   // 离地平线距离 (上方为正)
     if(d <= 0) return 0;
     int thr;
     if(g.mode == MODE_MC) {
-        // v6.3 MC 天空: 地平线附近渐亮, 顶部全亮 (白天天空)
-        thr = 6 + (d >> 1);
-        if(thr > 14) thr = 14;
+        int bright = mc_sky_brightness();
+        // 地平线附近暗, 顶部亮 (天空渐变)
+        thr = bright - (d >> 3);
+        if(thr < 1) thr = 1;
+        if(thr > 15) thr = 15;
     } else {
         thr = d >> 2;              // 普通天花板整体偏暗
         if(thr > 4) thr = 4;
@@ -647,22 +668,45 @@ void engine_render(void) {
     draw_minimap();
     if(g.mode != MODE_MC) draw_compass();   // MC 沙盒无出口, 不画罗盘
 
-    // v6.3: MC 模式画太阳 (天空右上角, 不随视角转, 仿 MC 白天太阳)
+    // v6.4: MC 日升月落 — 太阳/月亮沿弧线从左到右划过天空
     if(g.mode == MODE_MC) {
-        // 太阳位置: 屏幕右上角, 缓慢左右飘动
-        int sun_x = SCREEN_W - 14 + (int)(sinf(g.tick * 0.02f) * 3.0f);
-        int sun_y = 6;
-        // 太阳本体: 5x5 实心方块
-        for(int yy = 0; yy < 5; yy++)
-            for(int xx = 0; xx < 5; xx++)
-                fb_set(sun_x + xx, sun_y + yy, 1);
-        // 光晕: 四向十字光芒 (闪烁)
-        if((g.tick & 3) < 3) {
-            for(int i = 1; i <= 3; i++) {
-                fb_set(sun_x + 2, sun_y - i, 1);     // 上
-                fb_set(sun_x + 2, sun_y + 4 + i, 1); // 下
-                fb_set(sun_x - i, sun_y + 2, 1);     // 左
-                fb_set(sun_x + 4 + i, sun_y + 2, 1); // 右
+        // 太阳周期 1024 tick: 0-512 白天(太阳), 512-1024 夜晚(月亮)
+        int phase = g.tick & 1023;
+        bool is_day = (phase < 512);
+        // 弧线: x 从 4→124, y 按 sin 弧线从地平线升到顶再落下
+        float t = (is_day ? phase : (phase - 512)) / 511.0f;   // 0..1
+        int arc_x = 4 + (int)(t * (SCREEN_W - 12));
+        // y: 0=地平线(28), 0.5=最高(4), 1=地平线(28)
+        int arc_y = (int)(28.0f - sinf(t * 3.14159f) * 24.0f);
+        if(arc_y < 2) arc_y = 2;
+        if(arc_y > 28) arc_y = 28;
+
+        if(is_day) {
+            // 太阳: 5x5 实心 + 光芒
+            for(int yy = 0; yy < 5; yy++)
+                for(int xx = 0; xx < 5; xx++)
+                    fb_set(arc_x + xx, arc_y + yy, 1);
+            // 光晕 (正午最强)
+            int glow = (int)(sinf(t * 3.14159f) * 4.0f);
+            for(int i = 1; i <= glow; i++) {
+                fb_set(arc_x + 2, arc_y - i, 1);
+                fb_set(arc_x + 2, arc_y + 4 + i, 1);
+                fb_set(arc_x - i, arc_y + 2, 1);
+                fb_set(arc_x + 4 + i, arc_y + 2, 1);
+            }
+        } else {
+            // 月亮: 3x3 空心方框 (弯月感)
+            for(int i = 0; i < 3; i++) {
+                fb_set(arc_x + i, arc_y, 1);
+                fb_set(arc_x + i, arc_y + 2, 1);
+            }
+            fb_set(arc_x, arc_y + 1, 1);
+            fb_set(arc_x + 2, arc_y + 1, 1);
+            // 星星: 夜晚随机点缀 3 颗 (基于 tick 闪烁)
+            for(int s = 0; s < 3; s++) {
+                int sx = (s * 37 + 7) & 127;
+                int sy = (s * 19 + 3) % 20;
+                if((g.tick + s * 31) & 64) fb_set(sx, sy, 1);
             }
         }
     }

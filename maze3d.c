@@ -1061,32 +1061,61 @@ static void draw_callback(Canvas* canvas, void* ctx) {
             canvas_draw_str_aligned(canvas, 127, 9, AlignRight, AlignBottom, sb);
         }
     } else {
-        // v6.3 MC 沙盒模式: 顶部状态条 — 手持方块 + 已挖数 + 心形血量
+        // v6.4 MC 模式 HUD: 顶部简洁信息 + 底部物品栏 + 仿 MC 血条
+        // 顶部: 已挖数 + 时间(日/夜)
         canvas_set_color(canvas, ColorWhite);
-        canvas_draw_box(canvas, 0, 0, 128, 11);
+        canvas_draw_box(canvas, 0, 0, 128, 10);
         canvas_set_color(canvas, ColorBlack);
         canvas_set_font(canvas, FontSecondary);
-        // v6.3: 8 种手持方块名
-        const char* bn[8] = { "Brick", "Stone", "Wood", "Grass",
-                              "Dirt", "Sand", "Log", "Leaf" };
-        char mb[32];
-        snprintf(mb, sizeof(mb), "%s M%d",
-                 bn[(g.mc_block_type - 1) % 8], g.mc_mined);
-        canvas_draw_str(canvas, 1, 9, mb);
-        // v6.1: MC 模式也显示心形血量 (5 颗)
-        for(int i = 0; i < g.player.max_health && i < 5; i++) {
-            canvas_draw_heart(canvas, 70 + i * 8, 2, i < g.player.health);
-        }
-        // 右上: 成就统计 (K=击杀 C=通关)
+        // 太阳/月亮指示 + 已挖数
+        bool is_day = ((g.tick & 1023) < 512);
+        char top[32];
+        snprintf(top, sizeof(top), "%s M%d", is_day ? "DAY" : "NITE", g.mc_mined);
+        canvas_draw_str(canvas, 1, 8, top);
+        // 成就统计
         char ach[24];
         snprintf(ach, sizeof(ach), "K%lu C%lu", g.ach_total_kills, g.ach_total_clears);
-        canvas_draw_str_aligned(canvas, 127, 9, AlignRight, AlignBottom, ach);
-        // v6.3: 右下角操作提示 (OK长按=挖/切块, Back短按=放置)
-        if((g.tick & 7) < 6) {
+        canvas_draw_str_aligned(canvas, 127, 8, AlignRight, AlignBottom, ach);
+
+        // 底部物品栏: 8 格方块图标 (16x16 每格, 选中格高亮框)
+        const char* bn[8] = { "Brk", "Stn", "Wd", "Grs",
+                              "Drt", "Snd", "Log", "Lef" };
+        int slot_w = 15;
+        int bar_x = (128 - 8 * slot_w) / 2;
+        int bar_y = 49;
+        // 背景
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_box(canvas, bar_x - 1, bar_y - 1, 8 * slot_w + 2, 15);
+        canvas_set_color(canvas, ColorBlack);
+        for(int i = 0; i < 8; i++) {
+            int sx = bar_x + i * slot_w;
+            // 选中格: 反色填充
+            if(i == g.mc_block_type - 1) {
+                canvas_draw_box(canvas, sx, bar_y, slot_w - 1, 13);
+                canvas_set_color(canvas, ColorWhite);
+                canvas_draw_str_aligned(canvas, sx + slot_w/2, bar_y + 10,
+                    AlignCenter, AlignBottom, bn[i]);
+                canvas_set_color(canvas, ColorBlack);
+            } else {
+                canvas_draw_frame(canvas, sx, bar_y, slot_w - 1, 13);
+                canvas_draw_str_aligned(canvas, sx + slot_w/2, bar_y + 10,
+                    AlignCenter, AlignBottom, bn[i]);
+            }
+        }
+        // 仿 MC 血条: 心形横排 (底部最下, 10 颗, 当前血量亮)
+        int hp_y = 63;
+        int hp_max = g.player.max_health;
+        if(hp_max > 10) hp_max = 10;
+        int hp_x = (128 - hp_max * 6) / 2;
+        for(int i = 0; i < hp_max; i++) {
+            canvas_draw_heart(canvas, hp_x + i * 6, hp_y, i < g.player.health);
+        }
+        // 操作提示 (顶部右侧闪烁)
+        if((g.tick & 15) < 12) {
             const char* hint = (g.lang == LANG_ZH)
-                ? "长OK挖/切 Back放 长Back出"
-                : "OK mine/sw Back place";
-            canvas_draw_str_aligned(canvas, 127, 63, AlignRight, AlignBottom, hint);
+                ? "OK放 长OK挖 Back切"
+                : "OK place OK-mine Back";
+            canvas_draw_str_aligned(canvas, 64, 8, AlignCenter, AlignBottom, hint);
         }
     }
 
@@ -1452,24 +1481,22 @@ int32_t maze3d_app(void* p) {
                 }
                 did_input = true;
             } else if(g.mode == MODE_MC) {
-                // v6.2: 按用户硬规定:
-                //   OK 短按 = 射击 (MC无弹药时播无弹药反馈)
-                //   OK 长按 = 挖掘前方方块
-                //   Back 短按 = 放置当前手持方块
+                // v6.4 MC 模式输入:
+                //   OK 短按 = 放置方块
+                //   OK 长按 = 挖掘方块
+                //   Back 短按 = 切换手持物品
                 //   Back 长按 = 返回主菜单
-                // 上下左右: 移动 / 转向 (复用平滑插值)
                 if(key == InputKeyOk && type == InputTypeShort) {
-                    player_shoot();
+                    mc_place();
                 } else if(key == InputKeyOk && type == InputTypeLong) {
                     mc_mine();
                 } else if(key == InputKeyBack && type == InputTypeShort) {
-                    mc_place();
+                    mc_cycle_block();
                 } else if(key == InputKeyBack && type == InputTypeLong) {
                     g.mode = MODE_MENU;
                     sfx_stop_all();
                     sfx_play(SFX_MENU_OK);
                 } else {
-                    // 上下左右: 移动 / 转向 (复用平滑插值)
                     game_handle_input(key, type);
                 }
                 did_input = true;
