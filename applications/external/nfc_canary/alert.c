@@ -30,9 +30,24 @@ typedef struct {
 static const uint16_t steps_single[] = {150};
 static const uint16_t steps_double[] = {120, 100, 120};
 static const uint16_t steps_sos[] = {
-    100, 80,  100, 80, 100, 250, /* S: dot dot dot */
-    280, 80,  280, 80, 280, 250, /* O: dash dash dash */
-    100, 80,  100, 80, 100, 600, /* S, then a gap before repeating */
+    100,
+    80,
+    100,
+    80,
+    100,
+    250, /* S: dot dot dot */
+    280,
+    80,
+    280,
+    80,
+    280,
+    250, /* O: dash dash dash */
+    100,
+    80,
+    100,
+    80,
+    100,
+    600, /* S, then a gap before repeating */
 };
 static const uint16_t steps_pulse[] = {200, 400};
 /* Continuous is a long ON that loops, so it reads as unbroken. */
@@ -92,8 +107,7 @@ static void speaker_off(Alert* a) {
 static void vibro_set(Alert* a, bool on) {
     if(a->vibro_on == on) return;
     a->vibro_on = on;
-    notification_message(
-        a->notifications, on ? &sequence_set_vibro_on : &sequence_reset_vibro);
+    notification_message(a->notifications, on ? &sequence_set_vibro_on : &sequence_reset_vibro);
 }
 
 static void all_off(Alert* a) {
@@ -138,16 +152,14 @@ static int32_t alert_thread(void* ctx) {
         }
 
         const AlerterSettings* s = a->settings;
-        bool want_vibro =
-            s->vibro_pattern != PatternOff && tier_enabled(s->min_tier_vibro, tier);
+        bool want_vibro = s->vibro_pattern != PatternOff && tier_enabled(s->min_tier_vibro, tier);
         bool want_sound = !s->silent && s->sound_pattern != PatternOff &&
                           tier_enabled(s->min_tier_sound, tier);
 
         if(s->led_enabled) {
             notification_message(
                 a->notifications,
-                tier == TierAlarm ? &sequence_set_only_red_255 :
-                                    &sequence_set_only_blue_255);
+                tier == TierAlarm ? &sequence_set_only_red_255 : &sequence_set_only_blue_255);
         }
 
         /* Vibro and sound each run their OWN pattern. They are independent
@@ -291,32 +303,49 @@ void alert_test(Alert* a) {
 
 const char* alert_pattern_name(AlertPattern p) {
     switch(p) {
-    case PatternOff: return "Off";
-    case PatternSingle: return "Single";
-    case PatternDouble: return "Double";
-    case PatternSos: return "SOS";
-    case PatternPulse: return "Pulse";
-    case PatternContinuous: return "Constant";
-    default: return "?";
+    case PatternOff:
+        return "Off";
+    case PatternSingle:
+        return "Single";
+    case PatternDouble:
+        return "Double";
+    case PatternSos:
+        return "SOS";
+    case PatternPulse:
+        return "Pulse";
+    case PatternContinuous:
+        return "Constant";
+    default:
+        return "?";
     }
 }
 
 const char* alert_tone_name(AlertTone t) {
     switch(t) {
-    case ToneLow: return "1kHz";
-    case ToneMid: return "2kHz";
-    case ToneHigh: return "3kHz";
-    case ToneVeryHigh: return "4kHz";
-    default: return "?";
+    case ToneLow:
+        return "1kHz";
+    case ToneMid:
+        return "2kHz";
+    case ToneHigh:
+        return "3kHz";
+    case ToneVeryHigh:
+        return "4kHz";
+    default:
+        return "?";
     }
 }
 
 const char* alert_tier_name(ThreatTier t) {
     switch(t) {
-    case TierNone: return "None";
-    case TierInfo: return "Info";
-    case TierWarn: return "Warn";
-    case TierAlarm: return "ALARM";
-    default: return "?";
+    case TierNone:
+        return "None";
+    case TierInfo:
+        return "Info";
+    case TierWarn:
+        return "Warn";
+    case TierAlarm:
+        return "ALARM";
+    default:
+        return "?";
     }
 }

@@ -49,10 +49,7 @@ static void draw_intro(Canvas* canvas) {
     canvas_draw_str(canvas, 2, 63, "terminal, on the BACK.");
 }
 
-static void draw_status(
-    Canvas* canvas,
-    AlerterState* state,
-    const AlerterSettings* settings) {
+static void draw_status(Canvas* canvas, AlerterState* state, const AlerterSettings* settings) {
     bool field = state->field_present;
     ThreatTier tier = state->current_tier;
 
@@ -241,10 +238,7 @@ static void draw_session(Canvas* canvas, AlerterState* state) {
     canvas_draw_str_aligned(canvas, 127, 62, AlignRight, AlignBottom, "Status>");
 }
 
-static void draw_settings(
-    Canvas* canvas,
-    const ViewState* view,
-    const AlerterSettings* settings) {
+static void draw_settings(Canvas* canvas, const ViewState* view, const AlerterSettings* settings) {
     canvas_set_font(canvas, FontPrimary);
     canvas_draw_str_aligned(canvas, 64, 7, AlignCenter, AlignCenter, "Settings");
     canvas_draw_line(canvas, 0, 13, 127, 13);
@@ -325,13 +319,27 @@ void views_draw(
     furi_mutex_acquire(state->mutex, FuriWaitForever);
 
     switch(view->screen) {
-    case ScreenIntro: draw_intro(canvas); break;
-    case ScreenStatus: draw_status(canvas, state, settings); break;
-    case ScreenEvents: draw_events(canvas, view, state); break;
-    case ScreenEventDetail: draw_event_detail(canvas, view, state); break;
-    case ScreenSession: draw_session(canvas, state); break;
-    case ScreenSettings: draw_settings(canvas, view, settings); break;
-    case ScreenDiag: draw_diag(canvas, state); break;
+    case ScreenIntro:
+        draw_intro(canvas);
+        break;
+    case ScreenStatus:
+        draw_status(canvas, state, settings);
+        break;
+    case ScreenEvents:
+        draw_events(canvas, view, state);
+        break;
+    case ScreenEventDetail:
+        draw_event_detail(canvas, view, state);
+        break;
+    case ScreenSession:
+        draw_session(canvas, state);
+        break;
+    case ScreenSettings:
+        draw_settings(canvas, view, settings);
+        break;
+    case ScreenDiag:
+        draw_diag(canvas, state);
+        break;
     }
 
     furi_mutex_release(state->mutex);

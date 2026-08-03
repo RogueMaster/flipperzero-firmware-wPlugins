@@ -105,6 +105,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Added: [CCID Emu v1.0 (By kidbomb)](https://github.com/kidbomb/flipper-ccid-app)
 - Updated: [Hotspot Arcade v1.6 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32` [Hotspot Arcade flasher, add support for autoboot, fix freeze on exit (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/5d6a16c77c2a17c4aca3cb9f9ab4ab511f1d4f64) Guess the Color & Battleship were added (By tarikbc) Many more games and updates added (See Changelog)
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Hotspot Arcade firmwares.
+- Added: [NFC Canary v0.2 (By antitree)](https://github.com/antitree/nfc_canary)
 
 <a name="release"></a>
 
@@ -725,6 +726,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Network Subnet v0.1 (By aaumkar)](https://github.com/aaumkar/network_subnet)
 - [Networking NFC + QR v1.0 (By DonJulve)](https://github.com/DonJulve/Networking_NFC_QR_Flipper_Zero)
 - [NFC APDU Runner v0.3.5 (By SpenserCai)](https://github.com/SpenserCai/nfc_apdu_runner)
+- [NFC Canary v0.2 (By antitree)](https://github.com/antitree/nfc_canary)
 - [NFC Comparator v2.6 (By acegoal07)](https://github.com/acegoal07/FlipperZero_NFC_Comparator)
 - [NFC Dict Manager v1.0 (By grugnoymeme)](https://github.com/grugnoymeme/nfc_dicts_manager)
 - [NFC E-Ink Tags v1.0.4 (By RebornedBrain)](https://github.com/flipperdevices/flipperzero-good-faps/pull/245)

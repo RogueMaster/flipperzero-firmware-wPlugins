@@ -21,10 +21,17 @@ void eventlog_add(AlerterState* state, const AlertEvent* ev) {
     if(state->event_count < EVENT_LOG_MAX) state->event_count++;
 
     switch(ev->tier) {
-    case TierInfo: state->count_info++; break;
-    case TierWarn: state->count_warn++; break;
-    case TierAlarm: state->count_alarm++; break;
-    default: break;
+    case TierInfo:
+        state->count_info++;
+        break;
+    case TierWarn:
+        state->count_warn++;
+        break;
+    case TierAlarm:
+        state->count_alarm++;
+        break;
+    default:
+        break;
     }
 
     if(state->first_event == 0) state->first_event = ev->timestamp;
@@ -101,17 +108,28 @@ void eventlog_persist(const AlertEvent* ev) {
 
 const char* eventlog_protocol_name(uint8_t protocol) {
     switch(protocol) {
-    case NfcProtocolIso14443_3a: return "ISO14443-3A";
-    case NfcProtocolIso14443_3b: return "ISO14443-3B";
-    case NfcProtocolIso14443_4a: return "ISO14443-4A";
-    case NfcProtocolIso14443_4b: return "ISO14443-4B";
-    case NfcProtocolIso15693_3: return "ISO15693";
-    case NfcProtocolFelica: return "FeliCa";
-    case NfcProtocolMfUltralight: return "MF Ultralight";
-    case NfcProtocolMfClassic: return "MF Classic";
-    case NfcProtocolMfPlus: return "MF Plus";
-    case NfcProtocolMfDesfire: return "MF DESFire";
-    default: return "Unknown";
+    case NfcProtocolIso14443_3a:
+        return "ISO14443-3A";
+    case NfcProtocolIso14443_3b:
+        return "ISO14443-3B";
+    case NfcProtocolIso14443_4a:
+        return "ISO14443-4A";
+    case NfcProtocolIso14443_4b:
+        return "ISO14443-4B";
+    case NfcProtocolIso15693_3:
+        return "ISO15693";
+    case NfcProtocolFelica:
+        return "FeliCa";
+    case NfcProtocolMfUltralight:
+        return "MF Ultralight";
+    case NfcProtocolMfClassic:
+        return "MF Classic";
+    case NfcProtocolMfPlus:
+        return "MF Plus";
+    case NfcProtocolMfDesfire:
+        return "MF DESFire";
+    default:
+        return "Unknown";
     }
 }
 
@@ -124,41 +142,68 @@ const char* eventlog_protocol_name(uint8_t protocol) {
 const char* eventlog_cmd_name(uint8_t cmd) {
     switch(cmd) {
     /* ISO14443-3A anticollision / selection */
-    case 0x26: return "REQA (poll)";
-    case 0x52: return "WUPA (wake)";
-    case 0x93: return "SELECT cascade 1";
-    case 0x95: return "SELECT cascade 2";
-    case 0x97: return "SELECT cascade 3";
-    case 0x50: return "HALT";
-    case 0xE0: return "RATS (ISO-4 setup)";
+    case 0x26:
+        return "REQA (poll)";
+    case 0x52:
+        return "WUPA (wake)";
+    case 0x93:
+        return "SELECT cascade 1";
+    case 0x95:
+        return "SELECT cascade 2";
+    case 0x97:
+        return "SELECT cascade 3";
+    case 0x50:
+        return "HALT";
+    case 0xE0:
+        return "RATS (ISO-4 setup)";
 
     /* MIFARE Classic -- the interesting ones */
-    case 0x60: return "Auth key A";
-    case 0x61: return "Auth key B";
-    case 0x30: return "Read block";
-    case 0xA0: return "Write block";
-    case 0xC1: return "Increment";
-    case 0xC0: return "Decrement";
-    case 0xB0: return "Transfer";
+    case 0x60:
+        return "Auth key A";
+    case 0x61:
+        return "Auth key B";
+    case 0x30:
+        return "Read block";
+    case 0xA0:
+        return "Write block";
+    case 0xC1:
+        return "Increment";
+    case 0xC0:
+        return "Decrement";
+    case 0xB0:
+        return "Transfer";
 
     /* Ultralight / NTAG */
-    case 0x3A: return "Fast read";
-    case 0xA2: return "Write page";
-    case 0x1B: return "PWD_AUTH";
-    case 0x3C: return "Read signature";
+    case 0x3A:
+        return "Fast read";
+    case 0xA2:
+        return "Write page";
+    case 0x1B:
+        return "PWD_AUTH";
+    case 0x3C:
+        return "Read signature";
 
     /* DESFire */
-    case 0x5A: return "Select application";
-    case 0xAF: return "Additional frame";
-    case 0x1A: return "Auth (AES/ISO)";
-    case 0x0A: return "Auth (legacy)";
-    case 0x6A: return "List applications";
+    case 0x5A:
+        return "Select application";
+    case 0xAF:
+        return "Additional frame";
+    case 0x1A:
+        return "Auth (AES/ISO)";
+    case 0x0A:
+        return "Auth (legacy)";
+    case 0x6A:
+        return "List applications";
 
     /* ISO15693 */
-    case 0x01: return "Inventory";
-    case 0x20: return "Read single block";
-    case 0x21: return "Write single block";
+    case 0x01:
+        return "Inventory";
+    case 0x20:
+        return "Read single block";
+    case 0x21:
+        return "Write single block";
 
-    default: return "Unknown cmd";
+    default:
+        return "Unknown cmd";
     }
 }

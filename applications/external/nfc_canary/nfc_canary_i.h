@@ -45,8 +45,8 @@
 
 #define SPEAKER_TIMEOUT 1000
 
-#define EVENT_LOG_MAX  200 /* ring buffer; ~200 fits comfortably in RAM */
-#define HISTORY_SLOTS  64 /* history strip columns */
+#define EVENT_LOG_MAX   200 /* ring buffer; ~200 fits comfortably in RAM */
+#define HISTORY_SLOTS   64 /* history strip columns */
 #define HISTORY_SLOT_MS 5000 /* 64 * 5s = ~5 min of history */
 
 /* ---------- threat tiers ---------- */

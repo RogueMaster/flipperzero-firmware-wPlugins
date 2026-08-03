@@ -54,10 +54,7 @@ static void history_mark(AlerterState* s, ThreatTier tier) {
         if(slots_passed >= HISTORY_SLOTS) {
             memset(s->history, 0, sizeof(s->history));
         } else {
-            memmove(
-                s->history,
-                s->history + slots_passed,
-                HISTORY_SLOTS - slots_passed);
+            memmove(s->history, s->history + slots_passed, HISTORY_SLOTS - slots_passed);
             memset(s->history + (HISTORY_SLOTS - slots_passed), 0, slots_passed);
         }
         s->history_base_tick += slots_passed * slot_ticks;
@@ -135,8 +132,7 @@ static int32_t worker_thread(void* context) {
             /* Promote Info -> Warn once the carrier has persisted. A brief
              * carrier is a terminal being walked past; a sustained one is
              * pointed at us. */
-            if(tier == TierInfo &&
-               (now - start_tick) >= furi_ms_to_ticks(TIER_WARN_MS)) {
+            if(tier == TierInfo && (now - start_tick) >= furi_ms_to_ticks(TIER_WARN_MS)) {
                 tier = TierWarn;
                 furi_mutex_acquire(st->mutex, FuriWaitForever);
                 st->current_tier = tier;

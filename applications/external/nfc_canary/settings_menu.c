@@ -24,15 +24,15 @@ static const char* fmt_bool(uint8_t v) {
 uint8_t settings_menu_build(AlerterSettings* s, SettingRow* rows, uint8_t cap) {
     uint8_t n = 0;
 
-#define ADD(lbl, fld, mx, f)                                  \
-    do {                                                      \
-        if(n < cap) {                                         \
-            rows[n].label = (lbl);                            \
-            rows[n].field = (uint8_t*)(fld);                  \
-            rows[n].max = (mx);                               \
-            rows[n].fmt = (f);                                \
-            n++;                                              \
-        }                                                     \
+#define ADD(lbl, fld, mx, f)                 \
+    do {                                     \
+        if(n < cap) {                        \
+            rows[n].label = (lbl);           \
+            rows[n].field = (uint8_t*)(fld); \
+            rows[n].max = (mx);              \
+            rows[n].fmt = (f);               \
+            n++;                             \
+        }                                    \
     } while(0)
 
     /* Mode is deliberately not exposed yet: Decoy is not wired into the
