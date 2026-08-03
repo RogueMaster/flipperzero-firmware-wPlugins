@@ -5,7 +5,7 @@
 typedef struct VariableItemList VariableItemList;
 
 #define MF_SETTINGS_API_MAGIC   0x4D465345UL
-#define MF_SETTINGS_API_VERSION 4U
+#define MF_SETTINGS_API_VERSION 5U
 
 typedef enum {
     MfSettingsEntryKeying = 0,

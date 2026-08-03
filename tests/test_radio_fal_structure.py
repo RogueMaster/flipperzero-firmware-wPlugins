@@ -124,7 +124,7 @@ def main() -> None:
         assert "DEVIATN" not in RADIO_HAL
         assert "dev5_" not in RADIO_HAL
         assert "mf_radio_tx_session_stop" in function_body(RADIO_CORE, "mf_radio_quiesce")
-        assert re.search(r"#define\s+MF_RADIO_API_VERSION\s+3U", RADIO_API)
+        assert re.search(r"#define\s+MF_RADIO_API_VERSION\s+4U", RADIO_API)
         assert "MorseFlipperCommandFalApi fal" in RADIO_API
 
     # Legacy files are allowed only while the product still has no Radio FAL.

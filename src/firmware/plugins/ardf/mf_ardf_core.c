@@ -358,12 +358,16 @@ static bool mf_ardf_schedule_numbered_on_enter(MfArdfState* state, uint32_t now_
         state->snapshot.segment_start_ms = slot_start;
         state->snapshot.next_deadline_ms = state->slot_end_ms;
         state->slot_active = true;
+        state->uncalibrated_join = !state->calibration_valid;
+        state->deadline_wall_s = wall_s + cycle_s - offset_s;
+        state->sampling = state->uncalibrated_join;
         state->join_active = mf_ardf_build_sequence(state, first_mark, state->slot_end_ms);
         state->snapshot.run_pending = state->join_active;
         return state->join_active;
     }
     state->slot_active = false;
     state->join_active = false;
+    state->uncalibrated_join = false;
     state->snapshot.run_pending = false;
     if(state->calibration_valid) {
         state->deadline_wall_s = mf_ardf_next_cycle_wall_s(
@@ -489,6 +493,7 @@ static void mf_ardf_request_run(MfArdfState* state, uint32_t now_ms) {
     state->preamble = false;
     state->slot_active = false;
     state->join_active = false;
+    state->uncalibrated_join = false;
     state->snapshot.view = MfArdfViewRun;
     state->snapshot.running = true;
     state->snapshot.gpio_owned = false;
@@ -967,18 +972,21 @@ void mf_ardf_core_rtc_sample(
             edge_accepted = true;
         }
         if(edge_accepted) {
-            if(state->uncalibrated_schedule) {
-                state->deadline_wall_s = mf_ardf_next_cycle_wall_s(
-                    wall_s,
+            if(state->uncalibrated_join) {
+                uint32_t cycle_s =
+                    mf_ardf_cycle_seconds((MfArdfMode)state->snapshot.settings.mode);
+                uint32_t slot_ms = mf_ardf_slot_ms(state);
+                uint32_t target_s = mf_ardf_target_phase(
                     (MfArdfMode)state->snapshot.settings.mode,
                     (MfArdfMessage)state->snapshot.settings.message);
-                state->snapshot.next_deadline_ms =
-                    mf_ardf_deadline_from_edge(state, state->deadline_wall_s);
-                state->cycle_deadline_ms = state->snapshot.next_deadline_ms;
-                state->snapshot.segment_start_ms =
-                    state->snapshot.next_deadline_ms -
-                    mf_ardf_cycle_seconds((MfArdfMode)state->snapshot.settings.mode) * 1000U;
-                state->uncalibrated_schedule = false;
+                uint32_t offset_s = (wall_s % cycle_s + cycle_s - target_s) % cycle_s;
+                uint32_t slot_start_ms = state->accepted_edge_ms - offset_s * 1000U;
+                state->slot_end_ms = slot_start_ms + slot_ms;
+                state->cycle_deadline_ms = slot_start_ms + cycle_s * 1000U;
+                state->deadline_wall_s = wall_s + cycle_s - offset_s;
+                state->snapshot.segment_start_ms = slot_start_ms;
+                state->snapshot.next_deadline_ms = state->slot_end_ms;
+                state->uncalibrated_join = false;
             } else {
                 mf_ardf_arm_from_calibration(state, sample_after_ms);
                 mf_ardf_custom_anchor(state);

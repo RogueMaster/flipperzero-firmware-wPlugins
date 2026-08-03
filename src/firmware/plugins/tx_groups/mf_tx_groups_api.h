@@ -4,7 +4,7 @@
 #include "../../morse_flipper_tx_groups.h"
 
 #define MF_TX_GROUPS_API_MAGIC   0x4D465458UL
-#define MF_TX_GROUPS_API_VERSION 1U
+#define MF_TX_GROUPS_API_VERSION 2U
 
 typedef enum {
     MfTxGroupsDrawPractice = 0,

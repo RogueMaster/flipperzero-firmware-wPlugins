@@ -16,7 +16,7 @@ static unsigned checks;
 static void test_api_layout(void) {
     CHECK(offsetof(MfTxGroupsApi, mapped) == 0U);
     CHECK(sizeof(MfTxGroupsApi) >= sizeof(MorseFlipperMappedFalApi));
-    CHECK(MF_TX_GROUPS_API_VERSION == 1U);
+    CHECK(MF_TX_GROUPS_API_VERSION == 2U);
 }
 
 static void test_seeded_generation_and_text_input(void) {

@@ -56,7 +56,7 @@ typedef struct {
     bool calibration_valid;
     bool previous_sample_valid;
     bool sampling;
-    bool uncalibrated_schedule;
+    bool uncalibrated_join;
     bool provisional_custom;
     bool repeat_gap;
     bool continuous;

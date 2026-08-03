@@ -427,6 +427,45 @@ int main(void) {
     CHECK(run_numbered_entry_offsets(MfArdfModeSprint, MfArdfModulationCw) == 0);
     CHECK(run_numbered_entry_offsets(MfArdfModeSprint, MfArdfModulationCwfm) == 0);
 
+    /* The first precise RTC edge rebases an active join without restarting its identifier. */
+    {
+        HardwareMock mock = {.allow = true, .prepare_ok = true};
+        MfArdfState state;
+        InputEvent ok = {.key = InputKeyOk, .type = InputTypeShort};
+        CHECK(enter_state(&state, &mock));
+        CHECK(mf_ardf_core_set_view(&state, MfArdfViewClock, 99990U).handled);
+        state.snapshot.clock_state = MfArdfClockConfirm;
+        state.snapshot.settings.mode = MfArdfModeSprint;
+        state.snapshot.settings.modulation = MfArdfModulationCw;
+        state.snapshot.settings.message = MfArdfMessage1;
+        state.snapshot.settings.wpm = 30U;
+        state.live_time = (MfArdfClockTime){0U, 0U, 3U};
+        mf_ardf_core_rtc_sample(&state, state.live_time, 99997U, 99997U);
+
+        MorseFlipperMappedFalResult result = mf_ardf_core_input(&state, &ok, 100000U);
+        CHECK(result.handled && result.transition && state.snapshot.run_pending);
+        CHECK(state.uncalibrated_join && state.sampling);
+        CHECK(state.slot_end_ms == 109000U && state.cycle_deadline_ms == 157000U);
+        CHECK(mf_ardf_core_activate_run(&state, 100000U).handled);
+        CHECK(state.snapshot.transmitting && state.snapshot.mark);
+        uint32_t sequence_next_ms = state.sequence_next_ms;
+        size_t marks = trace_count(&mock, 'M');
+
+        mf_ardf_core_rtc_sample(&state, (MfArdfClockTime){0U, 0U, 3U}, 100247U, 100247U);
+        mf_ardf_core_rtc_sample(&state, (MfArdfClockTime){0U, 0U, 4U}, 100249U, 100251U);
+        CHECK(state.calibration_valid && !state.uncalibrated_join && !state.sampling);
+        CHECK(state.accepted_edge_ms == 100249U && state.accepted_wall_s == 4U);
+        CHECK(state.slot_end_ms == 108249U);
+        CHECK(state.cycle_deadline_ms == 156249U);
+        CHECK(state.deadline_wall_s == 60U);
+        CHECK(state.snapshot.segment_start_ms == 96249U);
+        CHECK(state.snapshot.next_deadline_ms == 108249U);
+        CHECK(state.snapshot.transmitting && state.snapshot.mark);
+        CHECK(state.sequence_next_ms == sequence_next_ms);
+        CHECK(trace_count(&mock, 'M') == marks);
+        mf_ardf_core_leave(&state);
+    }
+
     /* A known CWFM deadline asserts PTT at D-250 and keys at D when already owned. */
     {
         HardwareMock mock = {.allow = true, .prepare_ok = true};

@@ -10,7 +10,7 @@
 #include "mf_radio_types.h"
 
 #define MF_RADIO_API_MAGIC   0x4D465246UL
-#define MF_RADIO_API_VERSION 3U
+#define MF_RADIO_API_VERSION 4U
 
 typedef struct {
     uint32_t struct_size;
