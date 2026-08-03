@@ -9,7 +9,7 @@
   instead of holding.
 - Fixed: the settings alert test blocked the UI thread. It now runs
   asynchronously, and lasts long enough (2.6s) to hear a full SOS cycle.
-- Clearer navigation hints; the previous "<Sess Evt>" footer was unreadable.
+- Clearer navigation hints; the previous abbreviated footer was unreadable.
 - Mode selector hidden until Decoy mode is implemented, so it cannot be set to
   something that does nothing.
 
