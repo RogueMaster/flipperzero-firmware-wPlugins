@@ -16,7 +16,7 @@ sourcecode:
   type: git
   location:
     origin: https://github.com/antitree/nfc_canary.git
-    commit_sha: 789913413d5f39b6c5c600f847922b3343f7c97a
+    commit_sha: edc2dc17cf5d6e259430bc6abc7b7c454a195af5
 
 name: NFC Canary
 id: nfc_canary
