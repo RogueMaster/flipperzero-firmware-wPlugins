@@ -12,6 +12,10 @@
 static uint32_t g_millis = 0;
 uint32_t millis() { return g_millis; }
 
+// Exposes the chess rules-core and match test hooks (chessPerft/chessLoadCore,
+// chessTestLoad/chessTestPerft) so the sim can drive positions the normal opening
+// moves can't reach quickly (mate/stalemate/draw setups, perft ground truth).
+#define HA_CHESS_TEST
 #include "../../esp32/hotspot-arcade-fw/ha_games.h"
 
 static Engine engine;
@@ -106,6 +110,16 @@ void ha_content_item(const char* json) { engine.contentItem(json); }
 void ha_round_end() { engine.roundEnd(); }
 void ha_reset_scores() { engine.resetScores(); }
 void ha_set_lang(const char* l) { engine.setLang(l); }
+
+// Test-only chess hooks (HA_CHESS_TEST), for positions the opening moves can't reach
+// quickly and for perft ground truth against the real move generator.
+void ha_chess_load(const char* board64, int stm, int rights, int ep, int halfmove,
+                    uint32_t wms, uint32_t bms) {
+    engine.chessTestLoad(board64, stm, rights, ep, halfmove, wms, bms);
+}
+uint32_t ha_chess_perft(const char* board64, int stm, int rights, int ep, int depth) {
+    return Engine::chessTestPerft(board64, stm, rights, ep, depth);
+}
 
 const char* ha_drain() {
     g_drained = "[";

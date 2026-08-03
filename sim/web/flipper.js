@@ -15,7 +15,7 @@ const GAMES = [
   ["Dots & Boxes", 4], ["Draw & Guess", 5], ["Pong", 6], ["Reaction Duel", 7],
   ["Would You Rather", 8], ["Word Scramble", 9], ["Reversi", 10],
   ["Guess the Color", 11], ["Battleship", 12], ["Spectrum", 13],
-  ["Kiss Marry Kill", 14],
+  ["Kiss Marry Kill", 14], ["Chess", 15],
 ];
 
 const players = new Map(); // pid -> { nick, score }

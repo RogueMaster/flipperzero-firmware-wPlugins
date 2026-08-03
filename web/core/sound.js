@@ -47,6 +47,9 @@
     lose:    function (c) { chord(c, [{ f0: 392, dur: 0.14, type: "sawtooth" }, { at: 0.14, f0: 262, dur: 0.24, type: "sawtooth" }]); },
     drop:    function (c) { chord(c, [{ f0: 420, f1: 120, dur: 0.11, type: "square", vol: 0.13 }]); },
     tick:    function (c) { chord(c, [{ f0: 900, dur: 0.03, type: "square", vol: 0.1 }]); },
+    // Chess: a short two-note high alert blip for "you're in check" -- brighter
+    // and longer than tick so it doesn't get lost among the clock ticks.
+    check:   function (c) { chord(c, [{ f0: 1200, dur: 0.05, type: "square", vol: 0.13 }, { at: 0.06, f0: 1500, dur: 0.08, type: "square", vol: 0.13 }]); },
     score:   function (c) { chord(c, [{ f0: 740, f1: 980, dur: 0.08, type: "square" }]); },
     // Battleship: a punchy low boom for a hit, a soft watery bloop for a miss, and a
     // dramatic descending sequence when a ship goes down.

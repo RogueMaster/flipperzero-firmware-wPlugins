@@ -19,7 +19,7 @@ the rounds. The ESP32 board is the **referee**: it runs the WiFi access point, s
 the game to phones, and keeps the real-time game state. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-Fourteen games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
+Fifteen games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
 reactions that float up on everyone's screen mid-game.
 
 **Whole-group** (scale to everyone in the room, ready-up lobby, shared live leaderboard):
@@ -54,6 +54,8 @@ the Flipper leaderboard):
 - **Pong** — real-time rally with on-screen paddles.
 - **Battleship** — place a hidden fleet, then fire at the enemy grid; a hit lets you fire
   again, sink all five ships to win.
+- **Chess** — full FIDE rules refereed on the board, 5-minute blitz clock per side; offer
+  or claim a draw, or resign.
 
 **Cooperative-ish:**
 

@@ -6,6 +6,28 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ## [Unreleased]
 
+### Added
+
+- **Chess**, a 15th game (1v1). Full FIDE rules refereed on the ESP: legal move
+  generation, check/checkmate/stalemate, castling, en passant, and underpromotion.
+  Threefold repetition and the 50-move rule are claimable, fivefold repetition and the
+  75-move rule end the game automatically, and a flag fall loses unless the opponent
+  couldn't mate by any legal sequence (FIDE 6.9), which draws instead. A 5+0 blitz clock
+  per side, server-authoritative. Ships fully localized (English + Brazilian Portuguese)
+  from day one. Firmware **v17**.
+- A **keep-awake helper** on the phone client: the Wake Lock API where available, falling
+  back to a looping muted video where it isn't (the AP's captive page is served over an
+  insecure context, so `navigator.wakeLock` is absent there) — keeps the screen on through
+  a long chess clock or any other match.
+
+### Fixed
+
+- `selectGame()`'s clear-chain was missing `gcClear()` and `battleClear()`, so switching
+  the active game left live Guess the Color and Battleship matches occupying their slots.
+  Fixed alongside adding the new `chessClear()`.
+- Battleship's "A vs B" match `EVENT` never reached the Flipper: the UART dispatcher's
+  event key chain checked `duel`/`pong`/`draw` but not `bs`. Added (alongside `chess`).
+
 ## [1.5.0] - 2026-08-02
 
 Full phone-UI localization and per-language content packs, with Brazilian Portuguese as

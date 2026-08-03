@@ -18,7 +18,7 @@ if ! command -v emcc >/dev/null 2>&1; then
     exit 1
 fi
 
-EXPORTS='["_ha_reset","_ha_tick","_ha_input","_ha_disconnect","_ha_select_game","_ha_trivia_clear","_ha_trivia_add_topic","_ha_trivia_add_q","_ha_round_end","_ha_reset_scores","_ha_drain","_ha_content_clear","_ha_content_pack","_ha_content_item","_ha_set_lang"]'
+EXPORTS='["_ha_reset","_ha_tick","_ha_input","_ha_disconnect","_ha_select_game","_ha_trivia_clear","_ha_trivia_add_topic","_ha_trivia_add_q","_ha_round_end","_ha_reset_scores","_ha_drain","_ha_content_clear","_ha_content_pack","_ha_content_item","_ha_set_lang","_ha_chess_load","_ha_chess_perft"]'
 
 FLAGS=(-std=c++17 -O2 -sALLOW_MEMORY_GROWTH=1)
 if [ "${1:-}" = "--asan" ]; then

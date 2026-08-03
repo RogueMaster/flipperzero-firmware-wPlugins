@@ -364,3 +364,56 @@ Server `{t:"kmk",phase,...}`:
   - `mine` is the guesser's own submitted labels.
   - reveal adds `guesses` (`nick`/labels/`pts`) and `mygain`.
 - `"final"`: `board` (the shared leaderboard).
+
+## 9. Chess (`chess`) — game id `15`
+
+A 1v1 duel (like Pong/Battleship): shares the challenge/lobby flow (`challenge`/`accept`/
+`cancel`, `rematch`, `leaveGame`) but plays full FIDE rules, refereed entirely on the ESP.
+Select with UART `SELECT_GAME` id `15`; lobby `game` string `"chess"`. Firmware **v17**.
+Chess has no content packs — its UI strings are localized client-side from the message
+catalog like every game (the host's `lang`, set via `CONFIG` and echoed in `welcome`); the
+per-language `packs/<game>/<lang>/` streaming that content games use does not apply here.
+
+Client intents (besides the shared match ones): `move{from,to[,promo]}`, `resign`, `draw`
+(offer, or accept one already pending), `claim`.
+- `move{from,to,promo}`: squares are 0-63, `a1 = 0` row-major (`h8 = 63`). `promo` is
+  required exactly when the move lands a pawn on the last rank — `2` knight, `3` bishop,
+  `4` rook, `5` queen — and must be omitted/0 otherwise; a mismatched, illegal, or
+  malformed move is silently ignored.
+- `resign`: forfeit the game immediately.
+- `draw`: offers a draw if none is pending; if the opponent already offered, accepts it and
+  ends the game as a draw. The opponent gets a `toast` when an offer arrives.
+- `claim`: claims a draw when threefold repetition or the 50-move count currently stands
+  for the player to move; a no-op otherwise.
+
+Server `{t:"chess",phase,...}`:
+- `"playing"`: `you`, `opp`, `white` (bool, are you playing white), `turn` (pid),
+  `yourTurn`, `board` (64 chars, index 0 = a1, row-major to h8: `PNBRQK`/`pnbrqk`/`.`),
+  `moves` (`[from*64+to, ...]`, your legal moves, always present but populated only for the player to move), `check`,
+  `last` (`from*64+to` of the last move played, `-1` before the first), `deadline`, `run`,
+  `oms`, `wtm`, `claim3`, `claim50`, `offer` (`0` or the pid with a pending draw offer).
+- `"over"`: the same fields minus `moves`/`claim3`/`claim50`, plus `result`
+  (`"win"`/`"lose"`/`"draw"`) and `reason` (`mate`/`stalemate`/`resign`/`flag`/`flagdraw`/
+  `material`/`rep3`/`rep5`/`move50`/`move75`/`agree`/`left`). **Quirk:** the server keeps
+  recomputing `deadline` off the current time even after the game ends, so clients must
+  read the clocks from `run`/`oms` (which the server does freeze on finish) rather than
+  animate a countdown from `deadline` here. `offer` is also stale in this phase — it is not
+  cleared when the game ends — so clients should ignore it once `phase` is `"over"`.
+- `"lobby"`: `challenges` only.
+
+Clocks: fixed 5+0 blitz, no increment, server-authoritative. `run` is the milliseconds left
+on the clock of the side to move (`wtm` = white to move) and `oms` is the other side's
+frozen remaining time; `deadline` is the server's `now + run`, so the client animates a
+countdown without needing clock sync (same pattern as the other timed games). A flag fall
+loses the game for the side whose clock ran out, unless the opponent could not mate by any
+legal sequence (FIDE 6.9), in which case it's a draw (`flagdraw`).
+
+Draw rules: stalemate, dead position (insufficient material), fivefold repetition, and the
+75-move rule end the game automatically; threefold repetition and the 50-move rule are
+claimable only by the player to move, via `claim`, exactly while `claim3`/`claim50` reads
+true; either player can also offer or accept a draw via `draw`. A pending offer lapses the
+moment either side plays a move.
+
+State is pushed only on events — a move, resign, draw, claim, or a flag fall the ESP
+notices on its own clock tick — never on a periodic heartbeat; clients animate the
+countdown locally between pushes from `deadline`.
