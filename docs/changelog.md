@@ -1,3 +1,13 @@
+v4.4.1:
+- Opening animation is no longer skippable by keys — it plays to completion
+  (~4.5s, full BGM). It can only be disabled entirely from Settings.
+  Previously a single keypress cut it off, leaving no time to listen or to
+  enter the developer-mode unlock sequence.
+- Long-press Up/Down/Left/Right during the opening now feeds the
+  developer-mode unlock sequence (same as in the menu), so the intro doubles
+  as input time.
+- Removed the misleading "Press any key" prompt on the final intro stage.
+
 v4.4:
 - Developer mode: unlocks all campaign levels from the level-select screen
   and enables a debug overlay. Persists across sessions.
