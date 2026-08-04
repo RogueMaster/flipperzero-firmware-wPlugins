@@ -84,7 +84,7 @@ static App *appnew(void)
     app->vv = view_alloc();
     app->play = playnew();
     app->vfo = fmtx_vfo_alloc();
-    app->path = furi_string_alloc_set(APP_ASSETS_PATH("1-monkeys.mp3"));
+    app->path = furi_string_alloc_set(EXT_PATH("yo3gnd_audio/1-monkeys.mp3"));
     app->hz = cfgload();
     if(app->gui && app->dlg && app->vd && app->menu && app->setmenu && app->pv && app->vv && app->play && app->vfo && app->path) app->sm = scene_manager_alloc(&scenes, app);
     if(!app->sm)

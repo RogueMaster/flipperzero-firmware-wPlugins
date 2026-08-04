@@ -49,7 +49,7 @@ static void pickfile(App *app)
 {
     DialogsFileBrowserOptions opts;
     FuriString *out = furi_string_alloc();
-    FuriString *at = furi_string_alloc_set(EXT_PATH("apps_assets/fmtx"));
+    FuriString *at = furi_string_alloc_set(EXT_PATH("yo3gnd_audio"));
     dialog_file_browser_set_basic_options(&opts, ".mp3", NULL);
     opts.base_path = EXT_PATH("");
     opts.skip_assets = false;
