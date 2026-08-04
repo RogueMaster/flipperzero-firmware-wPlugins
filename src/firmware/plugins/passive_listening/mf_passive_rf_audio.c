@@ -102,6 +102,13 @@ static bool mf_passive_rf_probe(const MfPassiveRfAudio* audio, uint32_t frequenc
            audio->ops->frequency_allowed(audio->hardware_context, frequency_hz);
 }
 
+static bool mf_passive_rf_tune(MfPassiveRfAudio* audio, uint32_t frequency_hz) {
+    uint32_t tuned_frequency_hz =
+        audio->ops->set_frequency_and_path(audio->hardware_context, frequency_hz);
+    return tuned_frequency_hz != 0U &&
+           mf_passive_rf_audio_frequency_usable(audio, tuned_frequency_hz);
+}
+
 bool mf_passive_rf_audio_frequency_usable(const MfPassiveRfAudio* audio, uint32_t frequency_hz) {
     if(audio == NULL || !mf_passive_rf_ops_complete(audio->ops) ||
        frequency_hz < MF_PASSIVE_RF_DEVIATION_HZ ||
@@ -169,7 +176,7 @@ bool mf_passive_rf_audio_prepare(MfPassiveRfAudio* audio, uint32_t frequency_hz)
     audio->ops->radio_idle(audio->hardware_context);
     if(!audio->ops->load_preset(
            audio->hardware_context, mf_passive_rf_preset, sizeof(mf_passive_rf_preset)) ||
-       !audio->ops->set_frequency_and_path(audio->hardware_context, frequency_hz)) {
+       !mf_passive_rf_tune(audio, frequency_hz)) {
         mf_passive_rf_audio_release(audio);
         return false;
     }
@@ -186,7 +193,7 @@ bool mf_passive_rf_audio_start_burst(MfPassiveRfAudio* audio) {
         return false;
     }
     mf_passive_rf_audio_reset_stream(audio);
-    if(!audio->ops->set_frequency_and_path(audio->hardware_context, audio->frequency_hz)) {
+    if(!mf_passive_rf_tune(audio, audio->frequency_hz)) {
         mf_passive_rf_audio_release(audio);
         return false;
     }
@@ -347,9 +354,9 @@ static bool mf_passive_rf_hw_load_preset(void* context, const uint8_t* preset, s
     return true;
 }
 
-static bool mf_passive_rf_hw_set_frequency(void* context, uint32_t frequency_hz) {
+static uint32_t mf_passive_rf_hw_set_frequency(void* context, uint32_t frequency_hz) {
     (void)context;
-    return furi_hal_subghz_set_frequency_and_path(frequency_hz) == frequency_hz;
+    return furi_hal_subghz_set_frequency_and_path(frequency_hz);
 }
 
 static void mf_passive_rf_hw_data_gpio_input(void* context) {

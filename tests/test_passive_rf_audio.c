@@ -39,7 +39,7 @@ typedef struct {
     unsigned async_starts;
     unsigned async_stops;
     bool preset_ok;
-    bool set_frequency_ok;
+    uint32_t tuned_frequency_hz;
     bool async_start_ok;
     bool led_on;
     bool sleeping;
@@ -84,11 +84,11 @@ static bool fake_load_preset(void* context, const uint8_t* preset, size_t size) 
     return fake->preset_ok;
 }
 
-static bool fake_set_frequency(void* context, uint32_t frequency_hz) {
+static uint32_t fake_set_frequency(void* context, uint32_t frequency_hz) {
     FakeHardware* fake = context;
     fake->last_frequency_hz = frequency_hz;
     record(fake, CallSetFrequency);
-    return fake->set_frequency_ok;
+    return fake->tuned_frequency_hz;
 }
 
 static void fake_data_gpio(void* context) {
@@ -152,7 +152,7 @@ static void setup(MfPassiveRfAudio* audio, MfPassivePcmPipe* pipe, FakeHardware*
     memset(pipe, 0, sizeof(*pipe));
     memset(fake, 0, sizeof(*fake));
     fake->preset_ok = true;
-    fake->set_frequency_ok = true;
+    fake->tuned_frequency_hz = TEST_FREQUENCY_HZ;
     fake->async_start_ok = true;
     mf_passive_rf_audio_init(audio, &fake_ops, fake, pipe);
 }
@@ -381,6 +381,22 @@ static void test_preset_and_lifecycle(void) {
     CHECK(preset_has(&fake, 0x21U, 0x56U));
     CHECK(fake.preset[38] == 0xC0U);
 
+    mf_passive_rf_audio_release(&audio);
+    setup(&audio, &pipe, &fake);
+    fake.tuned_frequency_hz = TEST_FREQUENCY_HZ - 302U;
+    CHECK(mf_passive_rf_audio_prepare(&audio, TEST_FREQUENCY_HZ));
+    CHECK(audio.prepared && fake.last_frequency_hz == TEST_FREQUENCY_HZ);
+
+    mf_passive_rf_audio_release(&audio);
+    setup(&audio, &pipe, &fake);
+    fake.tuned_frequency_hz = TEST_FREQUENCY_HZ + 95U;
+    fake.denied_hz = fake.tuned_frequency_hz + MF_PASSIVE_RF_DEVIATION_HZ;
+    CHECK(!mf_passive_rf_audio_prepare(&audio, TEST_FREQUENCY_HZ));
+    CHECK(!audio.prepared && fake.sleeping);
+
+    setup(&audio, &pipe, &fake);
+    CHECK(mf_passive_rf_audio_prepare(&audio, TEST_FREQUENCY_HZ));
+
     fake.call_count = 0U;
     audio.pdm_error = 1234;
     audio.source_phase = 99U;
@@ -422,7 +438,7 @@ static void test_failures_and_region_change(void) {
     CHECK(!audio.prepared && !audio.running && !fake.led_on && fake.sleeping);
 
     setup(&audio, &pipe, &fake);
-    fake.set_frequency_ok = false;
+    fake.tuned_frequency_hz = 0U;
     CHECK(!mf_passive_rf_audio_prepare(&audio, TEST_FREQUENCY_HZ));
     CHECK(!audio.prepared && !audio.running && !fake.led_on && fake.sleeping);
 
@@ -435,7 +451,7 @@ static void test_failures_and_region_change(void) {
 
     setup(&audio, &pipe, &fake);
     CHECK(mf_passive_rf_audio_prepare(&audio, TEST_FREQUENCY_HZ));
-    fake.set_frequency_ok = false;
+    fake.tuned_frequency_hz = 0U;
     CHECK(!mf_passive_rf_audio_start_burst(&audio));
     CHECK(fake.async_starts == 0U && fake.insomnia_enters == 0U);
     CHECK(!audio.running && !audio.prepared && !fake.led_on && fake.sleeping);

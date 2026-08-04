@@ -24,7 +24,7 @@ typedef struct {
     bool (*frequency_allowed)(void* context, uint32_t frequency_hz);
     void (*radio_idle)(void* context);
     bool (*load_preset)(void* context, const uint8_t* preset, size_t size);
-    bool (*set_frequency_and_path)(void* context, uint32_t frequency_hz);
+    uint32_t (*set_frequency_and_path)(void* context, uint32_t frequency_hz);
     void (*data_gpio_input)(void* context);
     bool (*async_start)(void* context, MfPassiveRfAudio* audio);
     void (*async_stop)(void* context);

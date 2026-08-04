@@ -212,10 +212,9 @@ static bool fake_rf_load(void* context, const uint8_t* preset, size_t size) {
     return fake->load_ok;
 }
 
-static bool fake_rf_set_frequency(void* context, uint32_t frequency_hz) {
+static uint32_t fake_rf_set_frequency(void* context, uint32_t frequency_hz) {
     FakeRf* fake = context;
-    (void)frequency_hz;
-    return fake->frequency_ok;
+    return fake->frequency_ok ? frequency_hz : 0U;
 }
 
 static bool fake_rf_async_start(void* context, MfPassiveRfAudio* audio) {
