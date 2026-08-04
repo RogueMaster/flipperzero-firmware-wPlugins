@@ -26,6 +26,7 @@ typedef enum
 typedef struct
 {
     uint32_t elapsed_ms;
+    char filename[256];
 } PlayModel;
 
 extern const SceneManagerHandlers scenes;

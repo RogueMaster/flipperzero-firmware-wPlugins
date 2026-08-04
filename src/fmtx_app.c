@@ -3,6 +3,7 @@
 #include "fmtx_scenes.h"
 
 #include <stdlib.h>
+#include <storage/storage.h>
 
 static bool custev(void *ctx, uint32_t event)
 {
@@ -27,17 +28,21 @@ static App *appnew(void)
     App *app = calloc(1, sizeof(App));
     if(!app) return NULL;
     app->gui = furi_record_open(RECORD_GUI);
+    app->dlg = furi_record_open(RECORD_DIALOGS);
     app->vd = view_dispatcher_alloc();
     app->menu = submenu_alloc();
     app->pv = view_alloc();
     app->play = playnew();
-    if(app->gui && app->vd && app->menu && app->pv && app->play) app->sm = scene_manager_alloc(&scenes, app);
+    app->path = furi_string_alloc_set(APP_ASSETS_PATH("1-monkeys.mp3"));
+    if(app->gui && app->dlg && app->vd && app->menu && app->pv && app->play && app->path) app->sm = scene_manager_alloc(&scenes, app);
     if(!app->sm)
     {
+        if(app->path) furi_string_free(app->path);
         playfree(app->play);
         if(app->pv) view_free(app->pv);
         if(app->menu) submenu_free(app->menu);
         if(app->vd) view_dispatcher_free(app->vd);
+        if(app->dlg) furi_record_close(RECORD_DIALOGS);
         if(app->gui) furi_record_close(RECORD_GUI);
         free(app);
         return NULL;
@@ -66,6 +71,8 @@ static void appfree(App *app)
     submenu_free(app->menu);
     view_free(app->pv);
     playfree(app->play);
+    furi_string_free(app->path);
+    furi_record_close(RECORD_DIALOGS);
     furi_record_close(RECORD_GUI);
     free(app);
 }
