@@ -163,6 +163,21 @@ struct Player {
     int32_t score;
 };
 
+// A phone that drops out keeps its identity for the rest of the session. When the
+// socket closes the player's nick, avatar and score are parked under their device
+// key; the same phone coming back -- a WiFi blip, a locked screen, a browser
+// restart, a tab swiped away -- is handed all three back instead of arriving as a
+// stranger on zero. Ten slots is the softAP's station cap, so a full room's worth
+// of leavers fits; beyond that the stalest is evicted.
+#define HA_PARKED_MAX 10
+struct ParkedPlayer {
+    uint64_t deviceKey; // 0 = free slot
+    char nick[HA_NICK_LEN];
+    char avatar[8];
+    int32_t score;
+    uint32_t at; // millis when parked, for evicting the stalest first
+};
+
 // Trivia content, streamed from the Flipper at session start (the packs become
 // the votable topics), then owned by the ESP which orchestrates the whole game.
 struct TriviaQ {
@@ -487,6 +502,42 @@ public:
     // The player sitting on a given device, or 0. An unknown device (key 0) never
     // matches, so those clients keep the old one-player-per-connection behaviour
     // instead of all collapsing into a single player.
+    ParkedPlayer _parked[HA_PARKED_MAX] = {};
+
+    // Park a leaving player's identity so their return can restore it.
+    void parkPlayer(uint8_t pid) {
+        if(!_p[pid].deviceKey) return; // nothing to recognise them by later
+        int slot = -1;
+        for(int i = 0; i < HA_PARKED_MAX; i++) {
+            if(_parked[i].deviceKey == _p[pid].deviceKey) { slot = i; break; }
+            if(!_parked[i].deviceKey && slot < 0) slot = i;
+        }
+        if(slot < 0) { // all taken: evict the stalest
+            slot = 0;
+            for(int i = 1; i < HA_PARKED_MAX; i++)
+                if((int32_t)(_parked[i].at - _parked[slot].at) < 0) slot = i;
+        }
+        _parked[slot].deviceKey = _p[pid].deviceKey;
+        strlcpy(_parked[slot].nick, _p[pid].nick, HA_NICK_LEN);
+        strlcpy(_parked[slot].avatar, _p[pid].avatar, sizeof(_parked[slot].avatar));
+        _parked[slot].score = _p[pid].score;
+        _parked[slot].at = millis();
+    }
+
+    // Take a parked identity back out of the store (consumed, not copied).
+    bool unparkPlayer(uint64_t deviceKey, uint8_t pid) {
+        if(!deviceKey) return false;
+        for(int i = 0; i < HA_PARKED_MAX; i++) {
+            if(_parked[i].deviceKey != deviceKey) continue;
+            strlcpy(_p[pid].nick, _parked[i].nick, HA_NICK_LEN);
+            strlcpy(_p[pid].avatar, _parked[i].avatar, sizeof(_p[pid].avatar));
+            _p[pid].score = _parked[i].score;
+            _parked[i] = ParkedPlayer{};
+            return true;
+        }
+        return false;
+    }
+
     uint8_t pidByDevice(uint64_t deviceKey) {
         if(!deviceKey) return 0;
         for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
@@ -503,6 +554,7 @@ public:
         uint8_t pid = pidByWs(wsId);
         if(!pid) return;
         anyOnLeave(pid); // forfeit any active match
+        parkPlayer(pid);  // keep nick/avatar/score for this phone's return
         _p[pid] = Player{};
         haUartLeave(pid);
         triviaOnRosterChange();
@@ -537,11 +589,18 @@ public:
             _p[pid].wsId = wsId;
             _p[pid].deviceKey = deviceKey;
             _p[pid].score = 0;
-            strlcpy(_p[pid].nick, (nick && nick[0]) ? nick : "PLAYER", HA_NICK_LEN);
-            ha_upper(_p[pid].nick);
-            strlcpy(_p[pid].avatar, (avatar && avatar[0]) ? avatar : "\xF0\x9F\x99\x82", sizeof(_p[pid].avatar));
+            // This phone played earlier and dropped out: hand back its own name,
+            // avatar and score instead of starting it over at zero. A name the
+            // player has just typed still wins over the restored one.
+            bool restored = unparkPlayer(deviceKey, pid);
+            if(!restored || (named && nick && nick[0])) {
+                strlcpy(_p[pid].nick, (nick && nick[0]) ? nick : "PLAYER", HA_NICK_LEN);
+                ha_upper(_p[pid].nick);
+            }
+            if(!restored || (named && avatar && avatar[0]))
+                strlcpy(_p[pid].avatar, (avatar && avatar[0]) ? avatar : "\xF0\x9F\x99\x82", sizeof(_p[pid].avatar));
             haUartJoin(pid, _p[pid].nick);
-            haLogJoin(pid, deviceKey, _p[pid].nick, false);
+            haLogJoin(pid, deviceKey, _p[pid].nick, restored);
         } else if(!rebound || named) {
             // Re-hello from a known socket = the player changed their name/avatar in
             // the header editor. Re-announce over UART so the Flipper's leaderboard

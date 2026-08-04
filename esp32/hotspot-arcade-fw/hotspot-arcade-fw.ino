@@ -250,9 +250,9 @@ static void haLog(const String& line) {
 }
 void haLogJoin(uint8_t pid, uint64_t deviceKey, const char* nick, bool consolidated) {
     String where = deviceKeyText(deviceKey);
-    if(consolidated)
-        haLog(String("NEW BROWSER same device ") + where + " -> pid=" + pid + " nick=\"" + nick +
-              "\" (consolidated)");
+    if(recognised)
+        haLog(String("SAME DEVICE ") + where + " -> pid=" + pid + " nick=\"" + nick +
+              "\" (recognised)");
     else
         haLog(String("JOIN pid=") + pid + " " + where + " nick=\"" + nick + "\"");
 }
