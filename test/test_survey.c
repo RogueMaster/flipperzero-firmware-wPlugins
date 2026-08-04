@@ -84,6 +84,14 @@ int main(void) {
         SurveySummary s = {60000, 58000, 88, 71, 1};
         check_verdict(&s, SurveyVerdictActive, "reader up the whole time");
     }
+    {
+        /* Regression: a real polling reader you walked right up to. Its raw duty
+         * saturates near 30%, which on the scaled meter is ~89. Before the meter
+         * was scaled this arrived as peak 31 and the peak test could not fire -
+         * a brief close pass over a skimmer could be filed as mere TRACE. */
+        SurveySummary s = {60000, 4000, 89, 12, 2};
+        check_verdict(&s, SurveyVerdictActive, "brief close pass on a polling reader");
+    }
 
     /* --- in-field percentage -------------------------------------------- */
     {

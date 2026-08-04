@@ -8,7 +8,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/platform-Flipper%20Zero-FF8200?style=for-the-badge&logo=flipper&logoColor=white" alt="Flipper Zero">
-  <img src="https://img.shields.io/badge/version-2.2-FF3DAE?style=for-the-badge" alt="Version 2.2">
+  <img src="https://img.shields.io/badge/version-2.3-FF3DAE?style=for-the-badge" alt="Version 2.3">
   <img src="https://img.shields.io/badge/radio-13.56%20MHz%20NFC%20(onboard)-26E8CA?style=for-the-badge" alt="Onboard NFC">
   <img src="https://img.shields.io/badge/hardware-none%20required-9B5DE5?style=for-the-badge" alt="No extra hardware">
   <img src="https://img.shields.io/badge/build-ufbt-2da0ff?style=for-the-badge" alt="ufbt">
@@ -159,10 +159,37 @@ one doing the looking. Sound and vibration keep working — the point isn't to d
 you're sweeping by. Exiting a stealth screen **re-lights the display**, so `BACK` always lands you on
 a lit menu <sub>(fixed in 2.2 — it used to leave the screen dark, which made `BACK` look dead)</sub>.
 
+### 📏 Reading the meter &nbsp;<sub>`FIXED in 2.3`</sub>
+
+**Why a reader you're touching doesn't emit 100% of the time.** The detector measures one physical
+thing: what fraction of the time a 13.56 MHz carrier is actually up. But readers **poll** — a short
+burst, a sleep, another burst. A typical terminal or access reader is only radiating **20–35% of the
+time**, so raw duty-cycle *saturates* around 30% no matter how close you get.
+
+Specter used to print that raw number on the gauge, which made a perfect detection look like a third
+of one — and left `CLOSE`/`STRONG` and the survey's peak test permanently out of reach. The meter is
+now scaled against that real polling band:
+
+| Raw carrier duty | Meter | Proximity |
+|---|---|---|
+| 3% (room noise) | 9% | `FAINT` |
+| 12% | 34% | `NEAR` |
+| 20% | 57% | `CLOSE` |
+| 31% *(on top of a reader)* | **89%** | `STRONG` |
+| ≥35% / continuous wave | 100% | `MAX` |
+
+`MAX` means **pegged** — you're as close as this measurement can resolve, and moving nearer won't
+change it. That's stated rather than hidden, so a stuck needle never looks like a broken one.
+
+The **raw duty is never lost**: the noise floor, auto-calibration and the Fingerprint screen's `DUTY`
+all still work in true duty-cycle, because those describe the *signal*, not your distance from it.
+Prefer the literal number? **Settings → Meter → Raw**.
+
 ### 💾 Everything persists &nbsp;<sub>`NEW in 2.0`</sub>
 
-Sensitivity, survey length, sound, vibe, LED, stealth and logging are **saved to the SD card** the
-moment you change them. A sweep kit that forgets its setup is worse than no persistence at all.
+Sensitivity, survey length, sound, vibe, LED, stealth, logging and meter mode are **saved to the SD
+card** the moment you change them. A sweep kit that forgets its setup is worse than no persistence at
+all.
 
 ---
 
@@ -203,12 +230,12 @@ difference is what separates **POLLING** from **INTERMITTENT**.
 
 ### The decision layers are tested on a real computer
 
-The two places where Specter turns numbers into a *claim* — "this is a polling reader", "this room is
-clean" — are pure C with no hardware dependencies, and they're pinned down by host tests rather than
-discovered on the device:
+The places where Specter turns numbers into a *claim* — "this is a polling reader", "this room is
+clean", "this is what the needle should read" — are pure C with no hardware dependencies, and they're
+pinned down by host tests rather than discovered on the device:
 
 ```bash
-make -C test     # 64 checks across the classifier and the survey verdict
+make -C test     # 284 checks: classifier, survey verdict, meter scaling
 ```
 
 ---
@@ -290,7 +317,13 @@ The `.fap` lands in `dist/specter.fap`; `ufbt launch` copies it to `apps/NFC/` a
   roughly how close, and what rhythm it polls on* — it does not decode, identify, or capture anything
   the reader does.
 - **Strength is relative, not calibrated.** `FIELD %` and the proximity words are a comparative "warmer /
-  colder" guide for sweeping, not a measured distance in cm.
+  colder" guide for sweeping, not a measured distance in cm. It's a *scaled* reading of carrier
+  duty-cycle against a typical polling band (see [Reading the meter](#-reading-the-meter--fixed-in-23));
+  a reader that polls unusually sparsely will read lower at the same distance, and one in continuous-wave
+  mode will peg from further away.
+- **The meter tops out.** `MAX` means the carrier is up as much as this reader ever keeps it up — past
+  that point, closing in genuinely cannot produce a bigger number. Use the `PK` peak-hold to compare
+  positions instead.
 - **Cadence resolves to ~2 ms.** That's the sampling period. Timings anywhere near it are shown with a
   **`~`** and the confidence is discounted accordingly — Specter would rather flag its own resolution
   floor than quote a precise-looking number it can't stand behind.
@@ -320,6 +353,7 @@ authorised** to assess. You are responsible for how you use it. Know your local 
 - [x] Timed site survey with a room verdict
 - [x] Export the logbook as CSV for reporting — *written live alongside the .txt*
 - [x] Long-run unattended watch mode with a wake-on-detection alarm
+- [x] Make the meter use its full range against real polling readers
 - [ ] Investigate an LF (125 kHz) coil-based reader sense as a separate mode
 - [ ] On-device logbook filtering by type
 
@@ -336,6 +370,7 @@ Specter-FlipperZero/
 │   │                             #   duty-cycle + edge timing + calibration
 │   ├── emitter_classify.{c,h}    # pure: cadence -> CONTINUOUS/POLLING/INTERMITTENT
 │   ├── survey_verdict.{c,h}      # pure: survey stats -> CLEAN/TRACE/ACTIVE
+│   ├── field_scale.{c,h}         # pure: raw carrier duty -> full-scale meter
 │   ├── specter_settings.{c,h}    # persisted settings (saved_struct)
 │   └── specter_log.{c,h}         # SD logbook, RTC-stamped .txt + live .csv
 ├── views/

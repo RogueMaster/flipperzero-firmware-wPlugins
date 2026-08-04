@@ -102,7 +102,13 @@ def gauge_point(value, radius):
     return PCX + math.cos(a) * radius, PCY - math.sin(a) * radius
 
 
-def proximity_word(s):
+def proximity_word(s, saturated=False):
+    if saturated:
+        return "MAX"
+    return _proximity_word(s)
+
+
+def _proximity_word(s):
     return "STRONG" if s >= 70 else "CLOSE" if s >= 45 else "NEAR" if s >= 20 else "FAINT"
 
 
@@ -178,7 +184,8 @@ def draw_readout(d, strength, peak, contacts):
 
 
 def render_sweep(name, strength, peak, contacts, present, state, history,
-                 anim=1, calibrating=False, calib_pct=0, flash=None, sens="Medium"):
+                 anim=1, calibrating=False, calib_pct=0, flash=None, sens="Medium",
+                 saturated=False):
     img, d = canvas()
     draw_header(d, "SPECTER", state, present, flash)
     draw_gauge(d, strength, peak, present, anim)
@@ -194,7 +201,7 @@ def render_sweep(name, strength, peak, contacts, present, state, history,
         box(d, 0, 53, 128, 11)
         disc(d, 4, 58, 1, BG)
         tb(d, 9, 62, "ACTIVE READER", f_sec, BG)
-        tb(d, 125, 62, proximity_word(strength), f_sec, BG, anchor="rs")
+        tb(d, 125, 62, proximity_word(strength, saturated), f_sec, BG, anchor="rs")
         frame(d, 0, 0, 127, 63, FG, lw=2)
     else:
         # active sensitivity on the left, waveform filling the rest
@@ -440,7 +447,11 @@ def strip(names, out, cols=None):
 
 if __name__ == "__main__":
     render_sweep("screen_clear.png", 7, 18, 0, False, "SCANNING", CLEAR_HIST, anim=2)
+    # A real polling reader at arm's length, and the Flipper laid on top of one
+    # (raw duty ~31% saturates the meter -> reads MAX, not "31%").
     render_sweep("screen_reader.png", 78, 86, 3, True, "READER", CLEAR_HIST, anim=1)
+    render_sweep("screen_reader_max.png", 100, 100, 4, True, "READER", CLEAR_HIST,
+                 anim=1, saturated=True)
     render_sweep("screen_calibrate.png", 4, 9, 0, False, "CALIBRATE", CLEAR_HIST,
                  anim=2, calibrating=True, calib_pct=62)
 

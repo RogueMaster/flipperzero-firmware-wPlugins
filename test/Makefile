@@ -8,7 +8,7 @@
 CC      ?= cc
 CFLAGS  ?= -std=c11 -Wall -Wextra -Werror -O1 -g
 
-TESTS   := build/test_classify build/test_survey
+TESTS   := build/test_classify build/test_survey build/test_scale
 
 .PHONY: all clean
 all: $(TESTS)
@@ -21,6 +21,10 @@ build/test_classify: test_classify.c ../helpers/emitter_classify.c ../helpers/em
 build/test_survey: test_survey.c ../helpers/survey_verdict.c ../helpers/survey_verdict.h
 	@mkdir -p build
 	$(CC) $(CFLAGS) -o $@ test_survey.c ../helpers/survey_verdict.c
+
+build/test_scale: test_scale.c ../helpers/field_scale.c ../helpers/field_scale.h
+	@mkdir -p build
+	$(CC) $(CFLAGS) -o $@ test_scale.c ../helpers/field_scale.c
 
 clean:
 	rm -rf build

@@ -5,7 +5,14 @@
 #define ACTIVE_IN_FIELD_PCT 20u
 
 /* ...or a single reading this strong, which only happens with an emitter close
- * enough that duration stops mattering. */
+ * enough that duration stops mattering.
+ *
+ * This is a *meter* reading (see field_scale.h), not a raw duty-cycle. That
+ * distinction used to be a bug: peaks were fed in as raw duty, which saturates
+ * near 30% on a normal polling reader, so this test could essentially never
+ * fire and ACTIVE rested on the in-field criterion alone. On the scaled meter a
+ * reader you are right on top of reads ~90-100, so a peak of 50 now means what
+ * it was always meant to mean - "briefly, something was unmistakably close". */
 #define ACTIVE_PEAK 50u
 
 uint8_t survey_in_field_pct(const SurveySummary* s) {

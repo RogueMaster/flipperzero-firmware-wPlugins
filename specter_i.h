@@ -25,7 +25,7 @@
 #include "views/watch_view.h"
 #include "scenes/specter_scene.h"
 
-#define SPECTER_VERSION "2.2"
+#define SPECTER_VERSION "2.3"
 
 /* How long the noise-floor calibration listens for, in milliseconds. */
 #define SPECTER_CALIBRATE_MS 3000u

@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "emitter_classify.h"
+#include "field_scale.h"
 
 /* The detector samples the onboard NFC chip's "external field present" bit at a
  * high rate on a worker thread and condenses it into two things:
@@ -25,9 +26,17 @@ typedef struct {
     bool armed; // worker is running
     bool error; // could not take over the NFC HAL (another NFC app is open)
     bool present; // a reader field is being detected right now
-    uint8_t strength; // 0..100 smoothed field strength (carrier duty-cycle)
+
+    /* Display values, mapped onto a full 0..100 meter - see field_scale.h for
+     * why raw duty makes a poor gauge reading. */
+    uint8_t strength; // 0..100 smoothed field strength
     uint8_t peak; // 0..100 strongest reading since the last reset
     uint8_t average; // 0..100 mean strength across the session
+    bool saturated; // meter is pegged; closing in further will not move it
+
+    /* The measurement behind those, untouched: smoothed carrier duty-cycle in
+     * percent. The noise floor, calibration and the classifier all work here. */
+    uint8_t strength_raw;
     uint32_t contacts; // number of distinct reader "appearances"
     uint32_t last_seen_tick; // furi tick of the last detection (0 = never)
     uint32_t armed_tick; // when the sweep started
@@ -60,6 +69,11 @@ void field_detector_free(FieldDetector* fd);
 /* Noise floor: a window must exceed this duty-cycle (%) to count as a reader.
  * Lower = more sensitive (catches fainter/farther readers, more false blips). */
 void field_detector_set_threshold(FieldDetector* fd, uint8_t duty_threshold);
+
+/* Raw duty that should read as a full meter. SPECTER_FULL_SCALE_DUTY suits real
+ * polling readers; SPECTER_SCALE_RAW shows the unscaled duty instead. Affects
+ * only the display values - never detection, calibration or classification. */
+void field_detector_set_full_scale(FieldDetector* fd, uint8_t full_scale);
 
 void field_detector_start(FieldDetector* fd);
 void field_detector_stop(FieldDetector* fd);
