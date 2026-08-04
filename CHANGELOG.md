@@ -4,6 +4,17 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Secrets**, a 16th game (whole-group). Each round shows a yes/no question; every player
+  first secretly predicts how many of the group will answer "yes" (0..N), then secretly
+  answers. Only the group's total yes-count is ever revealed — never who answered what,
+  enforced server-side in the per-player serializer. An exact prediction scores 3, off by
+  one scores 1. Six rounds, on the shared party lobby/countdown/reveal skeleton, with a
+  votable pack of questions. Ships localized (English + German). Firmware **v18**.
+
 ## [1.6.0] - 2026-08-03
 
 Chess joins as the fifteenth game. Firmware **v17**.

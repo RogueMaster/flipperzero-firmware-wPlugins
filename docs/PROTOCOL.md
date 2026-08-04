@@ -417,3 +417,31 @@ moment either side plays a move.
 State is pushed only on events — a move, resign, draw, claim, or a flag fall the ESP
 notices on its own clock tick — never on a periodic heartbeat; clients animate the
 countdown locally between pushes from `deadline`.
+
+## 10. Secrets (`secrets`) — game id `16`
+
+A whole-group party game on the shared party skeleton (lobby with a ready-up + pack vote,
+countdown, reveal). Content reuses the pack pipeline: each item is a `Q` (one yes/no
+question). Select with UART `SELECT_GAME` id `16`; lobby `game` string `"secrets"`.
+Firmware **v18**.
+
+Each round shows one question. First everyone **predicts** how many of the `N` joined
+players will answer "yes" (an integer `0..N`), then everyone secretly **answers** yes/no.
+Only the group's total yes-count is ever revealed — never who answered what. An exact
+prediction scores 3, off by one scores 1, otherwise 0. Six rounds.
+
+Client intents: `ready`, `vote{pack}`, `predict{n}` (your yes-count guess, clamped
+`0..N`), `reply{v}` (`1` = yes, `0` = no), `again`. The distinct `predict`/`reply` verbs
+avoid colliding with Would You Rather's `answer`/`vote`.
+
+Server `{t:"secrets",phase,...}`:
+- `"lobby"`: `you`, `players`, `packs` (name/votes), `myvote`.
+- `"countdown"`: `sec`.
+- `"predict"` / `"answer"`: `round`, `rounds`, `n` (player count / predict upper bound),
+  `q` (the question), `locked`/`total` (aggregate progress in the current step),
+  `myprediction` and `myanswer` (**your own only**, `-1` if unset), `deadline`/`dur` for
+  the timer bar, and `scores` (the shared leaderboard).
+- `"reveal"`: adds `yes` (the group total, the **only** answer information ever sent) and
+  `mygain` (your points this round). No individual prediction or answer of any other
+  player is serialized in any phase — anonymity is enforced in `secretsJson(pid)`.
+- `"final"`: `board` (the shared leaderboard).

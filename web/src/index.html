@@ -481,6 +481,50 @@
   </div>
 </section>
 
+<!-- 16. Secrets — whole-group hidden yes/no vote + prediction -->
+<section id="secrets" class="screen hide">
+  <div id="sec-lobby" class="hide">
+    <header class="bar"><h2 data-i18n="secrets.title">Secrets</h2><span id="sec-me" class="me"></span></header>
+    <ul id="sec-players" class="players"></ul>
+    <button id="sec-ready" class="btn big" data-i18n="common.ready">I'm ready</button>
+    <p class="sub" data-i18n="common.vote_pack">Vote a pack</p>
+    <div id="sec-topics" class="topics"></div>
+  </div>
+  <div id="sec-count" class="hide count">
+    <div class="count-topic" data-i18n="secrets.count_topic">Secrets</div>
+    <div id="sec-count-num" class="count-num">3</div>
+    <div class="sub" data-i18n="common.starting">Starting</div>
+  </div>
+  <div id="sec-play" class="hide">
+    <div class="bar"><span id="sec-meta" class="me"></span><span id="sec-progress" class="me"></span></div>
+    <div id="sec-bar" class="timebar hide"><i></i></div>
+    <div id="sec-q" class="sec-q"></div>
+    <div id="sec-predict" class="hide sec-predict">
+      <div class="sec-stepper">
+        <button id="sec-minus" class="sec-step" type="button" aria-label="Fewer">−</button>
+        <span id="sec-num" class="sec-num">0</span>
+        <button id="sec-plus" class="sec-step" type="button" aria-label="More">+</button>
+      </div>
+      <button id="sec-predict-go" class="btn big" data-i18n="secrets.predict_go">Lock in prediction</button>
+    </div>
+    <div id="sec-answer" class="hide sec-answer">
+      <button id="sec-yes" class="sec-ans yes" type="button" data-i18n="secrets.yes">Yes</button>
+      <button id="sec-no" class="sec-ans no" type="button" data-i18n="secrets.no">No</button>
+    </div>
+    <div id="sec-reveal" class="hide sec-reveal">
+      <div id="sec-yescount" class="sec-yescount"></div>
+      <div id="sec-your-call" class="sec-your-call"></div>
+    </div>
+    <div id="sec-result" class="sec-result"></div>
+    <div id="sec-note" class="sec-note"></div>
+  </div>
+  <div id="sec-final" class="hide">
+    <header class="bar"><h2 data-i18n="common.final">Final</h2></header>
+    <ol id="sec-podium" class="podium"></ol>
+    <button id="sec-again" class="btn big" data-i18n="common.play_again">Play again</button>
+  </div>
+</section>
+
 <!-- Emoji reactions: floating layer + a corner button that opens the emoji row -->
 <div id="react-layer" class="react-layer" aria-hidden="true"></div>
 <div id="react-bar" class="react-bar hide">

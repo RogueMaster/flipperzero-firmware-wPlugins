@@ -126,6 +126,15 @@ static inline int haUtf8Len(const char* s) {
 #define KMK_GUESS_SECS 30 // guessers' window (safety timer)
 #define KMK_REVEAL_MS 7000
 
+// Secrets: each round shows a yes/no question. Everyone secretly predicts how many
+// of the N joined players will answer "yes" (0..N), then secretly answers. Only the
+// group's total yes-count is ever revealed, never who answered what. Two stages per
+// playing round: 0 = predicting the count, 1 = answering yes/no.
+#define SECRETS_ROUNDS 6
+#define SECRETS_PREDICT_SECS 30 // predict window (safety timer)
+#define SECRETS_ANSWER_SECS 30 // answer window (safety timer)
+#define SECRETS_REVEAL_MS 5000
+
 #define GC_ROUNDS 5
 #define GC_PLAY_SECS 25 // safety deadline per color
 #define GC_REVEAL_MS 6000
@@ -336,6 +345,26 @@ struct KmkState {
     int gained[HA_MAX_PLAYERS + 1]; // points earned this round (shown on reveal)
 };
 
+// Secrets: reuses WordPack (a flat list of yes/no questions) and the Party skeleton.
+// Each round shows one question; players first secretly predict how many of the N
+// joined players will answer "yes" (0..N), then secretly answer yes/no. Only the
+// group's total yes-count is ever revealed — a player's own prediction/answer/points
+// reach only that player (secretsJson gates it, like Spectrum's serializer).
+struct SecretsState {
+    Party pt;
+    WordPack packs[TRIVIA_MAX_TOPICS]; // each item is one yes/no question
+    uint8_t packCount;
+    int8_t vote[HA_MAX_PLAYERS + 1]; // pack index, -1 = not voted
+    uint8_t pack; // chosen pack (locked when the game starts)
+    uint16_t qSeq; // rotates the question across rounds within the pack
+    uint8_t question; // current question index within the pack
+    uint8_t stage; // 0 predict, 1 answer
+    int8_t predict[HA_MAX_PLAYERS + 1]; // each player's guessed yes-count, -1 = unset
+    int8_t answer[HA_MAX_PLAYERS + 1]; // each player's yes(1)/no(0), -1 = unset
+    int gained[HA_MAX_PLAYERS + 1]; // points earned this round (shown on reveal)
+    int yesCount; // total yes answers this round (computed at reveal)
+};
+
 struct PongMatch {
     bool used;
     uint8_t a, b; // a = left paddle, b = right paddle
@@ -459,6 +488,7 @@ public:
         spectrumClear();
         kmkClear();
         chessClear();
+        secretsClear();
     }
 
     // ---- roster ----
@@ -526,6 +556,7 @@ public:
         spectrumClear();
         kmkClear();
         chessClear();
+        secretsClear();
         pushAll();
     }
 
@@ -580,6 +611,8 @@ public:
         _spec.packCount = 0;
         for(int i = 0; i < TRIVIA_MAX_TOPICS; i++) _kmk.packs[i] = WordPack{};
         _kmk.packCount = 0;
+        for(int i = 0; i < TRIVIA_MAX_TOPICS; i++) _secrets.packs[i] = WordPack{};
+        _secrets.packCount = 0;
         _packGame = 0;
     }
 
@@ -617,6 +650,12 @@ public:
                 _kmk.packs[_kmk.packCount].name = name;
                 _kmk.packCount++;
             }
+        } else if(game == HA_GAME_SECRETS) {
+            if(_secrets.packCount < TRIVIA_MAX_TOPICS) {
+                _secrets.packs[_secrets.packCount] = WordPack{};
+                _secrets.packs[_secrets.packCount].name = name;
+                _secrets.packCount++;
+            }
         }
     }
 
@@ -628,6 +667,7 @@ public:
         else if(_packGame == HA_GAME_DRAW) drawLoadItem(json);
         else if(_packGame == HA_GAME_SPECTRUM) spectrumLoadItem(json);
         else if(_packGame == HA_GAME_KMK) kmkLoadItem(json);
+        else if(_packGame == HA_GAME_SECRETS) secretsLoadItem(json);
         // Unknown game ids are dropped on purpose: a newer Flipper must not be able
         // to corrupt an older board's state.
     }
@@ -717,6 +757,17 @@ public:
         return true;
     }
 
+    // Map a Secrets pack file's {q} key (one yes/no question) into the current pack.
+    bool secretsLoadItem(const char* json) {
+        if(_secrets.packCount == 0) return false;
+        WordPack& p = _secrets.packs[_secrets.packCount - 1];
+        if(p.count >= PACK_MAX_ITEMS) return false;
+        char buf[160];
+        if(!ha_json_str(json, "q", buf, sizeof(buf)) || !buf[0]) return false;
+        p.words[p.count++] = buf;
+        return true;
+    }
+
     // Map a draw pack file's {word} key into the current pack.
     bool drawLoadItem(const char* json) {
         if(_d.packCount == 0) return false;
@@ -753,6 +804,8 @@ public:
             kmkClear();
         else if(_active == HA_GAME_CHESS)
             chessClear();
+        else if(_active == HA_GAME_SECRETS)
+            secretsClear();
         pushAll();
     }
 
@@ -779,6 +832,8 @@ public:
             kmkTick(now);
         else if(_active == HA_GAME_CHESS)
             chessTick(now);
+        else if(_active == HA_GAME_SECRETS)
+            secretsTick(now);
     }
 
     // ---- player input (parsed WS JSON) ----
@@ -817,6 +872,7 @@ public:
             gcReady(pid, r);
             spectrumReady(pid, r);
             kmkReady(pid, r);
+            secretsReady(pid, r);
         } else if(strcmp(type, "vote") == 0 && ha_json_int(json, "topic", &v)) {
             triviaVote(pid, v);
         } else if(strcmp(type, "vote") == 0 && ha_json_int(json, "pack", &v)) {
@@ -824,6 +880,7 @@ public:
             scrambleVote(pid, v);
             spectrumVote(pid, v);
             kmkVote(pid, v);
+            secretsVote(pid, v);
         } else if(strcmp(type, "tap") == 0) {
             reactTap(pid);
         } else if(strcmp(type, "clue") == 0) {
@@ -836,6 +893,10 @@ public:
             if(ha_json_int(json, "kiss", &k) && ha_json_int(json, "marry", &m) &&
                ha_json_int(json, "kill", &x))
                 kmkAssign(pid, k, m, x);
+        } else if(strcmp(type, "predict") == 0 && ha_json_int(json, "n", &v)) {
+            secretsPredict(pid, v);
+        } else if(strcmp(type, "reply") == 0 && ha_json_int(json, "v", &v)) {
+            secretsReply(pid, v);
         } else if(strcmp(type, "again") == 0) {
             triviaAgain(pid);
             drawAgain(pid);
@@ -845,6 +906,7 @@ public:
             gcAgain(pid);
             spectrumAgain(pid);
             kmkAgain(pid);
+            secretsAgain(pid);
         } else if(strcmp(type, "say") == 0) {
             char t[120];
             if(ha_json_str(json, "text", t, sizeof(t))) onSay(pid, t);
@@ -923,6 +985,7 @@ private:
     SpectrumState _spec = {};
     KmkState _kmk = {};
     ChessMatch _cm[CHESS_MAX] = {};
+    SecretsState _secrets = {};
 
     uint8_t freePid() {
         for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
@@ -966,6 +1029,8 @@ private:
                 haWsSendWs(_p[pid].wsId, kmkJson(pid));
             else if(_active == HA_GAME_CHESS)
                 haWsSendWs(_p[pid].wsId, chessJson(pid));
+            else if(_active == HA_GAME_SECRETS)
+                haWsSendWs(_p[pid].wsId, secretsJson(pid));
         }
     }
 
@@ -1026,6 +1091,8 @@ private:
             return "kmk";
         case HA_GAME_CHESS:
             return "chess";
+        case HA_GAME_SECRETS:
+            return "secrets";
         default:
             return "none";
         }
@@ -2350,6 +2417,8 @@ private:
             spectrumCheckStart();
         else if(_active == HA_GAME_KMK)
             kmkCheckStart();
+        else if(_active == HA_GAME_SECRETS)
+            secretsCheckStart();
     }
 
     // ---------- would you rather (live A/B poll) ----------
@@ -4639,6 +4708,271 @@ private:
         } else {
             s += ",\"deadline\":" + String(pt.deadline) + ",\"dur\":" +
                  String(_kmk.stage == 0 ? KMK_CHOOSE_SECS : KMK_GUESS_SECS);
+        }
+        s += ",\"scores\":" + playersJson() + "}";
+        return s;
+    }
+
+    // ---------- Secrets (hidden yes/no vote + prediction) ----------
+    // Which pack wins the pre-round vote; identical policy to wyrWinningPack().
+    int secretsWinningPack() {
+        if(_secrets.packCount == 0) return 0;
+        int votes[TRIVIA_MAX_TOPICS] = {0};
+        int total = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+            if(_p[i].used && _secrets.vote[i] >= 0 && _secrets.vote[i] < _secrets.packCount) {
+                votes[_secrets.vote[i]]++;
+                total++;
+            }
+        if(total == 0) return (int)random(_secrets.packCount);
+        int best = 0;
+        for(int i = 1; i < _secrets.packCount; i++)
+            if(votes[i] > votes[best]) best = i;
+        int tie[TRIVIA_MAX_TOPICS], tn = 0;
+        for(int i = 0; i < _secrets.packCount; i++)
+            if(votes[i] == votes[best]) tie[tn++] = i;
+        return tie[(int)random(tn)];
+    }
+
+    void secretsClear() {
+        partyClear(_secrets.pt);
+        _secrets.pack = 0;
+        _secrets.question = 0;
+        _secrets.qSeq = 0;
+        _secrets.stage = 0;
+        _secrets.yesCount = 0;
+        for(int i = 0; i <= HA_MAX_PLAYERS; i++) {
+            _secrets.vote[i] = -1;
+            _secrets.predict[i] = -1;
+            _secrets.answer[i] = -1;
+            _secrets.gained[i] = 0;
+        }
+    }
+
+    void secretsReady(uint8_t pid, bool val) {
+        if(_active != HA_GAME_SECRETS) return;
+        if(_secrets.pt.phase != 0 && _secrets.pt.phase != 4) return;
+        if(_secrets.pt.phase == 4 && val) secretsClear(); // ready from final -> new game
+        _secrets.pt.ready[pid] = val;
+        secretsCheckStart();
+        pushAll();
+    }
+
+    void secretsVote(uint8_t pid, int pack) {
+        if(_active != HA_GAME_SECRETS || _secrets.pt.phase != 0) return;
+        if(pack < 0 || pack >= _secrets.packCount) return;
+        _secrets.vote[pid] = (int8_t)pack;
+        pushAll();
+    }
+
+    void secretsCheckStart() {
+        if(_secrets.packCount == 0) return;
+        Party& pt = _secrets.pt;
+        if(pt.phase == 0 && partyAllReady(pt)) {
+            pt.phase = 1;
+            pt.countdownEnd = millis() + (uint32_t)PARTY_COUNTDOWN * 1000;
+            pt.lastSec = -1;
+        } else if(pt.phase == 1 && !partyAllReady(pt)) {
+            pt.phase = 0;
+        }
+    }
+
+    bool secretsAllPredicted() {
+        int n = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used) continue;
+            n++;
+            if(_secrets.predict[i] < 0) return false;
+        }
+        return n >= 1;
+    }
+
+    bool secretsAllAnswered() {
+        int n = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used) continue;
+            n++;
+            if(_secrets.answer[i] < 0) return false;
+        }
+        return n >= 1;
+    }
+
+    void secretsNextRound(uint32_t now) {
+        Party& pt = _secrets.pt;
+        WordPack& pk = _secrets.packs[_secrets.pack];
+        if(pt.round >= SECRETS_ROUNDS || pk.count == 0) {
+            pt.phase = 4; // final
+            pushAll();
+            return;
+        }
+        pt.round++;
+        _secrets.question = (uint8_t)(_secrets.qSeq % pk.count);
+        _secrets.qSeq++;
+        _secrets.stage = 0; // predict first
+        _secrets.yesCount = 0;
+        for(int i = 0; i <= HA_MAX_PLAYERS; i++) {
+            _secrets.predict[i] = -1;
+            _secrets.answer[i] = -1;
+            _secrets.gained[i] = 0;
+        }
+        pt.deadline = now + (uint32_t)SECRETS_PREDICT_SECS * 1000;
+        pt.phase = 2;
+        pushAll();
+    }
+
+    void secretsToAnswer(uint32_t now) {
+        _secrets.stage = 1; // move to answering
+        _secrets.pt.deadline = now + (uint32_t)SECRETS_ANSWER_SECS * 1000;
+        pushAll();
+    }
+
+    void secretsPredict(uint8_t pid, int n) {
+        if(_active != HA_GAME_SECRETS || _secrets.pt.phase != 2 || _secrets.stage != 0) return;
+        int cap = connectedCount(); // predictions range 0..N (N = joined players)
+        if(n < 0) n = 0;
+        if(n > cap) n = cap;
+        _secrets.predict[pid] = (int8_t)n;
+        if(secretsAllPredicted()) secretsToAnswer(millis());
+        else pushAll();
+    }
+
+    void secretsReply(uint8_t pid, int v) {
+        if(_active != HA_GAME_SECRETS || _secrets.pt.phase != 2 || _secrets.stage != 1) return;
+        if(v != 0 && v != 1) return;
+        _secrets.answer[pid] = (int8_t)v;
+        if(secretsAllAnswered()) secretsReveal(millis());
+        else pushAll();
+    }
+
+    // Score per player: an exact prediction of the group yes-count earns 3, off by one
+    // earns 1, otherwise 0. A player who never predicted (predict < 0) scores nothing.
+    void secretsReveal(uint32_t now) {
+        int yes = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+            if(_p[i].used && _secrets.answer[i] == 1) yes++;
+        _secrets.yesCount = yes;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used) continue;
+            int pred = _secrets.predict[i];
+            int pts = 0;
+            if(pred >= 0) {
+                int d = pred - yes;
+                if(d < 0) d = -d;
+                if(d == 0) pts = 3;
+                else if(d == 1) pts = 1;
+            }
+            _secrets.gained[i] = pts;
+            if(pts) {
+                _p[i].score += pts;
+                haUartScore(i, pts, "secrets");
+            }
+        }
+        haUartRoundResult(String("{\"secrets\":\"round ") + _secrets.pt.round + "\"}");
+        _secrets.pt.phase = 3;
+        _secrets.pt.revealUntil = now + SECRETS_REVEAL_MS;
+        pushAll();
+    }
+
+    void secretsAgain(uint8_t pid) {
+        (void)pid;
+        if(_active != HA_GAME_SECRETS || _secrets.pt.phase != 4) return;
+        secretsClear();
+        pushAll();
+    }
+
+    void secretsTick(uint32_t now) {
+        Party& pt = _secrets.pt;
+        if(pt.phase == 1) {
+            if(partyCountdownDone(pt, now)) {
+                pt.round = 0;
+                _secrets.pack = (uint8_t)secretsWinningPack();
+                _secrets.qSeq = 0;
+                secretsNextRound(now);
+            }
+        } else if(pt.phase == 2) {
+            if(_secrets.stage == 0) {
+                // Predict window expired: move to answering anyway so a silent player
+                // can't stall the round (missing predictions just score nothing).
+                if((int32_t)(now - pt.deadline) >= 0 || secretsAllPredicted())
+                    secretsToAnswer(now);
+            } else {
+                if((int32_t)(now - pt.deadline) >= 0 || secretsAllAnswered())
+                    secretsReveal(now);
+            }
+        } else if(pt.phase == 3) {
+            if((int32_t)(now - pt.revealUntil) >= 0) secretsNextRound(now);
+        }
+    }
+
+    // Anonymity is enforced here: the group yes-count is exposed only on reveal, and a
+    // player's own prediction/answer/points reach only that player. No other player's
+    // individual prediction or answer is ever serialized, in any phase — only aggregate
+    // progress counts and the shared score list leave this method.
+    String secretsJson(uint8_t pid) {
+        Party& pt = _secrets.pt;
+        if(pt.phase == 0) {
+            String s = String("{\"t\":\"secrets\",\"phase\":\"lobby\",\"you\":") + pid +
+                       ",\"players\":" + partyPlayersJson(pt);
+            s += ",\"packs\":[";
+            int votes[TRIVIA_MAX_TOPICS] = {0};
+            for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+                if(_p[i].used && _secrets.vote[i] >= 0 && _secrets.vote[i] < _secrets.packCount)
+                    votes[_secrets.vote[i]]++;
+            for(int i = 0; i < _secrets.packCount; i++) {
+                if(i) s += ",";
+                s += "{\"name\":\"" + ha_json_escape(_secrets.packs[i].name.c_str()) +
+                     "\",\"votes\":" + votes[i] + "}";
+            }
+            s += "],\"myvote\":" + String((int)_secrets.vote[pid]) + "}";
+            return s;
+        }
+        if(pt.phase == 1)
+            return String("{\"t\":\"secrets\",\"phase\":\"countdown\",\"sec\":") +
+                   partyCountdownSec(pt) + "}";
+        if(pt.phase == 4)
+            return String("{\"t\":\"secrets\",\"phase\":\"final\",\"board\":") + triviaBoard() +
+                   "}";
+
+        WordPack& pk = _secrets.packs[_secrets.pack];
+        const char* q = pk.words[_secrets.question].c_str();
+        int total = connectedCount(); // number of players (also the predict upper bound)
+        bool reveal = (pt.phase == 3);
+        const char* phase = reveal ? "reveal" : (_secrets.stage == 0 ? "predict" : "answer");
+        // Aggregate progress only: how many have locked in the current step. This never
+        // exposes an individual's prediction or answer.
+        int locked = 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+            if(!_p[i].used) continue;
+            if(reveal || _secrets.stage == 1) {
+                if(_secrets.answer[i] >= 0) locked++;
+            } else if(_secrets.predict[i] >= 0)
+                locked++;
+        }
+
+        String s = String("{\"t\":\"secrets\",\"phase\":\"") + phase + "\",\"round\":" +
+                   pt.round + ",\"rounds\":" + SECRETS_ROUNDS + ",\"n\":" + total +
+                   ",\"q\":\"" + ha_json_escape(q) + "\",\"locked\":" + locked +
+                   ",\"total\":" + total;
+        // Your own prediction/answer are yours to see; nobody else's.
+        s += ",\"myprediction\":";
+        s += (int)_secrets.predict[pid];
+        s += ",\"myanswer\":";
+        s += (int)_secrets.answer[pid];
+        if(reveal) {
+            // Only the group total is revealed, never who answered what.
+            s += ",\"yes\":";
+            s += _secrets.yesCount;
+            s += ",\"mygain\":";
+            s += _secrets.gained[pid];
+            s += ",\"deadline\":";
+            s += pt.revealUntil;
+            s += ",\"dur\":";
+            s += (SECRETS_REVEAL_MS / 1000);
+        } else {
+            s += ",\"deadline\":";
+            s += pt.deadline;
+            s += ",\"dur\":";
+            s += (_secrets.stage == 0 ? SECRETS_PREDICT_SECS : SECRETS_ANSWER_SECS);
         }
         s += ",\"scores\":" + playersJson() + "}";
         return s;

@@ -19,7 +19,7 @@ the rounds. The ESP32 board is the **referee**: it runs the WiFi access point, s
 the game to phones, and keeps the real-time game state. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-Fifteen games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
+Sixteen games, all phone-driven. Pick your emoji avatar on the way in and fire off emoji
 reactions that float up on everyone's screen mid-game.
 
 **Whole-group** (scale to everyone in the room, ready-up lobby, shared live leaderboard):
@@ -46,6 +46,10 @@ reactions that float up on everyone's screen mid-game.
   from the pack) Kiss, Marry, and Kill; everyone else predicts the chooser's assignment.
   Points for matching positions, and the chooser scores by how well the group reads them.
   Six rounds. People are the kmk packs on the SD card.
+- **Secrets** — each round shows a yes/no question. Everyone first secretly predicts how
+  many of the group will answer "yes", then secretly answers. Only the total yes-count is
+  ever revealed, never who answered what — an exact prediction scores 3, off by one scores
+  1. Six rounds. Questions are the secrets packs on the SD card, votable in the lobby.
 
 **1v1 duels** (challenge a player, many matches at once, rematch button, wins score on
 the Flipper leaderboard):
