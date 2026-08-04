@@ -500,6 +500,7 @@
     <div id="sec-bar" class="timebar hide"><i></i></div>
     <div id="sec-q" class="sec-q"></div>
     <div id="sec-predict" class="hide sec-predict">
+      <div id="sec-predict-label" class="sec-predict-label"></div>
       <div class="sec-stepper">
         <button id="sec-minus" class="sec-step" type="button" aria-label="Fewer">−</button>
         <span id="sec-num" class="sec-num">0</span>
@@ -512,9 +513,11 @@
       <button id="sec-no" class="sec-ans no" type="button" data-i18n="secrets.no">No</button>
     </div>
     <div id="sec-reveal" class="hide sec-reveal">
-      <div id="sec-yescount" class="sec-yescount"></div>
-      <div id="sec-scale" class="sec-scale"></div>
-      <ul id="sec-scorers" class="sec-scorers"></ul>
+      <div class="sec-hero">
+        <div id="sec-yesnum" class="sec-yesnum">0</div>
+        <div class="sec-yescap" data-i18n="secrets.said_yes">said yes</div>
+      </div>
+      <ul id="sec-buckets" class="sec-buckets"></ul>
     </div>
     <div id="sec-result" class="sec-result"></div>
     <div id="sec-note" class="sec-note"></div>

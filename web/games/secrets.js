@@ -43,12 +43,13 @@
     if (locked) predVal = m.myprediction;
     if (predVal > predMax) predVal = predMax;
     setNum();
+    // Prominent prompt above the stepper (past tense: answers came first this round).
+    $("sec-predict-label").textContent = t("secrets.predict_hint", { n: m.n });
     $("sec-minus").disabled = locked;
     $("sec-plus").disabled = locked;
     $("sec-predict-go").disabled = locked;
     $("sec-predict-go").classList.toggle("hide", locked);
-    $("sec-note").textContent = locked ? t("secrets.predict_locked", { n: m.myprediction })
-                                       : t("secrets.predict_hint", { total: m.n });
+    $("sec-note").textContent = locked ? t("secrets.predict_locked", { n: m.myprediction }) : "";
   }
 
   function renderAnswer(m) {
@@ -64,35 +65,35 @@
   var revealedFor = -1;
   function renderReveal(m) {
     hide("sec-predict"); hide("sec-answer"); show("sec-reveal");
-    $("sec-yescount").textContent = t("secrets.yes_of", { yes: m.yes, total: m.n });
-    // Scale 0..N with the actual yes-count highlighted in orange.
-    var scale = $("sec-scale");
-    scale.innerHTML = "";
-    for (var i = 0; i <= m.n; i++) {
-      var cell = document.createElement("div");
-      cell.className = "sec-cell" + (i === m.yes ? " hit" : "");
-      cell.textContent = i;
-      scale.appendChild(cell);
-    }
-    // Scorers: whoever's prediction landed (exact +3, off by one +1), best first.
-    var scorers = (m.guesses || []).filter(function (g) { return g.pts > 0; })
-      .sort(function (a, b) { return b.pts - a.pts; });
-    var ul = $("sec-scorers");
+    // Hero: the yes-count as a big number with a small caption beneath it.
+    $("sec-yesnum").textContent = m.yes;
+    // Bucket every player's prediction by the number they guessed.
+    var buckets = {};
+    (m.guesses || []).forEach(function (g) { (buckets[g.n] = buckets[g.n] || []).push(g); });
+    // One row per possible count 0..N (a proper axis, empty rows included); the row whose
+    // number equals the actual yes-count is highlighted, and each row carries the names of
+    // whoever guessed it (with their points).
+    var ul = $("sec-buckets");
     ul.innerHTML = "";
-    if (!scorers.length) {
-      var none = document.createElement("li");
-      none.className = "sec-none";
-      none.textContent = t("secrets.nobody_right");
-      ul.appendChild(none);
-    } else scorers.forEach(function (g) {
+    for (var i = 0; i <= m.n; i++) {
       var li = document.createElement("li");
-      li.className = "sec-scorer" + (g.pts >= 3 ? " exact" : "");
-      // Nicknames are player-typed, so build this row with text nodes (esc()).
-      li.innerHTML = '<span class="pn">' + esc(g.nick) + "</span>" +
-        '<span class="pg">' + t("secrets.guessed", { n: g.n }) + "</span>" +
-        '<span class="ps">+' + g.pts + "</span>";
+      li.className = "sec-bucket" + (i === m.yes ? " hit" : "");
+      var num = document.createElement("span");
+      num.className = "sec-bnum";
+      num.textContent = i;
+      var names = document.createElement("span");
+      names.className = "sec-bnames";
+      (buckets[i] || []).forEach(function (g) {
+        var chip = document.createElement("span");
+        chip.className = "sec-bname";
+        // Nicknames are player-typed, so use a text node (not innerHTML).
+        chip.textContent = g.nick + (g.pts > 0 ? " +" + g.pts : "");
+        names.appendChild(chip);
+      });
+      li.appendChild(num);
+      li.appendChild(names);
       ul.appendChild(li);
-    });
+    }
     var gain = (typeof m.mygain === "number") ? m.mygain : 0;
     $("sec-result").textContent = gain >= 3 ? t("secrets.result_exact", { gain: gain })
       : gain > 0 ? t("secrets.result_close", { gain: gain })
