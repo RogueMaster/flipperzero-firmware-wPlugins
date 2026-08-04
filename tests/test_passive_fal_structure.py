@@ -12,6 +12,10 @@ playback = (root / "src/firmware/plugins/passive_listening/mf_passive_plugin.c")
 settings = (
     root / "src/firmware/plugins/passive_listening/mf_passive_settings_plugin.c"
 ).read_text()
+fam = (root / "application.fam").read_text()
+rf_audio = (
+    root / "src/firmware/plugins/passive_listening/mf_passive_rf_audio.c"
+).read_text()
 
 assert "MF_PASSIVE_API_VERSION        9U" in api
 assert playback.count(".api_version = MF_PASSIVE_API_VERSION") == 1
@@ -41,5 +45,23 @@ api_tail = api.split("} MfPassiveApi;", 1)[0].rsplit("typedef struct {", 1)[1]
 assert api_tail.count("(*") == 2
 assert "MfPassiveEnterArgs" in api_tail
 assert "MfPassiveResult" in api_tail
+
+rf_source = '"src/firmware/plugins/passive_listening/mf_passive_rf_audio.c"'
+assert fam.count(rf_source) == 1
+playback_fal = fam.split('appid="morse_flipper_passive_listening"', 1)[1].split(
+    'appid="morse_flipper_settings"', 1
+)[0]
+settings_fal = fam.split('appid="morse_flipper_passive_settings"', 1)[1]
+resident_fap = fam.split('appid="morse_flipper"', 1)[1].split(
+    'appid="morse_flipper_radio"', 1
+)[0]
+assert rf_source in playback_fal
+assert rf_source not in settings_fal
+assert rf_source not in resident_fap
+assert "static MfPassiveRfAudio" not in rf_audio
+assert "static const MfPassiveRfHardwareOps" in rf_audio
+assert "static const uint8_t mf_passive_rf_preset[]" in rf_audio
+assert "433160000" not in rf_audio
+assert "Spike" not in rf_audio and "spike" not in rf_audio
 
 print("passive FAL structure: ok")
