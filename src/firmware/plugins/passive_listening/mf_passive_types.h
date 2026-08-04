@@ -30,6 +30,7 @@ typedef struct {
     uint8_t repeat_after_answer;
     uint8_t courtesy_delay_half_s;
     uint8_t selected_row;
+    uint8_t transmit_fm;
 } MfPassiveSettingsModel;
 
 typedef struct {
@@ -85,6 +86,7 @@ static inline bool mf_passive_host_command(
 typedef struct {
     uint32_t now_ms;
     uint32_t rng_seed;
+    uint32_t frequency_hz;
     uint16_t tone_hz;
     uint8_t output_target;
     uint8_t volume_pct;

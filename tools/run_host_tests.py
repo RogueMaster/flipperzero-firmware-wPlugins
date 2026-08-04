@@ -78,6 +78,7 @@ PYTHON_TESTS = (
     "tests/test_default_wpm_policy.py",
     "tests/test_fap_bundle_check.py",
     "tests/test_passive_config_compat.py",
+    "tests/test_passive_fal_structure.py",
     "tests/test_passive_voice_pack_tool.py",
     "tests/test_scene_handlers.py",
     "tests/test_rx_practice_lock_graph.py",

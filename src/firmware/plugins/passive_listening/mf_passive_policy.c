@@ -10,8 +10,10 @@
 #define MF_PASSIVE_SETTINGS_PATH      APP_DATA_PATH("passive.bin")
 #define MF_PASSIVE_SETTINGS_TEMP_PATH APP_DATA_PATH("passive.tmp")
 #endif
-#define MF_PASSIVE_SETTINGS_MAGIC   0x4D465053UL
-#define MF_PASSIVE_SETTINGS_VERSION 2U
+#define MF_PASSIVE_SETTINGS_MAGIC    0x4D465053UL
+#define MF_PASSIVE_SETTINGS_VERSION  2U
+#define MF_PASSIVE_SELECTED_ROW_MASK 0x7FU
+#define MF_PASSIVE_TRANSMIT_FM_FLAG  0x80U
 
 typedef struct {
     uint32_t magic;
@@ -116,7 +118,8 @@ void mf_passive_settings_normalize(MfPassiveSettingsModel* model) {
     if(model->answer_delay_s > 5U) model->answer_delay_s = 5U;
     model->repeat_after_answer = model->repeat_after_answer ? 1U : 0U;
     if(model->courtesy_delay_half_s > 10U) model->courtesy_delay_half_s = 2U;
-    if(model->selected_row > 8U) model->selected_row = 0U;
+    if(model->selected_row > 9U) model->selected_row = 0U;
+    model->transmit_fm = model->transmit_fm ? 1U : 0U;
 }
 
 const char* mf_passive_settings_lesson_charset(void) {
@@ -178,7 +181,8 @@ void mf_passive_settings_load(MfPassiveSettingsModel* model) {
         model->vibrate = record.vibrate;
         model->answer_delay_s = record.answer_delay_s;
         model->repeat_after_answer = record.repeat_after_answer;
-        model->selected_row = record.selected_row;
+        model->selected_row = record.selected_row & MF_PASSIVE_SELECTED_ROW_MASK;
+        model->transmit_fm = (record.selected_row & MF_PASSIVE_TRANSMIT_FM_FLAG) != 0U;
         model->courtesy_delay_half_s = record.version >= 2U ? record.courtesy_delay_half_s : 2U;
     }
     storage_file_free(file);
@@ -211,7 +215,8 @@ bool mf_passive_settings_save(const MfPassiveSettingsModel* model) {
         .vibrate = normalized.vibrate,
         .answer_delay_s = normalized.answer_delay_s,
         .repeat_after_answer = normalized.repeat_after_answer,
-        .selected_row = normalized.selected_row,
+        .selected_row = normalized.selected_row |
+                        (normalized.transmit_fm ? MF_PASSIVE_TRANSMIT_FM_FLAG : 0U),
         .courtesy_delay_half_s = normalized.courtesy_delay_half_s,
     };
     storage = furi_record_open(RECORD_STORAGE);
