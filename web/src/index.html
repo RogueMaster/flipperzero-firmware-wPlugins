@@ -219,6 +219,16 @@
   <div id="wyr-final" class="hide">
     <header class="bar"><h2 data-i18n="wyr.wrap">That's a wrap</h2></header>
     <div class="game-state" data-i18n="wyr.wrap_body">Thanks for playing. Ready up for another round.</div>
+    <!-- Agreement chart: one bar per reachable agreement percentage, a line at the
+         mean, and a one-line verdict. Filled in by wyr.js from the final payload. -->
+    <div id="wyr-chart" class="wyr-chart hide">
+      <div class="wyr-chart-hd" data-i18n="wyr.chart_title">How much you agreed</div>
+      <div class="wyr-plot">
+        <div id="wyr-buckets" class="wyr-buckets"></div>
+        <div id="wyr-mean" class="wyr-mean hide"><span id="wyr-mean-val" class="wyr-mean-val"></span></div>
+      </div>
+      <div id="wyr-verdict" class="wyr-verdict"></div>
+    </div>
     <button id="wyr-again" class="btn big" data-i18n="common.play_again">Play again</button>
   </div>
 </section>

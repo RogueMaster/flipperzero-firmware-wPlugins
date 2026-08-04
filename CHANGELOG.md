@@ -4,6 +4,22 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Would You Rather: an agreement chart on the final screen.** The game used to end with
+  nothing to talk about; now it closes with a distribution of how strongly the group
+  agreed. Agreement per round is the majority share (`max(a,b)/(a+b)`), so a 1/9 split
+  reads as 90% just like 9/1 and the value never drops below 50%. The horizontal axis is
+  the set of percentages actually reachable with the current number of voters
+  (`ceil(n/2)/n … n/n` — 50/60/70/80/90/100 for ten players), each bar counts the rounds
+  that landed there, and a dashed line marks the mean with its value, e.g. "You align on
+  average by 62% — lots to talk about!". Rounds nobody voted in are skipped rather than
+  counted as unanimous. The ESP is the source of truth: `wyrJson()`'s `"final"` phase now
+  carries `voters` and a `rounds` array of `{a,b}` splits, because a phone that joined
+  late never saw the earlier rounds. Firmware **v18**.
+
 ## [1.6.0] - 2026-08-03
 
 Chess joins as the fifteenth game. Firmware **v17**.

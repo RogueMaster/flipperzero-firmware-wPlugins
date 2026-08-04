@@ -254,7 +254,15 @@ Durations are sent in **seconds**; deadlines in ms (server `millis`).
 
 - **Would You Rather** (`t:"wyr"`): `"vote"`/`"reveal"` carry `round`, `rounds`,
   `a`, `b` (the two options), `myvote` (0/1/-1), `counts` ([a,b]). Vote with the
-  existing `answer{c:0|1}` intent. No scoring — it's a poll.
+  existing `answer{c:0|1}` intent. No scoring — it's a poll. Its `"final"` adds
+  `voters` (players connected now) and `rounds` — here an **array** of the whole
+  game's splits, `[{a,b}, …]`, one entry per round played, latched by the ESP at
+  each reveal. (`rounds` is a count in the play phases and this array in `"final"`.)
+  A round nobody voted in is sent as `{"a":0,"b":0}`. The client draws the
+  agreement chart from it: per-round agreement is the majority share
+  `max(a,b)/(a+b)`, bucketed onto the percentages reachable with `voters` players
+  (`ceil(n/2)/n … n/n`), plus the mean. The history has to come from the ESP —
+  a phone that joined late never received the earlier rounds. Firmware **v18**.
 - **Word Scramble** (`t:"scramble"`): `"play"` carries `round`, `rounds`, `scram`
   (shuffled letters), `len`, `solved` (bool, you), `deadline`, `dur`, `scores`.
   Guess with the existing `guess{text}` intent; first correct scores most
