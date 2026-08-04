@@ -107,18 +107,29 @@ typedef struct {
 typedef enum {
     MfPassivePhaseLoading = 0,
     MfPassivePhasePrepare,
+    MfPassivePhaseInitialRfLock,
     MfPassivePhaseCw,
     MfPassivePhasePostCw,
     MfPassivePhaseVoicePrime,
+    MfPassivePhaseVoiceRfLock,
     MfPassivePhaseVoice,
     MfPassivePhaseBetweenTokens,
     MfPassivePhasePostVoice,
+    MfPassivePhaseRepeatRfLock,
+    MfPassivePhaseCueRfLock,
+    MfPassivePhaseNextRfLock,
     MfPassivePhaseCue,
     MfPassivePhasePostCue,
     MfPassivePhaseRepeatCw,
     MfPassivePhaseError,
     MfPassivePhasePostRepeat,
 } MfPassivePhase;
+
+typedef enum {
+    MfPassiveErrorNone = 0,
+    MfPassiveErrorAudio,
+    MfPassiveErrorFmUnavailable,
+} MfPassiveError;
 
 typedef struct {
     bool handled;

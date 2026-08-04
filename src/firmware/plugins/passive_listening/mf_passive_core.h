@@ -3,6 +3,7 @@
 #include "mf_passive_types.h"
 #include "mf_passive_loading.h"
 #include "mf_passive_policy.h"
+#include "mf_passive_rf_audio.h"
 #include "mf_passive_voice_pack.h"
 
 typedef struct {
@@ -12,9 +13,11 @@ typedef struct {
     char prompt[MF_CALLSIGN_MAX_LEN + 1U];
     MfPassivePcmPipe pipe;
     MfPassiveVoicePack pack;
+    MfPassiveRfAudio rf_audio;
     const MfPassiveHostServices* services;
     uint32_t next_at;
     uint32_t last_back_at;
+    uint32_t frequency_hz;
     uint16_t dit_ms;
     uint16_t char_gap_ms;
     uint16_t tone_hz;
@@ -40,6 +43,7 @@ typedef struct {
     char lesson_charset[MF_PASSIVE_LESSON_CHARSET_CAP];
     bool cw_mark;
     bool audio_claimed;
+    bool transmit_fm;
     MfPassiveLoading loading;
     MfPassiveSettingsModel settings_model;
 } MfPassiveState;
