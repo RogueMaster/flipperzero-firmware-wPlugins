@@ -1,3 +1,75 @@
+v6.10.2 (Stable):
+- Enemy movement slowed dramatically: random interval 80-180 frames
+  (~1.3-3 seconds per move), 12-frame smooth interpolation transition
+  (eliminates teleport-flicker). Overall speed reduced by 50%+.
+- Enemy HP fixed at 3, bullet/melee damage = 1. Strictly 3 hits to kill.
+  Fixed the "enemies cannot be killed" bug from earlier builds.
+  Collision radius increased to 0.5 cell for forgiving hit detection.
+- Near-death persistent flashing: when enemy HP = 1, hurt_flash stays
+  enabled (never decrements) so the body keeps blinking until death.
+  Eyes hidden while hurt for clearer feedback.
+- Wall occlusion: multi-column depth-buffer check across the enemy's
+  width — any visible column renders it. Non-developer mode: enemies
+  behind walls are completely hidden. Developer mode: full vision.
+- MC jump anti-crash: MC mode jump height capped at 3px (was 4px),
+  removed the mc_hop wall-bypass logic (jump is now purely visual),
+  strict collision detection prevents "hold forward into wall" freezes
+  that previously caused device reboots.
+
+v6.10.1-beta:
+- Enemy movement slowed + randomized (interval 40-90 -> 80-180 frames).
+- Wall occlusion: depth-buffer check hides enemies behind walls in
+  non-dev mode (single-column check).
+- MC jump height reduced (4px -> 3px), removed wall-bypass logic.
+- Enemy HP normalized to 3, bullet damage = 1 (3 shots to kill).
+
+v6.10.0-beta:
+- Enemy AI: smooth interpolated movement + line-of-sight ranged shots
+  + auto-approach when player is not visible.
+- Pistol auto-lock: bullets bias toward the nearest enemy in the view
+  cone (70% original + 30% target direction, max 30 degrees).
+- Ammo auto-regen: timer-based ammunition replenishment in combat levels.
+- Score system + shop: +10 points per kill, spendable in shop.
+- Pure-maze levels (1-10) cleared instantly when first key is picked up.
+- Story expansion: additional chapters and branching choices.
+
+v6.9.1-beta:
+- Settings menu fully translated to Chinese.
+- List selection permanently centered (scrolling list UI).
+- MC mode: jump on top of blocks (stand on placed blocks).
+
+v6.9.0-beta:
+- Developer mode with 20+ runtime settings (turn sensitivity, move
+  speed, jump height, brightness, fog, sky/ceiling, floor texture,
+  SFX volume, maze scale, HP start, regen rate, ammo multiplier,
+  endless start floor, MC size, MC day length, MC jump, etc.).
+- List selection permanently centered.
+- Render/audio/MC all configurable.
+
+v6.8.0-beta:
+- Control overhaul: short tap = precise small step, hold = accelerating
+  movement (the longer you hold, the faster it goes).
+- MC jump (parabolic arc, 28 frames, peak 9px, landing dust).
+- Triple long-press Back to exit (anti-mistouch beta protection).
+- Texture table expanded to 24 slots (12 reserved for future blocks).
+
+v6.7-beta:
+- Jump mechanic introduced (parabolic arc).
+- Tweaked rendering for performance.
+
+v6.6:
+- Fixed maze dead-end bugs; BFS connectivity verification.
+- World pre-generation cache: full maze snapshots saved to App Data
+  for instant loading.
+
+v6.5:
+- Health system rebuild: base 10 HP (+2 per 5 levels, max 20),
+  2-second invincibility after hit, +1 HP/sec regen.
+
+v6.4:
+- Exit bug fix.
+- MC mode: flat terrain, day/night cycle, inventory, HP bar.
+
 v6.3:
 - MC 材质包大升级 (仿 Minecraft):
   * 新增 3 种方块: 土方块(WALL_DIRT)、沙子(WALL_SAND, 真正的沙)、原木(WALL_LOG)
