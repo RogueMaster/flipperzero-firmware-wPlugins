@@ -106,6 +106,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Hotspot Arcade firmwares.
 - Added: [NFC Canary v0.2 (By antitree)](https://github.com/antitree/nfc_canary)
 - Reverted: [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
+- OFW: PR: [Fix HID limits to support international keyboards and add JP keyboard layout #4361 (By d3npa)](https://github.com/flipperdevices/flipperzero-firmware/pull/4361)
 
 <a name="release"></a>
 
