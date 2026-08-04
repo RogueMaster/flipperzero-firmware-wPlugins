@@ -61,15 +61,6 @@ typedef struct {
 } MorseFlipperProgressHistoryCursor;
 
 typedef struct {
-    uint16_t practice_day;
-    uint16_t line_from_end;
-    uint16_t newest_day;
-    bool day_loaded;
-    bool initialized;
-    bool exhausted;
-} MorseFlipperProgressHistoryNewerCursor;
-
-typedef struct {
     char lesson;
     uint16_t practice_day;
     uint16_t line_from_end;
@@ -78,22 +69,6 @@ typedef struct {
     uint8_t lesson_idx;
     uint8_t percent;
 } MorseFlipperProgressHistoryRow;
-
-typedef enum {
-    MorseFlipperProgressHistoryBoundary = 0,
-    MorseFlipperProgressHistoryMoved,
-    MorseFlipperProgressHistoryPending,
-} MorseFlipperProgressHistoryMove;
-
-typedef struct {
-    MorseFlipperProgressHistoryCursor older;
-    MorseFlipperProgressHistoryNewerCursor newer;
-    MorseFlipperProgressHistoryRow rows[MORSE_FLIPPER_PROGRESS_HISTORY_CACHE_ROWS];
-    uint8_t row_count;
-    uint8_t row_offset;
-    uint8_t row_cursor;
-    int8_t pending_dir;
-} MorseFlipperProgressHistoryView;
 
 void morse_flipper_progress_reset(MorseFlipperProgress* progress);
 bool morse_flipper_progress_valid(const MorseFlipperProgress* progress);
@@ -107,10 +82,6 @@ void morse_flipper_progress_note_standard_attempt(
     uint8_t percent,
     uint8_t session_groups);
 void morse_flipper_progress_note_custom_attempt(
-    MorseFlipperProgress* progress,
-    bool date_valid,
-    uint16_t practice_day);
-void morse_flipper_progress_note_rx_activity(
     MorseFlipperProgress* progress,
     bool date_valid,
     uint16_t practice_day);
@@ -140,9 +111,6 @@ bool morse_flipper_progress_date_to_day(
     uint8_t month,
     uint8_t day,
     uint16_t* out_day);
-#ifdef MORSE_FLIPPER_FAP
-bool morse_flipper_progress_today(uint16_t* out_day);
-#endif
 bool morse_flipper_progress_day_to_date(
     uint16_t practice_day,
     uint16_t* out_year,
@@ -154,7 +122,7 @@ bool morse_flipper_progress_history_row_date(
     uint16_t* out_year,
     uint8_t* out_month,
     uint8_t* out_day);
-uint16_t morse_flipper_progress_history_date_label(
+void morse_flipper_progress_history_date_label(
     const MorseFlipperProgressHistoryRow* row,
     uint16_t reference_year,
     uint8_t reference_month,
@@ -178,26 +146,11 @@ bool morse_flipper_progress_append_history(
 void morse_flipper_progress_history_reset(
     MorseFlipperProgressHistoryCursor* cursor,
     uint16_t practice_day);
-void morse_flipper_progress_history_newer_reset(
-    MorseFlipperProgressHistoryNewerCursor* cursor,
-    const MorseFlipperProgressHistoryRow* from,
-    uint16_t newest_day);
 uint8_t morse_flipper_progress_history_load_more(
     MorseFlipperProgressHistoryCursor* cursor,
     MorseFlipperProgressHistoryRow* rows,
     uint8_t row_cap);
 bool morse_flipper_progress_history_load_newer(
-    MorseFlipperProgressHistoryNewerCursor* cursor,
+    const MorseFlipperProgressHistoryRow* from,
+    uint16_t newest_day,
     MorseFlipperProgressHistoryRow* out);
-void morse_flipper_progress_history_view_reset(
-    MorseFlipperProgressHistoryView* view,
-    uint16_t newest_day);
-void morse_flipper_progress_history_view_cancel(MorseFlipperProgressHistoryView* view);
-uint8_t
-    morse_flipper_progress_history_view_visible_rows(const MorseFlipperProgressHistoryView* view);
-MorseFlipperProgressHistoryMove
-    morse_flipper_progress_history_view_scroll(MorseFlipperProgressHistoryView* view, int8_t dir);
-MorseFlipperProgressHistoryMove
-    morse_flipper_progress_history_view_continue(MorseFlipperProgressHistoryView* view);
-const MorseFlipperProgressHistoryRow*
-    morse_flipper_progress_history_view_focused(const MorseFlipperProgressHistoryView* view);

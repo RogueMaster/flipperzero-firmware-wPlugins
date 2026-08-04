@@ -105,7 +105,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Hotspot Arcade v1.6 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32` [Hotspot Arcade flasher, add support for autoboot, fix freeze on exit (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/5d6a16c77c2a17c4aca3cb9f9ab4ab511f1d4f64) Guess the Color & Battleship were added (By tarikbc) Many more games and updates added (See Changelog)
 - [Patreon Update!:](https://www.patreon.com/RogueMaster) SD Card Assets Updated to include latest Hotspot Arcade firmwares.
 - Added: [NFC Canary v0.2 (By antitree)](https://github.com/antitree/nfc_canary)
-- Updated: [Morse Flipper v0.2.9 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
+- Reverted: [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 
 <a name="release"></a>
 
@@ -703,7 +703,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Moisture Sensor v1.0 (By smallwat3r)](https://github.com/smallwat3r/flipperzero-moisture-sensor)
 - [Moon Phases v1.0 (By w84death)](https://github.com/w84death/flipper-zero-apps)
 - [Morse Code v1.3 (By wh00hw)](https://github.com/wh00hw/MorseCodeFAP)
-- [Morse Flipper v0.2.9 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
+- [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - [Mouse Jacker for MS Mouse v1.2 (Remixed By coded-with-claws)](https://github.com/coded-with-claws/flipperzero-tools/tree/main/applications_user/mousejacker_ms) `Req: NRF24`
 - [Mouse Jacker v1.2 (By mothball187)](https://github.com/mothball187/flipperzero-nrf24/tree/main/mousejacker) [Pin Out from nocomp/Frog/UberGuidoZ](https://github.com/RogueMaster/flipperzero-firmware-wPlugins/tree/420/applications/mousejacker) `Req: NRF24`
 - [Mouse Jiggler v1.2 (By Jacob-Tate & ozgunawesome)](https://github.com/Jacob-Tate/flipperzero-firmware/blob/dev/applications/mouse_jiggler/mouse_jiggler.c)

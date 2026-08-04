@@ -6,7 +6,6 @@
  */
 
 #include "keyer.h"
-#include "morse_flipper_time.h"
 
 #include <string.h>
 
@@ -456,8 +455,7 @@ void morse_keyer_paddle_event(MorseKeyer* keyer, uint8_t paddle, bool pressed, u
 }
 
 void morse_keyer_tick(MorseKeyer* keyer, uint32_t now_ms) {
-    if(keyer == NULL || !keyer->pulse_active ||
-       !morse_flipper_time_reached(now_ms, keyer->next_pulse_at)) {
+    if(keyer == NULL || !keyer->pulse_active || now_ms < keyer->next_pulse_at) {
         return;
     }
 

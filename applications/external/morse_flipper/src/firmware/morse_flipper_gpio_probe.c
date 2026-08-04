@@ -43,14 +43,13 @@ bool morse_flipper_gpio_probe_blocks(uint8_t state) {
 bool morse_flipper_gpio_probe_screen(const MorseFlipperApp* app) {
     if(app == NULL) return false;
     return app->screen == MorseFlipperScreenSession || app->screen == MorseFlipperScreenStraight ||
-           app->screen == MorseFlipperScreenTxGroups ||
-           app->screen == MorseFlipperScreenRxPractice;
+           app->screen == MorseFlipperScreenTxGroups;
 }
 
 bool morse_flipper_gpio_probe_keep_state(uint8_t screen) {
     return screen == MorseFlipperScreenSession || screen == MorseFlipperScreenStraight ||
            screen == MorseFlipperScreenTxGroups || screen == MorseFlipperScreenTxGroupsResult ||
-           screen == MorseFlipperScreenTxGroupsFinal || screen == MorseFlipperScreenRxPractice;
+           screen == MorseFlipperScreenTxGroupsFinal;
 }
 
 static bool morse_flipper_gpio_probe_before_start(const MorseFlipperApp* app) {
@@ -58,12 +57,6 @@ static bool morse_flipper_gpio_probe_before_start(const MorseFlipperApp* app) {
     if(app->screen == MorseFlipperScreenSession) return !app->session_started;
     if(app->screen == MorseFlipperScreenStraight) return !app->straight_started;
     if(app->screen == MorseFlipperScreenTxGroups) return !app->txg_started;
-    if(app->screen == MorseFlipperScreenRxPractice) {
-        MorseFlipperPluginSnapshot snapshot;
-        return morse_flipper_plugin_runtime_snapshot(app, &snapshot) &&
-               snapshot.owner == MorseFlipperPluginOwnerRxPractice && snapshot.active &&
-               snapshot.phase == MfRxPracticePhaseIdle;
-    }
     return false;
 }
 

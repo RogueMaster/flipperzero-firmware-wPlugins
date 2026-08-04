@@ -17,7 +17,7 @@ static uint8_t morse_flipper_trainer_menu_custom_idx(const MorseFlipperApp* app)
     uint8_t idx;
 
     if(app == NULL) return 0U;
-    idx = app->listening_settings.custom_set_idx;
+    idx = app->trainer.custom_set_idx;
     if(idx == 0U || idx > count) return 0U;
     return idx;
 }
@@ -44,11 +44,9 @@ void morse_flipper_trainer_sync_farn_item(MorseFlipperApp* app) {
     wpm = morse_flipper_local_wpm(app);
     if(wpm == 0U) wpm = 1U;
     variable_item_set_values_count(it, wpm);
-    idx = app->listening_settings.farnsworth_wpm > 0U ?
-              (uint8_t)(app->listening_settings.farnsworth_wpm - 1U) :
-              0U;
+    idx = app->trainer_farnsworth_wpm > 0U ? (uint8_t)(app->trainer_farnsworth_wpm - 1U) : 0U;
     variable_item_set_current_value_index(it, idx);
-    snprintf(txt, sizeof(txt), "%u", (unsigned)app->listening_settings.farnsworth_wpm);
+    snprintf(txt, sizeof(txt), "%u", (unsigned)app->trainer_farnsworth_wpm);
     variable_item_set_current_value_text(it, txt);
 }
 
@@ -63,7 +61,7 @@ void morse_flipper_trainer_menu_refresh(MorseFlipperApp* app) {
 
     it = app->trainer_items[MorseFlipperTrainerSettingLesson];
     if(it) {
-        idx = app->listening_settings.lesson;
+        idx = morse_trainer_lesson(&app->trainer);
         idx = idx > 0U ? (uint8_t)(idx - 1U) : 0U;
         morse_trainer_lesson_label((uint8_t)(idx + 1U), txt, sizeof(txt));
         variable_item_set_current_value_index(it, idx);
@@ -82,25 +80,23 @@ void morse_flipper_trainer_menu_refresh(MorseFlipperApp* app) {
 
     it = app->trainer_items[MorseFlipperTrainerSettingAnswerTimeout];
     if(it) {
-        idx = (uint8_t)(app->listening_settings.answer_timeout_s -
-                        MORSE_FLIPPER_TRAINER_TIMEOUT_MIN_S);
+        idx = (uint8_t)(app->trainer_answer_timeout_s - MORSE_FLIPPER_TRAINER_TIMEOUT_MIN_S);
         variable_item_set_current_value_index(it, idx);
-        snprintf(txt, sizeof(txt), "%u", (unsigned)app->listening_settings.answer_timeout_s);
+        snprintf(txt, sizeof(txt), "%u", (unsigned)app->trainer_answer_timeout_s);
         variable_item_set_current_value_text(it, txt);
     }
 
     it = app->trainer_items[MorseFlipperTrainerSettingGroupPause];
     if(it) {
-        idx = (uint8_t)(app->listening_settings.group_pause_s -
-                        MORSE_FLIPPER_TRAINER_GROUP_PAUSE_MIN_S);
+        idx = (uint8_t)(app->trainer_group_pause_s - MORSE_FLIPPER_TRAINER_GROUP_PAUSE_MIN_S);
         variable_item_set_current_value_index(it, idx);
-        snprintf(txt, sizeof(txt), "%u", (unsigned)app->listening_settings.group_pause_s);
+        snprintf(txt, sizeof(txt), "%u", (unsigned)app->trainer_group_pause_s);
         variable_item_set_current_value_text(it, txt);
     }
 
     it = app->trainer_items[MorseFlipperTrainerSettingGroupSize];
     if(it) {
-        idx = (uint8_t)(app->listening_settings.group_size - 1U);
+        idx = (uint8_t)(morse_trainer_group_size(&app->trainer) - 1U);
         variable_item_set_current_value_index(it, idx);
         snprintf(txt, sizeof(txt), "%u", (unsigned)(idx + 1U));
         variable_item_set_current_value_text(it, txt);
@@ -108,7 +104,7 @@ void morse_flipper_trainer_menu_refresh(MorseFlipperApp* app) {
 
     it = app->trainer_items[MorseFlipperTrainerSettingGroups];
     if(it) {
-        idx = (uint8_t)(app->listening_settings.session_groups - 3U);
+        idx = (uint8_t)(morse_trainer_session_groups(&app->trainer) - 3U);
         variable_item_set_current_value_index(it, idx);
         snprintf(txt, sizeof(txt), "%u", (unsigned)(idx + 3U));
         variable_item_set_current_value_text(it, txt);
@@ -128,8 +124,8 @@ void morse_flipper_trainer_lesson_changed(VariableItem* item) {
     uint8_t idx = variable_item_get_current_value_index(item);
     char buf[16];
 
-    app->listening_settings.lesson = (uint8_t)(idx + 1U);
-    morse_trainer_lesson_label(app->listening_settings.lesson, buf, sizeof(buf));
+    morse_trainer_set_lesson(&app->trainer, (uint8_t)(idx + 1U));
+    morse_trainer_lesson_label(morse_trainer_lesson(&app->trainer), buf, sizeof(buf));
     variable_item_set_current_value_text(item, buf);
     morse_flipper_save_config(app);
 }
@@ -148,7 +144,7 @@ void morse_flipper_trainer_farnsworth_changed(VariableItem* item) {
     MorseFlipperApp* app = variable_item_get_context(item);
     uint8_t idx = variable_item_get_current_value_index(item);
 
-    app->listening_settings.farnsworth_wpm = (uint8_t)(idx + 1U);
+    app->trainer_farnsworth_wpm = (uint8_t)(idx + 1U);
     morse_flipper_trainer_menu_refresh(app);
     morse_flipper_save_config(app);
 }
@@ -157,7 +153,7 @@ void morse_flipper_trainer_answer_timeout_changed(VariableItem* item) {
     MorseFlipperApp* app = variable_item_get_context(item);
     uint8_t i = variable_item_get_current_value_index(item);
 
-    app->listening_settings.answer_timeout_s = (uint8_t)(MORSE_FLIPPER_TRAINER_TIMEOUT_MIN_S + i);
+    app->trainer_answer_timeout_s = (uint8_t)(MORSE_FLIPPER_TRAINER_TIMEOUT_MIN_S + i);
     morse_flipper_trainer_menu_refresh(app);
     morse_flipper_save_config(app);
 }
@@ -166,7 +162,7 @@ void morse_flipper_trainer_group_pause_changed(VariableItem* item) {
     MorseFlipperApp* app = variable_item_get_context(item);
     uint8_t i = variable_item_get_current_value_index(item);
 
-    app->listening_settings.group_pause_s = (uint8_t)(MORSE_FLIPPER_TRAINER_GROUP_PAUSE_MIN_S + i);
+    app->trainer_group_pause_s = (uint8_t)(MORSE_FLIPPER_TRAINER_GROUP_PAUSE_MIN_S + i);
     morse_flipper_trainer_menu_refresh(app);
     morse_flipper_save_config(app);
 }
@@ -240,6 +236,10 @@ static void morse_flipper_tx_groups_difficulty_changed(VariableItem* item) {
     if(idx >= MorseFlipperTxgDifficultyCount) idx = MorseFlipperTxgDifficultyCompetition;
     app->txg_difficulty = idx;
     variable_item_set_current_value_text(item, morse_flipper_txg_difficulty_name(idx));
+    morse_flipper_tx_group_set_range(
+        &app->tx_group,
+        morse_flipper_txg_range_low(app->txg_difficulty),
+        morse_flipper_txg_range_high(app->txg_difficulty));
     morse_flipper_save_config(app);
 }
 
@@ -248,8 +248,8 @@ void morse_flipper_trainer_group_size_changed(VariableItem* item) {
     uint8_t idx = variable_item_get_current_value_index(item);
     char txt[4];
 
-    app->listening_settings.group_size = (uint8_t)(idx + 1U);
-    snprintf(txt, sizeof(txt), "%u", (unsigned)app->listening_settings.group_size);
+    morse_trainer_set_group_size(&app->trainer, (uint8_t)(idx + 1U));
+    snprintf(txt, sizeof(txt), "%u", (unsigned)morse_trainer_group_size(&app->trainer));
     variable_item_set_current_value_text(item, txt);
     morse_flipper_save_config(app);
 }
@@ -259,8 +259,8 @@ void morse_flipper_trainer_groups_changed(VariableItem* item) {
     uint8_t idx = variable_item_get_current_value_index(item);
     char tmp[4];
 
-    app->listening_settings.session_groups = (uint8_t)(idx + 3U);
-    snprintf(tmp, sizeof(tmp), "%u", (unsigned)app->listening_settings.session_groups);
+    morse_trainer_set_session_groups(&app->trainer, (uint8_t)(idx + 3U));
+    snprintf(tmp, sizeof(tmp), "%u", (unsigned)morse_trainer_session_groups(&app->trainer));
     variable_item_set_current_value_text(item, tmp);
     morse_flipper_save_config(app);
 }
@@ -270,7 +270,7 @@ void morse_flipper_trainer_chars_changed(VariableItem* item) {
     uint8_t idx = variable_item_get_current_value_index(item);
 
     if(idx > morse_flipper_trainer_menu_custom_count(app)) idx = 0U;
-    app->listening_settings.custom_set_idx = idx;
+    app->trainer.custom_set_idx = idx;
     morse_flipper_apply_trainer_charset_choice(app);
     variable_item_set_current_value_text(item, morse_flipper_trainer_menu_custom_label(app, idx));
     morse_flipper_save_config(app);
@@ -285,17 +285,17 @@ void morse_flipper_scene_trainer_on_enter(void* context) {
     uint8_t custom_count;
     bool dirty = false;
 
-    gs = app->listening_settings.group_size;
-    groups = app->listening_settings.session_groups;
+    gs = morse_trainer_group_size(&app->trainer);
+    groups = morse_trainer_session_groups(&app->trainer);
     if(gs > 9U) {
-        app->listening_settings.group_size = 9U;
+        morse_trainer_set_group_size(&app->trainer, 9U);
         dirty = true;
     }
     if(groups < 3U) {
-        app->listening_settings.session_groups = 3U;
+        morse_trainer_set_session_groups(&app->trainer, 3U);
         dirty = true;
     } else if(groups > 30U) {
-        app->listening_settings.session_groups = 30U;
+        morse_trainer_set_session_groups(&app->trainer, 30U);
         dirty = true;
     }
     if(dirty) morse_flipper_save_config(app);

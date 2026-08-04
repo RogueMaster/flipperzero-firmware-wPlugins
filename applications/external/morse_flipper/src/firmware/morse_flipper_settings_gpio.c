@@ -159,9 +159,7 @@ bool morse_flipper_scene_gpio_on_event(void* context, SceneManagerEvent event) {
                app->gpio_edit_ground_idx,
                app->gpio_edit_ptt_idx,
                &rule)) {
-            MorseFlipperHostDialog dialog = {
-                .header = "GPIO conflict", .text = morse_flipper_gpio_rule_text(rule)};
-            (void)morse_flipper_host_dialog(app, &dialog);
+            morse_flipper_gpio_alert(app, rule);
             return true;
         }
         morse_flipper_scene_back(app);
