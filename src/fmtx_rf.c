@@ -61,7 +61,8 @@ static int16_t rfpop(Rf *rf)
     uint16_t t;
     if(!rf->prime)
     {
-        if(rfused(rf) < 128U) return 0;
+        uint16_t threshold = rf->drain ? 1U : 512U;
+        if(rfused(rf) < threshold) return 0;
         rf->prime = true;
     }
     t = rf->tail;
@@ -73,6 +74,7 @@ static int16_t rfpop(Rf *rf)
     int16_t s = rf->ring[t];
     __DMB();
     rf->tail = (t + 1U) & (RINGSZ - 1U);
+    if(rf->played_samples != UINT32_MAX) rf->played_samples++;
     return s;
 }
 
@@ -80,7 +82,12 @@ static LevelDuration rfbit(void *ctx)
 {
     Rf *rf = ctx;
     uint32_t us;
-    if(rf->sphase == 0)
+    if(rf->lock_decisions)
+    {
+        rf->lock_decisions--;
+        rf->s = 0;
+    }
+    else if(rf->sphase == 0)
     {
         if(rf->drain && rf->tail == rf->head) return level_duration_reset();
         rf->s = rfpop(rf);
@@ -126,6 +133,7 @@ bool rfstart(Rf *rf)
     (void)furi_hal_subghz_set_frequency_and_path(rf->hz);
     furi_hal_gpio_init(furi_hal_subghz_get_data_gpio(), GpioModeInput, GpioPullNo, GpioSpeedLow);
     rf->drain = false;
+    rf->lock_decisions = 4800U;
     rf->on = furi_hal_subghz_start_async_tx(rfbit, rf);
     if(!rf->on) rfstop(rf);
     if(rf->on) txled(true);
@@ -169,15 +177,23 @@ void rfstop(Rf *rf)
     rf->awake = false;
 }
 
+
 bool rfput(Rf *rf, int16_t s)
 {
-    uint16_t h = rf->head;
-    uint16_t n = (h + 1U) & (RINGSZ - 1U);
-    if(n == rf->tail) return false;
-    rf->ring[h] = s;
-    __DMB();
-    rf->head = n;
-    return true;
+    while(rf && rf->on)
+    {
+        uint16_t h = rf->head;
+        uint16_t n = (h + 1U) & (RINGSZ - 1U);
+        if(n != rf->tail)
+        {
+            rf->ring[h] = s;
+            __DMB();
+            rf->head = n;
+            return true;
+        }
+        furi_delay_tick(1U);
+    }
+    return false;
 }
 
 void rfend(Rf *rf)
@@ -191,6 +207,24 @@ bool rfdone(const Rf *rf)
     return rf->drain && furi_hal_subghz_is_async_tx_complete();
 }
 
+bool rfdrain(Rf *rf, uint32_t timeout_ms)
+{
+    uint32_t at;
+    if(!rf || !rf->on) return false;
+    if(rfused(rf)) rf->prime = true;
+    rfend(rf);
+    at = furi_get_tick();
+    while(!rfdone(rf) && furi_get_tick() - at < furi_ms_to_ticks(timeout_ms)) furi_delay_tick(1U);
+    return rfdone(rf);
+}
+
+uint32_t rfplayed(const Rf *rf)
+{
+    if(!rf) return 0;
+    __DMB();
+    return rf->played_samples;
+}
+
 void rfrst(Rf *rf)
 {
     if(rf->on) return;
@@ -199,6 +233,8 @@ void rfrst(Rf *rf)
     rf->prime = false;
     rf->drain = false;
     rf->s = 0;
+    rf->lock_decisions = 0;
+    rf->played_samples = 0;
     rf->sphase = 0;
     rf->err = 0;
     rf->slot = 0;

@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define RINGSZ 512U
+#define RINGSZ 4096U
 
 typedef struct
 {
@@ -16,6 +16,8 @@ typedef struct
     volatile bool on;
     volatile bool prime;
     volatile bool drain;
+    uint16_t lock_decisions;
+    volatile uint32_t played_samples;
     int16_t s;
     int32_t err;
     uint8_t sphase;
@@ -36,6 +38,8 @@ uint16_t rfused(const Rf *rf);
 void rfhold(Rf *rf, uint8_t decisions);
 void rfend(Rf *rf);
 bool rfdone(const Rf *rf);
+bool rfdrain(Rf *rf, uint32_t timeout_ms);
+uint32_t rfplayed(const Rf *rf);
 void rfrst(Rf *rf);
 
 #endif
