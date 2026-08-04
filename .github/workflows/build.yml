@@ -7,6 +7,17 @@ on:
   workflow_dispatch:
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: host tests
+    steps:
+      - uses: actions/checkout@v4
+
+      # The grading brain and the dump parser are pure logic, so they run on
+      # the runner under ASan/UBSan instead of needing a Flipper.
+      - name: Run host tests
+        run: make -C test
+
   build:
     runs-on: ubuntu-latest
     strategy:

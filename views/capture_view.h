@@ -3,7 +3,15 @@
  *
  * The "listening" view: a live antenna emitting expanding rings, a big
  * captured/target press counter, a row of press slots that fill as you press,
- * and the protocol of the last decoded press. OK finishes early and analyses.
+ * and the protocol of the last decoded press.
+ *
+ * Along the bottom is the signal row - a carrier-strength bar and an RF
+ * activity pip. That row is the difference between a screen that just sits
+ * there and one that tells you WHY nothing is landing: a dead bar means you
+ * are on the wrong frequency, while a live bar with no presses counted means
+ * you are on the right one but the protocol is not being decoded.
+ *
+ * OK finishes early and analyses.
  */
 #pragma once
 
@@ -32,7 +40,15 @@ void capture_view_set_callback(CaptureView* v, CaptureViewCallback cb, void* con
 void capture_view_set_config(CaptureView* v, const char* band, const char* mod, uint8_t target);
 
 /** Update the live progress after each registered press. */
-void capture_view_set_progress(CaptureView* v, uint8_t count, const char* protocol, RcCodeClass cls);
+void capture_view_set_progress(
+    CaptureView* v,
+    uint8_t count,
+    const char* protocol,
+    RcCodeClass cls,
+    uint16_t bits);
+
+/** Carrier strength in dBm plus whether raw pulses are currently flowing. */
+void capture_view_set_signal(CaptureView* v, int8_t rssi_dbm, bool active);
 
 void capture_view_reset(CaptureView* v);
 void capture_view_tick(CaptureView* v);

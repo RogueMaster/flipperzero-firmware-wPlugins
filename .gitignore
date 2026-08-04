@@ -18,3 +18,7 @@ __pycache__/
 .idea/
 .DS_Store
 *.swp
+
+# host test binaries
+test/host_*_test
+*.dSYM/
