@@ -5,8 +5,8 @@ App(
     entry_point="maze3d_app",
     stack_size=12 * 1024,
     icon="maze3d.png",
-    fap_version=(6, 10, 1),
+    fap_version=(6, 10, 2),
     fap_category="Games",
-    fap_description="v6.10.1-beta: 敌人移动减速随机+墙后遮挡+MC跳跃修复防崩溃",
+    fap_description="v6.10.2: 敌人极慢移动+3枪必死+濒死闪烁+墙后遮挡+MC跳跃防崩溃 (稳定版)",
     fap_author="k20120509",
 )

@@ -130,16 +130,19 @@ static bool player_attack(void) {
         // 横向偏移 (垂直于朝向)
         float side = fabsf(ex * (-dy) + ey * dx);
         if(side > 0.6f) continue;
-        // 命中
+        // 命中 (v6.10.2: 近战也扣1血+闪烁)
         if(a->hp > 0) a->hp--;
+        a->hurt_flash = 15;
         set_msg(MSG_HIT);
         sfx_play(SFX_ATTACK_HIT);
         if(a->hp == 0) {
             a->active = false;
             g.task_kill_count++;
-            g.ach_total_kills++;   // v6.0 成就统计
+            g.ach_total_kills++;
+            g.score += 10;     // v6.10: 击杀+10积分
             sfx_play(SFX_ENEMY_KILL);
-            ach_check();            // 触发击杀成就
+            ach_check();
+            particle_spawn(a->x, a->y, 1, 10);
         }
         return true;
     }
@@ -246,9 +249,9 @@ void bullets_update(void) {
                 Actor* a = &g.actors[j];
                 if(!a->active || a->type != 0 || a->hp == 0) continue;
                 float ddx = a->x - b->x, ddy = a->y - b->y;
-                if(ddx*ddx + ddy*ddy < 0.16f) {
-                    a->hp -= 2;
-                    a->hurt_flash = 12;    // v6.10.1: 受伤闪烁增至 12 帧
+                if(ddx*ddx + ddy*ddy < 0.25f) {  // v6.10.2: 碰撞半径增大 (0.5格)
+                    a->hp -= 1;                    // v6.10.2: 每发伤害1, 3枪必死
+                    a->hurt_flash = 15;            // v6.10.2: 闪烁15帧
                     b->active = false;
                     particle_spawn(b->x, b->y, 1, 6);
                     if(a->hp <= 0) {
@@ -547,12 +550,9 @@ void spawn_actor(float x, float y, int type) {
     if(g.actor_count >= MAX_ACTORS) return;
     Actor* a = &g.actors[g.actor_count++];
     a->x = x; a->y = y; a->tx = x; a->ty = y; a->active = true; a->type = (uint8_t)type; a->cooldown = 0;
-    // v6.0: 敌人血量随关卡递进 (21-27关 hp=2, 28-34关 hp=3, 35+关 hp=4)
+    // v6.10.2: 统一敌人血量=3, 每发子弹伤害=1, 3枪必死
     if(type == 0) {
-        int hp = 2;
-        if(g.level >= 35) hp = 4;
-        else if(g.level >= 28) hp = 3;
-        a->hp = (uint8_t)hp;
+        a->hp = 3;
     } else {
         a->hp = 0;
     }
@@ -566,23 +566,25 @@ void actors_update(void) {
     for(int i = 0; i < g.actor_count; i++) {
         Actor* a = &g.actors[i];
         if(!a->active) continue;
-        if(a->hurt_flash > 0) a->hurt_flash--;
+        // v6.10.2: 快死时(hp=1)持续闪烁, 不递减
+        if(a->hurt_flash > 0 && a->hp > 1) a->hurt_flash--;
+        else if(a->hp == 1) a->hurt_flash = 1; // 濒死持续闪烁
 
-        // v6.10.1: 平滑移动插值 — 8帧缓慢插值 (每帧 1/8 距离)
+        // v6.10.2: 平滑移动插值 — 12帧极慢插值 (每帧 1/12 距离)
         if(a->moving > 0) {
             float dx = a->tx - a->x, dy = a->ty - a->y;
-            a->x += dx * 0.125f;
-            a->y += dy * 0.125f;
+            a->x += dx * 0.083f;
+            a->y += dy * 0.083f;
             a->moving--;
             if(a->moving == 0) { a->x = a->tx; a->y = a->ty; }
         }
 
         if(a->cooldown > 0) { a->cooldown--; }
-        else if(a->moving == 0) { // 移动完成后才决定下一步
-            // v6.10.1: 敌人移动非常慢 + 随机速度 (40-90帧 = 0.6-1.5秒一动)
+        else if(a->moving == 0) {
+            // v6.10.2: 敌人极慢移动 + 随机间隔 (80-180帧 = 1.3-3秒一动)
             a->cooldown = (a->type == 0)
-                ? (uint8_t)(40 + (maze_rng_next() & 50))
-                : (uint8_t)(60 + (maze_rng_next() & 60));
+                ? (uint8_t)(80 + (maze_rng_next() & 100))
+                : (uint8_t)(120 + (maze_rng_next() & 120));
             float dirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
             int r = maze_rng_next() & 3;
 
@@ -622,7 +624,7 @@ void actors_update(void) {
                 if(walkable(maze_get((int)nx, (int)ny))) {
                     // v6.10: 不直接传送, 设置目标位置 + 插值帧数
                     a->tx = nx; a->ty = ny;
-                    a->moving = 8; // 8 帧插值完成 (更慢更平滑)
+                    a->moving = 12; // 12 帧插值完成 (极慢极平滑)
                     break;
                 }
             }
@@ -1081,13 +1083,13 @@ void game_update(void) {
         }
     }
 
-    // v6.10.1: 跳跃峰值降低 — MC模式上限4px, 普通模式上限8px
+    // v6.10.2: 跳跃峰值再次降低 — MC模式上限3px, 普通模式上限6px
     float JUMP_PEAK_LOCAL;
     {
-        static const float peaks[] = { 0.0f, 4.0f, 6.0f, 8.0f };
+        static const float peaks[] = { 0.0f, 3.0f, 5.0f, 6.0f };
         JUMP_PEAK_LOCAL = peaks[(g.cfg_jump_height < 4) ? g.cfg_jump_height : 2];
-        // MC 模式额外限制: 最高 4px (防止卡墙)
-        if(g.mode == MODE_MC && JUMP_PEAK_LOCAL > 4.0f) JUMP_PEAK_LOCAL = 4.0f;
+        // MC 模式额外限制: 最高 3px (防止卡墙崩溃)
+        if(g.mode == MODE_MC && JUMP_PEAK_LOCAL > 3.0f) JUMP_PEAK_LOCAL = 3.0f;
     }
     // v6.9: cfg_regen_rate 回血倍率 (0=0.5x, 1=1.0x, 2=2.0x, 3=3.0x)
     //   倍率越高, 阈值越低 → 回血越快

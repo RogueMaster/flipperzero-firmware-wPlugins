@@ -600,18 +600,21 @@ void engine_render(void) {
             if(transY <= 0.2f) continue;   // 背后或太近不画
             int screenX = (int)((SCREEN_W / 2.0f) * (1.0f + transX / transY));
             if(screenX < -8 || screenX > SCREEN_W + 8) continue;
-            // v6.10.1: 墙体遮挡检测 — 敌人比墙远则不画 (开发者模式跳过)
-            if(!g.dev_mode) {
-                int check_x = screenX;
-                if(check_x < 0) check_x = 0;
-                if(check_x >= SCREEN_W) check_x = SCREEN_W - 1;
-                if(transY > s_wall_depth[check_x]) continue; // 被墙挡住
-            }
             // 投影高度 (敌人约 0.8 格高)
             int sh = (int)((float)SCREEN_H * 0.8f / transY);
             if(sh < 3) sh = 3;
             if(sh > 36) sh = 36;
             int sw = sh / 2;             // 宽度约高度一半
+            // v6.10.2: 墙体遮挡检测 — 检查敌人中心±宽度范围, 任一列可见则画
+            if(!g.dev_mode) {
+                int sw_check = sw + 1;
+                bool occluded = true;
+                for(int cx2 = screenX - sw_check; cx2 <= screenX + sw_check; cx2++) {
+                    if(cx2 < 0 || cx2 >= SCREEN_W) continue;
+                    if(transY <= s_wall_depth[cx2]) { occluded = false; break; }
+                }
+                if(occluded) continue;
+            }
             // 垂直锚点: 站在地板上 (脚部在 drawEnd 附近)
             // v6.7-beta: 跳跃位移 — 敌人站地板上, 随相机升高而下移
             int jumpShiftActor = 0;
@@ -622,8 +625,9 @@ void engine_render(void) {
             if(feet_y > SCREEN_H - 1) feet_y = SCREEN_H - 1;
             int top_y = feet_y - sh;
             if(top_y < 0) top_y = 0;
-            // v6.10.1: 受伤闪烁 — hurt_flash>0 时隔帧反白 (更明显的闪烁效果)
-            bool hurt = (a->hurt_flash > 0) && ((g.tick & 1) == 0);
+            // v6.10.2: 受伤闪烁 — hurt_flash>0 时空心(只画边框), 隔帧闪烁
+            bool hurt = (a->hurt_flash > 0);
+            bool blink = hurt && ((g.tick & 2) == 0); // 快速闪烁
             // 移动呼吸: 每 8 帧上下抖 1 像素
             int bob = ((g.tick + i * 3) & 8) ? 1 : 0;
             top_y += bob; feet_y += bob;
@@ -637,14 +641,12 @@ void engine_render(void) {
                 for(int xx = -sw; xx <= sw; xx++) {
                     int px = screenX + xx;
                     if(px < 0 || px >= SCREEN_W) continue;
-                    // 边框始终亮, 内部按 hurt 决定
                     bool edge = (xx == -sw || xx == sw || yy == 0 || yy == body_h - 1);
                     if(edge) fb_set(px, py, 1);
-                    else if(!hurt) fb_set(px, py, 1);   // 实心敌人
-                    // hurt 时内部留空 (反白效果)
+                    else if(!blink) fb_set(px, py, 1); // 闪烁时只画边框
                 }
             }
-            // 头: 小方块
+            // 头: 小方块 (闪烁时空心)
             int head_h = sh / 4;
             if(head_h < 2) head_h = 2;
             for(int yy = 0; yy < head_h; yy++) {
@@ -654,16 +656,17 @@ void engine_render(void) {
                 for(int xx = -hw; xx <= hw; xx++) {
                     int px = screenX + xx;
                     if(px < 0 || px >= SCREEN_W) continue;
-                    fb_set(px, py, 1);
+                    bool edge = (xx == -hw || xx == hw || yy == 0 || yy == head_h - 1);
+                    if(edge || !blink) fb_set(px, py, 1);
                 }
             }
-            // 眼睛: 两个亮点 (闪烁, 模拟"瞄准玩家")
-            if(sh >= 8 && (g.tick & 3) < 3) {
+            // 眼睛: 两个亮点 (受伤时不画)
+            if(sh >= 8 && (g.tick & 3) < 3 && !blink) {
                 int ey_y = top_y + head_h / 2 + 1;
                 int ex_off = (sw > 2) ? 1 : 0;
                 if(ex_off) {
-                    fb_set(screenX - ex_off, ey_y, hurt ? 0 : 1);
-                    fb_set(screenX + ex_off, ey_y, hurt ? 0 : 1);
+                    fb_set(screenX - ex_off, ey_y, 1);
+                    fb_set(screenX + ex_off, ey_y, 1);
                 }
             }
             // 敌人射击预警: fire_cd 接近 0 时画一个红点(此处黑白=亮点)在枪口位置
