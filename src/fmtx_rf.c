@@ -36,6 +36,7 @@ void rfinit(Rf *rf, uint32_t hz)
     memset(rf, 0, sizeof(*rf));
     rf->hz = hz;
     rf->regs = fmtx_preset;
+    rf->sample_decisions = 3U;
 }
 
 const uint8_t *rfregs(void)
@@ -46,6 +47,13 @@ const uint8_t *rfregs(void)
 uint16_t rfused(const Rf *rf)
 {
     return (rf->head - rf->tail) & (RINGSZ - 1U);
+}
+
+void rfhold(Rf *rf, uint8_t decisions)
+{
+    if(rf->on || decisions == 0) return;
+    rf->sample_decisions = decisions;
+    rf->sphase = 0;
 }
 
 static int16_t rfpop(Rf *rf)
@@ -78,7 +86,7 @@ static LevelDuration rfbit(void *ctx)
         rf->s = rfpop(rf);
     }
     rf->sphase++;
-    if(rf->sphase == 3U) rf->sphase = 0;
+    if(rf->sphase == rf->sample_decisions) rf->sphase = 0;
     rf->err += rf->s;
     rf->bit = rf->err >= 0;
     rf->err += rf->bit ? -32767 : 32768;

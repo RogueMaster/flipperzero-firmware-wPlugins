@@ -19,6 +19,7 @@ typedef struct
     int16_t s;
     int32_t err;
     uint8_t sphase;
+    uint8_t sample_decisions;
     uint8_t slot;
     bool bit;
     bool awake;
@@ -32,6 +33,7 @@ void rfpause(Rf *rf);
 void rfstop(Rf *rf);
 bool rfput(Rf *rf, int16_t s);
 uint16_t rfused(const Rf *rf);
+void rfhold(Rf *rf, uint8_t decisions);
 void rfend(Rf *rf);
 bool rfdone(const Rf *rf);
 void rfrst(Rf *rf);
