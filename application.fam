@@ -1,0 +1,14 @@
+App(
+    appid="net_calculator",
+    name="Net Calculator",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="net_calculator_app",
+    stack_size=4 * 1024,
+    fap_category="Tools",
+    fap_version="1.0",
+    fap_author="WolfRor",
+    fap_weburl="https://www.wolfror.com/products/netcalculator-for-flipper-zero",
+    fap_description="Offline IPv4 VLSM subnet calculator",
+    fap_icon="icon.png",
+    
+)
