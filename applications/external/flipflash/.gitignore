@@ -1,0 +1,4 @@
+.vscode/*
+.venv/*
+dist/*
+*.txt
