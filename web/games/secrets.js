@@ -1,6 +1,6 @@
 /* Secrets — a whole-group hidden-vote party game. The ESP is authoritative, driving
-   {t:"secrets", phase, ...}: lobby (ready + pack vote) -> countdown -> predict (secretly
-   guess how many of the N players will say yes) -> answer (secretly tap Yes/No) -> reveal
+   {t:"secrets", phase, ...}: lobby (ready + pack vote) -> countdown -> answer (secretly
+   tap Yes/No) -> predict (secretly guess how many of the N players said yes) -> reveal
    (only the group's total yes-count, plus your own result) -> ... -> final podium. We send
    ready / vote / predict / reply / again. Anonymity is enforced server-side: your own
    prediction/answer/points reach only you; nobody ever sees who answered what. */
@@ -85,7 +85,8 @@
       names.className = "sec-bnames";
       (buckets[i] || []).forEach(function (g) {
         var chip = document.createElement("span");
-        chip.className = "sec-bname";
+        // Your own chip is the orange one, so you can find yourself at a glance.
+        chip.className = "sec-bname" + (g.pid === A.pid ? " me" : "");
         // Nicknames are player-typed, so use a text node (not innerHTML).
         chip.textContent = g.nick + (g.pts > 0 ? " +" + g.pts : "");
         names.appendChild(chip);
@@ -95,9 +96,8 @@
       ul.appendChild(li);
     }
     var gain = (typeof m.mygain === "number") ? m.mygain : 0;
-    $("sec-result").textContent = gain >= 3 ? t("secrets.result_exact", { gain: gain })
-      : gain > 0 ? t("secrets.result_close", { gain: gain })
-        : t("common.zero_round");
+    $("sec-result").textContent = gain > 0 ? t("secrets.result_exact", { gain: gain })
+      : t("common.zero_round");
     if (revealedFor !== m.round) {
       revealedFor = m.round;
       A.sfx(gain > 0 ? "correct" : "buzz"); A.vibe(gain > 0 ? 25 : 12);

@@ -4854,13 +4854,11 @@ private:
         for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
             if(!_p[i].used) continue;
             int pred = _secrets.predict[i];
-            int pts = 0;
-            if(pred >= 0) {
-                int d = pred - yes;
-                if(d < 0) d = -d;
-                if(d == 0) pts = 3;
-                else if(d == 1) pts = 1;
-            }
+            // Exact guesses only. Rewarding "off by one" as well made the reveal
+            // fiddly to read (two kinds of winner, two point values) for very little
+            // play value, so a prediction either nails the group's yes-count or it
+            // scores nothing.
+            int pts = (pred >= 0 && pred == yes) ? 1 : 0;
             _secrets.gained[i] = pts;
             if(pts) {
                 _p[i].score += pts;
@@ -4971,8 +4969,10 @@ private:
                 if(!_p[i].used) continue;
                 if(!first) s += ",";
                 first = false;
-                s += "{\"nick\":\"" + ha_json_escape(_p[i].nick) + "\",\"n\":" +
-                     (int)_secrets.predict[i] + ",\"pts\":" + _secrets.gained[i] + "}";
+                // pid too: the reveal marks *your* row, and nicknames can collide.
+                s += "{\"pid\":" + String((int)i) + ",\"nick\":\"" +
+                     ha_json_escape(_p[i].nick) + "\",\"n\":" + (int)_secrets.predict[i] +
+                     ",\"pts\":" + _secrets.gained[i] + "}";
             }
             s += "]";
             s += ",\"mygain\":";

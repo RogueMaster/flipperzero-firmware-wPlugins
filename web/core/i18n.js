@@ -92,7 +92,6 @@ var MESSAGES = {
     "secrets.locked_count": "{n} / {total} in",
     "secrets.said_yes": "said yes",
     "secrets.result_exact": "Spot on! +{gain}",
-    "secrets.result_close": "So close — +{gain}",
     // chess (win/lose/draw, your-turn/opp's-turn, opponent, and opponent-left all
     // reuse the shared common.* keys added in the i18n migration -- no local dupes)
     "chess.title": "Chess",
@@ -279,7 +278,6 @@ var MESSAGES = {
     "secrets.locked_count": "{n} / {total} dabei",
     "secrets.said_yes": "sagten Ja",
     "secrets.result_exact": "Genau richtig! +{gain}",
-    "secrets.result_close": "Ganz knapp — +{gain}",
     "captive.title": "Im Browser öffnen",
     "captive.body": "Dieses WLAN-Popup hält die Verbindung nicht. Zum Spielen verlassen und das Spiel im Browser deines Handys öffnen:",
     "captive.step1": "Auf Abbrechen tippen, dann Ohne Internet verwenden",
