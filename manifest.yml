@@ -1,8 +1,8 @@
 sourcecode:
   type: git
   location:
-    origin: https://github.com/k20120509/flipper-release.git
-    commit_sha: 57169cd7c1261130fa2ddbaaa61065e5f7f5e09e
+    origin: https://github.com/k20120509/flipper-hello.git
+    commit_sha: c4b9a090c58d58ab8c4ac1cfbd5bb0a5f75c33a3
 short_description: 3D raycasting maze: 50-level campaign (maze/puzzle/combat), MC sandbox, achievements
 description: "@README.md"
 changelog: "@docs/changelog.md"
