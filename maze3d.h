@@ -386,6 +386,7 @@ bool item_use(int item_type);
 const char* shop_item_name_zh(int idx);
 const char* shop_item_name_en(int idx);
 const char* shop_item_desc_zh(int idx);
+const char* shop_item_desc_en(int idx);
 uint16_t    shop_item_price(int idx);
 bool        shop_item_use(int idx);
 // 物品栏当前持有数

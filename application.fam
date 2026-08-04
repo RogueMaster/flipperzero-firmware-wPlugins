@@ -5,8 +5,8 @@ App(
     entry_point="maze3d_app",
     stack_size=12 * 1024,
     icon="maze3d.png",
-    fap_version=(6, 11, 0),
+    fap_version=(6, 11, 1),
     fap_category="Games",
-    fap_description="v6.11.0: 积分商城+10种道具库存+长按OK道具栏+护盾双倍火力buff (测试版)",
+    fap_description="v6.11.1: 积分商城+10种道具库存+长按OK道具栏+护盾双倍火力buff (稳定正式版)",
     fap_author="k20120509",
 )

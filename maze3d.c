@@ -843,79 +843,79 @@ static void draw_opening(Canvas* c) {
 // 设置项类型
 typedef enum { SET_BOOL, SET_VAL8, SET_ACTION } SetType;
 // 单个设置条目
-typedef struct {
-    const char*  label_en;     // 英文标签 (中文下暂用英文, 保证可读性)
-    SetType      type;
-    void*        val_ptr;      // 指向 GameState 中的 uint8_t/bool 字段 (void* 避免 bool/uint8_t 类型警告)
-    uint8_t      min_val;
-    uint8_t      max_val;
-    // 显示格式化 (显示值或档位)
-    const char** labels;       // 档位标签数组 (可 NULL 则直接显示数字)
-    const char*  fmt_num;      // 数字格式化 sprintf 字符串 (可 NULL)
-} SetEntry;
+typedef struct { SetType type; void* val_ptr; uint8_t min_val; uint8_t max_val;
+    const char** labels_zh; const char** labels_en; const char* fmt_num;
+    const char* label_zh; const char* label_en; } SetEntry;
 
-// 档位表 (静态只读) — v6.9.1: 全中文化
-static const char* LBL_TURN_SENS[] = { "1.0x","1.25x","1.5x","1.75x","2.0x","2.5x" };
-static const char* LBL_SHORT_DEG[] = { "5.7d","8.6d","11.5d","14.3d","17.2d" };
-static const char* LBL_MOVE_SHT[]  = { "0.08","0.12","0.15","0.20","0.26" };
-static const char* LBL_MOVE_MAX[]  = { "0.024","0.030","0.042","0.055","0.072" };
-static const char* LBL_TURN_MAX[]  = { "0.030","0.038","0.050","0.065","0.085" };
-static const char* LBL_JUMP_PX[]   = { "关","6px","9px","12px" };
-static const char* LBL_BACK_RT[]   = { "0.55x","0.72x","0.88x","1.00x" };
-static const char* LBL_DENSITY[]   = { "32列","48列","64列" };
-static const char* LBL_BRIGH[]     = { "0.6x","0.8x","1.0x","1.25x","1.5x" };
-static const char* LBL_VOL[]       = { "低","中","高" };
-static const char* LBL_MAZE_SC[]   = { "0.6x","0.8x","1.0x","1.2x","1.5x" };
-static const char* LBL_HP[]        = { "8HP","10HP","12HP","16HP","20HP" };
-static const char* LBL_REGEN[]     = { "0.5x","1.0x","2.0x","3.0x" };
-static const char* LBL_AMMO[]      = { "0.5x","1.0x","2.0x","3.0x" };
-static const char* LBL_ENDLESS[]   = { "F1","F10","F25","F50","F99" };
-static const char* LBL_MCSZ[]      = { "11x11","15x15","19x19","23x23" };
-static const char* LBL_MCDAY[]     = { "1024","512","256","128" };
-static const char* LBL_MCBLK[]     = { "砖","石","木","草","土","沙","原木","叶" };
-static const char* LBL_ONOFF[]     = { "关","开" };
+// 档位表 (双语)
+static const char* LBL_TURN_SENS[]   = { "1.0x","1.25x","1.5x","1.75x","2.0x","2.5x" };
+static const char* LBL_SHORT_DEG[]   = { "5.7d","8.6d","11.5d","14.3d","17.2d" };
+static const char* LBL_MOVE_SHT[]    = { "0.08","0.12","0.15","0.20","0.26" };
+static const char* LBL_MOVE_MAX[]    = { "0.024","0.030","0.042","0.055","0.072" };
+static const char* LBL_TURN_MAX[]    = { "0.030","0.038","0.050","0.065","0.085" };
+static const char* LBL_JUMP_PX_ZH[]  = { "关","6px","9px","12px" };
+static const char* LBL_JUMP_PX_EN[]  = { "Off","6px","9px","12px" };
+static const char* LBL_BACK_RT[]     = { "0.55x","0.72x","0.88x","1.00x" };
+static const char* LBL_DENSITY_ZH[]  = { "32列","48列","64列" };
+static const char* LBL_DENSITY_EN[]  = { "32col","48col","64col" };
+static const char* LBL_BRIGH[]       = { "0.6x","0.8x","1.0x","1.25x","1.5x" };
+static const char* LBL_VOL_ZH[]      = { "低","中","高" };
+static const char* LBL_VOL_EN[]      = { "Low","Mid","High" };
+static const char* LBL_MAZE_SC[]     = { "0.6x","0.8x","1.0x","1.2x","1.5x" };
+static const char* LBL_HP[]          = { "8HP","10HP","12HP","16HP","20HP" };
+static const char* LBL_REGEN[]       = { "0.5x","1.0x","2.0x","3.0x" };
+static const char* LBL_AMMO[]        = { "0.5x","1.0x","2.0x","3.0x" };
+static const char* LBL_ENDLESS[]     = { "F1","F10","F25","F50","F99" };
+static const char* LBL_MCSZ[]        = { "11x11","15x15","19x19","23x23" };
+static const char* LBL_MCDAY[]       = { "1024","512","256","128" };
+static const char* LBL_MCBLK_ZH[]    = { "砖","石","木","草","土","沙","原木","叶" };
+static const char* LBL_MCBLK_EN[]    = { "Brk","Stn","Wd","Grs","Drt","Snd","Log","Lef" };
+static const char* LBL_ONOFF_ZH[]    = { "关","开" };
+static const char* LBL_ONOFF_EN[]    = { "Off","On" };
 
-// --- 简单设置 (所有模式可见): 音效/开场
+// --- 简单设置 (所有模式可见): 音效/开场 ---
+#define SET_SIMPLE(type_,vp,mn,mx,lzh,len,fmt,lzh2,len2) \
+    { type_, vp, mn, mx, lzh, len, fmt, lzh2, len2 }
 static const SetEntry SIMPLE_SETS[] = {
-    { "音效",        SET_BOOL,  &g.sfx_enabled,      0,1, LBL_ONOFF, NULL },
-    { "开场动画",    SET_BOOL,  &g.opening_enabled,  0,1, LBL_ONOFF, NULL },
+  SET_SIMPLE(SET_BOOL, &g.sfx_enabled,     0,1, LBL_ONOFF_ZH,LBL_ONOFF_EN, NULL, "音效",     "Sound FX"),
+  SET_SIMPLE(SET_BOOL, &g.opening_enabled, 0,1, LBL_ONOFF_ZH,LBL_ONOFF_EN, NULL, "开场动画", "Opening"),
 };
+#undef SIMPLE_SET_COUNT
 #define SIMPLE_SET_COUNT (sizeof(SIMPLE_SETS)/sizeof(SIMPLE_SETS[0]))
 
-// --- 开发者设置 (dev_mode 解锁后追加, 20+ 项): 控制/画面/音效/游戏/MC/调试
-#define DEV_SET_FIRST SIMPLE_SET_COUNT
+// --- 开发者设置 (dev_mode 解锁后追加, 20+ 项) ---
 static const SetEntry DEV_SETS[] = {
-    // 🎮 控制类 (7)
-    { "转向灵敏度", SET_VAL8, &g.cfg_turn_sens,    0,5, LBL_TURN_SENS, NULL },
-    { "短按转角",   SET_VAL8, &g.cfg_turn_short,   0,4, LBL_SHORT_DEG, NULL },
-    { "短按步幅",   SET_VAL8, &g.cfg_move_short,   0,4, LBL_MOVE_SHT, NULL },
-    { "移动速度",   SET_VAL8, &g.cfg_move_max,     0,4, LBL_MOVE_MAX, NULL },
-    { "转向速度",   SET_VAL8, &g.cfg_turn_max,     0,4, LBL_TURN_MAX, NULL },
-    { "跳跃高度",   SET_VAL8, &g.cfg_jump_height,  0,3, LBL_JUMP_PX, NULL },
-    { "后退速度",   SET_VAL8, &g.cfg_back_ratio,   0,3, LBL_BACK_RT, NULL },
-    // 🎨 画面类 (5)
-    { "渲染密度",   SET_VAL8, &g.cfg_density,      0,2, LBL_DENSITY, NULL },
-    { "距离雾效",   SET_BOOL, &g.cfg_fog,          0,1, LBL_ONOFF, NULL },
-    { "亮度",       SET_VAL8, &g.cfg_brightness,   0,4, LBL_BRIGH, NULL },
-    { "天空天花板", SET_BOOL, &g.cfg_sky_ceil,     0,1, LBL_ONOFF, NULL },
-    { "地板纹理",   SET_BOOL, &g.cfg_floor_tex,    0,1, LBL_ONOFF, NULL },
-    // 🔊 音效类 (3)
-    { "音量",       SET_VAL8, &g.cfg_sfx_vol,      0,2, LBL_VOL, NULL },
-    { "菜单音效",   SET_BOOL, &g.cfg_sfx_menu,     0,1, LBL_ONOFF, NULL },
-    { "战斗音效",   SET_BOOL, &g.cfg_sfx_combat,   0,1, LBL_ONOFF, NULL },
-    // 🕹️ 游戏参数 (5)
-    { "迷宫缩放",   SET_VAL8, &g.cfg_maze_scale,   0,4, LBL_MAZE_SC, NULL },
-    { "初始血量",   SET_VAL8, &g.cfg_hp_start,     0,4, LBL_HP, NULL },
-    { "回血速度",   SET_VAL8, &g.cfg_regen_rate,   0,3, LBL_REGEN, NULL },
-    { "弹药倍率",   SET_VAL8, &g.cfg_ammo_mul,     0,3, LBL_AMMO, NULL },
-    { "无尽起始",   SET_VAL8, &g.cfg_endless_start,0,4, LBL_ENDLESS, NULL },
-    // 🏔️ MC 沙盒 (4)
-    { "MC地图大小", SET_VAL8, &g.cfg_mc_size,      0,3, LBL_MCSZ, NULL },
-    { "MC日夜速度", SET_VAL8, &g.cfg_mc_day_len,   0,3, LBL_MCDAY, NULL },
-    { "MC跳跃",     SET_BOOL, &g.cfg_mc_jump,      0,1, LBL_ONOFF, NULL },
-    { "MC初始方块", SET_VAL8, &g.cfg_mc_start_sel, 0,7, LBL_MCBLK, NULL },
-    // 🛠️ 调试 (1)
-    { "调试信息",   SET_BOOL, &g.show_debug,       0,1, LBL_ONOFF, NULL },
+  // 控制类 (7)
+  { SET_VAL8, &g.cfg_turn_sens,    0,5, LBL_TURN_SENS,LBL_TURN_SENS, NULL, "转向灵敏度", "Turn Sens"},
+  { SET_VAL8, &g.cfg_turn_short,   0,4, LBL_SHORT_DEG,LBL_SHORT_DEG, NULL, "短按转角",   "Turn Short"},
+  { SET_VAL8, &g.cfg_move_short,   0,4, LBL_MOVE_SHT, LBL_MOVE_SHT,  NULL, "短按步幅",   "Move Short"},
+  { SET_VAL8, &g.cfg_move_max,     0,4, LBL_MOVE_MAX, LBL_MOVE_MAX,  NULL, "移动速度",   "Move Speed"},
+  { SET_VAL8, &g.cfg_turn_max,     0,4, LBL_TURN_MAX, LBL_TURN_MAX,  NULL, "转向速度",   "Turn Speed"},
+  { SET_VAL8, &g.cfg_jump_height,  0,3, LBL_JUMP_PX_ZH,LBL_JUMP_PX_EN,NULL,"跳跃高度",   "Jump Hgt"},
+  { SET_VAL8, &g.cfg_back_ratio,   0,3, LBL_BACK_RT,  LBL_BACK_RT,   NULL, "后退速度",   "Back Ratio"},
+  // 画面类 (5)
+  { SET_VAL8, &g.cfg_density,      0,2, LBL_DENSITY_ZH,LBL_DENSITY_EN,NULL,"渲染密度",   "Density"},
+  { SET_BOOL, &g.cfg_fog,          0,1, LBL_ONOFF_ZH, LBL_ONOFF_EN,  NULL, "距离雾效",   "Fog"},
+  { SET_VAL8, &g.cfg_brightness,   0,4, LBL_BRIGH,    LBL_BRIGH,     NULL, "亮度",       "Brightness"},
+  { SET_BOOL, &g.cfg_sky_ceil,     0,1, LBL_ONOFF_ZH, LBL_ONOFF_EN,  NULL, "天空天花板", "Sky/Ceiling"},
+  { SET_BOOL, &g.cfg_floor_tex,    0,1, LBL_ONOFF_ZH, LBL_ONOFF_EN,  NULL, "地板纹理",   "Floor Tex"},
+  // 音效类 (3)
+  { SET_VAL8, &g.cfg_sfx_vol,      0,2, LBL_VOL_ZH,   LBL_VOL_EN,    NULL, "音量",       "Volume"},
+  { SET_BOOL, &g.cfg_sfx_menu,     0,1, LBL_ONOFF_ZH, LBL_ONOFF_EN,  NULL, "菜单音效",   "Menu SFX"},
+  { SET_BOOL, &g.cfg_sfx_combat,   0,1, LBL_ONOFF_ZH, LBL_ONOFF_EN,  NULL, "战斗音效",   "Combat SFX"},
+  // 游戏参数 (5)
+  { SET_VAL8, &g.cfg_maze_scale,   0,4, LBL_MAZE_SC,  LBL_MAZE_SC,   NULL, "迷宫缩放",   "Maze Scale"},
+  { SET_VAL8, &g.cfg_hp_start,     0,4, LBL_HP,       LBL_HP,        NULL, "初始血量",   "Start HP"},
+  { SET_VAL8, &g.cfg_regen_rate,   0,3, LBL_REGEN,    LBL_REGEN,     NULL, "回血速度",   "Regen Rate"},
+  { SET_VAL8, &g.cfg_ammo_mul,     0,3, LBL_AMMO,     LBL_AMMO,      NULL, "弹药倍率",   "Ammo Mul"},
+  { SET_VAL8, &g.cfg_endless_start,0,4, LBL_ENDLESS,  LBL_ENDLESS,   NULL, "无尽起始",   "Endless Strt"},
+  // MC 沙盒 (4)
+  { SET_VAL8, &g.cfg_mc_size,      0,3, LBL_MCSZ,     LBL_MCSZ,      NULL, "MC地图大小", "MC Size"},
+  { SET_VAL8, &g.cfg_mc_day_len,   0,3, LBL_MCDAY,    LBL_MCDAY,     NULL, "MC日夜速度", "MC Day Len"},
+  { SET_BOOL, &g.cfg_mc_jump,      0,1, LBL_ONOFF_ZH, LBL_ONOFF_EN,  NULL, "MC跳跃",     "MC Jump"},
+  { SET_VAL8, &g.cfg_mc_start_sel, 0,7, LBL_MCBLK_ZH, LBL_MCBLK_EN,  NULL, "MC初始方块", "MC Block"},
+  // 调试 (1)
+  { SET_BOOL, &g.show_debug,       0,1, LBL_ONOFF_ZH, LBL_ONOFF_EN,  NULL, "调试信息",   "Debug Info"},
 };
 #define DEV_SET_COUNT (sizeof(DEV_SETS)/sizeof(DEV_SETS[0]))
 
@@ -932,26 +932,24 @@ static const SetEntry* settings_get(int idx) {
     return NULL;
 }
 
-// 格式化设置值为字符串 (写到 buf)
+// 格式化设置值为字符串 (写到 buf) — 双语
 static void settings_val_str(const SetEntry* e, char* buf, int bufsize) {
-    // void* 统一转 uint8_t* (bool 和 uint8_t 都是 1 字节, 值范围兼容)
     uint8_t v = *(uint8_t*)(e->val_ptr);
+    bool zh = (g.lang == LANG_ZH);
     if(e->type == SET_BOOL) {
-        snprintf(buf, bufsize, "%s", LBL_ONOFF[v ? 1 : 0]);
+        snprintf(buf, bufsize, "%s", zh ? LBL_ONOFF_ZH[v ? 1 : 0] : LBL_ONOFF_EN[v ? 1 : 0]);
         return;
     }
-    // SET_VAL8
-    if(e->labels) {
+    // SET_VAL8: 优先用档位标签
+    const char** lbl = zh ? e->labels_zh : e->labels_en;
+    if(lbl) {
         int i = v;
         if(i < 0) i = 0;
-        // max_val 判断
         if(i > (int)e->max_val) i = (int)e->max_val;
-        snprintf(buf, bufsize, "%s", e->labels[i]);
+        snprintf(buf, bufsize, "%s", lbl[i]);
         return;
     }
     if(e->fmt_num) {
-        // 按档位表 (0..max_val) 映射到实际值; 大部分标签已直接写死
-        // 这里对 Turn Sensitivity 单独处理
         float f = 0.0f;
         if(e->val_ptr == (void*)&g.cfg_turn_sens) {
             static const float tv[] = {1.0f,1.25f,1.5f,1.75f,2.0f,2.5f};
@@ -990,10 +988,17 @@ static void draw_settings(Canvas* c) {
 
     // 标题 (居中)
     if(g.dev_mode) {
-        char tb[24]; snprintf(tb, sizeof(tb), "开发者设置 %d/%d", s_set_sel+1, settings_count());
+        char tb[32];
+        if(g.lang == LANG_ZH)
+            snprintf(tb, sizeof(tb), "开发者设置 %d/%d", s_set_sel+1, settings_count());
+        else
+            snprintf(tb, sizeof(tb), "Dev Settings %d/%d", s_set_sel+1, settings_count());
         canvas_draw_str_aligned(c, 64, 1, AlignCenter, AlignTop, tb);
     } else {
-        canvas_draw_str_aligned(c, 64, 1, AlignCenter, AlignTop, "设置");
+        if(g.lang == LANG_ZH)
+            canvas_draw_str_aligned(c, 64, 1, AlignCenter, AlignTop, "设置");
+        else
+            canvas_draw_str_aligned(c, 64, 1, AlignCenter, AlignTop, "SETTINGS");
     }
     canvas_draw_line(c, 0, 11, 127, 11);
 
@@ -1003,13 +1008,16 @@ static void draw_settings(Canvas* c) {
 
     // 右上角分类标签
     if(g.dev_mode) {
-        static const struct { int from; int to; const char* tag; } cat[] = {
-            {0,1, "基础"}, {2,8, "操控"}, {9,13,"画面"},
-            {14,16,"音效"}, {17,21,"游戏"}, {22,25,"MC"}, {26,26,"调试"},
+        static const struct { int from; int to; const char* zh; const char* en; } cat[] = {
+            {0,1, "基础","Basic"}, {2,8, "操控","Control"}, {9,13,"画面","Video"},
+            {14,16,"音效","Audio"}, {17,21,"游戏","Game"}, {22,25,"MC","MC"}, {26,26,"调试","Debug"},
         };
-        const char* tag = "设置";
+        const char* tag = (g.lang == LANG_ZH) ? "设置" : "Settings";
         for(unsigned k = 0; k < sizeof(cat)/sizeof(cat[0]); k++) {
-            if(s_set_sel >= cat[k].from && s_set_sel <= cat[k].to) { tag = cat[k].tag; break; }
+            if(s_set_sel >= cat[k].from && s_set_sel <= cat[k].to) {
+                tag = (g.lang == LANG_ZH) ? cat[k].zh : cat[k].en;
+                break;
+            }
         }
         canvas_draw_str_aligned(c, 127, 1, AlignRight, AlignTop, tag);
     }
@@ -1036,8 +1044,9 @@ static void draw_settings(Canvas* c) {
             canvas_draw_str(c, 1, y + 7, "<");
             canvas_draw_str(c, 122, y + 7, ">");
         }
-        // 标签 (左)
-        canvas_draw_str(c, 8, y + 7, e->label_en);
+        // 标签 (左) — 双语
+        const char* lbl = (g.lang == LANG_ZH) ? e->label_zh : e->label_en;
+        canvas_draw_str(c, 8, y + 7, lbl);
         // 值 (右对齐)
         char vbuf[16];
         settings_val_str(e, vbuf, sizeof(vbuf));
@@ -1058,8 +1067,13 @@ static void draw_settings(Canvas* c) {
 
     // 底部分隔 + 操作提示
     canvas_draw_line(c, 0, 52, 127, 52);
-    canvas_draw_str(c, 2, 62, g.dev_mode ? "左右调 上下移 OK切换" : "上下选 OK切换");
-    canvas_draw_str_aligned(c, 126, 62, AlignRight, AlignBottom, "返回");
+    if(g.lang == LANG_ZH) {
+        canvas_draw_str(c, 2, 62, g.dev_mode ? "左右调 上下移 OK切换" : "上下选 OK切换");
+        canvas_draw_str_aligned(c, 126, 62, AlignRight, AlignBottom, "返回");
+    } else {
+        canvas_draw_str(c, 2, 62, g.dev_mode ? "L/R:Adj U/D:Nav OK:Toggle" : "U/D:Sel OK:Toggle");
+        canvas_draw_str_aligned(c, 126, 62, AlignRight, AlignBottom, "Back");
+    }
 }
 
 // ---- 绘制回调 ----
@@ -1417,8 +1431,9 @@ static void draw_callback(Canvas* canvas, void* ctx) {
                 canvas_set_color(canvas, ColorWhite);
             }
             const char* name = (g.lang == LANG_ZH) ? shop_item_name_zh(i) : shop_item_name_en(i);
+            const char* unit = (g.lang == LANG_ZH) ? "分" : "pts";
             char line[40];
-            snprintf(line, sizeof(line), "%s  %d分  x%d", name, shop_item_price(i), g.items[i]);
+            snprintf(line, sizeof(line), "%s  %d%s  x%d", name, shop_item_price(i), unit, g.items[i]);
             canvas_draw_str(canvas, 4, y + 7, line);
             if(sel) canvas_set_color(canvas, ColorBlack);
         }
@@ -1433,7 +1448,7 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         }
         canvas_draw_line(canvas, 0, 52, 127, 52);
         // 底部: 当前选中项说明
-        const char* desc = shop_item_desc_zh((int)g.shop_sel);
+        const char* desc = (g.lang == LANG_ZH) ? shop_item_desc_zh((int)g.shop_sel) : shop_item_desc_en((int)g.shop_sel);
         canvas_draw_str(canvas, 2, 62, desc);
         if(g.lang == LANG_ZH) canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, "OK购 Back");
         else canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, "OK:Buy Back");
@@ -1462,8 +1477,9 @@ static void draw_callback(Canvas* canvas, void* ctx) {
                 canvas_set_color(canvas, ColorWhite);
             }
             const char* name = (g.lang == LANG_ZH) ? shop_item_name_zh(i) : shop_item_name_en(i);
+            const char* desc = (g.lang == LANG_ZH) ? shop_item_desc_zh(i) : shop_item_desc_en(i);
             char line[40];
-            snprintf(line, sizeof(line), "%s  x%d  %s", name, g.items[i], shop_item_desc_zh(i));
+            snprintf(line, sizeof(line), "%s  x%d  %s", name, g.items[i], desc);
             canvas_draw_str(canvas, 4, y + 7, line);
             if(sel) canvas_set_color(canvas, ColorBlack);
         }
@@ -1480,8 +1496,12 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         // buff 状态显示
         if(g.buff_shield > 0 || g.buff_doublefire > 0) {
             char bf[40];
-            snprintf(bf, sizeof(bf), "护盾:%ds 火力:%ds",
-                g.buff_shield / 60, g.buff_doublefire / 60);
+            if(g.lang == LANG_ZH)
+                snprintf(bf, sizeof(bf), "护盾:%ds 火力:%ds",
+                    g.buff_shield / 60, g.buff_doublefire / 60);
+            else
+                snprintf(bf, sizeof(bf), "Shield:%ds 2xFire:%ds",
+                    g.buff_shield / 60, g.buff_doublefire / 60);
             canvas_draw_str(canvas, 2, 62, bf);
         }
         if(g.lang == LANG_ZH) canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, "OK用 Back");

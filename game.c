@@ -1042,7 +1042,15 @@ const char* shop_item_desc_zh(int idx) {
     static const char* desc[] = {
         "+5 HP", "+10 HP", "回满血",
         "+5 子弹", "子弹填满", "+1 钥匙",
-        "+3 火把", "回起点", "5秒无敌", "15秒双倍伤害",
+        "+3 火把", "回起点", "5秒无敌", "15秒双倍火力",
+    };
+    return (idx >= 0 && idx < 10) ? desc[idx] : "";
+}
+const char* shop_item_desc_en(int idx) {
+    static const char* desc[] = {
+        "+5 HP", "+10 HP", "Full HP",
+        "+5 Bullets", "Ammo Full", "+1 Key",
+        "+3 Torches", "Warp Start", "Invincible 5s", "2x Fire 15s",
     };
     return (idx >= 0 && idx < 10) ? desc[idx] : "";
 }
