@@ -8,6 +8,7 @@ App(
     order=10,
     fap_category="Sub-GHz",
     sources=["src/*.c"],
+    cdefines=["MORSE_FLIPPER_FAP"],
     fap_file_assets="assets",
     fap_version="0.0.1",
     fap_author="@yo3gnd",

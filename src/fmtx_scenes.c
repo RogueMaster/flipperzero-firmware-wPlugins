@@ -17,6 +17,28 @@ void playdraw(Canvas *canvas, void *model)
     canvas_draw_str_aligned(canvas, 64, 43, AlignCenter, AlignCenter, elapsed);
 }
 
+void vfodraw(Canvas *canvas, void *model)
+{
+    FmtxVfoViewModel *m = model;
+    fmtx_vfo_draw(m->vfo, canvas);
+}
+
+bool vfoinput(InputEvent *ev, void *ctx)
+{
+    App *app = ctx;
+    FmtxVfoViewModel *m = view_get_model(app->vv);
+    bool ok = false;
+    bool h = fmtx_vfo_input(m->vfo, ev, &ok);
+    view_commit_model(app->vv, h);
+    if(ok)
+    {
+        app->hz = fmtx_vfo_frequency(app->vfo);
+        (void)cfgsave(app->hz);
+        view_dispatcher_send_custom_event(app->vd, FmtxVfoDone);
+    }
+    return h;
+}
+
 static void menucb(void *ctx, uint32_t id)
 {
     App *app = ctx;
@@ -58,6 +80,7 @@ static bool mainev(void *ctx, SceneManagerEvent ev)
     if(ev.type != SceneManagerEventTypeCustom) return false;
     if(ev.event == MStart) scene_manager_next_scene(app->sm, ScPlay);
     else if(ev.event == MFile) pickfile(app);
+    else if(ev.event == MSet) scene_manager_next_scene(app->sm, FmtxSceneSettings);
     if(ev.event <= MSet) return true;
     return false;
 }
@@ -79,7 +102,7 @@ static void playin(void *ctx)
     m->elapsed_ms = 0;
     strlcpy(m->filename, slash ? slash + 1 : path, sizeof(m->filename));
     view_commit_model(app->pv, true);
-    playreq(&req, path, 433160000U);
+    playreq(&req, path, app->hz);
     app->playing = true;
     (void)playstart(app->play, &req);
     view_dispatcher_switch_to_view(app->vd, VPlay);
@@ -110,22 +133,89 @@ static void playout(void *ctx)
     playstop(app->play);
 }
 
+static void setin(void *ctx)
+{
+    App *app = ctx;
+    submenu_set_header(app->setmenu, "Settings");
+    submenu_add_item(app->setmenu, "Set hz", FmtxSettingsSetFrequency, menucb, app);
+    view_dispatcher_switch_to_view(app->vd, FmtxViewSettings);
+}
+
+static bool setev(void *ctx, SceneManagerEvent ev)
+{
+    App *app = ctx;
+    if(ev.type == SceneManagerEventTypeBack)
+    {
+        scene_manager_previous_scene(app->sm);
+        return true;
+    }
+    if(ev.type == SceneManagerEventTypeCustom && ev.event == FmtxSettingsSetFrequency)
+    {
+        scene_manager_next_scene(app->sm, FmtxSceneVfo);
+        return true;
+    }
+    return false;
+}
+
+static void setout(void *ctx)
+{
+    App *app = ctx;
+    submenu_reset(app->setmenu);
+}
+
+static void vfoin(void *ctx)
+{
+    App *app = ctx;
+    fmtx_vfo_begin(app->vfo, app->hz);
+    view_commit_model(app->vv, true);
+    view_dispatcher_switch_to_view(app->vd, FmtxViewVfo);
+}
+
+static bool vfoev(void *ctx, SceneManagerEvent ev)
+{
+    App *app = ctx;
+    if(ev.type == SceneManagerEventTypeCustom && ev.event == FmtxVfoDone)
+    {
+        scene_manager_previous_scene(app->sm);
+        return true;
+    }
+    if(ev.type == SceneManagerEventTypeBack)
+    {
+        app->hz = fmtx_vfo_accept(app->vfo);
+        (void)cfgsave(app->hz);
+        scene_manager_previous_scene(app->sm);
+        return true;
+    }
+    return false;
+}
+
+static void vfoout(void *ctx)
+{
+    UNUSED(ctx);
+}
+
 static const AppSceneOnEnterCallback fmtx_on_enter_handlers[] =
 {
     [ScMain] = mainin,
     [ScPlay] = playin,
+    [FmtxSceneSettings] = setin,
+    [FmtxSceneVfo] = vfoin,
 };
 
 static const AppSceneOnEventCallback fmtx_on_event_handlers[] =
 {
     [ScMain] = mainev,
     [ScPlay] = playev,
+    [FmtxSceneSettings] = setev,
+    [FmtxSceneVfo] = vfoev,
 };
 
 static const AppSceneOnExitCallback fmtx_on_exit_handlers[] =
 {
     [ScMain] = mainout,
     [ScPlay] = playout,
+    [FmtxSceneSettings] = setout,
+    [FmtxSceneVfo] = vfoout,
 };
 
 const SceneManagerHandlers scenes =

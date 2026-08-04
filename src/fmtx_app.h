@@ -10,6 +10,7 @@
 #include <gui/view_dispatcher.h>
 
 #include "fmtx_playback.h"
+#include "fmtx_vfo.h"
 
 typedef struct
 {
@@ -18,12 +19,18 @@ typedef struct
     ViewDispatcher *vd;
     SceneManager *sm;
     Submenu *menu;
+    Submenu *setmenu;
     View *pv;
+    View *vv;
     Play *play;
+    FmtxVfo *vfo;
     FuriString *path;
+    uint32_t hz;
     bool playing;
 } App;
 
+uint32_t cfgload(void);
+bool cfgsave(uint32_t hz);
 int32_t flipper_zero_fmtx_app(void *ctx);
 
 #endif

@@ -7,6 +7,8 @@ typedef enum
 {
     ScMain,
     ScPlay,
+    FmtxSceneSettings,
+    FmtxSceneVfo,
     ScCount,
 } Scn;
 
@@ -14,6 +16,8 @@ typedef enum
 {
     VMain,
     VPlay,
+    FmtxViewSettings,
+    FmtxViewVfo,
 } ViewId;
 
 typedef enum
@@ -23,14 +27,31 @@ typedef enum
     MSet,
 } MenuId;
 
+typedef enum
+{
+    FmtxSettingsSetFrequency,
+} FmtxSettingsItem;
+
+typedef enum
+{
+    FmtxVfoDone,
+} FmtxVfoEvent;
+
 typedef struct
 {
     uint32_t elapsed_ms;
     char filename[256];
 } PlayModel;
 
+typedef struct
+{
+    FmtxVfo *vfo;
+} FmtxVfoViewModel;
+
 extern const SceneManagerHandlers scenes;
 
 void playdraw(Canvas *canvas, void *model);
+void vfodraw(Canvas *canvas, void *model);
+bool vfoinput(InputEvent *ev, void *ctx);
 
 #endif
