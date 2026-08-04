@@ -40,6 +40,7 @@ var MESSAGES = {
     "id.cancel": "Cancel",
     // net / lobby
     "net.reconnecting": "Reconnecting...",
+    "net.quiet": "Connection lost?",
     "lobby.title": "Lobby",
     "lobby.waiting": "Waiting for the host to pick a game.",
     "lobby.chat": "Chat",
@@ -215,6 +216,7 @@ var MESSAGES = {
     "id.save": "Speichern",
     "id.cancel": "Abbrechen",
     "net.reconnecting": "Verbinde neu...",
+    "net.quiet": "Verbindung weg?",
     "lobby.title": "Lobby",
     "lobby.waiting": "Warte, bis der Host ein Spiel wählt.",
     "lobby.chat": "Chat",
