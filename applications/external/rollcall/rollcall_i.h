@@ -21,7 +21,7 @@
 #include "views/verdict_view.h"
 #include "scenes/rollcall_scene.h"
 
-#define ROLLCALL_VERSION "1.1"
+#define ROLLCALL_VERSION FAP_VERSION
 
 typedef enum {
     RollCallViewSubmenu,
