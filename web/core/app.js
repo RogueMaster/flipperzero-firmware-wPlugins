@@ -586,7 +586,7 @@ function startPlay() {
   A.initAudio();          // first gesture: unlock audio for the session
   A.sfx("start"); A.vibe(30);
   try { localStorage.setItem(storeKey("ha_nick"), n); localStorage.setItem(storeKey("ha_avatar"), A.avatar); } catch (e) {}
-  send({ t: "hello", nick: n, avatar: A.avatar });
+  send({ t: "hello", nick: n, avatar: A.avatar, named: 1 });
   screen("lobby");
 }
 
@@ -656,7 +656,7 @@ function saveIdEdit() {
   setNick();
   A.sfx("start"); A.vibe(20);
   try { localStorage.setItem(storeKey("ha_nick"), n); localStorage.setItem(storeKey("ha_avatar"), A.avatar); } catch (e) {}
-  send({ t: "hello", nick: n, avatar: A.avatar });
+  send({ t: "hello", nick: n, avatar: A.avatar, named: 1 });
   closeIdEdit();
 }
 

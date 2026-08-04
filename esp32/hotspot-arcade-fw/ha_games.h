@@ -512,7 +512,8 @@ public:
 
     // `deviceKey` says which phone this socket is on (0 = unknown); see the Player
     // comment for why it, not the socket, is the identity.
-    void onHello(uint32_t wsId, uint64_t deviceKey, const char* nick, const char* avatar) {
+    void onHello(uint32_t wsId, uint64_t deviceKey, const char* nick, const char* avatar,
+                 bool named) {
         uint8_t pid = pidByWs(wsId);
         // A hello on a NEW socket from a device that is already playing: the phone
         // opened the page in a second browser context (the captive mini-browser next
@@ -541,7 +542,7 @@ public:
             strlcpy(_p[pid].avatar, (avatar && avatar[0]) ? avatar : "\xF0\x9F\x99\x82", sizeof(_p[pid].avatar));
             haUartJoin(pid, _p[pid].nick);
             haLogJoin(pid, deviceKey, _p[pid].nick, false);
-        } else if(!rebound) {
+        } else if(!rebound || named) {
             // Re-hello from a known socket = the player changed their name/avatar in
             // the header editor. Re-announce over UART so the Flipper's leaderboard
             // updates (player_join there updates an existing pid's nick in place).
@@ -847,7 +848,12 @@ public:
             char nick[HA_NICK_LEN], avatar[8];
             ha_json_str(json, "nick", nick, sizeof(nick));
             if(!ha_json_str(json, "avatar", avatar, sizeof(avatar))) avatar[0] = '\0';
-            onHello(wsId, deviceKey, nick, avatar);
+            // "named" marks a hello the player actually typed (pressed Play, or edited
+            // their name) as opposed to the silent auto-rejoin a reconnecting socket
+            // replays. Only a typed name may rename an existing player -- see onHello.
+            int named = 0;
+            ha_json_int(json, "named", &named);
+            onHello(wsId, deviceKey, nick, avatar, named != 0);
             return;
         }
         if(strcmp(type, "ping") == 0) {
