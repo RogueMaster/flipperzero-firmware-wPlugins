@@ -98,12 +98,15 @@ for (const pid of [1, 2, 3]) {
     .replace(/"myanswer":-?\d+/g, "").replace(/"phase":"[a-z]+"/g, "");
   assert.ok(!/answer/i.test(s), "no per-player answer field at reveal");
 }
-// Scoring: exact prediction -> +3, off by one -> +1, else 0.
-assert.equal(lastToWs(out, 1, "secrets").msg.mygain, 3, "exact prediction earns 3");
-assert.equal(lastToWs(out, 2, "secrets").msg.mygain, 1, "off-by-one earns 1");
-assert.equal(lastToWs(out, 3, "secrets").msg.mygain, 1, "off-by-one earns 1");
-// The exact guesser (predicted 2) shows +3 in the shared guesses list.
-const exact = lastToWs(out, 1, "secrets").msg.guesses.find((g) => g.n === 2);
-assert.ok(exact && exact.pts === 3, "the exact guess is listed with +3");
+// Scoring: an exact prediction earns 1, everything else nothing -- being off by one
+// used to earn a point too, which made the reveal fiddly to read for little gain.
+assert.equal(lastToWs(out, 1, "secrets").msg.mygain, 1, "exact prediction earns 1");
+assert.equal(lastToWs(out, 2, "secrets").msg.mygain, 0, "off by one earns nothing");
+assert.equal(lastToWs(out, 3, "secrets").msg.mygain, 0, "off by one earns nothing");
+// The exact guesser (predicted 2) is the only one carrying points in the shared list.
+const gs = lastToWs(out, 1, "secrets").msg.guesses;
+const exact = gs.find((g) => g.n === 2);
+assert.ok(exact && exact.pts === 1, "the exact guess is listed with +1");
+assert.ok(gs.filter((g) => g.pts > 0).length === 1, "only the exact guess scores");
 
 console.log("secrets: all checks passed");
