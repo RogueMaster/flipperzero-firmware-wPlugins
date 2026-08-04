@@ -30,6 +30,7 @@ struct FieldDetector {
     volatile bool calib_req;
     volatile uint32_t calib_duration_ms;
     uint8_t threshold; // duty-cycle noise floor (%)
+    volatile uint8_t full_scale; // raw duty that displays as 100%
     FieldStats stats; // guarded by mutex
 };
 
@@ -92,6 +93,8 @@ static void cadence_ring_summarise(const CadenceRing* r, CadenceStats* out, uint
 static void field_stats_clear(FieldStats* s) {
     s->present = false;
     s->strength = 0;
+    s->strength_raw = 0;
+    s->saturated = false;
     s->peak = 0;
     s->average = 0;
     s->contacts = 0;
@@ -229,10 +232,17 @@ static int32_t field_detector_worker(void* context) {
                 s->calibration_progress = 0;
             }
 
+            /* Detection stays on the raw duty: the noise floor is a statement
+             * about the signal, not about how the gauge is drawn. */
             bool present = duty > fd->threshold;
-            s->strength = ema;
             s->present = present;
-            if(ema > s->peak) s->peak = ema;
+            s->strength_raw = ema;
+
+            /* Everything the user reads is mapped onto a full-scale meter. */
+            uint8_t shown = field_scale_apply(ema, fd->full_scale);
+            s->strength = shown;
+            s->saturated = field_scale_is_saturated(ema, fd->full_scale);
+            if(shown > s->peak) s->peak = shown;
 
             /* Halve both sides long before the sum could overflow - the mean is
              * preserved, and a sweep left running for days still reads sanely. */
@@ -240,7 +250,7 @@ static int32_t field_detector_worker(void* context) {
                 strength_sum >>= 1;
                 strength_n >>= 1;
             }
-            strength_sum += ema;
+            strength_sum += shown;
             strength_n++;
             s->average = (uint8_t)(strength_sum / strength_n);
 
@@ -251,9 +261,12 @@ static int32_t field_detector_worker(void* context) {
                 s->last_seen_tick = now;
                 if(!was_present) s->contacts++;
             }
+            /* The waveform is part of the meter, so it follows the same scale. */
             s->history_head = (uint8_t)((s->history_head + 1u) % SPECTER_HISTORY_LEN);
-            s->history[s->history_head] = ema;
+            s->history[s->history_head] = shown;
 
+            /* The classifier reasons about the carrier itself - it gets the raw
+             * duty, so its CONTINUOUS test keeps meaning "carrier held up". */
             cadence_ring_summarise(&ring, &s->cadence, ema);
 
             /* ---- calibration pass ---- */
@@ -304,6 +317,7 @@ FieldDetector* field_detector_alloc(void) {
     memset(fd, 0, sizeof(FieldDetector));
     fd->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     fd->threshold = 0; // default: most sensitive
+    fd->full_scale = SPECTER_FULL_SCALE_DUTY;
     field_stats_clear(&fd->stats);
     return fd;
 }
@@ -318,6 +332,14 @@ void field_detector_free(FieldDetector* fd) {
 void field_detector_set_threshold(FieldDetector* fd, uint8_t duty_threshold) {
     furi_assert(fd);
     fd->threshold = duty_threshold;
+}
+
+void field_detector_set_full_scale(FieldDetector* fd, uint8_t full_scale) {
+    furi_assert(fd);
+    /* Safe to change while the worker is running: it is a single byte read once
+     * per window, and the only consequence of racing is one window drawn at the
+     * old scale. */
+    fd->full_scale = full_scale ? full_scale : SPECTER_SCALE_RAW;
 }
 
 void field_detector_start(FieldDetector* fd) {

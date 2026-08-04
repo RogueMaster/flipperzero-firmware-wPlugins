@@ -132,6 +132,7 @@ void specter_stealth_exit(SpecterApp* app) {
 void specter_apply_threshold(SpecterApp* app) {
     furi_assert(app);
     field_detector_set_threshold(app->detector, specter_settings_threshold(&app->settings));
+    field_detector_set_full_scale(app->detector, specter_settings_full_scale(&app->settings));
 }
 
 /* ---------------- view dispatcher plumbing ---------------- */

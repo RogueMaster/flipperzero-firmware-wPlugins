@@ -14,6 +14,7 @@ typedef enum {
     SettingsIndexLed,
     SettingsIndexStealth,
     SettingsIndexLogging,
+    SettingsIndexMeter,
     SettingsIndexClearLog,
 } SettingsIndex;
 
@@ -80,6 +81,18 @@ static void logging_changed(VariableItem* item) {
     settings_commit(app);
 }
 
+/* Boosted maps the real polling band onto the whole dial; Raw shows the
+ * unscaled carrier duty-cycle, which tops out around 30% on a live reader. */
+static const char* const meter_labels[] = {"Boost", "Raw"};
+
+static void meter_changed(VariableItem* item) {
+    SpecterApp* app = variable_item_get_context(item);
+    uint8_t i = variable_item_get_current_value_index(item);
+    app->settings.meter_raw = i;
+    variable_item_set_current_value_text(item, meter_labels[i]);
+    settings_commit(app);
+}
+
 static void settings_enter_cb(void* context, uint32_t index) {
     SpecterApp* app = context;
     if(index == SettingsIndexClearLog) {
@@ -124,6 +137,10 @@ void specter_scene_settings_on_enter(void* context) {
     item = variable_item_list_add(list, "Logging", 2, logging_changed, app);
     variable_item_set_current_value_index(item, app->settings.logging ? 1 : 0);
     variable_item_set_current_value_text(item, on_off[app->settings.logging ? 1 : 0]);
+
+    item = variable_item_list_add(list, "Meter", 2, meter_changed, app);
+    variable_item_set_current_value_index(item, app->settings.meter_raw ? 1 : 0);
+    variable_item_set_current_value_text(item, meter_labels[app->settings.meter_raw ? 1 : 0]);
 
     /* Not a toggle - selecting it goes to the confirmation screen. */
     item = variable_item_list_add(list, "Clear logbook", 1, NULL, app);

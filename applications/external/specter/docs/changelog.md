@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.3
+
+- **Fix: the field meter never went above ~31%, even resting on a reader.** The gauge was showing raw carrier duty-cycle. Readers *poll* — a burst, a sleep, another burst — so a typical terminal only radiates 20–35% of the time and the raw number **saturates** near 30% no matter how close you get. Nothing was mis-detected; it was displayed on the wrong scale. The meter is now mapped against that real polling band, so sitting on a reader reads **~90–100%** instead of 31%.
+- Two knock-on bugs fixed by the same change: the proximity words `CLOSE` and `STRONG` were **unreachable** (they need ≥45/≥70 on a scale that stopped at ~31, so it only ever said `FAINT`/`NEAR`), and Site Survey's "peak ≥ 50" test for an `ACTIVE READER` verdict could **essentially never fire** for a polling reader — the exact device Specter is built to find.
+- New `MAX` proximity word: the meter says when it is **pegged**, so a needle that stops moving reads as saturation rather than a fault.
+- New **Settings → Meter** toggle: `Boost` (default, full-scale) or `Raw` (the literal duty-cycle, as before).
+- The raw duty is still the source of truth everywhere it matters — noise floor, auto-calibration, the emitter classifier and the Fingerprint screen's `DUTY` all continue to work in true duty-cycle.
+- Meter scaling is a pure, host-tested layer (`helpers/field_scale.c`); the suite is now 284 checks.
+
 ## 2.2
 
 - **Fix: `BACK` could look dead when leaving a stealth screen.** Stealth force-darkens the display, and the old exit path only *unlocked* that force — it didn't turn the backlight back on — so a `BACK` press landed you on an unlit menu that looked frozen. Exiting a stealth screen now actively re-lights the display.

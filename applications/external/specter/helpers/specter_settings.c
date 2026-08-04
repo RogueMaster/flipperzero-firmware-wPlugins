@@ -1,12 +1,17 @@
 #include "specter_settings.h"
 
+#include "field_scale.h"
+
 #include <furi.h>
 #include <saved_struct.h>
 #include <storage/storage.h>
 
 #define SETTINGS_PATH    APP_DATA_PATH("specter.conf")
 #define SETTINGS_MAGIC   0x5Cu
-#define SETTINGS_VERSION 1u
+/* Bumped in 2.3 when the Meter setting was added. saved_struct validates size
+ * as well as version, so an older file is simply ignored and the defaults come
+ * back - a one-time reset of preferences rather than a garbled struct. */
+#define SETTINGS_VERSION 2u
 
 static const char* const sens_labels[SPECTER_SENS_COUNT] = {"High", "Medium", "Low", "Custom"};
 static const uint8_t sens_thresh[SPECTER_SENS_COUNT] = {0, 8, 20, 0}; // Custom uses its own
@@ -24,6 +29,12 @@ void specter_settings_set_defaults(SpecterSettings* s) {
     s->led = true;
     s->stealth = false;
     s->logging = true;
+    s->meter_raw = false; // full-scale meter by default; see field_scale.h
+}
+
+uint8_t specter_settings_full_scale(const SpecterSettings* s) {
+    furi_assert(s);
+    return s->meter_raw ? SPECTER_SCALE_RAW : SPECTER_FULL_SCALE_DUTY;
 }
 
 /* Anything read off the SD card is untrusted input as far as the label tables

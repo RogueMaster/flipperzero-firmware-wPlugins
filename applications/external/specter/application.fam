@@ -17,6 +17,6 @@ App(
     fap_category="NFC",
     fap_author="at0m-b0mb",
     fap_weburl="https://github.com/at0m-b0mb/Specter-FlipperZero",
-    fap_version="2.2",
+    fap_version="2.3",
     fap_description="Counter-surveillance bug-sweep: passively senses active 13.56 MHz NFC reader/skimmer fields nearby (hidden POS skimmers, rogue door readers) using the onboard NFC chip. Sweep to find one, fingerprint its polling cadence, survey a room for a verdict, leave it in Watch mode to stand guard, and keep a timestamped logbook (txt + CSV) on the SD card. No extra hardware, never transmits.",
 )

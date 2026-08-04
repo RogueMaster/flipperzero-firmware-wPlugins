@@ -20,6 +20,7 @@ typedef struct {
     bool led;
     bool stealth; // screen + LED dark: sweep without advertising that you are
     bool logging; // append findings to the SD logbook
+    bool meter_raw; // show unscaled carrier duty instead of a full-scale meter
 } SpecterSettings;
 
 void specter_settings_set_defaults(SpecterSettings* s);
@@ -30,6 +31,9 @@ bool specter_settings_save(const SpecterSettings* s);
 
 /* Duty-cycle noise floor implied by the current sensitivity. */
 uint8_t specter_settings_threshold(const SpecterSettings* s);
+
+/* Raw duty that should read as a full meter, per the Meter setting. */
+uint8_t specter_settings_full_scale(const SpecterSettings* s);
 
 const char* specter_settings_sensitivity_label(uint8_t index);
 const char* specter_settings_survey_label(uint8_t index);
