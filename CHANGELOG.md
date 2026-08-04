@@ -8,12 +8,14 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 
 ### Added
 
-- **Secrets**, a 16th game (whole-group). Each round shows a yes/no question; every player
-  first secretly predicts how many of the group will answer "yes" (0..N), then secretly
-  answers. Only the group's total yes-count is ever revealed — never who answered what,
-  enforced server-side in the per-player serializer. An exact prediction scores 3, off by
-  one scores 1. Six rounds, on the shared party lobby/countdown/reveal skeleton, with a
-  votable pack of questions. Ships localized (English + German). Firmware **v18**.
+- **Secrets**, a 16th game (whole-group). Each round shows a yes/no question and runs
+  answer → predict → reveal: every player first secretly answers yes/no, then secretly
+  predicts how many of the group said yes (0..N). Only the group's total yes-count is ever
+  revealed — the individual answers are never serialized to anyone, enforced server-side in
+  the per-player serializer; predictions (guesses about the group, not personal) are shown
+  at reveal. An exact prediction scores 3, off by one scores 1. Six rounds, on the shared
+  party lobby/countdown/reveal skeleton, with a votable pack of questions. Ships localized
+  (English + German). Firmware **v18**.
 
 ## [1.6.0] - 2026-08-03
 

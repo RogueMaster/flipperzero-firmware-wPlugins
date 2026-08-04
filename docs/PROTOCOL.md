@@ -425,23 +425,26 @@ countdown, reveal). Content reuses the pack pipeline: each item is a `Q` (one ye
 question). Select with UART `SELECT_GAME` id `16`; lobby `game` string `"secrets"`.
 Firmware **v18**.
 
-Each round shows one question. First everyone **predicts** how many of the `N` joined
-players will answer "yes" (an integer `0..N`), then everyone secretly **answers** yes/no.
-Only the group's total yes-count is ever revealed — never who answered what. An exact
+Each round shows one question and runs **answer → predict → reveal**. First everyone
+secretly **answers** yes/no; then everyone secretly **predicts** how many of the `N` joined
+players said yes (an integer `0..N`); then reveal. Only the group's total yes-count is ever
+revealed — the individual yes/no answers are never serialized to anyone. An exact
 prediction scores 3, off by one scores 1, otherwise 0. Six rounds.
 
-Client intents: `ready`, `vote{pack}`, `predict{n}` (your yes-count guess, clamped
-`0..N`), `reply{v}` (`1` = yes, `0` = no), `again`. The distinct `predict`/`reply` verbs
-avoid colliding with Would You Rather's `answer`/`vote`.
+Client intents: `ready`, `vote{pack}`, `reply{v}` (`1` = yes, `0` = no; answer stage),
+`predict{n}` (your yes-count guess, clamped `0..N`; predict stage), `again`. The distinct
+`reply`/`predict` verbs avoid colliding with Would You Rather's `answer`/`vote`.
 
 Server `{t:"secrets",phase,...}`:
 - `"lobby"`: `you`, `players`, `packs` (name/votes), `myvote`.
 - `"countdown"`: `sec`.
-- `"predict"` / `"answer"`: `round`, `rounds`, `n` (player count / predict upper bound),
+- `"answer"` / `"predict"`: `round`, `rounds`, `n` (player count / predict upper bound),
   `q` (the question), `locked`/`total` (aggregate progress in the current step),
   `myprediction` and `myanswer` (**your own only**, `-1` if unset), `deadline`/`dur` for
   the timer bar, and `scores` (the shared leaderboard).
-- `"reveal"`: adds `yes` (the group total, the **only** answer information ever sent) and
-  `mygain` (your points this round). No individual prediction or answer of any other
-  player is serialized in any phase — anonymity is enforced in `secretsJson(pid)`.
+- `"reveal"`: adds `yes` (the group total, the **only** answer information ever sent),
+  `guesses` (`[{nick, n, pts}]` — every player's prediction and points; predictions are
+  guesses about the group, not personal, so they're public here), and `mygain` (your
+  points). No individual yes/no **answer** is ever serialized, in any phase — anonymity is
+  enforced in `secretsJson(pid)`.
 - `"final"`: `board` (the shared leaderboard).

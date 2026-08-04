@@ -1,9 +1,11 @@
 // Secrets: a whole-group hidden-vote party game. Each round shows a yes/no question;
-// players secretly predict how many of the N of them will say yes (0..N), then secretly
-// answer. Only the group's total yes-count is revealed — never who answered what.
-// Exercises selectGame + ready/vote/predict/reply/again and the predict->answer->reveal
-// flow, and asserts the anonymity rule: no player ever receives another player's
-// individual prediction or answer, and the yes-count is hidden until reveal.
+// players first secretly ANSWER, then secretly PREDICT how many of the N of them said
+// yes (0..N), then reveal. Only the group's total yes-count is revealed — the individual
+// yes/no answers are never serialized to anyone. Predictions are guesses about the group,
+// so at reveal every player's prediction + points appear in "guesses".
+// Exercises selectGame + ready/vote/reply/predict/again and the answer->predict->reveal
+// flow, asserts the anonymity rule (answers never leak), and that selecting the game pushes
+// state to every player even when switching from another game.
 import assert from "node:assert/strict";
 import { newEngine, lastToWs } from "./harness-lib.mjs";
 
@@ -11,14 +13,25 @@ const SEC = 16;
 const e = await newEngine();
 e.reset();
 e.join(1, "ALICE"); e.join(2, "BOB"); e.join(3, "CARA");
-e.selectGame(SEC);
+
+// Routing: the host has a different game active first, then switches to Secrets. Every
+// connected player must receive the Secrets push on select (the engine side of "everyone
+// follows the host into the new game" — the client's route() in app.js does the view switch).
+e.selectGame(8); // Would You Rather
+const sel = e.selectGame(SEC);
+for (const pid of [1, 2, 3]) {
+  const m = lastToWs(sel, pid, "secrets");
+  assert.ok(m && m.msg.phase === "lobby",
+    "player " + pid + " is pushed into Secrets even coming from another game");
+}
+
 // A pack is required (secretsCheckStart no-ops with packCount 0). Load one.
 e.contentClear();
 e.contentPack(SEC, "Test");
 e.contentItem(JSON.stringify({ q: "Do you talk to animals?" }));
 e.contentItem(JSON.stringify({ q: "Have you ever cried at a film?" }));
 
-// lobby -> all ready -> countdown -> predict
+// lobby -> all ready -> countdown -> answer (the answer stage comes FIRST)
 e.input(1, { t: "ready", ready: true });
 e.input(2, { t: "ready", ready: true });
 let out = e.input(3, { t: "ready", ready: true });
@@ -26,24 +39,12 @@ for (let ms = 1000; ms <= 4000; ms += 1000) out = out.concat(e.tick(ms));
 
 for (const pid of [1, 2, 3]) {
   const m = lastToWs(out, pid, "secrets");
-  assert.equal(m.msg.phase, "predict", "predict phase first");
+  assert.equal(m.msg.phase, "answer", "answer phase first");
   assert.equal(m.msg.n, 3, "N = 3 joined players");
-  assert.equal(m.msg.myprediction, -1, "own prediction unset at round start");
+  assert.equal(m.msg.myanswer, -1, "own answer unset at round start");
   assert.ok(typeof m.msg.q === "string" && m.msg.q.length, "question text present");
   assert.equal(m.msg.yes, undefined, "the yes-count is never sent before reveal");
-}
-
-// Everyone predicts: p1=2 (will be exact), p2=1 (off by one), p3=3 (off by one).
-e.input(1, { t: "predict", n: 2 });
-e.input(2, { t: "predict", n: 1 });
-out = e.input(3, { t: "predict", n: 3 });
-{
-  const m3 = lastToWs(out, 3, "secrets");
-  assert.equal(m3.msg.phase, "answer", "answer stage once everyone predicted");
-  assert.equal(m3.msg.myprediction, 3, "player 3 sees only its own prediction");
-  // Anonymity: no other player's prediction is serialized anywhere in the payload.
-  assert.equal(m3.msg.predictions, undefined, "no per-player prediction list");
-  assert.equal(m3.msg.predict, undefined, "no per-player prediction array");
+  assert.equal(m.msg.guesses, undefined, "no guesses before reveal");
 }
 
 // p1 and p2 answer yes; check that player 3 (a not-yet-answered observer) never sees
@@ -57,24 +58,52 @@ out = e.input(2, { t: "reply", v: 1 });
   assert.equal(m3.msg.answers, undefined, "no per-player answer list mid-answer");
   assert.equal(m3.msg.answer, undefined, "no per-player answer array mid-answer");
   assert.equal(m3.msg.yes, undefined, "yes-count stays hidden until reveal");
-  // Nothing in the whole serialized message should betray the two yes answers so far:
-  // the only answer field is the observer's own (-1).
-  const s = JSON.stringify(m3.msg);
-  assert.ok(!/"a(nswer)?[0-9]?":\s*1/.test(s.replace(/"myanswer":-1/, "")),
-    "no other player's yes/no leaks into the observer's state");
+  // Nothing in the serialized state should betray the two yes answers so far. Strip the
+  // observer's own myanswer and the phase token (the answer STAGE is literally named
+  // "answer"); no other "answer" field may remain.
+  const s = JSON.stringify(m3.msg)
+    .replace(/"myanswer":-?\d+/g, "").replace(/"phase":"[a-z]+"/g, "");
+  assert.ok(!/answer/i.test(s), "no other player's answer leaks into the observer's state");
 }
 
-// p3 answers no -> yesCount = 2, reveal fires.
+// p3 answers no -> all answered -> predict stage. yesCount (2) is computed but hidden.
 out = e.input(3, { t: "reply", v: 0 });
 for (const pid of [1, 2, 3]) {
   const m = lastToWs(out, pid, "secrets");
-  assert.equal(m.msg.phase, "reveal", "reveal after all answered");
+  assert.equal(m.msg.phase, "predict", "predict stage once everyone answered");
+  assert.equal(m.msg.myprediction, -1, "own prediction unset entering predict");
+  assert.equal(m.msg.yes, undefined, "yes-count still hidden during predict");
+  assert.equal(m.msg.answers, undefined, "answers never serialized in predict");
+}
+
+// Everyone predicts: p1=2 (exact), p2=1 (off by one), p3=3 (off by one).
+e.input(1, { t: "predict", n: 2 });
+e.input(2, { t: "predict", n: 1 });
+out = e.input(3, { t: "predict", n: 3 });
+for (const pid of [1, 2, 3]) {
+  const m = lastToWs(out, pid, "secrets");
+  assert.equal(m.msg.phase, "reveal", "reveal after all predicted");
   assert.equal(m.msg.yes, 2, "the group yes-count (2) is revealed to everyone");
-  assert.equal(m.msg.answers, undefined, "reveal still never lists individual answers");
+  assert.equal(m.msg.n, 3, "N is sent for the 0..N reveal scale");
+  // Predictions ARE exposed at reveal (guesses about the group, not personal answers).
+  assert.ok(Array.isArray(m.msg.guesses) && m.msg.guesses.length === 3,
+    "reveal lists every player's prediction + points");
+  for (const g of m.msg.guesses) {
+    assert.ok(typeof g.nick === "string" && typeof g.n === "number" && typeof g.pts === "number",
+      "each guess has nick/n/pts");
+  }
+  // Individual yes/no answers must STILL never appear (predictions may; answers may not).
+  assert.equal(m.msg.answers, undefined, "reveal never lists individual answers");
+  const s = JSON.stringify(m.msg)
+    .replace(/"myanswer":-?\d+/g, "").replace(/"phase":"[a-z]+"/g, "");
+  assert.ok(!/answer/i.test(s), "no per-player answer field at reveal");
 }
 // Scoring: exact prediction -> +3, off by one -> +1, else 0.
 assert.equal(lastToWs(out, 1, "secrets").msg.mygain, 3, "exact prediction earns 3");
 assert.equal(lastToWs(out, 2, "secrets").msg.mygain, 1, "off-by-one earns 1");
 assert.equal(lastToWs(out, 3, "secrets").msg.mygain, 1, "off-by-one earns 1");
+// The exact guesser (predicted 2) shows +3 in the shared guesses list.
+const exact = lastToWs(out, 1, "secrets").msg.guesses.find((g) => g.n === 2);
+assert.ok(exact && exact.pts === 3, "the exact guess is listed with +3");
 
 console.log("secrets: all checks passed");

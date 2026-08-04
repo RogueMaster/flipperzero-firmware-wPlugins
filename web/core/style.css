@@ -517,7 +517,20 @@ h3{margin:0; font-weight:600}
 .sec-ans.no.mine{border-color:var(--bad); color:var(--bad)}
 .sec-reveal{text-align:center; margin:10px 0}
 .sec-yescount{font-size:26px; font-weight:800; color:var(--orange-bright)}
-.sec-your-call{color:var(--text-dim); font-size:14px; margin-top:8px}
+/* Reveal scale: a 0..N row of counts with the actual yes-count tinted orange. */
+.sec-scale{display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin:12px 0}
+.sec-cell{min-width:40px; height:40px; display:flex; align-items:center; justify-content:center;
+  border:2px solid var(--line); border-radius:var(--radius); background:var(--surface-2);
+  color:var(--text-dim); font-weight:700; font-variant-numeric:tabular-nums}
+.sec-cell.hit{border-color:var(--orange); background:rgba(255,130,0,.20); color:var(--orange-bright)}
+.sec-scorers{list-style:none; margin:12px 0 0; padding:0; display:flex; flex-direction:column; gap:6px}
+.sec-scorers li{display:flex; align-items:center; gap:10px; background:var(--surface-2);
+  border:2px solid var(--line); border-radius:var(--radius); padding:8px 12px}
+.sec-scorer.exact{border-color:var(--orange)}
+.sec-scorers .pn{flex:1; font-weight:700; text-align:left}
+.sec-scorers .pg{color:var(--text-dim); font-size:13px; font-variant-numeric:tabular-nums}
+.sec-scorers .ps{color:var(--orange); font-weight:800; font-variant-numeric:tabular-nums}
+.sec-none{justify-content:center; color:var(--text-dim)}
 .sec-result{text-align:center; color:var(--orange); font-weight:700; font-size:16px; min-height:20px}
 .sec-note{text-align:center; color:var(--text-dim); font-size:13px; margin-top:8px; min-height:16px}
 

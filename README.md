@@ -46,10 +46,10 @@ reactions that float up on everyone's screen mid-game.
   from the pack) Kiss, Marry, and Kill; everyone else predicts the chooser's assignment.
   Points for matching positions, and the chooser scores by how well the group reads them.
   Six rounds. People are the kmk packs on the SD card.
-- **Secrets** — each round shows a yes/no question. Everyone first secretly predicts how
-  many of the group will answer "yes", then secretly answers. Only the total yes-count is
-  ever revealed, never who answered what — an exact prediction scores 3, off by one scores
-  1. Six rounds. Questions are the secrets packs on the SD card, votable in the lobby.
+- **Secrets** — each round shows a yes/no question. Everyone first secretly answers, then
+  secretly predicts how many of the group said "yes". Only the total yes-count is ever
+  revealed, never who answered what — an exact prediction scores 3, off by one scores 1.
+  Six rounds. Questions are the secrets packs on the SD card, votable in the lobby.
 
 **1v1 duels** (challenge a player, many matches at once, rematch button, wins score on
 the Flipper leaderboard):

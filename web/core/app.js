@@ -543,10 +543,16 @@ function onLobby(m) {
     ? "Waiting for the host to pick a game."
     : (GAME_LABEL[g] || g) + " starting...";
 
-  // If the host went back to the plain lobby, leave any game screen. Otherwise
-  // show the shell of the chosen game; the game message fills in details.
+  // If the host went back to the plain lobby, leave any game screen. Otherwise show
+  // the shell of the chosen game; the game message fills in details. Route in whenever
+  // the player isn't already on the target screen (not only from the plain lobby): a
+  // player left on a PREVIOUS game's screen — a stale board, a "final"/"over" screen —
+  // must still follow the host into the newly selected game. If they're already on the
+  // target screen (mid-game, or a duel switching kind within the shared "duel" screen),
+  // this is a no-op, so it can't yank an active player anywhere they aren't already.
   if (g === "none" && A.view !== "landing") route("lobby");
-  else if (g !== "none" && A.view === "lobby" && GAME_SCREEN[g]) route(GAME_SCREEN[g]);
+  else if (g !== "none" && GAME_SCREEN[g] && A.view !== "landing" && A.view !== GAME_SCREEN[g])
+    route(GAME_SCREEN[g]);
 }
 
 /* Landing flow */

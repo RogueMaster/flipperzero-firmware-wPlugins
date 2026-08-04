@@ -4808,39 +4808,39 @@ private:
         pt.round++;
         _secrets.question = (uint8_t)(_secrets.qSeq % pk.count);
         _secrets.qSeq++;
-        _secrets.stage = 0; // predict first
+        _secrets.stage = 0; // answer first, then predict
         _secrets.yesCount = 0;
         for(int i = 0; i <= HA_MAX_PLAYERS; i++) {
             _secrets.predict[i] = -1;
             _secrets.answer[i] = -1;
             _secrets.gained[i] = 0;
         }
-        pt.deadline = now + (uint32_t)SECRETS_PREDICT_SECS * 1000;
+        pt.deadline = now + (uint32_t)SECRETS_ANSWER_SECS * 1000;
         pt.phase = 2;
         pushAll();
     }
 
-    void secretsToAnswer(uint32_t now) {
-        _secrets.stage = 1; // move to answering
-        _secrets.pt.deadline = now + (uint32_t)SECRETS_ANSWER_SECS * 1000;
+    void secretsToPredict(uint32_t now) {
+        _secrets.stage = 1; // answers are in; now guess how many said yes
+        _secrets.pt.deadline = now + (uint32_t)SECRETS_PREDICT_SECS * 1000;
         pushAll();
     }
 
-    void secretsPredict(uint8_t pid, int n) {
+    void secretsReply(uint8_t pid, int v) {
         if(_active != HA_GAME_SECRETS || _secrets.pt.phase != 2 || _secrets.stage != 0) return;
+        if(v != 0 && v != 1) return;
+        _secrets.answer[pid] = (int8_t)v;
+        if(secretsAllAnswered()) secretsToPredict(millis());
+        else pushAll();
+    }
+
+    void secretsPredict(uint8_t pid, int n) {
+        if(_active != HA_GAME_SECRETS || _secrets.pt.phase != 2 || _secrets.stage != 1) return;
         int cap = connectedCount(); // predictions range 0..N (N = joined players)
         if(n < 0) n = 0;
         if(n > cap) n = cap;
         _secrets.predict[pid] = (int8_t)n;
-        if(secretsAllPredicted()) secretsToAnswer(millis());
-        else pushAll();
-    }
-
-    void secretsReply(uint8_t pid, int v) {
-        if(_active != HA_GAME_SECRETS || _secrets.pt.phase != 2 || _secrets.stage != 1) return;
-        if(v != 0 && v != 1) return;
-        _secrets.answer[pid] = (int8_t)v;
-        if(secretsAllAnswered()) secretsReveal(millis());
+        if(secretsAllPredicted()) secretsReveal(millis());
         else pushAll();
     }
 
@@ -4891,12 +4891,13 @@ private:
             }
         } else if(pt.phase == 2) {
             if(_secrets.stage == 0) {
-                // Predict window expired: move to answering anyway so a silent player
-                // can't stall the round (missing predictions just score nothing).
-                if((int32_t)(now - pt.deadline) >= 0 || secretsAllPredicted())
-                    secretsToAnswer(now);
-            } else {
+                // Answer window expired: move to predicting anyway so a silent player
+                // can't stall the round (a missing answer just counts as no).
                 if((int32_t)(now - pt.deadline) >= 0 || secretsAllAnswered())
+                    secretsToPredict(now);
+            } else {
+                // Predict window expired: reveal anyway (missing predictions score 0).
+                if((int32_t)(now - pt.deadline) >= 0 || secretsAllPredicted())
                     secretsReveal(now);
             }
         } else if(pt.phase == 3) {
@@ -4904,10 +4905,11 @@ private:
         }
     }
 
-    // Anonymity is enforced here: the group yes-count is exposed only on reveal, and a
-    // player's own prediction/answer/points reach only that player. No other player's
-    // individual prediction or answer is ever serialized, in any phase — only aggregate
-    // progress counts and the shared score list leave this method.
+    // Anonymity is enforced here. A round runs answer -> predict -> reveal. Each player's
+    // individual yes/no ANSWER is never serialized to anyone, in any phase — only the group
+    // yes-count, and only on reveal. Predictions are guesses about the group (not personal),
+    // so at reveal every player's prediction + points are exposed in "guesses"; before then
+    // only the player's own prediction/answer and aggregate progress counts leave this method.
     String secretsJson(uint8_t pid) {
         Party& pt = _secrets.pt;
         if(pt.phase == 0) {
@@ -4937,13 +4939,13 @@ private:
         const char* q = pk.words[_secrets.question].c_str();
         int total = connectedCount(); // number of players (also the predict upper bound)
         bool reveal = (pt.phase == 3);
-        const char* phase = reveal ? "reveal" : (_secrets.stage == 0 ? "predict" : "answer");
-        // Aggregate progress only: how many have locked in the current step. This never
-        // exposes an individual's prediction or answer.
+        const char* phase = reveal ? "reveal" : (_secrets.stage == 0 ? "answer" : "predict");
+        // Aggregate progress only: how many have locked in the current step (answers while
+        // answering, predictions while predicting). This never exposes an individual's pick.
         int locked = 0;
         for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
             if(!_p[i].used) continue;
-            if(reveal || _secrets.stage == 1) {
+            if(!reveal && _secrets.stage == 0) {
                 if(_secrets.answer[i] >= 0) locked++;
             } else if(_secrets.predict[i] >= 0)
                 locked++;
@@ -4959,9 +4961,20 @@ private:
         s += ",\"myanswer\":";
         s += (int)_secrets.answer[pid];
         if(reveal) {
-            // Only the group total is revealed, never who answered what.
+            // Only the group total is revealed, never who answered what. Predictions are
+            // guesses about the group, so every player's prediction + points are listed.
             s += ",\"yes\":";
             s += _secrets.yesCount;
+            s += ",\"guesses\":[";
+            bool first = true;
+            for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++) {
+                if(!_p[i].used) continue;
+                if(!first) s += ",";
+                first = false;
+                s += "{\"nick\":\"" + ha_json_escape(_p[i].nick) + "\",\"n\":" +
+                     (int)_secrets.predict[i] + ",\"pts\":" + _secrets.gained[i] + "}";
+            }
+            s += "]";
             s += ",\"mygain\":";
             s += _secrets.gained[pid];
             s += ",\"deadline\":";
@@ -4972,7 +4985,7 @@ private:
             s += ",\"deadline\":";
             s += pt.deadline;
             s += ",\"dur\":";
-            s += (_secrets.stage == 0 ? SECRETS_PREDICT_SECS : SECRETS_ANSWER_SECS);
+            s += (_secrets.stage == 0 ? SECRETS_ANSWER_SECS : SECRETS_PREDICT_SECS);
         }
         s += ",\"scores\":" + playersJson() + "}";
         return s;

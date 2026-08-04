@@ -64,10 +64,35 @@
   var revealedFor = -1;
   function renderReveal(m) {
     hide("sec-predict"); hide("sec-answer"); show("sec-reveal");
-    $("sec-yescount").textContent = t("secrets.yes_of", { yes: m.yes, total: m.total });
-    var ansText = m.myanswer === 1 ? t("secrets.yes") : m.myanswer === 0 ? t("secrets.no") : "—";
-    var guess = (typeof m.myprediction === "number" && m.myprediction >= 0) ? m.myprediction : "—";
-    $("sec-your-call").textContent = t("secrets.your_call", { guess: guess, answer: ansText });
+    $("sec-yescount").textContent = t("secrets.yes_of", { yes: m.yes, total: m.n });
+    // Scale 0..N with the actual yes-count highlighted in orange.
+    var scale = $("sec-scale");
+    scale.innerHTML = "";
+    for (var i = 0; i <= m.n; i++) {
+      var cell = document.createElement("div");
+      cell.className = "sec-cell" + (i === m.yes ? " hit" : "");
+      cell.textContent = i;
+      scale.appendChild(cell);
+    }
+    // Scorers: whoever's prediction landed (exact +3, off by one +1), best first.
+    var scorers = (m.guesses || []).filter(function (g) { return g.pts > 0; })
+      .sort(function (a, b) { return b.pts - a.pts; });
+    var ul = $("sec-scorers");
+    ul.innerHTML = "";
+    if (!scorers.length) {
+      var none = document.createElement("li");
+      none.className = "sec-none";
+      none.textContent = t("secrets.nobody_right");
+      ul.appendChild(none);
+    } else scorers.forEach(function (g) {
+      var li = document.createElement("li");
+      li.className = "sec-scorer" + (g.pts >= 3 ? " exact" : "");
+      // Nicknames are player-typed, so build this row with text nodes (esc()).
+      li.innerHTML = '<span class="pn">' + esc(g.nick) + "</span>" +
+        '<span class="pg">' + t("secrets.guessed", { n: g.n }) + "</span>" +
+        '<span class="ps">+' + g.pts + "</span>";
+      ul.appendChild(li);
+    });
     var gain = (typeof m.mygain === "number") ? m.mygain : 0;
     $("sec-result").textContent = gain >= 3 ? t("secrets.result_exact", { gain: gain })
       : gain > 0 ? t("secrets.result_close", { gain: gain })
@@ -87,6 +112,8 @@
     // question while revealing.
     noteDeadline(m.deadline, m.dur);
     A.timebar("sec-bar", m.deadline, m.dur, m.phase !== "reveal");
+    // The +gain line belongs to reveal only; clear it while answering/predicting.
+    if (m.phase !== "reveal") $("sec-result").textContent = "";
     if (m.phase === "reveal") renderReveal(m);
     else { revealedFor = -1; if (m.phase === "predict") renderPredict(m); else renderAnswer(m); }
   }
