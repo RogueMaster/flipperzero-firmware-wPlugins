@@ -248,7 +248,7 @@ void bullets_update(void) {
                 float ddx = a->x - b->x, ddy = a->y - b->y;
                 if(ddx*ddx + ddy*ddy < 0.16f) {
                     a->hp -= 2;
-                    a->hurt_flash = 8;     // v6.10: 受伤反白增至 8 帧 (更明显)
+                    a->hurt_flash = 12;    // v6.10.1: 受伤闪烁增至 12 帧
                     b->active = false;
                     particle_spawn(b->x, b->y, 1, 6);
                     if(a->hp <= 0) {
@@ -405,14 +405,13 @@ bool player_move(float dx, float dy) {
     float nx = g.player.x + dx;
     float ny = g.player.y + dy;
     const float pad = 0.2f;
-    // MC模式跳跃中: 允许踩到方块上 (临时穿透墙体)
-    bool mc_hop = (g.mode == MODE_MC && g.jump_z > 2.0f);
+    // v6.10.1: 移除 mc_hop 穿墙 — 改为正常碰撞检测, 跳跃纯视觉
     int mx = (int)(nx + (dx > 0 ? pad : -pad));
     int my = (int)g.player.y;
-    if(mc_hop || !blocking(maze_get(mx, my))) g.player.x = nx;
+    if(!blocking(maze_get(mx, my))) g.player.x = nx;
     mx = (int)g.player.x;
     my = (int)(ny + (dy > 0 ? pad : -pad));
-    if(mc_hop || !blocking(maze_get(mx, my))) g.player.y = ny;
+    if(!blocking(maze_get(mx, my))) g.player.y = ny;
 
     int cx = (int)g.player.x, cy = (int)g.player.y;
     uint8_t here = maze_get(cx, cy);
@@ -569,18 +568,21 @@ void actors_update(void) {
         if(!a->active) continue;
         if(a->hurt_flash > 0) a->hurt_flash--;
 
-        // v6.10: 平滑移动插值 — 每帧朝目标位置移动 1/4 距离
+        // v6.10.1: 平滑移动插值 — 8帧缓慢插值 (每帧 1/8 距离)
         if(a->moving > 0) {
             float dx = a->tx - a->x, dy = a->ty - a->y;
-            a->x += dx * 0.25f;
-            a->y += dy * 0.25f;
+            a->x += dx * 0.125f;
+            a->y += dy * 0.125f;
             a->moving--;
-            if(a->moving == 0) { a->x = a->tx; a->y = a->ty; } // 到达目标
+            if(a->moving == 0) { a->x = a->tx; a->y = a->ty; }
         }
 
         if(a->cooldown > 0) { a->cooldown--; }
         else if(a->moving == 0) { // 移动完成后才决定下一步
-            a->cooldown = (a->type == 0) ? (uint8_t)12 : (uint8_t)25;
+            // v6.10.1: 敌人移动非常慢 + 随机速度 (40-90帧 = 0.6-1.5秒一动)
+            a->cooldown = (a->type == 0)
+                ? (uint8_t)(40 + (maze_rng_next() & 50))
+                : (uint8_t)(60 + (maze_rng_next() & 60));
             float dirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
             int r = maze_rng_next() & 3;
 
@@ -620,7 +622,7 @@ void actors_update(void) {
                 if(walkable(maze_get((int)nx, (int)ny))) {
                     // v6.10: 不直接传送, 设置目标位置 + 插值帧数
                     a->tx = nx; a->ty = ny;
-                    a->moving = 4; // 4 帧插值完成
+                    a->moving = 8; // 8 帧插值完成 (更慢更平滑)
                     break;
                 }
             }
@@ -1079,11 +1081,13 @@ void game_update(void) {
         }
     }
 
-    // v6.9: 跳跃峰值由 cfg_jump_height 控制 (0=关, 1=6px, 2=9px, 3=12px)
+    // v6.10.1: 跳跃峰值降低 — MC模式上限4px, 普通模式上限8px
     float JUMP_PEAK_LOCAL;
     {
-        static const float peaks[] = { 0.0f, 6.0f, 9.0f, 12.0f };
+        static const float peaks[] = { 0.0f, 4.0f, 6.0f, 8.0f };
         JUMP_PEAK_LOCAL = peaks[(g.cfg_jump_height < 4) ? g.cfg_jump_height : 2];
+        // MC 模式额外限制: 最高 4px (防止卡墙)
+        if(g.mode == MODE_MC && JUMP_PEAK_LOCAL > 4.0f) JUMP_PEAK_LOCAL = 4.0f;
     }
     // v6.9: cfg_regen_rate 回血倍率 (0=0.5x, 1=1.0x, 2=2.0x, 3=3.0x)
     //   倍率越高, 阈值越低 → 回血越快

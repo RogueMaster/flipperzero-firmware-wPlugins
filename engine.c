@@ -3,6 +3,9 @@
 
 GameState g;
 
+// v6.10.1: 逐列墙深度缓冲 (用于敌人遮挡检测)
+static float s_wall_depth[SCREEN_W];
+
 // ---- Framebuffer ----
 static inline void fb_set(int x, int y, uint8_t on) {
     if((unsigned)x >= SCREEN_W || (unsigned)y >= SCREEN_H) return;
@@ -299,6 +302,9 @@ static void draw_minimap(void) {
 void engine_render(void) {
     fb_clear();
 
+    // v6.10.1: 初始化深度缓冲 (远处=无限大)
+    for(int i = 0; i < SCREEN_W; i++) s_wall_depth[i] = 999.0f;
+
     Player* p = &g.player;
     const float posX = p->x, posY = p->y;
     const float dirX = p->dir_x, dirY = p->dir_y;
@@ -360,6 +366,10 @@ void engine_render(void) {
         if(side == 0) perp = sideX - deltaX;
         else perp = sideY - deltaY;
         if(perp < 0.01f) perp = 0.01f;
+
+        // v6.10.1: 存储本列墙深度 (用于敌人遮挡检测)
+        for(int px = px_start; px <= px_end && px < SCREEN_W; px++)
+            s_wall_depth[px] = perp;
 
         int lineH = (int)((float)SCREEN_H / perp);
         if(lineH < 1) lineH = 1;
@@ -590,6 +600,13 @@ void engine_render(void) {
             if(transY <= 0.2f) continue;   // 背后或太近不画
             int screenX = (int)((SCREEN_W / 2.0f) * (1.0f + transX / transY));
             if(screenX < -8 || screenX > SCREEN_W + 8) continue;
+            // v6.10.1: 墙体遮挡检测 — 敌人比墙远则不画 (开发者模式跳过)
+            if(!g.dev_mode) {
+                int check_x = screenX;
+                if(check_x < 0) check_x = 0;
+                if(check_x >= SCREEN_W) check_x = SCREEN_W - 1;
+                if(transY > s_wall_depth[check_x]) continue; // 被墙挡住
+            }
             // 投影高度 (敌人约 0.8 格高)
             int sh = (int)((float)SCREEN_H * 0.8f / transY);
             if(sh < 3) sh = 3;
@@ -605,8 +622,8 @@ void engine_render(void) {
             if(feet_y > SCREEN_H - 1) feet_y = SCREEN_H - 1;
             int top_y = feet_y - sh;
             if(top_y < 0) top_y = 0;
-            // 受伤反白: hurt_flash>0 时画空心 (反相), 否则实心
-            bool hurt = (a->hurt_flash > 0);
+            // v6.10.1: 受伤闪烁 — hurt_flash>0 时隔帧反白 (更明显的闪烁效果)
+            bool hurt = (a->hurt_flash > 0) && ((g.tick & 1) == 0);
             // 移动呼吸: 每 8 帧上下抖 1 像素
             int bob = ((g.tick + i * 3) & 8) ? 1 : 0;
             top_y += bob; feet_y += bob;
