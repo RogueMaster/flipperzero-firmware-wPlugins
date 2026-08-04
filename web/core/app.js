@@ -53,6 +53,9 @@ function screen(name) {
     rb.classList.toggle("hide", name === "landing");
     rb.classList.remove("open");
   }
+  // The header game switcher 🕹️ is available once you've joined (hidden on landing).
+  var gm = $("game-menu");
+  if (gm) gm.classList.toggle("hide", name === "landing");
   // The shared leaderboard only belongs to the group-score games, which manage
   // it themselves; anywhere else, drop it so it never lingers over a lobby.
   if (name !== "trivia" && name !== "scramble" && name !== "react") A.hideLead();
@@ -519,6 +522,9 @@ A.lobbyView = lobbyView;
    game view; a game message can also switch us in (see game modules). */
 function onLobby(m) {
   if (m.me) A.pid = m.me;
+  // A lobby push only arrives when no game-change vote is pending, so its arrival means
+  // any vote has resolved (approved -> new game, or rejected -> resumed): close the modal.
+  if (A.closeGamevote) A.closeGamevote();
   var prevCount = (A.players || []).length;
   A.players = m.players || [];   // kept for the duel/pong challenge lists
   // A new arrival (after we ourselves joined) gets a little blip.
@@ -538,9 +544,11 @@ function onLobby(m) {
   });
 
   var g = m.game || "none";
-  var gs = $("lobby-game");
+  A.curGame = g;   // the active game name, so the switcher can exclude it from its list
+  // Only the label inside the picker row changes; the 🕹️ box beside it always stays.
+  var gs = $("lobby-game-label");
   gs.textContent = g === "none"
-    ? "Waiting for the host to pick a game."
+    ? t("lobby.pick")
     : (GAME_LABEL[g] || g) + " starting...";
 
   // If the host went back to the plain lobby, leave any game screen. Otherwise
@@ -689,6 +697,79 @@ A.handlers.emoji = function (m) {
   if (m.pid !== A.pid) A.vibe(8);
 };
 
+// ---- game switcher + change-game vote --------------------------------------
+// Both 🕹️ buttons (header and lobby) open the one overlay: every game minus the
+// active one, then "Back to Lobby" as a separated last entry. Tapping an entry
+// proposes that switch; the ESP then pauses the active game and runs a majority
+// vote, pushing a {t:"gamevote"} overlay to every client until it resolves.
+function gameMenuItem(name, label, extraClass) {
+  var b = document.createElement("button");
+  b.type = "button";
+  b.className = "game-item" + (extraClass || "");
+  b.textContent = label;
+  b.addEventListener("click", function () {
+    A.sfx("buzz"); A.vibe(12);
+    send({ t: "proposeGame", game: name });
+    closeGameMenu();
+  });
+  return b;
+}
+function openGameMenu() {
+  var list = $("game-list");
+  if (!list) return;
+  list.innerHTML = "";
+  Object.keys(GAME_LABEL).forEach(function (name) {
+    if (name === A.curGame) return;   // the active game isn't a switch target
+    list.appendChild(gameMenuItem(name, GAME_LABEL[name]));
+  });
+  // Leaving the current game is a change like any other, so it votes too. Nothing to
+  // propose when we're already in the plain lobby -- the engine would refuse it.
+  if (A.curGame !== "none") {
+    var sep = document.createElement("div");
+    sep.className = "game-sep";
+    list.appendChild(sep);
+    list.appendChild(gameMenuItem("none", t("gamevote.back_lobby"), " game-item-back"));
+  }
+  show("game-overlay");
+}
+function closeGameMenu() { hide("game-overlay"); }
+
+// The pretty label for a proposal target, including "none" (= the lobby).
+function gameVoteLabel(m) {
+  if (m.game === "none") return t("gamevote.lobby_label");
+  return GAME_LABEL[m.label] || GAME_LABEL[m.game] || m.game;
+}
+
+A.gamevoteOpen = false;
+A.closeGamevote = function () { A.gamevoteOpen = false; hide("gamevote"); };
+A.handlers.gamevote = function (m) {
+  A.gamevoteOpen = true;
+  closeGameMenu();     // if the proposer still had the picker open
+  show("gamevote");
+  var label = gameVoteLabel(m);
+  var head = $("gamevote-head");
+  head.textContent = "";
+  if (m.youproposed) {
+    // Your own pending proposal: what you asked for, the tally, and a way out.
+    head.textContent = t("gamevote.you_want", { game: label });
+  } else {
+    // Everyone else's line leads with the proposer's avatar. Avatar and nick are
+    // player-supplied, so they go in as text nodes -- never as innerHTML.
+    var av = document.createElement("span");
+    av.className = "gamevote-av";
+    av.textContent = m.avatar || "🙂";
+    head.appendChild(av);
+    head.appendChild(document.createTextNode(
+      " " + t("gamevote.wants", { who: m.proposer, game: label })));
+  }
+  // The proposer gets Cancel; anyone who already voted just waits; the rest vote.
+  var waiting = !m.youproposed && !!m.youvoted;
+  $("gamevote-actions").classList.toggle("hide", !!m.youproposed || waiting);
+  $("gamevote-wait").classList.toggle("hide", !waiting);
+  $("gamevote-cancel").classList.toggle("hide", !m.youproposed);
+  $("gamevote-tally").textContent = t("gamevote.tally", { yes: m.yes, no: m.no });
+};
+
 function initApp() {
   var saved = "";
   try {
@@ -713,6 +794,29 @@ function initApp() {
   // Reactions FAB: tap to reveal the emoji row; the bar is hidden on landing.
   $("react-fab").addEventListener("click", function () {
     $("react-bar").classList.toggle("open");
+  });
+
+  // Game switcher: the header 🕹️ and the lobby's whole picker row both open the one game
+  // list; the backdrop closes it (no change).
+  $("game-menu").addEventListener("click", openGameMenu);
+  $("lobby-game").addEventListener("click", openGameMenu);
+  $("game-overlay").addEventListener("click", function (e) {
+    if (e.target === $("game-overlay")) closeGameMenu();
+  });
+  // Change-game vote: OK / No buttons emit voteGame; the ESP tallies and resolves.
+  $("gamevote-yes").addEventListener("click", function () {
+    A.sfx("buzz"); A.vibe(15);
+    send({ t: "voteGame", ok: true });
+  });
+  $("gamevote-no").addEventListener("click", function () {
+    A.sfx("buzz"); A.vibe(15);
+    send({ t: "voteGame", ok: false });
+  });
+  // The proposer's Cancel withdraws the proposal. A No from the proposer is exactly
+  // that on the engine side (their Yes is implicit), so it needs no separate intent.
+  $("gamevote-cancel").addEventListener("click", function () {
+    A.sfx("buzz"); A.vibe(15);
+    send({ t: "voteGame", ok: false });
   });
 
   // Shared leaderboard: toggle the collapsible list; re-render from last board.

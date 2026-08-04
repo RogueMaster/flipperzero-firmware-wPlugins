@@ -4,6 +4,22 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Phone-side game-change vote.** Any player can propose switching the active game from
+  their phone (a 🕹️ button in the header, and the lobby's "Pick a game" row, open a
+  game picker); the ESP then freezes the active game and runs a majority vote of the
+  *other* players, resuming the game on reject/timeout or switching on approve. The
+  proposer is an implicit yes; approval needs a strict majority of the others (a lone
+  proposer switches at once); a No majority or a 25s timeout rejects, the proposer can
+  withdraw their own proposal, and the proposer leaving cancels it. The picker's last
+  entry, **Back to Lobby**, proposes leaving the current game and is voted on the same
+  way. This is the one sanctioned phone→host action, gated entirely behind the vote — a
+  host-initiated select stays authoritative and immediate. New intents
+  `proposeGame{game}` / `voteGame{ok}` and a `gamevote` push. Firmware **v18**.
+
 ## [1.6.0] - 2026-08-03
 
 Chess joins as the fifteenth game. Firmware **v17**.

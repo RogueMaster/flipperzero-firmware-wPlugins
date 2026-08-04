@@ -417,3 +417,48 @@ moment either side plays a move.
 State is pushed only on events — a move, resign, draw, claim, or a flag fall the ESP
 notices on its own clock tick — never on a periodic heartbeat; clients animate the
 countdown locally between pushes from `deadline`.
+
+## 10. Game-change vote (`gamevote`) — cross-cutting, firmware v18
+
+A player can change the active game **from their phone** by majority vote, so the host
+device needs no operation. This is the one sanctioned phone→host action — the engine
+otherwise forbids a phone from selecting a game — and it is gated entirely behind the vote.
+A host-initiated `SELECT_GAME` stays authoritative and immediate (no vote), and cancels any
+pending proposal.
+
+The vote sits **above** the active game (it is not a per-game phase). While a proposal is
+pending the active game is **frozen**: `tick` advances only the vote timeout, `onInput`
+honors only `voteGame` (and `leaveGame`), and `pushAll` sends the `gamevote` overlay to
+every client instead of any game/lobby state. On resolution the previous state resumes
+(reject/timeout) or the new game's lobby appears (approve), both signalled by the next
+normal `lobby` push — the client closes the modal when a `lobby` message arrives.
+
+Client intents:
+- `proposeGame{game}`: `game` is the engine game-name string (e.g. `"wyr"`, `"trivia"`), or
+  `"none"` for "back to the lobby" — leaving the current game is voted on like any other
+  change. Starts a proposal if none is pending and the target is a valid game **other than
+  the active one** (so `"none"` is refused while already in the lobby). The proposer counts
+  as an implicit YES. A second proposal while one is pending is ignored.
+- `voteGame{ok}`: one vote per non-proposer pid (`true` = OK, `false` = No). From the
+  **proposer**, `ok:true` is a no-op (their YES is already implicit) and `ok:false`
+  **withdraws** the proposal — the reject path, resuming the frozen game at once. That is
+  what the Cancel button on the proposer's own overlay sends; no separate intent exists.
+
+Server `{t:"gamevote",...}` (pushed to every client while pending): `proposer` (nick),
+`avatar` (the proposer's emoji, so the voters' line can lead with it), `game` (target name,
+`"none"` for the lobby), `label` (same as `game`; the client maps it to a pretty label),
+`yes` (count **including** the proposer), `no`, `others` (`playerCount - 1`), `need` (YES
+votes needed from the others = `floor(others/2)+1`), `youproposed`, `youvoted`.
+
+Resolution (recomputed on every vote, join/leave, and tick):
+- **Approve** when YES among the other players is a strict majority — `yesOthers*2 >
+  others` — or immediately if the proposer is the only player. → `selectGame(target)`.
+- **Reject** as soon as that majority is impossible — `noOthers*2 >= others` — or on
+  **timeout** (`GAMEVOTE_SECS` = 25s). → clear and resume the frozen game.
+- **Withdrawn** when the proposer sends `voteGame{ok:false}` (their Cancel button). → same
+  as reject: clear and resume.
+- If the **proposer leaves**, the proposal is cancelled (reject). A non-proposer leaving
+  recomputes the tally (fewer `others` can tip it either way).
+
+On approve the ESP also emits a UART `EVENT` `{"gamevote":"approved","game":"<name>"}` for
+host-side observability.
