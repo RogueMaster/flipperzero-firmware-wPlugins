@@ -15,11 +15,14 @@ CJK_PATHS = [
     "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
     "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
 ]
+
+
 def load_cjk(size):
     for p in CJK_PATHS:
         if os.path.exists(p):
             return ImageFont.truetype(p, size)
     return ImageFont.load_default()
+
 
 # ---- Maze map for raycasting demo (1=wall, 0=empty) ----
 MAP = [
@@ -42,11 +45,13 @@ MAP = [
 MW = len(MAP[0])
 MH = len(MAP)
 
+
 def is_wall(mx, my):
     if mx < 0 or mx >= MW or my < 0 or my >= MH:
         return True
     c = MAP[my][mx]
-    return c == '1'
+    return c == "1"
+
 
 def cast(px, py, angle):
     # Returns (distance, side, mx, my, is_exit)
@@ -65,9 +70,10 @@ def cast(px, py, angle):
         if is_wall(mx, my):
             # determine side
             side = 0 if (abs(x - mx) > abs(y - my)) else 1
-            c = MAP[my][mx] if 0 <= my < MH and 0 <= mx < MW else '1'
-            return dist, side, mx, my, (c == 'E')
+            c = MAP[my][mx] if 0 <= my < MH and 0 <= mx < MW else "1"
+            return dist, side, mx, my, (c == "E")
     return 16.0, 0, last_mx, last_my, False
+
 
 def render_scene(img, px, py, facing):
     d = ImageDraw.Draw(img)
@@ -83,7 +89,7 @@ def render_scene(img, px, py, facing):
     # raycast
     fov = math.pi / 3
     for col in range(0, W, 2):  # half-res
-        ray = facing - fov/2 + (col / W) * fov
+        ray = facing - fov / 2 + (col / W) * fov
         dist, side, mx, my, is_exit = cast(px, py, ray)
         if dist < 0.05:
             continue
@@ -94,44 +100,70 @@ def render_scene(img, px, py, facing):
         drawEnd = min(H, horizon + lineH // 2)
         # shade: distant walls lighter (skip pixels)
         shade = 1
-        if dist > 4: shade = 2
-        if dist > 8: shade = 3
+        if dist > 4:
+            shade = 2
+        if dist > 8:
+            shade = 3
         for y in range(drawStart, drawEnd):
             if shade == 1:
                 on = True
             elif shade == 2:
-                on = ((y + col) % 2 == 0)
+                on = (y + col) % 2 == 0
             else:
-                on = ((y % 2 == 0) and (col % 4 == 0))
+                on = (y % 2 == 0) and (col % 4 == 0)
             # add some texture variation
             if on and (mx + my) % 2 == 0 and y % 3 == 0:
                 on = not on
             if is_exit:
                 # pulsing exit (always bright)
-                on = (y % 2 == 0)
+                on = y % 2 == 0
             if on:
                 img.putpixel((col, y), 1)
-                img.putpixel((col+1, y), 1)
+                img.putpixel((col + 1, y), 1)
+
 
 # ---- HUD ----
-def draw_hud(img, lang_zh=True, level=3, floor=0, keys=2, torches=1, hp=3, show_items=False, show_hp=False):
+def draw_hud(
+    img,
+    lang_zh=True,
+    level=3,
+    floor=0,
+    keys=2,
+    torches=1,
+    hp=3,
+    show_items=False,
+    show_hp=False,
+):
     d = ImageDraw.Draw(img)
     fnt = load_cjk(8)
     # black bar background already inverted in image; draw black text on white
     x = 1
+
     def text(s, fx, fy):
         d.text((fx, fy), s, fill=0, font=fnt)
+
     def num(n, fx, fy):
         text(str(n), fx, fy)
+
     if level > 0 and floor == 0:
-        num(level, x, 0); text("关" if lang_zh else "LV", x+7, 0); x += 16
+        num(level, x, 0)
+        text("关" if lang_zh else "LV", x + 7, 0)
+        x += 16
     elif floor > 0:
-        num(floor, x, 0); text("层" if lang_zh else "FL", x+7, 0); x += 16
+        num(floor, x, 0)
+        text("层" if lang_zh else "FL", x + 7, 0)
+        x += 16
     if show_items:
-        num(keys, x, 0); text("钥" if lang_zh else "K", x+6, 0); x += 13
-        num(torches, x, 0); text("火" if lang_zh else "T", x+6, 0); x += 13
+        num(keys, x, 0)
+        text("钥" if lang_zh else "K", x + 6, 0)
+        x += 13
+        num(torches, x, 0)
+        text("火" if lang_zh else "T", x + 6, 0)
+        x += 13
     if show_hp:
-        num(hp, x, 0); text("血" if lang_zh else "HP", x+6, 0)
+        num(hp, x, 0)
+        text("血" if lang_zh else "HP", x + 6, 0)
+
 
 def draw_compass(img, exit_dx, exit_dy):
     d = ImageDraw.Draw(img)
@@ -144,6 +176,7 @@ def draw_compass(img, exit_dx, exit_dy):
     ey = cy + int(math.sin(ang) * 4)
     d.line([(cx, cy), (ex, ey)], fill=1, width=1)
     d.point([(cx, cy)], fill=1)
+
 
 def draw_minimap(img, px, py, facing, mx_range=5):
     d = ImageDraw.Draw(img)
@@ -158,11 +191,12 @@ def draw_minimap(img, px, py, facing, mx_range=5):
             sx = bx + (mx + 3) * bs
             sy = by + (my + 3) * bs
             if cell:
-                d.rectangle([(sx, sy), (sx+bs-1, sy+bs-1)], fill=1)
+                d.rectangle([(sx, sy), (sx + bs - 1, sy + bs - 1)], fill=1)
     # player
-    sx = bx + 3 * bs + bs//2
-    sy = by + 3 * bs + bs//2
+    sx = bx + 3 * bs + bs // 2
+    sy = by + 3 * bs + bs // 2
     d.point([(sx, sy)], fill=0)
+
 
 # ---- Frame 0: Chinese menu ----
 def gen_menu(lang_zh, idx):
@@ -193,13 +227,20 @@ def gen_menu(lang_zh, idx):
     d.text((2, 56), hint, fill=1, font=small_f)
     img.save(f"{OUT}/ss{idx}.png")
 
+
 # ---- Frame 2: 3D gameplay (campaign) ----
 def gen_gameplay(idx, level=3, lang_zh=True, exit_ahead=False):
     img = Image.new("1", (W, H), 0)
     px, py = 7.5, 7.5
-    facing = 0.0 if not exit_ahead else math.pi/2  # face exit
+    facing = 0.0 if not exit_ahead else math.pi / 2  # face exit
     render_scene(img, px, py, facing)
-    draw_hud(img, lang_zh=lang_zh, level=level, show_items=(level >= 11), show_hp=(level >= 21))
+    draw_hud(
+        img,
+        lang_zh=lang_zh,
+        level=level,
+        show_items=(level >= 11),
+        show_hp=(level >= 21),
+    )
     # compass pointing to exit (bottom-right corner of map)
     draw_compass(img, 0, 1)
     draw_minimap(img, px, py, facing)
@@ -209,6 +250,7 @@ def gen_gameplay(idx, level=3, lang_zh=True, exit_ahead=False):
         msg = "出口在前方" if lang_zh else "Exit Ahead"
         d.text((2, 56), msg, fill=1, font=f)
     img.save(f"{OUT}/ss{idx}.png")
+
 
 # ---- Frame 4: Level clear overlay ----
 def gen_clear(idx, lang_zh=True):
@@ -228,11 +270,16 @@ def gen_clear(idx, lang_zh=True):
         d.text((28, 42), "OK:Next    Back:Menu", fill=1, font=f2)
     img.save(f"{OUT}/ss{idx}.png")
 
+
 # ---- Generate all (ALL ENGLISH — standard firmware only supports ASCII) ----
-gen_menu(False, 0)   # ss0: English menu
-gen_gameplay(1, level=3, lang_zh=False, exit_ahead=True)    # ss1: campaign, exit ahead
-gen_gameplay(2, level=15, lang_zh=False, exit_ahead=False)  # ss2: puzzle stage (keys/doors)
-gen_gameplay(3, level=25, lang_zh=False, exit_ahead=False)  # ss3: combat stage (HP + items)
+gen_menu(False, 0)  # ss0: English menu
+gen_gameplay(1, level=3, lang_zh=False, exit_ahead=True)  # ss1: campaign, exit ahead
+gen_gameplay(
+    2, level=15, lang_zh=False, exit_ahead=False
+)  # ss2: puzzle stage (keys/doors)
+gen_gameplay(
+    3, level=25, lang_zh=False, exit_ahead=False
+)  # ss3: combat stage (HP + items)
 gen_clear(4, lang_zh=False)  # ss4: level clear
 
 print("Generated:")
