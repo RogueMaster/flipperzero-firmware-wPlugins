@@ -13,7 +13,12 @@ def read(path: str) -> str:
 
 
 def has_define(text: str, name: str, value: str) -> bool:
-    return re.search(rf"^#define\s+{name}\s+{re.escape(value)}(?:\s|$)", text, re.MULTILINE) is not None
+    return (
+        re.search(
+            rf"^#define\s+{name}\s+{re.escape(value)}(?:\s|$)", text, re.MULTILINE
+        )
+        is not None
+    )
 
 
 app_h = read("src/firmware/morse_flipper_app_i.h")
