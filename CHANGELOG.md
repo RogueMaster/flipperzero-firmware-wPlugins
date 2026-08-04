@@ -4,6 +4,49 @@ All notable changes to Hotspot Arcade are documented here. The format is based o
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **One phone = one player.** A player is now bound to the device rather than to the
+  WebSocket, so a phone can no longer show up as two or three players. iOS opens the portal
+  in a captive mini-browser whose storage is separate from Safari's, so playing in both (or
+  in a second tab, or a second browser) used to create a player per context. A `hello` from
+  a device that is already playing now rebinds the existing player to the new socket — never
+  a second player — keeping their pid, name, avatar and score, and the `welcome` reply hands
+  that identity to the new context (it now carries `avatar` alongside `pid`/`nick`, and the
+  client adopts and stores both) so it shows the same name straight away. Firmware **v18**.
+
+  The device is identified by the station's **MAC**, not by its IP: the IP is assigned by
+  the ESP's own DHCP server and is a derived value, while the MAC is the device. The AP's
+  DHCP events report the assigned address together with the client MAC, so the firmware
+  keeps a small IP → MAC table; a station whose lease predates the handler is resolved from
+  lwIP's ARP cache, and if the MAC cannot be resolved at all the IP is used as the key.
+  (Phones use a randomized private MAC these days, but it is stable per SSID, so it lasts
+  exactly as long as a session does.) The engine itself just stores an opaque 64-bit device
+  key and knows nothing about MACs or IPs.
+- **No more ghost players from a stale socket.** A phone that drops (screen lock, WiFi off)
+  closes nothing — the ESP only sees the socket die when TCP times out, minutes later. A
+  disconnect now removes a player only if the closing socket is still that player's
+  *current* socket, so a phone that reconnected in the meantime is no longer taken down by
+  its own stale connection.
+
+  Deliberate trade-off: two people can no longer share one phone as two players.
+
+### Added
+
+- A serial trace of every identity decision, for debugging on real hardware:
+  `[ha] JOIN pid=2 ip=192.168.4.3 mac=AA:BB:CC:DD:EE:FF nick="..."` for a new device, and
+  `[ha] NEW BROWSER same device ip=... mac=... -> pid=1 nick="..." (consolidated)` when a
+  second browser context is folded onto the player that phone already has.
+
+### Changed
+
+- `sim/`: each simulated socket now carries a stub device key (one per socket, so every
+  panel stays its own phone), with `ha_ws_device()` to put two sockets on one phone. New
+  headless test `sim/test/identity.mjs` covers rebind, distinct devices, the stale-socket
+  disconnect, and the unknown-device fallback.
+
 ## [1.6.0] - 2026-08-03
 
 Chess joins as the fifteenth game. Firmware **v17**.

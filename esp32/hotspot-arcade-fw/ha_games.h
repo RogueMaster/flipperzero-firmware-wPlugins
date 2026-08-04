@@ -139,10 +139,25 @@ void haUartLeave(uint8_t pid);
 void haUartScore(uint8_t pid, int delta, const char* reason);
 void haUartEvent(const String& json);
 void haUartRoundResult(const String& json);
+// Human-readable trace of every identity decision (see onHello): a genuinely new
+// device, or a second browser context on a phone that is already playing being
+// consolidated onto its existing player. `deviceKey` is opaque here -- the .ino
+// renders it, since it is the side that knows what it was made of.
+void haLogJoin(uint8_t pid, uint64_t deviceKey, const char* nick, bool consolidated);
 
+// One phone = one player. `wsId` identifies a *connection*; `deviceKey` identifies
+// the *phone*, and every browser context on it (the iOS captive mini-browser, Safari,
+// a second tab, a socket that came back after the screen unlocked) presents the same
+// one. Keying identity on the device instead of the socket is what stops one phone
+// from turning into two or three players -- see onHello() for the rebind and
+// onWsDisconnect() for the stale-socket rule.
+//
+// The key is deliberately opaque to the engine: the .ino derives it from the station's
+// MAC (falling back to its IP), and only that side knows or cares. 0 = unknown.
 struct Player {
     bool used;
     uint32_t wsId; // 0 = not connected
+    uint64_t deviceKey; // which phone, 0 = unknown (see onHello)
     char nick[HA_NICK_LEN];
     char avatar[8]; // emoji avatar (UTF-8), player-picked on the landing screen
     int32_t score;
@@ -469,7 +484,22 @@ public:
         return 0;
     }
 
+    // The player sitting on a given device, or 0. An unknown device (key 0) never
+    // matches, so those clients keep the old one-player-per-connection behaviour
+    // instead of all collapsing into a single player.
+    uint8_t pidByDevice(uint64_t deviceKey) {
+        if(!deviceKey) return 0;
+        for(uint8_t i = 1; i <= HA_MAX_PLAYERS; i++)
+            if(_p[i].used && _p[i].deviceKey == deviceKey) return i;
+        return 0;
+    }
+
     void onWsDisconnect(uint32_t wsId) {
+        // pidByWs() matches only a player whose CURRENT wsId is this socket, which is
+        // exactly the guard the rebind needs: once a phone has moved to a new
+        // connection the old socket owns nobody, so its close -- which on a locked
+        // phone arrives minutes late, when TCP finally times out -- can no longer
+        // take the live player down with it.
         uint8_t pid = pidByWs(wsId);
         if(!pid) return;
         anyOnLeave(pid); // forfeit any active match
@@ -480,22 +510,44 @@ public:
         pushAll();
     }
 
-    void onHello(uint32_t wsId, const char* nick, const char* avatar) {
+    // `deviceKey` says which phone this socket is on (0 = unknown); see the Player
+    // comment for why it, not the socket, is the identity.
+    void onHello(uint32_t wsId, uint64_t deviceKey, const char* nick, const char* avatar) {
         uint8_t pid = pidByWs(wsId);
+        // A hello on a NEW socket from a device that is already playing: the phone
+        // opened the page in a second browser context (the captive mini-browser next
+        // to Safari, another tab) or reconnected before the old socket's close was
+        // noticed. Adopt the new connection for the existing player rather than
+        // minting a second one -- pid, nick, avatar and score all stay put, and the
+        // `welcome` below hands that identity to the new context, which adopts it.
+        bool rebound = false;
+        if(!pid) {
+            pid = pidByDevice(deviceKey);
+            if(pid) {
+                _p[pid].wsId = wsId;
+                rebound = true;
+                haLogJoin(pid, deviceKey, _p[pid].nick, true);
+            }
+        }
         if(!pid) {
             pid = freePid();
             if(!pid) return; // full
             _p[pid].used = true;
             _p[pid].wsId = wsId;
+            _p[pid].deviceKey = deviceKey;
             _p[pid].score = 0;
             strlcpy(_p[pid].nick, (nick && nick[0]) ? nick : "PLAYER", HA_NICK_LEN);
             ha_upper(_p[pid].nick);
             strlcpy(_p[pid].avatar, (avatar && avatar[0]) ? avatar : "\xF0\x9F\x99\x82", sizeof(_p[pid].avatar));
             haUartJoin(pid, _p[pid].nick);
-        } else {
+            haLogJoin(pid, deviceKey, _p[pid].nick, false);
+        } else if(!rebound) {
             // Re-hello from a known socket = the player changed their name/avatar in
             // the header editor. Re-announce over UART so the Flipper's leaderboard
             // updates (player_join there updates an existing pid's nick in place).
+            // A rebind is deliberately NOT this case: the second context sends
+            // whatever name it happens to have saved (often a freshly generated one),
+            // and letting that rename the player mid-session is the bug, not the fix.
             if(nick && nick[0]) {
                 strlcpy(_p[pid].nick, nick, HA_NICK_LEN);
                 ha_upper(_p[pid].nick);
@@ -504,7 +556,8 @@ public:
             if(avatar && avatar[0]) strlcpy(_p[pid].avatar, avatar, sizeof(_p[pid].avatar));
         }
         String w = String("{\"t\":\"welcome\",\"pid\":") + pid + ",\"nick\":\"" +
-                   ha_json_escape(_p[pid].nick) + "\",\"lang\":\"" + _lang + "\"}";
+                   ha_json_escape(_p[pid].nick) + "\",\"avatar\":\"" +
+                   ha_json_escape(_p[pid].avatar) + "\",\"lang\":\"" + _lang + "\"}";
         haWsSendWs(wsId, w);
         triviaOnRosterChange();
         partyRosterChanged();
@@ -782,14 +835,19 @@ public:
     }
 
     // ---- player input (parsed WS JSON) ----
-    void onInput(uint32_t wsId, const char* json) {
+    // `deviceKey` says which phone the sending socket is on (0 = unknown). It is
+    // threaded in here rather than cached in a wsId -> key table because it is needed
+    // at exactly one moment -- when `hello` decides whether this is a new player or a
+    // phone that is already playing -- and a table would be a second connection
+    // lifecycle to keep in sync with disconnects and resets for no gain.
+    void onInput(uint32_t wsId, uint64_t deviceKey, const char* json) {
         char type[20];
         if(!ha_json_str(json, "t", type, sizeof(type))) return;
         if(strcmp(type, "hello") == 0) {
             char nick[HA_NICK_LEN], avatar[8];
             ha_json_str(json, "nick", nick, sizeof(nick));
             if(!ha_json_str(json, "avatar", avatar, sizeof(avatar))) avatar[0] = '\0';
-            onHello(wsId, nick, avatar);
+            onHello(wsId, deviceKey, nick, avatar);
             return;
         }
         if(strcmp(type, "ping") == 0) {

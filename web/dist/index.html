@@ -766,7 +766,17 @@ switch (m.t) {
 case "welcome":
 A.pid = m.pid;
 if (A.setLang) A.setLang(m.lang); // host-chosen UI language; localizes static text
-if (m.nick) { A.nick = m.nick; setNick(); }
+if (m.avatar) A.avatar = m.avatar;
+if (m.nick) {
+A.nick = m.nick;
+setNick();                            // header
+if ($("nick")) $("nick").value = m.nick; // landing field, if they go back to it
+buildAvatarPicker();                  // and its avatar row, so both agree
+try {
+localStorage.setItem(storeKey("ha_nick"), A.nick);
+localStorage.setItem(storeKey("ha_avatar"), A.avatar);
+} catch (e) {}
+}
 break;
 case "lobby":
 onLobby(m);
