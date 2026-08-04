@@ -3562,7 +3562,7 @@ function renderPredict(m) {
 show("sec-predict"); hide("sec-answer"); hide("sec-reveal");
 var locked = (typeof m.myprediction === "number" && m.myprediction >= 0);
 predMax = m.n;
-if (predRound !== m.round) { predVal = Math.round(m.n / 2); predRound = m.round; }
+if (predRound !== m.round) { predVal = 0; predRound = m.round; }
 if (locked) predVal = m.myprediction;
 if (predVal > predMax) predVal = predMax;
 setNum();

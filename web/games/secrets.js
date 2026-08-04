@@ -38,8 +38,9 @@
     show("sec-predict"); hide("sec-answer"); hide("sec-reveal");
     var locked = (typeof m.myprediction === "number" && m.myprediction >= 0);
     predMax = m.n;
-    // Fresh round: seed the stepper at the middle of the 0..N range.
-    if (predRound !== m.round) { predVal = Math.round(m.n / 2); predRound = m.round; }
+    // Fresh round: always start at 0. Seeding it mid-range looked like a guess the
+    // game had already made on your behalf, which is confusing.
+    if (predRound !== m.round) { predVal = 0; predRound = m.round; }
     if (locked) predVal = m.myprediction;
     if (predVal > predMax) predVal = predMax;
     setNum();
