@@ -98,7 +98,6 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [Walkie Talkie v1.2 (By coolshrimp)](https://github.com/coolshrimp/flipperzero-walkie-talkie) [Add PMR446 (Europe) band alongside FRS (By jasiek)](https://github.com/coolshrimp/flipperzero-walkie-talkie/pull/2)
 - Added: [Flipper Share RFID v0.1 (By lomalkin)](https://github.com/lomalkin/flipper-zero-apps/blob/-/flipper_share_rfid)
 - Updated: [Specter v2.2 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
-- Updated: [Maze 3D v6.1 (By k20120509)](https://github.com/k20120509/flipper-release)
 - OFW: CCID: [Move the debug app out of the firmware repository #4431 (By kidbomb)](https://github.com/flipperdevices/flipperzero-firmware/pull/4431)
 - Added: [CCID Emu v1.0 (By kidbomb)](https://github.com/kidbomb/flipper-ccid-app)
 - Updated: [Hotspot Arcade v1.6 (By tarikbc)](https://github.com/tarikbc/hotspot-arcade) `Req: ESP32` [Hotspot Arcade flasher, add support for autoboot, fix freeze on exit (By xMasterX)](https://github.com/xMasterX/all-the-plugins/commit/5d6a16c77c2a17c4aca3cb9f9ab4ab511f1d4f64) Guess the Color & Battleship were added (By tarikbc) Many more games and updates added (See Changelog)
@@ -108,6 +107,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - OFW: PR: [Fix HID limits to support international keyboards and add JP keyboard layout #4361 (By d3npa)](https://github.com/flipperdevices/flipperzero-firmware/pull/4361)
 - Updated: [DeFlock v0.55 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
 - Updated: [RollCall v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/RollCall-FlipperZero)
+- Updated: [Maze 3D v6.11.1 (By k20120509)](https://github.com/k20120509/flipper-release)
 
 <a name="release"></a>
 
@@ -303,7 +303,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [Mancala v0.1 (By fgreil)](https://github.com/fgreil/mitzi-mancala)
 - [Mandelbrot Set v1.4 (By Possibly-Matt)](https://github.com/Possibly-Matt/flipperzero-firmware-wPlugins)
 - [Matagotchi v1.1 (By MrModd)](https://github.com/MrModd/Matagotchi)
-- [Maze 3D v6.1 (By k20120509)](https://github.com/k20120509/flipper-release)
+- [Maze 3D v6.11.1 (By k20120509)](https://github.com/k20120509/flipper-release)
 - [Mind Probe v0.1 (By Miksang)](https://github.com/Miksang/flipper_guessing_game)
 - [Minesweeper Redux v1.7 (By squee72564)](https://github.com/squee72564/F0_Minesweeper_Fap)
 - [Minesweeper v1.2 (By panki27)](https://github.com/panki27/minesweeper)

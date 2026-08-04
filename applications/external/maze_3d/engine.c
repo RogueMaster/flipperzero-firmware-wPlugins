@@ -3,6 +3,9 @@
 
 GameState g;
 
+// v6.10.1: 逐列墙深度缓冲 (用于敌人遮挡检测)
+static float s_wall_depth[SCREEN_W];
+
 // ---- Framebuffer ----
 static inline void fb_set(int x, int y, uint8_t on) {
     if((unsigned)x >= SCREEN_W || (unsigned)y >= SCREEN_H) return;
@@ -12,6 +15,24 @@ static inline void fb_set(int x, int y, uint8_t on) {
         g.fb[idx] |= bit;
     else
         g.fb[idx] &= ~bit;
+}
+
+// v6.2: XOR 画法 (画"永远与背景相反色"的像素 — 准星/标记专用)
+static inline void fb_xor(int x, int y) {
+    if((unsigned)x >= SCREEN_W || (unsigned)y >= SCREEN_H) return;
+    uint16_t idx = ((uint16_t)y << 4) + ((uint16_t)x >> 3);
+    uint8_t bit = 1u << (x & 7);
+    g.fb[idx] ^= bit;
+}
+
+// v6.2: 画一个实心像素 + 反色边框 (高亮小方块, 用于粒子)
+static inline void fb_highlight_px(int x, int y) {
+    fb_set(x, y, 1);
+    // 周围做一个反色小十字, 突出该像素 (即使在亮/暗背景上都可见)
+    fb_xor(x + 1, y);
+    fb_xor(x - 1, y);
+    fb_xor(x, y + 1);
+    fb_xor(x, y - 1);
 }
 
 static inline void fb_hline(int x1, int x2, int y, uint8_t on) {
@@ -52,7 +73,9 @@ static inline uint8_t map_at(int x, int y) {
 static inline bool is_wall(uint8_t c) {
     return c == WALL_BRICK || c == WALL_STONE || c == WALL_METAL || c == WALL_VINE ||
            c == WALL_WATER || c == WALL_GRASS || c == WALL_WOOD || c == WALL_TREE ||
-           c == CELL_DOOR;
+           c == CELL_DOOR ||
+           // v6.3 MC 新方块
+           c == WALL_SAND || c == WALL_DIRT || c == WALL_LOG;
 }
 
 static inline int wall_tex_id(uint8_t c) {
@@ -66,15 +89,22 @@ static inline int wall_tex_id(uint8_t c) {
     case WALL_VINE:
         return 3;
     case WALL_WATER:
-        return 4;
+        return 4; // 动态流动水
     case WALL_GRASS:
-        return 5;
+        return 5; // 草+土侧面
     case WALL_WOOD:
-        return 6;
+        return 6; // 木板
     case WALL_TREE:
-        return 7;
+        return 7; // 树叶
     case CELL_DOOR:
         return 2; // 门用金属纹理
+    // v6.3 MC 新方块材质
+    case WALL_SAND:
+        return 8; // 沙子
+    case WALL_DIRT:
+        return 9; // 土
+    case WALL_LOG:
+        return 10; // 原木
     default:
         return 0;
     }
@@ -82,19 +112,27 @@ static inline int wall_tex_id(uint8_t c) {
 
 extern uint8_t texture_sample(int tex_id, int tx, int ty);
 
-// 距离/明暗处理: 0=最近(亮),3=最远(极稀疏)
-// 避免 sqrtf,用 perp距离(已经是无透视失真的垂直距离)
+// v6.2: 全局高亮 — 提亮墙体 (shade 档位 -1, 阴影阈值放宽).
+// shade 档位: 0=实心/最亮, 4=极远. 现在同样距离比之前亮一档.
+// v6.9: cfg_fog=false 时关闭距离雾 (所有墙近似最亮档)
 static inline int shade_from(float perp, int side) {
     int s;
-    if(perp < 2.0f)
-        s = 0;
-    else if(perp < 3.5f)
-        s = 1;
-    else if(perp < 6.0f)
-        s = 2;
-    else
-        s = 3;
-    if(side == 1 && s < 3) s++; // 东西墙暗一档
+    if(!g.cfg_fog) {
+        // 雾效关闭: 所有距离视作近距离, 仅保留侧面区分
+        s = (perp < 4.5f) ? 0 : 1;
+    } else {
+        if(perp < 2.5f)
+            s = 0;
+        else if(perp < 4.5f)
+            s = 1;
+        else if(perp < 7.5f)
+            s = 2;
+        else if(perp < 11.0f)
+            s = 3;
+        else
+            s = 4;
+    }
+    if(side == 1 && s < 4) s++;
     return s;
 }
 
@@ -123,37 +161,86 @@ static inline uint8_t bayer_at(int x, int y) {
 
 static inline void apply_shade_px(int x, int y, int shade) {
     // 阈值越小越稀疏; 用 4 档密度做平滑距离渐变
+    // v6.9: cfg_brightness 0..4 → 乘数 0.6/0.8/1.0/1.25/1.5, 调节阈值(阈值越高→像素越多越亮)
     int thr;
+    static const float bright_mul[] = {0.60f, 0.80f, 1.00f, 1.25f, 1.50f};
+    float bm = bright_mul[(g.cfg_brightness < 5) ? g.cfg_brightness : 2];
+    // v6.2: 阈值整体上移, 所有档位都更亮
     switch(shade) {
     case 0:
         fb_set(x, y, 1);
         return; // 最近: 实心
     case 1:
-        thr = 12;
-        break; // ~75%
+        thr = (int)(14.0f * bm);
+        break;
     case 2:
-        thr = 7;
-        break; // ~44%
+        thr = (int)(10.0f * bm);
+        break;
+    case 3:
+        thr = (int)(6.0f * bm);
+        break;
     default:
-        thr = 4;
-        break; // ~25% (最远)
+        thr = (int)(3.0f * bm);
+        break;
     }
+    if(thr < 1) thr = 1;
+    if(thr > 15) thr = 15;
     if(bayer_at(x, y) < thr) fb_set(x, y, 1);
 }
 
 // 地板/天花板抖动 pattern: 沿距地平线距离做平滑密度渐变 (Bayer)
+// v6.9: cfg_floor_tex=false 时简化地板 (纯抖动无渐变, 更省运算)
 static inline uint8_t floor_px(int x, int y) {
+    if(!g.cfg_floor_tex) {
+        // 简化版: 纯棋盘/稀疏点, 无距离依赖 (更像"平坦地面")
+        return (bayer_at(x, y) < 5) ? 1 : 0;
+    }
     int d = y - (SCREEN_H >> 1); // 离地平线距离 (下方为正), 越大越近->越密
     if(d <= 0) return 0;
     int thr = 1 + (d >> 1); // 近地平线稀疏, 脚下密集
     if(thr > 10) thr = 10;
     return (bayer_at(x, y) < thr) ? 1 : 0;
 }
+// v6.4: MC 天空亮度 — 随日升月落变化.
+//   太阳角度 0..255 循环: 0=日出(左下), 64=正午(顶), 128=日落(右下), 192=午夜.
+//   亮度 = sin(太阳角度) 的正值部分.
+// v6.9: 周期由 cfg_mc_day_len 控制: 0=1024,1=512,2=256,3=128 tick
+static int mc_sky_brightness(void) {
+    if(g.mode != MODE_MC) return -1; // 非 MC 模式用原逻辑
+    // v6.9: cfg_mc_day_len → 周期掩码 (1023/511/255/127)
+    static const uint16_t day_mask[] = {1023u, 511u, 255u, 127u};
+    uint16_t mask = day_mask[(g.cfg_mc_day_len < 4) ? g.cfg_mc_day_len : 0];
+    int period = (int)mask + 1;
+    int phase = ((g.tick & mask) * 256) / period; // 0..255
+    // 用查表近似 sin: 正午最亮(15), 日出日落中等(8), 夜晚最暗(2)
+    if(phase < 128) {
+        // 白天半周期: 0→128 对应日出→正午→日落
+        int h = (phase < 64) ? phase : (127 - phase); // 0→64→0 三角波
+        return 4 + (h * 11) / 64; // 4..15
+    } else {
+        // 夜晚半周期: 128→256
+        int h = (phase < 192) ? (phase - 128) : (255 - phase);
+        return 1 + (h * 3) / 64; // 1..4
+    }
+}
+
+// v6.4: 天花板. MC 模式画"天空" (亮度随日升月落), 普通模式保持暗
+// v6.9: cfg_sky_ceil=false 时完全不画天空/天花板 (上半屏纯黑)
 static inline uint8_t ceil_px(int x, int y) {
+    if(!g.cfg_sky_ceil) return 0; // 天空/天花板关闭
     int d = (SCREEN_H >> 1) - y; // 离地平线距离 (上方为正)
     if(d <= 0) return 0;
-    int thr = d >> 2; // 天花板整体偏暗
-    if(thr > 4) thr = 4;
+    int thr;
+    if(g.mode == MODE_MC) {
+        int bright = mc_sky_brightness();
+        // 地平线附近暗, 顶部亮 (天空渐变)
+        thr = bright - (d >> 3);
+        if(thr < 1) thr = 1;
+        if(thr > 15) thr = 15;
+    } else {
+        thr = d >> 2; // 普通天花板整体偏暗
+        if(thr > 4) thr = 4;
+    }
     return (bayer_at(x, y) < thr) ? 1 : 0;
 }
 
@@ -260,17 +347,31 @@ static void draw_minimap(void) {
     fb_set(lp + dx, mp + dy, 1);
 }
 
-// ---- Raycasting 主渲染(半列: RENDER_COLS = 64, 每列输出 2 像素宽) ----
+// ---- Raycasting 主渲染(v6.9: 可变 DDA 列密度 32/48/64) ----
 void engine_render(void) {
     fb_clear();
+
+    // v6.10.1: 初始化深度缓冲 (远处=无限大)
+    for(int i = 0; i < SCREEN_W; i++)
+        s_wall_depth[i] = 999.0f;
 
     Player* p = &g.player;
     const float posX = p->x, posY = p->y;
     const float dirX = p->dir_x, dirY = p->dir_y;
     const float planeX = p->plane_x, planeY = p->plane_y;
 
-    for(int cx = 0; cx < RENDER_COLS; cx++) {
-        float cameraX = 2.0f * (float)(cx * 2 + 1) / (float)SCREEN_W - 1.0f;
+    // v6.9: cfg_density 0..2 → 列数 32/48/64
+    static const int dens_cols[] = {32, 48, 64};
+    int RENDER_COLS_DYN = dens_cols[(g.cfg_density < 3) ? g.cfg_density : 2];
+
+    for(int ci = 0; ci < RENDER_COLS_DYN; ci++) {
+        // 本列覆盖的屏幕像素范围 [px_start, px_end] (inclusive)
+        int px_start = (ci * SCREEN_W) / RENDER_COLS_DYN;
+        int px_end = ((ci + 1) * SCREEN_W) / RENDER_COLS_DYN - 1;
+        if(px_end < px_start) px_end = px_start;
+        int px_ctr = (px_start + px_end) / 2;
+
+        float cameraX = 2.0f * (float)(px_ctr + 0.5f) / (float)SCREEN_W - 1.0f;
         float rayX = dirX + planeX * cameraX;
         float rayY = dirY + planeY * cameraX;
 
@@ -322,11 +423,11 @@ void engine_render(void) {
             if(c == CELL_EXIT) exit_on_ray = 1;
         }
         if(!hit) {
-            // 没打到墙: 仅画地板/天花板
+            // 没打到墙: 仅画地板/天花板, 填充整列像素范围
             for(int y = 0; y < SCREEN_H; y++) {
-                uint8_t on = (y < SCREEN_H / 2) ? ceil_px(cx * 2, y) : floor_px(cx * 2, y);
-                fb_set(cx * 2, y, on);
-                fb_set(cx * 2 + 1, y, on);
+                uint8_t on = (y < SCREEN_H / 2) ? ceil_px(px_ctr, y) : floor_px(px_ctr, y);
+                for(int px = px_start; px <= px_end; px++)
+                    fb_set(px, y, on);
             }
             continue;
         }
@@ -338,10 +439,19 @@ void engine_render(void) {
             perp = sideY - deltaY;
         if(perp < 0.01f) perp = 0.01f;
 
+        // v6.10.1: 存储本列墙深度 (用于敌人遮挡检测)
+        for(int px = px_start; px <= px_end && px < SCREEN_W; px++)
+            s_wall_depth[px] = perp;
+
         int lineH = (int)((float)SCREEN_H / perp);
         if(lineH < 1) lineH = 1;
-        int drawStart = -lineH / 2 + SCREEN_H / 2;
-        int drawEnd = lineH / 2 + SCREEN_H / 2;
+        // v6.7-beta: 跳跃 — 根据离地 jump_z 像素高度, 按距离将墙面+地平线整体下移
+        int jumpShift = 0;
+        if(g.jump_z != 0.0f) {
+            jumpShift = (int)(g.jump_z * (float)SCREEN_H / perp);
+        }
+        int drawStart = -lineH / 2 + SCREEN_H / 2 + jumpShift;
+        int drawEnd = lineH / 2 + SCREEN_H / 2 + jumpShift;
         if(drawStart < 0) drawStart = 0;
         if(drawEnd >= SCREEN_H) drawEnd = SCREEN_H - 1;
 
@@ -359,25 +469,23 @@ void engine_render(void) {
         int texId = wall_tex_id(hit);
         int shade = shade_from(perp, side);
 
-        // 出口在这条光线经过: 在该列最亮像素上叠加闪烁标记,或者让出口处的地板高亮
-        // 这里做法: 如果靠近出口(格子距离小),每8帧让列的底部画亮
+        // 出口在这条光线经过: 出口列上方闪烁提示
         if(exit_on_ray) {
             float dxm = mapX - posX, dym = mapY - posY;
             if(dxm * dxm + dym * dym < 64.0f && (g.tick & 7) < 3) {
-                // 出口列边缘加亮: 画一列闪烁的竖线在墙上方
                 int yy = drawStart - 1;
-                if(yy >= 0) fb_set(cx * 2, yy, 1);
+                if(yy >= 0) fb_set(px_start, yy, 1);
             }
         }
 
-        // 画天花板
+        // 画天花板 (填充像素范围)
         for(int y = 0; y < drawStart; y++) {
-            uint8_t on = ceil_px(cx * 2, y);
-            fb_set(cx * 2, y, on);
-            fb_set(cx * 2 + 1, y, on);
+            uint8_t on = ceil_px(px_ctr, y);
+            for(int px = px_start; px <= px_end; px++)
+                fb_set(px, y, on);
         }
-        // 画墙
-        int constHalf = -lineH / 2 + SCREEN_H / 2;
+        // 画墙 (填充像素范围)
+        int constHalf = -lineH / 2 + SCREEN_H / 2 + jumpShift;
         for(int y = drawStart; y <= drawEnd; y++) {
             int texY = ((y - constHalf) * 8) / lineH;
             if(texY < 0)
@@ -385,15 +493,15 @@ void engine_render(void) {
             else if(texY > 7)
                 texY = 7;
             if(texture_sample(texId, texX, texY)) {
-                apply_shade_px(cx * 2, y, shade);
-                apply_shade_px(cx * 2 + 1, y, shade);
+                for(int px = px_start; px <= px_end; px++)
+                    apply_shade_px(px, y, shade);
             }
         }
-        // 画地板
+        // 画地板 (填充像素范围)
         for(int y = drawEnd + 1; y < SCREEN_H; y++) {
-            uint8_t on = floor_px(cx * 2, y);
-            fb_set(cx * 2, y, on);
-            fb_set(cx * 2 + 1, y, on);
+            uint8_t on = floor_px(px_ctr, y);
+            for(int px = px_start; px <= px_end; px++)
+                fb_set(px, y, on);
         }
     }
 
@@ -495,7 +603,13 @@ void engine_render(void) {
                 if(ss < 2) continue;
                 if(ss > 40) ss = 40;
                 // 道具中心位于地板线附近 (下半屏, drawEnd 附近)
-                int cy_base = SCREEN_H / 2 + (int)((float)SCREEN_H * 0.12f / transY);
+                // v6.7-beta: 加上跳跃位移 — 相机升高, 地板上的精灵整体下移
+                int jumpShiftSprite = 0;
+                if(g.jump_z != 0.0f) {
+                    jumpShiftSprite = (int)(g.jump_z * (float)SCREEN_H / transY);
+                }
+                int cy_base =
+                    SCREEN_H / 2 + (int)((float)SCREEN_H * 0.12f / transY) + jumpShiftSprite;
                 if(cy_base > SCREEN_H - 1) cy_base = SCREEN_H - 1;
                 // 根据道具类型选简单标志形状 (2x2 或 十字 闪烁)
                 bool show = true;
@@ -577,13 +691,32 @@ void engine_render(void) {
             if(sh < 3) sh = 3;
             if(sh > 36) sh = 36;
             int sw = sh / 2; // 宽度约高度一半
+            // v6.10.2: 墙体遮挡检测 — 检查敌人中心±宽度范围, 任一列可见则画
+            if(!g.dev_mode) {
+                int sw_check = sw + 1;
+                bool occluded = true;
+                for(int cx2 = screenX - sw_check; cx2 <= screenX + sw_check; cx2++) {
+                    if(cx2 < 0 || cx2 >= SCREEN_W) continue;
+                    if(transY <= s_wall_depth[cx2]) {
+                        occluded = false;
+                        break;
+                    }
+                }
+                if(occluded) continue;
+            }
             // 垂直锚点: 站在地板上 (脚部在 drawEnd 附近)
-            int feet_y = SCREEN_H / 2 + (int)((float)SCREEN_H * 0.4f / transY);
+            // v6.7-beta: 跳跃位移 — 敌人站地板上, 随相机升高而下移
+            int jumpShiftActor = 0;
+            if(g.jump_z != 0.0f) {
+                jumpShiftActor = (int)(g.jump_z * (float)SCREEN_H / transY);
+            }
+            int feet_y = SCREEN_H / 2 + (int)((float)SCREEN_H * 0.4f / transY) + jumpShiftActor;
             if(feet_y > SCREEN_H - 1) feet_y = SCREEN_H - 1;
             int top_y = feet_y - sh;
             if(top_y < 0) top_y = 0;
-            // 受伤反白: hurt_flash>0 时画空心 (反相), 否则实心
+            // v6.10.2: 受伤闪烁 — hurt_flash>0 时空心(只画边框), 隔帧闪烁
             bool hurt = (a->hurt_flash > 0);
+            bool blink = hurt && ((g.tick & 2) == 0); // 快速闪烁
             // 移动呼吸: 每 8 帧上下抖 1 像素
             int bob = ((g.tick + i * 3) & 8) ? 1 : 0;
             top_y += bob;
@@ -598,16 +731,14 @@ void engine_render(void) {
                 for(int xx = -sw; xx <= sw; xx++) {
                     int px = screenX + xx;
                     if(px < 0 || px >= SCREEN_W) continue;
-                    // 边框始终亮, 内部按 hurt 决定
                     bool edge = (xx == -sw || xx == sw || yy == 0 || yy == body_h - 1);
                     if(edge)
                         fb_set(px, py, 1);
-                    else if(!hurt)
-                        fb_set(px, py, 1); // 实心敌人
-                    // hurt 时内部留空 (反白效果)
+                    else if(!blink)
+                        fb_set(px, py, 1); // 闪烁时只画边框
                 }
             }
-            // 头: 小方块
+            // 头: 小方块 (闪烁时空心)
             int head_h = sh / 4;
             if(head_h < 2) head_h = 2;
             for(int yy = 0; yy < head_h; yy++) {
@@ -617,16 +748,17 @@ void engine_render(void) {
                 for(int xx = -hw; xx <= hw; xx++) {
                     int px = screenX + xx;
                     if(px < 0 || px >= SCREEN_W) continue;
-                    fb_set(px, py, 1);
+                    bool edge = (xx == -hw || xx == hw || yy == 0 || yy == head_h - 1);
+                    if(edge || !blink) fb_set(px, py, 1);
                 }
             }
-            // 眼睛: 两个亮点 (闪烁, 模拟"瞄准玩家")
-            if(sh >= 8 && (g.tick & 3) < 3) {
+            // 眼睛: 两个亮点 (受伤时不画)
+            if(sh >= 8 && (g.tick & 3) < 3 && !blink) {
                 int ey_y = top_y + head_h / 2 + 1;
                 int ex_off = (sw > 2) ? 1 : 0;
                 if(ex_off) {
-                    fb_set(screenX - ex_off, ey_y, hurt ? 0 : 1);
-                    fb_set(screenX + ex_off, ey_y, hurt ? 0 : 1);
+                    fb_set(screenX - ex_off, ey_y, 1);
+                    fb_set(screenX + ex_off, ey_y, 1);
                 }
             }
             // 敌人射击预警: fire_cd 接近 0 时画一个红点(此处黑白=亮点)在枪口位置
@@ -654,7 +786,12 @@ void engine_render(void) {
             int sx = (int)((SCREEN_W / 2.0f) * (1.0f + transX / transY));
             if(sx < -2 || sx > SCREEN_W + 1) continue;
             // 子弹在屏幕中线高度 (略低于视线)
-            int sy = SCREEN_H / 2 + (int)(4.0f / transY);
+            // v6.7-beta: 子弹在世界空间中 (高度接近视线), 跳跃时跟着略微下移
+            int jumpShiftBullet = 0;
+            if(g.jump_z != 0.0f) {
+                jumpShiftBullet = (int)(g.jump_z * (float)SCREEN_H / transY);
+            }
+            int sy = SCREEN_H / 2 + (int)(4.0f / transY) + jumpShiftBullet;
             if(sy < 0) sy = 0;
             if(sy >= SCREEN_H) sy = SCREEN_H - 1;
             // 大小随距离: 近处画 3 点, 远处 1 点, 闪烁
@@ -698,16 +835,121 @@ void engine_render(void) {
     draw_minimap();
     if(g.mode != MODE_MC) draw_compass(); // MC 沙盒无出口, 不画罗盘
 
-    // v6.0: 战斗关和 MC 模式画准星 (屏幕中央十字)
-    if((g.mode == MODE_CAMPAIGN && g.stage == STAGE_COMBAT) || g.mode == MODE_MC) {
-        int cx = SCREEN_W / 2, cy = SCREEN_H / 2;
-        // 中心点 + 四向短线 (留中间空隙, 不挡视野)
-        fb_set(cx, cy, 1);
-        for(int i = 2; i <= 4; i++) {
-            fb_set(cx + i, cy, 1);
-            fb_set(cx - i, cy, 1);
-            fb_set(cx, cy + i, 1);
-            fb_set(cx, cy - i, 1);
+    // v6.4: MC 日升月落 — 太阳/月亮沿弧线从左到右划过天空
+    if(g.mode == MODE_MC) {
+        // 太阳周期 1024 tick: 0-512 白天(太阳), 512-1024 夜晚(月亮)
+        int phase = g.tick & 1023;
+        bool is_day = (phase < 512);
+        // 弧线: x 从 4→124, y 按 sin 弧线从地平线升到顶再落下
+        float t = (is_day ? phase : (phase - 512)) / 511.0f; // 0..1
+        int arc_x = 4 + (int)(t * (SCREEN_W - 12));
+        // y: 0=地平线(28), 0.5=最高(4), 1=地平线(28)
+        int arc_y = (int)(28.0f - sinf(t * 3.14159f) * 24.0f);
+        if(arc_y < 2) arc_y = 2;
+        if(arc_y > 28) arc_y = 28;
+
+        if(is_day) {
+            // 太阳: 5x5 实心 + 光芒
+            for(int yy = 0; yy < 5; yy++)
+                for(int xx = 0; xx < 5; xx++)
+                    fb_set(arc_x + xx, arc_y + yy, 1);
+            // 光晕 (正午最强)
+            int glow = (int)(sinf(t * 3.14159f) * 4.0f);
+            for(int i = 1; i <= glow; i++) {
+                fb_set(arc_x + 2, arc_y - i, 1);
+                fb_set(arc_x + 2, arc_y + 4 + i, 1);
+                fb_set(arc_x - i, arc_y + 2, 1);
+                fb_set(arc_x + 4 + i, arc_y + 2, 1);
+            }
+        } else {
+            // 月亮: 3x3 空心方框 (弯月感)
+            for(int i = 0; i < 3; i++) {
+                fb_set(arc_x + i, arc_y, 1);
+                fb_set(arc_x + i, arc_y + 2, 1);
+            }
+            fb_set(arc_x, arc_y + 1, 1);
+            fb_set(arc_x + 2, arc_y + 1, 1);
+            // 星星: 夜晚随机点缀 3 颗 (基于 tick 闪烁)
+            for(int s = 0; s < 3; s++) {
+                int sx = (s * 37 + 7) & 127;
+                int sy = (s * 19 + 3) % 20;
+                if((g.tick + s * 31) & 64) fb_set(sx, sy, 1);
+            }
         }
+    }
+
+    // v6.2: 渲染粒子 (3D 投影: 和子弹/敌人相同逆行列式)
+    {
+        Player* pp = &g.player;
+        const float invDet = 1.0f / (pp->plane_x * pp->dir_y - pp->dir_x * pp->plane_y);
+        for(int i = 0; i < MAX_PARTICLES; i++) {
+            Particle* p = &g.particles[i];
+            if(!p->active) continue;
+            float spx = p->x - pp->x;
+            float spy = p->y - pp->y;
+            float transX = invDet * (pp->dir_y * spx - pp->dir_x * spy);
+            float transY = invDet * (-pp->plane_y * spx + pp->plane_x * spy);
+            if(transY <= 0.1f) continue;
+            int sx = (int)((SCREEN_W / 2.0f) * (1.0f + transX / transY));
+            if(sx < -4 || sx > SCREEN_W + 3) continue;
+            // 粒子高度: 子弹尾迹在中线附近, 行走尘土在地板附近
+            // v6.7-beta: 跳跃位移 — 世界空间粒子都下移
+            int jumpShiftP = 0;
+            if(g.jump_z != 0.0f) {
+                jumpShiftP = (int)(g.jump_z * (float)SCREEN_H / transY);
+            }
+            int sy;
+            if(p->type == 3)
+                sy = SCREEN_H / 2 + (int)(SCREEN_H * 0.38f / transY) + jumpShiftP;
+            else
+                sy = SCREEN_H / 2 + (int)(2.0f / transY) + jumpShiftP;
+            if(sy < 0) sy = 0;
+            if(sy >= SCREEN_H) sy = SCREEN_H - 1;
+            // 不同类型大小样式
+            if(p->type == 1 && p->size >= 2) {
+                // 命中爆炸: 3x3 高亮
+                for(int yy = -1; yy <= 1; yy++)
+                    for(int xx = -1; xx <= 1; xx++)
+                        fb_highlight_px(sx + xx, sy + yy);
+            } else {
+                // 其他类型: 单点高亮 (十字+反色边框)
+                fb_highlight_px(sx, sy);
+            }
+        }
+    }
+
+    // v6.2: 准星 (反差色十字, 恒可见).
+    // 所有非菜单模式都画, 保证用户要求的"屏幕一直有反差十字准心".
+    if(g.mode != MODE_MENU && g.mode != MODE_PAUSED && g.mode != MODE_INVENTORY &&
+       g.mode != MODE_LEVEL_SELECT && g.mode != MODE_STORY) {
+        int cx = SCREEN_W / 2, cy = SCREEN_H / 2;
+        // 后坐力: 射击时准星下移
+        if(g.shoot_kick > 0) cy += (int)g.shoot_kick;
+        // 准星样式: 中心空心框 + 四向短尖 (共 13 px)
+        // 都用 XOR 画法, 保证黑底白点/白底黑点永远相反
+        // 中央空框 (2x2 空)
+        fb_xor(cx - 1, cy - 2);
+        fb_xor(cx, cy - 2);
+        fb_xor(cx + 1, cy - 2);
+        fb_xor(cx - 2, cy - 1);
+        fb_xor(cx + 2, cy - 1);
+        fb_xor(cx - 2, cy);
+        fb_xor(cx + 2, cy);
+        fb_xor(cx - 2, cy + 1);
+        fb_xor(cx + 2, cy + 1);
+        fb_xor(cx - 1, cy + 2);
+        fb_xor(cx, cy + 2);
+        fb_xor(cx + 1, cy + 2);
+        // 中心十字点
+        fb_xor(cx, cy);
+        // 四向尖刺 (尖端朝外)
+        fb_xor(cx, cy - 4);
+        fb_xor(cx, cy - 5);
+        fb_xor(cx, cy + 4);
+        fb_xor(cx, cy + 5);
+        fb_xor(cx - 4, cy);
+        fb_xor(cx - 5, cy);
+        fb_xor(cx + 4, cy);
+        fb_xor(cx + 5, cy);
     }
 }

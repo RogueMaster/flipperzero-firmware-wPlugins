@@ -1,3 +1,142 @@
+v6.11.0 (Beta):
+- Shop system rebuild: 10 distinct items with real effects (replaces
+  previous 20 placeholder entries that only modified ammo/HP directly).
+  Items are now stored in a persistent inventory (g.items[0..9]) instead
+  of being applied instantly on purchase.
+- Item list (0..9):
+  0 Potion S  (+5 HP)        30 pts
+  1 Potion L  (+10 HP)       50 pts
+  2 Full Heal (max HP)       80 pts
+  3 Ammo +5                   20 pts
+  4 Ammo Max (99)             80 pts
+  5 Key +1                    20 pts
+  6 Torch +3                  15 pts
+  7 Amulet (warp to start)    70 pts
+  8 Shield (5s invincible)   100 pts
+  9 2x Fire (15s, 2 bullets) 120 pts
+- New MODE_SHOP_INV inventory panel: long-press OK in campaign/puzzle/
+  combat/endless modes opens the item inventory. Up/Dn selects, OK uses,
+  Back returns to game. Shows current HP/Ammo and active buff timers.
+- Main menu entry: "6. Shop" / "6. 商城" added to main menu. Shop is
+  reachable from main menu and from the level-clear screen (Left key).
+- Purchase feedback: toast messages (MSG_SHOP_BUY / MSG_SHOP_FAIL /
+  MSG_SHOP_FULL) + SFX. Use feedback: MSG_ITEM_USE / MSG_ITEM_NONE.
+- Buff system: buff_shield (300 frames) and buff_doublefire (900 frames)
+  timers, decremented each tick in game_update. Shield grants
+  invincibility; 2x Fire makes each shot fire 2 bullets (second bullet
+  offset by 0.2 rad ≈ 11°).
+- Bilingual support: all shop/item text available in Chinese and English
+  (g.lang toggle). Menu item 6 uses text rendering (no XBM bitmap).
+- Persistence: item inventory saved to storage (SaveData.items[10]).
+
+v6.10.2 (Stable):
+- Enemy movement slowed dramatically: random interval 80-180 frames
+  (~1.3-3 seconds per move), 12-frame smooth interpolation transition
+  (eliminates teleport-flicker). Overall speed reduced by 50%+.
+- Enemy HP fixed at 3, bullet/melee damage = 1. Strictly 3 hits to kill.
+  Fixed the "enemies cannot be killed" bug from earlier builds.
+  Collision radius increased to 0.5 cell for forgiving hit detection.
+- Near-death persistent flashing: when enemy HP = 1, hurt_flash stays
+  enabled (never decrements) so the body keeps blinking until death.
+  Eyes hidden while hurt for clearer feedback.
+- Wall occlusion: multi-column depth-buffer check across the enemy's
+  width — any visible column renders it. Non-developer mode: enemies
+  behind walls are completely hidden. Developer mode: full vision.
+- MC jump anti-crash: MC mode jump height capped at 3px (was 4px),
+  removed the mc_hop wall-bypass logic (jump is now purely visual),
+  strict collision detection prevents "hold forward into wall" freezes
+  that previously caused device reboots.
+
+v6.10.1-beta:
+- Enemy movement slowed + randomized (interval 40-90 -> 80-180 frames).
+- Wall occlusion: depth-buffer check hides enemies behind walls in
+  non-dev mode (single-column check).
+- MC jump height reduced (4px -> 3px), removed wall-bypass logic.
+- Enemy HP normalized to 3, bullet damage = 1 (3 shots to kill).
+
+v6.10.0-beta:
+- Enemy AI: smooth interpolated movement + line-of-sight ranged shots
+  + auto-approach when player is not visible.
+- Pistol auto-lock: bullets bias toward the nearest enemy in the view
+  cone (70% original + 30% target direction, max 30 degrees).
+- Ammo auto-regen: timer-based ammunition replenishment in combat levels.
+- Score system + shop: +10 points per kill, spendable in shop.
+- Pure-maze levels (1-10) cleared instantly when first key is picked up.
+- Story expansion: additional chapters and branching choices.
+
+v6.9.1-beta:
+- Settings menu fully translated to Chinese.
+- List selection permanently centered (scrolling list UI).
+- MC mode: jump on top of blocks (stand on placed blocks).
+
+v6.9.0-beta:
+- Developer mode with 20+ runtime settings (turn sensitivity, move
+  speed, jump height, brightness, fog, sky/ceiling, floor texture,
+  SFX volume, maze scale, HP start, regen rate, ammo multiplier,
+  endless start floor, MC size, MC day length, MC jump, etc.).
+- List selection permanently centered.
+- Render/audio/MC all configurable.
+
+v6.8.0-beta:
+- Control overhaul: short tap = precise small step, hold = accelerating
+  movement (the longer you hold, the faster it goes).
+- MC jump (parabolic arc, 28 frames, peak 9px, landing dust).
+- Triple long-press Back to exit (anti-mistouch beta protection).
+- Texture table expanded to 24 slots (12 reserved for future blocks).
+
+v6.7-beta:
+- Jump mechanic introduced (parabolic arc).
+- Tweaked rendering for performance.
+
+v6.6:
+- Fixed maze dead-end bugs; BFS connectivity verification.
+- World pre-generation cache: full maze snapshots saved to App Data
+  for instant loading.
+
+v6.5:
+- Health system rebuild: base 10 HP (+2 per 5 levels, max 20),
+  2-second invincibility after hit, +1 HP/sec regen.
+
+v6.4:
+- Exit bug fix.
+- MC mode: flat terrain, day/night cycle, inventory, HP bar.
+
+v6.3:
+- MC 材质包大升级 (仿 Minecraft):
+  * 新增 3 种方块: 土方块(WALL_DIRT)、沙子(WALL_SAND, 真正的沙)、原木(WALL_LOG)
+  * 贴图表 9→12 张: 草方块侧面(上草下土)、土颗粒、原木树皮、树叶密点、沙细颗粒、光柱
+  * 草方块纹理改为 MC 风格: 顶部 2 行草层(密), 下 6 行土颗粒
+- 水流动画: texture_sample 对水纹理按 g.tick 做垂直偏移, 波纹实时滚动
+- MC 天空+太阳: MC 模式天花板改为亮天空渐变(地平线渐亮→顶部全亮);
+  右上角画 5x5 太阳+十字光芒, 缓慢左右飘动
+- 沙子落地粒子: 放置沙/土方块时爆发 6 粒尘土 + 3 粒火花 (落地效果)
+- MC 生存玩法核心: 挖掘方块后手持自动切换为该方块(挖草得草/挖沙得沙/挖木得木);
+  对空地长按 OK = 循环切换手持方块(创造模式选块)
+- MC 地形重生: 草25%/树12%/原木12%/沙12%/土6%/水6%/空25%, 边界改为石头(可挖)
+- 手持方块 6→8 种: Brick/Stone/Wood/Grass/Dirt/Sand/Log/Leaf
+- HUD 更新: 8 种方块名显示 + 操作提示 "长OK挖/切 Back放"
+
+v6.2:
+- Control scheme (用户硬规定):
+  * OK short press = SHOOT in ALL modes (MC, campaign, endless, visitor).
+    Plays "No Ammo!" feedback when the magazine is empty.
+  * OK long press  = MINE in MC mode, or open inventory/task panel
+    in other modes (preserves the original OK-long behavior).
+  * Back short press = PLACE block in MC mode (mc_place).
+  * Long/short move keys (up/down/left/right) unchanged: front/back + rotate.
+- Crosshair permanently visible (所有游戏模式) as a high-contrast
+  XOR-drawn inverted-color square with four spiked arms — always the
+  opposite of whatever is on screen (black on white, white on black).
+  Crosshair drops 4 px on shoot (recoil) and rebounds over 4 frames.
+- Particle system (32 slots): shoot sparks (~5 at muzzle), hit explosion
+  (~6 on enemy hit, ~10 on kill, ~3 on wall hit), per-frame bullet trail
+  pellets, and footstep dust every other frame when walking.
+- Global brightness bump: shade distance thresholds relaxed (2.5/4.5/7.5/11)
+  and Bayer density thresholds raised (14/10/6/3), so walls, floor and
+  ceiling are noticeably brighter at all ranges.
+- Enemy speed-up: AI cooldown reduced from 22 → 15 ticks per move so
+  enemies and NPCs visibly move more often.
+
 v6.1:
 - FIX: MC sandbox mode was completely broken — players could clip through
   grass/tree/water blocks (blocking() missed WALL_GRASS/WALL_WATER/WALL_VINE)
