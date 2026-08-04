@@ -24,8 +24,8 @@ typedef struct {
 #define RC_GAP_COUNT 5
 extern const RcGap rc_gaps[RC_GAP_COUNT];
 
-#define RC_TARGET_MIN 2
-#define RC_TARGET_MAX 8
+#define RC_TARGET_MIN   2
+#define RC_TARGET_MAX   8
 #define RC_TARGET_COUNT (RC_TARGET_MAX - RC_TARGET_MIN + 1)
 
 typedef struct {

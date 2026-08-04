@@ -4,11 +4,11 @@
 #include <string.h>
 
 /* Chart geometry. RC_BAND_COUNT bars at HV_PITCH must span <= 128px. */
-#define HV_BAR_W   8
-#define HV_PITCH   9
-#define HV_TOP     15
-#define HV_BOTTOM  46
-#define HV_HEIGHT  (HV_BOTTOM - HV_TOP)
+#define HV_BAR_W  8
+#define HV_PITCH  9
+#define HV_TOP    15
+#define HV_BOTTOM 46
+#define HV_HEIGHT (HV_BOTTOM - HV_TOP)
 
 /* A 48 dB climb over the noise floor is a full-height bar. A fob pressed
  * against the Flipper clips well past that; the scale is for reading, not
@@ -77,12 +77,12 @@ static void hunt_view_draw(Canvas* canvas, void* model) {
     if(m->best >= 0 && m->best < (int8_t)m->count) {
         const RcHuntBand* b = &m->bands[m->best];
         int delta = (int)b->peak_dbm - (int)b->floor_dbm;
-        snprintf(
-            line, sizeof(line), "%s MHz  +%ddB", rc_bands[(uint8_t)m->best].label, delta);
+        snprintf(line, sizeof(line), "%s MHz  +%ddB", rc_bands[(uint8_t)m->best].label, delta);
     } else {
         char dots[4] = {0};
         int nd = (int)((m->phase / 3) % 4);
-        for(int i = 0; i < nd; i++) dots[i] = '.';
+        for(int i = 0; i < nd; i++)
+            dots[i] = '.';
         snprintf(line, sizeof(line), "Hold your remote down%s", dots);
     }
     canvas_draw_str(canvas, 2, 54, line);

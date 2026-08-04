@@ -29,9 +29,9 @@ def f(path, px):
     return ImageFont.truetype(path, px)
 
 
-PRIM = f(FB, 9)     # FontPrimary
-SEC = f(FR, 8)      # FontSecondary
-BIG = f(FBLK, 20)   # FontBigNumbers
+PRIM = f(FB, 9)  # FontPrimary
+SEC = f(FR, 8)  # FontSecondary
+BIG = f(FBLK, 20)  # FontBigNumbers
 BADGE = f(FBLK, 15)
 
 
@@ -128,9 +128,9 @@ def m_capture():
             d.ellipse(box, outline=INK, width=1)
 
     # signal row: activity pip + carrier bar + dBm
-    d.rectangle([2, 48, 7, 53], fill=INK)          # pip lit = raw pulses seen
+    d.rectangle([2, 48, 7, 53], fill=INK)  # pip lit = raw pulses seen
     d.rectangle([11, 48, 79, 53], outline=INK, width=1)
-    d.rectangle([12, 49, 12 + 47, 52], fill=INK)   # ~-58 dBm on a -100..-40 scale
+    d.rectangle([12, 49, 12 + 47, 52], fill=INK)  # ~-58 dBm on a -100..-40 scale
     rtext(d, 126, 54, "-58dBm", SEC)
 
     footer(d, "Press remote..", "OK: Analyze")
@@ -164,8 +164,9 @@ def m_hunt():
             cap = max(HV_TOP - 1, HV_BOTTOM - h - 3)
             d.line([(x, cap), (x + HV_BAR_W - 1, cap)], fill=INK)
         elif h > 0:
-            d.rectangle([x, HV_BOTTOM - h, x + HV_BAR_W - 1, HV_BOTTOM],
-                        outline=INK, width=1)
+            d.rectangle(
+                [x, HV_BOTTOM - h, x + HV_BAR_W - 1, HV_BOTTOM], outline=INK, width=1
+            )
         else:
             d.point((x + HV_BAR_W // 2, HV_BOTTOM - 1), fill=INK)
 

@@ -9,9 +9,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define furi_assert(expr)  ((void)0)
-#define furi_check(expr)   ((void)0)
-#define UNUSED(x)          ((void)(x))
+#define furi_assert(expr) ((void)0)
+#define furi_check(expr)  ((void)0)
+#define UNUSED(x)         ((void)(x))
 
 #define FURI_LOG_D(tag, ...) ((void)0)
 #define FURI_LOG_I(tag, ...) ((void)0)

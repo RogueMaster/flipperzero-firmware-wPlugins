@@ -15,15 +15,15 @@
 static int failures = 0;
 static int checks = 0;
 
-#define CHECK(cond, ...)                             \
-    do {                                             \
-        checks++;                                    \
-        if(!(cond)) {                                \
-            failures++;                              \
+#define CHECK(cond, ...)                                  \
+    do {                                                  \
+        checks++;                                         \
+        if(!(cond)) {                                     \
+            failures++;                                   \
             printf("  FAIL %s:%d: ", __FILE__, __LINE__); \
-            printf(__VA_ARGS__);                     \
-            printf("\n");                            \
-        }                                            \
+            printf(__VA_ARGS__);                          \
+            printf("\n");                                 \
+        }                                                 \
     } while(0)
 
 /* Build a capture log: `n` presses of `cls`, with `unique` distinct parcels

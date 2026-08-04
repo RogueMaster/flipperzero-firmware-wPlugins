@@ -11,7 +11,8 @@ uint16_t rc_bits_from_dump(const char* dump) {
 
     for(const char* p = dump; (p = strstr(p, "bit")) != NULL; p += 3) {
         const char* d = p;
-        while(d > dump && d[-1] >= '0' && d[-1] <= '9') d--;
+        while(d > dump && d[-1] >= '0' && d[-1] <= '9')
+            d--;
         if(d == p) continue; // "bit" with no number in front of it
 
         uint32_t v = 0;

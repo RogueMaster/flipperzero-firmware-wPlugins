@@ -27,9 +27,9 @@
 
 /* Band-hunt sweep timing. One band costs settle + samples, so a full sweep of
  * RC_BAND_COUNT bands lands well inside the ~1s a held fob keeps transmitting. */
-#define RC_HUNT_SETTLE_MS  2
-#define RC_HUNT_SAMPLES    8
-#define RC_HUNT_SAMPLE_US  500
+#define RC_HUNT_SETTLE_MS 2
+#define RC_HUNT_SAMPLES   8
+#define RC_HUNT_SAMPLE_US 500
 
 /* The common ISM bands a garage, gate, car or alarm fob is most likely to use.
  * RC_BAND_DEFAULT must stay pointing at 433.92. */
@@ -250,8 +250,7 @@ RcRadio* rc_radio_alloc(ViewDispatcher* view_dispatcher, uint32_t capture_event)
      * classification we care about (static vs dynamic) needs no keystore, but
      * loading one makes the decoded parcels - and so our fingerprints - richer. */
     radio->environment = subghz_environment_alloc();
-    subghz_environment_set_protocol_registry(
-        radio->environment, (void*)&subghz_protocol_registry);
+    subghz_environment_set_protocol_registry(radio->environment, (void*)&subghz_protocol_registry);
     subghz_environment_set_nice_flor_s_rainbow_table_file_name(
         radio->environment, RC_RT_NICE_FLOR_S);
     subghz_environment_set_came_atomo_rainbow_table_file_name(
@@ -322,8 +321,7 @@ void rc_radio_start(RcRadio* radio) {
 
     subghz_receiver_reset(radio->receiver);
     subghz_worker_start(radio->worker);
-    subghz_devices_start_async_rx(
-        radio->device, (void*)subghz_worker_rx_callback, radio->worker);
+    subghz_devices_start_async_rx(radio->device, (void*)subghz_worker_rx_callback, radio->worker);
 
     radio->running = true;
 }
@@ -361,7 +359,8 @@ uint8_t rc_radio_snapshot(RcRadio* radio, RcCapture* out, uint8_t max) {
     furi_assert(radio);
     furi_mutex_acquire(radio->mutex, FuriWaitForever);
     uint8_t n = radio->count < max ? radio->count : max;
-    for(uint8_t i = 0; i < n; i++) out[i] = radio->captures[i];
+    for(uint8_t i = 0; i < n; i++)
+        out[i] = radio->captures[i];
     furi_mutex_release(radio->mutex);
     return n;
 }
@@ -471,7 +470,8 @@ uint8_t rc_radio_hunt_snapshot(RcRadio* radio, RcHuntBand* out, uint8_t max) {
     furi_assert(radio);
     furi_mutex_acquire(radio->mutex, FuriWaitForever);
     uint8_t n = RC_BAND_COUNT < max ? RC_BAND_COUNT : max;
-    for(uint8_t i = 0; i < n; i++) out[i] = radio->hunt[i];
+    for(uint8_t i = 0; i < n; i++)
+        out[i] = radio->hunt[i];
     furi_mutex_release(radio->mutex);
     return n;
 }

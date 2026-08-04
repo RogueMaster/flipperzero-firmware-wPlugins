@@ -137,7 +137,8 @@ static void capture_view_draw(Canvas* canvas, void* model) {
     } else {
         char dots[4] = {0};
         int nd = (int)((m->phase / 3) % 4);
-        for(int i = 0; i < nd; i++) dots[i] = '.';
+        for(int i = 0; i < nd; i++)
+            dots[i] = '.';
         snprintf(hint, sizeof(hint), "Press remote%s", dots);
     }
     canvas_draw_str(canvas, 3, 63, hint);

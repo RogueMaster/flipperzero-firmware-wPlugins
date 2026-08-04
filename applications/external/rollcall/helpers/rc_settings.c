@@ -31,9 +31,8 @@ void rc_settings_default(RcSettings* s) {
 /* A hand-edited or half-written file must never be able to index off the end
  * of rc_bands / rc_mods / rc_gaps, so every field is re-checked on load. */
 static bool rc_settings_valid(const RcSettings* s) {
-    return s->band_idx < RC_BAND_COUNT && s->mod_idx < RC_MOD_COUNT &&
-           s->gap_idx < RC_GAP_COUNT && s->target >= RC_TARGET_MIN &&
-           s->target <= RC_TARGET_MAX;
+    return s->band_idx < RC_BAND_COUNT && s->mod_idx < RC_MOD_COUNT && s->gap_idx < RC_GAP_COUNT &&
+           s->target >= RC_TARGET_MIN && s->target <= RC_TARGET_MAX;
 }
 
 void rc_settings_load(RcSettings* s) {
@@ -42,11 +41,7 @@ void rc_settings_load(RcSettings* s) {
 
     RcSettings loaded;
     if(!saved_struct_load(
-           RC_SETTINGS_PATH,
-           &loaded,
-           sizeof(RcSettings),
-           RC_SETTINGS_MAGIC,
-           RC_SETTINGS_VERSION)) {
+           RC_SETTINGS_PATH, &loaded, sizeof(RcSettings), RC_SETTINGS_MAGIC, RC_SETTINGS_VERSION)) {
         FURI_LOG_D(TAG, "no saved settings, using defaults");
         return;
     }
@@ -69,11 +64,7 @@ void rc_settings_save(const RcSettings* s) {
     furi_record_close(RECORD_STORAGE);
 
     if(!saved_struct_save(
-           RC_SETTINGS_PATH,
-           s,
-           sizeof(RcSettings),
-           RC_SETTINGS_MAGIC,
-           RC_SETTINGS_VERSION)) {
+           RC_SETTINGS_PATH, s, sizeof(RcSettings), RC_SETTINGS_MAGIC, RC_SETTINGS_VERSION)) {
         FURI_LOG_W(TAG, "could not save settings");
     }
 }
