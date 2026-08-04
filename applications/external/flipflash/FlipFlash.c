@@ -140,14 +140,16 @@ static void flash_build_deck_stem(const char* filename, char* stem, size_t stem_
     }
 }
 
-static void flash_build_state_path(const char* deck_path, char* state_path, size_t state_path_size) {
+static void
+    flash_build_state_path(const char* deck_path, char* state_path, size_t state_path_size) {
     char stem[MAX_TEXT_LENGTH];
-    flash_build_deck_stem(strrchr(deck_path, '/') ? strrchr(deck_path, '/') + 1 : deck_path, stem, sizeof(stem));
+    flash_build_deck_stem(
+        strrchr(deck_path, '/') ? strrchr(deck_path, '/') + 1 : deck_path, stem, sizeof(stem));
     if(stem[0] == '\0') {
         strlcpy(stem, "deck", sizeof(stem));
     }
 
-    // snprintf: format and safely copy text into a string buffer. 
+    // snprintf: format and safely copy text into a string buffer.
     snprintf(state_path, state_path_size, "%s/%s.state", APP_DATA_DIR, stem);
 }
 
@@ -160,7 +162,11 @@ static bool flash_is_deck_filename(const char* name) {
     return true;
 }
 
-static bool flash_write_default_deck(FlashApp* app, const char* filename, const char* const* lines, size_t line_count) {
+static bool flash_write_default_deck(
+    FlashApp* app,
+    const char* filename,
+    const char* const* lines,
+    size_t line_count) {
     storage_common_mkdir(app->storage, APP_DATA_DIR);
 
     char deck_path[MAX_PATH_LENGTH];
@@ -183,8 +189,10 @@ static bool flash_write_default_deck(FlashApp* app, const char* filename, const 
 
 static bool flash_write_default_decks(FlashApp* app) {
     bool wrote_any = false;
-    wrote_any |= flash_write_default_deck(app, "spanish_words.txt", flash_sample_deck, COUNT_OF(flash_sample_deck));
-    wrote_any |= flash_write_default_deck(app, "spanish_verbs.txt", flash_verbs_deck, COUNT_OF(flash_verbs_deck));
+    wrote_any |= flash_write_default_deck(
+        app, "spanish_words.txt", flash_sample_deck, COUNT_OF(flash_sample_deck));
+    wrote_any |= flash_write_default_deck(
+        app, "spanish_verbs.txt", flash_verbs_deck, COUNT_OF(flash_verbs_deck));
     return wrote_any;
 }
 
@@ -250,10 +258,19 @@ static void flash_read_all_decks(FlashApp* app) {
             if(!flash_is_deck_filename(name)) continue;
             if(app->deck_count >= MAX_DECKS) break;
 
-            snprintf(app->decks[app->deck_count].path, sizeof(app->decks[app->deck_count].path), "%s/%s", APP_DATA_DIR, name);
-            flash_build_deck_stem(name, app->decks[app->deck_count].name, sizeof(app->decks[app->deck_count].name));
+            snprintf(
+                app->decks[app->deck_count].path,
+                sizeof(app->decks[app->deck_count].path),
+                "%s/%s",
+                APP_DATA_DIR,
+                name);
+            flash_build_deck_stem(
+                name, app->decks[app->deck_count].name, sizeof(app->decks[app->deck_count].name));
             if(app->decks[app->deck_count].name[0] == '\0') {
-                strlcpy(app->decks[app->deck_count].name, name, sizeof(app->decks[app->deck_count].name));
+                strlcpy(
+                    app->decks[app->deck_count].name,
+                    name,
+                    sizeof(app->decks[app->deck_count].name));
             }
             app->deck_count++;
         }
@@ -323,7 +340,8 @@ static bool flash_load_deck(FlashApp* app) {
         if(front[0] == '\0' || back[0] == '\0') continue;
         if(app->card_count >= MAX_CARDS) break;
 
-        strlcpy(app->cards[app->card_count].front, front, sizeof(app->cards[app->card_count].front));
+        strlcpy(
+            app->cards[app->card_count].front, front, sizeof(app->cards[app->card_count].front));
         strlcpy(app->cards[app->card_count].back, back, sizeof(app->cards[app->card_count].back));
         app->cards[app->card_count].removed = false;
         app->card_count++;
@@ -350,8 +368,9 @@ static void flash_save_state(FlashApp* app) {
     if(app->current_state_path[0] == '\0') {
         return;
     }
-    
-    if(!storage_file_open(app->state_file, app->current_state_path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
+
+    if(!storage_file_open(
+           app->state_file, app->current_state_path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         FURI_LOG_E(TAG, "Unable to save state file");
         storage_file_close(app->state_file);
         return;
@@ -382,7 +401,8 @@ static void flash_apply_saved_state(FlashApp* app) {
         return;
     }
 
-    if(!storage_file_open(app->state_file, app->current_state_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
+    if(!storage_file_open(
+           app->state_file, app->current_state_path, FSAM_READ, FSOM_OPEN_EXISTING)) {
         storage_file_close(app->state_file);
         flash_reset_deck_state(app);
         return;
@@ -574,7 +594,12 @@ static void flash_cycle_deck(FlashApp* app) {
 }
 
 static void flash_activate_deck(FlashApp* app, size_t deck_index, bool persist_selection) {
-    FURI_LOG_I(TAG, "activate deck start index=%u persist=%d count=%u", (unsigned)deck_index, persist_selection, (unsigned)app->deck_count);
+    FURI_LOG_I(
+        TAG,
+        "activate deck start index=%u persist=%d count=%u",
+        (unsigned)deck_index,
+        persist_selection,
+        (unsigned)app->deck_count);
     if(app->deck_count == 0) {
         app->current_deck_path[0] = '\0';
         app->current_state_path[0] = '\0';
@@ -588,9 +613,11 @@ static void flash_activate_deck(FlashApp* app, size_t deck_index, bool persist_s
     }
 
     app->deck_index = deck_index;
-    strlcpy(app->current_deck_path, app->decks[app->deck_index].path, sizeof(app->current_deck_path));
+    strlcpy(
+        app->current_deck_path, app->decks[app->deck_index].path, sizeof(app->current_deck_path));
     FURI_LOG_I(TAG, "activate deck path=%s", app->current_deck_path);
-    flash_build_state_path(app->current_deck_path, app->current_state_path, sizeof(app->current_state_path));
+    flash_build_state_path(
+        app->current_deck_path, app->current_state_path, sizeof(app->current_state_path));
     FURI_LOG_I(TAG, "activate deck state path=%s", app->current_state_path);
 
     if(!flash_load_deck(app)) {
@@ -605,7 +632,12 @@ static void flash_activate_deck(FlashApp* app, size_t deck_index, bool persist_s
         app->current_card = flash_find_first_active(app);
     }
 
-    FURI_LOG_I(TAG, "activate deck done path=%s cards=%u current=%d", app->current_deck_path, (unsigned)app->card_count, app->current_card);
+    FURI_LOG_I(
+        TAG,
+        "activate deck done path=%s cards=%u current=%d",
+        app->current_deck_path,
+        (unsigned)app->card_count,
+        app->current_card);
 }
 
 static void flash_remove_current_card(FlashApp* app) {
@@ -637,7 +669,8 @@ static void flash_draw_deck(Canvas* canvas, FlashApp* app) {
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str_aligned(canvas, 64, 30, AlignCenter, AlignCenter, "No cards left");
         canvas_set_font(canvas, FontSecondary);
-        canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignCenter, "Open settings for help");
+        canvas_draw_str_aligned(
+            canvas, 64, 44, AlignCenter, AlignCenter, "Open settings for help");
         return;
     }
 
@@ -670,7 +703,9 @@ static void flash_draw_settings(Canvas* canvas, FlashApp* app) {
     };
 
     canvas_set_font(canvas, FontSecondary);
-    for(size_t i = app->settings_scroll; i < FlashSettingCount && i < app->settings_scroll + SETTINGS_VISIBLE_ITEMS; i++) {
+    for(size_t i = app->settings_scroll;
+        i < FlashSettingCount && i < app->settings_scroll + SETTINGS_VISIBLE_ITEMS;
+        i++) {
         const int y = 26 + (i - app->settings_scroll) * 12;
 
         if((FlashSetting)i == app->settings_cursor) {
@@ -782,8 +817,7 @@ static void flash_handle_settings_input(FlashApp* app, InputEvent event) {
         if(app->settings_cursor + 1 < FlashSettingCount) {
             app->settings_cursor++;
 
-            if(app->settings_cursor >=
-            app->settings_scroll + SETTINGS_VISIBLE_ITEMS) {
+            if(app->settings_cursor >= app->settings_scroll + SETTINGS_VISIBLE_ITEMS) {
                 app->settings_scroll++;
             }
         }
@@ -862,7 +896,8 @@ static void flash_load_or_create_deck(FlashApp* app) {
     size_t default_deck_index = 0;
     if(app->deck_count > 0 && app->current_deck_path[0] == '\0') {
         char default_deck_path[MAX_PATH_LENGTH];
-        snprintf(default_deck_path, sizeof(default_deck_path), "%s/spanish_words.txt", APP_DATA_DIR);
+        snprintf(
+            default_deck_path, sizeof(default_deck_path), "%s/spanish_words.txt", APP_DATA_DIR);
 
         int default_index = flash_find_deck_index_by_path(app, default_deck_path);
         if(default_index < 0) {
@@ -871,12 +906,24 @@ static void flash_load_or_create_deck(FlashApp* app) {
 
         default_deck_index = (size_t)default_index;
 
-        strlcpy(app->current_deck_path, app->decks[default_deck_index].path, sizeof(app->current_deck_path));
-        flash_build_state_path(app->current_deck_path, app->current_state_path, sizeof(app->current_state_path));
-        FURI_LOG_I(TAG, "default deck resolved index=%u path=%s", (unsigned)default_deck_index, app->current_deck_path);
+        strlcpy(
+            app->current_deck_path,
+            app->decks[default_deck_index].path,
+            sizeof(app->current_deck_path));
+        flash_build_state_path(
+            app->current_deck_path, app->current_state_path, sizeof(app->current_state_path));
+        FURI_LOG_I(
+            TAG,
+            "default deck resolved index=%u path=%s",
+            (unsigned)default_deck_index,
+            app->current_deck_path);
     }
 
-    FURI_LOG_I(TAG, "using default deck index=%u path=%s", (unsigned)default_deck_index, app->deck_count > 0 ? app->decks[default_deck_index].path : "<none>");
+    FURI_LOG_I(
+        TAG,
+        "using default deck index=%u path=%s",
+        (unsigned)default_deck_index,
+        app->deck_count > 0 ? app->decks[default_deck_index].path : "<none>");
     flash_activate_deck(app, default_deck_index, false);
     FURI_LOG_I(TAG, "load or create deck done via default deck");
 }
@@ -889,7 +936,7 @@ int32_t flipflash(void* p) {
     app->input_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
     app->gui = furi_record_open(RECORD_GUI);
     app->notifications = furi_record_open(RECORD_NOTIFICATION);
-    // The Storage service reads your target path, parses the prefix (like /ext/), 
+    // The Storage service reads your target path, parses the prefix (like /ext/),
     // and dynamically routes your request to the correct file system driver.
     app->storage = furi_record_open(RECORD_STORAGE);
     // A virtual file handle that is used to read and write files on the storage service.
@@ -921,10 +968,12 @@ int32_t flipflash(void* p) {
     if(app->current_card < 0) {
         app->current_card = flash_find_first_active(app);
     }
-    FURI_LOG_I(TAG, "Deck count=%d cards=%d path=%s",
-                app->deck_count,
-                app->card_count,
-                app->current_deck_path);
+    FURI_LOG_I(
+        TAG,
+        "Deck count=%d cards=%d path=%s",
+        app->deck_count,
+        app->card_count,
+        app->current_deck_path);
 
     if(!flash_has_active_cards(app)) {
         app->screen = FlashScreenSettings;
@@ -940,7 +989,8 @@ int32_t flipflash(void* p) {
             continue;
         }
 
-        if(event.type == InputTypeShort && event.key == InputKeyBack && app->screen == FlashScreenDeck) {
+        if(event.type == InputTypeShort && event.key == InputKeyBack &&
+           app->screen == FlashScreenDeck) {
             running = false;
             continue;
         }

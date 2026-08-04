@@ -108,6 +108,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Updated: [RollCall v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/RollCall-FlipperZero)
 - Updated: [Maze 3D v6.11.1 (By k20120509)](https://github.com/k20120509/flipper-release)
 - Updated: [Specter v2.3 (By at0m-b0mb)](https://github.com/at0m-b0mb/Specter-FlipperZero)
+- Added: [FlipFlash v0.1 (By Mushi0)](https://github.com/Mushi0/FlippFlash)
 
 <a name="release"></a>
 
