@@ -1,3 +1,34 @@
+v6.11.0 (Beta):
+- Shop system rebuild: 10 distinct items with real effects (replaces
+  previous 20 placeholder entries that only modified ammo/HP directly).
+  Items are now stored in a persistent inventory (g.items[0..9]) instead
+  of being applied instantly on purchase.
+- Item list (0..9):
+  0 Potion S  (+5 HP)        30 pts
+  1 Potion L  (+10 HP)       50 pts
+  2 Full Heal (max HP)       80 pts
+  3 Ammo +5                   20 pts
+  4 Ammo Max (99)             80 pts
+  5 Key +1                    20 pts
+  6 Torch +3                  15 pts
+  7 Amulet (warp to start)    70 pts
+  8 Shield (5s invincible)   100 pts
+  9 2x Fire (15s, 2 bullets) 120 pts
+- New MODE_SHOP_INV inventory panel: long-press OK in campaign/puzzle/
+  combat/endless modes opens the item inventory. Up/Dn selects, OK uses,
+  Back returns to game. Shows current HP/Ammo and active buff timers.
+- Main menu entry: "6. Shop" / "6. 商城" added to main menu. Shop is
+  reachable from main menu and from the level-clear screen (Left key).
+- Purchase feedback: toast messages (MSG_SHOP_BUY / MSG_SHOP_FAIL /
+  MSG_SHOP_FULL) + SFX. Use feedback: MSG_ITEM_USE / MSG_ITEM_NONE.
+- Buff system: buff_shield (300 frames) and buff_doublefire (900 frames)
+  timers, decremented each tick in game_update. Shield grants
+  invincibility; 2x Fire makes each shot fire 2 bullets (second bullet
+  offset by 0.2 rad ≈ 11°).
+- Bilingual support: all shop/item text available in Chinese and English
+  (g.lang toggle). Menu item 6 uses text rendering (no XBM bitmap).
+- Persistence: item inventory saved to storage (SaveData.items[10]).
+
 v6.10.2 (Stable):
 - Enemy movement slowed dramatically: random interval 80-180 frames
   (~1.3-3 seconds per move), 12-frame smooth interpolation transition

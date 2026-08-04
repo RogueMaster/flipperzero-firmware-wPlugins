@@ -159,6 +159,8 @@ void player_shoot(void) {
     }
     g.ammo--;
     sfx_play(SFX_SHOOT);
+    // v6.11: 双倍火力 — 每次射击消耗 1 子弹但发射 2 发
+    int shots = (g.buff_doublefire > 0) ? 2 : 1;
     // v6.10: 自动锁定 — 找画面中最近的敌人, 子弹偏向它
     float bdx = g.player.dir_x, bdy = g.player.dir_y;
     g.auto_lock = 255;
@@ -189,7 +191,17 @@ void player_shoot(void) {
     // 枪口位置
     float px = g.player.x + g.player.dir_x * 0.3f;
     float py = g.player.y + g.player.dir_y * 0.3f;
-    bullet_spawn(px, py, bdx, bdy, 0);
+    // v6.11: 双倍火力 — 第二发子弹带散射偏移
+    for(int s = 0; s < shots; s++) {
+        float sx = bdx, sy = bdy;
+        if(shots > 1 && s == 1) {
+            // 第二发: 横向偏 0.2 弧度 (约 11°)
+            float c = cosf(0.2f), sn = sinf(0.2f);
+            sx = bdx * c - bdy * sn;
+            sy = bdx * sn + bdy * c;
+        }
+        bullet_spawn(px, py, sx, sy, 0);
+    }
     particle_spawn(px, py, 0, 5);
     g.muzzle_flash = 3;
     g.shoot_kick   = 4;
@@ -1008,6 +1020,115 @@ bool item_use(int item_type) {
     }
 }
 
+// v6.11: 10 种道具的名称 (中/英) + 价格 + 使用逻辑
+//   索引 0..9 对应 g.items[0..9]
+const char* shop_item_name_zh(int idx) {
+    static const char* names[] = {
+        "血量药水", "大血药", "满血药剂",
+        "弹药+5", "弹药满", "钥匙+1",
+        "火把+3", "护身符", "无敌护盾", "双倍火力",
+    };
+    return (idx >= 0 && idx < 10) ? names[idx] : "?";
+}
+const char* shop_item_name_en(int idx) {
+    static const char* names[] = {
+        "Potion S", "Potion L", "Full Heal",
+        "Ammo+5", "Ammo Max", "Key+1",
+        "Torch+3", "Amulet", "Shield", "2x Fire",
+    };
+    return (idx >= 0 && idx < 10) ? names[idx] : "?";
+}
+const char* shop_item_desc_zh(int idx) {
+    static const char* desc[] = {
+        "+5 HP", "+10 HP", "回满血",
+        "+5 子弹", "子弹填满", "+1 钥匙",
+        "+3 火把", "回起点", "5秒无敌", "15秒双倍伤害",
+    };
+    return (idx >= 0 && idx < 10) ? desc[idx] : "";
+}
+uint16_t shop_item_price(int idx) {
+    static const uint16_t prices[] = {
+        30, 50, 80,    // 血药
+        20, 80, 20,    // 弹药/钥匙
+        15, 70, 100, 120, // 火把/护身符/护盾/双倍
+    };
+    return (idx >= 0 && idx < 10) ? prices[idx] : 0;
+}
+
+// v6.11: 使用道具 (从新道具栏调用), 返回 true=成功消耗
+bool shop_item_use(int idx) {
+    if(idx < 0 || idx >= 10) return false;
+    if(g.items[idx] == 0) {
+        set_msg(MSG_ITEM_NONE);
+        sfx_play(SFX_NO_AMMO);
+        return false;
+    }
+    bool ok = false;
+    switch(idx) {
+        case 0: // 血量药水 +5HP
+            if(g.player.health < g.player.max_health) {
+                g.player.health += 5;
+                if(g.player.health > g.player.max_health) g.player.health = g.player.max_health;
+                ok = true;
+            }
+            break;
+        case 1: // 大血药 +10HP
+            if(g.player.health < g.player.max_health) {
+                g.player.health += 10;
+                if(g.player.health > g.player.max_health) g.player.health = g.player.max_health;
+                ok = true;
+            }
+            break;
+        case 2: // 满血药剂
+            if(g.player.health < g.player.max_health) {
+                g.player.health = g.player.max_health;
+                ok = true;
+            }
+            break;
+        case 3: // 弹药+5
+            if(g.ammo < 99) {
+                g.ammo = (g.ammo + 5 > 99) ? 99 : g.ammo + 5;
+                ok = true;
+            }
+            break;
+        case 4: // 弹药满
+            if(g.ammo < 99) { g.ammo = 99; ok = true; }
+            break;
+        case 5: // 钥匙+1
+            g.player.keys++; ok = true;
+            break;
+        case 6: // 火把+3
+            g.player.torches += 3; ok = true;
+            break;
+        case 7: // 护身符: 传送回起点 (1.5, 1.5)
+            g.player.x = 1.5f; g.player.y = 1.5f;
+            ok = true;
+            break;
+        case 8: // 无敌护盾 5秒 (300帧)
+            g.buff_shield = 300;
+            g.invincible_timer = 300;
+            set_msg(MSG_BUFF_SHIELD);
+            ok = true;
+            break;
+        case 9: // 双倍火力 15秒 (900帧)
+            g.buff_doublefire = 900;
+            set_msg(MSG_BUFF_FIRE);
+            ok = true;
+            break;
+    }
+    if(ok) {
+        g.items[idx]--;
+        set_msg(MSG_ITEM_USE);
+        sfx_play(SFX_PICK_ITEM);
+        g.dirty = true;
+        storage_save();
+    } else {
+        set_msg(MSG_ITEM_NONE);
+        sfx_play(SFX_NO_AMMO);
+    }
+    return ok;
+}
+
 void game_handle_input(InputKey key, InputType type) {
     // v6.9: 操控全部由 cfg_* 设置驱动 — 开发者模式可实时调节
 
@@ -1203,6 +1324,9 @@ void game_update(void) {
     else if(g.screen_shake < 0) g.screen_shake++;
     // v6.5: 无敌时间递减
     if(g.invincible_timer > 0) g.invincible_timer--;
+    // v6.11: 增益计时器递减 (护盾/双倍火力)
+    if(g.buff_shield > 0)     g.buff_shield--;
+    if(g.buff_doublefire > 0) g.buff_doublefire--;
     // v6.5: 每秒回血 1 点 (60 tick = 1秒), 无敌期结束后才开始回血
     // v6.9: 阈值由 cfg_regen_rate 控制 (regen_threshold)
     if(g.invincible_timer == 0 && g.player.health < g.player.max_health) {

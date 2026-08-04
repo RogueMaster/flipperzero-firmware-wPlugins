@@ -123,6 +123,8 @@ typedef struct {
     uint8_t cfg_mc_start_sel;
     // v6.10: 积分系统
     uint32_t score;
+    // v6.11: 道具库存 (10 种)
+    uint8_t items[10];
     uint8_t reserved[4];
 } SaveData;
 
@@ -176,6 +178,8 @@ void storage_load(void) {
             g.cfg_mc_jump       = (d.cfg_mc_jump != 0);
             g.cfg_mc_start_sel  = d.cfg_mc_start_sel;
             g.score             = d.score;       // v6.10: 积分
+            // v6.11: 道具库存
+            for(int i = 0; i < 10; i++) g.items[i] = d.items[i];
         }
     } else {
         // 回退: 读旧 MAZ4 (无成就字段, 默认 0)
@@ -254,6 +258,8 @@ void storage_save(void) {
     d.cfg_mc_jump     = g.cfg_mc_jump ? 1 : 0;
     d.cfg_mc_start_sel = g.cfg_mc_start_sel;
     d.score = g.score;       // v6.10: 积分
+    // v6.11: 道具库存
+    for(int i = 0; i < 10; i++) d.items[i] = g.items[i];
     Storage* st = furi_record_open(RECORD_STORAGE);
     File* f = storage_file_alloc(st);
     if(storage_file_open(f, SAVE_PATH, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {

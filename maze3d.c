@@ -18,7 +18,8 @@ typedef enum {
     M_VISITOR  = 2,
     M_SETTINGS = 3,
     M_MC       = 4,   // MC 沙盒模式 (Beta)
-    M_COUNT = 5,
+    M_SHOP     = 5,   // v6.11: 积分商城 (主菜单入口)
+    M_COUNT = 6,
 } MenuItem;
 
 #define MENU_VISIBLE 5   // 菜单可见行数 (选中项永远在中间第3行, 即 MENU_SEL_IDX=2)
@@ -1079,11 +1080,13 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         // 菜单分隔线
         canvas_draw_line(canvas, 0, 16, 127, 16);
 
-        // 菜单项: 1.闯关模式  2.无尽挑战  3.游客漫游  4.设置  5.MC模式(Beta)
-        const uint8_t* zh_items[M_COUNT] = { m1_bits, m2_bits, m3_bits, m4_bits, m5_bits };
-        const char*    en_items[M_COUNT] = { EN_M1, EN_M2, EN_M3, "4. Settings", "5. MC Beta" };
-        const int ws[M_COUNT] = { M1_W, M2_W, M3_W, M4_W, M5_W };
-        const int hs[M_COUNT] = { M1_H, M2_H, M3_H, M4_H, M5_H };
+        // 菜单项: 1.闯关模式  2.无尽挑战  3.游客漫游  4.设置  5.MC模式(Beta)  6.积分商城
+        const uint8_t* zh_items[M_COUNT] = { m1_bits, m2_bits, m3_bits, m4_bits, m5_bits, NULL };
+        const char*    en_items[M_COUNT] = { EN_M1, EN_M2, EN_M3, "4. Settings", "5. MC Beta", "6. Shop" };
+        const int ws[M_COUNT] = { M1_W, M2_W, M3_W, M4_W, M5_W, 0 };
+        const int hs[M_COUNT] = { M1_H, M2_H, M3_H, M4_H, M5_H, 0 };
+        // v6.11: 商城项无 XBM 位图, 中英文都用文字显示
+        const char* zh_text_items[M_COUNT] = { NULL, NULL, NULL, NULL, NULL, "6. 商城" };
         // ---- 真正居中: 选中项永远在可见区正中央, 列表围绕它滚动 ----
         int y_top = 17, y_bot = 51;
         int row_h = MENU_ROW_H;
@@ -1101,7 +1104,11 @@ static void draw_callback(Canvas* canvas, void* ctx) {
                 canvas_set_color(canvas, ColorWhite);
             }
             if(g.lang == LANG_ZH) {
-                canvas_draw_xbm(canvas, 4, yy - 8, ws[i], hs[i], zh_items[i]);
+                if(zh_items[i] != NULL) {
+                    canvas_draw_xbm(canvas, 4, yy - 8, ws[i], hs[i], zh_items[i]);
+                } else if(zh_text_items[i] != NULL) {
+                    canvas_draw_str(canvas, 6, yy, zh_text_items[i]);
+                }
             } else {
                 canvas_draw_str(canvas, 6, yy, en_items[i]);
             }
@@ -1134,9 +1141,12 @@ static void draw_callback(Canvas* canvas, void* ctx) {
     if(g.mode == MODE_MAP_PANEL)     { draw_map_panel(canvas); return; }
 
     // 游戏画面: 先把渲染好的 framebuffer 拷到 canvas
+    // v6.11: 商城/道具栏从主菜单进入时无 raycast 内容, 跳过 fb 拷贝
     canvas_clear(canvas);
     canvas_set_color(canvas, ColorBlack);
-    canvas_draw_xbm(canvas, 0, 0, SCREEN_W, SCREEN_H, g.fb);
+    if(g.mode != MODE_SHOP && g.mode != MODE_SHOP_INV) {
+        canvas_draw_xbm(canvas, 0, 0, SCREEN_W, SCREEN_H, g.fb);
+    }
 
     // v6.1: 顶部状态条 — 关卡/层数 + 心形血量 + 骷髅剩余敌人 + 星星击杀 + 弹药
     // 半透明效果: 用白底黑字覆盖在 3D 画面顶部
@@ -1377,39 +1387,23 @@ static void draw_callback(Canvas* canvas, void* ctx) {
             canvas_draw_str_aligned(canvas, 64, 44, AlignCenter, AlignCenter, EN_OV_BTNS);
         }
         // v6.10: 积分显示 + 商城提示
-        char sb[24]; snprintf(sb, sizeof(sb), "积分:%lu  左=商城", (unsigned long)g.score);
+        char sb[28];
+        if(g.lang == LANG_ZH) snprintf(sb, sizeof(sb), "积分:%lu  左=商城", (unsigned long)g.score);
+        else snprintf(sb, sizeof(sb), "Score:%lu  L=Shop", (unsigned long)g.score);
         canvas_draw_str_aligned(canvas, 64, 55, AlignCenter, AlignCenter, sb);
     } else if(g.mode == MODE_SHOP) {
-        // v6.10: 积分商城
+        // v6.11: 积分商城 — 10 种道具, 居中滚动
         canvas_clear(canvas);
         canvas_set_color(canvas, ColorBlack);
         canvas_set_font(canvas, FontSecondary);
-        char tb[24]; snprintf(tb, sizeof(tb), "商城 积分:%lu", (unsigned long)g.score);
+        char tb[28];
+        if(g.lang == LANG_ZH) snprintf(tb, sizeof(tb), "商城 积分:%lu", (unsigned long)g.score);
+        else snprintf(tb, sizeof(tb), "%s Score:%lu", EN_SHOP_TITLE, (unsigned long)g.score);
         canvas_draw_str_aligned(canvas, 64, 1, AlignCenter, AlignTop, tb);
         canvas_draw_line(canvas, 0, 11, 127, 11);
-        // 20 项商品: 弹药x5/血量药水x3/火把x3/钥匙x3/护身符x2/满血x2/护盾x2
-        static const char* shop_items[] = {
-            "弹药+5", "弹药+10", "弹药+15", "弹药+20", "弹药满",
-            "血量药水", "大血药", "满血药剂",
-            "火把+3", "火把+5", "火把+10",
-            "钥匙+1", "钥匙+2", "钥匙+3",
-            "护身符+1", "护身符+2",
-            "回满血", "临时无敌",
-            "护盾5秒", "双倍弹药",
-        };
-        static const uint16_t shop_price[] = {
-            20, 35, 50, 65, 80,
-            30, 50, 80,
-            15, 25, 40,
-            20, 35, 50,
-            40, 70,
-            60, 100,
-            80, 120,
-        };
-        #define SHOP_COUNT 20
-        int n = SHOP_COUNT;
-        if(g.shop_sel >= n) g.shop_sel = n - 1;
-        // 居中滚动
+        // 10 项商品 (索引 0..9)
+        if(g.shop_sel >= 10) g.shop_sel = 0;
+        int n = 10;
         int y_top = 12, y_bot = 51, row_h = 8;
         int center_y = (y_top + y_bot) / 2;
         int sel_y = center_y - row_h / 2;
@@ -1422,7 +1416,9 @@ static void draw_callback(Canvas* canvas, void* ctx) {
                 canvas_draw_box(canvas, 0, y, 128, row_h);
                 canvas_set_color(canvas, ColorWhite);
             }
-            char line[32]; snprintf(line, sizeof(line), "%s  %d分", shop_items[i], shop_price[i]);
+            const char* name = (g.lang == LANG_ZH) ? shop_item_name_zh(i) : shop_item_name_en(i);
+            char line[40];
+            snprintf(line, sizeof(line), "%s  %d分  x%d", name, shop_item_price(i), g.items[i]);
             canvas_draw_str(canvas, 4, y + 7, line);
             if(sel) canvas_set_color(canvas, ColorBlack);
         }
@@ -1436,8 +1432,60 @@ static void draw_callback(Canvas* canvas, void* ctx) {
             canvas_draw_box(canvas, bar_x, thumb_y, 2, thumb_h);
         }
         canvas_draw_line(canvas, 0, 52, 127, 52);
-        canvas_draw_str(canvas, 2, 62, "OK购买 上下选");
-        canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, "返回");
+        // 底部: 当前选中项说明
+        const char* desc = shop_item_desc_zh((int)g.shop_sel);
+        canvas_draw_str(canvas, 2, 62, desc);
+        if(g.lang == LANG_ZH) canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, "OK购 Back");
+        else canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, "OK:Buy Back");
+    } else if(g.mode == MODE_SHOP_INV) {
+        // v6.11: 新道具栏 — 长按 OK 在游戏中呼出, 显示库存 + 使用
+        canvas_clear(canvas);
+        canvas_set_color(canvas, ColorBlack);
+        canvas_set_font(canvas, FontSecondary);
+        char tb[32];
+        if(g.lang == LANG_ZH) snprintf(tb, sizeof(tb), "道具栏  HP:%d/%d  弹:%d", g.player.health, g.player.max_health, g.ammo);
+        else snprintf(tb, sizeof(tb), "%s  HP:%d/%d  Ammo:%d", EN_SHOP_INV_TITLE, g.player.health, g.player.max_health, g.ammo);
+        canvas_draw_str_aligned(canvas, 64, 1, AlignCenter, AlignTop, tb);
+        canvas_draw_line(canvas, 0, 11, 127, 11);
+        if(g.inv2_sel >= 10) g.inv2_sel = 0;
+        int n = 10;
+        int y_top = 12, y_bot = 51, row_h = 8;
+        int center_y = (y_top + y_bot) / 2;
+        int sel_y = center_y - row_h / 2;
+        for(int i = 0; i < n; i++) {
+            int rel = i - (int)g.inv2_sel;
+            int y = sel_y + rel * row_h;
+            if(y + row_h <= y_top || y >= y_bot) continue;
+            bool sel = (i == (int)g.inv2_sel);
+            if(sel) {
+                canvas_draw_box(canvas, 0, y, 128, row_h);
+                canvas_set_color(canvas, ColorWhite);
+            }
+            const char* name = (g.lang == LANG_ZH) ? shop_item_name_zh(i) : shop_item_name_en(i);
+            char line[40];
+            snprintf(line, sizeof(line), "%s  x%d  %s", name, g.items[i], shop_item_desc_zh(i));
+            canvas_draw_str(canvas, 4, y + 7, line);
+            if(sel) canvas_set_color(canvas, ColorBlack);
+        }
+        // 进度条
+        if(n > 1) {
+            int bar_x = 126, bar_y = y_top, bar_h = y_bot - y_top;
+            float ratio = (float)g.inv2_sel / (float)(n - 1);
+            int thumb_h = bar_h / 4; if(thumb_h < 2) thumb_h = 2;
+            int thumb_y = bar_y + (int)(ratio * (float)(bar_h - thumb_h));
+            canvas_draw_frame(canvas, bar_x, bar_y, 2, bar_h);
+            canvas_draw_box(canvas, bar_x, thumb_y, 2, thumb_h);
+        }
+        canvas_draw_line(canvas, 0, 52, 127, 52);
+        // buff 状态显示
+        if(g.buff_shield > 0 || g.buff_doublefire > 0) {
+            char bf[40];
+            snprintf(bf, sizeof(bf), "护盾:%ds 火力:%ds",
+                g.buff_shield / 60, g.buff_doublefire / 60);
+            canvas_draw_str(canvas, 2, 62, bf);
+        }
+        if(g.lang == LANG_ZH) canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, "OK用 Back");
+        else canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, "OK:Use Back");
     } else if(g.mode == MODE_GAME_OVER) {
         canvas_set_color(canvas, ColorWhite);
         canvas_draw_box(canvas, 20, 18, 88, 32);
@@ -1485,53 +1533,45 @@ static void handle_overlay_input(InputKey key) {
         else if(key == InputKeyBack) { g.mode = MODE_MENU; }
         else if(key == InputKeyLeft) { g.mode = MODE_SHOP; g.shop_sel = 0; } // v6.10: 进入商城
     } else if(g.mode == MODE_SHOP) {
-        // v6.10: 商城输入
-        static const uint16_t shop_price[] = {
-            20, 35, 50, 65, 80, 30, 50, 80, 15, 25, 40, 20, 35, 50, 40, 70, 60, 100, 80, 120,
-        };
-        #define SHOP_COUNT_OV 20
+        // v6.11: 商城输入 — 10 项道具购买系统
         if(key == InputKeyUp) {
-            g.shop_sel = (g.shop_sel + SHOP_COUNT_OV - 1) % SHOP_COUNT_OV;
+            g.shop_sel = (g.shop_sel + 9) % 10;
             if(g.cfg_sfx_menu) sfx_play(SFX_MENU_MOVE);
         } else if(key == InputKeyDown) {
-            g.shop_sel = (g.shop_sel + 1) % SHOP_COUNT_OV;
+            g.shop_sel = (g.shop_sel + 1) % 10;
             if(g.cfg_sfx_menu) sfx_play(SFX_MENU_MOVE);
         } else if(key == InputKeyOk) {
-            // 购买
-            uint16_t price = shop_price[g.shop_sel];
-            if(g.score >= price) {
+            // 购买: 库存上限 99, 积分足够才扣
+            uint16_t price = shop_item_price(g.shop_sel);
+            if(g.items[g.shop_sel] >= 99) {
+                set_msg(MSG_SHOP_FULL);
+                sfx_play(SFX_NO_AMMO);
+            } else if(g.score >= price) {
                 g.score -= price;
-                int sel = g.shop_sel;
-                if(sel < 5) { // 弹药
-                    int amt[] = {5,10,15,20,99};
-                    g.ammo = (g.ammo + amt[sel]) > 99 ? 99 : (g.ammo + amt[sel]);
-                } else if(sel < 8) { // 血药
-                    g.player.potions += (sel == 5) ? 1 : (sel == 6) ? 2 : 3;
-                } else if(sel == 7) { // 满血药剂
-                    g.player.potions++;
-                    g.player.health = g.player.max_health;
-                } else if(sel < 11) { // 火把
-                    g.player.torches += (sel == 8) ? 3 : (sel == 9) ? 5 : 10;
-                } else if(sel < 14) { // 钥匙
-                    g.player.keys += (sel == 11) ? 1 : (sel == 12) ? 2 : 3;
-                } else if(sel < 16) { // 护身符
-                    g.player.amulets += (sel == 14) ? 1 : 2;
-                } else if(sel == 16) { // 回满血
-                    g.player.health = g.player.max_health;
-                } else if(sel == 17) { // 临时无敌
-                    g.invincible_timer = 300; // 5秒
-                } else if(sel == 18) { // 护盾5秒
-                    g.invincible_timer = 300;
-                } else if(sel == 19) { // 双倍弹药
-                    g.ammo = (g.ammo * 2) > 99 ? 99 : (g.ammo * 2);
-                }
+                g.items[g.shop_sel]++;
+                set_msg(MSG_SHOP_BUY);
                 sfx_play(SFX_MENU_OK);
                 storage_save();
             } else {
-                sfx_play(SFX_NO_AMMO); // 积分不足
+                set_msg(MSG_SHOP_FAIL);
+                sfx_play(SFX_NO_AMMO);
             }
         } else if(key == InputKeyBack) {
-            g.mode = MODE_LEVEL_CLEAR; // 返回通关画面
+            // 通关画面进来的回通关画面, 主菜单进来的回主菜单
+            g.mode = (s_resume_mode == MODE_LEVEL_CLEAR) ? MODE_LEVEL_CLEAR : MODE_MENU;
+        }
+    } else if(g.mode == MODE_SHOP_INV) {
+        // v6.11: 新道具栏输入
+        if(key == InputKeyUp) {
+            g.inv2_sel = (g.inv2_sel + 9) % 10;
+            if(g.cfg_sfx_menu) sfx_play(SFX_MENU_MOVE);
+        } else if(key == InputKeyDown) {
+            g.inv2_sel = (g.inv2_sel + 1) % 10;
+            if(g.cfg_sfx_menu) sfx_play(SFX_MENU_MOVE);
+        } else if(key == InputKeyOk) {
+            shop_item_use(g.inv2_sel); // 使用道具 (内部已处理提示/音效)
+        } else if(key == InputKeyBack) {
+            g.mode = s_resume_mode; // 返回游戏
         }
     } else if(g.mode == MODE_GAME_OVER) {
         GameMode old = s_resume_mode;
@@ -1732,6 +1772,7 @@ int32_t maze3d_app(void* p) {
                         else if(s_sel == M_VISITOR) game_init_endless(g.endless_floor, true);
                         else if(s_sel == M_SETTINGS) { g.mode = MODE_SETTINGS; s_set_sel = 0; s_set_off = 0; }
                         else if(s_sel == M_MC) game_init_mc();
+                        else if(s_sel == M_SHOP) { g.mode = MODE_SHOP; g.shop_sel = 0; g.shop_page = 0; g.shop_page_sel = 0; }
                     } else if(key == InputKeyBack) { running = false; sfx_stop_all(); }
                 } else if(type == InputTypeLong) {
                     // 开发模式解锁: 检测隐藏按键序列
@@ -1743,6 +1784,19 @@ int32_t maze3d_app(void* p) {
                     if(g.mode == MODE_LEVEL_CLEAR && key == InputKeyOk) sfx_play(SFX_QUEST_DONE);
                     else if(g.mode == MODE_GAME_OVER && key == InputKeyOk) sfx_play(SFX_MENU_OK);
                     else if(g.mode == MODE_PAUSED) sfx_play(SFX_MENU_OK);
+                    handle_overlay_input(key);
+                }
+                did_input = true;
+            } else if(g.mode == MODE_SHOP || g.mode == MODE_SHOP_INV) {
+                // v6.11: 商城 + 道具栏 输入
+                if(type == InputTypeShort) {
+                    if((g.mode == MODE_SHOP && (key == InputKeyUp || key == InputKeyDown)) ||
+                       (g.mode == MODE_SHOP_INV && (key == InputKeyUp || key == InputKeyDown))) {
+                        if(g.cfg_sfx_menu) sfx_play(SFX_MENU_MOVE);
+                    }
+                    if(g.mode == MODE_SHOP && key == InputKeyOk) sfx_play(SFX_MENU_OK);
+                    if(g.mode == MODE_SHOP_INV && key == InputKeyOk) sfx_play(SFX_PICK_ITEM);
+                    if(key == InputKeyBack) sfx_play(SFX_MENU_OK);
                     handle_overlay_input(key);
                 }
                 did_input = true;
@@ -1838,11 +1892,10 @@ int32_t maze3d_app(void* p) {
                         // v6.2: OK 短按=射击 (所有模式). 解谜/迷宫关无弹药时播"无弹药"
                         player_shoot();
                     } else if(type == InputTypeLong) {
-                        // OK 长按=打开物品栏 (非战斗关也能看物品面板)
+                        // v6.11: OK 长按=打开新道具栏 (商城道具库存, 战斗/解谜/迷宫关均可用)
                         s_resume_mode = g.mode;
-                        g.mode = MODE_INVENTORY;
-                        g.inv_sel = 0;
-                        s_inv_page = 0;
+                        g.mode = MODE_SHOP_INV;
+                        g.inv2_sel = 0;
                         sfx_play(SFX_MENU_OK);
                     }
                 } else {
@@ -1892,7 +1945,8 @@ int32_t maze3d_app(void* p) {
         bool in_game_view = (g.mode == MODE_CAMPAIGN || g.mode == MODE_ENDLESS_RUN ||
                              g.mode == MODE_ENDLESS_VISITOR || g.mode == MODE_PAUSED ||
                              g.mode == MODE_LEVEL_CLEAR || g.mode == MODE_GAME_OVER ||
-                             g.mode == MODE_MC);
+                             g.mode == MODE_MC ||
+                             g.mode == MODE_SHOP || g.mode == MODE_SHOP_INV);  // v6.11
         if(in_game_view && need_render) {
             engine_render();
             g.dirty = false;

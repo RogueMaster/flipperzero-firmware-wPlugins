@@ -292,4 +292,11 @@ void settings_defaults(void) {
     g.shop_sel           = 0;
     g.auto_lock          = 255;
     g.ammo_regen_timer   = 0;
+    // v6.11: 道具库存 + 增益计时器 (默认全 0)
+    for(int i = 0; i < 10; i++) g.items[i] = 0;
+    g.shop_page          = 0;
+    g.shop_page_sel      = 0;
+    g.inv2_sel           = 0;
+    g.buff_shield        = 0;
+    g.buff_doublefire    = 0;
 }

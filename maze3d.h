@@ -144,6 +144,7 @@ typedef enum {
     MODE_SETTINGS,          // 设置
     MODE_MC,                // MC 沙盒模式 (Beta): 小空间内挖掘/放置方块
     MODE_SHOP,              // v6.10: 积分商城
+    MODE_SHOP_INV,          // v6.11: 新道具栏 (长按 OK 呼出)
 } GameMode;
 
 typedef enum {
@@ -280,6 +281,18 @@ typedef struct {
     uint32_t score;           // 当前积分 (击杀+10/只)
     uint8_t shop_sel;         // 商城光标位置
     uint8_t auto_lock;        // 自动锁定目标 (255=无)
+    // v6.11: 道具库存 (10 种, 商城购买后存入此库存, 游戏中使用)
+    //   0=血量药水(+5HP)  1=大血药(+10HP)  2=满血药剂(满血)
+    //   3=弹药+5          4=弹药满          5=钥匙+1
+    //   6=火把+3          7=护身符+1(传送回起点)
+    //   8=无敌护盾(5秒)   9=双倍火力(15秒)
+    uint8_t items[10];
+    uint8_t shop_page;        // 商城当前页 0..2 (10项分3页: 4+3+3)
+    uint8_t shop_page_sel;    // 商城页内光标 0..n
+    uint8_t inv2_sel;         // 新道具栏光标 0..9
+    // v6.11: 道具增益计时器 (帧数, >0 时生效)
+    uint16_t buff_shield;     // 无敌护盾剩余帧
+    uint16_t buff_doublefire; // 双倍火力剩余帧
 } GameState;
 
 // v6.2: 粒子接口
@@ -327,6 +340,13 @@ enum {
     MSG_AMMO,       // v6.0: 拾取弹药
     MSG_ACHIEVE,    // v6.0: 成就解锁
     MSG_TASKPROG,   // v6.0: 任务进度更新
+    MSG_SHOP_BUY,   // v6.11: 购买成功
+    MSG_SHOP_FULL,  // v6.11: 库存已满
+    MSG_SHOP_FAIL,  // v6.11: 积分不足
+    MSG_ITEM_USE,   // v6.11: 道具使用成功
+    MSG_ITEM_NONE,  // v6.11: 道具库存为空
+    MSG_BUFF_SHIELD, // v6.11: 护盾激活
+    MSG_BUFF_FIRE,  // v6.11: 双倍火力激活
 };
 
 // ---- 模块接口 ----
@@ -362,6 +382,12 @@ int  bullets_active_count(void);
 
 // 物品栏: 使用选中物品, 返回是否消耗
 bool item_use(int item_type);
+// v6.11: 商城道具 (10 种) — 名称/价格/使用
+const char* shop_item_name_zh(int idx);
+const char* shop_item_name_en(int idx);
+const char* shop_item_desc_zh(int idx);
+uint16_t    shop_item_price(int idx);
+bool        shop_item_use(int idx);
 // 物品栏当前持有数
 int  item_count(int item_type);
 

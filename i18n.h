@@ -82,6 +82,19 @@
 #define EN_MSG_TASKPROG "Task Progress"
 #define EN_HUD_ENEMY   "E"
 
+// v6.11: Shop / Item messages
+#define EN_MSG_SHOP_BUY   "Purchased!"
+#define EN_MSG_SHOP_FULL  "Inventory Full"
+#define EN_MSG_SHOP_FAIL  "Need More Score"
+#define EN_MSG_ITEM_USE   "Item Used"
+#define EN_MSG_ITEM_NONE  "No Item"
+#define EN_MSG_BUFF_SHIELD "Shield 5s"
+#define EN_MSG_BUFF_FIRE   "2x Fire 15s"
+#define EN_SHOP_TITLE    "SHOP"
+#define EN_SHOP_HINT     "OK:Buy  Up/Dn:Sel  Back"
+#define EN_SHOP_INV_TITLE "ITEMS"
+#define EN_SHOP_INV_HINT "OK:Use  Up/Dn:Sel  Back"
+
 // Map msg_id -> English string
 static inline const char* en_msg_str(int id) {
     switch(id) {
@@ -107,6 +120,13 @@ static inline const char* en_msg_str(int id) {
         case 19: return EN_MSG_AMMO;
         case 20: return EN_MSG_ACHIEVE;
         case 21: return EN_MSG_TASKPROG;
+        case 22: return EN_MSG_SHOP_BUY;
+        case 23: return EN_MSG_SHOP_FULL;
+        case 24: return EN_MSG_SHOP_FAIL;
+        case 25: return EN_MSG_ITEM_USE;
+        case 26: return EN_MSG_ITEM_NONE;
+        case 27: return EN_MSG_BUFF_SHIELD;
+        case 28: return EN_MSG_BUFF_FIRE;
         default: return "";
     }
 }
