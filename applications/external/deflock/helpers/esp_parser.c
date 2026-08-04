@@ -238,6 +238,57 @@ EspMsgType esp_parse_companion_line(char* line, EspMsg* out) {
     // EspMsg.u.gps.nmea for why it is not parsed here. Guard the payload: an
     // empty or non-'$' body is not a sentence, and forwarding it would only make
     // the NMEA parser reject it one layer further on.
+    // GPSCFG,<on>,<pin>,<baud>  the companion's echo of its relay state. Tested
+    // BEFORE "G," would ever be reached anyway, but kept adjacent to it since the
+    // two are the same feature. A malformed echo is ignored rather than guessed
+    // at: reporting the relay as off when we simply could not read the line would
+    // send the operator hunting a configuration problem that does not exist.
+    // CHIP,<target>,<gpio_count>,<mask_hi>,<mask_lo>,<has5g>  the board telling
+    // the app what it physically is, so the GPS pin picker stops offering a
+    // classic ESP32's pinout on every chip.
+    if(strncmp(line, "CHIP,", 5) == 0) {
+        char* f[6];
+        int n = esp_split_fields(line, f, 6);
+        if(n < 6) return EspMsgIgnore;
+        out->u.chip.target = f[1];
+        out->u.chip.gpio_count = (uint8_t)atoi(f[2]);
+        uint64_t hi = strtoul(f[3], NULL, 16);
+        uint64_t lo = strtoul(f[4], NULL, 16);
+        out->u.chip.gps_pin_mask = (hi << 32) | lo;
+        out->u.chip.has_5ghz = (atoi(f[5]) != 0);
+        out->type = EspMsgChip;
+        return out->type;
+    }
+    // BAND,<2g|5g|all>,<channels>  the band actually in force. On a 2.4-only
+    // radio this always answers 2g whatever was asked, which is the point: it
+    // reports coverage that exists rather than coverage that was requested.
+    if(strncmp(line, "BAND,", 5) == 0) {
+        char* f[3];
+        int n = esp_split_fields(line, f, 3);
+        if(n < 3) return EspMsgIgnore;
+        if(strcmp(f[1], "5g") == 0) {
+            out->u.band.sel = 1;
+        } else if(strcmp(f[1], "all") == 0) {
+            out->u.band.sel = 2;
+        } else if(strcmp(f[1], "2g") == 0) {
+            out->u.band.sel = 0;
+        } else {
+            return EspMsgIgnore; // an unknown band name is not a band
+        }
+        out->u.band.channels = (uint16_t)atoi(f[2]);
+        out->type = EspMsgBand;
+        return out->type;
+    }
+    if(strncmp(line, "GPSCFG,", 7) == 0) {
+        char* f[4];
+        int n = esp_split_fields(line, f, 4);
+        if(n < 4) return EspMsgIgnore;
+        out->u.gpscfg.on = (atoi(f[1]) != 0);
+        out->u.gpscfg.pin = (int16_t)atoi(f[2]);
+        out->u.gpscfg.baud = strtoul(f[3], NULL, 10);
+        out->type = EspMsgGpsCfg;
+        return out->type;
+    }
     if(strncmp(line, "G,", 2) == 0) {
         if(line[2] != '$') return EspMsgIgnore;
         out->u.gps.nmea = line + 2;

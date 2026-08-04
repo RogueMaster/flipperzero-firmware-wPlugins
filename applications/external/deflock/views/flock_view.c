@@ -132,6 +132,33 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
         app->settings.gps_source == ReconGpsSourceFlipper &&
         ((app->settings.gps_uart == app->settings.esp_uart) || gps_link_port_busy(app->gps));
 
+    // The companion path's equivalent, which until v0.54 did not exist: with the
+    // ESP32 selected as the GPS source, EVERY failure rendered as the hollow
+    // "searching" badge forever -- relay refused, firmware too old to have a
+    // relay, wrong pin, wrong baud, no sky view. Four distinct problems, one
+    // indistinguishable symptom, which is most of why issue #5's GPS report took
+    // four rounds to resolve.
+    //
+    // Two verdicts are now separable, and they need different fixes:
+    //   gps_relay_bad  -> the companion ANSWERED and said it is not relaying, so
+    //                     it refused the pin (it rejects 0/1/3 and >=48). Change
+    //                     the pin.
+    //   gps_relay_mute -> nothing came back at all. The firmware predates the
+    //                     relay, or is not the FlipDeFlock companion. Reflash.
+    // Everything else -- right pin, wrong baud, no antenna, indoors -- is a real
+    // "searching", and the badge deliberately keeps saying so rather than
+    // guessing at a cause it cannot observe.
+    bool gps_companion = app->settings.gps_enabled &&
+                         app->settings.gps_source == ReconGpsSourceCompanion;
+    // Selecting the companion as the GPS source while running Marauder asks for a
+    // relay from firmware that has no such command. Nothing will ever arrive.
+    bool gps_relay_bad = gps_companion && (generic || app->gps_relay == ReconGpsRelayOff);
+    // Only after the ack window, and only once the link is actually up: before
+    // that, silence means "still connecting", not "wrong firmware".
+    bool gps_relay_mute = gps_companion && !generic && connected &&
+                          app->gps_relay == ReconGpsRelayUnknown && app->gps_cfg_tick &&
+                          (furi_get_tick() - app->gps_cfg_tick) > furi_ms_to_ticks(4000);
+
     // Most-attacked BSSID + channel for the deauth header attribution.
     bool have_attr = false;
     uint8_t attr_ch = 0, attr_b3 = 0, attr_b4 = 0, attr_b5 = 0;
@@ -249,16 +276,23 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
     canvas_set_font(canvas, FontSecondary);
     canvas_draw_str(canvas, 0, 22, hdr);
 
-    // GPS state as a badge, not a code (issue #5). Three states, each visually
+    // GPS state as a badge, not a code (issue #5). Four states, each visually
     // distinct so it reads at a glance in a moving car:
     //   filled "GPS n"  -- locked, n satellites (a fresh 2D fix vs a solid one)
     //   hollow "GPS"    -- enabled, searching
     //   filled "GPS!"   -- enabled but it can NEVER get a fix; go fix the config
-    // The third state is new: it used to render as the hollow "searching" badge
-    // forever, which is indistinguishable from a cold start.
+    //   filled "GPS?"   -- companion source, but the board never answered the
+    //                      relay config: wrong/old firmware, so reflash it
+    // The last two used to render as the hollow "searching" badge forever, which
+    // is indistinguishable from a cold start.
     if(gps_enabled) {
         char gps_str[12];
-        if(gps_busy) {
+        if(gps_relay_mute) {
+            // "?" not "!": the difference is reflash-the-companion versus
+            // change-the-pin, and sending someone to the wrong one is exactly the
+            // loop this badge exists to break.
+            snprintf(gps_str, sizeof(gps_str), "GPS?");
+        } else if(gps_busy || gps_relay_bad) {
             snprintf(gps_str, sizeof(gps_str), "GPS!");
         } else if(gps_valid) {
             snprintf(gps_str, sizeof(gps_str), "GPS %d", gps_sats);
@@ -268,8 +302,8 @@ static void flock_view_draw_callback(Canvas* canvas, void* _model) {
         int w = canvas_string_width(canvas, gps_str) + 4;
         int x = 128 - w;
         // Fill for both "locked" and "misconfigured": a filled badge means "this
-        // is settled, stop waiting for it" either way, and the "!" says which.
-        if(gps_valid || gps_busy) {
+        // is settled, stop waiting for it" either way, and the glyph says which.
+        if(gps_valid || gps_busy || gps_relay_bad || gps_relay_mute) {
             canvas_draw_box(canvas, x, 14, w, 10);
             canvas_set_color(canvas, ColorWhite);
         } else {

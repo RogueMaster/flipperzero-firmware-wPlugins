@@ -62,6 +62,19 @@ static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
             app,
             m->u.banner.version,
             m->u.banner.version != 0 && m->u.banner.version != ESP_PROTO_VERSION);
+        // Ask the GUI thread to re-send the GPS relay config now that the board
+        // has demonstrably booted and is listening. The session sends it once at
+        // start-up, which a board still coming up simply misses -- and a silently
+        // dropped config is indistinguishable from a dead GPS module, which is
+        // most of why issue #5's GPS problem took four rounds. A banner also
+        // arrives on every ESP reboot, so a mid-session power blip re-arms the
+        // relay by itself.
+        //
+        // A FLAG, not a send. This runs on the ESP worker thread, and calling
+        // furi_hal_serial_tx here would race the commands the GUI thread sends on
+        // the same handle when entering a scan scene. Identical discipline to
+        // alert_pending: the worker only ever raises, the GUI tick acts.
+        recon_app_request_gps_cfg(app);
         break;
     case EspMsgWifiBegin:
         recon_app_wifi_begin(app);
@@ -131,6 +144,24 @@ static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
         if(app->settings.gps_enabled && app->settings.gps_source == ReconGpsSourceCompanion) {
             gps_apply_nmea(app, m->u.gps.nmea);
         }
+        break;
+    case EspMsgChip:
+        recon_app_set_chip(
+            app,
+            m->u.chip.target,
+            m->u.chip.gpio_count,
+            m->u.chip.gps_pin_mask,
+            m->u.chip.has_5ghz);
+        break;
+    case EspMsgBand:
+        recon_app_set_band(app, m->u.band.sel, m->u.band.channels);
+        break;
+    case EspMsgGpsCfg:
+        // Recorded regardless of the current source setting: it is the answer to
+        // a question we asked, and the badge decides what to make of it. Storing
+        // it only when the companion source is selected would lose the reply to
+        // the explicit `gps off` the session sends in the other direction.
+        recon_app_set_gps_relay(app, m->u.gpscfg.on, m->u.gpscfg.pin, m->u.gpscfg.baud);
         break;
     case EspMsgStatus:
         recon_app_set_esp_status(
@@ -280,6 +311,42 @@ void esp_link_send(EspLink* esp, const char* cmd) {
     if(!esp->running || !esp->serial) return;
     furi_hal_serial_tx(esp->serial, (const uint8_t*)cmd, strlen(cmd));
     furi_hal_serial_tx(esp->serial, (const uint8_t*)"\n", 1);
+}
+
+// Index-aligned with ReconEspBand.
+static const char* const esp_band_cmd[] = {"band 2g", "band 5g", "band all"};
+
+void esp_link_send_band(EspLink* esp) {
+    ReconApp* app = esp->app;
+    if(app->settings.backend != EspBackendCompanion) return;
+    uint8_t i = app->settings.esp_band;
+    if(i >= ReconEspBandCount) i = ReconEspBand24;
+    // Sent every session, not only when non-default: the board keeps its own
+    // selection across app restarts, so a companion left on "all" by an earlier
+    // run would silently keep the slow sweep even after the setting was changed.
+    esp_link_send(esp, esp_band_cmd[i]);
+}
+
+void esp_link_send_gps_cfg(EspLink* esp) {
+    ReconApp* app = esp->app;
+    if(app->settings.backend != EspBackendCompanion) return;
+
+    // Sent in BOTH directions so the board's state always matches the setting:
+    // without the explicit "off", a board left relaying from an earlier session
+    // keeps overriding a GPS the user has since moved to the Flipper's own UART.
+    char cmd[32];
+    if(app->settings.gps_enabled && app->settings.gps_source == ReconGpsSourceCompanion) {
+        snprintf(
+            cmd,
+            sizeof(cmd),
+            "gps %u %lu",
+            (unsigned)app->settings.esp_gps_pin,
+            (unsigned long)app->settings.gps_baud);
+    } else {
+        snprintf(cmd, sizeof(cmd), "gps off");
+    }
+    recon_app_gps_relay_pending(app);
+    esp_link_send(esp, cmd);
 }
 
 EspLink* esp_link_alloc(void* app) {

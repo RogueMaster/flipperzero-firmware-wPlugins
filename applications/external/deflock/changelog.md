@@ -1,5 +1,76 @@
 # Changelog
 
+## v0.55
+**ESP32-C5 correctness.** The one person field-testing this runs a C5, and three
+separate things in the app assumed every board was a classic ESP32.
+
+### Fixed
+
+- **The GPS pin picker no longer offers pins that can brick the link.** It was a
+  hardcoded classic-ESP32 list. On a C5, four of its ten pins do not exist
+  (GPIO stops at 28), two are the flash/PSRAM bus, and one is UART0 itself -- so
+  the picker could hand you the pin carrying the Flipper link, which needs a
+  recovery flash to undo. The board now reports its own usable pins and the app
+  offers those. Until it does, a conservative fallback is used, plus whatever pin
+  you already had, so an existing working setup is never silently changed.
+- **The companion's pin guard asks the chip instead of assuming.** It was
+  `rx != 1 && rx != 3 && rx < 48`, which is the classic ESP32's pinout written as
+  if universal. It is now derived from this target's own IDF headers, so it
+  refuses the real UART0 pins, the real flash bus and out-of-range pins on
+  whatever part it was built for. A refusal now also says why.
+
+### Added
+
+- **Band is a Settings item, and defaults to 2.4 GHz.** The companion defaulted a
+  C5 to sweeping both bands: 41 channels instead of 13, which at the same dwell
+  is ~12.3 s per sweep instead of ~3.9 s, so **any given camera is revisited a
+  third as often**. A user parked beside three known Flock cameras and detected
+  none while the radio spent two thirds of its time on 5 GHz. Covering a band we
+  cannot yet confirm anything uses must not cost two thirds of the dwell on the
+  band every signature we hold actually lives on. 5 GHz and Both remain available.
+
+## v0.54
+**Three bugs from [@h00die](https://github.com/h00die) in
+[#5](https://github.com/ReconGrunt/FlipDeFlock/issues/5), one of them a data-loss
+regression this project shipped in v0.53.**
+
+### Fixed
+
+- **Alerts never fired for a camera you had already saved.** `hits.csv` restores
+  each entry with its alert latch already set, so a reboot cannot buzz at you --
+  but nothing ever cleared it, and the restored confidence also failed the
+  "crossing" test. The result: turning on **Save Hits** silently disabled alerts
+  for every device you had ever driven past, permanently and across reboots.
+  Meeting a stored device on the air is now treated as the new event it is. This
+  was reported twice as "alerts don't work"; the v0.52 fix addressed a different
+  cause and this one survived it.
+- **Net Guardian destroyed your Flock detections.** Opening it wiped the entire
+  detection table, including entries restored from `hits.csv`, and leaving it then
+  wrote that empty table back over the file -- so a reboot could not bring them
+  back either. A user lost a drive's worth of hits in the field to this. The clear
+  was never needed for scoring: the watchscore already skips archived entries and
+  already gates live ones on freshness, so it bought nothing and cost the data.
+- **`hits.csv` is no longer removed as a side effect of an empty table.** v0.53
+  made an empty table delete the store, meaning ANY code path that cleared it in
+  memory became permanent loss on disk -- which is what turned the Net Guardian
+  bug above from "the list looks empty" into "the file is gone". Removal now
+  happens only where the operator explicitly deletes the last entry.
+
+### Added
+
+- **The GPS badge can now tell you WHICH thing is wrong.** The companion echoes
+  `GPSCFG,<on>,<pin>,<baud>` for every relay command and the app was discarding
+  it, so with the ESP32 as GPS source every failure looked identical: a hollow
+  "searching" badge, forever. Now `GPS?` means the board never answered (wrong or
+  old firmware -- reflash) and `GPS!` means it answered and refused the pin
+  (change the pin). Those need opposite fixes, which is why the distinction
+  matters.
+- **The relay config is re-sent when the companion announces itself.** It was sent
+  once when a scan started, which a board still booting simply missed -- and a
+  silently dropped config is indistinguishable from a dead GPS module. A banner
+  also arrives on every ESP reboot, so a power blip now re-arms the relay by
+  itself.
+
 ## v0.53
 **Two UI requests from
 [@h00die](https://github.com/h00die) in

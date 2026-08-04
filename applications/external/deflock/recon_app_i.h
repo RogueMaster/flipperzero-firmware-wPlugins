@@ -30,12 +30,14 @@
 #include "views/ble_list_view.h"
 #include "views/locator_view.h"
 
-#define RECON_FLOCK_MAX  64
-#define RECON_WIFI_MAX   48
-#define RECON_DEAUTH_MAX 16
-#define RECON_BLE_MAX    48
-#define RECON_TEXT_STORE 160
-#define RECON_SSID_LEN   33
+#define RECON_FLOCK_MAX   64
+#define RECON_WIFI_MAX    48
+#define RECON_DEAUTH_MAX  16
+#define RECON_BLE_MAX     48
+#define RECON_TEXT_STORE  160
+#define RECON_SSID_LEN    33
+/** Most GPS-capable pins any supported part exposes (classic ESP32 has ~34). */
+#define RECON_GPS_PIN_MAX 40
 
 /** BLE device categories (companion firmware classifies these). */
 typedef enum {
@@ -98,8 +100,48 @@ typedef enum {
     ReconGpsSourceCount,
 } ReconGpsSource;
 
+/**
+ * What the companion has said about its GPS relay this session.
+ *
+ * The companion echoes `GPSCFG,<on>,<pin>,<baud>` for every `gps` command it
+ * receives. Until v0.54 the app discarded that line, so a companion-sourced GPS
+ * had exactly one visible state -- the hollow "searching" badge -- whether the
+ * relay was running, whether it had refused the pin, or whether the firmware was
+ * too old to have a relay at all. Issue #5 spent four rounds inside that blind
+ * spot.
+ */
+typedef enum {
+    ReconGpsRelayUnknown = 0, /**< configured, nothing echoed back yet */
+    ReconGpsRelayOn, /**< GPSCFG,1: the companion accepted the pin and is relaying */
+    ReconGpsRelayOff, /**< GPSCFG,0: it refused the pin, or the relay is off */
+} ReconGpsRelayState;
+
+/**
+ * Which band(s) the companion's channel hopper sweeps.
+ *
+ * Only a dual-band part (ESP32-C5) can do anything but 2.4 GHz, and on a 2.4-only
+ * radio the companion answers `2g` whatever it is asked. Index-aligned with
+ * esp_band_cmd[] in helpers/esp_link.c.
+ *
+ * DEFAULT IS 2.4 GHz ON PURPOSE, including on a C5. The companion used to default
+ * a C5 to "all", which is 41 channels instead of 13: at the same 300 ms dwell
+ * that is ~12.3 s per sweep instead of ~3.9 s, so any given camera is revisited a
+ * THIRD as often. A user parked beside three known Flock cameras and detected
+ * none of them while the radio spent two thirds of its time on 5 GHz channels no
+ * Flock signature we hold has ever been seen on (issue #5). Covering a band we
+ * cannot yet confirm anything uses must not cost two thirds of the dwell on the
+ * band everything we CAN detect actually lives on. 5 GHz stays available, opt-in.
+ */
+typedef enum {
+    ReconEspBand24 = 0, /**< 13 channels, ~3.9 s sweep. The detection default. */
+    ReconEspBand5, /**< 28 channels (C5 only) */
+    ReconEspBandAll, /**< 41 channels; a third the revisit rate */
+    ReconEspBandCount,
+} ReconEspBand;
+
 typedef struct {
     EspBackend backend;
+    uint8_t esp_band; /**< ReconEspBand: which band(s) the companion sweeps */
     uint8_t esp_uart; /**< FuriHalSerialId for the ESP32. */
     uint8_t gps_uart; /**< FuriHalSerialId for the GPS module (Flipper source only). */
     uint32_t esp_baud;
@@ -253,6 +295,29 @@ typedef struct {
     uint32_t alert_last_tick; /**< tick of the last alert fired (any device) */
     bool alert_have_fired; /**< false until the session's first alert -> cooldown is inert */
 
+    // Companion GPS-relay health (issue #5). Only meaningful when the GPS source
+    // is the companion; the Flipper-UART path has its own busy/conflict test.
+    // What the companion reported about itself (CHIP/BAND). Zeroed = not heard
+    // yet, in which case the app must not claim to know the board's pinout.
+    char esp_chip[12]; /**< IDF target name, "" until a CHIP line arrives */
+    uint8_t esp_gpio_count;
+    uint64_t esp_gps_pin_mask; /**< bit N = GPIO N can carry a GPS on THIS chip */
+    bool esp_has_5ghz;
+    uint8_t esp_band_actual; /**< ReconEspBand the board says is in force */
+    // GPS pin picker, rebuilt from esp_gps_pin_mask each time Settings opens.
+    uint8_t gps_pin_vals[RECON_GPS_PIN_MAX];
+    char gps_pin_text[RECON_GPS_PIN_MAX][4];
+    uint8_t gps_pin_count;
+    uint16_t esp_band_channels; /**< channels the current sweep covers */
+    uint8_t gps_relay; /**< ReconGpsRelayState */
+    int16_t gps_relay_pin; /**< the pin the companion reported, -1 if none */
+    uint32_t gps_relay_baud; /**< the baud it reported */
+    uint32_t gps_cfg_tick; /**< tick the config was last sent; 0 = never this session */
+    bool gps_cfg_resend; /**< worker saw a banner -> GUI tick must re-send the config.
+                           *  A flag, not a direct send: furi_hal_serial_tx from the
+                           *  ESP worker would race the GUI thread's own commands on
+                           *  the same handle. Same discipline as alert_pending. */
+
     bool gps_valid;
     float gps_lat;
     float gps_lon;
@@ -391,6 +456,33 @@ void recon_app_set_esp_dropped(ReconApp* app, uint32_t dropped);
 /** Update the queryable ESP-link state (thread-safe). See EspLinkState. */
 void recon_app_set_esp_link_state(ReconApp* app, EspLinkState state);
 
+/** Record a `GPSCFG` echo from the companion (issue #5 diagnosability). */
+void recon_app_set_gps_relay(ReconApp* app, bool on, int16_t pin, uint32_t baud);
+
+/** Record a `CHIP` report: what the companion physically is. */
+void recon_app_set_chip(
+    ReconApp* app,
+    const char* target,
+    uint8_t gpio_count,
+    uint64_t gps_pin_mask,
+    bool has_5ghz);
+
+/** Record a `BAND` echo: the sweep actually in force. */
+void recon_app_set_band(ReconApp* app, uint8_t sel, uint16_t channels);
+
+/** Rebuild the GPS pin choices from what the board reported (or the safe
+ *  fallback if it has not reported yet). */
+void recon_settings_build_gps_pins(ReconApp* app);
+
+/** Mark the relay config as sent and awaiting its echo; starts the ack clock. */
+void recon_app_gps_relay_pending(ReconApp* app);
+
+/** Worker-side: ask the GUI thread to re-send the relay config (banner seen). */
+void recon_app_request_gps_cfg(ReconApp* app);
+
+/** GUI-tick side: send the relay config if the worker asked for it. */
+void recon_app_gps_cfg_tick(ReconApp* app);
+
 /** Record a deauth attack target BSSID (thread-safe); dedups by BSSID. */
 void recon_app_add_deauth_target(ReconApp* app, const uint8_t bssid[6], uint8_t channel);
 
@@ -468,3 +560,13 @@ void recon_settings_save(ReconApp* app);
 void recon_hits_load(ReconApp* app);
 void recon_hits_save(ReconApp* app);
 void recon_hits_clear(ReconApp* app);
+
+/**
+ * Persist after the operator DELETED an entry. Writes the table, or removes
+ * `hits.csv` entirely when they deleted the last one.
+ *
+ * Never call this for an incidentally empty table. recon_hits_save() runs on
+ * every scan-session exit, and folding this removal into it turned Net
+ * Guardian's baseline reset into permanent data loss (issue #5).
+ */
+void recon_hits_save_after_delete(ReconApp* app);

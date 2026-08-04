@@ -92,7 +92,7 @@ bool recon_scene_flock_detail_on_event(void* context, SceneManagerEvent event) {
             // mean a battery pull between here and leaving the scan screen
             // resurrects the entry -- and "I deleted that" surviving a reboot is
             // the entire point of the request.
-            recon_hits_save(app);
+            recon_hits_save_after_delete(app);
             scene_manager_previous_scene(app->scene_manager); // this entry is gone
         }
         return true;

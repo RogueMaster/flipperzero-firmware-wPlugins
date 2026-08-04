@@ -51,8 +51,19 @@ void recon_scene_guardian_on_enter(void* context) {
 
     // Fresh baseline so the guardian starts honestly CLEAR rather than off the
     // tail of a previous scan.
+    //
+    // The Flock table is deliberately NOT cleared here. It used to be, and that
+    // destroyed the operator's detections: opening Net Guardian wiped every hit
+    // the Flock screen had collected, including the ones restored from hits.csv,
+    // and leaving Net Guardian then persisted the empty table over the file. A
+    // user lost a drive's worth of hits in the field to exactly this, and a
+    // reboot could not bring them back (issue #5).
+    //
+    // It was never needed for scoring either: recon_app_watchscore_tick() skips
+    // archived entries outright and gates live ones on WATCH_FLOCK_FRESH_MS, so a
+    // stale detection already cannot raise the guardian. The clear bought nothing
+    // and cost the user their data.
     furi_mutex_acquire(app->mutex, FuriWaitForever);
-    app->flock_count = 0;
     app->ble_count = 0;
     app->wifi_count = 0;
     app->deauth_count = 0;

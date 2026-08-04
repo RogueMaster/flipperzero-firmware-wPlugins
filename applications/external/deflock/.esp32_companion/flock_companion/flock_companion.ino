@@ -76,6 +76,9 @@
 
 #include <Arduino.h>
 #include <stdarg.h> // buf_appendf()
+#include "soc/soc_caps.h" // SOC_GPIO_PIN_COUNT / SOC_GPIO_VALID_GPIO_MASK
+#include "soc/spi_pins.h" // SPI_IOMUX_PIN_NUM_* -- this chip's flash pins
+#include "soc/uart_pins.h" // U0TXD_GPIO_NUM / U0RXD_GPIO_NUM -- the Flipper link
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "nvs_flash.h"
@@ -795,6 +798,19 @@ static void start_promisc() {
 
 static void banner() {
     Serial.print("FLOCKCO,1\n");
+    // What this chip actually is, so the app stops offering a classic ESP32's
+    // pinout on every board. Sent as its own line rather than appended to the
+    // banner: an older app ignores lines it does not know, but a changed banner
+    // would trip its wire-protocol version check.
+    //   CHIP,<target>,<gpio_count>,<usable_gps_pin_mask_hi>,<lo>,<has5g>
+    uint64_t m = gps_usable_mask();
+    Serial.printf(
+        "CHIP,%s,%d,%08lx,%08lx,%d\n",
+        CONFIG_IDF_TARGET,
+        (int)SOC_GPIO_PIN_COUNT,
+        (unsigned long)(m >> 32),
+        (unsigned long)(m & 0xFFFFFFFFULL),
+        FLOCK_HAS_5GHZ);
 }
 
 // One-shot WiFi security scan for the FlipDeFlock audit. Switches out of
@@ -1064,6 +1080,117 @@ static void ble_locate_scan() {
 // non-event instead of a silent position error.
 #define GPS_RX_BUF   8192
 
+/* ---- which pins can carry a GPS on THIS chip -------------------------------
+ *
+ * Every bound below comes from the IDF's own per-target headers. Nothing here is
+ * a hardcoded pin number, deliberately: the previous guard was
+ * `rx > 0 && rx != 1 && rx != 3 && rx < 48`, which is the classic ESP32's
+ * pinout written as if it were universal. On an ESP32-C5 that is wrong three
+ * separate ways, and the failure modes get worse as they go:
+ *
+ *   - GPIO32..35 were offered by the app and do not exist (C5 stops at 28).
+ *   - GPIO16..22 are the flash/PSRAM bus. A C5-WROOM-1-MDN8R8 has 8 MB of each,
+ *     so they are genuinely occupied. This is what a user was told to use.
+ *   - UART0 is GPIO11/12 on a C5, NOT 1/3. So the one thing the guard existed to
+ *     prevent -- taking the link to the Flipper and cutting the board off, which
+ *     needs a recovery flash to undo -- was exactly what it failed to prevent.
+ *
+ * Deriving the bounds from the SOC_, SPI_IOMUX_ and U0xxD_GPIO_NUM macros means
+ * this is automatically correct on parts nobody here has ever held.
+ */
+// The contiguous span the flash bus occupies. Folding min..max over the six
+// IOMUX pins rather than testing each one also covers the PSRAM lines, which
+// share this bus on parts that have both and are not exposed as their own
+// macros. All six exist on every target (verified against esp32/s2/s3/c3), and
+// the span is contiguous on each: esp32 6-11, s2/s3 27-32, c3 12-17.
+//
+// constexpr, not nested ternary macros: the first attempt at this folded only
+// five of the six and silently stopped the span at GPIO10, leaving the flash CS
+// pin offered as a valid GPS input. The static_asserts below caught it.
+static constexpr int flock_min_i(int a, int b) {
+    return a < b ? a : b;
+}
+static constexpr int flock_max_i(int a, int b) {
+    return a > b ? a : b;
+}
+// The flash-bus pin macros were RENAMED between IDF 4.x and 5.x: core 2.x calls
+// them SPI_IOMUX_PIN_NUM_*, core 3.x calls the memory-SPI bus MSPI_IOMUX_PIN_NUM_*
+// and reuses the bare SPI_ prefix for the general-purpose controllers. Building
+// against only one spelling compiles on one core and fails on the other, which is
+// exactly what the core-3.x compat job exists to catch -- and did.
+#if defined(MSPI_IOMUX_PIN_NUM_CLK)
+#define FLOCK_F_CLK  MSPI_IOMUX_PIN_NUM_CLK
+#define FLOCK_F_MISO MSPI_IOMUX_PIN_NUM_MISO
+#define FLOCK_F_MOSI MSPI_IOMUX_PIN_NUM_MOSI
+#define FLOCK_F_HD   MSPI_IOMUX_PIN_NUM_HD
+#define FLOCK_F_WP   MSPI_IOMUX_PIN_NUM_WP
+// ...and the chip-select is CS0 on some core-3.x targets, bare CS on others.
+#if defined(MSPI_IOMUX_PIN_NUM_CS0)
+#define FLOCK_F_CS MSPI_IOMUX_PIN_NUM_CS0
+#else
+#define FLOCK_F_CS MSPI_IOMUX_PIN_NUM_CS
+#endif
+#elif defined(SPI_IOMUX_PIN_NUM_CLK)
+#define FLOCK_F_CLK  SPI_IOMUX_PIN_NUM_CLK
+#define FLOCK_F_MISO SPI_IOMUX_PIN_NUM_MISO
+#define FLOCK_F_MOSI SPI_IOMUX_PIN_NUM_MOSI
+#define FLOCK_F_HD   SPI_IOMUX_PIN_NUM_HD
+#define FLOCK_F_WP   SPI_IOMUX_PIN_NUM_WP
+#define FLOCK_F_CS   SPI_IOMUX_PIN_NUM_CS
+#else
+#error "No flash IOMUX pin macros for this IDF -- the GPS pin guard cannot be derived"
+#endif
+
+static constexpr int FLOCK_FLASH_LO = flock_min_i(
+    flock_min_i(flock_min_i(FLOCK_F_CLK, FLOCK_F_MISO), FLOCK_F_MOSI),
+    flock_min_i(flock_min_i(FLOCK_F_HD, FLOCK_F_WP), FLOCK_F_CS));
+static constexpr int FLOCK_FLASH_HI = flock_max_i(
+    flock_max_i(flock_max_i(FLOCK_F_CLK, FLOCK_F_MISO), FLOCK_F_MOSI),
+    flock_max_i(flock_max_i(FLOCK_F_HD, FLOCK_F_WP), FLOCK_F_CS));
+
+/* These pin down the two things above that are easy to get quietly wrong: that
+ * the MIN5/MAX5 folding actually yields the flash span, and that the per-target
+ * headers hold the values the datasheets say they do.
+ *
+ * The C5 block matters most, because NOBODY ON THIS PROJECT HAS A C5. Its
+ * numbers come from Espressif's docs (GPIO0-28; UART0 on GPIO11/12; GPIO16-22
+ * the flash/PSRAM bus) and are asserted here so CI, which does build the C5,
+ * fails loudly if the research was wrong -- rather than shipping a guard that
+ * refuses the wrong pins to the one person actually testing on that chip.
+ */
+#if defined(CONFIG_IDF_TARGET_ESP32)
+static_assert(SOC_GPIO_PIN_COUNT == 40, "classic ESP32 has GPIO0-39");
+static_assert(U0TXD_GPIO_NUM == 1 && U0RXD_GPIO_NUM == 3, "classic ESP32 UART0 is GPIO1/3");
+static_assert(FLOCK_FLASH_LO == 6 && FLOCK_FLASH_HI == 11, "classic ESP32 flash is GPIO6-11");
+#elif defined(CONFIG_IDF_TARGET_ESP32C5)
+static_assert(SOC_GPIO_PIN_COUNT == 29, "ESP32-C5 has GPIO0-28");
+static_assert(U0TXD_GPIO_NUM == 11 && U0RXD_GPIO_NUM == 12, "ESP32-C5 UART0 is GPIO11/12");
+static_assert(FLOCK_FLASH_LO >= 16 && FLOCK_FLASH_HI <= 22, "ESP32-C5 flash/PSRAM is GPIO16-22");
+#endif
+
+/**
+ * Why this pin cannot carry a GPS, or NULL if it can.
+ * The string is echoed to the operator, because "refused" without "why" is what
+ * made the last round of this take four attempts to diagnose.
+ */
+static const char* gps_pin_reject(int rx) {
+    if(rx < 0 || rx >= SOC_GPIO_PIN_COUNT) return "no such pin on this chip";
+    if(!((1ULL << rx) & SOC_GPIO_VALID_GPIO_MASK)) return "not a usable GPIO";
+    if(rx == U0TXD_GPIO_NUM || rx == U0RXD_GPIO_NUM) return "carries the Flipper link";
+    if(rx >= FLOCK_FLASH_LO && rx <= FLOCK_FLASH_HI) return "flash/PSRAM bus";
+    return NULL;
+}
+
+/** Bitmask of pins gps_pin_reject() accepts. Sent to the app so its picker can
+ *  offer this chip's real pins instead of a hardcoded classic-ESP32 list. */
+static uint64_t gps_usable_mask() {
+    uint64_t m = 0;
+    for(int i = 0; i < SOC_GPIO_PIN_COUNT && i < 64; i++) {
+        if(!gps_pin_reject(i)) m |= (1ULL << i);
+    }
+    return m;
+}
+
 static bool g_gps_on = false;
 static int g_gps_rx = -1;
 static uint32_t g_gps_baud = 9600;
@@ -1229,13 +1356,16 @@ static void handle_command(String cmd) {
                 long b = a.substring(sp + 1).toInt();
                 if(b >= 1200 && b <= 921600) baud = (uint32_t)b;
             }
-            // Refuse pin 0 and the UART0 pins that carry this very link: taking
-            // them would cut the Flipper off, which looks exactly like a dead
-            // board and is not recoverable without a reflash.
-            if(rx > 0 && rx != 1 && rx != 3 && rx < 48) {
+            // Ask the chip, don't assume the pinout. gps_pin_reject() is derived
+            // entirely from this target's own IDF headers, so the pins it refuses
+            // are this board's real flash bus and this board's real UART0 -- not
+            // the classic ESP32's, which is what the old literal test encoded.
+            const char* why = gps_pin_reject(rx);
+            if(!why) {
                 gps_configure(rx, baud);
             } else {
                 Serial.printf("GPSCFG,0,%d,%lu\n", rx, (unsigned long)baud);
+                Serial.printf("GPSERR,%d,%s\n", rx, why);
             }
         }
         return; // not a scan-mode command

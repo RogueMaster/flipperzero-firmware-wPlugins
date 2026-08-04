@@ -13,27 +13,10 @@ bool scan_session_start(void* _app) {
 
     // Configure the companion's GPS relay once, centrally, for every screen that
     // opens a session -- rather than in each scene, which is how the alert
-    // delivery bug happened. Only on the companion backend: Marauder has no such
-    // command and would just log an error line.
-    //
-    // Sent unconditionally in BOTH directions so the board's state always matches
-    // the setting. Without the explicit "off", a board left relaying from an
-    // earlier session would keep overriding a GPS the user has since moved to the
-    // Flipper's own UART.
-    if(app->settings.backend == EspBackendCompanion) {
-        char cmd[32];
-        if(app->settings.gps_enabled && app->settings.gps_source == ReconGpsSourceCompanion) {
-            snprintf(
-                cmd,
-                sizeof(cmd),
-                "gps %u %lu",
-                (unsigned)app->settings.esp_gps_pin,
-                (unsigned long)app->settings.gps_baud);
-        } else {
-            snprintf(cmd, sizeof(cmd), "gps off");
-        }
-        esp_link_send(app->esp, cmd);
-    }
+    // delivery bug happened. The command is built in esp_link so that this call
+    // and the on-banner re-send cannot drift apart; it is a no-op on Marauder.
+    esp_link_send_band(app->esp);
+    esp_link_send_gps_cfg(app->esp);
     return true;
 }
 

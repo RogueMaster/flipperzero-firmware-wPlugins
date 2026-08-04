@@ -79,6 +79,10 @@ void recon_app_report_flock(
 
     if(entry) {
         uint8_t prev_conf = (uint8_t)entry->confidence;
+        // Captured BEFORE the flag is cleared below: it is what tells the alert
+        // rule that this device's latch and confidence were restored from disk
+        // rather than earned this session.
+        bool was_archived = entry->archived;
         entry->count++;
         entry->last_tick = now;
         // Seen for real this session: it is a live detection again, not a stored
@@ -117,10 +121,11 @@ void recon_app_report_flock(
         // Raise the detection alert on the first crossing to Likely-or-better
         // (issue #1). We only set the flag here -- this runs on the ESP worker
         // thread, so the actual notification is left to the GUI tick.
-        if(flock_alert_should_fire(
+        if(flock_alert_should_fire_ex(
                prev_conf,
                (uint8_t)entry->confidence,
                entry->alerted,
+               was_archived,
                now,
                app->alert_last_tick,
                app->alert_have_fired,
@@ -205,6 +210,64 @@ void recon_app_set_esp_link_state(ReconApp* app, EspLinkState state) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     app->esp_link_state = (uint8_t)state;
     furi_mutex_release(app->mutex);
+}
+
+void recon_app_set_gps_relay(ReconApp* app, bool on, int16_t pin, uint32_t baud) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->gps_relay = on ? ReconGpsRelayOn : ReconGpsRelayOff;
+    app->gps_relay_pin = pin;
+    app->gps_relay_baud = baud;
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_gps_relay_pending(ReconApp* app) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->gps_relay = ReconGpsRelayUnknown;
+    app->gps_relay_pin = -1;
+    app->gps_cfg_tick = furi_get_tick();
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_set_chip(
+    ReconApp* app,
+    const char* target,
+    uint8_t gpio_count,
+    uint64_t gps_pin_mask,
+    bool has_5ghz) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    strncpy(app->esp_chip, target ? target : "", sizeof(app->esp_chip) - 1);
+    app->esp_chip[sizeof(app->esp_chip) - 1] = '\0';
+    app->esp_gpio_count = gpio_count;
+    app->esp_gps_pin_mask = gps_pin_mask;
+    app->esp_has_5ghz = has_5ghz;
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_set_band(ReconApp* app, uint8_t sel, uint16_t channels) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->esp_band_actual = sel;
+    app->esp_band_channels = channels;
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_request_gps_cfg(ReconApp* app) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->gps_cfg_resend = true;
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_gps_cfg_tick(ReconApp* app) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    bool want = app->gps_cfg_resend;
+    app->gps_cfg_resend = false;
+    furi_mutex_release(app->mutex);
+    // Sent from the GUI thread only. The ESP worker raises the flag; if it did
+    // the furi_hal_serial_tx itself it would race the commands this same thread
+    // sends on entering a scan scene, on one UART handle.
+    if(want && app->esp) {
+        esp_link_send_band(app->esp);
+        esp_link_send_gps_cfg(app->esp);
+    }
 }
 
 void recon_app_ble_begin(ReconApp* app) {
@@ -663,6 +726,7 @@ void recon_app_watchscore_tick(ReconApp* app) {
 
 static void recon_settings_defaults(ReconApp* app) {
     app->settings.backend = EspBackendCompanion;
+    app->settings.esp_band = ReconEspBand24; // detection first -- see ReconEspBand
     app->settings.esp_uart = FuriHalSerialIdUsart;
     app->settings.gps_uart = FuriHalSerialIdLpuart;
     app->settings.esp_baud = 115200;
@@ -687,8 +751,9 @@ void recon_settings_save(ReconApp* app) {
         FuriString* s = furi_string_alloc();
         furi_string_printf(
             s,
-            "backend=%d\nesp_uart=%d\ngps_uart=%d\nesp_baud=%lu\ngps_baud=%lu\nmarauder_cmd=%d\ngps_enabled=%d\ngps_source=%d\nesp_gps_pin=%d\nsound=%d\nflash_fast=%d\nlog_serials=%d\nanomaly_flag=%d\nalert_mode=%d\nalert_min_conf=%d\nsave_hits=%d\n",
+            "backend=%d\nesp_band=%d\nesp_uart=%d\ngps_uart=%d\nesp_baud=%lu\ngps_baud=%lu\nmarauder_cmd=%d\ngps_enabled=%d\ngps_source=%d\nesp_gps_pin=%d\nsound=%d\nflash_fast=%d\nlog_serials=%d\nanomaly_flag=%d\nalert_mode=%d\nalert_min_conf=%d\nsave_hits=%d\n",
             app->settings.backend,
+            app->settings.esp_band,
             app->settings.esp_uart,
             app->settings.gps_uart,
             (unsigned long)app->settings.esp_baud,
@@ -729,6 +794,8 @@ static void recon_settings_apply_kv(ReconApp* app, const char* key, long val) {
         app->settings.marauder_cmd = (uint8_t)val;
     else if(strcmp(key, "gps_enabled") == 0)
         app->settings.gps_enabled = (val != 0);
+    else if(strcmp(key, "esp_band") == 0 && val >= 0 && val < ReconEspBandCount)
+        app->settings.esp_band = (uint8_t)val;
     else if(strcmp(key, "gps_source") == 0 && val >= 0 && val < ReconGpsSourceCount)
         app->settings.gps_source = (uint8_t)val; // corrupt value -> keep the default
     else if(strcmp(key, "esp_gps_pin") == 0 && val > 1 && val != 3 && val < 48)
@@ -816,15 +883,18 @@ void recon_hits_save(ReconApp* app) {
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     size_t total = app->flock_count;
     furi_mutex_release(app->mutex);
-    if(total == 0) {
-        // An empty table means "nothing to remember", so the file must GO. It used
-        // to be left untouched, which was harmless while the only way to reach
-        // zero was a fresh install -- but the detail screen can now delete
-        // entries, and deleting the last one would silently keep the old file and
-        // restore every entry on the next launch.
-        storage_common_remove(app->storage, RECON_HITS_PATH);
-        return;
-    }
+    // An empty table must NEVER remove the file from here.
+    //
+    // v0.53 made it do exactly that, reasoning that deleting the last entry
+    // should delete the store. But this function runs on every scan-session exit,
+    // so ANY code path that emptied the table in memory became permanent data
+    // loss on disk -- and Net Guardian emptied it on entry. That combination cost
+    // a user a drive's worth of detections with no way to get them back, which is
+    // strictly worse than the stale file the delete was meant to avoid.
+    //
+    // Removal is now an explicit consequence of the operator deleting something,
+    // and lives in recon_hits_save_after_delete() alone.
+    if(total == 0) return;
 
     recon_report_ensure_dirs(app);
 
@@ -855,6 +925,24 @@ void recon_hits_save(ReconApp* app) {
     }
     storage_file_close(file);
     storage_file_free(file);
+}
+
+void recon_hits_save_after_delete(ReconApp* app) {
+    if(!app->settings.save_hits) return;
+
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    size_t total = app->flock_count;
+    furi_mutex_release(app->mutex);
+
+    // The ONLY place an empty table removes the store, because here the emptiness
+    // is the operator's explicit choice: they just deleted the last entry. Left
+    // as a plain save, the stale file would restore everything on next launch and
+    // the deletion would look like it had not worked.
+    if(total == 0) {
+        storage_common_remove(app->storage, RECON_HITS_PATH);
+        return;
+    }
+    recon_hits_save(app);
 }
 
 /** Append one parsed record to the detection table as an archived entry. */
@@ -1004,6 +1092,12 @@ static void recon_tick_event_callback(void* context) {
     // because "remember to call this in every new scene" is what failed. The
     // GUI thread owns delivery either way; the ESP worker only sets the flag.
     recon_app_alert_tick(app);
+    // Same worker-raises / GUI-delivers split, for the same reason: the companion
+    // announces itself with a banner on every boot, and the relay config has to be
+    // re-sent when it does (a board still coming up misses the one the scan
+    // session sent). Doing that transmit on the worker thread would race this
+    // thread's own commands on the same UART handle.
+    recon_app_gps_cfg_tick(app);
     scene_manager_handle_tick_event(app->scene_manager);
 }
 
