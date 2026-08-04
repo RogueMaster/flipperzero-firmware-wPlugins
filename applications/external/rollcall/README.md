@@ -32,7 +32,7 @@ Most garage doors, gates, alarms and car remotes talk over Sub-GHz radio (315 MH
 
 ![RollCall screens](images/screens.png)
 
-*Main menu · live capture · the verdict · the full breakdown*
+*Main menu · live capture with the signal row · Find My Remote · the verdict · the full breakdown*
 
 </div>
 
@@ -77,9 +77,27 @@ A held button re-sends the same frame many times, so RollCall collapses repeats 
 
 ---
 
+## Find My Remote — stop guessing the frequency
+
+A remote that produces nothing is almost always a remote on a band you aren't listening to. **Find My Remote** settles it: hold your fob down and RollCall sweeps every band it supports, measuring how far each one climbs above *its own* noise floor. The band your remote actually transmits on towers over the rest.
+
+```
+Find Band                    14 sweeps
+──────────────────────────────────────
+                    ▁
+   ▁     ▂       ▃  █  ▂
+  ─┴──┴──┴──┴──┴──┴──█──┴──┴──┴──┴──┴─
+433.92 MHz  +48dB
+[ OK: use this band            Back ]
+```
+
+Press **OK** and it adopts that band, saves it, and drops straight into the health check. It only ever reports a band that genuinely beat its floor — no signal means no answer, never a guess.
+
+---
+
 ## Supported bands & protocols
 
-- **Bands:** 300 · 315 · 390 · 433.92 · 868.35 · 915 MHz (whatever your radio allows)
+- **Bands:** 300 · 303.87 · 310 · 315 · 318 · 330 · 345 · 390 · 418 · 433.92 · 434.42 · 434.77 · 868.35 · 915 MHz (whatever your radio allows)
 - **Modulation:** AM650 / AM270 (covers most fobs) · FM238 / FM476 (Somfy, Security+ 2.0…)
 - **Protocols:** everything in the Flipper's built‑in registry — rolling (KeeLoq, Nice Flor‑S, CAME Atomo, Star Line, Security+ 2.0, Somfy…) and fixed (Princeton, CAME, Nice FLO, Holtek, Linear, Hörmann…). Classification comes straight from the firmware decoders, so it tracks upstream.
 
@@ -114,13 +132,24 @@ Copy `dist/rollcall.fap` to `apps/Sub-GHz/` on the Flipper's microSD, then open 
 
 ## Using it
 
-1. **Settings** → pick your **Band** (315 US / 433.92 EU) and **Modulation** (start with AM650). Set how many **Presses** to sample (default 3).
+1. **Settings** → pick your **Band** (315 US / 433.92 EU) and **Modulation** (start with AM650). Set how many **Presses** to sample (default 3). Settings persist between launches.
+   *Don't know your band? Run **Find My Remote** instead and let it find one.*
 2. **Run Health Check.**
 3. Point your remote at the Flipper and **press it a few times, pausing ~1 second** between presses. The slots fill as each press lands.
-4. Read the **grade**. Press **OK** for the full breakdown — the per‑press ledger shows each code fingerprint and whether it was `new` or the `same`.
+4. Read the **grade**. Press **OK** for the full breakdown — the per‑press ledger shows each code fingerprint, bit length, signal strength, and whether it was `new` or the `same`.
 5. **Retest ›** runs another pass; **Back** returns to the menu.
 
-**Nothing decoding?** Wrong band or modulation is the usual cause — switch 315 ↔ 433.92, or flip AM ↔ FM in Settings, and try again.
+### Nothing being detected?
+
+The signal row along the bottom of the check screen tells you *which* problem you have, instead of leaving you staring at a zero:
+
+| What you see | What it means | Fix |
+|---|---|---|
+| Bar flat, pip dark | Nothing on this frequency at all | Run **Find My Remote** — it sweeps every band and points at yours |
+| Bar jumps, pip lights, counter stays `0` (`RF seen, no decode`) | Right frequency, but the frames aren't being decoded | Change **Modulation** — AM270 for narrow fobs, FM238/FM476 for FSK ones |
+| One press counted twice, or two presses counted as one | The press-collapsing window doesn't match your fob | Adjust **Press gap** in Settings (0.25 s – 1.5 s) |
+
+The **pip** on the left of the signal row lights when the demodulator is producing raw pulses — that's how you tell "wrong frequency" apart from "right frequency, protocol I can't decode".
 
 ---
 
@@ -143,17 +172,27 @@ python3 tools_gen_banner.py   # README banner + social preview
 python3 tools_gen_mockups.py  # screen mockups
 ```
 
+The grading brain and the dump parser are pure logic, so they're tested on the host under ASan/UBSan — no Flipper needed:
+
+```bash
+make -C test
+```
+
 ```
 RollCall-FlipperZero/
 ├── application.fam          # app manifest (Sub-GHz, fap_libs=["subghz"])
 ├── rollcall.c / rollcall_i.h
 ├── helpers/
-│   ├── rc_radio.c/.h        # CC1101 + decoder stack; collapses repeats into presses
+│   ├── rc_radio.c/.h        # CC1101 + decoder stack, live RSSI, band hunt
+│   ├── rc_settings.c/.h     # persisted band/modulation/press settings
+│   ├── rc_parse.c/.h        # pure text parsing over decoder dumps
 │   └── analyzer.c/.h        # pure grading logic (no radio, no UI)
 ├── views/
-│   ├── capture_view.c/.h    # animated "listening" screen
+│   ├── capture_view.c/.h    # animated "listening" screen + signal row
+│   ├── hunt_view.c/.h       # per-band bar chart for Find My Remote
 │   └── verdict_view.c/.h    # hero grade card
-└── scenes/                  # start · capture · verdict · details · settings · about
+├── scenes/                  # start · capture · hunt · verdict · details · settings · about
+└── test/                    # host tests (make -C test)
 ```
 
 ---

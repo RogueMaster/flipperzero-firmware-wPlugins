@@ -107,6 +107,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - Reverted: [Morse Flipper v0.1.78 (By yo3gnd)](https://github.com/yo3gnd/morse-flipper)
 - OFW: PR: [Fix HID limits to support international keyboards and add JP keyboard layout #4361 (By d3npa)](https://github.com/flipperdevices/flipperzero-firmware/pull/4361)
 - Updated: [DeFlock v0.55 (By ReconGrunt)](https://github.com/ReconGrunt/FlipDeFlock) `Req: ESP32`
+- Updated: [RollCall v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/RollCall-FlipperZero)
 
 <a name="release"></a>
 
@@ -812,7 +813,7 @@ This software is for experimental purposes only and is not meant for any illegal
 - [RFID Metal Detector v1.0 (By hnsvrdmn)](https://github.com/hnsvrdmn/flipper-rfid-metal-detector)
 - [RGB LED (By flyandi)](https://github.com/flyandi/flipper_zero_rgb_led)
 - [Rogue AP Detector v1.0 (By barkandbite)](https://github.com/barkandbite/flipper_suite) `Req: ESP32`
-- [RollCall v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/RollCall-FlipperZero)
+- [RollCall v1.1 (By at0m-b0mb)](https://github.com/at0m-b0mb/RollCall-FlipperZero)
 - [Roman Decoder v0.2 (By evillero)](https://github.com/evillero/roman_decoder)
 - [Rosetta v1.0 (By at0m-b0mb)](https://github.com/at0m-b0mb/Rosetta-FlipperZero)
 - [ROT13 v0.1 (By nothingbutlucas)](https://codeberg.org/nothingbutlucas/flipperzero_rot13)

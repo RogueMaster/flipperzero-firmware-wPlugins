@@ -14,16 +14,19 @@
 #include "rollcall_icons.h" // generated from icons/ by fbt
 
 #include "helpers/rc_radio.h"
+#include "helpers/rc_settings.h"
 #include "helpers/analyzer.h"
 #include "views/capture_view.h"
+#include "views/hunt_view.h"
 #include "views/verdict_view.h"
 #include "scenes/rollcall_scene.h"
 
-#define ROLLCALL_VERSION "1.0"
+#define ROLLCALL_VERSION "1.1"
 
 typedef enum {
     RollCallViewSubmenu,
     RollCallViewCapture,
+    RollCallViewHunt,
     RollCallViewVerdict,
     RollCallViewSettings,
     RollCallViewWidget,
@@ -34,6 +37,7 @@ typedef enum {
     RollCallCustomEventFinish, // done capturing -> analyze
     RollCallCustomEventDetails, // open the per-press breakdown
     RollCallCustomEventRescan, // run the check again
+    RollCallCustomEventAdoptBand, // band hunt found one -> use it and check
 } RollCallCustomEvent;
 
 typedef struct {
@@ -46,17 +50,13 @@ typedef struct {
     VariableItemList* var_item_list;
     Widget* widget;
     CaptureView* capture_view;
+    HuntView* hunt_view;
     VerdictView* verdict_view;
 
     RcRadio* radio;
 
-    /* settings */
-    uint8_t band_idx; // index into rc_bands
-    uint8_t mod_idx; // index into rc_mods
-    uint8_t target; // presses to auto-finish (2..6)
-    bool sound;
-    bool vibro;
-    bool led;
+    /* persisted across launches */
+    RcSettings settings;
 
     /* current run */
     RcCapture captures[RC_MAX_CAPTURES];

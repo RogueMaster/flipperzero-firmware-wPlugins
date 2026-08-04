@@ -41,6 +41,29 @@ void rollcall_scene_about_on_enter(void* context) {
         "   to see each press change (or\n"
         "   not).\n\n");
 
+    furi_string_cat_str(s, "\e#Nothing being detected?\n");
+    furi_string_cat_str(
+        s,
+        "The signal row at the bottom of\n"
+        "the check screen tells you which\n"
+        "problem you have:\n\n"
+        "- Bar flat, pip dark: nothing on\n"
+        "  this frequency. Run Find My\n"
+        "  Remote - it sweeps every band\n"
+        "  while you hold the button and\n"
+        "  points at the one your fob\n"
+        "  actually uses.\n\n"
+        "- Bar jumps, pip lights, counter\n"
+        "  stays 0 (\"RF seen, no decode\"):\n"
+        "  right frequency, but the frames\n"
+        "  are not being decoded. Try the\n"
+        "  other modulation - AM270 for\n"
+        "  narrow fobs, FM238/FM476 for\n"
+        "  FSK ones.\n\n"
+        "- One press counted twice, or two\n"
+        "  presses counted once: adjust\n"
+        "  Press gap in Settings.\n\n");
+
     furi_string_cat_str(s, "\e#Ethics\n");
     furi_string_cat_str(
         s,
