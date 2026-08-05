@@ -137,7 +137,19 @@ bool playinput(InputEvent *ev, void *ctx)
             checkhold(app);
             app->holding = false;
         }
-        else if(ev->type != InputTypeShort) return false;
+        else if(ev->type == InputTypeShort)
+        {
+            if(!app->heldskip && ev->key == InputKeyLeft)
+            {
+                if(ispaused(app->play) && playms(app->play) == 0) (void)movesong(app, -1);
+                else (void)playseek(app->play, -1);
+            }
+            m = view_get_model(app->pv);
+            m->elapsed_ms = playms(app->play);
+            m->paused = ispaused(app->play);
+            view_commit_model(app->pv, true);
+        }
+        else return false;
         return true;
     }
     if(ev->type != InputTypeShort) return false;

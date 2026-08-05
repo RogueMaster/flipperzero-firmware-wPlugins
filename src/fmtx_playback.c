@@ -431,6 +431,20 @@ bool playenter(Play *playback)
     return playstart(playback, &req);
 }
 
+bool playseek(Play *playback, int32_t frames)
+{
+    PlayReq req;
+    bool paused;
+    if(!playback || !playback->req.path[0]) return false;
+    if(frames >= 0) return true;
+    paused = playback->paused;
+    memcpy(&req, &playback->req, sizeof(req));
+    playstop(playback);
+
+
+    return start0(playback, &req, paused);
+}
+
 uint32_t playms(const Play *playback)
 {
     if(!playback) return 0;
