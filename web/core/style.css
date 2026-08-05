@@ -494,6 +494,54 @@ h3{margin:0; font-weight:600}
 .wyr-opt.lead{border-color:var(--orange)}
 .wyr-opt.locked{cursor:default}
 
+/* Secrets: a question, a number stepper to predict the yes-count, big Yes/No, and a
+   reveal that shows only the group total. */
+.sec-q{text-align:center; font-size:20px; font-weight:800; color:var(--text);
+  padding:16px 8px; min-height:1.4em; word-break:break-word}
+.sec-predict{display:flex; flex-direction:column; align-items:center; gap:16px; margin:6px 0}
+/* Prominent prompt above the stepper — clearly bigger than body text. */
+.sec-predict-label{font-size:22px; font-weight:400; line-height:1.25; text-align:center;
+  color:var(--orange); max-width:22em}
+.sec-stepper{display:flex; align-items:center; gap:20px}
+.sec-step{width:64px; height:64px; border-radius:50%; border:2px solid var(--line);
+  background:var(--surface-2); color:var(--text); font-size:32px; font-weight:700;
+  line-height:1; cursor:pointer; font-family:var(--font)}
+.sec-step:active:not(:disabled){transform:translateY(1px); border-color:var(--orange)}
+.sec-step:disabled{opacity:.4; cursor:default}
+.sec-num{font-size:64px; font-weight:700; min-width:80px; text-align:center;
+  color:var(--orange); font-variant-numeric:tabular-nums}
+.sec-answer{display:flex; flex-direction:column; gap:12px; margin:6px 0}
+.sec-ans{min-height:72px; border-radius:var(--radius); border:2px solid var(--line);
+  background:var(--surface-2); color:var(--text); font-size:22px; font-weight:800;
+  font-family:var(--font); cursor:pointer; text-transform:uppercase; letter-spacing:.04em}
+.sec-ans:active:not(:disabled){transform:translateY(1px)}
+.sec-ans:disabled{opacity:.5; cursor:default}
+.sec-ans.yes.mine{border-color:var(--good); color:var(--good)}
+.sec-ans.no.mine{border-color:var(--bad); color:var(--bad)}
+.sec-reveal{margin:10px 0}
+/* Hero: the yes-count as a big number with a small muted caption beneath. */
+.sec-hero{text-align:center; margin:6px 0 14px}
+.sec-yesnum{font-size:72px; font-weight:800; line-height:1; color:var(--orange);
+  font-variant-numeric:tabular-nums}
+.sec-yescap{font-size:13px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.1em;
+  margin-top:2px}
+/* One row per possible count 0..N; the row matching the yes-count is tinted orange, and
+   carries the names (with points) of whoever guessed that number. */
+.sec-buckets{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px}
+.sec-bucket{display:flex; align-items:center; gap:12px; min-height:40px; padding:6px 12px;
+  border:2px solid var(--line); border-radius:var(--radius); background:var(--surface-2)}
+.sec-bucket.hit{border-color:var(--orange); background:rgba(255,130,0,.20)}
+.sec-bnum{flex:0 0 auto; width:28px; text-align:center; font-size:20px; font-weight:800;
+  color:var(--text-dim); font-variant-numeric:tabular-nums}
+.sec-bucket.hit .sec-bnum{color:var(--orange-bright)}
+.sec-bnames{flex:1; display:flex; flex-wrap:wrap; gap:6px}
+.sec-bname{font-weight:700; font-size:14px; color:var(--text); background:#000;
+  border:0; border-radius:var(--radius); padding:2px 8px}
+.sec-bname.me{background:var(--orange); color:#000}
+.sec-result{text-align:center; color:var(--orange); font-weight:700; font-size:16px; min-height:20px;
+  margin-top:12px}
+.sec-note{text-align:center; color:var(--text-dim); font-size:13px; margin-top:8px; min-height:16px}
+
 /* Word Scramble: big spaced letters, answer reveal in orange. */
 .scr-letters{background:var(--surface); border:2px solid var(--line); border-radius:var(--radius);
   padding:20px 12px; text-align:center; font-weight:700; font-size:30px; letter-spacing:.12em;

@@ -417,3 +417,34 @@ moment either side plays a move.
 State is pushed only on events — a move, resign, draw, claim, or a flag fall the ESP
 notices on its own clock tick — never on a periodic heartbeat; clients animate the
 countdown locally between pushes from `deadline`.
+
+## 10. Secrets (`secrets`) — game id `16`
+
+A whole-group party game on the shared party skeleton (lobby with a ready-up + pack vote,
+countdown, reveal). Content reuses the pack pipeline: each item is a `Q` (one yes/no
+question). Select with UART `SELECT_GAME` id `16`; lobby `game` string `"secrets"`.
+Firmware **v18**.
+
+Each round shows one question and runs **answer → predict → reveal**. First everyone
+secretly **answers** yes/no; then everyone secretly **predicts** how many of the `N` joined
+players said yes (an integer `0..N`); then reveal. Only the group's total yes-count is ever
+revealed — the individual yes/no answers are never serialized to anyone. An exact
+prediction scores 1, otherwise 0. Six rounds.
+
+Client intents: `ready`, `vote{pack}`, `reply{v}` (`1` = yes, `0` = no; answer stage),
+`predict{n}` (your yes-count guess, clamped `0..N`; predict stage), `again`. The distinct
+`reply`/`predict` verbs avoid colliding with Would You Rather's `answer`/`vote`.
+
+Server `{t:"secrets",phase,...}`:
+- `"lobby"`: `you`, `players`, `packs` (name/votes), `myvote`.
+- `"countdown"`: `sec`.
+- `"answer"` / `"predict"`: `round`, `rounds`, `n` (player count / predict upper bound),
+  `q` (the question), `locked`/`total` (aggregate progress in the current step),
+  `myprediction` and `myanswer` (**your own only**, `-1` if unset), `deadline`/`dur` for
+  the timer bar, and `scores` (the shared leaderboard).
+- `"reveal"`: adds `yes` (the group total, the **only** answer information ever sent),
+  `guesses` (`[{nick, n, pts}]` — every player's prediction and points; predictions are
+  guesses about the group, not personal, so they're public here), and `mygain` (your
+  points). No individual yes/no **answer** is ever serialized, in any phase — anonymity is
+  enforced in `secretsJson(pid)`.
+- `"final"`: `board` (the shared leaderboard).
