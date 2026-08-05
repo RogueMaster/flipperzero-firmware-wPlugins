@@ -27,6 +27,10 @@ typedef struct
     FuriString *path;
     uint32_t hz;
     uint32_t pauseat;
+    uint32_t holdat;
+    InputKey holdkey;
+    bool holding;
+    bool heldskip;
     bool playing;
 } App;
 

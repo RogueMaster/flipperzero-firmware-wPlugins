@@ -189,6 +189,7 @@ static int32_t playthread(void *ctx)
         seterr(playback, FmtxPlaybackRadio);
         goto done;
     }
+    if(playback->paused) rfpause(playback->rf);
 
     mp3dec_init(decoder);
     while(!playback->stop)
@@ -346,7 +347,7 @@ void playfree(Play *playback)
     free(playback);
 }
 
-bool playstart(Play *playback, const PlayReq *request)
+static bool start0(Play *playback, const PlayReq *request, bool paused)
 {
     if(!playback || !request || playback->on) return false;
     if(playback->th)
@@ -357,7 +358,7 @@ bool playstart(Play *playback, const PlayReq *request)
     }
     memcpy(&playback->req, request, sizeof(*request));
     playback->stop = false;
-    playback->paused = false;
+    playback->paused = paused;
     playback->err = FmtxPlaybackOk;
     playback->on = true;
     playback->th = furi_thread_alloc_ex("FmtxDecode", STACKSZ, playthread, playback);
@@ -370,6 +371,16 @@ bool playstart(Play *playback, const PlayReq *request)
     furi_thread_set_priority(playback->th, FuriThreadPriorityHigh);
     furi_thread_start(playback->th);
     return true;
+}
+
+bool playstart(Play *playback, const PlayReq *request)
+{
+    return start0(playback, request, false);
+}
+
+bool playpaused(Play *playback, const PlayReq *request)
+{
+    return start0(playback, request, true);
 }
 
 void playstop(Play *playback)

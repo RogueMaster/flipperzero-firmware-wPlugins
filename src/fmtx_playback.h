@@ -16,6 +16,7 @@ void playreq(PlayReq *request, const char *path, uint32_t hz);
 Play *playnew(void);
 void playfree(Play *playback);
 bool playstart(Play *playback, const PlayReq *request);
+bool playpaused(Play *playback, const PlayReq *request);
 void playstop(Play *playback);
 bool playon(const Play *playback);
 bool ispaused(const Play *playback);

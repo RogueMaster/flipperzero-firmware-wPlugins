@@ -29,11 +29,118 @@ void playdraw(Canvas *canvas, void *model)
     canvas_draw_str_aligned(canvas, 126, 62, AlignRight, AlignBottom, f);
 }
 
+static bool ismp3(const char *x)
+{
+    size_t n = strlen(x);
+    if(n < 4U || x[n - 4U] != '.') return false;
+
+    return (x[n - 3U] | 0x20) == 'm' && (x[n - 2U] | 0x20) == 'p' && x[n - 1U] == '3';
+}
+
+static bool startsong(App *app, bool paused)
+{
+    PlayReq req;
+    PlayModel *m = view_get_model(app->pv);
+    const char *path = furi_string_get_cstr(app->path);
+    const char *slash = strrchr(path, '/');
+    bool ok;
+    playreq(&req, path, app->hz);
+    ok = paused ? playpaused(app->play, &req) : playstart(app->play, &req);
+    m->elapsed_ms = playms(app->play);
+    m->pause_ms = 0;
+    m->gain = playgain(app->play);
+    m->filter = playfilter(app->play);
+    m->paused = ok && ispaused(app->play);
+    strlcpy(m->filename, slash ? slash + 1 : path, sizeof(m->filename));
+    if(m->paused) app->pauseat = furi_get_tick();
+    view_commit_model(app->pv, true);
+
+    return ok;
+}
+
+static bool movesong(App *app, int move)
+{
+    char folder[256];
+    char current[256];
+    char name[256];
+    char first[256] = "";
+    char x1[256] = "";
+    char prev[256] = "";
+    char next[256] = "";
+    char pick[256];
+    char path[256];
+    const char *selected = furi_string_get_cstr(app->path);
+    char *slash;
+    Storage *storage;
+    File *dir;
+    bool opened;
+    FileInfo info;
+    int n;
+
+    if(strlcpy(folder, selected, sizeof(folder)) >= sizeof(folder)) return false;
+    slash = strrchr(folder, '/');
+    if(!slash || slash == folder) return false;
+    strlcpy(current, slash + 1, sizeof(current));
+    *slash = 0;
+    storage = furi_record_open(RECORD_STORAGE);
+    dir = storage ? storage_file_alloc(storage) : NULL;
+    opened = dir && storage_dir_open(dir, folder);
+    while(opened && storage_dir_read(dir, &info, name, sizeof(name)))
+    {
+        if((info.flags & FSF_DIRECTORY) || !ismp3(name)) continue;
+        if(!first[0] || strcmp(name, first) < 0) strlcpy(first, name, sizeof(first));
+        if(!x1[0] || strcmp(name, x1) > 0) strlcpy(x1, name, sizeof(x1));
+        if(strcmp(name, current) < 0 && (!prev[0] || strcmp(name, prev) > 0)) strlcpy(prev, name, sizeof(prev));
+        if(strcmp(name, current) > 0 && (!next[0] || strcmp(name, next) < 0)) strlcpy(next, name, sizeof(next));
+    }
+    if(dir)
+    {
+        storage_dir_close(dir);
+        storage_file_free(dir);
+    }
+    if(storage) furi_record_close(RECORD_STORAGE);
+    if(!first[0]) return false;
+    strlcpy(pick, move < 0 ? prev[0] ? prev : x1 : next[0] ? next : first, sizeof(pick));
+    n = snprintf(path, sizeof(path), "%s/%s", folder, pick);
+    if(n < 0 || (size_t)n >= sizeof(path)) return false;
+    playstop(app->play);
+    furi_string_set_str(app->path, path);
+
+    return startsong(app, true);
+}
+
+static void checkhold(App *app)
+{
+    if(!app->holding || app->heldskip) return;
+    if(furi_get_tick() - app->holdat < furi_ms_to_ticks(2000U)) return;
+    app->heldskip = true;
+    (void)movesong(app, app->holdkey == InputKeyLeft ? -1 : 1);
+}
+
 bool playinput(InputEvent *ev, void *ctx)
 {
     App *app = ctx;
     PlayModel *m;
-    if(!ev || ev->type != InputTypeShort) return false;
+    if(!ev) return false;
+    if(ev->key == InputKeyLeft || ev->key == InputKeyRight)
+    {
+        if(ev->type == InputTypePress)
+        {
+            app->holdkey = ev->key;
+            app->holdat = furi_get_tick();
+            app->holding = true;
+            app->heldskip = false;
+        }
+        else if(ev->type == InputTypeLong || ev->type == InputTypeRepeat) checkhold(app);
+        else if(ev->type == InputTypeRelease)
+        {
+            checkhold(app);
+            app->holding = false;
+        }
+        else if(ev->type != InputTypeShort) return false;
+        return true;
+    }
+    if(ev->type != InputTypeShort) return false;
     m = view_get_model(app->pv);
     if(ev->key == InputKeyUp) m->gain = gainup(app->play);
     else if(ev->key == InputKeyDown) m->filter = filtertoggle(app->play);
@@ -136,20 +243,8 @@ static void mainout(void *ctx)
 static void playin(void *ctx)
 {
     App *app = ctx;
-    PlayReq req;
-    PlayModel *m = view_get_model(app->pv);
-    const char *path = furi_string_get_cstr(app->path);
-    const char *slash = strrchr(path, '/');
-    m->elapsed_ms = 0;
-    m->pause_ms = 0;
-    m->gain = playgain(app->play);
-    m->filter = playfilter(app->play);
-    m->paused = false;
-    strlcpy(m->filename, slash ? slash + 1 : path, sizeof(m->filename));
-    view_commit_model(app->pv, true);
-    playreq(&req, path, app->hz);
     app->playing = true;
-    (void)playstart(app->play, &req);
+    (void)startsong(app, false);
     view_dispatcher_switch_to_view(app->vd, VPlay);
 }
 
@@ -179,6 +274,7 @@ static void playout(void *ctx)
 {
     App *app = ctx;
     app->playing = false;
+    app->holding = false;
     playstop(app->play);
 }
 
