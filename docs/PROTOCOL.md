@@ -131,7 +131,7 @@ REVEAL/ROUND_END flow down as the host drives rounds. PING beacons throughout.
 
 | `t`      | Fields | Meaning |
 |----------|--------|---------|
-| `welcome`| `pid`, `nick`, `lang` | Assigned player id after `hello`; `lang` is the host's phone-UI language (`""` = English), which the client uses to pick its message catalog |
+| `welcome`| `pid`, `nick`, `avatar`, `lang` | Assigned player id after `hello`, with the identity the server holds for this device (see §10 — on a rebind these are the existing player's, not what the client just sent); `lang` is the host's phone-UI language (`""` = English), which the client uses to pick its message catalog |
 | `lobby`  | `game` ("none"/"trivia"/"connect4"), `players` (`[{pid,nick,score}]`), `me` (pid) | Lobby snapshot; sent on change |
 | `trivia` | `phase` ("idle"/"question"/"reveal"), `i`, `q`, `o` (opts), `dur`, `deadline` (ms epoch-ish, server `millis`), `mine` (my choice or -1), `counts` ([n0..n3]), `correct` (reveal only), `scores` | Full trivia view for this client |
 | `c4`     | `phase` ("lobby"/"playing"/"over"), lobby: `challenges` (`[{from,to}]`); playing: `mid`, `board` (42 ints: 0 empty/1/2), `turn` (pid), `me` (1 or 2), `opp` (nick), `you` (pid); over: `result` ("win"/"lose"/"draw") | Full connect4 view for this client |
@@ -448,3 +448,64 @@ Server `{t:"secrets",phase,...}`:
   points). No individual yes/no **answer** is ever serialized, in any phase — anonymity is
   enforced in `secretsJson(pid)`.
 - `"final"`: `board` (the shared leaderboard).
+---
+
+## 11. Player identity — one phone = one player
+
+Firmware **v18**. A player is bound to the **device**, not to the WebSocket. The ESP
+resolves each connection to the station's **MAC address** and keys the player on that; the
+WebSocket layer only knows a peer IP, and that IP is something the ESP's own DHCP server
+made up, so it is a derived value, not an identity.
+
+Why it is needed: a phone could show up as two or three players at once.
+
+- iOS (and Android) open a **captive mini-browser** for the portal. It is a separate
+  browser context from Safari/Chrome with its own `localStorage`, so the saved-identity
+  auto-rejoin the client does cannot help — play in the captive window *and* open
+  `192.168.4.1` in Safari and the ESP used to see two joins. A second tab, or a second
+  browser, is the same story.
+- A phone that drops (screen lock, WiFi off) closes nothing; the ESP only learns about it
+  when TCP times out, which can take minutes. If the phone comes back first, it used to
+  become a new player while the old one lingered as a ghost on the leaderboard.
+
+How the MAC is obtained (all firmware-side, the wire protocol is unchanged): the AP's DHCP
+server reports the assigned address *and* the client MAC together
+(`ip_event_ap_staipassigned_t`), so the firmware keeps a small IP → MAC table from that
+event. A station whose lease predates the handler is looked up in lwIP's ARP cache
+instead, and if the MAC still cannot be resolved the IP itself is used as the key. The
+engine never sees any of this — it stores an opaque 64-bit device key, `0` = unknown.
+
+Modern phones present a randomized "private" MAC, but it is **stable per SSID**: it
+survives reconnects and only changes if the AP is renamed, which is exactly the lifetime a
+session needs.
+
+Rules the ESP applies to `hello`:
+
+1. **Known socket** → the existing player; `nick`/`avatar` in the message are an edit from
+   the header identity editor and are applied (unchanged behaviour).
+2. **New socket, device already playing** → *rebind*: the existing player is re-pointed at
+   the new socket, keeping their `pid`, `nick`, `avatar` and `score`. Never a second
+   player. The `hello`'s own `nick`/`avatar` are ignored (a fresh context sends a name of
+   its own, and letting that rename a player mid-session is the bug, not the fix). No UART
+   `JOIN` is emitted — nobody joined. The `welcome` reply carries the *existing* identity,
+   and the client adopts it, so the second context immediately shows the same name and
+   avatar.
+3. **New socket, new or unknown device** → a new player, exactly as before.
+
+A `DISCONNECT` only removes a player if the closing socket is still that player's **current**
+socket. The superseded context's late close — and any message it still sends — is ignored.
+
+Device key `0` means "unknown" (reported for anything that is not a joined station,
+including the AP's own address) and never matches, so those clients fall back to one player
+per connection.
+
+The ESP traces each decision to its serial console:
+`[ha] JOIN pid=2 ip=192.168.4.3 mac=AA:BB:CC:DD:EE:FF nick="..."` and
+`[ha] NEW BROWSER same device ip=192.168.4.2 mac=AA:BB:CC:DD:EE:FF -> pid=1 nick="..." (consolidated)`.
+
+**Trade-off, deliberate:** two people can no longer share one phone as two players — the
+second `hello` from that phone joins the first player instead of creating a second. Playing
+one phone per person is the assumption everywhere else in the UI (the phone is the
+controller), and duplicate players from a single phone were the far more common failure. A
+phone whose MAC changes (the AP was renamed) simply becomes a new player, which is the
+pre-existing behaviour.

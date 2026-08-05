@@ -484,9 +484,26 @@ function maybeCaptive() {
 function dispatch(m) {
   switch (m.t) {
     case "welcome":
+      // The server owns identity: one phone is one player, recognised by its IP, so
+      // a second browser context on this phone (iOS pops a captive mini-browser with
+      // storage of its own, next to Safari) is handed the player it already has --
+      // same pid, same name, same avatar -- instead of becoming a second player.
+      // Adopting the echo here is what makes that visible in this context's header.
       A.pid = m.pid;
       if (A.setLang) A.setLang(m.lang); // host-chosen UI language; localizes static text
-      if (m.nick) { A.nick = m.nick; setNick(); }
+      if (m.avatar) A.avatar = m.avatar;
+      if (m.nick) {
+        A.nick = m.nick;
+        setNick();                            // header
+        if ($("nick")) $("nick").value = m.nick; // landing field, if they go back to it
+        buildAvatarPicker();                  // and its avatar row, so both agree
+        // Persist what the server says we are, not what this context typed: a
+        // reconnect from here then re-announces the same identity.
+        try {
+          localStorage.setItem(storeKey("ha_nick"), A.nick);
+          localStorage.setItem(storeKey("ha_avatar"), A.avatar);
+        } catch (e) {}
+      }
       break;
     case "lobby":
       onLobby(m);
@@ -623,7 +640,7 @@ function startPlay() {
   A.initAudio();          // first gesture: unlock audio for the session
   A.sfx("start"); A.vibe(30);
   try { localStorage.setItem(storeKey("ha_nick"), n); localStorage.setItem(storeKey("ha_avatar"), A.avatar); } catch (e) {}
-  send({ t: "hello", nick: n, avatar: A.avatar });
+  send({ t: "hello", nick: n, avatar: A.avatar, named: 1 });
   screen("lobby");
 }
 
@@ -693,7 +710,7 @@ function saveIdEdit() {
   setNick();
   A.sfx("start"); A.vibe(20);
   try { localStorage.setItem(storeKey("ha_nick"), n); localStorage.setItem(storeKey("ha_avatar"), A.avatar); } catch (e) {}
-  send({ t: "hello", nick: n, avatar: A.avatar });
+  send({ t: "hello", nick: n, avatar: A.avatar, named: 1 });
   closeIdEdit();
 }
 

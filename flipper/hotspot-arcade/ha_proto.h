@@ -16,7 +16,7 @@
 #define HA_FW_MAGIC_1 0x41
 #define HA_FW_MAGIC_2 0x52
 #define HA_FW_MAGIC_3 0x43
-#define HA_FW_VERSION 18 // v18: Secrets game added
+#define HA_FW_VERSION 18 // v18: Secrets game + one-phone-one-player identity
 
 // Flipper -> ESP
 #define HA_MSG_CLEAR_FILES   0x10

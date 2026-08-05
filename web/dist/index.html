@@ -843,7 +843,17 @@ switch (m.t) {
 case "welcome":
 A.pid = m.pid;
 if (A.setLang) A.setLang(m.lang); // host-chosen UI language; localizes static text
-if (m.nick) { A.nick = m.nick; setNick(); }
+if (m.avatar) A.avatar = m.avatar;
+if (m.nick) {
+A.nick = m.nick;
+setNick();                            // header
+if ($("nick")) $("nick").value = m.nick; // landing field, if they go back to it
+buildAvatarPicker();                  // and its avatar row, so both agree
+try {
+localStorage.setItem(storeKey("ha_nick"), A.nick);
+localStorage.setItem(storeKey("ha_avatar"), A.avatar);
+} catch (e) {}
+}
 break;
 case "lobby":
 onLobby(m);
@@ -947,7 +957,7 @@ setNick();
 A.initAudio();          // first gesture: unlock audio for the session
 A.sfx("start"); A.vibe(30);
 try { localStorage.setItem(storeKey("ha_nick"), n); localStorage.setItem(storeKey("ha_avatar"), A.avatar); } catch (e) {}
-send({ t: "hello", nick: n, avatar: A.avatar });
+send({ t: "hello", nick: n, avatar: A.avatar, named: 1 });
 screen("lobby");
 }
 function avatarOf(pid) {
@@ -1002,7 +1012,7 @@ A.avatar = editAvatar || A.avatar;
 setNick();
 A.sfx("start"); A.vibe(20);
 try { localStorage.setItem(storeKey("ha_nick"), n); localStorage.setItem(storeKey("ha_avatar"), A.avatar); } catch (e) {}
-send({ t: "hello", nick: n, avatar: A.avatar });
+send({ t: "hello", nick: n, avatar: A.avatar, named: 1 });
 closeIdEdit();
 }
 var REACTS = ["👍", "😂", "🔥", "😮", "🎉", "❤️", "😠"];
