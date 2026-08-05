@@ -374,6 +374,52 @@ function storeKey(name) {
   return h ? name + "_" + h : name;
 }
 
+/* Is the link actually alive? A socket that dies quietly -- the phone's WiFi drops,
+   the host's AP goes away, the phone sleeps -- often produces no "close" event for a
+   long time, so the page keeps looking connected and the player sits there waiting
+   with no hint that anything is wrong. So: ping every PING_MS, and treat silence
+   longer than DEAD_MS as a dead link -- show the reconnect bar and close the socket,
+   which puts us on the normal reconnect path. This is purely the client judging its
+   own connection; the host closes nothing on its behalf. The host already answers
+   {t:"ping"} with {t:"pong"}, so no firmware change is involved. */
+var PING_MS = 2000, WARN_MS = 5000, DEAD_MS = 15000;
+var liveTimer = null, lastRx = 0, warned = false;
+
+function stopLiveness() {
+  if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+  warned = false;
+}
+
+function startLiveness() {
+  stopLiveness();
+  lastRx = Date.now();
+  liveTimer = setInterval(function () {
+    if (!A.ws || A.ws.readyState !== 1) return;
+    var quiet = Date.now() - lastRx;
+    // Two stages on purpose. Saying something at WARN_MS is free -- it only
+    // colours the dot and raises the bar, so a slow reply on a weak antenna
+    // costs nothing but a moment of honesty. Actually closing the socket is
+    // not free: the host drops the player on disconnect, and the reconnect
+    // comes back as a new one with no score, so that waits for DEAD_MS, by
+    // which point the link really is gone.
+    if (quiet > DEAD_MS) {
+      stopLiveness();
+      try { A.ws.close(); } catch (e) {}   // onclose -> scheduleReconnect()
+      return;
+    }
+    if (quiet > WARN_MS && !warned) {
+      warned = true;
+      setDot("warn");
+      if (A.view !== "landing") { $("netbar").textContent = t("net.quiet"); show("netbar"); }
+    } else if (quiet <= WARN_MS && warned) {
+      warned = false;                       // it answered again
+      setDot("");
+      hide("netbar");
+    }
+    try { A.ws.send(JSON.stringify({ t: "ping" })); } catch (e) {}
+  }, PING_MS);
+}
+
 function connect() {
   var ws = harnessSocket();
   if (!ws) {
@@ -384,6 +430,7 @@ function connect() {
 
   ws.onopen = function () {
     A.retry = 0;
+    startLiveness();
     hide("netbar");
     setDot("");           // connected
     // Auto (re)join only if we already have a nickname. A first-time visitor
@@ -393,11 +440,12 @@ function connect() {
 
   ws.onmessage = function (ev) {
     var m;
+    lastRx = Date.now();   // any frame proves the link is alive (see startLiveness)
     try { m = JSON.parse(ev.data); } catch (e) { return; }
     dispatch(m);
   };
 
-  ws.onclose = function () { scheduleReconnect(); };
+  ws.onclose = function () { stopLiveness(); scheduleReconnect(); };
   ws.onerror = function () { try { ws.close(); } catch (e) {} };
 }
 

@@ -719,6 +719,35 @@ function storeKey(name) {
 var h = new URLSearchParams(location.search).get("harness");
 return h ? name + "_" + h : name;
 }
+var PING_MS = 2000, WARN_MS = 5000, DEAD_MS = 15000;
+var liveTimer = null, lastRx = 0, warned = false;
+function stopLiveness() {
+if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+warned = false;
+}
+function startLiveness() {
+stopLiveness();
+lastRx = Date.now();
+liveTimer = setInterval(function () {
+if (!A.ws || A.ws.readyState !== 1) return;
+var quiet = Date.now() - lastRx;
+if (quiet > DEAD_MS) {
+stopLiveness();
+try { A.ws.close(); } catch (e) {}   // onclose -> scheduleReconnect()
+return;
+}
+if (quiet > WARN_MS && !warned) {
+warned = true;
+setDot("warn");
+if (A.view !== "landing") { $("netbar").textContent = t("net.quiet"); show("netbar"); }
+} else if (quiet <= WARN_MS && warned) {
+warned = false;                       // it answered again
+setDot("");
+hide("netbar");
+}
+try { A.ws.send(JSON.stringify({ t: "ping" })); } catch (e) {}
+}, PING_MS);
+}
 function connect() {
 var ws = harnessSocket();
 if (!ws) {
@@ -728,16 +757,18 @@ catch (e) { scheduleReconnect(); return; }
 A.ws = ws;
 ws.onopen = function () {
 A.retry = 0;
+startLiveness();
 hide("netbar");
 setDot("");           // connected
 if (A.joined) send({ t: "hello", nick: A.nick, avatar: A.avatar });
 };
 ws.onmessage = function (ev) {
 var m;
+lastRx = Date.now();   // any frame proves the link is alive (see startLiveness)
 try { m = JSON.parse(ev.data); } catch (e) { return; }
 dispatch(m);
 };
-ws.onclose = function () { scheduleReconnect(); };
+ws.onclose = function () { stopLiveness(); scheduleReconnect(); };
 ws.onerror = function () { try { ws.close(); } catch (e) {} };
 }
 function scheduleReconnect() {
@@ -1056,6 +1087,7 @@ en: {
 "id.save": "Save",
 "id.cancel": "Cancel",
 "net.reconnecting": "Reconnecting...",
+"net.quiet": "Connection lost?",
 "lobby.title": "Lobby",
 "lobby.waiting": "Waiting for the host to pick a game.",
 "lobby.chat": "Chat",
@@ -1225,6 +1257,7 @@ de: {
 "id.save": "Speichern",
 "id.cancel": "Abbrechen",
 "net.reconnecting": "Verbinde neu...",
+"net.quiet": "Verbindung weg?",
 "lobby.title": "Lobby",
 "lobby.waiting": "Warte, bis der Host ein Spiel wählt.",
 "lobby.chat": "Chat",
