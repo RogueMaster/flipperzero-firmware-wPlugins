@@ -11,9 +11,12 @@ deauth floods and evil-twin APs. The Flipper is the screen, GPS tagger, and
 logger; the ESP32 does the Wi-Fi sniffing its BLE-only radio can't. It's for
 security assessments, anti-surveillance awareness, and CTF/research.
 
-**Passive recon only.** It listens; it never transmits — no deauth, injection, or
-jamming. Detections are indicators, not proof: OUI-only matches are possible, not
-confirmed, so verify by eye. Use it only where you are authorized to.
+**Passive recon.** Flock / ALPR detection is listen-only — no deauth, injection, or
+jamming, ever. The single exception is explicit and user-initiated: for a tracker you
+have already selected and validated, you can send a Ping or a Ring. Nothing is
+transmitted unless you press it. Detections are indicators, not proof: OUI-only
+matches are possible, not confirmed, so verify by eye. Use it only where you are
+authorized to.
 
 Builds against Flipper API 87.1, shared by current stock OFW and
 [Momentum](https://github.com/Next-Flip/Momentum-Firmware).
@@ -42,6 +45,10 @@ Download `flipdeflock.fap` from the [latest release](../../releases/latest), cop
 it to `apps/Tools/` on your Flipper's SD card, and launch **FlipDeFlock** from the
 Tools menu. Every push also builds a fresh `.fap` as a CI artifact under the
 **Actions** tab.
+
+Releases also carry `SHA256SUMS.txt`. If you got your copy anywhere other than this
+repository's releases page, check it — `sha256sum -c SHA256SUMS.txt` — and see
+[TRADEMARK.md](TRADEMARK.md#verifying-an-official-build).
 
 If a newer firmware bumps the API and the app refuses to load ("API mismatch"),
 rebuild it with `ufbt` — see [Build from source](#build-from-source). Other common
@@ -104,11 +111,17 @@ firmware; in Marauder mode they explain what's missing.
   are plotted by bearing and distance, dot size is confidence, with a heading tick
   and a scale bar. Left/Right zoom, OK re-fits. Needs a GPS fix; ungeotagged
   cameras aren't plotted.
-- **BLE / Tracker Scan** *(companion)* — detects AirTag / Tile / SmartTag / Google
-  Find My trackers and Flock/Raven BLE. With GPS on, a tracker that stays with you
-  across several waypoints is flagged `!FOLLOWING` (anti-stalking); open it for the
-  track. Labels a **Flock Raven (audio sensor)** only when it sees the Raven's own
-  Bluetooth services — it never guesses "camera" by elimination.
+- **BLE / Tracker Scan** *(companion)* — detects validated AirTag / Tile / SmartTag /
+  Google Find My trackers and Flock/Raven BLE. Apple Find My status bytes keep
+  phones, Macs, and AirPods out of the tracker list, and weak tracker adverts are
+  ignored. With GPS on, a tracker that stays with you across several waypoints is
+  flagged `!FOLLOWING` (anti-stalking); open it for the track. `SEP state` is an
+  advertisement state marker, not proof of ownership or stalking. Labels a
+  **Flock Raven (audio sensor)** only when it sees the Raven's own Bluetooth
+  services — it never guesses "camera" by elimination. On a validated tracker you
+  can also send **Ping** (a one-shot reachability check) or **Ring** (a non-owner
+  sound request, Apple/Find My only) — the only actions in the app that transmit,
+  and only when you press them.
 - **Net Guardian** *(companion)* — a leave-it-on-the-desk watch face. Keeps the ESP
   running and rotates it across Wi-Fi and BLE so the fused **CLEAR / WATCHFUL /
   ELEVATED** "am I being watched?" score stays live, with a pwnagotchi-style face
@@ -240,6 +253,21 @@ indicators and verify by eye; if you rely on it for anything that matters, read
 the code and confirm the behavior yourself.
 
 ## What's new
+
+**v0.69** - **A tagged device no longer un-tags itself on Back.** Marking a device
+sent it to the Locator, but the mark was cleared one keypress later, so the Locator
+had nothing to home on. Adds explicit **Ping** and **Ring** actions for a validated
+tracker, and `SHA256SUMS.txt` on every release so an official build can be verified.
+
+**v0.68** - **The Locator now gives a usable closer/farther reading.** It showed the
+last raw RSSI sample, which swings too hard to follow; it shows the smoothed level
+now, with retuned smoothing and a wider companion sampling window to suit how rarely
+a channel-hopping target is heard.
+
+**v0.67** - **A bare OUI match is no longer a detection.** The list is mostly shared
+silicon-vendor prefixes, and Flock cameras stopped acting as access points around
+December 2025, so an OUI hit on a beacon was never evidence of a camera. Also adds
+the missing OUI `f8:a2:d6`.
 
 **v0.66** - **"Evil twin" now requires a security downgrade**, not just any auth-mode
 difference. The old rule fired on WPA2/WPA3 transition mode, i.e. ordinary modern
@@ -470,8 +498,7 @@ were and weren't imported, and why, is recorded in
 
 ## License
 
-**GPL-3.0-or-later** — see [LICENSE](LICENSE). Copyright (c) 2026 ReconGrunt and
-FlipDeFlock contributors.
+**GPL-3.0-or-later** — see [LICENSE](LICENSE). Copyright (c) 2026 ReconGrunt.
 
 If you distribute a modified version, publish your source under the same terms and
 keep the notices intact. Bundled third-party components keep their own compatible
@@ -483,7 +510,12 @@ the ESP MD5 routine (BSD) — see the headers under `lib/`.
 licensed code. Don't publish a fork, repackage, or store listing under the
 FlipDeFlock name or logo in a way that implies it's official. Rename your
 derivative — a "based on FlipDeFlock" credit is welcome. Forking on GitHub keeps
-the link and credit intact.
+the link and credit intact. Full policy, including how to verify an official
+build: [TRADEMARK.md](TRADEMARK.md).
+
+**Commercial licensing.** FlipDeFlock is and stays free under the GPL. If you want
+to ship it inside a closed product and can't meet the GPL's source obligations, a
+separate commercial licence is available — see [LICENSING.md](LICENSING.md).
 
 ## Contributing
 

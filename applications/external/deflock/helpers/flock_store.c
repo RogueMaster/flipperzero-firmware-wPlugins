@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #include "flock_store.h"
 #include "report_escape.h" // csv_field_escape (the write direction)
 #include "report_fmt.h" // fmt_mac / fmt_coord

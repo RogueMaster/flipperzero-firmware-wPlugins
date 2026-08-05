@@ -40,7 +40,7 @@
  *
  *       All three trailing key=value fields are optional and order-independent.
  *       Add one and you must also grow the field array in esp_parser.c.
- *   BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1]   BLE device
+ *   BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1][,sep=1]   BLE device
  *       cat   : 0 unknown 1 Flock/Raven 2 AirTag 3 Tile 4 SmartTag 5 FMDN
  *       mfghex: raw mfg-data hex (Flock 0x09C8 only) for serial decode; pure
  *               hex, no '='. Trailing, older parsers ignore.
@@ -48,6 +48,9 @@
  *               0x3500) -> positive acoustic-sensor (Raven) identification.
  *               Trailing, contains '=' so it's distinguishable from mfghex;
  *               only emitted when matched, older parsers ignore.
+ *       sep=1 : an Apple Find My tracker advertised its separated-state payload.
+ *               This is a protocol state marker, not proof of ownership or
+ *               stalking; older parsers ignore it.
  *   DA,<bssid>,<ch>                        deauth/disassoc attack target (attributed)
  *   ATK,<kind>,<value>                     active attack-tool signature
  *       kind : probeflood  (abnormal probe-request rate)
@@ -56,6 +59,8 @@
  *       value: the count/rate measured. New line; older app builds ignore it.
  *   LOC,<rssi>                             Locator: live RSSI of the active target
  *                                          (signed dBm), streamed while homing.
+ *   ACT,<op>,<status>[,<rssi>]              explicit tracker action result
+ *       op: PING (one-shot GATT reachability) or RING (non-owner sound request)
  *   BAND,<2g|5g|all>,<channels>            ACK for the `band` command: the band
  *                                          actually in force and how many
  *                                          channels the sweep now covers. On a
@@ -72,6 +77,10 @@
  *   locate <w|b> <mac> [ch]  stream LOC for a target (w=Wi-Fi, b=BLE; mac is
  *                            aabbccddeeff). "locate off" (or any other command)
  *                            ends Locator mode.
+ *   ble_ping <mac>            one-shot active GATT reachability check for a
+ *                            validated tracker; replies ACT,PING,...
+ *   ble_ring <mac>            separated-state non-owner sound request for an
+ *                            Apple/Find My tracker; replies ACT,RING,...
  */
 
 #include <Arduino.h>
@@ -86,8 +95,13 @@
 #include <BLEDevice.h>
 #include <BLEScan.h>
 #include <BLEAdvertisedDevice.h>
+#include <BLEClient.h>
+#include <BLERemoteService.h>
+#include <BLERemoteCharacteristic.h>
 
 #include <string>
+
+#include "tracker_rules.h"
 
 /* ---- Arduino-ESP32 core 2.x / 3.x compatibility ---------------------------
  *
@@ -164,7 +178,7 @@ static const uint8_t FLOCK_OUIS[][3] = {
     {0x70, 0xc9, 0x4e}, {0x3c, 0x91, 0x80}, {0xd8, 0xf3, 0xbc}, {0x80, 0x30, 0x49},
     {0xb8, 0x35, 0x32}, {0x14, 0x5a, 0xfc}, {0x74, 0x4c, 0xa1}, {0x08, 0x3a, 0x88},
     {0x9c, 0x2f, 0x9d}, {0xc0, 0x35, 0x32}, {0x94, 0x08, 0x53}, {0xe4, 0xaa, 0xea},
-    {0xf4, 0x6a, 0xdd}, {0x24, 0xb2, 0xb9}, {0x00, 0xf4, 0x8d}, {0xd0, 0x39, 0x57},
+    {0xf4, 0x6a, 0xdd}, {0xf8, 0xa2, 0xd6}, {0x24, 0xb2, 0xb9}, {0x00, 0xf4, 0x8d}, {0xd0, 0x39, 0x57},
     {0xe8, 0xd0, 0xfc}, {0xe0, 0x4f, 0x43}, {0xb8, 0x1e, 0xa4}, {0x70, 0x08, 0x94},
     {0x58, 0x8e, 0x81}, {0xec, 0x1b, 0xbd}, {0x3c, 0x71, 0xbf}, {0x58, 0x00, 0xe3},
     {0x90, 0x35, 0xea}, {0x5c, 0x93, 0xa2}, {0x64, 0x6e, 0x69}, {0x48, 0x27, 0xea},
@@ -723,8 +737,27 @@ static void promisc_cb(void* buf, wifi_promiscuous_pkt_type_t type) {
         conf = 2; // OUI (sender or silent receiver) + probe behaviour
     else if(s_score == 2)
         conf = 2;
-    else if(oui_tx || oui_rx)
-        conf = 1; // OUI prefix only
+    // NO conf=1 FOR A BARE OUI MATCH ANY MORE.
+    //
+    // A Flock camera is not an access point. Flock's management AP was
+    // deactivated around December 2025 and the cameras moved to station mode --
+    // they now emit wildcard PROBE REQUESTS roughly every 125 ms and do not
+    // beacon (see the upstream flock-you research this OUI list comes from).
+    // So an OUI hit on a BEACON is, by construction, not a camera. It is some
+    // other product built on the same silicon.
+    //
+    // And this list is mostly shared silicon-vendor ranges -- Espressif, Liteon
+    // and friends -- so "beacons, and has one of these OUIs" describes an
+    // enormous number of ordinary consumer devices. It reported a T-Mobile
+    // gateway (SSID "tmobile-5416") as a possible ALPR camera, which is exactly
+    // the failure this project says it will not accept: a false positive is
+    // worse than a missed detection.
+    //
+    // Nothing real is lost. Anything that IS a camera still reaches conf=2 via
+    // the probe-request branches above, and conf=3 via an SSID name or IE
+    // fingerprint. The only sightings dropped are OUI-only ones with no probe
+    // behaviour and no name -- which is precisely the set that cannot be
+    // distinguished from an unrelated device sharing a chip vendor.
 
     if(conf == 0) return; // not a candidate; drop to keep UART quiet
 
@@ -873,13 +906,15 @@ static void wifi_security_scan() {
 // One-shot BLE scan for the anti-tracker / BLE-Flock feature. Stops WiFi to free
 // the radio, active-scans a few seconds, classifies each device, then restores
 // WiFi/Flock mode.
-//   BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1]
+//   BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1][,sep=1]
 //   cat: 0 unknown  1 Flock/Raven  2 AirTag/FindMy  3 Tile  4 SmartTag
 //   mfghex: raw manufacturer-specific data as hex (Flock 0x09C8 only), so the
 //   Flipper can decode the device serial; trailing field, older parsers ignore.
 //   rv=1: device exposed a Raven-specific GATT service (0x3100-0x3500) -> a
 //   positive Raven (acoustic sensor) ID. Emitted AFTER mfghex when both apply;
 //   contains '=' so the Flipper tells it apart from mfghex. Older parsers ignore.
+//   sep=1: Apple Find My tracker was in separated-state payload form. This is
+//   an indicator only; the app still requires repeated sightings over distance.
 static void ble_ensure_init() {
     if(g_ble_inited) return;
     BLEDevice::init("");
@@ -893,7 +928,9 @@ static void ble_ensure_init() {
 // Serialised BLE scan: toggles WiFi promiscuous OFF for the scan, then back ON
 // (BLE stays resident). Classifies Flock/Raven by mfg id 0x09C8, device name
 // (Penguin* / FS Ext Battery), Raven custom service UUIDs (0x3100-0x3500), or a
-// Flock OUI on the BLE address; plus AirTag/Tile/SmartTag. Emits BBEGIN/BLE/BEND.
+// Flock OUI on the BLE address; plus validated AirTag/Tile/SmartTag. Emits
+// BBEGIN/BLE/BEND. Weak tracker adverts below BLE_TRACKER_MIN_RSSI are omitted:
+// they are not useful evidence that a tag is travelling with the operator.
 static void ble_do_scan(int seconds) {
     ble_ensure_init();
     esp_wifi_set_promiscuous(false);
@@ -935,6 +972,8 @@ static void ble_do_scan(int seconds) {
 
         int company = -1;
         int cat = 0;
+        int rssi = d.getRSSI();
+        bool tracker_separated = false;
         // raven: set when this device exposes a Raven-specific GATT service
         // (0x3100-0x3500). Tracked separately from cat because cat=1 also covers
         // the shared battery / Penguin / OUI cases -- only the GATT match is a
@@ -943,10 +982,17 @@ static void ble_do_scan(int seconds) {
         if(d.haveManufacturerData()) {
             std::string md = fstr(d.getManufacturerData());
             if(md.length() >= 2) company = (uint8_t)md[0] | ((uint8_t)md[1] << 8);
-            if(company == 0x09C8)
+            if(company == 0x09C8) {
                 cat = 1; // Flock Safety / Raven
-            else if(company == 0x004C && md.length() >= 3 && (uint8_t)md[2] == 0x12)
-                cat = 2; // Apple Find My / AirTag
+            } else if(company == APPLE_FIND_MY_COMPANY_ID) {
+                AppleFindMyAdvert advert;
+                if(apple_find_my_decode(
+                       (const uint8_t*)md.data(), md.size(), &advert) &&
+                   apple_find_my_is_tracker(&advert)) {
+                    cat = BLE_TRACKER_CAT_AIRTAG; // AirTag / licensed Find My accessory
+                    tracker_separated = advert.separated;
+                }
+            }
         }
         if(cat != 1 && d.haveName()) {
             std::string nm = fstr(d.getName());
@@ -967,6 +1013,9 @@ static void ble_do_scan(int seconds) {
                 cat = 4; // Samsung SmartTag
             else if(cat == 0 && u.find("feaa") != std::string::npos)
                 cat = 5; // Google Find My Device network (Pebblebee/Chipolo/Moto/Eufy)
+            else if(cat == 0 &&
+                    (u.find("fd44") != std::string::npos || u.find("fcb2") != std::string::npos))
+                cat = BLE_TRACKER_CAT_AIRTAG; // Apple/DULT Find My accessory service
         }
         if(cat == 0) {
             BLEAddress ba = d.getAddress();
@@ -977,7 +1026,15 @@ static void ble_do_scan(int seconds) {
         // Apple/Tile/Samsung/Google pairing adverts are what BLE-spam tools
         // (Flipper "BLE spam", ESP32 sour-apple, etc.) impersonate in bulk. A few
         // are normal; a flood of them in one scan is the spam signature.
-        if(cat == 2 || cat == 3 || cat == 4 || cat == 5) spam++;
+        if(ble_tracker_category_is_known((uint8_t)cat)) spam++;
+
+        // A distant tracker is still a BLE observation, but it cannot support
+        // the anti-stalking inference. Do not send it across the wire where it
+        // would consume a table slot or help a device clear the following gate.
+        if(ble_tracker_category_is_known((uint8_t)cat) &&
+           !ble_tracker_rssi_is_usable((int8_t)rssi)) {
+            continue;
+        }
 
         std::string a = fstr(d.getAddress().toString());
         char addr[13];
@@ -991,7 +1048,7 @@ static void ble_do_scan(int seconds) {
         // BLE line is emitted atomically.
         char line[176];
         size_t pos =
-            snprintf(line, sizeof(line), "BLE,%s,%d,%d,%d,", addr, d.getRSSI(), cat, company);
+            snprintf(line, sizeof(line), "BLE,%s,%d,%d,%d,", addr, rssi, cat, company);
         if(d.haveName()) {
             std::string nm = fstr(d.getName());
             buf_append_escaped(line, sizeof(line), &pos, nm.c_str(), (int)nm.size(), 32);
@@ -1011,6 +1068,10 @@ static void ble_do_scan(int seconds) {
         if(raven && pos + 5 < sizeof(line)) {
             memcpy(line + pos, ",rv=1", 5);
             pos += 5;
+        }
+        if(tracker_separated && pos + 6 < sizeof(line)) {
+            memcpy(line + pos, ",sep=1", 6);
+            pos += 6;
         }
         if(pos > sizeof(line) - 1) pos = sizeof(line) - 1;
         line[pos++] = '\n';
@@ -1054,6 +1115,276 @@ static void ble_locate_scan() {
     }
     g_ble->clearResults();
     if(best > -127) Serial.printf("LOC,%d\n", best);
+}
+
+// ---- explicit tracker actions -------------------------------------------
+//
+// These are deliberately separate from the passive scan path. The Flipper can
+// request them only from the selected BLE detail view, and the companion
+// re-validates the fresh advertisement before it connects. Ring is limited to
+// an Apple/Find My tracker advertising the separated payload: that is the
+// non-owner anti-stalking path, not the owner-only Find My control path.
+#define DULT_NON_OWNER_SERVICE "15190001-12f4-c226-88ed-2ac5579f2a85"
+#define DULT_NON_OWNER_CHAR    "8e0c0001-1d68-fb92-bf61-48377421680e"
+#define FIND_MY_SERVICE        "fd44"
+#define FIND_MY_NON_OWNER_CHAR "4f860003-943b-49ef-bed4-2f730304427a"
+#define AIRTAG_SOUND_SERVICE   "7dfc9000-7d1c-4951-86aa-8d9728f8d66c"
+#define AIRTAG_SOUND_CHAR      "7dfc9001-7d1c-4951-86aa-8d9728f8d66c"
+
+static volatile bool g_ring_response_ready = false;
+static volatile uint16_t g_ring_response_status = 0xFFFF;
+
+static void ble_action_emit(const char* op, const char* status, int rssi, bool have_rssi) {
+    if(have_rssi)
+        Serial.printf("ACT,%s,%s,%d\n", op, status, rssi);
+    else
+        Serial.printf("ACT,%s,%s\n", op, status);
+}
+
+static void ble_action_restore_radio() {
+    g_ble->clearResults();
+    esp_wifi_set_promiscuous(true);
+    set_channel(g_channel);
+}
+
+static void ble_action_compact_address(BLEAdvertisedDevice& d, char out[13]) {
+    std::string a = fstr(d.getAddress().toString());
+    int k = 0;
+    for(size_t i = 0; i < a.size() && k < 12; i++) {
+        char c = a[i];
+        if(c == ':') continue;
+        out[k++] = (c >= 'A' && c <= 'F') ? (char)(c + 32) : c;
+    }
+    out[k] = 0;
+}
+
+static bool ble_action_has_service(BLEAdvertisedDevice& d, const char* token) {
+    for(int i = 0; i < d.getServiceUUIDCount(); i++) {
+        std::string u = fstr(d.getServiceUUID(i).toString());
+        if(u.find(token) != std::string::npos) return true;
+    }
+    return false;
+}
+
+/** Classify only the tracker families for which an explicit action is allowed. */
+static int ble_action_tracker_category(BLEAdvertisedDevice& d, bool* separated) {
+    if(separated) *separated = false;
+    bool apple_payload_seen = false;
+
+    if(d.haveManufacturerData()) {
+        std::string md = fstr(d.getManufacturerData());
+        int company = md.length() >= 2 ? ((uint8_t)md[0] | ((uint8_t)md[1] << 8)) : -1;
+        if(company == APPLE_FIND_MY_COMPANY_ID) {
+            apple_payload_seen = true;
+            AppleFindMyAdvert advert;
+            if(apple_find_my_decode(
+                   (const uint8_t*)md.data(), md.size(), &advert) &&
+               apple_find_my_is_tracker(&advert)) {
+                if(separated) *separated = advert.separated;
+                return BLE_TRACKER_CAT_AIRTAG;
+            }
+        }
+    }
+
+    // A valid Apple manufacturer block that decoded as a phone, Mac, or
+    // AirPods must not be rescued by a broad service-UUID fallback.
+    if(apple_payload_seen) return 0;
+
+    if(d.haveServiceUUID()) {
+        if(ble_action_has_service(d, "fd44") || ble_action_has_service(d, "fcb2") ||
+           ble_action_has_service(d, "15190001"))
+            return BLE_TRACKER_CAT_AIRTAG;
+        if(ble_action_has_service(d, "feed") || ble_action_has_service(d, "feec"))
+            return BLE_TRACKER_CAT_TILE;
+        if(ble_action_has_service(d, "fd5a")) return BLE_TRACKER_CAT_SMARTTAG;
+        if(ble_action_has_service(d, "feaa")) return BLE_TRACKER_CAT_FIND_MY_DEV;
+    }
+    return 0;
+}
+
+/** Scan once and keep the exact advertisement object so random-address type is retained. */
+static bool ble_action_find_target(
+    const char* wanted,
+    BLEAdvertisedDevice* target,
+    int* category,
+    bool* separated,
+    int* rssi) {
+    BLEScanResults found = FLOCK_SCAN(g_ble, 1);
+    bool have = false;
+    int best = -127;
+    int n = found.getCount();
+    for(int i = 0; i < n; i++) {
+        BLEAdvertisedDevice d = found.getDevice(i);
+        char addr[13];
+        ble_action_compact_address(d, addr);
+        if(strcmp(addr, wanted) != 0) continue;
+        int signal = d.getRSSI();
+        if(!have || signal > best) {
+            *target = d;
+            *category = ble_action_tracker_category(d, separated);
+            best = signal;
+            have = true;
+        }
+    }
+    if(rssi) *rssi = best;
+    return have;
+}
+
+static BLEClient* ble_action_connect(BLEAdvertisedDevice* target) {
+    BLEClient* client = BLEDevice::createClient();
+    if(!client || !client->connect(target)) {
+        if(client) delete client;
+        return nullptr;
+    }
+    return client;
+}
+
+static void ble_ring_notify(
+    BLERemoteCharacteristic* /*characteristic*/,
+    uint8_t* data,
+    size_t length,
+    bool /*isNotify*/) {
+    // Command_Response: opcode 0x0302, then the command opcode and a uint16
+    // response status, all little-endian per the non-owner protocol.
+    if(length < 6) return;
+    uint16_t response_opcode = (uint16_t)data[0] | ((uint16_t)data[1] << 8);
+    uint16_t command_opcode = (uint16_t)data[2] | ((uint16_t)data[3] << 8);
+    if(response_opcode == 0x0302 && command_opcode == 0x0300) {
+        g_ring_response_status = (uint16_t)data[4] | ((uint16_t)data[5] << 8);
+        g_ring_response_ready = true;
+    }
+}
+
+static bool ble_ring_write_airtag(BLEClient* client, char status[16]) {
+    BLERemoteService* service = client->getService(AIRTAG_SOUND_SERVICE);
+    if(!service) return false;
+    BLERemoteCharacteristic* characteristic = service->getCharacteristic(AIRTAG_SOUND_CHAR);
+    if(!characteristic || (!characteristic->canWrite() && !characteristic->canWriteNoResponse()))
+        return false;
+    uint8_t command = 0xAF;
+    characteristic->writeValue(&command, 1, true);
+    snprintf(status, 16, "sent");
+    return true;
+}
+
+static bool ble_ring_write_dult(BLERemoteService* service, char status[16]) {
+    if(!service) return false;
+    BLERemoteCharacteristic* characteristic = service->getCharacteristic(DULT_NON_OWNER_CHAR);
+    if(!characteristic || (!characteristic->canWrite() && !characteristic->canWriteNoResponse()))
+        return false;
+
+    g_ring_response_ready = false;
+    g_ring_response_status = 0xFFFF;
+    if(characteristic->canIndicate() || characteristic->canNotify()) {
+        // The DULT control point uses indications. The Arduino BLE API's first
+        // boolean selects notifications, so false selects the indication CCCD.
+        characteristic->registerForNotify(ble_ring_notify, !characteristic->canIndicate());
+    }
+    uint8_t command[] = {0x00, 0x03}; // Sound_Start 0x0300, little-endian
+    characteristic->writeValue(command, sizeof(command), true);
+
+    uint32_t deadline = millis() + 500;
+    while(!g_ring_response_ready && (int32_t)(millis() - deadline) < 0) delay(10);
+    if(!g_ring_response_ready) {
+        snprintf(status, 16, "sent");
+    } else if(g_ring_response_status == 0x0000) {
+        snprintf(status, 16, "ok");
+    } else if(g_ring_response_status == 0x0001) {
+        snprintf(status, 16, "busy");
+    } else {
+        // 0xFFFF is the documented invalid-command response, which also covers
+        // the owner-nearby case described by the Find My behavior.
+        snprintf(status, 16, "rejected");
+    }
+    return true;
+}
+
+static bool ble_ring_write_legacy(BLEClient* client, char status[16]) {
+    BLERemoteService* service = client->getService(FIND_MY_SERVICE);
+    if(!service) return false;
+    BLERemoteCharacteristic* characteristic = service->getCharacteristic(FIND_MY_NON_OWNER_CHAR);
+    if(!characteristic || (!characteristic->canWrite() && !characteristic->canWriteNoResponse()))
+        return false;
+    uint8_t command[] = {0x01, 0x00, 0x03};
+    characteristic->writeValue(command, sizeof(command), true);
+    snprintf(status, 16, "sent");
+    return true;
+}
+
+static void ble_action_ping(const char* wanted) {
+    ble_ensure_init();
+    esp_wifi_set_promiscuous(false);
+
+    BLEAdvertisedDevice target;
+    int category = 0;
+    bool separated = false;
+    int rssi = -127;
+    if(!ble_action_find_target(wanted, &target, &category, &separated, &rssi)) {
+        ble_action_emit("PING", "not_found", rssi, false);
+        ble_action_restore_radio();
+        return;
+    }
+    if(!ble_tracker_category_is_known((uint8_t)category)) {
+        ble_action_emit("PING", "not_tracker", rssi, true);
+        ble_action_restore_radio();
+        return;
+    }
+
+    BLEClient* client = ble_action_connect(&target);
+    if(!client) {
+        ble_action_emit("PING", "connect_fail", rssi, true);
+        ble_action_restore_radio();
+        return;
+    }
+    client->disconnect();
+    delete client;
+    ble_action_emit("PING", "ok", rssi, true);
+    ble_action_restore_radio();
+}
+
+static void ble_action_ring(const char* wanted) {
+    ble_ensure_init();
+    esp_wifi_set_promiscuous(false);
+
+    BLEAdvertisedDevice target;
+    int category = 0;
+    bool separated = false;
+    int rssi = -127;
+    if(!ble_action_find_target(wanted, &target, &category, &separated, &rssi)) {
+        ble_action_emit("RING", "not_found", rssi, false);
+        ble_action_restore_radio();
+        return;
+    }
+    if(category != BLE_TRACKER_CAT_AIRTAG) {
+        ble_action_emit("RING", "unsupported", rssi, true);
+        ble_action_restore_radio();
+        return;
+    }
+    if(!separated) {
+        ble_action_emit("RING", "not_separated", rssi, true);
+        ble_action_restore_radio();
+        return;
+    }
+
+    BLEClient* client = ble_action_connect(&target);
+    if(!client) {
+        ble_action_emit("RING", "connect_fail", rssi, true);
+        ble_action_restore_radio();
+        return;
+    }
+
+    char status[16] = "unsupported";
+    bool wrote = ble_ring_write_airtag(client, status);
+    if(!wrote) wrote = ble_ring_write_dult(client->getService(DULT_NON_OWNER_SERVICE), status);
+    if(!wrote) {
+        // Some Find My accessories expose the older FD44 control point rather
+        // than the DULT UUID. It is still a non-owner command, never owner auth.
+        wrote = ble_ring_write_legacy(client, status);
+    }
+    client->disconnect();
+    delete client;
+    ble_action_emit("RING", wrote ? status : "service_missing", rssi, true);
+    ble_action_restore_radio();
 }
 
 // ---- optional GPS relay (FlipDeFlock issue #5) ---------------------------
@@ -1382,6 +1713,24 @@ static void handle_command(String cmd) {
         wifi_security_scan();
     } else if(cmd == "blescan") {
         ble_do_scan(6);
+    } else if(cmd.startsWith("ble_ping ")) {
+        String a = cmd.substring(9);
+        a.trim();
+        uint8_t mac[6];
+        if(a.length() == 12 && parse_hexmac(a.c_str(), mac)) {
+            ble_action_ping(a.c_str());
+        } else {
+            ble_action_emit("PING", "invalid", -127, false);
+        }
+    } else if(cmd.startsWith("ble_ring ")) {
+        String a = cmd.substring(9);
+        a.trim();
+        uint8_t mac[6];
+        if(a.length() == 12 && parse_hexmac(a.c_str(), mac)) {
+            ble_action_ring(a.c_str());
+        } else {
+            ble_action_emit("RING", "invalid", -127, false);
+        }
     } else if(cmd == "flockcombo") {
         g_scanning = true;
         g_combo = true; // interleaved WiFi + BLE Flock detection
@@ -1499,7 +1848,20 @@ void loop() {
 
     // Locator mode owns the radio: stream the target's live RSSI as LOC lines.
     if(g_locate_kind == 'w') {
-        if(now - g_last_loc >= 120) {
+        // 400 ms, not 120.
+        //
+        // The main target is a Flock camera, and those are station-mode devices
+        // that sweep the channels with probe requests. We sit on ONE channel, so
+        // the target lands on us roughly once every 1.6 s. Against that, a 120 ms
+        // window that hard-resets its peak spends about 92% of its life expiring
+        // empty, and the readings that do survive are single raw frames.
+        //
+        // A longer window does not invent data -- the same frames arrive either
+        // way. It stops discarding the peak between them, so a reading that was
+        // captured actually reaches the operator instead of being thrown away
+        // 120 ms later. Still silent when genuinely nothing was heard, which is
+        // what makes "out of range" mean something.
+        if(now - g_last_loc >= 400) {
             g_last_loc = now;
             if(g_locate_best > -127) {
                 Serial.printf("LOC,%d\n", g_locate_best);

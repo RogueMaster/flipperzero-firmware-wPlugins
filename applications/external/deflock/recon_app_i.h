@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #pragma once
 
 #include <furi.h>
@@ -51,6 +51,15 @@ typedef enum {
         5, /**< Google Find My Device network (0xFEAA): Pebblebee/Chipolo/Moto/Eufy */
     BleCatFlipper = 6, /**< Flipper Zero (recon multitool): advertised name "Flipper <name>" */
 } BleCat;
+
+/** Explicit, user-triggered actions for a validated BLE tracker. */
+typedef enum {
+    BleActionNone = 0,
+    BleActionPing,
+    BleActionRing,
+} BleActionKind;
+
+#define RECON_BLE_ACTION_STATUS_LEN 24
 
 #define RECON_APP_FOLDER    EXT_PATH("apps_data/flipdeflock")
 #define RECON_REPORT_FOLDER RECON_APP_FOLDER "/reports"
@@ -242,6 +251,7 @@ typedef struct {
     uint8_t inrange_wp_count; /**< distinct observer waypoints (>=50 m apart) seen at */
     bool following; /**< multi-condition anti-stalking signal (latched) */
     bool marked; /**< user-tagged for the report */
+    bool tracker_separated; /**< Find My tracker advert reported separated state */
     uint16_t company; /**< BLE company id, 0xFFFF if none */
     uint32_t count; /**< times seen across rescans */
     float first_lat; /**< GPS at first sighting (NAN if none) */
@@ -397,6 +407,15 @@ typedef struct {
     bool ble_scanning;
     bool ble_done;
     int ble_selected;
+    uint8_t ble_action_kind; /**< BleActionKind currently shown in the detail view */
+    bool ble_action_pending; /**< companion is processing the explicit action */
+    bool ble_action_done; /**< a companion result or local rejection is available */
+    bool ble_action_have_rssi;
+    int8_t ble_action_rssi;
+    uint32_t ble_action_tick; /**< timeout clock for the in-flight action */
+    uint32_t ble_action_seq; /**< changes whenever the action status changes */
+    uint32_t ble_action_render_seq; /**< GUI-side rendered sequence */
+    char ble_action_status[RECON_BLE_ACTION_STATUS_LEN];
 
     WatchScore watch; /**< fused "am I being watched?" scorer (C1) */
     uint32_t guardian_since; /**< tick the Net Guardian session started (uptime) */
@@ -549,8 +568,20 @@ void recon_app_ble_add(
     uint16_t company,
     const uint8_t* mfg, /**< raw mfg-data bytes (Flock 0x09C8), NULL if none */
     size_t mfg_len,
-    bool raven_gatt); /**< companion saw Raven-specific GATT services (0x3100-0x3500) */
+    bool raven_gatt, /**< companion saw Raven-specific GATT services (0x3100-0x3500) */
+    bool tracker_separated); /**< Find My advert was in separated state */
 void recon_app_ble_end(ReconApp* app);
+
+/** Start an explicit tracker action; called only from a GUI button handler. */
+void recon_app_ble_action_begin(ReconApp* app, BleActionKind kind);
+
+/** Record a companion action result (ACT line), or a local rejection. */
+void recon_app_set_ble_action(
+    ReconApp* app,
+    BleActionKind kind,
+    const char* status,
+    bool have_rssi,
+    int8_t rssi);
 
 /** WiFi security scan results (thread-safe; called from the ESP worker). */
 void recon_app_wifi_begin(ReconApp* app);

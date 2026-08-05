@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #include "esp_parser.h"
 
 #include <stdlib.h>
@@ -152,15 +152,20 @@ static EspMsgType parse_ble(char** f, int n, EspMsg* out) {
     if(strlen(f[1]) < 12 || !parse_mac_compact(f[1], addr)) return EspMsgIgnore;
 
     // Walk the trailing fields after <name> (f[6..n]). Each is either the raw
-    // mfg-data hex (Flock 0x09C8) or the rv=1 Raven-GATT flag; distinguish by the
-    // presence of '=': rv=1 has one, mfghex (pure hex) never does.
+    // mfg-data hex (Flock 0x09C8), the rv=1 Raven-GATT flag, or sep=1 for an
+    // Apple Find My tracker in separated state. Distinguish key=value trailers
+    // from mfghex by the presence of '='.
     uint8_t mfg[32];
     size_t mfg_len = 0;
     bool raven_gatt = false;
+    bool tracker_separated = false;
     for(int fi = 6; fi < n; fi++) {
         const char* t = f[fi];
         if(strchr(t, '=')) {
-            if(strcmp(t, "rv=1") == 0) raven_gatt = true;
+            if(strcmp(t, "rv=1") == 0)
+                raven_gatt = true;
+            else if(strcmp(t, "sep=1") == 0)
+                tracker_separated = true;
         } else if(mfg_len == 0) {
             for(size_t i = 0; mfg_len < sizeof(mfg); i += 2) {
                 int hi = esp_hexval(t[i]);
@@ -180,6 +185,7 @@ static EspMsgType parse_ble(char** f, int n, EspMsg* out) {
     memcpy(out->u.ble.mfg, mfg, mfg_len);
     out->u.ble.mfg_len = mfg_len;
     out->u.ble.raven_gatt = raven_gatt;
+    out->u.ble.tracker_separated = tracker_separated;
     return EspMsgBleDev;
 }
 
@@ -231,6 +237,20 @@ EspMsgType esp_parse_companion_line(char* line, EspMsg* out) {
         // LOC,<rssi>[,<mac>]  live signal strength for the active Locator target.
         out->u.locate.rssi = (int8_t)atoi(line + 4);
         out->type = EspMsgLocate;
+        return out->type;
+    }
+    if(strncmp(line, "ACT,", 4) == 0) {
+        // ACT,<op>,<status>[,<rssi>]  result of an explicit tracker action.
+        // Status is intentionally a bounded token: it is displayed on the
+        // Flipper but never treated as a command or a confidence signal.
+        char* f[5];
+        int n = esp_split_fields(line, f, 5);
+        if(n < 3 || f[1][0] == '\0' || f[2][0] == '\0') return EspMsgIgnore;
+        out->u.action.op = f[1];
+        out->u.action.status = f[2];
+        out->u.action.have_rssi = n >= 4 && f[3][0] != '\0';
+        out->u.action.rssi = out->u.action.have_rssi ? (int8_t)atoi(f[3]) : 0;
+        out->type = EspMsgAction;
         return out->type;
     }
     // G,<nmea>  one sentence relayed from a GPS wired to the ESP board. Passed
@@ -305,11 +325,12 @@ EspMsgType esp_parse_companion_line(char* line, EspMsg* out) {
         return out->type;
     }
     if(strncmp(line, "BLE,", 4) == 0) {
-        // BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1]. 8 slots hold
-        // the 6 base fields plus both optional trailers (either order, either
-        // absent), so neither trailer gets folded back into <name>.
-        char* f[8];
-        int n = esp_split_fields(line, f, 8);
+        // BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1][,sep=1].
+        // 9 slots hold the 6 base fields plus all three optional trailers
+        // (either order, either absent), so no trailer gets folded back into
+        // <name>.
+        char* f[9];
+        int n = esp_split_fields(line, f, 9);
         return (out->type = parse_ble(f, n, out));
     }
     if(line[0] == 'W' && line[1] == ',') {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 //
 // Tests for the pure detection rules extracted from recon_app.c (R3): geotag
 // hysteresis, the anti-stalking waypoint/span track, and the "following" AND-gate.

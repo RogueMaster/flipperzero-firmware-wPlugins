@@ -1,5 +1,96 @@
 # Changelog
 
+## v0.69
+**Marking a device sent it to the Locator, and the Locator had nothing to home
+on.** The tag was being thrown away one keypress after it was made.
+
+### Fixed
+
+- **A tagged device survives a Back press.** The BLE screen cleared its whole
+  table in `on_enter`, and scene re-entry re-runs `on_enter` -- which is exactly
+  what a plain Back from the detail screen does. So tagging a device and stepping
+  back reset the table before the mark was visible to anything else. The Locator
+  reads that table, so it never saw a tag, because making one always costs a Back
+  press. It now clears only on a genuinely fresh scan session, the same signal the
+  Flock, Flock Map and Guardian screens already gated on. Same root cause as the
+  Net Guardian data loss in issue #5.
+
+### Added
+
+- **Ping and Ring for a validated tracker.** On a tracker you have already
+  selected, **Ping** does a one-shot reachability check and **Ring** asks an
+  Apple/Find My tag in separated state to make a sound. These are the only
+  actions in the app that transmit, they are explicit, and nothing goes out
+  unless you press them. Ring is deliberately limited to the Apple/Find My
+  non-owner path rather than guessed at for Tile or SmartTag.
+- **`SHA256SUMS.txt` on every release**, covering all published assets. Flock
+  detection is a trust decision, so being able to prove the file you hold is the
+  one this repo built matters. See [TRADEMARK.md](TRADEMARK.md).
+- **[TRADEMARK.md](TRADEMARK.md) and [LICENSING.md](LICENSING.md).** The first
+  draws the line between a legitimate fork (welcome) and a repackage passing
+  itself off as official (not). The second states the dual offer plainly:
+  GPL-3.0-or-later free for everyone, plus a commercial licence for anyone
+  shipping FlipDeFlock inside a closed product. **Nothing is gated, and nothing
+  changes for existing users** -- see [SUPPORTERS.md](SUPPORTERS.md).
+
+### Changed
+
+- **The README's "it never transmits" line was inaccurate** once Ping and Ring
+  existed, and now says what is actually true: detection is listen-only, those
+  two explicit actions are the exception.
+
+## v0.68
+**The Locator gave no usable sense of closer or farther.** The cause was
+arithmetic, not a broken feature.
+
+### Fixed
+
+- **The meter shows the smoothed level, not the last raw sample.** A single
+  frame's RSSI swings hard with multipath and body position, so the big number
+  jumped around with no relation to whether you were walking closer. The smoothed
+  value already existed and was only being used for the warmer/colder word.
+- **Smoothing retuned 70/30 to 50/50.** Readings on the primary target arrive
+  roughly once every 1.6 s, so at the old weight a new sample took five readings
+  (~8 s) to move the needle. When samples are scarce each one has to count more.
+- **Companion LOC window 120 ms to 400 ms.** A Flock camera sweeps the channels
+  with probe requests while the companion listens on one, so it is heard about
+  once every 1.6 s. A 120 ms window that hard-resets its peak spent most of its
+  life expiring empty and threw away the readings it *had* caught. This invents no
+  data; it stops discarding it.
+- **Freshness 2500 ms to 4000 ms**, which sat barely above the gap between
+  readings and flipped the display to "quiet" on ordinary jitter.
+
+Worth stating plainly: about one reading every 1.6 s is a physical limit for
+Wi-Fi homing on a target that hops 13 channels while you sit on one. This makes
+the feedback usable and truthful, not fast. BLE targets update far more often.
+
+## v0.67
+**A bare OUI match is no longer a detection.**
+
+### Fixed
+
+- **OUI-only sightings are dropped.** A T-Mobile gateway broadcasting
+  `tmobile-5416` was reported as a possible ALPR camera. The OUI table is mostly
+  shared silicon-vendor ranges -- Espressif, Liteon and friends -- so "beacons,
+  and has one of these prefixes" describes an enormous number of ordinary
+  consumer devices.
+  It is also no longer evidence of anything: Flock's management AP was
+  deactivated around **December 2025** and the cameras moved to station mode,
+  emitting wildcard **probe requests** roughly every 125 ms rather than
+  beaconing. So an OUI hit on a beacon is, by construction, not a camera. The
+  upstream research this OUI list comes from reached the same conclusion and
+  disabled every detection path except probe-request + OUI + IE fingerprint.
+  Nothing catchable is lost: a real camera still reaches Likely via the
+  probe-request branches and Confirmed via an SSID name or IE fingerprint.
+- **The Marauder backend got the same treatment.** It has no frame type to work
+  with, so it now requires a Flock-shaped SSID on the same line to corroborate an
+  OUI.
+
+### Added
+
+- **OUI `f8:a2:d6`**, which was missing from our copy of the upstream list. Both
+  the app and the companion carry it, enforced by the existing CI parity gate.
+
 ## v0.66
 **The evil-twin rule was too loose, and its alert was unverifiable.**
 

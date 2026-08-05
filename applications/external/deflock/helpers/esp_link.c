@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #include "esp_link.h"
 #include "../recon_app_i.h"
 #include "flock_db.h"
@@ -110,7 +110,8 @@ static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
             m->u.ble.company,
             m->u.ble.mfg_len ? m->u.ble.mfg : NULL,
             m->u.ble.mfg_len,
-            m->u.ble.raven_gatt);
+            m->u.ble.raven_gatt,
+            m->u.ble.tracker_separated);
         break;
     case EspMsgFlock:
         recon_app_report_flock(
@@ -134,6 +135,19 @@ static void esp_apply_companion(EspLink* esp, const EspMsg* m) {
     case EspMsgLocate:
         recon_app_set_locate_rssi(app, m->u.locate.rssi);
         break;
+    case EspMsgAction: {
+        BleActionKind kind = BleActionNone;
+        if(strcmp(m->u.action.op, "PING") == 0) {
+            kind = BleActionPing;
+        } else if(strcmp(m->u.action.op, "RING") == 0) {
+            kind = BleActionRing;
+        }
+        if(kind != BleActionNone) {
+            recon_app_set_ble_action(
+                app, kind, m->u.action.status, m->u.action.have_rssi, m->u.action.rssi);
+        }
+        break;
+    }
     case EspMsgGpsNmea:
         // Only when the operator actually selected the companion as the GPS
         // source. A board that relays NMEA must not be able to override a GPS

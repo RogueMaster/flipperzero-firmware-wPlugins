@@ -8,8 +8,10 @@ Works on any ESP32 with Wi-Fi: Flipper Wi-Fi Dev Board, ESP32 Marauder boards,
 ReksLab Tri-Board, bare WROOM/WROVER DevKitC, Xiao ESP32-S3, and so on. The board
 only needs its UART on the Flipper's pins 13 (TX) / 14 (RX).
 
-> Passive recon only. No deauth, no injection. Use lawfully and only where you
-> are authorized. OUI-only matches are *possible*, not confirmed; verify by eye.
+> Flock / ALPR detection is passive only. No deauth, injection, or jamming. The
+> companion also accepts explicit Flipper-triggered Ping and Ring actions for a
+> selected validated tracker. Use lawfully and only where you are authorized.
+> OUI-only matches are *possible*, not confirmed; verify by eye.
 
 ## Two ways to use the Flipper app
 
@@ -207,10 +209,11 @@ D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a][,hid=1]   detectio
    cls : 'a' = SoundThinking acoustic sensor. Absent = ALPR camera.
    hid : AP beaconed with no SSID. Reported, deliberately NOT scored.
 BBEGIN                                     BLE scan started
-BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1]   one BLE device
+BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1][,sep=1]   one BLE device
    cat   : 0 unknown 1 Flock/Raven 2 AirTag 3 Tile 4 SmartTag 5 FMDN
    mfghex: raw mfg-data hex (Flock 0x09C8 only), for serial decode
    rv=1  : Raven-specific GATT service seen -> positive acoustic-sensor ID
+   sep=1 : Apple Find My tracker advertised separated-state payload
 BEND                                       BLE scan finished
 WBEGIN                                     WiFi audit scan started
 W,<bssid>,<rssi>,<ch>,<auth>,<pair>,<grp>,<wps>,<ssid>   one AP
@@ -220,6 +223,8 @@ DA,<bssid>,<ch>                            deauth/disassoc target (attack indica
 ATK,<kind>,<value>                         active attack-tool signature
    kind: probeflood | beaconflood | blespam
 LOC,<rssi>                                 Locator: live RSSI of the active target
+ACT,<op>,<status>[,<rssi>]                  explicit tracker action result
+   op: PING (one-shot GATT reachability) or RING (non-owner sound request)
 G,<nmea>                                   one NMEA sentence from a GPS on THIS board
    Relayed verbatim from the `$` (RMC/GGA/GLL only; commas are part of the
    sentence, not protocol fields). For boards that wire the GPS to the ESP32
@@ -235,6 +240,8 @@ Flipper build simply ignores ones it does not know.
 RX (Flipper → board): `scan` (WiFi Flock), `flockcombo` (interleaved WiFi+BLE
 Flock), `flockwifi`, `wifiscan`, `blescan`, `stop`, `ver`, `ch <1-14>` (0 = hop),
 `locate <w|b> <mac> [ch]` (stream `LOC` for one target; `locate off` ends it),
+`ble_ping <mac>` (one-shot active GATT reachability check), `ble_ring <mac>`
+(separated-state non-owner sound request for an Apple/Find My tracker),
 `gps` (report relay state), `gps off`, `gps <rx_pin> [baud]` (relay NMEA from a
 GPS wired to this board; RX-only, default 9600. Pins 1 and 3 are refused -- they
 carry this very link).

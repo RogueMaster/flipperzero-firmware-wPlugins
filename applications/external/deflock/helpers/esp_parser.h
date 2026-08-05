@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 /**
  * @file esp_parser.h
  * Companion wire-protocol parser: line text -> plain tagged record.
@@ -13,11 +13,12 @@
  *   FLOCKCO,<ver>                       version banner (-> connected)
  *   S,<frames>,<hits>,<ch>[,<deauths>]  status heartbeat
  *   WBEGIN / W,<bssid>,<rssi>,<ch>,<auth>,<pair>,<grp>,<wps>,<ssid> / WEND
- *   BBEGIN / BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1] / BEND
+ *   BBEGIN / BLE,<addr>,<rssi>,<cat>,<company>,<name>[,<mfghex>][,rv=1][,sep=1] / BEND
  *   D,<mac>,<rssi>,<ch>,<type>,<conf>,<ssid>[,fp=<hex32>][,cls=a][,hid=1]  detection
  *   DA,<bssid>,<ch>                     deauth/disassoc attack target
  *   ATK,<kind>,<value>                  active attack-tool signature
  *   LOC,<rssi>                          live Locator RSSI
+ *   ACT,<op>,<status>[,<rssi>]          explicit tracker action result
  */
 #pragma once
 
@@ -53,6 +54,7 @@ typedef enum {
     EspMsgDeauthTarget, /**< DA: attributed deauth/disassoc target */
     EspMsgAttack, /**< ATK: active attack-tool signature */
     EspMsgLocate, /**< LOC: live RSSI for the Locator target */
+    EspMsgAction, /**< ACT: result of an explicit Ping/Ring request */
     EspMsgGpsNmea, /**< G: one NMEA sentence relayed from a GPS on the ESP board */
     EspMsgGpsCfg, /**< GPSCFG: the companion's echo of its GPS relay state */
     EspMsgChip, /**< CHIP: the board's real SoC, GPIO count and usable GPS pins */
@@ -97,6 +99,7 @@ typedef struct {
             uint8_t mfg[32];
             size_t mfg_len;
             bool raven_gatt;
+            bool tracker_separated; /**< tracker advert was in separated state */
         } ble;
         struct { // EspMsgStatus (S)
             uint32_t frames;
@@ -164,6 +167,12 @@ typedef struct {
         struct { // EspMsgLocate (LOC)
             int8_t rssi;
         } locate;
+        struct { // EspMsgAction (ACT)
+            const char* op; /**< PING or RING */
+            const char* status; /**< ok, sent, rejected, not_found, ... */
+            int8_t rssi;
+            bool have_rssi;
+        } action;
         struct { // EspMsgBanner (FLOCKCO)
             uint8_t version; /**< companion's announced wire-protocol version (0 = old FW) */
         } banner;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #include "recon_report.h"
 #include "../recon_app_i.h"
 #include "report_escape.h" // csv/json/md/xml field escapers (pure, host-tested)
@@ -341,7 +341,7 @@ bool recon_report_save_ble(void* _app, char* out_path_md, size_t out_len) {
 
     rfile_puts(
         &csv,
-        "addr,name,category,model,serial,company,rssi,count,following,tagged,first_lat,first_lon,last_lat,last_lon\n");
+        "addr,name,category,model,serial,company,rssi,count,following,separated,tagged,first_lat,first_lon,last_lat,last_lon\n");
     rfile_puts(&geo, "{\n  \"type\": \"FeatureCollection\",\n  \"features\": [\n");
     rfile_puts(&wigle, WIGLE_HEADER);
 
@@ -371,7 +371,7 @@ bool recon_report_save_ble(void* _app, char* out_path_md, size_t out_len) {
         rfile_printf(
             &csv,
             line,
-            "%s,%s,%s,%s,%s,0x%04X,%d,%lu,%s,%s,%s,%s,%s,%s\n",
+            "%s,%s,%s,%s,%s,0x%04X,%d,%lu,%s,%s,%s,%s,%s,%s,%s\n",
             addr_s,
             name_esc,
             ble_cat_name(d->cat),
@@ -381,6 +381,7 @@ bool recon_report_save_ble(void* _app, char* out_path_md, size_t out_len) {
             d->rssi,
             (unsigned long)d->count,
             d->following ? "yes" : "no",
+            d->tracker_separated ? "yes" : "no",
             d->marked ? "yes" : "no",
             fl,
             fo,
@@ -404,7 +405,7 @@ bool recon_report_save_ble(void* _app, char* out_path_md, size_t out_len) {
                 "      \"type\": \"Feature\",\n"
                 "      \"geometry\": { \"type\": \"Point\", \"coordinates\": [%s, %s] },\n"
                 "      \"properties\": { \"type\": \"%s\", \"model\": \"%s\", \"serial\": \"%s\", "
-                "\"following\": %s, "
+                "\"following\": %s, \"separated\": %s, "
                 "\"addr\": \"%s\", \"name\": \"%s\" }\n"
                 "    }",
                 lo,
@@ -413,6 +414,7 @@ bool recon_report_save_ble(void* _app, char* out_path_md, size_t out_len) {
                 ble_model_token(d->model),
                 serial_json,
                 d->following ? "true" : "false",
+                d->tracker_separated ? "true" : "false",
                 addr_s,
                 name_json);
         }

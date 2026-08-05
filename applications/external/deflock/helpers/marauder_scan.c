@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #include "marauder_scan.h"
 #include "esp_parser.h" // esp_hexval
 
@@ -94,11 +94,25 @@ void marauder_scan_line(const char* line, MarauderScan* out) {
         // Either surveillance-vendor table; the class is derived from the OUI.
         bool oui = flock_oui_match(mac) || soundthinking_oui_match(mac);
         FlockConfidence conf;
-        if(oui) {
-            // OUI vendor prefix; SSID naming on the same line can raise it, but
-            // an OUI alone never exceeds "possible" -- these are shared vendor
-            // ranges, not Flock-exclusive ones.
+        if(oui && ssid_conf != FlockConfidenceNone) {
+            // OUI vendor prefix CORROBORATED by SSID naming on the same line.
             conf = (ssid_conf > FlockConfidencePossible) ? ssid_conf : FlockConfidencePossible;
+        } else if(oui) {
+            // OUI alone is no longer a detection.
+            //
+            // This table is mostly shared silicon-vendor ranges (Espressif,
+            // Liteon and friends), so "has one of these OUIs" describes a great
+            // many ordinary consumer devices. It reported a T-Mobile gateway
+            // (SSID "tmobile-5416") as a possible ALPR camera. A false positive
+            // is worse than a missed detection, and that goes double for a tool
+            // people use to decide whether they are being watched.
+            //
+            // Flock's management AP was deactivated around December 2025 and the
+            // cameras moved to station mode, so a bare OUI sighting with no
+            // Flock-shaped name is not evidence of a camera in the first place.
+            // The companion backend reaches the same conclusion via frame type;
+            // the Marauder scrape has no frame type, so it needs the name.
+            continue;
         } else if(single && ssid_conf != FlockConfidenceNone) {
             // Sole MAC on a line that names a Flock SSID -> attribute to it.
             conf = ssid_conf;

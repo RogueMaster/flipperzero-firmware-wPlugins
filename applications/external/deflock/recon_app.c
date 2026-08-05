@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #include "recon_app_i.h"
 #include "helpers/esp_link.h"
 #include "helpers/gps_link.h"
@@ -7,6 +7,7 @@
 #include "helpers/sig_db.h"
 #include "helpers/detect_rules.h"
 #include "helpers/flock_store.h"
+#include "helpers/tracker_rules.h"
 
 #include <math.h>
 #include <string.h>
@@ -326,7 +327,8 @@ void recon_app_ble_add(
     uint16_t company,
     const uint8_t* mfg,
     size_t mfg_len,
-    bool raven_gatt) {
+    bool raven_gatt,
+    bool tracker_separated) {
     // Decode the Flock 0x09C8 external-battery advert: extract the device serial
     // and a model guess. The serial/battery advert is shared Falcon/Raven and
     // stays Generic; a Raven is only asserted when the companion saw its
@@ -349,6 +351,12 @@ void recon_app_ble_add(
     furi_mutex_acquire(app->mutex, FuriWaitForever);
     app->esp_ble_seen++;
     furi_mutex_release(app->mutex);
+
+    // A weak tracker advert is useful as a raw BLE observation, but not as
+    // evidence that a tracker is travelling with the operator. The companion
+    // applies the same floor; keep this guard here for older companion builds
+    // and for malformed/manual wire input.
+    if(ble_tracker_category_is_known(cat) && !ble_tracker_rssi_is_usable(rssi)) return;
 
     char serial[RECON_BLE_SERIAL_LEN] = "";
     uint8_t model = FlockBleModelUnknown;
@@ -394,6 +402,7 @@ void recon_app_ble_add(
         e->last_tick = now;
         if(cat) e->cat = cat;
         e->company = company;
+        if(ble_tracker_category_is_known(cat)) e->tracker_separated = tracker_separated;
         if(name && name[0] && e->name[0] == '\0') {
             strncpy(e->name, name, RECON_SSID_LEN - 1);
             e->name[RECON_SSID_LEN - 1] = '\0';
@@ -424,7 +433,12 @@ void recon_app_ble_add(
             // "Following": the anti-stalking coincidence gate -- seen across many
             // scans, over a real time window, at several distinct waypoints,
             // spanning real ground (all four, latched). See detect_rules.h.
-            if(ble_following_gate(
+            // Only an identified tracker can raise the anti-stalking signal.
+            // Flock hardware, Flippers, and unnamed BLE devices may move with
+            // us, but labeling them "following" would turn an indicator into
+            // an accusation.
+            if(ble_tracker_category_is_known(e->cat) && ble_tracker_rssi_is_usable(e->rssi) &&
+               ble_following_gate(
                    e->count, now - e->first_tick, e->inrange_wp_count, e->max_span_m)) {
                 e->following = true;
             }
@@ -632,9 +646,53 @@ void recon_app_set_locate_rssi(ReconApp* app, int8_t rssi) {
             float d = (float)rssi - app->locate_ema;
             app->locate_trend =
                 (int8_t)((d >= LOCATE_TREND_DB) ? 1 : (d <= -LOCATE_TREND_DB ? -1 : 0));
-            app->locate_ema = app->locate_ema * 0.7f + (float)rssi * 0.3f;
+            // Weighted 50/50, not 70/30. On the primary target -- a Flock camera
+            // -- readings land about once every 1.6 s, because the camera hops
+            // channels while probing and we listen on one. At 0.3 a new sample
+            // took five readings (~8 s) to move the needle, so the meter lagged
+            // far behind where the operator was standing. Each sample is scarce
+            // here, so each one has to count for more.
+            app->locate_ema = app->locate_ema * 0.5f + (float)rssi * 0.5f;
         }
     }
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_ble_action_begin(ReconApp* app, BleActionKind kind) {
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->ble_action_kind = (uint8_t)kind;
+    app->ble_action_pending = true;
+    app->ble_action_done = false;
+    app->ble_action_have_rssi = false;
+    app->ble_action_rssi = 0;
+    app->ble_action_tick = furi_get_tick();
+    app->ble_action_seq++;
+    if(app->ble_action_seq == 0) app->ble_action_seq = 1;
+    strncpy(app->ble_action_status, "sending", sizeof(app->ble_action_status) - 1);
+    app->ble_action_status[sizeof(app->ble_action_status) - 1] = '\0';
+    furi_mutex_release(app->mutex);
+}
+
+void recon_app_set_ble_action(
+    ReconApp* app,
+    BleActionKind kind,
+    const char* status,
+    bool have_rssi,
+    int8_t rssi) {
+    if(kind == BleActionNone) return;
+    furi_mutex_acquire(app->mutex, FuriWaitForever);
+    app->ble_action_kind = (uint8_t)kind;
+    app->ble_action_pending = false;
+    app->ble_action_done = true;
+    app->ble_action_have_rssi = have_rssi;
+    app->ble_action_rssi = rssi;
+    app->ble_action_tick = furi_get_tick();
+    app->ble_action_seq++;
+    if(app->ble_action_seq == 0) app->ble_action_seq = 1;
+    strncpy(
+        app->ble_action_status, status ? status : "unknown", sizeof(app->ble_action_status) - 1);
+    app->ble_action_status[sizeof(app->ble_action_status) - 1] = '\0';
+    app->esp_connected = true;
     furi_mutex_release(app->mutex);
 }
 
@@ -680,7 +738,7 @@ void recon_app_watchscore_tick(ReconApp* app) {
     // (2) A BLE tracker that latched the multi-condition anti-stalking gate.
     for(size_t i = 0; i < app->ble_count; i++) {
         const BleDevice* e = &app->ble[i];
-        if(!e->following) continue;
+        if(!e->following || !ble_tracker_category_is_known(e->cat)) continue;
         in.ble_following = true;
         uint32_t mins = (now - e->first_tick) / 60000;
         if(mins > in.ble_follow_min) in.ble_follow_min = mins;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 //
 // QR encoder plugin. Thin adapter over the vendored Nayuki generator -- the
 // point of the file is that qrcodegen.o lives HERE and not in the app image.

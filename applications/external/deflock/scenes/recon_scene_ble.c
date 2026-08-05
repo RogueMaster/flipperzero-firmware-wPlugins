@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright (c) 2026 ReconGrunt and FlipDeFlock contributors
+// Copyright (c) 2026 ReconGrunt
 #include "../recon_app_i.h"
 #include "../helpers/esp_link.h"
 #include "../helpers/scan_session.h"
@@ -107,17 +107,31 @@ void recon_scene_ble_on_enter(void* context) {
     }
     app->ble_blocked = false;
 
-    furi_mutex_acquire(app->mutex, FuriWaitForever);
-    app->ble_count = 0;
-    app->ble_done = false;
-    app->esp_connected = false;
-    furi_mutex_release(app->mutex);
-
     ble_list_view_set_ok_callback(app->ble_list_view, ble_view_ok_cb, app);
 
     // scan_session_start keeps the live link across a detail-view round-trip
-    // (idempotent; see scan_session.h / bug B1).
-    scan_session_start(app);
+    // (idempotent; see scan_session.h / bug B1) and returns true only on a FRESH
+    // start -- exactly the signal used here to decide whether the table gets
+    // cleared.
+    //
+    // It used to reset unconditionally, every on_enter, which fires again on a
+    // plain Back from the detail screen (scene re-entry re-runs on_enter, same
+    // as every other scene in this app). So: tag a device on the detail screen,
+    // press Back, and the count that had just been incremented for that entry
+    // went straight back to 0 before the mark was ever visible anywhere else --
+    // most importantly to the Locator, which reads app->ble[] by ble_count and
+    // so never saw a tag that had not survived one Back press. Reported as
+    // marking a device from BLE/Tracker and the Locator having nothing to home
+    // on. Same root cause as the Net Guardian data-loss bug (issue #5): clearing
+    // a live table on scene entry rather than only on a genuinely fresh session.
+    bool fresh_start = scan_session_start(app);
+    if(fresh_start) {
+        furi_mutex_acquire(app->mutex, FuriWaitForever);
+        app->ble_count = 0;
+        app->ble_done = false;
+        app->esp_connected = false;
+        furi_mutex_release(app->mutex);
+    }
 
     ble_show_scanning(app);
     ble_trigger(app);
