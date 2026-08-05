@@ -18,6 +18,8 @@ void playfree(Play *playback);
 bool playstart(Play *playback, const PlayReq *request);
 void playstop(Play *playback);
 bool playon(const Play *playback);
+bool ispaused(const Play *playback);
+bool playenter(Play *playback);
 uint32_t playms(const Play *playback);
 uint8_t playgain(const Play *playback);
 uint8_t gainup(Play *playback);

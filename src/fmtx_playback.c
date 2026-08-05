@@ -43,6 +43,7 @@ struct Play
     PlayReq req;
     volatile bool stop;
     volatile bool on;
+    volatile bool paused;
     volatile uint32_t err;
     uint8_t gain;
     Dsp dsp;
@@ -78,6 +79,24 @@ static bool skipid3(File *file)
     return storage_file_seek(file, size, true);
 }
 
+static bool putsample(Play *p, int16_t s)
+{
+    while(!p->stop)
+    {
+        if(p->paused)
+        {
+            if(p->rf->on) rfpause(p->rf);
+            furi_delay_tick(1U);
+            continue;
+        }
+        if(!p->rf->on && !rfresume(p->rf)) return false;
+        if(rfput(p->rf, s)) return true;
+    }
+
+
+    return false;
+}
+
 static bool outframe(Play *playback, const mp3d_sample_t *pcm, const mp3dec_frame_info_t *info, int samples, Rs *rs)
 {
     uint32_t rate;
@@ -104,7 +123,7 @@ static bool outframe(Play *playback, const mp3d_sample_t *pcm, const mp3dec_fram
             if(rs->filled == rate)
             {
                 int16_t s = dspsample(&playback->dsp, rs->sum / (int32_t)rate);
-                if(!rfput(playback->rf, s)) return false;
+                if(!putsample(playback, s)) return false;
                 rs->filled = 0;
                 rs->sum = 0;
             }
@@ -274,7 +293,7 @@ static int32_t playthread(void *ctx)
             if(rs.filled)
             {
                 int16_t s = dspsample(&playback->dsp, rs.sum / (int32_t)rs.filled);
-                if(!rfput(playback->rf, s)) goto done;
+                if(!putsample(playback, s)) goto done;
             }
             (void)rfdrain(playback->rf, 1000U);
         }
@@ -282,6 +301,7 @@ static int32_t playthread(void *ctx)
 
 done:
     rfstop(playback->rf);
+    playback->paused = false;
     if(file)
     {
         storage_file_close(file);
@@ -337,6 +357,7 @@ bool playstart(Play *playback, const PlayReq *request)
     }
     memcpy(&playback->req, request, sizeof(*request));
     playback->stop = false;
+    playback->paused = false;
     playback->err = FmtxPlaybackOk;
     playback->on = true;
     playback->th = furi_thread_alloc_ex("FmtxDecode", STACKSZ, playthread, playback);
@@ -363,6 +384,7 @@ void playstop(Play *playback)
         playback->th = NULL;
     }
     playback->on = false;
+    playback->paused = false;
 }
 
 bool playon(const Play *playback)
@@ -370,6 +392,32 @@ bool playon(const Play *playback)
     if(!playback) return false;
     __DMB();
     return playback->on;
+}
+
+bool ispaused(const Play *playback)
+{
+    if(!playback) return false;
+    __DMB();
+
+
+    return playback->paused;
+}
+
+bool playenter(Play *playback)
+{
+    PlayReq req;
+    if(!playback || !playback->req.path[0]) return false;
+    if(playback->on)
+    {
+        playback->paused = !playback->paused;
+        __DMB();
+        if(playback->paused && playback->rf->on) rfpause(playback->rf);
+        return true;
+    }
+    memcpy(&req, &playback->req, sizeof(req));
+
+
+    return playstart(playback, &req);
 }
 
 uint32_t playms(const Play *playback)

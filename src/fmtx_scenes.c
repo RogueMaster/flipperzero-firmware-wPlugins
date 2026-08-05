@@ -31,6 +31,14 @@ bool playinput(InputEvent *ev, void *ctx)
     m = view_get_model(app->pv);
     if(ev->key == InputKeyUp) m->gain = gainup(app->play);
     else if(ev->key == InputKeyDown) m->filter = filtertoggle(app->play);
+    else if(ev->key == InputKeyOk)
+    {
+        if(!playenter(app->play))
+        {
+            view_commit_model(app->pv, false);
+            return false;
+        }
+    }
     else
     {
         view_commit_model(app->pv, false);
