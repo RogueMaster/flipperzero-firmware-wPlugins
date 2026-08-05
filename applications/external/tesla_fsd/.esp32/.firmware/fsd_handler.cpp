@@ -47,6 +47,7 @@ void fsd_state_init(FSDState *state, TeslaHWVersion hw) {
     state->ignore_ota           = false;
     state->emergency_vehicle_detect = false;
     state->summon_unlock        = false;    // opt-in Summon EU Unlock, default OFF
+    state->continue_on_green    = false;    // opt-in Continue on Green, default OFF
     state->fsd_unlock           = false;
     state->force_fsd            = false;
     state->china_mode           = false;
@@ -202,6 +203,13 @@ bool fsd_handle_autopilot_frame(FSDState *state, CanFrame *frame) {
 
     // mux 0 is the authoritative "is FSD requested" mux
     if (mux == CAN_MUX_0) state->fsd_enabled = fsd_ui;
+
+    // bit39 continue-on-green with lead car (ev-open-can-tools TSLLC plugin);
+    // same 0x3FD mux0 frame on HW3/HW4, so apply before the HW split; pairs with TLSSC
+    if (mux == CAN_MUX_0 && state->continue_on_green && state->fsd_enabled) {
+        set_bit(frame, SIG_AP_CONTINUE_ON_GREEN_BIT, true);   // bit39 continue-on-green
+        modified = true;
+    }
 
     if (state->hw_version == TeslaHW_HW3) {
         // ── HW3 ──────────────────────────────────────────────────────────────

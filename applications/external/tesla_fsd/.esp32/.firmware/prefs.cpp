@@ -30,6 +30,7 @@ void prefs_load(FSDState *state) {
     state->precondition             = g_prefs.getBool("precond",false);
     state->emergency_vehicle_detect = g_prefs.getBool("emrg",   false);
     state->summon_unlock            = g_prefs.getBool("summon", false);
+    state->continue_on_green        = g_prefs.getBool("cog",    false);
     state->bms_output               = g_prefs.getBool("bms",    false);
     state->firmware_14x_warning     = g_prefs.getBool("14x",    true);
     state->blackbox_enabled         = g_prefs.getBool("bbx",    BLACKBOX_DEFAULT_ENABLED);
@@ -63,9 +64,10 @@ void prefs_load(FSDState *state) {
     state->cfg_steer_hi      = g_prefs.getUChar("cshi",   1);
     state->cfg_steer_lo      = g_prefs.getUChar("cslo",   0);
 
-    Serial.printf("[NVS] Loaded: FSDUnlock=%d NAG=%d ContinuousAP=%d IgnoreOTA=%d China=%d Chime=%d Summon=%d Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
+    Serial.printf("[NVS] Loaded: FSDUnlock=%d NAG=%d ContinuousAP=%d IgnoreOTA=%d China=%d Chime=%d Summon=%d COG=%d Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
                   state->fsd_unlock, state->nag_killer, state->continuous_ap, state->ignore_ota,
                   state->china_mode, state->suppress_speed_chime, state->summon_unlock,
+                  state->continue_on_green,
                   state->sleep_idle_ms, state->wifi_ssid, state->wifi_sta_ssid,
                   state->wifi_hidden);
     g_prefs.end();
@@ -99,6 +101,7 @@ void prefs_save(const FSDState *state) {
     g_prefs.putBool("precond",state->precondition);
     g_prefs.putBool("emrg",   state->emergency_vehicle_detect);
     g_prefs.putBool("summon", state->summon_unlock);
+    g_prefs.putBool("cog",    state->continue_on_green);
     g_prefs.putBool("bms",    state->bms_output);
     g_prefs.putBool("14x",    state->firmware_14x_warning);
     g_prefs.putBool("bbx",    state->blackbox_enabled);
@@ -131,9 +134,10 @@ void prefs_save(const FSDState *state) {
     g_prefs.putUChar("cshi",  state->cfg_steer_hi);
     g_prefs.putUChar("cslo",  state->cfg_steer_lo);
 
-    Serial.printf("[NVS] Saved: FSDUnlock=%d NAG=%d ContinuousAP=%d IgnoreOTA=%d China=%d Chime=%d Summon=%d Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
+    Serial.printf("[NVS] Saved: FSDUnlock=%d NAG=%d ContinuousAP=%d IgnoreOTA=%d China=%d Chime=%d Summon=%d COG=%d Sleep=%u AP=\"%s\" STA=\"%s\" HIDDEN=%d\n",
                   state->fsd_unlock, state->nag_killer, state->continuous_ap, state->ignore_ota,
                   state->china_mode, state->suppress_speed_chime, state->summon_unlock,
+                  state->continue_on_green,
                   state->sleep_idle_ms, state->wifi_ssid, state->wifi_sta_ssid,
                   state->wifi_hidden);
     g_prefs.end();

@@ -18,6 +18,7 @@ void fsd_state_init(FSDState* state, TeslaHWVersion hw) {
     state->das_prev_hands_on_state = 0xFF; // escalation-edge baseline (#100)
     state->enhanced_autopilot = false;
     state->summon_unlock = false; // opt-in Summon EU Unlock, default OFF
+    state->continue_on_green = false; // opt-in Continue on Green, default OFF
     state->speed_profile_locked = false;
     state->hw4_offset = 0;
 }
@@ -234,6 +235,12 @@ bool fsd_handle_autopilot_frame(FSDState* state, CANFRAME* frame, uint32_t now_m
     // bit38 explicit TLSSC enable on mux=0 (complementary to 0x331)
     if(mux == 0 && state->assist_tlssc_bit38 && state->fsd_enabled) {
         fsd_set_bit(frame, 38, true);
+        modified = true;
+    }
+
+    // bit39 continue-on-green with lead car (ev-open-can-tools TSLLC plugin); pairs with TLSSC/bit38
+    if(mux == 0 && state->continue_on_green && state->fsd_enabled) {
+        fsd_set_bit(frame, 39, true);
         modified = true;
     }
 

@@ -90,7 +90,7 @@ typedef struct FSDState {
         // car disengages — keeps injection off the abort edge (#108). Off by default.
     uint8_t
         ap_inject_count; // AP-enable frames modified this engagement (Minimal Inject burst budget;
-        // reset to 0 on disengage, das_ap_state < DAS_APSTATE_ENGAGED)
+    // reset to 0 on disengage, das_ap_state < DAS_APSTATE_ENGAGED)
     uint8_t das_ap_state; // DAS_autopilotState: 0=UNAVAIL 1=UNAVAILABLE/AVAIL-flicker
         // 2=AVAILABLE (offered, NOT engaged) 3=ACTIVE_NOMINAL (first
         // engaged) 6=active 8/9=aborting/aborted
@@ -243,6 +243,7 @@ typedef struct FSDState {
     // --- 0x3FD mux1 extras ---
     bool assist_show_lane_graph; // bit45: lane visualization on non-FSD tier
     bool assist_tlssc_bit38; // bit38 on mux0: explicit TLSSC enable (complementary to 0x331)
+    bool continue_on_green; // bit39 on mux0 (UI_fsdContinueOnGreenWithCIPV): continue through a green light behind a lead car without stalk confirm; opt-in, default OFF, pairs with TLSSC/bit38
 
     // --- telemetry disable (0x3F8 bit43) ---
     bool assist_telemetry_off; // force UI_enableTripTelemetry=0

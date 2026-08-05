@@ -268,6 +268,61 @@ static void test_summon_unlock(void) {
     CHECK((f.buffer[5] & 0x80) != 0, "HW4 mux1 summon-off bit47 still set (prior behavior)");
 }
 
+// ── Continue on Green (0x3FD mux0 bit39) — opt-in, HW3 + HW4 ──────────────────
+// ev-open-can-tools TSLLC plugin sets UI_fsdContinueOnGreenWithCIPV (bit39) on
+// mux0. It is gated by continue_on_green + fsd_enabled and applies before the
+// HW3/HW4 split, so bit39 must appear for both hardware versions when ON, and
+// never when the toggle is OFF. bit39 -> byte 4 bit 7 -> mask 0x80.
+static void test_continue_on_green(void) {
+    CANFRAME f;
+
+    // ── HW3 ──
+    FSDState h3;
+    memset(&h3, 0, sizeof(h3));
+    h3.hw_version = TeslaHW_HW3;
+    h3.force_fsd = true; // makes mux0 select FSD -> fsd_enabled = true
+
+    // ON: bit39 set on mux0.
+    h3.continue_on_green = true;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0; // mux0
+    CHECK(fsd_handle_autopilot_frame(&h3, &f, 0), "HW3 mux0 cog-on reports modified");
+    CHECK(h3.fsd_enabled, "HW3 mux0 sets fsd_enabled");
+    CHECK((f.buffer[4] & 0x80) != 0, "HW3 mux0 cog-on bit39 set");
+
+    // OFF: bit39 NOT set.
+    h3.continue_on_green = false;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0;
+    fsd_handle_autopilot_frame(&h3, &f, 0);
+    CHECK((f.buffer[4] & 0x80) == 0, "HW3 mux0 cog-off bit39 NOT set");
+
+    // ── HW4 ──
+    FSDState h4;
+    memset(&h4, 0, sizeof(h4));
+    h4.hw_version = TeslaHW_HW4;
+    h4.force_fsd = true;
+
+    // ON: bit39 set on mux0.
+    h4.continue_on_green = true;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0;
+    CHECK(fsd_handle_autopilot_frame(&h4, &f, 0), "HW4 mux0 cog-on reports modified");
+    CHECK(h4.fsd_enabled, "HW4 mux0 sets fsd_enabled");
+    CHECK((f.buffer[4] & 0x80) != 0, "HW4 mux0 cog-on bit39 set");
+
+    // OFF: bit39 NOT set.
+    h4.continue_on_green = false;
+    zero(&f);
+    f.data_lenght = 8;
+    f.buffer[0] = 0;
+    fsd_handle_autopilot_frame(&h4, &f, 0);
+    CHECK((f.buffer[4] & 0x80) == 0, "HW4 mux0 cog-off bit39 NOT set");
+}
+
 // ── 0x399 ISA speed chime: bit + Tesla additive checksum ──────────────────────
 static void test_isa_checksum(void) {
     CANFRAME f;
@@ -2170,6 +2225,7 @@ int main(void) {
     test_autopilot_hw4();
     test_autopilot_hw3();
     test_summon_unlock();
+    test_continue_on_green();
     test_isa_checksum();
     test_di_speed();
     test_tlssc_restore();
